@@ -45,7 +45,7 @@ func StartHTTPServer(port string) {
 	router := httprouter.New()
 
 	// 测试
-	router.GET("/test", testSMS)
+	router.GET("/test", test)
 
 	logrus.Fatal(http.ListenAndServe(port, router))
 

@@ -11,6 +11,8 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// 边缘节点
+
 var ver = "4.6"
 
 // @BasePath /api/v1
