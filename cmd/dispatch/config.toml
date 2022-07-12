@@ -1,0 +1,8 @@
+# 监听端口
+listenPort = "6789"
+
+[log]
+logPath = "dispatch.log"
+logDir = "logs/"
+logName = "dispatch"
+logLevel = "info"
