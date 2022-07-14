@@ -25,8 +25,8 @@ package notification
 // 	aliTemplateID = "SMS_244615579"
 // 	aliSignName   = "验证码"
 
-// 	accessKeyID     = "LTAI5tLrGhbH9V7qhm1uAYG4"
-// 	accessKeySecret = "3Vd6vCMfNUdVOqczha6lpOVY2PtsMn"
+// 	accessKeyID     = "abc"
+// 	accessKeySecret = "abc"
 // )
 
 // // SendSMS 发短信
