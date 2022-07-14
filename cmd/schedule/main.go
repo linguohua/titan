@@ -1,11 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"titan-ultra-network/log"
-	"titan-ultra-network/router"
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -42,7 +40,7 @@ func main() {
 			return err
 		}
 
-		port := GetListenPort()
+		// port := GetListenPort()
 
 		// 日志初始化
 		log.InitLogger(GetLogConfig().LogDir,
@@ -52,8 +50,8 @@ func main() {
 		log.Info("版本:", ver)
 
 		// 开启Http服务
-		params := fmt.Sprintf(":%s", port)
-		router.StartHTTPServer(params)
+		// params := fmt.Sprintf(":%s", port)
+		// router.StartHTTPServer(params)
 
 		return nil
 	}

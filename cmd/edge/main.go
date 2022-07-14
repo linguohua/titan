@@ -53,7 +53,7 @@ func main() {
 
 		// 开启Http服务
 		params := fmt.Sprintf(":%s", port)
-		router.StartHTTPServer(params)
+		router.StartEdgeServer(params)
 
 		return nil
 	}

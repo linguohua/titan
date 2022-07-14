@@ -6,9 +6,6 @@ import (
 
 	"titan-ultra-network/errorcode"
 	"titan-ultra-network/log"
-
-	"github.com/julienschmidt/httprouter"
-	"github.com/sirupsen/logrus"
 )
 
 // GenericHTTPRsp 通用的http response回复
@@ -38,16 +35,4 @@ func replyGeneric(w http.ResponseWriter, errCode errorcode.ErrorCode, msg string
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(b)
-}
-
-// StartHTTPServer 开启钱包服务的http服务
-func StartHTTPServer(port string) {
-	router := httprouter.New()
-
-	// 测试
-	router.GET("/test", test)
-
-	logrus.Fatal(http.ListenAndServe(port, router))
-
-	log.Infoln("port : ", port)
 }
