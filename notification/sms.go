@@ -1,17 +1,5 @@
 package notification
 
-// import (
-// 	"encoding/json"
-// 	"fmt"
-// 	"regexp"
-
-// 	openapi "github.com/alibabacloud-go/darabonba-openapi/client"
-// 	dysmsapi20170525 "github.com/alibabacloud-go/dysmsapi-20170525/v2/client"
-// 	dyvmsapi20170525 "github.com/alibabacloud-go/dyvmsapi-20170525/v2/client"
-// 	util "github.com/alibabacloud-go/tea-utils/service"
-// 	"github.com/alibabacloud-go/tea/tea"
-// )
-
 // const (
 // 	// AliTtsCodeAbleTime 预估时间不足Code
 // 	AliTtsCodeAbleTime = "TTS_244145091"
@@ -26,7 +14,7 @@ package notification
 // 	aliSignName   = "验证码"
 
 // 	accessKeyID     = "abc"
-// 	accessKeySecret = "abc"
+// 	accessKeySecret = "acv"
 // )
 
 // // SendSMS 发短信

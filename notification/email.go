@@ -26,6 +26,8 @@ var (
 	mHost     = ""
 	mPort     = 0
 	send      = false
+
+	codMsg = "您的验证码是%s。您正在使用随机密码登录服务,如非本人操作,请尽快修改密码。"
 )
 
 // EmailBody 邮件验证码body
@@ -69,8 +71,7 @@ func AddEmailOfCode(email, subject string, cid int) error {
 		Emails:   []string{email},
 		PlayerID: cid,
 		Subject:  subject,
-		//【FIL世界浏览器】您的短信验证码是XXXX。您的手机号正在使用随机密码登录服务，如非本人操作，请尽快修改密码。
-		Content: fmt.Sprintf("您的验证码是%s。您正在使用随机密码登录服务,如非本人操作,请尽快修改密码。", otpCode),
+		Content:  fmt.Sprintf(codMsg, otpCode),
 	}
 
 	// 测试的时候 不发送
