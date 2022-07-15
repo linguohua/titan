@@ -29,9 +29,13 @@ const (
 
 // Device 设备
 type Device struct {
-	userID string
+	userID string // 用户唯一标识
 
 	deviceID string // 激活码
+
+	ip string
+
+	// TODO 区域
 
 	lastMsgTime time.Time
 
@@ -89,7 +93,6 @@ func (p *Device) send(bytes []byte) {
 		if err != nil {
 			ws.Close()
 			log.Errorf("web socket write err:%v", err)
-			// p.cl.Println("web socket write err:", err)
 		}
 	}
 }
