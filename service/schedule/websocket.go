@@ -53,7 +53,6 @@ func acceptDevice(userID, deviceID string, deviceType DeviceType, ws *websocket.
 	device := newDevice(ws, userID, deviceID, deviceType)
 
 	if device != nil {
-
 		devices = append(devices, device)
 
 		drainDeviceWebsocket(device, ws)
