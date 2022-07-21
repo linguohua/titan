@@ -1,8 +1,0 @@
-# 监听端口
-listenPort = "6789"
-
-[log]
-logPath = "edge.log"
-logDir = "logs/"
-logName = "edge"
-logLevel = "info"

@@ -3,47 +3,75 @@ module titan-ultra-network
 go 1.17
 
 require (
-	github.com/BurntSushi/toml v1.1.0 // indirect
-	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4 // indirect
-	github.com/alibabacloud-go/darabonba-openapi v0.1.18 // indirect
-	github.com/alibabacloud-go/debug v0.0.0-20190504072949-9472017b5c68 // indirect
-	github.com/alibabacloud-go/dysmsapi-20170525/v2 v2.0.16 // indirect
-	github.com/alibabacloud-go/dyvmsapi-20170525/v2 v2.1.4 // indirect
-	github.com/alibabacloud-go/endpoint-util v1.1.0 // indirect
-	github.com/alibabacloud-go/openapi-util v0.0.11 // indirect
-	github.com/alibabacloud-go/tea v1.1.17 // indirect
-	github.com/alibabacloud-go/tea-utils v1.4.5 // indirect
-	github.com/alibabacloud-go/tea-xml v1.1.2 // indirect
-	github.com/aliyun/credentials-go v1.1.2 // indirect
-	github.com/clbanning/mxj/v2 v2.5.6 // indirect
+	contrib.go.opencensus.io/exporter/prometheus v0.4.1
+	github.com/BurntSushi/toml v1.1.0
+	github.com/dgraph-io/badger/v2 v2.2007.4
+	github.com/fatih/color v1.13.0
+	github.com/filecoin-project/go-jsonrpc v0.1.6
+	github.com/google/uuid v1.3.0
+	github.com/gorilla/mux v1.7.4
+	github.com/icza/backscanner v0.0.0-20210726202459-ac2ffc679f94
+	github.com/ipfs/go-cid v0.0.7
+	github.com/ipfs/go-datastore v0.5.1
+	github.com/ipfs/go-ds-badger2 v0.1.3
+	github.com/ipfs/go-ds-leveldb v0.5.0
+	github.com/ipfs/go-ds-measure v0.2.0
+	github.com/ipfs/go-fs-lock v0.0.7
+	github.com/ipfs/go-log/v2 v2.5.1
+	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/mitchellh/go-homedir v1.1.0
+	github.com/multiformats/go-base32 v0.0.3
+	github.com/multiformats/go-multiaddr v0.6.0
+	github.com/prometheus/client_golang v1.12.2
+	github.com/syndtr/goleveldb v1.0.0
+	github.com/urfave/cli/v2 v2.11.1
+	go.opencensus.io v0.23.0
+	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
+	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f
+)
+
+require (
+	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/cespare/xxhash v1.1.0 // indirect
+	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
-	github.com/filecoin-project/go-jsonrpc v0.1.5 // indirect
-	github.com/go-gomail/gomail v0.0.0-20160411212932-81ebce5c23df // indirect
-	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
-	github.com/gomodule/redigo v1.8.9 // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
-	github.com/ipfs/go-log/v2 v2.5.1 // indirect
-	github.com/json-iterator/go v1.1.10 // indirect
-	github.com/julienschmidt/httprouter v1.3.0 // indirect
-	github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f // indirect
-	github.com/lestrrat/go-strftime v0.0.0-20180220042222-ba3bf9c1d042 // indirect
+	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de // indirect
+	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
+	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/go-kit/log v0.1.0 // indirect
+	github.com/go-logfmt/logfmt v0.5.0 // indirect
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/snappy v0.0.3 // indirect
+	github.com/gorilla/websocket v1.4.2 // indirect
+	github.com/ipfs/go-ipfs-util v0.0.2 // indirect
+	github.com/ipfs/go-metrics-interface v0.0.1 // indirect
+	github.com/jbenet/goprocess v0.1.4 // indirect
+	github.com/klauspost/compress v1.12.3 // indirect
+	github.com/mattn/go-colorable v0.1.9 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
+	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
+	github.com/minio/sha256-simd v0.1.1-0.20190913151208-6de447530771 // indirect
+	github.com/mr-tron/base58 v1.1.3 // indirect
+	github.com/multiformats/go-base36 v0.1.0 // indirect
+	github.com/multiformats/go-multibase v0.0.3 // indirect
+	github.com/multiformats/go-multihash v0.0.14 // indirect
+	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/prometheus/client_model v0.2.0 // indirect
+	github.com/prometheus/common v0.32.1 // indirect
+	github.com/prometheus/procfs v0.7.3 // indirect
+	github.com/prometheus/statsd_exporter v0.21.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/sirupsen/logrus v1.8.1 // indirect
-	github.com/tjfoc/gmsm v1.3.2 // indirect
-	github.com/urfave/cli/v2 v2.11.0 // indirect
+	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.19.1 // indirect
-	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4 // indirect
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
-	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
-	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
-	gopkg.in/ini.v1 v1.56.0 // indirect
+	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
+	golang.org/x/net v0.0.0-20210525063256-abc453219eb5 // indirect
+	google.golang.org/protobuf v1.26.0 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
