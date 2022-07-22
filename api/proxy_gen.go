@@ -4,9 +4,11 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
 	xerrors "golang.org/x/xerrors"
+	"reflect"
 	"titan-ultra-network/journal/alerting"
 
 )
@@ -66,6 +68,8 @@ type EdgeStruct struct {
 	CommonStruct
 
 	Internal struct {
+
+		Save func(p0 context.Context) (error) ``
 
 		WaitQuiet func(p0 context.Context) (error) ``
 
@@ -214,6 +218,17 @@ func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 
 
 
+
+func (s *EdgeStruct) Save(p0 context.Context) (error) {
+	if s.Internal.Save == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.Save(p0)
+}
+
+func (s *EdgeStub) Save(p0 context.Context) (error) {
+	return ErrNotSupported
+}
 
 func (s *EdgeStruct) WaitQuiet(p0 context.Context) (error) {
 	if s.Internal.WaitQuiet == nil {
