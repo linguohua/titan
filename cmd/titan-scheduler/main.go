@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -15,11 +16,11 @@ import (
 	"titan-ultra-network/lib/ulimit"
 	"titan-ultra-network/metrics"
 	"titan-ultra-network/node/repo"
+	"titan-ultra-network/node/scheduler"
 
 	logging "github.com/ipfs/go-log/v2"
-	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/urfave/cli/v2"
-	"go.opencensus.io/stats/view"
+	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
 )
 
@@ -91,10 +92,6 @@ var runCmd = &cli.Command{
 			Value: "0.0.0.0:3456",
 		},
 		&cli.StringFlag{
-			Name:   "address",
-			Hidden: true,
-		},
-		&cli.StringFlag{
 			Name:  "timeout",
 			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
 			Value: "30m",
@@ -102,13 +99,6 @@ var runCmd = &cli.Command{
 	},
 
 	Before: func(cctx *cli.Context) error {
-		if cctx.IsSet("address") {
-			log.Warnf("The '--address' flag is deprecated, it has been replaced by '--listen'")
-			if err := cctx.Set("listen", cctx.String("address")); err != nil {
-				return err
-			}
-		}
-
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
@@ -132,99 +122,26 @@ var runCmd = &cli.Command{
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
-		// Register all metric views
-		if err := view.Register(
-			metrics.DefaultViews...,
-		); err != nil {
-			log.Fatalf("Cannot register the view: %v", err)
+		schedulerAPI := scheduler.NewLocalScheduleNode()
+
+		// log.Info("Setting up control endpoint at " + address)
+
+		srv := &http.Server{
+			Handler: WorkerHandler(schedulerAPI, true),
+			BaseContext: func(listener net.Listener) context.Context {
+				ctx, _ := tag.New(context.Background(), tag.Upsert(metrics.APIInterface, "titan-edge"))
+				return ctx
+			},
 		}
 
-		// Open repo
-		repoPath := cctx.String(FlagWorkerRepo)
-		r, err := repo.NewFS(repoPath)
-		if err != nil {
-			return err
-		}
-
-		ok, err := r.Exists()
-		if err != nil {
-			return err
-		}
-		if !ok {
-			if err := r.Init(repo.Worker); err != nil {
-				return err
+		go func() {
+			<-ctx.Done()
+			log.Warn("Shutting down...")
+			if err := srv.Shutdown(context.TODO()); err != nil {
+				log.Errorf("shutting down RPC server failed: %s", err)
 			}
-
-			lr, err := r.Lock(repo.Worker)
-			if err != nil {
-				return err
-			}
-
-			{
-				// init datastore for r.Exists
-				_, err := lr.Datastore(context.Background(), "/metadata")
-				if err != nil {
-					return err
-				}
-			}
-			if err := lr.Close(); err != nil {
-				return xerrors.Errorf("close repo: %w", err)
-			}
-		}
-
-		lr, err := r.Lock(repo.Worker)
-		if err != nil {
-			return err
-		}
-		defer func() {
-			if err := lr.Close(); err != nil {
-				log.Error("closing repo", err)
-			}
+			log.Warn("Graceful shutdown successful")
 		}()
-
-		log.Info("Opening local storage; connecting to scheduler")
-		const unspecifiedAddress = "0.0.0.0"
-		address := cctx.String("listen")
-		addressSlice := strings.Split(address, ":")
-		if ip := net.ParseIP(addressSlice[0]); ip != nil {
-			if ip.String() == unspecifiedAddress {
-				timeout, err := time.ParseDuration(cctx.String("timeout"))
-				if err != nil {
-					return err
-				}
-				rip, err := extractRoutableIP(timeout)
-				if err != nil {
-					return err
-				}
-				address = rip + ":" + addressSlice[1]
-			}
-		}
-
-		{
-			a, err := net.ResolveTCPAddr("tcp", address)
-			if err != nil {
-				return xerrors.Errorf("parsing address: %w", err)
-			}
-
-			ma, err := manet.FromNetAddr(a)
-			if err != nil {
-				return xerrors.Errorf("creating api multiaddress: %w", err)
-			}
-
-			if err := lr.SetAPIEndpoint(ma); err != nil {
-				return xerrors.Errorf("setting api endpoint: %w", err)
-			}
-
-			ainfo, err := lcli.GetAPIInfo(cctx, repo.StorageMiner)
-			if err != nil {
-				return xerrors.Errorf("could not get miner API info: %w", err)
-			}
-
-			// TODO: ideally this would be a token with some permissions dropped
-			if err := lr.SetAPIToken(ainfo.Token); err != nil {
-				return xerrors.Errorf("setting api token: %w", err)
-			}
-		}
 
 		return nil
 	},
