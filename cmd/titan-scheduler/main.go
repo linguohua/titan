@@ -13,7 +13,6 @@ import (
 	"titan-ultra-network/build"
 	lcli "titan-ultra-network/cli"
 	"titan-ultra-network/lib/titanlog"
-	"titan-ultra-network/lib/ulimit"
 	"titan-ultra-network/metrics"
 	"titan-ultra-network/node/repo"
 	"titan-ultra-network/node/scheduler"
@@ -104,17 +103,17 @@ var runCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		log.Info("Starting titan scheduler node")
 
-		limit, _, err := ulimit.GetLimit()
-		switch {
-		case err == ulimit.ErrUnsupported:
-			log.Errorw("checking file descriptor limit failed", "error", err)
-		case err != nil:
-			return xerrors.Errorf("checking fd limit: %w", err)
-		default:
-			if limit < build.EdgeFDLimit {
-				return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.EdgeFDLimit, limit)
-			}
-		}
+		// limit, _, err := ulimit.GetLimit()
+		// switch {
+		// case err == ulimit.ErrUnsupported:
+		// 	log.Errorw("checking file descriptor limit failed", "error", err)
+		// case err != nil:
+		// 	return xerrors.Errorf("checking fd limit: %w", err)
+		// default:
+		// 	if limit < build.EdgeFDLimit {
+		// 		return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.EdgeFDLimit, limit)
+		// 	}
+		// }
 
 		// Connect to scheduler
 		ctx := lcli.ReqContext(cctx)
@@ -127,7 +126,7 @@ var runCmd = &cli.Command{
 		// log.Info("Setting up control endpoint at " + address)
 
 		srv := &http.Server{
-			Handler: WorkerHandler(schedulerAPI, true),
+			Handler: WorkerHandler(schedulerAPI, false),
 			BaseContext: func(listener net.Listener) context.Context {
 				ctx, _ := tag.New(context.Background(), tag.Upsert(metrics.APIInterface, "titan-edge"))
 				return ctx
@@ -143,7 +142,14 @@ var runCmd = &cli.Command{
 			log.Warn("Graceful shutdown successful")
 		}()
 
-		return nil
+		address := cctx.String("listen")
+
+		nl, err := net.Listen("tcp", address)
+		if err != nil {
+			return err
+		}
+
+		return srv.Serve(nl)
 	},
 }
 
