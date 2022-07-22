@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func WorkerHandler(a api.Scheduler, permissioned bool) http.Handler {
+func schedulerHandler(a api.Scheduler, permissioned bool) http.Handler {
 	mux := mux.NewRouter()
 	readerHandler, readerServerOpt := rpcenc.ReaderParamDecoder()
 	rpcServer := jsonrpc.NewServer(readerServerOpt)
@@ -23,7 +23,7 @@ func WorkerHandler(a api.Scheduler, permissioned bool) http.Handler {
 		wapi = api.PermissionedSchedulerAPI(wapi)
 	}
 
-	rpcServer.Register("Filecoin", wapi)
+	rpcServer.Register("titan", wapi)
 
 	mux.Handle("/rpc/v0", rpcServer)
 	mux.Handle("/rpc/streams/v0/push/{uuid}", readerHandler)

@@ -95,6 +95,11 @@ var runCmd = &cli.Command{
 			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
 			Value: "30m",
 		},
+		&cli.StringFlag{
+			Name:  "api-url",
+			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
+			Value: "...",
+		},
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -103,6 +108,7 @@ var runCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		log.Info("Starting titan scheduler node")
 
+		// TODO open
 		// limit, _, err := ulimit.GetLimit()
 		// switch {
 		// case err == ulimit.ErrUnsupported:
@@ -121,12 +127,12 @@ var runCmd = &cli.Command{
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
-		schedulerAPI := scheduler.NewLocalScheduleNode()
+		schedulerAPI := scheduler.NewLocalScheduleNode(cctx)
 
 		// log.Info("Setting up control endpoint at " + address)
 
 		srv := &http.Server{
-			Handler: WorkerHandler(schedulerAPI, false),
+			Handler: schedulerHandler(schedulerAPI, false),
 			BaseContext: func(listener net.Listener) context.Context {
 				ctx, _ := tag.New(context.Background(), tag.Upsert(metrics.APIInterface, "titan-edge"))
 				return ctx
