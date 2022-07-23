@@ -69,6 +69,8 @@ type EdgeStruct struct {
 
 		CacheData func(p0 context.Context, p1 []string) (error) `perm:"write"`
 
+		DeviceID func(p0 context.Context) (string, error) `perm:"read"`
+
 		StoreStat func(p0 context.Context) (error) `perm:"read"`
 
 		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
@@ -228,6 +230,17 @@ func (s *EdgeStruct) CacheData(p0 context.Context, p1 []string) (error) {
 
 func (s *EdgeStub) CacheData(p0 context.Context, p1 []string) (error) {
 	return ErrNotSupported
+}
+
+func (s *EdgeStruct) DeviceID(p0 context.Context) (string, error) {
+	if s.Internal.DeviceID == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.DeviceID(p0)
+}
+
+func (s *EdgeStub) DeviceID(p0 context.Context) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *EdgeStruct) StoreStat(p0 context.Context) (error) {
