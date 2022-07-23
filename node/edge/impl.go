@@ -21,6 +21,10 @@ func (edge EdgeAPI) WaitQuiet(ctx context.Context) error {
 	return nil
 }
 
-func (edge EdgeAPI) Save(ctx context.Context) error {
+func (edge EdgeAPI) CacheData(ctx context.Context, cid []string) error {
+	return nil
+}
+
+func (edge EdgeAPI) StoreStat(ctx context.Context) error {
 	return nil
 }
