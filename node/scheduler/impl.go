@@ -20,7 +20,7 @@ func NewLocalScheduleNode(cctx *cli.Context) api.Scheduler {
 	return Scheduler{cctx: cctx}
 }
 
-var log = logging.Logger("main")
+var log = logging.Logger("scheduler")
 
 // Scheduler 定义类型
 type Scheduler struct {
@@ -41,15 +41,23 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		return err
 	}
 
-	vv, err := edgeAPI.Version(ctx)
-	if err != nil {
-		log.Errorf("edgeAPI Version err : %v", err)
-		return err
+	// TODO 拉取设备数据
+	// vv, err := edgeAPI.Version(ctx)
+	// if err != nil {
+	// 	log.Errorf("edgeAPI Version err : %v", err)
+	// 	return err
+	// }
+
+	// log.Infof("edgeAPI Version vv : %v", vv)
+
+	edgeNode := EdgeNode{
+		addr:     url,
+		edgeAPI:  edgeAPI,
+		closer:   closer,
+		deviceID: url,
+		userID:   url,
 	}
-
-	log.Infof("edgeAPI Version vv : %v", vv)
-
-	defer closer()
+	addEdgeNode(&edgeNode)
 
 	return nil
 }

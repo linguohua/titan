@@ -39,6 +39,7 @@ func main() {
 
 	local := []*cli.Command{
 		runCmd,
+		testCmd,
 	}
 
 	app := &cli.App{
@@ -156,6 +157,38 @@ var runCmd = &cli.Command{
 		}
 
 		return srv.Serve(nl)
+	},
+}
+
+var testCmd = &cli.Command{
+	Name:  "test",
+	Usage: "Start titan test scheduler node",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "api-url",
+			Usage: "host address and port the worker api will listen on",
+			Value: "127.0.0.1:3456",
+		},
+		&cli.StringFlag{
+			Name:  "deviceID",
+			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
+			Value: "",
+		},
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		arg0 := cctx.Args().Get(0)
+		arg1 := cctx.Args().Get(1)
+		arg2 := cctx.Args().Get(2)
+
+		url := cctx.String("api-url")
+
+		log.Infof("test arg:%v,%v,%v,%v", arg0, arg1, arg2, url)
+
+		return nil
 	},
 }
 

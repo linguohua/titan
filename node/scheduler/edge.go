@@ -6,10 +6,12 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 )
 
-// Edge Edge类型
-type Edge struct {
+// EdgeNode Edge 节点
+type EdgeNode struct {
 	edgeAPI api.Edge
 	closer  jsonrpc.ClientCloser
 
-	addr string
+	deviceID string
+	addr     string
+	userID   string
 }
