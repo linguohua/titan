@@ -12,7 +12,7 @@ var EdgeCmds = []*cli.Command{
 
 var DeviceIDCmd = &cli.Command{
 	Name:  "deviceid",
-	Usage: "Print deviceid",
+	Usage: "Print device ID",
 	Action: func(cctx *cli.Context) error {
 		api, closer, err := GetEdgeAPI(cctx)
 		if err != nil {
