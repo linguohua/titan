@@ -24,7 +24,7 @@ func WorkerHandler(authv func(ctx context.Context, token string) ([]auth.Permiss
 		wapi = api.PermissionedEdgeAPI(wapi)
 	}
 
-	rpcServer.Register("Filecoin", wapi)
+	rpcServer.Register("titan", wapi)
 
 	mux.Handle("/rpc/v0", rpcServer)
 	mux.Handle("/rpc/streams/v0/push/{uuid}", readerHandler)
