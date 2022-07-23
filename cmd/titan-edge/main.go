@@ -77,7 +77,7 @@ func main() {
 			}
 			return nil
 		},
-		Commands: local,
+		Commands: append(local, lcli.Commands...),
 	}
 	app.Setup()
 	app.Metadata["repoType"] = repo.Worker
@@ -167,7 +167,7 @@ var runCmd = &cli.Command{
 			return err
 		}
 		if v.APIVersion != api.SchedulerAPIVersion0 {
-			return xerrors.Errorf("lotus-miner API version doesn't match: expected: %s", api.APIVersion{APIVersion: api.SchedulerAPIVersion0})
+			return xerrors.Errorf("titan-scheduler API version doesn't match: expected: %s", api.APIVersion{APIVersion: api.SchedulerAPIVersion0})
 		}
 		log.Infof("Remote version %s", v)
 
@@ -356,7 +356,7 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						if err := schedulerAPI.EdgeNodeConnect(ctx, "http://"+address+"/rpc/v0"); err != nil {
+						if err := schedulerAPI.EdgeNodeConnect(ctx, "http://"+address); err != nil {
 							log.Errorf("Registering worker failed: %+v", err)
 							cancel()
 							return

@@ -5,7 +5,8 @@ import "context"
 type Edge interface {
 	Common
 
-	WaitQuiet(ctx context.Context) error
+	WaitQuiet(ctx context.Context) error //perm:read
 
-	Save(ctx context.Context) error
+	CacheData(ctx context.Context, cid []string) error //perm:write
+	StoreStat(ctx context.Context) error               //perm:read
 }

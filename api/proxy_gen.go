@@ -67,9 +67,11 @@ type EdgeStruct struct {
 
 	Internal struct {
 
-		Save func(p0 context.Context) (error) ``
+		CacheData func(p0 context.Context, p1 []string) (error) `perm:"write"`
 
-		WaitQuiet func(p0 context.Context) (error) ``
+		StoreStat func(p0 context.Context) (error) `perm:"read"`
+
+		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
 
 	}
 }
@@ -217,14 +219,25 @@ func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 
 
 
-func (s *EdgeStruct) Save(p0 context.Context) (error) {
-	if s.Internal.Save == nil {
+func (s *EdgeStruct) CacheData(p0 context.Context, p1 []string) (error) {
+	if s.Internal.CacheData == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.Save(p0)
+	return s.Internal.CacheData(p0, p1)
 }
 
-func (s *EdgeStub) Save(p0 context.Context) (error) {
+func (s *EdgeStub) CacheData(p0 context.Context, p1 []string) (error) {
+	return ErrNotSupported
+}
+
+func (s *EdgeStruct) StoreStat(p0 context.Context) (error) {
+	if s.Internal.StoreStat == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.StoreStat(p0)
+}
+
+func (s *EdgeStub) StoreStat(p0 context.Context) (error) {
 	return ErrNotSupported
 }
 
