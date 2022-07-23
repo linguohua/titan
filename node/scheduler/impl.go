@@ -6,55 +6,47 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 
 	"titan-ultra-network/api"
-	lcli "titan-ultra-network/cli"
+	"titan-ultra-network/api/client"
 	"titan-ultra-network/journal/alerting"
-
-	"github.com/urfave/cli/v2"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
 )
 
 // NewLocalScheduleNode NewLocalScheduleNode
-func NewLocalScheduleNode(cctx *cli.Context) api.Scheduler {
-	return Scheduler{cctx: cctx}
+func NewLocalScheduleNode() api.Scheduler {
+	return Scheduler{}
 }
 
 var log = logging.Logger("scheduler")
 
 // Scheduler 定义类型
-type Scheduler struct {
-	cctx *cli.Context
-}
+type Scheduler struct{}
 
 // EdgeNodeConnect edge connect
 func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 	// Connect to scheduler
-	cc := s.cctx
-	log.Infof("EdgeNodeConnect cc url : %v ", cc.String("api-url"))
-
-	cc.Set("api-url", url)
 	log.Infof("EdgeNodeConnect edge url : %v ", url)
-	edgeAPI, closer, err := lcli.GetEdgeAPI(cc)
+	edgeAPI, closer, err := client.NewEdge(ctx, url, nil)
 	if err != nil {
-		log.Errorf("edgeAPI GetEdgeAPI err : %v", err)
+		log.Errorf("edgeAPI NewEdge err : %v", err)
 		return err
 	}
 
-	// TODO 拉取设备数据
-	// vv, err := edgeAPI.Version(ctx)
-	// if err != nil {
-	// 	log.Errorf("edgeAPI Version err : %v", err)
-	// 	return err
-	// }
+	// 拉取设备数据
+	deviceID, err := edgeAPI.DeviceID(ctx)
+	if err != nil {
+		log.Errorf("edgeAPI DeviceID err : %v", err)
+		return err
+	}
 
-	// log.Infof("edgeAPI Version vv : %v", vv)
+	log.Infof("edgeAPI Version deviceID : %v", deviceID)
 
 	edgeNode := EdgeNode{
 		addr:     url,
 		edgeAPI:  edgeAPI,
 		closer:   closer,
-		deviceID: url,
+		deviceID: deviceID,
 		userID:   url,
 	}
 	addEdgeNode(&edgeNode)

@@ -6,8 +6,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
-	"time"
 
 	"titan-ultra-network/api"
 	"titan-ultra-network/build"
@@ -20,7 +18,6 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"go.opencensus.io/tag"
-	"golang.org/x/xerrors"
 )
 
 var log = logging.Logger("main")
@@ -39,7 +36,7 @@ func main() {
 
 	local := []*cli.Command{
 		runCmd,
-		testCmd,
+		cacheCmd,
 	}
 
 	app := &cli.App{
@@ -92,11 +89,6 @@ var runCmd = &cli.Command{
 			Value: "0.0.0.0:3456",
 		},
 		&cli.StringFlag{
-			Name:  "timeout",
-			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
-			Value: "30m",
-		},
-		&cli.StringFlag{
 			Name:  "api-url",
 			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
 			Value: "...",
@@ -128,7 +120,7 @@ var runCmd = &cli.Command{
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
-		schedulerAPI := scheduler.NewLocalScheduleNode(cctx)
+		schedulerAPI := scheduler.NewLocalScheduleNode()
 
 		// log.Info("Setting up control endpoint at " + address)
 
@@ -160,8 +152,8 @@ var runCmd = &cli.Command{
 	},
 }
 
-var testCmd = &cli.Command{
-	Name:  "test",
+var cacheCmd = &cli.Command{
+	Name:  "cache",
 	Usage: "Start titan test scheduler node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
@@ -170,7 +162,7 @@ var testCmd = &cli.Command{
 			Value: "127.0.0.1:3456",
 		},
 		&cli.StringFlag{
-			Name:  "deviceID",
+			Name:  "cid",
 			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
 			Value: "",
 		},
@@ -181,33 +173,12 @@ var testCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		arg0 := cctx.Args().Get(0)
-		arg1 := cctx.Args().Get(1)
-		arg2 := cctx.Args().Get(2)
 
 		url := cctx.String("api-url")
+		cid := cctx.String("cid")
 
-		log.Infof("test arg:%v,%v,%v,%v", arg0, arg1, arg2, url)
+		log.Infof("test cid:%v,url:%v,arg:%v", cid, url, arg0)
 
 		return nil
 	},
-}
-
-func extractRoutableIP(timeout time.Duration) (string, error) {
-	schedulerMultiAddrKey := "SCHEDULER_API_INFO"
-	env, ok := os.LookupEnv(schedulerMultiAddrKey)
-	if !ok {
-		// TODO remove after deprecation period
-		return "", xerrors.New("SCHEDULER_API_INFO environment variable required to extract IP")
-	}
-
-	schedulerAddr := strings.Split(env, "/")
-	conn, err := net.DialTimeout("tcp", schedulerAddr[2]+":"+schedulerAddr[4], timeout)
-	if err != nil {
-		return "", err
-	}
-	defer conn.Close() //nolint:errcheck
-
-	localAddr := conn.LocalAddr().(*net.TCPAddr)
-
-	return strings.Split(localAddr.IP.String(), ":")[0], nil
 }

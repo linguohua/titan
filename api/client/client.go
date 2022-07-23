@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"path"
@@ -58,7 +57,6 @@ func NewCandicate(ctx context.Context, addr string, requestHeader http.Header, o
 }
 
 func NewEdge(ctx context.Context, addr string, requestHeader http.Header) (api.Edge, jsonrpc.ClientCloser, error) {
-	fmt.Println("NewEdge addr : ", addr)
 	pushUrl, err := getPushUrl(addr)
 	if err != nil {
 		return nil, nil, err
