@@ -87,7 +87,14 @@ func (r rocksdb) Get(cid string) ([]byte, error) {
 	}
 
 	var key = []byte(cid)
-	return rdb.Get(readOptions, key)
+	slice, err := rdb.Get(readOptions, key)
+	if err != nil {
+		return nil, err
+	}
+
+	defer slice.Free()
+
+	return slice.Data(), nil
 }
 
 func (r rocksdb) Delete(cid string) error {
