@@ -6,8 +6,10 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"titan/api"
+	"titan/api/client"
 	"titan/build"
 	lcli "titan/cli"
 	"titan/lib/titanlog"
@@ -179,8 +181,30 @@ var cacheCmd = &cli.Command{
 
 		url := cctx.String("api-url")
 		cid := cctx.String("cid")
+		deviceID := cctx.String("deviceID")
+		log.Infof("test cid:%v,url:%v,deviceID:%v,arg:%v", cid, url, deviceID, arg0)
 
-		log.Infof("test cid:%v,url:%v,arg:%v", cid, url, arg0)
+		ctx := lcli.ReqContext(cctx)
+
+		var schedulerAPI api.Scheduler
+		var closer func()
+		var err error
+		for {
+			schedulerAPI, closer, err = client.NewScheduler(ctx, url, nil)
+			if err == nil {
+				_, err = schedulerAPI.Version(ctx)
+				if err == nil {
+					break
+				}
+			}
+			fmt.Printf("\r\x1b[0KConnecting to miner API... (%s)", err)
+			time.Sleep(time.Second)
+			continue
+		}
+
+		defer closer()
+
+		schedulerAPI.CacheData(ctx, []string{cid}, []string{deviceID})
 
 		return nil
 	},
