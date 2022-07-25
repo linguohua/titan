@@ -1,7 +1,7 @@
 package scheduler
 
 import (
-	"titan-ultra-network/api"
+	"titan/api"
 
 	"github.com/filecoin-project/go-jsonrpc"
 )

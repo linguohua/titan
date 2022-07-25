@@ -12,7 +12,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
-	"titan-ultra-network/build"
+	"titan/build"
 )
 
 func TestManageFdLimit(t *testing.T) {

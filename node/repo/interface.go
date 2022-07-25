@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 
-	"titan-ultra-network/node/fsutil"
-	"titan-ultra-network/stores"
+	"titan/node/fsutil"
+	"titan/stores"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/multiformats/go-multiaddr"
 
-	"titan-ultra-network/node/types"
+	"titan/node/types"
 )
 
 // BlockstoreDomain represents the domain of a blockstore.

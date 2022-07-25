@@ -9,8 +9,8 @@ import (
 
 	"github.com/filecoin-project/go-jsonrpc"
 
-	"titan-ultra-network/api"
-	"titan-ultra-network/lib/rpcenc"
+	"titan/api"
+	"titan/lib/rpcenc"
 )
 
 // NewScheduler creates a new http jsonrpc client.

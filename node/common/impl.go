@@ -2,10 +2,11 @@ package common
 
 import (
 	"context"
-	"titan-ultra-network/api"
-	"titan-ultra-network/journal/alerting"
 
-	"titan-ultra-network/build"
+	"titan/api"
+	"titan/journal/alerting"
+
+	"titan/build"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/gbrlsnchs/jwt/v3"
@@ -36,6 +37,7 @@ func (a CommonAPI) AuthVerify(ctx context.Context, token string) ([]auth.Permiss
 
 	return payload.Allow, nil
 }
+
 func (a CommonAPI) AuthNew(ctx context.Context, perms []auth.Permission) ([]byte, error) {
 	p := jwtPayload{
 		Allow: perms, // TODO: consider checking validity
@@ -47,6 +49,7 @@ func (a CommonAPI) AuthNew(ctx context.Context, perms []auth.Permission) ([]byte
 func (a CommonAPI) LogList(context.Context) ([]string, error) {
 	return logging.GetSubsystems(), nil
 }
+
 func (a CommonAPI) LogSetLevel(ctx context.Context, subsystem, level string) error {
 	return logging.SetLogLevel(subsystem, level)
 }

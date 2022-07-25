@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"titan-ultra-network/journal"
+	"titan/journal"
 
 	logging "github.com/ipfs/go-log/v2"
 )

@@ -6,8 +6,8 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 
-	"titan-ultra-network/api"
-	cliutil "titan-ultra-network/cli/util"
+	"titan/api"
+	cliutil "titan/cli/util"
 )
 
 var log = logging.Logger("cli")

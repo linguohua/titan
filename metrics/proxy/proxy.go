@@ -6,8 +6,8 @@ import (
 
 	"go.opencensus.io/tag"
 
-	"titan-ultra-network/api"
-	"titan-ultra-network/metrics"
+	"titan/api"
+	"titan/metrics"
 )
 
 func MetricedCandidateAPI(a api.Candidate) api.Candidate {

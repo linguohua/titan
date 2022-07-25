@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"titan-ultra-network/build"
+	"titan/build"
 
 	logging "github.com/ipfs/go-log/v2"
 )
