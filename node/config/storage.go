@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/xerrors"
 
-	"titan-ultra-network/stores"
+	"titan/stores"
 )
 
 func StorageFromFile(path string, def *stores.StorageConfig) (*stores.StorageConfig, error) {

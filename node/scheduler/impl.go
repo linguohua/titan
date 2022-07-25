@@ -5,9 +5,9 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 
-	"titan-ultra-network/api"
-	"titan-ultra-network/api/client"
-	"titan-ultra-network/journal/alerting"
+	"titan/api"
+	"titan/api/client"
+	"titan/journal/alerting"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"

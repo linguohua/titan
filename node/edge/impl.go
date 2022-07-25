@@ -2,9 +2,10 @@ package edge
 
 import (
 	"context"
-	"titan-ultra-network/api"
 
-	"titan-ultra-network/node/common"
+	"titan/api"
+
+	"titan/node/common"
 
 	"github.com/ipfs/go-datastore"
 )

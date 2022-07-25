@@ -7,17 +7,19 @@ import (
 	"net/http"
 	"os"
 
-	"titan-ultra-network/api"
-	"titan-ultra-network/build"
-	lcli "titan-ultra-network/cli"
-	"titan-ultra-network/lib/titanlog"
-	"titan-ultra-network/metrics"
-	"titan-ultra-network/node/repo"
-	"titan-ultra-network/node/scheduler"
+	"titan/api"
+	"titan/build"
+	lcli "titan/cli"
+	"titan/lib/titanlog"
+	"titan/lib/ulimit"
+	"titan/metrics"
+	"titan/node/repo"
+	"titan/node/scheduler"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"go.opencensus.io/tag"
+	"golang.org/x/xerrors"
 )
 
 var log = logging.Logger("main")
@@ -101,18 +103,17 @@ var runCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		log.Info("Starting titan scheduler node")
 
-		// TODO open
-		// limit, _, err := ulimit.GetLimit()
-		// switch {
-		// case err == ulimit.ErrUnsupported:
-		// 	log.Errorw("checking file descriptor limit failed", "error", err)
-		// case err != nil:
-		// 	return xerrors.Errorf("checking fd limit: %w", err)
-		// default:
-		// 	if limit < build.EdgeFDLimit {
-		// 		return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.EdgeFDLimit, limit)
-		// 	}
-		// }
+		limit, _, err := ulimit.GetLimit()
+		switch {
+		case err == ulimit.ErrUnsupported:
+			log.Errorw("checking file descriptor limit failed", "error", err)
+		case err != nil:
+			return xerrors.Errorf("checking fd limit: %w", err)
+		default:
+			if limit < build.EdgeFDLimit {
+				return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.EdgeFDLimit, limit)
+			}
+		}
 
 		// Connect to scheduler
 		ctx := lcli.ReqContext(cctx)

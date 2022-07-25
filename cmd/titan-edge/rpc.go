@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	"titan-ultra-network/lib/rpcenc"
+	"titan/lib/rpcenc"
 
-	"titan-ultra-network/api"
-	"titan-ultra-network/metrics/proxy"
+	"titan/api"
+	"titan/metrics/proxy"
 
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/filecoin-project/go-jsonrpc/auth"
