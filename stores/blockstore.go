@@ -1,5 +1,10 @@
 package stores
 
+import (
+	"log"
+	"os"
+)
+
 type BlockStore interface {
 	Put(data []byte, cid string) error
 	Get(cid string) ([]byte, error)
@@ -7,6 +12,11 @@ type BlockStore interface {
 }
 
 func NewBlockStore(path string, storeType string) BlockStore {
+	err := os.MkdirAll(path, 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return NewBlockStoreFromString(storeType, path)
 }
 
