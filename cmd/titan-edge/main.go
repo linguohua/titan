@@ -67,6 +67,12 @@ func main() {
 				Hidden:  true,
 				Value:   "~/.titanedge", // should follow --repo default
 			},
+			&cli.StringFlag{
+				Name:    "blockstore",
+				EnvVars: []string{"BLOCK_STORE"},
+				Hidden:  true,
+				Value:   "~/.titanedge/blockstore", // should follow --repo default
+			},
 		},
 
 		After: func(c *cli.Context) error {
@@ -264,7 +270,8 @@ var runCmd = &cli.Command{
 			}
 		}
 
-		edgeApi := edge.NewLocalEdgeNode(ds, schedulerAPI)
+		blockStore := stores.NewBlockStore("", stores.FileStore.Type())
+		edgeApi := edge.NewLocalEdgeNode(ds, schedulerAPI, blockStore)
 
 		log.Info("Setting up control endpoint at " + address)
 
