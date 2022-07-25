@@ -7,10 +7,7 @@ import (
 
 	"titan/api"
 	"titan/api/client"
-	"titan/journal/alerting"
-
-	"github.com/filecoin-project/go-jsonrpc/auth"
-	"github.com/google/uuid"
+	"titan/node/common"
 )
 
 // NewLocalScheduleNode NewLocalScheduleNode
@@ -21,7 +18,9 @@ func NewLocalScheduleNode() api.Scheduler {
 var log = logging.Logger("scheduler")
 
 // Scheduler 定义类型
-type Scheduler struct{}
+type Scheduler struct {
+	common.CommonAPI
+}
 
 // EdgeNodeConnect edge connect
 func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
@@ -54,57 +53,12 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 	return nil
 }
 
-// AuthNew Auth
-func (s Scheduler) AuthNew(ctx context.Context, perms []auth.Permission) ([]byte, error) {
-	return nil, nil
+// CacheData Cache Data
+func (s Scheduler) CacheData(ctx context.Context, cids, deviceIDs []string) error {
+	return CacheData(cids, deviceIDs)
 }
 
-// AuthVerify Verify
-func (s Scheduler) AuthVerify(ctx context.Context, token string) ([]auth.Permission, error) {
-	return nil, nil
-}
-
-// LogList Log List
-func (s Scheduler) LogList(context.Context) ([]string, error) {
-	return nil, nil
-}
-
-// LogSetLevel Set Level
-func (s Scheduler) LogSetLevel(context.Context, string, string) error {
-	return nil
-}
-
-// LogAlerts Log Alerts
-func (s Scheduler) LogAlerts(ctx context.Context) ([]alerting.Alert, error) {
-	return nil, nil
-}
-
-// Version Version
-func (s Scheduler) Version(context.Context) (api.APIVersion, error) {
-	v, err := api.VersionForType(api.NodeScheduler)
-	if err != nil {
-		return api.APIVersion{}, err
-	}
-
-	return api.APIVersion{Version: "1.52", APIVersion: v}, nil
-}
-
-// Discover Discover
-func (s Scheduler) Discover(ctx context.Context) (api.OpenRPCDocument, error) {
-	return nil, nil
-}
-
-// Shutdown Shutdown
-func (s Scheduler) Shutdown(context.Context) error {
-	return nil
-}
-
-// Session Session
-func (s Scheduler) Session(context.Context) (uuid.UUID, error) {
-	return uuid.UUID{}, nil
-}
-
-// Closing Closing
-func (s Scheduler) Closing(context.Context) (<-chan struct{}, error) {
-	return nil, nil
+// LoadData Load Data
+func (s Scheduler) LoadData(ctx context.Context, cid, deviceID string) ([]byte, error) {
+	return LoadData(cid, deviceID)
 }

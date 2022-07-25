@@ -1,6 +1,11 @@
 package scheduler
 
-import "sync"
+import (
+	"sync"
+	"time"
+
+	"titan/node/scheduler/redishelper"
+)
 
 var edgeNodeMap sync.Map
 
@@ -16,6 +21,11 @@ func addEdgeNode(edgeNode *EdgeNode) {
 	}
 
 	edgeNodeMap.Store(edgeNode.deviceID, edgeNode)
+
+	err := redishelper.SaveDeciceInfo(edgeNode.deviceID, time.Now().Format("2006-01-02 15:04:05"))
+	if err != nil {
+		log.Errorf("SaveDeciceInfo err : %v ", err)
+	}
 }
 
 func getEdgeNode(deviceID string) *EdgeNode {

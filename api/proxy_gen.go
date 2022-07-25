@@ -90,7 +90,11 @@ type SchedulerStruct struct {
 
 	Internal struct {
 
-		EdgeNodeConnect func(p0 context.Context, p1 string) (error) ``
+		CacheData func(p0 context.Context, p1 []string, p2 []string) (error) `perm:"write"`
+
+		EdgeNodeConnect func(p0 context.Context, p1 string) (error) `perm:"write"`
+
+		LoadData func(p0 context.Context, p1 string, p2 string) ([]byte, error) `perm:"read"`
 
 	}
 }
@@ -268,6 +272,17 @@ func (s *EdgeStub) WaitQuiet(p0 context.Context) (error) {
 
 
 
+func (s *SchedulerStruct) CacheData(p0 context.Context, p1 []string, p2 []string) (error) {
+	if s.Internal.CacheData == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.CacheData(p0, p1, p2)
+}
+
+func (s *SchedulerStub) CacheData(p0 context.Context, p1 []string, p2 []string) (error) {
+	return ErrNotSupported
+}
+
 func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context, p1 string) (error) {
 	if s.Internal.EdgeNodeConnect == nil {
 		return ErrNotSupported
@@ -277,6 +292,17 @@ func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context, p1 string) (error)
 
 func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context, p1 string) (error) {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) LoadData(p0 context.Context, p1 string, p2 string) ([]byte, error) {
+	if s.Internal.LoadData == nil {
+		return *new([]byte), ErrNotSupported
+	}
+	return s.Internal.LoadData(p0, p1, p2)
+}
+
+func (s *SchedulerStub) LoadData(p0 context.Context, p1 string, p2 string) ([]byte, error) {
+	return *new([]byte), ErrNotSupported
 }
 
 

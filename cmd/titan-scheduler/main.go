@@ -11,15 +11,14 @@ import (
 	"titan/build"
 	lcli "titan/cli"
 	"titan/lib/titanlog"
-	"titan/lib/ulimit"
 	"titan/metrics"
 	"titan/node/repo"
 	"titan/node/scheduler"
+	"titan/node/scheduler/redishelper"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"go.opencensus.io/tag"
-	"golang.org/x/xerrors"
 )
 
 var log = logging.Logger("main")
@@ -91,9 +90,9 @@ var runCmd = &cli.Command{
 			Value: "0.0.0.0:3456",
 		},
 		&cli.StringFlag{
-			Name:  "api-url",
+			Name:  "redis",
 			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
-			Value: "...",
+			Value: "127.0.0.1:6379",
 		},
 	},
 
@@ -103,17 +102,17 @@ var runCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		log.Info("Starting titan scheduler node")
 
-		limit, _, err := ulimit.GetLimit()
-		switch {
-		case err == ulimit.ErrUnsupported:
-			log.Errorw("checking file descriptor limit failed", "error", err)
-		case err != nil:
-			return xerrors.Errorf("checking fd limit: %w", err)
-		default:
-			if limit < build.EdgeFDLimit {
-				return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.EdgeFDLimit, limit)
-			}
-		}
+		// limit, _, err := ulimit.GetLimit()
+		// switch {
+		// case err == ulimit.ErrUnsupported:
+		// 	log.Errorw("checking file descriptor limit failed", "error", err)
+		// case err != nil:
+		// 	return xerrors.Errorf("checking fd limit: %w", err)
+		// default:
+		// 	if limit < build.EdgeFDLimit {
+		// 		return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.EdgeFDLimit, limit)
+		// 	}
+		// }
 
 		// Connect to scheduler
 		ctx := lcli.ReqContext(cctx)
@@ -143,6 +142,9 @@ var runCmd = &cli.Command{
 		}()
 
 		address := cctx.String("listen")
+		redis := cctx.String("redis")
+
+		redishelper.InitPool(redis)
 
 		nl, err := net.Listen("tcp", address)
 		if err != nil {

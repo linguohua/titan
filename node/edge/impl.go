@@ -10,7 +10,7 @@ import (
 	"github.com/ipfs/go-datastore"
 )
 
-var deviceID = "123456789000000000"
+var deviceID = "15165486494"
 
 func NewLocalEdgeNode(ds datastore.Batching, scheduler api.Scheduler) api.Edge {
 	return EdgeAPI{ds: ds, scheduler: scheduler}
