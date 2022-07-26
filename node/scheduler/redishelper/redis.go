@@ -104,3 +104,31 @@ func RedisINCRBY(key string, value int) (int, error) {
 
 	return redis.Int(conn.Do("INCRBY", key, value))
 }
+
+// RedisSADD add
+func RedisSADD(key, deviceID string) error {
+	conn := getConn()
+	defer conn.Close()
+
+	_, err := conn.Do("SADD", key, deviceID)
+
+	return err
+}
+
+// RedisSMEMBERS 返回集合中的所有成员
+func RedisSMEMBERS(key string) (interface{}, error) {
+	conn := getConn()
+	defer conn.Close()
+
+	return conn.Do("SMEMBERS", key)
+}
+
+// RedisSREM 移除集合中一个或多个成员
+func RedisSREM(key, deviceID string) error {
+	conn := getConn()
+	defer conn.Close()
+
+	_, err := conn.Do("SREM", key, deviceID)
+
+	return err
+}
