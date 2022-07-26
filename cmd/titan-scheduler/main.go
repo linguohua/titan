@@ -16,7 +16,7 @@ import (
 	"titan/metrics"
 	"titan/node/repo"
 	"titan/node/scheduler"
-	"titan/node/scheduler/redishelper"
+	"titan/node/scheduler/db"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
@@ -122,7 +122,11 @@ var runCmd = &cli.Command{
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
-		schedulerAPI := scheduler.NewLocalScheduleNode()
+		redis := cctx.String("redis")
+		///TODO
+		cacheDB := db.NewCacheDB(redis, db.Redis.Type())
+
+		schedulerAPI := scheduler.NewLocalScheduleNode(cacheDB)
 
 		// log.Info("Setting up control endpoint at " + address)
 
@@ -144,9 +148,6 @@ var runCmd = &cli.Command{
 		}()
 
 		address := cctx.String("listen")
-		redis := cctx.String("redis")
-
-		redishelper.InitPool(redis)
 
 		nl, err := net.Listen("tcp", address)
 		if err != nil {
