@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"titan/node/scheduler/redishelper"
+	"titan/node/scheduler/db"
 
 	"github.com/gomodule/redigo/redis"
 	"golang.org/x/xerrors"
@@ -41,31 +41,31 @@ func LoadData(cid string, deviceID string) ([]byte, error) {
 
 // DeviceCacheResult Device Cache Result
 func DeviceCacheResult(deviceID, cid string, isOk bool, tag int) error {
-	keyDataDeviceList := fmt.Sprintf(redishelper.RedisKeyDataDeviceList, cid)
+	keyDataDeviceList := fmt.Sprintf(db.RedisKeyDataDeviceList, cid)
 	if !isOk {
-		keyDeviceData := fmt.Sprintf(redishelper.RedisKeyDeviceDatas, deviceID)
-		err := redishelper.RedisHDEL(keyDeviceData, cid)
+		keyDeviceData := fmt.Sprintf(db.RedisKeyDeviceDatas, deviceID)
+		err := cacheDB.HDel(keyDeviceData, cid)
 		if err != nil {
 			return err
 		}
 
-		return redishelper.RedisSREM(keyDataDeviceList, deviceID)
+		return cacheDB.SremSet(keyDataDeviceList, deviceID)
 	}
 
-	return redishelper.RedisSADD(keyDataDeviceList, deviceID)
+	return cacheDB.AddSet(keyDataDeviceList, deviceID)
 }
 
 // DeviceCacheInit Device Cache init
 func DeviceCacheInit(deviceID, cid string, tag int) error {
-	keyDeviceData := fmt.Sprintf(redishelper.RedisKeyDeviceDatas, deviceID)
-	return redishelper.RedisHSET(keyDeviceData, cid, tag)
+	keyDeviceData := fmt.Sprintf(db.RedisKeyDeviceDatas, deviceID)
+	return cacheDB.HSetValue(keyDeviceData, cid, tag)
 }
 
 // GetDevicesWithData find device
 func GetDevicesWithData(cid string) (string, error) {
-	keyDataDeviceList := fmt.Sprintf(redishelper.RedisKeyDataDeviceList, cid)
+	keyDataDeviceList := fmt.Sprintf(db.RedisKeyDataDeviceList, cid)
 
-	deviceIDs, err := redis.Strings(redishelper.RedisSMEMBERS(keyDataDeviceList))
+	deviceIDs, err := redis.Strings(cacheDB.SmemberSet(keyDataDeviceList))
 	if err != nil {
 		return "", err
 	}

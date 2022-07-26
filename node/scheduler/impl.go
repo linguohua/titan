@@ -8,14 +8,19 @@ import (
 	"titan/api"
 	"titan/api/client"
 	"titan/node/common"
+	"titan/node/scheduler/db"
+)
+
+var (
+	log     = logging.Logger("scheduler")
+	cacheDB db.CacheDB
 )
 
 // NewLocalScheduleNode NewLocalScheduleNode
-func NewLocalScheduleNode() api.Scheduler {
+func NewLocalScheduleNode(cacheDB db.CacheDB) api.Scheduler {
+	cacheDB = cacheDB
 	return Scheduler{}
 }
-
-var log = logging.Logger("scheduler")
 
 // Scheduler 定义类型
 type Scheduler struct {
@@ -65,6 +70,5 @@ func (s Scheduler) LoadData(ctx context.Context, cid, deviceID string) ([]byte, 
 
 // CandidateNodeConnect Candidate connect
 func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
-
 	return nil
 }
