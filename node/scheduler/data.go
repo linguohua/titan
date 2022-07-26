@@ -6,6 +6,7 @@ import (
 
 	"titan/node/scheduler/redishelper"
 
+	"github.com/gomodule/redigo/redis"
 	"golang.org/x/xerrors"
 )
 
@@ -40,18 +41,44 @@ func LoadData(cid string, deviceID string) ([]byte, error) {
 
 // DeviceCacheResult Device Cache Result
 func DeviceCacheResult(deviceID, cid string, isOk bool, tag int) error {
+	keyDataDeviceList := fmt.Sprintf(redishelper.RedisKeyDataDeviceList, cid)
 	if !isOk {
 		keyDeviceData := fmt.Sprintf(redishelper.RedisKeyDeviceDatas, deviceID)
-		return redishelper.RedisHDEL(keyDeviceData, cid)
+		err := redishelper.RedisHDEL(keyDeviceData, cid)
+		if err != nil {
+			return err
+		}
+
+		return redishelper.RedisSREM(keyDataDeviceList, deviceID)
 	}
 
-	// keyDataDeviceList := fmt.Sprintf(redishelper.RedisKeyDataDeviceList, cid)
-
-	return nil
+	return redishelper.RedisSADD(keyDataDeviceList, deviceID)
 }
 
 // DeviceCacheInit Device Cache init
 func DeviceCacheInit(deviceID, cid string, tag int) error {
 	keyDeviceData := fmt.Sprintf(redishelper.RedisKeyDeviceDatas, deviceID)
 	return redishelper.RedisHSET(keyDeviceData, cid, tag)
+}
+
+// GetDevicesWithData find device
+func GetDevicesWithData(cid string) (string, error) {
+	keyDataDeviceList := fmt.Sprintf(redishelper.RedisKeyDataDeviceList, cid)
+
+	deviceIDs, err := redis.Strings(redishelper.RedisSMEMBERS(keyDataDeviceList))
+	if err != nil {
+		return "", err
+	}
+
+	if len(deviceIDs) <= 0 {
+		return "", xerrors.New("not find device")
+	}
+
+	deviceID := ""
+	for _, deviceID = range deviceIDs {
+		// TODO 找出最近的 device
+		log.Infof("GetDevicesWithData : %v", deviceID)
+	}
+
+	return deviceID, nil
 }
