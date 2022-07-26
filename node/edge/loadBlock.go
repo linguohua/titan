@@ -9,10 +9,10 @@ import (
 
 // 测试用
 func loadBlock(cid string) ([]byte, error) {
-	url := "http://127.0.0.1:5001/api/v0/block/get?arg=%s"
+	url := "https://ipfs.io/api/v0/block/get?arg=%s"
 	url = fmt.Sprintf(url, cid)
 
-	c := http.Client{Timeout: time.Duration(1) * time.Second}
+	c := http.Client{Timeout: time.Duration(10) * time.Second}
 	resp, err := c.Post(url, "", nil)
 	if err != nil {
 		fmt.Printf("Error %s", err)

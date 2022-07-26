@@ -39,11 +39,15 @@ func (edge EdgeAPI) CacheData(ctx context.Context, cids []string) error {
 	for _, cid := range cids {
 		data, err := loadBlock(cid)
 		if err != nil {
-			log.Infof("CacheData, loadBlock error:", err)
+			log.Errorf("CacheData, loadBlock error:", err)
 			return err
 		}
 
-		edge.blockStore.Put(data, cid)
+		err = edge.blockStore.Put(data, cid)
+		if err != nil {
+			log.Errorf("CacheData, put error:", err)
+			return err
+		}
 	}
 	return nil
 }

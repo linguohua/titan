@@ -67,11 +67,15 @@ type EdgeStruct struct {
 
 	Internal struct {
 
+		BlockStoreStat func(p0 context.Context) (error) `perm:"read"`
+
 		CacheData func(p0 context.Context, p1 []string) (error) `perm:"read"`
 
 		DeviceID func(p0 context.Context) (string, error) `perm:"read"`
 
-		StoreStat func(p0 context.Context) (error) `perm:"read"`
+		LoadData func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
+
+		LoadDataByVerifier func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
 
 		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
 
@@ -225,6 +229,17 @@ func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 
 
 
+func (s *EdgeStruct) BlockStoreStat(p0 context.Context) (error) {
+	if s.Internal.BlockStoreStat == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.BlockStoreStat(p0)
+}
+
+func (s *EdgeStub) BlockStoreStat(p0 context.Context) (error) {
+	return ErrNotSupported
+}
+
 func (s *EdgeStruct) CacheData(p0 context.Context, p1 []string) (error) {
 	if s.Internal.CacheData == nil {
 		return ErrNotSupported
@@ -247,15 +262,26 @@ func (s *EdgeStub) DeviceID(p0 context.Context) (string, error) {
 	return "", ErrNotSupported
 }
 
-func (s *EdgeStruct) StoreStat(p0 context.Context) (error) {
-	if s.Internal.StoreStat == nil {
-		return ErrNotSupported
+func (s *EdgeStruct) LoadData(p0 context.Context, p1 string) ([]byte, error) {
+	if s.Internal.LoadData == nil {
+		return *new([]byte), ErrNotSupported
 	}
-	return s.Internal.StoreStat(p0)
+	return s.Internal.LoadData(p0, p1)
 }
 
-func (s *EdgeStub) StoreStat(p0 context.Context) (error) {
-	return ErrNotSupported
+func (s *EdgeStub) LoadData(p0 context.Context, p1 string) ([]byte, error) {
+	return *new([]byte), ErrNotSupported
+}
+
+func (s *EdgeStruct) LoadDataByVerifier(p0 context.Context, p1 string) ([]byte, error) {
+	if s.Internal.LoadDataByVerifier == nil {
+		return *new([]byte), ErrNotSupported
+	}
+	return s.Internal.LoadDataByVerifier(p0, p1)
+}
+
+func (s *EdgeStub) LoadDataByVerifier(p0 context.Context, p1 string) ([]byte, error) {
+	return *new([]byte), ErrNotSupported
 }
 
 func (s *EdgeStruct) WaitQuiet(p0 context.Context) (error) {
