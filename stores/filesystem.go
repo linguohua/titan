@@ -14,7 +14,8 @@ func (fs fileStore) Type() string {
 }
 
 func (fs fileStore) Put(data []byte, cid string) error {
-	return os.WriteFile(fs.Path, data, 0644)
+	filePath := filepath.Join(fs.Path, cid)
+	return os.WriteFile(filePath, data, 0644)
 }
 
 func (fs fileStore) Get(cid string) ([]byte, error) {

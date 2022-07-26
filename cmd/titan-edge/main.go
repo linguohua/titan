@@ -71,7 +71,7 @@ func main() {
 				Name:    "blockstore",
 				EnvVars: []string{"BLOCK_STORE"},
 				Hidden:  true,
-				Value:   "~/.titanedge/blockstore", // should follow --repo default
+				Value:   "./blockstore", // should follow --repo default
 			},
 		},
 
@@ -270,7 +270,7 @@ var runCmd = &cli.Command{
 			}
 		}
 
-		blockStore := stores.NewBlockStore("", stores.FileStore.Type())
+		blockStore := stores.NewBlockStore(cctx.String("blockstore"), stores.FileStore.Type())
 		edgeApi := edge.NewLocalEdgeNode(ds, schedulerAPI, blockStore)
 
 		log.Info("Setting up control endpoint at " + address)
