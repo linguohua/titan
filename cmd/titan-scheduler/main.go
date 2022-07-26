@@ -6,20 +6,21 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"titan/api"
+	"titan/api/client"
 	"titan/build"
 	lcli "titan/cli"
 	"titan/lib/titanlog"
-	"titan/lib/ulimit"
 	"titan/metrics"
 	"titan/node/repo"
 	"titan/node/scheduler"
+	"titan/node/scheduler/redishelper"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"go.opencensus.io/tag"
-	"golang.org/x/xerrors"
 )
 
 var log = logging.Logger("main")
@@ -91,9 +92,9 @@ var runCmd = &cli.Command{
 			Value: "0.0.0.0:3456",
 		},
 		&cli.StringFlag{
-			Name:  "api-url",
+			Name:  "redis",
 			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
-			Value: "...",
+			Value: "127.0.0.1:6379",
 		},
 	},
 
@@ -103,17 +104,17 @@ var runCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		log.Info("Starting titan scheduler node")
 
-		limit, _, err := ulimit.GetLimit()
-		switch {
-		case err == ulimit.ErrUnsupported:
-			log.Errorw("checking file descriptor limit failed", "error", err)
-		case err != nil:
-			return xerrors.Errorf("checking fd limit: %w", err)
-		default:
-			if limit < build.EdgeFDLimit {
-				return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.EdgeFDLimit, limit)
-			}
-		}
+		// limit, _, err := ulimit.GetLimit()
+		// switch {
+		// case err == ulimit.ErrUnsupported:
+		// 	log.Errorw("checking file descriptor limit failed", "error", err)
+		// case err != nil:
+		// 	return xerrors.Errorf("checking fd limit: %w", err)
+		// default:
+		// 	if limit < build.EdgeFDLimit {
+		// 		return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.EdgeFDLimit, limit)
+		// 	}
+		// }
 
 		// Connect to scheduler
 		ctx := lcli.ReqContext(cctx)
@@ -126,7 +127,7 @@ var runCmd = &cli.Command{
 		// log.Info("Setting up control endpoint at " + address)
 
 		srv := &http.Server{
-			Handler: schedulerHandler(schedulerAPI, false),
+			Handler: schedulerHandler(schedulerAPI, true),
 			BaseContext: func(listener net.Listener) context.Context {
 				ctx, _ := tag.New(context.Background(), tag.Upsert(metrics.APIInterface, "titan-edge"))
 				return ctx
@@ -143,6 +144,9 @@ var runCmd = &cli.Command{
 		}()
 
 		address := cctx.String("listen")
+		redis := cctx.String("redis")
+
+		redishelper.InitPool(redis)
 
 		nl, err := net.Listen("tcp", address)
 		if err != nil {
@@ -167,6 +171,11 @@ var cacheCmd = &cli.Command{
 			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
 			Value: "",
 		},
+		&cli.StringFlag{
+			Name:  "deviceID",
+			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
+			Value: "",
+		},
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -177,8 +186,30 @@ var cacheCmd = &cli.Command{
 
 		url := cctx.String("api-url")
 		cid := cctx.String("cid")
+		deviceID := cctx.String("deviceID")
+		log.Infof("test cid:%v,url:%v,deviceID:%v,arg:%v", cid, url, deviceID, arg0)
 
-		log.Infof("test cid:%v,url:%v,arg:%v", cid, url, arg0)
+		ctx := lcli.ReqContext(cctx)
+
+		var schedulerAPI api.Scheduler
+		var closer func()
+		var err error
+		for {
+			schedulerAPI, closer, err = client.NewScheduler(ctx, url, nil)
+			if err == nil {
+				_, err = schedulerAPI.Version(ctx)
+				if err == nil {
+					break
+				}
+			}
+			fmt.Printf("\r\x1b[0KConnecting to miner API... (%s)", err)
+			time.Sleep(time.Second)
+			continue
+		}
+
+		defer closer()
+
+		schedulerAPI.CacheData(ctx, []string{cid}, []string{deviceID})
 
 		return nil
 	},

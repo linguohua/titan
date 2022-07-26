@@ -1,6 +1,8 @@
 package scheduler
 
-import "sync"
+import (
+	"sync"
+)
 
 var edgeNodeMap sync.Map
 
@@ -16,6 +18,11 @@ func addEdgeNode(edgeNode *EdgeNode) {
 	}
 
 	edgeNodeMap.Store(edgeNode.deviceID, edgeNode)
+
+	err := DeviceOnline(edgeNode.deviceID, 0)
+	if err != nil {
+		log.Errorf("DeviceOnline err : %v ", err)
+	}
 }
 
 func getEdgeNode(deviceID string) *EdgeNode {
@@ -39,4 +46,9 @@ func deleteEdgeNode(deviceID string) {
 	}
 
 	edgeNodeMap.Delete(deviceID)
+
+	err := DeviceOffline(deviceID)
+	if err != nil {
+		log.Errorf("DeviceOffline err : %v ", err)
+	}
 }
