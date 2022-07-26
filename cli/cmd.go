@@ -57,6 +57,7 @@ var (
 	GetSchedulerAPI = cliutil.GetSchedulerAPI
 	GetCandidateAPI = cliutil.GetCandidateAPI
 	GetEdgeAPI      = cliutil.GetEdgeAPI
+	GetValidatorAPI = cliutil.GetValidatorAPI
 )
 
 var CommonCommands = []*cli.Command{

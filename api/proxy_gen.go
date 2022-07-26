@@ -4,9 +4,11 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
 	xerrors "golang.org/x/xerrors"
+	"reflect"
 	"titan/journal/alerting"
 
 )
@@ -100,10 +102,31 @@ type SchedulerStruct struct {
 
 		LoadData func(p0 context.Context, p1 string, p2 string) ([]byte, error) `perm:"read"`
 
+		ValidatorNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
+
 	}
 }
 
 type SchedulerStub struct {
+
+	CommonStub
+
+}
+
+type ValidatorStruct struct {
+
+	CommonStruct
+
+	Internal struct {
+
+		VerifyData func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
+
+		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
+
+	}
+}
+
+type ValidatorStub struct {
 
 	CommonStub
 
@@ -331,11 +354,48 @@ func (s *SchedulerStub) LoadData(p0 context.Context, p1 string, p2 string) ([]by
 	return *new([]byte), ErrNotSupported
 }
 
+func (s *SchedulerStruct) ValidatorNodeConnect(p0 context.Context, p1 string) (error) {
+	if s.Internal.ValidatorNodeConnect == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ValidatorNodeConnect(p0, p1)
+}
+
+func (s *SchedulerStub) ValidatorNodeConnect(p0 context.Context, p1 string) (error) {
+	return ErrNotSupported
+}
+
+
+
+
+func (s *ValidatorStruct) VerifyData(p0 context.Context, p1 string, p2 string) (string, error) {
+	if s.Internal.VerifyData == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.VerifyData(p0, p1, p2)
+}
+
+func (s *ValidatorStub) VerifyData(p0 context.Context, p1 string, p2 string) (string, error) {
+	return "", ErrNotSupported
+}
+
+func (s *ValidatorStruct) WaitQuiet(p0 context.Context) (error) {
+	if s.Internal.WaitQuiet == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.WaitQuiet(p0)
+}
+
+func (s *ValidatorStub) WaitQuiet(p0 context.Context) (error) {
+	return ErrNotSupported
+}
+
 
 
 var _ Candidate = new(CandidateStruct)
 var _ Common = new(CommonStruct)
 var _ Edge = new(EdgeStruct)
 var _ Scheduler = new(SchedulerStruct)
+var _ Validator = new(ValidatorStruct)
 
 

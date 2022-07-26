@@ -8,7 +8,8 @@ import (
 
 var EdgeCmds = []*cli.Command{
 	DeviceIDCmd,
-	CacheData,
+	CacheDataCmd,
+	VerfyDataCmd,
 }
 
 var DeviceIDCmd = &cli.Command{
@@ -33,7 +34,7 @@ var DeviceIDCmd = &cli.Command{
 	},
 }
 
-var CacheData = &cli.Command{
+var CacheDataCmd = &cli.Command{
 	Name:  "cachedata",
 	Usage: "cache block content",
 	Flags: []cli.Flag{
@@ -61,6 +62,38 @@ var CacheData = &cli.Command{
 		}
 
 		fmt.Println("cache data success")
+		return nil
+	},
+}
+
+var VerfyDataCmd = &cli.Command{
+	Name:  "verfydata",
+	Usage: "verfy data",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "fid",
+			Usage: "file id",
+			Value: "",
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		api, closer, err := GetValidatorAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		fid := cctx.String("fid")
+		fmt.Println("fid:", fid)
+		ctx := ReqContext(cctx)
+		// TODO: print more useful things
+
+		cid, err := api.VerifyData(ctx, fid, "http://localhost:1234/rpc/v0")
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("verify data cid:", cid)
 		return nil
 	},
 }

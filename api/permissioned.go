@@ -40,3 +40,9 @@ func PermissionedEdgeAPI(a Edge) Edge {
 	permissionedProxies(a, &out)
 	return &out
 }
+
+func PermissionedValidatorAPI(a Validator) Validator {
+	var out ValidatorStruct
+	permissionedProxies(a, &out)
+	return &out
+}
