@@ -14,10 +14,11 @@ import (
 )
 
 var log = logging.Logger("main")
-var deviceID = "123456789000000000"
 
-func NewLocalEdgeNode(ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore) api.Edge {
-	return EdgeAPI{ds: ds, scheduler: scheduler, blockStore: blockStore}
+// var deviceID = "123456789000000000"
+
+func NewLocalEdgeNode(ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, deviceID string) api.Edge {
+	return EdgeAPI{ds: ds, scheduler: scheduler, blockStore: blockStore, deviceID: deviceID}
 }
 
 type EdgeAPI struct {
@@ -25,6 +26,7 @@ type EdgeAPI struct {
 	ds         datastore.Batching
 	scheduler  api.Scheduler
 	blockStore stores.BlockStore
+	deviceID   string
 }
 
 func (edge EdgeAPI) WaitQuiet(ctx context.Context) error {
@@ -57,7 +59,7 @@ func (edge EdgeAPI) BlockStoreStat(ctx context.Context) error {
 }
 
 func (edge EdgeAPI) DeviceID(ctx context.Context) (string, error) {
-	return deviceID, nil
+	return edge.deviceID, nil
 }
 
 func (edge EdgeAPI) LoadData(ctx context.Context, cid string) ([]byte, error) {

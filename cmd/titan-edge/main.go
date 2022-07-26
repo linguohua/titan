@@ -112,6 +112,11 @@ var runCmd = &cli.Command{
 			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
 			Value: "30m",
 		},
+		&cli.StringFlag{
+			Name:   "deviceid",
+			Hidden: true,
+			Value:  "123456789000000000", // should follow --repo default
+		},
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -270,8 +275,9 @@ var runCmd = &cli.Command{
 			}
 		}
 
+		deviceID := cctx.String("deviceid")
 		blockStore := stores.NewBlockStore(cctx.String("blockstore"), stores.FileStore.Type())
-		edgeApi := edge.NewLocalEdgeNode(ds, schedulerAPI, blockStore)
+		edgeApi := edge.NewLocalEdgeNode(ds, schedulerAPI, blockStore, deviceID)
 
 		log.Info("Setting up control endpoint at " + address)
 
