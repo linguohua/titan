@@ -10,6 +10,12 @@ import (
 	"titan/metrics"
 )
 
+func MetricedValidatorPI(a api.Validator) api.Validator {
+	var out api.ValidatorStruct
+	proxy(a, &out)
+	return &out
+}
+
 func MetricedCandidateAPI(a api.Candidate) api.Candidate {
 	var out api.CandidateStruct
 	proxy(a, &out)

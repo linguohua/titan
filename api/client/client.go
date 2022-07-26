@@ -6,10 +6,10 @@ import (
 	"net/url"
 	"path"
 	"time"
+	"titan/api"
 
 	"github.com/filecoin-project/go-jsonrpc"
 
-	"titan/api"
 	"titan/lib/rpcenc"
 )
 
@@ -63,6 +63,24 @@ func NewEdge(ctx context.Context, addr string, requestHeader http.Header) (api.E
 	}
 
 	var res api.EdgeStruct
+	closer, err := jsonrpc.NewMergeClient(ctx, addr, "titan",
+		api.GetInternalStructs(&res),
+		requestHeader,
+		rpcenc.ReaderParamEncoder(pushUrl),
+		jsonrpc.WithNoReconnect(),
+		jsonrpc.WithTimeout(30*time.Second),
+	)
+
+	return &res, closer, err
+}
+
+func NewValidator(ctx context.Context, addr string, requestHeader http.Header) (api.Validator, jsonrpc.ClientCloser, error) {
+	pushUrl, err := getPushUrl(addr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var res api.ValidatorStruct
 	closer, err := jsonrpc.NewMergeClient(ctx, addr, "titan",
 		api.GetInternalStructs(&res),
 		requestHeader,

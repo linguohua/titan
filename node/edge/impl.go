@@ -52,10 +52,34 @@ func (edge EdgeAPI) CacheData(ctx context.Context, cids []string) error {
 	return nil
 }
 
-func (edge EdgeAPI) StoreStat(ctx context.Context) error {
+func (edge EdgeAPI) BlockStoreStat(ctx context.Context) error {
 	return nil
 }
 
 func (edge EdgeAPI) DeviceID(ctx context.Context) (string, error) {
 	return deviceID, nil
+}
+
+func (edge EdgeAPI) LoadData(ctx context.Context, cid string) ([]byte, error) {
+	if edge.blockStore == nil {
+		log.Errorf("CacheData, blockStore not setting")
+		return nil, nil
+	}
+
+	return edge.blockStore.Get(cid)
+}
+
+func (edge EdgeAPI) LoadDataByVerifier(ctx context.Context, fileID string) ([]byte, error) {
+	if edge.blockStore == nil {
+		log.Errorf("CacheData, blockStore not setting")
+		return nil, nil
+	}
+
+	cid := getCID(fileID)
+	return edge.blockStore.Get(cid)
+}
+
+func getCID(fid string) string {
+	// TODO: 存储fid到cid的映射，然后从映射里面读取
+	return fid
 }
