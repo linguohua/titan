@@ -33,8 +33,8 @@ type CacheDB interface {
 var Redis redisDB
 
 // NewCacheDB New Cache DB
-func NewCacheDB(url string, storeType string) CacheDB {
-	switch storeType {
+func NewCacheDB(url string, dbType string) CacheDB {
+	switch dbType {
 	case Redis.Type():
 		Redis.URL = url
 		Redis.init()
