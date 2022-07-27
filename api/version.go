@@ -35,7 +35,6 @@ const (
 	NodeEdge
 	NodeCandidate
 	NodeScheduler
-	NodeValidator
 )
 
 var RunningNodeType NodeType
@@ -48,8 +47,6 @@ func VersionForType(nodeType NodeType) (Version, error) {
 		return CandidateAPIVersion0, nil
 	case NodeEdge:
 		return EdgeAPIVersion0, nil
-	case NodeValidator:
-		return ValidatorAPIVersion0, nil
 	default:
 		return Version(0), xerrors.Errorf("unknown node type %d", nodeType)
 	}
@@ -61,7 +58,6 @@ var (
 
 	CandidateAPIVersion0 = newVer(1, 0, 0)
 	EdgeAPIVersion0      = newVer(1, 0, 0)
-	ValidatorAPIVersion0 = newVer(1, 0, 0)
 )
 
 //nolint:varcheck,deadcode

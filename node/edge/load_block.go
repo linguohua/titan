@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// 测试用
+// just test
 func loadBlock(cid string) ([]byte, error) {
 	url := "https://ipfs.io/api/v0/block/get?arg=%s"
 	url = fmt.Sprintf(url, cid)

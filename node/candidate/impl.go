@@ -1,4 +1,4 @@
-package validator
+package candidate
 
 import (
 	"context"
@@ -16,8 +16,8 @@ import (
 
 var log = logging.Logger("main")
 
-func NewLocalValidatorNode(ds datastore.Batching, scheduler api.Scheduler) api.Validator {
-	return ValidatorAPI{ds: ds, scheduler: scheduler}
+func NewLocalCandidateNode(ds datastore.Batching, scheduler api.Scheduler) api.Candidate {
+	return CandidateAPI{ds: ds, scheduler: scheduler}
 }
 
 func cidFromData(data []byte) (string, error) {
@@ -36,17 +36,17 @@ func cidFromData(data []byte) (string, error) {
 	return fmt.Sprintf("%v", c), nil
 }
 
-type ValidatorAPI struct {
+type CandidateAPI struct {
 	common.CommonAPI
 	ds        datastore.Batching
 	scheduler api.Scheduler
 }
 
-func (validator ValidatorAPI) WaitQuiet(ctx context.Context) error {
+func (validator CandidateAPI) WaitQuiet(ctx context.Context) error {
 	return nil
 }
 
-func (validator ValidatorAPI) VerifyData(ctx context.Context, fid string, url string) (string, error) {
+func (validator CandidateAPI) VerifyData(ctx context.Context, fid string, url string) (string, error) {
 	edgeAPI, closer, err := client.NewEdge(ctx, url, nil)
 	if err != nil {
 		log.Errorf("VerifyData NewEdge err : %v", err)

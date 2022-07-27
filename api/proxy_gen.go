@@ -21,6 +21,10 @@ type CandidateStruct struct {
 
 	Internal struct {
 
+		VerifyData func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
+
+		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
+
 	}
 }
 
@@ -111,28 +115,31 @@ type SchedulerStub struct {
 
 }
 
-type ValidatorStruct struct {
 
-	CommonStruct
 
-	Internal struct {
 
-		VerifyData func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
-		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
-
+func (s *CandidateStruct) VerifyData(p0 context.Context, p1 string, p2 string) (string, error) {
+	if s.Internal.VerifyData == nil {
+		return "", ErrNotSupported
 	}
+	return s.Internal.VerifyData(p0, p1, p2)
 }
 
-type ValidatorStub struct {
-
-	CommonStub
-
+func (s *CandidateStub) VerifyData(p0 context.Context, p1 string, p2 string) (string, error) {
+	return "", ErrNotSupported
 }
 
+func (s *CandidateStruct) WaitQuiet(p0 context.Context) (error) {
+	if s.Internal.WaitQuiet == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.WaitQuiet(p0)
+}
 
-
-
+func (s *CandidateStub) WaitQuiet(p0 context.Context) (error) {
+	return ErrNotSupported
+}
 
 
 
@@ -365,35 +372,9 @@ func (s *SchedulerStub) ValidatorNodeConnect(p0 context.Context, p1 string) (err
 
 
 
-
-func (s *ValidatorStruct) VerifyData(p0 context.Context, p1 string, p2 string) (string, error) {
-	if s.Internal.VerifyData == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.VerifyData(p0, p1, p2)
-}
-
-func (s *ValidatorStub) VerifyData(p0 context.Context, p1 string, p2 string) (string, error) {
-	return "", ErrNotSupported
-}
-
-func (s *ValidatorStruct) WaitQuiet(p0 context.Context) (error) {
-	if s.Internal.WaitQuiet == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.WaitQuiet(p0)
-}
-
-func (s *ValidatorStub) WaitQuiet(p0 context.Context) (error) {
-	return ErrNotSupported
-}
-
-
-
 var _ Candidate = new(CandidateStruct)
 var _ Common = new(CommonStruct)
 var _ Edge = new(EdgeStruct)
 var _ Scheduler = new(SchedulerStruct)
-var _ Validator = new(ValidatorStruct)
 
 

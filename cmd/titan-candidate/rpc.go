@@ -14,14 +14,14 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func WorkerHandler(authv func(ctx context.Context, token string) ([]auth.Permission, error), a api.Validator, permissioned bool) http.Handler {
+func WorkerHandler(authv func(ctx context.Context, token string) ([]auth.Permission, error), a api.Candidate, permissioned bool) http.Handler {
 	mux := mux.NewRouter()
 	readerHandler, readerServerOpt := rpcenc.ReaderParamDecoder()
 	rpcServer := jsonrpc.NewServer(readerServerOpt)
 
-	wapi := proxy.MetricedValidatorPI(a)
+	wapi := proxy.MetricedCandidateAPI(a)
 	if permissioned {
-		wapi = api.PermissionedValidatorAPI(wapi)
+		wapi = api.PermissionedCandidateAPI(wapi)
 	}
 
 	rpcServer.Register("titan", wapi)

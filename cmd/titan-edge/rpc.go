@@ -19,7 +19,7 @@ func WorkerHandler(authv func(ctx context.Context, token string) ([]auth.Permiss
 	readerHandler, readerServerOpt := rpcenc.ReaderParamDecoder()
 	rpcServer := jsonrpc.NewServer(readerServerOpt)
 
-	wapi := proxy.MetricedEdgePI(a)
+	wapi := proxy.MetricedEdgeAPI(a)
 	if permissioned {
 		wapi = api.PermissionedEdgeAPI(wapi)
 	}
