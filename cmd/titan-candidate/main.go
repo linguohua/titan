@@ -77,7 +77,7 @@ func main() {
 			}
 			return nil
 		},
-		Commands: append(local, lcli.ValidatorCmds...),
+		Commands: append(local, lcli.CandidateCmds...),
 	}
 	app.Setup()
 	app.Metadata["repoType"] = repo.Worker
@@ -356,7 +356,7 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						if err := schedulerAPI.ValidatorNodeConnect(ctx, "http://"+address+"/rpc/v0"); err != nil {
+						if err := schedulerAPI.CandidateNodeConnect(ctx, "http://"+address+"/rpc/v0"); err != nil {
 							log.Errorf("Registering worker failed: %+v", err)
 							cancel()
 							return

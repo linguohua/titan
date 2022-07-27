@@ -7,7 +7,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var ValidatorCmds = []*cli.Command{
+var CandidateCmds = []*cli.Command{
 	VerfyDataCmd,
 }
 
