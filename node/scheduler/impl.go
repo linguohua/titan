@@ -63,8 +63,8 @@ func (s Scheduler) LoadData(ctx context.Context, cid, deviceID string) ([]byte, 
 	return LoadData(cid, deviceID)
 }
 
-// ValidatorNodeConnect Validator connect
-func (s Scheduler) ValidatorNodeConnect(ctx context.Context, url string) error {
+// CandidateNodeConnect Candidate connect
+func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 
 	return nil
 }

@@ -100,11 +100,11 @@ type SchedulerStruct struct {
 
 		CacheData func(p0 context.Context, p1 []string, p2 []string) (error) `perm:"read"`
 
+		CandidateNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
+
 		EdgeNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
 		LoadData func(p0 context.Context, p1 string, p2 string) ([]byte, error) `perm:"read"`
-
-		ValidatorNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
 	}
 }
@@ -337,6 +337,17 @@ func (s *SchedulerStub) CacheData(p0 context.Context, p1 []string, p2 []string) 
 	return ErrNotSupported
 }
 
+func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context, p1 string) (error) {
+	if s.Internal.CandidateNodeConnect == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.CandidateNodeConnect(p0, p1)
+}
+
+func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 string) (error) {
+	return ErrNotSupported
+}
+
 func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context, p1 string) (error) {
 	if s.Internal.EdgeNodeConnect == nil {
 		return ErrNotSupported
@@ -357,17 +368,6 @@ func (s *SchedulerStruct) LoadData(p0 context.Context, p1 string, p2 string) ([]
 
 func (s *SchedulerStub) LoadData(p0 context.Context, p1 string, p2 string) ([]byte, error) {
 	return *new([]byte), ErrNotSupported
-}
-
-func (s *SchedulerStruct) ValidatorNodeConnect(p0 context.Context, p1 string) (error) {
-	if s.Internal.ValidatorNodeConnect == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.ValidatorNodeConnect(p0, p1)
-}
-
-func (s *SchedulerStub) ValidatorNodeConnect(p0 context.Context, p1 string) (error) {
-	return ErrNotSupported
 }
 
 

@@ -11,5 +11,5 @@ type Scheduler interface {
 
 	LoadData(context.Context, string, string) ([]byte, error) //perm:read
 
-	ValidatorNodeConnect(context.Context, string) error //perm:read
+	CandidateNodeConnect(context.Context, string) error //perm:read
 }

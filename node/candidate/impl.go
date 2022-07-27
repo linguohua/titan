@@ -42,11 +42,11 @@ type CandidateAPI struct {
 	scheduler api.Scheduler
 }
 
-func (validator CandidateAPI) WaitQuiet(ctx context.Context) error {
+func (candidate CandidateAPI) WaitQuiet(ctx context.Context) error {
 	return nil
 }
 
-func (validator CandidateAPI) VerifyData(ctx context.Context, fid string, url string) (string, error) {
+func (candidate CandidateAPI) VerifyData(ctx context.Context, fid string, url string) (string, error) {
 	edgeAPI, closer, err := client.NewEdge(ctx, url, nil)
 	if err != nil {
 		log.Errorf("VerifyData NewEdge err : %v", err)
