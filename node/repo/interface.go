@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 
-	"titan/node/fsutil"
-	"titan/stores"
+	"github.com/linguohua/titan/node/fsutil"
+
+	"github.com/linguohua/titan/stores"
 
 	"github.com/ipfs/go-datastore"
+	"github.com/linguohua/titan/node/types"
 	"github.com/multiformats/go-multiaddr"
-
-	"titan/node/types"
 )
 
 // BlockstoreDomain represents the domain of a blockstore.

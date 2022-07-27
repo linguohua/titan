@@ -7,7 +7,7 @@ import (
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
 	xerrors "golang.org/x/xerrors"
-	"titan/journal/alerting"
+	"github.com/linguohua/titan/journal/alerting"
 
 )
 

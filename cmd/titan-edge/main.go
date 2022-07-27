@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"titan/api"
-	"titan/build"
-	lcli "titan/cli"
-	"titan/lib/titanlog"
-	"titan/lib/ulimit"
-	"titan/metrics"
-	"titan/node/repo"
+	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/build"
+	lcli "github.com/linguohua/titan/cli"
+	"github.com/linguohua/titan/lib/titanlog"
+	"github.com/linguohua/titan/lib/ulimit"
+	"github.com/linguohua/titan/metrics"
+	"github.com/linguohua/titan/node/repo"
 
 	"github.com/google/uuid"
 	logging "github.com/ipfs/go-log/v2"
@@ -28,8 +28,8 @@ import (
 	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
 
-	"titan/node/edge"
-	"titan/stores"
+	"github.com/linguohua/titan/node/edge"
+	"github.com/linguohua/titan/stores"
 )
 
 var log = logging.Logger("main")

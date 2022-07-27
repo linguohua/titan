@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"titan/node/scheduler/db"
+	"github.com/linguohua/titan/node/scheduler/db"
 
 	"github.com/gomodule/redigo/redis"
 	"golang.org/x/xerrors"

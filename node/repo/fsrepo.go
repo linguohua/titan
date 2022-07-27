@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"titan/stores"
+	"github.com/linguohua/titan/stores"
 
 	"github.com/BurntSushi/toml"
 
@@ -23,10 +23,10 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"golang.org/x/xerrors"
 
-	"titan/node/config"
+	"github.com/linguohua/titan/node/config"
 
-	"titan/node/fsutil"
-	"titan/node/types"
+	"github.com/linguohua/titan/node/fsutil"
+	"github.com/linguohua/titan/node/types"
 )
 
 const (

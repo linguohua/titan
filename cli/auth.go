@@ -8,8 +8,8 @@ import (
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
 
-	"titan/api"
-	"titan/node/repo"
+	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/repo"
 )
 
 var AuthCmd = &cli.Command{

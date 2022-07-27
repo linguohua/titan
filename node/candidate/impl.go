@@ -3,10 +3,11 @@ package candidate
 import (
 	"context"
 	"fmt"
-	"titan/api"
-	"titan/api/client"
 
-	"titan/node/common"
+	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/client"
+
+	"github.com/linguohua/titan/node/common"
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"

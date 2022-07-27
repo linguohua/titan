@@ -3,10 +3,10 @@ package common
 import (
 	"context"
 
-	"titan/api"
-	"titan/journal/alerting"
+	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/journal/alerting"
 
-	"titan/build"
+	"github.com/linguohua/titan/build"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/gbrlsnchs/jwt/v3"

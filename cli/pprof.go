@@ -8,7 +8,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
 
-	"titan/node/repo"
+	"github.com/linguohua/titan/node/repo"
 )
 
 var PprofCmd = &cli.Command{

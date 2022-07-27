@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/xerrors"
 
-	"titan/stores"
+	"github.com/linguohua/titan/stores"
 )
 
 func StorageFromFile(path string, def *stores.StorageConfig) (*stores.StorageConfig, error) {

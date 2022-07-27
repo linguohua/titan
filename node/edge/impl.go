@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"titan/api"
-	"titan/stores"
+	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/stores"
 
-	"titan/node/common"
+	"github.com/linguohua/titan/node/common"
 
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"

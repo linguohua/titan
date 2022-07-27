@@ -5,10 +5,10 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 
-	"titan/api"
-	"titan/api/client"
-	"titan/node/common"
-	"titan/node/scheduler/db"
+	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/client"
+	"github.com/linguohua/titan/node/common"
+	"github.com/linguohua/titan/node/scheduler/db"
 )
 
 var (

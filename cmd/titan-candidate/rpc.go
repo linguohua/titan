@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	"titan/lib/rpcenc"
+	"github.com/linguohua/titan/lib/rpcenc"
 
-	"titan/api"
-	"titan/metrics/proxy"
+	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/metrics/proxy"
 
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/filecoin-project/go-jsonrpc/auth"

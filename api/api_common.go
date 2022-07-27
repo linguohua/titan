@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	// apitypes "github.com/filecoin-project/lotus/api/types"
-	"titan/journal/alerting"
+	"github.com/linguohua/titan/journal/alerting"
 
 	"github.com/google/uuid"
 

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"titan/api"
-	"titan/node/scheduler/db"
+	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/scheduler/db"
 
 	"github.com/filecoin-project/go-jsonrpc"
 )

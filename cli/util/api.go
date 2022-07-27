@@ -16,9 +16,9 @@ import (
 
 	"github.com/filecoin-project/go-jsonrpc"
 
-	"titan/api"
-	"titan/api/client"
-	"titan/node/repo"
+	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/client"
+	"github.com/linguohua/titan/node/repo"
 )
 
 const (
