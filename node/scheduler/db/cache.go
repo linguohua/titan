@@ -16,29 +16,23 @@ const (
 
 // CacheDB cache db
 type CacheDB interface {
-	init()
-	HGetValue(key, field string) (interface{}, error)
+	HGetValue(key, field string, out interface{}) (bool, error)
 	HSetValue(key, field string, value interface{}) error
-	HGetValues(key string, args ...interface{}) (interface{}, error)
+	// HGetValues(key string, args ...interface{}) (interface{}, error)
 	HSetValues(key string, args ...interface{}) error
 	HDel(key, field string) error
-	IncrbyField(key, field string, value int) error
-	Incrby(key string, value int) (int, error)
+	IncrbyField(key, field string, value int64) error
+	Incrby(key string, value int64) (int64, error)
 	AddSet(key, deviceID string) error
-	SmemberSet(key string) (interface{}, error)
+	SmemberSet(key string) ([]string, error)
 	SremSet(key, deviceID string) error
 }
-
-// Redis Redis
-var Redis redisDB
 
 // NewCacheDB New Cache DB
 func NewCacheDB(url string, dbType string) CacheDB {
 	switch dbType {
-	case Redis.Type():
-		Redis.URL = url
-		Redis.init()
-		return Redis
+	case TypeRedis():
+		return InitRedis(url)
 
 	default:
 		panic("unknown CacheDB type")

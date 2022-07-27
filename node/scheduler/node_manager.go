@@ -4,7 +4,10 @@ import (
 	"sync"
 )
 
-var edgeNodeMap sync.Map
+var (
+	edgeNodeMap      sync.Map
+	candidateNodeMap sync.Map
+)
 
 func addEdgeNode(edgeNode *EdgeNode) {
 	nodeI, ok := edgeNodeMap.Load(edgeNode.deviceID)
