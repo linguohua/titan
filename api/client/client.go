@@ -74,24 +74,6 @@ func NewEdge(ctx context.Context, addr string, requestHeader http.Header) (api.E
 	return &res, closer, err
 }
 
-func NewValidator(ctx context.Context, addr string, requestHeader http.Header) (api.Validator, jsonrpc.ClientCloser, error) {
-	pushUrl, err := getPushUrl(addr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var res api.ValidatorStruct
-	closer, err := jsonrpc.NewMergeClient(ctx, addr, "titan",
-		api.GetInternalStructs(&res),
-		requestHeader,
-		rpcenc.ReaderParamEncoder(pushUrl),
-		jsonrpc.WithNoReconnect(),
-		jsonrpc.WithTimeout(30*time.Second),
-	)
-
-	return &res, closer, err
-}
-
 // NewCommonRPCV0 creates a new http jsonrpc client.
 func NewCommonRPCV0(ctx context.Context, addr string, requestHeader http.Header) (api.Common, jsonrpc.ClientCloser, error) {
 	var res api.CommonStruct

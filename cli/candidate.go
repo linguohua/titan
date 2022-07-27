@@ -22,7 +22,7 @@ var VerfyDataCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetValidatorAPI(cctx)
+		api, closer, err := GetCandidateAPI(cctx)
 		if err != nil {
 			return err
 		}

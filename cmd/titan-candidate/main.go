@@ -28,16 +28,16 @@ import (
 	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
 
-	"titan/node/validator"
+	"titan/node/candidate"
 	"titan/stores"
 )
 
 var log = logging.Logger("main")
 
-const FlagWorkerRepo = "validator-repo"
+const FlagWorkerRepo = "candidate-repo"
 
 // TODO remove after deprecation period
-const FlagWorkerRepoDeprecation = "validatorrepo"
+const FlagWorkerRepoDeprecation = "candidaterepo"
 
 func main() {
 	api.RunningNodeType = api.NodeEdge
@@ -49,23 +49,23 @@ func main() {
 	}
 
 	app := &cli.App{
-		Name:                 "titan-validator",
-		Usage:                "Titan validator node",
+		Name:                 "titan-candidate",
+		Usage:                "Titan candidate node",
 		Version:              build.UserVersion(),
 		EnableBashCompletion: true,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    FlagWorkerRepo,
 				Aliases: []string{FlagWorkerRepoDeprecation},
-				EnvVars: []string{"TITAN_VALIDATOR_PATH", "VALIDATOR_PATH"},
-				Value:   "~/.titanvalidator", // TODO: Consider XDG_DATA_HOME
+				EnvVars: []string{"TITAN_CANDIDATE_PATH", "CANDIDATE_PATH"},
+				Value:   "~/.titancandidate", // TODO: Consider XDG_DATA_HOME
 				Usage:   fmt.Sprintf("Specify worker repo path. flag %s and env TITAN_EDGE_PATH are DEPRECATION, will REMOVE SOON", FlagWorkerRepoDeprecation),
 			},
 			&cli.StringFlag{
 				Name:    "panic-reports",
 				EnvVars: []string{"TITAN_PANIC_REPORT_PATH"},
 				Hidden:  true,
-				Value:   "~/.titanvalidator", // should follow --repo default
+				Value:   "~/.titancandidate", // should follow --repo default
 			},
 		},
 
@@ -90,7 +90,7 @@ func main() {
 
 var runCmd = &cli.Command{
 	Name:  "run",
-	Usage: "Start titan validator node",
+	Usage: "Start titan candidate node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "listen",
@@ -264,12 +264,12 @@ var runCmd = &cli.Command{
 			}
 		}
 
-		validatorApi := validator.NewLocalValidatorNode(ds, schedulerAPI)
+		candidateApi := candidate.NewLocalCandidateNode(ds, schedulerAPI)
 
 		log.Info("Setting up control endpoint at " + address)
 
 		srv := &http.Server{
-			Handler: WorkerHandler(schedulerAPI.AuthVerify, validatorApi, true),
+			Handler: WorkerHandler(schedulerAPI.AuthVerify, candidateApi, true),
 			BaseContext: func(listener net.Listener) context.Context {
 				ctx, _ := tag.New(context.Background(), tag.Upsert(metrics.APIInterface, "titan-edge"))
 				return ctx
@@ -325,7 +325,7 @@ var runCmd = &cli.Command{
 			out := make(chan struct{})
 			go func() {
 				ctx2 := context.Background()
-				validatorApi.WaitQuiet(ctx2)
+				candidateApi.WaitQuiet(ctx2)
 				close(out)
 			}()
 			return out
