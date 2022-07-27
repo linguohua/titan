@@ -123,8 +123,8 @@ var runCmd = &cli.Command{
 		defer cancel()
 
 		redis := cctx.String("redis")
-		///TODO
-		cacheDB := db.NewCacheDB(redis, db.Redis.Type())
+		// TODO
+		cacheDB := db.NewCacheDB(redis, db.TypeRedis())
 
 		schedulerAPI := scheduler.NewLocalScheduleNode(cacheDB)
 

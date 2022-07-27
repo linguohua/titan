@@ -20,6 +20,16 @@ type EdgeNode struct {
 	userID   string
 }
 
+// CandidateNode Candidate 节点
+type CandidateNode struct {
+	edgeAPI api.Candidate
+	closer  jsonrpc.ClientCloser
+
+	deviceID string
+	addr     string
+	userID   string
+}
+
 const (
 	// redis field
 	lastTimeField   = "LastTime"
@@ -28,7 +38,7 @@ const (
 )
 
 // DeviceOnline Save DeciceInfo
-func DeviceOnline(deviceID string, onlineTime int) error {
+func DeviceOnline(deviceID string, onlineTime int64) error {
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
 
 	key := fmt.Sprintf(db.RedisKeyDeviceInfo, deviceID)

@@ -17,8 +17,8 @@ var (
 )
 
 // NewLocalScheduleNode NewLocalScheduleNode
-func NewLocalScheduleNode(cacheDB db.CacheDB) api.Scheduler {
-	cacheDB = cacheDB
+func NewLocalScheduleNode(c db.CacheDB) api.Scheduler {
+	cacheDB = c
 	return Scheduler{}
 }
 
