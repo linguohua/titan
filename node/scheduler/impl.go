@@ -70,5 +70,28 @@ func (s Scheduler) LoadData(ctx context.Context, cid, deviceID string) ([]byte, 
 
 // CandidateNodeConnect Candidate connect
 func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
+	// candicateAPI, closer, err := client.NewCandicate(ctx, url, nil)
+	// if err != nil {
+	// 	log.Errorf("edgeAPI NewEdge err : %v", err)
+	// 	return err
+	// }
+
+	// // 拉取设备数据
+	// deviceID, err := candicateAPI.DeviceID(ctx)
+	// if err != nil {
+	// 	log.Errorf("edgeAPI DeviceID err : %v", err)
+	// 	return err
+	// }
+
+	// log.Infof("edgeAPI Version deviceID : %v", deviceID)
+
+	// edgeNode := EdgeNode{
+	// 	addr:     url,
+	// 	edgeAPI:  candicateAPI,
+	// 	closer:   closer,
+	// 	deviceID: deviceID,
+	// 	userID:   url,
+	// }
+	// addEdgeNode(&edgeNode)
 	return nil
 }
