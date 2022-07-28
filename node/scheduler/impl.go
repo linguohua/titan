@@ -96,3 +96,28 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 	// addEdgeNode(&edgeNode)
 	return nil
 }
+
+func (s Scheduler) GetIndexInfo(ctx context.Context, p api.IndexRequest) (api.IndexPageRes, error) {
+	var dataRes api.IndexPageRes
+	dataRes.StorageT = 1080.99
+	dataRes.BandwidthMb = 666.99
+	// AllMinerNum MinerInfo
+	dataRes.AllCandidate = 18
+	dataRes.AllEdgeNode = 122
+	dataRes.AllVerifier = 56
+	// OnlineMinerNum MinerInfo
+	dataRes.OnlineCandidate = 11
+	dataRes.OnlineEdgeNode = 252
+	dataRes.OnlineVerifier = 88
+	// Devices
+	dataRes.AbnormalNum = 12
+	dataRes.OfflineNum = 12
+	dataRes.OnlineNum = 12
+	dataRes.TotalNum = 36
+	// Profit
+	dataRes.CumulativeProfit = 36
+	dataRes.MonthProfit = 36
+	dataRes.SevenDaysProfit = 36
+	dataRes.YesterdayProfit = 36
+	return dataRes, nil
+}

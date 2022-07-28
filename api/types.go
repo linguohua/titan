@@ -3,7 +3,7 @@ package api
 type OpenRPCDocument map[string]interface{}
 
 type IndexRequest struct {
-	UserId int
+	UserId string
 }
 
 // 首页加载数据
