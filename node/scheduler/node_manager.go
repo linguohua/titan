@@ -22,7 +22,7 @@ func addEdgeNode(node *EdgeNode) {
 
 	edgeNodeMap.Store(node.deviceID, node)
 
-	err := DeviceOnline(node.deviceID, 0)
+	err := NodeOnline(node.deviceID, 0)
 	if err != nil {
 		log.Errorf("DeviceOnline err : %v ", err)
 	}
@@ -50,7 +50,7 @@ func deleteEdgeNode(deviceID string) {
 
 	edgeNodeMap.Delete(deviceID)
 
-	err := DeviceOffline(deviceID)
+	err := NodeOffline(deviceID)
 	if err != nil {
 		log.Errorf("DeviceOffline err : %v ", err)
 	}
@@ -69,7 +69,7 @@ func addCandidateNode(node *CandidateNode) {
 
 	candidateNodeMap.Store(node.deviceID, node)
 
-	err := DeviceOnline(node.deviceID, 0)
+	err := NodeOnline(node.deviceID, 0)
 	if err != nil {
 		log.Errorf("DeviceOnline err : %v ", err)
 	}
@@ -97,7 +97,7 @@ func deleteCandidateNode(deviceID string) {
 
 	candidateNodeMap.Delete(deviceID)
 
-	err := DeviceOffline(deviceID)
+	err := NodeOffline(deviceID)
 	if err != nil {
 		log.Errorf("DeviceOffline err : %v ", err)
 	}

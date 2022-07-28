@@ -1,17 +1,17 @@
 package db
 
 const (
-	// RedisKeyDeviceInfo  deviceID
-	RedisKeyDeviceInfo = "Titan:DeviceInfo:%s"
+	// RedisKeyNodeInfo  deviceID
+	RedisKeyNodeInfo = "Titan:NodeInfo:%s"
 
-	// RedisKeyDeviceDatas  deviceID
-	RedisKeyDeviceDatas = "Titan:DeviceDatas:%s"
+	// RedisKeyNodeDatas  deviceID
+	RedisKeyNodeDatas = "Titan:NodeDatas:%s"
 
-	// RedisKeyDataDeviceList  cid
-	RedisKeyDataDeviceList = "Titan:DataDeviceList:%s"
+	// RedisKeyDataNodeList  cid
+	RedisKeyDataNodeList = "Titan:DataNodeList:%s"
 
-	// RedisKeyDeviceDataIncrby  deviceID
-	RedisKeyDeviceDataIncrby = "Titan:DeviceDataIncrby:%s"
+	// RedisKeyNodeDataIncrby  deviceID
+	RedisKeyNodeDataIncrby = "Titan:NodeDataIncrby:%s"
 )
 
 // CacheDB cache db

@@ -9,8 +9,8 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-// RedisDB redis
-var RedisDB *redisDB
+// // RedisDB redis
+// var RedisDB *redisDB
 
 type redisDB struct {
 	cli *redis.Client
@@ -25,13 +25,13 @@ func TypeRedis() string {
 func InitRedis(url string) CacheDB {
 	fmt.Printf("redis init url : %v", url)
 
-	RedisDB = &redisDB{redis.NewClient(&redis.Options{
+	redisDB := &redisDB{redis.NewClient(&redis.Options{
 		Addr:      url,
 		Dialer:    nil,
 		OnConnect: nil,
 	})}
 
-	return RedisDB
+	return redisDB
 }
 
 //  hget
