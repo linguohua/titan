@@ -37,11 +37,11 @@ const (
 	isOnLineField   = "IsOnLine"
 )
 
-// DeviceOnline Save DeciceInfo
-func DeviceOnline(deviceID string, onlineTime int64) error {
+// NodeOnline Save DeciceInfo
+func NodeOnline(deviceID string, onlineTime int64) error {
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
 
-	key := fmt.Sprintf(db.RedisKeyDeviceInfo, deviceID)
+	key := fmt.Sprintf(db.RedisKeyNodeInfo, deviceID)
 	err := cacheDB.HSetValues(key, lastTimeField, lastTime, isOnLineField, true)
 	if err != nil {
 		return err
@@ -50,13 +50,13 @@ func DeviceOnline(deviceID string, onlineTime int64) error {
 	return cacheDB.IncrbyField(key, onLineTimeField, onlineTime)
 }
 
-// DeviceOffline offline
-func DeviceOffline(deviceID string) error {
-	key := fmt.Sprintf(db.RedisKeyDeviceInfo, deviceID)
+// NodeOffline offline
+func NodeOffline(deviceID string) error {
+	key := fmt.Sprintf(db.RedisKeyNodeInfo, deviceID)
 	return cacheDB.HSetValue(key, isOnLineField, false)
 }
 
-// LoadDeciceInfo Load DeciceInfo
-func LoadDeciceInfo(deviceID string) error {
+// LoadNodeInfo Load Node Info
+func LoadNodeInfo(deviceID string) error {
 	return nil
 }

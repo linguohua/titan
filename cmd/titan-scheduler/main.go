@@ -12,6 +12,7 @@ import (
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
+	"github.com/linguohua/titan/geoip"
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/linguohua/titan/metrics"
 	"github.com/linguohua/titan/node/repo"
@@ -93,8 +94,13 @@ var runCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "redis",
-			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
+			Usage: "redis url",
 			Value: "127.0.0.1:6379",
+		},
+		&cli.StringFlag{
+			Name:  "mmdb",
+			Usage: "mmdb path",
+			Value: "../../geoip/geolite2_city/city.mmdb",
 		},
 	},
 
@@ -122,9 +128,12 @@ var runCmd = &cli.Command{
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
-		redis := cctx.String("redis")
 		// TODO
+		redis := cctx.String("redis")
 		cacheDB := db.NewCacheDB(redis, db.TypeRedis())
+
+		mmdbPath := cctx.String("mmdb")
+		geoip.InitGeoLite(mmdbPath)
 
 		schedulerAPI := scheduler.NewLocalScheduleNode(cacheDB)
 

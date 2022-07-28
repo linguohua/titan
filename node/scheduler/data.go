@@ -39,11 +39,11 @@ func LoadData(cid string, deviceID string) ([]byte, error) {
 	return nil, nil
 }
 
-// DeviceCacheResult Device Cache Result
-func DeviceCacheResult(deviceID, cid string, isOk bool, tag int) error {
-	keyDataDeviceList := fmt.Sprintf(db.RedisKeyDataDeviceList, cid)
+// NodeCacheResult Device Cache Result
+func NodeCacheResult(deviceID, cid string, isOk bool, tag int) error {
+	keyDataDeviceList := fmt.Sprintf(db.RedisKeyDataNodeList, cid)
 	if !isOk {
-		keyDeviceData := fmt.Sprintf(db.RedisKeyDeviceDatas, deviceID)
+		keyDeviceData := fmt.Sprintf(db.RedisKeyNodeDatas, deviceID)
 		err := cacheDB.HDel(keyDeviceData, cid)
 		if err != nil {
 			return err
@@ -55,15 +55,15 @@ func DeviceCacheResult(deviceID, cid string, isOk bool, tag int) error {
 	return cacheDB.AddSet(keyDataDeviceList, deviceID)
 }
 
-// DeviceCacheInit Device Cache init
-func DeviceCacheInit(deviceID, cid string, tag int) error {
-	keyDeviceData := fmt.Sprintf(db.RedisKeyDeviceDatas, deviceID)
+// NodeCacheReady Node Cache ready
+func NodeCacheReady(deviceID, cid string, tag int) error {
+	keyDeviceData := fmt.Sprintf(db.RedisKeyNodeDatas, deviceID)
 	return cacheDB.HSetValue(keyDeviceData, cid, tag)
 }
 
-// GetDevicesWithData find device
-func GetDevicesWithData(cid string) (string, error) {
-	keyDataDeviceList := fmt.Sprintf(db.RedisKeyDataDeviceList, cid)
+// GetNodeWithData find device
+func GetNodeWithData(cid string) (string, error) {
+	keyDataDeviceList := fmt.Sprintf(db.RedisKeyDataNodeList, cid)
 
 	deviceIDs, err := redis.Strings(cacheDB.SmemberSet(keyDataDeviceList))
 	if err != nil {
