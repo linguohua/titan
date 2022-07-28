@@ -18,7 +18,7 @@ const (
 type CacheDB interface {
 	HGetValue(key, field string, out interface{}) (bool, error)
 	HSetValue(key, field string, value interface{}) error
-	// HGetValues(key string, args ...interface{}) (interface{}, error)
+	HGetValues(key string, args ...string) ([]interface{}, error)
 	HSetValues(key string, args ...interface{}) error
 	HDel(key, field string) error
 	IncrbyField(key, field string, value int64) error
