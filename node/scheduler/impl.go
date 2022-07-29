@@ -32,20 +32,20 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		return err
 	}
 
-	// load device info
-	deviceID, err := edgeAPI.DeviceID(ctx)
+	// 拉取设备数据
+	deviceInfo, err := edgeAPI.DeviceInfo(ctx)
 	if err != nil {
 		log.Errorf("edgeAPI DeviceID err : %v", err)
 		return err
 	}
 
-	log.Infof("edgeAPI Version deviceID : %v", deviceID)
+	log.Infof("edgeAPI Version deviceID : %v", deviceInfo.DeviceID)
 
 	edgeNode := EdgeNode{
 		addr:     url,
 		edgeAPI:  edgeAPI,
 		closer:   closer,
-		deviceID: deviceID,
+		deviceID: deviceInfo.DeviceID,
 		userID:   url,
 		ip:       "192.168.1.1", //"120.24.37.249", // TODO
 	}

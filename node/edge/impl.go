@@ -6,6 +6,7 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/stores"
+	"golang.org/x/time/rate"
 
 	"github.com/linguohua/titan/node/common"
 
@@ -15,10 +16,8 @@ import (
 
 var log = logging.Logger("main")
 
-// var deviceID = "123456789000000000"
-
 func NewLocalEdgeNode(ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, deviceID string) api.Edge {
-	return EdgeAPI{ds: ds, scheduler: scheduler, blockStore: blockStore, deviceID: deviceID}
+	return EdgeAPI{ds: ds, scheduler: scheduler, blockStore: blockStore, deviceID: deviceID, limiter: rate.NewLimiter(rate.Limit(0), 0)}
 }
 
 type EdgeAPI struct {
@@ -27,6 +26,7 @@ type EdgeAPI struct {
 	scheduler  api.Scheduler
 	blockStore stores.BlockStore
 	deviceID   string
+	limiter    *rate.Limiter
 }
 
 func (edge EdgeAPI) WaitQuiet(ctx context.Context) error {
@@ -58,8 +58,9 @@ func (edge EdgeAPI) BlockStoreStat(ctx context.Context) error {
 	return nil
 }
 
-func (edge EdgeAPI) DeviceID(ctx context.Context) (string, error) {
-	return edge.deviceID, nil
+func (edge EdgeAPI) DeviceInfo(ctx context.Context) (api.DeviceInfo, error) {
+	info := api.DeviceInfo{DeviceID: edge.deviceID, PublicIP: "119.28.56.169"}
+	return info, nil
 }
 
 func (edge EdgeAPI) LoadData(ctx context.Context, cid string) ([]byte, error) {
