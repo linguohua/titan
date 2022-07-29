@@ -32,7 +32,7 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		return err
 	}
 
-	// 拉取设备数据
+	// load device info
 	deviceInfo, err := edgeAPI.DeviceInfo(ctx)
 	if err != nil {
 		log.Errorf("edgeAPI DeviceID err : %v", err)
