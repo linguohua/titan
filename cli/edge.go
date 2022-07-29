@@ -25,7 +25,7 @@ var DeviceIDCmd = &cli.Command{
 		ctx := ReqContext(cctx)
 		// TODO: print more useful things
 
-		v, err := api.DeviceID(ctx)
+		v, err := api.DeviceInfo(ctx)
 		if err != nil {
 			return err
 		}

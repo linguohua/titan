@@ -27,3 +27,13 @@ func (fs fileStore) Delete(cid string) error {
 	filePath := filepath.Join(fs.Path, cid)
 	return os.Remove(filePath)
 }
+
+func (fs fileStore) GetReader(cid string) (BlockReader, error) {
+	filePath := filepath.Join(fs.Path, cid)
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
