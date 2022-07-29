@@ -8,21 +8,16 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/common"
-	"github.com/linguohua/titan/node/scheduler/db"
 )
 
-var (
-	log     = logging.Logger("scheduler")
-	cacheDB db.CacheDB
-)
+var log = logging.Logger("scheduler")
 
 // NewLocalScheduleNode NewLocalScheduleNode
-func NewLocalScheduleNode(c db.CacheDB) api.Scheduler {
-	cacheDB = c
+func NewLocalScheduleNode() api.Scheduler {
 	return Scheduler{}
 }
 
-// Scheduler 定义类型
+// Scheduler node
 type Scheduler struct {
 	common.CommonAPI
 }
@@ -37,7 +32,7 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		return err
 	}
 
-	// 拉取设备数据
+	// load device info
 	deviceID, err := edgeAPI.DeviceID(ctx)
 	if err != nil {
 		log.Errorf("edgeAPI DeviceID err : %v", err)
@@ -52,20 +47,26 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		closer:   closer,
 		deviceID: deviceID,
 		userID:   url,
+		ip:       "192.168.1.1", //"120.24.37.249", // TODO
 	}
 	addEdgeNode(&edgeNode)
 
 	return nil
 }
 
-// CacheData Cache Data
-func (s Scheduler) CacheData(ctx context.Context, cids, deviceIDs []string) error {
-	return CacheData(cids, deviceIDs)
+// CacheResult Cache Data Result
+func (s Scheduler) CacheResult(ctx context.Context, deviceID string, cid string, isOK bool) error {
+	return nodeCacheResult(deviceID, cid, isOK)
 }
 
-// LoadData Load Data
-func (s Scheduler) LoadData(ctx context.Context, cid, deviceID string) ([]byte, error) {
-	return LoadData(cid, deviceID)
+// CacheData Cache Data
+func (s Scheduler) CacheData(ctx context.Context, cid, deviceID string) error {
+	return CacheData(cid, deviceID)
+}
+
+// FindNodeWithData find node
+func (s Scheduler) FindNodeWithData(ctx context.Context, cid, ip string) (string, error) {
+	return GetNodeWithData(cid, ip)
 }
 
 // CandidateNodeConnect Candidate connect
@@ -76,7 +77,7 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 	// 	return err
 	// }
 
-	// // 拉取设备数据
+	// load device info
 	// deviceID, err := candicateAPI.DeviceID(ctx)
 	// if err != nil {
 	// 	log.Errorf("edgeAPI DeviceID err : %v", err)

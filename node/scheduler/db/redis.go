@@ -2,9 +2,7 @@ package db
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
-	"fmt"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -22,8 +20,8 @@ func TypeRedis() string {
 }
 
 // InitRedis init redis pool
-func InitRedis(url string) CacheDB {
-	fmt.Printf("redis init url : %v", url)
+func InitRedis(url string) (CacheDB, error) {
+	// fmt.Printf("redis init url : %v", url)
 
 	redisDB := &redisDB{redis.NewClient(&redis.Options{
 		Addr:      url,
@@ -31,22 +29,16 @@ func InitRedis(url string) CacheDB {
 		OnConnect: nil,
 	})}
 
-	return redisDB
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := redisDB.cli.Ping(ctx).Result()
+
+	return redisDB, err
 }
 
 //  hget
-func (rd redisDB) HGetValue(key, field string, out interface{}) (bool, error) {
-	val, err := rd.cli.HGet(context.Background(), key, field).Result()
-	if err != nil && !errors.Is(err, redis.Nil) {
-		return false, err
-	}
-
-	if val == "" {
-		return false, nil
-	}
-
-	err = json.Unmarshal([]byte(val), &out)
-	return true, err
+func (rd redisDB) HGetValue(key, field string) (string, error) {
+	return rd.cli.HGet(context.Background(), key, field).Result()
 }
 
 //  hset
@@ -72,7 +64,7 @@ func (rd redisDB) HDel(key, field string) error {
 	return err
 }
 
-// HINCRBY
+// HIncrBy
 func (rd redisDB) IncrbyField(key, field string, value int64) error {
 	_, err := rd.cli.HIncrBy(context.Background(), key, field, value).Result()
 	return err
@@ -84,18 +76,18 @@ func (rd redisDB) Incrby(key string, value int64) (int64, error) {
 }
 
 //  add
-func (rd redisDB) AddSet(key, deviceID string) error {
-	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
+func (rd redisDB) AddSet(key, value string) error {
+	_, err := rd.cli.SAdd(context.Background(), key, value).Result()
 	return err
 }
 
-// SMEMBERS 返回集合中的所有成员
+// SMembers
 func (rd redisDB) SmemberSet(key string) ([]string, error) {
 	return rd.cli.SMembers(context.Background(), key).Result()
 }
 
-// SREM 移除集合中一个或多个成员
-func (rd redisDB) SremSet(key, deviceID string) error {
-	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
+// SRem
+func (rd redisDB) SremSet(key, value string) error {
+	_, err := rd.cli.SRem(context.Background(), key, value).Result()
 	return err
 }

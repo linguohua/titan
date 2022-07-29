@@ -6,9 +6,8 @@ import (
 	"context"
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
-	xerrors "golang.org/x/xerrors"
 	"github.com/linguohua/titan/journal/alerting"
-
+	xerrors "golang.org/x/xerrors"
 )
 
 
@@ -98,13 +97,15 @@ type SchedulerStruct struct {
 
 	Internal struct {
 
-		CacheData func(p0 context.Context, p1 []string, p2 []string) (error) `perm:"read"`
+		CacheData func(p0 context.Context, p1 string, p2 string) (error) `perm:"read"`
+
+		CacheResult func(p0 context.Context, p1 string, p2 string, p3 bool) (error) `perm:"read"`
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
 		EdgeNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
-		LoadData func(p0 context.Context, p1 string, p2 string) ([]byte, error) `perm:"read"`
+		FindNodeWithData func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
 	}
 }
@@ -326,14 +327,25 @@ func (s *EdgeStub) WaitQuiet(p0 context.Context) (error) {
 
 
 
-func (s *SchedulerStruct) CacheData(p0 context.Context, p1 []string, p2 []string) (error) {
+func (s *SchedulerStruct) CacheData(p0 context.Context, p1 string, p2 string) (error) {
 	if s.Internal.CacheData == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheData(p0, p1, p2)
 }
 
-func (s *SchedulerStub) CacheData(p0 context.Context, p1 []string, p2 []string) (error) {
+func (s *SchedulerStub) CacheData(p0 context.Context, p1 string, p2 string) (error) {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 string, p2 string, p3 bool) (error) {
+	if s.Internal.CacheResult == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.CacheResult(p0, p1, p2, p3)
+}
+
+func (s *SchedulerStub) CacheResult(p0 context.Context, p1 string, p2 string, p3 bool) (error) {
 	return ErrNotSupported
 }
 
@@ -359,15 +371,15 @@ func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context, p1 string) (error) {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) LoadData(p0 context.Context, p1 string, p2 string) ([]byte, error) {
-	if s.Internal.LoadData == nil {
-		return *new([]byte), ErrNotSupported
+func (s *SchedulerStruct) FindNodeWithData(p0 context.Context, p1 string, p2 string) (string, error) {
+	if s.Internal.FindNodeWithData == nil {
+		return "", ErrNotSupported
 	}
-	return s.Internal.LoadData(p0, p1, p2)
+	return s.Internal.FindNodeWithData(p0, p1, p2)
 }
 
-func (s *SchedulerStub) LoadData(p0 context.Context, p1 string, p2 string) ([]byte, error) {
-	return *new([]byte), ErrNotSupported
+func (s *SchedulerStub) FindNodeWithData(p0 context.Context, p1 string, p2 string) (string, error) {
+	return "", ErrNotSupported
 }
 
 
