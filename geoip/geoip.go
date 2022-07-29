@@ -1,8 +1,10 @@
 package geoip
 
+import "fmt"
+
 // GeoIP geo interface
 type GeoIP interface {
-	getGeoInfo(addr string) (GeoInfo, error)
+	GetGeoInfo(ip string) (GeoInfo, error)
 }
 
 // GeoInfo geo info
@@ -13,13 +15,26 @@ type GeoInfo struct {
 	Latitude  float64
 	Longitude float64
 	IsoCode   string
+	ip        string
 }
 
 var geoIP GeoIP
 
 // NewGeoIP New GeoIP
-func NewGeoIP(dbPath string) {
-	geoIP = InitGeoLite(dbPath)
+func NewGeoIP(dbPath, geoType string) {
+	var err error
+
+	switch geoType {
+	case TypeGeoLite():
+		geoIP, err = InitGeoLite(dbPath)
+	default:
+		panic("unknown GeoIP type")
+	}
+
+	if err != nil {
+		e := fmt.Sprintf("NewGeoIP err:%v , path:%v", err, dbPath)
+		panic(e)
+	}
 }
 
 // GetGeoIP Get GeoIP

@@ -93,13 +93,13 @@ var runCmd = &cli.Command{
 			Value: "0.0.0.0:3456",
 		},
 		&cli.StringFlag{
-			Name:  "redis",
-			Usage: "redis url",
-			Value: "127.0.0.1:6379",
+			Name:  "cachedb-url",
+			Usage: "cachedb url",
+			Value: "127.0.0.1:6378",
 		},
 		&cli.StringFlag{
-			Name:  "mmdb",
-			Usage: "mmdb path",
+			Name:  "geodb-path",
+			Usage: "geodb path",
 			Value: "../../geoip/geolite2_city/city.mmdb",
 		},
 	},
@@ -129,13 +129,13 @@ var runCmd = &cli.Command{
 		defer cancel()
 
 		// TODO
-		redis := cctx.String("redis")
-		cacheDB := db.NewCacheDB(redis, db.TypeRedis())
+		cURL := cctx.String("cachedb-url")
+		db.NewCacheDB(cURL, db.TypeRedis())
 
-		mmdbPath := cctx.String("mmdb")
-		geoip.InitGeoLite(mmdbPath)
+		gPath := cctx.String("geodb-path")
+		geoip.NewGeoIP(gPath, geoip.TypeGeoLite())
 
-		schedulerAPI := scheduler.NewLocalScheduleNode(cacheDB)
+		schedulerAPI := scheduler.NewLocalScheduleNode()
 
 		// log.Info("Setting up control endpoint at " + address)
 
@@ -162,6 +162,8 @@ var runCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
+
+		log.Info("titan scheduler listen with:", address)
 
 		return srv.Serve(nl)
 	},
@@ -219,7 +221,7 @@ var cacheCmd = &cli.Command{
 
 		defer closer()
 
-		schedulerAPI.CacheData(ctx, []string{cid}, []string{deviceID})
+		schedulerAPI.CacheData(ctx, cid, deviceID)
 
 		return nil
 	},

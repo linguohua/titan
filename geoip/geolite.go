@@ -8,17 +8,44 @@ import (
 
 // https://www.fecmall.com/topic/806
 
+const unknown = "unknown"
+
+// TypeGeoLite GeoLite
+func TypeGeoLite() string {
+	return "GeoLite"
+}
+
 // InitGeoLite init
-func InitGeoLite(dbPath string) GeoIP {
-	return &geoLite{dbPath}
+func InitGeoLite(dbPath string) (GeoIP, error) {
+	gl := &geoLite{dbPath}
+
+	db, err := geoip2.Open(gl.dbPath)
+	if err != nil {
+		return gl, err
+	}
+	defer db.Close()
+
+	return gl, nil
 }
 
 type geoLite struct {
 	dbPath string
 }
 
-func (g geoLite) getGeoInfo(addr string) (GeoInfo, error) {
-	geoInfo := GeoInfo{}
+func (g geoLite) initGeoInfo(ip string) GeoInfo {
+	return GeoInfo{
+		City:      unknown,
+		Country:   unknown,
+		IsoCode:   unknown,
+		Province:  unknown,
+		Latitude:  0,
+		Longitude: 0,
+		ip:        ip,
+	}
+}
+
+func (g geoLite) GetGeoInfo(ip string) (GeoInfo, error) {
+	geoInfo := g.initGeoInfo(ip)
 
 	db, err := geoip2.Open(g.dbPath)
 	if err != nil {
@@ -26,17 +53,16 @@ func (g geoLite) getGeoInfo(addr string) (GeoInfo, error) {
 	}
 	defer db.Close()
 	// If you are using strings that may be invalid, check that ip is not nil
-	ip := net.ParseIP(addr)
-	record, err := db.City(ip)
+	ipA := net.ParseIP(ip)
+	record, err := db.City(ipA)
 	if err != nil {
 		return geoInfo, err
 	}
-	// fmt.Printf("Portuguese (BR) city name: %v\n", record.City.Names["zh-CN"])
-	// fmt.Printf("English subdivision name: %v\n", record.Subdivisions[0].Names["en"])
-	// fmt.Printf("Russian country name: %v\n", record.Country.Names["en"])
-	// fmt.Printf("ISO country code: %v\n", record.Country.IsoCode)
-	// fmt.Printf("Coordinates: %v, %v\n", record.Location.Latitude, record.Location.Longitude)
-	// fmt.Printf("English ---------------- name: %v\n", record.Subdivisions)
+
+	if record.Country.Names["en"] == "" {
+		return geoInfo, err
+	}
+
 	geoInfo.City = record.City.Names["en"]
 	geoInfo.Country = record.Country.Names["en"]
 	geoInfo.IsoCode = record.Country.IsoCode
