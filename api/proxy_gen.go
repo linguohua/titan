@@ -108,6 +108,8 @@ type SchedulerStruct struct {
 
 		FindNodeWithData func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
+		GetIndexInfo func(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) `perm:"read"`
+
 	}
 }
 
@@ -381,6 +383,17 @@ func (s *SchedulerStruct) FindNodeWithData(p0 context.Context, p1 string, p2 str
 
 func (s *SchedulerStub) FindNodeWithData(p0 context.Context, p1 string, p2 string) (string, error) {
 	return "", ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetIndexInfo(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) {
+	if s.Internal.GetIndexInfo == nil {
+		return *new(IndexPageRes), ErrNotSupported
+	}
+	return s.Internal.GetIndexInfo(p0, p1)
+}
+
+func (s *SchedulerStub) GetIndexInfo(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) {
+	return *new(IndexPageRes), ErrNotSupported
 }
 
 
