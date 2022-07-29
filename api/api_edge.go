@@ -9,7 +9,12 @@ type Edge interface {
 
 	CacheData(ctx context.Context, cid []string) error                  //perm:read
 	BlockStoreStat(ctx context.Context) error                           //perm:read
-	DeviceID(ctx context.Context) (string, error)                       //perm:read
+	DeviceInfo(ctx context.Context) (DeviceInfo, error)                 //perm:read
 	LoadData(ctx context.Context, cid string) ([]byte, error)           //perm:read
 	LoadDataByVerifier(ctx context.Context, fid string) ([]byte, error) //perm:read
+}
+
+type DeviceInfo struct {
+	DeviceID string
+	PublicIP string
 }

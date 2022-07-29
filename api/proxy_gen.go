@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
+
 )
 
 
@@ -74,7 +75,7 @@ type EdgeStruct struct {
 
 		CacheData func(p0 context.Context, p1 []string) (error) `perm:"read"`
 
-		DeviceID func(p0 context.Context) (string, error) `perm:"read"`
+		DeviceInfo func(p0 context.Context) (DeviceInfo, error) `perm:"read"`
 
 		LoadData func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
 
@@ -280,15 +281,15 @@ func (s *EdgeStub) CacheData(p0 context.Context, p1 []string) (error) {
 	return ErrNotSupported
 }
 
-func (s *EdgeStruct) DeviceID(p0 context.Context) (string, error) {
-	if s.Internal.DeviceID == nil {
-		return "", ErrNotSupported
+func (s *EdgeStruct) DeviceInfo(p0 context.Context) (DeviceInfo, error) {
+	if s.Internal.DeviceInfo == nil {
+		return *new(DeviceInfo), ErrNotSupported
 	}
-	return s.Internal.DeviceID(p0)
+	return s.Internal.DeviceInfo(p0)
 }
 
-func (s *EdgeStub) DeviceID(p0 context.Context) (string, error) {
-	return "", ErrNotSupported
+func (s *EdgeStub) DeviceInfo(p0 context.Context) (DeviceInfo, error) {
+	return *new(DeviceInfo), ErrNotSupported
 }
 
 func (s *EdgeStruct) LoadData(p0 context.Context, p1 string) ([]byte, error) {
