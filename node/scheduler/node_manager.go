@@ -62,49 +62,53 @@ func deleteEdgeNode(deviceID string) {
 	}
 }
 
-// func addCandidateNode(node *CandidateNode) {
-// 	nodeI, ok := candidateNodeMap.Load(node.deviceID)
-// 	// log.Infof("addEdgeNode load : %v , %v", edgeNode.deviceID, ok)
-// 	if ok && nodeI != nil {
-// 		node := nodeI.(*EdgeNode)
-// 		// close old node
-// 		node.closer()
+func addCandidateNode(node *CandidateNode) {
+	// geo ip
+	geoInfo, err := geoip.GetGeoIP().GetGeoInfo(node.ip)
+	if err != nil {
+		log.Errorf("addCandidateNode GetGeoInfo err : %v ,node : %v", err, node.deviceID)
+	}
 
-// 		log.Infof("close old deviceID : %v ", node.deviceID)
-// 	}
+	node.geoInfo = geoInfo
 
-// 	candidateNodeMap.Store(node.deviceID, node)
+	nodeOld := getCandidateNode(node.deviceID)
+	if node != nil {
+		nodeOld.closer()
+		log.Infof("close old deviceID : %v ", nodeOld.deviceID)
+	}
 
-// 	err := NodeOnline(node.deviceID, 0)
-// 	if err != nil {
-// 		log.Errorf("DeviceOnline err : %v ", err)
-// 	}
-// }
+	candidateNodeMap.Store(node.deviceID, node)
 
-// func getCandidateNode(deviceID string) *CandidateNode {
-// 	nodeI, ok := candidateNodeMap.Load(deviceID)
-// 	if ok && nodeI != nil {
-// 		node := nodeI.(*CandidateNode)
+	err = NodeOnline(node.deviceID, 0, geoInfo)
+	if err != nil {
+		log.Errorf("addCandidateNode NodeOnline err : %v ", err)
+	}
+}
 
-// 		return node
-// 	}
+func getCandidateNode(deviceID string) *CandidateNode {
+	nodeI, ok := candidateNodeMap.Load(deviceID)
+	if ok && nodeI != nil {
+		node := nodeI.(*CandidateNode)
 
-// 	return nil
-// }
+		return node
+	}
 
-// func deleteCandidateNode(deviceID string) {
-// 	nodeI, ok := candidateNodeMap.Load(deviceID)
-// 	if ok && nodeI != nil {
-// 		node := nodeI.(*CandidateNode)
+	return nil
+}
 
-// 		// close old node
-// 		node.closer()
-// 	}
+func deleteCandidateNode(deviceID string) {
+	node := getCandidateNode(deviceID)
+	if node == nil {
+		return
+	}
 
-// 	candidateNodeMap.Delete(deviceID)
+	// close old node
+	node.closer()
 
-// 	err := NodeOffline(deviceID)
-// 	if err != nil {
-// 		log.Errorf("DeviceOffline err : %v ", err)
-// 	}
-// }
+	candidateNodeMap.Delete(deviceID)
+
+	err := NodeOffline(deviceID, node.geoInfo)
+	if err != nil {
+		log.Errorf("DeviceOffline err : %v ", err)
+	}
+}
