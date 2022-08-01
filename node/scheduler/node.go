@@ -94,8 +94,3 @@ func NodeOffline(deviceID string, geoInfo geoip.GeoInfo) error {
 
 	return nil
 }
-
-// LoadNodeInfo Load Node Info
-func LoadNodeInfo(deviceID string) error {
-	return nil
-}

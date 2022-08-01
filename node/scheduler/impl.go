@@ -75,11 +75,11 @@ func (s Scheduler) FindNodeWithData(ctx context.Context, cid, ip string) (string
 
 // CandidateNodeConnect Candidate connect
 func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
-	// candicateAPI, closer, err := client.NewCandicate(ctx, url, nil)
-	// if err != nil {
-	// 	log.Errorf("edgeAPI NewEdge err : %v", err)
-	// 	return err
-	// }
+	candicateAPI, closer, err := client.NewCandicate(ctx, url, nil)
+	if err != nil {
+		log.Errorf("edgeAPI NewEdge err : %v", err)
+		return err
+	}
 
 	// load device info
 	// deviceID, err := candicateAPI.DeviceID(ctx)
@@ -90,14 +90,14 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 
 	// log.Infof("edgeAPI Version deviceID : %v", deviceID)
 
-	// edgeNode := EdgeNode{
-	// 	addr:     url,
-	// 	edgeAPI:  candicateAPI,
-	// 	closer:   closer,
-	// 	deviceID: deviceID,
-	// 	userID:   url,
-	// }
-	// addEdgeNode(&edgeNode)
+	candidateNode := CandidateNode{
+		addr:    url,
+		edgeAPI: candicateAPI,
+		closer:  closer,
+		// deviceID: deviceID,
+		userID: url,
+	}
+	addCandidateNode(&candidateNode)
 	return nil
 }
 
