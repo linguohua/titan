@@ -1,6 +1,7 @@
 package geoip
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/oschwald/geoip2-golang"
@@ -40,7 +41,8 @@ func (g geoLite) initGeoInfo(ip string) GeoInfo {
 		Province:  unknown,
 		Latitude:  0,
 		Longitude: 0,
-		ip:        ip,
+		IP:        ip,
+		Geo:       unknown,
 	}
 }
 
@@ -69,6 +71,8 @@ func (g geoLite) GetGeoInfo(ip string) (GeoInfo, error) {
 	geoInfo.Province = record.Subdivisions[0].Names["en"]
 	geoInfo.Latitude = record.Location.Latitude
 	geoInfo.Longitude = record.Location.Longitude
+
+	geoInfo.Geo = fmt.Sprintf("%s-%s-%s", geoInfo.Country, geoInfo.Province, geoInfo.City)
 
 	return geoInfo, nil
 }

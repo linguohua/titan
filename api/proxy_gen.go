@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -98,8 +97,6 @@ type SchedulerStruct struct {
 
 	Internal struct {
 
-		CacheData func(p0 context.Context, p1 string, p2 string) (error) `perm:"read"`
-
 		CacheResult func(p0 context.Context, p1 string, p2 string, p3 bool) (error) `perm:"read"`
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
@@ -109,6 +106,8 @@ type SchedulerStruct struct {
 		FindNodeWithData func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
 		GetIndexInfo func(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) `perm:"read"`
+
+		NotifyNodeCacheData func(p0 context.Context, p1 string, p2 string) (error) `perm:"read"`
 
 	}
 }
@@ -330,17 +329,6 @@ func (s *EdgeStub) WaitQuiet(p0 context.Context) (error) {
 
 
 
-func (s *SchedulerStruct) CacheData(p0 context.Context, p1 string, p2 string) (error) {
-	if s.Internal.CacheData == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.CacheData(p0, p1, p2)
-}
-
-func (s *SchedulerStub) CacheData(p0 context.Context, p1 string, p2 string) (error) {
-	return ErrNotSupported
-}
-
 func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 string, p2 string, p3 bool) (error) {
 	if s.Internal.CacheResult == nil {
 		return ErrNotSupported
@@ -394,6 +382,17 @@ func (s *SchedulerStruct) GetIndexInfo(p0 context.Context, p1 IndexRequest) (Ind
 
 func (s *SchedulerStub) GetIndexInfo(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) {
 	return *new(IndexPageRes), ErrNotSupported
+}
+
+func (s *SchedulerStruct) NotifyNodeCacheData(p0 context.Context, p1 string, p2 string) (error) {
+	if s.Internal.NotifyNodeCacheData == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.NotifyNodeCacheData(p0, p1, p2)
+}
+
+func (s *SchedulerStub) NotifyNodeCacheData(p0 context.Context, p1 string, p2 string) (error) {
+	return ErrNotSupported
 }
 
 

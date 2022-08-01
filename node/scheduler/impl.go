@@ -12,6 +12,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/common"
+	"github.com/linguohua/titan/node/scheduler/db"
 )
 
 var log = logging.Logger("scheduler")
@@ -43,7 +44,7 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		return err
 	}
 
-	log.Infof("edgeAPI Version deviceID : %v", deviceInfo.DeviceID)
+	log.Infof("edgeAPI deviceInfo : %v", deviceInfo)
 
 	edgeNode := EdgeNode{
 		addr:     url,
@@ -51,7 +52,7 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		closer:   closer,
 		deviceID: deviceInfo.DeviceID,
 		userID:   url,
-		ip:       "192.168.1.1", //"120.24.37.249", // TODO
+		ip:       deviceInfo.PublicIP,
 	}
 	addEdgeNode(&edgeNode)
 
@@ -63,9 +64,9 @@ func (s Scheduler) CacheResult(ctx context.Context, deviceID string, cid string,
 	return nodeCacheResult(deviceID, cid, isOK)
 }
 
-// CacheData Cache Data
-func (s Scheduler) CacheData(ctx context.Context, cid, deviceID string) error {
-	return CacheData(cid, deviceID)
+// NotifyNodeCacheData Cache Data
+func (s Scheduler) NotifyNodeCacheData(ctx context.Context, cid, deviceID string) error {
+	return NotifyNodeCacheData(cid, deviceID)
 }
 
 // FindNodeWithData find node
@@ -218,7 +219,7 @@ func (s Scheduler) GetDeviceDiagnosisHour(ctx context.Context, p api.IncomeDaily
 
 // DevicesInfo search from mysql
 func GetDevicesInfoList(info api.DevicesSearch) (list []api.DevicesInfo, total int64, err error) {
-	//string转成int：
+	// string转成int：
 	limit, _ := strconv.Atoi(info.PageSize)
 	page, _ := strconv.Atoi(info.Page)
 	offset := limit * (page - 1)
@@ -327,7 +328,7 @@ func timeFormat(p api.IncomeDailySearch) (m []interface{}) {
 }
 
 func timeFormatHour(p api.IncomeDailySearch) (m []interface{}) {
-	//timeNow := time.Now().Format("2006-01-02")
+	// timeNow := time.Now().Format("2006-01-02")
 	if p.DateFrom == "" && p.Date == "" && p.DateTo == "" {
 		p.Date = "2022-06-30"
 	}
@@ -345,23 +346,23 @@ func timeFormatHour(p api.IncomeDailySearch) (m []interface{}) {
 func getYearMonthToDay(year int, month int) int {
 	// 有31天的月份
 	day31 := map[int]struct{}{
-		1:  struct{}{},
-		3:  struct{}{},
-		5:  struct{}{},
-		7:  struct{}{},
-		8:  struct{}{},
-		10: struct{}{},
-		12: struct{}{},
+		1:  {},
+		3:  {},
+		5:  {},
+		7:  {},
+		8:  {},
+		10: {},
+		12: {},
 	}
 	if _, ok := day31[month]; ok {
 		return 31
 	}
 	// 有30天的月份
 	day30 := map[int]struct{}{
-		4:  struct{}{},
-		6:  struct{}{},
-		9:  struct{}{},
-		11: struct{}{},
+		4:  {},
+		6:  {},
+		9:  {},
+		11: {},
 	}
 	if _, ok := day30[month]; ok {
 		return 30
@@ -426,9 +427,9 @@ func getDaysData(strDays []string, p api.IncomeDailySearch, returnMapList *[]int
 }
 
 func getHoursData(strDays []string, p api.IncomeDailySearch, returnMapList *[]interface{}) {
-	//splitDate:=strings.Split(p.Date, "-")
-	//p.Month = splitDate[1]
-	//dayDate := splitDate[2]
+	// splitDate:=strings.Split(p.Date, "-")
+	// p.Month = splitDate[1]
+	// dayDate := splitDate[2]
 	listHour, _, err := GetHourDailyList(p)
 	if err != nil {
 		return

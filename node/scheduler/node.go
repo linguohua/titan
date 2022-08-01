@@ -37,40 +37,25 @@ type CandidateNode struct {
 	geoInfo geoip.GeoInfo
 }
 
-const (
-	// redis field
-	lastTimeField   = "LastTime"
-	onLineTimeField = "OnLineTime"
-	isOnLineField   = "IsOnLine"
-	isoCodeField    = "IsoCodeField"
-)
-
 // NodeOnline Save DeciceInfo
 func NodeOnline(deviceID string, onlineTime int64, geoInfo geoip.GeoInfo) error {
 	keyN := fmt.Sprintf(db.RedisKeyNodeInfo, deviceID)
 
-	oldIsoCode, err := db.GetCacheDB().HGetValue(keyN, isoCodeField)
-	log.Infof("oldiso:%v,newiso:%v,err:%v", oldIsoCode, geoInfo.IsoCode, err)
-	if err == nil && oldIsoCode != geoInfo.IsoCode {
+	nodeInfo, err := db.GetCacheDB().GetNodeInfo(deviceID)
+	if err == nil && nodeInfo.Geo != geoInfo.Geo {
 		// delete old
-		keyG := fmt.Sprintf(db.RedisKeyGeoNodeList, oldIsoCode)
-		err = db.GetCacheDB().SremSet(keyG, deviceID)
+		err = db.GetCacheDB().DelNodeWithGeoList(deviceID, nodeInfo.Geo)
 		log.Infof("SremSet err:%v", err)
 	}
+	log.Infof("oldgeo:%v,newgeo:%v,err:%v", nodeInfo.Geo, geoInfo.Geo, err)
 
-	keyG := fmt.Sprintf(db.RedisKeyGeoNodeList, geoInfo.IsoCode)
-	err = db.GetCacheDB().AddSet(keyG, deviceID)
+	err = db.GetCacheDB().SetNodeToGeoList(deviceID, geoInfo.Geo)
 	if err != nil {
 		return err
 	}
 
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
-	err = db.GetCacheDB().HSetValues(keyN, lastTimeField, lastTime, isOnLineField, true, isoCodeField, geoInfo.IsoCode)
-	if err != nil {
-		return err
-	}
-
-	err = db.GetCacheDB().IncrbyField(keyN, onLineTimeField, onlineTime)
+	err = db.GetCacheDB().SetNodeInfo(keyN, db.NodeInfo{OnLineTime: onlineTime, Geo: geoInfo.Geo, LastTime: lastTime})
 	if err != nil {
 		return err
 	}
@@ -80,17 +65,16 @@ func NodeOnline(deviceID string, onlineTime int64, geoInfo geoip.GeoInfo) error 
 
 // NodeOffline offline
 func NodeOffline(deviceID string, geoInfo geoip.GeoInfo) error {
-	keyG := fmt.Sprintf(db.RedisKeyGeoNodeList, deviceID)
-	err := db.GetCacheDB().SremSet(keyG, geoInfo.IsoCode)
+	err := db.GetCacheDB().DelNodeWithGeoList(deviceID, geoInfo.Geo)
 	if err != nil {
 		return err
 	}
 
-	keyN := fmt.Sprintf(db.RedisKeyNodeInfo, deviceID)
-	err = db.GetCacheDB().HSetValue(keyN, isOnLineField, false)
-	if err != nil {
-		return err
-	}
+	// 	keyN := fmt.Sprintf(db.RedisKeyNodeInfo, deviceID)
+	// 	err = db.GetCacheDB().HSetValue(keyN, isOnLineField, false)
+	// 	if err != nil {
+	// 		return err
+	// 	}
 
 	return nil
 }
