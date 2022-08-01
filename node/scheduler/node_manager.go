@@ -21,7 +21,7 @@ func addEdgeNode(node *EdgeNode) {
 	node.geoInfo = geoInfo
 
 	nodeOld := getEdgeNode(node.deviceID)
-	if node != nil {
+	if nodeOld != nil {
 		nodeOld.closer()
 		log.Infof("close old deviceID : %v ", nodeOld.deviceID)
 	}
@@ -56,10 +56,10 @@ func deleteEdgeNode(deviceID string) {
 
 	edgeNodeMap.Delete(deviceID)
 
-	err := NodeOffline(deviceID, node.geoInfo)
-	if err != nil {
-		log.Errorf("DeviceOffline err : %v ", err)
-	}
+	// err := NodeOffline(deviceID, node.geoInfo)
+	// if err != nil {
+	// 	log.Errorf("DeviceOffline err : %v ", err)
+	// }
 }
 
 func addCandidateNode(node *CandidateNode) {
@@ -107,8 +107,8 @@ func deleteCandidateNode(deviceID string) {
 
 	candidateNodeMap.Delete(deviceID)
 
-	err := NodeOffline(deviceID, node.geoInfo)
-	if err != nil {
-		log.Errorf("DeviceOffline err : %v ", err)
-	}
+	// err := NodeOffline(deviceID, node.geoInfo)
+	// if err != nil {
+	// 	log.Errorf("DeviceOffline err : %v ", err)
+	// }
 }

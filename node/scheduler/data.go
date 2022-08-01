@@ -7,12 +7,11 @@ import (
 	"github.com/linguohua/titan/geoip"
 	"github.com/linguohua/titan/node/scheduler/db"
 
-	"github.com/gomodule/redigo/redis"
 	"golang.org/x/xerrors"
 )
 
-// CacheData Cache Data
-func CacheData(cid, deviceID string) error {
+// NotifyNodeCacheData Cache Data
+func NotifyNodeCacheData(cid, deviceID string) error {
 	edge := getEdgeNode(deviceID)
 	if edge == nil {
 		return xerrors.New("node not find")
@@ -20,19 +19,13 @@ func CacheData(cid, deviceID string) error {
 
 	err := edge.edgeAPI.CacheData(context.Background(), []string{cid})
 	if err != nil {
-		log.Errorf("CacheData err : %v", err)
+		log.Errorf("NotifyNodeCacheData err : %v", err)
 		return err
 	}
 
-	tag, err := getTagWithNode(deviceID)
+	err = nodeCacheReady(deviceID, cid)
 	if err != nil {
-		log.Errorf("CacheData getTagWithNode err : %v", err)
-		return err
-	}
-
-	err = nodeCacheReady(deviceID, cid, tag)
-	if err != nil {
-		log.Errorf("CacheData nodeCacheReady err : %v", err)
+		log.Errorf("NotifyNodeCacheData nodeCacheReady err : %v", err)
 		return err
 	}
 
@@ -41,32 +34,35 @@ func CacheData(cid, deviceID string) error {
 
 // NodeCacheResult Device Cache Result
 func nodeCacheResult(deviceID, cid string, isOk bool) error {
+	log.Infof("nodeCacheResult deviceID:%v,cid:%v,isOk:%v", deviceID, cid, isOk)
 	if !isOk {
-		keyDeviceData := fmt.Sprintf(db.RedisKeyNodeDatas, deviceID)
-		return db.GetCacheDB().HDel(keyDeviceData, cid)
-		// return db.GetCacheDB().SremSet(keyDataDeviceList, deviceID)
+		return db.GetCacheDB().DelCacheDataInfo(deviceID, cid)
 	}
 
-	keyDataDeviceList := fmt.Sprintf(db.RedisKeyDataNodeList, cid)
-	return db.GetCacheDB().AddSet(keyDataDeviceList, deviceID)
+	return db.GetCacheDB().SetNodeToCacheList(deviceID, cid)
 }
 
 // Node Cache ready
-func nodeCacheReady(deviceID, cid string, tag int64) error {
+func nodeCacheReady(deviceID, cid string) error {
 	keyDeviceData := fmt.Sprintf(db.RedisKeyNodeDatas, deviceID)
-	return db.GetCacheDB().HSetValue(keyDeviceData, cid, tag)
-}
 
-func getTagWithNode(deviceID string) (int64, error) {
-	key := fmt.Sprintf(db.RedisKeyNodeDataTag, deviceID)
-	return db.GetCacheDB().Incrby(key, 1)
+	v, err := db.GetCacheDB().GetCacheDataInfo(keyDeviceData, cid)
+	if err == nil && v != "" {
+		return xerrors.Errorf("already cache")
+	}
+
+	tag, err := db.GetCacheDB().GetNodeCacheTag(deviceID)
+	if err != nil {
+		log.Errorf("NotifyNodeCacheData getTagWithNode err : %v", err)
+		return err
+	}
+
+	return db.GetCacheDB().SetCacheDataInfo(keyDeviceData, cid, tag)
 }
 
 // GetNodeWithData find device
 func GetNodeWithData(cid, ip string) (string, error) {
-	keyDataDeviceList := fmt.Sprintf(db.RedisKeyDataNodeList, cid)
-
-	deviceIDs, err := redis.Strings(db.GetCacheDB().SmemberSet(keyDataDeviceList))
+	deviceIDs, err := db.GetCacheDB().GetNodesWithCacheList(cid)
 	if err != nil {
 		return "", err
 	}
@@ -75,28 +71,58 @@ func GetNodeWithData(cid, ip string) (string, error) {
 		return "", xerrors.New("not find node")
 	}
 
-	// TODO find node
-	gInfo, err := geoip.GetGeoIP().GetGeoInfo(ip)
+	uInfo, err := geoip.GetGeoIP().GetGeoInfo(ip)
 	if err != nil {
 		log.Errorf("GetNodeWithData GetGeoInfo err : %v ,ip : %v", err, ip)
 	}
-	isoCode := gInfo.IsoCode
 
-	deviceID := ""
+	node := findNodeWithGeo(uInfo, deviceIDs)
+	if node == nil {
+		return "", xerrors.New("not find node")
+	}
+
+	return node.deviceID, nil
+}
+
+func findNodeWithGeo(userGeoInfo geoip.GeoInfo, deviceIDs []string) *EdgeNode {
+	sameCountryNodes := make([]*EdgeNode, 0)
+	sameProvinceNodes := make([]*EdgeNode, 0)
+	sameCityNodes := make([]*EdgeNode, 0)
+
+	var defaultNode *EdgeNode
+
 	for _, dID := range deviceIDs {
 		node := getEdgeNode(dID)
 		if node == nil {
 			continue
 		}
 
-		// TODO default
-		deviceID = dID
+		defaultNode = node
 
-		if node.geoInfo.IsoCode == isoCode {
-			deviceID = dID
-			break
+		if node.geoInfo.Country == userGeoInfo.Country {
+			sameCountryNodes = append(sameCountryNodes, node)
+
+			if node.geoInfo.Province == userGeoInfo.Province {
+				sameProvinceNodes = append(sameProvinceNodes, node)
+
+				if node.geoInfo.City == userGeoInfo.City {
+					sameCityNodes = append(sameCityNodes, node)
+				}
+			}
 		}
 	}
 
-	return deviceID, nil
+	if len(sameCityNodes) > 0 {
+		return sameCityNodes[0]
+	}
+
+	if len(sameProvinceNodes) > 0 {
+		return sameProvinceNodes[0]
+	}
+
+	if len(sameCountryNodes) > 0 {
+		return sameCountryNodes[0]
+	}
+
+	return defaultNode
 }

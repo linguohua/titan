@@ -2,31 +2,35 @@ package db
 
 import "fmt"
 
-const (
-	// RedisKeyNodeInfo  deviceID
-	RedisKeyNodeInfo = "Titan:NodeInfo:%s"
-	// RedisKeyNodeDatas  deviceID
-	RedisKeyNodeDatas = "Titan:NodeDatas:%s"
-	// RedisKeyDataNodeList  cid
-	RedisKeyDataNodeList = "Titan:DataNodeList:%s"
-	// RedisKeyNodeDataTag  deviceID
-	RedisKeyNodeDataTag = "Titan:NodeDataTag:%s"
-	// RedisKeyGeoNodeList  isocode
-	RedisKeyGeoNodeList = "Titan:GeoNodeList:%s"
-)
-
 // CacheDB cache db
 type CacheDB interface {
-	HGetValue(key, field string) (string, error)
-	HSetValue(key, field string, value interface{}) error
-	HGetValues(key string, args ...string) ([]interface{}, error)
-	HSetValues(key string, args ...interface{}) error
-	HDel(key, field string) error
-	IncrbyField(key, field string, value int64) error
-	Incrby(key string, value int64) (int64, error)
-	AddSet(key, value string) error
-	SmemberSet(key string) ([]string, error)
-	SremSet(key, value string) error
+	// HGetValue(key, field string) (string, error)
+	// HSetValue(key, field string, value interface{}) error
+	// HGetValues(key string, args ...string) ([]interface{}, error)
+	// HSetValues(key string, args ...interface{}) error
+	// HDel(key, field string) error
+	// IncrbyField(key, field string, value int64) error
+	// Incrby(key string, value int64) (int64, error)
+	// AddSet(key, value string) error
+	// SmemberSet(key string) ([]string, error)
+	// SremSet(key, value string) error
+
+	GetNodeCacheTag(deviceID string) (int64, error)
+
+	DelCacheDataInfo(deviceID, cid string) error
+	SetCacheDataInfo(deviceID, cid string, tag int64) error
+	GetCacheDataInfo(deviceID, cid string) (string, error)
+
+	DelNodeWithCacheList(deviceID, cid string) error
+	SetNodeToCacheList(deviceID, cid string) error
+	GetNodesWithCacheList(cid string) ([]string, error)
+
+	SetNodeInfo(deviceID string, info NodeInfo) error
+	GetNodeInfo(deviceID string) (NodeInfo, error)
+
+	DelNodeWithGeoList(deviceID, geo string) error
+	SetNodeToGeoList(deviceID, geo string) error
+	GetNodesWithGeoList(geo string) ([]string, error)
 }
 
 var cacheDB CacheDB
@@ -51,4 +55,11 @@ func NewCacheDB(url string, dbType string) {
 // GetCacheDB Get CacheDB
 func GetCacheDB() CacheDB {
 	return cacheDB
+}
+
+// NodeInfo base info
+type NodeInfo struct {
+	OnLineTime int64
+	LastTime   string
+	Geo        string
 }

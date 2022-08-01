@@ -222,8 +222,11 @@ var cacheCmd = &cli.Command{
 
 		defer closer()
 
-		schedulerAPI.CacheData(ctx, cid, deviceID)
+		err = schedulerAPI.NotifyNodeCacheData(ctx, cid, deviceID)
+		if err != nil {
+			log.Infof("NotifyNodeCacheData err:%v", err)
+		}
 
-		return nil
+		return err
 	},
 }

@@ -7,7 +7,7 @@ type Scheduler interface {
 
 	EdgeNodeConnect(context.Context, string) error //perm:read
 
-	CacheData(context.Context, string, string) error //perm:read
+	NotifyNodeCacheData(context.Context, string, string) error //perm:read
 
 	FindNodeWithData(context.Context, string, string) (string, error) //perm:read
 
