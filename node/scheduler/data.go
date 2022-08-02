@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/linguohua/titan/geoip"
 	"github.com/linguohua/titan/node/scheduler/db"
@@ -44,9 +43,7 @@ func nodeCacheResult(deviceID, cid string, isOk bool) error {
 
 // Node Cache ready
 func nodeCacheReady(deviceID, cid string) error {
-	keyDeviceData := fmt.Sprintf(db.RedisKeyNodeDatas, deviceID)
-
-	v, err := db.GetCacheDB().GetCacheDataInfo(keyDeviceData, cid)
+	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
 	if err == nil && v != "" {
 		return xerrors.Errorf("already cache")
 	}
@@ -57,18 +54,18 @@ func nodeCacheReady(deviceID, cid string) error {
 		return err
 	}
 
-	return db.GetCacheDB().SetCacheDataInfo(keyDeviceData, cid, tag)
+	return db.GetCacheDB().SetCacheDataInfo(deviceID, cid, tag)
 }
 
 // GetNodeWithData find device
-func GetNodeWithData(cid, ip string) (string, error) {
+func GetNodeWithData(cid, ip string) (*EdgeNode, error) {
 	deviceIDs, err := db.GetCacheDB().GetNodesWithCacheList(cid)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if len(deviceIDs) <= 0 {
-		return "", xerrors.New("not find node")
+		return nil, xerrors.New("not find node")
 	}
 
 	uInfo, err := geoip.GetGeoIP().GetGeoInfo(ip)
@@ -78,10 +75,10 @@ func GetNodeWithData(cid, ip string) (string, error) {
 
 	node := findNodeWithGeo(uInfo, deviceIDs)
 	if node == nil {
-		return "", xerrors.New("not find node")
+		return nil, xerrors.New("not find node")
 	}
 
-	return node.deviceID, nil
+	return node, nil
 }
 
 func findNodeWithGeo(userGeoInfo geoip.GeoInfo, deviceIDs []string) *EdgeNode {
