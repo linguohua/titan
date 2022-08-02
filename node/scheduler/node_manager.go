@@ -28,7 +28,7 @@ func addEdgeNode(node *EdgeNode) {
 
 	edgeNodeMap.Store(node.deviceID, node)
 
-	err = NodeOnline(node.deviceID, 0, geoInfo)
+	err = nodeOnline(node.deviceID, 0, geoInfo)
 	if err != nil {
 		log.Errorf("addEdgeNode NodeOnline err : %v ", err)
 	}
@@ -56,10 +56,10 @@ func deleteEdgeNode(deviceID string) {
 
 	edgeNodeMap.Delete(deviceID)
 
-	// err := NodeOffline(deviceID, node.geoInfo)
-	// if err != nil {
-	// 	log.Errorf("DeviceOffline err : %v ", err)
-	// }
+	err := nodeOffline(deviceID, node.geoInfo)
+	if err != nil {
+		log.Errorf("DeviceOffline err : %v ", err)
+	}
 }
 
 func addCandidateNode(node *CandidateNode) {
@@ -79,7 +79,7 @@ func addCandidateNode(node *CandidateNode) {
 
 	candidateNodeMap.Store(node.deviceID, node)
 
-	err = NodeOnline(node.deviceID, 0, geoInfo)
+	err = nodeOnline(node.deviceID, 0, geoInfo)
 	if err != nil {
 		log.Errorf("addCandidateNode NodeOnline err : %v ", err)
 	}
@@ -107,8 +107,8 @@ func deleteCandidateNode(deviceID string) {
 
 	candidateNodeMap.Delete(deviceID)
 
-	// err := NodeOffline(deviceID, node.geoInfo)
-	// if err != nil {
-	// 	log.Errorf("DeviceOffline err : %v ", err)
-	// }
+	err := nodeOffline(deviceID, node.geoInfo)
+	if err != nil {
+		log.Errorf("DeviceOffline err : %v ", err)
+	}
 }

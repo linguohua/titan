@@ -117,6 +117,11 @@ var runCmd = &cli.Command{
 			Hidden: true,
 			Value:  "123456789000000000", // should follow --repo default
 		},
+		&cli.StringFlag{
+			Name:   "publicIP",
+			Hidden: true,
+			Value:  "218.72.111.105", // should follow --repo default
+		},
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -276,8 +281,9 @@ var runCmd = &cli.Command{
 		}
 
 		deviceID := cctx.String("deviceid")
+		publicIP := cctx.String("publicIP")
 		blockStore := stores.NewBlockStore(cctx.String("blockstore"), stores.FileStore.Type())
-		edgeApi := edge.NewLocalEdgeNode(ds, schedulerAPI, blockStore, deviceID)
+		edgeApi := edge.NewLocalEdgeNode(ds, schedulerAPI, blockStore, deviceID, publicIP)
 
 		log.Info("Setting up control endpoint at " + address)
 

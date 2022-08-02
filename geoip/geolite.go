@@ -35,9 +35,9 @@ type geoLite struct {
 
 func (g geoLite) initGeoInfo(ip string) GeoInfo {
 	return GeoInfo{
-		City:      unknown,
-		Country:   unknown,
-		IsoCode:   unknown,
+		City:    unknown,
+		Country: unknown,
+		// IsoCode:   unknown,
 		Province:  unknown,
 		Latitude:  0,
 		Longitude: 0,
@@ -61,14 +61,20 @@ func (g geoLite) GetGeoInfo(ip string) (GeoInfo, error) {
 		return geoInfo, err
 	}
 
-	if record.Country.Names["en"] == "" {
+	if record.Country.IsoCode == "" {
 		return geoInfo, err
 	}
+	geoInfo.Country = record.Country.IsoCode
+	// geoInfo.IsoCode = record.Country.IsoCode
 
-	geoInfo.City = record.City.Names["en"]
-	geoInfo.Country = record.Country.Names["en"]
-	geoInfo.IsoCode = record.Country.IsoCode
-	geoInfo.Province = record.Subdivisions[0].Names["en"]
+	if record.City.Names["en"] != "" {
+		geoInfo.City = record.City.Names["en"]
+	}
+
+	if len(record.Subdivisions) > 0 {
+		geoInfo.Province = record.Subdivisions[0].IsoCode
+	}
+
 	geoInfo.Latitude = record.Location.Latitude
 	geoInfo.Longitude = record.Location.Longitude
 

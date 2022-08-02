@@ -10,7 +10,7 @@ import (
 )
 
 // NotifyNodeCacheData Cache Data
-func NotifyNodeCacheData(cid, deviceID string) error {
+func notifyNodeCacheData(cid, deviceID string) error {
 	edge := getEdgeNode(deviceID)
 	if edge == nil {
 		return xerrors.New("node not find")

@@ -16,8 +16,8 @@ import (
 
 var log = logging.Logger("main")
 
-func NewLocalEdgeNode(ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, deviceID string) api.Edge {
-	return EdgeAPI{ds: ds, scheduler: scheduler, blockStore: blockStore, deviceID: deviceID, limiter: rate.NewLimiter(rate.Limit(0), 0)}
+func NewLocalEdgeNode(ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, deviceID, publicIP string) api.Edge {
+	return EdgeAPI{ds: ds, scheduler: scheduler, blockStore: blockStore, deviceID: deviceID, publicIP: publicIP, limiter: rate.NewLimiter(rate.Limit(0), 0)}
 }
 
 type EdgeAPI struct {
@@ -27,6 +27,7 @@ type EdgeAPI struct {
 	blockStore stores.BlockStore
 	deviceID   string
 	limiter    *rate.Limiter
+	publicIP   string
 }
 
 func (edge EdgeAPI) WaitQuiet(ctx context.Context) error {
@@ -47,7 +48,7 @@ func (edge EdgeAPI) BlockStoreStat(ctx context.Context) error {
 }
 
 func (edge EdgeAPI) DeviceInfo(ctx context.Context) (api.DeviceInfo, error) {
-	info := api.DeviceInfo{DeviceID: edge.deviceID, PublicIP: "119.28.56.169"}
+	info := api.DeviceInfo{DeviceID: edge.deviceID, PublicIP: edge.publicIP}
 	return info, nil
 }
 
