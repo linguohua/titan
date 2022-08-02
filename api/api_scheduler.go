@@ -11,6 +11,8 @@ type Scheduler interface {
 
 	FindNodeWithData(context.Context, string, string) (string, error) //perm:read
 
+	GetDownloadURLWithData(context.Context, string, string) (string, error) //perm:read
+
 	CandidateNodeConnect(context.Context, string) error //perm:read
 
 	CacheResult(context.Context, string, string, bool) error //perm:read

@@ -71,7 +71,22 @@ func (s Scheduler) NotifyNodeCacheData(ctx context.Context, cid, deviceID string
 
 // FindNodeWithData find node
 func (s Scheduler) FindNodeWithData(ctx context.Context, cid, ip string) (string, error) {
-	return GetNodeWithData(cid, ip)
+	node, err := GetNodeWithData(cid, ip)
+	if err != nil {
+		return "", err
+	}
+
+	return node.deviceID, nil
+}
+
+// GetDownloadURLWithData find node
+func (s Scheduler) GetDownloadURLWithData(ctx context.Context, cid, ip string) (string, error) {
+	node, err := GetNodeWithData(cid, ip)
+	if err != nil {
+		return "", err
+	}
+
+	return node.addr, nil
 }
 
 // CandidateNodeConnect Candidate connect
