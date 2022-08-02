@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	redigo "github.com/gomodule/redigo/redis"
 	"golang.org/x/xerrors"
 )
 
@@ -189,9 +190,15 @@ func (rd redisDB) GetNodeInfo(deviceID string) (NodeInfo, error) {
 		return NodeInfo{}, xerrors.New("info not find")
 	}
 
-	g := vals[0].(string)
-	o := vals[1].(int64)
-	l := vals[2].(string)
+	fmt.Printf("GetNodeInfo vals:%v", vals)
+
+	if vals[0] == nil || vals[1] == nil || vals[2] == nil {
+		return NodeInfo{}, xerrors.New("info not find")
+	}
+
+	g, _ := redigo.String(vals[0], nil)
+	o, _ := redigo.Int64(vals[1], nil)
+	l, _ := redigo.String(vals[2], nil)
 
 	return NodeInfo{Geo: g, OnLineTime: o, LastTime: l}, nil
 }
