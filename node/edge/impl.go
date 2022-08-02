@@ -38,19 +38,7 @@ func (edge EdgeAPI) CacheData(ctx context.Context, cids []string) error {
 		return fmt.Errorf("CacheData, blockStore == nil ")
 	}
 
-	for _, cid := range cids {
-		data, err := loadBlock(cid)
-		if err != nil {
-			log.Errorf("CacheData, loadBlock error:", err)
-			return err
-		}
-
-		err = edge.blockStore.Put(data, cid)
-		if err != nil {
-			log.Errorf("CacheData, put error:", err)
-			return err
-		}
-	}
+	go loadBlocks(edge, cids)
 	return nil
 }
 
