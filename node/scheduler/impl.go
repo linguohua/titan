@@ -51,9 +51,9 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		addr:     url,
 		edgeAPI:  edgeAPI,
 		closer:   closer,
-		deviceID: deviceInfo.DeviceID,
+		deviceID: deviceInfo.DeviceId,
 		userID:   url,
-		ip:       deviceInfo.PublicIP,
+		ip:       deviceInfo.ExternalIp,
 	}
 	addEdgeNode(&edgeNode)
 

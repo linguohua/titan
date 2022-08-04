@@ -2,59 +2,64 @@ package edge
 
 import (
 	"context"
-	"fmt"
-	"io/ioutil"
-	"net/http"
+	"os"
 	"time"
+
+	CID "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-datastore"
+	"github.com/linguohua/titan/api"
 )
 
-// just test
-func loadBlock(cid string) ([]byte, error) {
-	url := "https://ipfs.io/api/v0/block/get?arg=%s"
-	url = fmt.Sprintf(url, cid)
-
-	c := http.Client{Timeout: time.Duration(10) * time.Second}
-	resp, err := c.Post(url, "", nil)
+func getBlock(edge EdgeAPI, cid string) ([]byte, error) {
+	target, err := CID.Decode(cid)
 	if err != nil {
-		fmt.Printf("Error %s", err)
+		log.Errorf("failed to decode CID '%q': %s", os.Args[2], err)
 		return nil, err
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	// fmt.Printf("Body : %s", body)
-	return body, nil
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	block, err := edge.exchange.GetBlock(ctx, target)
+	if err != nil {
+		log.Errorf("CacheData, loadBlock error:", err)
+		return nil, err
+	}
+
+	return block.RawData(), nil
 }
 
-func loadBlocks(edge EdgeAPI, cids []string) {
-	ct := context.Background()
+func cacheResult(ctx context.Context, edge EdgeAPI, cid string, success bool) {
+	err := edge.scheduler.CacheResult(ctx, edge.deviceID, cid, success)
+	if err != nil {
+		log.Errorf("load_block CacheResult error:", err)
+	}
+}
 
-	for _, cid := range cids {
-		// TODO: need to check block if exist in local store
-		data, err := loadBlock(cid)
+func loadBlocks(edge EdgeAPI, req []api.ReqCacheData) {
+	ctx := context.Background()
+
+	for _, reqData := range req {
+		has, err := edge.blockStore.Has(reqData.Cid)
+		if err == nil && has {
+			cacheResult(ctx, edge, reqData.Cid, true)
+			continue
+		}
+
+		block, err := getBlock(edge, reqData.Cid)
 		if err != nil {
 			log.Errorf("CacheData, loadBlock error:", err)
-			err = edge.scheduler.CacheResult(ct, edge.deviceID, cid, false)
-			if err != nil {
-				log.Errorf("CacheData, CacheResult error:", err)
-			}
+			cacheResult(ctx, edge, reqData.Cid, false)
 			continue
 		}
 
-		err = edge.blockStore.Put(data, cid)
-		if err != nil {
-			log.Errorf("CacheData, put error:", err)
-			err = edge.scheduler.CacheResult(ct, edge.deviceID, cid, false)
-			if err != nil {
-				log.Errorf("CacheData, CacheResult error:", err)
-			}
-			continue
+		err = edge.blockStore.Put(reqData.Cid, block)
+		if err == nil {
+			err = edge.ds.Put(ctx, datastore.NewKey(reqData.ID), []byte(reqData.Cid))
 		}
 
-		err = edge.scheduler.CacheResult(ct, edge.deviceID, cid, true)
-		if err != nil {
-			log.Errorf("CacheData, CacheResult error:", err)
-		}
+		cacheResult(ctx, edge, reqData.Cid, err == nil)
 
-		log.Infof("cache data,cid:%s", cid)
+		log.Infof("cache data,cid:%s,err:%v", reqData.Cid, err)
 	}
 }

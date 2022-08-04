@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 
+	API "github.com/linguohua/titan/api"
 	"github.com/urfave/cli/v2"
 )
 
@@ -45,6 +46,7 @@ var CacheDataCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
+		fmt.Println("start cache data...")
 		api, closer, err := GetEdgeAPI(cctx)
 		if err != nil {
 			return err
@@ -56,7 +58,13 @@ var CacheDataCmd = &cli.Command{
 		ctx := ReqContext(cctx)
 		// TODO: print more useful things
 
-		err = api.CacheData(ctx, cids)
+		req := make([]API.ReqCacheData, len(cids))
+		for _, cid := range cids {
+			reqData := API.ReqCacheData{Cid: cid, ID: "0"}
+			req = append(req, reqData)
+		}
+
+		err = api.CacheData(ctx, req)
 		if err != nil {
 			return err
 		}

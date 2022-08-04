@@ -7,14 +7,14 @@ type Edge interface {
 
 	WaitQuiet(ctx context.Context) error //perm:read
 
-	CacheData(ctx context.Context, cid []string) error                  //perm:read
+	CacheData(ctx context.Context, req []ReqCacheData) error            //perm:read
 	BlockStoreStat(ctx context.Context) error                           //perm:read
-	DeviceInfo(ctx context.Context) (DeviceInfo, error)                 //perm:read
+	DeviceInfo(ctx context.Context) (DevicesInfo, error)                //perm:read
 	LoadData(ctx context.Context, cid string) ([]byte, error)           //perm:read
 	LoadDataByVerifier(ctx context.Context, fid string) ([]byte, error) //perm:read
 }
 
-type DeviceInfo struct {
-	DeviceID string
-	PublicIP string
+type ReqCacheData struct {
+	ID  string
+	Cid string
 }
