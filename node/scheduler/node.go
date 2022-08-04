@@ -1,7 +1,6 @@
 package scheduler
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -39,8 +38,6 @@ type CandidateNode struct {
 
 // NodeOnline Save DeciceInfo
 func NodeOnline(deviceID string, onlineTime int64, geoInfo geoip.GeoInfo) error {
-	keyN := fmt.Sprintf(db.RedisKeyNodeInfo, deviceID)
-
 	nodeInfo, err := db.GetCacheDB().GetNodeInfo(deviceID)
 	if err == nil && nodeInfo.Geo != geoInfo.Geo {
 		// delete old
@@ -55,7 +52,7 @@ func NodeOnline(deviceID string, onlineTime int64, geoInfo geoip.GeoInfo) error 
 	}
 
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
-	err = db.GetCacheDB().SetNodeInfo(keyN, db.NodeInfo{OnLineTime: onlineTime, Geo: geoInfo.Geo, LastTime: lastTime})
+	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{OnLineTime: onlineTime, Geo: geoInfo.Geo, LastTime: lastTime})
 	if err != nil {
 		return err
 	}
