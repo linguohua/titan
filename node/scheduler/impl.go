@@ -56,6 +56,12 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 	}
 	addEdgeNode(&edgeNode)
 
+	err = checkCacheFailCids(edgeNode.deviceID)
+	if err != nil {
+		log.Errorf("edgeAPI checkCacheFailCids err : %v", err)
+		return err
+	}
+
 	return nil
 }
 

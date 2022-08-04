@@ -136,11 +136,18 @@ func (rd redisDB) SetCacheDataInfo(deviceID, cid string, tag int64) error {
 	return err
 }
 
-// get tag
+// get cache info
 func (rd redisDB) GetCacheDataInfo(deviceID, cid string) (string, error) {
 	key := fmt.Sprintf(redisKeyNodeDatas, deviceID)
 
 	return rd.cli.HGet(context.Background(), key, cid).Result()
+}
+
+// get all cache info
+func (rd redisDB) GetCacheDataInfos(deviceID string) (map[string]string, error) {
+	key := fmt.Sprintf(redisKeyNodeDatas, deviceID)
+
+	return rd.cli.HGetAll(context.Background(), key).Result()
 }
 
 //  add
@@ -156,6 +163,13 @@ func (rd redisDB) GetNodesWithCacheList(cid string) ([]string, error) {
 	key := fmt.Sprintf(redisKeyDataNodeList, cid)
 
 	return rd.cli.SMembers(context.Background(), key).Result()
+}
+
+// SISMEMBER
+func (rd redisDB) IsNodeInCacheList(cid, deviceID string) (bool, error) {
+	key := fmt.Sprintf(redisKeyDataNodeList, cid)
+
+	return rd.cli.SIsMember(context.Background(), key, deviceID).Result()
 }
 
 //  del
