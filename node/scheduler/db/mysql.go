@@ -2,11 +2,11 @@ package db
 
 import (
 	"encoding/json"
+	"github.com/linguohua/titan/api"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"io/ioutil"
 	"log"
-	"time"
 )
 
 var (
@@ -14,13 +14,6 @@ var (
 	GvaMysql GeneralDB
 	GConfig  map[string]interface{}
 )
-
-type GVAModel struct {
-	ID        uint           `gorm:"primarykey"`                     // 主键ID
-	CreatedAt time.Time      `gorm:"comment:'创建时间';type:timestamp;"` // 创建时间
-	UpdatedAt time.Time      `gorm:"comment:'更新时间';type:timestamp;"` // 更新时间
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`                 // 删除时间
-}
 
 const sys = "system"
 
@@ -72,6 +65,29 @@ func loadConfig(path string) (map[string]interface{}, error) {
 	}
 	GvaMysql = sqlPath
 	return config, nil
+}
+
+func CreateTables() error {
+	M := GMysqlDb.Migrator()
+	if M.HasTable(&api.HourDataOfDaily{}) {
+		print("HourDataOfDaily:已经存在")
+	} else {
+		// 不存在就创建表
+		err := GMysqlDb.AutoMigrate(&api.HourDataOfDaily{})
+		if err != nil {
+			return err
+		}
+	}
+	if M.HasTable(&api.IncomeDaily{}) {
+		print("IncomeDaily:已经存在")
+	} else {
+		// 不存在就创建表
+		err := GMysqlDb.AutoMigrate(&api.IncomeDaily{})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func GormMysql() *gorm.DB {

@@ -6,21 +6,20 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	redigo "github.com/gomodule/redigo/redis"
 	"golang.org/x/xerrors"
 )
 
 const (
 	// RedisKeyNodeInfo  deviceID
-	redisKeyNodeInfo = "Titan:NodeInfo:%s"
+	RedisKeyNodeInfo = "Titan:NodeInfo:%s"
 	// RedisKeyNodeDatas  deviceID
-	redisKeyNodeDatas = "Titan:NodeDatas:%s"
+	RedisKeyNodeDatas = "Titan:NodeDatas:%s"
 	// RedisKeyDataNodeList  cid
-	redisKeyDataNodeList = "Titan:DataNodeList:%s"
+	RedisKeyDataNodeList = "Titan:DataNodeList:%s"
 	// RedisKeyNodeDataTag  deviceID
-	redisKeyNodeDataTag = "Titan:NodeDataTag:%s"
+	RedisKeyNodeDataTag = "Titan:NodeDataTag:%s"
 	// RedisKeyGeoNodeList  isocode
-	redisKeyGeoNodeList = "Titan:GeoNodeList:%s"
+	RedisKeyGeoNodeList = "Titan:GeoNodeList:%s"
 
 	// redis field
 	lastTimeField   = "LastTime"
@@ -115,14 +114,14 @@ func InitRedis(url string) (CacheDB, error) {
 
 // node cache tag ++1
 func (rd redisDB) GetNodeCacheTag(deviceID string) (int64, error) {
-	key := fmt.Sprintf(redisKeyNodeDataTag, deviceID)
+	key := fmt.Sprintf(RedisKeyNodeDataTag, deviceID)
 
 	return rd.cli.IncrBy(context.Background(), key, 1).Result()
 }
 
 // del node data with cid
 func (rd redisDB) DelCacheDataInfo(deviceID, cid string) error {
-	key := fmt.Sprintf(redisKeyNodeDatas, deviceID)
+	key := fmt.Sprintf(RedisKeyNodeDatas, deviceID)
 
 	_, err := rd.cli.HDel(context.Background(), key, cid).Result()
 	return err
@@ -130,7 +129,7 @@ func (rd redisDB) DelCacheDataInfo(deviceID, cid string) error {
 
 // set cid
 func (rd redisDB) SetCacheDataInfo(deviceID, cid string, tag int64) error {
-	key := fmt.Sprintf(redisKeyNodeDatas, deviceID)
+	key := fmt.Sprintf(RedisKeyNodeDatas, deviceID)
 
 	_, err := rd.cli.HSet(context.Background(), key, cid, tag).Result()
 	return err
@@ -138,14 +137,14 @@ func (rd redisDB) SetCacheDataInfo(deviceID, cid string, tag int64) error {
 
 // get tag
 func (rd redisDB) GetCacheDataInfo(deviceID, cid string) (string, error) {
-	key := fmt.Sprintf(redisKeyNodeDatas, deviceID)
+	key := fmt.Sprintf(RedisKeyNodeDatas, deviceID)
 
 	return rd.cli.HGet(context.Background(), key, cid).Result()
 }
 
 //  add
 func (rd redisDB) SetNodeToCacheList(deviceID, cid string) error {
-	key := fmt.Sprintf(redisKeyDataNodeList, cid)
+	key := fmt.Sprintf(RedisKeyDataNodeList, cid)
 
 	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
 	return err
@@ -153,21 +152,21 @@ func (rd redisDB) SetNodeToCacheList(deviceID, cid string) error {
 
 // SMembers
 func (rd redisDB) GetNodesWithCacheList(cid string) ([]string, error) {
-	key := fmt.Sprintf(redisKeyDataNodeList, cid)
+	key := fmt.Sprintf(RedisKeyDataNodeList, cid)
 
 	return rd.cli.SMembers(context.Background(), key).Result()
 }
 
 //  del
 func (rd redisDB) DelNodeWithCacheList(deviceID, cid string) error {
-	key := fmt.Sprintf(redisKeyDataNodeList, cid)
+	key := fmt.Sprintf(RedisKeyDataNodeList, cid)
 
 	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
 	return err
 }
 
 func (rd redisDB) SetNodeInfo(deviceID string, info NodeInfo) error {
-	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+	key := fmt.Sprintf(RedisKeyNodeInfo, deviceID)
 
 	_, err := rd.cli.HMSet(context.Background(), key, lastTimeField, info.LastTime, geoField, info.Geo).Result()
 	if err != nil {
@@ -179,7 +178,7 @@ func (rd redisDB) SetNodeInfo(deviceID string, info NodeInfo) error {
 }
 
 func (rd redisDB) GetNodeInfo(deviceID string) (NodeInfo, error) {
-	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+	key := fmt.Sprintf(RedisKeyNodeInfo, deviceID)
 
 	vals, err := rd.cli.HMGet(context.Background(), key, geoField, onLineTimeField, lastTimeField).Result()
 	if err != nil {
@@ -190,22 +189,16 @@ func (rd redisDB) GetNodeInfo(deviceID string) (NodeInfo, error) {
 		return NodeInfo{}, xerrors.New("info not find")
 	}
 
-	fmt.Printf("GetNodeInfo vals:%v", vals)
-
-	if vals[0] == nil || vals[1] == nil || vals[2] == nil {
-		return NodeInfo{}, xerrors.New("info not find")
-	}
-
-	g, _ := redigo.String(vals[0], nil)
-	o, _ := redigo.Int64(vals[1], nil)
-	l, _ := redigo.String(vals[2], nil)
+	g := vals[0].(string)
+	o := vals[1].(int64)
+	l := vals[2].(string)
 
 	return NodeInfo{Geo: g, OnLineTime: o, LastTime: l}, nil
 }
 
 //  add
 func (rd redisDB) SetNodeToGeoList(deviceID, geo string) error {
-	key := fmt.Sprintf(redisKeyGeoNodeList, geo)
+	key := fmt.Sprintf(RedisKeyGeoNodeList, geo)
 
 	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
 	return err
@@ -213,14 +206,14 @@ func (rd redisDB) SetNodeToGeoList(deviceID, geo string) error {
 
 // SMembers
 func (rd redisDB) GetNodesWithGeoList(geo string) ([]string, error) {
-	key := fmt.Sprintf(redisKeyGeoNodeList, geo)
+	key := fmt.Sprintf(RedisKeyGeoNodeList, geo)
 
 	return rd.cli.SMembers(context.Background(), key).Result()
 }
 
 //  del
 func (rd redisDB) DelNodeWithGeoList(deviceID, geo string) error {
-	key := fmt.Sprintf(redisKeyGeoNodeList, geo)
+	key := fmt.Sprintf(RedisKeyGeoNodeList, geo)
 
 	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
 	return err
