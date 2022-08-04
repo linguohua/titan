@@ -546,3 +546,71 @@ func GetHourDailyList(info api.IncomeDailySearch) (list api.HourDataOfDaily, tot
 	err = db.Find(&InPages).First(&InPages).Error
 	return InPages, total, err
 }
+
+//  dairy data save
+func CreateDailyOfMonth() error {
+	timeNow := time.Now().Format("2006-01-02")
+	splitDate := strings.Split(timeNow, "-")
+	month := splitDate[0] + "-" + splitDate[1]
+	dayDate := splitDate[2]
+	var IncomeDaily api.IncomeDaily
+	IncomeDaily.UserId = "888"
+	IncomeDaily.DeviceId = "10088"
+	result := db.GMysqlDb.Where("device_id = ?", IncomeDaily.DeviceId).Where("user_id = ?", IncomeDaily.UserId).
+		Where("month = ?", month).First(&IncomeDaily)
+	var dataString api.IncomeJson31
+	if vl, err := strconv.Atoi(dayDate); err == nil {
+		dataString.IndexDays = vl
+	}
+	dataString.One = 1
+	dataString.Eight = 2
+	dataString.Two = 3
+	dataString.Three = 5
+	dataString.Four = 5
+	dataString.Five = 5
+	bytes, e := json.Marshal(dataString)
+	if e != nil {
+		return e
+	}
+	jsonString := string(bytes)
+	IncomeDaily.Month = month
+	IncomeDaily.OnlineJsonDaily = jsonString
+	IncomeDaily.DiskUsage = jsonString
+	IncomeDaily.Latency = jsonString
+	IncomeDaily.JsonDaily = jsonString
+	IncomeDaily.NatType = jsonString
+	IncomeDaily.PkgLossRatio = jsonString
+	if result.RowsAffected <= 0 {
+		print("not find")
+		err := db.GMysqlDb.Create(&IncomeDaily).Error
+		return err
+	} else {
+		print("find and update")
+		err := db.GMysqlDb.Save(&IncomeDaily).Error
+		return err
+	}
+	return nil
+}
+
+func CreateDataOfDaily() error {
+	var dataString api.IncomeJson24
+	dataString.One = 23
+	dataString.Eight = 233
+	dataString.IndexDays = 3
+	dataString.Two = 3
+	dataString.Three = 3
+	dataString.Four = 4
+	dataString.Five = 5
+	bytes, e := json.Marshal(dataString)
+	if e != nil {
+		return e
+	}
+	jsonString := string(bytes)
+	var IncomeDaily api.HourDataOfDaily
+	IncomeDaily.OnlineJsonDaily = jsonString
+	IncomeDaily.PkgLossRatio = jsonString
+	IncomeDaily.Latency = jsonString
+	IncomeDaily.NatType = jsonString
+	err := db.GMysqlDb.Create(&IncomeDaily).Error
+	return err
+}

@@ -2,8 +2,8 @@ package scheduler
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/geoip"
 	"github.com/linguohua/titan/node/scheduler/db"
 
@@ -11,18 +11,13 @@ import (
 )
 
 // NotifyNodeCacheData Cache Data
-func notifyNodeCacheData(cid, deviceID string) error {
+func NotifyNodeCacheData(cid, deviceID string) error {
 	edge := getEdgeNode(deviceID)
 	if edge == nil {
 		return xerrors.New("node not find")
 	}
 
-	req := make([]api.ReqCacheData, 0)
-	// TODO: generate ID
-	reqData := api.ReqCacheData{Cid: cid, ID: "0"}
-	req = append(req, reqData)
-
-	err := edge.edgeAPI.CacheData(context.Background(), req)
+	err := edge.edgeAPI.CacheData(context.Background(), []string{cid})
 	if err != nil {
 		log.Errorf("NotifyNodeCacheData err : %v", err)
 		return err
@@ -49,7 +44,9 @@ func nodeCacheResult(deviceID, cid string, isOk bool) error {
 
 // Node Cache ready
 func nodeCacheReady(deviceID, cid string) error {
-	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
+	keyDeviceData := fmt.Sprintf(db.RedisKeyNodeDatas, deviceID)
+
+	v, err := db.GetCacheDB().GetCacheDataInfo(keyDeviceData, cid)
 	if err == nil && v != "" {
 		return xerrors.Errorf("already cache")
 	}
@@ -60,18 +57,18 @@ func nodeCacheReady(deviceID, cid string) error {
 		return err
 	}
 
-	return db.GetCacheDB().SetCacheDataInfo(deviceID, cid, tag)
+	return db.GetCacheDB().SetCacheDataInfo(keyDeviceData, cid, tag)
 }
 
 // GetNodeWithData find device
-func GetNodeWithData(cid, ip string) (*EdgeNode, error) {
+func GetNodeWithData(cid, ip string) (string, error) {
 	deviceIDs, err := db.GetCacheDB().GetNodesWithCacheList(cid)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if len(deviceIDs) <= 0 {
-		return nil, xerrors.New("not find node")
+		return "", xerrors.New("not find node")
 	}
 
 	uInfo, err := geoip.GetGeoIP().GetGeoInfo(ip)
@@ -81,10 +78,10 @@ func GetNodeWithData(cid, ip string) (*EdgeNode, error) {
 
 	node := findNodeWithGeo(uInfo, deviceIDs)
 	if node == nil {
-		return nil, xerrors.New("not find node")
+		return "", xerrors.New("not find node")
 	}
 
-	return node, nil
+	return node.deviceID, nil
 }
 
 func findNodeWithGeo(userGeoInfo geoip.GeoInfo, deviceIDs []string) *EdgeNode {

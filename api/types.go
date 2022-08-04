@@ -1,5 +1,10 @@
 package api
 
+import (
+	"gorm.io/gorm"
+	"time"
+)
+
 type OpenRPCDocument map[string]interface{}
 
 type IndexRequest struct {
@@ -77,9 +82,16 @@ type DevicesSearch struct {
 	DevicesInfo
 	PageInfo
 }
+type GVAModel struct {
+	ID        uint           `gorm:"primarykey"`                     // 主键ID
+	CreatedAt time.Time      `gorm:"comment:'创建时间';type:timestamp;"` // 创建时间
+	UpdatedAt time.Time      `gorm:"comment:'更新时间';type:timestamp;"` // 更新时间
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`                 // 删除时间
+}
 
 // Devices Info
 type DevicesInfo struct {
+	GVAModel
 	//设备id
 	DeviceId string `json:"deviceId" form:"deviceId" gorm:"column:device_id;comment:;"`
 	// 设备名称
@@ -142,6 +154,11 @@ type DevicesInfo struct {
 	MonthProfit     float64 `json:"month_profit"`      // 近30天收益
 }
 
+// TableName IndexPage
+func (DevicesInfo) TableName() string {
+	return "devices_info"
+}
+
 type DevicesInfoPage struct {
 	List  []DevicesInfo `json:"list"`
 	Count int64         `json:"count"`
@@ -170,6 +187,7 @@ type IncomeDailySearch struct {
 }
 
 type IncomeDaily struct {
+	GVAModel
 	// 用户id
 	UserId string `json:"userId" form:"userId" gorm:"column:user_id;comment:;"`
 	//设备id
@@ -188,6 +206,11 @@ type IncomeDaily struct {
 	NatType string `json:"natType" form:"natType" gorm:"column:nat_type;comment:;"`
 	// 磁盘使用率
 	DiskUsage string `json:"diskUsage" form:"diskUsage" gorm:"column:disk_usage;comment:;"`
+}
+
+// TableName IndexPage
+func (IncomeDaily) TableName() string {
+	return "income_daily_test"
 }
 
 type IncomeDailyRes struct {
@@ -216,6 +239,7 @@ type HourDailyRes struct {
 }
 
 type HourDataOfDaily struct {
+	GVAModel
 	// 用户id
 	UserId string `json:"userId" form:"userId" gorm:"column:user_id;comment:;"`
 	//设备id
@@ -230,4 +254,48 @@ type HourDataOfDaily struct {
 	Latency string `json:"latency" form:"latency" gorm:"column:latency;comment:;"`
 	// NAT类型
 	NatType string `json:"natType" form:"natType" gorm:"column:nat_type;comment:;"`
+}
+
+// TableName IndexPage
+func (HourDataOfDaily) TableName() string {
+	return "Hour_daily_test"
+}
+
+type IncomeJson31 struct {
+	IncomeJson24
+	TwentyFive  float64 `json:"25"`
+	TwentySix   float64 `json:"26"`
+	TwentySeven float64 `json:"27"`
+	TwentyEight float64 `json:"28"`
+	TwentyNine  float64 `json:"29"`
+	Thirty      float64 `json:"30"`
+	ThirtyOne   float64 `json:"31"`
+}
+
+type IncomeJson24 struct {
+	IndexDays   int     `json:"index_days"`
+	One         float64 `json:"01"`
+	Two         float64 `json:"02"`
+	Three       float64 `json:"03"`
+	Four        float64 `json:"04"`
+	Five        float64 `json:"05"`
+	Six         float64 `json:"06"`
+	Seven       float64 `json:"07"`
+	Eight       float64 `json:"08"`
+	Nine        float64 `json:"09"`
+	Ten         float64 `json:"10"`
+	Eleven      float64 `json:"11"`
+	Twelve      float64 `json:"12"`
+	Thirteen    float64 `json:"13"`
+	Fourteen    float64 `json:"14"`
+	Fifteen     float64 `json:"15"`
+	Sixteen     float64 `json:"16"`
+	Seventeen   float64 `json:"17"`
+	Eighteen    float64 `json:"18"`
+	Nineteen    float64 `json:"19"`
+	Twenty      float64 `json:"20"`
+	TwentyOne   float64 `json:"21"`
+	TwentyTwo   float64 `json:"22"`
+	TwentyThree float64 `json:"23"`
+	TwentyFour  float64 `json:"24"`
 }
