@@ -190,7 +190,7 @@ func (rd redisDB) GetNodeInfo(deviceID string) (NodeInfo, error) {
 		return NodeInfo{}, xerrors.New("info not find")
 	}
 
-	fmt.Printf("GetNodeInfo vals:%v", vals)
+	// fmt.Printf("GetNodeInfo vals:%v", vals)
 
 	if vals[0] == nil || vals[1] == nil || vals[2] == nil {
 		return NodeInfo{}, xerrors.New("info not find")
