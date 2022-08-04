@@ -75,6 +75,8 @@ type EdgeStruct struct {
 
 		CacheData func(p0 context.Context, p1 []ReqCacheData) (error) `perm:"read"`
 
+		CacheFailResult func(p0 context.Context) ([]FailResult, error) ``
+
 		DeviceInfo func(p0 context.Context) (DevicesInfo, error) `perm:"read"`
 
 		LoadData func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
@@ -283,6 +285,17 @@ func (s *EdgeStruct) CacheData(p0 context.Context, p1 []ReqCacheData) (error) {
 
 func (s *EdgeStub) CacheData(p0 context.Context, p1 []ReqCacheData) (error) {
 	return ErrNotSupported
+}
+
+func (s *EdgeStruct) CacheFailResult(p0 context.Context) ([]FailResult, error) {
+	if s.Internal.CacheFailResult == nil {
+		return *new([]FailResult), ErrNotSupported
+	}
+	return s.Internal.CacheFailResult(p0)
+}
+
+func (s *EdgeStub) CacheFailResult(p0 context.Context) ([]FailResult, error) {
+	return *new([]FailResult), ErrNotSupported
 }
 
 func (s *EdgeStruct) DeviceInfo(p0 context.Context) (DevicesInfo, error) {

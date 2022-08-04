@@ -17,7 +17,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 )
 
-var log = logging.Logger("main")
+var log = logging.Logger("edge")
 
 func NewLocalEdgeNode(ctx context.Context, ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, deviceID, publicIP string) api.Edge {
 	addrs, err := build.BuiltinBootstrap()
@@ -81,17 +81,37 @@ func (edge EdgeAPI) LoadData(ctx context.Context, cid string) ([]byte, error) {
 	return edge.blockStore.Get(cid)
 }
 
+func (edge EdgeAPI) CacheFailResult(ctx context.Context) ([]api.FailResult, error) {
+	reqLock.Lock()
+	defer reqLock.Unlock()
+
+	results := failResults
+	failResults = make([]api.FailResult, 0)
+	return results, nil
+}
+
 func (edge EdgeAPI) LoadDataByVerifier(ctx context.Context, fileID string) ([]byte, error) {
 	if edge.blockStore == nil {
 		log.Errorf("CacheData, blockStore not setting")
 		return nil, nil
 	}
 
-	cid := getCID(fileID)
+	cid, err := getCID(edge, fileID)
+	if err != nil {
+		return nil, err
+	}
 	return edge.blockStore.Get(cid)
 }
 
-func getCID(fid string) string {
-	// TODO: 存储fid到cid的映射，然后从映射里面读取
-	return fid
+func getCID(edge EdgeAPI, fid string) (string, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	value, err := edge.ds.Get(ctx, datastore.NewKey(fid))
+	if err != nil {
+		log.Errorf("CacheData, get cid from store error:%v", err)
+		return "", err
+	}
+
+	return string(value), nil
 }
