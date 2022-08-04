@@ -21,7 +21,7 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-var log = logging.Logger("rpcenc")
+var log = logging.Logger("p2p")
 
 func Bootstrap(ctx context.Context, peers []peer.AddrInfo) (exchange.Interface, error) {
 	host, err := libp2p.New(libp2p.NoListenAddrs)
@@ -33,6 +33,8 @@ func Bootstrap(ctx context.Context, peers []peer.AddrInfo) (exchange.Interface, 
 	if err != nil {
 		return nil, err
 	}
+
+	go traceSwarm(host)
 
 	kad, err := dht.New(ctx, host)
 	if err != nil {
@@ -113,7 +115,7 @@ func bootstrapConnect(ctx context.Context, ph host.Host, peers []peer.AddrInfo) 
 
 func traceSwarm(ph host.Host) {
 	for {
-		time.Sleep(5 * time.Second)
+		time.Sleep(15 * time.Second)
 
 		printSwarmAddrs((ph))
 
@@ -121,5 +123,5 @@ func traceSwarm(ph host.Host) {
 }
 func printSwarmAddrs(ph host.Host) {
 	conns := ph.Network().Conns()
-	log.Infof("SwarmAddrs count %d", len(conns))
+	log.Infof("peers count %d", len(conns))
 }
