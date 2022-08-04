@@ -3,7 +3,6 @@ package scheduler
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -72,25 +71,17 @@ func (s Scheduler) NotifyNodeCacheData(ctx context.Context, cid, deviceID string
 
 // FindNodeWithData find node
 func (s Scheduler) FindNodeWithData(ctx context.Context, cid, ip string) (string, error) {
-	node, err := GetNodeWithData(cid, ip)
-	if err != nil {
-		return "", err
-	}
+	// node, err := getNodeWithData(cid, ip)
+	// if err != nil {
+	// 	return "", err
+	// }
 
-	return node.deviceID, nil
+	return "", nil
 }
 
 // GetDownloadURLWithData find node
 func (s Scheduler) GetDownloadURLWithData(ctx context.Context, cid, ip string) (string, error) {
-	node, err := GetNodeWithData(cid, ip)
-	if err != nil {
-		return "", err
-	}
-
-	// http://192.168.0.136:3456/rpc/v0/block/get?cid=QmeUqw4FY1wqnh2FMvuc2v8KAapE7fYwu2Up4qNwhZiRk7
-	url := fmt.Sprintf("%s/block/get?cid=%s", node.addr, cid)
-
-	return url, nil
+	return getNodeURLWithData(cid, ip)
 }
 
 // CandidateNodeConnect Candidate connect
