@@ -20,10 +20,12 @@ type CacheDB interface {
 	DelCacheDataInfo(deviceID, cid string) error
 	SetCacheDataInfo(deviceID, cid string, tag int64) error
 	GetCacheDataInfo(deviceID, cid string) (string, error)
+	GetCacheDataInfos(deviceID string) (map[string]string, error)
 
 	DelNodeWithCacheList(deviceID, cid string) error
 	SetNodeToCacheList(deviceID, cid string) error
 	GetNodesWithCacheList(cid string) ([]string, error)
+	IsNodeInCacheList(cid, deviceID string) (bool, error)
 
 	SetNodeInfo(deviceID string, info NodeInfo) error
 	GetNodeInfo(deviceID string) (NodeInfo, error)
