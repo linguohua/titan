@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
+
 )
 
 
@@ -72,9 +73,9 @@ type EdgeStruct struct {
 
 		BlockStoreStat func(p0 context.Context) (error) `perm:"read"`
 
-		CacheData func(p0 context.Context, p1 []string) (error) `perm:"read"`
+		CacheData func(p0 context.Context, p1 []ReqCacheData) (error) `perm:"read"`
 
-		DeviceInfo func(p0 context.Context) (DeviceInfo, error) `perm:"read"`
+		DeviceInfo func(p0 context.Context) (DevicesInfo, error) `perm:"read"`
 
 		LoadData func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
 
@@ -273,26 +274,26 @@ func (s *EdgeStub) BlockStoreStat(p0 context.Context) (error) {
 	return ErrNotSupported
 }
 
-func (s *EdgeStruct) CacheData(p0 context.Context, p1 []string) (error) {
+func (s *EdgeStruct) CacheData(p0 context.Context, p1 []ReqCacheData) (error) {
 	if s.Internal.CacheData == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheData(p0, p1)
 }
 
-func (s *EdgeStub) CacheData(p0 context.Context, p1 []string) (error) {
+func (s *EdgeStub) CacheData(p0 context.Context, p1 []ReqCacheData) (error) {
 	return ErrNotSupported
 }
 
-func (s *EdgeStruct) DeviceInfo(p0 context.Context) (DeviceInfo, error) {
+func (s *EdgeStruct) DeviceInfo(p0 context.Context) (DevicesInfo, error) {
 	if s.Internal.DeviceInfo == nil {
-		return *new(DeviceInfo), ErrNotSupported
+		return *new(DevicesInfo), ErrNotSupported
 	}
 	return s.Internal.DeviceInfo(p0)
 }
 
-func (s *EdgeStub) DeviceInfo(p0 context.Context) (DeviceInfo, error) {
-	return *new(DeviceInfo), ErrNotSupported
+func (s *EdgeStub) DeviceInfo(p0 context.Context) (DevicesInfo, error) {
+	return *new(DevicesInfo), ErrNotSupported
 }
 
 func (s *EdgeStruct) LoadData(p0 context.Context, p1 string) ([]byte, error) {

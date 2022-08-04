@@ -162,7 +162,7 @@ var runCmd = &cli.Command{
 					break
 				}
 			}
-			fmt.Printf("\r\x1b[0KConnecting to miner API... (%s)", err)
+			fmt.Printf("\r\x1b[0KConnecting to scheduler API... (%s)", err)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -283,7 +283,7 @@ var runCmd = &cli.Command{
 		deviceID := cctx.String("deviceid")
 		publicIP := cctx.String("publicIP")
 		blockStore := stores.NewBlockStore(cctx.String("blockstore"), stores.FileStore.Type())
-		edgeApi := edge.NewLocalEdgeNode(ds, schedulerAPI, blockStore, deviceID, publicIP)
+		edgeApi := edge.NewLocalEdgeNode(context.Background(), ds, schedulerAPI, blockStore, deviceID, publicIP)
 
 		log.Info("Setting up control endpoint at " + address)
 

@@ -72,26 +72,26 @@ func (r rocksdb) Type() string {
 	return "RocksDB"
 }
 
-func (r rocksdb) Put(data []byte, cid string) error {
+func (r rocksdb) Put(key string, value []byte) error {
 	rdb, err := getRocksDB(r.Path)
 	if err != nil {
 		log.Fatal("Get rocks db failed:", err)
 		return err
 	}
 
-	var key = []byte(cid)
-	return rdb.Put(writeOptions, key, data)
+	var k = []byte(key)
+	return rdb.Put(writeOptions, k, value)
 }
 
-func (r rocksdb) Get(cid string) ([]byte, error) {
+func (r rocksdb) Get(key string) ([]byte, error) {
 	rdb, err := getRocksDB(r.Path)
 	if err != nil {
 		log.Fatal("Get rocks db failed:", err)
 		return nil, err
 	}
 
-	var key = []byte(cid)
-	slice, err := rdb.Get(readOptions, key)
+	var k = []byte(key)
+	slice, err := rdb.Get(readOptions, k)
 	if err != nil {
 		return nil, err
 	}
@@ -101,26 +101,26 @@ func (r rocksdb) Get(cid string) ([]byte, error) {
 	return slice.Data(), nil
 }
 
-func (r rocksdb) Delete(cid string) error {
+func (r rocksdb) Delete(key string) error {
 	rdb, err := getRocksDB(r.Path)
 	if err != nil {
 		log.Fatal("Get rocks db failed:", err)
 		return err
 	}
 
-	var key = []byte(cid)
-	return rdb.Delete(writeOptions, key)
+	var k = []byte(key)
+	return rdb.Delete(writeOptions, k)
 }
 
-func (r rocksdb) GetReader(cid string) (BlockReader, error) {
+func (r rocksdb) GetReader(key string) (BlockReader, error) {
 	rdb, err := getRocksDB(r.Path)
 	if err != nil {
 		log.Fatal("Get rocks db failed:", err)
 		return nil, err
 	}
 
-	var key = []byte(cid)
-	slice, err := rdb.Get(readOptions, key)
+	var k = []byte(key)
+	slice, err := rdb.Get(readOptions, k)
 	if err != nil {
 		return nil, err
 	}
@@ -129,6 +129,14 @@ func (r rocksdb) GetReader(cid string) (BlockReader, error) {
 
 	reader := bytes.NewReader(slice.Data())
 	return &Reader{reader}, nil
+}
+
+func (r rocksdb) Has(key string) (exists bool, err error) {
+	return false, err
+}
+
+func (r rocksdb) GetSize(key string) (size int, err error) {
+	return 0, nil
 }
 
 type Reader struct {

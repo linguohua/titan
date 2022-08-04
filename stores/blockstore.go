@@ -7,10 +7,12 @@ import (
 )
 
 type BlockStore interface {
-	Put(data []byte, cid string) error
-	Get(cid string) ([]byte, error)
-	Delete(cid string) error
-	GetReader(cid string) (BlockReader, error)
+	Put(key string, value []byte) error
+	Get(key string) ([]byte, error)
+	Delete(key string) error
+	GetReader(key string) (BlockReader, error)
+	Has(key string) (exists bool, err error)
+	// GetSize(ctx context.Context, key string) (size int, err error)
 }
 
 func NewBlockStore(path string, storeType string) BlockStore {
@@ -45,10 +47,45 @@ type BlockReader interface {
 	io.Seeker
 }
 
-// func (br BlockReader) Read(p []byte) (int, error) {
-// 	return br.Read(p)
+// // Put implements Datastore.Put
+// func (d *NullDatastore) Put(ctx context.Context, key Key, value []byte) (err error) {
+// 	return nil
 // }
 
-// func (br BlockReader) Close() error {
-// 	return br.Close()
+// // Sync implements Datastore.Sync
+// func (d *NullDatastore) Sync(ctx context.Context, prefix Key) error {
+// 	return nil
+// }
+
+// // Get implements Datastore.Get
+// func (d *NullDatastore) Get(ctx context.Context, key Key) (value []byte, err error) {
+// 	return nil, ErrNotFound
+// }
+
+// // Has implements Datastore.Has
+// func (d *NullDatastore) Has(ctx context.Context, key Key) (exists bool, err error) {
+// 	return false, nil
+// }
+
+// // Has implements Datastore.GetSize
+// func (d *NullDatastore) GetSize(ctx context.Context, key Key) (size int, err error) {
+// 	return -1, ErrNotFound
+// }
+
+// // Delete implements Datastore.Delete
+// func (d *NullDatastore) Delete(ctx context.Context, key Key) (err error) {
+// 	return nil
+// }
+
+// // Query implements Datastore.Query
+// func (d *NullDatastore) Query(ctx context.Context, q dsq.Query) (dsq.Results, error) {
+// 	return dsq.ResultsWithEntries(q, nil), nil
+// }
+
+// func (d *NullDatastore) Batch(ctx context.Context) (Batch, error) {
+// 	return NewBasicBatch(d), nil
+// }
+
+// func (d *NullDatastore) Close() error {
+// 	return nil
 // }

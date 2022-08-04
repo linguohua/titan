@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 
+	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/geoip"
 	"github.com/linguohua/titan/node/scheduler/db"
 
@@ -16,7 +17,12 @@ func notifyNodeCacheData(cid, deviceID string) error {
 		return xerrors.New("node not find")
 	}
 
-	err := edge.edgeAPI.CacheData(context.Background(), []string{cid})
+	req := make([]api.ReqCacheData, 0)
+	// TODO: generate ID
+	reqData := api.ReqCacheData{Cid: cid, ID: "0"}
+	req = append(req, reqData)
+
+	err := edge.edgeAPI.CacheData(context.Background(), req)
 	if err != nil {
 		log.Errorf("NotifyNodeCacheData err : %v", err)
 		return err
