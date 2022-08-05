@@ -47,16 +47,14 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 	log.Infof("edgeAPI deviceInfo : %v", deviceInfo)
 
 	edgeNode := EdgeNode{
-		addr:     url,
-		edgeAPI:  edgeAPI,
-		closer:   closer,
-		deviceID: deviceInfo.DeviceId,
-		userID:   url,
-		ip:       deviceInfo.ExternalIp,
+		addr:       url,
+		edgeAPI:    edgeAPI,
+		closer:     closer,
+		deviceInfo: deviceInfo,
 	}
 	addEdgeNode(&edgeNode)
 
-	err = checkCacheFailCids(edgeNode.deviceID)
+	err = checkCacheFailCids(deviceInfo.DeviceId)
 	if err != nil {
 		log.Errorf("edgeAPI checkCacheFailCids err : %v", err)
 		return err
@@ -111,8 +109,6 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 		addr:    url,
 		edgeAPI: candicateAPI,
 		closer:  closer,
-		// deviceID: deviceID,
-		userID: url,
 	}
 	addCandidateNode(&candidateNode)
 	return nil

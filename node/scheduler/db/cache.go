@@ -1,6 +1,10 @@
 package db
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/linguohua/titan/api"
+)
 
 // CacheDB cache db
 type CacheDB interface {
@@ -33,6 +37,10 @@ type CacheDB interface {
 	DelNodeWithGeoList(deviceID, geo string) error
 	SetNodeToGeoList(deviceID, geo string) error
 	GetNodesWithGeoList(geo string) ([]string, error)
+
+	SetNodeToNodeList(deviceID string, typeName api.NodeTypeName) error
+	GetNodesWithNodeList(typeName api.NodeTypeName) ([]string, error)
+	DelNodeWithNodeList(deviceID string, typeName api.NodeTypeName) error
 }
 
 var cacheDB CacheDB
@@ -64,4 +72,5 @@ type NodeInfo struct {
 	OnLineTime int64
 	LastTime   string
 	Geo        string
+	IsOnline   bool
 }

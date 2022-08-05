@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	redigo "github.com/gomodule/redigo/redis"
+	"github.com/linguohua/titan/api"
 	"golang.org/x/xerrors"
 )
 
@@ -19,13 +20,16 @@ const (
 	redisKeyDataNodeList = "Titan:DataNodeList:%s"
 	// RedisKeyNodeDataTag  deviceID
 	redisKeyNodeDataTag = "Titan:NodeDataTag:%s"
-	// RedisKeyGeoNodeList  isocode
+	// RedisKeyGeoNodeList  geo
 	redisKeyGeoNodeList = "Titan:GeoNodeList:%s"
+	// RedisKeyNodeList  Edge/Candidate
+	redisKeyNodeList = "Titan:NodeList:%s"
 
 	// redis field
 	lastTimeField   = "LastTime"
 	onLineTimeField = "OnLineTime"
 	geoField        = "Geo"
+	isOnlineField   = "IsOnline"
 )
 
 // // RedisDB redis
@@ -183,7 +187,7 @@ func (rd redisDB) DelNodeWithCacheList(deviceID, cid string) error {
 func (rd redisDB) SetNodeInfo(deviceID string, info NodeInfo) error {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	_, err := rd.cli.HMSet(context.Background(), key, lastTimeField, info.LastTime, geoField, info.Geo).Result()
+	_, err := rd.cli.HMSet(context.Background(), key, lastTimeField, info.LastTime, geoField, info.Geo, isOnlineField, info.IsOnline).Result()
 	if err != nil {
 		return err
 	}
@@ -195,7 +199,7 @@ func (rd redisDB) SetNodeInfo(deviceID string, info NodeInfo) error {
 func (rd redisDB) GetNodeInfo(deviceID string) (NodeInfo, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	vals, err := rd.cli.HMGet(context.Background(), key, geoField, onLineTimeField, lastTimeField).Result()
+	vals, err := rd.cli.HMGet(context.Background(), key, geoField, onLineTimeField, lastTimeField, isOnlineField).Result()
 	if err != nil {
 		return NodeInfo{}, err
 	}
@@ -213,8 +217,9 @@ func (rd redisDB) GetNodeInfo(deviceID string) (NodeInfo, error) {
 	g, _ := redigo.String(vals[0], nil)
 	o, _ := redigo.Int64(vals[1], nil)
 	l, _ := redigo.String(vals[2], nil)
+	i, _ := redigo.Bool(vals[3], nil)
 
-	return NodeInfo{Geo: g, OnLineTime: o, LastTime: l}, nil
+	return NodeInfo{Geo: g, OnLineTime: o, LastTime: l, IsOnline: i}, nil
 }
 
 //  add
@@ -235,6 +240,29 @@ func (rd redisDB) GetNodesWithGeoList(geo string) ([]string, error) {
 //  del
 func (rd redisDB) DelNodeWithGeoList(deviceID, geo string) error {
 	key := fmt.Sprintf(redisKeyGeoNodeList, geo)
+
+	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
+	return err
+}
+
+// node list: add
+func (rd redisDB) SetNodeToNodeList(deviceID string, typeName api.NodeTypeName) error {
+	key := fmt.Sprintf(redisKeyNodeList, typeName)
+
+	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
+	return err
+}
+
+//  node list: SMembers
+func (rd redisDB) GetNodesWithNodeList(typeName api.NodeTypeName) ([]string, error) {
+	key := fmt.Sprintf(redisKeyNodeList, typeName)
+
+	return rd.cli.SMembers(context.Background(), key).Result()
+}
+
+// node list:   del
+func (rd redisDB) DelNodeWithNodeList(deviceID string, typeName api.NodeTypeName) error {
+	key := fmt.Sprintf(redisKeyNodeList, typeName)
 
 	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
 	return err

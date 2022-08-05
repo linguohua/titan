@@ -1,8 +1,21 @@
 package api
 
 import (
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
+)
+
+// NodeTypeName node type
+type NodeTypeName string
+
+const (
+	// TypeNameEdge Edge
+	TypeNameEdge NodeTypeName = "Edge"
+	// TypeNameCandidate Candidate
+	TypeNameCandidate NodeTypeName = "Candidate"
+	// TypeNameValidator Validator
+	TypeNameValidator NodeTypeName = "Validator"
 )
 
 type OpenRPCDocument map[string]interface{}
@@ -13,19 +26,19 @@ type IndexRequest struct {
 
 // structure of index info
 type IndexPageRes struct {
-	//AllMinerNum MinerInfo
+	// AllMinerNum MinerInfo
 	AllMinerInfo
-	//OnlineMinerNum MinerInfo
+	// OnlineMinerNum MinerInfo
 	OnlineVerifier  int `json:"online_verifier"`  // 在线验证人
 	OnlineCandidate int `json:"online_candidate"` // 在线候选人
 	OnlineEdgeNode  int `json:"online_edge_node"` // 在线边缘节点
-	//ProfitInfo Profit  // 个人收益信息
+	// ProfitInfo Profit  // 个人收益信息
 	CumulativeProfit float64 `json:"cumulative_profit"` // 个人累计收益
 	YesterdayProfit  float64 `json:"yesterday_profit"`  // 昨日收益
 	TodayProfit      float64 `json:"today_profit"`      // 今日收益
 	SevenDaysProfit  float64 `json:"seven_days_profit"` // 近七天收益
 	MonthProfit      float64 `json:"month_profit"`      // 近30天收益
-	//Device Devices // 设备信息
+	// Device Devices // 设备信息
 	TotalNum    int `json:"total_num"`    // 设备总数
 	OnlineNum   int `json:"online_num"`   // 在线设备数
 	OfflineNum  int `json:"offline_num"`  // 离线设备数
@@ -61,7 +74,7 @@ type PageInfo struct {
 type RetrievalInfo struct {
 	ServiceCountry string  `json:"service_country"` // 服务商国家
 	ServiceStatus  string  `json:"service_status"`  // 服务商网络状态
-	TaskStatus     string  `json:"task_status"`     //任务状态
+	TaskStatus     string  `json:"task_status"`     // 任务状态
 	FileName       string  `json:"file_name"`       // 文件名
 	FileSize       string  `json:"file_size"`       // 文件大小
 	CreateTime     string  `json:"create_time"`     // 文件创建日期
@@ -92,7 +105,7 @@ type GVAModel struct {
 // Devices Info
 type DevicesInfo struct {
 	GVAModel
-	//设备id
+	// 设备id
 	DeviceId string `json:"deviceId" form:"deviceId" gorm:"column:device_id;comment:;"`
 	// 设备名称
 	DeviceName string `json:"deviceName" form:"deviceName" gorm:"column:device_name;comment:;"`
@@ -170,11 +183,10 @@ type DeviceType struct {
 	Abnormal    int64   `json:"abnormal"`
 	AllDevices  int64   `json:"allDevices"`
 	BandwidthMb float64 `json:"bandwidth_mb"` // 全网上行带宽（MB/S）
-
 }
 
 type DeviceDiagnosis struct {
-	Excellent int64 `json:"excellent"` //优秀
+	Excellent int64 `json:"excellent"` // 优秀
 	Good      int64 `json:"good"`      // 良好
 	Secondary int64 `json:"secondary"` // 中等
 	Ordinary  int64 `json:"ordinary"`  // 较差
@@ -190,7 +202,7 @@ type IncomeDaily struct {
 	GVAModel
 	// 用户id
 	UserId string `json:"userId" form:"userId" gorm:"column:user_id;comment:;"`
-	//设备id
+	// 设备id
 	DeviceId string `json:"deviceId" form:"deviceId" gorm:"column:device_id;comment:;"`
 	// 月份
 	Month string `json:"month" form:"month" gorm:"column:month;comment:;"`
@@ -214,7 +226,7 @@ func (IncomeDaily) TableName() string {
 }
 
 type IncomeDailyRes struct {
-	DailyIncome      interface{} `json:"daily_income"`      //日常收益
+	DailyIncome      interface{} `json:"daily_income"`      // 日常收益
 	DefYesterday     string      `json:"def_yesterday"`     // 较昨日
 	CumulativeProfit float64     `json:"cumulative_profit"` // 累计收益
 	YesterdayProfit  float64     `json:"yesterday_profit"`  // 昨日收益
@@ -222,7 +234,7 @@ type IncomeDailyRes struct {
 	MonthProfit      float64     `json:"month_profit"`      // 近30天
 	TodayProfit      float64     `json:"today_profit"`      // 今天收益
 	OnlineTime       string      `json:"online_time"`       // 在线时长
-	HighOnlineRatio  string      `json:"high_online_ratio"` //高峰期在线率
+	HighOnlineRatio  string      `json:"high_online_ratio"` // 高峰期在线率
 }
 
 type HourDailyRes struct {
@@ -242,7 +254,7 @@ type HourDataOfDaily struct {
 	GVAModel
 	// 用户id
 	UserId string `json:"userId" form:"userId" gorm:"column:user_id;comment:;"`
-	//设备id
+	// 设备id
 	DeviceId string `json:"deviceId" form:"deviceId" gorm:"column:device_id;comment:;"`
 	// 日期
 	Date string `json:"date" form:"date" gorm:"column:date;comment:;"`
