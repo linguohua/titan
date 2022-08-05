@@ -3,6 +3,7 @@ package scheduler
 import (
 	"sync"
 
+	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/geoip"
 )
 
@@ -13,22 +14,22 @@ var (
 
 func addEdgeNode(node *EdgeNode) {
 	// geo ip
-	geoInfo, err := geoip.GetGeoIP().GetGeoInfo(node.ip)
+	geoInfo, err := geoip.GetGeoIP().GetGeoInfo(node.deviceInfo.ExternalIp)
 	if err != nil {
-		log.Errorf("addEdgeNode GetGeoInfo err : %v ,node : %v", err, node.deviceID)
+		log.Errorf("addEdgeNode GetGeoInfo err : %v ,node : %v", err, node.deviceInfo.DeviceId)
 	}
 
 	node.geoInfo = geoInfo
 
-	nodeOld := getEdgeNode(node.deviceID)
+	nodeOld := getEdgeNode(node.deviceInfo.DeviceId)
 	if nodeOld != nil {
 		nodeOld.closer()
-		log.Infof("close old deviceID : %v ", nodeOld.deviceID)
+		log.Infof("close old deviceID : %v ", nodeOld.deviceInfo.DeviceId)
 	}
 
-	edgeNodeMap.Store(node.deviceID, node)
+	edgeNodeMap.Store(node.deviceInfo.DeviceId, node)
 
-	err = NodeOnline(node.deviceID, 0, geoInfo)
+	err = nodeOnline(node.deviceInfo.DeviceId, 0, geoInfo, api.TypeNameEdge)
 	if err != nil {
 		log.Errorf("addEdgeNode NodeOnline err : %v ", err)
 	}
@@ -56,30 +57,30 @@ func deleteEdgeNode(deviceID string) {
 
 	edgeNodeMap.Delete(deviceID)
 
-	// err := NodeOffline(deviceID, node.geoInfo)
-	// if err != nil {
-	// 	log.Errorf("DeviceOffline err : %v ", err)
-	// }
+	err := nodeOffline(deviceID, node.geoInfo)
+	if err != nil {
+		log.Errorf("DeviceOffline err : %v ", err)
+	}
 }
 
 func addCandidateNode(node *CandidateNode) {
 	// geo ip
-	geoInfo, err := geoip.GetGeoIP().GetGeoInfo(node.ip)
+	geoInfo, err := geoip.GetGeoIP().GetGeoInfo(node.deviceInfo.ExternalIp)
 	if err != nil {
-		log.Errorf("addCandidateNode GetGeoInfo err : %v ,node : %v", err, node.deviceID)
+		log.Errorf("addCandidateNode GetGeoInfo err : %v ,node : %v", err, node.deviceInfo.DeviceId)
 	}
 
 	node.geoInfo = geoInfo
 
-	nodeOld := getCandidateNode(node.deviceID)
+	nodeOld := getCandidateNode(node.deviceInfo.DeviceId)
 	if node != nil {
 		nodeOld.closer()
-		log.Infof("close old deviceID : %v ", nodeOld.deviceID)
+		log.Infof("close old deviceID : %v ", nodeOld.deviceInfo.DeviceId)
 	}
 
-	candidateNodeMap.Store(node.deviceID, node)
+	candidateNodeMap.Store(node.deviceInfo.DeviceId, node)
 
-	err = NodeOnline(node.deviceID, 0, geoInfo)
+	err = nodeOnline(node.deviceInfo.DeviceId, 0, geoInfo, api.TypeNameCandidate)
 	if err != nil {
 		log.Errorf("addCandidateNode NodeOnline err : %v ", err)
 	}
@@ -107,8 +108,8 @@ func deleteCandidateNode(deviceID string) {
 
 	candidateNodeMap.Delete(deviceID)
 
-	// err := NodeOffline(deviceID, node.geoInfo)
-	// if err != nil {
-	// 	log.Errorf("DeviceOffline err : %v ", err)
-	// }
+	err := nodeOffline(deviceID, node.geoInfo)
+	if err != nil {
+		log.Errorf("DeviceOffline err : %v ", err)
+	}
 }

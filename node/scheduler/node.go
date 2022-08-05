@@ -15,12 +15,11 @@ type EdgeNode struct {
 	edgeAPI api.Edge
 	closer  jsonrpc.ClientCloser
 
-	deviceID string
-	addr     string
-	userID   string
-	ip       string
+	deviceInfo api.DevicesInfo
 
 	geoInfo geoip.GeoInfo
+
+	addr string
 }
 
 // CandidateNode Candidate node
@@ -28,16 +27,15 @@ type CandidateNode struct {
 	edgeAPI api.Candidate
 	closer  jsonrpc.ClientCloser
 
-	deviceID string
-	addr     string
-	userID   string
-	ip       string
+	deviceInfo api.DevicesInfo
 
 	geoInfo geoip.GeoInfo
+
+	addr string
 }
 
 // NodeOnline Save DeciceInfo
-func NodeOnline(deviceID string, onlineTime int64, geoInfo geoip.GeoInfo) error {
+func nodeOnline(deviceID string, onlineTime int64, geoInfo geoip.GeoInfo, typeName api.NodeTypeName) error {
 	nodeInfo, err := db.GetCacheDB().GetNodeInfo(deviceID)
 	if err == nil && nodeInfo.Geo != geoInfo.Geo {
 		// delete old
@@ -46,13 +44,18 @@ func NodeOnline(deviceID string, onlineTime int64, geoInfo geoip.GeoInfo) error 
 	}
 	log.Infof("oldgeo:%v,newgeo:%v,err:%v", nodeInfo.Geo, geoInfo.Geo, err)
 
+	lastTime := time.Now().Format("2006-01-02 15:04:05")
+	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{OnLineTime: onlineTime, Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: true})
+	if err != nil {
+		return err
+	}
+
 	err = db.GetCacheDB().SetNodeToGeoList(deviceID, geoInfo.Geo)
 	if err != nil {
 		return err
 	}
 
-	lastTime := time.Now().Format("2006-01-02 15:04:05")
-	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{OnLineTime: onlineTime, Geo: geoInfo.Geo, LastTime: lastTime})
+	err = db.GetCacheDB().SetNodeToNodeList(deviceID, typeName)
 	if err != nil {
 		return err
 	}
@@ -61,17 +64,30 @@ func NodeOnline(deviceID string, onlineTime int64, geoInfo geoip.GeoInfo) error 
 }
 
 // NodeOffline offline
-func NodeOffline(deviceID string, geoInfo geoip.GeoInfo) error {
+func nodeOffline(deviceID string, geoInfo geoip.GeoInfo) error {
 	err := db.GetCacheDB().DelNodeWithGeoList(deviceID, geoInfo.Geo)
 	if err != nil {
 		return err
 	}
 
-	// 	keyN := fmt.Sprintf(db.RedisKeyNodeInfo, deviceID)
-	// 	err = db.GetCacheDB().HSetValue(keyN, isOnLineField, false)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	lastTime := time.Now().Format("2006-01-02 15:04:05")
+	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{OnLineTime: 0, Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: false})
+	if err != nil {
+		return err
+	}
 
 	return nil
+}
+
+func spotCheck() {
+	// find edge
+
+	// find validator
+}
+
+// 选举
+func election() {
+	// 每个城市 选出X个验证者
+	// 每隔Y时间 重新选举
+	//
 }
