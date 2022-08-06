@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
+
 )
 
 
@@ -105,6 +106,8 @@ type SchedulerStruct struct {
 
 		EdgeNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
+		ElectionValidators func(p0 context.Context) (error) `perm:"read"`
+
 		FindNodeWithData func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
 		GetDownloadURLWithData func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
@@ -112,6 +115,8 @@ type SchedulerStruct struct {
 		GetIndexInfo func(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) `perm:"read"`
 
 		NotifyNodeCacheData func(p0 context.Context, p1 string, p2 string) (error) `perm:"read"`
+
+		SpotCheck func(p0 context.Context) (error) `perm:"read"`
 
 	}
 }
@@ -377,6 +382,17 @@ func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context, p1 string) (error) {
 	return ErrNotSupported
 }
 
+func (s *SchedulerStruct) ElectionValidators(p0 context.Context) (error) {
+	if s.Internal.ElectionValidators == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ElectionValidators(p0)
+}
+
+func (s *SchedulerStub) ElectionValidators(p0 context.Context) (error) {
+	return ErrNotSupported
+}
+
 func (s *SchedulerStruct) FindNodeWithData(p0 context.Context, p1 string, p2 string) (string, error) {
 	if s.Internal.FindNodeWithData == nil {
 		return "", ErrNotSupported
@@ -418,6 +434,17 @@ func (s *SchedulerStruct) NotifyNodeCacheData(p0 context.Context, p1 string, p2 
 }
 
 func (s *SchedulerStub) NotifyNodeCacheData(p0 context.Context, p1 string, p2 string) (error) {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) SpotCheck(p0 context.Context) (error) {
+	if s.Internal.SpotCheck == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.SpotCheck(p0)
+}
+
+func (s *SchedulerStub) SpotCheck(p0 context.Context) (error) {
 	return ErrNotSupported
 }
 

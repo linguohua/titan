@@ -41,6 +41,8 @@ func main() {
 	local := []*cli.Command{
 		runCmd,
 		cacheCmd,
+		electionCmd,
+		spotCheckCmd,
 	}
 
 	app := &cli.App{
@@ -167,6 +169,100 @@ var runCmd = &cli.Command{
 		log.Info("titan scheduler listen with:", address)
 
 		return srv.Serve(nl)
+	},
+}
+
+var spotCheckCmd = &cli.Command{
+	Name:  "spotcheck",
+	Usage: "Start titan spot check ",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "api-url",
+			Usage: "host address and port the worker api will listen on",
+			Value: "127.0.0.1:3456",
+		},
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		url := cctx.String("api-url")
+		log.Infof("election url:%v", url)
+
+		ctx := lcli.ReqContext(cctx)
+
+		var schedulerAPI api.Scheduler
+		var closer func()
+		var err error
+		for {
+			schedulerAPI, closer, err = client.NewScheduler(ctx, url, nil)
+			if err == nil {
+				_, err = schedulerAPI.Version(ctx)
+				if err == nil {
+					break
+				}
+			}
+			fmt.Printf("\r\x1b[0KConnecting to miner API... (%s)", err)
+			time.Sleep(time.Second)
+			continue
+		}
+
+		defer closer()
+
+		err = schedulerAPI.SpotCheck(ctx)
+		if err != nil {
+			log.Infof("SpotCheck err:%v", err)
+		}
+
+		return err
+	},
+}
+
+var electionCmd = &cli.Command{
+	Name:  "election",
+	Usage: "Start titan election ",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "api-url",
+			Usage: "host address and port the worker api will listen on",
+			Value: "127.0.0.1:3456",
+		},
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		url := cctx.String("api-url")
+		log.Infof("election url:%v", url)
+
+		ctx := lcli.ReqContext(cctx)
+
+		var schedulerAPI api.Scheduler
+		var closer func()
+		var err error
+		for {
+			schedulerAPI, closer, err = client.NewScheduler(ctx, url, nil)
+			if err == nil {
+				_, err = schedulerAPI.Version(ctx)
+				if err == nil {
+					break
+				}
+			}
+			fmt.Printf("\r\x1b[0KConnecting to miner API... (%s)", err)
+			time.Sleep(time.Second)
+			continue
+		}
+
+		defer closer()
+
+		err = schedulerAPI.ElectionValidators(ctx)
+		if err != nil {
+			log.Infof("ElectionValidators err:%v", err)
+		}
+
+		return err
 	},
 }
 

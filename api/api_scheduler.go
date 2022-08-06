@@ -18,4 +18,8 @@ type Scheduler interface {
 	CacheResult(context.Context, string, string, bool) error //perm:read
 
 	GetIndexInfo(ctx context.Context, p IndexRequest) (IndexPageRes, error) //perm:read
+
+	ElectionValidators(ctx context.Context) error //perm:read
+
+	SpotCheck(ctx context.Context) error //perm:read
 }

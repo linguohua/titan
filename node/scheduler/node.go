@@ -60,6 +60,11 @@ func nodeOnline(deviceID string, onlineTime int64, geoInfo geoip.GeoInfo, typeNa
 		return err
 	}
 
+	err = db.GetCacheDB().SetGeoToList(geoInfo.Geo)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -79,15 +84,114 @@ func nodeOffline(deviceID string, geoInfo geoip.GeoInfo) error {
 	return nil
 }
 
-func spotCheck() {
-	// find edge
+// 抽查
+func spotCheck() error {
+	// find validators
+	validators, err := db.GetCacheDB().GetValidatorsWithList()
+	if err != nil {
+		return err
+	}
 
-	// find validator
+	for _, validatorID := range validators {
+		geos, err := db.GetCacheDB().GetGeoWithValidatorList(validatorID)
+		if err != nil {
+			continue
+		}
+
+		// 待抽查列表
+		edges := make([]string, 0)
+
+		// find edge
+		for _, geo := range geos {
+			deviceIDs, err := db.GetCacheDB().GetNodesWithGeoList(geo)
+			if err != nil {
+				continue
+			}
+
+			for _, deviceID := range deviceIDs {
+				edge := getEdgeNode(deviceID)
+				if edge != nil {
+					edges = append(edges, deviceID)
+				}
+			}
+		}
+
+		validator := getCandidateNode(validatorID)
+		if validator != nil {
+			// TODO 请求 validator 抽查 edges
+
+			// 记录到redis
+
+			// 抽查结果记录到redis
+		}
+
+	}
+
+	return nil
 }
 
-// 选举
-func election() {
+func cleanValidators() error {
+	validators, err := db.GetCacheDB().GetValidatorsWithList()
+	if err != nil {
+		return err
+	}
+
+	for _, validator := range validators {
+		err = db.GetCacheDB().DelValidatorGeoList(validator)
+		if err != nil {
+			log.Errorf("DelValidatorGeoList err : %v, validator : %v", err.Error(), validator)
+		}
+	}
+
+	err = db.GetCacheDB().DelValidatorList()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// 选举、分配验证者负责的区域
+func electionValidators() error {
 	// 每个城市 选出X个验证者
 	// 每隔Y时间 重新选举
-	//
+	err := cleanValidators()
+	if err != nil {
+		return err
+	}
+
+	geos, err := db.GetCacheDB().GetGeosWithList()
+	if err != nil {
+		return err
+	}
+
+	for _, geo := range geos {
+		validator := ""
+
+		gInfo := geoip.StringGeoToGeoInfo(geo)
+		if gInfo == nil {
+			log.Errorf("StringGeoToGeoInfo geo :%v", geo)
+			continue
+		}
+		// 找出这个区域 或者邻近区域里的 所有候选节点
+		cns, _ := findCandidateNodeWithGeo(*gInfo, []string{})
+		if len(cns) > 0 {
+			// 随机一个为验证者
+			validator = cns[0].deviceInfo.DeviceId
+		} else {
+			continue
+		}
+
+		err = db.GetCacheDB().SetValidatorToList(validator)
+		if err != nil {
+			log.Errorf("SetValidatorToList err : %v , validator : %s", err.Error(), validator)
+		}
+
+		err = db.GetCacheDB().SetGeoToValidatorList(validator, geo)
+		if err != nil {
+			log.Errorf("SetGeoToValidatorList err : %v, validator : %s, geo : %s", err.Error(), validator, geo)
+		}
+	}
+
+	return nil
 }

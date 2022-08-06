@@ -114,6 +114,16 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 	return nil
 }
 
+// ElectionValidators Election Validators
+func (s Scheduler) ElectionValidators(ctx context.Context) error {
+	return electionValidators()
+}
+
+// SpotCheck Spot Check edge
+func (s Scheduler) SpotCheck(ctx context.Context) error {
+	return spotCheck()
+}
+
 // indexPage info
 func (s Scheduler) GetIndexInfo(ctx context.Context, p api.IndexRequest) (api.IndexPageRes, error) {
 	var dataRes api.IndexPageRes
