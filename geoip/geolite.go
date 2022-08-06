@@ -42,7 +42,7 @@ func (g geoLite) initGeoInfo(ip string) GeoInfo {
 		Latitude:  0,
 		Longitude: 0,
 		IP:        ip,
-		Geo:       unknown,
+		Geo:       fmt.Sprintf("%s-%s-%s", unknown, unknown, unknown),
 	}
 }
 

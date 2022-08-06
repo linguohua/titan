@@ -24,6 +24,12 @@ const (
 	redisKeyGeoNodeList = "Titan:GeoNodeList:%s"
 	// RedisKeyNodeList  Edge/Candidate
 	redisKeyNodeList = "Titan:NodeList:%s"
+	// RedisKeyGeoList
+	redisKeyGeoList = "Titan:GeoList"
+	// RedisKeyValidatorList
+	redisKeyValidatorList = "Titan:ValidatorList"
+	// RedisKeyValidatorGeoList deviceID
+	redisKeyValidatorGeoList = "Titan:ValidatorGeoList:%s"
 
 	// redis field
 	lastTimeField   = "LastTime"
@@ -265,5 +271,74 @@ func (rd redisDB) DelNodeWithNodeList(deviceID string, typeName api.NodeTypeName
 	key := fmt.Sprintf(redisKeyNodeList, typeName)
 
 	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
+	return err
+}
+
+//  add
+func (rd redisDB) SetGeoToList(geo string) error {
+	key := redisKeyGeoList
+
+	_, err := rd.cli.SAdd(context.Background(), key, geo).Result()
+	return err
+}
+
+// SMembers
+func (rd redisDB) GetGeosWithList() ([]string, error) {
+	key := redisKeyGeoList
+
+	return rd.cli.SMembers(context.Background(), key).Result()
+}
+
+//  del
+func (rd redisDB) DelGeoWithList(geo string) error {
+	key := redisKeyGeoList
+
+	_, err := rd.cli.SRem(context.Background(), key, geo).Result()
+	return err
+}
+
+//  add
+func (rd redisDB) SetValidatorToList(deviceID string) error {
+	key := redisKeyValidatorList
+
+	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
+	return err
+}
+
+// SMembers
+func (rd redisDB) GetValidatorsWithList() ([]string, error) {
+	key := redisKeyValidatorList
+
+	return rd.cli.SMembers(context.Background(), key).Result()
+}
+
+//  del
+func (rd redisDB) DelValidatorList() error {
+	key := redisKeyValidatorList
+
+	_, err := rd.cli.Del(context.Background(), key).Result()
+	return err
+}
+
+//  add
+func (rd redisDB) SetGeoToValidatorList(deviceID, geo string) error {
+	key := fmt.Sprintf(redisKeyValidatorGeoList, deviceID)
+
+	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
+	return err
+}
+
+// SMembers
+func (rd redisDB) GetGeoWithValidatorList(deviceID string) ([]string, error) {
+	key := fmt.Sprintf(redisKeyValidatorGeoList, deviceID)
+
+	return rd.cli.SMembers(context.Background(), key).Result()
+}
+
+//  del
+func (rd redisDB) DelValidatorGeoList(deviceID string) error {
+	key := fmt.Sprintf(redisKeyValidatorGeoList, deviceID)
+
+	_, err := rd.cli.Del(context.Background(), key).Result()
 	return err
 }

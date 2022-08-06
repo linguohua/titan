@@ -1,6 +1,9 @@
 package geoip
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // GeoIP geo interface
 type GeoIP interface {
@@ -41,4 +44,14 @@ func NewGeoIP(dbPath, geoType string) {
 // GetGeoIP Get GeoIP
 func GetGeoIP() GeoIP {
 	return geoIP
+}
+
+// StringGeoToGeoInfo geo
+func StringGeoToGeoInfo(geo string) *GeoInfo {
+	geos := strings.Split(geo, "-")
+	if len(geos) < 3 {
+		return nil
+	}
+
+	return &GeoInfo{Country: geos[0], Province: geos[1], City: geos[2]}
 }

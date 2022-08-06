@@ -201,25 +201,46 @@ func findCandidateNodeWithGeo(userGeoInfo geoip.GeoInfo, deviceIDs []string) ([]
 
 	defaultNodes := make([]*CandidateNode, 0)
 
-	for _, dID := range deviceIDs {
-		node := getCandidateNode(dID)
-		if node == nil {
-			continue
-		}
+	if len(deviceIDs) > 0 {
+		for _, dID := range deviceIDs {
+			node := getCandidateNode(dID)
+			if node == nil {
+				continue
+			}
 
-		defaultNodes = append(defaultNodes, node)
+			defaultNodes = append(defaultNodes, node)
 
-		if node.geoInfo.Country == userGeoInfo.Country {
-			sameCountryNodes = append(sameCountryNodes, node)
+			if node.geoInfo.Country == userGeoInfo.Country {
+				sameCountryNodes = append(sameCountryNodes, node)
 
-			if node.geoInfo.Province == userGeoInfo.Province {
-				sameProvinceNodes = append(sameProvinceNodes, node)
+				if node.geoInfo.Province == userGeoInfo.Province {
+					sameProvinceNodes = append(sameProvinceNodes, node)
 
-				if node.geoInfo.City == userGeoInfo.City {
-					sameCityNodes = append(sameCityNodes, node)
+					if node.geoInfo.City == userGeoInfo.City {
+						sameCityNodes = append(sameCityNodes, node)
+					}
 				}
 			}
 		}
+	} else {
+		candidateNodeMap.Range(func(key, value interface{}) bool {
+			node := value.(*CandidateNode)
+
+			defaultNodes = append(defaultNodes, node)
+
+			if node.geoInfo.Country == userGeoInfo.Country {
+				sameCountryNodes = append(sameCountryNodes, node)
+
+				if node.geoInfo.Province == userGeoInfo.Province {
+					sameProvinceNodes = append(sameProvinceNodes, node)
+
+					if node.geoInfo.City == userGeoInfo.City {
+						sameCityNodes = append(sameCityNodes, node)
+					}
+				}
+			}
+			return true
+		})
 	}
 
 	if len(sameCityNodes) > 0 {

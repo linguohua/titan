@@ -41,6 +41,18 @@ type CacheDB interface {
 	SetNodeToNodeList(deviceID string, typeName api.NodeTypeName) error
 	GetNodesWithNodeList(typeName api.NodeTypeName) ([]string, error)
 	DelNodeWithNodeList(deviceID string, typeName api.NodeTypeName) error
+
+	SetGeoToList(geo string) error
+	GetGeosWithList() ([]string, error)
+	DelGeoWithList(geo string) error
+
+	SetValidatorToList(deviceID string) error
+	GetValidatorsWithList() ([]string, error)
+	DelValidatorList() error
+
+	SetGeoToValidatorList(deviceID, geo string) error
+	GetGeoWithValidatorList(deviceID string) ([]string, error)
+	DelValidatorGeoList(deviceID string) error
 }
 
 var cacheDB CacheDB
