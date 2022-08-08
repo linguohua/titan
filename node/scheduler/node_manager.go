@@ -117,3 +117,19 @@ func deleteCandidateNode(deviceID string) {
 		log.Errorf("DeviceOffline err : %v ", err)
 	}
 }
+
+func getNodeCount() {
+	nodeMap := make(map[string]EdgeNode)
+	edgeNodeMap.Range(func(key, value any) bool {
+		nodeMap[key.(string)] = value.(EdgeNode)
+		return true
+	})
+	candidateMap := make(map[string]CandidateNode)
+	candidateNodeMap.Range(func(key, value any) bool {
+		candidateMap[key.(string)] = value.(CandidateNode)
+		return true
+	})
+	EdgeInfo.count = len(nodeMap)
+	CandidateInfo.count = len(candidateMap)
+	return
+}
