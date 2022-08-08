@@ -41,6 +41,7 @@ func (m *GeneralDB) Dsn() string {
 func (m *GeneralDB) GetLogMode() string {
 	return m.LogMode
 }
+
 func ConfigInit() {
 	config, err := loadConfig("../../node/scheduler/db/config.json")
 	if err != nil {
@@ -48,6 +49,7 @@ func ConfigInit() {
 	}
 	GConfig = config
 }
+
 func loadConfig(path string) (map[string]interface{}, error) {
 
 	file, err := ioutil.ReadFile(path)

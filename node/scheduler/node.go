@@ -36,6 +36,20 @@ type CandidateNode struct {
 	addr string
 }
 
+var EdgeInfo EdgeNodes
+
+type EdgeNodes struct {
+	nodes []EdgeNode
+	count int
+}
+
+var CandidateInfo CandidateNodes
+
+type CandidateNodes struct {
+	nodes []CandidateNode
+	count int
+}
+
 // NodeOnline Save DeciceInfo
 func nodeOnline(deviceID string, onlineTime int64, geoInfo geoip.GeoInfo, typeName api.NodeTypeName) error {
 	nodeInfo, err := db.GetCacheDB().GetNodeInfo(deviceID)

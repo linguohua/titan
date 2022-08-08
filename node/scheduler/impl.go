@@ -51,7 +51,6 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		deviceInfo: deviceInfo,
 	}
 	addEdgeNode(&edgeNode)
-
 	list, err := getCacheFailCids(deviceInfo.DeviceId)
 	if err != nil {
 		log.Errorf("edgeAPI checkCacheFailCids err : %v", err)
@@ -62,7 +61,8 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 	if err != nil {
 		return err
 	}
-
+	// load node info
+	go getNodeCount()
 	return nil
 }
 
@@ -144,8 +144,8 @@ func (s Scheduler) GetIndexInfo(ctx context.Context, p api.IndexRequest) (api.In
 	dataRes.StorageT = 1080.99
 	dataRes.BandwidthMb = 666.99
 	// AllMinerNum MinerInfo
-	dataRes.AllCandidate = 18
-	dataRes.AllEdgeNode = 122
+	dataRes.AllCandidate = CandidateInfo.count
+	dataRes.AllEdgeNode = EdgeInfo.count
 	dataRes.AllVerifier = 56
 	// OnlineMinerNum MinerInfo
 	dataRes.OnlineCandidate = 11
