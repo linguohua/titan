@@ -27,6 +27,8 @@ func addEdgeNode(node *EdgeNode) {
 		log.Infof("close old deviceID : %v ", nodeOld.deviceInfo.DeviceId)
 	}
 
+	log.Infof("addEdgeNode DeviceId:%v,geo:%v", node.deviceInfo.DeviceId, node.geoInfo.Geo)
+
 	edgeNodeMap.Store(node.deviceInfo.DeviceId, node)
 
 	err = nodeOnline(node.deviceInfo.DeviceId, 0, geoInfo, api.TypeNameEdge)
@@ -79,6 +81,8 @@ func addCandidateNode(node *CandidateNode) {
 	}
 
 	candidateNodeMap.Store(node.deviceInfo.DeviceId, node)
+
+	log.Infof("addCandidateNode DeviceId:%v,geo:%v", node.deviceInfo.DeviceId, node.geoInfo.Geo)
 
 	err = nodeOnline(node.deviceInfo.DeviceId, 0, geoInfo, api.TypeNameCandidate)
 	if err != nil {

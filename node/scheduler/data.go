@@ -123,8 +123,10 @@ func getNodeURLWithData(cid, ip string) (string, error) {
 
 	uInfo, err := geoip.GetGeoIP().GetGeoInfo(ip)
 	if err != nil {
-		log.Errorf("GetNodeWithData GetGeoInfo err : %v ,ip : %v", err, ip)
+		log.Errorf("getNodeURLWithData GetGeoInfo err : %v ,ip : %v", err, ip)
 	}
+
+	log.Infof("getNodeURLWithData user ip:%v,geo:%v,cid:%v", ip, uInfo.Geo, cid)
 
 	var addr string
 	nodeEs, geoLevelE := findEdgeNodeWithGeo(uInfo, deviceIDs)
