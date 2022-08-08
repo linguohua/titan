@@ -22,7 +22,7 @@ import (
 var log = logging.Logger("main")
 
 func NewLocalCandidateNode(ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, deviceID, publicIP string) api.Candidate {
-	return CandidateAPI{ds: ds, scheduler: scheduler, blockStore: blockStore, DeviceAPI: device.DeviceAPI{DeviceID: deviceID, PublicIP: publicIP}}
+	return CandidateAPI{ds: ds, scheduler: scheduler, blockStore: blockStore, DeviceAPI: device.DeviceAPI{BlockStore: blockStore, DeviceID: deviceID, PublicIP: publicIP}}
 }
 
 func cidFromData(data []byte) (string, error) {
@@ -90,6 +90,8 @@ func verify(ctx context.Context, wg sync.WaitGroup, fid, url string, result *api
 		return
 	}
 
+	result.CostTime = int(time.Now().UnixMilli() - now)
+
 	cid, err := cidFromData(data)
 	if err != nil {
 		log.Errorf("VerifyData LoadDataByVerifier err : %v", err)
@@ -97,11 +99,17 @@ func verify(ctx context.Context, wg sync.WaitGroup, fid, url string, result *api
 	}
 
 	result.Cid = cid
-	result.CostTime = int(time.Now().UnixMilli() - now)
 
 	if result.CostTime > 0 {
 		result.Bandwidth = float64(len(data)/result.CostTime) * 1000
 	}
+
+	info, err := edgeAPI.DeviceInfo(ctx)
+	if err != nil {
+		log.Errorf("VerifyData get device info err : %v", err)
+		return
+	}
+	result.DeviceID = info.DeviceId
 
 	return
 }
