@@ -19,6 +19,8 @@ type CandidateStruct struct {
 
 	CommonStruct
 
+	DeviceStruct
+
 	Internal struct {
 
 		VerifyData func(p0 context.Context, p1 []ReqVarify) ([]VarifyResult, error) `perm:"read"`
@@ -31,6 +33,8 @@ type CandidateStruct struct {
 type CandidateStub struct {
 
 	CommonStub
+
+	DeviceStub
 
 }
 
@@ -65,9 +69,24 @@ type CommonStub struct {
 
 }
 
+type DeviceStruct struct {
+
+	Internal struct {
+
+		DeviceInfo func(p0 context.Context) (DevicesInfo, error) `perm:"read"`
+
+	}
+}
+
+type DeviceStub struct {
+
+}
+
 type EdgeStruct struct {
 
 	CommonStruct
+
+	DeviceStruct
 
 	Internal struct {
 
@@ -76,8 +95,6 @@ type EdgeStruct struct {
 		CacheData func(p0 context.Context, p1 []ReqCacheData) (error) `perm:"read"`
 
 		CacheFailResult func(p0 context.Context) ([]FailResult, error) `perm:"read"`
-
-		DeviceInfo func(p0 context.Context) (DevicesInfo, error) `perm:"read"`
 
 		LoadData func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
 
@@ -91,6 +108,8 @@ type EdgeStruct struct {
 type EdgeStub struct {
 
 	CommonStub
+
+	DeviceStub
 
 }
 
@@ -269,6 +288,20 @@ func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 
 
 
+func (s *DeviceStruct) DeviceInfo(p0 context.Context) (DevicesInfo, error) {
+	if s.Internal.DeviceInfo == nil {
+		return *new(DevicesInfo), ErrNotSupported
+	}
+	return s.Internal.DeviceInfo(p0)
+}
+
+func (s *DeviceStub) DeviceInfo(p0 context.Context) (DevicesInfo, error) {
+	return *new(DevicesInfo), ErrNotSupported
+}
+
+
+
+
 func (s *EdgeStruct) BlockStoreStat(p0 context.Context) (error) {
 	if s.Internal.BlockStoreStat == nil {
 		return ErrNotSupported
@@ -300,17 +333,6 @@ func (s *EdgeStruct) CacheFailResult(p0 context.Context) ([]FailResult, error) {
 
 func (s *EdgeStub) CacheFailResult(p0 context.Context) ([]FailResult, error) {
 	return *new([]FailResult), ErrNotSupported
-}
-
-func (s *EdgeStruct) DeviceInfo(p0 context.Context) (DevicesInfo, error) {
-	if s.Internal.DeviceInfo == nil {
-		return *new(DevicesInfo), ErrNotSupported
-	}
-	return s.Internal.DeviceInfo(p0)
-}
-
-func (s *EdgeStub) DeviceInfo(p0 context.Context) (DevicesInfo, error) {
-	return *new(DevicesInfo), ErrNotSupported
 }
 
 func (s *EdgeStruct) LoadData(p0 context.Context, p1 string) ([]byte, error) {
@@ -452,6 +474,7 @@ func (s *SchedulerStub) SpotCheck(p0 context.Context) (error) {
 
 var _ Candidate = new(CandidateStruct)
 var _ Common = new(CommonStruct)
+var _ Device = new(DeviceStruct)
 var _ Edge = new(EdgeStruct)
 var _ Scheduler = new(SchedulerStruct)
 

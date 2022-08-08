@@ -10,11 +10,11 @@ import (
 	"github.com/linguohua/titan/stores"
 	"golang.org/x/time/rate"
 
-	"github.com/linguohua/titan/node/common"
-
 	"github.com/ipfs/go-datastore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/linguohua/titan/node/common"
+	"github.com/linguohua/titan/node/device"
 )
 
 var log = logging.Logger("edge")
@@ -29,24 +29,26 @@ func NewLocalEdgeNode(ctx context.Context, ds datastore.Batching, scheduler api.
 	if err != nil {
 		log.Fatal(err)
 	}
-	return EdgeAPI{
+	edge := EdgeAPI{
 		ds:         ds,
 		scheduler:  scheduler,
 		blockStore: blockStore,
-		deviceID:   deviceID,
 		limiter:    rate.NewLimiter(rate.Limit(0), 0),
-		publicIP:   publicIP,
-		exchange:   exchange}
+		exchange:   exchange,
+		DeviceAPI:  device.DeviceAPI{BlockStore: blockStore, PublicIP: publicIP, DeviceID: deviceID},
+	}
+	edge.DeviceAPI.DeviceID = "123132"
+
+	return edge
 }
 
 type EdgeAPI struct {
 	common.CommonAPI
+	device.DeviceAPI
 	ds         datastore.Batching
-	scheduler  api.Scheduler
 	blockStore stores.BlockStore
-	deviceID   string
+	scheduler  api.Scheduler
 	limiter    *rate.Limiter
-	publicIP   string
 	exchange   exchange.Interface
 }
 
@@ -65,35 +67,6 @@ func (edge EdgeAPI) CacheData(ctx context.Context, req []api.ReqCacheData) error
 
 func (edge EdgeAPI) BlockStoreStat(ctx context.Context) error {
 	return nil
-}
-
-func (edge EdgeAPI) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
-	info := api.DevicesInfo{}
-
-	stat, err := edge.blockStore.Stat()
-	if err != nil {
-		return info, err
-	}
-
-	v, err := api.VersionForType(api.RunningNodeType)
-	if err != nil {
-		return info, err
-	}
-
-	version := api.APIVersion{
-		Version:    build.UserVersion(),
-		APIVersion: v,
-	}
-
-	info.DeviceId = edge.deviceID
-	info.ExternalIp = edge.publicIP
-	info.SystemVersion = version.String()
-
-	if stat.Capacity > 0 {
-		info.DiskUsage = fmt.Sprintf("%f", float32(stat.Capacity-stat.Available)/float32(stat.Capacity))
-	}
-
-	return info, nil
 }
 
 func (edge EdgeAPI) LoadData(ctx context.Context, cid string) ([]byte, error) {
