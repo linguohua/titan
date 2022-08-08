@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -12,7 +13,7 @@ import (
 
 // EdgeNode Edge node
 type EdgeNode struct {
-	edgeAPI api.Edge
+	nodeAPI api.Edge
 	closer  jsonrpc.ClientCloser
 
 	deviceInfo api.DevicesInfo
@@ -24,7 +25,7 @@ type EdgeNode struct {
 
 // CandidateNode Candidate node
 type CandidateNode struct {
-	edgeAPI api.Candidate
+	nodeAPI api.Candidate
 	closer  jsonrpc.ClientCloser
 
 	deviceInfo api.DevicesInfo
@@ -84,8 +85,53 @@ func nodeOffline(deviceID string, geoInfo geoip.GeoInfo) error {
 	return nil
 }
 
+func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
+	req := make([]api.ReqVarify, 0)
+	result := make(map[string]string)
+
+	for _, edge := range edges {
+		// 查看节点缓存了哪些数据
+		infos, err := db.GetCacheDB().GetCacheDataInfos(edge.deviceInfo.DeviceId)
+		if err != nil {
+			log.Errorf("spotCheck GetCacheDataInfos err:%v,DeviceId:%v", err.Error(), edge.deviceInfo.DeviceId)
+			continue
+		}
+
+		if len(infos) <= 0 {
+			continue
+		}
+
+		// TODO 随机抽查某个数据
+		var cid string
+		var tag string
+		for c, t := range infos {
+			cid = c
+			tag = t
+		}
+
+		req = append(req, api.ReqVarify{Fid: tag, URL: edge.addr})
+
+		result[edge.deviceInfo.DeviceId] = cid
+	}
+	// 请求抽查
+	varifyResults, err := candidate.nodeAPI.VerifyData(context.Background(), req)
+	if err != nil {
+		log.Errorf("VerifyData err : %v , DeviceId : %v", err.Error(), candidate.deviceInfo.DeviceId)
+		return
+	}
+	// 抽查结果
+	for _, varifyResult := range varifyResults {
+		if varifyResult.IsTimeout {
+			// TODO
+		}
+	}
+
+	log.Infof("varifyResult candidate:%v", candidate.deviceInfo.DeviceId)
+	// TODO 写入DB 时间:候选节点:被验证节点:验证的cid:序号:结果
+}
+
 // 抽查
-func spotCheck() error {
+func spotChecks() error {
 	// find validators
 	validators, err := db.GetCacheDB().GetValidatorsWithList()
 	if err != nil {
@@ -118,11 +164,7 @@ func spotCheck() error {
 
 		validator := getCandidateNode(validatorID)
 		if validator != nil {
-			// TODO 请求 validator 抽查 edges
-
-			// 记录到redis
-
-			// 抽查结果记录到redis
+			spotCheck(validator, edges)
 		}
 
 	}

@@ -21,6 +21,7 @@ const (
 	cityLevel     geoLevel = 3
 )
 
+// 检查缓存失败的cid
 func checkCacheFailCids(deviceID string) error {
 	edge := getEdgeNode(deviceID)
 	if edge == nil {
@@ -46,7 +47,7 @@ func checkCacheFailCids(deviceID string) error {
 		list = append(list, api.ReqCacheData{Cid: cid, ID: tag})
 	}
 
-	err = edge.edgeAPI.CacheData(context.Background(), list)
+	err = edge.nodeAPI.CacheData(context.Background(), list)
 	if err != nil {
 		return err
 	}
@@ -69,7 +70,7 @@ func notifyNodeCacheData(cid, deviceID string) error {
 
 	reqData := api.ReqCacheData{Cid: cid, ID: fmt.Sprintf("%d", tag)}
 
-	err = edge.edgeAPI.CacheData(context.Background(), []api.ReqCacheData{reqData})
+	err = edge.nodeAPI.CacheData(context.Background(), []api.ReqCacheData{reqData})
 	if err != nil {
 		log.Errorf("NotifyNodeCacheData err : %v", err)
 		return err

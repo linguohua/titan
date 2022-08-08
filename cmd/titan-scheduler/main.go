@@ -130,7 +130,7 @@ var runCmd = &cli.Command{
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		// init mysql db
-		db.GMysqlDb = db.GormMysql()
+		// db.GMysqlDb = db.GormMysql()
 		// TODO
 		cURL := cctx.String("cachedb-url")
 		db.NewCacheDB(cURL, db.TypeRedis())

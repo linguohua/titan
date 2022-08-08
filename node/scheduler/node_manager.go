@@ -16,7 +16,7 @@ func addEdgeNode(node *EdgeNode) {
 	// geo ip
 	geoInfo, err := geoip.GetGeoIP().GetGeoInfo(node.deviceInfo.ExternalIp)
 	if err != nil {
-		log.Errorf("addEdgeNode GetGeoInfo err : %v ,node : %v", err, node.deviceInfo.DeviceId)
+		log.Errorf("addEdgeNode GetGeoInfo err : %v ,node : %v", err, node.deviceInfo.ExternalIp)
 	}
 
 	node.geoInfo = geoInfo
@@ -69,7 +69,7 @@ func addCandidateNode(node *CandidateNode) {
 	// geo ip
 	geoInfo, err := geoip.GetGeoIP().GetGeoInfo(node.deviceInfo.ExternalIp)
 	if err != nil {
-		log.Errorf("addCandidateNode GetGeoInfo err : %v ,node : %v", err, node.deviceInfo.DeviceId)
+		log.Errorf("addCandidateNode GetGeoInfo err : %v ,ExternalIp : %v", err, node.deviceInfo.ExternalIp)
 	}
 
 	node.geoInfo = geoInfo
