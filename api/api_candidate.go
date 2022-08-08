@@ -17,6 +17,7 @@ type ReqVarify struct {
 type VarifyResult struct {
 	Fid       string
 	Cid       string
+	DeviceID  string
 	Bandwidth float64
 	// microsecond
 	CostTime  int
