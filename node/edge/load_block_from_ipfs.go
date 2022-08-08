@@ -2,7 +2,6 @@ package edge
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/ipfs/go-cid"
@@ -10,9 +9,6 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/linguohua/titan/api"
 )
-
-var failResults = make([]api.FailResult, 0)
-var reqLock sync.Mutex
 
 func getBlock(edge EdgeAPI, cid string) ([]byte, error) {
 	target, err := CID.Decode(cid)
@@ -64,9 +60,6 @@ func getBlocks(edge EdgeAPI, req []api.ReqCacheData) (map[cid.Cid][]byte, error)
 func cacheResult(ctx context.Context, edge EdgeAPI, cid string, success bool) {
 	err := edge.scheduler.CacheResult(ctx, edge.deviceID, cid, success)
 	if err != nil {
-		failedResult := api.FailResult{Cid: cid, Stats: success}
-		failResults = append(failResults, failedResult)
-
 		log.Errorf("load_block CacheResult error:%v", err)
 	}
 }

@@ -132,11 +132,47 @@ func (r rocksdb) GetReader(key string) (BlockReader, error) {
 }
 
 func (r rocksdb) Has(key string) (exists bool, err error) {
-	return false, err
+	rdb, err := getRocksDB(r.Path)
+	if err != nil {
+		log.Fatal("Get rocks db failed:", err)
+		return false, err
+	}
+
+	var k = []byte(key)
+	slice, err := rdb.Get(readOptions, k)
+	if err != nil {
+		return false, err
+	}
+
+	return slice.Exists(), nil
 }
 
 func (r rocksdb) GetSize(key string) (size int, err error) {
-	return 0, nil
+	rdb, err := getRocksDB(r.Path)
+	if err != nil {
+		log.Fatal("Get rocks db failed:", err)
+		return 0, err
+	}
+
+	var k = []byte(key)
+	slice, err := rdb.Get(readOptions, k)
+	if err != nil {
+		return 0, err
+	}
+
+	return slice.Size(), nil
+}
+
+func (r rocksdb) Stat() (fsutil.FsStat, error) {
+	return fsutil.Statfs(fs.Path)
+}
+
+func (r rocksdb) DiskUsage() (int64, error) {
+	si, err := fsutil.FileSize(fs.Path)
+	if err != nil {
+		return 0, err
+	}
+	return si.OnDisk, nil
 }
 
 type Reader struct {
@@ -153,4 +189,8 @@ func (r Reader) Close() error {
 
 func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 	return r.r.Seek(offset, whence)
+}
+
+func (r *Reader) Size() int64{
+	return r.r.Size()
 }

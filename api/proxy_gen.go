@@ -21,7 +21,7 @@ type CandidateStruct struct {
 
 	Internal struct {
 
-		VerifyData func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
+		VerifyData func(p0 context.Context, p1 []ReqVarify) ([]VarifyResult, error) `perm:"read"`
 
 		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
 
@@ -75,7 +75,7 @@ type EdgeStruct struct {
 
 		CacheData func(p0 context.Context, p1 []ReqCacheData) (error) `perm:"read"`
 
-		CacheFailResult func(p0 context.Context) ([]FailResult, error) ``
+		CacheFailResult func(p0 context.Context) ([]FailResult, error) `perm:"read"`
 
 		DeviceInfo func(p0 context.Context) (DevicesInfo, error) `perm:"read"`
 
@@ -131,15 +131,15 @@ type SchedulerStub struct {
 
 
 
-func (s *CandidateStruct) VerifyData(p0 context.Context, p1 string, p2 string) (string, error) {
+func (s *CandidateStruct) VerifyData(p0 context.Context, p1 []ReqVarify) ([]VarifyResult, error) {
 	if s.Internal.VerifyData == nil {
-		return "", ErrNotSupported
+		return *new([]VarifyResult), ErrNotSupported
 	}
-	return s.Internal.VerifyData(p0, p1, p2)
+	return s.Internal.VerifyData(p0, p1)
 }
 
-func (s *CandidateStub) VerifyData(p0 context.Context, p1 string, p2 string) (string, error) {
-	return "", ErrNotSupported
+func (s *CandidateStub) VerifyData(p0 context.Context, p1 []ReqVarify) ([]VarifyResult, error) {
+	return *new([]VarifyResult), ErrNotSupported
 }
 
 func (s *CandidateStruct) WaitQuiet(p0 context.Context) (error) {

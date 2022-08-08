@@ -68,7 +68,31 @@ func (edge EdgeAPI) BlockStoreStat(ctx context.Context) error {
 }
 
 func (edge EdgeAPI) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
-	info := api.DevicesInfo{DeviceId: edge.deviceID, ExternalIp: edge.publicIP}
+	info := api.DevicesInfo{}
+
+	stat, err := edge.blockStore.Stat()
+	if err != nil {
+		return info, err
+	}
+
+	v, err := api.VersionForType(api.RunningNodeType)
+	if err != nil {
+		return info, err
+	}
+
+	version := api.APIVersion{
+		Version:    build.UserVersion(),
+		APIVersion: v,
+	}
+
+	info.DeviceId = edge.deviceID
+	info.ExternalIp = edge.publicIP
+	info.SystemVersion = version.String()
+
+	if stat.Capacity > 0 {
+		info.DiskUsage = fmt.Sprintf("%f", float32(stat.Capacity-stat.Available)/float32(stat.Capacity))
+	}
+
 	return info, nil
 }
 
@@ -82,12 +106,7 @@ func (edge EdgeAPI) LoadData(ctx context.Context, cid string) ([]byte, error) {
 }
 
 func (edge EdgeAPI) CacheFailResult(ctx context.Context) ([]api.FailResult, error) {
-	reqLock.Lock()
-	defer reqLock.Unlock()
-
-	results := failResults
-	failResults = make([]api.FailResult, 0)
-	return results, nil
+	return make([]api.FailResult, 0), nil
 }
 
 func (edge EdgeAPI) LoadDataByVerifier(ctx context.Context, fileID string) ([]byte, error) {

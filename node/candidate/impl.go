@@ -3,6 +3,8 @@ package candidate
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
@@ -47,20 +49,55 @@ func (candidate CandidateAPI) WaitQuiet(ctx context.Context) error {
 	return nil
 }
 
-func (candidate CandidateAPI) VerifyData(ctx context.Context, fid string, url string) (string, error) {
+func (candidate CandidateAPI) VerifyData(ctx context.Context, req []api.ReqVarify) ([]api.VarifyResult, error) {
+	results := make([]api.VarifyResult, 0, len(req))
+	wg := sync.WaitGroup{}
+
+	for _, varify := range req {
+		result := &api.VarifyResult{}
+		results = append(results, *result)
+
+		wg.Add(1)
+		go verify(ctx, wg, varify.Fid, varify.URL, result)
+	}
+	wg.Wait()
+
+	return results, nil
+}
+
+func verify(ctx context.Context, wg sync.WaitGroup, fid, url string, result *api.VarifyResult) {
+	defer wg.Done()
+
+	result.Fid = fid
+
 	edgeAPI, closer, err := client.NewEdge(ctx, url, nil)
 	if err != nil {
+		result.IsTimeout = true
 		log.Errorf("VerifyData NewEdge err : %v", err)
-		return "", err
+		return
 	}
-
 	defer closer()
 
+	now := time.Now().UnixMilli()
 	data, err := edgeAPI.LoadDataByVerifier(ctx, fid)
 	if err != nil {
+		result.IsTimeout = true
 		log.Errorf("VerifyData LoadDataByVerifier err : %v", err)
-		return "", err
+		return
 	}
 
-	return cidFromData(data)
+	cid, err := cidFromData(data)
+	if err != nil {
+		log.Errorf("VerifyData LoadDataByVerifier err : %v", err)
+		return
+	}
+
+	result.Cid = cid
+	result.CostTime = int(time.Now().UnixMilli() - now)
+
+	if result.CostTime > 0 {
+		result.Bandwidth = float64(len(data)/result.CostTime) * 1000
+	}
+
+	return
 }
