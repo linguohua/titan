@@ -46,7 +46,7 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 
 	edgeNode := EdgeNode{
 		addr:       url,
-		edgeAPI:    edgeAPI,
+		nodeAPI:    edgeAPI,
 		closer:     closer,
 		deviceInfo: deviceInfo,
 	}
@@ -105,7 +105,7 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 
 	candidateNode := CandidateNode{
 		addr:    url,
-		edgeAPI: candicateAPI,
+		nodeAPI: candicateAPI,
 		closer:  closer,
 	}
 	addCandidateNode(&candidateNode)
@@ -119,7 +119,7 @@ func (s Scheduler) ElectionValidators(ctx context.Context) error {
 
 // SpotCheck Spot Check edge
 func (s Scheduler) SpotCheck(ctx context.Context) error {
-	return spotCheck()
+	return spotChecks()
 }
 
 // indexPage info
