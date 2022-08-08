@@ -40,9 +40,9 @@ func nodeOnline(deviceID string, onlineTime int64, geoInfo geoip.GeoInfo, typeNa
 	if err == nil && nodeInfo.Geo != geoInfo.Geo {
 		// delete old
 		err = db.GetCacheDB().DelNodeWithGeoList(deviceID, nodeInfo.Geo)
-		log.Infof("SremSet err:%v", err)
+		// log.Infof("SremSet err:%v", err)
 	}
-	log.Infof("oldgeo:%v,newgeo:%v,err:%v", nodeInfo.Geo, geoInfo.Geo, err)
+	// log.Infof("oldgeo:%v,newgeo:%v,err:%v", nodeInfo.Geo, geoInfo.Geo, err)
 
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
 	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{OnLineTime: onlineTime, Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: true})
@@ -99,7 +99,7 @@ func spotCheck() error {
 		}
 
 		// 待抽查列表
-		edges := make([]string, 0)
+		edges := make([]*EdgeNode, 0)
 
 		// find edge
 		for _, geo := range geos {
@@ -111,7 +111,7 @@ func spotCheck() error {
 			for _, deviceID := range deviceIDs {
 				edge := getEdgeNode(deviceID)
 				if edge != nil {
-					edges = append(edges, deviceID)
+					edges = append(edges, edge)
 				}
 			}
 		}
@@ -173,6 +173,7 @@ func electionValidators() error {
 			log.Errorf("StringGeoToGeoInfo geo :%v", geo)
 			continue
 		}
+
 		// 找出这个区域 或者邻近区域里的 所有候选节点
 		cns, _ := findCandidateNodeWithGeo(*gInfo, []string{})
 		if len(cns) > 0 {
@@ -181,7 +182,7 @@ func electionValidators() error {
 		} else {
 			continue
 		}
-
+		// TODO 这里要分配好,不能让一个验证者  分配到太多的边缘节点
 		err = db.GetCacheDB().SetValidatorToList(validator)
 		if err != nil {
 			log.Errorf("SetValidatorToList err : %v , validator : %s", err.Error(), validator)

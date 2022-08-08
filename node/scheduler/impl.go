@@ -44,8 +44,6 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		return err
 	}
 
-	log.Infof("edgeAPI deviceInfo : %v", deviceInfo)
-
 	edgeNode := EdgeNode{
 		addr:       url,
 		edgeAPI:    edgeAPI,
