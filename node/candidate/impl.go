@@ -28,7 +28,7 @@ func NewLocalCandidateNode(ds datastore.Batching, scheduler api.Scheduler, block
 func cidFromData(data []byte) (string, error) {
 	pref := cid.Prefix{
 		Version:  1,
-		Codec:    uint64(cid.Raw),
+		Codec:    uint64(cid.DagProtobuf),
 		MhType:   mh.SHA2_256,
 		MhLength: -1, // default length
 	}
@@ -54,22 +54,27 @@ func (candidate CandidateAPI) WaitQuiet(ctx context.Context) error {
 }
 
 func (candidate CandidateAPI) VerifyData(ctx context.Context, req []api.ReqVarify) ([]api.VarifyResult, error) {
-	results := make([]api.VarifyResult, 0, len(req))
-	wg := sync.WaitGroup{}
+	results := make([]*api.VarifyResult, 0, len(req))
+	wg := &sync.WaitGroup{}
 
 	for _, varify := range req {
 		result := &api.VarifyResult{}
-		results = append(results, *result)
+		results = append(results, result)
 
 		wg.Add(1)
 		go verify(ctx, wg, varify.Fid, varify.URL, result)
 	}
 	wg.Wait()
 
-	return results, nil
+	res := make([]api.VarifyResult, 0, len(req))
+	for _, result := range results {
+		res = append(res, *result)
+	}
+
+	return res, nil
 }
 
-func verify(ctx context.Context, wg sync.WaitGroup, fid, url string, result *api.VarifyResult) {
+func verify(ctx context.Context, wg *sync.WaitGroup, fid, url string, result *api.VarifyResult) {
 	defer wg.Done()
 
 	result.Fid = fid
@@ -109,7 +114,7 @@ func verify(ctx context.Context, wg sync.WaitGroup, fid, url string, result *api
 		log.Errorf("VerifyData get device info err : %v", err)
 		return
 	}
-	result.DeviceID = info.DeviceId
 
-	return
+	result.DeviceID = info.DeviceId
+	log.Infof("fid:%s, cid:%s, deviceID:%s", result.Fid, result.Cid, result.DeviceID)
 }
