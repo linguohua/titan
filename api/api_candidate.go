@@ -4,7 +4,7 @@ import "context"
 
 type Candidate interface {
 	Common
-
+	Device
 	WaitQuiet(ctx context.Context) error                                     //perm:read
 	VerifyData(ctx context.Context, req []ReqVarify) ([]VarifyResult, error) //perm:read
 }

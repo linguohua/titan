@@ -58,7 +58,7 @@ func getBlocks(edge EdgeAPI, req []api.ReqCacheData) (map[cid.Cid][]byte, error)
 }
 
 func cacheResult(ctx context.Context, edge EdgeAPI, cid string, success bool) {
-	err := edge.scheduler.CacheResult(ctx, edge.deviceID, cid, success)
+	err := edge.scheduler.CacheResult(ctx, edge.DeviceAPI.DeviceID, cid, success)
 	if err != nil {
 		log.Errorf("load_block CacheResult error:%v", err)
 	}

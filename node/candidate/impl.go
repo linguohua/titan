@@ -8,8 +8,10 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
+	"github.com/linguohua/titan/stores"
 
 	"github.com/linguohua/titan/node/common"
+	"github.com/linguohua/titan/node/device"
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
@@ -19,8 +21,8 @@ import (
 
 var log = logging.Logger("main")
 
-func NewLocalCandidateNode(ds datastore.Batching, scheduler api.Scheduler) api.Candidate {
-	return CandidateAPI{ds: ds, scheduler: scheduler}
+func NewLocalCandidateNode(ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, deviceID, publicIP string) api.Candidate {
+	return CandidateAPI{ds: ds, scheduler: scheduler, blockStore: blockStore, DeviceAPI: device.DeviceAPI{DeviceID: deviceID, PublicIP: publicIP}}
 }
 
 func cidFromData(data []byte) (string, error) {
@@ -41,8 +43,10 @@ func cidFromData(data []byte) (string, error) {
 
 type CandidateAPI struct {
 	common.CommonAPI
-	ds        datastore.Batching
-	scheduler api.Scheduler
+	device.DeviceAPI
+	ds         datastore.Batching
+	scheduler  api.Scheduler
+	blockStore stores.BlockStore
 }
 
 func (candidate CandidateAPI) WaitQuiet(ctx context.Context) error {

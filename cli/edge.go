@@ -39,10 +39,15 @@ var CacheDataCmd = &cli.Command{
 	Name:  "cachedata",
 	Usage: "cache block content",
 	Flags: []cli.Flag{
-		&cli.StringSliceFlag{
+		&cli.StringFlag{
 			Name:  "cid",
 			Usage: "block cids",
-			Value: &cli.StringSlice{},
+			Value: "",
+		},
+		&cli.StringFlag{
+			Name:  "fid",
+			Usage: "block file id",
+			Value: "",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -53,17 +58,15 @@ var CacheDataCmd = &cli.Command{
 		}
 		defer closer()
 
-		cids := cctx.StringSlice("cid")
-		fmt.Println("cids:", cids)
+		cid := cctx.String("cid")
+		fid := cctx.String("fid")
+		fmt.Println("cid:", cid)
 		ctx := ReqContext(cctx)
 		// TODO: print more useful things
 
-		req := make([]API.ReqCacheData, len(cids))
-		for _, cid := range cids {
-			reqData := API.ReqCacheData{Cid: cid, ID: "0"}
-			req = append(req, reqData)
-		}
-
+		req := make([]API.ReqCacheData, 0)
+		reqData := API.ReqCacheData{Cid: cid, ID: fid}
+		req = append(req, reqData)
 		err = api.CacheData(ctx, req)
 		if err != nil {
 			return err

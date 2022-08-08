@@ -106,6 +106,28 @@ var runCmd = &cli.Command{
 			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
 			Value: "30m",
 		},
+		&cli.StringFlag{
+			Name:   "deviceid",
+			Hidden: true,
+			Value:  "123456789000000001", // should follow --repo default
+		},
+		&cli.StringFlag{
+			Name:   "publicIP",
+			Hidden: true,
+			Value:  "119.28.56.169", // should follow --repo default
+		},
+		&cli.StringFlag{
+			Name:    "blockstore-path",
+			EnvVars: []string{"BLOCK_STORE_PATH"},
+			Hidden:  true,
+			Value:   "./blockstore", // should follow --repo default
+		},
+		&cli.StringFlag{
+			Name:    "blockstore-type",
+			EnvVars: []string{"BLOCK_STORE_TYPE"},
+			Hidden:  true,
+			Value:   "FileStore", // should follow --repo default
+		},
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -264,7 +286,10 @@ var runCmd = &cli.Command{
 			}
 		}
 
-		candidateApi := candidate.NewLocalCandidateNode(ds, schedulerAPI)
+		deviceID := cctx.String("deviceid")
+		publicIP := cctx.String("publicIP")
+		blockStore := stores.NewBlockStore(cctx.String("blockstore-path"), stores.FileStore.Type())
+		candidateApi := candidate.NewLocalCandidateNode(ds, schedulerAPI, blockStore, deviceID, publicIP)
 
 		log.Info("Setting up control endpoint at " + address)
 

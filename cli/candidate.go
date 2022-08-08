@@ -12,12 +12,17 @@ var CandidateCmds = []*cli.Command{
 }
 
 var VerfyDataCmd = &cli.Command{
-	Name:  "verfydata",
-	Usage: "verfy data",
+	Name:  "verifydata",
+	Usage: "verify data",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "fid",
 			Usage: "file id",
+			Value: "",
+		},
+		&cli.StringFlag{
+			Name:  "edge-url",
+			Usage: "edge url",
 			Value: "",
 		},
 	},
@@ -29,11 +34,12 @@ var VerfyDataCmd = &cli.Command{
 		defer closer()
 
 		fid := cctx.String("fid")
-		fmt.Println("fid:", fid)
+		url := cctx.String("edge-url")
+		fmt.Printf("fid:%s,url:%s", fid, url)
 		ctx := ReqContext(cctx)
 		// TODO: print more useful things
 		req := make([]API.ReqVarify, 0)
-		varify := API.ReqVarify{}
+		varify := API.ReqVarify{Fid: fid}
 		req = append(req, varify)
 
 		cid, err := api.VerifyData(ctx, req)
