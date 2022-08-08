@@ -12,7 +12,7 @@ type Edge interface {
 	DeviceInfo(ctx context.Context) (DevicesInfo, error)                //perm:read
 	LoadData(ctx context.Context, cid string) ([]byte, error)           //perm:read
 	LoadDataByVerifier(ctx context.Context, fid string) ([]byte, error) //perm:read
-	CacheFailResult(ctx context.Context) ([]FailResult, error)
+	CacheFailResult(ctx context.Context) ([]FailResult, error)          //perm:read
 }
 
 type ReqCacheData struct {

@@ -51,14 +51,26 @@ func (edge EdgeAPI) GetBlock(w http.ResponseWriter, r *http.Request) {
 	}
 	defer reader.Close()
 
-	if edge.limiter.Limit() == 0 {
-		// TODO: get real bandwidth
-		edge.limiter.SetLimit(rate.Limit(speedRate))
-		edge.limiter.SetBurst(capacity)
-	}
+	now := time.Now().UnixMilli()
 
 	lr := lrs{reader, NewReader(reader, edge.limiter)}
 	http.ServeContent(w, r, cid, time.Now(), lr)
+
+	costTime := time.Now().UnixMilli() - now
+	size := reader.Size()
+
+	var speedRate = int64(0)
+	if costTime != 0 {
+		speedRate = size / costTime * 1000
+	}
+
+	if edge.limiter.Limit() == 0 {
+		edge.limiter.SetLimit(rate.Limit(speedRate))
+		edge.limiter.SetBurst(int(speedRate))
+		log.Infof("block_download set speed rate:%d", speedRate)
+	}
+
+	log.Infof("Download block %s costTime %d, size %d, speed %d", cid, costTime, size, speedRate)
 
 	return
 }

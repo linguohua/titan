@@ -1,5 +1,9 @@
 package stores
 
+import (
+	"github.com/linguohua/titan/node/fsutil"
+)
+
 type rocksdb struct {
 	Path string
 }
@@ -29,5 +33,13 @@ func (r rocksdb) Has(key string) (exists bool, err error) {
 }
 
 func (r rocksdb) GetSize(key string) (size int, err error) {
+	return 0, nil
+}
+
+func (r rocksdb) Stat() (fsutil.FsStat, error) {
+	return fsutil.FsStat{}, nil
+}
+
+func (r rocksdb) DiskUsage() (int64, error) {
 	return 0, nil
 }

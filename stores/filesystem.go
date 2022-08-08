@@ -3,6 +3,8 @@ package stores
 import (
 	"os"
 	"path/filepath"
+
+	"github.com/linguohua/titan/node/fsutil"
 )
 
 type fileStore struct {
@@ -35,7 +37,7 @@ func (fs fileStore) GetReader(key string) (BlockReader, error) {
 		return nil, err
 	}
 
-	return file, nil
+	return &FileReader{file}, nil
 }
 
 func (fs fileStore) Has(key string) (exists bool, err error) {
@@ -60,4 +62,40 @@ func (fs fileStore) GetSize(key string) (size int, err error) {
 	}
 
 	return int(info.Size()), nil
+}
+
+func (fs fileStore) Stat() (fsutil.FsStat, error) {
+	return fsutil.Statfs(fs.Path)
+}
+
+func (fs fileStore) DiskUsage() (int64, error) {
+	si, err := fsutil.FileSize(fs.Path)
+	if err != nil {
+		return 0, err
+	}
+	return si.OnDisk, nil
+}
+
+type FileReader struct {
+	file *os.File
+}
+
+func (r FileReader) Read(p []byte) (n int, err error) {
+	return r.file.Read(p)
+}
+
+func (r FileReader) Close() error {
+	return r.file.Close()
+}
+
+func (r *FileReader) Seek(offset int64, whence int) (int64, error) {
+	return r.file.Seek(offset, whence)
+}
+
+func (r *FileReader) Size() int64 {
+	stat, err := r.file.Stat()
+	if err != nil {
+		return 0
+	}
+	return stat.Size()
 }

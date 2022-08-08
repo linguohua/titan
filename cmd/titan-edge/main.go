@@ -67,12 +67,6 @@ func main() {
 				Hidden:  true,
 				Value:   "~/.titanedge", // should follow --repo default
 			},
-			&cli.StringFlag{
-				Name:    "blockstore",
-				EnvVars: []string{"BLOCK_STORE"},
-				Hidden:  true,
-				Value:   "./blockstore", // should follow --repo default
-			},
 		},
 
 		After: func(c *cli.Context) error {
@@ -121,6 +115,18 @@ var runCmd = &cli.Command{
 			Name:   "publicIP",
 			Hidden: true,
 			Value:  "218.72.111.105", // should follow --repo default
+		},
+		&cli.StringFlag{
+			Name:    "blockstore-path",
+			EnvVars: []string{"BLOCK_STORE_PATH"},
+			Hidden:  true,
+			Value:   "./blockstore", // should follow --repo default
+		},
+		&cli.StringFlag{
+			Name:    "blockstore-type",
+			EnvVars: []string{"BLOCK_STORE_TYPE"},
+			Hidden:  true,
+			Value:   "FileStore", // should follow --repo default
 		},
 	},
 
@@ -282,7 +288,7 @@ var runCmd = &cli.Command{
 
 		deviceID := cctx.String("deviceid")
 		publicIP := cctx.String("publicIP")
-		blockStore := stores.NewBlockStore(cctx.String("blockstore"), stores.FileStore.Type())
+		blockStore := stores.NewBlockStore(cctx.String("blockstore-path"), stores.FileStore.Type())
 		edgeApi := edge.NewLocalEdgeNode(context.Background(), ds, schedulerAPI, blockStore, deviceID, publicIP)
 
 		log.Info("Setting up control endpoint at " + address)
