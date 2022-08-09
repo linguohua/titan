@@ -17,9 +17,8 @@ type GeoInfo struct {
 	Province  string
 	Latitude  float64
 	Longitude float64
-	// IsoCode   string
-	IP  string
-	Geo string
+	IP        string
+	Geo       string
 }
 
 var geoIP GeoIP

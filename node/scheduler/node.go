@@ -9,6 +9,7 @@ import (
 	"github.com/linguohua/titan/node/scheduler/db"
 
 	"github.com/filecoin-project/go-jsonrpc"
+	gocid "github.com/ipfs/go-cid"
 )
 
 // EdgeNode Edge node
@@ -56,10 +57,10 @@ func nodeOnline(deviceID string, onlineTime int64, geoInfo geoip.GeoInfo, typeNa
 		return err
 	}
 
-	err = db.GetCacheDB().SetNodeToNodeList(deviceID, typeName)
-	if err != nil {
-		return err
-	}
+	// err = db.GetCacheDB().SetNodeToNodeList(deviceID, typeName)
+	// if err != nil {
+	// 	return err
+	// }
 
 	err = db.GetCacheDB().SetGeoToList(geoInfo.Geo)
 	if err != nil {
@@ -121,13 +122,37 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 	}
 	// 抽查结果
 	for _, varifyResult := range varifyResults {
-		if varifyResult.IsTimeout {
-			// TODO
-		}
-	}
+		// TODO 判断带宽 超时时间等等
+		// 结果判断
+		c := result[varifyResult.DeviceID]
 
-	log.Infof("varifyResult candidate:%v", candidate.deviceInfo.DeviceId)
-	// TODO 写入DB 时间:候选节点:被验证节点:验证的cid:序号:结果
+		// 判断CID
+		gC, err := gocid.Decode(c)
+		if err != nil {
+			log.Errorf("Decode err: %v", err.Error())
+			continue
+		}
+
+		// gC = gocid.NewCidV0(gC.Hash())
+		gC = gocid.NewCidV1(gC.Type(), gC.Hash())
+
+		vC, err := gocid.Decode(varifyResult.Cid)
+		if err != nil {
+			log.Errorf("Decode err: %v", err.Error())
+			continue
+		}
+
+		// vC = gocid.NewCidV0(vC.Hash())
+		vC = gocid.NewCidV1(vC.Type(), vC.Hash())
+
+		cidOK := gC.Equals(vC)
+
+		log.Infof("varifyResult candidate:%v , edge:%v ,eCid:%v,sCid:%v cidOK:%v", candidate.deviceInfo.DeviceId, varifyResult.DeviceID, varifyResult.Cid, c, cidOK)
+		log.Infof("varifyResult vC:%v gC:%v", vC, gC)
+		// TODO 写入DB 时间:候选节点:被验证节点:验证的cid:序号:结果]
+		// vC:bafkreihp2rj5nwb3mha5uplrjl4ooimqvqfmbjkgxw2pahdgb5bdlv7irq
+		// gC:bafybeihp2rj5nwb3mha5uplrjl4ooimqvqfmbjkgxw2pahdgb5bdlv7irq
+	}
 }
 
 // 抽查

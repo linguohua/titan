@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	redigo "github.com/gomodule/redigo/redis"
-	"github.com/linguohua/titan/api"
 	"golang.org/x/xerrors"
 )
 
@@ -22,8 +21,8 @@ const (
 	redisKeyNodeDataTag = "Titan:NodeDataTag:%s"
 	// RedisKeyGeoNodeList  geo
 	redisKeyGeoNodeList = "Titan:GeoNodeList:%s"
-	// RedisKeyNodeList  Edge/Candidate
-	redisKeyNodeList = "Titan:NodeList:%s"
+	// // RedisKeyNodeList  Edge/Candidate
+	// redisKeyNodeList = "Titan:NodeList:%s"
 	// RedisKeyGeoList
 	redisKeyGeoList = "Titan:GeoList"
 	// RedisKeyValidatorList
@@ -251,28 +250,28 @@ func (rd redisDB) DelNodeWithGeoList(deviceID, geo string) error {
 	return err
 }
 
-// node list: add
-func (rd redisDB) SetNodeToNodeList(deviceID string, typeName api.NodeTypeName) error {
-	key := fmt.Sprintf(redisKeyNodeList, typeName)
+// // node list: add
+// func (rd redisDB) SetNodeToNodeList(deviceID string, typeName api.NodeTypeName) error {
+// 	key := fmt.Sprintf(redisKeyNodeList, typeName)
 
-	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
-	return err
-}
+// 	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
+// 	return err
+// }
 
-//  node list: SMembers
-func (rd redisDB) GetNodesWithNodeList(typeName api.NodeTypeName) ([]string, error) {
-	key := fmt.Sprintf(redisKeyNodeList, typeName)
+// //  node list: SMembers
+// func (rd redisDB) GetNodesWithNodeList(typeName api.NodeTypeName) ([]string, error) {
+// 	key := fmt.Sprintf(redisKeyNodeList, typeName)
 
-	return rd.cli.SMembers(context.Background(), key).Result()
-}
+// 	return rd.cli.SMembers(context.Background(), key).Result()
+// }
 
-// node list:   del
-func (rd redisDB) DelNodeWithNodeList(deviceID string, typeName api.NodeTypeName) error {
-	key := fmt.Sprintf(redisKeyNodeList, typeName)
+// // node list:   del
+// func (rd redisDB) DelNodeWithNodeList(deviceID string, typeName api.NodeTypeName) error {
+// 	key := fmt.Sprintf(redisKeyNodeList, typeName)
 
-	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
-	return err
-}
+// 	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
+// 	return err
+// }
 
 //  add
 func (rd redisDB) SetGeoToList(geo string) error {
@@ -324,7 +323,7 @@ func (rd redisDB) DelValidatorList() error {
 func (rd redisDB) SetGeoToValidatorList(deviceID, geo string) error {
 	key := fmt.Sprintf(redisKeyValidatorGeoList, deviceID)
 
-	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
+	_, err := rd.cli.SAdd(context.Background(), key, geo).Result()
 	return err
 }
 
