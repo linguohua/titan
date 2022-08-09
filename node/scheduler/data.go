@@ -22,22 +22,22 @@ const (
 )
 
 // 检查缓存失败的cid
-func checkCacheFailCids(deviceID string) error {
-	edge := getEdgeNode(deviceID)
-	if edge == nil {
-		return xerrors.New("node not find")
-	}
+func getCacheFailCids(deviceID string) ([]api.ReqCacheData, error) {
+	// edge := getEdgeNode(deviceID)
+	// if edge == nil {
+	// 	return xerrors.New("node not find")
+	// }
+	list := make([]api.ReqCacheData, 0)
 
 	infos, err := db.GetCacheDB().GetCacheDataInfos(deviceID)
 	if err != nil {
-		return err
+		return list, err
 	}
 
 	if len(infos) <= 0 {
-		return nil
+		return list, nil
 	}
 
-	list := make([]api.ReqCacheData, 0)
 	for cid, tag := range infos {
 		isInCacheList, err := db.GetCacheDB().IsNodeInCacheList(cid, deviceID)
 		if err != nil || isInCacheList {
@@ -47,12 +47,7 @@ func checkCacheFailCids(deviceID string) error {
 		list = append(list, api.ReqCacheData{Cid: cid, ID: tag})
 	}
 
-	err = edge.nodeAPI.CacheData(context.Background(), list)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return list, nil
 }
 
 // NotifyNodeCacheData Cache Data

@@ -24,7 +24,7 @@ func addEdgeNode(node *EdgeNode) {
 	nodeOld := getEdgeNode(node.deviceInfo.DeviceId)
 	if nodeOld != nil {
 		nodeOld.closer()
-		log.Infof("close old deviceID : %v ", nodeOld.deviceInfo.DeviceId)
+		// log.Infof("close old deviceID : %v ", nodeOld.deviceInfo.DeviceId)
 	}
 
 	log.Infof("addEdgeNode DeviceId:%v,geo:%v", node.deviceInfo.DeviceId, node.geoInfo.Geo)
@@ -75,9 +75,9 @@ func addCandidateNode(node *CandidateNode) {
 	node.geoInfo = geoInfo
 
 	nodeOld := getCandidateNode(node.deviceInfo.DeviceId)
-	if node != nil {
+	if nodeOld != nil {
 		nodeOld.closer()
-		log.Infof("close old deviceID : %v ", nodeOld.deviceInfo.DeviceId)
+		// log.Infof("close old deviceID : %v ", nodeOld.deviceInfo.DeviceId)
 	}
 
 	candidateNodeMap.Store(node.deviceInfo.DeviceId, node)

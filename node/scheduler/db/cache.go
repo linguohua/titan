@@ -2,8 +2,6 @@ package db
 
 import (
 	"fmt"
-
-	"github.com/linguohua/titan/api"
 )
 
 // CacheDB cache db
@@ -38,9 +36,9 @@ type CacheDB interface {
 	SetNodeToGeoList(deviceID, geo string) error
 	GetNodesWithGeoList(geo string) ([]string, error)
 
-	SetNodeToNodeList(deviceID string, typeName api.NodeTypeName) error
-	GetNodesWithNodeList(typeName api.NodeTypeName) ([]string, error)
-	DelNodeWithNodeList(deviceID string, typeName api.NodeTypeName) error
+	// SetNodeToNodeList(deviceID string, typeName api.NodeTypeName) error
+	// GetNodesWithNodeList(typeName api.NodeTypeName) ([]string, error)
+	// DelNodeWithNodeList(deviceID string, typeName api.NodeTypeName) error
 
 	SetGeoToList(geo string) error
 	GetGeosWithList() ([]string, error)

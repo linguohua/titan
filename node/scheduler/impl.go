@@ -52,9 +52,14 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 	}
 	addEdgeNode(&edgeNode)
 
-	err = checkCacheFailCids(deviceInfo.DeviceId)
+	list, err := getCacheFailCids(deviceInfo.DeviceId)
 	if err != nil {
 		log.Errorf("edgeAPI checkCacheFailCids err : %v", err)
+		return err
+	}
+
+	err = edgeAPI.CacheData(context.Background(), list)
+	if err != nil {
 		return err
 	}
 
@@ -90,25 +95,36 @@ func (s Scheduler) GetDownloadURLWithData(ctx context.Context, cid, ip string) (
 func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 	candicateAPI, closer, err := client.NewCandicate(ctx, url, nil)
 	if err != nil {
-		log.Errorf("edgeAPI NewEdge err : %v", err)
+		log.Errorf("candicateAPI NewEdge err : %v", err)
 		return err
 	}
 
 	// load device info
-	// deviceID, err := candicateAPI.DeviceID(ctx)
+	deviceInfo, err := candicateAPI.DeviceInfo(ctx)
+	if err != nil {
+		log.Errorf("candicateAPI DeviceID err : %v", err)
+		return err
+	}
+
+	candidateNode := CandidateNode{
+		addr:       url,
+		nodeAPI:    candicateAPI,
+		closer:     closer,
+		deviceInfo: deviceInfo,
+	}
+	addCandidateNode(&candidateNode)
+
+	_, err = getCacheFailCids(deviceInfo.DeviceId)
+	if err != nil {
+		log.Errorf("candicateAPI checkCacheFailCids err : %v", err)
+		return err
+	}
+
+	// err = candicateAPI.CacheData(context.Background(), list)
 	// if err != nil {
-	// 	log.Errorf("edgeAPI DeviceID err : %v", err)
 	// 	return err
 	// }
 
-	// log.Infof("edgeAPI Version deviceID : %v", deviceID)
-
-	candidateNode := CandidateNode{
-		addr:    url,
-		nodeAPI: candicateAPI,
-		closer:  closer,
-	}
-	addCandidateNode(&candidateNode)
 	return nil
 }
 
