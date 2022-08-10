@@ -68,6 +68,7 @@ type PageInfo struct {
 	Date     string `json:"date" form:"date"`         // 具体日期
 	Device   string `json:"deviceId" form:"deviceId"` // 设备ID
 	UserIds  string `json:"userId" form:"userId"`     // 用户ID
+	UserIp   string `json:"userIp" form:"userIp"`     // user ip address
 }
 
 // Retrieval miner info
@@ -82,6 +83,7 @@ type RetrievalInfo struct {
 	Price          float64 `json:"price"`           // 价格
 	MinerId        string  `json:"miner_id"`        // 矿工id
 	UserId         string  `json:"user_id"`         // 用户id
+	DownloadUrl    string  `json:"download_url"`    // download url address
 }
 
 // Response data of Retrieval miner info
@@ -205,7 +207,7 @@ type IncomeDaily struct {
 	// 设备id
 	DeviceId string `json:"deviceId" form:"deviceId" gorm:"column:device_id;comment:;"`
 	// 月份
-	Month string `json:"month" form:"month" gorm:"column:month;comment:;"`
+	DateStr string `json:"month" form:"month" gorm:"column:month;comment:;"`
 	// 每日收益
 	JsonDaily string `json:"jsonDaily" form:"jsonDaily" gorm:"column:json_daily;comment:;"`
 	// 每日在线

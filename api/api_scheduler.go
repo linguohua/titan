@@ -1,6 +1,8 @@
 package api
 
-import "context"
+import (
+	"context"
+)
 
 type Scheduler interface {
 	Common
@@ -17,7 +19,19 @@ type Scheduler interface {
 
 	CacheResult(context.Context, string, string, bool) error //perm:read
 
-	GetIndexInfo(ctx context.Context, p IndexRequest) (IndexPageRes, error) //perm:read
+	GetIndexInfo(context.Context, IndexRequest) (IndexPageRes, error) //perm:read
+
+	Retrieval(context.Context, IndexPageSearch) (RetrievalPageRes, error) //perm:read
+
+	GetDevicesInfo(context.Context, DevicesSearch) (DevicesInfoPage, error) //perm:read
+
+	GetDevicesCount(context.Context, DevicesSearch) (DeviceType, error) //perm:read
+
+	GetDeviceDiagnosisDaily(context.Context, IncomeDailySearch) (IncomeDailyRes, error) //perm:read
+
+	GetDeviceDiagnosisHour(context.Context, IncomeDailySearch) (HourDailyRes, error) //perm:read
+
+	SaveDailyInfo(context.Context, IncomeDaily) error //perm:read
 
 	ElectionValidators(ctx context.Context) error //perm:read
 

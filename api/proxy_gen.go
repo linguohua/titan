@@ -10,27 +10,21 @@ import (
 	xerrors "golang.org/x/xerrors"
 )
 
-
 var ErrNotSupported = xerrors.New("method not supported")
 
-
 type CandidateStruct struct {
-
 	CommonStruct
 
 	DeviceStruct
 
 	Internal struct {
-
 		VerifyData func(p0 context.Context, p1 []ReqVarify) ([]VarifyResult, error) `perm:"read"`
 
-		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
-
+		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
 }
 
 type CandidateStub struct {
-
 	CommonStub
 
 	DeviceStub
@@ -38,9 +32,7 @@ type CandidateStub struct {
 }
 
 type CommonStruct struct {
-
 	Internal struct {
-
 		AuthNew func(p0 context.Context, p1 []auth.Permission) ([]byte, error) `perm:"admin"`
 
 		AuthVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
@@ -53,19 +45,17 @@ type CommonStruct struct {
 
 		LogList func(p0 context.Context) ([]string, error) `perm:"write"`
 
-		LogSetLevel func(p0 context.Context, p1 string, p2 string) (error) `perm:"write"`
+		LogSetLevel func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
 		Session func(p0 context.Context) (uuid.UUID, error) `perm:"read"`
 
-		Shutdown func(p0 context.Context) (error) `perm:"admin"`
+		Shutdown func(p0 context.Context) error `perm:"admin"`
 
 		Version func(p0 context.Context) (APIVersion, error) `perm:"read"`
-
 	}
 }
 
 type CommonStub struct {
-
 }
 
 type DeviceStruct struct {
@@ -82,16 +72,14 @@ type DeviceStub struct {
 }
 
 type EdgeStruct struct {
-
 	CommonStruct
 
 	DeviceStruct
 
 	Internal struct {
+		BlockStoreStat func(p0 context.Context) error `perm:"read"`
 
-		BlockStoreStat func(p0 context.Context) (error) `perm:"read"`
-
-		CacheData func(p0 context.Context, p1 []ReqCacheData) (error) `perm:"read"`
+		CacheData func(p0 context.Context, p1 []ReqCacheData) error `perm:"read"`
 
 		CacheFailResult func(p0 context.Context) ([]FailResult, error) `perm:"read"`
 
@@ -99,13 +87,11 @@ type EdgeStruct struct {
 
 		LoadDataByVerifier func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
 
-		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
-
+		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
 }
 
 type EdgeStub struct {
-
 	CommonStub
 
 	DeviceStub
@@ -113,41 +99,44 @@ type EdgeStub struct {
 }
 
 type SchedulerStruct struct {
-
 	CommonStruct
 
 	Internal struct {
+		CacheResult func(p0 context.Context, p1 string, p2 string, p3 bool) error `perm:"read"`
 
-		CacheResult func(p0 context.Context, p1 string, p2 string, p3 bool) (error) `perm:"read"`
+		CandidateNodeConnect func(p0 context.Context, p1 string) error `perm:"read"`
 
-		CandidateNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
+		EdgeNodeConnect func(p0 context.Context, p1 string) error `perm:"read"`
 
-		EdgeNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
-
-		ElectionValidators func(p0 context.Context) (error) `perm:"read"`
+		ElectionValidators func(p0 context.Context) error `perm:"read"`
 
 		FindNodeWithData func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
+
+		GetDeviceDiagnosisDaily func(p0 context.Context, p1 IncomeDailySearch) (IncomeDailyRes, error) `perm:"read"`
+
+		GetDeviceDiagnosisHour func(p0 context.Context, p1 IncomeDailySearch) (HourDailyRes, error) `perm:"read"`
+
+		GetDevicesCount func(p0 context.Context, p1 DevicesSearch) (DeviceType, error) `perm:"read"`
+
+		GetDevicesInfo func(p0 context.Context, p1 DevicesSearch) (DevicesInfoPage, error) `perm:"read"`
 
 		GetDownloadURLWithData func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
 		GetIndexInfo func(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) `perm:"read"`
 
-		NotifyNodeCacheData func(p0 context.Context, p1 string, p2 string) (error) `perm:"read"`
+		NotifyNodeCacheData func(p0 context.Context, p1 string, p2 string) error `perm:"read"`
 
-		SpotCheck func(p0 context.Context) (error) `perm:"read"`
+		Retrieval func(p0 context.Context, p1 IndexPageSearch) (RetrievalPageRes, error) `perm:"read"`
 
+		SaveDailyInfo func(p0 context.Context, p1 IncomeDaily) error `perm:"read"`
+
+		SpotCheck func(p0 context.Context) error `perm:"read"`
 	}
 }
 
 type SchedulerStub struct {
-
 	CommonStub
-
 }
-
-
-
-
 
 func (s *CandidateStruct) VerifyData(p0 context.Context, p1 []ReqVarify) ([]VarifyResult, error) {
 	if s.Internal.VerifyData == nil {
@@ -160,19 +149,16 @@ func (s *CandidateStub) VerifyData(p0 context.Context, p1 []ReqVarify) ([]Varify
 	return *new([]VarifyResult), ErrNotSupported
 }
 
-func (s *CandidateStruct) WaitQuiet(p0 context.Context) (error) {
+func (s *CandidateStruct) WaitQuiet(p0 context.Context) error {
 	if s.Internal.WaitQuiet == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.WaitQuiet(p0)
 }
 
-func (s *CandidateStub) WaitQuiet(p0 context.Context) (error) {
+func (s *CandidateStub) WaitQuiet(p0 context.Context) error {
 	return ErrNotSupported
 }
-
-
-
 
 func (s *CommonStruct) AuthNew(p0 context.Context, p1 []auth.Permission) ([]byte, error) {
 	if s.Internal.AuthNew == nil {
@@ -240,14 +226,14 @@ func (s *CommonStub) LogList(p0 context.Context) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 
-func (s *CommonStruct) LogSetLevel(p0 context.Context, p1 string, p2 string) (error) {
+func (s *CommonStruct) LogSetLevel(p0 context.Context, p1 string, p2 string) error {
 	if s.Internal.LogSetLevel == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.LogSetLevel(p0, p1, p2)
 }
 
-func (s *CommonStub) LogSetLevel(p0 context.Context, p1 string, p2 string) (error) {
+func (s *CommonStub) LogSetLevel(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
 }
 
@@ -262,14 +248,14 @@ func (s *CommonStub) Session(p0 context.Context) (uuid.UUID, error) {
 	return *new(uuid.UUID), ErrNotSupported
 }
 
-func (s *CommonStruct) Shutdown(p0 context.Context) (error) {
+func (s *CommonStruct) Shutdown(p0 context.Context) error {
 	if s.Internal.Shutdown == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.Shutdown(p0)
 }
 
-func (s *CommonStub) Shutdown(p0 context.Context) (error) {
+func (s *CommonStub) Shutdown(p0 context.Context) error {
 	return ErrNotSupported
 }
 
@@ -308,18 +294,18 @@ func (s *EdgeStruct) BlockStoreStat(p0 context.Context) (error) {
 	return s.Internal.BlockStoreStat(p0)
 }
 
-func (s *EdgeStub) BlockStoreStat(p0 context.Context) (error) {
+func (s *EdgeStub) BlockStoreStat(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *EdgeStruct) CacheData(p0 context.Context, p1 []ReqCacheData) (error) {
+func (s *EdgeStruct) CacheData(p0 context.Context, p1 []ReqCacheData) error {
 	if s.Internal.CacheData == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheData(p0, p1)
 }
 
-func (s *EdgeStub) CacheData(p0 context.Context, p1 []ReqCacheData) (error) {
+func (s *EdgeStub) CacheData(p0 context.Context, p1 []ReqCacheData) error {
 	return ErrNotSupported
 }
 
@@ -356,61 +342,58 @@ func (s *EdgeStub) LoadDataByVerifier(p0 context.Context, p1 string) ([]byte, er
 	return *new([]byte), ErrNotSupported
 }
 
-func (s *EdgeStruct) WaitQuiet(p0 context.Context) (error) {
+func (s *EdgeStruct) WaitQuiet(p0 context.Context) error {
 	if s.Internal.WaitQuiet == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.WaitQuiet(p0)
 }
 
-func (s *EdgeStub) WaitQuiet(p0 context.Context) (error) {
+func (s *EdgeStub) WaitQuiet(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-
-
-
-func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 string, p2 string, p3 bool) (error) {
+func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 string, p2 string, p3 bool) error {
 	if s.Internal.CacheResult == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheResult(p0, p1, p2, p3)
 }
 
-func (s *SchedulerStub) CacheResult(p0 context.Context, p1 string, p2 string, p3 bool) (error) {
+func (s *SchedulerStub) CacheResult(p0 context.Context, p1 string, p2 string, p3 bool) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context, p1 string) (error) {
+func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context, p1 string) error {
 	if s.Internal.CandidateNodeConnect == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CandidateNodeConnect(p0, p1)
 }
 
-func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 string) (error) {
+func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context, p1 string) (error) {
+func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context, p1 string) error {
 	if s.Internal.EdgeNodeConnect == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.EdgeNodeConnect(p0, p1)
 }
 
-func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context, p1 string) (error) {
+func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ElectionValidators(p0 context.Context) (error) {
+func (s *SchedulerStruct) ElectionValidators(p0 context.Context) error {
 	if s.Internal.ElectionValidators == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.ElectionValidators(p0)
 }
 
-func (s *SchedulerStub) ElectionValidators(p0 context.Context) (error) {
+func (s *SchedulerStub) ElectionValidators(p0 context.Context) error {
 	return ErrNotSupported
 }
 
@@ -423,6 +406,50 @@ func (s *SchedulerStruct) FindNodeWithData(p0 context.Context, p1 string, p2 str
 
 func (s *SchedulerStub) FindNodeWithData(p0 context.Context, p1 string, p2 string) (string, error) {
 	return "", ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetDeviceDiagnosisDaily(p0 context.Context, p1 IncomeDailySearch) (IncomeDailyRes, error) {
+	if s.Internal.GetDeviceDiagnosisDaily == nil {
+		return *new(IncomeDailyRes), ErrNotSupported
+	}
+	return s.Internal.GetDeviceDiagnosisDaily(p0, p1)
+}
+
+func (s *SchedulerStub) GetDeviceDiagnosisDaily(p0 context.Context, p1 IncomeDailySearch) (IncomeDailyRes, error) {
+	return *new(IncomeDailyRes), ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetDeviceDiagnosisHour(p0 context.Context, p1 IncomeDailySearch) (HourDailyRes, error) {
+	if s.Internal.GetDeviceDiagnosisHour == nil {
+		return *new(HourDailyRes), ErrNotSupported
+	}
+	return s.Internal.GetDeviceDiagnosisHour(p0, p1)
+}
+
+func (s *SchedulerStub) GetDeviceDiagnosisHour(p0 context.Context, p1 IncomeDailySearch) (HourDailyRes, error) {
+	return *new(HourDailyRes), ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetDevicesCount(p0 context.Context, p1 DevicesSearch) (DeviceType, error) {
+	if s.Internal.GetDevicesCount == nil {
+		return *new(DeviceType), ErrNotSupported
+	}
+	return s.Internal.GetDevicesCount(p0, p1)
+}
+
+func (s *SchedulerStub) GetDevicesCount(p0 context.Context, p1 DevicesSearch) (DeviceType, error) {
+	return *new(DeviceType), ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetDevicesInfo(p0 context.Context, p1 DevicesSearch) (DevicesInfoPage, error) {
+	if s.Internal.GetDevicesInfo == nil {
+		return *new(DevicesInfoPage), ErrNotSupported
+	}
+	return s.Internal.GetDevicesInfo(p0, p1)
+}
+
+func (s *SchedulerStub) GetDevicesInfo(p0 context.Context, p1 DevicesSearch) (DevicesInfoPage, error) {
+	return *new(DevicesInfoPage), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetDownloadURLWithData(p0 context.Context, p1 string, p2 string) (string, error) {
@@ -447,34 +474,52 @@ func (s *SchedulerStub) GetIndexInfo(p0 context.Context, p1 IndexRequest) (Index
 	return *new(IndexPageRes), ErrNotSupported
 }
 
-func (s *SchedulerStruct) NotifyNodeCacheData(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStruct) NotifyNodeCacheData(p0 context.Context, p1 string, p2 string) error {
 	if s.Internal.NotifyNodeCacheData == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.NotifyNodeCacheData(p0, p1, p2)
 }
 
-func (s *SchedulerStub) NotifyNodeCacheData(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStub) NotifyNodeCacheData(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) SpotCheck(p0 context.Context) (error) {
+func (s *SchedulerStruct) Retrieval(p0 context.Context, p1 IndexPageSearch) (RetrievalPageRes, error) {
+	if s.Internal.Retrieval == nil {
+		return *new(RetrievalPageRes), ErrNotSupported
+	}
+	return s.Internal.Retrieval(p0, p1)
+}
+
+func (s *SchedulerStub) Retrieval(p0 context.Context, p1 IndexPageSearch) (RetrievalPageRes, error) {
+	return *new(RetrievalPageRes), ErrNotSupported
+}
+
+func (s *SchedulerStruct) SaveDailyInfo(p0 context.Context, p1 IncomeDaily) error {
+	if s.Internal.SaveDailyInfo == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.SaveDailyInfo(p0, p1)
+}
+
+func (s *SchedulerStub) SaveDailyInfo(p0 context.Context, p1 IncomeDaily) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) SpotCheck(p0 context.Context) error {
 	if s.Internal.SpotCheck == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.SpotCheck(p0)
 }
 
-func (s *SchedulerStub) SpotCheck(p0 context.Context) (error) {
+func (s *SchedulerStub) SpotCheck(p0 context.Context) error {
 	return ErrNotSupported
 }
-
-
 
 var _ Candidate = new(CandidateStruct)
 var _ Common = new(CommonStruct)
 var _ Device = new(DeviceStruct)
 var _ Edge = new(EdgeStruct)
 var _ Scheduler = new(SchedulerStruct)
-
-
