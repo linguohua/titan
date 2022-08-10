@@ -47,6 +47,7 @@ type CacheDB interface {
 	SetValidatorToList(deviceID string) error
 	GetValidatorsWithList() ([]string, error)
 	DelValidatorList() error
+	IsNodeInValidatorList(deviceID string) (bool, error)
 
 	SetGeoToValidatorList(deviceID, geo string) error
 	GetGeoWithValidatorList(deviceID string) ([]string, error)

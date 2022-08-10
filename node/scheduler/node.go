@@ -34,20 +34,8 @@ type CandidateNode struct {
 	geoInfo geoip.GeoInfo
 
 	addr string
-}
 
-var EdgeInfo EdgeNodes
-
-type EdgeNodes struct {
-	nodes []EdgeNode
-	count int
-}
-
-var CandidateInfo CandidateNodes
-
-type CandidateNodes struct {
-	nodes []CandidateNode
-	count int
+	isValidator bool
 }
 
 // NodeOnline Save DeciceInfo
@@ -55,7 +43,7 @@ func nodeOnline(deviceID string, onlineTime int64, geoInfo geoip.GeoInfo, typeNa
 	nodeInfo, err := db.GetCacheDB().GetNodeInfo(deviceID)
 	if err == nil && nodeInfo.Geo != geoInfo.Geo {
 		// delete old
-		err = db.GetCacheDB().DelNodeWithGeoList(deviceID, nodeInfo.Geo)
+		db.GetCacheDB().DelNodeWithGeoList(deviceID, nodeInfo.Geo)
 		// log.Infof("SremSet err:%v", err)
 	}
 	// log.Infof("oldgeo:%v,newgeo:%v,err:%v", nodeInfo.Geo, geoInfo.Geo, err)
@@ -106,20 +94,20 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 
 	for _, edge := range edges {
 		// 查看节点缓存了哪些数据
-		infos, err := db.GetCacheDB().GetCacheDataInfos(edge.deviceInfo.DeviceId)
+		datas, err := db.GetCacheDB().GetCacheDataInfos(edge.deviceInfo.DeviceId)
 		if err != nil {
 			log.Errorf("spotCheck GetCacheDataInfos err:%v,DeviceId:%v", err.Error(), edge.deviceInfo.DeviceId)
 			continue
 		}
 
-		if len(infos) <= 0 {
+		if len(datas) <= 0 {
 			continue
 		}
 
-		// TODO 随机抽查某个数据
+		// TODO random
 		var cid string
 		var tag string
-		for c, t := range infos {
+		for c, t := range datas {
 			cid = c
 			tag = t
 			break
@@ -132,10 +120,11 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 	// 请求抽查
 	varifyResults, err := candidate.nodeAPI.VerifyData(context.Background(), req)
 	if err != nil {
-		log.Errorf("VerifyData err : %v , DeviceId : %v", err.Error(), candidate.deviceInfo.DeviceId)
+		log.Errorf("VerifyData err:%v, DeviceId:%v", err.Error(), candidate.deviceInfo.DeviceId)
 		return
 	}
-	// 抽查结果
+
+	// varify Result
 	for _, varifyResult := range varifyResults {
 		// TODO 判断带宽 超时时间等等
 		// 结果判断
@@ -144,20 +133,18 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 		// 判断CID
 		gC, err := gocid.Decode(c)
 		if err != nil {
-			log.Errorf("Decode err: %v", err.Error())
+			log.Errorf("Decode err:%v", err.Error())
 			continue
 		}
 
-		// gC = gocid.NewCidV0(gC.Hash())
 		gC = gocid.NewCidV1(gC.Type(), gC.Hash())
 
 		vC, err := gocid.Decode(varifyResult.Cid)
 		if err != nil {
-			log.Errorf("Decode err: %v", err.Error())
+			log.Errorf("Decode err:%v", err.Error())
 			continue
 		}
 
-		// vC = gocid.NewCidV0(vC.Hash())
 		vC = gocid.NewCidV1(vC.Type(), vC.Hash())
 
 		cidOK := gC.Equals(vC)
@@ -168,7 +155,7 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 	}
 }
 
-// 抽查
+// spot check edges
 func spotChecks() error {
 	// find validators
 	validators, err := db.GetCacheDB().GetValidatorsWithList()
@@ -182,7 +169,7 @@ func spotChecks() error {
 			continue
 		}
 
-		// 待抽查列表
+		// edge list
 		edges := make([]*EdgeNode, 0)
 
 		// find edge
@@ -210,6 +197,7 @@ func spotChecks() error {
 	return nil
 }
 
+// 重置 验证者数据
 func cleanValidators() error {
 	validators, err := db.GetCacheDB().GetValidatorsWithList()
 	if err != nil {
@@ -219,7 +207,7 @@ func cleanValidators() error {
 	for _, validator := range validators {
 		err = db.GetCacheDB().DelValidatorGeoList(validator)
 		if err != nil {
-			log.Errorf("DelValidatorGeoList err : %v, validator : %v", err.Error(), validator)
+			log.Errorf("DelValidatorGeoList err:%v, validator:%v", err.Error(), validator)
 		}
 	}
 
@@ -250,27 +238,30 @@ func electionValidators() error {
 
 		gInfo := geoip.StringGeoToGeoInfo(geo)
 		if gInfo == nil {
-			log.Errorf("StringGeoToGeoInfo geo :%v", geo)
+			log.Errorf("StringGeoToGeoInfo geo:%v", geo)
 			continue
 		}
 
 		// 找出这个区域 或者邻近区域里的 所有候选节点
 		cns, _ := findCandidateNodeWithGeo(*gInfo, []string{})
 		if len(cns) > 0 {
-			// 随机一个为验证者
-			validator = cns[0].deviceInfo.DeviceId
+			// random a validator
+			validator = cns[randomNum(0, len(cns)-1)].deviceInfo.DeviceId
 		} else {
 			continue
 		}
+
 		// TODO 这里要分配好,不能让一个验证者  分配到太多的边缘节点
+		getCandidateNode(validator).isValidator = true
+
 		err = db.GetCacheDB().SetValidatorToList(validator)
 		if err != nil {
-			log.Errorf("SetValidatorToList err : %v , validator : %s", err.Error(), validator)
+			log.Errorf("SetValidatorToList err:%v, validator : %s", err.Error(), validator)
 		}
 
 		err = db.GetCacheDB().SetGeoToValidatorList(validator, geo)
 		if err != nil {
-			log.Errorf("SetGeoToValidatorList err : %v, validator : %s, geo : %s", err.Error(), validator, geo)
+			log.Errorf("SetGeoToValidatorList err:%v, validator : %s, geo : %s", err.Error(), validator, geo)
 		}
 	}
 

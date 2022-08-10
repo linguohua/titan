@@ -14,10 +14,12 @@ import (
 	lcli "github.com/linguohua/titan/cli"
 	"github.com/linguohua/titan/geoip"
 	"github.com/linguohua/titan/lib/titanlog"
+	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/metrics"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler"
 	"github.com/linguohua/titan/node/scheduler/db"
+	"golang.org/x/xerrors"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
@@ -112,17 +114,17 @@ var runCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		log.Info("Starting titan scheduler node")
 
-		// limit, _, err := ulimit.GetLimit()
-		// switch {
-		// case err == ulimit.ErrUnsupported:
-		// 	log.Errorw("checking file descriptor limit failed", "error", err)
-		// case err != nil:
-		// 	return xerrors.Errorf("checking fd limit: %w", err)
-		// default:
-		// 	if limit < build.EdgeFDLimit {
-		// 		return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.EdgeFDLimit, limit)
-		// 	}
-		// }
+		limit, _, err := ulimit.GetLimit()
+		switch {
+		case err == ulimit.ErrUnsupported:
+			log.Errorw("checking file descriptor limit failed", "error", err)
+		case err != nil:
+			return xerrors.Errorf("checking fd limit: %w", err)
+		default:
+			if limit < build.EdgeFDLimit {
+				return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.EdgeFDLimit, limit)
+			}
+		}
 
 		// Connect to scheduler
 		ctx := lcli.ReqContext(cctx)
@@ -174,7 +176,7 @@ var runCmd = &cli.Command{
 
 var spotCheckCmd = &cli.Command{
 	Name:  "spotcheck",
-	Usage: "Start titan spot check ",
+	Usage: "spot check edge node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "api-url",
@@ -188,7 +190,7 @@ var spotCheckCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		url := cctx.String("api-url")
-		log.Infof("election url:%v", url)
+		log.Infof("scheduler url:%v", url)
 
 		ctx := lcli.ReqContext(cctx)
 
@@ -221,7 +223,7 @@ var spotCheckCmd = &cli.Command{
 
 var electionCmd = &cli.Command{
 	Name:  "election",
-	Usage: "Start titan election ",
+	Usage: "Start election validator",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "api-url",
@@ -235,7 +237,7 @@ var electionCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		url := cctx.String("api-url")
-		log.Infof("election url:%v", url)
+		log.Infof("scheduler url:%v", url)
 
 		ctx := lcli.ReqContext(cctx)
 
@@ -268,7 +270,7 @@ var electionCmd = &cli.Command{
 
 var cacheCmd = &cli.Command{
 	Name:  "cache",
-	Usage: "Start titan test scheduler node",
+	Usage: "specify node cache data",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "api-url",
@@ -291,12 +293,13 @@ var cacheCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		arg0 := cctx.Args().Get(0)
+		// arg0 := cctx.Args().Get(0)
 
 		url := cctx.String("api-url")
 		cid := cctx.String("cid")
 		deviceID := cctx.String("deviceID")
-		log.Infof("test cid:%v,url:%v,deviceID:%v,arg:%v", cid, url, deviceID, arg0)
+
+		log.Infof("cache cid:%v,url:%v,deviceID:%v", cid, url, deviceID)
 
 		ctx := lcli.ReqContext(cctx)
 
@@ -318,9 +321,9 @@ var cacheCmd = &cli.Command{
 
 		defer closer()
 
-		err = schedulerAPI.NotifyNodeCacheData(ctx, cid, deviceID)
+		err = schedulerAPI.CacheData(ctx, cid, deviceID)
 		if err != nil {
-			log.Infof("NotifyNodeCacheData err:%v", err)
+			log.Infof("CacheData err:%v", err)
 		}
 
 		return err

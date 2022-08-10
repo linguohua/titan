@@ -51,7 +51,7 @@ func TypeRedis() string {
 
 // InitRedis init redis pool
 func InitRedis(url string) (CacheDB, error) {
-	// fmt.Printf("redis init url : %v", url)
+	// fmt.Printf("redis init url:%v", url)
 
 	redisDB := &redisDB{redis.NewClient(&redis.Options{
 		Addr:      url,
@@ -317,6 +317,13 @@ func (rd redisDB) DelValidatorList() error {
 
 	_, err := rd.cli.Del(context.Background(), key).Result()
 	return err
+}
+
+// SISMEMBER
+func (rd redisDB) IsNodeInValidatorList(deviceID string) (bool, error) {
+	key := redisKeyValidatorList
+
+	return rd.cli.SIsMember(context.Background(), key, deviceID).Result()
 }
 
 //  add

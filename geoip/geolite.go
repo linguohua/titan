@@ -9,8 +9,6 @@ import (
 
 // https://www.fecmall.com/topic/806
 
-const unknown = "unknown"
-
 // TypeGeoLite GeoLite
 func TypeGeoLite() string {
 	return "GeoLite"
@@ -35,14 +33,13 @@ type geoLite struct {
 
 func (g geoLite) initGeoInfo(ip string) GeoInfo {
 	return GeoInfo{
-		City:    unknown,
-		Country: unknown,
-		// IsoCode:   unknown,
+		City:      unknown,
+		Country:   unknown,
 		Province:  unknown,
 		Latitude:  0,
 		Longitude: 0,
 		IP:        ip,
-		Geo:       fmt.Sprintf("%s-%s-%s", unknown, unknown, unknown),
+		Geo:       fmt.Sprintf("%s%s%s%s%s", unknown, separate, unknown, separate, unknown),
 	}
 }
 
@@ -78,7 +75,7 @@ func (g geoLite) GetGeoInfo(ip string) (GeoInfo, error) {
 	geoInfo.Latitude = record.Location.Latitude
 	geoInfo.Longitude = record.Location.Longitude
 
-	geoInfo.Geo = fmt.Sprintf("%s-%s-%s", geoInfo.Country, geoInfo.Province, geoInfo.City)
+	geoInfo.Geo = fmt.Sprintf("%s%s%s%s%s", geoInfo.Country, separate, geoInfo.Province, separate, geoInfo.City)
 
 	return geoInfo, nil
 }
