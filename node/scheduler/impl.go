@@ -30,17 +30,17 @@ type Scheduler struct {
 // EdgeNodeConnect edge connect
 func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 	// Connect to scheduler
-	log.Infof("EdgeNodeConnect edge url : %v ", url)
+	// log.Infof("EdgeNodeConnect edge url:%v", url)
 	edgeAPI, closer, err := client.NewEdge(ctx, url, nil)
 	if err != nil {
-		log.Errorf("edgeAPI NewEdge err : %v", err)
+		log.Errorf("edgeAPI NewEdge err:%v,url:%v", err, url)
 		return err
 	}
 
 	// load device info
 	deviceInfo, err := edgeAPI.DeviceInfo(ctx)
 	if err != nil {
-		log.Errorf("edgeAPI DeviceID err : %v", err)
+		log.Errorf("edgeAPI DeviceInfo err:%v", err)
 		return err
 	}
 
@@ -53,16 +53,17 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 	addEdgeNode(&edgeNode)
 	list, err := getCacheFailCids(deviceInfo.DeviceId)
 	if err != nil {
-		log.Errorf("edgeAPI checkCacheFailCids err : %v", err)
+		log.Errorf("edgeAPI getCacheFailCids err:%v", err)
 		return err
 	}
 
-	err = edgeAPI.CacheData(context.Background(), list)
-	if err != nil {
-		return err
+	if len(list) > 0 {
+		err = edgeAPI.CacheData(ctx, list)
+		if err != nil {
+			return err
+		}
 	}
-	// load node info
-	go getNodeCount()
+
 	return nil
 }
 
@@ -71,9 +72,9 @@ func (s Scheduler) CacheResult(ctx context.Context, deviceID string, cid string,
 	return nodeCacheResult(deviceID, cid, isOK)
 }
 
-// NotifyNodeCacheData Cache Data
-func (s Scheduler) NotifyNodeCacheData(ctx context.Context, cid, deviceID string) error {
-	return notifyNodeCacheData(cid, deviceID)
+// CacheData Cache Data
+func (s Scheduler) CacheData(ctx context.Context, cid, deviceID string) error {
+	return cacheDataOfNode(cid, deviceID)
 }
 
 // FindNodeWithData find node
@@ -95,14 +96,14 @@ func (s Scheduler) GetDownloadURLWithData(ctx context.Context, cid, ip string) (
 func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 	candicateAPI, closer, err := client.NewCandicate(ctx, url, nil)
 	if err != nil {
-		log.Errorf("candicateAPI NewEdge err : %v", err)
+		log.Errorf("candicateAPI NewCandicate err:%v,url:%v", err, url)
 		return err
 	}
 
 	// load device info
 	deviceInfo, err := candicateAPI.DeviceInfo(ctx)
 	if err != nil {
-		log.Errorf("candicateAPI DeviceID err : %v", err)
+		log.Errorf("candicateAPI DeviceInfo err:%v", err)
 		return err
 	}
 
@@ -116,13 +117,15 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 
 	_, err = getCacheFailCids(deviceInfo.DeviceId)
 	if err != nil {
-		log.Errorf("candicateAPI checkCacheFailCids err : %v", err)
+		log.Errorf("candicateAPI getCacheFailCids err:%v", err)
 		return err
 	}
 
-	// err = candicateAPI.CacheData(context.Background(), list)
+	// if len(list) > 0 {
+	// err = candicateAPI.CacheData(ctx, list)
 	// if err != nil {
 	// 	return err
+	// }
 	// }
 
 	return nil
@@ -144,8 +147,8 @@ func (s Scheduler) GetIndexInfo(ctx context.Context, p api.IndexRequest) (api.In
 	dataRes.StorageT = 1080.99
 	dataRes.BandwidthMb = 666.99
 	// AllMinerNum MinerInfo
-	dataRes.AllCandidate = CandidateInfo.count
-	dataRes.AllEdgeNode = EdgeInfo.count
+	dataRes.AllCandidate = candidateCount
+	dataRes.AllEdgeNode = edgeCount
 	dataRes.AllVerifier = 56
 	// OnlineMinerNum MinerInfo
 	dataRes.OnlineCandidate = 11
@@ -186,8 +189,8 @@ func (s Scheduler) Retrieval(ctx context.Context, p api.IndexPageSearch) (api.Re
 	res.StorageT = 1080.99
 	res.BandwidthMb = 666.99
 	// AllMinerNum MinerInfo
-	res.AllCandidate = CandidateInfo.count
-	res.AllEdgeNode = EdgeInfo.count
+	res.AllCandidate = candidateCount
+	res.AllEdgeNode = edgeCount
 	res.AllVerifier = 56
 	return res, nil
 }

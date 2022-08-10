@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+const (
+	unknown  = "unknown"
+	separate = "-"
+)
+
 // GeoIP geo interface
 type GeoIP interface {
 	GetGeoInfo(ip string) (GeoInfo, error)
@@ -47,7 +52,7 @@ func GetGeoIP() GeoIP {
 
 // StringGeoToGeoInfo geo
 func StringGeoToGeoInfo(geo string) *GeoInfo {
-	geos := strings.Split(geo, "-")
+	geos := strings.Split(geo, separate)
 	if len(geos) < 3 {
 		return nil
 	}
