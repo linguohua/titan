@@ -11,7 +11,6 @@ type Edge interface {
 	BlockStoreStat(ctx context.Context) error                           //perm:read
 	LoadData(ctx context.Context, cid string) ([]byte, error)           //perm:read
 	LoadDataByVerifier(ctx context.Context, fid string) ([]byte, error) //perm:read
-	CacheFailResult(ctx context.Context) ([]FailResult, error)          //perm:read
 }
 
 type ReqCacheData struct {

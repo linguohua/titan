@@ -8,6 +8,7 @@ import (
 	"errors"
 	"log"
 
+	"github.com/linguohua/titan/node/fsutil"
 	"github.com/tecbot/gorocksdb"
 )
 
@@ -164,11 +165,11 @@ func (r rocksdb) GetSize(key string) (size int, err error) {
 }
 
 func (r rocksdb) Stat() (fsutil.FsStat, error) {
-	return fsutil.Statfs(fs.Path)
+	return fsutil.Statfs(r.Path)
 }
 
 func (r rocksdb) DiskUsage() (int64, error) {
-	si, err := fsutil.FileSize(fs.Path)
+	si, err := fsutil.FileSize(r.Path)
 	if err != nil {
 		return 0, err
 	}
@@ -191,6 +192,6 @@ func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 	return r.r.Seek(offset, whence)
 }
 
-func (r *Reader) Size() int64{
+func (r *Reader) Size() int64 {
 	return r.r.Size()
 }

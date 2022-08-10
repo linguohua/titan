@@ -18,6 +18,7 @@ import (
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/metrics"
+	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/repo"
 
 	"github.com/google/uuid"
@@ -288,8 +289,12 @@ var runCmd = &cli.Command{
 
 		deviceID := cctx.String("deviceid")
 		publicIP := cctx.String("publicIP")
-		blockStore := stores.NewBlockStore(cctx.String("blockstore-path"), stores.FileStore.Type())
-		edgeApi := edge.NewLocalEdgeNode(context.Background(), ds, schedulerAPI, blockStore, deviceID, publicIP)
+		internalIP := strings.Split(address, ":")[0]
+
+		blockStore := stores.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
+		deviceInfo := device.DeviceAPI{BlockStore: blockStore, PublicIP: publicIP, DeviceID: deviceID, InternalIP: internalIP}
+
+		edgeApi := edge.NewLocalEdgeNode(context.Background(), ds, schedulerAPI, blockStore, deviceInfo)
 
 		log.Info("Setting up control endpoint at " + address)
 

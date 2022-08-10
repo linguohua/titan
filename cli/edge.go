@@ -8,14 +8,14 @@ import (
 )
 
 var EdgeCmds = []*cli.Command{
-	DeviceIDCmd,
+	DeviceInfoCmd,
 	CacheDataCmd,
 	VerfyDataCmd,
 }
 
-var DeviceIDCmd = &cli.Command{
-	Name:  "deviceid",
-	Usage: "Print device ID",
+var DeviceInfoCmd = &cli.Command{
+	Name:  "deviceinfo",
+	Usage: "Print device info",
 	Action: func(cctx *cli.Context) error {
 		api, closer, err := GetEdgeAPI(cctx)
 		if err != nil {
@@ -30,7 +30,14 @@ var DeviceIDCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println("device id: ", v)
+		fmt.Printf("device id: %v \n", v.DeviceId)
+		fmt.Printf("device name: %v \n", v.DeviceName)
+		fmt.Printf("device external_ip: %v \n", v.ExternalIp)
+		fmt.Printf("device internal_ip: %v \n", v.InternalIp)
+		fmt.Printf("device systemVersion: %v \n", v.SystemVersion)
+		fmt.Printf("device DiskUsage: %v \n", v.DiskUsage)
+		fmt.Printf("device mac: %v \n", v.MacLocation)
+
 		return nil
 	},
 }
