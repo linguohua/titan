@@ -122,6 +122,7 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 		for c, t := range infos {
 			cid = c
 			tag = t
+			break
 		}
 
 		req = append(req, api.ReqVarify{Fid: tag, URL: edge.addr})
@@ -163,9 +164,7 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 
 		log.Infof("varifyResult candidate:%v , edge:%v ,eCid:%v,sCid:%v cidOK:%v", candidate.deviceInfo.DeviceId, varifyResult.DeviceID, varifyResult.Cid, c, cidOK)
 		log.Infof("varifyResult vC:%v gC:%v", vC, gC)
-		// TODO 写入DB 时间:候选节点:被验证节点:验证的cid:序号:结果]
-		// vC:bafkreihp2rj5nwb3mha5uplrjl4ooimqvqfmbjkgxw2pahdgb5bdlv7irq
-		// gC:bafybeihp2rj5nwb3mha5uplrjl4ooimqvqfmbjkgxw2pahdgb5bdlv7irq
+		// TODO 写入DB 时间:候选节点:被验证节点:验证的cid:序号:结果
 	}
 }
 
