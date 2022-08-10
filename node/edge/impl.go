@@ -19,7 +19,7 @@ import (
 
 var log = logging.Logger("edge")
 
-func NewLocalEdgeNode(ctx context.Context, ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, deviceID, publicIP string) api.Edge {
+func NewLocalEdgeNode(ctx context.Context, ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, device device.DeviceAPI) api.Edge {
 	addrs, err := build.BuiltinBootstrap()
 	if err != nil {
 		log.Fatal(err)
@@ -33,11 +33,10 @@ func NewLocalEdgeNode(ctx context.Context, ds datastore.Batching, scheduler api.
 		ds:         ds,
 		scheduler:  scheduler,
 		blockStore: blockStore,
-		limiter:    rate.NewLimiter(rate.Limit(0), 0),
+		limiter:    rate.NewLimiter(rate.Inf, 0),
 		exchange:   exchange,
-		DeviceAPI:  device.DeviceAPI{BlockStore: blockStore, PublicIP: publicIP, DeviceID: deviceID},
+		DeviceAPI:  device,
 	}
-	edge.DeviceAPI.DeviceID = "123132"
 
 	return edge
 }
