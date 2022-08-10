@@ -120,12 +120,12 @@ func deleteCandidateNode(deviceID string) {
 
 func getNodeCount() {
 	nodeMap := make(map[string]EdgeNode)
-	edgeNodeMap.Range(func(key, value any) bool {
+	edgeNodeMap.Range(func(key, value interface{}) bool {
 		nodeMap[key.(string)] = value.(EdgeNode)
 		return true
 	})
 	candidateMap := make(map[string]CandidateNode)
-	candidateNodeMap.Range(func(key, value any) bool {
+	candidateNodeMap.Range(func(key, value interface{}) bool {
 		candidateMap[key.(string)] = value.(CandidateNode)
 		return true
 	})

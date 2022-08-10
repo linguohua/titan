@@ -186,13 +186,13 @@ func (s Scheduler) Retrieval(ctx context.Context, p api.IndexPageSearch) (api.Re
 	res.StorageT = 1080.99
 	res.BandwidthMb = 666.99
 	// AllMinerNum MinerInfo
-	res.AllCandidate = 18
-	res.AllEdgeNode = 122
+	res.AllCandidate = CandidateInfo.count
+	res.AllEdgeNode = EdgeInfo.count
 	res.AllVerifier = 56
 	return res, nil
 }
 
-func (s Scheduler) DevicesInfo(ctx context.Context, p api.DevicesSearch) (api.DevicesInfoPage, error) {
+func (s Scheduler) GetDevicesInfo(ctx context.Context, p api.DevicesSearch) (api.DevicesInfoPage, error) {
 	var res api.DevicesInfoPage
 	list, total, err := GetDevicesInfoList(p)
 	if err != nil {
@@ -211,7 +211,7 @@ func (s Scheduler) DevicesInfo(ctx context.Context, p api.DevicesSearch) (api.De
 	return res, nil
 }
 
-func (s Scheduler) DevicesCount(ctx context.Context, p api.DevicesSearch) (api.DeviceType, error) {
+func (s Scheduler) GetDevicesCount(ctx context.Context, p api.DevicesSearch) (api.DeviceType, error) {
 	var res api.DeviceType
 	res.Online = 3
 	res.Offline = 4
@@ -251,6 +251,32 @@ func (s Scheduler) GetDeviceDiagnosisHour(ctx context.Context, p api.IncomeDaily
 	res.OnlineJsonDaily = m
 	res.DiskUsage = "127.2 G/447.1 G"
 	return res, nil
+}
+
+//  dairy data save
+func (s Scheduler) SaveDailyInfo(ctx context.Context, incomeDaily api.IncomeDaily) error {
+	splitDate := strings.Split(incomeDaily.DateStr, "-")
+	month := splitDate[0] + "-" + splitDate[1]
+	dayDate := splitDate[2]
+	var incomeDailyOld api.IncomeDaily
+	result := db.GMysqlDb.Where("device_id = ?", incomeDaily.DeviceId).Where("user_id = ?", incomeDaily.UserId).
+		Where("month = ?", month).First(&incomeDailyOld)
+	incomeDailyOld.DiskUsage = setDailyInfo(incomeDailyOld.DiskUsage, dayDate, incomeDaily.DiskUsage)
+	incomeDailyOld.Latency = setDailyInfo(incomeDailyOld.Latency, dayDate, incomeDaily.Latency)
+	incomeDailyOld.JsonDaily = setDailyInfo(incomeDailyOld.JsonDaily, dayDate, incomeDaily.JsonDaily)
+	incomeDailyOld.NatType = setDailyInfo(incomeDailyOld.NatType, dayDate, incomeDaily.NatType)
+	incomeDailyOld.PkgLossRatio = setDailyInfo(incomeDailyOld.PkgLossRatio, dayDate, incomeDaily.PkgLossRatio)
+	incomeDailyOld.OnlineJsonDaily = setDailyInfo(incomeDailyOld.OnlineJsonDaily, dayDate, incomeDaily.OnlineJsonDaily)
+	incomeDailyOld.DateStr = month
+	incomeDailyOld.DeviceId = incomeDaily.DeviceId
+	incomeDailyOld.UserId = incomeDaily.UserId
+	if result.RowsAffected <= 0 {
+		err := db.GMysqlDb.Create(&incomeDailyOld).Error
+		return err
+	} else {
+		err := db.GMysqlDb.Save(&incomeDailyOld).Error
+		return err
+	}
 }
 
 // DevicesInfo search from mysql
@@ -347,11 +373,11 @@ func timeFormat(p api.IncomeDailySearch) (m []interface{}) {
 			strDaysFrom = append(strDaysFrom, stringFrom)
 		}
 		// 当月数据查询
-		p.Month = splitFrom[0] + "-" + splitFrom[1]
+		p.DateStr = splitFrom[0] + "-" + splitFrom[1]
 		getDaysData(strDaysFrom, p, &returnMapList)
 	}
 	// 当月数据查询
-	p.Month = splitNow[0] + "-" + splitNow[1]
+	p.DateStr = splitNow[0] + "-" + splitNow[1]
 	for i := 1; i < day; i++ {
 		stringTo := strconv.Itoa(i)
 		if len(stringTo) < 2 {
@@ -371,7 +397,7 @@ func timeFormatHour(p api.IncomeDailySearch) (m []interface{}) {
 	var returnMapList []interface{}
 	// 单日数据
 	if p.Date != "" {
-		getHoursData([]string{}, p, &returnMapList)
+		getHoursData(p, &returnMapList)
 	}
 	return returnMapList
 }
@@ -447,7 +473,7 @@ func getDaysData(strDays []string, p api.IncomeDailySearch, returnMapList *[]int
 	if e != nil {
 		return
 	}
-	month := strings.Split(p.Month, "-")[1]
+	month := strings.Split(p.DateStr, "-")[1]
 	for _, v := range strDays {
 		returnMap := make(map[string]interface{})
 		returnMap["date"] = month + "-" + v
@@ -462,10 +488,7 @@ func getDaysData(strDays []string, p api.IncomeDailySearch, returnMapList *[]int
 	return
 }
 
-func getHoursData(strDays []string, p api.IncomeDailySearch, returnMapList *[]interface{}) {
-	// splitDate:=strings.Split(p.Date, "-")
-	// p.Month = splitDate[1]
-	// dayDate := splitDate[2]
+func getHoursData(p api.IncomeDailySearch, returnMapList *[]interface{}) {
 	listHour, _, err := GetHourDailyList(p)
 	if err != nil {
 		return
@@ -511,7 +534,7 @@ func GetIncomeDailyList(info api.IncomeDailySearch) (list api.IncomeDaily, total
 	db := db.GMysqlDb.Model(&api.IncomeDaily{})
 	var InPages api.IncomeDaily
 	// 如果有条件搜索 下方会自动创建搜索语句
-	if info.UserId == "" || info.Month == "" {
+	if info.UserId == "" || info.DateStr == "" {
 		log.Error("参数错误")
 		return
 	}
@@ -524,8 +547,8 @@ func GetIncomeDailyList(info api.IncomeDailySearch) (list api.IncomeDaily, total
 		db = db.Where("user_id = ?", info.UserId)
 	}
 	// 如果有条件搜索 下方会自动创建搜索语句
-	if info.Month != "" {
-		db = db.Where("month = ?", info.Month)
+	if info.DateStr != "" {
+		db = db.Where("month = ?", info.DateStr)
 	}
 	err = db.Count(&total).Error
 	if err != nil {
@@ -564,70 +587,22 @@ func GetHourDailyList(info api.IncomeDailySearch) (list api.HourDataOfDaily, tot
 	return InPages, total, err
 }
 
-//  dairy data save
-func CreateDailyOfMonth() error {
-	timeNow := time.Now().Format("2006-01-02")
-	splitDate := strings.Split(timeNow, "-")
-	month := splitDate[0] + "-" + splitDate[1]
-	dayDate := splitDate[2]
-	var IncomeDaily api.IncomeDaily
-	IncomeDaily.UserId = "888"
-	IncomeDaily.DeviceId = "10088"
-	result := db.GMysqlDb.Where("device_id = ?", IncomeDaily.DeviceId).Where("user_id = ?", IncomeDaily.UserId).
-		Where("month = ?", month).First(&IncomeDaily)
-	var dataString api.IncomeJson31
-	if vl, err := strconv.Atoi(dayDate); err == nil {
-		dataString.IndexDays = vl
+func setDailyInfo(jsonStr, date, income string) string {
+	onlineJsonDailyFrom := make(map[string]interface{})
+	if jsonStr != "" {
+		e := json.Unmarshal([]byte(jsonStr), &onlineJsonDailyFrom)
+		if e != nil {
+			return ""
+		}
 	}
-	dataString.One = 1
-	dataString.Eight = 2
-	dataString.Two = 3
-	dataString.Three = 5
-	dataString.Four = 5
-	dataString.Five = 5
-	bytes, e := json.Marshal(dataString)
+	if income == "" {
+		income = "0"
+	}
+	onlineJsonDailyFrom[date] = income
+	bytes, e := json.Marshal(onlineJsonDailyFrom)
 	if e != nil {
-		return e
+		return ""
 	}
 	jsonString := string(bytes)
-	IncomeDaily.Month = month
-	IncomeDaily.OnlineJsonDaily = jsonString
-	IncomeDaily.DiskUsage = jsonString
-	IncomeDaily.Latency = jsonString
-	IncomeDaily.JsonDaily = jsonString
-	IncomeDaily.NatType = jsonString
-	IncomeDaily.PkgLossRatio = jsonString
-	if result.RowsAffected <= 0 {
-		print("not find")
-		err := db.GMysqlDb.Create(&IncomeDaily).Error
-		return err
-	} else {
-		print("find and update")
-		err := db.GMysqlDb.Save(&IncomeDaily).Error
-		return err
-	}
-	return nil
-}
-
-func CreateDataOfDaily() error {
-	var dataString api.IncomeJson24
-	dataString.One = 23
-	dataString.Eight = 233
-	dataString.IndexDays = 3
-	dataString.Two = 3
-	dataString.Three = 3
-	dataString.Four = 4
-	dataString.Five = 5
-	bytes, e := json.Marshal(dataString)
-	if e != nil {
-		return e
-	}
-	jsonString := string(bytes)
-	var IncomeDaily api.HourDataOfDaily
-	IncomeDaily.OnlineJsonDaily = jsonString
-	IncomeDaily.PkgLossRatio = jsonString
-	IncomeDaily.Latency = jsonString
-	IncomeDaily.NatType = jsonString
-	err := db.GMysqlDb.Create(&IncomeDaily).Error
-	return err
+	return jsonString
 }
