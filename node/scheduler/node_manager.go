@@ -292,3 +292,20 @@ func getNodeURLWithData(cid, ip string) (string, error) {
 
 	return url, nil
 }
+
+func resetCandidateAndValidatorCount() {
+	candidateCount = 0
+	validatorCount = 0
+
+	candidateNodeMap.Range(func(key, value interface{}) bool {
+		node := value.(*CandidateNode)
+
+		if node.isValidator {
+			validatorCount++
+		} else {
+			candidateCount++
+		}
+
+		return true
+	})
+}

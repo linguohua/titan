@@ -157,6 +157,7 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 
 // spot check edges
 func spotChecks() error {
+	log.Infof("validatorCount:%v,candidateCount:%v", validatorCount, candidateCount)
 	// find validators
 	validators, err := db.GetCacheDB().GetValidatorsWithList()
 	if err != nil {
@@ -264,6 +265,9 @@ func electionValidators() error {
 			log.Errorf("SetGeoToValidatorList err:%v, validator : %s, geo : %s", err.Error(), validator, geo)
 		}
 	}
+
+	// reset count
+	resetCandidateAndValidatorCount()
 
 	return nil
 }
