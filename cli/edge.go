@@ -66,14 +66,30 @@ var CacheDataCmd = &cli.Command{
 		defer closer()
 
 		cid := cctx.String("cid")
-		fid := cctx.String("fid")
+		// fid := cctx.String("fid")
 		fmt.Println("cid:", cid)
 		ctx := ReqContext(cctx)
 		// TODO: print more useful things
 
+		ids := []string{
+			"QmeUqw4FY1wqnh2FMvuc2v8KAapE7fYwu2Up4qNwhZiRk7",
+			"QmbkdBycNb9xv69Q68ZWqFNE6ZRe5KFMtoHtA9D3MGZPhH",
+			"QmPDuq1nhSCYwJAaPYgby5hThSGdN1QkosPoFVKUDrP4Ro",
+			"bafkreic6vrp57vbzhzmxzetlqu5kqzb4nfcb7nrhnycn6djngp6ka4eziq",
+			"QmaP1ifdEt9K14sVVw7Vf2kcnuicxQmwQWDt5j7ShYXjsN",
+			"QmR7hNanvqaW9iG6jdszzoDKdDsfru5jPpu5VfQT2723kS",
+			"QmewmdJLBotQstj3tff4hAm9NjF1Jb9dbHDJo93PWqJ4Ka",
+			// "QmetZk77NyVmS1fDrhMNHBFaSZwtb7KXVPVqSDgXaZivpD",
+			"QmVqpiJqXTXEseJDbmsaCduFdFpnyzoSovKaHEzZmNoYD6",
+			// "QmWVCvoVHRMevzyDK4TuYr1ZcMzZa22kEq5RaxjnyPQb1y",
+		}
+
 		req := make([]API.ReqCacheData, 0)
-		reqData := API.ReqCacheData{Cid: cid, ID: fid}
-		req = append(req, reqData)
+		for i, id := range ids {
+			reqData := API.ReqCacheData{Cid: id, ID: fmt.Sprintf("%d", i)}
+			req = append(req, reqData)
+		}
+
 		err = api.CacheData(ctx, req)
 		if err != nil {
 			return err

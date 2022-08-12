@@ -3,9 +3,7 @@ package api
 import "context"
 
 type Candidate interface {
-	Common
-	Device
-	WaitQuiet(ctx context.Context) error                                     //perm:read
+	Edge
 	VerifyData(ctx context.Context, req []ReqVarify) ([]VarifyResult, error) //perm:read
 }
 

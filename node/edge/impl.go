@@ -38,6 +38,8 @@ func NewLocalEdgeNode(ctx context.Context, ds datastore.Batching, scheduler api.
 		DeviceAPI:  device,
 	}
 
+	go startBlockLoader(ctx, edge)
+
 	return edge
 }
 
@@ -52,43 +54,52 @@ type EdgeAPI struct {
 }
 
 func (edge EdgeAPI) WaitQuiet(ctx context.Context) error {
+	log.Info("WaitQuiet")
 	return nil
 }
 
 func (edge EdgeAPI) CacheData(ctx context.Context, req []api.ReqCacheData) error {
+	log.Infof("CacheData, req len:%d", len(req))
+
 	if edge.blockStore == nil {
 		return fmt.Errorf("CacheData, blockStore == nil ")
 	}
 
-	go loadBlocks(edge, req)
+	req = filterAvailableReq(edge, req)
+	reqDatas = append(reqDatas, req...)
+
+	// go loadBlocksOneByOne(edge, req)
 	return nil
 }
 
 func (edge EdgeAPI) BlockStoreStat(ctx context.Context) error {
+	log.Info("BlockStoreStat")
+
 	return nil
 }
 
 func (edge EdgeAPI) LoadData(ctx context.Context, cid string) ([]byte, error) {
+	log.Info("LoadData")
+
 	if edge.blockStore == nil {
-		log.Errorf("CacheData, blockStore not setting")
+		log.Errorf("LoadData, blockStore not setting")
 		return nil, nil
 	}
 
 	return edge.blockStore.Get(cid)
 }
 
-func (edge EdgeAPI) CacheFailResult(ctx context.Context) ([]api.FailResult, error) {
-	return make([]api.FailResult, 0), nil
-}
-
 func (edge EdgeAPI) LoadDataByVerifier(ctx context.Context, fileID string) ([]byte, error) {
+	log.Info("LoadDataByVerifier")
+
 	if edge.blockStore == nil {
-		log.Errorf("CacheData, blockStore not setting")
+		log.Errorf("LoadDataByVerifier, blockStore not setting")
 		return nil, nil
 	}
 
 	cid, err := getCID(edge, fileID)
 	if err != nil {
+		log.Errorf("LoadDataByVerifier, getCID err:%v", err)
 		return nil, err
 	}
 	return edge.blockStore.Get(cid)
@@ -100,7 +111,7 @@ func getCID(edge EdgeAPI, fid string) (string, error) {
 
 	value, err := edge.ds.Get(ctx, datastore.NewKey(fid))
 	if err != nil {
-		log.Errorf("CacheData, get cid from store error:%v", err)
+		log.Errorf("Get cid from store error:%v, fid:%s", err, fid)
 		return "", err
 	}
 

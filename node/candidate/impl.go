@@ -10,8 +10,8 @@ import (
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/stores"
 
-	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/device"
+	"github.com/linguohua/titan/node/edge"
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
@@ -19,10 +19,12 @@ import (
 	mh "github.com/multiformats/go-multihash"
 )
 
-var log = logging.Logger("main")
+var log = logging.Logger("candidate")
 
-func NewLocalCandidateNode(ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, deviceID, publicIP string) api.Candidate {
-	return CandidateAPI{ds: ds, scheduler: scheduler, blockStore: blockStore, DeviceAPI: device.DeviceAPI{BlockStore: blockStore, DeviceID: deviceID, PublicIP: publicIP}}
+func NewLocalCandidateNode(ctx context.Context, ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, device device.DeviceAPI) api.Candidate {
+	a := edge.NewLocalEdgeNode(ctx, ds, scheduler, blockStore, device)
+	edgeAPI := a.(edge.EdgeAPI)
+	return CandidateAPI{EdgeAPI: edgeAPI}
 }
 
 func cidFromData(data []byte) (string, error) {
@@ -42,18 +44,17 @@ func cidFromData(data []byte) (string, error) {
 }
 
 type CandidateAPI struct {
-	common.CommonAPI
-	device.DeviceAPI
-	ds         datastore.Batching
-	scheduler  api.Scheduler
-	blockStore stores.BlockStore
+	edge.EdgeAPI
 }
 
 func (candidate CandidateAPI) WaitQuiet(ctx context.Context) error {
+	log.Info("WaitQuiet")
 	return nil
 }
 
 func (candidate CandidateAPI) VerifyData(ctx context.Context, req []api.ReqVarify) ([]api.VarifyResult, error) {
+	log.Info("VerifyData")
+
 	results := make([]*api.VarifyResult, 0, len(req))
 	wg := &sync.WaitGroup{}
 
@@ -99,7 +100,7 @@ func verify(ctx context.Context, wg *sync.WaitGroup, fid, url string, result *ap
 
 	cid, err := cidFromData(data)
 	if err != nil {
-		log.Errorf("VerifyData LoadDataByVerifier err : %v", err)
+		log.Errorf("VerifyData cidFromData err : %v", err)
 		return
 	}
 
