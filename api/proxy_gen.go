@@ -17,24 +17,18 @@ var ErrNotSupported = xerrors.New("method not supported")
 
 type CandidateStruct struct {
 
-	CommonStruct
-
-	DeviceStruct
+	EdgeStruct
 
 	Internal struct {
 
 		VerifyData func(p0 context.Context, p1 []ReqVarify) ([]VarifyResult, error) `perm:"read"`
-
-		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
 
 	}
 }
 
 type CandidateStub struct {
 
-	CommonStub
-
-	DeviceStub
+	EdgeStub
 
 }
 
@@ -169,17 +163,6 @@ func (s *CandidateStruct) VerifyData(p0 context.Context, p1 []ReqVarify) ([]Vari
 
 func (s *CandidateStub) VerifyData(p0 context.Context, p1 []ReqVarify) ([]VarifyResult, error) {
 	return *new([]VarifyResult), ErrNotSupported
-}
-
-func (s *CandidateStruct) WaitQuiet(p0 context.Context) (error) {
-	if s.Internal.WaitQuiet == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.WaitQuiet(p0)
-}
-
-func (s *CandidateStub) WaitQuiet(p0 context.Context) (error) {
-	return ErrNotSupported
 }
 
 

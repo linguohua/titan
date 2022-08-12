@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"golang.org/x/time/rate"
+	"github.com/ipfs/go-cid"
 )
 
 // const (
@@ -29,16 +29,33 @@ import (
 // }
 
 func (edge EdgeAPI) GetBlock(w http.ResponseWriter, r *http.Request) {
-	cid := r.URL.Query().Get("cid")
-	log.Infof("GetBlock, cid:%s", cid)
-	reader, err := edge.blockStore.GetReader(cid)
+	cidStr := r.URL.Query().Get("cid")
+
+	log.Infof("GetBlock, cid:%s", cidStr)
+
+	target, err := cid.Decode(cidStr)
 	if err != nil {
+		log.Errorf("GetBlock, decode cid error:%v", err)
+		http.NotFound(w, r)
+		return
+	}
+
+	// cid convert to vo
+	if target.Version() != 0 && target.Type() == cid.DagProtobuf {
+		target = cid.NewCidV0(target.Hash())
+	}
+
+	cidStr = fmt.Sprintf("%v", target)
+
+	reader, err := edge.blockStore.GetReader(cidStr)
+	if err != nil {
+		log.Errorf("GetBlock, GetReader:%v", err)
 		http.NotFound(w, r)
 		return
 	}
 	defer reader.Close()
 
-	contentDisposition := fmt.Sprintf("attachment; filename=%s", cid)
+	contentDisposition := fmt.Sprintf("attachment; filename=%s", cidStr)
 	w.Header().Set("Content-Disposition", contentDisposition)
 
 	now := time.Now()
@@ -56,13 +73,14 @@ func (edge EdgeAPI) GetBlock(w http.ResponseWriter, r *http.Request) {
 		speedRate = int64(float64(n) / float64(costTime) * 1000000000)
 	}
 
-	if edge.limiter.Limit() == rate.Inf {
-		edge.limiter.SetLimit(rate.Limit(speedRate))
-		edge.limiter.SetBurst(int(speedRate))
-		log.Infof("block_download set speed rate:%d", speedRate)
-	}
+	// TODO: set bankwidth for edge.limiter
+	// if edge.limiter.Limit() == rate.Inf && speedRate != 0 {
+	// 	edge.limiter.SetLimit(rate.Limit(speedRate))
+	// 	edge.limiter.SetBurst(int(speedRate))
+	// 	log.Infof("block_download set speed rate:%d", speedRate)
+	// }
 
-	log.Infof("Download block %s costTime %d, size %d, speed %d", cid, costTime, n, speedRate)
+	log.Infof("Download block %s costTime %d, size %d, speed %d", cidStr, costTime, n, speedRate)
 
 	return
 }
