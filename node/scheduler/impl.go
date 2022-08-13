@@ -157,18 +157,18 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 		return err
 	}
 
-	_, err = getCacheFailCids(deviceInfo.DeviceId)
+	list, err := getCacheFailCids(deviceInfo.DeviceId)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect getCacheFailCids err:%v", err)
 		return err
 	}
 
-	// if len(list) > 0 {
-	// 	err = candicateAPI.CacheData(ctx, list)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
+	if len(list) > 0 {
+		err = candicateAPI.CacheData(ctx, list)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

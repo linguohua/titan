@@ -79,11 +79,11 @@ func cacheDataOfNode(cids []string, deviceID string) error {
 	}
 
 	if candidate != nil {
-		// err := candidate.nodeAPI.CacheData(context.Background(), reqs)
-		// if err != nil {
-		// 	log.Errorf("CacheData err:%v", err)
-		// 	return err
-		// }
+		err := candidate.nodeAPI.CacheData(context.Background(), reqs)
+		if err != nil {
+			log.Errorf("CacheData err:%v", err)
+			return err
+		}
 	}
 
 	return nil
