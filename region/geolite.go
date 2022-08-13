@@ -1,4 +1,4 @@
-package geoip
+package region
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ func TypeGeoLite() string {
 }
 
 // InitGeoLite init
-func InitGeoLite(dbPath string) (GeoIP, error) {
+func InitGeoLite(dbPath string) (Region, error) {
 	gl := &geoLite{dbPath}
 
 	db, err := geoip2.Open(gl.dbPath)

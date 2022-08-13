@@ -1,4 +1,4 @@
-package geoip
+package region
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ const (
 	separate = "-"
 )
 
-// GeoIP geo interface
-type GeoIP interface {
+// Region geo interface
+type Region interface {
 	GetGeoInfo(ip string) (GeoInfo, error)
 }
 
@@ -26,28 +26,28 @@ type GeoInfo struct {
 	Geo       string
 }
 
-var geoIP GeoIP
+var region Region
 
-// NewGeoIP New GeoIP
-func NewGeoIP(dbPath, geoType string) {
+// NewRegion New Region
+func NewRegion(dbPath, geoType string) {
 	var err error
 
 	switch geoType {
 	case TypeGeoLite():
-		geoIP, err = InitGeoLite(dbPath)
+		region, err = InitGeoLite(dbPath)
 	default:
-		panic("unknown GeoIP type")
+		panic("unknown Region type")
 	}
 
 	if err != nil {
-		e := fmt.Sprintf("NewGeoIP err:%v , path:%v", err, dbPath)
+		e := fmt.Sprintf("NewRegion err:%v , path:%v", err, dbPath)
 		panic(e)
 	}
 }
 
-// GetGeoIP Get GeoIP
-func GetGeoIP() GeoIP {
-	return geoIP
+// GetRegion Get Region
+func GetRegion() Region {
+	return region
 }
 
 // StringGeoToGeoInfo geo

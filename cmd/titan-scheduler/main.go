@@ -12,13 +12,13 @@ import (
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
-	"github.com/linguohua/titan/geoip"
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/metrics"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler"
 	"github.com/linguohua/titan/node/scheduler/db"
+	"github.com/linguohua/titan/region"
 	"golang.org/x/xerrors"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -45,6 +45,7 @@ func main() {
 		cacheCmd,
 		electionCmd,
 		spotCheckCmd,
+		cachesCmd,
 	}
 
 	app := &cli.App{
@@ -138,7 +139,7 @@ var runCmd = &cli.Command{
 		db.NewCacheDB(cURL, db.TypeRedis())
 
 		gPath := cctx.String("geodb-path")
-		geoip.NewGeoIP(gPath, geoip.TypeGeoLite())
+		region.NewRegion(gPath, region.TypeGeoLite())
 
 		schedulerAPI := scheduler.NewLocalScheduleNode()
 
@@ -279,12 +280,17 @@ var cacheCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "cid",
-			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
+			Usage: "block cid",
 			Value: "",
 		},
 		&cli.StringFlag{
 			Name:  "deviceID",
-			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
+			Usage: "cache node device id",
+			Value: "",
+		},
+		&cli.StringFlag{
+			Name:  "caches-path",
+			Usage: "cache cids file path",
 			Value: "",
 		},
 	},
@@ -298,8 +304,9 @@ var cacheCmd = &cli.Command{
 		url := cctx.String("api-url")
 		cid := cctx.String("cid")
 		deviceID := cctx.String("deviceID")
+		cachesPath := cctx.String("caches-path")
 
-		log.Infof("cache cid:%v,url:%v,deviceID:%v", cid, url, deviceID)
+		log.Infof("cache cid:%v,url:%v,deviceID:%v,cachesPath:%v", cid, url, deviceID, cachesPath)
 
 		ctx := lcli.ReqContext(cctx)
 
@@ -321,9 +328,72 @@ var cacheCmd = &cli.Command{
 
 		defer closer()
 
-		err = schedulerAPI.CacheData(ctx, cid, deviceID)
+		err = schedulerAPI.CacheData(ctx, []string{cid}, deviceID)
 		if err != nil {
 			log.Infof("CacheData err:%v", err)
+		}
+
+		return err
+	},
+}
+
+var cachesCmd = &cli.Command{
+	Name:  "caches",
+	Usage: "specify node cache data",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "api-url",
+			Usage: "host address and port the worker api will listen on",
+			Value: "127.0.0.1:3456",
+		},
+		&cli.StringFlag{
+			Name:  "caches-path",
+			Usage: "cache cids file path",
+			Value: "",
+		},
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		// arg0 := cctx.Args().Get(0)
+
+		url := cctx.String("api-url")
+		cachesPath := cctx.String("caches-path")
+
+		log.Infof("cache url:%v,cachesPath:%v", url, cachesPath)
+
+		ctx := lcli.ReqContext(cctx)
+
+		var schedulerAPI api.Scheduler
+		var closer func()
+		var err error
+		for {
+			schedulerAPI, closer, err = client.NewScheduler(ctx, url, nil)
+			if err == nil {
+				_, err = schedulerAPI.Version(ctx)
+				if err == nil {
+					break
+				}
+			}
+			fmt.Printf("\r\x1b[0KConnecting to miner API... (%s)", err)
+			time.Sleep(time.Second)
+			continue
+		}
+
+		defer closer()
+
+		nodes, _ := schedulerAPI.GetDeviceIDs(ctx)
+		log.Infof("GetDeviceIDs nodes:%v", nodes)
+
+		cids := []string{"bafkreic2dalh6zxspsc5cgbtex3inrwjkk4cvuatd4e4jvtmzieeg6vmom", "bafkreicdh2dwooyqhm6oc7xil4vrrdawfevdwgvss3djqb5egvgla37x3a", "bafkreicnyd7hi3crw7luibjfxhqy65ewvjstwba4atrmfd7zakvg4qwjwy", "bafkreidrp46eb6onsmi6qqcywy3woig6fd5ogw77binktgujsbxrxctaw4", "bafkreihvey6kt24rpxvub2mkzutgem4e3cgyi2xrdmzhdc77d477ifmuqm", "bafkreigmp7zgjnkzm2aq6msb74fghpe75m4e2wgy62zt253y33ethjljje", "bafkreih6ouktjwl5eiiojb2bwqmdbx4t2tx2lwtlk3fvvqwnfb532p5ywy", "bafkreif4vamvmvss77oanijx34ytszxcyzhsscuvwj6xacszmrjyvtn54m", "bafkreigq56ud4ohtmhijtusfsvdmwk56qs36vbkdb2tqfep25k7bsr5esq", "bafkreibelhulvqgm5kuxvh7kcvbfp544xke3otuna2rfyt3ulcuyg73akm", "bafkreigdg7pkvz5sob6crhaonrz7avi7qouem57sk3iaewqmiu2n5zuihy", "bafkreibubp5fer4mgxyjvgr7t3u5pqwnjjcpqq3twm5idwr7yavsaqhzee", "bafkreic6mtqflfaajzzbiknfr3ilnnsfugzztf2p3cqlpsa3s6xnfbdl34", "bafkreig6avcaplojy4hzumpw2idin5lu57bycze7byvla73mlyqdx4zwnu", "bafkreicazep6co2tblgfeo7xg6ob76gr56swe4jpuljnerdlzla2sgwrdu", "bafkreigpwtgxhl7xflntbq7zpagbkqkdwgta6ltgfjwwnqbpxskxwx5fue", "bafkreih5ccfsty3rzg6jgwlrp2vlgqpv2baezdbswzdpsjvpg2yqmjcq5m", "bafkreicf5mezn5cy6ib2zocxwnqqoqvketwzsqr6k4pvgpeuq6gtjmuece", "bafkreih5dktq7sop75myx53gsnabddx2cpd2g4ejgkdvifsxod36hx5nge", "bafkreia2d6rymp23wt62yfao4a3arq6tcstwaxc5btbcexinvgrfgkcefq", "bafkreigcsno3j2ravp7ntnig6zy5solyy6kzdt3pl57prlbzh5gslil3cy", "bafkreicixxifhlk4dp4tvzs5w6bhvdo7e3qccuvbkdgohw56blmohy7sn4", "bafkreiehzpfbeunyyfarn6h3goblullajuemfgthxbqmvjo72bqh4ds6oy", "bafkreifyvp3t6ep6ftqjkq3h65zdmgr2breeqp4k7rmdmsibel4755vh4e", "bafkreibpxgd3vlearz3rzm75zlw2wjq5bsv4suxtrj5mrxdcqq2itrqlii", "bafkreidang5esgsroqj5dsrnj5flbxuciqki55zxir7waskre45oeefufa", "bafkreibwg7p7fikhvdtdtj5u2hyjaojkz6aceg4vx66yrc2rcwqhpxldoy", "bafkreibthn4ngz5yq3im6dtdlmeg3kwqldnqwp7bnljqiqufaduxqbp7ma", "bafkreicvu5ym5fsffx2y2czmfh4lozt7bt6pkn3xpsezii2rvsztqgar2e", "bafkreia5lywtofhazb2glmwem62jqrz67yetcq6oatucrywx4gltf7xhu4", "bafkreic43vhpdroul77ajihs4jdpdzfdb6qepm2lq23ywq54inthal7pym", "bafkreialkb4dcculkn2x3zr2snxxyh6laj7y43mrgh53s3kgrgvcqkwb3y", "bafkreidhnpecmu7yqbdmzi463hnuauq7lqidwnex5k5hs3dhsysd5u7s4u", "bafkreievimive25a2bgzerjwxchd6kme2cbm7hdhfnaxzgftqxo2bfeih4", "bafkreig26o4roqcowqc25yg3lzfbqcd4i2ezenfbwjsi5m6s6xnycakrue", "bafkreiewvhgytf4piiwqbyxv33byfaazsilps65avspfwb2s3bstwsdyza", "bafkreibfwuh2qwo5kfvddisonvbbd72mlxa4t6vlecesqfzqgirtjdr5wq", "bafkreibnq6h57f5pg7tly775t3ibpork2ftqv6s373v4vbxs2cwvtejj3e", "bafkreihdnarq4lfzlt2p2ypnk5als7n65xiexoutn5w7m3aixwff74c4vu", "bafkreiey6d3qspy2renhcumllqh5nrvclmepqwu5rpherjpum2lria26fm", "bafkreif6ug4sngfl4s4izcwdqoccgdhzkjhmpjp3gmiwcp6ho5xwljjqba", "bafkreiau64ltlfm6thzeitbfvda57ugiap5vogce6laphuutjewrlh2gvm", "bafkreibzephikut47bv3a4yik3zfach75pxmteprkfpofixnkdvmispslq"}
+
+		for _, deviceID := range nodes {
+			err = schedulerAPI.CacheData(ctx, cids, deviceID)
+			if err != nil {
+				log.Warnf("CacheData err:%v,deviceID:%v", err, deviceID)
+			}
 		}
 
 		return err

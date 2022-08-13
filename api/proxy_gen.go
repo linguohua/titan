@@ -111,7 +111,7 @@ type SchedulerStruct struct {
 
 	Internal struct {
 
-		CacheData func(p0 context.Context, p1 string, p2 string) (error) `perm:"read"`
+		CacheData func(p0 context.Context, p1 []string, p2 string) (error) `perm:"read"`
 
 		CacheResult func(p0 context.Context, p1 string, p2 string, p3 bool) (error) `perm:"read"`
 
@@ -123,9 +123,13 @@ type SchedulerStruct struct {
 
 		FindNodeWithData func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
+		GetCacheTag func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
+
 		GetDeviceDiagnosisDaily func(p0 context.Context, p1 IncomeDailySearch) (IncomeDailyRes, error) `perm:"read"`
 
 		GetDeviceDiagnosisHour func(p0 context.Context, p1 IncomeDailySearch) (HourDailyRes, error) `perm:"read"`
+
+		GetDeviceIDs func(p0 context.Context) ([]string, error) `perm:"read"`
 
 		GetDevicesCount func(p0 context.Context, p1 DevicesSearch) (DeviceType, error) `perm:"read"`
 
@@ -353,14 +357,14 @@ func (s *EdgeStub) WaitQuiet(p0 context.Context) (error) {
 
 
 
-func (s *SchedulerStruct) CacheData(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStruct) CacheData(p0 context.Context, p1 []string, p2 string) (error) {
 	if s.Internal.CacheData == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheData(p0, p1, p2)
 }
 
-func (s *SchedulerStub) CacheData(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStub) CacheData(p0 context.Context, p1 []string, p2 string) (error) {
 	return ErrNotSupported
 }
 
@@ -419,6 +423,17 @@ func (s *SchedulerStub) FindNodeWithData(p0 context.Context, p1 string, p2 strin
 	return "", ErrNotSupported
 }
 
+func (s *SchedulerStruct) GetCacheTag(p0 context.Context, p1 string, p2 string) (string, error) {
+	if s.Internal.GetCacheTag == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.GetCacheTag(p0, p1, p2)
+}
+
+func (s *SchedulerStub) GetCacheTag(p0 context.Context, p1 string, p2 string) (string, error) {
+	return "", ErrNotSupported
+}
+
 func (s *SchedulerStruct) GetDeviceDiagnosisDaily(p0 context.Context, p1 IncomeDailySearch) (IncomeDailyRes, error) {
 	if s.Internal.GetDeviceDiagnosisDaily == nil {
 		return *new(IncomeDailyRes), ErrNotSupported
@@ -439,6 +454,17 @@ func (s *SchedulerStruct) GetDeviceDiagnosisHour(p0 context.Context, p1 IncomeDa
 
 func (s *SchedulerStub) GetDeviceDiagnosisHour(p0 context.Context, p1 IncomeDailySearch) (HourDailyRes, error) {
 	return *new(HourDailyRes), ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetDeviceIDs(p0 context.Context) ([]string, error) {
+	if s.Internal.GetDeviceIDs == nil {
+		return *new([]string), ErrNotSupported
+	}
+	return s.Internal.GetDeviceIDs(p0)
+}
+
+func (s *SchedulerStub) GetDeviceIDs(p0 context.Context) ([]string, error) {
+	return *new([]string), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetDevicesCount(p0 context.Context, p1 DevicesSearch) (DeviceType, error) {

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
+	"golang.org/x/xerrors"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
@@ -33,14 +34,14 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 	// log.Infof("EdgeNodeConnect edge url:%v", url)
 	edgeAPI, closer, err := client.NewEdge(ctx, url, nil)
 	if err != nil {
-		log.Errorf("edgeAPI NewEdge err:%v,url:%v", err, url)
+		log.Errorf("EdgeNodeConnect NewEdge err:%v,url:%v", err, url)
 		return err
 	}
 
 	// load device info
 	deviceInfo, err := edgeAPI.DeviceInfo(ctx)
 	if err != nil {
-		log.Errorf("edgeAPI DeviceInfo err:%v", err)
+		log.Errorf("EdgeNodeConnect DeviceInfo err:%v", err)
 		return err
 	}
 
@@ -50,10 +51,16 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		closer:     closer,
 		deviceInfo: deviceInfo,
 	}
-	addEdgeNode(&edgeNode)
+
+	err = addEdgeNode(&edgeNode)
+	if err != nil {
+		log.Errorf("EdgeNodeConnect addEdgeNode err:%v", err)
+		return err
+	}
+
 	list, err := getCacheFailCids(deviceInfo.DeviceId)
 	if err != nil {
-		log.Errorf("edgeAPI getCacheFailCids err:%v", err)
+		log.Errorf("EdgeNodeConnect getCacheFailCids err:%v", err)
 		return err
 	}
 
@@ -73,8 +80,38 @@ func (s Scheduler) CacheResult(ctx context.Context, deviceID string, cid string,
 }
 
 // CacheData Cache Data
-func (s Scheduler) CacheData(ctx context.Context, cid, deviceID string) error {
-	return cacheDataOfNode(cid, deviceID)
+func (s Scheduler) CacheData(ctx context.Context, cids []string, deviceID string) error {
+	if len(cids) <= 0 {
+		return xerrors.New("cids is nil")
+	}
+
+	return cacheDataOfNode(cids, deviceID)
+}
+
+// GetDeviceIDs Get all online node id
+func (s Scheduler) GetDeviceIDs(ctx context.Context) ([]string, error) {
+	list := make([]string, 0)
+
+	candidateNodeMap.Range(func(key, value interface{}) bool {
+		deviceID := key.(string)
+		list = append(list, deviceID)
+
+		return true
+	})
+
+	edgeNodeMap.Range(func(key, value interface{}) bool {
+		deviceID := key.(string)
+		list = append(list, deviceID)
+
+		return true
+	})
+
+	return list, nil
+}
+
+// GetCacheTag get a tag with cid
+func (s Scheduler) GetCacheTag(ctx context.Context, cid, deviceID string) (string, error) {
+	return nodeCacheReady(cid, deviceID)
 }
 
 // FindNodeWithData find node
@@ -96,14 +133,14 @@ func (s Scheduler) GetDownloadURLWithData(ctx context.Context, cid, ip string) (
 func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 	candicateAPI, closer, err := client.NewCandicate(ctx, url, nil)
 	if err != nil {
-		log.Errorf("candicateAPI NewCandicate err:%v,url:%v", err, url)
+		log.Errorf("CandidateNodeConnect NewCandicate err:%v,url:%v", err, url)
 		return err
 	}
 
 	// load device info
 	deviceInfo, err := candicateAPI.DeviceInfo(ctx)
 	if err != nil {
-		log.Errorf("candicateAPI DeviceInfo err:%v", err)
+		log.Errorf("CandidateNodeConnect DeviceInfo err:%v", err)
 		return err
 	}
 
@@ -113,19 +150,24 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 		closer:     closer,
 		deviceInfo: deviceInfo,
 	}
-	addCandidateNode(&candidateNode)
+
+	err = addCandidateNode(&candidateNode)
+	if err != nil {
+		log.Errorf("CandidateNodeConnect addCandidateNode err:%v", err)
+		return err
+	}
 
 	_, err = getCacheFailCids(deviceInfo.DeviceId)
 	if err != nil {
-		log.Errorf("candicateAPI getCacheFailCids err:%v", err)
+		log.Errorf("CandidateNodeConnect getCacheFailCids err:%v", err)
 		return err
 	}
 
 	// if len(list) > 0 {
-	// err = candicateAPI.CacheData(ctx, list)
-	// if err != nil {
-	// 	return err
-	// }
+	// 	err = candicateAPI.CacheData(ctx, list)
+	// 	if err != nil {
+	// 		return err
+	// 	}
 	// }
 
 	return nil

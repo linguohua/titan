@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/geoip"
 	"github.com/linguohua/titan/node/scheduler/db"
+	"github.com/linguohua/titan/region"
 	"golang.org/x/xerrors"
 )
 
@@ -19,11 +19,11 @@ var (
 	validatorCount int
 )
 
-func addEdgeNode(node *EdgeNode) {
+func addEdgeNode(node *EdgeNode) error {
 	// geo ip
-	geoInfo, err := geoip.GetGeoIP().GetGeoInfo(node.deviceInfo.ExternalIp)
+	geoInfo, err := region.GetRegion().GetGeoInfo(node.deviceInfo.ExternalIp)
 	if err != nil {
-		log.Errorf("addEdgeNode GetGeoInfo err:%v,node:%v", err, node.deviceInfo.ExternalIp)
+		log.Warnf("addEdgeNode GetGeoInfo err:%v,node:%v", err, node.deviceInfo.ExternalIp)
 	}
 
 	node.geoInfo = geoInfo
@@ -36,14 +36,16 @@ func addEdgeNode(node *EdgeNode) {
 
 	log.Infof("addEdgeNode DeviceId:%v,geo:%v", node.deviceInfo.DeviceId, node.geoInfo.Geo)
 
-	edgeNodeMap.Store(node.deviceInfo.DeviceId, node)
-
 	err = nodeOnline(node.deviceInfo.DeviceId, 0, geoInfo, api.TypeNameEdge)
 	if err != nil {
-		log.Errorf("addEdgeNode NodeOnline err:%v", err)
+		// log.Errorf("addEdgeNode NodeOnline err:%v", err)
+		return err
 	}
 
+	edgeNodeMap.Store(node.deviceInfo.DeviceId, node)
+
 	edgeCount++
+	return nil
 }
 
 func getEdgeNode(deviceID string) *EdgeNode {
@@ -68,21 +70,21 @@ func deleteEdgeNode(deviceID string) {
 
 	edgeNodeMap.Delete(deviceID)
 
-	err := nodeOffline(deviceID, node.geoInfo)
+	err := nodeOffline(deviceID, node.geoInfo, api.TypeNameEdge)
 	if err != nil {
-		log.Errorf("DeviceOffline err:%v", err)
+		log.Warnf("DeviceOffline err:%v", err)
 	}
 
 	edgeCount--
 }
 
-func addCandidateNode(node *CandidateNode) {
+func addCandidateNode(node *CandidateNode) error {
 	node.isValidator, _ = db.GetCacheDB().IsNodeInValidatorList(node.deviceInfo.DeviceId)
 
 	// geo ip
-	geoInfo, err := geoip.GetGeoIP().GetGeoInfo(node.deviceInfo.ExternalIp)
+	geoInfo, err := region.GetRegion().GetGeoInfo(node.deviceInfo.ExternalIp)
 	if err != nil {
-		log.Errorf("addCandidateNode GetGeoInfo err:%v,ExternalIp:%v", err, node.deviceInfo.ExternalIp)
+		log.Warnf("addCandidateNode GetGeoInfo err:%v,ExternalIp:%v", err, node.deviceInfo.ExternalIp)
 	}
 
 	node.geoInfo = geoInfo
@@ -93,20 +95,23 @@ func addCandidateNode(node *CandidateNode) {
 		// log.Infof("close old deviceID:%v", nodeOld.deviceInfo.DeviceId)
 	}
 
-	candidateNodeMap.Store(node.deviceInfo.DeviceId, node)
-
 	log.Infof("addCandidateNode DeviceId:%v,geo:%v", node.deviceInfo.DeviceId, node.geoInfo.Geo)
 
 	err = nodeOnline(node.deviceInfo.DeviceId, 0, geoInfo, api.TypeNameCandidate)
 	if err != nil {
-		log.Errorf("addCandidateNode NodeOnline err:%v", err)
+		// log.Errorf("addCandidateNode NodeOnline err:%v", err)
+		return err
 	}
+
+	candidateNodeMap.Store(node.deviceInfo.DeviceId, node)
 
 	if node.isValidator {
 		validatorCount++
 	} else {
 		candidateCount++
 	}
+
+	return nil
 }
 
 func getCandidateNode(deviceID string) *CandidateNode {
@@ -131,9 +136,9 @@ func deleteCandidateNode(deviceID string) {
 
 	candidateNodeMap.Delete(deviceID)
 
-	err := nodeOffline(deviceID, node.geoInfo)
+	err := nodeOffline(deviceID, node.geoInfo, api.TypeNameCandidate)
 	if err != nil {
-		log.Errorf("DeviceOffline err:%v", err)
+		log.Warnf("DeviceOffline err:%v,deviceID:%v", err.Error(), deviceID)
 	}
 
 	if node.isValidator {
@@ -143,7 +148,7 @@ func deleteCandidateNode(deviceID string) {
 	}
 }
 
-func findEdgeNodeWithGeo(userGeoInfo geoip.GeoInfo, deviceIDs []string) ([]*EdgeNode, geoLevel) {
+func findEdgeNodeWithGeo(userGeoInfo region.GeoInfo, deviceIDs []string) ([]*EdgeNode, geoLevel) {
 	sameCountryNodes := make([]*EdgeNode, 0)
 	sameProvinceNodes := make([]*EdgeNode, 0)
 	sameCityNodes := make([]*EdgeNode, 0)
@@ -186,7 +191,7 @@ func findEdgeNodeWithGeo(userGeoInfo geoip.GeoInfo, deviceIDs []string) ([]*Edge
 	return defaultNodes, defaultLevel
 }
 
-func findCandidateNodeWithGeo(userGeoInfo geoip.GeoInfo, deviceIDs []string) ([]*CandidateNode, geoLevel) {
+func findCandidateNodeWithGeo(userGeoInfo region.GeoInfo, deviceIDs []string) ([]*CandidateNode, geoLevel) {
 	sameCountryNodes := make([]*CandidateNode, 0)
 	sameProvinceNodes := make([]*CandidateNode, 0)
 	sameCityNodes := make([]*CandidateNode, 0)
@@ -261,9 +266,9 @@ func getNodeURLWithData(cid, ip string) (string, error) {
 		return "", xerrors.New("not find node")
 	}
 
-	uInfo, err := geoip.GetGeoIP().GetGeoInfo(ip)
+	uInfo, err := region.GetRegion().GetGeoInfo(ip)
 	if err != nil {
-		log.Errorf("getNodeURLWithData GetGeoInfo err:%v,ip:%v", err, ip)
+		log.Warnf("getNodeURLWithData GetGeoInfo err:%v,ip:%v", err, ip)
 	}
 
 	log.Infof("getNodeURLWithData user ip:%v,geo:%v,cid:%v", ip, uInfo.Geo, cid)

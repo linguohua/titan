@@ -46,24 +46,44 @@ func getCacheFailCids(deviceID string) ([]api.ReqCacheData, error) {
 }
 
 // NotifyNodeCacheData Cache Data
-func cacheDataOfNode(cid, deviceID string) error {
+func cacheDataOfNode(cids []string, deviceID string) error {
+	// 判断device是什么节点
 	edge := getEdgeNode(deviceID)
-	if edge == nil {
+	candidate := getCandidateNode(deviceID)
+	if edge == nil && candidate == nil {
 		return xerrors.New("node not find")
 	}
-
-	tag, err := nodeCacheReady(deviceID, cid)
-	if err != nil {
-		log.Errorf("cacheDataOfNode nodeCacheReady err:%v", err)
-		return err
+	if edge != nil && candidate != nil {
+		return xerrors.New(fmt.Sprintf("node error ,deviceID:%v", deviceID))
 	}
 
-	reqData := api.ReqCacheData{Cid: cid, ID: fmt.Sprintf("%d", tag)}
+	reqs := make([]api.ReqCacheData, 0)
 
-	err = edge.nodeAPI.CacheData(context.Background(), []api.ReqCacheData{reqData})
-	if err != nil {
-		log.Errorf("cacheDataOfNode err:%v", err)
-		return err
+	for _, cid := range cids {
+		tag, err := nodeCacheReady(deviceID, cid)
+		if err != nil {
+			log.Warnf("cacheDataOfNode nodeCacheReady err:%v,cid:%v", err, cid)
+			continue
+		}
+
+		reqData := api.ReqCacheData{Cid: cid, ID: tag}
+		reqs = append(reqs, reqData)
+	}
+
+	if edge != nil {
+		err := edge.nodeAPI.CacheData(context.Background(), reqs)
+		if err != nil {
+			log.Errorf("CacheData err:%v", err)
+			return err
+		}
+	}
+
+	if candidate != nil {
+		// err := candidate.nodeAPI.CacheData(context.Background(), reqs)
+		// if err != nil {
+		// 	log.Errorf("CacheData err:%v", err)
+		// 	return err
+		// }
 	}
 
 	return nil
@@ -86,19 +106,19 @@ func nodeCacheResult(deviceID, cid string, isOk bool) error {
 }
 
 // Node Cache ready
-func nodeCacheReady(deviceID, cid string) (int64, error) {
+func nodeCacheReady(deviceID, cid string) (string, error) {
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
 	if err == nil && v != "" {
-		return 0, xerrors.Errorf("already cache")
+		return "", xerrors.Errorf("already cache")
 	}
 
 	tag, err := db.GetCacheDB().GetNodeCacheTag(deviceID)
 	if err != nil {
-		log.Errorf("NotifyNodeCacheData getTagWithNode err:%v", err)
-		return 0, err
+		// log.Errorf("NotifyNodeCacheData getTagWithNode err:%v", err)
+		return "", err
 	}
 
-	return tag, db.GetCacheDB().SetCacheDataInfo(deviceID, cid, tag)
+	return fmt.Sprintf("%d", tag), db.GetCacheDB().SetCacheDataInfo(deviceID, cid, tag)
 }
 
 func randomNum(start, end int) int {
