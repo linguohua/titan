@@ -2,21 +2,12 @@ package db
 
 import (
 	"fmt"
+
+	"github.com/linguohua/titan/api"
 )
 
 // CacheDB cache db
 type CacheDB interface {
-	// HGetValue(key, field string) (string, error)
-	// HSetValue(key, field string, value interface{}) error
-	// HGetValues(key string, args ...string) ([]interface{}, error)
-	// HSetValues(key string, args ...interface{}) error
-	// HDel(key, field string) error
-	// IncrbyField(key, field string, value int64) error
-	// Incrby(key string, value int64) (int64, error)
-	// AddSet(key, value string) error
-	// SmemberSet(key string) ([]string, error)
-	// SremSet(key, value string) error
-
 	GetNodeCacheTag(deviceID string) (int64, error)
 
 	DelCacheDataInfo(deviceID, cid string) error
@@ -56,6 +47,9 @@ type CacheDB interface {
 
 var cacheDB CacheDB
 
+// NotFind not find data
+const NotFind = "not find"
+
 // NewCacheDB New Cache DB
 func NewCacheDB(url string, dbType string) {
 	var err error
@@ -84,4 +78,5 @@ type NodeInfo struct {
 	LastTime   string
 	Geo        string
 	IsOnline   bool
+	NodeType   api.NodeTypeName
 }

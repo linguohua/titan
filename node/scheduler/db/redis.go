@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	redigo "github.com/gomodule/redigo/redis"
+	"github.com/linguohua/titan/api"
 	"golang.org/x/xerrors"
 )
 
@@ -35,6 +36,7 @@ const (
 	onLineTimeField = "OnLineTime"
 	geoField        = "Geo"
 	isOnlineField   = "IsOnline"
+	nodeType        = "NodeType"
 )
 
 // // RedisDB redis
@@ -65,62 +67,6 @@ func InitRedis(url string) (CacheDB, error) {
 
 	return redisDB, err
 }
-
-// //  hget
-// func (rd redisDB) HGetValue(key, field string) (string, error) {
-// 	return rd.cli.HGet(context.Background(), key, field).Result()
-// }
-
-// //  hset
-// func (rd redisDB) HSetValue(key, field string, value interface{}) error {
-// 	_, err := rd.cli.HSet(context.Background(), key, field, value).Result()
-// 	return err
-// }
-
-// //  hmget
-// func (rd redisDB) HGetValues(key string, args ...string) ([]interface{}, error) {
-// 	return rd.cli.HMGet(context.Background(), key, args...).Result()
-// }
-
-// //  hmset
-// func (rd redisDB) HSetValues(key string, args ...interface{}) error {
-// 	_, err := rd.cli.HMSet(context.Background(), key, args).Result()
-// 	return err
-// }
-
-// //  hdel
-// func (rd redisDB) HDel(key, field string) error {
-// 	_, err := rd.cli.HDel(context.Background(), key, field).Result()
-// 	return err
-// }
-
-// // HIncrBy
-// func (rd redisDB) IncrbyField(key, field string, value int64) error {
-// 	_, err := rd.cli.HIncrBy(context.Background(), key, field, value).Result()
-// 	return err
-// }
-
-// //  INCRBY
-// func (rd redisDB) Incrby(key string, value int64) (int64, error) {
-// 	return rd.cli.IncrBy(context.Background(), key, value).Result()
-// }
-
-// //  add
-// func (rd redisDB) AddSet(key, value string) error {
-// 	_, err := rd.cli.SAdd(context.Background(), key, value).Result()
-// 	return err
-// }
-
-// // SMembers
-// func (rd redisDB) SmemberSet(key string) ([]string, error) {
-// 	return rd.cli.SMembers(context.Background(), key).Result()
-// }
-
-// // SRem
-// func (rd redisDB) SremSet(key, value string) error {
-// 	_, err := rd.cli.SRem(context.Background(), key, value).Result()
-// 	return err
-// }
 
 // node cache tag ++1
 func (rd redisDB) GetNodeCacheTag(deviceID string) (int64, error) {
@@ -192,7 +138,9 @@ func (rd redisDB) DelNodeWithCacheList(deviceID, cid string) error {
 func (rd redisDB) SetNodeInfo(deviceID string, info NodeInfo) error {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	_, err := rd.cli.HMSet(context.Background(), key, lastTimeField, info.LastTime, geoField, info.Geo, isOnlineField, info.IsOnline).Result()
+	nType := string(info.NodeType)
+
+	_, err := rd.cli.HMSet(context.Background(), key, lastTimeField, info.LastTime, geoField, info.Geo, isOnlineField, info.IsOnline, nodeType, nType).Result()
 	if err != nil {
 		return err
 	}
@@ -204,27 +152,28 @@ func (rd redisDB) SetNodeInfo(deviceID string, info NodeInfo) error {
 func (rd redisDB) GetNodeInfo(deviceID string) (NodeInfo, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	vals, err := rd.cli.HMGet(context.Background(), key, geoField, onLineTimeField, lastTimeField, isOnlineField).Result()
+	vals, err := rd.cli.HMGet(context.Background(), key, geoField, onLineTimeField, lastTimeField, isOnlineField, nodeType).Result()
 	if err != nil {
 		return NodeInfo{}, err
 	}
 
 	if len(vals) <= 0 {
-		return NodeInfo{}, xerrors.New("info not find")
+		return NodeInfo{}, xerrors.New(NotFind)
 	}
 
 	// fmt.Printf("GetNodeInfo vals:%v", vals)
 
-	if vals[0] == nil || vals[1] == nil || vals[2] == nil {
-		return NodeInfo{}, xerrors.New("info not find")
+	if vals[0] == nil || vals[1] == nil || vals[2] == nil || vals[3] == nil || vals[4] == nil {
+		return NodeInfo{}, xerrors.New(NotFind)
 	}
 
 	g, _ := redigo.String(vals[0], nil)
 	o, _ := redigo.Int64(vals[1], nil)
 	l, _ := redigo.String(vals[2], nil)
 	i, _ := redigo.Bool(vals[3], nil)
+	n, _ := redigo.String(vals[4], nil)
 
-	return NodeInfo{Geo: g, OnLineTime: o, LastTime: l, IsOnline: i}, nil
+	return NodeInfo{Geo: g, OnLineTime: o, LastTime: l, IsOnline: i, NodeType: api.NodeTypeName(n)}, nil
 }
 
 //  add

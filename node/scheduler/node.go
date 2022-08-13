@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/geoip"
 	"github.com/linguohua/titan/node/scheduler/db"
+	"github.com/linguohua/titan/region"
+	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/go-jsonrpc"
 	gocid "github.com/ipfs/go-cid"
@@ -19,7 +20,7 @@ type EdgeNode struct {
 
 	deviceInfo api.DevicesInfo
 
-	geoInfo geoip.GeoInfo
+	geoInfo region.GeoInfo
 
 	addr string
 }
@@ -31,7 +32,7 @@ type CandidateNode struct {
 
 	deviceInfo api.DevicesInfo
 
-	geoInfo geoip.GeoInfo
+	geoInfo region.GeoInfo
 
 	addr string
 
@@ -39,17 +40,29 @@ type CandidateNode struct {
 }
 
 // NodeOnline Save DeciceInfo
-func nodeOnline(deviceID string, onlineTime int64, geoInfo geoip.GeoInfo, typeName api.NodeTypeName) error {
+func nodeOnline(deviceID string, onlineTime int64, geoInfo region.GeoInfo, typeName api.NodeTypeName) error {
 	nodeInfo, err := db.GetCacheDB().GetNodeInfo(deviceID)
-	if err == nil && nodeInfo.Geo != geoInfo.Geo {
-		// delete old
-		db.GetCacheDB().DelNodeWithGeoList(deviceID, nodeInfo.Geo)
-		// log.Infof("SremSet err:%v", err)
+	if err == nil {
+		if typeName != nodeInfo.NodeType {
+			return xerrors.New("node type inconsistent")
+		}
+
+		if nodeInfo.Geo != geoInfo.Geo {
+			// delete old
+			err = db.GetCacheDB().DelNodeWithGeoList(deviceID, nodeInfo.Geo)
+			if err != nil {
+				log.Warnf("DelNodeWithGeoList err:%v", err)
+			}
+		}
+	} else {
+		if err.Error() != db.NotFind {
+			log.Warnf("GetNodeInfo err:%v", err)
+		}
 	}
 	// log.Infof("oldgeo:%v,newgeo:%v,err:%v", nodeInfo.Geo, geoInfo.Geo, err)
 
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
-	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{OnLineTime: onlineTime, Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: true})
+	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{OnLineTime: onlineTime, Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: true, NodeType: typeName})
 	if err != nil {
 		return err
 	}
@@ -73,14 +86,14 @@ func nodeOnline(deviceID string, onlineTime int64, geoInfo geoip.GeoInfo, typeNa
 }
 
 // NodeOffline offline
-func nodeOffline(deviceID string, geoInfo geoip.GeoInfo) error {
+func nodeOffline(deviceID string, geoInfo region.GeoInfo, nodeType api.NodeTypeName) error {
 	err := db.GetCacheDB().DelNodeWithGeoList(deviceID, geoInfo.Geo)
 	if err != nil {
 		return err
 	}
 
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
-	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{OnLineTime: 0, Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: false})
+	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{OnLineTime: 0, Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: false, NodeType: nodeType})
 	if err != nil {
 		return err
 	}
@@ -96,7 +109,7 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 		// 查看节点缓存了哪些数据
 		datas, err := db.GetCacheDB().GetCacheDataInfos(edge.deviceInfo.DeviceId)
 		if err != nil {
-			log.Errorf("spotCheck GetCacheDataInfos err:%v,DeviceId:%v", err.Error(), edge.deviceInfo.DeviceId)
+			log.Warnf("spotCheck GetCacheDataInfos err:%v,DeviceId:%v", err.Error(), edge.deviceInfo.DeviceId)
 			continue
 		}
 
@@ -104,13 +117,19 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 			continue
 		}
 
-		// TODO random
+		// random
 		var cid string
 		var tag string
+		randomN := randomNum(0, len(datas)-1)
+		num := 0
 		for c, t := range datas {
 			cid = c
 			tag = t
-			break
+
+			if num == randomN {
+				break
+			}
+			num++
 		}
 
 		req = append(req, api.ReqVarify{Fid: tag, URL: edge.addr})
@@ -120,7 +139,7 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 	// 请求抽查
 	varifyResults, err := candidate.nodeAPI.VerifyData(context.Background(), req)
 	if err != nil {
-		log.Errorf("VerifyData err:%v, DeviceId:%v", err.Error(), candidate.deviceInfo.DeviceId)
+		log.Warnf("VerifyData err:%v, DeviceId:%v", err.Error(), candidate.deviceInfo.DeviceId)
 		return
 	}
 
@@ -133,7 +152,7 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 		// 判断CID
 		gC, err := gocid.Decode(c)
 		if err != nil {
-			log.Errorf("Decode err:%v", err.Error())
+			log.Warnf("Decode err:%v", err.Error())
 			continue
 		}
 
@@ -141,7 +160,7 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 
 		vC, err := gocid.Decode(varifyResult.Cid)
 		if err != nil {
-			log.Errorf("Decode err:%v", err.Error())
+			log.Warnf("Decode err:%v", err.Error())
 			continue
 		}
 
@@ -157,7 +176,7 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 
 // spot check edges
 func spotChecks() error {
-	log.Infof("validatorCount:%v,candidateCount:%v", validatorCount, candidateCount)
+	// log.Infof("validatorCount:%v,candidateCount:%v", validatorCount, candidateCount)
 	// find validators
 	validators, err := db.GetCacheDB().GetValidatorsWithList()
 	if err != nil {
@@ -167,6 +186,7 @@ func spotChecks() error {
 	for _, validatorID := range validators {
 		geos, err := db.GetCacheDB().GetGeoWithValidatorList(validatorID)
 		if err != nil {
+			log.Warnf("GetGeoWithValidatorList err:%v,validatorID:%v", err.Error(), validatorID)
 			continue
 		}
 
@@ -177,6 +197,7 @@ func spotChecks() error {
 		for _, geo := range geos {
 			deviceIDs, err := db.GetCacheDB().GetNodesWithGeoList(geo)
 			if err != nil {
+				log.Warnf("GetNodesWithGeoList err:%v,geo:%v", err.Error(), geo)
 				continue
 			}
 
@@ -208,7 +229,14 @@ func cleanValidators() error {
 	for _, validator := range validators {
 		err = db.GetCacheDB().DelValidatorGeoList(validator)
 		if err != nil {
-			log.Errorf("DelValidatorGeoList err:%v, validator:%v", err.Error(), validator)
+			log.Warnf("DelValidatorGeoList err:%v, validator:%v", err.Error(), validator)
+		}
+
+		node := getCandidateNode(validator)
+		if node != nil {
+			node.isValidator = false
+			// candidateCount++
+			// validatorCount--
 		}
 	}
 
@@ -237,9 +265,9 @@ func electionValidators() error {
 	for _, geo := range geos {
 		validator := ""
 
-		gInfo := geoip.StringGeoToGeoInfo(geo)
+		gInfo := region.StringGeoToGeoInfo(geo)
 		if gInfo == nil {
-			log.Errorf("StringGeoToGeoInfo geo:%v", geo)
+			log.Warnf("StringGeoToGeoInfo geo:%v", geo)
 			continue
 		}
 
@@ -257,12 +285,12 @@ func electionValidators() error {
 
 		err = db.GetCacheDB().SetValidatorToList(validator)
 		if err != nil {
-			log.Errorf("SetValidatorToList err:%v, validator : %s", err.Error(), validator)
+			log.Warnf("SetValidatorToList err:%v, validator : %s", err.Error(), validator)
 		}
 
 		err = db.GetCacheDB().SetGeoToValidatorList(validator, geo)
 		if err != nil {
-			log.Errorf("SetGeoToValidatorList err:%v, validator : %s, geo : %s", err.Error(), validator, geo)
+			log.Warnf("SetGeoToValidatorList err:%v, validator : %s, geo : %s", err.Error(), validator, geo)
 		}
 	}
 

@@ -9,7 +9,9 @@ type Scheduler interface {
 
 	EdgeNodeConnect(context.Context, string) error //perm:read
 
-	CacheData(context.Context, string, string) error //perm:read
+	CacheData(context.Context, []string, string) error //perm:read
+
+	GetDeviceIDs(context.Context) ([]string, error) //perm:read
 
 	FindNodeWithData(context.Context, string, string) (string, error) //perm:read
 
@@ -18,6 +20,8 @@ type Scheduler interface {
 	CandidateNodeConnect(context.Context, string) error //perm:read
 
 	CacheResult(context.Context, string, string, bool) error //perm:read
+
+	GetCacheTag(context.Context, string, string) (string, error) //perm:read
 
 	GetIndexInfo(context.Context, IndexRequest) (IndexPageRes, error) //perm:read
 
