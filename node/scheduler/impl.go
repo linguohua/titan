@@ -89,22 +89,33 @@ func (s Scheduler) CacheData(ctx context.Context, cids []string, deviceID string
 }
 
 // GetDeviceIDs Get all online node id
-func (s Scheduler) GetDeviceIDs(ctx context.Context) ([]string, error) {
+func (s Scheduler) GetDeviceIDs(ctx context.Context, nodeType api.NodeTypeName) ([]string, error) {
 	list := make([]string, 0)
 
-	candidateNodeMap.Range(func(key, value interface{}) bool {
-		deviceID := key.(string)
-		list = append(list, deviceID)
+	if nodeType == api.TypeNameAll || nodeType == api.TypeNameCandidate || nodeType == api.TypeNameValidator {
+		candidateNodeMap.Range(func(key, value interface{}) bool {
+			deviceID := key.(string)
+			if nodeType == api.TypeNameAll {
+				list = append(list, deviceID)
+			} else {
+				node := value.(*CandidateNode)
+				if (nodeType == api.TypeNameValidator) == node.isValidator {
+					list = append(list, deviceID)
+				}
+			}
 
-		return true
-	})
+			return true
+		})
+	}
 
-	edgeNodeMap.Range(func(key, value interface{}) bool {
-		deviceID := key.(string)
-		list = append(list, deviceID)
+	if nodeType == api.TypeNameAll || nodeType == api.TypeNameEdge {
+		edgeNodeMap.Range(func(key, value interface{}) bool {
+			deviceID := key.(string)
+			list = append(list, deviceID)
 
-		return true
-	})
+			return true
+		})
+	}
 
 	return list, nil
 }

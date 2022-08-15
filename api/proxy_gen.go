@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -129,7 +128,7 @@ type SchedulerStruct struct {
 
 		GetDeviceDiagnosisHour func(p0 context.Context, p1 IncomeDailySearch) (HourDailyRes, error) `perm:"read"`
 
-		GetDeviceIDs func(p0 context.Context) ([]string, error) `perm:"read"`
+		GetDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
 
 		GetDevicesCount func(p0 context.Context, p1 DevicesSearch) (DeviceType, error) `perm:"read"`
 
@@ -456,14 +455,14 @@ func (s *SchedulerStub) GetDeviceDiagnosisHour(p0 context.Context, p1 IncomeDail
 	return *new(HourDailyRes), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetDeviceIDs(p0 context.Context) ([]string, error) {
+func (s *SchedulerStruct) GetDeviceIDs(p0 context.Context, p1 NodeTypeName) ([]string, error) {
 	if s.Internal.GetDeviceIDs == nil {
 		return *new([]string), ErrNotSupported
 	}
-	return s.Internal.GetDeviceIDs(p0)
+	return s.Internal.GetDeviceIDs(p0, p1)
 }
 
-func (s *SchedulerStub) GetDeviceIDs(p0 context.Context) ([]string, error) {
+func (s *SchedulerStub) GetDeviceIDs(p0 context.Context, p1 NodeTypeName) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 

@@ -10,6 +10,8 @@ import (
 type NodeTypeName string
 
 const (
+	// TypeNameAll Edge
+	TypeNameAll NodeTypeName = "All"
 	// TypeNameEdge Edge
 	TypeNameEdge NodeTypeName = "Edge"
 	// TypeNameCandidate Candidate
