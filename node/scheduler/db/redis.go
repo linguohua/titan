@@ -22,7 +22,7 @@ const (
 	redisKeyNodeDataTag = "Titan:NodeDataTag:%s"
 	// RedisKeyGeoNodeList  geo
 	redisKeyGeoNodeList = "Titan:GeoNodeList:%s"
-	// // RedisKeyNodeList  Edge/Candidate
+	// RedisKeyNodeList  Edge/Candidate
 	// redisKeyNodeList = "Titan:NodeList:%s"
 	// RedisKeyGeoList
 	redisKeyGeoList = "Titan:GeoList"

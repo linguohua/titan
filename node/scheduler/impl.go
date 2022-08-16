@@ -50,6 +50,7 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		nodeAPI:    edgeAPI,
 		closer:     closer,
 		deviceInfo: deviceInfo,
+		bandwidth:  300, // 默认30m
 	}
 
 	err = addEdgeNode(&edgeNode)
@@ -160,6 +161,7 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 		nodeAPI:    candicateAPI,
 		closer:     closer,
 		deviceInfo: deviceInfo,
+		bandwidth:  1024, // 默认1G
 	}
 
 	err = addCandidateNode(&candidateNode)

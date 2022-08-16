@@ -1,13 +1,11 @@
 package scheduler
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/linguohua/titan/region"
-	"golang.org/x/xerrors"
 )
 
 var (
@@ -45,6 +43,10 @@ func addEdgeNode(node *EdgeNode) error {
 	edgeNodeMap.Store(node.deviceInfo.DeviceId, node)
 
 	edgeCount++
+
+	// group
+	edgeGrouping(*node)
+
 	return nil
 }
 
@@ -191,15 +193,15 @@ func findEdgeNodeWithGeo(userGeoInfo region.GeoInfo, deviceIDs []string) ([]*Edg
 	return defaultNodes, defaultLevel
 }
 
-func findCandidateNodeWithGeo(userGeoInfo region.GeoInfo, deviceIDs []string) ([]*CandidateNode, geoLevel) {
+func findCandidateNodeWithGeo(userGeoInfo region.GeoInfo, useDeviceIDs, notUseDeviceIDs []string) ([]*CandidateNode, geoLevel) {
 	sameCountryNodes := make([]*CandidateNode, 0)
 	sameProvinceNodes := make([]*CandidateNode, 0)
 	sameCityNodes := make([]*CandidateNode, 0)
 
 	defaultNodes := make([]*CandidateNode, 0)
 
-	if len(deviceIDs) > 0 {
-		for _, dID := range deviceIDs {
+	if len(useDeviceIDs) > 0 {
+		for _, dID := range useDeviceIDs {
 			node := getCandidateNode(dID)
 			if node == nil {
 				continue
@@ -241,61 +243,61 @@ func findCandidateNodeWithGeo(userGeoInfo region.GeoInfo, deviceIDs []string) ([
 	}
 
 	if len(sameCityNodes) > 0 {
-		return sameCityNodes, cityLevel
-	}
-
-	if len(sameProvinceNodes) > 0 {
-		return sameProvinceNodes, provinceLevel
-	}
-
-	if len(sameCountryNodes) > 0 {
-		return sameCountryNodes, countryLevel
-	}
-
-	return defaultNodes, defaultLevel
-}
-
-// getNodeURLWithData find device
-func getNodeURLWithData(cid, ip string) (string, error) {
-	deviceIDs, err := db.GetCacheDB().GetNodesWithCacheList(cid)
-	if err != nil {
-		return "", err
-	}
-
-	if len(deviceIDs) <= 0 {
-		return "", xerrors.New("not find node")
-	}
-
-	uInfo, err := region.GetRegion().GetGeoInfo(ip)
-	if err != nil {
-		log.Warnf("getNodeURLWithData GetGeoInfo err:%v,ip:%v", err, ip)
-	}
-
-	log.Infof("getNodeURLWithData user ip:%v,geo:%v,cid:%v", ip, uInfo.Geo, cid)
-
-	var addr string
-	nodeEs, geoLevelE := findEdgeNodeWithGeo(uInfo, deviceIDs)
-	nodeCs, geoLevelC := findCandidateNodeWithGeo(uInfo, deviceIDs)
-	if geoLevelE < geoLevelC {
-		addr = nodeCs[randomNum(0, len(nodeCs)-1)].addr
-	} else if geoLevelE > geoLevelC {
-		addr = nodeEs[randomNum(0, len(nodeEs)-1)].addr
-	} else {
-		if len(nodeEs) > 0 {
-			addr = nodeEs[randomNum(0, len(nodeEs)-1)].addr
-		} else {
-			if len(nodeCs) > 0 {
-				addr = nodeCs[randomNum(0, len(nodeCs)-1)].addr
-			} else {
-				return "", xerrors.New("not find node")
+		if len(notUseDeviceIDs) > 0 {
+			sameCityNodes2 := filterCandidates(notUseDeviceIDs, sameCityNodes)
+			if len(sameCityNodes2) > 0 {
+				return sameCityNodes2, cityLevel
 			}
+		} else {
+			return sameCityNodes, cityLevel
 		}
 	}
 
-	// http://192.168.0.136:3456/rpc/v0/block/get?cid=QmeUqw4FY1wqnh2FMvuc2v8KAapE7fYwu2Up4qNwhZiRk7
-	url := fmt.Sprintf("%s/block/get?cid=%s", addr, cid)
+	if len(sameProvinceNodes) > 0 {
+		if len(notUseDeviceIDs) > 0 {
+			sameProvinceNodes2 := filterCandidates(notUseDeviceIDs, sameProvinceNodes)
+			if len(sameProvinceNodes2) > 0 {
+				return sameProvinceNodes2, provinceLevel
+			}
+		} else {
+			return sameProvinceNodes, provinceLevel
+		}
+	}
 
-	return url, nil
+	if len(sameCountryNodes) > 0 {
+		if len(notUseDeviceIDs) > 0 {
+			sameCountryNodes2 := filterCandidates(notUseDeviceIDs, sameCountryNodes)
+			if len(sameCountryNodes2) > 0 {
+				return sameCountryNodes2, countryLevel
+			}
+		} else {
+			return sameCountryNodes, countryLevel
+		}
+	}
+
+	if len(notUseDeviceIDs) > 0 {
+		defaultNodes2 := filterCandidates(notUseDeviceIDs, defaultNodes)
+		return defaultNodes2, defaultLevel
+	}
+	return defaultNodes, defaultLevel
+}
+
+func filterCandidates(notUseDeviceIDs []string, sameNodes []*CandidateNode) []*CandidateNode {
+	sameNodes2 := make([]*CandidateNode, 0)
+	for _, node := range sameNodes {
+		isHave := false
+		for _, nd := range notUseDeviceIDs {
+			if node.deviceInfo.DeviceId == nd {
+				isHave = true
+			}
+		}
+
+		if !isHave {
+			sameNodes2 = append(sameNodes2, node)
+		}
+	}
+
+	return sameNodes2
 }
 
 func resetCandidateAndValidatorCount() {

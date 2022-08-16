@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"time"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db"
@@ -121,6 +122,7 @@ func nodeCacheReady(deviceID, cid string) (string, error) {
 	return fmt.Sprintf("%d", tag), db.GetCacheDB().SetCacheDataInfo(deviceID, cid, tag)
 }
 
+// 生成[start,end)结束的随机数
 func randomNum(start, end int) int {
 	// rand.Seed(time.Now().UnixNano())
 
@@ -130,6 +132,46 @@ func randomNum(start, end int) int {
 	}
 
 	x := rand.Intn(max)
-
 	return start + x
+}
+
+// 生成count个[start,end)结束的不重复的随机数
+func randomNums(start int, end int, count int) []int {
+	// 范围检查
+	if end < start {
+		return nil
+	}
+
+	// 存放结果的slice
+	nums := make([]int, 0)
+
+	if (end - start) < count {
+		for i := start; i < end; i++ {
+			nums = append(nums, i)
+		}
+
+		return nums
+	}
+
+	// 随机数生成器，加入时间戳保证每次生成的随机数不一样
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	for len(nums) < count {
+		// 生成随机数
+		num := r.Intn((end - start)) + start
+		// 查重
+		exist := false
+		for _, v := range nums {
+			if v == num {
+				exist = true
+				break
+			}
+		}
+
+		if !exist {
+			nums = append(nums, num)
+		}
+	}
+
+	return nums
 }
