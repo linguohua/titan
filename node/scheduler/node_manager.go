@@ -193,7 +193,7 @@ func findEdgeNodeWithGeo(userGeoInfo region.GeoInfo, deviceIDs []string) ([]*Edg
 	return defaultNodes, defaultLevel
 }
 
-func findCandidateNodeWithGeo(userGeoInfo region.GeoInfo, useDeviceIDs, notUseDeviceIDs []string) ([]*CandidateNode, geoLevel) {
+func findCandidateNodeWithGeo(userGeoInfo region.GeoInfo, useDeviceIDs, filterDeviceIDs []string) ([]*CandidateNode, geoLevel) {
 	sameCountryNodes := make([]*CandidateNode, 0)
 	sameProvinceNodes := make([]*CandidateNode, 0)
 	sameCityNodes := make([]*CandidateNode, 0)
@@ -243,8 +243,8 @@ func findCandidateNodeWithGeo(userGeoInfo region.GeoInfo, useDeviceIDs, notUseDe
 	}
 
 	if len(sameCityNodes) > 0 {
-		if len(notUseDeviceIDs) > 0 {
-			sameCityNodes2 := filterCandidates(notUseDeviceIDs, sameCityNodes)
+		if len(filterDeviceIDs) > 0 {
+			sameCityNodes2 := filterCandidates(filterDeviceIDs, sameCityNodes)
 			if len(sameCityNodes2) > 0 {
 				return sameCityNodes2, cityLevel
 			}
@@ -254,8 +254,8 @@ func findCandidateNodeWithGeo(userGeoInfo region.GeoInfo, useDeviceIDs, notUseDe
 	}
 
 	if len(sameProvinceNodes) > 0 {
-		if len(notUseDeviceIDs) > 0 {
-			sameProvinceNodes2 := filterCandidates(notUseDeviceIDs, sameProvinceNodes)
+		if len(filterDeviceIDs) > 0 {
+			sameProvinceNodes2 := filterCandidates(filterDeviceIDs, sameProvinceNodes)
 			if len(sameProvinceNodes2) > 0 {
 				return sameProvinceNodes2, provinceLevel
 			}
@@ -265,8 +265,8 @@ func findCandidateNodeWithGeo(userGeoInfo region.GeoInfo, useDeviceIDs, notUseDe
 	}
 
 	if len(sameCountryNodes) > 0 {
-		if len(notUseDeviceIDs) > 0 {
-			sameCountryNodes2 := filterCandidates(notUseDeviceIDs, sameCountryNodes)
+		if len(filterDeviceIDs) > 0 {
+			sameCountryNodes2 := filterCandidates(filterDeviceIDs, sameCountryNodes)
 			if len(sameCountryNodes2) > 0 {
 				return sameCountryNodes2, countryLevel
 			}
@@ -275,8 +275,8 @@ func findCandidateNodeWithGeo(userGeoInfo region.GeoInfo, useDeviceIDs, notUseDe
 		}
 	}
 
-	if len(notUseDeviceIDs) > 0 {
-		defaultNodes2 := filterCandidates(notUseDeviceIDs, defaultNodes)
+	if len(filterDeviceIDs) > 0 {
+		defaultNodes2 := filterCandidates(filterDeviceIDs, defaultNodes)
 		return defaultNodes2, defaultLevel
 	}
 	return defaultNodes, defaultLevel
