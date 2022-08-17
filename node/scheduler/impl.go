@@ -193,7 +193,7 @@ func (s Scheduler) ElectionValidators(ctx context.Context) error {
 
 // SpotCheck Spot Check edge
 func (s Scheduler) SpotCheck(ctx context.Context) error {
-	return spotChecks()
+	return startSpotCheck()
 }
 
 // indexPage info

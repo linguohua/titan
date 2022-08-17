@@ -1,12 +1,11 @@
 package scheduler
 
 import (
-	"context"
 	"fmt"
 	"sync"
 
-	gocid "github.com/ipfs/go-cid"
-	"github.com/linguohua/titan/api"
+	// gocid "github.com/ipfs/go-cid"
+
 	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/linguohua/titan/region"
 )
@@ -29,20 +28,23 @@ var (
 	// 边缘节点组(根据区域分组,每个组上行带宽为1GB)
 	edgeGroupMap sync.Map // {key:geo,val:map{key:groupID,val:map{key:deviceID,val:bandwidth}}}
 	// 上行宽带未满的节点组
-	groupLessFullMap sync.Map // {key:geo,val:map{key:groupID,val:bandwidth}}
+	lessFullGroupMap sync.Map // {key:geo,val:map{key:groupID,val:bandwidth}}
 	// 节点所在分组记录
 	groupIDMap sync.Map // {key:deviceID,val:GroupID}
 	groupCount int
 )
 
-func incrByGroupName() string {
+func newGroupName() string {
 	groupCount++
 
 	return fmt.Sprintf("%s%d", groupPrefix, groupCount)
 }
 
+// 边缘节点分组
 func edgeGrouping(node EdgeNode) string {
 	deviceID := node.deviceInfo.DeviceId
+
+	// 如果已经存在分组里 则不需要分组
 	oldGroupID, ok := groupIDMap.Load(deviceID)
 	if ok && oldGroupID != nil {
 		g := oldGroupID.(string)
@@ -64,6 +66,7 @@ func edgeGrouping(node EdgeNode) string {
 			bandwidthT := 0
 			for groupID, bandwidth := range lessFulls {
 				bandwidthT = bandwidth + node.bandwidth
+
 				if bandwidthT <= groupFullValMax {
 					findGroupID = groupID
 					break
@@ -88,17 +91,17 @@ func edgeGrouping(node EdgeNode) string {
 	return groupID
 }
 
-func addGroup(geoKey, deviceID, gName string, bandwidth int, group, lessFulls map[string]int, groups map[string]map[string]int) string {
+func addGroup(geoKey, deviceID, groupID string, bandwidth int, group, lessFulls map[string]int, groups map[string]map[string]int) string {
 	if group == nil {
 		group = make(map[string]int)
-		gName = incrByGroupName()
+		groupID = newGroupName()
 	}
 	group[deviceID] = bandwidth
 
 	if groups == nil {
 		groups = make(map[string]map[string]int)
 	}
-	groups[gName] = group
+	groups[groupID] = group
 
 	storeGroupMap(geoKey, groups)
 
@@ -113,14 +116,14 @@ func addGroup(geoKey, deviceID, gName string, bandwidth int, group, lessFulls ma
 
 	if totalBandwidth < groupFullValMin {
 		// 如果组内带宽未满 则保存到未满map
-		lessFulls[gName] = totalBandwidth
+		lessFulls[groupID] = totalBandwidth
 		storeLessFullMap(geoKey, lessFulls)
 	} else {
-		delete(lessFulls, gName)
+		delete(lessFulls, groupID)
 		storeLessFullMap(geoKey, lessFulls)
 	}
 
-	return gName
+	return groupID
 }
 
 func loadGroupMap(geoKey string) map[string]map[string]int {
@@ -137,7 +140,7 @@ func storeGroupMap(geoKey string, val map[string]map[string]int) {
 }
 
 func loadLessFullMap(geoKey string) map[string]int {
-	groups, ok := groupLessFullMap.Load(geoKey)
+	groups, ok := lessFullGroupMap.Load(geoKey)
 	if ok && groups != nil {
 		return groups.(map[string]int)
 	}
@@ -146,117 +149,85 @@ func loadLessFullMap(geoKey string) map[string]int {
 }
 
 func storeLessFullMap(geoKey string, val map[string]int) {
-	groupLessFullMap.Store(geoKey, val)
+	lessFullGroupMap.Store(geoKey, val)
 }
 
-// PrintlnMap Println
-func testPrintlnMap() {
-	fmt.Println("edgeGroupMap--------------------------------")
-	edgeGroupMap.Range(func(key, value interface{}) bool {
-		g := key.(string)
-		groups := value.(map[string]map[string]int)
-		fmt.Println("geo:", g)
-
-		for gID, group := range groups {
-			bs := 0
-			for _, b := range group {
-				bs += b
-			}
-			fmt.Println("gId:", gID, ",group:", group, ",bandwidth:", bs)
-		}
-
-		return true
-	})
-
-	fmt.Println("groupLessFullMap--------------------------------")
-	groupLessFullMap.Range(func(key, value interface{}) bool {
-		g := key.(string)
-		groups := value.(map[string]int)
-		fmt.Println("geo:", g)
-
-		for gID, bb := range groups {
-			fmt.Println("gId:", gID, ",bb:", bb)
-		}
-
-		return true
-	})
-}
-
+// TODO 下发给验证者一个随机数种子
 func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
-	req := make([]api.ReqVarify, 0)
-	result := make(map[string]string)
+	// req := make([]api.ReqVarify, 0)
+	// result := make(map[string]string)
 
-	for _, edge := range edges {
-		// 查看节点缓存了哪些数据
-		datas, err := db.GetCacheDB().GetCacheDataInfos(edge.deviceInfo.DeviceId)
-		if err != nil {
-			log.Warnf("spotCheck GetCacheDataInfos err:%v,DeviceId:%v", err.Error(), edge.deviceInfo.DeviceId)
-			continue
-		}
+	// for _, edge := range edges {
+	// 	// 查看节点缓存了哪些数据
+	// 	datas, err := db.GetCacheDB().GetCacheDataInfos(edge.deviceInfo.DeviceId)
+	// 	if err != nil {
+	// 		log.Warnf("spotCheck GetCacheDataInfos err:%v,DeviceId:%v", err.Error(), edge.deviceInfo.DeviceId)
+	// 		continue
+	// 	}
 
-		if len(datas) <= 0 {
-			continue
-		}
+	// 	if len(datas) <= 0 {
+	// 		continue
+	// 	}
 
-		// random
-		var cid string
-		var tag string
-		randomN := randomNum(0, len(datas))
-		num := 0
-		for c, t := range datas {
-			cid = c
-			tag = t
+	// 	// random
+	// 	var cid string
+	// 	var tag string
+	// 	randomN := randomNum(0, len(datas))
+	// 	num := 0
+	// 	for c, t := range datas {
+	// 		cid = c
+	// 		tag = t
 
-			if num == randomN {
-				break
-			}
-			num++
-		}
+	// 		if num == randomN {
+	// 			break
+	// 		}
+	// 		num++
+	// 	}
 
-		req = append(req, api.ReqVarify{Fid: tag, URL: edge.addr})
+	// 	req = append(req, api.ReqVarify{Fid: tag, URL: edge.addr})
 
-		result[edge.deviceInfo.DeviceId] = cid
-	}
-	// 请求抽查
-	varifyResults, err := candidate.nodeAPI.VerifyData(context.Background(), req)
-	if err != nil {
-		log.Warnf("VerifyData err:%v, DeviceId:%v", err.Error(), candidate.deviceInfo.DeviceId)
-		return
-	}
+	// 	result[edge.deviceInfo.DeviceId] = cid
+	// }
+	// // 请求抽查
+	// varifyResults, err := candidate.nodeAPI.VerifyData(context.Background(), req)
+	// if err != nil {
+	// 	log.Warnf("VerifyData err:%v, DeviceId:%v", err.Error(), candidate.deviceInfo.DeviceId)
+	// 	return
+	// }
 
-	// varify Result
-	for _, varifyResult := range varifyResults {
-		// TODO 判断带宽 超时时间等等
-		// 结果判断
-		c := result[varifyResult.DeviceID]
+	// // varify Result
+	// for _, varifyResult := range varifyResults {
+	// 	// TODO 判断带宽 超时时间等等
+	// 	// 结果判断
+	// 	c := result[varifyResult.DeviceID]
 
-		// 判断CID
-		gC, err := gocid.Decode(c)
-		if err != nil {
-			log.Warnf("Decode err:%v", err.Error())
-			continue
-		}
+	// 	// 判断CID
+	// 	gC, err := gocid.Decode(c)
+	// 	if err != nil {
+	// 		log.Warnf("Decode err:%v", err.Error())
+	// 		continue
+	// 	}
 
-		gC = gocid.NewCidV1(gC.Type(), gC.Hash())
+	// 	gC = gocid.NewCidV1(gC.Type(), gC.Hash())
 
-		vC, err := gocid.Decode(varifyResult.Cid)
-		if err != nil {
-			log.Warnf("Decode err:%v", err.Error())
-			continue
-		}
+	// 	vC, err := gocid.Decode(varifyResult.Cid)
+	// 	if err != nil {
+	// 		log.Warnf("Decode err:%v", err.Error())
+	// 		continue
+	// 	}
 
-		vC = gocid.NewCidV1(vC.Type(), vC.Hash())
+	// 	vC = gocid.NewCidV1(vC.Type(), vC.Hash())
 
-		cidOK := gC.Equals(vC)
+	// 	cidOK := gC.Equals(vC)
 
-		log.Infof("varifyResult candidate:%v , edge:%v ,eCid:%v,sCid:%v cidOK:%v", candidate.deviceInfo.DeviceId, varifyResult.DeviceID, varifyResult.Cid, c, cidOK)
-		log.Infof("varifyResult vC:%v gC:%v", vC, gC)
-		// TODO 写入DB 时间:候选节点:被验证节点:验证的cid:序号:结果
-	}
+	// 	log.Infof("varifyResult candidate:%v , edge:%v ,eCid:%v,sCid:%v cidOK:%v", candidate.deviceInfo.DeviceId, varifyResult.DeviceID, varifyResult.Cid, c, cidOK)
+	// 	log.Infof("varifyResult vC:%v gC:%v", vC, gC)
+	// 	// TODO 写入DB 时间:候选节点:被验证节点:验证的cid:序号:结果
+	// }
 }
 
 // spot check edges
-func spotChecks() error {
+func startSpotCheck() error {
 	// log.Infof("validatorCount:%v,candidateCount:%v", validatorCount, candidateCount)
 	// find validators
 	validators, err := db.GetCacheDB().GetValidatorsWithList()
@@ -264,7 +235,7 @@ func spotChecks() error {
 		return err
 	}
 
-	useGroupID := make([]string, 0)
+	usedGroupID := make([]string, 0)
 
 	for _, validatorID := range validators {
 		geos, err := db.GetCacheDB().GetGeoWithValidatorList(validatorID)
@@ -276,19 +247,21 @@ func spotChecks() error {
 		// edge list
 		edges := make([]*EdgeNode, 0)
 
+		log.Infof("validator id:%v", validatorID)
 		// find edge
 		for _, geo := range geos {
 			groups := loadGroupMap(geo)
 			if groups != nil {
 				// rand group
-				uID, deviceIDs := getNotAssignGroup(groups, useGroupID)
+				uIDs, deviceIDs := getUnassignedGroup(groups, usedGroupID)
 				for deviceID := range deviceIDs {
 					edge := getEdgeNode(deviceID)
 					if edge != nil {
+						log.Infof("edge id:%v", edge.deviceInfo.DeviceId)
 						edges = append(edges, edge)
 					}
 				}
-				useGroupID = uID
+				usedGroupID = uIDs
 			} else {
 				log.Warnf("spotChecks loadGroupMap is nil ,geo:%v", geo)
 			}
@@ -304,17 +277,22 @@ func spotChecks() error {
 	return nil
 }
 
-func getNotAssignGroup(groups map[string]map[string]int, usesID []string) ([]string, map[string]int) {
+func getUnassignedGroup(groups map[string]map[string]int, usedIDs []string) ([]string, map[string]int) {
 	for groupID, deviceIDs := range groups {
-		for _, gID := range usesID {
-			if groupID != gID {
-				usesID = append(usesID, groupID)
-				return usesID, deviceIDs
+		used := false
+		for _, gID := range usedIDs {
+			if groupID == gID {
+				used = true
 			}
+		}
+
+		if !used {
+			usedIDs = append(usedIDs, groupID)
+			return usedIDs, deviceIDs
 		}
 	}
 
-	return usesID, nil
+	return usedIDs, nil
 }
 
 // 重置 验证者数据
@@ -346,7 +324,7 @@ func cleanValidators() error {
 
 // 选举、分配验证者负责的区域
 func electionValidators() error {
-	testPrintlnMap()
+	testPrintlnEdgeGroupMap()
 
 	// 每个城市 选出X个验证者
 	// 每隔Y时间 重新选举
@@ -355,12 +333,11 @@ func electionValidators() error {
 		return err
 	}
 
-	// 已被分配的验证者
-	alreadyAssignValidatorMap := make(map[string]string)
-	alreadyAssignValidatorList := make([]string, 0) // 带宽已经沾满的验证者
+	alreadyAssignValidatorMap := make(map[string]string) // 已被分配的验证者
+	alreadyAssignValidatorList := make([]string, 0)      // 带宽已经占满的验证者
 	// validatorBandwidthMap := make(map[string]int)   // 已用带宽
 	// 未被分配到的边缘节点组数
-	notAssignEdgeMap := make(map[string]int)
+	unassignedEdgeMap := make(map[string]int)
 
 	edgeGroupMap.Range(func(key, value interface{}) bool {
 		geo := key.(string)
@@ -379,20 +356,21 @@ func electionValidators() error {
 		cns, gLevel := findCandidateNodeWithGeo(*gInfo, []string{}, []string{})
 		if gLevel == cityLevel && len(cns) > 0 {
 			// 这里考虑 验证节点的下行带宽
-			notAssignNum := len(groups)
+			totalNum := len(groups)
 			for _, c := range randomNums(0, len(cns), len(groups)) {
-				notAssignNum--
+				totalNum--
 				dID := cns[c].deviceInfo.DeviceId
 				alreadyAssignValidatorMap[dID] = geo
 
+				// TODO 满了才加入这个列表 (目前有一组就算是满了)
 				alreadyAssignValidatorList = append(alreadyAssignValidatorList, dID)
 			}
 
-			if notAssignNum > 0 {
-				notAssignEdgeMap[geo] = notAssignNum
+			if totalNum > 0 {
+				unassignedEdgeMap[geo] = totalNum
 			}
 		} else {
-			notAssignEdgeMap[geo] = len(groups)
+			unassignedEdgeMap[geo] = len(groups)
 			return true
 		}
 
@@ -401,8 +379,8 @@ func electionValidators() error {
 
 	candidateNotEnough := false
 	// 处理第一轮未匹配到的边缘节点
-	for len(notAssignEdgeMap) > 0 {
-		for geo, num := range notAssignEdgeMap {
+	for len(unassignedEdgeMap) > 0 {
+		for geo, num := range unassignedEdgeMap {
 			gInfo := region.StringGeoToGeoInfo(geo)
 			if gInfo == nil {
 				log.Warnf("StringGeoToGeoInfo geo:%v", geo)
@@ -415,11 +393,13 @@ func electionValidators() error {
 					num--
 					dID := cns[c].deviceInfo.DeviceId
 					alreadyAssignValidatorMap[dID] = geo
+
+					// TODO 满了才加入这个列表 (目前有一组就算是满了)
 					alreadyAssignValidatorList = append(alreadyAssignValidatorList, dID)
 				}
-				notAssignEdgeMap[geo] = num
+				unassignedEdgeMap[geo] = num
 				if num == 0 {
-					delete(notAssignEdgeMap, geo)
+					delete(unassignedEdgeMap, geo)
 				}
 			} else {
 				candidateNotEnough = true
@@ -427,7 +407,7 @@ func electionValidators() error {
 		}
 
 		if candidateNotEnough {
-			log.Warnf("Candidate Not Enough  assignEdge: %v", notAssignEdgeMap)
+			log.Warnf("Candidate Not Enough  assignEdge: %v", unassignedEdgeMap)
 			break
 		}
 	}
@@ -451,4 +431,37 @@ func electionValidators() error {
 	resetCandidateAndValidatorCount()
 
 	return nil
+}
+
+// PrintlnMap Println
+func testPrintlnEdgeGroupMap() {
+	log.Info("edgeGroupMap--------------------------------")
+	edgeGroupMap.Range(func(key, value interface{}) bool {
+		g := key.(string)
+		groups := value.(map[string]map[string]int)
+		log.Info("geo:", g)
+
+		for gID, group := range groups {
+			bs := 0
+			for _, b := range group {
+				bs += b
+			}
+			log.Info("gId:", gID, ",group:", group, ",bandwidth:", bs)
+		}
+
+		return true
+	})
+
+	log.Info("groupLessFullMap--------------------------------")
+	lessFullGroupMap.Range(func(key, value interface{}) bool {
+		g := key.(string)
+		groups := value.(map[string]int)
+		log.Info("geo:", g)
+
+		for gID, bb := range groups {
+			log.Info("gId:", gID, ",bandwidth:", bb)
+		}
+
+		return true
+	})
 }
