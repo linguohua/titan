@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"time"
 
 	API "github.com/linguohua/titan/api"
 	"github.com/urfave/cli/v2"
@@ -38,17 +39,18 @@ var VerfyDataCmd = &cli.Command{
 		fmt.Printf("fid:%s,url:%s", fid, url)
 		ctx := ReqContext(cctx)
 		// TODO: print more useful things
-		req := make([]API.ReqVarify, 0)
-		varify := API.ReqVarify{Fid: fid}
+		req := make([]API.ReqVerify, 0)
+		seed := time.Now().UnixNano()
+		varify := API.ReqVerify{EdgeURL: url, Seed: seed, MaxRange: 1, Duration: 10}
 		req = append(req, varify)
 
-		cid, err := api.VerifyData(ctx, req)
+		err = api.VerifyData(ctx, req)
 		if err != nil {
 			fmt.Println("err", err)
 			return err
 		}
 
-		fmt.Println("verify data cid:", cid)
+		// fmt.Println("verify data cid:", cid)
 		return nil
 	},
 }
