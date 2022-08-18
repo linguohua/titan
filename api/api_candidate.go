@@ -14,6 +14,8 @@ type ReqVerify struct {
 	MaxRange int
 	// seconds
 	Duration int
+
+	RoundID string
 }
 
 type VerifyResult struct {
@@ -28,4 +30,6 @@ type VerifyResults struct {
 	CostTime  int
 	IsTimeout bool
 	Results   []VerifyResult
+
+	RoundID string
 }

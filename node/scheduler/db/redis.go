@@ -30,17 +30,26 @@ const (
 	redisKeyValidatorList = "Titan:ValidatorList"
 	// RedisKeyValidatorGeoList deviceID
 	redisKeyValidatorGeoList = "Titan:ValidatorGeoList:%s"
+	// RedisKeySpotCheckID
+	redisKeySpotCheckID = "Titan:SpotCheckID"
+	// RedisKeySpotCheckResult SpotCheckID:edgeID
+	redisKeySpotCheckResult = "Titan:SpotCheckResult:%s:%s"
+	// redisKeySpotCheckList
+	redisKeySpotCheckList = "Titan:SpotCheckList"
 
-	// redis field
+	// node info field
 	lastTimeField   = "LastTime"
 	onLineTimeField = "OnLineTime"
 	geoField        = "Geo"
 	isOnlineField   = "IsOnline"
 	nodeType        = "NodeType"
-)
 
-// // RedisDB redis
-// var RedisDB *redisDB
+	// spot check field
+	stratTimeField = "StratTime"
+	endTimeField   = "EndTime"
+	validatorField = "Validator"
+	statusField    = "Status"
+)
 
 type redisDB struct {
 	cli *redis.Client
@@ -69,10 +78,20 @@ func InitRedis(url string) (CacheDB, error) {
 }
 
 // node cache tag ++1
-func (rd redisDB) GetNodeCacheTag(deviceID string) (int64, error) {
+func (rd redisDB) IncrNodeCacheTag(deviceID string) (int64, error) {
 	key := fmt.Sprintf(redisKeyNodeDataTag, deviceID)
 
 	return rd.cli.IncrBy(context.Background(), key, 1).Result()
+}
+
+// SpotCheckID ++1
+func (rd redisDB) IncrSpotCheckID() (int64, error) {
+	return rd.cli.IncrBy(context.Background(), redisKeySpotCheckID, 1).Result()
+}
+
+// get SpotCheckID
+func (rd redisDB) GetSpotCheckID() (string, error) {
+	return rd.cli.Get(context.Background(), redisKeySpotCheckID).Result()
 }
 
 // del node data with cid
@@ -103,6 +122,29 @@ func (rd redisDB) GetCacheDataInfos(deviceID string) (map[string]string, error) 
 	key := fmt.Sprintf(redisKeyNodeDatas, deviceID)
 
 	return rd.cli.HGetAll(context.Background(), key).Result()
+}
+
+//  add
+func (rd redisDB) SetNodeToSpotCheckList(deviceID string) error {
+	_, err := rd.cli.SAdd(context.Background(), redisKeySpotCheckList, deviceID).Result()
+	return err
+}
+
+// SMembers
+func (rd redisDB) GetNodesWithSpotCheckList() ([]string, error) {
+	return rd.cli.SMembers(context.Background(), redisKeySpotCheckList).Result()
+}
+
+//  del device
+func (rd redisDB) DelNodeWithSpotCheckList(deviceID string) error {
+	_, err := rd.cli.SRem(context.Background(), redisKeySpotCheckList, deviceID).Result()
+	return err
+}
+
+//  del key
+func (rd redisDB) DelSpotCheckList() error {
+	_, err := rd.cli.Del(context.Background(), redisKeySpotCheckList).Result()
+	return err
 }
 
 //  add
@@ -174,6 +216,23 @@ func (rd redisDB) GetNodeInfo(deviceID string) (NodeInfo, error) {
 	n, _ := redigo.String(vals[4], nil)
 
 	return NodeInfo{Geo: g, OnLineTime: o, LastTime: l, IsOnline: i, NodeType: api.NodeTypeName(n)}, nil
+}
+
+func (rd redisDB) SetSpotCheckResultInfo(sID string, edgeID, validator string, status SpotCheckStatus) error {
+	key := fmt.Sprintf(redisKeySpotCheckResult, sID, edgeID)
+
+	nowTime := time.Now().Format("2006-01-02 15:04:05")
+
+	if status == SpotCheckStatusCreate {
+		_, err := rd.cli.HMSet(context.Background(), key, validatorField, validator, stratTimeField, nowTime, statusField, status).Result()
+		return err
+
+	} else if status > SpotCheckStatusCreate {
+		_, err := rd.cli.HMSet(context.Background(), key, endTimeField, nowTime, statusField, status).Result()
+		return err
+	}
+
+	return xerrors.Errorf("SetSpotCheckResultInfo status:%v", status)
 }
 
 //  add

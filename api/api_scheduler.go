@@ -13,6 +13,8 @@ type Scheduler interface {
 
 	GetDeviceIDs(context.Context, NodeTypeName) ([]string, error) //perm:read
 
+	VerifyDataResult(context.Context, VerifyResults) error
+
 	FindNodeWithData(context.Context, string, string) (string, error) //perm:read
 
 	GetDownloadURLWithData(context.Context, string, string) (string, error) //perm:read

@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
+
 )
 
 
@@ -147,6 +148,8 @@ type SchedulerStruct struct {
 		SaveDailyInfo func(p0 context.Context, p1 IncomeDaily) (error) `perm:"read"`
 
 		SpotCheck func(p0 context.Context) (error) `perm:"read"`
+
+		VerifyDataResult func(p0 context.Context, p1 VerifyResults) (error) ``
 
 	}
 }
@@ -566,6 +569,17 @@ func (s *SchedulerStruct) SpotCheck(p0 context.Context) (error) {
 }
 
 func (s *SchedulerStub) SpotCheck(p0 context.Context) (error) {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) VerifyDataResult(p0 context.Context, p1 VerifyResults) (error) {
+	if s.Internal.VerifyDataResult == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.VerifyDataResult(p0, p1)
+}
+
+func (s *SchedulerStub) VerifyDataResult(p0 context.Context, p1 VerifyResults) (error) {
 	return ErrNotSupported
 }
 
