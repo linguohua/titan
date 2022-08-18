@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
-
-	"github.com/ipfs/go-cid"
 )
 
 // const (
@@ -33,19 +32,19 @@ func (edge EdgeAPI) GetBlock(w http.ResponseWriter, r *http.Request) {
 
 	log.Infof("GetBlock, cid:%s", cidStr)
 
-	target, err := cid.Decode(cidStr)
-	if err != nil {
-		log.Errorf("GetBlock, decode cid error:%v", err)
-		http.NotFound(w, r)
-		return
-	}
+	// target, err := cid.Decode(cidStr)
+	// if err != nil {
+	// 	log.Errorf("GetBlock, decode cid error:%v", err)
+	// 	http.Error(w, "Can not decode cid", http.StatusBadRequest)
+	// 	return
+	// }
 
-	// cid convert to vo
-	if target.Version() != 0 && target.Type() == cid.DagProtobuf {
-		target = cid.NewCidV0(target.Hash())
-	}
+	// // cid convert to vo
+	// if target.Version() != 0 && target.Type() == cid.DagProtobuf {
+	// 	target = cid.NewCidV0(target.Hash())
+	// }
 
-	cidStr = fmt.Sprintf("%v", target)
+	// cidStr = fmt.Sprintf("%v", target)
 
 	reader, err := edge.blockStore.GetReader(cidStr)
 	if err != nil {
@@ -57,6 +56,7 @@ func (edge EdgeAPI) GetBlock(w http.ResponseWriter, r *http.Request) {
 
 	contentDisposition := fmt.Sprintf("attachment; filename=%s", cidStr)
 	w.Header().Set("Content-Disposition", contentDisposition)
+	w.Header().Set("Content-Length", strconv.FormatInt(reader.Size(), 10))
 
 	now := time.Now()
 

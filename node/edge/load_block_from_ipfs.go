@@ -12,9 +12,25 @@ import (
 )
 
 var (
-	batch    = 10
-	reqDatas []api.ReqCacheData
+	batch       = 10
+	reqDatas    []delayReq
+	maxReqCount = 5
 )
+
+type delayReq struct {
+	req   api.ReqCacheData
+	count int
+}
+
+func apiReq2DelayReq(reqs []api.ReqCacheData) []delayReq {
+	results := make([]delayReq, 0, len(reqs))
+	for _, reqData := range reqs {
+		req := delayReq{req: reqData, count: 0}
+		results = append(results, req)
+	}
+
+	return results
+}
 
 func startBlockLoader(ctx context.Context, edge EdgeAPI) {
 	for {
@@ -37,6 +53,9 @@ func startBlockLoader(ctx context.Context, edge EdgeAPI) {
 }
 
 func loadBlocks(edge EdgeAPI, cids []cid.Cid) ([]blocks.Block, error) {
+	for _, id := range cids {
+		log.Infof("loadBlocks id:%v", id)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -48,7 +67,6 @@ func loadBlocks(edge EdgeAPI, cids []cid.Cid) ([]blocks.Block, error) {
 
 	results := make([]blocks.Block, 0, len(cids))
 	for block := range blockCh {
-		log.Infof("get block %v", block.Cid())
 		results = append(results, block)
 	}
 	log.Infof("get block end")
@@ -62,32 +80,32 @@ func cacheResult(ctx context.Context, edge EdgeAPI, cid string, success bool) {
 	}
 }
 
-func filterAvailableReq(edge EdgeAPI, req []api.ReqCacheData) []api.ReqCacheData {
+func filterAvailableReq(edge EdgeAPI, reqs []delayReq) []delayReq {
 	ctx := context.Background()
 
-	results := make([]api.ReqCacheData, 0, len(req))
-	for _, reqData := range req {
-		target, err := cid.Decode(reqData.Cid)
-		if err != nil {
-			log.Errorf("loadBlocksAsync failed to decode CID %v", err)
-			continue
-		}
+	results := make([]delayReq, 0, len(reqs))
+	for _, reqData := range reqs {
+		// target, err := cid.Decode(reqData.Cid)
+		// if err != nil {
+		// 	log.Errorf("loadBlocksAsync failed to decode CID %v", err)
+		// 	continue
+		// }
 
-		// convert cid to v0
-		if target.Version() != 0 && target.Type() == cid.DagProtobuf {
-			target = cid.NewCidV0(target.Hash())
-		}
+		// // convert cid to v0
+		// if target.Version() != 0 && target.Type() == cid.DagProtobuf {
+		// 	target = cid.NewCidV0(target.Hash())
+		// }
 
-		cidStr := fmt.Sprintf("%v", target)
+		cidStr := fmt.Sprintf("%s", reqData.req.Cid)
 
 		has, _ := edge.blockStore.Has(cidStr)
 		if has {
-			exist, err := edge.ds.Has(ctx, datastore.NewKey(reqData.ID))
+			exist, err := edge.ds.Has(ctx, datastore.NewKey(reqData.req.ID))
 			if err == nil && !exist {
-				edge.ds.Put(ctx, datastore.NewKey(reqData.ID), []byte(cidStr))
+				edge.ds.Put(ctx, datastore.NewKey(reqData.req.ID), []byte(cidStr))
 			}
 
-			cacheResult(ctx, edge, reqData.Cid, true)
+			cacheResult(ctx, edge, reqData.req.Cid, true)
 			continue
 		}
 		results = append(results, reqData)
@@ -96,23 +114,23 @@ func filterAvailableReq(edge EdgeAPI, req []api.ReqCacheData) []api.ReqCacheData
 	return results
 }
 
-func loadBlocksAsync(edge EdgeAPI, req []api.ReqCacheData) {
+func loadBlocksAsync(edge EdgeAPI, req []delayReq) {
 	req = filterAvailableReq(edge, req)
 	ctx := context.Background()
 
 	cids := make([]cid.Cid, 0, len(req))
-	reqMap := make(map[string]api.ReqCacheData)
+	reqMap := make(map[string]delayReq)
 	for _, reqData := range req {
-		target, err := cid.Decode(reqData.Cid)
+		target, err := cid.Decode(reqData.req.Cid)
 		if err != nil {
 			log.Errorf("loadBlocksAsync failed to decode CID %v", err)
 			continue
 		}
 
-		// convert cid to v0
-		if target.Version() != 0 && target.Type() == cid.DagProtobuf {
-			target = cid.NewCidV0(target.Hash())
-		}
+		// // convert cid to v0
+		// if target.Version() != 0 && target.Type() == cid.DagProtobuf {
+		// 	target = cid.NewCidV0(target.Hash())
+		// }
 
 		cids = append(cids, target)
 
@@ -135,19 +153,25 @@ func loadBlocksAsync(edge EdgeAPI, req []api.ReqCacheData) {
 		cidStr := fmt.Sprintf("%v", block.Cid())
 		err = edge.blockStore.Put(cidStr, block.RawData())
 		if err == nil {
-			err = edge.ds.Put(ctx, datastore.NewKey(reqMap[cidStr].ID), []byte(cidStr))
+			err = edge.ds.Put(ctx, datastore.NewKey(reqMap[cidStr].req.ID), []byte(cidStr))
 		}
 
-		cacheResult(ctx, edge, reqMap[cidStr].Cid, err == nil)
+		cacheResult(ctx, edge, cidStr, err == nil)
 
-		log.Infof("cache data,cid:%s,err:%v", reqMap[cidStr].Cid, err)
+		log.Infof("cache data,cid:%s,err:%v", cidStr, err)
 
 		delete(reqMap, cidStr)
 	}
 
 	if len(reqMap) > 0 {
 		for _, v := range reqMap {
-			cacheResult(ctx, edge, v.Cid, false)
+			if v.count > 5 {
+				cacheResult(ctx, edge, v.req.Cid, err == nil)
+				log.Infof("cache data faile, cid:%s, count:%d", v.req.Cid, v.count)
+			} else {
+				v.count++
+				reqDatas = append(reqDatas, v)
+			}
 		}
 	}
 }

@@ -4,20 +4,28 @@ import "context"
 
 type Candidate interface {
 	Edge
-	VerifyData(ctx context.Context, req []ReqVarify) ([]VarifyResult, error) //perm:read
+	VerifyData(ctx context.Context, req []ReqVerify) error              //perm:read
+	SendBlock(ctx context.Context, block []byte, deviceID string) error //perm:read
 }
 
-type ReqVarify struct {
+type ReqVerify struct {
+	EdgeURL  string
+	Seed     int64
+	MaxRange int
+	// seconds
+	Duration int
+}
+
+type VerifyResult struct {
 	Fid string
-	URL string
+	Cid string
 }
 
-type VarifyResult struct {
-	Fid       string
-	Cid       string
+type VerifyResults struct {
 	DeviceID  string
 	Bandwidth float64
 	// microsecond
 	CostTime  int
 	IsTimeout bool
+	Results   []VerifyResult
 }

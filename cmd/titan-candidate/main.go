@@ -293,8 +293,9 @@ var runCmd = &cli.Command{
 
 		blockStore := stores.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
 		deviceInfo := device.DeviceAPI{BlockStore: blockStore, PublicIP: publicIP, DeviceID: deviceID, InternalIP: internalIP}
+		candidateURL := fmt.Sprintf("http://%s/rpc/v0", address)
 
-		candidateApi := candidate.NewLocalCandidateNode(context.Background(), ds, schedulerAPI, blockStore, deviceInfo)
+		candidateApi := candidate.NewLocalCandidateNode(context.Background(), ds, schedulerAPI, blockStore, deviceInfo, candidateURL)
 
 		log.Info("Setting up control endpoint at " + address)
 

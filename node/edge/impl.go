@@ -3,8 +3,11 @@ package edge
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/lib/p2p"
 	"github.com/linguohua/titan/stores"
@@ -65,8 +68,13 @@ func (edge EdgeAPI) CacheData(ctx context.Context, req []api.ReqCacheData) error
 		return fmt.Errorf("CacheData, blockStore == nil ")
 	}
 
-	req = filterAvailableReq(edge, req)
-	reqDatas = append(reqDatas, req...)
+	delayReq := filterAvailableReq(edge, apiReq2DelayReq(req))
+	if len(req) == 0 {
+		log.Infof("CacheData, len(req) == 0 not need to handle")
+		return nil
+	}
+
+	reqDatas = append(reqDatas, delayReq...)
 
 	// go loadBlocksOneByOne(edge, req)
 	return nil
@@ -89,20 +97,54 @@ func (edge EdgeAPI) LoadData(ctx context.Context, cid string) ([]byte, error) {
 	return edge.blockStore.Get(cid)
 }
 
-func (edge EdgeAPI) LoadDataByVerifier(ctx context.Context, fileID string) ([]byte, error) {
-	log.Info("LoadDataByVerifier")
+func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candidateURL string) error {
+	log.Info("DoVerify")
 
 	if edge.blockStore == nil {
-		log.Errorf("LoadDataByVerifier, blockStore not setting")
-		return nil, nil
+		log.Errorf("DoVerify,edge.blockStore == nil ")
+		return fmt.Errorf("edge.blockStore == nil")
 	}
 
-	cid, err := getCID(edge, fileID)
+	candidateAPI, closer, err := client.NewCandicate(ctx, candidateURL, nil)
 	if err != nil {
-		log.Errorf("LoadDataByVerifier, getCID err:%v", err)
-		return nil, err
+		log.Errorf("DoVerify, NewCandicate err:%v", err)
+		return err
 	}
-	return edge.blockStore.Get(cid)
+	defer closer()
+
+	r := rand.New(rand.NewSource(reqVerify.Seed))
+	t := time.NewTimer(time.Duration(reqVerify.Duration) * time.Second)
+
+	for {
+		select {
+		case <-t.C:
+			return nil
+		default:
+		}
+
+		fid := r.Intn(reqVerify.MaxRange)
+		fidStr := fmt.Sprintf("%d", fid)
+		err = sendBlock(ctx, edge, candidateAPI, fidStr)
+		if err != nil {
+			return err
+		}
+	}
+}
+
+func sendBlock(ctx context.Context, edge EdgeAPI, candidateAPI api.Candidate, fid string) error {
+	cid, err := getCID(edge, fid)
+	if err != nil {
+		log.Errorf("sendBlock, getCID err:%v", err)
+		return err
+	}
+
+	block, err := edge.blockStore.Get(cid)
+	if err != nil {
+		log.Errorf("sendBlock, get block err:%v", err)
+		return err
+	}
+
+	return candidateAPI.SendBlock(ctx, block, edge.DeviceID)
 }
 
 func getCID(edge EdgeAPI, fid string) (string, error) {
@@ -116,4 +158,21 @@ func getCID(edge EdgeAPI, fid string) (string, error) {
 	}
 
 	return string(value), nil
+}
+
+func (edge EdgeAPI) DeleteData(ctx context.Context, cids []string) error {
+	log.Info("DeleteData")
+
+	if edge.blockStore == nil {
+		log.Errorf("DeleteData, blockStore not setting")
+		return fmt.Errorf("edge.blockStore == nil")
+	}
+
+	for _, id := range cids {
+		err := edge.blockStore.Delete(id)
+		if err != nil {
+			log.Errorf("DeleteData, block %s not exist", id)
+		}
+	}
+	return nil
 }

@@ -20,7 +20,9 @@ type CandidateStruct struct {
 
 	Internal struct {
 
-		VerifyData func(p0 context.Context, p1 []ReqVarify) ([]VarifyResult, error) `perm:"read"`
+		SendBlock func(p0 context.Context, p1 []byte, p2 string) (error) `perm:"read"`
+
+		VerifyData func(p0 context.Context, p1 []ReqVerify) (error) `perm:"read"`
 
 	}
 }
@@ -87,9 +89,11 @@ type EdgeStruct struct {
 
 		CacheData func(p0 context.Context, p1 []ReqCacheData) (error) `perm:"read"`
 
-		LoadData func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
+		DeleteData func(p0 context.Context, p1 []string) (error) `perm:"read"`
 
-		LoadDataByVerifier func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
+		DoVerify func(p0 context.Context, p1 ReqVerify, p2 string) (error) `perm:"read"`
+
+		LoadData func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
 
 		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
 
@@ -157,15 +161,26 @@ type SchedulerStub struct {
 
 
 
-func (s *CandidateStruct) VerifyData(p0 context.Context, p1 []ReqVarify) ([]VarifyResult, error) {
+func (s *CandidateStruct) SendBlock(p0 context.Context, p1 []byte, p2 string) (error) {
+	if s.Internal.SendBlock == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.SendBlock(p0, p1, p2)
+}
+
+func (s *CandidateStub) SendBlock(p0 context.Context, p1 []byte, p2 string) (error) {
+	return ErrNotSupported
+}
+
+func (s *CandidateStruct) VerifyData(p0 context.Context, p1 []ReqVerify) (error) {
 	if s.Internal.VerifyData == nil {
-		return *new([]VarifyResult), ErrNotSupported
+		return ErrNotSupported
 	}
 	return s.Internal.VerifyData(p0, p1)
 }
 
-func (s *CandidateStub) VerifyData(p0 context.Context, p1 []ReqVarify) ([]VarifyResult, error) {
-	return *new([]VarifyResult), ErrNotSupported
+func (s *CandidateStub) VerifyData(p0 context.Context, p1 []ReqVerify) (error) {
+	return ErrNotSupported
 }
 
 
@@ -320,6 +335,28 @@ func (s *EdgeStub) CacheData(p0 context.Context, p1 []ReqCacheData) (error) {
 	return ErrNotSupported
 }
 
+func (s *EdgeStruct) DeleteData(p0 context.Context, p1 []string) (error) {
+	if s.Internal.DeleteData == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.DeleteData(p0, p1)
+}
+
+func (s *EdgeStub) DeleteData(p0 context.Context, p1 []string) (error) {
+	return ErrNotSupported
+}
+
+func (s *EdgeStruct) DoVerify(p0 context.Context, p1 ReqVerify, p2 string) (error) {
+	if s.Internal.DoVerify == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.DoVerify(p0, p1, p2)
+}
+
+func (s *EdgeStub) DoVerify(p0 context.Context, p1 ReqVerify, p2 string) (error) {
+	return ErrNotSupported
+}
+
 func (s *EdgeStruct) LoadData(p0 context.Context, p1 string) ([]byte, error) {
 	if s.Internal.LoadData == nil {
 		return *new([]byte), ErrNotSupported
@@ -328,17 +365,6 @@ func (s *EdgeStruct) LoadData(p0 context.Context, p1 string) ([]byte, error) {
 }
 
 func (s *EdgeStub) LoadData(p0 context.Context, p1 string) ([]byte, error) {
-	return *new([]byte), ErrNotSupported
-}
-
-func (s *EdgeStruct) LoadDataByVerifier(p0 context.Context, p1 string) ([]byte, error) {
-	if s.Internal.LoadDataByVerifier == nil {
-		return *new([]byte), ErrNotSupported
-	}
-	return s.Internal.LoadDataByVerifier(p0, p1)
-}
-
-func (s *EdgeStub) LoadDataByVerifier(p0 context.Context, p1 string) ([]byte, error) {
 	return *new([]byte), ErrNotSupported
 }
 
