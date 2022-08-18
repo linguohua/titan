@@ -8,6 +8,11 @@ import (
 	"github.com/linguohua/titan/region"
 )
 
+// 节点管理器 管理节点对象
+// 边缘节点分组 为了方便抽查
+// 候选节点选举
+// 候选节点与边缘节点组 匹配 (抽查)
+
 var (
 	edgeNodeMap      sync.Map
 	candidateNodeMap sync.Map
@@ -74,7 +79,7 @@ func deleteEdgeNode(deviceID string) {
 
 	err := nodeOffline(deviceID, node.geoInfo, api.TypeNameEdge)
 	if err != nil {
-		log.Warnf("DeviceOffline err:%v", err)
+		log.Errorf("DeviceOffline err:%v,deviceID:%v", err.Error(), deviceID)
 	}
 
 	edgeCount--
@@ -140,7 +145,7 @@ func deleteCandidateNode(deviceID string) {
 
 	err := nodeOffline(deviceID, node.geoInfo, api.TypeNameCandidate)
 	if err != nil {
-		log.Warnf("DeviceOffline err:%v,deviceID:%v", err.Error(), deviceID)
+		log.Errorf("DeviceOffline err:%v,deviceID:%v", err.Error(), deviceID)
 	}
 
 	if node.isValidator {

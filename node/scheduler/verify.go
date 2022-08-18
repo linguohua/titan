@@ -1,8 +1,6 @@
 package scheduler
 
 import (
-	"fmt"
-	"sync"
 
 	// gocid "github.com/ipfs/go-cid"
 
@@ -17,140 +15,6 @@ import (
 // 3.如果某个区域的验证节点不足,则需要再选出附近空闲的验证节点
 // 验证过程
 // 4.每个候选节点根据下行带宽,一次验证N个集群
-
-const (
-	groupPrefix     = "Group_"
-	groupFullValMax = 1024
-	groupFullValMin = 900
-)
-
-var (
-	// 边缘节点组(根据区域分组,每个组上行带宽为1GB)
-	edgeGroupMap sync.Map // {key:geo,val:map{key:groupID,val:map{key:deviceID,val:bandwidth}}}
-	// 上行宽带未满的节点组
-	lessFullGroupMap sync.Map // {key:geo,val:map{key:groupID,val:bandwidth}}
-	// 节点所在分组记录
-	groupIDMap sync.Map // {key:deviceID,val:GroupID}
-	groupCount int
-)
-
-func newGroupName() string {
-	groupCount++
-
-	return fmt.Sprintf("%s%d", groupPrefix, groupCount)
-}
-
-// 边缘节点分组
-func edgeGrouping(node EdgeNode) string {
-	deviceID := node.deviceInfo.DeviceId
-
-	// 如果已经存在分组里 则不需要分组
-	oldGroupID, ok := groupIDMap.Load(deviceID)
-	if ok && oldGroupID != nil {
-		g := oldGroupID.(string)
-		return g
-	}
-
-	groupID := ""
-	defer groupIDMap.Store(deviceID, groupID)
-
-	geoKey := node.geoInfo.Geo
-	bandwidth := node.bandwidth
-
-	groups := loadGroupMap(geoKey)
-	if groups != nil {
-		// 看看有没有未满的组可以加入
-		lessFulls := loadLessFullMap(geoKey)
-		if lessFulls != nil {
-			findGroupID := ""
-			bandwidthT := 0
-			for groupID, bandwidth := range lessFulls {
-				bandwidthT = bandwidth + node.bandwidth
-
-				if bandwidthT <= groupFullValMax {
-					findGroupID = groupID
-					break
-				}
-			}
-
-			if findGroupID != "" {
-				// 未满的组能加入
-				group := groups[findGroupID]
-				groupID = addGroup(geoKey, deviceID, findGroupID, bandwidth, group, lessFulls, groups)
-			} else {
-				// 未满的组不能加入
-				groupID = addGroup(geoKey, deviceID, "", bandwidth, nil, lessFulls, groups)
-			}
-		} else {
-			groupID = addGroup(geoKey, deviceID, "", bandwidth, nil, nil, groups)
-		}
-	} else {
-		groupID = addGroup(geoKey, deviceID, "", bandwidth, nil, nil, nil)
-	}
-
-	return groupID
-}
-
-func addGroup(geoKey, deviceID, groupID string, bandwidth int, group, lessFulls map[string]int, groups map[string]map[string]int) string {
-	if group == nil {
-		group = make(map[string]int)
-		groupID = newGroupName()
-	}
-	group[deviceID] = bandwidth
-
-	if groups == nil {
-		groups = make(map[string]map[string]int)
-	}
-	groups[groupID] = group
-
-	storeGroupMap(geoKey, groups)
-
-	totalBandwidth := 0
-	for _, bandwidth := range group {
-		totalBandwidth += bandwidth
-	}
-
-	if lessFulls == nil {
-		lessFulls = make(map[string]int)
-	}
-
-	if totalBandwidth < groupFullValMin {
-		// 如果组内带宽未满 则保存到未满map
-		lessFulls[groupID] = totalBandwidth
-		storeLessFullMap(geoKey, lessFulls)
-	} else {
-		delete(lessFulls, groupID)
-		storeLessFullMap(geoKey, lessFulls)
-	}
-
-	return groupID
-}
-
-func loadGroupMap(geoKey string) map[string]map[string]int {
-	groups, ok := edgeGroupMap.Load(geoKey)
-	if ok && groups != nil {
-		return groups.(map[string]map[string]int)
-	}
-
-	return nil
-}
-
-func storeGroupMap(geoKey string, val map[string]map[string]int) {
-	edgeGroupMap.Store(geoKey, val)
-}
-
-func loadLessFullMap(geoKey string) map[string]int {
-	groups, ok := lessFullGroupMap.Load(geoKey)
-	if ok && groups != nil {
-		return groups.(map[string]int)
-	}
-
-	return nil
-}
-
-func storeLessFullMap(geoKey string, val map[string]int) {
-	lessFullGroupMap.Store(geoKey, val)
-}
 
 // TODO 下发给验证者一个随机数种子
 func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
@@ -250,11 +114,11 @@ func startSpotCheck() error {
 		log.Infof("validator id:%v", validatorID)
 		// find edge
 		for _, geo := range geos {
-			groups := loadGroupMap(geo)
+			groups := loadGeoGroupMap(geo)
 			if groups != nil {
 				// rand group
-				uIDs, deviceIDs := getUnassignedGroup(groups, usedGroupID)
-				for deviceID := range deviceIDs {
+				uIDs, group := getUnassignedGroup(groups, usedGroupID)
+				for deviceID := range group.edgeNodeMap {
 					edge := getEdgeNode(deviceID)
 					if edge != nil {
 						log.Infof("edge id:%v", edge.deviceInfo.DeviceId)
@@ -277,8 +141,8 @@ func startSpotCheck() error {
 	return nil
 }
 
-func getUnassignedGroup(groups map[string]map[string]int, usedIDs []string) ([]string, map[string]int) {
-	for groupID, deviceIDs := range groups {
+func getUnassignedGroup(groups []string, usedIDs []string) ([]string, *Group) {
+	for _, groupID := range groups {
 		used := false
 		for _, gID := range usedIDs {
 			if groupID == gID {
@@ -288,7 +152,8 @@ func getUnassignedGroup(groups map[string]map[string]int, usedIDs []string) ([]s
 
 		if !used {
 			usedIDs = append(usedIDs, groupID)
-			return usedIDs, deviceIDs
+			group := loadGroupMap(groupID)
+			return usedIDs, group
 		}
 	}
 
@@ -339,9 +204,9 @@ func electionValidators() error {
 	// 未被分配到的边缘节点组数
 	unassignedEdgeMap := make(map[string]int)
 
-	edgeGroupMap.Range(func(key, value interface{}) bool {
+	geoGroupMap.Range(func(key, value interface{}) bool {
 		geo := key.(string)
-		groups := value.(map[string]map[string]int)
+		groups := value.([]string)
 		if groups == nil || len(groups) <= 0 {
 			return true
 		}
@@ -431,37 +296,4 @@ func electionValidators() error {
 	resetCandidateAndValidatorCount()
 
 	return nil
-}
-
-// PrintlnMap Println
-func testPrintlnEdgeGroupMap() {
-	log.Info("edgeGroupMap--------------------------------")
-	edgeGroupMap.Range(func(key, value interface{}) bool {
-		g := key.(string)
-		groups := value.(map[string]map[string]int)
-		log.Info("geo:", g)
-
-		for gID, group := range groups {
-			bs := 0
-			for _, b := range group {
-				bs += b
-			}
-			log.Info("gId:", gID, ",group:", group, ",bandwidth:", bs)
-		}
-
-		return true
-	})
-
-	log.Info("groupLessFullMap--------------------------------")
-	lessFullGroupMap.Range(func(key, value interface{}) bool {
-		g := key.(string)
-		groups := value.(map[string]int)
-		log.Info("geo:", g)
-
-		for gID, bb := range groups {
-			log.Info("gId:", gID, ",bandwidth:", bb)
-		}
-
-		return true
-	})
 }
