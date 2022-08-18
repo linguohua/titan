@@ -75,6 +75,11 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 	return nil
 }
 
+// VerifyDataResult Verify Data Result
+func (s Scheduler) VerifyDataResult(ctx context.Context, verifyResults api.VerifyResults) error {
+	return spotCheckResult(verifyResults)
+}
+
 // CacheResult Cache Data Result
 func (s Scheduler) CacheResult(ctx context.Context, deviceID string, cid string, isOK bool) error {
 	return nodeCacheResult(deviceID, cid, isOK)

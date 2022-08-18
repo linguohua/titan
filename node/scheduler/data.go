@@ -113,7 +113,7 @@ func nodeCacheReady(deviceID, cid string) (string, error) {
 		return "", xerrors.Errorf("already cache")
 	}
 
-	tag, err := db.GetCacheDB().GetNodeCacheTag(deviceID)
+	tag, err := db.GetCacheDB().IncrNodeCacheTag(deviceID)
 	if err != nil {
 		// log.Errorf("NotifyNodeCacheData getTagWithNode err:%v", err)
 		return "", err

@@ -8,7 +8,14 @@ import (
 
 // CacheDB cache db
 type CacheDB interface {
-	GetNodeCacheTag(deviceID string) (int64, error)
+	IncrNodeCacheTag(deviceID string) (int64, error)
+	IncrSpotCheckID() (int64, error)
+	GetSpotCheckID() (string, error)
+
+	DelNodeWithSpotCheckList(deviceID string) error
+	SetNodeToSpotCheckList(deviceID string) error
+	GetNodesWithSpotCheckList() ([]string, error)
+	DelSpotCheckList() error
 
 	DelCacheDataInfo(deviceID, cid string) error
 	SetCacheDataInfo(deviceID, cid string, tag int64) error
@@ -43,6 +50,8 @@ type CacheDB interface {
 	SetGeoToValidatorList(deviceID, geo string) error
 	GetGeoWithValidatorList(deviceID string) ([]string, error)
 	DelValidatorGeoList(deviceID string) error
+
+	SetSpotCheckResultInfo(sID string, edgeID, validator string, status SpotCheckStatus) error
 }
 
 var cacheDB CacheDB
@@ -80,3 +89,19 @@ type NodeInfo struct {
 	IsOnline   bool
 	NodeType   api.NodeTypeName
 }
+
+// SpotCheckStatus Spot Check Status
+type SpotCheckStatus int
+
+const (
+	// SpotCheckStatusUnknown status
+	SpotCheckStatusUnknown SpotCheckStatus = iota
+	// SpotCheckStatusCreate status
+	SpotCheckStatusCreate
+	// SpotCheckStatusTimeOut status
+	SpotCheckStatusTimeOut
+	// SpotCheckStatusSuccess status
+	SpotCheckStatusSuccess
+	// SpotCheckStatusFail status
+	SpotCheckStatusFail
+)
