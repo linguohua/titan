@@ -128,7 +128,7 @@ func (s Scheduler) GetDeviceIDs(ctx context.Context, nodeType api.NodeTypeName) 
 
 // GetCacheTag get a tag with cid
 func (s Scheduler) GetCacheTag(ctx context.Context, cid, deviceID string) (string, error) {
-	return nodeCacheReady(cid, deviceID)
+	return newCacheDataTag(cid, deviceID)
 }
 
 // FindNodeWithData find node

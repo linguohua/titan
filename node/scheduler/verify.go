@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/ipfs/go-cid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/linguohua/titan/region"
@@ -16,7 +17,8 @@ var (
 	seed     = int64(1)
 	duration = 10
 
-	roundID string
+	roundID     string
+	maxRangeMap map[string]int
 )
 
 // 边缘节点登录的时候
@@ -50,6 +52,7 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 		max := len(datas)
 		req = append(req, api.ReqVerify{Seed: seed, EdgeURL: edge.addr, Duration: duration, MaxRange: max, RoundID: roundID})
 
+		maxRangeMap[edgeID] = max
 		//
 		err = db.GetCacheDB().SetSpotCheckResultInfo(roundID, edgeID, validatorID, "", db.SpotCheckStatusCreate)
 		if err != nil {
@@ -72,6 +75,25 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 	}
 }
 
+func getRandFid(max int, r *rand.Rand) int {
+	if max > 1 {
+		return r.Intn(max-1) + 1 // 过滤0
+	}
+
+	return max
+}
+
+func toCidV0(c cid.Cid) (cid.Cid, error) {
+	if c.Type() != cid.DagProtobuf {
+		return cid.Cid{}, fmt.Errorf("can't convert non-dag-pb nodes to cidv0")
+	}
+	return cid.NewCidV0(c.Hash()), nil
+}
+
+func toCidV1(c cid.Cid) (cid.Cid, error) {
+	return cid.NewCidV1(c.Type(), c.Hash()), nil
+}
+
 func spotCheckResult(verifyResults api.VerifyResults) error {
 	if verifyResults.RoundID != roundID {
 		return xerrors.Errorf("roundID err")
@@ -91,10 +113,12 @@ func spotCheckResult(verifyResults api.VerifyResults) error {
 		msg = fmt.Sprint("Results is nil")
 	}
 
-	// log.Infof("Results:%v", verifyResults.Results)
+	max := maxRangeMap[edgeID]
+
+	log.Infof("spotCheckResult:%v", edgeID)
 
 	for i := 0; i < rlen; i++ {
-		fid := r.Intn(rlen)
+		fid := getRandFid(max, r)
 		result := verifyResults.Results[i]
 
 		fidStr := fmt.Sprintf("%d", fid)
@@ -104,10 +128,14 @@ func spotCheckResult(verifyResults api.VerifyResults) error {
 			break
 		}
 
+		if result.Cid == "" {
+			continue
+		}
+
 		tag, err := db.GetCacheDB().GetCacheDataInfo(edgeID, result.Cid)
 		if err != nil {
 			status = db.SpotCheckStatusFail
-			msg = fmt.Sprintf("GetCacheDataInfo err:%v,edgeID:%v,resultCid:%v", err.Error(), edgeID, result.Cid)
+			msg = fmt.Sprintf("GetCacheDataInfo err:%v,edgeID:%v,resultCid:%v,resultFid:%v", err.Error(), edgeID, result.Cid, result.Fid)
 			break
 		}
 
@@ -143,6 +171,8 @@ func checkSpotCheckTimeOut() error {
 		return err
 	}
 
+	log.Infof("checkSpotCheckTimeOut list:%v", edgeIDs)
+
 	if len(edgeIDs) > 0 {
 		for _, edgeID := range edgeIDs {
 			err = db.GetCacheDB().SetSpotCheckResultInfo(sID, edgeID, "", "", db.SpotCheckStatusTimeOut)
@@ -176,6 +206,8 @@ func startSpotCheck() error {
 		return err
 	}
 	roundID = fmt.Sprintf("%d", sID)
+
+	maxRangeMap = make(map[string]int)
 
 	// log.Infof("validatorCount:%v,candidateCount:%v", validatorCount, candidateCount)
 	// find validators
