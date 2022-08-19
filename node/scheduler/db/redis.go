@@ -49,6 +49,7 @@ const (
 	endTimeField   = "EndTime"
 	validatorField = "Validator"
 	statusField    = "Status"
+	msgField       = "Msg"
 )
 
 type redisDB struct {
@@ -218,17 +219,17 @@ func (rd redisDB) GetNodeInfo(deviceID string) (NodeInfo, error) {
 	return NodeInfo{Geo: g, OnLineTime: o, LastTime: l, IsOnline: i, NodeType: api.NodeTypeName(n)}, nil
 }
 
-func (rd redisDB) SetSpotCheckResultInfo(sID string, edgeID, validator string, status SpotCheckStatus) error {
+func (rd redisDB) SetSpotCheckResultInfo(sID string, edgeID, validator, msg string, status SpotCheckStatus) error {
 	key := fmt.Sprintf(redisKeySpotCheckResult, sID, edgeID)
 
 	nowTime := time.Now().Format("2006-01-02 15:04:05")
 
 	if status == SpotCheckStatusCreate {
-		_, err := rd.cli.HMSet(context.Background(), key, validatorField, validator, stratTimeField, nowTime, statusField, status).Result()
+		_, err := rd.cli.HMSet(context.Background(), key, validatorField, validator, stratTimeField, nowTime, statusField, int(status)).Result()
 		return err
 
 	} else if status > SpotCheckStatusCreate {
-		_, err := rd.cli.HMSet(context.Background(), key, endTimeField, nowTime, statusField, status).Result()
+		_, err := rd.cli.HMSet(context.Background(), key, endTimeField, nowTime, statusField, int(status), msgField, msg).Result()
 		return err
 	}
 

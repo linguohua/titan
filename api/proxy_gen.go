@@ -117,7 +117,7 @@ type SchedulerStruct struct {
 
 		CacheData func(p0 context.Context, p1 []string, p2 string) (error) `perm:"read"`
 
-		CacheResult func(p0 context.Context, p1 string, p2 string, p3 bool) (error) `perm:"read"`
+		CacheResult func(p0 context.Context, p1 string, p2 string, p3 bool) (string, error) `perm:"read"`
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
@@ -149,7 +149,7 @@ type SchedulerStruct struct {
 
 		SpotCheck func(p0 context.Context) (error) `perm:"read"`
 
-		VerifyDataResult func(p0 context.Context, p1 VerifyResults) (error) ``
+		VerifyDataResult func(p0 context.Context, p1 VerifyResults) (error) `perm:"read"`
 
 	}
 }
@@ -396,15 +396,15 @@ func (s *SchedulerStub) CacheData(p0 context.Context, p1 []string, p2 string) (e
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 string, p2 string, p3 bool) (error) {
+func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 string, p2 string, p3 bool) (string, error) {
 	if s.Internal.CacheResult == nil {
-		return ErrNotSupported
+		return "", ErrNotSupported
 	}
 	return s.Internal.CacheResult(p0, p1, p2, p3)
 }
 
-func (s *SchedulerStub) CacheResult(p0 context.Context, p1 string, p2 string, p3 bool) (error) {
-	return ErrNotSupported
+func (s *SchedulerStub) CacheResult(p0 context.Context, p1 string, p2 string, p3 bool) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context, p1 string) (error) {

@@ -91,19 +91,19 @@ func cacheDataOfNode(cids []string, deviceID string) error {
 }
 
 // NodeCacheResult Device Cache Result
-func nodeCacheResult(deviceID, cid string, isOk bool) error {
+func nodeCacheResult(deviceID, cid string, isOk bool) (string, error) {
 	log.Infof("nodeCacheResult deviceID:%v,cid:%v,isOk:%v", deviceID, cid, isOk)
 
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
 	if err != nil || v == "" {
-		return nil
+		return "", nil
 	}
 
 	if !isOk {
-		return db.GetCacheDB().DelCacheDataInfo(deviceID, cid)
+		return "", db.GetCacheDB().DelCacheDataInfo(deviceID, cid)
 	}
 
-	return db.GetCacheDB().SetNodeToCacheList(deviceID, cid)
+	return "", db.GetCacheDB().SetNodeToCacheList(deviceID, cid)
 }
 
 // Node Cache ready

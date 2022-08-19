@@ -34,7 +34,7 @@ func apiReq2DelayReq(reqs []api.ReqCacheData) []delayReq {
 
 func startBlockLoader(ctx context.Context, edge EdgeAPI) {
 	for {
-		var doLen = len(reqDatas)
+		doLen := len(reqDatas)
 		if doLen == 0 {
 			time.Sleep(10 * time.Millisecond)
 			continue
@@ -44,12 +44,11 @@ func startBlockLoader(ctx context.Context, edge EdgeAPI) {
 			doLen = batch
 		}
 
-		var doReqs = reqDatas[:doLen]
+		doReqs := reqDatas[:doLen]
 		reqDatas = reqDatas[doLen:]
 
 		loadBlocksAsync(edge, doReqs)
 	}
-
 }
 
 func loadBlocks(edge EdgeAPI, cids []cid.Cid) ([]blocks.Block, error) {
@@ -74,7 +73,7 @@ func loadBlocks(edge EdgeAPI, cids []cid.Cid) ([]blocks.Block, error) {
 }
 
 func cacheResult(ctx context.Context, edge EdgeAPI, cid string, success bool) {
-	err := edge.scheduler.CacheResult(ctx, edge.DeviceAPI.DeviceID, cid, success)
+	_, err := edge.scheduler.CacheResult(ctx, edge.DeviceAPI.DeviceID, cid, success)
 	if err != nil {
 		log.Errorf("load_block CacheResult error:%v", err)
 	}
