@@ -10,6 +10,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/linguohua/titan/region"
+	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
 )
 
@@ -19,6 +20,12 @@ var (
 
 	roundID     string
 	maxRangeMap map[string]int
+
+	timewheelElection *timewheel.TimeWheel
+	electionTime      = 60 // 选举时间间隔 (分钟)
+
+	timewheelSpotCheck *timewheel.TimeWheel
+	spotCheckTime      = 5 // 抽查时间间隔 (分钟)
 )
 
 // 边缘节点登录的时候
@@ -28,6 +35,29 @@ var (
 // 3.如果某个区域的验证节点不足,则需要再选出附近空闲的验证节点
 // 验证过程
 // 4.每个候选节点根据下行带宽,一次验证N个集群
+
+// InitTimewheel init timer
+func InitTimewheel() {
+	// 选举定时器
+	timewheelElection = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
+		electionValidators()
+		// 继续添加定时器
+		timewheelElection.AddTimer(time.Duration(electionTime)*60*time.Second, "election", nil)
+	})
+	timewheelElection.Start()
+	// 开始一个事件处理
+	timewheelElection.AddTimer(time.Duration(1)*60*time.Second, "election", nil)
+
+	// 抽查定时器
+	timewheelSpotCheck = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
+		startSpotCheck()
+		// 继续添加定时器
+		timewheelSpotCheck.AddTimer(time.Duration(spotCheckTime)*60*time.Second, "spotCheck", nil)
+	})
+	timewheelSpotCheck.Start()
+	// 开始一个事件处理
+	timewheelSpotCheck.AddTimer(time.Duration(2)*60*time.Second, "spotCheck", nil)
+}
 
 func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 	validatorID := candidate.deviceInfo.DeviceId
