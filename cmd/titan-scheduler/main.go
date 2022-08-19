@@ -153,6 +153,8 @@ var runCmd = &cli.Command{
 			},
 		}
 
+		scheduler.InitTimewheel()
+
 		go func() {
 			<-ctx.Done()
 			log.Warn("Shutting down...")
