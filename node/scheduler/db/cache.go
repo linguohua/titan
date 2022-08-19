@@ -51,7 +51,7 @@ type CacheDB interface {
 	GetGeoWithValidatorList(deviceID string) ([]string, error)
 	DelValidatorGeoList(deviceID string) error
 
-	SetSpotCheckResultInfo(sID string, edgeID, validator string, status SpotCheckStatus) error
+	SetSpotCheckResultInfo(sID string, edgeID, validator, msg string, status SpotCheckStatus) error
 }
 
 var cacheDB CacheDB

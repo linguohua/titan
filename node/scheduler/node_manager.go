@@ -287,11 +287,11 @@ func findCandidateNodeWithGeo(userGeoInfo region.GeoInfo, useDeviceIDs, filterDe
 	return defaultNodes, defaultLevel
 }
 
-func filterCandidates(notUseDeviceIDs []string, sameNodes []*CandidateNode) []*CandidateNode {
+func filterCandidates(filterDeviceIDs []string, sameNodes []*CandidateNode) []*CandidateNode {
 	sameNodes2 := make([]*CandidateNode, 0)
 	for _, node := range sameNodes {
 		isHave := false
-		for _, nd := range notUseDeviceIDs {
+		for _, nd := range filterDeviceIDs {
 			if node.deviceInfo.DeviceId == nd {
 				isHave = true
 			}

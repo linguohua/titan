@@ -81,7 +81,7 @@ func (s Scheduler) VerifyDataResult(ctx context.Context, verifyResults api.Verif
 }
 
 // CacheResult Cache Data Result
-func (s Scheduler) CacheResult(ctx context.Context, deviceID string, cid string, isOK bool) error {
+func (s Scheduler) CacheResult(ctx context.Context, deviceID string, cid string, isOK bool) (string, error) {
 	return nodeCacheResult(deviceID, cid, isOK)
 }
 

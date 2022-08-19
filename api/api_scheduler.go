@@ -13,7 +13,7 @@ type Scheduler interface {
 
 	GetDeviceIDs(context.Context, NodeTypeName) ([]string, error) //perm:read
 
-	VerifyDataResult(context.Context, VerifyResults) error
+	VerifyDataResult(context.Context, VerifyResults) error //perm:read
 
 	FindNodeWithData(context.Context, string, string) (string, error) //perm:read
 
@@ -21,7 +21,7 @@ type Scheduler interface {
 
 	CandidateNodeConnect(context.Context, string) error //perm:read
 
-	CacheResult(context.Context, string, string, bool) error //perm:read
+	CacheResult(context.Context, string, string, bool) (string, error) //perm:read
 
 	GetCacheTag(context.Context, string, string) (string, error) //perm:read
 

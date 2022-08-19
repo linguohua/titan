@@ -51,7 +51,7 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 		req = append(req, api.ReqVerify{Seed: seed, EdgeURL: edge.addr, Duration: duration, MaxRange: max, RoundID: roundID})
 
 		//
-		err = db.GetCacheDB().SetSpotCheckResultInfo(roundID, edgeID, validatorID, db.SpotCheckStatusCreate)
+		err = db.GetCacheDB().SetSpotCheckResultInfo(roundID, edgeID, validatorID, "", db.SpotCheckStatusCreate)
 		if err != nil {
 			log.Warnf("spotCheck SetSpotCheckResultInfo err:%v,DeviceId:%v", err.Error(), edgeID)
 			continue
@@ -81,10 +81,18 @@ func spotCheckResult(verifyResults api.VerifyResults) error {
 	// varify Result
 
 	status := db.SpotCheckStatusSuccess
-
+	msg := ""
 	// TODO 判断带宽 超时时间等等
 	r := rand.New(rand.NewSource(seed))
 	rlen := len(verifyResults.Results)
+
+	if rlen <= 0 {
+		status = db.SpotCheckStatusFail
+		msg = fmt.Sprint("Results is nil")
+	}
+
+	// log.Infof("Results:%v", verifyResults.Results)
+
 	for i := 0; i < rlen; i++ {
 		fid := r.Intn(rlen)
 		result := verifyResults.Results[i]
@@ -92,22 +100,25 @@ func spotCheckResult(verifyResults api.VerifyResults) error {
 		fidStr := fmt.Sprintf("%d", fid)
 		if fidStr != result.Fid {
 			status = db.SpotCheckStatusFail
+			msg = fmt.Sprintf("fidStr:%v,resultFid:%v", fidStr, result.Fid)
 			break
 		}
 
 		tag, err := db.GetCacheDB().GetCacheDataInfo(edgeID, result.Cid)
 		if err != nil {
-			log.Errorf("spotCheckResult GetCacheDataInfo err:%v,edgeID:%v,Cid:%v", err.Error(), edgeID, result.Cid)
+			status = db.SpotCheckStatusFail
+			msg = fmt.Sprintf("GetCacheDataInfo err:%v,edgeID:%v,resultCid:%v", err.Error(), edgeID, result.Cid)
 			break
 		}
 
 		if tag != fidStr {
 			status = db.SpotCheckStatusFail
+			msg = fmt.Sprintf("tag:%v,fidStr:%v,Cid:%v", tag, fidStr, result.Cid)
 			break
 		}
 	}
 
-	err := db.GetCacheDB().SetSpotCheckResultInfo(roundID, edgeID, "", status)
+	err := db.GetCacheDB().SetSpotCheckResultInfo(roundID, edgeID, "", msg, status)
 	if err != nil {
 		return err
 	}
@@ -116,33 +127,7 @@ func spotCheckResult(verifyResults api.VerifyResults) error {
 	if err != nil {
 		return err
 	}
-	// for _, varifyResult := range verifyResults.Results {
-	// 	// 结果判断
-	// 	c := result[varifyResult.DeviceID]
 
-	// 	// 判断CID
-	// 	gC, err := gocid.Decode(c)
-	// 	if err != nil {
-	// 		log.Warnf("Decode err:%v", err.Error())
-	// 		continue
-	// 	}
-
-	// 	gC = gocid.NewCidV1(gC.Type(), gC.Hash())
-
-	// 	vC, err := gocid.Decode(varifyResult.Cid)
-	// 	if err != nil {
-	// 		log.Warnf("Decode err:%v", err.Error())
-	// 		continue
-	// 	}
-
-	// 	vC = gocid.NewCidV1(vC.Type(), vC.Hash())
-
-	// 	cidOK := gC.Equals(vC)
-
-	// 	log.Infof("varifyResult candidate:%v , edge:%v ,eCid:%v,sCid:%v cidOK:%v", candidate.deviceInfo.DeviceId, varifyResult.DeviceID, varifyResult.Cid, c, cidOK)
-	// 	log.Infof("varifyResult vC:%v gC:%v", vC, gC)
-	// 	// TODO 写入DB 时间:候选节点:被验证节点:验证的cid:序号:结果
-	// }
 	return nil
 }
 
@@ -160,7 +145,7 @@ func checkSpotCheckTimeOut() error {
 
 	if len(edgeIDs) > 0 {
 		for _, edgeID := range edgeIDs {
-			err = db.GetCacheDB().SetSpotCheckResultInfo(sID, edgeID, "", db.SpotCheckStatusTimeOut)
+			err = db.GetCacheDB().SetSpotCheckResultInfo(sID, edgeID, "", "", db.SpotCheckStatusTimeOut)
 			if err != nil {
 				log.Warnf("checkSpotCheckTimeOut SetSpotCheckResultInfo err:%v,DeviceId:%v", err.Error(), edgeID)
 				continue
