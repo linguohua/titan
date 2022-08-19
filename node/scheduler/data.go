@@ -61,13 +61,13 @@ func cacheDataOfNode(cids []string, deviceID string) error {
 	reqs := make([]api.ReqCacheData, 0)
 
 	for _, cid := range cids {
-		tag, err := nodeCacheReady(deviceID, cid)
-		if err != nil {
-			log.Warnf("cacheDataOfNode nodeCacheReady err:%v,cid:%v", err, cid)
-			continue
-		}
+		// tag, err := nodeCacheReady(deviceID, cid)
+		// if err != nil {
+		// 	log.Warnf("cacheDataOfNode nodeCacheReady err:%v,cid:%v", err, cid)
+		// 	continue
+		// }
 
-		reqData := api.ReqCacheData{Cid: cid, ID: tag}
+		reqData := api.ReqCacheData{Cid: cid}
 		reqs = append(reqs, reqData)
 	}
 
@@ -93,24 +93,14 @@ func cacheDataOfNode(cids []string, deviceID string) error {
 // NodeCacheResult Device Cache Result
 func nodeCacheResult(deviceID, cid string, isOk bool) (string, error) {
 	log.Infof("nodeCacheResult deviceID:%v,cid:%v,isOk:%v", deviceID, cid, isOk)
-
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
-	if err != nil || v == "" {
-		return "", nil
+	if err == nil && v != "" {
+		return v, nil
 	}
 
 	if !isOk {
-		return "", db.GetCacheDB().DelCacheDataInfo(deviceID, cid)
-	}
-
-	return "", db.GetCacheDB().SetNodeToCacheList(deviceID, cid)
-}
-
-// Node Cache ready
-func nodeCacheReady(deviceID, cid string) (string, error) {
-	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
-	if err == nil && v != "" {
-		return "", xerrors.Errorf("already cache")
+		// return "", db.GetCacheDB().DelCacheDataInfo(deviceID, cid)
+		return "", nil
 	}
 
 	tag, err := db.GetCacheDB().IncrNodeCacheTag(deviceID)
@@ -119,8 +109,44 @@ func nodeCacheReady(deviceID, cid string) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("%d", tag), db.GetCacheDB().SetCacheDataInfo(deviceID, cid, tag)
+	err = db.GetCacheDB().SetCacheDataInfo(deviceID, cid, tag)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%d", tag), db.GetCacheDB().SetNodeToCacheList(deviceID, cid)
 }
+
+func newCacheDataTag(deviceID, cid string) (string, error) {
+	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
+	if err == nil && v != "" {
+		return v, xerrors.Errorf("already cache")
+	}
+
+	tag, err := db.GetCacheDB().IncrNodeCacheTag(deviceID)
+	if err != nil {
+		// log.Errorf("NotifyNodeCacheData getTagWithNode err:%v", err)
+		return "", err
+	}
+
+	return fmt.Sprintf("%d", tag), nil
+}
+
+// // Node Cache ready
+// func nodeCacheReady(deviceID, cid string) (string, error) {
+// 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
+// 	if err == nil && v != "" {
+// 		return "", xerrors.Errorf("already cache")
+// 	}
+
+// 	tag, err := db.GetCacheDB().IncrNodeCacheTag(deviceID)
+// 	if err != nil {
+// 		// log.Errorf("NotifyNodeCacheData getTagWithNode err:%v", err)
+// 		return "", err
+// 	}
+
+// 	return fmt.Sprintf("%d", tag), db.GetCacheDB().SetCacheDataInfo(deviceID, cid, tag)
+// }
 
 // 生成[start,end)结束的随机数
 func randomNum(start, end int) int {

@@ -28,7 +28,7 @@ var (
 type Group struct {
 	groupID        string
 	edgeNodeMap    map[string]int
-	toatlBandwidth int
+	totalBandwidth int
 	isFull         bool
 }
 
@@ -49,7 +49,7 @@ func (g *Group) addEdge(dID string, bandwidth int) {
 		return
 	}
 
-	if g.toatlBandwidth+bandwidth > groupFullValMax {
+	if g.totalBandwidth+bandwidth > groupFullValMax {
 		return
 	}
 
@@ -57,17 +57,35 @@ func (g *Group) addEdge(dID string, bandwidth int) {
 		return
 	}
 
-	g.toatlBandwidth += bandwidth
-	g.isFull = g.toatlBandwidth >= groupFullValMin
+	g.totalBandwidth += bandwidth
+	g.isFull = g.totalBandwidth >= groupFullValMin
 
 	g.edgeNodeMap[dID] = bandwidth
 	// log.Infof("gID:%v,toatlBandwidth:%v,map:%v", g.GroupID, g.toatlBandwidth, g.edgeNodeMap)
 }
 
+func (g *Group) updateBandwidth(dID string, bandwidth int) {
+	if oldBandwidth, ok := g.edgeNodeMap[dID]; ok {
+		// 看看会让总带宽变化多少
+		changeVal := bandwidth - oldBandwidth
+		newTotalVal := g.totalBandwidth + changeVal
+
+		if newTotalVal > groupFullValMax {
+			return
+		}
+
+		g.totalBandwidth = newTotalVal
+
+		g.isFull = g.totalBandwidth >= groupFullValMin
+
+		g.edgeNodeMap[dID] = bandwidth
+	}
+}
+
 func (g *Group) delEdge(dID string) {
 	if bandwidth, ok := g.edgeNodeMap[dID]; ok {
-		g.toatlBandwidth -= bandwidth
-		g.isFull = g.toatlBandwidth >= groupFullValMin
+		g.totalBandwidth -= bandwidth
+		g.isFull = g.totalBandwidth >= groupFullValMin
 
 		delete(g.edgeNodeMap, dID)
 	}
@@ -151,7 +169,7 @@ func addGroup(geoKey, deviceID, groupID string, bandwidth int, lessFullMap map[s
 
 	if !group.isFull {
 		// 如果组内带宽未满 则保存到未满map
-		lessFullMap[groupID] = group.toatlBandwidth
+		lessFullMap[groupID] = group.totalBandwidth
 		storeLessFullMap(geoKey, lessFullMap)
 	} else {
 		delete(lessFullMap, groupID)
@@ -209,7 +227,7 @@ func testPrintlnEdgeGroupMap() {
 			if group == nil {
 				continue
 			}
-			log.Info("gId:", gID, ",group:", group, ",bandwidth:", group.toatlBandwidth)
+			log.Info("gId:", gID, ",group:", group, ",bandwidth:", group.totalBandwidth)
 		}
 
 		return true
