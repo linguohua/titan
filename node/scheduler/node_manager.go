@@ -39,7 +39,7 @@ func addEdgeNode(node *EdgeNode) error {
 
 	log.Infof("addEdgeNode DeviceId:%v,geo:%v", node.deviceInfo.DeviceId, node.geoInfo.Geo)
 
-	err = nodeOnline(node.deviceInfo.DeviceId, 0, geoInfo, api.TypeNameEdge)
+	err = nodeOnline(node.deviceInfo.DeviceId, 0, geoInfo, api.TypeNameEdge, node.bandwidth)
 	if err != nil {
 		// log.Errorf("addEdgeNode NodeOnline err:%v", err)
 		return err
@@ -48,9 +48,6 @@ func addEdgeNode(node *EdgeNode) error {
 	edgeNodeMap.Store(node.deviceInfo.DeviceId, node)
 
 	edgeCount++
-
-	// group
-	edgeGrouping(*node)
 
 	return nil
 }
@@ -104,7 +101,7 @@ func addCandidateNode(node *CandidateNode) error {
 
 	log.Infof("addCandidateNode DeviceId:%v,geo:%v", node.deviceInfo.DeviceId, node.geoInfo.Geo)
 
-	err = nodeOnline(node.deviceInfo.DeviceId, 0, geoInfo, api.TypeNameCandidate)
+	err = nodeOnline(node.deviceInfo.DeviceId, 0, geoInfo, api.TypeNameCandidate, node.bandwidth)
 	if err != nil {
 		// log.Errorf("addCandidateNode NodeOnline err:%v", err)
 		return err

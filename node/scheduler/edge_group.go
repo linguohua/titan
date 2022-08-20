@@ -98,21 +98,29 @@ func newGroupName() string {
 }
 
 // 边缘节点分组
-func edgeGrouping(node EdgeNode) string {
-	deviceID := node.deviceInfo.DeviceId
-
+func edgeGrouping(deviceID, oldGeo, geo string, bandwidth int) string {
 	// 如果已经存在分组里 则不需要分组
 	oldGroupID, ok := groupIDMap.Load(deviceID)
 	if ok && oldGroupID != nil {
 		g := oldGroupID.(string)
-		return g
+		// 得看原来的geo是否跟现在的一样
+		if oldGeo != geo {
+			// 从旧的组里面删除
+			group := loadGroupMap(g)
+			if group != nil {
+				group.delEdge(deviceID)
+			}
+		} else {
+			return g
+		}
 	}
 
 	groupID := ""
-	defer groupIDMap.Store(deviceID, groupID)
+	defer func() {
+		groupIDMap.Store(deviceID, groupID)
+	}()
 
-	geoKey := node.geoInfo.Geo
-	bandwidth := node.bandwidth
+	geoKey := geo
 
 	groups := loadGeoGroupMap(geoKey)
 	if groups != nil {
@@ -121,8 +129,8 @@ func edgeGrouping(node EdgeNode) string {
 		if lessFullMap != nil {
 			findGroupID := ""
 			bandwidthT := 0
-			for groupID, bandwidth := range lessFullMap {
-				bandwidthT = bandwidth + node.bandwidth
+			for groupID, b := range lessFullMap {
+				bandwidthT = b + bandwidth
 
 				if bandwidthT <= groupFullValMax {
 					findGroupID = groupID
