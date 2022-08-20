@@ -45,23 +45,23 @@ type CandidateNode struct {
 }
 
 // NodeOnline Save DeciceInfo
-func nodeOnline(deviceID string, onlineTime int64, geoInfo region.GeoInfo, typeName api.NodeTypeName) error {
-	nodeInfo, err := db.GetCacheDB().GetNodeInfo(deviceID)
+func nodeOnline(deviceID string, onlineTime int64, geoInfo region.GeoInfo, typeName api.NodeTypeName, bandwidth int) error {
+	oldNodeInfo, err := db.GetCacheDB().GetNodeInfo(deviceID)
 	if err == nil {
-		if typeName != nodeInfo.NodeType {
+		if typeName != oldNodeInfo.NodeType {
 			return xerrors.New("node type inconsistent")
 		}
 
-		if nodeInfo.Geo != geoInfo.Geo {
+		if oldNodeInfo.Geo != geoInfo.Geo {
 			// delete old
-			err = db.GetCacheDB().DelNodeWithGeoList(deviceID, nodeInfo.Geo)
+			err = db.GetCacheDB().DelNodeWithGeoList(deviceID, oldNodeInfo.Geo)
 			if err != nil {
-				log.Warnf("DelNodeWithGeoList err:%v", err)
+				log.Errorf("DelNodeWithGeoList err:%v,deviceID:%v,Geo:%v", err.Error(), deviceID, oldNodeInfo.Geo)
 			}
 		}
 	} else {
 		if err.Error() != db.NotFind {
-			log.Warnf("GetNodeInfo err:%v", err)
+			log.Warnf("GetNodeInfo err:%v,deviceID:%v", err.Error(), deviceID)
 		}
 	}
 	// log.Infof("oldgeo:%v,newgeo:%v,err:%v", nodeInfo.Geo, geoInfo.Geo, err)
@@ -74,6 +74,7 @@ func nodeOnline(deviceID string, onlineTime int64, geoInfo region.GeoInfo, typeN
 
 	err = db.GetCacheDB().SetNodeToGeoList(deviceID, geoInfo.Geo)
 	if err != nil {
+		log.Errorf("SetNodeToGeoList err:%v,deviceID:%v,Geo:%v", err.Error(), deviceID, geoInfo.Geo)
 		return err
 	}
 
@@ -84,7 +85,13 @@ func nodeOnline(deviceID string, onlineTime int64, geoInfo region.GeoInfo, typeN
 
 	err = db.GetCacheDB().SetGeoToList(geoInfo.Geo)
 	if err != nil {
+		log.Errorf("SetGeoToList err:%v,Geo:%v", err.Error(), geoInfo.Geo)
 		return err
+	}
+
+	// group
+	if typeName == api.TypeNameEdge {
+		edgeGrouping(deviceID, oldNodeInfo.Geo, geoInfo.Geo, bandwidth)
 	}
 
 	return nil
