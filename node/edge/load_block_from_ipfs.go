@@ -18,14 +18,14 @@ var (
 )
 
 type delayReq struct {
-	req   api.ReqCacheData
+	cid   string
 	count int
 }
 
-func apiReq2DelayReq(reqs []api.ReqCacheData) []delayReq {
-	results := make([]delayReq, 0, len(reqs))
-	for _, reqData := range reqs {
-		req := delayReq{req: reqData, count: 0}
+func apiReq2DelayReq(req api.ReqCacheData) []delayReq {
+	results := make([]delayReq, 0, len(req.Cids))
+	for _, cid := range req.Cids {
+		req := delayReq{cid: cid, count: 0}
 		results = append(results, req)
 	}
 
@@ -73,10 +73,21 @@ func loadBlocks(edge EdgeAPI, cids []cid.Cid) ([]blocks.Block, error) {
 }
 
 func cacheResult(ctx context.Context, edge EdgeAPI, cid string, success bool) {
-	_, err := edge.scheduler.CacheResult(ctx, edge.DeviceAPI.DeviceID, cid, success)
+	fid, err := edge.scheduler.CacheResult(ctx, edge.DeviceAPI.DeviceID, cid, success)
 	if err != nil {
 		log.Errorf("load_block CacheResult error:%v", err)
+		return
 	}
+
+	if success && fid != "" {
+		err = edge.ds.Put(ctx, datastore.NewKey(fid), []byte(cid))
+		if err != nil {
+			log.Errorf("load_block CacheResult save fid error:%v", err)
+		}
+
+	}
+
+	// log.Infof("cacheResult fid:%s", fid)
 }
 
 func filterAvailableReq(edge EdgeAPI, reqs []delayReq) []delayReq {
@@ -95,16 +106,11 @@ func filterAvailableReq(edge EdgeAPI, reqs []delayReq) []delayReq {
 		// 	target = cid.NewCidV0(target.Hash())
 		// }
 
-		cidStr := fmt.Sprintf("%s", reqData.req.Cid)
+		cidStr := fmt.Sprintf("%s", reqData.cid)
 
 		has, _ := edge.blockStore.Has(cidStr)
 		if has {
-			exist, err := edge.ds.Has(ctx, datastore.NewKey(reqData.req.ID))
-			if err == nil && !exist {
-				edge.ds.Put(ctx, datastore.NewKey(reqData.req.ID), []byte(cidStr))
-			}
-
-			cacheResult(ctx, edge, reqData.req.Cid, true)
+			cacheResult(ctx, edge, reqData.cid, true)
 			continue
 		}
 		results = append(results, reqData)
@@ -120,7 +126,7 @@ func loadBlocksAsync(edge EdgeAPI, req []delayReq) {
 	cids := make([]cid.Cid, 0, len(req))
 	reqMap := make(map[string]delayReq)
 	for _, reqData := range req {
-		target, err := cid.Decode(reqData.req.Cid)
+		target, err := cid.Decode(reqData.cid)
 		if err != nil {
 			log.Errorf("loadBlocksAsync failed to decode CID %v", err)
 			continue
@@ -151,10 +157,6 @@ func loadBlocksAsync(edge EdgeAPI, req []delayReq) {
 	for _, block := range blocks {
 		cidStr := fmt.Sprintf("%v", block.Cid())
 		err = edge.blockStore.Put(cidStr, block.RawData())
-		if err == nil {
-			err = edge.ds.Put(ctx, datastore.NewKey(reqMap[cidStr].req.ID), []byte(cidStr))
-		}
-
 		cacheResult(ctx, edge, cidStr, err == nil)
 
 		log.Infof("cache data,cid:%s,err:%v", cidStr, err)
@@ -165,8 +167,8 @@ func loadBlocksAsync(edge EdgeAPI, req []delayReq) {
 	if len(reqMap) > 0 {
 		for _, v := range reqMap {
 			if v.count > 5 {
-				cacheResult(ctx, edge, v.req.Cid, err == nil)
-				log.Infof("cache data faile, cid:%s, count:%d", v.req.Cid, v.count)
+				cacheResult(ctx, edge, v.cid, false)
+				log.Infof("cache data faile, cid:%s, count:%d", v.cid, v.count)
 			} else {
 				v.count++
 				reqDatas = append(reqDatas, v)

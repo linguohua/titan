@@ -61,15 +61,15 @@ func (edge EdgeAPI) WaitQuiet(ctx context.Context) error {
 	return nil
 }
 
-func (edge EdgeAPI) CacheData(ctx context.Context, req []api.ReqCacheData) error {
-	log.Infof("CacheData, req len:%d", len(req))
+func (edge EdgeAPI) CacheData(ctx context.Context, req api.ReqCacheData) error {
+	log.Infof("CacheData, req len:%d", len(req.Cids))
 
 	if edge.blockStore == nil {
 		return fmt.Errorf("CacheData, blockStore == nil ")
 	}
 
 	delayReq := filterAvailableReq(edge, apiReq2DelayReq(req))
-	if len(req) == 0 {
+	if len(delayReq) == 0 {
 		log.Infof("CacheData, len(req) == 0 not need to handle")
 		return nil
 	}
@@ -105,6 +105,11 @@ func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candi
 		return fmt.Errorf("edge.blockStore == nil")
 	}
 
+	if reqVerify.MaxRange <= 0 {
+		log.Errorf("reqVerify.MaxRange <= 0")
+		return fmt.Errorf("reqVerify.MaxRange <= 0")
+	}
+
 	candidateAPI, closer, err := client.NewCandicate(ctx, candidateURL, nil)
 	if err != nil {
 		log.Errorf("DoVerify, NewCandicate err:%v", err)
@@ -121,8 +126,10 @@ func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candi
 			return nil
 		default:
 		}
-
-		fid := r.Intn(reqVerify.MaxRange)
+		fid := reqVerify.MaxRange
+		if reqVerify.MaxRange > 1 {
+			fid = r.Intn(reqVerify.MaxRange-1) + 1
+		}
 		fidStr := fmt.Sprintf("%d", fid)
 		err = sendBlock(ctx, edge, candidateAPI, fidStr)
 		if err != nil {
@@ -132,16 +139,28 @@ func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candi
 }
 
 func sendBlock(ctx context.Context, edge EdgeAPI, candidateAPI api.Candidate, fid string) error {
+	var block []byte
 	cid, err := getCID(edge, fid)
 	if err != nil {
-		log.Errorf("sendBlock, getCID err:%v", err)
-		return err
+		if err == datastore.ErrNotFound {
+			log.Infof("sendBlock, fid %s not found", fid)
+			block = nil
+		} else {
+			return err
+		}
 	}
 
-	block, err := edge.blockStore.Get(cid)
-	if err != nil {
-		log.Errorf("sendBlock, get block err:%v", err)
-		return err
+	if cid != "" {
+		block, err = edge.blockStore.Get(cid)
+		if err != nil {
+			if err == datastore.ErrNotFound {
+				log.Infof("sendBlock, cid %s not found, fid:%s", cid, fid)
+				block = nil
+			} else {
+				log.Errorf("sendBlock, get block err:%v", err)
+				return err
+			}
+		}
 	}
 
 	return candidateAPI.SendBlock(ctx, block, edge.DeviceID)
@@ -175,4 +194,9 @@ func (edge EdgeAPI) DeleteData(ctx context.Context, cids []string) error {
 		}
 	}
 	return nil
+}
+
+func (edge EdgeAPI) GetSchedulerAPI() api.Scheduler {
+	log.Info("GetSchedulerAPI")
+	return edge.scheduler
 }
