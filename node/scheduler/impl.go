@@ -21,7 +21,7 @@ var log = logging.Logger("scheduler")
 
 // NewLocalScheduleNode NewLocalScheduleNode
 func NewLocalScheduleNode() api.Scheduler {
-	return Scheduler{}
+	return Scheduler{CommonAPI: common.NewCommonAPI(updateLastRequestTime)}
 }
 
 // Scheduler node
@@ -70,8 +70,8 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 	if err != nil {
 		log.Warnf("EdgeNodeConnect getCacheFailCids err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 	} else {
-		if len(list) > 0 {
-			err = edgeAPI.CacheData(ctx, list)
+		if list != nil && len(list) > 0 {
+			_, _, err = cacheDataOfNode(list, deviceInfo.DeviceId)
 			if err != nil {
 				log.Warnf("EdgeNodeConnect CacheData err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 			}
@@ -92,9 +92,9 @@ func (s Scheduler) CacheResult(ctx context.Context, deviceID string, cid string,
 }
 
 // CacheData Cache Data
-func (s Scheduler) CacheData(ctx context.Context, cids []string, deviceID string) error {
+func (s Scheduler) CacheData(ctx context.Context, cids []string, deviceID string) ([]string, []string, error) {
 	if len(cids) <= 0 {
-		return xerrors.New("cids is nil")
+		return nil, nil, xerrors.New("cids is nil")
 	}
 
 	return cacheDataOfNode(cids, deviceID)
@@ -112,7 +112,7 @@ func (s Scheduler) InitNodeDeviceIDs(ctx context.Context) error {
 		candidateID := fmt.Sprintf("%s%d", candidatePrefix, i)
 
 		edgeList = append(edgeList, edgeID)
-		candidateList = append(edgeList, candidateID)
+		candidateList = append(candidateList, candidateID)
 	}
 
 	err := db.GetCacheDB().SetEdgeDeviceIDList(edgeList)
@@ -219,8 +219,8 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 	if err != nil {
 		log.Warnf("CandidateNodeConnect getCacheFailCids err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 	} else {
-		if len(list) > 0 {
-			err = candicateAPI.CacheData(ctx, list)
+		if list != nil && len(list) > 0 {
+			_, _, err = cacheDataOfNode(list, deviceInfo.DeviceId)
 			if err != nil {
 				log.Warnf("CandidateNodeConnect CacheData err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 			}

@@ -24,7 +24,7 @@ var (
 	validatorCount int
 
 	timewheelKeepalive *timewheel.TimeWheel
-	keepaliveTime      = 30 // 保活时间间隔 (秒)
+	keepaliveTime      = 1 // 保活时间间隔 (分钟)
 )
 
 // InitKeepaliveTimewheel ndoe Keepalive
@@ -33,47 +33,50 @@ func InitKeepaliveTimewheel() {
 	timewheelKeepalive = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
 		nodeKeepalive()
 		// 继续添加定时器
-		timewheelKeepalive.AddTimer(time.Duration(keepaliveTime)*time.Second, "Keepalive", nil)
+		timewheelKeepalive.AddTimer(time.Duration(1)*60*time.Second, "Keepalive", nil)
 	})
 	timewheelKeepalive.Start()
 	// 开始一个事件处理
-	timewheelKeepalive.AddTimer(time.Duration(30)*time.Second, "Keepalive", nil)
+	timewheelKeepalive.AddTimer(time.Duration(1)*60*time.Second, "Keepalive", nil)
 }
 
 func nodeKeepalive() {
-	nowTime := time.Now()
+	nowTime := time.Now().Add(-time.Duration(keepaliveTime) * 60 * time.Second)
+
+	// log.Warnf("nodeKeepalive nowTime:%v, time.Now():%v", nowTime, time.Now())
 
 	edgeNodeMap.Range(func(key, value interface{}) bool {
-		deviceID := key.(string)
+		// deviceID := key.(string)
 		node := value.(*EdgeNode)
 
 		if node == nil {
 			return true
 		}
 
-		lastTime := node.lastRequestTime.Add(time.Duration(keepaliveTime) * time.Second)
+		lastTime := node.lastRequestTime
+		// log.Warnf("nodeKeepalive deviceID:%v ,lastTime:%v,After:%v", deviceID, lastTime, !lastTime.After(nowTime))
 
 		if !lastTime.After(nowTime) {
 			// 离线
-			nodeOffline(deviceID, node.geoInfo, api.TypeNameEdge)
+			deleteEdgeNode(node, lastTime)
 		}
 
 		return true
 	})
 
 	candidateNodeMap.Range(func(key, value interface{}) bool {
-		deviceID := key.(string)
+		// deviceID := key.(string)
 		node := value.(*CandidateNode)
 
 		if node == nil {
 			return true
 		}
 
-		lastTime := node.lastRequestTime.Add(time.Duration(keepaliveTime) * time.Second)
+		lastTime := node.lastRequestTime
 
 		if !lastTime.After(nowTime) {
 			// 离线
-			nodeOffline(deviceID, node.geoInfo, api.TypeNameEdge)
+			deleteCandidateNode(node, lastTime)
 		}
 
 		return true
@@ -121,18 +124,14 @@ func getEdgeNode(deviceID string) *EdgeNode {
 	return nil
 }
 
-func deleteEdgeNode(deviceID string) {
-	node := getEdgeNode(deviceID)
-	if node == nil {
-		return
-	}
-
+func deleteEdgeNode(node *EdgeNode, lastTime time.Time) {
+	deviceID := node.deviceInfo.DeviceId
 	// close old node
 	node.closer()
 
 	edgeNodeMap.Delete(deviceID)
 
-	err := nodeOffline(deviceID, node.geoInfo, api.TypeNameEdge)
+	err := nodeOffline(deviceID, node.geoInfo, api.TypeNameEdge, lastTime)
 	if err != nil {
 		log.Errorf("DeviceOffline err:%v,deviceID:%v", err.Error(), deviceID)
 	}
@@ -187,18 +186,14 @@ func getCandidateNode(deviceID string) *CandidateNode {
 	return nil
 }
 
-func deleteCandidateNode(deviceID string) {
-	node := getCandidateNode(deviceID)
-	if node == nil {
-		return
-	}
-
+func deleteCandidateNode(node *CandidateNode, lastTime time.Time) {
+	deviceID := node.deviceInfo.DeviceId
 	// close old node
 	node.closer()
 
 	candidateNodeMap.Delete(deviceID)
 
-	err := nodeOffline(deviceID, node.geoInfo, api.TypeNameCandidate)
+	err := nodeOffline(deviceID, node.geoInfo, api.TypeNameCandidate, lastTime)
 	if err != nil {
 		log.Errorf("DeviceOffline err:%v,deviceID:%v", err.Error(), deviceID)
 	}
