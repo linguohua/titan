@@ -50,7 +50,7 @@ type Common interface {
 	Shutdown(context.Context) error //perm:admin
 
 	// Session returns a random UUID of api provider session
-	Session(context.Context) (uuid.UUID, error) //perm:read
+	Session(ctx context.Context, deviceID string) (uuid.UUID, error) //perm:read
 
 	Closing(context.Context) (<-chan struct{}, error) //perm:read
 }

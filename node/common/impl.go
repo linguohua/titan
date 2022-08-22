@@ -83,7 +83,7 @@ func (a CommonAPI) Shutdown(context.Context) error {
 }
 
 // Session returns a random UUID of api provider session
-func (a CommonAPI) Session(context.Context) (uuid.UUID, error) {
+func (a CommonAPI) Session(ctx context.Context, deviceID string) (uuid.UUID, error) {
 	return session, nil
 }
 

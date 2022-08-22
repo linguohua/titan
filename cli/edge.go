@@ -132,13 +132,14 @@ var CacheDataCmd = &cli.Command{
 			// "bafkreibzephikut47bv3a4yik3zfach75pxmteprkfpofixnkdvmispslq",
 		}
 
-		req := make([]API.ReqCacheData, 0)
-		for i, id := range ids {
-			reqData := API.ReqCacheData{Cid: id, ID: fmt.Sprintf("%d", i)}
-			req = append(req, reqData)
-		}
+		// req := make([]API.ReqCacheData, 0)
+		// for i, id := range ids {
+		// 	reqData := API.ReqCacheData{Cids: string{id}, ID: fmt.Sprintf("%d", i)}
+		// 	req = append(req, reqData)
+		// }
+		reqData := API.ReqCacheData{Cids: ids, CandidateURL: ""}
 
-		err = api.CacheData(ctx, req)
+		err = api.CacheData(ctx, reqData)
 		if err != nil {
 			return err
 		}

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ipfs/go-datastore"
 	"github.com/linguohua/titan/node/fsutil"
 )
 
@@ -22,6 +23,11 @@ func (fs fileStore) Put(key string, value []byte) error {
 
 func (fs fileStore) Get(key string) ([]byte, error) {
 	filePath := filepath.Join(fs.Path, key)
+	_, err := os.Stat(filePath)
+	if err != nil && os.IsNotExist(err) {
+		return nil, datastore.ErrNotFound
+	}
+
 	return os.ReadFile(filePath)
 }
 

@@ -52,7 +52,7 @@ type CommonStruct struct {
 
 		LogSetLevel func(p0 context.Context, p1 string, p2 string) (error) `perm:"write"`
 
-		Session func(p0 context.Context) (uuid.UUID, error) `perm:"read"`
+		Session func(p0 context.Context, p1 string) (uuid.UUID, error) `perm:"read"`
 
 		Shutdown func(p0 context.Context) (error) `perm:"admin"`
 
@@ -88,7 +88,7 @@ type EdgeStruct struct {
 
 		BlockStoreStat func(p0 context.Context) (error) `perm:"read"`
 
-		CacheData func(p0 context.Context, p1 []ReqCacheData) (error) `perm:"read"`
+		CacheData func(p0 context.Context, p1 ReqCacheData) (error) `perm:"read"`
 
 		DeleteData func(p0 context.Context, p1 []string) (error) `perm:"read"`
 
@@ -266,14 +266,14 @@ func (s *CommonStub) LogSetLevel(p0 context.Context, p1 string, p2 string) (erro
 	return ErrNotSupported
 }
 
-func (s *CommonStruct) Session(p0 context.Context) (uuid.UUID, error) {
+func (s *CommonStruct) Session(p0 context.Context, p1 string) (uuid.UUID, error) {
 	if s.Internal.Session == nil {
 		return *new(uuid.UUID), ErrNotSupported
 	}
-	return s.Internal.Session(p0)
+	return s.Internal.Session(p0, p1)
 }
 
-func (s *CommonStub) Session(p0 context.Context) (uuid.UUID, error) {
+func (s *CommonStub) Session(p0 context.Context, p1 string) (uuid.UUID, error) {
 	return *new(uuid.UUID), ErrNotSupported
 }
 
@@ -327,14 +327,14 @@ func (s *EdgeStub) BlockStoreStat(p0 context.Context) (error) {
 	return ErrNotSupported
 }
 
-func (s *EdgeStruct) CacheData(p0 context.Context, p1 []ReqCacheData) (error) {
+func (s *EdgeStruct) CacheData(p0 context.Context, p1 ReqCacheData) (error) {
 	if s.Internal.CacheData == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheData(p0, p1)
 }
 
-func (s *EdgeStub) CacheData(p0 context.Context, p1 []ReqCacheData) (error) {
+func (s *EdgeStub) CacheData(p0 context.Context, p1 ReqCacheData) (error) {
 	return ErrNotSupported
 }
 

@@ -97,6 +97,10 @@ func (r rocksdb) Get(key string) ([]byte, error) {
 		return nil, err
 	}
 
+	if !slice.Exists() {
+		return nil, datastore.ErrNotFound
+	}
+
 	defer slice.Free()
 
 	return slice.Data(), nil
