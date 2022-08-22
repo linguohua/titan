@@ -71,7 +71,7 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		log.Warnf("EdgeNodeConnect getCacheFailCids err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 	} else {
 		if list != nil && len(list) > 0 {
-			_, _, err = cacheDataOfNode(list, deviceInfo.DeviceId)
+			_, err = cacheDataOfNode(list, deviceInfo.DeviceId)
 			if err != nil {
 				log.Warnf("EdgeNodeConnect CacheData err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 			}
@@ -92,9 +92,9 @@ func (s Scheduler) CacheResult(ctx context.Context, deviceID string, cid string,
 }
 
 // CacheData Cache Data
-func (s Scheduler) CacheData(ctx context.Context, cids []string, deviceID string) ([]string, []string, error) {
+func (s Scheduler) CacheData(ctx context.Context, cids []string, deviceID string) ([]string, error) {
 	if len(cids) <= 0 {
-		return nil, nil, xerrors.New("cids is nil")
+		return nil, xerrors.New("cids is nil")
 	}
 
 	return cacheDataOfNode(cids, deviceID)
@@ -220,7 +220,7 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 		log.Warnf("CandidateNodeConnect getCacheFailCids err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 	} else {
 		if list != nil && len(list) > 0 {
-			_, _, err = cacheDataOfNode(list, deviceInfo.DeviceId)
+			_, err = cacheDataOfNode(list, deviceInfo.DeviceId)
 			if err != nil {
 				log.Warnf("CandidateNodeConnect CacheData err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 			}

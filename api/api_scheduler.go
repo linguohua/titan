@@ -9,7 +9,7 @@ type Scheduler interface {
 
 	EdgeNodeConnect(context.Context, string) error //perm:read
 
-	CacheData(context.Context, []string, string) ([]string, []string, error) //perm:read
+	CacheData(context.Context, []string, string) ([]string, error) //perm:read
 
 	GetDeviceIDs(context.Context, NodeTypeName) ([]string, error) //perm:read
 

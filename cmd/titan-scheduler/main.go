@@ -335,11 +335,11 @@ var cacheCmd = &cli.Command{
 
 		cidList := strings.Split(cids, ",")
 
-		alreadyCacheCids, notFindNodeCids, err := schedulerAPI.CacheData(ctx, cidList, deviceID)
+		notFindNodeCids, err := schedulerAPI.CacheData(ctx, cidList, deviceID)
 		if err != nil {
 			log.Errorf("CacheData err:%v", err)
 		}
-		log.Infof("alreadyCacheCids:%v,notFindNodeCids:%v", alreadyCacheCids, notFindNodeCids)
+		log.Infof("notFindNodeCids:%v", notFindNodeCids)
 
 		return err
 	},
