@@ -61,11 +61,11 @@ func cacheDataOfNode(cids []string, deviceID string) error {
 	reqs := make([]api.ReqCacheData, 0)
 
 	for _, cid := range cids {
-		// tag, err := nodeCacheReady(deviceID, cid)
-		// if err != nil {
-		// 	log.Warnf("cacheDataOfNode nodeCacheReady err:%v,cid:%v", err, cid)
-		// 	continue
-		// }
+		err := nodeCacheReady(deviceID, cid)
+		if err != nil {
+			log.Warnf("cacheDataOfNode nodeCacheReady err:%v,cid:%v", err, cid)
+			continue
+		}
 
 		reqData := api.ReqCacheData{Cid: cid}
 		reqs = append(reqs, reqData)
@@ -94,8 +94,8 @@ func cacheDataOfNode(cids []string, deviceID string) error {
 func nodeCacheResult(deviceID, cid string, isOk bool) (string, error) {
 	log.Infof("nodeCacheResult deviceID:%v,cid:%v,isOk:%v", deviceID, cid, isOk)
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
-	if err == nil && v != "" {
-		return v, nil
+	if err == nil && v != -1 {
+		return fmt.Sprintf("%d", v), nil
 	}
 
 	if !isOk {
@@ -119,8 +119,8 @@ func nodeCacheResult(deviceID, cid string, isOk bool) (string, error) {
 
 func newCacheDataTag(deviceID, cid string) (string, error) {
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
-	if err == nil && v != "" {
-		return v, xerrors.Errorf("already cache")
+	if err == nil && v != -1 {
+		return fmt.Sprintf("%d", v), xerrors.Errorf("already cache")
 	}
 
 	tag, err := db.GetCacheDB().IncrNodeCacheTag(deviceID)
@@ -132,21 +132,15 @@ func newCacheDataTag(deviceID, cid string) (string, error) {
 	return fmt.Sprintf("%d", tag), nil
 }
 
-// // Node Cache ready
-// func nodeCacheReady(deviceID, cid string) (string, error) {
-// 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
-// 	if err == nil && v != "" {
-// 		return "", xerrors.Errorf("already cache")
-// 	}
+// Node Cache ready
+func nodeCacheReady(deviceID, cid string) error {
+	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
+	if err == nil && v != -1 {
+		return xerrors.Errorf("already cache")
+	}
 
-// 	tag, err := db.GetCacheDB().IncrNodeCacheTag(deviceID)
-// 	if err != nil {
-// 		// log.Errorf("NotifyNodeCacheData getTagWithNode err:%v", err)
-// 		return "", err
-// 	}
-
-// 	return fmt.Sprintf("%d", tag), db.GetCacheDB().SetCacheDataInfo(deviceID, cid, tag)
-// }
+	return db.GetCacheDB().SetCacheDataInfo(deviceID, cid, -1)
+}
 
 // 生成[start,end)结束的随机数
 func randomNum(start, end int) int {

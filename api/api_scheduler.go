@@ -42,4 +42,6 @@ type Scheduler interface {
 	ElectionValidators(ctx context.Context) error //perm:read
 
 	SpotCheck(ctx context.Context) error //perm:read
+
+	InitNodeDeviceIDs(ctx context.Context) error //perm:read
 }

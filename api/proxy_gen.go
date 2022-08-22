@@ -143,6 +143,8 @@ type SchedulerStruct struct {
 
 		GetIndexInfo func(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) `perm:"read"`
 
+		InitNodeDeviceIDs func(p0 context.Context) (error) `perm:"read"`
+
 		Retrieval func(p0 context.Context, p1 IndexPageSearch) (RetrievalPageRes, error) `perm:"read"`
 
 		SaveDailyInfo func(p0 context.Context, p1 IncomeDaily) (error) `perm:"read"`
@@ -537,6 +539,17 @@ func (s *SchedulerStruct) GetIndexInfo(p0 context.Context, p1 IndexRequest) (Ind
 
 func (s *SchedulerStub) GetIndexInfo(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) {
 	return *new(IndexPageRes), ErrNotSupported
+}
+
+func (s *SchedulerStruct) InitNodeDeviceIDs(p0 context.Context) (error) {
+	if s.Internal.InitNodeDeviceIDs == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.InitNodeDeviceIDs(p0)
+}
+
+func (s *SchedulerStub) InitNodeDeviceIDs(p0 context.Context) (error) {
+	return ErrNotSupported
 }
 
 func (s *SchedulerStruct) Retrieval(p0 context.Context, p1 IndexPageSearch) (RetrievalPageRes, error) {

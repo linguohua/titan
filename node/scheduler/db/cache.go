@@ -19,7 +19,7 @@ type CacheDB interface {
 
 	DelCacheDataInfo(deviceID, cid string) error
 	SetCacheDataInfo(deviceID, cid string, tag int64) error
-	GetCacheDataInfo(deviceID, cid string) (string, error)
+	GetCacheDataInfo(deviceID, cid string) (int64, error)
 	GetCacheDataInfos(deviceID string) (map[string]string, error)
 
 	DelNodeWithCacheList(deviceID, cid string) error
@@ -52,6 +52,11 @@ type CacheDB interface {
 	DelValidatorGeoList(deviceID string) error
 
 	SetSpotCheckResultInfo(sID string, edgeID, validator, msg string, status SpotCheckStatus) error
+
+	SetEdgeDeviceIDList(deviceIDs []string) error
+	IsEdgeInDeviceIDList(deviceID string) (bool, error)
+	SetCandidateDeviceIDList(deviceIDs []string) error
+	IsCandidateInDeviceIDList(deviceID string) (bool, error)
 }
 
 var cacheDB CacheDB
