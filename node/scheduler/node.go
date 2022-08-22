@@ -102,7 +102,7 @@ func nodeOnline(deviceID string, onlineTime int64, geoInfo region.GeoInfo, typeN
 }
 
 // NodeOffline offline
-func nodeOffline(deviceID string, geoInfo region.GeoInfo, nodeType api.NodeTypeName) error {
+func nodeOffline(deviceID string, geoInfo region.GeoInfo, nodeType api.NodeTypeName, lastTime time.Time) error {
 	err := db.GetCacheDB().DelNodeWithGeoList(deviceID, geoInfo.Geo)
 	if err != nil {
 		return err
@@ -113,8 +113,7 @@ func nodeOffline(deviceID string, geoInfo region.GeoInfo, nodeType api.NodeTypeN
 	// 	return err
 	// }
 
-	lastTime := time.Now().Format("2006-01-02 15:04:05")
-	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{OnLineTime: 0, Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: false, NodeType: nodeType})
+	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{OnLineTime: 0, Geo: geoInfo.Geo, LastTime: lastTime.Format("2006-01-02 15:04:05"), IsOnline: false, NodeType: nodeType})
 	if err != nil {
 		return err
 	}
@@ -122,22 +121,20 @@ func nodeOffline(deviceID string, geoInfo region.GeoInfo, nodeType api.NodeTypeN
 	return nil
 }
 
-func updateLastRequestTime(deviceID string) error {
+func updateLastRequestTime(deviceID string) {
 	lastTime := time.Now()
 
 	edge := getEdgeNode(deviceID)
 	if edge != nil {
 		edge.lastRequestTime = lastTime
-		return nil
+		return
 	}
 
 	candidate := getCandidateNode(deviceID)
 	if edge != nil {
 		candidate.lastRequestTime = lastTime
-		return nil
+		return
 	}
-
-	return xerrors.Errorf("device not find")
 }
 
 // getNodeURLWithData find device
@@ -181,4 +178,20 @@ func getNodeURLWithData(cid, ip string) (string, error) {
 	url := fmt.Sprintf("%s/block/get?cid=%s", addr, cid)
 
 	return url, nil
+}
+
+// getCandidateNodesWithData find device
+func getCandidateNodesWithData(cid string, geoInfo region.GeoInfo) ([]*CandidateNode, error) {
+	deviceIDs, err := db.GetCacheDB().GetNodesWithCacheList(cid)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(deviceIDs) <= 0 {
+		return nil, xerrors.Errorf("not find node with cid:%v", cid)
+	}
+
+	nodeCs, _ := findCandidateNodeWithGeo(geoInfo, deviceIDs, []string{})
+
+	return nodeCs, nil
 }

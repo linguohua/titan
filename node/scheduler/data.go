@@ -8,6 +8,7 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db"
+	"github.com/linguohua/titan/region"
 
 	"golang.org/x/xerrors"
 )
@@ -22,72 +23,133 @@ const (
 )
 
 // 检查缓存失败的cid
-func getCacheFailCids(deviceID string) ([]api.ReqCacheData, error) {
-	list := make([]api.ReqCacheData, 0)
-
+func getCacheFailCids(deviceID string) ([]string, error) {
 	infos, err := db.GetCacheDB().GetCacheDataInfos(deviceID)
 	if err != nil {
-		return list, err
+		return nil, err
 	}
 
 	if len(infos) <= 0 {
-		return list, nil
+		return nil, nil
 	}
+
+	cs := make([]string, 0)
 
 	for cid, tag := range infos {
-		isInCacheList, err := db.GetCacheDB().IsNodeInCacheList(cid, deviceID)
-		if err == nil && isInCacheList {
-			continue
+		// isInCacheList, err := db.GetCacheDB().IsNodeInCacheList(cid, deviceID)
+		if tag == fmt.Sprintf("%d", -1) {
+			cs = append(cs, cid)
 		}
-
-		list = append(list, api.ReqCacheData{Cid: cid, ID: tag})
 	}
 
-	return list, nil
+	return cs, nil
 }
 
 // NotifyNodeCacheData Cache Data
-func cacheDataOfNode(cids []string, deviceID string) error {
+func cacheDataOfNode(cids []string, deviceID string) ([]string, []string, error) {
 	// 判断device是什么节点
 	edge := getEdgeNode(deviceID)
 	candidate := getCandidateNode(deviceID)
 	if edge == nil && candidate == nil {
-		return xerrors.New("node not find")
+		return nil, nil, xerrors.New("node not find")
 	}
 	if edge != nil && candidate != nil {
-		return xerrors.New(fmt.Sprintf("node error ,deviceID:%v", deviceID))
+		return nil, nil, xerrors.New(fmt.Sprintf("node error ,deviceID:%v", deviceID))
 	}
 
-	reqs := make([]api.ReqCacheData, 0)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	if edge != nil {
+		reqDatas, alreadyCacheCids, notFindNodeCids := getReqCacheData(deviceID, cids, true, edge.geoInfo)
+
+		for _, reqData := range reqDatas {
+			err := edge.nodeAPI.CacheData(ctx, reqData)
+			if err != nil {
+				log.Errorf("edge CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+			}
+		}
+
+		return alreadyCacheCids, notFindNodeCids, nil
+	}
+
+	if candidate != nil {
+		reqDatas, alreadyCacheCids, notFindNodeCids := getReqCacheData(deviceID, cids, false, candidate.geoInfo)
+
+		for _, reqData := range reqDatas {
+			err := candidate.nodeAPI.CacheData(ctx, reqData)
+			if err != nil {
+				log.Errorf("candidate CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+			}
+		}
+
+		return alreadyCacheCids, notFindNodeCids, nil
+	}
+
+	return nil, nil, nil
+}
+
+func getReqCacheData(deviceID string, cids []string, isEdge bool, geoInfo region.GeoInfo) ([]api.ReqCacheData, []string, []string) {
+	alreadyCacheCids := make([]string, 0)
+	notFindNodeCids := make([]string, 0)
+	reqList := make([]api.ReqCacheData, 0)
+
+	if !isEdge {
+		cs := make([]string, 0)
+
+		for _, cid := range cids {
+			err := nodeCacheReady(deviceID, cid)
+			if err != nil {
+				log.Warnf("cacheDataOfNode nodeCacheReady err:%v,cid:%v", err, cid)
+				alreadyCacheCids = append(alreadyCacheCids, cid)
+				continue
+			}
+
+			cs = append(cs, cid)
+		}
+
+		reqList = append(reqList, api.ReqCacheData{Cids: cs})
+
+		return reqList, alreadyCacheCids, notFindNodeCids
+	}
+
+	// 如果是边缘节点的话 要在候选节点里面找资源
+	csMap := make(map[string][]string)
 
 	for _, cid := range cids {
 		err := nodeCacheReady(deviceID, cid)
 		if err != nil {
 			log.Warnf("cacheDataOfNode nodeCacheReady err:%v,cid:%v", err, cid)
+			alreadyCacheCids = append(alreadyCacheCids, cid)
+			continue
+		}
+		// 看看哪个候选节点有这个cid
+		candidates, err := getCandidateNodesWithData(cid, geoInfo)
+		if err != nil {
+			log.Warnf("cacheDataOfNode getCandidateNodesWithData err:%v,cid:%v", err, cid)
+			notFindNodeCids = append(notFindNodeCids, cid)
 			continue
 		}
 
-		reqData := api.ReqCacheData{Cid: cid}
-		reqs = append(reqs, reqData)
+		candidate := candidates[randomNum(0, len(candidates))]
+
+		list := csMap[candidate.deviceInfo.DeviceId]
+		if list == nil {
+			list = make([]string, 0)
+		}
+		list = append(list, cid)
+
+		csMap[candidate.deviceInfo.DeviceId] = list
 	}
 
-	if edge != nil {
-		err := edge.nodeAPI.CacheData(context.Background(), reqs)
-		if err != nil {
-			log.Errorf("CacheData err:%v", err)
-			return err
+	for deviceID, list := range csMap {
+		node := getCandidateNode(deviceID)
+		if node != nil {
+			reqList = append(reqList, api.ReqCacheData{Cids: list, CandidateURL: node.addr})
 		}
 	}
 
-	if candidate != nil {
-		err := candidate.nodeAPI.CacheData(context.Background(), reqs)
-		if err != nil {
-			log.Errorf("CacheData err:%v", err)
-			return err
-		}
-	}
-
-	return nil
+	return reqList, alreadyCacheCids, notFindNodeCids
 }
 
 // NodeCacheResult Device Cache Result

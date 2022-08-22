@@ -10,7 +10,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var initDeviceIDs = &cli.Command{
+var initDeviceIDsCmd = &cli.Command{
 	Name:  "initDeviceID",
 	Usage: "init deviceID",
 	Flags: []cli.Flag{

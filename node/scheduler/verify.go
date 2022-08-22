@@ -97,10 +97,14 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 		}
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
 	// 请求抽查
-	err := candidate.nodeAPI.VerifyData(context.Background(), req)
+	err := candidate.nodeAPI.VerifyData(ctx, req)
 	if err != nil {
 		log.Errorf("VerifyData err:%v, DeviceId:%v", err.Error(), validatorID)
+		// TODO 记录到数据库
 		return
 	}
 }

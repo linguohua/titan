@@ -21,6 +21,8 @@ type CommonAPI struct {
 	Alerting     *alerting.Alerting
 	APISecret    *jwt.HMACSHA
 	ShutdownChan chan struct{}
+
+	SessionCallBack func(string)
 }
 
 type jwtPayload struct {
@@ -28,6 +30,11 @@ type jwtPayload struct {
 }
 
 // MethodGroup: Auth
+
+// NewCommonAPI New CommonAPI
+func NewCommonAPI(callback func(string)) CommonAPI {
+	return CommonAPI{SessionCallBack: callback}
+}
 
 func (a CommonAPI) AuthVerify(ctx context.Context, token string) ([]auth.Permission, error) {
 	var payload jwtPayload
@@ -84,6 +91,10 @@ func (a CommonAPI) Shutdown(context.Context) error {
 
 // Session returns a random UUID of api provider session
 func (a CommonAPI) Session(ctx context.Context, deviceID string) (uuid.UUID, error) {
+	if a.SessionCallBack != nil {
+		a.SessionCallBack(deviceID)
+	}
+
 	return session, nil
 }
 
