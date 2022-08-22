@@ -153,7 +153,7 @@ var runCmd = &cli.Command{
 			},
 		}
 
-		scheduler.InitTimewheel()
+		scheduler.InitVerifyTimewheel()
 
 		go func() {
 			<-ctx.Done()

@@ -36,8 +36,8 @@ var (
 // 验证过程
 // 4.每个候选节点根据下行带宽,一次验证N个集群
 
-// InitTimewheel init timer
-func InitTimewheel() {
+// InitVerifyTimewheel init timer
+func InitVerifyTimewheel() {
 	// 选举定时器
 	timewheelElection = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
 		electionValidators()
@@ -169,7 +169,7 @@ func spotCheckResult(verifyResults api.VerifyResults) error {
 			break
 		}
 
-		if tag != fidStr {
+		if fmt.Sprintf("%d", tag) != fidStr {
 			status = db.SpotCheckStatusFail
 			msg = fmt.Sprintf("tag:%v,fidStr:%v,Cid:%v", tag, fidStr, result.Cid)
 			break

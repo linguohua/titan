@@ -2,10 +2,12 @@ package scheduler
 
 import (
 	"sync"
+	"time"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/linguohua/titan/region"
+	"github.com/ouqiang/timewheel"
 )
 
 // 节点管理器 管理节点对象
@@ -20,7 +22,63 @@ var (
 	edgeCount      int
 	candidateCount int
 	validatorCount int
+
+	timewheelKeepalive *timewheel.TimeWheel
+	keepaliveTime      = 30 // 保活时间间隔 (秒)
 )
+
+// InitKeepaliveTimewheel ndoe Keepalive
+func InitKeepaliveTimewheel() {
+	// 保活定时器
+	timewheelKeepalive = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
+		nodeKeepalive()
+		// 继续添加定时器
+		timewheelKeepalive.AddTimer(time.Duration(keepaliveTime)*time.Second, "Keepalive", nil)
+	})
+	timewheelKeepalive.Start()
+	// 开始一个事件处理
+	timewheelKeepalive.AddTimer(time.Duration(30)*time.Second, "Keepalive", nil)
+}
+
+func nodeKeepalive() {
+	nowTime := time.Now()
+
+	edgeNodeMap.Range(func(key, value interface{}) bool {
+		deviceID := key.(string)
+		node := value.(*EdgeNode)
+
+		if node == nil {
+			return true
+		}
+
+		lastTime := node.lastRequestTime.Add(time.Duration(keepaliveTime) * time.Second)
+
+		if !lastTime.After(nowTime) {
+			// 离线
+			nodeOffline(deviceID, node.geoInfo, api.TypeNameEdge)
+		}
+
+		return true
+	})
+
+	candidateNodeMap.Range(func(key, value interface{}) bool {
+		deviceID := key.(string)
+		node := value.(*CandidateNode)
+
+		if node == nil {
+			return true
+		}
+
+		lastTime := node.lastRequestTime.Add(time.Duration(keepaliveTime) * time.Second)
+
+		if !lastTime.After(nowTime) {
+			// 离线
+			nodeOffline(deviceID, node.geoInfo, api.TypeNameEdge)
+		}
+
+		return true
+	})
+}
 
 func addEdgeNode(node *EdgeNode) error {
 	// geo ip

@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -53,6 +54,12 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		bandwidth:  300, // 默认30m
 	}
 
+	ok, err := db.GetCacheDB().IsEdgeInDeviceIDList(deviceInfo.DeviceId)
+	if err != nil || !ok {
+		log.Errorf("EdgeNodeConnect IsEdgeInDeviceIDList err:%v,deviceID:%s", err, deviceInfo.DeviceId)
+		return xerrors.Errorf("deviceID does not exist")
+	}
+
 	err = addEdgeNode(&edgeNode)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect addEdgeNode err:%v,deviceID:%s", err, deviceInfo.DeviceId)
@@ -91,6 +98,34 @@ func (s Scheduler) CacheData(ctx context.Context, cids []string, deviceID string
 	}
 
 	return cacheDataOfNode(cids, deviceID)
+}
+
+// InitNodeDeviceIDs Init Node DeviceIDs (test)
+func (s Scheduler) InitNodeDeviceIDs(ctx context.Context) error {
+	edgePrefix := "edge_"
+	candidatePrefix := "candidate_"
+
+	edgeList := make([]string, 0)
+	candidateList := make([]string, 0)
+	for i := 0; i < 1000; i++ {
+		edgeID := fmt.Sprintf("%s%d", edgePrefix, i)
+		candidateID := fmt.Sprintf("%s%d", candidatePrefix, i)
+
+		edgeList = append(edgeList, edgeID)
+		candidateList = append(edgeList, candidateID)
+	}
+
+	err := db.GetCacheDB().SetEdgeDeviceIDList(edgeList)
+	if err != nil {
+		log.Errorf("SetEdgeDeviceIDList err:%v", err.Error())
+	}
+
+	err = db.GetCacheDB().SetCandidateDeviceIDList(candidateList)
+	if err != nil {
+		log.Errorf("SetCandidateDeviceIDList err:%v", err.Error())
+	}
+
+	return err
 }
 
 // GetDeviceIDs Get all online node id
@@ -166,6 +201,12 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 		closer:     closer,
 		deviceInfo: deviceInfo,
 		bandwidth:  1024, // 默认1G
+	}
+
+	ok, err := db.GetCacheDB().IsCandidateInDeviceIDList(deviceInfo.DeviceId)
+	if err != nil || !ok {
+		log.Errorf("EdgeNodeConnect IsCandidateInDeviceIDList err:%v,deviceID:%s", err, deviceInfo.DeviceId)
+		return xerrors.Errorf("deviceID does not exist")
 	}
 
 	err = addCandidateNode(&candidateNode)

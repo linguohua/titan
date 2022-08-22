@@ -25,6 +25,8 @@ type EdgeNode struct {
 
 	// 上行带宽 TODO 要等节点来报告
 	bandwidth int // MB为单位
+
+	lastRequestTime time.Time
 }
 
 // CandidateNode Candidate node
@@ -42,6 +44,8 @@ type CandidateNode struct {
 
 	// 下行带宽  TODO 要等节点来报告
 	bandwidth int // MB为单位
+
+	lastRequestTime time.Time
 }
 
 // NodeOnline Save DeciceInfo
@@ -116,6 +120,24 @@ func nodeOffline(deviceID string, geoInfo region.GeoInfo, nodeType api.NodeTypeN
 	}
 
 	return nil
+}
+
+func updateLastRequestTime(deviceID string) error {
+	lastTime := time.Now()
+
+	edge := getEdgeNode(deviceID)
+	if edge != nil {
+		edge.lastRequestTime = lastTime
+		return nil
+	}
+
+	candidate := getCandidateNode(deviceID)
+	if edge != nil {
+		candidate.lastRequestTime = lastTime
+		return nil
+	}
+
+	return xerrors.Errorf("device not find")
 }
 
 // getNodeURLWithData find device

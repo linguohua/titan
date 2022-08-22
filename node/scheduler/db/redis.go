@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -36,6 +37,11 @@ const (
 	redisKeySpotCheckResult = "Titan:SpotCheckResult:%s:%s"
 	// redisKeySpotCheckList
 	redisKeySpotCheckList = "Titan:SpotCheckList"
+
+	// RedisKeyEdgeDeviceIDList
+	redisKeyEdgeDeviceIDList = "Titan:EdgeDeviceIDList"
+	// RedisKeyCandidateDeviceIDList
+	redisKeyCandidateDeviceIDList = "Titan:CandidateDeviceIDList"
 
 	// node info field
 	lastTimeField   = "LastTime"
@@ -112,10 +118,15 @@ func (rd redisDB) SetCacheDataInfo(deviceID, cid string, tag int64) error {
 }
 
 // get cache info
-func (rd redisDB) GetCacheDataInfo(deviceID, cid string) (string, error) {
+func (rd redisDB) GetCacheDataInfo(deviceID, cid string) (int64, error) {
 	key := fmt.Sprintf(redisKeyNodeDatas, deviceID)
 
-	return rd.cli.HGet(context.Background(), key, cid).Result()
+	str, err := rd.cli.HGet(context.Background(), key, cid).Result()
+	if err != nil {
+		return 0, err
+	}
+
+	return strconv.ParseInt(str, 10, 64)
 }
 
 // get all cache info
@@ -356,4 +367,26 @@ func (rd redisDB) DelValidatorGeoList(deviceID string) error {
 
 	_, err := rd.cli.Del(context.Background(), key).Result()
 	return err
+}
+
+//  add
+func (rd redisDB) SetEdgeDeviceIDList(deviceIDs []string) error {
+	_, err := rd.cli.SAdd(context.Background(), redisKeyEdgeDeviceIDList, deviceIDs).Result()
+	return err
+}
+
+// SISMEMBER
+func (rd redisDB) IsEdgeInDeviceIDList(deviceID string) (bool, error) {
+	return rd.cli.SIsMember(context.Background(), redisKeyEdgeDeviceIDList, deviceID).Result()
+}
+
+//  add
+func (rd redisDB) SetCandidateDeviceIDList(deviceIDs []string) error {
+	_, err := rd.cli.SAdd(context.Background(), redisKeyCandidateDeviceIDList, deviceIDs).Result()
+	return err
+}
+
+// SISMEMBER
+func (rd redisDB) IsCandidateInDeviceIDList(deviceID string) (bool, error) {
+	return rd.cli.SIsMember(context.Background(), redisKeyCandidateDeviceIDList, deviceID).Result()
 }
