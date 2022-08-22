@@ -115,7 +115,7 @@ type SchedulerStruct struct {
 
 	Internal struct {
 
-		CacheData func(p0 context.Context, p1 []string, p2 string) ([]string, []string, error) `perm:"read"`
+		CacheData func(p0 context.Context, p1 []string, p2 string) ([]string, error) `perm:"read"`
 
 		CacheResult func(p0 context.Context, p1 string, p2 string, p3 bool) (string, error) `perm:"read"`
 
@@ -387,15 +387,15 @@ func (s *EdgeStub) WaitQuiet(p0 context.Context) (error) {
 
 
 
-func (s *SchedulerStruct) CacheData(p0 context.Context, p1 []string, p2 string) ([]string, []string, error) {
+func (s *SchedulerStruct) CacheData(p0 context.Context, p1 []string, p2 string) ([]string, error) {
 	if s.Internal.CacheData == nil {
-		return *new([]string),*new([]string), ErrNotSupported
+		return *new([]string), ErrNotSupported
 	}
 	return s.Internal.CacheData(p0, p1, p2)
 }
 
-func (s *SchedulerStub) CacheData(p0 context.Context, p1 []string, p2 string) ([]string, []string, error) {
-	return *new([]string),*new([]string), ErrNotSupported
+func (s *SchedulerStub) CacheData(p0 context.Context, p1 []string, p2 string) ([]string, error) {
+	return *new([]string), ErrNotSupported
 }
 
 func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 string, p2 string, p3 bool) (string, error) {

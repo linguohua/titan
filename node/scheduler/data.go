@@ -46,22 +46,22 @@ func getCacheFailCids(deviceID string) ([]string, error) {
 }
 
 // NotifyNodeCacheData Cache Data
-func cacheDataOfNode(cids []string, deviceID string) ([]string, []string, error) {
+func cacheDataOfNode(cids []string, deviceID string) ([]string, error) {
 	// 判断device是什么节点
 	edge := getEdgeNode(deviceID)
 	candidate := getCandidateNode(deviceID)
 	if edge == nil && candidate == nil {
-		return nil, nil, xerrors.New("node not find")
+		return nil, xerrors.New("node not find")
 	}
 	if edge != nil && candidate != nil {
-		return nil, nil, xerrors.New(fmt.Sprintf("node error ,deviceID:%v", deviceID))
+		return nil, xerrors.New(fmt.Sprintf("node error ,deviceID:%v", deviceID))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	if edge != nil {
-		reqDatas, alreadyCacheCids, notFindNodeCids := getReqCacheData(deviceID, cids, true, edge.geoInfo)
+		reqDatas, _, notFindNodeCids := getReqCacheData(deviceID, cids, true, edge.geoInfo)
 
 		for _, reqData := range reqDatas {
 			err := edge.nodeAPI.CacheData(ctx, reqData)
@@ -70,11 +70,11 @@ func cacheDataOfNode(cids []string, deviceID string) ([]string, []string, error)
 			}
 		}
 
-		return alreadyCacheCids, notFindNodeCids, nil
+		return notFindNodeCids, nil
 	}
 
 	if candidate != nil {
-		reqDatas, alreadyCacheCids, notFindNodeCids := getReqCacheData(deviceID, cids, false, candidate.geoInfo)
+		reqDatas, _, notFindNodeCids := getReqCacheData(deviceID, cids, false, candidate.geoInfo)
 
 		for _, reqData := range reqDatas {
 			err := candidate.nodeAPI.CacheData(ctx, reqData)
@@ -83,10 +83,10 @@ func cacheDataOfNode(cids []string, deviceID string) ([]string, []string, error)
 			}
 		}
 
-		return alreadyCacheCids, notFindNodeCids, nil
+		return notFindNodeCids, nil
 	}
 
-	return nil, nil, nil
+	return nil, nil
 }
 
 func getReqCacheData(deviceID string, cids []string, isEdge bool, geoInfo region.GeoInfo) ([]api.ReqCacheData, []string, []string) {
