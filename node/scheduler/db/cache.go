@@ -9,6 +9,7 @@ import (
 // CacheDB cache db
 type CacheDB interface {
 	IncrNodeCacheTag(deviceID string) (int64, error)
+	GetNodeCacheTag(deviceID string) (int64, error)
 	IncrSpotCheckID() (int64, error)
 	GetSpotCheckID() (string, error)
 
@@ -18,9 +19,14 @@ type CacheDB interface {
 	DelSpotCheckList() error
 
 	DelCacheDataInfo(deviceID, cid string) error
-	SetCacheDataInfo(deviceID, cid string, tag int64) error
-	GetCacheDataInfo(deviceID, cid string) (int64, error)
+	SetCacheDataInfo(deviceID, cid string, tag string) error
+	GetCacheDataInfo(deviceID, cid string) (string, error)
 	GetCacheDataInfos(deviceID string) (map[string]string, error)
+
+	DelCacheDataTagInfo(deviceID, tag string) error
+	SetCacheDataTagInfo(deviceID, cid string, tag string) error
+	GetCacheDataTagInfo(deviceID, tag string) (string, error)
+	GetCacheDataTagInfos(deviceID string) (map[string]string, error)
 
 	DelNodeWithCacheList(deviceID, cid string) error
 	SetNodeToCacheList(deviceID, cid string) error
@@ -29,6 +35,7 @@ type CacheDB interface {
 
 	SetNodeInfo(deviceID string, info NodeInfo) error
 	GetNodeInfo(deviceID string) (NodeInfo, error)
+	AddNodeOnlineTime(deviceID string, onlineTime int64) error
 
 	DelNodeWithGeoList(deviceID, geo string) error
 	SetNodeToGeoList(deviceID, geo string) error

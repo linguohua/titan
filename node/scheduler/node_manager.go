@@ -46,7 +46,7 @@ func nodeKeepalive() {
 	// log.Warnf("nodeKeepalive nowTime:%v, time.Now():%v", nowTime, time.Now())
 
 	edgeNodeMap.Range(func(key, value interface{}) bool {
-		// deviceID := key.(string)
+		deviceID := key.(string)
 		node := value.(*EdgeNode)
 
 		if node == nil {
@@ -54,18 +54,23 @@ func nodeKeepalive() {
 		}
 
 		lastTime := node.lastRequestTime
-		// log.Warnf("nodeKeepalive deviceID:%v ,lastTime:%v,After:%v", deviceID, lastTime, !lastTime.After(nowTime))
 
 		if !lastTime.After(nowTime) {
 			// 离线
-			deleteEdgeNode(node, lastTime)
+			deleteEdgeNode(node)
+			return true
+		}
+
+		err := db.GetCacheDB().AddNodeOnlineTime(deviceID, int64(keepaliveTime))
+		if err != nil {
+			log.Warnf("AddNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
 		}
 
 		return true
 	})
 
 	candidateNodeMap.Range(func(key, value interface{}) bool {
-		// deviceID := key.(string)
+		deviceID := key.(string)
 		node := value.(*CandidateNode)
 
 		if node == nil {
@@ -76,7 +81,13 @@ func nodeKeepalive() {
 
 		if !lastTime.After(nowTime) {
 			// 离线
-			deleteCandidateNode(node, lastTime)
+			deleteCandidateNode(node)
+			return true
+		}
+
+		err := db.GetCacheDB().AddNodeOnlineTime(deviceID, int64(keepaliveTime))
+		if err != nil {
+			log.Warnf("AddNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
 		}
 
 		return true
@@ -124,7 +135,7 @@ func getEdgeNode(deviceID string) *EdgeNode {
 	return nil
 }
 
-func deleteEdgeNode(node *EdgeNode, lastTime time.Time) {
+func deleteEdgeNode(node *EdgeNode) {
 	deviceID := node.deviceInfo.DeviceId
 	// close old node
 	node.closer()
@@ -133,7 +144,7 @@ func deleteEdgeNode(node *EdgeNode, lastTime time.Time) {
 
 	edgeNodeMap.Delete(deviceID)
 
-	err := nodeOffline(deviceID, node.geoInfo, api.TypeNameEdge, lastTime)
+	err := nodeOffline(deviceID, node.geoInfo, api.TypeNameEdge, node.lastRequestTime)
 	if err != nil {
 		log.Errorf("DeviceOffline err:%v,deviceID:%v", err.Error(), deviceID)
 	}
@@ -188,7 +199,7 @@ func getCandidateNode(deviceID string) *CandidateNode {
 	return nil
 }
 
-func deleteCandidateNode(node *CandidateNode, lastTime time.Time) {
+func deleteCandidateNode(node *CandidateNode) {
 	deviceID := node.deviceInfo.DeviceId
 	// close old node
 	node.closer()
@@ -197,7 +208,7 @@ func deleteCandidateNode(node *CandidateNode, lastTime time.Time) {
 
 	candidateNodeMap.Delete(deviceID)
 
-	err := nodeOffline(deviceID, node.geoInfo, api.TypeNameCandidate, lastTime)
+	err := nodeOffline(deviceID, node.geoInfo, api.TypeNameCandidate, node.lastRequestTime)
 	if err != nil {
 		log.Errorf("DeviceOffline err:%v,deviceID:%v", err.Error(), deviceID)
 	}

@@ -78,11 +78,15 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 			continue
 		}
 
-		// random
-		max := len(datas)
-		req = append(req, api.ReqVerify{Seed: seed, EdgeURL: edge.addr, Duration: duration, MaxRange: max, RoundID: roundID})
+		max, err := db.GetCacheDB().GetNodeCacheTag(edgeID)
+		if err != nil {
+			log.Warnf("spotCheck GetNodeCacheTag err:%v,DeviceId:%v", err.Error(), edgeID)
+			continue
+		}
 
-		maxRangeMap[edgeID] = max
+		req = append(req, api.ReqVerify{Seed: seed, EdgeURL: edge.addr, Duration: duration, MaxRange: int(max), RoundID: roundID})
+
+		maxRangeMap[edgeID] = int(max)
 		//
 		err = db.GetCacheDB().SetSpotCheckResultInfo(roundID, edgeID, validatorID, "", db.SpotCheckStatusCreate)
 		if err != nil {
@@ -163,7 +167,12 @@ func spotCheckResult(verifyResults api.VerifyResults) error {
 		}
 
 		if result.Cid == "" {
-			continue
+			cid, err := db.GetCacheDB().GetCacheDataTagInfo(edgeID, fidStr)
+			if err == nil && cid != "" {
+				status = db.SpotCheckStatusFail
+				msg = fmt.Sprintf("GetCacheDataTagInfo err:%v,edgeID:%v,resultCid:%v,resultFid:%v", err, edgeID, result.Cid, result.Fid)
+				break
+			}
 		}
 
 		tag, err := db.GetCacheDB().GetCacheDataInfo(edgeID, result.Cid)
@@ -173,7 +182,7 @@ func spotCheckResult(verifyResults api.VerifyResults) error {
 			break
 		}
 
-		if fmt.Sprintf("%d", tag) != fidStr {
+		if tag != fidStr {
 			status = db.SpotCheckStatusFail
 			msg = fmt.Sprintf("tag:%v,fidStr:%v,Cid:%v", tag, fidStr, result.Cid)
 			break

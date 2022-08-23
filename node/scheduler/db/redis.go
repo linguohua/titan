@@ -17,6 +17,8 @@ const (
 	redisKeyNodeInfo = "Titan:NodeInfo:%s"
 	// RedisKeyNodeDatas  deviceID
 	redisKeyNodeDatas = "Titan:NodeDatas:%s"
+	// RedisKeyNodeDataTags  deviceID
+	redisKeyNodeDataTags = "Titan:NodeDataTags:%s"
 	// RedisKeyDataNodeList  cid
 	redisKeyDataNodeList = "Titan:DataNodeList:%s"
 	// RedisKeyNodeDataTag  deviceID
@@ -91,6 +93,18 @@ func (rd redisDB) IncrNodeCacheTag(deviceID string) (int64, error) {
 	return rd.cli.IncrBy(context.Background(), key, 1).Result()
 }
 
+// get SpotCheckID
+func (rd redisDB) GetNodeCacheTag(deviceID string) (int64, error) {
+	key := fmt.Sprintf(redisKeyNodeDataTag, deviceID)
+
+	val, err := rd.cli.Get(context.Background(), key).Result()
+	if err != nil {
+		return 0, err
+	}
+
+	return strconv.ParseInt(val, 10, 64)
+}
+
 // SpotCheckID ++1
 func (rd redisDB) IncrSpotCheckID() (int64, error) {
 	return rd.cli.IncrBy(context.Background(), redisKeySpotCheckID, 1).Result()
@@ -110,7 +124,7 @@ func (rd redisDB) DelCacheDataInfo(deviceID, cid string) error {
 }
 
 // set cid
-func (rd redisDB) SetCacheDataInfo(deviceID, cid string, tag int64) error {
+func (rd redisDB) SetCacheDataInfo(deviceID, cid string, tag string) error {
 	key := fmt.Sprintf(redisKeyNodeDatas, deviceID)
 
 	_, err := rd.cli.HSet(context.Background(), key, cid, tag).Result()
@@ -118,20 +132,50 @@ func (rd redisDB) SetCacheDataInfo(deviceID, cid string, tag int64) error {
 }
 
 // get cache info
-func (rd redisDB) GetCacheDataInfo(deviceID, cid string) (int64, error) {
+func (rd redisDB) GetCacheDataInfo(deviceID, cid string) (string, error) {
 	key := fmt.Sprintf(redisKeyNodeDatas, deviceID)
 
-	str, err := rd.cli.HGet(context.Background(), key, cid).Result()
-	if err != nil {
-		return 0, err
-	}
-
-	return strconv.ParseInt(str, 10, 64)
+	return rd.cli.HGet(context.Background(), key, cid).Result()
 }
 
 // get all cache info
 func (rd redisDB) GetCacheDataInfos(deviceID string) (map[string]string, error) {
 	key := fmt.Sprintf(redisKeyNodeDatas, deviceID)
+
+	return rd.cli.HGetAll(context.Background(), key).Result()
+}
+
+// del node data with cid
+func (rd redisDB) DelCacheDataTagInfo(deviceID, tag string) error {
+	key := fmt.Sprintf(redisKeyNodeDataTags, deviceID)
+
+	_, err := rd.cli.HDel(context.Background(), key, tag).Result()
+	return err
+}
+
+// set cid
+func (rd redisDB) SetCacheDataTagInfo(deviceID, cid string, tag string) error {
+	key := fmt.Sprintf(redisKeyNodeDataTags, deviceID)
+
+	_, err := rd.cli.HSet(context.Background(), key, tag, cid).Result()
+	return err
+}
+
+// get cache info
+func (rd redisDB) GetCacheDataTagInfo(deviceID, tag string) (string, error) {
+	key := fmt.Sprintf(redisKeyNodeDataTags, deviceID)
+
+	str, err := rd.cli.HGet(context.Background(), key, tag).Result()
+	if err != nil {
+		return "", err
+	}
+
+	return str, nil
+}
+
+// get all cache info
+func (rd redisDB) GetCacheDataTagInfos(deviceID string) (map[string]string, error) {
+	key := fmt.Sprintf(redisKeyNodeDataTags, deviceID)
 
 	return rd.cli.HGetAll(context.Background(), key).Result()
 }
@@ -195,11 +239,13 @@ func (rd redisDB) SetNodeInfo(deviceID string, info NodeInfo) error {
 	nType := string(info.NodeType)
 
 	_, err := rd.cli.HMSet(context.Background(), key, lastTimeField, info.LastTime, geoField, info.Geo, isOnlineField, info.IsOnline, nodeType, nType).Result()
-	if err != nil {
-		return err
-	}
+	return err
+}
 
-	_, err = rd.cli.HIncrBy(context.Background(), key, onLineTimeField, info.OnLineTime).Result()
+func (rd redisDB) AddNodeOnlineTime(deviceID string, onLineTime int64) error {
+	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+
+	_, err := rd.cli.HIncrBy(context.Background(), key, onLineTimeField, onLineTime).Result()
 	return err
 }
 
