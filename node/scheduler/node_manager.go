@@ -129,6 +129,8 @@ func deleteEdgeNode(node *EdgeNode, lastTime time.Time) {
 	// close old node
 	node.closer()
 
+	log.Warnf("deleteEdgeNode :%v", node.deviceInfo.DeviceId)
+
 	edgeNodeMap.Delete(deviceID)
 
 	err := nodeOffline(deviceID, node.geoInfo, api.TypeNameEdge, lastTime)
@@ -190,6 +192,8 @@ func deleteCandidateNode(node *CandidateNode, lastTime time.Time) {
 	deviceID := node.deviceInfo.DeviceId
 	// close old node
 	node.closer()
+
+	log.Warnf("deleteCandidateNode :%v", node.deviceInfo.DeviceId)
 
 	candidateNodeMap.Delete(deviceID)
 

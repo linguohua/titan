@@ -51,7 +51,7 @@ func cacheDataOfNode(cids []string, deviceID string) ([]string, error) {
 	edge := getEdgeNode(deviceID)
 	candidate := getCandidateNode(deviceID)
 	if edge == nil && candidate == nil {
-		return nil, xerrors.New("node not find")
+		return nil, xerrors.Errorf("node not find:%v", deviceID)
 	}
 	if edge != nil && candidate != nil {
 		return nil, xerrors.New(fmt.Sprintf("node error ,deviceID:%v", deviceID))
@@ -89,6 +89,26 @@ func cacheDataOfNode(cids []string, deviceID string) ([]string, error) {
 	return nil, nil
 }
 
+func deleteDataRecord(deviceID string, cids []string) (map[string]string, error) {
+	errorList := make(map[string]string, 0)
+	for _, cid := range cids {
+		err := db.GetCacheDB().DelNodeWithCacheList(deviceID, cid)
+		if err != nil {
+			errorList[cid] = err.Error()
+			continue
+		}
+
+		err = db.GetCacheDB().DelCacheDataInfo(deviceID, cid)
+		if err != nil {
+			errorList[cid] = err.Error()
+			// TODO 如果这里出错 上面的记录要回滚或者要再次尝试删info
+			continue
+		}
+	}
+
+	return errorList, nil
+}
+
 func getReqCacheData(deviceID string, cids []string, isEdge bool, geoInfo region.GeoInfo) ([]api.ReqCacheData, []string, []string) {
 	alreadyCacheCids := make([]string, 0)
 	notFindNodeCids := make([]string, 0)
@@ -117,17 +137,18 @@ func getReqCacheData(deviceID string, cids []string, isEdge bool, geoInfo region
 	csMap := make(map[string][]string)
 
 	for _, cid := range cids {
-		err := nodeCacheReady(deviceID, cid)
+		// 看看哪个候选节点有这个cid
+		candidates, err := getCandidateNodesWithData(cid, geoInfo)
+		if err != nil || len(candidates) < 1 {
+			log.Warnf("cacheDataOfNode getCandidateNodesWithData err:%v,len:%v,cid:%v", err, len(candidates), cid)
+			notFindNodeCids = append(notFindNodeCids, cid)
+			continue
+		}
+
+		err = nodeCacheReady(deviceID, cid)
 		if err != nil {
 			log.Warnf("cacheDataOfNode nodeCacheReady err:%v,cid:%v", err, cid)
 			alreadyCacheCids = append(alreadyCacheCids, cid)
-			continue
-		}
-		// 看看哪个候选节点有这个cid
-		candidates, err := getCandidateNodesWithData(cid, geoInfo)
-		if err != nil {
-			log.Warnf("cacheDataOfNode getCandidateNodesWithData err:%v,cid:%v", err, cid)
-			notFindNodeCids = append(notFindNodeCids, cid)
 			continue
 		}
 

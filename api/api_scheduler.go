@@ -11,6 +11,8 @@ type Scheduler interface {
 
 	CacheData(context.Context, []string, string) ([]string, error) //perm:read
 
+	DeleteDataRecord(context.Context, string, []string) (map[string]string, error)
+
 	GetDeviceIDs(context.Context, NodeTypeName) ([]string, error) //perm:read
 
 	VerifyDataResult(context.Context, VerifyResults) error //perm:read

@@ -91,6 +91,15 @@ func (s Scheduler) CacheResult(ctx context.Context, deviceID string, cid string,
 	return nodeCacheResult(deviceID, cid, isOK)
 }
 
+// DeleteDataRecord  Delete Data Record
+func (s Scheduler) DeleteDataRecord(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
+	if len(cids) <= 0 {
+		return nil, xerrors.New("cids is nil")
+	}
+
+	return deleteDataRecord(deviceID, cids)
+}
+
 // CacheData Cache Data
 func (s Scheduler) CacheData(ctx context.Context, cids []string, deviceID string) ([]string, error) {
 	if len(cids) <= 0 {

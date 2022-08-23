@@ -122,6 +122,8 @@ func nodeOffline(deviceID string, geoInfo region.GeoInfo, nodeType api.NodeTypeN
 }
 
 func updateLastRequestTime(deviceID string) {
+	// log.Infof("updateLastRequestTime------------deviceID:%v", deviceID)
+
 	lastTime := time.Now()
 
 	edge := getEdgeNode(deviceID)
@@ -131,7 +133,7 @@ func updateLastRequestTime(deviceID string) {
 	}
 
 	candidate := getCandidateNode(deviceID)
-	if edge != nil {
+	if candidate != nil {
 		candidate.lastRequestTime = lastTime
 		return
 	}
@@ -186,9 +188,10 @@ func getCandidateNodesWithData(cid string, geoInfo region.GeoInfo) ([]*Candidate
 	if err != nil {
 		return nil, err
 	}
+	log.Infof("getCandidateNodesWithData deviceIDs : %v", deviceIDs)
 
 	if len(deviceIDs) <= 0 {
-		return nil, xerrors.Errorf("not find node with cid:%v", cid)
+		return nil, xerrors.New("not find node ")
 	}
 
 	nodeCs, _ := findCandidateNodeWithGeo(geoInfo, deviceIDs, []string{})
