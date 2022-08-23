@@ -82,6 +82,21 @@ func (fs fileStore) DiskUsage() (int64, error) {
 	return si.OnDisk, nil
 }
 
+func (fs fileStore) KeyCount() (int, error) {
+	dir, err := os.Open(fs.Path)
+	if err != nil {
+		return 0, err
+	}
+	defer dir.Close() //nolint:errcheck
+
+	files, err := dir.Readdir(-1)
+	if err != nil {
+		return 0, err
+	}
+
+	return len(files), nil
+}
+
 type FileReader struct {
 	file *os.File
 }

@@ -15,6 +15,9 @@ type Edge interface {
 	DoVerify(ctx context.Context, reqVerify ReqVerify, candidateURL string) error //perm:read
 	// call by edge or candidate
 	DeleteBlocks(ctx context.Context, cid []string) (DelResult, error) //perm:read
+
+	QueryCacheStat(ctx context.Context) (CacheStat, error)            //perm:read
+	QueryCachingBlocks(ctx context.Context) (CachingBlockList, error) //perm:read
 }
 
 type ReqCacheData struct {
@@ -26,6 +29,25 @@ type DelFailed struct {
 	Cid    string
 	ErrMsg string
 }
+
 type DelResult struct {
 	List []DelFailed
+}
+
+type CacheStat struct {
+	CacheBlockCount    int
+	WaitCacheBlockNum  int
+	DoingCacheBlockNum int
+}
+
+type CachingBlockStat struct {
+	Cid             string
+	DownloadPercent float32
+	DownloadSpeed   float32
+	// milliseconds
+	CostTime int
+}
+
+type CachingBlockList struct {
+	List []CachingBlockStat
 }

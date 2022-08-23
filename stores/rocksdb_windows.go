@@ -43,3 +43,7 @@ func (r rocksdb) Stat() (fsutil.FsStat, error) {
 func (r rocksdb) DiskUsage() (int64, error) {
 	return 0, nil
 }
+
+func (r rocksdb) KeyCount() (int, error) {
+	return 0, nil
+}

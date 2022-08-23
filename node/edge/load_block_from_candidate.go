@@ -7,12 +7,9 @@ import (
 	"github.com/linguohua/titan/api/client"
 )
 
-var (
-	candidateApiMap = make(map[string]api.Candidate)
-	reqCacheDataCh  = make(chan api.ReqCacheData, 1000)
-)
-
 func startLoadBlockFromCandidate(ctx context.Context, edge EdgeAPI) {
+	reqCacheDataCh = make(chan api.ReqCacheData, 1000)
+
 	for {
 		req := <-reqCacheDataCh
 

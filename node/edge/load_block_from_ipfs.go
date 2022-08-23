@@ -7,14 +7,7 @@ import (
 
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-datastore"
 	"github.com/linguohua/titan/api"
-)
-
-var (
-	batch       = 10
-	reqDatas    []delayReq
-	maxReqCount = 5
 )
 
 type delayReq struct {
@@ -80,9 +73,14 @@ func cacheResult(ctx context.Context, edge EdgeAPI, cid string, success bool) {
 	}
 
 	if success && fid != "" {
-		err = edge.ds.Put(ctx, datastore.NewKey(fid), []byte(cid))
+		err = edge.ds.Put(ctx, newKeyFID(fid), []byte(cid))
 		if err != nil {
 			log.Errorf("load_block CacheResult save fid error:%v", err)
+		}
+
+		err = edge.ds.Put(ctx, newKeyCID(cid), []byte(fid))
+		if err != nil {
+			log.Errorf("load_block CacheResult save cid error:%v", err)
 		}
 
 	}

@@ -13,8 +13,8 @@ var EdgeCmds = []*cli.Command{
 	DeviceInfoCmd,
 	CacheDataCmd,
 	VerfyDataCmd,
-	DeleteDataCmd,
 	DoVerifyCmd,
+	DeleteBlockCmd,
 }
 
 var DeviceInfoCmd = &cli.Command{
@@ -149,58 +149,6 @@ var CacheDataCmd = &cli.Command{
 	},
 }
 
-var DeleteDataCmd = &cli.Command{
-	Name:  "delete",
-	Usage: "delete block",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "cid",
-			Usage: "block cids",
-			Value: "",
-		},
-		&cli.StringFlag{
-			Name:  "fid",
-			Usage: "block file id",
-			Value: "",
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-		fmt.Println("start cache data...")
-		api, closer, err := GetEdgeAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		// TODO: print more useful things
-
-		ids := []string{
-			"QmeUqw4FY1wqnh2FMvuc2v8KAapE7fYwu2Up4qNwhZiRk7",
-			// "QmbkdBycNb9xv69Q68ZWqFNE6ZRe5KFMtoHtA9D3MGZPhH",
-			// "QmPDuq1nhSCYwJAaPYgby5hThSGdN1QkosPoFVKUDrP4Ro",
-			// "bafkreic6vrp57vbzhzmxzetlqu5kqzb4nfcb7nrhnycn6djngp6ka4eziq",
-			// "QmaP1ifdEt9K14sVVw7Vf2kcnuicxQmwQWDt5j7ShYXjsN",
-			// "QmR7hNanvqaW9iG6jdszzoDKdDsfru5jPpu5VfQT2723kS",
-			// "QmewmdJLBotQstj3tff4hAm9NjF1Jb9dbHDJo93PWqJ4Ka",
-			// // "QmetZk77NyVmS1fDrhMNHBFaSZwtb7KXVPVqSDgXaZivpD",
-			// "QmVqpiJqXTXEseJDbmsaCduFdFpnyzoSovKaHEzZmNoYD6",
-			// // "QmWVCvoVHRMevzyDK4TuYr1ZcMzZa22kEq5RaxjnyPQb1y",
-			// "bafybeidp2bchkgkywd6vdmz3llcxaegih37u67xphd7qbf4tidxmmc5g3e",
-			// "bafybeiedqh5ps3i2b5qk6e2u262wzgwbqwg3zqvbx2ysqwe2qx4ssytj4u",
-			// "bafybeiexj2l3d6z6vl5fjqrhrtqefagixzctp52dqcchkaa2onqsqcew6e",
-			// "bafybeiabw6ts7hyrno5tiq2jut4vfde6ctawfd5axdquq4anlms2ckd5uu",
-			// "bafybeiev3435i57u5vu2a7x2v7j7t6w7fse5jdugs2tz7x2boyfpouh76q",
-			// "bafybeifuswprp2e6l5ax6nu7bshx3hsf44bagyjap7kea4rag7lgi3u63y",
-			"bafkreibelhulvqgm5kuxvh7kcvbfp544xke3otuna2rfyt3ulcuyg73akm",
-		}
-
-		api.DeleteData(context.Background(), ids)
-
-		fmt.Println("delete data success")
-		return nil
-	},
-}
-
 var DoVerifyCmd = &cli.Command{
 	Name:  "doverify",
 	Usage: "do verify edge",
@@ -232,6 +180,40 @@ var DoVerifyCmd = &cli.Command{
 		err = api.DoVerify(context.Background(), req, url)
 
 		log.Infof("DoVerify success %v", err)
+		return nil
+	},
+}
+
+var DeleteBlockCmd = &cli.Command{
+	Name:  "delete",
+	Usage: "delete blocks",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "cid",
+			Usage: "block cid",
+			Value: "",
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		api, closer, err := GetEdgeAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		cid := cctx.String("cid")
+
+		result, err := api.DeleteBlocks(context.Background(), []string{cid})
+		if err != nil {
+			return err
+		}
+
+		if len(result.List) > 0 {
+			log.Infof("delete block %s failed %v", cid, result.List[0].ErrMsg)
+			return nil
+		}
+
+		log.Infof("delete block %s success", cid)
 		return nil
 	},
 }

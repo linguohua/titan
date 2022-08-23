@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
+
 )
 
 
@@ -96,6 +97,10 @@ type EdgeStruct struct {
 		DoVerify func(p0 context.Context, p1 ReqVerify, p2 string) (error) `perm:"read"`
 
 		LoadData func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
+
+		QueryCacheStat func(p0 context.Context) (CacheStat, error) `perm:"read"`
+
+		QueryCachingBlocks func(p0 context.Context) (CachingBlockList, error) `perm:"read"`
 
 		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
 
@@ -387,6 +392,28 @@ func (s *EdgeStruct) LoadData(p0 context.Context, p1 string) ([]byte, error) {
 
 func (s *EdgeStub) LoadData(p0 context.Context, p1 string) ([]byte, error) {
 	return *new([]byte), ErrNotSupported
+}
+
+func (s *EdgeStruct) QueryCacheStat(p0 context.Context) (CacheStat, error) {
+	if s.Internal.QueryCacheStat == nil {
+		return *new(CacheStat), ErrNotSupported
+	}
+	return s.Internal.QueryCacheStat(p0)
+}
+
+func (s *EdgeStub) QueryCacheStat(p0 context.Context) (CacheStat, error) {
+	return *new(CacheStat), ErrNotSupported
+}
+
+func (s *EdgeStruct) QueryCachingBlocks(p0 context.Context) (CachingBlockList, error) {
+	if s.Internal.QueryCachingBlocks == nil {
+		return *new(CachingBlockList), ErrNotSupported
+	}
+	return s.Internal.QueryCachingBlocks(p0)
+}
+
+func (s *EdgeStub) QueryCachingBlocks(p0 context.Context) (CachingBlockList, error) {
+	return *new(CachingBlockList), ErrNotSupported
 }
 
 func (s *EdgeStruct) WaitQuiet(p0 context.Context) (error) {
