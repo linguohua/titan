@@ -100,6 +100,23 @@ func (s Scheduler) DeleteDataRecord(ctx context.Context, deviceID string, cids [
 	return deleteDataRecord(deviceID, cids)
 }
 
+// DeleteData  Delete Data Record
+func (s Scheduler) DeleteData(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
+	if len(cids) <= 0 {
+		return nil, xerrors.New("cids is nil")
+	}
+
+	errorMap := make(map[string]string)
+	// TODO 请求节点删除block
+
+	eList, err := deleteDataRecord(deviceID, cids)
+	for cid, eSrt := range eList {
+		errorMap[cid] = eSrt
+	}
+
+	return errorMap, err
+}
+
 // CacheData Cache Data
 func (s Scheduler) CacheData(ctx context.Context, cids []string, deviceID string) ([]string, error) {
 	if len(cids) <= 0 {
@@ -137,8 +154,8 @@ func (s Scheduler) InitNodeDeviceIDs(ctx context.Context) error {
 	return err
 }
 
-// GetDeviceIDs Get all online node id
-func (s Scheduler) GetDeviceIDs(ctx context.Context, nodeType api.NodeTypeName) ([]string, error) {
+// GetOnlineDeviceIDs Get all online node id
+func (s Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTypeName) ([]string, error) {
 	list := make([]string, 0)
 
 	if nodeType == api.TypeNameAll || nodeType == api.TypeNameCandidate || nodeType == api.TypeNameValidator {
