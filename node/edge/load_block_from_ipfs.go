@@ -32,7 +32,7 @@ func apiReq2DelayReq(req api.ReqCacheData) []delayReq {
 	return results
 }
 
-func startBlockLoader(ctx context.Context, edge EdgeAPI) {
+func startLoadBlockFromIPFS(ctx context.Context, edge EdgeAPI) {
 	for {
 		doLen := len(reqDatas)
 		if doLen == 0 {

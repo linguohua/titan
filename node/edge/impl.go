@@ -22,7 +22,7 @@ import (
 
 var log = logging.Logger("edge")
 
-func NewLocalEdgeNode(ctx context.Context, ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, device device.DeviceAPI) api.Edge {
+func NewLocalEdgeNode(ctx context.Context, ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, device device.DeviceAPI, isCandidate bool) api.Edge {
 	addrs, err := build.BuiltinBootstrap()
 	if err != nil {
 		log.Fatal(err)
@@ -33,15 +33,20 @@ func NewLocalEdgeNode(ctx context.Context, ds datastore.Batching, scheduler api.
 		log.Fatal(err)
 	}
 	edge := EdgeAPI{
-		ds:         ds,
-		scheduler:  scheduler,
-		blockStore: blockStore,
-		limiter:    rate.NewLimiter(rate.Inf, 0),
-		exchange:   exchange,
-		DeviceAPI:  device,
+		ds:          ds,
+		scheduler:   scheduler,
+		blockStore:  blockStore,
+		limiter:     rate.NewLimiter(rate.Inf, 0),
+		exchange:    exchange,
+		DeviceAPI:   device,
+		isCandidate: isCandidate,
 	}
 
-	go startBlockLoader(ctx, edge)
+	if isCandidate {
+		go startLoadBlockFromIPFS(ctx, edge)
+	} else {
+		go startLoadBlockFromCandidate(ctx, edge)
+	}
 
 	return edge
 }
@@ -49,11 +54,12 @@ func NewLocalEdgeNode(ctx context.Context, ds datastore.Batching, scheduler api.
 type EdgeAPI struct {
 	common.CommonAPI
 	device.DeviceAPI
-	ds         datastore.Batching
-	blockStore stores.BlockStore
-	scheduler  api.Scheduler
-	limiter    *rate.Limiter
-	exchange   exchange.Interface
+	ds          datastore.Batching
+	blockStore  stores.BlockStore
+	scheduler   api.Scheduler
+	limiter     *rate.Limiter
+	exchange    exchange.Interface
+	isCandidate bool
 }
 
 func (edge EdgeAPI) WaitQuiet(ctx context.Context) error {
@@ -63,9 +69,12 @@ func (edge EdgeAPI) WaitQuiet(ctx context.Context) error {
 
 func (edge EdgeAPI) CacheData(ctx context.Context, req api.ReqCacheData) error {
 	log.Infof("CacheData, req len:%d", len(req.Cids))
-
 	if edge.blockStore == nil {
 		return fmt.Errorf("CacheData, blockStore == nil ")
+	}
+
+	if !edge.isCandidate {
+		return addReq2Queue(edge, req)
 	}
 
 	delayReq := filterAvailableReq(edge, apiReq2DelayReq(req))
