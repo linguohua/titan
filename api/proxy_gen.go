@@ -122,7 +122,9 @@ type SchedulerStruct struct {
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
-		DeleteDataRecord func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) ``
+		DeleteData func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"read"`
+
+		DeleteDataRecord func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"read"`
 
 		EdgeNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
@@ -136,8 +138,6 @@ type SchedulerStruct struct {
 
 		GetDeviceDiagnosisHour func(p0 context.Context, p1 IncomeDailySearch) (HourDailyRes, error) `perm:"read"`
 
-		GetDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
-
 		GetDevicesCount func(p0 context.Context, p1 DevicesSearch) (DeviceType, error) `perm:"read"`
 
 		GetDevicesInfo func(p0 context.Context, p1 DevicesSearch) (DevicesInfoPage, error) `perm:"read"`
@@ -145,6 +145,8 @@ type SchedulerStruct struct {
 		GetDownloadURLWithData func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
 		GetIndexInfo func(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) `perm:"read"`
+
+		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
 
 		InitNodeDeviceIDs func(p0 context.Context) (error) `perm:"read"`
 
@@ -434,6 +436,17 @@ func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 string) (err
 	return ErrNotSupported
 }
 
+func (s *SchedulerStruct) DeleteData(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
+	if s.Internal.DeleteData == nil {
+		return *new(map[string]string), ErrNotSupported
+	}
+	return s.Internal.DeleteData(p0, p1, p2)
+}
+
+func (s *SchedulerStub) DeleteData(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
+	return *new(map[string]string), ErrNotSupported
+}
+
 func (s *SchedulerStruct) DeleteDataRecord(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
 	if s.Internal.DeleteDataRecord == nil {
 		return *new(map[string]string), ErrNotSupported
@@ -511,17 +524,6 @@ func (s *SchedulerStub) GetDeviceDiagnosisHour(p0 context.Context, p1 IncomeDail
 	return *new(HourDailyRes), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetDeviceIDs(p0 context.Context, p1 NodeTypeName) ([]string, error) {
-	if s.Internal.GetDeviceIDs == nil {
-		return *new([]string), ErrNotSupported
-	}
-	return s.Internal.GetDeviceIDs(p0, p1)
-}
-
-func (s *SchedulerStub) GetDeviceIDs(p0 context.Context, p1 NodeTypeName) ([]string, error) {
-	return *new([]string), ErrNotSupported
-}
-
 func (s *SchedulerStruct) GetDevicesCount(p0 context.Context, p1 DevicesSearch) (DeviceType, error) {
 	if s.Internal.GetDevicesCount == nil {
 		return *new(DeviceType), ErrNotSupported
@@ -564,6 +566,17 @@ func (s *SchedulerStruct) GetIndexInfo(p0 context.Context, p1 IndexRequest) (Ind
 
 func (s *SchedulerStub) GetIndexInfo(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) {
 	return *new(IndexPageRes), ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetOnlineDeviceIDs(p0 context.Context, p1 NodeTypeName) ([]string, error) {
+	if s.Internal.GetOnlineDeviceIDs == nil {
+		return *new([]string), ErrNotSupported
+	}
+	return s.Internal.GetOnlineDeviceIDs(p0, p1)
+}
+
+func (s *SchedulerStub) GetOnlineDeviceIDs(p0 context.Context, p1 NodeTypeName) ([]string, error) {
+	return *new([]string), ErrNotSupported
 }
 
 func (s *SchedulerStruct) InitNodeDeviceIDs(p0 context.Context) (error) {
