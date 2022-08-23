@@ -29,7 +29,7 @@ type verifyBlock struct {
 var verifyChannelMap = make(map[string]chan verifyBlock)
 
 func NewLocalCandidateNode(ctx context.Context, ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, device device.DeviceAPI, url string) api.Candidate {
-	a := edge.NewLocalEdgeNode(ctx, ds, scheduler, blockStore, device)
+	a := edge.NewLocalEdgeNode(ctx, ds, scheduler, blockStore, device, true)
 	edgeAPI := a.(edge.EdgeAPI)
 	return CandidateAPI{EdgeAPI: edgeAPI, url: url}
 }

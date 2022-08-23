@@ -90,7 +90,7 @@ type EdgeStruct struct {
 
 		CacheData func(p0 context.Context, p1 ReqCacheData) (error) `perm:"read"`
 
-		DeleteData func(p0 context.Context, p1 []string) (error) `perm:"read"`
+		DeleteData func(p0 context.Context, p1 []string) (DelResult, error) `perm:"read"`
 
 		DoVerify func(p0 context.Context, p1 ReqVerify, p2 string) (error) `perm:"read"`
 
@@ -342,15 +342,15 @@ func (s *EdgeStub) CacheData(p0 context.Context, p1 ReqCacheData) (error) {
 	return ErrNotSupported
 }
 
-func (s *EdgeStruct) DeleteData(p0 context.Context, p1 []string) (error) {
+func (s *EdgeStruct) DeleteData(p0 context.Context, p1 []string) (DelResult, error) {
 	if s.Internal.DeleteData == nil {
-		return ErrNotSupported
+		return *new(DelResult), ErrNotSupported
 	}
 	return s.Internal.DeleteData(p0, p1)
 }
 
-func (s *EdgeStub) DeleteData(p0 context.Context, p1 []string) (error) {
-	return ErrNotSupported
+func (s *EdgeStub) DeleteData(p0 context.Context, p1 []string) (DelResult, error) {
+	return *new(DelResult), ErrNotSupported
 }
 
 func (s *EdgeStruct) DoVerify(p0 context.Context, p1 ReqVerify, p2 string) (error) {

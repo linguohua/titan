@@ -294,7 +294,7 @@ var runCmd = &cli.Command{
 		blockStore := stores.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
 		deviceInfo := device.DeviceAPI{BlockStore: blockStore, PublicIP: publicIP, DeviceID: deviceID, InternalIP: internalIP}
 
-		edgeApi := edge.NewLocalEdgeNode(context.Background(), ds, schedulerAPI, blockStore, deviceInfo)
+		edgeApi := edge.NewLocalEdgeNode(context.Background(), ds, schedulerAPI, blockStore, deviceInfo, false)
 
 		log.Info("Setting up control endpoint at " + address)
 
