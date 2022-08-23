@@ -121,6 +121,8 @@ type SchedulerStruct struct {
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
+		DeleteDataRecord func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) ``
+
 		EdgeNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
 		ElectionValidators func(p0 context.Context) (error) `perm:"read"`
@@ -418,6 +420,17 @@ func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context, p1 string) (e
 
 func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 string) (error) {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) DeleteDataRecord(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
+	if s.Internal.DeleteDataRecord == nil {
+		return *new(map[string]string), ErrNotSupported
+	}
+	return s.Internal.DeleteDataRecord(p0, p1, p2)
+}
+
+func (s *SchedulerStub) DeleteDataRecord(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
+	return *new(map[string]string), ErrNotSupported
 }
 
 func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context, p1 string) (error) {
