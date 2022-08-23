@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -89,6 +88,8 @@ type EdgeStruct struct {
 		BlockStoreStat func(p0 context.Context) (error) `perm:"read"`
 
 		CacheData func(p0 context.Context, p1 ReqCacheData) (error) `perm:"read"`
+
+		DeleteBlocks func(p0 context.Context, p1 []string) (DelResult, error) `perm:"read"`
 
 		DeleteData func(p0 context.Context, p1 []string) (DelResult, error) `perm:"read"`
 
@@ -340,6 +341,17 @@ func (s *EdgeStruct) CacheData(p0 context.Context, p1 ReqCacheData) (error) {
 
 func (s *EdgeStub) CacheData(p0 context.Context, p1 ReqCacheData) (error) {
 	return ErrNotSupported
+}
+
+func (s *EdgeStruct) DeleteBlocks(p0 context.Context, p1 []string) (DelResult, error) {
+	if s.Internal.DeleteBlocks == nil {
+		return *new(DelResult), ErrNotSupported
+	}
+	return s.Internal.DeleteBlocks(p0, p1)
+}
+
+func (s *EdgeStub) DeleteBlocks(p0 context.Context, p1 []string) (DelResult, error) {
+	return *new(DelResult), ErrNotSupported
 }
 
 func (s *EdgeStruct) DeleteData(p0 context.Context, p1 []string) (DelResult, error) {

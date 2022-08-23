@@ -188,23 +188,61 @@ func getCID(edge EdgeAPI, fid string) (string, error) {
 	return string(value), nil
 }
 
-func (edge EdgeAPI) DeleteData(ctx context.Context, cids []string) error {
+// call by scheduler
+func (edge EdgeAPI) DeleteData(ctx context.Context, cids []string) (api.DelResult, error) {
 	log.Info("DeleteData")
+	delResult := api.DelResult{}
+	delResult.List = make([]api.DelFailed, 0)
 
 	if edge.blockStore == nil {
 		log.Errorf("DeleteData, blockStore not setting")
-		return fmt.Errorf("edge.blockStore == nil")
+		return delResult, fmt.Errorf("edge.blockStore == nil")
 	}
 
 	for _, id := range cids {
 		err := edge.blockStore.Delete(id)
 		if err != nil {
-			log.Errorf("DeleteData, block %s not exist", id)
+			result := api.DelFailed{Cid: id, ErrMsg: err.Error()}
+			delResult.List = append(delResult.List, result)
+			log.Errorf("DeleteData, delete block %s error:%v", id, err)
 		}
 	}
-	return nil
+	return delResult, nil
 }
 
+// call by edge or candidate
+func (edge EdgeAPI) DeleteBlocks(ctx context.Context, cids []string) (api.DelResult, error) {
+	log.Info("DeleteBlock")
+	delResult := api.DelResult{}
+	delResult.List = make([]api.DelFailed, 0)
+
+	result, err := edge.scheduler.DeleteDataRecord(ctx, edge.DeviceID, cids)
+	if err != nil {
+		log.Errorf("DeleteBlock, delete block error:%v", err)
+		return delResult, err
+	}
+
+	for _, cid := range cids {
+		_, ok := result[cid]
+		if ok {
+			continue
+		}
+
+		err = edge.blockStore.Delete(cid)
+		if err != nil {
+			log.Errorf("DeleteBlock, delete block %s from blockstore error:%v", cid, err)
+			result[cid] = err.Error()
+		}
+	}
+
+	for k, v := range result {
+		log.Errorf("DeleteBlock, delete block %s error:%v", k, v)
+		result := api.DelFailed{Cid: k, ErrMsg: v}
+		delResult.List = append(delResult.List, result)
+	}
+
+	return delResult, nil
+}
 func (edge EdgeAPI) GetSchedulerAPI() api.Scheduler {
 	log.Info("GetSchedulerAPI")
 	return edge.scheduler
