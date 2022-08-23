@@ -107,7 +107,44 @@ func (s Scheduler) DeleteData(ctx context.Context, deviceID string, cids []strin
 	}
 
 	errorMap := make(map[string]string)
-	// TODO 请求节点删除block
+
+	nodeFinded := false
+
+	edge := getEdgeNode(deviceID)
+	if edge != nil {
+		result, err := edge.nodeAPI.DeleteData(ctx, cids)
+		if err != nil {
+			return nil, err
+		}
+
+		nodeFinded = true
+
+		if len(result.List) > 0 {
+			for _, data := range result.List {
+				errorMap[data.Cid] = data.ErrMsg
+			}
+		}
+	}
+
+	candidate := getCandidateNode(deviceID)
+	if candidate != nil {
+		result, err := candidate.nodeAPI.DeleteData(ctx, cids)
+		if err != nil {
+			return nil, err
+		}
+
+		nodeFinded = true
+
+		if len(result.List) > 0 {
+			for _, data := range result.List {
+				errorMap[data.Cid] = data.ErrMsg
+			}
+		}
+	}
+
+	if !nodeFinded {
+		return nil, xerrors.New("node not find")
+	}
 
 	eList, err := deleteDataRecord(deviceID, cids)
 	for cid, eSrt := range eList {

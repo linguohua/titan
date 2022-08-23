@@ -98,9 +98,22 @@ func deleteDataRecord(deviceID string, cids []string) (map[string]string, error)
 			continue
 		}
 
+		tag, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
+		if err != nil {
+			errorList[cid] = fmt.Sprintf("GetCacheDataInfo err : %v", err.Error())
+			continue
+		}
+
 		err = db.GetCacheDB().DelCacheDataInfo(deviceID, cid)
 		if err != nil {
-			errorList[cid] = err.Error()
+			errorList[cid] = fmt.Sprintf("DelCacheDataInfo err : %v", err.Error())
+			// TODO 如果这里出错 上面的记录要回滚或者要再次尝试删info
+			continue
+		}
+
+		err = db.GetCacheDB().DelCacheDataTagInfo(deviceID, tag)
+		if err != nil {
+			errorList[cid] = fmt.Sprintf("DelCacheDataTagInfo err : %v", err.Error())
 			// TODO 如果这里出错 上面的记录要回滚或者要再次尝试删info
 			continue
 		}
@@ -177,8 +190,8 @@ func getReqCacheData(deviceID string, cids []string, isEdge bool, geoInfo region
 func nodeCacheResult(deviceID, cid string, isOk bool) (string, error) {
 	log.Infof("nodeCacheResult deviceID:%v,cid:%v,isOk:%v", deviceID, cid, isOk)
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
-	if err == nil && v != -1 {
-		return fmt.Sprintf("%d", v), nil
+	if err == nil && v != "-1" {
+		return v, nil
 	}
 
 	if !isOk {
@@ -192,7 +205,14 @@ func nodeCacheResult(deviceID, cid string, isOk bool) (string, error) {
 		return "", err
 	}
 
-	err = db.GetCacheDB().SetCacheDataInfo(deviceID, cid, tag)
+	tagStr := fmt.Sprintf("%d", tag)
+
+	err = db.GetCacheDB().SetCacheDataInfo(deviceID, cid, tagStr)
+	if err != nil {
+		return "", err
+	}
+
+	err = db.GetCacheDB().SetCacheDataTagInfo(deviceID, cid, tagStr)
 	if err != nil {
 		return "", err
 	}
@@ -202,8 +222,8 @@ func nodeCacheResult(deviceID, cid string, isOk bool) (string, error) {
 
 func newCacheDataTag(deviceID, cid string) (string, error) {
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
-	if err == nil && v != -1 {
-		return fmt.Sprintf("%d", v), xerrors.Errorf("already cache")
+	if err == nil && v != "-1" {
+		return v, xerrors.Errorf("already cache")
 	}
 
 	tag, err := db.GetCacheDB().IncrNodeCacheTag(deviceID)
@@ -218,11 +238,11 @@ func newCacheDataTag(deviceID, cid string) (string, error) {
 // Node Cache ready
 func nodeCacheReady(deviceID, cid string) error {
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
-	if err == nil && v != -1 {
+	if err == nil && v != "-1" {
 		return xerrors.Errorf("already cache")
 	}
 
-	return db.GetCacheDB().SetCacheDataInfo(deviceID, cid, -1)
+	return db.GetCacheDB().SetCacheDataInfo(deviceID, cid, "-1")
 }
 
 // 生成[start,end)结束的随机数

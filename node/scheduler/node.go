@@ -71,7 +71,7 @@ func nodeOnline(deviceID string, onlineTime int64, geoInfo region.GeoInfo, typeN
 	// log.Infof("oldgeo:%v,newgeo:%v,err:%v", nodeInfo.Geo, geoInfo.Geo, err)
 
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
-	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{OnLineTime: onlineTime, Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: true, NodeType: typeName})
+	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: true, NodeType: typeName})
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func nodeOffline(deviceID string, geoInfo region.GeoInfo, nodeType api.NodeTypeN
 	// 	return err
 	// }
 
-	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{OnLineTime: 0, Geo: geoInfo.Geo, LastTime: lastTime.Format("2006-01-02 15:04:05"), IsOnline: false, NodeType: nodeType})
+	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{Geo: geoInfo.Geo, LastTime: lastTime.Format("2006-01-02 15:04:05"), IsOnline: false, NodeType: nodeType})
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,6 @@ func nodeOffline(deviceID string, geoInfo region.GeoInfo, nodeType api.NodeTypeN
 
 func updateLastRequestTime(deviceID string) {
 	// log.Infof("updateLastRequestTime------------deviceID:%v", deviceID)
-
 	lastTime := time.Now()
 
 	edge := getEdgeNode(deviceID)
@@ -188,7 +187,7 @@ func getCandidateNodesWithData(cid string, geoInfo region.GeoInfo) ([]*Candidate
 	if err != nil {
 		return nil, err
 	}
-	log.Infof("getCandidateNodesWithData deviceIDs : %v", deviceIDs)
+	// log.Infof("getCandidateNodesWithData deviceIDs : %v", deviceIDs)
 
 	if len(deviceIDs) <= 0 {
 		return nil, xerrors.New("not find node ")
