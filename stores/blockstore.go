@@ -15,6 +15,7 @@ type BlockStore interface {
 	GetReader(key string) (BlockReader, error)
 	Has(key string) (exists bool, err error)
 	Stat() (fsutil.FsStat, error)
+	KeyCount() (int, error)
 	// GetSize(ctx context.Context, key string) (size int, err error)
 }
 

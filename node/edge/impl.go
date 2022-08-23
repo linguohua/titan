@@ -15,12 +15,9 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/device"
 )
-
-var log = logging.Logger("edge")
 
 func NewLocalEdgeNode(ctx context.Context, ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, device device.DeviceAPI, isCandidate bool) api.Edge {
 	addrs, err := build.BuiltinBootstrap()
@@ -62,6 +59,11 @@ type EdgeAPI struct {
 	isCandidate bool
 }
 
+func (edge EdgeAPI) GetSchedulerAPI() api.Scheduler {
+	log.Info("GetSchedulerAPI")
+	return edge.scheduler
+}
+
 func (edge EdgeAPI) WaitQuiet(ctx context.Context) error {
 	log.Info("WaitQuiet")
 	return nil
@@ -77,6 +79,7 @@ func (edge EdgeAPI) CacheData(ctx context.Context, req api.ReqCacheData) error {
 		return addReq2Queue(edge, req)
 	}
 
+	// cache data for candidate
 	delayReq := filterAvailableReq(edge, apiReq2DelayReq(req))
 	if len(delayReq) == 0 {
 		log.Infof("CacheData, len(req) == 0 not need to handle")
@@ -175,19 +178,6 @@ func sendBlock(ctx context.Context, edge EdgeAPI, candidateAPI api.Candidate, fi
 	return candidateAPI.SendBlock(ctx, block, edge.DeviceID)
 }
 
-func getCID(edge EdgeAPI, fid string) (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	value, err := edge.ds.Get(ctx, datastore.NewKey(fid))
-	if err != nil {
-		log.Errorf("Get cid from store error:%v, fid:%s", err, fid)
-		return "", err
-	}
-
-	return string(value), nil
-}
-
 // call by scheduler
 func (edge EdgeAPI) DeleteData(ctx context.Context, cids []string) (api.DelResult, error) {
 	log.Info("DeleteData")
@@ -199,12 +189,28 @@ func (edge EdgeAPI) DeleteData(ctx context.Context, cids []string) (api.DelResul
 		return delResult, fmt.Errorf("edge.blockStore == nil")
 	}
 
-	for _, id := range cids {
-		err := edge.blockStore.Delete(id)
+	for _, cid := range cids {
+		err := edge.blockStore.Delete(cid)
 		if err != nil {
-			result := api.DelFailed{Cid: id, ErrMsg: err.Error()}
+			result := api.DelFailed{Cid: cid, ErrMsg: err.Error()}
 			delResult.List = append(delResult.List, result)
-			log.Errorf("DeleteData, delete block %s error:%v", id, err)
+			log.Errorf("DeleteData, delete block %s error:%v", cid, err)
+			continue
+		}
+
+		fid, err := getFID(edge, cid)
+		if err != nil {
+			log.Errorf("DeleteData, get fid from cid %s error:%v", cid, err)
+			continue
+		}
+
+		err = edge.ds.Delete(ctx, newKeyFID(fid))
+		if err != nil {
+			log.Errorf("DeleteData, delete key fid %s error:%v", fid, err)
+		}
+		err = edge.ds.Delete(ctx, newKeyCID(cid))
+		if err != nil {
+			log.Errorf("DeleteData, delete key cid %s error:%v", cid, err)
 		}
 	}
 	return delResult, nil
@@ -230,8 +236,22 @@ func (edge EdgeAPI) DeleteBlocks(ctx context.Context, cids []string) (api.DelRes
 
 		err = edge.blockStore.Delete(cid)
 		if err != nil {
-			log.Errorf("DeleteBlock, delete block %s from blockstore error:%v", cid, err)
 			result[cid] = err.Error()
+		}
+
+		fid, err := getFID(edge, cid)
+		if err != nil {
+			log.Errorf("DeleteData, get fid from cid %s error:%v", cid, err)
+			continue
+		}
+
+		err = edge.ds.Delete(ctx, newKeyFID(fid))
+		if err != nil {
+			log.Errorf("DeleteData, delete key fid %s error:%v", fid, err)
+		}
+		err = edge.ds.Delete(ctx, newKeyCID(cid))
+		if err != nil {
+			log.Errorf("DeleteData, delete key cid %s error:%v", cid, err)
 		}
 	}
 
@@ -243,7 +263,26 @@ func (edge EdgeAPI) DeleteBlocks(ctx context.Context, cids []string) (api.DelRes
 
 	return delResult, nil
 }
-func (edge EdgeAPI) GetSchedulerAPI() api.Scheduler {
-	log.Info("GetSchedulerAPI")
-	return edge.scheduler
+
+func (edge EdgeAPI) QueryCacheStat(ctx context.Context) (api.CacheStat, error) {
+	result := api.CacheStat{}
+
+	keyCount, err := edge.blockStore.KeyCount()
+	if err != nil {
+		log.Errorf("block store key count error:%v", err)
+	}
+	result.CacheBlockCount = keyCount
+
+	if edge.isCandidate {
+		result.WaitCacheBlockNum = len(reqDatas)
+	} else {
+		result.WaitCacheBlockNum = 0
+	}
+	result.DoingCacheBlockNum = 0
+	return result, nil
+}
+
+func (edge EdgeAPI) QueryCachingBlocks(ctx context.Context) (api.CachingBlockList, error) {
+	result := api.CachingBlockList{}
+	return result, nil
 }

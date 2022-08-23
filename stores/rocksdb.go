@@ -180,6 +180,10 @@ func (r rocksdb) DiskUsage() (int64, error) {
 	return si.OnDisk, nil
 }
 
+func (r rocksdb) KeyCount() (int, error) {
+	return 0, nil
+}
+
 type Reader struct {
 	r *bytes.Reader
 }
