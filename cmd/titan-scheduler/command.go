@@ -89,7 +89,7 @@ var runCmd = &cli.Command{
 		}
 
 		scheduler.InitKeepaliveTimewheel()
-		// scheduler.InitVerifyTimewheel()
+		scheduler.InitVerifyTimewheel()
 
 		go func() {
 			<-ctx.Done()

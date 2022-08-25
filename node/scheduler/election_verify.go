@@ -22,10 +22,10 @@ var (
 	maxRangeMap map[string]int
 
 	timewheelElection *timewheel.TimeWheel
-	electionTime      = 60 // 选举时间间隔 (分钟)
+	electionTime      = 60 * 24 // 选举时间间隔 (分钟)
 
 	timewheelSpotCheck *timewheel.TimeWheel
-	spotCheckTime      = 5 // 抽查时间间隔 (分钟)
+	spotCheckTime      = 60 // 抽查时间间隔 (分钟)
 )
 
 // 边缘节点登录的时候
@@ -173,6 +173,9 @@ func spotCheckResult(verifyResults api.VerifyResults) error {
 				msg = fmt.Sprintf("GetCacheDataTagInfo err:%v,edgeID:%v,resultCid:%v,resultFid:%v", err, edgeID, result.Cid, result.Fid)
 				break
 			}
+
+			// 确实没有这个cid
+			continue
 		}
 
 		tag, err := db.GetCacheDB().GetCacheDataInfo(edgeID, result.Cid)
