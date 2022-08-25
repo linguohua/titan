@@ -324,6 +324,11 @@ var delDataCmd = &cli.Command{
 			Usage: "cache node device id",
 			Value: "",
 		},
+		&cli.StringFlag{
+			Name:  "caches-path",
+			Usage: "cache cids file path",
+			Value: "",
+		},
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -334,6 +339,7 @@ var delDataCmd = &cli.Command{
 		url := cctx.String("api-url")
 		cids := cctx.String("cids")
 		deviceID := cctx.String("deviceID")
+		cachesPath := cctx.String("caches-path")
 
 		log.Infof("del cid:%v,url:%v,deviceID:%v", cids, url, deviceID)
 
@@ -357,7 +363,18 @@ var delDataCmd = &cli.Command{
 
 		defer closer()
 
-		cidList := strings.Split(cids, ",")
+		var cidList []string
+		if cids != "" {
+			cidList = strings.Split(cids, ",")
+		}
+
+		if cachesPath != "" {
+			cidList, err = loadFile(cachesPath)
+			if err != nil {
+				log.Errorf("loadFile err:%v", err)
+				return err
+			}
+		}
 
 		errorCids, err := schedulerAPI.DeleteData(ctx, deviceID, cidList)
 		if err != nil {

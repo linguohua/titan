@@ -22,7 +22,7 @@ type Scheduler interface {
 	DeleteDataRecord(context.Context, string, []string) (map[string]string, error) //perm:read
 	VerifyDataResult(context.Context, VerifyResults) error                         //perm:read
 	CandidateNodeConnect(context.Context, string) error                            //perm:read
-	CacheResult(context.Context, string, string, bool) (string, error)             //perm:read
+	CacheResult(context.Context, string, CacheResultInfo) (string, error)          //perm:read
 	GetCacheTag(context.Context, string, string) (string, error)                   //perm:read
 
 	// call by user
@@ -35,4 +35,13 @@ type Scheduler interface {
 	GetDeviceDiagnosisDaily(context.Context, IncomeDailySearch) (IncomeDailyRes, error) //perm:read
 	GetDeviceDiagnosisHour(context.Context, IncomeDailySearch) (HourDailyRes, error)    //perm:read
 	SaveDailyInfo(context.Context, IncomeDaily) error                                   //perm:read
+}
+
+// CacheResultInfo cache data result info
+type CacheResultInfo struct {
+	Cid           string
+	IsOK          bool
+	Msg           string
+	From          string
+	DownloadSpeed float32
 }
