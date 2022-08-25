@@ -18,6 +18,8 @@ var (
 	seed     = int64(1)
 	duration = 10
 
+	spotCheckMax = 100 // 每次抽查个数上限
+
 	roundID string
 	fidsMap map[string][]string
 
@@ -88,7 +90,7 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 		for _, tag := range datas {
 			fids = append(fids, tag)
 
-			if len(fids) > 100 {
+			if len(fids) >= spotCheckMax {
 				break
 			}
 		}
@@ -123,8 +125,8 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 }
 
 func getRandFid(max int, r *rand.Rand) int {
-	if max > 1 {
-		return r.Intn(max-1) + 1 // 过滤0
+	if max > 0 {
+		return r.Intn(max) // 过滤0
 	}
 
 	return max
@@ -178,15 +180,15 @@ func spotCheckResult(verifyResults api.VerifyResults) error {
 		}
 
 		if result.Cid == "" {
-			cid, err := db.GetCacheDB().GetCacheDataTagInfo(edgeID, fidStr)
-			if err == nil && cid != "" {
-				status = db.SpotCheckStatusFail
-				msg = fmt.Sprintf("GetCacheDataTagInfo err:%v,edgeID:%v,resultCid:%v,resultFid:%v", err, edgeID, result.Cid, result.Fid)
-				break
-			}
+			// cid, err := db.GetCacheDB().GetCacheDataTagInfo(edgeID, fidStr)
+			// if err == nil && cid != "" {
+			status = db.SpotCheckStatusFail
+			msg = fmt.Sprintf("resultCid:%v,resultFid:%v", result.Cid, result.Fid)
+			break
+			// }
 
 			// 确实没有这个cid
-			continue
+			// continue
 		}
 
 		tag, err := db.GetCacheDB().GetCacheDataInfo(edgeID, result.Cid)
@@ -263,6 +265,8 @@ func startSpotCheck() error {
 		return err
 	}
 	roundID = fmt.Sprintf("%d", sID)
+
+	seed = sID
 
 	fidsMap = make(map[string][]string)
 
