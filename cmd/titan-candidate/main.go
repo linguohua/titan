@@ -78,7 +78,7 @@ func main() {
 			}
 			return nil
 		},
-		Commands: append(local, lcli.CandidateCmds...),
+		Commands: append(local, lcli.EdgeCmds...),
 	}
 	app.Setup()
 	app.Metadata["repoType"] = repo.Worker

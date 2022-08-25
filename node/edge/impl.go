@@ -39,12 +39,7 @@ func NewLocalEdgeNode(ctx context.Context, ds datastore.Batching, scheduler api.
 		isCandidate: isCandidate,
 	}
 
-	if isCandidate {
-		go startLoadBlockFromIPFS(ctx, edge)
-	} else {
-		go startLoadBlockFromCandidate(ctx, edge)
-	}
-
+	go startBlockLoader(ctx, edge)
 	return edge
 }
 
@@ -75,10 +70,6 @@ func (edge EdgeAPI) CacheData(ctx context.Context, req api.ReqCacheData) error {
 		return fmt.Errorf("CacheData, blockStore == nil ")
 	}
 
-	if !edge.isCandidate {
-		return addReq2Queue(edge, req)
-	}
-
 	// cache data for candidate
 	delayReq := filterAvailableReq(edge, apiReq2DelayReq(req))
 	if len(delayReq) == 0 {
@@ -86,7 +77,7 @@ func (edge EdgeAPI) CacheData(ctx context.Context, req api.ReqCacheData) error {
 		return nil
 	}
 
-	reqDatas = append(reqDatas, delayReq...)
+	reqList = append(reqList, delayReq...)
 
 	// go loadBlocksOneByOne(edge, req)
 	return nil
@@ -117,9 +108,11 @@ func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candi
 		return fmt.Errorf("edge.blockStore == nil")
 	}
 
-	if reqVerify.MaxRange <= 0 {
-		log.Errorf("reqVerify.MaxRange <= 0")
-		return fmt.Errorf("reqVerify.MaxRange <= 0")
+	fids := reqVerify.FIDs
+
+	if len(fids) == 0 {
+		log.Errorf("len(fids) == 0")
+		return fmt.Errorf("len(fids) == 0")
 	}
 
 	candidateAPI, closer, err := client.NewCandicate(ctx, candidateURL, nil)
@@ -138,11 +131,9 @@ func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candi
 			return nil
 		default:
 		}
-		fid := reqVerify.MaxRange
-		if reqVerify.MaxRange > 1 {
-			fid = r.Intn(reqVerify.MaxRange-1) + 1
-		}
-		fidStr := fmt.Sprintf("%d", fid)
+
+		random := r.Intn(len(fids))
+		fidStr := fids[random]
 		err = sendBlock(ctx, edge, candidateAPI, fidStr)
 		if err != nil {
 			return err
@@ -271,18 +262,39 @@ func (edge EdgeAPI) QueryCacheStat(ctx context.Context) (api.CacheStat, error) {
 	if err != nil {
 		log.Errorf("block store key count error:%v", err)
 	}
-	result.CacheBlockCount = keyCount
 
-	if edge.isCandidate {
-		result.WaitCacheBlockNum = len(reqDatas)
-	} else {
-		result.WaitCacheBlockNum = 0
-	}
-	result.DoingCacheBlockNum = 0
+	result.CacheBlockCount = keyCount
+	result.WaitCacheBlockNum = len(reqList)
+	result.DoingCacheBlockNum = len(cachingList)
+
+	log.Infof("CacheBlockCount:%d,WaitCacheBlockNum:%d, DoingCacheBlockNum:%d", result.CacheBlockCount, result.WaitCacheBlockNum, result.DoingCacheBlockNum)
 	return result, nil
 }
 
 func (edge EdgeAPI) QueryCachingBlocks(ctx context.Context) (api.CachingBlockList, error) {
 	result := api.CachingBlockList{}
 	return result, nil
+}
+
+func (edge EdgeAPI) SetDownloadSpeed(ctx context.Context, speedRate int64) error {
+	log.Infof("set download speed %d", speedRate)
+	if edge.limiter == nil {
+		return fmt.Errorf("edge.limiter == nil")
+	}
+	edge.limiter.SetLimit(rate.Limit(speedRate))
+	edge.limiter.SetBurst(int(speedRate))
+
+	return nil
+}
+
+func (edge EdgeAPI) UnlimitDownloadSpeed(ctx context.Context) error {
+	log.Infof("UnlimitDownloadSpeed")
+	if edge.limiter == nil {
+		return fmt.Errorf("edge.limiter == nil")
+	}
+
+	edge.limiter.SetLimit(rate.Inf)
+	edge.limiter.SetBurst(0)
+
+	return nil
 }

@@ -60,7 +60,7 @@ func (edge EdgeAPI) GetBlock(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 
-	n, err := io.Copy(w, reader)
+	n, err := io.Copy(w, NewReader(reader, edge.limiter))
 	if err != nil {
 		log.Errorf("GetBlock, io.Copy error:%v", err)
 		return
@@ -72,13 +72,6 @@ func (edge EdgeAPI) GetBlock(w http.ResponseWriter, r *http.Request) {
 	if costTime != 0 {
 		speedRate = int64(float64(n) / float64(costTime) * 1000000000)
 	}
-
-	// TODO: set bankwidth for edge.limiter
-	// if edge.limiter.Limit() == rate.Inf && speedRate != 0 {
-	// 	edge.limiter.SetLimit(rate.Limit(speedRate))
-	// 	edge.limiter.SetBurst(int(speedRate))
-	// 	log.Infof("block_download set speed rate:%d", speedRate)
-	// }
 
 	log.Infof("Download block %s costTime %d, size %d, speed %d", cidStr, costTime, n, speedRate)
 
