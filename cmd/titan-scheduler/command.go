@@ -482,3 +482,115 @@ var initDeviceIDsCmd = &cli.Command{
 		return err
 	},
 }
+
+var cachingBlocksCmd = &cli.Command{
+	Name:  "cachingblocks",
+	Usage: "spot check edge node",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "api-url",
+			Usage: "host address and port the worker api will listen on",
+			Value: "127.0.0.1:3456",
+		},
+		&cli.StringFlag{
+			Name:  "deviceID",
+			Usage: "cache node device id",
+			Value: "",
+		},
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		url := cctx.String("api-url")
+		log.Infof("scheduler url:%v", url)
+		deviceID := cctx.String("deviceID")
+
+		ctx := lcli.ReqContext(cctx)
+
+		var schedulerAPI api.Scheduler
+		var closer func()
+		var err error
+		for {
+			schedulerAPI, closer, err = client.NewScheduler(ctx, url, nil)
+			if err == nil {
+				_, err = schedulerAPI.Version(ctx)
+				if err == nil {
+					break
+				}
+			}
+			fmt.Printf("\r\x1b[0KConnecting to miner API... (%s)", err)
+			time.Sleep(time.Second)
+			continue
+		}
+
+		defer closer()
+
+		body, err := schedulerAPI.QueryCachingBlocksWithNode(ctx, deviceID)
+		if err != nil {
+			log.Errorf("QueryCachingBlocksWithNode err:%v", err)
+			return err
+		}
+
+		log.Infof("body:%v", body)
+
+		return err
+	},
+}
+
+var cacheStatCmd = &cli.Command{
+	Name:  "cachestat",
+	Usage: "spot check edge node",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "api-url",
+			Usage: "host address and port the worker api will listen on",
+			Value: "127.0.0.1:3456",
+		},
+		&cli.StringFlag{
+			Name:  "deviceID",
+			Usage: "cache node device id",
+			Value: "",
+		},
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		url := cctx.String("api-url")
+		log.Infof("scheduler url:%v", url)
+		deviceID := cctx.String("deviceID")
+
+		ctx := lcli.ReqContext(cctx)
+
+		var schedulerAPI api.Scheduler
+		var closer func()
+		var err error
+		for {
+			schedulerAPI, closer, err = client.NewScheduler(ctx, url, nil)
+			if err == nil {
+				_, err = schedulerAPI.Version(ctx)
+				if err == nil {
+					break
+				}
+			}
+			fmt.Printf("\r\x1b[0KConnecting to miner API... (%s)", err)
+			time.Sleep(time.Second)
+			continue
+		}
+
+		defer closer()
+
+		body, err := schedulerAPI.QueryCacheStatWithNode(ctx, deviceID)
+		if err != nil {
+			log.Errorf("QueryCacheStatWithNode err:%v", err)
+			return err
+		}
+
+		log.Infof("body:%v", body)
+
+		return err
+	},
+}

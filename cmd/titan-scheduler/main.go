@@ -35,6 +35,8 @@ func main() {
 		showOnlineNodeCmd,
 		delDataCmd,
 		initDeviceIDsCmd,
+		cachingBlocksCmd,
+		cacheStatCmd,
 	}
 
 	app := &cli.App{
