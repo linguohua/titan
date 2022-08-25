@@ -87,8 +87,8 @@ func (s Scheduler) VerifyDataResult(ctx context.Context, verifyResults api.Verif
 }
 
 // CacheResult Cache Data Result
-func (s Scheduler) CacheResult(ctx context.Context, deviceID string, cid string, isOK bool) (string, error) {
-	return nodeCacheResult(deviceID, cid, isOK)
+func (s Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
+	return nodeCacheResult(deviceID, info)
 }
 
 // DeleteDataRecord  Delete Data Record
@@ -146,7 +146,16 @@ func (s Scheduler) DeleteData(ctx context.Context, deviceID string, cids []strin
 		return nil, xerrors.New("node not find")
 	}
 
-	eList, err := deleteDataRecord(deviceID, cids)
+	delRecordList := make([]string, 0)
+	for _, cid := range cids {
+		if errorMap[cid] != "" {
+			continue
+		}
+
+		delRecordList = append(delRecordList, cid)
+	}
+
+	eList, err := deleteDataRecord(deviceID, delRecordList)
 	for cid, eSrt := range eList {
 		errorMap[cid] = eSrt
 	}
@@ -302,7 +311,7 @@ func (s Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string) 
 	if err == nil && len(infos) > 0 {
 		count := 0
 		for _, tag := range infos {
-			if tag != "-1" {
+			if tag != dataTagErr {
 				count++
 			}
 		}

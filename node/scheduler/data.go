@@ -20,6 +20,8 @@ const (
 	countryLevel  geoLevel = 1
 	provinceLevel geoLevel = 2
 	cityLevel     geoLevel = 3
+
+	dataTagErr string = "-1"
 )
 
 // 检查缓存失败的cid
@@ -187,14 +189,14 @@ func getReqCacheData(deviceID string, cids []string, isEdge bool, geoInfo region
 }
 
 // NodeCacheResult Device Cache Result
-func nodeCacheResult(deviceID, cid string, isOk bool) (string, error) {
-	log.Infof("nodeCacheResult deviceID:%v,cid:%v,isOk:%v", deviceID, cid, isOk)
-	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
-	if err == nil && v != "-1" {
+func nodeCacheResult(deviceID string, info api.CacheResultInfo) (string, error) {
+	log.Infof("nodeCacheResult deviceID:%v,info:%v", deviceID, info)
+	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, info.Cid)
+	if err == nil && v != dataTagErr {
 		return v, nil
 	}
 
-	if !isOk {
+	if !info.IsOK {
 		// return "", db.GetCacheDB().DelCacheDataInfo(deviceID, cid)
 		return "", nil
 	}
@@ -207,22 +209,22 @@ func nodeCacheResult(deviceID, cid string, isOk bool) (string, error) {
 
 	tagStr := fmt.Sprintf("%d", tag)
 
-	err = db.GetCacheDB().SetCacheDataInfo(deviceID, cid, tagStr)
+	err = db.GetCacheDB().SetCacheDataInfo(deviceID, info.Cid, tagStr)
 	if err != nil {
 		return "", err
 	}
 
-	err = db.GetCacheDB().SetCacheDataTagInfo(deviceID, cid, tagStr)
+	err = db.GetCacheDB().SetCacheDataTagInfo(deviceID, info.Cid, tagStr)
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf("%d", tag), db.GetCacheDB().SetNodeToCacheList(deviceID, cid)
+	return fmt.Sprintf("%d", tag), db.GetCacheDB().SetNodeToCacheList(deviceID, info.Cid)
 }
 
 func newCacheDataTag(deviceID, cid string) (string, error) {
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
-	if err == nil && v != "-1" {
+	if err == nil && v != dataTagErr {
 		return v, xerrors.Errorf("already cache")
 	}
 
@@ -238,11 +240,11 @@ func newCacheDataTag(deviceID, cid string) (string, error) {
 // Node Cache ready
 func nodeCacheReady(deviceID, cid string) error {
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
-	if err == nil && v != "-1" {
+	if err == nil && v != dataTagErr {
 		return xerrors.Errorf("already cache")
 	}
 
-	return db.GetCacheDB().SetCacheDataInfo(deviceID, cid, "-1")
+	return db.GetCacheDB().SetCacheDataInfo(deviceID, cid, dataTagErr)
 }
 
 // 生成[start,end)结束的随机数

@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
+
 )
 
 
@@ -122,7 +123,7 @@ type SchedulerStruct struct {
 
 		CacheData func(p0 context.Context, p1 []string, p2 string) ([]string, error) `perm:"read"`
 
-		CacheResult func(p0 context.Context, p1 string, p2 string, p3 bool) (string, error) `perm:"read"`
+		CacheResult func(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) `perm:"read"`
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
@@ -444,14 +445,14 @@ func (s *SchedulerStub) CacheData(p0 context.Context, p1 []string, p2 string) ([
 	return *new([]string), ErrNotSupported
 }
 
-func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 string, p2 string, p3 bool) (string, error) {
+func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) {
 	if s.Internal.CacheResult == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.CacheResult(p0, p1, p2, p3)
+	return s.Internal.CacheResult(p0, p1, p2)
 }
 
-func (s *SchedulerStub) CacheResult(p0 context.Context, p1 string, p2 string, p3 bool) (string, error) {
+func (s *SchedulerStub) CacheResult(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) {
 	return "", ErrNotSupported
 }
 
