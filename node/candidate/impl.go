@@ -135,6 +135,12 @@ func verify(req api.ReqVerify, candidate CandidateAPI) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	if len(req.FIDs) == 0 {
+		sendVerifyResult(ctx, candidate, result)
+		log.Errorf("len(req.FIDs) == 0 ")
+		return
+	}
+
 	edgeAPI, closer, err := client.NewEdge(ctx, req.EdgeURL, nil)
 	if err != nil {
 		result.IsTimeout = true
@@ -185,12 +191,8 @@ func verify(req api.ReqVerify, candidate CandidateAPI) {
 	r := rand.New(rand.NewSource(req.Seed))
 	results := make([]api.VerifyResult, 0, len(result.Results))
 	for _, rs := range result.Results {
-		fid := req.MaxRange
-		if req.MaxRange > 1 {
-			fid = r.Intn(req.MaxRange-1) + 1
-		}
-
-		rs.Fid = fmt.Sprintf("%d", fid)
+		random := r.Intn(len(req.FIDs))
+		rs.Fid = req.FIDs[random]
 		results = append(results, rs)
 	}
 

@@ -7,75 +7,83 @@ import (
 	"github.com/linguohua/titan/api/client"
 )
 
-func startLoadBlockFromCandidate(ctx context.Context, edge EdgeAPI) {
-	reqCacheDataCh = make(chan api.ReqCacheData, 1000)
-
-	for {
-		req := <-reqCacheDataCh
-
-		loadBlocksFromCandidate(edge, req)
-	}
+type candidateApi struct {
+	api      api.Candidate
+	deviceID string
 }
 
-func getCandidateAPI(candidateURL string) (api.Candidate, error) {
-	candidateAPI, ok := candidateApiMap[candidateURL]
+func getCandidateAPI(candidateURL string) (*candidateApi, error) {
+	candidate, ok := candidateApiMap[candidateURL]
 	if ok {
-		return candidateAPI, nil
+		return candidate, nil
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	candidateAPI, _, err := client.NewCandicate(ctx, candidateURL, nil)
+	api, _, err := client.NewCandicate(ctx, candidateURL, nil)
 	if err != nil {
 		log.Errorf("getCandidateAPI, NewCandicate err:%v", err)
 		return nil, err
 	}
 
-	candidateApiMap[candidateURL] = candidateAPI
-
-	return candidateAPI, nil
-}
-
-func failAll(ctx context.Context, edge EdgeAPI, req api.ReqCacheData) {
-	for _, cid := range req.Cids {
-		cacheResult(ctx, edge, cid, false)
-		log.Infof("loadBlocksFromCandidate fail, cid:%s", cid)
+	info, err := api.DeviceInfo(ctx)
+	if err != nil {
+		log.Errorf("getCandidateAPI, NewCandicate err:%v", err)
+		return nil, err
 	}
+
+	candidate = &candidateApi{api: api, deviceID: info.DeviceId}
+
+	candidateApiMap[candidateURL] = candidate
+
+	return candidate, nil
 }
 
-func loadBlocksFromCandidate(edge EdgeAPI, req api.ReqCacheData) {
+func loadBlocksFromCandidate(edge EdgeAPI, reqs []delayReq) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	api, err := getCandidateAPI(req.CandidateURL)
-	if err != nil {
-		failAll(ctx, edge, req)
-		log.Errorf("getCandidateAPI error:%v", err)
-		return
+	reqMap := make(map[string][]delayReq)
+	for _, req := range reqs {
+		rqs, ok := reqMap[req.candidateURL]
+		if !ok {
+			rqs = make([]delayReq, 0)
+		}
+		rqs = append(rqs, req)
+		reqMap[req.candidateURL] = rqs
 	}
 
-	failCids := make([]string, 0)
-	for _, cid := range req.Cids {
-		data, err := api.LoadData(ctx, cid)
-		if err == nil {
-			err = edge.blockStore.Put(cid, data)
-		} else {
-			failCids = append(failCids, cid)
+	failMap := make(map[string][]delayReq)
+	for _, req := range reqs {
+		candidate, err := getCandidateAPI(req.candidateURL)
+		if err != nil {
+			cacheResult(ctx, edge, req.cid, "", err)
+			log.Errorf("getCandidateAPI error:%v", err)
+			continue
 		}
 
-		cacheResult(ctx, edge, cid, err == nil)
+		data, err := candidate.api.LoadData(ctx, req.cid)
+		if err == nil {
+			err = edge.blockStore.Put(req.cid, data)
+		} else {
+			fails, ok := failMap[req.candidateURL]
+			if !ok {
+				fails = make([]delayReq, 0)
+			}
+			fails = append(fails, req)
+			failMap[req.candidateURL] = fails
+		}
 
-		log.Infof("loadBlocksFromCandidate, cid:%s,err:%v", cid, err)
+		cacheResult(ctx, edge, req.cid, candidate.deviceID, err)
+
+		log.Infof("loadBlocksFromCandidate, cid:%s,err:%v", req.cid, err)
 	}
 
-	// delete api if all fail, make it connect next time
-	if len(failCids) == len(req.Cids) {
-		delete(candidateApiMap, req.CandidateURL)
+	// may be need to delete api if all fail, make it connect next time
+	for k, v := range failMap {
+		if len(v) == len(reqMap[k]) {
+			delete(candidateApiMap, k)
+		}
 	}
-}
-
-func addReq2Queue(edge EdgeAPI, req api.ReqCacheData) error {
-	reqCacheDataCh <- req
-	return nil
 }

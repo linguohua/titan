@@ -18,6 +18,8 @@ type Edge interface {
 
 	QueryCacheStat(ctx context.Context) (CacheStat, error)            //perm:read
 	QueryCachingBlocks(ctx context.Context) (CachingBlockList, error) //perm:read
+	SetDownloadSpeed(ctx context.Context, speed int64) error          //perm:read
+	UnlimitDownloadSpeed(ctx context.Context) error                   //perm:read
 }
 
 type ReqCacheData struct {

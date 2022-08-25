@@ -17,7 +17,7 @@ type ReqVerify struct {
 
 	RoundID string
 
-	MaxRange int // 废弃
+	// MaxRange int // 废弃
 }
 
 type VerifyResult struct {

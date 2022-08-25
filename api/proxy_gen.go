@@ -102,6 +102,10 @@ type EdgeStruct struct {
 
 		QueryCachingBlocks func(p0 context.Context) (CachingBlockList, error) `perm:"read"`
 
+		SetDownloadSpeed func(p0 context.Context, p1 int64) (error) `perm:"read"`
+
+		UnlimitDownloadSpeed func(p0 context.Context) (error) `perm:"read"`
+
 		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
 
 	}
@@ -418,6 +422,28 @@ func (s *EdgeStruct) QueryCachingBlocks(p0 context.Context) (CachingBlockList, e
 
 func (s *EdgeStub) QueryCachingBlocks(p0 context.Context) (CachingBlockList, error) {
 	return *new(CachingBlockList), ErrNotSupported
+}
+
+func (s *EdgeStruct) SetDownloadSpeed(p0 context.Context, p1 int64) (error) {
+	if s.Internal.SetDownloadSpeed == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.SetDownloadSpeed(p0, p1)
+}
+
+func (s *EdgeStub) SetDownloadSpeed(p0 context.Context, p1 int64) (error) {
+	return ErrNotSupported
+}
+
+func (s *EdgeStruct) UnlimitDownloadSpeed(p0 context.Context) (error) {
+	if s.Internal.UnlimitDownloadSpeed == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.UnlimitDownloadSpeed(p0)
+}
+
+func (s *EdgeStub) UnlimitDownloadSpeed(p0 context.Context) (error) {
+	return ErrNotSupported
 }
 
 func (s *EdgeStruct) WaitQuiet(p0 context.Context) (error) {
