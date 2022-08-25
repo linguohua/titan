@@ -18,8 +18,8 @@ var (
 	seed     = int64(1)
 	duration = 10
 
-	roundID     string
-	maxRangeMap map[string]int
+	roundID string
+	fidsMap map[string][]string
 
 	timewheelElection *timewheel.TimeWheel
 	electionTime      = 60 * 24 // 选举时间间隔 (分钟)
@@ -78,15 +78,24 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 			continue
 		}
 
-		max, err := db.GetCacheDB().GetNodeCacheTag(edgeID)
-		if err != nil {
-			log.Warnf("spotCheck GetNodeCacheTag err:%v,DeviceId:%v", err.Error(), edgeID)
-			continue
+		// max, err := db.GetCacheDB().GetNodeCacheTag(edgeID)
+		// if err != nil {
+		// 	log.Warnf("spotCheck GetNodeCacheTag err:%v,DeviceId:%v", err.Error(), edgeID)
+		// 	continue
+		// }
+
+		fids := make([]string, 0)
+		for _, tag := range datas {
+			fids = append(fids, tag)
+
+			if len(fids) > 100 {
+				break
+			}
 		}
 
-		req = append(req, api.ReqVerify{Seed: seed, EdgeURL: edge.addr, Duration: duration, MaxRange: int(max), RoundID: roundID})
+		req = append(req, api.ReqVerify{Seed: seed, EdgeURL: edge.addr, Duration: duration, FIDs: fids, RoundID: roundID})
 
-		maxRangeMap[edgeID] = int(max)
+		fidsMap[edgeID] = fids
 		//
 		err = db.GetCacheDB().SetSpotCheckResultInfo(roundID, edgeID, validatorID, "", db.SpotCheckStatusCreate)
 		if err != nil {
@@ -151,15 +160,17 @@ func spotCheckResult(verifyResults api.VerifyResults) error {
 		msg = fmt.Sprint("Results is nil")
 	}
 
-	max := maxRangeMap[edgeID]
+	list := fidsMap[edgeID]
+	max := len(list)
 
 	log.Infof("spotCheckResult:%v", edgeID)
 
 	for i := 0; i < rlen; i++ {
-		fid := getRandFid(max, r)
+		index := getRandFid(max, r)
 		result := verifyResults.Results[i]
 
-		fidStr := fmt.Sprintf("%d", fid)
+		fidStr := list[index]
+		// fidStr := fmt.Sprintf("%d", fid)
 		if fidStr != result.Fid {
 			status = db.SpotCheckStatusFail
 			msg = fmt.Sprintf("fidStr:%v,resultFid:%v", fidStr, result.Fid)
@@ -253,7 +264,7 @@ func startSpotCheck() error {
 	}
 	roundID = fmt.Sprintf("%d", sID)
 
-	maxRangeMap = make(map[string]int)
+	fidsMap = make(map[string][]string)
 
 	// log.Infof("validatorCount:%v,candidateCount:%v", validatorCount, candidateCount)
 	// find validators

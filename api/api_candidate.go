@@ -9,13 +9,15 @@ type Candidate interface {
 }
 
 type ReqVerify struct {
-	EdgeURL  string
-	Seed     int64
-	MaxRange int
+	EdgeURL string
+	Seed    int64
+	FIDs    []string
 	// seconds
 	Duration int
 
 	RoundID string
+
+	MaxRange int // 废弃
 }
 
 type VerifyResult struct {
