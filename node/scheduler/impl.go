@@ -293,6 +293,56 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 	return nil
 }
 
+// QueryCacheStatWithNode Query Cache Stat
+func (s Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]api.CacheStat, error) {
+	stats := make([]api.CacheStat, 0)
+
+	body := api.CacheStat{}
+	infos, err := db.GetCacheDB().GetCacheDataInfos(deviceID)
+	if err == nil && len(infos) > 0 {
+		count := 0
+		for _, tag := range infos {
+			if tag != "-1" {
+				count++
+			}
+		}
+		body.CacheBlockCount = count
+	}
+
+	stats = append(stats, body)
+
+	candidata := getCandidateNode(deviceID)
+	if candidata != nil {
+		nodeBody, _ := candidata.nodeAPI.QueryCacheStat(ctx)
+		stats = append(stats, nodeBody)
+		return stats, nil
+	}
+
+	edge := getEdgeNode(deviceID)
+	if edge != nil {
+		nodeBody, _ := edge.nodeAPI.QueryCacheStat(ctx)
+		stats = append(stats, nodeBody)
+		return stats, nil
+	}
+
+	return stats, xerrors.New("node not find")
+}
+
+// QueryCachingBlocksWithNode Query Caching Blocks
+func (s Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (api.CachingBlockList, error) {
+	candidata := getCandidateNode(deviceID)
+	if candidata != nil {
+		return candidata.nodeAPI.QueryCachingBlocks(ctx)
+	}
+
+	edge := getEdgeNode(deviceID)
+	if edge != nil {
+		return edge.nodeAPI.QueryCachingBlocks(ctx)
+	}
+
+	return api.CachingBlockList{}, xerrors.New("node not find")
+}
+
 // ElectionValidators Election Validators
 func (s Scheduler) ElectionValidators(ctx context.Context) error {
 	return electionValidators()

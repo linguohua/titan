@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -154,6 +153,10 @@ type SchedulerStruct struct {
 		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
 
 		InitNodeDeviceIDs func(p0 context.Context) (error) `perm:"read"`
+
+		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"read"`
+
+		QueryCachingBlocksWithNode func(p0 context.Context, p1 string) (CachingBlockList, error) `perm:"read"`
 
 		Retrieval func(p0 context.Context, p1 IndexPageSearch) (RetrievalPageRes, error) `perm:"read"`
 
@@ -615,6 +618,28 @@ func (s *SchedulerStruct) InitNodeDeviceIDs(p0 context.Context) (error) {
 
 func (s *SchedulerStub) InitNodeDeviceIDs(p0 context.Context) (error) {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) QueryCacheStatWithNode(p0 context.Context, p1 string) ([]CacheStat, error) {
+	if s.Internal.QueryCacheStatWithNode == nil {
+		return *new([]CacheStat), ErrNotSupported
+	}
+	return s.Internal.QueryCacheStatWithNode(p0, p1)
+}
+
+func (s *SchedulerStub) QueryCacheStatWithNode(p0 context.Context, p1 string) ([]CacheStat, error) {
+	return *new([]CacheStat), ErrNotSupported
+}
+
+func (s *SchedulerStruct) QueryCachingBlocksWithNode(p0 context.Context, p1 string) (CachingBlockList, error) {
+	if s.Internal.QueryCachingBlocksWithNode == nil {
+		return *new(CachingBlockList), ErrNotSupported
+	}
+	return s.Internal.QueryCachingBlocksWithNode(p0, p1)
+}
+
+func (s *SchedulerStub) QueryCachingBlocksWithNode(p0 context.Context, p1 string) (CachingBlockList, error) {
+	return *new(CachingBlockList), ErrNotSupported
 }
 
 func (s *SchedulerStruct) Retrieval(p0 context.Context, p1 IndexPageSearch) (RetrievalPageRes, error) {

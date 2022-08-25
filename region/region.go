@@ -53,7 +53,7 @@ func GetRegion() Region {
 // StringGeoToGeoInfo geo
 func StringGeoToGeoInfo(geo string) *GeoInfo {
 	geos := strings.Split(geo, separate)
-	if len(geos) < 3 {
+	if len(geos) != 3 {
 		return nil
 	}
 
