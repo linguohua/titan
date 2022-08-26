@@ -108,26 +108,44 @@ var runCmd = &cli.Command{
 			Value: "30m",
 		},
 		&cli.StringFlag{
-			Name:   "deviceid",
-			Hidden: true,
-			Value:  "123456789000000000", // should follow --repo default
+			Name:  "device-id",
+			Usage: "network external ip, example: --device-id=b26fb231-e986-42de-a5d9-7b512a35543d",
+			Value: "123456789000000000", // should follow --repo default
 		},
 		&cli.StringFlag{
-			Name:   "publicIP",
-			Hidden: true,
-			Value:  "218.72.111.105", // should follow --repo default
+			Name:  "public-ip",
+			Usage: "network external ip, example: --public-ip=218.72.111.105",
+			Value: "218.72.111.105", // should follow --repo default
 		},
 		&cli.StringFlag{
-			Name:    "blockstore-path",
-			EnvVars: []string{"BLOCK_STORE_PATH"},
-			Hidden:  true,
-			Value:   "./blockstore", // should follow --repo default
+			Name:  "blockstore-path",
+			Usage: "block store path, example: --blockstore-path=./blockstore",
+			Value: "./blockstore", // should follow --repo default
 		},
 		&cli.StringFlag{
-			Name:    "blockstore-type",
-			EnvVars: []string{"BLOCK_STORE_TYPE"},
-			Hidden:  true,
-			Value:   "FileStore", // should follow --repo default
+			Name:  "blockstore-type",
+			Usage: "block store type is FileStore or RocksDB, example: --blockstore-type=FileStore",
+			Value: "FileStore", // should follow --repo default
+		},
+		&cli.StringFlag{
+			Name:  "download-srv-key",
+			Usage: "download server key for who download block, example: --download-srv-key=KK20FeKPsE3qwQgR",
+			Value: "KK20FeKPsE3qwQgR", // should follow --repo default
+		},
+		&cli.StringFlag{
+			Name:  "download-srv-addr",
+			Usage: "download server address for who download block, example: --download-srv-addr=192.168.0.136:3000",
+			Value: "0.0.0.0:3000", // should follow --repo default
+		},
+		&cli.StringFlag{
+			Name:  "bandwidth-up",
+			Usage: "upload file bandwidth, unit is B/s example set 100MB/s: --bandwidth-up=104857600",
+			Value: "104857600", // should follow --repo default
+		},
+		&cli.StringFlag{
+			Name:  "bandwidth-down",
+			Usage: "download file bandwidth, unit is B/s example set 100MB/s: --bandwidth-down=104857600",
+			Value: "1073741824", // should follow --repo default
 		},
 	},
 
@@ -287,14 +305,28 @@ var runCmd = &cli.Command{
 			}
 		}
 
-		deviceID := cctx.String("deviceid")
-		publicIP := cctx.String("publicIP")
-		internalIP := strings.Split(address, ":")[0]
-
+		deviceID := cctx.String("device-id")
 		blockStore := stores.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
-		deviceInfo := device.DeviceAPI{BlockStore: blockStore, PublicIP: publicIP, DeviceID: deviceID, InternalIP: internalIP}
+		deviceInfo := device.DeviceAPI{
+			BlockStore:    blockStore,
+			PublicIP:      cctx.String("public-ip"),
+			DeviceID:      deviceID,
+			InternalIP:    strings.Split(address, ":")[0],
+			BandwidthUp:   cctx.Int64("bandwidth-up"),
+			BandwidthDown: cctx.Int64("bandwidth-down"),
+		}
 
-		edgeApi := edge.NewLocalEdgeNode(context.Background(), ds, schedulerAPI, blockStore, deviceInfo, false)
+		params := edge.EdgeParams{
+			DS:              ds,
+			Scheduler:       schedulerAPI,
+			BlockStore:      blockStore,
+			Device:          deviceInfo,
+			IsCandidate:     false,
+			DownloadSrvKey:  cctx.String("download-srv-key"),
+			DownloadSrvAddr: cctx.String("download-srv-addr"),
+		}
+
+		edgeApi := edge.NewLocalEdgeNode(context.Background(), params)
 
 		log.Info("Setting up control endpoint at " + address)
 

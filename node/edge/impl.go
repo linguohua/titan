@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/lib/p2p"
+	"github.com/linguohua/titan/lib/token"
 	"github.com/linguohua/titan/stores"
 	"golang.org/x/time/rate"
 
@@ -19,7 +21,7 @@ import (
 	"github.com/linguohua/titan/node/device"
 )
 
-func NewLocalEdgeNode(ctx context.Context, ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, device device.DeviceAPI, isCandidate bool) api.Edge {
+func NewLocalEdgeNode(ctx context.Context, params EdgeParams) api.Edge {
 	addrs, err := build.BuiltinBootstrap()
 	if err != nil {
 		log.Fatal(err)
@@ -29,29 +31,59 @@ func NewLocalEdgeNode(ctx context.Context, ds datastore.Batching, scheduler api.
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	params.Device.DownloadSrvURL = parseDownloadSrvURL(params)
 	edge := EdgeAPI{
-		ds:          ds,
-		scheduler:   scheduler,
-		blockStore:  blockStore,
-		limiter:     rate.NewLimiter(rate.Inf, 0),
-		exchange:    exchange,
-		DeviceAPI:   device,
-		isCandidate: isCandidate,
+		ds:             params.DS,
+		scheduler:      params.Scheduler,
+		blockStore:     params.BlockStore,
+		limiter:        rate.NewLimiter(rate.Inf, 0),
+		exchange:       exchange,
+		DeviceAPI:      params.Device,
+		isCandidate:    params.IsCandidate,
+		downloadSrvKey: params.DownloadSrvKey,
 	}
 
 	go startBlockLoader(ctx, edge)
+	go edge.startDownloadServer(params.DownloadSrvAddr)
+
 	return edge
+}
+
+func parseDownloadSrvURL(params EdgeParams) string {
+	const unspecifiedAddress = "0.0.0.0"
+	addressSlice := strings.Split(params.DownloadSrvAddr, ":")
+	if len(addressSlice) != 2 {
+		log.Fatal("Invalid downloadSrvAddr")
+	}
+
+	if addressSlice[0] == unspecifiedAddress {
+		return fmt.Sprintf("http://%s:%s%s", params.Device.InternalIP, addressSlice[1], downloadSrvPath)
+	}
+
+	return fmt.Sprintf("http://%s%s", params.DownloadSrvAddr, downloadSrvPath)
+}
+
+type EdgeParams struct {
+	DS              datastore.Batching
+	Scheduler       api.Scheduler
+	BlockStore      stores.BlockStore
+	Device          device.DeviceAPI
+	IsCandidate     bool
+	DownloadSrvKey  string
+	DownloadSrvAddr string
 }
 
 type EdgeAPI struct {
 	common.CommonAPI
 	device.DeviceAPI
-	ds          datastore.Batching
-	blockStore  stores.BlockStore
-	scheduler   api.Scheduler
-	limiter     *rate.Limiter
-	exchange    exchange.Interface
-	isCandidate bool
+	ds             datastore.Batching
+	blockStore     stores.BlockStore
+	scheduler      api.Scheduler
+	limiter        *rate.Limiter
+	exchange       exchange.Interface
+	isCandidate    bool
+	downloadSrvKey string
 }
 
 func (edge EdgeAPI) GetSchedulerAPI() api.Scheduler {
@@ -301,4 +333,9 @@ func (edge EdgeAPI) UnlimitDownloadSpeed(ctx context.Context) error {
 	edge.limiter.SetBurst(0)
 
 	return nil
+}
+
+func (edge EdgeAPI) GenerateDownloadToken(ctx context.Context) (string, error) {
+	log.Infof("GenerateDownloadToken")
+	return token.GenerateToken(edge.downloadSrvKey, time.Now().Add(30*24*time.Hour).Unix())
 }

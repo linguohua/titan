@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -95,6 +94,8 @@ type EdgeStruct struct {
 		DeleteData func(p0 context.Context, p1 []string) (DelResult, error) `perm:"read"`
 
 		DoVerify func(p0 context.Context, p1 ReqVerify, p2 string) (error) `perm:"read"`
+
+		GenerateDownloadToken func(p0 context.Context) (string, error) `perm:"read"`
 
 		LoadData func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
 
@@ -389,6 +390,17 @@ func (s *EdgeStruct) DoVerify(p0 context.Context, p1 ReqVerify, p2 string) (erro
 
 func (s *EdgeStub) DoVerify(p0 context.Context, p1 ReqVerify, p2 string) (error) {
 	return ErrNotSupported
+}
+
+func (s *EdgeStruct) GenerateDownloadToken(p0 context.Context) (string, error) {
+	if s.Internal.GenerateDownloadToken == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.GenerateDownloadToken(p0)
+}
+
+func (s *EdgeStub) GenerateDownloadToken(p0 context.Context) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *EdgeStruct) LoadData(p0 context.Context, p1 string) ([]byte, error) {

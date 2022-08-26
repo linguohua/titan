@@ -17,8 +17,9 @@ var (
 	cachingList     []delayReq
 	maxReqCount     = 5
 
-	keyFidPrefix = "fid-"
-	keyCidPrefix = "cid-"
+	keyFidPrefix    = "fid-"
+	keyCidPrefix    = "cid-"
+	downloadSrvPath = "/rpc/v0/block/get"
 )
 
 func newKeyFID(fid string) datastore.Key {

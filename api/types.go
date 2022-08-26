@@ -169,6 +169,10 @@ type DevicesInfo struct {
 	TodayProfit     float64 `json:"today_profit"`      // 今日收益
 	SevenDaysProfit float64 `json:"seven_days_profit"` // 近七天收益
 	MonthProfit     float64 `json:"month_profit"`      // 近30天收益
+	DownloadSrvURL  string  `json:"download_srv_url"`  // block下载地址
+	BandwidthUp     int64   `json:"bandwidth_up"`      // 上行带宽B/s
+	BandwidthDown   int64   `json:"bandwidth_down"`    // 下行带宽B/s
+
 }
 
 // TableName IndexPage

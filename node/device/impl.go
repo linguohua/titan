@@ -16,10 +16,13 @@ var log = logging.Logger("edge")
 var deviceName = "titan-edge"
 
 type DeviceAPI struct {
-	BlockStore stores.BlockStore
-	DeviceID   string
-	PublicIP   string
-	InternalIP string
+	BlockStore     stores.BlockStore
+	DeviceID       string
+	PublicIP       string
+	InternalIP     string
+	DownloadSrvURL string
+	BandwidthUp    int64
+	BandwidthDown  int64
 }
 
 func (device DeviceAPI) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
@@ -45,6 +48,9 @@ func (device DeviceAPI) DeviceInfo(ctx context.Context) (api.DevicesInfo, error)
 	info.SystemVersion = version.String()
 	info.DeviceName = deviceName
 	info.InternalIp = device.InternalIP
+	info.DownloadSrvURL = device.DownloadSrvURL
+	info.BandwidthDown = device.BandwidthDown
+	info.BandwidthUp = device.BandwidthUp
 
 	mac, err := getMacAddr(info.InternalIp)
 	if err != nil {
