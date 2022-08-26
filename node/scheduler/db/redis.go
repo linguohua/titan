@@ -33,12 +33,14 @@ const (
 	redisKeyValidatorList = "Titan:ValidatorList"
 	// RedisKeyValidatorGeoList deviceID
 	redisKeyValidatorGeoList = "Titan:ValidatorGeoList:%s"
-	// RedisKeySpotCheckID
-	redisKeySpotCheckID = "Titan:SpotCheckID"
-	// RedisKeySpotCheckResult SpotCheckID:edgeID
-	redisKeySpotCheckResult = "Titan:SpotCheckResult:%s:%s"
-	// redisKeySpotCheckList
-	redisKeySpotCheckList = "Titan:SpotCheckList"
+	// RedisKeyVerifyID
+	redisKeyVerifyID = "Titan:VerifyID"
+	// RedisKeyVerifyResult VerifyID:edgeID
+	redisKeyVerifyResult = "Titan:VerifyResult:%s:%s"
+	// RedisKeyVerifyOfflineList VerifyID
+	redisKeyVerifyOfflineList = "Titan:VerifyOfflineList:%s"
+	// redisKeyVerifyList
+	redisKeyVerifyList = "Titan:VerifyList"
 
 	// RedisKeyEdgeDeviceIDList
 	redisKeyEdgeDeviceIDList = "Titan:EdgeDeviceIDList"
@@ -52,7 +54,7 @@ const (
 	isOnlineField   = "IsOnline"
 	nodeType        = "NodeType"
 
-	// spot check field
+	// Verify field
 	stratTimeField = "StratTime"
 	endTimeField   = "EndTime"
 	validatorField = "Validator"
@@ -93,7 +95,7 @@ func (rd redisDB) IncrNodeCacheTag(deviceID string) (int64, error) {
 	return rd.cli.IncrBy(context.Background(), key, 1).Result()
 }
 
-// get SpotCheckID
+// get VerifyID
 func (rd redisDB) GetNodeCacheTag(deviceID string) (int64, error) {
 	key := fmt.Sprintf(redisKeyNodeDataTag, deviceID)
 
@@ -105,14 +107,14 @@ func (rd redisDB) GetNodeCacheTag(deviceID string) (int64, error) {
 	return strconv.ParseInt(val, 10, 64)
 }
 
-// SpotCheckID ++1
-func (rd redisDB) IncrSpotCheckID() (int64, error) {
-	return rd.cli.IncrBy(context.Background(), redisKeySpotCheckID, 1).Result()
+// VerifyID ++1
+func (rd redisDB) IncrVerifyID() (int64, error) {
+	return rd.cli.IncrBy(context.Background(), redisKeyVerifyID, 1).Result()
 }
 
-// get SpotCheckID
-func (rd redisDB) GetSpotCheckID() (string, error) {
-	return rd.cli.Get(context.Background(), redisKeySpotCheckID).Result()
+// get VerifyID
+func (rd redisDB) GetVerifyID() (string, error) {
+	return rd.cli.Get(context.Background(), redisKeyVerifyID).Result()
 }
 
 // del node data with cid
@@ -181,25 +183,25 @@ func (rd redisDB) GetCacheDataTagInfos(deviceID string) (map[string]string, erro
 }
 
 //  add
-func (rd redisDB) SetNodeToSpotCheckList(deviceID string) error {
-	_, err := rd.cli.SAdd(context.Background(), redisKeySpotCheckList, deviceID).Result()
+func (rd redisDB) SetNodeToVerifyList(deviceID string) error {
+	_, err := rd.cli.SAdd(context.Background(), redisKeyVerifyList, deviceID).Result()
 	return err
 }
 
 // SMembers
-func (rd redisDB) GetNodesWithSpotCheckList() ([]string, error) {
-	return rd.cli.SMembers(context.Background(), redisKeySpotCheckList).Result()
+func (rd redisDB) GetNodesWithVerifyList() ([]string, error) {
+	return rd.cli.SMembers(context.Background(), redisKeyVerifyList).Result()
 }
 
 //  del device
-func (rd redisDB) DelNodeWithSpotCheckList(deviceID string) error {
-	_, err := rd.cli.SRem(context.Background(), redisKeySpotCheckList, deviceID).Result()
+func (rd redisDB) DelNodeWithVerifyList(deviceID string) error {
+	_, err := rd.cli.SRem(context.Background(), redisKeyVerifyList, deviceID).Result()
 	return err
 }
 
 //  del key
-func (rd redisDB) DelSpotCheckList() error {
-	_, err := rd.cli.Del(context.Background(), redisKeySpotCheckList).Result()
+func (rd redisDB) DelVerifyList() error {
+	_, err := rd.cli.Del(context.Background(), redisKeyVerifyList).Result()
 	return err
 }
 
@@ -276,21 +278,28 @@ func (rd redisDB) GetNodeInfo(deviceID string) (NodeInfo, error) {
 	return NodeInfo{Geo: g, OnLineTime: o, LastTime: l, IsOnline: i, NodeType: api.NodeTypeName(n)}, nil
 }
 
-func (rd redisDB) SetSpotCheckResultInfo(sID string, edgeID, validator, msg string, status SpotCheckStatus) error {
-	key := fmt.Sprintf(redisKeySpotCheckResult, sID, edgeID)
+func (rd redisDB) SetVerifyResultInfo(sID string, edgeID, validator, msg string, status VerifyStatus) error {
+	key := fmt.Sprintf(redisKeyVerifyResult, sID, edgeID)
 
 	nowTime := time.Now().Format("2006-01-02 15:04:05")
 
-	if status == SpotCheckStatusCreate {
+	if status == VerifyStatusCreate {
 		_, err := rd.cli.HMSet(context.Background(), key, validatorField, validator, stratTimeField, nowTime, statusField, int(status)).Result()
 		return err
 
-	} else if status > SpotCheckStatusCreate {
+	} else if status > VerifyStatusCreate {
 		_, err := rd.cli.HMSet(context.Background(), key, endTimeField, nowTime, statusField, int(status), msgField, msg).Result()
 		return err
 	}
 
-	return xerrors.Errorf("SetSpotCheckResultInfo status:%v", status)
+	return xerrors.Errorf("SetVerifyResultInfo status:%v", status)
+}
+
+func (rd redisDB) SetNodeToVerifyOfflineList(sID string, deviceID string) error {
+	key := fmt.Sprintf(redisKeyVerifyOfflineList, sID)
+
+	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
+	return err
 }
 
 //  add

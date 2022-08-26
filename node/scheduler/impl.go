@@ -83,7 +83,7 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 
 // VerifyDataResult Verify Data Result
 func (s Scheduler) VerifyDataResult(ctx context.Context, verifyResults api.VerifyResults) error {
-	return spotCheckResult(verifyResults)
+	return verifyResult(verifyResults)
 }
 
 // CacheResult Cache Data Result
@@ -357,9 +357,9 @@ func (s Scheduler) ElectionValidators(ctx context.Context) error {
 	return electionValidators()
 }
 
-// SpotCheck Spot Check edge
-func (s Scheduler) SpotCheck(ctx context.Context) error {
-	return startSpotCheck()
+// Verify Verify edge
+func (s Scheduler) Verify(ctx context.Context) error {
+	return startVerify()
 }
 
 // indexPage info
