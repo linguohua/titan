@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -69,6 +70,11 @@ type redisDB struct {
 // TypeRedis redis
 func TypeRedis() string {
 	return "Redis"
+}
+
+// IsNilErr Is NilErr
+func (rd redisDB) IsNilErr(err error) bool {
+	return errors.Is(err, redis.Nil)
 }
 
 // InitRedis init redis pool

@@ -63,6 +63,14 @@ func InitVerifyTimewheel() {
 	timewheelVerify.AddTimer(time.Duration(2)*60*time.Second, "verify", nil)
 }
 
+func updateUnassignedEdgeMap(geo string) {
+	if num, ok := unassignedEdgeMap[geo]; ok {
+		unassignedEdgeMap[geo] = num + 1
+	} else {
+		unassignedEdgeMap[geo] = 1
+	}
+}
+
 func getReqVerify(validatorID string, edges []*EdgeNode) []api.ReqVerify {
 	// validatorID := candidate.deviceInfo.DeviceId
 
@@ -233,9 +241,9 @@ func checkVerifyTimeOut() error {
 		return err
 	}
 
-	log.Infof("checkVerifyTimeOut list:%v", edgeIDs)
-
 	if len(edgeIDs) > 0 {
+		log.Infof("checkVerifyTimeOut list:%v", edgeIDs)
+
 		for _, edgeID := range edgeIDs {
 			err = db.GetCacheDB().SetVerifyResultInfo(sID, edgeID, "", "", db.VerifyStatusTimeOut)
 			if err != nil {

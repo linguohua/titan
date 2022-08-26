@@ -51,7 +51,7 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		nodeAPI:    edgeAPI,
 		closer:     closer,
 		deviceInfo: deviceInfo,
-		bandwidth:  300, // 默认30m
+		bandwidth:  300, // 边缘节点上行带宽最多 100M是有效的
 	}
 
 	ok, err := db.GetCacheDB().IsEdgeInDeviceIDList(deviceInfo.DeviceId)
@@ -272,7 +272,7 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 		nodeAPI:    candicateAPI,
 		closer:     closer,
 		deviceInfo: deviceInfo,
-		bandwidth:  1024, // 默认1G
+		bandwidth:  1024, // 候选节点下行带宽最少需要 100M
 	}
 
 	ok, err := db.GetCacheDB().IsCandidateInDeviceIDList(deviceInfo.DeviceId)

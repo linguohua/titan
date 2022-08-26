@@ -102,6 +102,9 @@ func deleteDataRecord(deviceID string, cids []string) (map[string]string, error)
 
 		tag, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
 		if err != nil {
+			if db.GetCacheDB().IsNilErr(err) {
+				continue
+			}
 			errorList[cid] = fmt.Sprintf("GetCacheDataInfo err : %v", err.Error())
 			continue
 		}
@@ -135,7 +138,7 @@ func getReqCacheData(deviceID string, cids []string, isEdge bool, geoInfo region
 		for _, cid := range cids {
 			err := nodeCacheReady(deviceID, cid)
 			if err != nil {
-				log.Warnf("cacheDataOfNode nodeCacheReady err:%v,cid:%v", err, cid)
+				// log.Warnf("cacheDataOfNode nodeCacheReady err:%v,cid:%v", err, cid)
 				alreadyCacheCids = append(alreadyCacheCids, cid)
 				continue
 			}
@@ -155,14 +158,14 @@ func getReqCacheData(deviceID string, cids []string, isEdge bool, geoInfo region
 		// 看看哪个候选节点有这个cid
 		candidates, err := getCandidateNodesWithData(cid, geoInfo)
 		if err != nil || len(candidates) < 1 {
-			log.Warnf("cacheDataOfNode getCandidateNodesWithData err:%v,len:%v,cid:%v", err, len(candidates), cid)
+			// log.Warnf("cacheDataOfNode getCandidateNodesWithData err:%v,len:%v,cid:%v", err, len(candidates), cid)
 			notFindNodeCids = append(notFindNodeCids, cid)
 			continue
 		}
 
 		err = nodeCacheReady(deviceID, cid)
 		if err != nil {
-			log.Warnf("cacheDataOfNode nodeCacheReady err:%v,cid:%v", err, cid)
+			// log.Warnf("cacheDataOfNode nodeCacheReady err:%v,cid:%v", err, cid)
 			alreadyCacheCids = append(alreadyCacheCids, cid)
 			continue
 		}

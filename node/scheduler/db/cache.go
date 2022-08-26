@@ -65,6 +65,8 @@ type CacheDB interface {
 	IsEdgeInDeviceIDList(deviceID string) (bool, error)
 	SetCandidateDeviceIDList(deviceIDs []string) error
 	IsCandidateInDeviceIDList(deviceID string) (bool, error)
+
+	IsNilErr(err error) bool
 }
 
 var cacheDB CacheDB
