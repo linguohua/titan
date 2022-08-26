@@ -98,13 +98,13 @@ func newGroupName() string {
 }
 
 // 边缘节点分组
-func edgeGrouping(deviceID, oldGeo, geo string, bandwidth int) string {
+func edgeGrouping(deviceID, oldGeo, geoKey string, bandwidth int) string {
 	// 如果已经存在分组里 则不需要分组
 	oldGroupID, ok := groupIDMap.Load(deviceID)
 	if ok && oldGroupID != nil {
 		g := oldGroupID.(string)
 		// 得看原来的geo是否跟现在的一样
-		if oldGeo != geo {
+		if oldGeo != geoKey {
 			// 从旧的组里面删除
 			group := loadGroupMap(g)
 			if group != nil {
@@ -116,11 +116,16 @@ func edgeGrouping(deviceID, oldGeo, geo string, bandwidth int) string {
 	}
 
 	groupID := ""
+	isNewGroup := true
+
 	defer func() {
 		groupIDMap.Store(deviceID, groupID)
-	}()
 
-	geoKey := geo
+		if isNewGroup {
+			// 新的组要 分配验证节点
+			updateUnassignedEdgeMap(geoKey)
+		}
+	}()
 
 	groups := loadGeoGroupMap(geoKey)
 	if groups != nil {
@@ -139,6 +144,7 @@ func edgeGrouping(deviceID, oldGeo, geo string, bandwidth int) string {
 			}
 
 			if findGroupID != "" {
+				isNewGroup = false
 				// 未满的组能加入
 				groupID = addGroup(geoKey, deviceID, findGroupID, bandwidth, lessFullMap, groups)
 			} else {
