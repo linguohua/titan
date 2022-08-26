@@ -182,6 +182,10 @@ func (edge EdgeAPI) DeleteData(ctx context.Context, cids []string) (api.DelResul
 
 	for _, cid := range cids {
 		err := edge.blockStore.Delete(cid)
+		if err == datastore.ErrNotFound {
+			continue
+		}
+
 		if err != nil {
 			result := api.DelFailed{Cid: cid, ErrMsg: err.Error()}
 			delResult.List = append(delResult.List, result)

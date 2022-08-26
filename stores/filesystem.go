@@ -23,22 +23,33 @@ func (fs fileStore) Put(key string, value []byte) error {
 
 func (fs fileStore) Get(key string) ([]byte, error) {
 	filePath := filepath.Join(fs.Path, key)
-	_, err := os.Stat(filePath)
+
+	data, err := os.ReadFile(filePath)
 	if err != nil && os.IsNotExist(err) {
 		return nil, datastore.ErrNotFound
 	}
 
-	return os.ReadFile(filePath)
+	return data, err
 }
 
 func (fs fileStore) Delete(key string) error {
 	filePath := filepath.Join(fs.Path, key)
-	return os.Remove(filePath)
+
+	err := os.Remove(filePath)
+	if err != nil && os.IsNotExist(err) {
+		return datastore.ErrNotFound
+	}
+
+	return err
 }
 
 func (fs fileStore) GetReader(key string) (BlockReader, error) {
 	filePath := filepath.Join(fs.Path, key)
 	file, err := os.Open(filePath)
+	if err != nil && os.IsNotExist(err) {
+		err = datastore.ErrNotFound
+	}
+
 	if err != nil {
 		return nil, err
 	}
