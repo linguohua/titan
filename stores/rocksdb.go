@@ -114,6 +114,15 @@ func (r rocksdb) Delete(key string) error {
 	}
 
 	var k = []byte(key)
+	slice, err := rdb.Get(readOptions, k)
+	if err != nil {
+		return nil, err
+	}
+
+	if !slice.Exists() {
+		return nil, datastore.ErrNotFound
+	}
+
 	return rdb.Delete(writeOptions, k)
 }
 
