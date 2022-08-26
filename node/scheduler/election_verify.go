@@ -18,7 +18,7 @@ var (
 	seed     = int64(1)
 	duration = 10
 
-	spotCheckMax = 100 // 每次抽查个数上限
+	verifyMax = 100 // 每次抽查个数上限
 
 	roundID string
 	fidsMap map[string][]string
@@ -26,8 +26,10 @@ var (
 	timewheelElection *timewheel.TimeWheel
 	electionTime      = 60 * 24 // 选举时间间隔 (分钟)
 
-	timewheelSpotCheck *timewheel.TimeWheel
-	spotCheckTime      = 60 // 抽查时间间隔 (分钟)
+	timewheelVerify *timewheel.TimeWheel
+	verifyTime      = 60 // 抽查时间间隔 (分钟)
+
+	unassignedEdgeMap = make(map[string]int) // 未被分配到的边缘节点组
 )
 
 // 边缘节点登录的时候
@@ -51,18 +53,18 @@ func InitVerifyTimewheel() {
 	timewheelElection.AddTimer(time.Duration(1)*60*time.Second, "election", nil)
 
 	// 抽查定时器
-	timewheelSpotCheck = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		startSpotCheck()
+	timewheelVerify = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
+		startVerify()
 		// 继续添加定时器
-		timewheelSpotCheck.AddTimer(time.Duration(spotCheckTime)*60*time.Second, "spotCheck", nil)
+		timewheelVerify.AddTimer(time.Duration(verifyTime)*60*time.Second, "verify", nil)
 	})
-	timewheelSpotCheck.Start()
+	timewheelVerify.Start()
 	// 开始一个事件处理
-	timewheelSpotCheck.AddTimer(time.Duration(2)*60*time.Second, "spotCheck", nil)
+	timewheelVerify.AddTimer(time.Duration(2)*60*time.Second, "verify", nil)
 }
 
-func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
-	validatorID := candidate.deviceInfo.DeviceId
+func getReqVerify(validatorID string, edges []*EdgeNode) []api.ReqVerify {
+	// validatorID := candidate.deviceInfo.DeviceId
 
 	req := make([]api.ReqVerify, 0)
 
@@ -72,7 +74,7 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 
 		datas, err := db.GetCacheDB().GetCacheDataInfos(edgeID)
 		if err != nil {
-			log.Warnf("spotCheck GetCacheDataInfos err:%v,DeviceId:%v", err.Error(), edgeID)
+			log.Warnf("verify GetCacheDataInfos err:%v,DeviceId:%v", err.Error(), edgeID)
 			continue
 		}
 
@@ -82,7 +84,7 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 
 		// max, err := db.GetCacheDB().GetNodeCacheTag(edgeID)
 		// if err != nil {
-		// 	log.Warnf("spotCheck GetNodeCacheTag err:%v,DeviceId:%v", err.Error(), edgeID)
+		// 	log.Warnf("verify GetNodeCacheTag err:%v,DeviceId:%v", err.Error(), edgeID)
 		// 	continue
 		// }
 
@@ -90,7 +92,7 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 		for _, tag := range datas {
 			fids = append(fids, tag)
 
-			if len(fids) >= spotCheckMax {
+			if len(fids) >= verifyMax {
 				break
 			}
 		}
@@ -99,29 +101,20 @@ func spotCheck(candidate *CandidateNode, edges []*EdgeNode) {
 
 		fidsMap[edgeID] = fids
 		//
-		err = db.GetCacheDB().SetSpotCheckResultInfo(roundID, edgeID, validatorID, "", db.SpotCheckStatusCreate)
+		err = db.GetCacheDB().SetVerifyResultInfo(roundID, edgeID, validatorID, "", db.VerifyStatusCreate)
 		if err != nil {
-			log.Warnf("spotCheck SetSpotCheckResultInfo err:%v,DeviceId:%v", err.Error(), edgeID)
+			log.Warnf("verify SetVerifyResultInfo err:%v,DeviceId:%v", err.Error(), edgeID)
 			continue
 		}
 
-		err = db.GetCacheDB().SetNodeToSpotCheckList(edgeID)
+		err = db.GetCacheDB().SetNodeToVerifyList(edgeID)
 		if err != nil {
-			log.Warnf("spotCheck SetNodeToSpotCheckList err:%v,DeviceId:%v", err.Error(), edgeID)
+			log.Warnf("verify SetNodeToVerifyList err:%v,DeviceId:%v", err.Error(), edgeID)
 			continue
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	// 请求抽查
-	err := candidate.nodeAPI.VerifyData(ctx, req)
-	if err != nil {
-		log.Errorf("VerifyData err:%v, DeviceId:%v", err.Error(), validatorID)
-		// TODO 记录到数据库
-		return
-	}
+	return req
 }
 
 func getRandFid(max int, r *rand.Rand) int {
@@ -143,7 +136,7 @@ func toCidV1(c cid.Cid) (cid.Cid, error) {
 	return cid.NewCidV1(c.Type(), c.Hash()), nil
 }
 
-func spotCheckResult(verifyResults api.VerifyResults) error {
+func verifyResult(verifyResults api.VerifyResults) error {
 	if verifyResults.RoundID != roundID {
 		return xerrors.Errorf("roundID err")
 	}
@@ -151,21 +144,41 @@ func spotCheckResult(verifyResults api.VerifyResults) error {
 	edgeID := verifyResults.DeviceID
 	// varify Result
 
-	status := db.SpotCheckStatusSuccess
+	status := db.VerifyStatusSuccess
 	msg := ""
+
+	defer func() {
+		err := db.GetCacheDB().SetVerifyResultInfo(roundID, edgeID, "", msg, status)
+		if err != nil {
+			log.Warnf("SetVerifyResultInfo err:%v", err.Error())
+		}
+
+		err = db.GetCacheDB().DelNodeWithVerifyList(edgeID)
+		if err != nil {
+			log.Warnf("DelNodeWithVerifyList err:%v", err.Error())
+		}
+	}()
+
 	// TODO 判断带宽 超时时间等等
+	if verifyResults.IsTimeout {
+		status = db.VerifyStatusTimeOut
+		msg = fmt.Sprint("Time out")
+		return nil
+	}
+
 	r := rand.New(rand.NewSource(seed))
 	rlen := len(verifyResults.Results)
 
 	if rlen <= 0 {
-		status = db.SpotCheckStatusFail
+		status = db.VerifyStatusFail
 		msg = fmt.Sprint("Results is nil")
+		return nil
 	}
 
 	list := fidsMap[edgeID]
 	max := len(list)
 
-	log.Infof("spotCheckResult:%v", edgeID)
+	log.Infof("verifyResult:%v", edgeID)
 
 	for i := 0; i < rlen; i++ {
 		index := getRandFid(max, r)
@@ -174,7 +187,7 @@ func spotCheckResult(verifyResults api.VerifyResults) error {
 		fidStr := list[index]
 		// fidStr := fmt.Sprintf("%d", fid)
 		if fidStr != result.Fid {
-			status = db.SpotCheckStatusFail
+			status = db.VerifyStatusFail
 			msg = fmt.Sprintf("fidStr:%v,resultFid:%v", fidStr, result.Fid)
 			break
 		}
@@ -182,7 +195,7 @@ func spotCheckResult(verifyResults api.VerifyResults) error {
 		if result.Cid == "" {
 			// cid, err := db.GetCacheDB().GetCacheDataTagInfo(edgeID, fidStr)
 			// if err == nil && cid != "" {
-			status = db.SpotCheckStatusFail
+			status = db.VerifyStatusFail
 			msg = fmt.Sprintf("resultCid:%v,resultFid:%v", result.Cid, result.Fid)
 			break
 			// }
@@ -193,56 +206,46 @@ func spotCheckResult(verifyResults api.VerifyResults) error {
 
 		tag, err := db.GetCacheDB().GetCacheDataInfo(edgeID, result.Cid)
 		if err != nil {
-			status = db.SpotCheckStatusFail
+			status = db.VerifyStatusFail
 			msg = fmt.Sprintf("GetCacheDataInfo err:%v,edgeID:%v,resultCid:%v,resultFid:%v", err.Error(), edgeID, result.Cid, result.Fid)
 			break
 		}
 
 		if tag != fidStr {
-			status = db.SpotCheckStatusFail
+			status = db.VerifyStatusFail
 			msg = fmt.Sprintf("tag:%v,fidStr:%v,Cid:%v", tag, fidStr, result.Cid)
 			break
 		}
-	}
-
-	err := db.GetCacheDB().SetSpotCheckResultInfo(roundID, edgeID, "", msg, status)
-	if err != nil {
-		return err
-	}
-
-	err = db.GetCacheDB().DelNodeWithSpotCheckList(edgeID)
-	if err != nil {
-		return err
 	}
 
 	return nil
 }
 
 // 检查有没有超时的抽查
-func checkSpotCheckTimeOut() error {
-	sID, err := db.GetCacheDB().GetSpotCheckID()
+func checkVerifyTimeOut() error {
+	sID, err := db.GetCacheDB().GetVerifyID()
 	if err != nil {
 		return err
 	}
 
-	edgeIDs, err := db.GetCacheDB().GetNodesWithSpotCheckList()
+	edgeIDs, err := db.GetCacheDB().GetNodesWithVerifyList()
 	if err != nil {
 		return err
 	}
 
-	log.Infof("checkSpotCheckTimeOut list:%v", edgeIDs)
+	log.Infof("checkVerifyTimeOut list:%v", edgeIDs)
 
 	if len(edgeIDs) > 0 {
 		for _, edgeID := range edgeIDs {
-			err = db.GetCacheDB().SetSpotCheckResultInfo(sID, edgeID, "", "", db.SpotCheckStatusTimeOut)
+			err = db.GetCacheDB().SetVerifyResultInfo(sID, edgeID, "", "", db.VerifyStatusTimeOut)
 			if err != nil {
-				log.Warnf("checkSpotCheckTimeOut SetSpotCheckResultInfo err:%v,DeviceId:%v", err.Error(), edgeID)
+				log.Warnf("checkVerifyTimeOut SetVerifyResultInfo err:%v,DeviceId:%v", err.Error(), edgeID)
 				continue
 			}
 
-			err = db.GetCacheDB().DelNodeWithSpotCheckList(edgeID)
+			err = db.GetCacheDB().DelNodeWithVerifyList(edgeID)
 			if err != nil {
-				log.Warnf("checkSpotCheckTimeOut DelNodeWithSpotCheckList err:%v,DeviceId:%v", err.Error(), edgeID)
+				log.Warnf("checkVerifyTimeOut DelNodeWithVerifyList err:%v,DeviceId:%v", err.Error(), edgeID)
 				continue
 			}
 		}
@@ -251,15 +254,15 @@ func checkSpotCheckTimeOut() error {
 	return nil
 }
 
-// spot check edges
-func startSpotCheck() error {
+// Verify edges
+func startVerify() error {
 	// 新一轮的抽查
-	err := db.GetCacheDB().DelSpotCheckList()
+	err := db.GetCacheDB().DelVerifyList()
 	if err != nil {
 		return err
 	}
 
-	sID, err := db.GetCacheDB().IncrSpotCheckID()
+	sID, err := db.GetCacheDB().IncrVerifyID()
 	if err != nil {
 		// log.Errorf("NotifyNodeCacheData getTagWithNode err:%v", err)
 		return err
@@ -301,17 +304,46 @@ func startSpotCheck() error {
 					if edge != nil {
 						log.Infof("edge id:%v", edge.deviceInfo.DeviceId)
 						edges = append(edges, edge)
+					} else {
+						// 记录扣罚 edge
+						err = db.GetCacheDB().SetNodeToVerifyOfflineList(roundID, deviceID)
+						if err != nil {
+							log.Warnf("SetNodeToVerifyOfflineList ,err:%v,deviceID:%v", err.Error(), deviceID)
+						}
 					}
 				}
 				usedGroupID = uIDs
 			} else {
-				log.Warnf("spotChecks loadGroupMap is nil ,geo:%v", geo)
+				log.Warnf("verifys loadGroupMap is nil ,geo:%v", geo)
 			}
 		}
 
+		offline := false
+
 		validator := getCandidateNode(validatorID)
 		if validator != nil {
-			spotCheck(validator, edges)
+			req := getReqVerify(validatorID, edges)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+
+			// 请求抽查
+			err := validator.nodeAPI.VerifyData(ctx, req)
+			if err != nil {
+				log.Warnf("VerifyData err:%v, DeviceId:%v", err.Error(), validatorID)
+				offline = true
+			}
+
+		} else {
+			offline = true
+		}
+
+		if offline {
+			// 记录扣罚 validatorID
+			err = db.GetCacheDB().SetNodeToVerifyOfflineList(roundID, validatorID)
+			if err != nil {
+				log.Warnf("SetNodeToVerifyOfflineList ,err:%v,deviceID:%v", err.Error(), validatorID)
+			}
 		}
 	}
 
@@ -320,7 +352,7 @@ func startSpotCheck() error {
 	for {
 		select {
 		case <-t.C:
-			return checkSpotCheckTimeOut()
+			return checkVerifyTimeOut()
 		}
 	}
 }
@@ -374,7 +406,6 @@ func cleanValidators() error {
 // 选举、分配验证者负责的区域
 func electionValidators() error {
 	testPrintlnEdgeGroupMap()
-
 	// 每个城市 选出X个验证者
 	// 每隔Y时间 重新选举
 	err := cleanValidators()
@@ -386,7 +417,7 @@ func electionValidators() error {
 	alreadyAssignValidatorList := make([]string, 0)      // 带宽已经占满的验证者
 	// validatorBandwidthMap := make(map[string]int)   // 已用带宽
 	// 未被分配到的边缘节点组数
-	unassignedEdgeMap := make(map[string]int)
+	unassignedEdgeMap = make(map[string]int)
 
 	geoGroupMap.Range(func(key, value interface{}) bool {
 		geo := key.(string)

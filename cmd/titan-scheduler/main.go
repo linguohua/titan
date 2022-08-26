@@ -31,7 +31,7 @@ func main() {
 		runCmd,
 		cacheCmd,
 		electionCmd,
-		spotCheckCmd,
+		verifyCmd,
 		showOnlineNodeCmd,
 		delDataCmd,
 		initDeviceIDsCmd,

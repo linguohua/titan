@@ -12,7 +12,7 @@ type Scheduler interface {
 	DeleteData(context.Context, string, []string) (map[string]string, error)      //perm:read
 	GetOnlineDeviceIDs(context.Context, NodeTypeName) ([]string, error)           //perm:read
 	ElectionValidators(context.Context) error                                     //perm:read
-	SpotCheck(context.Context) error                                              //perm:read
+	Verify(context.Context) error                                                 //perm:read
 	InitNodeDeviceIDs(context.Context) error                                      //perm:read
 	QueryCacheStatWithNode(context.Context, string) ([]CacheStat, error)          //perm:read
 	QueryCachingBlocksWithNode(context.Context, string) (CachingBlockList, error) //perm:read

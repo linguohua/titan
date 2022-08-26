@@ -113,9 +113,9 @@ var runCmd = &cli.Command{
 	},
 }
 
-var spotCheckCmd = &cli.Command{
-	Name:  "spotcheck",
-	Usage: "spot check edge node",
+var verifyCmd = &cli.Command{
+	Name:  "verify",
+	Usage: "Verify edge node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "api-url",
@@ -151,9 +151,9 @@ var spotCheckCmd = &cli.Command{
 
 		defer closer()
 
-		err = schedulerAPI.SpotCheck(ctx)
+		err = schedulerAPI.Verify(ctx)
 		if err != nil {
-			log.Infof("SpotCheck err:%v", err)
+			log.Infof("Verify err:%v", err)
 		}
 
 		return err
@@ -502,7 +502,7 @@ var initDeviceIDsCmd = &cli.Command{
 
 var cachingBlocksCmd = &cli.Command{
 	Name:  "cachingblocks",
-	Usage: "spot check edge node",
+	Usage: "Verify edge node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "api-url",
@@ -558,7 +558,7 @@ var cachingBlocksCmd = &cli.Command{
 
 var cacheStatCmd = &cli.Command{
 	Name:  "cachestat",
-	Usage: "spot check edge node",
+	Usage: "Verify edge node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "api-url",

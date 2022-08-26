@@ -168,7 +168,7 @@ type SchedulerStruct struct {
 
 		SaveDailyInfo func(p0 context.Context, p1 IncomeDaily) (error) `perm:"read"`
 
-		SpotCheck func(p0 context.Context) (error) `perm:"read"`
+		Verify func(p0 context.Context) (error) `perm:"read"`
 
 		VerifyDataResult func(p0 context.Context, p1 VerifyResults) (error) `perm:"read"`
 
@@ -703,14 +703,14 @@ func (s *SchedulerStub) SaveDailyInfo(p0 context.Context, p1 IncomeDaily) (error
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) SpotCheck(p0 context.Context) (error) {
-	if s.Internal.SpotCheck == nil {
+func (s *SchedulerStruct) Verify(p0 context.Context) (error) {
+	if s.Internal.Verify == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.SpotCheck(p0)
+	return s.Internal.Verify(p0)
 }
 
-func (s *SchedulerStub) SpotCheck(p0 context.Context) (error) {
+func (s *SchedulerStub) Verify(p0 context.Context) (error) {
 	return ErrNotSupported
 }
 

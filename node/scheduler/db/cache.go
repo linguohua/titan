@@ -10,13 +10,13 @@ import (
 type CacheDB interface {
 	IncrNodeCacheTag(deviceID string) (int64, error)
 	GetNodeCacheTag(deviceID string) (int64, error)
-	IncrSpotCheckID() (int64, error)
-	GetSpotCheckID() (string, error)
+	IncrVerifyID() (int64, error)
+	GetVerifyID() (string, error)
 
-	DelNodeWithSpotCheckList(deviceID string) error
-	SetNodeToSpotCheckList(deviceID string) error
-	GetNodesWithSpotCheckList() ([]string, error)
-	DelSpotCheckList() error
+	DelNodeWithVerifyList(deviceID string) error
+	SetNodeToVerifyList(deviceID string) error
+	GetNodesWithVerifyList() ([]string, error)
+	DelVerifyList() error
 
 	DelCacheDataInfo(deviceID, cid string) error
 	SetCacheDataInfo(deviceID, cid string, tag string) error
@@ -58,7 +58,8 @@ type CacheDB interface {
 	GetGeoWithValidatorList(deviceID string) ([]string, error)
 	DelValidatorGeoList(deviceID string) error
 
-	SetSpotCheckResultInfo(sID string, edgeID, validator, msg string, status SpotCheckStatus) error
+	SetVerifyResultInfo(sID string, edgeID, validator, msg string, status VerifyStatus) error
+	SetNodeToVerifyOfflineList(sID, deviceID string) error
 
 	SetEdgeDeviceIDList(deviceIDs []string) error
 	IsEdgeInDeviceIDList(deviceID string) (bool, error)
@@ -102,18 +103,18 @@ type NodeInfo struct {
 	NodeType   api.NodeTypeName
 }
 
-// SpotCheckStatus Spot Check Status
-type SpotCheckStatus int
+// VerifyStatus Verify Status
+type VerifyStatus int
 
 const (
-	// SpotCheckStatusUnknown status
-	SpotCheckStatusUnknown SpotCheckStatus = iota
-	// SpotCheckStatusCreate status
-	SpotCheckStatusCreate
-	// SpotCheckStatusTimeOut status
-	SpotCheckStatusTimeOut
-	// SpotCheckStatusSuccess status
-	SpotCheckStatusSuccess
-	// SpotCheckStatusFail status
-	SpotCheckStatusFail
+	// VerifyStatusUnknown status
+	VerifyStatusUnknown VerifyStatus = iota
+	// VerifyStatusCreate status
+	VerifyStatusCreate
+	// VerifyStatusTimeOut status
+	VerifyStatusTimeOut
+	// VerifyStatusSuccess status
+	VerifyStatusSuccess
+	// VerifyStatusFail status
+	VerifyStatusFail
 )
