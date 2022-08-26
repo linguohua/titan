@@ -3,48 +3,48 @@ package edge
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/linguohua/titan/lib/token"
 )
 
-// const (
-// 	speedRate = 8000 << 10
-// 	capacity  = 8000 << 10
-// )
+func (edge EdgeAPI) startDownloadServer(address string) {
+	mux := http.NewServeMux()
+	mux.HandleFunc(downloadSrvPath, edge.GetBlock)
 
-// var readerCount = 0
+	srv := &http.Server{
+		Handler: mux,
+		Addr:    address,
+	}
 
-// or more verbosely you could call this a "limitedReadSeeker"
-// type lrs struct {
-// 	io.ReadSeeker
-// 	// This reader must not buffer but just do something simple
-// 	// while passing through Read calls to the ReadSeeker
-// 	r io.Reader
-// }
+	nl, err := net.Listen("tcp", address)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// func (r lrs) Read(p []byte) (int, error) {
-// 	return r.r.Read(p)
-// }
+	log.Infof("startDownloadServer at %s", address)
+
+	err = srv.Serve(nl)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 func (edge EdgeAPI) GetBlock(w http.ResponseWriter, r *http.Request) {
+	appName := r.Header.Get("App-Name")
+	tk := r.Header.Get("Token")
 	cidStr := r.URL.Query().Get("cid")
 
-	log.Infof("GetBlock, cid:%s", cidStr)
+	log.Infof("GetBlock, appName:%s, token:%s,  cid:%s", appName, tk, cidStr)
 
-	// target, err := cid.Decode(cidStr)
-	// if err != nil {
-	// 	log.Errorf("GetBlock, decode cid error:%v", err)
-	// 	http.Error(w, "Can not decode cid", http.StatusBadRequest)
-	// 	return
-	// }
-
-	// // cid convert to vo
-	// if target.Version() != 0 && target.Type() == cid.DagProtobuf {
-	// 	target = cid.NewCidV0(target.Hash())
-	// }
-
-	// cidStr = fmt.Sprintf("%v", target)
+	if !token.ValidToken(tk, edge.downloadSrvKey) {
+		log.Errorf("Valid token %s error", tk)
+		http.Error(w, fmt.Sprintf("Valid token %s error", tk), http.StatusBadRequest)
+		return
+	}
 
 	reader, err := edge.blockStore.GetReader(cidStr)
 	if err != nil {

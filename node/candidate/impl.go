@@ -8,13 +8,10 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
-	"github.com/linguohua/titan/stores"
 
-	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/edge"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	mh "github.com/multiformats/go-multihash"
 )
@@ -28,8 +25,8 @@ type verifyBlock struct {
 
 var verifyChannelMap = make(map[string]chan verifyBlock)
 
-func NewLocalCandidateNode(ctx context.Context, ds datastore.Batching, scheduler api.Scheduler, blockStore stores.BlockStore, device device.DeviceAPI, url string) api.Candidate {
-	a := edge.NewLocalEdgeNode(ctx, ds, scheduler, blockStore, device, true)
+func NewLocalCandidateNode(ctx context.Context, url string, edgeParams edge.EdgeParams) api.Candidate {
+	a := edge.NewLocalEdgeNode(ctx, edgeParams)
 	edgeAPI := a.(edge.EdgeAPI)
 	return CandidateAPI{EdgeAPI: edgeAPI, url: url}
 }
