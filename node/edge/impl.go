@@ -145,6 +145,9 @@ func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candi
 		return fmt.Errorf("len(fids) == 0")
 	}
 
+	oldRate := limitBlockUploadRate(edge)
+	defer resetBlockUploadRate(edge, oldRate)
+
 	conn, err := newTcpClient(candidateURL)
 	if err != nil {
 		log.Errorf("DoVerify, NewCandicate err:%v", err)
@@ -175,6 +178,28 @@ func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candi
 			return err
 		}
 	}
+}
+
+func limitBlockUploadRate(edge EdgeAPI) int64 {
+	if edge.Limiter == nil {
+		log.Fatal("edge.Limiter == nil ")
+	}
+
+	oldRate := edge.Limiter.Limit()
+
+	edge.Limiter.SetLimit(rate.Limit(0))
+	edge.Limiter.SetBurst(int(0))
+
+	return int64(oldRate)
+}
+
+func resetBlockUploadRate(edge EdgeAPI, oldRate int64) {
+	if edge.Limiter == nil {
+		log.Errorf("edge.Limiter == nil")
+	}
+
+	edge.Limiter.SetLimit(rate.Limit(oldRate))
+	edge.Limiter.SetBurst(int(oldRate))
 }
 
 func getBlock(ctx context.Context, edge EdgeAPI, fid string) ([]byte, error) {
