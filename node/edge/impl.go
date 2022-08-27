@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/lib/p2p"
 	"github.com/linguohua/titan/lib/token"
@@ -147,16 +146,17 @@ func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candi
 		return fmt.Errorf("len(fids) == 0")
 	}
 
-	candidateAPI, closer, err := client.NewCandicate(ctx, candidateURL, nil)
+	conn, err := newTcpClient(candidateURL)
 	if err != nil {
 		log.Errorf("DoVerify, NewCandicate err:%v", err)
 		return err
 	}
-	defer closer()
+	defer conn.Close()
 
 	r := rand.New(rand.NewSource(reqVerify.Seed))
 	t := time.NewTimer(time.Duration(reqVerify.Duration) * time.Second)
 
+	sendDeviceID(conn, edge.DeviceID)
 	for {
 		select {
 		case <-t.C:
@@ -166,22 +166,27 @@ func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candi
 
 		random := r.Intn(len(fids))
 		fidStr := fids[random]
-		err = sendBlock(ctx, edge, candidateAPI, fidStr)
+		block, err := getBlock(ctx, edge, fidStr)
+		if err != nil {
+			return err
+		}
+
+		err = sendData(conn, block)
 		if err != nil {
 			return err
 		}
 	}
 }
 
-func sendBlock(ctx context.Context, edge EdgeAPI, candidateAPI api.Candidate, fid string) error {
+func getBlock(ctx context.Context, edge EdgeAPI, fid string) ([]byte, error) {
 	var block []byte
 	cid, err := getCID(edge, fid)
 	if err != nil {
 		if err == datastore.ErrNotFound {
-			log.Infof("sendBlock, fid %s not found", fid)
+			log.Infof("getBlock, fid %s not found", fid)
 			block = nil
 		} else {
-			return err
+			return nil, err
 		}
 	}
 
@@ -189,16 +194,16 @@ func sendBlock(ctx context.Context, edge EdgeAPI, candidateAPI api.Candidate, fi
 		block, err = edge.blockStore.Get(cid)
 		if err != nil {
 			if err == datastore.ErrNotFound {
-				log.Infof("sendBlock, cid %s not found, fid:%s", cid, fid)
+				log.Infof("getBlock, cid %s not found, fid:%s", cid, fid)
 				block = nil
 			} else {
-				log.Errorf("sendBlock, get block err:%v", err)
-				return err
+				log.Errorf("getBlock, get block err:%v", err)
+				return nil, err
 			}
 		}
 	}
-
-	return candidateAPI.SendBlock(ctx, block, edge.DeviceID)
+	// log.Infof("getBlock, fid:%s, cid:%s", fid, cid)
+	return block, nil
 }
 
 // call by scheduler

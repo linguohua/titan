@@ -13,7 +13,6 @@ var EdgeCmds = []*cli.Command{
 	DeviceInfoCmd,
 	CacheDataCmd,
 	VerfyDataCmd,
-	DoVerifyCmd,
 	DeleteBlockCmd,
 	VerfyDataCmd,
 	LimitRateCmd,
@@ -87,41 +86,6 @@ var CacheDataCmd = &cli.Command{
 		}
 
 		fmt.Println("cache data success")
-		return nil
-	},
-}
-
-var DoVerifyCmd = &cli.Command{
-	Name:  "doverify",
-	Usage: "do verify edge",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "fid",
-			Usage: "block file id",
-			Value: "",
-		},
-		&cli.StringFlag{
-			Name:  "url",
-			Usage: "candiate node url",
-			Value: "",
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetEdgeAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		fid := cctx.String("fid")
-		url := cctx.String("url")
-		log.Infof("fid:%s, url:%s", fid, url)
-
-		seed := time.Now().UnixNano()
-		req := API.ReqVerify{EdgeURL: "", Seed: seed, FIDs: []string{"0"}, Duration: 10}
-		err = api.DoVerify(context.Background(), req, url)
-
-		log.Infof("DoVerify success %v", err)
 		return nil
 	},
 }

@@ -148,6 +148,11 @@ var runCmd = &cli.Command{
 			Usage: "download file bandwidth, unit is B/s example set 100MB/s: --bandwidth-down=104857600",
 			Value: 1073741824, // should follow --repo default
 		},
+		&cli.StringFlag{
+			Name:  "tcp-srv-addr",
+			Usage: "tcp server addr, use by edge node verify data: --tcp-srv-addr=0.0.0.0:4000",
+			Value: "0.0.0.0:4000", // should follow --repo default
+		},
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -327,9 +332,9 @@ var runCmd = &cli.Command{
 			DownloadSrvAddr: cctx.String("download-srv-addr"),
 		}
 
-		candidateURL := fmt.Sprintf("http://%s/rpc/v0", address)
+		tcpSrvAddr := cctx.String("tcp-srv-addr")
 
-		candidateApi := candidate.NewLocalCandidateNode(context.Background(), candidateURL, edgeParams)
+		candidateApi := candidate.NewLocalCandidateNode(context.Background(), tcpSrvAddr, edgeParams)
 
 		log.Info("Setting up control endpoint at " + address)
 

@@ -25,7 +25,7 @@ func (edge EdgeAPI) startDownloadServer(address string) {
 		log.Fatal(err)
 	}
 
-	log.Infof("startDownloadServer at %s", address)
+	log.Infof("download server listen on %s", address)
 
 	err = srv.Serve(nl)
 	if err != nil {

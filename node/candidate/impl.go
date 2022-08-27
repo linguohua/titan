@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -25,10 +26,26 @@ type verifyBlock struct {
 
 var verifyChannelMap = make(map[string]chan verifyBlock)
 
-func NewLocalCandidateNode(ctx context.Context, url string, edgeParams edge.EdgeParams) api.Candidate {
+func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, edgeParams edge.EdgeParams) api.Candidate {
 	a := edge.NewLocalEdgeNode(ctx, edgeParams)
 	edgeAPI := a.(edge.EdgeAPI)
-	return CandidateAPI{EdgeAPI: edgeAPI, url: url}
+
+	go startTcpServer(tcpSrvAddr)
+	return CandidateAPI{EdgeAPI: edgeAPI, tcpSrvAddr: parseTcpSrvAddr(tcpSrvAddr, edgeAPI.InternalIP)}
+}
+
+func parseTcpSrvAddr(tcpSrvAddr string, interalIP string) string {
+	const unspecifiedAddress = "0.0.0.0"
+	addressSlice := strings.Split(tcpSrvAddr, ":")
+	if len(addressSlice) != 2 {
+		log.Fatal("Invalid downloadSrvAddr")
+	}
+
+	if addressSlice[0] == unspecifiedAddress {
+		return fmt.Sprintf("%s:%s", interalIP, addressSlice[1])
+	}
+
+	return tcpSrvAddr
 }
 
 func cidFromData(data []byte) (string, error) {
@@ -49,7 +66,7 @@ func cidFromData(data []byte) (string, error) {
 
 type CandidateAPI struct {
 	edge.EdgeAPI
-	url string
+	tcpSrvAddr string
 }
 
 func (candidate CandidateAPI) WaitQuiet(ctx context.Context) error {
@@ -106,7 +123,7 @@ func toVerifyResult(data []byte) api.VerifyResult {
 
 }
 
-func waitBlock(ctx context.Context, c chan verifyBlock, result *api.VerifyResults, size *int64) {
+func waitBlock(ctx context.Context, c chan verifyBlock, deviceID string, result *api.VerifyResults, size *int64) {
 	for {
 		select {
 		case vb := <-c:
@@ -114,15 +131,13 @@ func waitBlock(ctx context.Context, c chan verifyBlock, result *api.VerifyResult
 			rs := toVerifyResult(vb.data)
 			result.Results = append(result.Results, rs)
 		case <-ctx.Done():
+			delete(verifyChannelMap, deviceID)
+			close(c)
 			log.Infof("Exit wait block")
 			return
 		}
 
 	}
-}
-
-func verifyComplete(deviceID string) {
-	delete(verifyChannelMap, deviceID)
 }
 
 func verify(req api.ReqVerify, candidate CandidateAPI) {
@@ -165,13 +180,17 @@ func verify(req api.ReqVerify, candidate CandidateAPI) {
 
 	ch = make(chan verifyBlock)
 	verifyChannelMap[info.DeviceId] = ch
-	defer verifyComplete(info.DeviceId)
+	// defer verifyComplete(info.DeviceId)
 
 	var size = int64(0)
-	go waitBlock(ctx, ch, &result, &size)
+	go waitBlock(ctx, ch, info.DeviceId, &result, &size)
+
+	wctx, cancel := context.WithTimeout(context.Background(), (time.Duration(req.Duration)+10)*time.Second)
+	defer cancel()
 
 	now := time.Now()
-	err = edgeAPI.DoVerify(ctx, req, candidate.url)
+
+	err = edgeAPI.DoVerify(wctx, req, candidate.tcpSrvAddr)
 	if err != nil {
 		result.IsTimeout = true
 		sendVerifyResult(ctx, candidate, result)
@@ -180,17 +199,22 @@ func verify(req api.ReqVerify, candidate CandidateAPI) {
 	}
 
 	duration := time.Now().Sub(now)
-	if duration > 0 {
-		result.Bandwidth = float64(size) / float64(duration) * 1000000000
-		result.CostTime = int(duration / 1000000)
+	if duration < time.Duration(req.Duration)*1000000000 {
+		duration = time.Duration(req.Duration) * 1000000000
 	}
+
+	result.Bandwidth = float64(size) / float64(duration) * 1000000000
+	result.CostTime = int(duration / 1000000)
 
 	r := rand.New(rand.NewSource(req.Seed))
 	results := make([]api.VerifyResult, 0, len(result.Results))
+	// count := 0
 	for _, rs := range result.Results {
 		random := r.Intn(len(req.FIDs))
 		rs.Fid = req.FIDs[random]
 		results = append(results, rs)
+		// log.Infof("count:%d fid:%s, cid:%s", count, rs.Fid, rs.Cid)
+		// count++
 	}
 
 	result.Results = results
