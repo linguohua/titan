@@ -198,12 +198,14 @@ func verify(req api.ReqVerify, candidate CandidateAPI) {
 		return
 	}
 
+	// nanosecond
+	unit := time.Duration(1000000000)
 	duration := time.Now().Sub(now)
-	if duration < time.Duration(req.Duration)*1000000000 {
-		duration = time.Duration(req.Duration) * 1000000000
+	if duration < time.Duration(req.Duration)*unit {
+		duration = time.Duration(req.Duration) * unit
 	}
 
-	result.Bandwidth = float64(size) / float64(duration) * 1000000000
+	result.Bandwidth = float64(size) / float64(duration) * float64(unit)
 	result.CostTime = int(duration / 1000000)
 
 	r := rand.New(rand.NewSource(req.Seed))

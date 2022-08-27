@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/linguohua/titan/lib/token"
 )
 
 func (edge EdgeAPI) startDownloadServer(address string) {
@@ -40,11 +38,11 @@ func (edge EdgeAPI) GetBlock(w http.ResponseWriter, r *http.Request) {
 
 	log.Infof("GetBlock, appName:%s, token:%s,  cid:%s", appName, tk, cidStr)
 
-	if !token.ValidToken(tk, edge.downloadSrvKey) {
-		log.Errorf("Valid token %s error", tk)
-		http.Error(w, fmt.Sprintf("Valid token %s error", tk), http.StatusBadRequest)
-		return
-	}
+	// if !token.ValidToken(tk, edge.downloadSrvKey) {
+	// 	log.Errorf("Valid token %s error", tk)
+	// 	http.Error(w, fmt.Sprintf("Valid token %s error", tk), http.StatusBadRequest)
+	// 	return
+	// }
 
 	reader, err := edge.blockStore.GetReader(cidStr)
 	if err != nil {
@@ -60,7 +58,7 @@ func (edge EdgeAPI) GetBlock(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 
-	n, err := io.Copy(w, NewReader(reader, edge.limiter))
+	n, err := io.Copy(w, NewReader(reader, edge.Limiter))
 	if err != nil {
 		log.Errorf("GetBlock, io.Copy error:%v", err)
 		return

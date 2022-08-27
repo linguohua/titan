@@ -16,12 +16,12 @@ var EdgeCmds = []*cli.Command{
 	DeleteBlockCmd,
 	VerfyDataCmd,
 	LimitRateCmd,
-	UnlimitRateCmd,
 	GenerateTokenCmd,
+	CacheStatCmd,
 }
 
 var DeviceInfoCmd = &cli.Command{
-	Name:  "deviceinfo",
+	Name:  "info",
 	Usage: "Print device info",
 	Action: func(cctx *cli.Context) error {
 		api, closer, err := GetEdgeAPI(cctx)
@@ -53,7 +53,7 @@ var DeviceInfoCmd = &cli.Command{
 }
 
 var CacheDataCmd = &cli.Command{
-	Name:  "cachedata",
+	Name:  "cache",
 	Usage: "cache block content",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
@@ -125,7 +125,7 @@ var DeleteBlockCmd = &cli.Command{
 }
 
 var VerfyDataCmd = &cli.Command{
-	Name:  "verifydata",
+	Name:  "verify",
 	Usage: "verify data",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
@@ -198,30 +198,8 @@ var LimitRateCmd = &cli.Command{
 	},
 }
 
-var UnlimitRateCmd = &cli.Command{
-	Name:  "unlimit",
-	Usage: "unlimit rate",
-	Flags: []cli.Flag{},
-	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetEdgeAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		ctx := ReqContext(cctx)
-		err = api.UnlimitDownloadSpeed(ctx)
-		if err != nil {
-			fmt.Printf("Unlimit speed failed:%v", err)
-			return err
-		}
-		fmt.Printf("Unlimit speed success")
-		return nil
-	},
-}
-
 var GenerateTokenCmd = &cli.Command{
-	Name:  "generatetk",
+	Name:  "gentk",
 	Usage: "generate token",
 	Flags: []cli.Flag{},
 	Action: func(cctx *cli.Context) error {
@@ -239,6 +217,29 @@ var GenerateTokenCmd = &cli.Command{
 		}
 
 		fmt.Printf("Generate token success %s", tk)
+		return nil
+	},
+}
+
+var CacheStatCmd = &cli.Command{
+	Name:  "stat",
+	Usage: "cache stat",
+	Flags: []cli.Flag{},
+	Action: func(cctx *cli.Context) error {
+		api, closer, err := GetEdgeAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		ctx := ReqContext(cctx)
+		stat, err := api.QueryCacheStat(ctx)
+		if err != nil {
+			fmt.Printf("Unlimit speed failed:%v", err)
+			return err
+		}
+
+		fmt.Printf("Cache block count %d, Wait cache count %d, Caching count %d", stat.CacheBlockCount, stat.WaitCacheBlockNum, stat.DoingCacheBlockNum)
 		return nil
 	},
 }
