@@ -10,6 +10,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/stores"
+	"golang.org/x/time/rate"
 )
 
 var log = logging.Logger("edge")
@@ -23,6 +24,7 @@ type DeviceAPI struct {
 	DownloadSrvURL string
 	BandwidthUp    int64
 	BandwidthDown  int64
+	Limiter        *rate.Limiter
 }
 
 func (device DeviceAPI) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
@@ -50,7 +52,7 @@ func (device DeviceAPI) DeviceInfo(ctx context.Context) (api.DevicesInfo, error)
 	info.InternalIp = device.InternalIP
 	info.DownloadSrvURL = device.DownloadSrvURL
 	info.BandwidthDown = device.BandwidthDown
-	info.BandwidthUp = device.BandwidthUp
+	info.BandwidthUp = int64(device.Limiter.Limit())
 
 	mac, err := getMacAddr(info.InternalIp)
 	if err != nil {

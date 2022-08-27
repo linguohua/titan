@@ -32,11 +32,11 @@ func NewLocalEdgeNode(ctx context.Context, params EdgeParams) api.Edge {
 	}
 
 	params.Device.DownloadSrvURL = parseDownloadSrvURL(params)
+	params.Device.Limiter = rate.NewLimiter(rate.Limit(params.Device.BandwidthUp), int(params.Device.BandwidthUp))
 	edge := EdgeAPI{
 		ds:             params.DS,
 		scheduler:      params.Scheduler,
 		blockStore:     params.BlockStore,
-		limiter:        rate.NewLimiter(rate.Inf, 0),
 		exchange:       exchange,
 		DeviceAPI:      params.Device,
 		isCandidate:    params.IsCandidate,
@@ -79,7 +79,6 @@ type EdgeAPI struct {
 	ds             datastore.Batching
 	blockStore     stores.BlockStore
 	scheduler      api.Scheduler
-	limiter        *rate.Limiter
 	exchange       exchange.Interface
 	isCandidate    bool
 	downloadSrvKey string
@@ -319,23 +318,23 @@ func (edge EdgeAPI) QueryCachingBlocks(ctx context.Context) (api.CachingBlockLis
 
 func (edge EdgeAPI) SetDownloadSpeed(ctx context.Context, speedRate int64) error {
 	log.Infof("set download speed %d", speedRate)
-	if edge.limiter == nil {
+	if edge.Limiter == nil {
 		return fmt.Errorf("edge.limiter == nil")
 	}
-	edge.limiter.SetLimit(rate.Limit(speedRate))
-	edge.limiter.SetBurst(int(speedRate))
+	edge.Limiter.SetLimit(rate.Limit(speedRate))
+	edge.Limiter.SetBurst(int(speedRate))
 
 	return nil
 }
 
 func (edge EdgeAPI) UnlimitDownloadSpeed(ctx context.Context) error {
 	log.Infof("UnlimitDownloadSpeed")
-	if edge.limiter == nil {
+	if edge.Limiter == nil {
 		return fmt.Errorf("edge.limiter == nil")
 	}
 
-	edge.limiter.SetLimit(rate.Inf)
-	edge.limiter.SetBurst(0)
+	edge.Limiter.SetLimit(rate.Inf)
+	edge.Limiter.SetBurst(0)
 
 	return nil
 }
