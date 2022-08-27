@@ -160,15 +160,15 @@ func getNodeURLWithData(cid, ip string) (string, error) {
 	nodeEs, geoLevelE := findEdgeNodeWithGeo(uInfo, deviceIDs)
 	nodeCs, geoLevelC := findCandidateNodeWithGeo(uInfo, deviceIDs, []string{})
 	if geoLevelE < geoLevelC {
-		addr = nodeCs[randomNum(0, len(nodeCs))].addr
+		addr = nodeCs[randomNum(0, len(nodeCs))].deviceInfo.DownloadSrvURL
 	} else if geoLevelE > geoLevelC {
-		addr = nodeEs[randomNum(0, len(nodeEs))].addr
+		addr = nodeEs[randomNum(0, len(nodeEs))].deviceInfo.DownloadSrvURL
 	} else {
 		if len(nodeEs) > 0 {
-			addr = nodeEs[randomNum(0, len(nodeEs))].addr
+			addr = nodeEs[randomNum(0, len(nodeEs))].deviceInfo.DownloadSrvURL
 		} else {
 			if len(nodeCs) > 0 {
-				addr = nodeCs[randomNum(0, len(nodeCs))].addr
+				addr = nodeCs[randomNum(0, len(nodeCs))].deviceInfo.DownloadSrvURL
 			} else {
 				return "", xerrors.New("not find node")
 			}
@@ -176,7 +176,7 @@ func getNodeURLWithData(cid, ip string) (string, error) {
 	}
 
 	// http://192.168.0.136:3456/rpc/v0/block/get?cid=QmeUqw4FY1wqnh2FMvuc2v8KAapE7fYwu2Up4qNwhZiRk7
-	url := fmt.Sprintf("%s/block/get?cid=%s", addr, cid)
+	url := fmt.Sprintf("%s?cid=%s", addr, cid)
 
 	return url, nil
 }

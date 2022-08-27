@@ -184,7 +184,7 @@ func getReqCacheData(deviceID string, cids []string, isEdge bool, geoInfo region
 	for deviceID, list := range csMap {
 		node := getCandidateNode(deviceID)
 		if node != nil {
-			reqList = append(reqList, api.ReqCacheData{Cids: list, CandidateURL: node.addr})
+			reqList = append(reqList, api.ReqCacheData{Cids: list, CandidateURL: node.deviceInfo.DownloadSrvURL})
 		}
 	}
 
