@@ -9,8 +9,7 @@ import (
 	"time"
 )
 
-func ListenTCP(address string) {
-	fmt.Printf("Listen on %s", address)
+func startTcpServer(address string) {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
 		panic(err)
@@ -22,6 +21,7 @@ func ListenTCP(address string) {
 		os.Exit(1)
 	}
 
+	log.Infof("tcp_server listen on %s", address)
 	// close listener
 	defer listen.Close()
 	for {
@@ -32,7 +32,6 @@ func ListenTCP(address string) {
 		}
 
 		// conn.SetReadBuffer(104857600)
-		// conn.SetWriteBuffer(104857600)
 		go handleMessage(conn)
 	}
 }
@@ -41,51 +40,79 @@ func handleMessage(conn net.Conn) {
 	defer conn.Close()
 	var now = time.Now()
 	var size = int64(0)
+	var deviceID = ""
 
 	defer func() {
 		duration := time.Now().Sub(now)
 		bandwidth := float64(size) / float64(duration) * 1000000000
-		log.Infof("size:%d, duration:%d, bandwidth:%f", size, duration, bandwidth)
+		log.Infof("size:%d, duration:%d, bandwidth:%f, deviceID:%s", size, duration, bandwidth, deviceID)
 	}()
 
-	for {
-		contentLen, err := readContentLen(conn)
-		if err != nil {
-			log.Infof("read content len error:%v", err)
-			return
-		}
-
-		// log.Infof("recev len:%d", contentLen)
-
-		_, err = readContent(conn, int(contentLen))
-		if err != nil {
-			log.Infof("read content error:%v", err)
-			return
-		}
-
-		size += int64(contentLen) + 4
-		// cid, err := cidFromData(content)
-		// if err != nil {
-		// 	log.Infof("cidFromData error:%v", err)
-		// 	return
-		// }
-
-		// log.Infof("cid :%s", cid)
+	// first item is device id
+	buf, err := readItem(conn)
+	if err != nil {
+		log.Errorf("read deviceID error:%v", err)
+		return
 	}
+	deviceID = string(buf)
+	if len(deviceID) == 0 {
+		log.Errorf("deviceID is empty")
+		return
+	}
+
+	log.Infof("edge node %s connect to candidate, testing bandwidth", deviceID)
+
+	for {
+		// next item is file content
+		buf, err = readItem(conn)
+		if err != nil {
+			log.Infof("read item error:%v, deviceID:%s", err, deviceID)
+			return
+		}
+
+		size += int64(len(buf))
+
+		ch, ok := verifyChannelMap[deviceID]
+		if !ok {
+			log.Errorf("Candidate no wait for device %s", deviceID)
+			return
+		}
+
+		result := verifyBlock{deviceID: deviceID, data: buf}
+		ch <- result
+	}
+}
+
+func readItem(conn net.Conn) ([]byte, error) {
+	len, err := readContentLen(conn)
+	if err != nil {
+		log.Infof("read len error:%v", err)
+		return nil, err
+	}
+
+	if len == 0 {
+		return []byte{}, nil
+	}
+
+	buf, err := readContent(conn, len)
+	if err != nil {
+		log.Infof("read content error:%v", err)
+		return nil, err
+	}
+
+	return buf, nil
 }
 
 func readContentLen(conn net.Conn) (int, error) {
 	buffer := make([]byte, 4)
 	_, err := conn.Read(buffer)
 	if err != nil {
-		log.Infof("read len error:%v", err)
 		return 0, err
 	}
 
 	var contentLen int32
 	err = binary.Read(bytes.NewReader(buffer), binary.LittleEndian, &contentLen)
 	if err != nil {
-		fmt.Println("binary.Read failed:", err)
 		return 0, err
 	}
 
