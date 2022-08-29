@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"net"
 	"strings"
 	"time"
 
@@ -153,8 +154,16 @@ func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candi
 		log.Errorf("DoVerify, NewCandicate err:%v", err)
 		return err
 	}
+
+	go sendBlocks(conn, edge, reqVerify)
+
+	return nil
+}
+
+func sendBlocks(conn *net.TCPConn, edge EdgeAPI, reqVerify api.ReqVerify) {
 	defer conn.Close()
 
+	fids := reqVerify.FIDs
 	r := rand.New(rand.NewSource(reqVerify.Seed))
 	t := time.NewTimer(time.Duration(reqVerify.Duration) * time.Second)
 
@@ -162,20 +171,20 @@ func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candi
 	for {
 		select {
 		case <-t.C:
-			return nil
+			return
 		default:
 		}
 
 		random := r.Intn(len(fids))
 		fidStr := fids[random]
-		block, err := getBlock(ctx, edge, fidStr)
+		block, err := getBlock(edge, fidStr)
 		if err != nil {
-			return err
+			return
 		}
 
 		err = sendData(conn, block)
 		if err != nil {
-			return err
+			return
 		}
 	}
 }
@@ -202,7 +211,7 @@ func resetBlockUploadRate(edge EdgeAPI, oldRate int64) {
 	edge.Limiter.SetBurst(int(oldRate))
 }
 
-func getBlock(ctx context.Context, edge EdgeAPI, fid string) ([]byte, error) {
+func getBlock(edge EdgeAPI, fid string) ([]byte, error) {
 	var block []byte
 	cid, err := getCID(edge, fid)
 	if err != nil {

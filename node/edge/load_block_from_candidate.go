@@ -80,7 +80,7 @@ func loadBlocksFromCandidate(edge EdgeAPI, reqs []delayReq) {
 		log.Infof("loadBlocksFromCandidate, cid:%s,err:%v", req.cid, err)
 	}
 
-	// may be need to delete api if all fail, make it connect next time
+	// may be need to delete connection if all fail, make it connect next time
 	for k, v := range failMap {
 		if len(v) == len(reqMap[k]) {
 			delete(candidateApiMap, k)
