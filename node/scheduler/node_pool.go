@@ -1,6 +1,10 @@
 package scheduler
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/linguohua/titan/api"
+)
 
 var (
 	// node pool map 节点池
@@ -9,6 +13,8 @@ var (
 	// 节点所在池子记录
 	poolIDMap sync.Map // {key:deviceID,val:geo}
 
+	pendingEdgeMap      sync.Map
+	pendingCandidateMap sync.Map
 )
 
 type nodeStataus int
@@ -16,7 +22,6 @@ type nodeStataus int
 const (
 	nodeStatusNothing   nodeStataus = iota // 初始状态
 	nodeStatusVerified                     // 被验证者
-	nodeStatusAssigned                     // 已分配
 	nodeStatusValidator                    // 验证者
 )
 
@@ -25,17 +30,14 @@ type NodePool struct {
 	geoID          string
 	edgeNodes      map[string]nodeStataus
 	candidateNodes map[string]nodeStataus
-
-	surplusCandidateNodes []string
 }
 
 // NewNodePool new pool
 func NewNodePool(geo string) *NodePool {
 	pool := &NodePool{
-		geoID:                 geo,
-		edgeNodes:             make(map[string]nodeStataus),
-		candidateNodes:        make(map[string]nodeStataus),
-		surplusCandidateNodes: make([]string, 0),
+		geoID:          geo,
+		edgeNodes:      make(map[string]nodeStataus),
+		candidateNodes: make(map[string]nodeStataus),
 	}
 
 	g, ok := poolMap.LoadOrStore(geo, pool)
@@ -53,39 +55,33 @@ func (g *NodePool) resetNodeStataus() {
 	for deviceID := range g.candidateNodes {
 		g.candidateNodes[deviceID] = nodeStatusNothing
 	}
-
-	g.surplusCandidateNodes = make([]string, 0)
 }
 
-func (g *NodePool) addEdge(node *EdgeNode) {
-	dID := node.deviceInfo.DeviceId
-
-	if _, ok := g.edgeNodes[dID]; ok {
+func (g *NodePool) addEdge(deviceID string) {
+	if _, ok := g.edgeNodes[deviceID]; ok {
 		return
 	}
 
-	g.edgeNodes[dID] = nodeStatusNothing
+	g.edgeNodes[deviceID] = nodeStatusNothing
 }
 
-func (g *NodePool) addCandidate(node *CandidateNode) {
-	dID := node.deviceInfo.DeviceId
-
-	if _, ok := g.candidateNodes[dID]; ok {
+func (g *NodePool) addCandidate(deviceID string) {
+	if _, ok := g.candidateNodes[deviceID]; ok {
 		return
 	}
 
-	g.candidateNodes[dID] = nodeStatusNothing
+	g.candidateNodes[deviceID] = nodeStatusNothing
 }
 
-func (g *NodePool) delEdge(dID string) {
-	if _, ok := g.edgeNodes[dID]; ok {
-		delete(g.edgeNodes, dID)
+func (g *NodePool) delEdge(deviceID string) {
+	if _, ok := g.edgeNodes[deviceID]; ok {
+		delete(g.edgeNodes, deviceID)
 	}
 }
 
-func (g *NodePool) delCandidate(dID string) {
-	if _, ok := g.candidateNodes[dID]; ok {
-		delete(g.candidateNodes, dID)
+func (g *NodePool) delCandidate(deviceID string) {
+	if _, ok := g.candidateNodes[deviceID]; ok {
+		delete(g.candidateNodes, deviceID)
 	}
 }
 
@@ -98,14 +94,11 @@ func loadNodePoolMap(geoKey string) *NodePool {
 	return nil
 }
 
-func storeNodePoolMap(geoKey string, val *NodePool) {
-	poolMap.Store(geoKey, val)
+func storeNodePoolMap(geo string, val *NodePool) {
+	poolMap.Store(geo, val)
 }
 
-func addEdgeToPool(node *EdgeNode) string {
-	geo := node.geoInfo.Geo
-	deviceID := node.deviceInfo.DeviceId
-
+func addEdgeToPool(deviceID, geo string) string {
 	oldPoolID, ok := poolIDMap.Load(deviceID)
 	if ok && oldPoolID != nil {
 		oldGeo := oldPoolID.(string)
@@ -126,7 +119,7 @@ func addEdgeToPool(node *EdgeNode) string {
 		pool = NewNodePool(geo)
 	}
 
-	pool.addEdge(node)
+	pool.addEdge(deviceID)
 
 	storeNodePoolMap(geo, pool)
 	poolIDMap.Store(deviceID, geo)
@@ -134,10 +127,7 @@ func addEdgeToPool(node *EdgeNode) string {
 	return geo
 }
 
-func addCandidateToPool(node *CandidateNode) string {
-	geo := node.geoInfo.Geo
-	deviceID := node.deviceInfo.DeviceId
-
+func addCandidateToPool(deviceID, geo string) string {
 	oldPoolID, ok := poolIDMap.Load(deviceID)
 	if ok && oldPoolID != nil {
 		oldGeo := oldPoolID.(string)
@@ -158,12 +148,49 @@ func addCandidateToPool(node *CandidateNode) string {
 		pool = NewNodePool(geo)
 	}
 
-	pool.addCandidate(node)
+	pool.addCandidate(deviceID)
 
 	storeNodePoolMap(geo, pool)
 	poolIDMap.Store(deviceID, geo)
 
 	return geo
+}
+
+func addPendingNode(deviceID, geo string, nodeType api.NodeType) {
+	switch nodeType {
+	case api.NodeEdge:
+		pendingEdgeMap.Store(deviceID, geo)
+		return
+	case api.NodeCandidate:
+		pendingCandidateMap.Store(deviceID, geo)
+		return
+	default:
+		return
+	}
+}
+
+func nodesToPool() {
+	pendingEdgeMap.Range(func(key, value interface{}) bool {
+		deviceID := key.(string)
+		geo := value.(string)
+
+		addEdgeToPool(deviceID, geo)
+
+		pendingEdgeMap.Delete(deviceID)
+
+		return true
+	})
+
+	pendingCandidateMap.Range(func(key, value interface{}) bool {
+		deviceID := key.(string)
+		geo := value.(string)
+
+		addCandidateToPool(deviceID, geo)
+
+		pendingCandidateMap.Delete(deviceID)
+
+		return true
+	})
 }
 
 // PrintlnMap Println

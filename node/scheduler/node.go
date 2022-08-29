@@ -94,9 +94,9 @@ func nodeOnline(deviceID string, onlineTime int64, geoInfo region.GeoInfo, typeN
 	}
 
 	// group
-	if typeName == api.TypeNameEdge {
-		edgeGrouping(deviceID, oldNodeInfo.Geo, geoInfo.Geo, bandwidth)
-	}
+	// if typeName == api.TypeNameEdge {
+	// 	edgeGrouping(deviceID, oldNodeInfo.Geo, geoInfo.Geo, bandwidth)
+	// }
 
 	return nil
 }

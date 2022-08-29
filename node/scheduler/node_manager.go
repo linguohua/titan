@@ -121,7 +121,7 @@ func addEdgeNode(node *EdgeNode) error {
 
 	edgeCount++
 
-	addEdgeToPool(node)
+	addPendingNode(node.deviceInfo.DeviceId, node.geoInfo.Geo, api.NodeEdge)
 
 	return nil
 }
@@ -187,7 +187,7 @@ func addCandidateNode(node *CandidateNode) error {
 		candidateCount++
 	}
 
-	addCandidateToPool(node)
+	addPendingNode(node.deviceInfo.DeviceId, node.geoInfo.Geo, api.NodeCandidate)
 
 	return nil
 }

@@ -41,7 +41,7 @@ const (
 	// RedisKeyVerifyOfflineList VerifyID
 	redisKeyVerifyOfflineList = "Titan:VerifyOfflineList:%s"
 	// redisKeyVerifyList
-	redisKeyVerifyList = "Titan:VerifyList"
+	redisKeyVerifyList = "Titan:VerifyList" // TODO 干嘛用的
 
 	// RedisKeyEdgeDeviceIDList
 	redisKeyEdgeDeviceIDList = "Titan:EdgeDeviceIDList"
