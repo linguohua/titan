@@ -12,7 +12,7 @@ const (
 )
 
 var (
-	// 边缘节点组(根据区域分组,每个组上行带宽为1GB)
+	// 边缘节点组(根据区域分组,每个组20个节点(候选5 边缘15))
 	groupMap sync.Map // {key:groupID,val:*Group}
 
 	geoGroupMap sync.Map // {key:geo,val:[]string{groupID}}

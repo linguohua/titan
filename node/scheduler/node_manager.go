@@ -121,6 +121,8 @@ func addEdgeNode(node *EdgeNode) error {
 
 	edgeCount++
 
+	addEdgeToPool(node)
+
 	return nil
 }
 
@@ -184,6 +186,8 @@ func addCandidateNode(node *CandidateNode) error {
 	} else {
 		candidateCount++
 	}
+
+	addCandidateToPool(node)
 
 	return nil
 }
