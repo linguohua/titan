@@ -9,7 +9,6 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db"
-	"github.com/linguohua/titan/region"
 	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
 )
@@ -20,6 +19,8 @@ var (
 
 	verifyMax = 100 // 每次抽查block个数上限
 
+	verifiedMax = 20 // 每个验证节点一次验证的被验证节点数
+
 	roundID string
 	fidsMap map[string][]string
 
@@ -29,8 +30,7 @@ var (
 	timewheelVerify *timewheel.TimeWheel
 	verifyTime      = 60 // 抽查时间间隔 (分钟)
 
-	unassignedEdgeMap = make(map[string]int)      // 未被分配到的边缘节点组
-	lackValidatorMap  = make(map[string][]string) // 缺验证节点的边缘节点
+	unassignedEdgeMap = make(map[string]int) // 未被分配到的边缘节点组
 )
 
 // 边缘节点登录的时候
@@ -64,26 +64,31 @@ func InitVerifyTimewheel() {
 	timewheelVerify.AddTimer(time.Duration(2)*60*time.Second, "verify", nil)
 }
 
-func updateUnassignedEdgeMap(geo string) {
-	if num, ok := unassignedEdgeMap[geo]; ok {
-		unassignedEdgeMap[geo] = num + 1
-	} else {
-		unassignedEdgeMap[geo] = 1
-	}
-}
-
-func getReqVerify(validatorID string, edges []*EdgeNode) []api.ReqVerify {
+func getReqVerify(validatorID string, list []string) ([]api.ReqVerify, []string) {
 	// validatorID := candidate.deviceInfo.DeviceId
 
 	req := make([]api.ReqVerify, 0)
 
-	for _, edge := range edges {
-		// 查看节点缓存了哪些数据
-		edgeID := edge.deviceInfo.DeviceId
+	errList := make([]string, 0)
 
-		datas, err := db.GetCacheDB().GetCacheDataInfos(edgeID)
+	for _, deviceID := range list {
+		addr := ""
+		edgeNode := getEdgeNode(deviceID)
+		if edgeNode == nil {
+			candidateNode := getCandidateNode(deviceID)
+			if candidateNode == nil {
+				errList = append(errList, deviceID)
+				continue
+			}
+			addr = candidateNode.addr
+		} else {
+			addr = edgeNode.addr
+		}
+
+		// 查看节点缓存了哪些数据
+		datas, err := db.GetCacheDB().GetCacheDataInfos(deviceID)
 		if err != nil {
-			log.Warnf("verify GetCacheDataInfos err:%v,DeviceId:%v", err.Error(), edgeID)
+			log.Warnf("verify GetCacheDataInfos err:%v,DeviceId:%v", err.Error(), deviceID)
 			continue
 		}
 
@@ -106,24 +111,24 @@ func getReqVerify(validatorID string, edges []*EdgeNode) []api.ReqVerify {
 			}
 		}
 
-		req = append(req, api.ReqVerify{Seed: seed, EdgeURL: edge.addr, Duration: duration, FIDs: fids, RoundID: roundID})
+		req = append(req, api.ReqVerify{Seed: seed, EdgeURL: addr, Duration: duration, FIDs: fids, RoundID: roundID})
 
-		fidsMap[edgeID] = fids
+		fidsMap[deviceID] = fids
 		//
-		err = db.GetCacheDB().SetVerifyResultInfo(roundID, edgeID, validatorID, "", db.VerifyStatusCreate)
+		err = db.GetCacheDB().SetVerifyResultInfo(roundID, deviceID, validatorID, "", db.VerifyStatusCreate)
 		if err != nil {
-			log.Warnf("verify SetVerifyResultInfo err:%v,DeviceId:%v", err.Error(), edgeID)
+			log.Warnf("verify SetVerifyResultInfo err:%v,DeviceId:%v", err.Error(), deviceID)
 			continue
 		}
 
-		err = db.GetCacheDB().SetNodeToVerifyList(edgeID)
+		err = db.GetCacheDB().SetNodeToVerifyList(deviceID)
 		if err != nil {
-			log.Warnf("verify SetNodeToVerifyList err:%v,DeviceId:%v", err.Error(), edgeID)
+			log.Warnf("verify SetNodeToVerifyList err:%v,DeviceId:%v", err.Error(), deviceID)
 			continue
 		}
 	}
 
-	return req
+	return req, errList
 }
 
 func getRandFid(max int, r *rand.Rand) int {
@@ -194,7 +199,7 @@ func verifyResult(verifyResults api.VerifyResults) error {
 		result := verifyResults.Results[i]
 
 		fidStr := list[index]
-		log.Infof("fidStr:%v,resultFid:%v,index:%v", fidStr, result.Fid, i)
+		// log.Infof("fidStr:%v,resultFid:%v,index:%v", fidStr, result.Fid, i)
 		if fidStr != result.Fid {
 			status = db.VerifyStatusFail
 			msg = fmt.Sprintf("fidStr:%v,resultFid:%v,index:%v", fidStr, result.Fid, i)
@@ -263,128 +268,6 @@ func checkVerifyTimeOut() error {
 	return nil
 }
 
-// Verify edges
-func startVerify() error {
-	// 新一轮的抽查
-	err := db.GetCacheDB().DelVerifyList()
-	if err != nil {
-		return err
-	}
-
-	sID, err := db.GetCacheDB().IncrVerifyID()
-	if err != nil {
-		// log.Errorf("NotifyNodeCacheData getTagWithNode err:%v", err)
-		return err
-	}
-	roundID = fmt.Sprintf("%d", sID)
-
-	seed = sID
-
-	fidsMap = make(map[string][]string)
-
-	// log.Infof("validatorCount:%v,candidateCount:%v", validatorCount, candidateCount)
-	// find validators
-	validators, err := db.GetCacheDB().GetValidatorsWithList()
-	if err != nil {
-		return err
-	}
-
-	usedGroupID := make([]string, 0)
-
-	for _, validatorID := range validators {
-		geos, err := db.GetCacheDB().GetGeoWithValidatorList(validatorID)
-		if err != nil {
-			log.Warnf("GetGeoWithValidatorList err:%v,validatorID:%v", err.Error(), validatorID)
-			continue
-		}
-
-		// edge list
-		edges := make([]*EdgeNode, 0)
-
-		log.Infof("validator id:%v", validatorID)
-		// find edge
-		for _, geo := range geos {
-			groups := loadGeoGroupMap(geo)
-			if groups != nil {
-				// rand group
-				uIDs, group := getUnassignedGroup(groups, usedGroupID)
-				for deviceID := range group.edgeNodeMap {
-					edge := getEdgeNode(deviceID)
-					if edge != nil {
-						log.Infof("edge id:%v", edge.deviceInfo.DeviceId)
-						edges = append(edges, edge)
-					} else {
-						// 记录扣罚 edge
-						err = db.GetCacheDB().SetNodeToVerifyOfflineList(roundID, deviceID)
-						if err != nil {
-							log.Warnf("SetNodeToVerifyOfflineList ,err:%v,deviceID:%v", err.Error(), deviceID)
-						}
-					}
-				}
-				usedGroupID = uIDs
-			} else {
-				log.Warnf("verifys loadGroupMap is nil ,geo:%v", geo)
-			}
-		}
-
-		offline := false
-
-		validator := getCandidateNode(validatorID)
-		if validator != nil {
-			req := getReqVerify(validatorID, edges)
-
-			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-			defer cancel()
-
-			// 请求抽查
-			err := validator.nodeAPI.VerifyData(ctx, req)
-			if err != nil {
-				log.Warnf("VerifyData err:%v, DeviceId:%v", err.Error(), validatorID)
-				offline = true
-			}
-
-		} else {
-			offline = true
-		}
-
-		if offline {
-			// 记录扣罚 validatorID
-			err = db.GetCacheDB().SetNodeToVerifyOfflineList(roundID, validatorID)
-			if err != nil {
-				log.Warnf("SetNodeToVerifyOfflineList ,err:%v,deviceID:%v", err.Error(), validatorID)
-			}
-		}
-	}
-
-	t := time.NewTimer(time.Duration(duration*2) * time.Second)
-
-	for {
-		select {
-		case <-t.C:
-			return checkVerifyTimeOut()
-		}
-	}
-}
-
-func getUnassignedGroup(groups []string, usedIDs []string) ([]string, *Group) {
-	for _, groupID := range groups {
-		used := false
-		for _, gID := range usedIDs {
-			if groupID == gID {
-				used = true
-			}
-		}
-
-		if !used {
-			usedIDs = append(usedIDs, groupID)
-			group := loadGroupMap(groupID)
-			return usedIDs, group
-		}
-	}
-
-	return usedIDs, nil
-}
-
 // 重置 验证者数据
 func cleanValidators() error {
 	validators, err := db.GetCacheDB().GetValidatorsWithList()
@@ -414,7 +297,6 @@ func cleanValidators() error {
 
 // 选举、分配验证者负责的区域
 func electionValidators() error {
-	testPrintlnEdgeGroupMap()
 	// 每个城市 选出X个验证者
 	// 每隔Y时间 重新选举
 	err := cleanValidators()
@@ -422,97 +304,121 @@ func electionValidators() error {
 		return err
 	}
 
+	// 初始化池子
+	nodesToPool()
+	testPrintlnPoolMap()
+
 	alreadyAssignValidatorMap := make(map[string]string) // 已被分配的验证者
-	alreadyAssignValidatorList := make([]string, 0)      // 带宽已经占满的验证者
-	// validatorBandwidthMap := make(map[string]int)   // 已用带宽
-	// 未被分配到的边缘节点组数
-	unassignedEdgeMap = make(map[string]int)
+	unAssignCandidates := make([]string, 0)              // 空闲的候选者
+	// 缺验证节点数量
+	lackValidatorMap := make(map[string]int)
 
-	geoGroupMap.Range(func(key, value interface{}) bool {
+	poolMap.Range(func(key, value interface{}) bool {
 		geo := key.(string)
-		groups := value.([]string)
-		if groups == nil || len(groups) <= 0 {
+		pool := value.(*NodePool)
+		if pool == nil {
 			return true
 		}
 
-		gInfo := region.StringGeoToGeoInfo(geo)
-		if gInfo == nil {
-			log.Warnf("StringGeoToGeoInfo geo:%v", geo)
+		edgeNum := len(pool.edgeNodes)
+		candidateNum := len(pool.candidateNodes)
+		if edgeNum <= 0 && candidateNum <= 0 {
 			return true
 		}
 
-		// 找出这个区域 所有候选节点
-		cns, gLevel := findCandidateNodeWithGeo(*gInfo, []string{}, []string{})
-		if gLevel == cityLevel && len(cns) > 0 {
-			// 这里考虑 验证节点的下行带宽
-			totalNum := len(groups)
-			for _, c := range randomNums(0, len(cns), len(groups)) {
-				totalNum--
-				dID := cns[c].deviceInfo.DeviceId
-				alreadyAssignValidatorMap[dID] = geo
+		// 初始化状态
+		pool.resetNodeStataus()
 
-				// TODO 满了才加入这个列表 (目前有一组就算是满了)
-				alreadyAssignValidatorList = append(alreadyAssignValidatorList, dID)
+		nodeTotalNum := edgeNum + candidateNum
+		n := 0
+		if nodeTotalNum%(verifiedMax+1) > 0 {
+			n = 1
+		}
+		needVeriftorNum := nodeTotalNum/(verifiedMax+1) + n
+
+		if candidateNum == needVeriftorNum {
+			for deviceID := range pool.candidateNodes {
+				alreadyAssignValidatorMap[deviceID] = geo
 			}
-
-			if totalNum > 0 {
-				unassignedEdgeMap[geo] = totalNum
+		} else if candidateNum > needVeriftorNum {
+			// 选出验证者 把多余的候选节点标记成被验证者
+			vn := 0
+			for deviceID := range pool.candidateNodes {
+				vn++
+				if vn > needVeriftorNum {
+					unAssignCandidates = append(unAssignCandidates, deviceID)
+				} else {
+					alreadyAssignValidatorMap[deviceID] = geo
+				}
 			}
 		} else {
-			unassignedEdgeMap[geo] = len(groups)
-			return true
+			// 候选节点不足的情况下 所有候选者都是验证者
+			for deviceID := range pool.candidateNodes {
+				alreadyAssignValidatorMap[deviceID] = geo
+			}
+
+			lackValidatorMap[geo] = needVeriftorNum - candidateNum
 		}
+		// log.Infof("选举 geo:%v,candidateNum:%v,edgeNum:%v,needVeriftorNum:%v", geo, candidateNum, edgeNum, needVeriftorNum)
 
 		return true
 	})
 
+	// log.Infof("选举遗漏 lackValidatorMap:%v", lackValidatorMap)
+
 	candidateNotEnough := false
-	// 处理第一轮未匹配到的边缘节点
-	for len(unassignedEdgeMap) > 0 {
-		for geo, num := range unassignedEdgeMap {
-			gInfo := region.StringGeoToGeoInfo(geo)
-			if gInfo == nil {
-				log.Warnf("StringGeoToGeoInfo geo:%v", geo)
-				continue
+	// 再次选举候选节点
+	if len(lackValidatorMap) > 0 {
+		for geo, num := range lackValidatorMap {
+			if len(unAssignCandidates) == 0 {
+				candidateNotEnough = true
+				break
 			}
 
-			cns, _ := findCandidateNodeWithGeo(*gInfo, []string{}, alreadyAssignValidatorList)
-			if len(cns) > 0 {
-				for _, c := range randomNums(0, len(cns), num) {
-					num--
-					dID := cns[c].deviceInfo.DeviceId
-					alreadyAssignValidatorMap[dID] = geo
+			n := num
+			if len(unAssignCandidates) < num {
+				n = len(unAssignCandidates)
+			}
 
-					// TODO 满了才加入这个列表 (目前有一组就算是满了)
-					alreadyAssignValidatorList = append(alreadyAssignValidatorList, dID)
-				}
-				unassignedEdgeMap[geo] = num
-				if num == 0 {
-					delete(unassignedEdgeMap, geo)
-				}
-			} else {
-				candidateNotEnough = true
+			validatorIDs := unAssignCandidates[0:n]
+			unAssignCandidates = unAssignCandidates[n:]
+
+			for _, validatorID := range validatorIDs {
+				alreadyAssignValidatorMap[validatorID] = geo
 			}
 		}
 
 		if candidateNotEnough {
-			log.Warnf("Candidate Not Enough  assignEdge: %v", unassignedEdgeMap)
-			break
+			log.Warnf("Candidate Not Enough  assignEdge: %v", lackValidatorMap)
 		}
 	}
+	// log.Infof("选举结果 alreadyAssignValidatorMap:%v", alreadyAssignValidatorMap)
 
 	// 记录验证者负责的区域到redis
-	for validator, geo := range alreadyAssignValidatorMap {
-		getCandidateNode(validator).isValidator = true
-
-		err = db.GetCacheDB().SetValidatorToList(validator)
-		if err != nil {
-			log.Warnf("SetValidatorToList err:%v, validator : %s", err.Error(), validator)
+	for validatorID, geo := range alreadyAssignValidatorMap {
+		validator := getCandidateNode(validatorID)
+		if validator != nil {
+			validator.isValidator = true
 		}
 
-		err = db.GetCacheDB().SetGeoToValidatorList(validator, geo)
+		err = db.GetCacheDB().SetValidatorToList(validatorID)
 		if err != nil {
-			log.Warnf("SetGeoToValidatorList err:%v, validator : %s, geo : %s", err.Error(), validator, geo)
+			log.Warnf("SetValidatorToList err:%v, validatorID : %s", err.Error(), validatorID)
+		}
+
+		err = db.GetCacheDB().SetGeoToValidatorList(validatorID, geo)
+		if err != nil {
+			log.Warnf("SetGeoToValidatorList err:%v, validatorID : %s, geo : %s", err.Error(), validatorID, geo)
+		}
+
+		// 把池子里的验证节点做个标记
+		validatorGeo, ok := poolIDMap.Load(validatorID)
+		if ok && validatorGeo != nil {
+			vGeo := validatorGeo.(string)
+			nodePool := loadNodePoolMap(vGeo)
+			if nodePool != nil {
+				nodePool.candidateNodes[validatorID] = nodeStatusValidator
+			}
 		}
 	}
 
@@ -522,254 +428,143 @@ func electionValidators() error {
 	return nil
 }
 
-// 选举、分配验证者负责的区域
-// func electionValidators2() error {
-// 	testPrintlnPoolMap()
-// 	// 每个城市 选出X个验证者
-// 	// 每隔Y时间 重新选举
-// 	err := cleanValidators()
-// 	if err != nil {
-// 		return err
-// 	}
+// Verify edges
+func startVerify() error {
+	// 新一轮的抽查
+	err := db.GetCacheDB().DelVerifyList()
+	if err != nil {
+		return err
+	}
 
-// 	alreadyAssignValidatorMap := make(map[string]string) // 已被分配的验证者
-// 	unAssignCandidates := make([]string, 0)              // 空闲的候选者
-// 	// 缺验证节点数量
-// 	lackValidatorMap = make(map[string][]string)
+	sID, err := db.GetCacheDB().IncrVerifyID()
+	if err != nil {
+		return err
+	}
+	roundID = fmt.Sprintf("%d", sID)
 
-// 	poolMap.Range(func(key, value interface{}) bool {
-// 		geo := key.(string)
-// 		pool := value.(*NodePool)
+	seed = sID
 
-// 		if pool == nil {
-// 			return true
-// 		}
+	fidsMap = make(map[string][]string)
 
-// 		edgeNum := len(pool.edgeNodes)
-// 		candidateNum := len(pool.candidateNodes)
+	// find validators
+	validators, err := db.GetCacheDB().GetValidatorsWithList()
+	if err != nil {
+		return err
+	}
 
-// 		if edgeNum <= 0 && candidateNum <= 0 {
-// 			return true
-// 		}
+	geoMap := make(map[string][]string)
 
-// 		pool.resetNodeStataus()
+	for _, validatorID := range validators {
+		geos, err := db.GetCacheDB().GetGeoWithValidatorList(validatorID)
+		if err != nil {
+			log.Warnf("GetGeoWithValidatorList err:%v,validatorID:%v", err.Error(), validatorID)
+			continue
+		}
 
-// 		nodeTotalNum := edgeNum + candidateNum
-// 		n := 0
-// 		if nodeTotalNum%21 > 0 {
-// 			n = 1
-// 		}
-// 		needVeriftorNum := nodeTotalNum/21 + n
+		for _, geo := range geos {
+			if list, ok := geoMap[geo]; ok {
+				geoMap[geo] = append(list, validatorID)
+			} else {
+				geoMap[geo] = []string{validatorID}
+			}
+		}
+	}
 
-// 		if candidateNum == needVeriftorNum {
-// 			for deviceID := range pool.edgeNodes {
-// 				pool.edgeNodes[deviceID] = nodeStatusVerified
-// 			}
-// 			for deviceID := range pool.candidateNodes {
-// 				pool.candidateNodes[deviceID] = nodeStatusValidator
+	validatorMap := make(map[string][]string)
 
-// 				alreadyAssignValidatorMap[deviceID] = geo
-// 			}
-// 		} else if candidateNum > needVeriftorNum {
-// 			for deviceID := range pool.edgeNodes {
-// 				pool.edgeNodes[deviceID] = nodeStatusVerified
-// 			}
-// 			// 选出验证者 把多余的候选节点标记成被验证者
-// 			vn := 0
-// 			for deviceID := range pool.candidateNodes {
-// 				vn++
-// 				if vn >= needVeriftorNum {
-// 					pool.candidateNodes[deviceID] = nodeStatusVerified
+	for geo, validatorList := range geoMap {
+		nodePool := loadNodePoolMap(geo)
+		if nodePool == nil {
+			log.Warnf("verifys loadGroupMap is nil ,geo:%v", geo)
+			continue
+		}
 
-// 					unAssignCandidates = append(unAssignCandidates, deviceID)
-// 				} else {
-// 					pool.candidateNodes[deviceID] = nodeStatusValidator
+		verifiedList := make([]string, 0)
+		// rand group
+		for deviceID, strtus := range nodePool.edgeNodes {
+			if strtus == nodeStatusValidator {
+				continue
+			}
 
-// 					alreadyAssignValidatorMap[deviceID] = geo
-// 				}
-// 			}
-// 		} else {
-// 			// 候选节点不足的情况下 所有候选者都是验证者
-// 			for deviceID := range pool.candidateNodes {
-// 				pool.candidateNodes[deviceID] = nodeStatusValidator
+			verifiedList = append(verifiedList, deviceID)
+		}
 
-// 				alreadyAssignValidatorMap[deviceID] = geo
-// 			}
-// 			// 看看有多少 多余的边缘节点 (每个验证节点 验证20个边缘节点)
-// 			list := make([]string, 0)
-// 			vn := 0
-// 			tn := candidateNum * 20
-// 			for deviceID := range pool.edgeNodes {
-// 				vn++
-// 				if vn <= tn {
-// 					pool.edgeNodes[deviceID] = nodeStatusVerified
-// 				} else {
-// 					list = append(list, deviceID)
-// 				}
-// 			}
+		for deviceID, strtus := range nodePool.candidateNodes {
+			if strtus == nodeStatusValidator {
+				continue
+			}
 
-// 			lackValidatorMap[geo] = list
-// 		}
+			verifiedList = append(verifiedList, deviceID)
+		}
 
-// 		return true
-// 	})
+		// 被验证者 平均分给 验证者
+		verifiedLen := len(verifiedList)
+		validatorLen := len(validatorList)
+		num := verifiedLen / validatorLen // 每个验证者分配到的节点数量
+		if verifiedLen%validatorLen > 0 {
+			num++
+		}
 
-// 	candidateNotEnough := false
-// 	// 处理第一轮未匹配到的边缘节点
-// 	if len(lackValidatorMap) > 0 {
-// 		for geo, list := range lackValidatorMap {
+		for i := 0; i < validatorLen; i++ {
+			validatorID := validatorList[i]
 
-// 			validatorID := ""
-// 			for i, edgeID := range list {
-// 				if i%20 == 0 {
-// 					if len(unAssignCandidates) == 0 {
-// 						candidateNotEnough = true
-// 						break
-// 					}
-// 					// 随机分配
-// 					validatorID = unAssignCandidates[0]
-// 					unAssignCandidates = append(unAssignCandidates[:0], unAssignCandidates[0+1:]...)
+			end := (i * num) + num
+			if end > verifiedLen {
+				end = verifiedLen
+			}
+			newList := verifiedList[i*num : end]
 
-// 					validatorGeo, ok := poolIDMap.Load(validatorID)
-// 					if ok && validatorGeo != nil {
-// 						vGeo := validatorGeo.(string)
-// 						nodePool := loadNodePoolMap(vGeo)
-// 						if nodePool != nil {
-// 							nodePool.candidateNodes[validatorID] = nodeStatusValidator
+			if list, ok := validatorMap[validatorID]; ok {
+				validatorMap[validatorID] = append(list, newList...)
+			} else {
+				validatorMap[validatorID] = newList
+			}
+		}
+	}
 
-// 							alreadyAssignValidatorMap[validatorID] = geo
-// 						}
-// 					}
-// 				}
+	for validatorID, list := range validatorMap {
+		req, errList := getReqVerify(validatorID, list)
+		offline := false
+		validator := getCandidateNode(validatorID)
+		if validator != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+			// 请求抽查
+			err := validator.nodeAPI.VerifyData(ctx, req)
+			if err != nil {
+				log.Warnf("VerifyData err:%v, DeviceId:%v", err.Error(), validatorID)
+				offline = true
+			}
 
-// 			}
-// 		}
+		} else {
+			offline = true
+		}
 
-// 		if candidateNotEnough {
-// 			log.Warnf("Candidate Not Enough  assignEdge: %v", lackValidatorMap)
-// 		}
-// 	}
+		if offline {
+			// 记录扣罚 验证者
+			err = db.GetCacheDB().SetNodeToVerifyOfflineList(roundID, validatorID)
+			if err != nil {
+				log.Warnf("SetNodeToVerifyOfflineList ,err:%v,deviceID:%v", err.Error(), validatorID)
+			}
+		}
 
-// 	// 记录验证者负责的区域到redis
-// 	for validator, geo := range alreadyAssignValidatorMap {
-// 		getCandidateNode(validator).isValidator = true
+		for _, deviceID := range errList {
+			// 记录扣罚 被验证者
+			err = db.GetCacheDB().SetNodeToVerifyOfflineList(roundID, deviceID)
+			if err != nil {
+				log.Warnf("SetNodeToVerifyOfflineList ,err:%v,deviceID:%v", err.Error(), deviceID)
+			}
+		}
 
-// 		err = db.GetCacheDB().SetValidatorToList(validator)
-// 		if err != nil {
-// 			log.Warnf("SetValidatorToList err:%v, validator : %s", err.Error(), validator)
-// 		}
+		log.Infof("validatorID :%v, List:%v", validatorID, list)
+	}
 
-// 		err = db.GetCacheDB().SetGeoToValidatorList(validator, geo)
-// 		if err != nil {
-// 			log.Warnf("SetGeoToValidatorList err:%v, validator : %s, geo : %s", err.Error(), validator, geo)
-// 		}
-// 	}
+	t := time.NewTimer(time.Duration(duration*2) * time.Second)
 
-// 	// reset count
-// 	resetCandidateAndValidatorCount()
-
-// 	return nil
-// }
-
-// // Verify edges
-// func startVerify2() error {
-// 	// 新一轮的抽查
-// 	err := db.GetCacheDB().DelVerifyList()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	sID, err := db.GetCacheDB().IncrVerifyID()
-// 	if err != nil {
-// 		// log.Errorf("NotifyNodeCacheData getTagWithNode err:%v", err)
-// 		return err
-// 	}
-// 	roundID = fmt.Sprintf("%d", sID)
-
-// 	seed = sID
-
-// 	fidsMap = make(map[string][]string)
-
-// 	// log.Infof("validatorCount:%v,candidateCount:%v", validatorCount, candidateCount)
-// 	// find validators
-// 	validators, err := db.GetCacheDB().GetValidatorsWithList()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	usedGroupID := make([]string, 0)
-
-// 	for _, validatorID := range validators {
-// 		geos, err := db.GetCacheDB().GetGeoWithValidatorList(validatorID)
-// 		if err != nil {
-// 			log.Warnf("GetGeoWithValidatorList err:%v,validatorID:%v", err.Error(), validatorID)
-// 			continue
-// 		}
-
-// 		// edge list
-// 		edges := make([]*EdgeNode, 0)
-
-// 		log.Infof("validator id:%v", validatorID)
-// 		// find edge
-// 		for _, geo := range geos {
-// 			nodePool := loadNodePoolMap(geo)
-// 			if nodePool != nil {
-// 				// rand group
-// 				uIDs, group := getUnassignedGroup(groups, usedGroupID)
-// 				for deviceID := range group.edgeNodeMap {
-// 					edge := getEdgeNode(deviceID)
-// 					if edge != nil {
-// 						log.Infof("edge id:%v", edge.deviceInfo.DeviceId)
-// 						edges = append(edges, edge)
-// 					} else {
-// 						// 记录扣罚 edge
-// 						err = db.GetCacheDB().SetNodeToVerifyOfflineList(roundID, deviceID)
-// 						if err != nil {
-// 							log.Warnf("SetNodeToVerifyOfflineList ,err:%v,deviceID:%v", err.Error(), deviceID)
-// 						}
-// 					}
-// 				}
-// 				usedGroupID = uIDs
-// 			} else {
-// 				log.Warnf("verifys loadGroupMap is nil ,geo:%v", geo)
-// 			}
-// 		}
-
-// 		offline := false
-
-// 		validator := getCandidateNode(validatorID)
-// 		if validator != nil {
-// 			req := getReqVerify(validatorID, edges)
-
-// 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-// 			defer cancel()
-
-// 			// 请求抽查
-// 			err := validator.nodeAPI.VerifyData(ctx, req)
-// 			if err != nil {
-// 				log.Warnf("VerifyData err:%v, DeviceId:%v", err.Error(), validatorID)
-// 				offline = true
-// 			}
-
-// 		} else {
-// 			offline = true
-// 		}
-
-// 		if offline {
-// 			// 记录扣罚 validatorID
-// 			err = db.GetCacheDB().SetNodeToVerifyOfflineList(roundID, validatorID)
-// 			if err != nil {
-// 				log.Warnf("SetNodeToVerifyOfflineList ,err:%v,deviceID:%v", err.Error(), validatorID)
-// 			}
-// 		}
-// 	}
-
-// 	t := time.NewTimer(time.Duration(duration*2) * time.Second)
-
-// 	for {
-// 		select {
-// 		case <-t.C:
-// 			return checkVerifyTimeOut()
-// 		}
-// 	}
-// }
+	for {
+		select {
+		case <-t.C:
+			return checkVerifyTimeOut()
+		}
+	}
+}
