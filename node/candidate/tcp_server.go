@@ -36,7 +36,7 @@ func startTcpServer(address string) {
 	}
 }
 
-func handleMessage(conn net.Conn) {
+func handleMessage(conn *net.TCPConn) {
 	defer conn.Close()
 	var now = time.Now()
 	var size = int64(0)
@@ -60,6 +60,12 @@ func handleMessage(conn net.Conn) {
 		return
 	}
 
+	vb, ok := verifyMap[deviceID]
+	if !ok {
+		log.Errorf("Candidate no wait for device %s", deviceID)
+		return
+	}
+
 	log.Infof("edge node %s connect to candidate, testing bandwidth", deviceID)
 
 	for {
@@ -67,19 +73,14 @@ func handleMessage(conn net.Conn) {
 		buf, err = readItem(conn)
 		if err != nil {
 			log.Infof("read item error:%v, deviceID:%s", err, deviceID)
+			close(vb.ch)
+			vb.conn = nil
 			return
 		}
 
 		size += int64(len(buf))
 
-		ch, ok := verifyChannelMap[deviceID]
-		if !ok {
-			log.Errorf("Candidate no wait for device %s", deviceID)
-			return
-		}
-
-		result := verifyBlock{deviceID: deviceID, data: buf}
-		ch <- result
+		vb.ch <- buf
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"net"
 	"strings"
 	"time"
 
@@ -20,11 +21,11 @@ import (
 var log = logging.Logger("candidate")
 
 type verifyBlock struct {
-	deviceID string
-	data     []byte
+	conn *net.TCPConn
+	ch   chan []byte
 }
 
-var verifyChannelMap = make(map[string]chan verifyBlock)
+var verifyMap = make(map[string]*verifyBlock)
 
 func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, edgeParams edge.EdgeParams) api.Candidate {
 	a := edge.NewLocalEdgeNode(ctx, edgeParams)
@@ -77,17 +78,17 @@ func (candidate CandidateAPI) WaitQuiet(ctx context.Context) error {
 // edge node send block to candidate
 func (candidate CandidateAPI) SendBlock(ctx context.Context, block []byte, deviceID string) error {
 	log.Infof("SendBlock, len:%d", len(block))
-	if deviceID == "" {
-		return fmt.Errorf("deviceID is empty")
-	}
+	// if deviceID == "" {
+	// 	return fmt.Errorf("deviceID is empty")
+	// }
 
-	ch, ok := verifyChannelMap[deviceID]
-	if !ok {
-		return fmt.Errorf("Candidate no wait for verify block")
-	}
+	// ch, ok := verifyChannelMap[deviceID]
+	// if !ok {
+	// 	return fmt.Errorf("Candidate no wait for verify block")
+	// }
 
-	result := verifyBlock{deviceID: deviceID, data: block}
-	ch <- result
+	// result := verifyBlock{deviceID: deviceID, data: block}
+	// ch <- result
 	return nil
 }
 
@@ -123,21 +124,75 @@ func toVerifyResult(data []byte) api.VerifyResult {
 
 }
 
-func waitBlock(ctx context.Context, c chan verifyBlock, deviceID string, result *api.VerifyResults, size *int64) {
+func waitBlock(vb *verifyBlock, req api.ReqVerify, candidate CandidateAPI, result api.VerifyResults) {
+	defer func() {
+		vb, ok := verifyMap[result.DeviceID]
+		if ok {
+			delete(verifyMap, result.DeviceID)
+			if vb.ch != nil {
+				close(vb.ch)
+			}
+
+			if vb.conn != nil {
+				vb.conn.Close()
+			}
+		}
+	}()
+
+	var size = int64(0)
+	var now = time.Now()
+	var isBreak = false
+	// add more 5 second to timeout
+	var addMoreTimeout = 5
+	var t = time.NewTimer(time.Duration(req.Duration+addMoreTimeout) * time.Second)
 	for {
 		select {
-		case vb := <-c:
-			*size += int64(len(vb.data))
-			rs := toVerifyResult(vb.data)
+		case block, ok := <-vb.ch:
+			if !ok {
+				vb.ch = nil
+				isBreak = true
+				break
+			}
+
+			size += int64(len(block))
+			rs := toVerifyResult(block)
 			result.Results = append(result.Results, rs)
-		case <-ctx.Done():
-			delete(verifyChannelMap, deviceID)
-			close(c)
-			log.Infof("Exit wait block")
-			return
+		case <-t.C:
+			isBreak = true
+		}
+
+		if isBreak {
+			break
 		}
 
 	}
+
+	// nanosecond
+	unit := time.Duration(1000000000)
+	duration := time.Now().Sub(now)
+	if duration < time.Duration(req.Duration)*unit {
+		duration = time.Duration(req.Duration) * unit
+	}
+
+	result.Bandwidth = float64(size) / float64(duration) * float64(unit)
+	result.CostTime = int(duration / 1000000)
+
+	r := rand.New(rand.NewSource(req.Seed))
+	results := make([]api.VerifyResult, 0, len(result.Results))
+
+	for _, rs := range result.Results {
+		random := r.Intn(len(req.FIDs))
+		rs.Fid = req.FIDs[random]
+		results = append(results, rs)
+	}
+
+	result.Results = results
+
+	log.Infof("verify %s %d block, bandwidth:%f, cost time:%d, IsTimeout:%v, duration:%d, size:%d", result.DeviceID, len(result.Results), result.Bandwidth, result.CostTime, result.IsTimeout, req.Duration, size)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sendVerifyResult(ctx, candidate, result)
 }
 
 func verify(req api.ReqVerify, candidate CandidateAPI) {
@@ -172,23 +227,21 @@ func verify(req api.ReqVerify, candidate CandidateAPI) {
 
 	result.DeviceID = info.DeviceId
 
-	ch, ok := verifyChannelMap[info.DeviceId]
+	vb, ok := verifyMap[info.DeviceId]
 	if ok {
 		log.Errorf("Aready doing verify edge node, deviceID:%s, not need to repeat to do", info.DeviceId)
 		return
 	}
 
-	ch = make(chan verifyBlock)
-	verifyChannelMap[info.DeviceId] = ch
+	vb = &verifyBlock{conn: nil, ch: make(chan []byte)}
+	verifyMap[info.DeviceId] = vb
 	// defer verifyComplete(info.DeviceId)
 
-	var size = int64(0)
-	go waitBlock(ctx, ch, info.DeviceId, &result, &size)
+	// var size = int64(0)
+	go waitBlock(vb, req, candidate, result)
 
-	wctx, cancel := context.WithTimeout(context.Background(), (time.Duration(req.Duration)+10)*time.Second)
+	wctx, cancel := context.WithTimeout(context.Background(), (time.Duration(req.Duration))*time.Second)
 	defer cancel()
-
-	now := time.Now()
 
 	err = edgeAPI.DoVerify(wctx, req, candidate.tcpSrvAddr)
 	if err != nil {
@@ -199,32 +252,26 @@ func verify(req api.ReqVerify, candidate CandidateAPI) {
 	}
 
 	// nanosecond
-	unit := time.Duration(1000000000)
-	duration := time.Now().Sub(now)
-	if duration < time.Duration(req.Duration)*unit {
-		duration = time.Duration(req.Duration) * unit
-	}
-
-	result.Bandwidth = float64(size) / float64(duration) * float64(unit)
-	result.CostTime = int(duration / 1000000)
-
-	r := rand.New(rand.NewSource(req.Seed))
-	results := make([]api.VerifyResult, 0, len(result.Results))
-	// count := 0
-	for _, rs := range result.Results {
-		random := r.Intn(len(req.FIDs))
-		rs.Fid = req.FIDs[random]
-		results = append(results, rs)
-		// log.Infof("count:%d fid:%s, cid:%s", count, rs.Fid, rs.Cid)
-		// count++
-	}
-
-	result.Results = results
-
-	// for _, rs := range result.Results {
-	// 	log.Infof("result fid:%s, cid:%s", rs.Fid, rs.Cid)
+	// unit := time.Duration(1000000000)
+	// duration := time.Now().Sub(now)
+	// if duration < time.Duration(req.Duration)*unit {
+	// 	duration = time.Duration(req.Duration) * unit
 	// }
 
-	log.Infof("verify %s %d block, bandwidth:%f, cost time:%d, IsTimeout:%v, duration:%d, size:%d", result.DeviceID, len(result.Results), result.Bandwidth, result.CostTime, result.IsTimeout, req.Duration, size)
-	sendVerifyResult(ctx, candidate, result)
+	// result.Bandwidth = float64(size) / float64(duration) * float64(unit)
+	// result.CostTime = int(duration / 1000000)
+
+	// r := rand.New(rand.NewSource(req.Seed))
+	// results := make([]api.VerifyResult, 0, len(result.Results))
+
+	// for _, rs := range result.Results {
+	// 	random := r.Intn(len(req.FIDs))
+	// 	rs.Fid = req.FIDs[random]
+	// 	results = append(results, rs)
+	// }
+
+	// result.Results = results
+
+	// log.Infof("verify %s %d block, bandwidth:%f, cost time:%d, IsTimeout:%v, duration:%d, size:%d", result.DeviceID, len(result.Results), result.Bandwidth, result.CostTime, result.IsTimeout, req.Duration, size)
+	// sendVerifyResult(ctx, candidate, result)
 }
