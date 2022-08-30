@@ -1,8 +1,9 @@
 package region
 
 import (
-	"fmt"
 	"strings"
+
+	"golang.org/x/xerrors"
 )
 
 const (
@@ -29,20 +30,22 @@ type GeoInfo struct {
 var region Region
 
 // NewRegion New Region
-func NewRegion(dbPath, geoType string) {
+func NewRegion(dbPath, geoType string) error {
 	var err error
 
 	switch geoType {
 	case TypeGeoLite():
 		region, err = InitGeoLite(dbPath)
 	default:
-		panic("unknown Region type")
+		// panic("unknown Region type")
+		err = xerrors.New("unknown Region type")
 	}
 
-	if err != nil {
-		e := fmt.Sprintf("NewRegion err:%v , path:%v", err, dbPath)
-		panic(e)
-	}
+	// if err != nil {
+	// 	e := fmt.Sprintf("NewRegion err:%v , path:%v", err, dbPath)
+	// 	panic(e)
+	// }
+	return err
 }
 
 // GetRegion Get Region

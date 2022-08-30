@@ -64,7 +64,7 @@ func main() {
 			if r := recover(); r != nil {
 				// Generate report in LOTUS_PATH and re-raise panic
 				build.GeneratePanicReport(c.String("panic-reports"), c.String(FlagWorkerRepo), c.App.Name)
-				panic(r)
+				log.Panic(r)
 			}
 			return nil
 		},

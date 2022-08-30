@@ -19,7 +19,7 @@ var (
 
 	verifyMax = 100 // 每次抽查block个数上限
 
-	verifiedMax = 20 // 每个验证节点一次验证的被验证节点数
+	verifiedMax = 10 // 每个验证节点一次验证的被验证节点数
 
 	roundID string
 	fidsMap map[string][]string
@@ -155,21 +155,29 @@ func verifyResult(verifyResults api.VerifyResults) error {
 		return xerrors.Errorf("roundID err")
 	}
 
-	edgeID := verifyResults.DeviceID
+	deviceID := verifyResults.DeviceID
 	// varify Result
 
 	status := db.VerifyStatusSuccess
 	msg := ""
 
 	defer func() {
-		err := db.GetCacheDB().SetVerifyResultInfo(roundID, edgeID, "", msg, status)
+		err := db.GetCacheDB().SetVerifyResultInfo(roundID, deviceID, "", msg, status)
 		if err != nil {
 			log.Warnf("SetVerifyResultInfo err:%v", err.Error())
 		}
 
-		err = db.GetCacheDB().DelNodeWithVerifyList(edgeID)
+		err = db.GetCacheDB().DelNodeWithVerifyList(deviceID)
 		if err != nil {
 			log.Warnf("DelNodeWithVerifyList err:%v", err.Error())
+		}
+
+		if msg != "" {
+			// 扣罚
+			err = db.GetCacheDB().SetNodeToVerifyErrorList(roundID, deviceID)
+			if err != nil {
+				log.Warnf("SetNodeToVerifyErrorList ,err:%v,deviceID:%v", err.Error(), deviceID)
+			}
 		}
 	}()
 
@@ -189,10 +197,10 @@ func verifyResult(verifyResults api.VerifyResults) error {
 		return nil
 	}
 
-	list := fidsMap[edgeID]
+	list := fidsMap[deviceID]
 	max := len(list)
 
-	log.Infof("verifyResult:%v", edgeID)
+	log.Infof("verifyResult:%v", deviceID)
 
 	for i := 0; i < rlen; i++ {
 		index := getRandFid(max, r)
@@ -218,10 +226,10 @@ func verifyResult(verifyResults api.VerifyResults) error {
 			// continue
 		}
 
-		tag, err := db.GetCacheDB().GetCacheDataInfo(edgeID, result.Cid)
+		tag, err := db.GetCacheDB().GetCacheDataInfo(deviceID, result.Cid)
 		if err != nil {
 			status = db.VerifyStatusFail
-			msg = fmt.Sprintf("GetCacheDataInfo err:%v,edgeID:%v,resultCid:%v,resultFid:%v", err.Error(), edgeID, result.Cid, result.Fid)
+			msg = fmt.Sprintf("GetCacheDataInfo err:%v,deviceID:%v,resultCid:%v,resultFid:%v", err.Error(), deviceID, result.Cid, result.Fid)
 			break
 		}
 
@@ -538,17 +546,17 @@ func startVerify() error {
 
 		if offline {
 			// 记录扣罚 验证者
-			err = db.GetCacheDB().SetNodeToVerifyOfflineList(roundID, validatorID)
+			err = db.GetCacheDB().SetNodeToVerifyErrorList(roundID, validatorID)
 			if err != nil {
-				log.Warnf("SetNodeToVerifyOfflineList ,err:%v,deviceID:%v", err.Error(), validatorID)
+				log.Warnf("SetNodeToVerifyErrorList ,err:%v,deviceID:%v", err.Error(), validatorID)
 			}
 		}
 
 		for _, deviceID := range errList {
 			// 记录扣罚 被验证者
-			err = db.GetCacheDB().SetNodeToVerifyOfflineList(roundID, deviceID)
+			err = db.GetCacheDB().SetNodeToVerifyErrorList(roundID, deviceID)
 			if err != nil {
-				log.Warnf("SetNodeToVerifyOfflineList ,err:%v,deviceID:%v", err.Error(), deviceID)
+				log.Warnf("SetNodeToVerifyErrorList ,err:%v,deviceID:%v", err.Error(), deviceID)
 			}
 		}
 

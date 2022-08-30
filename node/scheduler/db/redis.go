@@ -38,8 +38,8 @@ const (
 	redisKeyVerifyID = "Titan:VerifyID"
 	// RedisKeyVerifyResult VerifyID:edgeID
 	redisKeyVerifyResult = "Titan:VerifyResult:%s:%s"
-	// RedisKeyVerifyOfflineList VerifyID
-	redisKeyVerifyOfflineList = "Titan:VerifyOfflineList:%s"
+	// redisKeyVerifyErrorList VerifyID
+	redisKeyVerifyErrorList = "Titan:VerifyErrorList:%s"
 	// redisKeyVerifyList 用于检查超时
 	redisKeyVerifyList = "Titan:VerifyList"
 
@@ -301,8 +301,8 @@ func (rd redisDB) SetVerifyResultInfo(sID string, edgeID, validator, msg string,
 	return xerrors.Errorf("SetVerifyResultInfo status:%v", status)
 }
 
-func (rd redisDB) SetNodeToVerifyOfflineList(sID string, deviceID string) error {
-	key := fmt.Sprintf(redisKeyVerifyOfflineList, sID)
+func (rd redisDB) SetNodeToVerifyErrorList(sID string, deviceID string) error {
+	key := fmt.Sprintf(redisKeyVerifyErrorList, sID)
 
 	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
 	return err
