@@ -66,6 +66,12 @@ func handleMessage(conn *net.TCPConn) {
 		return
 	}
 
+	if vb.conn != nil {
+		log.Errorf("device %s aready connect", deviceID)
+		return
+	}
+	vb.conn = conn
+
 	log.Infof("edge node %s connect to candidate, testing bandwidth", deviceID)
 
 	for {
@@ -73,15 +79,31 @@ func handleMessage(conn *net.TCPConn) {
 		buf, err = readItem(conn)
 		if err != nil {
 			log.Infof("read item error:%v, deviceID:%s", err, deviceID)
-			close(vb.ch)
+			if vb.ch != nil {
+				// notify waitblock to stop
+				close(vb.ch)
+				// log.Infof("tcp-server close channel %s", deviceID)
+			}
 			vb.conn = nil
 			return
 		}
 
 		size += int64(len(buf))
 
-		vb.ch <- buf
+		safeSend(vb.ch, buf)
+
 	}
+}
+
+func safeSend(ch chan []byte, value []byte) (closed bool) {
+	defer func() {
+		if recover() != nil {
+			closed = true
+		}
+	}()
+
+	ch <- value  // panic if ch is closed
+	return false // <=> closed = false; return
 }
 
 func readItem(conn net.Conn) ([]byte, error) {
