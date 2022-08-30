@@ -71,10 +71,16 @@ var runCmd = &cli.Command{
 		// db.GMysqlDb = db.GormMysql()
 		// TODO
 		cURL := cctx.String("cachedb-url")
-		db.NewCacheDB(cURL, db.TypeRedis())
+		err = db.NewCacheDB(cURL, db.TypeRedis())
+		if err != nil {
+			log.Panic(err.Error())
+		}
 
 		gPath := cctx.String("geodb-path")
-		region.NewRegion(gPath, region.TypeGeoLite())
+		err = region.NewRegion(gPath, region.TypeGeoLite())
+		if err != nil {
+			log.Panic(err.Error())
+		}
 
 		schedulerAPI := scheduler.NewLocalScheduleNode()
 

@@ -1,9 +1,8 @@
 package db
 
 import (
-	"fmt"
-
 	"github.com/linguohua/titan/api"
+	"golang.org/x/xerrors"
 )
 
 // CacheDB cache db
@@ -59,7 +58,7 @@ type CacheDB interface {
 	DelValidatorGeoList(deviceID string) error
 
 	SetVerifyResultInfo(sID string, edgeID, validator, msg string, status VerifyStatus) error
-	SetNodeToVerifyOfflineList(sID, deviceID string) error
+	SetNodeToVerifyErrorList(sID, deviceID string) error
 
 	SetEdgeDeviceIDList(deviceIDs []string) error
 	IsEdgeInDeviceIDList(deviceID string) (bool, error)
@@ -75,20 +74,23 @@ var cacheDB CacheDB
 const NotFind = "not find"
 
 // NewCacheDB New Cache DB
-func NewCacheDB(url string, dbType string) {
+func NewCacheDB(url string, dbType string) error {
 	var err error
 
 	switch dbType {
 	case TypeRedis():
 		cacheDB, err = InitRedis(url)
 	default:
-		panic("unknown CacheDB type")
+		// panic("unknown CacheDB type")
+		err = xerrors.New("unknown CacheDB type")
 	}
 
-	if err != nil {
-		e := fmt.Sprintf("NewCacheDB err:%v , url:%v", err, url)
-		panic(e)
-	}
+	// if err != nil {
+	// 	eStr = fmt.Sprintf("NewCacheDB err:%v , url:%v", err.Error(), url)
+	// 	// panic(e)
+	// }
+
+	return err
 }
 
 // GetCacheDB Get CacheDB
