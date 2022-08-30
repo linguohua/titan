@@ -336,12 +336,8 @@ func electionValidators() error {
 		}
 		needVeriftorNum := nodeTotalNum/(verifiedMax+1) + n
 
-		if candidateNum == needVeriftorNum {
-			for deviceID := range pool.candidateNodes {
-				alreadyAssignValidatorMap[deviceID] = geo
-			}
-		} else if candidateNum > needVeriftorNum {
-			// 选出验证者 把多余的候选节点标记成被验证者
+		if candidateNum >= needVeriftorNum {
+			// 选出验证者 把多余的候选节点放入unAssignCandidates
 			vn := 0
 			for deviceID := range pool.candidateNodes {
 				vn++
