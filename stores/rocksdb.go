@@ -6,8 +6,8 @@ package stores
 import (
 	"bytes"
 	"errors"
-	"log"
 
+	"github.com/ipfs/go-datastore"
 	"github.com/linguohua/titan/node/fsutil"
 	"github.com/tecbot/gorocksdb"
 )
@@ -38,14 +38,12 @@ func openRocksDB(path string) (*gorocksdb.DB, error) {
 	opts.SetInfoLogLevel(gorocksdb.DebugInfoLogLevel)
 
 	db, err := gorocksdb.OpenDb(opts, path)
-
 	if err != nil {
-		log.Fatalln("OPEN DB error", db, err)
-		db.Close()
-		return nil, errors.New("fail to open db")
-	} else {
-		log.Println("OPEN DB success", db)
+		log.Error("open rocksdb error:", err)
+		return nil, errors.New("fail to open rocksdb")
 	}
+
+	log.Infof("open rocksdb success, path:%s", path)
 	return db, nil
 }
 
@@ -53,7 +51,7 @@ func getRocksDB(path string) (*gorocksdb.DB, error) {
 	if db == nil {
 		rdb, err := openRocksDB(path)
 		if err != nil {
-			log.Fatal("Open rocks db failed:", err)
+			log.Error("Open rocks db failed:", err)
 			return nil, err
 		}
 
@@ -76,7 +74,7 @@ func (r rocksdb) Type() string {
 func (r rocksdb) Put(key string, value []byte) error {
 	rdb, err := getRocksDB(r.Path)
 	if err != nil {
-		log.Fatal("Get rocks db failed:", err)
+		log.Error("Get rocks db failed:", err)
 		return err
 	}
 
@@ -87,7 +85,7 @@ func (r rocksdb) Put(key string, value []byte) error {
 func (r rocksdb) Get(key string) ([]byte, error) {
 	rdb, err := getRocksDB(r.Path)
 	if err != nil {
-		log.Fatal("Get rocks db failed:", err)
+		log.Error("Get rocks db failed:", err)
 		return nil, err
 	}
 
@@ -109,18 +107,18 @@ func (r rocksdb) Get(key string) ([]byte, error) {
 func (r rocksdb) Delete(key string) error {
 	rdb, err := getRocksDB(r.Path)
 	if err != nil {
-		log.Fatal("Get rocks db failed:", err)
+		log.Error("Get rocks db failed:", err)
 		return err
 	}
 
 	var k = []byte(key)
 	slice, err := rdb.Get(readOptions, k)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if !slice.Exists() {
-		return nil, datastore.ErrNotFound
+		return datastore.ErrNotFound
 	}
 
 	return rdb.Delete(writeOptions, k)
@@ -129,7 +127,7 @@ func (r rocksdb) Delete(key string) error {
 func (r rocksdb) GetReader(key string) (BlockReader, error) {
 	rdb, err := getRocksDB(r.Path)
 	if err != nil {
-		log.Fatal("Get rocks db failed:", err)
+		log.Error("Get rocks db failed:", err)
 		return nil, err
 	}
 
@@ -148,7 +146,7 @@ func (r rocksdb) GetReader(key string) (BlockReader, error) {
 func (r rocksdb) Has(key string) (exists bool, err error) {
 	rdb, err := getRocksDB(r.Path)
 	if err != nil {
-		log.Fatal("Get rocks db failed:", err)
+		log.Error("Get rocks db failed:", err)
 		return false, err
 	}
 
@@ -164,7 +162,7 @@ func (r rocksdb) Has(key string) (exists bool, err error) {
 func (r rocksdb) GetSize(key string) (size int, err error) {
 	rdb, err := getRocksDB(r.Path)
 	if err != nil {
-		log.Fatal("Get rocks db failed:", err)
+		log.Error("Get rocks db failed:", err)
 		return 0, err
 	}
 

@@ -2,11 +2,13 @@ package stores
 
 import (
 	"io"
-	"log"
 	"os"
 
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/fsutil"
 )
+
+var log = logging.Logger("stores")
 
 type BlockStore interface {
 	Put(key string, value []byte) error
