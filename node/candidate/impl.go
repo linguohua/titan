@@ -131,8 +131,8 @@ func waitBlock(vb *verifyBlock, req api.ReqVerify, candidate CandidateAPI, resul
 			delete(verifyMap, result.DeviceID)
 			if vb.ch != nil {
 				close(vb.ch)
+				vb.ch = nil
 			}
-
 			if vb.conn != nil {
 				vb.conn.Close()
 			}
@@ -149,8 +149,9 @@ func waitBlock(vb *verifyBlock, req api.ReqVerify, candidate CandidateAPI, resul
 		select {
 		case block, ok := <-vb.ch:
 			if !ok {
-				vb.ch = nil
+				// log.Infof("waitblock close channel %s", result.DeviceID)
 				isBreak = true
+				vb.ch = nil
 				break
 			}
 
@@ -158,6 +159,7 @@ func waitBlock(vb *verifyBlock, req api.ReqVerify, candidate CandidateAPI, resul
 			rs := toVerifyResult(block)
 			result.Results = append(result.Results, rs)
 		case <-t.C:
+			log.Errorf("waitBlock timeout %ds, exit wait block", req.Duration+addMoreTimeout)
 			isBreak = true
 		}
 
