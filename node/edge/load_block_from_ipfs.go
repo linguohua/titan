@@ -9,7 +9,7 @@ import (
 	"github.com/ipfs/go-cid"
 )
 
-func loadBlocksAsync(edge EdgeAPI, cids []cid.Cid) ([]blocks.Block, error) {
+func loadBlocksAsync(edge *Edge, cids []cid.Cid) ([]blocks.Block, error) {
 	for _, id := range cids {
 		log.Infof("loadBlocks id:%v", id)
 	}
@@ -30,7 +30,7 @@ func loadBlocksAsync(edge EdgeAPI, cids []cid.Cid) ([]blocks.Block, error) {
 	return results, nil
 }
 
-func loadBlocksFromIPFS(edge EdgeAPI, req []delayReq) {
+func loadBlocksFromIPFS(edge *Edge, req []delayReq) {
 	req = filterAvailableReq(edge, req)
 	ctx := context.Background()
 
@@ -79,7 +79,7 @@ func loadBlocksFromIPFS(edge EdgeAPI, req []delayReq) {
 	if len(reqMap) > 0 {
 		err = fmt.Errorf("Request timeout")
 		for _, v := range reqMap {
-			if v.count > 5 {
+			if v.count > maxReqCount {
 				cacheResult(ctx, edge, v.cid, from, err)
 				log.Infof("cache data faile, cid:%s, count:%d", v.cid, v.count)
 			} else {

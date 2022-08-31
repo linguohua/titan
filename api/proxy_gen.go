@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -23,7 +22,7 @@ type CandidateStruct struct {
 
 		SendBlock func(p0 context.Context, p1 []byte, p2 string) (error) `perm:"read"`
 
-		VerifyData func(p0 context.Context, p1 []ReqVerify) (error) `perm:"read"`
+		ValidateData func(p0 context.Context, p1 []ReqValidate) (error) `perm:"read"`
 
 	}
 }
@@ -94,7 +93,7 @@ type EdgeStruct struct {
 
 		DeleteData func(p0 context.Context, p1 []string) (DelResult, error) `perm:"read"`
 
-		DoVerify func(p0 context.Context, p1 ReqVerify, p2 string) (error) `perm:"read"`
+		DoValidate func(p0 context.Context, p1 ReqValidate, p2 string) (error) `perm:"read"`
 
 		GenerateDownloadToken func(p0 context.Context) (string, error) `perm:"read"`
 
@@ -171,7 +170,7 @@ type SchedulerStruct struct {
 
 		Validate func(p0 context.Context) (error) `perm:"read"`
 
-		ValidateDataResult func(p0 context.Context, p1 VerifyResults) (error) `perm:"read"`
+		ValidateDataResult func(p0 context.Context, p1 ValidateResults) (error) `perm:"read"`
 
 	}
 }
@@ -197,14 +196,14 @@ func (s *CandidateStub) SendBlock(p0 context.Context, p1 []byte, p2 string) (err
 	return ErrNotSupported
 }
 
-func (s *CandidateStruct) VerifyData(p0 context.Context, p1 []ReqVerify) (error) {
-	if s.Internal.VerifyData == nil {
+func (s *CandidateStruct) ValidateData(p0 context.Context, p1 []ReqValidate) (error) {
+	if s.Internal.ValidateData == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.VerifyData(p0, p1)
+	return s.Internal.ValidateData(p0, p1)
 }
 
-func (s *CandidateStub) VerifyData(p0 context.Context, p1 []ReqVerify) (error) {
+func (s *CandidateStub) ValidateData(p0 context.Context, p1 []ReqValidate) (error) {
 	return ErrNotSupported
 }
 
@@ -382,14 +381,14 @@ func (s *EdgeStub) DeleteData(p0 context.Context, p1 []string) (DelResult, error
 	return *new(DelResult), ErrNotSupported
 }
 
-func (s *EdgeStruct) DoVerify(p0 context.Context, p1 ReqVerify, p2 string) (error) {
-	if s.Internal.DoVerify == nil {
+func (s *EdgeStruct) DoValidate(p0 context.Context, p1 ReqValidate, p2 string) (error) {
+	if s.Internal.DoValidate == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.DoVerify(p0, p1, p2)
+	return s.Internal.DoValidate(p0, p1, p2)
 }
 
-func (s *EdgeStub) DoVerify(p0 context.Context, p1 ReqVerify, p2 string) (error) {
+func (s *EdgeStub) DoValidate(p0 context.Context, p1 ReqValidate, p2 string) (error) {
 	return ErrNotSupported
 }
 
@@ -715,14 +714,14 @@ func (s *SchedulerStub) Validate(p0 context.Context) (error) {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ValidateDataResult(p0 context.Context, p1 VerifyResults) (error) {
+func (s *SchedulerStruct) ValidateDataResult(p0 context.Context, p1 ValidateResults) (error) {
 	if s.Internal.ValidateDataResult == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.ValidateDataResult(p0, p1)
 }
 
-func (s *SchedulerStub) ValidateDataResult(p0 context.Context, p1 VerifyResults) (error) {
+func (s *SchedulerStub) ValidateDataResult(p0 context.Context, p1 ValidateResults) (error) {
 	return ErrNotSupported
 }
 

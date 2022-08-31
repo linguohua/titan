@@ -150,7 +150,7 @@ var runCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "tcp-srv-addr",
-			Usage: "tcp server addr, use by edge node verify data: --tcp-srv-addr=0.0.0.0:4000",
+			Usage: "tcp server addr, use by edge node validate data: --tcp-srv-addr=0.0.0.0:4000",
 			Value: "0.0.0.0:4000", // should follow --repo default
 		},
 	},
@@ -313,7 +313,7 @@ var runCmd = &cli.Command{
 
 		deviceID := cctx.String("device-id")
 		blockStore := stores.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
-		deviceInfo := device.DeviceAPI{
+		device := &device.Device{
 			BlockStore:    blockStore,
 			PublicIP:      cctx.String("public-ip"),
 			DeviceID:      deviceID,
@@ -322,11 +322,11 @@ var runCmd = &cli.Command{
 			BandwidthDown: cctx.Int64("bandwidth-down"),
 		}
 
-		edgeParams := edge.EdgeParams{
+		edgeParams := &edge.EdgeParams{
 			DS:              ds,
 			Scheduler:       schedulerAPI,
 			BlockStore:      blockStore,
-			Device:          deviceInfo,
+			Device:          device,
 			IsCandidate:     true,
 			DownloadSrvKey:  cctx.String("download-srv-key"),
 			DownloadSrvAddr: cctx.String("download-srv-addr"),

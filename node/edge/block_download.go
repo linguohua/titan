@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func (edge EdgeAPI) startDownloadServer(address string) {
+func (edge *Edge) startDownloadServer(address string) {
 	mux := http.NewServeMux()
 	mux.HandleFunc(downloadSrvPath, edge.GetBlock)
 
@@ -31,7 +31,7 @@ func (edge EdgeAPI) startDownloadServer(address string) {
 	}
 }
 
-func (edge EdgeAPI) GetBlock(w http.ResponseWriter, r *http.Request) {
+func (edge *Edge) GetBlock(w http.ResponseWriter, r *http.Request) {
 	appName := r.Header.Get("App-Name")
 	tk := r.Header.Get("Token")
 	cidStr := r.URL.Query().Get("cid")
@@ -68,7 +68,7 @@ func (edge EdgeAPI) GetBlock(w http.ResponseWriter, r *http.Request) {
 
 	var speedRate = int64(0)
 	if costTime != 0 {
-		speedRate = int64(float64(n) / float64(costTime) * 1000000000)
+		speedRate = int64(float64(n) / float64(costTime) * float64(time.Second))
 	}
 
 	log.Infof("Download block %s costTime %d, size %d, speed %d", cidStr, costTime, n, speedRate)

@@ -9,10 +9,10 @@ type Edge interface {
 	// call by scheduler
 	CacheData(ctx context.Context, req ReqCacheData) error //perm:read
 	// call by scheduler
-	DeleteData(ctx context.Context, cids []string) (DelResult, error)             //perm:read
-	LoadData(ctx context.Context, cid string) ([]byte, error)                     //perm:read
-	BlockStoreStat(ctx context.Context) error                                     //perm:read
-	DoVerify(ctx context.Context, reqVerify ReqVerify, candidateURL string) error //perm:read
+	DeleteData(ctx context.Context, cids []string) (DelResult, error)                          //perm:read
+	LoadData(ctx context.Context, cid string) ([]byte, error)                                  //perm:read
+	BlockStoreStat(ctx context.Context) error                                                  //perm:read
+	DoValidate(ctx context.Context, reqValidate ReqValidate, candidateTcpSrvAddr string) error //perm:read
 	// call by edge or candidate
 	DeleteBlocks(ctx context.Context, cid []string) (DelResult, error) //perm:read
 

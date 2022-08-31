@@ -21,7 +21,7 @@ import (
 	"github.com/linguohua/titan/node/device"
 )
 
-func NewLocalEdgeNode(ctx context.Context, params EdgeParams) api.Edge {
+func NewLocalEdgeNode(ctx context.Context, params *EdgeParams) api.Edge {
 	addrs, err := build.BuiltinBootstrap()
 	if err != nil {
 		log.Fatal(err)
@@ -34,12 +34,12 @@ func NewLocalEdgeNode(ctx context.Context, params EdgeParams) api.Edge {
 
 	params.Device.DownloadSrvURL = parseDownloadSrvURL(params)
 	params.Device.Limiter = rate.NewLimiter(rate.Limit(params.Device.BandwidthUp), int(params.Device.BandwidthUp))
-	edge := EdgeAPI{
+	edge := &Edge{
 		ds:             params.DS,
 		scheduler:      params.Scheduler,
 		blockStore:     params.BlockStore,
 		exchange:       exchange,
-		DeviceAPI:      params.Device,
+		Device:         *params.Device,
 		isCandidate:    params.IsCandidate,
 		downloadSrvKey: params.DownloadSrvKey,
 	}
@@ -50,7 +50,7 @@ func NewLocalEdgeNode(ctx context.Context, params EdgeParams) api.Edge {
 	return edge
 }
 
-func parseDownloadSrvURL(params EdgeParams) string {
+func parseDownloadSrvURL(params *EdgeParams) string {
 	const unspecifiedAddress = "0.0.0.0"
 	addressSlice := strings.Split(params.DownloadSrvAddr, ":")
 	if len(addressSlice) != 2 {
@@ -68,15 +68,15 @@ type EdgeParams struct {
 	DS              datastore.Batching
 	Scheduler       api.Scheduler
 	BlockStore      stores.BlockStore
-	Device          device.DeviceAPI
+	Device          *device.Device
 	IsCandidate     bool
 	DownloadSrvKey  string
 	DownloadSrvAddr string
 }
 
-type EdgeAPI struct {
+type Edge struct {
 	common.CommonAPI
-	device.DeviceAPI
+	device.Device
 	ds             datastore.Batching
 	blockStore     stores.BlockStore
 	scheduler      api.Scheduler
@@ -85,24 +85,24 @@ type EdgeAPI struct {
 	downloadSrvKey string
 }
 
-func (edge EdgeAPI) GetSchedulerAPI() api.Scheduler {
+func (edge *Edge) GetSchedulerAPI() api.Scheduler {
 	log.Info("GetSchedulerAPI")
 	return edge.scheduler
 }
 
-func (edge EdgeAPI) WaitQuiet(ctx context.Context) error {
+func (edge *Edge) WaitQuiet(ctx context.Context) error {
 	log.Info("WaitQuiet")
 	return nil
 }
 
-func (edge EdgeAPI) CacheData(ctx context.Context, req api.ReqCacheData) error {
+func (edge *Edge) CacheData(ctx context.Context, req api.ReqCacheData) error {
 	log.Infof("CacheData, req len:%d", len(req.Cids))
 	if edge.blockStore == nil {
 		return fmt.Errorf("CacheData, blockStore == nil ")
 	}
 
 	// cache data for candidate
-	delayReq := filterAvailableReq(edge, apiReq2DelayReq(req))
+	delayReq := filterAvailableReq(edge, apiReq2DelayReq(&req))
 	if len(delayReq) == 0 {
 		log.Infof("CacheData, len(req) == 0 not need to handle")
 		return nil
@@ -114,13 +114,13 @@ func (edge EdgeAPI) CacheData(ctx context.Context, req api.ReqCacheData) error {
 	return nil
 }
 
-func (edge EdgeAPI) BlockStoreStat(ctx context.Context) error {
+func (edge *Edge) BlockStoreStat(ctx context.Context) error {
 	log.Info("BlockStoreStat")
 
 	return nil
 }
 
-func (edge EdgeAPI) LoadData(ctx context.Context, cid string) ([]byte, error) {
+func (edge *Edge) LoadData(ctx context.Context, cid string) ([]byte, error) {
 	log.Info("LoadData")
 
 	if edge.blockStore == nil {
@@ -131,15 +131,15 @@ func (edge EdgeAPI) LoadData(ctx context.Context, cid string) ([]byte, error) {
 	return edge.blockStore.Get(cid)
 }
 
-func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candidateTcpSrvAddr string) error {
-	log.Info("DoVerify")
+func (edge *Edge) DoValidate(ctx context.Context, reqValidate api.ReqValidate, candidateTcpSrvAddr string) error {
+	log.Info("DoValidate")
 
 	if edge.blockStore == nil {
-		log.Errorf("DoVerify,edge.blockStore == nil ")
+		log.Errorf("DoValidate,edge.blockStore == nil ")
 		return fmt.Errorf("edge.blockStore == nil")
 	}
 
-	fids := reqVerify.FIDs
+	fids := reqValidate.FIDs
 
 	if len(fids) == 0 {
 		log.Errorf("len(fids) == 0")
@@ -151,21 +151,21 @@ func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candi
 
 	conn, err := newTcpClient(candidateTcpSrvAddr)
 	if err != nil {
-		log.Errorf("DoVerify, NewCandicate err:%v", err)
+		log.Errorf("DoValidate, NewCandicate err:%v", err)
 		return err
 	}
-
-	go sendBlocks(conn, edge, reqVerify)
+	log.Infof("candidateTcpSrvAddr:%s", candidateTcpSrvAddr)
+	go sendBlocks(conn, edge, &reqValidate)
 
 	return nil
 }
 
-func sendBlocks(conn *net.TCPConn, edge EdgeAPI, reqVerify api.ReqVerify) {
+func sendBlocks(conn *net.TCPConn, edge *Edge, reqValidate *api.ReqValidate) {
 	defer conn.Close()
 
-	fids := reqVerify.FIDs
-	r := rand.New(rand.NewSource(reqVerify.Seed))
-	t := time.NewTimer(time.Duration(reqVerify.Duration) * time.Second)
+	fids := reqValidate.FIDs
+	r := rand.New(rand.NewSource(reqValidate.Seed))
+	t := time.NewTimer(time.Duration(reqValidate.Duration) * time.Second)
 
 	sendDeviceID(conn, edge.DeviceID)
 	for {
@@ -189,7 +189,7 @@ func sendBlocks(conn *net.TCPConn, edge EdgeAPI, reqVerify api.ReqVerify) {
 	}
 }
 
-func limitBlockUploadRate(edge EdgeAPI) int64 {
+func limitBlockUploadRate(edge *Edge) int64 {
 	if edge.Limiter == nil {
 		log.Fatal("edge.Limiter == nil ")
 	}
@@ -202,7 +202,7 @@ func limitBlockUploadRate(edge EdgeAPI) int64 {
 	return int64(oldRate)
 }
 
-func resetBlockUploadRate(edge EdgeAPI, oldRate int64) {
+func resetBlockUploadRate(edge *Edge, oldRate int64) {
 	if edge.Limiter == nil {
 		log.Errorf("edge.Limiter == nil")
 	}
@@ -211,7 +211,7 @@ func resetBlockUploadRate(edge EdgeAPI, oldRate int64) {
 	edge.Limiter.SetBurst(int(oldRate))
 }
 
-func getBlock(edge EdgeAPI, fid string) ([]byte, error) {
+func getBlock(edge *Edge, fid string) ([]byte, error) {
 	var block []byte
 	cid, err := getCID(edge, fid)
 	if err != nil {
@@ -240,7 +240,7 @@ func getBlock(edge EdgeAPI, fid string) ([]byte, error) {
 }
 
 // call by scheduler
-func (edge EdgeAPI) DeleteData(ctx context.Context, cids []string) (api.DelResult, error) {
+func (edge *Edge) DeleteData(ctx context.Context, cids []string) (api.DelResult, error) {
 	log.Info("DeleteData")
 	delResult := api.DelResult{}
 	delResult.List = make([]api.DelFailed, 0)
@@ -282,7 +282,7 @@ func (edge EdgeAPI) DeleteData(ctx context.Context, cids []string) (api.DelResul
 }
 
 // call by edge or candidate
-func (edge EdgeAPI) DeleteBlocks(ctx context.Context, cids []string) (api.DelResult, error) {
+func (edge *Edge) DeleteBlocks(ctx context.Context, cids []string) (api.DelResult, error) {
 	log.Info("DeleteBlock")
 	delResult := api.DelResult{}
 	delResult.List = make([]api.DelFailed, 0)
@@ -329,7 +329,7 @@ func (edge EdgeAPI) DeleteBlocks(ctx context.Context, cids []string) (api.DelRes
 	return delResult, nil
 }
 
-func (edge EdgeAPI) QueryCacheStat(ctx context.Context) (api.CacheStat, error) {
+func (edge *Edge) QueryCacheStat(ctx context.Context) (api.CacheStat, error) {
 	result := api.CacheStat{}
 
 	keyCount, err := edge.blockStore.KeyCount()
@@ -345,12 +345,12 @@ func (edge EdgeAPI) QueryCacheStat(ctx context.Context) (api.CacheStat, error) {
 	return result, nil
 }
 
-func (edge EdgeAPI) QueryCachingBlocks(ctx context.Context) (api.CachingBlockList, error) {
+func (edge *Edge) QueryCachingBlocks(ctx context.Context) (api.CachingBlockList, error) {
 	result := api.CachingBlockList{}
 	return result, nil
 }
 
-func (edge EdgeAPI) SetDownloadSpeed(ctx context.Context, speedRate int64) error {
+func (edge *Edge) SetDownloadSpeed(ctx context.Context, speedRate int64) error {
 	log.Infof("set download speed %d", speedRate)
 	if edge.Limiter == nil {
 		return fmt.Errorf("edge.limiter == nil")
@@ -361,7 +361,7 @@ func (edge EdgeAPI) SetDownloadSpeed(ctx context.Context, speedRate int64) error
 	return nil
 }
 
-func (edge EdgeAPI) UnlimitDownloadSpeed(ctx context.Context) error {
+func (edge *Edge) UnlimitDownloadSpeed(ctx context.Context) error {
 	log.Infof("UnlimitDownloadSpeed")
 	if edge.Limiter == nil {
 		return fmt.Errorf("edge.limiter == nil")
@@ -373,7 +373,7 @@ func (edge EdgeAPI) UnlimitDownloadSpeed(ctx context.Context) error {
 	return nil
 }
 
-func (edge EdgeAPI) GenerateDownloadToken(ctx context.Context) (string, error) {
+func (edge *Edge) GenerateDownloadToken(ctx context.Context) (string, error) {
 	log.Infof("GenerateDownloadToken")
 	return token.GenerateToken(edge.downloadSrvKey, time.Now().Add(30*24*time.Hour).Unix())
 }

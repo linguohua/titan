@@ -15,12 +15,12 @@ type delayReq struct {
 	candidateURL string
 }
 
-func startBlockLoader(ctx context.Context, edge EdgeAPI) {
+func startBlockLoader(ctx context.Context, edge *Edge) {
 	for {
 		doLen := len(reqList)
 		if doLen == 0 {
 			cachingList = nil
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(time.Duration(loadBockTick) * time.Millisecond)
 			continue
 		}
 
@@ -36,7 +36,7 @@ func startBlockLoader(ctx context.Context, edge EdgeAPI) {
 	}
 }
 
-func loadBlocks(edge EdgeAPI, req []delayReq) {
+func loadBlocks(edge *Edge, req []delayReq) {
 	if edge.isCandidate {
 		loadBlocksFromIPFS(edge, req)
 	} else {
@@ -44,7 +44,7 @@ func loadBlocks(edge EdgeAPI, req []delayReq) {
 	}
 }
 
-func apiReq2DelayReq(req api.ReqCacheData) []delayReq {
+func apiReq2DelayReq(req *api.ReqCacheData) []delayReq {
 	results := make([]delayReq, 0, len(req.Cids))
 	for _, cid := range req.Cids {
 		req := delayReq{cid: cid, count: 0, candidateURL: req.CandidateURL}
@@ -54,7 +54,7 @@ func apiReq2DelayReq(req api.ReqCacheData) []delayReq {
 	return results
 }
 
-func cacheResult(ctx context.Context, edge EdgeAPI, cid, from string, err error) {
+func cacheResult(ctx context.Context, edge *Edge, cid, from string, err error) {
 	var errMsg = ""
 	var success = true
 	if err != nil {
@@ -63,7 +63,7 @@ func cacheResult(ctx context.Context, edge EdgeAPI, cid, from string, err error)
 	}
 
 	result := api.CacheResultInfo{Cid: cid, IsOK: success, Msg: errMsg, From: from}
-	fid, err := edge.scheduler.CacheResult(ctx, edge.DeviceAPI.DeviceID, result)
+	fid, err := edge.scheduler.CacheResult(ctx, edge.Device.DeviceID, result)
 	if err != nil {
 		log.Errorf("load_block CacheResult error:%v", err)
 		return
@@ -94,7 +94,7 @@ func cacheResult(ctx context.Context, edge EdgeAPI, cid, from string, err error)
 	// log.Infof("cacheResult fid:%s", fid)
 }
 
-func filterAvailableReq(edge EdgeAPI, reqs []delayReq) []delayReq {
+func filterAvailableReq(edge *Edge, reqs []delayReq) []delayReq {
 	ctx := context.Background()
 
 	var from = ""

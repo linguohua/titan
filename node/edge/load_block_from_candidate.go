@@ -40,7 +40,7 @@ func getCandidateAPI(candidateURL string) (*candidateApi, error) {
 	return candidate, nil
 }
 
-func loadBlocksFromCandidate(edge EdgeAPI, reqs []delayReq) {
+func loadBlocksFromCandidate(edge *Edge, reqs []delayReq) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
