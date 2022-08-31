@@ -36,7 +36,7 @@ func NewCommonAPI(callback func(string)) CommonAPI {
 	return CommonAPI{SessionCallBack: callback}
 }
 
-func (a CommonAPI) AuthVerify(ctx context.Context, token string) ([]auth.Permission, error) {
+func (a *CommonAPI) AuthVerify(ctx context.Context, token string) ([]auth.Permission, error) {
 	var payload jwtPayload
 	if _, err := jwt.Verify([]byte(token), (*jwt.HMACSHA)(a.APISecret), &payload); err != nil {
 		return nil, xerrors.Errorf("JWT Verification failed: %w", err)
@@ -45,7 +45,7 @@ func (a CommonAPI) AuthVerify(ctx context.Context, token string) ([]auth.Permiss
 	return payload.Allow, nil
 }
 
-func (a CommonAPI) AuthNew(ctx context.Context, perms []auth.Permission) ([]byte, error) {
+func (a *CommonAPI) AuthNew(ctx context.Context, perms []auth.Permission) ([]byte, error) {
 	p := jwtPayload{
 		Allow: perms, // TODO: consider checking validity
 	}
@@ -53,20 +53,20 @@ func (a CommonAPI) AuthNew(ctx context.Context, perms []auth.Permission) ([]byte
 	return jwt.Sign(&p, (*jwt.HMACSHA)(a.APISecret))
 }
 
-func (a CommonAPI) LogList(context.Context) ([]string, error) {
+func (a *CommonAPI) LogList(context.Context) ([]string, error) {
 	return logging.GetSubsystems(), nil
 }
 
-func (a CommonAPI) LogSetLevel(ctx context.Context, subsystem, level string) error {
+func (a *CommonAPI) LogSetLevel(ctx context.Context, subsystem, level string) error {
 	return logging.SetLogLevel(subsystem, level)
 }
 
-func (a CommonAPI) LogAlerts(ctx context.Context) ([]alerting.Alert, error) {
+func (a *CommonAPI) LogAlerts(ctx context.Context) ([]alerting.Alert, error) {
 	return a.Alerting.GetAlerts(), nil
 }
 
 // Version provides information about API provider
-func (a CommonAPI) Version(context.Context) (api.APIVersion, error) {
+func (a *CommonAPI) Version(context.Context) (api.APIVersion, error) {
 	v, err := api.VersionForType(api.RunningNodeType)
 	if err != nil {
 		return api.APIVersion{}, err
@@ -79,18 +79,18 @@ func (a CommonAPI) Version(context.Context) (api.APIVersion, error) {
 }
 
 // Discover returns an OpenRPC document describing an RPC API.
-func (a CommonAPI) Discover(ctx context.Context) (api.OpenRPCDocument, error) {
+func (a *CommonAPI) Discover(ctx context.Context) (api.OpenRPCDocument, error) {
 	return nil, nil
 }
 
 // trigger graceful shutdown
-func (a CommonAPI) Shutdown(context.Context) error {
+func (a *CommonAPI) Shutdown(context.Context) error {
 	a.ShutdownChan <- struct{}{}
 	return nil
 }
 
 // Session returns a random UUID of api provider session
-func (a CommonAPI) Session(ctx context.Context, deviceID string) (uuid.UUID, error) {
+func (a *CommonAPI) Session(ctx context.Context, deviceID string) (uuid.UUID, error) {
 	if a.SessionCallBack != nil {
 		a.SessionCallBack(deviceID)
 	}
@@ -98,6 +98,6 @@ func (a CommonAPI) Session(ctx context.Context, deviceID string) (uuid.UUID, err
 	return session, nil
 }
 
-func (a CommonAPI) Closing(context.Context) (<-chan struct{}, error) {
+func (a *CommonAPI) Closing(context.Context) (<-chan struct{}, error) {
 	return make(chan struct{}), nil // relies on jsonrpc closing
 }

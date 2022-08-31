@@ -16,7 +16,7 @@ import (
 var log = logging.Logger("edge")
 var deviceName = "titan-edge"
 
-type DeviceAPI struct {
+type Device struct {
 	BlockStore     stores.BlockStore
 	DeviceID       string
 	PublicIP       string
@@ -27,7 +27,7 @@ type DeviceAPI struct {
 	Limiter        *rate.Limiter
 }
 
-func (device DeviceAPI) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
+func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	info := api.DevicesInfo{}
 
 	stat, err := device.BlockStore.Stat()

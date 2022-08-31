@@ -10,6 +10,7 @@ import (
 )
 
 var EdgeCmds = []*cli.Command{
+	VersionCmd,
 	DeviceInfoCmd,
 	CacheDataCmd,
 	VerfyDataCmd,
@@ -125,8 +126,8 @@ var DeleteBlockCmd = &cli.Command{
 }
 
 var VerfyDataCmd = &cli.Command{
-	Name:  "verify",
-	Usage: "verify data",
+	Name:  "validate",
+	Usage: "validate data",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "fid",
@@ -151,18 +152,17 @@ var VerfyDataCmd = &cli.Command{
 		fmt.Printf("fid:%s,url:%s", fid, url)
 		ctx := ReqContext(cctx)
 		// TODO: print more useful things
-		req := make([]API.ReqVerify, 0)
+		req := make([]API.ReqValidate, 0)
 		seed := time.Now().UnixNano()
-		varify := API.ReqVerify{EdgeURL: url, Seed: seed, FIDs: []string{"0"}, Duration: 10}
+		varify := API.ReqValidate{EdgeURL: url, Seed: seed, FIDs: []string{"0"}, Duration: 10}
 		req = append(req, varify)
 
-		err = api.VerifyData(ctx, req)
+		err = api.ValidateData(ctx, req)
 		if err != nil {
 			fmt.Println("err", err)
 			return err
 		}
 
-		// fmt.Println("verify data cid:", cid)
 		return nil
 	},
 }

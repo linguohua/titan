@@ -4,11 +4,11 @@ import "context"
 
 type Candidate interface {
 	Edge
-	VerifyData(ctx context.Context, req []ReqVerify) error              //perm:read
+	ValidateData(ctx context.Context, req []ReqValidate) error          //perm:read
 	SendBlock(ctx context.Context, block []byte, deviceID string) error //perm:read
 }
 
-type ReqVerify struct {
+type ReqValidate struct {
 	EdgeURL string
 	Seed    int64
 	FIDs    []string
@@ -20,18 +20,18 @@ type ReqVerify struct {
 	// MaxRange int // 废弃
 }
 
-type VerifyResult struct {
+type ValidateResult struct {
 	Fid string
 	Cid string
 }
 
-type VerifyResults struct {
+type ValidateResults struct {
 	DeviceID  string
 	Bandwidth float64
 	// microsecond
 	CostTime  int
 	IsTimeout bool
-	Results   []VerifyResult
+	Results   []ValidateResult
 
 	RoundID string
 }

@@ -37,12 +37,17 @@ func startTcpServer(address string) {
 }
 
 func handleMessage(conn *net.TCPConn) {
-	defer conn.Close()
 	var now = time.Now()
 	var size = int64(0)
 	var deviceID = ""
 
 	defer func() {
+		if r := recover(); r != nil {
+			log.Infof("handleMessage recovered. Error:\n", r)
+			return
+		}
+
+		conn.Close()
 		duration := time.Now().Sub(now)
 		bandwidth := float64(size) / float64(duration) * 1000000000
 		log.Infof("size:%d, duration:%d, bandwidth:%f, deviceID:%s", size, duration, bandwidth, deviceID)
@@ -60,7 +65,7 @@ func handleMessage(conn *net.TCPConn) {
 		return
 	}
 
-	vb, ok := verifyMap[deviceID]
+	vb, ok := loadValidateBlockFromMap(deviceID)
 	if !ok {
 		log.Errorf("Candidate no wait for device %s", deviceID)
 		return
@@ -113,7 +118,7 @@ func readItem(conn net.Conn) ([]byte, error) {
 		return nil, err
 	}
 
-	if len == 0 {
+	if len <= 0 {
 		return []byte{}, nil
 	}
 

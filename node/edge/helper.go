@@ -16,6 +16,8 @@ var (
 	reqList         []delayReq
 	cachingList     []delayReq
 	maxReqCount     = 5
+	// Millisecond
+	loadBockTick = 10
 
 	keyFidPrefix    = "fid-"
 	keyCidPrefix    = "cid-"
@@ -32,7 +34,7 @@ func newKeyCID(cid string) datastore.Key {
 	return datastore.NewKey(key)
 }
 
-func getCID(edge EdgeAPI, fid string) (string, error) {
+func getCID(edge *Edge, fid string) (string, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -45,7 +47,7 @@ func getCID(edge EdgeAPI, fid string) (string, error) {
 	return string(value), nil
 }
 
-func getFID(edge EdgeAPI, cid string) (string, error) {
+func getFID(edge *Edge, cid string) (string, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

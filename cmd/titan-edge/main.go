@@ -307,7 +307,7 @@ var runCmd = &cli.Command{
 
 		deviceID := cctx.String("device-id")
 		blockStore := stores.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
-		deviceInfo := device.DeviceAPI{
+		device := &device.Device{
 			BlockStore:    blockStore,
 			PublicIP:      cctx.String("public-ip"),
 			DeviceID:      deviceID,
@@ -316,11 +316,11 @@ var runCmd = &cli.Command{
 			BandwidthDown: cctx.Int64("bandwidth-down"),
 		}
 
-		params := edge.EdgeParams{
+		params := &edge.EdgeParams{
 			DS:              ds,
 			Scheduler:       schedulerAPI,
 			BlockStore:      blockStore,
-			Device:          deviceInfo,
+			Device:          device,
 			IsCandidate:     false,
 			DownloadSrvKey:  cctx.String("download-srv-key"),
 			DownloadSrvAddr: cctx.String("download-srv-addr"),

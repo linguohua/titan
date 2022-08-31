@@ -20,7 +20,7 @@ type Scheduler interface {
 	// call by node
 	EdgeNodeConnect(context.Context, string) error                                 //perm:read
 	DeleteDataRecord(context.Context, string, []string) (map[string]string, error) //perm:read
-	ValidateDataResult(context.Context, VerifyResults) error                       //perm:read
+	ValidateDataResult(context.Context, ValidateResults) error                     //perm:read
 	CandidateNodeConnect(context.Context, string) error                            //perm:read
 	CacheResult(context.Context, string, CacheResultInfo) (string, error)          //perm:read
 	GetCacheTag(context.Context, string, string) (string, error)                   //perm:read
