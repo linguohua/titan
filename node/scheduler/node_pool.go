@@ -5,7 +5,8 @@ import (
 	"sync"
 )
 
-var (
+// NodePool Node Pool
+type NodePool struct {
 	// node pool map 节点池
 	poolMap sync.Map // {key:geo,val:*NodePool}
 
@@ -14,18 +15,9 @@ var (
 
 	pendingEdgeMap      sync.Map
 	pendingCandidateMap sync.Map
-)
+}
 
-// type nodeStataus int
-
-// const (
-// 	nodeStatusNothing nodeStataus = iota // 初始状态
-// 	// nodeStatusVerified                     // 被验证者
-// 	nodeStatusValidator // 验证者
-// )
-
-// NodePool Node Pool
-type NodePool struct {
+type pool struct {
 	geoID          string
 	edgeNodes      map[string]bandwidthInfo
 	candidateNodes map[string]bandwidthInfo
@@ -39,23 +31,167 @@ type bandwidthInfo struct {
 }
 
 // NewNodePool new pool
-func NewNodePool(geo string) *NodePool {
-	pool := &NodePool{
+func NewNodePool() *NodePool {
+	nodePool := &NodePool{}
+
+	return nodePool
+}
+
+func (n *NodePool) newPool(geo string) *pool {
+	p := &pool{
 		geoID:          geo,
 		edgeNodes:      make(map[string]bandwidthInfo),
 		candidateNodes: make(map[string]bandwidthInfo),
 		veriftorNodes:  make(map[string]bandwidthInfo),
 	}
 
-	g, ok := poolMap.LoadOrStore(geo, pool)
+	g, ok := n.poolMap.LoadOrStore(geo, p)
 	if ok && g != nil {
-		return g.(*NodePool)
+		return g.(*pool)
 	}
 
-	return pool
+	return p
 }
 
-func (g *NodePool) setVeriftor(deviceID string) {
+func (n *NodePool) loadNodePoolMap(geoKey string) *pool {
+	p, ok := n.poolMap.Load(geoKey)
+	if ok && p != nil {
+		return p.(*pool)
+	}
+
+	return nil
+}
+
+func (n *NodePool) storeNodePoolMap(geo string, val *pool) {
+	n.poolMap.Store(geo, val)
+}
+
+func (n *NodePool) addEdgeToPool(node *EdgeNode) string {
+	deviceID := node.deviceInfo.DeviceId
+	geo := node.geoInfo.Geo
+
+	oldPoolID, ok := n.poolIDMap.Load(deviceID)
+	if ok && oldPoolID != nil {
+		oldGeo := oldPoolID.(string)
+		// 得看原来的geo是否跟现在的一样
+		if oldGeo != geo {
+			// 从旧的组里面删除
+			pool := n.loadNodePoolMap(oldGeo)
+			if pool != nil {
+				pool.delEdge(deviceID)
+			}
+		} else {
+			return oldGeo
+		}
+	}
+
+	pool := n.loadNodePoolMap(geo)
+	if pool == nil {
+		pool = n.newPool(geo)
+	}
+
+	pool.addEdge(node)
+
+	n.storeNodePoolMap(geo, pool)
+	n.poolIDMap.Store(deviceID, geo)
+
+	return geo
+}
+
+func (n *NodePool) addCandidateToPool(node *CandidateNode) string {
+	deviceID := node.deviceInfo.DeviceId
+	geo := node.geoInfo.Geo
+
+	oldPoolID, ok := n.poolIDMap.Load(deviceID)
+	if ok && oldPoolID != nil {
+		oldGeo := oldPoolID.(string)
+		// 得看原来的geo是否跟现在的一样
+		if oldGeo != geo {
+			// 从旧的组里面删除
+			pool := n.loadNodePoolMap(oldGeo)
+			if pool != nil {
+				pool.delCandidate(deviceID)
+			}
+		} else {
+			return oldGeo
+		}
+	}
+
+	pool := n.loadNodePoolMap(geo)
+	if pool == nil {
+		pool = n.newPool(geo)
+	}
+
+	pool.addCandidate(node)
+
+	n.storeNodePoolMap(geo, pool)
+	n.poolIDMap.Store(deviceID, geo)
+
+	return geo
+}
+
+func (n *NodePool) addPendingNode(edgeNode *EdgeNode, candidateNode *CandidateNode) {
+	if edgeNode != nil {
+		n.pendingEdgeMap.Store(edgeNode.deviceInfo.DeviceId, edgeNode)
+	}
+
+	if candidateNode != nil {
+		n.pendingCandidateMap.Store(candidateNode.deviceInfo.DeviceId, candidateNode)
+	}
+}
+
+func (n *NodePool) nodesToPool() {
+	n.pendingEdgeMap.Range(func(key, value interface{}) bool {
+		deviceID := key.(string)
+		node := value.(*EdgeNode)
+
+		n.addEdgeToPool(node)
+
+		n.pendingEdgeMap.Delete(deviceID)
+
+		return true
+	})
+
+	n.pendingCandidateMap.Range(func(key, value interface{}) bool {
+		deviceID := key.(string)
+		node := value.(*CandidateNode)
+
+		n.addCandidateToPool(node)
+
+		n.pendingCandidateMap.Delete(deviceID)
+
+		return true
+	})
+}
+
+// PrintlnMap Println
+func (n *NodePool) testPrintlnPoolMap() {
+	log.Info("poolMap--------------------------------")
+
+	n.poolMap.Range(func(key, value interface{}) bool {
+		geo := key.(string)
+		p := value.(*pool)
+
+		es := ""
+		cs := ""
+		vs := ""
+
+		for s := range p.edgeNodes {
+			es = fmt.Sprintf("%s%s,", es, s)
+		}
+		for s := range p.candidateNodes {
+			cs = fmt.Sprintf("%s%s,", cs, s)
+		}
+		for s := range p.veriftorNodes {
+			vs = fmt.Sprintf("%s%s,", vs, s)
+		}
+		log.Info("geo:", geo, ",edgeNodes:", es, ",candidateNodes:", cs, ",veriftorNodes:", vs)
+
+		return true
+	})
+}
+
+func (g *pool) setVeriftor(deviceID string) {
 	if info, ok := g.candidateNodes[deviceID]; ok {
 		g.veriftorNodes[deviceID] = info
 
@@ -65,7 +201,7 @@ func (g *NodePool) setVeriftor(deviceID string) {
 	}
 }
 
-func (g *NodePool) resetVeriftors() {
+func (g *pool) resetVeriftors() {
 	for deviceID, info := range g.veriftorNodes {
 		g.candidateNodes[deviceID] = info
 	}
@@ -73,7 +209,7 @@ func (g *NodePool) resetVeriftors() {
 	g.veriftorNodes = make(map[string]bandwidthInfo)
 }
 
-func (g *NodePool) addEdge(node *EdgeNode) {
+func (g *pool) addEdge(node *EdgeNode) {
 	deviceID := node.deviceInfo.DeviceId
 	if _, ok := g.edgeNodes[deviceID]; ok {
 		return
@@ -82,7 +218,7 @@ func (g *NodePool) addEdge(node *EdgeNode) {
 	g.edgeNodes[deviceID] = bandwidthInfo{BandwidthUp: node.deviceInfo.BandwidthUp, BandwidthDown: node.deviceInfo.BandwidthDown}
 }
 
-func (g *NodePool) addCandidate(node *CandidateNode) {
+func (g *pool) addCandidate(node *CandidateNode) {
 	deviceID := node.deviceInfo.DeviceId
 	if _, ok := g.candidateNodes[deviceID]; ok {
 		return
@@ -91,152 +227,14 @@ func (g *NodePool) addCandidate(node *CandidateNode) {
 	g.candidateNodes[deviceID] = bandwidthInfo{BandwidthUp: node.deviceInfo.BandwidthUp, BandwidthDown: node.deviceInfo.BandwidthDown}
 }
 
-func (g *NodePool) delEdge(deviceID string) {
+func (g *pool) delEdge(deviceID string) {
 	if _, ok := g.edgeNodes[deviceID]; ok {
 		delete(g.edgeNodes, deviceID)
 	}
 }
 
-func (g *NodePool) delCandidate(deviceID string) {
+func (g *pool) delCandidate(deviceID string) {
 	if _, ok := g.candidateNodes[deviceID]; ok {
 		delete(g.candidateNodes, deviceID)
 	}
-}
-
-func loadNodePoolMap(geoKey string) *NodePool {
-	pool, ok := poolMap.Load(geoKey)
-	if ok && pool != nil {
-		return pool.(*NodePool)
-	}
-
-	return nil
-}
-
-func storeNodePoolMap(geo string, val *NodePool) {
-	poolMap.Store(geo, val)
-}
-
-func addEdgeToPool(node *EdgeNode) string {
-	deviceID := node.deviceInfo.DeviceId
-	geo := node.geoInfo.Geo
-
-	oldPoolID, ok := poolIDMap.Load(deviceID)
-	if ok && oldPoolID != nil {
-		oldGeo := oldPoolID.(string)
-		// 得看原来的geo是否跟现在的一样
-		if oldGeo != geo {
-			// 从旧的组里面删除
-			pool := loadNodePoolMap(oldGeo)
-			if pool != nil {
-				pool.delEdge(deviceID)
-			}
-		} else {
-			return oldGeo
-		}
-	}
-
-	pool := loadNodePoolMap(geo)
-	if pool == nil {
-		pool = NewNodePool(geo)
-	}
-
-	pool.addEdge(node)
-
-	storeNodePoolMap(geo, pool)
-	poolIDMap.Store(deviceID, geo)
-
-	return geo
-}
-
-func addCandidateToPool(node *CandidateNode) string {
-	deviceID := node.deviceInfo.DeviceId
-	geo := node.geoInfo.Geo
-
-	oldPoolID, ok := poolIDMap.Load(deviceID)
-	if ok && oldPoolID != nil {
-		oldGeo := oldPoolID.(string)
-		// 得看原来的geo是否跟现在的一样
-		if oldGeo != geo {
-			// 从旧的组里面删除
-			pool := loadNodePoolMap(oldGeo)
-			if pool != nil {
-				pool.delCandidate(deviceID)
-			}
-		} else {
-			return oldGeo
-		}
-	}
-
-	pool := loadNodePoolMap(geo)
-	if pool == nil {
-		pool = NewNodePool(geo)
-	}
-
-	pool.addCandidate(node)
-
-	storeNodePoolMap(geo, pool)
-	poolIDMap.Store(deviceID, geo)
-
-	return geo
-}
-
-func addPendingNode(edgeNode *EdgeNode, candidateNode *CandidateNode) {
-	if edgeNode != nil {
-		pendingEdgeMap.Store(edgeNode.deviceInfo.DeviceId, edgeNode)
-	}
-
-	if candidateNode != nil {
-		pendingCandidateMap.Store(candidateNode.deviceInfo.DeviceId, candidateNode)
-	}
-}
-
-func nodesToPool() {
-	pendingEdgeMap.Range(func(key, value interface{}) bool {
-		deviceID := key.(string)
-		node := value.(*EdgeNode)
-
-		addEdgeToPool(node)
-
-		pendingEdgeMap.Delete(deviceID)
-
-		return true
-	})
-
-	pendingCandidateMap.Range(func(key, value interface{}) bool {
-		deviceID := key.(string)
-		node := value.(*CandidateNode)
-
-		addCandidateToPool(node)
-
-		pendingCandidateMap.Delete(deviceID)
-
-		return true
-	})
-}
-
-// PrintlnMap Println
-func testPrintlnPoolMap() {
-	log.Info("poolMap--------------------------------")
-
-	poolMap.Range(func(key, value interface{}) bool {
-		geo := key.(string)
-		pool := value.(*NodePool)
-
-		es := ""
-		cs := ""
-		vs := ""
-
-		for s := range pool.edgeNodes {
-			es = fmt.Sprintf("%s%s,", es, s)
-		}
-		for s := range pool.candidateNodes {
-			cs = fmt.Sprintf("%s%s,", cs, s)
-		}
-		for s := range pool.veriftorNodes {
-			vs = fmt.Sprintf("%s%s,", vs, s)
-		}
-		log.Info("geo:", geo, ",edgeNodes:", es, ",candidateNodes:", cs, ",veriftorNodes:", vs)
-
-		return true
-	})
 }

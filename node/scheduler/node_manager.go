@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/linguohua/titan/region"
 	"github.com/ouqiang/timewheel"
+	"golang.org/x/xerrors"
 )
 
 // 节点管理器 管理节点对象
@@ -15,7 +17,8 @@ import (
 // 候选节点选举
 // 候选节点与边缘节点组 匹配 (抽查)
 
-var (
+// NodeManager Node Manager
+type NodeManager struct {
 	edgeNodeMap      sync.Map
 	candidateNodeMap sync.Map
 
@@ -24,28 +27,41 @@ var (
 	validatorCount int
 
 	timewheelKeepalive *timewheel.TimeWheel
-	keepaliveTime      = 1 // 保活时间间隔 (分钟)
-)
-
-// InitKeepaliveTimewheel ndoe Keepalive
-func InitKeepaliveTimewheel() {
-	// 保活定时器
-	timewheelKeepalive = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		nodeKeepalive()
-		// 继续添加定时器
-		timewheelKeepalive.AddTimer(time.Duration(1)*60*time.Second, "Keepalive", nil)
-	})
-	timewheelKeepalive.Start()
-	// 开始一个事件处理
-	timewheelKeepalive.AddTimer(time.Duration(1)*60*time.Second, "Keepalive", nil)
+	keepaliveTime      int // 保活时间间隔 (分钟)
 }
 
-func nodeKeepalive() {
-	nowTime := time.Now().Add(-time.Duration(keepaliveTime) * 60 * time.Second)
+func newNodeManager() *NodeManager {
+	nodeManager := &NodeManager{keepaliveTime: 1}
+
+	nodeManager.initKeepaliveTimewheel()
+
+	return nodeManager
+}
+
+// GetNodeManager Get NodeManager
+// func GetNodeManager() *NodeManager {
+// 	return nodeManager
+// }
+
+// InitKeepaliveTimewheel ndoe Keepalive
+func (m *NodeManager) initKeepaliveTimewheel() {
+	// 保活定时器
+	m.timewheelKeepalive = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
+		m.nodeKeepalive()
+		// 继续添加定时器
+		m.timewheelKeepalive.AddTimer(time.Duration(1)*60*time.Second, "Keepalive", nil)
+	})
+	m.timewheelKeepalive.Start()
+	// 开始一个事件处理
+	m.timewheelKeepalive.AddTimer(time.Duration(1)*60*time.Second, "Keepalive", nil)
+}
+
+func (m *NodeManager) nodeKeepalive() {
+	nowTime := time.Now().Add(-time.Duration(m.keepaliveTime) * 60 * time.Second)
 
 	// log.Warnf("nodeKeepalive nowTime:%v, time.Now():%v", nowTime, time.Now())
 
-	edgeNodeMap.Range(func(key, value interface{}) bool {
+	m.edgeNodeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
 		node := value.(*EdgeNode)
 
@@ -57,11 +73,12 @@ func nodeKeepalive() {
 
 		if !lastTime.After(nowTime) {
 			// 离线
-			deleteEdgeNode(node)
+			m.deleteEdgeNode(node)
+			node = nil
 			return true
 		}
 
-		err := db.GetCacheDB().AddNodeOnlineTime(deviceID, int64(keepaliveTime))
+		err := db.GetCacheDB().AddNodeOnlineTime(deviceID, int64(m.keepaliveTime))
 		if err != nil {
 			log.Warnf("AddNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
 		}
@@ -69,7 +86,7 @@ func nodeKeepalive() {
 		return true
 	})
 
-	candidateNodeMap.Range(func(key, value interface{}) bool {
+	m.candidateNodeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
 		node := value.(*CandidateNode)
 
@@ -81,11 +98,12 @@ func nodeKeepalive() {
 
 		if !lastTime.After(nowTime) {
 			// 离线
-			deleteCandidateNode(node)
+			m.deleteCandidateNode(node)
+			node = nil
 			return true
 		}
 
-		err := db.GetCacheDB().AddNodeOnlineTime(deviceID, int64(keepaliveTime))
+		err := db.GetCacheDB().AddNodeOnlineTime(deviceID, int64(m.keepaliveTime))
 		if err != nil {
 			log.Warnf("AddNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
 		}
@@ -94,7 +112,7 @@ func nodeKeepalive() {
 	})
 }
 
-func addEdgeNode(node *EdgeNode) error {
+func (m *NodeManager) addEdgeNode(node *EdgeNode) error {
 	deviceID := node.deviceInfo.DeviceId
 	// geo ip
 	geoInfo, err := region.GetRegion().GetGeoInfo(node.deviceInfo.ExternalIp)
@@ -104,31 +122,31 @@ func addEdgeNode(node *EdgeNode) error {
 
 	node.geoInfo = *geoInfo
 
-	nodeOld := getEdgeNode(deviceID)
+	nodeOld := m.getEdgeNode(deviceID)
 	if nodeOld != nil {
 		nodeOld.closer()
+
+		nodeOld = nil
 		// log.Infof("close old deviceID:%v", nodeOld.deviceInfo.DeviceId)
 	}
 
 	log.Infof("addEdgeNode DeviceId:%v,geo:%v", deviceID, node.geoInfo.Geo)
 
-	err = nodeOnline(deviceID, 0, geoInfo, api.TypeNameEdge)
+	err = node.nodeOnline(deviceID, 0, geoInfo, api.TypeNameEdge)
 	if err != nil {
 		// log.Errorf("addEdgeNode NodeOnline err:%v", err)
 		return err
 	}
 
-	edgeNodeMap.Store(deviceID, node)
+	m.edgeNodeMap.Store(deviceID, node)
 
-	edgeCount++
-
-	addPendingNode(node, nil)
+	m.edgeCount++
 
 	return nil
 }
 
-func getEdgeNode(deviceID string) *EdgeNode {
-	nodeI, ok := edgeNodeMap.Load(deviceID)
+func (m *NodeManager) getEdgeNode(deviceID string) *EdgeNode {
+	nodeI, ok := m.edgeNodeMap.Load(deviceID)
 	if ok && nodeI != nil {
 		node := nodeI.(*EdgeNode)
 
@@ -138,24 +156,24 @@ func getEdgeNode(deviceID string) *EdgeNode {
 	return nil
 }
 
-func deleteEdgeNode(node *EdgeNode) {
+func (m *NodeManager) deleteEdgeNode(node *EdgeNode) {
 	deviceID := node.deviceInfo.DeviceId
 	// close old node
 	node.closer()
 
 	log.Warnf("deleteEdgeNode :%v", deviceID)
 
-	edgeNodeMap.Delete(deviceID)
+	m.edgeNodeMap.Delete(deviceID)
 
-	err := nodeOffline(deviceID, &node.geoInfo, api.TypeNameEdge, node.lastRequestTime)
+	err := node.nodeOffline(deviceID, &node.geoInfo, api.TypeNameEdge, node.lastRequestTime)
 	if err != nil {
 		log.Errorf("DeviceOffline err:%v,deviceID:%v", err.Error(), deviceID)
 	}
 
-	edgeCount--
+	m.edgeCount--
 }
 
-func addCandidateNode(node *CandidateNode) error {
+func (m *NodeManager) addCandidateNode(node *CandidateNode) error {
 	deviceID := node.deviceInfo.DeviceId
 
 	node.isValidator, _ = db.GetCacheDB().IsNodeInValidatorList(deviceID)
@@ -168,35 +186,35 @@ func addCandidateNode(node *CandidateNode) error {
 
 	node.geoInfo = *geoInfo
 
-	nodeOld := getCandidateNode(deviceID)
+	nodeOld := m.getCandidateNode(deviceID)
 	if nodeOld != nil {
 		nodeOld.closer()
+
+		nodeOld = nil
 		// log.Infof("close old deviceID:%v", nodeOld.deviceInfo.DeviceId)
 	}
 
 	log.Infof("addCandidateNode DeviceId:%v,geo:%v", deviceID, node.geoInfo.Geo)
 
-	err = nodeOnline(deviceID, 0, geoInfo, api.TypeNameCandidate)
+	err = node.nodeOnline(deviceID, 0, geoInfo, api.TypeNameCandidate)
 	if err != nil {
 		// log.Errorf("addCandidateNode NodeOnline err:%v", err)
 		return err
 	}
 
-	candidateNodeMap.Store(deviceID, node)
+	m.candidateNodeMap.Store(deviceID, node)
 
 	if node.isValidator {
-		validatorCount++
+		m.validatorCount++
 	} else {
-		candidateCount++
+		m.candidateCount++
 	}
-
-	addPendingNode(nil, node)
 
 	return nil
 }
 
-func getCandidateNode(deviceID string) *CandidateNode {
-	nodeI, ok := candidateNodeMap.Load(deviceID)
+func (m *NodeManager) getCandidateNode(deviceID string) *CandidateNode {
+	nodeI, ok := m.candidateNodeMap.Load(deviceID)
 	if ok && nodeI != nil {
 		node := nodeI.(*CandidateNode)
 
@@ -206,28 +224,28 @@ func getCandidateNode(deviceID string) *CandidateNode {
 	return nil
 }
 
-func deleteCandidateNode(node *CandidateNode) {
+func (m *NodeManager) deleteCandidateNode(node *CandidateNode) {
 	deviceID := node.deviceInfo.DeviceId
 	// close old node
 	node.closer()
 
 	log.Warnf("deleteCandidateNode :%v", deviceID)
 
-	candidateNodeMap.Delete(deviceID)
+	m.candidateNodeMap.Delete(deviceID)
 
-	err := nodeOffline(deviceID, &node.geoInfo, api.TypeNameCandidate, node.lastRequestTime)
+	err := node.nodeOffline(deviceID, &node.geoInfo, api.TypeNameCandidate, node.lastRequestTime)
 	if err != nil {
 		log.Errorf("DeviceOffline err:%v,deviceID:%v", err.Error(), deviceID)
 	}
 
 	if node.isValidator {
-		validatorCount--
+		m.validatorCount--
 	} else {
-		candidateCount--
+		m.candidateCount--
 	}
 }
 
-func findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, deviceIDs []string) ([]*EdgeNode, geoLevel) {
+func (m *NodeManager) findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, deviceIDs []string) ([]*EdgeNode, geoLevel) {
 	sameCountryNodes := make([]*EdgeNode, 0)
 	sameProvinceNodes := make([]*EdgeNode, 0)
 	sameCityNodes := make([]*EdgeNode, 0)
@@ -235,7 +253,7 @@ func findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, deviceIDs []string) ([]*Ed
 	defaultNodes := make([]*EdgeNode, 0)
 
 	for _, dID := range deviceIDs {
-		node := getEdgeNode(dID)
+		node := m.getEdgeNode(dID)
 		if node == nil {
 			continue
 		}
@@ -270,7 +288,7 @@ func findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, deviceIDs []string) ([]*Ed
 	return defaultNodes, defaultLevel
 }
 
-func findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs, filterDeviceIDs []string) ([]*CandidateNode, geoLevel) {
+func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs, filterDeviceIDs []string) ([]*CandidateNode, geoLevel) {
 	sameCountryNodes := make([]*CandidateNode, 0)
 	sameProvinceNodes := make([]*CandidateNode, 0)
 	sameCityNodes := make([]*CandidateNode, 0)
@@ -279,7 +297,7 @@ func findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs, filterD
 
 	if len(useDeviceIDs) > 0 {
 		for _, dID := range useDeviceIDs {
-			node := getCandidateNode(dID)
+			node := m.getCandidateNode(dID)
 			if node == nil {
 				continue
 			}
@@ -299,7 +317,7 @@ func findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs, filterD
 			}
 		}
 	} else {
-		candidateNodeMap.Range(func(key, value interface{}) bool {
+		m.candidateNodeMap.Range(func(key, value interface{}) bool {
 			node := value.(*CandidateNode)
 
 			defaultNodes = append(defaultNodes, node)
@@ -321,7 +339,7 @@ func findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs, filterD
 
 	if len(sameCityNodes) > 0 {
 		if len(filterDeviceIDs) > 0 {
-			sameCityNodes2 := filterCandidates(filterDeviceIDs, sameCityNodes)
+			sameCityNodes2 := m.filterCandidates(filterDeviceIDs, sameCityNodes)
 			if len(sameCityNodes2) > 0 {
 				return sameCityNodes2, cityLevel
 			}
@@ -332,7 +350,7 @@ func findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs, filterD
 
 	if len(sameProvinceNodes) > 0 {
 		if len(filterDeviceIDs) > 0 {
-			sameProvinceNodes2 := filterCandidates(filterDeviceIDs, sameProvinceNodes)
+			sameProvinceNodes2 := m.filterCandidates(filterDeviceIDs, sameProvinceNodes)
 			if len(sameProvinceNodes2) > 0 {
 				return sameProvinceNodes2, provinceLevel
 			}
@@ -343,7 +361,7 @@ func findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs, filterD
 
 	if len(sameCountryNodes) > 0 {
 		if len(filterDeviceIDs) > 0 {
-			sameCountryNodes2 := filterCandidates(filterDeviceIDs, sameCountryNodes)
+			sameCountryNodes2 := m.filterCandidates(filterDeviceIDs, sameCountryNodes)
 			if len(sameCountryNodes2) > 0 {
 				return sameCountryNodes2, countryLevel
 			}
@@ -353,13 +371,13 @@ func findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs, filterD
 	}
 
 	if len(filterDeviceIDs) > 0 {
-		defaultNodes2 := filterCandidates(filterDeviceIDs, defaultNodes)
+		defaultNodes2 := m.filterCandidates(filterDeviceIDs, defaultNodes)
 		return defaultNodes2, defaultLevel
 	}
 	return defaultNodes, defaultLevel
 }
 
-func filterCandidates(filterDeviceIDs []string, sameNodes []*CandidateNode) []*CandidateNode {
+func (m *NodeManager) filterCandidates(filterDeviceIDs []string, sameNodes []*CandidateNode) []*CandidateNode {
 	sameNodes2 := make([]*CandidateNode, 0)
 	for _, node := range sameNodes {
 		isHave := false
@@ -377,19 +395,96 @@ func filterCandidates(filterDeviceIDs []string, sameNodes []*CandidateNode) []*C
 	return sameNodes2
 }
 
-func resetCandidateAndValidatorCount() {
-	candidateCount = 0
-	validatorCount = 0
+func (m *NodeManager) resetCandidateAndValidatorCount() {
+	m.candidateCount = 0
+	m.validatorCount = 0
 
-	candidateNodeMap.Range(func(key, value interface{}) bool {
+	m.candidateNodeMap.Range(func(key, value interface{}) bool {
 		node := value.(*CandidateNode)
 
 		if node.isValidator {
-			validatorCount++
+			m.validatorCount++
 		} else {
-			candidateCount++
+			m.candidateCount++
 		}
 
 		return true
 	})
+}
+
+func (m *NodeManager) updateLastRequestTime(deviceID string) {
+	// log.Infof("updateLastRequestTime------------deviceID:%v", deviceID)
+	lastTime := time.Now()
+
+	edge := m.getEdgeNode(deviceID)
+	if edge != nil {
+		edge.lastRequestTime = lastTime
+		return
+	}
+
+	candidate := m.getCandidateNode(deviceID)
+	if candidate != nil {
+		candidate.lastRequestTime = lastTime
+		return
+	}
+}
+
+// getNodeURLWithData find device
+func (m *NodeManager) getNodeURLWithData(cid, ip string) (string, error) {
+	deviceIDs, err := db.GetCacheDB().GetNodesWithCacheList(cid)
+	if err != nil {
+		return "", err
+	}
+
+	if len(deviceIDs) <= 0 {
+		return "", xerrors.New("not find node")
+	}
+
+	uInfo, err := region.GetRegion().GetGeoInfo(ip)
+	if err != nil {
+		log.Warnf("getNodeURLWithData GetGeoInfo err:%v,ip:%v", err, ip)
+	}
+
+	log.Infof("getNodeURLWithData user ip:%v,geo:%v,cid:%v", ip, uInfo.Geo, cid)
+
+	var addr string
+	nodeEs, geoLevelE := m.findEdgeNodeWithGeo(uInfo, deviceIDs)
+	nodeCs, geoLevelC := m.findCandidateNodeWithGeo(uInfo, deviceIDs, []string{})
+	if geoLevelE < geoLevelC {
+		addr = nodeCs[randomNum(0, len(nodeCs))].deviceInfo.DownloadSrvURL
+	} else if geoLevelE > geoLevelC {
+		addr = nodeEs[randomNum(0, len(nodeEs))].deviceInfo.DownloadSrvURL
+	} else {
+		if len(nodeEs) > 0 {
+			addr = nodeEs[randomNum(0, len(nodeEs))].deviceInfo.DownloadSrvURL
+		} else {
+			if len(nodeCs) > 0 {
+				addr = nodeCs[randomNum(0, len(nodeCs))].deviceInfo.DownloadSrvURL
+			} else {
+				return "", xerrors.New("not find node")
+			}
+		}
+	}
+
+	// http://192.168.0.136:3456/rpc/v0/block/get?cid=QmeUqw4FY1wqnh2FMvuc2v8KAapE7fYwu2Up4qNwhZiRk7
+	url := fmt.Sprintf("%s?cid=%s", addr, cid)
+
+	return url, nil
+}
+
+// getCandidateNodesWithData find device
+func (m *NodeManager) getCandidateNodesWithData(cid string, geoInfo *region.GeoInfo) ([]*CandidateNode, error) {
+	deviceIDs, err := db.GetCacheDB().GetNodesWithCacheList(cid)
+	if err != nil {
+		return nil, err
+	}
+	// log.Infof("getCandidateNodesWithData deviceIDs : %v", deviceIDs)
+
+	if len(deviceIDs) <= 0 {
+		return nil, xerrors.New("not find node ")
+	}
+
+	nodeCs, _ := m.findCandidateNodeWithGeo(geoInfo, deviceIDs, []string{})
+
+	return nodeCs, nil
 }

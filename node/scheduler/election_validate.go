@@ -6,74 +6,83 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ipfs/go-cid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
 )
 
-var (
-	seed     = int64(1)
-	duration = 10
-
-	validateBlockMax = 100 // 每次抽查block个数上限
-
-	verifiedNodeMax = 10 // 每个验证节点一次验证的被验证节点数
-
-	roundID string
-	fidsMap map[string][]string
+// ElectionValidate ElectionValidate
+type ElectionValidate struct {
+	seed              int64
+	duration          int
+	validateBlockMax  int // 每次抽查block个数上限
+	verifiedNodeMax   int // 每个验证节点一次验证的被验证节点数
+	roundID           string
+	fidsMap           map[string][]string
+	unassignedEdgeMap map[string]int // 未被分配到的边缘节点组
 
 	timewheelElection *timewheel.TimeWheel
-	electionTime      = 60 // 选举时间间隔 (分钟)
-
+	electionTime      int // 选举时间间隔 (分钟)
 	timewheelValidate *timewheel.TimeWheel
-	validateTime      = 10 // 抽查时间间隔 (分钟)
-
-	unassignedEdgeMap = make(map[string]int) // 未被分配到的边缘节点组
-)
+	validateTime      int // 抽查时间间隔 (分钟)
+}
 
 // InitValidateTimewheel init timer
-func InitValidateTimewheel() {
+func (e *ElectionValidate) initValidateTimewheel(scheduler *Scheduler) {
 	// 选举定时器
-	timewheelElection = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		err := electionValidators()
+	e.timewheelElection = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
+		err := e.electionValidators(scheduler)
 		if err != nil {
 			log.Panicf("electionValidators err:%v", err.Error())
 		}
 		// 继续添加定时器
-		timewheelElection.AddTimer(time.Duration(electionTime)*60*time.Second, "election", nil)
+		e.timewheelElection.AddTimer(time.Duration(e.electionTime)*60*time.Second, "election", nil)
 	})
-	timewheelElection.Start()
+	e.timewheelElection.Start()
 	// 开始一个事件处理
-	timewheelElection.AddTimer(time.Duration(1)*60*time.Second, "election", nil)
+	e.timewheelElection.AddTimer(time.Duration(1)*60*time.Second, "election", nil)
 
 	// 抽查定时器
-	timewheelValidate = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		err := startValidate()
+	e.timewheelValidate = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
+		err := e.startValidate(scheduler)
 		if err != nil {
 			log.Panicf("startValidate err:%v", err.Error())
 		}
 		// 继续添加定时器
-		timewheelValidate.AddTimer(time.Duration(validateTime)*60*time.Second, "validate", nil)
+		e.timewheelValidate.AddTimer(time.Duration(e.validateTime)*60*time.Second, "validate", nil)
 	})
-	timewheelValidate.Start()
+	e.timewheelValidate.Start()
 	// 开始一个事件处理
-	timewheelValidate.AddTimer(time.Duration(2)*60*time.Second, "validate", nil)
+	e.timewheelValidate.AddTimer(time.Duration(2)*60*time.Second, "validate", nil)
 }
 
-func getReqValidate(validatorID string, list []string) ([]api.ReqValidate, []string) {
-	// validatorID := candidate.deviceInfo.DeviceId
+func newElectionValidate() *ElectionValidate {
+	e := &ElectionValidate{
+		seed:     int64(1),
+		duration: 10,
 
+		validateBlockMax: 100, // 每次抽查block个数上限
+
+		verifiedNodeMax: 10, // 每个验证节点一次验证的被验证节点数
+
+		unassignedEdgeMap: make(map[string]int), // 未被分配到的边缘节点组
+	}
+
+	return e
+}
+
+func (e *ElectionValidate) getReqValidate(scheduler *Scheduler, validatorID string, list []string) ([]api.ReqValidate, []string) {
+	// validatorID := candidate.deviceInfo.DeviceId
 	req := make([]api.ReqValidate, 0)
 
 	errList := make([]string, 0)
 
 	for _, deviceID := range list {
 		addr := ""
-		edgeNode := getEdgeNode(deviceID)
+		edgeNode := scheduler.nodeManager.getEdgeNode(deviceID)
 		if edgeNode == nil {
-			candidateNode := getCandidateNode(deviceID)
+			candidateNode := scheduler.nodeManager.getCandidateNode(deviceID)
 			if candidateNode == nil {
 				errList = append(errList, deviceID)
 				continue
@@ -104,16 +113,16 @@ func getReqValidate(validatorID string, list []string) ([]api.ReqValidate, []str
 		for _, tag := range datas {
 			fids = append(fids, tag)
 
-			if len(fids) >= validateBlockMax {
+			if len(fids) >= e.validateBlockMax {
 				break
 			}
 		}
 
-		req = append(req, api.ReqValidate{Seed: seed, EdgeURL: addr, Duration: duration, FIDs: fids, RoundID: roundID})
+		req = append(req, api.ReqValidate{Seed: e.seed, EdgeURL: addr, Duration: e.duration, FIDs: fids, RoundID: e.roundID})
 
-		fidsMap[deviceID] = fids
+		e.fidsMap[deviceID] = fids
 		//
-		err = db.GetCacheDB().SetValidateResultInfo(roundID, deviceID, validatorID, "", db.ValidateStatusCreate)
+		err = db.GetCacheDB().SetValidateResultInfo(e.roundID, deviceID, validatorID, "", db.ValidateStatusCreate)
 		if err != nil {
 			log.Warnf("validate SetValidateResultInfo err:%v,DeviceId:%v", err.Error(), deviceID)
 			continue
@@ -129,7 +138,7 @@ func getReqValidate(validatorID string, list []string) ([]api.ReqValidate, []str
 	return req, errList
 }
 
-func getRandFid(max int, r *rand.Rand) int {
+func (e *ElectionValidate) getRandFid(max int, r *rand.Rand) int {
 	if max > 0 {
 		return r.Intn(max) // 过滤0
 	}
@@ -137,18 +146,18 @@ func getRandFid(max int, r *rand.Rand) int {
 	return max
 }
 
-func toCidV0(c cid.Cid) (cid.Cid, error) {
-	if c.Type() != cid.DagProtobuf {
-		return cid.Cid{}, fmt.Errorf("can't convert non-dag-pb nodes to cidv0")
-	}
-	return cid.NewCidV0(c.Hash()), nil
-}
+// func toCidV0(c cid.Cid) (cid.Cid, error) {
+// 	if c.Type() != cid.DagProtobuf {
+// 		return cid.Cid{}, fmt.Errorf("can't convert non-dag-pb nodes to cidv0")
+// 	}
+// 	return cid.NewCidV0(c.Hash()), nil
+// }
 
-func toCidV1(c cid.Cid) (cid.Cid, error) {
-	return cid.NewCidV1(c.Type(), c.Hash()), nil
-}
+// func toCidV1(c cid.Cid) (cid.Cid, error) {
+// 	return cid.NewCidV1(c.Type(), c.Hash()), nil
+// }
 
-func saveValidateResult(sID string, deviceID string, validatorID string, msg string, status db.ValidateStatus) error {
+func (e *ElectionValidate) saveValidateResult(sID string, deviceID string, validatorID string, msg string, status db.ValidateStatus) error {
 	err := db.GetCacheDB().SetValidateResultInfo(sID, deviceID, "", msg, status)
 	if err != nil {
 		// log.Errorf("SetValidateResultInfo err:%v", err.Error())
@@ -173,8 +182,8 @@ func saveValidateResult(sID string, deviceID string, validatorID string, msg str
 	return nil
 }
 
-func validateResult(validateResults *api.ValidateResults) error {
-	if validateResults.RoundID != roundID {
+func (e *ElectionValidate) validateResult(validateResults *api.ValidateResults) error {
+	if validateResults.RoundID != e.roundID {
 		return xerrors.Errorf("roundID err")
 	}
 
@@ -188,25 +197,25 @@ func validateResult(validateResults *api.ValidateResults) error {
 	if validateResults.IsTimeout {
 		status = db.ValidateStatusTimeOut
 		msg = fmt.Sprint("Time out")
-		return saveValidateResult(roundID, deviceID, "", msg, status)
+		return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
 	}
 
-	r := rand.New(rand.NewSource(seed))
+	r := rand.New(rand.NewSource(e.seed))
 	rlen := len(validateResults.Results)
 
 	if rlen <= 0 {
 		status = db.ValidateStatusFail
 		msg = fmt.Sprint("Results is nil")
-		return saveValidateResult(roundID, deviceID, "", msg, status)
+		return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
 	}
 
-	list := fidsMap[deviceID]
+	list := e.fidsMap[deviceID]
 	max := len(list)
 
 	log.Infof("validateResult:%v", deviceID)
 
 	for i := 0; i < rlen; i++ {
-		index := getRandFid(max, r)
+		index := e.getRandFid(max, r)
 		result := validateResults.Results[i]
 
 		fidStr := list[index]
@@ -243,11 +252,11 @@ func validateResult(validateResults *api.ValidateResults) error {
 		}
 	}
 
-	return saveValidateResult(roundID, deviceID, "", msg, status)
+	return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
 }
 
 // 检查有没有超时的抽查
-func checkValidateTimeOut() error {
+func (e *ElectionValidate) checkValidateTimeOut() error {
 	sID, err := db.GetCacheDB().GetValidateRoundID()
 	if err != nil {
 		return err
@@ -280,7 +289,7 @@ func checkValidateTimeOut() error {
 }
 
 // 重置 验证者数据
-func cleanValidators() error {
+func (e *ElectionValidate) cleanValidators(scheduler *Scheduler) error {
 	validators, err := db.GetCacheDB().GetValidatorsWithList()
 	if err != nil {
 		return err
@@ -292,7 +301,7 @@ func cleanValidators() error {
 			log.Warnf("DelValidatorGeoList err:%v, validator:%v", err.Error(), validator)
 		}
 
-		node := getCandidateNode(validator)
+		node := scheduler.nodeManager.getCandidateNode(validator)
 		if node != nil {
 			node.isValidator = false
 		}
@@ -307,26 +316,26 @@ func cleanValidators() error {
 }
 
 // 选举、分配验证者负责的区域
-func electionValidators() error {
+func (e *ElectionValidate) electionValidators(scheduler *Scheduler) error {
 	// 每个城市 选出X个验证者
 	// 每隔Y时间 重新选举
-	err := cleanValidators()
+	err := e.cleanValidators(scheduler)
 	if err != nil {
 		return err
 	}
 
 	// 初始化池子
-	nodesToPool()
-	testPrintlnPoolMap()
+	scheduler.nodePool.nodesToPool()
+	scheduler.nodePool.testPrintlnPoolMap()
 
 	alreadyAssignValidatorMap := make(map[string]string) // 已被分配的验证者
 	unAssignCandidates := make([]string, 0)              // 空闲的候选者
 	// 缺验证节点数量
 	lackValidatorMap := make(map[string]int)
 
-	poolMap.Range(func(key, value interface{}) bool {
+	scheduler.nodePool.poolMap.Range(func(key, value interface{}) bool {
 		geo := key.(string)
-		pool := value.(*NodePool)
+		pool := value.(*pool)
 		if pool == nil {
 			return true
 		}
@@ -342,10 +351,10 @@ func electionValidators() error {
 
 		nodeTotalNum := edgeNum + candidateNum
 		n := 0
-		if nodeTotalNum%(verifiedNodeMax+1) > 0 {
+		if nodeTotalNum%(e.verifiedNodeMax+1) > 0 {
 			n = 1
 		}
-		needVeriftorNum := nodeTotalNum/(verifiedNodeMax+1) + n
+		needVeriftorNum := nodeTotalNum/(e.verifiedNodeMax+1) + n
 
 		if candidateNum >= needVeriftorNum {
 			// 选出验证者 把多余的候选节点放入unAssignCandidates
@@ -403,7 +412,7 @@ func electionValidators() error {
 
 	// 记录验证者负责的区域到redis
 	for validatorID, geo := range alreadyAssignValidatorMap {
-		validator := getCandidateNode(validatorID)
+		validator := scheduler.nodeManager.getCandidateNode(validatorID)
 		if validator != nil {
 			validator.isValidator = true
 		}
@@ -421,10 +430,10 @@ func electionValidators() error {
 		}
 
 		// 把池子里的验证节移到验证节点map
-		validatorGeo, ok := poolIDMap.Load(validatorID)
+		validatorGeo, ok := scheduler.nodePool.poolIDMap.Load(validatorID)
 		if ok && validatorGeo != nil {
 			vGeo := validatorGeo.(string)
-			nodePool := loadNodePoolMap(vGeo)
+			nodePool := scheduler.nodePool.loadNodePoolMap(vGeo)
 			if nodePool != nil {
 				// nodePool.candidateNodes[validatorID] = nodeStatusValidator
 				nodePool.setVeriftor(validatorID)
@@ -433,13 +442,13 @@ func electionValidators() error {
 	}
 
 	// reset count
-	resetCandidateAndValidatorCount()
+	scheduler.nodeManager.resetCandidateAndValidatorCount()
 
 	return nil
 }
 
 // Validate edges
-func startValidate() error {
+func (e *ElectionValidate) startValidate(scheduler *Scheduler) error {
 	// 新一轮的抽查
 	err := db.GetCacheDB().DelValidateList()
 	if err != nil {
@@ -450,11 +459,11 @@ func startValidate() error {
 	if err != nil {
 		return err
 	}
-	roundID = fmt.Sprintf("%d", sID)
+	e.roundID = fmt.Sprintf("%d", sID)
 
-	seed = sID
+	e.seed = sID
 
-	fidsMap = make(map[string][]string)
+	e.fidsMap = make(map[string][]string)
 
 	// find validators
 	validators, err := db.GetCacheDB().GetValidatorsWithList()
@@ -483,7 +492,7 @@ func startValidate() error {
 	validatorMap := make(map[string][]string)
 
 	for geo, validatorList := range geoMap {
-		nodePool := loadNodePoolMap(geo)
+		nodePool := scheduler.nodePool.loadNodePoolMap(geo)
 		if nodePool == nil {
 			log.Warnf("validates loadGroupMap is nil ,geo:%v", geo)
 			continue
@@ -525,9 +534,9 @@ func startValidate() error {
 	}
 
 	for validatorID, list := range validatorMap {
-		req, errList := getReqValidate(validatorID, list)
+		req, errList := e.getReqValidate(scheduler, validatorID, list)
 		offline := false
-		validator := getCandidateNode(validatorID)
+		validator := scheduler.nodeManager.getCandidateNode(validatorID)
 		if validator != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			defer cancel()
@@ -544,7 +553,7 @@ func startValidate() error {
 
 		if offline {
 			// 记录扣罚 验证者
-			err = db.GetCacheDB().SetNodeToValidateErrorList(roundID, validatorID)
+			err = db.GetCacheDB().SetNodeToValidateErrorList(e.roundID, validatorID)
 			if err != nil {
 				log.Errorf("SetNodeToValidateErrorList ,err:%v,deviceID:%v", err.Error(), validatorID)
 			}
@@ -552,7 +561,7 @@ func startValidate() error {
 
 		for _, deviceID := range errList {
 			// 记录扣罚 被验证者
-			err = db.GetCacheDB().SetNodeToValidateErrorList(roundID, deviceID)
+			err = db.GetCacheDB().SetNodeToValidateErrorList(e.roundID, deviceID)
 			if err != nil {
 				log.Errorf("SetNodeToValidateErrorList ,err:%v,deviceID:%v", err.Error(), deviceID)
 			}
@@ -561,12 +570,12 @@ func startValidate() error {
 		log.Infof("validatorID :%v, List:%v", validatorID, list)
 	}
 
-	t := time.NewTimer(time.Duration(duration*2) * time.Second)
+	t := time.NewTimer(time.Duration(e.duration*2) * time.Second)
 
 	for {
 		select {
 		case <-t.C:
-			return checkValidateTimeOut()
+			return e.checkValidateTimeOut()
 		}
 	}
 }

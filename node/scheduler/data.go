@@ -48,10 +48,10 @@ func getCacheFailCids(deviceID string) ([]string, error) {
 }
 
 // NotifyNodeCacheData Cache Data
-func cacheDataOfNode(cids []string, deviceID string) ([]string, error) {
+func cacheDataOfNode(scheduler *Scheduler, cids []string, deviceID string) ([]string, error) {
 	// 判断device是什么节点
-	edge := getEdgeNode(deviceID)
-	candidate := getCandidateNode(deviceID)
+	edge := scheduler.nodeManager.getEdgeNode(deviceID)
+	candidate := scheduler.nodeManager.getCandidateNode(deviceID)
 	if edge == nil && candidate == nil {
 		return nil, xerrors.Errorf("node not find:%v", deviceID)
 	}
@@ -65,7 +65,7 @@ func cacheDataOfNode(cids []string, deviceID string) ([]string, error) {
 	errList := make([]string, 0)
 
 	if edge != nil {
-		reqDatas := getReqCacheData(deviceID, cids, true, &edge.geoInfo)
+		reqDatas := getReqCacheData(scheduler, deviceID, cids, true, &edge.geoInfo)
 
 		for _, reqData := range reqDatas {
 			err := edge.nodeAPI.CacheData(ctx, reqData)
@@ -79,7 +79,7 @@ func cacheDataOfNode(cids []string, deviceID string) ([]string, error) {
 	}
 
 	if candidate != nil {
-		reqDatas := getReqCacheData(deviceID, cids, false, &candidate.geoInfo)
+		reqDatas := getReqCacheData(scheduler, deviceID, cids, false, &candidate.geoInfo)
 
 		for _, reqData := range reqDatas {
 			err := candidate.nodeAPI.CacheData(ctx, reqData)
@@ -131,7 +131,7 @@ func deleteDataRecord(deviceID string, cids []string) (map[string]string, error)
 	return errList, nil
 }
 
-func getReqCacheData(deviceID string, cids []string, isEdge bool, geoInfo *region.GeoInfo) []api.ReqCacheData {
+func getReqCacheData(scheduler *Scheduler, deviceID string, cids []string, isEdge bool, geoInfo *region.GeoInfo) []api.ReqCacheData {
 	alreadyCacheCids := make([]string, 0)
 	notFindNodeCids := make([]string, 0)
 	reqList := make([]api.ReqCacheData, 0)
@@ -160,7 +160,7 @@ func getReqCacheData(deviceID string, cids []string, isEdge bool, geoInfo *regio
 
 	for _, cid := range cids {
 		// 看看哪个候选节点有这个cid
-		candidates, err := getCandidateNodesWithData(cid, geoInfo)
+		candidates, err := scheduler.nodeManager.getCandidateNodesWithData(cid, geoInfo)
 		if err != nil || len(candidates) < 1 {
 			// log.Warnf("cacheDataOfNode getCandidateNodesWithData err:%v,len:%v,cid:%v", err, len(candidates), cid)
 			notFindNodeCids = append(notFindNodeCids, cid)
@@ -186,7 +186,7 @@ func getReqCacheData(deviceID string, cids []string, isEdge bool, geoInfo *regio
 	}
 
 	for deviceID, list := range csMap {
-		node := getCandidateNode(deviceID)
+		node := scheduler.nodeManager.getCandidateNode(deviceID)
 		if node != nil {
 			reqList = append(reqList, api.ReqCacheData{Cids: list, CandidateURL: node.deviceInfo.DownloadSrvURL})
 		}
