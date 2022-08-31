@@ -13,7 +13,7 @@ const (
 
 // Region geo interface
 type Region interface {
-	GetGeoInfo(ip string) (GeoInfo, error)
+	GetGeoInfo(ip string) (*GeoInfo, error)
 }
 
 // GeoInfo geo info

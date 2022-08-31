@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
+
 )
 
 
@@ -168,9 +169,9 @@ type SchedulerStruct struct {
 
 		SaveDailyInfo func(p0 context.Context, p1 IncomeDaily) (error) `perm:"read"`
 
-		Verify func(p0 context.Context) (error) `perm:"read"`
+		Validate func(p0 context.Context) (error) `perm:"read"`
 
-		VerifyDataResult func(p0 context.Context, p1 VerifyResults) (error) `perm:"read"`
+		ValidateDataResult func(p0 context.Context, p1 VerifyResults) (error) `perm:"read"`
 
 	}
 }
@@ -703,25 +704,25 @@ func (s *SchedulerStub) SaveDailyInfo(p0 context.Context, p1 IncomeDaily) (error
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) Verify(p0 context.Context) (error) {
-	if s.Internal.Verify == nil {
+func (s *SchedulerStruct) Validate(p0 context.Context) (error) {
+	if s.Internal.Validate == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.Verify(p0)
+	return s.Internal.Validate(p0)
 }
 
-func (s *SchedulerStub) Verify(p0 context.Context) (error) {
+func (s *SchedulerStub) Validate(p0 context.Context) (error) {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) VerifyDataResult(p0 context.Context, p1 VerifyResults) (error) {
-	if s.Internal.VerifyDataResult == nil {
+func (s *SchedulerStruct) ValidateDataResult(p0 context.Context, p1 VerifyResults) (error) {
+	if s.Internal.ValidateDataResult == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.VerifyDataResult(p0, p1)
+	return s.Internal.ValidateDataResult(p0, p1)
 }
 
-func (s *SchedulerStub) VerifyDataResult(p0 context.Context, p1 VerifyResults) (error) {
+func (s *SchedulerStub) ValidateDataResult(p0 context.Context, p1 VerifyResults) (error) {
 	return ErrNotSupported
 }
 

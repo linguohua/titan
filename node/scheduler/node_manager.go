@@ -95,33 +95,34 @@ func nodeKeepalive() {
 }
 
 func addEdgeNode(node *EdgeNode) error {
+	deviceID := node.deviceInfo.DeviceId
 	// geo ip
 	geoInfo, err := region.GetRegion().GetGeoInfo(node.deviceInfo.ExternalIp)
 	if err != nil {
 		log.Warnf("addEdgeNode GetGeoInfo err:%v,node:%v", err, node.deviceInfo.ExternalIp)
 	}
 
-	node.geoInfo = geoInfo
+	node.geoInfo = *geoInfo
 
-	nodeOld := getEdgeNode(node.deviceInfo.DeviceId)
+	nodeOld := getEdgeNode(deviceID)
 	if nodeOld != nil {
 		nodeOld.closer()
 		// log.Infof("close old deviceID:%v", nodeOld.deviceInfo.DeviceId)
 	}
 
-	log.Infof("addEdgeNode DeviceId:%v,geo:%v", node.deviceInfo.DeviceId, node.geoInfo.Geo)
+	log.Infof("addEdgeNode DeviceId:%v,geo:%v", deviceID, node.geoInfo.Geo)
 
-	err = nodeOnline(node.deviceInfo.DeviceId, 0, geoInfo, api.TypeNameEdge, node.bandwidth)
+	err = nodeOnline(deviceID, 0, geoInfo, api.TypeNameEdge)
 	if err != nil {
 		// log.Errorf("addEdgeNode NodeOnline err:%v", err)
 		return err
 	}
 
-	edgeNodeMap.Store(node.deviceInfo.DeviceId, node)
+	edgeNodeMap.Store(deviceID, node)
 
 	edgeCount++
 
-	addPendingNode(node.deviceInfo.DeviceId, node.geoInfo.Geo, api.NodeEdge)
+	addPendingNode(node, nil)
 
 	return nil
 }
@@ -142,11 +143,11 @@ func deleteEdgeNode(node *EdgeNode) {
 	// close old node
 	node.closer()
 
-	log.Warnf("deleteEdgeNode :%v", node.deviceInfo.DeviceId)
+	log.Warnf("deleteEdgeNode :%v", deviceID)
 
 	edgeNodeMap.Delete(deviceID)
 
-	err := nodeOffline(deviceID, node.geoInfo, api.TypeNameEdge, node.lastRequestTime)
+	err := nodeOffline(deviceID, &node.geoInfo, api.TypeNameEdge, node.lastRequestTime)
 	if err != nil {
 		log.Errorf("DeviceOffline err:%v,deviceID:%v", err.Error(), deviceID)
 	}
@@ -155,7 +156,9 @@ func deleteEdgeNode(node *EdgeNode) {
 }
 
 func addCandidateNode(node *CandidateNode) error {
-	node.isValidator, _ = db.GetCacheDB().IsNodeInValidatorList(node.deviceInfo.DeviceId)
+	deviceID := node.deviceInfo.DeviceId
+
+	node.isValidator, _ = db.GetCacheDB().IsNodeInValidatorList(deviceID)
 
 	// geo ip
 	geoInfo, err := region.GetRegion().GetGeoInfo(node.deviceInfo.ExternalIp)
@@ -163,23 +166,23 @@ func addCandidateNode(node *CandidateNode) error {
 		log.Warnf("addCandidateNode GetGeoInfo err:%v,ExternalIp:%v", err, node.deviceInfo.ExternalIp)
 	}
 
-	node.geoInfo = geoInfo
+	node.geoInfo = *geoInfo
 
-	nodeOld := getCandidateNode(node.deviceInfo.DeviceId)
+	nodeOld := getCandidateNode(deviceID)
 	if nodeOld != nil {
 		nodeOld.closer()
 		// log.Infof("close old deviceID:%v", nodeOld.deviceInfo.DeviceId)
 	}
 
-	log.Infof("addCandidateNode DeviceId:%v,geo:%v", node.deviceInfo.DeviceId, node.geoInfo.Geo)
+	log.Infof("addCandidateNode DeviceId:%v,geo:%v", deviceID, node.geoInfo.Geo)
 
-	err = nodeOnline(node.deviceInfo.DeviceId, 0, geoInfo, api.TypeNameCandidate, node.bandwidth)
+	err = nodeOnline(deviceID, 0, geoInfo, api.TypeNameCandidate)
 	if err != nil {
 		// log.Errorf("addCandidateNode NodeOnline err:%v", err)
 		return err
 	}
 
-	candidateNodeMap.Store(node.deviceInfo.DeviceId, node)
+	candidateNodeMap.Store(deviceID, node)
 
 	if node.isValidator {
 		validatorCount++
@@ -187,7 +190,7 @@ func addCandidateNode(node *CandidateNode) error {
 		candidateCount++
 	}
 
-	addPendingNode(node.deviceInfo.DeviceId, node.geoInfo.Geo, api.NodeCandidate)
+	addPendingNode(nil, node)
 
 	return nil
 }
@@ -208,11 +211,11 @@ func deleteCandidateNode(node *CandidateNode) {
 	// close old node
 	node.closer()
 
-	log.Warnf("deleteCandidateNode :%v", node.deviceInfo.DeviceId)
+	log.Warnf("deleteCandidateNode :%v", deviceID)
 
 	candidateNodeMap.Delete(deviceID)
 
-	err := nodeOffline(deviceID, node.geoInfo, api.TypeNameCandidate, node.lastRequestTime)
+	err := nodeOffline(deviceID, &node.geoInfo, api.TypeNameCandidate, node.lastRequestTime)
 	if err != nil {
 		log.Errorf("DeviceOffline err:%v,deviceID:%v", err.Error(), deviceID)
 	}
@@ -224,7 +227,7 @@ func deleteCandidateNode(node *CandidateNode) {
 	}
 }
 
-func findEdgeNodeWithGeo(userGeoInfo region.GeoInfo, deviceIDs []string) ([]*EdgeNode, geoLevel) {
+func findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, deviceIDs []string) ([]*EdgeNode, geoLevel) {
 	sameCountryNodes := make([]*EdgeNode, 0)
 	sameProvinceNodes := make([]*EdgeNode, 0)
 	sameCityNodes := make([]*EdgeNode, 0)
@@ -267,7 +270,7 @@ func findEdgeNodeWithGeo(userGeoInfo region.GeoInfo, deviceIDs []string) ([]*Edg
 	return defaultNodes, defaultLevel
 }
 
-func findCandidateNodeWithGeo(userGeoInfo region.GeoInfo, useDeviceIDs, filterDeviceIDs []string) ([]*CandidateNode, geoLevel) {
+func findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs, filterDeviceIDs []string) ([]*CandidateNode, geoLevel) {
 	sameCountryNodes := make([]*CandidateNode, 0)
 	sameProvinceNodes := make([]*CandidateNode, 0)
 	sameCityNodes := make([]*CandidateNode, 0)

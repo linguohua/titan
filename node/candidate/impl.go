@@ -104,7 +104,7 @@ func (candidate CandidateAPI) VerifyData(ctx context.Context, req []api.ReqVerif
 
 func sendVerifyResult(ctx context.Context, candidate CandidateAPI, result api.VerifyResults) error {
 	scheduler := candidate.EdgeAPI.GetSchedulerAPI()
-	return scheduler.VerifyDataResult(ctx, result)
+	return scheduler.ValidateDataResult(ctx, result)
 }
 
 func toVerifyResult(data []byte) api.VerifyResult {
@@ -121,7 +121,6 @@ func toVerifyResult(data []byte) api.VerifyResult {
 	}
 
 	return result
-
 }
 
 func waitBlock(vb *verifyBlock, req api.ReqVerify, candidate CandidateAPI, result api.VerifyResults) {
@@ -139,12 +138,12 @@ func waitBlock(vb *verifyBlock, req api.ReqVerify, candidate CandidateAPI, resul
 		}
 	}()
 
-	var size = int64(0)
-	var now = time.Now()
-	var isBreak = false
+	size := int64(0)
+	now := time.Now()
+	isBreak := false
 	// add more 5 second to timeout
-	var addMoreTimeout = 5
-	var t = time.NewTimer(time.Duration(req.Duration+addMoreTimeout) * time.Second)
+	addMoreTimeout := 5
+	t := time.NewTimer(time.Duration(req.Duration+addMoreTimeout) * time.Second)
 	for {
 		select {
 		case block, ok := <-vb.ch:

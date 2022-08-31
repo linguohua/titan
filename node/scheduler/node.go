@@ -23,9 +23,6 @@ type EdgeNode struct {
 
 	addr string
 
-	// 上行带宽 TODO 要等节点来报告
-	bandwidth int // MB为单位
-
 	lastRequestTime time.Time
 }
 
@@ -42,14 +39,11 @@ type CandidateNode struct {
 
 	isValidator bool
 
-	// 下行带宽  TODO 要等节点来报告
-	bandwidth int // MB为单位
-
 	lastRequestTime time.Time
 }
 
 // NodeOnline Save DeciceInfo
-func nodeOnline(deviceID string, onlineTime int64, geoInfo region.GeoInfo, typeName api.NodeTypeName, bandwidth int) error {
+func nodeOnline(deviceID string, onlineTime int64, geoInfo *region.GeoInfo, typeName api.NodeTypeName) error {
 	oldNodeInfo, err := db.GetCacheDB().GetNodeInfo(deviceID)
 	if err == nil {
 		if typeName != oldNodeInfo.NodeType {
@@ -71,7 +65,7 @@ func nodeOnline(deviceID string, onlineTime int64, geoInfo region.GeoInfo, typeN
 	// log.Infof("oldgeo:%v,newgeo:%v,err:%v", nodeInfo.Geo, geoInfo.Geo, err)
 
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
-	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: true, NodeType: typeName})
+	err = db.GetCacheDB().SetNodeInfo(deviceID, &db.NodeInfo{Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: true, NodeType: typeName})
 	if err != nil {
 		return err
 	}
@@ -102,7 +96,7 @@ func nodeOnline(deviceID string, onlineTime int64, geoInfo region.GeoInfo, typeN
 }
 
 // NodeOffline offline
-func nodeOffline(deviceID string, geoInfo region.GeoInfo, nodeType api.NodeTypeName, lastTime time.Time) error {
+func nodeOffline(deviceID string, geoInfo *region.GeoInfo, nodeType api.NodeTypeName, lastTime time.Time) error {
 	err := db.GetCacheDB().DelNodeWithGeoList(deviceID, geoInfo.Geo)
 	if err != nil {
 		return err
@@ -113,7 +107,7 @@ func nodeOffline(deviceID string, geoInfo region.GeoInfo, nodeType api.NodeTypeN
 	// 	return err
 	// }
 
-	err = db.GetCacheDB().SetNodeInfo(deviceID, db.NodeInfo{Geo: geoInfo.Geo, LastTime: lastTime.Format("2006-01-02 15:04:05"), IsOnline: false, NodeType: nodeType})
+	err = db.GetCacheDB().SetNodeInfo(deviceID, &db.NodeInfo{Geo: geoInfo.Geo, LastTime: lastTime.Format("2006-01-02 15:04:05"), IsOnline: false, NodeType: nodeType})
 	if err != nil {
 		return err
 	}
@@ -182,7 +176,7 @@ func getNodeURLWithData(cid, ip string) (string, error) {
 }
 
 // getCandidateNodesWithData find device
-func getCandidateNodesWithData(cid string, geoInfo region.GeoInfo) ([]*CandidateNode, error) {
+func getCandidateNodesWithData(cid string, geoInfo *region.GeoInfo) ([]*CandidateNode, error) {
 	deviceIDs, err := db.GetCacheDB().GetNodesWithCacheList(cid)
 	if err != nil {
 		return nil, err
