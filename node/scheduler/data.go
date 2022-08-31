@@ -21,7 +21,7 @@ const (
 	provinceLevel geoLevel = 2
 	cityLevel     geoLevel = 3
 
-	dataTagErr string = "-1"
+	dataDefaultTag string = "-1"
 )
 
 // 检查缓存失败的cid
@@ -62,41 +62,45 @@ func cacheDataOfNode(cids []string, deviceID string) ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
+	errList := make([]string, 0)
+
 	if edge != nil {
-		reqDatas, _, notFindNodeCids := getReqCacheData(deviceID, cids, true, edge.geoInfo)
+		reqDatas := getReqCacheData(deviceID, cids, true, &edge.geoInfo)
 
 		for _, reqData := range reqDatas {
 			err := edge.nodeAPI.CacheData(ctx, reqData)
 			if err != nil {
 				log.Errorf("edge CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+				errList = append(errList, reqData.CandidateURL)
 			}
 		}
 
-		return notFindNodeCids, nil
+		return errList, nil
 	}
 
 	if candidate != nil {
-		reqDatas, _, notFindNodeCids := getReqCacheData(deviceID, cids, false, candidate.geoInfo)
+		reqDatas := getReqCacheData(deviceID, cids, false, &candidate.geoInfo)
 
 		for _, reqData := range reqDatas {
 			err := candidate.nodeAPI.CacheData(ctx, reqData)
 			if err != nil {
 				log.Errorf("candidate CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+				errList = append(errList, reqData.CandidateURL)
 			}
 		}
 
-		return notFindNodeCids, nil
+		return errList, nil
 	}
 
 	return nil, nil
 }
 
 func deleteDataRecord(deviceID string, cids []string) (map[string]string, error) {
-	errorList := make(map[string]string, 0)
+	errList := make(map[string]string, 0)
 	for _, cid := range cids {
 		err := db.GetCacheDB().DelNodeWithCacheList(deviceID, cid)
 		if err != nil {
-			errorList[cid] = err.Error()
+			errList[cid] = err.Error()
 			continue
 		}
 
@@ -105,29 +109,29 @@ func deleteDataRecord(deviceID string, cids []string) (map[string]string, error)
 			if db.GetCacheDB().IsNilErr(err) {
 				continue
 			}
-			errorList[cid] = fmt.Sprintf("GetCacheDataInfo err : %v", err.Error())
+			errList[cid] = fmt.Sprintf("GetCacheDataInfo err : %v", err.Error())
 			continue
 		}
 
 		err = db.GetCacheDB().DelCacheDataInfo(deviceID, cid)
 		if err != nil {
-			errorList[cid] = fmt.Sprintf("DelCacheDataInfo err : %v", err.Error())
+			errList[cid] = fmt.Sprintf("DelCacheDataInfo err : %v", err.Error())
 			// TODO 如果这里出错 上面的记录要回滚或者要再次尝试删info
 			continue
 		}
 
 		err = db.GetCacheDB().DelCacheDataTagInfo(deviceID, tag)
 		if err != nil {
-			errorList[cid] = fmt.Sprintf("DelCacheDataTagInfo err : %v", err.Error())
+			errList[cid] = fmt.Sprintf("DelCacheDataTagInfo err : %v", err.Error())
 			// TODO 如果这里出错 上面的记录要回滚或者要再次尝试删info
 			continue
 		}
 	}
 
-	return errorList, nil
+	return errList, nil
 }
 
-func getReqCacheData(deviceID string, cids []string, isEdge bool, geoInfo region.GeoInfo) ([]api.ReqCacheData, []string, []string) {
+func getReqCacheData(deviceID string, cids []string, isEdge bool, geoInfo *region.GeoInfo) []api.ReqCacheData {
 	alreadyCacheCids := make([]string, 0)
 	notFindNodeCids := make([]string, 0)
 	reqList := make([]api.ReqCacheData, 0)
@@ -148,7 +152,7 @@ func getReqCacheData(deviceID string, cids []string, isEdge bool, geoInfo region
 
 		reqList = append(reqList, api.ReqCacheData{Cids: cs})
 
-		return reqList, alreadyCacheCids, notFindNodeCids
+		return reqList
 	}
 
 	// 如果是边缘节点的话 要在候选节点里面找资源
@@ -188,14 +192,14 @@ func getReqCacheData(deviceID string, cids []string, isEdge bool, geoInfo region
 		}
 	}
 
-	return reqList, alreadyCacheCids, notFindNodeCids
+	return reqList
 }
 
 // NodeCacheResult Device Cache Result
-func nodeCacheResult(deviceID string, info api.CacheResultInfo) (string, error) {
+func nodeCacheResult(deviceID string, info *api.CacheResultInfo) (string, error) {
 	log.Infof("nodeCacheResult deviceID:%v,info:%v", deviceID, info)
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, info.Cid)
-	if err == nil && v != dataTagErr {
+	if err == nil && v != dataDefaultTag {
 		return v, nil
 	}
 
@@ -227,7 +231,7 @@ func nodeCacheResult(deviceID string, info api.CacheResultInfo) (string, error) 
 
 func newCacheDataTag(deviceID, cid string) (string, error) {
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
-	if err == nil && v != dataTagErr {
+	if err == nil && v != dataDefaultTag {
 		return v, xerrors.Errorf("already cache")
 	}
 
@@ -243,11 +247,11 @@ func newCacheDataTag(deviceID, cid string) (string, error) {
 // Node Cache ready
 func nodeCacheReady(deviceID, cid string) error {
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
-	if err == nil && v != dataTagErr {
+	if err == nil && v != dataDefaultTag {
 		return xerrors.Errorf("already cache")
 	}
 
-	return db.GetCacheDB().SetCacheDataInfo(deviceID, cid, dataTagErr)
+	return db.GetCacheDB().SetCacheDataInfo(deviceID, cid, dataDefaultTag)
 }
 
 // 生成[start,end)结束的随机数
@@ -261,45 +265,4 @@ func randomNum(start, end int) int {
 
 	x := rand.Intn(max)
 	return start + x
-}
-
-// 生成count个[start,end)结束的不重复的随机数
-func randomNums(start int, end int, count int) []int {
-	// 范围检查
-	if end < start {
-		return nil
-	}
-
-	// 存放结果的slice
-	nums := make([]int, 0)
-
-	if (end - start) < count {
-		for i := start; i < end; i++ {
-			nums = append(nums, i)
-		}
-
-		return nums
-	}
-
-	// 随机数生成器，加入时间戳保证每次生成的随机数不一样
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	for len(nums) < count {
-		// 生成随机数
-		num := r.Intn((end - start)) + start
-		// 查重
-		exist := false
-		for _, v := range nums {
-			if v == num {
-				exist = true
-				break
-			}
-		}
-
-		if !exist {
-			nums = append(nums, num)
-		}
-	}
-
-	return nums
 }

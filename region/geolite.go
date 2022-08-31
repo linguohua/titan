@@ -31,8 +31,8 @@ type geoLite struct {
 	dbPath string
 }
 
-func (g geoLite) initGeoInfo(ip string) GeoInfo {
-	return GeoInfo{
+func (g geoLite) initGeoInfo(ip string) *GeoInfo {
+	return &GeoInfo{
 		City:      unknown,
 		Country:   unknown,
 		Province:  unknown,
@@ -43,7 +43,7 @@ func (g geoLite) initGeoInfo(ip string) GeoInfo {
 	}
 }
 
-func (g geoLite) GetGeoInfo(ip string) (GeoInfo, error) {
+func (g geoLite) GetGeoInfo(ip string) (*GeoInfo, error) {
 	geoInfo := g.initGeoInfo(ip)
 
 	db, err := geoip2.Open(g.dbPath)

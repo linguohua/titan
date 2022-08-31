@@ -1,9 +1,8 @@
 package scheduler
 
 import (
+	"fmt"
 	"sync"
-
-	"github.com/linguohua/titan/api"
 )
 
 var (
@@ -17,27 +16,35 @@ var (
 	pendingCandidateMap sync.Map
 )
 
-type nodeStataus int
+// type nodeStataus int
 
-const (
-	nodeStatusNothing   nodeStataus = iota // 初始状态
-	nodeStatusVerified                     // 被验证者
-	nodeStatusValidator                    // 验证者
-)
+// const (
+// 	nodeStatusNothing nodeStataus = iota // 初始状态
+// 	// nodeStatusVerified                     // 被验证者
+// 	nodeStatusValidator // 验证者
+// )
 
 // NodePool Node Pool
 type NodePool struct {
 	geoID          string
-	edgeNodes      map[string]nodeStataus
-	candidateNodes map[string]nodeStataus
+	edgeNodes      map[string]bandwidthInfo
+	candidateNodes map[string]bandwidthInfo
+	veriftorNodes  map[string]bandwidthInfo
+}
+
+// bandwidthInfo Info
+type bandwidthInfo struct {
+	BandwidthUp   int64 `json:"bandwidth_up"`   // 上行带宽B/s
+	BandwidthDown int64 `json:"bandwidth_down"` // 下行带宽B/s
 }
 
 // NewNodePool new pool
 func NewNodePool(geo string) *NodePool {
 	pool := &NodePool{
 		geoID:          geo,
-		edgeNodes:      make(map[string]nodeStataus),
-		candidateNodes: make(map[string]nodeStataus),
+		edgeNodes:      make(map[string]bandwidthInfo),
+		candidateNodes: make(map[string]bandwidthInfo),
+		veriftorNodes:  make(map[string]bandwidthInfo),
 	}
 
 	g, ok := poolMap.LoadOrStore(geo, pool)
@@ -48,29 +55,40 @@ func NewNodePool(geo string) *NodePool {
 	return pool
 }
 
-func (g *NodePool) resetNodeStataus() {
-	for deviceID := range g.edgeNodes {
-		g.edgeNodes[deviceID] = nodeStatusNothing
-	}
-	for deviceID := range g.candidateNodes {
-		g.candidateNodes[deviceID] = nodeStatusNothing
+func (g *NodePool) setVeriftor(deviceID string) {
+	if info, ok := g.candidateNodes[deviceID]; ok {
+		g.veriftorNodes[deviceID] = info
+
+		delete(g.candidateNodes, deviceID)
+
+		return
 	}
 }
 
-func (g *NodePool) addEdge(deviceID string) {
+func (g *NodePool) resetVeriftors() {
+	for deviceID, info := range g.veriftorNodes {
+		g.candidateNodes[deviceID] = info
+	}
+
+	g.veriftorNodes = make(map[string]bandwidthInfo)
+}
+
+func (g *NodePool) addEdge(node *EdgeNode) {
+	deviceID := node.deviceInfo.DeviceId
 	if _, ok := g.edgeNodes[deviceID]; ok {
 		return
 	}
 
-	g.edgeNodes[deviceID] = nodeStatusNothing
+	g.edgeNodes[deviceID] = bandwidthInfo{BandwidthUp: node.deviceInfo.BandwidthUp, BandwidthDown: node.deviceInfo.BandwidthDown}
 }
 
-func (g *NodePool) addCandidate(deviceID string) {
+func (g *NodePool) addCandidate(node *CandidateNode) {
+	deviceID := node.deviceInfo.DeviceId
 	if _, ok := g.candidateNodes[deviceID]; ok {
 		return
 	}
 
-	g.candidateNodes[deviceID] = nodeStatusNothing
+	g.candidateNodes[deviceID] = bandwidthInfo{BandwidthUp: node.deviceInfo.BandwidthUp, BandwidthDown: node.deviceInfo.BandwidthDown}
 }
 
 func (g *NodePool) delEdge(deviceID string) {
@@ -98,7 +116,10 @@ func storeNodePoolMap(geo string, val *NodePool) {
 	poolMap.Store(geo, val)
 }
 
-func addEdgeToPool(deviceID, geo string) string {
+func addEdgeToPool(node *EdgeNode) string {
+	deviceID := node.deviceInfo.DeviceId
+	geo := node.geoInfo.Geo
+
 	oldPoolID, ok := poolIDMap.Load(deviceID)
 	if ok && oldPoolID != nil {
 		oldGeo := oldPoolID.(string)
@@ -119,7 +140,7 @@ func addEdgeToPool(deviceID, geo string) string {
 		pool = NewNodePool(geo)
 	}
 
-	pool.addEdge(deviceID)
+	pool.addEdge(node)
 
 	storeNodePoolMap(geo, pool)
 	poolIDMap.Store(deviceID, geo)
@@ -127,7 +148,10 @@ func addEdgeToPool(deviceID, geo string) string {
 	return geo
 }
 
-func addCandidateToPool(deviceID, geo string) string {
+func addCandidateToPool(node *CandidateNode) string {
+	deviceID := node.deviceInfo.DeviceId
+	geo := node.geoInfo.Geo
+
 	oldPoolID, ok := poolIDMap.Load(deviceID)
 	if ok && oldPoolID != nil {
 		oldGeo := oldPoolID.(string)
@@ -148,7 +172,7 @@ func addCandidateToPool(deviceID, geo string) string {
 		pool = NewNodePool(geo)
 	}
 
-	pool.addCandidate(deviceID)
+	pool.addCandidate(node)
 
 	storeNodePoolMap(geo, pool)
 	poolIDMap.Store(deviceID, geo)
@@ -156,25 +180,22 @@ func addCandidateToPool(deviceID, geo string) string {
 	return geo
 }
 
-func addPendingNode(deviceID, geo string, nodeType api.NodeType) {
-	switch nodeType {
-	case api.NodeEdge:
-		pendingEdgeMap.Store(deviceID, geo)
-		return
-	case api.NodeCandidate:
-		pendingCandidateMap.Store(deviceID, geo)
-		return
-	default:
-		return
+func addPendingNode(edgeNode *EdgeNode, candidateNode *CandidateNode) {
+	if edgeNode != nil {
+		pendingEdgeMap.Store(edgeNode.deviceInfo.DeviceId, edgeNode)
+	}
+
+	if candidateNode != nil {
+		pendingCandidateMap.Store(candidateNode.deviceInfo.DeviceId, candidateNode)
 	}
 }
 
 func nodesToPool() {
 	pendingEdgeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
-		geo := value.(string)
+		node := value.(*EdgeNode)
 
-		addEdgeToPool(deviceID, geo)
+		addEdgeToPool(node)
 
 		pendingEdgeMap.Delete(deviceID)
 
@@ -183,9 +204,9 @@ func nodesToPool() {
 
 	pendingCandidateMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
-		geo := value.(string)
+		node := value.(*CandidateNode)
 
-		addCandidateToPool(deviceID, geo)
+		addCandidateToPool(node)
 
 		pendingCandidateMap.Delete(deviceID)
 
@@ -196,11 +217,25 @@ func nodesToPool() {
 // PrintlnMap Println
 func testPrintlnPoolMap() {
 	log.Info("poolMap--------------------------------")
+
 	poolMap.Range(func(key, value interface{}) bool {
 		geo := key.(string)
 		pool := value.(*NodePool)
 
-		log.Info("geo:", geo, ",edgeNodes:", pool.edgeNodes, ",candidateNodes:", pool.candidateNodes)
+		es := ""
+		cs := ""
+		vs := ""
+
+		for s := range pool.edgeNodes {
+			es = fmt.Sprintf("%s%s,", es, s)
+		}
+		for s := range pool.candidateNodes {
+			cs = fmt.Sprintf("%s%s,", cs, s)
+		}
+		for s := range pool.veriftorNodes {
+			vs = fmt.Sprintf("%s%s,", vs, s)
+		}
+		log.Info("geo:", geo, ",edgeNodes:", es, ",candidateNodes:", cs, ",veriftorNodes:", vs)
 
 		return true
 	})

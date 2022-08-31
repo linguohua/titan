@@ -34,14 +34,14 @@ const (
 	redisKeyValidatorList = "Titan:ValidatorList"
 	// RedisKeyValidatorGeoList deviceID
 	redisKeyValidatorGeoList = "Titan:ValidatorGeoList:%s"
-	// RedisKeyVerifyID
-	redisKeyVerifyID = "Titan:VerifyID"
-	// RedisKeyVerifyResult VerifyID:edgeID
-	redisKeyVerifyResult = "Titan:VerifyResult:%s:%s"
-	// redisKeyVerifyErrorList VerifyID
-	redisKeyVerifyErrorList = "Titan:VerifyErrorList:%s"
-	// redisKeyVerifyList 用于检查超时
-	redisKeyVerifyList = "Titan:VerifyList"
+	// RedisKeyValidateRoundID
+	redisKeyValidateRoundID = "Titan:ValidateRoundID"
+	// RedisKeyValidateResult ValidateID:edgeID
+	redisKeyValidateResult = "Titan:ValidateResult:%s:%s"
+	// redisKeyValidateErrorList ValidateID
+	redisKeyValidateErrorList = "Titan:ValidateErrorList:%s"
+	// redisKeyValidateList 用于检查超时
+	redisKeyValidateList = "Titan:ValidateList"
 
 	// RedisKeyEdgeDeviceIDList
 	redisKeyEdgeDeviceIDList = "Titan:EdgeDeviceIDList"
@@ -55,7 +55,7 @@ const (
 	isOnlineField   = "IsOnline"
 	nodeType        = "NodeType"
 
-	// Verify field
+	// Validate field
 	stratTimeField = "StratTime"
 	endTimeField   = "EndTime"
 	validatorField = "Validator"
@@ -101,7 +101,7 @@ func (rd redisDB) IncrNodeCacheTag(deviceID string) (int64, error) {
 	return rd.cli.IncrBy(context.Background(), key, 1).Result()
 }
 
-// get VerifyID
+// get ValidateID
 func (rd redisDB) GetNodeCacheTag(deviceID string) (int64, error) {
 	key := fmt.Sprintf(redisKeyNodeDataTag, deviceID)
 
@@ -113,14 +113,14 @@ func (rd redisDB) GetNodeCacheTag(deviceID string) (int64, error) {
 	return strconv.ParseInt(val, 10, 64)
 }
 
-// VerifyID ++1
-func (rd redisDB) IncrVerifyID() (int64, error) {
-	return rd.cli.IncrBy(context.Background(), redisKeyVerifyID, 1).Result()
+// ValidateID ++1
+func (rd redisDB) IncrValidateRoundID() (int64, error) {
+	return rd.cli.IncrBy(context.Background(), redisKeyValidateRoundID, 1).Result()
 }
 
-// get VerifyID
-func (rd redisDB) GetVerifyID() (string, error) {
-	return rd.cli.Get(context.Background(), redisKeyVerifyID).Result()
+// get ValidateID
+func (rd redisDB) GetValidateRoundID() (string, error) {
+	return rd.cli.Get(context.Background(), redisKeyValidateRoundID).Result()
 }
 
 // del node data with cid
@@ -189,25 +189,25 @@ func (rd redisDB) GetCacheDataTagInfos(deviceID string) (map[string]string, erro
 }
 
 //  add
-func (rd redisDB) SetNodeToVerifyList(deviceID string) error {
-	_, err := rd.cli.SAdd(context.Background(), redisKeyVerifyList, deviceID).Result()
+func (rd redisDB) SetNodeToValidateList(deviceID string) error {
+	_, err := rd.cli.SAdd(context.Background(), redisKeyValidateList, deviceID).Result()
 	return err
 }
 
 // SMembers
-func (rd redisDB) GetNodesWithVerifyList() ([]string, error) {
-	return rd.cli.SMembers(context.Background(), redisKeyVerifyList).Result()
+func (rd redisDB) GetNodesWithValidateList() ([]string, error) {
+	return rd.cli.SMembers(context.Background(), redisKeyValidateList).Result()
 }
 
 //  del device
-func (rd redisDB) DelNodeWithVerifyList(deviceID string) error {
-	_, err := rd.cli.SRem(context.Background(), redisKeyVerifyList, deviceID).Result()
+func (rd redisDB) DelNodeWithValidateList(deviceID string) error {
+	_, err := rd.cli.SRem(context.Background(), redisKeyValidateList, deviceID).Result()
 	return err
 }
 
 //  del key
-func (rd redisDB) DelVerifyList() error {
-	_, err := rd.cli.Del(context.Background(), redisKeyVerifyList).Result()
+func (rd redisDB) DelValidateList() error {
+	_, err := rd.cli.Del(context.Background(), redisKeyValidateList).Result()
 	return err
 }
 
@@ -241,7 +241,7 @@ func (rd redisDB) DelNodeWithCacheList(deviceID, cid string) error {
 	return err
 }
 
-func (rd redisDB) SetNodeInfo(deviceID string, info NodeInfo) error {
+func (rd redisDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
 	nType := string(info.NodeType)
@@ -257,22 +257,22 @@ func (rd redisDB) AddNodeOnlineTime(deviceID string, onLineTime int64) error {
 	return err
 }
 
-func (rd redisDB) GetNodeInfo(deviceID string) (NodeInfo, error) {
+func (rd redisDB) GetNodeInfo(deviceID string) (*NodeInfo, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
 	vals, err := rd.cli.HMGet(context.Background(), key, geoField, onLineTimeField, lastTimeField, isOnlineField, nodeType).Result()
 	if err != nil {
-		return NodeInfo{}, err
+		return nil, err
 	}
 
 	if len(vals) <= 0 {
-		return NodeInfo{}, xerrors.New(NotFind)
+		return nil, xerrors.New(NotFind)
 	}
 
 	// fmt.Printf("GetNodeInfo vals:%v", vals)
 
 	if vals[0] == nil || vals[1] == nil || vals[2] == nil || vals[3] == nil || vals[4] == nil {
-		return NodeInfo{}, xerrors.New(NotFind)
+		return nil, xerrors.New(NotFind)
 	}
 
 	g, _ := redigo.String(vals[0], nil)
@@ -281,28 +281,28 @@ func (rd redisDB) GetNodeInfo(deviceID string) (NodeInfo, error) {
 	i, _ := redigo.Bool(vals[3], nil)
 	n, _ := redigo.String(vals[4], nil)
 
-	return NodeInfo{Geo: g, OnLineTime: o, LastTime: l, IsOnline: i, NodeType: api.NodeTypeName(n)}, nil
+	return &NodeInfo{Geo: g, OnLineTime: o, LastTime: l, IsOnline: i, NodeType: api.NodeTypeName(n)}, nil
 }
 
-func (rd redisDB) SetVerifyResultInfo(sID string, edgeID, validator, msg string, status VerifyStatus) error {
-	key := fmt.Sprintf(redisKeyVerifyResult, sID, edgeID)
+func (rd redisDB) SetValidateResultInfo(sID string, edgeID, validator, msg string, status ValidateStatus) error {
+	key := fmt.Sprintf(redisKeyValidateResult, sID, edgeID)
 
 	nowTime := time.Now().Format("2006-01-02 15:04:05")
 
-	if status == VerifyStatusCreate {
+	if status == ValidateStatusCreate {
 		_, err := rd.cli.HMSet(context.Background(), key, validatorField, validator, stratTimeField, nowTime, statusField, int(status)).Result()
 		return err
 
-	} else if status > VerifyStatusCreate {
+	} else if status > ValidateStatusCreate {
 		_, err := rd.cli.HMSet(context.Background(), key, endTimeField, nowTime, statusField, int(status), msgField, msg).Result()
 		return err
 	}
 
-	return xerrors.Errorf("SetVerifyResultInfo status:%v", status)
+	return xerrors.Errorf("SetValidateResultInfo status:%v", status)
 }
 
-func (rd redisDB) SetNodeToVerifyErrorList(sID string, deviceID string) error {
-	key := fmt.Sprintf(redisKeyVerifyErrorList, sID)
+func (rd redisDB) SetNodeToValidateErrorList(sID string, deviceID string) error {
+	key := fmt.Sprintf(redisKeyValidateErrorList, sID)
 
 	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
 	return err

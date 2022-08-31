@@ -51,7 +51,6 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		nodeAPI:    edgeAPI,
 		closer:     closer,
 		deviceInfo: deviceInfo,
-		bandwidth:  300, // 边缘节点上行带宽最多 100M是有效的
 	}
 
 	ok, err := db.GetCacheDB().IsEdgeInDeviceIDList(deviceInfo.DeviceId)
@@ -81,14 +80,19 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 	return nil
 }
 
-// VerifyDataResult Verify Data Result
-func (s Scheduler) VerifyDataResult(ctx context.Context, verifyResults api.VerifyResults) error {
-	return verifyResult(verifyResults)
+// ValidateDataResult Validate Data Result
+func (s Scheduler) ValidateDataResult(ctx context.Context, validateResults api.VerifyResults) error {
+	err := validateResult(&validateResults)
+	if err != nil {
+		log.Errorf("ValidateDataResult err:%v", err.Error())
+	}
+
+	return err
 }
 
 // CacheResult Cache Data Result
 func (s Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
-	return nodeCacheResult(deviceID, info)
+	return nodeCacheResult(deviceID, &info)
 }
 
 // DeleteDataRecord  Delete Data Record
@@ -174,12 +178,14 @@ func (s Scheduler) CacheData(ctx context.Context, cids []string, deviceID string
 
 // InitNodeDeviceIDs Init Node DeviceIDs (test)
 func (s Scheduler) InitNodeDeviceIDs(ctx context.Context) error {
+	nodeNum := 1000
+
 	edgePrefix := "edge_"
 	candidatePrefix := "candidate_"
 
 	edgeList := make([]string, 0)
 	candidateList := make([]string, 0)
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < nodeNum; i++ {
 		edgeID := fmt.Sprintf("%s%d", edgePrefix, i)
 		candidateID := fmt.Sprintf("%s%d", candidatePrefix, i)
 
@@ -272,7 +278,6 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 		nodeAPI:    candicateAPI,
 		closer:     closer,
 		deviceInfo: deviceInfo,
-		bandwidth:  1024, // 候选节点下行带宽最少需要 100M
 	}
 
 	ok, err := db.GetCacheDB().IsCandidateInDeviceIDList(deviceInfo.DeviceId)
@@ -311,7 +316,7 @@ func (s Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string) 
 	if err == nil && len(infos) > 0 {
 		count := 0
 		for _, tag := range infos {
-			if tag != dataTagErr {
+			if tag != dataDefaultTag {
 				count++
 			}
 		}
@@ -354,12 +359,22 @@ func (s Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID stri
 
 // ElectionValidators Election Validators
 func (s Scheduler) ElectionValidators(ctx context.Context) error {
-	return electionValidators()
+	err := electionValidators()
+	if err != nil {
+		log.Panicf("electionValidators err:%v", err.Error())
+	}
+
+	return err
 }
 
-// Verify Verify edge
-func (s Scheduler) Verify(ctx context.Context) error {
-	return startVerify()
+// Validate Validate edge
+func (s Scheduler) Validate(ctx context.Context) error {
+	err := startValidate()
+	if err != nil {
+		log.Panicf("startValidate err:%v", err.Error())
+	}
+
+	return err
 }
 
 // indexPage info

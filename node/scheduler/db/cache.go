@@ -9,13 +9,13 @@ import (
 type CacheDB interface {
 	IncrNodeCacheTag(deviceID string) (int64, error)
 	GetNodeCacheTag(deviceID string) (int64, error)
-	IncrVerifyID() (int64, error)
-	GetVerifyID() (string, error)
+	IncrValidateRoundID() (int64, error)
+	GetValidateRoundID() (string, error)
 
-	DelNodeWithVerifyList(deviceID string) error
-	SetNodeToVerifyList(deviceID string) error
-	GetNodesWithVerifyList() ([]string, error)
-	DelVerifyList() error
+	DelNodeWithValidateList(deviceID string) error
+	SetNodeToValidateList(deviceID string) error
+	GetNodesWithValidateList() ([]string, error)
+	DelValidateList() error
 
 	DelCacheDataInfo(deviceID, cid string) error
 	SetCacheDataInfo(deviceID, cid string, tag string) error
@@ -32,8 +32,8 @@ type CacheDB interface {
 	GetNodesWithCacheList(cid string) ([]string, error)
 	IsNodeInCacheList(cid, deviceID string) (bool, error)
 
-	SetNodeInfo(deviceID string, info NodeInfo) error
-	GetNodeInfo(deviceID string) (NodeInfo, error)
+	SetNodeInfo(deviceID string, info *NodeInfo) error
+	GetNodeInfo(deviceID string) (*NodeInfo, error)
 	AddNodeOnlineTime(deviceID string, onlineTime int64) error
 
 	DelNodeWithGeoList(deviceID, geo string) error
@@ -57,8 +57,8 @@ type CacheDB interface {
 	GetGeoWithValidatorList(deviceID string) ([]string, error)
 	DelValidatorGeoList(deviceID string) error
 
-	SetVerifyResultInfo(sID string, edgeID, validator, msg string, status VerifyStatus) error
-	SetNodeToVerifyErrorList(sID, deviceID string) error
+	SetValidateResultInfo(sID string, edgeID, validator, msg string, status ValidateStatus) error
+	SetNodeToValidateErrorList(sID, deviceID string) error
 
 	SetEdgeDeviceIDList(deviceIDs []string) error
 	IsEdgeInDeviceIDList(deviceID string) (bool, error)
@@ -107,18 +107,18 @@ type NodeInfo struct {
 	NodeType   api.NodeTypeName
 }
 
-// VerifyStatus Verify Status
-type VerifyStatus int
+// ValidateStatus Validate Status
+type ValidateStatus int
 
 const (
-	// VerifyStatusUnknown status
-	VerifyStatusUnknown VerifyStatus = iota
-	// VerifyStatusCreate status
-	VerifyStatusCreate
-	// VerifyStatusTimeOut status
-	VerifyStatusTimeOut
-	// VerifyStatusSuccess status
-	VerifyStatusSuccess
-	// VerifyStatusFail status
-	VerifyStatusFail
+	// ValidateStatusUnknown status
+	ValidateStatusUnknown ValidateStatus = iota
+	// ValidateStatusCreate status
+	ValidateStatusCreate
+	// ValidateStatusTimeOut status
+	ValidateStatusTimeOut
+	// ValidateStatusSuccess status
+	ValidateStatusSuccess
+	// ValidateStatusFail status
+	ValidateStatusFail
 )

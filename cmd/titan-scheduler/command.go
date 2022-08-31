@@ -95,7 +95,7 @@ var runCmd = &cli.Command{
 		}
 
 		scheduler.InitKeepaliveTimewheel()
-		scheduler.InitVerifyTimewheel()
+		scheduler.InitValidateTimewheel()
 
 		go func() {
 			<-ctx.Done()
@@ -119,9 +119,9 @@ var runCmd = &cli.Command{
 	},
 }
 
-var verifyCmd = &cli.Command{
-	Name:  "verify",
-	Usage: "Verify edge node",
+var validateCmd = &cli.Command{
+	Name:  "validate",
+	Usage: "Validate edge node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "api-url",
@@ -157,9 +157,9 @@ var verifyCmd = &cli.Command{
 
 		defer closer()
 
-		err = schedulerAPI.Verify(ctx)
+		err = schedulerAPI.Validate(ctx)
 		if err != nil {
-			log.Infof("Verify err:%v", err)
+			log.Infof("Validate err:%v", err)
 		}
 
 		return err
@@ -508,7 +508,7 @@ var initDeviceIDsCmd = &cli.Command{
 
 var cachingBlocksCmd = &cli.Command{
 	Name:  "cachingblocks",
-	Usage: "Verify edge node",
+	Usage: "Validate edge node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "api-url",
@@ -564,7 +564,7 @@ var cachingBlocksCmd = &cli.Command{
 
 var cacheStatCmd = &cli.Command{
 	Name:  "cachestat",
-	Usage: "Verify edge node",
+	Usage: "Validate edge node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "api-url",

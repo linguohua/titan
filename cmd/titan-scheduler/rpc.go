@@ -34,7 +34,7 @@ func schedulerHandler(a api.Scheduler, permissioned bool) http.Handler {
 	}
 
 	ah := &auth.Handler{
-		// Verify: authv,
+		// Validate: authv,
 		Next: mux.ServeHTTP,
 	}
 	return ah
