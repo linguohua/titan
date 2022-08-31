@@ -21,16 +21,34 @@ var log = logging.Logger("scheduler")
 
 // NewLocalScheduleNode NewLocalScheduleNode
 func NewLocalScheduleNode() api.Scheduler {
-	return Scheduler{CommonAPI: common.NewCommonAPI(updateLastRequestTime)}
+	manager := newNodeManager()
+	pool := NewNodePool()
+	validate := newElectionValidate()
+
+	s := &Scheduler{
+		CommonAPI:        common.NewCommonAPI(manager.updateLastRequestTime),
+		nodeManager:      manager,
+		nodePool:         pool,
+		electionValidate: validate,
+	}
+
+	validate.initValidateTimewheel(s)
+
+	return s
 }
 
 // Scheduler node
 type Scheduler struct {
 	common.CommonAPI
+
+	nodeManager *NodeManager
+	nodePool    *NodePool
+
+	electionValidate *ElectionValidate
 }
 
 // EdgeNodeConnect edge connect
-func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
+func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 	// Connect to scheduler
 	// log.Infof("EdgeNodeConnect edge url:%v", url)
 	edgeAPI, closer, err := client.NewEdge(ctx, url, nil)
@@ -46,11 +64,14 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		return err
 	}
 
-	edgeNode := EdgeNode{
-		addr:       url,
-		nodeAPI:    edgeAPI,
-		closer:     closer,
-		deviceInfo: deviceInfo,
+	edgeNode := &EdgeNode{
+		nodeAPI: edgeAPI,
+		closer:  closer,
+
+		Node: &Node{
+			addr:       url,
+			deviceInfo: deviceInfo,
+		},
 	}
 
 	ok, err := db.GetCacheDB().IsEdgeInDeviceIDList(deviceInfo.DeviceId)
@@ -59,18 +80,20 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		return xerrors.Errorf("deviceID does not exist")
 	}
 
-	err = addEdgeNode(&edgeNode)
+	err = s.nodeManager.addEdgeNode(edgeNode)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect addEdgeNode err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 		return err
 	}
+
+	s.nodePool.addPendingNode(edgeNode, nil)
 
 	list, err := getCacheFailCids(deviceInfo.DeviceId)
 	if err != nil {
 		log.Warnf("EdgeNodeConnect getCacheFailCids err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 	} else {
 		if list != nil && len(list) > 0 {
-			_, err = cacheDataOfNode(list, deviceInfo.DeviceId)
+			_, err = cacheDataOfNode(s, list, deviceInfo.DeviceId)
 			if err != nil {
 				log.Warnf("EdgeNodeConnect CacheData err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 			}
@@ -82,7 +105,7 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 
 // ValidateDataResult Validate Data Result
 func (s Scheduler) ValidateDataResult(ctx context.Context, validateResults api.ValidateResults) error {
-	err := validateResult(&validateResults)
+	err := s.electionValidate.validateResult(&validateResults)
 	if err != nil {
 		log.Errorf("ValidateDataResult err:%v", err.Error())
 	}
@@ -91,12 +114,12 @@ func (s Scheduler) ValidateDataResult(ctx context.Context, validateResults api.V
 }
 
 // CacheResult Cache Data Result
-func (s Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
+func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
 	return nodeCacheResult(deviceID, &info)
 }
 
 // DeleteDataRecord  Delete Data Record
-func (s Scheduler) DeleteDataRecord(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
+func (s *Scheduler) DeleteDataRecord(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
 	if len(cids) <= 0 {
 		return nil, xerrors.New("cids is nil")
 	}
@@ -105,7 +128,7 @@ func (s Scheduler) DeleteDataRecord(ctx context.Context, deviceID string, cids [
 }
 
 // DeleteData  Delete Data Record
-func (s Scheduler) DeleteData(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
+func (s *Scheduler) DeleteData(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
 	if len(cids) <= 0 {
 		return nil, xerrors.New("cids is nil")
 	}
@@ -114,7 +137,7 @@ func (s Scheduler) DeleteData(ctx context.Context, deviceID string, cids []strin
 
 	nodeFinded := false
 
-	edge := getEdgeNode(deviceID)
+	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
 		result, err := edge.nodeAPI.DeleteData(ctx, cids)
 		if err != nil {
@@ -130,7 +153,7 @@ func (s Scheduler) DeleteData(ctx context.Context, deviceID string, cids []strin
 		}
 	}
 
-	candidate := getCandidateNode(deviceID)
+	candidate := s.nodeManager.getCandidateNode(deviceID)
 	if candidate != nil {
 		result, err := candidate.nodeAPI.DeleteData(ctx, cids)
 		if err != nil {
@@ -168,16 +191,16 @@ func (s Scheduler) DeleteData(ctx context.Context, deviceID string, cids []strin
 }
 
 // CacheData Cache Data
-func (s Scheduler) CacheData(ctx context.Context, cids []string, deviceID string) ([]string, error) {
+func (s *Scheduler) CacheData(ctx context.Context, cids []string, deviceID string) ([]string, error) {
 	if len(cids) <= 0 {
 		return nil, xerrors.New("cids is nil")
 	}
 
-	return cacheDataOfNode(cids, deviceID)
+	return cacheDataOfNode(s, cids, deviceID)
 }
 
 // InitNodeDeviceIDs Init Node DeviceIDs (test)
-func (s Scheduler) InitNodeDeviceIDs(ctx context.Context) error {
+func (s *Scheduler) InitNodeDeviceIDs(ctx context.Context) error {
 	nodeNum := 1000
 
 	edgePrefix := "edge_"
@@ -207,11 +230,11 @@ func (s Scheduler) InitNodeDeviceIDs(ctx context.Context) error {
 }
 
 // GetOnlineDeviceIDs Get all online node id
-func (s Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTypeName) ([]string, error) {
+func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTypeName) ([]string, error) {
 	list := make([]string, 0)
 
 	if nodeType == api.TypeNameAll || nodeType == api.TypeNameCandidate || nodeType == api.TypeNameValidator {
-		candidateNodeMap.Range(func(key, value interface{}) bool {
+		s.nodeManager.candidateNodeMap.Range(func(key, value interface{}) bool {
 			deviceID := key.(string)
 			if nodeType == api.TypeNameAll {
 				list = append(list, deviceID)
@@ -227,7 +250,7 @@ func (s Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeType
 	}
 
 	if nodeType == api.TypeNameAll || nodeType == api.TypeNameEdge {
-		edgeNodeMap.Range(func(key, value interface{}) bool {
+		s.nodeManager.edgeNodeMap.Range(func(key, value interface{}) bool {
 			deviceID := key.(string)
 			list = append(list, deviceID)
 
@@ -239,12 +262,12 @@ func (s Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeType
 }
 
 // GetCacheTag get a tag with cid
-func (s Scheduler) GetCacheTag(ctx context.Context, cid, deviceID string) (string, error) {
+func (s *Scheduler) GetCacheTag(ctx context.Context, cid, deviceID string) (string, error) {
 	return newCacheDataTag(cid, deviceID)
 }
 
 // FindNodeWithData find node
-func (s Scheduler) FindNodeWithData(ctx context.Context, cid, ip string) (string, error) {
+func (s *Scheduler) FindNodeWithData(ctx context.Context, cid, ip string) (string, error) {
 	// node, err := getNodeWithData(cid, ip)
 	// if err != nil {
 	// 	return "", err
@@ -254,12 +277,12 @@ func (s Scheduler) FindNodeWithData(ctx context.Context, cid, ip string) (string
 }
 
 // GetDownloadURLWithData find node
-func (s Scheduler) GetDownloadURLWithData(ctx context.Context, cid, ip string) (string, error) {
-	return getNodeURLWithData(cid, ip)
+func (s *Scheduler) GetDownloadURLWithData(ctx context.Context, cid, ip string) (string, error) {
+	return s.nodeManager.getNodeURLWithData(cid, ip)
 }
 
 // CandidateNodeConnect Candidate connect
-func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
+func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 	candicateAPI, closer, err := client.NewCandicate(ctx, url, nil)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect NewCandicate err:%v,url:%v", err, url)
@@ -273,11 +296,14 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 		return err
 	}
 
-	candidateNode := CandidateNode{
-		addr:       url,
-		nodeAPI:    candicateAPI,
-		closer:     closer,
-		deviceInfo: deviceInfo,
+	candidateNode := &CandidateNode{
+		nodeAPI: candicateAPI,
+		closer:  closer,
+
+		Node: &Node{
+			addr:       url,
+			deviceInfo: deviceInfo,
+		},
 	}
 
 	ok, err := db.GetCacheDB().IsCandidateInDeviceIDList(deviceInfo.DeviceId)
@@ -286,18 +312,20 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 		return xerrors.Errorf("deviceID does not exist")
 	}
 
-	err = addCandidateNode(&candidateNode)
+	err = s.nodeManager.addCandidateNode(candidateNode)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect addEdgeNode err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 		return err
 	}
+
+	s.nodePool.addPendingNode(nil, candidateNode)
 
 	list, err := getCacheFailCids(deviceInfo.DeviceId)
 	if err != nil {
 		log.Warnf("CandidateNodeConnect getCacheFailCids err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 	} else {
 		if list != nil && len(list) > 0 {
-			_, err = cacheDataOfNode(list, deviceInfo.DeviceId)
+			_, err = cacheDataOfNode(s, list, deviceInfo.DeviceId)
 			if err != nil {
 				log.Warnf("CandidateNodeConnect CacheData err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 			}
@@ -308,7 +336,7 @@ func (s Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 }
 
 // QueryCacheStatWithNode Query Cache Stat
-func (s Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]api.CacheStat, error) {
+func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]api.CacheStat, error) {
 	stats := make([]api.CacheStat, 0)
 
 	body := api.CacheStat{}
@@ -325,14 +353,14 @@ func (s Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string) 
 
 	stats = append(stats, body)
 
-	candidata := getCandidateNode(deviceID)
+	candidata := s.nodeManager.getCandidateNode(deviceID)
 	if candidata != nil {
 		nodeBody, _ := candidata.nodeAPI.QueryCacheStat(ctx)
 		stats = append(stats, nodeBody)
 		return stats, nil
 	}
 
-	edge := getEdgeNode(deviceID)
+	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
 		nodeBody, _ := edge.nodeAPI.QueryCacheStat(ctx)
 		stats = append(stats, nodeBody)
@@ -343,13 +371,13 @@ func (s Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string) 
 }
 
 // QueryCachingBlocksWithNode Query Caching Blocks
-func (s Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (api.CachingBlockList, error) {
-	candidata := getCandidateNode(deviceID)
+func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (api.CachingBlockList, error) {
+	candidata := s.nodeManager.getCandidateNode(deviceID)
 	if candidata != nil {
 		return candidata.nodeAPI.QueryCachingBlocks(ctx)
 	}
 
-	edge := getEdgeNode(deviceID)
+	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
 		return edge.nodeAPI.QueryCachingBlocks(ctx)
 	}
@@ -358,8 +386,8 @@ func (s Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID stri
 }
 
 // ElectionValidators Election Validators
-func (s Scheduler) ElectionValidators(ctx context.Context) error {
-	err := electionValidators()
+func (s *Scheduler) ElectionValidators(ctx context.Context) error {
+	err := s.electionValidate.electionValidators(s)
 	if err != nil {
 		log.Panicf("electionValidators err:%v", err.Error())
 	}
@@ -368,8 +396,8 @@ func (s Scheduler) ElectionValidators(ctx context.Context) error {
 }
 
 // Validate Validate edge
-func (s Scheduler) Validate(ctx context.Context) error {
-	err := startValidate()
+func (s *Scheduler) Validate(ctx context.Context) error {
+	err := s.electionValidate.startValidate(s)
 	if err != nil {
 		log.Panicf("startValidate err:%v", err.Error())
 	}
@@ -378,13 +406,13 @@ func (s Scheduler) Validate(ctx context.Context) error {
 }
 
 // indexPage info
-func (s Scheduler) GetIndexInfo(ctx context.Context, p api.IndexRequest) (api.IndexPageRes, error) {
+func (s *Scheduler) GetIndexInfo(ctx context.Context, p api.IndexRequest) (api.IndexPageRes, error) {
 	var dataRes api.IndexPageRes
 	dataRes.StorageT = 1080.99
 	dataRes.BandwidthMb = 666.99
 	// AllMinerNum MinerInfo
-	dataRes.AllCandidate = candidateCount
-	dataRes.AllEdgeNode = edgeCount
+	dataRes.AllCandidate = s.nodeManager.candidateCount
+	dataRes.AllEdgeNode = s.nodeManager.edgeCount
 	dataRes.AllVerifier = 56
 	// OnlineMinerNum MinerInfo
 	dataRes.OnlineCandidate = 11
@@ -404,7 +432,7 @@ func (s Scheduler) GetIndexInfo(ctx context.Context, p api.IndexRequest) (api.In
 }
 
 // Retrieval miner info
-func (s Scheduler) Retrieval(ctx context.Context, p api.IndexPageSearch) (api.RetrievalPageRes, error) {
+func (s *Scheduler) Retrieval(ctx context.Context, p api.IndexPageSearch) (api.RetrievalPageRes, error) {
 	var res api.RetrievalPageRes
 	var dataRes api.RetrievalInfo
 	var dataList []api.RetrievalInfo
@@ -425,13 +453,13 @@ func (s Scheduler) Retrieval(ctx context.Context, p api.IndexPageSearch) (api.Re
 	res.StorageT = 1080.99
 	res.BandwidthMb = 666.99
 	// AllMinerNum MinerInfo
-	res.AllCandidate = candidateCount
-	res.AllEdgeNode = edgeCount
+	res.AllCandidate = s.nodeManager.candidateCount
+	res.AllEdgeNode = s.nodeManager.edgeCount
 	res.AllVerifier = 56
 	return res, nil
 }
 
-func (s Scheduler) GetDevicesInfo(ctx context.Context, p api.DevicesSearch) (api.DevicesInfoPage, error) {
+func (s *Scheduler) GetDevicesInfo(ctx context.Context, p api.DevicesSearch) (api.DevicesInfoPage, error) {
 	var res api.DevicesInfoPage
 	list, total, err := GetDevicesInfoList(p)
 	if err != nil {
@@ -450,7 +478,7 @@ func (s Scheduler) GetDevicesInfo(ctx context.Context, p api.DevicesSearch) (api
 	return res, nil
 }
 
-func (s Scheduler) GetDevicesCount(ctx context.Context, p api.DevicesSearch) (api.DeviceType, error) {
+func (s *Scheduler) GetDevicesCount(ctx context.Context, p api.DevicesSearch) (api.DeviceType, error) {
 	var res api.DeviceType
 	res.Online = 3
 	res.Offline = 4
@@ -461,7 +489,7 @@ func (s Scheduler) GetDevicesCount(ctx context.Context, p api.DevicesSearch) (ap
 	return res, nil
 }
 
-func (s Scheduler) GetDeviceDiagnosis(ctx context.Context, p api.DevicesSearch) (api.DeviceDiagnosis, error) {
+func (s *Scheduler) GetDeviceDiagnosis(ctx context.Context, p api.DevicesSearch) (api.DeviceDiagnosis, error) {
 	var res api.DeviceDiagnosis
 	res.Secondary = 3
 	res.Ordinary = 4
@@ -472,7 +500,7 @@ func (s Scheduler) GetDeviceDiagnosis(ctx context.Context, p api.DevicesSearch) 
 	return res, nil
 }
 
-func (s Scheduler) GetDeviceDiagnosisDaily(ctx context.Context, p api.IncomeDailySearch) (api.IncomeDailyRes, error) {
+func (s *Scheduler) GetDeviceDiagnosisDaily(ctx context.Context, p api.IncomeDailySearch) (api.IncomeDailyRes, error) {
 	var res api.IncomeDailyRes
 	m := timeFormat(p)
 	res.DailyIncome = m
@@ -484,7 +512,7 @@ func (s Scheduler) GetDeviceDiagnosisDaily(ctx context.Context, p api.IncomeDail
 	return res, nil
 }
 
-func (s Scheduler) GetDeviceDiagnosisHour(ctx context.Context, p api.IncomeDailySearch) (api.HourDailyRes, error) {
+func (s *Scheduler) GetDeviceDiagnosisHour(ctx context.Context, p api.IncomeDailySearch) (api.HourDailyRes, error) {
 	var res api.HourDailyRes
 	m := timeFormatHour(p)
 	res.OnlineJsonDaily = m
@@ -493,7 +521,7 @@ func (s Scheduler) GetDeviceDiagnosisHour(ctx context.Context, p api.IncomeDaily
 }
 
 //  dairy data save
-func (s Scheduler) SaveDailyInfo(ctx context.Context, incomeDaily api.IncomeDaily) error {
+func (s *Scheduler) SaveDailyInfo(ctx context.Context, incomeDaily api.IncomeDaily) error {
 	splitDate := strings.Split(incomeDaily.DateStr, "-")
 	month := splitDate[0] + "-" + splitDate[1]
 	dayDate := splitDate[2]

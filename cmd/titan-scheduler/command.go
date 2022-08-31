@@ -94,9 +94,6 @@ var runCmd = &cli.Command{
 			},
 		}
 
-		scheduler.InitKeepaliveTimewheel()
-		scheduler.InitValidateTimewheel()
-
 		go func() {
 			<-ctx.Done()
 			log.Warn("Shutting down...")

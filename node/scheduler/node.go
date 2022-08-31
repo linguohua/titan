@@ -1,7 +1,6 @@
 package scheduler
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -17,33 +16,31 @@ type EdgeNode struct {
 	nodeAPI api.Edge
 	closer  jsonrpc.ClientCloser
 
-	deviceInfo api.DevicesInfo
-
-	geoInfo region.GeoInfo
-
-	addr string
-
-	lastRequestTime time.Time
+	*Node
 }
 
 // CandidateNode Candidate node
 type CandidateNode struct {
-	nodeAPI api.Candidate
-	closer  jsonrpc.ClientCloser
+	nodeAPI     api.Candidate
+	closer      jsonrpc.ClientCloser
+	isValidator bool
 
+	*Node
+}
+
+// Node Common
+type Node struct {
 	deviceInfo api.DevicesInfo
 
 	geoInfo region.GeoInfo
 
 	addr string
-
-	isValidator bool
 
 	lastRequestTime time.Time
 }
 
 // NodeOnline Save DeciceInfo
-func nodeOnline(deviceID string, onlineTime int64, geoInfo *region.GeoInfo, typeName api.NodeTypeName) error {
+func (n *Node) nodeOnline(deviceID string, onlineTime int64, geoInfo *region.GeoInfo, typeName api.NodeTypeName) error {
 	oldNodeInfo, err := db.GetCacheDB().GetNodeInfo(deviceID)
 	if err == nil {
 		if typeName != oldNodeInfo.NodeType {
@@ -96,7 +93,7 @@ func nodeOnline(deviceID string, onlineTime int64, geoInfo *region.GeoInfo, type
 }
 
 // NodeOffline offline
-func nodeOffline(deviceID string, geoInfo *region.GeoInfo, nodeType api.NodeTypeName, lastTime time.Time) error {
+func (n *Node) nodeOffline(deviceID string, geoInfo *region.GeoInfo, nodeType api.NodeTypeName, lastTime time.Time) error {
 	err := db.GetCacheDB().DelNodeWithGeoList(deviceID, geoInfo.Geo)
 	if err != nil {
 		return err
@@ -113,81 +110,4 @@ func nodeOffline(deviceID string, geoInfo *region.GeoInfo, nodeType api.NodeType
 	}
 
 	return nil
-}
-
-func updateLastRequestTime(deviceID string) {
-	// log.Infof("updateLastRequestTime------------deviceID:%v", deviceID)
-	lastTime := time.Now()
-
-	edge := getEdgeNode(deviceID)
-	if edge != nil {
-		edge.lastRequestTime = lastTime
-		return
-	}
-
-	candidate := getCandidateNode(deviceID)
-	if candidate != nil {
-		candidate.lastRequestTime = lastTime
-		return
-	}
-}
-
-// getNodeURLWithData find device
-func getNodeURLWithData(cid, ip string) (string, error) {
-	deviceIDs, err := db.GetCacheDB().GetNodesWithCacheList(cid)
-	if err != nil {
-		return "", err
-	}
-
-	if len(deviceIDs) <= 0 {
-		return "", xerrors.New("not find node")
-	}
-
-	uInfo, err := region.GetRegion().GetGeoInfo(ip)
-	if err != nil {
-		log.Warnf("getNodeURLWithData GetGeoInfo err:%v,ip:%v", err, ip)
-	}
-
-	log.Infof("getNodeURLWithData user ip:%v,geo:%v,cid:%v", ip, uInfo.Geo, cid)
-
-	var addr string
-	nodeEs, geoLevelE := findEdgeNodeWithGeo(uInfo, deviceIDs)
-	nodeCs, geoLevelC := findCandidateNodeWithGeo(uInfo, deviceIDs, []string{})
-	if geoLevelE < geoLevelC {
-		addr = nodeCs[randomNum(0, len(nodeCs))].deviceInfo.DownloadSrvURL
-	} else if geoLevelE > geoLevelC {
-		addr = nodeEs[randomNum(0, len(nodeEs))].deviceInfo.DownloadSrvURL
-	} else {
-		if len(nodeEs) > 0 {
-			addr = nodeEs[randomNum(0, len(nodeEs))].deviceInfo.DownloadSrvURL
-		} else {
-			if len(nodeCs) > 0 {
-				addr = nodeCs[randomNum(0, len(nodeCs))].deviceInfo.DownloadSrvURL
-			} else {
-				return "", xerrors.New("not find node")
-			}
-		}
-	}
-
-	// http://192.168.0.136:3456/rpc/v0/block/get?cid=QmeUqw4FY1wqnh2FMvuc2v8KAapE7fYwu2Up4qNwhZiRk7
-	url := fmt.Sprintf("%s?cid=%s", addr, cid)
-
-	return url, nil
-}
-
-// getCandidateNodesWithData find device
-func getCandidateNodesWithData(cid string, geoInfo *region.GeoInfo) ([]*CandidateNode, error) {
-	deviceIDs, err := db.GetCacheDB().GetNodesWithCacheList(cid)
-	if err != nil {
-		return nil, err
-	}
-	// log.Infof("getCandidateNodesWithData deviceIDs : %v", deviceIDs)
-
-	if len(deviceIDs) <= 0 {
-		return nil, xerrors.New("not find node ")
-	}
-
-	nodeCs, _ := findCandidateNodeWithGeo(geoInfo, deviceIDs, []string{})
-
-	return nodeCs, nil
 }
