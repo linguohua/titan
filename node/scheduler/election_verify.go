@@ -62,10 +62,10 @@ func InitValidateTimewheel() {
 	timewheelValidate.AddTimer(time.Duration(2)*60*time.Second, "validate", nil)
 }
 
-func getReqValidate(validatorID string, list []string) ([]api.ReqVerify, []string) {
+func getReqValidate(validatorID string, list []string) ([]api.ReqValidate, []string) {
 	// validatorID := candidate.deviceInfo.DeviceId
 
-	req := make([]api.ReqVerify, 0)
+	req := make([]api.ReqValidate, 0)
 
 	errList := make([]string, 0)
 
@@ -109,7 +109,7 @@ func getReqValidate(validatorID string, list []string) ([]api.ReqVerify, []strin
 			}
 		}
 
-		req = append(req, api.ReqVerify{Seed: seed, EdgeURL: addr, Duration: duration, FIDs: fids, RoundID: roundID})
+		req = append(req, api.ReqValidate{Seed: seed, EdgeURL: addr, Duration: duration, FIDs: fids, RoundID: roundID})
 
 		fidsMap[deviceID] = fids
 		//
@@ -173,7 +173,7 @@ func saveValidateResult(sID string, deviceID string, validatorID string, msg str
 	return nil
 }
 
-func validateResult(validateResults *api.VerifyResults) error {
+func validateResult(validateResults *api.ValidateResults) error {
 	if validateResults.RoundID != roundID {
 		return xerrors.Errorf("roundID err")
 	}
@@ -532,7 +532,7 @@ func startValidate() error {
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			defer cancel()
 			// 请求抽查
-			err := validator.nodeAPI.VerifyData(ctx, req)
+			err := validator.nodeAPI.ValidateData(ctx, req)
 			if err != nil {
 				log.Warnf("ValidateData err:%v, DeviceId:%v", err.Error(), validatorID)
 				offline = true

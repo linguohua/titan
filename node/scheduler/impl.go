@@ -81,7 +81,7 @@ func (s Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 }
 
 // ValidateDataResult Validate Data Result
-func (s Scheduler) ValidateDataResult(ctx context.Context, validateResults api.VerifyResults) error {
+func (s Scheduler) ValidateDataResult(ctx context.Context, validateResults api.ValidateResults) error {
 	err := validateResult(&validateResults)
 	if err != nil {
 		log.Errorf("ValidateDataResult err:%v", err.Error())
