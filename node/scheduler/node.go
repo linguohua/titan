@@ -16,7 +16,7 @@ type EdgeNode struct {
 	nodeAPI api.Edge
 	closer  jsonrpc.ClientCloser
 
-	*Node
+	Node
 }
 
 // CandidateNode Candidate node
@@ -25,7 +25,7 @@ type CandidateNode struct {
 	closer      jsonrpc.ClientCloser
 	isValidator bool
 
-	*Node
+	Node
 }
 
 // Node Common

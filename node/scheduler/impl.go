@@ -22,7 +22,7 @@ var log = logging.Logger("scheduler")
 // NewLocalScheduleNode NewLocalScheduleNode
 func NewLocalScheduleNode() api.Scheduler {
 	manager := newNodeManager()
-	pool := NewNodePool()
+	pool := newNodePool()
 	validate := newElectionValidate()
 
 	s := &Scheduler{
@@ -68,7 +68,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		nodeAPI: edgeAPI,
 		closer:  closer,
 
-		Node: &Node{
+		Node: Node{
 			addr:       url,
 			deviceInfo: deviceInfo,
 		},
@@ -300,7 +300,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error 
 		nodeAPI: candicateAPI,
 		closer:  closer,
 
-		Node: &Node{
+		Node: Node{
 			addr:       url,
 			deviceInfo: deviceInfo,
 		},

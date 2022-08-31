@@ -31,7 +31,7 @@ type bandwidthInfo struct {
 }
 
 // NewNodePool new pool
-func NewNodePool() *NodePool {
+func newNodePool() *NodePool {
 	nodePool := &NodePool{}
 
 	return nodePool
