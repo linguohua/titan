@@ -131,7 +131,7 @@ func (edge EdgeAPI) LoadData(ctx context.Context, cid string) ([]byte, error) {
 	return edge.blockStore.Get(cid)
 }
 
-func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candidateURL string) error {
+func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candidateTcpSrvAddr string) error {
 	log.Info("DoVerify")
 
 	if edge.blockStore == nil {
@@ -149,7 +149,7 @@ func (edge EdgeAPI) DoVerify(ctx context.Context, reqVerify api.ReqVerify, candi
 	oldRate := limitBlockUploadRate(edge)
 	defer resetBlockUploadRate(edge, oldRate)
 
-	conn, err := newTcpClient(candidateURL)
+	conn, err := newTcpClient(candidateTcpSrvAddr)
 	if err != nil {
 		log.Errorf("DoVerify, NewCandicate err:%v", err)
 		return err

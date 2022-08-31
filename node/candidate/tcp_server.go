@@ -20,10 +20,10 @@ func startTcpServer(address string) {
 		log.Fatal(err)
 		os.Exit(1)
 	}
-
-	log.Infof("tcp_server listen on %s", address)
 	// close listener
 	defer listen.Close()
+
+	log.Infof("tcp_server listen on %s", address)
 	for {
 		conn, err := listen.AcceptTCP()
 		if err != nil {
