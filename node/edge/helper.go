@@ -13,8 +13,6 @@ var (
 
 	candidateApiMap = make(map[string]*candidateApi)
 	batch           = 10
-	reqList         []delayReq
-	cachingList     []delayReq
 	maxReqCount     = 5
 	// Millisecond
 	loadBockTick = 10

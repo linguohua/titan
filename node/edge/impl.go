@@ -44,7 +44,7 @@ func NewLocalEdgeNode(ctx context.Context, params *EdgeParams) api.Edge {
 		downloadSrvKey: params.DownloadSrvKey,
 	}
 
-	go startBlockLoader(ctx, edge)
+	go edge.startBlockLoader()
 	go edge.startDownloadServer(params.DownloadSrvAddr)
 
 	return edge
@@ -83,6 +83,8 @@ type Edge struct {
 	exchange       exchange.Interface
 	isCandidate    bool
 	downloadSrvKey string
+	reqList        []delayReq
+	cachingList    []delayReq
 }
 
 func (edge *Edge) GetSchedulerAPI() api.Scheduler {
@@ -108,9 +110,8 @@ func (edge *Edge) CacheData(ctx context.Context, req api.ReqCacheData) error {
 		return nil
 	}
 
-	reqList = append(reqList, delayReq...)
+	edge.reqList = append(edge.reqList, delayReq...)
 
-	// go loadBlocksOneByOne(edge, req)
 	return nil
 }
 
@@ -338,8 +339,8 @@ func (edge *Edge) QueryCacheStat(ctx context.Context) (api.CacheStat, error) {
 	}
 
 	result.CacheBlockCount = keyCount
-	result.WaitCacheBlockNum = len(reqList)
-	result.DoingCacheBlockNum = len(cachingList)
+	result.WaitCacheBlockNum = len(edge.reqList)
+	result.DoingCacheBlockNum = len(edge.cachingList)
 
 	log.Infof("CacheBlockCount:%d,WaitCacheBlockNum:%d, DoingCacheBlockNum:%d", result.CacheBlockCount, result.WaitCacheBlockNum, result.DoingCacheBlockNum)
 	return result, nil
