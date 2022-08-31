@@ -67,6 +67,9 @@ func newElectionValidate() *ElectionValidate {
 		verifiedNodeMax: 10, // 每个验证节点一次验证的被验证节点数
 
 		unassignedEdgeMap: make(map[string]int), // 未被分配到的边缘节点组
+
+		electionTime: 60,
+		validateTime: 10,
 	}
 
 	return e
@@ -87,9 +90,9 @@ func (e *ElectionValidate) getReqValidate(scheduler *Scheduler, validatorID stri
 				errList = append(errList, deviceID)
 				continue
 			}
-			addr = candidateNode.addr
+			addr = candidateNode.Node.addr
 		} else {
-			addr = edgeNode.addr
+			addr = edgeNode.Node.addr
 		}
 
 		// 查看节点缓存了哪些数据
