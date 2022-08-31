@@ -15,11 +15,11 @@ type delayReq struct {
 	candidateURL string
 }
 
-func startBlockLoader(ctx context.Context, edge *Edge) {
+func (edge *Edge) startBlockLoader() {
 	for {
-		doLen := len(reqList)
+		doLen := len(edge.reqList)
 		if doLen == 0 {
-			cachingList = nil
+			edge.cachingList = nil
 			time.Sleep(time.Duration(loadBockTick) * time.Millisecond)
 			continue
 		}
@@ -28,9 +28,9 @@ func startBlockLoader(ctx context.Context, edge *Edge) {
 			doLen = batch
 		}
 
-		doReqs := reqList[:doLen]
-		reqList = reqList[doLen:]
-		cachingList = doReqs
+		doReqs := edge.reqList[:doLen]
+		edge.reqList = edge.reqList[doLen:]
+		edge.cachingList = doReqs
 
 		loadBlocks(edge, doReqs)
 	}

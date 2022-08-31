@@ -84,7 +84,7 @@ func loadBlocksFromIPFS(edge *Edge, req []delayReq) {
 				log.Infof("cache data faile, cid:%s, count:%d", v.cid, v.count)
 			} else {
 				v.count++
-				reqList = append(reqList, v)
+				edge.reqList = append(edge.reqList, v)
 			}
 		}
 	}
