@@ -96,7 +96,8 @@ func (candidate *Candidate) ValidateData(ctx context.Context, req []api.ReqValid
 	log.Info("ValidateData")
 
 	for _, reqValidate := range req {
-		go validate(&reqValidate, candidate)
+		param := reqValidate
+		go validate(&param, candidate)
 	}
 
 	return nil

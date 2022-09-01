@@ -155,7 +155,7 @@ func (edge *Edge) DoValidate(ctx context.Context, reqValidate api.ReqValidate, c
 		log.Errorf("DoValidate, NewCandicate err:%v", err)
 		return err
 	}
-	log.Infof("candidateTcpSrvAddr:%s", candidateTcpSrvAddr)
+
 	go sendBlocks(conn, edge, &reqValidate)
 
 	return nil
