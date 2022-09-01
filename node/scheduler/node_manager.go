@@ -17,6 +17,17 @@ import (
 // 候选节点选举
 // 候选节点与边缘节点组 匹配 (抽查)
 
+type geoLevel int64
+
+const (
+	defaultLevel  geoLevel = 0
+	countryLevel  geoLevel = 1
+	provinceLevel geoLevel = 2
+	cityLevel     geoLevel = 3
+
+	dataDefaultTag string = "-1"
+)
+
 // NodeManager Node Manager
 type NodeManager struct {
 	edgeNodeMap      sync.Map
@@ -447,19 +458,19 @@ func (m *NodeManager) getNodeURLWithData(cid, ip string) (string, error) {
 
 	log.Infof("getNodeURLWithData user ip:%v,geo:%v,cid:%v", ip, uInfo.Geo, cid)
 
-	var addr string
+	var url string
 	nodeEs, geoLevelE := m.findEdgeNodeWithGeo(uInfo, deviceIDs)
 	nodeCs, geoLevelC := m.findCandidateNodeWithGeo(uInfo, deviceIDs, []string{})
 	if geoLevelE < geoLevelC {
-		addr = nodeCs[randomNum(0, len(nodeCs))].deviceInfo.DownloadSrvURL
+		url = nodeCs[randomNum(0, len(nodeCs))].deviceInfo.DownloadSrvURL
 	} else if geoLevelE > geoLevelC {
-		addr = nodeEs[randomNum(0, len(nodeEs))].deviceInfo.DownloadSrvURL
+		url = nodeEs[randomNum(0, len(nodeEs))].deviceInfo.DownloadSrvURL
 	} else {
 		if len(nodeEs) > 0 {
-			addr = nodeEs[randomNum(0, len(nodeEs))].deviceInfo.DownloadSrvURL
+			url = nodeEs[randomNum(0, len(nodeEs))].deviceInfo.DownloadSrvURL
 		} else {
 			if len(nodeCs) > 0 {
-				addr = nodeCs[randomNum(0, len(nodeCs))].deviceInfo.DownloadSrvURL
+				url = nodeCs[randomNum(0, len(nodeCs))].deviceInfo.DownloadSrvURL
 			} else {
 				return "", xerrors.New("not find node")
 			}
@@ -467,9 +478,7 @@ func (m *NodeManager) getNodeURLWithData(cid, ip string) (string, error) {
 	}
 
 	// http://192.168.0.136:3456/rpc/v0/block/get?cid=QmeUqw4FY1wqnh2FMvuc2v8KAapE7fYwu2Up4qNwhZiRk7
-	url := fmt.Sprintf("%s?cid=%s", addr, cid)
-
-	return url, nil
+	return fmt.Sprintf("%s?cid=%s", url, cid), nil
 }
 
 // getCandidateNodesWithData find device
