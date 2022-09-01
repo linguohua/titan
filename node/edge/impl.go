@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -77,14 +78,15 @@ type EdgeParams struct {
 type Edge struct {
 	common.CommonAPI
 	device.Device
-	ds             datastore.Batching
-	blockStore     stores.BlockStore
-	scheduler      api.Scheduler
-	exchange       exchange.Interface
-	isCandidate    bool
-	downloadSrvKey string
-	reqList        []delayReq
-	cachingList    []delayReq
+	ds              datastore.Batching
+	blockStore      stores.BlockStore
+	scheduler       api.Scheduler
+	exchange        exchange.Interface
+	isCandidate     bool
+	downloadSrvKey  string
+	reqList         []delayReq
+	cachingList     []delayReq
+	cacheResultLock sync.Mutex
 }
 
 func (edge *Edge) GetSchedulerAPI() api.Scheduler {

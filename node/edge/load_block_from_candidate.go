@@ -2,22 +2,41 @@ package edge
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 )
 
-type candidateApi struct {
-	api      api.Candidate
-	deviceID string
+type candidate struct {
+	api        api.Candidate
+	deviceID   string
+	downSrvURL string
+	token      string
 }
 
-func getCandidateAPI(candidateURL string) (*candidateApi, error) {
-	candidate, ok := candidateApiMap[candidateURL]
-	if ok {
-		return candidate, nil
+func getBlockFromCandidate(url string, tk string) ([]byte, error) {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
 	}
 
+	req.Header.Set("Token", tk)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	return ioutil.ReadAll(resp.Body)
+}
+
+func getCandidate(candidateURL string) (*candidate, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -33,10 +52,26 @@ func getCandidateAPI(candidateURL string) (*candidateApi, error) {
 		return nil, err
 	}
 
-	candidate = &candidateApi{api: api, deviceID: info.DeviceId}
+	tk, err := api.GenerateDownloadToken(ctx)
+	if err != nil {
+		log.Errorf("getCandidateAPI, NewCandicate err:%v", err)
+		return nil, err
+	}
 
-	candidateApiMap[candidateURL] = candidate
+	candidate := &candidate{api: api, deviceID: info.DeviceId, downSrvURL: info.DownloadSrvURL, token: tk}
+	return candidate, nil
+}
 
+func getCandidateWithMap(candidateMap map[string]*candidate, candidateURL string) (*candidate, error) {
+	var err error
+	candidate, ok := candidateMap[candidateURL]
+	if !ok {
+		candidate, err = getCandidate(candidateURL)
+		if err != nil {
+			return nil, err
+		}
+		candidateMap[candidateURL] = candidate
+	}
 	return candidate, nil
 }
 
@@ -44,46 +79,23 @@ func loadBlocksFromCandidate(edge *Edge, reqs []delayReq) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	reqMap := make(map[string][]delayReq)
+	candidateMap := make(map[string]*candidate)
 	for _, req := range reqs {
-		rqs, ok := reqMap[req.candidateURL]
-		if !ok {
-			rqs = make([]delayReq, 0)
-		}
-		rqs = append(rqs, req)
-		reqMap[req.candidateURL] = rqs
-	}
-
-	failMap := make(map[string][]delayReq)
-	for _, req := range reqs {
-		candidate, err := getCandidateAPI(req.candidateURL)
+		candidate, err := getCandidateWithMap(candidateMap, req.candidateURL)
 		if err != nil {
+			log.Errorf("getCandidateWithMap error:%v", err)
 			cacheResult(ctx, edge, req.cid, "", err)
-			log.Errorf("getCandidateAPI error:%v", err)
 			continue
 		}
 
-		data, err := candidate.api.LoadData(ctx, req.cid)
+		url := fmt.Sprintf("%s?cid=%s", candidate.downSrvURL, req.cid)
+
+		data, err := getBlockFromCandidate(url, candidate.token)
 		if err == nil {
 			err = edge.blockStore.Put(req.cid, data)
-		} else {
-			fails, ok := failMap[req.candidateURL]
-			if !ok {
-				fails = make([]delayReq, 0)
-			}
-			fails = append(fails, req)
-			failMap[req.candidateURL] = fails
 		}
 
 		cacheResult(ctx, edge, req.cid, candidate.deviceID, err)
-
 		log.Infof("loadBlocksFromCandidate, cid:%s,err:%v", req.cid, err)
-	}
-
-	// may be need to delete connection if all fail, make it connect next time
-	for k, v := range failMap {
-		if len(v) == len(reqMap[k]) {
-			delete(candidateApiMap, k)
-		}
 	}
 }

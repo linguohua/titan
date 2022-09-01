@@ -11,9 +11,9 @@ import (
 var (
 	log = logging.Logger("edge")
 
-	candidateApiMap = make(map[string]*candidateApi)
-	batch           = 10
-	maxReqCount     = 5
+	// candidateApiMap = make(map[string]*candidateApi)
+	batch       = 10
+	maxReqCount = 5
 	// Millisecond
 	loadBockTick = 10
 
