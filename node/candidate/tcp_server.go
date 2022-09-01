@@ -87,7 +87,6 @@ func handleMessage(conn *net.TCPConn, candidate *Candidate) {
 			if vb.ch != nil {
 				// notify waitblock to stop
 				close(vb.ch)
-				// log.Infof("tcp-server close channel %s", deviceID)
 			}
 			vb.conn = nil
 			return
@@ -114,8 +113,7 @@ func safeSend(ch chan []byte, value []byte) (closed bool) {
 func readItem(conn net.Conn) ([]byte, error) {
 	len, err := readContentLen(conn)
 	if err != nil {
-		log.Infof("read len error:%v", err)
-		return nil, err
+		return nil, fmt.Errorf("read len error %v", err)
 	}
 
 	if len <= 0 {
@@ -124,8 +122,7 @@ func readItem(conn net.Conn) ([]byte, error) {
 
 	buf, err := readContent(conn, len)
 	if err != nil {
-		log.Infof("read content error:%v", err)
-		return nil, err
+		return nil, fmt.Errorf("read content error %v", err)
 	}
 
 	return buf, nil
