@@ -22,28 +22,17 @@ import (
 var (
 	log             = logging.Logger("candidate")
 	validateTimeout = 5
-	validateMap     sync.Map
 )
-
-type validateBlock struct {
-	conn *net.TCPConn
-	ch   chan []byte
-}
-
-func loadValidateBlockFromMap(key string) (*validateBlock, bool) {
-	vb, ok := validateMap.Load(key)
-	if ok {
-		return vb.(*validateBlock), ok
-	}
-	return nil, ok
-}
 
 func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, edgeParams *edge.EdgeParams) api.Candidate {
 	a := edge.NewLocalEdgeNode(ctx, edgeParams)
 	edge := a.(*edge.Edge)
 
-	go startTcpServer(tcpSrvAddr)
-	return &Candidate{Edge: *edge, tcpSrvAddr: parseTcpSrvAddr(tcpSrvAddr, edge.InternalIP)}
+	candidate := &Candidate{Edge: *edge, tcpSrvAddr: parseTcpSrvAddr(tcpSrvAddr, edge.InternalIP)}
+
+	go candidate.startTcpServer(tcpSrvAddr)
+
+	return candidate
 }
 
 func parseTcpSrvAddr(tcpSrvAddr string, interalIP string) string {
@@ -76,9 +65,15 @@ func cidFromData(data []byte) (string, error) {
 	return fmt.Sprintf("%v", c), nil
 }
 
+type validateBlock struct {
+	conn *net.TCPConn
+	ch   chan []byte
+}
+
 type Candidate struct {
 	edge.Edge
-	tcpSrvAddr string
+	tcpSrvAddr  string
+	validateMap sync.Map
 }
 
 func (candidate *Candidate) WaitQuiet(ctx context.Context) error {
@@ -101,6 +96,14 @@ func (candidate *Candidate) ValidateData(ctx context.Context, req []api.ReqValid
 	}
 
 	return nil
+}
+
+func (candidate *Candidate) loadValidateBlockFromMap(key string) (*validateBlock, bool) {
+	vb, ok := candidate.validateMap.Load(key)
+	if ok {
+		return vb.(*validateBlock), ok
+	}
+	return nil, ok
 }
 
 func sendValidateResult(ctx context.Context, candidate *Candidate, result *api.ValidateResults) error {
@@ -126,9 +129,9 @@ func toValidateResult(data []byte) (api.ValidateResult, error) {
 
 func waitBlock(vb *validateBlock, req *api.ReqValidate, candidate *Candidate, result *api.ValidateResults) {
 	defer func() {
-		vb, ok := loadValidateBlockFromMap(result.DeviceID)
+		vb, ok := candidate.loadValidateBlockFromMap(result.DeviceID)
 		if ok {
-			validateMap.Delete(result.DeviceID)
+			candidate.validateMap.Delete(result.DeviceID)
 			if vb.ch != nil {
 				close(vb.ch)
 				vb.ch = nil
@@ -225,16 +228,16 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 
 	result.DeviceID = info.DeviceId
 
-	vb, ok := validateMap.Load(info.DeviceId)
+	vb, ok := candidate.loadValidateBlockFromMap(info.DeviceId)
 	if ok {
 		log.Errorf("Aready doing validate edge node, deviceID:%s, not need to repeat to do", info.DeviceId)
 		return
 	}
 
 	vb = &validateBlock{conn: nil, ch: make(chan []byte)}
-	validateMap.Store(info.DeviceId, vb)
+	candidate.validateMap.Store(info.DeviceId, vb)
 
-	go waitBlock(vb.(*validateBlock), req, candidate, result)
+	go waitBlock(vb, req, candidate, result)
 
 	wctx, cancel := context.WithTimeout(context.Background(), (time.Duration(req.Duration))*time.Second)
 	defer cancel()

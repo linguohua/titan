@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func startTcpServer(address string) {
+func (candidate *Candidate) startTcpServer(address string) {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
 		panic(err)
@@ -32,11 +32,11 @@ func startTcpServer(address string) {
 		}
 
 		// conn.SetReadBuffer(104857600)
-		go handleMessage(conn)
+		go handleMessage(conn, candidate)
 	}
 }
 
-func handleMessage(conn *net.TCPConn) {
+func handleMessage(conn *net.TCPConn, candidate *Candidate) {
 	var now = time.Now()
 	var size = int64(0)
 	var deviceID = ""
@@ -65,7 +65,7 @@ func handleMessage(conn *net.TCPConn) {
 		return
 	}
 
-	vb, ok := loadValidateBlockFromMap(deviceID)
+	vb, ok := candidate.loadValidateBlockFromMap(deviceID)
 	if !ok {
 		log.Errorf("Candidate no wait for device %s", deviceID)
 		return
