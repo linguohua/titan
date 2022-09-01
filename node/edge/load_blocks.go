@@ -55,10 +55,13 @@ func apiReq2DelayReq(req *api.ReqCacheData) []delayReq {
 }
 
 func cacheResult(ctx context.Context, edge *Edge, cid, from string, err error) {
+	edge.cacheResultLock.Lock()
+	defer edge.cacheResultLock.Unlock()
+
 	var errMsg = ""
 	var success = true
 	if err != nil {
-		success = true
+		success = false
 		errMsg = err.Error()
 	}
 
@@ -73,6 +76,7 @@ func cacheResult(ctx context.Context, edge *Edge, cid, from string, err error) {
 		oldFid, _ := getFID(edge, cid)
 		if oldFid != "" {
 			// delete old fid key
+			log.Infof("delete old fid:%s, new fid:%s", oldFid, fid)
 			err = edge.ds.Delete(ctx, newKeyFID(oldFid))
 			if err != nil {
 				log.Errorf("DeleteData, delete key fid %s error:%v", fid, err)
