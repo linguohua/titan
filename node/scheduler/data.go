@@ -8,24 +8,14 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db"
-	"github.com/linguohua/titan/region"
 
 	"golang.org/x/xerrors"
 )
 
-type geoLevel int64
-
-const (
-	defaultLevel  geoLevel = 0
-	countryLevel  geoLevel = 1
-	provinceLevel geoLevel = 2
-	cityLevel     geoLevel = 3
-
-	dataDefaultTag string = "-1"
-)
-
 // 检查缓存失败的cid
-func getCacheFailCids(deviceID string) ([]string, error) {
+func (n *Node) getCacheFailCids() ([]string, error) {
+	deviceID := n.deviceInfo.DeviceId
+
 	infos, err := db.GetCacheDB().GetCacheDataInfos(deviceID)
 	if err != nil {
 		return nil, err
@@ -48,7 +38,8 @@ func getCacheFailCids(deviceID string) ([]string, error) {
 }
 
 // NotifyNodeCacheData Cache Data
-func cacheDataOfNode(scheduler *Scheduler, cids []string, deviceID string) ([]string, error) {
+func (n *Node) cacheDataOfNode(scheduler *Scheduler, cids []string) ([]string, error) {
+	deviceID := n.deviceInfo.DeviceId
 	// 判断device是什么节点
 	edge := scheduler.nodeManager.getEdgeNode(deviceID)
 	candidate := scheduler.nodeManager.getCandidateNode(deviceID)
@@ -65,7 +56,7 @@ func cacheDataOfNode(scheduler *Scheduler, cids []string, deviceID string) ([]st
 	errList := make([]string, 0)
 
 	if edge != nil {
-		reqDatas := getReqCacheData(scheduler, deviceID, cids, true, &edge.geoInfo)
+		reqDatas := n.getReqCacheData(scheduler, cids, true)
 
 		for _, reqData := range reqDatas {
 			err := edge.nodeAPI.CacheData(ctx, reqData)
@@ -79,7 +70,7 @@ func cacheDataOfNode(scheduler *Scheduler, cids []string, deviceID string) ([]st
 	}
 
 	if candidate != nil {
-		reqDatas := getReqCacheData(scheduler, deviceID, cids, false, &candidate.geoInfo)
+		reqDatas := n.getReqCacheData(scheduler, cids, false)
 
 		for _, reqData := range reqDatas {
 			err := candidate.nodeAPI.CacheData(ctx, reqData)
@@ -95,7 +86,9 @@ func cacheDataOfNode(scheduler *Scheduler, cids []string, deviceID string) ([]st
 	return nil, nil
 }
 
-func deleteDataRecord(deviceID string, cids []string) (map[string]string, error) {
+func (n *Node) deleteDataRecord(cids []string) (map[string]string, error) {
+	deviceID := n.deviceInfo.DeviceId
+
 	errList := make(map[string]string, 0)
 	for _, cid := range cids {
 		err := db.GetCacheDB().DelNodeWithCacheList(deviceID, cid)
@@ -131,7 +124,9 @@ func deleteDataRecord(deviceID string, cids []string) (map[string]string, error)
 	return errList, nil
 }
 
-func getReqCacheData(scheduler *Scheduler, deviceID string, cids []string, isEdge bool, geoInfo *region.GeoInfo) []api.ReqCacheData {
+func (n *Node) getReqCacheData(scheduler *Scheduler, cids []string, isEdge bool) []api.ReqCacheData {
+	geoInfo := &n.geoInfo
+
 	alreadyCacheCids := make([]string, 0)
 	notFindNodeCids := make([]string, 0)
 	reqList := make([]api.ReqCacheData, 0)
@@ -140,7 +135,7 @@ func getReqCacheData(scheduler *Scheduler, deviceID string, cids []string, isEdg
 		cs := make([]string, 0)
 
 		for _, cid := range cids {
-			err := nodeCacheReady(deviceID, cid)
+			err := n.nodeCacheReady(cid)
 			if err != nil {
 				// log.Warnf("cacheDataOfNode nodeCacheReady err:%v,cid:%v", err, cid)
 				alreadyCacheCids = append(alreadyCacheCids, cid)
@@ -167,7 +162,7 @@ func getReqCacheData(scheduler *Scheduler, deviceID string, cids []string, isEdg
 			continue
 		}
 
-		err = nodeCacheReady(deviceID, cid)
+		err = n.nodeCacheReady(cid)
 		if err != nil {
 			// log.Warnf("cacheDataOfNode nodeCacheReady err:%v,cid:%v", err, cid)
 			alreadyCacheCids = append(alreadyCacheCids, cid)
@@ -196,7 +191,9 @@ func getReqCacheData(scheduler *Scheduler, deviceID string, cids []string, isEdg
 }
 
 // NodeCacheResult Device Cache Result
-func nodeCacheResult(deviceID string, info *api.CacheResultInfo) (string, error) {
+func (n *Node) nodeCacheResult(info *api.CacheResultInfo) (string, error) {
+	deviceID := n.deviceInfo.DeviceId
+
 	log.Infof("nodeCacheResult deviceID:%v,info:%v", deviceID, info)
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, info.Cid)
 	if err == nil && v != dataDefaultTag {
@@ -229,7 +226,9 @@ func nodeCacheResult(deviceID string, info *api.CacheResultInfo) (string, error)
 	return fmt.Sprintf("%d", tag), db.GetCacheDB().SetNodeToCacheList(deviceID, info.Cid)
 }
 
-func newCacheDataTag(deviceID, cid string) (string, error) {
+func (n *Node) newCacheDataTag(cid string) (string, error) {
+	deviceID := n.deviceInfo.DeviceId
+
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
 	if err == nil && v != dataDefaultTag {
 		return v, xerrors.Errorf("already cache")
@@ -245,7 +244,9 @@ func newCacheDataTag(deviceID, cid string) (string, error) {
 }
 
 // Node Cache ready
-func nodeCacheReady(deviceID, cid string) error {
+func (n *Node) nodeCacheReady(cid string) error {
+	deviceID := n.deviceInfo.DeviceId
+
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
 	if err == nil && v != dataDefaultTag {
 		return xerrors.Errorf("already cache")

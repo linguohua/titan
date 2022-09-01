@@ -66,7 +66,7 @@ func main() {
 				Name:    "panic-reports",
 				EnvVars: []string{"TITAN_PANIC_REPORT_PATH"},
 				Hidden:  true,
-				Value:   "~/.titanedge", // should follow --repo default
+				Value:   "~/.titanedg", // should follow --repo default
 			},
 		},
 

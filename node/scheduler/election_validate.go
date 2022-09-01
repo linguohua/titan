@@ -464,7 +464,7 @@ func (e *ElectionValidate) startValidate(scheduler *Scheduler) error {
 	}
 	e.roundID = fmt.Sprintf("%d", sID)
 
-	e.seed = sID
+	e.seed = time.Now().UnixNano()
 
 	e.fidsMap = make(map[string][]string)
 
