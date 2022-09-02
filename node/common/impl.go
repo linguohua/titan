@@ -32,8 +32,8 @@ type jwtPayload struct {
 // MethodGroup: Auth
 
 // NewCommonAPI New CommonAPI
-func NewCommonAPI(callback func(string)) CommonAPI {
-	return CommonAPI{SessionCallBack: callback}
+func NewCommonAPI(sessionCallBack func(string)) CommonAPI {
+	return CommonAPI{SessionCallBack: sessionCallBack}
 }
 
 func (a *CommonAPI) AuthVerify(ctx context.Context, token string) ([]auth.Permission, error) {

@@ -22,17 +22,17 @@ var log = logging.Logger("scheduler")
 // NewLocalScheduleNode NewLocalScheduleNode
 func NewLocalScheduleNode() api.Scheduler {
 	manager := newNodeManager()
-	pool := newNodePool()
+	pool := newPoolGroup()
 	validate := newElectionValidate()
 
 	s := &Scheduler{
 		CommonAPI:        common.NewCommonAPI(manager.updateLastRequestTime),
 		nodeManager:      manager,
-		nodePool:         pool,
+		poolGroup:        pool,
 		electionValidate: validate,
 	}
 
-	validate.initValidateTimewheel(s)
+	validate.initValidateTimewheels(s)
 
 	return s
 }
@@ -42,7 +42,7 @@ type Scheduler struct {
 	common.CommonAPI
 
 	nodeManager *NodeManager
-	nodePool    *NodePool
+	poolGroup   *PoolGroup
 
 	electionValidate *ElectionValidate
 }
@@ -86,14 +86,14 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		return err
 	}
 
-	s.nodePool.addPendingNode(edgeNode, nil)
+	s.poolGroup.addPendingNode(edgeNode, nil)
 
 	list, err := edgeNode.getCacheFailCids()
 	if err != nil {
 		log.Warnf("EdgeNodeConnect getCacheFailCids err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 	} else {
 		if list != nil && len(list) > 0 {
-			reqDatas := edgeNode.getReqCacheData(s, list, true)
+			reqDatas, _ := edgeNode.getReqCacheDatas(s, list, true)
 			for _, reqData := range reqDatas {
 				err := edgeNode.nodeAPI.CacheData(ctx, reqData)
 				if err != nil {
@@ -128,30 +128,30 @@ func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.C
 		return candidate.nodeCacheResult(&info)
 	}
 
-	return "", xerrors.New("device not find")
+	return "", xerrors.New("node not find")
 }
 
-// DeleteDataRecord  Delete Data Record
-func (s *Scheduler) DeleteDataRecord(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
+// DeleteDataRecords  Delete Data Record
+func (s *Scheduler) DeleteDataRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
 	if len(cids) <= 0 {
 		return nil, xerrors.New("cids is nil")
 	}
 
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
-		return edge.deleteDataRecord(cids)
+		return edge.deleteDataRecords(cids)
 	}
 
 	candidate := s.nodeManager.getCandidateNode(deviceID)
 	if candidate != nil {
-		return candidate.deleteDataRecord(cids)
+		return candidate.deleteDataRecords(cids)
 	}
 
-	return nil, xerrors.New("device not find")
+	return nil, xerrors.New("node not find")
 }
 
-// DeleteData  Delete Data Record
-func (s *Scheduler) DeleteData(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
+// DeleteDatas  Delete Datas
+func (s *Scheduler) DeleteDatas(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
 	if len(cids) <= 0 {
 		return nil, xerrors.New("cids is nil")
 	}
@@ -211,7 +211,7 @@ func (s *Scheduler) DeleteData(ctx context.Context, deviceID string, cids []stri
 		delRecordList = append(delRecordList, cid)
 	}
 
-	eList, err := node.deleteDataRecord(delRecordList)
+	eList, err := node.deleteDataRecords(delRecordList)
 	for cid, eSrt := range eList {
 		errorMap[cid] = eSrt
 	}
@@ -219,8 +219,8 @@ func (s *Scheduler) DeleteData(ctx context.Context, deviceID string, cids []stri
 	return errorMap, err
 }
 
-// CacheData Cache Data
-func (s *Scheduler) CacheData(ctx context.Context, cids []string, deviceID string) ([]string, error) {
+// CacheDatas Cache Data
+func (s *Scheduler) CacheDatas(ctx context.Context, cids []string, deviceID string) ([]string, error) {
 	if len(cids) <= 0 {
 		return nil, xerrors.New("cids is nil")
 	}
@@ -229,7 +229,7 @@ func (s *Scheduler) CacheData(ctx context.Context, cids []string, deviceID strin
 	if edge != nil {
 		errList := make([]string, 0)
 
-		reqDatas := edge.getReqCacheData(s, cids, true)
+		reqDatas, notFindList := edge.getReqCacheDatas(s, cids, true)
 		for _, reqData := range reqDatas {
 			err := edge.nodeAPI.CacheData(ctx, reqData)
 			if err != nil {
@@ -238,6 +238,8 @@ func (s *Scheduler) CacheData(ctx context.Context, cids []string, deviceID strin
 			}
 		}
 
+		errList = append(errList, notFindList...)
+
 		return errList, nil
 	}
 
@@ -245,7 +247,7 @@ func (s *Scheduler) CacheData(ctx context.Context, cids []string, deviceID strin
 	if candidate != nil {
 		errList := make([]string, 0)
 
-		reqDatas := candidate.getReqCacheData(s, cids, false)
+		reqDatas, _ := candidate.getReqCacheDatas(s, cids, false)
 		for _, reqData := range reqDatas {
 			err := candidate.nodeAPI.CacheData(ctx, reqData)
 			if err != nil {
@@ -349,6 +351,10 @@ func (s *Scheduler) FindNodeWithData(ctx context.Context, cid, ip string) (strin
 
 // GetDownloadURLWithData find node
 func (s *Scheduler) GetDownloadURLWithData(ctx context.Context, cid, ip string) (string, error) {
+	if cid == "" {
+		return "", xerrors.New("cid is nil")
+	}
+
 	return s.nodeManager.getNodeURLWithData(cid, ip)
 }
 
@@ -389,14 +395,14 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error 
 		return err
 	}
 
-	s.nodePool.addPendingNode(nil, candidateNode)
+	s.poolGroup.addPendingNode(nil, candidateNode)
 
 	list, err := candidateNode.getCacheFailCids()
 	if err != nil {
 		log.Warnf("CandidateNodeConnect getCacheFailCids err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 	} else {
 		if list != nil && len(list) > 0 {
-			reqDatas := candidateNode.getReqCacheData(s, list, false)
+			reqDatas, _ := candidateNode.getReqCacheDatas(s, list, false)
 			for _, reqData := range reqDatas {
 				err := candidateNode.nodeAPI.CacheData(ctx, reqData)
 				if err != nil {
@@ -413,6 +419,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error 
 func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]api.CacheStat, error) {
 	stats := make([]api.CacheStat, 0)
 
+	// redis datas
 	body := api.CacheStat{}
 	infos, err := db.GetCacheDB().GetCacheDataInfos(deviceID)
 	if err == nil && len(infos) > 0 {
@@ -427,6 +434,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 
 	stats = append(stats, body)
 
+	// node datas
 	candidata := s.nodeManager.getCandidateNode(deviceID)
 	if candidata != nil {
 		nodeBody, _ := candidata.nodeAPI.QueryCacheStat(ctx)
@@ -461,22 +469,12 @@ func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID str
 
 // ElectionValidators Election Validators
 func (s *Scheduler) ElectionValidators(ctx context.Context) error {
-	err := s.electionValidate.electionValidators(s)
-	if err != nil {
-		log.Panicf("electionValidators err:%v", err.Error())
-	}
-
-	return err
+	return s.electionValidate.electionValidators(s)
 }
 
 // Validate Validate edge
 func (s *Scheduler) Validate(ctx context.Context) error {
-	err := s.electionValidate.startValidate(s)
-	if err != nil {
-		log.Panicf("startValidate err:%v", err.Error())
-	}
-
-	return err
+	return s.electionValidate.startValidates(s)
 }
 
 // indexPage info

@@ -8,8 +8,8 @@ type Scheduler interface {
 	Common
 
 	// call by command
-	CacheData(context.Context, []string, string) ([]string, error)                //perm:read
-	DeleteData(context.Context, string, []string) (map[string]string, error)      //perm:read
+	CacheDatas(context.Context, []string, string) ([]string, error)               //perm:read
+	DeleteDatas(context.Context, string, []string) (map[string]string, error)     //perm:read
 	GetOnlineDeviceIDs(context.Context, NodeTypeName) ([]string, error)           //perm:read
 	ElectionValidators(context.Context) error                                     //perm:read
 	Validate(context.Context) error                                               //perm:read
@@ -18,12 +18,12 @@ type Scheduler interface {
 	QueryCachingBlocksWithNode(context.Context, string) (CachingBlockList, error) //perm:read
 
 	// call by node
-	EdgeNodeConnect(context.Context, string) error                                 //perm:read
-	DeleteDataRecord(context.Context, string, []string) (map[string]string, error) //perm:read
-	ValidateDataResult(context.Context, ValidateResults) error                     //perm:read
-	CandidateNodeConnect(context.Context, string) error                            //perm:read
-	CacheResult(context.Context, string, CacheResultInfo) (string, error)          //perm:read
-	GetCacheTag(context.Context, string, string) (string, error)                   //perm:read
+	EdgeNodeConnect(context.Context, string) error                                  //perm:read
+	DeleteDataRecords(context.Context, string, []string) (map[string]string, error) //perm:read
+	ValidateDataResult(context.Context, ValidateResults) error                      //perm:read
+	CandidateNodeConnect(context.Context, string) error                             //perm:read
+	CacheResult(context.Context, string, CacheResultInfo) (string, error)           //perm:read
+	GetCacheTag(context.Context, string, string) (string, error)                    //perm:read
 
 	// call by user
 	FindNodeWithData(context.Context, string, string) (string, error)                   //perm:read
