@@ -36,7 +36,7 @@ func (edge *Edge) GetBlock(w http.ResponseWriter, r *http.Request) {
 	tk := r.Header.Get("Token")
 	cidStr := r.URL.Query().Get("cid")
 
-	log.Infof("GetBlock, appName:%s, token:%s,  cid:%s", appName, tk, cidStr)
+	log.Infof("GetBlock, App-Name:%s, Token:%s,  cid:%s", appName, tk, cidStr)
 
 	// if !token.ValidToken(tk, edge.downloadSrvKey) {
 	// 	log.Errorf("Valid token %s error", tk)

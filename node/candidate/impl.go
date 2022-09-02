@@ -118,7 +118,7 @@ func toValidateResult(data []byte) (api.ValidateResult, error) {
 
 	cid, err := cidFromData(data)
 	if err != nil {
-		return result, fmt.Errorf("toValidateResult err : %v", err)
+		return result, fmt.Errorf("toValidateResult err: %v", err)
 	}
 	result.Cid = cid
 
@@ -212,7 +212,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(ctx, candidate, result)
-		log.Errorf("validate NewEdge err : %v", err)
+		log.Errorf("validate NewEdge err: %v", err)
 		return
 	}
 	defer closer()
@@ -221,7 +221,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(ctx, candidate, result)
-		log.Errorf("validate get device info err : %v", err)
+		log.Errorf("validate get device info err: %v", err)
 		return
 	}
 
@@ -245,7 +245,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(ctx, candidate, result)
-		log.Errorf("validate, edge DoValidate err : %v", err)
+		log.Errorf("validate, edge DoValidate err: %v", err)
 		return
 	}
 }
