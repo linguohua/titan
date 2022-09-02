@@ -5,12 +5,11 @@ import (
 	"sync"
 )
 
-// NodePool Node Pool
-type NodePool struct {
-	// node pool map 节点池
-	poolMap sync.Map // {key:geo,val:*NodePool}
+// PoolGroup Node Pool Group
+type PoolGroup struct {
+	// node pool map
+	poolMap sync.Map // {key:geo,val:*PoolGroup}
 
-	// 节点所在池子记录
 	poolIDMap sync.Map // {key:deviceID,val:geo}
 
 	pendingEdgeMap      sync.Map
@@ -26,18 +25,18 @@ type pool struct {
 
 // bandwidthInfo Info
 type bandwidthInfo struct {
-	BandwidthUp   int64 `json:"bandwidth_up"`   // 上行带宽B/s
-	BandwidthDown int64 `json:"bandwidth_down"` // 下行带宽B/s
+	BandwidthUp   int64 `json:"bandwidth_up"`   // B/s
+	BandwidthDown int64 `json:"bandwidth_down"` // B/s
 }
 
-// NewNodePool new pool
-func newNodePool() *NodePool {
-	nodePool := &NodePool{}
+// NewPoolGroup new pool
+func newPoolGroup() *PoolGroup {
+	poolGroup := &PoolGroup{}
 
-	return nodePool
+	return poolGroup
 }
 
-func (n *NodePool) newPool(geo string) *pool {
+func (n *PoolGroup) newPool(geo string) *pool {
 	p := &pool{
 		geoID:          geo,
 		edgeNodes:      make(map[string]bandwidthInfo),
@@ -53,7 +52,7 @@ func (n *NodePool) newPool(geo string) *pool {
 	return p
 }
 
-func (n *NodePool) loadNodePoolMap(geoKey string) *pool {
+func (n *PoolGroup) loadPool(geoKey string) *pool {
 	p, ok := n.poolMap.Load(geoKey)
 	if ok && p != nil {
 		return p.(*pool)
@@ -62,21 +61,20 @@ func (n *NodePool) loadNodePoolMap(geoKey string) *pool {
 	return nil
 }
 
-func (n *NodePool) storeNodePoolMap(geo string, val *pool) {
+func (n *PoolGroup) storePool(geo string, val *pool) {
 	n.poolMap.Store(geo, val)
 }
 
-func (n *NodePool) addEdgeToPool(node *EdgeNode) string {
+func (n *PoolGroup) addEdgeToPool(node *EdgeNode) string {
 	deviceID := node.deviceInfo.DeviceId
 	geo := node.geoInfo.Geo
 
 	oldPoolID, ok := n.poolIDMap.Load(deviceID)
 	if ok && oldPoolID != nil {
 		oldGeo := oldPoolID.(string)
-		// 得看原来的geo是否跟现在的一样
 		if oldGeo != geo {
-			// 从旧的组里面删除
-			pool := n.loadNodePoolMap(oldGeo)
+			// del edge with old pool
+			pool := n.loadPool(oldGeo)
 			if pool != nil {
 				pool.delEdge(deviceID)
 			}
@@ -85,30 +83,29 @@ func (n *NodePool) addEdgeToPool(node *EdgeNode) string {
 		}
 	}
 
-	pool := n.loadNodePoolMap(geo)
+	pool := n.loadPool(geo)
 	if pool == nil {
 		pool = n.newPool(geo)
 	}
 
 	pool.addEdge(node)
 
-	n.storeNodePoolMap(geo, pool)
+	n.storePool(geo, pool)
 	n.poolIDMap.Store(deviceID, geo)
 
 	return geo
 }
 
-func (n *NodePool) addCandidateToPool(node *CandidateNode) string {
+func (n *PoolGroup) addCandidateToPool(node *CandidateNode) string {
 	deviceID := node.deviceInfo.DeviceId
 	geo := node.geoInfo.Geo
 
 	oldPoolID, ok := n.poolIDMap.Load(deviceID)
 	if ok && oldPoolID != nil {
 		oldGeo := oldPoolID.(string)
-		// 得看原来的geo是否跟现在的一样
 		if oldGeo != geo {
-			// 从旧的组里面删除
-			pool := n.loadNodePoolMap(oldGeo)
+			// del candidate with old pool
+			pool := n.loadPool(oldGeo)
 			if pool != nil {
 				pool.delCandidate(deviceID)
 			}
@@ -117,20 +114,20 @@ func (n *NodePool) addCandidateToPool(node *CandidateNode) string {
 		}
 	}
 
-	pool := n.loadNodePoolMap(geo)
+	pool := n.loadPool(geo)
 	if pool == nil {
 		pool = n.newPool(geo)
 	}
 
 	pool.addCandidate(node)
 
-	n.storeNodePoolMap(geo, pool)
+	n.storePool(geo, pool)
 	n.poolIDMap.Store(deviceID, geo)
 
 	return geo
 }
 
-func (n *NodePool) addPendingNode(edgeNode *EdgeNode, candidateNode *CandidateNode) {
+func (n *PoolGroup) addPendingNode(edgeNode *EdgeNode, candidateNode *CandidateNode) {
 	if edgeNode != nil {
 		n.pendingEdgeMap.Store(edgeNode.deviceInfo.DeviceId, edgeNode)
 	}
@@ -140,7 +137,7 @@ func (n *NodePool) addPendingNode(edgeNode *EdgeNode, candidateNode *CandidateNo
 	}
 }
 
-func (n *NodePool) nodesToPool() {
+func (n *PoolGroup) pendingNodesToPool() {
 	n.pendingEdgeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
 		node := value.(*EdgeNode)
@@ -165,7 +162,7 @@ func (n *NodePool) nodesToPool() {
 }
 
 // PrintlnMap Println
-func (n *NodePool) testPrintlnPoolMap() {
+func (n *PoolGroup) printlnPoolMap() {
 	log.Info("poolMap--------------------------------")
 
 	n.poolMap.Range(func(key, value interface{}) bool {

@@ -40,8 +40,8 @@ const (
 	redisKeyValidateResult = "Titan:ValidateResult:%s:%s"
 	// redisKeyValidateErrorList ValidateID
 	redisKeyValidateErrorList = "Titan:ValidateErrorList:%s"
-	// redisKeyValidateList 用于检查超时
-	redisKeyValidateList = "Titan:ValidateList"
+	// redisKeyValidateingList
+	redisKeyValidateingList = "Titan:ValidateingList"
 
 	// RedisKeyEdgeDeviceIDList
 	redisKeyEdgeDeviceIDList = "Titan:EdgeDeviceIDList"
@@ -189,25 +189,25 @@ func (rd redisDB) GetCacheDataTagInfos(deviceID string) (map[string]string, erro
 }
 
 //  add
-func (rd redisDB) SetNodeToValidateList(deviceID string) error {
-	_, err := rd.cli.SAdd(context.Background(), redisKeyValidateList, deviceID).Result()
+func (rd redisDB) SetNodeToValidateingList(deviceID string) error {
+	_, err := rd.cli.SAdd(context.Background(), redisKeyValidateingList, deviceID).Result()
 	return err
 }
 
 // SMembers
-func (rd redisDB) GetNodesWithValidateList() ([]string, error) {
-	return rd.cli.SMembers(context.Background(), redisKeyValidateList).Result()
+func (rd redisDB) GetNodesWithValidateingList() ([]string, error) {
+	return rd.cli.SMembers(context.Background(), redisKeyValidateingList).Result()
 }
 
 //  del device
-func (rd redisDB) DelNodeWithValidateList(deviceID string) error {
-	_, err := rd.cli.SRem(context.Background(), redisKeyValidateList, deviceID).Result()
+func (rd redisDB) DelNodeWithValidateingList(deviceID string) error {
+	_, err := rd.cli.SRem(context.Background(), redisKeyValidateingList, deviceID).Result()
 	return err
 }
 
 //  del key
-func (rd redisDB) DelValidateList() error {
-	_, err := rd.cli.Del(context.Background(), redisKeyValidateList).Result()
+func (rd redisDB) DelValidateingList() error {
+	_, err := rd.cli.Del(context.Background(), redisKeyValidateingList).Result()
 	return err
 }
 

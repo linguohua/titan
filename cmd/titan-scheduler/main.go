@@ -29,11 +29,11 @@ func main() {
 
 	local := []*cli.Command{
 		runCmd,
-		cacheCmd,
+		cacheDatasCmd,
 		electionCmd,
 		validateCmd,
 		showOnlineNodeCmd,
-		delDataCmd,
+		delDatasCmd,
 		initDeviceIDsCmd,
 		cachingBlocksCmd,
 		cacheStatCmd,
@@ -78,5 +78,3 @@ func main() {
 		return
 	}
 }
-
-// bafkreic2dalh6zxspsc5cgbtex3inrwjkk4cvuatd4e4jvtmzieeg6vmom,bafkreicdh2dwooyqhm6oc7xil4vrrdawfevdwgvss3djqb5egvgla37x3a,bafkreicnyd7hi3crw7luibjfxhqy65ewvjstwba4atrmfd7zakvg4qwjwy,bafkreidrp46eb6onsmi6qqcywy3woig6fd5ogw77binktgujsbxrxctaw4

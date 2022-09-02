@@ -12,10 +12,10 @@ type CacheDB interface {
 	IncrValidateRoundID() (int64, error)
 	GetValidateRoundID() (string, error)
 
-	DelNodeWithValidateList(deviceID string) error
-	SetNodeToValidateList(deviceID string) error
-	GetNodesWithValidateList() ([]string, error)
-	DelValidateList() error
+	DelNodeWithValidateingList(deviceID string) error
+	SetNodeToValidateingList(deviceID string) error
+	GetNodesWithValidateingList() ([]string, error)
+	DelValidateingList() error
 
 	DelCacheDataInfo(deviceID, cid string) error
 	SetCacheDataInfo(deviceID, cid string, tag string) error

@@ -12,10 +12,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// 节点管理器 管理节点对象
-// 边缘节点分组 为了方便抽查
-// 候选节点选举
-// 候选节点与边缘节点组 匹配 (抽查)
+// node manager
 
 type geoLevel int64
 
@@ -38,7 +35,7 @@ type NodeManager struct {
 	validatorCount int
 
 	timewheelKeepalive *timewheel.TimeWheel
-	keepaliveTime      int // 保活时间间隔 (分钟)
+	keepaliveTime      int // keepalive time interval (minute)
 }
 
 func newNodeManager() *NodeManager {
@@ -49,28 +46,18 @@ func newNodeManager() *NodeManager {
 	return nodeManager
 }
 
-// GetNodeManager Get NodeManager
-// func GetNodeManager() *NodeManager {
-// 	return nodeManager
-// }
-
 // InitKeepaliveTimewheel ndoe Keepalive
 func (m *NodeManager) initKeepaliveTimewheel() {
-	// 保活定时器
 	m.timewheelKeepalive = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
 		m.nodeKeepalive()
-		// 继续添加定时器
 		m.timewheelKeepalive.AddTimer(time.Duration(1)*60*time.Second, "Keepalive", nil)
 	})
 	m.timewheelKeepalive.Start()
-	// 开始一个事件处理
 	m.timewheelKeepalive.AddTimer(time.Duration(1)*60*time.Second, "Keepalive", nil)
 }
 
 func (m *NodeManager) nodeKeepalive() {
 	nowTime := time.Now().Add(-time.Duration(m.keepaliveTime) * 60 * time.Second)
-
-	// log.Warnf("nodeKeepalive nowTime:%v, time.Now():%v", nowTime, time.Now())
 
 	m.edgeNodeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
@@ -83,7 +70,7 @@ func (m *NodeManager) nodeKeepalive() {
 		lastTime := node.lastRequestTime
 
 		if !lastTime.After(nowTime) {
-			// 离线
+			// offline
 			m.deleteEdgeNode(node)
 			node = nil
 			return true
@@ -108,7 +95,7 @@ func (m *NodeManager) nodeKeepalive() {
 		lastTime := node.lastRequestTime
 
 		if !lastTime.After(nowTime) {
-			// 离线
+			// offline
 			m.deleteCandidateNode(node)
 			node = nil
 			return true
@@ -138,14 +125,12 @@ func (m *NodeManager) addEdgeNode(node *EdgeNode) error {
 		nodeOld.closer()
 
 		nodeOld = nil
-		// log.Infof("close old deviceID:%v", nodeOld.deviceInfo.DeviceId)
 	}
 
 	log.Infof("addEdgeNode DeviceId:%v,geo:%v", deviceID, node.geoInfo.Geo)
 
 	err = node.nodeOnline(deviceID, 0, geoInfo, api.TypeNameEdge)
 	if err != nil {
-		// log.Errorf("addEdgeNode NodeOnline err:%v", err)
 		return err
 	}
 
@@ -202,7 +187,6 @@ func (m *NodeManager) addCandidateNode(node *CandidateNode) error {
 		nodeOld.closer()
 
 		nodeOld = nil
-		// log.Infof("close old deviceID:%v", nodeOld.deviceInfo.DeviceId)
 	}
 
 	log.Infof("addCandidateNode DeviceId:%v,geo:%v", deviceID, node.geoInfo.Geo)
@@ -385,6 +369,7 @@ func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useD
 		defaultNodes2 := m.filterCandidates(filterDeviceIDs, defaultNodes)
 		return defaultNodes2, defaultLevel
 	}
+
 	return defaultNodes, defaultLevel
 }
 
@@ -424,7 +409,6 @@ func (m *NodeManager) resetCandidateAndValidatorCount() {
 }
 
 func (m *NodeManager) updateLastRequestTime(deviceID string) {
-	// log.Infof("updateLastRequestTime------------deviceID:%v", deviceID)
 	lastTime := time.Now()
 
 	edge := m.getEdgeNode(deviceID)
@@ -456,7 +440,7 @@ func (m *NodeManager) getNodeURLWithData(cid, ip string) (string, error) {
 		log.Warnf("getNodeURLWithData GetGeoInfo err:%v,ip:%v", err, ip)
 	}
 
-	log.Infof("getNodeURLWithData user ip:%v,geo:%v,cid:%v", ip, uInfo.Geo, cid)
+	// log.Infof("getNodeURLWithData user ip:%v,geo:%v,cid:%v", ip, uInfo.Geo, cid)
 
 	var url string
 	nodeEs, geoLevelE := m.findEdgeNodeWithGeo(uInfo, deviceIDs)

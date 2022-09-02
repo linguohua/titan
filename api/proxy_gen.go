@@ -126,15 +126,15 @@ type SchedulerStruct struct {
 
 	Internal struct {
 
-		CacheData func(p0 context.Context, p1 []string, p2 string) ([]string, error) `perm:"read"`
+		CacheDatas func(p0 context.Context, p1 []string, p2 string) ([]string, error) `perm:"read"`
 
 		CacheResult func(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) `perm:"read"`
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
-		DeleteData func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"read"`
+		DeleteDataRecords func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"read"`
 
-		DeleteDataRecord func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"read"`
+		DeleteDatas func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"read"`
 
 		EdgeNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
@@ -472,14 +472,14 @@ func (s *EdgeStub) WaitQuiet(p0 context.Context) (error) {
 
 
 
-func (s *SchedulerStruct) CacheData(p0 context.Context, p1 []string, p2 string) ([]string, error) {
-	if s.Internal.CacheData == nil {
+func (s *SchedulerStruct) CacheDatas(p0 context.Context, p1 []string, p2 string) ([]string, error) {
+	if s.Internal.CacheDatas == nil {
 		return *new([]string), ErrNotSupported
 	}
-	return s.Internal.CacheData(p0, p1, p2)
+	return s.Internal.CacheDatas(p0, p1, p2)
 }
 
-func (s *SchedulerStub) CacheData(p0 context.Context, p1 []string, p2 string) ([]string, error) {
+func (s *SchedulerStub) CacheDatas(p0 context.Context, p1 []string, p2 string) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 
@@ -505,25 +505,25 @@ func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 string) (err
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) DeleteData(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
-	if s.Internal.DeleteData == nil {
+func (s *SchedulerStruct) DeleteDataRecords(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
+	if s.Internal.DeleteDataRecords == nil {
 		return *new(map[string]string), ErrNotSupported
 	}
-	return s.Internal.DeleteData(p0, p1, p2)
+	return s.Internal.DeleteDataRecords(p0, p1, p2)
 }
 
-func (s *SchedulerStub) DeleteData(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
+func (s *SchedulerStub) DeleteDataRecords(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
 	return *new(map[string]string), ErrNotSupported
 }
 
-func (s *SchedulerStruct) DeleteDataRecord(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
-	if s.Internal.DeleteDataRecord == nil {
+func (s *SchedulerStruct) DeleteDatas(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
+	if s.Internal.DeleteDatas == nil {
 		return *new(map[string]string), ErrNotSupported
 	}
-	return s.Internal.DeleteDataRecord(p0, p1, p2)
+	return s.Internal.DeleteDatas(p0, p1, p2)
 }
 
-func (s *SchedulerStub) DeleteDataRecord(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
+func (s *SchedulerStub) DeleteDatas(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
 	return *new(map[string]string), ErrNotSupported
 }
 
