@@ -86,7 +86,7 @@ type Edge struct {
 	downloadSrvKey  string
 	reqList         []delayReq
 	cachingList     []delayReq
-	cacheResultLock sync.Mutex
+	cacheResultLock *sync.Mutex
 }
 
 func (edge *Edge) GetSchedulerAPI() api.Scheduler {

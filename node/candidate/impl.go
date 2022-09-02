@@ -19,10 +19,9 @@ import (
 	mh "github.com/multiformats/go-multihash"
 )
 
-var (
-	log             = logging.Logger("candidate")
-	validateTimeout = 5
-)
+var log = logging.Logger("candidate")
+
+const validateTimeout = 5
 
 func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, edgeParams *edge.EdgeParams) api.Candidate {
 	a := edge.NewLocalEdgeNode(ctx, edgeParams)
