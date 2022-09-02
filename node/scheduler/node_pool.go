@@ -36,7 +36,7 @@ func newPoolGroup() *PoolGroup {
 	return poolGroup
 }
 
-func (n *PoolGroup) newPool(geo string) *pool {
+func (n *PoolGroup) loadOrNewPool(geo string) *pool {
 	p := &pool{
 		geoID:          geo,
 		edgeNodes:      make(map[string]bandwidthInfo),
@@ -83,14 +83,11 @@ func (n *PoolGroup) addEdgeToPool(node *EdgeNode) string {
 		}
 	}
 
-	pool := n.loadPool(geo)
-	if pool == nil {
-		pool = n.newPool(geo)
-	}
+	pool := n.loadOrNewPool(geo)
 
 	pool.addEdge(node)
 
-	n.storePool(geo, pool)
+	// n.storePool(geo, pool)
 	n.poolIDMap.Store(deviceID, geo)
 
 	return geo
@@ -114,14 +111,11 @@ func (n *PoolGroup) addCandidateToPool(node *CandidateNode) string {
 		}
 	}
 
-	pool := n.loadPool(geo)
-	if pool == nil {
-		pool = n.newPool(geo)
-	}
+	pool := n.loadOrNewPool(geo)
 
 	pool.addCandidate(node)
 
-	n.storePool(geo, pool)
+	// n.storePool(geo, pool)
 	n.poolIDMap.Store(deviceID, geo)
 
 	return geo

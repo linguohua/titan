@@ -477,7 +477,7 @@ func (s *Scheduler) Validate(ctx context.Context) error {
 	return s.electionValidate.startValidates(s)
 }
 
-// indexPage info
+// GetIndexInfo indexPage info
 func (s *Scheduler) GetIndexInfo(ctx context.Context, p api.IndexRequest) (api.IndexPageRes, error) {
 	var dataRes api.IndexPageRes
 	dataRes.StorageT = 1080.99
@@ -531,6 +531,7 @@ func (s *Scheduler) Retrieval(ctx context.Context, p api.IndexPageSearch) (api.R
 	return res, nil
 }
 
+// GetDevicesInfo GetDevicesInfo
 func (s *Scheduler) GetDevicesInfo(ctx context.Context, p api.DevicesSearch) (api.DevicesInfoPage, error) {
 	var res api.DevicesInfoPage
 	list, total, err := GetDevicesInfoList(p)
@@ -539,7 +540,7 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, p api.DevicesSearch) (ap
 	}
 	var dataList []api.DevicesInfo
 	for _, data := range list {
-		err = getProfitByDeviceId(&data)
+		err = getProfitByDeviceID(&data)
 		if err != nil {
 			log.Error("getProfitByDeviceId：", data.DeviceId)
 		}
@@ -550,6 +551,7 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, p api.DevicesSearch) (ap
 	return res, nil
 }
 
+// GetDevicesCount GetDevicesCount
 func (s *Scheduler) GetDevicesCount(ctx context.Context, p api.DevicesSearch) (api.DeviceType, error) {
 	var res api.DeviceType
 	res.Online = 3
@@ -561,6 +563,7 @@ func (s *Scheduler) GetDevicesCount(ctx context.Context, p api.DevicesSearch) (a
 	return res, nil
 }
 
+// GetDeviceDiagnosis GetDeviceDiagnosis
 func (s *Scheduler) GetDeviceDiagnosis(ctx context.Context, p api.DevicesSearch) (api.DeviceDiagnosis, error) {
 	var res api.DeviceDiagnosis
 	res.Secondary = 3
@@ -572,6 +575,7 @@ func (s *Scheduler) GetDeviceDiagnosis(ctx context.Context, p api.DevicesSearch)
 	return res, nil
 }
 
+// GetDeviceDiagnosisDaily GetDeviceDiagnosisDaily
 func (s *Scheduler) GetDeviceDiagnosisDaily(ctx context.Context, p api.IncomeDailySearch) (api.IncomeDailyRes, error) {
 	var res api.IncomeDailyRes
 	m := timeFormat(p)
@@ -584,6 +588,7 @@ func (s *Scheduler) GetDeviceDiagnosisDaily(ctx context.Context, p api.IncomeDai
 	return res, nil
 }
 
+// GetDeviceDiagnosisHour GetDeviceDiagnosisHour
 func (s *Scheduler) GetDeviceDiagnosisHour(ctx context.Context, p api.IncomeDailySearch) (api.HourDailyRes, error) {
 	var res api.HourDailyRes
 	m := timeFormatHour(p)
@@ -592,7 +597,7 @@ func (s *Scheduler) GetDeviceDiagnosisHour(ctx context.Context, p api.IncomeDail
 	return res, nil
 }
 
-//  dairy data save
+// SaveDailyInfo  dairy data save
 func (s *Scheduler) SaveDailyInfo(ctx context.Context, incomeDaily api.IncomeDaily) error {
 	splitDate := strings.Split(incomeDaily.DateStr, "-")
 	month := splitDate[0] + "-" + splitDate[1]
@@ -612,13 +617,13 @@ func (s *Scheduler) SaveDailyInfo(ctx context.Context, incomeDaily api.IncomeDai
 	if result.RowsAffected <= 0 {
 		err := db.GMysqlDb.Create(&incomeDailyOld).Error
 		return err
-	} else {
-		err := db.GMysqlDb.Save(&incomeDailyOld).Error
-		return err
 	}
+
+	err := db.GMysqlDb.Save(&incomeDailyOld).Error
+	return err
 }
 
-// DevicesInfo search from mysql
+// GetDevicesInfoList DevicesInfo search from mysql
 func GetDevicesInfoList(info api.DevicesSearch) (list []api.DevicesInfo, total int64, err error) {
 	// string转成int：
 	limit, _ := strconv.Atoi(info.PageSize)
@@ -648,8 +653,8 @@ func GetDevicesInfoList(info api.DevicesSearch) (list []api.DevicesInfo, total i
 }
 
 // 此处模拟的每台设备累计数据
-func getProfitByDeviceId(rt *api.DevicesInfo) error {
-	deviceId := rt.DeviceId
+func getProfitByDeviceID(rt *api.DevicesInfo) error {
+	deviceID := rt.DeviceId
 	// 这里需要获取设备当日在线时长写入map
 	mapTime := make(map[string]string)
 	mapTime["122"] = "5.6h"
@@ -657,7 +662,7 @@ func getProfitByDeviceId(rt *api.DevicesInfo) error {
 	mapTime["124"] = "5.43h"
 	mapTime["125"] = "7.63h"
 	mapTime["126"] = "15.6h"
-	todayOnlineTime := mapTime[deviceId]
+	todayOnlineTime := mapTime[deviceID]
 	// 根据deviceId配置在线时长
 	rt.TodayOnlineTime = todayOnlineTime
 	// 根据deviceId配置今天收益
@@ -787,8 +792,8 @@ func getDaysData(strDays []string, p api.IncomeDailySearch, returnMapList *[]int
 	if e != nil {
 		return
 	}
-	onlineJsonDailyFrom := make(map[string]interface{})
-	e = json.Unmarshal([]byte(list.OnlineJsonDaily), &onlineJsonDailyFrom)
+	onlineJSONDailyFrom := make(map[string]interface{})
+	e = json.Unmarshal([]byte(list.OnlineJsonDaily), &onlineJSONDailyFrom)
 	if e != nil {
 		return
 	}
@@ -817,7 +822,7 @@ func getDaysData(strDays []string, p api.IncomeDailySearch, returnMapList *[]int
 		returnMap := make(map[string]interface{})
 		returnMap["date"] = month + "-" + v
 		returnMap["income"] = queryMapFrom[v]
-		returnMap["online"] = onlineJsonDailyFrom[v]
+		returnMap["online"] = onlineJSONDailyFrom[v]
 		returnMap["pkgLoss"] = pkgLossRatioFrom[v]
 		returnMap["latency"] = latencyFrom[v]
 		returnMap["natType"] = natTypeFrom[v]
@@ -832,8 +837,8 @@ func getHoursData(p api.IncomeDailySearch, returnMapList *[]interface{}) {
 	if err != nil {
 		return
 	}
-	onlineJsonDailyFrom := make(map[string]interface{})
-	e := json.Unmarshal([]byte(listHour.OnlineJsonDaily), &onlineJsonDailyFrom)
+	onlineJSONDailyFrom := make(map[string]interface{})
+	e := json.Unmarshal([]byte(listHour.OnlineJsonDaily), &onlineJSONDailyFrom)
 	if e != nil {
 		return
 	}
@@ -859,7 +864,7 @@ func getHoursData(p api.IncomeDailySearch, returnMapList *[]interface{}) {
 		}
 		returnMap := make(map[string]interface{})
 		returnMap["date"] = stringFrom + ":00"
-		returnMap["online"] = onlineJsonDailyFrom[stringFrom]
+		returnMap["online"] = onlineJSONDailyFrom[stringFrom]
 		returnMap["pkgLoss"] = pkgLossRatioFrom[stringFrom]
 		returnMap["latency"] = latencyFrom[stringFrom]
 		returnMap["natType"] = natTypeFrom[stringFrom]
@@ -868,6 +873,7 @@ func getHoursData(p api.IncomeDailySearch, returnMapList *[]interface{}) {
 	return
 }
 
+// GetIncomeDailyList GetIncomeDailyList
 func GetIncomeDailyList(info api.IncomeDailySearch) (list api.IncomeDaily, total int64, err error) {
 	// 创建db
 	db := db.GMysqlDb.Model(&api.IncomeDaily{})
@@ -897,6 +903,7 @@ func GetIncomeDailyList(info api.IncomeDailySearch) (list api.IncomeDaily, total
 	return InPages, total, err
 }
 
+// GetHourDailyList GetHourDailyList
 func GetHourDailyList(info api.IncomeDailySearch) (list api.HourDataOfDaily, total int64, err error) {
 	// 创建db
 	db := db.GMysqlDb.Model(&api.HourDataOfDaily{})
@@ -927,9 +934,9 @@ func GetHourDailyList(info api.IncomeDailySearch) (list api.HourDataOfDaily, tot
 }
 
 func setDailyInfo(jsonStr, date, income string) string {
-	onlineJsonDailyFrom := make(map[string]interface{})
+	onlineJSONDailyFrom := make(map[string]interface{})
 	if jsonStr != "" {
-		e := json.Unmarshal([]byte(jsonStr), &onlineJsonDailyFrom)
+		e := json.Unmarshal([]byte(jsonStr), &onlineJSONDailyFrom)
 		if e != nil {
 			return ""
 		}
@@ -937,8 +944,8 @@ func setDailyInfo(jsonStr, date, income string) string {
 	if income == "" {
 		income = "0"
 	}
-	onlineJsonDailyFrom[date] = income
-	bytes, e := json.Marshal(onlineJsonDailyFrom)
+	onlineJSONDailyFrom[date] = income
+	bytes, e := json.Marshal(onlineJSONDailyFrom)
 	if e != nil {
 		return ""
 	}

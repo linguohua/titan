@@ -228,12 +228,12 @@ var cacheDatasCmd = &cli.Command{
 			}
 		}
 
-		notFindNodeCids, err := schedulerAPI.CacheDatas(ctx, cidList, deviceID)
+		errCids, err := schedulerAPI.CacheDatas(ctx, cidList, deviceID)
 		if err != nil {
 			return err
 		}
 
-		log.Infof("notFindNodeCids:%v", notFindNodeCids)
+		log.Infof("errCids:%v", errCids)
 
 		return nil
 	},

@@ -96,6 +96,10 @@ func (e *ElectionValidate) getReqValidates(scheduler *Scheduler, validatorID str
 
 		fids := make([]string, 0)
 		for _, tag := range datas {
+			if tag == dataDefaultTag {
+				continue
+			}
+
 			fids = append(fids, tag)
 
 			if len(fids) >= e.validateBlockMax {
