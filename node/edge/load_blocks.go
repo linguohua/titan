@@ -73,6 +73,15 @@ func cacheResult(ctx context.Context, edge *Edge, cid, from string, err error) {
 	}
 
 	if success && fid != "" {
+		oldCid, _ := getCID(edge, fid)
+		if len(oldCid) != 0 && oldCid != cid {
+			log.Infof("delete old cid:%s, new cid:%s", oldCid, cid)
+			err = edge.ds.Delete(ctx, newKeyCID(oldCid))
+			if err != nil {
+				log.Errorf("DeleteData, delete key fid %s error:%v", fid, err)
+			}
+		}
+
 		oldFid, _ := getFID(edge, cid)
 		if oldFid != "" {
 			// delete old fid key
