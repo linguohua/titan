@@ -12,16 +12,16 @@ type fileStore struct {
 	Path string
 }
 
-func (fs fileStore) Type() string {
+func (fs *fileStore) Type() string {
 	return "FileStore"
 }
 
-func (fs fileStore) Put(key string, value []byte) error {
+func (fs *fileStore) Put(key string, value []byte) error {
 	filePath := filepath.Join(fs.Path, key)
 	return os.WriteFile(filePath, value, 0644)
 }
 
-func (fs fileStore) Get(key string) ([]byte, error) {
+func (fs *fileStore) Get(key string) ([]byte, error) {
 	filePath := filepath.Join(fs.Path, key)
 
 	data, err := os.ReadFile(filePath)
@@ -32,7 +32,7 @@ func (fs fileStore) Get(key string) ([]byte, error) {
 	return data, err
 }
 
-func (fs fileStore) Delete(key string) error {
+func (fs *fileStore) Delete(key string) error {
 	filePath := filepath.Join(fs.Path, key)
 
 	err := os.Remove(filePath)
@@ -43,7 +43,7 @@ func (fs fileStore) Delete(key string) error {
 	return err
 }
 
-func (fs fileStore) GetReader(key string) (BlockReader, error) {
+func (fs *fileStore) GetReader(key string) (BlockReader, error) {
 	filePath := filepath.Join(fs.Path, key)
 	file, err := os.Open(filePath)
 	if err != nil && os.IsNotExist(err) {
@@ -57,7 +57,7 @@ func (fs fileStore) GetReader(key string) (BlockReader, error) {
 	return &FileReader{file}, nil
 }
 
-func (fs fileStore) Has(key string) (exists bool, err error) {
+func (fs *fileStore) Has(key string) (exists bool, err error) {
 	filePath := filepath.Join(fs.Path, key)
 	_, err = os.Stat(filePath)
 	if err == nil {
@@ -71,7 +71,7 @@ func (fs fileStore) Has(key string) (exists bool, err error) {
 	return false, err
 }
 
-func (fs fileStore) GetSize(key string) (size int, err error) {
+func (fs *fileStore) GetSize(key string) (size int, err error) {
 	filePath := filepath.Join(fs.Path, key)
 	info, err := os.Stat(filePath)
 	if err != nil {
@@ -81,11 +81,11 @@ func (fs fileStore) GetSize(key string) (size int, err error) {
 	return int(info.Size()), nil
 }
 
-func (fs fileStore) Stat() (fsutil.FsStat, error) {
+func (fs *fileStore) Stat() (fsutil.FsStat, error) {
 	return fsutil.Statfs(fs.Path)
 }
 
-func (fs fileStore) DiskUsage() (int64, error) {
+func (fs *fileStore) DiskUsage() (int64, error) {
 	si, err := fsutil.FileSize(fs.Path)
 	if err != nil {
 		return 0, err
@@ -93,7 +93,7 @@ func (fs fileStore) DiskUsage() (int64, error) {
 	return si.OnDisk, nil
 }
 
-func (fs fileStore) KeyCount() (int, error) {
+func (fs *fileStore) KeyCount() (int, error) {
 	dir, err := os.Open(fs.Path)
 	if err != nil {
 		return 0, err
@@ -112,11 +112,11 @@ type FileReader struct {
 	file *os.File
 }
 
-func (r FileReader) Read(p []byte) (n int, err error) {
+func (r *FileReader) Read(p []byte) (n int, err error) {
 	return r.file.Read(p)
 }
 
-func (r FileReader) Close() error {
+func (r *FileReader) Close() error {
 	return r.file.Close()
 }
 
