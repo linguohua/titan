@@ -37,10 +37,10 @@ func NewBlockStoreFromString(t string, path string) BlockStore {
 	switch t {
 	case "RocksDB":
 		RocksDB.Path = path
-		return RocksDB
+		return &RocksDB
 	case "FileStore":
 		FileStore.Path = path
-		return FileStore
+		return &FileStore
 
 	default:
 		panic("unknown BlockStore type")
