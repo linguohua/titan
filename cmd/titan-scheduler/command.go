@@ -342,7 +342,7 @@ var initDeviceIDsCmd = &cli.Command{
 
 var cachingBlocksCmd = &cli.Command{
 	Name:  "caching-blocks",
-	Usage: "show caching blocks whit node",
+	Usage: "show caching blocks from node",
 	Flags: []cli.Flag{
 		schedulerURLFlag,
 		deviceIDFlag,
@@ -376,7 +376,7 @@ var cachingBlocksCmd = &cli.Command{
 
 var cacheStatCmd = &cli.Command{
 	Name:  "cache-stat",
-	Usage: "show cache sta whit node",
+	Usage: "show cache stat from node",
 	Flags: []cli.Flag{
 		schedulerURLFlag,
 		deviceIDFlag,
