@@ -85,7 +85,7 @@ func main() {
 	app.Metadata["repoType"] = repo.Worker
 
 	if err := app.Run(os.Args); err != nil {
-		log.Warnf("%+v", err)
+		log.Errorf("%+v", err)
 		return
 	}
 }
@@ -181,33 +181,17 @@ var runCmd = &cli.Command{
 		}
 
 		// Connect to scheduler
-		ctx := lcli.ReqContext(cctx)
-
 		var schedulerAPI api.Scheduler
 		var closer func()
-		for {
-			schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx)
-			if err == nil {
-				_, err = schedulerAPI.Version(ctx)
-				if err == nil {
-					break
-				}
-			}
-			fmt.Printf("\r\x1b[0KConnecting to miner API... (%s)", err)
-			time.Sleep(time.Second)
-			continue
+		schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx)
+		if err != nil {
+			return err
 		}
-
 		defer closer()
+
+		ctx := lcli.ReqContext(cctx)
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
-
-		// Register all metric views
-		if err := view.Register(
-			metrics.DefaultViews...,
-		); err != nil {
-			log.Fatalf("Cannot register the view: %v", err)
-		}
 
 		v, err := schedulerAPI.Version(ctx)
 		if err != nil {
@@ -217,6 +201,13 @@ var runCmd = &cli.Command{
 			return xerrors.Errorf("titan-scheduler API version doesn't match: expected: %s", api.APIVersion{APIVersion: api.SchedulerAPIVersion0})
 		}
 		log.Infof("Remote version %s", v)
+
+		// Register all metric views
+		if err := view.Register(
+			metrics.DefaultViews...,
+		); err != nil {
+			log.Fatalf("Cannot register the view: %v", err)
+		}
 
 		// Open repo
 		repoPath := cctx.String(FlagWorkerRepo)

@@ -90,7 +90,7 @@ func bootstrapConnect(ctx context.Context, ph host.Host, peers []peer.AddrInfo) 
 
 			ph.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 			if err := ph.Connect(ctx, p); err != nil {
-				log.Errorf("failed to bootstrap with %v: %s", p.ID, err)
+				log.Warnf("failed to bootstrap with %v: %s", p.ID, err)
 				errs <- err
 				return
 			}
