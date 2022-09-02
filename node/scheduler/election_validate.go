@@ -14,18 +14,18 @@ import (
 
 // ElectionValidate ElectionValidate
 type ElectionValidate struct {
-	seed              int64
+	seed    int64
+	fidsMap map[string][]string
+	roundID string
+
 	duration          int
 	validateBlockMax  int // 每次抽查block个数上限
 	verifiedNodeMax   int // 每个验证节点一次验证的被验证节点数
-	roundID           string
-	fidsMap           map[string][]string
-	unassignedEdgeMap map[string]int // 未被分配到的边缘节点组
-
 	timewheelElection *timewheel.TimeWheel
 	electionTime      int // 选举时间间隔 (分钟)
 	timewheelValidate *timewheel.TimeWheel
 	validateTime      int // 抽查时间间隔 (分钟)
+	// unassignedEdgeMap map[string]int // 未被分配到的边缘节点组
 }
 
 // InitValidateTimewheel init timer
@@ -66,7 +66,7 @@ func newElectionValidate() *ElectionValidate {
 
 		verifiedNodeMax: 10, // 每个验证节点一次验证的被验证节点数
 
-		unassignedEdgeMap: make(map[string]int), // 未被分配到的边缘节点组
+		// unassignedEdgeMap: make(map[string]int), // 未被分配到的边缘节点组
 
 		electionTime: 60,
 		validateTime: 10,

@@ -93,9 +93,12 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		log.Warnf("EdgeNodeConnect getCacheFailCids err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 	} else {
 		if list != nil && len(list) > 0 {
-			_, err = edgeNode.cacheDataOfNode(s, list)
-			if err != nil {
-				log.Warnf("EdgeNodeConnect CacheData err:%v,deviceID:%s", err, deviceInfo.DeviceId)
+			reqDatas := edgeNode.getReqCacheData(s, list, true)
+			for _, reqData := range reqDatas {
+				err := edgeNode.nodeAPI.CacheData(ctx, reqData)
+				if err != nil {
+					log.Errorf("EdgeNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+				}
 			}
 		}
 	}
@@ -224,12 +227,34 @@ func (s *Scheduler) CacheData(ctx context.Context, cids []string, deviceID strin
 
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
-		return edge.cacheDataOfNode(s, cids)
+		errList := make([]string, 0)
+
+		reqDatas := edge.getReqCacheData(s, cids, true)
+		for _, reqData := range reqDatas {
+			err := edge.nodeAPI.CacheData(ctx, reqData)
+			if err != nil {
+				log.Errorf("edge CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+				errList = append(errList, reqData.CandidateURL)
+			}
+		}
+
+		return errList, nil
 	}
 
 	candidate := s.nodeManager.getCandidateNode(deviceID)
 	if candidate != nil {
-		return candidate.cacheDataOfNode(s, cids)
+		errList := make([]string, 0)
+
+		reqDatas := candidate.getReqCacheData(s, cids, false)
+		for _, reqData := range reqDatas {
+			err := candidate.nodeAPI.CacheData(ctx, reqData)
+			if err != nil {
+				log.Errorf("candidate CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+				errList = append(errList, reqData.CandidateURL)
+			}
+		}
+
+		return errList, nil
 	}
 
 	return nil, xerrors.New("device not find")
@@ -371,9 +396,12 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error 
 		log.Warnf("CandidateNodeConnect getCacheFailCids err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 	} else {
 		if list != nil && len(list) > 0 {
-			_, err = candidateNode.cacheDataOfNode(s, list)
-			if err != nil {
-				log.Warnf("CandidateNodeConnect CacheData err:%v,deviceID:%s", err, deviceInfo.DeviceId)
+			reqDatas := candidateNode.getReqCacheData(s, list, false)
+			for _, reqData := range reqDatas {
+				err := candidateNode.nodeAPI.CacheData(ctx, reqData)
+				if err != nil {
+					log.Errorf("CandidateNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+				}
 			}
 		}
 	}

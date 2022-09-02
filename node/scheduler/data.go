@@ -1,10 +1,8 @@
 package scheduler
 
 import (
-	"context"
 	"fmt"
 	"math/rand"
-	"time"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db"
@@ -38,53 +36,53 @@ func (n *Node) getCacheFailCids() ([]string, error) {
 }
 
 // NotifyNodeCacheData Cache Data
-func (n *Node) cacheDataOfNode(scheduler *Scheduler, cids []string) ([]string, error) {
-	deviceID := n.deviceInfo.DeviceId
-	// 判断device是什么节点
-	edge := scheduler.nodeManager.getEdgeNode(deviceID)
-	candidate := scheduler.nodeManager.getCandidateNode(deviceID)
-	if edge == nil && candidate == nil {
-		return nil, xerrors.Errorf("node not find:%v", deviceID)
-	}
-	if edge != nil && candidate != nil {
-		return nil, xerrors.New(fmt.Sprintf("node error ,deviceID:%v", deviceID))
-	}
+// func (n *Node) cacheDataOfNode(scheduler *Scheduler, cids []string) ([]string, error) {
+// 	deviceID := n.deviceInfo.DeviceId
+// 	// 判断device是什么节点
+// 	edge := scheduler.nodeManager.getEdgeNode(deviceID)
+// 	candidate := scheduler.nodeManager.getCandidateNode(deviceID)
+// 	if edge == nil && candidate == nil {
+// 		return nil, xerrors.Errorf("node not find:%v", deviceID)
+// 	}
+// 	if edge != nil && candidate != nil {
+// 		return nil, xerrors.New(fmt.Sprintf("node error ,deviceID:%v", deviceID))
+// 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
+// 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+// 	defer cancel()
 
-	errList := make([]string, 0)
+// 	errList := make([]string, 0)
 
-	if edge != nil {
-		reqDatas := n.getReqCacheData(scheduler, cids, true)
+// 	if edge != nil {
+// 		reqDatas := n.getReqCacheData(scheduler, cids, true)
 
-		for _, reqData := range reqDatas {
-			err := edge.nodeAPI.CacheData(ctx, reqData)
-			if err != nil {
-				log.Errorf("edge CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
-				errList = append(errList, reqData.CandidateURL)
-			}
-		}
+// 		for _, reqData := range reqDatas {
+// 			err := edge.nodeAPI.CacheData(ctx, reqData)
+// 			if err != nil {
+// 				log.Errorf("edge CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+// 				errList = append(errList, reqData.CandidateURL)
+// 			}
+// 		}
 
-		return errList, nil
-	}
+// 		return errList, nil
+// 	}
 
-	if candidate != nil {
-		reqDatas := n.getReqCacheData(scheduler, cids, false)
+// 	if candidate != nil {
+// 		reqDatas := n.getReqCacheData(scheduler, cids, false)
 
-		for _, reqData := range reqDatas {
-			err := candidate.nodeAPI.CacheData(ctx, reqData)
-			if err != nil {
-				log.Errorf("candidate CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
-				errList = append(errList, reqData.CandidateURL)
-			}
-		}
+// 		for _, reqData := range reqDatas {
+// 			err := candidate.nodeAPI.CacheData(ctx, reqData)
+// 			if err != nil {
+// 				log.Errorf("candidate CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+// 				errList = append(errList, reqData.CandidateURL)
+// 			}
+// 		}
 
-		return errList, nil
-	}
+// 		return errList, nil
+// 	}
 
-	return nil, nil
-}
+// 	return nil, nil
+// }
 
 func (n *Node) deleteDataRecord(cids []string) (map[string]string, error) {
 	deviceID := n.deviceInfo.DeviceId
@@ -183,8 +181,9 @@ func (n *Node) getReqCacheData(scheduler *Scheduler, cids []string, isEdge bool)
 	for deviceID, list := range csMap {
 		node := scheduler.nodeManager.getCandidateNode(deviceID)
 		if node != nil {
-			reqList = append(reqList, api.ReqCacheData{Cids: list, CandidateURL: node.deviceInfo.DownloadSrvURL})
+			reqList = append(reqList, api.ReqCacheData{Cids: list, CandidateURL: node.addr})
 		}
+
 	}
 
 	return reqList
