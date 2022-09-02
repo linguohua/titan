@@ -16,8 +16,6 @@ type ReqValidate struct {
 	Duration int
 
 	RoundID string
-
-	// MaxRange int // 废弃
 }
 
 type ValidateResult struct {

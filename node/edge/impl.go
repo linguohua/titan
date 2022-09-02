@@ -181,12 +181,14 @@ func sendBlocks(conn *net.TCPConn, edge *Edge, reqValidate *api.ReqValidate) {
 		random := r.Intn(len(fids))
 		fidStr := fids[random]
 		block, err := getBlock(edge, fidStr)
-		if err != nil {
+		if err != nil && err != datastore.ErrNotFound {
+			log.Errorf("sendBlocks, get block error:%v", err)
 			return
 		}
 
 		err = sendData(conn, block)
 		if err != nil {
+			log.Errorf("sendBlocks, send data error:%v", err)
 			return
 		}
 	}
@@ -215,31 +217,12 @@ func resetBlockUploadRate(edge *Edge, oldRate int64) {
 }
 
 func getBlock(edge *Edge, fid string) ([]byte, error) {
-	var block []byte
 	cid, err := getCID(edge, fid)
 	if err != nil {
-		if err == datastore.ErrNotFound {
-			log.Infof("getBlock, fid %s not found", fid)
-			block = nil
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
 
-	if cid != "" {
-		block, err = edge.blockStore.Get(cid)
-		if err != nil {
-			if err == datastore.ErrNotFound {
-				log.Infof("getBlock, cid %s not found, fid:%s", cid, fid)
-				block = nil
-			} else {
-				log.Errorf("getBlock, get block err:%v", err)
-				return nil, err
-			}
-		}
-	}
-	// log.Infof("getBlock, fid:%s, cid:%s", fid, cid)
-	return block, nil
+	return edge.blockStore.Get(cid)
 }
 
 // call by scheduler

@@ -46,7 +46,7 @@ func sendData(conn *net.TCPConn, data []byte) error {
 	}
 
 	if n != len(buf) {
-		return fmt.Errorf("Send len is %d, but buf len is %d", n, len(buf))
+		return fmt.Errorf("Send data len is %d, but buf len is %d", n, len(buf))
 	}
 
 	return nil
@@ -54,7 +54,7 @@ func sendData(conn *net.TCPConn, data []byte) error {
 
 func sendDeviceID(conn *net.TCPConn, deviceID string) error {
 	if len(deviceID) == 0 {
-		return fmt.Errorf("len(deviceID) == 0")
+		return fmt.Errorf("deviceID can not empty")
 	}
 
 	return sendData(conn, []byte(deviceID))

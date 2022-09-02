@@ -25,6 +25,7 @@ func getBlockFromCandidate(url string, tk string) ([]byte, error) {
 	}
 
 	req.Header.Set("Token", tk)
+	req.Header.Set("App-Name", "edge")
 
 	resp, err := client.Do(req)
 	if err != nil {
