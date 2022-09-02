@@ -18,7 +18,7 @@ const (
 
 	keyFidPrefix    = "fid-"
 	keyCidPrefix    = "cid-"
-	downloadSrvPath = "/rpc/v0/block/get"
+	downloadSrvPath = "/block/get"
 )
 
 func newKeyFID(fid string) datastore.Key {

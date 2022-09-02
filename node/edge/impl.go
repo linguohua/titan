@@ -85,8 +85,8 @@ type Edge struct {
 	exchange        exchange.Interface
 	isCandidate     bool
 	downloadSrvKey  string
-	reqList         []delayReq
-	cachingList     []delayReq
+	reqList         []*delayReq
+	cachingList     []*delayReq
 	cacheResultLock *sync.Mutex
 }
 

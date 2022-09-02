@@ -30,12 +30,12 @@ func loadBlocksAsync(edge *Edge, cids []cid.Cid) ([]blocks.Block, error) {
 	return results, nil
 }
 
-func loadBlocksFromIPFS(edge *Edge, req []delayReq) {
+func loadBlocksFromIPFS(edge *Edge, req []*delayReq) {
 	req = filterAvailableReq(edge, req)
 	ctx := context.Background()
 
 	cids := make([]cid.Cid, 0, len(req))
-	reqMap := make(map[string]delayReq)
+	reqMap := make(map[string]*delayReq)
 	for _, reqData := range req {
 		target, err := cid.Decode(reqData.cid)
 		if err != nil {

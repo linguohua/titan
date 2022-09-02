@@ -76,7 +76,7 @@ func getCandidateWithMap(candidateMap map[string]*candidate, candidateURL string
 	return candidate, nil
 }
 
-func loadBlocksFromCandidate(edge *Edge, reqs []delayReq) {
+func loadBlocksFromCandidate(edge *Edge, reqs []*delayReq) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
