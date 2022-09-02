@@ -14,7 +14,8 @@ import (
 )
 
 var log = logging.Logger("edge")
-var deviceName = "titan-edge"
+
+const deviceName = "titan-edge"
 
 type Device struct {
 	BlockStore     stores.BlockStore

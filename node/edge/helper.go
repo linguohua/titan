@@ -8,10 +8,9 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 )
 
-var (
-	log = logging.Logger("edge")
+var log = logging.Logger("edge")
 
-	// candidateApiMap = make(map[string]*candidateApi)
+const (
 	batch       = 10
 	maxReqCount = 5
 	// Millisecond
