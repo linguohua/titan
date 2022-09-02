@@ -36,13 +36,14 @@ func NewLocalEdgeNode(ctx context.Context, params *EdgeParams) api.Edge {
 	params.Device.DownloadSrvURL = parseDownloadSrvURL(params)
 	params.Device.Limiter = rate.NewLimiter(rate.Limit(params.Device.BandwidthUp), int(params.Device.BandwidthUp))
 	edge := &Edge{
-		ds:             params.DS,
-		scheduler:      params.Scheduler,
-		blockStore:     params.BlockStore,
-		exchange:       exchange,
-		Device:         *params.Device,
-		isCandidate:    params.IsCandidate,
-		downloadSrvKey: params.DownloadSrvKey,
+		ds:              params.DS,
+		scheduler:       params.Scheduler,
+		blockStore:      params.BlockStore,
+		exchange:        exchange,
+		Device:          *params.Device,
+		isCandidate:     params.IsCandidate,
+		downloadSrvKey:  params.DownloadSrvKey,
+		cacheResultLock: &sync.Mutex{},
 	}
 
 	go edge.startBlockLoader()
