@@ -73,21 +73,11 @@ func (n *Node) nodeOnline(deviceID string, onlineTime int64, geoInfo *region.Geo
 		return err
 	}
 
-	// err = db.GetCacheDB().SetNodeToNodeList(deviceID, typeName)
-	// if err != nil {
-	// 	return err
-	// }
-
 	err = db.GetCacheDB().SetGeoToList(geoInfo.Geo)
 	if err != nil {
 		log.Errorf("SetGeoToList err:%v,Geo:%v", err.Error(), geoInfo.Geo)
 		return err
 	}
-
-	// group
-	// if typeName == api.TypeNameEdge {
-	// 	edgeGrouping(deviceID, oldNodeInfo.Geo, geoInfo.Geo, bandwidth)
-	// }
 
 	return nil
 }
@@ -98,11 +88,6 @@ func (n *Node) nodeOffline(deviceID string, geoInfo *region.GeoInfo, nodeType ap
 	if err != nil {
 		return err
 	}
-
-	// err = db.GetCacheDB().DelNodeWithNodeList(deviceID, nodeType)
-	// if err != nil {
-	// 	return err
-	// }
 
 	err = db.GetCacheDB().SetNodeInfo(deviceID, &db.NodeInfo{Geo: geoInfo.Geo, LastTime: lastTime.Format("2006-01-02 15:04:05"), IsOnline: false, NodeType: nodeType})
 	if err != nil {

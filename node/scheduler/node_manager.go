@@ -241,9 +241,9 @@ func (m *NodeManager) deleteCandidateNode(node *CandidateNode) {
 }
 
 func (m *NodeManager) findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, deviceIDs []string) ([]*EdgeNode, geoLevel) {
-	sameCountryNodes := make([]*EdgeNode, 0)
-	sameProvinceNodes := make([]*EdgeNode, 0)
-	sameCityNodes := make([]*EdgeNode, 0)
+	countryNodes := make([]*EdgeNode, 0)
+	provinceNodes := make([]*EdgeNode, 0)
+	cityNodes := make([]*EdgeNode, 0)
 
 	defaultNodes := make([]*EdgeNode, 0)
 
@@ -256,37 +256,37 @@ func (m *NodeManager) findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, deviceIDs
 		defaultNodes = append(defaultNodes, node)
 
 		if node.geoInfo.Country == userGeoInfo.Country {
-			sameCountryNodes = append(sameCountryNodes, node)
+			countryNodes = append(countryNodes, node)
 
 			if node.geoInfo.Province == userGeoInfo.Province {
-				sameProvinceNodes = append(sameProvinceNodes, node)
+				provinceNodes = append(provinceNodes, node)
 
 				if node.geoInfo.City == userGeoInfo.City {
-					sameCityNodes = append(sameCityNodes, node)
+					cityNodes = append(cityNodes, node)
 				}
 			}
 		}
 	}
 
-	if len(sameCityNodes) > 0 {
-		return sameCityNodes, cityLevel
+	if len(cityNodes) > 0 {
+		return cityNodes, cityLevel
 	}
 
-	if len(sameProvinceNodes) > 0 {
-		return sameProvinceNodes, provinceLevel
+	if len(provinceNodes) > 0 {
+		return provinceNodes, provinceLevel
 	}
 
-	if len(sameCountryNodes) > 0 {
-		return sameCountryNodes, countryLevel
+	if len(countryNodes) > 0 {
+		return countryNodes, countryLevel
 	}
 
 	return defaultNodes, defaultLevel
 }
 
 func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs, filterDeviceIDs []string) ([]*CandidateNode, geoLevel) {
-	sameCountryNodes := make([]*CandidateNode, 0)
-	sameProvinceNodes := make([]*CandidateNode, 0)
-	sameCityNodes := make([]*CandidateNode, 0)
+	countryNodes := make([]*CandidateNode, 0)
+	provinceNodes := make([]*CandidateNode, 0)
+	cityNodes := make([]*CandidateNode, 0)
 
 	defaultNodes := make([]*CandidateNode, 0)
 
@@ -300,13 +300,13 @@ func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useD
 			defaultNodes = append(defaultNodes, node)
 
 			if node.geoInfo.Country == userGeoInfo.Country {
-				sameCountryNodes = append(sameCountryNodes, node)
+				countryNodes = append(countryNodes, node)
 
 				if node.geoInfo.Province == userGeoInfo.Province {
-					sameProvinceNodes = append(sameProvinceNodes, node)
+					provinceNodes = append(provinceNodes, node)
 
 					if node.geoInfo.City == userGeoInfo.City {
-						sameCityNodes = append(sameCityNodes, node)
+						cityNodes = append(cityNodes, node)
 					}
 				}
 			}
@@ -318,13 +318,13 @@ func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useD
 			defaultNodes = append(defaultNodes, node)
 
 			if node.geoInfo.Country == userGeoInfo.Country {
-				sameCountryNodes = append(sameCountryNodes, node)
+				countryNodes = append(countryNodes, node)
 
 				if node.geoInfo.Province == userGeoInfo.Province {
-					sameProvinceNodes = append(sameProvinceNodes, node)
+					provinceNodes = append(provinceNodes, node)
 
 					if node.geoInfo.City == userGeoInfo.City {
-						sameCityNodes = append(sameCityNodes, node)
+						cityNodes = append(cityNodes, node)
 					}
 				}
 			}
@@ -332,36 +332,36 @@ func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useD
 		})
 	}
 
-	if len(sameCityNodes) > 0 {
+	if len(cityNodes) > 0 {
 		if len(filterDeviceIDs) > 0 {
-			sameCityNodes2 := m.filterCandidates(filterDeviceIDs, sameCityNodes)
-			if len(sameCityNodes2) > 0 {
-				return sameCityNodes2, cityLevel
+			cityNodes2 := m.filterCandidates(filterDeviceIDs, cityNodes)
+			if len(cityNodes2) > 0 {
+				return cityNodes2, cityLevel
 			}
 		} else {
-			return sameCityNodes, cityLevel
+			return cityNodes, cityLevel
 		}
 	}
 
-	if len(sameProvinceNodes) > 0 {
+	if len(provinceNodes) > 0 {
 		if len(filterDeviceIDs) > 0 {
-			sameProvinceNodes2 := m.filterCandidates(filterDeviceIDs, sameProvinceNodes)
-			if len(sameProvinceNodes2) > 0 {
-				return sameProvinceNodes2, provinceLevel
+			provinceNodes2 := m.filterCandidates(filterDeviceIDs, provinceNodes)
+			if len(provinceNodes2) > 0 {
+				return provinceNodes2, provinceLevel
 			}
 		} else {
-			return sameProvinceNodes, provinceLevel
+			return provinceNodes, provinceLevel
 		}
 	}
 
-	if len(sameCountryNodes) > 0 {
+	if len(countryNodes) > 0 {
 		if len(filterDeviceIDs) > 0 {
-			sameCountryNodes2 := m.filterCandidates(filterDeviceIDs, sameCountryNodes)
-			if len(sameCountryNodes2) > 0 {
-				return sameCountryNodes2, countryLevel
+			countryNodes2 := m.filterCandidates(filterDeviceIDs, countryNodes)
+			if len(countryNodes2) > 0 {
+				return countryNodes2, countryLevel
 			}
 		} else {
-			return sameCountryNodes, countryLevel
+			return countryNodes, countryLevel
 		}
 	}
 
@@ -373,9 +373,9 @@ func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useD
 	return defaultNodes, defaultLevel
 }
 
-func (m *NodeManager) filterCandidates(filterDeviceIDs []string, sameNodes []*CandidateNode) []*CandidateNode {
-	sameNodes2 := make([]*CandidateNode, 0)
-	for _, node := range sameNodes {
+func (m *NodeManager) filterCandidates(filterDeviceIDs []string, nodes []*CandidateNode) []*CandidateNode {
+	nodes2 := make([]*CandidateNode, 0)
+	for _, node := range nodes {
 		isHave := false
 		for _, nd := range filterDeviceIDs {
 			if node.deviceInfo.DeviceId == nd {
@@ -384,11 +384,11 @@ func (m *NodeManager) filterCandidates(filterDeviceIDs []string, sameNodes []*Ca
 		}
 
 		if !isHave {
-			sameNodes2 = append(sameNodes2, node)
+			nodes2 = append(nodes2, node)
 		}
 	}
 
-	return sameNodes2
+	return nodes2
 }
 
 func (m *NodeManager) resetCandidateAndValidatorCount() {
