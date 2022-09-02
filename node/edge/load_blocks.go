@@ -36,7 +36,7 @@ func (edge *Edge) startBlockLoader() {
 	}
 }
 
-func loadBlocks(edge *Edge, req []delayReq) {
+func loadBlocks(edge *Edge, req []*delayReq) {
 	if edge.isCandidate {
 		loadBlocksFromIPFS(edge, req)
 	} else {
@@ -44,10 +44,10 @@ func loadBlocks(edge *Edge, req []delayReq) {
 	}
 }
 
-func apiReq2DelayReq(req *api.ReqCacheData) []delayReq {
-	results := make([]delayReq, 0, len(req.Cids))
+func apiReq2DelayReq(req *api.ReqCacheData) []*delayReq {
+	results := make([]*delayReq, 0, len(req.Cids))
 	for _, cid := range req.Cids {
-		req := delayReq{cid: cid, count: 0, candidateURL: req.CandidateURL}
+		req := &delayReq{cid: cid, count: 0, candidateURL: req.CandidateURL}
 		results = append(results, req)
 	}
 
@@ -107,11 +107,11 @@ func cacheResult(ctx context.Context, edge *Edge, cid, from string, err error) {
 	// log.Infof("cacheResult fid:%s", fid)
 }
 
-func filterAvailableReq(edge *Edge, reqs []delayReq) []delayReq {
+func filterAvailableReq(edge *Edge, reqs []*delayReq) []*delayReq {
 	ctx := context.Background()
 
 	var from = ""
-	results := make([]delayReq, 0, len(reqs))
+	results := make([]*delayReq, 0, len(reqs))
 	for _, reqData := range reqs {
 		// target, err := cid.Decode(reqData.Cid)
 		// if err != nil {
