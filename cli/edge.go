@@ -110,13 +110,13 @@ var DeleteBlockCmd = &cli.Command{
 
 		cid := cctx.String("cid")
 
-		result, err := api.DeleteBlocks(context.Background(), []string{cid})
+		results, err := api.DeleteBlocks(context.Background(), []string{cid})
 		if err != nil {
 			return err
 		}
 
-		if len(result.List) > 0 {
-			log.Infof("delete block %s failed %v", cid, result.List[0].ErrMsg)
+		if len(results) > 0 {
+			log.Infof("delete block %s failed %v", cid, results[0].ErrMsg)
 			return nil
 		}
 
@@ -157,7 +157,7 @@ var VerfyDataCmd = &cli.Command{
 		varify := API.ReqValidate{EdgeURL: url, Seed: seed, FIDs: []string{"0"}, Duration: 10}
 		req = append(req, varify)
 
-		err = api.ValidateData(ctx, req)
+		err = api.ValidateBlocks(ctx, req)
 		if err != nil {
 			fmt.Println("err", err)
 			return err

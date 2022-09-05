@@ -164,15 +164,15 @@ func (s *Scheduler) DeleteBlocks(ctx context.Context, deviceID string, cids []st
 
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
-		result, err := edge.nodeAPI.DeleteData(ctx, cids)
+		results, err := edge.nodeAPI.DeleteBlocks(ctx, cids)
 		if err != nil {
 			return nil, err
 		}
 
 		nodeFinded = true
 
-		if len(result.List) > 0 {
-			for _, data := range result.List {
+		if len(results) > 0 {
+			for _, data := range results {
 				errorMap[data.Cid] = data.ErrMsg
 			}
 		}
@@ -182,15 +182,15 @@ func (s *Scheduler) DeleteBlocks(ctx context.Context, deviceID string, cids []st
 
 	candidate := s.nodeManager.getCandidateNode(deviceID)
 	if candidate != nil {
-		result, err := candidate.nodeAPI.DeleteData(ctx, cids)
+		results, err := candidate.nodeAPI.DeleteBlocks(ctx, cids)
 		if err != nil {
 			return nil, err
 		}
 
 		nodeFinded = true
 
-		if len(result.List) > 0 {
-			for _, data := range result.List {
+		if len(results) > 0 {
+			for _, data := range results {
 				errorMap[data.Cid] = data.ErrMsg
 			}
 		}

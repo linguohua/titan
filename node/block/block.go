@@ -181,15 +181,15 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 	return results
 }
 
-// call by scheduler
-func (block *Block) DeleteData(ctx context.Context, cids []string) (api.DelResult, error) {
+// delete block in local store and scheduler
+func (block *Block) DeleteBlocks(ctx context.Context, cids []string) ([]api.BlockOperationResult, error) {
 	log.Debug("DeleteData")
-	delResult := api.DelResult{}
-	delResult.List = make([]api.DelFailed, 0)
+	// delResult := api.DelResult{}
+	var results = make([]api.BlockOperationResult, 0)
 
 	if block.blockStore == nil {
 		log.Errorf("DeleteData, blockStore not setting")
-		return delResult, fmt.Errorf("edge.blockStore == nil")
+		return results, fmt.Errorf("edge.blockStore == nil")
 	}
 
 	for _, cid := range cids {
@@ -199,8 +199,8 @@ func (block *Block) DeleteData(ctx context.Context, cids []string) (api.DelResul
 		}
 
 		if err != nil {
-			result := api.DelFailed{Cid: cid, ErrMsg: err.Error()}
-			delResult.List = append(delResult.List, result)
+			result := api.BlockOperationResult{Cid: cid, ErrMsg: err.Error()}
+			results = append(results, result)
 			log.Errorf("DeleteData, delete block %s error:%v", cid, err)
 			continue
 		}
@@ -220,19 +220,19 @@ func (block *Block) DeleteData(ctx context.Context, cids []string) (api.DelResul
 			log.Errorf("DeleteData, delete key cid %s error:%v", cid, err)
 		}
 	}
-	return delResult, nil
+	return results, nil
 }
 
-// call by edge or candidate
-func (block *Block) DeleteBlocks(ctx context.Context, cids []string) (api.DelResult, error) {
+// told to scheduler, local block was delete
+func (block *Block) AnnounceBlocksWasDelete(ctx context.Context, cids []string) ([]api.BlockOperationResult, error) {
 	log.Debug("DeleteBlock")
-	delResult := api.DelResult{}
-	delResult.List = make([]api.DelFailed, 0)
+	// delResult := api.DelResult{}
+	failedResults := make([]api.BlockOperationResult, 0)
 
 	result, err := block.scheduler.DeleteBlockRecords(ctx, block.deviceID, cids)
 	if err != nil {
 		log.Errorf("DeleteBlock, delete block error:%v", err)
-		return delResult, err
+		return failedResults, err
 	}
 
 	for _, cid := range cids {
@@ -264,11 +264,11 @@ func (block *Block) DeleteBlocks(ctx context.Context, cids []string) (api.DelRes
 
 	for k, v := range result {
 		log.Errorf("DeleteBlock, delete block %s error:%v", k, v)
-		result := api.DelFailed{Cid: k, ErrMsg: v}
-		delResult.List = append(delResult.List, result)
+		result := api.BlockOperationResult{Cid: k, ErrMsg: v}
+		failedResults = append(failedResults, result)
 	}
 
-	return delResult, nil
+	return failedResults, nil
 }
 
 func (block *Block) QueryCacheStat() (api.CacheStat, error) {
