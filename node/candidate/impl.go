@@ -94,7 +94,7 @@ type Candidate struct {
 }
 
 func (candidate *Candidate) WaitQuiet(ctx context.Context) error {
-	log.Info("WaitQuiet")
+	log.Debug("WaitQuiet")
 	return nil
 }
 
@@ -105,7 +105,7 @@ func (candidate *Candidate) SendBlock(ctx context.Context, block []byte, deviceI
 }
 
 func (candidate *Candidate) ValidateData(ctx context.Context, req []api.ReqValidate) error {
-	log.Info("ValidateData")
+	log.Debug("ValidateData")
 
 	for _, reqValidate := range req {
 		param := reqValidate

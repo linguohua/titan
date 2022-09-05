@@ -60,7 +60,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 
 	mac, err := getMacAddr(info.InternalIp)
 	if err != nil {
-		log.Infof("getMacAddr err:%v", err)
+		log.Errorf("getMacAddr err:%v", err)
 	}
 
 	info.MacLocation = mac

@@ -126,7 +126,7 @@ func (bd *BlockDownload) SetDownloadSpeed(speedRate int64) error {
 }
 
 func (bd *BlockDownload) UnlimitDownloadSpeed() error {
-	log.Infof("UnlimitDownloadSpeed")
+	log.Debug("UnlimitDownloadSpeed")
 	if bd.limiter == nil {
 		return fmt.Errorf("edge.limiter == nil")
 	}

@@ -91,7 +91,7 @@ func (block *Block) startBlockLoader() {
 func (block *Block) OnCacheBlockReq(req api.ReqCacheData) error {
 	delayReq := block.filterAvailableReq(apiReq2DelayReq(&req))
 	if len(delayReq) == 0 {
-		log.Infof("CacheData, len(req) == 0 not need to handle")
+		log.Debug("CacheData, len(req) == 0 not need to handle")
 		return nil
 	}
 
@@ -149,8 +149,6 @@ func (block *Block) cacheResult(ctx context.Context, cid, from string, err error
 		}
 
 	}
-
-	// log.Infof("cacheResult fid:%s", fid)
 }
 
 func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
@@ -185,7 +183,7 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 
 // call by scheduler
 func (block *Block) DeleteData(ctx context.Context, cids []string) (api.DelResult, error) {
-	log.Info("DeleteData")
+	log.Debug("DeleteData")
 	delResult := api.DelResult{}
 	delResult.List = make([]api.DelFailed, 0)
 
@@ -227,7 +225,7 @@ func (block *Block) DeleteData(ctx context.Context, cids []string) (api.DelResul
 
 // call by edge or candidate
 func (block *Block) DeleteBlocks(ctx context.Context, cids []string) (api.DelResult, error) {
-	log.Info("DeleteBlock")
+	log.Debug("DeleteBlock")
 	delResult := api.DelResult{}
 	delResult.List = make([]api.DelFailed, 0)
 
@@ -290,7 +288,7 @@ func (block *Block) QueryCacheStat() (api.CacheStat, error) {
 }
 
 func (block *Block) LoadBlockWithCid(cid string) ([]byte, error) {
-	log.Info("LoadData")
+	log.Infof("LoadBlockWithCid, cid:%s", cid)
 
 	if block.blockStore == nil {
 		log.Errorf("LoadData, blockStore not setting")
