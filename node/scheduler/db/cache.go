@@ -17,15 +17,15 @@ type CacheDB interface {
 	GetNodesWithValidateingList() ([]string, error)
 	RemoveValidateingList() error
 
-	RemoveCacheDataInfo(deviceID, cid string) error
-	SetCacheDataInfo(deviceID, cid string, tag string) error
-	GetCacheDataInfo(deviceID, cid string) (string, error)
-	GetCacheDataInfos(deviceID string) (map[string]string, error)
+	RemoveCacheBlockInfo(deviceID, cid string) error
+	SetCacheBlockInfo(deviceID, cid string, tag string) error
+	GetCacheBlockInfo(deviceID, cid string) (string, error)
+	GetCacheBlockInfos(deviceID string) (map[string]string, error)
 
-	RemoveCacheDataTagInfo(deviceID, tag string) error
-	SetCacheDataTagInfo(deviceID, cid string, tag string) error
-	GetCacheDataTagInfo(deviceID, tag string) (string, error)
-	GetCacheDataTagInfos(deviceID string) (map[string]string, error)
+	RemoveCacheBlockTagInfo(deviceID, tag string) error
+	SetCacheBlockTagInfo(deviceID, cid string, tag string) error
+	GetCacheBlockTagInfo(deviceID, tag string) (string, error)
+	GetCacheBlockTagInfos(deviceID string) (map[string]string, error)
 
 	RemoveNodeWithCacheList(deviceID, cid string) error
 	SetNodeToCacheList(deviceID, cid string) error

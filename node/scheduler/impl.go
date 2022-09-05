@@ -139,12 +139,12 @@ func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cid
 
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
-		return edge.deleteDataRecords(cids)
+		return edge.deleteBlockRecords(cids)
 	}
 
 	candidate := s.nodeManager.getCandidateNode(deviceID)
 	if candidate != nil {
-		return candidate.deleteDataRecords(cids)
+		return candidate.deleteBlockRecords(cids)
 	}
 
 	return nil, xerrors.New("node not find")
@@ -211,7 +211,7 @@ func (s *Scheduler) DeleteBlocks(ctx context.Context, deviceID string, cids []st
 		delRecordList = append(delRecordList, cid)
 	}
 
-	eList, err := node.deleteDataRecords(delRecordList)
+	eList, err := node.deleteBlockRecords(delRecordList)
 	for cid, eSrt := range eList {
 		errorMap[cid] = eSrt
 	}
@@ -421,7 +421,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 
 	// redis datas
 	body := api.CacheStat{}
-	infos, err := db.GetCacheDB().GetCacheDataInfos(deviceID)
+	infos, err := db.GetCacheDB().GetCacheBlockInfos(deviceID)
 	if err == nil && len(infos) > 0 {
 		count := 0
 		for _, tag := range infos {

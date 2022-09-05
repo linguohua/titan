@@ -84,9 +84,9 @@ func (e *ElectionValidate) getReqValidates(scheduler *Scheduler, validatorID str
 		}
 
 		// cache datas
-		datas, err := db.GetCacheDB().GetCacheDataInfos(deviceID)
+		datas, err := db.GetCacheDB().GetCacheBlockInfos(deviceID)
 		if err != nil {
-			log.Warnf("validate GetCacheDataInfos err:%v,DeviceId:%v", err.Error(), deviceID)
+			log.Warnf("validate GetCacheBlockInfos err:%v,DeviceId:%v", err.Error(), deviceID)
 			continue
 		}
 
@@ -215,10 +215,10 @@ func (e *ElectionValidate) validateResult(validateResults *api.ValidateResults) 
 			break
 		}
 
-		tag, err := db.GetCacheDB().GetCacheDataInfo(deviceID, result.Cid)
+		tag, err := db.GetCacheDB().GetCacheBlockInfo(deviceID, result.Cid)
 		if err != nil {
 			status = db.ValidateStatusFail
-			msg = fmt.Sprintf("GetCacheDataInfo err:%v,deviceID:%v,resultCid:%v,resultFid:%v", err.Error(), deviceID, result.Cid, result.Fid)
+			msg = fmt.Sprintf("GetCacheBlockInfo err:%v,deviceID:%v,resultCid:%v,resultFid:%v", err.Error(), deviceID, result.Cid, result.Fid)
 			break
 		}
 
