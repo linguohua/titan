@@ -274,7 +274,7 @@ func (edge *Edge) DeleteBlocks(ctx context.Context, cids []string) (api.DelResul
 	delResult := api.DelResult{}
 	delResult.List = make([]api.DelFailed, 0)
 
-	result, err := edge.scheduler.DeleteDataRecords(ctx, edge.DeviceID, cids)
+	result, err := edge.scheduler.DeleteBlockRecords(ctx, edge.DeviceID, cids)
 	if err != nil {
 		log.Errorf("DeleteBlock, delete block error:%v", err)
 		return delResult, err

@@ -228,7 +228,7 @@ var cacheDatasCmd = &cli.Command{
 			}
 		}
 
-		errCids, err := schedulerAPI.CacheDatas(ctx, cidList, deviceID)
+		errCids, err := schedulerAPI.CacheBlocks(ctx, cidList, deviceID)
 		if err != nil {
 			return err
 		}
@@ -278,7 +278,7 @@ var delDatasCmd = &cli.Command{
 			}
 		}
 
-		errorCids, err := schedulerAPI.DeleteDatas(ctx, deviceID, cidList)
+		errorCids, err := schedulerAPI.DeleteBlocks(ctx, deviceID, cidList)
 		if err != nil {
 			return err
 		}

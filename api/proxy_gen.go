@@ -126,21 +126,21 @@ type SchedulerStruct struct {
 
 	Internal struct {
 
-		CacheDatas func(p0 context.Context, p1 []string, p2 string) ([]string, error) `perm:"read"`
+		CacheBlocks func(p0 context.Context, p1 []string, p2 string) ([]string, error) `perm:"read"`
 
 		CacheResult func(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) `perm:"read"`
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
-		DeleteDataRecords func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"read"`
+		DeleteBlockRecords func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"read"`
 
-		DeleteDatas func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"read"`
+		DeleteBlocks func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"read"`
 
 		EdgeNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
 		ElectionValidators func(p0 context.Context) (error) `perm:"read"`
 
-		FindNodeWithData func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
+		FindNodeWithBlock func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
 		GetCacheTag func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
@@ -152,7 +152,7 @@ type SchedulerStruct struct {
 
 		GetDevicesInfo func(p0 context.Context, p1 DevicesSearch) (DevicesInfoPage, error) `perm:"read"`
 
-		GetDownloadURLWithData func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
+		GetDownloadURLWithBlock func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
 		GetIndexInfo func(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) `perm:"read"`
 
@@ -170,7 +170,7 @@ type SchedulerStruct struct {
 
 		Validate func(p0 context.Context) (error) `perm:"read"`
 
-		ValidateDataResult func(p0 context.Context, p1 ValidateResults) (error) `perm:"read"`
+		ValidateBlockResult func(p0 context.Context, p1 ValidateResults) (error) `perm:"read"`
 
 	}
 }
@@ -472,14 +472,14 @@ func (s *EdgeStub) WaitQuiet(p0 context.Context) (error) {
 
 
 
-func (s *SchedulerStruct) CacheDatas(p0 context.Context, p1 []string, p2 string) ([]string, error) {
-	if s.Internal.CacheDatas == nil {
+func (s *SchedulerStruct) CacheBlocks(p0 context.Context, p1 []string, p2 string) ([]string, error) {
+	if s.Internal.CacheBlocks == nil {
 		return *new([]string), ErrNotSupported
 	}
-	return s.Internal.CacheDatas(p0, p1, p2)
+	return s.Internal.CacheBlocks(p0, p1, p2)
 }
 
-func (s *SchedulerStub) CacheDatas(p0 context.Context, p1 []string, p2 string) ([]string, error) {
+func (s *SchedulerStub) CacheBlocks(p0 context.Context, p1 []string, p2 string) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 
@@ -505,25 +505,25 @@ func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 string) (err
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) DeleteDataRecords(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
-	if s.Internal.DeleteDataRecords == nil {
+func (s *SchedulerStruct) DeleteBlockRecords(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
+	if s.Internal.DeleteBlockRecords == nil {
 		return *new(map[string]string), ErrNotSupported
 	}
-	return s.Internal.DeleteDataRecords(p0, p1, p2)
+	return s.Internal.DeleteBlockRecords(p0, p1, p2)
 }
 
-func (s *SchedulerStub) DeleteDataRecords(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
+func (s *SchedulerStub) DeleteBlockRecords(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
 	return *new(map[string]string), ErrNotSupported
 }
 
-func (s *SchedulerStruct) DeleteDatas(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
-	if s.Internal.DeleteDatas == nil {
+func (s *SchedulerStruct) DeleteBlocks(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
+	if s.Internal.DeleteBlocks == nil {
 		return *new(map[string]string), ErrNotSupported
 	}
-	return s.Internal.DeleteDatas(p0, p1, p2)
+	return s.Internal.DeleteBlocks(p0, p1, p2)
 }
 
-func (s *SchedulerStub) DeleteDatas(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
+func (s *SchedulerStub) DeleteBlocks(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
 	return *new(map[string]string), ErrNotSupported
 }
 
@@ -549,14 +549,14 @@ func (s *SchedulerStub) ElectionValidators(p0 context.Context) (error) {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) FindNodeWithData(p0 context.Context, p1 string, p2 string) (string, error) {
-	if s.Internal.FindNodeWithData == nil {
+func (s *SchedulerStruct) FindNodeWithBlock(p0 context.Context, p1 string, p2 string) (string, error) {
+	if s.Internal.FindNodeWithBlock == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.FindNodeWithData(p0, p1, p2)
+	return s.Internal.FindNodeWithBlock(p0, p1, p2)
 }
 
-func (s *SchedulerStub) FindNodeWithData(p0 context.Context, p1 string, p2 string) (string, error) {
+func (s *SchedulerStub) FindNodeWithBlock(p0 context.Context, p1 string, p2 string) (string, error) {
 	return "", ErrNotSupported
 }
 
@@ -615,14 +615,14 @@ func (s *SchedulerStub) GetDevicesInfo(p0 context.Context, p1 DevicesSearch) (De
 	return *new(DevicesInfoPage), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetDownloadURLWithData(p0 context.Context, p1 string, p2 string) (string, error) {
-	if s.Internal.GetDownloadURLWithData == nil {
+func (s *SchedulerStruct) GetDownloadURLWithBlock(p0 context.Context, p1 string, p2 string) (string, error) {
+	if s.Internal.GetDownloadURLWithBlock == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.GetDownloadURLWithData(p0, p1, p2)
+	return s.Internal.GetDownloadURLWithBlock(p0, p1, p2)
 }
 
-func (s *SchedulerStub) GetDownloadURLWithData(p0 context.Context, p1 string, p2 string) (string, error) {
+func (s *SchedulerStub) GetDownloadURLWithBlock(p0 context.Context, p1 string, p2 string) (string, error) {
 	return "", ErrNotSupported
 }
 
@@ -714,14 +714,14 @@ func (s *SchedulerStub) Validate(p0 context.Context) (error) {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ValidateDataResult(p0 context.Context, p1 ValidateResults) (error) {
-	if s.Internal.ValidateDataResult == nil {
+func (s *SchedulerStruct) ValidateBlockResult(p0 context.Context, p1 ValidateResults) (error) {
+	if s.Internal.ValidateBlockResult == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.ValidateDataResult(p0, p1)
+	return s.Internal.ValidateBlockResult(p0, p1)
 }
 
-func (s *SchedulerStub) ValidateDataResult(p0 context.Context, p1 ValidateResults) (error) {
+func (s *SchedulerStub) ValidateBlockResult(p0 context.Context, p1 ValidateResults) (error) {
 	return ErrNotSupported
 }
 

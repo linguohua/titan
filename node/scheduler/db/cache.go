@@ -12,22 +12,22 @@ type CacheDB interface {
 	IncrValidateRoundID() (int64, error)
 	GetValidateRoundID() (string, error)
 
-	DelNodeWithValidateingList(deviceID string) error
+	RemoveNodeWithValidateingList(deviceID string) error
 	SetNodeToValidateingList(deviceID string) error
 	GetNodesWithValidateingList() ([]string, error)
-	DelValidateingList() error
+	RemoveValidateingList() error
 
-	DelCacheDataInfo(deviceID, cid string) error
+	RemoveCacheDataInfo(deviceID, cid string) error
 	SetCacheDataInfo(deviceID, cid string, tag string) error
 	GetCacheDataInfo(deviceID, cid string) (string, error)
 	GetCacheDataInfos(deviceID string) (map[string]string, error)
 
-	DelCacheDataTagInfo(deviceID, tag string) error
+	RemoveCacheDataTagInfo(deviceID, tag string) error
 	SetCacheDataTagInfo(deviceID, cid string, tag string) error
 	GetCacheDataTagInfo(deviceID, tag string) (string, error)
 	GetCacheDataTagInfos(deviceID string) (map[string]string, error)
 
-	DelNodeWithCacheList(deviceID, cid string) error
+	RemoveNodeWithCacheList(deviceID, cid string) error
 	SetNodeToCacheList(deviceID, cid string) error
 	GetNodesWithCacheList(cid string) ([]string, error)
 	IsNodeInCacheList(cid, deviceID string) (bool, error)
@@ -36,26 +36,26 @@ type CacheDB interface {
 	GetNodeInfo(deviceID string) (*NodeInfo, error)
 	AddNodeOnlineTime(deviceID string, onlineTime int64) error
 
-	DelNodeWithGeoList(deviceID, geo string) error
+	RemoveNodeWithGeoList(deviceID, geo string) error
 	SetNodeToGeoList(deviceID, geo string) error
 	GetNodesWithGeoList(geo string) ([]string, error)
 
 	// SetNodeToNodeList(deviceID string, typeName api.NodeTypeName) error
 	// GetNodesWithNodeList(typeName api.NodeTypeName) ([]string, error)
-	// DelNodeWithNodeList(deviceID string, typeName api.NodeTypeName) error
+	// RemoveNodeWithNodeList(deviceID string, typeName api.NodeTypeName) error
 
 	SetGeoToList(geo string) error
 	GetGeosWithList() ([]string, error)
-	DelGeoWithList(geo string) error
+	RemoveGeoWithList(geo string) error
 
 	SetValidatorToList(deviceID string) error
 	GetValidatorsWithList() ([]string, error)
-	DelValidatorList() error
+	RemoveValidatorList() error
 	IsNodeInValidatorList(deviceID string) (bool, error)
 
 	SetGeoToValidatorList(deviceID, geo string) error
 	GetGeoWithValidatorList(deviceID string) ([]string, error)
-	DelValidatorGeoList(deviceID string) error
+	RemoveValidatorGeoList(deviceID string) error
 
 	SetValidateResultInfo(sID string, edgeID, validator, msg string, status ValidateStatus) error
 	SetNodeToValidateErrorList(sID, deviceID string) error

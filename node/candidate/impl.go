@@ -107,7 +107,7 @@ func (candidate *Candidate) loadValidateBlockFromMap(key string) (*validateBlock
 
 func sendValidateResult(ctx context.Context, candidate *Candidate, result *api.ValidateResults) error {
 	scheduler := candidate.Edge.GetSchedulerAPI()
-	return scheduler.ValidateDataResult(ctx, *result)
+	return scheduler.ValidateBlockResult(ctx, *result)
 }
 
 func toValidateResult(data []byte) (api.ValidateResult, error) {
@@ -123,7 +123,6 @@ func toValidateResult(data []byte) (api.ValidateResult, error) {
 	result.Cid = cid
 
 	return result, nil
-
 }
 
 func waitBlock(vb *validateBlock, req *api.ReqValidate, candidate *Candidate, result *api.ValidateResults) {
@@ -141,10 +140,10 @@ func waitBlock(vb *validateBlock, req *api.ReqValidate, candidate *Candidate, re
 		}
 	}()
 
-	var size = int64(0)
-	var now = time.Now()
-	var isBreak = false
-	var t = time.NewTimer(time.Duration(req.Duration+validateTimeout) * time.Second)
+	size := int64(0)
+	now := time.Now()
+	isBreak := false
+	t := time.NewTimer(time.Duration(req.Duration+validateTimeout) * time.Second)
 	for {
 		select {
 		case block, ok := <-vb.ch:

@@ -71,7 +71,7 @@ func (m *NodeManager) nodeKeepalive() {
 
 		if !lastTime.After(nowTime) {
 			// offline
-			m.deleteEdgeNode(node)
+			m.removeEdgeNode(node)
 			node = nil
 			return true
 		}
@@ -96,7 +96,7 @@ func (m *NodeManager) nodeKeepalive() {
 
 		if !lastTime.After(nowTime) {
 			// offline
-			m.deleteCandidateNode(node)
+			m.removeCandidateNode(node)
 			node = nil
 			return true
 		}
@@ -152,12 +152,12 @@ func (m *NodeManager) getEdgeNode(deviceID string) *EdgeNode {
 	return nil
 }
 
-func (m *NodeManager) deleteEdgeNode(node *EdgeNode) {
+func (m *NodeManager) removeEdgeNode(node *EdgeNode) {
 	deviceID := node.deviceInfo.DeviceId
 	// close old node
 	node.closer()
 
-	log.Warnf("deleteEdgeNode :%v", deviceID)
+	log.Warnf("removeEdgeNode :%v", deviceID)
 
 	m.edgeNodeMap.Delete(deviceID)
 
@@ -219,12 +219,12 @@ func (m *NodeManager) getCandidateNode(deviceID string) *CandidateNode {
 	return nil
 }
 
-func (m *NodeManager) deleteCandidateNode(node *CandidateNode) {
+func (m *NodeManager) removeCandidateNode(node *CandidateNode) {
 	deviceID := node.deviceInfo.DeviceId
 	// close old node
 	node.closer()
 
-	log.Warnf("deleteCandidateNode :%v", deviceID)
+	log.Warnf("removeCandidateNode :%v", deviceID)
 
 	m.candidateNodeMap.Delete(deviceID)
 

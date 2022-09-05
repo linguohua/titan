@@ -106,11 +106,11 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 	return nil
 }
 
-// ValidateDataResult Validate Data Result
-func (s Scheduler) ValidateDataResult(ctx context.Context, validateResults api.ValidateResults) error {
+// ValidateBlockResult Validate Block Result
+func (s Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.ValidateResults) error {
 	err := s.electionValidate.validateResult(&validateResults)
 	if err != nil {
-		log.Errorf("ValidateDataResult err:%v", err.Error())
+		log.Errorf("ValidateBlockResult err:%v", err.Error())
 	}
 
 	return err
@@ -120,19 +120,19 @@ func (s Scheduler) ValidateDataResult(ctx context.Context, validateResults api.V
 func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
-		return edge.nodeCacheResult(&info)
+		return edge.cacheBlockResult(&info)
 	}
 
 	candidate := s.nodeManager.getCandidateNode(deviceID)
 	if candidate != nil {
-		return candidate.nodeCacheResult(&info)
+		return candidate.cacheBlockResult(&info)
 	}
 
 	return "", xerrors.New("node not find")
 }
 
-// DeleteDataRecords  Delete Data Record
-func (s *Scheduler) DeleteDataRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
+// DeleteBlockRecords  Delete Block Record
+func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
 	if len(cids) <= 0 {
 		return nil, xerrors.New("cids is nil")
 	}
@@ -150,8 +150,8 @@ func (s *Scheduler) DeleteDataRecords(ctx context.Context, deviceID string, cids
 	return nil, xerrors.New("node not find")
 }
 
-// DeleteDatas  Delete Datas
-func (s *Scheduler) DeleteDatas(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
+// DeleteBlocks  Delete Blocks
+func (s *Scheduler) DeleteBlocks(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
 	if len(cids) <= 0 {
 		return nil, xerrors.New("cids is nil")
 	}
@@ -219,8 +219,8 @@ func (s *Scheduler) DeleteDatas(ctx context.Context, deviceID string, cids []str
 	return errorMap, err
 }
 
-// CacheDatas Cache Data
-func (s *Scheduler) CacheDatas(ctx context.Context, cids []string, deviceID string) ([]string, error) {
+// CacheBlocks Cache Block
+func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID string) ([]string, error) {
 	if len(cids) <= 0 {
 		return nil, xerrors.New("cids is nil")
 	}
@@ -339,8 +339,8 @@ func (s *Scheduler) GetCacheTag(ctx context.Context, cid, deviceID string) (stri
 	return "", xerrors.New("device not find")
 }
 
-// FindNodeWithData find node
-func (s *Scheduler) FindNodeWithData(ctx context.Context, cid, ip string) (string, error) {
+// FindNodeWithBlock find node
+func (s *Scheduler) FindNodeWithBlock(ctx context.Context, cid, ip string) (string, error) {
 	// node, err := getNodeWithData(cid, ip)
 	// if err != nil {
 	// 	return "", err
@@ -349,8 +349,8 @@ func (s *Scheduler) FindNodeWithData(ctx context.Context, cid, ip string) (strin
 	return "", nil
 }
 
-// GetDownloadURLWithData find node
-func (s *Scheduler) GetDownloadURLWithData(ctx context.Context, cid, ip string) (string, error) {
+// GetDownloadURLWithBlock find node
+func (s *Scheduler) GetDownloadURLWithBlock(ctx context.Context, cid, ip string) (string, error) {
 	if cid == "" {
 		return "", xerrors.New("cid is nil")
 	}
