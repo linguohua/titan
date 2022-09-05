@@ -6,7 +6,7 @@ type Base interface {
 	WaitQuiet(ctx context.Context) error //perm:read
 	// cache blocks
 	CacheBlocks(ctx context.Context, req ReqCacheData) error //perm:read
-	// TODO: 去掉
+	// TODO: remove
 	DeleteData(ctx context.Context, cids []string) (DelResult, error) //perm:read
 	// delete blocks
 	DeleteBlocks(ctx context.Context, cid []string) (DelResult, error) //perm:read

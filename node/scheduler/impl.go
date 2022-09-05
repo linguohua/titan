@@ -95,7 +95,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		if list != nil && len(list) > 0 {
 			reqDatas, _ := edgeNode.getReqCacheDatas(s, list, true)
 			for _, reqData := range reqDatas {
-				err := edgeNode.nodeAPI.CacheData(ctx, reqData)
+				err := edgeNode.nodeAPI.CacheBlocks(ctx, reqData)
 				if err != nil {
 					log.Errorf("EdgeNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
 				}
@@ -231,7 +231,7 @@ func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID str
 
 		reqDatas, notFindList := edge.getReqCacheDatas(s, cids, true)
 		for _, reqData := range reqDatas {
-			err := edge.nodeAPI.CacheData(ctx, reqData)
+			err := edge.nodeAPI.CacheBlocks(ctx, reqData)
 			if err != nil {
 				log.Errorf("edge CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
 				errList = append(errList, reqData.CandidateURL)
@@ -249,7 +249,7 @@ func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID str
 
 		reqDatas, _ := candidate.getReqCacheDatas(s, cids, false)
 		for _, reqData := range reqDatas {
-			err := candidate.nodeAPI.CacheData(ctx, reqData)
+			err := candidate.nodeAPI.CacheBlocks(ctx, reqData)
 			if err != nil {
 				log.Errorf("candidate CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
 				errList = append(errList, reqData.CandidateURL)
@@ -404,7 +404,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error 
 		if list != nil && len(list) > 0 {
 			reqDatas, _ := candidateNode.getReqCacheDatas(s, list, false)
 			for _, reqData := range reqDatas {
-				err := candidateNode.nodeAPI.CacheData(ctx, reqData)
+				err := candidateNode.nodeAPI.CacheBlocks(ctx, reqData)
 				if err != nil {
 					log.Errorf("CandidateNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
 				}

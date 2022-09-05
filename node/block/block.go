@@ -231,7 +231,7 @@ func (block *Block) DeleteBlocks(ctx context.Context, cids []string) (api.DelRes
 	delResult := api.DelResult{}
 	delResult.List = make([]api.DelFailed, 0)
 
-	result, err := block.scheduler.DeleteDataRecords(ctx, block.deviceID, cids)
+	result, err := block.scheduler.DeleteBlockRecords(ctx, block.deviceID, cids)
 	if err != nil {
 		log.Errorf("DeleteBlock, delete block error:%v", err)
 		return delResult, err
