@@ -5,17 +5,24 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
+	"github.com/linguohua/titan/build"
+	"github.com/linguohua/titan/lib/p2p"
+	"golang.org/x/time/rate"
 
+	"github.com/linguohua/titan/node/base"
+	"github.com/linguohua/titan/node/block"
+	"github.com/linguohua/titan/node/device"
+	"github.com/linguohua/titan/node/download"
 	"github.com/linguohua/titan/node/edge"
 
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
+	vd "github.com/linguohua/titan/node/validate"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -23,29 +30,35 @@ var log = logging.Logger("candidate")
 
 const validateTimeout = 5
 
-func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, edgeParams *edge.EdgeParams) api.Candidate {
-	a := edge.NewLocalEdgeNode(ctx, edgeParams)
-	edge := a.(*edge.Edge)
+func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, params *edge.EdgeParams) api.Candidate {
+	addrs, err := build.BuiltinBootstrap()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	candidate := &Candidate{Edge: *edge, tcpSrvAddr: parseTcpSrvAddr(tcpSrvAddr, edge.InternalIP)}
+	exchange, err := p2p.Bootstrap(ctx, addrs)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	rateLimiter := rate.NewLimiter(rate.Limit(params.Device.BandwidthUp), int(params.Device.BandwidthUp))
+	blockDownload := download.NewBlockDownload(rateLimiter, params.BlockStore, params.DownloadSrvKey, params.DownloadSrvAddr, params.Device.InternalIP)
+	params.Device.SetBlockDownload(blockDownload)
+
+	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, exchange, params.Device.DeviceID)
+
+	base := base.NewBase(block, blockDownload)
+
+	validate := vd.NewValidate(blockDownload, block, params.Device.DeviceID)
+
+	candidate := &Candidate{
+		Device:   params.Device,
+		Base:     base,
+		Validate: validate,
+	}
 
 	go candidate.startTcpServer(tcpSrvAddr)
-
 	return candidate
-}
-
-func parseTcpSrvAddr(tcpSrvAddr string, interalIP string) string {
-	const unspecifiedAddress = "0.0.0.0"
-	addressSlice := strings.Split(tcpSrvAddr, ":")
-	if len(addressSlice) != 2 {
-		log.Fatal("Invalid downloadSrvAddr")
-	}
-
-	if addressSlice[0] == unspecifiedAddress {
-		return fmt.Sprintf("%s:%s", interalIP, addressSlice[1])
-	}
-
-	return tcpSrvAddr
 }
 
 func cidFromData(data []byte) (string, error) {
@@ -70,7 +83,12 @@ type validateBlock struct {
 }
 
 type Candidate struct {
-	edge.Edge
+	api.Common
+	api.Base
+	*device.Device
+	api.Validate
+
+	scheduler   api.Scheduler
 	tcpSrvAddr  string
 	validateMap sync.Map
 }
@@ -106,8 +124,7 @@ func (candidate *Candidate) loadValidateBlockFromMap(key string) (*validateBlock
 }
 
 func sendValidateResult(ctx context.Context, candidate *Candidate, result *api.ValidateResults) error {
-	scheduler := candidate.Edge.GetSchedulerAPI()
-	return scheduler.ValidateBlockResult(ctx, *result)
+	return candidate.scheduler.ValidateBlockResult(ctx, *result)
 }
 
 func toValidateResult(data []byte) (api.ValidateResult, error) {
@@ -240,7 +257,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	wctx, cancel := context.WithTimeout(context.Background(), (time.Duration(req.Duration))*time.Second)
 	defer cancel()
 
-	err = edgeAPI.DoValidate(wctx, *req, candidate.tcpSrvAddr)
+	err = edgeAPI.BeValidate(wctx, *req, candidate.tcpSrvAddr)
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(ctx, candidate, result)

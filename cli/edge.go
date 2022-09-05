@@ -81,7 +81,7 @@ var CacheDataCmd = &cli.Command{
 
 		reqData := API.ReqCacheData{Cids: []string{cid}, CandidateURL: ""}
 
-		err = api.CacheData(ctx, reqData)
+		err = api.CacheBlocks(ctx, reqData)
 		if err != nil {
 			return err
 		}

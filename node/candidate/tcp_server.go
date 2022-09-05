@@ -6,22 +6,38 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"time"
 )
+
+func parseTcpSrvAddr(tcpSrvAddr string, interalIP string) string {
+	const unspecifiedAddress = "0.0.0.0"
+	addressSlice := strings.Split(tcpSrvAddr, ":")
+	if len(addressSlice) != 2 {
+		log.Fatal("Invalid downloadSrvAddr")
+	}
+
+	if addressSlice[0] == unspecifiedAddress {
+		return fmt.Sprintf("%s:%s", interalIP, addressSlice[1])
+	}
+
+	return tcpSrvAddr
+}
 
 func (candidate *Candidate) startTcpServer(address string) {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	listen, err := net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
 	// close listener
 	defer listen.Close()
+
+	candidate.tcpSrvAddr = parseTcpSrvAddr(address, candidate.InternalIP)
 
 	log.Infof("tcp_server listen on %s", address)
 	for {
