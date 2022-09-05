@@ -7,7 +7,7 @@ type Candidate interface {
 	Device
 	Base
 	Validate
-	ValidateData(ctx context.Context, req []ReqValidate) error //perm:read
+	ValidateBlocks(ctx context.Context, req []ReqValidate) error //perm:read
 }
 
 type ReqValidate struct {

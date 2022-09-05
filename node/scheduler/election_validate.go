@@ -503,7 +503,7 @@ func (e *ElectionValidate) startValidates(scheduler *Scheduler) error {
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			defer cancel()
 
-			err := validator.nodeAPI.ValidateData(ctx, req)
+			err := validator.nodeAPI.ValidateBlocks(ctx, req)
 			if err != nil {
 				log.Warnf("ValidateData err:%v, DeviceId:%v", err.Error(), validatorID)
 				offline = true

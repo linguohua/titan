@@ -36,19 +36,19 @@ func (base *Base) BlockStoreStat(ctx context.Context) error {
 	return nil
 }
 
-func (base *Base) LoadData(ctx context.Context, cid string) ([]byte, error) {
+func (base *Base) LoadBlock(ctx context.Context, cid string) ([]byte, error) {
 	log.Debug("LoadData")
 	return base.block.LoadBlockWithCid(cid)
 }
 
-// call by scheduler
-func (base *Base) DeleteData(ctx context.Context, cids []string) (api.DelResult, error) {
-	log.Debug("DeleteData")
-	return base.block.DeleteData(ctx, cids)
+// total to scheduler, local block was delete
+func (base *Base) AnnounceBlocksWasDelete(ctx context.Context, cids []string) ([]api.BlockOperationResult, error) {
+	log.Debug("AnnounceBlocksWasDelete")
+	return base.block.AnnounceBlocksWasDelete(ctx, cids)
 }
 
 // call by edge or candidate
-func (base *Base) DeleteBlocks(ctx context.Context, cids []string) (api.DelResult, error) {
+func (base *Base) DeleteBlocks(ctx context.Context, cids []string) ([]api.BlockOperationResult, error) {
 	log.Debug("DeleteBlock")
 	return base.block.DeleteBlocks(ctx, cids)
 }
@@ -65,11 +65,6 @@ func (base *Base) QueryCachingBlocks(ctx context.Context) (api.CachingBlockList,
 func (base *Base) SetDownloadSpeed(ctx context.Context, speedRate int64) error {
 	log.Infof("set download speed %d", speedRate)
 	return base.blockDownload.SetDownloadSpeed(speedRate)
-}
-
-func (base *Base) UnlimitDownloadSpeed(ctx context.Context) error {
-	log.Debug("UnlimitDownloadSpeed")
-	return base.blockDownload.UnlimitDownloadSpeed()
 }
 
 func (base *Base) GenerateDownloadToken(ctx context.Context) (string, error) {

@@ -104,7 +104,7 @@ func (candidate *Candidate) SendBlock(ctx context.Context, block []byte, deviceI
 	return nil
 }
 
-func (candidate *Candidate) ValidateData(ctx context.Context, req []api.ReqValidate) error {
+func (candidate *Candidate) ValidateBlocks(ctx context.Context, req []api.ReqValidate) error {
 	log.Debug("ValidateData")
 
 	for _, reqValidate := range req {
