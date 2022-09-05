@@ -18,9 +18,6 @@ func (ipfs *IPFS) loadBlocks(block *Block, req []*delayReq) {
 }
 
 func loadBlocksAsync(block *Block, cids []cid.Cid) ([]blocks.Block, error) {
-	for _, id := range cids {
-		log.Infof("loadBlocks id:%v", id)
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -34,7 +31,7 @@ func loadBlocksAsync(block *Block, cids []cid.Cid) ([]blocks.Block, error) {
 	for block := range blockCh {
 		results = append(results, block)
 	}
-	log.Infof("get block end")
+	log.Debug("get block end")
 	return results, nil
 }
 
@@ -63,7 +60,7 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 	}
 
 	if len(cids) == 0 {
-		log.Infof("loadBlocksAsync, len(cids) == 0")
+		log.Debug("loadBlocksAsync, len(cids) == 0")
 		return
 	}
 

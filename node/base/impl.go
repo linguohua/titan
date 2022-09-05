@@ -21,7 +21,7 @@ func NewBase(block *block.Block, blockDownload *download.BlockDownload) api.Base
 }
 
 func (base *Base) WaitQuiet(ctx context.Context) error {
-	log.Info("WaitQuiet")
+	log.Debug("WaitQuiet")
 	return nil
 }
 
@@ -31,25 +31,25 @@ func (base *Base) CacheBlocks(ctx context.Context, req api.ReqCacheData) error {
 }
 
 func (base *Base) BlockStoreStat(ctx context.Context) error {
-	log.Info("BlockStoreStat")
+	log.Debug("BlockStoreStat")
 
 	return nil
 }
 
 func (base *Base) LoadData(ctx context.Context, cid string) ([]byte, error) {
-	log.Info("LoadData")
+	log.Debug("LoadData")
 	return base.block.LoadBlockWithCid(cid)
 }
 
 // call by scheduler
 func (base *Base) DeleteData(ctx context.Context, cids []string) (api.DelResult, error) {
-	log.Info("DeleteData")
+	log.Debug("DeleteData")
 	return base.block.DeleteData(ctx, cids)
 }
 
 // call by edge or candidate
 func (base *Base) DeleteBlocks(ctx context.Context, cids []string) (api.DelResult, error) {
-	log.Info("DeleteBlock")
+	log.Debug("DeleteBlock")
 	return base.block.DeleteBlocks(ctx, cids)
 }
 
@@ -63,7 +63,7 @@ func (base *Base) QueryCachingBlocks(ctx context.Context) (api.CachingBlockList,
 }
 
 func (base *Base) SetDownloadSpeed(ctx context.Context, speedRate int64) error {
-	log.Debug("set download speed %d", speedRate)
+	log.Infof("set download speed %d", speedRate)
 	return base.blockDownload.SetDownloadSpeed(speedRate)
 }
 
