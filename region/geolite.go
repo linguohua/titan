@@ -7,7 +7,7 @@ import (
 	"github.com/oschwald/geoip2-golang"
 )
 
-// https://www.fecmall.com/topic/806
+// var reader *geoip2.Reader
 
 // TypeGeoLite GeoLite
 func TypeGeoLite() string {
@@ -23,6 +23,7 @@ func InitGeoLite(dbPath string) (Region, error) {
 		return gl, err
 	}
 	defer db.Close()
+	// reader = db
 
 	return gl, nil
 }
@@ -31,7 +32,7 @@ type geoLite struct {
 	dbPath string
 }
 
-func (g geoLite) initGeoInfo(ip string) *GeoInfo {
+func (g geoLite) defaultGeoInfo(ip string) *GeoInfo {
 	return &GeoInfo{
 		City:      unknown,
 		Country:   unknown,
@@ -44,7 +45,7 @@ func (g geoLite) initGeoInfo(ip string) *GeoInfo {
 }
 
 func (g geoLite) GetGeoInfo(ip string) (*GeoInfo, error) {
-	geoInfo := g.initGeoInfo(ip)
+	geoInfo := g.defaultGeoInfo(ip)
 
 	db, err := geoip2.Open(g.dbPath)
 	if err != nil {

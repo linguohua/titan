@@ -124,7 +124,7 @@ func (rd redisDB) GetValidateRoundID() (string, error) {
 }
 
 // del node data with cid
-func (rd redisDB) DelCacheDataInfo(deviceID, cid string) error {
+func (rd redisDB) RemoveCacheDataInfo(deviceID, cid string) error {
 	key := fmt.Sprintf(redisKeyNodeDatas, deviceID)
 
 	_, err := rd.cli.HDel(context.Background(), key, cid).Result()
@@ -154,7 +154,7 @@ func (rd redisDB) GetCacheDataInfos(deviceID string) (map[string]string, error) 
 }
 
 // del node data with cid
-func (rd redisDB) DelCacheDataTagInfo(deviceID, tag string) error {
+func (rd redisDB) RemoveCacheDataTagInfo(deviceID, tag string) error {
 	key := fmt.Sprintf(redisKeyNodeDataTags, deviceID)
 
 	_, err := rd.cli.HDel(context.Background(), key, tag).Result()
@@ -200,13 +200,13 @@ func (rd redisDB) GetNodesWithValidateingList() ([]string, error) {
 }
 
 //  del device
-func (rd redisDB) DelNodeWithValidateingList(deviceID string) error {
+func (rd redisDB) RemoveNodeWithValidateingList(deviceID string) error {
 	_, err := rd.cli.SRem(context.Background(), redisKeyValidateingList, deviceID).Result()
 	return err
 }
 
 //  del key
-func (rd redisDB) DelValidateingList() error {
+func (rd redisDB) RemoveValidateingList() error {
 	_, err := rd.cli.Del(context.Background(), redisKeyValidateingList).Result()
 	return err
 }
@@ -234,7 +234,7 @@ func (rd redisDB) IsNodeInCacheList(cid, deviceID string) (bool, error) {
 }
 
 //  del
-func (rd redisDB) DelNodeWithCacheList(deviceID, cid string) error {
+func (rd redisDB) RemoveNodeWithCacheList(deviceID, cid string) error {
 	key := fmt.Sprintf(redisKeyDataNodeList, cid)
 
 	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
@@ -324,7 +324,7 @@ func (rd redisDB) GetNodesWithGeoList(geo string) ([]string, error) {
 }
 
 //  del
-func (rd redisDB) DelNodeWithGeoList(deviceID, geo string) error {
+func (rd redisDB) RemoveNodeWithGeoList(deviceID, geo string) error {
 	key := fmt.Sprintf(redisKeyGeoNodeList, geo)
 
 	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
@@ -347,7 +347,7 @@ func (rd redisDB) DelNodeWithGeoList(deviceID, geo string) error {
 // }
 
 // // node list:   del
-// func (rd redisDB) DelNodeWithNodeList(deviceID string, typeName api.NodeTypeName) error {
+// func (rd redisDB) RemoveNodeWithNodeList(deviceID string, typeName api.NodeTypeName) error {
 // 	key := fmt.Sprintf(redisKeyNodeList, typeName)
 
 // 	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
@@ -370,7 +370,7 @@ func (rd redisDB) GetGeosWithList() ([]string, error) {
 }
 
 //  del
-func (rd redisDB) DelGeoWithList(geo string) error {
+func (rd redisDB) RemoveGeoWithList(geo string) error {
 	key := redisKeyGeoList
 
 	_, err := rd.cli.SRem(context.Background(), key, geo).Result()
@@ -393,7 +393,7 @@ func (rd redisDB) GetValidatorsWithList() ([]string, error) {
 }
 
 //  del
-func (rd redisDB) DelValidatorList() error {
+func (rd redisDB) RemoveValidatorList() error {
 	key := redisKeyValidatorList
 
 	_, err := rd.cli.Del(context.Background(), key).Result()
@@ -423,7 +423,7 @@ func (rd redisDB) GetGeoWithValidatorList(deviceID string) ([]string, error) {
 }
 
 //  del
-func (rd redisDB) DelValidatorGeoList(deviceID string) error {
+func (rd redisDB) RemoveValidatorGeoList(deviceID string) error {
 	key := fmt.Sprintf(redisKeyValidatorGeoList, deviceID)
 
 	_, err := rd.cli.Del(context.Background(), key).Result()

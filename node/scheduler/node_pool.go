@@ -73,10 +73,10 @@ func (n *PoolGroup) addEdgeToPool(node *EdgeNode) string {
 	if ok && oldPoolID != nil {
 		oldGeo := oldPoolID.(string)
 		if oldGeo != geo {
-			// del edge with old pool
+			// remove edge with old pool
 			pool := n.loadPool(oldGeo)
 			if pool != nil {
-				pool.delEdge(deviceID)
+				pool.removeEdge(deviceID)
 			}
 		} else {
 			return oldGeo
@@ -192,7 +192,7 @@ func (g *pool) setVeriftor(deviceID string) {
 	}
 }
 
-func (g *pool) resetVeriftors() {
+func (g *pool) resetRoles() {
 	for deviceID, info := range g.veriftorNodes {
 		g.candidateNodes[deviceID] = info
 	}
@@ -218,7 +218,7 @@ func (g *pool) addCandidate(node *CandidateNode) {
 	g.candidateNodes[deviceID] = bandwidthInfo{BandwidthUp: node.deviceInfo.BandwidthUp, BandwidthDown: node.deviceInfo.BandwidthDown}
 }
 
-func (g *pool) delEdge(deviceID string) {
+func (g *pool) removeEdge(deviceID string) {
 	if _, ok := g.edgeNodes[deviceID]; ok {
 		delete(g.edgeNodes, deviceID)
 	}

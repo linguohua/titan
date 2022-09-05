@@ -146,13 +146,14 @@ func (e *ElectionValidate) getRandFid(max int, r *rand.Rand) int {
 // 	return cid.NewCidV1(c.Type(), c.Hash()), nil
 // }
 
+// TODO save to sql
 func (e *ElectionValidate) saveValidateResult(sID string, deviceID string, validatorID string, msg string, status db.ValidateStatus) error {
 	err := db.GetCacheDB().SetValidateResultInfo(sID, deviceID, "", msg, status)
 	if err != nil {
 		return err
 	}
 
-	err = db.GetCacheDB().DelNodeWithValidateingList(deviceID)
+	err = db.GetCacheDB().RemoveNodeWithValidateingList(deviceID)
 	if err != nil {
 		return err
 	}
@@ -252,9 +253,9 @@ func (e *ElectionValidate) checkValidateTimeOut() error {
 				continue
 			}
 
-			err = db.GetCacheDB().DelNodeWithValidateingList(edgeID)
+			err = db.GetCacheDB().RemoveNodeWithValidateingList(edgeID)
 			if err != nil {
-				log.Warnf("checkValidateTimeOut DelNodeWithValidateList err:%v,DeviceId:%v", err.Error(), edgeID)
+				log.Warnf("checkValidateTimeOut RemoveNodeWithValidateList err:%v,DeviceId:%v", err.Error(), edgeID)
 				continue
 			}
 		}
@@ -270,9 +271,9 @@ func (e *ElectionValidate) cleanValidators(scheduler *Scheduler) error {
 	}
 
 	for _, validator := range validators {
-		err = db.GetCacheDB().DelValidatorGeoList(validator)
+		err = db.GetCacheDB().RemoveValidatorGeoList(validator)
 		if err != nil {
-			log.Warnf("DelValidatorGeoList err:%v, validator:%v", err.Error(), validator)
+			log.Warnf("RemoveValidatorGeoList err:%v, validator:%v", err.Error(), validator)
 		}
 
 		node := scheduler.nodeManager.getCandidateNode(validator)
@@ -281,7 +282,7 @@ func (e *ElectionValidate) cleanValidators(scheduler *Scheduler) error {
 		}
 	}
 
-	err = db.GetCacheDB().DelValidatorList()
+	err = db.GetCacheDB().RemoveValidatorList()
 	if err != nil {
 		return err
 	}
@@ -310,7 +311,7 @@ func (e *ElectionValidate) electionValidators(scheduler *Scheduler) error {
 			return true
 		}
 
-		pool.resetVeriftors()
+		pool.resetRoles()
 
 		edgeNum := len(pool.edgeNodes)
 		candidateNum := len(pool.candidateNodes)
@@ -411,7 +412,7 @@ func (e *ElectionValidate) electionValidators(scheduler *Scheduler) error {
 
 // Validate
 func (e *ElectionValidate) startValidates(scheduler *Scheduler) error {
-	err := db.GetCacheDB().DelValidateingList()
+	err := db.GetCacheDB().RemoveValidateingList()
 	if err != nil {
 		return err
 	}

@@ -51,9 +51,9 @@ func (n *Node) nodeOnline(deviceID string, onlineTime int64, geoInfo *region.Geo
 
 		if oldNodeInfo.Geo != geoInfo.Geo {
 			// delete old
-			err = db.GetCacheDB().DelNodeWithGeoList(deviceID, oldNodeInfo.Geo)
+			err = db.GetCacheDB().RemoveNodeWithGeoList(deviceID, oldNodeInfo.Geo)
 			if err != nil {
-				log.Errorf("DelNodeWithGeoList err:%v,deviceID:%v,Geo:%v", err.Error(), deviceID, oldNodeInfo.Geo)
+				log.Errorf("RemoveNodeWithGeoList err:%v,deviceID:%v,Geo:%v", err.Error(), deviceID, oldNodeInfo.Geo)
 			}
 		}
 	} else {
@@ -86,7 +86,7 @@ func (n *Node) nodeOnline(deviceID string, onlineTime int64, geoInfo *region.Geo
 
 // NodeOffline offline
 func (n *Node) nodeOffline(deviceID string, geoInfo *region.GeoInfo, nodeType api.NodeTypeName, lastTime time.Time) error {
-	err := db.GetCacheDB().DelNodeWithGeoList(deviceID, geoInfo.Geo)
+	err := db.GetCacheDB().RemoveNodeWithGeoList(deviceID, geoInfo.Geo)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (n *Node) deleteDataRecords(cids []string) (map[string]string, error) {
 
 	errList := make(map[string]string, 0)
 	for _, cid := range cids {
-		err := db.GetCacheDB().DelNodeWithCacheList(deviceID, cid)
+		err := db.GetCacheDB().RemoveNodeWithCacheList(deviceID, cid)
 		if err != nil {
 			errList[cid] = err.Error()
 			continue
@@ -145,15 +145,15 @@ func (n *Node) deleteDataRecords(cids []string) (map[string]string, error) {
 			continue
 		}
 
-		err = db.GetCacheDB().DelCacheDataInfo(deviceID, cid)
+		err = db.GetCacheDB().RemoveCacheDataInfo(deviceID, cid)
 		if err != nil {
-			errList[cid] = fmt.Sprintf("DelCacheDataInfo err : %v", err.Error())
+			errList[cid] = fmt.Sprintf("RemoveCacheDataInfo err : %v", err.Error())
 			continue
 		}
 
-		err = db.GetCacheDB().DelCacheDataTagInfo(deviceID, tag)
+		err = db.GetCacheDB().RemoveCacheDataTagInfo(deviceID, tag)
 		if err != nil {
-			errList[cid] = fmt.Sprintf("DelCacheDataTagInfo err : %v", err.Error())
+			errList[cid] = fmt.Sprintf("RemoveCacheDataTagInfo err : %v", err.Error())
 			continue
 		}
 	}
@@ -161,6 +161,7 @@ func (n *Node) deleteDataRecords(cids []string) (map[string]string, error) {
 	return errList, nil
 }
 
+// filter cached blocks and find download url from candidate
 func (n *Node) getReqCacheDatas(scheduler *Scheduler, cids []string, isEdge bool) ([]api.ReqCacheData, []string) {
 	geoInfo := &n.geoInfo
 	reqList := make([]api.ReqCacheData, 0)
@@ -169,9 +170,9 @@ func (n *Node) getReqCacheDatas(scheduler *Scheduler, cids []string, isEdge bool
 		cs := make([]string, 0)
 
 		for _, cid := range cids {
-			err := n.nodeCacheReady(cid)
+			err := n.cacheBlockReady(cid)
 			if err != nil {
-				// already Cache
+				// already cache or error
 				continue
 			}
 			cs = append(cs, cid)
@@ -185,16 +186,16 @@ func (n *Node) getReqCacheDatas(scheduler *Scheduler, cids []string, isEdge bool
 	// if node is edge , find data with candidate
 	csMap := make(map[string][]string)
 	for _, cid := range cids {
+		err := n.cacheBlockReady(cid)
+		if err != nil {
+			// already cache or error
+			continue
+		}
+
 		candidates, err := scheduler.nodeManager.getCandidateNodesWithData(cid, geoInfo)
 		if err != nil || len(candidates) < 1 {
 			// not find candidate
 			notFindCandidateData = append(notFindCandidateData, cid)
-			continue
-		}
-
-		err = n.nodeCacheReady(cid)
-		if err != nil {
-			// already Cache
 			continue
 		}
 
@@ -219,8 +220,9 @@ func (n *Node) getReqCacheDatas(scheduler *Scheduler, cids []string, isEdge bool
 	return reqList, notFindCandidateData
 }
 
-// node Cache Result
-func (n *Node) nodeCacheResult(info *api.CacheResultInfo) (string, error) {
+// cache block Result
+// TODO save to sql
+func (n *Node) cacheBlockResult(info *api.CacheResultInfo) (string, error) {
 	deviceID := n.deviceInfo.DeviceId
 	log.Infof("nodeCacheResult deviceID:%v,info:%v", deviceID, info)
 
@@ -269,8 +271,8 @@ func (n *Node) newCacheDataTag(cid string) (string, error) {
 	return fmt.Sprintf("%d", tag), nil
 }
 
-// Node Cache ready
-func (n *Node) nodeCacheReady(cid string) error {
+// Cache block ready
+func (n *Node) cacheBlockReady(cid string) error {
 	deviceID := n.deviceInfo.DeviceId
 
 	v, err := db.GetCacheDB().GetCacheDataInfo(deviceID, cid)
