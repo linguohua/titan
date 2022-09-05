@@ -3,9 +3,11 @@ package api
 import "context"
 
 type Candidate interface {
-	Edge
-	ValidateData(ctx context.Context, req []ReqValidate) error          //perm:read
-	SendBlock(ctx context.Context, block []byte, deviceID string) error //perm:read
+	Common
+	Device
+	Base
+	Validate
+	ValidateData(ctx context.Context, req []ReqValidate) error //perm:read
 }
 
 type ReqValidate struct {

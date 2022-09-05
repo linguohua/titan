@@ -9,23 +9,23 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
+	"github.com/linguohua/titan/node/download"
 	"github.com/linguohua/titan/stores"
-	"golang.org/x/time/rate"
 )
 
-var log = logging.Logger("edge")
+var log = logging.Logger("device")
 
 const deviceName = "titan-edge"
 
 type Device struct {
-	BlockStore     stores.BlockStore
-	DeviceID       string
-	PublicIP       string
-	InternalIP     string
-	DownloadSrvURL string
-	BandwidthUp    int64
-	BandwidthDown  int64
-	Limiter        *rate.Limiter
+	BlockStore stores.BlockStore
+	DeviceID   string
+	PublicIP   string
+	InternalIP string
+	// DownloadSrvURL string
+	BandwidthUp   int64
+	BandwidthDown int64
+	blockDownload *download.BlockDownload
 }
 
 func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
@@ -51,9 +51,12 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	info.SystemVersion = version.String()
 	info.DeviceName = deviceName
 	info.InternalIp = device.InternalIP
-	info.DownloadSrvURL = device.DownloadSrvURL
 	info.BandwidthDown = device.BandwidthDown
-	info.BandwidthUp = int64(device.Limiter.Limit())
+
+	if device.blockDownload != nil {
+		info.DownloadSrvURL = device.blockDownload.GetDownloadSrvURL()
+		info.BandwidthUp = int64(device.blockDownload.GetRateLimit())
+	}
 
 	mac, err := getMacAddr(info.InternalIp)
 	if err != nil {
@@ -91,4 +94,8 @@ func getMacAddr(ip string) (string, error) {
 		}
 	}
 	return "", nil
+}
+
+func (device *Device) SetBlockDownload(blockDownload *download.BlockDownload) {
+	device.blockDownload = blockDownload
 }

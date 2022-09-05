@@ -312,7 +312,6 @@ var runCmd = &cli.Command{
 			Scheduler:       schedulerAPI,
 			BlockStore:      blockStore,
 			Device:          device,
-			IsCandidate:     false,
 			DownloadSrvKey:  cctx.String("download-srv-key"),
 			DownloadSrvAddr: cctx.String("download-srv-addr"),
 		}
