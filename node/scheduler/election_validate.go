@@ -69,6 +69,8 @@ func (e *ElectionValidate) getReqValidates(scheduler *Scheduler, validatorID str
 	req := make([]api.ReqValidate, 0)
 	errList := make([]string, 0)
 
+	var nodeType api.NodeType
+
 	for _, deviceID := range list {
 		addr := ""
 		edgeNode := scheduler.nodeManager.getEdgeNode(deviceID)
@@ -79,8 +81,10 @@ func (e *ElectionValidate) getReqValidates(scheduler *Scheduler, validatorID str
 				continue
 			}
 			addr = candidateNode.Node.addr
+			nodeType = api.NodeCandidate
 		} else {
 			addr = edgeNode.Node.addr
+			nodeType = api.NodeEdge
 		}
 
 		// cache datas
@@ -107,7 +111,7 @@ func (e *ElectionValidate) getReqValidates(scheduler *Scheduler, validatorID str
 		// 	}
 		// }
 
-		req = append(req, api.ReqValidate{Seed: e.seed, NodeURL: addr, Duration: e.duration, RoundID: e.roundID, Type: string(api.TypeNameEdge)})
+		req = append(req, api.ReqValidate{Seed: e.seed, NodeURL: addr, Duration: e.duration, RoundID: e.roundID, NodeType: int(nodeType)})
 
 		// e.fidsMap[deviceID] = fids
 		//

@@ -23,7 +23,6 @@ type Scheduler interface {
 	ValidateBlockResult(context.Context, ValidateResults) error                      //perm:read
 	CandidateNodeConnect(context.Context, string) error                              //perm:read
 	CacheResult(context.Context, string, CacheResultInfo) error                      //perm:read
-	// GetCacheTag(context.Context, string, string) (string, error)                     //perm:read
 
 	// call by user
 	FindNodeWithBlock(context.Context, string, string) (string, error)                  //perm:read
