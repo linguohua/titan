@@ -153,7 +153,7 @@ type SchedulerStruct struct {
 
 		CacheBlocks func(p0 context.Context, p1 []string, p2 string) ([]string, error) `perm:"read"`
 
-		CacheResult func(p0 context.Context, p1 string, p2 CacheResultInfo) (error) ``
+		CacheResult func(p0 context.Context, p1 string, p2 CacheResultInfo) (error) `perm:"read"`
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
