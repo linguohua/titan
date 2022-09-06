@@ -3,7 +3,6 @@ package candidate
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"net"
 	"sync"
 	"time"
@@ -129,21 +128,6 @@ func sendValidateResult(ctx context.Context, candidate *Candidate, result *api.V
 	return candidate.scheduler.ValidateBlockResult(ctx, *result)
 }
 
-func toValidateResult(data []byte) (api.ValidateResult, error) {
-	result := api.ValidateResult{}
-	if len(data) == 0 {
-		return result, fmt.Errorf("len(data) == 0")
-	}
-
-	cid, err := cidFromData(data)
-	if err != nil {
-		return result, fmt.Errorf("toValidateResult err: %v", err)
-	}
-	result.Cid = cid
-
-	return result, nil
-}
-
 func waitBlock(vb *validateBlock, req *api.ReqValidate, candidate *Candidate, result *api.ValidateResults) {
 	defer func() {
 		vb, ok := candidate.loadValidateBlockFromMap(result.DeviceID)
@@ -174,8 +158,12 @@ func waitBlock(vb *validateBlock, req *api.ReqValidate, candidate *Candidate, re
 			}
 
 			size += int64(len(block))
-			rs, _ := toValidateResult(block)
-			result.Results = append(result.Results, rs)
+			cid, err := cidFromData(block)
+			if err != nil {
+				log.Errorf("waitBlock, cidFromData error:%v", err)
+			} else {
+				result.Cids = append(result.Cids, cid)
+			}
 		case <-t.C:
 			log.Errorf("waitBlock timeout %ds, exit wait block", req.Duration+validateTimeout)
 			isBreak = true
@@ -195,18 +183,7 @@ func waitBlock(vb *validateBlock, req *api.ReqValidate, candidate *Candidate, re
 	result.Bandwidth = float64(size) / float64(duration) * float64(time.Second)
 	result.CostTime = int(duration / time.Millisecond)
 
-	r := rand.New(rand.NewSource(req.Seed))
-	results := make([]api.ValidateResult, 0, len(result.Results))
-
-	for _, rs := range result.Results {
-		random := r.Intn(len(req.FIDs))
-		rs.Fid = req.FIDs[random]
-		results = append(results, rs)
-	}
-
-	result.Results = results
-
-	log.Infof("validate %s %d block, bandwidth:%f, cost time:%d, IsTimeout:%v, duration:%d, size:%d", result.DeviceID, len(result.Results), result.Bandwidth, result.CostTime, result.IsTimeout, req.Duration, size)
+	log.Infof("validate %s %d block, bandwidth:%f, cost time:%d, IsTimeout:%v, duration:%d, size:%d", result.DeviceID, len(result.Cids), result.Bandwidth, result.CostTime, result.IsTimeout, req.Duration, size)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -215,18 +192,12 @@ func waitBlock(vb *validateBlock, req *api.ReqValidate, candidate *Candidate, re
 
 func validate(req *api.ReqValidate, candidate *Candidate) {
 	result := &api.ValidateResults{RoundID: req.RoundID}
-	result.Results = make([]api.ValidateResult, 0)
+	// result.Results = make([]api.ValidateResult, 0)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if len(req.FIDs) == 0 {
-		sendValidateResult(ctx, candidate, result)
-		log.Errorf("len(req.FIDs) == 0 ")
-		return
-	}
-
-	edgeAPI, closer, err := client.NewEdge(ctx, req.EdgeURL, nil)
+	edgeAPI, closer, err := client.NewEdge(ctx, req.NodeURL, nil)
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(ctx, candidate, result)

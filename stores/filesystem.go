@@ -108,6 +108,26 @@ func (fs *fileStore) KeyCount() (int, error) {
 	return len(files), nil
 }
 
+func (fs *fileStore) GetAllKeys() ([]string, error) {
+	dir, err := os.Open(fs.Path)
+	if err != nil {
+		return []string{}, err
+	}
+	defer dir.Close() //nolint:errcheck
+
+	files, err := dir.Readdir(-1)
+	if err != nil {
+		return []string{}, err
+	}
+
+	keys := make([]string, 0, len(files))
+	for _, file := range files {
+		keys = append(keys, file.Name())
+	}
+
+	return keys, nil
+}
+
 type FileReader struct {
 	file *os.File
 }

@@ -47,3 +47,7 @@ func (r *rocksdb) DiskUsage() (int64, error) {
 func (r *rocksdb) KeyCount() (int, error) {
 	return 0, nil
 }
+
+func (r *rocksdb) GetAllKeys() ([]string, error) {
+	return []string{}, nil
+}
