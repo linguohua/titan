@@ -49,6 +49,8 @@ func main() {
 		runCmd,
 	}
 
+	local = append(local, lcli.CommonCommands...)
+
 	app := &cli.App{
 		Name:                 "titan-edge",
 		Usage:                "Titan edge node",

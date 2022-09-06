@@ -50,6 +50,8 @@ func main() {
 		runCmd,
 	}
 
+	local = append(local, lcli.CommonCommands...)
+
 	app := &cli.App{
 		Name:                 "titan-candidate",
 		Usage:                "Titan candidate node",

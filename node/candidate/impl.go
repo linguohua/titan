@@ -16,6 +16,7 @@ import (
 
 	"github.com/linguohua/titan/node/base"
 	"github.com/linguohua/titan/node/block"
+	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/download"
 	"github.com/linguohua/titan/node/edge"
@@ -52,9 +53,10 @@ func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, params *edge.
 	validate := vd.NewValidate(blockDownload, block, params.Device.DeviceID)
 
 	candidate := &Candidate{
-		Device:   params.Device,
-		Base:     base,
-		Validate: validate,
+		Device:    params.Device,
+		Base:      base,
+		Validate:  validate,
+		scheduler: params.Scheduler,
 	}
 
 	go candidate.startTcpServer(tcpSrvAddr)
@@ -83,10 +85,10 @@ type validateBlock struct {
 }
 
 type Candidate struct {
-	api.Common
-	api.Base
+	*common.CommonAPI
+	*base.Base
 	*device.Device
-	api.Validate
+	*vd.Validate
 
 	scheduler   api.Scheduler
 	tcpSrvAddr  string

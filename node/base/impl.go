@@ -16,7 +16,7 @@ type Base struct {
 	blockDownload *download.BlockDownload
 }
 
-func NewBase(block *block.Block, blockDownload *download.BlockDownload) api.Base {
+func NewBase(block *block.Block, blockDownload *download.BlockDownload) *Base {
 	return &Base{block: block, blockDownload: blockDownload}
 }
 
