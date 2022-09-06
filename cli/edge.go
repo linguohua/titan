@@ -10,12 +10,10 @@ import (
 )
 
 var EdgeCmds = []*cli.Command{
-	VersionCmd,
 	DeviceInfoCmd,
-	CacheDataCmd,
-	VerfyDataCmd,
+	CacheBlockCmd,
 	DeleteBlockCmd,
-	VerfyDataCmd,
+	ValidateBlockCmd,
 	LimitRateCmd,
 	GenerateTokenCmd,
 	CacheStatCmd,
@@ -53,7 +51,7 @@ var DeviceInfoCmd = &cli.Command{
 	},
 }
 
-var CacheDataCmd = &cli.Command{
+var CacheBlockCmd = &cli.Command{
 	Name:  "cache",
 	Usage: "cache block content",
 	Flags: []cli.Flag{
@@ -125,7 +123,7 @@ var DeleteBlockCmd = &cli.Command{
 	},
 }
 
-var VerfyDataCmd = &cli.Command{
+var ValidateBlockCmd = &cli.Command{
 	Name:  "validate",
 	Usage: "validate data",
 	Flags: []cli.Flag{

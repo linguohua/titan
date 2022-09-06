@@ -22,7 +22,7 @@ type Validate struct {
 	deviceID      string
 }
 
-func NewValidate(blockDownload *download.BlockDownload, block *block.Block, deviceID string) api.Validate {
+func NewValidate(blockDownload *download.BlockDownload, block *block.Block, deviceID string) *Validate {
 	return &Validate{blockDownload: blockDownload, block: block, deviceID: deviceID}
 }
 
@@ -57,7 +57,7 @@ func (validate *Validate) limitBlockUploadRate() int64 {
 }
 
 func (validate *Validate) resetBlockUploadRate(oldRate int64) {
-	validate.blockDownload.SetDownloadSpeed(0)
+	validate.blockDownload.SetDownloadSpeed(oldRate)
 }
 
 func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqValidate) {

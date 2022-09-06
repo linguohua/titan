@@ -6,6 +6,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/lib/p2p"
+	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/validate"
 	"github.com/linguohua/titan/stores"
 	"golang.org/x/time/rate"
@@ -60,8 +61,8 @@ type EdgeParams struct {
 }
 
 type Edge struct {
-	api.Common
-	api.Device
-	api.Base
-	api.Validate
+	*common.CommonAPI
+	*device.Device
+	*base.Base
+	*validate.Validate
 }
