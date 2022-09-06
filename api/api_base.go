@@ -6,7 +6,7 @@ type Base interface {
 	WaitQuiet(ctx context.Context) error //perm:read
 	// cache blocks
 	CacheBlocks(ctx context.Context, req ReqCacheData) error //perm:read
-	// told to scheduleer local block was delete
+	// told to scheduler local block was delete
 	AnnounceBlocksWasDelete(ctx context.Context, cids []string) ([]BlockOperationResult, error) //perm:read
 	// delete blocks
 	DeleteBlocks(ctx context.Context, cid []string) ([]BlockOperationResult, error) //perm:read

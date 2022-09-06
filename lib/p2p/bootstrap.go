@@ -46,7 +46,7 @@ func Bootstrap(ctx context.Context, peers []peer.AddrInfo) (exchange.Interface, 
 
 	exchange := bitswap.New(ctx, network, bs)
 
-	printSwarmAddrs(host)
+	tracePeerCount(host)
 
 	return exchange, nil
 }
@@ -119,14 +119,14 @@ func traceSwarm(ph host.Host) {
 	for {
 		time.Sleep(1 * time.Minute)
 
-		printSwarmAddrs((ph))
+		tracePeerCount((ph))
 
 	}
 }
-func printSwarmAddrs(ph host.Host) {
+func tracePeerCount(ph host.Host) {
 	conns := ph.Network().Conns()
 	if len(conns) == 0 {
 		log.Fatal("p2p connect == 0")
 	}
-	log.Infof("peers count %d", len(conns))
+	log.Debugf("peers count %d", len(conns))
 }
