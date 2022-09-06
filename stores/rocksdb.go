@@ -193,8 +193,12 @@ func (r *rocksdb) KeyCount() (int, error) {
 		return 0, err
 	}
 
+	// rocksdb.GetProperty("rocksdb.estimate-num-keys")
+
 	it := rdb.NewIterator(r.readOptions)
 	defer it.Close()
+
+	it.SeekToFirst()
 
 	count := 0
 	for ; it.Valid(); it.Next() {
