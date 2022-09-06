@@ -56,7 +56,7 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 	defer conn.Close()
 
 	// get all cid in block store
-	cids, err := validate.block.GetAllCidFromBlockStore()
+	cids, err := validate.block.GetAllCidsFromBlockStore()
 	if err != nil {
 		log.Errorf("sendBlocks, get block store cids error:%v", err)
 		return
