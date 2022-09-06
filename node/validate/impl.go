@@ -2,7 +2,6 @@ package validate
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"net"
 	"time"
@@ -28,13 +27,6 @@ func NewValidate(blockDownload *download.BlockDownload, block *block.Block, devi
 
 func (validate *Validate) BeValidate(ctx context.Context, reqValidate api.ReqValidate, candidateTcpSrvAddr string) error {
 	log.Debug("BeValidate")
-
-	fids := reqValidate.FIDs
-
-	if len(fids) == 0 {
-		log.Errorf("len(fids) == 0")
-		return fmt.Errorf("len(fids) == 0")
-	}
 
 	oldRate := validate.limitBlockUploadRate()
 	defer validate.resetBlockUploadRate(oldRate)
@@ -63,7 +55,18 @@ func (validate *Validate) resetBlockUploadRate(oldRate int64) {
 func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqValidate) {
 	defer conn.Close()
 
-	fids := reqValidate.FIDs
+	// get all cid in block store
+	cids, err := validate.block.GetAllCidFromBlockStore()
+	if err != nil {
+		log.Errorf("sendBlocks, get block store cids error:%v", err)
+		return
+	}
+
+	if len(cids) == 0 {
+		log.Errorf("block store is empty")
+		return
+	}
+
 	r := rand.New(rand.NewSource(reqValidate.Seed))
 	t := time.NewTimer(time.Duration(reqValidate.Duration) * time.Second)
 
@@ -75,9 +78,9 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 		default:
 		}
 
-		random := r.Intn(len(fids))
-		fidStr := fids[random]
-		block, err := validate.block.LoadBlockWithFid(fidStr)
+		random := r.Intn(len(cids))
+		cid := cids[random]
+		block, err := validate.block.LoadBlockWithCid(cid)
 		if err != nil && err != datastore.ErrNotFound {
 			log.Errorf("sendBlocks, get block error:%v", err)
 			return

@@ -18,6 +18,7 @@ type BlockStore interface {
 	Has(key string) (exists bool, err error)
 	Stat() (fsutil.FsStat, error)
 	KeyCount() (int, error)
+	GetAllKeys() ([]string, error)
 	// GetSize(ctx context.Context, key string) (size int, err error)
 }
 

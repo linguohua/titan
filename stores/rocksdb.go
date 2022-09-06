@@ -207,6 +207,27 @@ func (r *rocksdb) KeyCount() (int, error) {
 	return count, nil
 }
 
+func (r *rocksdb) GetAllKeys() ([]string, error) {
+	rdb, err := r.getRocksDB(r.Path)
+	if err != nil {
+		log.Error("Get rocks db failed:", err)
+		return 0, err
+	}
+
+	// rocksdb.GetProperty("rocksdb.estimate-num-keys")
+
+	it := rdb.NewIterator(r.readOptions)
+	defer it.Close()
+
+	it.SeekToFirst()
+
+	keys := make([]string, 0)
+	for ; it.Valid(); it.Next() {
+		keys = append(keys, string(it.Key().Data()))
+	}
+	return keys, nil
+}
+
 type Reader struct {
 	r *bytes.Reader
 }

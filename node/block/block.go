@@ -101,9 +101,6 @@ func (block *Block) OnCacheBlockReq(req api.ReqCacheData) error {
 }
 
 func (block *Block) cacheResult(ctx context.Context, cid, from string, err error) {
-	block.cacheResultLock.Lock()
-	defer block.cacheResultLock.Unlock()
-
 	var errMsg = ""
 	var success = true
 	if err != nil {
@@ -112,42 +109,10 @@ func (block *Block) cacheResult(ctx context.Context, cid, from string, err error
 	}
 
 	result := api.CacheResultInfo{Cid: cid, IsOK: success, Msg: errMsg, From: from}
-	fid, err := block.scheduler.CacheResult(ctx, block.deviceID, result)
+	_, err = block.scheduler.CacheResult(ctx, block.deviceID, result)
 	if err != nil {
 		log.Errorf("load_block CacheResult error:%v", err)
 		return
-	}
-
-	if success && fid != "" {
-		oldCid, _ := block.getCID(fid)
-		if len(oldCid) != 0 && oldCid != cid {
-			log.Infof("delete old cid:%s, new cid:%s", oldCid, cid)
-			err = block.ds.Delete(ctx, helper.NewKeyCID(oldCid))
-			if err != nil {
-				log.Errorf("DeleteData, delete key fid %s error:%v", fid, err)
-			}
-		}
-
-		oldFid, _ := block.getFID(cid)
-		if oldFid != "" {
-			// delete old fid key
-			log.Infof("delete old fid:%s, new fid:%s", oldFid, fid)
-			err = block.ds.Delete(ctx, helper.NewKeyFID(oldFid))
-			if err != nil {
-				log.Errorf("DeleteData, delete key fid %s error:%v", fid, err)
-			}
-		}
-
-		err = block.ds.Put(ctx, helper.NewKeyFID(fid), []byte(cid))
-		if err != nil {
-			log.Errorf("load_block CacheResult save fid error:%v", err)
-		}
-
-		err = block.ds.Put(ctx, helper.NewKeyCID(cid), []byte(fid))
-		if err != nil {
-			log.Errorf("load_block CacheResult save cid error:%v", err)
-		}
-
 	}
 }
 
@@ -305,6 +270,10 @@ func (block *Block) LoadBlockWithFid(fid string) ([]byte, error) {
 	}
 
 	return block.blockStore.Get(cid)
+}
+
+func (block *Block) GetAllCidFromBlockStore() ([]string, error) {
+	return block.blockStore.GetAllKeys()
 }
 
 func (block *Block) getCID(fid string) (string, error) {

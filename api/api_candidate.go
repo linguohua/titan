@@ -11,19 +11,18 @@ type Candidate interface {
 }
 
 type ReqValidate struct {
-	EdgeURL string
+	NodeURL string
 	Seed    int64
-	FIDs    []string
 	// seconds
 	Duration int
-
-	RoundID string
+	RoundID  string
+	// node type, for example edge or candidate
+	Type string
 }
 
-type ValidateResult struct {
-	Fid string
-	Cid string
-}
+// type ValidateResult struct {
+// 	Cid string
+// }
 
 type ValidateResults struct {
 	DeviceID  string
@@ -31,7 +30,7 @@ type ValidateResults struct {
 	// microsecond
 	CostTime  int
 	IsTimeout bool
-	Results   []ValidateResult
+	Cids      []string
 
 	RoundID string
 }
