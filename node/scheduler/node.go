@@ -170,11 +170,11 @@ func (n *Node) getReqCacheDatas(scheduler *Scheduler, cids []string, isEdge bool
 		cs := make([]string, 0)
 
 		for _, cid := range cids {
-			err := n.cacheBlockReady(cid)
-			if err != nil {
-				// already cache or error
-				continue
-			}
+			// err := n.cacheBlockReady(cid)
+			// if err != nil {
+			// 	// already cache or error
+			// 	continue
+			// }
 			cs = append(cs, cid)
 		}
 
@@ -186,11 +186,11 @@ func (n *Node) getReqCacheDatas(scheduler *Scheduler, cids []string, isEdge bool
 	// if node is edge , find data with candidate
 	csMap := make(map[string][]string)
 	for _, cid := range cids {
-		err := n.cacheBlockReady(cid)
-		if err != nil {
-			// already cache or error
-			continue
-		}
+		// err := n.cacheBlockReady(cid)
+		// if err != nil {
+		// 	// already cache or error
+		// 	continue
+		// }
 
 		candidates, err := scheduler.nodeManager.getCandidateNodesWithData(cid, geoInfo)
 		if err != nil || len(candidates) < 1 {
@@ -272,16 +272,16 @@ func (n *Node) cacheBlockResult(info *api.CacheResultInfo) error {
 // }
 
 // Cache block ready
-func (n *Node) cacheBlockReady(cid string) error {
-	deviceID := n.deviceInfo.DeviceId
+// func (n *Node) cacheBlockReady(cid string) error {
+// 	deviceID := n.deviceInfo.DeviceId
 
-	// v, err := db.GetCacheDB().GetCacheBlockInfo(deviceID, cid)
-	// if err == nil && v != dataDefaultTag {
-	// 	return xerrors.Errorf("already cache")
-	// }
+// 	// v, err := db.GetCacheDB().GetCacheBlockInfo(deviceID, cid)
+// 	// if err == nil && v != dataDefaultTag {
+// 	// 	return xerrors.Errorf("already cache")
+// 	// }
 
-	return db.GetCacheDB().SetCacheBlockInfo(deviceID, cid)
-}
+// 	return db.GetCacheDB().SetCacheBlockInfo(deviceID, cid)
+// }
 
 func randomNum(start, end int) int {
 	// rand.Seed(time.Now().UnixNano())
