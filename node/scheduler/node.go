@@ -100,29 +100,29 @@ func (n *Node) nodeOffline(deviceID string, geoInfo *region.GeoInfo, nodeType ap
 }
 
 // get all cache fail cid
-func (n *Node) getCacheFailCids() ([]string, error) {
-	deviceID := n.deviceInfo.DeviceId
+// func (n *Node) getCacheFailCids() ([]string, error) {
+// 	deviceID := n.deviceInfo.DeviceId
 
-	infos, err := db.GetCacheDB().GetCacheBlockInfos(deviceID)
-	if err != nil {
-		return nil, err
-	}
+// 	infos, err := db.GetCacheDB().GetCacheBlockInfos(deviceID)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	if len(infos) <= 0 {
-		return nil, nil
-	}
+// 	if len(infos) <= 0 {
+// 		return nil, nil
+// 	}
 
-	cs := make([]string, 0)
+// 	cs := make([]string, 0)
 
-	for cid, tag := range infos {
-		// isInCacheList, err := db.GetCacheDB().IsNodeInCacheList(cid, deviceID)
-		if tag == dataDefaultTag {
-			cs = append(cs, cid)
-		}
-	}
+// 	for cid, tag := range infos {
+// 		// isInCacheList, err := db.GetCacheDB().IsNodeInCacheList(cid, deviceID)
+// 		if tag == dataDefaultTag {
+// 			cs = append(cs, cid)
+// 		}
+// 	}
 
-	return cs, nil
-}
+// 	return cs, nil
+// }
 
 // delete block records
 func (n *Node) deleteBlockRecords(cids []string) (map[string]string, error) {
@@ -136,7 +136,7 @@ func (n *Node) deleteBlockRecords(cids []string) (map[string]string, error) {
 			continue
 		}
 
-		tag, err := db.GetCacheDB().GetCacheBlockInfo(deviceID, cid)
+		_, err = db.GetCacheDB().GetCacheBlockInfo(deviceID, cid)
 		if err != nil {
 			if db.GetCacheDB().IsNilErr(err) {
 				continue
@@ -151,11 +151,11 @@ func (n *Node) deleteBlockRecords(cids []string) (map[string]string, error) {
 			continue
 		}
 
-		err = db.GetCacheDB().RemoveCacheBlockTagInfo(deviceID, tag)
-		if err != nil {
-			errList[cid] = fmt.Sprintf("RemoveCacheBlockTagInfo err : %v", err.Error())
-			continue
-		}
+		// err = db.GetCacheDB().RemoveCacheBlockTagInfo(deviceID, tag)
+		// if err != nil {
+		// 	errList[cid] = fmt.Sprintf("RemoveCacheBlockTagInfo err : %v", err.Error())
+		// 	continue
+		// }
 	}
 
 	return errList, nil
@@ -222,65 +222,65 @@ func (n *Node) getReqCacheDatas(scheduler *Scheduler, cids []string, isEdge bool
 
 // cache block Result
 // TODO save to sql
-func (n *Node) cacheBlockResult(info *api.CacheResultInfo) (string, error) {
+func (n *Node) cacheBlockResult(info *api.CacheResultInfo) error {
 	deviceID := n.deviceInfo.DeviceId
 	log.Infof("nodeCacheResult deviceID:%v,info:%v", deviceID, info)
 
-	v, err := db.GetCacheDB().GetCacheBlockInfo(deviceID, info.Cid)
-	if err == nil && v != dataDefaultTag {
-		return v, nil
-	}
+	// v, err := db.GetCacheDB().GetCacheBlockInfo(deviceID, info.Cid)
+	// if err == nil && v != dataDefaultTag {
+	// 	return v, nil
+	// }
 
 	if !info.IsOK {
-		return "", nil
+		return nil
 	}
 
-	tag, err := db.GetCacheDB().IncrNodeCacheTag(deviceID)
+	// tag, err := db.GetCacheDB().IncrNodeCacheTag(deviceID)
+	// if err != nil {
+	// 	return "", err
+	// }
+
+	// tagStr := fmt.Sprintf("%d", tag)
+
+	err := db.GetCacheDB().SetCacheBlockInfo(deviceID, info.Cid)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	tagStr := fmt.Sprintf("%d", tag)
+	// err = db.GetCacheDB().SetCacheBlockTagInfo(deviceID, info.Cid, tagStr)
+	// if err != nil {
+	// 	return "", err
+	// }
 
-	err = db.GetCacheDB().SetCacheBlockInfo(deviceID, info.Cid, tagStr)
-	if err != nil {
-		return "", err
-	}
-
-	err = db.GetCacheDB().SetCacheBlockTagInfo(deviceID, info.Cid, tagStr)
-	if err != nil {
-		return "", err
-	}
-
-	return tagStr, db.GetCacheDB().SetNodeToCacheList(deviceID, info.Cid)
+	return db.GetCacheDB().SetNodeToCacheList(deviceID, info.Cid)
 }
 
-func (n *Node) newCacheDataTag(cid string) (string, error) {
-	deviceID := n.deviceInfo.DeviceId
+// func (n *Node) newCacheDataTag(cid string) (string, error) {
+// 	deviceID := n.deviceInfo.DeviceId
 
-	v, err := db.GetCacheDB().GetCacheBlockInfo(deviceID, cid)
-	if err == nil && v != dataDefaultTag {
-		return v, xerrors.Errorf("already cache")
-	}
+// 	v, err := db.GetCacheDB().GetCacheBlockInfo(deviceID, cid)
+// 	if err == nil && v != dataDefaultTag {
+// 		return v, xerrors.Errorf("already cache")
+// 	}
 
-	tag, err := db.GetCacheDB().IncrNodeCacheTag(deviceID)
-	if err != nil {
-		return "", err
-	}
+// 	tag, err := db.GetCacheDB().IncrNodeCacheTag(deviceID)
+// 	if err != nil {
+// 		return "", err
+// 	}
 
-	return fmt.Sprintf("%d", tag), nil
-}
+// 	return fmt.Sprintf("%d", tag), nil
+// }
 
 // Cache block ready
 func (n *Node) cacheBlockReady(cid string) error {
 	deviceID := n.deviceInfo.DeviceId
 
-	v, err := db.GetCacheDB().GetCacheBlockInfo(deviceID, cid)
-	if err == nil && v != dataDefaultTag {
-		return xerrors.Errorf("already cache")
-	}
+	// v, err := db.GetCacheDB().GetCacheBlockInfo(deviceID, cid)
+	// if err == nil && v != dataDefaultTag {
+	// 	return xerrors.Errorf("already cache")
+	// }
 
-	return db.GetCacheDB().SetCacheBlockInfo(deviceID, cid, dataDefaultTag)
+	return db.GetCacheDB().SetCacheBlockInfo(deviceID, cid)
 }
 
 func randomNum(start, end int) int {

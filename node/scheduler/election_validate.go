@@ -14,8 +14,8 @@ import (
 
 // ElectionValidate ElectionValidate
 type ElectionValidate struct {
-	seed    int64
-	fidsMap map[string][]string
+	seed int64
+	// fidsMap map[string][]string
 	roundID string
 
 	duration          int
@@ -84,32 +84,32 @@ func (e *ElectionValidate) getReqValidates(scheduler *Scheduler, validatorID str
 		}
 
 		// cache datas
-		datas, err := db.GetCacheDB().GetCacheBlockInfos(deviceID)
+		num, err := db.GetCacheDB().GetCacheBlockNum(deviceID)
 		if err != nil {
 			log.Warnf("validate GetCacheBlockInfos err:%v,DeviceId:%v", err.Error(), deviceID)
 			continue
 		}
 
-		if len(datas) <= 0 {
+		if num <= 0 {
 			continue
 		}
 
-		fids := make([]string, 0)
-		for _, tag := range datas {
-			if tag == dataDefaultTag {
-				continue
-			}
+		// fids := make([]string, 0)
+		// for _, tag := range datas {
+		// 	if tag == dataDefaultTag {
+		// 		continue
+		// 	}
 
-			fids = append(fids, tag)
+		// 	fids = append(fids, tag)
 
-			if len(fids) >= e.validateBlockMax {
-				break
-			}
-		}
+		// 	if len(fids) >= e.validateBlockMax {
+		// 		break
+		// 	}
+		// }
 
-		req = append(req, api.ReqValidate{Seed: e.seed, EdgeURL: addr, Duration: e.duration, FIDs: fids, RoundID: e.roundID})
+		req = append(req, api.ReqValidate{Seed: e.seed, EdgeURL: addr, Duration: e.duration, RoundID: e.roundID})
 
-		e.fidsMap[deviceID] = fids
+		// e.fidsMap[deviceID] = fids
 		//
 		err = db.GetCacheDB().SetValidateResultInfo(e.roundID, deviceID, validatorID, "", db.ValidateStatusCreate)
 		if err != nil {
@@ -194,20 +194,32 @@ func (e *ElectionValidate) validateResult(validateResults *api.ValidateResults) 
 		return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
 	}
 
-	list := e.fidsMap[deviceID]
-	max := len(list)
+	// list := e.fidsMap[deviceID]
+	// max := len(list)
+	max, err := db.GetCacheDB().GetCacheBlockNum(deviceID)
+	if err != nil {
+		log.Warnf("validateResult GetCacheBlockNum err:%v,DeviceId:%v", err.Error(), deviceID)
+		return err
+	}
 
 	for i := 0; i < rlen; i++ {
-		index := e.getRandFid(max, r)
+		index := e.getRandFid(int(max), r)
 		result := validateResults.Results[i]
 
-		fidStr := list[index]
-		// log.Infof("fidStr:%v,resultFid:%v,index:%v", fidStr, result.Fid, i)
-		if fidStr != result.Fid {
+		cids, err := db.GetCacheDB().GetCacheBlockInfos(deviceID, int64(index), int64(index))
+		if err != nil {
 			status = db.ValidateStatusFail
-			msg = fmt.Sprintf("fidStr:%v,resultFid:%v,index:%v", fidStr, result.Fid, i)
+			msg = fmt.Sprintf("GetCacheBlockInfos err:%v,resultCid:%v,index:%v", err.Error(), result.Cid, i)
 			break
 		}
+
+		// fidStr := list[index]
+		// // log.Infof("fidStr:%v,resultFid:%v,index:%v", fidStr, result.Fid, i)
+		// if fidStr != result.Fid {
+		// 	status = db.ValidateStatusFail
+		// 	msg = fmt.Sprintf("fidStr:%v,resultFid:%v,index:%v", fidStr, result.Fid, i)
+		// 	break
+		// }
 
 		if result.Cid == "" {
 			status = db.ValidateStatusFail
@@ -215,16 +227,16 @@ func (e *ElectionValidate) validateResult(validateResults *api.ValidateResults) 
 			break
 		}
 
-		tag, err := db.GetCacheDB().GetCacheBlockInfo(deviceID, result.Cid)
-		if err != nil {
-			status = db.ValidateStatusFail
-			msg = fmt.Sprintf("GetCacheBlockInfo err:%v,deviceID:%v,resultCid:%v,resultFid:%v", err.Error(), deviceID, result.Cid, result.Fid)
-			break
-		}
+		// tag, err := db.GetCacheDB().GetCacheBlockInfo(deviceID, result.Cid)
+		// if err != nil {
+		// 	status = db.ValidateStatusFail
+		// 	msg = fmt.Sprintf("GetCacheBlockInfo err:%v,deviceID:%v,resultCid:%v,resultFid:%v", err.Error(), deviceID, result.Cid, result.Fid)
+		// 	break
+		// }
 
-		if tag != fidStr {
+		if result.Cid != cids[0] {
 			status = db.ValidateStatusFail
-			msg = fmt.Sprintf("tag:%v,fidStr:%v,Cid:%v", tag, fidStr, result.Cid)
+			msg = fmt.Sprintf("result.Cid:%v,Cid:%v", result.Cid, cids[0])
 			break
 		}
 	}
@@ -419,7 +431,7 @@ func (e *ElectionValidate) startValidates(scheduler *Scheduler) error {
 
 	e.roundID = fmt.Sprintf("%d", sID)
 	e.seed = time.Now().UnixNano()
-	e.fidsMap = make(map[string][]string)
+	// e.fidsMap = make(map[string][]string)
 
 	// find validators
 	validators, err := db.GetCacheDB().GetValidatorsWithList()
