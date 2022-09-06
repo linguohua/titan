@@ -168,21 +168,6 @@ func (block *Block) DeleteBlocks(ctx context.Context, cids []string) ([]api.Bloc
 			log.Errorf("DeleteData, delete block %s error:%v", cid, err)
 			continue
 		}
-
-		fid, err := block.getFID(cid)
-		if err != nil {
-			log.Errorf("DeleteData, get fid from cid %s error:%v", cid, err)
-			continue
-		}
-
-		err = block.ds.Delete(ctx, helper.NewKeyFID(fid))
-		if err != nil {
-			log.Errorf("DeleteData, delete key fid %s error:%v", fid, err)
-		}
-		err = block.ds.Delete(ctx, helper.NewKeyCID(cid))
-		if err != nil {
-			log.Errorf("DeleteData, delete key cid %s error:%v", cid, err)
-		}
 	}
 	return results, nil
 }
@@ -208,21 +193,6 @@ func (block *Block) AnnounceBlocksWasDelete(ctx context.Context, cids []string) 
 		err = block.blockStore.Delete(cid)
 		if err != nil {
 			result[cid] = err.Error()
-		}
-
-		fid, err := block.getFID(cid)
-		if err != nil {
-			log.Errorf("DeleteData, get fid from cid %s error:%v", cid, err)
-			continue
-		}
-
-		err = block.ds.Delete(ctx, helper.NewKeyFID(fid))
-		if err != nil {
-			log.Errorf("DeleteData, delete key fid %s error:%v", fid, err)
-		}
-		err = block.ds.Delete(ctx, helper.NewKeyCID(cid))
-		if err != nil {
-			log.Errorf("DeleteData, delete key cid %s error:%v", cid, err)
 		}
 	}
 
@@ -262,41 +232,6 @@ func (block *Block) LoadBlockWithCid(cid string) ([]byte, error) {
 	return block.blockStore.Get(cid)
 }
 
-func (block *Block) LoadBlockWithFid(fid string) ([]byte, error) {
-	cid, err := block.getCID(fid)
-	if err != nil {
-		return nil, err
-	}
-
-	return block.blockStore.Get(cid)
-}
-
-func (block *Block) GetAllCidFromBlockStore() ([]string, error) {
+func (block *Block) GetAllCidsFromBlockStore() ([]string, error) {
 	return block.blockStore.GetAllKeys()
-}
-
-func (block *Block) getCID(fid string) (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	value, err := block.ds.Get(ctx, helper.NewKeyFID(fid))
-	if err != nil {
-		// log.Errorf("Get cid from store error:%v, fid:%s", err, fid)
-		return "", err
-	}
-
-	return string(value), nil
-}
-
-func (block *Block) getFID(cid string) (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	value, err := block.ds.Get(ctx, helper.NewKeyCID(cid))
-	if err != nil {
-		// log.Errorf("Get fid from store error:%v, cid:%s", err, cid)
-		return "", err
-	}
-
-	return string(value), nil
 }

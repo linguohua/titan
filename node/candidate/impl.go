@@ -19,6 +19,7 @@ import (
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/download"
 	"github.com/linguohua/titan/node/edge"
+	"github.com/linguohua/titan/node/helper"
 
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
@@ -27,8 +28,6 @@ import (
 )
 
 var log = logging.Logger("candidate")
-
-const validateTimeout = 5
 
 func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, params *edge.EdgeParams) api.Candidate {
 	addrs, err := build.BuiltinBootstrap()
@@ -146,7 +145,7 @@ func waitBlock(vb *validateBlock, req *api.ReqValidate, candidate *Candidate, re
 	size := int64(0)
 	now := time.Now()
 	isBreak := false
-	t := time.NewTimer(time.Duration(req.Duration+validateTimeout) * time.Second)
+	t := time.NewTimer(time.Duration(req.Duration+helper.ValidateTimeout) * time.Second)
 	for {
 		select {
 		case block, ok := <-vb.ch:
@@ -165,7 +164,7 @@ func waitBlock(vb *validateBlock, req *api.ReqValidate, candidate *Candidate, re
 				result.Cids = append(result.Cids, cid)
 			}
 		case <-t.C:
-			log.Errorf("waitBlock timeout %ds, exit wait block", req.Duration+validateTimeout)
+			log.Errorf("waitBlock timeout %ds, exit wait block", req.Duration+helper.ValidateTimeout)
 			isBreak = true
 		}
 
