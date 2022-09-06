@@ -131,7 +131,7 @@ func (e *ElectionValidate) getReqValidates(scheduler *Scheduler, validatorID str
 	return req, errList
 }
 
-func (e *ElectionValidate) getRandFid(max int, r *rand.Rand) int {
+func (e *ElectionValidate) getRandNum(max int, r *rand.Rand) int {
 	if max > 0 {
 		return r.Intn(max)
 	}
@@ -207,7 +207,7 @@ func (e *ElectionValidate) validateResult(validateResults *api.ValidateResults) 
 	}
 
 	for i := 0; i < rlen; i++ {
-		index := e.getRandFid(int(max), r)
+		index := e.getRandNum(int(max), r)
 		resultCid := validateResults.Cids[i]
 
 		cids, err := db.GetCacheDB().GetCacheBlockInfos(deviceID, int64(index), int64(index))
