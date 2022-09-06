@@ -107,7 +107,7 @@ func (e *ElectionValidate) getReqValidates(scheduler *Scheduler, validatorID str
 		// 	}
 		// }
 
-		req = append(req, api.ReqValidate{Seed: e.seed, EdgeURL: addr, Duration: e.duration, RoundID: e.roundID})
+		req = append(req, api.ReqValidate{Seed: e.seed, NodeURL: addr, Duration: e.duration, RoundID: e.roundID, Type: string(api.TypeNameEdge)})
 
 		// e.fidsMap[deviceID] = fids
 		//
@@ -186,7 +186,7 @@ func (e *ElectionValidate) validateResult(validateResults *api.ValidateResults) 
 	}
 
 	r := rand.New(rand.NewSource(e.seed))
-	rlen := len(validateResults.Results)
+	rlen := len(validateResults.Cids)
 
 	if rlen <= 0 {
 		status = db.ValidateStatusFail
@@ -204,15 +204,16 @@ func (e *ElectionValidate) validateResult(validateResults *api.ValidateResults) 
 
 	for i := 0; i < rlen; i++ {
 		index := e.getRandFid(int(max), r)
-		result := validateResults.Results[i]
+		resultCid := validateResults.Cids[i]
 
 		cids, err := db.GetCacheDB().GetCacheBlockInfos(deviceID, int64(index), int64(index))
 		if err != nil {
 			status = db.ValidateStatusFail
-			msg = fmt.Sprintf("GetCacheBlockInfos err:%v,resultCid:%v,index:%v", err.Error(), result.Cid, i)
+			msg = fmt.Sprintf("GetCacheBlockInfos err:%v,resultCid:%v,index:%v", err.Error(), resultCid, i)
 			break
 		}
 
+		cid := cids[0]
 		// fidStr := list[index]
 		// // log.Infof("fidStr:%v,resultFid:%v,index:%v", fidStr, result.Fid, i)
 		// if fidStr != result.Fid {
@@ -221,9 +222,9 @@ func (e *ElectionValidate) validateResult(validateResults *api.ValidateResults) 
 		// 	break
 		// }
 
-		if result.Cid == "" {
+		if resultCid == "" {
 			status = db.ValidateStatusFail
-			msg = fmt.Sprintf("resultCid:%v,resultFid:%v", result.Cid, result.Fid)
+			msg = fmt.Sprintf("resultCid:%v,cid:%v", resultCid, cid)
 			break
 		}
 
@@ -234,9 +235,9 @@ func (e *ElectionValidate) validateResult(validateResults *api.ValidateResults) 
 		// 	break
 		// }
 
-		if result.Cid != cids[0] {
+		if resultCid != cid {
 			status = db.ValidateStatusFail
-			msg = fmt.Sprintf("result.Cid:%v,Cid:%v", result.Cid, cids[0])
+			msg = fmt.Sprintf("result.Cid:%v,Cid:%v", resultCid, cid)
 			break
 		}
 	}
