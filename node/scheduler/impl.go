@@ -88,20 +88,20 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 
 	s.poolGroup.addPendingNode(edgeNode, nil)
 
-	list, err := edgeNode.getCacheFailCids()
-	if err != nil {
-		log.Warnf("EdgeNodeConnect getCacheFailCids err:%v,deviceID:%s", err, deviceInfo.DeviceId)
-	} else {
-		if list != nil && len(list) > 0 {
-			reqDatas, _ := edgeNode.getReqCacheDatas(s, list, true)
-			for _, reqData := range reqDatas {
-				err := edgeNode.nodeAPI.CacheBlocks(ctx, reqData)
-				if err != nil {
-					log.Errorf("EdgeNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
-				}
-			}
-		}
-	}
+	// list, err := edgeNode.getCacheFailCids()
+	// if err != nil {
+	// 	log.Warnf("EdgeNodeConnect getCacheFailCids err:%v,deviceID:%s", err, deviceInfo.DeviceId)
+	// } else {
+	// 	if list != nil && len(list) > 0 {
+	// 		reqDatas, _ := edgeNode.getReqCacheDatas(s, list, true)
+	// 		for _, reqData := range reqDatas {
+	// 			err := edgeNode.nodeAPI.CacheBlocks(ctx, reqData)
+	// 			if err != nil {
+	// 				log.Errorf("EdgeNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	return nil
 }
@@ -117,7 +117,7 @@ func (s Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.
 }
 
 // CacheResult Cache Data Result
-func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
+func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) error {
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
 		return edge.cacheBlockResult(&info)
@@ -128,7 +128,7 @@ func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.C
 		return candidate.cacheBlockResult(&info)
 	}
 
-	return "", xerrors.New("node not find")
+	return xerrors.New("node not find")
 }
 
 // DeleteBlockRecords  Delete Block Record
@@ -325,19 +325,19 @@ func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTyp
 }
 
 // GetCacheTag get a tag with cid
-func (s *Scheduler) GetCacheTag(ctx context.Context, cid, deviceID string) (string, error) {
-	edge := s.nodeManager.getEdgeNode(deviceID)
-	if edge != nil {
-		return edge.newCacheDataTag(cid)
-	}
+// func (s *Scheduler) GetCacheTag(ctx context.Context, cid, deviceID string) (string, error) {
+// 	edge := s.nodeManager.getEdgeNode(deviceID)
+// 	if edge != nil {
+// 		return edge.newCacheDataTag(cid)
+// 	}
 
-	candidate := s.nodeManager.getCandidateNode(deviceID)
-	if candidate != nil {
-		return candidate.newCacheDataTag(cid)
-	}
+// 	candidate := s.nodeManager.getCandidateNode(deviceID)
+// 	if candidate != nil {
+// 		return candidate.newCacheDataTag(cid)
+// 	}
 
-	return "", xerrors.New("device not find")
-}
+// 	return "", xerrors.New("device not find")
+// }
 
 // FindNodeWithBlock find node
 func (s *Scheduler) FindNodeWithBlock(ctx context.Context, cid, ip string) (string, error) {
@@ -397,20 +397,20 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error 
 
 	s.poolGroup.addPendingNode(nil, candidateNode)
 
-	list, err := candidateNode.getCacheFailCids()
-	if err != nil {
-		log.Warnf("CandidateNodeConnect getCacheFailCids err:%v,deviceID:%s", err, deviceInfo.DeviceId)
-	} else {
-		if list != nil && len(list) > 0 {
-			reqDatas, _ := candidateNode.getReqCacheDatas(s, list, false)
-			for _, reqData := range reqDatas {
-				err := candidateNode.nodeAPI.CacheBlocks(ctx, reqData)
-				if err != nil {
-					log.Errorf("CandidateNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
-				}
-			}
-		}
-	}
+	// list, err := candidateNode.getCacheFailCids()
+	// if err != nil {
+	// 	log.Warnf("CandidateNodeConnect getCacheFailCids err:%v,deviceID:%s", err, deviceInfo.DeviceId)
+	// } else {
+	// 	if list != nil && len(list) > 0 {
+	// 		reqDatas, _ := candidateNode.getReqCacheDatas(s, list, false)
+	// 		for _, reqData := range reqDatas {
+	// 			err := candidateNode.nodeAPI.CacheBlocks(ctx, reqData)
+	// 			if err != nil {
+	// 				log.Errorf("CandidateNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	return nil
 }
@@ -421,15 +421,9 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 
 	// redis datas
 	body := api.CacheStat{}
-	infos, err := db.GetCacheDB().GetCacheBlockInfos(deviceID)
-	if err == nil && len(infos) > 0 {
-		count := 0
-		for _, tag := range infos {
-			if tag != dataDefaultTag {
-				count++
-			}
-		}
-		body.CacheBlockCount = count
+	count, err := db.GetCacheDB().GetCacheBlockNum(deviceID)
+	if err == nil {
+		body.CacheBlockCount = int(count)
 	}
 
 	stats = append(stats, body)

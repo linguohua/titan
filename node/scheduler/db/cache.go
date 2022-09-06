@@ -7,8 +7,8 @@ import (
 
 // CacheDB cache db
 type CacheDB interface {
-	IncrNodeCacheTag(deviceID string) (int64, error)
-	GetNodeCacheTag(deviceID string) (int64, error)
+	// IncrNodeCacheTag(deviceID string) (int64, error)
+	// GetNodeCacheTag(deviceID string) (int64, error)
 	IncrValidateRoundID() (int64, error)
 	GetValidateRoundID() (string, error)
 
@@ -18,14 +18,15 @@ type CacheDB interface {
 	RemoveValidateingList() error
 
 	RemoveCacheBlockInfo(deviceID, cid string) error
-	SetCacheBlockInfo(deviceID, cid string, tag string) error
-	GetCacheBlockInfo(deviceID, cid string) (string, error)
-	GetCacheBlockInfos(deviceID string) (map[string]string, error)
+	SetCacheBlockInfo(deviceID, cid string) error
+	GetCacheBlockInfo(deviceID, cid string) (int64, error)
+	GetCacheBlockNum(deviceID string) (int64, error)
+	GetCacheBlockInfos(deviceID string, start, end int64) ([]string, error)
 
-	RemoveCacheBlockTagInfo(deviceID, tag string) error
-	SetCacheBlockTagInfo(deviceID, cid string, tag string) error
-	GetCacheBlockTagInfo(deviceID, tag string) (string, error)
-	GetCacheBlockTagInfos(deviceID string) (map[string]string, error)
+	// RemoveCacheBlockTagInfo(deviceID, tag string) error
+	// SetCacheBlockTagInfo(deviceID, cid string, tag string) error
+	// GetCacheBlockTagInfo(deviceID, tag string) (string, error)
+	// GetCacheBlockTagInfos(deviceID string) (map[string]string, error)
 
 	RemoveNodeWithCacheList(deviceID, cid string) error
 	SetNodeToCacheList(deviceID, cid string) error

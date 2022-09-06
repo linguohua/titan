@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -154,7 +153,7 @@ type SchedulerStruct struct {
 
 		CacheBlocks func(p0 context.Context, p1 []string, p2 string) ([]string, error) `perm:"read"`
 
-		CacheResult func(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) `perm:"read"`
+		CacheResult func(p0 context.Context, p1 string, p2 CacheResultInfo) (error) ``
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
@@ -167,8 +166,6 @@ type SchedulerStruct struct {
 		ElectionValidators func(p0 context.Context) (error) `perm:"read"`
 
 		FindNodeWithBlock func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
-
-		GetCacheTag func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
 		GetDeviceDiagnosisDaily func(p0 context.Context, p1 IncomeDailySearch) (IncomeDailyRes, error) `perm:"read"`
 
@@ -492,15 +489,15 @@ func (s *SchedulerStub) CacheBlocks(p0 context.Context, p1 []string, p2 string) 
 	return *new([]string), ErrNotSupported
 }
 
-func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) {
+func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 string, p2 CacheResultInfo) (error) {
 	if s.Internal.CacheResult == nil {
-		return "", ErrNotSupported
+		return ErrNotSupported
 	}
 	return s.Internal.CacheResult(p0, p1, p2)
 }
 
-func (s *SchedulerStub) CacheResult(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) {
-	return "", ErrNotSupported
+func (s *SchedulerStub) CacheResult(p0 context.Context, p1 string, p2 CacheResultInfo) (error) {
+	return ErrNotSupported
 }
 
 func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context, p1 string) (error) {
@@ -566,17 +563,6 @@ func (s *SchedulerStruct) FindNodeWithBlock(p0 context.Context, p1 string, p2 st
 }
 
 func (s *SchedulerStub) FindNodeWithBlock(p0 context.Context, p1 string, p2 string) (string, error) {
-	return "", ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetCacheTag(p0 context.Context, p1 string, p2 string) (string, error) {
-	if s.Internal.GetCacheTag == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.GetCacheTag(p0, p1, p2)
-}
-
-func (s *SchedulerStub) GetCacheTag(p0 context.Context, p1 string, p2 string) (string, error) {
 	return "", ErrNotSupported
 }
 
