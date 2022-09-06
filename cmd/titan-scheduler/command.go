@@ -189,9 +189,9 @@ var electionCmd = &cli.Command{
 	},
 }
 
-var cacheDatasCmd = &cli.Command{
-	Name:  "cache-data",
-	Usage: "specify node cache data",
+var cacheBlocksCmd = &cli.Command{
+	Name:  "cache-blocks",
+	Usage: "specify node cache blocks",
 	Flags: []cli.Flag{
 		schedulerURLFlag,
 		cidsFlag,
@@ -239,9 +239,9 @@ var cacheDatasCmd = &cli.Command{
 	},
 }
 
-var delDatasCmd = &cli.Command{
-	Name:  "delete-datas",
-	Usage: "delete cache datas",
+var deleteBlocksCmd = &cli.Command{
+	Name:  "delete-blocks",
+	Usage: "delete cache blocks",
 	Flags: []cli.Flag{
 		schedulerURLFlag,
 		cidsFlag,
