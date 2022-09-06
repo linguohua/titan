@@ -108,7 +108,7 @@ var DeleteBlockCmd = &cli.Command{
 
 		cid := cctx.String("cid")
 
-		results, err := api.DeleteBlocks(context.Background(), []string{cid})
+		results, err := api.AnnounceBlocksWasDelete(context.Background(), []string{cid})
 		if err != nil {
 			return err
 		}
