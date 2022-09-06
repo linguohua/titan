@@ -109,10 +109,9 @@ func (block *Block) cacheResult(ctx context.Context, cid, from string, err error
 	}
 
 	result := api.CacheResultInfo{Cid: cid, IsOK: success, Msg: errMsg, From: from}
-	_, err = block.scheduler.CacheResult(ctx, block.deviceID, result)
+	err = block.scheduler.CacheResult(ctx, block.deviceID, result)
 	if err != nil {
 		log.Errorf("load_block CacheResult error:%v", err)
-		return
 	}
 }
 
