@@ -17,12 +17,8 @@ type ReqValidate struct {
 	Duration int
 	RoundID  string
 	// node type, for example edge or candidate
-	Type string
+	NodeType int
 }
-
-// type ValidateResult struct {
-// 	Cid string
-// }
 
 type ValidateResults struct {
 	DeviceID  string
