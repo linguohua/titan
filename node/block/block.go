@@ -147,12 +147,12 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 
 // delete block in local store and scheduler
 func (block *Block) DeleteBlocks(ctx context.Context, cids []string) ([]api.BlockOperationResult, error) {
-	log.Debug("DeleteData")
+	log.Debug("DeleteBlocks")
 	// delResult := api.DelResult{}
 	var results = make([]api.BlockOperationResult, 0)
 
 	if block.blockStore == nil {
-		log.Errorf("DeleteData, blockStore not setting")
+		log.Errorf("DeleteBlocks, blockStore not setting")
 		return results, fmt.Errorf("edge.blockStore == nil")
 	}
 
@@ -165,7 +165,7 @@ func (block *Block) DeleteBlocks(ctx context.Context, cids []string) ([]api.Bloc
 		if err != nil {
 			result := api.BlockOperationResult{Cid: cid, ErrMsg: err.Error()}
 			results = append(results, result)
-			log.Errorf("DeleteData, delete block %s error:%v", cid, err)
+			log.Errorf("DeleteBlocks, delete block %s error:%v", cid, err)
 			continue
 		}
 	}
@@ -174,13 +174,13 @@ func (block *Block) DeleteBlocks(ctx context.Context, cids []string) ([]api.Bloc
 
 // told to scheduler, local block was delete
 func (block *Block) AnnounceBlocksWasDelete(ctx context.Context, cids []string) ([]api.BlockOperationResult, error) {
-	log.Debug("DeleteBlock")
+	log.Debug("AnnounceBlocksWasDelete")
 	// delResult := api.DelResult{}
 	failedResults := make([]api.BlockOperationResult, 0)
 
 	result, err := block.scheduler.DeleteBlockRecords(ctx, block.deviceID, cids)
 	if err != nil {
-		log.Errorf("DeleteBlock, delete block error:%v", err)
+		log.Errorf("AnnounceBlocksWasDelete, delete block error:%v", err)
 		return failedResults, err
 	}
 
@@ -197,7 +197,7 @@ func (block *Block) AnnounceBlocksWasDelete(ctx context.Context, cids []string) 
 	}
 
 	for k, v := range result {
-		log.Errorf("DeleteBlock, delete block %s error:%v", k, v)
+		log.Errorf("AnnounceBlocksWasDelete, delete block %s error:%v", k, v)
 		result := api.BlockOperationResult{Cid: k, ErrMsg: v}
 		failedResults = append(failedResults, result)
 	}
@@ -222,8 +222,7 @@ func (block *Block) QueryCacheStat() (api.CacheStat, error) {
 }
 
 func (block *Block) LoadBlockWithCid(cid string) ([]byte, error) {
-	log.Infof("LoadBlockWithCid, cid:%s", cid)
-
+	// log.Infof("LoadBlockWithCid, cid:%s", cid)
 	if block.blockStore == nil {
 		log.Errorf("LoadData, blockStore not setting")
 		return nil, nil
