@@ -29,11 +29,11 @@ func main() {
 
 	local := []*cli.Command{
 		runCmd,
-		cacheDatasCmd,
+		cacheBlocksCmd,
 		electionCmd,
 		validateCmd,
 		showOnlineNodeCmd,
-		delDatasCmd,
+		deleteBlocksCmd,
 		initDeviceIDsCmd,
 		cachingBlocksCmd,
 		cacheStatCmd,

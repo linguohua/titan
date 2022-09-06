@@ -119,7 +119,7 @@ func (e *ElectionValidate) getReqValidates(scheduler *Scheduler, validatorID str
 
 		err = db.GetCacheDB().SetNodeToValidateingList(deviceID)
 		if err != nil {
-			log.Warnf("validate SetNodeToValidateList err:%v,DeviceId:%v", err.Error(), deviceID)
+			log.Warnf("validate SetNodeToValidateingList err:%v,DeviceId:%v", err.Error(), deviceID)
 			continue
 		}
 	}
@@ -233,11 +233,6 @@ func (e *ElectionValidate) validateResult(validateResults *api.ValidateResults) 
 }
 
 func (e *ElectionValidate) checkValidateTimeOut() error {
-	sID, err := db.GetCacheDB().GetValidateRoundID()
-	if err != nil {
-		return err
-	}
-
 	edgeIDs, err := db.GetCacheDB().GetNodesWithValidateingList()
 	if err != nil {
 		return err
@@ -247,7 +242,7 @@ func (e *ElectionValidate) checkValidateTimeOut() error {
 		log.Infof("checkValidateTimeOut list:%v", edgeIDs)
 
 		for _, edgeID := range edgeIDs {
-			err = db.GetCacheDB().SetValidateResultInfo(sID, edgeID, "", "", db.ValidateStatusTimeOut)
+			err = db.GetCacheDB().SetValidateResultInfo(e.roundID, edgeID, "", "", db.ValidateStatusTimeOut)
 			if err != nil {
 				log.Warnf("checkValidateTimeOut SetValidateResultInfo err:%v,DeviceId:%v", err.Error(), edgeID)
 				continue
