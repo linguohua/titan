@@ -17,6 +17,8 @@ const (
 	redisKeyNodeInfo = "Titan:NodeInfo:%s"
 	// RedisKeyNodeBlocks  deviceID
 	redisKeyNodeBlocks = "Titan:NodeBlocks:%s"
+	// RedisKeyNodeFailBlocks  deviceID
+	redisKeyNodeFailBlocks = "Titan:NodeFailBlocks:%s"
 	// RedisKeyBlockNodeList  cid
 	redisKeyBlockNodeList = "Titan:BlockNodeList:%s"
 	// RedisKeyGeoNodeList  geo
@@ -184,6 +186,29 @@ func (rd redisDB) RemoveNodeWithCacheList(deviceID, cid string) error {
 	key := fmt.Sprintf(redisKeyBlockNodeList, cid)
 
 	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
+	return err
+}
+
+//  add
+func (rd redisDB) SetBlockToNodeFailList(deviceID, cid string) error {
+	key := fmt.Sprintf(redisKeyNodeFailBlocks, deviceID)
+
+	_, err := rd.cli.SAdd(context.Background(), key, cid).Result()
+	return err
+}
+
+// SMembers
+func (rd redisDB) GetBlocksWithNodeFailList(deviceID string) ([]string, error) {
+	key := fmt.Sprintf(redisKeyNodeFailBlocks, deviceID)
+
+	return rd.cli.SMembers(context.Background(), key).Result()
+}
+
+//  del
+func (rd redisDB) RemoveBlockWithNodeFailList(deviceID, cid string) error {
+	key := fmt.Sprintf(redisKeyNodeFailBlocks, deviceID)
+
+	_, err := rd.cli.SRem(context.Background(), key, cid).Result()
 	return err
 }
 

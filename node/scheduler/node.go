@@ -41,16 +41,11 @@ type Node struct {
 	lastRequestTime time.Time
 }
 
-// NodeOnline Save DeciceInfo
-func (n *Node) nodeOnline(deviceID string, onlineTime int64, geoInfo *region.GeoInfo, typeName api.NodeTypeName) error {
+// node online
+func (n *Node) online(deviceID string, onlineTime int64, geoInfo *region.GeoInfo, typeName api.NodeTypeName) error {
 	oldNodeInfo, err := db.GetCacheDB().GetNodeInfo(deviceID)
 	if err == nil {
-		if typeName != oldNodeInfo.NodeType {
-			return xerrors.New("node type inconsistent")
-		}
-
 		if oldNodeInfo.Geo != geoInfo.Geo {
-			// delete old
 			err = db.GetCacheDB().RemoveNodeWithGeoList(deviceID, oldNodeInfo.Geo)
 			if err != nil {
 				log.Errorf("RemoveNodeWithGeoList err:%v,deviceID:%v,Geo:%v", err.Error(), deviceID, oldNodeInfo.Geo)
@@ -84,45 +79,30 @@ func (n *Node) nodeOnline(deviceID string, onlineTime int64, geoInfo *region.Geo
 	return nil
 }
 
-// NodeOffline offline
-func (n *Node) nodeOffline(deviceID string, geoInfo *region.GeoInfo, nodeType api.NodeTypeName, lastTime time.Time) error {
+// node offline
+func (n *Node) offline(deviceID string, geoInfo *region.GeoInfo, nodeType api.NodeTypeName, lastTime time.Time) {
 	err := db.GetCacheDB().RemoveNodeWithGeoList(deviceID, geoInfo.Geo)
 	if err != nil {
-		return err
+		log.Warnf("node offline RemoveNodeWithGeoList err : %v ,deviceID : %v", err.Error(), deviceID)
 	}
 
 	err = db.GetCacheDB().SetNodeInfo(deviceID, &db.NodeInfo{Geo: geoInfo.Geo, LastTime: lastTime.Format("2006-01-02 15:04:05"), IsOnline: false, NodeType: nodeType})
 	if err != nil {
-		return err
+		log.Warnf("node offline SetNodeInfo err : %v ,deviceID : %v", err.Error(), deviceID)
 	}
-
-	return nil
 }
 
 // get all cache fail cid
-// func (n *Node) getCacheFailCids() ([]string, error) {
-// 	deviceID := n.deviceInfo.DeviceId
+func (n *Node) getCacheFailCids() []string {
+	deviceID := n.deviceInfo.DeviceId
 
-// 	infos, err := db.GetCacheDB().GetCacheBlockInfos(deviceID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	cids, err := db.GetCacheDB().GetBlocksWithNodeFailList(deviceID)
+	if err != nil {
+		return nil
+	}
 
-// 	if len(infos) <= 0 {
-// 		return nil, nil
-// 	}
-
-// 	cs := make([]string, 0)
-
-// 	for cid, tag := range infos {
-// 		// isInCacheList, err := db.GetCacheDB().IsNodeInCacheList(cid, deviceID)
-// 		if tag == dataDefaultTag {
-// 			cs = append(cs, cid)
-// 		}
-// 	}
-
-// 	return cs, nil
-// }
+	return cids
+}
 
 // delete block records
 func (n *Node) deleteBlockRecords(cids []string) (map[string]string, error) {
@@ -162,18 +142,7 @@ func (n *Node) getReqCacheDatas(scheduler *Scheduler, cids []string, isEdge bool
 	reqList := make([]api.ReqCacheData, 0)
 
 	if !isEdge {
-		cs := make([]string, 0)
-
-		for _, cid := range cids {
-			// err := n.cacheBlockReady(cid)
-			// if err != nil {
-			// 	// already cache or error
-			// 	continue
-			// }
-			cs = append(cs, cid)
-		}
-
-		reqList = append(reqList, api.ReqCacheData{Cids: cs})
+		reqList = append(reqList, api.ReqCacheData{Cids: cids})
 		return reqList, nil
 	}
 
@@ -181,7 +150,6 @@ func (n *Node) getReqCacheDatas(scheduler *Scheduler, cids []string, isEdge bool
 	// if node is edge , find data with candidate
 	csMap := make(map[string][]string)
 	for _, cid := range cids {
-
 		candidates, err := scheduler.nodeManager.getCandidateNodesWithData(cid, geoInfo)
 		if err != nil || len(candidates) < 1 {
 			// not find candidate
@@ -216,16 +184,37 @@ func (n *Node) cacheBlockResult(info *api.CacheResultInfo) error {
 	deviceID := n.deviceInfo.DeviceId
 	log.Infof("nodeCacheResult deviceID:%v,info:%v", deviceID, info)
 
+	var err error
+	defer func() {
+		if err != nil {
+			err = db.GetCacheDB().SetBlockToNodeFailList(deviceID, info.Cid)
+			if err != nil {
+				log.Warnf("nodeCacheResult SetBlockToNodeFailList err:%v,deviceID:%v,cid:%v", err.Error(), deviceID, info.Cid)
+			}
+		} else {
+			err = db.GetCacheDB().RemoveBlockWithNodeFailList(deviceID, info.Cid)
+			if err != nil {
+				log.Warnf("nodeCacheResult SetBlockToNodeFailList err:%v,deviceID:%v,cid:%v", err.Error(), deviceID, info.Cid)
+			}
+		}
+	}()
+
 	if !info.IsOK {
+		err = xerrors.New("not ok")
 		return nil
 	}
 
-	err := db.GetCacheDB().SetCacheBlockInfo(deviceID, info.Cid)
+	err = db.GetCacheDB().SetCacheBlockInfo(deviceID, info.Cid)
 	if err != nil {
 		return err
 	}
 
-	return db.GetCacheDB().SetNodeToCacheList(deviceID, info.Cid)
+	err = db.GetCacheDB().SetNodeToCacheList(deviceID, info.Cid)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func randomNum(start, end int) int {
