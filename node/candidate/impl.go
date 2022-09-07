@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/build"
@@ -196,16 +197,16 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	edgeAPI, closer, err := client.NewEdge(ctx, req.NodeURL, nil)
+	api, closer, err := getNodeApi(req.NodeType, req.NodeURL)
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(ctx, candidate, result)
-		log.Errorf("validate NewEdge err: %v", err)
+		log.Errorf("validate get node api err: %v", err)
 		return
 	}
 	defer closer()
 
-	info, err := edgeAPI.DeviceInfo(ctx)
+	info, err := api.DeviceInfo(ctx)
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(ctx, candidate, result)
@@ -229,11 +230,29 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	wctx, cancel := context.WithTimeout(context.Background(), (time.Duration(req.Duration))*time.Second)
 	defer cancel()
 
-	err = edgeAPI.BeValidate(wctx, *req, candidate.tcpSrvAddr)
+	err = api.BeValidate(wctx, *req, candidate.tcpSrvAddr)
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(ctx, candidate, result)
 		log.Errorf("validate, edge DoValidate err: %v", err)
 		return
 	}
+}
+
+type nodeAPI interface {
+	DeviceInfo(ctx context.Context) (api.DevicesInfo, error)
+	BeValidate(ctx context.Context, reqValidate api.ReqValidate, candidateTcpSrvAddr string) error
+}
+
+func getNodeApi(nodeType int, nodeURL string) (nodeAPI, jsonrpc.ClientCloser, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if nodeType == int(api.NodeEdge) {
+		return client.NewEdge(ctx, nodeURL, nil)
+	} else if nodeType == int(api.NodeCandidate) {
+		return client.NewCandicate(ctx, nodeURL, nil)
+	}
+
+	return nil, nil, fmt.Errorf("NodeType %d not NodeEdge and NodeCandidate", nodeType)
 }
