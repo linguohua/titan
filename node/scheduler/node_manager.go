@@ -21,8 +21,6 @@ const (
 	countryLevel  geoLevel = 1
 	provinceLevel geoLevel = 2
 	cityLevel     geoLevel = 3
-
-	dataDefaultTag string = "-1"
 )
 
 // NodeManager Node Manager
