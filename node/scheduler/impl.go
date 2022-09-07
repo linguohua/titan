@@ -324,21 +324,6 @@ func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTyp
 	return list, nil
 }
 
-// GetCacheTag get a tag with cid
-// func (s *Scheduler) GetCacheTag(ctx context.Context, cid, deviceID string) (string, error) {
-// 	edge := s.nodeManager.getEdgeNode(deviceID)
-// 	if edge != nil {
-// 		return edge.newCacheDataTag(cid)
-// 	}
-
-// 	candidate := s.nodeManager.getCandidateNode(deviceID)
-// 	if candidate != nil {
-// 		return candidate.newCacheDataTag(cid)
-// 	}
-
-// 	return "", xerrors.New("device not find")
-// }
-
 // FindNodeWithBlock find node
 func (s *Scheduler) FindNodeWithBlock(ctx context.Context, cid, ip string) (string, error) {
 	// node, err := getNodeWithData(cid, ip)

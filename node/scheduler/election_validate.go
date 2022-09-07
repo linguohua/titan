@@ -15,7 +15,7 @@ import (
 // ElectionValidate ElectionValidate
 type ElectionValidate struct {
 	seed int64
-	// fidsMap map[string][]string
+
 	roundID string
 
 	duration          int
@@ -98,23 +98,8 @@ func (e *ElectionValidate) getReqValidates(scheduler *Scheduler, validatorID str
 			continue
 		}
 
-		// fids := make([]string, 0)
-		// for _, tag := range datas {
-		// 	if tag == dataDefaultTag {
-		// 		continue
-		// 	}
-
-		// 	fids = append(fids, tag)
-
-		// 	if len(fids) >= e.validateBlockMax {
-		// 		break
-		// 	}
-		// }
-
 		req = append(req, api.ReqValidate{Seed: e.seed, NodeURL: addr, Duration: e.duration, RoundID: e.roundID, NodeType: int(nodeType)})
 
-		// e.fidsMap[deviceID] = fids
-		//
 		err = db.GetCacheDB().SetValidateResultInfo(e.roundID, deviceID, validatorID, "", db.ValidateStatusCreate)
 		if err != nil {
 			log.Warnf("validate SetValidateResultInfo err:%v,DeviceId:%v", err.Error(), deviceID)
@@ -198,50 +183,34 @@ func (e *ElectionValidate) validateResult(validateResults *api.ValidateResults) 
 		return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
 	}
 
-	// list := e.fidsMap[deviceID]
-	// max := len(list)
 	max, err := db.GetCacheDB().GetCacheBlockNum(deviceID)
 	if err != nil {
 		log.Warnf("validateResult GetCacheBlockNum err:%v,DeviceId:%v", err.Error(), deviceID)
 		return err
 	}
 
-	for i := 0; i < rlen; i++ {
-		index := e.getRandNum(int(max), r)
-		resultCid := validateResults.Cids[i]
+	for index := 0; index < rlen; index++ {
+		rand := e.getRandNum(int(max), r)
+		resultCid := validateResults.Cids[index]
 
-		cids, err := db.GetCacheDB().GetCacheBlockInfos(deviceID, int64(index), int64(index))
+		cids, err := db.GetCacheDB().GetCacheBlockInfos(deviceID, int64(rand), int64(rand))
 		if err != nil {
 			status = db.ValidateStatusFail
-			msg = fmt.Sprintf("GetCacheBlockInfos err:%v,resultCid:%v,index:%v", err.Error(), resultCid, i)
+			msg = fmt.Sprintf("GetCacheBlockInfos err:%v,resultCid:%v,rand:%v,index:%v", err.Error(), resultCid, rand, index)
 			break
 		}
 
 		cid := cids[0]
-		// fidStr := list[index]
-		// // log.Infof("fidStr:%v,resultFid:%v,index:%v", fidStr, result.Fid, i)
-		// if fidStr != result.Fid {
-		// 	status = db.ValidateStatusFail
-		// 	msg = fmt.Sprintf("fidStr:%v,resultFid:%v,index:%v", fidStr, result.Fid, i)
-		// 	break
-		// }
 
 		if resultCid == "" {
 			status = db.ValidateStatusFail
-			msg = fmt.Sprintf("resultCid:%v,cid:%v", resultCid, cid)
+			msg = fmt.Sprintf("resultCid:%v,cid:%v,rand:%v,index:%v", resultCid, cid, rand, index)
 			break
 		}
 
-		// tag, err := db.GetCacheDB().GetCacheBlockInfo(deviceID, result.Cid)
-		// if err != nil {
-		// 	status = db.ValidateStatusFail
-		// 	msg = fmt.Sprintf("GetCacheBlockInfo err:%v,deviceID:%v,resultCid:%v,resultFid:%v", err.Error(), deviceID, result.Cid, result.Fid)
-		// 	break
-		// }
-
 		if resultCid != cid {
 			status = db.ValidateStatusFail
-			msg = fmt.Sprintf("result.Cid:%v,Cid:%v", resultCid, cid)
+			msg = fmt.Sprintf("result.Cid:%v,Cid:%v,rand:%v,index:%v", resultCid, cid, rand, index)
 			break
 		}
 	}
@@ -436,7 +405,6 @@ func (e *ElectionValidate) startValidates(scheduler *Scheduler) error {
 
 	e.roundID = fmt.Sprintf("%d", sID)
 	e.seed = time.Now().UnixNano()
-	// e.fidsMap = make(map[string][]string)
 
 	// find validators
 	validators, err := db.GetCacheDB().GetValidatorsWithList()

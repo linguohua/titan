@@ -151,11 +151,6 @@ func (n *Node) deleteBlockRecords(cids []string) (map[string]string, error) {
 			continue
 		}
 
-		// err = db.GetCacheDB().RemoveCacheBlockTagInfo(deviceID, tag)
-		// if err != nil {
-		// 	errList[cid] = fmt.Sprintf("RemoveCacheBlockTagInfo err : %v", err.Error())
-		// 	continue
-		// }
 	}
 
 	return errList, nil
@@ -186,11 +181,6 @@ func (n *Node) getReqCacheDatas(scheduler *Scheduler, cids []string, isEdge bool
 	// if node is edge , find data with candidate
 	csMap := make(map[string][]string)
 	for _, cid := range cids {
-		// err := n.cacheBlockReady(cid)
-		// if err != nil {
-		// 	// already cache or error
-		// 	continue
-		// }
 
 		candidates, err := scheduler.nodeManager.getCandidateNodesWithData(cid, geoInfo)
 		if err != nil || len(candidates) < 1 {
@@ -226,62 +216,17 @@ func (n *Node) cacheBlockResult(info *api.CacheResultInfo) error {
 	deviceID := n.deviceInfo.DeviceId
 	log.Infof("nodeCacheResult deviceID:%v,info:%v", deviceID, info)
 
-	// v, err := db.GetCacheDB().GetCacheBlockInfo(deviceID, info.Cid)
-	// if err == nil && v != dataDefaultTag {
-	// 	return v, nil
-	// }
-
 	if !info.IsOK {
 		return nil
 	}
-
-	// tag, err := db.GetCacheDB().IncrNodeCacheTag(deviceID)
-	// if err != nil {
-	// 	return "", err
-	// }
-
-	// tagStr := fmt.Sprintf("%d", tag)
 
 	err := db.GetCacheDB().SetCacheBlockInfo(deviceID, info.Cid)
 	if err != nil {
 		return err
 	}
 
-	// err = db.GetCacheDB().SetCacheBlockTagInfo(deviceID, info.Cid, tagStr)
-	// if err != nil {
-	// 	return "", err
-	// }
-
 	return db.GetCacheDB().SetNodeToCacheList(deviceID, info.Cid)
 }
-
-// func (n *Node) newCacheDataTag(cid string) (string, error) {
-// 	deviceID := n.deviceInfo.DeviceId
-
-// 	v, err := db.GetCacheDB().GetCacheBlockInfo(deviceID, cid)
-// 	if err == nil && v != dataDefaultTag {
-// 		return v, xerrors.Errorf("already cache")
-// 	}
-
-// 	tag, err := db.GetCacheDB().IncrNodeCacheTag(deviceID)
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	return fmt.Sprintf("%d", tag), nil
-// }
-
-// Cache block ready
-// func (n *Node) cacheBlockReady(cid string) error {
-// 	deviceID := n.deviceInfo.DeviceId
-
-// 	// v, err := db.GetCacheDB().GetCacheBlockInfo(deviceID, cid)
-// 	// if err == nil && v != dataDefaultTag {
-// 	// 	return xerrors.Errorf("already cache")
-// 	// }
-
-// 	return db.GetCacheDB().SetCacheBlockInfo(deviceID, cid)
-// }
 
 func randomNum(start, end int) int {
 	// rand.Seed(time.Now().UnixNano())
