@@ -88,20 +88,17 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 
 	s.poolGroup.addPendingNode(edgeNode, nil)
 
-	// list, err := edgeNode.getCacheFailCids()
-	// if err != nil {
-	// 	log.Warnf("EdgeNodeConnect getCacheFailCids err:%v,deviceID:%s", err, deviceInfo.DeviceId)
-	// } else {
-	// 	if list != nil && len(list) > 0 {
-	// 		reqDatas, _ := edgeNode.getReqCacheDatas(s, list, true)
-	// 		for _, reqData := range reqDatas {
-	// 			err := edgeNode.nodeAPI.CacheBlocks(ctx, reqData)
-	// 			if err != nil {
-	// 				log.Errorf("EdgeNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
-	// 			}
-	// 		}
-	// 	}
-	// }
+	cids := edgeNode.getCacheFailCids()
+	if cids != nil && len(cids) > 0 {
+		reqDatas, _ := edgeNode.getReqCacheDatas(s, cids, true)
+
+		for _, reqData := range reqDatas {
+			err := edgeNode.nodeAPI.CacheBlocks(ctx, reqData)
+			if err != nil {
+				log.Errorf("EdgeNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+			}
+		}
+	}
 
 	return nil
 }
@@ -382,20 +379,17 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error 
 
 	s.poolGroup.addPendingNode(nil, candidateNode)
 
-	// list, err := candidateNode.getCacheFailCids()
-	// if err != nil {
-	// 	log.Warnf("CandidateNodeConnect getCacheFailCids err:%v,deviceID:%s", err, deviceInfo.DeviceId)
-	// } else {
-	// 	if list != nil && len(list) > 0 {
-	// 		reqDatas, _ := candidateNode.getReqCacheDatas(s, list, false)
-	// 		for _, reqData := range reqDatas {
-	// 			err := candidateNode.nodeAPI.CacheBlocks(ctx, reqData)
-	// 			if err != nil {
-	// 				log.Errorf("CandidateNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
-	// 			}
-	// 		}
-	// 	}
-	// }
+	cids := candidateNode.getCacheFailCids()
+	if cids != nil && len(cids) > 0 {
+		reqDatas, _ := candidateNode.getReqCacheDatas(s, cids, false)
+
+		for _, reqData := range reqDatas {
+			err := candidateNode.nodeAPI.CacheBlocks(ctx, reqData)
+			if err != nil {
+				log.Errorf("CandidateNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+			}
+		}
+	}
 
 	return nil
 }

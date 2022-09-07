@@ -127,7 +127,7 @@ func (m *NodeManager) addEdgeNode(node *EdgeNode) error {
 
 	log.Infof("addEdgeNode DeviceId:%v,geo:%v", deviceID, node.geoInfo.Geo)
 
-	err = node.nodeOnline(deviceID, 0, geoInfo, api.TypeNameEdge)
+	err = node.online(deviceID, 0, geoInfo, api.TypeNameEdge)
 	if err != nil {
 		return err
 	}
@@ -159,12 +159,9 @@ func (m *NodeManager) removeEdgeNode(node *EdgeNode) {
 
 	m.edgeNodeMap.Delete(deviceID)
 
-	err := node.nodeOffline(deviceID, &node.geoInfo, api.TypeNameEdge, node.lastRequestTime)
-	if err != nil {
-		log.Errorf("DeviceOffline err:%v,deviceID:%v", err.Error(), deviceID)
-	}
-
 	m.edgeCount--
+
+	node.offline(deviceID, &node.geoInfo, api.TypeNameEdge, node.lastRequestTime)
 }
 
 func (m *NodeManager) addCandidateNode(node *CandidateNode) error {
@@ -189,7 +186,7 @@ func (m *NodeManager) addCandidateNode(node *CandidateNode) error {
 
 	log.Infof("addCandidateNode DeviceId:%v,geo:%v", deviceID, node.geoInfo.Geo)
 
-	err = node.nodeOnline(deviceID, 0, geoInfo, api.TypeNameCandidate)
+	err = node.online(deviceID, 0, geoInfo, api.TypeNameCandidate)
 	if err != nil {
 		// log.Errorf("addCandidateNode NodeOnline err:%v", err)
 		return err
@@ -226,44 +223,62 @@ func (m *NodeManager) removeCandidateNode(node *CandidateNode) {
 
 	m.candidateNodeMap.Delete(deviceID)
 
-	err := node.nodeOffline(deviceID, &node.geoInfo, api.TypeNameCandidate, node.lastRequestTime)
-	if err != nil {
-		log.Errorf("DeviceOffline err:%v,deviceID:%v", err.Error(), deviceID)
-	}
-
 	if node.isValidator {
 		m.validatorCount--
 	} else {
 		m.candidateCount--
 	}
+
+	node.offline(deviceID, &node.geoInfo, api.TypeNameCandidate, node.lastRequestTime)
 }
 
-func (m *NodeManager) findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, deviceIDs []string) ([]*EdgeNode, geoLevel) {
+func (m *NodeManager) findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs []string) ([]*EdgeNode, geoLevel) {
 	countryNodes := make([]*EdgeNode, 0)
 	provinceNodes := make([]*EdgeNode, 0)
 	cityNodes := make([]*EdgeNode, 0)
 
 	defaultNodes := make([]*EdgeNode, 0)
 
-	for _, dID := range deviceIDs {
-		node := m.getEdgeNode(dID)
-		if node == nil {
-			continue
-		}
+	if len(useDeviceIDs) > 0 {
+		for _, dID := range useDeviceIDs {
+			node := m.getEdgeNode(dID)
+			if node == nil {
+				continue
+			}
 
-		defaultNodes = append(defaultNodes, node)
+			defaultNodes = append(defaultNodes, node)
 
-		if node.geoInfo.Country == userGeoInfo.Country {
-			countryNodes = append(countryNodes, node)
+			if node.geoInfo.Country == userGeoInfo.Country {
+				countryNodes = append(countryNodes, node)
 
-			if node.geoInfo.Province == userGeoInfo.Province {
-				provinceNodes = append(provinceNodes, node)
+				if node.geoInfo.Province == userGeoInfo.Province {
+					provinceNodes = append(provinceNodes, node)
 
-				if node.geoInfo.City == userGeoInfo.City {
-					cityNodes = append(cityNodes, node)
+					if node.geoInfo.City == userGeoInfo.City {
+						cityNodes = append(cityNodes, node)
+					}
 				}
 			}
 		}
+	} else {
+		m.edgeNodeMap.Range(func(key, value interface{}) bool {
+			node := value.(*EdgeNode)
+
+			defaultNodes = append(defaultNodes, node)
+
+			if node.geoInfo.Country == userGeoInfo.Country {
+				countryNodes = append(countryNodes, node)
+
+				if node.geoInfo.Province == userGeoInfo.Province {
+					provinceNodes = append(provinceNodes, node)
+
+					if node.geoInfo.City == userGeoInfo.City {
+						cityNodes = append(cityNodes, node)
+					}
+				}
+			}
+			return true
+		})
 	}
 
 	if len(cityNodes) > 0 {

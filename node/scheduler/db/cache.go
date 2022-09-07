@@ -34,9 +34,9 @@ type CacheDB interface {
 	SetNodeToGeoList(deviceID, geo string) error
 	GetNodesWithGeoList(geo string) ([]string, error)
 
-	// SetNodeToNodeList(deviceID string, typeName api.NodeTypeName) error
-	// GetNodesWithNodeList(typeName api.NodeTypeName) ([]string, error)
-	// RemoveNodeWithNodeList(deviceID string, typeName api.NodeTypeName) error
+	SetBlockToNodeFailList(deviceID, cid string) error
+	GetBlocksWithNodeFailList(deviceID string) ([]string, error)
+	RemoveBlockWithNodeFailList(deviceID, cid string) error
 
 	SetGeoToList(geo string) error
 	GetGeosWithList() ([]string, error)
