@@ -16,12 +16,12 @@ type Election struct {
 }
 
 // init timers
-func (e *Election) initElectionTimewheels(scheduler *Scheduler) {
+func (e *Election) initElectionTimewheel(scheduler *Scheduler) {
 	// election timewheel
 	e.timewheelElection = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		err := e.electionValidators(scheduler)
+		err := e.startElection(scheduler)
 		if err != nil {
-			log.Panicf("electionValidators err:%v", err.Error())
+			log.Panicf("startElection err:%v", err.Error())
 		}
 		e.timewheelElection.AddTimer(time.Duration(e.electionTime)*60*time.Second, "election", nil)
 	})
@@ -39,12 +39,12 @@ func newElection(verifiedNodeMax int) *Election {
 }
 
 func (e *Election) cleanValidators(scheduler *Scheduler) error {
-	validators, err := db.GetCacheDB().GetValidatorsWithList()
+	validatorList, err := db.GetCacheDB().GetValidatorsWithList()
 	if err != nil {
 		return err
 	}
 
-	for _, validator := range validators {
+	for _, validator := range validatorList {
 		err = db.GetCacheDB().RemoveValidatorGeoList(validator)
 		if err != nil {
 			log.Warnf("RemoveValidatorGeoList err:%v, validator:%v", err.Error(), validator)
@@ -65,7 +65,7 @@ func (e *Election) cleanValidators(scheduler *Scheduler) error {
 }
 
 // election
-func (e *Election) electionValidators(scheduler *Scheduler) error {
+func (e *Election) startElection(scheduler *Scheduler) error {
 	err := e.cleanValidators(scheduler)
 	if err != nil {
 		return err
@@ -74,7 +74,7 @@ func (e *Election) electionValidators(scheduler *Scheduler) error {
 	scheduler.poolGroup.pendingNodesToPool()
 
 	alreadyAssignValidatorMap := make(map[string]string) // key:deviceID val:geo
-	unAssignCandidates := make([]string, 0)              // deviceIDs
+	unAssignCandidateList := make([]string, 0)           // deviceIDs
 	lackValidatorMap := make(map[string]int)             //key:geo val:lack-validator-num
 
 	scheduler.poolGroup.poolMap.Range(func(key, value interface{}) bool {
@@ -86,8 +86,8 @@ func (e *Election) electionValidators(scheduler *Scheduler) error {
 
 		pool.resetRoles()
 
-		edgeNum := len(pool.edgeNodes)
-		candidateNum := len(pool.candidateNodes)
+		edgeNum := len(pool.edgeNodeMap)
+		candidateNum := len(pool.candidateNodeMap)
 		if edgeNum <= 0 && candidateNum <= 0 {
 			return true
 		}
@@ -101,18 +101,18 @@ func (e *Election) electionValidators(scheduler *Scheduler) error {
 
 		if candidateNum >= needVeriftorNum {
 			// election validators and put to alreadyAssignValidatorMap
-			// put other candidates to unAssignCandidates
+			// put other candidates to unAssignCandidateList
 			vn := 0
-			for deviceID := range pool.candidateNodes {
+			for deviceID := range pool.candidateNodeMap {
 				vn++
 				if vn > needVeriftorNum {
-					unAssignCandidates = append(unAssignCandidates, deviceID)
+					unAssignCandidateList = append(unAssignCandidateList, deviceID)
 				} else {
 					alreadyAssignValidatorMap[deviceID] = geo
 				}
 			}
 		} else {
-			for deviceID := range pool.candidateNodes {
+			for deviceID := range pool.candidateNodeMap {
 				alreadyAssignValidatorMap[deviceID] = geo
 			}
 
@@ -126,21 +126,21 @@ func (e *Election) electionValidators(scheduler *Scheduler) error {
 	// again election
 	if len(lackValidatorMap) > 0 {
 		for geo, num := range lackValidatorMap {
-			if len(unAssignCandidates) == 0 {
+			if len(unAssignCandidateList) == 0 {
 				candidateNotEnough = true
 				break
 			}
 
 			n := num
-			if len(unAssignCandidates) < num {
-				n = len(unAssignCandidates)
+			if len(unAssignCandidateList) < num {
+				n = len(unAssignCandidateList)
 			}
 
-			validatorIDs := unAssignCandidates[0:n]
-			unAssignCandidates = unAssignCandidates[n:]
+			validatorList := unAssignCandidateList[0:n]
+			unAssignCandidateList = unAssignCandidateList[n:]
 
-			for _, validatorID := range validatorIDs {
-				alreadyAssignValidatorMap[validatorID] = geo
+			for _, deviceID := range validatorList {
+				alreadyAssignValidatorMap[deviceID] = geo
 			}
 		}
 
