@@ -12,34 +12,22 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// ElectionValidate ElectionValidate
-type ElectionValidate struct {
+// Validate Validate
+type Validate struct {
 	seed int64
 
 	roundID string
 
-	duration          int
-	validateBlockMax  int // validate block num limit
-	verifiedNodeMax   int // verified node num limit
-	timewheelElection *timewheel.TimeWheel
-	electionTime      int // election time interval (minute)
+	duration         int
+	validateBlockMax int // validate block num limit
+	verifiedNodeMax  int // verified node num limit
+
 	timewheelValidate *timewheel.TimeWheel
 	validateTime      int // validate time interval (minute)
 }
 
 // init timers
-func (e *ElectionValidate) initValidateTimewheels(scheduler *Scheduler) {
-	// election timewheel
-	e.timewheelElection = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		err := e.electionValidators(scheduler)
-		if err != nil {
-			log.Panicf("electionValidators err:%v", err.Error())
-		}
-		e.timewheelElection.AddTimer(time.Duration(e.electionTime)*60*time.Second, "election", nil)
-	})
-	e.timewheelElection.Start()
-	e.timewheelElection.AddTimer(time.Duration(1)*60*time.Second, "election", nil)
-
+func (e *Validate) initValidateTimewheels(scheduler *Scheduler) {
 	// validate timewheel
 	e.timewheelValidate = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
 		err := e.startValidates(scheduler)
@@ -52,20 +40,19 @@ func (e *ElectionValidate) initValidateTimewheels(scheduler *Scheduler) {
 	e.timewheelValidate.AddTimer(time.Duration(2)*60*time.Second, "validate", nil)
 }
 
-func newElectionValidate() *ElectionValidate {
-	e := &ElectionValidate{
+func newValidate(verifiedNodeMax int) *Validate {
+	e := &Validate{
 		seed:             int64(1),
 		duration:         10,
 		validateBlockMax: 100,
-		verifiedNodeMax:  10,
-		electionTime:     60,
+		verifiedNodeMax:  verifiedNodeMax,
 		validateTime:     10,
 	}
 
 	return e
 }
 
-func (e *ElectionValidate) getReqValidates(scheduler *Scheduler, validatorID string, list []string) ([]api.ReqValidate, []string) {
+func (e *Validate) getReqValidates(scheduler *Scheduler, validatorID string, list []string) ([]api.ReqValidate, []string) {
 	req := make([]api.ReqValidate, 0)
 	errList := make([]string, 0)
 
@@ -116,7 +103,7 @@ func (e *ElectionValidate) getReqValidates(scheduler *Scheduler, validatorID str
 	return req, errList
 }
 
-func (e *ElectionValidate) getRandNum(max int, r *rand.Rand) int {
+func (e *Validate) getRandNum(max int, r *rand.Rand) int {
 	if max > 0 {
 		return r.Intn(max)
 	}
@@ -136,7 +123,7 @@ func (e *ElectionValidate) getRandNum(max int, r *rand.Rand) int {
 // }
 
 // TODO save to sql
-func (e *ElectionValidate) saveValidateResult(sID string, deviceID string, validatorID string, msg string, status db.ValidateStatus) error {
+func (e *Validate) saveValidateResult(sID string, deviceID string, validatorID string, msg string, status db.ValidateStatus) error {
 	err := db.GetCacheDB().SetValidateResultInfo(sID, deviceID, "", msg, status)
 	if err != nil {
 		return err
@@ -157,7 +144,7 @@ func (e *ElectionValidate) saveValidateResult(sID string, deviceID string, valid
 	return nil
 }
 
-func (e *ElectionValidate) validateResult(validateResults *api.ValidateResults) error {
+func (e *Validate) validateResult(validateResults *api.ValidateResults) error {
 	if validateResults.RoundID != e.roundID {
 		return xerrors.Errorf("roundID err")
 	}
@@ -218,7 +205,7 @@ func (e *ElectionValidate) validateResult(validateResults *api.ValidateResults) 
 	return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
 }
 
-func (e *ElectionValidate) checkValidateTimeOut() error {
+func (e *Validate) checkValidateTimeOut() error {
 	edgeIDs, err := db.GetCacheDB().GetNodesWithValidateingList()
 	if err != nil {
 		return err
@@ -245,154 +232,8 @@ func (e *ElectionValidate) checkValidateTimeOut() error {
 	return nil
 }
 
-func (e *ElectionValidate) cleanValidators(scheduler *Scheduler) error {
-	validators, err := db.GetCacheDB().GetValidatorsWithList()
-	if err != nil {
-		return err
-	}
-
-	for _, validator := range validators {
-		err = db.GetCacheDB().RemoveValidatorGeoList(validator)
-		if err != nil {
-			log.Warnf("RemoveValidatorGeoList err:%v, validator:%v", err.Error(), validator)
-		}
-
-		node := scheduler.nodeManager.getCandidateNode(validator)
-		if node != nil {
-			node.isValidator = false
-		}
-	}
-
-	err = db.GetCacheDB().RemoveValidatorList()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// election
-func (e *ElectionValidate) electionValidators(scheduler *Scheduler) error {
-	err := e.cleanValidators(scheduler)
-	if err != nil {
-		return err
-	}
-
-	scheduler.poolGroup.pendingNodesToPool()
-	scheduler.poolGroup.printlnPoolMap()
-
-	alreadyAssignValidatorMap := make(map[string]string) // key:deviceID val:geo
-	unAssignCandidates := make([]string, 0)              // deviceIDs
-	lackValidatorMap := make(map[string]int)             //key:geo val:lack-validator-num
-
-	scheduler.poolGroup.poolMap.Range(func(key, value interface{}) bool {
-		geo := key.(string)
-		pool := value.(*pool)
-		if pool == nil {
-			return true
-		}
-
-		pool.resetRoles()
-
-		edgeNum := len(pool.edgeNodes)
-		candidateNum := len(pool.candidateNodes)
-		if edgeNum <= 0 && candidateNum <= 0 {
-			return true
-		}
-
-		nodeTotalNum := edgeNum + candidateNum
-		n := 0
-		if nodeTotalNum%(e.verifiedNodeMax+1) > 0 {
-			n = 1
-		}
-		needVeriftorNum := nodeTotalNum/(e.verifiedNodeMax+1) + n
-
-		if candidateNum >= needVeriftorNum {
-			// election validators and put to alreadyAssignValidatorMap
-			// put other candidates to unAssignCandidates
-			vn := 0
-			for deviceID := range pool.candidateNodes {
-				vn++
-				if vn > needVeriftorNum {
-					unAssignCandidates = append(unAssignCandidates, deviceID)
-				} else {
-					alreadyAssignValidatorMap[deviceID] = geo
-				}
-			}
-		} else {
-			for deviceID := range pool.candidateNodes {
-				alreadyAssignValidatorMap[deviceID] = geo
-			}
-
-			lackValidatorMap[geo] = needVeriftorNum - candidateNum
-		}
-
-		return true
-	})
-
-	candidateNotEnough := false
-	// again election
-	if len(lackValidatorMap) > 0 {
-		for geo, num := range lackValidatorMap {
-			if len(unAssignCandidates) == 0 {
-				candidateNotEnough = true
-				break
-			}
-
-			n := num
-			if len(unAssignCandidates) < num {
-				n = len(unAssignCandidates)
-			}
-
-			validatorIDs := unAssignCandidates[0:n]
-			unAssignCandidates = unAssignCandidates[n:]
-
-			for _, validatorID := range validatorIDs {
-				alreadyAssignValidatorMap[validatorID] = geo
-			}
-		}
-
-		if candidateNotEnough {
-			log.Warnf("Candidate Not Enough  assignEdge: %v", lackValidatorMap)
-		}
-	}
-
-	// save election result
-	for validatorID, geo := range alreadyAssignValidatorMap {
-		validator := scheduler.nodeManager.getCandidateNode(validatorID)
-		if validator != nil {
-			validator.isValidator = true
-		}
-
-		err = db.GetCacheDB().SetValidatorToList(validatorID)
-		if err != nil {
-			return err
-		}
-
-		err = db.GetCacheDB().SetGeoToValidatorList(validatorID, geo)
-		if err != nil {
-			return err
-		}
-
-		// move the validator to validatorMap
-		validatorGeo, ok := scheduler.poolGroup.poolIDMap.Load(validatorID)
-		if ok && validatorGeo != nil {
-			vGeo := validatorGeo.(string)
-			poolGroup := scheduler.poolGroup.loadPool(vGeo)
-			if poolGroup != nil {
-				poolGroup.setVeriftor(validatorID)
-			}
-		}
-	}
-
-	// reset count
-	scheduler.nodeManager.resetCandidateAndValidatorCount()
-
-	return nil
-}
-
 // Validate
-func (e *ElectionValidate) startValidates(scheduler *Scheduler) error {
+func (e *Validate) startValidates(scheduler *Scheduler) error {
 	err := db.GetCacheDB().RemoveValidateingList()
 	if err != nil {
 		return err

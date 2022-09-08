@@ -18,9 +18,9 @@ type PoolGroup struct {
 
 type pool struct {
 	geoID          string
-	edgeNodes      map[string]bandwidthInfo
-	candidateNodes map[string]bandwidthInfo
-	veriftorNodes  map[string]bandwidthInfo
+	edgeNodes      map[string]*bandwidthInfo
+	candidateNodes map[string]*bandwidthInfo
+	veriftorNodes  map[string]*bandwidthInfo
 }
 
 // bandwidthInfo Info
@@ -39,9 +39,9 @@ func newPoolGroup() *PoolGroup {
 func (n *PoolGroup) loadOrNewPool(geo string) *pool {
 	p := &pool{
 		geoID:          geo,
-		edgeNodes:      make(map[string]bandwidthInfo),
-		candidateNodes: make(map[string]bandwidthInfo),
-		veriftorNodes:  make(map[string]bandwidthInfo),
+		edgeNodes:      make(map[string]*bandwidthInfo),
+		candidateNodes: make(map[string]*bandwidthInfo),
+		veriftorNodes:  make(map[string]*bandwidthInfo),
 	}
 
 	g, ok := n.poolMap.LoadOrStore(geo, p)
@@ -153,6 +153,8 @@ func (n *PoolGroup) pendingNodesToPool() {
 
 		return true
 	})
+
+	n.printlnPoolMap()
 }
 
 // PrintlnMap Println
@@ -197,7 +199,7 @@ func (g *pool) resetRoles() {
 		g.candidateNodes[deviceID] = info
 	}
 
-	g.veriftorNodes = make(map[string]bandwidthInfo)
+	g.veriftorNodes = make(map[string]*bandwidthInfo)
 }
 
 func (g *pool) addEdge(node *EdgeNode) {
@@ -206,7 +208,7 @@ func (g *pool) addEdge(node *EdgeNode) {
 		return
 	}
 
-	g.edgeNodes[deviceID] = bandwidthInfo{BandwidthUp: node.deviceInfo.BandwidthUp, BandwidthDown: node.deviceInfo.BandwidthDown}
+	g.edgeNodes[deviceID] = &bandwidthInfo{BandwidthUp: node.deviceInfo.BandwidthUp, BandwidthDown: node.deviceInfo.BandwidthDown}
 }
 
 func (g *pool) addCandidate(node *CandidateNode) {
@@ -215,7 +217,7 @@ func (g *pool) addCandidate(node *CandidateNode) {
 		return
 	}
 
-	g.candidateNodes[deviceID] = bandwidthInfo{BandwidthUp: node.deviceInfo.BandwidthUp, BandwidthDown: node.deviceInfo.BandwidthDown}
+	g.candidateNodes[deviceID] = &bandwidthInfo{BandwidthUp: node.deviceInfo.BandwidthUp, BandwidthDown: node.deviceInfo.BandwidthDown}
 }
 
 func (g *pool) removeEdge(deviceID string) {
