@@ -17,10 +17,10 @@ type PoolGroup struct {
 }
 
 type pool struct {
-	geoID          string
-	edgeNodes      map[string]*bandwidthInfo
-	candidateNodes map[string]*bandwidthInfo
-	veriftorNodes  map[string]*bandwidthInfo
+	geoID            string
+	edgeNodeMap      map[string]*bandwidthInfo
+	candidateNodeMap map[string]*bandwidthInfo
+	veriftorNodeMap  map[string]*bandwidthInfo
 }
 
 // bandwidthInfo Info
@@ -38,10 +38,10 @@ func newPoolGroup() *PoolGroup {
 
 func (n *PoolGroup) loadOrNewPool(geo string) *pool {
 	p := &pool{
-		geoID:          geo,
-		edgeNodes:      make(map[string]*bandwidthInfo),
-		candidateNodes: make(map[string]*bandwidthInfo),
-		veriftorNodes:  make(map[string]*bandwidthInfo),
+		geoID:            geo,
+		edgeNodeMap:      make(map[string]*bandwidthInfo),
+		candidateNodeMap: make(map[string]*bandwidthInfo),
+		veriftorNodeMap:  make(map[string]*bandwidthInfo),
 	}
 
 	g, ok := n.poolMap.LoadOrStore(geo, p)
@@ -169,13 +169,13 @@ func (n *PoolGroup) printlnPoolMap() {
 		cs := ""
 		vs := ""
 
-		for s := range p.edgeNodes {
+		for s := range p.edgeNodeMap {
 			es = fmt.Sprintf("%s%s,", es, s)
 		}
-		for s := range p.candidateNodes {
+		for s := range p.candidateNodeMap {
 			cs = fmt.Sprintf("%s%s,", cs, s)
 		}
-		for s := range p.veriftorNodes {
+		for s := range p.veriftorNodeMap {
 			vs = fmt.Sprintf("%s%s,", vs, s)
 		}
 		log.Info("geo:", geo, ",edgeNodes:", es, ",candidateNodes:", cs, ",veriftorNodes:", vs)
@@ -185,49 +185,49 @@ func (n *PoolGroup) printlnPoolMap() {
 }
 
 func (g *pool) setVeriftor(deviceID string) {
-	if info, ok := g.candidateNodes[deviceID]; ok {
-		g.veriftorNodes[deviceID] = info
+	if info, ok := g.candidateNodeMap[deviceID]; ok {
+		g.veriftorNodeMap[deviceID] = info
 
-		delete(g.candidateNodes, deviceID)
+		delete(g.candidateNodeMap, deviceID)
 
 		return
 	}
 }
 
 func (g *pool) resetRoles() {
-	for deviceID, info := range g.veriftorNodes {
-		g.candidateNodes[deviceID] = info
+	for deviceID, info := range g.veriftorNodeMap {
+		g.candidateNodeMap[deviceID] = info
 	}
 
-	g.veriftorNodes = make(map[string]*bandwidthInfo)
+	g.veriftorNodeMap = make(map[string]*bandwidthInfo)
 }
 
 func (g *pool) addEdge(node *EdgeNode) {
 	deviceID := node.deviceInfo.DeviceId
-	if _, ok := g.edgeNodes[deviceID]; ok {
+	if _, ok := g.edgeNodeMap[deviceID]; ok {
 		return
 	}
 
-	g.edgeNodes[deviceID] = &bandwidthInfo{BandwidthUp: node.deviceInfo.BandwidthUp, BandwidthDown: node.deviceInfo.BandwidthDown}
+	g.edgeNodeMap[deviceID] = &bandwidthInfo{BandwidthUp: node.deviceInfo.BandwidthUp, BandwidthDown: node.deviceInfo.BandwidthDown}
 }
 
 func (g *pool) addCandidate(node *CandidateNode) {
 	deviceID := node.deviceInfo.DeviceId
-	if _, ok := g.candidateNodes[deviceID]; ok {
+	if _, ok := g.candidateNodeMap[deviceID]; ok {
 		return
 	}
 
-	g.candidateNodes[deviceID] = &bandwidthInfo{BandwidthUp: node.deviceInfo.BandwidthUp, BandwidthDown: node.deviceInfo.BandwidthDown}
+	g.candidateNodeMap[deviceID] = &bandwidthInfo{BandwidthUp: node.deviceInfo.BandwidthUp, BandwidthDown: node.deviceInfo.BandwidthDown}
 }
 
 func (g *pool) removeEdge(deviceID string) {
-	if _, ok := g.edgeNodes[deviceID]; ok {
-		delete(g.edgeNodes, deviceID)
+	if _, ok := g.edgeNodeMap[deviceID]; ok {
+		delete(g.edgeNodeMap, deviceID)
 	}
 }
 
 func (g *pool) delCandidate(deviceID string) {
-	if _, ok := g.candidateNodes[deviceID]; ok {
-		delete(g.candidateNodes, deviceID)
+	if _, ok := g.candidateNodeMap[deviceID]; ok {
+		delete(g.candidateNodeMap, deviceID)
 	}
 }

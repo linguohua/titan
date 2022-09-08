@@ -233,11 +233,11 @@ func (m *NodeManager) removeCandidateNode(node *CandidateNode) {
 }
 
 func (m *NodeManager) findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs []string) ([]*EdgeNode, geoLevel) {
-	countryNodes := make([]*EdgeNode, 0)
-	provinceNodes := make([]*EdgeNode, 0)
-	cityNodes := make([]*EdgeNode, 0)
+	countryList := make([]*EdgeNode, 0)
+	provinceList := make([]*EdgeNode, 0)
+	cityList := make([]*EdgeNode, 0)
 
-	defaultNodes := make([]*EdgeNode, 0)
+	defaultList := make([]*EdgeNode, 0)
 
 	if len(useDeviceIDs) > 0 {
 		for _, dID := range useDeviceIDs {
@@ -246,16 +246,16 @@ func (m *NodeManager) findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, useDevice
 				continue
 			}
 
-			defaultNodes = append(defaultNodes, node)
+			defaultList = append(defaultList, node)
 
 			if node.geoInfo.Country == userGeoInfo.Country {
-				countryNodes = append(countryNodes, node)
+				countryList = append(countryList, node)
 
 				if node.geoInfo.Province == userGeoInfo.Province {
-					provinceNodes = append(provinceNodes, node)
+					provinceList = append(provinceList, node)
 
 					if node.geoInfo.City == userGeoInfo.City {
-						cityNodes = append(cityNodes, node)
+						cityList = append(cityList, node)
 					}
 				}
 			}
@@ -264,16 +264,16 @@ func (m *NodeManager) findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, useDevice
 		m.edgeNodeMap.Range(func(key, value interface{}) bool {
 			node := value.(*EdgeNode)
 
-			defaultNodes = append(defaultNodes, node)
+			defaultList = append(defaultList, node)
 
 			if node.geoInfo.Country == userGeoInfo.Country {
-				countryNodes = append(countryNodes, node)
+				countryList = append(countryList, node)
 
 				if node.geoInfo.Province == userGeoInfo.Province {
-					provinceNodes = append(provinceNodes, node)
+					provinceList = append(provinceList, node)
 
 					if node.geoInfo.City == userGeoInfo.City {
-						cityNodes = append(cityNodes, node)
+						cityList = append(cityList, node)
 					}
 				}
 			}
@@ -281,27 +281,27 @@ func (m *NodeManager) findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, useDevice
 		})
 	}
 
-	if len(cityNodes) > 0 {
-		return cityNodes, cityLevel
+	if len(cityList) > 0 {
+		return cityList, cityLevel
 	}
 
-	if len(provinceNodes) > 0 {
-		return provinceNodes, provinceLevel
+	if len(provinceList) > 0 {
+		return provinceList, provinceLevel
 	}
 
-	if len(countryNodes) > 0 {
-		return countryNodes, countryLevel
+	if len(countryList) > 0 {
+		return countryList, countryLevel
 	}
 
-	return defaultNodes, defaultLevel
+	return defaultList, defaultLevel
 }
 
 func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs, filterDeviceIDs []string) ([]*CandidateNode, geoLevel) {
-	countryNodes := make([]*CandidateNode, 0)
-	provinceNodes := make([]*CandidateNode, 0)
-	cityNodes := make([]*CandidateNode, 0)
+	countryList := make([]*CandidateNode, 0)
+	provinceList := make([]*CandidateNode, 0)
+	cityList := make([]*CandidateNode, 0)
 
-	defaultNodes := make([]*CandidateNode, 0)
+	defaultList := make([]*CandidateNode, 0)
 
 	if len(useDeviceIDs) > 0 {
 		for _, dID := range useDeviceIDs {
@@ -310,16 +310,16 @@ func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useD
 				continue
 			}
 
-			defaultNodes = append(defaultNodes, node)
+			defaultList = append(defaultList, node)
 
 			if node.geoInfo.Country == userGeoInfo.Country {
-				countryNodes = append(countryNodes, node)
+				countryList = append(countryList, node)
 
 				if node.geoInfo.Province == userGeoInfo.Province {
-					provinceNodes = append(provinceNodes, node)
+					provinceList = append(provinceList, node)
 
 					if node.geoInfo.City == userGeoInfo.City {
-						cityNodes = append(cityNodes, node)
+						cityList = append(cityList, node)
 					}
 				}
 			}
@@ -328,16 +328,16 @@ func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useD
 		m.candidateNodeMap.Range(func(key, value interface{}) bool {
 			node := value.(*CandidateNode)
 
-			defaultNodes = append(defaultNodes, node)
+			defaultList = append(defaultList, node)
 
 			if node.geoInfo.Country == userGeoInfo.Country {
-				countryNodes = append(countryNodes, node)
+				countryList = append(countryList, node)
 
 				if node.geoInfo.Province == userGeoInfo.Province {
-					provinceNodes = append(provinceNodes, node)
+					provinceList = append(provinceList, node)
 
 					if node.geoInfo.City == userGeoInfo.City {
-						cityNodes = append(cityNodes, node)
+						cityList = append(cityList, node)
 					}
 				}
 			}
@@ -345,45 +345,45 @@ func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useD
 		})
 	}
 
-	if len(cityNodes) > 0 {
+	if len(cityList) > 0 {
 		if len(filterDeviceIDs) > 0 {
-			cityNodes2 := m.filterCandidates(filterDeviceIDs, cityNodes)
-			if len(cityNodes2) > 0 {
-				return cityNodes2, cityLevel
+			cityList2 := m.filterCandidates(filterDeviceIDs, cityList)
+			if len(cityList2) > 0 {
+				return cityList2, cityLevel
 			}
 		} else {
-			return cityNodes, cityLevel
+			return cityList, cityLevel
 		}
 	}
 
-	if len(provinceNodes) > 0 {
+	if len(provinceList) > 0 {
 		if len(filterDeviceIDs) > 0 {
-			provinceNodes2 := m.filterCandidates(filterDeviceIDs, provinceNodes)
-			if len(provinceNodes2) > 0 {
-				return provinceNodes2, provinceLevel
+			provinceList2 := m.filterCandidates(filterDeviceIDs, provinceList)
+			if len(provinceList2) > 0 {
+				return provinceList2, provinceLevel
 			}
 		} else {
-			return provinceNodes, provinceLevel
+			return provinceList, provinceLevel
 		}
 	}
 
-	if len(countryNodes) > 0 {
+	if len(countryList) > 0 {
 		if len(filterDeviceIDs) > 0 {
-			countryNodes2 := m.filterCandidates(filterDeviceIDs, countryNodes)
-			if len(countryNodes2) > 0 {
-				return countryNodes2, countryLevel
+			countryList2 := m.filterCandidates(filterDeviceIDs, countryList)
+			if len(countryList2) > 0 {
+				return countryList2, countryLevel
 			}
 		} else {
-			return countryNodes, countryLevel
+			return countryList, countryLevel
 		}
 	}
 
 	if len(filterDeviceIDs) > 0 {
-		defaultNodes2 := m.filterCandidates(filterDeviceIDs, defaultNodes)
-		return defaultNodes2, defaultLevel
+		defaultList2 := m.filterCandidates(filterDeviceIDs, defaultList)
+		return defaultList2, defaultLevel
 	}
 
-	return defaultNodes, defaultLevel
+	return defaultList, defaultLevel
 }
 
 func (m *NodeManager) filterCandidates(filterDeviceIDs []string, nodes []*CandidateNode) []*CandidateNode {
