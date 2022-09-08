@@ -5,8 +5,10 @@ import "context"
 type Candidate interface {
 	Common
 	Device
-	Base
+	Block
+	Download
 	Validate
+	WaitQuiet(ctx context.Context) error                         //perm:read
 	ValidateBlocks(ctx context.Context, req []ReqValidate) error //perm:read
 }
 

@@ -13,7 +13,6 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/linguohua/titan/node/base"
 	"github.com/linguohua/titan/node/block"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/download"
@@ -38,14 +37,13 @@ func NewLocalEdgeNode(ctx context.Context, params *EdgeParams) api.Edge {
 
 	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.Candidate{}, exchange, params.Device.DeviceID)
 
-	base := base.NewBase(block, blockDownload)
-
 	validate := validate.NewValidate(blockDownload, block, params.Device.DeviceID)
 
 	edge := &Edge{
-		Device:   params.Device,
-		Base:     base,
-		Validate: validate,
+		Device:        params.Device,
+		Block:         block,
+		BlockDownload: blockDownload,
+		Validate:      validate,
 	}
 
 	return edge
@@ -63,6 +61,12 @@ type EdgeParams struct {
 type Edge struct {
 	*common.CommonAPI
 	*device.Device
-	*base.Base
+	*block.Block
+	*download.BlockDownload
 	*validate.Validate
+}
+
+func (edge *Edge) WaitQuiet(ctx context.Context) error {
+	log.Debug("WaitQuiet")
+	return nil
 }

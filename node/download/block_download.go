@@ -1,6 +1,7 @@
 package download
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -114,7 +115,8 @@ func (bd *BlockDownload) startDownloadServer(address string) {
 	}
 }
 
-func (bd *BlockDownload) SetDownloadSpeed(speedRate int64) error {
+// set download server upload speed
+func (bd *BlockDownload) SetDownloadSpeed(ctx context.Context, speedRate int64) error {
 	log.Infof("set download speed %d", speedRate)
 	if bd.limiter == nil {
 		return fmt.Errorf("edge.limiter == nil")
@@ -137,7 +139,7 @@ func (bd *BlockDownload) UnlimitDownloadSpeed() error {
 	return nil
 }
 
-func (bd *BlockDownload) GenerateDownloadToken() (string, error) {
+func (bd *BlockDownload) GenerateDownloadToken(ctx context.Context) (string, error) {
 	log.Debug("GenerateDownloadToken")
 	return token.GenerateToken(bd.downloadSrvKey, time.Now().Add(30*24*time.Hour).Unix())
 }

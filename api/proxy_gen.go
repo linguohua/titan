@@ -8,13 +8,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
+
 )
 
 
 var ErrNotSupported = xerrors.New("method not supported")
 
 
-type BaseStruct struct {
+type BlockStruct struct {
 
 	Internal struct {
 
@@ -26,22 +27,16 @@ type BaseStruct struct {
 
 		DeleteBlocks func(p0 context.Context, p1 []string) ([]BlockOperationResult, error) `perm:"read"`
 
-		GenerateDownloadToken func(p0 context.Context) (string, error) `perm:"read"`
-
 		LoadBlock func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
 
 		QueryCacheStat func(p0 context.Context) (CacheStat, error) `perm:"read"`
 
 		QueryCachingBlocks func(p0 context.Context) (CachingBlockList, error) `perm:"read"`
 
-		SetDownloadSpeed func(p0 context.Context, p1 int64) (error) `perm:"read"`
-
-		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
-
 	}
 }
 
-type BaseStub struct {
+type BlockStub struct {
 
 }
 
@@ -51,13 +46,17 @@ type CandidateStruct struct {
 
 	DeviceStruct
 
-	BaseStruct
+	BlockStruct
+
+	DownloadStruct
 
 	ValidateStruct
 
 	Internal struct {
 
 		ValidateBlocks func(p0 context.Context, p1 []ReqValidate) (error) `perm:"read"`
+
+		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
 
 	}
 }
@@ -68,7 +67,9 @@ type CandidateStub struct {
 
 	DeviceStub
 
-	BaseStub
+	BlockStub
+
+	DownloadStub
 
 	ValidateStub
 
@@ -118,17 +119,36 @@ type DeviceStub struct {
 
 }
 
+type DownloadStruct struct {
+
+	Internal struct {
+
+		GenerateDownloadToken func(p0 context.Context) (string, error) `perm:"read"`
+
+		SetDownloadSpeed func(p0 context.Context, p1 int64) (error) `perm:"read"`
+
+	}
+}
+
+type DownloadStub struct {
+
+}
+
 type EdgeStruct struct {
 
 	CommonStruct
 
 	DeviceStruct
 
-	BaseStruct
+	BlockStruct
+
+	DownloadStruct
 
 	ValidateStruct
 
 	Internal struct {
+
+		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
 
 	}
 }
@@ -139,7 +159,9 @@ type EdgeStub struct {
 
 	DeviceStub
 
-	BaseStub
+	BlockStub
+
+	DownloadStub
 
 	ValidateStub
 
@@ -221,114 +243,81 @@ type ValidateStub struct {
 
 
 
-func (s *BaseStruct) AnnounceBlocksWasDelete(p0 context.Context, p1 []string) ([]BlockOperationResult, error) {
+func (s *BlockStruct) AnnounceBlocksWasDelete(p0 context.Context, p1 []string) ([]BlockOperationResult, error) {
 	if s.Internal.AnnounceBlocksWasDelete == nil {
 		return *new([]BlockOperationResult), ErrNotSupported
 	}
 	return s.Internal.AnnounceBlocksWasDelete(p0, p1)
 }
 
-func (s *BaseStub) AnnounceBlocksWasDelete(p0 context.Context, p1 []string) ([]BlockOperationResult, error) {
+func (s *BlockStub) AnnounceBlocksWasDelete(p0 context.Context, p1 []string) ([]BlockOperationResult, error) {
 	return *new([]BlockOperationResult), ErrNotSupported
 }
 
-func (s *BaseStruct) BlockStoreStat(p0 context.Context) (error) {
+func (s *BlockStruct) BlockStoreStat(p0 context.Context) (error) {
 	if s.Internal.BlockStoreStat == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.BlockStoreStat(p0)
 }
 
-func (s *BaseStub) BlockStoreStat(p0 context.Context) (error) {
+func (s *BlockStub) BlockStoreStat(p0 context.Context) (error) {
 	return ErrNotSupported
 }
 
-func (s *BaseStruct) CacheBlocks(p0 context.Context, p1 ReqCacheData) (error) {
+func (s *BlockStruct) CacheBlocks(p0 context.Context, p1 ReqCacheData) (error) {
 	if s.Internal.CacheBlocks == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheBlocks(p0, p1)
 }
 
-func (s *BaseStub) CacheBlocks(p0 context.Context, p1 ReqCacheData) (error) {
+func (s *BlockStub) CacheBlocks(p0 context.Context, p1 ReqCacheData) (error) {
 	return ErrNotSupported
 }
 
-func (s *BaseStruct) DeleteBlocks(p0 context.Context, p1 []string) ([]BlockOperationResult, error) {
+func (s *BlockStruct) DeleteBlocks(p0 context.Context, p1 []string) ([]BlockOperationResult, error) {
 	if s.Internal.DeleteBlocks == nil {
 		return *new([]BlockOperationResult), ErrNotSupported
 	}
 	return s.Internal.DeleteBlocks(p0, p1)
 }
 
-func (s *BaseStub) DeleteBlocks(p0 context.Context, p1 []string) ([]BlockOperationResult, error) {
+func (s *BlockStub) DeleteBlocks(p0 context.Context, p1 []string) ([]BlockOperationResult, error) {
 	return *new([]BlockOperationResult), ErrNotSupported
 }
 
-func (s *BaseStruct) GenerateDownloadToken(p0 context.Context) (string, error) {
-	if s.Internal.GenerateDownloadToken == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.GenerateDownloadToken(p0)
-}
-
-func (s *BaseStub) GenerateDownloadToken(p0 context.Context) (string, error) {
-	return "", ErrNotSupported
-}
-
-func (s *BaseStruct) LoadBlock(p0 context.Context, p1 string) ([]byte, error) {
+func (s *BlockStruct) LoadBlock(p0 context.Context, p1 string) ([]byte, error) {
 	if s.Internal.LoadBlock == nil {
 		return *new([]byte), ErrNotSupported
 	}
 	return s.Internal.LoadBlock(p0, p1)
 }
 
-func (s *BaseStub) LoadBlock(p0 context.Context, p1 string) ([]byte, error) {
+func (s *BlockStub) LoadBlock(p0 context.Context, p1 string) ([]byte, error) {
 	return *new([]byte), ErrNotSupported
 }
 
-func (s *BaseStruct) QueryCacheStat(p0 context.Context) (CacheStat, error) {
+func (s *BlockStruct) QueryCacheStat(p0 context.Context) (CacheStat, error) {
 	if s.Internal.QueryCacheStat == nil {
 		return *new(CacheStat), ErrNotSupported
 	}
 	return s.Internal.QueryCacheStat(p0)
 }
 
-func (s *BaseStub) QueryCacheStat(p0 context.Context) (CacheStat, error) {
+func (s *BlockStub) QueryCacheStat(p0 context.Context) (CacheStat, error) {
 	return *new(CacheStat), ErrNotSupported
 }
 
-func (s *BaseStruct) QueryCachingBlocks(p0 context.Context) (CachingBlockList, error) {
+func (s *BlockStruct) QueryCachingBlocks(p0 context.Context) (CachingBlockList, error) {
 	if s.Internal.QueryCachingBlocks == nil {
 		return *new(CachingBlockList), ErrNotSupported
 	}
 	return s.Internal.QueryCachingBlocks(p0)
 }
 
-func (s *BaseStub) QueryCachingBlocks(p0 context.Context) (CachingBlockList, error) {
+func (s *BlockStub) QueryCachingBlocks(p0 context.Context) (CachingBlockList, error) {
 	return *new(CachingBlockList), ErrNotSupported
-}
-
-func (s *BaseStruct) SetDownloadSpeed(p0 context.Context, p1 int64) (error) {
-	if s.Internal.SetDownloadSpeed == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.SetDownloadSpeed(p0, p1)
-}
-
-func (s *BaseStub) SetDownloadSpeed(p0 context.Context, p1 int64) (error) {
-	return ErrNotSupported
-}
-
-func (s *BaseStruct) WaitQuiet(p0 context.Context) (error) {
-	if s.Internal.WaitQuiet == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.WaitQuiet(p0)
-}
-
-func (s *BaseStub) WaitQuiet(p0 context.Context) (error) {
-	return ErrNotSupported
 }
 
 
@@ -342,6 +331,17 @@ func (s *CandidateStruct) ValidateBlocks(p0 context.Context, p1 []ReqValidate) (
 }
 
 func (s *CandidateStub) ValidateBlocks(p0 context.Context, p1 []ReqValidate) (error) {
+	return ErrNotSupported
+}
+
+func (s *CandidateStruct) WaitQuiet(p0 context.Context) (error) {
+	if s.Internal.WaitQuiet == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.WaitQuiet(p0)
+}
+
+func (s *CandidateStub) WaitQuiet(p0 context.Context) (error) {
 	return ErrNotSupported
 }
 
@@ -474,6 +474,42 @@ func (s *DeviceStub) DeviceInfo(p0 context.Context) (DevicesInfo, error) {
 
 
 
+
+func (s *DownloadStruct) GenerateDownloadToken(p0 context.Context) (string, error) {
+	if s.Internal.GenerateDownloadToken == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.GenerateDownloadToken(p0)
+}
+
+func (s *DownloadStub) GenerateDownloadToken(p0 context.Context) (string, error) {
+	return "", ErrNotSupported
+}
+
+func (s *DownloadStruct) SetDownloadSpeed(p0 context.Context, p1 int64) (error) {
+	if s.Internal.SetDownloadSpeed == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.SetDownloadSpeed(p0, p1)
+}
+
+func (s *DownloadStub) SetDownloadSpeed(p0 context.Context, p1 int64) (error) {
+	return ErrNotSupported
+}
+
+
+
+
+func (s *EdgeStruct) WaitQuiet(p0 context.Context) (error) {
+	if s.Internal.WaitQuiet == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.WaitQuiet(p0)
+}
+
+func (s *EdgeStub) WaitQuiet(p0 context.Context) (error) {
+	return ErrNotSupported
+}
 
 
 
@@ -736,10 +772,11 @@ func (s *ValidateStub) BeValidate(p0 context.Context, p1 ReqValidate, p2 string)
 
 
 
-var _ Base = new(BaseStruct)
+var _ Block = new(BlockStruct)
 var _ Candidate = new(CandidateStruct)
 var _ Common = new(CommonStruct)
 var _ Device = new(DeviceStruct)
+var _ Download = new(DownloadStruct)
 var _ Edge = new(EdgeStruct)
 var _ Scheduler = new(SchedulerStruct)
 var _ Validate = new(ValidateStruct)

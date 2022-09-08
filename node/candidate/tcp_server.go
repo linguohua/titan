@@ -65,7 +65,7 @@ func handleMessage(conn *net.TCPConn, candidate *Candidate) {
 
 		conn.Close()
 		duration := time.Now().Sub(now)
-		bandwidth := float64(size) / float64(duration) * 1000000000
+		bandwidth := float64(size) / float64(duration) * float64(time.Second)
 		log.Infof("size:%d, duration:%d, bandwidth:%f, deviceID:%s", size, duration, bandwidth, deviceID)
 	}()
 
@@ -81,17 +81,17 @@ func handleMessage(conn *net.TCPConn, candidate *Candidate) {
 		return
 	}
 
-	vb, ok := candidate.loadValidateBlockFromMap(deviceID)
+	bw, ok := candidate.loadBlockWaiterFromMap(deviceID)
 	if !ok {
 		log.Errorf("Candidate no wait for device %s", deviceID)
 		return
 	}
 
-	if vb.conn != nil {
+	if bw.conn != nil {
 		log.Errorf("device %s aready connect", deviceID)
 		return
 	}
-	vb.conn = conn
+	bw.conn = conn
 
 	log.Infof("edge node %s connect to candidate, testing bandwidth", deviceID)
 
@@ -100,17 +100,17 @@ func handleMessage(conn *net.TCPConn, candidate *Candidate) {
 		buf, err = readItem(conn)
 		if err != nil {
 			log.Infof("read item error:%v, deviceID:%s", err, deviceID)
-			if vb.ch != nil {
+			if bw.ch != nil {
 				// notify waitblock to stop
-				close(vb.ch)
+				close(bw.ch)
 			}
-			vb.conn = nil
+			bw.conn = nil
 			return
 		}
 
 		size += int64(len(buf))
 
-		safeSend(vb.ch, buf)
+		safeSend(bw.ch, buf)
 
 	}
 }

@@ -88,18 +88,6 @@ func (block *Block) startBlockLoader() {
 	}
 }
 
-func (block *Block) OnCacheBlockReq(req api.ReqCacheData) error {
-	delayReq := block.filterAvailableReq(apiReq2DelayReq(&req))
-	if len(delayReq) == 0 {
-		log.Debug("CacheData, len(req) == 0 not need to handle")
-		return nil
-	}
-
-	block.reqList = append(block.reqList, delayReq...)
-
-	return nil
-}
-
 func (block *Block) cacheResult(ctx context.Context, cid, from string, err error) {
 	var errMsg = ""
 	var success = true
@@ -143,6 +131,18 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 	}
 
 	return results
+}
+
+func (block *Block) CacheBlocks(ctx context.Context, req api.ReqCacheData) error {
+	delayReq := block.filterAvailableReq(apiReq2DelayReq(&req))
+	if len(delayReq) == 0 {
+		log.Debug("CacheData, len(req) == 0 not need to handle")
+		return nil
+	}
+
+	block.reqList = append(block.reqList, delayReq...)
+
+	return nil
 }
 
 // delete block in local store and scheduler
@@ -205,7 +205,7 @@ func (block *Block) AnnounceBlocksWasDelete(ctx context.Context, cids []string) 
 	return failedResults, nil
 }
 
-func (block *Block) QueryCacheStat() (api.CacheStat, error) {
+func (block *Block) QueryCacheStat(ctx context.Context) (api.CacheStat, error) {
 	result := api.CacheStat{}
 
 	keyCount, err := block.blockStore.KeyCount()
@@ -221,8 +221,19 @@ func (block *Block) QueryCacheStat() (api.CacheStat, error) {
 	return result, nil
 }
 
-func (block *Block) LoadBlockWithCid(cid string) ([]byte, error) {
-	// log.Infof("LoadBlockWithCid, cid:%s", cid)
+func (block *Block) BlockStoreStat(ctx context.Context) error {
+	log.Debug("BlockStoreStat")
+
+	return nil
+}
+
+func (block *Block) QueryCachingBlocks(ctx context.Context) (api.CachingBlockList, error) {
+	result := api.CachingBlockList{}
+	return result, nil
+}
+
+func (block *Block) LoadBlock(ctx context.Context, cid string) ([]byte, error) {
+	// log.Infof("LoadBlock, cid:%s", cid)
 	if block.blockStore == nil {
 		log.Errorf("LoadData, blockStore not setting")
 		return nil, nil

@@ -2,8 +2,7 @@ package api
 
 import "context"
 
-type Base interface {
-	WaitQuiet(ctx context.Context) error //perm:read
+type Block interface {
 	// cache blocks
 	CacheBlocks(ctx context.Context, req ReqCacheData) error //perm:read
 	// told to scheduler local block was delete
@@ -19,10 +18,6 @@ type Base interface {
 	QueryCacheStat(ctx context.Context) (CacheStat, error) //perm:read
 	// query block caching stat
 	QueryCachingBlocks(ctx context.Context) (CachingBlockList, error) //perm:read
-	// set download server upload speed
-	SetDownloadSpeed(ctx context.Context, speed int64) error //perm:read
-	// generate token for user to download block
-	GenerateDownloadToken(ctx context.Context) (string, error) //perm:read
 }
 
 type ReqCacheData struct {

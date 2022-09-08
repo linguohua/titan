@@ -14,7 +14,6 @@ import (
 	"github.com/linguohua/titan/lib/p2p"
 	"golang.org/x/time/rate"
 
-	"github.com/linguohua/titan/node/base"
 	"github.com/linguohua/titan/node/block"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/device"
@@ -47,15 +46,14 @@ func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, params *edge.
 
 	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, exchange, params.Device.DeviceID)
 
-	base := base.NewBase(block, blockDownload)
-
 	validate := vd.NewValidate(blockDownload, block, params.Device.DeviceID)
 
 	candidate := &Candidate{
-		Device:    params.Device,
-		Base:      base,
-		Validate:  validate,
-		scheduler: params.Scheduler,
+		Device:        params.Device,
+		Block:         block,
+		BlockDownload: blockDownload,
+		Validate:      validate,
+		scheduler:     params.Scheduler,
 	}
 
 	go candidate.startTcpServer(tcpSrvAddr)
@@ -78,30 +76,25 @@ func cidFromData(data []byte) (string, error) {
 	return fmt.Sprintf("%v", c), nil
 }
 
-type validateBlock struct {
+type blockWaiter struct {
 	conn *net.TCPConn
 	ch   chan []byte
 }
 
 type Candidate struct {
 	*common.CommonAPI
-	*base.Base
+	*block.Block
+	*download.BlockDownload
 	*device.Device
 	*vd.Validate
 
-	scheduler   api.Scheduler
-	tcpSrvAddr  string
-	validateMap sync.Map
+	scheduler      api.Scheduler
+	tcpSrvAddr     string
+	blockWaiterMap sync.Map
 }
 
 func (candidate *Candidate) WaitQuiet(ctx context.Context) error {
 	log.Debug("WaitQuiet")
-	return nil
-}
-
-// edge node send block to candidate
-func (candidate *Candidate) SendBlock(ctx context.Context, block []byte, deviceID string) error {
-	log.Infof("SendBlock, len:%d", len(block))
 	return nil
 }
 
@@ -116,10 +109,10 @@ func (candidate *Candidate) ValidateBlocks(ctx context.Context, req []api.ReqVal
 	return nil
 }
 
-func (candidate *Candidate) loadValidateBlockFromMap(key string) (*validateBlock, bool) {
-	vb, ok := candidate.validateMap.Load(key)
+func (candidate *Candidate) loadBlockWaiterFromMap(key string) (*blockWaiter, bool) {
+	vb, ok := candidate.blockWaiterMap.Load(key)
 	if ok {
-		return vb.(*validateBlock), ok
+		return vb.(*blockWaiter), ok
 	}
 	return nil, ok
 }
@@ -128,11 +121,11 @@ func sendValidateResult(ctx context.Context, candidate *Candidate, result *api.V
 	return candidate.scheduler.ValidateBlockResult(ctx, *result)
 }
 
-func waitBlock(vb *validateBlock, req *api.ReqValidate, candidate *Candidate, result *api.ValidateResults) {
+func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, result *api.ValidateResults) {
 	defer func() {
-		vb, ok := candidate.loadValidateBlockFromMap(result.DeviceID)
+		vb, ok := candidate.loadBlockWaiterFromMap(result.DeviceID)
 		if ok {
-			candidate.validateMap.Delete(result.DeviceID)
+			candidate.blockWaiterMap.Delete(result.DeviceID)
 			if vb.ch != nil {
 				close(vb.ch)
 				vb.ch = nil
@@ -216,16 +209,16 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 
 	result.DeviceID = info.DeviceId
 
-	vb, ok := candidate.loadValidateBlockFromMap(info.DeviceId)
+	bw, ok := candidate.loadBlockWaiterFromMap(info.DeviceId)
 	if ok {
-		log.Errorf("Aready doing validate edge node, deviceID:%s, not need to repeat to do", info.DeviceId)
+		log.Errorf("Aready doing validate node, deviceID:%s, not need to repeat to do", info.DeviceId)
 		return
 	}
 
-	vb = &validateBlock{conn: nil, ch: make(chan []byte)}
-	candidate.validateMap.Store(info.DeviceId, vb)
+	bw = &blockWaiter{conn: nil, ch: make(chan []byte)}
+	candidate.blockWaiterMap.Store(info.DeviceId, bw)
 
-	go waitBlock(vb, req, candidate, result)
+	go waitBlock(bw, req, candidate, result)
 
 	wctx, cancel := context.WithTimeout(context.Background(), (time.Duration(req.Duration))*time.Second)
 	defer cancel()
