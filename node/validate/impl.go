@@ -44,12 +44,12 @@ func (validate *Validate) BeValidate(ctx context.Context, reqValidate api.ReqVal
 
 func (validate *Validate) limitBlockUploadRate() int64 {
 	oldRate := validate.blockDownload.GetRateLimit()
-	validate.blockDownload.SetDownloadSpeed(0)
+	validate.blockDownload.SetDownloadSpeed(context.TODO(), 0)
 	return int64(oldRate)
 }
 
 func (validate *Validate) resetBlockUploadRate(oldRate int64) {
-	validate.blockDownload.SetDownloadSpeed(oldRate)
+	validate.blockDownload.SetDownloadSpeed(context.TODO(), oldRate)
 }
 
 func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqValidate) {
@@ -80,7 +80,7 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 
 		random := r.Intn(len(cids))
 		cid := cids[random]
-		block, err := validate.block.LoadBlockWithCid(cid)
+		block, err := validate.block.LoadBlock(context.TODO(), cid)
 		if err != nil && err != datastore.ErrNotFound {
 			log.Errorf("sendBlocks, get block error:%v", err)
 			return
