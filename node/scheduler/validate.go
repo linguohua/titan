@@ -27,12 +27,12 @@ type Validate struct {
 }
 
 // init timers
-func (e *Validate) initValidateTimewheels(scheduler *Scheduler) {
+func (e *Validate) initValidateTimewheel(scheduler *Scheduler) {
 	// validate timewheel
 	e.timewheelValidate = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		err := e.startValidates(scheduler)
+		err := e.startValidate(scheduler)
 		if err != nil {
-			log.Panicf("startValidates err:%v", err.Error())
+			log.Panicf("startValidate err:%v", err.Error())
 		}
 		e.timewheelValidate.AddTimer(time.Duration(e.validateTime)*60*time.Second, "validate", nil)
 	})
@@ -123,8 +123,8 @@ func (e *Validate) getRandNum(max int, r *rand.Rand) int {
 // }
 
 // TODO save to sql
-func (e *Validate) saveValidateResult(sID string, deviceID string, validatorID string, msg string, status db.ValidateStatus) error {
-	err := db.GetCacheDB().SetValidateResultInfo(sID, deviceID, "", msg, status)
+func (e *Validate) saveValidateResult(rID string, deviceID string, validatorID string, msg string, status db.ValidateStatus) error {
+	err := db.GetCacheDB().SetValidateResultInfo(rID, deviceID, "", msg, status)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func (e *Validate) saveValidateResult(sID string, deviceID string, validatorID s
 	}
 
 	if msg != "" {
-		err = db.GetCacheDB().SetNodeToValidateErrorList(sID, deviceID)
+		err = db.GetCacheDB().SetNodeToValidateErrorList(rID, deviceID)
 		if err != nil {
 			return err
 		}
@@ -206,24 +206,24 @@ func (e *Validate) validateResult(validateResults *api.ValidateResults) error {
 }
 
 func (e *Validate) checkValidateTimeOut() error {
-	edgeIDs, err := db.GetCacheDB().GetNodesWithValidateingList()
+	deviceIDs, err := db.GetCacheDB().GetNodesWithValidateingList()
 	if err != nil {
 		return err
 	}
 
-	if len(edgeIDs) > 0 {
-		log.Infof("checkValidateTimeOut list:%v", edgeIDs)
+	if len(deviceIDs) > 0 {
+		log.Infof("checkValidateTimeOut list:%v", deviceIDs)
 
-		for _, edgeID := range edgeIDs {
-			err = db.GetCacheDB().SetValidateResultInfo(e.roundID, edgeID, "", "", db.ValidateStatusTimeOut)
+		for _, deviceID := range deviceIDs {
+			err = db.GetCacheDB().SetValidateResultInfo(e.roundID, deviceID, "", "", db.ValidateStatusTimeOut)
 			if err != nil {
-				log.Warnf("checkValidateTimeOut SetValidateResultInfo err:%v,DeviceId:%v", err.Error(), edgeID)
+				log.Warnf("checkValidateTimeOut SetValidateResultInfo err:%v,DeviceId:%v", err.Error(), deviceID)
 				continue
 			}
 
-			err = db.GetCacheDB().RemoveNodeWithValidateingList(edgeID)
+			err = db.GetCacheDB().RemoveNodeWithValidateingList(deviceID)
 			if err != nil {
-				log.Warnf("checkValidateTimeOut RemoveNodeWithValidateList err:%v,DeviceId:%v", err.Error(), edgeID)
+				log.Warnf("checkValidateTimeOut RemoveNodeWithValidateList err:%v,DeviceId:%v", err.Error(), deviceID)
 				continue
 			}
 		}
@@ -233,7 +233,7 @@ func (e *Validate) checkValidateTimeOut() error {
 }
 
 // Validate
-func (e *Validate) startValidates(scheduler *Scheduler) error {
+func (e *Validate) startValidate(scheduler *Scheduler) error {
 	err := db.GetCacheDB().RemoveValidateingList()
 	if err != nil {
 		return err
@@ -282,11 +282,11 @@ func (e *Validate) startValidates(scheduler *Scheduler) error {
 
 		verifiedList := make([]string, 0)
 		// rand group
-		for deviceID := range poolGroup.edgeNodes {
+		for deviceID := range poolGroup.edgeNodeMap {
 			verifiedList = append(verifiedList, deviceID)
 		}
 
-		for deviceID := range poolGroup.candidateNodes {
+		for deviceID := range poolGroup.candidateNodeMap {
 			verifiedList = append(verifiedList, deviceID)
 		}
 

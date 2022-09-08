@@ -36,8 +36,8 @@ func NewLocalScheduleNode() api.Scheduler {
 		validate:    validate,
 	}
 
-	election.initElectionTimewheels(s)
-	validate.initValidateTimewheels(s)
+	election.initElectionTimewheel(s)
+	validate.initValidateTimewheel(s)
 
 	return s
 }
@@ -185,15 +185,15 @@ func (s *Scheduler) DeleteBlocks(ctx context.Context, deviceID string, cids []st
 
 	candidate := s.nodeManager.getCandidateNode(deviceID)
 	if candidate != nil {
-		results, err := candidate.nodeAPI.DeleteBlocks(ctx, cids)
+		resultList, err := candidate.nodeAPI.DeleteBlocks(ctx, cids)
 		if err != nil {
 			return nil, err
 		}
 
 		nodeFinded = true
 
-		if len(results) > 0 {
-			for _, data := range results {
+		if len(resultList) > 0 {
+			for _, data := range resultList {
 				errorMap[data.Cid] = data.ErrMsg
 			}
 		}
@@ -402,7 +402,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error 
 
 // QueryCacheStatWithNode Query Cache Stat
 func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]api.CacheStat, error) {
-	stats := make([]api.CacheStat, 0)
+	statList := make([]api.CacheStat, 0)
 
 	// redis datas
 	body := api.CacheStat{}
@@ -411,24 +411,24 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 		body.CacheBlockCount = int(count)
 	}
 
-	stats = append(stats, body)
+	statList = append(statList, body)
 
 	// node datas
 	candidata := s.nodeManager.getCandidateNode(deviceID)
 	if candidata != nil {
 		nodeBody, _ := candidata.nodeAPI.QueryCacheStat(ctx)
-		stats = append(stats, nodeBody)
-		return stats, nil
+		statList = append(statList, nodeBody)
+		return statList, nil
 	}
 
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
 		nodeBody, _ := edge.nodeAPI.QueryCacheStat(ctx)
-		stats = append(stats, nodeBody)
-		return stats, nil
+		statList = append(statList, nodeBody)
+		return statList, nil
 	}
 
-	return stats, xerrors.New("node not find")
+	return statList, xerrors.New("node not find")
 }
 
 // QueryCachingBlocksWithNode Query Caching Blocks
@@ -448,12 +448,12 @@ func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID str
 
 // ElectionValidators Election Validators
 func (s *Scheduler) ElectionValidators(ctx context.Context) error {
-	return s.election.electionValidators(s)
+	return s.election.startElection(s)
 }
 
 // Validate Validate edge
 func (s *Scheduler) Validate(ctx context.Context) error {
-	return s.validate.startValidates(s)
+	return s.validate.startValidate(s)
 }
 
 // GetIndexInfo indexPage info
