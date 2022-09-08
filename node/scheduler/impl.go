@@ -21,17 +21,22 @@ var log = logging.Logger("scheduler")
 
 // NewLocalScheduleNode NewLocalScheduleNode
 func NewLocalScheduleNode() api.Scheduler {
+	verifiedNodeMax := 10
+
 	manager := newNodeManager()
 	pool := newPoolGroup()
-	validate := newElectionValidate()
+	election := newElection(verifiedNodeMax)
+	validate := newValidate(verifiedNodeMax)
 
 	s := &Scheduler{
-		CommonAPI:        common.NewCommonAPI(manager.updateLastRequestTime),
-		nodeManager:      manager,
-		poolGroup:        pool,
-		electionValidate: validate,
+		CommonAPI:   common.NewCommonAPI(manager.updateLastRequestTime),
+		nodeManager: manager,
+		poolGroup:   pool,
+		election:    election,
+		validate:    validate,
 	}
 
+	election.initElectionTimewheels(s)
 	validate.initValidateTimewheels(s)
 
 	return s
@@ -44,7 +49,8 @@ type Scheduler struct {
 	nodeManager *NodeManager
 	poolGroup   *PoolGroup
 
-	electionValidate *ElectionValidate
+	election *Election
+	validate *Validate
 }
 
 // EdgeNodeConnect edge connect
@@ -105,7 +111,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 
 // ValidateBlockResult Validate Block Result
 func (s Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.ValidateResults) error {
-	err := s.electionValidate.validateResult(&validateResults)
+	err := s.validate.validateResult(&validateResults)
 	if err != nil {
 		log.Errorf("ValidateBlockResult err:%v", err.Error())
 	}
@@ -442,12 +448,12 @@ func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID str
 
 // ElectionValidators Election Validators
 func (s *Scheduler) ElectionValidators(ctx context.Context) error {
-	return s.electionValidate.electionValidators(s)
+	return s.election.electionValidators(s)
 }
 
 // Validate Validate edge
 func (s *Scheduler) Validate(ctx context.Context) error {
-	return s.electionValidate.startValidates(s)
+	return s.validate.startValidates(s)
 }
 
 // GetIndexInfo indexPage info
