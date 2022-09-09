@@ -296,7 +296,7 @@ func (m *NodeManager) findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, useDevice
 	return defaultList, defaultLevel
 }
 
-func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs, filterDeviceIDs []string) ([]*CandidateNode, geoLevel) {
+func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs []string) ([]*CandidateNode, geoLevel) {
 	countryList := make([]*CandidateNode, 0)
 	provinceList := make([]*CandidateNode, 0)
 	cityList := make([]*CandidateNode, 0)
@@ -346,41 +346,15 @@ func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useD
 	}
 
 	if len(cityList) > 0 {
-		if len(filterDeviceIDs) > 0 {
-			cityList2 := m.filterCandidates(filterDeviceIDs, cityList)
-			if len(cityList2) > 0 {
-				return cityList2, cityLevel
-			}
-		} else {
-			return cityList, cityLevel
-		}
+		return cityList, cityLevel
 	}
 
 	if len(provinceList) > 0 {
-		if len(filterDeviceIDs) > 0 {
-			provinceList2 := m.filterCandidates(filterDeviceIDs, provinceList)
-			if len(provinceList2) > 0 {
-				return provinceList2, provinceLevel
-			}
-		} else {
-			return provinceList, provinceLevel
-		}
+		return provinceList, provinceLevel
 	}
 
 	if len(countryList) > 0 {
-		if len(filterDeviceIDs) > 0 {
-			countryList2 := m.filterCandidates(filterDeviceIDs, countryList)
-			if len(countryList2) > 0 {
-				return countryList2, countryLevel
-			}
-		} else {
-			return countryList, countryLevel
-		}
-	}
-
-	if len(filterDeviceIDs) > 0 {
-		defaultList2 := m.filterCandidates(filterDeviceIDs, defaultList)
-		return defaultList2, defaultLevel
+		return countryList, countryLevel
 	}
 
 	return defaultList, defaultLevel
@@ -448,7 +422,7 @@ func (m *NodeManager) getNodeURLWithData(cid, ip string) (string, error) {
 		return "", xerrors.New("not find node")
 	}
 
-	uInfo, err := region.GetRegion().GetGeoInfo(ip)
+	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
 	if err != nil {
 		log.Warnf("getNodeURLWithData GetGeoInfo err:%v,ip:%v", err, ip)
 	}
@@ -456,8 +430,8 @@ func (m *NodeManager) getNodeURLWithData(cid, ip string) (string, error) {
 	// log.Infof("getNodeURLWithData user ip:%v,geo:%v,cid:%v", ip, uInfo.Geo, cid)
 
 	var url string
-	nodeEs, geoLevelE := m.findEdgeNodeWithGeo(uInfo, deviceIDs)
-	nodeCs, geoLevelC := m.findCandidateNodeWithGeo(uInfo, deviceIDs, []string{})
+	nodeEs, geoLevelE := m.findEdgeNodeWithGeo(geoInfo, deviceIDs)
+	nodeCs, geoLevelC := m.findCandidateNodeWithGeo(geoInfo, deviceIDs)
 	if geoLevelE < geoLevelC {
 		url = nodeCs[randomNum(0, len(nodeCs))].deviceInfo.DownloadSrvURL
 	} else if geoLevelE > geoLevelC {
@@ -490,7 +464,7 @@ func (m *NodeManager) getCandidateNodesWithData(cid string, geoInfo *region.GeoI
 		return nil, xerrors.New("not find node ")
 	}
 
-	nodeCs, _ := m.findCandidateNodeWithGeo(geoInfo, deviceIDs, []string{})
+	nodeCs, _ := m.findCandidateNodeWithGeo(geoInfo, deviceIDs)
 
 	return nodeCs, nil
 }
