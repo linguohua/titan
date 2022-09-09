@@ -197,7 +197,7 @@ var LimitRateCmd = &cli.Command{
 
 var DownloadInfoCmd = &cli.Command{
 	Name:  "downinfo",
-	Usage: "generate token",
+	Usage: "get download server url and token",
 	Flags: []cli.Flag{},
 	Action: func(cctx *cli.Context) error {
 		api, closer, err := GetEdgeAPI(cctx)
@@ -207,13 +207,14 @@ var DownloadInfoCmd = &cli.Command{
 		defer closer()
 
 		ctx := ReqContext(cctx)
-		tk, err := api.GetDownloadInfo(ctx)
+		info, err := api.GetDownloadInfo(ctx)
 		if err != nil {
 			fmt.Printf("Unlimit speed failed:%v", err)
 			return err
 		}
 
-		fmt.Printf("Generate token success %s", tk)
+		fmt.Printf("URL:%s\n", info.URL)
+		fmt.Printf("Token:%s\n", info.Token)
 		return nil
 	},
 }
