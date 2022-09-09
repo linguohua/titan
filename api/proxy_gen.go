@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -123,7 +122,7 @@ type DownloadStruct struct {
 
 	Internal struct {
 
-		GenerateDownloadToken func(p0 context.Context) (string, error) `perm:"read"`
+		GetDownloadInfo func(p0 context.Context) (DownloadInfo, error) `perm:"read"`
 
 		SetDownloadSpeed func(p0 context.Context, p1 int64) (error) `perm:"read"`
 
@@ -475,15 +474,15 @@ func (s *DeviceStub) DeviceInfo(p0 context.Context) (DevicesInfo, error) {
 
 
 
-func (s *DownloadStruct) GenerateDownloadToken(p0 context.Context) (string, error) {
-	if s.Internal.GenerateDownloadToken == nil {
-		return "", ErrNotSupported
+func (s *DownloadStruct) GetDownloadInfo(p0 context.Context) (DownloadInfo, error) {
+	if s.Internal.GetDownloadInfo == nil {
+		return *new(DownloadInfo), ErrNotSupported
 	}
-	return s.Internal.GenerateDownloadToken(p0)
+	return s.Internal.GetDownloadInfo(p0)
 }
 
-func (s *DownloadStub) GenerateDownloadToken(p0 context.Context) (string, error) {
-	return "", ErrNotSupported
+func (s *DownloadStub) GetDownloadInfo(p0 context.Context) (DownloadInfo, error) {
+	return *new(DownloadInfo), ErrNotSupported
 }
 
 func (s *DownloadStruct) SetDownloadSpeed(p0 context.Context, p1 int64) (error) {

@@ -57,13 +57,13 @@ func getCandidate(candidateURL string) (*Candidate, error) {
 		return nil, err
 	}
 
-	tk, err := api.GenerateDownloadToken(ctx)
+	download, err := api.GetDownloadInfo(ctx)
 	if err != nil {
 		log.Errorf("getCandidateAPI, NewCandicate err:%v", err)
 		return nil, err
 	}
 
-	candidate := &Candidate{api: api, deviceID: info.DeviceId, downSrvURL: info.DownloadSrvURL, token: tk}
+	candidate := &Candidate{api: api, deviceID: info.DeviceId, downSrvURL: download.URL, token: download.Token}
 	return candidate, nil
 }
 
