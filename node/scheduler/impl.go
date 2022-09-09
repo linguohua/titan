@@ -337,13 +337,13 @@ func (s *Scheduler) FindNodeWithBlock(ctx context.Context, cid, ip string) (stri
 	return "", nil
 }
 
-// GetDownloadURLWithBlock find node
-func (s *Scheduler) GetDownloadURLWithBlock(ctx context.Context, cid, ip string) (string, error) {
-	if cid == "" {
-		return "", xerrors.New("cid is nil")
+// GetDownloadInfoWithBlocks find node
+func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string, ip string) (map[string]api.DownloadInfo, error) {
+	if len(cids) < 1 {
+		return nil, xerrors.New("cids is nil")
 	}
 
-	return s.nodeManager.getNodeURLWithData(cid, ip)
+	return s.nodeManager.getDownloadInfoWithDatas(cids, ip)
 }
 
 // CandidateNodeConnect Candidate connect
