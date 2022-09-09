@@ -11,6 +11,7 @@ import (
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/lib/token"
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/stores"
@@ -139,14 +140,19 @@ func (bd *BlockDownload) UnlimitDownloadSpeed() error {
 	return nil
 }
 
-func (bd *BlockDownload) GenerateDownloadToken(ctx context.Context) (string, error) {
-	log.Debug("GenerateDownloadToken")
-	return token.GenerateToken(bd.downloadSrvKey, time.Now().Add(30*24*time.Hour).Unix())
-}
+func (bd *BlockDownload) GetDownloadInfo(ctx context.Context) (api.DownloadInfo, error) {
+	tk, err := token.GenerateToken(bd.downloadSrvKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
+	if err != nil {
+		return api.DownloadInfo{}, err
+	}
 
-func (bd *BlockDownload) GetDownloadSrvURL() string {
-	log.Debug("GenerateDownloadToken")
-	return bd.downloadSrvURL
+	info := api.DownloadInfo{
+		URL:   bd.downloadSrvURL,
+		Token: tk,
+	}
+
+	return info, nil
+
 }
 
 func (bd *BlockDownload) GetRateLimit() int64 {

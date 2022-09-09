@@ -15,7 +15,7 @@ var EdgeCmds = []*cli.Command{
 	DeleteBlockCmd,
 	ValidateBlockCmd,
 	LimitRateCmd,
-	GenerateTokenCmd,
+	DownloadInfoCmd,
 	CacheStatCmd,
 }
 
@@ -43,7 +43,6 @@ var DeviceInfoCmd = &cli.Command{
 		fmt.Printf("device systemVersion: %v \n", v.SystemVersion)
 		fmt.Printf("device DiskUsage: %v \n", v.DiskUsage)
 		fmt.Printf("device mac: %v \n", v.MacLocation)
-		fmt.Printf("device download srv url: %v \n", v.DownloadSrvURL)
 		fmt.Printf("device download bandwidth: %v \n", v.BandwidthDown)
 		fmt.Printf("device upload bandwidth: %v \n", v.BandwidthUp)
 
@@ -196,8 +195,8 @@ var LimitRateCmd = &cli.Command{
 	},
 }
 
-var GenerateTokenCmd = &cli.Command{
-	Name:  "gentk",
+var DownloadInfoCmd = &cli.Command{
+	Name:  "downinfo",
 	Usage: "generate token",
 	Flags: []cli.Flag{},
 	Action: func(cctx *cli.Context) error {
@@ -208,7 +207,7 @@ var GenerateTokenCmd = &cli.Command{
 		defer closer()
 
 		ctx := ReqContext(cctx)
-		tk, err := api.GenerateDownloadToken(ctx)
+		tk, err := api.GetDownloadInfo(ctx)
 		if err != nil {
 			fmt.Printf("Unlimit speed failed:%v", err)
 			return err

@@ -54,7 +54,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	info.BandwidthDown = device.BandwidthDown
 
 	if device.blockDownload != nil {
-		info.DownloadSrvURL = device.blockDownload.GetDownloadSrvURL()
+		// info.DownloadSrvURL = device.blockDownload.GetDownloadSrvURL()
 		info.BandwidthUp = int64(device.blockDownload.GetRateLimit())
 	}
 

@@ -1,5 +1,7 @@
 package helper
 
+import "time"
+
 const (
 	Batch       = 10
 	MaxReqCount = 5
@@ -8,5 +10,6 @@ const (
 	// validate timeout
 	ValidateTimeout = 5
 
-	DownloadSrvPath = "/block/get"
+	DownloadSrvPath          = "/block/get"
+	DownloadTokenExpireAfter = 24 * time.Hour
 )
