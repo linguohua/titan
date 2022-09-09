@@ -25,15 +25,15 @@ type Scheduler interface {
 	CacheResult(context.Context, string, CacheResultInfo) error                      //perm:read
 
 	// call by user
-	FindNodeWithBlock(context.Context, string, string) (string, error)                  //perm:read
-	GetDownloadURLWithBlock(context.Context, string, string) (string, error)            //perm:read
-	GetIndexInfo(context.Context, IndexRequest) (IndexPageRes, error)                   //perm:read
-	Retrieval(context.Context, IndexPageSearch) (RetrievalPageRes, error)               //perm:read
-	GetDevicesInfo(context.Context, DevicesSearch) (DevicesInfoPage, error)             //perm:read
-	GetDevicesCount(context.Context, DevicesSearch) (DeviceType, error)                 //perm:read
-	GetDeviceDiagnosisDaily(context.Context, IncomeDailySearch) (IncomeDailyRes, error) //perm:read
-	GetDeviceDiagnosisHour(context.Context, IncomeDailySearch) (HourDailyRes, error)    //perm:read
-	SaveDailyInfo(context.Context, IncomeDaily) error                                   //perm:read
+	FindNodeWithBlock(context.Context, string, string) (string, error)                            //perm:read
+	GetDownloadInfoWithBlocks(context.Context, []string, string) (map[string]DownloadInfo, error) //perm:read
+	GetIndexInfo(context.Context, IndexRequest) (IndexPageRes, error)                             //perm:read
+	Retrieval(context.Context, IndexPageSearch) (RetrievalPageRes, error)                         //perm:read
+	GetDevicesInfo(context.Context, DevicesSearch) (DevicesInfoPage, error)                       //perm:read
+	GetDevicesCount(context.Context, DevicesSearch) (DeviceType, error)                           //perm:read
+	GetDeviceDiagnosisDaily(context.Context, IncomeDailySearch) (IncomeDailyRes, error)           //perm:read
+	GetDeviceDiagnosisHour(context.Context, IncomeDailySearch) (HourDailyRes, error)              //perm:read
+	SaveDailyInfo(context.Context, IncomeDaily) error                                             //perm:read
 }
 
 // CacheResultInfo cache data result info

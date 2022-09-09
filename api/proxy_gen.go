@@ -196,7 +196,7 @@ type SchedulerStruct struct {
 
 		GetDevicesInfo func(p0 context.Context, p1 DevicesSearch) (DevicesInfoPage, error) `perm:"read"`
 
-		GetDownloadURLWithBlock func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
+		GetDownloadInfoWithBlocks func(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfo, error) `perm:"read"`
 
 		GetIndexInfo func(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) `perm:"read"`
 
@@ -645,15 +645,15 @@ func (s *SchedulerStub) GetDevicesInfo(p0 context.Context, p1 DevicesSearch) (De
 	return *new(DevicesInfoPage), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetDownloadURLWithBlock(p0 context.Context, p1 string, p2 string) (string, error) {
-	if s.Internal.GetDownloadURLWithBlock == nil {
-		return "", ErrNotSupported
+func (s *SchedulerStruct) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfo, error) {
+	if s.Internal.GetDownloadInfoWithBlocks == nil {
+		return *new(map[string]DownloadInfo), ErrNotSupported
 	}
-	return s.Internal.GetDownloadURLWithBlock(p0, p1, p2)
+	return s.Internal.GetDownloadInfoWithBlocks(p0, p1, p2)
 }
 
-func (s *SchedulerStub) GetDownloadURLWithBlock(p0 context.Context, p1 string, p2 string) (string, error) {
-	return "", ErrNotSupported
+func (s *SchedulerStub) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfo, error) {
+	return *new(map[string]DownloadInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetIndexInfo(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) {

@@ -37,6 +37,7 @@ func main() {
 		initDeviceIDsCmd,
 		cachingBlocksCmd,
 		cacheStatCmd,
+		getDownloadInfoCmd,
 	}
 
 	app := &cli.App{

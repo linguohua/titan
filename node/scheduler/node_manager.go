@@ -1,7 +1,7 @@
 package scheduler
 
 import (
-	"fmt"
+	"context"
 	"sync"
 	"time"
 
@@ -411,45 +411,62 @@ func (m *NodeManager) updateLastRequestTime(deviceID string) {
 	}
 }
 
-// getNodeURLWithData find device
-func (m *NodeManager) getNodeURLWithData(cid, ip string) (string, error) {
-	deviceIDs, err := db.GetCacheDB().GetNodesWithCacheList(cid)
-	if err != nil {
-		return "", err
-	}
-
-	if len(deviceIDs) <= 0 {
-		return "", xerrors.New("not find node")
-	}
-
+func (m *NodeManager) getDownloadInfoWithDatas(cids []string, ip string) (map[string]api.DownloadInfo, error) {
 	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
 	if err != nil {
 		log.Warnf("getNodeURLWithData GetGeoInfo err:%v,ip:%v", err, ip)
 	}
 
-	// log.Infof("getNodeURLWithData user ip:%v,geo:%v,cid:%v", ip, uInfo.Geo, cid)
+	infoMap := make(map[string]api.DownloadInfo)
 
-	var url string
+	for _, cid := range cids {
+		info, err := m.nodeDownloadInfo(cid, geoInfo)
+		if err != nil {
+			continue
+		}
+
+		infoMap[cid] = info
+	}
+
+	return infoMap, nil
+}
+
+// getNodeURLWithData find device
+func (m *NodeManager) nodeDownloadInfo(cid string, geoInfo *region.GeoInfo) (api.DownloadInfo, error) {
+	var downloadInfo api.DownloadInfo
+	deviceIDs, err := db.GetCacheDB().GetNodesWithCacheList(cid)
+	if err != nil {
+		return downloadInfo, err
+	}
+
+	if len(deviceIDs) <= 0 {
+		return downloadInfo, xerrors.New("not find node")
+	}
+
 	nodeEs, geoLevelE := m.findEdgeNodeWithGeo(geoInfo, deviceIDs)
 	nodeCs, geoLevelC := m.findCandidateNodeWithGeo(geoInfo, deviceIDs)
 	if geoLevelE < geoLevelC {
-		url = nodeCs[randomNum(0, len(nodeCs))].deviceInfo.DownloadSrvURL
-	} else if geoLevelE > geoLevelC {
-		url = nodeEs[randomNum(0, len(nodeEs))].deviceInfo.DownloadSrvURL
-	} else {
-		if len(nodeEs) > 0 {
-			url = nodeEs[randomNum(0, len(nodeEs))].deviceInfo.DownloadSrvURL
-		} else {
-			if len(nodeCs) > 0 {
-				url = nodeCs[randomNum(0, len(nodeCs))].deviceInfo.DownloadSrvURL
-			} else {
-				return "", xerrors.New("not find node")
-			}
-		}
+		node := nodeCs[randomNum(0, len(nodeCs))]
+		return node.nodeAPI.GetDownloadInfo(context.Background())
 	}
 
+	if geoLevelE > geoLevelC {
+		node := nodeCs[randomNum(0, len(nodeEs))]
+		return node.nodeAPI.GetDownloadInfo(context.Background())
+	}
+
+	if len(nodeEs) > 0 {
+		node := nodeCs[randomNum(0, len(nodeEs))]
+		return node.nodeAPI.GetDownloadInfo(context.Background())
+	}
+
+	if len(nodeCs) > 0 {
+		node := nodeCs[randomNum(0, len(nodeCs))]
+		return node.nodeAPI.GetDownloadInfo(context.Background())
+	}
 	// http://192.168.0.136:3456/rpc/v0/block/get?cid=QmeUqw4FY1wqnh2FMvuc2v8KAapE7fYwu2Up4qNwhZiRk7
-	return fmt.Sprintf("%s?cid=%s", url, cid), nil
+
+	return downloadInfo, xerrors.New("not find node")
 }
 
 // getCandidateNodesWithData find device

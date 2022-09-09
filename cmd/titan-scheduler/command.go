@@ -45,6 +45,12 @@ var (
 		Usage: "blocks cid",
 		Value: "",
 	}
+
+	ipFlag = &cli.StringFlag{
+		Name:  "ip",
+		Usage: "ip",
+		Value: "",
+	}
 )
 
 var runCmd = &cli.Command{
@@ -234,6 +240,56 @@ var cacheBlocksCmd = &cli.Command{
 		}
 
 		log.Infof("errCids:%v", errCids)
+
+		return nil
+	},
+}
+
+var getDownloadInfoCmd = &cli.Command{
+	Name:  "download-infos",
+	Usage: "specify node cache blocks",
+	Flags: []cli.Flag{
+		schedulerURLFlag,
+		cidsFlag,
+		ipFlag,
+		cidsPathFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		url := cctx.String("scheduler-url")
+		cids := cctx.String("cids")
+		ip := cctx.String("ip")
+		cidsPath := cctx.String("cids-file-path")
+
+		ctx := lcli.ReqContext(cctx)
+		schedulerAPI, closer, err := client.NewScheduler(ctx, url, nil)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		var cidList []string
+		if cids != "" {
+			cidList = strings.Split(cids, ",")
+		}
+
+		if cidsPath != "" {
+			cidList, err = loadCidsFromFile(cidsPath)
+			if err != nil {
+				log.Errorf("loadFile err:%v", err)
+				return err
+			}
+		}
+
+		data, err := schedulerAPI.GetDownloadInfoWithBlocks(ctx, cidList, ip)
+		if err != nil {
+			return err
+		}
+
+		log.Infof("data:%v", data)
 
 		return nil
 	},
