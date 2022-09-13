@@ -211,7 +211,7 @@ func (r *rocksdb) GetAllKeys() ([]string, error) {
 	rdb, err := r.getRocksDB(r.Path)
 	if err != nil {
 		log.Error("Get rocks db failed:", err)
-		return 0, err
+		return []string{}, err
 	}
 
 	// rocksdb.GetProperty("rocksdb.estimate-num-keys")
