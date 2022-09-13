@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
+
 )
 
 
@@ -188,17 +189,7 @@ type SchedulerStruct struct {
 
 		FindNodeWithBlock func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
-		GetDeviceDiagnosisDaily func(p0 context.Context, p1 IncomeDailySearch) (IncomeDailyRes, error) `perm:"read"`
-
-		GetDeviceDiagnosisHour func(p0 context.Context, p1 IncomeDailySearch) (HourDailyRes, error) `perm:"read"`
-
-		GetDevicesCount func(p0 context.Context, p1 DevicesSearch) (DeviceType, error) `perm:"read"`
-
-		GetDevicesInfo func(p0 context.Context, p1 DevicesSearch) (DevicesInfoPage, error) `perm:"read"`
-
 		GetDownloadInfoWithBlocks func(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfo, error) `perm:"read"`
-
-		GetIndexInfo func(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) `perm:"read"`
 
 		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
 
@@ -207,10 +198,6 @@ type SchedulerStruct struct {
 		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"read"`
 
 		QueryCachingBlocksWithNode func(p0 context.Context, p1 string) (CachingBlockList, error) `perm:"read"`
-
-		Retrieval func(p0 context.Context, p1 IndexPageSearch) (RetrievalPageRes, error) `perm:"read"`
-
-		SaveDailyInfo func(p0 context.Context, p1 IncomeDaily) (error) `perm:"read"`
 
 		Validate func(p0 context.Context) (error) `perm:"read"`
 
@@ -601,50 +588,6 @@ func (s *SchedulerStub) FindNodeWithBlock(p0 context.Context, p1 string, p2 stri
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetDeviceDiagnosisDaily(p0 context.Context, p1 IncomeDailySearch) (IncomeDailyRes, error) {
-	if s.Internal.GetDeviceDiagnosisDaily == nil {
-		return *new(IncomeDailyRes), ErrNotSupported
-	}
-	return s.Internal.GetDeviceDiagnosisDaily(p0, p1)
-}
-
-func (s *SchedulerStub) GetDeviceDiagnosisDaily(p0 context.Context, p1 IncomeDailySearch) (IncomeDailyRes, error) {
-	return *new(IncomeDailyRes), ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetDeviceDiagnosisHour(p0 context.Context, p1 IncomeDailySearch) (HourDailyRes, error) {
-	if s.Internal.GetDeviceDiagnosisHour == nil {
-		return *new(HourDailyRes), ErrNotSupported
-	}
-	return s.Internal.GetDeviceDiagnosisHour(p0, p1)
-}
-
-func (s *SchedulerStub) GetDeviceDiagnosisHour(p0 context.Context, p1 IncomeDailySearch) (HourDailyRes, error) {
-	return *new(HourDailyRes), ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetDevicesCount(p0 context.Context, p1 DevicesSearch) (DeviceType, error) {
-	if s.Internal.GetDevicesCount == nil {
-		return *new(DeviceType), ErrNotSupported
-	}
-	return s.Internal.GetDevicesCount(p0, p1)
-}
-
-func (s *SchedulerStub) GetDevicesCount(p0 context.Context, p1 DevicesSearch) (DeviceType, error) {
-	return *new(DeviceType), ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetDevicesInfo(p0 context.Context, p1 DevicesSearch) (DevicesInfoPage, error) {
-	if s.Internal.GetDevicesInfo == nil {
-		return *new(DevicesInfoPage), ErrNotSupported
-	}
-	return s.Internal.GetDevicesInfo(p0, p1)
-}
-
-func (s *SchedulerStub) GetDevicesInfo(p0 context.Context, p1 DevicesSearch) (DevicesInfoPage, error) {
-	return *new(DevicesInfoPage), ErrNotSupported
-}
-
 func (s *SchedulerStruct) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfo, error) {
 	if s.Internal.GetDownloadInfoWithBlocks == nil {
 		return *new(map[string]DownloadInfo), ErrNotSupported
@@ -654,17 +597,6 @@ func (s *SchedulerStruct) GetDownloadInfoWithBlocks(p0 context.Context, p1 []str
 
 func (s *SchedulerStub) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfo, error) {
 	return *new(map[string]DownloadInfo), ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetIndexInfo(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) {
-	if s.Internal.GetIndexInfo == nil {
-		return *new(IndexPageRes), ErrNotSupported
-	}
-	return s.Internal.GetIndexInfo(p0, p1)
-}
-
-func (s *SchedulerStub) GetIndexInfo(p0 context.Context, p1 IndexRequest) (IndexPageRes, error) {
-	return *new(IndexPageRes), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetOnlineDeviceIDs(p0 context.Context, p1 NodeTypeName) ([]string, error) {
@@ -709,28 +641,6 @@ func (s *SchedulerStruct) QueryCachingBlocksWithNode(p0 context.Context, p1 stri
 
 func (s *SchedulerStub) QueryCachingBlocksWithNode(p0 context.Context, p1 string) (CachingBlockList, error) {
 	return *new(CachingBlockList), ErrNotSupported
-}
-
-func (s *SchedulerStruct) Retrieval(p0 context.Context, p1 IndexPageSearch) (RetrievalPageRes, error) {
-	if s.Internal.Retrieval == nil {
-		return *new(RetrievalPageRes), ErrNotSupported
-	}
-	return s.Internal.Retrieval(p0, p1)
-}
-
-func (s *SchedulerStub) Retrieval(p0 context.Context, p1 IndexPageSearch) (RetrievalPageRes, error) {
-	return *new(RetrievalPageRes), ErrNotSupported
-}
-
-func (s *SchedulerStruct) SaveDailyInfo(p0 context.Context, p1 IncomeDaily) (error) {
-	if s.Internal.SaveDailyInfo == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.SaveDailyInfo(p0, p1)
-}
-
-func (s *SchedulerStub) SaveDailyInfo(p0 context.Context, p1 IncomeDaily) (error) {
-	return ErrNotSupported
 }
 
 func (s *SchedulerStruct) Validate(p0 context.Context) (error) {
