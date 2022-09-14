@@ -33,6 +33,9 @@ type ValidateResults struct {
 	// key is random index
 	// values is cid
 	Cids map[int]string
+	// The number of random for validate
+	// if radmon fid all exist, RandomCount == len(Cids)
+	RandomCount int
 
 	RoundID string
 }
