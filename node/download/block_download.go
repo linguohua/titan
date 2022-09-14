@@ -18,7 +18,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
-var log = logging.Logger("edge")
+var log = logging.Logger("download")
 
 type BlockDownload struct {
 	limiter        *rate.Limiter

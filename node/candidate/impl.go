@@ -136,6 +136,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 		}
 	}()
 
+	index := 0
 	size := int64(0)
 	now := time.Now()
 	isBreak := false
@@ -155,8 +156,9 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 			if err != nil {
 				log.Errorf("waitBlock, cidFromData error:%v", err)
 			} else {
-				result.Cids = append(result.Cids, cid)
+				result.Cids[index] = cid
 			}
+			index++
 		case <-t.C:
 			log.Errorf("waitBlock timeout %ds, exit wait block", req.Duration+helper.ValidateTimeout)
 			isBreak = true
