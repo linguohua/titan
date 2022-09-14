@@ -232,27 +232,34 @@ func (n *Node) cacheBlockResult(info *api.CacheResultInfo) (string, error) {
 		return "", nil
 	}
 
-	tag, err := cache.GetDB().IncrNodeCacheTag(deviceID)
+	fid, err := cache.GetDB().IncrNodeCacheTag(deviceID)
 	if err != nil {
 		return "", err
 	}
 
-	tagStr := fmt.Sprintf("%d", tag)
+	fidStr := fmt.Sprintf("%d", fid)
 
-	err = cache.GetDB().SetCacheBlockInfo(deviceID, info.Cid, tagStr)
+	err = cache.GetDB().SetCacheBlockInfo(deviceID, info.Cid, fidStr)
 	if err != nil {
 		return "", err
 	}
 
-	return tagStr, cache.GetDB().SetNodeToCacheList(deviceID, info.Cid)
+	err = cache.GetDB().SetCacheBlockTagInfo(deviceID, info.Cid, fidStr)
+	if err != nil {
+		return "", err
+	}
+
+	return fidStr, cache.GetDB().SetNodeToCacheList(deviceID, info.Cid)
 }
 
 func (n *Node) cacheBlockReady(cid string) error {
 	deviceID := n.deviceInfo.DeviceId
+
 	v, err := cache.GetDB().GetCacheBlockInfo(deviceID, cid)
 	if err == nil && v != dataDefaultTag {
 		return xerrors.Errorf("already cache")
 	}
+
 	return cache.GetDB().SetCacheBlockInfo(deviceID, cid, dataDefaultTag)
 }
 

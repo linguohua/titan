@@ -129,10 +129,10 @@ func (rd redisDB) RemoveCacheBlockInfo(deviceID, cid string) error {
 }
 
 // set cid
-func (rd redisDB) SetCacheBlockInfo(deviceID, cid string, tag string) error {
+func (rd redisDB) SetCacheBlockInfo(deviceID, cid string, fid string) error {
 	key := fmt.Sprintf(redisKeyNodeBlocks, deviceID)
 
-	_, err := rd.cli.HSet(context.Background(), key, cid, tag).Result()
+	_, err := rd.cli.HSet(context.Background(), key, cid, fid).Result()
 	// _, err := rd.cli.ZAdd(context.Background(), key, &redis.Z{Score: 1, Member: cid}).Result()
 	return err
 }
@@ -159,24 +159,28 @@ func (rd redisDB) GetCacheBlockInfos(deviceID string) (map[string]string, error)
 	// return rd.cli.ZRange(context.Background(), key, start, end).Result()
 }
 
-func (rd redisDB) RemoveCacheBlockTagInfo(deviceID, tag string) error {
+func (rd redisDB) RemoveCacheBlockTagInfo(deviceID, fid string) error {
 	key := fmt.Sprintf(redisKeyNodeBlockTags, deviceID)
-	_, err := rd.cli.HDel(context.Background(), key, tag).Result()
+
+	_, err := rd.cli.HDel(context.Background(), key, fid).Result()
 	return err
 }
 
-func (rd redisDB) SetCacheBlockTagInfo(deviceID, cid string, tag string) error {
+func (rd redisDB) SetCacheBlockTagInfo(deviceID, cid string, fid string) error {
 	key := fmt.Sprintf(redisKeyNodeBlockTags, deviceID)
-	_, err := rd.cli.HSet(context.Background(), key, tag, cid).Result()
+
+	_, err := rd.cli.HSet(context.Background(), key, fid, cid).Result()
 	return err
 }
 
-func (rd redisDB) GetCacheBlockTagInfo(deviceID, tag string) (string, error) {
+func (rd redisDB) GetCacheBlockTagInfo(deviceID, fid string) (string, error) {
 	key := fmt.Sprintf(redisKeyNodeBlockTags, deviceID)
-	str, err := rd.cli.HGet(context.Background(), key, tag).Result()
+
+	str, err := rd.cli.HGet(context.Background(), key, fid).Result()
 	if err != nil {
 		return "", err
 	}
+
 	return str, nil
 }
 
