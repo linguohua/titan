@@ -173,16 +173,16 @@ func (e *Validate) validateResult(validateResults *api.ValidateResults) error {
 	r := rand.New(rand.NewSource(e.seed))
 	rlen := len(validateResults.Cids)
 
-	if rlen <= 0 {
+	if rlen <= 0 || validateResults.RandomCount <= 0 {
 		status = cache.ValidateStatusFail
-		msg = fmt.Sprint("Results is nil")
+		msg = fmt.Sprintf("Results rlen:%v , RandomCount:%v", rlen, validateResults.RandomCount)
 		return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
 	}
 
 	maxFid := e.maxFidMap[deviceID]
 
-	for index := 0; index < rlen; index++ {
-		fid := e.getRandNum(int(maxFid), r)
+	for index := 0; index < validateResults.RandomCount; index++ {
+		fid := e.getRandNum(int(maxFid), r) + 1
 		resultCid := validateResults.Cids[index]
 
 		fidStr := fmt.Sprintf("%d", fid)

@@ -90,17 +90,17 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 
 	s.poolGroup.addPendingNode(edgeNode, nil)
 
-	cids := edgeNode.getCacheFailCids()
-	if cids != nil && len(cids) > 0 {
-		reqDatas, _ := edgeNode.getReqCacheDatas(s, cids, true)
+	// cids := edgeNode.getCacheFailCids()
+	// if cids != nil && len(cids) > 0 {
+	// 	reqDatas, _ := edgeNode.getReqCacheDatas(s, cids, true)
 
-		for _, reqData := range reqDatas {
-			err := edgeNode.nodeAPI.CacheBlocks(ctx, reqData)
-			if err != nil {
-				log.Errorf("EdgeNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
-			}
-		}
-	}
+	// 	for _, reqData := range reqDatas {
+	// 		err := edgeNode.nodeAPI.CacheBlocks(ctx, reqData)
+	// 		if err != nil {
+	// 			log.Errorf("EdgeNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+	// 		}
+	// 	}
+	// }
 
 	return nil
 }
@@ -342,6 +342,20 @@ func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string
 	return s.nodeManager.getDownloadInfoWithDatas(cids, ip)
 }
 
+// GetDownloadInfoWithBlock find node
+func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, ip string) (api.DownloadInfo, error) {
+	if cid == "" {
+		return api.DownloadInfo{}, xerrors.New("cids is nil")
+	}
+
+	mInfo, err := s.nodeManager.getDownloadInfoWithDatas([]string{cid}, ip)
+	if err != nil {
+		return api.DownloadInfo{}, err
+	}
+
+	return mInfo[cid], nil
+}
+
 // CandidateNodeConnect Candidate connect
 func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
 	candicateAPI, closer, err := client.NewCandicate(ctx, url, nil)
@@ -381,17 +395,17 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error 
 
 	s.poolGroup.addPendingNode(nil, candidateNode)
 
-	cids := candidateNode.getCacheFailCids()
-	if cids != nil && len(cids) > 0 {
-		reqDatas, _ := candidateNode.getReqCacheDatas(s, cids, false)
+	// cids := candidateNode.getCacheFailCids()
+	// if cids != nil && len(cids) > 0 {
+	// 	reqDatas, _ := candidateNode.getReqCacheDatas(s, cids, false)
 
-		for _, reqData := range reqDatas {
-			err := candidateNode.nodeAPI.CacheBlocks(ctx, reqData)
-			if err != nil {
-				log.Errorf("CandidateNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
-			}
-		}
-	}
+	// 	for _, reqData := range reqDatas {
+	// 		err := candidateNode.nodeAPI.CacheBlocks(ctx, reqData)
+	// 		if err != nil {
+	// 			log.Errorf("CandidateNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+	// 		}
+	// 	}
+	// }
 
 	return nil
 }
