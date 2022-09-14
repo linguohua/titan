@@ -18,8 +18,10 @@ type ReqValidate struct {
 	// seconds
 	Duration int
 	RoundID  string
-	// node type, for example edge or candidate
+	// node type, for example, edge or candidate
 	NodeType int
+	// current max fid
+	MaxFid int
 }
 
 type ValidateResults struct {
@@ -28,7 +30,9 @@ type ValidateResults struct {
 	// microsecond
 	CostTime  int
 	IsTimeout bool
-	Cids      []string
+	// key is random index
+	// values is cid
+	Cids map[int]string
 
 	RoundID string
 }

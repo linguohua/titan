@@ -245,3 +245,38 @@ func (block *Block) LoadBlock(ctx context.Context, cid string) ([]byte, error) {
 func (block *Block) GetAllCidsFromBlockStore() ([]string, error) {
 	return block.blockStore.GetAllKeys()
 }
+
+func (block *Block) getCID(fid string) (string, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	value, err := block.ds.Get(ctx, helper.NewKeyFID(fid))
+	if err != nil {
+		// log.Errorf("Get cid from store error:%v, fid:%s", err, fid)
+		return "", err
+	}
+
+	return string(value), nil
+}
+
+func (block *Block) getFID(cid string) (string, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	value, err := block.ds.Get(ctx, helper.NewKeyCID(cid))
+	if err != nil {
+		// log.Errorf("Get fid from store error:%v, cid:%s", err, cid)
+		return "", err
+	}
+
+	return string(value), nil
+}
+
+func (block *Block) loadBlockWithFid(fid string) ([]byte, error) {
+	cid, err := block.getCID(fid)
+	if err != nil {
+		return nil, err
+	}
+
+	return block.blockStore.Get(cid)
+}
