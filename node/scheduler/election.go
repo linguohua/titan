@@ -3,7 +3,7 @@ package scheduler
 import (
 	"time"
 
-	"github.com/linguohua/titan/node/scheduler/db"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/ouqiang/timewheel"
 )
 
@@ -39,13 +39,13 @@ func newElection(verifiedNodeMax int) *Election {
 }
 
 func (e *Election) cleanValidators(scheduler *Scheduler) error {
-	validatorList, err := db.GetCacheDB().GetValidatorsWithList()
+	validatorList, err := cache.GetDB().GetValidatorsWithList()
 	if err != nil {
 		return err
 	}
 
 	for _, validator := range validatorList {
-		err = db.GetCacheDB().RemoveValidatorGeoList(validator)
+		err = cache.GetDB().RemoveValidatorGeoList(validator)
 		if err != nil {
 			log.Warnf("RemoveValidatorGeoList err:%v, validator:%v", err.Error(), validator)
 		}
@@ -56,7 +56,7 @@ func (e *Election) cleanValidators(scheduler *Scheduler) error {
 		}
 	}
 
-	err = db.GetCacheDB().RemoveValidatorList()
+	err = cache.GetDB().RemoveValidatorList()
 	if err != nil {
 		return err
 	}
@@ -156,12 +156,12 @@ func (e *Election) startElection(scheduler *Scheduler) error {
 			validator.isValidator = true
 		}
 
-		err = db.GetCacheDB().SetValidatorToList(validatorID)
+		err = cache.GetDB().SetValidatorToList(validatorID)
 		if err != nil {
 			return err
 		}
 
-		err = db.GetCacheDB().SetGeoToValidatorList(validatorID, geo)
+		err = cache.GetDB().SetGeoToValidatorList(validatorID, geo)
 		if err != nil {
 			return err
 		}

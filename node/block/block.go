@@ -42,7 +42,7 @@ type BlockInterface interface {
 }
 
 func NewBlock(ds datastore.Batching, blockStore stores.BlockStore, scheduler api.Scheduler, blockInterface BlockInterface, exchange exchange.Interface, deviceID string) *Block {
-	var block = &Block{
+	block := &Block{
 		ds:         ds,
 		blockStore: blockStore,
 		scheduler:  scheduler,
@@ -89,15 +89,15 @@ func (block *Block) startBlockLoader() {
 }
 
 func (block *Block) cacheResult(ctx context.Context, cid, from string, err error) {
-	var errMsg = ""
-	var success = true
+	errMsg := ""
+	success := true
 	if err != nil {
 		success = false
 		errMsg = err.Error()
 	}
 
 	result := api.CacheResultInfo{Cid: cid, IsOK: success, Msg: errMsg, From: from}
-	err = block.scheduler.CacheResult(ctx, block.deviceID, result)
+	_, err = block.scheduler.CacheResult(ctx, block.deviceID, result)
 	if err != nil {
 		log.Errorf("load_block CacheResult error:%v", err)
 	}
@@ -106,7 +106,7 @@ func (block *Block) cacheResult(ctx context.Context, cid, from string, err error
 func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 	ctx := context.Background()
 
-	var from = ""
+	from := ""
 	results := make([]*delayReq, 0, len(reqs))
 	for _, reqData := range reqs {
 		// target, err := cid.Decode(reqData.Cid)
@@ -149,7 +149,7 @@ func (block *Block) CacheBlocks(ctx context.Context, req api.ReqCacheData) error
 func (block *Block) DeleteBlocks(ctx context.Context, cids []string) ([]api.BlockOperationResult, error) {
 	log.Debug("DeleteBlocks")
 	// delResult := api.DelResult{}
-	var results = make([]api.BlockOperationResult, 0)
+	results := make([]api.BlockOperationResult, 0)
 
 	if block.blockStore == nil {
 		log.Errorf("DeleteBlocks, blockStore not setting")

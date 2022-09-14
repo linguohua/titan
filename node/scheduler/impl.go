@@ -10,7 +10,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/common"
-	"github.com/linguohua/titan/node/scheduler/db"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
 )
 
 var log = logging.Logger("scheduler")
@@ -76,7 +76,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		},
 	}
 
-	ok, err := db.GetCacheDB().IsEdgeInDeviceIDList(deviceInfo.DeviceId)
+	ok, err := cache.GetDB().IsEdgeInDeviceIDList(deviceInfo.DeviceId)
 	if err != nil || !ok {
 		log.Errorf("EdgeNodeConnect IsEdgeInDeviceIDList err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 		return xerrors.Errorf("deviceID does not exist")
@@ -116,7 +116,7 @@ func (s Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.
 }
 
 // CacheResult Cache Data Result
-func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) error {
+func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
 		return edge.cacheBlockResult(&info)
@@ -127,7 +127,7 @@ func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.C
 		return candidate.cacheBlockResult(&info)
 	}
 
-	return xerrors.New("node not find")
+	return "", xerrors.New("node not find")
 }
 
 // DeleteBlockRecords  Delete Block Record
@@ -278,12 +278,12 @@ func (s *Scheduler) InitNodeDeviceIDs(ctx context.Context) error {
 		candidateList = append(candidateList, candidateID)
 	}
 
-	err := db.GetCacheDB().SetEdgeDeviceIDList(edgeList)
+	err := cache.GetDB().SetEdgeDeviceIDList(edgeList)
 	if err != nil {
 		log.Errorf("SetEdgeDeviceIDList err:%v", err.Error())
 	}
 
-	err = db.GetCacheDB().SetCandidateDeviceIDList(candidateList)
+	err = cache.GetDB().SetCandidateDeviceIDList(candidateList)
 	if err != nil {
 		log.Errorf("SetCandidateDeviceIDList err:%v", err.Error())
 	}
@@ -367,7 +367,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error 
 		},
 	}
 
-	ok, err := db.GetCacheDB().IsCandidateInDeviceIDList(deviceInfo.DeviceId)
+	ok, err := cache.GetDB().IsCandidateInDeviceIDList(deviceInfo.DeviceId)
 	if err != nil || !ok {
 		log.Errorf("EdgeNodeConnect IsCandidateInDeviceIDList err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 		return xerrors.Errorf("deviceID does not exist")
@@ -402,9 +402,15 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 
 	// redis datas
 	body := api.CacheStat{}
-	count, err := db.GetCacheDB().GetCacheBlockNum(deviceID)
-	if err == nil {
-		body.CacheBlockCount = int(count)
+	infos, err := cache.GetDB().GetCacheBlockInfos(deviceID)
+	if err == nil && len(infos) > 0 {
+		count := 0
+		for _, tag := range infos {
+			if tag != dataDefaultTag {
+				count++
+			}
+		}
+		body.CacheBlockCount = count
 	}
 
 	statList = append(statList, body)

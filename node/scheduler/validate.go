@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/scheduler/db"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
 )
@@ -75,25 +75,25 @@ func (e *Validate) getReqValidates(scheduler *Scheduler, validatorID string, lis
 		}
 
 		// cache datas
-		num, err := db.GetCacheDB().GetCacheBlockNum(deviceID)
+		datas, err := cache.GetDB().GetCacheBlockInfos(deviceID)
 		if err != nil {
 			log.Warnf("validate GetCacheBlockInfos err:%v,DeviceId:%v", err.Error(), deviceID)
 			continue
 		}
 
-		if num <= 0 {
+		if len(datas) <= 0 {
 			continue
 		}
 
 		req = append(req, api.ReqValidate{Seed: e.seed, NodeURL: addr, Duration: e.duration, RoundID: e.roundID, NodeType: int(nodeType)})
 
-		err = db.GetCacheDB().SetValidateResultInfo(e.roundID, deviceID, validatorID, "", db.ValidateStatusCreate)
+		err = cache.GetDB().SetValidateResultInfo(e.roundID, deviceID, validatorID, "", cache.ValidateStatusCreate)
 		if err != nil {
 			log.Warnf("validate SetValidateResultInfo err:%v,DeviceId:%v", err.Error(), deviceID)
 			continue
 		}
 
-		err = db.GetCacheDB().SetNodeToValidateingList(deviceID)
+		err = cache.GetDB().SetNodeToValidateingList(deviceID)
 		if err != nil {
 			log.Warnf("validate SetNodeToValidateingList err:%v,DeviceId:%v", err.Error(), deviceID)
 			continue
@@ -123,19 +123,19 @@ func (e *Validate) getRandNum(max int, r *rand.Rand) int {
 // }
 
 // TODO save to sql
-func (e *Validate) saveValidateResult(rID string, deviceID string, validatorID string, msg string, status db.ValidateStatus) error {
-	err := db.GetCacheDB().SetValidateResultInfo(rID, deviceID, "", msg, status)
+func (e *Validate) saveValidateResult(rID string, deviceID string, validatorID string, msg string, status cache.ValidateStatus) error {
+	err := cache.GetDB().SetValidateResultInfo(rID, deviceID, "", msg, status)
 	if err != nil {
 		return err
 	}
 
-	err = db.GetCacheDB().RemoveNodeWithValidateingList(deviceID)
+	err = cache.GetDB().RemoveNodeWithValidateingList(deviceID)
 	if err != nil {
 		return err
 	}
 
 	if msg != "" {
-		err = db.GetCacheDB().SetNodeToValidateErrorList(rID, deviceID)
+		err = cache.GetDB().SetNodeToValidateErrorList(rID, deviceID)
 		if err != nil {
 			return err
 		}
@@ -152,61 +152,62 @@ func (e *Validate) validateResult(validateResults *api.ValidateResults) error {
 	deviceID := validateResults.DeviceID
 	log.Infof("validateResult:%v", deviceID)
 
-	status := db.ValidateStatusSuccess
+	status := cache.ValidateStatusSuccess
 	msg := ""
 
 	if validateResults.IsTimeout {
-		status = db.ValidateStatusTimeOut
+		status = cache.ValidateStatusTimeOut
 		msg = fmt.Sprint("Time out")
 		return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
 	}
 
-	r := rand.New(rand.NewSource(e.seed))
-	rlen := len(validateResults.Cids)
+	return nil
+	// r := rand.New(rand.NewSource(e.seed))
+	// rlen := len(validateResults.Cids)
 
-	if rlen <= 0 {
-		status = db.ValidateStatusFail
-		msg = fmt.Sprint("Results is nil")
-		return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
-	}
+	// if rlen <= 0 {
+	// 	status = cache.ValidateStatusFail
+	// 	msg = fmt.Sprint("Results is nil")
+	// 	return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
+	// }
 
-	max, err := db.GetCacheDB().GetCacheBlockNum(deviceID)
-	if err != nil {
-		log.Warnf("validateResult GetCacheBlockNum err:%v,DeviceId:%v", err.Error(), deviceID)
-		return err
-	}
+	// max, err := cache.GetDB().GetCacheBlockNum(deviceID)
+	// if err != nil {
+	// 	log.Warnf("validateResult GetCacheBlockNum err:%v,DeviceId:%v", err.Error(), deviceID)
+	// 	return err
+	// }
 
-	for index := 0; index < rlen; index++ {
-		rand := e.getRandNum(int(max), r)
-		resultCid := validateResults.Cids[index]
+	// for index := 0; index < rlen; index++ {
+	// 	rand := e.getRandNum(int(max), r)
+	// 	resultCid := validateResults.Cids[index]
 
-		cids, err := db.GetCacheDB().GetCacheBlockInfos(deviceID, int64(rand), int64(rand))
-		if err != nil {
-			status = db.ValidateStatusFail
-			msg = fmt.Sprintf("GetCacheBlockInfos err:%v,resultCid:%v,rand:%v,index:%v", err.Error(), resultCid, rand, index)
-			break
-		}
+	// 	cids, err := cache.GetDB().GetCacheBlockInfos(deviceID, int64(rand), int64(rand))
+	// 	if err != nil {
+	// 		status = cache.ValidateStatusFail
+	// 		msg = fmt.Sprintf("GetCacheBlockInfos err:%v,resultCid:%v,rand:%v,index:%v", err.Error(), resultCid, rand, index)
+	// 		break
+	// 	}
 
-		cid := cids[0]
+	// 	cid := cids[0]
 
-		if resultCid == "" {
-			status = db.ValidateStatusFail
-			msg = fmt.Sprintf("resultCid:%v,cid:%v,rand:%v,index:%v", resultCid, cid, rand, index)
-			break
-		}
+	// 	if resultCid == "" {
+	// 		status = cache.ValidateStatusFail
+	// 		msg = fmt.Sprintf("resultCid:%v,cid:%v,rand:%v,index:%v", resultCid, cid, rand, index)
+	// 		break
+	// 	}
 
-		if resultCid != cid {
-			status = db.ValidateStatusFail
-			msg = fmt.Sprintf("result.Cid:%v,Cid:%v,rand:%v,index:%v", resultCid, cid, rand, index)
-			break
-		}
-	}
+	// 	if resultCid != cid {
+	// 		status = cache.ValidateStatusFail
+	// 		msg = fmt.Sprintf("result.Cid:%v,Cid:%v,rand:%v,index:%v", resultCid, cid, rand, index)
+	// 		break
+	// 	}
+	// }
 
-	return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
+	// return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
 }
 
 func (e *Validate) checkValidateTimeOut() error {
-	deviceIDs, err := db.GetCacheDB().GetNodesWithValidateingList()
+	deviceIDs, err := cache.GetDB().GetNodesWithValidateingList()
 	if err != nil {
 		return err
 	}
@@ -215,13 +216,13 @@ func (e *Validate) checkValidateTimeOut() error {
 		log.Infof("checkValidateTimeOut list:%v", deviceIDs)
 
 		for _, deviceID := range deviceIDs {
-			err = db.GetCacheDB().SetValidateResultInfo(e.roundID, deviceID, "", "", db.ValidateStatusTimeOut)
+			err = cache.GetDB().SetValidateResultInfo(e.roundID, deviceID, "", "", cache.ValidateStatusTimeOut)
 			if err != nil {
 				log.Warnf("checkValidateTimeOut SetValidateResultInfo err:%v,DeviceId:%v", err.Error(), deviceID)
 				continue
 			}
 
-			err = db.GetCacheDB().RemoveNodeWithValidateingList(deviceID)
+			err = cache.GetDB().RemoveNodeWithValidateingList(deviceID)
 			if err != nil {
 				log.Warnf("checkValidateTimeOut RemoveNodeWithValidateList err:%v,DeviceId:%v", err.Error(), deviceID)
 				continue
@@ -234,12 +235,12 @@ func (e *Validate) checkValidateTimeOut() error {
 
 // Validate
 func (e *Validate) startValidate(scheduler *Scheduler) error {
-	err := db.GetCacheDB().RemoveValidateingList()
+	err := cache.GetDB().RemoveValidateingList()
 	if err != nil {
 		return err
 	}
 
-	sID, err := db.GetCacheDB().IncrValidateRoundID()
+	sID, err := cache.GetDB().IncrValidateRoundID()
 	if err != nil {
 		return err
 	}
@@ -248,7 +249,7 @@ func (e *Validate) startValidate(scheduler *Scheduler) error {
 	e.seed = time.Now().UnixNano()
 
 	// find validators
-	validators, err := db.GetCacheDB().GetValidatorsWithList()
+	validators, err := cache.GetDB().GetValidatorsWithList()
 	if err != nil {
 		return err
 	}
@@ -256,7 +257,7 @@ func (e *Validate) startValidate(scheduler *Scheduler) error {
 	geoMap := make(map[string][]string)
 
 	for _, validatorID := range validators {
-		geos, err := db.GetCacheDB().GetGeoWithValidatorList(validatorID)
+		geos, err := cache.GetDB().GetGeoWithValidatorList(validatorID)
 		if err != nil {
 			log.Warnf("GetGeoWithValidatorList err:%v,validatorID:%v", err.Error(), validatorID)
 			continue
@@ -335,14 +336,14 @@ func (e *Validate) startValidate(scheduler *Scheduler) error {
 		}
 
 		if offline {
-			err = db.GetCacheDB().SetNodeToValidateErrorList(e.roundID, validatorID)
+			err = cache.GetDB().SetNodeToValidateErrorList(e.roundID, validatorID)
 			if err != nil {
 				log.Errorf("SetNodeToValidateErrorList ,err:%v,deviceID:%v", err.Error(), validatorID)
 			}
 		}
 
 		for _, deviceID := range errList {
-			err = db.GetCacheDB().SetNodeToValidateErrorList(e.roundID, deviceID)
+			err = cache.GetDB().SetNodeToValidateErrorList(e.roundID, deviceID)
 			if err != nil {
 				log.Errorf("SetNodeToValidateErrorList ,err:%v,deviceID:%v", err.Error(), deviceID)
 			}
