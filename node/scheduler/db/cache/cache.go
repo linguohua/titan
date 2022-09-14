@@ -1,12 +1,15 @@
-package db
+package cache
 
 import (
 	"github.com/linguohua/titan/api"
 	"golang.org/x/xerrors"
 )
 
-// CacheDB cache db
-type CacheDB interface {
+// DB cache db
+type DB interface {
+	IncrNodeCacheTag(deviceID string) (int64, error)
+	GetNodeCacheTag(deviceID string) (int64, error)
+
 	IncrValidateRoundID() (int64, error)
 	GetValidateRoundID() (string, error)
 
@@ -16,10 +19,15 @@ type CacheDB interface {
 	RemoveValidateingList() error
 
 	RemoveCacheBlockInfo(deviceID, cid string) error
-	SetCacheBlockInfo(deviceID, cid string) error
-	GetCacheBlockInfo(deviceID, cid string) (int64, error)
-	GetCacheBlockNum(deviceID string) (int64, error)
-	GetCacheBlockInfos(deviceID string, start, end int64) ([]string, error)
+	SetCacheBlockInfo(deviceID, cid string, tag string) error
+	GetCacheBlockInfo(deviceID, cid string) (string, error)
+	GetCacheBlockInfos(deviceID string) (map[string]string, error)
+	// GetCacheBlockNum(deviceID string) (int64, error)
+	// GetCacheBlockInfos(deviceID string, start, end int64) ([]string, error)
+	RemoveCacheBlockTagInfo(deviceID, tag string) error
+	SetCacheBlockTagInfo(deviceID, cid string, tag string) error
+	GetCacheBlockTagInfo(deviceID, tag string) (string, error)
+	GetCacheBlockTagInfos(deviceID string) (map[string]string, error)
 
 	RemoveNodeWithCacheList(deviceID, cid string) error
 	SetNodeToCacheList(deviceID, cid string) error
@@ -34,9 +42,9 @@ type CacheDB interface {
 	SetNodeToGeoList(deviceID, geo string) error
 	GetNodesWithGeoList(geo string) ([]string, error)
 
-	SetBlockToNodeFailList(deviceID, cid string) error
-	GetBlocksWithNodeFailList(deviceID string) ([]string, error)
-	RemoveBlockWithNodeFailList(deviceID, cid string) error
+	// SetBlockToNodeFailList(deviceID, cid string) error
+	// GetBlocksWithNodeFailList(deviceID string) ([]string, error)
+	// RemoveBlockWithNodeFailList(deviceID, cid string) error
 
 	SetGeoToList(geo string) error
 	GetGeosWithList() ([]string, error)
@@ -62,7 +70,7 @@ type CacheDB interface {
 	IsNilErr(err error) bool
 }
 
-var cacheDB CacheDB
+var db DB
 
 // NotFind not find data
 const NotFind = "not find"
@@ -73,7 +81,7 @@ func NewCacheDB(url string, dbType string) error {
 
 	switch dbType {
 	case TypeRedis():
-		cacheDB, err = InitRedis(url)
+		db, err = InitRedis(url)
 	default:
 		// panic("unknown CacheDB type")
 		err = xerrors.New("unknown CacheDB type")
@@ -87,9 +95,9 @@ func NewCacheDB(url string, dbType string) error {
 	return err
 }
 
-// GetCacheDB Get CacheDB
-func GetCacheDB() CacheDB {
-	return cacheDB
+// GetDB Get CacheDB
+func GetDB() DB {
+	return db
 }
 
 // NodeInfo base info

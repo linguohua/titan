@@ -15,7 +15,7 @@ import (
 	"github.com/linguohua/titan/metrics"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler"
-	"github.com/linguohua/titan/node/scheduler/db"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/region"
 	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
@@ -133,7 +133,7 @@ var runCmd = &cli.Command{
 		// db.GMysqlDb = db.GormMysql()
 		// TODO
 		cURL := cctx.String("cachedb-url")
-		err = db.NewCacheDB(cURL, db.TypeRedis())
+		err = cache.NewCacheDB(cURL, cache.TypeRedis())
 		if err != nil {
 			log.Panic(err.Error())
 		}

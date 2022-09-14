@@ -106,6 +106,7 @@ require (
 	github.com/jbenet/goprocess v0.1.4 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/jmoiron/sqlx v1.3.5 // indirect
 	github.com/klauspost/compress v1.15.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.14 // indirect
 	github.com/koron/go-ssdp v0.0.3 // indirect

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/scheduler/db"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/region"
 	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
@@ -74,7 +74,7 @@ func (m *NodeManager) nodeKeepalive() {
 			return true
 		}
 
-		err := db.GetCacheDB().AddNodeOnlineTime(deviceID, int64(m.keepaliveTime))
+		err := cache.GetDB().AddNodeOnlineTime(deviceID, int64(m.keepaliveTime))
 		if err != nil {
 			log.Warnf("AddNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
 		}
@@ -99,7 +99,7 @@ func (m *NodeManager) nodeKeepalive() {
 			return true
 		}
 
-		err := db.GetCacheDB().AddNodeOnlineTime(deviceID, int64(m.keepaliveTime))
+		err := cache.GetDB().AddNodeOnlineTime(deviceID, int64(m.keepaliveTime))
 		if err != nil {
 			log.Warnf("AddNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
 		}
@@ -167,7 +167,7 @@ func (m *NodeManager) removeEdgeNode(node *EdgeNode) {
 func (m *NodeManager) addCandidateNode(node *CandidateNode) error {
 	deviceID := node.deviceInfo.DeviceId
 
-	node.isValidator, _ = db.GetCacheDB().IsNodeInValidatorList(deviceID)
+	node.isValidator, _ = cache.GetDB().IsNodeInValidatorList(deviceID)
 
 	// geo ip
 	geoInfo, err := region.GetRegion().GetGeoInfo(node.deviceInfo.ExternalIp)
@@ -434,7 +434,7 @@ func (m *NodeManager) getDownloadInfoWithDatas(cids []string, ip string) (map[st
 // getNodeURLWithData find device
 func (m *NodeManager) nodeDownloadInfo(cid string, geoInfo *region.GeoInfo) (api.DownloadInfo, error) {
 	var downloadInfo api.DownloadInfo
-	deviceIDs, err := db.GetCacheDB().GetNodesWithCacheList(cid)
+	deviceIDs, err := cache.GetDB().GetNodesWithCacheList(cid)
 	if err != nil {
 		return downloadInfo, err
 	}
@@ -471,7 +471,7 @@ func (m *NodeManager) nodeDownloadInfo(cid string, geoInfo *region.GeoInfo) (api
 
 // getCandidateNodesWithData find device
 func (m *NodeManager) getCandidateNodesWithData(cid string, geoInfo *region.GeoInfo) ([]*CandidateNode, error) {
-	deviceIDs, err := db.GetCacheDB().GetNodesWithCacheList(cid)
+	deviceIDs, err := cache.GetDB().GetNodesWithCacheList(cid)
 	if err != nil {
 		return nil, err
 	}

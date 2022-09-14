@@ -175,7 +175,7 @@ type SchedulerStruct struct {
 
 		CacheBlocks func(p0 context.Context, p1 []string, p2 string) ([]string, error) `perm:"read"`
 
-		CacheResult func(p0 context.Context, p1 string, p2 CacheResultInfo) (error) `perm:"read"`
+		CacheResult func(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) `perm:"read"`
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
 
@@ -511,15 +511,15 @@ func (s *SchedulerStub) CacheBlocks(p0 context.Context, p1 []string, p2 string) 
 	return *new([]string), ErrNotSupported
 }
 
-func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 string, p2 CacheResultInfo) (error) {
+func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) {
 	if s.Internal.CacheResult == nil {
-		return ErrNotSupported
+		return "", ErrNotSupported
 	}
 	return s.Internal.CacheResult(p0, p1, p2)
 }
 
-func (s *SchedulerStub) CacheResult(p0 context.Context, p1 string, p2 CacheResultInfo) (error) {
-	return ErrNotSupported
+func (s *SchedulerStub) CacheResult(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context, p1 string) (error) {
