@@ -188,6 +188,8 @@ type SchedulerStruct struct {
 
 		FindNodeWithBlock func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
+		GetDownloadInfoWithBlock func(p0 context.Context, p1 string, p2 string) (DownloadInfo, error) `perm:"read"`
+
 		GetDownloadInfoWithBlocks func(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfo, error) `perm:"read"`
 
 		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
@@ -585,6 +587,17 @@ func (s *SchedulerStruct) FindNodeWithBlock(p0 context.Context, p1 string, p2 st
 
 func (s *SchedulerStub) FindNodeWithBlock(p0 context.Context, p1 string, p2 string) (string, error) {
 	return "", ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetDownloadInfoWithBlock(p0 context.Context, p1 string, p2 string) (DownloadInfo, error) {
+	if s.Internal.GetDownloadInfoWithBlock == nil {
+		return *new(DownloadInfo), ErrNotSupported
+	}
+	return s.Internal.GetDownloadInfoWithBlock(p0, p1, p2)
+}
+
+func (s *SchedulerStub) GetDownloadInfoWithBlock(p0 context.Context, p1 string, p2 string) (DownloadInfo, error) {
+	return *new(DownloadInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfo, error) {
