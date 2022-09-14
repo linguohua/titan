@@ -136,7 +136,6 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 		}
 	}()
 
-	index := 0
 	size := int64(0)
 	now := time.Now()
 	isBreak := false
@@ -156,9 +155,9 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 			if err != nil {
 				log.Errorf("waitBlock, cidFromData error:%v", err)
 			} else {
-				result.Cids[index] = cid
+				result.Cids[result.RandomCount] = cid
 			}
-			index++
+			result.RandomCount++
 		case <-t.C:
 			log.Errorf("waitBlock timeout %ds, exit wait block", req.Duration+helper.ValidateTimeout)
 			isBreak = true
@@ -186,7 +185,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 }
 
 func validate(req *api.ReqValidate, candidate *Candidate) {
-	result := &api.ValidateResults{RoundID: req.RoundID}
+	result := &api.ValidateResults{RoundID: req.RoundID, RandomCount: 0}
 	// result.Results = make([]api.ValidateResult, 0)
 
 	ctx, cancel := context.WithCancel(context.Background())

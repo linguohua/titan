@@ -2,6 +2,7 @@ package validate
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"net"
 	"time"
@@ -56,16 +57,16 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 	defer conn.Close()
 
 	// get all cid in block store
-	cids, err := validate.block.GetAllCidsFromBlockStore()
-	if err != nil {
-		log.Errorf("sendBlocks, get block store cids error:%v", err)
-		return
-	}
+	// cids, err := validate.block.GetAllCidsFromBlockStore()
+	// if err != nil {
+	// 	log.Errorf("sendBlocks, get block store cids error:%v", err)
+	// 	return
+	// }
 
-	if len(cids) == 0 {
-		log.Errorf("block store is empty")
-		return
-	}
+	// if len(cids) == 0 {
+	// 	log.Errorf("block store is empty")
+	// 	return
+	// }
 
 	r := rand.New(rand.NewSource(reqValidate.Seed))
 	t := time.NewTimer(time.Duration(reqValidate.Duration) * time.Second)
@@ -78,9 +79,8 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 		default:
 		}
 
-		random := r.Intn(len(cids))
-		cid := cids[random]
-		block, err := validate.block.LoadBlock(context.TODO(), cid)
+		fid := r.Intn(reqValidate.MaxFid) + 1
+		block, err := validate.block.LoadBlockWithFid(fmt.Sprintf("%d", fid))
 		if err != nil && err != datastore.ErrNotFound {
 			log.Errorf("sendBlocks, get block error:%v", err)
 			return
