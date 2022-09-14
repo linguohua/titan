@@ -185,7 +185,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 }
 
 func validate(req *api.ReqValidate, candidate *Candidate) {
-	result := &api.ValidateResults{RoundID: req.RoundID, RandomCount: 0}
+	result := &api.ValidateResults{RoundID: req.RoundID, RandomCount: 0, Cids: make(map[int]string)}
 	// result.Results = make([]api.ValidateResult, 0)
 
 	ctx, cancel := context.WithCancel(context.Background())
