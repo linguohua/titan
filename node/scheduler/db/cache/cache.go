@@ -19,14 +19,14 @@ type DB interface {
 	RemoveValidateingList() error
 
 	RemoveCacheBlockInfo(deviceID, cid string) error
-	SetCacheBlockInfo(deviceID, cid string, tag string) error
+	SetCacheBlockInfo(deviceID, cid string, fid string) error
 	GetCacheBlockInfo(deviceID, cid string) (string, error)
 	GetCacheBlockInfos(deviceID string) (map[string]string, error)
 	// GetCacheBlockNum(deviceID string) (int64, error)
 	// GetCacheBlockInfos(deviceID string, start, end int64) ([]string, error)
-	RemoveCacheBlockTagInfo(deviceID, tag string) error
-	SetCacheBlockTagInfo(deviceID, cid string, tag string) error
-	GetCacheBlockTagInfo(deviceID, tag string) (string, error)
+	RemoveCacheBlockTagInfo(deviceID, fid string) error
+	SetCacheBlockTagInfo(deviceID, cid string, fid string) error
+	GetCacheBlockTagInfo(deviceID, fid string) (string, error)
 	GetCacheBlockTagInfos(deviceID string) (map[string]string, error)
 
 	RemoveNodeWithCacheList(deviceID, cid string) error

@@ -24,6 +24,8 @@ type Validate struct {
 
 	timewheelValidate *timewheel.TimeWheel
 	validateTime      int // validate time interval (minute)
+
+	maxFidMap map[string]int64
 }
 
 // init timers
@@ -85,7 +87,14 @@ func (e *Validate) getReqValidates(scheduler *Scheduler, validatorID string, lis
 			continue
 		}
 
-		req = append(req, api.ReqValidate{Seed: e.seed, NodeURL: addr, Duration: e.duration, RoundID: e.roundID, NodeType: int(nodeType)})
+		maxFid, err := cache.GetDB().GetNodeCacheTag(deviceID)
+		if err != nil {
+			log.Warnf("validate GetNodeCacheTag err:%v,DeviceId:%v", err.Error(), deviceID)
+			continue
+		}
+		e.maxFidMap[deviceID] = maxFid
+
+		req = append(req, api.ReqValidate{Seed: e.seed, NodeURL: addr, Duration: e.duration, RoundID: e.roundID, NodeType: int(nodeType), MaxFid: int(maxFid)})
 
 		err = cache.GetDB().SetValidateResultInfo(e.roundID, deviceID, validatorID, "", cache.ValidateStatusCreate)
 		if err != nil {
@@ -161,49 +170,38 @@ func (e *Validate) validateResult(validateResults *api.ValidateResults) error {
 		return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
 	}
 
-	return nil
-	// r := rand.New(rand.NewSource(e.seed))
-	// rlen := len(validateResults.Cids)
+	r := rand.New(rand.NewSource(e.seed))
+	rlen := len(validateResults.Cids)
 
-	// if rlen <= 0 {
-	// 	status = cache.ValidateStatusFail
-	// 	msg = fmt.Sprint("Results is nil")
-	// 	return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
-	// }
+	if rlen <= 0 {
+		status = cache.ValidateStatusFail
+		msg = fmt.Sprint("Results is nil")
+		return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
+	}
 
-	// max, err := cache.GetDB().GetCacheBlockNum(deviceID)
-	// if err != nil {
-	// 	log.Warnf("validateResult GetCacheBlockNum err:%v,DeviceId:%v", err.Error(), deviceID)
-	// 	return err
-	// }
+	maxFid := e.maxFidMap[deviceID]
 
-	// for index := 0; index < rlen; index++ {
-	// 	rand := e.getRandNum(int(max), r)
-	// 	resultCid := validateResults.Cids[index]
+	for index := 0; index < rlen; index++ {
+		fid := e.getRandNum(int(maxFid), r)
+		resultCid := validateResults.Cids[index]
 
-	// 	cids, err := cache.GetDB().GetCacheBlockInfos(deviceID, int64(rand), int64(rand))
-	// 	if err != nil {
-	// 		status = cache.ValidateStatusFail
-	// 		msg = fmt.Sprintf("GetCacheBlockInfos err:%v,resultCid:%v,rand:%v,index:%v", err.Error(), resultCid, rand, index)
-	// 		break
-	// 	}
+		fidStr := fmt.Sprintf("%d", fid)
 
-	// 	cid := cids[0]
+		cid, err := cache.GetDB().GetCacheBlockTagInfo(deviceID, fidStr)
+		if err != nil {
+			// status = cache.ValidateStatusFail
+			// msg = fmt.Sprintf("GetCacheBlockInfos err:%v,resultCid:%v,cid:%v,index:%v", err.Error(), resultCid, cid, index)
+			continue
+		}
 
-	// 	if resultCid == "" {
-	// 		status = cache.ValidateStatusFail
-	// 		msg = fmt.Sprintf("resultCid:%v,cid:%v,rand:%v,index:%v", resultCid, cid, rand, index)
-	// 		break
-	// 	}
+		if resultCid == "" || resultCid != cid {
+			status = cache.ValidateStatusFail
+			msg = fmt.Sprintf("resultCid:%v,cid:%v,fid:%v,index:%v", resultCid, cid, fid, index)
+			break
+		}
+	}
 
-	// 	if resultCid != cid {
-	// 		status = cache.ValidateStatusFail
-	// 		msg = fmt.Sprintf("result.Cid:%v,Cid:%v,rand:%v,index:%v", resultCid, cid, rand, index)
-	// 		break
-	// 	}
-	// }
-
-	// return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
+	return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
 }
 
 func (e *Validate) checkValidateTimeOut() error {
@@ -247,6 +245,7 @@ func (e *Validate) startValidate(scheduler *Scheduler) error {
 
 	e.roundID = fmt.Sprintf("%d", sID)
 	e.seed = time.Now().UnixNano()
+	e.maxFidMap = make(map[string]int64)
 
 	// find validators
 	validators, err := cache.GetDB().GetValidatorsWithList()
