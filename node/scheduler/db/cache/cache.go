@@ -7,8 +7,8 @@ import (
 
 // DB cache db
 type DB interface {
-	IncrNodeCacheTag(deviceID string) (int64, error)
-	GetNodeCacheTag(deviceID string) (int64, error)
+	IncrNodeCacheFid(deviceID string) (int64, error)
+	GetNodeCacheFid(deviceID string) (int64, error)
 
 	IncrValidateRoundID() (int64, error)
 	GetValidateRoundID() (string, error)
@@ -18,16 +18,17 @@ type DB interface {
 	GetNodesWithValidateingList() ([]string, error)
 	RemoveValidateingList() error
 
-	RemoveCacheBlockInfo(deviceID, cid string) error
-	SetCacheBlockInfo(deviceID, cid string, fid string) error
-	GetCacheBlockInfo(deviceID, cid string) (string, error)
-	GetCacheBlockInfos(deviceID string) (map[string]string, error)
-	// GetCacheBlockNum(deviceID string) (int64, error)
+	RemoveBlockFidWithCid(deviceID, cid string) error
+	SetBlockFidWithCid(deviceID, cid string, fid string) error
+	GetBlockFidWithCid(deviceID, cid string) (string, error)
+	GetBlockCids(deviceID string) (map[string]string, error)
+	GetBlockCidNum(deviceID string) (int64, error)
 	// GetCacheBlockInfos(deviceID string, start, end int64) ([]string, error)
-	RemoveCacheBlockTagInfo(deviceID, fid string) error
-	SetCacheBlockTagInfo(deviceID, cid string, fid string) error
-	GetCacheBlockTagInfo(deviceID, fid string) (string, error)
-	GetCacheBlockTagInfos(deviceID string) (map[string]string, error)
+	RemoveBlockCidWithFid(deviceID, fid string) error
+	SetBlockCidWithFid(deviceID, cid string, fid string) error
+	GetBlockCidWithFid(deviceID, fid string) (string, error)
+	GetBlockFids(deviceID string) (map[string]string, error)
+	GetBlockFidNum(deviceID string) (int64, error)
 
 	RemoveNodeWithCacheList(deviceID, cid string) error
 	SetNodeToCacheList(deviceID, cid string) error

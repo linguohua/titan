@@ -77,17 +77,17 @@ func (e *Validate) getReqValidates(scheduler *Scheduler, validatorID string, lis
 		}
 
 		// cache datas
-		datas, err := cache.GetDB().GetCacheBlockInfos(deviceID)
+		num, err := cache.GetDB().GetBlockFidNum(deviceID)
 		if err != nil {
-			log.Warnf("validate GetCacheBlockInfos err:%v,DeviceId:%v", err.Error(), deviceID)
+			log.Warnf("validate GetBlockFidNum err:%v,DeviceId:%v", err.Error(), deviceID)
 			continue
 		}
 
-		if len(datas) <= 0 {
+		if num <= 0 {
 			continue
 		}
 
-		maxFid, err := cache.GetDB().GetNodeCacheTag(deviceID)
+		maxFid, err := cache.GetDB().GetNodeCacheFid(deviceID)
 		if err != nil {
 			log.Warnf("validate GetNodeCacheTag err:%v,DeviceId:%v", err.Error(), deviceID)
 			continue
@@ -187,7 +187,7 @@ func (e *Validate) validateResult(validateResults *api.ValidateResults) error {
 
 		fidStr := fmt.Sprintf("%d", fid)
 
-		cid, err := cache.GetDB().GetCacheBlockTagInfo(deviceID, fidStr)
+		cid, err := cache.GetDB().GetBlockCidWithFid(deviceID, fidStr)
 		if err != nil {
 			// status = cache.ValidateStatusFail
 			// msg = fmt.Sprintf("GetCacheBlockInfos err:%v,resultCid:%v,cid:%v,index:%v", err.Error(), resultCid, cid, index)
