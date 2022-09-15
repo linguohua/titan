@@ -12,6 +12,12 @@ import (
 	"golang.org/x/xerrors"
 )
 
+const (
+	errMsgTimeOut  = "TimeOut"
+	errMsgBlockNil = "Block Nil;map len:%v,count:%v"
+	errMsgCidFail  = "Cid Fail;resultCid:%v,cid:%v,fid:%v,index:%v"
+)
+
 // Validate Validate
 type Validate struct {
 	seed int64
@@ -166,7 +172,7 @@ func (e *Validate) validateResult(validateResults *api.ValidateResults) error {
 
 	if validateResults.IsTimeout {
 		status = cache.ValidateStatusTimeOut
-		msg = fmt.Sprint("Time out")
+		msg = errMsgTimeOut
 		return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
 	}
 
@@ -175,7 +181,7 @@ func (e *Validate) validateResult(validateResults *api.ValidateResults) error {
 
 	if rlen <= 0 || validateResults.RandomCount <= 0 {
 		status = cache.ValidateStatusFail
-		msg = fmt.Sprintf("Results rlen:%v , RandomCount:%v", rlen, validateResults.RandomCount)
+		msg = fmt.Sprintf(errMsgBlockNil, rlen, validateResults.RandomCount)
 		return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
 	}
 
@@ -188,15 +194,15 @@ func (e *Validate) validateResult(validateResults *api.ValidateResults) error {
 		fidStr := fmt.Sprintf("%d", fid)
 
 		cid, err := cache.GetDB().GetBlockCidWithFid(deviceID, fidStr)
-		if err != nil {
+		if err != nil || cid == "" {
 			// status = cache.ValidateStatusFail
 			// msg = fmt.Sprintf("GetCacheBlockInfos err:%v,resultCid:%v,cid:%v,index:%v", err.Error(), resultCid, cid, index)
 			continue
 		}
 
-		if resultCid == "" || resultCid != cid {
+		if resultCid != cid {
 			status = cache.ValidateStatusFail
-			msg = fmt.Sprintf("resultCid:%v,cid:%v,fid:%v,index:%v", resultCid, cid, fid, index)
+			msg = fmt.Sprintf(errMsgCidFail, resultCid, cid, fid, index)
 			break
 		}
 	}
