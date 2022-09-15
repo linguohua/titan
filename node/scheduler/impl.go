@@ -416,15 +416,9 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 
 	// redis datas
 	body := api.CacheStat{}
-	infos, err := cache.GetDB().GetCacheBlockInfos(deviceID)
-	if err == nil && len(infos) > 0 {
-		count := 0
-		for _, tag := range infos {
-			if tag != dataDefaultTag {
-				count++
-			}
-		}
-		body.CacheBlockCount = count
+	count, err := cache.GetDB().GetBlockFidNum(deviceID)
+	if err == nil {
+		body.CacheBlockCount = int(count)
 	}
 
 	statList = append(statList, body)
