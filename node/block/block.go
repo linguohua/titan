@@ -68,6 +68,10 @@ func apiReq2DelayReq(req *api.ReqCacheData) []*delayReq {
 }
 
 func (block *Block) startBlockLoader() {
+	if block.block == nil {
+		log.Panic("block.block == nil")
+	}
+
 	for {
 		doLen := len(block.reqList)
 		if doLen == 0 {
@@ -182,7 +186,7 @@ func (block *Block) CacheBlocks(ctx context.Context, req api.ReqCacheData) error
 
 // delete block in local store and scheduler
 func (block *Block) DeleteBlocks(ctx context.Context, cids []string) ([]api.BlockOperationResult, error) {
-	log.Debug("DeleteBlocks")
+	log.Infof("DeleteBlocks, cids len:%d", len(cids))
 	// delResult := api.DelResult{}
 	results := make([]api.BlockOperationResult, 0)
 
@@ -192,8 +196,10 @@ func (block *Block) DeleteBlocks(ctx context.Context, cids []string) ([]api.Bloc
 	}
 
 	for _, cid := range cids {
+		block.deleteFidAndCid(cid)
 		err := block.blockStore.Delete(cid)
 		if err == datastore.ErrNotFound {
+			log.Infof("DeleteBlocks cid %s not exist", cid)
 			continue
 		}
 
@@ -229,6 +235,7 @@ func (block *Block) AnnounceBlocksWasDelete(ctx context.Context, cids []string) 
 		if err != nil {
 			result[cid] = err.Error()
 		}
+		block.deleteFidAndCid(cid)
 	}
 
 	for k, v := range result {
@@ -314,4 +321,28 @@ func (block *Block) getFID(cid string) (string, error) {
 	}
 
 	return string(value), nil
+}
+
+func (block *Block) deleteFidAndCid(cid string) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	value, err := block.ds.Get(ctx, helper.NewKeyCID(cid))
+	if err != nil {
+		return err
+	}
+
+	fid := string(value)
+
+	err = block.ds.Delete(ctx, helper.NewKeyFID(fid))
+	if err != nil {
+		return err
+	}
+
+	err = block.ds.Delete(ctx, helper.NewKeyCID(cid))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

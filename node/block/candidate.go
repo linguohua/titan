@@ -6,12 +6,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 )
 
 type Candidate struct {
-	api        api.Candidate
 	deviceID   string
 	downSrvURL string
 	token      string
@@ -45,11 +43,12 @@ func getCandidate(candidateURL string) (*Candidate, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	api, _, err := client.NewCandicate(ctx, candidateURL, nil)
+	api, close, err := client.NewCandicate(ctx, candidateURL, nil)
 	if err != nil {
 		log.Errorf("getCandidateAPI, NewCandicate err:%v", err)
 		return nil, err
 	}
+	defer close()
 
 	info, err := api.DeviceInfo(ctx)
 	if err != nil {
@@ -63,7 +62,7 @@ func getCandidate(candidateURL string) (*Candidate, error) {
 		return nil, err
 	}
 
-	candidate := &Candidate{api: api, deviceID: info.DeviceId, downSrvURL: download.URL, token: download.Token}
+	candidate := &Candidate{deviceID: info.DeviceId, downSrvURL: download.URL, token: download.Token}
 	return candidate, nil
 }
 
