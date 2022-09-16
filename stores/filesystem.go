@@ -54,7 +54,7 @@ func (fs *fileStore) GetReader(key string) (BlockReader, error) {
 		return nil, err
 	}
 
-	return &FileReader{file}, nil
+	return &fileReader{file}, nil
 }
 
 func (fs *fileStore) Has(key string) (exists bool, err error) {
@@ -128,23 +128,23 @@ func (fs *fileStore) GetAllKeys() ([]string, error) {
 	return keys, nil
 }
 
-type FileReader struct {
+type fileReader struct {
 	file *os.File
 }
 
-func (r *FileReader) Read(p []byte) (n int, err error) {
+func (r *fileReader) Read(p []byte) (n int, err error) {
 	return r.file.Read(p)
 }
 
-func (r *FileReader) Close() error {
+func (r *fileReader) Close() error {
 	return r.file.Close()
 }
 
-func (r *FileReader) Seek(offset int64, whence int) (int64, error) {
+func (r *fileReader) Seek(offset int64, whence int) (int64, error) {
 	return r.file.Seek(offset, whence)
 }
 
-func (r *FileReader) Size() int64 {
+func (r *fileReader) Size() int64 {
 	stat, err := r.file.Stat()
 	if err != nil {
 		return 0
