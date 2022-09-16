@@ -170,12 +170,12 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 	}
 
 	duration := time.Now().Sub(now)
+	result.CostTime = int(duration / time.Millisecond)
+
 	if duration < time.Duration(req.Duration)*time.Second {
 		duration = time.Duration(req.Duration) * time.Second
 	}
-
 	result.Bandwidth = float64(size) / float64(duration) * float64(time.Second)
-	result.CostTime = int(duration / time.Millisecond)
 
 	log.Infof("validate %s %d block, bandwidth:%f, cost time:%d, IsTimeout:%v, duration:%d, size:%d", result.DeviceID, len(result.Cids), result.Bandwidth, result.CostTime, result.IsTimeout, req.Duration, size)
 	ctx, cancel := context.WithCancel(context.Background())

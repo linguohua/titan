@@ -138,8 +138,8 @@ func (r *rocksdb) GetReader(key string) (BlockReader, error) {
 
 	defer slice.Free()
 
-	reader := bytes.NewReader(slice.Data())
-	return &Reader{reader}, nil
+	rd := bytes.NewReader(slice.Data())
+	return &reader{rd}, nil
 }
 
 func (r *rocksdb) Has(key string) (exists bool, err error) {
@@ -228,22 +228,22 @@ func (r *rocksdb) GetAllKeys() ([]string, error) {
 	return keys, nil
 }
 
-type Reader struct {
+type reader struct {
 	r *bytes.Reader
 }
 
-func (r *Reader) Read(p []byte) (n int, err error) {
+func (r *reader) Read(p []byte) (n int, err error) {
 	return r.r.Read(p)
 }
 
-func (r *Reader) Close() error {
+func (r *reader) Close() error {
 	return nil
 }
 
-func (r *Reader) Seek(offset int64, whence int) (int64, error) {
+func (r *reader) Seek(offset int64, whence int) (int64, error) {
 	return r.r.Seek(offset, whence)
 }
 
-func (r *Reader) Size() int64 {
+func (r *reader) Size() int64 {
 	return r.r.Size()
 }
