@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/build"
-	"github.com/linguohua/titan/lib/p2p"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/validate"
 	"github.com/linguohua/titan/stores"
@@ -21,21 +19,21 @@ import (
 var log = logging.Logger("edge")
 
 func NewLocalEdgeNode(ctx context.Context, params *EdgeParams) api.Edge {
-	addrs, err := build.BuiltinBootstrap()
-	if err != nil {
-		log.Fatal(err)
-	}
+	// addrs, err := build.BuiltinBootstrap()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	exchange, err := p2p.Bootstrap(ctx, addrs)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// exchange, err := p2p.Bootstrap(ctx, addrs)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	rateLimiter := rate.NewLimiter(rate.Limit(params.Device.BandwidthUp), int(params.Device.BandwidthUp))
 	blockDownload := download.NewBlockDownload(rateLimiter, params.BlockStore, params.DownloadSrvKey, params.DownloadSrvAddr, params.Device.InternalIP)
 	params.Device.SetBlockDownload(blockDownload)
 
-	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.Candidate{}, exchange, params.Device.DeviceID)
+	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.Candidate{}, nil, params.Device.DeviceID)
 
 	validate := validate.NewValidate(blockDownload, block, params.Device.DeviceID)
 
