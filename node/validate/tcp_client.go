@@ -4,7 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"net"
+
+	"github.com/linguohua/titan/node/download"
+	"golang.org/x/time/rate"
 )
 
 func newTcpClient(addr string) (*net.TCPConn, error) {
@@ -34,28 +38,29 @@ func packData(data []byte) ([]byte, error) {
 	return buf, nil
 }
 
-func sendData(conn *net.TCPConn, data []byte) error {
+func sendData(conn *net.TCPConn, data []byte, limiter *rate.Limiter) error {
 	buf, err := packData(data)
 	if err != nil {
 		return err
 	}
 
-	n, err := conn.Write(buf)
+	n, err := io.Copy(conn, download.NewReader(bytes.NewBuffer(buf), limiter))
 	if err != nil {
+		log.Errorf("sendData, io.Copy error:%v", err)
 		return err
 	}
 
-	if n != len(buf) {
+	if int(n) != len(buf) {
 		return fmt.Errorf("Send data len is %d, but buf len is %d", n, len(buf))
 	}
 
 	return nil
 }
 
-func sendDeviceID(conn *net.TCPConn, deviceID string) error {
+func sendDeviceID(conn *net.TCPConn, deviceID string, limiter *rate.Limiter) error {
 	if len(deviceID) == 0 {
 		return fmt.Errorf("deviceID can not empty")
 	}
 
-	return sendData(conn, []byte(deviceID))
+	return sendData(conn, []byte(deviceID), limiter)
 }
