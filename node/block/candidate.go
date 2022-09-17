@@ -100,6 +100,6 @@ func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 		}
 
 		block.cacheResult(ctx, req.cid, candidate.deviceID, err)
-		log.Infof("loadBlocksFromCandidate, cid:%s,err:%v", req.cid, err)
+		log.Infof("loadBlocksFromCandidate, cid:%s,err:%s", req.cid, err.Error())
 	}
 }
