@@ -61,6 +61,10 @@ func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, params *edge.
 }
 
 func cidFromData(data []byte) (string, error) {
+	if len(data) == 0 {
+		return "", fmt.Errorf("len(data) == 0")
+	}
+
 	pref := cid.Prefix{
 		Version:  1,
 		Codec:    uint64(cid.Raw),
@@ -73,7 +77,7 @@ func cidFromData(data []byte) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("%v", c), nil
+	return c.String(), nil
 }
 
 type blockWaiter struct {
@@ -150,12 +154,14 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 				break
 			}
 
-			size += int64(len(block))
-			cid, err := cidFromData(block)
-			if err != nil {
-				log.Errorf("waitBlock, cidFromData error:%v", err)
-			} else {
-				result.Cids[result.RandomCount] = cid
+			if len(block) > 0 {
+				size += int64(len(block))
+				cid, err := cidFromData(block)
+				if err != nil {
+					log.Errorf("waitBlock, cidFromData error:%v", err)
+				} else {
+					result.Cids[result.RandomCount] = cid
+				}
 			}
 			result.RandomCount++
 		case <-t.C:
@@ -177,7 +183,9 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 	}
 	result.Bandwidth = float64(size) / float64(duration) * float64(time.Second)
 
-	log.Infof("validate %s %d block, bandwidth:%f, cost time:%d, IsTimeout:%v, duration:%d, size:%d", result.DeviceID, len(result.Cids), result.Bandwidth, result.CostTime, result.IsTimeout, req.Duration, size)
+	log.Infof("validate %s %d block, bandwidth:%f, cost time:%d, IsTimeout:%v, duration:%d, size:%d, randCount:%d",
+		result.DeviceID, len(result.Cids), result.Bandwidth, result.CostTime, result.IsTimeout, req.Duration, size, result.RandomCount)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

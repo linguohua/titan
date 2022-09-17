@@ -31,7 +31,7 @@ func loadBlocksAsync(block *Block, cids []cid.Cid) ([]blocks.Block, error) {
 	for block := range blockCh {
 		results = append(results, block)
 	}
-	log.Debug("get block end")
+	// log.Debug("get block end")
 	return results, nil
 }
 
@@ -54,9 +54,7 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 		// }
 
 		cids = append(cids, target)
-
-		cidStr := fmt.Sprintf("%v", target)
-		reqMap[cidStr] = reqData
+		reqMap[reqData.cid] = reqData
 	}
 
 	if len(cids) == 0 {
@@ -72,11 +70,11 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 
 	var from = ""
 	for _, b := range blocks {
-		cidStr := fmt.Sprintf("%v", b.Cid())
+		cidStr := b.Cid().String()
 		err = block.blockStore.Put(cidStr, b.RawData())
 		block.cacheResult(ctx, cidStr, from, err)
 
-		log.Infof("cache data,cid:%s,err:%v", cidStr, err)
+		log.Infof("cache data,cid:%s,err:%s", cidStr, err.Error())
 
 		delete(reqMap, cidStr)
 	}
