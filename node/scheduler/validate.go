@@ -8,6 +8,7 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
+	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
 )
@@ -102,7 +103,8 @@ func (e *Validate) getReqValidates(scheduler *Scheduler, validatorID string, lis
 
 		req = append(req, api.ReqValidate{Seed: e.seed, NodeURL: addr, Duration: e.duration, RoundID: e.roundID, NodeType: int(nodeType), MaxFid: int(maxFid)})
 
-		err = cache.GetDB().SetValidateResultInfo(e.roundID, deviceID, validatorID, "", cache.ValidateStatusCreate)
+		resultInfo := &persistent.ValidateResult{RoundID: e.roundID, DeviceID: deviceID, ValidatorID: validatorID, Status: int(persistent.ValidateStatusCreate)}
+		err = persistent.GetDB().SetValidateResultInfo(resultInfo)
 		if err != nil {
 			log.Warnf("validate SetValidateResultInfo err:%v,DeviceId:%v", err.Error(), deviceID)
 			continue
@@ -139,7 +141,8 @@ func (e *Validate) getRandNum(max int, r *rand.Rand) int {
 
 // TODO save to sql
 func (e *Validate) saveValidateResult(rID string, deviceID string, validatorID string, msg string, status cache.ValidateStatus) error {
-	err := cache.GetDB().SetValidateResultInfo(rID, deviceID, "", msg, status)
+	resultInfo := &persistent.ValidateResult{RoundID: rID, DeviceID: deviceID, Status: int(status), Msg: msg}
+	err := persistent.GetDB().SetValidateResultInfo(resultInfo)
 	if err != nil {
 		return err
 	}
@@ -150,7 +153,7 @@ func (e *Validate) saveValidateResult(rID string, deviceID string, validatorID s
 	}
 
 	if msg != "" {
-		err = cache.GetDB().SetNodeToValidateErrorList(rID, deviceID)
+		err = persistent.GetDB().SetNodeToValidateErrorList(rID, deviceID)
 		if err != nil {
 			return err
 		}
@@ -220,7 +223,8 @@ func (e *Validate) checkValidateTimeOut() error {
 		log.Infof("checkValidateTimeOut list:%v", deviceIDs)
 
 		for _, deviceID := range deviceIDs {
-			err = cache.GetDB().SetValidateResultInfo(e.roundID, deviceID, "", "", cache.ValidateStatusTimeOut)
+			resultInfo := &persistent.ValidateResult{RoundID: e.roundID, DeviceID: deviceID, Status: int(cache.ValidateStatusTimeOut)}
+			err = persistent.GetDB().SetValidateResultInfo(resultInfo)
 			if err != nil {
 				log.Warnf("checkValidateTimeOut SetValidateResultInfo err:%v,DeviceId:%v", err.Error(), deviceID)
 				continue
@@ -341,14 +345,14 @@ func (e *Validate) startValidate(scheduler *Scheduler) error {
 		}
 
 		if offline {
-			err = cache.GetDB().SetNodeToValidateErrorList(e.roundID, validatorID)
+			err = persistent.GetDB().SetNodeToValidateErrorList(e.roundID, validatorID)
 			if err != nil {
 				log.Errorf("SetNodeToValidateErrorList ,err:%v,deviceID:%v", err.Error(), validatorID)
 			}
 		}
 
 		for _, deviceID := range errList {
-			err = cache.GetDB().SetNodeToValidateErrorList(e.roundID, deviceID)
+			err = persistent.GetDB().SetNodeToValidateErrorList(e.roundID, deviceID)
 			if err != nil {
 				log.Errorf("SetNodeToValidateErrorList ,err:%v,deviceID:%v", err.Error(), deviceID)
 			}

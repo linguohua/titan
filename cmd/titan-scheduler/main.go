@@ -16,6 +16,7 @@ import (
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
+	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/region"
 	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
@@ -97,12 +98,17 @@ var runCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:  "cachedb-url",
 			Usage: "cachedb url",
-			Value: "127.0.0.1:6378",
+			Value: "127.0.0.1:6379",
 		},
 		&cli.StringFlag{
 			Name:  "geodb-path",
 			Usage: "geodb path",
 			Value: "../../geoip/geolite2_city/city.mmdb",
+		},
+		&cli.StringFlag{
+			Name:  "persistentdb-url",
+			Usage: "persistentdb url",
+			Value: "root:sql123@tcp(127.0.0.1:3306)/test",
 		},
 	},
 
@@ -129,9 +135,7 @@ var runCmd = &cli.Command{
 
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
-		// init mysql db
-		// db.GMysqlDb = db.GormMysql()
-		// TODO
+
 		cURL := cctx.String("cachedb-url")
 		err = cache.NewCacheDB(cURL, cache.TypeRedis())
 		if err != nil {
@@ -140,6 +144,12 @@ var runCmd = &cli.Command{
 
 		gPath := cctx.String("geodb-path")
 		err = region.NewRegion(gPath, region.TypeGeoLite())
+		if err != nil {
+			log.Panic(err.Error())
+		}
+
+		pPath := cctx.String("persistentdb-url")
+		err = persistent.NewDB(pPath, persistent.TypeSQL())
 		if err != nil {
 			log.Panic(err.Error())
 		}

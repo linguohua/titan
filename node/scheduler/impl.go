@@ -6,14 +6,19 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
+	"google.golang.org/grpc/peer"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
+	"github.com/linguohua/titan/region"
 )
 
 var log = logging.Logger("scheduler")
+
+// ErrNodeNotFind node not found
+const ErrNodeNotFind = "Not Found"
 
 // NewLocalScheduleNode NewLocalScheduleNode
 func NewLocalScheduleNode() api.Scheduler {
@@ -51,6 +56,10 @@ type Scheduler struct {
 
 // EdgeNodeConnect edge connect
 func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
+	re, oo := peer.FromContext(ctx)
+	if oo {
+		log.Infof("EdgeNodeConnect ip:%v", re.Addr.String())
+	}
 	// Connect to scheduler
 	// log.Infof("EdgeNodeConnect edge url:%v", url)
 	edgeAPI, closer, err := client.NewEdge(ctx, url, nil)
@@ -127,7 +136,7 @@ func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.C
 		return candidate.cacheBlockResult(&info)
 	}
 
-	return "", xerrors.New("node not find")
+	return "", xerrors.New(ErrNodeNotFind)
 }
 
 // DeleteBlockRecords  Delete Block Record
@@ -146,7 +155,7 @@ func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cid
 		return candidate.deleteBlockRecords(cids)
 	}
 
-	return nil, xerrors.New("node not find")
+	return nil, xerrors.New(ErrNodeNotFind)
 }
 
 // DeleteBlocks  Delete Blocks
@@ -198,7 +207,7 @@ func (s *Scheduler) DeleteBlocks(ctx context.Context, deviceID string, cids []st
 	}
 
 	if !nodeFinded {
-		return nil, xerrors.New("node not find")
+		return nil, xerrors.New(ErrNodeNotFind)
 	}
 
 	delRecordList := make([]string, 0)
@@ -258,7 +267,7 @@ func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID str
 		return errList, nil
 	}
 
-	return nil, xerrors.New("device not find")
+	return nil, xerrors.New(ErrNodeNotFind)
 }
 
 // InitNodeDeviceIDs Init Node DeviceIDs (test)
@@ -339,7 +348,23 @@ func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string
 		return nil, xerrors.New("cids is nil")
 	}
 
-	return s.nodeManager.getDownloadInfoWithDatas(cids, ip)
+	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
+	if err != nil {
+		log.Warnf("getNodeURLWithData GetGeoInfo err:%v,ip:%v", err, ip)
+	}
+
+	infoMap := make(map[string]api.DownloadInfo)
+
+	for _, cid := range cids {
+		info, err := s.nodeManager.nodeDownloadInfo(cid, geoInfo)
+		if err != nil {
+			continue
+		}
+
+		infoMap[cid] = info
+	}
+
+	return infoMap, nil
 }
 
 // GetDownloadInfoWithBlock find node
@@ -348,16 +373,21 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, ip
 		return api.DownloadInfo{}, xerrors.New("cids is nil")
 	}
 
-	mInfo, err := s.nodeManager.getDownloadInfoWithDatas([]string{cid}, ip)
+	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
 	if err != nil {
-		return api.DownloadInfo{}, err
+		log.Warnf("getNodeURLWithData GetGeoInfo err:%v,ip:%v", err, ip)
 	}
 
-	return mInfo[cid], nil
+	return s.nodeManager.nodeDownloadInfo(cid, geoInfo)
 }
 
 // CandidateNodeConnect Candidate connect
 func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
+	re, oo := peer.FromContext(ctx)
+	if oo {
+		log.Infof("CandidateNodeConnect ip:%v", re.Addr.String())
+	}
+
 	candicateAPI, closer, err := client.NewCandicate(ctx, url, nil)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect NewCandicate err:%v,url:%v", err, url)
@@ -438,7 +468,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 		return statList, nil
 	}
 
-	return statList, xerrors.New("node not find")
+	return statList, xerrors.New(ErrNodeNotFind)
 }
 
 // QueryCachingBlocksWithNode Query Caching Blocks
@@ -453,7 +483,7 @@ func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID str
 		return edge.nodeAPI.QueryCachingBlocks(ctx)
 	}
 
-	return api.CachingBlockList{}, xerrors.New("node not find")
+	return api.CachingBlockList{}, xerrors.New(ErrNodeNotFind)
 }
 
 // ElectionValidators Election Validators
