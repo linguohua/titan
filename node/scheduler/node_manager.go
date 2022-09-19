@@ -7,6 +7,7 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
+	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/region"
 	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
@@ -58,7 +59,7 @@ func (m *NodeManager) nodeKeepalive() {
 	nowTime := time.Now().Add(-time.Duration(m.keepaliveTime) * 60 * time.Second)
 
 	m.edgeNodeMap.Range(func(key, value interface{}) bool {
-		deviceID := key.(string)
+		// deviceID := key.(string)
 		node := value.(*EdgeNode)
 
 		if node == nil {
@@ -74,16 +75,16 @@ func (m *NodeManager) nodeKeepalive() {
 			return true
 		}
 
-		err := cache.GetDB().AddNodeOnlineTime(deviceID, int64(m.keepaliveTime))
-		if err != nil {
-			log.Warnf("AddNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
-		}
+		// err := persistent.GetDB().AddNodeOnlineTime(deviceID, int64(m.keepaliveTime))
+		// if err != nil {
+		// 	log.Warnf("AddNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
+		// }
 
 		return true
 	})
 
 	m.candidateNodeMap.Range(func(key, value interface{}) bool {
-		deviceID := key.(string)
+		// deviceID := key.(string)
 		node := value.(*CandidateNode)
 
 		if node == nil {
@@ -99,13 +100,18 @@ func (m *NodeManager) nodeKeepalive() {
 			return true
 		}
 
-		err := cache.GetDB().AddNodeOnlineTime(deviceID, int64(m.keepaliveTime))
-		if err != nil {
-			log.Warnf("AddNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
-		}
+		// err := persistent.GetDB().AddNodeOnlineTime(deviceID, int64(m.keepaliveTime))
+		// if err != nil {
+		// 	log.Warnf("AddNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
+		// }
 
 		return true
 	})
+
+	err := persistent.GetDB().AddAllNodeOnlineTime(int64(m.keepaliveTime))
+	if err != nil {
+		log.Warnf("AddAllNodeOnlineTime err:%v", err.Error())
+	}
 }
 
 func (m *NodeManager) addEdgeNode(node *EdgeNode) error {
@@ -411,26 +417,6 @@ func (m *NodeManager) updateLastRequestTime(deviceID string) {
 	}
 }
 
-func (m *NodeManager) getDownloadInfoWithDatas(cids []string, ip string) (map[string]api.DownloadInfo, error) {
-	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
-	if err != nil {
-		log.Warnf("getNodeURLWithData GetGeoInfo err:%v,ip:%v", err, ip)
-	}
-
-	infoMap := make(map[string]api.DownloadInfo)
-
-	for _, cid := range cids {
-		info, err := m.nodeDownloadInfo(cid, geoInfo)
-		if err != nil {
-			continue
-		}
-
-		infoMap[cid] = info
-	}
-
-	return infoMap, nil
-}
-
 // getNodeURLWithData find device
 func (m *NodeManager) nodeDownloadInfo(cid string, geoInfo *region.GeoInfo) (api.DownloadInfo, error) {
 	var downloadInfo api.DownloadInfo
@@ -440,7 +426,7 @@ func (m *NodeManager) nodeDownloadInfo(cid string, geoInfo *region.GeoInfo) (api
 	}
 
 	if len(deviceIDs) <= 0 {
-		return downloadInfo, xerrors.New("not find node")
+		return downloadInfo, xerrors.New(ErrNodeNotFind)
 	}
 
 	nodeEs, geoLevelE := m.findEdgeNodeWithGeo(geoInfo, deviceIDs)
@@ -466,7 +452,7 @@ func (m *NodeManager) nodeDownloadInfo(cid string, geoInfo *region.GeoInfo) (api
 	}
 	// http://192.168.0.136:3456/rpc/v0/block/get?cid=QmeUqw4FY1wqnh2FMvuc2v8KAapE7fYwu2Up4qNwhZiRk7
 
-	return downloadInfo, xerrors.New("not find node")
+	return downloadInfo, xerrors.New(ErrNodeNotFind)
 }
 
 // getCandidateNodesWithData find device
@@ -478,7 +464,7 @@ func (m *NodeManager) getCandidateNodesWithData(cid string, geoInfo *region.GeoI
 	// log.Infof("getCandidateNodesWithData deviceIDs : %v", deviceIDs)
 
 	if len(deviceIDs) <= 0 {
-		return nil, xerrors.New("not find node ")
+		return nil, xerrors.New(ErrNodeNotFind)
 	}
 
 	nodeCs, _ := m.findCandidateNodeWithGeo(geoInfo, deviceIDs)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
+	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/region"
 	"golang.org/x/xerrors"
 
@@ -45,7 +46,7 @@ type Node struct {
 
 // node online
 func (n *Node) online(deviceID string, onlineTime int64, geoInfo *region.GeoInfo, typeName api.NodeTypeName) error {
-	oldNodeInfo, err := cache.GetDB().GetNodeInfo(deviceID)
+	oldNodeInfo, err := persistent.GetDB().GetNodeInfo(deviceID)
 	if err == nil {
 		if oldNodeInfo.Geo != geoInfo.Geo {
 			err = cache.GetDB().RemoveNodeWithGeoList(deviceID, oldNodeInfo.Geo)
@@ -54,14 +55,14 @@ func (n *Node) online(deviceID string, onlineTime int64, geoInfo *region.GeoInfo
 			}
 		}
 	} else {
-		if err.Error() != cache.NotFind {
+		if !persistent.GetDB().IsNilErr(err) {
 			log.Warnf("GetNodeInfo err:%v,deviceID:%v", err.Error(), deviceID)
 		}
 	}
 	// log.Infof("oldgeo:%v,newgeo:%v,err:%v", nodeInfo.Geo, geoInfo.Geo, err)
 
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
-	err = cache.GetDB().SetNodeInfo(deviceID, &cache.NodeInfo{Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: true, NodeType: typeName})
+	err = persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: 1, NodeType: string(typeName)})
 	if err != nil {
 		return err
 	}
@@ -88,9 +89,9 @@ func (n *Node) offline(deviceID string, geoInfo *region.GeoInfo, nodeType api.No
 		log.Warnf("node offline RemoveNodeWithGeoList err : %v ,deviceID : %v", err.Error(), deviceID)
 	}
 
-	err = cache.GetDB().SetNodeInfo(deviceID, &cache.NodeInfo{Geo: geoInfo.Geo, LastTime: lastTime.Format("2006-01-02 15:04:05"), IsOnline: false, NodeType: nodeType})
+	err = persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{Geo: geoInfo.Geo, LastTime: lastTime.Format("2006-01-02 15:04:05"), IsOnline: 0, NodeType: string(nodeType)})
 	if err != nil {
-		log.Warnf("node offline SetNodeInfo err : %v ,deviceID : %v", err.Error(), deviceID)
+		log.Errorf("node offline SetNodeInfo err : %v ,deviceID : %v", err.Error(), deviceID)
 	}
 }
 

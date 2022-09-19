@@ -10,7 +10,6 @@ import (
 	"github.com/go-redis/redis/v8"
 	redigo "github.com/gomodule/redigo/redis"
 	"github.com/linguohua/titan/api"
-	"golang.org/x/xerrors"
 )
 
 const (
@@ -298,13 +297,13 @@ func (rd redisDB) GetNodeInfo(deviceID string) (*NodeInfo, error) {
 	}
 
 	if len(vals) <= 0 {
-		return nil, xerrors.New(NotFind)
+		return nil, redis.Nil
 	}
 
 	// fmt.Printf("GetNodeInfo vals:%v", vals)
 
 	if vals[0] == nil || vals[1] == nil || vals[2] == nil || vals[3] == nil || vals[4] == nil {
-		return nil, xerrors.New(NotFind)
+		return nil, redis.Nil
 	}
 
 	g, _ := redigo.String(vals[0], nil)
@@ -316,29 +315,29 @@ func (rd redisDB) GetNodeInfo(deviceID string) (*NodeInfo, error) {
 	return &NodeInfo{Geo: g, OnLineTime: o, LastTime: l, IsOnline: i, NodeType: api.NodeTypeName(n)}, nil
 }
 
-func (rd redisDB) SetValidateResultInfo(sID string, edgeID, validator, msg string, status ValidateStatus) error {
-	key := fmt.Sprintf(redisKeyValidateResult, sID, edgeID)
+// func (rd redisDB) SetValidateResultInfo(sID string, edgeID, validator, msg string, status ValidateStatus) error {
+// 	key := fmt.Sprintf(redisKeyValidateResult, sID, edgeID)
 
-	nowTime := time.Now().Format("2006-01-02 15:04:05")
+// 	nowTime := time.Now().Format("2006-01-02 15:04:05")
 
-	if status == ValidateStatusCreate {
-		_, err := rd.cli.HMSet(context.Background(), key, validatorField, validator, stratTimeField, nowTime, statusField, int(status)).Result()
-		return err
+// 	if status == ValidateStatusCreate {
+// 		_, err := rd.cli.HMSet(context.Background(), key, validatorField, validator, stratTimeField, nowTime, statusField, int(status)).Result()
+// 		return err
 
-	} else if status > ValidateStatusCreate {
-		_, err := rd.cli.HMSet(context.Background(), key, endTimeField, nowTime, statusField, int(status), msgField, msg).Result()
-		return err
-	}
+// 	} else if status > ValidateStatusCreate {
+// 		_, err := rd.cli.HMSet(context.Background(), key, endTimeField, nowTime, statusField, int(status), msgField, msg).Result()
+// 		return err
+// 	}
 
-	return xerrors.Errorf("SetValidateResultInfo status:%v", status)
-}
+// 	return xerrors.Errorf("SetValidateResultInfo status:%v", status)
+// }
 
-func (rd redisDB) SetNodeToValidateErrorList(sID string, deviceID string) error {
-	key := fmt.Sprintf(redisKeyValidateErrorList, sID)
+// func (rd redisDB) SetNodeToValidateErrorList(sID string, deviceID string) error {
+// 	key := fmt.Sprintf(redisKeyValidateErrorList, sID)
 
-	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
-	return err
-}
+// 	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
+// 	return err
+// }
 
 //  add
 func (rd redisDB) SetNodeToGeoList(deviceID, geo string) error {

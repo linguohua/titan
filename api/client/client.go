@@ -17,6 +17,7 @@ import (
 // NewScheduler creates a new http jsonrpc client.
 func NewScheduler(ctx context.Context, addr string, requestHeader http.Header) (api.Scheduler, jsonrpc.ClientCloser, error) {
 	var res api.SchedulerStruct
+
 	closer, err := jsonrpc.NewMergeClient(ctx, addr, "titan",
 		api.GetInternalStructs(&res), requestHeader)
 

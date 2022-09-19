@@ -60,8 +60,8 @@ type DB interface {
 	GetGeoWithValidatorList(deviceID string) ([]string, error)
 	RemoveValidatorGeoList(deviceID string) error
 
-	SetValidateResultInfo(sID string, edgeID, validator, msg string, status ValidateStatus) error
-	SetNodeToValidateErrorList(sID, deviceID string) error
+	// SetValidateResultInfo(sID string, edgeID, validator, msg string, status ValidateStatus) error
+	// SetNodeToValidateErrorList(sID, deviceID string) error
 
 	SetEdgeDeviceIDList(deviceIDs []string) error
 	IsEdgeInDeviceIDList(deviceID string) (bool, error)
@@ -72,9 +72,6 @@ type DB interface {
 }
 
 var db DB
-
-// NotFind not find data
-const NotFind = "not find"
 
 // NewCacheDB New Cache DB
 func NewCacheDB(url string, dbType string) error {
