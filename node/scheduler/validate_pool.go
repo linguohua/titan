@@ -1,190 +1,100 @@
 package scheduler
 
 import (
-	"fmt"
+	"math/rand"
 	"sync"
+	"time"
 )
 
-// PoolGroup Node Pool Group
-type PoolGroup struct {
-	// node pool map
-	poolMap sync.Map // {key:geo,val:*PoolGroup}
-
-	poolIDMap sync.Map // {key:deviceID,val:geo}
-
+// ValidatePool validate pool
+type ValidatePool struct {
 	pendingEdgeMap      sync.Map
 	pendingCandidateMap sync.Map
+
+	edgeNodeMap      map[string]*EdgeNode
+	candidateNodeMap map[string]*CandidateNode
+	veriftorNodeMap  map[string]*CandidateNode
+
+	// veriftorMap  map[string][]string
+	veriftorList []string
 }
 
-type pool struct {
-	geoID            string
-	edgeNodeMap      map[string]*bandwidthInfo
-	candidateNodeMap map[string]*bandwidthInfo
-	veriftorNodeMap  map[string]*bandwidthInfo
-}
+// // bandwidthInfo Info
+// type bandwidthInfo struct {
+// 	BandwidthUp   int64 `json:"bandwidth_up"`   // B/s
+// 	BandwidthDown int64 `json:"bandwidth_down"` // B/s
+// }
 
-// bandwidthInfo Info
-type bandwidthInfo struct {
-	BandwidthUp   int64 `json:"bandwidth_up"`   // B/s
-	BandwidthDown int64 `json:"bandwidth_down"` // B/s
-}
-
-// NewPoolGroup new pool
-func newPoolGroup() *PoolGroup {
-	poolGroup := &PoolGroup{}
-
-	return poolGroup
-}
-
-func (n *PoolGroup) loadOrNewPool(geo string) *pool {
-	p := &pool{
-		geoID:            geo,
-		edgeNodeMap:      make(map[string]*bandwidthInfo),
-		candidateNodeMap: make(map[string]*bandwidthInfo),
-		veriftorNodeMap:  make(map[string]*bandwidthInfo),
+func newValidatePool() *ValidatePool {
+	pool := &ValidatePool{
+		edgeNodeMap:      make(map[string]*EdgeNode),
+		candidateNodeMap: make(map[string]*CandidateNode),
+		veriftorNodeMap:  make(map[string]*CandidateNode),
 	}
 
-	g, ok := n.poolMap.LoadOrStore(geo, p)
-	if ok && g != nil {
-		return g.(*pool)
-	}
-
-	return p
+	return pool
 }
 
-func (n *PoolGroup) loadPool(geoKey string) *pool {
-	p, ok := n.poolMap.Load(geoKey)
-	if ok && p != nil {
-		return p.(*pool)
-	}
-
-	return nil
-}
-
-func (n *PoolGroup) storePool(geo string, val *pool) {
-	n.poolMap.Store(geo, val)
-}
-
-func (n *PoolGroup) addEdgeToPool(node *EdgeNode) string {
-	deviceID := node.deviceInfo.DeviceId
-	geo := node.geoInfo.Geo
-
-	oldPoolID, ok := n.poolIDMap.Load(deviceID)
-	if ok && oldPoolID != nil {
-		oldGeo := oldPoolID.(string)
-		if oldGeo != geo {
-			// remove edge with old pool
-			pool := n.loadPool(oldGeo)
-			if pool != nil {
-				pool.removeEdge(deviceID)
-			}
-		} else {
-			return oldGeo
-		}
-	}
-
-	pool := n.loadOrNewPool(geo)
-
-	pool.addEdge(node)
-
-	// n.storePool(geo, pool)
-	n.poolIDMap.Store(deviceID, geo)
-
-	return geo
-}
-
-func (n *PoolGroup) addCandidateToPool(node *CandidateNode) string {
-	deviceID := node.deviceInfo.DeviceId
-	geo := node.geoInfo.Geo
-
-	oldPoolID, ok := n.poolIDMap.Load(deviceID)
-	if ok && oldPoolID != nil {
-		oldGeo := oldPoolID.(string)
-		if oldGeo != geo {
-			// del candidate with old pool
-			pool := n.loadPool(oldGeo)
-			if pool != nil {
-				pool.delCandidate(deviceID)
-			}
-		} else {
-			return oldGeo
-		}
-	}
-
-	pool := n.loadOrNewPool(geo)
-
-	pool.addCandidate(node)
-
-	// n.storePool(geo, pool)
-	n.poolIDMap.Store(deviceID, geo)
-
-	return geo
-}
-
-func (n *PoolGroup) addPendingNode(edgeNode *EdgeNode, candidateNode *CandidateNode) {
+func (g *ValidatePool) addPendingNode(edgeNode *EdgeNode, candidateNode *CandidateNode) {
 	if edgeNode != nil {
-		n.pendingEdgeMap.Store(edgeNode.deviceInfo.DeviceId, edgeNode)
+		g.pendingEdgeMap.Store(edgeNode.deviceInfo.DeviceId, edgeNode)
 	}
 
 	if candidateNode != nil {
-		n.pendingCandidateMap.Store(candidateNode.deviceInfo.DeviceId, candidateNode)
+		g.pendingCandidateMap.Store(candidateNode.deviceInfo.DeviceId, candidateNode)
 	}
 }
 
-func (n *PoolGroup) pendingNodesToPool() {
-	n.pendingEdgeMap.Range(func(key, value interface{}) bool {
+func (g *ValidatePool) pendingNodesToPool() {
+	g.pendingEdgeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
 		node := value.(*EdgeNode)
 
-		n.addEdgeToPool(node)
+		g.addEdge(node)
 
-		n.pendingEdgeMap.Delete(deviceID)
+		g.pendingEdgeMap.Delete(deviceID)
 
 		return true
 	})
 
-	n.pendingCandidateMap.Range(func(key, value interface{}) bool {
+	g.pendingCandidateMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
 		node := value.(*CandidateNode)
 
-		n.addCandidateToPool(node)
+		g.addCandidate(node)
 
-		n.pendingCandidateMap.Delete(deviceID)
-
-		return true
-	})
-
-	n.printlnPoolMap()
-}
-
-// PrintlnMap Println
-func (n *PoolGroup) printlnPoolMap() {
-	log.Info("poolMap--------------------------------")
-
-	n.poolMap.Range(func(key, value interface{}) bool {
-		geo := key.(string)
-		p := value.(*pool)
-
-		es := ""
-		cs := ""
-		vs := ""
-
-		for s := range p.edgeNodeMap {
-			es = fmt.Sprintf("%s%s,", es, s)
-		}
-		for s := range p.candidateNodeMap {
-			cs = fmt.Sprintf("%s%s,", cs, s)
-		}
-		for s := range p.veriftorNodeMap {
-			vs = fmt.Sprintf("%s%s,", vs, s)
-		}
-		log.Info("geo:", geo, ",edgeNodes:", es, ",candidateNodes:", cs, ",veriftorNodes:", vs)
+		g.pendingCandidateMap.Delete(deviceID)
 
 		return true
 	})
 }
 
-func (g *pool) setVeriftor(deviceID string) {
+func (g *ValidatePool) election(verifiedNodeMax int) ([]string, int) {
+	g.resetNodePool()
+
+	edgeNum := len(g.edgeNodeMap)
+	candidateNum := len(g.candidateNodeMap)
+
+	if edgeNum <= 0 && candidateNum <= 0 {
+		return nil, 0
+	}
+
+	nodeTotalNum := edgeNum + candidateNum
+	addNum := 0
+	if nodeTotalNum%(verifiedNodeMax+1) > 0 {
+		addNum = 1
+	}
+	needVeriftorNum := nodeTotalNum/(verifiedNodeMax+1) + addNum
+
+	// rand election
+	lackNum := g.generateRandomValidator(g.candidateNodeMap, needVeriftorNum)
+
+	// reset count
+	// scheduler.nodeManager.resetCandidateAndValidatorCount()
+	return g.veriftorList, lackNum
+}
+
+func (g *ValidatePool) setVeriftor(deviceID string) {
 	if info, ok := g.candidateNodeMap[deviceID]; ok {
 		g.veriftorNodeMap[deviceID] = info
 
@@ -194,40 +104,109 @@ func (g *pool) setVeriftor(deviceID string) {
 	}
 }
 
-func (g *pool) resetRoles() {
+func (g *ValidatePool) resetNodePool() {
+	// g.veriftorMap = make(map[string][]string)
+	g.veriftorList = make([]string, 0)
+
+	g.resetRoles()
+	g.pendingNodesToPool()
+}
+
+// func (g *ValidatePool) getNodeLists() (edgeList, candidateList []string) {
+// 	edgeList = make([]string, 0)
+// 	for deviceID := range g.edgeNodeMap {
+// 		edgeList = append(edgeList, deviceID)
+// 	}
+
+// 	candidateList = make([]string, 0)
+// 	for deviceID := range g.candidateNodeMap {
+// 		candidateList = append(candidateList, deviceID)
+// 	}
+
+// 	return
+// }
+
+func (g *ValidatePool) resetRoles() {
 	for deviceID, info := range g.veriftorNodeMap {
 		g.candidateNodeMap[deviceID] = info
 	}
 
-	g.veriftorNodeMap = make(map[string]*bandwidthInfo)
+	g.veriftorNodeMap = make(map[string]*CandidateNode)
 }
 
-func (g *pool) addEdge(node *EdgeNode) {
+func (g *ValidatePool) addEdge(node *EdgeNode) {
 	deviceID := node.deviceInfo.DeviceId
 	if _, ok := g.edgeNodeMap[deviceID]; ok {
 		return
 	}
 
-	g.edgeNodeMap[deviceID] = &bandwidthInfo{BandwidthUp: node.deviceInfo.BandwidthUp, BandwidthDown: node.deviceInfo.BandwidthDown}
+	g.edgeNodeMap[deviceID] = node
 }
 
-func (g *pool) addCandidate(node *CandidateNode) {
+func (g *ValidatePool) addCandidate(node *CandidateNode) {
 	deviceID := node.deviceInfo.DeviceId
 	if _, ok := g.candidateNodeMap[deviceID]; ok {
 		return
 	}
 
-	g.candidateNodeMap[deviceID] = &bandwidthInfo{BandwidthUp: node.deviceInfo.BandwidthUp, BandwidthDown: node.deviceInfo.BandwidthDown}
+	g.candidateNodeMap[deviceID] = node
 }
 
-func (g *pool) removeEdge(deviceID string) {
+func (g *ValidatePool) removeEdge(deviceID string) {
 	if _, ok := g.edgeNodeMap[deviceID]; ok {
 		delete(g.edgeNodeMap, deviceID)
 	}
 }
 
-func (g *pool) delCandidate(deviceID string) {
+func (g *ValidatePool) removeCandidate(deviceID string) {
 	if _, ok := g.candidateNodeMap[deviceID]; ok {
 		delete(g.candidateNodeMap, deviceID)
 	}
+}
+
+func (g *ValidatePool) generateRandomValidator(candidateNodeMap map[string]*CandidateNode, count int) (lackNum int) {
+	mLen := len(candidateNodeMap)
+	lackNum = count - mLen
+	if mLen <= 0 {
+		return
+	}
+
+	if mLen <= count {
+		for deviceID := range candidateNodeMap {
+			g.addVeriftor(deviceID)
+		}
+		return
+	}
+
+	cList := make([]string, 0)
+	for deviceID := range candidateNodeMap {
+		cList = append(cList, deviceID)
+	}
+
+	veriftorMap := make(map[string]int)
+
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for len(veriftorMap) < count {
+		num := r.Intn(mLen)
+		exist := false
+
+		vID := cList[num]
+		if _, ok := veriftorMap[vID]; ok {
+			exist = true
+			continue
+		}
+
+		if !exist {
+			veriftorMap[vID] = num
+			g.addVeriftor(vID)
+		}
+	}
+
+	return 0
+}
+
+func (g *ValidatePool) addVeriftor(deviceID string) {
+	// g.veriftorMap[deviceID] = make([]string, 0)
+	g.veriftorList = append(g.veriftorList, deviceID)
+	g.setVeriftor(deviceID)
 }

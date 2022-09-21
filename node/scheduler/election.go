@@ -45,10 +45,10 @@ func (e *Election) cleanValidators(scheduler *Scheduler) error {
 	}
 
 	for _, validator := range validatorList {
-		err = cache.GetDB().RemoveValidatorGeoList(validator)
-		if err != nil {
-			log.Warnf("RemoveValidatorGeoList err:%v, validator:%v", err.Error(), validator)
-		}
+		// err = cache.GetDB().RemoveValidatorGeoList(validator)
+		// if err != nil {
+		// 	log.Warnf("RemoveValidatorGeoList err:%v, validator:%v", err.Error(), validator)
+		// }
 
 		node := scheduler.nodeManager.getCandidateNode(validator)
 		if node != nil {
@@ -71,114 +71,21 @@ func (e *Election) startElection(scheduler *Scheduler) error {
 		return err
 	}
 
-	scheduler.poolGroup.pendingNodesToPool()
-
-	alreadyAssignValidatorMap := make(map[string]string) // key:deviceID val:geo
-	unAssignCandidateList := make([]string, 0)           // deviceIDs
-	lackValidatorMap := make(map[string]int)             //key:geo val:lack-validator-num
-
-	scheduler.poolGroup.poolMap.Range(func(key, value interface{}) bool {
-		geo := key.(string)
-		pool := value.(*pool)
-		if pool == nil {
-			return true
-		}
-
-		pool.resetRoles()
-
-		edgeNum := len(pool.edgeNodeMap)
-		candidateNum := len(pool.candidateNodeMap)
-		if edgeNum <= 0 && candidateNum <= 0 {
-			return true
-		}
-
-		nodeTotalNum := edgeNum + candidateNum
-		addNum := 0
-		if nodeTotalNum%(e.verifiedNodeMax+1) > 0 {
-			addNum = 1
-		}
-		needVeriftorNum := nodeTotalNum/(e.verifiedNodeMax+1) + addNum
-
-		if candidateNum >= needVeriftorNum {
-			// election validators and put to alreadyAssignValidatorMap
-			// put other candidates to unAssignCandidateList
-			vn := 0
-			for deviceID := range pool.candidateNodeMap {
-				vn++
-				if vn > needVeriftorNum {
-					unAssignCandidateList = append(unAssignCandidateList, deviceID)
-				} else {
-					alreadyAssignValidatorMap[deviceID] = geo
-				}
-			}
-		} else {
-			for deviceID := range pool.candidateNodeMap {
-				alreadyAssignValidatorMap[deviceID] = geo
-			}
-
-			lackValidatorMap[geo] = needVeriftorNum - candidateNum
-		}
-
-		return true
-	})
-
-	candidateNotEnough := false
-	// again election
-	if len(lackValidatorMap) > 0 {
-		for geo, num := range lackValidatorMap {
-			if len(unAssignCandidateList) == 0 {
-				candidateNotEnough = true
-				break
-			}
-
-			n := num
-			if len(unAssignCandidateList) < num {
-				n = len(unAssignCandidateList)
-			}
-
-			validatorList := unAssignCandidateList[0:n]
-			unAssignCandidateList = unAssignCandidateList[n:]
-
-			for _, deviceID := range validatorList {
-				alreadyAssignValidatorMap[deviceID] = geo
-			}
-		}
-
-		if candidateNotEnough {
-			log.Warnf("Candidate Not Enough  assignEdge: %v", lackValidatorMap)
-		}
-	}
+	vList, lackNum := scheduler.validatePool.election(e.verifiedNodeMax)
 
 	// save election result
-	for validatorID, geo := range alreadyAssignValidatorMap {
-		validator := scheduler.nodeManager.getCandidateNode(validatorID)
-		if validator != nil {
-			validator.isValidator = true
-		}
-
-		err = cache.GetDB().SetValidatorToList(validatorID)
+	for _, validatorID := range vList {
+		err := cache.GetDB().SetValidatorToList(validatorID)
 		if err != nil {
-			return err
+			log.Errorf("SetValidatorToList err : %v", err.Error())
 		}
 
-		err = cache.GetDB().SetGeoToValidatorList(validatorID, geo)
-		if err != nil {
-			return err
-		}
-
-		// move the validator to validatorMap
-		validatorGeo, ok := scheduler.poolGroup.poolIDMap.Load(validatorID)
-		if ok && validatorGeo != nil {
-			vGeo := validatorGeo.(string)
-			poolGroup := scheduler.poolGroup.loadPool(vGeo)
-			if poolGroup != nil {
-				poolGroup.setVeriftor(validatorID)
-			}
-		}
+		// validator := scheduler.nodeManager.getCandidateNode(validatorID)
+		// if validator != nil {
+		// 	validator.isValidator = true
+		// }
 	}
-
-	// reset count
-	scheduler.nodeManager.resetCandidateAndValidatorCount()
+	log.Infof("election validators:%v,lackNum:%v", vList, lackNum)
 
 	return nil
 }

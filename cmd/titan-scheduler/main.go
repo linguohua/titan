@@ -108,7 +108,7 @@ var runCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:  "persistentdb-url",
 			Usage: "persistentdb url",
-			Value: "root:sql123@tcp(127.0.0.1:3306)/test",
+			Value: "user01:sql001@tcp(127.0.0.1:3306)/test",
 		},
 	},
 

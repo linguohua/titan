@@ -35,9 +35,9 @@ type DB interface {
 	GetNodesWithCacheList(cid string) ([]string, error)
 	IsNodeInCacheList(cid, deviceID string) (bool, error)
 
-	SetNodeInfo(deviceID string, info *NodeInfo) error
-	GetNodeInfo(deviceID string) (*NodeInfo, error)
-	AddNodeOnlineTime(deviceID string, onlineTime int64) error
+	// SetNodeInfo(deviceID string, info *NodeInfo) error
+	// GetNodeInfo(deviceID string) (*NodeInfo, error)
+	// AddNodeOnlineTime(deviceID string, onlineTime int64) error
 
 	RemoveNodeWithGeoList(deviceID, geo string) error
 	SetNodeToGeoList(deviceID, geo string) error
@@ -47,18 +47,18 @@ type DB interface {
 	// GetBlocksWithNodeFailList(deviceID string) ([]string, error)
 	// RemoveBlockWithNodeFailList(deviceID, cid string) error
 
-	SetGeoToList(geo string) error
-	GetGeosWithList() ([]string, error)
-	RemoveGeoWithList(geo string) error
+	// SetGeoToList(geo string) error
+	// GetGeosWithList() ([]string, error)
+	// RemoveGeoWithList(geo string) error
 
 	SetValidatorToList(deviceID string) error
 	GetValidatorsWithList() ([]string, error)
 	RemoveValidatorList() error
 	IsNodeInValidatorList(deviceID string) (bool, error)
 
-	SetGeoToValidatorList(deviceID, geo string) error
-	GetGeoWithValidatorList(deviceID string) ([]string, error)
-	RemoveValidatorGeoList(deviceID string) error
+	// SetGeoToValidatorList(deviceID, geo string) error
+	// GetGeoWithValidatorList(deviceID string) ([]string, error)
+	// RemoveValidatorGeoList(deviceID string) error
 
 	// SetValidateResultInfo(sID string, edgeID, validator, msg string, status ValidateStatus) error
 	// SetNodeToValidateErrorList(sID, deviceID string) error
