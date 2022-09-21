@@ -24,13 +24,23 @@ type BlockStruct struct {
 
 		CacheBlocks func(p0 context.Context, p1 ReqCacheData) (error) `perm:"read"`
 
+		DeleteAllBlocks func(p0 context.Context) (error) `perm:"read"`
+
 		DeleteBlocks func(p0 context.Context, p1 []string) ([]BlockOperationResult, error) `perm:"read"`
+
+		GetBlockStoreCheckSum func(p0 context.Context) (string, error) `perm:"read"`
+
+		GetCID func(p0 context.Context, p1 string) (string, error) `perm:"read"`
+
+		GetFID func(p0 context.Context, p1 string) (string, error) `perm:"read"`
 
 		LoadBlock func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
 
 		QueryCacheStat func(p0 context.Context) (CacheStat, error) `perm:"read"`
 
 		QueryCachingBlocks func(p0 context.Context) (CachingBlockList, error) `perm:"read"`
+
+		ScrubBlocks func(p0 context.Context, p1 ScrubBlocks) (error) `perm:"read"`
 
 	}
 }
@@ -263,6 +273,17 @@ func (s *BlockStub) CacheBlocks(p0 context.Context, p1 ReqCacheData) (error) {
 	return ErrNotSupported
 }
 
+func (s *BlockStruct) DeleteAllBlocks(p0 context.Context) (error) {
+	if s.Internal.DeleteAllBlocks == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.DeleteAllBlocks(p0)
+}
+
+func (s *BlockStub) DeleteAllBlocks(p0 context.Context) (error) {
+	return ErrNotSupported
+}
+
 func (s *BlockStruct) DeleteBlocks(p0 context.Context, p1 []string) ([]BlockOperationResult, error) {
 	if s.Internal.DeleteBlocks == nil {
 		return *new([]BlockOperationResult), ErrNotSupported
@@ -272,6 +293,39 @@ func (s *BlockStruct) DeleteBlocks(p0 context.Context, p1 []string) ([]BlockOper
 
 func (s *BlockStub) DeleteBlocks(p0 context.Context, p1 []string) ([]BlockOperationResult, error) {
 	return *new([]BlockOperationResult), ErrNotSupported
+}
+
+func (s *BlockStruct) GetBlockStoreCheckSum(p0 context.Context) (string, error) {
+	if s.Internal.GetBlockStoreCheckSum == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.GetBlockStoreCheckSum(p0)
+}
+
+func (s *BlockStub) GetBlockStoreCheckSum(p0 context.Context) (string, error) {
+	return "", ErrNotSupported
+}
+
+func (s *BlockStruct) GetCID(p0 context.Context, p1 string) (string, error) {
+	if s.Internal.GetCID == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.GetCID(p0, p1)
+}
+
+func (s *BlockStub) GetCID(p0 context.Context, p1 string) (string, error) {
+	return "", ErrNotSupported
+}
+
+func (s *BlockStruct) GetFID(p0 context.Context, p1 string) (string, error) {
+	if s.Internal.GetFID == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.GetFID(p0, p1)
+}
+
+func (s *BlockStub) GetFID(p0 context.Context, p1 string) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *BlockStruct) LoadBlock(p0 context.Context, p1 string) ([]byte, error) {
@@ -305,6 +359,17 @@ func (s *BlockStruct) QueryCachingBlocks(p0 context.Context) (CachingBlockList, 
 
 func (s *BlockStub) QueryCachingBlocks(p0 context.Context) (CachingBlockList, error) {
 	return *new(CachingBlockList), ErrNotSupported
+}
+
+func (s *BlockStruct) ScrubBlocks(p0 context.Context, p1 ScrubBlocks) (error) {
+	if s.Internal.ScrubBlocks == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ScrubBlocks(p0, p1)
+}
+
+func (s *BlockStub) ScrubBlocks(p0 context.Context, p1 ScrubBlocks) (error) {
+	return ErrNotSupported
 }
 
 

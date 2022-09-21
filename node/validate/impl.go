@@ -35,7 +35,7 @@ func (validate *Validate) BeValidate(ctx context.Context, reqValidate api.ReqVal
 
 	conn, err := newTcpClient(candidateTcpSrvAddr)
 	if err != nil {
-		log.Errorf("DoValidate, NewCandicate err:%v", err)
+		log.Errorf("BeValidate, NewCandicate err:%v", err)
 		return err
 	}
 
