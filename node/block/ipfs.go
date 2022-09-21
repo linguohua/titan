@@ -74,7 +74,7 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 		err = block.blockStore.Put(cidStr, b.RawData())
 		block.cacheResult(ctx, cidStr, from, err)
 
-		log.Infof("cache data,cid:%s,err:%s", cidStr, err.Error())
+		log.Infof("cache data,cid:%s,err:%v", cidStr, err)
 
 		delete(reqMap, cidStr)
 	}

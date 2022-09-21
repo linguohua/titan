@@ -17,6 +17,8 @@ var EdgeCmds = []*cli.Command{
 	LimitRateCmd,
 	DownloadInfoCmd,
 	CacheStatCmd,
+	StoreKeyCmd,
+	DeleteAllBlocksCmd,
 }
 
 var DeviceInfoCmd = &cli.Command{
@@ -239,5 +241,69 @@ var CacheStatCmd = &cli.Command{
 
 		fmt.Printf("Cache block count %d, Wait cache count %d, Caching count %d", stat.CacheBlockCount, stat.WaitCacheBlockNum, stat.DoingCacheBlockNum)
 		return nil
+	},
+}
+
+var StoreKeyCmd = &cli.Command{
+	Name:  "key",
+	Usage: "get cid or fid",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "fid",
+			Usage: "titan-edge key --fid=1",
+			Value: "",
+		},
+		&cli.StringFlag{
+			Name:  "cid",
+			Usage: "titan-edge key --cid=11111",
+			Value: "",
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		api, closer, err := GetEdgeAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		ctx := ReqContext(cctx)
+
+		cid := cctx.String("cid")
+		fid := cctx.String("fid")
+
+		if len(cid) > 0 {
+			fid, err = api.GetFID(ctx, cid)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("fid:%s", fid)
+			return nil
+		}
+
+		if len(fid) > 0 {
+			cid, err = api.GetCID(ctx, fid)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("cid:%s", cid)
+		}
+		return nil
+	},
+}
+
+var DeleteAllBlocksCmd = &cli.Command{
+	Name:  "flush",
+	Usage: "delete all block",
+	Flags: []cli.Flag{},
+	Action: func(cctx *cli.Context) error {
+		api, closer, err := GetEdgeAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		ctx := ReqContext(cctx)
+		err = api.DeleteAllBlocks(ctx)
+		return err
 	},
 }

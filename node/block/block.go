@@ -2,11 +2,15 @@ package block
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/query"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/helper"
@@ -288,6 +292,18 @@ func (block *Block) GetAllCidsFromBlockStore() ([]string, error) {
 	return block.blockStore.GetAllKeys()
 }
 
+func (block *Block) DeleteAllBlocks(ctx context.Context) error {
+	return block.deleteAllBlocks()
+}
+
+func (block *Block) GetCID(ctx context.Context, fid string) (string, error) {
+	return block.getCID(fid)
+}
+
+func (block *Block) GetFID(ctx context.Context, cid string) (string, error) {
+	return block.getFID(cid)
+}
+
 func (block *Block) LoadBlockWithFid(fid string) ([]byte, error) {
 	cid, err := block.getCID(fid)
 	if err != nil {
@@ -295,6 +311,14 @@ func (block *Block) LoadBlockWithFid(fid string) ([]byte, error) {
 	}
 
 	return block.blockStore.Get(cid)
+}
+
+func (block *Block) GetBlockStoreCheckSum(ctx context.Context) (string, error) {
+	return block.getBlockStoreCheckSum()
+}
+
+func (block *Block) ScrubBlocks(ctx context.Context, scrub api.ScrubBlocks) error {
+	return nil
 }
 
 func (block *Block) getCID(fid string) (string, error) {
@@ -343,6 +367,126 @@ func (block *Block) deleteFidAndCid(cid string) error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (block *Block) getMaxFid() (string, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	q := query.Query{Prefix: "fid", Orders: []query.Order{query.OrderByKeyDescending{}}}
+	results, err := block.ds.Query(ctx, q)
+	if err != nil {
+		return "", err
+	}
+
+	result := results.Next()
+	r := <-result
+	log.Infof("last key:%s, value:%s", r.Key, string(r.Value))
+
+	return r.Key, nil
+
+}
+
+func (block *Block) deleteAllBlocks() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	q := query.Query{Prefix: "fid"}
+	results, err := block.ds.Query(ctx, q)
+	if err != nil {
+		log.Errorf("deleteAllBlocks error:%s", err.Error())
+		return err
+	}
+
+	result := results.Next()
+	for {
+		r, ok := <-result
+		if !ok {
+			log.Info("delete all block complete")
+			return nil
+		}
+
+		_, err = block.AnnounceBlocksWasDelete(ctx, []string{string(r.Value)})
+		if err != nil {
+			log.Infof("err:%v, cid:%s", err, string(r.Value))
+		}
+		log.Infof("key:%s", r.Key)
+	}
+}
+
+func (block *Block) getBlockStoreCheckSum() (string, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	q := query.Query{Prefix: "fid"}
+	results, err := block.ds.Query(ctx, q)
+	if err != nil {
+		log.Errorf("deleteAllBlocks error:%s", err.Error())
+		return "", err
+	}
+	var cidCollection string
+	result := results.Next()
+	for {
+		r, ok := <-result
+		if !ok {
+			break
+		}
+
+		cidCollection += string(r.Value)
+	}
+
+	hasher := md5.New()
+	hasher.Write([]byte(cidCollection))
+	hash := hasher.Sum(nil)
+
+	return hex.EncodeToString(hash), nil
+}
+
+func (block *Block) scrubBlockStore(scrub api.ScrubBlocks) error {
+	startFid, err := strconv.Atoi(scrub.StartFid)
+	if err != nil {
+		log.Errorf("scrubBlockStore parse  error:%s", err.Error())
+		return err
+	}
+
+	endFid, err := strconv.Atoi(scrub.EndFix)
+	if err != nil {
+		log.Errorf("scrubBlockStore error:%s", err.Error())
+		return err
+	}
+
+	var need2DeleteBlocks = make([]string, 0)
+	var blocks = scrub.Blocks
+	for i := startFid; i <= endFid; i++ {
+		fid := fmt.Sprintf("%d", i)
+		cid, err := block.getCID(fid)
+		if err == datastore.ErrNotFound {
+			continue
+		}
+
+		_, ok := blocks[fid]
+		if ok {
+			delete(blocks, fid)
+		} else {
+			need2DeleteBlocks = append(need2DeleteBlocks, cid)
+		}
+	}
+
+	// delete blocks that not exist on scheduler
+	for _, cid := range need2DeleteBlocks {
+		err = block.deleteFidAndCid(cid)
+		if err != nil {
+			log.Errorf("deleteFidAndCid error:%s", err.Error())
+		}
+
+		err = block.blockStore.Delete(cid)
+		if err != nil {
+			log.Errorf("deleteFidAndCid error:%s", err.Error())
+		}
+	}
+
+	// TODO: download block that not exist in local
 
 	return nil
 }

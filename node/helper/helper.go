@@ -18,8 +18,8 @@ const (
 	DownloadSrvPath          = "/block/get"
 	DownloadTokenExpireAfter = 24 * time.Hour
 
-	KeyFidPrefix = "fid-"
-	KeyCidPrefix = "cid-"
+	KeyFidPrefix = "fid/"
+	KeyCidPrefix = "cid/"
 )
 
 func NewKeyFID(fid string) datastore.Key {

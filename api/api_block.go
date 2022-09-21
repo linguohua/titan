@@ -18,6 +18,14 @@ type Block interface {
 	QueryCacheStat(ctx context.Context) (CacheStat, error) //perm:read
 	// query block caching stat
 	QueryCachingBlocks(ctx context.Context) (CachingBlockList, error) //perm:read
+
+	GetCID(ctx context.Context, fid string) (string, error) //perm:read
+	GetFID(ctx context.Context, cid string) (string, error) //perm:read
+	DeleteAllBlocks(ctx context.Context) error              //perm:read
+
+	// hash to check block store data consistent
+	GetBlockStoreCheckSum(ctx context.Context) (string, error) //perm:read
+	ScrubBlocks(ctx context.Context, scrub ScrubBlocks) error  //perm:read
 }
 
 type ReqCacheData struct {
@@ -46,4 +54,12 @@ type CachingBlockStat struct {
 
 type CachingBlockList struct {
 	List []CachingBlockStat
+}
+
+type ScrubBlocks struct {
+	// key fid, value cid
+	// compare cid one by one
+	Blocks   map[string]string
+	StartFid string
+	EndFix   string
 }
