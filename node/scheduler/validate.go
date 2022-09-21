@@ -9,6 +9,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/linguohua/titan/region"
 	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
 )
@@ -168,7 +169,7 @@ func (e *Validate) validateResult(validateResults *api.ValidateResults) error {
 	}
 
 	deviceID := validateResults.DeviceID
-	log.Infof("validateResult:%v", deviceID)
+	log.Infof("validateResult:%v,round:%v", deviceID, validateResults.RoundID)
 
 	status := cache.ValidateStatusSuccess
 	msg := ""
@@ -241,8 +242,43 @@ func (e *Validate) checkValidateTimeOut() error {
 	return nil
 }
 
+func (e *Validate) matchValidator(scheduler *Scheduler, userGeoInfo *region.GeoInfo, validatorList []string, deviceID string, validatorMap map[string][]string) (map[string][]string, []string) {
+	cs, _ := scheduler.nodeManager.findCandidateNodeWithGeo(userGeoInfo, validatorList)
+
+	validatorID := ""
+	if len(cs) > 0 {
+		validatorID = cs[randomNum(0, len(cs))].deviceInfo.DeviceId
+	} else {
+		return validatorMap, validatorList
+	}
+
+	vList := make([]string, 0)
+	if list, ok := validatorMap[validatorID]; ok {
+		vList = append(list, deviceID)
+	} else {
+		vList = append(vList, deviceID)
+	}
+	validatorMap[validatorID] = vList
+
+	if len(vList) >= scheduler.election.verifiedNodeMax {
+		for i, id := range validatorList {
+			if id == validatorID {
+				if i >= len(validatorList)-1 {
+					validatorList = validatorList[0:i]
+				} else {
+					validatorList = append(validatorList[0:i], validatorList[i+1:]...)
+				}
+				break
+			}
+		}
+	}
+
+	return validatorMap, validatorList
+}
+
 // Validate
 func (e *Validate) startValidate(scheduler *Scheduler) error {
+	log.Info("------------startValidate:")
 	err := cache.GetDB().RemoveValidateingList()
 	if err != nil {
 		return err
@@ -258,72 +294,19 @@ func (e *Validate) startValidate(scheduler *Scheduler) error {
 	e.maxFidMap = make(map[string]int64)
 
 	// find validators
-	validators, err := cache.GetDB().GetValidatorsWithList()
+	validatorMap := make(map[string][]string)
+
+	validatorList, err := cache.GetDB().GetValidatorsWithList()
 	if err != nil {
 		return err
 	}
 
-	geoMap := make(map[string][]string)
-
-	for _, validatorID := range validators {
-		geos, err := cache.GetDB().GetGeoWithValidatorList(validatorID)
-		if err != nil {
-			log.Warnf("GetGeoWithValidatorList err:%v,validatorID:%v", err.Error(), validatorID)
-			continue
-		}
-
-		for _, geo := range geos {
-			if list, ok := geoMap[geo]; ok {
-				geoMap[geo] = append(list, validatorID)
-			} else {
-				geoMap[geo] = []string{validatorID}
-			}
-		}
+	for deviceID, node := range scheduler.validatePool.edgeNodeMap {
+		validatorMap, validatorList = e.matchValidator(scheduler, &node.geoInfo, validatorList, deviceID, validatorMap)
 	}
 
-	validatorMap := make(map[string][]string)
-
-	for geo, validatorList := range geoMap {
-		poolGroup := scheduler.poolGroup.loadPool(geo)
-		if poolGroup == nil {
-			log.Warnf("validates loadGroupMap is nil ,geo:%v", geo)
-			continue
-		}
-
-		verifiedList := make([]string, 0)
-		// rand group
-		for deviceID := range poolGroup.edgeNodeMap {
-			verifiedList = append(verifiedList, deviceID)
-		}
-
-		for deviceID := range poolGroup.candidateNodeMap {
-			verifiedList = append(verifiedList, deviceID)
-		}
-
-		// assign verified (edge and candidate)
-		verifiedLen := len(verifiedList)
-		validatorLen := len(validatorList)
-
-		num := verifiedLen / validatorLen
-		if verifiedLen%validatorLen > 0 {
-			num++
-		}
-
-		for i := 0; i < validatorLen; i++ {
-			validatorID := validatorList[i]
-
-			end := (i * num) + num
-			if end > verifiedLen {
-				end = verifiedLen
-			}
-			newList := verifiedList[i*num : end]
-
-			if list, ok := validatorMap[validatorID]; ok {
-				validatorMap[validatorID] = append(list, newList...)
-			} else {
-				validatorMap[validatorID] = newList
-			}
-		}
+	for deviceID, node := range scheduler.validatePool.candidateNodeMap {
+		validatorMap, validatorList = e.matchValidator(scheduler, &node.geoInfo, validatorList, deviceID, validatorMap)
 	}
 
 	for validatorID, list := range validatorMap {

@@ -25,16 +25,16 @@ func NewLocalScheduleNode() api.Scheduler {
 	verifiedNodeMax := 10
 
 	manager := newNodeManager()
-	pool := newPoolGroup()
+	pool := newValidatePool()
 	election := newElection(verifiedNodeMax)
 	validate := newValidate(verifiedNodeMax)
 
 	s := &Scheduler{
-		CommonAPI:   common.NewCommonAPI(manager.updateLastRequestTime),
-		nodeManager: manager,
-		poolGroup:   pool,
-		election:    election,
-		validate:    validate,
+		CommonAPI:    common.NewCommonAPI(manager.updateLastRequestTime),
+		nodeManager:  manager,
+		validatePool: pool,
+		election:     election,
+		validate:     validate,
 	}
 
 	election.initElectionTimewheel(s)
@@ -47,8 +47,8 @@ func NewLocalScheduleNode() api.Scheduler {
 type Scheduler struct {
 	common.CommonAPI
 
-	nodeManager *NodeManager
-	poolGroup   *PoolGroup
+	nodeManager  *NodeManager
+	validatePool *ValidatePool
 
 	election *Election
 	validate *Validate
@@ -97,7 +97,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		return err
 	}
 
-	s.poolGroup.addPendingNode(edgeNode, nil)
+	s.validatePool.addPendingNode(edgeNode, nil)
 
 	// cids := edgeNode.getCacheFailCids()
 	// if cids != nil && len(cids) > 0 {
@@ -423,7 +423,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error 
 		return err
 	}
 
-	s.poolGroup.addPendingNode(nil, candidateNode)
+	s.validatePool.addPendingNode(nil, candidateNode)
 
 	// cids := candidateNode.getCacheFailCids()
 	// if cids != nil && len(cids) > 0 {

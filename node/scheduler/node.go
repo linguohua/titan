@@ -73,11 +73,11 @@ func (n *Node) online(deviceID string, onlineTime int64, geoInfo *region.GeoInfo
 		return err
 	}
 
-	err = cache.GetDB().SetGeoToList(geoInfo.Geo)
-	if err != nil {
-		log.Errorf("SetGeoToList err:%v,Geo:%v", err.Error(), geoInfo.Geo)
-		return err
-	}
+	// err = cache.GetDB().SetGeoToList(geoInfo.Geo)
+	// if err != nil {
+	// 	log.Errorf("SetGeoToList err:%v,Geo:%v", err.Error(), geoInfo.Geo)
+	// 	return err
+	// }
 
 	return nil
 }
