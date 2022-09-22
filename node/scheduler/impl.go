@@ -12,6 +12,7 @@ import (
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
+	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/region"
 )
 
@@ -446,7 +447,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 
 	// redis datas
 	body := api.CacheStat{}
-	count, err := cache.GetDB().GetBlockFidNum(deviceID)
+	count, err := persistent.GetDB().GetBlockNum(deviceID)
 	if err == nil {
 		body.CacheBlockCount = int(count)
 	}
