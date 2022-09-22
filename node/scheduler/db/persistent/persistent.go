@@ -18,6 +18,13 @@ type DB interface {
 	// Validate Result
 	SetValidateResultInfo(info *ValidateResult) error
 	SetNodeToValidateErrorList(sID, deviceID string) error
+
+	RemoveBlockInfo(deviceID, cid string) error
+	SetBlockInfo(deviceID, cid string, fid string, isUpdate bool) error
+	GetBlockFidWithCid(deviceID, cid string) (string, error)
+	GetBlockInfos(deviceID string) (map[string]string, error)
+	GetBlockCidWithFid(deviceID, fid string) (string, error)
+	GetBlockNum(deviceID string) (int64, error)
 }
 
 var db DB
@@ -68,6 +75,14 @@ type ValidateResult struct {
 	Status      int    `db:"status"`
 	StratTime   string `db:"strat_time"`
 	EndTime     string `db:"end_time"`
+}
+
+// NodeBlock Node Block
+type NodeBlock struct {
+	TableName string `db:"table_name"`
+	DeviceID  string `db:"device_id"`
+	FID       string `db:"fid"`
+	CID       string `db:"cid"`
 }
 
 // ValidateStatus Validate Status

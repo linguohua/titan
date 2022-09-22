@@ -1,6 +1,8 @@
 package persistent
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -87,6 +89,9 @@ func (sd sqlDB) GetNodeInfo(deviceID string) (*NodeInfo, error) {
 	info := &NodeInfo{DeviceID: deviceID}
 
 	rows, err := sd.cli.NamedQuery(`SELECT * FROM node WHERE device_id=:device_id`, info)
+	if err != nil {
+		return nil, err
+	}
 	if rows.Next() {
 		err = rows.StructScan(info)
 		if err != nil {
@@ -95,6 +100,7 @@ func (sd sqlDB) GetNodeInfo(deviceID string) (*NodeInfo, error) {
 	} else {
 		return nil, xerrors.New(errNodeNotFind)
 	}
+	rows.Close()
 
 	return info, err
 }
@@ -127,4 +133,139 @@ func (sd sqlDB) SetNodeToValidateErrorList(sID, deviceID string) error {
 		"device_id": deviceID,
 	})
 	return err
+}
+
+var blockTbale = "blocks_%v"
+
+func (sd sqlDB) RemoveBlockInfo(deviceID, cid string) error {
+	info := NodeBlock{
+		TableName: fmt.Sprintf(blockTbale, deviceID),
+		CID:       cid,
+	}
+
+	cmd := fmt.Sprintf(`DELETE FROM %s WHERE cid=:cid`, info.TableName)
+	_, err := sd.cli.NamedExec(cmd, info)
+	return err
+}
+
+func (sd sqlDB) SetBlockInfo(deviceID, cid string, fid string, isUpdate bool) error {
+	info := NodeBlock{
+		TableName: fmt.Sprintf(blockTbale, deviceID),
+		CID:       cid,
+		FID:       fid,
+	}
+
+	if isUpdate {
+		cmd := fmt.Sprintf(`UPDATE %s SET fid=:fid WHERE cid=:cid`, info.TableName)
+		_, err := sd.cli.NamedExec(cmd, info)
+
+		return err
+	}
+
+	schema := fmt.Sprintf(`
+	CREATE TABLE %s (
+		cid text,
+		fid text
+	);`, info.TableName)
+
+	_, err := sd.cli.Exec(schema)
+	if err != nil {
+		if !strings.Contains(err.Error(), "already exists") {
+			return err
+		}
+	}
+
+	cmd := fmt.Sprintf(`INSERT INTO %s (cid, fid)
+	VALUES (:cid, :fid)`, info.TableName)
+
+	_, err = sd.cli.NamedExec(cmd, info)
+
+	return err
+}
+
+func (sd sqlDB) GetBlockFidWithCid(deviceID, cid string) (string, error) {
+	info := &NodeBlock{
+		TableName: fmt.Sprintf(blockTbale, deviceID),
+		CID:       cid,
+	}
+
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cid=:cid`, info.TableName)
+
+	rows, err := sd.cli.NamedQuery(cmd, info)
+	if err != nil {
+		return "", err
+	}
+	if rows.Next() {
+		err = rows.StructScan(info)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		return "", xerrors.New(errNodeNotFind)
+	}
+	rows.Close()
+
+	return info.FID, err
+}
+
+func (sd sqlDB) GetBlockInfos(deviceID string) (map[string]string, error) {
+	info := &NodeBlock{
+		TableName: fmt.Sprintf(blockTbale, deviceID),
+	}
+
+	m := make(map[string]string)
+
+	cmd := fmt.Sprintf(`SELECT * FROM %s`, info.TableName)
+
+	rows, err := sd.cli.NamedQuery(cmd, info)
+	if err != nil {
+		return nil, err
+	}
+	if rows.Next() {
+		err = rows.StructScan(info)
+		if err == nil {
+			m[info.CID] = info.FID
+		}
+	} else {
+		return nil, xerrors.New(errNodeNotFind)
+	}
+	rows.Close()
+
+	return m, nil
+}
+
+func (sd sqlDB) GetBlockCidWithFid(deviceID, fid string) (string, error) {
+	info := &NodeBlock{
+		TableName: fmt.Sprintf(blockTbale, deviceID),
+		FID:       fid,
+	}
+
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE fid=:fid`, info.TableName)
+	rows, err := sd.cli.NamedQuery(cmd, info)
+	if err != nil {
+		return "", err
+	}
+	if rows.Next() {
+		err = rows.StructScan(info)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		return "", xerrors.New(errNodeNotFind)
+	}
+	rows.Close()
+
+	return info.CID, err
+}
+
+func (sd sqlDB) GetBlockNum(deviceID string) (int64, error) {
+	info := NodeBlock{
+		TableName: fmt.Sprintf(blockTbale, deviceID),
+	}
+
+	var count int64
+	cmd := fmt.Sprintf("SELECT count(*) FROM %s WHERE fid>0 ;", info.TableName)
+	err := sd.cli.Get(&count, cmd)
+
+	return count, err
 }

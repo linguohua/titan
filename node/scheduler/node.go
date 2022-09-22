@@ -99,7 +99,7 @@ func (n *Node) offline(deviceID string, geoInfo *region.GeoInfo, nodeType api.No
 func (n *Node) getCacheFailCids() []string {
 	deviceID := n.deviceInfo.DeviceId
 
-	infos, err := cache.GetDB().GetBlockCids(deviceID)
+	infos, err := persistent.GetDB().GetBlockInfos(deviceID)
 	if err != nil {
 		return nil
 	}
@@ -137,26 +137,12 @@ func (n *Node) deleteBlockRecords(cids []string) (map[string]string, error) {
 			continue
 		}
 
-		fid, err := cache.GetDB().GetBlockFidWithCid(deviceID, cid)
+		err = persistent.GetDB().RemoveBlockInfo(deviceID, cid)
 		if err != nil {
-			if cache.GetDB().IsNilErr(err) {
-				continue
-			}
-			errList[cid] = fmt.Sprintf("GetBlockFidWithCid err : %v", err.Error())
+			errList[cid] = fmt.Sprintf("RemoveBlockInfo err : %v", err.Error())
 			continue
 		}
 
-		err = cache.GetDB().RemoveBlockFidWithCid(deviceID, cid)
-		if err != nil {
-			errList[cid] = fmt.Sprintf("RemoveBlockFidWithCid err : %v", err.Error())
-			continue
-		}
-
-		err = cache.GetDB().RemoveBlockCidWithFid(deviceID, fid)
-		if err != nil {
-			errList[cid] = fmt.Sprintf("RemoveBlockCidWithFid err : %v", err.Error())
-			continue
-		}
 	}
 
 	return errList, nil
@@ -210,9 +196,14 @@ func (n *Node) cacheBlockResult(info *api.CacheResultInfo) (string, error) {
 	deviceID := n.deviceInfo.DeviceId
 	log.Infof("nodeCacheResult deviceID:%v,info:%v", deviceID, info)
 
-	v, err := cache.GetDB().GetBlockFidWithCid(deviceID, info.Cid)
-	if err == nil && v != dataDefaultTag {
-		return v, nil
+	isExist := false
+	v, err := persistent.GetDB().GetBlockFidWithCid(deviceID, info.Cid)
+	if err == nil {
+		if v != dataDefaultTag {
+			return v, nil
+		}
+
+		isExist = true
 	}
 
 	// defer func() {
@@ -240,15 +231,15 @@ func (n *Node) cacheBlockResult(info *api.CacheResultInfo) (string, error) {
 
 	fidStr := fmt.Sprintf("%d", fid)
 
-	err = cache.GetDB().SetBlockFidWithCid(deviceID, info.Cid, fidStr)
+	err = persistent.GetDB().SetBlockInfo(deviceID, info.Cid, fidStr, isExist)
 	if err != nil {
 		return "", err
 	}
 
-	err = cache.GetDB().SetBlockCidWithFid(deviceID, info.Cid, fidStr)
-	if err != nil {
-		return "", err
-	}
+	// err = cache.GetDB().SetBlockCidWithFid(deviceID, info.Cid, fidStr)
+	// if err != nil {
+	// 	return "", err
+	// }
 
 	return fidStr, cache.GetDB().SetNodeToCacheList(deviceID, info.Cid)
 }
@@ -256,12 +247,17 @@ func (n *Node) cacheBlockResult(info *api.CacheResultInfo) (string, error) {
 func (n *Node) cacheBlockReady(cid string) error {
 	deviceID := n.deviceInfo.DeviceId
 
-	v, err := cache.GetDB().GetBlockFidWithCid(deviceID, cid)
-	if err == nil && v != dataDefaultTag {
-		return xerrors.Errorf("already cache")
+	isExist := false
+	v, err := persistent.GetDB().GetBlockFidWithCid(deviceID, cid)
+	if err == nil {
+		if v != dataDefaultTag {
+			return xerrors.Errorf("already cache")
+		}
+
+		isExist = true
 	}
 
-	return cache.GetDB().SetBlockFidWithCid(deviceID, cid, dataDefaultTag)
+	return persistent.GetDB().SetBlockInfo(deviceID, cid, dataDefaultTag, isExist)
 }
 
 func randomNum(start, end int) int {
