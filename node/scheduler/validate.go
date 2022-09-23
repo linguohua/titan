@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"container/list"
 	"context"
 	"fmt"
 	"math/rand"
@@ -34,6 +35,9 @@ type Validate struct {
 	validateTime      int // validate time interval (minute)
 
 	maxFidMap map[string]int64
+
+	resultQueue *list.List
+	resultChan  chan bool
 }
 
 // init timers
@@ -57,7 +61,11 @@ func newValidate(verifiedNodeMax int) *Validate {
 		validateBlockMax: 100,
 		verifiedNodeMax:  verifiedNodeMax,
 		validateTime:     10,
+		resultQueue:      list.New(),
+		resultChan:       make(chan bool, 1),
 	}
+
+	go e.chanTask()
 
 	return e
 }
@@ -163,13 +171,54 @@ func (e *Validate) saveValidateResult(rID string, deviceID string, validatorID s
 	return nil
 }
 
+func (e *Validate) chanTask() {
+	for {
+		c := <-e.resultChan
+
+		e.doReadQueue()
+
+		if !c {
+			close(e.resultChan)
+			break
+		}
+	}
+}
+
+func (e *Validate) writeChWithSelect(b bool) {
+	select {
+	case e.resultChan <- b:
+		return
+	default:
+		// log.Infoln("channel blocked, can not write")
+	}
+}
+
+func (e *Validate) doReadQueue() {
+	for e.resultQueue.Len() > 0 {
+		element := e.resultQueue.Front() // First element
+		validateResults := element.Value.(*api.ValidateResults)
+		e.validate(validateResults)
+
+		e.resultQueue.Remove(element) // Dequeue
+	}
+}
+
 func (e *Validate) validateResult(validateResults *api.ValidateResults) error {
+	log.Infof("validateResult:%v,round:%v", validateResults.DeviceID, validateResults.RoundID)
+	e.resultQueue.PushBack(validateResults)
+
+	e.writeChWithSelect(true)
+
+	return nil
+}
+
+func (e *Validate) validate(validateResults *api.ValidateResults) error {
 	if validateResults.RoundID != e.roundID {
 		return xerrors.Errorf("roundID err")
 	}
+	log.Infof("validate:%v,round:%v", validateResults.DeviceID, validateResults.RoundID)
 
 	deviceID := validateResults.DeviceID
-	log.Infof("validateResult:%v,round:%v", deviceID, validateResults.RoundID)
 
 	status := cache.ValidateStatusSuccess
 	msg := ""
