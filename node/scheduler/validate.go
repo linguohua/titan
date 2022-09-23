@@ -173,14 +173,9 @@ func (e *Validate) saveValidateResult(rID string, deviceID string, validatorID s
 
 func (e *Validate) chanTask() {
 	for {
-		c := <-e.resultChan
+		<-e.resultChan
 
 		e.doReadQueue()
-
-		if !c {
-			close(e.resultChan)
-			break
-		}
 	}
 }
 
@@ -194,14 +189,14 @@ func (e *Validate) writeChanWithSelect(b bool) {
 }
 
 func (e *Validate) doReadQueue() {
-	if e.resultQueue.Len() > 0 {
+	for e.resultQueue.Len() > 0 {
 		element := e.resultQueue.Front() // First element
 		validateResults := element.Value.(*api.ValidateResults)
 		e.validate(validateResults)
 
 		e.resultQueue.Remove(element) // Dequeue
 
-		e.writeChanWithSelect(true)
+		// e.writeChanWithSelect(true)
 	}
 }
 
