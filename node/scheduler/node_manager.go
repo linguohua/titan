@@ -29,10 +29,6 @@ type NodeManager struct {
 	edgeNodeMap      sync.Map
 	candidateNodeMap sync.Map
 
-	edgeCount      int
-	candidateCount int
-	validatorCount int
-
 	timewheelKeepalive *timewheel.TimeWheel
 	keepaliveTime      int // keepalive time interval (minute)
 }
@@ -140,8 +136,6 @@ func (m *NodeManager) addEdgeNode(node *EdgeNode) error {
 
 	m.edgeNodeMap.Store(deviceID, node)
 
-	m.edgeCount++
-
 	return nil
 }
 
@@ -164,8 +158,6 @@ func (m *NodeManager) removeEdgeNode(node *EdgeNode) {
 	log.Warnf("removeEdgeNode :%v", deviceID)
 
 	m.edgeNodeMap.Delete(deviceID)
-
-	m.edgeCount--
 
 	node.offline(deviceID, &node.geoInfo, api.TypeNameEdge, node.lastRequestTime)
 }
@@ -200,12 +192,6 @@ func (m *NodeManager) addCandidateNode(node *CandidateNode) error {
 
 	m.candidateNodeMap.Store(deviceID, node)
 
-	if node.isValidator {
-		m.validatorCount++
-	} else {
-		m.candidateCount++
-	}
-
 	return nil
 }
 
@@ -228,12 +214,6 @@ func (m *NodeManager) removeCandidateNode(node *CandidateNode) {
 	log.Warnf("removeCandidateNode :%v", deviceID)
 
 	m.candidateNodeMap.Delete(deviceID)
-
-	if node.isValidator {
-		m.validatorCount--
-	} else {
-		m.candidateCount--
-	}
 
 	node.offline(deviceID, &node.geoInfo, api.TypeNameCandidate, node.lastRequestTime)
 }
@@ -384,22 +364,22 @@ func (m *NodeManager) filterCandidates(filterDeviceIDs []string, nodes []*Candid
 	return nodes2
 }
 
-func (m *NodeManager) resetCandidateAndValidatorCount() {
-	m.candidateCount = 0
-	m.validatorCount = 0
+// func (m *NodeManager) resetCandidateAndValidatorCount() {
+// 	m.candidateCount = 0
+// 	m.validatorCount = 0
 
-	m.candidateNodeMap.Range(func(key, value interface{}) bool {
-		node := value.(*CandidateNode)
+// 	m.candidateNodeMap.Range(func(key, value interface{}) bool {
+// 		node := value.(*CandidateNode)
 
-		if node.isValidator {
-			m.validatorCount++
-		} else {
-			m.candidateCount++
-		}
+// 		if node.isValidator {
+// 			m.validatorCount++
+// 		} else {
+// 			m.candidateCount++
+// 		}
 
-		return true
-	})
-}
+// 		return true
+// 	})
+// }
 
 func (m *NodeManager) updateLastRequestTime(deviceID string) {
 	lastTime := time.Now()
