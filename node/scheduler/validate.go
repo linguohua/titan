@@ -184,7 +184,7 @@ func (e *Validate) chanTask() {
 	}
 }
 
-func (e *Validate) writeChWithSelect(b bool) {
+func (e *Validate) writeChanWithSelect(b bool) {
 	select {
 	case e.resultChan <- b:
 		return
@@ -201,7 +201,7 @@ func (e *Validate) doReadQueue() {
 
 		e.resultQueue.Remove(element) // Dequeue
 
-		e.writeChWithSelect(true)
+		e.writeChanWithSelect(true)
 	}
 }
 
@@ -209,7 +209,7 @@ func (e *Validate) validateResult(validateResults *api.ValidateResults) error {
 	log.Infof("validateResult:%v,round:%v", validateResults.DeviceID, validateResults.RoundID)
 	e.resultQueue.PushBack(validateResults)
 
-	e.writeChWithSelect(true)
+	e.writeChanWithSelect(true)
 
 	return nil
 }
