@@ -189,17 +189,19 @@ func (e *Validate) writeChWithSelect(b bool) {
 	case e.resultChan <- b:
 		return
 	default:
-		// log.Infoln("channel blocked, can not write")
+		// log.Warnf("channel blocked, can not write")
 	}
 }
 
 func (e *Validate) doReadQueue() {
-	for e.resultQueue.Len() > 0 {
+	if e.resultQueue.Len() > 0 {
 		element := e.resultQueue.Front() // First element
 		validateResults := element.Value.(*api.ValidateResults)
 		e.validate(validateResults)
 
 		e.resultQueue.Remove(element) // Dequeue
+
+		e.writeChWithSelect(true)
 	}
 }
 
