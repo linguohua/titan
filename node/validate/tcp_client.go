@@ -46,7 +46,7 @@ func sendData(conn *net.TCPConn, data []byte, limiter *rate.Limiter) error {
 
 	n, err := io.Copy(conn, download.NewReader(bytes.NewBuffer(buf), limiter))
 	if err != nil {
-		log.Errorf("sendData, io.Copy error:%v", err)
+		log.Errorf("sendData, io.Copy error:%s", err.Error())
 		return err
 	}
 

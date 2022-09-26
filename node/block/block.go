@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
-	"time"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
@@ -38,6 +37,7 @@ type Block struct {
 	block           BlockInterface
 	deviceID        string
 	exchange        exchange.Interface
+	blockLoaderCh   chan bool
 }
 
 // TODO need to rename
@@ -55,6 +55,7 @@ func NewBlock(ds datastore.Batching, blockStore stores.BlockStore, scheduler api
 		deviceID:   deviceID,
 
 		cacheResultLock: &sync.Mutex{},
+		blockLoaderCh:   make(chan bool),
 	}
 	go block.startBlockLoader()
 
@@ -77,13 +78,21 @@ func (block *Block) startBlockLoader() {
 	}
 
 	for {
-		doLen := len(block.reqList)
-		if doLen == 0 {
-			block.cachingList = nil
-			time.Sleep(time.Duration(helper.LoadBockTick) * time.Millisecond)
-			continue
-		}
+		<-block.blockLoaderCh
+		block.doLoadBlock()
+	}
+}
 
+func (block *Block) notifyBlockLoader() {
+	select {
+	case block.blockLoaderCh <- true:
+	default:
+	}
+}
+
+func (block *Block) doLoadBlock() {
+	for len(block.reqList) > 0 {
+		doLen := len(block.reqList)
 		if doLen > helper.Batch {
 			doLen = helper.Batch
 		}
@@ -93,7 +102,13 @@ func (block *Block) startBlockLoader() {
 		block.cachingList = doReqs
 
 		block.block.loadBlocks(block, doReqs)
+		block.cachingList = nil
 	}
+}
+
+func (block *Block) addReq2WaitList(delayReqs []*delayReq) {
+	block.reqList = append(block.reqList, delayReqs...)
+	block.notifyBlockLoader()
 }
 
 func (block *Block) cacheResult(ctx context.Context, cid, from string, err error) {
@@ -183,8 +198,7 @@ func (block *Block) CacheBlocks(ctx context.Context, req api.ReqCacheData) error
 		return nil
 	}
 
-	block.reqList = append(block.reqList, delayReq...)
-
+	block.addReq2WaitList(delayReq)
 	return nil
 }
 
