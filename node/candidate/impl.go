@@ -18,7 +18,6 @@ import (
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/download"
-	"github.com/linguohua/titan/node/edge"
 	"github.com/linguohua/titan/node/helper"
 
 	"github.com/ipfs/go-cid"
@@ -29,7 +28,7 @@ import (
 
 var log = logging.Logger("candidate")
 
-func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, params *edge.EdgeParams) api.Candidate {
+func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *device.Device, params *helper.NodeParams) api.Candidate {
 	addrs, err := build.BuiltinBootstrap()
 	if err != nil {
 		log.Fatal(err)
@@ -40,16 +39,15 @@ func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, params *edge.
 		log.Fatal(err)
 	}
 
-	rateLimiter := rate.NewLimiter(rate.Limit(params.Device.BandwidthUp), int(params.Device.BandwidthUp))
-	blockDownload := download.NewBlockDownload(rateLimiter, params.BlockStore, params.DownloadSrvKey, params.DownloadSrvAddr, params.Device.InternalIP)
-	params.Device.SetBlockDownload(blockDownload)
+	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
+	blockDownload := download.NewBlockDownload(rateLimiter, params.BlockStore, params.DownloadSrvKey, params.DownloadSrvAddr, device.GetInternalIP())
+	device.SetBlockDownload(blockDownload)
 
-	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, exchange, params.Device.DeviceID)
-
-	validate := vd.NewValidate(blockDownload, block, params.Device.DeviceID)
+	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, exchange, device.GetDeviceID())
+	validate := vd.NewValidate(blockDownload, block, device.GetDeviceID())
 
 	candidate := &Candidate{
-		Device:        params.Device,
+		Device:        device,
 		Block:         block,
 		BlockDownload: blockDownload,
 		Validate:      validate,

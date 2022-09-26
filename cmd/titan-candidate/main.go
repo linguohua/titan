@@ -19,7 +19,7 @@ import (
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/metrics"
 	"github.com/linguohua/titan/node/device"
-	"github.com/linguohua/titan/node/edge"
+	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/repo"
 
 	"github.com/google/uuid"
@@ -306,27 +306,25 @@ var runCmd = &cli.Command{
 
 		deviceID := cctx.String("device-id")
 		blockStore := stores.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
-		device := &device.Device{
-			BlockStore:    blockStore,
-			PublicIP:      cctx.String("public-ip"),
-			DeviceID:      deviceID,
-			InternalIP:    strings.Split(address, ":")[0],
-			BandwidthUp:   cctx.Int64("bandwidth-up"),
-			BandwidthDown: cctx.Int64("bandwidth-down"),
-		}
+		device := device.NewDevice(
+			blockStore,
+			deviceID,
+			cctx.String("public-ip"),
+			strings.Split(address, ":")[0],
+			cctx.Int64("bandwidth-up"),
+			cctx.Int64("bandwidth-down"))
 
-		edgeParams := &edge.EdgeParams{
+		nodeParams := &helper.NodeParams{
 			DS:              ds,
 			Scheduler:       schedulerAPI,
 			BlockStore:      blockStore,
-			Device:          device,
 			DownloadSrvKey:  cctx.String("download-srv-key"),
 			DownloadSrvAddr: cctx.String("download-srv-addr"),
 		}
 
 		tcpSrvAddr := cctx.String("tcp-srv-addr")
 
-		candidateApi := candidate.NewLocalCandidateNode(context.Background(), tcpSrvAddr, edgeParams)
+		candidateApi := candidate.NewLocalCandidateNode(context.Background(), tcpSrvAddr, device, nodeParams)
 
 		log.Info("Setting up control endpoint at " + address)
 

@@ -5,11 +5,10 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/common"
+	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/validate"
-	"github.com/linguohua/titan/stores"
 	"golang.org/x/time/rate"
 
-	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/block"
 	"github.com/linguohua/titan/node/device"
@@ -18,7 +17,7 @@ import (
 
 var log = logging.Logger("edge")
 
-func NewLocalEdgeNode(ctx context.Context, params *EdgeParams) api.Edge {
+func NewLocalEdgeNode(ctx context.Context, device *device.Device, params *helper.NodeParams) api.Edge {
 	// addrs, err := build.BuiltinBootstrap()
 	// if err != nil {
 	// 	log.Fatal(err)
@@ -29,31 +28,22 @@ func NewLocalEdgeNode(ctx context.Context, params *EdgeParams) api.Edge {
 	// 	log.Fatal(err)
 	// }
 
-	rateLimiter := rate.NewLimiter(rate.Limit(params.Device.BandwidthUp), int(params.Device.BandwidthUp))
-	blockDownload := download.NewBlockDownload(rateLimiter, params.BlockStore, params.DownloadSrvKey, params.DownloadSrvAddr, params.Device.InternalIP)
-	params.Device.SetBlockDownload(blockDownload)
+	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
+	blockDownload := download.NewBlockDownload(rateLimiter, params.BlockStore, params.DownloadSrvKey, params.DownloadSrvAddr, device.GetInternalIP())
+	device.SetBlockDownload(blockDownload)
 
-	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.Candidate{}, nil, params.Device.DeviceID)
+	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.Candidate{}, nil, device.GetDeviceID())
 
-	validate := validate.NewValidate(blockDownload, block, params.Device.DeviceID)
+	validate := validate.NewValidate(blockDownload, block, device.GetDeviceID())
 
 	edge := &Edge{
-		Device:        params.Device,
+		Device:        device,
 		Block:         block,
 		BlockDownload: blockDownload,
 		Validate:      validate,
 	}
 
 	return edge
-}
-
-type EdgeParams struct {
-	DS              datastore.Batching
-	Scheduler       api.Scheduler
-	BlockStore      stores.BlockStore
-	Device          *device.Device
-	DownloadSrvKey  string
-	DownloadSrvAddr string
 }
 
 type Edge struct {

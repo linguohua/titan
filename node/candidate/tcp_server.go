@@ -37,7 +37,7 @@ func (candidate *Candidate) startTcpServer(address string) {
 	// close listener
 	defer listen.Close()
 
-	candidate.tcpSrvAddr = parseTcpSrvAddr(address, candidate.InternalIP)
+	candidate.tcpSrvAddr = parseTcpSrvAddr(address, candidate.GetInternalIP())
 
 	log.Infof("tcp_server listen on %s", address)
 	for {
