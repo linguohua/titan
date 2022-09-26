@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/ipfs/go-datastore"
+	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/stores"
 )
 
 const (
@@ -21,6 +23,15 @@ const (
 	KeyFidPrefix = "fid/"
 	KeyCidPrefix = "cid/"
 )
+
+type NodeParams struct {
+	DS         datastore.Batching
+	Scheduler  api.Scheduler
+	BlockStore stores.BlockStore
+	// Device          *device.Device
+	DownloadSrvKey  string
+	DownloadSrvAddr string
+}
 
 func NewKeyFID(fid string) datastore.Key {
 	key := fmt.Sprintf("%s%s", KeyFidPrefix, fid)

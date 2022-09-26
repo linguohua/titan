@@ -18,20 +18,31 @@ var log = logging.Logger("device")
 const deviceName = "titan-edge"
 
 type Device struct {
-	BlockStore stores.BlockStore
-	DeviceID   string
-	PublicIP   string
-	InternalIP string
-	// DownloadSrvURL string
-	BandwidthUp   int64
-	BandwidthDown int64
+	blockStore    stores.BlockStore
+	deviceID      string
+	publicIP      string
+	internalIP    string
+	bandwidthUp   int64
+	bandwidthDown int64
 	blockDownload *download.BlockDownload
 }
 
+func NewDevice(blockStore stores.BlockStore, deviceID, publicIP, internalIP string, bandwidthUp, bandwidthDown int64) *Device {
+	device := &Device{
+		blockStore:    blockStore,
+		deviceID:      deviceID,
+		publicIP:      publicIP,
+		internalIP:    internalIP,
+		bandwidthUp:   bandwidthUp,
+		bandwidthDown: bandwidthDown,
+	}
+
+	return device
+}
 func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	info := api.DevicesInfo{}
 
-	stat, err := device.BlockStore.Stat()
+	stat, err := device.blockStore.Stat()
 	if err != nil {
 		return info, err
 	}
@@ -46,15 +57,14 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 		APIVersion: v,
 	}
 
-	info.DeviceId = device.DeviceID
-	info.ExternalIp = device.PublicIP
+	info.DeviceId = device.deviceID
+	info.ExternalIp = device.publicIP
 	info.SystemVersion = version.String()
 	info.DeviceName = deviceName
-	info.InternalIp = device.InternalIP
-	info.BandwidthDown = device.BandwidthDown
+	info.InternalIp = device.internalIP
+	info.BandwidthDown = device.bandwidthDown
 
 	if device.blockDownload != nil {
-		// info.DownloadSrvURL = device.blockDownload.GetDownloadSrvURL()
 		info.BandwidthUp = int64(device.blockDownload.GetRateLimit())
 	}
 
@@ -98,4 +108,24 @@ func getMacAddr(ip string) (string, error) {
 
 func (device *Device) SetBlockDownload(blockDownload *download.BlockDownload) {
 	device.blockDownload = blockDownload
+}
+
+func (device *Device) GetDeviceID() string {
+	return device.deviceID
+}
+
+func (device *Device) GetBandwidthUp() int64 {
+	return device.bandwidthUp
+}
+
+func (device *Device) GetBandwidthDown() int64 {
+	return device.bandwidthDown
+}
+
+func (device *Device) GetPublicIP() string {
+	return device.publicIP
+}
+
+func (device *Device) GetInternalIP() string {
+	return device.internalIP
 }
