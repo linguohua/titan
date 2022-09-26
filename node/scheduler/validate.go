@@ -41,7 +41,7 @@ type Validate struct {
 }
 
 // init timers
-func (e *Validate) initValidateTimewheel(scheduler *Scheduler) {
+func (e *Validate) initValidateTask(scheduler *Scheduler) {
 	// validate timewheel
 	e.timewheelValidate = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
 		err := e.startValidate(scheduler)
@@ -52,6 +52,8 @@ func (e *Validate) initValidateTimewheel(scheduler *Scheduler) {
 	})
 	e.timewheelValidate.Start()
 	e.timewheelValidate.AddTimer(time.Duration(2)*60*time.Second, "validate", nil)
+
+	go e.chanTask()
 }
 
 func newValidate(verifiedNodeMax int) *Validate {
@@ -64,8 +66,6 @@ func newValidate(verifiedNodeMax int) *Validate {
 		resultQueue:      list.New(),
 		resultChan:       make(chan bool, 1),
 	}
-
-	go e.chanTask()
 
 	return e
 }
@@ -175,7 +175,7 @@ func (e *Validate) chanTask() {
 	for {
 		<-e.resultChan
 
-		e.doReadQueue()
+		e.doValidate()
 	}
 }
 
@@ -188,7 +188,7 @@ func (e *Validate) writeChanWithSelect(b bool) {
 	}
 }
 
-func (e *Validate) doReadQueue() {
+func (e *Validate) doValidate() {
 	for e.resultQueue.Len() > 0 {
 		element := e.resultQueue.Front() // First element
 		validateResults := element.Value.(*api.ValidateResults)
@@ -213,7 +213,7 @@ func (e *Validate) validate(validateResults *api.ValidateResults) error {
 	if validateResults.RoundID != e.roundID {
 		return xerrors.Errorf("roundID err")
 	}
-	log.Infof("validate:%v,round:%v", validateResults.DeviceID, validateResults.RoundID)
+	log.Infof("do validate:%v,round:%v", validateResults.DeviceID, validateResults.RoundID)
 
 	deviceID := validateResults.DeviceID
 

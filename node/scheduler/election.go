@@ -16,7 +16,7 @@ type Election struct {
 }
 
 // init timers
-func (e *Election) initElectionTimewheel(scheduler *Scheduler) {
+func (e *Election) initElectionTask(scheduler *Scheduler) {
 	// election timewheel
 	e.timewheelElection = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
 		err := e.startElection(scheduler)
