@@ -38,8 +38,8 @@ func NewLocalScheduleNode() api.Scheduler {
 		validate:     validate,
 	}
 
-	election.initElectionTimewheel(s)
-	validate.initValidateTimewheel(s)
+	election.initElectionTask(s)
+	validate.initValidateTask(s)
 
 	return s
 }
