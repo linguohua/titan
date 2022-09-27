@@ -52,14 +52,14 @@ func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
 	_, err := sd.GetNodeInfo(deviceID)
 	if err != nil {
 		if sd.IsNilErr(err) {
-			_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online)
-                VALUES (:device_id, :last_time, :geo, :node_type, :is_online)`, info)
+			_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address)
+                VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address)`, info)
 		}
 		return err
 	}
 
 	// update
-	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online  WHERE device_id=:device_id`, info)
+	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address  WHERE device_id=:device_id`, info)
 
 	return err
 }

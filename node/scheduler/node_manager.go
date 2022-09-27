@@ -129,7 +129,7 @@ func (m *NodeManager) addEdgeNode(node *EdgeNode) error {
 
 	log.Infof("addEdgeNode DeviceId:%v,geo:%v", deviceID, node.geoInfo.Geo)
 
-	err = node.online(deviceID, 0, geoInfo, api.TypeNameEdge)
+	err = node.online(0, api.TypeNameEdge)
 	if err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func (m *NodeManager) addCandidateNode(node *CandidateNode) error {
 
 	log.Infof("addCandidateNode DeviceId:%v,geo:%v", deviceID, node.geoInfo.Geo)
 
-	err = node.online(deviceID, 0, geoInfo, api.TypeNameCandidate)
+	err = node.online(0, api.TypeNameCandidate)
 	if err != nil {
 		// log.Errorf("addCandidateNode NodeOnline err:%v", err)
 		return err
