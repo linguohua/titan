@@ -125,17 +125,7 @@ func sendValidateResult(ctx context.Context, candidate *Candidate, result *api.V
 
 func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, result *api.ValidateResults) {
 	defer func() {
-		vb, ok := candidate.loadBlockWaiterFromMap(result.DeviceID)
-		if ok {
-			candidate.blockWaiterMap.Delete(result.DeviceID)
-			if vb.ch != nil {
-				close(vb.ch)
-				vb.ch = nil
-			}
-			if vb.conn != nil {
-				vb.conn.Close()
-			}
-		}
+		candidate.blockWaiterMap.Delete(result.DeviceID)
 	}()
 
 	size := int64(0)
@@ -163,8 +153,11 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 			}
 			result.RandomCount++
 		case <-t.C:
-			log.Errorf("waitBlock timeout %ds, exit wait block", req.Duration+helper.ValidateTimeout)
+			if vb.conn != nil {
+				vb.conn.Close()
+			}
 			isBreak = true
+			log.Errorf("wait device %s timeout %ds, exit wait block", result.DeviceID, req.Duration+helper.ValidateTimeout)
 		}
 
 		if isBreak {
@@ -222,7 +215,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 		return
 	}
 
-	bw = &blockWaiter{conn: nil, ch: make(chan []byte)}
+	bw = &blockWaiter{conn: nil, ch: make(chan []byte, 1)}
 	candidate.blockWaiterMap.Store(info.DeviceId, bw)
 
 	go waitBlock(bw, req, candidate, result)
