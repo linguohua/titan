@@ -45,7 +45,10 @@ type Node struct {
 }
 
 // node online
-func (n *Node) online(deviceID string, onlineTime int64, geoInfo *region.GeoInfo, typeName api.NodeTypeName) error {
+func (n *Node) online(onlineTime int64, typeName api.NodeTypeName) error {
+	deviceID := n.deviceInfo.DeviceId
+	geoInfo := n.geoInfo
+
 	oldNodeInfo, err := persistent.GetDB().GetNodeInfo(deviceID)
 	if err == nil {
 		if oldNodeInfo.Geo != geoInfo.Geo {
@@ -62,7 +65,7 @@ func (n *Node) online(deviceID string, onlineTime int64, geoInfo *region.GeoInfo
 	// log.Infof("oldgeo:%v,newgeo:%v,err:%v", nodeInfo.Geo, geoInfo.Geo, err)
 
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
-	err = persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: 1, NodeType: string(typeName)})
+	err = persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: 1, NodeType: string(typeName), Address: n.addr})
 	if err != nil {
 		return err
 	}

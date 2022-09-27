@@ -63,6 +63,7 @@ type NodeInfo struct {
 	Geo        string `db:"geo"`
 	IsOnline   int    `db:"is_online"`
 	NodeType   string `db:"node_type"`
+	Address    string `db:"address"`
 }
 
 // ValidateResult validate result

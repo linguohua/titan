@@ -1,29 +1,30 @@
 CREATE TABLE `node` (
     `id` int(20) unsigned NOT NULL AUTO_INCREMENT,
-	`device_id` varchar(512) NOT NULL UNIQUE COMMENT '设备id',
-    `last_time` varchar(225) DEFAULT NULL COMMENT '最后在线时间',
-    `geo` varchar(512) COMMENT '地址信息',
-	`node_type` varchar(255) DEFAULT '' COMMENT '设备类型',
-    `is_online` int(20)  DEFAULT '0' COMMENT '是否在线',
-	`online_time` int(64) DEFAULT '0' COMMENT '在线时间',
+	`device_id` varchar(512) NOT NULL UNIQUE ,
+    `last_time` varchar(225) DEFAULT NULL ,
+    `geo` varchar(512),
+	`node_type` varchar(255) DEFAULT '' ,
+	`address` varchar(255) DEFAULT '' ,
+    `is_online` int(20)  DEFAULT '0' ,
+	`online_time` int(64) DEFAULT '0' ,
 	PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='设备信息';
+  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node info';
 
 CREATE TABLE `validate_result` (
     `id` int(20) unsigned NOT NULL AUTO_INCREMENT,
-	`device_id` varchar(512) NOT NULL COMMENT '设备id',
-	`validator_id` varchar(512) NOT NULL COMMENT '验证者id',
-    `round_id` varchar(225) NOT NULL COMMENT '验证轮数',
-    `msg` varchar(512) COMMENT '错误信息',
-	`strat_time` varchar(255) DEFAULT '' COMMENT '开始时间',
-	`end_time` varchar(255) DEFAULT '' COMMENT '结束时间',
-    `status` int(20)  DEFAULT '0' COMMENT '状态',
+	`device_id` varchar(512) NOT NULL ,
+	`validator_id` varchar(512) NOT NULL ,
+    `round_id` varchar(225) NOT NULL ,
+    `msg` varchar(512) ,
+	`strat_time` varchar(255) DEFAULT '',
+	`end_time` varchar(255) DEFAULT '',
+    `status` int(20)  DEFAULT '0' ,
 	PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='验证结果';
+  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='validate result info';
 
 CREATE TABLE `validate_err` (
     `id` int(20) unsigned NOT NULL AUTO_INCREMENT,
-	`device_id` varchar(512) NOT NULL COMMENT '设备id',
-    `round_id` varchar(225) NOT NULL COMMENT '验证轮数',
+	`device_id` varchar(512) NOT NULL,
+    `round_id` varchar(225) NOT NULL ,
 	PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='验证错误';
+  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='validate error device';

@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/oschwald/geoip2-golang"
+	"golang.org/x/xerrors"
 )
 
 // var reader *geoip2.Reader
@@ -46,6 +47,9 @@ func (g geoLite) defaultGeoInfo(ip string) *GeoInfo {
 
 func (g geoLite) GetGeoInfo(ip string) (*GeoInfo, error) {
 	geoInfo := g.defaultGeoInfo(ip)
+	if ip == "" {
+		return geoInfo, xerrors.New("ip is nil")
+	}
 
 	db, err := geoip2.Open(g.dbPath)
 	if err != nil {
