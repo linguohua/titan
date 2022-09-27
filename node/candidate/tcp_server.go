@@ -100,30 +100,15 @@ func handleMessage(conn *net.TCPConn, candidate *Candidate) {
 		buf, err = readItem(conn)
 		if err != nil {
 			log.Infof("read item error:%v, deviceID:%s", err, deviceID)
-			if bw.ch != nil {
-				// notify waitblock to stop
-				close(bw.ch)
-			}
+			close(bw.ch)
 			bw.conn = nil
 			return
 		}
 
 		size += int64(len(buf))
 
-		safeSend(bw.ch, buf)
-
+		bw.ch <- buf
 	}
-}
-
-func safeSend(ch chan []byte, value []byte) (closed bool) {
-	defer func() {
-		if recover() != nil {
-			closed = true
-		}
-	}()
-
-	ch <- value  // panic if ch is closed
-	return false // <=> closed = false; return
 }
 
 func readItem(conn net.Conn) ([]byte, error) {

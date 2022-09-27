@@ -425,7 +425,7 @@ func (block *Block) deleteAllBlocks() error {
 		if err != nil {
 			log.Infof("err:%v, cid:%s", err, string(r.Value))
 		}
-		log.Infof("key:%s", r.Key)
+		log.Infof("deleteAllBlocks key:%s", r.Key)
 	}
 }
 
