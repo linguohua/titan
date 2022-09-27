@@ -36,24 +36,24 @@ type Validate struct {
 
 	maxFidMap map[string]int64
 
-	resultQueue *list.List
-	resultChan  chan bool
+	resultQueue   *list.List
+	resultChannel chan bool
 }
 
 // init timers
-func (e *Validate) initValidateTask(scheduler *Scheduler) {
+func (v *Validate) initValidateTask(scheduler *Scheduler) {
 	// validate timewheel
-	e.timewheelValidate = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		err := e.startValidate(scheduler)
+	v.timewheelValidate = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
+		err := v.startValidate(scheduler)
 		if err != nil {
 			log.Panicf("startValidate err:%v", err.Error())
 		}
-		e.timewheelValidate.AddTimer(time.Duration(e.validateTime)*60*time.Second, "validate", nil)
+		v.timewheelValidate.AddTimer(time.Duration(v.validateTime)*60*time.Second, "validate", nil)
 	})
-	e.timewheelValidate.Start()
-	e.timewheelValidate.AddTimer(time.Duration(2)*60*time.Second, "validate", nil)
+	v.timewheelValidate.Start()
+	v.timewheelValidate.AddTimer(time.Duration(2)*60*time.Second, "validate", nil)
 
-	go e.chanTask()
+	go v.initChannelTask()
 }
 
 func newValidate(verifiedNodeMax int) *Validate {
@@ -64,13 +64,13 @@ func newValidate(verifiedNodeMax int) *Validate {
 		verifiedNodeMax:  verifiedNodeMax,
 		validateTime:     10,
 		resultQueue:      list.New(),
-		resultChan:       make(chan bool, 1),
+		resultChannel:    make(chan bool, 1),
 	}
 
 	return e
 }
 
-func (e *Validate) getReqValidates(scheduler *Scheduler, validatorID string, list []string) ([]api.ReqValidate, []string) {
+func (v *Validate) getReqValidates(scheduler *Scheduler, validatorID string, list []string) ([]api.ReqValidate, []string) {
 	req := make([]api.ReqValidate, 0)
 	errList := make([]string, 0)
 
@@ -108,11 +108,11 @@ func (e *Validate) getReqValidates(scheduler *Scheduler, validatorID string, lis
 			log.Warnf("validate GetNodeCacheTag err:%v,DeviceId:%v", err.Error(), deviceID)
 			continue
 		}
-		e.maxFidMap[deviceID] = maxFid
+		v.maxFidMap[deviceID] = maxFid
 
-		req = append(req, api.ReqValidate{Seed: e.seed, NodeURL: addr, Duration: e.duration, RoundID: e.roundID, NodeType: int(nodeType), MaxFid: int(maxFid)})
+		req = append(req, api.ReqValidate{Seed: v.seed, NodeURL: addr, Duration: v.duration, RoundID: v.roundID, NodeType: int(nodeType), MaxFid: int(maxFid)})
 
-		resultInfo := &persistent.ValidateResult{RoundID: e.roundID, DeviceID: deviceID, ValidatorID: validatorID, Status: int(persistent.ValidateStatusCreate)}
+		resultInfo := &persistent.ValidateResult{RoundID: v.roundID, DeviceID: deviceID, ValidatorID: validatorID, Status: int(persistent.ValidateStatusCreate)}
 		err = persistent.GetDB().SetValidateResultInfo(resultInfo)
 		if err != nil {
 			log.Warnf("validate SetValidateResultInfo err:%v,DeviceId:%v", err.Error(), deviceID)
@@ -129,7 +129,7 @@ func (e *Validate) getReqValidates(scheduler *Scheduler, validatorID string, lis
 	return req, errList
 }
 
-func (e *Validate) getRandNum(max int, r *rand.Rand) int {
+func (v *Validate) getRandNum(max int, r *rand.Rand) int {
 	if max > 0 {
 		return r.Intn(max)
 	}
@@ -149,7 +149,7 @@ func (e *Validate) getRandNum(max int, r *rand.Rand) int {
 // }
 
 // TODO save to sql
-func (e *Validate) saveValidateResult(rID string, deviceID string, validatorID string, msg string, status cache.ValidateStatus) error {
+func (v *Validate) saveValidateResult(rID string, deviceID string, validatorID string, msg string, status cache.ValidateStatus) error {
 	resultInfo := &persistent.ValidateResult{RoundID: rID, DeviceID: deviceID, Status: int(status), Msg: msg}
 	err := persistent.GetDB().SetValidateResultInfo(resultInfo)
 	if err != nil {
@@ -171,46 +171,46 @@ func (e *Validate) saveValidateResult(rID string, deviceID string, validatorID s
 	return nil
 }
 
-func (e *Validate) chanTask() {
+func (v *Validate) initChannelTask() {
 	for {
-		<-e.resultChan
+		<-v.resultChannel
 
-		e.doValidate()
+		v.doValidate()
 	}
 }
 
-func (e *Validate) writeChanWithSelect(b bool) {
+func (v *Validate) writeChanWithSelect(b bool) {
 	select {
-	case e.resultChan <- b:
+	case v.resultChannel <- b:
 		return
 	default:
 		// log.Warnf("channel blocked, can not write")
 	}
 }
 
-func (e *Validate) doValidate() {
-	for e.resultQueue.Len() > 0 {
-		element := e.resultQueue.Front() // First element
+func (v *Validate) doValidate() {
+	for v.resultQueue.Len() > 0 {
+		element := v.resultQueue.Front() // First element
 		validateResults := element.Value.(*api.ValidateResults)
-		e.validate(validateResults)
+		v.validate(validateResults)
 
-		e.resultQueue.Remove(element) // Dequeue
+		v.resultQueue.Remove(element) // Dequeue
 
-		// e.writeChanWithSelect(true)
+		// v.writeChanWithSelect(true)
 	}
 }
 
-func (e *Validate) validateResult(validateResults *api.ValidateResults) error {
+func (v *Validate) validateResult(validateResults *api.ValidateResults) error {
 	log.Infof("validateResult:%v,round:%v", validateResults.DeviceID, validateResults.RoundID)
-	e.resultQueue.PushBack(validateResults)
+	v.resultQueue.PushBack(validateResults)
 
-	e.writeChanWithSelect(true)
+	v.writeChanWithSelect(true)
 
 	return nil
 }
 
-func (e *Validate) validate(validateResults *api.ValidateResults) error {
-	if validateResults.RoundID != e.roundID {
+func (v *Validate) validate(validateResults *api.ValidateResults) error {
+	if validateResults.RoundID != v.roundID {
 		return xerrors.Errorf("roundID err")
 	}
 	log.Infof("do validate:%v,round:%v", validateResults.DeviceID, validateResults.RoundID)
@@ -223,22 +223,22 @@ func (e *Validate) validate(validateResults *api.ValidateResults) error {
 	if validateResults.IsTimeout {
 		status = cache.ValidateStatusTimeOut
 		msg = errMsgTimeOut
-		return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
+		return v.saveValidateResult(v.roundID, deviceID, "", msg, status)
 	}
 
-	r := rand.New(rand.NewSource(e.seed))
+	r := rand.New(rand.NewSource(v.seed))
 	rlen := len(validateResults.Cids)
 
 	if rlen <= 0 || validateResults.RandomCount <= 0 {
 		status = cache.ValidateStatusFail
 		msg = fmt.Sprintf(errMsgBlockNil, rlen, validateResults.RandomCount)
-		return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
+		return v.saveValidateResult(v.roundID, deviceID, "", msg, status)
 	}
 
-	maxFid := e.maxFidMap[deviceID]
+	maxFid := v.maxFidMap[deviceID]
 
 	for index := 0; index < validateResults.RandomCount; index++ {
-		fid := e.getRandNum(int(maxFid), r) + 1
+		fid := v.getRandNum(int(maxFid), r) + 1
 		resultCid := validateResults.Cids[index]
 
 		fidStr := fmt.Sprintf("%d", fid)
@@ -257,10 +257,10 @@ func (e *Validate) validate(validateResults *api.ValidateResults) error {
 		}
 	}
 
-	return e.saveValidateResult(e.roundID, deviceID, "", msg, status)
+	return v.saveValidateResult(v.roundID, deviceID, "", msg, status)
 }
 
-func (e *Validate) checkValidateTimeOut() error {
+func (v *Validate) checkValidateTimeOut() error {
 	deviceIDs, err := cache.GetDB().GetNodesWithValidateingList()
 	if err != nil {
 		return err
@@ -270,7 +270,7 @@ func (e *Validate) checkValidateTimeOut() error {
 		log.Infof("checkValidateTimeOut list:%v", deviceIDs)
 
 		for _, deviceID := range deviceIDs {
-			resultInfo := &persistent.ValidateResult{RoundID: e.roundID, DeviceID: deviceID, Status: int(cache.ValidateStatusTimeOut)}
+			resultInfo := &persistent.ValidateResult{RoundID: v.roundID, DeviceID: deviceID, Status: int(cache.ValidateStatusTimeOut)}
 			err = persistent.GetDB().SetValidateResultInfo(resultInfo)
 			if err != nil {
 				log.Warnf("checkValidateTimeOut SetValidateResultInfo err:%v,DeviceId:%v", err.Error(), deviceID)
@@ -288,7 +288,7 @@ func (e *Validate) checkValidateTimeOut() error {
 	return nil
 }
 
-func (e *Validate) matchValidator(scheduler *Scheduler, userGeoInfo *region.GeoInfo, validatorList []string, deviceID string, validatorMap map[string][]string) (map[string][]string, []string) {
+func (v *Validate) matchValidator(scheduler *Scheduler, userGeoInfo *region.GeoInfo, validatorList []string, deviceID string, validatorMap map[string][]string) (map[string][]string, []string) {
 	cs, _ := scheduler.nodeManager.findCandidateNodeWithGeo(userGeoInfo, validatorList)
 
 	validatorID := ""
@@ -323,7 +323,7 @@ func (e *Validate) matchValidator(scheduler *Scheduler, userGeoInfo *region.GeoI
 }
 
 // Validate
-func (e *Validate) startValidate(scheduler *Scheduler) error {
+func (v *Validate) startValidate(scheduler *Scheduler) error {
 	log.Info("------------startValidate:")
 	err := cache.GetDB().RemoveValidateingList()
 	if err != nil {
@@ -335,9 +335,9 @@ func (e *Validate) startValidate(scheduler *Scheduler) error {
 		return err
 	}
 
-	e.roundID = fmt.Sprintf("%d", sID)
-	e.seed = time.Now().UnixNano()
-	e.maxFidMap = make(map[string]int64)
+	v.roundID = fmt.Sprintf("%d", sID)
+	v.seed = time.Now().UnixNano()
+	v.maxFidMap = make(map[string]int64)
 
 	// find validators
 	validatorMap := make(map[string][]string)
@@ -348,15 +348,15 @@ func (e *Validate) startValidate(scheduler *Scheduler) error {
 	}
 
 	for deviceID, node := range scheduler.validatePool.edgeNodeMap {
-		validatorMap, validatorList = e.matchValidator(scheduler, &node.geoInfo, validatorList, deviceID, validatorMap)
+		validatorMap, validatorList = v.matchValidator(scheduler, &node.geoInfo, validatorList, deviceID, validatorMap)
 	}
 
 	for deviceID, node := range scheduler.validatePool.candidateNodeMap {
-		validatorMap, validatorList = e.matchValidator(scheduler, &node.geoInfo, validatorList, deviceID, validatorMap)
+		validatorMap, validatorList = v.matchValidator(scheduler, &node.geoInfo, validatorList, deviceID, validatorMap)
 	}
 
 	for validatorID, list := range validatorMap {
-		req, errList := e.getReqValidates(scheduler, validatorID, list)
+		req, errList := v.getReqValidates(scheduler, validatorID, list)
 		offline := false
 		validator := scheduler.nodeManager.getCandidateNode(validatorID)
 		if validator != nil {
@@ -374,14 +374,14 @@ func (e *Validate) startValidate(scheduler *Scheduler) error {
 		}
 
 		if offline {
-			err = persistent.GetDB().SetNodeToValidateErrorList(e.roundID, validatorID)
+			err = persistent.GetDB().SetNodeToValidateErrorList(v.roundID, validatorID)
 			if err != nil {
 				log.Errorf("SetNodeToValidateErrorList ,err:%v,deviceID:%v", err.Error(), validatorID)
 			}
 		}
 
 		for _, deviceID := range errList {
-			err = persistent.GetDB().SetNodeToValidateErrorList(e.roundID, deviceID)
+			err = persistent.GetDB().SetNodeToValidateErrorList(v.roundID, deviceID)
 			if err != nil {
 				log.Errorf("SetNodeToValidateErrorList ,err:%v,deviceID:%v", err.Error(), deviceID)
 			}
@@ -390,12 +390,12 @@ func (e *Validate) startValidate(scheduler *Scheduler) error {
 		log.Infof("validatorID :%v, List:%v", validatorID, list)
 	}
 
-	t := time.NewTimer(time.Duration(e.duration*2) * time.Second)
+	t := time.NewTimer(time.Duration(v.duration*2) * time.Second)
 
 	for {
 		select {
 		case <-t.C:
-			return e.checkValidateTimeOut()
+			return v.checkValidateTimeOut()
 		}
 	}
 }
