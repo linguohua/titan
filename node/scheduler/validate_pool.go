@@ -35,45 +35,45 @@ func newValidatePool() *ValidatePool {
 	return pool
 }
 
-func (g *ValidatePool) addPendingNode(edgeNode *EdgeNode, candidateNode *CandidateNode) {
+func (p *ValidatePool) addPendingNode(edgeNode *EdgeNode, candidateNode *CandidateNode) {
 	if edgeNode != nil {
-		g.pendingEdgeMap.Store(edgeNode.deviceInfo.DeviceId, edgeNode)
+		p.pendingEdgeMap.Store(edgeNode.deviceInfo.DeviceId, edgeNode)
 	}
 
 	if candidateNode != nil {
-		g.pendingCandidateMap.Store(candidateNode.deviceInfo.DeviceId, candidateNode)
+		p.pendingCandidateMap.Store(candidateNode.deviceInfo.DeviceId, candidateNode)
 	}
 }
 
-func (g *ValidatePool) pendingNodesToPool() {
-	g.pendingEdgeMap.Range(func(key, value interface{}) bool {
+func (p *ValidatePool) pendingNodesToPool() {
+	p.pendingEdgeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
 		node := value.(*EdgeNode)
 
-		g.addEdge(node)
+		p.addEdge(node)
 
-		g.pendingEdgeMap.Delete(deviceID)
+		p.pendingEdgeMap.Delete(deviceID)
 
 		return true
 	})
 
-	g.pendingCandidateMap.Range(func(key, value interface{}) bool {
+	p.pendingCandidateMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
 		node := value.(*CandidateNode)
 
-		g.addCandidate(node)
+		p.addCandidate(node)
 
-		g.pendingCandidateMap.Delete(deviceID)
+		p.pendingCandidateMap.Delete(deviceID)
 
 		return true
 	})
 }
 
-func (g *ValidatePool) election(verifiedNodeMax int) ([]string, int) {
-	g.resetNodePool()
+func (p *ValidatePool) election(verifiedNodeMax int) ([]string, int) {
+	p.resetNodePool()
 
-	edgeNum := len(g.edgeNodeMap)
-	candidateNum := len(g.candidateNodeMap)
+	edgeNum := len(p.edgeNodeMap)
+	candidateNum := len(p.candidateNodeMap)
 
 	if edgeNum <= 0 && candidateNum <= 0 {
 		return nil, 0
@@ -87,84 +87,84 @@ func (g *ValidatePool) election(verifiedNodeMax int) ([]string, int) {
 	needVeriftorNum := nodeTotalNum/(verifiedNodeMax+1) + addNum
 
 	// rand election
-	lackNum := g.generateRandomValidator(g.candidateNodeMap, needVeriftorNum)
+	lackNum := p.generateRandomValidator(p.candidateNodeMap, needVeriftorNum)
 
 	// reset count
 	// scheduler.nodeManager.resetCandidateAndValidatorCount()
-	return g.veriftorList, lackNum
+	return p.veriftorList, lackNum
 }
 
-func (g *ValidatePool) setVeriftor(deviceID string) {
-	if info, ok := g.candidateNodeMap[deviceID]; ok {
-		g.veriftorNodeMap[deviceID] = info
+func (p *ValidatePool) setVeriftor(deviceID string) {
+	if info, ok := p.candidateNodeMap[deviceID]; ok {
+		p.veriftorNodeMap[deviceID] = info
 
-		delete(g.candidateNodeMap, deviceID)
+		delete(p.candidateNodeMap, deviceID)
 
 		return
 	}
 }
 
-func (g *ValidatePool) resetNodePool() {
-	// g.veriftorMap = make(map[string][]string)
-	g.veriftorList = make([]string, 0)
+func (p *ValidatePool) resetNodePool() {
+	// p.veriftorMap = make(map[string][]string)
+	p.veriftorList = make([]string, 0)
 
-	g.resetRoles()
-	g.pendingNodesToPool()
+	p.resetRoles()
+	p.pendingNodesToPool()
 }
 
-// func (g *ValidatePool) getNodeLists() (edgeList, candidateList []string) {
+// func (p *ValidatePool) getNodeLists() (edgeList, candidateList []string) {
 // 	edgeList = make([]string, 0)
-// 	for deviceID := range g.edgeNodeMap {
+// 	for deviceID := range p.edgeNodeMap {
 // 		edgeList = append(edgeList, deviceID)
 // 	}
 
 // 	candidateList = make([]string, 0)
-// 	for deviceID := range g.candidateNodeMap {
+// 	for deviceID := range p.candidateNodeMap {
 // 		candidateList = append(candidateList, deviceID)
 // 	}
 
 // 	return
 // }
 
-func (g *ValidatePool) resetRoles() {
-	for deviceID, info := range g.veriftorNodeMap {
-		g.candidateNodeMap[deviceID] = info
+func (p *ValidatePool) resetRoles() {
+	for deviceID, info := range p.veriftorNodeMap {
+		p.candidateNodeMap[deviceID] = info
 	}
 
-	g.veriftorNodeMap = make(map[string]*CandidateNode)
+	p.veriftorNodeMap = make(map[string]*CandidateNode)
 }
 
-func (g *ValidatePool) addEdge(node *EdgeNode) {
+func (p *ValidatePool) addEdge(node *EdgeNode) {
 	deviceID := node.deviceInfo.DeviceId
-	if _, ok := g.edgeNodeMap[deviceID]; ok {
+	if _, ok := p.edgeNodeMap[deviceID]; ok {
 		return
 	}
 
-	g.edgeNodeMap[deviceID] = node
+	p.edgeNodeMap[deviceID] = node
 }
 
-func (g *ValidatePool) addCandidate(node *CandidateNode) {
+func (p *ValidatePool) addCandidate(node *CandidateNode) {
 	deviceID := node.deviceInfo.DeviceId
-	if _, ok := g.candidateNodeMap[deviceID]; ok {
+	if _, ok := p.candidateNodeMap[deviceID]; ok {
 		return
 	}
 
-	g.candidateNodeMap[deviceID] = node
+	p.candidateNodeMap[deviceID] = node
 }
 
-func (g *ValidatePool) removeEdge(deviceID string) {
-	if _, ok := g.edgeNodeMap[deviceID]; ok {
-		delete(g.edgeNodeMap, deviceID)
+func (p *ValidatePool) removeEdge(deviceID string) {
+	if _, ok := p.edgeNodeMap[deviceID]; ok {
+		delete(p.edgeNodeMap, deviceID)
 	}
 }
 
-func (g *ValidatePool) removeCandidate(deviceID string) {
-	if _, ok := g.candidateNodeMap[deviceID]; ok {
-		delete(g.candidateNodeMap, deviceID)
+func (p *ValidatePool) removeCandidate(deviceID string) {
+	if _, ok := p.candidateNodeMap[deviceID]; ok {
+		delete(p.candidateNodeMap, deviceID)
 	}
 }
 
-func (g *ValidatePool) generateRandomValidator(candidateNodeMap map[string]*CandidateNode, count int) (lackNum int) {
+func (p *ValidatePool) generateRandomValidator(candidateNodeMap map[string]*CandidateNode, count int) (lackNum int) {
 	mLen := len(candidateNodeMap)
 	lackNum = count - mLen
 	if mLen <= 0 {
@@ -173,7 +173,7 @@ func (g *ValidatePool) generateRandomValidator(candidateNodeMap map[string]*Cand
 
 	if mLen <= count {
 		for deviceID := range candidateNodeMap {
-			g.addVeriftor(deviceID)
+			p.addVeriftor(deviceID)
 		}
 		return
 	}
@@ -198,15 +198,15 @@ func (g *ValidatePool) generateRandomValidator(candidateNodeMap map[string]*Cand
 
 		if !exist {
 			veriftorMap[vID] = num
-			g.addVeriftor(vID)
+			p.addVeriftor(vID)
 		}
 	}
 
 	return 0
 }
 
-func (g *ValidatePool) addVeriftor(deviceID string) {
-	// g.veriftorMap[deviceID] = make([]string, 0)
-	g.veriftorList = append(g.veriftorList, deviceID)
-	g.setVeriftor(deviceID)
+func (p *ValidatePool) addVeriftor(deviceID string) {
+	// p.veriftorMap[deviceID] = make([]string, 0)
+	p.veriftorList = append(p.veriftorList, deviceID)
+	p.setVeriftor(deviceID)
 }
