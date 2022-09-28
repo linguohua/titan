@@ -48,18 +48,19 @@ func (sd sqlDB) IsNilErr(err error) bool {
 
 func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
 	info.DeviceID = deviceID
+	info.ServerName = serverName
 
 	_, err := sd.GetNodeInfo(deviceID)
 	if err != nil {
 		if sd.IsNilErr(err) {
-			_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address)
-                VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address)`, info)
+			_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address, server_name)
+                VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address, :server_name)`, info)
 		}
 		return err
 	}
 
 	// update
-	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address  WHERE device_id=:device_id`, info)
+	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address,server_name=:server_name  WHERE device_id=:device_id`, info)
 
 	return err
 }
@@ -79,8 +80,8 @@ func (sd sqlDB) AddAllNodeOnlineTime(onLineTime int64) error {
 }
 
 func (sd sqlDB) SetAllNodeOffline() error {
-	info := &NodeInfo{IsOnline: 0}
-	_, err := sd.cli.NamedExec(`UPDATE node SET is_online=:is_online`, info)
+	info := &NodeInfo{IsOnline: 0, ServerName: serverName}
+	_, err := sd.cli.NamedExec(`UPDATE node SET is_online=:is_online WHERE server_name=:server_name`, info)
 
 	return err
 }

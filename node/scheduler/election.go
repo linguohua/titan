@@ -13,13 +13,15 @@ type Election struct {
 	electionTime      int // election time interval (minute)
 
 	verifiedNodeMax int // verified node num limit
+
+	validatePool *ValidatePool
 }
 
 // init timers
-func (e *Election) initElectionTask(scheduler *Scheduler) {
+func (e *Election) initElectionTask() {
 	// election timewheel
 	e.timewheelElection = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		err := e.startElection(scheduler)
+		err := e.startElection()
 		if err != nil {
 			log.Panicf("startElection err:%v", err.Error())
 		}
@@ -29,34 +31,37 @@ func (e *Election) initElectionTask(scheduler *Scheduler) {
 	e.timewheelElection.AddTimer(time.Duration(1)*60*time.Second, "election", nil)
 }
 
-func newElection(verifiedNodeMax int) *Election {
+func newElection(verifiedNodeMax int, pool *ValidatePool) *Election {
 	e := &Election{
 		electionTime:    60,
 		verifiedNodeMax: verifiedNodeMax,
+		validatePool:    pool,
 	}
+
+	e.initElectionTask()
 
 	return e
 }
 
-func (e *Election) cleanValidators(scheduler *Scheduler) error {
-	validatorList, err := cache.GetDB().GetValidatorsWithList()
-	if err != nil {
-		return err
-	}
+func (e *Election) cleanValidators() error {
+	// validatorList, err := cache.GetDB().GetValidatorsWithList()
+	// if err != nil {
+	// 	return err
+	// }
 
-	for _, validator := range validatorList {
-		// err = cache.GetDB().RemoveValidatorGeoList(validator)
-		// if err != nil {
-		// 	log.Warnf("RemoveValidatorGeoList err:%v, validator:%v", err.Error(), validator)
-		// }
+	// for _, validator := range validatorList {
+	// err = cache.GetDB().RemoveValidatorGeoList(validator)
+	// if err != nil {
+	// 	log.Warnf("RemoveValidatorGeoList err:%v, validator:%v", err.Error(), validator)
+	// }
 
-		node := scheduler.nodeManager.getCandidateNode(validator)
-		if node != nil {
-			node.isValidator = false
-		}
-	}
+	// node := scheduler.nodeManager.getCandidateNode(validator)
+	// if node != nil {
+	// 	node.isValidator = false
+	// }
+	// }
 
-	err = cache.GetDB().RemoveValidatorList()
+	err := cache.GetDB().RemoveValidatorList()
 	if err != nil {
 		return err
 	}
@@ -65,13 +70,13 @@ func (e *Election) cleanValidators(scheduler *Scheduler) error {
 }
 
 // election
-func (e *Election) startElection(scheduler *Scheduler) error {
-	err := e.cleanValidators(scheduler)
+func (e *Election) startElection() error {
+	err := e.cleanValidators()
 	if err != nil {
 		return err
 	}
 
-	vList, lackNum := scheduler.validatePool.election(e.verifiedNodeMax)
+	vList, lackNum := e.validatePool.election(e.verifiedNodeMax)
 
 	// save election result
 	for _, validatorID := range vList {

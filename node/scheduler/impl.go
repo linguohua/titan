@@ -25,10 +25,10 @@ const ErrNodeNotFind = "Not Found"
 func NewLocalScheduleNode() api.Scheduler {
 	verifiedNodeMax := 10
 
-	manager := newNodeManager()
 	pool := newValidatePool()
-	election := newElection(verifiedNodeMax)
-	validate := newValidate(verifiedNodeMax)
+	manager := newNodeManager(pool)
+	election := newElection(verifiedNodeMax, pool)
+	validate := newValidate(verifiedNodeMax, pool, manager)
 
 	s := &Scheduler{
 		CommonAPI:    common.NewCommonAPI(manager.updateLastRequestTime),
@@ -37,9 +37,6 @@ func NewLocalScheduleNode() api.Scheduler {
 		election:     election,
 		validate:     validate,
 	}
-
-	election.initElectionTask(s)
-	validate.initValidateTask(s)
 
 	return s
 }
@@ -97,8 +94,6 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		log.Errorf("EdgeNodeConnect addEdgeNode err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 		return err
 	}
-
-	s.validatePool.addPendingNode(edgeNode, nil)
 
 	// cids := edgeNode.getCacheFailCids()
 	// if cids != nil && len(cids) > 0 {
@@ -311,10 +306,10 @@ func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTyp
 			if nodeType == api.TypeNameAll {
 				list = append(list, deviceID)
 			} else {
-				node := value.(*CandidateNode)
-				if (nodeType == api.TypeNameValidator) == node.isValidator {
-					list = append(list, deviceID)
-				}
+				// node := value.(*CandidateNode)
+				// if (nodeType == api.TypeNameValidator) == node.isValidator {
+				list = append(list, deviceID)
+				// }
 			}
 
 			return true
@@ -424,8 +419,6 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error 
 		return err
 	}
 
-	s.validatePool.addPendingNode(nil, candidateNode)
-
 	// cids := candidateNode.getCacheFailCids()
 	// if cids != nil && len(cids) > 0 {
 	// 	reqDatas, _ := candidateNode.getReqCacheDatas(s, cids, false)
@@ -489,10 +482,10 @@ func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID str
 
 // ElectionValidators Election Validators
 func (s *Scheduler) ElectionValidators(ctx context.Context) error {
-	return s.election.startElection(s)
+	return s.election.startElection()
 }
 
 // Validate Validate edge
 func (s *Scheduler) Validate(ctx context.Context) error {
-	return s.validate.startValidate(s)
+	return s.validate.startValidate()
 }

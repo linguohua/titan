@@ -110,6 +110,10 @@ var runCmd = &cli.Command{
 			Usage: "persistentdb url",
 			Value: "user01:sql001@tcp(127.0.0.1:3306)/test",
 		},
+		&cli.StringFlag{
+			Name:  "server-name",
+			Usage: "server uniquely identifies",
+		},
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -137,7 +141,13 @@ var runCmd = &cli.Command{
 		defer cancel()
 
 		cURL := cctx.String("cachedb-url")
-		err = cache.NewCacheDB(cURL, cache.TypeRedis())
+		sName := cctx.String("server-name")
+
+		if sName == "" {
+			log.Panic("server-name is nil")
+		}
+
+		err = cache.NewCacheDB(cURL, cache.TypeRedis(), sName)
 		if err != nil {
 			log.Panic(err.Error())
 		}
@@ -149,7 +159,7 @@ var runCmd = &cli.Command{
 		}
 
 		pPath := cctx.String("persistentdb-url")
-		err = persistent.NewDB(pPath, persistent.TypeSQL())
+		err = persistent.NewDB(pPath, persistent.TypeSQL(), sName)
 		if err != nil {
 			log.Panic(err.Error())
 		}

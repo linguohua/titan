@@ -19,12 +19,12 @@ const (
 	redisKeyBlockNodeList = "Titan:BlockNodeList:%s"
 	// RedisKeyGeoNodeList  geo
 	redisKeyGeoNodeList = "Titan:GeoNodeList:%s"
-	// RedisKeyValidatorList
-	redisKeyValidatorList = "Titan:ValidatorList"
-	// RedisKeyValidateRoundID
-	redisKeyValidateRoundID = "Titan:ValidateRoundID"
-	// redisKeyValidateingList
-	redisKeyValidateingList = "Titan:ValidateingList"
+	// RedisKeyValidatorList server name
+	redisKeyValidatorList = "Titan:ValidatorList:%s"
+	// RedisKeyValidateRoundID server name
+	redisKeyValidateRoundID = "Titan:ValidateRoundID:%s"
+	// redisKeyValidateingList server name
+	redisKeyValidateingList = "Titan:ValidateingList:%s"
 
 	// RedisKeyEdgeDeviceIDList
 	redisKeyEdgeDeviceIDList = "Titan:EdgeDeviceIDList"
@@ -87,34 +87,46 @@ func (rd redisDB) GetNodeCacheFid(deviceID string) (int64, error) {
 
 // ValidateID ++1
 func (rd redisDB) IncrValidateRoundID() (int64, error) {
-	return rd.cli.IncrBy(context.Background(), redisKeyValidateRoundID, 1).Result()
+	key := fmt.Sprintf(redisKeyValidateRoundID, serverName)
+
+	return rd.cli.IncrBy(context.Background(), key, 1).Result()
 }
 
 // get ValidateID
 func (rd redisDB) GetValidateRoundID() (string, error) {
-	return rd.cli.Get(context.Background(), redisKeyValidateRoundID).Result()
+	key := fmt.Sprintf(redisKeyValidateRoundID, serverName)
+
+	return rd.cli.Get(context.Background(), key).Result()
 }
 
 //  add
 func (rd redisDB) SetNodeToValidateingList(deviceID string) error {
-	_, err := rd.cli.SAdd(context.Background(), redisKeyValidateingList, deviceID).Result()
+	key := fmt.Sprintf(redisKeyValidateingList, serverName)
+
+	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
 	return err
 }
 
 // SMembers
 func (rd redisDB) GetNodesWithValidateingList() ([]string, error) {
-	return rd.cli.SMembers(context.Background(), redisKeyValidateingList).Result()
+	key := fmt.Sprintf(redisKeyValidateingList, serverName)
+
+	return rd.cli.SMembers(context.Background(), key).Result()
 }
 
 //  del device
 func (rd redisDB) RemoveNodeWithValidateingList(deviceID string) error {
-	_, err := rd.cli.SRem(context.Background(), redisKeyValidateingList, deviceID).Result()
+	key := fmt.Sprintf(redisKeyValidateingList, serverName)
+
+	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
 	return err
 }
 
 //  del key
 func (rd redisDB) RemoveValidateingList() error {
-	_, err := rd.cli.Del(context.Background(), redisKeyValidateingList).Result()
+	key := fmt.Sprintf(redisKeyValidateingList, serverName)
+
+	_, err := rd.cli.Del(context.Background(), key).Result()
 	return err
 }
 
@@ -173,7 +185,7 @@ func (rd redisDB) RemoveNodeWithGeoList(deviceID, geo string) error {
 
 //  add
 func (rd redisDB) SetValidatorToList(deviceID string) error {
-	key := redisKeyValidatorList
+	key := fmt.Sprintf(redisKeyValidatorList, serverName)
 
 	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
 	return err
@@ -181,14 +193,14 @@ func (rd redisDB) SetValidatorToList(deviceID string) error {
 
 // SMembers
 func (rd redisDB) GetValidatorsWithList() ([]string, error) {
-	key := redisKeyValidatorList
+	key := fmt.Sprintf(redisKeyValidatorList, serverName)
 
 	return rd.cli.SMembers(context.Background(), key).Result()
 }
 
 //  del
 func (rd redisDB) RemoveValidatorList() error {
-	key := redisKeyValidatorList
+	key := fmt.Sprintf(redisKeyValidatorList, serverName)
 
 	_, err := rd.cli.Del(context.Background(), key).Result()
 	return err
@@ -196,7 +208,7 @@ func (rd redisDB) RemoveValidatorList() error {
 
 // SISMEMBER
 func (rd redisDB) IsNodeInValidatorList(deviceID string) (bool, error) {
-	key := redisKeyValidatorList
+	key := fmt.Sprintf(redisKeyValidatorList, serverName)
 
 	return rd.cli.SIsMember(context.Background(), key, deviceID).Result()
 }
