@@ -31,10 +31,15 @@ type NodeManager struct {
 
 	timewheelKeepalive *timewheel.TimeWheel
 	keepaliveTime      int // keepalive time interval (minute)
+
+	validatePool *ValidatePool
 }
 
-func newNodeManager() *NodeManager {
-	nodeManager := &NodeManager{keepaliveTime: 1}
+func newNodeManager(pool *ValidatePool) *NodeManager {
+	nodeManager := &NodeManager{
+		keepaliveTime: 1,
+		validatePool:  pool,
+	}
 
 	nodeManager.initKeepaliveTimewheel()
 
@@ -136,6 +141,8 @@ func (m *NodeManager) addEdgeNode(node *EdgeNode) error {
 
 	m.edgeNodeMap.Store(deviceID, node)
 
+	m.validatePool.addPendingNode(node, nil)
+
 	return nil
 }
 
@@ -159,13 +166,15 @@ func (m *NodeManager) removeEdgeNode(node *EdgeNode) {
 
 	m.edgeNodeMap.Delete(deviceID)
 
+	m.validatePool.removeEdge(deviceID)
+
 	node.offline(deviceID, &node.geoInfo, api.TypeNameEdge, node.lastRequestTime)
 }
 
 func (m *NodeManager) addCandidateNode(node *CandidateNode) error {
 	deviceID := node.deviceInfo.DeviceId
 
-	node.isValidator, _ = cache.GetDB().IsNodeInValidatorList(deviceID)
+	// node.isValidator, _ = cache.GetDB().IsNodeInValidatorList(deviceID)
 
 	// geo ip
 	geoInfo, err := region.GetRegion().GetGeoInfo(node.deviceInfo.ExternalIp)
@@ -192,6 +201,8 @@ func (m *NodeManager) addCandidateNode(node *CandidateNode) error {
 
 	m.candidateNodeMap.Store(deviceID, node)
 
+	m.validatePool.addPendingNode(nil, node)
+
 	return nil
 }
 
@@ -214,6 +225,8 @@ func (m *NodeManager) removeCandidateNode(node *CandidateNode) {
 	log.Warnf("removeCandidateNode :%v", deviceID)
 
 	m.candidateNodeMap.Delete(deviceID)
+
+	m.validatePool.removeCandidate(deviceID)
 
 	node.offline(deviceID, &node.geoInfo, api.TypeNameCandidate, node.lastRequestTime)
 }

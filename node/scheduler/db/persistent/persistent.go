@@ -27,11 +27,17 @@ type DB interface {
 	GetBlockNum(deviceID string) (int64, error)
 }
 
-var db DB
+var (
+	db DB
+
+	serverName string
+)
 
 // NewDB New  DB
-func NewDB(url string, dbType string) error {
+func NewDB(url, dbType, sName string) error {
 	var err error
+
+	serverName = sName
 
 	switch dbType {
 	case TypeSQL():
@@ -64,6 +70,7 @@ type NodeInfo struct {
 	IsOnline   int    `db:"is_online"`
 	NodeType   string `db:"node_type"`
 	Address    string `db:"address"`
+	ServerName string `db:"server_name"`
 }
 
 // ValidateResult validate result

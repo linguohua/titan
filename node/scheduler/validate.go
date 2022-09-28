@@ -38,13 +38,16 @@ type Validate struct {
 
 	resultQueue   *list.List
 	resultChannel chan bool
+
+	validatePool *ValidatePool
+	nodeManager  *NodeManager
 }
 
 // init timers
-func (v *Validate) initValidateTask(scheduler *Scheduler) {
+func (v *Validate) initValidateTask() {
 	// validate timewheel
 	v.timewheelValidate = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		err := v.startValidate(scheduler)
+		err := v.startValidate()
 		if err != nil {
 			log.Panicf("startValidate err:%v", err.Error())
 		}
@@ -56,7 +59,7 @@ func (v *Validate) initValidateTask(scheduler *Scheduler) {
 	go v.initChannelTask()
 }
 
-func newValidate(verifiedNodeMax int) *Validate {
+func newValidate(verifiedNodeMax int, pool *ValidatePool, manager *NodeManager) *Validate {
 	e := &Validate{
 		seed:             int64(1),
 		duration:         10,
@@ -65,12 +68,16 @@ func newValidate(verifiedNodeMax int) *Validate {
 		validateTime:     10,
 		resultQueue:      list.New(),
 		resultChannel:    make(chan bool, 1),
+		validatePool:     pool,
+		nodeManager:      manager,
 	}
+
+	e.initValidateTask()
 
 	return e
 }
 
-func (v *Validate) getReqValidates(scheduler *Scheduler, validatorID string, list []string) ([]api.ReqValidate, []string) {
+func (v *Validate) getReqValidates(validatorID string, list []string) ([]api.ReqValidate, []string) {
 	req := make([]api.ReqValidate, 0)
 	errList := make([]string, 0)
 
@@ -78,9 +85,9 @@ func (v *Validate) getReqValidates(scheduler *Scheduler, validatorID string, lis
 
 	for _, deviceID := range list {
 		addr := ""
-		edgeNode := scheduler.nodeManager.getEdgeNode(deviceID)
+		edgeNode := v.nodeManager.getEdgeNode(deviceID)
 		if edgeNode == nil {
-			candidateNode := scheduler.nodeManager.getCandidateNode(deviceID)
+			candidateNode := v.nodeManager.getCandidateNode(deviceID)
 			if candidateNode == nil {
 				errList = append(errList, deviceID)
 				continue
@@ -288,8 +295,8 @@ func (v *Validate) checkValidateTimeOut() error {
 	return nil
 }
 
-func (v *Validate) matchValidator(scheduler *Scheduler, userGeoInfo *region.GeoInfo, validatorList []string, deviceID string, validatorMap map[string][]string) (map[string][]string, []string) {
-	cs, _ := scheduler.nodeManager.findCandidateNodeWithGeo(userGeoInfo, validatorList)
+func (v *Validate) matchValidator(userGeoInfo *region.GeoInfo, validatorList []string, deviceID string, validatorMap map[string][]string) (map[string][]string, []string) {
+	cs, _ := v.nodeManager.findCandidateNodeWithGeo(userGeoInfo, validatorList)
 
 	validatorID := ""
 	if len(cs) > 0 {
@@ -306,7 +313,7 @@ func (v *Validate) matchValidator(scheduler *Scheduler, userGeoInfo *region.GeoI
 	}
 	validatorMap[validatorID] = vList
 
-	if len(vList) >= scheduler.election.verifiedNodeMax {
+	if len(vList) >= v.verifiedNodeMax {
 		for i, id := range validatorList {
 			if id == validatorID {
 				if i >= len(validatorList)-1 {
@@ -323,7 +330,7 @@ func (v *Validate) matchValidator(scheduler *Scheduler, userGeoInfo *region.GeoI
 }
 
 // Validate
-func (v *Validate) startValidate(scheduler *Scheduler) error {
+func (v *Validate) startValidate() error {
 	log.Info("------------startValidate:")
 	err := cache.GetDB().RemoveValidateingList()
 	if err != nil {
@@ -347,18 +354,18 @@ func (v *Validate) startValidate(scheduler *Scheduler) error {
 		return err
 	}
 
-	for deviceID, node := range scheduler.validatePool.edgeNodeMap {
-		validatorMap, validatorList = v.matchValidator(scheduler, &node.geoInfo, validatorList, deviceID, validatorMap)
+	for deviceID, node := range v.validatePool.edgeNodeMap {
+		validatorMap, validatorList = v.matchValidator(&node.geoInfo, validatorList, deviceID, validatorMap)
 	}
 
-	for deviceID, node := range scheduler.validatePool.candidateNodeMap {
-		validatorMap, validatorList = v.matchValidator(scheduler, &node.geoInfo, validatorList, deviceID, validatorMap)
+	for deviceID, node := range v.validatePool.candidateNodeMap {
+		validatorMap, validatorList = v.matchValidator(&node.geoInfo, validatorList, deviceID, validatorMap)
 	}
 
 	for validatorID, list := range validatorMap {
-		req, errList := v.getReqValidates(scheduler, validatorID, list)
+		req, errList := v.getReqValidates(validatorID, list)
 		offline := false
-		validator := scheduler.nodeManager.getCandidateNode(validatorID)
+		validator := v.nodeManager.getCandidateNode(validatorID)
 		if validator != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			defer cancel()

@@ -26,9 +26,9 @@ type EdgeNode struct {
 
 // CandidateNode Candidate node
 type CandidateNode struct {
-	nodeAPI     api.Candidate
-	closer      jsonrpc.ClientCloser
-	isValidator bool
+	nodeAPI api.Candidate
+	closer  jsonrpc.ClientCloser
+	// isValidator bool
 
 	Node
 }
@@ -65,7 +65,12 @@ func (n *Node) online(onlineTime int64, typeName api.NodeTypeName) error {
 	// log.Infof("oldgeo:%v,newgeo:%v,err:%v", nodeInfo.Geo, geoInfo.Geo, err)
 
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
-	err = persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{Geo: geoInfo.Geo, LastTime: lastTime, IsOnline: 1, NodeType: string(typeName), Address: n.addr})
+	err = persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{
+		Geo:      geoInfo.Geo,
+		LastTime: lastTime, IsOnline: 1,
+		NodeType: string(typeName),
+		Address:  n.addr,
+	})
 	if err != nil {
 		return err
 	}
@@ -92,7 +97,13 @@ func (n *Node) offline(deviceID string, geoInfo *region.GeoInfo, nodeType api.No
 		log.Warnf("node offline RemoveNodeWithGeoList err : %v ,deviceID : %v", err.Error(), deviceID)
 	}
 
-	err = persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{Geo: geoInfo.Geo, LastTime: lastTime.Format("2006-01-02 15:04:05"), IsOnline: 0, NodeType: string(nodeType)})
+	err = persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{
+		Geo:      geoInfo.Geo,
+		LastTime: lastTime.Format("2006-01-02 15:04:05"),
+		IsOnline: 0,
+		NodeType: string(nodeType),
+		Address:  n.addr,
+	})
 	if err != nil {
 		log.Errorf("node offline SetNodeInfo err : %v ,deviceID : %v", err.Error(), deviceID)
 	}
