@@ -8,13 +8,20 @@ import (
 	"strconv"
 	"sync"
 
+	blocks "github.com/ipfs/go-block-format"
+	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
+	"github.com/ipfs/go-merkledag"
+	dagpb "github.com/ipld/go-codec-dagpb"
+	"github.com/ipld/go-ipld-prime/node/basicnode"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/stores"
 
+	format "github.com/ipfs/go-ipld-format"
+	legacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
 )
 
@@ -58,6 +65,9 @@ func NewBlock(ds datastore.Batching, blockStore stores.BlockStore, scheduler api
 		blockLoaderCh:   make(chan bool),
 	}
 	go block.startBlockLoader()
+
+	legacy.RegisterCodec(cid.DagProtobuf, dagpb.Type.PBNode, merkledag.ProtoNodeConverter)
+	legacy.RegisterCodec(cid.Raw, basicnode.Prototype.Bytes, merkledag.RawNodeConverter)
 
 	return block
 }
@@ -503,4 +513,19 @@ func (block *Block) scrubBlockStore(scrub api.ScrubBlocks) error {
 	// TODO: download block that not exist in local
 
 	return nil
+}
+
+func (block *Block) resolveLinks(blk blocks.Block) []*format.Link {
+	ctx := context.Background()
+
+	legacy.RegisterCodec(cid.DagProtobuf, dagpb.Type.PBNode, merkledag.ProtoNodeConverter)
+	legacy.RegisterCodec(cid.Raw, basicnode.Prototype.Bytes, merkledag.RawNodeConverter)
+	node, err := legacy.DecodeNode(ctx, blk)
+	if err != nil {
+		fmt.Printf("DecodeNode err:%v", err)
+		return make([]*format.Link, 0)
+	}
+
+	return node.Links()
+
 }
