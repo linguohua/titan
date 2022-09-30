@@ -2,6 +2,7 @@ CREATE TABLE `node` (
     `id` int(20) unsigned NOT NULL AUTO_INCREMENT,
 	`device_id` varchar(512) NOT NULL UNIQUE ,
     `last_time` varchar(225) DEFAULT NULL ,
+    `create_time` varchar(225) DEFAULT NULL ,
     `geo` varchar(512),
 	`node_type` varchar(255) DEFAULT '' ,
 	`address` varchar(255) DEFAULT '' ,

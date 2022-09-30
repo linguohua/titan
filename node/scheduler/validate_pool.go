@@ -17,19 +17,16 @@ type ValidatePool struct {
 
 	// veriftorMap  map[string][]string
 	veriftorList []string
+
+	verifiedNodeMax int // verified node num limit
 }
 
-// // bandwidthInfo Info
-// type bandwidthInfo struct {
-// 	BandwidthUp   int64 `json:"bandwidth_up"`   // B/s
-// 	BandwidthDown int64 `json:"bandwidth_down"` // B/s
-// }
-
-func newValidatePool() *ValidatePool {
+func newValidatePool(verifiedNodeMax int) *ValidatePool {
 	pool := &ValidatePool{
 		edgeNodeMap:      make(map[string]*EdgeNode),
 		candidateNodeMap: make(map[string]*CandidateNode),
 		veriftorNodeMap:  make(map[string]*CandidateNode),
+		verifiedNodeMax:  verifiedNodeMax,
 	}
 
 	return pool
@@ -69,7 +66,7 @@ func (p *ValidatePool) pendingNodesToPool() {
 	})
 }
 
-func (p *ValidatePool) election(verifiedNodeMax int) ([]string, int) {
+func (p *ValidatePool) election() ([]string, int) {
 	p.resetNodePool()
 
 	edgeNum := len(p.edgeNodeMap)
@@ -81,10 +78,10 @@ func (p *ValidatePool) election(verifiedNodeMax int) ([]string, int) {
 
 	nodeTotalNum := edgeNum + candidateNum
 	addNum := 0
-	if nodeTotalNum%(verifiedNodeMax+1) > 0 {
+	if nodeTotalNum%(p.verifiedNodeMax+1) > 0 {
 		addNum = 1
 	}
-	needVeriftorNum := nodeTotalNum/(verifiedNodeMax+1) + addNum
+	needVeriftorNum := nodeTotalNum/(p.verifiedNodeMax+1) + addNum
 
 	// rand election
 	lackNum := p.generateRandomValidator(p.candidateNodeMap, needVeriftorNum)

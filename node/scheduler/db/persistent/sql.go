@@ -49,12 +49,13 @@ func (sd sqlDB) IsNilErr(err error) bool {
 func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
 	info.DeviceID = deviceID
 	info.ServerName = serverName
+	info.CreateTime = time.Now().Format("2006-01-02 15:04:05")
 
 	_, err := sd.GetNodeInfo(deviceID)
 	if err != nil {
 		if sd.IsNilErr(err) {
-			_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address, server_name)
-                VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address, :server_name)`, info)
+			_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address, server_name, create_time)
+                VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address, :server_name, :create_time)`, info)
 		}
 		return err
 	}

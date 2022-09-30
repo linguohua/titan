@@ -11,8 +11,6 @@ import (
 )
 
 const (
-	// RedisKeyNodeInfo  deviceID
-	redisKeyNodeInfo = "Titan:NodeInfo:%s"
 	// RedisKeyNodeBlockFid  deviceID
 	redisKeyNodeBlockFid = "Titan:NodeBlockFid:%s"
 	// RedisKeyBlockNodeList  cid

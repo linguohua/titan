@@ -25,10 +25,10 @@ const ErrNodeNotFind = "Not Found"
 func NewLocalScheduleNode() api.Scheduler {
 	verifiedNodeMax := 10
 
-	pool := newValidatePool()
+	pool := newValidatePool(verifiedNodeMax)
 	manager := newNodeManager(pool)
-	election := newElection(verifiedNodeMax, pool)
-	validate := newValidate(verifiedNodeMax, pool, manager)
+	election := newElection(pool)
+	validate := newValidate(pool, manager)
 
 	s := &Scheduler{
 		CommonAPI:    common.NewCommonAPI(manager.updateLastRequestTime),

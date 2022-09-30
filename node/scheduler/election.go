@@ -12,8 +12,6 @@ type Election struct {
 	timewheelElection *timewheel.TimeWheel
 	electionTime      int // election time interval (minute)
 
-	verifiedNodeMax int // verified node num limit
-
 	validatePool *ValidatePool
 }
 
@@ -31,11 +29,10 @@ func (e *Election) initElectionTask() {
 	e.timewheelElection.AddTimer(time.Duration(1)*60*time.Second, "election", nil)
 }
 
-func newElection(verifiedNodeMax int, pool *ValidatePool) *Election {
+func newElection(pool *ValidatePool) *Election {
 	e := &Election{
-		electionTime:    60,
-		verifiedNodeMax: verifiedNodeMax,
-		validatePool:    pool,
+		electionTime: 60,
+		validatePool: pool,
 	}
 
 	e.initElectionTask()
@@ -76,7 +73,7 @@ func (e *Election) startElection() error {
 		return err
 	}
 
-	vList, lackNum := e.validatePool.election(e.verifiedNodeMax)
+	vList, lackNum := e.validatePool.election()
 
 	// save election result
 	for _, validatorID := range vList {
