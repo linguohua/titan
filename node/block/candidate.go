@@ -6,6 +6,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	blocks "github.com/ipfs/go-block-format"
+	"github.com/ipfs/go-cid"
+	format "github.com/ipfs/go-ipld-format"
 	"github.com/linguohua/titan/api/client"
 )
 
@@ -101,5 +104,41 @@ func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 
 		block.cacheResult(ctx, req.cid, candidate.deviceID, err)
 		log.Infof("loadBlocksFromCandidate, cid:%s,err:%v", req.cid, err)
+
+		links, err := getLinks(block, data, req.cid)
+		if err != nil {
+			log.Errorf("loadBlocksFromIPFS resolveLinks error:%s", err.Error())
+			continue
+		}
+
+		if len(links) > 0 {
+			delayReqs := make([]*delayReq, 0, len(links))
+			for _, link := range links {
+				dReq := &delayReq{}
+				dReq.cid = link.Cid.String()
+				dReq.candidateURL = req.candidateURL
+				delayReqs = append(delayReqs, dReq)
+			}
+
+			block.addReq2WaitList(delayReqs)
+		}
 	}
+}
+
+func getLinks(block *Block, data []byte, cidStr string) ([]*format.Link, error) {
+	if len(data) == 0 {
+		return make([]*format.Link, 0), nil
+	}
+
+	target, err := cid.Decode(cidStr)
+	if err != nil {
+		return make([]*format.Link, 0), err
+	}
+
+	blk, err := blocks.NewBlockWithCid(data, target)
+	if err != nil {
+		return make([]*format.Link, 0), err
+	}
+
+	return block.resolveLinks(blk)
 }

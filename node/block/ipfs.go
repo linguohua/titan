@@ -77,6 +77,24 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 		log.Infof("cache data,cid:%s,err:%v", cidStr, err)
 
 		delete(reqMap, cidStr)
+
+		// continue to download block with links
+		links, err := block.resolveLinks(b)
+		if err != nil {
+			log.Errorf("loadBlocksFromIPFS resolveLinks error:%s", err.Error())
+			continue
+		}
+
+		if len(links) > 0 {
+			delayReqs := make([]*delayReq, 0, len(links))
+			for _, link := range links {
+				dReq := &delayReq{}
+				dReq.cid = link.Cid.String()
+				delayReqs = append(delayReqs, dReq)
+			}
+
+			block.addReq2WaitList(delayReqs)
+		}
 	}
 
 	if len(reqMap) > 0 {

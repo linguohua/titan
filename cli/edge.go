@@ -62,7 +62,7 @@ var CacheBlockCmd = &cli.Command{
 			Value: "",
 		},
 		&cli.StringFlag{
-			Name:  "fid",
+			Name:  "candidate",
 			Usage: "block file id",
 			Value: "",
 		},
@@ -76,9 +76,10 @@ var CacheBlockCmd = &cli.Command{
 		defer closer()
 
 		cid := cctx.String("cid")
+		candidateURL := cctx.String("candidate")
 		ctx := ReqContext(cctx)
 
-		reqData := API.ReqCacheData{Cids: []string{cid}, CandidateURL: ""}
+		reqData := API.ReqCacheData{Cids: []string{cid}, CandidateURL: candidateURL}
 
 		err = api.CacheBlocks(ctx, reqData)
 		if err != nil {

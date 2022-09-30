@@ -515,17 +515,15 @@ func (block *Block) scrubBlockStore(scrub api.ScrubBlocks) error {
 	return nil
 }
 
-func (block *Block) resolveLinks(blk blocks.Block) []*format.Link {
+func (block *Block) resolveLinks(blk blocks.Block) ([]*format.Link, error) {
 	ctx := context.Background()
 
-	legacy.RegisterCodec(cid.DagProtobuf, dagpb.Type.PBNode, merkledag.ProtoNodeConverter)
-	legacy.RegisterCodec(cid.Raw, basicnode.Prototype.Bytes, merkledag.RawNodeConverter)
 	node, err := legacy.DecodeNode(ctx, blk)
 	if err != nil {
-		fmt.Printf("DecodeNode err:%v", err)
-		return make([]*format.Link, 0)
+		log.Error("resolveLinks err:%v", err)
+		return make([]*format.Link, 0), err
 	}
 
-	return node.Links()
+	return node.Links(), nil
 
 }
