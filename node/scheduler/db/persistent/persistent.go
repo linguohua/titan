@@ -71,6 +71,7 @@ type NodeInfo struct {
 	NodeType   string `db:"node_type"`
 	Address    string `db:"address"`
 	ServerName string `db:"server_name"`
+	CreateTime string `db:"create_time"`
 }
 
 // ValidateResult validate result

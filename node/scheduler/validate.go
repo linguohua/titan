@@ -29,7 +29,6 @@ type Validate struct {
 
 	duration         int
 	validateBlockMax int // validate block num limit
-	verifiedNodeMax  int // verified node num limit
 
 	timewheelValidate *timewheel.TimeWheel
 	validateTime      int // validate time interval (minute)
@@ -59,12 +58,11 @@ func (v *Validate) initValidateTask() {
 	go v.initChannelTask()
 }
 
-func newValidate(verifiedNodeMax int, pool *ValidatePool, manager *NodeManager) *Validate {
+func newValidate(pool *ValidatePool, manager *NodeManager) *Validate {
 	e := &Validate{
 		seed:             int64(1),
 		duration:         10,
 		validateBlockMax: 100,
-		verifiedNodeMax:  verifiedNodeMax,
 		validateTime:     10,
 		resultQueue:      list.New(),
 		resultChannel:    make(chan bool, 1),
@@ -313,7 +311,7 @@ func (v *Validate) matchValidator(userGeoInfo *region.GeoInfo, validatorList []s
 	}
 	validatorMap[validatorID] = vList
 
-	if len(vList) >= v.verifiedNodeMax {
+	if len(vList) >= v.validatePool.verifiedNodeMax {
 		for i, id := range validatorList {
 			if id == validatorID {
 				if i >= len(validatorList)-1 {
