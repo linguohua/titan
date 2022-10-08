@@ -37,7 +37,7 @@ type CandidateNode struct {
 type Node struct {
 	deviceInfo api.DevicesInfo
 
-	geoInfo region.GeoInfo
+	geoInfo *region.GeoInfo
 
 	addr string
 
@@ -164,7 +164,6 @@ func (n *Node) deleteBlockRecords(cids []string) (map[string]string, error) {
 
 // filter cached blocks and find download url from candidate
 func (n *Node) getReqCacheDatas(scheduler *Scheduler, cids []string, isEdge bool) ([]api.ReqCacheData, []string) {
-	geoInfo := &n.geoInfo
 	reqList := make([]api.ReqCacheData, 0)
 
 	if !isEdge {
@@ -176,7 +175,7 @@ func (n *Node) getReqCacheDatas(scheduler *Scheduler, cids []string, isEdge bool
 	// if node is edge , find data with candidate
 	csMap := make(map[string][]string)
 	for _, cid := range cids {
-		candidates, err := scheduler.nodeManager.getCandidateNodesWithData(cid, geoInfo)
+		candidates, err := scheduler.nodeManager.getCandidateNodesWithData(cid, n.geoInfo)
 		if err != nil || len(candidates) < 1 {
 			// not find candidate
 			notFindCandidateData = append(notFindCandidateData, cid)

@@ -300,17 +300,14 @@ func (s *Scheduler) InitNodeDeviceIDs(ctx context.Context) error {
 func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTypeName) ([]string, error) {
 	list := make([]string, 0)
 
-	if nodeType == api.TypeNameAll || nodeType == api.TypeNameCandidate || nodeType == api.TypeNameValidator {
+	if nodeType == api.TypeNameValidator {
+		return s.validatePool.veriftorList, nil
+	}
+
+	if nodeType == api.TypeNameAll || nodeType == api.TypeNameCandidate {
 		s.nodeManager.candidateNodeMap.Range(func(key, value interface{}) bool {
 			deviceID := key.(string)
-			if nodeType == api.TypeNameAll {
-				list = append(list, deviceID)
-			} else {
-				// node := value.(*CandidateNode)
-				// if (nodeType == api.TypeNameValidator) == node.isValidator {
-				list = append(list, deviceID)
-				// }
-			}
+			list = append(list, deviceID)
 
 			return true
 		})

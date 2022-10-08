@@ -20,6 +20,7 @@ CREATE TABLE `validate_result` (
     `msg` varchar(512) ,
 	`strat_time` varchar(255) DEFAULT '',
 	`end_time` varchar(255) DEFAULT '',
+	`server_name` varchar(255) DEFAULT '',
     `status` int(20)  DEFAULT '0' ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='validate result info';
