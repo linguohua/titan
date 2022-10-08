@@ -112,9 +112,10 @@ func (sd sqlDB) SetValidateResultInfo(info *ValidateResult) error {
 
 	if ValidateStatus(info.Status) == ValidateStatusCreate {
 		info.StratTime = nowTime
+		info.ServerName = serverName
 
-		_, err := sd.cli.NamedExec(`INSERT INTO validate_result (round_id, device_id, validator_id, status, strat_time)
-                VALUES (:round_id, :device_id, :validator_id, :status, :strat_time)`, info)
+		_, err := sd.cli.NamedExec(`INSERT INTO validate_result (round_id, device_id, validator_id, status, strat_time, server_name)
+                VALUES (:round_id, :device_id, :validator_id, :status, :strat_time, :server_name)`, info)
 		return err
 
 	} else if ValidateStatus(info.Status) > ValidateStatusCreate {
@@ -125,7 +126,7 @@ func (sd sqlDB) SetValidateResultInfo(info *ValidateResult) error {
 		return err
 	}
 
-	return xerrors.Errorf("SetValidateResultInfo status:%v", info.Status)
+	return xerrors.Errorf("SetValidateResultInfo err deviceid:%v ,status:%v, roundID:%v, serverName:%v", info.DeviceID, info.Status, info.RoundID, info.ServerName)
 }
 
 func (sd sqlDB) SetNodeToValidateErrorList(sID, deviceID string) error {

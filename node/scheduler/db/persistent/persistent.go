@@ -84,6 +84,7 @@ type ValidateResult struct {
 	Status      int    `db:"status"`
 	StratTime   string `db:"strat_time"`
 	EndTime     string `db:"end_time"`
+	ServerName  string `db:"server_name"`
 }
 
 // NodeBlock Node Block

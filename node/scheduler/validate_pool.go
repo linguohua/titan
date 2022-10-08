@@ -109,20 +109,6 @@ func (p *ValidatePool) resetNodePool() {
 	p.pendingNodesToPool()
 }
 
-// func (p *ValidatePool) getNodeLists() (edgeList, candidateList []string) {
-// 	edgeList = make([]string, 0)
-// 	for deviceID := range p.edgeNodeMap {
-// 		edgeList = append(edgeList, deviceID)
-// 	}
-
-// 	candidateList = make([]string, 0)
-// 	for deviceID := range p.candidateNodeMap {
-// 		candidateList = append(candidateList, deviceID)
-// 	}
-
-// 	return
-// }
-
 func (p *ValidatePool) resetRoles() {
 	for deviceID, info := range p.veriftorNodeMap {
 		p.candidateNodeMap[deviceID] = info
@@ -159,6 +145,10 @@ func (p *ValidatePool) removeCandidate(deviceID string) {
 	if _, ok := p.candidateNodeMap[deviceID]; ok {
 		delete(p.candidateNodeMap, deviceID)
 	}
+
+	// if _, ok := p.veriftorNodeMap[deviceID]; ok {
+	// 	delete(p.veriftorNodeMap, deviceID)
+	// }
 }
 
 func (p *ValidatePool) generateRandomValidator(candidateNodeMap map[string]*CandidateNode, count int) (lackNum int) {

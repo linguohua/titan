@@ -353,11 +353,11 @@ func (v *Validate) startValidate() error {
 	}
 
 	for deviceID, node := range v.validatePool.edgeNodeMap {
-		validatorMap, validatorList = v.matchValidator(&node.geoInfo, validatorList, deviceID, validatorMap)
+		validatorMap, validatorList = v.matchValidator(node.geoInfo, validatorList, deviceID, validatorMap)
 	}
 
 	for deviceID, node := range v.validatePool.candidateNodeMap {
-		validatorMap, validatorList = v.matchValidator(&node.geoInfo, validatorList, deviceID, validatorMap)
+		validatorMap, validatorList = v.matchValidator(node.geoInfo, validatorList, deviceID, validatorMap)
 	}
 
 	for validatorID, list := range validatorMap {
