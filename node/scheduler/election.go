@@ -18,12 +18,12 @@ type Election struct {
 // init timers
 func (e *Election) initElectionTask() {
 	// election timewheel
-	e.timewheelElection = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
+	e.timewheelElection = timewheel.New(time.Second, 3600, func(_ interface{}) {
+		e.timewheelElection.AddTimer((time.Duration(e.electionTime)*60-1)*time.Second, "election", nil)
 		err := e.startElection()
 		if err != nil {
 			log.Panicf("startElection err:%v", err.Error())
 		}
-		e.timewheelElection.AddTimer(time.Duration(e.electionTime)*60*time.Second, "election", nil)
 	})
 	e.timewheelElection.Start()
 	e.timewheelElection.AddTimer(time.Duration(1)*60*time.Second, "election", nil)

@@ -66,19 +66,19 @@ func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
 	return err
 }
 
-func (sd sqlDB) AddNodeOnlineTime(deviceID string, onLineTime int64) error {
-	info := &NodeInfo{OnlineTime: onLineTime, DeviceID: deviceID}
-	_, err := sd.cli.NamedExec(`UPDATE node SET online_time=online_time+:online_time WHERE device_id=:device_id`, info)
+// func (sd sqlDB) AddNodeOnlineTime(deviceID string, onLineTime int64) error {
+// 	info := &NodeInfo{OnlineTime: onLineTime, DeviceID: deviceID}
+// 	_, err := sd.cli.NamedExec(`UPDATE node SET online_time=online_time+:online_time WHERE device_id=:device_id`, info)
 
-	return err
-}
+// 	return err
+// }
 
-func (sd sqlDB) AddAllNodeOnlineTime(onLineTime int64) error {
-	info := &NodeInfo{OnlineTime: onLineTime, IsOnline: 1}
-	_, err := sd.cli.NamedExec(`UPDATE node SET online_time=online_time+:online_time WHERE is_online=:is_online`, info)
+// func (sd sqlDB) AddAllNodeOnlineTime(onLineTime int64) error {
+// 	info := &NodeInfo{OnlineTime: onLineTime, IsOnline: 1}
+// 	_, err := sd.cli.NamedExec(`UPDATE node SET online_time=online_time+:online_time WHERE is_online=:is_online`, info)
 
-	return err
-}
+// 	return err
+// }
 
 func (sd sqlDB) SetAllNodeOffline() error {
 	info := &NodeInfo{IsOnline: 0, ServerName: serverName}
@@ -110,12 +110,12 @@ func (sd sqlDB) GetNodeInfo(deviceID string) (*NodeInfo, error) {
 func (sd sqlDB) SetValidateResultInfo(info *ValidateResult) error {
 	nowTime := time.Now().Format("2006-01-02 15:04:05")
 
-	if ValidateStatus(info.Status) == ValidateStatusCreate {
+	if ValidateStatus(info.Status) == ValidateStatusCreate || ValidateStatus(info.Status) == ValidateStatusOther {
 		info.StratTime = nowTime
 		info.ServerName = serverName
 
-		_, err := sd.cli.NamedExec(`INSERT INTO validate_result (round_id, device_id, validator_id, status, strat_time, server_name)
-                VALUES (:round_id, :device_id, :validator_id, :status, :strat_time, :server_name)`, info)
+		_, err := sd.cli.NamedExec(`INSERT INTO validate_result (round_id, device_id, validator_id, status, strat_time, server_name, msg)
+                VALUES (:round_id, :device_id, :validator_id, :status, :strat_time, :server_name, :msg)`, info)
 		return err
 
 	} else if ValidateStatus(info.Status) > ValidateStatusCreate {

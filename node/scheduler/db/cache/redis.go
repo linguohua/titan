@@ -29,12 +29,12 @@ const (
 	// RedisKeyCandidateDeviceIDList
 	redisKeyCandidateDeviceIDList = "Titan:CandidateDeviceIDList"
 
-	// Validate field
-	stratTimeField = "StratTime"
-	endTimeField   = "EndTime"
-	validatorField = "Validator"
-	statusField    = "Status"
-	msgField       = "Msg"
+	// RedisKeyNodeInfo  deviceID
+	redisKeyNodeInfo = "Titan:NodeInfo:%s"
+
+	// NodeInfo field
+	onlineTimeField      = "OnlineTime"
+	validateSuccessField = "ValidateSuccessTime"
 )
 
 // TypeRedis redis
@@ -66,6 +66,18 @@ func InitRedis(url string) (DB, error) {
 // IsNilErr Is NilErr
 func (rd redisDB) IsNilErr(err error) bool {
 	return errors.Is(err, redis.Nil)
+}
+
+func (rd redisDB) IncrNodeOnlineTime(deviceID string, onlineTime int64) (int64, error) {
+	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+
+	return rd.cli.HIncrBy(context.Background(), key, onlineTimeField, onlineTime).Result()
+}
+
+func (rd redisDB) IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error) {
+	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+
+	return rd.cli.HIncrBy(context.Background(), key, validateSuccessField, validateSuccessTime).Result()
 }
 
 // node cache tag ++1
