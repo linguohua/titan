@@ -8,7 +8,6 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/region"
 	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
@@ -64,7 +63,7 @@ func (m *NodeManager) nodeKeepalive() {
 	nowTime := time.Now().Add(-time.Duration(m.keepaliveTime) * 60 * time.Second)
 
 	m.edgeNodeMap.Range(func(key, value interface{}) bool {
-		// deviceID := key.(string)
+		deviceID := key.(string)
 		node := value.(*EdgeNode)
 
 		if node == nil {
@@ -80,16 +79,16 @@ func (m *NodeManager) nodeKeepalive() {
 			return true
 		}
 
-		// err := persistent.GetDB().AddNodeOnlineTime(deviceID, int64(m.keepaliveTime))
-		// if err != nil {
-		// 	log.Warnf("AddNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
-		// }
+		_, err := cache.GetDB().IncrNodeOnlineTime(deviceID, int64(m.keepaliveTime))
+		if err != nil {
+			log.Warnf("IncrNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
+		}
 
 		return true
 	})
 
 	m.candidateNodeMap.Range(func(key, value interface{}) bool {
-		// deviceID := key.(string)
+		deviceID := key.(string)
 		node := value.(*CandidateNode)
 
 		if node == nil {
@@ -105,18 +104,18 @@ func (m *NodeManager) nodeKeepalive() {
 			return true
 		}
 
-		// err := persistent.GetDB().AddNodeOnlineTime(deviceID, int64(m.keepaliveTime))
-		// if err != nil {
-		// 	log.Warnf("AddNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
-		// }
+		_, err := cache.GetDB().IncrNodeOnlineTime(deviceID, int64(m.keepaliveTime))
+		if err != nil {
+			log.Warnf("IncrNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
+		}
 
 		return true
 	})
 
-	err := persistent.GetDB().AddAllNodeOnlineTime(int64(m.keepaliveTime))
-	if err != nil {
-		log.Warnf("AddAllNodeOnlineTime err:%v", err.Error())
-	}
+	// err := persistent.GetDB().AddAllNodeOnlineTime(int64(m.keepaliveTime))
+	// if err != nil {
+	// 	log.Warnf("AddAllNodeOnlineTime err:%v", err.Error())
+	// }
 }
 
 func (m *NodeManager) addEdgeNode(node *EdgeNode) error {
@@ -548,23 +547,23 @@ func (a *AreaManager) deleteEdge(deviceID string, key string) {
 
 func (a *AreaManager) storeCandidate(node *CandidateNode, key string) {
 	countryMap := make(map[string]*CandidateNode)
-	m, ok := a.edgeNodeMap.Load(key)
+	m, ok := a.candidateNodeMap.Load(key)
 	if ok && m != nil {
 		countryMap = m.(map[string]*CandidateNode)
 	}
 
 	countryMap[node.deviceInfo.DeviceId] = node
-	a.edgeNodeMap.Store(key, countryMap)
+	a.candidateNodeMap.Store(key, countryMap)
 }
 
 func (a *AreaManager) deleteCandidate(deviceID string, key string) {
-	m, ok := a.edgeNodeMap.Load(key)
+	m, ok := a.candidateNodeMap.Load(key)
 	if ok && m != nil {
 		nodeMap := m.(map[string]*CandidateNode)
 		_, ok := nodeMap[deviceID]
 		if ok {
 			delete(nodeMap, deviceID)
-			a.edgeNodeMap.Store(key, nodeMap)
+			a.candidateNodeMap.Store(key, nodeMap)
 		}
 	}
 }

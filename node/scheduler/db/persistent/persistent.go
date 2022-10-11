@@ -10,9 +10,9 @@ type DB interface {
 
 	// Node Info
 	SetNodeInfo(deviceID string, info *NodeInfo) error
-	AddNodeOnlineTime(deviceID string, onLineTime int64) error
+	// AddNodeOnlineTime(deviceID string, onLineTime int64) error
 	GetNodeInfo(deviceID string) (*NodeInfo, error)
-	AddAllNodeOnlineTime(onLineTime int64) error
+	// AddAllNodeOnlineTime(onLineTime int64) error
 	SetAllNodeOffline() error
 
 	// Validate Result
@@ -109,4 +109,6 @@ const (
 	ValidateStatusSuccess
 	// ValidateStatusFail status
 	ValidateStatusFail
+	// ValidateStatusOther status
+	ValidateStatusOther
 )

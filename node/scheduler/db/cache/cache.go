@@ -37,6 +37,9 @@ type DB interface {
 	SetCandidateDeviceIDList(deviceIDs []string) error
 	IsCandidateInDeviceIDList(deviceID string) (bool, error)
 
+	IncrNodeOnlineTime(deviceID string, onlineTime int64) (int64, error)
+	IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error)
+
 	IsNilErr(err error) bool
 }
 
@@ -80,19 +83,3 @@ type NodeInfo struct {
 	IsOnline   bool
 	NodeType   api.NodeTypeName
 }
-
-// ValidateStatus Validate Status
-type ValidateStatus int
-
-const (
-	// ValidateStatusUnknown status
-	ValidateStatusUnknown ValidateStatus = iota
-	// ValidateStatusCreate status
-	ValidateStatusCreate
-	// ValidateStatusTimeOut status
-	ValidateStatusTimeOut
-	// ValidateStatusSuccess status
-	ValidateStatusSuccess
-	// ValidateStatusFail status
-	ValidateStatusFail
-)
