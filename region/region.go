@@ -14,6 +14,7 @@ const (
 // Region geo interface
 type Region interface {
 	GetGeoInfo(ip string) (*GeoInfo, error)
+	DefaultGeoInfo(ip string) *GeoInfo
 }
 
 // GeoInfo geo info

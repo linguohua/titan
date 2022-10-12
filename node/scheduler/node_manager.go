@@ -238,7 +238,7 @@ func (m *NodeManager) removeCandidateNode(node *CandidateNode) {
 	node.offline(deviceID, node.geoInfo, api.TypeNameCandidate, node.lastRequestTime)
 }
 
-func (m *NodeManager) findEdgeWithArea(key string, useDeviceIDs []string) []*EdgeNode {
+func (m *NodeManager) findEdges(key string, useDeviceIDs []string) []*EdgeNode {
 	eMap := m.areaManager.getEdges(key)
 	if eMap != nil && len(eMap) > 0 {
 		list := make([]*EdgeNode, 0)
@@ -264,7 +264,7 @@ func (m *NodeManager) findEdgeWithArea(key string, useDeviceIDs []string) []*Edg
 	return nil
 }
 
-func (m *NodeManager) findCandidateWithArea(key string, useDeviceIDs []string) []*CandidateNode {
+func (m *NodeManager) findCandidates(key string, useDeviceIDs []string) []*CandidateNode {
 	eMap := m.areaManager.getCandidates(key)
 	if eMap != nil && len(eMap) > 0 {
 		list := make([]*CandidateNode, 0)
@@ -293,22 +293,22 @@ func (m *NodeManager) findCandidateWithArea(key string, useDeviceIDs []string) [
 func (m *NodeManager) findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs []string) ([]*EdgeNode, geoLevel) {
 	countryKey, provinceKey, cityKey, defaultKey := m.areaManager.getAreaKey(userGeoInfo)
 
-	list := m.findEdgeWithArea(cityKey, useDeviceIDs)
+	list := m.findEdges(cityKey, useDeviceIDs)
 	if list != nil {
 		return list, cityLevel
 	}
 
-	list = m.findEdgeWithArea(provinceKey, useDeviceIDs)
+	list = m.findEdges(provinceKey, useDeviceIDs)
 	if list != nil {
 		return list, provinceLevel
 	}
 
-	list = m.findEdgeWithArea(countryKey, useDeviceIDs)
+	list = m.findEdges(countryKey, useDeviceIDs)
 	if list != nil {
 		return list, countryLevel
 	}
 
-	list = m.findEdgeWithArea(defaultKey, useDeviceIDs)
+	list = m.findEdges(defaultKey, useDeviceIDs)
 	if list != nil {
 		return list, defaultLevel
 	}
@@ -319,22 +319,22 @@ func (m *NodeManager) findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, useDevice
 func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs []string) ([]*CandidateNode, geoLevel) {
 	countryKey, provinceKey, cityKey, defaultKey := m.areaManager.getAreaKey(userGeoInfo)
 
-	list := m.findCandidateWithArea(cityKey, useDeviceIDs)
+	list := m.findCandidates(cityKey, useDeviceIDs)
 	if list != nil {
 		return list, cityLevel
 	}
 
-	list = m.findCandidateWithArea(provinceKey, useDeviceIDs)
+	list = m.findCandidates(provinceKey, useDeviceIDs)
 	if list != nil {
 		return list, provinceLevel
 	}
 
-	list = m.findCandidateWithArea(countryKey, useDeviceIDs)
+	list = m.findCandidates(countryKey, useDeviceIDs)
 	if list != nil {
 		return list, countryLevel
 	}
 
-	list = m.findCandidateWithArea(defaultKey, useDeviceIDs)
+	list = m.findCandidates(defaultKey, useDeviceIDs)
 	if list != nil {
 		return list, defaultLevel
 	}
@@ -455,6 +455,9 @@ type AreaManager struct {
 }
 
 func (a *AreaManager) getAreaKey(geoInfo *region.GeoInfo) (countryKey, provinceKey, cityKey, defaultKey string) {
+	if geoInfo == nil {
+		geoInfo = region.GetRegion().DefaultGeoInfo("")
+	}
 	countryKey = geoInfo.Country
 	provinceKey = fmt.Sprintf("%s-%s", geoInfo.Country, geoInfo.Province)
 	cityKey = fmt.Sprintf("%s-%s-%s", geoInfo.Country, geoInfo.Province, geoInfo.City)

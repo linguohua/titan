@@ -95,6 +95,11 @@ type NodeBlock struct {
 	CID       string `db:"cid"`
 }
 
+// Data Data info
+type Data struct {
+	CID string `db:"cid"`
+}
+
 // ValidateStatus Validate Status
 type ValidateStatus int
 
