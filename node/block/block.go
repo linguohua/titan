@@ -34,6 +34,13 @@ type delayReq struct {
 	candidateURL string
 }
 
+type blockInfo struct {
+	cid       string
+	links     []string
+	blockSize int
+	linksSize uint64
+}
+
 type Block struct {
 	ds              datastore.Batching
 	blockStore      stores.BlockStore
@@ -121,7 +128,12 @@ func (block *Block) addReq2WaitList(delayReqs []*delayReq) {
 	block.notifyBlockLoader()
 }
 
-func (block *Block) cacheResult(ctx context.Context, cid, from string, err error) {
+func (block *Block) cacheResultWithError(ctx context.Context, cid string, err error) {
+	bInfo := blockInfo{cid: cid, links: []string{}, blockSize: 0, linksSize: 0}
+	block.cacheResult(ctx, "", err, bInfo)
+}
+
+func (block *Block) cacheResult(ctx context.Context, from string, err error, bInfo blockInfo) {
 	block.cacheResultLock.Lock()
 	defer block.cacheResultLock.Unlock()
 
@@ -132,7 +144,15 @@ func (block *Block) cacheResult(ctx context.Context, cid, from string, err error
 		errMsg = err.Error()
 	}
 
-	result := api.CacheResultInfo{Cid: cid, IsOK: success, Msg: errMsg, From: from}
+	result := api.CacheResultInfo{
+		Cid:       bInfo.cid,
+		IsOK:      success,
+		Msg:       errMsg,
+		From:      from,
+		Links:     bInfo.links,
+		BlockSize: bInfo.blockSize,
+		LinksSize: bInfo.linksSize}
+
 	fid, err := block.scheduler.CacheResult(ctx, block.deviceID, result)
 	if err != nil {
 		log.Errorf("load_block CacheResult error:%v", err)
@@ -140,15 +160,15 @@ func (block *Block) cacheResult(ctx context.Context, cid, from string, err error
 
 	if success && fid != "" {
 		oldCid, _ := block.getCID(fid)
-		if len(oldCid) != 0 && oldCid != cid {
-			log.Infof("delete old cid:%s, new cid:%s", oldCid, cid)
+		if len(oldCid) != 0 && oldCid != bInfo.cid {
+			log.Infof("delete old cid:%s, new cid:%s", oldCid, bInfo.cid)
 			err = block.ds.Delete(ctx, helper.NewKeyCID(oldCid))
 			if err != nil {
 				log.Errorf("DeleteData, delete key fid %s error:%v", fid, err)
 			}
 		}
 
-		oldFid, _ := block.getFID(cid)
+		oldFid, _ := block.getFID(bInfo.cid)
 		if oldFid != "" {
 			// delete old fid key
 			log.Infof("delete old fid:%s, new fid:%s", oldFid, fid)
@@ -158,12 +178,12 @@ func (block *Block) cacheResult(ctx context.Context, cid, from string, err error
 			}
 		}
 
-		err = block.ds.Put(ctx, helper.NewKeyFID(fid), []byte(cid))
+		err = block.ds.Put(ctx, helper.NewKeyFID(fid), []byte(bInfo.cid))
 		if err != nil {
 			log.Errorf("load_block CacheResult save fid error:%v", err)
 		}
 
-		err = block.ds.Put(ctx, helper.NewKeyCID(cid), []byte(fid))
+		err = block.ds.Put(ctx, helper.NewKeyCID(bInfo.cid), []byte(fid))
 		if err != nil {
 			log.Errorf("load_block CacheResult save cid error:%v", err)
 		}
@@ -190,9 +210,22 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 
 		cidStr := fmt.Sprintf("%s", reqData.cid)
 
-		has, _ := block.blockStore.Has(cidStr)
-		if has {
-			block.cacheResult(ctx, reqData.cid, from, nil)
+		buf, err := block.blockStore.Get(cidStr)
+		if err == nil && len(buf) > 0 {
+			links, err := getLinks(block, buf, cidStr)
+			if err != nil {
+				continue
+			}
+
+			linksSize := uint64(0)
+			cids := make([]string, 0, len(links))
+			for _, link := range links {
+				cids = append(cids, link.Cid.String())
+				linksSize += link.Size
+			}
+
+			bInfo := blockInfo{cid: cidStr, links: cids, blockSize: len(buf), linksSize: linksSize}
+			block.cacheResult(ctx, from, nil, bInfo)
 			continue
 		}
 		results = append(results, reqData)
@@ -526,4 +559,22 @@ func (block *Block) resolveLinks(blk blocks.Block) ([]*format.Link, error) {
 
 	return node.Links(), nil
 
+}
+
+func getLinks(block *Block, data []byte, cidStr string) ([]*format.Link, error) {
+	if len(data) == 0 {
+		return make([]*format.Link, 0), nil
+	}
+
+	target, err := cid.Decode(cidStr)
+	if err != nil {
+		return make([]*format.Link, 0), err
+	}
+
+	blk, err := blocks.NewBlockWithCid(data, target)
+	if err != nil {
+		return make([]*format.Link, 0), err
+	}
+
+	return block.resolveLinks(blk)
 }

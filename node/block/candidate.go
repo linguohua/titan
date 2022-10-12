@@ -6,9 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	blocks "github.com/ipfs/go-block-format"
-	"github.com/ipfs/go-cid"
-	format "github.com/ipfs/go-ipld-format"
 	"github.com/linguohua/titan/api/client"
 )
 
@@ -91,54 +88,43 @@ func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 		candidate, err := getCandidateWithMap(candidateMap, req.candidateURL)
 		if err != nil {
 			log.Errorf("getCandidateWithMap error:%v", err)
-			block.cacheResult(ctx, req.cid, "", err)
+			block.cacheResultWithError(ctx, req.cid, err)
 			continue
 		}
 
 		url := fmt.Sprintf("%s?cid=%s", candidate.downSrvURL, req.cid)
 
 		data, err := getBlockFromCandidate(url, candidate.token)
-		if err == nil {
-			err = block.blockStore.Put(req.cid, data)
-		}
-
-		block.cacheResult(ctx, req.cid, candidate.deviceID, err)
-		log.Infof("loadBlocksFromCandidate, cid:%s,err:%v", req.cid, err)
-
-		links, err := getLinks(block, data, req.cid)
 		if err != nil {
-			log.Errorf("loadBlocksFromIPFS resolveLinks error:%s", err.Error())
+			log.Errorf("loadBlocksFromCandidate get block from candidate error:%s", err.Error())
+			block.cacheResultWithError(ctx, req.cid, err)
 			continue
 		}
 
-		if len(links) > 0 {
-			delayReqs := make([]*delayReq, 0, len(links))
-			for _, link := range links {
-				dReq := &delayReq{}
-				dReq.cid = link.Cid.String()
-				dReq.candidateURL = req.candidateURL
-				delayReqs = append(delayReqs, dReq)
-			}
-
-			block.addReq2WaitList(delayReqs)
+		err = block.blockStore.Put(req.cid, data)
+		if err != nil {
+			log.Errorf("loadBlocksFromCandidate save block error:%s", err.Error())
+			block.cacheResultWithError(ctx, req.cid, err)
+			continue
 		}
-	}
-}
 
-func getLinks(block *Block, data []byte, cidStr string) ([]*format.Link, error) {
-	if len(data) == 0 {
-		return make([]*format.Link, 0), nil
-	}
+		links, err := getLinks(block, data, req.cid)
+		if err != nil {
+			log.Errorf("loadBlocksFromCandidate resolveLinks error:%s", err.Error())
+			block.cacheResultWithError(ctx, req.cid, err)
+			continue
+		}
 
-	target, err := cid.Decode(cidStr)
-	if err != nil {
-		return make([]*format.Link, 0), err
-	}
+		linksSize := uint64(0)
+		cids := make([]string, 0, len(links))
+		for _, link := range links {
+			cids = append(cids, link.Cid.String())
+			linksSize += link.Size
+		}
 
-	blk, err := blocks.NewBlockWithCid(data, target)
-	if err != nil {
-		return make([]*format.Link, 0), err
-	}
+		bInfo := blockInfo{cid: req.cid, links: cids, blockSize: len(data), linksSize: linksSize}
+		block.cacheResult(ctx, candidate.deviceID, nil, bInfo)
 
-	return block.resolveLinks(blk)
+		log.Infof("loadBlocksFromCandidate, cid:%s,err:%v", req.cid, err)
+	}
 }
