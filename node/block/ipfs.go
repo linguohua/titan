@@ -72,36 +72,38 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 	for _, b := range blocks {
 		cidStr := b.Cid().String()
 		err = block.blockStore.Put(cidStr, b.RawData())
-		block.cacheResult(ctx, cidStr, from, err)
+		if err != nil {
+			log.Errorf("loadBlocksFromIPFS save block error:%s", err.Error())
+			continue
+		}
 
-		log.Infof("cache data,cid:%s,err:%v", cidStr, err)
-
-		delete(reqMap, cidStr)
-
-		// continue to download block with links
+		// get block links
 		links, err := block.resolveLinks(b)
 		if err != nil {
 			log.Errorf("loadBlocksFromIPFS resolveLinks error:%s", err.Error())
 			continue
 		}
 
-		if len(links) > 0 {
-			delayReqs := make([]*delayReq, 0, len(links))
-			for _, link := range links {
-				dReq := &delayReq{}
-				dReq.cid = link.Cid.String()
-				delayReqs = append(delayReqs, dReq)
-			}
-
-			block.addReq2WaitList(delayReqs)
+		linksSize := uint64(0)
+		cids := make([]string, 0, len(links))
+		for _, link := range links {
+			cids = append(cids, link.Cid.String())
+			linksSize += link.Size
 		}
+
+		bInfo := blockInfo{cid: cidStr, links: cids, blockSize: len(b.RawData()), linksSize: linksSize}
+		block.cacheResult(ctx, from, nil, bInfo)
+
+		log.Infof("cache data,cid:%s,err:%v", cidStr, err)
+
+		delete(reqMap, cidStr)
 	}
 
 	if len(reqMap) > 0 {
 		err = fmt.Errorf("Request timeout")
 		for _, v := range reqMap {
 			if v.count > helper.MaxReqCount {
-				block.cacheResult(ctx, v.cid, from, err)
+				block.cacheResultWithError(ctx, v.cid, err)
 				log.Infof("cache data faile, cid:%s, count:%d", v.cid, v.count)
 			} else {
 				v.count++

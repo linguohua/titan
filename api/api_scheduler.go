@@ -41,5 +41,5 @@ type CacheResultInfo struct {
 	// links cid
 	Links     []string
 	BlockSize int
-	LinksSize int64
+	LinksSize uint64
 }
