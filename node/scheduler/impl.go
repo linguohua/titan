@@ -29,6 +29,7 @@ func NewLocalScheduleNode() api.Scheduler {
 	manager := newNodeManager(pool)
 	election := newElection(pool)
 	validate := newValidate(pool, manager)
+	dataManager := newDataManager(manager)
 
 	s := &Scheduler{
 		CommonAPI:    common.NewCommonAPI(manager.updateLastRequestTime),
@@ -36,6 +37,7 @@ func NewLocalScheduleNode() api.Scheduler {
 		validatePool: pool,
 		election:     election,
 		validate:     validate,
+		dataManager:  dataManager,
 	}
 
 	return s
@@ -50,6 +52,8 @@ type Scheduler struct {
 
 	election *Election
 	validate *Validate
+
+	dataManager *DataManager
 }
 
 // EdgeNodeConnect edge connect
@@ -122,6 +126,8 @@ func (s Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.
 
 // CacheResult Cache Data Result
 func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
+	s.dataManager.cacheResult(deviceID, info)
+
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
 		return edge.cacheBlockResult(&info)
