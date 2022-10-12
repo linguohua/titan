@@ -38,4 +38,8 @@ type CacheResultInfo struct {
 	Msg           string
 	From          string
 	DownloadSpeed float32
+	// links cid
+	Links     []string
+	BlockSize int
+	LinksSize int64
 }
