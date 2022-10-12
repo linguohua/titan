@@ -32,13 +32,15 @@ type delayReq struct {
 	count int
 	// use for edge node load block
 	candidateURL string
+	carFileCid   string
 }
 
 type blockInfo struct {
-	cid       string
-	links     []string
-	blockSize int
-	linksSize uint64
+	cid        string
+	links      []string
+	blockSize  int
+	linksSize  uint64
+	carFileCid string
 }
 
 type Block struct {
@@ -82,7 +84,7 @@ func NewBlock(ds datastore.Batching, blockStore stores.BlockStore, scheduler api
 func apiReq2DelayReq(req *api.ReqCacheData) []*delayReq {
 	results := make([]*delayReq, 0, len(req.Cids))
 	for _, cid := range req.Cids {
-		req := &delayReq{cid: cid, count: 0, candidateURL: req.CandidateURL}
+		req := &delayReq{cid: cid, count: 0, candidateURL: req.CandidateURL, carFileCid: req.CardFileCid}
 		results = append(results, req)
 	}
 
@@ -145,13 +147,14 @@ func (block *Block) cacheResult(ctx context.Context, from string, err error, bIn
 	}
 
 	result := api.CacheResultInfo{
-		Cid:       bInfo.cid,
-		IsOK:      success,
-		Msg:       errMsg,
-		From:      from,
-		Links:     bInfo.links,
-		BlockSize: bInfo.blockSize,
-		LinksSize: bInfo.linksSize}
+		Cid:        bInfo.cid,
+		IsOK:       success,
+		Msg:        errMsg,
+		From:       from,
+		Links:      bInfo.links,
+		BlockSize:  bInfo.blockSize,
+		LinksSize:  bInfo.linksSize,
+		CarFileCid: bInfo.carFileCid}
 
 	fid, err := block.scheduler.CacheResult(ctx, block.deviceID, result)
 	if err != nil {
@@ -211,7 +214,7 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 		cidStr := fmt.Sprintf("%s", reqData.cid)
 
 		buf, err := block.blockStore.Get(cidStr)
-		if err == nil && len(buf) > 0 {
+		if err != nil {
 			links, err := getLinks(block, buf, cidStr)
 			if err != nil {
 				continue
@@ -224,7 +227,7 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 				linksSize += link.Size
 			}
 
-			bInfo := blockInfo{cid: cidStr, links: cids, blockSize: len(buf), linksSize: linksSize}
+			bInfo := blockInfo{cid: cidStr, links: cids, blockSize: len(buf), linksSize: linksSize, carFileCid: reqData.carFileCid}
 			block.cacheResult(ctx, from, nil, bInfo)
 			continue
 		}
