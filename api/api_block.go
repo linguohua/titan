@@ -31,6 +31,7 @@ type Block interface {
 type ReqCacheData struct {
 	Cids         []string
 	CandidateURL string
+	CardFileCid  string
 }
 
 type BlockOperationResult struct {
