@@ -17,6 +17,8 @@ type Scheduler interface {
 	InitNodeDeviceIDs(ctx context.Context) error                                                 //perm:read
 	QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]CacheStat, error)            //perm:read
 	QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (CachingBlockList, error)   //perm:read
+	CacheCarFile(ctx context.Context, cid string, reliability int) error                         //perm:read
+	ShowDataInfos(ctx context.Context, cid string) (string, error)                               //perm:read
 
 	// call by node
 	EdgeNodeConnect(ctx context.Context, deviceID string) error                                        //perm:read

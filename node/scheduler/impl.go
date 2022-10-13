@@ -229,6 +229,44 @@ func (s *Scheduler) DeleteBlocks(ctx context.Context, deviceID string, cids []st
 	return errorMap, err
 }
 
+// CacheCarFile Cache CarFile
+func (s *Scheduler) CacheCarFile(ctx context.Context, cid string, reliability int) error {
+	if cid == "" {
+		return xerrors.New("cid is nil")
+	}
+
+	return s.dataManager.cacheData(cid, reliability)
+}
+
+// ShowDataInfos Show DataInfos
+func (s *Scheduler) ShowDataInfos(ctx context.Context, cid string) (string, error) {
+	str := ""
+	if cid == "" {
+		for _, d := range s.dataManager.dataMap {
+			str = fmt.Sprintf("%scid:%v,totalSize:%v,cache:", str, d.cid, d.totalSize)
+			for _, c := range d.cacheMap {
+				str = fmt.Sprintf("%s[%v;doneSize:%v;status:%v]", str, c.cacheID, c.doneSize, c.status)
+			}
+			str = fmt.Sprintf("%s\n", str)
+		}
+
+		return str, nil
+	}
+
+	d, ok := s.dataManager.dataMap[cid]
+	if ok {
+		str = fmt.Sprintf("%scid:%v,totalSize:%v,cache:", str, d.cid, d.totalSize)
+		for _, c := range d.cacheMap {
+			str = fmt.Sprintf("%s[%v;doneSize:%v;status:%v]", str, c.cacheID, c.doneSize, c.status)
+		}
+		str = fmt.Sprintf("%s\n", str)
+
+		return str, nil
+	}
+
+	return str, xerrors.New(ErrNodeNotFind)
+}
+
 // CacheBlocks Cache Block
 func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID string) ([]string, error) {
 	if len(cids) <= 0 {
