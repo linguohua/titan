@@ -40,7 +40,7 @@ type DB interface {
 	IncrNodeOnlineTime(deviceID string, onlineTime int64) (int64, error)
 	IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error)
 
-	IncrCacheID(cid string) (int64, error)
+	IncrCacheID() (int64, error)
 
 	IsNilErr(err error) bool
 }

@@ -272,3 +272,120 @@ func (sd sqlDB) GetBlockNum(deviceID string) (int64, error) {
 
 	return count, err
 }
+
+func (sd sqlDB) SetDataInfo(info *DataInfo) error {
+	_, err := sd.GetDataInfo(info.CID)
+	if err != nil {
+		if sd.IsNilErr(err) {
+			_, err = sd.cli.NamedExec(`INSERT INTO data_info (cid, cache_ids, status)
+                VALUES (:cid, :cache_ids, :status)`, info)
+		}
+		return err
+	}
+
+	// update
+	_, err = sd.cli.NamedExec(`UPDATE data_info SET cache_ids=:cache_ids,status=:status,total_size=:total_size,done_size=:done_size  WHERE cid=:cid`, info)
+
+	return err
+}
+
+func (sd sqlDB) GetDataInfo(cid string) (*DataInfo, error) {
+	info := &DataInfo{CID: cid}
+
+	rows, err := sd.cli.NamedQuery(`SELECT * FROM data_info WHERE cid=:cid`, info)
+	if err != nil {
+		return nil, err
+	}
+	if rows.Next() {
+		err = rows.StructScan(info)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, xerrors.New(errNodeNotFind)
+	}
+	rows.Close()
+
+	return info, err
+}
+
+func (sd sqlDB) CreateCacheInfo(cacheID string) error {
+	schema := fmt.Sprintf(`
+	CREATE TABLE %s (
+		cid text,
+		device_id text,
+		status integer,
+		total_size integer
+	);`, cacheID)
+
+	_, err := sd.cli.Exec(schema)
+	if err != nil {
+		if !strings.Contains(err.Error(), "already exists") {
+			return err
+		}
+	}
+
+	return err
+}
+
+func (sd sqlDB) SetCacheInfo(info *CacheInfo, isUpdate bool) error {
+	if isUpdate {
+		cmd := fmt.Sprintf(`UPDATE %s SET device_id=:device_id,status=:status,total_size=:total_size WHERE cid=:cid`, info.CacheID)
+		_, err := sd.cli.NamedExec(cmd, info)
+
+		return err
+	}
+
+	cmd := fmt.Sprintf(`INSERT INTO %s (cid, device_id, status)
+	VALUES (:cid, :device_id, :status)`, info.CacheID)
+
+	_, err := sd.cli.NamedExec(cmd, info)
+
+	return err
+}
+
+func (sd sqlDB) GetCacheInfo(cacheID, cid string) (*CacheInfo, error) {
+	info := &CacheInfo{
+		CacheID: cacheID,
+		CID:     cid,
+	}
+
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cid=:cid`, info.CacheID)
+
+	rows, err := sd.cli.NamedQuery(cmd, info)
+	if err != nil {
+		return nil, err
+	}
+	if rows.Next() {
+		err = rows.StructScan(info)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, xerrors.New(errNodeNotFind)
+	}
+	rows.Close()
+
+	return info, err
+}
+
+func (sd sqlDB) GetCacheInfos(cacheID string) ([]*CacheInfo, error) {
+	list := make([]*CacheInfo, 0)
+
+	cmd := fmt.Sprintf(`SELECT * FROM %s`, cacheID)
+
+	rows, err := sd.cli.Queryx(cmd)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		info := &CacheInfo{}
+		err := rows.StructScan(info)
+		if err == nil {
+			list = append(list, info)
+		}
+	}
+	rows.Close()
+
+	return list, err
+}

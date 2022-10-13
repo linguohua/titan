@@ -184,6 +184,8 @@ type SchedulerStruct struct {
 
 		CacheBlocks func(p0 context.Context, p1 []string, p2 string) ([]string, error) `perm:"read"`
 
+		CacheCarFile func(p0 context.Context, p1 string, p2 int) (error) `perm:"read"`
+
 		CacheResult func(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) `perm:"read"`
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) (error) `perm:"read"`
@@ -209,6 +211,8 @@ type SchedulerStruct struct {
 		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"read"`
 
 		QueryCachingBlocksWithNode func(p0 context.Context, p1 string) (CachingBlockList, error) `perm:"read"`
+
+		ShowDataInfos func(p0 context.Context, p1 string) (string, error) `perm:"read"`
 
 		Validate func(p0 context.Context) (error) `perm:"read"`
 
@@ -577,6 +581,17 @@ func (s *SchedulerStub) CacheBlocks(p0 context.Context, p1 []string, p2 string) 
 	return *new([]string), ErrNotSupported
 }
 
+func (s *SchedulerStruct) CacheCarFile(p0 context.Context, p1 string, p2 int) (error) {
+	if s.Internal.CacheCarFile == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.CacheCarFile(p0, p1, p2)
+}
+
+func (s *SchedulerStub) CacheCarFile(p0 context.Context, p1 string, p2 int) (error) {
+	return ErrNotSupported
+}
+
 func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) {
 	if s.Internal.CacheResult == nil {
 		return "", ErrNotSupported
@@ -718,6 +733,17 @@ func (s *SchedulerStruct) QueryCachingBlocksWithNode(p0 context.Context, p1 stri
 
 func (s *SchedulerStub) QueryCachingBlocksWithNode(p0 context.Context, p1 string) (CachingBlockList, error) {
 	return *new(CachingBlockList), ErrNotSupported
+}
+
+func (s *SchedulerStruct) ShowDataInfos(p0 context.Context, p1 string) (string, error) {
+	if s.Internal.ShowDataInfos == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.ShowDataInfos(p0, p1)
+}
+
+func (s *SchedulerStub) ShowDataInfos(p0 context.Context, p1 string) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) Validate(p0 context.Context) (error) {

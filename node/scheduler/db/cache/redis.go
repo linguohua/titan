@@ -29,8 +29,8 @@ const (
 	redisKeyCandidateDeviceIDList = "Titan:CandidateDeviceIDList"
 	// RedisKeyNodeInfo  deviceID
 	redisKeyNodeInfo = "Titan:NodeInfo:%s"
-	// RedisKeyCacheID  cid
-	redisKeyCacheID = "Titan:CacheID:%s"
+	// RedisKeyCacheID
+	redisKeyCacheID = "Titan:CacheID"
 
 	// NodeInfo field
 	onlineTimeField      = "OnlineTime"
@@ -81,9 +81,8 @@ func (rd redisDB) IncrNodeValidateTime(deviceID string, validateSuccessTime int6
 }
 
 // node cache tag ++1
-func (rd redisDB) IncrCacheID(cid string) (int64, error) {
-	key := fmt.Sprintf(redisKeyCacheID, cid)
-	return rd.cli.IncrBy(context.Background(), key, 1).Result()
+func (rd redisDB) IncrCacheID() (int64, error) {
+	return rd.cli.IncrBy(context.Background(), redisKeyCacheID, 1).Result()
 }
 
 // node cache tag ++1

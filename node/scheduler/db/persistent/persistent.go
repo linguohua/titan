@@ -25,6 +25,15 @@ type DB interface {
 	GetBlockInfos(deviceID string) (map[string]string, error)
 	GetBlockCidWithFid(deviceID, fid string) (string, error)
 	GetBlockNum(deviceID string) (int64, error)
+
+	// data info
+	SetDataInfo(info *DataInfo) error
+	GetDataInfo(cid string) (*DataInfo, error)
+	// cache info
+	CreateCacheInfo(cacheID string) error
+	SetCacheInfo(info *CacheInfo, isUpdate bool) error
+	GetCacheInfo(cacheID, cid string) (*CacheInfo, error)
+	GetCacheInfos(cacheID string) ([]*CacheInfo, error)
 }
 
 var (
@@ -95,9 +104,22 @@ type NodeBlock struct {
 	CID       string `db:"cid"`
 }
 
-// Data Data info
-type Data struct {
-	CID string `db:"cid"`
+// DataInfo Data info
+type DataInfo struct {
+	CID       string `db:"cid"`
+	CacheIDs  string `db:"cache_ids"`
+	Status    int    `db:"status"`
+	TotalSize int    `db:"total_size"`
+	DoneSize  int    `db:"done_size"`
+}
+
+// CacheInfo Data Cache info
+type CacheInfo struct {
+	CacheID   string `db:"cache_id"`
+	CID       string `db:"cid"`
+	DeviceID  string `db:"device_id"`
+	Status    int    `db:"status"`
+	TotalSize int    `db:"total_size"`
 }
 
 // ValidateStatus Validate Status

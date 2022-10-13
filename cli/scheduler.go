@@ -7,6 +7,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/xerrors"
 )
 
 // SchedulerCmds Scheduler Cmds
@@ -20,6 +21,8 @@ var SchedulerCmds = []*cli.Command{
 	cachingBlocksCmd,
 	cacheStatCmd,
 	getDownloadInfoCmd,
+	cacheCarFileCmd,
+	showDataInfoCmd,
 }
 
 var (
@@ -44,6 +47,12 @@ var (
 	cidsFlag = &cli.StringFlag{
 		Name:  "cids",
 		Usage: "blocks cid",
+		Value: "",
+	}
+
+	cidFlag = &cli.StringFlag{
+		Name:  "cid",
+		Usage: "cid",
 		Value: "",
 	}
 
@@ -102,6 +111,78 @@ var electionCmd = &cli.Command{
 		defer closer()
 
 		return schedulerAPI.ElectionValidators(ctx)
+	},
+}
+
+var showDataInfoCmd = &cli.Command{
+	Name:  "show-date",
+	Usage: "show date",
+	Flags: []cli.Flag{
+		schedulerURLFlag,
+		cidFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		url := cctx.String("scheduler-url")
+		cid := cctx.String("cid")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := client.NewScheduler(ctx, url, nil)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		// if cid == "" {
+		// 	return xerrors.New("cid is nil")
+		// }
+
+		str, err := schedulerAPI.ShowDataInfos(ctx, cid)
+		if err != nil {
+			return err
+		}
+
+		log.Infof("%v", str)
+
+		return nil
+	},
+}
+
+var cacheCarFileCmd = &cli.Command{
+	Name:  "cache-file",
+	Usage: "specify node cache carfile",
+	Flags: []cli.Flag{
+		schedulerURLFlag,
+		cidFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		url := cctx.String("scheduler-url")
+		cid := cctx.String("cid")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := client.NewScheduler(ctx, url, nil)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		if cid == "" {
+			return xerrors.New("cid is nil")
+		}
+
+		err = schedulerAPI.CacheCarFile(ctx, cid, 0)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 

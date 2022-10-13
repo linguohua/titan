@@ -1,11 +1,25 @@
 package scheduler
 
-import "github.com/linguohua/titan/api"
+import (
+	"strings"
+	"sync"
+
+	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/scheduler/db/persistent"
+)
 
 // DataManager Data
 type DataManager struct {
 	nodeManager *NodeManager
 	dataMap     map[string]*Data
+
+	nodeCacheTask sync.Map
+}
+
+// CacheTask Cache Task
+type CacheTask struct {
+	carfileID string
+	cacheID   string
 }
 
 func newDataManager(nodeManager *NodeManager) *DataManager {
@@ -15,70 +29,84 @@ func newDataManager(nodeManager *NodeManager) *DataManager {
 	}
 }
 
-func (m *DataManager) cacheData(cid string, reliability int) {
+func (m *DataManager) cacheData(cid string, reliability int) error {
 	data, ok := m.dataMap[cid]
-	if ok {
-		return
+	if !ok {
+		data = newData(m.nodeManager, m, cid, reliability)
+		m.dataMap[cid] = data
+
+		// load db data
+		dInfo, _ := persistent.GetDB().GetDataInfo(cid)
+		if dInfo != nil {
+			data.cacheIDs = dInfo.CacheIDs
+			data.totalSize = dInfo.TotalSize
+
+			idList := strings.Split(dInfo.CacheIDs, ",")
+			for _, cacheID := range idList {
+				if cacheID == "" {
+					continue
+				}
+				c := &Cache{
+					cacheID:     cacheID,
+					cardFileCid: cid,
+					nodeManager: m.nodeManager,
+					blockMap:    make(map[string]*BlockInfo),
+				}
+
+				list, err := persistent.GetDB().GetCacheInfos(cacheID)
+				if err == nil && list != nil {
+					for _, cInfo := range list {
+						c.blockMap[cInfo.CID] = &BlockInfo{
+							cid:       cInfo.CID,
+							deviceID:  cInfo.DeviceID,
+							isSuccess: cInfo.Status == 1,
+							size:      cInfo.TotalSize,
+						}
+
+						c.doneSize += cInfo.TotalSize
+					}
+				}
+
+				if c.doneSize >= data.totalSize {
+					c.status = 1
+				}
+
+				data.cacheMap[cacheID] = c
+			}
+		}
+
+		// return xerrors.New("already exists")
 	}
 
-	data = newData(m.nodeManager, cid, reliability)
-	data.createCache()
+	return data.createCache(m)
 }
 
 func (m *DataManager) cacheResult(deviceID string, info api.CacheResultInfo) {
-	data := m.dataMap[deviceID] // TODO
-
-	isFind := false
-	for _, cache := range data.cacheMap {
-		block, ok := cache.blockMap[info.Cid]
-		if ok {
-			block.isSuccess = info.IsOK
-			// block.reliability = TODO
-			isFind = true
-			break
-		}
+	task := m.getCacheTask(deviceID)
+	if task == nil {
+		return
 	}
 
-	if isFind {
-		// data.reliability TODO
-		// save db
+	data, ok := m.dataMap[task.carfileID]
+	if ok {
+		data.cacheResult(deviceID, task.cacheID, info)
 	}
 }
 
-// Data Data
-type Data struct {
-	nodeManager     *NodeManager
-	cid             string
-	cacheMap        map[string]*Cache
-	reliability     int
-	needReliability int
-
-	Total int
+func (m *DataManager) addCacheTaskMap(deviceID, cid, cacheID string) {
+	cacheTask := &CacheTask{carfileID: cid, cacheID: cacheID}
+	m.nodeCacheTask.Store(deviceID, cacheTask)
 }
 
-func newData(nodeManager *NodeManager, cid string, reliability int) *Data {
-	return &Data{
-		nodeManager:     nodeManager,
-		cid:             cid,
-		reliability:     0,
-		needReliability: reliability,
-		cacheMap:        make(map[string]*Cache),
-	}
+func (m *DataManager) removeCacheTaskMap(deviceID string) {
+	m.nodeCacheTask.Delete(deviceID)
 }
 
-func (d *Data) createCache() error {
-	c, err := newCache(d.nodeManager, d.cid)
-	if err != nil {
-		log.Errorf("new cache err:%v", err.Error())
-		return err
+func (m *DataManager) getCacheTask(deviceID string) *CacheTask {
+	val, ok := m.nodeCacheTask.Load(deviceID)
+	if ok {
+		return val.(*CacheTask)
 	}
 
-	d.cacheMap[c.id] = c
-	d.saveData()
-
-	return c.doCache(d.cid)
-}
-
-func (d *Data) saveData() {
-	// TODO save to db
+	return nil
 }
