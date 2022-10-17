@@ -126,7 +126,8 @@ func (s Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.
 
 // CacheResult Cache Data Result
 func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
-	s.dataManager.cacheResult(deviceID, info)
+	s.dataManager.cacheResult(deviceID, &info)
+	// carfileID, cacheID := s.dataManager.cacheResult(deviceID, info)
 
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
@@ -242,19 +243,19 @@ func (s *Scheduler) CacheCarFile(ctx context.Context, cid string, reliability in
 func (s *Scheduler) ShowDataInfos(ctx context.Context, cid string) (string, error) {
 	str := ""
 	if cid == "" {
-		for _, d := range s.dataManager.dataMap {
-			str = fmt.Sprintf("%scid:%v,totalSize:%v,cache:", str, d.cid, d.totalSize)
-			for _, c := range d.cacheMap {
-				str = fmt.Sprintf("%s[%v;doneSize:%v;status:%v]", str, c.cacheID, c.doneSize, c.status)
-			}
-			str = fmt.Sprintf("%s\n", str)
-		}
+		// for _, d := range s.dataManager.dataMap {
+		// 	str = fmt.Sprintf("%scid:%v,totalSize:%v,cache:", str, d.cid, d.totalSize)
+		// 	for _, c := range d.cacheMap {
+		// 		str = fmt.Sprintf("%s[%v;doneSize:%v;status:%v]", str, c.cacheID, c.doneSize, c.status)
+		// 	}
+		// 	str = fmt.Sprintf("%s\n", str)
+		// }
 
 		return str, nil
 	}
 
-	d, ok := s.dataManager.dataMap[cid]
-	if ok {
+	d := s.dataManager.findData(cid)
+	if d != nil {
 		str = fmt.Sprintf("%scid:%v,totalSize:%v,cache:", str, d.cid, d.totalSize)
 		for _, c := range d.cacheMap {
 			str = fmt.Sprintf("%s[%v;doneSize:%v;status:%v]", str, c.cacheID, c.doneSize, c.status)
@@ -277,7 +278,7 @@ func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID str
 	if edge != nil {
 		errList := make([]string, 0)
 
-		reqDatas, notFindList := edge.getReqCacheDatas(s, cids, true)
+		reqDatas, notFindList := edge.getReqCacheDatas(s.nodeManager, cids)
 		for _, reqData := range reqDatas {
 			err := edge.nodeAPI.CacheBlocks(ctx, reqData)
 			if err != nil {
@@ -295,7 +296,7 @@ func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID str
 	if candidate != nil {
 		errList := make([]string, 0)
 
-		reqDatas, _ := candidate.getReqCacheDatas(s, cids, false)
+		reqDatas, _ := candidate.getReqCacheDatas(s.nodeManager, cids)
 		for _, reqData := range reqDatas {
 			err := candidate.nodeAPI.CacheBlocks(ctx, reqData)
 			if err != nil {
@@ -393,7 +394,7 @@ func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string
 	infoMap := make(map[string]api.DownloadInfo)
 
 	for _, cid := range cids {
-		info, err := s.nodeManager.nodeDownloadInfo(cid, geoInfo)
+		info, err := s.nodeManager.findNodeDownloadInfo(cid, geoInfo)
 		if err != nil {
 			continue
 		}
@@ -415,7 +416,7 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, ip
 		log.Warnf("getNodeURLWithData GetGeoInfo err:%v,ip:%v", err, ip)
 	}
 
-	return s.nodeManager.nodeDownloadInfo(cid, geoInfo)
+	return s.nodeManager.findNodeDownloadInfo(cid, geoInfo)
 }
 
 // CandidateNodeConnect Candidate connect

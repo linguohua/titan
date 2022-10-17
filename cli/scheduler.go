@@ -29,7 +29,7 @@ var (
 	schedulerURLFlag = &cli.StringFlag{
 		Name:  "scheduler-url",
 		Usage: "host address and port the worker api will listen on",
-		Value: "127.0.0.1:3456",
+		Value: "http://127.0.0.1:3456/rpc/v0",
 	}
 
 	deviceIDFlag = &cli.StringFlag{
@@ -60,6 +60,12 @@ var (
 		Name:  "ip",
 		Usage: "ip",
 		Value: "",
+	}
+
+	reliabilityFlag = &cli.StringFlag{
+		Name:  "reliability",
+		Usage: "cache reliability",
+		Value: "0",
 	}
 )
 
@@ -115,8 +121,8 @@ var electionCmd = &cli.Command{
 }
 
 var showDataInfoCmd = &cli.Command{
-	Name:  "show-date",
-	Usage: "show date",
+	Name:  "show-data",
+	Usage: "show data",
 	Flags: []cli.Flag{
 		schedulerURLFlag,
 		cidFlag,
@@ -157,6 +163,7 @@ var cacheCarFileCmd = &cli.Command{
 	Flags: []cli.Flag{
 		schedulerURLFlag,
 		cidFlag,
+		reliabilityFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -165,6 +172,7 @@ var cacheCarFileCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		url := cctx.String("scheduler-url")
 		cid := cctx.String("cid")
+		reliability := cctx.Int("reliability")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := client.NewScheduler(ctx, url, nil)
@@ -177,7 +185,7 @@ var cacheCarFileCmd = &cli.Command{
 			return xerrors.New("cid is nil")
 		}
 
-		err = schedulerAPI.CacheCarFile(ctx, cid, 0)
+		err = schedulerAPI.CacheCarFile(ctx, cid, reliability)
 		if err != nil {
 			return err
 		}

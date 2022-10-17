@@ -37,6 +37,7 @@ CREATE TABLE `data_info` (
     `cache_ids` varchar(225) NOT NULL ,
     `status` int(20)  DEFAULT '0' ,
     `total_size` int(20)  DEFAULT '0' ,
-    `done_size` int(20)  DEFAULT '0' ,
+	`reliability` int(64) DEFAULT '0' ,
+	`need_reliability` int(64) DEFAULT '0' ,
 	PRIMARY KEY (`cid`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='data info';

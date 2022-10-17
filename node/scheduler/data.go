@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
@@ -31,6 +32,38 @@ func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, rel
 	}
 }
 
+// func loadDatas(){
+
+// }
+
+func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *Data {
+	dInfo, _ := persistent.GetDB().GetDataInfo(cid)
+	if dInfo != nil {
+		data := newData(nodeManager, dataManager, cid, 0)
+		data.cacheIDs = dInfo.CacheIDs
+		data.totalSize = dInfo.TotalSize
+		data.needReliability = dInfo.NeedReliability
+		data.reliability = dInfo.Reliability
+
+		idList := strings.Split(dInfo.CacheIDs, ",")
+		for _, cacheID := range idList {
+			if cacheID == "" {
+				continue
+			}
+			c := loadCache(cacheID, cid, nodeManager, data.totalSize)
+			if c == nil {
+				continue
+			}
+
+			data.cacheMap[cacheID] = c
+		}
+
+		return data
+	}
+
+	return nil
+}
+
 func (d *Data) createCache(dataManager *DataManager) error {
 	c, err := newCache(d.nodeManager, dataManager, d.cid)
 	if err != nil {
@@ -40,51 +73,53 @@ func (d *Data) createCache(dataManager *DataManager) error {
 
 	d.cacheMap[c.cacheID] = c
 	d.cacheIDs = fmt.Sprintf("%s,%s", d.cacheIDs, c.cacheID)
-	d.saveData()
 
-	return c.doCache([]string{d.cid})
+	return c.doCache([]string{d.cid}, d.reliability > 0)
 }
 
-func (d *Data) cacheResult(deviceID, cacheID string, info api.CacheResultInfo) {
+func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInfo) (string, string) {
 	// log.Warnf("cacheResult-----------------info.Links:%v,cacheID:%v", info.Links, cacheID)
 	cache, ok := d.cacheMap[cacheID]
 	if !ok {
-		return
+		log.Errorf("updateDataInfo not found cacheID:%v,Cid:%v", cacheID, d.cid)
+		return d.cid, ""
 	}
 
+	isUpdate := false
 	if info.Cid == d.cid {
 		d.totalSize = int(info.LinksSize)
-	} else {
-		cache.doneSize += info.BlockSize
+		isUpdate = true
 	}
 
-	if cache.doneSize >= d.totalSize {
-		cache.status = 1
+	cache.updateCacheInfo(info, d.totalSize, d.reliability)
+	// log.Warnf("cache.status:%v, ", cache.status)
 
+	if cache.status > cacheStatusCreate {
 		d.dataManager.removeCacheTaskMap(deviceID)
-	}
 
-	block, ok := cache.blockMap[info.Cid]
-	if ok {
-		block.isSuccess = info.IsOK
-		block.size = info.BlockSize
-		// block.reliability = TODO
-
-		cache.saveCache(block, true)
-		d.saveData()
-
-		// continue cache
-		if len(info.Links) > 0 {
-			cache.doCache(info.Links)
+		d.reliability += cache.reliability
+		if d.needReliability > d.reliability {
+			// create cache again
+			d.createCache(d.dataManager)
+			// log.Errorf("need create cache needReliability:%v, reliability:%v, status:%v", d.needReliability, d.reliability, cache.status)
 		}
+		isUpdate = true
 	}
+
+	if isUpdate {
+		d.saveData()
+	}
+
+	return d.cid, cacheID
 }
 
 func (d *Data) saveData() {
 	// save to db
 	persistent.GetDB().SetDataInfo(&persistent.DataInfo{
-		CID:       d.cid,
-		CacheIDs:  d.cacheIDs,
-		TotalSize: d.totalSize,
+		CID:             d.cid,
+		CacheIDs:        d.cacheIDs,
+		TotalSize:       d.totalSize,
+		NeedReliability: d.needReliability,
+		Reliability:     d.reliability,
 	})
 }

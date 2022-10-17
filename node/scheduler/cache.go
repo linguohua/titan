@@ -15,10 +15,8 @@ type cacheStatus int
 const (
 	cacheStatusUnknown cacheStatus = iota
 	cacheStatusCreate
-	cacheStatusTimeOut
-	cacheStatusSuccess
 	cacheStatusFail
-	cacheStatusOther
+	cacheStatusSuccess
 )
 
 // Cache Cache
@@ -41,7 +39,7 @@ type BlockInfo struct {
 	deviceID    string
 	deviceArea  string
 	deviceIP    string
-	isSuccess   bool
+	status      cacheStatus
 	reliability int
 	size        int
 }
@@ -77,44 +75,188 @@ func newCache(nodeManager *NodeManager, dataManager *DataManager, cid string) (*
 	}, nil
 }
 
-func (c *Cache) doCache(cids []string) error {
-	// deviceIDs, err := cache.GetDB().GetNodesWithCacheList(cid)
-	// if err != nil {
-	// 	deviceIDs = nil
-	// }
+func loadCache(cacheID, carfileCid string, nodeManager *NodeManager, totalSize int) *Cache {
+	if cacheID == "" {
+		return nil
+	}
+	c := &Cache{
+		cacheID:     cacheID,
+		cardFileCid: carfileCid,
+		nodeManager: nodeManager,
+		blockMap:    make(map[string]*BlockInfo),
+	}
 
-	cs, _ := c.nodeManager.findCandidateNodeWithGeo(nil, nil)
-	// rand node
-	node := cs[randomNum(0, len(cs))]
+	list, err := persistent.GetDB().GetCacheInfos(cacheID)
+	if err == nil && list != nil {
+		for _, cInfo := range list {
+			c.blockMap[cInfo.CID] = &BlockInfo{
+				cid:      cInfo.CID,
+				deviceID: cInfo.DeviceID,
+				status:   cacheStatus(cInfo.Status),
+				size:     cInfo.TotalSize,
+			}
 
-	task := c.dataManager.getCacheTask(node.deviceInfo.DeviceId)
-	if task != nil && task.cacheID != c.cacheID {
+			c.doneSize += cInfo.TotalSize
+		}
+	}
+
+	if totalSize > 0 && c.doneSize >= totalSize {
+		c.status = cacheStatusSuccess
+		c.reliability = 1 // TODO
+	}
+
+	return c
+}
+
+func (c *Cache) cacheBlocks(deviceID string, cids []string) error {
+	// log.Warnf("deviceID:%v,cids:%v", deviceID, cids)
+	cNode := c.nodeManager.getCandidateNode(deviceID)
+	if cNode != nil {
+		reqDatas, _ := cNode.getReqCacheDatas(c.nodeManager, cids)
+		// log.Warnf("reqDatas:%v", reqDatas)
+		for _, reqData := range reqDatas {
+			// log.Warnf("reqData:%v", reqData)
+			err := cNode.nodeAPI.CacheBlocks(context.Background(), reqData)
+			if err != nil {
+				log.Errorf("edge CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+			}
+		}
+		return nil
+
+		// return cNode.nodeAPI.CacheBlocks(context.Background(), api.ReqCacheData{Cids: cids})
+	}
+
+	eNode := c.nodeManager.getEdgeNode(deviceID)
+	if eNode != nil {
+		reqDatas, _ := eNode.getReqCacheDatas(c.nodeManager, cids)
+		// log.Warnf("reqDatas:%v", reqDatas)
+		for _, reqData := range reqDatas {
+			// log.Warnf("reqData:%v", reqData)
+			err := eNode.nodeAPI.CacheBlocks(context.Background(), reqData)
+			if err != nil {
+				log.Errorf("edge CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+			}
+		}
+		return nil
+
+		// return eNode.nodeAPI.CacheBlocks(context.Background(), api.ReqCacheData{Cids: cids})
+	}
+
+	return xerrors.New(ErrNodeNotFind)
+}
+
+func (c *Cache) findNode(isHaveCache bool, filterDeviceIDs map[string]string) (deviceID, deviceAddr string, err error) {
+	deviceID = ""
+	deviceAddr = ""
+	err = nil
+
+	if isHaveCache {
+		cs, _ := c.nodeManager.findEdgeNodeWithGeo(nil, nil, filterDeviceIDs)
+		if cs == nil || len(cs) <= 0 {
+			err = xerrors.New(ErrNodeNotFind)
+			return
+		}
+		// rand node
+		node := cs[randomNum(0, len(cs))]
+
+		deviceID = node.deviceInfo.DeviceId
+		deviceAddr = node.addr
+		return
+	} else {
+		cs, _ := c.nodeManager.findCandidateNodeWithGeo(nil, nil, filterDeviceIDs)
+		if cs == nil || len(cs) <= 0 {
+			err = xerrors.New(ErrNodeNotFind)
+			return
+		}
+		// rand node
+		node := cs[randomNum(0, len(cs))]
+
+		deviceID = node.deviceInfo.DeviceId
+		deviceAddr = node.addr
+		return
+	}
+}
+
+func (c *Cache) doCache(cids []string, isHaveCache bool) error {
+	// log.Warnf("doCache isHaveCache:%v", isHaveCache)
+	filterDeviceIDs := make(map[string]string)
+	for _, cid := range cids {
+		ds, _ := cache.GetDB().GetNodesWithCacheList(cid)
+		if ds != nil {
+			for _, d := range ds {
+				filterDeviceIDs[d] = cid
+			}
+		}
+	}
+
+	deviceID, deviceAddr, err := c.findNode(isHaveCache, filterDeviceIDs)
+	if err != nil {
+		return err
+	}
+
+	_, cacheID := c.dataManager.getCacheTask(deviceID)
+	// log.Warnf("cacheID:%v,%v", cacheID, c.cacheID)
+	if cacheID != "" && cacheID != c.cacheID {
 		return xerrors.New(ErrNodeNotFind)
 	}
 
 	for _, cid := range cids {
-		b := &BlockInfo{cid: cid, deviceID: node.deviceInfo.DeviceId, deviceIP: node.addr, isSuccess: false, size: 0}
+		b := &BlockInfo{cid: cid, deviceID: deviceID, deviceIP: deviceAddr, status: cacheStatusCreate, size: 0}
 		c.blockMap[cid] = b
 		c.saveCache(b, false)
 	}
 
-	c.dataManager.addCacheTaskMap(node.deviceInfo.DeviceId, c.cardFileCid, c.cacheID)
+	c.dataManager.addCacheTaskMap(deviceID, c.cardFileCid, c.cacheID)
 
-	err := node.nodeAPI.CacheBlocks(context.Background(), api.ReqCacheData{Cids: cids, CardFileCid: c.cardFileCid})
-
-	return err
+	return c.cacheBlocks(deviceID, cids)
 }
 
 func (c *Cache) saveCache(block *BlockInfo, isUpdate bool) {
-	status := 0
-	if block.isSuccess {
-		status = 1
-	}
 	persistent.GetDB().SetCacheInfo(&persistent.CacheInfo{
-		CacheID:   c.cacheID,
-		CID:       block.cid,
-		DeviceID:  block.deviceID,
-		Status:    status,
-		TotalSize: block.size,
+		CacheID:     c.cacheID,
+		CID:         block.cid,
+		DeviceID:    block.deviceID,
+		Status:      int(block.status),
+		TotalSize:   block.size,
+		Reliability: c.reliability,
 	}, isUpdate)
+}
+
+func (c *Cache) updateCacheInfo(info *api.CacheResultInfo, totalSize, dataReliability int) {
+	if info.Cid != c.cardFileCid {
+		c.doneSize += info.BlockSize
+	}
+
+	if c.doneSize >= totalSize {
+		c.status = cacheStatusSuccess
+		c.reliability = 1 // TODO
+	}
+
+	haveUndone := false
+
+	block, ok := c.blockMap[info.Cid]
+	if ok {
+		if info.IsOK {
+			block.status = cacheStatusSuccess
+		} else {
+			block.status = cacheStatusFail
+		}
+		block.size = info.BlockSize
+
+		c.saveCache(block, true)
+
+		// continue cache
+		if len(info.Links) > 0 {
+			haveUndone = true
+			c.doCache(info.Links, dataReliability > 0)
+		}
+	}
+
+	if !haveUndone {
+		haveUndone, err := persistent.GetDB().HaveUndoneCaches(c.cacheID)
+		log.Warnf("HaveUndoneCaches:%v,status:%v,err:%v,cacheID:%v", haveUndone, c.status, err, c.cacheID)
+		if !haveUndone && c.status != cacheStatusSuccess {
+			c.status = cacheStatusFail
+		}
+	}
 }

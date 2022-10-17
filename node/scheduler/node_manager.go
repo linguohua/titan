@@ -22,6 +22,8 @@ const (
 	countryLevel  geoLevel = 1
 	provinceLevel geoLevel = 2
 	cityLevel     geoLevel = 3
+
+	defaultKey = "default"
 )
 
 // NodeManager Node Manager
@@ -238,77 +240,103 @@ func (m *NodeManager) removeCandidateNode(node *CandidateNode) {
 	node.offline(deviceID, node.geoInfo, api.TypeNameCandidate, node.lastRequestTime)
 }
 
-func (m *NodeManager) findEdges(key string, useDeviceIDs []string) []*EdgeNode {
-	eMap := m.areaManager.getEdges(key)
-	if eMap != nil && len(eMap) > 0 {
-		list := make([]*EdgeNode, 0)
+func (m *NodeManager) findEdges(geoKey string, useDeviceIDs []string, filterDeviceIDs map[string]string) []*EdgeNode {
+	if filterDeviceIDs == nil {
+		filterDeviceIDs = make(map[string]string)
+	}
 
-		if len(useDeviceIDs) > 0 {
-			for _, dID := range useDeviceIDs {
-				node, ok := eMap[dID]
-				if ok {
-					list = append(list, node)
-				}
+	eMap := m.areaManager.getEdges(geoKey)
+	if eMap == nil || len(eMap) <= 0 {
+		return nil
+	}
+	list := make([]*EdgeNode, 0)
+
+	if useDeviceIDs != nil && len(useDeviceIDs) > 0 {
+		for _, dID := range useDeviceIDs {
+			if _, ok := filterDeviceIDs[dID]; ok {
+				continue
 			}
-		} else {
-			for _, node := range eMap {
+
+			node, ok := eMap[dID]
+			if ok {
 				list = append(list, node)
 			}
 		}
+	} else {
+		for _, node := range eMap {
+			if _, ok := filterDeviceIDs[node.deviceInfo.DeviceId]; ok {
+				continue
+			}
 
-		if len(list) > 0 {
-			return list
+			list = append(list, node)
 		}
+	}
+
+	if len(list) > 0 {
+		return list
 	}
 
 	return nil
 }
 
-func (m *NodeManager) findCandidates(key string, useDeviceIDs []string) []*CandidateNode {
-	eMap := m.areaManager.getCandidates(key)
-	if eMap != nil && len(eMap) > 0 {
-		list := make([]*CandidateNode, 0)
+func (m *NodeManager) findCandidates(geoKey string, useDeviceIDs []string, filterDeviceIDs map[string]string) []*CandidateNode {
+	if filterDeviceIDs == nil {
+		filterDeviceIDs = make(map[string]string)
+	}
 
-		if len(useDeviceIDs) > 0 {
-			for _, dID := range useDeviceIDs {
-				node, ok := eMap[dID]
-				if ok {
-					list = append(list, node)
-				}
+	eMap := m.areaManager.getCandidates(geoKey)
+	if eMap == nil || len(eMap) <= 0 {
+		return nil
+	}
+	list := make([]*CandidateNode, 0)
+
+	if len(useDeviceIDs) > 0 {
+		for _, dID := range useDeviceIDs {
+			if _, ok := filterDeviceIDs[dID]; ok {
+				continue
 			}
-		} else {
-			for _, node := range eMap {
+			node, ok := eMap[dID]
+			if ok {
 				list = append(list, node)
 			}
 		}
-
-		if len(list) > 0 {
-			return list
+	} else {
+		for _, node := range eMap {
+			if _, ok := filterDeviceIDs[node.deviceInfo.DeviceId]; ok {
+				continue
+			}
+			list = append(list, node)
 		}
+	}
+
+	if len(list) > 0 {
+		return list
 	}
 
 	return nil
 }
 
-func (m *NodeManager) findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs []string) ([]*EdgeNode, geoLevel) {
-	countryKey, provinceKey, cityKey, defaultKey := m.areaManager.getAreaKey(userGeoInfo)
+func (m *NodeManager) findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs []string, filterDeviceIDs map[string]string) ([]*EdgeNode, geoLevel) {
+	if userGeoInfo != nil {
+		countryKey, provinceKey, cityKey := m.areaManager.getAreaKey(userGeoInfo)
 
-	list := m.findEdges(cityKey, useDeviceIDs)
-	if list != nil {
-		return list, cityLevel
+		list := m.findEdges(cityKey, useDeviceIDs, filterDeviceIDs)
+		if list != nil {
+			return list, cityLevel
+		}
+
+		list = m.findEdges(provinceKey, useDeviceIDs, filterDeviceIDs)
+		if list != nil {
+			return list, provinceLevel
+		}
+
+		list = m.findEdges(countryKey, useDeviceIDs, filterDeviceIDs)
+		if list != nil {
+			return list, countryLevel
+		}
 	}
 
-	list = m.findEdges(provinceKey, useDeviceIDs)
-	if list != nil {
-		return list, provinceLevel
-	}
-
-	list = m.findEdges(countryKey, useDeviceIDs)
-	if list != nil {
-		return list, countryLevel
-	}
-
-	list = m.findEdges(defaultKey, useDeviceIDs)
+	list := m.findEdges(defaultKey, useDeviceIDs, filterDeviceIDs)
 	if list != nil {
 		return list, defaultLevel
 	}
@@ -316,25 +344,27 @@ func (m *NodeManager) findEdgeNodeWithGeo(userGeoInfo *region.GeoInfo, useDevice
 	return nil, defaultLevel
 }
 
-func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs []string) ([]*CandidateNode, geoLevel) {
-	countryKey, provinceKey, cityKey, defaultKey := m.areaManager.getAreaKey(userGeoInfo)
+func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useDeviceIDs []string, filterDeviceIDs map[string]string) ([]*CandidateNode, geoLevel) {
+	if userGeoInfo != nil {
+		countryKey, provinceKey, cityKey := m.areaManager.getAreaKey(userGeoInfo)
 
-	list := m.findCandidates(cityKey, useDeviceIDs)
-	if list != nil {
-		return list, cityLevel
+		list := m.findCandidates(cityKey, useDeviceIDs, filterDeviceIDs)
+		if list != nil {
+			return list, cityLevel
+		}
+
+		list = m.findCandidates(provinceKey, useDeviceIDs, filterDeviceIDs)
+		if list != nil {
+			return list, provinceLevel
+		}
+
+		list = m.findCandidates(countryKey, useDeviceIDs, filterDeviceIDs)
+		if list != nil {
+			return list, countryLevel
+		}
 	}
 
-	list = m.findCandidates(provinceKey, useDeviceIDs)
-	if list != nil {
-		return list, provinceLevel
-	}
-
-	list = m.findCandidates(countryKey, useDeviceIDs)
-	if list != nil {
-		return list, countryLevel
-	}
-
-	list = m.findCandidates(defaultKey, useDeviceIDs)
+	list := m.findCandidates(defaultKey, useDeviceIDs, filterDeviceIDs)
 	if list != nil {
 		return list, defaultLevel
 	}
@@ -342,23 +372,23 @@ func (m *NodeManager) findCandidateNodeWithGeo(userGeoInfo *region.GeoInfo, useD
 	return nil, defaultLevel
 }
 
-func (m *NodeManager) filterCandidates(filterDeviceIDs []string, nodes []*CandidateNode) []*CandidateNode {
-	nodes2 := make([]*CandidateNode, 0)
-	for _, node := range nodes {
-		isHave := false
-		for _, nd := range filterDeviceIDs {
-			if node.deviceInfo.DeviceId == nd {
-				isHave = true
-			}
-		}
+// func (m *NodeManager) filterCandidates(filterDeviceIDs []string, nodes []*CandidateNode) []*CandidateNode {
+// 	nodes2 := make([]*CandidateNode, 0)
+// 	for _, node := range nodes {
+// 		isHave := false
+// 		for _, nd := range filterDeviceIDs {
+// 			if node.deviceInfo.DeviceId == nd {
+// 				isHave = true
+// 			}
+// 		}
 
-		if !isHave {
-			nodes2 = append(nodes2, node)
-		}
-	}
+// 		if !isHave {
+// 			nodes2 = append(nodes2, node)
+// 		}
+// 	}
 
-	return nodes2
-}
+// 	return nodes2
+// }
 
 // func (m *NodeManager) resetCandidateAndValidatorCount() {
 // 	m.candidateCount = 0
@@ -394,7 +424,7 @@ func (m *NodeManager) updateLastRequestTime(deviceID string) {
 }
 
 // getNodeURLWithData find device
-func (m *NodeManager) nodeDownloadInfo(cid string, geoInfo *region.GeoInfo) (api.DownloadInfo, error) {
+func (m *NodeManager) findNodeDownloadInfo(cid string, geoInfo *region.GeoInfo) (api.DownloadInfo, error) {
 	var downloadInfo api.DownloadInfo
 	deviceIDs, err := cache.GetDB().GetNodesWithCacheList(cid)
 	if err != nil {
@@ -405,20 +435,20 @@ func (m *NodeManager) nodeDownloadInfo(cid string, geoInfo *region.GeoInfo) (api
 		return downloadInfo, xerrors.New(ErrNodeNotFind)
 	}
 
-	nodeEs, geoLevelE := m.findEdgeNodeWithGeo(geoInfo, deviceIDs)
-	nodeCs, geoLevelC := m.findCandidateNodeWithGeo(geoInfo, deviceIDs)
+	nodeEs, geoLevelE := m.findEdgeNodeWithGeo(geoInfo, deviceIDs, nil)
+	nodeCs, geoLevelC := m.findCandidateNodeWithGeo(geoInfo, deviceIDs, nil)
 	if geoLevelE < geoLevelC {
 		node := nodeCs[randomNum(0, len(nodeCs))]
 		return node.nodeAPI.GetDownloadInfo(context.Background())
 	}
 
 	if geoLevelE > geoLevelC {
-		node := nodeCs[randomNum(0, len(nodeEs))]
+		node := nodeEs[randomNum(0, len(nodeEs))]
 		return node.nodeAPI.GetDownloadInfo(context.Background())
 	}
 
 	if len(nodeEs) > 0 {
-		node := nodeCs[randomNum(0, len(nodeEs))]
+		node := nodeEs[randomNum(0, len(nodeEs))]
 		return node.nodeAPI.GetDownloadInfo(context.Background())
 	}
 
@@ -443,7 +473,7 @@ func (m *NodeManager) getCandidateNodesWithData(cid string, geoInfo *region.GeoI
 		return nil, xerrors.New(ErrNodeNotFind)
 	}
 
-	nodeCs, _ := m.findCandidateNodeWithGeo(geoInfo, deviceIDs)
+	nodeCs, _ := m.findCandidateNodeWithGeo(geoInfo, deviceIDs, nil)
 
 	return nodeCs, nil
 }
@@ -454,7 +484,7 @@ type AreaManager struct {
 	candidateNodeMap sync.Map
 }
 
-func (a *AreaManager) getAreaKey(geoInfo *region.GeoInfo) (countryKey, provinceKey, cityKey, defaultKey string) {
+func (a *AreaManager) getAreaKey(geoInfo *region.GeoInfo) (countryKey, provinceKey, cityKey string) {
 	if geoInfo == nil {
 		geoInfo = region.GetRegion().DefaultGeoInfo("")
 	}
@@ -462,13 +492,11 @@ func (a *AreaManager) getAreaKey(geoInfo *region.GeoInfo) (countryKey, provinceK
 	provinceKey = fmt.Sprintf("%s-%s", geoInfo.Country, geoInfo.Province)
 	cityKey = fmt.Sprintf("%s-%s-%s", geoInfo.Country, geoInfo.Province, geoInfo.City)
 
-	defaultKey = "default"
-
 	return
 }
 
 func (a *AreaManager) addEdge(node *EdgeNode) {
-	countryKey, provinceKey, cityKey, defaultKey := a.getAreaKey(node.geoInfo)
+	countryKey, provinceKey, cityKey := a.getAreaKey(node.geoInfo)
 
 	a.storeEdge(node, countryKey)
 	a.storeEdge(node, provinceKey)
@@ -477,7 +505,7 @@ func (a *AreaManager) addEdge(node *EdgeNode) {
 }
 
 func (a *AreaManager) removeEdge(node *EdgeNode) {
-	countryKey, provinceKey, cityKey, defaultKey := a.getAreaKey(node.geoInfo)
+	countryKey, provinceKey, cityKey := a.getAreaKey(node.geoInfo)
 
 	deviceID := node.deviceInfo.DeviceId
 
@@ -497,7 +525,7 @@ func (a *AreaManager) getEdges(key string) map[string]*EdgeNode {
 }
 
 func (a *AreaManager) addCandidate(node *CandidateNode) {
-	countryKey, provinceKey, cityKey, defaultKey := a.getAreaKey(node.geoInfo)
+	countryKey, provinceKey, cityKey := a.getAreaKey(node.geoInfo)
 
 	a.storeCandidate(node, countryKey)
 	a.storeCandidate(node, provinceKey)
@@ -506,7 +534,7 @@ func (a *AreaManager) addCandidate(node *CandidateNode) {
 }
 
 func (a *AreaManager) removeCandidate(node *CandidateNode) {
-	countryKey, provinceKey, cityKey, defaultKey := a.getAreaKey(node.geoInfo)
+	countryKey, provinceKey, cityKey := a.getAreaKey(node.geoInfo)
 
 	deviceID := node.deviceInfo.DeviceId
 
