@@ -151,6 +151,19 @@ func (sd sqlDB) RemoveBlockInfo(deviceID, cid string) error {
 	return err
 }
 
+func (sd sqlDB) SetCarfileInfo(deviceID, cid, carfileID, cacheID string) error {
+	info := NodeBlock{
+		TableName: fmt.Sprintf(blockTbale, deviceID),
+		CID:       cid,
+		CarfileID: carfileID,
+		CacheID:   cacheID,
+	}
+
+	cmd := fmt.Sprintf(`UPDATE %s SET carfile_id=:carfile_id,cache_id=:cache_id WHERE cid=:cid`, info.TableName)
+	_, err := sd.cli.NamedExec(cmd, info)
+	return err
+}
+
 func (sd sqlDB) SetBlockInfo(deviceID, cid string, fid string, isUpdate bool) error {
 	info := NodeBlock{
 		TableName: fmt.Sprintf(blockTbale, deviceID),
@@ -168,7 +181,9 @@ func (sd sqlDB) SetBlockInfo(deviceID, cid string, fid string, isUpdate bool) er
 	schema := fmt.Sprintf(`
 	CREATE TABLE %s (
 		cid text,
-		fid text
+		fid text,
+		cache_id text,
+		carfile_id text
 	);`, info.TableName)
 
 	_, err := sd.cli.Exec(schema)
@@ -178,8 +193,8 @@ func (sd sqlDB) SetBlockInfo(deviceID, cid string, fid string, isUpdate bool) er
 		}
 	}
 
-	cmd := fmt.Sprintf(`INSERT INTO %s (cid, fid)
-	VALUES (:cid, :fid)`, info.TableName)
+	cmd := fmt.Sprintf(`INSERT INTO %s (cid, fid, cache_id, carfile_id)
+	VALUES (:cid, :fid, :cache_id, :carfile_id)`, info.TableName)
 
 	_, err = sd.cli.NamedExec(cmd, info)
 
@@ -277,14 +292,14 @@ func (sd sqlDB) SetDataInfo(info *DataInfo) error {
 	_, err := sd.GetDataInfo(info.CID)
 	if err != nil {
 		if sd.IsNilErr(err) {
-			_, err = sd.cli.NamedExec(`INSERT INTO data_info (cid, cache_ids, status)
-                VALUES (:cid, :cache_ids, :status)`, info)
+			_, err = sd.cli.NamedExec(`INSERT INTO data_info (cid, cache_ids, status, need_reliability)
+                VALUES (:cid, :cache_ids, :status, :need_reliability)`, info)
 		}
 		return err
 	}
 
 	// update
-	_, err = sd.cli.NamedExec(`UPDATE data_info SET cache_ids=:cache_ids,status=:status,total_size=:total_size,done_size=:done_size  WHERE cid=:cid`, info)
+	_, err = sd.cli.NamedExec(`UPDATE data_info SET cache_ids=:cache_ids,status=:status,total_size=:total_size,reliability=:reliability  WHERE cid=:cid`, info)
 
 	return err
 }
@@ -309,13 +324,33 @@ func (sd sqlDB) GetDataInfo(cid string) (*DataInfo, error) {
 	return info, err
 }
 
+func (sd sqlDB) GetDataInfos() ([]*DataInfo, error) {
+	list := make([]*DataInfo, 0)
+
+	rows, err := sd.cli.Queryx(`SELECT * FROM data_info`)
+	if err != nil {
+		return list, err
+	}
+	for rows.Next() {
+		info := &DataInfo{}
+		err := rows.StructScan(info)
+		if err == nil {
+			list = append(list, info)
+		}
+	}
+	rows.Close()
+
+	return list, err
+}
+
 func (sd sqlDB) CreateCacheInfo(cacheID string) error {
 	schema := fmt.Sprintf(`
 	CREATE TABLE %s (
 		cid text,
 		device_id text,
 		status integer,
-		total_size integer
+		total_size integer,
+		reliability integer
 	);`, cacheID)
 
 	_, err := sd.cli.Exec(schema)
@@ -330,14 +365,14 @@ func (sd sqlDB) CreateCacheInfo(cacheID string) error {
 
 func (sd sqlDB) SetCacheInfo(info *CacheInfo, isUpdate bool) error {
 	if isUpdate {
-		cmd := fmt.Sprintf(`UPDATE %s SET device_id=:device_id,status=:status,total_size=:total_size WHERE cid=:cid`, info.CacheID)
+		cmd := fmt.Sprintf(`UPDATE %s SET device_id=:device_id,status=:status,total_size=:total_size,reliability=:reliability WHERE cid=:cid`, info.CacheID)
 		_, err := sd.cli.NamedExec(cmd, info)
 
 		return err
 	}
 
-	cmd := fmt.Sprintf(`INSERT INTO %s (cid, device_id, status)
-	VALUES (:cid, :device_id, :status)`, info.CacheID)
+	cmd := fmt.Sprintf(`INSERT INTO %s (cid, device_id, status, total_size, reliability)
+	VALUES (:cid, :device_id, :status, :total_size, :reliability)`, info.CacheID)
 
 	_, err := sd.cli.NamedExec(cmd, info)
 
@@ -369,6 +404,29 @@ func (sd sqlDB) GetCacheInfo(cacheID, cid string) (*CacheInfo, error) {
 	return info, err
 }
 
+func (sd sqlDB) HaveUndoneCaches(cacheID string) (bool, error) {
+	cmd := fmt.Sprintf(`SELECT * FROM %s`, cacheID)
+
+	rows, err := sd.cli.Queryx(cmd)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		info := &CacheInfo{}
+		err := rows.StructScan(info)
+		if err == nil {
+			fmt.Printf("HaveUndoneCaches info:%v", info)
+			if info.Status == 1 {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
+}
+
 func (sd sqlDB) GetCacheInfos(cacheID string) ([]*CacheInfo, error) {
 	list := make([]*CacheInfo, 0)
 
@@ -376,7 +434,7 @@ func (sd sqlDB) GetCacheInfos(cacheID string) ([]*CacheInfo, error) {
 
 	rows, err := sd.cli.Queryx(cmd)
 	if err != nil {
-		return nil, err
+		return list, err
 	}
 	for rows.Next() {
 		info := &CacheInfo{}

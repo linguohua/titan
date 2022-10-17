@@ -21,6 +21,7 @@ type DB interface {
 
 	RemoveBlockInfo(deviceID, cid string) error
 	SetBlockInfo(deviceID, cid string, fid string, isUpdate bool) error
+	SetCarfileInfo(deviceID, cid, carfileID, cacheID string) error
 	GetBlockFidWithCid(deviceID, cid string) (string, error)
 	GetBlockInfos(deviceID string) (map[string]string, error)
 	GetBlockCidWithFid(deviceID, fid string) (string, error)
@@ -29,11 +30,13 @@ type DB interface {
 	// data info
 	SetDataInfo(info *DataInfo) error
 	GetDataInfo(cid string) (*DataInfo, error)
+	GetDataInfos() ([]*DataInfo, error)
 	// cache info
 	CreateCacheInfo(cacheID string) error
 	SetCacheInfo(info *CacheInfo, isUpdate bool) error
 	GetCacheInfo(cacheID, cid string) (*CacheInfo, error)
 	GetCacheInfos(cacheID string) ([]*CacheInfo, error)
+	HaveUndoneCaches(cacheID string) (bool, error)
 }
 
 var (
@@ -102,24 +105,28 @@ type NodeBlock struct {
 	DeviceID  string `db:"device_id"`
 	FID       string `db:"fid"`
 	CID       string `db:"cid"`
+	CarfileID string `db:"carfile_id"`
+	CacheID   string `db:"cache_id"`
 }
 
 // DataInfo Data info
 type DataInfo struct {
-	CID       string `db:"cid"`
-	CacheIDs  string `db:"cache_ids"`
-	Status    int    `db:"status"`
-	TotalSize int    `db:"total_size"`
-	DoneSize  int    `db:"done_size"`
+	CID             string `db:"cid"`
+	CacheIDs        string `db:"cache_ids"`
+	Status          int    `db:"status"`
+	TotalSize       int    `db:"total_size"`
+	Reliability     int    `db:"reliability"`
+	NeedReliability int    `db:"need_reliability"`
 }
 
 // CacheInfo Data Cache info
 type CacheInfo struct {
-	CacheID   string `db:"cache_id"`
-	CID       string `db:"cid"`
-	DeviceID  string `db:"device_id"`
-	Status    int    `db:"status"`
-	TotalSize int    `db:"total_size"`
+	CacheID     string `db:"cache_id"`
+	CID         string `db:"cid"`
+	DeviceID    string `db:"device_id"`
+	Status      int    `db:"status"`
+	TotalSize   int    `db:"total_size"`
+	Reliability int    `db:"reliability"`
 }
 
 // ValidateStatus Validate Status

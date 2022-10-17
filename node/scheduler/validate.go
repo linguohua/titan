@@ -302,7 +302,7 @@ func (v *Validate) checkValidateTimeOut() error {
 }
 
 func (v *Validate) matchValidator(userGeoInfo *region.GeoInfo, validatorList []string, deviceID string, validatorMap map[string][]string) (map[string][]string, []string) {
-	cs, _ := v.nodeManager.findCandidateNodeWithGeo(userGeoInfo, validatorList)
+	cs, _ := v.nodeManager.findCandidateNodeWithGeo(userGeoInfo, validatorList, nil)
 
 	validatorID := ""
 	if len(cs) > 0 {

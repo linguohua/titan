@@ -9,7 +9,6 @@ import (
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/region"
-	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/go-jsonrpc"
 )
@@ -49,23 +48,23 @@ func (n *Node) online(onlineTime int64, typeName api.NodeTypeName) error {
 	deviceID := n.deviceInfo.DeviceId
 	geoInfo := n.geoInfo
 
-	oldNodeInfo, err := persistent.GetDB().GetNodeInfo(deviceID)
-	if err == nil {
-		if oldNodeInfo.Geo != geoInfo.Geo {
-			err = cache.GetDB().RemoveNodeWithGeoList(deviceID, oldNodeInfo.Geo)
-			if err != nil {
-				log.Errorf("RemoveNodeWithGeoList err:%v,deviceID:%v,Geo:%v", err.Error(), deviceID, oldNodeInfo.Geo)
-			}
-		}
-	} else {
-		if !persistent.GetDB().IsNilErr(err) {
-			log.Warnf("GetNodeInfo err:%v,deviceID:%v", err.Error(), deviceID)
-		}
-	}
+	// oldNodeInfo, err := persistent.GetDB().GetNodeInfo(deviceID)
+	// if err == nil {
+	// 	if oldNodeInfo.Geo != geoInfo.Geo {
+	// 		err = cache.GetDB().RemoveNodeWithGeoList(deviceID, oldNodeInfo.Geo)
+	// 		if err != nil {
+	// 			log.Errorf("RemoveNodeWithGeoList err:%v,deviceID:%v,Geo:%v", err.Error(), deviceID, oldNodeInfo.Geo)
+	// 		}
+	// 	}
+	// } else {
+	// 	if !persistent.GetDB().IsNilErr(err) {
+	// 		log.Warnf("GetNodeInfo err:%v,deviceID:%v", err.Error(), deviceID)
+	// 	}
+	// }
 	// log.Infof("oldgeo:%v,newgeo:%v,err:%v", nodeInfo.Geo, geoInfo.Geo, err)
 
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
-	err = persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{
+	err := persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{
 		Geo:      geoInfo.Geo,
 		LastTime: lastTime, IsOnline: 1,
 		NodeType: string(typeName),
@@ -75,11 +74,11 @@ func (n *Node) online(onlineTime int64, typeName api.NodeTypeName) error {
 		return err
 	}
 
-	err = cache.GetDB().SetNodeToGeoList(deviceID, geoInfo.Geo)
-	if err != nil {
-		log.Errorf("SetNodeToGeoList err:%v,deviceID:%v,Geo:%v", err.Error(), deviceID, geoInfo.Geo)
-		return err
-	}
+	// err = cache.GetDB().SetNodeToGeoList(deviceID, geoInfo.Geo)
+	// if err != nil {
+	// 	log.Errorf("SetNodeToGeoList err:%v,deviceID:%v,Geo:%v", err.Error(), deviceID, geoInfo.Geo)
+	// 	return err
+	// }
 
 	// err = cache.GetDB().SetGeoToList(geoInfo.Geo)
 	// if err != nil {
@@ -92,12 +91,12 @@ func (n *Node) online(onlineTime int64, typeName api.NodeTypeName) error {
 
 // node offline
 func (n *Node) offline(deviceID string, geoInfo *region.GeoInfo, nodeType api.NodeTypeName, lastTime time.Time) {
-	err := cache.GetDB().RemoveNodeWithGeoList(deviceID, geoInfo.Geo)
-	if err != nil {
-		log.Warnf("node offline RemoveNodeWithGeoList err : %v ,deviceID : %v", err.Error(), deviceID)
-	}
+	// err := cache.GetDB().RemoveNodeWithGeoList(deviceID, geoInfo.Geo)
+	// if err != nil {
+	// 	log.Warnf("node offline RemoveNodeWithGeoList err : %v ,deviceID : %v", err.Error(), deviceID)
+	// }
 
-	err = persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{
+	err := persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{
 		Geo:      geoInfo.Geo,
 		LastTime: lastTime.Format("2006-01-02 15:04:05"),
 		IsOnline: 0,
@@ -163,19 +162,19 @@ func (n *Node) deleteBlockRecords(cids []string) (map[string]string, error) {
 }
 
 // filter cached blocks and find download url from candidate
-func (n *Node) getReqCacheDatas(scheduler *Scheduler, cids []string, isEdge bool) ([]api.ReqCacheData, []string) {
+func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string) ([]api.ReqCacheData, []string) {
 	reqList := make([]api.ReqCacheData, 0)
 
-	if !isEdge {
-		reqList = append(reqList, api.ReqCacheData{Cids: cids})
-		return reqList, nil
-	}
+	// if !isEdge {
+	// 	reqList = append(reqList, api.ReqCacheData{Cids: cids})
+	// 	return reqList, nil
+	// }
 
 	notFindCandidateData := make([]string, 0)
 	// if node is edge , find data with candidate
 	csMap := make(map[string][]string)
 	for _, cid := range cids {
-		candidates, err := scheduler.nodeManager.getCandidateNodesWithData(cid, n.geoInfo)
+		candidates, err := nodeManager.getCandidateNodesWithData(cid, n.geoInfo)
 		if err != nil || len(candidates) < 1 {
 			// not find candidate
 			notFindCandidateData = append(notFindCandidateData, cid)
@@ -194,10 +193,14 @@ func (n *Node) getReqCacheDatas(scheduler *Scheduler, cids []string, isEdge bool
 	}
 
 	for deviceID, list := range csMap {
-		node := scheduler.nodeManager.getCandidateNode(deviceID)
+		node := nodeManager.getCandidateNode(deviceID)
 		if node != nil {
 			reqList = append(reqList, api.ReqCacheData{Cids: list, CandidateURL: node.addr})
 		}
+	}
+
+	if len(notFindCandidateData) > 0 {
+		reqList = append(reqList, api.ReqCacheData{Cids: notFindCandidateData})
 	}
 
 	return reqList, notFindCandidateData
@@ -257,21 +260,21 @@ func (n *Node) cacheBlockResult(info *api.CacheResultInfo) (string, error) {
 	return fidStr, cache.GetDB().SetNodeToCacheList(deviceID, info.Cid)
 }
 
-func (n *Node) cacheBlockReady(cid string) error {
-	deviceID := n.deviceInfo.DeviceId
+// func (n *Node) cacheBlockReady(cid string) error {
+// 	deviceID := n.deviceInfo.DeviceId
 
-	isExist := false
-	v, err := persistent.GetDB().GetBlockFidWithCid(deviceID, cid)
-	if err == nil {
-		if v != dataDefaultTag {
-			return xerrors.Errorf("already cache")
-		}
+// 	isExist := false
+// 	v, err := persistent.GetDB().GetBlockFidWithCid(deviceID, cid)
+// 	if err == nil {
+// 		if v != dataDefaultTag {
+// 			return xerrors.Errorf("already cache")
+// 		}
 
-		isExist = true
-	}
+// 		isExist = true
+// 	}
 
-	return persistent.GetDB().SetBlockInfo(deviceID, cid, dataDefaultTag, isExist)
-}
+// 	return persistent.GetDB().SetBlockInfo(deviceID, cid, dataDefaultTag, isExist)
+// }
 
 func randomNum(start, end int) int {
 	// rand.Seed(time.Now().UnixNano())

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	redigo "github.com/gomodule/redigo/redis"
 )
 
 const (
@@ -15,8 +16,8 @@ const (
 	redisKeyNodeBlockFid = "Titan:NodeBlockFid:%s"
 	// RedisKeyBlockNodeList  cid
 	redisKeyBlockNodeList = "Titan:BlockNodeList:%s"
-	// RedisKeyGeoNodeList  geo
-	redisKeyGeoNodeList = "Titan:GeoNodeList:%s"
+	// // RedisKeyGeoNodeList  geo
+	// redisKeyGeoNodeList = "Titan:GeoNodeList:%s"
 	// RedisKeyValidatorList server name
 	redisKeyValidatorList = "Titan:ValidatorList:%s"
 	// RedisKeyValidateRoundID server name
@@ -31,10 +32,15 @@ const (
 	redisKeyNodeInfo = "Titan:NodeInfo:%s"
 	// RedisKeyCacheID
 	redisKeyCacheID = "Titan:CacheID"
+	// RedisKeyCacheTask  deviceID
+	redisKeyCacheTask = "Titan:CacheTask:%s"
 
 	// NodeInfo field
 	onlineTimeField      = "OnlineTime"
 	validateSuccessField = "ValidateSuccessTime"
+	// CacheTask field
+	carFileIDField = "CarFileID"
+	cacheIDField   = "cacheID"
 )
 
 // TypeRedis redis
@@ -175,28 +181,28 @@ func (rd redisDB) RemoveNodeWithCacheList(deviceID, cid string) error {
 	return err
 }
 
-//  add
-func (rd redisDB) SetNodeToGeoList(deviceID, geo string) error {
-	key := fmt.Sprintf(redisKeyGeoNodeList, geo)
+// //  add
+// func (rd redisDB) SetNodeToGeoList(deviceID, geo string) error {
+// 	key := fmt.Sprintf(redisKeyGeoNodeList, geo)
 
-	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
-	return err
-}
+// 	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
+// 	return err
+// }
 
-// SMembers
-func (rd redisDB) GetNodesWithGeoList(geo string) ([]string, error) {
-	key := fmt.Sprintf(redisKeyGeoNodeList, geo)
+// // SMembers
+// func (rd redisDB) GetNodesWithGeoList(geo string) ([]string, error) {
+// 	key := fmt.Sprintf(redisKeyGeoNodeList, geo)
 
-	return rd.cli.SMembers(context.Background(), key).Result()
-}
+// 	return rd.cli.SMembers(context.Background(), key).Result()
+// }
 
-//  del
-func (rd redisDB) RemoveNodeWithGeoList(deviceID, geo string) error {
-	key := fmt.Sprintf(redisKeyGeoNodeList, geo)
+// //  del
+// func (rd redisDB) RemoveNodeWithGeoList(deviceID, geo string) error {
+// 	key := fmt.Sprintf(redisKeyGeoNodeList, geo)
 
-	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
-	return err
-}
+// 	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
+// 	return err
+// }
 
 //  add
 func (rd redisDB) SetValidatorToList(deviceID string) error {
@@ -248,4 +254,34 @@ func (rd redisDB) SetCandidateDeviceIDList(deviceIDs []string) error {
 // SISMEMBER
 func (rd redisDB) IsCandidateInDeviceIDList(deviceID string) (bool, error) {
 	return rd.cli.SIsMember(context.Background(), redisKeyCandidateDeviceIDList, deviceID).Result()
+}
+
+//
+func (rd redisDB) SetCacheDataTask(deviceID, cid, cacheID string) error {
+	key := fmt.Sprintf(redisKeyCacheTask, deviceID)
+
+	_, err := rd.cli.HMSet(context.Background(), key, carFileIDField, cid, cacheIDField, cacheID).Result()
+	return err
+}
+
+// SISMEMBER
+func (rd redisDB) RemoveCacheDataTask(deviceID string) error {
+	key := fmt.Sprintf(redisKeyCacheTask, deviceID)
+
+	_, err := rd.cli.Del(context.Background(), key).Result()
+	return err
+}
+
+// SISMEMBER
+func (rd redisDB) GetCacheDataTask(deviceID string) (string, string) {
+	key := fmt.Sprintf(redisKeyCacheTask, deviceID)
+
+	vals, err := rd.cli.HMGet(context.Background(), key, carFileIDField, cacheIDField).Result()
+	if err != nil || vals == nil || len(vals) <= 0 {
+		return "", ""
+	}
+
+	cid, _ := redigo.String(vals[0], nil)
+	cacheID, _ := redigo.String(vals[1], nil)
+	return cid, cacheID
 }

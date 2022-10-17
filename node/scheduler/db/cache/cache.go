@@ -23,9 +23,9 @@ type DB interface {
 	GetNodesWithCacheList(cid string) ([]string, error)
 	IsNodeInCacheList(cid, deviceID string) (bool, error)
 
-	RemoveNodeWithGeoList(deviceID, geo string) error
-	SetNodeToGeoList(deviceID, geo string) error
-	GetNodesWithGeoList(geo string) ([]string, error)
+	// RemoveNodeWithGeoList(deviceID, geo string) error
+	// SetNodeToGeoList(deviceID, geo string) error
+	// GetNodesWithGeoList(geo string) ([]string, error)
 
 	SetValidatorToList(deviceID string) error
 	GetValidatorsWithList() ([]string, error)
@@ -41,6 +41,10 @@ type DB interface {
 	IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error)
 
 	IncrCacheID() (int64, error)
+
+	SetCacheDataTask(deviceID, cid, cacheID string) error
+	RemoveCacheDataTask(deviceID string) error
+	GetCacheDataTask(deviceID string) (string, string)
 
 	IsNilErr(err error) bool
 }

@@ -35,6 +35,7 @@ type Scheduler interface {
 
 // CacheResultInfo cache data result info
 type CacheResultInfo struct {
+	DeviceID      string
 	Cid           string
 	IsOK          bool
 	Msg           string
