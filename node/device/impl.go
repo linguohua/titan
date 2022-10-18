@@ -3,17 +3,19 @@ package device
 import (
 	"context"
 	"fmt"
-	"github.com/shirou/gopsutil/v3/cpu"
 	"net"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/shirou/gopsutil/v3/cpu"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/node/download"
 	"github.com/linguohua/titan/stores"
+	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
@@ -48,11 +50,6 @@ func NewDevice(blockStore stores.BlockStore, deviceID, publicIP, internalIP stri
 func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	info := api.DevicesInfo{}
 
-	stat, err := device.blockStore.Stat()
-	if err != nil {
-		return info, err
-	}
-
 	v, err := api.VersionForType(api.RunningNodeType)
 	if err != nil {
 		return info, err
@@ -76,7 +73,8 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 
 	mac, err := getMacAddr(info.InternalIp)
 	if err != nil {
-		log.Errorf("getMacAddr err:%v", err)
+		log.Errorf("DeviceInfo getMacAddr err:%s", err.Error())
+		return info, err
 	}
 
 	info.MacLocation = mac
@@ -97,10 +95,26 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 
 	info.CpuUsage = strconv.FormatFloat(cpuPercent[0], 'f', 10, 32)
 
-	if stat.Capacity > 0 {
-		info.DiskUsage = fmt.Sprintf("%f", float32(stat.Capacity-stat.Available)/float32(stat.Capacity))
-	}
+	partitions, err := disk.Partitions(true)
+	if len(partitions) > 0 {
+		info.DiskType = partitions[0].Fstype
 
+		free := uint64(0)
+		total := uint64(0)
+		for _, partition := range partitions {
+			usageStat, err := disk.Usage(partition.Mountpoint)
+			if err != nil {
+				log.Errorf("DeviceInfo get disk usage err:%s", err.Error())
+				return info, err
+			}
+
+			free += usageStat.Used
+			total += usageStat.Total
+		}
+
+		info.DiskUsage = fmt.Sprintf("%f%%", float64(free)/float64(total))
+
+	}
 	return info, nil
 }
 

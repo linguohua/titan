@@ -80,6 +80,7 @@ func getCandidateWithMap(candidateMap map[string]*Candidate, candidateURL string
 }
 
 func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
+	reqs = block.filterAvailableReq(reqs)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
