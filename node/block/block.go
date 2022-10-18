@@ -84,6 +84,10 @@ func NewBlock(ds datastore.Batching, blockStore stores.BlockStore, scheduler api
 func apiReq2DelayReq(req *api.ReqCacheData) []*delayReq {
 	results := make([]*delayReq, 0, len(req.Cids))
 	for _, cid := range req.Cids {
+		if len(cid) == 0 {
+			continue
+		}
+
 		req := &delayReq{cid: cid, count: 0, candidateURL: req.CandidateURL, carFileCid: req.CardFileCid}
 		results = append(results, req)
 	}
@@ -158,37 +162,38 @@ func (block *Block) cacheResult(ctx context.Context, from string, err error, bIn
 
 	fid, err := block.scheduler.CacheResult(ctx, block.deviceID, result)
 	if err != nil {
-		log.Errorf("load_block CacheResult error:%v", err)
+		log.Errorf("cacheResult CacheResult error:%v", err)
+		return
 	}
 
 	if success && fid != "" {
 		oldCid, _ := block.getCID(fid)
 		if len(oldCid) != 0 && oldCid != bInfo.cid {
-			log.Infof("delete old cid:%s, new cid:%s", oldCid, bInfo.cid)
+			log.Infof("cacheResult delete old cid:%s, new cid:%s", oldCid, bInfo.cid)
 			err = block.ds.Delete(ctx, helper.NewKeyCID(oldCid))
 			if err != nil {
-				log.Errorf("DeleteData, delete key fid %s error:%v", fid, err)
+				log.Errorf("cacheResult, delete key fid %s error:%v", fid, err)
 			}
 		}
 
 		oldFid, _ := block.getFID(bInfo.cid)
 		if oldFid != "" {
 			// delete old fid key
-			log.Infof("delete old fid:%s, new fid:%s", oldFid, fid)
+			log.Infof("cacheResult delete old fid:%s, new fid:%s", oldFid, fid)
 			err = block.ds.Delete(ctx, helper.NewKeyFID(oldFid))
 			if err != nil {
-				log.Errorf("DeleteData, delete key fid %s error:%v", fid, err)
+				log.Errorf("cacheResult, delete key fid %s error:%v", fid, err)
 			}
 		}
 
 		err = block.ds.Put(ctx, helper.NewKeyFID(fid), []byte(bInfo.cid))
 		if err != nil {
-			log.Errorf("load_block CacheResult save fid error:%v", err)
+			log.Errorf("cacheResult save fid error:%v", err)
 		}
 
 		err = block.ds.Put(ctx, helper.NewKeyCID(bInfo.cid), []byte(fid))
 		if err != nil {
-			log.Errorf("load_block CacheResult save cid error:%v", err)
+			log.Errorf("cacheResult save cid error:%v", err)
 		}
 
 	}
@@ -214,9 +219,10 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 		cidStr := fmt.Sprintf("%s", reqData.cid)
 
 		buf, err := block.blockStore.Get(cidStr)
-		if err != nil {
+		if err == nil {
 			links, err := getLinks(block, buf, cidStr)
 			if err != nil {
+				log.Errorf("filterAvailableReq getLinks error:%s", err.Error())
 				continue
 			}
 
@@ -238,13 +244,13 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 }
 
 func (block *Block) CacheBlocks(ctx context.Context, req api.ReqCacheData) error {
-	delayReq := block.filterAvailableReq(apiReq2DelayReq(&req))
-	if len(delayReq) == 0 {
-		log.Debug("CacheData, len(req) == 0 not need to handle")
-		return nil
-	}
-
-	block.addReq2WaitList(delayReq)
+	log.Infof("CacheBlocks, req carFileCid:%s, candidate_url:%s, cids:%v", req.CardFileCid, req.CandidateURL, req.Cids)
+	// delayReq := block.filterAvailableReq(apiReq2DelayReq(&req))
+	// if len(delayReq) == 0 {
+	// 	log.Debug("CacheData, len(req) == 0 not need to handle")
+	// 	return nil
+	// }
+	block.addReq2WaitList(apiReq2DelayReq(&req))
 	return nil
 }
 

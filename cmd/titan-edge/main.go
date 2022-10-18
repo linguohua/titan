@@ -21,6 +21,7 @@ import (
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/repo"
+	"github.com/shirou/gopsutil/v3/cpu"
 
 	"github.com/google/uuid"
 	logging "github.com/ipfs/go-log/v2"
@@ -43,7 +44,7 @@ const FlagWorkerRepoDeprecation = "edgerepo"
 
 func main() {
 	api.RunningNodeType = api.NodeEdge
-
+	cpu.Percent(0, false)
 	titanlog.SetupLogLevels()
 
 	local := []*cli.Command{
@@ -409,6 +410,7 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
+						log.Info("connect scheduler..")
 						if err := schedulerAPI.EdgeNodeConnect(ctx, "http://"+address+"/rpc/v0"); err != nil {
 							log.Errorf("Registering worker failed: %+v", err)
 							cancel()
