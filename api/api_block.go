@@ -4,11 +4,11 @@ import "context"
 
 type Block interface {
 	// cache blocks
-	CacheBlocks(ctx context.Context, req ReqCacheData) error //perm:read
+	CacheBlocks(ctx context.Context, req ReqCacheData) error //perm:write
 	// told to scheduler local block was delete
-	AnnounceBlocksWasDelete(ctx context.Context, cids []string) ([]BlockOperationResult, error) //perm:read
+	AnnounceBlocksWasDelete(ctx context.Context, cids []string) ([]BlockOperationResult, error) //perm:write
 	// delete blocks
-	DeleteBlocks(ctx context.Context, cid []string) ([]BlockOperationResult, error) //perm:read
+	DeleteBlocks(ctx context.Context, cid []string) ([]BlockOperationResult, error) //perm:write
 	// load block
 	LoadBlock(ctx context.Context, cid string) ([]byte, error) //perm:read
 	// block store stat
@@ -21,7 +21,7 @@ type Block interface {
 
 	GetCID(ctx context.Context, fid string) (string, error) //perm:read
 	GetFID(ctx context.Context, cid string) (string, error) //perm:read
-	DeleteAllBlocks(ctx context.Context) error              //perm:read
+	DeleteAllBlocks(ctx context.Context) error              //perm:admin
 
 	// hash to check block store data consistent
 	GetBlockStoreCheckSum(ctx context.Context) (string, error) //perm:read

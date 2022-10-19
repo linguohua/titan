@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
@@ -11,8 +12,10 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/common"
+	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/linguohua/titan/node/secret"
 	"github.com/linguohua/titan/region"
 )
 
@@ -22,7 +25,7 @@ var log = logging.Logger("scheduler")
 const ErrNodeNotFind = "Not Found"
 
 // NewLocalScheduleNode NewLocalScheduleNode
-func NewLocalScheduleNode() api.Scheduler {
+func NewLocalScheduleNode(lr repo.LockedRepo) api.Scheduler {
 	verifiedNodeMax := 10
 
 	pool := newValidatePool(verifiedNodeMax)
@@ -39,6 +42,12 @@ func NewLocalScheduleNode() api.Scheduler {
 		validate:     validate,
 		dataManager:  dataManager,
 	}
+
+	sec, err := secret.APISecret(lr)
+	if err != nil {
+		log.Panicf("NewLocalScheduleNode failed:%s", err.Error())
+	}
+	s.APISecret = sec
 
 	return s
 }
@@ -62,9 +71,17 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 	if oo {
 		log.Infof("EdgeNodeConnect ip:%v", re.Addr.String())
 	}
+
+	token, err := s.AuthNew(ctx, api.AllPermissions)
+	if err != nil {
+		return xerrors.Errorf("creating auth token for remote connection: %w", err)
+	}
+
+	headers := http.Header{}
+	headers.Add("Authorization", "Bearer "+string(token))
 	// Connect to scheduler
 	// log.Infof("EdgeNodeConnect edge url:%v", url)
-	edgeAPI, closer, err := client.NewEdge(ctx, url, nil)
+	edgeAPI, closer, err := client.NewEdge(ctx, url, headers)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect NewEdge err:%v,url:%v", err, url)
 		return err
