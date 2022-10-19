@@ -110,7 +110,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
 		return xerrors.Errorf("deviceID does not exist")
 	}
 
-	err = s.nodeManager.addEdgeNode(edgeNode)
+	err = s.nodeManager.edgeOnline(edgeNode)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect addEdgeNode err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 		return err
@@ -472,7 +472,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error 
 		return xerrors.Errorf("deviceID does not exist")
 	}
 
-	err = s.nodeManager.addCandidateNode(candidateNode)
+	err = s.nodeManager.candidateOnline(candidateNode)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect addEdgeNode err:%v,deviceID:%s", err, deviceInfo.DeviceId)
 		return err
