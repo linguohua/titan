@@ -676,16 +676,16 @@ func (fsr *fsLockedRepo) Get(name string) (types.KeyInfo, error) {
 	encName := base32.RawStdEncoding.EncodeToString([]byte(name))
 	keyPath := fsr.join(fsKeystore, encName)
 
-	fstat, err := os.Stat(keyPath)
+	_, err := os.Stat(keyPath)
 	if os.IsNotExist(err) {
 		return types.KeyInfo{}, xerrors.Errorf("opening key '%s': %w", name, types.ErrKeyInfoNotFound)
 	} else if err != nil {
 		return types.KeyInfo{}, xerrors.Errorf("opening key '%s': %w", name, err)
 	}
 
-	if fstat.Mode()&0o077 != 0 {
-		return types.KeyInfo{}, xerrors.Errorf(kstrPermissionMsg, name, fstat.Mode())
-	}
+	// if fstat.Mode()&0o077 != 0 {
+	// 	return types.KeyInfo{}, xerrors.Errorf(kstrPermissionMsg, name, fstat.Mode())
+	// }
 
 	file, err := os.Open(keyPath)
 	if err != nil {

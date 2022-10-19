@@ -28,11 +28,11 @@ import (
 var log = logging.Logger("main")
 
 const (
-	// FlagWorkerRepo Flag
-	FlagWorkerRepo = "scheduler-repo"
+	// FlagMinerRepo Flag
+	FlagMinerRepo = "scheduler-repo"
 
-	// FlagWorkerRepoDeprecation Flag
-	FlagWorkerRepoDeprecation = "schedulerrepo"
+	// FlagMinerRepoDeprecation Flag
+	FlagMinerRepoDeprecation = "schedulerrepo"
 )
 
 func main() {
@@ -53,11 +53,11 @@ func main() {
 		EnableBashCompletion: true,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    FlagWorkerRepo,
-				Aliases: []string{FlagWorkerRepoDeprecation},
+				Name:    FlagMinerRepo,
+				Aliases: []string{FlagMinerRepoDeprecation},
 				EnvVars: []string{"TITAN_SCHEDULER_PATH", "SCHEDULER_PATH"},
 				Value:   "~/.titanscheduler", // TODO: Consider XDG_DATA_HOME
-				Usage:   fmt.Sprintf("Specify worker repo path. flag %s and env TITAN_SCHEDULER_PATH are DEPRECATION, will REMOVE SOON", FlagWorkerRepoDeprecation),
+				Usage:   fmt.Sprintf("Specify worker repo path. flag %s and env TITAN_SCHEDULER_PATH are DEPRECATION, will REMOVE SOON", FlagMinerRepoDeprecation),
 			},
 			&cli.StringFlag{
 				Name:    "panic-reports",
@@ -70,7 +70,7 @@ func main() {
 		After: func(c *cli.Context) error {
 			if r := recover(); r != nil {
 				// Generate report in LOTUS_PATH and re-raise panic
-				build.GeneratePanicReport(c.String("panic-reports"), c.String(FlagWorkerRepo), c.App.Name)
+				build.GeneratePanicReport(c.String("panic-reports"), c.String(FlagMinerRepo), c.App.Name)
 				log.Panic(r)
 			}
 			return nil
@@ -164,7 +164,12 @@ var runCmd = &cli.Command{
 			log.Panic(err.Error())
 		}
 
-		schedulerAPI := scheduler.NewLocalScheduleNode()
+		lr, err := openRepo(cctx)
+		if err != nil {
+			log.Panic(err.Error())
+		}
+
+		schedulerAPI := scheduler.NewLocalScheduleNode(lr)
 
 		srv := &http.Server{
 			Handler: schedulerHandler(schedulerAPI, true),
@@ -194,4 +199,29 @@ var runCmd = &cli.Command{
 
 		return srv.Serve(nl)
 	},
+}
+
+func openRepo(cctx *cli.Context) (repo.LockedRepo, error) {
+	repoPath := cctx.String(FlagMinerRepo)
+	r, err := repo.NewFS(repoPath)
+	if err != nil {
+		return nil, err
+	}
+
+	ok, err := r.Exists()
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		if err := r.Init(repo.StorageMiner); err != nil {
+			return nil, err
+		}
+	}
+
+	lr, err := r.Lock(repo.StorageMiner)
+	if err != nil {
+		return nil, err
+	}
+
+	return lr, nil
 }
