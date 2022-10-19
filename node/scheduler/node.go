@@ -44,7 +44,7 @@ type Node struct {
 }
 
 // node online
-func (n *Node) online(onlineTime int64, typeName api.NodeTypeName) error {
+func (n *Node) setNodeOnline(typeName api.NodeTypeName) error {
 	deviceID := n.deviceInfo.DeviceId
 	geoInfo := n.geoInfo
 
@@ -90,7 +90,7 @@ func (n *Node) online(onlineTime int64, typeName api.NodeTypeName) error {
 }
 
 // node offline
-func (n *Node) offline(deviceID string, geoInfo *region.GeoInfo, nodeType api.NodeTypeName, lastTime time.Time) {
+func (n *Node) setNodeOffline(deviceID string, geoInfo *region.GeoInfo, nodeType api.NodeTypeName, lastTime time.Time) {
 	// err := cache.GetDB().RemoveNodeWithGeoList(deviceID, geoInfo.Geo)
 	// if err != nil {
 	// 	log.Warnf("node offline RemoveNodeWithGeoList err : %v ,deviceID : %v", err.Error(), deviceID)

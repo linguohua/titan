@@ -76,7 +76,7 @@ func (m *NodeManager) nodeKeepalive() {
 
 		if !lastTime.After(nowTime) {
 			// offline
-			m.removeEdgeNode(node)
+			m.edgeOffline(node)
 			node = nil
 			return true
 		}
@@ -101,7 +101,7 @@ func (m *NodeManager) nodeKeepalive() {
 
 		if !lastTime.After(nowTime) {
 			// offline
-			m.removeCandidateNode(node)
+			m.candidateOffline(node)
 			node = nil
 			return true
 		}
@@ -120,12 +120,12 @@ func (m *NodeManager) nodeKeepalive() {
 	// }
 }
 
-func (m *NodeManager) addEdgeNode(node *EdgeNode) error {
+func (m *NodeManager) edgeOnline(node *EdgeNode) error {
 	deviceID := node.deviceInfo.DeviceId
 	// geo ip
 	geoInfo, err := region.GetRegion().GetGeoInfo(node.deviceInfo.ExternalIp)
 	if err != nil {
-		log.Warnf("addEdgeNode GetGeoInfo err:%v,node:%v", err, node.deviceInfo.ExternalIp)
+		log.Warnf("edgeOnline GetGeoInfo err:%v,node:%v", err, node.deviceInfo.ExternalIp)
 	}
 
 	node.geoInfo = geoInfo
@@ -137,9 +137,9 @@ func (m *NodeManager) addEdgeNode(node *EdgeNode) error {
 		nodeOld = nil
 	}
 
-	log.Infof("addEdgeNode DeviceId:%v,geo:%v", deviceID, node.geoInfo.Geo)
+	log.Infof("edgeOnline DeviceId:%v,geo:%v", deviceID, node.geoInfo.Geo)
 
-	err = node.online(0, api.TypeNameEdge)
+	err = node.setNodeOnline(api.TypeNameEdge)
 	if err != nil {
 		return err
 	}
@@ -163,22 +163,21 @@ func (m *NodeManager) getEdgeNode(deviceID string) *EdgeNode {
 	return nil
 }
 
-func (m *NodeManager) removeEdgeNode(node *EdgeNode) {
+func (m *NodeManager) edgeOffline(node *EdgeNode) {
 	deviceID := node.deviceInfo.DeviceId
 	// close old node
 	node.closer()
 
-	log.Warnf("removeEdgeNode :%v", deviceID)
+	log.Warnf("edgeOffline :%v", deviceID)
 
 	m.edgeNodeMap.Delete(deviceID)
 	m.areaManager.removeEdge(node)
-
 	m.validatePool.removeEdge(deviceID)
 
-	node.offline(deviceID, node.geoInfo, api.TypeNameEdge, node.lastRequestTime)
+	node.setNodeOffline(deviceID, node.geoInfo, api.TypeNameEdge, node.lastRequestTime)
 }
 
-func (m *NodeManager) addCandidateNode(node *CandidateNode) error {
+func (m *NodeManager) candidateOnline(node *CandidateNode) error {
 	deviceID := node.deviceInfo.DeviceId
 
 	// node.isValidator, _ = cache.GetDB().IsNodeInValidatorList(deviceID)
@@ -186,7 +185,7 @@ func (m *NodeManager) addCandidateNode(node *CandidateNode) error {
 	// geo ip
 	geoInfo, err := region.GetRegion().GetGeoInfo(node.deviceInfo.ExternalIp)
 	if err != nil {
-		log.Warnf("addCandidateNode GetGeoInfo err:%v,ExternalIp:%v", err, node.deviceInfo.ExternalIp)
+		log.Warnf("candidateOnline GetGeoInfo err:%v,ExternalIp:%v", err, node.deviceInfo.ExternalIp)
 	}
 
 	node.geoInfo = geoInfo
@@ -198,9 +197,9 @@ func (m *NodeManager) addCandidateNode(node *CandidateNode) error {
 		nodeOld = nil
 	}
 
-	log.Infof("addCandidateNode DeviceId:%v,geo:%v", deviceID, node.geoInfo.Geo)
+	log.Infof("candidateOnline DeviceId:%v,geo:%v", deviceID, node.geoInfo.Geo)
 
-	err = node.online(0, api.TypeNameCandidate)
+	err = node.setNodeOnline(api.TypeNameCandidate)
 	if err != nil {
 		// log.Errorf("addCandidateNode NodeOnline err:%v", err)
 		return err
@@ -225,19 +224,19 @@ func (m *NodeManager) getCandidateNode(deviceID string) *CandidateNode {
 	return nil
 }
 
-func (m *NodeManager) removeCandidateNode(node *CandidateNode) {
+func (m *NodeManager) candidateOffline(node *CandidateNode) {
 	deviceID := node.deviceInfo.DeviceId
 	// close old node
 	node.closer()
 
-	log.Warnf("removeCandidateNode :%v", deviceID)
+	log.Warnf("candidateOffline :%v", deviceID)
 
 	m.candidateNodeMap.Delete(deviceID)
 	m.areaManager.removeCandidate(node)
 
 	m.validatePool.removeCandidate(deviceID)
 
-	node.offline(deviceID, node.geoInfo, api.TypeNameCandidate, node.lastRequestTime)
+	node.setNodeOffline(deviceID, node.geoInfo, api.TypeNameCandidate, node.lastRequestTime)
 }
 
 func (m *NodeManager) findEdges(geoKey string, useDeviceIDs []string, filterDeviceIDs map[string]string) []*EdgeNode {
