@@ -3,17 +3,23 @@ package device
 import (
 	"context"
 	"fmt"
+	"github.com/shirou/gopsutil/v3/cpu"
 	"net"
+	"strconv"
 	"strings"
+	"time"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/node/download"
 	"github.com/linguohua/titan/stores"
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 var log = logging.Logger("device")
+
+var cpuCompareInterval = 5 * time.Minute
 
 const deviceName = "titan-edge"
 
@@ -74,6 +80,22 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	}
 
 	info.MacLocation = mac
+
+	vmStat, err := mem.VirtualMemory()
+	if err != nil {
+		log.Errorf("getMemory: %v", err)
+	}
+
+	if vmStat != nil {
+		info.MemoryUsage = strconv.FormatFloat(vmStat.UsedPercent, 'f', 10, 32)
+	}
+
+	cpuPercent, err := cpu.Percent(cpuCompareInterval, false)
+	if err != nil {
+		log.Errorf("getCpuInfo: %v", err)
+	}
+
+	info.CpuUsage = strconv.FormatFloat(cpuPercent[0], 'f', 10, 32)
 
 	if stat.Capacity > 0 {
 		info.DiskUsage = fmt.Sprintf("%f", float32(stat.Capacity-stat.Available)/float32(stat.Capacity))

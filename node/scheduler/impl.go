@@ -531,3 +531,20 @@ func (s *Scheduler) ElectionValidators(ctx context.Context) error {
 func (s *Scheduler) Validate(ctx context.Context) error {
 	return s.validate.startValidate()
 }
+
+func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.DevicesInfo, error) {
+	// node datas
+	candidata := s.nodeManager.getCandidateNode(deviceID)
+	if candidata != nil {
+		candidata.deviceInfo.IpLocation = candidata.geoInfo.Geo
+		return candidata.deviceInfo, nil
+	}
+
+	edge := s.nodeManager.getEdgeNode(deviceID)
+	if edge != nil {
+		edge.deviceInfo.IpLocation = edge.geoInfo.Geo
+		return edge.deviceInfo, nil
+	}
+
+	return api.DevicesInfo{}, xerrors.New(ErrNodeNotFind)
+}
