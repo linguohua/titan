@@ -26,11 +26,11 @@ type Scheduler interface {
 	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                    //perm:read
 	CandidateNodeConnect(ctx context.Context, deviceID string) error                                   //perm:read
 	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) (string, error)      //perm:read
-
 	// call by user
 	FindNodeWithBlock(ctx context.Context, cid string, ip string) (string, error)                             //perm:read
 	GetDownloadInfoWithBlocks(ctx context.Context, cids []string, ip string) (map[string]DownloadInfo, error) //perm:read
 	GetDownloadInfoWithBlock(ctx context.Context, cid string, ip string) (DownloadInfo, error)                //perm:read
+	GetDevicesInfo(ctx context.Context, deviceID string) (DevicesInfo, error)                                 //perm:read
 }
 
 // CacheResultInfo cache data result info
