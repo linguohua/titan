@@ -47,6 +47,7 @@ var DeviceInfoCmd = &cli.Command{
 		fmt.Printf("device mac: %v \n", v.MacLocation)
 		fmt.Printf("device download bandwidth: %v \n", v.BandwidthDown)
 		fmt.Printf("device upload bandwidth: %v \n", v.BandwidthUp)
+		fmt.Printf("device cpu percent: %v \n", v.CpuUsage)
 
 		return nil
 	},
