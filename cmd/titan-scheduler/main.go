@@ -45,7 +45,7 @@ func main() {
 
 	local := []*cli.Command{
 		runCmd,
-		getApiKeyCmd,
+		getAPIKeyCmd,
 	}
 
 	local = append(local, lcli.SchedulerCmds...)
@@ -94,13 +94,13 @@ type jwtPayload struct {
 	Allow []auth.Permission
 }
 
-var getApiKeyCmd = &cli.Command{
+var getAPIKeyCmd = &cli.Command{
 	Name:  "get-api-key",
 	Usage: "Generate API Key",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "perm",
-			Usage: "perm",
+			Usage: "permission to assign to the token, one of: read, write, sign, admin",
 			Value: "",
 		},
 	},
@@ -115,19 +115,18 @@ var getApiKeyCmd = &cli.Command{
 
 		p := jwtPayload{}
 
-		switch perm {
-		case string(api.PermRead):
-			p.Allow = []auth.Permission{api.PermRead}
-			break
-		case string(api.PermAdmin):
-			p.Allow = api.AllPermissions
-			break
-		case string(api.PermWrite):
-			p.Allow = []auth.Permission{api.PermRead, api.PermWrite}
-			break
-		default:
-			return xerrors.Errorf("perm not found:%v", perm)
+		idx := 0
+		for i, p := range api.AllPermissions {
+			if auth.Permission(perm) == p {
+				idx = i + 1
+			}
 		}
+
+		if idx == 0 {
+			return fmt.Errorf("--perm flag has to be one of: %s", api.AllPermissions)
+		}
+
+		p.Allow = api.AllPermissions[:idx]
 
 		authKey, err := secret.APISecret(lr)
 		if err != nil {
