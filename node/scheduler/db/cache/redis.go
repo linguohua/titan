@@ -9,7 +9,6 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	redigo "github.com/gomodule/redigo/redis"
-	"github.com/linguohua/titan/api"
 )
 
 const (
@@ -287,8 +286,4 @@ func (rd redisDB) GetCacheDataTask(deviceID string) (string, string) {
 	cid, _ := redigo.String(vals[0], nil)
 	cacheID, _ := redigo.String(vals[1], nil)
 	return cid, cacheID
-}
-
-func (rd redisDB) IncrNodeDeviceID(t api.NodeTypeName) (int64, error) {
-	return rd.cli.HIncrBy(context.Background(), redisKeyNodeDeviceID, string(t), 1).Result()
 }

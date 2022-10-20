@@ -8,8 +8,6 @@ import (
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
-	"golang.org/x/xerrors"
-
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/common"
@@ -17,6 +15,7 @@ import (
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/secret"
 	"github.com/linguohua/titan/region"
+	"golang.org/x/xerrors"
 )
 
 var log = logging.Logger("scheduler")
@@ -70,6 +69,8 @@ type Scheduler struct {
 
 // EdgeNodeConnect edge connect
 func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url, token string) error {
+	// re, oo := peer.FromContext(ctx)
+
 	deviceID, err := verifySecret(token)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect verifySecret err:%v", err)
@@ -168,8 +169,8 @@ func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.C
 }
 
 // RegisterNode Register Node
-func (s *Scheduler) RegisterNode(ctx context.Context, t api.NodeTypeName) (api.NodeRegisterInfo, error) {
-	return registerNode(t)
+func (s *Scheduler) RegisterNode(ctx context.Context) (api.NodeRegisterInfo, error) {
+	return registerNode()
 }
 
 // GetToken get token

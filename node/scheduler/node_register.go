@@ -3,22 +3,18 @@ package scheduler
 import (
 	"crypto/sha1"
 	"encoding/hex"
-	"fmt"
+	"strings"
 
+	"github.com/google/uuid"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
 )
 
-func registerNode(t api.NodeTypeName) (api.NodeRegisterInfo, error) {
+func registerNode() (api.NodeRegisterInfo, error) {
 	info := api.NodeRegisterInfo{}
 
-	if t != api.TypeNameEdge && t != api.TypeNameCandidate {
-		return info, xerrors.Errorf("type err:%v", t)
-	}
-
-	deviceID, err := newDeviceID(t)
+	deviceID, err := newDeviceID()
 	if err != nil {
 		return info, err
 	}
@@ -36,13 +32,15 @@ func registerNode(t api.NodeTypeName) (api.NodeRegisterInfo, error) {
 	return info, nil
 }
 
-func newDeviceID(t api.NodeTypeName) (string, error) {
-	num, err := cache.GetDB().IncrNodeDeviceID(t)
+func newDeviceID() (string, error) {
+	u2, err := uuid.NewUUID()
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf("%v_%d", t, num), nil
+	s := strings.Replace(u2.String(), "-", "", -1)
+
+	return s, nil
 }
 
 func newSecret(input string) string {
