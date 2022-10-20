@@ -206,8 +206,6 @@ type SchedulerStruct struct {
 
 		GetDownloadInfoWithBlocks func(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfo, error) `perm:"read"`
 
-		GetNodeRegisterInfo func(p0 context.Context, p1 NodeTypeName) (NodeRegisterInfo, error) `perm:"admin"`
-
 		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
 
 		GetToken func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
@@ -215,6 +213,8 @@ type SchedulerStruct struct {
 		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"read"`
 
 		QueryCachingBlocksWithNode func(p0 context.Context, p1 string) (CachingBlockList, error) `perm:"read"`
+
+		RegisterNode func(p0 context.Context, p1 NodeTypeName) (NodeRegisterInfo, error) `perm:"admin"`
 
 		ShowDataInfos func(p0 context.Context, p1 string) (string, error) `perm:"read"`
 
@@ -706,17 +706,6 @@ func (s *SchedulerStub) GetDownloadInfoWithBlocks(p0 context.Context, p1 []strin
 	return *new(map[string]DownloadInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetNodeRegisterInfo(p0 context.Context, p1 NodeTypeName) (NodeRegisterInfo, error) {
-	if s.Internal.GetNodeRegisterInfo == nil {
-		return *new(NodeRegisterInfo), ErrNotSupported
-	}
-	return s.Internal.GetNodeRegisterInfo(p0, p1)
-}
-
-func (s *SchedulerStub) GetNodeRegisterInfo(p0 context.Context, p1 NodeTypeName) (NodeRegisterInfo, error) {
-	return *new(NodeRegisterInfo), ErrNotSupported
-}
-
 func (s *SchedulerStruct) GetOnlineDeviceIDs(p0 context.Context, p1 NodeTypeName) ([]string, error) {
 	if s.Internal.GetOnlineDeviceIDs == nil {
 		return *new([]string), ErrNotSupported
@@ -759,6 +748,17 @@ func (s *SchedulerStruct) QueryCachingBlocksWithNode(p0 context.Context, p1 stri
 
 func (s *SchedulerStub) QueryCachingBlocksWithNode(p0 context.Context, p1 string) (CachingBlockList, error) {
 	return *new(CachingBlockList), ErrNotSupported
+}
+
+func (s *SchedulerStruct) RegisterNode(p0 context.Context, p1 NodeTypeName) (NodeRegisterInfo, error) {
+	if s.Internal.RegisterNode == nil {
+		return *new(NodeRegisterInfo), ErrNotSupported
+	}
+	return s.Internal.RegisterNode(p0, p1)
+}
+
+func (s *SchedulerStub) RegisterNode(p0 context.Context, p1 NodeTypeName) (NodeRegisterInfo, error) {
+	return *new(NodeRegisterInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) ShowDataInfos(p0 context.Context, p1 string) (string, error) {
