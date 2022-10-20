@@ -12,7 +12,6 @@ import (
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/repo"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/secret"
 	"github.com/linguohua/titan/region"
@@ -66,6 +65,12 @@ type Scheduler struct {
 
 // EdgeNodeConnect edge connect
 func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url, token string) error {
+	err := verifySecret(token)
+	if err != nil {
+		log.Errorf("EdgeNodeConnect verifySecret err:%v", err)
+		return err
+	}
+
 	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
 		return xerrors.Errorf("creating auth token for remote connection: %w", err)
@@ -98,11 +103,11 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url, token string) erro
 		},
 	}
 
-	ok, err := cache.GetDB().IsEdgeInDeviceIDList(deviceInfo.DeviceId)
-	if err != nil || !ok {
-		log.Errorf("EdgeNodeConnect IsEdgeInDeviceIDList err:%v,deviceID:%s", err, deviceInfo.DeviceId)
-		return xerrors.Errorf("deviceID does not exist")
-	}
+	// ok, err := cache.GetDB().IsEdgeInDeviceIDList(deviceInfo.DeviceId)
+	// if err != nil || !ok {
+	// 	log.Errorf("EdgeNodeConnect IsEdgeInDeviceIDList err:%v,deviceID:%s", err, deviceInfo.DeviceId)
+	// 	return xerrors.Errorf("deviceID does not exist")
+	// }
 
 	err = s.nodeManager.edgeOnline(edgeNode)
 	if err != nil {
@@ -154,13 +159,13 @@ func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.C
 }
 
 // GetNodeRegisterInfo Get DeviceID Secret
-func (s *Scheduler) GetNodeRegisterInfo(ctx context.Context) (api.NodeRegisterInfo, error) {
-	return api.NodeRegisterInfo{}, nil
+func (s *Scheduler) GetNodeRegisterInfo(ctx context.Context, t api.NodeTypeName) (api.NodeRegisterInfo, error) {
+	return registerNode(t)
 }
 
 // GetToken get token
 func (s *Scheduler) GetToken(ctx context.Context, deviceID, secret string) (string, error) {
-	return "", nil
+	return generateToken(deviceID, secret)
 }
 
 // DeleteBlockRecords  Delete Block Record
@@ -333,34 +338,34 @@ func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID str
 }
 
 // InitNodeDeviceIDs Init Node DeviceIDs (test)
-func (s *Scheduler) InitNodeDeviceIDs(ctx context.Context) error {
-	nodeNum := 1000
+// func (s *Scheduler) InitNodeDeviceIDs(ctx context.Context) error {
+// 	nodeNum := 1000
 
-	edgePrefix := "edge_"
-	candidatePrefix := "candidate_"
+// 	edgePrefix := "edge_"
+// 	candidatePrefix := "candidate_"
 
-	edgeList := make([]string, 0)
-	candidateList := make([]string, 0)
-	for i := 0; i < nodeNum; i++ {
-		edgeID := fmt.Sprintf("%s%d", edgePrefix, i)
-		candidateID := fmt.Sprintf("%s%d", candidatePrefix, i)
+// 	edgeList := make([]string, 0)
+// 	candidateList := make([]string, 0)
+// 	for i := 0; i < nodeNum; i++ {
+// 		edgeID := fmt.Sprintf("%s%d", edgePrefix, i)
+// 		candidateID := fmt.Sprintf("%s%d", candidatePrefix, i)
 
-		edgeList = append(edgeList, edgeID)
-		candidateList = append(candidateList, candidateID)
-	}
+// 		edgeList = append(edgeList, edgeID)
+// 		candidateList = append(candidateList, candidateID)
+// 	}
 
-	err := cache.GetDB().SetEdgeDeviceIDList(edgeList)
-	if err != nil {
-		log.Errorf("SetEdgeDeviceIDList err:%v", err.Error())
-	}
+// 	err := cache.GetDB().SetEdgeDeviceIDList(edgeList)
+// 	if err != nil {
+// 		log.Errorf("SetEdgeDeviceIDList err:%v", err.Error())
+// 	}
 
-	err = cache.GetDB().SetCandidateDeviceIDList(candidateList)
-	if err != nil {
-		log.Errorf("SetCandidateDeviceIDList err:%v", err.Error())
-	}
+// 	err = cache.GetDB().SetCandidateDeviceIDList(candidateList)
+// 	if err != nil {
+// 		log.Errorf("SetCandidateDeviceIDList err:%v", err.Error())
+// 	}
 
-	return err
-}
+// 	return err
+// }
 
 // GetOnlineDeviceIDs Get all online node id
 func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTypeName) ([]string, error) {
@@ -442,6 +447,12 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, ip
 
 // CandidateNodeConnect Candidate connect
 func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url, token string) error {
+	err := verifySecret(token)
+	if err != nil {
+		log.Errorf("EdgeNodeConnect verifySecret err:%v", err)
+		return err
+	}
+
 	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
 		return xerrors.Errorf("creating auth token for remote connection: %w", err)
@@ -474,11 +485,11 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url, token string)
 		},
 	}
 
-	ok, err := cache.GetDB().IsCandidateInDeviceIDList(deviceInfo.DeviceId)
-	if err != nil || !ok {
-		log.Errorf("EdgeNodeConnect IsCandidateInDeviceIDList err:%v,deviceID:%s", err, deviceInfo.DeviceId)
-		return xerrors.Errorf("deviceID does not exist")
-	}
+	// ok, err := cache.GetDB().IsCandidateInDeviceIDList(deviceInfo.DeviceId)
+	// if err != nil || !ok {
+	// 	log.Errorf("EdgeNodeConnect IsCandidateInDeviceIDList err:%v,deviceID:%s", err, deviceInfo.DeviceId)
+	// 	return xerrors.Errorf("deviceID does not exist")
+	// }
 
 	err = s.nodeManager.candidateOnline(candidateNode)
 	if err != nil {

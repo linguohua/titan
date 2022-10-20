@@ -11,13 +11,13 @@ type NodeTypeName string
 
 const (
 	// TypeNameAll Edge
-	TypeNameAll NodeTypeName = "All"
+	TypeNameAll NodeTypeName = "all"
 	// TypeNameEdge Edge
-	TypeNameEdge NodeTypeName = "Edge"
+	TypeNameEdge NodeTypeName = "edge"
 	// TypeNameCandidate Candidate
-	TypeNameCandidate NodeTypeName = "Candidate"
+	TypeNameCandidate NodeTypeName = "candidate"
 	// TypeNameValidator Validator
-	TypeNameValidator NodeTypeName = "Validator"
+	TypeNameValidator NodeTypeName = "validator"
 )
 
 type OpenRPCDocument map[string]interface{}
@@ -171,7 +171,6 @@ type DevicesInfo struct {
 	MonthProfit     float64 `json:"month_profit"`      // 近30天收益
 	BandwidthUp     int64   `json:"bandwidth_up"`      // 上行带宽B/s
 	BandwidthDown   int64   `json:"bandwidth_down"`    // 下行带宽B/s
-
 }
 
 // TableName IndexPage

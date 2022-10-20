@@ -37,6 +37,10 @@ type DB interface {
 	GetCacheInfo(cacheID, cid string) (*CacheInfo, error)
 	GetCacheInfos(cacheID string) ([]*CacheInfo, error)
 	HaveUndoneCaches(cacheID string) (bool, error)
+
+	// temporary node register
+	BindRegisterInfo(secret, deviceID string) error
+	GetSecretInfo(deviceID string) (string, error)
 }
 
 var (

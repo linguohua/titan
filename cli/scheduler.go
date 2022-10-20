@@ -22,6 +22,7 @@ var SchedulerCmds = []*cli.Command{
 	getDownloadInfoCmd,
 	cacheCarFileCmd,
 	showDataInfoCmd,
+	registerNodeCmd,
 }
 
 var (
@@ -66,7 +67,58 @@ var (
 		Usage: "cache reliability",
 		Value: "0",
 	}
+
+	nodeTypeFlag = &cli.IntFlag{
+		Name:  "node-type",
+		Usage: "node type",
+		Value: 0,
+	}
 )
+
+var registerNodeCmd = &cli.Command{
+	Name:  "register-node",
+	Usage: "register deviceID and secret ",
+	Flags: []cli.Flag{
+		schedulerURLFlag,
+		nodeTypeFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		t := cctx.Int("node-type")
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		if t == int(api.NodeEdge) {
+			info, err := schedulerAPI.GetNodeRegisterInfo(ctx, api.TypeNameEdge)
+			if err != nil {
+				return err
+			}
+
+			log.Infof("\nDeviceID:%s\nSecret:%s", info.DeviceID, info.Secret)
+			return nil
+		}
+
+		if t == int(api.NodeCandidate) {
+			info, err := schedulerAPI.GetNodeRegisterInfo(ctx, api.TypeNameCandidate)
+			if err != nil {
+				return err
+			}
+
+			log.Infof("\nDeviceID:%s\nSecret:%s", info.DeviceID, info.Secret)
+			return nil
+		}
+
+		return xerrors.Errorf("type err:%v", t)
+	},
+}
 
 var validateCmd = &cli.Command{
 	Name:  "validate",

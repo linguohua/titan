@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	redigo "github.com/gomodule/redigo/redis"
+	"github.com/linguohua/titan/api"
 )
 
 const (
@@ -24,16 +25,18 @@ const (
 	redisKeyValidateRoundID = "Titan:ValidateRoundID:%s"
 	// redisKeyValidateingList server name
 	redisKeyValidateingList = "Titan:ValidateingList:%s"
-	// RedisKeyEdgeDeviceIDList
-	redisKeyEdgeDeviceIDList = "Titan:EdgeDeviceIDList"
-	// RedisKeyCandidateDeviceIDList
-	redisKeyCandidateDeviceIDList = "Titan:CandidateDeviceIDList"
+	// // RedisKeyEdgeDeviceIDList
+	// redisKeyEdgeDeviceIDList = "Titan:EdgeDeviceIDList"
+	// // RedisKeyCandidateDeviceIDList
+	// redisKeyCandidateDeviceIDList = "Titan:CandidateDeviceIDList"
 	// RedisKeyNodeInfo  deviceID
 	redisKeyNodeInfo = "Titan:NodeInfo:%s"
 	// RedisKeyCacheID
 	redisKeyCacheID = "Titan:CacheID"
 	// RedisKeyCacheTask  deviceID
 	redisKeyCacheTask = "Titan:CacheTask:%s"
+	// RedisKeyNodeDeviceID
+	redisKeyNodeDeviceID = "Titan:NodeDeviceID"
 
 	// NodeInfo field
 	onlineTimeField      = "OnlineTime"
@@ -234,27 +237,27 @@ func (rd redisDB) IsNodeInValidatorList(deviceID string) (bool, error) {
 	return rd.cli.SIsMember(context.Background(), key, deviceID).Result()
 }
 
-//  add
-func (rd redisDB) SetEdgeDeviceIDList(deviceIDs []string) error {
-	_, err := rd.cli.SAdd(context.Background(), redisKeyEdgeDeviceIDList, deviceIDs).Result()
-	return err
-}
+// //  add
+// func (rd redisDB) SetEdgeDeviceIDList(deviceIDs []string) error {
+// 	_, err := rd.cli.SAdd(context.Background(), redisKeyEdgeDeviceIDList, deviceIDs).Result()
+// 	return err
+// }
 
-// SISMEMBER
-func (rd redisDB) IsEdgeInDeviceIDList(deviceID string) (bool, error) {
-	return rd.cli.SIsMember(context.Background(), redisKeyEdgeDeviceIDList, deviceID).Result()
-}
+// // SISMEMBER
+// func (rd redisDB) IsEdgeInDeviceIDList(deviceID string) (bool, error) {
+// 	return rd.cli.SIsMember(context.Background(), redisKeyEdgeDeviceIDList, deviceID).Result()
+// }
 
-//  add
-func (rd redisDB) SetCandidateDeviceIDList(deviceIDs []string) error {
-	_, err := rd.cli.SAdd(context.Background(), redisKeyCandidateDeviceIDList, deviceIDs).Result()
-	return err
-}
+// //  add
+// func (rd redisDB) SetCandidateDeviceIDList(deviceIDs []string) error {
+// 	_, err := rd.cli.SAdd(context.Background(), redisKeyCandidateDeviceIDList, deviceIDs).Result()
+// 	return err
+// }
 
-// SISMEMBER
-func (rd redisDB) IsCandidateInDeviceIDList(deviceID string) (bool, error) {
-	return rd.cli.SIsMember(context.Background(), redisKeyCandidateDeviceIDList, deviceID).Result()
-}
+// // SISMEMBER
+// func (rd redisDB) IsCandidateInDeviceIDList(deviceID string) (bool, error) {
+// 	return rd.cli.SIsMember(context.Background(), redisKeyCandidateDeviceIDList, deviceID).Result()
+// }
 
 //
 func (rd redisDB) SetCacheDataTask(deviceID, cid, cacheID string) error {
@@ -284,4 +287,8 @@ func (rd redisDB) GetCacheDataTask(deviceID string) (string, string) {
 	cid, _ := redigo.String(vals[0], nil)
 	cacheID, _ := redigo.String(vals[1], nil)
 	return cid, cacheID
+}
+
+func (rd redisDB) IncrNodeDeviceID(t api.NodeTypeName) (int64, error) {
+	return rd.cli.HIncrBy(context.Background(), redisKeyNodeDeviceID, string(t), 1).Result()
 }

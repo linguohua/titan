@@ -190,7 +190,7 @@ type SchedulerStruct struct {
 
 		CandidateNodeConnect func(p0 context.Context, p1 string, p2 string) (error) `perm:"write"`
 
-		DeleteBlockRecords func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) ``
+		DeleteBlockRecords func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"admin"`
 
 		DeleteBlocks func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"admin"`
 
@@ -206,7 +206,7 @@ type SchedulerStruct struct {
 
 		GetDownloadInfoWithBlocks func(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfo, error) `perm:"read"`
 
-		GetNodeRegisterInfo func(p0 context.Context) (NodeRegisterInfo, error) `perm:"admin"`
+		GetNodeRegisterInfo func(p0 context.Context, p1 NodeTypeName) (NodeRegisterInfo, error) `perm:"admin"`
 
 		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
 
@@ -706,14 +706,14 @@ func (s *SchedulerStub) GetDownloadInfoWithBlocks(p0 context.Context, p1 []strin
 	return *new(map[string]DownloadInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetNodeRegisterInfo(p0 context.Context) (NodeRegisterInfo, error) {
+func (s *SchedulerStruct) GetNodeRegisterInfo(p0 context.Context, p1 NodeTypeName) (NodeRegisterInfo, error) {
 	if s.Internal.GetNodeRegisterInfo == nil {
 		return *new(NodeRegisterInfo), ErrNotSupported
 	}
-	return s.Internal.GetNodeRegisterInfo(p0)
+	return s.Internal.GetNodeRegisterInfo(p0, p1)
 }
 
-func (s *SchedulerStub) GetNodeRegisterInfo(p0 context.Context) (NodeRegisterInfo, error) {
+func (s *SchedulerStub) GetNodeRegisterInfo(p0 context.Context, p1 NodeTypeName) (NodeRegisterInfo, error) {
 	return *new(NodeRegisterInfo), ErrNotSupported
 }
 

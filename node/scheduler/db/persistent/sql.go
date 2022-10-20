@@ -8,6 +8,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"github.com/linguohua/titan/api"
 	"golang.org/x/xerrors"
 )
 
@@ -446,4 +447,39 @@ func (sd sqlDB) GetCacheInfos(cacheID string) ([]*CacheInfo, error) {
 	rows.Close()
 
 	return list, err
+}
+
+func (sd sqlDB) BindRegisterInfo(secret, deviceID string) error {
+	info := api.NodeRegisterInfo{
+		Secret:     secret,
+		DeviceID:   deviceID,
+		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
+	}
+
+	_, err := sd.cli.NamedExec(`INSERT INTO register (device_id, secret, create_time)
+	VALUES (:device_id, :secret, :create_time)`, info)
+
+	return err
+}
+
+func (sd sqlDB) GetSecretInfo(deviceID string) (string, error) {
+	info := &api.NodeRegisterInfo{
+		DeviceID: deviceID,
+	}
+
+	rows, err := sd.cli.NamedQuery(`SELECT * FROM register WHERE device_id=:device_id`, info)
+	if err != nil {
+		return "", err
+	}
+	if rows.Next() {
+		err = rows.StructScan(info)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		return "", xerrors.New(errNodeNotFind)
+	}
+	rows.Close()
+
+	return info.Secret, err
 }
