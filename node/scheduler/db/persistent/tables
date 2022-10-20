@@ -33,7 +33,7 @@ CREATE TABLE `validate_err` (
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='validate error device';
 
 CREATE TABLE `data_info` (
-	`cid` varchar(512) NOT NULL,
+	`cid` varchar(512) NOT NULL UNIQUE,
     `cache_ids` varchar(225) NOT NULL ,
     `status` int(20)  DEFAULT '0' ,
     `total_size` int(20)  DEFAULT '0' ,
@@ -41,3 +41,10 @@ CREATE TABLE `data_info` (
 	`need_reliability` int(64) DEFAULT '0' ,
 	PRIMARY KEY (`cid`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='data info';
+
+CREATE TABLE `register` (
+	`device_id` varchar(512) NOT NULL UNIQUE,
+    `secret` varchar(512) NOT NULL UNIQUE,
+    `create_time` varchar(225) DEFAULT NULL ,
+	PRIMARY KEY (`device_id`)
+  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node register info';

@@ -32,10 +32,10 @@ type DB interface {
 	RemoveValidatorList() error
 	IsNodeInValidatorList(deviceID string) (bool, error)
 
-	SetEdgeDeviceIDList(deviceIDs []string) error
-	IsEdgeInDeviceIDList(deviceID string) (bool, error)
-	SetCandidateDeviceIDList(deviceIDs []string) error
-	IsCandidateInDeviceIDList(deviceID string) (bool, error)
+	// SetEdgeDeviceIDList(deviceIDs []string) error
+	// IsEdgeInDeviceIDList(deviceID string) (bool, error)
+	// SetCandidateDeviceIDList(deviceIDs []string) error
+	// IsCandidateInDeviceIDList(deviceID string) (bool, error)
 
 	IncrNodeOnlineTime(deviceID string, onlineTime int64) (int64, error)
 	IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error)
@@ -47,6 +47,9 @@ type DB interface {
 	GetCacheDataTask(deviceID string) (string, string)
 
 	IsNilErr(err error) bool
+
+	// temporary node register
+	IncrNodeDeviceID(t api.NodeTypeName) (int64, error)
 }
 
 var (
