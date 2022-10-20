@@ -96,7 +96,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	if len(partitions) > 0 {
 		info.DiskType = partitions[0].Fstype
 
-		free := uint64(0)
+		use := uint64(0)
 		total := uint64(0)
 		for _, partition := range partitions {
 			usageStat, err := disk.Usage(partition.Mountpoint)
@@ -105,11 +105,11 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 				return info, err
 			}
 
-			free += usageStat.Used
+			use += usageStat.Used
 			total += usageStat.Total
 		}
 
-		info.DiskUsage = fmt.Sprintf("%f%%", float64(free)/float64(total))
+		info.DiskUsage = fmt.Sprintf("%f%%", float64(use)/float64(total)*100)
 
 	}
 	return info, nil
