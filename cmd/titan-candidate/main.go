@@ -417,7 +417,7 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						if err := schedulerAPI.CandidateNodeConnect(ctx, "http://"+address+"/rpc/v0"); err != nil {
+						if err := schedulerAPI.CandidateNodeConnect(ctx, "http://"+address+"/rpc/v0", ""); err != nil {
 							log.Errorf("Registering worker failed: %+v", err)
 							cancel()
 							return
