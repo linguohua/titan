@@ -438,12 +438,16 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, ip
 
 // CandidateNodeConnect Candidate connect
 func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
-	re, oo := peer.FromContext(ctx)
-	if oo {
-		log.Infof("CandidateNodeConnect ip:%v", re.Addr.String())
+	token, err := s.AuthNew(ctx, api.AllPermissions)
+	if err != nil {
+		return xerrors.Errorf("creating auth token for remote connection: %w", err)
 	}
 
-	candicateAPI, closer, err := client.NewCandicate(ctx, url, nil)
+	headers := http.Header{}
+	headers.Add("Authorization", "Bearer "+string(token))
+	// Connect to scheduler
+	// log.Infof("EdgeNodeConnect edge url:%v", url)
+	candicateAPI, closer, err := client.NewCandicate(ctx, url, headers)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect NewCandicate err:%v,url:%v", err, url)
 		return err
