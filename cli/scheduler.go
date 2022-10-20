@@ -5,7 +5,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/api/client"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
 )
@@ -80,11 +79,11 @@ var validateCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		url := cctx.String("scheduler-url")
+		// url := cctx.String("scheduler-url")
 
 		ctx := ReqContext(cctx)
 
-		schedulerAPI, closer, err := client.NewScheduler(ctx, url, nil)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -105,11 +104,11 @@ var electionCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		url := cctx.String("scheduler-url")
+		// url := cctx.String("scheduler-url")
 
 		ctx := ReqContext(cctx)
 
-		schedulerAPI, closer, err := client.NewScheduler(ctx, url, nil)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -132,11 +131,11 @@ var showDataInfoCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		url := cctx.String("scheduler-url")
+		// url := cctx.String("scheduler-url")
 		cid := cctx.String("cid")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := client.NewScheduler(ctx, url, nil)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -170,12 +169,12 @@ var cacheCarFileCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		url := cctx.String("scheduler-url")
+		// url := cctx.String("scheduler-url")
 		cid := cctx.String("cid")
 		reliability := cctx.Int("reliability")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := client.NewScheduler(ctx, url, nil)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -208,13 +207,13 @@ var cacheBlocksCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		url := cctx.String("scheduler-url")
+		// url := cctx.String("scheduler-url")
 		cids := cctx.String("cids")
 		deviceID := cctx.String("device-id")
 		cidsPath := cctx.String("cids-file-path")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := client.NewScheduler(ctx, url, nil)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -258,13 +257,13 @@ var getDownloadInfoCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		url := cctx.String("scheduler-url")
+		// url := cctx.String("scheduler-url")
 		cids := cctx.String("cids")
 		ip := cctx.String("ip")
 		cidsPath := cctx.String("cids-file-path")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := client.NewScheduler(ctx, url, nil)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -308,13 +307,13 @@ var deleteBlocksCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		url := cctx.String("scheduler-url")
+		// url := cctx.String("scheduler-url")
 		cids := cctx.String("cids")
 		deviceID := cctx.String("device-id")
 		cidsPath := cctx.String("cids-file-path")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := client.NewScheduler(ctx, url, nil)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -354,10 +353,10 @@ var showOnlineNodeCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		url := cctx.String("scheduler-url")
+		// url := cctx.String("scheduler-url")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := client.NewScheduler(ctx, url, nil)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -382,10 +381,10 @@ var initDeviceIDsCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		url := cctx.String("scheduler-url")
+		// url := cctx.String("scheduler-url")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := client.NewScheduler(ctx, url, nil)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -407,12 +406,12 @@ var cachingBlocksCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		url := cctx.String("scheduler-url")
+		// url := cctx.String("scheduler-url")
 		// log.Infof("scheduler url:%v", url)
 		deviceID := cctx.String("device-id")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := client.NewScheduler(ctx, url, nil)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -441,11 +440,11 @@ var cacheStatCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		url := cctx.String("scheduler-url")
+		// url := cctx.String("scheduler-url")
 		deviceID := cctx.String("device-id")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := client.NewScheduler(ctx, url, nil)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
 		if err != nil {
 			return err
 		}

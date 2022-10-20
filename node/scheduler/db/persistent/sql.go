@@ -417,7 +417,7 @@ func (sd sqlDB) HaveUndoneCaches(cacheID string) (bool, error) {
 		info := &CacheInfo{}
 		err := rows.StructScan(info)
 		if err == nil {
-			fmt.Printf("HaveUndoneCaches info:%v", info)
+			// fmt.Printf("HaveUndoneCaches info:%v", info)
 			if info.Status == 1 {
 				return true, nil
 			}

@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/filecoin-project/go-jsonrpc/auth"
+	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
@@ -17,6 +19,7 @@ import (
 	"github.com/linguohua/titan/node/scheduler"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/linguohua/titan/node/secret"
 	"github.com/linguohua/titan/region"
 	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
@@ -42,6 +45,7 @@ func main() {
 
 	local := []*cli.Command{
 		runCmd,
+		getApiKeyCmd,
 	}
 
 	local = append(local, lcli.SchedulerCmds...)
@@ -84,6 +88,60 @@ func main() {
 		log.Warnf("%+v", err)
 		return
 	}
+}
+
+type jwtPayload struct {
+	Allow []auth.Permission
+}
+
+var getApiKeyCmd = &cli.Command{
+	Name:  "get-api-key",
+	Usage: "Generate API Key",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "perm",
+			Usage: "perm",
+			Value: "",
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		lr, err := openRepo(cctx)
+		if err != nil {
+			return err
+		}
+		defer lr.Close() // nolint
+
+		perm := cctx.String("perm")
+
+		p := jwtPayload{}
+
+		switch perm {
+		case string(api.PermRead):
+			p.Allow = []auth.Permission{api.PermRead}
+			break
+		case string(api.PermAdmin):
+			p.Allow = api.AllPermissions
+			break
+		case string(api.PermWrite):
+			p.Allow = []auth.Permission{api.PermRead, api.PermWrite}
+			break
+		default:
+			return xerrors.Errorf("perm not found:%v", perm)
+		}
+
+		authKey, err := secret.APISecret(lr)
+		if err != nil {
+			return xerrors.Errorf("setting up api secret: %w", err)
+		}
+
+		k, err := jwt.Sign(&p, (*jwt.HMACSHA)(authKey))
+		if err != nil {
+			return xerrors.Errorf("jwt sign: %w", err)
+		}
+
+		fmt.Println(string(k))
+		return nil
+	},
 }
 
 var runCmd = &cli.Command{
