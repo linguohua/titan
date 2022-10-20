@@ -190,6 +190,8 @@ type SchedulerStruct struct {
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) (error) `perm:"write"`
 
+		DeleteBlockRecords func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) ``
+
 		DeleteBlocks func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"admin"`
 
 		EdgeNodeConnect func(p0 context.Context, p1 string) (error) `perm:"write"`
@@ -204,7 +206,7 @@ type SchedulerStruct struct {
 
 		GetDownloadInfoWithBlocks func(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfo, error) `perm:"read"`
 
-		GetNodeRegisterInfo func(p0 context.Context) (NodeRegisterInfo, error) ``
+		GetNodeRegisterInfo func(p0 context.Context) (NodeRegisterInfo, error) `perm:"admin"`
 
 		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
 
@@ -614,6 +616,17 @@ func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context, p1 string) (e
 
 func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 string) (error) {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) DeleteBlockRecords(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
+	if s.Internal.DeleteBlockRecords == nil {
+		return *new(map[string]string), ErrNotSupported
+	}
+	return s.Internal.DeleteBlockRecords(p0, p1, p2)
+}
+
+func (s *SchedulerStub) DeleteBlockRecords(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
+	return *new(map[string]string), ErrNotSupported
 }
 
 func (s *SchedulerStruct) DeleteBlocks(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {

@@ -9,16 +9,17 @@ type Scheduler interface {
 	Common
 
 	// call by command
-	CacheBlocks(ctx context.Context, cids []string, deviceID string) ([]string, error)           //perm:admin
-	DeleteBlocks(ctx context.Context, deviceID string, cids []string) (map[string]string, error) //perm:admin
-	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeTypeName) ([]string, error)             //perm:read
-	ElectionValidators(ctx context.Context) error                                                //perm:admin
-	Validate(ctx context.Context) error                                                          //perm:admin
-	QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]CacheStat, error)            //perm:read
-	QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (CachingBlockList, error)   //perm:read
-	CacheCarFile(ctx context.Context, cid string, reliability int) error                         //perm:admin
-	ShowDataInfos(ctx context.Context, cid string) (string, error)                               //perm:read
-	GetNodeRegisterInfo(ctx context.Context) (NodeRegisterInfo, error)                           //perm:admin
+	CacheBlocks(ctx context.Context, cids []string, deviceID string) ([]string, error)                 //perm:admin
+	DeleteBlocks(ctx context.Context, deviceID string, cids []string) (map[string]string, error)       //perm:admin
+	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeTypeName) ([]string, error)                   //perm:read
+	ElectionValidators(ctx context.Context) error                                                      //perm:admin
+	Validate(ctx context.Context) error                                                                //perm:admin
+	QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]CacheStat, error)                  //perm:read
+	QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (CachingBlockList, error)         //perm:read
+	CacheCarFile(ctx context.Context, cid string, reliability int) error                               //perm:admin
+	ShowDataInfos(ctx context.Context, cid string) (string, error)                                     //perm:read
+	GetNodeRegisterInfo(ctx context.Context) (NodeRegisterInfo, error)                                 //perm:admin
+	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) //perm:admin
 	// InitNodeDeviceIDs(ctx context.Context) error                                                 //perm:admin
 
 	// call by node
