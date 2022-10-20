@@ -47,9 +47,6 @@ type DB interface {
 	GetCacheDataTask(deviceID string) (string, string)
 
 	IsNilErr(err error) bool
-
-	// temporary node register
-	IncrNodeDeviceID(t api.NodeTypeName) (int64, error)
 }
 
 var (

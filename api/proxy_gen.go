@@ -214,7 +214,7 @@ type SchedulerStruct struct {
 
 		QueryCachingBlocksWithNode func(p0 context.Context, p1 string) (CachingBlockList, error) `perm:"read"`
 
-		RegisterNode func(p0 context.Context, p1 NodeTypeName) (NodeRegisterInfo, error) `perm:"admin"`
+		RegisterNode func(p0 context.Context) (NodeRegisterInfo, error) `perm:"admin"`
 
 		ShowDataInfos func(p0 context.Context, p1 string) (string, error) `perm:"read"`
 
@@ -750,14 +750,14 @@ func (s *SchedulerStub) QueryCachingBlocksWithNode(p0 context.Context, p1 string
 	return *new(CachingBlockList), ErrNotSupported
 }
 
-func (s *SchedulerStruct) RegisterNode(p0 context.Context, p1 NodeTypeName) (NodeRegisterInfo, error) {
+func (s *SchedulerStruct) RegisterNode(p0 context.Context) (NodeRegisterInfo, error) {
 	if s.Internal.RegisterNode == nil {
 		return *new(NodeRegisterInfo), ErrNotSupported
 	}
-	return s.Internal.RegisterNode(p0, p1)
+	return s.Internal.RegisterNode(p0)
 }
 
-func (s *SchedulerStub) RegisterNode(p0 context.Context, p1 NodeTypeName) (NodeRegisterInfo, error) {
+func (s *SchedulerStub) RegisterNode(p0 context.Context) (NodeRegisterInfo, error) {
 	return *new(NodeRegisterInfo), ErrNotSupported
 }
 
