@@ -52,20 +52,20 @@ func newSecret(input string) string {
 	return hex.EncodeToString(bytes)
 }
 
-func verifySecret(token string) error {
+func verifySecret(token string) (string, error) {
 	deviceID, secret, err := parseToken(token)
 	if err != nil {
-		return xerrors.Errorf("token err:%s,deviceID:%s,secret:%s", err.Error(), deviceID, secret)
+		return deviceID, xerrors.Errorf("token err:%s,deviceID:%s,secret:%s", err.Error(), deviceID, secret)
 	}
 
 	s, err := persistent.GetDB().GetSecretInfo(deviceID)
 	if err != nil {
-		return xerrors.Errorf("info err:%s,deviceID:%s,secret:%s", err.Error(), deviceID, secret)
+		return deviceID, xerrors.Errorf("info err:%s,deviceID:%s,secret:%s", err.Error(), deviceID, secret)
 	}
 
 	if s != secret {
-		return xerrors.Errorf("err:%s,deviceID:%s,secret:%s,s:%s", "secret mismatch", deviceID, secret, s)
+		return deviceID, xerrors.Errorf("err:%s,deviceID:%s,secret:%s,s:%s", "secret mismatch", deviceID, secret, s)
 	}
 
-	return nil
+	return deviceID, nil
 }

@@ -26,11 +26,11 @@ var SchedulerCmds = []*cli.Command{
 }
 
 var (
-	schedulerURLFlag = &cli.StringFlag{
-		Name:  "scheduler-url",
-		Usage: "host address and port the worker api will listen on",
-		Value: "http://127.0.0.1:3456/rpc/v0",
-	}
+	// schedulerURLFlag = &cli.StringFlag{
+	// 	Name:  "scheduler-url",
+	// 	Usage: "host address and port the worker api will listen on",
+	// 	Value: "http://127.0.0.1:3456/rpc/v0",
+	// }
 
 	deviceIDFlag = &cli.StringFlag{
 		Name:  "device-id",
@@ -70,7 +70,7 @@ var (
 
 	nodeTypeFlag = &cli.IntFlag{
 		Name:  "node-type",
-		Usage: "node type",
+		Usage: "node type 1:Edge 2:Candidate 3:Scheduler",
 		Value: 0,
 	}
 )
@@ -79,7 +79,7 @@ var registerNodeCmd = &cli.Command{
 	Name:  "register-node",
 	Usage: "register deviceID and secret ",
 	Flags: []cli.Flag{
-		schedulerURLFlag,
+		// schedulerURLFlag,
 		nodeTypeFlag,
 	},
 
@@ -124,7 +124,7 @@ var validateCmd = &cli.Command{
 	Name:  "validate",
 	Usage: "Validate edge node",
 	Flags: []cli.Flag{
-		schedulerURLFlag,
+		// schedulerURLFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -149,7 +149,7 @@ var electionCmd = &cli.Command{
 	Name:  "election",
 	Usage: "Start election validator",
 	Flags: []cli.Flag{
-		schedulerURLFlag,
+		// schedulerURLFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -175,7 +175,7 @@ var showDataInfoCmd = &cli.Command{
 	Name:  "show-data",
 	Usage: "show data",
 	Flags: []cli.Flag{
-		schedulerURLFlag,
+		// schedulerURLFlag,
 		cidFlag,
 	},
 
@@ -212,7 +212,7 @@ var cacheCarFileCmd = &cli.Command{
 	Name:  "cache-file",
 	Usage: "specify node cache carfile",
 	Flags: []cli.Flag{
-		schedulerURLFlag,
+		// schedulerURLFlag,
 		cidFlag,
 		reliabilityFlag,
 	},
@@ -249,7 +249,7 @@ var cacheBlocksCmd = &cli.Command{
 	Name:  "cache-blocks",
 	Usage: "specify node cache blocks",
 	Flags: []cli.Flag{
-		schedulerURLFlag,
+		// schedulerURLFlag,
 		cidsFlag,
 		deviceIDFlag,
 		cidsPathFlag,
@@ -299,7 +299,7 @@ var getDownloadInfoCmd = &cli.Command{
 	Name:  "download-infos",
 	Usage: "specify node cache blocks",
 	Flags: []cli.Flag{
-		schedulerURLFlag,
+		// schedulerURLFlag,
 		cidsFlag,
 		ipFlag,
 		cidsPathFlag,
@@ -349,7 +349,7 @@ var deleteBlocksCmd = &cli.Command{
 	Name:  "delete-blocks",
 	Usage: "delete cache blocks",
 	Flags: []cli.Flag{
-		schedulerURLFlag,
+		// schedulerURLFlag,
 		cidsFlag,
 		deviceIDFlag,
 		cidsPathFlag,
@@ -398,7 +398,7 @@ var showOnlineNodeCmd = &cli.Command{
 	Name:  "show-nodes",
 	Usage: "show all online node",
 	Flags: []cli.Flag{
-		schedulerURLFlag,
+		// schedulerURLFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -450,7 +450,7 @@ var cachingBlocksCmd = &cli.Command{
 	Name:  "caching-blocks",
 	Usage: "show caching blocks from node",
 	Flags: []cli.Flag{
-		schedulerURLFlag,
+		// schedulerURLFlag,
 		deviceIDFlag,
 	},
 
@@ -484,7 +484,7 @@ var cacheStatCmd = &cli.Command{
 	Name:  "cache-stat",
 	Usage: "show cache stat from node",
 	Flags: []cli.Flag{
-		schedulerURLFlag,
+		// schedulerURLFlag,
 		deviceIDFlag,
 	},
 

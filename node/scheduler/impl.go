@@ -70,7 +70,7 @@ type Scheduler struct {
 
 // EdgeNodeConnect edge connect
 func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url, token string) error {
-	err := verifySecret(token)
+	deviceID, err := verifySecret(token)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect verifySecret err:%v", err)
 		return err
@@ -96,6 +96,10 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url, token string) erro
 	if err != nil {
 		log.Errorf("EdgeNodeConnect DeviceInfo err:%v", err)
 		return err
+	}
+
+	if deviceID != deviceInfo.DeviceId {
+		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
 
 	edgeNode := &EdgeNode{
@@ -459,7 +463,7 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, ip
 
 // CandidateNodeConnect Candidate connect
 func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url, token string) error {
-	err := verifySecret(token)
+	deviceID, err := verifySecret(token)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect verifySecret err:%v", err)
 		return err
@@ -485,6 +489,10 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url, token string)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect DeviceInfo err:%v", err)
 		return err
+	}
+
+	if deviceID != deviceInfo.DeviceId {
+		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
 
 	candidateNode := &CandidateNode{
