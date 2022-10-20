@@ -6,7 +6,6 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 
@@ -20,8 +19,6 @@ import (
 )
 
 var log = logging.Logger("device")
-
-var cpuCompareInterval = 5 * time.Minute
 
 const deviceName = "titan-edge"
 
@@ -88,7 +85,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 		info.MemoryUsage = strconv.FormatFloat(vmStat.UsedPercent, 'f', 10, 32)
 	}
 
-	cpuPercent, err := cpu.Percent(cpuCompareInterval, false)
+	cpuPercent, err := cpu.Percent(0, false)
 	if err != nil {
 		log.Errorf("getCpuInfo: %v", err)
 	}
