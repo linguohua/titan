@@ -167,8 +167,8 @@ func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.C
 	return "", xerrors.New(ErrNodeNotFind)
 }
 
-// GetNodeRegisterInfo Get DeviceID Secret
-func (s *Scheduler) GetNodeRegisterInfo(ctx context.Context, t api.NodeTypeName) (api.NodeRegisterInfo, error) {
+// RegisterNode Register Node
+func (s *Scheduler) RegisterNode(ctx context.Context, t api.NodeTypeName) (api.NodeRegisterInfo, error) {
 	return registerNode(t)
 }
 

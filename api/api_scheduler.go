@@ -18,7 +18,7 @@ type Scheduler interface {
 	QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (CachingBlockList, error)         //perm:read
 	CacheCarFile(ctx context.Context, cid string, reliability int) error                               //perm:admin
 	ShowDataInfos(ctx context.Context, cid string) (string, error)                                     //perm:read
-	GetNodeRegisterInfo(ctx context.Context, t NodeTypeName) (NodeRegisterInfo, error)                 //perm:admin
+	RegisterNode(ctx context.Context, t NodeTypeName) (NodeRegisterInfo, error)                        //perm:admin
 	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) //perm:admin
 
 	// call by node

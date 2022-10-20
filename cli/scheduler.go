@@ -97,7 +97,7 @@ var registerNodeCmd = &cli.Command{
 		defer closer()
 
 		if t == int(api.NodeEdge) {
-			info, err := schedulerAPI.GetNodeRegisterInfo(ctx, api.TypeNameEdge)
+			info, err := schedulerAPI.RegisterNode(ctx, api.TypeNameEdge)
 			if err != nil {
 				return err
 			}
@@ -107,7 +107,7 @@ var registerNodeCmd = &cli.Command{
 		}
 
 		if t == int(api.NodeCandidate) {
-			info, err := schedulerAPI.GetNodeRegisterInfo(ctx, api.TypeNameCandidate)
+			info, err := schedulerAPI.RegisterNode(ctx, api.TypeNameCandidate)
 			if err != nil {
 				return err
 			}
