@@ -290,30 +290,30 @@ func (block *Block) AnnounceBlocksWasDelete(ctx context.Context, cids []string) 
 	// delResult := api.DelResult{}
 	failedResults := make([]api.BlockOperationResult, 0)
 
-	// result, err := block.scheduler.DeleteBlockRecords(ctx, block.deviceID, cids)
-	// if err != nil {
-	// 	log.Errorf("AnnounceBlocksWasDelete, delete block error:%v", err)
-	// 	return failedResults, err
-	// }
+	result, err := block.scheduler.DeleteBlockRecords(ctx, block.deviceID, cids)
+	if err != nil {
+		log.Errorf("AnnounceBlocksWasDelete, delete block error:%v", err)
+		return failedResults, err
+	}
 
-	// for _, cid := range cids {
-	// 	_, ok := result[cid]
-	// 	if ok {
-	// 		continue
-	// 	}
+	for _, cid := range cids {
+		_, ok := result[cid]
+		if ok {
+			continue
+		}
 
-	// 	err = block.blockStore.Delete(cid)
-	// 	if err != nil {
-	// 		result[cid] = err.Error()
-	// 	}
-	// 	block.deleteFidAndCid(cid)
-	// }
+		err = block.blockStore.Delete(cid)
+		if err != nil {
+			result[cid] = err.Error()
+		}
+		block.deleteFidAndCid(cid)
+	}
 
-	// for k, v := range result {
-	// 	log.Errorf("AnnounceBlocksWasDelete, delete block %s error:%v", k, v)
-	// 	result := api.BlockOperationResult{Cid: k, ErrMsg: v}
-	// 	failedResults = append(failedResults, result)
-	// }
+	for k, v := range result {
+		log.Errorf("AnnounceBlocksWasDelete, delete block %s error:%v", k, v)
+		result := api.BlockOperationResult{Cid: k, ErrMsg: v}
+		failedResults = append(failedResults, result)
+	}
 
 	return failedResults, nil
 }

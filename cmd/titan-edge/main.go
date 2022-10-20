@@ -411,7 +411,7 @@ var runCmd = &cli.Command{
 					select {
 					case <-readyCh:
 						log.Info("connect scheduler..")
-						if err := schedulerAPI.EdgeNodeConnect(ctx, "http://"+address+"/rpc/v0"); err != nil {
+						if err := schedulerAPI.EdgeNodeConnect(ctx, "http://"+address+"/rpc/v0", ""); err != nil {
 							log.Errorf("Registering worker failed: %+v", err)
 							cancel()
 							return

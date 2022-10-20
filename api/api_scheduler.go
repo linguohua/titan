@@ -24,9 +24,9 @@ type Scheduler interface {
 
 	// call by node
 	GetToken(ctx context.Context, deviceID, secret string) (string, error)                        //perm:write
-	EdgeNodeConnect(ctx context.Context, deviceID string) error                                   //perm:write
+	EdgeNodeConnect(ctx context.Context, url, token string) error                                 //perm:write
 	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error               //perm:write
-	CandidateNodeConnect(ctx context.Context, deviceID string) error                              //perm:write
+	CandidateNodeConnect(ctx context.Context, url, token string) error                            //perm:write
 	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) (string, error) //perm:write
 
 	// call by user

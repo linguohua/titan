@@ -7,7 +7,6 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
-	"google.golang.org/grpc/peer"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
@@ -66,19 +65,14 @@ type Scheduler struct {
 }
 
 // EdgeNodeConnect edge connect
-func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url string) error {
-	re, oo := peer.FromContext(ctx)
-	if oo {
-		log.Infof("EdgeNodeConnect ip:%v", re.Addr.String())
-	}
-
-	token, err := s.AuthNew(ctx, api.AllPermissions)
+func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url, token string) error {
+	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
 		return xerrors.Errorf("creating auth token for remote connection: %w", err)
 	}
 
 	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+string(token))
+	headers.Add("Authorization", "Bearer "+string(t))
 	// Connect to scheduler
 	// log.Infof("EdgeNodeConnect edge url:%v", url)
 	edgeAPI, closer, err := client.NewEdge(ctx, url, headers)
@@ -447,14 +441,14 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, ip
 }
 
 // CandidateNodeConnect Candidate connect
-func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url string) error {
-	token, err := s.AuthNew(ctx, api.AllPermissions)
+func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url, token string) error {
+	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
 		return xerrors.Errorf("creating auth token for remote connection: %w", err)
 	}
 
 	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+string(token))
+	headers.Add("Authorization", "Bearer "+string(t))
 	// Connect to scheduler
 	// log.Infof("EdgeNodeConnect edge url:%v", url)
 	candicateAPI, closer, err := client.NewCandicate(ctx, url, headers)
