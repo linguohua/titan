@@ -159,24 +159,34 @@ func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.C
 	return "", xerrors.New(ErrNodeNotFind)
 }
 
-// DeleteBlockRecords  Delete Block Record
-func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
-	if len(cids) <= 0 {
-		return nil, xerrors.New("cids is nil")
-	}
-
-	edge := s.nodeManager.getEdgeNode(deviceID)
-	if edge != nil {
-		return edge.deleteBlockRecords(cids)
-	}
-
-	candidate := s.nodeManager.getCandidateNode(deviceID)
-	if candidate != nil {
-		return candidate.deleteBlockRecords(cids)
-	}
-
-	return nil, xerrors.New(ErrNodeNotFind)
+// GetNodeRegisterInfo Get DeviceID Secret
+func (s *Scheduler) GetNodeRegisterInfo(ctx context.Context) (api.NodeRegisterInfo, error) {
+	return api.NodeRegisterInfo{}, nil
 }
+
+// GetToken get token
+func (s *Scheduler) GetToken(ctx context.Context, deviceID, secret string) (string, error) {
+	return "", nil
+}
+
+// DeleteBlockRecords  Delete Block Record
+// func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
+// 	if len(cids) <= 0 {
+// 		return nil, xerrors.New("cids is nil")
+// 	}
+
+// 	edge := s.nodeManager.getEdgeNode(deviceID)
+// 	if edge != nil {
+// 		return edge.deleteBlockRecords(cids)
+// 	}
+
+// 	candidate := s.nodeManager.getCandidateNode(deviceID)
+// 	if candidate != nil {
+// 		return candidate.deleteBlockRecords(cids)
+// 	}
+
+// 	return nil, xerrors.New(ErrNodeNotFind)
+// }
 
 // DeleteBlocks  Delete Blocks
 func (s *Scheduler) DeleteBlocks(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {

@@ -158,7 +158,8 @@ func (block *Block) cacheResult(ctx context.Context, from string, err error, bIn
 		Links:      bInfo.links,
 		BlockSize:  bInfo.blockSize,
 		LinksSize:  bInfo.linksSize,
-		CarFileCid: bInfo.carFileCid}
+		CarFileCid: bInfo.carFileCid,
+	}
 
 	fid, err := block.scheduler.CacheResult(ctx, block.deviceID, result)
 	if err != nil {
@@ -289,30 +290,30 @@ func (block *Block) AnnounceBlocksWasDelete(ctx context.Context, cids []string) 
 	// delResult := api.DelResult{}
 	failedResults := make([]api.BlockOperationResult, 0)
 
-	result, err := block.scheduler.DeleteBlockRecords(ctx, block.deviceID, cids)
-	if err != nil {
-		log.Errorf("AnnounceBlocksWasDelete, delete block error:%v", err)
-		return failedResults, err
-	}
+	// result, err := block.scheduler.DeleteBlockRecords(ctx, block.deviceID, cids)
+	// if err != nil {
+	// 	log.Errorf("AnnounceBlocksWasDelete, delete block error:%v", err)
+	// 	return failedResults, err
+	// }
 
-	for _, cid := range cids {
-		_, ok := result[cid]
-		if ok {
-			continue
-		}
+	// for _, cid := range cids {
+	// 	_, ok := result[cid]
+	// 	if ok {
+	// 		continue
+	// 	}
 
-		err = block.blockStore.Delete(cid)
-		if err != nil {
-			result[cid] = err.Error()
-		}
-		block.deleteFidAndCid(cid)
-	}
+	// 	err = block.blockStore.Delete(cid)
+	// 	if err != nil {
+	// 		result[cid] = err.Error()
+	// 	}
+	// 	block.deleteFidAndCid(cid)
+	// }
 
-	for k, v := range result {
-		log.Errorf("AnnounceBlocksWasDelete, delete block %s error:%v", k, v)
-		result := api.BlockOperationResult{Cid: k, ErrMsg: v}
-		failedResults = append(failedResults, result)
-	}
+	// for k, v := range result {
+	// 	log.Errorf("AnnounceBlocksWasDelete, delete block %s error:%v", k, v)
+	// 	result := api.BlockOperationResult{Cid: k, ErrMsg: v}
+	// 	failedResults = append(failedResults, result)
+	// }
 
 	return failedResults, nil
 }
@@ -451,7 +452,6 @@ func (block *Block) getMaxFid() (string, error) {
 	log.Infof("last key:%s, value:%s", r.Key, string(r.Value))
 
 	return r.Key, nil
-
 }
 
 func (block *Block) deleteAllBlocks() error {
@@ -522,8 +522,8 @@ func (block *Block) scrubBlockStore(scrub api.ScrubBlocks) error {
 		return err
 	}
 
-	var need2DeleteBlocks = make([]string, 0)
-	var blocks = scrub.Blocks
+	need2DeleteBlocks := make([]string, 0)
+	blocks := scrub.Blocks
 	for i := startFid; i <= endFid; i++ {
 		fid := fmt.Sprintf("%d", i)
 		cid, err := block.getCID(fid)
@@ -567,7 +567,6 @@ func (block *Block) resolveLinks(blk blocks.Block) ([]*format.Link, error) {
 	}
 
 	return node.Links(), nil
-
 }
 
 func getLinks(block *Block, data []byte, cidStr string) ([]*format.Link, error) {

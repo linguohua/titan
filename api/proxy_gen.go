@@ -190,8 +190,6 @@ type SchedulerStruct struct {
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) (error) `perm:"write"`
 
-		DeleteBlockRecords func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"read"`
-
 		DeleteBlocks func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"admin"`
 
 		EdgeNodeConnect func(p0 context.Context, p1 string) (error) `perm:"write"`
@@ -206,15 +204,17 @@ type SchedulerStruct struct {
 
 		GetDownloadInfoWithBlocks func(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfo, error) `perm:"read"`
 
-		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"admin"`
+		GetNodeRegisterInfo func(p0 context.Context) (NodeRegisterInfo, error) ``
 
-		InitNodeDeviceIDs func(p0 context.Context) (error) `perm:"admin"`
+		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
 
-		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"admin"`
+		GetToken func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
 
-		QueryCachingBlocksWithNode func(p0 context.Context, p1 string) (CachingBlockList, error) `perm:"admin"`
+		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"read"`
 
-		ShowDataInfos func(p0 context.Context, p1 string) (string, error) `perm:"admin"`
+		QueryCachingBlocksWithNode func(p0 context.Context, p1 string) (CachingBlockList, error) `perm:"read"`
+
+		ShowDataInfos func(p0 context.Context, p1 string) (string, error) `perm:"read"`
 
 		Validate func(p0 context.Context) (error) `perm:"admin"`
 
@@ -616,17 +616,6 @@ func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 string) (err
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) DeleteBlockRecords(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
-	if s.Internal.DeleteBlockRecords == nil {
-		return *new(map[string]string), ErrNotSupported
-	}
-	return s.Internal.DeleteBlockRecords(p0, p1, p2)
-}
-
-func (s *SchedulerStub) DeleteBlockRecords(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
-	return *new(map[string]string), ErrNotSupported
-}
-
 func (s *SchedulerStruct) DeleteBlocks(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
 	if s.Internal.DeleteBlocks == nil {
 		return *new(map[string]string), ErrNotSupported
@@ -704,6 +693,17 @@ func (s *SchedulerStub) GetDownloadInfoWithBlocks(p0 context.Context, p1 []strin
 	return *new(map[string]DownloadInfo), ErrNotSupported
 }
 
+func (s *SchedulerStruct) GetNodeRegisterInfo(p0 context.Context) (NodeRegisterInfo, error) {
+	if s.Internal.GetNodeRegisterInfo == nil {
+		return *new(NodeRegisterInfo), ErrNotSupported
+	}
+	return s.Internal.GetNodeRegisterInfo(p0)
+}
+
+func (s *SchedulerStub) GetNodeRegisterInfo(p0 context.Context) (NodeRegisterInfo, error) {
+	return *new(NodeRegisterInfo), ErrNotSupported
+}
+
 func (s *SchedulerStruct) GetOnlineDeviceIDs(p0 context.Context, p1 NodeTypeName) ([]string, error) {
 	if s.Internal.GetOnlineDeviceIDs == nil {
 		return *new([]string), ErrNotSupported
@@ -715,15 +715,15 @@ func (s *SchedulerStub) GetOnlineDeviceIDs(p0 context.Context, p1 NodeTypeName) 
 	return *new([]string), ErrNotSupported
 }
 
-func (s *SchedulerStruct) InitNodeDeviceIDs(p0 context.Context) (error) {
-	if s.Internal.InitNodeDeviceIDs == nil {
-		return ErrNotSupported
+func (s *SchedulerStruct) GetToken(p0 context.Context, p1 string, p2 string) (string, error) {
+	if s.Internal.GetToken == nil {
+		return "", ErrNotSupported
 	}
-	return s.Internal.InitNodeDeviceIDs(p0)
+	return s.Internal.GetToken(p0, p1, p2)
 }
 
-func (s *SchedulerStub) InitNodeDeviceIDs(p0 context.Context) (error) {
-	return ErrNotSupported
+func (s *SchedulerStub) GetToken(p0 context.Context, p1 string, p2 string) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) QueryCacheStatWithNode(p0 context.Context, p1 string) ([]CacheStat, error) {

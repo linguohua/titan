@@ -16,7 +16,7 @@ var SchedulerCmds = []*cli.Command{
 	validateCmd,
 	showOnlineNodeCmd,
 	deleteBlocksCmd,
-	initDeviceIDsCmd,
+	// initDeviceIDsCmd,
 	cachingBlocksCmd,
 	cacheStatCmd,
 	getDownloadInfoCmd,
@@ -370,29 +370,29 @@ var showOnlineNodeCmd = &cli.Command{
 	},
 }
 
-var initDeviceIDsCmd = &cli.Command{
-	Name:  "init-devices",
-	Usage: "init deviceIDs",
-	Flags: []cli.Flag{
-		schedulerURLFlag,
-	},
+// var initDeviceIDsCmd = &cli.Command{
+// 	Name:  "init-devices",
+// 	Usage: "init deviceIDs",
+// 	Flags: []cli.Flag{
+// 		schedulerURLFlag,
+// 	},
 
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		// url := cctx.String("scheduler-url")
+// 	Before: func(cctx *cli.Context) error {
+// 		return nil
+// 	},
+// 	Action: func(cctx *cli.Context) error {
+// 		// url := cctx.String("scheduler-url")
 
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
+// 		ctx := ReqContext(cctx)
+// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		defer closer()
 
-		return schedulerAPI.InitNodeDeviceIDs(ctx)
-	},
-}
+// 		return schedulerAPI.InitNodeDeviceIDs(ctx)
+// 	},
+// }
 
 var cachingBlocksCmd = &cli.Command{
 	Name:  "caching-blocks",

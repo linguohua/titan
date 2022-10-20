@@ -11,27 +11,34 @@ type Scheduler interface {
 	// call by command
 	CacheBlocks(ctx context.Context, cids []string, deviceID string) ([]string, error)           //perm:admin
 	DeleteBlocks(ctx context.Context, deviceID string, cids []string) (map[string]string, error) //perm:admin
-	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeTypeName) ([]string, error)             //perm:admin
+	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeTypeName) ([]string, error)             //perm:read
 	ElectionValidators(ctx context.Context) error                                                //perm:admin
 	Validate(ctx context.Context) error                                                          //perm:admin
-	InitNodeDeviceIDs(ctx context.Context) error                                                 //perm:admin
-	QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]CacheStat, error)            //perm:admin
-	QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (CachingBlockList, error)   //perm:admin
+	QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]CacheStat, error)            //perm:read
+	QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (CachingBlockList, error)   //perm:read
 	CacheCarFile(ctx context.Context, cid string, reliability int) error                         //perm:admin
-	ShowDataInfos(ctx context.Context, cid string) (string, error)                               //perm:admin
+	ShowDataInfos(ctx context.Context, cid string) (string, error)                               //perm:read
+	GetNodeRegisterInfo(ctx context.Context) (NodeRegisterInfo, error)                           //perm:admin
+	// InitNodeDeviceIDs(ctx context.Context) error                                                 //perm:admin
 
 	// call by node
-	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) //perm:read
-	EdgeNodeConnect(ctx context.Context, deviceID string) error                                        //perm:write
-	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                    //perm:write
-	CandidateNodeConnect(ctx context.Context, deviceID string) error                                   //perm:write
-	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) (string, error)      //perm:write
+	GetToken(ctx context.Context, deviceID, secret string) (string, error)                        //perm:write
+	EdgeNodeConnect(ctx context.Context, deviceID string) error                                   //perm:write
+	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error               //perm:write
+	CandidateNodeConnect(ctx context.Context, deviceID string) error                              //perm:write
+	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) (string, error) //perm:write
 
 	// call by user
 	FindNodeWithBlock(ctx context.Context, cid string, ip string) (string, error)                             //perm:read
 	GetDownloadInfoWithBlocks(ctx context.Context, cids []string, ip string) (map[string]DownloadInfo, error) //perm:read
 	GetDownloadInfoWithBlock(ctx context.Context, cid string, ip string) (DownloadInfo, error)                //perm:read
 	GetDevicesInfo(ctx context.Context, deviceID string) (DevicesInfo, error)                                 //perm:read
+}
+
+// NodeRegisterInfo Node Register Info
+type NodeRegisterInfo struct {
+	DeviceID string
+	Secret   string
 }
 
 // CacheResultInfo cache data result info
