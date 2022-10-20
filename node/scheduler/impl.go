@@ -170,23 +170,23 @@ func (s *Scheduler) GetToken(ctx context.Context, deviceID, secret string) (stri
 }
 
 // DeleteBlockRecords  Delete Block Record
-// func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
-// 	if len(cids) <= 0 {
-// 		return nil, xerrors.New("cids is nil")
-// 	}
+func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
+	if len(cids) <= 0 {
+		return nil, xerrors.New("cids is nil")
+	}
 
-// 	edge := s.nodeManager.getEdgeNode(deviceID)
-// 	if edge != nil {
-// 		return edge.deleteBlockRecords(cids)
-// 	}
+	edge := s.nodeManager.getEdgeNode(deviceID)
+	if edge != nil {
+		return edge.deleteBlockRecords(cids)
+	}
 
-// 	candidate := s.nodeManager.getCandidateNode(deviceID)
-// 	if candidate != nil {
-// 		return candidate.deleteBlockRecords(cids)
-// 	}
+	candidate := s.nodeManager.getCandidateNode(deviceID)
+	if candidate != nil {
+		return candidate.deleteBlockRecords(cids)
+	}
 
-// 	return nil, xerrors.New(ErrNodeNotFind)
-// }
+	return nil, xerrors.New(ErrNodeNotFind)
+}
 
 // DeleteBlocks  Delete Blocks
 func (s *Scheduler) DeleteBlocks(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
