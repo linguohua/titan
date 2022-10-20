@@ -156,6 +156,11 @@ var runCmd = &cli.Command{
 			Usage: "tcp server addr, use by edge node validate data: --tcp-srv-addr=0.0.0.0:4000",
 			Value: "0.0.0.0:4000", // should follow --repo default
 		},
+		&cli.BoolFlag{
+			Name:  "is-external",
+			Usage: "internal network or externa network",
+			Value: false,
+		},
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -291,7 +296,7 @@ var runCmd = &cli.Command{
 		const unspecifiedAddress = "0.0.0.0"
 		address := cctx.String("listen")
 		addressSlice := strings.Split(address, ":")
-		if ip := net.ParseIP(addressSlice[0]); ip != nil {
+		if ip := net.ParseIP(addressSlice[0]); ip != nil && !cctx.Bool("is-external") {
 			if ip.String() == unspecifiedAddress {
 				timeout, err := time.ParseDuration(cctx.String("timeout"))
 				if err != nil {
@@ -417,6 +422,9 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
+						if cctx.Bool("is-external") {
+							address = cctx.String("public-ip") + ":" + addressSlice[1]
+						}
 						if err := schedulerAPI.CandidateNodeConnect(ctx, "http://"+address+"/rpc/v0", ""); err != nil {
 							log.Errorf("Registering worker failed: %+v", err)
 							cancel()
