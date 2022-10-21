@@ -36,6 +36,9 @@ type DB interface {
 	RemoveCacheDataTask(deviceID string) error
 	GetCacheDataTask(deviceID string) (string, string)
 
+	IncrNodeReward(deviceID string, reward int64) error
+	GetNodeReward(deviceID string) (int64, int64, int64, error)
+
 	IsNilErr(err error) bool
 }
 
