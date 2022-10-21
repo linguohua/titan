@@ -438,12 +438,6 @@ func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string
 		infoMap[cid] = info
 	}
 
-	{
-		// if len(infoMap) > 0 {
-		// 	err := s.nodeManager.reward()
-		// }
-	}
-
 	return infoMap, nil
 }
 
