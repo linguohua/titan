@@ -80,13 +80,14 @@ var registerNodeCmd = &cli.Command{
 	Usage: "register deviceID and secret ",
 	Flags: []cli.Flag{
 		// schedulerURLFlag,
-		// nodeTypeFlag,
+		nodeTypeFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
+		t := cctx.Int("node-type")
 		ctx := ReqContext(cctx)
 
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
