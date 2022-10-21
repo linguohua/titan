@@ -321,7 +321,7 @@ var runCmd = &cli.Command{
 			BlockStore:      blockStore,
 			DownloadSrvKey:  cctx.String("download-srv-key"),
 			DownloadSrvAddr: cctx.String("download-srv-addr"),
-			IsExternal:      cctx.Bool("is-exteranl"),
+			IsExternal:      cctx.Bool("is-external"),
 		}
 
 		edgeApi := edge.NewLocalEdgeNode(context.Background(), device, params)
