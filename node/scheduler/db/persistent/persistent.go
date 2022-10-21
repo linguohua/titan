@@ -1,6 +1,7 @@
 package persistent
 
 import (
+	"github.com/linguohua/titan/api"
 	"golang.org/x/xerrors"
 )
 
@@ -39,8 +40,8 @@ type DB interface {
 	HaveUndoneCaches(cacheID string) (bool, error)
 
 	// temporary node register
-	BindRegisterInfo(secret, deviceID string) error
-	GetSecretInfo(deviceID string) (string, error)
+	BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error
+	GetRegisterInfo(deviceID string) (*api.NodeRegisterInfo, error)
 }
 
 var (

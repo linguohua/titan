@@ -3,6 +3,7 @@ package scheduler
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -11,17 +12,17 @@ import (
 	"golang.org/x/xerrors"
 )
 
-func registerNode() (api.NodeRegisterInfo, error) {
+func registerNode(nodeType api.NodeType) (api.NodeRegisterInfo, error) {
 	info := api.NodeRegisterInfo{}
 
-	deviceID, err := newDeviceID()
+	deviceID, err := newDeviceID(nodeType)
 	if err != nil {
 		return info, err
 	}
 
 	secret := newSecret(deviceID)
 
-	err = persistent.GetDB().BindRegisterInfo(secret, deviceID)
+	err = persistent.GetDB().BindRegisterInfo(secret, deviceID, nodeType)
 	if err != nil {
 		return info, err
 	}
@@ -32,15 +33,23 @@ func registerNode() (api.NodeRegisterInfo, error) {
 	return info, nil
 }
 
-func newDeviceID() (string, error) {
+func newDeviceID(nodeType api.NodeType) (string, error) {
 	u2, err := uuid.NewUUID()
 	if err != nil {
 		return "", err
 	}
 
 	s := strings.Replace(u2.String(), "-", "", -1)
+	switch nodeType {
+	case api.NodeEdge:
+		s = fmt.Sprintf("e_%s", s)
+		return s, nil
+	case api.NodeCandidate:
+		s = fmt.Sprintf("c_%s", s)
+		return s, nil
+	}
 
-	return s, nil
+	return "", xerrors.Errorf("nodetype err:%v", nodeType)
 }
 
 func newSecret(input string) string {
@@ -50,19 +59,23 @@ func newSecret(input string) string {
 	return hex.EncodeToString(bytes)
 }
 
-func verifySecret(token string) (string, error) {
+func verifySecret(token string, nodeType api.NodeType) (string, error) {
 	deviceID, secret, err := parseToken(token)
 	if err != nil {
 		return deviceID, xerrors.Errorf("token err:%s,deviceID:%s,secret:%s", err.Error(), deviceID, secret)
 	}
 
-	s, err := persistent.GetDB().GetSecretInfo(deviceID)
+	info, err := persistent.GetDB().GetRegisterInfo(deviceID)
 	if err != nil {
 		return deviceID, xerrors.Errorf("info err:%s,deviceID:%s,secret:%s", err.Error(), deviceID, secret)
 	}
 
-	if s != secret {
-		return deviceID, xerrors.Errorf("err:%s,deviceID:%s,secret:%s,s:%s", "secret mismatch", deviceID, secret, s)
+	if info.Secret != secret {
+		return deviceID, xerrors.Errorf("err:%s,deviceID:%s,secret:%s,info_s:%s", "secret mismatch", deviceID, secret, info.Secret)
+	}
+
+	if info.NodeType != int(nodeType) {
+		return deviceID, xerrors.Errorf("err:%s,deviceID:%s,nodeType:%v,info_n:%v", "node type mismatch", deviceID, nodeType, info.NodeType)
 	}
 
 	return deviceID, nil

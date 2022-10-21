@@ -80,13 +80,14 @@ var registerNodeCmd = &cli.Command{
 	Usage: "register deviceID and secret ",
 	Flags: []cli.Flag{
 		// schedulerURLFlag,
-		// nodeTypeFlag,
+		nodeTypeFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
+		t := cctx.Int("node-type")
 		ctx := ReqContext(cctx)
 
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
@@ -95,13 +96,16 @@ var registerNodeCmd = &cli.Command{
 		}
 		defer closer()
 
-		info, err := schedulerAPI.RegisterNode(ctx)
+		if t != int(api.NodeEdge) && t != int(api.NodeCandidate) {
+			return xerrors.Errorf("node-type err:%v", t)
+		}
+
+		info, err := schedulerAPI.RegisterNode(ctx, api.NodeType(t))
 		if err != nil {
 			return err
 		}
 
 		log.Infof("\nDeviceID:%s\nSecret:%s", info.DeviceID, info.Secret)
-
 		return nil
 	},
 }

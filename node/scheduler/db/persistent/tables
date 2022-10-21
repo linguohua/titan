@@ -46,5 +46,6 @@ CREATE TABLE `register` (
 	`device_id` varchar(512) NOT NULL UNIQUE,
     `secret` varchar(512) NOT NULL UNIQUE,
     `create_time` varchar(225) DEFAULT NULL ,
+    `node_type` int(20)  DEFAULT '0' ,
 	PRIMARY KEY (`device_id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node register info';
