@@ -51,8 +51,11 @@ const (
 const dayFormatLayout = "20060102"
 
 var (
-	daysOfWeek             = 7
-	maxDaysOfRewardStorage = 30
+	hoursOfDay    = 24
+	daysOfWeek    = 7
+	daysOfMonth   = 30
+	weekDuration  = time.Duration(daysOfWeek*hoursOfDay) * time.Hour
+	monthDuration = time.Duration(daysOfMonth*hoursOfDay) * time.Hour
 )
 
 // TypeRedis redis
@@ -316,7 +319,7 @@ func (rd redisDB) IncrNodeReward(deviceID string, reward int64) error {
 		return err
 	}
 
-	if len(keys) > maxDaysOfRewardStorage {
+	if len(keys) > daysOfMonth {
 		sort.Slice(keys, func(i, j int) bool { return keys[i] > keys[j] })
 		_, err := rd.cli.HDel(context.Background(), key, keys[len(keys)-1]).Result()
 		if err != nil {
@@ -343,7 +346,7 @@ func (rd redisDB) GetNodeReward(deviceID string) (rewardInDay, rewardInWeek, rew
 
 	sort.Slice(keys, func(i, j int) bool { return keys[i] > keys[j] })
 
-	for i, k := range keys {
+	for _, k := range keys {
 		val, ok := res[k]
 		if !ok {
 			continue
@@ -354,16 +357,27 @@ func (rd redisDB) GetNodeReward(deviceID string) (rewardInDay, rewardInWeek, rew
 			return 0, 0, 0, err
 		}
 
-		if i == 0 {
+		t, err := time.Parse(dayFormatLayout, k)
+		if err != nil {
+			return 0, 0, 0, err
+		}
+
+		if getStartOfDay(t).Equal(getStartOfDay(time.Now())) {
 			rewardInDay = reward
 		}
 
-		if i < daysOfWeek {
+		if getStartOfDay(t).After(getStartOfDay(time.Now().Add(-weekDuration))) {
 			rewardInWeek += reward
 		}
 
-		rewardInMonth += reward
+		if getStartOfDay(t).After(getStartOfDay(time.Now().Add(-monthDuration))) {
+			rewardInMonth += reward
+		}
 	}
 
 	return
+}
+
+func getStartOfDay(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
 }
