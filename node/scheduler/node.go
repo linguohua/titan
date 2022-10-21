@@ -295,3 +295,7 @@ func randomNum(start, end int) int {
 	x := rand.Intn(max)
 	return start + x
 }
+
+func (n *Node) getReward(deviceID string) (rewardsInDay, rewardsInWeek, rewardsInMonth int64, err error) {
+	return cache.GetDB().GetNodeReward(deviceID)
+}

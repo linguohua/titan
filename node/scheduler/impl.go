@@ -591,6 +591,15 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.De
 		if err != nil {
 			return api.DevicesInfo{}, err
 		}
+
+		rewardInDay, rewardInWeek, rewardInMonth, err := candidate.getReward(deviceID)
+		if err != nil {
+			return api.DevicesInfo{}, err
+		}
+
+		candidate.deviceInfo.TodayProfit = float64(rewardInDay)
+		candidate.deviceInfo.SevenDaysProfit = float64(rewardInWeek)
+		candidate.deviceInfo.MonthProfit = float64(rewardInMonth)
 		candidate.deviceInfo.IpLocation = candidate.geoInfo.Geo
 		candidate.deviceInfo.OnlineTime = (time.Minute * time.Duration(nodeInfo.OnlineTime)).String()
 		candidate.deviceInfo.DeviceStatus = device.GetDeviceStatus(nodeInfo.IsOnline)
@@ -603,6 +612,15 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.De
 		if err != nil {
 			return api.DevicesInfo{}, err
 		}
+
+		rewardInDay, rewardInWeek, rewardInMonth, err := edge.getReward(deviceID)
+		if err != nil {
+			return api.DevicesInfo{}, err
+		}
+
+		edge.deviceInfo.TodayProfit = float64(rewardInDay)
+		edge.deviceInfo.SevenDaysProfit = float64(rewardInWeek)
+		edge.deviceInfo.MonthProfit = float64(rewardInMonth)
 		edge.deviceInfo.IpLocation = edge.geoInfo.Geo
 		edge.deviceInfo.OnlineTime = (time.Minute * time.Duration(nodeInfo.OnlineTime)).String()
 		edge.deviceInfo.DeviceStatus = device.GetDeviceStatus(nodeInfo.IsOnline)

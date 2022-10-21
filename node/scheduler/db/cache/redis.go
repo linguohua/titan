@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"time"
 
@@ -36,6 +37,8 @@ const (
 	redisKeyCacheTask = "Titan:CacheTask:%s"
 	// RedisKeyNodeDeviceID
 	redisKeyNodeDeviceID = "Titan:NodeDeviceID"
+	// RedisKeyNodeReward
+	redisKeyNodeDayReward = "Titan:NodeDayReward:%s"
 
 	// NodeInfo field
 	onlineTimeField      = "OnlineTime"
@@ -43,6 +46,13 @@ const (
 	// CacheTask field
 	carFileIDField = "CarFileID"
 	cacheIDField   = "cacheID"
+)
+
+const dayFormatLayout = "20060102"
+
+var (
+	daysOfWeek             = 7
+	maxDaysOfRewardStorage = 30
 )
 
 // TypeRedis redis
@@ -122,7 +132,7 @@ func (rd redisDB) GetValidateRoundID() (string, error) {
 	return rd.cli.Get(context.Background(), key).Result()
 }
 
-//  add
+// add
 func (rd redisDB) SetNodeToValidateingList(deviceID string) error {
 	key := fmt.Sprintf(redisKeyValidateingList, serverName)
 
@@ -137,7 +147,7 @@ func (rd redisDB) GetNodesWithValidateingList() ([]string, error) {
 	return rd.cli.SMembers(context.Background(), key).Result()
 }
 
-//  del device
+// del device
 func (rd redisDB) RemoveNodeWithValidateingList(deviceID string) error {
 	key := fmt.Sprintf(redisKeyValidateingList, serverName)
 
@@ -145,7 +155,7 @@ func (rd redisDB) RemoveNodeWithValidateingList(deviceID string) error {
 	return err
 }
 
-//  del key
+// del key
 func (rd redisDB) RemoveValidateingList() error {
 	key := fmt.Sprintf(redisKeyValidateingList, serverName)
 
@@ -153,7 +163,7 @@ func (rd redisDB) RemoveValidateingList() error {
 	return err
 }
 
-//  add
+// add
 func (rd redisDB) SetNodeToCacheList(deviceID, cid string) error {
 	key := fmt.Sprintf(redisKeyBlockNodeList, cid)
 
@@ -168,7 +178,14 @@ func (rd redisDB) GetNodesWithCacheList(cid string) ([]string, error) {
 	return rd.cli.SMembers(context.Background(), key).Result()
 }
 
-//  del
+// SISMEMBER
+func (rd redisDB) IsNodeInCacheList(cid, deviceID string) (bool, error) {
+	key := fmt.Sprintf(redisKeyBlockNodeList, cid)
+
+	return rd.cli.SIsMember(context.Background(), key, deviceID).Result()
+}
+
+// del
 func (rd redisDB) RemoveNodeWithCacheList(deviceID, cid string) error {
 	key := fmt.Sprintf(redisKeyBlockNodeList, cid)
 
@@ -199,7 +216,7 @@ func (rd redisDB) RemoveNodeWithCacheList(deviceID, cid string) error {
 // 	return err
 // }
 
-//  add
+// add
 func (rd redisDB) SetValidatorToList(deviceID string) error {
 	key := fmt.Sprintf(redisKeyValidatorList, serverName)
 
@@ -214,7 +231,7 @@ func (rd redisDB) GetValidatorsWithList() ([]string, error) {
 	return rd.cli.SMembers(context.Background(), key).Result()
 }
 
-//  del
+// del
 func (rd redisDB) RemoveValidatorList() error {
 	key := fmt.Sprintf(redisKeyValidatorList, serverName)
 
@@ -251,7 +268,6 @@ func (rd redisDB) IsNodeInValidatorList(deviceID string) (bool, error) {
 // 	return rd.cli.SIsMember(context.Background(), redisKeyCandidateDeviceIDList, deviceID).Result()
 // }
 
-//
 func (rd redisDB) SetCacheDataTask(deviceID, cid, cacheID string) error {
 	key := fmt.Sprintf(redisKeyCacheTask, deviceID)
 
@@ -279,4 +295,75 @@ func (rd redisDB) GetCacheDataTask(deviceID string) (string, string) {
 	cid, _ := redigo.String(vals[0], nil)
 	cacheID, _ := redigo.String(vals[1], nil)
 	return cid, cacheID
+}
+
+func (rd redisDB) IncrNodeReward(deviceID string, reward int64) error {
+	key := fmt.Sprintf(redisKeyNodeDayReward, deviceID)
+	dayField := time.Now().Format(dayFormatLayout)
+
+	exist, err := rd.cli.HExists(context.Background(), key, dayField).Result()
+	if err != nil {
+		return err
+	}
+
+	if exist {
+		_, err = rd.cli.HIncrBy(context.Background(), key, dayField, reward).Result()
+		return err
+	}
+
+	keys, err := rd.cli.Keys(context.Background(), key).Result()
+	if err != nil {
+		return err
+	}
+
+	if len(keys) > maxDaysOfRewardStorage {
+		sort.Slice(keys, func(i, j int) bool { return keys[i] > keys[j] })
+		_, err := rd.cli.HDel(context.Background(), key, keys[len(keys)-1]).Result()
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = rd.cli.HIncrBy(context.Background(), key, dayField, reward).Result()
+	return err
+}
+
+func (rd redisDB) GetNodeReward(deviceID string) (rewardInDay, rewardInWeek, rewardInMonth int64, err error) {
+	key := fmt.Sprintf(redisKeyNodeDayReward, deviceID)
+
+	res, err := rd.cli.HGetAll(context.Background(), key).Result()
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	keys, err := rd.cli.HKeys(context.Background(), key).Result()
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	sort.Slice(keys, func(i, j int) bool { return keys[i] > keys[j] })
+
+	for i, k := range keys {
+		val, ok := res[k]
+		if !ok {
+			continue
+		}
+
+		reward, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			return 0, 0, 0, err
+		}
+
+		if i == 0 {
+			rewardInDay = reward
+		}
+
+		if i < daysOfWeek {
+			rewardInWeek += reward
+		}
+
+		rewardInMonth += reward
+	}
+
+	return
 }
