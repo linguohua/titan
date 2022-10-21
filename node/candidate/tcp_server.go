@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func parseTcpSrvAddr(tcpSrvAddr string, interalIP string) string {
+func parseTcpSrvAddr(tcpSrvAddr string, externalIP string) string {
 	const unspecifiedAddress = "0.0.0.0"
 	addressSlice := strings.Split(tcpSrvAddr, ":")
 	if len(addressSlice) != 2 {
@@ -18,13 +18,13 @@ func parseTcpSrvAddr(tcpSrvAddr string, interalIP string) string {
 	}
 
 	if addressSlice[0] == unspecifiedAddress {
-		return fmt.Sprintf("%s:%s", interalIP, addressSlice[1])
+		return fmt.Sprintf("%s:%s", externalIP, addressSlice[1])
 	}
 
 	return tcpSrvAddr
 }
 
-func (candidate *Candidate) startTcpServer(address string) {
+func (candidate *Candidate) startTcpServer(address string, externalIP string) {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
 		log.Fatal(err)
@@ -37,7 +37,7 @@ func (candidate *Candidate) startTcpServer(address string) {
 	// close listener
 	defer listen.Close()
 
-	candidate.tcpSrvAddr = parseTcpSrvAddr(address, candidate.GetInternalIP())
+	candidate.tcpSrvAddr = parseTcpSrvAddr(address, externalIP)
 
 	log.Infof("tcp_server listen on %s", address)
 	for {
