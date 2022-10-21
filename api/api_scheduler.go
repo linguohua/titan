@@ -22,6 +22,7 @@ type Scheduler interface {
 	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) //perm:admin
 
 	// call by node
+	DownloadBlockResult(ctx context.Context, deviceID, cid string) error                          //perm:write
 	GetToken(ctx context.Context, deviceID, secret string) (string, error)                        //perm:write
 	EdgeNodeConnect(ctx context.Context, url, token string) error                                 //perm:write
 	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error               //perm:write

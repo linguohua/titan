@@ -3,15 +3,17 @@ package scheduler
 import (
 	"context"
 	"fmt"
-	"github.com/linguohua/titan/node/device"
 	"net/http"
 	"time"
+
+	"github.com/linguohua/titan/node/device"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/repo"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/secret"
 	"github.com/linguohua/titan/region"
@@ -148,6 +150,14 @@ func (s Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.
 	}
 
 	return err
+}
+
+// DownloadBlockResult user download block result
+func (s *Scheduler) DownloadBlockResult(ctx context.Context, deviceID, cid string) error {
+	// TODO check cid
+
+	// add reward
+	return cache.GetDB().IncrNodeReward(deviceID, 1)
 }
 
 // CacheResult Cache Data Result
