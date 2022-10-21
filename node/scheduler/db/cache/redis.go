@@ -314,7 +314,7 @@ func (rd redisDB) IncrNodeReward(deviceID string, reward int64) error {
 		return err
 	}
 
-	keys, err := rd.cli.Keys(context.Background(), key).Result()
+	keys, err := rd.cli.HKeys(context.Background(), key).Result()
 	if err != nil {
 		return err
 	}
