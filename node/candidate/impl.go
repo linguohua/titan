@@ -39,8 +39,13 @@ func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *devic
 		log.Fatal(err)
 	}
 
+	externalIP := device.GetInternalIP()
+	if params.IsExternal {
+		externalIP = device.GetPublicIP()
+	}
+
 	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
-	blockDownload := download.NewBlockDownload(rateLimiter, params.BlockStore, params.DownloadSrvKey, params.DownloadSrvAddr, device.GetInternalIP())
+	blockDownload := download.NewBlockDownload(rateLimiter, params.BlockStore, params.DownloadSrvKey, params.DownloadSrvAddr, externalIP)
 	device.SetBlockDownload(blockDownload)
 
 	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, exchange, device.GetDeviceID())
@@ -54,7 +59,7 @@ func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *devic
 		scheduler:     params.Scheduler,
 	}
 
-	go candidate.startTcpServer(tcpSrvAddr)
+	go candidate.startTcpServer(tcpSrvAddr, externalIP)
 	return candidate
 }
 

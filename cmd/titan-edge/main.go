@@ -321,6 +321,7 @@ var runCmd = &cli.Command{
 			BlockStore:      blockStore,
 			DownloadSrvKey:  cctx.String("download-srv-key"),
 			DownloadSrvAddr: cctx.String("download-srv-addr"),
+			IsExternal:      cctx.Bool("is-exteranl"),
 		}
 
 		edgeApi := edge.NewLocalEdgeNode(context.Background(), device, params)
@@ -418,7 +419,7 @@ var runCmd = &cli.Command{
 						if cctx.Bool("is-external") {
 							address = cctx.String("public-ip") + ":" + addressSlice[1]
 						}
-						log.Info("connect to scheduler %s", address)
+						log.Infof("connect to scheduler %s", address)
 						if err := schedulerAPI.EdgeNodeConnect(ctx, "http://"+address+"/rpc/v0", ""); err != nil {
 							log.Errorf("Registering worker failed: %+v", err)
 							cancel()

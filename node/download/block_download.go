@@ -27,15 +27,15 @@ type BlockDownload struct {
 	downloadSrvKey string
 }
 
-func NewBlockDownload(limiter *rate.Limiter, blockStore stores.BlockStore, downloadSrvKey, downloadSrvAddr, internalIP string) *BlockDownload {
-	var downloadSrvURL = parseDownloadSrvURL(downloadSrvAddr, internalIP)
+func NewBlockDownload(limiter *rate.Limiter, blockStore stores.BlockStore, downloadSrvKey, downloadSrvAddr, externalIP string) *BlockDownload {
+	var downloadSrvURL = parseDownloadSrvURL(downloadSrvAddr, externalIP)
 	var blockDownload = &BlockDownload{limiter: limiter, blockStore: blockStore, downloadSrvKey: downloadSrvKey, downloadSrvURL: downloadSrvURL}
 	go blockDownload.startDownloadServer(downloadSrvAddr)
 
 	return blockDownload
 }
 
-func parseDownloadSrvURL(downloadSrvAddr, internalIP string) string {
+func parseDownloadSrvURL(downloadSrvAddr, externalIP string) string {
 	const unspecifiedAddress = "0.0.0.0"
 	addressSlice := strings.Split(downloadSrvAddr, ":")
 	if len(addressSlice) != 2 {
@@ -43,7 +43,7 @@ func parseDownloadSrvURL(downloadSrvAddr, internalIP string) string {
 	}
 
 	if addressSlice[0] == unspecifiedAddress {
-		return fmt.Sprintf("http://%s:%s%s", internalIP, addressSlice[1], helper.DownloadSrvPath)
+		return fmt.Sprintf("http://%s:%s%s", externalIP, addressSlice[1], helper.DownloadSrvPath)
 	}
 
 	return fmt.Sprintf("http://%s%s", downloadSrvAddr, helper.DownloadSrvPath)
