@@ -108,6 +108,15 @@ func (n *Node) setNodeOffline(deviceID string, geoInfo *region.GeoInfo, nodeType
 	}
 }
 
+// getNodeInfo  get node information
+func (n *Node) getNodeInfo(deviceID string) (*persistent.NodeInfo, error) {
+	node, err := persistent.GetDB().GetNodeInfo(deviceID)
+	if err != nil {
+		log.Errorf("getNodeInfo: %v ,deviceID : %v", err.Error(), deviceID)
+	}
+	return node, nil
+}
+
 // get all cache fail cid
 func (n *Node) getCacheFailCids() []string {
 	deviceID := n.deviceInfo.DeviceId

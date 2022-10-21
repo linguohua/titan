@@ -165,6 +165,8 @@ type DevicesInfo struct {
 	IoSystem string `json:"ioSystem" form:"ioSystem" gorm:"column:io_system;comment:;"`
 	// 今日在线时长
 	TodayOnlineTime string `json:"todayOnlineTime" form:"todayOnlineTime" gorm:"column:today_online_time;comment:;"`
+	// 设备总在线时长
+	OnlineTime string `json:"onlineTime" form:"OnlineTime" gorm:"column:online_time;comment:;"`
 	// 额外字段非数据库
 	TodayProfit     float64 `json:"today_profit"`      // 今日收益
 	SevenDaysProfit float64 `json:"seven_days_profit"` // 近七天收益
