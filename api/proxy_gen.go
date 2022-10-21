@@ -4,6 +4,7 @@ package api
 
 import (
 	"context"
+
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
@@ -695,7 +696,7 @@ func (s *SchedulerStruct) RegisterNode(p0 context.Context, p1 NodeType) (NodeReg
 	if s.Internal.RegisterNode == nil {
 		return *new(NodeRegisterInfo), ErrNotSupported
 	}
-	return s.Internal.RegisterNode(p0)
+	return s.Internal.RegisterNode(p0, p1)
 }
 
 func (s *SchedulerStub) RegisterNode(p0 context.Context, p1 NodeType) (NodeRegisterInfo, error) {

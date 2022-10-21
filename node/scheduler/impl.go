@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/linguohua/titan/node/device"
-
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
