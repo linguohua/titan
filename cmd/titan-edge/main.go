@@ -114,7 +114,7 @@ var runCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:  "device-id",
 			Usage: "network external ip, example: --device-id=b26fb231-e986-42de-a5d9-7b512a35543d",
-			Value: "123456789000000000", // should follow --repo default
+			Value: "525e7729506711ed8c2c902e1671f843", // should follow --repo default
 		},
 		&cli.StringFlag{
 			Name:  "public-ip",
@@ -155,6 +155,12 @@ var runCmd = &cli.Command{
 			Name:  "is-external",
 			Usage: "internal network or externa network",
 			Value: false,
+		},
+		&cli.StringFlag{
+			Name:    "secret",
+			EnvVars: []string{"TITAN_SCHEDULER_KEY", "SCHEDULER_KEY"},
+			Usage:   "connect to scheduler key",
+			Value:   "2521c39087cecd74a853850dd56e9c859b786fbc",
 		},
 	},
 
@@ -200,10 +206,17 @@ var runCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
+
 		if v.APIVersion != api.SchedulerAPIVersion0 {
 			return xerrors.Errorf("titan-scheduler API version doesn't match: expected: %s", api.APIVersion{APIVersion: api.SchedulerAPIVersion0})
 		}
 		log.Infof("Remote version %s", v)
+
+		deviceID := cctx.String("device-id")
+		tk, err := schedulerAPI.GetToken(ctx, deviceID, cctx.String("secret"))
+		if err != nil {
+			return err
+		}
 
 		// Register all metric views
 		if err := view.Register(
@@ -305,7 +318,6 @@ var runCmd = &cli.Command{
 			}
 		}
 
-		deviceID := cctx.String("device-id")
 		blockStore := stores.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
 		device := device.NewDevice(
 			blockStore,
@@ -420,7 +432,7 @@ var runCmd = &cli.Command{
 							address = cctx.String("public-ip") + ":" + addressSlice[1]
 						}
 						log.Infof("connect to scheduler %s", address)
-						if err := schedulerAPI.EdgeNodeConnect(ctx, "http://"+address+"/rpc/v0", ""); err != nil {
+						if err := schedulerAPI.EdgeNodeConnect(ctx, "http://"+address+"/rpc/v0", tk); err != nil {
 							log.Errorf("Registering worker failed: %+v", err)
 							cancel()
 							return
