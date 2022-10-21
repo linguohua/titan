@@ -33,7 +33,7 @@ func NewLocalEdgeNode(ctx context.Context, device *device.Device, params *helper
 	}
 
 	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
-	blockDownload := download.NewBlockDownload(rateLimiter, params.BlockStore, params.DownloadSrvKey, params.DownloadSrvAddr, externalIP)
+	blockDownload := download.NewBlockDownload(rateLimiter, params, externalIP, device.GetDeviceID())
 	device.SetBlockDownload(blockDownload)
 
 	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.Candidate{}, nil, device.GetDeviceID())
