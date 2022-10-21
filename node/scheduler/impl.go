@@ -3,7 +3,9 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"github.com/linguohua/titan/node/device"
 	"net/http"
+	"time"
 
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
@@ -21,6 +23,9 @@ var log = logging.Logger("scheduler")
 
 // ErrNodeNotFind node not found
 const ErrNodeNotFind = "Not Found"
+
+// ErrUnknownNodeType unknown node type
+const ErrUnknownNodeType = "Unknown Node Type"
 
 // NewLocalScheduleNode NewLocalScheduleNode
 func NewLocalScheduleNode(lr repo.LockedRepo) api.Scheduler {
@@ -428,6 +433,13 @@ func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string
 		infoMap[cid] = info
 	}
 
+	{
+
+		if len(infoMap) > 0 {
+			err := s.nodeManager.reward()
+		}
+	}
+
 	return infoMap, nil
 }
 
@@ -568,17 +580,30 @@ func (s *Scheduler) Validate(ctx context.Context) error {
 	return s.validate.startValidate()
 }
 
+// GetDevicesInfo return the devices information
 func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.DevicesInfo, error) {
 	// node datas
-	candidata := s.nodeManager.getCandidateNode(deviceID)
-	if candidata != nil {
-		candidata.deviceInfo.IpLocation = candidata.geoInfo.Geo
-		return candidata.deviceInfo, nil
+	candidate := s.nodeManager.getCandidateNode(deviceID)
+	if candidate != nil {
+		nodeInfo, err := candidate.getNodeInfo(deviceID)
+		if err != nil {
+			return api.DevicesInfo{}, err
+		}
+		candidate.deviceInfo.IpLocation = candidate.geoInfo.Geo
+		candidate.deviceInfo.OnlineTime = (time.Minute * time.Duration(nodeInfo.OnlineTime)).String()
+		candidate.deviceInfo.DeviceStatus = device.GetDeviceStatus(nodeInfo.IsOnline)
+		return candidate.deviceInfo, nil
 	}
 
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
+		nodeInfo, err := edge.getNodeInfo(deviceID)
+		if err != nil {
+			return api.DevicesInfo{}, err
+		}
 		edge.deviceInfo.IpLocation = edge.geoInfo.Geo
+		edge.deviceInfo.OnlineTime = (time.Minute * time.Duration(nodeInfo.OnlineTime)).String()
+		edge.deviceInfo.DeviceStatus = device.GetDeviceStatus(nodeInfo.IsOnline)
 		return edge.deviceInfo, nil
 	}
 

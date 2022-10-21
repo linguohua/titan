@@ -22,6 +22,12 @@ var log = logging.Logger("device")
 
 const deviceName = "titan-edge"
 
+const (
+	StatusOffline int = iota
+	StatusOnline
+	StatusAbnormal
+)
+
 type Device struct {
 	blockStore    stores.BlockStore
 	deviceID      string
@@ -161,4 +167,18 @@ func (device *Device) GetPublicIP() string {
 
 func (device *Device) GetInternalIP() string {
 	return device.internalIP
+}
+
+// GetDeviceStatus return the status of the device
+func GetDeviceStatus(status int) string {
+	switch status {
+	case StatusOffline:
+		return "offline"
+	case StatusOnline:
+		return "online"
+	case StatusAbnormal:
+		return "abnormal"
+	default:
+		return "unknown"
+	}
 }
