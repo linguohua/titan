@@ -326,7 +326,7 @@ var runCmd = &cli.Command{
 			BlockStore:      blockStore,
 			DownloadSrvKey:  cctx.String("download-srv-key"),
 			DownloadSrvAddr: cctx.String("download-srv-addr"),
-			IsExternal:      cctx.Bool("is-exteranl"),
+			IsExternal:      cctx.Bool("is-external"),
 		}
 
 		tcpSrvAddr := cctx.String("tcp-srv-addr")
