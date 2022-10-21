@@ -25,12 +25,20 @@ type BlockDownload struct {
 	downloadSrvURL string
 	blockStore     stores.BlockStore
 	downloadSrvKey string
+	scheduler      api.Scheduler
+	deviceID       string
 }
 
-func NewBlockDownload(limiter *rate.Limiter, blockStore stores.BlockStore, downloadSrvKey, downloadSrvAddr, externalIP string) *BlockDownload {
-	var downloadSrvURL = parseDownloadSrvURL(downloadSrvAddr, externalIP)
-	var blockDownload = &BlockDownload{limiter: limiter, blockStore: blockStore, downloadSrvKey: downloadSrvKey, downloadSrvURL: downloadSrvURL}
-	go blockDownload.startDownloadServer(downloadSrvAddr)
+func NewBlockDownload(limiter *rate.Limiter, params *helper.NodeParams, externalIP, deviceID string) *BlockDownload {
+	var downloadSrvURL = parseDownloadSrvURL(params.DownloadSrvAddr, externalIP)
+	var blockDownload = &BlockDownload{
+		limiter:        limiter,
+		blockStore:     params.BlockStore,
+		downloadSrvKey: params.DownloadSrvKey,
+		downloadSrvURL: downloadSrvURL,
+		scheduler:      params.Scheduler,
+		deviceID:       deviceID}
+	go blockDownload.startDownloadServer(params.DownloadSrvAddr)
 
 	return blockDownload
 }
@@ -89,9 +97,15 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		speedRate = int64(float64(n) / float64(costTime) * float64(time.Second))
 	}
 
+	go bd.statistics(bd.deviceID, cidStr)
+
 	log.Infof("Download block %s costTime %d, size %d, speed %d", cidStr, costTime, n, speedRate)
 
 	return
+}
+
+func (bd *BlockDownload) statistics(deviceID, cid string) {
+	bd.scheduler.DownloadBlockResult(context.Background(), deviceID, cid)
 }
 
 func (bd *BlockDownload) startDownloadServer(address string) {

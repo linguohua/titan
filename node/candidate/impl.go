@@ -45,7 +45,7 @@ func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *devic
 	}
 
 	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
-	blockDownload := download.NewBlockDownload(rateLimiter, params.BlockStore, params.DownloadSrvKey, params.DownloadSrvAddr, externalIP)
+	blockDownload := download.NewBlockDownload(rateLimiter, params, externalIP, device.GetDeviceID())
 	device.SetBlockDownload(blockDownload)
 
 	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, exchange, device.GetDeviceID())
