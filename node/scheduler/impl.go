@@ -3,9 +3,10 @@ package scheduler
 import (
 	"context"
 	"fmt"
-	"github.com/linguohua/titan/node/device"
 	"net/http"
 	"time"
+
+	"github.com/linguohua/titan/node/device"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
@@ -71,7 +72,7 @@ type Scheduler struct {
 func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url, token string) error {
 	// re, oo := peer.FromContext(ctx)
 
-	deviceID, err := verifySecret(token)
+	deviceID, err := verifySecret(token, api.NodeEdge)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect verifySecret err:%v", err)
 		return err
@@ -169,8 +170,8 @@ func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.C
 }
 
 // RegisterNode Register Node
-func (s *Scheduler) RegisterNode(ctx context.Context) (api.NodeRegisterInfo, error) {
-	return registerNode()
+func (s *Scheduler) RegisterNode(ctx context.Context, nodeType api.NodeType) (api.NodeRegisterInfo, error) {
+	return registerNode(nodeType)
 }
 
 // GetToken get token
@@ -439,10 +440,9 @@ func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string
 	}
 
 	{
-
-		if len(infoMap) > 0 {
-			err := s.nodeManager.reward()
-		}
+		// if len(infoMap) > 0 {
+		// 	err := s.nodeManager.reward()
+		// }
 	}
 
 	return infoMap, nil
@@ -464,7 +464,7 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, ip
 
 // CandidateNodeConnect Candidate connect
 func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url, token string) error {
-	deviceID, err := verifySecret(token)
+	deviceID, err := verifySecret(token, api.NodeCandidate)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect verifySecret err:%v", err)
 		return err

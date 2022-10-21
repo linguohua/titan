@@ -168,13 +168,6 @@ func (rd redisDB) GetNodesWithCacheList(cid string) ([]string, error) {
 	return rd.cli.SMembers(context.Background(), key).Result()
 }
 
-// SISMEMBER
-func (rd redisDB) IsNodeInCacheList(cid, deviceID string) (bool, error) {
-	key := fmt.Sprintf(redisKeyBlockNodeList, cid)
-
-	return rd.cli.SIsMember(context.Background(), key, deviceID).Result()
-}
-
 //  del
 func (rd redisDB) RemoveNodeWithCacheList(deviceID, cid string) error {
 	key := fmt.Sprintf(redisKeyBlockNodeList, cid)

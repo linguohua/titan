@@ -449,37 +449,38 @@ func (sd sqlDB) GetCacheInfos(cacheID string) ([]*CacheInfo, error) {
 	return list, err
 }
 
-func (sd sqlDB) BindRegisterInfo(secret, deviceID string) error {
+func (sd sqlDB) BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error {
 	info := api.NodeRegisterInfo{
 		Secret:     secret,
 		DeviceID:   deviceID,
+		NodeType:   int(nodeType),
 		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
 	}
 
-	_, err := sd.cli.NamedExec(`INSERT INTO register (device_id, secret, create_time)
-	VALUES (:device_id, :secret, :create_time)`, info)
+	_, err := sd.cli.NamedExec(`INSERT INTO register (device_id, secret, create_time, node_type)
+	VALUES (:device_id, :secret, :create_time, :node_type)`, info)
 
 	return err
 }
 
-func (sd sqlDB) GetSecretInfo(deviceID string) (string, error) {
+func (sd sqlDB) GetRegisterInfo(deviceID string) (*api.NodeRegisterInfo, error) {
 	info := &api.NodeRegisterInfo{
 		DeviceID: deviceID,
 	}
 
 	rows, err := sd.cli.NamedQuery(`SELECT * FROM register WHERE device_id=:device_id`, info)
 	if err != nil {
-		return "", err
+		return info, err
 	}
 	if rows.Next() {
 		err = rows.StructScan(info)
 		if err != nil {
-			return "", err
+			return info, err
 		}
 	} else {
-		return "", xerrors.New(errNodeNotFind)
+		return info, xerrors.New(errNodeNotFind)
 	}
 	rows.Close()
 
-	return info.Secret, err
+	return info, err
 }

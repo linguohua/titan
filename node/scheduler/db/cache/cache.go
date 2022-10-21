@@ -21,21 +21,11 @@ type DB interface {
 	RemoveNodeWithCacheList(deviceID, cid string) error
 	SetNodeToCacheList(deviceID, cid string) error
 	GetNodesWithCacheList(cid string) ([]string, error)
-	IsNodeInCacheList(cid, deviceID string) (bool, error)
-
-	// RemoveNodeWithGeoList(deviceID, geo string) error
-	// SetNodeToGeoList(deviceID, geo string) error
-	// GetNodesWithGeoList(geo string) ([]string, error)
 
 	SetValidatorToList(deviceID string) error
 	GetValidatorsWithList() ([]string, error)
 	RemoveValidatorList() error
 	IsNodeInValidatorList(deviceID string) (bool, error)
-
-	// SetEdgeDeviceIDList(deviceIDs []string) error
-	// IsEdgeInDeviceIDList(deviceID string) (bool, error)
-	// SetCandidateDeviceIDList(deviceIDs []string) error
-	// IsCandidateInDeviceIDList(deviceID string) (bool, error)
 
 	IncrNodeOnlineTime(deviceID string, onlineTime int64) (int64, error)
 	IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error)
