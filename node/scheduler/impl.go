@@ -130,7 +130,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url, token string) erro
 		return err
 	}
 
-	// cids := edgeNode.getCacheFailCids()
+	// edgeNode.getCacheFailCids()
 	// if cids != nil && len(cids) > 0 {
 	// 	reqDatas, _ := edgeNode.getReqCacheDatas(s, cids, true)
 
@@ -147,7 +147,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url, token string) erro
 
 // ValidateBlockResult Validate Block Result
 func (s Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.ValidateResults) error {
-	err := s.validate.validateResult(&validateResults)
+	err := s.validate.pushResultToQueue(&validateResults)
 	if err != nil {
 		log.Errorf("ValidateBlockResult err:%v", err.Error())
 	}
