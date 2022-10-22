@@ -89,19 +89,20 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 	}
 
 	isUpdate := false
-	if info.Cid == d.cid {
-		d.totalSize = int(info.LinksSize)
+	if d.reliability == 0 && info.Cid == d.cid {
+		d.totalSize = int(info.LinksSize) + info.BlockSize
+
 		isUpdate = true
 	}
 
 	cache.updateCacheInfo(info, d.totalSize, d.reliability)
-	// log.Warnf("cache.status:%v, ", cache.status)
 
 	if cache.status > cacheStatusCreate {
 		d.cacheTime++
 		d.dataManager.removeCacheTaskMap(deviceID)
-
 		d.reliability += cache.reliability
+		// log.Warnf("--------- reliability:%v,%v", d.reliability, cache.reliability)
+
 		if d.needReliability > d.reliability {
 			if d.cacheTime < d.needReliability+2 { // TODO
 				// create cache again

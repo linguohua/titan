@@ -18,9 +18,9 @@ type DB interface {
 	GetNodesWithValidateingList() ([]string, error)
 	RemoveValidateingList() error
 
-	RemoveNodeWithCacheList(deviceID, cid string) error
-	SetNodeToCacheList(deviceID, cid string) error
-	GetNodesWithCacheList(cid string) ([]string, error)
+	// RemoveNodeWithCacheList(deviceID, cid string) error
+	// SetNodeToCacheList(deviceID, cid string) error
+	// GetNodesWithCacheList(cid string) ([]string, error)
 
 	SetValidatorToList(deviceID string) error
 	GetValidatorsWithList() ([]string, error)

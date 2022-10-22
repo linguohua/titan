@@ -63,6 +63,9 @@ func (n *Node) setNodeOnline(typeName api.NodeTypeName) error {
 	// }
 	// log.Infof("oldgeo:%v,newgeo:%v,err:%v", nodeInfo.Geo, geoInfo.Geo, err)
 
+	// TODO clean task
+	cache.GetDB().RemoveCacheDataTask(deviceID)
+
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
 	err := persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{
 		Geo:      geoInfo.Geo,
@@ -153,7 +156,7 @@ func (n *Node) deleteBlockRecords(cids []string) (map[string]string, error) {
 
 	errList := make(map[string]string, 0)
 	for _, cid := range cids {
-		err := cache.GetDB().RemoveNodeWithCacheList(deviceID, cid)
+		err := persistent.GetDB().RemoveNodeWithCacheList(deviceID, cid)
 		if err != nil {
 			errList[cid] = err.Error()
 			continue
@@ -251,8 +254,12 @@ func (n *Node) cacheBlockResult(info *api.CacheResultInfo, carfileID, cacheID st
 	// if err != nil {
 	// 	return "", err
 	// }
+	err = persistent.GetDB().SetNodeToCacheList(deviceID, info.Cid)
+	if err != nil {
+		log.Errorf("nodeCacheResult SetNodeToCacheList err:%v", err.Error())
+	}
 
-	return fidStr, cache.GetDB().SetNodeToCacheList(deviceID, info.Cid)
+	return fidStr, err
 }
 
 // func (n *Node) cacheBlockReady(cid string) error {

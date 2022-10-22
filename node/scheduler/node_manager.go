@@ -8,6 +8,7 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
+	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/region"
 	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
@@ -425,7 +426,7 @@ func (m *NodeManager) updateLastRequestTime(deviceID string) {
 // getNodeURLWithData find device
 func (m *NodeManager) findNodeDownloadInfo(cid string, geoInfo *region.GeoInfo) (api.DownloadInfo, error) {
 	var downloadInfo api.DownloadInfo
-	deviceIDs, err := cache.GetDB().GetNodesWithCacheList(cid)
+	deviceIDs, err := persistent.GetDB().GetNodesWithCacheList(cid)
 	if err != nil {
 		return downloadInfo, err
 	}
@@ -462,7 +463,7 @@ func (m *NodeManager) findNodeDownloadInfo(cid string, geoInfo *region.GeoInfo) 
 
 // getCandidateNodesWithData find device
 func (m *NodeManager) getCandidateNodesWithData(cid string, geoInfo *region.GeoInfo) ([]*CandidateNode, error) {
-	deviceIDs, err := cache.GetDB().GetNodesWithCacheList(cid)
+	deviceIDs, err := persistent.GetDB().GetNodesWithCacheList(cid)
 	if err != nil {
 		return nil, err
 	}
