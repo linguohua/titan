@@ -25,7 +25,7 @@ type DB interface {
 	// SetCarfileInfo(deviceID, cid, carfileID, cacheID string) error
 	GetBlockFidWithCid(deviceID, cid string) (string, error)
 	GetBlockInfos(deviceID string) (map[string]string, error)
-	GetBlockCidWithFid(deviceID, fid string) (string, error)
+	// GetBlockCidWithFid(deviceID, fid string) (string, error)
 	GetBlockNum(deviceID string) (int64, error)
 
 	// data info
@@ -110,7 +110,7 @@ type ValidateResult struct {
 
 // NodeBlocks Node Block
 type NodeBlocks struct {
-	TableName string `db:"table_name"`
+	// TableName string `db:"table_name"`
 	// DeviceID  string `db:"device_id"`
 	FID       string `db:"fid"`
 	CID       string `db:"cid"`
@@ -120,8 +120,8 @@ type NodeBlocks struct {
 
 // BlockNodes Node Block
 type BlockNodes struct {
-	TableName string `db:"table_name"`
-	DeviceID  string `db:"device_id"`
+	// TableName string `db:"table_name"`
+	DeviceID string `db:"device_id"`
 }
 
 // DataInfo Data info

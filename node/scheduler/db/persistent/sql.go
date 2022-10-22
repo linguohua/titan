@@ -146,11 +146,10 @@ func (sd sqlDB) SetNodeToValidateErrorList(sID, deviceID string) error {
 
 func (sd sqlDB) RemoveBlockInfo(deviceID, cid string) error {
 	info := NodeBlocks{
-		TableName: fmt.Sprintf(deviceBlockTable, deviceID),
-		CID:       cid,
+		CID: cid,
 	}
 
-	cmd := fmt.Sprintf(`DELETE FROM %s WHERE cid=:cid`, info.TableName)
+	cmd := fmt.Sprintf(`DELETE FROM %s WHERE cid=:cid`, fmt.Sprintf(deviceBlockTable, deviceID))
 	_, err := sd.cli.NamedExec(cmd, info)
 	return err
 }
@@ -169,8 +168,9 @@ func (sd sqlDB) RemoveBlockInfo(deviceID, cid string) error {
 // }
 
 func (sd sqlDB) SetBlockInfo(deviceID, cid, fid, carfileID, cacheID string, isUpdate bool) error {
+	tableName := fmt.Sprintf(deviceBlockTable, deviceID)
+
 	info := NodeBlocks{
-		TableName: fmt.Sprintf(deviceBlockTable, deviceID),
 		CID:       cid,
 		FID:       fid,
 		CarfileID: carfileID,
@@ -178,7 +178,7 @@ func (sd sqlDB) SetBlockInfo(deviceID, cid, fid, carfileID, cacheID string, isUp
 	}
 
 	if isUpdate {
-		cmd := fmt.Sprintf(`UPDATE %s SET fid=:fid,carfile_id=:carfile_id,cache_id=:cache_id WHERE cid=:cid`, info.TableName)
+		cmd := fmt.Sprintf(`UPDATE %s SET fid=:fid,carfile_id=:carfile_id,cache_id=:cache_id WHERE cid=:cid`, tableName)
 		_, err := sd.cli.NamedExec(cmd, info)
 
 		return err
@@ -190,7 +190,7 @@ func (sd sqlDB) SetBlockInfo(deviceID, cid, fid, carfileID, cacheID string, isUp
 		fid text,
 		cache_id text,
 		carfile_id text
-	);`, info.TableName)
+	);`, tableName)
 
 	_, err := sd.cli.Exec(schema)
 	if err != nil {
@@ -200,7 +200,7 @@ func (sd sqlDB) SetBlockInfo(deviceID, cid, fid, carfileID, cacheID string, isUp
 	}
 
 	cmd := fmt.Sprintf(`INSERT INTO %s (cid, fid, cache_id, carfile_id)
-	VALUES (:cid, :fid, :cache_id, :carfile_id)`, info.TableName)
+	VALUES (:cid, :fid, :cache_id, :carfile_id)`, tableName)
 
 	_, err = sd.cli.NamedExec(cmd, info)
 
@@ -209,11 +209,10 @@ func (sd sqlDB) SetBlockInfo(deviceID, cid, fid, carfileID, cacheID string, isUp
 
 func (sd sqlDB) GetBlockFidWithCid(deviceID, cid string) (string, error) {
 	info := &NodeBlocks{
-		TableName: fmt.Sprintf(deviceBlockTable, deviceID),
-		CID:       cid,
+		CID: cid,
 	}
 
-	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cid=:cid`, info.TableName)
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cid=:cid`, fmt.Sprintf(deviceBlockTable, deviceID))
 
 	rows, err := sd.cli.NamedQuery(cmd, info)
 	if err != nil {
@@ -233,38 +232,33 @@ func (sd sqlDB) GetBlockFidWithCid(deviceID, cid string) (string, error) {
 }
 
 func (sd sqlDB) GetBlockInfos(deviceID string) (map[string]string, error) {
-	info := &NodeBlocks{
-		TableName: fmt.Sprintf(deviceBlockTable, deviceID),
-	}
-
 	m := make(map[string]string)
 
-	cmd := fmt.Sprintf(`SELECT * FROM %s`, info.TableName)
+	cmd := fmt.Sprintf(`SELECT * FROM %s`, fmt.Sprintf(deviceBlockTable, deviceID))
 
-	rows, err := sd.cli.NamedQuery(cmd, info)
+	rows, err := sd.cli.Queryx(cmd)
 	if err != nil {
 		return nil, err
 	}
-	if rows.Next() {
-		err = rows.StructScan(info)
+	defer rows.Close()
+
+	for rows.Next() {
+		i := &NodeBlocks{}
+		err = rows.StructScan(i)
 		if err == nil {
-			m[info.CID] = info.FID
+			m[i.CID] = i.FID
 		}
-	} else {
-		return nil, xerrors.New(errNodeNotFind)
 	}
-	rows.Close()
 
 	return m, nil
 }
 
 func (sd sqlDB) GetBlockCidWithFid(deviceID, fid string) (string, error) {
 	info := &NodeBlocks{
-		TableName: fmt.Sprintf(deviceBlockTable, deviceID),
-		FID:       fid,
+		FID: fid,
 	}
 
-	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE fid=:fid`, info.TableName)
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE fid=:fid`, fmt.Sprintf(deviceBlockTable, deviceID))
 	rows, err := sd.cli.NamedQuery(cmd, info)
 	if err != nil {
 		return "", err
@@ -283,12 +277,8 @@ func (sd sqlDB) GetBlockCidWithFid(deviceID, fid string) (string, error) {
 }
 
 func (sd sqlDB) GetBlockNum(deviceID string) (int64, error) {
-	info := NodeBlocks{
-		TableName: fmt.Sprintf(deviceBlockTable, deviceID),
-	}
-
 	var count int64
-	cmd := fmt.Sprintf("SELECT count(*) FROM %s WHERE fid>0 ;", info.TableName)
+	cmd := fmt.Sprintf("SELECT count(*) FROM %s WHERE fid>0 ;", fmt.Sprintf(deviceBlockTable, deviceID))
 	err := sd.cli.Get(&count, cmd)
 
 	return count, err
@@ -337,6 +327,8 @@ func (sd sqlDB) GetDataInfos() ([]*DataInfo, error) {
 	if err != nil {
 		return list, err
 	}
+	defer rows.Close()
+
 	for rows.Next() {
 		info := &DataInfo{}
 		err := rows.StructScan(info)
@@ -344,7 +336,6 @@ func (sd sqlDB) GetDataInfos() ([]*DataInfo, error) {
 			list = append(list, info)
 		}
 	}
-	rows.Close()
 
 	return list, err
 }
@@ -442,6 +433,8 @@ func (sd sqlDB) GetCacheInfos(cacheID string) ([]*CacheInfo, error) {
 	if err != nil {
 		return list, err
 	}
+	defer rows.Close()
+
 	for rows.Next() {
 		info := &CacheInfo{}
 		err := rows.StructScan(info)
@@ -449,7 +442,6 @@ func (sd sqlDB) GetCacheInfos(cacheID string) ([]*CacheInfo, error) {
 			list = append(list, info)
 		}
 	}
-	rows.Close()
 
 	return list, err
 }
@@ -492,29 +484,28 @@ func (sd sqlDB) GetRegisterInfo(deviceID string) (*api.NodeRegisterInfo, error) 
 
 func (sd sqlDB) RemoveNodeWithCacheList(deviceID, cid string) error {
 	info := BlockNodes{
-		TableName: fmt.Sprintf(blockDevicesTable, cid),
-		DeviceID:  deviceID,
+		DeviceID: deviceID,
 	}
 
-	cmd := fmt.Sprintf(`DELETE FROM %s WHERE device_id=:device_id`, info.TableName)
+	cmd := fmt.Sprintf(`DELETE FROM %s WHERE device_id=:device_id`, fmt.Sprintf(blockDevicesTable, cid))
 	_, err := sd.cli.NamedExec(cmd, info)
 	return err
 }
 
 func (sd sqlDB) SetNodeToCacheList(deviceID, cid string) error {
+	tableName := fmt.Sprintf(blockDevicesTable, cid)
 	if sd.IsNodeInCacheList(deviceID, cid) {
 		return nil
 	}
 
 	info := BlockNodes{
-		TableName: fmt.Sprintf(blockDevicesTable, cid),
-		DeviceID:  deviceID,
+		DeviceID: deviceID,
 	}
 
 	schema := fmt.Sprintf(`
 	CREATE TABLE %s (
 		device_id text
-	);`, info.TableName)
+	);`, tableName)
 
 	_, err := sd.cli.Exec(schema)
 	if err != nil {
@@ -524,7 +515,7 @@ func (sd sqlDB) SetNodeToCacheList(deviceID, cid string) error {
 	}
 
 	cmd := fmt.Sprintf(`INSERT INTO %s (device_id)
-	VALUES (:device_id)`, info.TableName)
+	VALUES (:device_id)`, tableName)
 
 	_, err = sd.cli.NamedExec(cmd, info)
 
@@ -533,11 +524,10 @@ func (sd sqlDB) SetNodeToCacheList(deviceID, cid string) error {
 
 func (sd sqlDB) IsNodeInCacheList(deviceID, cid string) bool {
 	info := &BlockNodes{
-		TableName: fmt.Sprintf(blockDevicesTable, cid),
-		DeviceID:  deviceID,
+		DeviceID: deviceID,
 	}
 
-	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE device_id=:device_id`, info.TableName)
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE device_id=:device_id`, fmt.Sprintf(blockDevicesTable, cid))
 
 	rows, err := sd.cli.NamedQuery(cmd, info)
 	if err != nil {
@@ -557,27 +547,23 @@ func (sd sqlDB) IsNodeInCacheList(deviceID, cid string) bool {
 }
 
 func (sd sqlDB) GetNodesWithCacheList(cid string) ([]string, error) {
-	info := &BlockNodes{
-		TableName: fmt.Sprintf(blockDevicesTable, cid),
-	}
-
 	m := make([]string, 0)
 
-	cmd := fmt.Sprintf(`SELECT * FROM %s`, info.TableName)
+	cmd := fmt.Sprintf(`SELECT * FROM %s`, fmt.Sprintf(blockDevicesTable, cid))
 
-	rows, err := sd.cli.NamedQuery(cmd, info)
+	rows, err := sd.cli.Queryx(cmd)
 	if err != nil {
 		return nil, err
 	}
-	if rows.Next() {
+	defer rows.Close()
+
+	for rows.Next() {
+		info := &BlockNodes{}
 		err = rows.StructScan(info)
 		if err == nil {
 			m = append(m, info.DeviceID)
 		}
-	} else {
-		return nil, xerrors.New(errNodeNotFind)
 	}
-	rows.Close()
 
 	return m, nil
 }

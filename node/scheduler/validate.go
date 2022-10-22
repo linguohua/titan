@@ -19,7 +19,7 @@ const (
 	errMsgTimeOut  = "TimeOut"
 	missBlock      = "MissBlock"
 	errMsgBlockNil = "Block Nil;map len:%v,count:%v"
-	errMsgCidFail  = "Cid Fail;resultCid:%v,cid:%v,fid:%v,index:%v"
+	errMsgCidFail  = "Cid Fail;resultCid:%v,fid_db:%v,fid:%v,index:%v"
 )
 
 // Validate Validate
@@ -224,7 +224,7 @@ func (v *Validate) doValidate() {
 	}
 }
 
-func (v *Validate) validateResult(validateResults *api.ValidateResults) error {
+func (v *Validate) pushResultToQueue(validateResults *api.ValidateResults) error {
 	log.Infof("validateResult:%v,round:%v", validateResults.DeviceID, validateResults.RoundID)
 	v.resultQueue.PushBack(validateResults)
 
@@ -259,6 +259,13 @@ func (v *Validate) validate(validateResults *api.ValidateResults) error {
 		return v.saveValidateResult(v.roundID, deviceID, "", msg, status)
 	}
 
+	cacheInfos, err := persistent.GetDB().GetBlockInfos(deviceID)
+	if err != nil || len(cacheInfos) <= 0 {
+		status = persistent.ValidateStatusOther
+		msg = err.Error()
+		return v.saveValidateResult(v.roundID, deviceID, "", msg, status)
+	}
+
 	maxFid := v.maxFidMap[deviceID]
 
 	for index := 0; index < validateResults.RandomCount; index++ {
@@ -267,16 +274,17 @@ func (v *Validate) validate(validateResults *api.ValidateResults) error {
 
 		fidStr := fmt.Sprintf("%d", fid)
 
-		cid, err := persistent.GetDB().GetBlockCidWithFid(deviceID, fidStr)
-		if err != nil || cid == "" {
-			// status = cache.ValidateStatusFail
-			// msg = fmt.Sprintf("GetCacheBlockInfos err:%v,resultCid:%v,cid:%v,index:%v", err.Error(), resultCid, cid, index)
-			continue
-		}
+		fid2 := cacheInfos[resultCid]
+		// cid, err := persistent.GetDB().GetBlockCidWithFid(deviceID, fidStr)
+		// if err != nil || cid == "" {
+		// 	// status = cache.ValidateStatusFail
+		// 	// msg = fmt.Sprintf("GetCacheBlockInfos err:%v,resultCid:%v,cid:%v,index:%v", err.Error(), resultCid, cid, index)
+		// 	continue
+		// }
 
-		if resultCid != cid {
+		if fidStr != fid2 {
 			status = persistent.ValidateStatusFail
-			msg = fmt.Sprintf(errMsgCidFail, resultCid, cid, fid, index)
+			msg = fmt.Sprintf(errMsgCidFail, resultCid, fid2, fidStr, index)
 			break
 		}
 	}
