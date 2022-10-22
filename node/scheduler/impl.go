@@ -22,11 +22,14 @@ import (
 
 var log = logging.Logger("scheduler")
 
-// ErrNodeNotFind node not found
-const ErrNodeNotFind = "Not Found"
-
-// ErrUnknownNodeType unknown node type
-const ErrUnknownNodeType = "Unknown Node Type"
+const (
+	// ErrNodeNotFind node not found
+	ErrNodeNotFind = "Not Found Node"
+	// ErrCidNotFind node not found
+	ErrCidNotFind = "Not Found Cid"
+	// ErrUnknownNodeType unknown node type
+	ErrUnknownNodeType = "Unknown Node Type"
+)
 
 // NewLocalScheduleNode NewLocalScheduleNode
 func NewLocalScheduleNode(lr repo.LockedRepo) api.Scheduler {
@@ -310,7 +313,7 @@ func (s *Scheduler) ShowDataInfos(ctx context.Context, cid string) (string, erro
 		return str, nil
 	}
 
-	return str, xerrors.New(ErrNodeNotFind)
+	return str, xerrors.New(ErrCidNotFind)
 }
 
 // CacheBlocks Cache Block

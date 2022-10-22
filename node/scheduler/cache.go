@@ -181,7 +181,7 @@ func (c *Cache) doCache(cids []string, isHaveCache bool) error {
 	// log.Warnf("doCache isHaveCache:%v", isHaveCache)
 	filterDeviceIDs := make(map[string]string)
 	for _, cid := range cids {
-		ds, _ := cache.GetDB().GetNodesWithCacheList(cid)
+		ds, _ := persistent.GetDB().GetNodesWithCacheList(cid)
 		if ds != nil {
 			for _, d := range ds {
 				filterDeviceIDs[d] = cid
@@ -218,18 +218,20 @@ func (c *Cache) saveCache(block *BlockInfo, isUpdate bool) {
 		DeviceID:    block.deviceID,
 		Status:      int(block.status),
 		TotalSize:   block.size,
-		Reliability: c.reliability,
+		Reliability: block.reliability,
 	}, isUpdate)
 }
 
 func (c *Cache) updateCacheInfo(info *api.CacheResultInfo, totalSize, dataReliability int) {
-	if info.Cid != c.cardFileCid {
-		c.doneSize += info.BlockSize
-	}
+	// if info.Cid != c.cardFileCid {
+	// if info.LinksSize <= 0 {
+	c.doneSize += info.BlockSize
+	// }
 
+	// log.Warnf("--------- totalSize:%v,%v", totalSize, c.doneSize)
 	if totalSize > 0 && c.doneSize >= totalSize {
 		c.status = cacheStatusSuccess
-		c.reliability = 1 // TODO
+		c.reliability = 1 // TODO use block reliability
 	}
 
 	haveUndone := false
@@ -238,6 +240,7 @@ func (c *Cache) updateCacheInfo(info *api.CacheResultInfo, totalSize, dataReliab
 	if ok {
 		if info.IsOK {
 			block.status = cacheStatusSuccess
+			block.reliability = 1 // TODO use device reliability
 		} else {
 			block.status = cacheStatusFail
 		}
@@ -254,7 +257,6 @@ func (c *Cache) updateCacheInfo(info *api.CacheResultInfo, totalSize, dataReliab
 
 	if !haveUndone {
 		haveUndone, _ := persistent.GetDB().HaveUndoneCaches(c.cacheID)
-		// log.Warnf("HaveUndoneCaches:%v,status:%v,err:%v,cacheID:%v", haveUndone, c.status, err, c.cacheID)
 		if !haveUndone && c.status != cacheStatusSuccess {
 			c.status = cacheStatusFail
 		}

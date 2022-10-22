@@ -38,6 +38,10 @@ type DB interface {
 	GetCacheInfo(cacheID, cid string) (*CacheInfo, error)
 	GetCacheInfos(cacheID string) ([]*CacheInfo, error)
 	HaveUndoneCaches(cacheID string) (bool, error)
+	// cache list
+	RemoveNodeWithCacheList(deviceID, cid string) error
+	SetNodeToCacheList(deviceID, cid string) error
+	GetNodesWithCacheList(cid string) ([]string, error)
 
 	// temporary node register
 	BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error
@@ -104,14 +108,20 @@ type ValidateResult struct {
 	ServerName  string `db:"server_name"`
 }
 
-// NodeBlock Node Block
-type NodeBlock struct {
+// NodeBlocks Node Block
+type NodeBlocks struct {
 	TableName string `db:"table_name"`
-	DeviceID  string `db:"device_id"`
+	// DeviceID  string `db:"device_id"`
 	FID       string `db:"fid"`
 	CID       string `db:"cid"`
 	CarfileID string `db:"carfile_id"`
 	CacheID   string `db:"cache_id"`
+}
+
+// BlockNodes Node Block
+type BlockNodes struct {
+	TableName string `db:"table_name"`
+	DeviceID  string `db:"device_id"`
 }
 
 // DataInfo Data info
