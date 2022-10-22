@@ -217,7 +217,7 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string) ([]api.
 
 // cache block Result
 // TODO save to sql
-func (n *Node) cacheBlockResult(info *api.CacheResultInfo) (string, error) {
+func (n *Node) cacheBlockResult(info *api.CacheResultInfo, carfileID, cacheID string) (string, error) {
 	deviceID := n.deviceInfo.DeviceId
 	log.Infof("nodeCacheResult deviceID:%v,info:%v", deviceID, info)
 
@@ -231,20 +231,6 @@ func (n *Node) cacheBlockResult(info *api.CacheResultInfo) (string, error) {
 		isExist = true
 	}
 
-	// defer func() {
-	// 	if err != nil {
-	// 		err = cache.GetDB().SetBlockToNodeFailList(deviceID, info.Cid)
-	// 		if err != nil {
-	// 			log.Warnf("nodeCacheResult SetBlockToNodeFailList err:%v,deviceID:%v,cid:%v", err.Error(), deviceID, info.Cid)
-	// 		}
-	// 	} else {
-	// 		err = cache.GetDB().RemoveBlockWithNodeFailList(deviceID, info.Cid)
-	// 		if err != nil {
-	// 			log.Warnf("nodeCacheResult SetBlockToNodeFailList err:%v,deviceID:%v,cid:%v", err.Error(), deviceID, info.Cid)
-	// 		}
-	// 	}
-	// }()
-
 	if !info.IsOK {
 		return "", nil
 	}
@@ -256,7 +242,7 @@ func (n *Node) cacheBlockResult(info *api.CacheResultInfo) (string, error) {
 
 	fidStr := fmt.Sprintf("%d", fid)
 
-	err = persistent.GetDB().SetBlockInfo(deviceID, info.Cid, fidStr, isExist)
+	err = persistent.GetDB().SetBlockInfo(deviceID, info.Cid, fidStr, carfileID, cacheID, isExist)
 	if err != nil {
 		return "", err
 	}

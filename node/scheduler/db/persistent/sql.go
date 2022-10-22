@@ -165,15 +165,17 @@ func (sd sqlDB) SetCarfileInfo(deviceID, cid, carfileID, cacheID string) error {
 	return err
 }
 
-func (sd sqlDB) SetBlockInfo(deviceID, cid string, fid string, isUpdate bool) error {
+func (sd sqlDB) SetBlockInfo(deviceID, cid, fid, carfileID, cacheID string, isUpdate bool) error {
 	info := NodeBlock{
 		TableName: fmt.Sprintf(blockTbale, deviceID),
 		CID:       cid,
 		FID:       fid,
+		CarfileID: cacheID,
+		CacheID:   cacheID,
 	}
 
 	if isUpdate {
-		cmd := fmt.Sprintf(`UPDATE %s SET fid=:fid WHERE cid=:cid`, info.TableName)
+		cmd := fmt.Sprintf(`UPDATE %s SET fid=:fid,carfile_id=:carfile_id,cache_id=:cache_id WHERE cid=:cid`, info.TableName)
 		_, err := sd.cli.NamedExec(cmd, info)
 
 		return err
@@ -300,7 +302,7 @@ func (sd sqlDB) SetDataInfo(info *DataInfo) error {
 	}
 
 	// update
-	_, err = sd.cli.NamedExec(`UPDATE data_info SET cache_ids=:cache_ids,status=:status,total_size=:total_size,reliability=:reliability  WHERE cid=:cid`, info)
+	_, err = sd.cli.NamedExec(`UPDATE data_info SET cache_ids=:cache_ids,status=:status,total_size=:total_size,reliability=:reliability,cache_time=:cache_time  WHERE cid=:cid`, info)
 
 	return err
 }
