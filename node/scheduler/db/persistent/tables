@@ -39,6 +39,7 @@ CREATE TABLE `data_info` (
     `total_size` int(20)  DEFAULT '0' ,
 	`reliability` int(64) DEFAULT '0' ,
 	`need_reliability` int(64) DEFAULT '0' ,
+    `cache_time` int(20)  DEFAULT '0' ,
 	PRIMARY KEY (`cid`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='data info';
 

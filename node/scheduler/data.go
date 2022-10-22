@@ -19,6 +19,7 @@ type Data struct {
 	reliability     int
 	needReliability int
 	totalSize       int
+	cacheTime       int
 }
 
 func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, reliability int) *Data {
@@ -29,6 +30,7 @@ func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, rel
 		reliability:     0,
 		needReliability: reliability,
 		cacheMap:        make(map[string]*Cache),
+		cacheTime:       0,
 	}
 }
 
@@ -44,6 +46,7 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 		data.totalSize = dInfo.TotalSize
 		data.needReliability = dInfo.NeedReliability
 		data.reliability = dInfo.Reliability
+		data.cacheTime = dInfo.CacheTime
 
 		idList := strings.Split(dInfo.CacheIDs, ",")
 		for _, cacheID := range idList {
@@ -95,12 +98,15 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 	// log.Warnf("cache.status:%v, ", cache.status)
 
 	if cache.status > cacheStatusCreate {
+		d.cacheTime++
 		d.dataManager.removeCacheTaskMap(deviceID)
 
 		d.reliability += cache.reliability
 		if d.needReliability > d.reliability {
-			// create cache again
-			d.createCache(d.dataManager)
+			if d.cacheTime < d.needReliability+2 { // TODO
+				// create cache again
+				d.createCache(d.dataManager)
+			}
 			// log.Errorf("need create cache needReliability:%v, reliability:%v, status:%v", d.needReliability, d.reliability, cache.status)
 		}
 		isUpdate = true
@@ -121,5 +127,6 @@ func (d *Data) saveData() {
 		TotalSize:       d.totalSize,
 		NeedReliability: d.needReliability,
 		Reliability:     d.reliability,
+		CacheTime:       d.cacheTime,
 	})
 }

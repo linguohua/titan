@@ -21,8 +21,8 @@ type DB interface {
 	SetNodeToValidateErrorList(sID, deviceID string) error
 
 	RemoveBlockInfo(deviceID, cid string) error
-	SetBlockInfo(deviceID, cid string, fid string, isUpdate bool) error
-	SetCarfileInfo(deviceID, cid, carfileID, cacheID string) error
+	SetBlockInfo(deviceID, cid, fid, carfileID, cacheID string, isUpdate bool) error
+	// SetCarfileInfo(deviceID, cid, carfileID, cacheID string) error
 	GetBlockFidWithCid(deviceID, cid string) (string, error)
 	GetBlockInfos(deviceID string) (map[string]string, error)
 	GetBlockCidWithFid(deviceID, fid string) (string, error)
@@ -122,6 +122,7 @@ type DataInfo struct {
 	TotalSize       int    `db:"total_size"`
 	Reliability     int    `db:"reliability"`
 	NeedReliability int    `db:"need_reliability"`
+	CacheTime       int    `db:"cache_time"`
 }
 
 // CacheInfo Data Cache info

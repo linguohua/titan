@@ -162,17 +162,16 @@ func (s *Scheduler) DownloadBlockResult(ctx context.Context, deviceID, cid strin
 
 // CacheResult Cache Data Result
 func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
-	s.dataManager.cacheResult(deviceID, &info)
-	// carfileID, cacheID := s.dataManager.cacheResult(deviceID, info)
+	carfileID, cacheID := s.dataManager.getDataCacheInfo(deviceID, &info)
 
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
-		return edge.cacheBlockResult(&info)
+		return edge.cacheBlockResult(&info, carfileID, cacheID)
 	}
 
 	candidate := s.nodeManager.getCandidateNode(deviceID)
 	if candidate != nil {
-		return candidate.cacheBlockResult(&info)
+		return candidate.cacheBlockResult(&info, carfileID, cacheID)
 	}
 
 	return "", xerrors.New(ErrNodeNotFind)

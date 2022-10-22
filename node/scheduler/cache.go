@@ -227,7 +227,7 @@ func (c *Cache) updateCacheInfo(info *api.CacheResultInfo, totalSize, dataReliab
 		c.doneSize += info.BlockSize
 	}
 
-	if c.doneSize >= totalSize {
+	if totalSize > 0 && c.doneSize >= totalSize {
 		c.status = cacheStatusSuccess
 		c.reliability = 1 // TODO
 	}
@@ -253,8 +253,8 @@ func (c *Cache) updateCacheInfo(info *api.CacheResultInfo, totalSize, dataReliab
 	}
 
 	if !haveUndone {
-		haveUndone, err := persistent.GetDB().HaveUndoneCaches(c.cacheID)
-		log.Warnf("HaveUndoneCaches:%v,status:%v,err:%v,cacheID:%v", haveUndone, c.status, err, c.cacheID)
+		haveUndone, _ := persistent.GetDB().HaveUndoneCaches(c.cacheID)
+		// log.Warnf("HaveUndoneCaches:%v,status:%v,err:%v,cacheID:%v", haveUndone, c.status, err, c.cacheID)
 		if !haveUndone && c.status != cacheStatusSuccess {
 			c.status = cacheStatusFail
 		}

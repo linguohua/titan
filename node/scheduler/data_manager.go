@@ -5,7 +5,6 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
 )
 
 // DataManager Data
@@ -130,10 +129,10 @@ func (m *DataManager) doUpdateCacheInfo() {
 			if data != nil {
 				data.updateDataInfo(info.DeviceID, cacheID, info)
 				// save to block table
-				err := persistent.GetDB().SetCarfileInfo(info.DeviceID, info.Cid, carfileID, cacheID)
-				if err != nil {
-					log.Errorf("SetCarfileInfo err:%v,device:%v", err.Error(), info.DeviceID)
-				}
+				// err := persistent.GetDB().SetCarfileInfo(info.DeviceID, info.Cid, carfileID, cacheID)
+				// if err != nil {
+				// 	log.Errorf("SetCarfileInfo err:%v,device:%v", err.Error(), info.DeviceID)
+				// }
 			}
 		}
 
@@ -151,4 +150,26 @@ func (m *DataManager) cacheResult(deviceID string, info *api.CacheResultInfo) er
 	m.writeChanWithSelect(true)
 
 	return nil
+}
+
+func (m *DataManager) getDataCacheInfo(deviceID string, info *api.CacheResultInfo) (string, string) {
+	carfileID, cacheID := m.getCacheTask(deviceID)
+	if carfileID == "" {
+		log.Warnf("task carfileID is nil ,DeviceID:%v", deviceID)
+		return carfileID, cacheID
+	}
+
+	data := m.findData(carfileID)
+	// log.Warnf("data:%v, ", data)
+	if data == nil {
+		log.Warnf("task data is nil, DeviceID:%v, carfileID:%v", deviceID, carfileID)
+		return carfileID, cacheID
+	}
+
+	return data.updateDataInfo(deviceID, cacheID, info)
+	// save to block table
+	// err := persistent.GetDB().SetCarfileInfo(deviceID, info.Cid, carfileID, cacheID)
+	// if err != nil {
+	// 	log.Errorf("SetCarfileInfo err:%v,device:%v", err.Error(), deviceID)
+	// }
 }
