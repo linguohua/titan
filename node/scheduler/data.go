@@ -13,6 +13,7 @@ type Data struct {
 	nodeManager *NodeManager
 	dataManager *DataManager
 
+	area            string
 	cid             string
 	cacheMap        map[string]*Cache
 	cacheIDs        string
@@ -22,7 +23,7 @@ type Data struct {
 	cacheTime       int
 }
 
-func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, reliability int) *Data {
+func newData(area string, nodeManager *NodeManager, dataManager *DataManager, cid string, reliability int) *Data {
 	return &Data{
 		nodeManager:     nodeManager,
 		dataManager:     dataManager,
@@ -31,6 +32,7 @@ func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, rel
 		needReliability: reliability,
 		cacheMap:        make(map[string]*Cache),
 		cacheTime:       0,
+		area:            area,
 	}
 }
 
@@ -38,10 +40,10 @@ func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, rel
 
 // }
 
-func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *Data {
-	dInfo, _ := persistent.GetDB().GetDataInfo(cid)
+func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManager) *Data {
+	dInfo, _ := persistent.GetDB().GetDataInfo(area, cid)
 	if dInfo != nil {
-		data := newData(nodeManager, dataManager, cid, 0)
+		data := newData(area, nodeManager, dataManager, cid, 0)
 		data.cacheIDs = dInfo.CacheIDs
 		data.totalSize = dInfo.TotalSize
 		data.needReliability = dInfo.NeedReliability
@@ -53,7 +55,7 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 			if cacheID == "" {
 				continue
 			}
-			c := loadCache(cacheID, cid, nodeManager, data.totalSize)
+			c := loadCache(area, cacheID, cid, nodeManager, data.totalSize)
 			if c == nil {
 				continue
 			}
@@ -68,7 +70,7 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 }
 
 func (d *Data) createCache(dataManager *DataManager) error {
-	c, err := newCache(d.nodeManager, dataManager, d.cid)
+	c, err := newCache(d.area, d.nodeManager, dataManager, d.cid)
 	if err != nil {
 		log.Errorf("new cache err:%v", err.Error())
 		return err
@@ -122,7 +124,7 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 
 func (d *Data) saveData() {
 	// save to db
-	persistent.GetDB().SetDataInfo(&persistent.DataInfo{
+	persistent.GetDB().SetDataInfo(d.area, &persistent.DataInfo{
 		CID:             d.cid,
 		CacheIDs:        d.cacheIDs,
 		TotalSize:       d.totalSize,

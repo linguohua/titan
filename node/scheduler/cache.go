@@ -24,6 +24,7 @@ type Cache struct {
 	nodeManager *NodeManager
 	dataManager *DataManager
 
+	area        string
 	cacheID     string
 	cardFileCid string
 	blockMap    map[string]*BlockInfo
@@ -53,18 +54,19 @@ func newCacheID(cid string) (string, error) {
 	return fmt.Sprintf("cache_info_%v", fid), nil
 }
 
-func newCache(nodeManager *NodeManager, dataManager *DataManager, cid string) (*Cache, error) {
+func newCache(area string, nodeManager *NodeManager, dataManager *DataManager, cid string) (*Cache, error) {
 	id, err := newCacheID(cid)
 	if err != nil {
 		return nil, err
 	}
 
-	err = persistent.GetDB().CreateCacheInfo(id)
-	if err != nil {
-		return nil, err
-	}
+	// err = persistent.GetDB().CreateCacheInfo(area, id)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return &Cache{
+		area:        area,
 		nodeManager: nodeManager,
 		dataManager: dataManager,
 		reliability: 0,
@@ -75,18 +77,19 @@ func newCache(nodeManager *NodeManager, dataManager *DataManager, cid string) (*
 	}, nil
 }
 
-func loadCache(cacheID, carfileCid string, nodeManager *NodeManager, totalSize int) *Cache {
+func loadCache(area, cacheID, carfileCid string, nodeManager *NodeManager, totalSize int) *Cache {
 	if cacheID == "" {
 		return nil
 	}
 	c := &Cache{
+		area:        area,
 		cacheID:     cacheID,
 		cardFileCid: carfileCid,
 		nodeManager: nodeManager,
 		blockMap:    make(map[string]*BlockInfo),
 	}
 
-	list, err := persistent.GetDB().GetCacheInfos(cacheID)
+	list, err := persistent.GetDB().GetCacheInfos(area, cacheID)
 	if err == nil && list != nil {
 		for _, cInfo := range list {
 			c.blockMap[cInfo.CID] = &BlockInfo{
@@ -151,7 +154,7 @@ func (c *Cache) findNode(isHaveCache bool, filterDeviceIDs map[string]string) (d
 	err = nil
 
 	if isHaveCache {
-		cs, _ := c.nodeManager.findEdgeNodeWithGeo(nil, nil, filterDeviceIDs)
+		cs := c.nodeManager.findEdgeNodeWithGeo(c.area, nil, filterDeviceIDs)
 		if cs == nil || len(cs) <= 0 {
 			err = xerrors.New(ErrNodeNotFind)
 			return
@@ -163,7 +166,7 @@ func (c *Cache) findNode(isHaveCache bool, filterDeviceIDs map[string]string) (d
 		deviceAddr = node.addr
 		return
 	} else {
-		cs, _ := c.nodeManager.findCandidateNodeWithGeo(nil, nil, filterDeviceIDs)
+		cs := c.nodeManager.findCandidateNodeWithGeo(c.area, nil, filterDeviceIDs)
 		if cs == nil || len(cs) <= 0 {
 			err = xerrors.New(ErrNodeNotFind)
 			return
@@ -181,7 +184,7 @@ func (c *Cache) doCache(cids []string, isHaveCache bool) error {
 	// log.Warnf("doCache isHaveCache:%v", isHaveCache)
 	filterDeviceIDs := make(map[string]string)
 	for _, cid := range cids {
-		ds, _ := persistent.GetDB().GetNodesWithCacheList(cid)
+		ds, _ := persistent.GetDB().GetNodesWithCacheList(c.area, cid)
 		if ds != nil {
 			for _, d := range ds {
 				filterDeviceIDs[d] = cid
@@ -212,7 +215,8 @@ func (c *Cache) doCache(cids []string, isHaveCache bool) error {
 }
 
 func (c *Cache) saveCache(block *BlockInfo, isUpdate bool) {
-	persistent.GetDB().SetCacheInfo(&persistent.CacheInfo{
+	// log.Warnf("saveCache area:%s", c.area)
+	err := persistent.GetDB().SetCacheInfo(c.area, &persistent.CacheInfo{
 		CacheID:     c.cacheID,
 		CID:         block.cid,
 		DeviceID:    block.deviceID,
@@ -220,6 +224,9 @@ func (c *Cache) saveCache(block *BlockInfo, isUpdate bool) {
 		TotalSize:   block.size,
 		Reliability: block.reliability,
 	}, isUpdate)
+	if err != nil {
+		log.Errorf("SetCacheInfo err:%v", err.Error())
+	}
 }
 
 func (c *Cache) updateCacheInfo(info *api.CacheResultInfo, totalSize, dataReliability int) {
@@ -256,7 +263,7 @@ func (c *Cache) updateCacheInfo(info *api.CacheResultInfo, totalSize, dataReliab
 	}
 
 	if !haveUndone {
-		haveUndone, _ := persistent.GetDB().HaveUndoneCaches(c.cacheID)
+		haveUndone, _ := persistent.GetDB().HaveUndoneCaches(c.area, c.cacheID)
 		if !haveUndone && c.status != cacheStatusSuccess {
 			c.status = cacheStatusFail
 		}

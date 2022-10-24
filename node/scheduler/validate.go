@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/ipfs/go-cid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
@@ -19,7 +20,7 @@ const (
 	errMsgTimeOut  = "TimeOut"
 	missBlock      = "MissBlock"
 	errMsgBlockNil = "Block Nil;map len:%v,count:%v"
-	errMsgCidFail  = "Cid Fail;resultCid:%v,fid_db:%v,fid:%v,index:%v"
+	errMsgCidFail  = "Cid Fail;resultCid:%v,cid_db:%v,fid:%v,index:%v"
 )
 
 // Validate Validate
@@ -82,6 +83,8 @@ func (v *Validate) getReqValidates(validatorID string, list []string) ([]api.Req
 
 	var nodeType api.NodeType
 
+	area := ""
+
 	for _, deviceID := range list {
 		addr := ""
 		edgeNode := v.nodeManager.getEdgeNode(deviceID)
@@ -93,13 +96,15 @@ func (v *Validate) getReqValidates(validatorID string, list []string) ([]api.Req
 			}
 			addr = candidateNode.Node.addr
 			nodeType = api.NodeCandidate
+			area = candidateNode.geoInfo.Geo
 		} else {
 			addr = edgeNode.Node.addr
 			nodeType = api.NodeEdge
+			area = edgeNode.geoInfo.Geo
 		}
 
 		// cache datas
-		num, err := persistent.GetDB().GetBlockNum(deviceID)
+		num, err := persistent.GetDB().GetBlockNum(area, deviceID)
 		if err != nil {
 			// log.Warnf("validate GetBlockNum err:%v,DeviceId:%v", err.Error(), deviceID)
 			err = v.saveValidateResult(v.roundID, deviceID, validatorID, err.Error(), persistent.ValidateStatusOther)
@@ -259,7 +264,9 @@ func (v *Validate) validate(validateResults *api.ValidateResults) error {
 		return v.saveValidateResult(v.roundID, deviceID, "", msg, status)
 	}
 
-	cacheInfos, err := persistent.GetDB().GetBlockInfos(deviceID)
+	area := v.nodeManager.getNodeArea(deviceID)
+
+	cacheInfos, err := persistent.GetDB().GetBlockInfos(area, deviceID)
 	if err != nil || len(cacheInfos) <= 0 {
 		status = persistent.ValidateStatusOther
 		msg = err.Error()
@@ -274,7 +281,7 @@ func (v *Validate) validate(validateResults *api.ValidateResults) error {
 
 		fidStr := fmt.Sprintf("%d", fid)
 
-		fid2 := cacheInfos[resultCid]
+		cid := cacheInfos[fidStr]
 		// cid, err := persistent.GetDB().GetBlockCidWithFid(deviceID, fidStr)
 		// if err != nil || cid == "" {
 		// 	// status = cache.ValidateStatusFail
@@ -282,9 +289,9 @@ func (v *Validate) validate(validateResults *api.ValidateResults) error {
 		// 	continue
 		// }
 
-		if fidStr != fid2 {
+		if !v.compareCid(cid, resultCid) {
 			status = persistent.ValidateStatusFail
-			msg = fmt.Sprintf(errMsgCidFail, resultCid, fid2, fidStr, index)
+			msg = fmt.Sprintf(errMsgCidFail, resultCid, cid, fidStr, index)
 			break
 		}
 	}
@@ -310,7 +317,7 @@ func (v *Validate) checkValidateTimeOut() error {
 }
 
 func (v *Validate) matchValidator(userGeoInfo *region.GeoInfo, validatorList []string, deviceID string, validatorMap map[string][]string) (map[string][]string, []string) {
-	cs, _ := v.nodeManager.findCandidateNodeWithGeo(userGeoInfo, validatorList, nil)
+	cs, _ := v.nodeManager.findCandidates(userGeoInfo, validatorList, nil)
 
 	validatorID := ""
 	if len(cs) > 0 {
@@ -419,4 +426,18 @@ func (v *Validate) startValidate() error {
 			return v.checkValidateTimeOut()
 		}
 	}
+}
+
+func (v *Validate) compareCid(cidStr1, cidStr2 string) bool {
+	target1, err := cid.Decode(cidStr1)
+	if err != nil {
+		return false
+	}
+
+	target2, err := cid.Decode(cidStr2)
+	if err != nil {
+		return false
+	}
+
+	return target1.Hash().String() == target2.Hash().String()
 }

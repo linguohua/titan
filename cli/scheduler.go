@@ -73,6 +73,12 @@ var (
 		Usage: "node type 1:Edge 2:Candidate 3:Scheduler",
 		Value: 0,
 	}
+
+	areaFlag = &cli.StringFlag{
+		Name:  "area",
+		Usage: "area",
+		Value: "CN-GD-Shenzhen",
+	}
 )
 
 var registerNodeCmd = &cli.Command{
@@ -167,6 +173,7 @@ var showDataInfoCmd = &cli.Command{
 	Flags: []cli.Flag{
 		// schedulerURLFlag,
 		cidFlag,
+		areaFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -175,6 +182,7 @@ var showDataInfoCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		// url := cctx.String("scheduler-url")
 		cid := cctx.String("cid")
+		area := cctx.String("area")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
@@ -183,11 +191,7 @@ var showDataInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		// if cid == "" {
-		// 	return xerrors.New("cid is nil")
-		// }
-
-		str, err := schedulerAPI.ShowDataInfos(ctx, cid)
+		str, err := schedulerAPI.ShowDataInfos(ctx, area, cid)
 		if err != nil {
 			return err
 		}
@@ -205,6 +209,7 @@ var cacheCarFileCmd = &cli.Command{
 		// schedulerURLFlag,
 		cidFlag,
 		reliabilityFlag,
+		areaFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -214,6 +219,7 @@ var cacheCarFileCmd = &cli.Command{
 		// url := cctx.String("scheduler-url")
 		cid := cctx.String("cid")
 		reliability := cctx.Int("reliability")
+		area := cctx.String("area")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
@@ -226,7 +232,7 @@ var cacheCarFileCmd = &cli.Command{
 			return xerrors.New("cid is nil")
 		}
 
-		err = schedulerAPI.CacheCarFile(ctx, cid, reliability)
+		err = schedulerAPI.CacheCarFile(ctx, area, cid, reliability)
 		if err != nil {
 			return err
 		}

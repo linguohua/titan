@@ -65,18 +65,20 @@ func verifySecret(token string, nodeType api.NodeType) (string, error) {
 		return deviceID, xerrors.Errorf("token err:%s,deviceID:%s,secret:%s", err.Error(), deviceID, secret)
 	}
 
-	info, err := persistent.GetDB().GetRegisterInfo(deviceID)
-	if err != nil {
-		return deviceID, xerrors.Errorf("info err:%s,deviceID:%s,secret:%s", err.Error(), deviceID, secret)
-	}
-
-	if info.Secret != secret {
-		return deviceID, xerrors.Errorf("err:%s,deviceID:%s,secret:%s,info_s:%s", "secret mismatch", deviceID, secret, info.Secret)
-	}
-
-	if info.NodeType != int(nodeType) {
-		return deviceID, xerrors.Errorf("err:%s,deviceID:%s,nodeType:%v,info_n:%v", "node type mismatch", deviceID, nodeType, info.NodeType)
-	}
-
 	return deviceID, nil
+
+	// info, err := persistent.GetDB().GetRegisterInfo(deviceID)
+	// if err != nil {
+	// 	return deviceID, xerrors.Errorf("info err:%s,deviceID:%s,secret:%s", err.Error(), deviceID, secret)
+	// }
+
+	// if info.Secret != secret {
+	// 	return deviceID, xerrors.Errorf("err:%s,deviceID:%s,secret:%s,info_s:%s", "secret mismatch", deviceID, secret, info.Secret)
+	// }
+
+	// if info.NodeType != int(nodeType) {
+	// 	return deviceID, xerrors.Errorf("err:%s,deviceID:%s,nodeType:%v,info_n:%v", "node type mismatch", deviceID, nodeType, info.NodeType)
+	// }
+
+	// return deviceID, nil
 }
