@@ -31,8 +31,8 @@ CREATE TABLE `validate_err` (
     `round_id` varchar(225) NOT NULL ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='validate error device';
-
-CREATE TABLE `data_info` (
+  
+CREATE TABLE `data_infos_CN_GD_Shenzhen` (
 	`cid` varchar(512) NOT NULL UNIQUE,
     `cache_ids` varchar(225) NOT NULL ,
     `status` int(20)  DEFAULT '0' ,
@@ -41,12 +41,43 @@ CREATE TABLE `data_info` (
 	`need_reliability` int(64) DEFAULT '0' ,
     `cache_time` int(20)  DEFAULT '0' ,
 	PRIMARY KEY (`cid`)
-  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='data info';
+  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='data infos';
+
+CREATE TABLE `cache_infos_CN_GD_Shenzhen` (
+    `id` int(20) unsigned NOT NULL AUTO_INCREMENT,
+	`cid` varchar(512) NOT NULL,
+    `cache_id` varchar(225) NOT NULL ,
+    `device_id` varchar(225) NOT NULL ,
+    `status` int(20)  DEFAULT '0' ,
+    `total_size` int(20)  DEFAULT '0' ,
+	`reliability` int(64) DEFAULT '0' ,
+	PRIMARY KEY (`id`)
+  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='cache infos';
+
+CREATE TABLE `device_blocks_CN_GD_Shenzhen` (
+    `id` int(20) unsigned NOT NULL AUTO_INCREMENT,
+	`cid` varchar(512) NOT NULL,
+    `device_id` varchar(225) NOT NULL ,
+    `fid` varchar(225) NOT NULL ,
+    `carfile_id` varchar(225) ,
+    `cache_id` varchar(225) ,
+	PRIMARY KEY (`id`)
+  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='device blocks';
+
+CREATE TABLE `block_devices_CN_GD_Shenzhen` (
+    `id` int(20) unsigned NOT NULL AUTO_INCREMENT,
+	`cid` varchar(512) NOT NULL,
+    `device_id` varchar(225) NOT NULL ,
+	PRIMARY KEY (`id`)
+  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='block devices';
+
+  
 
 CREATE TABLE `register` (
+    `id` int(20) unsigned NOT NULL AUTO_INCREMENT,
 	`device_id` varchar(512) NOT NULL UNIQUE,
     `secret` varchar(512) NOT NULL UNIQUE,
     `create_time` varchar(225) DEFAULT NULL ,
     `node_type` int(20)  DEFAULT '0' ,
-	PRIMARY KEY (`device_id`)
+	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node register info';

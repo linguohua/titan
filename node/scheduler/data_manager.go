@@ -24,15 +24,15 @@ func newDataManager(nodeManager *NodeManager) *DataManager {
 		resultChannel: make(chan bool, 1),
 	}
 
-	go d.initChannelTask()
+	// go d.initChannelTask()
 
 	return d
 }
 
-func (m *DataManager) findData(cid string) *Data {
+func (m *DataManager) findData(area, cid string) *Data {
 	data, ok := m.dataMap[cid]
 	if !ok {
-		data = loadData(cid, m.nodeManager, m)
+		data = loadData(area, cid, m.nodeManager, m)
 		if data != nil {
 			m.dataMap[cid] = data
 		}
@@ -42,12 +42,12 @@ func (m *DataManager) findData(cid string) *Data {
 	return data
 }
 
-func (m *DataManager) cacheData(cid string, reliability int) error {
+func (m *DataManager) cacheData(area, cid string, reliability int) error {
 	data, ok := m.dataMap[cid]
 	if !ok {
-		data = loadData(cid, m.nodeManager, m)
+		data = loadData(area, cid, m.nodeManager, m)
 		if data == nil {
-			data = newData(m.nodeManager, m, cid, reliability)
+			data = newData(area, m.nodeManager, m, cid, reliability)
 		}
 		m.dataMap[cid] = data
 		// return xerrors.New("already exists")
@@ -99,58 +99,58 @@ func (m *DataManager) getCacheTask(deviceID string) (string, string) {
 	return cache.GetDB().GetCacheDataTask(deviceID)
 }
 
-func (m *DataManager) initChannelTask() {
-	for {
-		<-m.resultChannel
+// func (m *DataManager) initChannelTask() {
+// 	for {
+// 		<-m.resultChannel
 
-		m.doUpdateCacheInfo()
-	}
-}
+// 		m.doUpdateCacheInfo()
+// 	}
+// }
 
-func (m *DataManager) writeChanWithSelect(b bool) {
-	select {
-	case m.resultChannel <- b:
-		return
-	default:
-		// log.Warnf("channel blocked, can not write")
-	}
-}
+// func (m *DataManager) writeChanWithSelect(b bool) {
+// 	select {
+// 	case m.resultChannel <- b:
+// 		return
+// 	default:
+// 		// log.Warnf("channel blocked, can not write")
+// 	}
+// }
 
-func (m *DataManager) doUpdateCacheInfo() {
-	for m.resultQueue.Len() > 0 {
-		element := m.resultQueue.Front() // First element
-		info := element.Value.(*api.CacheResultInfo)
+// func (m *DataManager) doUpdateCacheInfo() {
+// 	for m.resultQueue.Len() > 0 {
+// 		element := m.resultQueue.Front() // First element
+// 		info := element.Value.(*api.CacheResultInfo)
 
-		carfileID, cacheID := m.getCacheTask(info.DeviceID)
-		// log.Warnf("task carfileID:%v, cacheID:%v", carfileID, cacheID)
-		if carfileID != "" {
-			data := m.findData(carfileID)
-			// log.Warnf("data:%v, ", data)
-			if data != nil {
-				data.updateDataInfo(info.DeviceID, cacheID, info)
-				// save to block table
-				// err := persistent.GetDB().SetCarfileInfo(info.DeviceID, info.Cid, carfileID, cacheID)
-				// if err != nil {
-				// 	log.Errorf("SetCarfileInfo err:%v,device:%v", err.Error(), info.DeviceID)
-				// }
-			}
-		}
+// 		carfileID, cacheID := m.getCacheTask(info.DeviceID)
+// 		// log.Warnf("task carfileID:%v, cacheID:%v", carfileID, cacheID)
+// 		if carfileID != "" {
+// 			data := m.findData(carfileID)
+// 			// log.Warnf("data:%v, ", data)
+// 			if data != nil {
+// 				data.updateDataInfo(info.DeviceID, cacheID, info)
+// 				// save to block table
+// 				// err := persistent.GetDB().SetCarfileInfo(info.DeviceID, info.Cid, carfileID, cacheID)
+// 				// if err != nil {
+// 				// 	log.Errorf("SetCarfileInfo err:%v,device:%v", err.Error(), info.DeviceID)
+// 				// }
+// 			}
+// 		}
 
-		m.resultQueue.Remove(element) // Dequeue
+// 		m.resultQueue.Remove(element) // Dequeue
 
-		// time.Sleep(20 * time.Second)
-		// v.writeChanWithSelect(true)
-	}
-}
+// 		// time.Sleep(20 * time.Second)
+// 		// v.writeChanWithSelect(true)
+// 	}
+// }
 
-func (m *DataManager) cacheResult(deviceID string, info *api.CacheResultInfo) error {
-	info.DeviceID = deviceID
-	m.resultQueue.PushBack(info)
+// func (m *DataManager) cacheResult(deviceID string, info *api.CacheResultInfo) error {
+// 	info.DeviceID = deviceID
+// 	m.resultQueue.PushBack(info)
 
-	m.writeChanWithSelect(true)
+// 	m.writeChanWithSelect(true)
 
-	return nil
-}
+// 	return nil
+// }
 
 func (m *DataManager) getDataCacheInfo(deviceID string, info *api.CacheResultInfo) (string, string) {
 	carfileID, cacheID := m.getCacheTask(deviceID)
@@ -159,7 +159,9 @@ func (m *DataManager) getDataCacheInfo(deviceID string, info *api.CacheResultInf
 		return carfileID, cacheID
 	}
 
-	data := m.findData(carfileID)
+	area := m.nodeManager.getNodeArea(deviceID)
+
+	data := m.findData(area, carfileID)
 	// log.Warnf("data:%v, ", data)
 	if data == nil {
 		log.Warnf("task data is nil, DeviceID:%v, carfileID:%v", deviceID, carfileID)

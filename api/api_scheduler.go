@@ -16,8 +16,8 @@ type Scheduler interface {
 	Validate(ctx context.Context) error                                                                //perm:admin
 	QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]CacheStat, error)                  //perm:read
 	QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (CachingBlockList, error)         //perm:read
-	CacheCarFile(ctx context.Context, cid string, reliability int) error                               //perm:admin
-	ShowDataInfos(ctx context.Context, cid string) (string, error)                                     //perm:read
+	CacheCarFile(ctx context.Context, area, cid string, reliability int) error                         //perm:admin
+	ShowDataInfos(ctx context.Context, area, cid string) (string, error)                               //perm:read
 	RegisterNode(ctx context.Context, t NodeType) (NodeRegisterInfo, error)                            //perm:admin
 	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) //perm:admin
 
@@ -38,6 +38,7 @@ type Scheduler interface {
 
 // NodeRegisterInfo Node Register Info
 type NodeRegisterInfo struct {
+	ID         int
 	DeviceID   string `db:"device_id"`
 	Secret     string `db:"secret"`
 	CreateTime string `db:"create_time"`

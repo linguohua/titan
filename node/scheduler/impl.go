@@ -29,6 +29,8 @@ const (
 	ErrCidNotFind = "Not Found Cid"
 	// ErrUnknownNodeType unknown node type
 	ErrUnknownNodeType = "Unknown Node Type"
+	// ErrAreaNotExist Area not exist
+	ErrAreaNotExist = "Area not exist:%s"
 )
 
 // NewLocalScheduleNode NewLocalScheduleNode
@@ -279,16 +281,20 @@ func (s *Scheduler) DeleteBlocks(ctx context.Context, deviceID string, cids []st
 }
 
 // CacheCarFile Cache CarFile
-func (s *Scheduler) CacheCarFile(ctx context.Context, cid string, reliability int) error {
+func (s *Scheduler) CacheCarFile(ctx context.Context, area, cid string, reliability int) error {
 	if cid == "" {
 		return xerrors.New("cid is nil")
 	}
 
-	return s.dataManager.cacheData(cid, reliability)
+	if !areaExist(area) {
+		return xerrors.New(ErrAreaNotExist)
+	}
+
+	return s.dataManager.cacheData(area, cid, reliability)
 }
 
 // ShowDataInfos Show DataInfos
-func (s *Scheduler) ShowDataInfos(ctx context.Context, cid string) (string, error) {
+func (s *Scheduler) ShowDataInfos(ctx context.Context, area, cid string) (string, error) {
 	str := ""
 	if cid == "" {
 		// for _, d := range s.dataManager.dataMap {
@@ -302,18 +308,32 @@ func (s *Scheduler) ShowDataInfos(ctx context.Context, cid string) (string, erro
 		return str, nil
 	}
 
-	d := s.dataManager.findData(cid)
-	if d != nil {
-		str = fmt.Sprintf("%scid:%v,totalSize:%v,cache:", str, d.cid, d.totalSize)
-		for _, c := range d.cacheMap {
-			str = fmt.Sprintf("%s[%v;doneSize:%v;status:%v]", str, c.cacheID, c.doneSize, c.status)
+	if area != "" {
+		d := s.dataManager.findData(area, cid)
+		if d != nil {
+			str = fmt.Sprintf("%scid:%v,totalSize:%v,cache:", str, d.cid, d.totalSize)
+			for _, c := range d.cacheMap {
+				str = fmt.Sprintf("%s[%v;doneSize:%v;status:%v]", str, c.cacheID, c.doneSize, c.status)
+			}
+			str = fmt.Sprintf("%s\n", str)
 		}
-		str = fmt.Sprintf("%s\n", str)
-
 		return str, nil
 	}
 
-	return str, xerrors.New(ErrCidNotFind)
+	for _, area := range areaPool {
+		d := s.dataManager.findData(area, cid)
+		if d != nil {
+			str = fmt.Sprintf("%scid:%v,totalSize:%v,cache:", str, d.cid, d.totalSize)
+			for _, c := range d.cacheMap {
+				str = fmt.Sprintf("%s[%v;doneSize:%v;status:%v]", str, c.cacheID, c.doneSize, c.status)
+			}
+			str = fmt.Sprintf("%s\n", str)
+
+			// return str, nil
+		}
+	}
+
+	return str, nil
 }
 
 // CacheBlocks Cache Block
@@ -542,18 +562,18 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url, token string)
 func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]api.CacheStat, error) {
 	statList := make([]api.CacheStat, 0)
 
-	// redis datas
-	body := api.CacheStat{}
-	count, err := persistent.GetDB().GetBlockNum(deviceID)
-	if err == nil {
-		body.CacheBlockCount = int(count)
-	}
-
-	statList = append(statList, body)
-
 	// node datas
 	candidata := s.nodeManager.getCandidateNode(deviceID)
 	if candidata != nil {
+		// redis datas
+		body := api.CacheStat{}
+		count, err := persistent.GetDB().GetBlockNum(candidata.geoInfo.Geo, deviceID)
+		if err == nil {
+			body.CacheBlockCount = int(count)
+		}
+
+		statList = append(statList, body)
+
 		nodeBody, _ := candidata.nodeAPI.QueryCacheStat(ctx)
 		statList = append(statList, nodeBody)
 		return statList, nil
@@ -561,6 +581,14 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
+		body := api.CacheStat{}
+		count, err := persistent.GetDB().GetBlockNum(edge.geoInfo.Geo, deviceID)
+		if err == nil {
+			body.CacheBlockCount = int(count)
+		}
+
+		statList = append(statList, body)
+
 		nodeBody, _ := edge.nodeAPI.QueryCacheStat(ctx)
 		statList = append(statList, nodeBody)
 		return statList, nil

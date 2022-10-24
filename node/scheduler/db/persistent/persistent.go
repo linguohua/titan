@@ -11,37 +11,33 @@ type DB interface {
 
 	// Node Info
 	SetNodeInfo(deviceID string, info *NodeInfo) error
-	// AddNodeOnlineTime(deviceID string, onLineTime int64) error
 	GetNodeInfo(deviceID string) (*NodeInfo, error)
-	// AddAllNodeOnlineTime(onLineTime int64) error
 	SetAllNodeOffline() error
+	// AddAllNodeOnlineTime(onLineTime int64) error
+	// AddNodeOnlineTime(deviceID string, onLineTime int64) error
 
 	// Validate Result
 	SetValidateResultInfo(info *ValidateResult) error
 	SetNodeToValidateErrorList(sID, deviceID string) error
 
-	RemoveBlockInfo(deviceID, cid string) error
-	SetBlockInfo(deviceID, cid, fid, carfileID, cacheID string, isUpdate bool) error
-	// SetCarfileInfo(deviceID, cid, carfileID, cacheID string) error
-	GetBlockFidWithCid(deviceID, cid string) (string, error)
-	GetBlockInfos(deviceID string) (map[string]string, error)
-	// GetBlockCidWithFid(deviceID, fid string) (string, error)
-	GetBlockNum(deviceID string) (int64, error)
-
 	// data info
-	SetDataInfo(info *DataInfo) error
-	GetDataInfo(cid string) (*DataInfo, error)
-	GetDataInfos() ([]*DataInfo, error)
+	SetDataInfo(area string, info *DataInfo) error
+	GetDataInfo(area, cid string) (*DataInfo, error)
+	GetDataInfos(area string) ([]*DataInfo, error)
+
 	// cache info
-	CreateCacheInfo(cacheID string) error
-	SetCacheInfo(info *CacheInfo, isUpdate bool) error
-	GetCacheInfo(cacheID, cid string) (*CacheInfo, error)
-	GetCacheInfos(cacheID string) ([]*CacheInfo, error)
-	HaveUndoneCaches(cacheID string) (bool, error)
-	// cache list
-	RemoveNodeWithCacheList(deviceID, cid string) error
-	SetNodeToCacheList(deviceID, cid string) error
-	GetNodesWithCacheList(cid string) ([]string, error)
+	SetCacheInfo(area string, info *CacheInfo, isUpdate bool) error
+	GetCacheInfo(area, cacheID, cid string) (*CacheInfo, error)
+	GetCacheInfos(area, cacheID string) ([]*CacheInfo, error)
+	HaveUndoneCaches(area, cacheID string) (bool, error)
+
+	// node block
+	DeleteBlockInfo(area, deviceID, cid string) error
+	AddBlockInfo(area, deviceID, cid, fid, carfileID, cacheID string) error
+	GetBlockFidWithCid(area, deviceID, cid string) (string, error)
+	GetBlockInfos(area, deviceID string) (map[string]string, error)
+	GetBlockNum(area, deviceID string) (int64, error)
+	GetNodesWithCacheList(area, cid string) ([]string, error)
 
 	// temporary node register
 	BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error
@@ -110,8 +106,9 @@ type ValidateResult struct {
 
 // NodeBlocks Node Block
 type NodeBlocks struct {
+	ID int
 	// TableName string `db:"table_name"`
-	// DeviceID  string `db:"device_id"`
+	DeviceID  string `db:"device_id"`
 	FID       string `db:"fid"`
 	CID       string `db:"cid"`
 	CarfileID string `db:"carfile_id"`
@@ -120,8 +117,10 @@ type NodeBlocks struct {
 
 // BlockNodes Node Block
 type BlockNodes struct {
+	ID int
 	// TableName string `db:"table_name"`
 	DeviceID string `db:"device_id"`
+	CID      string `db:"cid"`
 }
 
 // DataInfo Data info
@@ -137,6 +136,7 @@ type DataInfo struct {
 
 // CacheInfo Data Cache info
 type CacheInfo struct {
+	ID          int
 	CacheID     string `db:"cache_id"`
 	CID         string `db:"cid"`
 	DeviceID    string `db:"device_id"`

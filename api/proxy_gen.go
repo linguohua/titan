@@ -184,7 +184,7 @@ type SchedulerStruct struct {
 
 		CacheBlocks func(p0 context.Context, p1 []string, p2 string) ([]string, error) `perm:"admin"`
 
-		CacheCarFile func(p0 context.Context, p1 string, p2 int) (error) `perm:"admin"`
+		CacheCarFile func(p0 context.Context, p1 string, p2 string, p3 int) (error) `perm:"admin"`
 
 		CacheResult func(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) `perm:"write"`
 
@@ -218,7 +218,7 @@ type SchedulerStruct struct {
 
 		RegisterNode func(p0 context.Context, p1 NodeType) (NodeRegisterInfo, error) `perm:"admin"`
 
-		ShowDataInfos func(p0 context.Context, p1 string) (string, error) `perm:"read"`
+		ShowDataInfos func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
 		Validate func(p0 context.Context) (error) `perm:"admin"`
 
@@ -587,14 +587,14 @@ func (s *SchedulerStub) CacheBlocks(p0 context.Context, p1 []string, p2 string) 
 	return *new([]string), ErrNotSupported
 }
 
-func (s *SchedulerStruct) CacheCarFile(p0 context.Context, p1 string, p2 int) (error) {
+func (s *SchedulerStruct) CacheCarFile(p0 context.Context, p1 string, p2 string, p3 int) (error) {
 	if s.Internal.CacheCarFile == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.CacheCarFile(p0, p1, p2)
+	return s.Internal.CacheCarFile(p0, p1, p2, p3)
 }
 
-func (s *SchedulerStub) CacheCarFile(p0 context.Context, p1 string, p2 int) (error) {
+func (s *SchedulerStub) CacheCarFile(p0 context.Context, p1 string, p2 string, p3 int) (error) {
 	return ErrNotSupported
 }
 
@@ -774,14 +774,14 @@ func (s *SchedulerStub) RegisterNode(p0 context.Context, p1 NodeType) (NodeRegis
 	return *new(NodeRegisterInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) ShowDataInfos(p0 context.Context, p1 string) (string, error) {
+func (s *SchedulerStruct) ShowDataInfos(p0 context.Context, p1 string, p2 string) (string, error) {
 	if s.Internal.ShowDataInfos == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.ShowDataInfos(p0, p1)
+	return s.Internal.ShowDataInfos(p0, p1, p2)
 }
 
-func (s *SchedulerStub) ShowDataInfos(p0 context.Context, p1 string) (string, error) {
+func (s *SchedulerStub) ShowDataInfos(p0 context.Context, p1 string, p2 string) (string, error) {
 	return "", ErrNotSupported
 }
 

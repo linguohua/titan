@@ -13,7 +13,7 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 )
 
-var dataDefaultTag = "-1"
+// var dataDefaultTag = "-1"
 
 // EdgeNode Edge node
 type EdgeNode struct {
@@ -69,7 +69,8 @@ func (n *Node) setNodeOnline(typeName api.NodeTypeName) error {
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
 	err := persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{
 		Geo:      geoInfo.Geo,
-		LastTime: lastTime, IsOnline: 1,
+		LastTime: lastTime,
+		IsOnline: 1,
 		NodeType: string(typeName),
 		Address:  n.addr,
 	})
@@ -121,34 +122,34 @@ func (n *Node) getNodeInfo(deviceID string) (*persistent.NodeInfo, error) {
 }
 
 // get all cache fail cid
-func (n *Node) getCacheFailCids() []string {
-	deviceID := n.deviceInfo.DeviceId
+// func (n *Node) getCacheFailCids() []string {
+// 	deviceID := n.deviceInfo.DeviceId
 
-	infos, err := persistent.GetDB().GetBlockInfos(deviceID)
-	if err != nil {
-		return nil
-	}
+// 	infos, err := persistent.GetDB().GetBlockInfos(deviceID)
+// 	if err != nil {
+// 		return nil
+// 	}
 
-	if len(infos) <= 0 {
-		return nil
-	}
+// 	if len(infos) <= 0 {
+// 		return nil
+// 	}
 
-	cs := make([]string, 0)
-	for cid, tag := range infos {
-		if tag == dataDefaultTag {
-			cs = append(cs, cid)
-		}
-	}
+// 	cs := make([]string, 0)
+// 	for cid, tag := range infos {
+// 		if tag == dataDefaultTag {
+// 			cs = append(cs, cid)
+// 		}
+// 	}
 
-	return cs
+// 	return cs
 
-	// cids, err := cache.GetDB().GetBlocksWithNodeFailList(deviceID)
-	// if err != nil {
-	// 	return nil
-	// }
+// 	// cids, err := cache.GetDB().GetBlocksWithNodeFailList(deviceID)
+// 	// if err != nil {
+// 	// 	return nil
+// 	// }
 
-	// return cids
-}
+// 	// return cids
+// }
 
 // delete block records
 func (n *Node) deleteBlockRecords(cids []string) (map[string]string, error) {
@@ -156,18 +157,11 @@ func (n *Node) deleteBlockRecords(cids []string) (map[string]string, error) {
 
 	errList := make(map[string]string, 0)
 	for _, cid := range cids {
-		err := persistent.GetDB().RemoveNodeWithCacheList(deviceID, cid)
+		err := persistent.GetDB().DeleteBlockInfo(n.geoInfo.Geo, deviceID, cid)
 		if err != nil {
 			errList[cid] = err.Error()
 			continue
 		}
-
-		err = persistent.GetDB().RemoveBlockInfo(deviceID, cid)
-		if err != nil {
-			errList[cid] = fmt.Sprintf("RemoveBlockInfo err : %v", err.Error())
-			continue
-		}
-
 	}
 
 	return errList, nil
@@ -224,15 +218,15 @@ func (n *Node) cacheBlockResult(info *api.CacheResultInfo, carfileID, cacheID st
 	deviceID := n.deviceInfo.DeviceId
 	log.Infof("nodeCacheResult deviceID:%v,info:%v", deviceID, info)
 
-	isExist := false
-	v, err := persistent.GetDB().GetBlockFidWithCid(deviceID, info.Cid)
-	if err == nil {
-		if v != dataDefaultTag {
-			return v, nil
-		}
+	// isExist := false
+	// v, err := persistent.GetDB().GetBlockFidWithCid(deviceID, info.Cid)
+	// if err == nil {
+	// 	if v != dataDefaultTag {
+	// 		return v, nil
+	// 	}
 
-		isExist = true
-	}
+	// 	isExist = true
+	// }
 
 	if !info.IsOK {
 		return "", nil
@@ -245,7 +239,7 @@ func (n *Node) cacheBlockResult(info *api.CacheResultInfo, carfileID, cacheID st
 
 	fidStr := fmt.Sprintf("%d", fid)
 
-	err = persistent.GetDB().SetBlockInfo(deviceID, info.Cid, fidStr, carfileID, cacheID, isExist)
+	err = persistent.GetDB().AddBlockInfo(n.geoInfo.Geo, deviceID, info.Cid, fidStr, carfileID, cacheID)
 	if err != nil {
 		return "", err
 	}
@@ -254,10 +248,10 @@ func (n *Node) cacheBlockResult(info *api.CacheResultInfo, carfileID, cacheID st
 	// if err != nil {
 	// 	return "", err
 	// }
-	err = persistent.GetDB().SetNodeToCacheList(deviceID, info.Cid)
-	if err != nil {
-		log.Errorf("nodeCacheResult SetNodeToCacheList err:%v", err.Error())
-	}
+	// err = persistent.GetDB().SetNodeToCacheList(deviceID, info.Cid)
+	// if err != nil {
+	// 	log.Errorf("nodeCacheResult SetNodeToCacheList err:%v", err.Error())
+	// }
 
 	return fidStr, err
 }
