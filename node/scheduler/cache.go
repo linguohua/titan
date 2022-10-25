@@ -109,8 +109,11 @@ func (c *Cache) cacheBlocks(deviceID string, cids []string) error {
 	// log.Warnf("deviceID:%v,cids:%v", deviceID, cids)
 	cNode := c.nodeManager.getCandidateNode(deviceID)
 	if cNode != nil {
-		reqDatas, _ := cNode.getReqCacheDatas(c.nodeManager, cids)
-		// log.Warnf("reqDatas:%v", reqDatas)
+		reqDatas, list := cNode.getReqCacheDatas(c.nodeManager, cids)
+		if len(list) > 0 {
+			reqDatas = append(reqDatas, api.ReqCacheData{Cids: list})
+		}
+		log.Warnf("cacheBlocks:%v,cids:%v", reqDatas, cids)
 		for _, reqData := range reqDatas {
 			// log.Warnf("reqData:%v", reqData)
 			err := cNode.nodeAPI.CacheBlocks(context.Background(), reqData)
@@ -125,7 +128,10 @@ func (c *Cache) cacheBlocks(deviceID string, cids []string) error {
 
 	eNode := c.nodeManager.getEdgeNode(deviceID)
 	if eNode != nil {
-		reqDatas, _ := eNode.getReqCacheDatas(c.nodeManager, cids)
+		reqDatas, list := eNode.getReqCacheDatas(c.nodeManager, cids)
+		if len(list) > 0 {
+			reqDatas = append(reqDatas, api.ReqCacheData{Cids: list})
+		}
 		// log.Warnf("reqDatas:%v", reqDatas)
 		for _, reqData := range reqDatas {
 			// log.Warnf("reqData:%v", reqData)

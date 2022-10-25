@@ -202,11 +202,9 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string) ([]api.
 		node := nodeManager.getCandidateNode(deviceID)
 		if node != nil {
 			reqList = append(reqList, api.ReqCacheData{Cids: list, CandidateURL: node.addr})
+		} else {
+			notFindCandidateData = append(notFindCandidateData, list...)
 		}
-	}
-
-	if len(notFindCandidateData) > 0 {
-		reqList = append(reqList, api.ReqCacheData{Cids: notFindCandidateData})
 	}
 
 	return reqList, notFindCandidateData
