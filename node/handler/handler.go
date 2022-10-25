@@ -13,7 +13,7 @@ var log = logging.Logger("handler")
 type RequestIP struct{}
 
 type Handler struct {
-	*auth.Handler
+	handler *auth.Handler
 }
 
 func GetRequestIP(ctx context.Context) string {
@@ -41,5 +41,5 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	ctx = context.WithValue(ctx, RequestIP{}, reqIP)
 
-	h.Next(w, r.WithContext(ctx))
+	h.handler.ServeHTTP(w, r)
 }
