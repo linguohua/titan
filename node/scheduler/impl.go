@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -31,6 +30,8 @@ const (
 	ErrUnknownNodeType = "Unknown Node Type"
 	// ErrAreaNotExist Area not exist
 	ErrAreaNotExist = "Area not exist:%s"
+	// ErrNotFoundTask Not Found Task
+	ErrNotFoundTask = "Not Found Task"
 )
 
 // NewLocalScheduleNode NewLocalScheduleNode
@@ -165,9 +166,17 @@ func (s *Scheduler) DownloadBlockResult(ctx context.Context, deviceID, cid strin
 	return cache.GetDB().IncrNodeReward(deviceID, 1)
 }
 
+func (s *Scheduler) CacheContinue(ctx context.Context, area, cid, cacheID string) error {
+	if cid == "" || cacheID == "" {
+		return xerrors.New("parameter is nil")
+	}
+
+	return s.dataManager.cacheContinue(area, cid, cacheID)
+}
+
 // CacheResult Cache Data Result
 func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
-	carfileID, cacheID := s.dataManager.getDataCacheInfo(deviceID, &info)
+	carfileID, cacheID := s.dataManager.cacheCarfileResult(deviceID, &info)
 
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
@@ -294,46 +303,71 @@ func (s *Scheduler) CacheCarFile(ctx context.Context, area, cid string, reliabil
 }
 
 // ShowDataInfos Show DataInfos
-func (s *Scheduler) ShowDataInfos(ctx context.Context, area, cid string) (string, error) {
-	str := ""
+func (s *Scheduler) ShowDataInfos(ctx context.Context, area, cid string) ([]api.CacheDataInfo, error) {
 	if cid == "" {
-		// for _, d := range s.dataManager.dataMap {
-		// 	str = fmt.Sprintf("%scid:%v,totalSize:%v,cache:", str, d.cid, d.totalSize)
-		// 	for _, c := range d.cacheMap {
-		// 		str = fmt.Sprintf("%s[%v;doneSize:%v;status:%v]", str, c.cacheID, c.doneSize, c.status)
-		// 	}
-		// 	str = fmt.Sprintf("%s\n", str)
-		// }
+		return nil, xerrors.New(ErrCidNotFind)
+	}
 
-		return str, nil
+	infos := make([]api.CacheDataInfo, 0)
+
+	toData := func(d *Data) api.CacheDataInfo {
+		info := api.CacheDataInfo{}
+		if d != nil {
+			info.Cid = d.cid
+			info.TotalSize = d.totalSize
+			info.NeedReliability = d.needReliability
+			info.CurReliability = d.reliability
+
+			caches := make([]api.CacheInfo, 0)
+			if d.cacheMap != nil {
+				for _, c := range d.cacheMap {
+					cache := api.CacheInfo{
+						CacheID:  c.cacheID,
+						Status:   int(c.status),
+						DoneSize: c.doneSize,
+					}
+					blocks := make([]api.BloackInfo, 0)
+					for _, b := range c.blockMap {
+						block := api.BloackInfo{
+							Cid:      b.cid,
+							Status:   int(b.status),
+							DeviceID: b.deviceID,
+							Size:     b.size,
+						}
+						blocks = append(blocks, block)
+					}
+					cache.BloackInfo = blocks
+
+					caches = append(caches, cache)
+				}
+			}
+
+			info.CacheInfos = caches
+		}
+
+		return info
 	}
 
 	if area != "" {
 		d := s.dataManager.findData(area, cid)
 		if d != nil {
-			str = fmt.Sprintf("%scid:%v,totalSize:%v,cache:", str, d.cid, d.totalSize)
-			for _, c := range d.cacheMap {
-				str = fmt.Sprintf("%s[%v;doneSize:%v;status:%v]", str, c.cacheID, c.doneSize, c.status)
-			}
-			str = fmt.Sprintf("%s\n", str)
+			infos = append(infos, toData(d))
+			return infos, nil
 		}
-		return str, nil
+
+		return nil, xerrors.New(ErrCidNotFind)
 	}
 
 	for _, area := range areaPool {
 		d := s.dataManager.findData(area, cid)
 		if d != nil {
-			str = fmt.Sprintf("%scid:%v,totalSize:%v,cache:", str, d.cid, d.totalSize)
-			for _, c := range d.cacheMap {
-				str = fmt.Sprintf("%s[%v;doneSize:%v;status:%v]", str, c.cacheID, c.doneSize, c.status)
-			}
-			str = fmt.Sprintf("%s\n", str)
-
-			// return str, nil
+			infos = append(infos, toData(d))
 		}
+
+		return nil, xerrors.New(ErrCidNotFind)
 	}
 
-	return str, nil
+	return infos, nil
 }
 
 // CacheBlocks Cache Block

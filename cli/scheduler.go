@@ -23,6 +23,7 @@ var SchedulerCmds = []*cli.Command{
 	cacheCarFileCmd,
 	showDataInfoCmd,
 	registerNodeCmd,
+	cacheContinueCmd,
 }
 
 var (
@@ -78,6 +79,12 @@ var (
 		Name:  "area",
 		Usage: "area",
 		Value: "CN-GD-Shenzhen",
+	}
+
+	cacheIDFlag = &cli.StringFlag{
+		Name:  "cache-id",
+		Usage: "cache id",
+		Value: "",
 	}
 )
 
@@ -233,6 +240,41 @@ var cacheCarFileCmd = &cli.Command{
 		}
 
 		err = schedulerAPI.CacheCarFile(ctx, area, cid, reliability)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
+}
+
+var cacheContinueCmd = &cli.Command{
+	Name:  "cache-continue",
+	Usage: "cache continue",
+	Flags: []cli.Flag{
+		// schedulerURLFlag,
+		cidFlag,
+		areaFlag,
+		cacheIDFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		// url := cctx.String("scheduler-url")
+		cid := cctx.String("cid")
+		area := cctx.String("area")
+		cacgeID := cctx.String("cache-id")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		err = schedulerAPI.CacheContinue(ctx, area, cid, cacgeID)
 		if err != nil {
 			return err
 		}

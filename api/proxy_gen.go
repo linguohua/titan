@@ -186,6 +186,8 @@ type SchedulerStruct struct {
 
 		CacheCarFile func(p0 context.Context, p1 string, p2 string, p3 int) (error) `perm:"admin"`
 
+		CacheContinue func(p0 context.Context, p1 string, p2 string, p3 string) (error) `perm:"admin"`
+
 		CacheResult func(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) `perm:"write"`
 
 		CandidateNodeConnect func(p0 context.Context, p1 string, p2 string) (error) `perm:"write"`
@@ -218,7 +220,7 @@ type SchedulerStruct struct {
 
 		RegisterNode func(p0 context.Context, p1 NodeType) (NodeRegisterInfo, error) `perm:"admin"`
 
-		ShowDataInfos func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
+		ShowDataInfos func(p0 context.Context, p1 string, p2 string) ([]CacheDataInfo, error) `perm:"read"`
 
 		Validate func(p0 context.Context) (error) `perm:"admin"`
 
@@ -598,6 +600,17 @@ func (s *SchedulerStub) CacheCarFile(p0 context.Context, p1 string, p2 string, p
 	return ErrNotSupported
 }
 
+func (s *SchedulerStruct) CacheContinue(p0 context.Context, p1 string, p2 string, p3 string) (error) {
+	if s.Internal.CacheContinue == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.CacheContinue(p0, p1, p2, p3)
+}
+
+func (s *SchedulerStub) CacheContinue(p0 context.Context, p1 string, p2 string, p3 string) (error) {
+	return ErrNotSupported
+}
+
 func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) {
 	if s.Internal.CacheResult == nil {
 		return "", ErrNotSupported
@@ -774,15 +787,15 @@ func (s *SchedulerStub) RegisterNode(p0 context.Context, p1 NodeType) (NodeRegis
 	return *new(NodeRegisterInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) ShowDataInfos(p0 context.Context, p1 string, p2 string) (string, error) {
+func (s *SchedulerStruct) ShowDataInfos(p0 context.Context, p1 string, p2 string) ([]CacheDataInfo, error) {
 	if s.Internal.ShowDataInfos == nil {
-		return "", ErrNotSupported
+		return *new([]CacheDataInfo), ErrNotSupported
 	}
 	return s.Internal.ShowDataInfos(p0, p1, p2)
 }
 
-func (s *SchedulerStub) ShowDataInfos(p0 context.Context, p1 string, p2 string) (string, error) {
-	return "", ErrNotSupported
+func (s *SchedulerStub) ShowDataInfos(p0 context.Context, p1 string, p2 string) ([]CacheDataInfo, error) {
+	return *new([]CacheDataInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) Validate(p0 context.Context) (error) {

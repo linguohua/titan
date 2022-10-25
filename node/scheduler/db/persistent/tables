@@ -70,14 +70,3 @@ CREATE TABLE `block_devices_cn_gd_shenzhen` (
     `device_id` varchar(225) NOT NULL ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='block devices';
-
-  
-
-CREATE TABLE `register` (
-    `id` int(20) unsigned NOT NULL AUTO_INCREMENT,
-	`device_id` varchar(512) NOT NULL UNIQUE,
-    `secret` varchar(512) NOT NULL UNIQUE,
-    `create_time` varchar(225) DEFAULT NULL ,
-    `node_type` int(20)  DEFAULT '0' ,
-	PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node register info';
