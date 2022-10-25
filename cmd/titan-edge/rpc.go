@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/linguohua/titan/node/handler"
 	"net/http"
 
 	"github.com/linguohua/titan/lib/rpcenc"
@@ -46,5 +47,6 @@ func WorkerHandler(authv func(ctx context.Context, token string) ([]auth.Permiss
 		Verify: authv,
 		Next:   mux.ServeHTTP,
 	}
-	return ah
+
+	return handler.New(ah)
 }
