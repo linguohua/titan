@@ -6,6 +6,7 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"golang.org/x/xerrors"
 )
 
 // Data Data
@@ -69,17 +70,47 @@ func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManag
 	return nil
 }
 
+func (d *Data) cacheContinue(dataManager *DataManager, cacheID string) error {
+	cache := d.cacheMap[cacheID]
+	if cache == nil {
+		return xerrors.New(ErrCidNotFind)
+	}
+
+	list := make([]string, 0)
+	for _, block := range cache.blockMap {
+		if block.status == cacheStatusFail {
+			list = append(list, block.cid)
+		}
+	}
+
+	return cache.doCache(list, d.reliability > 0)
+}
+
 func (d *Data) createCache(dataManager *DataManager) error {
-	c, err := newCache(d.area, d.nodeManager, dataManager, d.cid)
+	// have old cache undone
+	for _, cache := range d.cacheMap {
+		if cache.status == cacheStatusFail {
+			list := make([]string, 0)
+			for _, block := range cache.blockMap {
+				if block.status == cacheStatusFail {
+					list = append(list, block.cid)
+				}
+			}
+
+			return cache.doCache(list, d.reliability > 0)
+		}
+	}
+
+	cache, err := newCache(d.area, d.nodeManager, dataManager, d.cid)
 	if err != nil {
 		log.Errorf("new cache err:%v", err.Error())
 		return err
 	}
 
-	d.cacheMap[c.cacheID] = c
-	d.cacheIDs = fmt.Sprintf("%s,%s", d.cacheIDs, c.cacheID)
+	d.cacheMap[cache.cacheID] = cache
+	d.cacheIDs = fmt.Sprintf("%s,%s", d.cacheIDs, cache.cacheID)
 
-	return c.doCache([]string{d.cid}, d.reliability > 0)
+	return cache.doCache([]string{d.cid}, d.reliability > 0)
 }
 
 func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInfo) (string, string) {
@@ -101,7 +132,7 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 
 	if cache.status > cacheStatusCreate {
 		d.cacheTime++
-		d.dataManager.removeCacheTaskMap(deviceID)
+		d.dataManager.removeCacheTask(deviceID)
 		d.reliability += cache.reliability
 		// log.Warnf("--------- reliability:%v,%v", d.reliability, cache.reliability)
 

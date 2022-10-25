@@ -5,6 +5,7 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
+	"golang.org/x/xerrors"
 )
 
 // DataManager Data
@@ -60,35 +61,33 @@ func (m *DataManager) cacheData(area, cid string, reliability int) error {
 	return err
 }
 
+func (m *DataManager) cacheContinue(area, cid, cacheID string) error {
+	data, ok := m.dataMap[cid]
+	if !ok {
+		data = loadData(area, cid, m.nodeManager, m)
+		if data == nil {
+			return xerrors.Errorf("%s,cid:%s,cacheID:%v", ErrNotFoundTask, cid, cacheID)
+		}
+		m.dataMap[cid] = data
+		// return xerrors.New("already exists")
+	}
+
+	return data.cacheContinue(m, cacheID)
+}
+
 func (m *DataManager) removeBlock(deviceID string, cids []string) {
 	// TODO remove data info
 	log.Errorf("removeBlock deviceID:%v,cids:%v", deviceID, cids)
 }
 
-// func (m *DataManager) cacheResult2(deviceID string, info api.CacheResultInfo) (string, string) {
-// 	carfileID, cacheID := m.getCacheTask(deviceID)
-// 	// log.Warnf("task carfileID:%v, cacheID:%v", carfileID, cacheID)
-// 	if carfileID == "" {
-// 		return "", ""
-// 	}
-
-// 	data := m.findData(carfileID)
-// 	// log.Warnf("data:%v, ", data)
-// 	if data != nil {
-// 		return data.updateDataInfo(deviceID, cacheID, info)
-// 	}
-
-// 	return "", ""
-// }
-
-func (m *DataManager) addCacheTaskMap(deviceID, cid, cacheID string) {
+func (m *DataManager) addCacheTask(deviceID, cid, cacheID string) {
 	err := cache.GetDB().SetCacheDataTask(deviceID, cid, cacheID)
 	if err != nil {
 		log.Errorf("SetCacheDataTask err:%v", err.Error())
 	}
 }
 
-func (m *DataManager) removeCacheTaskMap(deviceID string) {
+func (m *DataManager) removeCacheTask(deviceID string) {
 	err := cache.GetDB().RemoveCacheDataTask(deviceID)
 	if err != nil {
 		log.Errorf("RemoveCacheDataTask err:%v", err.Error())
@@ -152,7 +151,7 @@ func (m *DataManager) getCacheTask(deviceID string) (string, string) {
 // 	return nil
 // }
 
-func (m *DataManager) getDataCacheInfo(deviceID string, info *api.CacheResultInfo) (string, string) {
+func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultInfo) (string, string) {
 	carfileID, cacheID := m.getCacheTask(deviceID)
 	if carfileID == "" {
 		log.Warnf("task carfileID is nil ,DeviceID:%v", deviceID)

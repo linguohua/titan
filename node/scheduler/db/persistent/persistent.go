@@ -26,7 +26,7 @@ type DB interface {
 	GetDataInfos(area string) ([]*DataInfo, error)
 
 	// cache info
-	SetCacheInfo(area string, info *CacheInfo, isUpdate bool) error
+	SetCacheInfo(area string, info *CacheInfo) error
 	GetCacheInfo(area, cacheID, cid string) (*CacheInfo, error)
 	GetCacheInfos(area, cacheID string) ([]*CacheInfo, error)
 	HaveUndoneCaches(area, cacheID string) (bool, error)
