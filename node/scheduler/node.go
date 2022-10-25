@@ -271,7 +271,8 @@ func (n *Node) cacheBlockResult(info *api.CacheResultInfo, carfileID, cacheID st
 // }
 
 func randomNum(start, end int) int {
-	// rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano())
+
 	max := end - start
 	if max <= 0 {
 		return start

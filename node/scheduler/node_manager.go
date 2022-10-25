@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -296,6 +297,9 @@ func (m *NodeManager) findEdgeNodeWithGeo(geoKey string, useDeviceIDs []string, 
 	}
 
 	if len(list) > 0 {
+		sort.Slice(list, func(i, j int) bool {
+			return list[i].deviceInfo.DeviceId > list[j].deviceInfo.DeviceId
+		})
 		return list
 	}
 
