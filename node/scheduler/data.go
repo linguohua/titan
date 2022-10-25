@@ -83,7 +83,8 @@ func (d *Data) cacheContinue(dataManager *DataManager, cacheID string) error {
 		}
 	}
 
-	return cache.doCache(list, d.reliability > 0)
+	cache.doCache2(list, d.reliability > 0)
+	return nil
 }
 
 func (d *Data) createCache(dataManager *DataManager) error {
@@ -97,7 +98,8 @@ func (d *Data) createCache(dataManager *DataManager) error {
 				}
 			}
 
-			return cache.doCache(list, d.reliability > 0)
+			cache.doCache2(list, d.reliability > 0)
+			return nil
 		}
 	}
 
@@ -110,7 +112,8 @@ func (d *Data) createCache(dataManager *DataManager) error {
 	d.cacheMap[cache.cacheID] = cache
 	d.cacheIDs = fmt.Sprintf("%s,%s", d.cacheIDs, cache.cacheID)
 
-	return cache.doCache([]string{d.cid}, d.reliability > 0)
+	cache.doCache2([]string{d.cid}, d.reliability > 0)
+	return nil
 }
 
 func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInfo) (string, string) {

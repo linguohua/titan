@@ -180,6 +180,38 @@ func (c *Cache) findNode(isHaveCache bool, filterDeviceIDs map[string]string) (d
 	}
 }
 
+func (c *Cache) doCache2(cids []string, isHaveCache bool) {
+	for _, cid := range cids {
+		filterDeviceIDs := make(map[string]string)
+		ds, _ := persistent.GetDB().GetNodesWithCacheList(c.area, cid)
+		if ds != nil {
+			for _, d := range ds {
+				filterDeviceIDs[d] = cid
+			}
+		}
+
+		status := cacheStatusFail
+
+		deviceID, deviceAddr, err := c.findNode(isHaveCache, filterDeviceIDs)
+		if err == nil {
+			_, cacheID := c.dataManager.getCacheTask(deviceID)
+			if cacheID == "" || cacheID == c.cacheID {
+				status = cacheStatusCreate
+				c.dataManager.addCacheTask(deviceID, c.cardFileCid, c.cacheID)
+
+				err = c.cacheBlocks(deviceID, cids)
+				if err != nil {
+					log.Errorf("cacheBlocks err:%v", err)
+				}
+			}
+		}
+
+		b := &BlockInfo{cid: cid, deviceID: deviceID, deviceIP: deviceAddr, status: status, size: 0}
+		c.blockMap[cid] = b
+		c.saveCache(b, false)
+	}
+}
+
 func (c *Cache) doCache(cids []string, isHaveCache bool) error {
 	// log.Warnf("doCache cacheID:%v", c.cacheID)
 	filterDeviceIDs := make(map[string]string)
@@ -266,10 +298,10 @@ func (c *Cache) updateCacheInfo(info *api.CacheResultInfo, totalSize, dataReliab
 		if len(info.Links) > 0 {
 			haveUndone = true
 
-			err := c.doCache(info.Links, dataReliability > 0)
-			if err != nil {
-				log.Errorf("carfile:%s,cache:%s,err:%s", c.cardFileCid, c.cacheID, err.Error())
-			}
+			c.doCache2(info.Links, dataReliability > 0)
+			// if err != nil {
+			// 	log.Errorf("carfile:%s,cache:%s,err:%s", c.cardFileCid, c.cacheID, err.Error())
+			// }
 		}
 	}
 
