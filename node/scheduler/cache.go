@@ -113,7 +113,7 @@ func (c *Cache) cacheBlocks(deviceID string, cids []string) error {
 		if len(list) > 0 {
 			reqDatas = append(reqDatas, api.ReqCacheData{Cids: list})
 		}
-		log.Warnf("cacheBlocks:%v,cids:%v", reqDatas, cids)
+		// log.Warnf("cacheBlocks:%v,cids:%v", reqDatas, cids)
 		for _, reqData := range reqDatas {
 			// log.Warnf("reqData:%v", reqData)
 			err := cNode.nodeAPI.CacheBlocks(context.Background(), reqData)
@@ -199,7 +199,7 @@ func (c *Cache) doCache2(cids []string, isHaveCache bool) {
 				status = cacheStatusCreate
 				c.dataManager.addCacheTask(deviceID, c.cardFileCid, c.cacheID)
 
-				err = c.cacheBlocks(deviceID, cids)
+				err = c.cacheBlocks(deviceID, []string{cid})
 				if err != nil {
 					log.Errorf("cacheBlocks err:%v", err)
 				}
