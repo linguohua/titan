@@ -523,7 +523,7 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, ip
 func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url, token string) error {
 	deviceID, err := verifySecret(token, api.NodeCandidate)
 	if err != nil {
-		log.Errorf("EdgeNodeConnect verifySecret err:%v", err)
+		log.Errorf("CandidateNodeConnect verifySecret err:%v", err)
 		return err
 	}
 
