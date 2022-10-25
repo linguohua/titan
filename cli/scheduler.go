@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -204,13 +205,46 @@ var showDataInfoCmd = &cli.Command{
 		}
 
 		for _, info := range infos {
-			log.Infof("----data:%v,totalSize:%v,CurReliability:%v,NeedReliability:%v \n", info.Cid, info.TotalSize, info.CurReliability, info.NeedReliability)
+			log.Infof("----data:%v,totalSize:%v,CurReliability:%v,NeedReliability:%v", info.Cid, info.TotalSize, info.CurReliability, info.NeedReliability)
 			for _, cache := range info.CacheInfos {
-				log.Infof("cache:%v,DoneSize:%v,Status:%v \n", cache.CacheID, cache.DoneSize, cache.Status)
+				log.Infof("cache:%v,DoneSize:%v,Status:%v", cache.CacheID, cache.DoneSize, cache.Status)
 
-				// for _, block := range cache.BloackInfo {
-				// log.Infof("block:%v,DeviceID:%v,Size:%v,Status:%v \n", block.Cid, block.DeviceID, block.Size, block.Status)
-				// }
+				bmapS := make(map[string]int)
+				bmapF := make(map[string]int)
+				bmapC := make(map[string]int)
+				for _, block := range cache.BloackInfo {
+					if block.Status == 3 {
+						bmapS[block.DeviceID]++
+					}
+					if block.Status == 2 {
+						bmapF[block.DeviceID]++
+					}
+					if block.Status == 1 {
+						bmapC[block.DeviceID]++
+					}
+					// log.Infof("block:%v,DeviceID:%v,Size:%v,Status:%v \n", block.Cid, block.DeviceID, block.Size, block.Status)
+				}
+				if len(bmapC) > 0 {
+					cStr := ""
+					for d, n := range bmapC {
+						cStr = fmt.Sprintf("%sDeviceID:%v,BlockNum:%v;", cStr, d, n)
+					}
+					log.Infof("doCache ,%s", cStr)
+				}
+				if len(bmapF) > 0 {
+					fStr := ""
+					for d, n := range bmapF {
+						fStr = fmt.Sprintf("%sDeviceID:%v,BlockNum:%v;", fStr, d, n)
+					}
+					log.Infof("fail ,%s", fStr)
+				}
+				if len(bmapS) > 0 {
+					sStr := ""
+					for d, n := range bmapS {
+						sStr = fmt.Sprintf("%sDeviceID:%v,BlockNum:%v;", sStr, d, n)
+					}
+					log.Infof("success ,%s", sStr)
+				}
 			}
 		}
 
