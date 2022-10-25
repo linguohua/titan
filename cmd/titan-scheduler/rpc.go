@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/linguohua/titan/node/handler"
 	"net/http"
 
 	"github.com/linguohua/titan/lib/rpcenc"
@@ -39,5 +38,5 @@ func schedulerHandler(a api.Scheduler, permissioned bool) http.Handler {
 		Next:   mux.ServeHTTP,
 	}
 
-	return handler.New(ah)
+	return ah
 }

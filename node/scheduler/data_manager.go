@@ -54,6 +54,8 @@ func (m *DataManager) cacheData(area, cid string, reliability int) error {
 		// return xerrors.New("already exists")
 	}
 
+	data.needReliability = reliability
+
 	err := data.createCache(m)
 
 	data.saveData()

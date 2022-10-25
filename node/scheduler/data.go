@@ -78,7 +78,7 @@ func (d *Data) cacheContinue(dataManager *DataManager, cacheID string) error {
 
 	list := make([]string, 0)
 	for _, block := range cache.blockMap {
-		if block.status == cacheStatusFail {
+		if block.status != cacheStatusSuccess {
 			list = append(list, block.cid)
 		}
 	}
