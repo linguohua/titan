@@ -77,8 +77,6 @@ type Scheduler struct {
 
 // EdgeNodeConnect edge connect
 func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url, token string) error {
-	// re, oo := peer.FromContext(ctx)
-
 	deviceID, err := verifySecret(token, api.NodeEdge)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect verifySecret err:%v", err)

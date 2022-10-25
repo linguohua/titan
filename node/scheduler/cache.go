@@ -241,12 +241,8 @@ func (c *Cache) saveCache(block *BlockInfo, isUpdate bool) error {
 }
 
 func (c *Cache) updateCacheInfo(info *api.CacheResultInfo, totalSize, dataReliability int) {
-	// if info.Cid != c.cardFileCid {
-	// if info.LinksSize <= 0 {
 	c.doneSize += info.BlockSize
-	// }
 
-	// log.Warnf("--------- totalSize:%v,%v", totalSize, c.doneSize)
 	if totalSize > 0 && c.doneSize >= totalSize {
 		c.status = cacheStatusSuccess
 		c.reliability = 1 // TODO use block reliability
