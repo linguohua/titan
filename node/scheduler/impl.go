@@ -77,6 +77,9 @@ type Scheduler struct {
 
 // EdgeNodeConnect edge connect
 func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url, token string) error {
+	// ip := handler.GetRequestIP(ctx)
+	// log.Errorf("CandidateNodeConnect ip :%v", ip)
+
 	deviceID, err := verifySecret(token, api.NodeEdge)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect verifySecret err:%v", err)
@@ -521,6 +524,9 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, ip
 
 // CandidateNodeConnect Candidate connect
 func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url, token string) error {
+	// ip := handler.GetRequestIP(ctx)
+	// log.Errorf("CandidateNodeConnect ip :%v", ip)
+
 	deviceID, err := verifySecret(token, api.NodeCandidate)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect verifySecret err:%v", err)
