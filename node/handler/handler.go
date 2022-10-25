@@ -41,5 +41,5 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	ctx = context.WithValue(ctx, RequestIP{}, reqIP)
 
-	h.handler.ServeHTTP(w, r)
+	h.handler.ServeHTTP(w, r.WithContext(ctx))
 }
