@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -270,17 +269,7 @@ func (n *Node) cacheBlockResult(info *api.CacheResultInfo, carfileID, cacheID st
 // 	return persistent.GetDB().SetBlockInfo(deviceID, cid, dataDefaultTag, isExist)
 // }
 
-func randomNum(start, end int) int {
-	rand.Seed(time.Now().UnixNano())
 
-	max := end - start
-	if max <= 0 {
-		return start
-	}
-
-	x := rand.Intn(max)
-	return start + x
-}
 
 func (n *Node) getReward(deviceID string) (rewardsInDay, rewardsInWeek, rewardsInMonth int64, err error) {
 	return cache.GetDB().GetNodeReward(deviceID)

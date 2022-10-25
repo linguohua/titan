@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -19,7 +20,10 @@ import (
 	"golang.org/x/xerrors"
 )
 
-var log = logging.Logger("scheduler")
+var (
+	log    = logging.Logger("scheduler")
+	myRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+)
 
 const (
 	// ErrNodeNotFind node not found
@@ -706,4 +710,16 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.De
 	}
 
 	return api.DevicesInfo{}, xerrors.New(ErrNodeNotFind)
+}
+
+func randomNum(start, end int) int {
+	max := end - start
+	if max <= 0 {
+		return start
+	}
+
+	x := myRand.Intn(10000)
+	y := x % end
+
+	return y + start
 }
