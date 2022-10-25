@@ -198,12 +198,21 @@ var showDataInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		str, err := schedulerAPI.ShowDataInfos(ctx, area, cid)
+		infos, err := schedulerAPI.ShowDataInfos(ctx, area, cid)
 		if err != nil {
 			return err
 		}
 
-		log.Infof("%v", str)
+		for _, info := range infos {
+			log.Infof("----data:%v,totalSize:%v,CurReliability:%v,NeedReliability:%v \n", info.Cid, info.TotalSize, info.CurReliability, info.NeedReliability)
+			for _, cache := range info.CacheInfos {
+				log.Infof("cache:%v,DoneSize:%v,Status:%v \n", cache.CacheID, cache.DoneSize, cache.Status)
+
+				// for _, block := range cache.BloackInfo {
+				// log.Infof("block:%v,DeviceID:%v,Size:%v,Status:%v \n", block.Cid, block.DeviceID, block.Size, block.Status)
+				// }
+			}
+		}
 
 		return nil
 	},

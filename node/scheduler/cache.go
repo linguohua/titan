@@ -139,7 +139,7 @@ func (c *Cache) cacheBlocks(deviceID string, cids []string) error {
 		// return eNode.nodeAPI.CacheBlocks(context.Background(), api.ReqCacheData{Cids: cids})
 	}
 
-	return xerrors.New(ErrNodeNotFind)
+	return xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
 }
 
 func (c *Cache) findNode(isHaveCache bool, filterDeviceIDs map[string]string) (deviceID, deviceAddr string, err error) {
@@ -192,6 +192,7 @@ func (c *Cache) doCache(cids []string, isHaveCache bool) error {
 	status := cacheStatusFail
 
 	defer func() {
+		log.Infof("doCache cacheID:%v,deviceID:%v", c.cacheID, deviceID)
 		for _, cid := range cids {
 			b := &BlockInfo{cid: cid, deviceID: deviceID, deviceIP: deviceAddr, status: status, size: 0}
 			c.blockMap[cid] = b
