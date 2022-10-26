@@ -750,3 +750,9 @@ func randomNum(start, end int) int {
 
 	return y + start
 }
+
+// ValidateSwitch open or close validate task
+func (s *Scheduler) ValidateSwitch(ctx context.Context, open bool) error {
+	s.validate.open = open
+	return nil
+}

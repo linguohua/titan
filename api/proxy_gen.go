@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -228,6 +227,8 @@ type SchedulerStruct struct {
 		Validate func(p0 context.Context) (error) `perm:"admin"`
 
 		ValidateBlockResult func(p0 context.Context, p1 ValidateResults) (error) `perm:"write"`
+
+		ValidateSwitch func(p0 context.Context, p1 bool) (error) `perm:"admin"`
 
 	}
 }
@@ -831,6 +832,17 @@ func (s *SchedulerStruct) ValidateBlockResult(p0 context.Context, p1 ValidateRes
 }
 
 func (s *SchedulerStub) ValidateBlockResult(p0 context.Context, p1 ValidateResults) (error) {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) ValidateSwitch(p0 context.Context, p1 bool) (error) {
+	if s.Internal.ValidateSwitch == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ValidateSwitch(p0, p1)
+}
+
+func (s *SchedulerStub) ValidateSwitch(p0 context.Context, p1 bool) (error) {
 	return ErrNotSupported
 }
 

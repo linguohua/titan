@@ -31,7 +31,7 @@ func (e *Election) initElectionTask() {
 
 func newElection(pool *ValidatePool) *Election {
 	e := &Election{
-		electionTime: 60,
+		electionTime: 60 * 24 * 2,
 		validatePool: pool,
 	}
 

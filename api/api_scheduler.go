@@ -22,6 +22,7 @@ type Scheduler interface {
 	RegisterNode(ctx context.Context, t NodeType) (NodeRegisterInfo, error)                            //perm:admin
 	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) //perm:admin
 	CacheContinue(ctx context.Context, area, cid, cacheID string) error                                //perm:admin
+	ValidateSwitch(ctx context.Context, open bool) error                                               //perm:admin
 
 	// call by node
 	DownloadBlockResult(ctx context.Context, deviceID, cid string) error                          //perm:write

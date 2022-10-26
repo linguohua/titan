@@ -146,7 +146,7 @@ func (c *Cache) cacheBlocks(deviceID string, cids []string) error {
 	return xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
 }
 
-func (c *Cache) findNode(isHaveCache bool, filterDeviceIDs map[string]string) (deviceID, deviceAddr string) {
+func (c *Cache) findNode(isHaveCache bool, filterDeviceIDs map[string]string, i int) (deviceID, deviceAddr string) {
 	deviceID = ""
 	deviceAddr = ""
 
@@ -156,7 +156,8 @@ func (c *Cache) findNode(isHaveCache bool, filterDeviceIDs map[string]string) (d
 			return
 		}
 		// rand node
-		node := cs[randomNum(0, len(cs))]
+		// node := cs[randomNum(0, len(cs))]
+		node := cs[i%len(cs)]
 
 		deviceID = node.deviceInfo.DeviceId
 		deviceAddr = node.addr
@@ -178,7 +179,7 @@ func (c *Cache) findNode(isHaveCache bool, filterDeviceIDs map[string]string) (d
 func (c *Cache) doCache(cids []string, isHaveCache bool) {
 	cacheMap := make(map[string][]string)
 
-	for _, cid := range cids {
+	for i, cid := range cids {
 		filterDeviceIDs := make(map[string]string)
 		ds, err := persistent.GetDB().GetNodesWithCacheList(c.area, cid)
 		if err != nil {
@@ -192,7 +193,7 @@ func (c *Cache) doCache(cids []string, isHaveCache bool) {
 
 		status := cacheStatusFail
 
-		deviceID, deviceAddr := c.findNode(isHaveCache, filterDeviceIDs)
+		deviceID, deviceAddr := c.findNode(isHaveCache, filterDeviceIDs, i)
 		if deviceID != "" {
 			_, cacheID := c.dataManager.getCacheTask(deviceID)
 			if cacheID == "" || cacheID == c.cacheID {
