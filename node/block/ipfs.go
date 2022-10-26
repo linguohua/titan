@@ -17,6 +17,7 @@ type IPFS struct {
 }
 
 type ipfsBlock struct {
+	cid cid.Cid
 	raw []byte
 	err error
 }
@@ -66,7 +67,7 @@ func getBlocksWithHttp(block *Block, cids []cid.Cid) ([]blocks.Block, error) {
 	for _, cid := range cids {
 		url := fmt.Sprintf("%s/%s?format=raw", block.ipfsGateway, cid.String())
 		wg.Add(1)
-		ipfsb := &ipfsBlock{err: nil, raw: nil}
+		ipfsb := &ipfsBlock{cid: cid, err: nil, raw: nil}
 		ipfsbs = append(ipfsbs, ipfsb)
 		go getBlockFromIPFSGateway(&wg, ipfsb, url)
 	}
@@ -85,9 +86,15 @@ func getBlocksWithHttp(block *Block, cids []cid.Cid) ([]blocks.Block, error) {
 			continue
 		}
 
-		block := blocks.NewBlock(b.raw)
+		block, err := blocks.NewBlockWithCid(b.raw, b.cid)
+		if err != nil {
+			log.Errorf("getBlocksWithHttp error:%s", err)
+			continue
+		}
+
 		bs = append(bs, block)
 	}
+
 	log.Infof("getBlocksWithHttp block len:%d", len(bs))
 	return bs, nil
 }
@@ -171,8 +178,9 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 			cids = append(cids, link.Cid.String())
 			linksSize += link.Size
 		}
-
+		log.Infof("start caceh result b == nil %v", b == nil)
 		req := reqMap[cidStr]
+		log.Infof("start caceh result2 b == nil %v", b == nil)
 		bInfo := blockInfo{cid: cidStr, links: cids, blockSize: len(b.RawData()), linksSize: linksSize, carFileCid: req.carFileCid}
 		block.cacheResult(ctx, from, nil, bInfo)
 
