@@ -213,7 +213,7 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string) ([]api.
 // TODO save to sql
 func (n *Node) cacheBlockResult(info *api.CacheResultInfo, carfileID, cacheID string) (string, error) {
 	deviceID := n.deviceInfo.DeviceId
-	log.Infof("nodeCacheResult deviceID:%v,Cid:%v", deviceID, info.Cid)
+	// log.Infof("nodeCacheResult deviceID:%v,Cid:%v", deviceID, info.Cid)
 
 	// isExist := false
 	// v, err := persistent.GetDB().GetBlockFidWithCid(deviceID, info.Cid)

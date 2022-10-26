@@ -274,6 +274,8 @@ func (rd redisDB) IsNodeInValidatorList(deviceID string) (bool, error) {
 func (rd redisDB) SetCacheDataTask(deviceID, cid, cacheID string) error {
 	key := fmt.Sprintf(redisKeyCacheTask, deviceID)
 
+	rd.cli.Expire(context.Background(), key, time.Second*20)
+
 	_, err := rd.cli.HMSet(context.Background(), key, carFileIDField, cid, cacheIDField, cacheID).Result()
 	return err
 }
