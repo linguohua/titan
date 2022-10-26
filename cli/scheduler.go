@@ -26,6 +26,7 @@ var SchedulerCmds = []*cli.Command{
 	registerNodeCmd,
 	cacheContinueCmd,
 	listDataCmd,
+	validateSwitchCmd,
 }
 
 var (
@@ -203,6 +204,41 @@ var listDataCmd = &cli.Command{
 
 		for _, str := range strs {
 			log.Infof("%v", str)
+		}
+
+		return nil
+	},
+}
+
+var validateSwitchCmd = &cli.Command{
+	Name:  "validate-switch",
+	Usage: "validate switch",
+	Flags: []cli.Flag{
+		// schedulerURLFlag,
+		&cli.StringFlag{
+			Name:  "open",
+			Usage: "is open",
+			Value: "false",
+		},
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		// url := cctx.String("scheduler-url")
+		open := cctx.Bool("open")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		err = schedulerAPI.ValidateSwitch(ctx, open)
+		if err != nil {
+			return err
 		}
 
 		return nil

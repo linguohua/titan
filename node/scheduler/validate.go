@@ -42,6 +42,8 @@ type Validate struct {
 
 	validatePool *ValidatePool
 	nodeManager  *NodeManager
+
+	open bool
 }
 
 // init timers
@@ -65,11 +67,12 @@ func newValidate(pool *ValidatePool, manager *NodeManager) *Validate {
 		seed:             int64(1),
 		duration:         10,
 		validateBlockMax: 100,
-		validateTime:     10,
+		validateTime:     5,
 		resultQueue:      list.New(),
 		resultChannel:    make(chan bool, 1),
 		validatePool:     pool,
 		nodeManager:      manager,
+		open:             false,
 	}
 
 	e.initValidateTask()
@@ -355,6 +358,11 @@ func (v *Validate) matchValidator(userGeoInfo *region.GeoInfo, validatorList []s
 
 // Validate
 func (v *Validate) startValidate() error {
+	// log.Infof("------------startValidate:open,%v", v.open)
+	if !v.open {
+		return nil
+	}
+
 	log.Info("------------startValidate:")
 	err := cache.GetDB().RemoveValidateingList()
 	if err != nil {
