@@ -171,6 +171,7 @@ func (s *Scheduler) DownloadBlockResult(ctx context.Context, deviceID, cid strin
 	return cache.GetDB().IncrNodeReward(deviceID, 1)
 }
 
+// CacheContinue Cache Continue
 func (s *Scheduler) CacheContinue(ctx context.Context, area, cid, cacheID string) error {
 	if cid == "" || cacheID == "" {
 		return xerrors.New("parameter is nil")
@@ -182,6 +183,9 @@ func (s *Scheduler) CacheContinue(ctx context.Context, area, cid, cacheID string
 // CacheResult Cache Data Result
 func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
 	carfileID, cacheID := s.dataManager.cacheCarfileResult(deviceID, &info)
+	if carfileID == "" {
+		return "", xerrors.Errorf("Not Found Task")
+	}
 
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
@@ -193,7 +197,7 @@ func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.C
 		return candidate.cacheBlockResult(&info, carfileID, cacheID)
 	}
 
-	return "", xerrors.New(ErrNodeNotFind)
+	return "", xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
 }
 
 // RegisterNode Register Node
@@ -222,7 +226,7 @@ func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cid
 		return candidate.deleteBlockRecords(cids)
 	}
 
-	return nil, xerrors.New(ErrNodeNotFind)
+	return nil, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
 }
 
 // DeleteBlocks  Delete Blocks
@@ -274,7 +278,7 @@ func (s *Scheduler) DeleteBlocks(ctx context.Context, deviceID string, cids []st
 	}
 
 	if !nodeFinded {
-		return nil, xerrors.New(ErrNodeNotFind)
+		return nil, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
 	}
 
 	delRecordList := make([]string, 0)
@@ -301,7 +305,7 @@ func (s *Scheduler) CacheCarFile(ctx context.Context, area, cid string, reliabil
 	}
 
 	if !areaExist(area) {
-		return xerrors.New(ErrAreaNotExist)
+		return xerrors.Errorf(ErrAreaNotExist, area)
 	}
 
 	return s.dataManager.cacheData(area, cid, reliability)
@@ -310,7 +314,7 @@ func (s *Scheduler) CacheCarFile(ctx context.Context, area, cid string, reliabil
 // ShowDataInfos Show DataInfos
 func (s *Scheduler) ShowDataInfos(ctx context.Context, area, cid string) ([]api.CacheDataInfo, error) {
 	if cid == "" {
-		return nil, xerrors.New(ErrCidNotFind)
+		return nil, xerrors.Errorf("%s:%s", ErrCidNotFind, cid)
 	}
 
 	infos := make([]api.CacheDataInfo, 0)
@@ -360,7 +364,7 @@ func (s *Scheduler) ShowDataInfos(ctx context.Context, area, cid string) ([]api.
 			return infos, nil
 		}
 
-		return nil, xerrors.New(ErrCidNotFind)
+		return nil, xerrors.Errorf("%s:%s", ErrCidNotFind, cid)
 	}
 
 	for _, area := range areaPool {
@@ -369,7 +373,7 @@ func (s *Scheduler) ShowDataInfos(ctx context.Context, area, cid string) ([]api.
 			infos = append(infos, toData(d))
 		}
 
-		return nil, xerrors.New(ErrCidNotFind)
+		return nil, xerrors.Errorf("%s:%s", ErrCidNotFind, cid)
 	}
 
 	return infos, nil
@@ -415,7 +419,7 @@ func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID str
 		return errList, nil
 	}
 
-	return nil, xerrors.New(ErrNodeNotFind)
+	return nil, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
 }
 
 // InitNodeDeviceIDs Init Node DeviceIDs (test)
@@ -636,7 +640,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 		return statList, nil
 	}
 
-	return statList, xerrors.New(ErrNodeNotFind)
+	return statList, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
 }
 
 // QueryCachingBlocksWithNode Query Caching Blocks
@@ -651,7 +655,7 @@ func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID str
 		return edge.nodeAPI.QueryCachingBlocks(ctx)
 	}
 
-	return api.CachingBlockList{}, xerrors.New(ErrNodeNotFind)
+	return api.CachingBlockList{}, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
 }
 
 // ElectionValidators Election Validators
@@ -709,7 +713,7 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.De
 		return edge.deviceInfo, nil
 	}
 
-	return api.DevicesInfo{}, xerrors.New(ErrNodeNotFind)
+	return api.DevicesInfo{}, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
 }
 
 func randomNum(start, end int) int {

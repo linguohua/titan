@@ -459,7 +459,7 @@ func (m *NodeManager) findNodeDownloadInfo(cid string, geoInfo *region.GeoInfo) 
 	}
 
 	if len(deviceIDs) <= 0 {
-		return downloadInfo, xerrors.New(ErrNodeNotFind)
+		return downloadInfo, xerrors.Errorf("%s , whit cid:%s", ErrNodeNotFind, cid)
 	}
 
 	nodeEs, geoLevelE := m.findEdges(geoInfo, deviceIDs, nil)
@@ -485,7 +485,7 @@ func (m *NodeManager) findNodeDownloadInfo(cid string, geoInfo *region.GeoInfo) 
 	}
 	// http://192.168.0.136:3456/rpc/v0/block/get?cid=QmeUqw4FY1wqnh2FMvuc2v8KAapE7fYwu2Up4qNwhZiRk7
 
-	return downloadInfo, xerrors.New(ErrNodeNotFind)
+	return downloadInfo, xerrors.Errorf("%s , whit cid:%s", ErrNodeNotFind, cid)
 }
 
 // getCandidateNodesWithData find device
@@ -497,7 +497,7 @@ func (m *NodeManager) getCandidateNodesWithData(cid string, geoInfo *region.GeoI
 	// log.Infof("getCandidateNodesWithData deviceIDs : %v", deviceIDs)
 
 	if len(deviceIDs) <= 0 {
-		return nil, xerrors.New(ErrNodeNotFind)
+		return nil, xerrors.Errorf("%s , whit cid:%s", ErrNodeNotFind, cid)
 	}
 
 	nodeCs, _ := m.findCandidates(geoInfo, deviceIDs, nil)

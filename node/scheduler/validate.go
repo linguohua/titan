@@ -231,6 +231,9 @@ func (v *Validate) doValidate() {
 
 func (v *Validate) pushResultToQueue(validateResults *api.ValidateResults) error {
 	log.Infof("validateResult:%v,round:%v", validateResults.DeviceID, validateResults.RoundID)
+	if v.resultQueue == nil {
+		return xerrors.New("resultQueue is nil")
+	}
 	v.resultQueue.PushBack(validateResults)
 
 	v.writeChanWithSelect(true)
