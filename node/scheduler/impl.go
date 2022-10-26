@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"net/http"
 	"time"
@@ -710,7 +711,7 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.De
 		candidate.deviceInfo.SevenDaysProfit = float64(rewardInWeek)
 		candidate.deviceInfo.MonthProfit = float64(rewardInMonth)
 		candidate.deviceInfo.IpLocation = candidate.geoInfo.Geo
-		candidate.deviceInfo.OnlineTime = (time.Minute * time.Duration(nodeInfo.OnlineTime)).String()
+		candidate.deviceInfo.OnlineTime = fmt.Sprintf("%d", nodeInfo.OnlineTime)
 		candidate.deviceInfo.DeviceStatus = device.GetDeviceStatus(nodeInfo.IsOnline)
 		return candidate.deviceInfo, nil
 	}
@@ -731,7 +732,7 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.De
 		edge.deviceInfo.SevenDaysProfit = float64(rewardInWeek)
 		edge.deviceInfo.MonthProfit = float64(rewardInMonth)
 		edge.deviceInfo.IpLocation = edge.geoInfo.Geo
-		edge.deviceInfo.OnlineTime = (time.Minute * time.Duration(nodeInfo.OnlineTime)).String()
+		edge.deviceInfo.OnlineTime = fmt.Sprintf("%d", nodeInfo.OnlineTime)
 		edge.deviceInfo.DeviceStatus = device.GetDeviceStatus(nodeInfo.IsOnline)
 		return edge.deviceInfo, nil
 	}
