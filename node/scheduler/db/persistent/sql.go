@@ -377,7 +377,10 @@ func (sd sqlDB) SetCacheInfo(area string, info *CacheInfo) error {
 	area = sd.replaceArea(area)
 	tableName := fmt.Sprintf(cacheInfoTable, area)
 
-	oldInfo, _ := sd.GetCacheInfo(area, info.CacheID, info.CID)
+	oldInfo, err := sd.GetCacheInfo(area, info.CacheID, info.CID)
+	if err != nil {
+		return err
+	}
 	if oldInfo != nil {
 		info.ID = oldInfo.ID
 		cmd := fmt.Sprintf(`UPDATE %s SET status=:status,total_size=:total_size,reliability=:reliability,device_id=:device_id WHERE id=:id`, tableName)
@@ -387,7 +390,7 @@ func (sd sqlDB) SetCacheInfo(area string, info *CacheInfo) error {
 
 	cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, cid, device_id, status, total_size, reliability)
 	VALUES (:cache_id, :cid, :device_id, :status, :total_size, :reliability)`, tableName)
-	_, err := sd.cli.NamedExec(cmd, info)
+	_, err = sd.cli.NamedExec(cmd, info)
 
 	return err
 }
@@ -412,7 +415,7 @@ func (sd sqlDB) GetCacheInfo(area, cacheID, cid string) (*CacheInfo, error) {
 			return nil, err
 		}
 	} else {
-		return nil, xerrors.New(errNodeNotFind)
+		return nil, nil
 	}
 	rows.Close()
 

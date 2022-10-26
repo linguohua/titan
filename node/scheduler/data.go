@@ -73,7 +73,7 @@ func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManag
 func (d *Data) cacheContinue(dataManager *DataManager, cacheID string) error {
 	cache := d.cacheMap[cacheID]
 	if cache == nil {
-		return xerrors.New(ErrCidNotFind)
+		return xerrors.Errorf("Not Found CacheID :%s", cacheID)
 	}
 
 	list := make([]string, 0)
@@ -83,7 +83,9 @@ func (d *Data) cacheContinue(dataManager *DataManager, cacheID string) error {
 		}
 	}
 
-	cache.doCache2(list, d.reliability > 0)
+	log.Infof("do cache list : %s", list)
+
+	cache.doCache(list, d.reliability > 0)
 	return nil
 }
 
@@ -98,7 +100,7 @@ func (d *Data) createCache(dataManager *DataManager) error {
 				}
 			}
 
-			cache.doCache2(list, d.reliability > 0)
+			cache.doCache(list, d.reliability > 0)
 			return nil
 		}
 	}
@@ -112,7 +114,7 @@ func (d *Data) createCache(dataManager *DataManager) error {
 	d.cacheMap[cache.cacheID] = cache
 	d.cacheIDs = fmt.Sprintf("%s,%s", d.cacheIDs, cache.cacheID)
 
-	cache.doCache2([]string{d.cid}, d.reliability > 0)
+	cache.doCache([]string{d.cid}, d.reliability > 0)
 	return nil
 }
 
@@ -158,7 +160,7 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 
 func (d *Data) saveData() {
 	// save to db
-	persistent.GetDB().SetDataInfo(d.area, &persistent.DataInfo{
+	err := persistent.GetDB().SetDataInfo(d.area, &persistent.DataInfo{
 		CID:             d.cid,
 		CacheIDs:        d.cacheIDs,
 		TotalSize:       d.totalSize,
@@ -166,4 +168,7 @@ func (d *Data) saveData() {
 		Reliability:     d.reliability,
 		CacheTime:       d.cacheTime,
 	})
+	if err != nil {
+		log.Errorf("cid:%s,SetDataInfo err:%v", d.cid, err.Error())
+	}
 }

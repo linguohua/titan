@@ -56,11 +56,9 @@ func (m *DataManager) cacheData(area, cid string, reliability int) error {
 
 	data.needReliability = reliability
 
-	err := data.createCache(m)
+	defer data.saveData()
 
-	data.saveData()
-
-	return err
+	return data.createCache(m)
 }
 
 func (m *DataManager) cacheContinue(area, cid, cacheID string) error {
@@ -85,14 +83,14 @@ func (m *DataManager) removeBlock(deviceID string, cids []string) {
 func (m *DataManager) addCacheTask(deviceID, cid, cacheID string) {
 	err := cache.GetDB().SetCacheDataTask(deviceID, cid, cacheID)
 	if err != nil {
-		log.Errorf("SetCacheDataTask err:%v", err.Error())
+		log.Errorf("addCacheTask err:%v", err.Error())
 	}
 }
 
 func (m *DataManager) removeCacheTask(deviceID string) {
 	err := cache.GetDB().RemoveCacheDataTask(deviceID)
 	if err != nil {
-		log.Errorf("RemoveCacheDataTask err:%v", err.Error())
+		log.Errorf("removeCacheTask err:%v", err.Error())
 	}
 }
 
@@ -170,9 +168,4 @@ func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultI
 	}
 
 	return data.updateDataInfo(deviceID, cacheID, info)
-	// save to block table
-	// err := persistent.GetDB().SetCarfileInfo(deviceID, info.Cid, carfileID, cacheID)
-	// if err != nil {
-	// 	log.Errorf("SetCarfileInfo err:%v,device:%v", err.Error(), deviceID)
-	// }
 }
