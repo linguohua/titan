@@ -419,7 +419,7 @@ func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID str
 	if edge != nil {
 		errList := make([]string, 0)
 
-		reqDatas, notFindList := edge.getReqCacheDatas(s.nodeManager, cids)
+		reqDatas, notFindList := edge.getReqCacheDatas(s.nodeManager, cids, "", "")
 		for _, reqData := range reqDatas {
 			err := edge.nodeAPI.CacheBlocks(ctx, reqData)
 			if err != nil {
@@ -437,7 +437,7 @@ func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID str
 	if candidate != nil {
 		errList := make([]string, 0)
 
-		reqDatas, _ := candidate.getReqCacheDatas(s.nodeManager, cids)
+		reqDatas, _ := candidate.getReqCacheDatas(s.nodeManager, cids, "", "")
 		for _, reqData := range reqDatas {
 			err := candidate.nodeAPI.CacheBlocks(ctx, reqData)
 			if err != nil {

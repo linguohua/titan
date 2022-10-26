@@ -4,7 +4,6 @@ import (
 	"container/list"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"golang.org/x/xerrors"
 )
 
@@ -80,23 +79,23 @@ func (m *DataManager) removeBlock(deviceID string, cids []string) {
 	log.Errorf("removeBlock deviceID:%v,cids:%v", deviceID, cids)
 }
 
-func (m *DataManager) addCacheTask(deviceID, cid, cacheID string) {
-	err := cache.GetDB().SetCacheDataTask(deviceID, cid, cacheID)
-	if err != nil {
-		log.Errorf("addCacheTask err:%v", err.Error())
-	}
-}
+// func (m *DataManager) addCacheTask(deviceID, cid, cacheID string) {
+// 	err := cache.GetDB().SetCacheDataTask(deviceID, cid, cacheID)
+// 	if err != nil {
+// 		log.Errorf("addCacheTask err:%v", err.Error())
+// 	}
+// }
 
-func (m *DataManager) removeCacheTask(deviceID string) {
-	err := cache.GetDB().RemoveCacheDataTask(deviceID)
-	if err != nil {
-		log.Errorf("removeCacheTask err:%v", err.Error())
-	}
-}
+// func (m *DataManager) removeCacheTask(deviceID string) {
+// 	err := cache.GetDB().RemoveCacheDataTask(deviceID)
+// 	if err != nil {
+// 		log.Errorf("removeCacheTask err:%v", err.Error())
+// 	}
+// }
 
-func (m *DataManager) getCacheTask(deviceID string) (string, string) {
-	return cache.GetDB().GetCacheDataTask(deviceID)
-}
+// func (m *DataManager) getCacheTask(deviceID string) (string, string) {
+// 	return cache.GetDB().GetCacheDataTask(deviceID)
+// }
 
 // func (m *DataManager) initChannelTask() {
 // 	for {
@@ -152,11 +151,14 @@ func (m *DataManager) getCacheTask(deviceID string) (string, string) {
 // }
 
 func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultInfo) (string, string) {
-	carfileID, cacheID := m.getCacheTask(deviceID)
-	if carfileID == "" {
-		log.Warnf("task carfileID is nil ,DeviceID:%v", deviceID)
-		return carfileID, cacheID
-	}
+	// carfileID, cacheID := m.getCacheTask(deviceID)
+	// if carfileID == "" {
+	// 	log.Warnf("task carfileID is nil ,DeviceID:%v", deviceID)
+	// 	return carfileID, cacheID
+	// }
+
+	carfileID := info.CarFileCid
+	cacheID := info.CacheID
 
 	area := m.nodeManager.getNodeArea(deviceID)
 
