@@ -140,6 +140,7 @@ func (block *Block) addReq2WaitList(delayReqs []*delayReq) {
 }
 
 func (block *Block) cacheResultWithError(ctx context.Context, cid string, err error) {
+	log.Errorf("cacheResultWithError, cid:%s, error:%v", cid, err)
 	bInfo := blockInfo{cid: cid, links: []string{}, blockSize: 0, linksSize: 0}
 	block.cacheResult(ctx, "", err, bInfo)
 }
