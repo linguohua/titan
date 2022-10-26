@@ -88,8 +88,9 @@ func (d *Data) cacheContinue(dataManager *DataManager, cacheID string) error {
 		}
 	}
 
-	log.Infof("do cache list : %s", list)
+	// log.Infof("do cache list : %s", list)
 
+	log.Infof("%s cache continue ---------- ", cache.cacheID)
 	cache.doCache(list, d.reliability > 0)
 	return nil
 }
@@ -106,6 +107,7 @@ func (d *Data) createCache(dataManager *DataManager) error {
 			}
 
 			if len(list) > 0 {
+				log.Infof("%s cache start ---------- ", cache.cacheID)
 				cache.doCache(list, d.reliability > 0)
 				return nil
 			}
@@ -121,6 +123,7 @@ func (d *Data) createCache(dataManager *DataManager) error {
 	d.cacheMap[cache.cacheID] = cache
 	d.cacheIDs = fmt.Sprintf("%s,%s", d.cacheIDs, cache.cacheID)
 
+	log.Infof("%s cache start ---------- ", cache.cacheID)
 	cache.doCache([]string{d.cid}, d.reliability > 0)
 	return nil
 }

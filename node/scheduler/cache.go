@@ -119,6 +119,7 @@ func (c *Cache) cacheBlocks(deviceID string, cids []string) error {
 		}
 
 		for _, reqData := range reqDatas {
+			// log.Warnf(" %s , CacheBlocks:%v ", deviceID, reqData.Cids)
 			err := cNode.nodeAPI.CacheBlocks(context.Background(), reqData)
 			if err != nil {
 				log.Errorf("candidate CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
@@ -214,6 +215,11 @@ func (c *Cache) doCache(cids []string, isHaveCache bool) {
 		c.saveCache(b, false)
 	}
 
+	if len(cacheMap) <= 0 {
+		log.Infof("%s cache fail not find node ---------- ", c.cacheID)
+		return
+	}
+
 	for deviceID, caches := range cacheMap {
 		err := c.cacheBlocks(deviceID, caches)
 		if err != nil {
@@ -288,6 +294,8 @@ func (c *Cache) updateCacheInfo(info *api.CacheResultInfo, totalSize, dataReliab
 	if totalSize > 0 && c.doneSize >= totalSize {
 		c.status = cacheStatusSuccess
 		c.reliability = 1 // TODO use block reliability
+
+		log.Infof("%s cache done ---------- ", c.cacheID)
 	}
 
 	haveUndone := false
@@ -323,6 +331,8 @@ func (c *Cache) updateCacheInfo(info *api.CacheResultInfo, totalSize, dataReliab
 		}
 		if !haveUndone && c.status != cacheStatusSuccess {
 			c.status = cacheStatusFail
+
+			log.Infof("%s cache fail ---------- ", c.cacheID)
 		}
 	}
 }
