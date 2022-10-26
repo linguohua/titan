@@ -6,7 +6,7 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/stores"
+	"github.com/linguohua/titan/blockstore"
 )
 
 const (
@@ -28,7 +28,7 @@ const (
 type NodeParams struct {
 	DS         datastore.Batching
 	Scheduler  api.Scheduler
-	BlockStore stores.BlockStore
+	BlockStore blockstore.BlockStore
 	// Device          *device.Device
 	DownloadSrvKey  string
 	DownloadSrvAddr string

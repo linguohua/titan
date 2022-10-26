@@ -7,12 +7,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/linguohua/titan/node/device"
+	// "github.com/linguohua/titan/node/device"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/common"
+
+	// "github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
@@ -37,6 +39,10 @@ const (
 	ErrAreaNotExist = "Area not exist:%s"
 	// ErrNotFoundTask Not Found Task
 	ErrNotFoundTask = "Not Found Task"
+
+	StatusOffline int = iota
+	StatusOnline
+	StatusAbnormal
 )
 
 // NewLocalScheduleNode NewLocalScheduleNode
@@ -729,9 +735,23 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.De
 	deviceInfo.MonthProfit = float64(rewardInMonth)
 	deviceInfo.IpLocation = node.Geo
 	deviceInfo.OnlineTime = fmt.Sprintf("%d", node.OnlineTime)
-	deviceInfo.DeviceStatus = device.GetDeviceStatus(node.IsOnline)
+	deviceInfo.DeviceStatus = getDeviceStatus(node.IsOnline)
 
 	return deviceInfo, nil
+}
+
+// GetDeviceStatus return the status of the device
+func getDeviceStatus(status int) string {
+	switch status {
+	case StatusOffline:
+		return "offline"
+	case StatusOnline:
+		return "online"
+	case StatusAbnormal:
+		return "abnormal"
+	default:
+		return "unknown"
+	}
 }
 
 func randomNum(start, end int) int {

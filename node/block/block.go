@@ -19,8 +19,8 @@ import (
 	dagpb "github.com/ipld/go-codec-dagpb"
 	"github.com/ipld/go-ipld-prime/node/basicnode"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/blockstore"
 	"github.com/linguohua/titan/node/helper"
-	"github.com/linguohua/titan/stores"
 
 	format "github.com/ipfs/go-ipld-format"
 	legacy "github.com/ipfs/go-ipld-legacy"
@@ -49,7 +49,7 @@ type blockInfo struct {
 
 type Block struct {
 	ds              datastore.Batching
-	blockStore      stores.BlockStore
+	blockStore      blockstore.BlockStore
 	scheduler       api.Scheduler
 	reqList         []*delayReq
 	cachingList     []*delayReq
@@ -66,7 +66,7 @@ type BlockInterface interface {
 	loadBlocks(block *Block, req []*delayReq)
 }
 
-func NewBlock(ds datastore.Batching, blockStore stores.BlockStore, scheduler api.Scheduler, blockInterface BlockInterface, exchange exchange.Interface, deviceID string) *Block {
+func NewBlock(ds datastore.Batching, blockStore blockstore.BlockStore, scheduler api.Scheduler, blockInterface BlockInterface, exchange exchange.Interface, deviceID string) *Block {
 	block := &Block{
 		ds:         ds,
 		blockStore: blockStore,

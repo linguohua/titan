@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/blockstore"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
 	"github.com/linguohua/titan/lib/titanlog"
@@ -322,7 +323,7 @@ var runCmd = &cli.Command{
 			}
 		}
 
-		blockStore := stores.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
+		blockStore := blockstore.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
 		device := device.NewDevice(
 			blockStore,
 			deviceID,
