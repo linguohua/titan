@@ -105,8 +105,10 @@ func (d *Data) createCache(dataManager *DataManager) error {
 				}
 			}
 
-			cache.doCache(list, d.reliability > 0)
-			return nil
+			if len(list) > 0 {
+				cache.doCache(list, d.reliability > 0)
+				return nil
+			}
 		}
 	}
 
