@@ -186,7 +186,7 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 			linksSize += link.Size
 		}
 
-		bInfo := blockInfo{cid: cidStr, links: cids, blockSize: len(b.RawData()), linksSize: linksSize, carFileCid: req.carFileCid}
+		bInfo := blockInfo{cid: cidStr, links: cids, blockSize: len(b.RawData()), linksSize: linksSize, carFileCid: req.carFileCid, CacheID: req.CacheID}
 		block.cacheResult(ctx, from, nil, bInfo)
 
 		log.Infof("cache data,cid:%s,err:%v", cidStr, err)

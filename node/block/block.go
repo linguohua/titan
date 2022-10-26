@@ -34,6 +34,7 @@ type delayReq struct {
 	// use for edge node load block
 	candidateURL string
 	carFileCid   string
+	CacheID      string
 }
 
 type blockInfo struct {
@@ -42,6 +43,7 @@ type blockInfo struct {
 	blockSize  int
 	linksSize  uint64
 	carFileCid string
+	CacheID    string
 }
 
 type Block struct {
@@ -93,7 +95,7 @@ func apiReq2DelayReq(req *api.ReqCacheData) []*delayReq {
 			continue
 		}
 
-		req := &delayReq{cid: cid, count: 0, candidateURL: req.CandidateURL, carFileCid: req.CardFileCid}
+		req := &delayReq{cid: cid, count: 0, candidateURL: req.CandidateURL, carFileCid: req.CardFileCid, CacheID: req.CacheID}
 		results = append(results, req)
 	}
 
@@ -165,6 +167,7 @@ func (block *Block) cacheResult(ctx context.Context, from string, err error, bIn
 		BlockSize:  bInfo.blockSize,
 		LinksSize:  bInfo.linksSize,
 		CarFileCid: bInfo.carFileCid,
+		CacheID:    bInfo.CacheID,
 	}
 
 	fid, err := block.scheduler.CacheResult(ctx, block.deviceID, result)
@@ -240,7 +243,7 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 				linksSize += link.Size
 			}
 
-			bInfo := blockInfo{cid: cidStr, links: cids, blockSize: len(buf), linksSize: linksSize, carFileCid: reqData.carFileCid}
+			bInfo := blockInfo{cid: cidStr, links: cids, blockSize: len(buf), linksSize: linksSize, carFileCid: reqData.carFileCid, CacheID: reqData.CacheID}
 			block.cacheResult(ctx, from, nil, bInfo)
 			continue
 		}
@@ -251,7 +254,7 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 }
 
 func (block *Block) CacheBlocks(ctx context.Context, req api.ReqCacheData) error {
-	log.Infof("CacheBlocks, req carFileCid:%s, candidate_url:%s, cid len:%d", req.CardFileCid, req.CandidateURL, len(req.Cids))
+	log.Infof("CacheBlocks, req carFileCid:%s, cacheID:%s, candidate_url:%s, cid len:%d", req.CardFileCid, req.CacheID, req.CandidateURL, len(req.Cids))
 	// delayReq := block.filterAvailableReq(apiReq2DelayReq(&req))
 	// if len(delayReq) == 0 {
 	// 	log.Debug("CacheData, len(req) == 0 not need to handle")
