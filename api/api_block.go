@@ -32,6 +32,7 @@ type ReqCacheData struct {
 	Cids         []string
 	CandidateURL string
 	CardFileCid  string
+	CacheID      string
 }
 
 type BlockOperationResult struct {
