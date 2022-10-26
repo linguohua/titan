@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/linguohua/titan/node/helper"
 )
 
 func parseTcpSrvAddr(tcpSrvAddr string, externalIP string) string {
@@ -119,6 +121,10 @@ func readItem(conn net.Conn) ([]byte, error) {
 
 	if len <= 0 {
 		return []byte{}, nil
+	}
+
+	if len > helper.TcpPackMaxLength {
+		return nil, fmt.Errorf("pack len %d is invalid", len)
 	}
 
 	buf, err := readContent(conn, len)

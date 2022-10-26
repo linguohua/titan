@@ -20,8 +20,9 @@ const (
 	DownloadSrvPath          = "/block/get"
 	DownloadTokenExpireAfter = 24 * time.Hour
 
-	KeyFidPrefix = "fid/"
-	KeyCidPrefix = "cid/"
+	KeyFidPrefix     = "fid/"
+	KeyCidPrefix     = "cid/"
+	TcpPackMaxLength = 52428800
 )
 
 type NodeParams struct {
