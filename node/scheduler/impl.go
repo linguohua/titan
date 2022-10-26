@@ -311,6 +311,29 @@ func (s *Scheduler) CacheCarFile(ctx context.Context, area, cid string, reliabil
 	return s.dataManager.cacheData(area, cid, reliability)
 }
 
+// ListDatas List Datas
+func (s *Scheduler) ListDatas(ctx context.Context, area string) ([]string, error) {
+	list := make([]string, 0)
+
+	if area != "" {
+		infos := loadDatas(area)
+		for _, info := range infos {
+			list = append(list, info.CID)
+		}
+
+		return list, nil
+	}
+
+	for _, area := range areaPool {
+		infos := loadDatas(area)
+		for _, info := range infos {
+			list = append(list, info.CID)
+		}
+	}
+
+	return list, nil
+}
+
 // ShowDataInfos Show DataInfos
 func (s *Scheduler) ShowDataInfos(ctx context.Context, area, cid string) ([]api.CacheDataInfo, error) {
 	if cid == "" {

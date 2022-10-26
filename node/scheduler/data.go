@@ -37,9 +37,14 @@ func newData(area string, nodeManager *NodeManager, dataManager *DataManager, ci
 	}
 }
 
-// func loadDatas(){
+func loadDatas(area string) []*persistent.DataInfo {
+	infos, err := persistent.GetDB().GetDataInfos(area)
+	if err != nil {
+		return nil
+	}
 
-// }
+	return infos
+}
 
 func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManager) *Data {
 	dInfo, _ := persistent.GetDB().GetDataInfo(area, cid)

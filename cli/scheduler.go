@@ -25,6 +25,7 @@ var SchedulerCmds = []*cli.Command{
 	showDataInfoCmd,
 	registerNodeCmd,
 	cacheContinueCmd,
+	listDataCmd,
 }
 
 var (
@@ -172,6 +173,39 @@ var electionCmd = &cli.Command{
 		defer closer()
 
 		return schedulerAPI.ElectionValidators(ctx)
+	},
+}
+
+var listDataCmd = &cli.Command{
+	Name:  "list-data",
+	Usage: "list data",
+	Flags: []cli.Flag{
+		areaFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		area := cctx.String("area")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		strs, err := schedulerAPI.ListDatas(ctx, area)
+		if err != nil {
+			return err
+		}
+
+		for _, str := range strs {
+			log.Infof("%v", str)
+		}
+
+		return nil
 	},
 }
 
