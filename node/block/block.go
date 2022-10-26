@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"strconv"
 	"sync"
 
@@ -54,6 +55,7 @@ type Block struct {
 	deviceID        string
 	exchange        exchange.Interface
 	blockLoaderCh   chan bool
+	ipfsGateway     string
 }
 
 // TODO need to rename
@@ -72,7 +74,10 @@ func NewBlock(ds datastore.Batching, blockStore stores.BlockStore, scheduler api
 
 		cacheResultLock: &sync.Mutex{},
 		blockLoaderCh:   make(chan bool),
+		ipfsGateway:     os.Getenv("IPFS_GATEWAY"),
 	}
+	log.Infof("IPFS-GATEWAY:%s", block.ipfsGateway)
+
 	go block.startBlockLoader()
 
 	legacy.RegisterCodec(cid.DagProtobuf, dagpb.Type.PBNode, merkledag.ProtoNodeConverter)
@@ -245,7 +250,7 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 }
 
 func (block *Block) CacheBlocks(ctx context.Context, req api.ReqCacheData) error {
-	log.Infof("CacheBlocks, req carFileCid:%s, candidate_url:%s, cids:%v", req.CardFileCid, req.CandidateURL, req.Cids)
+	log.Infof("CacheBlocks, req carFileCid:%s, candidate_url:%s, cid len:%d", req.CardFileCid, req.CandidateURL, len(req.Cids))
 	// delayReq := block.filterAvailableReq(apiReq2DelayReq(&req))
 	// if len(delayReq) == 0 {
 	// 	log.Debug("CacheData, len(req) == 0 not need to handle")
