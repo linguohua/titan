@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -169,6 +170,9 @@ func (block *Block) cacheResult(ctx context.Context, from string, err error, bIn
 		CarFileCid: bInfo.carFileCid,
 		CacheID:    bInfo.CacheID,
 	}
+
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
 
 	fid, err := block.scheduler.CacheResult(ctx, block.deviceID, result)
 	if err != nil {
