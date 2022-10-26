@@ -139,6 +139,12 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url, token string) erro
 		return err
 	}
 
+	err = s.nodeManager.SetDeviceInfo(deviceID, deviceInfo)
+	if err != nil {
+		log.Errorf("EdgeNodeConnect set device info: %v", err)
+		return err
+	}
+
 	// edgeNode.getCacheFailCids()
 	// if cids != nil && len(cids) > 0 {
 	// 	reqDatas, _ := edgeNode.getReqCacheDatas(s, cids, true)
@@ -613,6 +619,12 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url, token string)
 		return err
 	}
 
+	err = s.nodeManager.SetDeviceInfo(deviceID, deviceInfo)
+	if err != nil {
+		log.Errorf("CandidateNodeConnect set device info: %v", err)
+		return err
+	}
+
 	// cids := candidateNode.getCacheFailCids()
 	// if cids != nil && len(cids) > 0 {
 	// 	reqDatas, _ := candidateNode.getReqCacheDatas(s, cids, false)
@@ -695,49 +707,31 @@ func (s *Scheduler) Validate(ctx context.Context) error {
 // GetDevicesInfo return the devices information
 func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.DevicesInfo, error) {
 	// node datas
-	candidate := s.nodeManager.getCandidateNode(deviceID)
-	if candidate != nil {
-		nodeInfo, err := candidate.getNodeInfo(deviceID)
-		if err != nil {
-			return api.DevicesInfo{}, err
-		}
-
-		rewardInDay, rewardInWeek, rewardInMonth, err := candidate.getReward(deviceID)
-		if err != nil {
-			return api.DevicesInfo{}, err
-		}
-
-		candidate.deviceInfo.TodayProfit = float64(rewardInDay)
-		candidate.deviceInfo.SevenDaysProfit = float64(rewardInWeek)
-		candidate.deviceInfo.MonthProfit = float64(rewardInMonth)
-		candidate.deviceInfo.IpLocation = candidate.geoInfo.Geo
-		candidate.deviceInfo.OnlineTime = fmt.Sprintf("%d", nodeInfo.OnlineTime)
-		candidate.deviceInfo.DeviceStatus = device.GetDeviceStatus(nodeInfo.IsOnline)
-		return candidate.deviceInfo, nil
+	node, err := persistent.GetDB().GetNodeInfo(deviceID)
+	if err != nil {
+		log.Errorf("getNodeInfo: %v ,deviceID : %v", err.Error(), deviceID)
+		return api.DevicesInfo{}, err
 	}
 
-	edge := s.nodeManager.getEdgeNode(deviceID)
-	if edge != nil {
-		nodeInfo, err := edge.getNodeInfo(deviceID)
-		if err != nil {
-			return api.DevicesInfo{}, err
-		}
-
-		rewardInDay, rewardInWeek, rewardInMonth, err := edge.getReward(deviceID)
-		if err != nil {
-			return api.DevicesInfo{}, err
-		}
-
-		edge.deviceInfo.TodayProfit = float64(rewardInDay)
-		edge.deviceInfo.SevenDaysProfit = float64(rewardInWeek)
-		edge.deviceInfo.MonthProfit = float64(rewardInMonth)
-		edge.deviceInfo.IpLocation = edge.geoInfo.Geo
-		edge.deviceInfo.OnlineTime = fmt.Sprintf("%d", nodeInfo.OnlineTime)
-		edge.deviceInfo.DeviceStatus = device.GetDeviceStatus(nodeInfo.IsOnline)
-		return edge.deviceInfo, nil
+	deviceInfo, err := s.nodeManager.GetDeviceInfo(deviceID)
+	if err != nil {
+		log.Errorf("getNodeInfo: %v ,deviceID : %v", err.Error(), deviceID)
+		return api.DevicesInfo{}, err
 	}
 
-	return api.DevicesInfo{}, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
+	rewardInDay, rewardInWeek, rewardInMonth, err := cache.GetDB().GetNodeReward(deviceID)
+	if err != nil {
+		return api.DevicesInfo{}, err
+	}
+
+	deviceInfo.TodayProfit = float64(rewardInDay)
+	deviceInfo.SevenDaysProfit = float64(rewardInWeek)
+	deviceInfo.MonthProfit = float64(rewardInMonth)
+	deviceInfo.IpLocation = node.Geo
+	deviceInfo.OnlineTime = fmt.Sprintf("%d", node.OnlineTime)
+	deviceInfo.DeviceStatus = device.GetDeviceStatus(node.IsOnline)
+
+	return deviceInfo, nil
 }
 
 func randomNum(start, end int) int {

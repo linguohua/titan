@@ -660,3 +660,16 @@ func (a *AreaManager) deleteCandidate(deviceID string, key string) {
 		}
 	}
 }
+
+func (n *NodeManager) SetDeviceInfo(deviceID string, info api.DevicesInfo) error {
+	_, err := cache.GetDB().SetDeviceInfo(deviceID, info)
+	if err != nil {
+		log.Errorf("set device info: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (n *NodeManager) GetDeviceInfo(deviceID string) (api.DevicesInfo, error) {
+	return cache.GetDB().GetDeviceInfo(deviceID)
+}
