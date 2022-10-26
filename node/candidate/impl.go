@@ -10,8 +10,6 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
-	"github.com/linguohua/titan/build"
-	"github.com/linguohua/titan/lib/p2p"
 	"golang.org/x/time/rate"
 
 	"github.com/linguohua/titan/node/block"
@@ -29,15 +27,15 @@ import (
 var log = logging.Logger("candidate")
 
 func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *device.Device, params *helper.NodeParams) api.Candidate {
-	addrs, err := build.BuiltinBootstrap()
-	if err != nil {
-		log.Fatal(err)
-	}
+	// addrs, err := build.BuiltinBootstrap()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	exchange, err := p2p.Bootstrap(ctx, addrs)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// exchange, err := p2p.Bootstrap(ctx, addrs)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	externalIP := device.GetInternalIP()
 	if params.IsExternal {
@@ -48,7 +46,7 @@ func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *devic
 	blockDownload := download.NewBlockDownload(rateLimiter, params, externalIP, device.GetDeviceID())
 	device.SetBlockDownload(blockDownload)
 
-	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, exchange, device.GetDeviceID())
+	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, nil, device.GetDeviceID())
 	validate := vd.NewValidate(blockDownload, block, device.GetDeviceID())
 
 	candidate := &Candidate{
