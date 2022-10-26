@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	Batch       = 10
+	Batch       = 5
 	MaxReqCount = 5
 	// Millisecond
 	LoadBockTick = 10
