@@ -12,9 +12,9 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/blockstore"
 	"github.com/linguohua/titan/lib/token"
 	"github.com/linguohua/titan/node/helper"
-	"github.com/linguohua/titan/stores"
 	"golang.org/x/time/rate"
 )
 
@@ -23,7 +23,7 @@ var log = logging.Logger("download")
 type BlockDownload struct {
 	limiter        *rate.Limiter
 	downloadSrvURL string
-	blockStore     stores.BlockStore
+	blockStore     blockstore.BlockStore
 	downloadSrvKey string
 	scheduler      api.Scheduler
 	deviceID       string

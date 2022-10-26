@@ -10,9 +10,9 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/blockstore"
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/node/download"
-	"github.com/linguohua/titan/stores"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/mem"
 )
@@ -28,7 +28,7 @@ const (
 )
 
 type Device struct {
-	blockStore    stores.BlockStore
+	blockStore    blockstore.BlockStore
 	deviceID      string
 	publicIP      string
 	internalIP    string
@@ -37,7 +37,7 @@ type Device struct {
 	blockDownload *download.BlockDownload
 }
 
-func NewDevice(blockStore stores.BlockStore, deviceID, publicIP, internalIP string, bandwidthUp, bandwidthDown int64) *Device {
+func NewDevice(blockStore blockstore.BlockStore, deviceID, publicIP, internalIP string, bandwidthUp, bandwidthDown int64) *Device {
 	device := &Device{
 		blockStore:    blockStore,
 		deviceID:      deviceID,
@@ -170,18 +170,4 @@ func (device *Device) GetPublicIP() string {
 
 func (device *Device) GetInternalIP() string {
 	return device.internalIP
-}
-
-// GetDeviceStatus return the status of the device
-func GetDeviceStatus(status int) string {
-	switch status {
-	case StatusOffline:
-		return "offline"
-	case StatusOnline:
-		return "online"
-	case StatusAbnormal:
-		return "abnormal"
-	default:
-		return "unknown"
-	}
 }
