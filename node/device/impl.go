@@ -19,7 +19,7 @@ import (
 
 var log = logging.Logger("device")
 
-const deviceName = "titan-edge"
+// const deviceName = "titan-edge"
 
 const (
 	StatusOffline int = iota
@@ -63,9 +63,13 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	}
 
 	info.DeviceId = device.deviceID
+
+	name := device.deviceID
+	if len(name) > 10 {
+		info.DeviceName = name[0:10]
+	}
 	info.ExternalIp = device.publicIP
 	info.SystemVersion = version.String()
-	info.DeviceName = deviceName
 	info.InternalIp = device.internalIP
 	info.BandwidthDown = device.bandwidthDown
 
