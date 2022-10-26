@@ -3,6 +3,9 @@ package block
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"sync"
 	"time"
 
 	blocks "github.com/ipfs/go-block-format"
@@ -13,8 +16,80 @@ import (
 type IPFS struct {
 }
 
+type ipfsBlock struct {
+	raw []byte
+	err error
+}
+
 func (ipfs *IPFS) loadBlocks(block *Block, req []*delayReq) {
 	loadBlocksFromIPFS(block, req)
+}
+
+// curl "http://127.0.0.1:8080/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi?format=raw" > cat.jpg
+func getBlockFromIPFSGateway(wg *sync.WaitGroup, block *ipfsBlock, url string) {
+	defer wg.Done()
+
+	// log.Infof("getBlockFromIPFSGateway url:%s", url)
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		block.err = err
+		return
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		block.err = err
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		block.err = fmt.Errorf("resp.StatusCode != 200 ")
+		return
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		block.err = err
+		return
+	}
+	block.raw = data
+}
+
+func getBlocksWithHttp(block *Block, cids []cid.Cid) ([]blocks.Block, error) {
+	ipfsbs := make([]*ipfsBlock, 0, len(cids))
+
+	var wg sync.WaitGroup
+
+	for _, cid := range cids {
+		url := fmt.Sprintf("%s/%s?format=raw", block.ipfsGateway, cid.String())
+		wg.Add(1)
+		ipfsb := &ipfsBlock{err: nil, raw: nil}
+		ipfsbs = append(ipfsbs, ipfsb)
+		go getBlockFromIPFSGateway(&wg, ipfsb, url)
+	}
+
+	wg.Wait()
+
+	bs := make([]blocks.Block, 0, len(ipfsbs))
+	for _, b := range ipfsbs {
+		if b.err != nil {
+			log.Errorf("get ipfs block error:%s", b.err.Error())
+			continue
+		}
+
+		if b.raw == nil {
+			log.Errorf("b.raw == nil")
+			continue
+		}
+
+		block := blocks.NewBlock(b.raw)
+		bs = append(bs, block)
+	}
+	log.Infof("getBlocksWithHttp block len:%d", len(bs))
+	return bs, nil
 }
 
 func loadBlocksAsync(block *Block, cids []cid.Cid) ([]blocks.Block, error) {
@@ -62,7 +137,13 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 		return
 	}
 
-	blocks, err := loadBlocksAsync(block, cids)
+	var blocks []blocks.Block
+	var err error
+	if len(block.ipfsGateway) > 0 {
+		blocks, err = getBlocksWithHttp(block, cids)
+	} else {
+		blocks, err = loadBlocksAsync(block, cids)
+	}
 	if err != nil {
 		log.Errorf("loadBlocksAsync loadBlocks err %v", err)
 		return
