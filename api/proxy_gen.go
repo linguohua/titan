@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
+
 )
 
 
@@ -213,6 +214,8 @@ type SchedulerStruct struct {
 		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
 
 		GetToken func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
+
+		ListDatas func(p0 context.Context, p1 string) ([]string, error) `perm:"read"`
 
 		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"read"`
 
@@ -752,6 +755,17 @@ func (s *SchedulerStruct) GetToken(p0 context.Context, p1 string, p2 string) (st
 
 func (s *SchedulerStub) GetToken(p0 context.Context, p1 string, p2 string) (string, error) {
 	return "", ErrNotSupported
+}
+
+func (s *SchedulerStruct) ListDatas(p0 context.Context, p1 string) ([]string, error) {
+	if s.Internal.ListDatas == nil {
+		return *new([]string), ErrNotSupported
+	}
+	return s.Internal.ListDatas(p0, p1)
+}
+
+func (s *SchedulerStub) ListDatas(p0 context.Context, p1 string) ([]string, error) {
+	return *new([]string), ErrNotSupported
 }
 
 func (s *SchedulerStruct) QueryCacheStatWithNode(p0 context.Context, p1 string) ([]CacheStat, error) {
