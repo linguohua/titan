@@ -147,7 +147,7 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 
 	if cache.status > cacheStatusCreate {
 		d.cacheTime++
-		d.dataManager.removeCacheTask(deviceID)
+		// d.dataManager.removeCacheTask(deviceID)
 		d.reliability += cache.reliability
 		// log.Warnf("--------- reliability:%v,%v", d.reliability, cache.reliability)
 

@@ -113,9 +113,9 @@ func loadCache(area, cacheID, carfileCid string, nodeManager *NodeManager, total
 func (c *Cache) cacheBlocks(deviceID string, cids []string) error {
 	cNode := c.nodeManager.getCandidateNode(deviceID)
 	if cNode != nil {
-		reqDatas, list := cNode.getReqCacheDatas(c.nodeManager, cids)
+		reqDatas, list := cNode.getReqCacheDatas(c.nodeManager, cids, c.cardFileCid, c.cacheID)
 		if len(list) > 0 {
-			reqDatas = append(reqDatas, api.ReqCacheData{Cids: list})
+			reqDatas = append(reqDatas, api.ReqCacheData{Cids: list, CardFileCid: c.cardFileCid, CacheID: c.cacheID})
 		}
 
 		for _, reqData := range reqDatas {
@@ -130,9 +130,9 @@ func (c *Cache) cacheBlocks(deviceID string, cids []string) error {
 
 	eNode := c.nodeManager.getEdgeNode(deviceID)
 	if eNode != nil {
-		reqDatas, list := eNode.getReqCacheDatas(c.nodeManager, cids)
+		reqDatas, list := eNode.getReqCacheDatas(c.nodeManager, cids, c.cardFileCid, c.cacheID)
 		if len(list) > 0 {
-			reqDatas = append(reqDatas, api.ReqCacheData{Cids: list})
+			reqDatas = append(reqDatas, api.ReqCacheData{Cids: list, CardFileCid: c.cardFileCid, CacheID: c.cacheID})
 		}
 
 		for _, reqData := range reqDatas {
@@ -196,18 +196,18 @@ func (c *Cache) doCache(cids []string, isHaveCache bool) {
 
 		deviceID, deviceAddr := c.findNode(isHaveCache, filterDeviceIDs, i)
 		if deviceID != "" {
-			_, cacheID := c.dataManager.getCacheTask(deviceID)
-			if cacheID == "" || cacheID == c.cacheID {
-				status = cacheStatusCreate
+			// _, cacheID := c.dataManager.getCacheTask(deviceID)
+			// if cacheID == "" || cacheID == c.cacheID {
+			status = cacheStatusCreate
 
-				cList, ok := cacheMap[deviceID]
-				if !ok {
-					cList = make([]string, 0)
-				}
-
-				cList = append(cList, cid)
-				cacheMap[deviceID] = cList
+			cList, ok := cacheMap[deviceID]
+			if !ok {
+				cList = make([]string, 0)
 			}
+
+			cList = append(cList, cid)
+			cacheMap[deviceID] = cList
+			// }
 		}
 
 		b := &BlockInfo{cid: cid, deviceID: deviceID, deviceIP: deviceAddr, status: status, size: 0}
@@ -227,7 +227,7 @@ func (c *Cache) doCache(cids []string, isHaveCache bool) {
 			continue
 		}
 
-		c.dataManager.addCacheTask(deviceID, c.cardFileCid, c.cacheID)
+		// c.dataManager.addCacheTask(deviceID, c.cardFileCid, c.cacheID)
 	}
 }
 
