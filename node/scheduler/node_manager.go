@@ -27,6 +27,8 @@ const (
 	cityLevel     geoLevel = 3
 
 	defaultKey = "default"
+
+	offlineTime = 30 // Second
 )
 
 // NodeManager Node Manager
@@ -58,14 +60,14 @@ func newNodeManager(pool *ValidatePool) *NodeManager {
 func (m *NodeManager) initKeepaliveTimewheel() {
 	m.timewheelKeepalive = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
 		m.nodeKeepalive()
-		m.timewheelKeepalive.AddTimer(time.Duration(1)*60*time.Second, "Keepalive", nil)
+		m.timewheelKeepalive.AddTimer(time.Duration(1)*offlineTime*time.Second, "Keepalive", nil)
 	})
 	m.timewheelKeepalive.Start()
-	m.timewheelKeepalive.AddTimer(time.Duration(1)*60*time.Second, "Keepalive", nil)
+	m.timewheelKeepalive.AddTimer(time.Duration(1)*offlineTime*time.Second, "Keepalive", nil)
 }
 
 func (m *NodeManager) nodeKeepalive() {
-	nowTime := time.Now().Add(-time.Duration(m.keepaliveTime) * 60 * time.Second)
+	nowTime := time.Now().Add(-time.Duration(m.keepaliveTime) * offlineTime * time.Second)
 
 	m.edgeNodeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
