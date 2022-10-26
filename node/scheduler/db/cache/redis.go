@@ -2,8 +2,10 @@ package cache
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/linguohua/titan/api"
 	"sort"
 	"strconv"
 	"time"
@@ -43,6 +45,7 @@ const (
 	// NodeInfo field
 	onlineTimeField      = "OnlineTime"
 	validateSuccessField = "ValidateSuccessTime"
+	deviceInfoField      = "DeviceInfo"
 	// CacheTask field
 	carFileIDField = "CarFileID"
 	cacheIDField   = "cacheID"
@@ -382,4 +385,33 @@ func (rd redisDB) GetNodeReward(deviceID string) (rewardInDay, rewardInWeek, rew
 
 func getStartOfDay(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
+}
+
+func (rd redisDB) SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, error) {
+	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+
+	bytes, err := json.Marshal(info)
+	if err != nil {
+		return false, err
+	}
+
+	return rd.cli.HMSet(context.Background(), key, deviceInfoField, bytes).Result()
+}
+
+func (rd redisDB) GetDeviceInfo(deviceID string) (api.DevicesInfo, error) {
+	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+
+	vals, err := rd.cli.HMGet(context.Background(), key, deviceInfoField).Result()
+	if err != nil {
+		return api.DevicesInfo{}, err
+	}
+
+	var info api.DevicesInfo
+	bytes, _ := redigo.Bytes(vals[0], nil)
+
+	if err := json.Unmarshal(bytes, &info); err != nil {
+		return api.DevicesInfo{}, err
+	}
+
+	return info, nil
 }
