@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -88,7 +87,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	}
 
 	if vmStat != nil {
-		info.MemoryUsage = strconv.FormatFloat(vmStat.UsedPercent, 'f', 10, 32)
+		info.MemoryUsage = fmt.Sprintf("%.2f%%", vmStat.UsedPercent)
 	}
 
 	cpuPercent, err := cpu.Percent(0, false)
@@ -96,7 +95,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 		log.Errorf("getCpuInfo: %v", err)
 	}
 
-	info.CpuUsage = strconv.FormatFloat(cpuPercent[0], 'f', 10, 32)
+	info.CpuUsage = fmt.Sprintf("%.2f%%", cpuPercent[0])
 
 	partitions, err := disk.Partitions(true)
 	if len(partitions) > 0 {
@@ -115,7 +114,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 			total += usageStat.Total
 		}
 
-		info.DiskUsage = fmt.Sprintf("%f%%", float64(use)/float64(total)*100)
+		info.DiskUsage = fmt.Sprintf("%.2f%%", float64(use)/float64(total)*100)
 
 	}
 	return info, nil
