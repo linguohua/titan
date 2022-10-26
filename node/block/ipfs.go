@@ -32,7 +32,7 @@ func getBlockFromIPFSGateway(wg *sync.WaitGroup, block *ipfsBlock, url string) {
 
 	// log.Infof("getBlockFromIPFSGateway url:%s", url)
 
-	client := &http.Client{Timeout: 5 * time.Second}
+	client := &http.Client{Timeout: 15 * time.Second}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		block.err = err
@@ -65,10 +65,11 @@ func getBlocksWithHttp(block *Block, cids []cid.Cid) ([]blocks.Block, error) {
 	var wg sync.WaitGroup
 
 	for _, cid := range cids {
-		url := fmt.Sprintf("%s/%s?format=raw", block.ipfsGateway, cid.String())
-		wg.Add(1)
-		ipfsb := &ipfsBlock{cid: cid, err: nil, raw: nil}
+		var url = fmt.Sprintf("%s/%s?format=raw", block.ipfsGateway, cid.String())
+		var ipfsb = &ipfsBlock{cid: cid, err: nil, raw: nil}
 		ipfsbs = append(ipfsbs, ipfsb)
+
+		wg.Add(1)
 		go getBlockFromIPFSGateway(&wg, ipfsb, url)
 	}
 
@@ -172,15 +173,19 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 			continue
 		}
 
+		req, ok := reqMap[cidStr]
+		if !ok {
+			log.Errorf("loadBlocksFromIPFS cid %s not in map", cidStr)
+			continue
+		}
+
 		linksSize := uint64(0)
 		cids := make([]string, 0, len(links))
 		for _, link := range links {
 			cids = append(cids, link.Cid.String())
 			linksSize += link.Size
 		}
-		log.Infof("start caceh result b == nil %v", b == nil)
-		req := reqMap[cidStr]
-		log.Infof("start caceh result2 b == nil %v", b == nil)
+
 		bInfo := blockInfo{cid: cidStr, links: cids, blockSize: len(b.RawData()), linksSize: linksSize, carFileCid: req.carFileCid}
 		block.cacheResult(ctx, from, nil, bInfo)
 
