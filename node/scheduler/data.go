@@ -3,6 +3,7 @@ package scheduler
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
@@ -14,9 +15,10 @@ type Data struct {
 	nodeManager *NodeManager
 	dataManager *DataManager
 
-	area            string
-	cid             string
-	cacheMap        map[string]*Cache
+	area string
+	cid  string
+	// cacheMap        map[string]*Cache
+	cacheMap        sync.Map
 	cacheIDs        string
 	reliability     int
 	needReliability int
@@ -31,9 +33,9 @@ func newData(area string, nodeManager *NodeManager, dataManager *DataManager, ci
 		cid:             cid,
 		reliability:     0,
 		needReliability: reliability,
-		cacheMap:        make(map[string]*Cache),
-		cacheTime:       0,
-		area:            area,
+		// cacheMap:        make(map[string]*Cache),
+		cacheTime: 0,
+		area:      area,
 	}
 }
 
@@ -66,7 +68,8 @@ func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManag
 				continue
 			}
 
-			data.cacheMap[cacheID] = c
+			// data.cacheMap[cacheID] = c
+			data.cacheMap.Store(cacheID, c)
 		}
 
 		return data
@@ -76,17 +79,27 @@ func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManag
 }
 
 func (d *Data) cacheContinue(dataManager *DataManager, cacheID string) error {
-	cache := d.cacheMap[cacheID]
-	if cache == nil {
+	// cache := d.cacheMap[cacheID]
+	cacheI, ok := d.cacheMap.Load(cacheID)
+	if !ok || cacheI == nil {
 		return xerrors.Errorf("Not Found CacheID :%s", cacheID)
 	}
+	cache := cacheI.(*Cache)
 
 	list := make([]string, 0)
-	for _, block := range cache.blockMap {
+	// for _, block := range cache.blockMap {
+	// 	if block.status != cacheStatusSuccess {
+	// 		list = append(list, block.cid)
+	// 	}
+	// }
+	cache.blockMap.Range(func(key, value interface{}) bool {
+		block := value.(*BlockInfo)
 		if block.status != cacheStatusSuccess {
 			list = append(list, block.cid)
 		}
-	}
+
+		return true
+	})
 
 	// log.Infof("do cache list : %s", list)
 
@@ -97,22 +110,58 @@ func (d *Data) cacheContinue(dataManager *DataManager, cacheID string) error {
 
 func (d *Data) createCache(dataManager *DataManager) error {
 	// have old cache undone
-	for _, cache := range d.cacheMap {
+	d.cacheMap.Range(func(key, value interface{}) bool {
+		cache := value.(*Cache)
+
 		if cache.status == cacheStatusFail {
 			list := make([]string, 0)
-			for _, block := range cache.blockMap {
+			// for _, block := range cache.blockMap {
+			// 	if block.status == cacheStatusFail {
+			// 		list = append(list, block.cid)
+			// 	}
+			// }
+			cache.blockMap.Range(func(key, value interface{}) bool {
+				block := value.(*BlockInfo)
+
 				if block.status == cacheStatusFail {
 					list = append(list, block.cid)
 				}
-			}
+				return true
+			})
 
 			if len(list) > 0 {
 				log.Infof("%s cache start ---------- ", cache.cacheID)
 				cache.doCache(list, d.reliability > 0)
-				return nil
+				return true
 			}
 		}
-	}
+		return true
+	})
+
+	// for _, cache := range d.cacheMap {
+	// 	if cache.status == cacheStatusFail {
+	// 		list := make([]string, 0)
+	// 		// for _, block := range cache.blockMap {
+	// 		// 	if block.status == cacheStatusFail {
+	// 		// 		list = append(list, block.cid)
+	// 		// 	}
+	// 		// }
+	// 		cache.blockMap.Range(func(key, value interface{}) bool {
+	// 			block := value.(*BlockInfo)
+
+	// 			if block.status == cacheStatusFail {
+	// 				list = append(list, block.cid)
+	// 			}
+	// 			return true
+	// 		})
+
+	// 		if len(list) > 0 {
+	// 			log.Infof("%s cache start ---------- ", cache.cacheID)
+	// 			cache.doCache(list, d.reliability > 0)
+	// 			return nil
+	// 		}
+	// 	}
+	// }
 
 	cache, err := newCache(d.area, d.nodeManager, dataManager, d.cid)
 	if err != nil {
@@ -120,7 +169,8 @@ func (d *Data) createCache(dataManager *DataManager) error {
 		return err
 	}
 
-	d.cacheMap[cache.cacheID] = cache
+	// d.cacheMap[cache.cacheID] = cache
+	d.cacheMap.Store(cache.cacheID, cache)
 	d.cacheIDs = fmt.Sprintf("%s,%s", d.cacheIDs, cache.cacheID)
 
 	log.Infof("%s cache start ---------- ", cache.cacheID)
@@ -130,11 +180,13 @@ func (d *Data) createCache(dataManager *DataManager) error {
 
 func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInfo) (string, string) {
 	// log.Warnf("cacheResult-----------------info.Links:%v,cacheID:%v", info.Links, cacheID)
-	cache, ok := d.cacheMap[cacheID]
+	// cache, ok := d.cacheMap[cacheID]
+	cacheI, ok := d.cacheMap.Load(cacheID)
 	if !ok {
 		log.Errorf("updateDataInfo not found cacheID:%v,Cid:%v", cacheID, d.cid)
 		return d.cid, ""
 	}
+	cache := cacheI.(*Cache)
 
 	isUpdate := false
 	if d.reliability == 0 && info.Cid == d.cid {
