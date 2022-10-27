@@ -199,22 +199,18 @@ func (s *Scheduler) CacheContinue(ctx context.Context, area, cid, cacheID string
 
 // CacheResult Cache Data Result
 func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
-	carfileID, cacheID := s.dataManager.cacheCarfileResult(deviceID, &info)
-	if carfileID == "" {
-		return "", xerrors.Errorf("Not Found Task")
-	}
+	err := s.dataManager.cacheCarfileResult(deviceID, &info)
+	// edge := s.nodeManager.getEdgeNode(deviceID)
+	// if edge != nil {
+	// 	return edge.cacheBlockResult(&info, carfileID, cacheID)
+	// }
 
-	edge := s.nodeManager.getEdgeNode(deviceID)
-	if edge != nil {
-		return edge.cacheBlockResult(&info, carfileID, cacheID)
-	}
+	// candidate := s.nodeManager.getCandidateNode(deviceID)
+	// if candidate != nil {
+	// 	return candidate.cacheBlockResult(&info, carfileID, cacheID)
+	// }
 
-	candidate := s.nodeManager.getCandidateNode(deviceID)
-	if candidate != nil {
-		return candidate.cacheBlockResult(&info, carfileID, cacheID)
-	}
-
-	return "", xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
+	return "", err
 }
 
 // RegisterNode Register Node
