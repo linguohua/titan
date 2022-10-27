@@ -39,7 +39,9 @@ const (
 	ErrAreaNotExist = "Area not exist:%s"
 	// ErrNotFoundTask Not Found Task
 	ErrNotFoundTask = "Not Found Task"
+)
 
+const (
 	StatusOffline int = iota
 	StatusOnline
 	StatusAbnormal
