@@ -54,6 +54,7 @@ type Block struct {
 	reqList         []*delayReq
 	cachingList     []*delayReq
 	cacheResultLock *sync.Mutex
+	reqListLock     *sync.Mutex
 	block           BlockInterface
 	deviceID        string
 	exchange        exchange.Interface
@@ -76,6 +77,7 @@ func NewBlock(ds datastore.Batching, blockStore blockstore.BlockStore, scheduler
 		deviceID:   deviceID,
 
 		cacheResultLock: &sync.Mutex{},
+		reqListLock:     &sync.Mutex{},
 		blockLoaderCh:   make(chan bool),
 		ipfsGateway:     os.Getenv("IPFS_GATEWAY"),
 	}
@@ -121,6 +123,22 @@ func (block *Block) notifyBlockLoader() {
 	}
 }
 
+func (block *Block) dequeue(len int) []*delayReq {
+	block.reqListLock.Lock()
+	defer block.reqListLock.Unlock()
+	reqs := block.reqList[:len]
+	block.reqList = block.reqList[len:]
+	return reqs
+
+}
+
+func (block *Block) enqueue(delayReqs []*delayReq) {
+	block.reqListLock.Lock()
+	defer block.reqListLock.Unlock()
+	block.reqList = append(block.reqList, delayReqs...)
+
+}
+
 func (block *Block) doLoadBlock() {
 	for len(block.reqList) > 0 {
 		doLen := len(block.reqList)
@@ -128,8 +146,7 @@ func (block *Block) doLoadBlock() {
 			doLen = helper.Batch
 		}
 
-		doReqs := block.reqList[:doLen]
-		block.reqList = block.reqList[doLen:]
+		doReqs := block.dequeue(doLen)
 		block.cachingList = doReqs
 
 		block.block.loadBlocks(block, doReqs)
@@ -138,7 +155,7 @@ func (block *Block) doLoadBlock() {
 }
 
 func (block *Block) addReq2WaitList(delayReqs []*delayReq) {
-	block.reqList = append(block.reqList, delayReqs...)
+	block.enqueue(delayReqs)
 	block.notifyBlockLoader()
 }
 
