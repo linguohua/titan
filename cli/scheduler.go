@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -202,7 +203,7 @@ var listDataCmd = &cli.Command{
 		}
 
 		for _, str := range strs {
-			log.Infof("%v", str)
+			fmt.Println(str)
 		}
 
 		return nil
@@ -275,18 +276,17 @@ var showDataInfoCmd = &cli.Command{
 
 		statusToStr := func(s int) string {
 			if s == 1 {
-				return "task create"
+				return "running"
 			}
-
 			if s == 3 {
-				return "task done"
+				return "done"
 			}
 
-			return "task fail"
+			return "failed"
 		}
 
 		for _, info := range infos {
-			log.Infof("Data CID:%v , Total Size:%v MB", info.Cid, info.TotalSize/(1024*1024))
+			fmt.Printf("Data CID:%v , Total Size:%v MB \n", info.Cid, info.TotalSize/(1024*1024))
 			for _, cache := range info.CacheInfos {
 				doneNum := 0
 				bmapS := make(map[string]int)
@@ -305,30 +305,9 @@ var showDataInfoCmd = &cli.Command{
 					}
 					// log.Infof("block:%v,DeviceID:%v,Size:%v,Status:%v \n", block.Cid, block.DeviceID, block.Size, block.Status)
 				}
-				log.Infof("TaskID:%s , Done Size:%d MB , Status:%s , Done Blocks:%d , Total Blocks:%d , Nodes:%d",
+				fmt.Printf("TaskID:%s , Done Size:%d MB , Status:%s , Done Blocks:%d , Total Blocks:%d , Nodes:%d\n",
 					cache.CacheID, cache.DoneSize/(1024*1024), statusToStr(cache.Status), doneNum, len(cache.BloackInfo), len(bmapS))
 
-				// if len(bmapC) > 0 {
-				// 	cStr := ""
-				// 	for d, n := range bmapC {
-				// 		cStr = fmt.Sprintf("%sDeviceID:%v,BlockNum:%v;", cStr, d, n)
-				// 	}
-				// 	log.Infof("doCache ,%s", cStr)
-				// }
-				// if len(bmapF) > 0 {
-				// 	fStr := ""
-				// 	for d, n := range bmapF {
-				// 		fStr = fmt.Sprintf("%sDeviceID:%v,BlockNum:%v;", fStr, d, n)
-				// 	}
-				// 	log.Infof("fail ,%s", fStr)
-				// }
-				// if len(bmapS) > 0 {
-				// 	sStr := ""
-				// 	for d, n := range bmapS {
-				// 		sStr = fmt.Sprintf("%sDeviceID:%v,BlockNum:%v;", sStr, d, n)
-				// 	}
-				// 	log.Infof("success ,%s", sStr)
-				// }
 			}
 		}
 
