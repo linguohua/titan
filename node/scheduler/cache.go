@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
@@ -27,7 +28,8 @@ type Cache struct {
 	area        string
 	cacheID     string
 	cardFileCid string
-	blockMap    map[string]*BlockInfo
+	// blockMap    map[string]*BlockInfo
+	blockMap    sync.Map
 	status      cacheStatus
 	reliability int
 	doneSize    int
@@ -65,7 +67,7 @@ func newCache(area string, nodeManager *NodeManager, dataManager *DataManager, c
 		dataManager: dataManager,
 		reliability: 0,
 		status:      cacheStatusCreate,
-		blockMap:    make(map[string]*BlockInfo),
+		// blockMap:    make(map[string]*BlockInfo),
 		cacheID:     id,
 		cardFileCid: cid,
 	}, nil
@@ -80,7 +82,7 @@ func loadCache(area, cacheID, carfileCid string, nodeManager *NodeManager, total
 		cacheID:     cacheID,
 		cardFileCid: carfileCid,
 		nodeManager: nodeManager,
-		blockMap:    make(map[string]*BlockInfo),
+		// blockMap:    make(map[string]*BlockInfo),
 	}
 
 	list, err := persistent.GetDB().GetCacheInfos(area, cacheID)
@@ -91,12 +93,19 @@ func loadCache(area, cacheID, carfileCid string, nodeManager *NodeManager, total
 
 	if list != nil {
 		for _, cInfo := range list {
-			c.blockMap[cInfo.CID] = &BlockInfo{
+			// c.blockMap[cInfo.CID] = &BlockInfo{
+			// 	cid:      cInfo.CID,
+			// 	deviceID: cInfo.DeviceID,
+			// 	status:   cacheStatus(cInfo.Status),
+			// 	size:     cInfo.TotalSize,
+			// }
+
+			c.blockMap.Store(cInfo.CID, &BlockInfo{
 				cid:      cInfo.CID,
 				deviceID: cInfo.DeviceID,
 				status:   cacheStatus(cInfo.Status),
 				size:     cInfo.TotalSize,
-			}
+			})
 
 			c.doneSize += cInfo.TotalSize
 		}
@@ -211,7 +220,8 @@ func (c *Cache) doCache(cids []string, isHaveCache bool) {
 		}
 
 		b := &BlockInfo{cid: cid, deviceID: deviceID, deviceIP: deviceAddr, status: status, size: 0}
-		c.blockMap[cid] = b
+		// c.blockMap[cid] = b
+		c.blockMap.Store(cid, b)
 		c.saveCache(b, false)
 	}
 
@@ -300,8 +310,10 @@ func (c *Cache) updateCacheInfo(info *api.CacheResultInfo, totalSize, dataReliab
 
 	haveUndone := false
 
-	block, ok := c.blockMap[info.Cid]
+	// block, ok := c.blockMap[info.Cid]
+	blockI, ok := c.blockMap.Load(info.Cid)
 	if ok {
+		block := blockI.(*BlockInfo)
 		if info.IsOK {
 			block.status = cacheStatusSuccess
 			block.reliability = 1 // TODO use device reliability

@@ -366,28 +366,67 @@ func (s *Scheduler) ShowDataInfos(ctx context.Context, area, cid string) ([]api.
 			info.CurReliability = d.reliability
 
 			caches := make([]api.CacheInfo, 0)
-			if d.cacheMap != nil {
-				for _, c := range d.cacheMap {
-					cache := api.CacheInfo{
-						CacheID:  c.cacheID,
-						Status:   int(c.status),
-						DoneSize: c.doneSize,
-					}
-					blocks := make([]api.BloackInfo, 0)
-					for _, b := range c.blockMap {
-						block := api.BloackInfo{
-							Cid:      b.cid,
-							Status:   int(b.status),
-							DeviceID: b.deviceID,
-							Size:     b.size,
-						}
-						blocks = append(blocks, block)
-					}
-					cache.BloackInfo = blocks
 
-					caches = append(caches, cache)
+			d.cacheMap.Range(func(key, value interface{}) bool {
+				c := value.(*Cache)
+
+				cache := api.CacheInfo{
+					CacheID:  c.cacheID,
+					Status:   int(c.status),
+					DoneSize: c.doneSize,
 				}
-			}
+				blocks := make([]api.BloackInfo, 0)
+
+				c.blockMap.Range(func(key, value interface{}) bool {
+					b := value.(*BlockInfo)
+					block := api.BloackInfo{
+						Cid:      b.cid,
+						Status:   int(b.status),
+						DeviceID: b.deviceID,
+						Size:     b.size,
+					}
+					blocks = append(blocks, block)
+					return true
+				})
+				cache.BloackInfo = blocks
+
+				caches = append(caches, cache)
+				return true
+			})
+
+			// if d.cacheMap != nil {
+			// 	for _, c := range d.cacheMap {
+			// 		cache := api.CacheInfo{
+			// 			CacheID:  c.cacheID,
+			// 			Status:   int(c.status),
+			// 			DoneSize: c.doneSize,
+			// 		}
+			// 		blocks := make([]api.BloackInfo, 0)
+			// 		// for _, b := range c.blockMap {
+			// 		// 	block := api.BloackInfo{
+			// 		// 		Cid:      b.cid,
+			// 		// 		Status:   int(b.status),
+			// 		// 		DeviceID: b.deviceID,
+			// 		// 		Size:     b.size,
+			// 		// 	}
+			// 		// 	blocks = append(blocks, block)
+			// 		// }
+			// 		c.blockMap.Range(func(key, value interface{}) bool {
+			// 			b := value.(*BlockInfo)
+			// 			block := api.BloackInfo{
+			// 				Cid:      b.cid,
+			// 				Status:   int(b.status),
+			// 				DeviceID: b.deviceID,
+			// 				Size:     b.size,
+			// 			}
+			// 			blocks = append(blocks, block)
+			// 			return true
+			// 		})
+			// 		cache.BloackInfo = blocks
+
+			// 		caches = append(caches, cache)
+			// 	}
+			// }
 
 			info.CacheInfos = caches
 		}

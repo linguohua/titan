@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"container/list"
+	"sync"
 
 	"github.com/linguohua/titan/api"
 	"golang.org/x/xerrors"
@@ -10,7 +11,8 @@ import (
 // DataManager Data
 type DataManager struct {
 	nodeManager *NodeManager
-	dataMap     map[string]*Data
+	// dataMap     map[string]*Data
+	dataMap sync.Map
 
 	resultQueue   *list.List
 	resultChannel chan bool
@@ -18,8 +20,8 @@ type DataManager struct {
 
 func newDataManager(nodeManager *NodeManager) *DataManager {
 	d := &DataManager{
-		nodeManager:   nodeManager,
-		dataMap:       make(map[string]*Data),
+		nodeManager: nodeManager,
+		// dataMap:       make(map[string]*Data),
 		resultQueue:   list.New(),
 		resultChannel: make(chan bool, 1),
 	}
@@ -30,27 +32,37 @@ func newDataManager(nodeManager *NodeManager) *DataManager {
 }
 
 func (m *DataManager) findData(area, cid string) *Data {
-	data, ok := m.dataMap[cid]
+	// data, ok := m.dataMap[cid]
+	dataI, ok := m.dataMap.Load(cid)
 	if !ok {
-		data = loadData(area, cid, m.nodeManager, m)
+		data := loadData(area, cid, m.nodeManager, m)
 		if data != nil {
-			m.dataMap[cid] = data
+			// m.dataMap[cid] = data
+			m.dataMap.Store(cid, data)
+			return data
 		}
 		// return xerrors.New("already exists")
+	} else {
+		return dataI.(*Data)
 	}
 
-	return data
+	return nil
 }
 
 func (m *DataManager) cacheData(area, cid string, reliability int) error {
-	data, ok := m.dataMap[cid]
+	// data, ok := m.dataMap[cid]
+	dataI, ok := m.dataMap.Load(cid)
+	var data *Data
 	if !ok {
 		data = loadData(area, cid, m.nodeManager, m)
 		if data == nil {
 			data = newData(area, m.nodeManager, m, cid, reliability)
 		}
-		m.dataMap[cid] = data
+		// m.dataMap[cid] = data
+		m.dataMap.Store(cid, data)
 		// return xerrors.New("already exists")
+	} else {
+		data = dataI.(*Data)
 	}
 
 	data.needReliability = reliability
@@ -61,14 +73,19 @@ func (m *DataManager) cacheData(area, cid string, reliability int) error {
 }
 
 func (m *DataManager) cacheContinue(area, cid, cacheID string) error {
-	data, ok := m.dataMap[cid]
+	// data, ok := m.dataMap[cid]
+	dataI, ok := m.dataMap.Load(cid)
+	var data *Data
 	if !ok {
 		data = loadData(area, cid, m.nodeManager, m)
 		if data == nil {
 			return xerrors.Errorf("%s,cid:%s,cacheID:%v", ErrNotFoundTask, cid, cacheID)
 		}
-		m.dataMap[cid] = data
+		// m.dataMap[cid] = data
+		m.dataMap.Store(cid, data)
 		// return xerrors.New("already exists")
+	} else {
+		data = dataI.(*Data)
 	}
 
 	return data.cacheContinue(m, cacheID)
