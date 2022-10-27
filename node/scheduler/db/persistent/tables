@@ -39,6 +39,8 @@ CREATE TABLE `data_infos_cn_gd_shenzhen` (
 	`reliability` int(64) DEFAULT '0' ,
 	`need_reliability` int(64) DEFAULT '0' ,
     `cache_time` int(20)  DEFAULT '0' ,
+    `root_cache_id` varchar(225)  DEFAULT '' ,
+    `total_blocks` int(20)  DEFAULT '0' ,
 	PRIMARY KEY (`cid`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='data infos';
 
