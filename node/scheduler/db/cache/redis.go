@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/linguohua/titan/api"
 	"sort"
 	"strconv"
 	"time"
+
+	"github.com/linguohua/titan/api"
 
 	"github.com/go-redis/redis/v8"
 	redigo "github.com/gomodule/redigo/redis"
@@ -92,10 +93,10 @@ func (rd redisDB) IsNilErr(err error) bool {
 	return errors.Is(err, redis.Nil)
 }
 
-func (rd redisDB) IncrNodeOnlineTime(deviceID string, onlineTime int64) (int64, error) {
+func (rd redisDB) IncrNodeOnlineTime(deviceID string, onlineTime float64) (float64, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	return rd.cli.HIncrBy(context.Background(), key, onlineTimeField, onlineTime).Result()
+	return rd.cli.HIncrByFloat(context.Background(), key, onlineTimeField, onlineTime).Result()
 }
 
 func (rd redisDB) IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error) {
@@ -401,17 +402,20 @@ func (rd redisDB) SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, er
 func (rd redisDB) GetDeviceInfo(deviceID string) (api.DevicesInfo, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	vals, err := rd.cli.HMGet(context.Background(), key, deviceInfoField).Result()
+	vals, err := rd.cli.HMGet(context.Background(), key, deviceInfoField, onlineTimeField).Result()
 	if err != nil {
 		return api.DevicesInfo{}, err
 	}
 
 	var info api.DevicesInfo
 	bytes, _ := redigo.Bytes(vals[0], nil)
+	onlineTime, _ := redigo.Float64(vals[1], nil)
 
 	if err := json.Unmarshal(bytes, &info); err != nil {
 		return api.DevicesInfo{}, err
 	}
+
+	info.OnlineTime = fmt.Sprintf("%f", onlineTime)
 
 	return info, nil
 }

@@ -82,7 +82,7 @@ type NodeInfo struct {
 	ID         int
 	DeviceID   string `db:"device_id"`
 	LastTime   string `db:"last_time"`
-	OnlineTime int64  `db:"online_time"`
+	OnlineTime int64  `db:"online_time"` // 废弃
 	Geo        string `db:"geo"`
 	IsOnline   int    `db:"is_online"`
 	NodeType   string `db:"node_type"`

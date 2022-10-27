@@ -27,8 +27,6 @@ const (
 	cityLevel     geoLevel = 3
 
 	defaultKey = "default"
-
-	offlineTime = 30 // Second
 )
 
 // NodeManager Node Manager
@@ -37,7 +35,7 @@ type NodeManager struct {
 	candidateNodeMap sync.Map
 
 	timewheelKeepalive *timewheel.TimeWheel
-	keepaliveTime      int // keepalive time interval (minute)
+	keepaliveTime      float64 // keepalive time interval (minute)
 
 	validatePool *ValidatePool
 
@@ -46,7 +44,7 @@ type NodeManager struct {
 
 func newNodeManager(pool *ValidatePool) *NodeManager {
 	nodeManager := &NodeManager{
-		keepaliveTime: 1,
+		keepaliveTime: 0.5,
 		validatePool:  pool,
 		areaManager:   &AreaManager{},
 	}
@@ -60,14 +58,14 @@ func newNodeManager(pool *ValidatePool) *NodeManager {
 func (m *NodeManager) initKeepaliveTimewheel() {
 	m.timewheelKeepalive = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
 		m.nodeKeepalive()
-		m.timewheelKeepalive.AddTimer(time.Duration(1)*offlineTime*time.Second, "Keepalive", nil)
+		m.timewheelKeepalive.AddTimer(time.Duration(m.keepaliveTime*60)*time.Second, "Keepalive", nil)
 	})
 	m.timewheelKeepalive.Start()
-	m.timewheelKeepalive.AddTimer(time.Duration(1)*offlineTime*time.Second, "Keepalive", nil)
+	m.timewheelKeepalive.AddTimer(time.Duration(m.keepaliveTime*60)*time.Second, "Keepalive", nil)
 }
 
 func (m *NodeManager) nodeKeepalive() {
-	nowTime := time.Now().Add(-time.Duration(m.keepaliveTime) * offlineTime * time.Second)
+	nowTime := time.Now().Add(-time.Duration(m.keepaliveTime*60) * time.Second)
 
 	m.edgeNodeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
@@ -86,7 +84,7 @@ func (m *NodeManager) nodeKeepalive() {
 			return true
 		}
 
-		_, err := cache.GetDB().IncrNodeOnlineTime(deviceID, int64(m.keepaliveTime))
+		_, err := cache.GetDB().IncrNodeOnlineTime(deviceID, m.keepaliveTime)
 		if err != nil {
 			log.Warnf("IncrNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
 		}
@@ -111,7 +109,7 @@ func (m *NodeManager) nodeKeepalive() {
 			return true
 		}
 
-		_, err := cache.GetDB().IncrNodeOnlineTime(deviceID, int64(m.keepaliveTime))
+		_, err := cache.GetDB().IncrNodeOnlineTime(deviceID, m.keepaliveTime)
 		if err != nil {
 			log.Warnf("IncrNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
 		}
@@ -670,8 +668,4 @@ func (n *NodeManager) SetDeviceInfo(deviceID string, info api.DevicesInfo) error
 		return err
 	}
 	return nil
-}
-
-func (n *NodeManager) GetDeviceInfo(deviceID string) (api.DevicesInfo, error) {
-	return cache.GetDB().GetDeviceInfo(deviceID)
 }

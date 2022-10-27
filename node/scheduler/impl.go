@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"net/http"
 	"time"
@@ -760,7 +759,7 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.De
 		return api.DevicesInfo{}, err
 	}
 
-	deviceInfo, err := s.nodeManager.GetDeviceInfo(deviceID)
+	deviceInfo, err := cache.GetDB().GetDeviceInfo(deviceID)
 	if err != nil {
 		log.Errorf("getNodeInfo: %v ,deviceID : %v", err.Error(), deviceID)
 		return api.DevicesInfo{}, err
@@ -775,8 +774,8 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.De
 	deviceInfo.SevenDaysProfit = float64(rewardInWeek)
 	deviceInfo.MonthProfit = float64(rewardInMonth)
 	deviceInfo.IpLocation = node.Geo
-	deviceInfo.OnlineTime = fmt.Sprintf("%d", node.OnlineTime)
 	deviceInfo.DeviceStatus = getDeviceStatus(node.IsOnline)
+	// deviceInfo.CreatedAt = node.CreateTime
 
 	return deviceInfo, nil
 }
