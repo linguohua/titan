@@ -178,13 +178,12 @@ func (d *Data) createCache(dataManager *DataManager) error {
 	return nil
 }
 
-func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInfo) (string, string) {
+func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInfo) error {
 	// log.Warnf("cacheResult-----------------info.Links:%v,cacheID:%v", info.Links, cacheID)
 	// cache, ok := d.cacheMap[cacheID]
 	cacheI, ok := d.cacheMap.Load(cacheID)
 	if !ok {
-		log.Errorf("updateDataInfo not found cacheID:%v,Cid:%v", cacheID, d.cid)
-		return d.cid, ""
+		return xerrors.Errorf("updateDataInfo not found cacheID:%v,Cid:%v", cacheID, d.cid)
 	}
 	cache := cacheI.(*Cache)
 
@@ -217,7 +216,7 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 		d.saveData()
 	}
 
-	return d.cid, cacheID
+	return nil
 }
 
 func (d *Data) saveData() {

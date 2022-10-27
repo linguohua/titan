@@ -1,7 +1,6 @@
 package scheduler
 
 import (
-	"container/list"
 	"sync"
 
 	"github.com/linguohua/titan/api"
@@ -14,19 +13,20 @@ type DataManager struct {
 	// dataMap     map[string]*Data
 	dataMap sync.Map
 
-	resultQueue   *list.List
-	resultChannel chan bool
+	blockLoaderCh  chan bool
+	resultListLock *sync.Mutex
+	resultList     []*api.CacheResultInfo
 }
 
 func newDataManager(nodeManager *NodeManager) *DataManager {
 	d := &DataManager{
-		nodeManager: nodeManager,
-		// dataMap:       make(map[string]*Data),
-		resultQueue:   list.New(),
-		resultChannel: make(chan bool, 1),
+		nodeManager:    nodeManager,
+		blockLoaderCh:  make(chan bool),
+		resultList:     make([]*api.CacheResultInfo, 0),
+		resultListLock: &sync.Mutex{},
 	}
 
-	// go d.initChannelTask()
+	go d.startBlockLoader()
 
 	return d
 }
@@ -96,84 +96,7 @@ func (m *DataManager) removeBlock(deviceID string, cids []string) {
 	log.Errorf("removeBlock deviceID:%v,cids:%v", deviceID, cids)
 }
 
-// func (m *DataManager) addCacheTask(deviceID, cid, cacheID string) {
-// 	err := cache.GetDB().SetCacheDataTask(deviceID, cid, cacheID)
-// 	if err != nil {
-// 		log.Errorf("addCacheTask err:%v", err.Error())
-// 	}
-// }
-
-// func (m *DataManager) removeCacheTask(deviceID string) {
-// 	err := cache.GetDB().RemoveCacheDataTask(deviceID)
-// 	if err != nil {
-// 		log.Errorf("removeCacheTask err:%v", err.Error())
-// 	}
-// }
-
-// func (m *DataManager) getCacheTask(deviceID string) (string, string) {
-// 	return cache.GetDB().GetCacheDataTask(deviceID)
-// }
-
-// func (m *DataManager) initChannelTask() {
-// 	for {
-// 		<-m.resultChannel
-
-// 		m.doUpdateCacheInfo()
-// 	}
-// }
-
-// func (m *DataManager) writeChanWithSelect(b bool) {
-// 	select {
-// 	case m.resultChannel <- b:
-// 		return
-// 	default:
-// 		// log.Warnf("channel blocked, can not write")
-// 	}
-// }
-
-// func (m *DataManager) doUpdateCacheInfo() {
-// 	for m.resultQueue.Len() > 0 {
-// 		element := m.resultQueue.Front() // First element
-// 		info := element.Value.(*api.CacheResultInfo)
-
-// 		carfileID, cacheID := m.getCacheTask(info.DeviceID)
-// 		// log.Warnf("task carfileID:%v, cacheID:%v", carfileID, cacheID)
-// 		if carfileID != "" {
-// 			data := m.findData(carfileID)
-// 			// log.Warnf("data:%v, ", data)
-// 			if data != nil {
-// 				data.updateDataInfo(info.DeviceID, cacheID, info)
-// 				// save to block table
-// 				// err := persistent.GetDB().SetCarfileInfo(info.DeviceID, info.Cid, carfileID, cacheID)
-// 				// if err != nil {
-// 				// 	log.Errorf("SetCarfileInfo err:%v,device:%v", err.Error(), info.DeviceID)
-// 				// }
-// 			}
-// 		}
-
-// 		m.resultQueue.Remove(element) // Dequeue
-
-// 		// time.Sleep(20 * time.Second)
-// 		// v.writeChanWithSelect(true)
-// 	}
-// }
-
-// func (m *DataManager) cacheResult(deviceID string, info *api.CacheResultInfo) error {
-// 	info.DeviceID = deviceID
-// 	m.resultQueue.PushBack(info)
-
-// 	m.writeChanWithSelect(true)
-
-// 	return nil
-// }
-
-func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultInfo) (string, string) {
-	// carfileID, cacheID := m.getCacheTask(deviceID)
-	// if carfileID == "" {
-	// 	log.Warnf("task carfileID is nil ,DeviceID:%v", deviceID)
-	// 	return carfileID, cacheID
-	// }
-
+func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultInfo) error {
 	carfileID := info.CarFileCid
 	cacheID := info.CacheID
 
@@ -182,9 +105,53 @@ func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultI
 	data := m.findData(area, carfileID)
 	// log.Warnf("data:%v, ", data)
 	if data == nil {
-		log.Warnf("task data is nil, DeviceID:%v, carfileID:%v", deviceID, carfileID)
-		return carfileID, cacheID
+		// log.Warnf("task data is nil, DeviceID:%v, carfileID:%v", deviceID, carfileID)
+		return xerrors.Errorf("%s : %s", ErrNotFoundTask, carfileID)
 	}
 
 	return data.updateDataInfo(deviceID, cacheID, info)
+}
+
+func (m *DataManager) dequeue() *api.CacheResultInfo {
+	m.resultListLock.Lock()
+	defer m.resultListLock.Unlock()
+	info := m.resultList[0]
+	m.resultList = m.resultList[1:]
+	return info
+}
+
+func (m *DataManager) enqueue(info *api.CacheResultInfo) {
+	m.resultListLock.Lock()
+	defer m.resultListLock.Unlock()
+	m.resultList = append(m.resultList, info)
+}
+
+func (m *DataManager) doResultTask() {
+	for len(m.resultList) > 0 {
+		info := m.dequeue()
+		err := m.cacheCarfileResult(info.DeviceID, info)
+		if err != nil {
+			log.Errorf("doResultTask cacheCarfileResult err:%s", err.Error())
+		}
+	}
+}
+
+func (m *DataManager) pushResultToQueue(deviceID string, info *api.CacheResultInfo) {
+	info.DeviceID = deviceID
+	m.enqueue(info)
+	m.notifyBlockLoader()
+}
+
+func (m *DataManager) startBlockLoader() {
+	for {
+		<-m.blockLoaderCh
+		m.doResultTask()
+	}
+}
+
+func (m *DataManager) notifyBlockLoader() {
+	select {
+	case m.blockLoaderCh <- true:
+	default:
+	}
 }
