@@ -775,7 +775,6 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.De
 	deviceInfo.MonthProfit = float64(rewardInMonth)
 	deviceInfo.IpLocation = node.Geo
 	deviceInfo.DeviceStatus = getDeviceStatus(node.IsOnline)
-	// deviceInfo.CreatedAt = node.CreateTime
 
 	return deviceInfo, nil
 }

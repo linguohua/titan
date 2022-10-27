@@ -402,20 +402,26 @@ func (rd redisDB) SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, er
 func (rd redisDB) GetDeviceInfo(deviceID string) (api.DevicesInfo, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	vals, err := rd.cli.HMGet(context.Background(), key, deviceInfoField, onlineTimeField).Result()
+	values, err := rd.cli.HMGet(context.Background(), key, deviceInfoField, onlineTimeField).Result()
 	if err != nil {
 		return api.DevicesInfo{}, err
 	}
 
 	var info api.DevicesInfo
-	bytes, _ := redigo.Bytes(vals[0], nil)
-	onlineTime, _ := redigo.Float64(vals[1], nil)
+	bytes, err := redigo.Bytes(values[0], nil)
+	if err != nil {
+		return api.DevicesInfo{}, err
+	}
+
+	onlineTime, err := redigo.String(values[1], nil)
+	if err != nil {
+		return api.DevicesInfo{}, err
+	}
 
 	if err := json.Unmarshal(bytes, &info); err != nil {
 		return api.DevicesInfo{}, err
 	}
 
-	info.OnlineTime = fmt.Sprintf("%f", onlineTime)
-
+	info.OnlineTime, _ = strconv.ParseFloat(onlineTime, 10)
 	return info, nil
 }

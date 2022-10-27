@@ -2,7 +2,6 @@ package device
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"strings"
 
@@ -71,10 +70,10 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	info.ExternalIp = device.publicIP
 	info.SystemVersion = version.String()
 	info.InternalIp = device.internalIP
-	info.BandwidthDown = device.bandwidthDown
+	info.BandwidthDown = float64(device.bandwidthDown)
 
 	if device.blockDownload != nil {
-		info.BandwidthUp = int64(device.blockDownload.GetRateLimit())
+		info.BandwidthUp = float64(device.blockDownload.GetRateLimit())
 	}
 
 	mac, err := getMacAddr(info.InternalIp)
@@ -91,7 +90,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	}
 
 	if vmStat != nil {
-		info.MemoryUsage = fmt.Sprintf("%.2f%%", vmStat.UsedPercent)
+		info.MemoryUsage = vmStat.UsedPercent
 	}
 
 	cpuPercent, err := cpu.Percent(0, false)
@@ -99,7 +98,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 		log.Errorf("getCpuInfo: %v", err)
 	}
 
-	info.CpuUsage = fmt.Sprintf("%.2f%%", cpuPercent[0])
+	info.CpuUsage = cpuPercent[0]
 
 	partitions, err := disk.Partitions(true)
 	if len(partitions) > 0 {
@@ -118,7 +117,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 			total += usageStat.Total
 		}
 
-		info.DiskUsage = fmt.Sprintf("%.2f%%", float64(use)/float64(total)*100)
+		info.DiskUsage = float64(use) / float64(total) * 100
 
 	}
 	return info, nil
