@@ -27,7 +27,7 @@ type DB interface {
 	RemoveValidatorList() error
 	IsNodeInValidatorList(deviceID string) (bool, error)
 
-	IncrNodeOnlineTime(deviceID string, onlineTime int64) (int64, error)
+	IncrNodeOnlineTime(deviceID string, onlineTime float64) (float64, error)
 	IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error)
 
 	IncrCacheID() (int64, error)

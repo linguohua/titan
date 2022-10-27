@@ -7,7 +7,6 @@ CREATE TABLE `node` (
 	`node_type` varchar(255) DEFAULT '' ,
 	`address` varchar(255) DEFAULT '' ,
     `is_online` int(20)  DEFAULT '0' ,
-	`online_time` int(64) DEFAULT '0' ,
 	`server_name` varchar(255) DEFAULT '' ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node info';
