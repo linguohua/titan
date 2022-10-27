@@ -121,7 +121,7 @@ var registerNodeCmd = &cli.Command{
 			return err
 		}
 
-		log.Infof("\nDeviceID:%s\nSecret:%s", info.DeviceID, info.Secret)
+		fmt.Printf("\nDeviceID:%s\nSecret:%s", info.DeviceID, info.Secret)
 		return nil
 	},
 }
@@ -423,8 +423,7 @@ var cacheBlocksCmd = &cli.Command{
 		if cidsPath != "" {
 			cidList, err = loadCidsFromFile(cidsPath)
 			if err != nil {
-				log.Errorf("loadFile err:%v", err)
-				return err
+				return fmt.Errorf("loadFile err:%v", err)
 			}
 		}
 
@@ -433,7 +432,7 @@ var cacheBlocksCmd = &cli.Command{
 			return err
 		}
 
-		log.Infof("errCids:%v", errCids)
+		fmt.Printf("errCids:%v", errCids)
 
 		return nil
 	},
@@ -473,8 +472,7 @@ var getDownloadInfoCmd = &cli.Command{
 		if cidsPath != "" {
 			cidList, err = loadCidsFromFile(cidsPath)
 			if err != nil {
-				log.Errorf("loadFile err:%v", err)
-				return err
+				return fmt.Errorf("loadFile err:%v", err)
 			}
 		}
 
@@ -483,7 +481,7 @@ var getDownloadInfoCmd = &cli.Command{
 			return err
 		}
 
-		log.Infof("data:%v", data)
+		fmt.Printf("data:%v", data)
 
 		return nil
 	},
@@ -523,8 +521,7 @@ var deleteBlocksCmd = &cli.Command{
 		if cidsPath != "" {
 			cidList, err = loadCidsFromFile(cidsPath)
 			if err != nil {
-				log.Errorf("loadFile err:%v", err)
-				return err
+				return fmt.Errorf("loadFile err:%v", err)
 			}
 		}
 
@@ -532,7 +529,7 @@ var deleteBlocksCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		log.Infof("errorCids:%v", errorCids)
+		fmt.Printf("errorCids:%v", errorCids)
 
 		return nil
 	},
@@ -560,7 +557,7 @@ var showOnlineNodeCmd = &cli.Command{
 
 		nodes, err := schedulerAPI.GetOnlineDeviceIDs(ctx, api.TypeNameAll)
 
-		log.Infof("Online nodes:%v", nodes)
+		fmt.Printf("Online nodes:%v", nodes)
 
 		return err
 	},
@@ -618,7 +615,7 @@ var cachingBlocksCmd = &cli.Command{
 			return err
 		}
 
-		log.Infof("caching blocks:%v", body)
+		fmt.Printf("caching blocks:%v", body)
 
 		return nil
 	},
@@ -651,7 +648,7 @@ var cacheStatCmd = &cli.Command{
 			return err
 		}
 
-		log.Infof("cache stat:%v", body)
+		fmt.Printf("cache stat:%v", body)
 
 		return nil
 	},
