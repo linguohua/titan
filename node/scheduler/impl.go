@@ -750,7 +750,8 @@ func getDeviceStatus(status int) string {
 	case StatusAbnormal:
 		return "abnormal"
 	default:
-		return "unknown"
+		log.Warnf("unexpected device status: %d", status)
+		return "abnormal"
 	}
 }
 
