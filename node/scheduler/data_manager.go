@@ -9,10 +9,8 @@ import (
 
 // DataManager Data
 type DataManager struct {
-	nodeManager *NodeManager
-	// dataMap     map[string]*Data
-	dataMap sync.Map
-
+	nodeManager    *NodeManager
+	dataMap        sync.Map
 	blockLoaderCh  chan bool
 	resultListLock *sync.Mutex
 	resultList     []*api.CacheResultInfo
@@ -32,16 +30,14 @@ func newDataManager(nodeManager *NodeManager) *DataManager {
 }
 
 func (m *DataManager) findData(area, cid string) *Data {
-	// data, ok := m.dataMap[cid]
 	dataI, ok := m.dataMap.Load(cid)
 	if !ok {
 		data := loadData(area, cid, m.nodeManager, m)
 		if data != nil {
-			// m.dataMap[cid] = data
 			m.dataMap.Store(cid, data)
 			return data
 		}
-		// return xerrors.New("already exists")
+
 	} else {
 		return dataI.(*Data)
 	}
@@ -50,7 +46,6 @@ func (m *DataManager) findData(area, cid string) *Data {
 }
 
 func (m *DataManager) cacheData(area, cid string, reliability int) error {
-	// data, ok := m.dataMap[cid]
 	dataI, ok := m.dataMap.Load(cid)
 	var data *Data
 	if !ok {
@@ -58,9 +53,8 @@ func (m *DataManager) cacheData(area, cid string, reliability int) error {
 		if data == nil {
 			data = newData(area, m.nodeManager, m, cid, reliability)
 		}
-		// m.dataMap[cid] = data
+
 		m.dataMap.Store(cid, data)
-		// return xerrors.New("already exists")
 	} else {
 		data = dataI.(*Data)
 	}
@@ -73,7 +67,6 @@ func (m *DataManager) cacheData(area, cid string, reliability int) error {
 }
 
 func (m *DataManager) cacheContinue(area, cid, cacheID string) error {
-	// data, ok := m.dataMap[cid]
 	dataI, ok := m.dataMap.Load(cid)
 	var data *Data
 	if !ok {
@@ -81,9 +74,8 @@ func (m *DataManager) cacheContinue(area, cid, cacheID string) error {
 		if data == nil {
 			return xerrors.Errorf("%s,cid:%s,cacheID:%v", ErrNotFoundTask, cid, cacheID)
 		}
-		// m.dataMap[cid] = data
+
 		m.dataMap.Store(cid, data)
-		// return xerrors.New("already exists")
 	} else {
 		data = dataI.(*Data)
 	}
@@ -97,38 +89,37 @@ func (m *DataManager) removeBlock(deviceID string, cids []string) {
 }
 
 func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultInfo) error {
-	carfileID := info.CarFileCid
-	cacheID := info.CacheID
-
 	area := m.nodeManager.getNodeArea(deviceID)
+	data := m.findData(area, info.CarFileCid)
 
-	data := m.findData(area, carfileID)
-	// log.Warnf("data:%v, ", data)
 	if data == nil {
-		// log.Warnf("task data is nil, DeviceID:%v, carfileID:%v", deviceID, carfileID)
-		return xerrors.Errorf("%s : %s", ErrNotFoundTask, carfileID)
+		return xerrors.Errorf("%s : %s", ErrNotFoundTask, info.CarFileCid)
 	}
 
-	return data.updateDataInfo(deviceID, cacheID, info)
+	return data.updateDataInfo(deviceID, info.CacheID, info)
 }
 
 func (m *DataManager) dequeue() *api.CacheResultInfo {
 	m.resultListLock.Lock()
 	defer m.resultListLock.Unlock()
+
 	info := m.resultList[0]
 	m.resultList = m.resultList[1:]
+
 	return info
 }
 
 func (m *DataManager) enqueue(info *api.CacheResultInfo) {
 	m.resultListLock.Lock()
 	defer m.resultListLock.Unlock()
+
 	m.resultList = append(m.resultList, info)
 }
 
 func (m *DataManager) doResultTask() {
 	for len(m.resultList) > 0 {
 		info := m.dequeue()
+
 		err := m.cacheCarfileResult(info.DeviceID, info)
 		if err != nil {
 			log.Errorf("doResultTask cacheCarfileResult err:%s", err.Error())

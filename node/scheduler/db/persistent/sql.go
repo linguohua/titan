@@ -300,7 +300,7 @@ func (sd sqlDB) SetDataInfo(area string, info *DataInfo) error {
 	}
 
 	// update
-	cmd := fmt.Sprintf("UPDATE %s SET cache_ids=:cache_ids,status=:status,total_size=:total_size,reliability=:reliability,cache_time=:cache_time  WHERE cid=:cid", tableName)
+	cmd := fmt.Sprintf("UPDATE %s SET cache_ids=:cache_ids,status=:status,total_size=:total_size,reliability=:reliability,cache_time=:cache_time,root_cache_id=:root_cache_id,total_blocks=:total_blocks WHERE cid=:cid", tableName)
 	_, err = sd.cli.NamedExec(cmd, info)
 
 	return err
@@ -372,6 +372,27 @@ func (sd sqlDB) GetDataInfos(area string) ([]*DataInfo, error) {
 
 // 	return nil
 // }
+
+func (sd sqlDB) SetCacheInfos(area string, infos []*CacheInfo, isUpdate bool) error {
+	area = sd.replaceArea(area)
+	tableName := fmt.Sprintf(cacheInfoTable, area)
+
+	tx := sd.cli.MustBegin()
+
+	if isUpdate {
+		for _, info := range infos {
+			cmd := fmt.Sprintf(`UPDATE %s SET status=?,total_size=?,reliability=?,device_id=? WHERE id=?`, tableName)
+			tx.MustExec(cmd, info.Status, info.TotalSize, info.Reliability, info.DeviceID, info.ID)
+		}
+	} else {
+		for _, info := range infos {
+			cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, cid, device_id, status, total_size, reliability) VALUES (?, ?, ?, ?, ?)`, tableName)
+			tx.MustExec(cmd, info.CacheID, info.CID, info.DeviceID, info.Status, info.TotalSize, info.Reliability)
+		}
+	}
+
+	return tx.Commit()
+}
 
 func (sd sqlDB) SetCacheInfo(area string, info *CacheInfo) error {
 	area = sd.replaceArea(area)

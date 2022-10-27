@@ -26,6 +26,7 @@ type DB interface {
 	GetDataInfos(area string) ([]*DataInfo, error)
 
 	// cache info
+	SetCacheInfos(area string, infos []*CacheInfo, isUpdate bool) error
 	SetCacheInfo(area string, info *CacheInfo) error
 	GetCacheInfo(area, cacheID, cid string) (*CacheInfo, error)
 	GetCacheInfos(area, cacheID string) ([]*CacheInfo, error)
@@ -106,8 +107,7 @@ type ValidateResult struct {
 
 // NodeBlocks Node Block
 type NodeBlocks struct {
-	ID int
-	// TableName string `db:"table_name"`
+	ID        int
 	DeviceID  string `db:"device_id"`
 	FID       string `db:"fid"`
 	CID       string `db:"cid"`
@@ -117,8 +117,7 @@ type NodeBlocks struct {
 
 // BlockNodes Node Block
 type BlockNodes struct {
-	ID int
-	// TableName string `db:"table_name"`
+	ID       int
 	DeviceID string `db:"device_id"`
 	CID      string `db:"cid"`
 }
@@ -132,6 +131,8 @@ type DataInfo struct {
 	Reliability     int    `db:"reliability"`
 	NeedReliability int    `db:"need_reliability"`
 	CacheTime       int    `db:"cache_time"`
+	RootCacheID     string `db:"root_cache_id"`
+	TotalBlocks     int    `db:"total_blocks"`
 }
 
 // CacheInfo Data Cache info

@@ -329,7 +329,7 @@ func (s *Scheduler) ListDatas(ctx context.Context, area string) ([]string, error
 	list := make([]string, 0)
 
 	if area != "" {
-		infos := loadDatas(area)
+		infos := loadDataInfos(area)
 		for _, info := range infos {
 			list = append(list, info.CID)
 		}
@@ -338,7 +338,7 @@ func (s *Scheduler) ListDatas(ctx context.Context, area string) ([]string, error
 	}
 
 	for _, area := range areaPool {
-		infos := loadDatas(area)
+		infos := loadDataInfos(area)
 		for _, info := range infos {
 			list = append(list, info.CID)
 		}
@@ -376,7 +376,7 @@ func (s *Scheduler) ShowDataInfos(ctx context.Context, area, cid string) ([]api.
 				blocks := make([]api.BloackInfo, 0)
 
 				c.blockMap.Range(func(key, value interface{}) bool {
-					b := value.(*BlockInfo)
+					b := value.(*Block)
 					block := api.BloackInfo{
 						Cid:      b.cid,
 						Status:   int(b.status),
@@ -391,40 +391,6 @@ func (s *Scheduler) ShowDataInfos(ctx context.Context, area, cid string) ([]api.
 				caches = append(caches, cache)
 				return true
 			})
-
-			// if d.cacheMap != nil {
-			// 	for _, c := range d.cacheMap {
-			// 		cache := api.CacheInfo{
-			// 			CacheID:  c.cacheID,
-			// 			Status:   int(c.status),
-			// 			DoneSize: c.doneSize,
-			// 		}
-			// 		blocks := make([]api.BloackInfo, 0)
-			// 		// for _, b := range c.blockMap {
-			// 		// 	block := api.BloackInfo{
-			// 		// 		Cid:      b.cid,
-			// 		// 		Status:   int(b.status),
-			// 		// 		DeviceID: b.deviceID,
-			// 		// 		Size:     b.size,
-			// 		// 	}
-			// 		// 	blocks = append(blocks, block)
-			// 		// }
-			// 		c.blockMap.Range(func(key, value interface{}) bool {
-			// 			b := value.(*BlockInfo)
-			// 			block := api.BloackInfo{
-			// 				Cid:      b.cid,
-			// 				Status:   int(b.status),
-			// 				DeviceID: b.deviceID,
-			// 				Size:     b.size,
-			// 			}
-			// 			blocks = append(blocks, block)
-			// 			return true
-			// 		})
-			// 		cache.BloackInfo = blocks
-
-			// 		caches = append(caches, cache)
-			// 	}
-			// }
 
 			info.CacheInfos = caches
 		}
@@ -496,36 +462,6 @@ func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID str
 
 	return nil, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
 }
-
-// InitNodeDeviceIDs Init Node DeviceIDs (test)
-// func (s *Scheduler) InitNodeDeviceIDs(ctx context.Context) error {
-// 	nodeNum := 1000
-
-// 	edgePrefix := "edge_"
-// 	candidatePrefix := "candidate_"
-
-// 	edgeList := make([]string, 0)
-// 	candidateList := make([]string, 0)
-// 	for i := 0; i < nodeNum; i++ {
-// 		edgeID := fmt.Sprintf("%s%d", edgePrefix, i)
-// 		candidateID := fmt.Sprintf("%s%d", candidatePrefix, i)
-
-// 		edgeList = append(edgeList, edgeID)
-// 		candidateList = append(candidateList, candidateID)
-// 	}
-
-// 	err := cache.GetDB().SetEdgeDeviceIDList(edgeList)
-// 	if err != nil {
-// 		log.Errorf("SetEdgeDeviceIDList err:%v", err.Error())
-// 	}
-
-// 	err = cache.GetDB().SetCandidateDeviceIDList(candidateList)
-// 	if err != nil {
-// 		log.Errorf("SetCandidateDeviceIDList err:%v", err.Error())
-// 	}
-
-// 	return err
-// }
 
 // GetOnlineDeviceIDs Get all online node id
 func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTypeName) ([]string, error) {
