@@ -21,8 +21,8 @@ const (
 
 // Cache Cache
 type Cache struct {
+	data        *Data
 	nodeManager *NodeManager
-	dataManager *DataManager
 	area        string
 	cacheID     string
 	cardFileCid string
@@ -31,6 +31,7 @@ type Cache struct {
 	reliability int
 	doneSize    int
 	doneBlocks  int
+	dbID        int
 }
 
 // Block Block Info
@@ -45,15 +46,15 @@ type Block struct {
 }
 
 func newCacheID(cid string) (string, error) {
-	fid, err := cache.GetDB().IncrCacheID()
+	fid, err := cache.GetDB().IncrCacheID(serverArea)
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf("cache_info_%d", fid), nil
+	return fmt.Sprintf("%s_cache_info_%d", serverArea, fid), nil
 }
 
-func newCache(area string, nodeManager *NodeManager, dataManager *DataManager, cid string) (*Cache, error) {
+func newCache(area string, nodeManager *NodeManager, data *Data, cid string) (*Cache, error) {
 	id, err := newCacheID(cid)
 	if err != nil {
 		return nil, err
@@ -62,7 +63,7 @@ func newCache(area string, nodeManager *NodeManager, dataManager *DataManager, c
 	return &Cache{
 		area:        area,
 		nodeManager: nodeManager,
-		dataManager: dataManager,
+		data:        data,
 		reliability: 0,
 		status:      cacheStatusCreate,
 		cacheID:     id,
@@ -81,27 +82,32 @@ func loadCache(area, cacheID, carfileCid string, nodeManager *NodeManager, total
 		nodeManager: nodeManager,
 	}
 
-	list, err := persistent.GetDB().GetCacheInfos(area, cacheID)
+	info, err := persistent.GetDB().GetCacheTotalInfo(area, cacheID, carfileCid)
+	// list, err := persistent.GetDB().GetCacheInfos(area, cacheID)
 	if err != nil {
-		log.Errorf("loadCache %s,%s GetCacheInfos err:%s", carfileCid, cacheID, err.Error())
+		log.Errorf("loadCache %s,%s GetCacheInfo err:%s", carfileCid, cacheID, err.Error())
 		return c
 	}
 
-	if list != nil {
-		for _, cInfo := range list {
-			// c.blockMap.Store(cInfo.CID, &Block{
-			// 	cid:      cInfo.CID,
-			// 	deviceID: cInfo.DeviceID,
-			// 	status:   cacheStatus(cInfo.Status),
-			// 	size:     cInfo.TotalSize,
-			// })
+	// if list != nil {
+	// 	for _, cInfo := range list {
+	// 		// c.blockMap.Store(cInfo.CID, &Block{
+	// 		// 	cid:      cInfo.CID,
+	// 		// 	deviceID: cInfo.DeviceID,
+	// 		// 	status:   cacheStatus(cInfo.Status),
+	// 		// 	size:     cInfo.TotalSize,
+	// 		// })
 
-			c.doneSize += cInfo.TotalSize
-			if cInfo.Status == int(cacheStatusSuccess) {
-				c.doneBlocks++
-			}
-		}
-	}
+	// 		c.doneSize += cInfo.Size
+	// 		if cInfo.Status == int(cacheStatusSuccess) {
+	// 			c.doneBlocks++
+	// 		}
+	// 		c.doneBlocks = cInfo.DoneBlocks
+	// 	}
+	// }
+	c.dbID = info.ID
+	c.doneSize = info.DoneSize
+	c.doneBlocks = info.DoneBlocks
 
 	if totalSize > 0 && c.doneSize >= totalSize {
 		c.status = cacheStatusSuccess
@@ -170,18 +176,18 @@ func (c *Cache) findNode(isHaveCache bool, filterDeviceIDs map[string]string, i 
 		return
 	}
 	// rand node
-	node := cs[randomNum(0, len(cs))]
+	node := cs[i%len(cs)]
 
 	deviceID = node.deviceInfo.DeviceId
 	deviceAddr = node.addr
 	return
 }
 
-func (c *Cache) doCache(cids []string, isHaveCache bool) {
+func (c *Cache) doCache(cids map[string]int, isHaveCache bool) error {
 	deviceCacheMap := make(map[string][]string)
 	// blockList := make([]*persistent.CacheInfo, 0)
 
-	for i, cid := range cids {
+	for cid, dbID := range cids {
 		// candidateID := ""
 		filterDeviceIDs := make(map[string]string)
 		ds, err := persistent.GetDB().GetNodesWithCacheList(c.area, cid)
@@ -196,7 +202,7 @@ func (c *Cache) doCache(cids []string, isHaveCache bool) {
 
 		status := cacheStatusFail
 
-		deviceID, _ := c.findNode(isHaveCache, filterDeviceIDs, i)
+		deviceID, _ := c.findNode(isHaveCache, filterDeviceIDs, dbID)
 		if deviceID != "" {
 			status = cacheStatusCreate
 
@@ -212,30 +218,26 @@ func (c *Cache) doCache(cids []string, isHaveCache bool) {
 
 		// b := &Block{cid: cid, deviceID: deviceID, deviceIP: deviceAddr, status: status, size: 0}
 		b := &persistent.BlockInfo{
-			CacheID:   c.cacheID,
-			CID:       cid,
-			DeviceID:  deviceID,
-			Status:    int(status),
-			TotalSize: 0,
+			CacheID:  c.cacheID,
+			CID:      cid,
+			DeviceID: deviceID,
+			Status:   int(status),
+			Size:     0,
 		}
-		// c.blockMap.Store(cid, b)
-		c.saveBlockInfo(b)
-
-		// blockList = append(blockList, &persistent.CacheInfo{
-		// 	CacheID:     c.cacheID,
-		// 	CID:         b.cid,
-		// 	DeviceID:    b.deviceID,
-		// 	Status:      int(b.status),
-		// 	TotalSize:   b.size,
-		// 	Reliability: b.reliability,
-		// })
+		if dbID == 0 {
+			c.saveBlockInfo(b, false, "")
+		} else {
+			b.ID = dbID
+			// c.blockMap.Store(cid, b)
+			c.saveBlockInfo(b, true, "")
+		}
 	}
 
 	// c.saveCaches(blockList, false)
 
 	if len(deviceCacheMap) <= 0 {
-		log.Infof("%s cache fail not find node ---------- ", c.cacheID)
-		return
+		// log.Infof("%s cache fail not find node ---------- ", c.cacheID)
+		return xerrors.Errorf("cache %s fail not find node", c.cacheID)
 	}
 
 	for deviceID, caches := range deviceCacheMap {
@@ -246,7 +248,7 @@ func (c *Cache) doCache(cids []string, isHaveCache bool) {
 		}
 	}
 
-	return
+	return nil
 }
 
 func (c *Cache) saveCaches(caches []*persistent.BlockInfo, isUpdate bool) {
@@ -256,33 +258,35 @@ func (c *Cache) saveCaches(caches []*persistent.BlockInfo, isUpdate bool) {
 	}
 }
 
-func (c *Cache) saveBlockInfo(block *persistent.BlockInfo) {
+func (c *Cache) saveBlockInfo(block *persistent.BlockInfo, isUpdate bool, fidStr string) {
 	// log.Warnf("saveCache area:%s", c.area)
-	err := persistent.GetDB().SetCacheInfo(c.area, block)
+	err := persistent.GetDB().SetCacheInfo(c.area, block, isUpdate)
 	if err != nil {
 		log.Errorf("cacheID:%s,SetCacheInfo err:%s", c.cacheID, err.Error())
 	}
+
+	if fidStr != "" {
+		err = persistent.GetDB().AddBlockInfo(serverArea, block.DeviceID, block.CID, fidStr, c.cardFileCid, c.cacheID)
+		if err != nil {
+			log.Errorf("cacheID:%s,AddBlockInfo err:%s", c.cacheID, err.Error())
+		}
+	}
 }
 
-func (c *Cache) updateBlockInfo(info *api.CacheResultInfo, totalSize, dataReliability int) []string {
-	cacheInfo, err := persistent.GetDB().GetCacheInfo2(serverArea, info.DbID)
-	if err != nil || cacheInfo.ID != info.DbID || cacheInfo.CID != info.Cid || cacheInfo.DeviceID != info.DeviceID {
-		log.Errorf("dbID:%d,cid:%s,deviceID:%s, updateBlockInfo getcacheinfo err:%v", info.DbID, info.Cid, info.DeviceID, err)
+func (c *Cache) updateBlockInfo(info *api.CacheResultInfo, totalSize, dataReliability int) map[string]int {
+	cacheInfo, err := persistent.GetDB().GetCacheInfo(serverArea, info.CacheID, info.Cid)
+	if err != nil || cacheInfo.CID != info.Cid || cacheInfo.DeviceID != info.DeviceID {
+		log.Errorf("cid:%s,deviceID:%s, updateBlockInfo GetCacheInfo err:%v", info.Cid, info.DeviceID, err)
 		return nil
 	}
 
 	status := cacheStatusFail
+	fid := ""
 	if info.IsOK {
 		c.doneBlocks++
 		c.doneSize += info.BlockSize
 		status = cacheStatusSuccess
-	}
-
-	if totalSize > 0 && c.doneSize >= totalSize {
-		c.status = cacheStatusSuccess
-		c.reliability = 1 // TODO use block reliability
-
-		log.Infof("%s cache done ---------- ", c.cacheID)
+		fid = info.Fid
 	}
 
 	b := &persistent.BlockInfo{
@@ -290,25 +294,50 @@ func (c *Cache) updateBlockInfo(info *api.CacheResultInfo, totalSize, dataReliab
 		CacheID:     c.cacheID,
 		CID:         cacheInfo.CID,
 		DeviceID:    cacheInfo.DeviceID,
-		TotalSize:   info.BlockSize,
+		Size:        info.BlockSize,
 		Status:      int(status),
 		Reliability: 1,
 	}
-	c.saveBlockInfo(b)
+
+	c.saveBlockInfo(b, true, fid)
 
 	if len(info.Links) > 0 {
-		return info.Links
+		m := make(map[string]int)
+		for _, link := range info.Links {
+			m[link] = 0
+		}
+		return m
 	}
 
-	haveUndone, err := persistent.GetDB().HaveUndoneCaches(c.area, c.cacheID)
+	haveUndone, err := persistent.GetDB().HaveCaches(c.area, c.cacheID, int(cacheStatusCreate))
 	if err != nil {
 		log.Errorf("HaveUndoneCaches err:%s", err.Error())
 		return nil
 	}
-	if !haveUndone && c.status != cacheStatusSuccess {
-		c.status = cacheStatusFail
 
-		log.Infof("%s cache fail ---------- ", c.cacheID)
+	if haveUndone {
+		return nil
+	}
+
+	haveFailed, err := persistent.GetDB().HaveCaches(c.area, c.cacheID, int(cacheStatusFail))
+	if haveFailed {
+		c.reliability = 0
+		c.status = cacheStatusFail
+	} else {
+		c.reliability = 1
+		c.status = cacheStatusSuccess
+	}
+
+	// save total cache info
+	err = persistent.GetDB().UpdateCacheTotalInfo(c.area, &persistent.BlockInfo{
+		ID:          c.dbID,
+		DoneSize:    c.doneSize,
+		Status:      int(c.status),
+		DoneBlocks:  c.doneBlocks,
+		Reliability: c.reliability,
+	})
+	if err != nil {
+		log.Errorf("cacheID:%s,UpdateCacheTotalInfo err:%s", c.cacheID, err.Error())
 	}
 
 	return nil

@@ -25,10 +25,10 @@ type sqlDB struct {
 const errNodeNotFind = "Not Found"
 
 var (
-	blockDevicesTable = "block_devices_%s"
-	deviceBlockTable  = "device_blocks_%s"
-	dataInfoTable     = "data_infos_%s"
-	cacheInfoTable    = "cache_infos_%s"
+	// blockDevicesTable = "block_devices_%s"
+	deviceBlockTable = "device_blocks_%s"
+	dataInfoTable    = "data_info_%s"
+	cacheInfoTable   = "cache_info_%s"
 )
 
 // InitSQL init sql
@@ -381,49 +381,60 @@ func (sd sqlDB) SetCacheInfos(area string, infos []*BlockInfo, isUpdate bool) er
 
 	if isUpdate {
 		for _, info := range infos {
-			cmd := fmt.Sprintf(`UPDATE %s SET status=?,total_size=?,reliability=?,device_id=? WHERE id=?`, tableName)
-			tx.MustExec(cmd, info.Status, info.TotalSize, info.Reliability, info.DeviceID, info.ID)
+			cmd := fmt.Sprintf(`UPDATE %s SET status=?,size=?,reliability=?,device_id=? WHERE id=:id`, tableName)
+			tx.MustExec(cmd, info.Status, info.Size, info.Reliability, info.DeviceID, info.ID)
 		}
 	} else {
 		for _, info := range infos {
-			cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, cid, device_id, status, total_size, reliability) VALUES (?, ?, ?, ?, ?)`, tableName)
-			tx.MustExec(cmd, info.CacheID, info.CID, info.DeviceID, info.Status, info.TotalSize, info.Reliability)
+			cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, cid, device_id, status, size, reliability) VALUES (?, ?, ?, ?, ?)`, tableName)
+			tx.MustExec(cmd, info.CacheID, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability)
 		}
 	}
 
 	return tx.Commit()
 }
 
-func (sd sqlDB) SetCacheInfo(area string, info *BlockInfo) error {
+func (sd sqlDB) UpdateCacheTotalInfo(area string, info *BlockInfo) error {
 	area = sd.replaceArea(area)
 	tableName := fmt.Sprintf(cacheInfoTable, area)
 
-	oldInfo, err := sd.GetCacheInfo(area, info.CacheID, info.CID)
-	if err != nil {
-		return err
-	}
-	if oldInfo != nil {
-		info.ID = oldInfo.ID
-		cmd := fmt.Sprintf(`UPDATE %s SET status=:status,total_size=:total_size,reliability=:reliability,device_id=:device_id WHERE id=:id`, tableName)
+	// info.ID = oldInfo.ID
+	cmd := fmt.Sprintf(`UPDATE %s SET status=:status,done_size=:done_size,done_blocks=:done_blocks,reliability=:reliability WHERE id=:id `, tableName)
+	_, err := sd.cli.NamedExec(cmd, info)
+	return err
+}
+
+func (sd sqlDB) SetCacheInfo(area string, info *BlockInfo, isUpdate bool) error {
+	area = sd.replaceArea(area)
+	tableName := fmt.Sprintf(cacheInfoTable, area)
+
+	// oldInfo, err := sd.GetCacheInfo(area, info.CacheID, info.CID)
+	// if err != nil {
+	// 	return err
+	// }
+	if isUpdate {
+		// info.ID = oldInfo.ID
+		cmd := fmt.Sprintf(`UPDATE %s SET status=:status,size=:size,reliability=:reliability,device_id=:device_id WHERE id=:id `, tableName)
 		_, err := sd.cli.NamedExec(cmd, info)
 		return err
 	}
 
-	cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, cid, device_id, status, total_size, reliability)
-	VALUES (:cache_id, :cid, :device_id, :status, :total_size, :reliability)`, tableName)
-	_, err = sd.cli.NamedExec(cmd, info)
+	cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, cid, device_id, status, size, reliability)
+	VALUES (:cache_id, :cid, :device_id, :status, :size, :reliability)`, tableName)
+	_, err := sd.cli.NamedExec(cmd, info)
 
 	return err
 }
 
-func (sd sqlDB) GetCacheInfo2(area string, id int) (*BlockInfo, error) {
+func (sd sqlDB) GetCacheInfo(area, cacheID, cid string) (*BlockInfo, error) {
 	area = sd.replaceArea(area)
 
 	info := &BlockInfo{
-		ID: id,
+		CacheID: cacheID,
+		CID:     cid,
 	}
 
-	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE id=:id`, fmt.Sprintf(cacheInfoTable, area))
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cache_id=:cache_id AND cid=:cid`, fmt.Sprintf(cacheInfoTable, area))
 
 	rows, err := sd.cli.NamedQuery(cmd, info)
 	if err != nil {
@@ -442,12 +453,12 @@ func (sd sqlDB) GetCacheInfo2(area string, id int) (*BlockInfo, error) {
 	return info, err
 }
 
-func (sd sqlDB) GetCacheInfo(area, cacheID, cid string) (*BlockInfo, error) {
+func (sd sqlDB) GetCacheTotalInfo(area, cacheID, carFileCid string) (*BlockInfo, error) {
 	area = sd.replaceArea(area)
 
 	info := &BlockInfo{
 		CacheID: cacheID,
-		CID:     cid,
+		CID:     carFileCid,
 	}
 
 	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cid=:cid AND cache_id=:cache_id`, fmt.Sprintf(cacheInfoTable, area))
@@ -469,10 +480,10 @@ func (sd sqlDB) GetCacheInfo(area, cacheID, cid string) (*BlockInfo, error) {
 	return info, err
 }
 
-func (sd sqlDB) GetUndoneCaches(area, cacheID string) ([]string, error) {
+func (sd sqlDB) GetUndoneCaches(area, cacheID string) (map[string]int, error) {
 	area = sd.replaceArea(area)
 
-	list := make([]string, 0)
+	list := make(map[string]int, 0)
 
 	i := &BlockInfo{CacheID: cacheID, Status: 3}
 
@@ -487,19 +498,20 @@ func (sd sqlDB) GetUndoneCaches(area, cacheID string) ([]string, error) {
 		info := &BlockInfo{}
 		err := rows.StructScan(info)
 		if err == nil {
-			list = append(list, info.CID)
+			list[info.CID] = info.ID
+			// list = append(list, info.CID)
 		}
 	}
 
 	return list, err
 }
 
-func (sd sqlDB) HaveUndoneCaches(area, cacheID string) (bool, error) {
+func (sd sqlDB) HaveCaches(area, cacheID string, status int) (bool, error) {
 	area = sd.replaceArea(area)
 
 	info := &BlockInfo{
 		CacheID: cacheID,
-		Status:  1,
+		Status:  status,
 	}
 
 	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cache_id=:cache_id AND status=:status`, fmt.Sprintf(cacheInfoTable, area))
@@ -647,11 +659,11 @@ func (sd sqlDB) GetNodesWithCacheList(area, cid string) ([]string, error) {
 
 	m := make([]string, 0)
 
-	info := &BlockNodes{
+	info := &NodeBlocks{
 		CID: cid,
 	}
 
-	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cid=:cid`, fmt.Sprintf(blockDevicesTable, area))
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cid=:cid`, fmt.Sprintf(deviceBlockTable, area))
 
 	rows, err := sd.cli.NamedQuery(cmd, info)
 	if err != nil {
@@ -660,7 +672,7 @@ func (sd sqlDB) GetNodesWithCacheList(area, cid string) ([]string, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		i := &BlockNodes{}
+		i := &NodeBlocks{}
 		err = rows.StructScan(i)
 		if err == nil {
 			m = append(m, i.DeviceID)
@@ -687,8 +699,8 @@ func (sd sqlDB) DeleteBlockInfo(area, deviceID, cid string) error {
 	cmd1 := fmt.Sprintf(`DELETE FROM %s WHERE cid=? AND device_id=?`, fmt.Sprintf(deviceBlockTable, area))
 	tx.MustExec(cmd1, cid, deviceID)
 
-	cmd2 := fmt.Sprintf(`DELETE FROM %s WHERE cid=? AND device_id=?`, fmt.Sprintf(blockDevicesTable, area))
-	tx.MustExec(cmd2, cid, deviceID)
+	// cmd2 := fmt.Sprintf(`DELETE FROM %s WHERE cid=? AND device_id=?`, fmt.Sprintf(blockDevicesTable, area))
+	// tx.MustExec(cmd2, cid, deviceID)
 
 	return tx.Commit()
 }
@@ -704,17 +716,17 @@ func (sd sqlDB) AddBlockInfo(area, deviceID, cid, fid, carfileID, cacheID string
 		CacheID:   cacheID,
 	}
 
-	info2 := BlockNodes{
-		DeviceID: deviceID,
-		CID:      cid,
-	}
+	// info2 := BlockNodes{
+	// 	DeviceID: deviceID,
+	// 	CID:      cid,
+	// }
 
 	tx := sd.cli.MustBegin()
 
 	cmd1 := fmt.Sprintf(`INSERT INTO %s (cid, fid, cache_id, carfile_id, device_id) VALUES (?, ?, ?, ?, ?)`, fmt.Sprintf(deviceBlockTable, area))
 	tx.MustExec(cmd1, info1.CID, info1.FID, info1.CacheID, info1.CarfileID, info1.DeviceID)
-	cmd2 := fmt.Sprintf(`INSERT INTO %s (cid,  device_id) VALUES (?, ?)`, fmt.Sprintf(blockDevicesTable, area))
-	tx.MustExec(cmd2, info2.CID, info2.DeviceID)
+	// cmd2 := fmt.Sprintf(`INSERT INTO %s (cid,  device_id) VALUES (?, ?)`, fmt.Sprintf(blockDevicesTable, area))
+	// tx.MustExec(cmd2, info2.CID, info2.DeviceID)
 
 	return tx.Commit()
 }

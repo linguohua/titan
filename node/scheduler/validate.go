@@ -11,7 +11,6 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
-	"github.com/linguohua/titan/region"
 	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
 )
@@ -322,8 +321,8 @@ func (v *Validate) checkValidateTimeOut() error {
 	return nil
 }
 
-func (v *Validate) matchValidator(userGeoInfo *region.GeoInfo, validatorList []string, deviceID string, validatorMap map[string][]string) (map[string][]string, []string) {
-	cs, _ := v.nodeManager.findCandidates(userGeoInfo, validatorList, nil)
+func (v *Validate) matchValidator(validatorList []string, deviceID string, validatorMap map[string][]string) (map[string][]string, []string) {
+	cs := v.nodeManager.findCandidateNodeWithGeo(serverArea, validatorList, nil)
 
 	validatorID := ""
 	if len(cs) > 0 {
@@ -386,12 +385,12 @@ func (v *Validate) startValidate() error {
 		return err
 	}
 
-	for deviceID, node := range v.validatePool.edgeNodeMap {
-		validatorMap, validatorList = v.matchValidator(node.geoInfo, validatorList, deviceID, validatorMap)
+	for deviceID := range v.validatePool.edgeNodeMap {
+		validatorMap, validatorList = v.matchValidator(validatorList, deviceID, validatorMap)
 	}
 
-	for deviceID, node := range v.validatePool.candidateNodeMap {
-		validatorMap, validatorList = v.matchValidator(node.geoInfo, validatorList, deviceID, validatorMap)
+	for deviceID := range v.validatePool.candidateNodeMap {
+		validatorMap, validatorList = v.matchValidator(validatorList, deviceID, validatorMap)
 	}
 
 	for validatorID, list := range validatorMap {

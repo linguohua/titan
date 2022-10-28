@@ -433,7 +433,7 @@ var getDownloadInfoCmd = &cli.Command{
 	Flags: []cli.Flag{
 		// schedulerURLFlag,
 		cidsFlag,
-		ipFlag,
+		// ipFlag,
 		cidsPathFlag,
 	},
 
@@ -443,7 +443,7 @@ var getDownloadInfoCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		// url := cctx.String("scheduler-url")
 		cids := cctx.String("cids")
-		ip := cctx.String("ip")
+		// ip := cctx.String("ip")
 		cidsPath := cctx.String("cids-file-path")
 
 		ctx := ReqContext(cctx)
@@ -465,7 +465,7 @@ var getDownloadInfoCmd = &cli.Command{
 			}
 		}
 
-		data, err := schedulerAPI.GetDownloadInfoWithBlocks(ctx, cidList, ip)
+		data, err := schedulerAPI.GetDownloadInfoWithBlocks(ctx, cidList)
 		if err != nil {
 			return err
 		}

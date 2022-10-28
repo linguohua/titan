@@ -103,9 +103,7 @@ func (d *Data) cacheContinue(dataManager *DataManager, cacheID string) error {
 	// log.Infof("do cache list : %s", list)
 
 	log.Infof("%s cache continue ---------- ", cache.cacheID)
-	cache.doCache(list, d.haveRootCache())
-
-	return nil
+	return cache.doCache(list, d.haveRootCache())
 }
 
 func (d *Data) haveRootCache() bool {
@@ -123,15 +121,15 @@ func (d *Data) haveRootCache() bool {
 }
 
 func (d *Data) createCache(dataManager *DataManager) error {
+	if d.running {
+		return xerrors.New("data have task running,please wait")
+	}
+
 	if d.reliability >= d.needReliability {
 		return xerrors.Errorf("reliability is enough:%d/%d", d.reliability, d.needReliability)
 	}
 
-	if d.running {
-		return xerrors.New("data have task runningplease wait")
-	}
-
-	cache, err := newCache(d.area, d.nodeManager, dataManager, d.cid)
+	cache, err := newCache(d.area, d.nodeManager, d, d.cid)
 	if err != nil {
 		return xerrors.Errorf("new cache err:%s", err.Error())
 	}
@@ -141,13 +139,7 @@ func (d *Data) createCache(dataManager *DataManager) error {
 	d.cacheIDs = fmt.Sprintf("%s,%s", d.cacheIDs, cache.cacheID)
 
 	log.Infof("%s cache start ---------- ", cache.cacheID)
-	cache.doCache([]string{d.cid}, d.haveRootCache())
-
-	return nil
-}
-
-func (d *Data) cacheDone(cacheID string, status cacheStatus) {
-	d.running = false
+	return cache.doCache(map[string]int{d.cid: 0}, d.haveRootCache())
 }
 
 func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInfo) error {
@@ -158,16 +150,13 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 	cache := cacheI.(*Cache)
 
 	isUpdate := false
-	if d.reliability == 0 && info.Cid == d.cid {
+	if d.haveRootCache() && info.Cid == d.cid {
 		d.totalSize = int(info.LinksSize) + info.BlockSize
 
 		isUpdate = true
 	}
 
 	links := cache.updateBlockInfo(info, d.totalSize, d.reliability)
-	if links != nil {
-		cache.doCache(links, d.haveRootCache())
-	}
 
 	if cache.status > cacheStatusCreate {
 		d.cacheTime++
@@ -191,6 +180,10 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 
 	if isUpdate {
 		d.saveData()
+	}
+
+	if links != nil {
+		return cache.doCache(links, d.haveRootCache())
 	}
 
 	return nil

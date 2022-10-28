@@ -27,12 +27,13 @@ type DB interface {
 
 	// cache info
 	SetCacheInfos(area string, infos []*BlockInfo, isUpdate bool) error
-	SetCacheInfo(area string, info *BlockInfo) error
-	GetCacheInfo2(area string, id int) (*BlockInfo, error)
+	SetCacheInfo(area string, info *BlockInfo, isUpdate bool) error
+	UpdateCacheTotalInfo(area string, info *BlockInfo) error
 	GetCacheInfo(area, cacheID, cid string) (*BlockInfo, error)
+	GetCacheTotalInfo(area, cacheID, carfileID string) (*BlockInfo, error)
 	GetCacheInfos(area, cacheID string) ([]*BlockInfo, error)
-	HaveUndoneCaches(area, cacheID string) (bool, error)
-	GetUndoneCaches(area, cacheID string) ([]string, error)
+	HaveCaches(area, cacheID string, status int) (bool, error)
+	GetUndoneCaches(area, cacheID string) (map[string]int, error)
 
 	// node block
 	DeleteBlockInfo(area, deviceID, cid string) error
@@ -117,12 +118,12 @@ type NodeBlocks struct {
 	CacheID   string `db:"cache_id"`
 }
 
-// BlockNodes Node Block
-type BlockNodes struct {
-	ID       int
-	DeviceID string `db:"device_id"`
-	CID      string `db:"cid"`
-}
+// // BlockNodes Node Block
+// type BlockNodes struct {
+// 	ID       int
+// 	DeviceID string `db:"device_id"`
+// 	CID      string `db:"cid"`
+// }
 
 // DataInfo Data info
 type DataInfo struct {
@@ -144,7 +145,9 @@ type BlockInfo struct {
 	CID         string `db:"cid"`
 	DeviceID    string `db:"device_id"`
 	Status      int    `db:"status"`
-	TotalSize   int    `db:"total_size"`
+	Size        int    `db:"size"`
+	DoneSize    int    `db:"done_size"`
+	DoneBlocks  int    `db:"done_blocks"`
 	Reliability int    `db:"reliability"`
 }
 

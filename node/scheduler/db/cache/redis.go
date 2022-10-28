@@ -34,8 +34,10 @@ const (
 	// redisKeyCandidateDeviceIDList = "Titan:CandidateDeviceIDList"
 	// RedisKeyNodeInfo  deviceID
 	redisKeyNodeInfo = "Titan:NodeInfo:%s"
-	// RedisKeyCacheID
-	redisKeyCacheID = "Titan:CacheID"
+	// RedisKeyCacheID area
+	redisKeyCacheID = "Titan:CacheID:%s"
+	// redisKeyDataCacheKey
+	redisKeyDataCacheKey = "Titan:DataCacheKey:%s"
 	// RedisKeyCacheTask  deviceID
 	redisKeyCacheTask = "Titan:CacheTask:%s"
 	// RedisKeyNodeDeviceID
@@ -93,6 +95,19 @@ func (rd redisDB) IsNilErr(err error) bool {
 	return errors.Is(err, redis.Nil)
 }
 
+// func (rd redisDB) IncrDataCacheKey(cacheID string) (int64, error) {
+// 	key := fmt.Sprintf(redisKeyDataCacheKey, cacheID)
+
+// 	return rd.cli.IncrBy(context.Background(), key, 1).Result()
+// }
+
+// func (rd redisDB) DeleteDataCache(cacheID string) error {
+// 	key := fmt.Sprintf(redisKeyDataCacheKey, cacheID)
+
+// 	_, err := rd.cli.Del(context.Background(), key).Result()
+// 	return err
+// }
+
 func (rd redisDB) IncrNodeOnlineTime(deviceID string, onlineTime float64) (float64, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
@@ -106,8 +121,10 @@ func (rd redisDB) IncrNodeValidateTime(deviceID string, validateSuccessTime int6
 }
 
 // node cache tag ++1
-func (rd redisDB) IncrCacheID() (int64, error) {
-	return rd.cli.IncrBy(context.Background(), redisKeyCacheID, 1).Result()
+func (rd redisDB) IncrCacheID(area string) (int64, error) {
+	key := fmt.Sprintf(redisKeyCacheID, area)
+
+	return rd.cli.IncrBy(context.Background(), key, 1).Result()
 }
 
 // node cache tag ++1
