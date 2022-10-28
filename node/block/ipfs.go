@@ -160,7 +160,13 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 	var from = ""
 	for _, b := range blocks {
 		cidStr := b.Cid().String()
-		err = block.blockStore.Put(cidStr, b.RawData())
+		req, ok := reqMap[cidStr]
+		if !ok {
+			log.Errorf("loadBlocksFromIPFS cid %s not in map", cidStr)
+			continue
+		}
+
+		err = block.saveBlock(ctx, b.RawData(), req.blockInfo.Cid, req.blockInfo.Fid)
 		if err != nil {
 			log.Errorf("loadBlocksFromIPFS save block error:%s", err.Error())
 			continue
@@ -170,12 +176,6 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 		links, err := block.resolveLinks(b)
 		if err != nil {
 			log.Errorf("loadBlocksFromIPFS resolveLinks error:%s", err.Error())
-			continue
-		}
-
-		req, ok := reqMap[cidStr]
-		if !ok {
-			log.Errorf("loadBlocksFromIPFS cid %s not in map", cidStr)
 			continue
 		}
 
