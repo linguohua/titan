@@ -97,13 +97,13 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 
 	deviceID, err := verifySecret(token, api.NodeEdge)
 	if err != nil {
-		log.Errorf("EdgeNodeConnect verifySecret err:%v", err)
+		log.Errorf("EdgeNodeConnect verifySecret err:%s", err.Error())
 		return "", err
 	}
 
 	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
-		return "", xerrors.Errorf("creating auth token for remote connection: %w", err)
+		return "", xerrors.Errorf("creating auth token for remote connection: %s", err.Error())
 	}
 
 	headers := http.Header{}
@@ -112,14 +112,14 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 	// log.Infof("EdgeNodeConnect edge url:%v", url)
 	edgeAPI, closer, err := client.NewEdge(ctx, url, headers)
 	if err != nil {
-		log.Errorf("EdgeNodeConnect NewEdge err:%v,url:%v", err, url)
+		log.Errorf("EdgeNodeConnect NewEdge err:%s,url:%s", err.Error(), url)
 		return "", err
 	}
 
 	// load device info
 	deviceInfo, err := edgeAPI.DeviceInfo(ctx)
 	if err != nil {
-		log.Errorf("EdgeNodeConnect DeviceInfo err:%v", err)
+		log.Errorf("EdgeNodeConnect DeviceInfo err:%s", err.Error())
 		return "", err
 	}
 
@@ -145,13 +145,13 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 
 	err = s.nodeManager.edgeOnline(edgeNode)
 	if err != nil {
-		log.Errorf("EdgeNodeConnect addEdgeNode err:%v,deviceID:%s", err, deviceInfo.DeviceId)
+		log.Errorf("EdgeNodeConnect addEdgeNode err:%s,deviceID:%s", err.Error(), deviceInfo.DeviceId)
 		return "", err
 	}
 
 	err = s.nodeManager.SetDeviceInfo(deviceID, deviceInfo)
 	if err != nil {
-		log.Errorf("EdgeNodeConnect set device info: %v", err)
+		log.Errorf("EdgeNodeConnect set device info: %s", err.Error())
 		return "", err
 	}
 
@@ -174,7 +174,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 func (s Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.ValidateResults) error {
 	err := s.validate.pushResultToQueue(&validateResults)
 	if err != nil {
-		log.Errorf("ValidateBlockResult err:%v", err.Error())
+		log.Errorf("ValidateBlockResult err:%s", err.Error())
 	}
 
 	return err
@@ -189,12 +189,12 @@ func (s *Scheduler) DownloadBlockResult(ctx context.Context, deviceID, cid strin
 }
 
 // CacheContinue Cache Continue
-func (s *Scheduler) CacheContinue(ctx context.Context, area, cid, cacheID string) error {
+func (s *Scheduler) CacheContinue(ctx context.Context, cid, cacheID string) error {
 	if cid == "" || cacheID == "" {
 		return xerrors.New("parameter is nil")
 	}
 
-	return s.dataManager.cacheContinue(area, cid, cacheID)
+	return s.dataManager.cacheContinue(serverArea, cid, cacheID)
 }
 
 // CacheResult Cache Data Result
@@ -312,43 +312,28 @@ func (s *Scheduler) DeleteBlocks(ctx context.Context, deviceID string, cids []st
 }
 
 // CacheCarFile Cache CarFile
-func (s *Scheduler) CacheCarFile(ctx context.Context, area, cid string, reliability int) error {
+func (s *Scheduler) CacheCarFile(ctx context.Context, cid string, reliability int) error {
 	if cid == "" {
 		return xerrors.New("cid is nil")
 	}
 
-	if !areaExist(area) {
-		return xerrors.Errorf(ErrAreaNotExist, area)
-	}
-
-	return s.dataManager.cacheData(area, cid, reliability)
+	return s.dataManager.cacheData(serverArea, cid, reliability)
 }
 
 // ListDatas List Datas
-func (s *Scheduler) ListDatas(ctx context.Context, area string) ([]string, error) {
+func (s *Scheduler) ListDatas(ctx context.Context) ([]string, error) {
 	list := make([]string, 0)
 
-	if area != "" {
-		infos := loadDataInfos(area)
-		for _, info := range infos {
-			list = append(list, info.CID)
-		}
-
-		return list, nil
-	}
-
-	for _, area := range areaPool {
-		infos := loadDataInfos(area)
-		for _, info := range infos {
-			list = append(list, info.CID)
-		}
+	infos := loadDataInfos(serverArea)
+	for _, info := range infos {
+		list = append(list, info.CID)
 	}
 
 	return list, nil
 }
 
 // ShowDataInfos Show DataInfos
-func (s *Scheduler) ShowDataInfos(ctx context.Context, area, cid string) ([]api.CacheDataInfo, error) {
+func (s *Scheduler) ShowDataInfos(ctx context.Context, cid string) ([]api.CacheDataInfo, error) {
 	if cid == "" {
 		return nil, xerrors.Errorf("%s:%s", ErrCidNotFind, cid)
 	}
@@ -373,20 +358,20 @@ func (s *Scheduler) ShowDataInfos(ctx context.Context, area, cid string) ([]api.
 					Status:   int(c.status),
 					DoneSize: c.doneSize,
 				}
-				blocks := make([]api.BloackInfo, 0)
+				// blocks := make([]api.BloackInfo, 0)
 
-				c.blockMap.Range(func(key, value interface{}) bool {
-					b := value.(*Block)
-					block := api.BloackInfo{
-						Cid:      b.cid,
-						Status:   int(b.status),
-						DeviceID: b.deviceID,
-						Size:     b.size,
-					}
-					blocks = append(blocks, block)
-					return true
-				})
-				cache.BloackInfo = blocks
+				// c.blockMap.Range(func(key, value interface{}) bool {
+				// 	b := value.(*Block)
+				// 	block := api.BloackInfo{
+				// 		Cid:      b.cid,
+				// 		Status:   int(b.status),
+				// 		DeviceID: b.deviceID,
+				// 		Size:     b.size,
+				// 	}
+				// 	blocks = append(blocks, block)
+				// 	return true
+				// })
+				// cache.BloackInfo = blocks
 
 				caches = append(caches, cache)
 				return true
@@ -398,26 +383,13 @@ func (s *Scheduler) ShowDataInfos(ctx context.Context, area, cid string) ([]api.
 		return info
 	}
 
-	if area != "" {
-		d := s.dataManager.findData(area, cid)
-		if d != nil {
-			infos = append(infos, toData(d))
-			return infos, nil
-		}
-
-		return nil, xerrors.Errorf("%s:%s", ErrCidNotFind, cid)
+	d := s.dataManager.findData(serverArea, cid)
+	if d != nil {
+		infos = append(infos, toData(d))
+		return infos, nil
 	}
 
-	for _, area := range areaPool {
-		d := s.dataManager.findData(area, cid)
-		if d != nil {
-			infos = append(infos, toData(d))
-		}
-
-		return nil, xerrors.Errorf("%s:%s", ErrCidNotFind, cid)
-	}
-
-	return infos, nil
+	return nil, xerrors.Errorf("%s:%s", ErrCidNotFind, cid)
 }
 
 // CacheBlocks Cache Block
@@ -434,7 +406,7 @@ func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID str
 		for _, reqData := range reqDatas {
 			err := edge.nodeAPI.CacheBlocks(ctx, reqData)
 			if err != nil {
-				log.Errorf("edge CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+				log.Errorf("edge CacheData err:%s,url:%s,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
 				errList = append(errList, reqData.CandidateURL)
 			}
 		}
@@ -452,7 +424,7 @@ func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID str
 		for _, reqData := range reqDatas {
 			err := candidate.nodeAPI.CacheBlocks(ctx, reqData)
 			if err != nil {
-				log.Errorf("candidate CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+				log.Errorf("candidate CacheData err:%s,url:%s,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
 				errList = append(errList, reqData.CandidateURL)
 			}
 		}
@@ -510,7 +482,7 @@ func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string
 
 	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
 	if err != nil {
-		log.Warnf("getNodeURLWithData GetGeoInfo err:%v,ip:%v", err, ip)
+		log.Warnf("getNodeURLWithData GetGeoInfo err:%s,ip:%s", err.Error(), ip)
 	}
 
 	infoMap := make(map[string]api.DownloadInfo)
@@ -535,7 +507,7 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, ip
 
 	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
 	if err != nil {
-		log.Warnf("getNodeURLWithData GetGeoInfo err:%v,ip:%v", err, ip)
+		log.Warnf("getNodeURLWithData GetGeoInfo err:%s,ip:%s", err.Error(), ip)
 	}
 
 	return s.nodeManager.findNodeDownloadInfo(cid, geoInfo)
@@ -549,13 +521,13 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token st
 
 	deviceID, err := verifySecret(token, api.NodeCandidate)
 	if err != nil {
-		log.Errorf("CandidateNodeConnect verifySecret err:%v", err)
+		log.Errorf("CandidateNodeConnect verifySecret err:%s", err.Error())
 		return "", err
 	}
 
 	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
-		return "", xerrors.Errorf("creating auth token for remote connection: %w", err)
+		return "", xerrors.Errorf("creating auth token for remote connection: %s", err.Error())
 	}
 
 	headers := http.Header{}
@@ -564,14 +536,14 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token st
 	// log.Infof("EdgeNodeConnect edge url:%v", url)
 	candicateAPI, closer, err := client.NewCandicate(ctx, url, headers)
 	if err != nil {
-		log.Errorf("CandidateNodeConnect NewCandicate err:%v,url:%v", err, url)
+		log.Errorf("CandidateNodeConnect NewCandicate err:%s,url:%s", err.Error(), url)
 		return "", err
 	}
 
 	// load device info
 	deviceInfo, err := candicateAPI.DeviceInfo(ctx)
 	if err != nil {
-		log.Errorf("CandidateNodeConnect DeviceInfo err:%v", err)
+		log.Errorf("CandidateNodeConnect DeviceInfo err:%s", err.Error())
 		return "", err
 	}
 
@@ -597,13 +569,13 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token st
 
 	err = s.nodeManager.candidateOnline(candidateNode)
 	if err != nil {
-		log.Errorf("CandidateNodeConnect addEdgeNode err:%v,deviceID:%s", err, deviceInfo.DeviceId)
+		log.Errorf("CandidateNodeConnect addEdgeNode err:%s,deviceID:%s", err.Error(), deviceInfo.DeviceId)
 		return "", err
 	}
 
 	err = s.nodeManager.SetDeviceInfo(deviceID, deviceInfo)
 	if err != nil {
-		log.Errorf("CandidateNodeConnect set device info: %v", err)
+		log.Errorf("CandidateNodeConnect set device info: %s", err.Error())
 		return "", err
 	}
 
@@ -691,13 +663,13 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.De
 	// node datas
 	node, err := persistent.GetDB().GetNodeInfo(deviceID)
 	if err != nil {
-		log.Errorf("getNodeInfo: %v ,deviceID : %v", err.Error(), deviceID)
+		log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
 		return api.DevicesInfo{}, err
 	}
 
 	deviceInfo, err := cache.GetDB().GetDeviceInfo(deviceID)
 	if err != nil {
-		log.Errorf("getNodeInfo: %v ,deviceID : %v", err.Error(), deviceID)
+		log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
 		return api.DevicesInfo{}, err
 	}
 

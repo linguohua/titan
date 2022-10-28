@@ -86,7 +86,7 @@ func (m *NodeManager) nodeKeepalive() {
 
 		_, err := cache.GetDB().IncrNodeOnlineTime(deviceID, m.keepaliveTime)
 		if err != nil {
-			log.Warnf("IncrNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
+			log.Warnf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), deviceID)
 		}
 
 		return true
@@ -111,7 +111,7 @@ func (m *NodeManager) nodeKeepalive() {
 
 		_, err := cache.GetDB().IncrNodeOnlineTime(deviceID, m.keepaliveTime)
 		if err != nil {
-			log.Warnf("IncrNodeOnlineTime err:%v,deviceID:%v", err.Error(), deviceID)
+			log.Warnf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), deviceID)
 		}
 
 		return true
@@ -144,7 +144,7 @@ func (m *NodeManager) edgeOnline(node *EdgeNode) error {
 		nodeOld = nil
 	}
 
-	log.Infof("edgeOnline DeviceId:%v,geo:%v", deviceID, node.geoInfo.Geo)
+	log.Infof("edgeOnline DeviceId:%s,geo:%s", deviceID, node.geoInfo.Geo)
 
 	err := node.setNodeOnline(api.TypeNameEdge)
 	if err != nil {
@@ -189,7 +189,7 @@ func (m *NodeManager) edgeOffline(node *EdgeNode) {
 	// close old node
 	node.closer()
 
-	log.Warnf("edgeOffline :%v", deviceID)
+	log.Warnf("edgeOffline :%s", deviceID)
 
 	m.edgeNodeMap.Delete(deviceID)
 	m.areaManager.removeEdge(node)
@@ -222,7 +222,7 @@ func (m *NodeManager) candidateOnline(node *CandidateNode) error {
 		nodeOld = nil
 	}
 
-	log.Infof("candidateOnline DeviceId:%v,geo:%v", deviceID, node.geoInfo.Geo)
+	log.Infof("candidateOnline DeviceId:%s,geo:%s", deviceID, node.geoInfo.Geo)
 
 	err := node.setNodeOnline(api.TypeNameCandidate)
 	if err != nil {
@@ -254,7 +254,7 @@ func (m *NodeManager) candidateOffline(node *CandidateNode) {
 	// close old node
 	node.closer()
 
-	log.Warnf("candidateOffline :%v", deviceID)
+	log.Warnf("candidateOffline :%s", deviceID)
 
 	m.candidateNodeMap.Delete(deviceID)
 	m.areaManager.removeCandidate(node)
@@ -664,7 +664,7 @@ func (a *AreaManager) deleteCandidate(deviceID string, key string) {
 func (n *NodeManager) SetDeviceInfo(deviceID string, info api.DevicesInfo) error {
 	_, err := cache.GetDB().SetDeviceInfo(deviceID, info)
 	if err != nil {
-		log.Errorf("set device info: %v", err)
+		log.Errorf("set device info: %s", err.Error())
 		return err
 	}
 	return nil

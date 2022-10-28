@@ -26,11 +26,13 @@ type DB interface {
 	GetDataInfos(area string) ([]*DataInfo, error)
 
 	// cache info
-	SetCacheInfos(area string, infos []*CacheInfo, isUpdate bool) error
-	SetCacheInfo(area string, info *CacheInfo) error
-	GetCacheInfo(area, cacheID, cid string) (*CacheInfo, error)
-	GetCacheInfos(area, cacheID string) ([]*CacheInfo, error)
+	SetCacheInfos(area string, infos []*BlockInfo, isUpdate bool) error
+	SetCacheInfo(area string, info *BlockInfo) error
+	GetCacheInfo2(area string, id int) (*BlockInfo, error)
+	GetCacheInfo(area, cacheID, cid string) (*BlockInfo, error)
+	GetCacheInfos(area, cacheID string) ([]*BlockInfo, error)
 	HaveUndoneCaches(area, cacheID string) (bool, error)
+	GetUndoneCaches(area, cacheID string) ([]string, error)
 
 	// node block
 	DeleteBlockInfo(area, deviceID, cid string) error
@@ -135,8 +137,8 @@ type DataInfo struct {
 	TotalBlocks     int    `db:"total_blocks"`
 }
 
-// CacheInfo Data Cache info
-type CacheInfo struct {
+// BlockInfo Data Block info
+type BlockInfo struct {
 	ID          int
 	CacheID     string `db:"cache_id"`
 	CID         string `db:"cid"`

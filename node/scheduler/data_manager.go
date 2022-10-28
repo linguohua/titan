@@ -72,7 +72,7 @@ func (m *DataManager) cacheContinue(area, cid, cacheID string) error {
 	if !ok {
 		data = loadData(area, cid, m.nodeManager, m)
 		if data == nil {
-			return xerrors.Errorf("%s,cid:%s,cacheID:%v", ErrNotFoundTask, cid, cacheID)
+			return xerrors.Errorf("%s,cid:%s,cacheID:%s", ErrNotFoundTask, cid, cacheID)
 		}
 
 		m.dataMap.Store(cid, data)
@@ -85,7 +85,7 @@ func (m *DataManager) cacheContinue(area, cid, cacheID string) error {
 
 func (m *DataManager) removeBlock(deviceID string, cids []string) {
 	// TODO remove data info
-	log.Errorf("removeBlock deviceID:%v,cids:%v", deviceID, cids)
+	log.Errorf("removeBlock deviceID:%s,cids:%v", deviceID, cids)
 }
 
 func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultInfo) error {

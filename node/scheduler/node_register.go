@@ -49,7 +49,7 @@ func newDeviceID(nodeType api.NodeType) (string, error) {
 		return s, nil
 	}
 
-	return "", xerrors.Errorf("nodetype err:%v", nodeType)
+	return "", xerrors.Errorf("nodetype err:%d", nodeType)
 }
 
 func newSecret(input string) string {

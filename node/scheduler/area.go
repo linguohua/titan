@@ -1,6 +1,12 @@
 package scheduler
 
-var areaPool = []string{"CN-GD-Shenzhen"}
+var serverArea = "CN-GD-Shenzhen"
+
+// InitServerArea set area
+func InitServerArea(area string) {
+	log.Infof("server area :%s", area)
+	serverArea = area
+}
 
 func initAreaTable() {
 }
@@ -10,11 +16,5 @@ func areaExist(area string) bool {
 		return false
 	}
 
-	for _, a := range areaPool {
-		if a == area {
-			return true
-		}
-	}
-
-	return false
+	return area == serverArea
 }

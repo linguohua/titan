@@ -171,6 +171,11 @@ var runCmd = &cli.Command{
 			Name:  "server-name",
 			Usage: "server uniquely identifies",
 		},
+		&cli.StringFlag{
+			Name:  "area",
+			Usage: "area",
+			Value: "CN-GD-Shenzhen",
+		},
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -199,6 +204,10 @@ var runCmd = &cli.Command{
 
 		cURL := cctx.String("cachedb-url")
 		sName := cctx.String("server-name")
+		area := cctx.String("area")
+		if area == "" {
+			log.Panic("area is nil")
+		}
 
 		if sName == "" {
 			log.Panic("server-name is nil")
@@ -225,6 +234,8 @@ var runCmd = &cli.Command{
 		if err != nil {
 			log.Panic(err.Error())
 		}
+
+		scheduler.InitServerArea(area)
 
 		schedulerAPI := scheduler.NewLocalScheduleNode(lr)
 

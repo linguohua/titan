@@ -107,7 +107,7 @@ func (n *Node) setNodeOffline(deviceID string, geoInfo *region.GeoInfo, nodeType
 		Address:  n.addr,
 	})
 	if err != nil {
-		log.Errorf("node offline SetNodeInfo err : %v ,deviceID : %v", err.Error(), deviceID)
+		log.Errorf("node offline SetNodeInfo err : %s ,deviceID : %s", err.Error(), deviceID)
 	}
 }
 
@@ -115,7 +115,7 @@ func (n *Node) setNodeOffline(deviceID string, geoInfo *region.GeoInfo, nodeType
 func (n *Node) getNodeInfo(deviceID string) (*persistent.NodeInfo, error) {
 	node, err := persistent.GetDB().GetNodeInfo(deviceID)
 	if err != nil {
-		log.Errorf("getNodeInfo: %v ,deviceID : %v", err.Error(), deviceID)
+		log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
 	}
 	return node, nil
 }

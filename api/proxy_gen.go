@@ -184,9 +184,9 @@ type SchedulerStruct struct {
 
 		CacheBlocks func(p0 context.Context, p1 []string, p2 string) ([]string, error) `perm:"admin"`
 
-		CacheCarFile func(p0 context.Context, p1 string, p2 string, p3 int) (error) `perm:"admin"`
+		CacheCarFile func(p0 context.Context, p1 string, p2 int) (error) `perm:"admin"`
 
-		CacheContinue func(p0 context.Context, p1 string, p2 string, p3 string) (error) `perm:"admin"`
+		CacheContinue func(p0 context.Context, p1 string, p2 string) (error) `perm:"admin"`
 
 		CacheResult func(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) `perm:"write"`
 
@@ -214,7 +214,7 @@ type SchedulerStruct struct {
 
 		GetToken func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
 
-		ListDatas func(p0 context.Context, p1 string) ([]string, error) `perm:"read"`
+		ListDatas func(p0 context.Context) ([]string, error) `perm:"read"`
 
 		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"read"`
 
@@ -222,7 +222,7 @@ type SchedulerStruct struct {
 
 		RegisterNode func(p0 context.Context, p1 NodeType) (NodeRegisterInfo, error) `perm:"admin"`
 
-		ShowDataInfos func(p0 context.Context, p1 string, p2 string) ([]CacheDataInfo, error) `perm:"read"`
+		ShowDataInfos func(p0 context.Context, p1 string) ([]CacheDataInfo, error) `perm:"read"`
 
 		Validate func(p0 context.Context) (error) `perm:"admin"`
 
@@ -593,25 +593,25 @@ func (s *SchedulerStub) CacheBlocks(p0 context.Context, p1 []string, p2 string) 
 	return *new([]string), ErrNotSupported
 }
 
-func (s *SchedulerStruct) CacheCarFile(p0 context.Context, p1 string, p2 string, p3 int) (error) {
+func (s *SchedulerStruct) CacheCarFile(p0 context.Context, p1 string, p2 int) (error) {
 	if s.Internal.CacheCarFile == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.CacheCarFile(p0, p1, p2, p3)
+	return s.Internal.CacheCarFile(p0, p1, p2)
 }
 
-func (s *SchedulerStub) CacheCarFile(p0 context.Context, p1 string, p2 string, p3 int) (error) {
+func (s *SchedulerStub) CacheCarFile(p0 context.Context, p1 string, p2 int) (error) {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) CacheContinue(p0 context.Context, p1 string, p2 string, p3 string) (error) {
+func (s *SchedulerStruct) CacheContinue(p0 context.Context, p1 string, p2 string) (error) {
 	if s.Internal.CacheContinue == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.CacheContinue(p0, p1, p2, p3)
+	return s.Internal.CacheContinue(p0, p1, p2)
 }
 
-func (s *SchedulerStub) CacheContinue(p0 context.Context, p1 string, p2 string, p3 string) (error) {
+func (s *SchedulerStub) CacheContinue(p0 context.Context, p1 string, p2 string) (error) {
 	return ErrNotSupported
 }
 
@@ -758,14 +758,14 @@ func (s *SchedulerStub) GetToken(p0 context.Context, p1 string, p2 string) (stri
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) ListDatas(p0 context.Context, p1 string) ([]string, error) {
+func (s *SchedulerStruct) ListDatas(p0 context.Context) ([]string, error) {
 	if s.Internal.ListDatas == nil {
 		return *new([]string), ErrNotSupported
 	}
-	return s.Internal.ListDatas(p0, p1)
+	return s.Internal.ListDatas(p0)
 }
 
-func (s *SchedulerStub) ListDatas(p0 context.Context, p1 string) ([]string, error) {
+func (s *SchedulerStub) ListDatas(p0 context.Context) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 
@@ -802,14 +802,14 @@ func (s *SchedulerStub) RegisterNode(p0 context.Context, p1 NodeType) (NodeRegis
 	return *new(NodeRegisterInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) ShowDataInfos(p0 context.Context, p1 string, p2 string) ([]CacheDataInfo, error) {
+func (s *SchedulerStruct) ShowDataInfos(p0 context.Context, p1 string) ([]CacheDataInfo, error) {
 	if s.Internal.ShowDataInfos == nil {
 		return *new([]CacheDataInfo), ErrNotSupported
 	}
-	return s.Internal.ShowDataInfos(p0, p1, p2)
+	return s.Internal.ShowDataInfos(p0, p1)
 }
 
-func (s *SchedulerStub) ShowDataInfos(p0 context.Context, p1 string, p2 string) ([]CacheDataInfo, error) {
+func (s *SchedulerStub) ShowDataInfos(p0 context.Context, p1 string) ([]CacheDataInfo, error) {
 	return *new([]CacheDataInfo), ErrNotSupported
 }
 
