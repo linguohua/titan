@@ -89,30 +89,30 @@ func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 		candidate, err := getCandidateWithMap(candidateMap, req.candidateURL)
 		if err != nil {
 			log.Errorf("getCandidateWithMap error:%v", err)
-			block.cacheResultWithError(ctx, req.cid, err)
+			block.cacheResultWithError(ctx, req.blockInfo.Cid, err)
 			continue
 		}
 
-		url := fmt.Sprintf("%s?cid=%s", candidate.downSrvURL, req.cid)
+		url := fmt.Sprintf("%s?cid=%s", candidate.downSrvURL, req.blockInfo.Cid)
 
 		data, err := getBlockFromCandidate(url, candidate.token)
 		if err != nil {
 			log.Errorf("loadBlocksFromCandidate get block from candidate error:%s", err.Error())
-			block.cacheResultWithError(ctx, req.cid, err)
+			block.cacheResultWithError(ctx, req.blockInfo.Cid, err)
 			continue
 		}
 
-		err = block.blockStore.Put(req.cid, data)
+		err = block.blockStore.Put(req.blockInfo.Cid, data)
 		if err != nil {
 			log.Errorf("loadBlocksFromCandidate save block error:%s", err.Error())
-			block.cacheResultWithError(ctx, req.cid, err)
+			block.cacheResultWithError(ctx, req.blockInfo.Cid, err)
 			continue
 		}
 
-		links, err := getLinks(block, data, req.cid)
+		links, err := getLinks(block, data, req.blockInfo.Cid)
 		if err != nil {
 			log.Errorf("loadBlocksFromCandidate resolveLinks error:%s", err.Error())
-			block.cacheResultWithError(ctx, req.cid, err)
+			block.cacheResultWithError(ctx, req.blockInfo.Cid, err)
 			continue
 		}
 
@@ -123,9 +123,9 @@ func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 			linksSize += link.Size
 		}
 
-		bInfo := blockInfo{cid: req.cid, links: cids, blockSize: len(data), linksSize: linksSize, carFileCid: req.carFileCid, CacheID: req.CacheID}
+		bInfo := blockStat{cid: req.blockInfo.Cid, fid: req.blockInfo.Fid, links: cids, blockSize: len(data), linksSize: linksSize, carFileCid: req.carFileCid, CacheID: req.CacheID}
 		block.cacheResult(ctx, candidate.deviceID, nil, bInfo)
 
-		log.Infof("loadBlocksFromCandidate, cid:%s,err:%v", req.cid, err)
+		log.Infof("loadBlocksFromCandidate, cid:%s,err:%v", req.blockInfo.Cid, err)
 	}
 }

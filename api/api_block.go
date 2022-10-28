@@ -28,8 +28,13 @@ type Block interface {
 	ScrubBlocks(ctx context.Context, scrub ScrubBlocks) error  //perm:read
 }
 
+type BlockInfo struct {
+	Cid string
+	Fid string
+}
+
 type ReqCacheData struct {
-	Cids         []string
+	BlockInfos   []BlockInfo
 	CandidateURL string
 	CardFileCid  string
 	CacheID      string

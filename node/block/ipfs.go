@@ -125,7 +125,7 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 	cids := make([]cid.Cid, 0, len(req))
 	reqMap := make(map[string]*delayReq)
 	for _, reqData := range req {
-		target, err := cid.Decode(reqData.cid)
+		target, err := cid.Decode(reqData.blockInfo.Cid)
 		if err != nil {
 			log.Errorf("loadBlocksAsync failed to decode CID %v", err)
 			continue
@@ -137,7 +137,7 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 		// }
 
 		cids = append(cids, target)
-		reqMap[reqData.cid] = reqData
+		reqMap[reqData.blockInfo.Cid] = reqData
 	}
 
 	if len(cids) == 0 {
@@ -186,8 +186,8 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 			linksSize += link.Size
 		}
 
-		bInfo := blockInfo{cid: cidStr, links: cids, blockSize: len(b.RawData()), linksSize: linksSize, carFileCid: req.carFileCid, CacheID: req.CacheID}
-		block.cacheResult(ctx, from, nil, bInfo)
+		bStat := blockStat{cid: cidStr, fid: req.blockInfo.Fid, links: cids, blockSize: len(b.RawData()), linksSize: linksSize, carFileCid: req.carFileCid, CacheID: req.CacheID}
+		block.cacheResult(ctx, from, nil, bStat)
 
 		log.Infof("cache data,cid:%s,err:%v", cidStr, err)
 
@@ -198,8 +198,8 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 		err = fmt.Errorf("Request timeout")
 		for _, v := range reqMap {
 			if v.count > helper.MaxReqCount {
-				block.cacheResultWithError(ctx, v.cid, err)
-				log.Infof("cache data faile, cid:%s, count:%d", v.cid, v.count)
+				block.cacheResultWithError(ctx, v.blockInfo.Cid, err)
+				log.Infof("cache data faile, cid:%s, count:%d", v.blockInfo.Cid, v.count)
 			} else {
 				v.count++
 				block.addReq2WaitList([]*delayReq{v})

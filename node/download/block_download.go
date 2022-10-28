@@ -137,7 +137,7 @@ func (bd *BlockDownload) UnlimitDownloadSpeed() error {
 
 	bd.limiter.SetLimit(rate.Inf)
 	bd.limiter.SetBurst(0)
-	// bd.device.SetBandwidthUp(speedRate)
+	bd.device.SetBandwidthUp(int64(bd.limiter.Limit()))
 	return nil
 }
 
