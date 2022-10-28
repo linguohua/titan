@@ -25,10 +25,10 @@ type sqlDB struct {
 const errNodeNotFind = "Not Found"
 
 var (
-	blockDevicesTable = "block_devices_%v"
-	deviceBlockTable  = "device_blocks_%v"
-	dataInfoTable     = "data_infos_%v"
-	cacheInfoTable    = "cache_infos_%v"
+	blockDevicesTable = "block_devices_%s"
+	deviceBlockTable  = "device_blocks_%s"
+	dataInfoTable     = "data_infos_%s"
+	cacheInfoTable    = "cache_infos_%s"
 )
 
 // InitSQL init sql
@@ -120,7 +120,7 @@ func (sd sqlDB) SetValidateResultInfo(info *ValidateResult) error {
 		return err
 	}
 
-	return xerrors.Errorf("SetValidateResultInfo err deviceid:%v ,status:%v, roundID:%v, serverName:%v", info.DeviceID, info.Status, info.RoundID, info.ServerName)
+	return xerrors.Errorf("SetValidateResultInfo err deviceid:%s ,status:%d, roundID:%s, serverName:%s", info.DeviceID, info.Status, info.RoundID, info.ServerName)
 }
 
 func (sd sqlDB) SetNodeToValidateErrorList(sID, deviceID string) error {
@@ -373,7 +373,7 @@ func (sd sqlDB) GetDataInfos(area string) ([]*DataInfo, error) {
 // 	return nil
 // }
 
-func (sd sqlDB) SetCacheInfos(area string, infos []*CacheInfo, isUpdate bool) error {
+func (sd sqlDB) SetCacheInfos(area string, infos []*BlockInfo, isUpdate bool) error {
 	area = sd.replaceArea(area)
 	tableName := fmt.Sprintf(cacheInfoTable, area)
 
@@ -394,7 +394,7 @@ func (sd sqlDB) SetCacheInfos(area string, infos []*CacheInfo, isUpdate bool) er
 	return tx.Commit()
 }
 
-func (sd sqlDB) SetCacheInfo(area string, info *CacheInfo) error {
+func (sd sqlDB) SetCacheInfo(area string, info *BlockInfo) error {
 	area = sd.replaceArea(area)
 	tableName := fmt.Sprintf(cacheInfoTable, area)
 
@@ -416,10 +416,36 @@ func (sd sqlDB) SetCacheInfo(area string, info *CacheInfo) error {
 	return err
 }
 
-func (sd sqlDB) GetCacheInfo(area, cacheID, cid string) (*CacheInfo, error) {
+func (sd sqlDB) GetCacheInfo2(area string, id int) (*BlockInfo, error) {
 	area = sd.replaceArea(area)
 
-	info := &CacheInfo{
+	info := &BlockInfo{
+		ID: id,
+	}
+
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE id=:id`, fmt.Sprintf(cacheInfoTable, area))
+
+	rows, err := sd.cli.NamedQuery(cmd, info)
+	if err != nil {
+		return nil, err
+	}
+	if rows.Next() {
+		err = rows.StructScan(info)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, nil
+	}
+	rows.Close()
+
+	return info, err
+}
+
+func (sd sqlDB) GetCacheInfo(area, cacheID, cid string) (*BlockInfo, error) {
+	area = sd.replaceArea(area)
+
+	info := &BlockInfo{
 		CacheID: cacheID,
 		CID:     cid,
 	}
@@ -443,10 +469,35 @@ func (sd sqlDB) GetCacheInfo(area, cacheID, cid string) (*CacheInfo, error) {
 	return info, err
 }
 
+func (sd sqlDB) GetUndoneCaches(area, cacheID string) ([]string, error) {
+	area = sd.replaceArea(area)
+
+	list := make([]string, 0)
+
+	i := &BlockInfo{CacheID: cacheID, Status: 3}
+
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cache_id=:cache_id AND status<:status`, fmt.Sprintf(cacheInfoTable, area))
+	rows, err := sd.cli.NamedQuery(cmd, i)
+	if err != nil {
+		return list, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		info := &BlockInfo{}
+		err := rows.StructScan(info)
+		if err == nil {
+			list = append(list, info.CID)
+		}
+	}
+
+	return list, err
+}
+
 func (sd sqlDB) HaveUndoneCaches(area, cacheID string) (bool, error) {
 	area = sd.replaceArea(area)
 
-	info := &CacheInfo{
+	info := &BlockInfo{
 		CacheID: cacheID,
 		Status:  1,
 	}
@@ -465,12 +516,12 @@ func (sd sqlDB) HaveUndoneCaches(area, cacheID string) (bool, error) {
 	return false, nil
 }
 
-func (sd sqlDB) GetCacheInfos(area, cacheID string) ([]*CacheInfo, error) {
+func (sd sqlDB) GetCacheInfos(area, cacheID string) ([]*BlockInfo, error) {
 	area = sd.replaceArea(area)
 
-	list := make([]*CacheInfo, 0)
+	list := make([]*BlockInfo, 0)
 
-	i := &CacheInfo{}
+	i := &BlockInfo{}
 	i.CacheID = cacheID
 
 	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cache_id=:cache_id`, fmt.Sprintf(cacheInfoTable, area))
@@ -481,7 +532,7 @@ func (sd sqlDB) GetCacheInfos(area, cacheID string) ([]*CacheInfo, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		info := &CacheInfo{}
+		info := &BlockInfo{}
 		err := rows.StructScan(info)
 		if err == nil {
 			list = append(list, info)

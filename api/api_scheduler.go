@@ -16,12 +16,12 @@ type Scheduler interface {
 	Validate(ctx context.Context) error                                                                //perm:admin
 	QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]CacheStat, error)                  //perm:read
 	QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (CachingBlockList, error)         //perm:read
-	CacheCarFile(ctx context.Context, area, cid string, reliability int) error                         //perm:admin
-	ShowDataInfos(ctx context.Context, area, cid string) ([]CacheDataInfo, error)                      //perm:read
-	ListDatas(ctx context.Context, area string) ([]string, error)                                      //perm:read
+	CacheCarFile(ctx context.Context, cid string, reliability int) error                               //perm:admin
+	ShowDataInfos(ctx context.Context, cid string) ([]CacheDataInfo, error)                            //perm:read
+	ListDatas(ctx context.Context) ([]string, error)                                                   //perm:read
 	RegisterNode(ctx context.Context, t NodeType) (NodeRegisterInfo, error)                            //perm:admin
 	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) //perm:admin
-	CacheContinue(ctx context.Context, area, cid, cacheID string) error                                //perm:admin
+	CacheContinue(ctx context.Context, cid, cacheID string) error                                      //perm:admin
 	ValidateSwitch(ctx context.Context, open bool) error                                               //perm:admin
 
 	// call by node
@@ -63,6 +63,7 @@ type CacheResultInfo struct {
 
 	CarFileCid string
 	CacheID    string
+	DbID       int
 }
 
 // CacheDataInfo Cache Data Info

@@ -23,16 +23,18 @@ type BlockStore interface {
 }
 
 func NewBlockStore(path string, storeType string) BlockStore {
-	err := os.MkdirAll(path, 0755)
+	err := os.MkdirAll(path, 0o755)
 	if err != nil {
-		log.Fatalf("NewBlockStore, path:%s, err:%v", path, err)
+		log.Fatalf("NewBlockStore, path:%s, err:%s", path, err.Error())
 	}
 
 	return NewBlockStoreFromString(storeType, path)
 }
 
-var RocksDB rocksdb
-var FileStore fileStore
+var (
+	RocksDB   rocksdb
+	FileStore fileStore
+)
 
 func NewBlockStoreFromString(t string, path string) BlockStore {
 	switch t {

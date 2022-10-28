@@ -22,7 +22,7 @@ func (e *Election) initElectionTask() {
 		e.timewheelElection.AddTimer((time.Duration(e.electionTime)*60-1)*time.Second, "election", nil)
 		err := e.startElection()
 		if err != nil {
-			log.Panicf("startElection err:%v", err.Error())
+			log.Panicf("startElection err:%s", err.Error())
 		}
 	})
 	e.timewheelElection.Start()
@@ -79,7 +79,7 @@ func (e *Election) startElection() error {
 	for _, validatorID := range vList {
 		err := cache.GetDB().SetValidatorToList(validatorID)
 		if err != nil {
-			log.Errorf("SetValidatorToList err : %v", err.Error())
+			log.Errorf("SetValidatorToList err : %s", err.Error())
 		}
 
 		// validator := scheduler.nodeManager.getCandidateNode(validatorID)
@@ -87,7 +87,7 @@ func (e *Election) startElection() error {
 		// 	validator.isValidator = true
 		// }
 	}
-	log.Infof("election validators:%v,lackNum:%v", vList, lackNum)
+	log.Infof("election validators:%v,lackNum:%d", vList, lackNum)
 
 	return nil
 }

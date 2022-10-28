@@ -113,7 +113,7 @@ var registerNodeCmd = &cli.Command{
 		defer closer()
 
 		if t != int(api.NodeEdge) && t != int(api.NodeCandidate) {
-			return xerrors.Errorf("node-type err:%v", t)
+			return xerrors.Errorf("node-type err:%d", t)
 		}
 
 		info, err := schedulerAPI.RegisterNode(ctx, api.NodeType(t))
@@ -180,16 +180,12 @@ var electionCmd = &cli.Command{
 var listDataCmd = &cli.Command{
 	Name:  "list-data",
 	Usage: "list data",
-	Flags: []cli.Flag{
-		areaFlag,
-	},
+	Flags: []cli.Flag{},
 
 	Before: func(cctx *cli.Context) error {
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		area := cctx.String("area")
-
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
 		if err != nil {
@@ -197,7 +193,7 @@ var listDataCmd = &cli.Command{
 		}
 		defer closer()
 
-		strs, err := schedulerAPI.ListDatas(ctx, area)
+		strs, err := schedulerAPI.ListDatas(ctx)
 		if err != nil {
 			return err
 		}
@@ -251,7 +247,6 @@ var showDataInfoCmd = &cli.Command{
 	Flags: []cli.Flag{
 		// schedulerURLFlag,
 		cidFlag,
-		areaFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -260,7 +255,6 @@ var showDataInfoCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		// url := cctx.String("scheduler-url")
 		cid := cctx.String("cid")
-		area := cctx.String("area")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
@@ -269,7 +263,7 @@ var showDataInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		infos, err := schedulerAPI.ShowDataInfos(ctx, area, cid)
+		infos, err := schedulerAPI.ShowDataInfos(ctx, cid)
 		if err != nil {
 			return err
 		}
@@ -286,7 +280,7 @@ var showDataInfoCmd = &cli.Command{
 		}
 
 		for _, info := range infos {
-			fmt.Printf("Data CID:%v , Total Size:%v MB \n", info.Cid, info.TotalSize/(1024*1024))
+			fmt.Printf("Data CID:%s , Total Size:%d MB \n", info.Cid, info.TotalSize/(1024*1024))
 			for _, cache := range info.CacheInfos {
 				doneNum := 0
 				bmapS := make(map[string]int)
@@ -303,7 +297,6 @@ var showDataInfoCmd = &cli.Command{
 					if block.Status == 1 {
 						bmapC[block.DeviceID]++
 					}
-					// log.Infof("block:%v,DeviceID:%v,Size:%v,Status:%v \n", block.Cid, block.DeviceID, block.Size, block.Status)
 				}
 				fmt.Printf("TaskID:%s , Done Size:%d MB , Status:%s , Done Blocks:%d , Total Blocks:%d , Nodes:%d\n",
 					cache.CacheID, cache.DoneSize/(1024*1024), statusToStr(cache.Status), doneNum, len(cache.BloackInfo), len(bmapS))
@@ -322,7 +315,6 @@ var cacheCarFileCmd = &cli.Command{
 		// schedulerURLFlag,
 		cidFlag,
 		reliabilityFlag,
-		areaFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -332,7 +324,6 @@ var cacheCarFileCmd = &cli.Command{
 		// url := cctx.String("scheduler-url")
 		cid := cctx.String("cid")
 		reliability := cctx.Int("reliability")
-		area := cctx.String("area")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
@@ -345,7 +336,7 @@ var cacheCarFileCmd = &cli.Command{
 			return xerrors.New("cid is nil")
 		}
 
-		err = schedulerAPI.CacheCarFile(ctx, area, cid, reliability)
+		err = schedulerAPI.CacheCarFile(ctx, cid, reliability)
 		if err != nil {
 			return err
 		}
@@ -360,7 +351,6 @@ var cacheContinueCmd = &cli.Command{
 	Flags: []cli.Flag{
 		// schedulerURLFlag,
 		cidFlag,
-		areaFlag,
 		cacheIDFlag,
 	},
 
@@ -370,7 +360,6 @@ var cacheContinueCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		// url := cctx.String("scheduler-url")
 		cid := cctx.String("cid")
-		area := cctx.String("area")
 		cacgeID := cctx.String("cache-id")
 
 		ctx := ReqContext(cctx)
@@ -380,7 +369,7 @@ var cacheContinueCmd = &cli.Command{
 		}
 		defer closer()
 
-		err = schedulerAPI.CacheContinue(ctx, area, cid, cacgeID)
+		err = schedulerAPI.CacheContinue(ctx, cid, cacgeID)
 		if err != nil {
 			return err
 		}
@@ -423,7 +412,7 @@ var cacheBlocksCmd = &cli.Command{
 		if cidsPath != "" {
 			cidList, err = loadCidsFromFile(cidsPath)
 			if err != nil {
-				return fmt.Errorf("loadFile err:%v", err)
+				return fmt.Errorf("loadFile err:%s", err.Error())
 			}
 		}
 
@@ -472,7 +461,7 @@ var getDownloadInfoCmd = &cli.Command{
 		if cidsPath != "" {
 			cidList, err = loadCidsFromFile(cidsPath)
 			if err != nil {
-				return fmt.Errorf("loadFile err:%v", err)
+				return fmt.Errorf("loadFile err:%s", err.Error())
 			}
 		}
 
@@ -521,7 +510,7 @@ var deleteBlocksCmd = &cli.Command{
 		if cidsPath != "" {
 			cidList, err = loadCidsFromFile(cidsPath)
 			if err != nil {
-				return fmt.Errorf("loadFile err:%v", err)
+				return fmt.Errorf("loadFile err:%s", err.Error())
 			}
 		}
 

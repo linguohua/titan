@@ -19,8 +19,8 @@ import (
 const (
 	errMsgTimeOut  = "TimeOut"
 	missBlock      = "MissBlock"
-	errMsgBlockNil = "Block Nil;map len:%v,count:%v"
-	errMsgCidFail  = "Cid Fail;resultCid:%v,cid_db:%v,fid:%v,index:%v"
+	errMsgBlockNil = "Block Nil;map len:%d,count:%d"
+	errMsgCidFail  = "Cid Fail;resultCid:%s,cid_db:%s,fid:%s,index:%d"
 )
 
 // Validate Validate
@@ -53,7 +53,7 @@ func (v *Validate) initValidateTask() {
 		v.timewheelValidate.AddTimer((time.Duration(v.validateTime)*60-1)*time.Second, "validate", nil)
 		err := v.startValidate()
 		if err != nil {
-			log.Panicf("startValidate err:%v", err.Error())
+			log.Panicf("startValidate err:%s", err.Error())
 		}
 	})
 	v.timewheelValidate.Start()
@@ -112,7 +112,7 @@ func (v *Validate) getReqValidates(validatorID string, list []string) ([]api.Req
 			// log.Warnf("validate GetBlockNum err:%v,DeviceId:%v", err.Error(), deviceID)
 			err = v.saveValidateResult(v.roundID, deviceID, validatorID, err.Error(), persistent.ValidateStatusOther)
 			if err != nil {
-				log.Warnf("validate SetValidateResultInfo err:%v,DeviceId:%v", err.Error(), deviceID)
+				log.Warnf("validate SetValidateResultInfo err:%s,DeviceId:%s", err.Error(), deviceID)
 			}
 
 			continue
@@ -121,7 +121,7 @@ func (v *Validate) getReqValidates(validatorID string, list []string) ([]api.Req
 		if num <= 0 {
 			err = v.saveValidateResult(v.roundID, deviceID, validatorID, missBlock, persistent.ValidateStatusOther)
 			if err != nil {
-				log.Warnf("validate SetValidateResultInfo err:%v,DeviceId:%v", err.Error(), deviceID)
+				log.Warnf("validate SetValidateResultInfo err:%s,DeviceId:%s", err.Error(), deviceID)
 			}
 
 			continue
@@ -129,7 +129,7 @@ func (v *Validate) getReqValidates(validatorID string, list []string) ([]api.Req
 
 		maxFid, err := cache.GetDB().GetNodeCacheFid(deviceID)
 		if err != nil {
-			log.Warnf("validate GetNodeCacheTag err:%v,DeviceId:%v", err.Error(), deviceID)
+			log.Warnf("validate GetNodeCacheTag err:%s,DeviceId:%s", err.Error(), deviceID)
 			continue
 		}
 		v.maxFidMap[deviceID] = maxFid
@@ -139,13 +139,13 @@ func (v *Validate) getReqValidates(validatorID string, list []string) ([]api.Req
 		resultInfo := &persistent.ValidateResult{RoundID: v.roundID, DeviceID: deviceID, ValidatorID: validatorID, Status: int(persistent.ValidateStatusCreate)}
 		err = persistent.GetDB().SetValidateResultInfo(resultInfo)
 		if err != nil {
-			log.Warnf("validate SetValidateResultInfo err:%v,DeviceId:%v", err.Error(), deviceID)
+			log.Warnf("validate SetValidateResultInfo err:%s,DeviceId:%s", err.Error(), deviceID)
 			continue
 		}
 
 		err = cache.GetDB().SetNodeToValidateingList(deviceID)
 		if err != nil {
-			log.Warnf("validate SetNodeToValidateingList err:%v,DeviceId:%v", err.Error(), deviceID)
+			log.Warnf("validate SetNodeToValidateingList err:%s,DeviceId:%s", err.Error(), deviceID)
 			continue
 		}
 	}
@@ -233,7 +233,7 @@ func (v *Validate) doValidate() {
 }
 
 func (v *Validate) pushResultToQueue(validateResults *api.ValidateResults) error {
-	log.Infof("validateResult:%v,round:%v", validateResults.DeviceID, validateResults.RoundID)
+	log.Infof("validateResult:%s,round:%s", validateResults.DeviceID, validateResults.RoundID)
 	if v.resultQueue == nil {
 		return xerrors.New("resultQueue is nil")
 	}
@@ -248,7 +248,7 @@ func (v *Validate) validate(validateResults *api.ValidateResults) error {
 	if validateResults.RoundID != v.roundID {
 		return xerrors.Errorf("roundID err")
 	}
-	log.Infof("do validate:%v,round:%v", validateResults.DeviceID, validateResults.RoundID)
+	log.Infof("do validate:%s,round:%s", validateResults.DeviceID, validateResults.RoundID)
 
 	deviceID := validateResults.DeviceID
 
@@ -404,7 +404,7 @@ func (v *Validate) startValidate() error {
 
 			err := validator.nodeAPI.ValidateBlocks(ctx, req)
 			if err != nil {
-				log.Warnf("ValidateData err:%v, DeviceId:%v", err.Error(), validatorID)
+				log.Warnf("ValidateData err:%s, DeviceId:%s", err.Error(), validatorID)
 				offline = true
 			}
 
@@ -415,18 +415,18 @@ func (v *Validate) startValidate() error {
 		if offline {
 			err = persistent.GetDB().SetNodeToValidateErrorList(v.roundID, validatorID)
 			if err != nil {
-				log.Errorf("SetNodeToValidateErrorList ,err:%v,deviceID:%v", err.Error(), validatorID)
+				log.Errorf("SetNodeToValidateErrorList ,err:%s,deviceID:%s", err.Error(), validatorID)
 			}
 		}
 
 		for _, deviceID := range errList {
 			err = persistent.GetDB().SetNodeToValidateErrorList(v.roundID, deviceID)
 			if err != nil {
-				log.Errorf("SetNodeToValidateErrorList ,err:%v,deviceID:%v", err.Error(), deviceID)
+				log.Errorf("SetNodeToValidateErrorList ,err:%s,deviceID:%s", err.Error(), deviceID)
 			}
 		}
 
-		log.Infof("validatorID :%v, List:%v", validatorID, list)
+		log.Infof("validatorID :%s, List:%v", validatorID, list)
 	}
 
 	t := time.NewTimer(time.Duration(v.duration*2) * time.Second)

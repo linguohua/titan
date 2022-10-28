@@ -24,6 +24,7 @@ type Data struct {
 	cacheTime       int
 	rootCacheID     string
 	totalBlocks     int
+	running         bool
 }
 
 func newData(area string, nodeManager *NodeManager, dataManager *DataManager, cid string, reliability int) *Data {
@@ -80,23 +81,24 @@ func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManag
 }
 
 func (d *Data) cacheContinue(dataManager *DataManager, cacheID string) error {
-	// cache := d.cacheMap[cacheID]
 	cacheI, ok := d.cacheMap.Load(cacheID)
 	if !ok || cacheI == nil {
 		return xerrors.Errorf("Not Found CacheID :%s", cacheID)
 	}
 	cache := cacheI.(*Cache)
 
-	list := make([]string, 0)
+	list, err := persistent.GetDB().GetUndoneCaches(serverArea, cacheID)
+	if err != nil {
+		return err
+	}
+	// cache.blockMap.Range(func(key, value interface{}) bool {
+	// 	block := value.(*Block)
+	// 	if block.status != cacheStatusSuccess {
+	// 		list = append(list, block.cid)
+	// 	}
 
-	cache.blockMap.Range(func(key, value interface{}) bool {
-		block := value.(*Block)
-		if block.status != cacheStatusSuccess {
-			list = append(list, block.cid)
-		}
-
-		return true
-	})
+	// 	return true
+	// })
 
 	// log.Infof("do cache list : %s", list)
 
@@ -121,10 +123,17 @@ func (d *Data) haveRootCache() bool {
 }
 
 func (d *Data) createCache(dataManager *DataManager) error {
+	if d.reliability >= d.needReliability {
+		return xerrors.Errorf("reliability is enough:%d/%d", d.reliability, d.needReliability)
+	}
+
+	if d.running {
+		return xerrors.New("data have task runningplease wait")
+	}
+
 	cache, err := newCache(d.area, d.nodeManager, dataManager, d.cid)
 	if err != nil {
-		log.Errorf("new cache err:%v", err.Error())
-		return err
+		return xerrors.Errorf("new cache err:%s", err.Error())
 	}
 
 	// d.cacheMap[cache.cacheID] = cache
@@ -137,10 +146,14 @@ func (d *Data) createCache(dataManager *DataManager) error {
 	return nil
 }
 
+func (d *Data) cacheDone(cacheID string, status cacheStatus) {
+	d.running = false
+}
+
 func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInfo) error {
 	cacheI, ok := d.cacheMap.Load(cacheID)
 	if !ok {
-		return xerrors.Errorf("updateDataInfo not found cacheID:%v,Cid:%v", cacheID, d.cid)
+		return xerrors.Errorf("updateDataInfo not found cacheID:%s,Cid:%s", cacheID, d.cid)
 	}
 	cache := cacheI.(*Cache)
 
@@ -151,17 +164,24 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 		isUpdate = true
 	}
 
-	links := cache.updateCacheInfo(info, d.totalSize, d.reliability)
+	links := cache.updateBlockInfo(info, d.totalSize, d.reliability)
 	if links != nil {
 		cache.doCache(links, d.haveRootCache())
 	}
 
 	if cache.status > cacheStatusCreate {
 		d.cacheTime++
-		d.reliability += cache.reliability
+
+		if cache.status == cacheStatusSuccess {
+			d.reliability += cache.reliability
+			if d.rootCacheID == "" {
+				d.rootCacheID = cacheID
+				d.running = false
+			}
+		}
 
 		if d.needReliability > d.reliability {
-			if d.cacheTime < d.needReliability+2 { // TODO
+			if d.cacheTime < d.needReliability+1 { // TODO
 				// create cache again
 				d.createCache(d.dataManager)
 			}
@@ -189,6 +209,6 @@ func (d *Data) saveData() {
 		RootCacheID:     d.rootCacheID,
 	})
 	if err != nil {
-		log.Errorf("cid:%s,SetDataInfo err:%v", d.cid, err.Error())
+		log.Errorf("cid:%s,SetDataInfo err:%s", d.cid, err.Error())
 	}
 }
