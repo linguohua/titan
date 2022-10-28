@@ -12,11 +12,11 @@ import (
 
 // SchedulerCmds Scheduler Cmds
 var SchedulerCmds = []*cli.Command{
-	cacheBlocksCmd,
+	// cacheBlocksCmd,
 	electionCmd,
 	validateCmd,
 	showOnlineNodeCmd,
-	deleteBlocksCmd,
+	// deleteBlocksCmd,
 	// initDeviceIDsCmd,
 	cachingBlocksCmd,
 	cacheStatCmd,
@@ -378,54 +378,54 @@ var cacheContinueCmd = &cli.Command{
 	},
 }
 
-var cacheBlocksCmd = &cli.Command{
-	Name:  "cache-blocks",
-	Usage: "specify node cache blocks",
-	Flags: []cli.Flag{
-		// schedulerURLFlag,
-		cidsFlag,
-		deviceIDFlag,
-		cidsPathFlag,
-	},
+// var cacheBlocksCmd = &cli.Command{
+// 	Name:  "cache-blocks",
+// 	Usage: "specify node cache blocks",
+// 	Flags: []cli.Flag{
+// 		// schedulerURLFlag,
+// 		cidsFlag,
+// 		deviceIDFlag,
+// 		cidsPathFlag,
+// 	},
 
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		// url := cctx.String("scheduler-url")
-		cids := cctx.String("cids")
-		deviceID := cctx.String("device-id")
-		cidsPath := cctx.String("cids-file-path")
+// 	Before: func(cctx *cli.Context) error {
+// 		return nil
+// 	},
+// 	Action: func(cctx *cli.Context) error {
+// 		// url := cctx.String("scheduler-url")
+// 		cids := cctx.String("cids")
+// 		deviceID := cctx.String("device-id")
+// 		cidsPath := cctx.String("cids-file-path")
 
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
+// 		ctx := ReqContext(cctx)
+// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		defer closer()
 
-		var cidList []string
-		if cids != "" {
-			cidList = strings.Split(cids, ",")
-		}
+// 		var cidList []string
+// 		if cids != "" {
+// 			cidList = strings.Split(cids, ",")
+// 		}
 
-		if cidsPath != "" {
-			cidList, err = loadCidsFromFile(cidsPath)
-			if err != nil {
-				return fmt.Errorf("loadFile err:%s", err.Error())
-			}
-		}
+// 		if cidsPath != "" {
+// 			cidList, err = loadCidsFromFile(cidsPath)
+// 			if err != nil {
+// 				return fmt.Errorf("loadFile err:%s", err.Error())
+// 			}
+// 		}
 
-		errCids, err := schedulerAPI.CacheBlocks(ctx, cidList, deviceID)
-		if err != nil {
-			return err
-		}
+// 		errCids, err := schedulerAPI.CacheBlocks(ctx, cidList, deviceID)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		fmt.Printf("errCids:%v", errCids)
+// 		fmt.Printf("errCids:%v", errCids)
 
-		return nil
-	},
-}
+// 		return nil
+// 	},
+// }
 
 var getDownloadInfoCmd = &cli.Command{
 	Name:  "download-infos",
@@ -476,53 +476,53 @@ var getDownloadInfoCmd = &cli.Command{
 	},
 }
 
-var deleteBlocksCmd = &cli.Command{
-	Name:  "delete-blocks",
-	Usage: "delete cache blocks",
-	Flags: []cli.Flag{
-		// schedulerURLFlag,
-		cidsFlag,
-		deviceIDFlag,
-		cidsPathFlag,
-	},
+// var deleteBlocksCmd = &cli.Command{
+// 	Name:  "delete-blocks",
+// 	Usage: "delete cache blocks",
+// 	Flags: []cli.Flag{
+// 		// schedulerURLFlag,
+// 		cidsFlag,
+// 		deviceIDFlag,
+// 		cidsPathFlag,
+// 	},
 
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		// url := cctx.String("scheduler-url")
-		cids := cctx.String("cids")
-		deviceID := cctx.String("device-id")
-		cidsPath := cctx.String("cids-file-path")
+// 	Before: func(cctx *cli.Context) error {
+// 		return nil
+// 	},
+// 	Action: func(cctx *cli.Context) error {
+// 		// url := cctx.String("scheduler-url")
+// 		cids := cctx.String("cids")
+// 		deviceID := cctx.String("device-id")
+// 		cidsPath := cctx.String("cids-file-path")
 
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
+// 		ctx := ReqContext(cctx)
+// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		defer closer()
 
-		var cidList []string
-		if cids != "" {
-			cidList = strings.Split(cids, ",")
-		}
+// 		var cidList []string
+// 		if cids != "" {
+// 			cidList = strings.Split(cids, ",")
+// 		}
 
-		if cidsPath != "" {
-			cidList, err = loadCidsFromFile(cidsPath)
-			if err != nil {
-				return fmt.Errorf("loadFile err:%s", err.Error())
-			}
-		}
+// 		if cidsPath != "" {
+// 			cidList, err = loadCidsFromFile(cidsPath)
+// 			if err != nil {
+// 				return fmt.Errorf("loadFile err:%s", err.Error())
+// 			}
+// 		}
 
-		errorCids, err := schedulerAPI.DeleteBlocks(ctx, deviceID, cidList)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("errorCids:%v", errorCids)
+// 		errorCids, err := schedulerAPI.DeleteBlocks(ctx, deviceID, cidList)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		fmt.Printf("errorCids:%v", errorCids)
 
-		return nil
-	},
-}
+// 		return nil
+// 	},
+// }
 
 var showOnlineNodeCmd = &cli.Command{
 	Name:  "show-nodes",
