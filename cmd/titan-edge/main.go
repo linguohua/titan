@@ -118,11 +118,6 @@ var runCmd = &cli.Command{
 			Value: "525e7729506711ed8c2c902e1671f843", // should follow --repo default
 		},
 		&cli.StringFlag{
-			Name:  "public-ip",
-			Usage: "network external ip, example: --public-ip=218.72.111.105",
-			Value: "218.72.111.105", // should follow --repo default
-		},
-		&cli.StringFlag{
 			Name:  "blockstore-path",
 			Usage: "block store path, example: --blockstore-path=./blockstore",
 			Value: "./blockstore", // should follow --repo default
@@ -151,11 +146,6 @@ var runCmd = &cli.Command{
 			Name:  "bandwidth-down",
 			Usage: "download file bandwidth, unit is B/s example set 100MB/s: --bandwidth-down=104857600",
 			Value: "1073741824", // should follow --repo default
-		},
-		&cli.BoolFlag{
-			Name:  "is-external",
-			Usage: "internal network or externa network",
-			Value: false,
 		},
 		&cli.StringFlag{
 			Name:    "secret",
@@ -310,7 +300,6 @@ var runCmd = &cli.Command{
 
 		blockStore := blockstore.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
 		device := device.NewDevice(
-			blockStore,
 			deviceID,
 			"",
 			internalIP,
@@ -323,7 +312,6 @@ var runCmd = &cli.Command{
 			BlockStore:      blockStore,
 			DownloadSrvKey:  cctx.String("download-srv-key"),
 			DownloadSrvAddr: cctx.String("download-srv-addr"),
-			IsExternal:      cctx.Bool("is-external"),
 		}
 
 		edgeApi := edge.NewLocalEdgeNode(context.Background(), device, params)

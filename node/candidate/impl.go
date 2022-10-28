@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -37,14 +38,8 @@ func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *devic
 	// 	log.Fatal(err)
 	// }
 
-	externalIP := device.GetInternalIP()
-	if params.IsExternal {
-		externalIP = device.GetPublicIP()
-	}
-
 	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
-	blockDownload := download.NewBlockDownload(rateLimiter, params, externalIP, device.GetDeviceID())
-	device.SetBlockDownload(blockDownload)
+	blockDownload := download.NewBlockDownload(rateLimiter, params, device)
 
 	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, nil, device.GetDeviceID())
 	validate := vd.NewValidate(blockDownload, block, device.GetDeviceID())
@@ -55,9 +50,10 @@ func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *devic
 		BlockDownload: blockDownload,
 		Validate:      validate,
 		scheduler:     params.Scheduler,
+		tcpSrvAddr:    tcpSrvAddr,
 	}
 
-	go candidate.startTcpServer(tcpSrvAddr, externalIP)
+	go candidate.startTcpServer()
 	return candidate
 }
 
@@ -226,7 +222,9 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	wctx, cancel := context.WithTimeout(context.Background(), (time.Duration(req.Duration))*time.Second)
 	defer cancel()
 
-	err = api.BeValidate(wctx, *req, candidate.tcpSrvAddr)
+	addrSplit := strings.Split(candidate.tcpSrvAddr, ":")
+	candidateTcpSrvAddr := fmt.Sprintf("%s:%s", candidate.GetPublicIP(), addrSplit[1])
+	err = api.BeValidate(wctx, *req, candidateTcpSrvAddr)
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(ctx, candidate, result)

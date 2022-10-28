@@ -9,36 +9,23 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/blockstore"
 	"github.com/linguohua/titan/build"
-	"github.com/linguohua/titan/node/download"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
 var log = logging.Logger("device")
 
-// const deviceName = "titan-edge"
-
-const (
-	StatusOffline int = iota
-	StatusOnline
-	StatusAbnormal
-)
-
 type Device struct {
-	blockStore    blockstore.BlockStore
 	deviceID      string
 	publicIP      string
 	internalIP    string
 	bandwidthUp   int64
 	bandwidthDown int64
-	blockDownload *download.BlockDownload
 }
 
-func NewDevice(blockStore blockstore.BlockStore, deviceID, publicIP, internalIP string, bandwidthUp, bandwidthDown int64) *Device {
+func NewDevice(deviceID, publicIP, internalIP string, bandwidthUp, bandwidthDown int64) *Device {
 	device := &Device{
-		blockStore:    blockStore,
 		deviceID:      deviceID,
 		publicIP:      publicIP,
 		internalIP:    internalIP,
@@ -71,10 +58,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	info.SystemVersion = version.String()
 	info.InternalIp = device.internalIP
 	info.BandwidthDown = float64(device.bandwidthDown)
-
-	if device.blockDownload != nil {
-		info.BandwidthUp = float64(device.blockDownload.GetRateLimit())
-	}
+	info.BandwidthUp = float64(device.bandwidthUp)
 
 	mac, err := getMacAddr(info.InternalIp)
 	if err != nil {
@@ -147,12 +131,12 @@ func getMacAddr(ip string) (string, error) {
 	return "", nil
 }
 
-func (device *Device) SetBlockDownload(blockDownload *download.BlockDownload) {
-	device.blockDownload = blockDownload
-}
-
 func (device *Device) GetDeviceID() string {
 	return device.deviceID
+}
+
+func (device *Device) SetBandwidthUp(bandwidthUp int64) {
+	device.bandwidthUp = bandwidthUp
 }
 
 func (device *Device) GetBandwidthUp() int64 {
