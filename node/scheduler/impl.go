@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"net/http"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/common"
+	"github.com/linguohua/titan/node/handler"
 
 	// "github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/repo"
@@ -88,19 +90,20 @@ type Scheduler struct {
 }
 
 // EdgeNodeConnect edge connect
-func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url, token string) error {
-	// ip := handler.GetRequestIP(ctx)
+func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string) (externalIP string, err error) {
+	ip := handler.GetRequestIP(ctx)
+	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
 	// log.Errorf("CandidateNodeConnect ip :%v", ip)
 
 	deviceID, err := verifySecret(token, api.NodeEdge)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect verifySecret err:%v", err)
-		return err
+		return "", err
 	}
 
 	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
-		return xerrors.Errorf("creating auth token for remote connection: %w", err)
+		return "", xerrors.Errorf("creating auth token for remote connection: %w", err)
 	}
 
 	headers := http.Header{}
@@ -110,18 +113,18 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url, token string) erro
 	edgeAPI, closer, err := client.NewEdge(ctx, url, headers)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect NewEdge err:%v,url:%v", err, url)
-		return err
+		return "", err
 	}
 
 	// load device info
 	deviceInfo, err := edgeAPI.DeviceInfo(ctx)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect DeviceInfo err:%v", err)
-		return err
+		return "", err
 	}
 
 	if deviceID != deviceInfo.DeviceId {
-		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
+		return "", xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
 
 	edgeNode := &EdgeNode{
@@ -143,13 +146,13 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url, token string) erro
 	err = s.nodeManager.edgeOnline(edgeNode)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect addEdgeNode err:%v,deviceID:%s", err, deviceInfo.DeviceId)
-		return err
+		return "", err
 	}
 
 	err = s.nodeManager.SetDeviceInfo(deviceID, deviceInfo)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect set device info: %v", err)
-		return err
+		return "", err
 	}
 
 	// edgeNode.getCacheFailCids()
@@ -164,7 +167,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, url, token string) erro
 	// 	}
 	// }
 
-	return nil
+	return ip, nil
 }
 
 // ValidateBlockResult Validate Block Result
@@ -607,19 +610,20 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, ip
 }
 
 // CandidateNodeConnect Candidate connect
-func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url, token string) error {
-	// ip := handler.GetRequestIP(ctx)
+func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token string) (externalIP string, err error) {
+	ip := handler.GetRequestIP(ctx)
+	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
 	// log.Errorf("CandidateNodeConnect ip :%v", ip)
 
 	deviceID, err := verifySecret(token, api.NodeCandidate)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect verifySecret err:%v", err)
-		return err
+		return "", err
 	}
 
 	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
-		return xerrors.Errorf("creating auth token for remote connection: %w", err)
+		return "", xerrors.Errorf("creating auth token for remote connection: %w", err)
 	}
 
 	headers := http.Header{}
@@ -629,18 +633,18 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url, token string)
 	candicateAPI, closer, err := client.NewCandicate(ctx, url, headers)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect NewCandicate err:%v,url:%v", err, url)
-		return err
+		return "", err
 	}
 
 	// load device info
 	deviceInfo, err := candicateAPI.DeviceInfo(ctx)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect DeviceInfo err:%v", err)
-		return err
+		return "", err
 	}
 
 	if deviceID != deviceInfo.DeviceId {
-		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
+		return "", xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
 
 	candidateNode := &CandidateNode{
@@ -662,13 +666,13 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url, token string)
 	err = s.nodeManager.candidateOnline(candidateNode)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect addEdgeNode err:%v,deviceID:%s", err, deviceInfo.DeviceId)
-		return err
+		return "", err
 	}
 
 	err = s.nodeManager.SetDeviceInfo(deviceID, deviceInfo)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect set device info: %v", err)
-		return err
+		return "", err
 	}
 
 	// cids := candidateNode.getCacheFailCids()
@@ -683,7 +687,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, url, token string)
 	// 	}
 	// }
 
-	return nil
+	return ip, nil
 }
 
 // QueryCacheStatWithNode Query Cache Stat

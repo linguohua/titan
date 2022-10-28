@@ -163,6 +163,10 @@ func (device *Device) GetBandwidthDown() int64 {
 	return device.bandwidthDown
 }
 
+func (device *Device) SetExternaIP(externaIP string) {
+	device.publicIP = externaIP
+}
+
 func (device *Device) GetPublicIP() string {
 	return device.publicIP
 }
