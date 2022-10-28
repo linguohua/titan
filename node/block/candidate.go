@@ -102,7 +102,7 @@ func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 			continue
 		}
 
-		err = block.blockStore.Put(req.blockInfo.Cid, data)
+		err = block.saveBlock(ctx, data, req.blockInfo.Cid, req.blockInfo.Fid)
 		if err != nil {
 			log.Errorf("loadBlocksFromCandidate save block error:%s", err.Error())
 			block.cacheResultWithError(ctx, req.blockInfo.Cid, err)

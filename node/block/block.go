@@ -192,43 +192,43 @@ func (block *Block) cacheResult(ctx context.Context, from string, err error, bSt
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
-	fid, err := block.scheduler.CacheResult(ctx, block.deviceID, result)
+	_, err = block.scheduler.CacheResult(ctx, block.deviceID, result)
 	if err != nil {
 		log.Errorf("cacheResult CacheResult error:%v", err)
 		return
 	}
 
-	if success && fid != "" {
-		oldCid, _ := block.getCID(fid)
-		if len(oldCid) != 0 && oldCid != bStat.cid {
-			log.Infof("cacheResult delete old cid:%s, new cid:%s", oldCid, bStat.cid)
-			err = block.ds.Delete(ctx, helper.NewKeyCID(oldCid))
-			if err != nil {
-				log.Errorf("cacheResult, delete key fid %s error:%v", fid, err)
-			}
-		}
+	// if success && fid != "" {
+	// 	oldCid, _ := block.getCID(fid)
+	// 	if len(oldCid) != 0 && oldCid != bStat.cid {
+	// 		log.Infof("cacheResult delete old cid:%s, new cid:%s", oldCid, bStat.cid)
+	// 		err = block.ds.Delete(ctx, helper.NewKeyCID(oldCid))
+	// 		if err != nil {
+	// 			log.Errorf("cacheResult, delete key fid %s error:%v", fid, err)
+	// 		}
+	// 	}
 
-		oldFid, _ := block.getFID(bStat.cid)
-		if oldFid != "" {
-			// delete old fid key
-			log.Infof("cacheResult delete old fid:%s, new fid:%s", oldFid, fid)
-			err = block.ds.Delete(ctx, helper.NewKeyFID(oldFid))
-			if err != nil {
-				log.Errorf("cacheResult, delete key fid %s error:%v", fid, err)
-			}
-		}
+	// 	oldFid, _ := block.getFID(bStat.cid)
+	// 	if oldFid != "" {
+	// 		// delete old fid key
+	// 		log.Infof("cacheResult delete old fid:%s, new fid:%s", oldFid, fid)
+	// 		err = block.ds.Delete(ctx, helper.NewKeyFID(oldFid))
+	// 		if err != nil {
+	// 			log.Errorf("cacheResult, delete key fid %s error:%v", fid, err)
+	// 		}
+	// 	}
 
-		err = block.ds.Put(ctx, helper.NewKeyFID(fid), []byte(bStat.cid))
-		if err != nil {
-			log.Errorf("cacheResult save fid error:%v", err)
-		}
+	// 	err = block.ds.Put(ctx, helper.NewKeyFID(fid), []byte(bStat.cid))
+	// 	if err != nil {
+	// 		log.Errorf("cacheResult save fid error:%v", err)
+	// 	}
 
-		err = block.ds.Put(ctx, helper.NewKeyCID(bStat.cid), []byte(fid))
-		if err != nil {
-			log.Errorf("cacheResult save cid error:%v", err)
-		}
+	// 	err = block.ds.Put(ctx, helper.NewKeyCID(bStat.cid), []byte(fid))
+	// 	if err != nil {
+	// 		log.Errorf("cacheResult save cid error:%v", err)
+	// 	}
 
-	}
+	// }
 }
 
 func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
@@ -268,6 +268,20 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 			bStat := blockStat{cid: cidStr, fid: reqData.blockInfo.Fid, links: cids, blockSize: len(buf), linksSize: linksSize, carFileCid: reqData.carFileCid, CacheID: reqData.CacheID}
 			block.cacheResult(ctx, from, nil, bStat)
 			continue
+		}
+
+		cid, _ := block.getCID(reqData.blockInfo.Fid)
+		if len(cid) > 0 && cid != reqData.blockInfo.Cid {
+			block.ds.Delete(ctx, helper.NewKeyCID(cid))
+			block.ds.Delete(ctx, helper.NewKeyFID(reqData.blockInfo.Fid))
+			log.Errorf("Fid %s aready exist, and relate cid %s will be delete", reqData.blockInfo.Fid, cid)
+		}
+
+		fid, _ := block.getFID(reqData.blockInfo.Cid)
+		if len(fid) > 0 && fid != reqData.blockInfo.Fid {
+			block.ds.Delete(ctx, helper.NewKeyCID(reqData.blockInfo.Cid))
+			block.ds.Delete(ctx, helper.NewKeyFID(fid))
+			log.Errorf("Cid %s aready exist, and relate fid %s will be delete", reqData.blockInfo.Cid, fid)
 		}
 		results = append(results, reqData)
 	}
@@ -598,6 +612,25 @@ func (block *Block) resolveLinks(blk blocks.Block) ([]*format.Link, error) {
 	}
 
 	return node.Links(), nil
+}
+
+func (block *Block) saveBlock(ctx context.Context, data []byte, cid, fid string) error {
+	err := block.blockStore.Put(cid, data)
+	if err != nil {
+		return err
+	}
+
+	err = block.ds.Put(ctx, helper.NewKeyFID(fid), []byte(cid))
+	if err != nil {
+		return err
+	}
+
+	err = block.ds.Put(ctx, helper.NewKeyCID(cid), []byte(fid))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getLinks(block *Block, data []byte, cidStr string) ([]*format.Link, error) {
