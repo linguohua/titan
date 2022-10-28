@@ -190,7 +190,7 @@ type SchedulerStruct struct {
 
 		CacheResult func(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) `perm:"write"`
 
-		CandidateNodeConnect func(p0 context.Context, p1 string, p2 string) (error) `perm:"write"`
+		CandidateNodeConnect func(p0 context.Context, p1 int, p2 string) (string, error) `perm:"write"`
 
 		DeleteBlockRecords func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"admin"`
 
@@ -198,7 +198,7 @@ type SchedulerStruct struct {
 
 		DownloadBlockResult func(p0 context.Context, p1 string, p2 string) (error) `perm:"write"`
 
-		EdgeNodeConnect func(p0 context.Context, p1 string, p2 string) (error) `perm:"write"`
+		EdgeNodeConnect func(p0 context.Context, p1 int, p2 string) (string, error) `perm:"write"`
 
 		ElectionValidators func(p0 context.Context) (error) `perm:"admin"`
 
@@ -626,15 +626,15 @@ func (s *SchedulerStub) CacheResult(p0 context.Context, p1 string, p2 CacheResul
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context, p1 int, p2 string) (string, error) {
 	if s.Internal.CandidateNodeConnect == nil {
-		return ErrNotSupported
+		return "", ErrNotSupported
 	}
 	return s.Internal.CandidateNodeConnect(p0, p1, p2)
 }
 
-func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 string, p2 string) (error) {
-	return ErrNotSupported
+func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 int, p2 string) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) DeleteBlockRecords(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
@@ -670,15 +670,15 @@ func (s *SchedulerStub) DownloadBlockResult(p0 context.Context, p1 string, p2 st
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context, p1 int, p2 string) (string, error) {
 	if s.Internal.EdgeNodeConnect == nil {
-		return ErrNotSupported
+		return "", ErrNotSupported
 	}
 	return s.Internal.EdgeNodeConnect(p0, p1, p2)
 }
 
-func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context, p1 string, p2 string) (error) {
-	return ErrNotSupported
+func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context, p1 int, p2 string) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) ElectionValidators(p0 context.Context) (error) {

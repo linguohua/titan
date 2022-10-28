@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,7 +27,6 @@ import (
 
 	"github.com/google/uuid"
 	logging "github.com/ipfs/go-log/v2"
-	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/urfave/cli/v2"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
@@ -302,29 +302,18 @@ var runCmd = &cli.Command{
 		}
 
 		log.Info("Opening local storage; connecting to scheduler")
-		const unspecifiedAddress = "0.0.0.0"
-		address := cctx.String("listen")
-		addressSlice := strings.Split(address, ":")
-		if ip := net.ParseIP(addressSlice[0]); ip != nil && !cctx.Bool("is-external") {
-			if ip.String() == unspecifiedAddress {
-				timeout, err := time.ParseDuration(cctx.String("timeout"))
-				if err != nil {
-					return err
-				}
-				rip, err := extractRoutableIP(timeout)
-				if err != nil {
-					return err
-				}
-				address = rip + ":" + addressSlice[1]
-			}
+
+		internalIP, err := extractRoutableIP(cctx)
+		if err != nil {
+			return err
 		}
 
 		blockStore := blockstore.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
 		device := device.NewDevice(
 			blockStore,
 			deviceID,
-			cctx.String("public-ip"),
-			strings.Split(address, ":")[0],
+			"",
+			internalIP,
 			cctx.Int64("bandwidth-up"),
 			cctx.Int64("bandwidth-down"))
 
@@ -338,8 +327,6 @@ var runCmd = &cli.Command{
 		}
 
 		edgeApi := edge.NewLocalEdgeNode(context.Background(), device, params)
-
-		log.Info("Setting up control endpoint at " + address)
 
 		srv := &http.Server{
 			Handler: WorkerHandler(schedulerAPI.AuthVerify, edgeApi, true),
@@ -358,35 +345,18 @@ var runCmd = &cli.Command{
 			log.Warn("Graceful shutdown successful")
 		}()
 
+		address := cctx.String("listen")
 		nl, err := net.Listen("tcp", address)
 		if err != nil {
 			return err
 		}
 
-		{
-			a, err := net.ResolveTCPAddr("tcp", address)
-			if err != nil {
-				return xerrors.Errorf("parsing address: %w", err)
-			}
+		log.Infof("Edge listen on %s", address)
 
-			ma, err := manet.FromNetAddr(a)
-			if err != nil {
-				return xerrors.Errorf("creating api multiaddress: %w", err)
-			}
-
-			if err := lr.SetAPIEndpoint(ma); err != nil {
-				return xerrors.Errorf("setting api endpoint: %w", err)
-			}
-
-			ainfo, err := lcli.GetAPIInfo(cctx, repo.StorageMiner)
-			if err != nil {
-				return xerrors.Errorf("could not get miner API info: %w", err)
-			}
-
-			// TODO: ideally this would be a token with some permissions dropped
-			if err := lr.SetAPIToken(ainfo.Token); err != nil {
-				return xerrors.Errorf("setting api token: %w", err)
-			}
+		addressSlice := strings.Split(address, ":")
+		port, err := strconv.Atoi(addressSlice[1])
+		if err != nil {
+			return err
 		}
 
 		minerSession, err := schedulerAPI.Session(ctx, deviceID)
@@ -429,15 +399,15 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						if cctx.Bool("is-external") {
-							address = cctx.String("public-ip") + ":" + addressSlice[1]
-						}
-						log.Infof("connect to scheduler %s", address)
-						if err := schedulerAPI.EdgeNodeConnect(ctx, "http://"+address+"/rpc/v0", tk); err != nil {
+						externalIP, err := schedulerAPI.EdgeNodeConnect(ctx, port, tk)
+						if err != nil {
 							log.Errorf("Registering worker failed: %+v", err)
 							cancel()
 							return
 						}
+
+						edge := edgeApi.(*edge.Edge)
+						edge.SetExternaIP(externalIP)
 
 						log.Info("Worker registered successfully, waiting for tasks")
 
@@ -456,16 +426,19 @@ var runCmd = &cli.Command{
 	},
 }
 
-func extractRoutableIP(timeout time.Duration) (string, error) {
-	schedulerMultiAddrKey := "SCHEDULER_API_INFO"
-	env, ok := os.LookupEnv(schedulerMultiAddrKey)
-	if !ok {
-		// TODO remove after deprecation period
-		return "", xerrors.New("SCHEDULER_API_INFO environment variable required to extract IP")
+func extractRoutableIP(cctx *cli.Context) (string, error) {
+	timeout, err := time.ParseDuration(cctx.String("timeout"))
+	if err != nil {
+		return "", err
 	}
 
-	schedulerAddr := strings.Split(env, "/")
-	conn, err := net.DialTimeout("tcp", schedulerAddr[2]+":"+schedulerAddr[4], timeout)
+	ainfo, err := lcli.GetAPIInfo(cctx, repo.FullNode)
+	if err != nil {
+		return "", xerrors.Errorf("could not get miner API info: %w", err)
+	}
+
+	schedulerAddr := strings.Split(ainfo.Addr, "/")
+	conn, err := net.DialTimeout("tcp", schedulerAddr[2], timeout)
 	if err != nil {
 		return "", err
 	}
@@ -474,4 +447,5 @@ func extractRoutableIP(timeout time.Duration) (string, error) {
 	localAddr := conn.LocalAddr().(*net.TCPAddr)
 
 	return strings.Split(localAddr.IP.String(), ":")[0], nil
+
 }

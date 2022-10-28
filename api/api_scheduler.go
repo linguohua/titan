@@ -25,12 +25,12 @@ type Scheduler interface {
 	ValidateSwitch(ctx context.Context, open bool) error                                               //perm:admin
 
 	// call by node
-	DownloadBlockResult(ctx context.Context, deviceID, cid string) error                          //perm:write
-	GetToken(ctx context.Context, deviceID, secret string) (string, error)                        //perm:write
-	EdgeNodeConnect(ctx context.Context, url, token string) error                                 //perm:write
-	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error               //perm:write
-	CandidateNodeConnect(ctx context.Context, url, token string) error                            //perm:write
-	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) (string, error) //perm:write
+	DownloadBlockResult(ctx context.Context, deviceID, cid string) error                                 //perm:write
+	GetToken(ctx context.Context, deviceID, secret string) (string, error)                               //perm:write
+	EdgeNodeConnect(ctx context.Context, edgePort int, token string) (externalIP string, err error)      //perm:write
+	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                      //perm:write
+	CandidateNodeConnect(ctx context.Context, edgePort int, token string) (externalIP string, err error) //perm:write
+	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) (string, error)        //perm:write
 
 	// call by user
 	FindNodeWithBlock(ctx context.Context, cid string, ip string) (string, error)                             //perm:read
