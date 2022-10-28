@@ -118,11 +118,6 @@ var runCmd = &cli.Command{
 			Value: "123456789000000001", // should follow --repo default
 		},
 		&cli.StringFlag{
-			Name:  "public-ip",
-			Usage: "network external ip, example: --public-ip=218.72.111.105",
-			Value: "218.72.111.105", // should follow --repo default
-		},
-		&cli.StringFlag{
 			Name:  "blockstore-path",
 			Usage: "block store path, example: --blockstore-path=./blockstore",
 			Value: "./blockstore", // should follow --repo default
@@ -157,16 +152,17 @@ var runCmd = &cli.Command{
 			Usage: "tcp server addr, use by edge node validate data: --tcp-srv-addr=0.0.0.0:4000",
 			Value: "0.0.0.0:4000", // should follow --repo default
 		},
-		&cli.BoolFlag{
-			Name:  "is-external",
-			Usage: "internal network or externa network",
-			Value: false,
-		},
 		&cli.StringFlag{
 			Name:    "secret",
 			EnvVars: []string{"TITAN_SCHEDULER_KEY", "SCHEDULER_KEY"},
 			Usage:   "connect to scheduler key",
 			Value:   "2521c39087cecd74a853850dd56e9c859b786fbc",
+		},
+		&cli.StringFlag{
+			Name:    "ipfs-gateway",
+			EnvVars: []string{"IPFS_GATEWAY"},
+			Usage:   "ipfs gate way",
+			Value:   "http://127.0.0.1:8080/ipfs",
 		},
 	},
 
@@ -314,7 +310,6 @@ var runCmd = &cli.Command{
 
 		blockStore := blockstore.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
 		device := device.NewDevice(
-			blockStore,
 			deviceID,
 			"",
 			internalIP,
@@ -327,7 +322,6 @@ var runCmd = &cli.Command{
 			BlockStore:      blockStore,
 			DownloadSrvKey:  cctx.String("download-srv-key"),
 			DownloadSrvAddr: cctx.String("download-srv-addr"),
-			IsExternal:      cctx.Bool("is-external"),
 		}
 
 		tcpSrvAddr := cctx.String("tcp-srv-addr")

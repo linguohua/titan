@@ -6,28 +6,13 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/linguohua/titan/node/helper"
 )
 
-func parseTcpSrvAddr(tcpSrvAddr string, externalIP string) string {
-	const unspecifiedAddress = "0.0.0.0"
-	addressSlice := strings.Split(tcpSrvAddr, ":")
-	if len(addressSlice) != 2 {
-		log.Fatal("Invalid downloadSrvAddr")
-	}
-
-	if addressSlice[0] == unspecifiedAddress {
-		return fmt.Sprintf("%s:%s", externalIP, addressSlice[1])
-	}
-
-	return tcpSrvAddr
-}
-
-func (candidate *Candidate) startTcpServer(address string, externalIP string) {
-	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
+func (candidate *Candidate) startTcpServer() {
+	tcpAddr, err := net.ResolveTCPAddr("tcp", candidate.tcpSrvAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,9 +24,7 @@ func (candidate *Candidate) startTcpServer(address string, externalIP string) {
 	// close listener
 	defer listen.Close()
 
-	candidate.tcpSrvAddr = parseTcpSrvAddr(address, externalIP)
-
-	log.Infof("tcp_server listen on %s", address)
+	log.Infof("tcp_server listen on %s", candidate.tcpSrvAddr)
 	for {
 		conn, err := listen.AcceptTCP()
 		if err != nil {

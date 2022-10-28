@@ -14,6 +14,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/blockstore"
 	"github.com/linguohua/titan/lib/token"
+	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/helper"
 	"golang.org/x/time/rate"
 )
@@ -22,39 +23,25 @@ var log = logging.Logger("download")
 
 type BlockDownload struct {
 	limiter        *rate.Limiter
-	downloadSrvURL string
 	blockStore     blockstore.BlockStore
 	downloadSrvKey string
 	scheduler      api.Scheduler
-	deviceID       string
+	device         *device.Device
+	srvAddr        string
 }
 
-func NewBlockDownload(limiter *rate.Limiter, params *helper.NodeParams, externalIP, deviceID string) *BlockDownload {
-	var downloadSrvURL = parseDownloadSrvURL(params.DownloadSrvAddr, externalIP)
+func NewBlockDownload(limiter *rate.Limiter, params *helper.NodeParams, device *device.Device) *BlockDownload {
 	var blockDownload = &BlockDownload{
 		limiter:        limiter,
 		blockStore:     params.BlockStore,
 		downloadSrvKey: params.DownloadSrvKey,
-		downloadSrvURL: downloadSrvURL,
 		scheduler:      params.Scheduler,
-		deviceID:       deviceID}
-	go blockDownload.startDownloadServer(params.DownloadSrvAddr)
+		srvAddr:        params.DownloadSrvAddr,
+		device:         device}
+
+	go blockDownload.startDownloadServer()
 
 	return blockDownload
-}
-
-func parseDownloadSrvURL(downloadSrvAddr, externalIP string) string {
-	const unspecifiedAddress = "0.0.0.0"
-	addressSlice := strings.Split(downloadSrvAddr, ":")
-	if len(addressSlice) != 2 {
-		log.Fatal("Invalid downloadSrvAddr")
-	}
-
-	if addressSlice[0] == unspecifiedAddress {
-		return fmt.Sprintf("http://%s:%s%s", externalIP, addressSlice[1], helper.DownloadSrvPath)
-	}
-
-	return fmt.Sprintf("http://%s%s", downloadSrvAddr, helper.DownloadSrvPath)
 }
 
 func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +84,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		speedRate = int64(float64(n) / float64(costTime) * float64(time.Second))
 	}
 
-	go bd.statistics(bd.deviceID, cidStr)
+	go bd.statistics(bd.device.GetDeviceID(), cidStr)
 
 	log.Infof("Download block %s costTime %d, size %d, speed %d", cidStr, costTime, n, speedRate)
 
@@ -108,21 +95,21 @@ func (bd *BlockDownload) statistics(deviceID, cid string) {
 	bd.scheduler.DownloadBlockResult(context.Background(), deviceID, cid)
 }
 
-func (bd *BlockDownload) startDownloadServer(address string) {
+func (bd *BlockDownload) startDownloadServer() {
 	mux := http.NewServeMux()
 	mux.HandleFunc(helper.DownloadSrvPath, bd.getBlock)
 
 	srv := &http.Server{
 		Handler: mux,
-		Addr:    address,
+		Addr:    bd.srvAddr,
 	}
 
-	nl, err := net.Listen("tcp", address)
+	nl, err := net.Listen("tcp", bd.srvAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Infof("download server listen on %s", address)
+	log.Infof("download server listen on %s", bd.srvAddr)
 
 	err = srv.Serve(nl)
 	if err != nil {
@@ -138,7 +125,7 @@ func (bd *BlockDownload) SetDownloadSpeed(ctx context.Context, speedRate int64) 
 	}
 	bd.limiter.SetLimit(rate.Limit(speedRate))
 	bd.limiter.SetBurst(int(speedRate))
-
+	bd.device.SetBandwidthUp(speedRate)
 	return nil
 }
 
@@ -150,7 +137,7 @@ func (bd *BlockDownload) UnlimitDownloadSpeed() error {
 
 	bd.limiter.SetLimit(rate.Inf)
 	bd.limiter.SetBurst(0)
-
+	// bd.device.SetBandwidthUp(speedRate)
 	return nil
 }
 
@@ -160,13 +147,13 @@ func (bd *BlockDownload) GetDownloadInfo(ctx context.Context) (api.DownloadInfo,
 		return api.DownloadInfo{}, err
 	}
 
+	addrSplit := strings.Split(bd.srvAddr, ":")
 	info := api.DownloadInfo{
-		URL:   bd.downloadSrvURL,
+		URL:   fmt.Sprintf("http://%s:%s%s", bd.device.GetPublicIP(), addrSplit[1], helper.DownloadSrvPath),
 		Token: tk,
 	}
 
 	return info, nil
-
 }
 
 func (bd *BlockDownload) GetRateLimit() int64 {

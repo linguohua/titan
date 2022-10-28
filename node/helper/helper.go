@@ -32,7 +32,6 @@ type NodeParams struct {
 	// Device          *device.Device
 	DownloadSrvKey  string
 	DownloadSrvAddr string
-	IsExternal      bool
 }
 
 func NewKeyFID(fid string) datastore.Key {
