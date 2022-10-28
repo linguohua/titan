@@ -2,16 +2,13 @@ package scheduler
 
 import (
 	"context"
-	"fmt"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
-	"github.com/linguohua/titan/region"
 	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
 )
@@ -39,14 +36,14 @@ type NodeManager struct {
 
 	validatePool *ValidatePool
 
-	areaManager *AreaManager
+	// areaManager *AreaManager
 }
 
 func newNodeManager(pool *ValidatePool) *NodeManager {
 	nodeManager := &NodeManager{
 		keepaliveTime: 0.5,
 		validatePool:  pool,
-		areaManager:   &AreaManager{},
+		// areaManager:   &AreaManager{},
 	}
 
 	nodeManager.initKeepaliveTimewheel()
@@ -126,13 +123,14 @@ func (m *NodeManager) nodeKeepalive() {
 func (m *NodeManager) edgeOnline(node *EdgeNode) error {
 	deviceID := node.deviceInfo.DeviceId
 	// geo ip
-	geoInfo, _ := region.GetRegion().GetGeoInfo(node.deviceInfo.ExternalIp)
+	// geoInfo, _ := region.GetRegion().GetGeoInfo(node.deviceInfo.ExternalIp)
 	// if err != nil {
 	// 	log.Warnf("edgeOnline GetGeoInfo err:%v,node:%v", err, node.deviceInfo.ExternalIp)
 	// }
 
-	if !areaExist(geoInfo.Geo) {
-		return xerrors.Errorf(ErrAreaNotExist, node.deviceInfo.ExternalIp)
+	isOk, geoInfo := ipLegality(node.deviceInfo.ExternalIp)
+	if !isOk {
+		return xerrors.Errorf(ErrAreaNotExist, geoInfo.Geo, node.deviceInfo.ExternalIp)
 	}
 
 	node.geoInfo = geoInfo
@@ -152,7 +150,7 @@ func (m *NodeManager) edgeOnline(node *EdgeNode) error {
 	}
 
 	m.edgeNodeMap.Store(deviceID, node)
-	m.areaManager.addEdge(node)
+	// m.areaManager.addEdge(node)
 
 	m.validatePool.addPendingNode(node, nil)
 
@@ -192,7 +190,7 @@ func (m *NodeManager) edgeOffline(node *EdgeNode) {
 	log.Warnf("edgeOffline :%s", deviceID)
 
 	m.edgeNodeMap.Delete(deviceID)
-	m.areaManager.removeEdge(node)
+	// m.areaManager.removeEdge(node)
 	m.validatePool.removeEdge(deviceID)
 
 	node.setNodeOffline(deviceID, node.geoInfo, api.TypeNameEdge, node.lastRequestTime)
@@ -204,13 +202,13 @@ func (m *NodeManager) candidateOnline(node *CandidateNode) error {
 	// node.isValidator, _ = cache.GetDB().IsNodeInValidatorList(deviceID)
 
 	// geo ip
-	geoInfo, _ := region.GetRegion().GetGeoInfo(node.deviceInfo.ExternalIp)
+	// geoInfo, _ := region.GetRegion().GetGeoInfo(node.deviceInfo.ExternalIp)
 	// if err != nil {
 	// 	log.Warnf("candidateOnline GetGeoInfo err:%v,ExternalIp:%v", err, node.deviceInfo.ExternalIp)
 	// }
-
-	if !areaExist(geoInfo.Geo) {
-		return xerrors.Errorf(ErrAreaNotExist, node.deviceInfo.ExternalIp)
+	isOk, geoInfo := ipLegality(node.deviceInfo.ExternalIp)
+	if !isOk {
+		return xerrors.Errorf(ErrAreaNotExist, geoInfo.Geo, node.deviceInfo.ExternalIp)
 	}
 
 	node.geoInfo = geoInfo
@@ -231,7 +229,7 @@ func (m *NodeManager) candidateOnline(node *CandidateNode) error {
 	}
 
 	m.candidateNodeMap.Store(deviceID, node)
-	m.areaManager.addCandidate(node)
+	// m.areaManager.addCandidate(node)
 
 	m.validatePool.addPendingNode(nil, node)
 
@@ -257,7 +255,7 @@ func (m *NodeManager) candidateOffline(node *CandidateNode) {
 	log.Warnf("candidateOffline :%s", deviceID)
 
 	m.candidateNodeMap.Delete(deviceID)
-	m.areaManager.removeCandidate(node)
+	// m.areaManager.removeCandidate(node)
 
 	m.validatePool.removeCandidate(deviceID)
 
@@ -269,10 +267,10 @@ func (m *NodeManager) findEdgeNodeWithGeo(geoKey string, useDeviceIDs []string, 
 		filterDeviceIDs = make(map[string]string)
 	}
 
-	eMap := m.areaManager.getEdges(geoKey)
-	if eMap == nil || len(eMap) <= 0 {
-		return nil
-	}
+	// eMap := m.areaManager.getEdges(geoKey)
+	// if eMap == nil || len(eMap) <= 0 {
+	// 	return nil
+	// }
 	list := make([]*EdgeNode, 0)
 
 	if useDeviceIDs != nil && len(useDeviceIDs) > 0 {
@@ -281,19 +279,35 @@ func (m *NodeManager) findEdgeNodeWithGeo(geoKey string, useDeviceIDs []string, 
 				continue
 			}
 
-			node, ok := eMap[dID]
-			if ok {
+			node := m.getEdgeNode(dID)
+			if node != nil {
 				list = append(list, node)
 			}
 		}
 	} else {
-		for _, node := range eMap {
-			if _, ok := filterDeviceIDs[node.deviceInfo.DeviceId]; ok {
-				continue
+		m.edgeNodeMap.Range(func(key, value interface{}) bool {
+			deviceID := key.(string)
+			node := value.(*EdgeNode)
+
+			if _, ok := filterDeviceIDs[deviceID]; ok {
+				return true
 			}
 
+			if node == nil {
+				return true
+			}
 			list = append(list, node)
-		}
+
+			return true
+		})
+
+		// for _, node := range eMap {
+		// 	if _, ok := filterDeviceIDs[node.deviceInfo.DeviceId]; ok {
+		// 		continue
+		// 	}
+
+		// 	list = append(list, node)
+		// }
 	}
 
 	if len(list) > 0 {
@@ -311,10 +325,10 @@ func (m *NodeManager) findCandidateNodeWithGeo(geoKey string, useDeviceIDs []str
 		filterDeviceIDs = make(map[string]string)
 	}
 
-	eMap := m.areaManager.getCandidates(geoKey)
-	if eMap == nil || len(eMap) <= 0 {
-		return nil
-	}
+	// eMap := m.areaManager.getCandidates(geoKey)
+	// if eMap == nil || len(eMap) <= 0 {
+	// 	return nil
+	// }
 	list := make([]*CandidateNode, 0)
 
 	if len(useDeviceIDs) > 0 {
@@ -322,82 +336,101 @@ func (m *NodeManager) findCandidateNodeWithGeo(geoKey string, useDeviceIDs []str
 			if _, ok := filterDeviceIDs[dID]; ok {
 				continue
 			}
-			node, ok := eMap[dID]
-			if ok {
+			// node, ok := eMap[dID]
+			node := m.getCandidateNode(dID)
+			if node != nil {
 				list = append(list, node)
 			}
 		}
 	} else {
-		for _, node := range eMap {
-			if _, ok := filterDeviceIDs[node.deviceInfo.DeviceId]; ok {
-				continue
+		m.candidateNodeMap.Range(func(key, value interface{}) bool {
+			deviceID := key.(string)
+			node := value.(*CandidateNode)
+
+			if _, ok := filterDeviceIDs[deviceID]; ok {
+				return true
+			}
+
+			if node == nil {
+				return true
 			}
 			list = append(list, node)
-		}
+
+			return true
+		})
+		// for _, node := range eMap {
+		// 	if _, ok := filterDeviceIDs[node.deviceInfo.DeviceId]; ok {
+		// 		continue
+		// 	}
+		// 	list = append(list, node)
+		// }
 	}
 
 	if len(list) > 0 {
+		sort.Slice(list, func(i, j int) bool {
+			return list[i].deviceInfo.DeviceId > list[j].deviceInfo.DeviceId
+		})
 		return list
 	}
 
 	return nil
 }
 
-func (m *NodeManager) findEdges(userGeoInfo *region.GeoInfo, useDeviceIDs []string, filterDeviceIDs map[string]string) ([]*EdgeNode, geoLevel) {
-	if userGeoInfo != nil {
-		countryKey, provinceKey, cityKey := m.areaManager.getAreaKey(userGeoInfo)
+// func (m *NodeManager) findEdges(userGeoInfo *region.GeoInfo, useDeviceIDs []string, filterDeviceIDs map[string]string) ([]*EdgeNode, geoLevel) {
+// 	if userGeoInfo != nil {
+// 		countryKey, provinceKey, cityKey := m.areaManager.getAreaKey(userGeoInfo)
 
-		list := m.findEdgeNodeWithGeo(cityKey, useDeviceIDs, filterDeviceIDs)
-		if list != nil {
-			return list, cityLevel
-		}
+// 		list := m.findEdgeNodeWithGeo(cityKey, useDeviceIDs, filterDeviceIDs)
+// 		if list != nil {
+// 			return list, cityLevel
+// 		}
 
-		list = m.findEdgeNodeWithGeo(provinceKey, useDeviceIDs, filterDeviceIDs)
-		if list != nil {
-			return list, provinceLevel
-		}
+// 		list = m.findEdgeNodeWithGeo(provinceKey, useDeviceIDs, filterDeviceIDs)
+// 		if list != nil {
+// 			return list, provinceLevel
+// 		}
 
-		list = m.findEdgeNodeWithGeo(countryKey, useDeviceIDs, filterDeviceIDs)
-		if list != nil {
-			return list, countryLevel
-		}
-	}
+// 		list = m.findEdgeNodeWithGeo(countryKey, useDeviceIDs, filterDeviceIDs)
+// 		if list != nil {
+// 			return list, countryLevel
+// 		}
+// 	}
 
-	list := m.findEdgeNodeWithGeo(defaultKey, useDeviceIDs, filterDeviceIDs)
-	if list != nil {
-		return list, defaultLevel
-	}
+// 	list := m.findEdgeNodeWithGeo(defaultKey, useDeviceIDs, filterDeviceIDs)
+// 	if list != nil {
+// 		return list, defaultLevel
+// 	}
 
-	return nil, defaultLevel
-}
+// 	return nil, defaultLevel
+// }
 
-func (m *NodeManager) findCandidates(userGeoInfo *region.GeoInfo, useDeviceIDs []string, filterDeviceIDs map[string]string) ([]*CandidateNode, geoLevel) {
-	if userGeoInfo != nil {
-		countryKey, provinceKey, cityKey := m.areaManager.getAreaKey(userGeoInfo)
+// func (m *NodeManager) findCandidates(userGeoInfo *region.GeoInfo, useDeviceIDs []string, filterDeviceIDs map[string]string) ([]*CandidateNode, geoLevel) {
+// 	if userGeoInfo != nil {
+// 		countryKey, provinceKey, cityKey := m.areaManager.getAreaKey(userGeoInfo)
 
-		list := m.findCandidateNodeWithGeo(cityKey, useDeviceIDs, filterDeviceIDs)
-		if list != nil {
-			return list, cityLevel
-		}
+// 		list := m.findCandidateNodeWithGeo(cityKey, useDeviceIDs, filterDeviceIDs)
+// 		if list != nil {
+// 			return list, cityLevel
+// 		}
 
-		list = m.findCandidateNodeWithGeo(provinceKey, useDeviceIDs, filterDeviceIDs)
-		if list != nil {
-			return list, provinceLevel
-		}
+// 		list = m.findCandidateNodeWithGeo(provinceKey, useDeviceIDs, filterDeviceIDs)
+// 		if list != nil {
+// 			return list, provinceLevel
+// 		}
 
-		list = m.findCandidateNodeWithGeo(countryKey, useDeviceIDs, filterDeviceIDs)
-		if list != nil {
-			return list, countryLevel
-		}
-	}
+// 		list = m.findCandidateNodeWithGeo(countryKey, useDeviceIDs, filterDeviceIDs)
+// 		if list != nil {
+// 			return list, countryLevel
+// 		}
+// 	}
 
-	list := m.findCandidateNodeWithGeo(defaultKey, useDeviceIDs, filterDeviceIDs)
-	if list != nil {
-		return list, defaultLevel
-	}
+// 	list := m.findCandidateNodeWithGeo(defaultKey, useDeviceIDs, filterDeviceIDs)
+// 	if list != nil {
+// 		return list, defaultLevel
+// 	}
 
-	return nil, defaultLevel
-}
+// 	return nil, defaultLevel
+// }
 
 // func (m *NodeManager) filterCandidates(filterDeviceIDs []string, nodes []*CandidateNode) []*CandidateNode {
 // 	nodes2 := make([]*CandidateNode, 0)
@@ -451,9 +484,9 @@ func (m *NodeManager) updateLastRequestTime(deviceID string) {
 }
 
 // getNodeURLWithData find device
-func (m *NodeManager) findNodeDownloadInfo(cid string, geoInfo *region.GeoInfo) (api.DownloadInfo, error) {
+func (m *NodeManager) findNodeDownloadInfo(cid string) (api.DownloadInfo, error) {
 	var downloadInfo api.DownloadInfo
-	deviceIDs, err := persistent.GetDB().GetNodesWithCacheList(geoInfo.Geo, cid)
+	deviceIDs, err := persistent.GetDB().GetNodesWithCacheList(serverArea, cid)
 	if err != nil {
 		return downloadInfo, err
 	}
@@ -462,35 +495,47 @@ func (m *NodeManager) findNodeDownloadInfo(cid string, geoInfo *region.GeoInfo) 
 		return downloadInfo, xerrors.Errorf("%s , whit cid:%s", ErrNodeNotFind, cid)
 	}
 
-	nodeEs, geoLevelE := m.findEdges(geoInfo, deviceIDs, nil)
-	nodeCs, geoLevelC := m.findCandidates(geoInfo, deviceIDs, nil)
-	if geoLevelE < geoLevelC {
-		node := nodeCs[randomNum(0, len(nodeCs))]
-		return node.nodeAPI.GetDownloadInfo(context.Background())
-	}
-
-	if geoLevelE > geoLevelC {
+	nodeEs := m.findEdgeNodeWithGeo(serverArea, deviceIDs, nil)
+	if nodeEs != nil {
 		node := nodeEs[randomNum(0, len(nodeEs))]
 		return node.nodeAPI.GetDownloadInfo(context.Background())
 	}
 
-	if len(nodeEs) > 0 {
-		node := nodeEs[randomNum(0, len(nodeEs))]
-		return node.nodeAPI.GetDownloadInfo(context.Background())
-	}
-
-	if len(nodeCs) > 0 {
+	nodeCs := m.findCandidateNodeWithGeo(serverArea, deviceIDs, nil)
+	if nodeCs != nil {
 		node := nodeCs[randomNum(0, len(nodeCs))]
 		return node.nodeAPI.GetDownloadInfo(context.Background())
 	}
+
+	// nodeEs, geoLevelE := m.findEdges(geoInfo, deviceIDs, nil)
+	// nodeCs, geoLevelC := m.findCandidates(geoInfo, deviceIDs, nil)
+	// if geoLevelE < geoLevelC {
+	// 	node := nodeCs[randomNum(0, len(nodeCs))]
+	// 	return node.nodeAPI.GetDownloadInfo(context.Background())
+	// }
+
+	// if geoLevelE > geoLevelC {
+	// 	node := nodeEs[randomNum(0, len(nodeEs))]
+	// 	return node.nodeAPI.GetDownloadInfo(context.Background())
+	// }
+
+	// if len(nodeEs) > 0 {
+	// 	node := nodeEs[randomNum(0, len(nodeEs))]
+	// 	return node.nodeAPI.GetDownloadInfo(context.Background())
+	// }
+
+	// if len(nodeCs) > 0 {
+	// 	node := nodeCs[randomNum(0, len(nodeCs))]
+	// 	return node.nodeAPI.GetDownloadInfo(context.Background())
+	// }
 	// http://192.168.0.136:3456/rpc/v0/block/get?cid=QmeUqw4FY1wqnh2FMvuc2v8KAapE7fYwu2Up4qNwhZiRk7
 
 	return downloadInfo, xerrors.Errorf("%s , whit cid:%s", ErrNodeNotFind, cid)
 }
 
 // getCandidateNodesWithData find device
-func (m *NodeManager) getCandidateNodesWithData(cid string, geoInfo *region.GeoInfo) ([]*CandidateNode, error) {
-	deviceIDs, err := persistent.GetDB().GetNodesWithCacheList(geoInfo.Geo, cid)
+func (m *NodeManager) getCandidateNodesWithData(cid string) ([]*CandidateNode, error) {
+	deviceIDs, err := persistent.GetDB().GetNodesWithCacheList(serverArea, cid)
 	if err != nil {
 		return nil, err
 	}
@@ -500,166 +545,166 @@ func (m *NodeManager) getCandidateNodesWithData(cid string, geoInfo *region.GeoI
 		return nil, xerrors.Errorf("%s , whit cid:%s", ErrNodeNotFind, cid)
 	}
 
-	nodeCs, _ := m.findCandidates(geoInfo, deviceIDs, nil)
+	nodeCs := m.findCandidateNodeWithGeo(serverArea, deviceIDs, nil)
 
 	return nodeCs, nil
 }
 
 // AreaManager Node Area Manager
-type AreaManager struct {
-	edgeNodeMap      sync.Map
-	candidateNodeMap sync.Map
-}
+// type AreaManager struct {
+// 	edgeNodeMap      sync.Map
+// 	candidateNodeMap sync.Map
+// }
 
-func (a *AreaManager) getAllAreaMap() (map[string]map[string]*EdgeNode, map[string]map[string]*CandidateNode) {
-	edges := make(map[string]map[string]*EdgeNode)
-	candidates := make(map[string]map[string]*CandidateNode)
+// func (a *AreaManager) getAllAreaMap() (map[string]map[string]*EdgeNode, map[string]map[string]*CandidateNode) {
+// 	edges := make(map[string]map[string]*EdgeNode)
+// 	candidates := make(map[string]map[string]*CandidateNode)
 
-	a.edgeNodeMap.Range(func(key, value interface{}) bool {
-		geo := key.(string)
+// 	a.edgeNodeMap.Range(func(key, value interface{}) bool {
+// 		geo := key.(string)
 
-		if len(strings.Split(geo, "-")) < 3 {
-			// not city
-			return true
-		}
-		// city
-		m := value.(map[string]*EdgeNode)
-		edges[geo] = m
+// 		if len(strings.Split(geo, "-")) < 3 {
+// 			// not city
+// 			return true
+// 		}
+// 		// city
+// 		m := value.(map[string]*EdgeNode)
+// 		edges[geo] = m
 
-		return true
-	})
+// 		return true
+// 	})
 
-	a.candidateNodeMap.Range(func(key, value interface{}) bool {
-		geo := key.(string)
+// 	a.candidateNodeMap.Range(func(key, value interface{}) bool {
+// 		geo := key.(string)
 
-		if len(strings.Split(geo, "-")) < 3 {
-			// not city
-			return true
-		}
-		// city
-		m := value.(map[string]*CandidateNode)
-		candidates[geo] = m
+// 		if len(strings.Split(geo, "-")) < 3 {
+// 			// not city
+// 			return true
+// 		}
+// 		// city
+// 		m := value.(map[string]*CandidateNode)
+// 		candidates[geo] = m
 
-		return true
-	})
+// 		return true
+// 	})
 
-	return edges, candidates
-}
+// 	return edges, candidates
+// }
 
-func (a *AreaManager) getAreaKey(geoInfo *region.GeoInfo) (countryKey, provinceKey, cityKey string) {
-	if geoInfo == nil {
-		geoInfo = region.GetRegion().DefaultGeoInfo("")
-	}
-	countryKey = geoInfo.Country
-	provinceKey = fmt.Sprintf("%s-%s", geoInfo.Country, geoInfo.Province)
-	cityKey = fmt.Sprintf("%s-%s-%s", geoInfo.Country, geoInfo.Province, geoInfo.City)
+// func (a *AreaManager) getAreaKey(geoInfo *region.GeoInfo) (countryKey, provinceKey, cityKey string) {
+// 	if geoInfo == nil {
+// 		geoInfo = region.GetRegion().DefaultGeoInfo("")
+// 	}
+// 	countryKey = geoInfo.Country
+// 	provinceKey = fmt.Sprintf("%s-%s", geoInfo.Country, geoInfo.Province)
+// 	cityKey = fmt.Sprintf("%s-%s-%s", geoInfo.Country, geoInfo.Province, geoInfo.City)
 
-	return
-}
+// 	return
+// }
 
-func (a *AreaManager) addEdge(node *EdgeNode) {
-	countryKey, provinceKey, cityKey := a.getAreaKey(node.geoInfo)
+// func (a *AreaManager) addEdge(node *EdgeNode) {
+// 	countryKey, provinceKey, cityKey := a.getAreaKey(node.geoInfo)
 
-	a.storeEdge(node, countryKey)
-	a.storeEdge(node, provinceKey)
-	a.storeEdge(node, cityKey)
-	a.storeEdge(node, defaultKey)
-}
+// 	a.storeEdge(node, countryKey)
+// 	a.storeEdge(node, provinceKey)
+// 	a.storeEdge(node, cityKey)
+// 	a.storeEdge(node, defaultKey)
+// }
 
-func (a *AreaManager) removeEdge(node *EdgeNode) {
-	countryKey, provinceKey, cityKey := a.getAreaKey(node.geoInfo)
+// func (a *AreaManager) removeEdge(node *EdgeNode) {
+// 	countryKey, provinceKey, cityKey := a.getAreaKey(node.geoInfo)
 
-	deviceID := node.deviceInfo.DeviceId
+// 	deviceID := node.deviceInfo.DeviceId
 
-	a.deleteEdge(deviceID, countryKey)
-	a.deleteEdge(deviceID, provinceKey)
-	a.deleteEdge(deviceID, cityKey)
-	a.deleteEdge(deviceID, defaultKey)
-}
+// 	a.deleteEdge(deviceID, countryKey)
+// 	a.deleteEdge(deviceID, provinceKey)
+// 	a.deleteEdge(deviceID, cityKey)
+// 	a.deleteEdge(deviceID, defaultKey)
+// }
 
-func (a *AreaManager) getEdges(key string) map[string]*EdgeNode {
-	m, ok := a.edgeNodeMap.Load(key)
-	if ok && m != nil {
-		return m.(map[string]*EdgeNode)
-	}
+// func (a *AreaManager) getEdges(key string) map[string]*EdgeNode {
+// 	m, ok := a.edgeNodeMap.Load(key)
+// 	if ok && m != nil {
+// 		return m.(map[string]*EdgeNode)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (a *AreaManager) addCandidate(node *CandidateNode) {
-	countryKey, provinceKey, cityKey := a.getAreaKey(node.geoInfo)
+// func (a *AreaManager) addCandidate(node *CandidateNode) {
+// 	countryKey, provinceKey, cityKey := a.getAreaKey(node.geoInfo)
 
-	a.storeCandidate(node, countryKey)
-	a.storeCandidate(node, provinceKey)
-	a.storeCandidate(node, cityKey)
-	a.storeCandidate(node, defaultKey)
-}
+// 	a.storeCandidate(node, countryKey)
+// 	a.storeCandidate(node, provinceKey)
+// 	a.storeCandidate(node, cityKey)
+// 	a.storeCandidate(node, defaultKey)
+// }
 
-func (a *AreaManager) removeCandidate(node *CandidateNode) {
-	countryKey, provinceKey, cityKey := a.getAreaKey(node.geoInfo)
+// func (a *AreaManager) removeCandidate(node *CandidateNode) {
+// 	countryKey, provinceKey, cityKey := a.getAreaKey(node.geoInfo)
 
-	deviceID := node.deviceInfo.DeviceId
+// 	deviceID := node.deviceInfo.DeviceId
 
-	a.deleteCandidate(deviceID, countryKey)
-	a.deleteCandidate(deviceID, provinceKey)
-	a.deleteCandidate(deviceID, cityKey)
-	a.deleteCandidate(deviceID, defaultKey)
-}
+// 	a.deleteCandidate(deviceID, countryKey)
+// 	a.deleteCandidate(deviceID, provinceKey)
+// 	a.deleteCandidate(deviceID, cityKey)
+// 	a.deleteCandidate(deviceID, defaultKey)
+// }
 
-func (a *AreaManager) getCandidates(key string) map[string]*CandidateNode {
-	m, ok := a.candidateNodeMap.Load(key)
-	if ok && m != nil {
-		return m.(map[string]*CandidateNode)
-	}
+// func (a *AreaManager) getCandidates(key string) map[string]*CandidateNode {
+// 	m, ok := a.candidateNodeMap.Load(key)
+// 	if ok && m != nil {
+// 		return m.(map[string]*CandidateNode)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (a *AreaManager) storeEdge(node *EdgeNode, key string) {
-	countryMap := make(map[string]*EdgeNode)
-	m, ok := a.edgeNodeMap.Load(key)
-	if ok && m != nil {
-		countryMap = m.(map[string]*EdgeNode)
-	}
+// func (a *AreaManager) storeEdge(node *EdgeNode, key string) {
+// 	countryMap := make(map[string]*EdgeNode)
+// 	m, ok := a.edgeNodeMap.Load(key)
+// 	if ok && m != nil {
+// 		countryMap = m.(map[string]*EdgeNode)
+// 	}
 
-	countryMap[node.deviceInfo.DeviceId] = node
-	a.edgeNodeMap.Store(key, countryMap)
-}
+// 	countryMap[node.deviceInfo.DeviceId] = node
+// 	a.edgeNodeMap.Store(key, countryMap)
+// }
 
-func (a *AreaManager) deleteEdge(deviceID string, key string) {
-	m, ok := a.edgeNodeMap.Load(key)
-	if ok && m != nil {
-		nodeMap := m.(map[string]*EdgeNode)
-		_, ok := nodeMap[deviceID]
-		if ok {
-			delete(nodeMap, deviceID)
-			a.edgeNodeMap.Store(key, nodeMap)
-		}
-	}
-}
+// func (a *AreaManager) deleteEdge(deviceID string, key string) {
+// 	m, ok := a.edgeNodeMap.Load(key)
+// 	if ok && m != nil {
+// 		nodeMap := m.(map[string]*EdgeNode)
+// 		_, ok := nodeMap[deviceID]
+// 		if ok {
+// 			delete(nodeMap, deviceID)
+// 			a.edgeNodeMap.Store(key, nodeMap)
+// 		}
+// 	}
+// }
 
-func (a *AreaManager) storeCandidate(node *CandidateNode, key string) {
-	countryMap := make(map[string]*CandidateNode)
-	m, ok := a.candidateNodeMap.Load(key)
-	if ok && m != nil {
-		countryMap = m.(map[string]*CandidateNode)
-	}
+// func (a *AreaManager) storeCandidate(node *CandidateNode, key string) {
+// 	countryMap := make(map[string]*CandidateNode)
+// 	m, ok := a.candidateNodeMap.Load(key)
+// 	if ok && m != nil {
+// 		countryMap = m.(map[string]*CandidateNode)
+// 	}
 
-	countryMap[node.deviceInfo.DeviceId] = node
-	a.candidateNodeMap.Store(key, countryMap)
-}
+// 	countryMap[node.deviceInfo.DeviceId] = node
+// 	a.candidateNodeMap.Store(key, countryMap)
+// }
 
-func (a *AreaManager) deleteCandidate(deviceID string, key string) {
-	m, ok := a.candidateNodeMap.Load(key)
-	if ok && m != nil {
-		nodeMap := m.(map[string]*CandidateNode)
-		_, ok := nodeMap[deviceID]
-		if ok {
-			delete(nodeMap, deviceID)
-			a.candidateNodeMap.Store(key, nodeMap)
-		}
-	}
-}
+// func (a *AreaManager) deleteCandidate(deviceID string, key string) {
+// 	m, ok := a.candidateNodeMap.Load(key)
+// 	if ok && m != nil {
+// 		nodeMap := m.(map[string]*CandidateNode)
+// 		_, ok := nodeMap[deviceID]
+// 		if ok {
+// 			delete(nodeMap, deviceID)
+// 			a.candidateNodeMap.Store(key, nodeMap)
+// 		}
+// 	}
+// }
 
 func (n *NodeManager) SetDeviceInfo(deviceID string, info api.DevicesInfo) error {
 	_, err := cache.GetDB().SetDeviceInfo(deviceID, info)

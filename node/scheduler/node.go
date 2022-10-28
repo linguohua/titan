@@ -179,7 +179,7 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, cardFil
 	// if node is edge , find data with candidate
 	csMap := make(map[string][]string)
 	for _, cid := range cids {
-		candidates, err := nodeManager.getCandidateNodesWithData(cid, n.geoInfo)
+		candidates, err := nodeManager.getCandidateNodesWithData(cid)
 		if err != nil || len(candidates) < 1 {
 			// not find candidate
 			notFindCandidateData = append(notFindCandidateData, cid)

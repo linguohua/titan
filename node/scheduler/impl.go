@@ -20,7 +20,6 @@ import (
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/secret"
-	"github.com/linguohua/titan/region"
 	"golang.org/x/xerrors"
 )
 
@@ -37,7 +36,7 @@ const (
 	// ErrUnknownNodeType unknown node type
 	ErrUnknownNodeType = "Unknown Node Type"
 	// ErrAreaNotExist Area not exist
-	ErrAreaNotExist = "Area not exist:%s"
+	ErrAreaNotExist = "%s, Area not exist! ip:%s"
 	// ErrNotFoundTask Not Found Task
 	ErrNotFoundTask = "Not Found Task"
 )
@@ -93,7 +92,7 @@ type Scheduler struct {
 func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string) (externalIP string, err error) {
 	ip := handler.GetRequestIP(ctx)
 	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
-	// log.Errorf("CandidateNodeConnect ip :%v", ip)
+	log.Infof("EdgeNodeConnect ip:%s,port:%d", ip, port)
 
 	deviceID, err := verifySecret(token, api.NodeEdge)
 	if err != nil {
@@ -126,6 +125,8 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 	if deviceID != deviceInfo.DeviceId {
 		return "", xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
+
+	deviceInfo.ExternalIp = ip
 
 	edgeNode := &EdgeNode{
 		nodeAPI: edgeAPI,
@@ -199,18 +200,9 @@ func (s *Scheduler) CacheContinue(ctx context.Context, cid, cacheID string) erro
 
 // CacheResult Cache Data Result
 func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
-	err := s.dataManager.cacheCarfileResult(deviceID, &info)
-	// edge := s.nodeManager.getEdgeNode(deviceID)
-	// if edge != nil {
-	// 	return edge.cacheBlockResult(&info, carfileID, cacheID)
-	// }
+	s.dataManager.pushCacheResultToQueue(deviceID, &info)
 
-	// candidate := s.nodeManager.getCandidateNode(deviceID)
-	// if candidate != nil {
-	// 	return candidate.cacheBlockResult(&info, carfileID, cacheID)
-	// }
-
-	return "", err
+	return "", nil
 }
 
 // RegisterNode Register Node
@@ -465,7 +457,7 @@ func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTyp
 }
 
 // FindNodeWithBlock find node
-func (s *Scheduler) FindNodeWithBlock(ctx context.Context, cid, ip string) (string, error) {
+func (s *Scheduler) FindNodeWithBlock(ctx context.Context, cid string) (string, error) {
 	// node, err := getNodeWithData(cid, ip)
 	// if err != nil {
 	// 	return "", err
@@ -475,20 +467,20 @@ func (s *Scheduler) FindNodeWithBlock(ctx context.Context, cid, ip string) (stri
 }
 
 // GetDownloadInfoWithBlocks find node
-func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string, ip string) (map[string]api.DownloadInfo, error) {
+func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]api.DownloadInfo, error) {
 	if len(cids) < 1 {
 		return nil, xerrors.New("cids is nil")
 	}
 
-	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
-	if err != nil {
-		log.Warnf("getNodeURLWithData GetGeoInfo err:%s,ip:%s", err.Error(), ip)
-	}
+	// geoInfo, err := region.GetRegion().GetGeoInfo(ip)
+	// if err != nil {
+	// 	log.Warnf("getNodeURLWithData GetGeoInfo err:%s,ip:%s", err.Error(), ip)
+	// }
 
 	infoMap := make(map[string]api.DownloadInfo)
 
 	for _, cid := range cids {
-		info, err := s.nodeManager.findNodeDownloadInfo(cid, geoInfo)
+		info, err := s.nodeManager.findNodeDownloadInfo(cid)
 		if err != nil {
 			continue
 		}
@@ -500,24 +492,24 @@ func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string
 }
 
 // GetDownloadInfoWithBlock find node
-func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, ip string) (api.DownloadInfo, error) {
+func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string) (api.DownloadInfo, error) {
 	if cid == "" {
 		return api.DownloadInfo{}, xerrors.New("cids is nil")
 	}
 
-	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
-	if err != nil {
-		log.Warnf("getNodeURLWithData GetGeoInfo err:%s,ip:%s", err.Error(), ip)
-	}
+	// geoInfo, err := region.GetRegion().GetGeoInfo(ip)
+	// if err != nil {
+	// 	log.Warnf("getNodeURLWithData GetGeoInfo err:%s,ip:%s", err.Error(), ip)
+	// }
 
-	return s.nodeManager.findNodeDownloadInfo(cid, geoInfo)
+	return s.nodeManager.findNodeDownloadInfo(cid)
 }
 
 // CandidateNodeConnect Candidate connect
 func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token string) (externalIP string, err error) {
 	ip := handler.GetRequestIP(ctx)
 	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
-	// log.Errorf("CandidateNodeConnect ip :%v", ip)
+	log.Infof("CandidateNodeConnect ip:%s,port:%d", ip, port)
 
 	deviceID, err := verifySecret(token, api.NodeCandidate)
 	if err != nil {
@@ -550,6 +542,8 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token st
 	if deviceID != deviceInfo.DeviceId {
 		return "", xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
+
+	deviceInfo.ExternalIp = ip
 
 	candidateNode := &CandidateNode{
 		nodeAPI: candicateAPI,

@@ -59,9 +59,10 @@ func (m *DataManager) cacheData(area, cid string, reliability int) error {
 		data = dataI.(*Data)
 	}
 
-	data.needReliability = reliability
-
-	defer data.saveData()
+	if data.needReliability != reliability {
+		data.needReliability = reliability
+		defer data.saveData()
+	}
 
 	return data.createCache(m)
 }
@@ -127,7 +128,7 @@ func (m *DataManager) doResultTask() {
 	}
 }
 
-func (m *DataManager) pushResultToQueue(deviceID string, info *api.CacheResultInfo) {
+func (m *DataManager) pushCacheResultToQueue(deviceID string, info *api.CacheResultInfo) {
 	info.DeviceID = deviceID
 	m.enqueue(info)
 	m.notifyBlockLoader()

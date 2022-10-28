@@ -7,6 +7,9 @@ import (
 
 // DB cache db
 type DB interface {
+	// IncrDataCacheKey(cacheID string) (int64, error)
+	// DeleteDataCache(cacheID string) error
+
 	IncrNodeCacheFid(deviceID string) (int64, error)
 	GetNodeCacheFid(deviceID string) (int64, error)
 
@@ -30,7 +33,7 @@ type DB interface {
 	IncrNodeOnlineTime(deviceID string, onlineTime float64) (float64, error)
 	IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error)
 
-	IncrCacheID() (int64, error)
+	IncrCacheID(area string) (int64, error)
 
 	SetCacheDataTask(deviceID, cid, cacheID string) error
 	RemoveCacheDataTask(deviceID string) error

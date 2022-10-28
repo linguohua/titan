@@ -33,10 +33,10 @@ type Scheduler interface {
 	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) (string, error)        //perm:write
 
 	// call by user
-	FindNodeWithBlock(ctx context.Context, cid string, ip string) (string, error)                             //perm:read
-	GetDownloadInfoWithBlocks(ctx context.Context, cids []string, ip string) (map[string]DownloadInfo, error) //perm:read
-	GetDownloadInfoWithBlock(ctx context.Context, cid string, ip string) (DownloadInfo, error)                //perm:read
-	GetDevicesInfo(ctx context.Context, deviceID string) (DevicesInfo, error)                                 //perm:read
+	FindNodeWithBlock(ctx context.Context, cid string) (string, error)                             //perm:read
+	GetDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]DownloadInfo, error) //perm:read
+	GetDownloadInfoWithBlock(ctx context.Context, cid string) (DownloadInfo, error)                //perm:read
+	GetDevicesInfo(ctx context.Context, deviceID string) (DevicesInfo, error)                      //perm:read
 }
 
 // NodeRegisterInfo Node Register Info
@@ -63,7 +63,7 @@ type CacheResultInfo struct {
 
 	CarFileCid string
 	CacheID    string
-	DbID       int
+	Fid        string
 }
 
 // CacheDataInfo Cache Data Info
