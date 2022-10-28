@@ -128,9 +128,10 @@ func (rd redisDB) IncrCacheID(area string) (int64, error) {
 }
 
 // node cache tag ++1
-func (rd redisDB) IncrNodeCacheFid(deviceID string) (int64, error) {
+func (rd redisDB) IncrNodeCacheFid(deviceID string, num int) (int, error) {
 	key := fmt.Sprintf(redisKeyNodeBlockFid, deviceID)
-	return rd.cli.IncrBy(context.Background(), key, 1).Result()
+	n, err := rd.cli.IncrBy(context.Background(), key, int64(num)).Result()
+	return int(n), err
 }
 
 func (rd redisDB) GetNodeCacheFid(deviceID string) (int64, error) {

@@ -10,7 +10,7 @@ type DB interface {
 	// IncrDataCacheKey(cacheID string) (int64, error)
 	// DeleteDataCache(cacheID string) error
 
-	IncrNodeCacheFid(deviceID string) (int64, error)
+	IncrNodeCacheFid(deviceID string, num int) (int, error)
 	GetNodeCacheFid(deviceID string) (int64, error)
 
 	IncrValidateRoundID() (int64, error)

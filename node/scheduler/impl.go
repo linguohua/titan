@@ -234,74 +234,74 @@ func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cid
 	return nil, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
 }
 
-// DeleteBlocks  Delete Blocks
-func (s *Scheduler) DeleteBlocks(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
-	if len(cids) <= 0 {
-		return nil, xerrors.New("cids is nil")
-	}
+// // DeleteBlocks  Delete Blocks
+// func (s *Scheduler) DeleteBlocks(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
+// 	if len(cids) <= 0 {
+// 		return nil, xerrors.New("cids is nil")
+// 	}
 
-	errorMap := make(map[string]string)
+// 	errorMap := make(map[string]string)
 
-	nodeFinded := false
+// 	nodeFinded := false
 
-	var node Node
+// 	var node Node
 
-	edge := s.nodeManager.getEdgeNode(deviceID)
-	if edge != nil {
-		results, err := edge.nodeAPI.DeleteBlocks(ctx, cids)
-		if err != nil {
-			return nil, err
-		}
+// 	edge := s.nodeManager.getEdgeNode(deviceID)
+// 	if edge != nil {
+// 		results, err := edge.nodeAPI.DeleteBlocks(ctx, cids)
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		nodeFinded = true
+// 		nodeFinded = true
 
-		if len(results) > 0 {
-			for _, data := range results {
-				errorMap[data.Cid] = data.ErrMsg
-			}
-		}
+// 		if len(results) > 0 {
+// 			for _, data := range results {
+// 				errorMap[data.Cid] = data.ErrMsg
+// 			}
+// 		}
 
-		node = edge.Node
-	}
+// 		node = edge.Node
+// 	}
 
-	candidate := s.nodeManager.getCandidateNode(deviceID)
-	if candidate != nil {
-		resultList, err := candidate.nodeAPI.DeleteBlocks(ctx, cids)
-		if err != nil {
-			return nil, err
-		}
+// 	candidate := s.nodeManager.getCandidateNode(deviceID)
+// 	if candidate != nil {
+// 		resultList, err := candidate.nodeAPI.DeleteBlocks(ctx, cids)
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		nodeFinded = true
+// 		nodeFinded = true
 
-		if len(resultList) > 0 {
-			for _, data := range resultList {
-				errorMap[data.Cid] = data.ErrMsg
-			}
-		}
+// 		if len(resultList) > 0 {
+// 			for _, data := range resultList {
+// 				errorMap[data.Cid] = data.ErrMsg
+// 			}
+// 		}
 
-		node = candidate.Node
-	}
+// 		node = candidate.Node
+// 	}
 
-	if !nodeFinded {
-		return nil, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
-	}
+// 	if !nodeFinded {
+// 		return nil, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
+// 	}
 
-	delRecordList := make([]string, 0)
-	for _, cid := range cids {
-		if errorMap[cid] != "" {
-			continue
-		}
+// 	delRecordList := make([]string, 0)
+// 	for _, cid := range cids {
+// 		if errorMap[cid] != "" {
+// 			continue
+// 		}
 
-		delRecordList = append(delRecordList, cid)
-	}
+// 		delRecordList = append(delRecordList, cid)
+// 	}
 
-	eList, err := node.deleteBlockRecords(delRecordList)
-	for cid, eSrt := range eList {
-		errorMap[cid] = eSrt
-	}
+// 	eList, err := node.deleteBlockRecords(delRecordList)
+// 	for cid, eSrt := range eList {
+// 		errorMap[cid] = eSrt
+// 	}
 
-	return errorMap, err
-}
+// 	return errorMap, err
+// }
 
 // CacheCarFile Cache CarFile
 func (s *Scheduler) CacheCarFile(ctx context.Context, cid string, reliability int) error {
@@ -385,47 +385,47 @@ func (s *Scheduler) ShowDataInfos(ctx context.Context, cid string) ([]api.CacheD
 }
 
 // CacheBlocks Cache Block
-func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID string) ([]string, error) {
-	if len(cids) <= 0 {
-		return nil, xerrors.New("cids is nil")
-	}
+// func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID string) ([]string, error) {
+// 	if len(cids) <= 0 {
+// 		return nil, xerrors.New("cids is nil")
+// 	}
 
-	edge := s.nodeManager.getEdgeNode(deviceID)
-	if edge != nil {
-		errList := make([]string, 0)
+// 	edge := s.nodeManager.getEdgeNode(deviceID)
+// 	if edge != nil {
+// 		errList := make([]string, 0)
 
-		reqDatas, notFindList := edge.getReqCacheDatas(s.nodeManager, cids, "", "")
-		for _, reqData := range reqDatas {
-			err := edge.nodeAPI.CacheBlocks(ctx, reqData)
-			if err != nil {
-				log.Errorf("edge CacheData err:%s,url:%s,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
-				errList = append(errList, reqData.CandidateURL)
-			}
-		}
+// 		reqDatas, notFindList := edge.getReqCacheDatas(s.nodeManager, cids, "", "")
+// 		for _, reqData := range reqDatas {
+// 			err := edge.nodeAPI.CacheBlocks(ctx, reqData)
+// 			if err != nil {
+// 				log.Errorf("edge CacheData err:%s,url:%s,cids:%v", err.Error(), reqData.CandidateURL, reqData.BlockInfos)
+// 				errList = append(errList, reqData.CandidateURL)
+// 			}
+// 		}
 
-		errList = append(errList, notFindList...)
+// 		errList = append(errList, notFindList...)
 
-		return errList, nil
-	}
+// 		return errList, nil
+// 	}
 
-	candidate := s.nodeManager.getCandidateNode(deviceID)
-	if candidate != nil {
-		errList := make([]string, 0)
+// 	candidate := s.nodeManager.getCandidateNode(deviceID)
+// 	if candidate != nil {
+// 		errList := make([]string, 0)
 
-		reqDatas, _ := candidate.getReqCacheDatas(s.nodeManager, cids, "", "")
-		for _, reqData := range reqDatas {
-			err := candidate.nodeAPI.CacheBlocks(ctx, reqData)
-			if err != nil {
-				log.Errorf("candidate CacheData err:%s,url:%s,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
-				errList = append(errList, reqData.CandidateURL)
-			}
-		}
+// 		reqDatas, _ := candidate.getReqCacheDatas(s.nodeManager, cids, "", "")
+// 		for _, reqData := range reqDatas {
+// 			err := candidate.nodeAPI.CacheBlocks(ctx, reqData)
+// 			if err != nil {
+// 				log.Errorf("candidate CacheData err:%s,url:%s,cids:%v", err.Error(), reqData.CandidateURL, reqData.BlockInfos)
+// 				errList = append(errList, reqData.CandidateURL)
+// 			}
+// 		}
 
-		return errList, nil
-	}
+// 		return errList, nil
+// 	}
 
-	return nil, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
-}
+// 	return nil, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
+// }
 
 // GetOnlineDeviceIDs Get all online node id
 func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTypeName) ([]string, error) {
