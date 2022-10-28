@@ -120,15 +120,12 @@ func loadCache(area, cacheID, carfileCid string, nodeManager *NodeManager, total
 func (c *Cache) cacheBlocks(deviceID string, cids []string) error {
 	cNode := c.nodeManager.getCandidateNode(deviceID)
 	if cNode != nil {
-		reqDatas, list := cNode.getReqCacheDatas(c.nodeManager, cids, c.cardFileCid, c.cacheID)
-		if len(list) > 0 {
-			reqDatas = append(reqDatas, api.ReqCacheData{Cids: list, CardFileCid: c.cardFileCid, CacheID: c.cacheID})
-		}
+		reqDatas := cNode.getReqCacheDatas(c.nodeManager, cids, c.cardFileCid, c.cacheID)
 
 		for _, reqData := range reqDatas {
 			err := cNode.nodeAPI.CacheBlocks(context.Background(), reqData)
 			if err != nil {
-				log.Errorf("candidate CacheData err:%s,url:%s,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+				log.Errorf("candidate CacheData err:%s,url:%s,cids:%v", err.Error(), reqData.CandidateURL, reqData.BlockInfos)
 			}
 		}
 		return nil
@@ -136,15 +133,12 @@ func (c *Cache) cacheBlocks(deviceID string, cids []string) error {
 
 	eNode := c.nodeManager.getEdgeNode(deviceID)
 	if eNode != nil {
-		reqDatas, list := eNode.getReqCacheDatas(c.nodeManager, cids, c.cardFileCid, c.cacheID)
-		if len(list) > 0 {
-			reqDatas = append(reqDatas, api.ReqCacheData{Cids: list, CardFileCid: c.cardFileCid, CacheID: c.cacheID})
-		}
+		reqDatas := eNode.getReqCacheDatas(c.nodeManager, cids, c.cardFileCid, c.cacheID)
 
 		for _, reqData := range reqDatas {
 			err := eNode.nodeAPI.CacheBlocks(context.Background(), reqData)
 			if err != nil {
-				log.Errorf("edge CacheData err:%s,url:%s,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
+				log.Errorf("edge CacheData err:%s,url:%s,cids:%v", err.Error(), reqData.CandidateURL, reqData.BlockInfos)
 			}
 		}
 		return nil

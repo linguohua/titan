@@ -9,8 +9,8 @@ type Scheduler interface {
 	Common
 
 	// call by command
-	CacheBlocks(ctx context.Context, cids []string, deviceID string) ([]string, error)                 //perm:admin
-	DeleteBlocks(ctx context.Context, deviceID string, cids []string) (map[string]string, error)       //perm:admin
+	// CacheBlocks(ctx context.Context, cids []string, deviceID string) ([]string, error)                 //perm:admin
+	// DeleteBlocks(ctx context.Context, deviceID string, cids []string) (map[string]string, error)       //perm:admin
 	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeTypeName) ([]string, error)                   //perm:read
 	ElectionValidators(ctx context.Context) error                                                      //perm:admin
 	Validate(ctx context.Context) error                                                                //perm:admin
