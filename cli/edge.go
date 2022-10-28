@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/linguohua/titan/api"
 	API "github.com/linguohua/titan/api"
 	"github.com/urfave/cli/v2"
 )
@@ -70,7 +71,7 @@ var CacheBlockCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		fmt.Println("start cache data...")
-		api, closer, err := GetEdgeAPI(cctx)
+		adgeAPI, closer, err := GetEdgeAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -80,9 +81,11 @@ var CacheBlockCmd = &cli.Command{
 		candidateURL := cctx.String("candidate")
 		ctx := ReqContext(cctx)
 
-		reqData := API.ReqCacheData{Cids: []string{cid}, CandidateURL: candidateURL}
+		blockInfo := api.BlockInfo{Cid: cid, Fid: "1"}
 
-		err = api.CacheBlocks(ctx, reqData)
+		reqData := API.ReqCacheData{BlockInfos: []api.BlockInfo{blockInfo}, CandidateURL: candidateURL}
+
+		err = adgeAPI.CacheBlocks(ctx, reqData)
 		if err != nil {
 			return err
 		}
