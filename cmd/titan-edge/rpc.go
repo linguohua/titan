@@ -11,7 +11,9 @@ import (
 
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/filecoin-project/go-jsonrpc/auth"
+
 	"github.com/gorilla/mux"
+	"github.com/linguohua/titan/node/handler"
 )
 
 // func blockDownload(a api.Edge) http.HandlerFunc {
@@ -47,5 +49,5 @@ func WorkerHandler(authv func(ctx context.Context, token string) ([]auth.Permiss
 		Next:   mux.ServeHTTP,
 	}
 
-	return ah
+	return handler.New(ah)
 }
