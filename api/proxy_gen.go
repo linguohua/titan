@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -183,8 +182,6 @@ type SchedulerStruct struct {
 
 	Internal struct {
 
-		CacheBlocks func(p0 context.Context, p1 []string, p2 string) ([]string, error) `perm:"admin"`
-
 		CacheCarFile func(p0 context.Context, p1 string, p2 int) (error) `perm:"admin"`
 
 		CacheContinue func(p0 context.Context, p1 string, p2 string) (error) `perm:"admin"`
@@ -194,8 +191,6 @@ type SchedulerStruct struct {
 		CandidateNodeConnect func(p0 context.Context, p1 int, p2 string) (string, error) `perm:"write"`
 
 		DeleteBlockRecords func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"admin"`
-
-		DeleteBlocks func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"admin"`
 
 		DownloadBlockResult func(p0 context.Context, p1 string, p2 string) (error) `perm:"write"`
 
@@ -210,6 +205,8 @@ type SchedulerStruct struct {
 		GetDownloadInfoWithBlock func(p0 context.Context, p1 string) (DownloadInfo, error) `perm:"read"`
 
 		GetDownloadInfoWithBlocks func(p0 context.Context, p1 []string) (map[string]DownloadInfo, error) `perm:"read"`
+
+		GetDownloadInfosWithBlocks func(p0 context.Context, p1 []string) (map[string][]DownloadInfo, error) `perm:"read"`
 
 		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
 
@@ -583,17 +580,6 @@ func (s *EdgeStub) WaitQuiet(p0 context.Context) (error) {
 
 
 
-func (s *SchedulerStruct) CacheBlocks(p0 context.Context, p1 []string, p2 string) ([]string, error) {
-	if s.Internal.CacheBlocks == nil {
-		return *new([]string), ErrNotSupported
-	}
-	return s.Internal.CacheBlocks(p0, p1, p2)
-}
-
-func (s *SchedulerStub) CacheBlocks(p0 context.Context, p1 []string, p2 string) ([]string, error) {
-	return *new([]string), ErrNotSupported
-}
-
 func (s *SchedulerStruct) CacheCarFile(p0 context.Context, p1 string, p2 int) (error) {
 	if s.Internal.CacheCarFile == nil {
 		return ErrNotSupported
@@ -646,17 +632,6 @@ func (s *SchedulerStruct) DeleteBlockRecords(p0 context.Context, p1 string, p2 [
 }
 
 func (s *SchedulerStub) DeleteBlockRecords(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
-	return *new(map[string]string), ErrNotSupported
-}
-
-func (s *SchedulerStruct) DeleteBlocks(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
-	if s.Internal.DeleteBlocks == nil {
-		return *new(map[string]string), ErrNotSupported
-	}
-	return s.Internal.DeleteBlocks(p0, p1, p2)
-}
-
-func (s *SchedulerStub) DeleteBlocks(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
 	return *new(map[string]string), ErrNotSupported
 }
 
@@ -735,6 +710,17 @@ func (s *SchedulerStruct) GetDownloadInfoWithBlocks(p0 context.Context, p1 []str
 
 func (s *SchedulerStub) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]DownloadInfo, error) {
 	return *new(map[string]DownloadInfo), ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetDownloadInfosWithBlocks(p0 context.Context, p1 []string) (map[string][]DownloadInfo, error) {
+	if s.Internal.GetDownloadInfosWithBlocks == nil {
+		return *new(map[string][]DownloadInfo), ErrNotSupported
+	}
+	return s.Internal.GetDownloadInfosWithBlocks(p0, p1)
+}
+
+func (s *SchedulerStub) GetDownloadInfosWithBlocks(p0 context.Context, p1 []string) (map[string][]DownloadInfo, error) {
+	return *new(map[string][]DownloadInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetOnlineDeviceIDs(p0 context.Context, p1 NodeTypeName) ([]string, error) {

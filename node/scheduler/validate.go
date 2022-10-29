@@ -106,7 +106,7 @@ func (v *Validate) getReqValidates(validatorID string, list []string) ([]api.Req
 		}
 
 		// cache datas
-		num, err := persistent.GetDB().GetBlockNum(area, deviceID)
+		num, err := persistent.GetDB().GetDeviceBlockNum(area, deviceID)
 		if err != nil {
 			// log.Warnf("validate GetBlockNum err:%v,DeviceId:%v", err.Error(), deviceID)
 			err = v.saveValidateResult(v.roundID, deviceID, validatorID, err.Error(), persistent.ValidateStatusOther)
@@ -271,7 +271,7 @@ func (v *Validate) validate(validateResults *api.ValidateResults) error {
 
 	area := v.nodeManager.getNodeArea(deviceID)
 
-	cacheInfos, err := persistent.GetDB().GetBlockInfos(area, deviceID)
+	cacheInfos, err := persistent.GetDB().GetBlocksFID(area, deviceID)
 	if err != nil || len(cacheInfos) <= 0 {
 		status = persistent.ValidateStatusOther
 		msg = err.Error()

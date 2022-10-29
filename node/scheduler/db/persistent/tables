@@ -46,16 +46,25 @@ CREATE TABLE `data_info_cn_gd_shenzhen` (
 
 CREATE TABLE `cache_info_cn_gd_shenzhen` (
     `id` int(20) unsigned NOT NULL AUTO_INCREMENT,
-	`cid` varchar(512) NOT NULL,
+	`carfile_id` varchar(512) NOT NULL,
     `cache_id` varchar(225) NOT NULL ,
-    `device_id` varchar(225) NOT NULL ,
     `status` int(20)  DEFAULT '0' ,
-    `size` int(20)  DEFAULT '0' ,
     `done_size` int(20)  DEFAULT '0' ,
     `done_blocks` int(20)  DEFAULT '0' ,
 	`reliability` int(64) DEFAULT '0' ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='cache infos';
+
+CREATE TABLE `block_info_cn_gd_shenzhen` (
+    `id` int(20) unsigned NOT NULL AUTO_INCREMENT,
+	`cid` varchar(512) NOT NULL,
+    `cache_id` varchar(225) NOT NULL ,
+    `device_id` varchar(225) NOT NULL ,
+    `status` int(20)  DEFAULT '0' ,
+    `size` int(20)  DEFAULT '0' ,
+	`reliability` int(64) DEFAULT '0' ,
+	PRIMARY KEY (`id`)
+  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='block infos';
 
 CREATE TABLE `device_blocks_cn_gd_shenzhen` (
     `id` int(20) unsigned NOT NULL AUTO_INCREMENT,
