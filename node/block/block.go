@@ -160,9 +160,8 @@ func (block *Block) addReq2WaitList(delayReqs []*delayReq) {
 	block.notifyBlockLoader()
 }
 
-func (block *Block) cacheResultWithError(ctx context.Context, cid string, err error) {
-	log.Errorf("cacheResultWithError, cid:%s, error:%v", cid, err)
-	bStat := blockStat{cid: cid, links: []string{}, blockSize: 0, linksSize: 0}
+func (block *Block) cacheResultWithError(ctx context.Context, bStat blockStat, err error) {
+	log.Errorf("cacheResultWithError, cid:%s, fid:%s, cacheID:%s, carFileID:%s, error:%v", bStat.cid, bStat.fid, bStat.CacheID, bStat.carFileCid, err)
 	block.cacheResult(ctx, "", err, bStat)
 }
 
@@ -187,6 +186,7 @@ func (block *Block) cacheResult(ctx context.Context, from string, err error, bSt
 		LinksSize:  bStat.linksSize,
 		CarFileCid: bStat.carFileCid,
 		CacheID:    bStat.CacheID,
+		Fid:        bStat.fid,
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
