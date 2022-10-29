@@ -89,7 +89,7 @@ func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 		candidate, err := getCandidateWithMap(candidateMap, req.candidateURL)
 		if err != nil {
 			log.Errorf("getCandidateWithMap error:%v", err)
-			block.cacheResultWithError(ctx, req.blockInfo.Cid, err)
+			block.cacheResultWithError(ctx, blockStat{cid: req.blockInfo.Cid, fid: req.blockInfo.Fid, carFileCid: req.carFileCid, CacheID: req.CacheID}, err)
 			continue
 		}
 
@@ -98,21 +98,21 @@ func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 		data, err := getBlockFromCandidate(url, candidate.token)
 		if err != nil {
 			log.Errorf("loadBlocksFromCandidate get block from candidate error:%s", err.Error())
-			block.cacheResultWithError(ctx, req.blockInfo.Cid, err)
+			block.cacheResultWithError(ctx, blockStat{cid: req.blockInfo.Cid, fid: req.blockInfo.Fid, carFileCid: req.carFileCid, CacheID: req.CacheID}, err)
 			continue
 		}
 
 		err = block.saveBlock(ctx, data, req.blockInfo.Cid, req.blockInfo.Fid)
 		if err != nil {
 			log.Errorf("loadBlocksFromCandidate save block error:%s", err.Error())
-			block.cacheResultWithError(ctx, req.blockInfo.Cid, err)
+			block.cacheResultWithError(ctx, blockStat{cid: req.blockInfo.Cid, fid: req.blockInfo.Fid, carFileCid: req.carFileCid, CacheID: req.CacheID}, err)
 			continue
 		}
 
 		links, err := getLinks(block, data, req.blockInfo.Cid)
 		if err != nil {
 			log.Errorf("loadBlocksFromCandidate resolveLinks error:%s", err.Error())
-			block.cacheResultWithError(ctx, req.blockInfo.Cid, err)
+			block.cacheResultWithError(ctx, blockStat{cid: req.blockInfo.Cid, fid: req.blockInfo.Fid, carFileCid: req.carFileCid, CacheID: req.CacheID}, err)
 			continue
 		}
 
