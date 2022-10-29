@@ -5,7 +5,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -49,18 +48,18 @@ type blockStat struct {
 }
 
 type Block struct {
-	ds              datastore.Batching
-	blockStore      blockstore.BlockStore
-	scheduler       api.Scheduler
-	reqList         []*delayReq
-	cachingList     []*delayReq
-	cacheResultLock *sync.Mutex
-	reqListLock     *sync.Mutex
-	block           BlockInterface
-	deviceID        string
-	exchange        exchange.Interface
-	blockLoaderCh   chan bool
-	ipfsGateway     string
+	ds            datastore.Batching
+	blockStore    blockstore.BlockStore
+	scheduler     api.Scheduler
+	reqList       []*delayReq
+	cachingList   []*delayReq
+	saveBlockLock *sync.Mutex
+	reqListLock   *sync.Mutex
+	block         BlockInterface
+	deviceID      string
+	exchange      exchange.Interface
+	blockLoaderCh chan bool
+	ipfsGateway   string
 }
 
 // TODO need to rename
@@ -68,21 +67,20 @@ type BlockInterface interface {
 	loadBlocks(block *Block, req []*delayReq)
 }
 
-func NewBlock(ds datastore.Batching, blockStore blockstore.BlockStore, scheduler api.Scheduler, blockInterface BlockInterface, exchange exchange.Interface, deviceID string) *Block {
+func NewBlock(ds datastore.Batching, blockStore blockstore.BlockStore, scheduler api.Scheduler, blockInterface BlockInterface, ipfsGateway, deviceID string) *Block {
 	block := &Block{
 		ds:         ds,
 		blockStore: blockStore,
 		scheduler:  scheduler,
 		block:      blockInterface,
-		exchange:   exchange,
+		exchange:   nil,
 		deviceID:   deviceID,
 
-		cacheResultLock: &sync.Mutex{},
-		reqListLock:     &sync.Mutex{},
-		blockLoaderCh:   make(chan bool),
-		ipfsGateway:     os.Getenv("IPFS_GATEWAY"),
+		saveBlockLock: &sync.Mutex{},
+		reqListLock:   &sync.Mutex{},
+		blockLoaderCh: make(chan bool),
+		ipfsGateway:   ipfsGateway,
 	}
-	log.Infof("IPFS-GATEWAY:%s", block.ipfsGateway)
 
 	go block.startBlockLoader()
 
@@ -166,9 +164,6 @@ func (block *Block) cacheResultWithError(ctx context.Context, bStat blockStat, e
 }
 
 func (block *Block) cacheResult(ctx context.Context, from string, err error, bStat blockStat) {
-	block.cacheResultLock.Lock()
-	defer block.cacheResultLock.Unlock()
-
 	errMsg := ""
 	success := true
 	if err != nil {
@@ -252,6 +247,11 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 
 		buf, err := block.blockStore.Get(cidStr)
 		if err == nil {
+			fid, _ := block.getFID(reqData.blockInfo.Cid)
+			if fid != reqData.blockInfo.Fid {
+				block.updateCidAndFid(ctx, reqData.blockInfo.Cid, reqData.blockInfo.Fid)
+			}
+
 			links, err := getLinks(block, buf, cidStr)
 			if err != nil {
 				log.Errorf("filterAvailableReq getLinks error:%s", err.Error())
@@ -270,19 +270,6 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 			continue
 		}
 
-		cid, _ := block.getCID(reqData.blockInfo.Fid)
-		if len(cid) > 0 && cid != reqData.blockInfo.Cid {
-			block.ds.Delete(ctx, helper.NewKeyCID(cid))
-			block.ds.Delete(ctx, helper.NewKeyFID(reqData.blockInfo.Fid))
-			log.Errorf("Fid %s aready exist, and relate cid %s will be delete", reqData.blockInfo.Fid, cid)
-		}
-
-		fid, _ := block.getFID(reqData.blockInfo.Cid)
-		if len(fid) > 0 && fid != reqData.blockInfo.Fid {
-			block.ds.Delete(ctx, helper.NewKeyCID(reqData.blockInfo.Cid))
-			block.ds.Delete(ctx, helper.NewKeyFID(fid))
-			log.Errorf("Cid %s aready exist, and relate fid %s will be delete", reqData.blockInfo.Cid, fid)
-		}
 		results = append(results, reqData)
 	}
 
@@ -615,12 +602,33 @@ func (block *Block) resolveLinks(blk blocks.Block) ([]*format.Link, error) {
 }
 
 func (block *Block) saveBlock(ctx context.Context, data []byte, cid, fid string) error {
+	block.saveBlockLock.Lock()
+	defer block.saveBlockLock.Unlock()
+
+	log.Infof("saveBlock fid:%s, cid:%s", fid, cid)
 	err := block.blockStore.Put(cid, data)
 	if err != nil {
 		return err
 	}
 
-	err = block.ds.Put(ctx, helper.NewKeyFID(fid), []byte(cid))
+	return block.updateCidAndFid(ctx, cid, fid)
+}
+
+func (block *Block) updateCidAndFid(ctx context.Context, cid, fid string) error {
+	// delete old fid relate cid
+	oldCid, _ := block.getCID(fid)
+	if len(oldCid) > 0 && oldCid != cid {
+		block.ds.Delete(ctx, helper.NewKeyCID(oldCid))
+		log.Errorf("Fid %s aready exist, and relate cid %s will be delete", fid, oldCid)
+	}
+	// delete old cid relate fid
+	oldFid, _ := block.getFID(cid)
+	if len(oldFid) > 0 && oldFid != fid {
+		block.ds.Delete(ctx, helper.NewKeyCID(oldFid))
+		log.Errorf("Cid %s aready exist, and relate fid %s will be delete", cid, oldFid)
+	}
+
+	err := block.ds.Put(ctx, helper.NewKeyFID(fid), []byte(cid))
 	if err != nil {
 		return err
 	}

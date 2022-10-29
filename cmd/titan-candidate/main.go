@@ -322,8 +322,10 @@ var runCmd = &cli.Command{
 			BlockStore:      blockStore,
 			DownloadSrvKey:  cctx.String("download-srv-key"),
 			DownloadSrvAddr: cctx.String("download-srv-addr"),
+			IPFSGateway:     cctx.String("ipfs-gateway"),
 		}
 
+		log.Info("ipfs-gateway " + nodeParams.IPFSGateway)
 		tcpSrvAddr := cctx.String("tcp-srv-addr")
 
 		candidateApi := candidate.NewLocalCandidateNode(context.Background(), tcpSrvAddr, device, nodeParams)
@@ -386,6 +388,7 @@ var runCmd = &cli.Command{
 					readyCh = waitQuietCh()
 				}
 
+				var errCount = 0
 				for {
 					curSession, err := schedulerAPI.Session(ctx, deviceID)
 					if err != nil {
@@ -393,6 +396,10 @@ var runCmd = &cli.Command{
 					} else {
 						if curSession != minerSession {
 							minerSession = curSession
+							break
+						}
+
+						if errCount > 0 {
 							break
 						}
 					}
@@ -409,7 +416,7 @@ var runCmd = &cli.Command{
 						candidate := candidateApi.(*candidate.Candidate)
 						candidate.SetExternaIP(external)
 						log.Info("Worker registered successfully, waiting for tasks")
-
+						errCount = 0
 						readyCh = nil
 					case <-heartbeats.C:
 					case <-ctx.Done():

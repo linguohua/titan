@@ -312,6 +312,7 @@ var runCmd = &cli.Command{
 			BlockStore:      blockStore,
 			DownloadSrvKey:  cctx.String("download-srv-key"),
 			DownloadSrvAddr: cctx.String("download-srv-addr"),
+			IPFSGateway:     cctx.String("ipfs-gateway"),
 		}
 
 		edgeApi := edge.NewLocalEdgeNode(context.Background(), device, params)
@@ -374,13 +375,19 @@ var runCmd = &cli.Command{
 					readyCh = waitQuietCh()
 				}
 
+				var errCount = 0
 				for {
 					curSession, err := schedulerAPI.Session(ctx, deviceID)
 					if err != nil {
+						errCount++
 						log.Errorf("heartbeat: checking remote session failed: %+v", err)
 					} else {
 						if curSession != minerSession {
 							minerSession = curSession
+							break
+						}
+
+						if errCount > 0 {
 							break
 						}
 					}
@@ -398,7 +405,7 @@ var runCmd = &cli.Command{
 						edge.SetExternaIP(externalIP)
 
 						log.Info("Worker registered successfully, waiting for tasks")
-
+						errCount = 0
 						readyCh = nil
 					case <-heartbeats.C:
 					case <-ctx.Done():

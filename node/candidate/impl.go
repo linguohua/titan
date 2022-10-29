@@ -41,7 +41,7 @@ func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *devic
 	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
 	blockDownload := download.NewBlockDownload(rateLimiter, params, device)
 
-	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, nil, device.GetDeviceID())
+	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, params.IPFSGateway, device.GetDeviceID())
 	validate := vd.NewValidate(blockDownload, block, device.GetDeviceID())
 
 	candidate := &Candidate{

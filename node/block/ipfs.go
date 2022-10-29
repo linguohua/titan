@@ -145,13 +145,7 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 		return
 	}
 
-	var blocks []blocks.Block
-	var err error
-	if len(block.ipfsGateway) > 0 {
-		blocks, err = getBlocksWithHttp(block, cids)
-	} else {
-		blocks, err = loadBlocksAsync(block, cids)
-	}
+	blocks, err := getBlocksWithHttp(block, cids)
 	if err != nil {
 		log.Errorf("loadBlocksAsync loadBlocks err %v", err)
 		return
