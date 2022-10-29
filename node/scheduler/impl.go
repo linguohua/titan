@@ -622,7 +622,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 	if candidata != nil {
 		// redis datas
 		body := api.CacheStat{}
-		count, err := persistent.GetDB().GetDeviceBlockNum(candidata.geoInfo.Geo, deviceID)
+		count, err := persistent.GetDB().GetDeviceBlockNum(deviceID)
 		if err == nil {
 			body.CacheBlockCount = int(count)
 		}
@@ -637,7 +637,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
 		body := api.CacheStat{}
-		count, err := persistent.GetDB().GetDeviceBlockNum(edge.geoInfo.Geo, deviceID)
+		count, err := persistent.GetDB().GetDeviceBlockNum(deviceID)
 		if err == nil {
 			body.CacheBlockCount = int(count)
 		}

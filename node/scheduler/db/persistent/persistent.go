@@ -21,49 +21,52 @@ type DB interface {
 	SetNodeToValidateErrorList(sID, deviceID string) error
 
 	// data info
-	SetDataInfo(area string, info *DataInfo) error
-	GetDataInfo(area, cid string) (*DataInfo, error)
-	GetDataInfos(area string) ([]*DataInfo, error)
+	SetDataInfo(info *DataInfo) error
+	GetDataInfo(cid string) (*DataInfo, error)
+	GetDataInfos() ([]*DataInfo, error)
 
 	// cache info
-	SetCacheInfo(area string, info *CacheInfo) error
-	GetCacheInfo(area, cacheID, carfileID string) (*CacheInfo, error)
+	SetCacheInfo(info *CacheInfo) error
+	GetCacheInfo(cacheID, carfileID string) (*CacheInfo, error)
 
 	// block info
-	SetBlockInfo(area string, info *BlockInfo, carfileCid, fid string, isUpdate bool) error
-	GetBlockInfo(area, cacheID, cid string) (*BlockInfo, error)
-	HaveBlocks(area, cacheID string, status int) (bool, error)
-	GetUndoneBlocks(area, cacheID string) (map[string]int, error)
-	// SetCacheInfos(area string, infos []*BlockInfo, isUpdate bool) error
-	// GetCacheInfos(area, cacheID string) ([]*BlockInfo, error)
+	SetBlockInfos(infos []*BlockInfo) error
+	SetBlockInfo(info *BlockInfo, carfileCid, fid string, isUpdate bool) error
+	GetBlockInfo(cacheID, cid, deviceID string) (*BlockInfo, error)
+	HaveBlocks(cacheID string, status int) (bool, error)
+	GetUndoneBlocks(cacheID string) (map[string]int, error)
+	// SetCacheInfos( infos []*BlockInfo, isUpdate bool) error
+	// GetCacheInfos( cacheID string) ([]*BlockInfo, error)
 
 	// node block
-	DeleteBlockInfo(area, deviceID, cid string) error
-	// AddBlockInfo(area, deviceID, cid, fid, carfileID, cacheID string) error
-	GetBlockFidWithCid(area, deviceID, cid string) (string, error)
-	GetBlocksFID(area, deviceID string) (map[string]string, error)
-	GetDeviceBlockNum(area, deviceID string) (int64, error)
-	GetNodesWithCacheList(area, cid string) ([]string, error)
+	DeleteBlockInfo(deviceID, cid string) error
+	// AddBlockInfo( deviceID, cid, fid, carfileID, cacheID string) error
+	GetBlockFidWithCid(deviceID, cid string) (string, error)
+	GetBlocksFID(deviceID string) (map[string]string, error)
+	GetDeviceBlockNum(deviceID string) (int64, error)
+	GetNodesWithCacheList(cid string) ([]string, error)
 
 	// temporary node register
 	BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error
 	GetRegisterInfo(deviceID string) (*api.NodeRegisterInfo, error)
 
 	// tool
-	ReplaceArea(area string) string
+	ReplaceArea() string
 }
 
 var (
 	db DB
 
 	serverName string
+	serverArea string
 )
 
 // NewDB New  DB
-func NewDB(url, dbType, sName string) error {
+func NewDB(url, dbType, sName, sArea string) error {
 	var err error
 
 	serverName = sName
+	serverArea = sArea
 
 	switch dbType {
 	case TypeSQL():

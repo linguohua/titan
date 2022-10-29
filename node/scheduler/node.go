@@ -156,7 +156,7 @@ func (n *Node) deleteBlockRecords(cids []string) (map[string]string, error) {
 
 	errList := make(map[string]string, 0)
 	for _, cid := range cids {
-		err := persistent.GetDB().DeleteBlockInfo(n.geoInfo.Geo, deviceID, cid)
+		err := persistent.GetDB().DeleteBlockInfo(deviceID, cid)
 		if err != nil {
 			errList[cid] = err.Error()
 			continue

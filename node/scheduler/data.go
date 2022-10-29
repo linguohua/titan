@@ -41,7 +41,7 @@ func newData(area string, nodeManager *NodeManager, dataManager *DataManager, ci
 }
 
 func loadDataInfos(area string) []*persistent.DataInfo {
-	infos, err := persistent.GetDB().GetDataInfos(area)
+	infos, err := persistent.GetDB().GetDataInfos()
 	if err != nil {
 		return nil
 	}
@@ -50,7 +50,11 @@ func loadDataInfos(area string) []*persistent.DataInfo {
 }
 
 func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManager) *Data {
-	dInfo, _ := persistent.GetDB().GetDataInfo(area, cid)
+	dInfo, err := persistent.GetDB().GetDataInfo(cid)
+	if err != nil {
+		log.Errorf("loadData err :%s", err.Error())
+		return nil
+	}
 	if dInfo != nil {
 		data := newData(area, nodeManager, dataManager, cid, 0)
 		data.cacheIDs = dInfo.CacheIDs
@@ -88,7 +92,7 @@ func (d *Data) cacheContinue(dataManager *DataManager, cacheID string) error {
 	}
 	cache := cacheI.(*Cache)
 
-	list, err := persistent.GetDB().GetUndoneBlocks(serverArea, cacheID)
+	list, err := persistent.GetDB().GetUndoneBlocks(cacheID)
 	if err != nil {
 		return err
 	}
@@ -127,7 +131,7 @@ func (d *Data) createCache(dataManager *DataManager) error {
 
 	// d.cacheMap[cache.cacheID] = cache
 	d.cacheMap.Store(cache.cacheID, cache)
-	d.cacheIDs = fmt.Sprintf("%s,%s", d.cacheIDs, cache.cacheID)
+	d.cacheIDs = fmt.Sprintf("%s%s,", d.cacheIDs, cache.cacheID)
 
 	log.Infof("%s cache start ---------- ", cache.cacheID)
 	return cache.doCache(map[string]int{d.cid: 0}, d.haveRootCache())
@@ -141,8 +145,10 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 	cache := cacheI.(*Cache)
 
 	isUpdate := false
-
-	links := cache.updateBlockInfo(info)
+	links, err := cache.updateBlockInfo(info)
+	if err != nil {
+		return xerrors.Errorf("updateBlockInfo err:%s", err.Error())
+	}
 
 	if !d.haveRootCache() {
 		if info.Cid == d.cid {
@@ -185,7 +191,7 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 
 func (d *Data) saveData() {
 	// save to db
-	err := persistent.GetDB().SetDataInfo(d.area, &persistent.DataInfo{
+	err := persistent.GetDB().SetDataInfo(&persistent.DataInfo{
 		CID:             d.cid,
 		CacheIDs:        d.cacheIDs,
 		TotalSize:       d.totalSize,
