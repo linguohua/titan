@@ -26,26 +26,31 @@ type DB interface {
 	GetDataInfos(area string) ([]*DataInfo, error)
 
 	// cache info
-	SetCacheInfos(area string, infos []*BlockInfo, isUpdate bool) error
-	SetCacheInfo(area string, info *BlockInfo, isUpdate bool) error
-	UpdateCacheTotalInfo(area string, info *BlockInfo) error
-	GetCacheInfo(area, cacheID, cid string) (*BlockInfo, error)
-	GetCacheTotalInfo(area, cacheID, carfileID string) (*BlockInfo, error)
-	GetCacheInfos(area, cacheID string) ([]*BlockInfo, error)
-	HaveCaches(area, cacheID string, status int) (bool, error)
-	GetUndoneCaches(area, cacheID string) (map[string]int, error)
+	SetCacheInfo(area string, info *CacheInfo) error
+	GetCacheInfo(area, cacheID, carfileID string) (*CacheInfo, error)
+
+	// block info
+	SetBlockInfo(area string, info *BlockInfo, carfileCid, fid string, isUpdate bool) error
+	GetBlockInfo(area, cacheID, cid string) (*BlockInfo, error)
+	HaveBlocks(area, cacheID string, status int) (bool, error)
+	GetUndoneBlocks(area, cacheID string) (map[string]int, error)
+	// SetCacheInfos(area string, infos []*BlockInfo, isUpdate bool) error
+	// GetCacheInfos(area, cacheID string) ([]*BlockInfo, error)
 
 	// node block
 	DeleteBlockInfo(area, deviceID, cid string) error
-	AddBlockInfo(area, deviceID, cid, fid, carfileID, cacheID string) error
+	// AddBlockInfo(area, deviceID, cid, fid, carfileID, cacheID string) error
 	GetBlockFidWithCid(area, deviceID, cid string) (string, error)
-	GetBlockInfos(area, deviceID string) (map[string]string, error)
-	GetBlockNum(area, deviceID string) (int64, error)
+	GetBlocksFID(area, deviceID string) (map[string]string, error)
+	GetDeviceBlockNum(area, deviceID string) (int64, error)
 	GetNodesWithCacheList(area, cid string) ([]string, error)
 
 	// temporary node register
 	BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error
 	GetRegisterInfo(deviceID string) (*api.NodeRegisterInfo, error)
+
+	// tool
+	ReplaceArea(area string) string
 }
 
 var (
@@ -138,6 +143,17 @@ type DataInfo struct {
 	TotalBlocks     int    `db:"total_blocks"`
 }
 
+// CacheInfo Data Block info
+type CacheInfo struct {
+	ID          int
+	CarfileID   string `db:"carfile_id"`
+	CacheID     string `db:"cache_id"`
+	Status      int    `db:"status"`
+	Reliability int    `db:"reliability"`
+	DoneSize    int    `db:"done_size"`
+	DoneBlocks  int    `db:"done_blocks"`
+}
+
 // BlockInfo Data Block info
 type BlockInfo struct {
 	ID          int
@@ -146,8 +162,6 @@ type BlockInfo struct {
 	DeviceID    string `db:"device_id"`
 	Status      int    `db:"status"`
 	Size        int    `db:"size"`
-	DoneSize    int    `db:"done_size"`
-	DoneBlocks  int    `db:"done_blocks"`
 	Reliability int    `db:"reliability"`
 }
 

@@ -46,11 +46,13 @@ func (m *DataManager) findData(area, cid string) *Data {
 }
 
 func (m *DataManager) cacheData(area, cid string, reliability int) error {
+	isSave := false
 	dataI, ok := m.dataMap.Load(cid)
 	var data *Data
 	if !ok {
 		data = loadData(area, cid, m.nodeManager, m)
 		if data == nil {
+			isSave = true
 			data = newData(area, m.nodeManager, m, cid, reliability)
 		}
 
@@ -61,6 +63,10 @@ func (m *DataManager) cacheData(area, cid string, reliability int) error {
 
 	if data.needReliability != reliability {
 		data.needReliability = reliability
+		isSave = true
+	}
+
+	if isSave {
 		defer data.saveData()
 	}
 

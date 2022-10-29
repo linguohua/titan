@@ -36,6 +36,7 @@ func newData(area string, nodeManager *NodeManager, dataManager *DataManager, ci
 		needReliability: reliability,
 		cacheTime:       0,
 		area:            area,
+		totalBlocks:     1,
 	}
 }
 
@@ -87,20 +88,10 @@ func (d *Data) cacheContinue(dataManager *DataManager, cacheID string) error {
 	}
 	cache := cacheI.(*Cache)
 
-	list, err := persistent.GetDB().GetUndoneCaches(serverArea, cacheID)
+	list, err := persistent.GetDB().GetUndoneBlocks(serverArea, cacheID)
 	if err != nil {
 		return err
 	}
-	// cache.blockMap.Range(func(key, value interface{}) bool {
-	// 	block := value.(*Block)
-	// 	if block.status != cacheStatusSuccess {
-	// 		list = append(list, block.cid)
-	// 	}
-
-	// 	return true
-	// })
-
-	// log.Infof("do cache list : %s", list)
 
 	log.Infof("%s cache continue ---------- ", cache.cacheID)
 	return cache.doCache(list, d.haveRootCache())
@@ -150,13 +141,16 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 	cache := cacheI.(*Cache)
 
 	isUpdate := false
-	if d.haveRootCache() && info.Cid == d.cid {
-		d.totalSize = int(info.LinksSize) + info.BlockSize
 
+	links := cache.updateBlockInfo(info)
+
+	if !d.haveRootCache() {
+		if info.Cid == d.cid {
+			d.totalSize = int(info.LinksSize) + info.BlockSize
+		}
+		d.totalBlocks += len(info.Links)
 		isUpdate = true
 	}
-
-	links := cache.updateBlockInfo(info, d.totalSize, d.reliability)
 
 	if cache.status > cacheStatusCreate {
 		d.cacheTime++

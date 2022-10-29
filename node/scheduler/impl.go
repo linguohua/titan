@@ -466,6 +466,31 @@ func (s *Scheduler) FindNodeWithBlock(ctx context.Context, cid string) (string, 
 	return "", nil
 }
 
+// GetDownloadInfosWithBlocks find node
+func (s *Scheduler) GetDownloadInfosWithBlocks(ctx context.Context, cids []string) (map[string][]api.DownloadInfo, error) {
+	if len(cids) < 1 {
+		return nil, xerrors.New("cids is nil")
+	}
+
+	// geoInfo, err := region.GetRegion().GetGeoInfo(ip)
+	// if err != nil {
+	// 	log.Warnf("getNodeURLWithData GetGeoInfo err:%s,ip:%s", err.Error(), ip)
+	// }
+
+	infoMap := make(map[string][]api.DownloadInfo)
+
+	// for _, cid := range cids {
+	// info, err := s.nodeManager.findNodeDownloadInfo(cid)
+	// if err != nil {
+	// 	continue
+	// }
+
+	// infoMap[cid] = info
+	// }
+
+	return infoMap, nil
+}
+
 // GetDownloadInfoWithBlocks find node
 func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]api.DownloadInfo, error) {
 	if len(cids) < 1 {
@@ -597,7 +622,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 	if candidata != nil {
 		// redis datas
 		body := api.CacheStat{}
-		count, err := persistent.GetDB().GetBlockNum(candidata.geoInfo.Geo, deviceID)
+		count, err := persistent.GetDB().GetDeviceBlockNum(candidata.geoInfo.Geo, deviceID)
 		if err == nil {
 			body.CacheBlockCount = int(count)
 		}
@@ -612,7 +637,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 	edge := s.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
 		body := api.CacheStat{}
-		count, err := persistent.GetDB().GetBlockNum(edge.geoInfo.Geo, deviceID)
+		count, err := persistent.GetDB().GetDeviceBlockNum(edge.geoInfo.Geo, deviceID)
 		if err == nil {
 			body.CacheBlockCount = int(count)
 		}

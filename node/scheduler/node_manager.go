@@ -130,6 +130,7 @@ func (m *NodeManager) edgeOnline(node *EdgeNode) error {
 
 	isOk, geoInfo := ipLegality(node.deviceInfo.ExternalIp)
 	if !isOk {
+		log.Errorf("edgeOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.deviceInfo.ExternalIp, node.geoInfo.Geo)
 		return xerrors.Errorf(ErrAreaNotExist, geoInfo.Geo, node.deviceInfo.ExternalIp)
 	}
 
@@ -141,8 +142,6 @@ func (m *NodeManager) edgeOnline(node *EdgeNode) error {
 
 		nodeOld = nil
 	}
-
-	log.Infof("edgeOnline DeviceId:%s,geo:%s", deviceID, node.geoInfo.Geo)
 
 	err := node.setNodeOnline(api.TypeNameEdge)
 	if err != nil {
@@ -208,6 +207,7 @@ func (m *NodeManager) candidateOnline(node *CandidateNode) error {
 	// }
 	isOk, geoInfo := ipLegality(node.deviceInfo.ExternalIp)
 	if !isOk {
+		log.Errorf("candidateOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.deviceInfo.ExternalIp, node.geoInfo.Geo)
 		return xerrors.Errorf(ErrAreaNotExist, geoInfo.Geo, node.deviceInfo.ExternalIp)
 	}
 
@@ -219,8 +219,6 @@ func (m *NodeManager) candidateOnline(node *CandidateNode) error {
 
 		nodeOld = nil
 	}
-
-	log.Infof("candidateOnline DeviceId:%s,geo:%s", deviceID, node.geoInfo.Geo)
 
 	err := node.setNodeOnline(api.TypeNameCandidate)
 	if err != nil {
@@ -506,29 +504,6 @@ func (m *NodeManager) findNodeDownloadInfo(cid string) (api.DownloadInfo, error)
 		node := nodeCs[randomNum(0, len(nodeCs))]
 		return node.nodeAPI.GetDownloadInfo(context.Background())
 	}
-
-	// nodeEs, geoLevelE := m.findEdges(geoInfo, deviceIDs, nil)
-	// nodeCs, geoLevelC := m.findCandidates(geoInfo, deviceIDs, nil)
-	// if geoLevelE < geoLevelC {
-	// 	node := nodeCs[randomNum(0, len(nodeCs))]
-	// 	return node.nodeAPI.GetDownloadInfo(context.Background())
-	// }
-
-	// if geoLevelE > geoLevelC {
-	// 	node := nodeEs[randomNum(0, len(nodeEs))]
-	// 	return node.nodeAPI.GetDownloadInfo(context.Background())
-	// }
-
-	// if len(nodeEs) > 0 {
-	// 	node := nodeEs[randomNum(0, len(nodeEs))]
-	// 	return node.nodeAPI.GetDownloadInfo(context.Background())
-	// }
-
-	// if len(nodeCs) > 0 {
-	// 	node := nodeCs[randomNum(0, len(nodeCs))]
-	// 	return node.nodeAPI.GetDownloadInfo(context.Background())
-	// }
-	// http://192.168.0.136:3456/rpc/v0/block/get?cid=QmeUqw4FY1wqnh2FMvuc2v8KAapE7fYwu2Up4qNwhZiRk7
 
 	return downloadInfo, xerrors.Errorf("%s , whit cid:%s", ErrNodeNotFind, cid)
 }

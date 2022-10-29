@@ -51,7 +51,9 @@ func newCacheID(cid string) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("%s_cache_info_%d", serverArea, fid), nil
+	aName := persistent.GetDB().ReplaceArea(serverArea)
+
+	return fmt.Sprintf("%s_cache_info_%d", aName, fid), nil
 }
 
 func newCache(area string, nodeManager *NodeManager, data *Data, cid string) (*Cache, error) {
@@ -60,7 +62,7 @@ func newCache(area string, nodeManager *NodeManager, data *Data, cid string) (*C
 		return nil, err
 	}
 
-	return &Cache{
+	cache := &Cache{
 		area:        area,
 		nodeManager: nodeManager,
 		data:        data,
@@ -68,7 +70,19 @@ func newCache(area string, nodeManager *NodeManager, data *Data, cid string) (*C
 		status:      cacheStatusCreate,
 		cacheID:     id,
 		cardFileCid: cid,
-	}, nil
+	}
+
+	// save total cache info
+	err = persistent.GetDB().SetCacheInfo(cache.area, &persistent.CacheInfo{
+		CarfileID: cache.cardFileCid,
+		CacheID:   cache.cacheID,
+		Status:    int(cache.status),
+	})
+	if err != nil {
+		log.Errorf("cacheID:%s,SetCacheInfo err:%s", cache.cacheID, err.Error())
+	}
+
+	return cache, err
 }
 
 func loadCache(area, cacheID, carfileCid string, nodeManager *NodeManager, totalSize int) *Cache {
@@ -82,10 +96,10 @@ func loadCache(area, cacheID, carfileCid string, nodeManager *NodeManager, total
 		nodeManager: nodeManager,
 	}
 
-	info, err := persistent.GetDB().GetCacheTotalInfo(area, cacheID, carfileCid)
+	info, err := persistent.GetDB().GetCacheInfo(area, cacheID, carfileCid)
 	// list, err := persistent.GetDB().GetCacheInfos(area, cacheID)
-	if err != nil {
-		log.Errorf("loadCache %s,%s GetCacheInfo err:%s", carfileCid, cacheID, err.Error())
+	if err != nil || info == nil {
+		log.Errorf("loadCache %s,%s GetCacheInfo err:%v", carfileCid, cacheID, err)
 		return c
 	}
 
@@ -108,11 +122,8 @@ func loadCache(area, cacheID, carfileCid string, nodeManager *NodeManager, total
 	c.dbID = info.ID
 	c.doneSize = info.DoneSize
 	c.doneBlocks = info.DoneBlocks
-
-	if totalSize > 0 && c.doneSize >= totalSize {
-		c.status = cacheStatusSuccess
-		c.reliability = 1 // TODO
-	}
+	c.status = cacheStatus(info.Status)
+	c.reliability = info.Reliability // TODO
 
 	return c
 }
@@ -245,30 +256,30 @@ func (c *Cache) doCache(cids map[string]int, isHaveCache bool) error {
 	return nil
 }
 
-func (c *Cache) saveCaches(caches []*persistent.BlockInfo, isUpdate bool) {
-	err := persistent.GetDB().SetCacheInfos(c.area, caches, isUpdate)
-	if err != nil {
-		log.Errorf("cacheID:%s,SetCacheInfos err:%v", c.cacheID, err.Error())
-	}
-}
+// func (c *Cache) saveCaches(caches []*persistent.BlockInfo, isUpdate bool) {
+// 	err := persistent.GetDB().SetCacheInfos(c.area, caches, isUpdate)
+// 	if err != nil {
+// 		log.Errorf("cacheID:%s,SetCacheInfos err:%v", c.cacheID, err.Error())
+// 	}
+// }
 
 func (c *Cache) saveBlockInfo(block *persistent.BlockInfo, isUpdate bool, fidStr string) {
 	// log.Warnf("saveCache area:%s", c.area)
-	err := persistent.GetDB().SetCacheInfo(c.area, block, isUpdate)
+	err := persistent.GetDB().SetBlockInfo(c.area, block, c.cardFileCid, fidStr, isUpdate)
 	if err != nil {
-		log.Errorf("cacheID:%s,SetCacheInfo err:%s", c.cacheID, err.Error())
+		log.Errorf("cacheID:%s,SetBlockInfo err:%s", c.cacheID, err.Error())
 	}
 
-	if fidStr != "" {
-		err = persistent.GetDB().AddBlockInfo(serverArea, block.DeviceID, block.CID, fidStr, c.cardFileCid, c.cacheID)
-		if err != nil {
-			log.Errorf("cacheID:%s,AddBlockInfo err:%s", c.cacheID, err.Error())
-		}
-	}
+	// if fidStr != "" {
+	// 	err = persistent.GetDB().AddBlockInfo(serverArea, block.DeviceID, block.CID, fidStr, c.cardFileCid, c.cacheID)
+	// 	if err != nil {
+	// 		log.Errorf("cacheID:%s,AddBlockInfo err:%s", c.cacheID, err.Error())
+	// 	}
+	// }
 }
 
-func (c *Cache) updateBlockInfo(info *api.CacheResultInfo, totalSize, dataReliability int) map[string]int {
-	cacheInfo, err := persistent.GetDB().GetCacheInfo(serverArea, info.CacheID, info.Cid)
+func (c *Cache) updateBlockInfo(info *api.CacheResultInfo) map[string]int {
+	cacheInfo, err := persistent.GetDB().GetBlockInfo(serverArea, info.CacheID, info.Cid)
 	if err != nil || cacheInfo.CID != info.Cid || cacheInfo.DeviceID != info.DeviceID {
 		log.Errorf("cid:%s,deviceID:%s, updateBlockInfo GetCacheInfo err:%v", info.Cid, info.DeviceID, err)
 		return nil
@@ -303,7 +314,7 @@ func (c *Cache) updateBlockInfo(info *api.CacheResultInfo, totalSize, dataReliab
 		return m
 	}
 
-	haveUndone, err := persistent.GetDB().HaveCaches(c.area, c.cacheID, int(cacheStatusCreate))
+	haveUndone, err := persistent.GetDB().HaveBlocks(c.area, c.cacheID, int(cacheStatusCreate))
 	if err != nil {
 		log.Errorf("HaveUndoneCaches err:%s", err.Error())
 		return nil
@@ -313,7 +324,7 @@ func (c *Cache) updateBlockInfo(info *api.CacheResultInfo, totalSize, dataReliab
 		return nil
 	}
 
-	haveFailed, err := persistent.GetDB().HaveCaches(c.area, c.cacheID, int(cacheStatusFail))
+	haveFailed, err := persistent.GetDB().HaveBlocks(c.area, c.cacheID, int(cacheStatusFail))
 	if haveFailed {
 		c.reliability = 0
 		c.status = cacheStatusFail
@@ -323,15 +334,17 @@ func (c *Cache) updateBlockInfo(info *api.CacheResultInfo, totalSize, dataReliab
 	}
 
 	// save total cache info
-	err = persistent.GetDB().UpdateCacheTotalInfo(c.area, &persistent.BlockInfo{
+	err = persistent.GetDB().SetCacheInfo(c.area, &persistent.CacheInfo{
 		ID:          c.dbID,
+		CarfileID:   c.cardFileCid,
+		CacheID:     c.cacheID,
 		DoneSize:    c.doneSize,
 		Status:      int(c.status),
 		DoneBlocks:  c.doneBlocks,
 		Reliability: c.reliability,
 	})
 	if err != nil {
-		log.Errorf("cacheID:%s,UpdateCacheTotalInfo err:%s", c.cacheID, err.Error())
+		log.Errorf("cacheID:%s,SetCacheInfo err:%s", c.cacheID, err.Error())
 	}
 
 	return nil
