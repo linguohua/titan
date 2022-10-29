@@ -225,7 +225,7 @@ var runCmd = &cli.Command{
 		}
 
 		pPath := cctx.String("persistentdb-url")
-		err = persistent.NewDB(pPath, persistent.TypeSQL(), sName)
+		err = persistent.NewDB(pPath, persistent.TypeSQL(), sName, area)
 		if err != nil {
 			log.Panic(err.Error())
 		}

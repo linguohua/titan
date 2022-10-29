@@ -85,8 +85,6 @@ func (v *Validate) getReqValidates(validatorID string, list []string) ([]api.Req
 
 	var nodeType api.NodeType
 
-	area := ""
-
 	for _, deviceID := range list {
 		addr := ""
 		edgeNode := v.nodeManager.getEdgeNode(deviceID)
@@ -98,15 +96,13 @@ func (v *Validate) getReqValidates(validatorID string, list []string) ([]api.Req
 			}
 			addr = candidateNode.Node.addr
 			nodeType = api.NodeCandidate
-			area = candidateNode.geoInfo.Geo
 		} else {
 			addr = edgeNode.Node.addr
 			nodeType = api.NodeEdge
-			area = edgeNode.geoInfo.Geo
 		}
 
 		// cache datas
-		num, err := persistent.GetDB().GetDeviceBlockNum(area, deviceID)
+		num, err := persistent.GetDB().GetDeviceBlockNum(deviceID)
 		if err != nil {
 			// log.Warnf("validate GetBlockNum err:%v,DeviceId:%v", err.Error(), deviceID)
 			err = v.saveValidateResult(v.roundID, deviceID, validatorID, err.Error(), persistent.ValidateStatusOther)
@@ -269,9 +265,7 @@ func (v *Validate) validate(validateResults *api.ValidateResults) error {
 		return v.saveValidateResult(v.roundID, deviceID, "", msg, status)
 	}
 
-	area := v.nodeManager.getNodeArea(deviceID)
-
-	cacheInfos, err := persistent.GetDB().GetBlocksFID(area, deviceID)
+	cacheInfos, err := persistent.GetDB().GetBlocksFID(deviceID)
 	if err != nil || len(cacheInfos) <= 0 {
 		status = persistent.ValidateStatusOther
 		msg = err.Error()
