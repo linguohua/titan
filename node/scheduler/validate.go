@@ -282,11 +282,12 @@ func (v *Validate) validate(validateResults *api.ValidateResults) error {
 
 		cid := cacheInfos[fidStr]
 		// cid, err := persistent.GetDB().GetBlockCidWithFid(deviceID, fidStr)
-		// if err != nil || cid == "" {
-		// 	// status = cache.ValidateStatusFail
-		// 	// msg = fmt.Sprintf("GetCacheBlockInfos err:%v,resultCid:%v,cid:%v,index:%v", err.Error(), resultCid, cid, index)
-		// 	continue
-		// }
+		if cid == "" {
+			// log.Warnf("cid nil;fid:%s", fidStr)
+			// status = cache.ValidateStatusFail
+			// msg = fmt.Sprintf("GetCacheBlockInfos err:%v,resultCid:%v,cid:%v,index:%v", err.Error(), resultCid, cid, index)
+			continue
+		}
 
 		if !v.compareCid(cid, resultCid) {
 			status = persistent.ValidateStatusFail
@@ -433,15 +434,20 @@ func (v *Validate) startValidate() error {
 }
 
 func (v *Validate) compareCid(cidStr1, cidStr2 string) bool {
+	// log.Warnf("cidStr1:%s,cidStr2:%s", cidStr1, cidStr2)
+
 	target1, err := cid.Decode(cidStr1)
 	if err != nil {
+		// log.Warnf("err1:%s", err.Error())
 		return false
 	}
 
 	target2, err := cid.Decode(cidStr2)
 	if err != nil {
+		// log.Warnf("err2:%s", err.Error())
 		return false
 	}
+	// log.Warnf("Hash1:%s,Hash2:%s", target1.Hash().String(), target2.Hash().String())
 
 	return target1.Hash().String() == target2.Hash().String()
 }

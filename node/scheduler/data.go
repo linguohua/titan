@@ -52,7 +52,7 @@ func loadDataInfos(area string) []*persistent.DataInfo {
 func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManager) *Data {
 	dInfo, err := persistent.GetDB().GetDataInfo(cid)
 	if err != nil {
-		log.Errorf("loadData err :%s", err.Error())
+		log.Errorf("loadData %s err :%s", cid, err.Error())
 		return nil
 	}
 	if dInfo != nil {
@@ -85,7 +85,7 @@ func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManag
 	return nil
 }
 
-func (d *Data) cacheContinue(dataManager *DataManager, cacheID string) error {
+func (d *Data) cacheContinue(cacheID string) error {
 	cacheI, ok := d.cacheMap.Load(cacheID)
 	if !ok || cacheI == nil {
 		return xerrors.Errorf("Not Found CacheID :%s", cacheID)
@@ -98,7 +98,15 @@ func (d *Data) cacheContinue(dataManager *DataManager, cacheID string) error {
 	}
 
 	log.Infof("%s cache continue ---------- ", cache.cacheID)
-	return cache.doCache(list, d.haveRootCache())
+	// return cache.doCache(list, d.haveRootCache())
+
+	createBlocks, deviceCacheMap := cache.getCacheInfos(list, d.haveRootCache())
+
+	cache.saveBlockInfos(createBlocks)
+
+	cache.cacheToNodes(deviceCacheMap)
+
+	return nil
 }
 
 func (d *Data) haveRootCache() bool {
@@ -115,26 +123,17 @@ func (d *Data) haveRootCache() bool {
 	return false
 }
 
-func (d *Data) createCache(dataManager *DataManager) error {
-	if d.running {
-		return xerrors.New("data have task running,please wait")
-	}
-
+func (d *Data) createCache() (*Cache, error) {
 	if d.reliability >= d.needReliability {
-		return xerrors.Errorf("reliability is enough:%d/%d", d.reliability, d.needReliability)
+		return nil, xerrors.Errorf("reliability is enough:%d/%d", d.reliability, d.needReliability)
 	}
 
 	cache, err := newCache(d.area, d.nodeManager, d, d.cid)
 	if err != nil {
-		return xerrors.Errorf("new cache err:%s", err.Error())
+		return nil, xerrors.Errorf("new cache err:%s", err.Error())
 	}
 
-	// d.cacheMap[cache.cacheID] = cache
-	d.cacheMap.Store(cache.cacheID, cache)
-	d.cacheIDs = fmt.Sprintf("%s%s,", d.cacheIDs, cache.cacheID)
-
-	log.Infof("%s cache start ---------- ", cache.cacheID)
-	return cache.doCache(map[string]int{d.cid: 0}, d.haveRootCache())
+	return cache, nil
 }
 
 func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInfo) error {
@@ -144,8 +143,7 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 	}
 	cache := cacheI.(*Cache)
 
-	isUpdate := false
-	links, err := cache.updateBlockInfo(info)
+	blockInfo, links, err := cache.blockCacheResult(info)
 	if err != nil {
 		return xerrors.Errorf("updateBlockInfo err:%s", err.Error())
 	}
@@ -155,7 +153,7 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 			d.totalSize = int(info.LinksSize) + info.BlockSize
 		}
 		d.totalBlocks += len(info.Links)
-		isUpdate = true
+		// isUpdate = true
 	}
 
 	if cache.status > cacheStatusCreate {
@@ -165,43 +163,99 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 			d.reliability += cache.reliability
 			if d.rootCacheID == "" {
 				d.rootCacheID = cacheID
-				d.running = false
 			}
 		}
 
-		if d.needReliability > d.reliability {
-			if d.cacheTime < d.needReliability+1 { // TODO
-				// create cache again
-				d.createCache(d.dataManager)
-			}
-		}
-		isUpdate = true
+		d.saveCacheTotalInfo(cache, blockInfo, info.Fid, nil)
+
+		d.endData()
+		// isUpdate = true
+		return nil
 	}
 
-	if isUpdate {
-		d.saveData()
-	}
+	// if isUpdate {
+	// 	d.saveData()
+	// }
 
-	if links != nil {
-		return cache.doCache(links, d.haveRootCache())
-	}
+	createBlocks, deviceCacheMap := cache.getCacheInfos(links, d.haveRootCache())
+
+	d.saveCacheTotalInfo(cache, blockInfo, info.Fid, createBlocks)
+
+	cache.cacheToNodes(deviceCacheMap)
 
 	return nil
 }
 
-func (d *Data) saveData() {
-	// save to db
-	err := persistent.GetDB().SetDataInfo(&persistent.DataInfo{
-		CID:             d.cid,
-		CacheIDs:        d.cacheIDs,
-		TotalSize:       d.totalSize,
-		NeedReliability: d.needReliability,
-		Reliability:     d.reliability,
-		CacheTime:       d.cacheTime,
-		TotalBlocks:     d.totalBlocks,
-		RootCacheID:     d.rootCacheID,
-	})
+func (d *Data) saveCacheTotalInfo(cache *Cache, bInfo *persistent.BlockInfo, fid string, createBlocks []*persistent.BlockInfo) {
+	dInfo := &persistent.DataInfo{
+		CID:         d.cid,
+		TotalSize:   d.totalSize,
+		TotalBlocks: d.totalBlocks,
+		Reliability: d.reliability,
+		CacheTime:   d.cacheTime,
+		RootCacheID: d.rootCacheID,
+	}
+
+	cInfo := &persistent.CacheInfo{
+		ID:          cache.dbID,
+		CarfileID:   cache.cardFileCid,
+		CacheID:     cache.cacheID,
+		DoneSize:    cache.doneSize,
+		Status:      int(cache.status),
+		DoneBlocks:  cache.doneBlocks,
+		Reliability: cache.reliability,
+	}
+
+	err := persistent.GetDB().SaveCacheResult(dInfo, cInfo, bInfo, fid, createBlocks)
 	if err != nil {
-		log.Errorf("cid:%s,SetDataInfo err:%s", d.cid, err.Error())
+		log.Errorf("cid:%s,SaveCacheResult err:%s", d.cid, err.Error())
+	}
+}
+
+func (d *Data) startData() error {
+	if d.running {
+		return xerrors.New("data have task running,please wait")
+	}
+
+	cache, err := d.createCache()
+	if err != nil {
+		return err
+	}
+
+	// d.cacheMap[cache.cacheID] = cache
+	d.cacheMap.Store(cache.cacheID, cache)
+	d.cacheIDs = fmt.Sprintf("%s%s,", d.cacheIDs, cache.cacheID)
+
+	id, err := persistent.GetDB().CreateCache(
+		&persistent.DataInfo{CID: d.cid, CacheIDs: d.cacheIDs},
+		&persistent.CacheInfo{
+			CarfileID: cache.cardFileCid,
+			CacheID:   cache.cacheID,
+			Status:    int(cache.status),
+		})
+	if err != nil {
+		return err
+	}
+	cache.dbID = id
+
+	return cache.startCache(d.haveRootCache())
+}
+
+func (d *Data) endData() {
+	d.running = false
+
+	if d.needReliability <= d.reliability {
+		return
+	}
+
+	if d.cacheTime > d.needReliability+1 {
+		// TODO
+		return
+	}
+
+	// create cache again
+	err := d.startData()
+	if err != nil {
+		log.Errorf("startData err:%s", err.Error())
 	}
 }

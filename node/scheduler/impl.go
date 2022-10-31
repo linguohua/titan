@@ -200,9 +200,10 @@ func (s *Scheduler) CacheContinue(ctx context.Context, cid, cacheID string) erro
 
 // CacheResult Cache Data Result
 func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
-	s.dataManager.pushCacheResultToQueue(deviceID, &info)
+	// log.Warnf("CacheResult deviceID:%s ,cid:%s", deviceID, info.Cid)
+	err := s.dataManager.pushCacheResultToQueue(deviceID, &info)
 
-	return "", nil
+	return "", err
 }
 
 // RegisterNode Register Node
