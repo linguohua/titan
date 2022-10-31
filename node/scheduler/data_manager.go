@@ -4,27 +4,32 @@ import (
 	"sync"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
+	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
 )
 
 // DataManager Data
 type DataManager struct {
-	nodeManager    *NodeManager
-	dataMap        sync.Map
-	blockLoaderCh  chan bool
-	resultListLock *sync.Mutex
-	resultList     []*api.CacheResultInfo
+	nodeManager   *NodeManager
+	dataMap       sync.Map
+	blockLoaderCh chan bool
+	// dataTaskCh    chan bool
+	// resultListLock *sync.Mutex
+	// resultList     []*api.CacheResultInfo
 }
 
 func newDataManager(nodeManager *NodeManager) *DataManager {
 	d := &DataManager{
-		nodeManager:    nodeManager,
-		blockLoaderCh:  make(chan bool),
-		resultList:     make([]*api.CacheResultInfo, 0),
-		resultListLock: &sync.Mutex{},
+		nodeManager:   nodeManager,
+		blockLoaderCh: make(chan bool),
+		// dataTaskCh:    make(chan bool),
+		// resultList:     make([]*api.CacheResultInfo, 0),
+		// resultListLock: &sync.Mutex{},
 	}
 
 	go d.startBlockLoader()
+	// go d.startDataTask()
 
 	return d
 }
@@ -67,10 +72,23 @@ func (m *DataManager) cacheData(area, cid string, reliability int) error {
 	}
 
 	if isSave {
-		defer data.saveData()
+		err := persistent.GetDB().SetDataInfo(&persistent.DataInfo{
+			CID:             data.cid,
+			CacheIDs:        data.cacheIDs,
+			TotalSize:       data.totalSize,
+			NeedReliability: data.needReliability,
+			Reliability:     data.reliability,
+			CacheTime:       data.cacheTime,
+			TotalBlocks:     data.totalBlocks,
+			RootCacheID:     data.rootCacheID,
+		})
+		if err != nil {
+			log.Errorf("cid:%s,SetDataInfo err:%s", data.cid, err.Error())
+			return err
+		}
 	}
 
-	return data.createCache(m)
+	return data.startData()
 }
 
 func (m *DataManager) cacheContinue(area, cid, cacheID string) error {
@@ -87,7 +105,7 @@ func (m *DataManager) cacheContinue(area, cid, cacheID string) error {
 		data = dataI.(*Data)
 	}
 
-	return data.cacheContinue(m, cacheID)
+	return data.cacheContinue(cacheID)
 }
 
 func (m *DataManager) removeBlock(deviceID string, cids []string) {
@@ -106,38 +124,93 @@ func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultI
 	return data.updateDataInfo(deviceID, info.CacheID, info)
 }
 
-func (m *DataManager) dequeue() *api.CacheResultInfo {
-	m.resultListLock.Lock()
-	defer m.resultListLock.Unlock()
+// func (m *DataManager) dequeue() *api.CacheResultInfo {
+// 	m.resultListLock.Lock()
+// 	defer m.resultListLock.Unlock()
 
-	info := m.resultList[0]
-	m.resultList = m.resultList[1:]
+// 	info := m.resultList[0]
+// 	m.resultList = m.resultList[1:]
 
-	return info
-}
+// 	return info
+// }
 
-func (m *DataManager) enqueue(info *api.CacheResultInfo) {
-	m.resultListLock.Lock()
-	defer m.resultListLock.Unlock()
+// func (m *DataManager) enqueue(info *api.CacheResultInfo) {
+// 	m.resultListLock.Lock()
+// 	defer m.resultListLock.Unlock()
 
-	m.resultList = append(m.resultList, info)
-}
+// 	m.resultList = append(m.resultList, info)
+// }
+
+// func (m *DataManager) doDataTask() {
+// 	info, err := cache.GetDB().GetWaitingCacheTask()
+// 	if err != nil {
+// 		log.Errorf("doDataTask GetWaitingCacheTask err:%s", err.Error())
+// 		return
+// 	}
+
+// 	err = m.cacheData(serverArea, info.Cid, info.NeedReliability)
+// 	if err != nil {
+// 		log.Errorf("doDataTask cacheData err:%s", err.Error())
+// 		return
+// 	}
+
+// 	err = cache.GetDB().RemoveWaitingCacheTask()
+// 	if err != nil {
+// 		log.Errorf("doDataTask RemoveWaitingCacheTask err:%s", err.Error())
+// 		return
+// 	}
+// }
 
 func (m *DataManager) doResultTask() {
-	for len(m.resultList) > 0 {
-		info := m.dequeue()
+	// defer m.notifyBlockLoader()
+	for cache.GetDB().GetCacheResultNum() > 0 {
+		info, err := cache.GetDB().GetCacheResultInfo()
+		if err != nil {
+			log.Errorf("doResultTask GetCacheResultInfo err:%s", err.Error())
+			return
+		}
 
-		err := m.cacheCarfileResult(info.DeviceID, info)
+		err = m.cacheCarfileResult(info.DeviceID, &info)
 		if err != nil {
 			log.Errorf("doResultTask cacheCarfileResult err:%s", err.Error())
+			// return
+		}
+
+		err = cache.GetDB().RemoveCacheResultInfo()
+		if err != nil {
+			log.Errorf("doResultTask RemoveCacheResultInfo err:%s", err.Error())
+			return
 		}
 	}
+
+	// for len(m.resultList) > 0 {
+	// 	info := m.dequeue()
+
+	// 	err := m.cacheCarfileResult(info.DeviceID, info)
+	// 	if err != nil {
+	// 		log.Errorf("doResultTask cacheCarfileResult err:%s", err.Error())
+	// 	}
+	// }
 }
 
-func (m *DataManager) pushCacheResultToQueue(deviceID string, info *api.CacheResultInfo) {
+// func (m *DataManager) pushNewTaskToQueue(area, cid string, reliability int) error {
+// 	err := cache.GetDB().SetWaitingCacheTask(api.CacheDataInfo{Cid: cid, NeedReliability: reliability})
+
+// 	// m.enqueue(info)
+// 	m.notifyTask()
+
+// 	return err
+// }
+
+func (m *DataManager) pushCacheResultToQueue(deviceID string, info *api.CacheResultInfo) error {
 	info.DeviceID = deviceID
-	m.enqueue(info)
+
+	err := cache.GetDB().SetCacheResultInfo(*info)
+
+	// m.enqueue(info)
 	m.notifyBlockLoader()
+
+	return err
 }
 
 func (m *DataManager) startBlockLoader() {
@@ -153,3 +226,17 @@ func (m *DataManager) notifyBlockLoader() {
 	default:
 	}
 }
+
+// func (m *DataManager) startDataTask() {
+// 	for {
+// 		<-m.dataTaskCh
+// 		m.doDataTask()
+// 	}
+// }
+
+// func (m *DataManager) notifyTask() {
+// 	select {
+// 	case m.dataTaskCh <- true:
+// 	default:
+// 	}
+// }

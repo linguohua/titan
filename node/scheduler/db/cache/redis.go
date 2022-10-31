@@ -16,6 +16,12 @@ import (
 )
 
 const (
+	// redisKeyWaitingTask  server name
+	redisKeyWaitingTask = "Titan:WaitingTask:%s"
+	// redisKeyRunningTask  server name
+	redisKeyRunningTask = "Titan:RunningTask:%s"
+	// redisKeyCacheResult  server name
+	redisKeyCacheResult = "Titan:CacheResult:%s"
 	// RedisKeyNodeBlockFid  deviceID
 	redisKeyNodeBlockFid = "Titan:NodeBlockFid:%s"
 	// RedisKeyBlockNodeList  cid
@@ -38,8 +44,8 @@ const (
 	redisKeyCacheID = "Titan:CacheID:%s"
 	// redisKeyDataCacheKey
 	redisKeyDataCacheKey = "Titan:DataCacheKey:%s"
-	// RedisKeyCacheTask  deviceID
-	redisKeyCacheTask = "Titan:CacheTask:%s"
+	// RedisKeyCacheTask
+	redisKeyCacheTask = "Titan:CacheTask"
 	// RedisKeyNodeDeviceID
 	redisKeyNodeDeviceID = "Titan:NodeDeviceID"
 	// RedisKeyNodeReward
@@ -293,36 +299,30 @@ func (rd redisDB) IsNodeInValidatorList(deviceID string) (bool, error) {
 // 	return rd.cli.SIsMember(context.Background(), redisKeyCandidateDeviceIDList, deviceID).Result()
 // }
 
-func (rd redisDB) SetCacheDataTask(deviceID, cid, cacheID string) error {
-	key := fmt.Sprintf(redisKeyCacheTask, deviceID)
+// func (rd redisDB) SetCacheDataTask(cid, cacheID string) error {
+// 	rd.cli.Expire(context.Background(), redisKeyCacheTask, time.Second*20)
 
-	rd.cli.Expire(context.Background(), key, time.Second*20)
+// 	_, err := rd.cli.HMSet(context.Background(), redisKeyCacheTask, carFileIDField, cid, cacheIDField, cacheID).Result()
+// 	return err
+// }
 
-	_, err := rd.cli.HMSet(context.Background(), key, carFileIDField, cid, cacheIDField, cacheID).Result()
-	return err
-}
+// // SISMEMBER
+// func (rd redisDB) RemoveCacheDataTask() error {
+// 	_, err := rd.cli.Del(context.Background(), redisKeyCacheTask).Result()
+// 	return err
+// }
 
-// SISMEMBER
-func (rd redisDB) RemoveCacheDataTask(deviceID string) error {
-	key := fmt.Sprintf(redisKeyCacheTask, deviceID)
+// // SISMEMBER
+// func (rd redisDB) GetCacheDataTask() (string, string) {
+// 	vals, err := rd.cli.HMGet(context.Background(), redisKeyCacheTask, carFileIDField, cacheIDField).Result()
+// 	if err != nil || vals == nil || len(vals) <= 0 {
+// 		return "", ""
+// 	}
 
-	_, err := rd.cli.Del(context.Background(), key).Result()
-	return err
-}
-
-// SISMEMBER
-func (rd redisDB) GetCacheDataTask(deviceID string) (string, string) {
-	key := fmt.Sprintf(redisKeyCacheTask, deviceID)
-
-	vals, err := rd.cli.HMGet(context.Background(), key, carFileIDField, cacheIDField).Result()
-	if err != nil || vals == nil || len(vals) <= 0 {
-		return "", ""
-	}
-
-	cid, _ := redigo.String(vals[0], nil)
-	cacheID, _ := redigo.String(vals[1], nil)
-	return cid, cacheID
-}
+// 	cid, _ := redigo.String(vals[0], nil)
+// 	cacheID, _ := redigo.String(vals[1], nil)
+// 	return cid, cacheID
+// }
 
 func (rd redisDB) IncrNodeReward(deviceID string, reward int64) error {
 	key := fmt.Sprintf(redisKeyNodeDayReward, deviceID)
@@ -442,4 +442,105 @@ func (rd redisDB) GetDeviceInfo(deviceID string) (api.DevicesInfo, error) {
 
 	info.OnlineTime, _ = strconv.ParseFloat(onlineTime, 10)
 	return info, nil
+}
+
+func (rd redisDB) SetCacheResultInfo(info api.CacheResultInfo) error {
+	key := fmt.Sprintf(redisKeyCacheResult, serverName)
+
+	bytes, err := json.Marshal(info)
+	if err != nil {
+		return err
+	}
+
+	_, err = rd.cli.RPush(context.Background(), key, bytes).Result()
+	return err
+}
+
+func (rd redisDB) GetCacheResultInfo() (api.CacheResultInfo, error) {
+	key := fmt.Sprintf(redisKeyCacheResult, serverName)
+
+	value, err := rd.cli.LIndex(context.Background(), key, 0).Result()
+
+	var info api.CacheResultInfo
+	bytes, err := redigo.Bytes(value, nil)
+	if err != nil {
+		return api.CacheResultInfo{}, err
+	}
+
+	if err := json.Unmarshal(bytes, &info); err != nil {
+		return api.CacheResultInfo{}, err
+	}
+
+	return info, nil
+}
+
+func (rd redisDB) GetCacheResultNum() int64 {
+	key := fmt.Sprintf(redisKeyCacheResult, serverName)
+
+	l, _ := rd.cli.LLen(context.Background(), key).Result()
+	return l
+}
+
+func (rd redisDB) RemoveCacheResultInfo() error {
+	key := fmt.Sprintf(redisKeyCacheResult, serverName)
+
+	_, err := rd.cli.LPop(context.Background(), key).Result()
+	return err
+}
+
+func (rd redisDB) SetRunningCacheTask(cid string) error {
+	key := fmt.Sprintf(redisKeyRunningTask, serverName)
+	// Expire
+	_, err := rd.cli.Set(context.Background(), key, cid, time.Second*20).Result()
+	return err
+}
+
+func (rd redisDB) GetRunningCacheTask() (string, error) {
+	key := fmt.Sprintf(redisKeyRunningTask, serverName)
+
+	return rd.cli.Get(context.Background(), key).Result()
+}
+
+func (rd redisDB) RemoveRunningCacheTask() error {
+	key := fmt.Sprintf(redisKeyRunningTask, serverName)
+
+	_, err := rd.cli.Del(context.Background(), key).Result()
+	return err
+}
+
+func (rd redisDB) SetWaitingCacheTask(info api.CacheDataInfo) error {
+	key := fmt.Sprintf(redisKeyWaitingTask, serverName)
+
+	bytes, err := json.Marshal(info)
+	if err != nil {
+		return err
+	}
+
+	_, err = rd.cli.RPush(context.Background(), key, bytes).Result()
+	return err
+}
+
+func (rd redisDB) GetWaitingCacheTask() (api.CacheDataInfo, error) {
+	key := fmt.Sprintf(redisKeyWaitingTask, serverName)
+
+	value, err := rd.cli.LIndex(context.Background(), key, 0).Result()
+
+	var info api.CacheDataInfo
+	bytes, err := redigo.Bytes(value, nil)
+	if err != nil {
+		return api.CacheDataInfo{}, err
+	}
+
+	if err := json.Unmarshal(bytes, &info); err != nil {
+		return api.CacheDataInfo{}, err
+	}
+
+	return info, nil
+}
+
+func (rd redisDB) RemoveWaitingCacheTask() error {
+	key := fmt.Sprintf(redisKeyWaitingTask, serverName)
+
+	_, err := rd.cli.LPop(context.Background(), key).Result()
+	return err
 }

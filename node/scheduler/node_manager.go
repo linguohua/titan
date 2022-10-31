@@ -130,7 +130,7 @@ func (m *NodeManager) edgeOnline(node *EdgeNode) error {
 
 	isOk, geoInfo := ipLegality(node.deviceInfo.ExternalIp)
 	if !isOk {
-		log.Errorf("edgeOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.deviceInfo.ExternalIp, node.geoInfo.Geo)
+		log.Errorf("edgeOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.deviceInfo.ExternalIp, geoInfo.Geo)
 		return xerrors.Errorf(ErrAreaNotExist, geoInfo.Geo, node.deviceInfo.ExternalIp)
 	}
 
@@ -207,7 +207,7 @@ func (m *NodeManager) candidateOnline(node *CandidateNode) error {
 	// }
 	isOk, geoInfo := ipLegality(node.deviceInfo.ExternalIp)
 	if !isOk {
-		log.Errorf("candidateOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.deviceInfo.ExternalIp, node.geoInfo.Geo)
+		log.Errorf("candidateOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.deviceInfo.ExternalIp, geoInfo.Geo)
 		return xerrors.Errorf(ErrAreaNotExist, geoInfo.Geo, node.deviceInfo.ExternalIp)
 	}
 

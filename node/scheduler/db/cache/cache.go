@@ -7,6 +7,19 @@ import (
 
 // DB cache db
 type DB interface {
+	SetCacheResultInfo(info api.CacheResultInfo) error
+	GetCacheResultInfo() (api.CacheResultInfo, error)
+	RemoveCacheResultInfo() error
+	GetCacheResultNum() int64
+
+	// SetRunningCacheTask(cid string) error
+	// GetRunningCacheTask() (string, error)
+	// RemoveRunningCacheTask() error
+
+	// SetWaitingCacheTask(info api.CacheDataInfo) error
+	// GetWaitingCacheTask() (api.CacheDataInfo, error)
+	// RemoveWaitingCacheTask() error
+
 	// IncrDataCacheKey(cacheID string) (int64, error)
 	// DeleteDataCache(cacheID string) error
 
@@ -35,9 +48,9 @@ type DB interface {
 
 	IncrCacheID(area string) (int64, error)
 
-	SetCacheDataTask(deviceID, cid, cacheID string) error
-	RemoveCacheDataTask(deviceID string) error
-	GetCacheDataTask(deviceID string) (string, string)
+	// SetCacheDataTask(cid, cacheID string) error
+	// RemoveCacheDataTask() error
+	// GetCacheDataTask() (string, string)
 
 	IncrNodeReward(deviceID string, reward int64) error
 	GetNodeReward(deviceID string) (int64, int64, int64, error)

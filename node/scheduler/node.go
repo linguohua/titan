@@ -62,9 +62,6 @@ func (n *Node) setNodeOnline(typeName api.NodeTypeName) error {
 	// }
 	// log.Infof("oldgeo:%v,newgeo:%v,err:%v", nodeInfo.Geo, geoInfo.Geo, err)
 
-	// TODO clean task
-	cache.GetDB().RemoveCacheDataTask(deviceID)
-
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
 	err := persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{
 		Geo:      geoInfo.Geo,

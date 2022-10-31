@@ -20,20 +20,23 @@ type DB interface {
 	SetValidateResultInfo(info *ValidateResult) error
 	SetNodeToValidateErrorList(sID, deviceID string) error
 
+	CreateCache(dInfo *DataInfo, cInfo *CacheInfo) (int, error)
+	SaveCacheResult(dInfo *DataInfo, cInfo *CacheInfo, updateBlock *BlockInfo, fid string, createBlocks []*BlockInfo) error
+
 	// data info
 	SetDataInfo(info *DataInfo) error
 	GetDataInfo(cid string) (*DataInfo, error)
 	GetDataInfos() ([]*DataInfo, error)
 
 	// cache info
-	SetCacheInfo(info *CacheInfo) error
+	// SetCacheInfo(info *CacheInfo) error
 	GetCacheInfo(cacheID, carfileID string) (*CacheInfo, error)
 
 	// block info
 	SetBlockInfos(infos []*BlockInfo) error
-	SetBlockInfo(info *BlockInfo, carfileCid, fid string, isUpdate bool) error
+	// SetBlockInfo(info *BlockInfo, carfileCid, fid string, isUpdate bool) error
 	GetBlockInfo(cacheID, cid, deviceID string) (*BlockInfo, error)
-	HaveBlocks(cacheID string, status int) (bool, error)
+	HaveBlocks(cacheID string, status int) (int, error)
 	GetUndoneBlocks(cacheID string) (map[string]int, error)
 	// SetCacheInfos( infos []*BlockInfo, isUpdate bool) error
 	// GetCacheInfos( cacheID string) ([]*BlockInfo, error)
