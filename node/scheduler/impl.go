@@ -42,9 +42,8 @@ const (
 )
 
 const (
-	StatusOffline int = iota
-	StatusOnline
-	StatusAbnormal
+	StatusOffline = "offline"
+	StatusOnline  = "online"
 )
 
 // NewLocalScheduleNode NewLocalScheduleNode
@@ -150,6 +149,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 		return "", err
 	}
 
+	deviceInfo.IpLocation = edgeNode.geoInfo.Geo
 	err = s.nodeManager.SetDeviceInfo(deviceID, deviceInfo)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect set device info: %s", err.Error())
@@ -593,6 +593,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token st
 		return "", err
 	}
 
+	deviceInfo.IpLocation = candidateNode.geoInfo.Geo
 	err = s.nodeManager.SetDeviceInfo(deviceID, deviceInfo)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect set device info: %s", err.Error())
@@ -681,12 +682,6 @@ func (s *Scheduler) Validate(ctx context.Context) error {
 // GetDevicesInfo return the devices information
 func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.DevicesInfo, error) {
 	// node datas
-	node, err := persistent.GetDB().GetNodeInfo(deviceID)
-	if err != nil {
-		log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
-		return api.DevicesInfo{}, err
-	}
-
 	deviceInfo, err := cache.GetDB().GetDeviceInfo(deviceID)
 	if err != nil {
 		log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
@@ -698,27 +693,26 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.De
 		return api.DevicesInfo{}, err
 	}
 
+	_, isOnline := s.nodeManager.candidateNodeMap.Load(deviceID)
+	if !isOnline {
+		_, isOnline = s.nodeManager.edgeNodeMap.Load(deviceID)
+	}
+
 	deviceInfo.TodayProfit = float64(rewardInDay)
 	deviceInfo.SevenDaysProfit = float64(rewardInWeek)
 	deviceInfo.MonthProfit = float64(rewardInMonth)
-	deviceInfo.IpLocation = node.Geo
-	deviceInfo.DeviceStatus = getDeviceStatus(node.IsOnline)
+	deviceInfo.DeviceStatus = getDeviceStatus(isOnline)
 
 	return deviceInfo, nil
 }
 
 // GetDeviceStatus return the status of the device
-func getDeviceStatus(status int) string {
-	switch status {
-	case StatusOffline:
-		return "offline"
-	case StatusOnline:
-		return "online"
-	case StatusAbnormal:
-		return "abnormal"
+func getDeviceStatus(isOnline bool) string {
+	switch isOnline {
+	case true:
+		return StatusOnline
 	default:
-		log.Warnf("unexpected device status: %d", status)
-		return "abnormal"
+		return StatusOffline
 	}
 }
 

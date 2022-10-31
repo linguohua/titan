@@ -2,6 +2,7 @@ package device
 
 import (
 	"context"
+	"math/rand"
 	"net"
 	"strings"
 
@@ -37,6 +38,7 @@ func NewDevice(deviceID, publicIP, internalIP string, bandwidthUp, bandwidthDown
 }
 func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	info := api.DevicesInfo{}
+	fillUpDeviceInfo(&info)
 
 	v, err := api.VersionForType(api.RunningNodeType)
 	if err != nil {
@@ -157,4 +159,19 @@ func (device *Device) GetPublicIP() string {
 
 func (device *Device) GetInternalIP() string {
 	return device.internalIP
+}
+
+// only for test
+func fillUpDeviceInfo(deviceInfo *api.DevicesInfo) {
+	if deviceInfo.Latency <= 0 {
+		deviceInfo.Latency = rand.Float64() * 10
+	}
+
+	if deviceInfo.PkgLossRatio <= 0 {
+		deviceInfo.PkgLossRatio = rand.Float64()
+	}
+
+	if deviceInfo.NatRatio <= 0 {
+		deviceInfo.NatRatio = 100
+	}
 }
