@@ -139,6 +139,7 @@ type NodeBlocks struct {
 
 // DataInfo Data info
 type DataInfo struct {
+	ID              int
 	CID             string `db:"cid"`
 	CacheIDs        string `db:"cache_ids"`
 	Status          int    `db:"status"`

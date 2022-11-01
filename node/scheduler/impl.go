@@ -340,15 +340,20 @@ func (s *Scheduler) CacheCarFile(ctx context.Context, cid string, reliability in
 }
 
 // ListDatas List Datas
-func (s *Scheduler) ListDatas(ctx context.Context) ([]string, error) {
-	list := make([]string, 0)
+func (s *Scheduler) ListDatas(ctx context.Context, page int) (api.DataListInfo, error) {
+	// list := make([]string, 0)
 
-	infos := loadDataInfos(serverArea)
-	for _, info := range infos {
-		list = append(list, info.CID)
-	}
+	// infos, err := persistent.GetDB().GetDataInfos()
+	// if err != nil {
+	// 	return nil
+	// }
 
-	return list, nil
+	// infos := loadDataInfos(serverArea)
+	// for _, info := range infos {
+	// 	list = append(list, info.CID)
+	// }
+
+	return api.DataListInfo{}, nil
 }
 
 // ShowDataInfos Show DataInfos

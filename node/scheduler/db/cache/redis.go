@@ -18,8 +18,8 @@ import (
 const (
 	// redisKeyWaitingTask  server name
 	redisKeyWaitingTask = "Titan:WaitingTask:%s"
-	// redisKeyRunningTask  server name
-	redisKeyRunningTask = "Titan:RunningTask:%s"
+	// redisKeyRunningTask  server name:cid
+	redisKeyRunningTask = "Titan:RunningTask:%s:%s"
 	// redisKeyCacheResult  server name
 	redisKeyCacheResult = "Titan:CacheResult:%s"
 	// RedisKeyNodeBlockFid  deviceID
@@ -488,25 +488,25 @@ func (rd redisDB) RemoveCacheResultInfo() error {
 	return err
 }
 
-// func (rd redisDB) SetRunningCacheTask(cid string) error {
-// 	key := fmt.Sprintf(redisKeyRunningTask, serverName)
-// 	// Expire
-// 	_, err := rd.cli.Set(context.Background(), key, cid, time.Second*20).Result()
-// 	return err
-// }
+func (rd redisDB) SetRunningCacheTask(cid string) error {
+	key := fmt.Sprintf(redisKeyRunningTask, serverName, cid)
+	// Expire
+	_, err := rd.cli.Set(context.Background(), key, cid, time.Second*20).Result()
+	return err
+}
 
-// func (rd redisDB) GetRunningCacheTask() (string, error) {
-// 	key := fmt.Sprintf(redisKeyRunningTask, serverName)
+func (rd redisDB) GetRunningCacheTask(cid string) (string, error) {
+	key := fmt.Sprintf(redisKeyRunningTask, serverName, cid)
 
-// 	return rd.cli.Get(context.Background(), key).Result()
-// }
+	return rd.cli.Get(context.Background(), key).Result()
+}
 
-// func (rd redisDB) RemoveRunningCacheTask() error {
-// 	key := fmt.Sprintf(redisKeyRunningTask, serverName)
+func (rd redisDB) RemoveRunningCacheTask(cid string) error {
+	key := fmt.Sprintf(redisKeyRunningTask, serverName, cid)
 
-// 	_, err := rd.cli.Del(context.Background(), key).Result()
-// 	return err
-// }
+	_, err := rd.cli.Del(context.Background(), key).Result()
+	return err
+}
 
 func (rd redisDB) SetWaitingCacheTask(info api.CacheDataInfo) error {
 	key := fmt.Sprintf(redisKeyWaitingTask, serverName)
@@ -546,24 +546,24 @@ func (rd redisDB) RemoveWaitingCacheTask() error {
 }
 
 // add
-func (rd redisDB) SetCidToRunningList(cid string) error {
-	key := fmt.Sprintf(redisKeyRunningTask, serverName)
+// func (rd redisDB) SetCidToRunningList(cid string) error {
+// 	key := fmt.Sprintf(redisKeyRunningTask, serverName)
 
-	_, err := rd.cli.SAdd(context.Background(), key, cid).Result()
-	return err
-}
+// 	_, err := rd.cli.SAdd(context.Background(), key, cid).Result()
+// 	return err
+// }
 
-// del
-func (rd redisDB) RemoveRunningList(cid string) error {
-	key := fmt.Sprintf(redisKeyRunningTask, serverName)
+// // del
+// func (rd redisDB) RemoveRunningList(cid string) error {
+// 	key := fmt.Sprintf(redisKeyRunningTask, serverName)
 
-	_, err := rd.cli.SRem(context.Background(), key, cid).Result()
-	return err
-}
+// 	_, err := rd.cli.SRem(context.Background(), key, cid).Result()
+// 	return err
+// }
 
-// SISMEMBER
-func (rd redisDB) IsCidInRunningList(cid string) (bool, error) {
-	key := fmt.Sprintf(redisKeyRunningTask, serverName)
+// // SISMEMBER
+// func (rd redisDB) IsCidInRunningList(cid string) (bool, error) {
+// 	key := fmt.Sprintf(redisKeyRunningTask, serverName)
 
-	return rd.cli.SIsMember(context.Background(), key, cid).Result()
-}
+// 	return rd.cli.SIsMember(context.Background(), key, cid).Result()
+// }

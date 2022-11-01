@@ -42,15 +42,6 @@ func newData(area string, nodeManager *NodeManager, dataManager *DataManager, ci
 	}
 }
 
-func loadDataInfos(area string) []*persistent.DataInfo {
-	infos, err := persistent.GetDB().GetDataInfos()
-	if err != nil {
-		return nil
-	}
-
-	return infos
-}
-
 func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManager) *Data {
 	dInfo, err := persistent.GetDB().GetDataInfo(cid)
 	if err != nil {
@@ -88,8 +79,8 @@ func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManag
 }
 
 func (d *Data) cacheContinue(cacheID string) error {
-	in, err := cache.GetDB().IsCidInRunningList(d.cid)
-	if in {
+	tCid, err := cache.GetDB().GetRunningCacheTask(d.cid)
+	if err == nil && tCid == d.cid {
 		return xerrors.New("data have task running,please wait")
 	}
 
@@ -137,7 +128,7 @@ func (d *Data) createCache() (*Cache, error) {
 }
 
 func (d *Data) updateDataInfo(blockInfo *persistent.BlockInfo, fid string, info *api.CacheResultInfo, c *Cache, createBlocks []*persistent.BlockInfo) error {
-	cache.GetDB().SetCidToRunningList(d.cid)
+	cache.GetDB().SetRunningCacheTask(d.cid)
 
 	if !d.haveRootCache() {
 		if info.Cid == d.cid {
@@ -179,8 +170,8 @@ func (d *Data) saveCacheDataInfo(cache *Cache, bInfo *persistent.BlockInfo, fid 
 }
 
 func (d *Data) startData() error {
-	in, err := cache.GetDB().IsCidInRunningList(d.cid)
-	if in {
+	tCid, err := cache.GetDB().GetRunningCacheTask(d.cid)
+	if err == nil && tCid == d.cid {
 		return xerrors.New("data have task running,please wait")
 	}
 

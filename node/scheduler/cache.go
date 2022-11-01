@@ -60,7 +60,7 @@ func newCacheID(cid string) (string, error) {
 
 	aName := persistent.GetDB().ReplaceArea()
 
-	return fmt.Sprintf("%s_cache_info_%d", aName, fid), nil
+	return fmt.Sprintf("%s_cache_%d", aName, fid), nil
 }
 
 func newCache(area string, nodeManager *NodeManager, data *Data, cid string) (*Cache, error) {
@@ -338,7 +338,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 }
 
 func (c *Cache) startCache(cids map[string]int, haveRootCache bool) error {
-	cache.GetDB().SetCidToRunningList(c.carFileCid)
+	cache.GetDB().SetRunningCacheTask(c.carFileCid)
 	log.Infof("%s cache start ---------- ", c.cacheID)
 	// c.startTimer()
 
@@ -356,7 +356,7 @@ func (c *Cache) startCache(cids map[string]int, haveRootCache bool) error {
 }
 
 func (c *Cache) endCache() {
-	cache.GetDB().RemoveRunningList(c.carFileCid)
+	cache.GetDB().RemoveRunningCacheTask(c.carFileCid)
 	log.Infof("%s cache end ---------- ", c.cacheID)
 
 	if c.failedBlocks > 0 || c.unDoneBlocks > 0 {
