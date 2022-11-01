@@ -21,7 +21,7 @@ type DB interface {
 	SetNodeToValidateErrorList(sID, deviceID string) error
 
 	CreateCache(dInfo *DataInfo, cInfo *CacheInfo) (int, error)
-	SaveCacheResult(dInfo *DataInfo, cInfo *CacheInfo, updateBlock *BlockInfo, fid string, createBlocks []*BlockInfo) error
+	SaveCacheResults(dInfo *DataInfo, cInfo *CacheInfo, updateBlock *BlockInfo, fid string, createBlocks []*BlockInfo) error
 
 	// data info
 	SetDataInfo(info *DataInfo) error
@@ -38,6 +38,7 @@ type DB interface {
 	GetBlockInfo(cacheID, cid, deviceID string) (*BlockInfo, error)
 	HaveBlocks(cacheID string, status int) (int, error)
 	GetUndoneBlocks(cacheID string) (map[string]int, error)
+	GetAllBlocks(cacheID string) (map[string][]string, error)
 	// SetCacheInfos( infos []*BlockInfo, isUpdate bool) error
 	// GetCacheInfos( cacheID string) ([]*BlockInfo, error)
 

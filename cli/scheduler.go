@@ -324,6 +324,9 @@ var cacheCarFileCmd = &cli.Command{
 		// url := cctx.String("scheduler-url")
 		cid := cctx.String("cid")
 		reliability := cctx.Int("reliability")
+		if reliability == 0 {
+			return xerrors.New("reliability is 0")
+		}
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
