@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -213,7 +212,7 @@ type SchedulerStruct struct {
 
 		GetToken func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
 
-		ListDatas func(p0 context.Context) ([]string, error) `perm:"read"`
+		ListDatas func(p0 context.Context, p1 int) (DataListInfo, error) `perm:"read"`
 
 		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"read"`
 
@@ -750,15 +749,15 @@ func (s *SchedulerStub) GetToken(p0 context.Context, p1 string, p2 string) (stri
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) ListDatas(p0 context.Context) ([]string, error) {
+func (s *SchedulerStruct) ListDatas(p0 context.Context, p1 int) (DataListInfo, error) {
 	if s.Internal.ListDatas == nil {
-		return *new([]string), ErrNotSupported
+		return *new(DataListInfo), ErrNotSupported
 	}
-	return s.Internal.ListDatas(p0)
+	return s.Internal.ListDatas(p0, p1)
 }
 
-func (s *SchedulerStub) ListDatas(p0 context.Context) ([]string, error) {
-	return *new([]string), ErrNotSupported
+func (s *SchedulerStub) ListDatas(p0 context.Context, p1 int) (DataListInfo, error) {
+	return *new(DataListInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) QueryCacheStatWithNode(p0 context.Context, p1 string) ([]CacheStat, error) {

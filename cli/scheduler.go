@@ -66,10 +66,10 @@ var (
 		Value: "",
 	}
 
-	reliabilityFlag = &cli.StringFlag{
+	reliabilityFlag = &cli.IntFlag{
 		Name:  "reliability",
 		Usage: "cache reliability",
-		Value: "0",
+		Value: 0,
 	}
 
 	nodeTypeFlag = &cli.IntFlag{
@@ -88,6 +88,12 @@ var (
 		Name:  "cache-id",
 		Usage: "cache id",
 		Value: "",
+	}
+
+	pageFlag = &cli.IntFlag{
+		Name:  "page",
+		Usage: "page",
+		Value: 0,
 	}
 )
 
@@ -180,7 +186,9 @@ var electionCmd = &cli.Command{
 var listDataCmd = &cli.Command{
 	Name:  "list-data",
 	Usage: "list data",
-	Flags: []cli.Flag{},
+	Flags: []cli.Flag{
+		pageFlag,
+	},
 
 	Before: func(cctx *cli.Context) error {
 		return nil
@@ -193,12 +201,14 @@ var listDataCmd = &cli.Command{
 		}
 		defer closer()
 
-		strs, err := schedulerAPI.ListDatas(ctx)
+		page := cctx.Int("page")
+
+		info, err := schedulerAPI.ListDatas(ctx, page)
 		if err != nil {
 			return err
 		}
 
-		for _, str := range strs {
+		for _, str := range info.CidList {
 			fmt.Println(str)
 		}
 
