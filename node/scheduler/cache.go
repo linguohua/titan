@@ -3,10 +3,12 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
 )
 
@@ -25,13 +27,18 @@ type Cache struct {
 	nodeManager *NodeManager
 	area        string
 	cacheID     string
-	cardFileCid string
+	carFileCid  string
 	// blockMap    sync.Map
 	status      cacheStatus
 	reliability int
 	doneSize    int
 	doneBlocks  int
 	dbID        int
+
+	unDoneBlocks   int
+	failedBlocks   int
+	timewheelCache *timewheel.TimeWheel
+	lastUpdateTime time.Time
 }
 
 // Block Block Info
@@ -69,38 +76,29 @@ func newCache(area string, nodeManager *NodeManager, data *Data, cid string) (*C
 		reliability: 0,
 		status:      cacheStatusCreate,
 		cacheID:     id,
-		cardFileCid: cid,
+		carFileCid:  cid,
 	}
-
-	// // save total cache info
-	// err = persistent.GetDB().SetCacheInfo(&persistent.CacheInfo{
-	// 	CarfileID: cache.cardFileCid,
-	// 	CacheID:   cache.cacheID,
-	// 	Status:    int(cache.status),
-	// })
-	// if err != nil {
-	// 	log.Errorf("cacheID:%s,SetCacheInfo err:%s", cache.cacheID, err.Error())
-	// }
 
 	return cache, err
 }
 
-func loadCache(area, cacheID, carfileCid string, nodeManager *NodeManager, totalSize int) *Cache {
+func loadCache(area, cacheID, carfileCid string, nodeManager *NodeManager, data *Data) *Cache {
 	if cacheID == "" {
 		return nil
 	}
 	c := &Cache{
 		area:        area,
 		cacheID:     cacheID,
-		cardFileCid: carfileCid,
+		carFileCid:  carfileCid,
 		nodeManager: nodeManager,
+		data:        data,
 	}
 
 	info, err := persistent.GetDB().GetCacheInfo(cacheID, carfileCid)
 	// list, err := persistent.GetDB().GetCacheInfos(area, cacheID)
 	if err != nil || info == nil {
 		log.Errorf("loadCache %s,%s GetCacheInfo err:%v", carfileCid, cacheID, err)
-		return c
+		return nil
 	}
 
 	c.dbID = info.ID
@@ -109,13 +107,50 @@ func loadCache(area, cacheID, carfileCid string, nodeManager *NodeManager, total
 	c.status = cacheStatus(info.Status)
 	c.reliability = info.Reliability // TODO
 
+	c.unDoneBlocks, err = persistent.GetDB().HaveBlocks(c.cacheID, int(cacheStatusCreate))
+	if err != nil {
+		log.Errorf("loadCache %s,%s HaveBlocks err:%v", carfileCid, cacheID, err)
+	}
+
+	c.failedBlocks, err = persistent.GetDB().HaveBlocks(c.cacheID, int(cacheStatusFail))
+	if err != nil {
+		log.Errorf("loadCache %s,%s HaveBlocks err:%v", carfileCid, cacheID, err)
+	}
+
 	return c
 }
+
+// func (c *Cache) startTimer() {
+// 	if c.timewheelCache != nil {
+// 		return
+// 	}
+// 	tt := 1 // (minute)
+// 	// timewheel
+// 	c.timewheelCache = timewheel.New(time.Second, 3600, func(_ interface{}) {
+// 		if c.status > cacheStatusCreate {
+// 			c.timewheelCache.RemoveTimer("cache")
+// 			c.timewheelCache = nil
+// 			return
+// 		}
+
+// 		nowTime := time.Now().Add(-time.Duration(tt*60) * time.Second)
+// 		if !c.lastUpdateTime.After(nowTime) {
+// 			c.timewheelCache.RemoveTimer("cache")
+// 			c.timewheelCache = nil
+// 			// timeout
+// 			c.endCache()
+// 			return
+// 		}
+// 		c.timewheelCache.AddTimer((time.Duration(tt)*60-1)*time.Second, "cache", nil)
+// 	})
+// 	c.timewheelCache.Start()
+// 	c.timewheelCache.AddTimer(time.Duration(tt)*60*time.Second, "cache", nil)
+// }
 
 func (c *Cache) cacheBlocksToNode(deviceID string, cids []string) error {
 	cNode := c.nodeManager.getCandidateNode(deviceID)
 	if cNode != nil {
-		reqDatas := cNode.getReqCacheDatas(c.nodeManager, cids, c.cardFileCid, c.cacheID)
+		reqDatas := cNode.getReqCacheDatas(c.nodeManager, cids, c.carFileCid, c.cacheID)
 
 		for _, reqData := range reqDatas {
 			err := cNode.nodeAPI.CacheBlocks(context.Background(), reqData)
@@ -128,7 +163,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, cids []string) error {
 
 	eNode := c.nodeManager.getEdgeNode(deviceID)
 	if eNode != nil {
-		reqDatas := eNode.getReqCacheDatas(c.nodeManager, cids, c.cardFileCid, c.cacheID)
+		reqDatas := eNode.getReqCacheDatas(c.nodeManager, cids, c.carFileCid, c.cacheID)
 
 		for _, reqData := range reqDatas {
 			err := eNode.nodeAPI.CacheBlocks(context.Background(), reqData)
@@ -176,6 +211,7 @@ func (c *Cache) getCacheInfos(cids map[string]int, isHaveCache bool) ([]*persist
 	if cids == nil {
 		return nil, nil
 	}
+	c.unDoneBlocks += len(cids)
 
 	deviceCacheMap := make(map[string][]string)
 	blockList := make([]*persistent.BlockInfo, 0)
@@ -243,32 +279,29 @@ func (c *Cache) saveBlockInfos(blocks []*persistent.BlockInfo) {
 	}
 }
 
-// func (c *Cache) saveBlockInfo(block *persistent.BlockInfo, isUpdate bool, fidStr string) {
-// 	// log.Warnf("saveCache area:%s", c.area)
-// 	err := persistent.GetDB().SetBlockInfo(block, c.cardFileCid, fidStr, isUpdate)
-// 	if err != nil {
-// 		log.Errorf("cacheID:%s,SetBlockInfo err:%s", c.cacheID, err.Error())
-// 	}
-// }
-
-func (c *Cache) blockCacheResult(info *api.CacheResultInfo) (*persistent.BlockInfo, map[string]int, error) {
-	// log.Warnf("updateBlockInfo device:%s,fid:%s ", info.DeviceID, info.Fid)
+func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	cacheInfo, err := persistent.GetDB().GetBlockInfo(info.CacheID, info.Cid, info.DeviceID)
 	if err != nil || cacheInfo == nil {
-		return nil, nil, xerrors.Errorf("CacheID:%s,cid:%s,deviceID:%s, updateBlockInfo GetCacheInfo err:%v", info.CacheID, info.Cid, info.DeviceID, err)
+		return xerrors.Errorf("CacheID:%s,cid:%s,deviceID:%s, updateBlockInfo GetCacheInfo err:%v", info.CacheID, info.Cid, info.DeviceID, err)
 	}
 
 	if cacheInfo.Status == int(cacheStatusSuccess) {
-		return nil, nil, xerrors.Errorf("%s block saved ", info.Cid)
+		return xerrors.Errorf("%s block saved ", info.Cid)
 	}
 
+	// c.startTimer()
+
+	c.unDoneBlocks--
+
 	status := cacheStatusFail
-	// fid := ""
+	fid := ""
 	if info.IsOK {
 		c.doneBlocks++
 		c.doneSize += info.BlockSize
 		status = cacheStatusSuccess
-		// fid = info.Fid
+		fid = info.Fid
+	} else {
+		c.failedBlocks++
 	}
 
 	bInfo := &persistent.BlockInfo{
@@ -281,30 +314,35 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) (*persistent.BlockIn
 		Reliability: 1,
 	}
 
+	linkMap := make(map[string]int)
 	if len(info.Links) > 0 {
-		m := make(map[string]int)
 		for _, link := range info.Links {
-			m[link] = 0
+			linkMap[link] = 0
 		}
-		return bInfo, m, nil
 	}
 
-	count, err := persistent.GetDB().HaveBlocks(c.cacheID, int(cacheStatusCreate))
+	createBlocks, deviceCacheMap := c.getCacheInfos(linkMap, c.data.haveRootCache())
+
+	if c.unDoneBlocks <= 0 {
+		c.endCache()
+	}
+
+	// save info to db
+	err = c.data.updateDataInfo(bInfo, fid, info, c, createBlocks)
 	if err != nil {
-		return bInfo, nil, xerrors.Errorf("HaveUndoneCaches err:%s", err.Error())
+		return err
 	}
 
-	if count > 1 {
-		return bInfo, nil, nil
-	}
-
-	return bInfo, nil, c.endCache(status)
+	c.cacheToNodes(deviceCacheMap)
+	return nil
 }
 
-func (c *Cache) startCache(haveRootCache bool) error {
+func (c *Cache) startCache(cids map[string]int, haveRootCache bool) error {
+	cache.GetDB().SetCidToRunningList(c.carFileCid)
 	log.Infof("%s cache start ---------- ", c.cacheID)
+	// c.startTimer()
 
-	createBlocks, deviceCacheMap := c.getCacheInfos(map[string]int{c.cardFileCid: 0}, haveRootCache)
+	createBlocks, deviceCacheMap := c.getCacheInfos(cids, haveRootCache)
 
 	c.saveBlockInfos(createBlocks)
 	if len(deviceCacheMap) <= 0 {
@@ -317,25 +355,37 @@ func (c *Cache) startCache(haveRootCache bool) error {
 	return nil
 }
 
-func (c *Cache) endCache(endBlockStatus cacheStatus) error {
+func (c *Cache) endCache() {
+	cache.GetDB().RemoveRunningList(c.carFileCid)
 	log.Infof("%s cache end ---------- ", c.cacheID)
 
-	count, err := persistent.GetDB().HaveBlocks(c.cacheID, int(cacheStatusFail))
-	if err != nil {
-		return err
-	}
-
-	if endBlockStatus == cacheStatusFail {
-		count++
-	}
-
-	if count > 0 {
+	if c.failedBlocks > 0 || c.unDoneBlocks > 0 {
 		c.reliability = 0
 		c.status = cacheStatusFail
 	} else {
 		c.reliability = 1
 		c.status = cacheStatusSuccess
 	}
+	c.data.endData(c)
+}
+
+func (c *Cache) removeBlocks() error {
+	// cidMap, err := persistent.GetDB().GetAllBlocks(c.cacheID)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// for deviceID, cids := range cidMap {
+	// 	node := c.nodeManager.getCandidateNode(deviceID)
+	// 	if node != nil {
+	// 		errList, err := node.nodeAPI.DeleteBlocks(context.Background(), cids)
+	// 		if err != nil {
+	// 			log.Errorf("%s DeleteBlocks err:%s", deviceID, err.Error())
+	// 			continue
+	// 		}
+
+	// 	}
+	// }
 
 	return nil
 }

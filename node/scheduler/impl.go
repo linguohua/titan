@@ -38,7 +38,11 @@ const (
 	// ErrAreaNotExist Area not exist
 	ErrAreaNotExist = "%s, Area not exist! ip:%s"
 	// ErrNotFoundTask Not Found Task
-	ErrNotFoundTask = "Not Found Task"
+	ErrNotFoundTask = "Not Found Data Task"
+	// ErrCidIsNil node not found
+	ErrCidIsNil = "Cid Is Nil"
+	// ErrCacheIDIsNil
+	ErrCacheIDIsNil = "CacheID Is Nil"
 )
 
 const (
@@ -233,6 +237,28 @@ func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cid
 	}
 
 	return nil, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
+}
+
+// RemoveCarFile remove all caches with carfile
+func (s *Scheduler) RemoveCarFile(ctx context.Context, carfileID string) error {
+	if carfileID == "" {
+		return xerrors.Errorf(ErrCidIsNil)
+	}
+
+	return s.dataManager.removeCarfile(carfileID)
+}
+
+// RemoveCache remove a caches with carfile
+func (s *Scheduler) RemoveCache(ctx context.Context, carfileID, cacheID string) error {
+	if carfileID == "" {
+		return xerrors.Errorf(ErrCidIsNil)
+	}
+
+	if cacheID == "" {
+		return xerrors.Errorf(ErrCacheIDIsNil)
+	}
+
+	return s.dataManager.removeCache(carfileID, cacheID)
 }
 
 // // DeleteBlocks  Delete Blocks

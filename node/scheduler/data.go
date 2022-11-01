@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
 )
@@ -37,6 +38,7 @@ func newData(area string, nodeManager *NodeManager, dataManager *DataManager, ci
 		cacheTime:       0,
 		area:            area,
 		totalBlocks:     1,
+		rootCacheID:     "",
 	}
 }
 
@@ -70,7 +72,7 @@ func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManag
 			if cacheID == "" {
 				continue
 			}
-			c := loadCache(area, cacheID, cid, nodeManager, data.totalSize)
+			c := loadCache(area, cacheID, cid, nodeManager, data)
 			if c == nil {
 				continue
 			}
@@ -86,6 +88,11 @@ func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManag
 }
 
 func (d *Data) cacheContinue(cacheID string) error {
+	in, err := cache.GetDB().IsCidInRunningList(d.cid)
+	if in {
+		return xerrors.New("data have task running,please wait")
+	}
+
 	cacheI, ok := d.cacheMap.Load(cacheID)
 	if !ok || cacheI == nil {
 		return xerrors.Errorf("Not Found CacheID :%s", cacheID)
@@ -96,20 +103,13 @@ func (d *Data) cacheContinue(cacheID string) error {
 	if err != nil {
 		return err
 	}
-
-	log.Infof("%s cache continue ---------- ", cache.cacheID)
 	// return cache.doCache(list, d.haveRootCache())
 
-	createBlocks, deviceCacheMap := cache.getCacheInfos(list, d.haveRootCache())
-
-	cache.saveBlockInfos(createBlocks)
-
-	cache.cacheToNodes(deviceCacheMap)
-
-	return nil
+	return cache.startCache(list, d.haveRootCache())
 }
 
 func (d *Data) haveRootCache() bool {
+	// log.Infof("%v d.rootCacheID ---------- ", d.rootCacheID)
 	if d.rootCacheID == "" {
 		return false
 	}
@@ -136,17 +136,8 @@ func (d *Data) createCache() (*Cache, error) {
 	return cache, nil
 }
 
-func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInfo) error {
-	cacheI, ok := d.cacheMap.Load(cacheID)
-	if !ok {
-		return xerrors.Errorf("updateDataInfo not found cacheID:%s,Cid:%s", cacheID, d.cid)
-	}
-	cache := cacheI.(*Cache)
-
-	blockInfo, links, err := cache.blockCacheResult(info)
-	if err != nil {
-		return xerrors.Errorf("updateBlockInfo err:%s", err.Error())
-	}
+func (d *Data) updateDataInfo(blockInfo *persistent.BlockInfo, fid string, info *api.CacheResultInfo, c *Cache, createBlocks []*persistent.BlockInfo) error {
+	cache.GetDB().SetCidToRunningList(d.cid)
 
 	if !d.haveRootCache() {
 		if info.Cid == d.cid {
@@ -156,37 +147,10 @@ func (d *Data) updateDataInfo(deviceID, cacheID string, info *api.CacheResultInf
 		// isUpdate = true
 	}
 
-	if cache.status > cacheStatusCreate {
-		d.cacheTime++
-
-		if cache.status == cacheStatusSuccess {
-			d.reliability += cache.reliability
-			if d.rootCacheID == "" {
-				d.rootCacheID = cacheID
-			}
-		}
-
-		d.saveCacheTotalInfo(cache, blockInfo, info.Fid, nil)
-
-		d.endData()
-		// isUpdate = true
-		return nil
-	}
-
-	// if isUpdate {
-	// 	d.saveData()
-	// }
-
-	createBlocks, deviceCacheMap := cache.getCacheInfos(links, d.haveRootCache())
-
-	d.saveCacheTotalInfo(cache, blockInfo, info.Fid, createBlocks)
-
-	cache.cacheToNodes(deviceCacheMap)
-
-	return nil
+	return d.saveCacheDataInfo(c, blockInfo, info.Fid, createBlocks)
 }
 
-func (d *Data) saveCacheTotalInfo(cache *Cache, bInfo *persistent.BlockInfo, fid string, createBlocks []*persistent.BlockInfo) {
+func (d *Data) saveCacheDataInfo(cache *Cache, bInfo *persistent.BlockInfo, fid string, createBlocks []*persistent.BlockInfo) error {
 	dInfo := &persistent.DataInfo{
 		CID:         d.cid,
 		TotalSize:   d.totalSize,
@@ -198,7 +162,7 @@ func (d *Data) saveCacheTotalInfo(cache *Cache, bInfo *persistent.BlockInfo, fid
 
 	cInfo := &persistent.CacheInfo{
 		ID:          cache.dbID,
-		CarfileID:   cache.cardFileCid,
+		CarfileID:   cache.carFileCid,
 		CacheID:     cache.cacheID,
 		DoneSize:    cache.doneSize,
 		Status:      int(cache.status),
@@ -206,43 +170,55 @@ func (d *Data) saveCacheTotalInfo(cache *Cache, bInfo *persistent.BlockInfo, fid
 		Reliability: cache.reliability,
 	}
 
-	err := persistent.GetDB().SaveCacheResult(dInfo, cInfo, bInfo, fid, createBlocks)
+	err := persistent.GetDB().SaveCacheResults(dInfo, cInfo, bInfo, fid, createBlocks)
 	if err != nil {
 		log.Errorf("cid:%s,SaveCacheResult err:%s", d.cid, err.Error())
 	}
+
+	return err
 }
 
 func (d *Data) startData() error {
-	if d.running {
+	in, err := cache.GetDB().IsCidInRunningList(d.cid)
+	if in {
 		return xerrors.New("data have task running,please wait")
 	}
 
-	cache, err := d.createCache()
+	c, err := d.createCache()
 	if err != nil {
 		return err
 	}
 
 	// d.cacheMap[cache.cacheID] = cache
-	d.cacheMap.Store(cache.cacheID, cache)
-	d.cacheIDs = fmt.Sprintf("%s%s,", d.cacheIDs, cache.cacheID)
+	d.cacheMap.Store(c.cacheID, c)
+	d.cacheIDs = fmt.Sprintf("%s%s,", d.cacheIDs, c.cacheID)
 
 	id, err := persistent.GetDB().CreateCache(
 		&persistent.DataInfo{CID: d.cid, CacheIDs: d.cacheIDs},
 		&persistent.CacheInfo{
-			CarfileID: cache.cardFileCid,
-			CacheID:   cache.cacheID,
-			Status:    int(cache.status),
+			CarfileID: c.carFileCid,
+			CacheID:   c.cacheID,
+			Status:    int(c.status),
 		})
 	if err != nil {
 		return err
 	}
-	cache.dbID = id
+	c.dbID = id
 
-	return cache.startCache(d.haveRootCache())
+	return c.startCache(map[string]int{c.carFileCid: 0}, d.haveRootCache())
 }
 
-func (d *Data) endData() {
-	d.running = false
+func (d *Data) endData(c *Cache) {
+	if c.status > cacheStatusCreate {
+		d.cacheTime++
+
+		if c.status == cacheStatusSuccess {
+			d.reliability += c.reliability
+			if !d.haveRootCache() {
+				d.rootCacheID = c.cacheID
+			}
+		}
+	}
 
 	if d.needReliability <= d.reliability {
 		return

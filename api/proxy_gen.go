@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
+
 )
 
 
@@ -219,6 +220,10 @@ type SchedulerStruct struct {
 		QueryCachingBlocksWithNode func(p0 context.Context, p1 string) (CachingBlockList, error) `perm:"read"`
 
 		RegisterNode func(p0 context.Context, p1 NodeType) (NodeRegisterInfo, error) `perm:"admin"`
+
+		RemoveCache func(p0 context.Context, p1 string, p2 string) (error) `perm:"admin"`
+
+		RemoveCarFile func(p0 context.Context, p1 string) (error) `perm:"admin"`
 
 		ShowDataInfos func(p0 context.Context, p1 string) ([]CacheDataInfo, error) `perm:"read"`
 
@@ -787,6 +792,28 @@ func (s *SchedulerStruct) RegisterNode(p0 context.Context, p1 NodeType) (NodeReg
 
 func (s *SchedulerStub) RegisterNode(p0 context.Context, p1 NodeType) (NodeRegisterInfo, error) {
 	return *new(NodeRegisterInfo), ErrNotSupported
+}
+
+func (s *SchedulerStruct) RemoveCache(p0 context.Context, p1 string, p2 string) (error) {
+	if s.Internal.RemoveCache == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.RemoveCache(p0, p1, p2)
+}
+
+func (s *SchedulerStub) RemoveCache(p0 context.Context, p1 string, p2 string) (error) {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) RemoveCarFile(p0 context.Context, p1 string) (error) {
+	if s.Internal.RemoveCarFile == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.RemoveCarFile(p0, p1)
+}
+
+func (s *SchedulerStub) RemoveCarFile(p0 context.Context, p1 string) (error) {
+	return ErrNotSupported
 }
 
 func (s *SchedulerStruct) ShowDataInfos(p0 context.Context, p1 string) ([]CacheDataInfo, error) {

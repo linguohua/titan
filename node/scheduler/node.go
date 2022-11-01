@@ -164,7 +164,7 @@ func (n *Node) deleteBlockRecords(cids []string) (map[string]string, error) {
 }
 
 // filter cached blocks and find download url from candidate
-func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, cardFileCid, cacheID string) []api.ReqCacheData {
+func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, carFileCid, cacheID string) []api.ReqCacheData {
 	reqList := make([]api.ReqCacheData, 0)
 	notFindCandidateData := make([]api.BlockInfo, 0)
 
@@ -201,14 +201,14 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, cardFil
 	for deviceID, list := range csMap {
 		node := nodeManager.getCandidateNode(deviceID)
 		if node != nil {
-			reqList = append(reqList, api.ReqCacheData{BlockInfos: list, CandidateURL: node.addr, CardFileCid: cardFileCid, CacheID: cacheID})
+			reqList = append(reqList, api.ReqCacheData{BlockInfos: list, CandidateURL: node.addr, CardFileCid: carFileCid, CacheID: cacheID})
 		} else {
 			notFindCandidateData = append(notFindCandidateData, list...)
 		}
 	}
 
 	if len(notFindCandidateData) > 0 {
-		reqList = append(reqList, api.ReqCacheData{BlockInfos: notFindCandidateData, CardFileCid: cardFileCid, CacheID: cacheID})
+		reqList = append(reqList, api.ReqCacheData{BlockInfos: notFindCandidateData, CardFileCid: carFileCid, CacheID: cacheID})
 	}
 
 	return reqList
