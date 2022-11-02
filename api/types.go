@@ -48,11 +48,12 @@ type IndexPageRes struct {
 }
 
 type AllMinerInfo struct {
-	AllVerifier  int     `json:"all_verifier"`  // 全网验证人
-	AllCandidate int     `json:"all_candidate"` // 全网候选人
-	AllEdgeNode  int     `json:"all_edgeNode"`  // 全网边缘节点
-	StorageT     float64 `json:"storage_t"`     // 全网存储（T）
-	BandwidthMb  float64 `json:"bandwidth_mb"`  // 全网上行带宽（MB/S）
+	AllVerifier        int     `json:"all_verifier"`         // 全网验证人
+	AllCandidate       int     `json:"all_candidate"`        // 全网候选人
+	AllEdgeNode        int     `json:"all_edgeNode"`         // 全网边缘节点
+	StorageT           float64 `json:"storage_t"`            // 全网存储（T）
+	TotalBandwidthUp   float64 `json:"total_bandwidth_up"`   // 上行带宽B/s
+	TotalBandwidthDown float64 `json:"total_bandwidth_down"` // 下行带宽B/s
 }
 
 type IndexPageSearch struct {
@@ -110,70 +111,70 @@ type GVAModel struct {
 type DevicesInfo struct {
 	GVAModel
 	// 设备id
-	DeviceId string `json:"deviceId" form:"deviceId" gorm:"column:device_id;comment:;"`
+	DeviceId string `json:"deviceId" form:"deviceId" gorm:"column:device_id;comment:;" redis:"DeviceId"`
 	// 设备名称
-	DeviceName string `json:"deviceName" form:"deviceName" gorm:"column:device_name;comment:;"`
+	DeviceName string `json:"deviceName" form:"deviceName" gorm:"column:device_name;comment:;" redis:"DeviceName"`
 	// 用户id
 	UserId string `json:"userId" form:"userId" gorm:"column:user_id;comment:;"`
 	// sn码
 	SnCode string `json:"snCode" form:"snCode" gorm:"column:sn_code;comment:;"`
 	// 运营商
-	Operator string `json:"operator" form:"operator" gorm:"column:operator;comment:;"`
+	Operator string `json:"operator" form:"operator" gorm:"column:operator;comment:;" redis:"Operator"`
 	// 网络类型
-	NetworkType string `json:"networkType" form:"networkType" gorm:"column:network_type;comment:;"`
+	NetworkType string `json:"networkType" form:"networkType" gorm:"column:network_type;comment:;" redis:"NetworkType"`
 	// 昨日收益
 	YesterdayIncome float64 `json:"yesterdayIncome" form:"yesterdayIncome" gorm:"column:yesterday_income;comment:;"`
 	// 历史收益
 	CumuProfit float64 `json:"cumuProfit" form:"cumuProfit" gorm:"column:cumu_profit;comment:;"`
 	// 基础信息
 	// 系统版本
-	SystemVersion string `json:"systemVersion" form:"systemVersion" gorm:"column:system_version;comment:;"`
+	SystemVersion string `json:"systemVersion" form:"systemVersion" gorm:"column:system_version;comment:;" redis:"SystemVersion"`
 	// 产品类型
-	ProductType string `json:"productType" form:"productType" gorm:"column:product_type;comment:;"`
+	ProductType string `json:"productType" form:"productType" gorm:"column:product_type;comment:;" redis:"ProductType"`
 	// 网络信息
-	NetworkInfo string `json:"networkInfo" form:"networkInfo" gorm:"column:network_info;comment:;"`
+	NetworkInfo string `json:"networkInfo" form:"networkInfo" gorm:"column:network_info;comment:;" redis:"NetworkInfo"`
 	// 外网ip
-	ExternalIp string `json:"externalIp" form:"externalIp" gorm:"column:external_ip;comment:;"`
+	ExternalIp string `json:"externalIp" form:"externalIp" gorm:"column:external_ip;comment:;" redis:"ExternalIp"`
 	// 内网ip
-	InternalIp string `json:"internalIp" form:"internalIp" gorm:"column:internal_ip;comment:;"`
+	InternalIp string `json:"internalIp" form:"internalIp" gorm:"column:internal_ip;comment:;" redis:"InternalIp"`
 	// ip所属（地区）
-	IpLocation string `json:"ipLocation" form:"ipLocation" gorm:"column:ip_location;comment:;"`
+	IpLocation string `json:"ipLocation" form:"ipLocation" gorm:"column:ip_location;comment:;" redis:"IpLocation"`
 	// mac地址
-	MacLocation string `json:"macLocation" form:"macLocation" gorm:"column:mac_location;comment:;"`
+	MacLocation string `json:"macLocation" form:"macLocation" gorm:"column:mac_location;comment:;" redis:"MacLocation"`
 	// NAT类型
-	NatType string `json:"natType" form:"natType" gorm:"column:nat_type;comment:;"`
+	NatType string `json:"natType" form:"natType" gorm:"column:nat_type;comment:;" redis:"NatType"`
 	// UPNP
-	Upnp string `json:"upnp" form:"upnp" gorm:"column:upnp;comment:;"`
+	Upnp string `json:"upnp" form:"upnp" gorm:"column:upnp;comment:;" redis:"Upnp"`
 	// 丢包率
-	PkgLossRatio float64 `json:"pkgLossRatio" form:"pkgLossRatio" gorm:"column:pkg_loss_ratio;comment:;"`
+	PkgLossRatio float64 `json:"pkgLossRatio" form:"pkgLossRatio" gorm:"column:pkg_loss_ratio;comment:;" redis:"PkgLossRatio"`
 	// 时延
-	Latency float64 `json:"latency" form:"latency" gorm:"column:latency;comment:;"`
+	Latency float64 `json:"latency" form:"latency" gorm:"column:latency;comment:;" redis:"Latency"`
 	// 设备信息
 	// CPU使用率
-	CpuUsage float64 `json:"cpuUsage" form:"cpuUsage" gorm:"column:cpu_usage;comment:;"`
+	CpuUsage float64 `json:"cpuUsage" form:"cpuUsage" gorm:"column:cpu_usage;comment:;" redis:"CpuUsage"`
 	// 内存使用率
-	MemoryUsage float64 `json:"memoryUsage" form:"memoryUsage" gorm:"column:memory_usage;comment:;"`
+	MemoryUsage float64 `json:"memoryUsage" form:"memoryUsage" gorm:"column:memory_usage;comment:;" redis:"MemoryUsage"`
 	// 磁盘使用率
-	DiskUsage float64 `json:"diskUsage" form:"diskUsage" gorm:"column:disk_usage;comment:;"`
+	DiskUsage float64 `json:"diskUsage" form:"diskUsage" gorm:"column:disk_usage;comment:;" redis:"DiskUsage"`
+	// 磁盘大小
+	DiskSpace float64 `json:"diskSpace" form:"diskSpace" gorm:"column:disk_space;comment:;" redis:"DiskSpace"`
 	// 磁盘类型
-	DiskType string `json:"diskType" form:"diskType" gorm:"column:disk_type;comment:;"`
+	DiskType string `json:"diskType" form:"diskType" gorm:"column:disk_type;comment:;" redis:"DiskType"`
 	// 设备状态 online/offline/abnormal
-	DeviceStatus string `json:"deviceStatus" form:"deviceStatus" gorm:"column:device_status;comment:;"`
+	DeviceStatus string `json:"deviceStatus" form:"deviceStatus" gorm:"column:device_status;comment:;" redis:"DeviceStatus"`
 	// 昨日诊断运行状态
-	WorkStatus string `json:"workStatus" form:"workStatus" gorm:"column:work_status;comment:;"`
+	WorkStatus string `json:"workStatus" form:"workStatus" gorm:"column:work_status;comment:;" redis:"WorkStatus"`
 	// 文件系统
-	IoSystem string `json:"ioSystem" form:"ioSystem" gorm:"column:io_system;comment:;"`
+	IoSystem string `json:"ioSystem" form:"ioSystem" gorm:"column:io_system;comment:;" redis:"IoSystem"`
 	// 今日在线时长
-	TodayOnlineTime float64 `json:"todayOnlineTime" form:"todayOnlineTime" gorm:"column:today_online_time;comment:;"`
+	TodayOnlineTime float64 `json:"todayOnlineTime" form:"todayOnlineTime" gorm:"column:today_online_time;comment:;" redis:"TodayOnlineTime"`
 	// 设备总在线时长
-	OnlineTime float64 `json:"onlineTime" form:"OnlineTime" gorm:"column:online_time;comment:;"`
-	NatRatio   float64 `json:"natRatio" form:"natRatio" gorm:"column:nat_ratio;comment:;"`
+	NatRatio float64 `json:"natRatio" form:"natRatio" gorm:"column:nat_ratio;comment:;" redis:"NatRatio"`
 	// 额外字段非数据库
-	TodayProfit     float64 `json:"today_profit"`      // 今日收益
-	SevenDaysProfit float64 `json:"seven_days_profit"` // 近七天收益
-	MonthProfit     float64 `json:"month_profit"`      // 近30天收益
-	BandwidthUp     float64 `json:"bandwidth_up"`      // 上行带宽B/s
-	BandwidthDown   float64 `json:"bandwidth_down"`    // 下行带宽B/s
+	OnlineTime    float64 `json:"onlineTime" form:"OnlineTime" redis:"OnlineTime"`
+	TodayProfit   float64 `json:"today_profit" redis:"TodayProfit"`     // 今日收益
+	BandwidthUp   float64 `json:"bandwidth_up" redis:"BandwidthUp"`     // 上行带宽B/s
+	BandwidthDown float64 `json:"bandwidth_down" redis:"BandwidthDown"` // 下行带宽B/s
 }
 
 // TableName IndexPage

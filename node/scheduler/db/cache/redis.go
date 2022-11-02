@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -57,6 +57,8 @@ const (
 	onlineTimeField      = "OnlineTime"
 	validateSuccessField = "ValidateSuccessTime"
 	deviceInfoField      = "DeviceInfo"
+	nodeTodayReward      = "TodayProfit"
+	nodeRewardDateTime   = "RewardDateTime"
 	// CacheTask field
 	carFileIDField = "CarFileID"
 	cacheIDField   = "cacheID"
@@ -327,81 +329,45 @@ func (rd redisDB) IsNodeInValidatorList(deviceID string) (bool, error) {
 // }
 
 func (rd redisDB) IncrNodeReward(deviceID string, reward int64) error {
-	key := fmt.Sprintf(redisKeyNodeDayReward, deviceID)
-	dayField := time.Now().Format(dayFormatLayout)
+	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	exist, err := rd.cli.HExists(context.Background(), key, dayField).Result()
+	results, err := rd.cli.HMGet(context.Background(), key, nodeTodayReward, nodeRewardDateTime).Result()
 	if err != nil {
 		return err
 	}
 
-	if exist {
-		_, err = rd.cli.HIncrBy(context.Background(), key, dayField, reward).Result()
-		return err
-	}
+	var (
+		datetime     time.Time
+		beforeReward int64
+	)
 
-	keys, err := rd.cli.HKeys(context.Background(), key).Result()
-	if err != nil {
-		return err
-	}
-
-	if len(keys) > daysOfMonth {
-		sort.Slice(keys, func(i, j int) bool { return keys[i] > keys[j] })
-		_, err := rd.cli.HDel(context.Background(), key, keys[len(keys)-1]).Result()
+	if resReward, ok := results[0].(string); ok {
+		beforeReward, err = strconv.ParseInt(resReward, 10, 64)
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err = rd.cli.HIncrBy(context.Background(), key, dayField, reward).Result()
-	return err
-}
-
-func (rd redisDB) GetNodeReward(deviceID string) (rewardInDay, rewardInWeek, rewardInMonth int64, err error) {
-	key := fmt.Sprintf(redisKeyNodeDayReward, deviceID)
-
-	res, err := rd.cli.HGetAll(context.Background(), key).Result()
-	if err != nil {
-		return 0, 0, 0, err
-	}
-
-	keys, err := rd.cli.HKeys(context.Background(), key).Result()
-	if err != nil {
-		return 0, 0, 0, err
-	}
-
-	sort.Slice(keys, func(i, j int) bool { return keys[i] > keys[j] })
-
-	for _, k := range keys {
-		val, ok := res[k]
-		if !ok {
-			continue
-		}
-
-		reward, err := strconv.ParseInt(val, 10, 64)
+	if date, ok := results[1].(string); ok {
+		datetime, err = time.Parse(dayFormatLayout, date)
 		if err != nil {
-			return 0, 0, 0, err
-		}
-
-		t, err := time.Parse(dayFormatLayout, k)
-		if err != nil {
-			return 0, 0, 0, err
-		}
-
-		if getStartOfDay(t).Equal(getStartOfDay(time.Now())) {
-			rewardInDay = reward
-		}
-
-		if getStartOfDay(t).After(getStartOfDay(time.Now().Add(-weekDuration))) {
-			rewardInWeek += reward
-		}
-
-		if getStartOfDay(t).After(getStartOfDay(time.Now().Add(-monthDuration))) {
-			rewardInMonth += reward
+			return err
 		}
 	}
 
-	return
+	if getStartOfDay(datetime).Equal(getStartOfDay(time.Now())) {
+		reward += beforeReward
+	}
+
+	_, err = rd.cli.HMSet(context.Background(), key,
+		nodeTodayReward, reward,
+		nodeRewardDateTime, getStartOfDay(time.Now()).Format(dayFormatLayout),
+	).Result()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getStartOfDay(t time.Time) time.Time {
@@ -411,38 +377,47 @@ func getStartOfDay(t time.Time) time.Time {
 func (rd redisDB) SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	bytes, err := json.Marshal(info)
+	ctx := context.Background()
+	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+		for field, value := range toMap(info) {
+			if field == nodeTodayReward || field == onlineTimeField {
+				continue
+			}
+			pipeliner.HMSet(ctx, key, field, value)
+		}
+		return nil
+	})
 	if err != nil {
 		return false, err
 	}
 
-	return rd.cli.HMSet(context.Background(), key, deviceInfoField, bytes).Result()
+	return true, nil
+}
+
+func toMap(info api.DevicesInfo) map[string]interface{} {
+	out := make(map[string]interface{})
+	t := reflect.TypeOf(info)
+	v := reflect.ValueOf(info)
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		redisTag := field.Tag.Get("redis")
+		if redisTag == "" {
+			continue
+		}
+		out[redisTag] = v.Field(i).Interface()
+	}
+	return out
 }
 
 func (rd redisDB) GetDeviceInfo(deviceID string) (api.DevicesInfo, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	values, err := rd.cli.HMGet(context.Background(), key, deviceInfoField, onlineTimeField).Result()
-	if err != nil {
-		return api.DevicesInfo{}, err
-	}
-
 	var info api.DevicesInfo
-	bytes, err := redigo.Bytes(values[0], nil)
+	err := rd.cli.HGetAll(context.Background(), key).Scan(&info)
 	if err != nil {
 		return api.DevicesInfo{}, err
 	}
 
-	onlineTime, err := redigo.String(values[1], nil)
-	if err != nil {
-		return api.DevicesInfo{}, err
-	}
-
-	if err := json.Unmarshal(bytes, &info); err != nil {
-		return api.DevicesInfo{}, err
-	}
-
-	info.OnlineTime, _ = strconv.ParseFloat(onlineTime, 10)
 	return info, nil
 }
 

@@ -273,7 +273,3 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, carFile
 
 // 	return persistent.GetDB().SetBlockInfo(deviceID, cid, dataDefaultTag, isExist)
 // }
-
-func (n *Node) getReward(deviceID string) (rewardsInDay, rewardsInWeek, rewardsInMonth int64, err error) {
-	return cache.GetDB().GetNodeReward(deviceID)
-}
