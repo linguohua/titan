@@ -341,19 +341,12 @@ func (s *Scheduler) CacheCarFile(ctx context.Context, cid string, reliability in
 
 // ListDatas List Datas
 func (s *Scheduler) ListDatas(ctx context.Context, page int) (api.DataListInfo, error) {
-	// list := make([]string, 0)
+	count, totalPage, list, err := persistent.GetDB().GetDataCidWithPage(page)
+	if err != nil {
+		return api.DataListInfo{}, err
+	}
 
-	// infos, err := persistent.GetDB().GetDataInfos()
-	// if err != nil {
-	// 	return nil
-	// }
-
-	// infos := loadDataInfos(serverArea)
-	// for _, info := range infos {
-	// 	list = append(list, info.CID)
-	// }
-
-	return api.DataListInfo{}, nil
+	return api.DataListInfo{Page: page, TotalPage: totalPage, Cids: count, CidList: list}, nil
 }
 
 // ShowDataInfos Show DataInfos
@@ -371,6 +364,7 @@ func (s *Scheduler) ShowDataInfos(ctx context.Context, cid string) ([]api.CacheD
 			info.TotalSize = d.totalSize
 			info.NeedReliability = d.needReliability
 			info.CurReliability = d.reliability
+			info.Blocks = d.totalBlocks
 
 			caches := make([]api.CacheInfo, 0)
 
@@ -378,24 +372,17 @@ func (s *Scheduler) ShowDataInfos(ctx context.Context, cid string) ([]api.CacheD
 				c := value.(*Cache)
 
 				cache := api.CacheInfo{
-					CacheID:  c.cacheID,
-					Status:   int(c.status),
-					DoneSize: c.doneSize,
+					CacheID:    c.cacheID,
+					Status:     int(c.status),
+					DoneSize:   c.doneSize,
+					DoneBlocks: c.doneBlocks,
 				}
-				// blocks := make([]api.BloackInfo, 0)
 
-				// c.blockMap.Range(func(key, value interface{}) bool {
-				// 	b := value.(*Block)
-				// 	block := api.BloackInfo{
-				// 		Cid:      b.cid,
-				// 		Status:   int(b.status),
-				// 		DeviceID: b.deviceID,
-				// 		Size:     b.size,
-				// 	}
-				// 	blocks = append(blocks, block)
-				// 	return true
-				// })
-				// cache.BloackInfo = blocks
+				num, err := persistent.GetDB().GetDevicesFromCache(c.cacheID)
+				if err != nil {
+					log.Errorf("GetDevicesFromCache err:%s", err.Error())
+				}
+				cache.Nodes = num
 
 				caches = append(caches, cache)
 				return true
@@ -407,7 +394,7 @@ func (s *Scheduler) ShowDataInfos(ctx context.Context, cid string) ([]api.CacheD
 		return info
 	}
 
-	d := s.dataManager.findData(serverArea, cid)
+	d := s.dataManager.findData(serverArea, cid, false)
 	if d != nil {
 		infos = append(infos, toData(d))
 		return infos, nil

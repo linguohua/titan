@@ -325,6 +325,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 
 	if c.unDoneBlocks <= 0 {
 		c.endCache()
+		return nil
 	}
 
 	// save info to db
@@ -338,7 +339,15 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 }
 
 func (c *Cache) startCache(cids map[string]int, haveRootCache bool) error {
-	cache.GetDB().SetRunningCacheTask(c.carFileCid)
+	err := cache.GetDB().SetRunningCacheTask(c.carFileCid)
+	if err != nil {
+		return err
+	}
+	err = cache.GetDB().SetCidToRunningList(c.carFileCid)
+	if err != nil {
+		return err
+	}
+
 	log.Infof("%s cache start ---------- ", c.cacheID)
 	// c.startTimer()
 
@@ -366,6 +375,7 @@ func (c *Cache) endCache() {
 		c.reliability = 1
 		c.status = cacheStatusSuccess
 	}
+
 	c.data.endData(c)
 }
 

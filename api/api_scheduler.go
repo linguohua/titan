@@ -83,23 +83,26 @@ type CacheDataInfo struct {
 	NeedReliability int // 预期可靠性
 	CurReliability  int // 当前可靠性
 	TotalSize       int // 总大小
+	Blocks          int // 总block个数
 
 	CacheInfos []CacheInfo
 }
 
 // CacheInfo Cache Info
 type CacheInfo struct {
-	CacheID  string
-	Status   int // cache 状态 1:创建 2:失败 3:成功
-	DoneSize int // 已完成大小
+	CacheID    string
+	Status     int // cache 状态 1:创建 2:失败 3:成功
+	DoneSize   int // 已完成大小
+	DoneBlocks int // 已完成block
+	Nodes      int
 
-	BloackInfo []BloackInfo
+	// BloackInfo []BloackInfo
 }
 
 // BloackInfo Bloack Info
-type BloackInfo struct {
-	Cid      string
-	Status   int    // cache 状态 1:创建 2:失败 3:成功
-	DeviceID string // 在哪个设备上
-	Size     int
-}
+// type BloackInfo struct {
+// 	Cid      string
+// 	Status   int    // cache 状态 1:创建 2:失败 3:成功
+// 	DeviceID string // 在哪个设备上
+// 	Size     int
+// }

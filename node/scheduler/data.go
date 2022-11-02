@@ -128,7 +128,10 @@ func (d *Data) createCache() (*Cache, error) {
 }
 
 func (d *Data) updateDataInfo(blockInfo *persistent.BlockInfo, fid string, info *api.CacheResultInfo, c *Cache, createBlocks []*persistent.BlockInfo) error {
-	cache.GetDB().SetRunningCacheTask(d.cid)
+	err := cache.GetDB().SetRunningCacheTask(d.cid)
+	if err != nil {
+		return err
+	}
 
 	if !d.haveRootCache() {
 		if info.Cid == d.cid {
@@ -138,10 +141,10 @@ func (d *Data) updateDataInfo(blockInfo *persistent.BlockInfo, fid string, info 
 		// isUpdate = true
 	}
 
-	return d.saveCacheDataInfo(c, blockInfo, info.Fid, createBlocks)
+	return d.saveCacheingResults(c, blockInfo, info.Fid, createBlocks)
 }
 
-func (d *Data) saveCacheDataInfo(cache *Cache, bInfo *persistent.BlockInfo, fid string, createBlocks []*persistent.BlockInfo) error {
+func (d *Data) saveCacheingResults(cache *Cache, bInfo *persistent.BlockInfo, fid string, createBlocks []*persistent.BlockInfo) error {
 	dInfo := &persistent.DataInfo{
 		CID:         d.cid,
 		TotalSize:   d.totalSize,
@@ -161,9 +164,37 @@ func (d *Data) saveCacheDataInfo(cache *Cache, bInfo *persistent.BlockInfo, fid 
 		Reliability: cache.reliability,
 	}
 
-	err := persistent.GetDB().SaveCacheResults(dInfo, cInfo, bInfo, fid, createBlocks)
+	err := persistent.GetDB().SaveCacheingResults(dInfo, cInfo, bInfo, fid, createBlocks)
 	if err != nil {
-		log.Errorf("cid:%s,SaveCacheResult err:%s", d.cid, err.Error())
+		log.Errorf("cid:%s,SaveCacheingResults err:%s", d.cid, err.Error())
+	}
+
+	return err
+}
+
+func (d *Data) saveCacheEndResults(cache *Cache) error {
+	dInfo := &persistent.DataInfo{
+		CID:         d.cid,
+		TotalSize:   d.totalSize,
+		TotalBlocks: d.totalBlocks,
+		Reliability: d.reliability,
+		CacheTime:   d.cacheTime,
+		RootCacheID: d.rootCacheID,
+	}
+
+	cInfo := &persistent.CacheInfo{
+		ID:          cache.dbID,
+		CarfileID:   cache.carFileCid,
+		CacheID:     cache.cacheID,
+		DoneSize:    cache.doneSize,
+		Status:      int(cache.status),
+		DoneBlocks:  cache.doneBlocks,
+		Reliability: cache.reliability,
+	}
+
+	err := persistent.GetDB().SaveCacheEndResults(dInfo, cInfo)
+	if err != nil {
+		log.Errorf("cid:%s,SaveCacheEndResults err:%s", d.cid, err.Error())
 	}
 
 	return err
@@ -200,28 +231,32 @@ func (d *Data) startData() error {
 }
 
 func (d *Data) endData(c *Cache) {
-	if c.status > cacheStatusCreate {
-		d.cacheTime++
+	d.cacheTime++
 
-		if c.status == cacheStatusSuccess {
-			d.reliability += c.reliability
-			if !d.haveRootCache() {
-				d.rootCacheID = c.cacheID
-			}
+	if c.status == cacheStatusSuccess {
+		d.reliability += c.reliability
+		if !d.haveRootCache() {
+			d.rootCacheID = c.cacheID
 		}
 	}
 
+	err := d.saveCacheEndResults(c)
+	if err != nil {
+		log.Errorf("saveCacheEndResults err:%s", err.Error())
+	}
+
 	if d.needReliability <= d.reliability {
+		d.dataManager.dataTaskEnd(d.cid)
 		return
 	}
 
-	if d.cacheTime > d.needReliability+1 {
-		// TODO
+	if d.cacheTime > d.needReliability {
+		d.dataManager.dataTaskEnd(d.cid)
 		return
 	}
 
 	// create cache again
-	err := d.startData()
+	err = d.startData()
 	if err != nil {
 		log.Errorf("startData err:%s", err.Error())
 	}

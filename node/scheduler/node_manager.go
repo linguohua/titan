@@ -54,8 +54,8 @@ func newNodeManager(pool *ValidatePool) *NodeManager {
 // InitKeepaliveTimewheel ndoe Keepalive
 func (m *NodeManager) initKeepaliveTimewheel() {
 	m.timewheelKeepalive = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		m.nodeKeepalive()
 		m.timewheelKeepalive.AddTimer(time.Duration(m.keepaliveTime*60)*time.Second, "Keepalive", nil)
+		m.nodeKeepalive()
 	})
 	m.timewheelKeepalive.Start()
 	m.timewheelKeepalive.AddTimer(time.Duration(m.keepaliveTime*60)*time.Second, "Keepalive", nil)

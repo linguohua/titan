@@ -202,6 +202,9 @@ var listDataCmd = &cli.Command{
 		defer closer()
 
 		page := cctx.Int("page")
+		if page < 1 {
+			return xerrors.New("page need greater than 1")
+		}
 
 		info, err := schedulerAPI.ListDatas(ctx, page)
 		if err != nil {
@@ -211,6 +214,7 @@ var listDataCmd = &cli.Command{
 		for _, str := range info.CidList {
 			fmt.Println(str)
 		}
+		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
 
 		return nil
 	},
@@ -279,38 +283,21 @@ var showDataInfoCmd = &cli.Command{
 		}
 
 		statusToStr := func(s int) string {
-			if s == 1 {
+			switch s {
+			case 1:
 				return "running"
-			}
-			if s == 3 {
+			case 3:
 				return "done"
+			default:
+				return "failed"
 			}
-
-			return "failed"
 		}
 
 		for _, info := range infos {
-			fmt.Printf("Data CID:%s , Total Size:%d MB \n", info.Cid, info.TotalSize/(1024*1024))
+			fmt.Printf("Data CID:%s , Total Size:%d MB , Total Blocks:%d \n", info.Cid, info.TotalSize/(1024*1024), info.Blocks)
 			for _, cache := range info.CacheInfos {
-				doneNum := 0
-				bmapS := make(map[string]int)
-				bmapF := make(map[string]int)
-				bmapC := make(map[string]int)
-				for _, block := range cache.BloackInfo {
-					if block.Status == 3 {
-						doneNum++
-						bmapS[block.DeviceID]++
-					}
-					if block.Status == 2 {
-						bmapF[block.DeviceID]++
-					}
-					if block.Status == 1 {
-						bmapC[block.DeviceID]++
-					}
-				}
-				fmt.Printf("TaskID:%s , Done Size:%d MB , Status:%s , Done Blocks:%d , Total Blocks:%d , Nodes:%d\n",
-					cache.CacheID, cache.DoneSize/(1024*1024), statusToStr(cache.Status), doneNum, len(cache.BloackInfo), len(bmapS))
-
+				fmt.Printf("TaskID:%s ,  Status:%s , Done Size:%d MB ,Done Blocks:%d , Nodes:%d\n",
+					cache.CacheID, statusToStr(cache.Status), cache.DoneSize/(1024*1024), cache.DoneBlocks, cache.Nodes)
 			}
 		}
 

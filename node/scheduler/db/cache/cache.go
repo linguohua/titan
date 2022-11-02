@@ -12,8 +12,9 @@ type DB interface {
 	RemoveCacheResultInfo() error
 	GetCacheResultNum() int64
 
-	// SetCidToRunningList(cid string) error
-	// RemoveRunningList(cid string) error
+	SetCidToRunningList(cid string) error
+	RemoveRunningList(cid string) error
+	GetTasksWithList() ([]string, error)
 	// IsCidInRunningList(cid string) (bool, error)
 
 	SetRunningCacheTask(cid string) error

@@ -71,7 +71,7 @@ func newValidate(pool *ValidatePool, manager *NodeManager) *Validate {
 		resultChannel:    make(chan bool, 1),
 		validatePool:     pool,
 		nodeManager:      manager,
-		open:             false,
+		open:             true,
 	}
 
 	e.initValidateTask()
