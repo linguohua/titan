@@ -359,8 +359,8 @@ func (sd sqlDB) SaveCacheEndResults(dInfo *DataInfo, cInfo *CacheInfo) error {
 	tx := sd.cli.MustBegin()
 
 	// data info
-	dCmd := fmt.Sprintf("UPDATE %s SET total_size=?,reliability=?,cache_time=?,root_cache_id=?,total_blocks=? WHERE cid=?", dTableName)
-	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.CacheTime, dInfo.RootCacheID, dInfo.TotalBlocks, dInfo.CID)
+	dCmd := fmt.Sprintf("UPDATE %s SET total_size=?,reliability=?,cache_count=?,root_cache_id=?,total_blocks=? WHERE cid=?", dTableName)
+	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.CacheCount, dInfo.RootCacheID, dInfo.TotalBlocks, dInfo.CID)
 
 	// cache info
 	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=? WHERE id=? `, cTableName)
@@ -383,8 +383,8 @@ func (sd sqlDB) SaveCacheingResults(dInfo *DataInfo, cInfo *CacheInfo, updateBlo
 	tx := sd.cli.MustBegin()
 
 	// data info
-	dCmd := fmt.Sprintf("UPDATE %s SET total_size=?,reliability=?,cache_time=?,root_cache_id=?,total_blocks=? WHERE cid=?", dTableName)
-	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.CacheTime, dInfo.RootCacheID, dInfo.TotalBlocks, dInfo.CID)
+	dCmd := fmt.Sprintf("UPDATE %s SET total_size=?,reliability=?,cache_count=?,root_cache_id=?,total_blocks=? WHERE cid=?", dTableName)
+	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.CacheCount, dInfo.RootCacheID, dInfo.TotalBlocks, dInfo.CID)
 
 	// cache info
 	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=? WHERE id=? `, cTableName)
@@ -436,7 +436,7 @@ func (sd sqlDB) SetDataInfo(info *DataInfo) error {
 	}
 
 	// update
-	cmd := fmt.Sprintf("UPDATE %s SET cache_ids=:cache_ids,status=:status,total_size=:total_size,reliability=:reliability,cache_time=:cache_time,root_cache_id=:root_cache_id,total_blocks=:total_blocks WHERE cid=:cid", tableName)
+	cmd := fmt.Sprintf("UPDATE %s SET cache_ids=:cache_ids,status=:status,total_size=:total_size,reliability=:reliability,cache_count=:cache_count,root_cache_id=:root_cache_id,total_blocks=:total_blocks WHERE cid=:cid", tableName)
 	_, err = sd.cli.NamedExec(cmd, info)
 
 	return err
