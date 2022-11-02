@@ -88,6 +88,8 @@ func (sd sqlDB) GetNodeInfo(deviceID string) (*NodeInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+
 	if rows.Next() {
 		err = rows.StructScan(info)
 		if err != nil {
@@ -96,7 +98,6 @@ func (sd sqlDB) GetNodeInfo(deviceID string) (*NodeInfo, error) {
 	} else {
 		return nil, xerrors.New(errNodeNotFind)
 	}
-	rows.Close()
 
 	return info, err
 }
@@ -209,6 +210,8 @@ func (sd sqlDB) GetBlockFidWithCid(deviceID, cid string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer rows.Close()
+
 	if rows.Next() {
 		err = rows.StructScan(info)
 		if err != nil {
@@ -217,7 +220,6 @@ func (sd sqlDB) GetBlockFidWithCid(deviceID, cid string) (string, error) {
 	} else {
 		return "", xerrors.New(errNodeNotFind)
 	}
-	rows.Close()
 
 	return info.FID, err
 }
@@ -262,6 +264,8 @@ func (sd sqlDB) GetBlockCidWithFid(deviceID, fid string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer rows.Close()
+
 	if rows.Next() {
 		err = rows.StructScan(info)
 		if err != nil {
@@ -270,7 +274,6 @@ func (sd sqlDB) GetBlockCidWithFid(deviceID, fid string) (string, error) {
 	} else {
 		return "", xerrors.New(errNodeNotFind)
 	}
-	rows.Close()
 
 	return info.CID, err
 }
@@ -314,7 +317,30 @@ func (sd sqlDB) CreateCache(dInfo *DataInfo, cInfo *CacheInfo) (int, error) {
 	return info.ID, nil
 }
 
-func (sd sqlDB) SaveCacheResults(dInfo *DataInfo, cInfo *CacheInfo, updateBlock *BlockInfo, fid string, createBlocks []*BlockInfo) error {
+func (sd sqlDB) SaveCacheEndResults(dInfo *DataInfo, cInfo *CacheInfo) error {
+	area := sd.ReplaceArea()
+	dTableName := fmt.Sprintf(dataInfoTable, area)
+	cTableName := fmt.Sprintf(cacheInfoTable, area)
+
+	tx := sd.cli.MustBegin()
+
+	// data info
+	dCmd := fmt.Sprintf("UPDATE %s SET total_size=?,reliability=?,cache_time=?,root_cache_id=?,total_blocks=? WHERE cid=?", dTableName)
+	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.CacheTime, dInfo.RootCacheID, dInfo.TotalBlocks, dInfo.CID)
+
+	// cache info
+	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=? WHERE id=? `, cTableName)
+	tx.MustExec(cCmd, cInfo.DoneSize, cInfo.DoneBlocks, cInfo.Reliability, cInfo.Status, cInfo.ID)
+
+	err := tx.Commit()
+	if err != nil {
+		err = tx.Rollback()
+	}
+
+	return err
+}
+
+func (sd sqlDB) SaveCacheingResults(dInfo *DataInfo, cInfo *CacheInfo, updateBlock *BlockInfo, fid string, createBlocks []*BlockInfo) error {
 	area := sd.ReplaceArea()
 	bTableName := fmt.Sprintf(blockInfoTable, area)
 	dTableName := fmt.Sprintf(dataInfoTable, area)
@@ -393,6 +419,8 @@ func (sd sqlDB) GetDataInfo(cid string) (*DataInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+
 	if rows.Next() {
 		err = rows.StructScan(info)
 		if err != nil {
@@ -401,9 +429,47 @@ func (sd sqlDB) GetDataInfo(cid string) (*DataInfo, error) {
 	} else {
 		return nil, nil
 	}
-	rows.Close()
 
 	return info, err
+}
+
+func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []string, err error) {
+	area := sd.ReplaceArea()
+	p := 20
+
+	cmd := fmt.Sprintf("SELECT count(*) FROM %s ;", fmt.Sprintf(dataInfoTable, area))
+	err = sd.cli.Get(&count, cmd)
+	if err != nil {
+		return
+	}
+
+	totalPage = count / p
+	if count%p > 0 {
+		totalPage++
+	}
+
+	if page > totalPage {
+		err = xerrors.Errorf("totalPage:%d but page:%d", totalPage, page)
+		return
+	}
+
+	cmd = fmt.Sprintf("SELECT * FROM %s WHERE id>=(SELECT id FROM %s order by id limit %d,1) LIMIT %d", fmt.Sprintf(dataInfoTable, area), fmt.Sprintf(dataInfoTable, area), (p * (page - 1)), p)
+	rows, err := sd.cli.Queryx(cmd)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	list = make([]string, 0)
+	for rows.Next() {
+		info := &DataInfo{}
+		err := rows.StructScan(info)
+		if err == nil {
+			list = append(list, info.CID)
+		}
+	}
+
+	return
 }
 
 func (sd sqlDB) GetDataInfos() ([]*DataInfo, error) {
@@ -505,6 +571,8 @@ func (sd sqlDB) GetCacheInfo(cacheID, carFileCid string) (*CacheInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+
 	if rows.Next() {
 		err = rows.StructScan(info)
 		if err != nil {
@@ -513,7 +581,6 @@ func (sd sqlDB) GetCacheInfo(cacheID, carFileCid string) (*CacheInfo, error) {
 	} else {
 		return nil, nil
 	}
-	rows.Close()
 
 	return info, err
 }
@@ -584,6 +651,8 @@ func (sd sqlDB) GetBlockInfo(cacheID, cid, deviceID string) (*BlockInfo, error) 
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+
 	if rows.Next() {
 		err = rows.StructScan(info)
 		if err != nil {
@@ -592,7 +661,6 @@ func (sd sqlDB) GetBlockInfo(cacheID, cid, deviceID string) (*BlockInfo, error) 
 	} else {
 		return nil, nil
 	}
-	rows.Close()
 
 	return info, err
 }
@@ -725,6 +793,7 @@ func (sd sqlDB) GetRegisterInfo(deviceID string) (*api.NodeRegisterInfo, error) 
 	if err != nil {
 		return info, err
 	}
+	defer rows.Close()
 	if rows.Next() {
 		err = rows.StructScan(info)
 		if err != nil {
@@ -733,7 +802,6 @@ func (sd sqlDB) GetRegisterInfo(deviceID string) (*api.NodeRegisterInfo, error) 
 	} else {
 		return info, xerrors.New(errNodeNotFind)
 	}
-	rows.Close()
 
 	return info, err
 }
@@ -889,4 +957,28 @@ func (sd sqlDB) ReplaceArea() string {
 	str = strings.Replace(str, "-", "_", -1)
 
 	return str
+}
+
+func (sd sqlDB) GetDevicesFromCache(cacheID string) (int, error) {
+	area := "cn_gd_shenzhen"
+	// select DISTINCT size from block_info_cn_gd_shenzhen where cache_id='cn_gd_shenzhen_cache_1';
+	i := &BlockInfo{CacheID: cacheID}
+
+	cmd := fmt.Sprintf("SELECT DISTINCT device_id FROM %s WHERE cache_id=:cache_id", fmt.Sprintf(blockInfoTable, area))
+	rows, err := sd.cli.NamedQuery(cmd, i)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+	devices := 0
+
+	for rows.Next() {
+		info := &BlockInfo{}
+		err := rows.StructScan(info)
+		if err == nil {
+			devices++
+		}
+	}
+
+	return devices, nil
 }

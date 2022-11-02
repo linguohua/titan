@@ -2,10 +2,11 @@ package handler
 
 import (
 	"context"
-	"github.com/filecoin-project/go-jsonrpc/auth"
-	logging "github.com/ipfs/go-log/v2"
 	"net"
 	"net/http"
+
+	"github.com/filecoin-project/go-jsonrpc/auth"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 var log = logging.Logger("handler")
@@ -37,6 +38,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		reqIP = h
 	}
+
+	// fmt.Println("server http:", reqIP)
 
 	ctx := r.Context()
 	ctx = context.WithValue(ctx, RequestIP{}, reqIP)

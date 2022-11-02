@@ -1,9 +1,13 @@
 package scheduler
 
 import (
+	"sync"
+	"time"
+
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
 )
 
@@ -12,6 +16,11 @@ type DataManager struct {
 	nodeManager    *NodeManager
 	blockLoaderCh  chan bool
 	waitingCacheCh chan bool
+
+	runningTaskMap sync.Map
+
+	taskTimeWheel *timewheel.TimeWheel
+	taskTimeout   int // keepalive time interval (minute)
 }
 
 func newDataManager(nodeManager *NodeManager) *DataManager {
@@ -20,24 +29,75 @@ func newDataManager(nodeManager *NodeManager) *DataManager {
 		blockLoaderCh: make(chan bool),
 	}
 
+	d.initTimewheel()
 	go d.startBlockLoader()
 	// go d.startDataTask()
 
 	return d
 }
 
-func (m *DataManager) findData(area, cid string) *Data {
+func (m *DataManager) initTimewheel() {
+	m.taskTimeWheel = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
+		m.taskTimeWheel.AddTimer(time.Duration(m.taskTimeout)*time.Minute, "TaskTimeout", nil)
+		m.checkTaskTimeout()
+	})
+	m.taskTimeWheel.Start()
+	m.taskTimeWheel.AddTimer(time.Duration(m.taskTimeout)*time.Minute, "TaskTimeout", nil)
+}
+
+func (m *DataManager) findData(area, cid string, isStore bool) *Data {
+	dI, ok := m.runningTaskMap.Load(cid)
+	if ok && dI != nil {
+		return dI.(*Data)
+	}
+
 	data := loadData(area, cid, m.nodeManager, m)
 	if data != nil {
+		if isStore {
+			m.runningTaskMap.Store(cid, data)
+		}
 		return data
 	}
 
 	return nil
 }
 
+func (m *DataManager) checkTaskTimeout() {
+	list, err := cache.GetDB().GetTasksWithList()
+	if err != nil {
+		log.Errorf("GetTasksWithList err:%s", err.Error())
+		return
+	}
+
+	if list == nil || len(list) <= 0 {
+		return
+	}
+
+	for _, cid := range list {
+		tCid, err := cache.GetDB().GetRunningCacheTask(cid)
+		if err == nil && tCid == cid {
+			continue
+		}
+
+		// task timeout
+		data := m.findData(serverArea, cid, true)
+		data.cacheMap.Range(func(key, value interface{}) bool {
+			c := value.(*Cache)
+
+			if c.status > cacheStatusCreate {
+				return true
+			}
+
+			c.endCache()
+
+			return true
+		})
+	}
+}
+
 func (m *DataManager) cacheData(area, cid string, reliability int) error {
 	isSave := false
-	data := loadData(area, cid, m.nodeManager, m)
+	data := m.findData(area, cid, true)
 	if data == nil {
 		isSave = true
 		data = newData(area, m.nodeManager, m, cid, reliability)
@@ -69,7 +129,7 @@ func (m *DataManager) cacheData(area, cid string, reliability int) error {
 }
 
 func (m *DataManager) cacheContinue(area, cid, cacheID string) error {
-	data := loadData(area, cid, m.nodeManager, m)
+	data := m.findData(area, cid, true)
 	if data == nil {
 		return xerrors.Errorf("%s,cid:%s,cacheID:%s", ErrNotFoundTask, cid, cacheID)
 	}
@@ -81,7 +141,7 @@ func (m *DataManager) removeCarfile(carfileCid string) error {
 	// TODO removeCarfile data info
 	log.Errorf("removeCarfile carfileCid:%s", carfileCid)
 
-	data := m.findData(serverArea, carfileCid)
+	data := m.findData(serverArea, carfileCid, false)
 	if data == nil {
 		return xerrors.Errorf("%s : %s", ErrNotFoundTask, carfileCid)
 	}
@@ -98,7 +158,7 @@ func (m *DataManager) removeCache(carfileCid, cacheID string) error {
 
 func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultInfo) error {
 	area := m.nodeManager.getNodeArea(deviceID)
-	data := m.findData(area, info.CarFileCid)
+	data := m.findData(area, info.CarFileCid, true)
 
 	if data == nil {
 		return xerrors.Errorf("%s : %s", ErrNotFoundTask, info.CarFileCid)
@@ -111,6 +171,10 @@ func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultI
 	cache := cacheI.(*Cache)
 
 	return cache.blockCacheResult(info)
+}
+
+func (m *DataManager) dataTaskEnd(cid string) {
+	m.runningTaskMap.Delete(cid)
 }
 
 func (m *DataManager) doResultTask() {
