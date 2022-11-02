@@ -197,7 +197,7 @@ type SchedulerStruct struct {
 
 		ShowDataInfos func(p0 context.Context, p1 string) ([]CacheDataInfo, error) `perm:"read"`
 
-		StateNetwork func(p0 context.Context) (AllMinerInfo, error) `perm:"read"`
+		StateNetwork func(p0 context.Context) (StateNetwork, error) `perm:"read"`
 
 		Validate func(p0 context.Context) error `perm:"admin"`
 
@@ -770,15 +770,15 @@ func (s *SchedulerStub) ShowDataInfos(p0 context.Context, p1 string) ([]CacheDat
 	return *new([]CacheDataInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) StateNetwork(p0 context.Context) (AllMinerInfo, error) {
+func (s *SchedulerStruct) StateNetwork(p0 context.Context) (StateNetwork, error) {
 	if s.Internal.StateNetwork == nil {
-		return *new(AllMinerInfo), ErrNotSupported
+		return *new(StateNetwork), ErrNotSupported
 	}
 	return s.Internal.StateNetwork(p0)
 }
 
-func (s *SchedulerStub) StateNetwork(p0 context.Context) (AllMinerInfo, error) {
-	return *new(AllMinerInfo), ErrNotSupported
+func (s *SchedulerStub) StateNetwork(p0 context.Context) (StateNetwork, error) {
+	return *new(StateNetwork), ErrNotSupported
 }
 
 func (s *SchedulerStruct) Validate(p0 context.Context) error {

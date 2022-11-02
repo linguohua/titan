@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 
 	xerrors "golang.org/x/xerrors"
@@ -36,6 +37,10 @@ const (
 	NodeCandidate
 	NodeScheduler
 )
+
+func (n NodeType) MarshalBinary() ([]byte, error) {
+	return json.Marshal(n)
+}
 
 var RunningNodeType NodeType
 

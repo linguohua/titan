@@ -36,6 +36,7 @@ type NodeManager struct {
 
 	validatePool *ValidatePool
 
+	state api.StateNetwork
 	// areaManager *AreaManager
 }
 
@@ -46,6 +47,7 @@ func newNodeManager(pool *ValidatePool) *NodeManager {
 		// areaManager:   &AreaManager{},
 	}
 
+	nodeManager.stateNetwork()
 	nodeManager.initKeepaliveTimewheel()
 
 	return nodeManager
@@ -230,6 +232,8 @@ func (m *NodeManager) candidateOnline(node *CandidateNode) error {
 	// m.areaManager.addCandidate(node)
 
 	m.validatePool.addPendingNode(nil, node)
+
+	m.stateNetwork()
 
 	return nil
 }
@@ -687,5 +691,17 @@ func (n *NodeManager) SetDeviceInfo(deviceID string, info api.DevicesInfo) error
 		log.Errorf("set device info: %s", err.Error())
 		return err
 	}
+	return nil
+}
+
+func (n *NodeManager) stateNetwork() error {
+	state, err := cache.GetDB().GetNodeStat()
+	if err != nil {
+		log.Errorf("get node stat: %v", err)
+		return err
+	}
+
+	state.AllVerifier = len(n.validatePool.veriftorList)
+	n.state = state
 	return nil
 }

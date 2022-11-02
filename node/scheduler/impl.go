@@ -129,6 +129,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 		return "", xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
 
+	deviceInfo.NodeType = api.NodeEdge
 	deviceInfo.ExternalIp = ip
 
 	edgeNode := &EdgeNode{
@@ -587,6 +588,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token st
 		return "", xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
 
+	deviceInfo.NodeType = api.NodeCandidate
 	deviceInfo.ExternalIp = ip
 
 	candidateNode := &CandidateNode{
@@ -744,26 +746,6 @@ func (s *Scheduler) ValidateSwitch(ctx context.Context, open bool) error {
 	return nil
 }
 
-func (s *Scheduler) StateNetwork(ctx context.Context) (api.AllMinerInfo, error) {
-	stat := api.AllMinerInfo{}
-	s.nodeManager.candidateNodeMap.Range(func(key, value interface{}) bool {
-		node := value.(*CandidateNode)
-		stat.AllCandidate++
-		stat.TotalBandwidthUp += node.deviceInfo.BandwidthUp
-		stat.TotalBandwidthDown += node.deviceInfo.BandwidthDown
-		stat.StorageT += node.deviceInfo.DiskSpace
-		return true
-	})
-
-	s.nodeManager.edgeNodeMap.Range(func(key, value interface{}) bool {
-		node := value.(*EdgeNode)
-		stat.AllEdgeNode++
-		stat.TotalBandwidthUp += node.deviceInfo.BandwidthUp
-		stat.TotalBandwidthDown += node.deviceInfo.BandwidthDown
-		stat.StorageT += node.deviceInfo.DiskSpace
-		return true
-	})
-	
-	stat.AllVerifier = len(s.nodeManager.validatePool.veriftorList)
-	return stat, nil
+func (s *Scheduler) StateNetwork(ctx context.Context) (api.StateNetwork, error) {
+	return s.nodeManager.state, nil
 }
