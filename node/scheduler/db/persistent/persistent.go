@@ -150,7 +150,7 @@ type DataInfo struct {
 	TotalSize       int    `db:"total_size"`
 	Reliability     int    `db:"reliability"`
 	NeedReliability int    `db:"need_reliability"`
-	CacheTime       int    `db:"cache_time"`
+	CacheCount      int    `db:"cache_count"`
 	RootCacheID     string `db:"root_cache_id"`
 	TotalBlocks     int    `db:"total_blocks"`
 }

@@ -22,7 +22,7 @@ type Data struct {
 	reliability     int
 	needReliability int
 	totalSize       int
-	cacheTime       int
+	cacheCount      int
 	rootCacheID     string
 	totalBlocks     int
 	running         bool
@@ -35,7 +35,7 @@ func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, rel
 		cid:             cid,
 		reliability:     0,
 		needReliability: reliability,
-		cacheTime:       0,
+		cacheCount:      0,
 		// area:            area,
 		totalBlocks: 1,
 		rootCacheID: "",
@@ -54,7 +54,7 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 		data.totalSize = dInfo.TotalSize
 		data.needReliability = dInfo.NeedReliability
 		data.reliability = dInfo.Reliability
-		data.cacheTime = dInfo.CacheTime
+		data.cacheCount = dInfo.CacheCount
 		data.rootCacheID = dInfo.RootCacheID
 		data.totalBlocks = dInfo.TotalBlocks
 
@@ -145,7 +145,7 @@ func (d *Data) saveCacheingResults(cache *Cache, bInfo *persistent.BlockInfo, fi
 		TotalSize:   d.totalSize,
 		TotalBlocks: d.totalBlocks,
 		Reliability: d.reliability,
-		CacheTime:   d.cacheTime,
+		CacheCount:  d.cacheCount,
 		RootCacheID: d.rootCacheID,
 	}
 
@@ -173,7 +173,7 @@ func (d *Data) saveCacheEndResults(cache *Cache) error {
 		TotalSize:   d.totalSize,
 		TotalBlocks: d.totalBlocks,
 		Reliability: d.reliability,
-		CacheTime:   d.cacheTime,
+		CacheCount:  d.cacheCount,
 		RootCacheID: d.rootCacheID,
 	}
 
@@ -230,7 +230,7 @@ func (d *Data) startData() error {
 
 func (d *Data) endData(c *Cache) {
 	var err error
-	d.cacheTime++
+	d.cacheCount++
 
 	if c.status == cacheStatusSuccess {
 		d.reliability += c.reliability
@@ -251,8 +251,8 @@ func (d *Data) endData(c *Cache) {
 		return
 	}
 
-	if d.cacheTime > d.needReliability {
-		err = xerrors.New("cacheTime greater than needReliability")
+	if d.cacheCount > d.needReliability {
+		err = xerrors.New("cacheCount greater than needReliability")
 		return
 	}
 

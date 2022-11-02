@@ -134,7 +134,7 @@ func (m *DataManager) cacheData(cid string, reliability int) error {
 			TotalSize:       data.totalSize,
 			NeedReliability: data.needReliability,
 			Reliability:     data.reliability,
-			CacheTime:       data.cacheTime,
+			CacheCount:      data.cacheCount,
 			TotalBlocks:     data.totalBlocks,
 			RootCacheID:     data.rootCacheID,
 		})
