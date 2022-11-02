@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -388,23 +389,110 @@ func (c *Cache) endCache(unDoneBlocks int) {
 	c.data.endData(c)
 }
 
-func (c *Cache) removeBlocks() error {
-	// cidMap, err := persistent.GetDB().GetAllBlocks(c.cacheID)
-	// if err != nil {
-	// 	return err
-	// }
+func (c *Cache) removeCache() error {
+	reliability := c.data.reliability
 
-	// for deviceID, cids := range cidMap {
-	// 	node := c.nodeManager.getCandidateNode(deviceID)
-	// 	if node != nil {
-	// 		errList, err := node.nodeAPI.DeleteBlocks(context.Background(), cids)
-	// 		if err != nil {
-	// 			log.Errorf("%s DeleteBlocks err:%s", deviceID, err.Error())
-	// 			continue
-	// 		}
+	cidMap, err := persistent.GetDB().GetAllBlocks(c.cacheID)
+	if err != nil {
+		return err
+	}
 
-	// 	}
-	// }
+	haveErr := false
 
-	return nil
+	for deviceID, cids := range cidMap {
+		if deviceID == "" {
+			continue
+		}
+		errorMap, err := c.removeBlocks(deviceID, cids)
+		if err != nil {
+			log.Errorf("removeBlocks err:%s", err.Error())
+			haveErr = true
+		}
+		if len(errorMap) > 0 {
+			log.Errorf("removeBlocks errorMap:%v", errorMap)
+			haveErr = true
+		}
+	}
+
+	if !haveErr {
+		newCacheList := make([]string, 0)
+		cacheIDs := ""
+		rootCacheID := c.data.rootCacheID
+		reliability -= c.reliability
+		idList := strings.Split(c.data.cacheIDs, ",")
+		for _, cacheID := range idList {
+			if cacheID != "" && cacheID != c.cacheID {
+				newCacheList = append(newCacheList, cacheID)
+				cacheIDs = fmt.Sprintf("%s%s,", cacheIDs, cacheID)
+			}
+		}
+		if c.cacheID == rootCacheID {
+			rootCacheID = ""
+		}
+		// delete cache and update data info
+		err = persistent.GetDB().RemoveCacheInfo(c.cacheID, c.carFileCid, cacheIDs, rootCacheID, newCacheList, reliability)
+	}
+
+	return err
+}
+
+func (c *Cache) removeBlocks(deviceID string, cids []string) (map[string]string, error) {
+	ctx := context.Background()
+	errorMap := make(map[string]string)
+
+	nodeFinded := false
+
+	edge := c.nodeManager.getEdgeNode(deviceID)
+	if edge != nil {
+		results, err := edge.nodeAPI.DeleteBlocks(ctx, cids)
+		if err != nil {
+			return nil, err
+		}
+
+		nodeFinded = true
+
+		if len(results) > 0 {
+			for _, data := range results {
+				errorMap[data.Cid] = fmt.Sprintf("node err:%s", data.ErrMsg)
+			}
+		}
+
+	}
+
+	candidate := c.nodeManager.getCandidateNode(deviceID)
+	if candidate != nil {
+		resultList, err := candidate.nodeAPI.DeleteBlocks(ctx, cids)
+		if err != nil {
+			return nil, err
+		}
+
+		nodeFinded = true
+
+		if len(resultList) > 0 {
+			for _, data := range resultList {
+				errorMap[data.Cid] = fmt.Sprintf("node err:%s", data.ErrMsg)
+			}
+		}
+
+	}
+
+	if !nodeFinded {
+		return nil, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
+	}
+
+	delRecordList := make([]string, 0)
+	for _, cid := range cids {
+		if errorMap[cid] != "" {
+			continue
+		}
+
+		delRecordList = append(delRecordList, cid)
+	}
+
+	err := persistent.GetDB().DeleteBlockInfos(c.carFileCid, c.cacheID, deviceID, delRecordList)
+	if err != nil {
+		return errorMap, err
+	}
+
+	return errorMap, err
 }

@@ -158,20 +158,41 @@ func (m *DataManager) cacheContinue(cid, cacheID string) error {
 }
 
 func (m *DataManager) removeCarfile(carfileCid string) error {
-	// TODO removeCarfile data info
-	log.Errorf("removeCarfile carfileCid:%s", carfileCid)
-
 	data := m.findData(carfileCid, false)
 	if data == nil {
 		return xerrors.Errorf("%s : %s", ErrNotFoundTask, carfileCid)
 	}
 
+	data.cacheMap.Range(func(key, value interface{}) bool {
+		c := value.(*Cache)
+
+		err := c.removeCache()
+		if err != nil {
+			log.Errorf("cacheID:%s, removeBlocks err:%s", c.cacheID, err.Error())
+		}
+
+		return true
+	})
+
 	return nil
 }
 
 func (m *DataManager) removeCache(carfileCid, cacheID string) error {
-	// TODO removeCarfile data info
-	log.Errorf("removeCache carfileCid:%s,cacheID:%v", carfileCid, cacheID)
+	data := m.findData(carfileCid, false)
+	if data == nil {
+		return xerrors.Errorf("%s : %s", ErrNotFoundTask, carfileCid)
+	}
+
+	cacheI, ok := data.cacheMap.Load(cacheID)
+	if !ok {
+		return xerrors.Errorf("removeCache not found cacheID:%s,Cid:%s", cacheID, data.cid)
+	}
+	cache := cacheI.(*Cache)
+
+	err := cache.removeCache()
+	if err != nil {
+		log.Errorf("cacheID:%s, removeBlocks err:%s", cache.cacheID, err.Error())
+	}
 
 	return nil
 }

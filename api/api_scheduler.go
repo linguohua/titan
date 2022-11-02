@@ -26,6 +26,9 @@ type Scheduler interface {
 	CacheContinue(ctx context.Context, cid, cacheID string) error                                      //perm:admin
 	ValidateSwitch(ctx context.Context, open bool) error                                               //perm:admin
 
+	// call by locator
+	DeviceLocatorConnect(ctx context.Context, edgePort int) error //perm:write
+
 	// call by node
 	DownloadBlockResult(ctx context.Context, deviceID, cid string) error                                 //perm:write
 	GetToken(ctx context.Context, deviceID, secret string) (string, error)                               //perm:write
