@@ -57,6 +57,7 @@ type DB interface {
 	// RemoveCacheDataTask() error
 	// GetCacheDataTask() (string, string)
 
+	GetNodeStat() (api.StateNetwork, error)
 	IncrNodeReward(deviceID string, reward int64) error
 	SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, error)
 	GetDeviceInfo(deviceID string) (api.DevicesInfo, error)

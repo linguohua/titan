@@ -56,6 +56,10 @@ type AllMinerInfo struct {
 	TotalBandwidthDown float64 `json:"total_bandwidth_down"` // 下行带宽B/s
 }
 
+type StateNetwork struct {
+	AllMinerInfo
+}
+
 type IndexPageSearch struct {
 	RetrievalInfo
 	PageInfo
@@ -110,6 +114,7 @@ type GVAModel struct {
 // Devices Info
 type DevicesInfo struct {
 	GVAModel
+	NodeType NodeType `redis:"NodeType"`
 	// 设备id
 	DeviceId string `json:"deviceId" form:"deviceId" gorm:"column:device_id;comment:;" redis:"DeviceId"`
 	// 设备名称
@@ -175,6 +180,8 @@ type DevicesInfo struct {
 	TodayProfit   float64 `json:"today_profit" redis:"TodayProfit"`     // 今日收益
 	BandwidthUp   float64 `json:"bandwidth_up" redis:"BandwidthUp"`     // 上行带宽B/s
 	BandwidthDown float64 `json:"bandwidth_down" redis:"BandwidthDown"` // 下行带宽B/s
+	TotalDownload float64 `json:"total_download" redis:"TotalDownload"` // 总下载数据 MiB
+	TotalUpload   float64 `json:"total_upload" redis:"TotalUpload"`     // 总上传数据 MiB
 }
 
 // TableName IndexPage
