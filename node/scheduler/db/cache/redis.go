@@ -59,6 +59,7 @@ const (
 	deviceInfoField      = "DeviceInfo"
 	nodeTodayReward      = "TodayProfit"
 	nodeRewardDateTime   = "RewardDateTime"
+	nodeLatencyField     = "Latency"
 	// CacheTask field
 	carFileIDField = "CarFileID"
 	cacheIDField   = "cacheID"
@@ -563,3 +564,12 @@ func (rd redisDB) GetTasksWithList() ([]string, error) {
 
 // 	return rd.cli.SIsMember(context.Background(), key, cid).Result()
 // }
+
+func (rd *redisDB) UpdateNodeLatency(deviceID string, latency float64) error {
+	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+	_, err := rd.cli.HMSet(context.Background(), key, nodeLatencyField, latency).Result()
+	if err != nil {
+		return err
+	}
+	return nil
+}

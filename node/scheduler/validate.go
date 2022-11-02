@@ -245,6 +245,10 @@ func (v *Validate) validate(validateResults *api.ValidateResults) error {
 	}
 	log.Infof("do validate:%s,round:%s", validateResults.DeviceID, validateResults.RoundID)
 
+	defer func() {
+		v.updateLatency(validateResults.DeviceID, validateResults.Latency)
+	}()
+
 	deviceID := validateResults.DeviceID
 
 	status := persistent.ValidateStatusSuccess
@@ -450,4 +454,8 @@ func (v *Validate) compareCid(cidStr1, cidStr2 string) bool {
 	// log.Warnf("Hash1:%s,Hash2:%s", target1.Hash().String(), target2.Hash().String())
 
 	return target1.Hash().String() == target2.Hash().String()
+}
+
+func (v *Validate) updateLatency(deviceID string, latency float64) error {
+	return cache.GetDB().UpdateNodeLatency(deviceID, latency)
 }

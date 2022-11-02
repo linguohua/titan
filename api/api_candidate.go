@@ -39,6 +39,5 @@ type ValidateResults struct {
 
 	RoundID string
 
-	Latency    float64
-	PacketLoss float64
+	Latency float64
 }

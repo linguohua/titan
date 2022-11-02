@@ -60,6 +60,7 @@ type DB interface {
 	IncrNodeReward(deviceID string, reward int64) error
 	SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, error)
 	GetDeviceInfo(deviceID string) (api.DevicesInfo, error)
+	UpdateNodeLatency(deviceID string, latency float64) error
 
 	IsNilErr(err error) bool
 }
