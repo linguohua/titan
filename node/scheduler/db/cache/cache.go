@@ -58,8 +58,6 @@ type DB interface {
 	// GetCacheDataTask() (string, string)
 
 	IncrNodeReward(deviceID string, reward int64) error
-	GetNodeReward(deviceID string) (int64, int64, int64, error)
-
 	SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, error)
 	GetDeviceInfo(deviceID string) (api.DevicesInfo, error)
 

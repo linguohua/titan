@@ -38,4 +38,7 @@ type ValidateResults struct {
 	RandomCount int
 
 	RoundID string
+
+	Latency    float64
+	PacketLoss float64
 }

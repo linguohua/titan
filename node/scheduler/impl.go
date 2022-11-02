@@ -176,7 +176,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 }
 
 // ValidateBlockResult Validate Block Result
-func (s Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.ValidateResults) error {
+func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.ValidateResults) error {
 	err := s.validate.pushResultToQueue(&validateResults)
 	if err != nil {
 		log.Errorf("ValidateBlockResult err:%s", err.Error())
@@ -706,19 +706,11 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.De
 		return api.DevicesInfo{}, err
 	}
 
-	rewardInDay, rewardInWeek, rewardInMonth, err := cache.GetDB().GetNodeReward(deviceID)
-	if err != nil {
-		return api.DevicesInfo{}, err
-	}
-
 	_, isOnline := s.nodeManager.candidateNodeMap.Load(deviceID)
 	if !isOnline {
 		_, isOnline = s.nodeManager.edgeNodeMap.Load(deviceID)
 	}
 
-	deviceInfo.TodayProfit = float64(rewardInDay)
-	deviceInfo.SevenDaysProfit = float64(rewardInWeek)
-	deviceInfo.MonthProfit = float64(rewardInMonth)
 	deviceInfo.DeviceStatus = getDeviceStatus(isOnline)
 
 	return deviceInfo, nil
@@ -750,4 +742,28 @@ func randomNum(start, end int) int {
 func (s *Scheduler) ValidateSwitch(ctx context.Context, open bool) error {
 	s.validate.open = open
 	return nil
+}
+
+func (s *Scheduler) StateNetwork(ctx context.Context) (api.AllMinerInfo, error) {
+	stat := api.AllMinerInfo{}
+	s.nodeManager.candidateNodeMap.Range(func(key, value interface{}) bool {
+		node := value.(*CandidateNode)
+		stat.AllCandidate++
+		stat.TotalBandwidthUp += node.deviceInfo.BandwidthUp
+		stat.TotalBandwidthDown += node.deviceInfo.BandwidthDown
+		stat.StorageT += node.deviceInfo.DiskSpace
+		return true
+	})
+
+	s.nodeManager.edgeNodeMap.Range(func(key, value interface{}) bool {
+		node := value.(*EdgeNode)
+		stat.AllEdgeNode++
+		stat.TotalBandwidthUp += node.deviceInfo.BandwidthUp
+		stat.TotalBandwidthDown += node.deviceInfo.BandwidthDown
+		stat.StorageT += node.deviceInfo.DiskSpace
+		return true
+	})
+	
+	stat.AllVerifier = len(s.nodeManager.validatePool.veriftorList)
+	return stat, nil
 }

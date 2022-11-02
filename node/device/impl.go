@@ -104,6 +104,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 		}
 
 		info.DiskUsage = float64(use) / float64(total) * 100
+		info.DiskSpace = float64(total)
 
 	}
 	return info, nil
