@@ -47,13 +47,13 @@ func (m *DataManager) initTimewheel() {
 	m.taskTimeWheel.AddTimer((time.Duration(m.taskTimeout)*60-1)*time.Second, "TaskTimeout", nil)
 }
 
-func (m *DataManager) findData(area, cid string, isStore bool) *Data {
+func (m *DataManager) findData(cid string, isStore bool) *Data {
 	dI, ok := m.runningTaskMap.Load(cid)
 	if ok && dI != nil {
 		return dI.(*Data)
 	}
 
-	data := loadData(area, cid, m.nodeManager, m)
+	data := loadData(cid, m.nodeManager, m)
 	if data != nil {
 		if isStore {
 			m.runningTaskMap.Store(cid, data)
@@ -89,7 +89,7 @@ func (m *DataManager) checkTaskTimeout() {
 		}
 
 		// task timeout
-		data := m.findData(serverArea, cid, true)
+		data := m.findData(cid, true)
 		value, ok := data.cacheMap.Load(cacheID)
 		if !ok {
 			continue
@@ -107,13 +107,13 @@ func (m *DataManager) checkTaskTimeout() {
 	}
 }
 
-func (m *DataManager) cacheData(area, cid string, reliability int) error {
+func (m *DataManager) cacheData(cid string, reliability int) error {
 	var err error
 	isSave := false
-	data := m.findData(area, cid, true)
+	data := m.findData(cid, true)
 	if data == nil {
 		isSave = true
-		data = newData(area, m.nodeManager, m, cid, reliability)
+		data = newData(m.nodeManager, m, cid, reliability)
 	}
 
 	if data.needReliability != reliability {
@@ -148,8 +148,8 @@ func (m *DataManager) cacheData(area, cid string, reliability int) error {
 	return err
 }
 
-func (m *DataManager) cacheContinue(area, cid, cacheID string) error {
-	data := m.findData(area, cid, true)
+func (m *DataManager) cacheContinue(cid, cacheID string) error {
+	data := m.findData(cid, true)
 	if data == nil {
 		return xerrors.Errorf("%s,cid:%s,cacheID:%s", ErrNotFoundTask, cid, cacheID)
 	}
@@ -161,7 +161,7 @@ func (m *DataManager) removeCarfile(carfileCid string) error {
 	// TODO removeCarfile data info
 	log.Errorf("removeCarfile carfileCid:%s", carfileCid)
 
-	data := m.findData(serverArea, carfileCid, false)
+	data := m.findData(carfileCid, false)
 	if data == nil {
 		return xerrors.Errorf("%s : %s", ErrNotFoundTask, carfileCid)
 	}
@@ -177,8 +177,8 @@ func (m *DataManager) removeCache(carfileCid, cacheID string) error {
 }
 
 func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultInfo) error {
-	area := m.nodeManager.getNodeArea(deviceID)
-	data := m.findData(area, info.CarFileCid, true)
+	// area := m.nodeManager.getNodeArea(deviceID)
+	data := m.findData(info.CarFileCid, true)
 
 	if data == nil {
 		return xerrors.Errorf("%s : %s", ErrNotFoundTask, info.CarFileCid)
