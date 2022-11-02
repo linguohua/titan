@@ -27,6 +27,8 @@ var SchedulerCmds = []*cli.Command{
 	cacheContinueCmd,
 	listDataCmd,
 	validateSwitchCmd,
+	removeCarfileCmd,
+	removeCacheCmd,
 }
 
 var (
@@ -129,6 +131,59 @@ var registerNodeCmd = &cli.Command{
 
 		fmt.Printf("\nDeviceID:%s\nSecret:%s", info.DeviceID, info.Secret)
 		return nil
+	},
+}
+
+var removeCarfileCmd = &cli.Command{
+	Name:  "remove-carfile",
+	Usage: "remove a carfile",
+	Flags: []cli.Flag{
+		cacheIDFlag,
+		cidFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		cid := cctx.String("cid")
+
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		return schedulerAPI.RemoveCarFile(ctx, cid)
+	},
+}
+
+var removeCacheCmd = &cli.Command{
+	Name:  "remove-cache",
+	Usage: "remove a cache",
+	Flags: []cli.Flag{
+		cacheIDFlag,
+		cidFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		cacheID := cctx.String("cache-id")
+		cid := cctx.String("cid")
+
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		return schedulerAPI.RemoveCache(ctx, cid, cacheID)
 	},
 }
 

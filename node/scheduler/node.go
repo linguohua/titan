@@ -148,20 +148,16 @@ func (n *Node) getNodeInfo(deviceID string) (*persistent.NodeInfo, error) {
 // }
 
 // delete block records
-func (n *Node) deleteBlockRecords(cids []string) (map[string]string, error) {
-	deviceID := n.deviceInfo.DeviceId
+// func (n *Node) deleteBlockRecords(cids []string, carfileID, cacheID string) error {
+// 	deviceID := n.deviceInfo.DeviceId
 
-	errList := make(map[string]string, 0)
-	for _, cid := range cids {
-		err := persistent.GetDB().DeleteBlockInfo(deviceID, cid)
-		if err != nil {
-			errList[cid] = err.Error()
-			continue
-		}
-	}
+// 	err := persistent.GetDB().DeleteBlockInfos(carfileID, cacheID, deviceID, cids)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return errList, nil
-}
+// 	return nil
+// }
 
 // filter cached blocks and find download url from candidate
 func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, carFileCid, cacheID string) []api.ReqCacheData {

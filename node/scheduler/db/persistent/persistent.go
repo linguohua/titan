@@ -33,6 +33,7 @@ type DB interface {
 	// cache info
 	// SetCacheInfo(info *CacheInfo) error
 	GetCacheInfo(cacheID, carfileID string) (*CacheInfo, error)
+	RemoveCacheInfo(cacheID, carfileID, cachesID, rootCacheID string, caches []string, reliability int) error
 
 	// block info
 	SetBlockInfos(infos []*BlockInfo) error
@@ -46,7 +47,7 @@ type DB interface {
 	// GetCacheInfos( cacheID string) ([]*BlockInfo, error)
 
 	// node block
-	DeleteBlockInfo(deviceID, cid string) error
+	DeleteBlockInfos(carfileID, cacheID, deviceID string, cids []string) error
 	// AddBlockInfo( deviceID, cid, fid, carfileID, cacheID string) error
 	GetBlockFidWithCid(deviceID, cid string) (string, error)
 	GetBlocksFID(deviceID string) (map[string]string, error)
