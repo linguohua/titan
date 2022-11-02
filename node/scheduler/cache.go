@@ -25,9 +25,9 @@ const (
 type Cache struct {
 	data        *Data
 	nodeManager *NodeManager
-	area        string
-	cacheID     string
-	carFileCid  string
+	// area        string
+	cacheID    string
+	carFileCid string
 	// blockMap    sync.Map
 	status      cacheStatus
 	reliability int
@@ -63,14 +63,14 @@ func newCacheID(cid string) (string, error) {
 	return fmt.Sprintf("%s_cache_%d", aName, fid), nil
 }
 
-func newCache(area string, nodeManager *NodeManager, data *Data, cid string) (*Cache, error) {
+func newCache(nodeManager *NodeManager, data *Data, cid string) (*Cache, error) {
 	id, err := newCacheID(cid)
 	if err != nil {
 		return nil, err
 	}
 
 	cache := &Cache{
-		area:        area,
+		// area:        area,
 		nodeManager: nodeManager,
 		data:        data,
 		reliability: 0,
@@ -82,12 +82,11 @@ func newCache(area string, nodeManager *NodeManager, data *Data, cid string) (*C
 	return cache, err
 }
 
-func loadCache(area, cacheID, carfileCid string, nodeManager *NodeManager, data *Data) *Cache {
+func loadCache(cacheID, carfileCid string, nodeManager *NodeManager, data *Data) *Cache {
 	if cacheID == "" {
 		return nil
 	}
 	c := &Cache{
-		area:        area,
 		cacheID:     cacheID,
 		carFileCid:  carfileCid,
 		nodeManager: nodeManager,
@@ -182,7 +181,7 @@ func (c *Cache) findNode(isHaveCache bool, filterDeviceIDs map[string]string, i 
 	deviceAddr = ""
 
 	if isHaveCache {
-		cs := c.nodeManager.findEdgeNodeWithGeo(c.area, nil, filterDeviceIDs)
+		cs := c.nodeManager.findEdgeNodeWithGeo(nil, filterDeviceIDs)
 		if cs == nil || len(cs) <= 0 {
 			return
 		}
@@ -195,7 +194,7 @@ func (c *Cache) findNode(isHaveCache bool, filterDeviceIDs map[string]string, i 
 		return
 	}
 
-	cs := c.nodeManager.findCandidateNodeWithGeo(c.area, nil, filterDeviceIDs)
+	cs := c.nodeManager.findCandidateNodeWithGeo(nil, filterDeviceIDs)
 	if cs == nil || len(cs) <= 0 {
 		return
 	}

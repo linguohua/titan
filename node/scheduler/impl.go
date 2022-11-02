@@ -199,7 +199,7 @@ func (s *Scheduler) CacheContinue(ctx context.Context, cid, cacheID string) erro
 		return xerrors.New("parameter is nil")
 	}
 
-	return s.dataManager.cacheContinue(serverArea, cid, cacheID)
+	return s.dataManager.cacheContinue(cid, cacheID)
 }
 
 // CacheResult Cache Data Result
@@ -336,7 +336,7 @@ func (s *Scheduler) CacheCarFile(ctx context.Context, cid string, reliability in
 		return xerrors.New("cid is nil")
 	}
 
-	return s.dataManager.cacheData(serverArea, cid, reliability)
+	return s.dataManager.cacheData(cid, reliability)
 }
 
 // ListDatas List Datas
@@ -394,7 +394,7 @@ func (s *Scheduler) ShowDataInfos(ctx context.Context, cid string) ([]api.CacheD
 		return info
 	}
 
-	d := s.dataManager.findData(serverArea, cid, false)
+	d := s.dataManager.findData(cid, false)
 	if d != nil {
 		infos = append(infos, toData(d))
 		return infos, nil

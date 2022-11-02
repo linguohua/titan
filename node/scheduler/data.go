@@ -13,9 +13,9 @@ import (
 
 // Data Data
 type Data struct {
-	nodeManager     *NodeManager
-	dataManager     *DataManager
-	area            string
+	nodeManager *NodeManager
+	dataManager *DataManager
+	// area            string
 	cid             string
 	cacheMap        sync.Map
 	cacheIDs        string
@@ -28,7 +28,7 @@ type Data struct {
 	running         bool
 }
 
-func newData(area string, nodeManager *NodeManager, dataManager *DataManager, cid string, reliability int) *Data {
+func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, reliability int) *Data {
 	return &Data{
 		nodeManager:     nodeManager,
 		dataManager:     dataManager,
@@ -36,20 +36,20 @@ func newData(area string, nodeManager *NodeManager, dataManager *DataManager, ci
 		reliability:     0,
 		needReliability: reliability,
 		cacheTime:       0,
-		area:            area,
-		totalBlocks:     1,
-		rootCacheID:     "",
+		// area:            area,
+		totalBlocks: 1,
+		rootCacheID: "",
 	}
 }
 
-func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManager) *Data {
+func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *Data {
 	dInfo, err := persistent.GetDB().GetDataInfo(cid)
 	if err != nil {
 		log.Errorf("loadData %s err :%s", cid, err.Error())
 		return nil
 	}
 	if dInfo != nil {
-		data := newData(area, nodeManager, dataManager, cid, 0)
+		data := newData(nodeManager, dataManager, cid, 0)
 		data.cacheIDs = dInfo.CacheIDs
 		data.totalSize = dInfo.TotalSize
 		data.needReliability = dInfo.NeedReliability
@@ -63,7 +63,7 @@ func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManag
 			if cacheID == "" {
 				continue
 			}
-			c := loadCache(area, cacheID, cid, nodeManager, data)
+			c := loadCache(cacheID, cid, nodeManager, data)
 			if c == nil {
 				continue
 			}
@@ -119,7 +119,7 @@ func (d *Data) createCache() (*Cache, error) {
 		return nil, xerrors.Errorf("reliability is enough:%d/%d", d.reliability, d.needReliability)
 	}
 
-	cache, err := newCache(d.area, d.nodeManager, d, d.cid)
+	cache, err := newCache(d.nodeManager, d, d.cid)
 	if err != nil {
 		return nil, xerrors.Errorf("new cache err:%s", err.Error())
 	}
