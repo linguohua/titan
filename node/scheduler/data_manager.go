@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -27,6 +28,7 @@ func newDataManager(nodeManager *NodeManager) *DataManager {
 	d := &DataManager{
 		nodeManager:   nodeManager,
 		blockLoaderCh: make(chan bool),
+		taskTimeout:   1,
 	}
 
 	d.initTimewheel()
@@ -38,11 +40,11 @@ func newDataManager(nodeManager *NodeManager) *DataManager {
 
 func (m *DataManager) initTimewheel() {
 	m.taskTimeWheel = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		m.taskTimeWheel.AddTimer(time.Duration(m.taskTimeout)*time.Minute, "TaskTimeout", nil)
+		m.taskTimeWheel.AddTimer((time.Duration(m.taskTimeout)*60-1)*time.Second, "TaskTimeout", nil)
 		m.checkTaskTimeout()
 	})
 	m.taskTimeWheel.Start()
-	m.taskTimeWheel.AddTimer(time.Duration(m.taskTimeout)*time.Minute, "TaskTimeout", nil)
+	m.taskTimeWheel.AddTimer((time.Duration(m.taskTimeout)*60-1)*time.Second, "TaskTimeout", nil)
 }
 
 func (m *DataManager) findData(area, cid string, isStore bool) *Data {
@@ -73,29 +75,40 @@ func (m *DataManager) checkTaskTimeout() {
 		return
 	}
 
-	for _, cid := range list {
-		tCid, err := cache.GetDB().GetRunningCacheTask(cid)
-		if err == nil && tCid == cid {
+	for _, cKey := range list {
+		cidList := strings.Split(cKey, ";")
+		if len(cidList) != 2 {
+			continue
+		}
+		cid := cidList[0]
+		cacheID := cidList[1]
+
+		cID, _ := cache.GetDB().GetRunningCacheTask(cid)
+		if cID != "" {
 			continue
 		}
 
 		// task timeout
 		data := m.findData(serverArea, cid, true)
-		data.cacheMap.Range(func(key, value interface{}) bool {
-			c := value.(*Cache)
+		value, ok := data.cacheMap.Load(cacheID)
+		if !ok {
+			continue
+		}
 
-			if c.status > cacheStatusCreate {
-				return true
-			}
+		c := value.(*Cache)
 
-			c.endCache()
+		unDoneBlocks, err := persistent.GetDB().HaveBlocks(c.cacheID, int(cacheStatusCreate))
+		if err != nil {
+			log.Errorf("checkTaskTimeout %s,%s HaveBlocks err:%v", c.carFileCid, c.cacheID, err)
+			continue
+		}
 
-			return true
-		})
+		c.endCache(unDoneBlocks)
 	}
 }
 
 func (m *DataManager) cacheData(area, cid string, reliability int) error {
+	var err error
 	isSave := false
 	data := m.findData(area, cid, true)
 	if data == nil {
@@ -108,8 +121,14 @@ func (m *DataManager) cacheData(area, cid string, reliability int) error {
 		isSave = true
 	}
 
+	defer func() {
+		if err != nil {
+			m.dataTaskEnd(data.cid)
+		}
+	}()
+
 	if isSave {
-		err := persistent.GetDB().SetDataInfo(&persistent.DataInfo{
+		err = persistent.GetDB().SetDataInfo(&persistent.DataInfo{
 			CID:             data.cid,
 			CacheIDs:        data.cacheIDs,
 			TotalSize:       data.totalSize,
@@ -125,7 +144,8 @@ func (m *DataManager) cacheData(area, cid string, reliability int) error {
 		}
 	}
 
-	return data.startData()
+	err = data.startData()
+	return err
 }
 
 func (m *DataManager) cacheContinue(area, cid, cacheID string) error {

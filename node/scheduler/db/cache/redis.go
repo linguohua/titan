@@ -490,12 +490,18 @@ func (rd redisDB) RemoveCacheResultInfo() error {
 	return err
 }
 
-func (rd redisDB) SetRunningCacheTask(cid string) error {
+func (rd redisDB) SetRunningCacheTask(cid, cacheID string) error {
 	key := fmt.Sprintf(redisKeyRunningTask, serverName, cid)
 	// Expire
-	_, err := rd.cli.Set(context.Background(), key, cid, time.Second*20).Result()
+	_, err := rd.cli.Set(context.Background(), key, cacheID, time.Second*20).Result()
 	return err
 }
+
+// func (rd redisDB) GetRunningCacheTask(cid string) (int64, error) {
+// 	key := fmt.Sprintf(redisKeyRunningTask, serverName, cid)
+
+// 	return rd.cli.Exists(context.Background(), key).Result()
+// }
 
 func (rd redisDB) GetRunningCacheTask(cid string) (string, error) {
 	key := fmt.Sprintf(redisKeyRunningTask, serverName, cid)
@@ -503,7 +509,7 @@ func (rd redisDB) GetRunningCacheTask(cid string) (string, error) {
 	return rd.cli.Get(context.Background(), key).Result()
 }
 
-func (rd redisDB) RemoveRunningCacheTask(cid string) error {
+func (rd redisDB) RemoveRunningCacheTask(cid, cacheID string) error {
 	key := fmt.Sprintf(redisKeyRunningTask, serverName, cid)
 
 	_, err := rd.cli.Del(context.Background(), key).Result()
@@ -511,7 +517,7 @@ func (rd redisDB) RemoveRunningCacheTask(cid string) error {
 		return err
 	}
 
-	return rd.RemoveRunningList(cid)
+	return rd.RemoveRunningList(cid, cacheID)
 }
 
 func (rd redisDB) SetWaitingCacheTask(info api.CacheDataInfo) error {
@@ -552,18 +558,20 @@ func (rd redisDB) RemoveWaitingCacheTask() error {
 }
 
 // add
-func (rd redisDB) SetCidToRunningList(cid string) error {
+func (rd redisDB) SetCidToRunningList(cid, cacheID string) error {
 	key := fmt.Sprintf(redisKeyRunningList, serverName)
 
-	_, err := rd.cli.SAdd(context.Background(), key, cid).Result()
+	cKey := fmt.Sprintf("%s;%s", cid, cacheID)
+	_, err := rd.cli.SAdd(context.Background(), key, cKey).Result()
 	return err
 }
 
 // del
-func (rd redisDB) RemoveRunningList(cid string) error {
+func (rd redisDB) RemoveRunningList(cid, cacheID string) error {
 	key := fmt.Sprintf(redisKeyRunningList, serverName)
 
-	_, err := rd.cli.SRem(context.Background(), key, cid).Result()
+	cKey := fmt.Sprintf("%s;%s", cid, cacheID)
+	_, err := rd.cli.SRem(context.Background(), key, cKey).Result()
 	return err
 }
 
