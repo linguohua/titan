@@ -79,8 +79,8 @@ func loadData(area, cid string, nodeManager *NodeManager, dataManager *DataManag
 }
 
 func (d *Data) cacheContinue(cacheID string) error {
-	tCid, err := cache.GetDB().GetRunningCacheTask(d.cid)
-	if err == nil && tCid == d.cid {
+	cID, _ := cache.GetDB().GetRunningCacheTask(d.cid)
+	if cID != "" {
 		return xerrors.New("data have task running,please wait")
 	}
 
@@ -128,11 +128,6 @@ func (d *Data) createCache() (*Cache, error) {
 }
 
 func (d *Data) updateDataInfo(blockInfo *persistent.BlockInfo, fid string, info *api.CacheResultInfo, c *Cache, createBlocks []*persistent.BlockInfo) error {
-	err := cache.GetDB().SetRunningCacheTask(d.cid)
-	if err != nil {
-		return err
-	}
-
 	if !d.haveRootCache() {
 		if info.Cid == d.cid {
 			d.totalSize = int(info.LinksSize) + info.BlockSize
@@ -201,8 +196,12 @@ func (d *Data) saveCacheEndResults(cache *Cache) error {
 }
 
 func (d *Data) startData() error {
-	tCid, err := cache.GetDB().GetRunningCacheTask(d.cid)
-	if err == nil && tCid == d.cid {
+	if d.needReliability <= d.reliability {
+		return xerrors.Errorf("reliability is enough:%d/%d", d.reliability, d.needReliability)
+	}
+
+	cacheID, _ := cache.GetDB().GetRunningCacheTask(d.cid)
+	if cacheID != "" {
 		return xerrors.New("data have task running,please wait")
 	}
 
@@ -211,7 +210,6 @@ func (d *Data) startData() error {
 		return err
 	}
 
-	// d.cacheMap[cache.cacheID] = cache
 	d.cacheMap.Store(c.cacheID, c)
 	d.cacheIDs = fmt.Sprintf("%s%s,", d.cacheIDs, c.cacheID)
 
@@ -231,6 +229,7 @@ func (d *Data) startData() error {
 }
 
 func (d *Data) endData(c *Cache) {
+	var err error
 	d.cacheTime++
 
 	if c.status == cacheStatusSuccess {
@@ -240,18 +239,20 @@ func (d *Data) endData(c *Cache) {
 		}
 	}
 
-	err := d.saveCacheEndResults(c)
+	defer func() {
+		if err != nil {
+			d.dataManager.dataTaskEnd(d.cid)
+		}
+	}()
+
+	err = d.saveCacheEndResults(c)
 	if err != nil {
 		log.Errorf("saveCacheEndResults err:%s", err.Error())
-	}
-
-	if d.needReliability <= d.reliability {
-		d.dataManager.dataTaskEnd(d.cid)
 		return
 	}
 
 	if d.cacheTime > d.needReliability {
-		d.dataManager.dataTaskEnd(d.cid)
+		err = xerrors.New("cacheTime greater than needReliability")
 		return
 	}
 
