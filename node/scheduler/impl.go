@@ -191,7 +191,17 @@ func (s *Scheduler) DownloadBlockResult(ctx context.Context, stat api.DownloadSt
 	// TODO check cid
 
 	// add reward
-	return cache.GetDB().IncrNodeReward(stat.DeviceID, 1)
+	if err := cache.GetDB().IncrDeviceReward(stat.DeviceID, 1); err != nil {
+		return err
+	}
+
+	return persistent.GetDB().AddDownloadInfo(stat.DeviceID, &api.BlockDownloadInfo{
+		DeviceID:  stat.DeviceID,
+		BlockCID:  stat.Cid,
+		Reward:    1,
+		BlockSize: int64(stat.BlockSize),
+		Speed:     stat.DownloadSpeed,
+	})
 }
 
 // CacheContinue Cache Continue
@@ -754,4 +764,8 @@ func (s *Scheduler) StateNetwork(ctx context.Context) (api.StateNetwork, error) 
 // LocatorConnect Locator Connect
 func (s *Scheduler) LocatorConnect(ctx context.Context, edgePort int, areaID string) error {
 	return nil
+}
+
+func (s *Scheduler) GetDownloadInfo(ctx context.Context, deviceID string) ([]*api.BlockDownloadInfo, error) {
+	return persistent.GetDB().GetDownloadInfo(deviceID)
 }

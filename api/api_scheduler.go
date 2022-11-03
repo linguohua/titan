@@ -44,6 +44,7 @@ type Scheduler interface {
 	GetDownloadInfoWithBlock(ctx context.Context, cid string) (DownloadInfo, error)                   //perm:read
 	GetDevicesInfo(ctx context.Context, deviceID string) (DevicesInfo, error)                         //perm:read
 	StateNetwork(ctx context.Context) (StateNetwork, error)                                           //perm:read
+	GetDownloadInfo(ctx context.Context, deviceID string) ([]*BlockDownloadInfo, error)               //perm:read
 }
 
 // DataListInfo Data List Info

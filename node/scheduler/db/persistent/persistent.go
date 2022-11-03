@@ -58,6 +58,10 @@ type DB interface {
 	BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error
 	GetRegisterInfo(deviceID string) (*api.NodeRegisterInfo, error)
 
+	// AddDownloadInfo user download block information
+	AddDownloadInfo(deviceID string, info *api.BlockDownloadInfo) error
+	GetDownloadInfo(deviceID string) ([]*api.BlockDownloadInfo, error)
+
 	// tool
 	ReplaceArea() string
 }

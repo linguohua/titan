@@ -328,3 +328,13 @@ type IncomeJson24 struct {
 	TwentyThree float64 `json:"23"`
 	TwentyFour  float64 `json:"24"`
 }
+
+type BlockDownloadInfo struct {
+	ID          string    `json:"-"`
+	DeviceID    string    `json:"deviceId" db:"device_id"`
+	BlockCID    string    `json:"blockCid" db:"block_cid"`
+	BlockSize   int64     `json:"blockSize" db:"block_size"`
+	Speed       int64     `json:"speed" db:"speed"`
+	Reward      int64     `json:"reward" db:"reward"`
+	CreatedTime time.Time `json:"createdAt" db:"created_time"`
+}

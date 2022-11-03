@@ -54,12 +54,11 @@ const (
 	redisKeyNodeDayReward = "Titan:NodeDayReward:%s"
 
 	// NodeInfo field
-	onlineTimeField      = "OnlineTime"
-	validateSuccessField = "ValidateSuccessTime"
-	deviceInfoField      = "DeviceInfo"
-	nodeTodayReward      = "TodayProfit"
-	nodeRewardDateTime   = "RewardDateTime"
-	nodeLatencyField     = "Latency"
+	onlineTimeField         = "OnlineTime"
+	validateSuccessField    = "ValidateSuccessTime"
+	nodeTodayRewardField    = "TodayProfit"
+	nodeRewardDateTimeField = "RewardDateTime"
+	nodeLatencyField        = "Latency"
 	// CacheTask field
 	// carFileIDField = "CarFileID"
 	// cacheIDField = "cacheID"
@@ -324,10 +323,10 @@ func (rd redisDB) IsNodeInValidatorList(deviceID string) (bool, error) {
 // 	return cid, cacheID
 // }
 
-func (rd redisDB) IncrNodeReward(deviceID string, reward int64) error {
+func (rd redisDB) IncrDeviceReward(deviceID string, reward int64) error {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	results, err := rd.cli.HMGet(context.Background(), key, nodeTodayReward, nodeRewardDateTime).Result()
+	results, err := rd.cli.HMGet(context.Background(), key, nodeTodayRewardField, nodeRewardDateTimeField).Result()
 	if err != nil {
 		return err
 	}
@@ -356,8 +355,8 @@ func (rd redisDB) IncrNodeReward(deviceID string, reward int64) error {
 	}
 
 	_, err = rd.cli.HMSet(context.Background(), key,
-		nodeTodayReward, reward,
-		nodeRewardDateTime, getStartOfDay(time.Now()).Format(dayFormatLayout),
+		nodeTodayRewardField, reward,
+		nodeRewardDateTimeField, getStartOfDay(time.Now()).Format(dayFormatLayout),
 	).Result()
 	if err != nil {
 		return err
@@ -376,7 +375,7 @@ func (rd redisDB) SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, er
 	ctx := context.Background()
 	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
 		for field, value := range toMap(info) {
-			if field == nodeTodayReward || field == onlineTimeField {
+			if field == nodeTodayRewardField || field == onlineTimeField {
 				continue
 			}
 			pipeliner.HMSet(ctx, key, field, value)
@@ -560,7 +559,7 @@ func (rd redisDB) GetTasksWithList() ([]string, error) {
 // 	return rd.cli.SIsMember(context.Background(), key, cid).Result()
 // }
 
-func (rd *redisDB) UpdateNodeLatency(deviceID string, latency float64) error {
+func (rd redisDB) SetDeviceLatency(deviceID string, latency float64) error {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 	_, err := rd.cli.HMSet(context.Background(), key, nodeLatencyField, latency).Result()
 	if err != nil {
@@ -569,7 +568,7 @@ func (rd *redisDB) UpdateNodeLatency(deviceID string, latency float64) error {
 	return nil
 }
 
-func (rd *redisDB) GetNodeStat() (out api.StateNetwork, err error) {
+func (rd redisDB) GetDeviceStat() (out api.StateNetwork, err error) {
 	ctx := context.Background()
 	keys, err := rd.cli.Keys(ctx, fmt.Sprintf(redisKeyNodeInfo, "*")).Result()
 	if err != nil {
