@@ -222,6 +222,29 @@ func GetEdgeAPI(ctx *cli.Context) (api.Edge, jsonrpc.ClientCloser, error) {
 	return a, c, e
 }
 
+func GetLocationAPI(ctx *cli.Context) (api.Location, jsonrpc.ClientCloser, error) {
+	addr, headers, err := GetRawAPI(ctx, repo.Location, "v0")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if IsVeryVerbose {
+		_, _ = fmt.Fprintln(ctx.App.Writer, "using full node API v0 endpoint:", addr)
+	}
+
+	a, c, e := client.NewLocation(ctx.Context, addr, headers)
+	v, err := a.Version(ctx.Context)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if !v.APIVersion.EqMajorMinor(api.LocationAPIVersion0) {
+		return nil, nil, xerrors.Errorf("Remote API version didn't match (expected %s, remote %s)", api.LocationAPIVersion0, v.APIVersion)
+	}
+
+	return a, c, e
+}
+
 func DaemonContext(cctx *cli.Context) context.Context {
 	if mtCtx, ok := cctx.App.Metadata[metadataTraceContext]; ok {
 		return mtCtx.(context.Context)

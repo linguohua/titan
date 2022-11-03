@@ -36,6 +36,7 @@ const (
 	NodeEdge
 	NodeCandidate
 	NodeScheduler
+	NodeLocation
 )
 
 func (n NodeType) MarshalBinary() ([]byte, error) {
@@ -52,6 +53,8 @@ func VersionForType(nodeType NodeType) (Version, error) {
 		return CandidateAPIVersion0, nil
 	case NodeEdge:
 		return EdgeAPIVersion0, nil
+	case NodeLocation:
+		return LocationAPIVersion0, nil
 	default:
 		return Version(0), xerrors.Errorf("unknown node type %d", nodeType)
 	}
@@ -63,6 +66,7 @@ var (
 
 	CandidateAPIVersion0 = newVer(1, 0, 0)
 	EdgeAPIVersion0      = newVer(1, 0, 0)
+	LocationAPIVersion0  = newVer(1, 0, 0)
 )
 
 //nolint:varcheck,deadcode

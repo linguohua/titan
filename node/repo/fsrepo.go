@@ -206,6 +206,30 @@ func (wallet) APIInfoEnvVars() (primary string, fallbacks []string, deprecated [
 	panic("not supported")
 }
 
+var Location location
+
+type location struct{}
+
+func (location) Type() string {
+	return "Location"
+}
+
+func (location) Config() interface{} {
+	return &config.Location{}
+}
+
+func (location) APIFlags() []string {
+	return []string{"location-api-url"}
+}
+
+func (location) RepoFlags() []string {
+	return []string{"location-repo"}
+}
+
+func (location) APIInfoEnvVars() (primary string, fallbacks []string, deprecated []string) {
+	return "LOCATION_API_INFO", nil, nil
+}
+
 var log = logging.Logger("repo")
 
 var ErrRepoExists = xerrors.New("repo exists")
@@ -550,7 +574,6 @@ func (fsr *fsLockedRepo) SetConfig(c func(interface{})) error {
 	if err != nil {
 		return err
 	}
-
 	// mutate in-memory representation of config
 	c(cfg)
 
@@ -562,7 +585,6 @@ func (fsr *fsLockedRepo) SetConfig(c func(interface{})) error {
 	if err != nil {
 		return err
 	}
-
 	// write buffer of TOML bytes to config file
 	err = ioutil.WriteFile(fsr.configPath, buf.Bytes(), 0o644)
 	if err != nil {
