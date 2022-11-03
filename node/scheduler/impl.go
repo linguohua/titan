@@ -227,15 +227,15 @@ func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cid
 		return nil, xerrors.New("cids is nil")
 	}
 
-	edge := s.nodeManager.getEdgeNode(deviceID)
-	if edge != nil {
-		return edge.deleteBlockRecords(cids)
-	}
+	// edge := s.nodeManager.getEdgeNode(deviceID)
+	// if edge != nil {
+	// 	return edge.deleteBlockRecords(cids)
+	// }
 
-	candidate := s.nodeManager.getCandidateNode(deviceID)
-	if candidate != nil {
-		return candidate.deleteBlockRecords(cids)
-	}
+	// candidate := s.nodeManager.getCandidateNode(deviceID)
+	// if candidate != nil {
+	// 	return candidate.deleteBlockRecords(cids)
+	// }
 
 	return nil, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
 }
@@ -746,6 +746,12 @@ func (s *Scheduler) ValidateSwitch(ctx context.Context, open bool) error {
 	return nil
 }
 
+// StateNetwork State Network
 func (s *Scheduler) StateNetwork(ctx context.Context) (api.StateNetwork, error) {
 	return s.nodeManager.state, nil
+}
+
+// LocatorConnect Locator Connect
+func (s *Scheduler) LocatorConnect(ctx context.Context, edgePort int) error {
+	return nil
 }
