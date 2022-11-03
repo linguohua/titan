@@ -28,6 +28,12 @@ func MetricedEdgeAPI(a api.Edge) api.Edge {
 	return &out
 }
 
+func MetricedLocationAPI(a api.Location) api.Location {
+	var out api.LocationStruct
+	proxy(a, &out)
+	return &out
+}
+
 func proxy(in interface{}, outstr interface{}) {
 	outs := api.GetInternalStructs(outstr)
 	for _, out := range outs {

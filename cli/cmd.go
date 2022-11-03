@@ -57,6 +57,7 @@ var (
 	GetSchedulerAPI = cliutil.GetSchedulerAPI
 	GetCandidateAPI = cliutil.GetCandidateAPI
 	GetEdgeAPI      = cliutil.GetEdgeAPI
+	GetLocationAPI  = cliutil.GetLocationAPI
 )
 
 var CommonCommands = []*cli.Command{

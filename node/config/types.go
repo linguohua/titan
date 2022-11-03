@@ -477,3 +477,16 @@ type Wallet struct {
 
 type FeeConfig struct {
 }
+
+type SchedulerCfg struct {
+	URL    string
+	Weight int
+}
+type AccessPoint struct {
+	AreaID        string
+	SchedulerCfgs []SchedulerCfg
+}
+
+type Location struct {
+	AccessPoints map[string]AccessPoint
+}
