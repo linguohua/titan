@@ -20,7 +20,7 @@ type DB interface {
 	SetValidateResultInfo(info *ValidateResult) error
 	SetNodeToValidateErrorList(sID, deviceID string) error
 
-	CreateCache(dInfo *DataInfo, cInfo *CacheInfo) (int, error)
+	CreateCache(dInfo *DataInfo, cInfo *CacheInfo) error
 	SaveCacheEndResults(dInfo *DataInfo, cInfo *CacheInfo) error
 	SaveCacheingResults(dInfo *DataInfo, cInfo *CacheInfo, updateBlock *BlockInfo, fid string, createBlocks []*BlockInfo) error
 

@@ -264,7 +264,7 @@ func (m *NodeManager) candidateOffline(node *CandidateNode) {
 	node.setNodeOffline(deviceID, node.geoInfo, api.TypeNameCandidate, node.lastRequestTime)
 }
 
-func (m *NodeManager) findEdgeNodeWithGeo(useDeviceIDs []string, filterDeviceIDs map[string]string) []*EdgeNode {
+func (m *NodeManager) findEdgeNodes(useDeviceIDs []string, filterDeviceIDs map[string]string) []*EdgeNode {
 	if filterDeviceIDs == nil {
 		filterDeviceIDs = make(map[string]string)
 	}
@@ -322,7 +322,7 @@ func (m *NodeManager) findEdgeNodeWithGeo(useDeviceIDs []string, filterDeviceIDs
 	return nil
 }
 
-func (m *NodeManager) findCandidateNodeWithGeo(useDeviceIDs []string, filterDeviceIDs map[string]string) []*CandidateNode {
+func (m *NodeManager) findCandidateNodes(useDeviceIDs []string, filterDeviceIDs map[string]string) []*CandidateNode {
 	if filterDeviceIDs == nil {
 		filterDeviceIDs = make(map[string]string)
 	}
@@ -497,13 +497,13 @@ func (m *NodeManager) findNodeDownloadInfo(cid string) (api.DownloadInfo, error)
 		return downloadInfo, xerrors.Errorf("%s , whit cid:%s", ErrNodeNotFind, cid)
 	}
 
-	nodeEs := m.findEdgeNodeWithGeo(deviceIDs, nil)
+	nodeEs := m.findEdgeNodes(deviceIDs, nil)
 	if nodeEs != nil {
 		node := nodeEs[randomNum(0, len(nodeEs))]
 		return node.nodeAPI.GetDownloadInfo(context.Background())
 	}
 
-	nodeCs := m.findCandidateNodeWithGeo(deviceIDs, nil)
+	nodeCs := m.findCandidateNodes(deviceIDs, nil)
 	if nodeCs != nil {
 		node := nodeCs[randomNum(0, len(nodeCs))]
 		return node.nodeAPI.GetDownloadInfo(context.Background())
@@ -524,7 +524,7 @@ func (m *NodeManager) getCandidateNodesWithData(cid string) ([]*CandidateNode, e
 		return nil, xerrors.Errorf("%s , whit cid:%s", ErrNodeNotFind, cid)
 	}
 
-	nodeCs := m.findCandidateNodeWithGeo(deviceIDs, nil)
+	nodeCs := m.findCandidateNodes(deviceIDs, nil)
 
 	return nodeCs, nil
 }

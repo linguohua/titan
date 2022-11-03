@@ -16,8 +16,8 @@ type Scheduler interface {
 	Validate(ctx context.Context) error                                                                //perm:admin
 	QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]CacheStat, error)                  //perm:read
 	QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (CachingBlockList, error)         //perm:read
-	CacheCarFile(ctx context.Context, cid string, reliability int) error                               //perm:admin
-	RemoveCarFile(ctx context.Context, carfileID string) error                                         //perm:admin
+	CacheCarfile(ctx context.Context, cid string, reliability int) error                               //perm:admin
+	RemoveCarfile(ctx context.Context, carfileID string) error                                         //perm:admin
 	RemoveCache(ctx context.Context, carfileID, cacheID string) error                                  //perm:admin
 	ShowDataInfos(ctx context.Context, cid string) ([]CacheDataInfo, error)                            //perm:read
 	ListDatas(ctx context.Context, page int) (DataListInfo, error)                                     //perm:read

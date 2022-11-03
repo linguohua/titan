@@ -99,11 +99,14 @@ func (m *DataManager) checkTaskTimeout() {
 
 		unDoneBlocks, err := persistent.GetDB().HaveBlocks(c.cacheID, int(cacheStatusCreate))
 		if err != nil {
-			log.Errorf("checkTaskTimeout %s,%s HaveBlocks err:%v", c.carFileCid, c.cacheID, err)
+			log.Errorf("checkTaskTimeout %s,%s HaveBlocks err:%v", c.carfileCid, c.cacheID, err)
 			continue
 		}
 
-		c.endCache(unDoneBlocks)
+		err = c.endCache(unDoneBlocks)
+		if err != nil {
+			log.Errorf("checkTaskTimeout %s", err.Error())
+		}
 	}
 }
 

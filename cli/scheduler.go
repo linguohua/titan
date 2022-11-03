@@ -21,7 +21,7 @@ var SchedulerCmds = []*cli.Command{
 	cachingBlocksCmd,
 	cacheStatCmd,
 	getDownloadInfoCmd,
-	cacheCarFileCmd,
+	cacheCarfileCmd,
 	showDataInfoCmd,
 	registerNodeCmd,
 	cacheContinueCmd,
@@ -156,7 +156,7 @@ var removeCarfileCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.RemoveCarFile(ctx, cid)
+		return schedulerAPI.RemoveCarfile(ctx, cid)
 	},
 }
 
@@ -360,7 +360,7 @@ var showDataInfoCmd = &cli.Command{
 	},
 }
 
-var cacheCarFileCmd = &cli.Command{
+var cacheCarfileCmd = &cli.Command{
 	Name:  "cache-file",
 	Usage: "specify node cache carfile",
 	Flags: []cli.Flag{
@@ -391,7 +391,7 @@ var cacheCarFileCmd = &cli.Command{
 			return xerrors.New("cid is nil")
 		}
 
-		err = schedulerAPI.CacheCarFile(ctx, cid, reliability)
+		err = schedulerAPI.CacheCarfile(ctx, cid, reliability)
 		if err != nil {
 			return err
 		}

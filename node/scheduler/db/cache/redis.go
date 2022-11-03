@@ -61,8 +61,8 @@ const (
 	nodeRewardDateTime   = "RewardDateTime"
 	nodeLatencyField     = "Latency"
 	// CacheTask field
-	carFileIDField = "CarFileID"
-	cacheIDField   = "cacheID"
+	// carFileIDField = "CarFileID"
+	// cacheIDField = "cacheID"
 )
 
 const (
