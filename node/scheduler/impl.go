@@ -762,7 +762,7 @@ func (s *Scheduler) StateNetwork(ctx context.Context) (api.StateNetwork, error) 
 }
 
 // LocatorConnect Locator Connect
-func (s *Scheduler) LocatorConnect(ctx context.Context, edgePort int, areaID string) error {
+func (s *Scheduler) LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID string) error {
 	return nil
 }
 
