@@ -4,6 +4,7 @@ package api
 
 import (
 	"context"
+
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
@@ -11,21 +12,17 @@ import (
 
 )
 
-
 var ErrNotSupported = xerrors.New("method not supported")
 
-
 type BlockStruct struct {
-
 	Internal struct {
-
 		AnnounceBlocksWasDelete func(p0 context.Context, p1 []string) ([]BlockOperationResult, error) `perm:"write"`
 
-		BlockStoreStat func(p0 context.Context) (error) `perm:"read"`
+		BlockStoreStat func(p0 context.Context) error `perm:"read"`
 
-		CacheBlocks func(p0 context.Context, p1 ReqCacheData) (error) `perm:"write"`
+		CacheBlocks func(p0 context.Context, p1 ReqCacheData) error `perm:"write"`
 
-		DeleteAllBlocks func(p0 context.Context) (error) `perm:"admin"`
+		DeleteAllBlocks func(p0 context.Context) error `perm:"admin"`
 
 		DeleteBlocks func(p0 context.Context, p1 []string) ([]BlockOperationResult, error) `perm:"write"`
 
@@ -41,17 +38,14 @@ type BlockStruct struct {
 
 		QueryCachingBlocks func(p0 context.Context) (CachingBlockList, error) `perm:"read"`
 
-		ScrubBlocks func(p0 context.Context, p1 ScrubBlocks) (error) `perm:"read"`
-
+		ScrubBlocks func(p0 context.Context, p1 ScrubBlocks) error `perm:"read"`
 	}
 }
 
 type BlockStub struct {
-
 }
 
 type CandidateStruct struct {
-
 	CommonStruct
 
 	DeviceStruct
@@ -63,16 +57,13 @@ type CandidateStruct struct {
 	ValidateStruct
 
 	Internal struct {
+		ValidateBlocks func(p0 context.Context, p1 []ReqValidate) error `perm:"read"`
 
-		ValidateBlocks func(p0 context.Context, p1 []ReqValidate) (error) `perm:"read"`
-
-		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
-
+		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
 }
 
 type CandidateStub struct {
-
 	CommonStub
 
 	DeviceStub
@@ -82,13 +73,10 @@ type CandidateStub struct {
 	DownloadStub
 
 	ValidateStub
-
 }
 
 type CommonStruct struct {
-
 	Internal struct {
-
 		AuthNew func(p0 context.Context, p1 []auth.Permission) ([]byte, error) `perm:"admin"`
 
 		AuthVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
@@ -101,51 +89,40 @@ type CommonStruct struct {
 
 		LogList func(p0 context.Context) ([]string, error) `perm:"write"`
 
-		LogSetLevel func(p0 context.Context, p1 string, p2 string) (error) `perm:"write"`
+		LogSetLevel func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
 		Session func(p0 context.Context, p1 string) (uuid.UUID, error) `perm:"read"`
 
-		Shutdown func(p0 context.Context) (error) `perm:"admin"`
+		Shutdown func(p0 context.Context) error `perm:"admin"`
 
 		Version func(p0 context.Context) (APIVersion, error) `perm:"read"`
-
 	}
 }
 
 type CommonStub struct {
-
 }
 
 type DeviceStruct struct {
-
 	Internal struct {
-
 		DeviceInfo func(p0 context.Context) (DevicesInfo, error) `perm:"read"`
-
 	}
 }
 
 type DeviceStub struct {
-
 }
 
 type DownloadStruct struct {
-
 	Internal struct {
-
 		GetDownloadInfo func(p0 context.Context) (DownloadInfo, error) `perm:"read"`
 
-		SetDownloadSpeed func(p0 context.Context, p1 int64) (error) `perm:"write"`
-
+		SetDownloadSpeed func(p0 context.Context, p1 int64) error `perm:"write"`
 	}
 }
 
 type DownloadStub struct {
-
 }
 
 type EdgeStruct struct {
-
 	CommonStruct
 
 	DeviceStruct
@@ -157,14 +134,11 @@ type EdgeStruct struct {
 	ValidateStruct
 
 	Internal struct {
-
-		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
-
+		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
 }
 
 type EdgeStub struct {
-
 	CommonStub
 
 	DeviceStub
@@ -174,20 +148,19 @@ type EdgeStub struct {
 	DownloadStub
 
 	ValidateStub
-
 }
 
 type LocatorStruct struct {
-
 	CommonStruct
 
 	Internal struct {
+		AddAccessPoints func(p0 context.Context, p1 string, p2 string, p3 int) error `perm:"read"`
 
-		AddAccessPoints func(p0 context.Context, p1 string, p2 string, p3 int, p4 string) (error) `perm:"admin"`
+		AddAccessPoints func(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error `perm:"admin"`
 
-		DeviceOffline func(p0 context.Context, p1 string) (error) `perm:"write"`
+		DeviceOffline func(p0 context.Context, p1 string) error `perm:"write"`
 
-		DeviceOnline func(p0 context.Context, p1 string, p2 string, p3 int) (error) `perm:"write"`
+		DeviceOnline func(p0 context.Context, p1 string, p2 string, p3 int) error `perm:"write"`
 
 		GetAccessPoints func(p0 context.Context, p1 string, p2 string) ([]SchedulerAuth, error) `perm:"read"`
 
@@ -199,28 +172,23 @@ type LocatorStruct struct {
 
 		ListAccessPoints func(p0 context.Context) ([]string, error) `perm:"admin"`
 
-		RemoveAccessPoints func(p0 context.Context, p1 string) (error) `perm:"admin"`
+		RemoveAccessPoints func(p0 context.Context, p1 string) error `perm:"admin"`
 
 		ShowAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
-
 	}
 }
 
 type LocatorStub struct {
-
 	CommonStub
-
 }
 
 type SchedulerStruct struct {
-
 	CommonStruct
 
 	Internal struct {
+		CacheCarfile func(p0 context.Context, p1 string, p2 int) error `perm:"admin"`
 
-		CacheCarfile func(p0 context.Context, p1 string, p2 int) (error) `perm:"admin"`
-
-		CacheContinue func(p0 context.Context, p1 string, p2 string) (error) `perm:"admin"`
+		CacheContinue func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
 		CacheResult func(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) `perm:"write"`
 
@@ -228,11 +196,11 @@ type SchedulerStruct struct {
 
 		DeleteBlockRecords func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"admin"`
 
-		DownloadBlockResult func(p0 context.Context, p1 DownloadStat) (error) `perm:"write"`
+		DownloadBlockResult func(p0 context.Context, p1 DownloadStat) error `perm:"write"`
 
 		EdgeNodeConnect func(p0 context.Context, p1 int, p2 string) (string, error) `perm:"write"`
 
-		ElectionValidators func(p0 context.Context) (error) `perm:"admin"`
+		ElectionValidators func(p0 context.Context) error `perm:"admin"`
 
 		FindNodeWithBlock func(p0 context.Context, p1 string) (string, error) `perm:"read"`
 
@@ -252,7 +220,7 @@ type SchedulerStruct struct {
 
 		ListDatas func(p0 context.Context, p1 int) (DataListInfo, error) `perm:"read"`
 
-		LocatorConnect func(p0 context.Context, p1 int, p2 string, p3 string, p4 string) (error) `perm:"write"`
+		LocatorConnect func(p0 context.Context, p1 int, p2 string, p3 string, p4 string) error `perm:"write"`
 
 		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"read"`
 
@@ -260,9 +228,9 @@ type SchedulerStruct struct {
 
 		RegisterNode func(p0 context.Context, p1 NodeType) (NodeRegisterInfo, error) `perm:"admin"`
 
-		RemoveCache func(p0 context.Context, p1 string, p2 string) (error) `perm:"admin"`
+		RemoveCache func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
-		RemoveCarfile func(p0 context.Context, p1 string) (error) `perm:"admin"`
+		RemoveCarfile func(p0 context.Context, p1 string) error `perm:"admin"`
 
 		ShowDataTask func(p0 context.Context, p1 string) (CacheDataInfo, error) `perm:"read"`
 
@@ -270,37 +238,26 @@ type SchedulerStruct struct {
 
 		StateNetwork func(p0 context.Context) (StateNetwork, error) `perm:"read"`
 
-		Validate func(p0 context.Context) (error) `perm:"admin"`
+		Validate func(p0 context.Context) error `perm:"admin"`
 
-		ValidateBlockResult func(p0 context.Context, p1 ValidateResults) (error) `perm:"write"`
+		ValidateBlockResult func(p0 context.Context, p1 ValidateResults) error `perm:"write"`
 
-		ValidateSwitch func(p0 context.Context, p1 bool) (error) `perm:"admin"`
-
+		ValidateSwitch func(p0 context.Context, p1 bool) error `perm:"admin"`
 	}
 }
 
 type SchedulerStub struct {
-
 	CommonStub
-
 }
 
 type ValidateStruct struct {
-
 	Internal struct {
-
-		BeValidate func(p0 context.Context, p1 ReqValidate, p2 string) (error) `perm:"read"`
-
+		BeValidate func(p0 context.Context, p1 ReqValidate, p2 string) error `perm:"read"`
 	}
 }
 
 type ValidateStub struct {
-
 }
-
-
-
-
 
 func (s *BlockStruct) AnnounceBlocksWasDelete(p0 context.Context, p1 []string) ([]BlockOperationResult, error) {
 	if s.Internal.AnnounceBlocksWasDelete == nil {
@@ -313,36 +270,36 @@ func (s *BlockStub) AnnounceBlocksWasDelete(p0 context.Context, p1 []string) ([]
 	return *new([]BlockOperationResult), ErrNotSupported
 }
 
-func (s *BlockStruct) BlockStoreStat(p0 context.Context) (error) {
+func (s *BlockStruct) BlockStoreStat(p0 context.Context) error {
 	if s.Internal.BlockStoreStat == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.BlockStoreStat(p0)
 }
 
-func (s *BlockStub) BlockStoreStat(p0 context.Context) (error) {
+func (s *BlockStub) BlockStoreStat(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *BlockStruct) CacheBlocks(p0 context.Context, p1 ReqCacheData) (error) {
+func (s *BlockStruct) CacheBlocks(p0 context.Context, p1 ReqCacheData) error {
 	if s.Internal.CacheBlocks == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheBlocks(p0, p1)
 }
 
-func (s *BlockStub) CacheBlocks(p0 context.Context, p1 ReqCacheData) (error) {
+func (s *BlockStub) CacheBlocks(p0 context.Context, p1 ReqCacheData) error {
 	return ErrNotSupported
 }
 
-func (s *BlockStruct) DeleteAllBlocks(p0 context.Context) (error) {
+func (s *BlockStruct) DeleteAllBlocks(p0 context.Context) error {
 	if s.Internal.DeleteAllBlocks == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.DeleteAllBlocks(p0)
 }
 
-func (s *BlockStub) DeleteAllBlocks(p0 context.Context) (error) {
+func (s *BlockStub) DeleteAllBlocks(p0 context.Context) error {
 	return ErrNotSupported
 }
 
@@ -423,44 +380,38 @@ func (s *BlockStub) QueryCachingBlocks(p0 context.Context) (CachingBlockList, er
 	return *new(CachingBlockList), ErrNotSupported
 }
 
-func (s *BlockStruct) ScrubBlocks(p0 context.Context, p1 ScrubBlocks) (error) {
+func (s *BlockStruct) ScrubBlocks(p0 context.Context, p1 ScrubBlocks) error {
 	if s.Internal.ScrubBlocks == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.ScrubBlocks(p0, p1)
 }
 
-func (s *BlockStub) ScrubBlocks(p0 context.Context, p1 ScrubBlocks) (error) {
+func (s *BlockStub) ScrubBlocks(p0 context.Context, p1 ScrubBlocks) error {
 	return ErrNotSupported
 }
 
-
-
-
-func (s *CandidateStruct) ValidateBlocks(p0 context.Context, p1 []ReqValidate) (error) {
+func (s *CandidateStruct) ValidateBlocks(p0 context.Context, p1 []ReqValidate) error {
 	if s.Internal.ValidateBlocks == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.ValidateBlocks(p0, p1)
 }
 
-func (s *CandidateStub) ValidateBlocks(p0 context.Context, p1 []ReqValidate) (error) {
+func (s *CandidateStub) ValidateBlocks(p0 context.Context, p1 []ReqValidate) error {
 	return ErrNotSupported
 }
 
-func (s *CandidateStruct) WaitQuiet(p0 context.Context) (error) {
+func (s *CandidateStruct) WaitQuiet(p0 context.Context) error {
 	if s.Internal.WaitQuiet == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.WaitQuiet(p0)
 }
 
-func (s *CandidateStub) WaitQuiet(p0 context.Context) (error) {
+func (s *CandidateStub) WaitQuiet(p0 context.Context) error {
 	return ErrNotSupported
 }
-
-
-
 
 func (s *CommonStruct) AuthNew(p0 context.Context, p1 []auth.Permission) ([]byte, error) {
 	if s.Internal.AuthNew == nil {
@@ -528,14 +479,14 @@ func (s *CommonStub) LogList(p0 context.Context) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 
-func (s *CommonStruct) LogSetLevel(p0 context.Context, p1 string, p2 string) (error) {
+func (s *CommonStruct) LogSetLevel(p0 context.Context, p1 string, p2 string) error {
 	if s.Internal.LogSetLevel == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.LogSetLevel(p0, p1, p2)
 }
 
-func (s *CommonStub) LogSetLevel(p0 context.Context, p1 string, p2 string) (error) {
+func (s *CommonStub) LogSetLevel(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
 }
 
@@ -550,14 +501,14 @@ func (s *CommonStub) Session(p0 context.Context, p1 string) (uuid.UUID, error) {
 	return *new(uuid.UUID), ErrNotSupported
 }
 
-func (s *CommonStruct) Shutdown(p0 context.Context) (error) {
+func (s *CommonStruct) Shutdown(p0 context.Context) error {
 	if s.Internal.Shutdown == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.Shutdown(p0)
 }
 
-func (s *CommonStub) Shutdown(p0 context.Context) (error) {
+func (s *CommonStub) Shutdown(p0 context.Context) error {
 	return ErrNotSupported
 }
 
@@ -572,9 +523,6 @@ func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 	return *new(APIVersion), ErrNotSupported
 }
 
-
-
-
 func (s *DeviceStruct) DeviceInfo(p0 context.Context) (DevicesInfo, error) {
 	if s.Internal.DeviceInfo == nil {
 		return *new(DevicesInfo), ErrNotSupported
@@ -585,9 +533,6 @@ func (s *DeviceStruct) DeviceInfo(p0 context.Context) (DevicesInfo, error) {
 func (s *DeviceStub) DeviceInfo(p0 context.Context) (DevicesInfo, error) {
 	return *new(DevicesInfo), ErrNotSupported
 }
-
-
-
 
 func (s *DownloadStruct) GetDownloadInfo(p0 context.Context) (DownloadInfo, error) {
 	if s.Internal.GetDownloadInfo == nil {
@@ -600,64 +545,58 @@ func (s *DownloadStub) GetDownloadInfo(p0 context.Context) (DownloadInfo, error)
 	return *new(DownloadInfo), ErrNotSupported
 }
 
-func (s *DownloadStruct) SetDownloadSpeed(p0 context.Context, p1 int64) (error) {
+func (s *DownloadStruct) SetDownloadSpeed(p0 context.Context, p1 int64) error {
 	if s.Internal.SetDownloadSpeed == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.SetDownloadSpeed(p0, p1)
 }
 
-func (s *DownloadStub) SetDownloadSpeed(p0 context.Context, p1 int64) (error) {
+func (s *DownloadStub) SetDownloadSpeed(p0 context.Context, p1 int64) error {
 	return ErrNotSupported
 }
 
-
-
-
-func (s *EdgeStruct) WaitQuiet(p0 context.Context) (error) {
+func (s *EdgeStruct) WaitQuiet(p0 context.Context) error {
 	if s.Internal.WaitQuiet == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.WaitQuiet(p0)
 }
 
-func (s *EdgeStub) WaitQuiet(p0 context.Context) (error) {
+func (s *EdgeStub) WaitQuiet(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-
-
-
-func (s *LocatorStruct) AddAccessPoints(p0 context.Context, p1 string, p2 string, p3 int, p4 string) (error) {
+func (s *LocatorStruct) AddAccessPoints(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error {
 	if s.Internal.AddAccessPoints == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.AddAccessPoints(p0, p1, p2, p3, p4)
 }
 
-func (s *LocatorStub) AddAccessPoints(p0 context.Context, p1 string, p2 string, p3 int, p4 string) (error) {
+func (s *LocatorStub) AddAccessPoints(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error {
 	return ErrNotSupported
 }
 
-func (s *LocatorStruct) DeviceOffline(p0 context.Context, p1 string) (error) {
+func (s *LocatorStruct) DeviceOffline(p0 context.Context, p1 string) error {
 	if s.Internal.DeviceOffline == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.DeviceOffline(p0, p1)
 }
 
-func (s *LocatorStub) DeviceOffline(p0 context.Context, p1 string) (error) {
+func (s *LocatorStub) DeviceOffline(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
-func (s *LocatorStruct) DeviceOnline(p0 context.Context, p1 string, p2 string, p3 int) (error) {
+func (s *LocatorStruct) DeviceOnline(p0 context.Context, p1 string, p2 string, p3 int) error {
 	if s.Internal.DeviceOnline == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.DeviceOnline(p0, p1, p2, p3)
 }
 
-func (s *LocatorStub) DeviceOnline(p0 context.Context, p1 string, p2 string, p3 int) (error) {
+func (s *LocatorStub) DeviceOnline(p0 context.Context, p1 string, p2 string, p3 int) error {
 	return ErrNotSupported
 }
 
@@ -716,14 +655,14 @@ func (s *LocatorStub) ListAccessPoints(p0 context.Context) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 
-func (s *LocatorStruct) RemoveAccessPoints(p0 context.Context, p1 string) (error) {
+func (s *LocatorStruct) RemoveAccessPoints(p0 context.Context, p1 string) error {
 	if s.Internal.RemoveAccessPoints == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.RemoveAccessPoints(p0, p1)
 }
 
-func (s *LocatorStub) RemoveAccessPoints(p0 context.Context, p1 string) (error) {
+func (s *LocatorStub) RemoveAccessPoints(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
@@ -738,28 +677,25 @@ func (s *LocatorStub) ShowAccessPoint(p0 context.Context, p1 string) (AccessPoin
 	return *new(AccessPoint), ErrNotSupported
 }
 
-
-
-
-func (s *SchedulerStruct) CacheCarfile(p0 context.Context, p1 string, p2 int) (error) {
+func (s *SchedulerStruct) CacheCarfile(p0 context.Context, p1 string, p2 int) error {
 	if s.Internal.CacheCarfile == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheCarfile(p0, p1, p2)
 }
 
-func (s *SchedulerStub) CacheCarfile(p0 context.Context, p1 string, p2 int) (error) {
+func (s *SchedulerStub) CacheCarfile(p0 context.Context, p1 string, p2 int) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) CacheContinue(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStruct) CacheContinue(p0 context.Context, p1 string, p2 string) error {
 	if s.Internal.CacheContinue == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheContinue(p0, p1, p2)
 }
 
-func (s *SchedulerStub) CacheContinue(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStub) CacheContinue(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
 }
 
@@ -796,14 +732,14 @@ func (s *SchedulerStub) DeleteBlockRecords(p0 context.Context, p1 string, p2 []s
 	return *new(map[string]string), ErrNotSupported
 }
 
-func (s *SchedulerStruct) DownloadBlockResult(p0 context.Context, p1 DownloadStat) (error) {
+func (s *SchedulerStruct) DownloadBlockResult(p0 context.Context, p1 DownloadStat) error {
 	if s.Internal.DownloadBlockResult == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.DownloadBlockResult(p0, p1)
 }
 
-func (s *SchedulerStub) DownloadBlockResult(p0 context.Context, p1 DownloadStat) (error) {
+func (s *SchedulerStub) DownloadBlockResult(p0 context.Context, p1 DownloadStat) error {
 	return ErrNotSupported
 }
 
@@ -818,14 +754,14 @@ func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context, p1 int, p2 string) (
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) ElectionValidators(p0 context.Context) (error) {
+func (s *SchedulerStruct) ElectionValidators(p0 context.Context) error {
 	if s.Internal.ElectionValidators == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.ElectionValidators(p0)
 }
 
-func (s *SchedulerStub) ElectionValidators(p0 context.Context) (error) {
+func (s *SchedulerStub) ElectionValidators(p0 context.Context) error {
 	return ErrNotSupported
 }
 
@@ -928,13 +864,12 @@ func (s *SchedulerStub) ListDatas(p0 context.Context, p1 int) (DataListInfo, err
 	return *new(DataListInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 int, p2 string, p3 string, p4 string) (error) {
+func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 int, p2 string, p3 string, p4 string) error {
 	if s.Internal.LocatorConnect == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.LocatorConnect(p0, p1, p2, p3, p4)
 }
-
 
 func (s *SchedulerStruct) QueryCacheStatWithNode(p0 context.Context, p1 string) ([]CacheStat, error) {
 	if s.Internal.QueryCacheStatWithNode == nil {
@@ -969,25 +904,25 @@ func (s *SchedulerStub) RegisterNode(p0 context.Context, p1 NodeType) (NodeRegis
 	return *new(NodeRegisterInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) RemoveCache(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStruct) RemoveCache(p0 context.Context, p1 string, p2 string) error {
 	if s.Internal.RemoveCache == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.RemoveCache(p0, p1, p2)
 }
 
-func (s *SchedulerStub) RemoveCache(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStub) RemoveCache(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) RemoveCarfile(p0 context.Context, p1 string) (error) {
+func (s *SchedulerStruct) RemoveCarfile(p0 context.Context, p1 string) error {
 	if s.Internal.RemoveCarfile == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.RemoveCarfile(p0, p1)
 }
 
-func (s *SchedulerStub) RemoveCarfile(p0 context.Context, p1 string) (error) {
+func (s *SchedulerStub) RemoveCarfile(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
@@ -1024,54 +959,49 @@ func (s *SchedulerStub) StateNetwork(p0 context.Context) (StateNetwork, error) {
 	return *new(StateNetwork), ErrNotSupported
 }
 
-func (s *SchedulerStruct) Validate(p0 context.Context) (error) {
+func (s *SchedulerStruct) Validate(p0 context.Context) error {
 	if s.Internal.Validate == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.Validate(p0)
 }
 
-func (s *SchedulerStub) Validate(p0 context.Context) (error) {
+func (s *SchedulerStub) Validate(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ValidateBlockResult(p0 context.Context, p1 ValidateResults) (error) {
+func (s *SchedulerStruct) ValidateBlockResult(p0 context.Context, p1 ValidateResults) error {
 	if s.Internal.ValidateBlockResult == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.ValidateBlockResult(p0, p1)
 }
 
-func (s *SchedulerStub) ValidateBlockResult(p0 context.Context, p1 ValidateResults) (error) {
+func (s *SchedulerStub) ValidateBlockResult(p0 context.Context, p1 ValidateResults) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ValidateSwitch(p0 context.Context, p1 bool) (error) {
+func (s *SchedulerStruct) ValidateSwitch(p0 context.Context, p1 bool) error {
 	if s.Internal.ValidateSwitch == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.ValidateSwitch(p0, p1)
 }
 
-func (s *SchedulerStub) ValidateSwitch(p0 context.Context, p1 bool) (error) {
+func (s *SchedulerStub) ValidateSwitch(p0 context.Context, p1 bool) error {
 	return ErrNotSupported
 }
 
-
-
-
-func (s *ValidateStruct) BeValidate(p0 context.Context, p1 ReqValidate, p2 string) (error) {
+func (s *ValidateStruct) BeValidate(p0 context.Context, p1 ReqValidate, p2 string) error {
 	if s.Internal.BeValidate == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.BeValidate(p0, p1, p2)
 }
 
-func (s *ValidateStub) BeValidate(p0 context.Context, p1 ReqValidate, p2 string) (error) {
+func (s *ValidateStub) BeValidate(p0 context.Context, p1 ReqValidate, p2 string) error {
 	return ErrNotSupported
 }
-
-
 
 var _ Block = new(BlockStruct)
 var _ Candidate = new(CandidateStruct)
@@ -1082,5 +1012,3 @@ var _ Edge = new(EdgeStruct)
 var _ Locator = new(LocatorStruct)
 var _ Scheduler = new(SchedulerStruct)
 var _ Validate = new(ValidateStruct)
-
-
