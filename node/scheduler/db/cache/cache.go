@@ -57,11 +57,11 @@ type DB interface {
 	// RemoveCacheDataTask() error
 	// GetCacheDataTask() (string, string)
 
-	GetNodeStat() (api.StateNetwork, error)
-	IncrNodeReward(deviceID string, reward int64) error
+	GetDeviceStat() (api.StateNetwork, error)
 	SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, error)
 	GetDeviceInfo(deviceID string) (api.DevicesInfo, error)
-	UpdateNodeLatency(deviceID string, latency float64) error
+	IncrDeviceReward(deviceID string, reward int64) error
+	SetDeviceLatency(deviceID string, latency float64) error
 
 	IsNilErr(err error) bool
 }

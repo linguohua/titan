@@ -39,7 +39,7 @@ CREATE TABLE `data_info_cn_gd_shenzhen` (
     `total_size` int  DEFAULT '0' ,
 	`reliability` TINYINT DEFAULT '0' ,
 	`need_reliability` TINYINT DEFAULT '0' ,
-    `cache_count` int  DEFAULT '0' ,
+    `cache_time` int  DEFAULT '0' ,
     `root_cache_id` varchar(64)  DEFAULT '' ,
     `total_blocks` int  DEFAULT '0' ,
 	PRIMARY KEY (`id`)
@@ -77,3 +77,14 @@ CREATE TABLE `device_blocks_cn_gd_shenzhen` (
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='device blocks';
 
+
+  CREATE TABLE `block_download_info_cn_gd_shenzhen` (
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `block_cid` varchar(128) NOT NULL,
+    `device_id` varchar(128) NOT NULL,
+    `block_size` int(20) DEFAULT '0',
+    `speed` int(20)  DEFAULT '0' ,
+    `reward` int(20) DEFAULT '0',
+    `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='block download information';

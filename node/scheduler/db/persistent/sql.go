@@ -25,10 +25,11 @@ type sqlDB struct {
 const errNodeNotFind = "Not Found"
 
 var (
-	deviceBlockTable = "device_blocks_%s"
-	dataInfoTable    = "data_info_%s"
-	blockInfoTable   = "block_info_%s"
-	cacheInfoTable   = "cache_info_%s"
+	deviceBlockTable  = "device_blocks_%s"
+	dataInfoTable     = "data_info_%s"
+	blockInfoTable    = "block_info_%s"
+	cacheInfoTable    = "cache_info_%s"
+	blockDownloadInfo = "block_download_info_%s"
 )
 
 // InitSQL init sql
@@ -1013,4 +1014,29 @@ func (sd sqlDB) GetDevicesFromCache(cacheID string) (int, error) {
 	}
 
 	return devices, nil
+}
+
+func (sd sqlDB) AddDownloadInfo(deviceID string, info *api.BlockDownloadInfo) error {
+	query := fmt.Sprintf(
+		`INSERT INTO %s (block_cid, device_id, block_size, speed, reward) 
+				VALUES (:block_cid, :device_id, :block_size, :speed, :reward)`, fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
+
+	_, err := sd.cli.NamedExec(query, info)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sd sqlDB) GetDownloadInfo(deviceID string) ([]*api.BlockDownloadInfo, error) {
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE device_id = ? and created_time >= TO_DAYS(NOW()) ORDER BY created_time DESC`,
+		fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
+
+	var out []*api.BlockDownloadInfo
+	if err := sd.cli.Select(&out, query, deviceID); err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }

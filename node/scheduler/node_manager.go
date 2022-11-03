@@ -155,6 +155,8 @@ func (m *NodeManager) edgeOnline(node *EdgeNode) error {
 
 	m.validatePool.addPendingNode(node, nil)
 
+	m.stateNetwork()
+
 	return nil
 }
 
@@ -695,7 +697,7 @@ func (n *NodeManager) SetDeviceInfo(deviceID string, info api.DevicesInfo) error
 }
 
 func (n *NodeManager) stateNetwork() error {
-	state, err := cache.GetDB().GetNodeStat()
+	state, err := cache.GetDB().GetDeviceStat()
 	if err != nil {
 		log.Errorf("get node stat: %v", err)
 		return err
