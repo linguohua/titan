@@ -183,10 +183,6 @@ func (d *Data) saveCacheEndResults(cache *Cache) error {
 }
 
 func (d *Data) startData() error {
-	if d.needReliability <= d.reliability {
-		return xerrors.Errorf("reliability is enough:%d/%d", d.reliability, d.needReliability)
-	}
-
 	cacheID, _ := cache.GetDB().GetRunningCacheTask(d.cid)
 	if cacheID != "" {
 		return xerrors.New("data have task running,please wait")
@@ -225,26 +221,35 @@ func (d *Data) endData(c *Cache) (err error) {
 		}
 	}
 
+	taskEnd := false
+
 	defer func() {
-		if err != nil {
+		if taskEnd {
 			d.dataManager.dataTaskEnd(d.cid)
 		}
 	}()
 
 	err = d.saveCacheEndResults(c)
 	if err != nil {
+		taskEnd = true
 		err = xerrors.Errorf("saveCacheEndResults err:%s", err.Error())
 		return
 	}
 
 	if d.cacheCount > d.needReliability {
-		err = xerrors.New("cacheCount greater than needReliability")
-		return
+		taskEnd = true
+		return nil
+	}
+
+	if d.needReliability <= d.reliability {
+		taskEnd = true
+		return nil
 	}
 
 	// create cache again
 	err = d.startData()
 	if err != nil {
+		taskEnd = true
 		err = xerrors.Errorf("startData err:%s", err.Error())
 	}
 

@@ -356,13 +356,24 @@ func (c *Cache) startCache(cids map[string]int, haveRootCache bool) error {
 	return nil
 }
 
-func (c *Cache) endCache(unDoneBlocks int) error {
-	cache.GetDB().RemoveRunningCacheTask(c.carfileCid, c.cacheID)
-	log.Infof("end cache %s,%s ---------- ", c.carfileCid, c.cacheID)
+func (c *Cache) endCache(unDoneBlocks int) (err error) {
+	log.Infof("end cache %s,%s ----------", c.carfileCid, c.cacheID)
+
+	defer func() {
+		err = c.data.endData(c)
+		return
+	}()
+
+	err = cache.GetDB().RemoveRunningCacheTask(c.carfileCid, c.cacheID)
+	if err != nil {
+		err = xerrors.Errorf("endCache RemoveRunningCacheTask err: %s", err.Error())
+		return
+	}
 
 	failedBlocks, err := persistent.GetDB().HaveBlocks(c.cacheID, int(cacheStatusFail))
 	if err != nil {
-		return xerrors.Errorf("endCache %s,%s HaveBlocks err:%v", c.carfileCid, c.cacheID, err.Error())
+		err = xerrors.Errorf("endCache %s,%s HaveBlocks err:%v", c.carfileCid, c.cacheID, err.Error())
+		return
 	}
 
 	if failedBlocks > 0 || unDoneBlocks > 0 {
@@ -373,7 +384,7 @@ func (c *Cache) endCache(unDoneBlocks int) error {
 		c.status = cacheStatusSuccess
 	}
 
-	return c.data.endData(c)
+	return
 }
 
 func (c *Cache) removeCache() error {
