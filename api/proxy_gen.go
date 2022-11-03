@@ -934,9 +934,6 @@ func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 int, p2 string, 
 	return s.Internal.LocatorConnect(p0, p1, p2, p3, p4)
 }
 
-func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 int, p2 string, p3 string, p4 string) (error) {
-	return ErrNotSupported
-}
 
 func (s *SchedulerStruct) QueryCacheStatWithNode(p0 context.Context, p1 string) ([]CacheStat, error) {
 	if s.Internal.QueryCacheStatWithNode == nil {
