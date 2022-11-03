@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -228,7 +227,7 @@ type SchedulerStruct struct {
 
 		DeleteBlockRecords func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"admin"`
 
-		DownloadBlockResult func(p0 context.Context, p1 string, p2 string) (error) `perm:"write"`
+		DownloadBlockResult func(p0 context.Context, p1 DownloadStat) (error) `perm:"write"`
 
 		EdgeNodeConnect func(p0 context.Context, p1 int, p2 string) (string, error) `perm:"write"`
 
@@ -250,7 +249,7 @@ type SchedulerStruct struct {
 
 		ListDatas func(p0 context.Context, p1 int) (DataListInfo, error) `perm:"read"`
 
-		LocatorConnect func(p0 context.Context, p1 int) (error) `perm:"write"`
+		LocatorConnect func(p0 context.Context, p1 int, p2 string) (error) `perm:"write"`
 
 		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"read"`
 
@@ -792,14 +791,14 @@ func (s *SchedulerStub) DeleteBlockRecords(p0 context.Context, p1 string, p2 []s
 	return *new(map[string]string), ErrNotSupported
 }
 
-func (s *SchedulerStruct) DownloadBlockResult(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStruct) DownloadBlockResult(p0 context.Context, p1 DownloadStat) (error) {
 	if s.Internal.DownloadBlockResult == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.DownloadBlockResult(p0, p1, p2)
+	return s.Internal.DownloadBlockResult(p0, p1)
 }
 
-func (s *SchedulerStub) DownloadBlockResult(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStub) DownloadBlockResult(p0 context.Context, p1 DownloadStat) (error) {
 	return ErrNotSupported
 }
 
@@ -913,14 +912,14 @@ func (s *SchedulerStub) ListDatas(p0 context.Context, p1 int) (DataListInfo, err
 	return *new(DataListInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 int) (error) {
+func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 int, p2 string) (error) {
 	if s.Internal.LocatorConnect == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.LocatorConnect(p0, p1)
+	return s.Internal.LocatorConnect(p0, p1, p2)
 }
 
-func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 int) (error) {
+func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 int, p2 string) (error) {
 	return ErrNotSupported
 }
 
