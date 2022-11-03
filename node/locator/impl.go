@@ -20,6 +20,7 @@ const (
 	maxWeight  = 1000
 	// 3 seconds
 	connectTimeout = 3
+	defaultAreaID  = "CN-GD-Shenzhen"
 )
 
 func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, schedulerToken string, locatorPort int) api.Location {
@@ -61,20 +62,22 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string, se
 		areaID = geoInfo.Geo
 	}
 
-	if areaID == "" {
-		return []string{}, fmt.Errorf("can not location device access point")
+	log.Infof("device %s ip %s get Area areaID %s", deviceID, ip, areaID)
+
+	if areaID == "" || areaID == "unknown-unknown-unknown" {
+		log.Errorf("device %s can not get areaID", deviceID)
+		areaID = defaultAreaID
 	}
 
-	devices, err := locator.db.getDeviceInfos(deviceID)
+	device, err := locator.db.getDeviceInfo(deviceID)
 	if err != nil {
 		return []string{}, err
 	}
 
-	if len(devices) <= 0 {
+	if device == nil {
 		return locator.getAccessPointWithWeightCount(areaID)
 	}
 
-	device := devices[0]
 	if device.AreaID != areaID {
 		return locator.getAccessPointWithWeightCount(areaID)
 	}
@@ -142,16 +145,15 @@ func (locator *Locator) DeviceOnline(ctx context.Context, deviceID string, areaI
 }
 
 func (locator *Locator) DeviceOffline(ctx context.Context, deviceID string) error {
-	infos, err := locator.db.getDeviceInfos(deviceID)
+	info, err := locator.db.getDeviceInfo(deviceID)
 	if err != nil {
 		return err
 	}
 
-	if len(infos) <= 0 {
-		return fmt.Errorf("Device %s not exist in location", deviceID)
+	if info == nil {
+		return fmt.Errorf("device %s not exist", deviceID)
 	}
 
-	info := infos[0]
 	locator.db.db.setDeviceInfo(deviceID, info.SchedulerURL, info.AreaID, false)
 	return nil
 }
@@ -233,6 +235,13 @@ func (locator *Locator) GetDownloadInfosWithBlocks(ctx context.Context, cids []s
 		areaID = geoInfo.Geo
 	}
 
+	log.Infof("user %s get Area areaID %s", ip, areaID)
+
+	if areaID == "" || areaID == "unknown-unknown-unknown" {
+		log.Errorf("user %s can not get areaID", ip)
+		areaID = defaultAreaID
+	}
+
 	schedulerAPI, ok := locator.apMgr.randSchedulerAPI(areaID)
 	if ok {
 		return schedulerAPI.GetDownloadInfosWithBlocks(ctx, cids)
@@ -252,6 +261,13 @@ func (locator *Locator) GetDownloadInfoWithBlocks(ctx context.Context, cids []st
 		areaID = geoInfo.Geo
 	}
 
+	log.Infof("user %s get Area areaID %s", ip, areaID)
+
+	if areaID == "" || areaID == "unknown-unknown-unknown" {
+		log.Errorf("user %s can not get areaID", ip)
+		areaID = defaultAreaID
+	}
+
 	schedulerAPI, ok := locator.apMgr.randSchedulerAPI(areaID)
 	if ok {
 		return schedulerAPI.GetDownloadInfoWithBlocks(ctx, cids)
@@ -267,6 +283,13 @@ func (locator *Locator) GetDownloadInfoWithBlock(ctx context.Context, cid string
 		log.Errorf("GetAccessPoints get geo from ip error %s", err.Error())
 	} else {
 		areaID = geoInfo.Geo
+	}
+
+	log.Infof("user %s get Area areaID %s", ip, areaID)
+
+	if areaID == "" || areaID == "unknown-unknown-unknown" {
+		log.Errorf("user %s can not get areaID", ip)
+		areaID = defaultAreaID
 	}
 
 	schedulerAPI, ok := locator.apMgr.randSchedulerAPI(areaID)
