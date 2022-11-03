@@ -77,7 +77,7 @@ func (mgr *accessPointMgr) newSchedulerAPI(url string, areaID string) (*schedule
 		return nil, err
 	}
 
-	err = api.LocatorConnect(ctx, mgr.locatorPort)
+	err = api.LocatorConnect(ctx, mgr.locatorPort, areaID)
 	if err != nil {
 		log.Errorf("newSchedulerAPI get version err:%s", err.Error())
 		return nil, err

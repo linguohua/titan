@@ -187,11 +187,11 @@ func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api
 }
 
 // DownloadBlockResult user download block result
-func (s *Scheduler) DownloadBlockResult(ctx context.Context, deviceID, cid string) error {
+func (s *Scheduler) DownloadBlockResult(ctx context.Context, stat api.DownloadStat) error {
 	// TODO check cid
 
 	// add reward
-	return cache.GetDB().IncrNodeReward(deviceID, 1)
+	return cache.GetDB().IncrNodeReward(stat.DeviceID, 1)
 }
 
 // CacheContinue Cache Continue
@@ -752,6 +752,6 @@ func (s *Scheduler) StateNetwork(ctx context.Context) (api.StateNetwork, error) 
 }
 
 // LocatorConnect Locator Connect
-func (s *Scheduler) LocatorConnect(ctx context.Context, edgePort int) error {
+func (s *Scheduler) LocatorConnect(ctx context.Context, edgePort int, areaID string) error {
 	return nil
 }
