@@ -321,7 +321,7 @@ func (v *Validate) checkValidateTimeOut() error {
 }
 
 func (v *Validate) matchValidator(validatorList []string, deviceID string, validatorMap map[string][]string) (map[string][]string, []string) {
-	cs := v.nodeManager.findCandidateNodeWithGeo(validatorList, nil)
+	cs := v.nodeManager.findCandidateNodes(validatorList, nil)
 
 	validatorID := ""
 	if len(cs) > 0 {

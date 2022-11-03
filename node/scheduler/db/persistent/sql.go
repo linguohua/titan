@@ -322,7 +322,7 @@ func (sd sqlDB) RemoveCacheInfo(cacheID, carfileID, cachesIDs, rootCacheID strin
 	return nil
 }
 
-func (sd sqlDB) CreateCache(dInfo *DataInfo, cInfo *CacheInfo) (int, error) {
+func (sd sqlDB) CreateCache(dInfo *DataInfo, cInfo *CacheInfo) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 	dTableName := fmt.Sprintf(dataInfoTable, area)
@@ -340,15 +340,15 @@ func (sd sqlDB) CreateCache(dInfo *DataInfo, cInfo *CacheInfo) (int, error) {
 	err := tx.Commit()
 	if err != nil {
 		err = tx.Rollback()
-		return 0, err
+		return err
 	}
 
-	info, err := sd.GetCacheInfo(cInfo.CacheID, cInfo.CarfileID)
-	if err != nil {
-		return 0, err
-	}
+	// info, err := sd.GetCacheInfo(cInfo.CacheID, cInfo.CarfileID)
+	// if err != nil {
+	// 	return 0, err
+	// }
 
-	return info.ID, nil
+	return nil
 }
 
 func (sd sqlDB) SaveCacheEndResults(dInfo *DataInfo, cInfo *CacheInfo) error {
@@ -363,8 +363,8 @@ func (sd sqlDB) SaveCacheEndResults(dInfo *DataInfo, cInfo *CacheInfo) error {
 	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.CacheCount, dInfo.RootCacheID, dInfo.TotalBlocks, dInfo.CID)
 
 	// cache info
-	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=? WHERE id=? `, cTableName)
-	tx.MustExec(cCmd, cInfo.DoneSize, cInfo.DoneBlocks, cInfo.Reliability, cInfo.Status, cInfo.ID)
+	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=? WHERE carfile_id=? AND cache_id=? `, cTableName)
+	tx.MustExec(cCmd, cInfo.DoneSize, cInfo.DoneBlocks, cInfo.Reliability, cInfo.Status, cInfo.CarfileID, cInfo.CacheID)
 
 	err := tx.Commit()
 	if err != nil {
@@ -387,8 +387,8 @@ func (sd sqlDB) SaveCacheingResults(dInfo *DataInfo, cInfo *CacheInfo, updateBlo
 	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.CacheCount, dInfo.RootCacheID, dInfo.TotalBlocks, dInfo.CID)
 
 	// cache info
-	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=? WHERE id=? `, cTableName)
-	tx.MustExec(cCmd, cInfo.DoneSize, cInfo.DoneBlocks, cInfo.Reliability, cInfo.Status, cInfo.ID)
+	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=? WHERE carfile_id=? AND cache_id=? `, cTableName)
+	tx.MustExec(cCmd, cInfo.DoneSize, cInfo.DoneBlocks, cInfo.Reliability, cInfo.Status, cInfo.CarfileID, cInfo.CacheID)
 
 	// block info
 	bCmd := fmt.Sprintf(`UPDATE %s SET status=?,size=?,reliability=?,device_id=? WHERE id=?`, bTableName)
@@ -924,9 +924,10 @@ func (sd sqlDB) GetNodesWithCacheList(cid string) ([]string, error) {
 	for rows.Next() {
 		i := &NodeBlocks{}
 		err = rows.StructScan(i)
-		if err == nil {
-			m = append(m, i.DeviceID)
+		if err != nil {
+			return m, err
 		}
+		m = append(m, i.DeviceID)
 	}
 
 	return m, nil

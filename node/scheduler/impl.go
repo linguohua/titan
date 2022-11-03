@@ -240,8 +240,8 @@ func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cid
 	return nil, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
 }
 
-// RemoveCarFile remove all caches with carfile
-func (s *Scheduler) RemoveCarFile(ctx context.Context, carfileID string) error {
+// RemoveCarfile remove all caches with carfile
+func (s *Scheduler) RemoveCarfile(ctx context.Context, carfileID string) error {
 	if carfileID == "" {
 		return xerrors.Errorf(ErrCidIsNil)
 	}
@@ -331,8 +331,8 @@ func (s *Scheduler) RemoveCache(ctx context.Context, carfileID, cacheID string) 
 // 	return errorMap, err
 // }
 
-// CacheCarFile Cache CarFile
-func (s *Scheduler) CacheCarFile(ctx context.Context, cid string, reliability int) error {
+// CacheCarfile Cache Carfile
+func (s *Scheduler) CacheCarfile(ctx context.Context, cid string, reliability int) error {
 	if cid == "" {
 		return xerrors.New("cid is nil")
 	}
