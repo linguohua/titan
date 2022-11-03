@@ -5,29 +5,23 @@ import (
 	"testing"
 )
 
-func TestAddAccessPoint(t *testing.T) {
+func TestDB(t *testing.T) {
 	url := "user01:sql001@tcp(127.0.0.1:3306)/location"
 	db := newDB(url)
 	defer db.close()
-	// info, err := db.db.getDeviceInfo("12333333")
-	// if err != nil {
-	// 	fmt.Println("err:", err)
-	// 	return
-	// }
-	// fmt.Printf("%v", info[0])
-	// err := db.db.addCfg("sz", "http://localhost:1081", 10)
-	// if err != nil {
-	// 	fmt.Println("err:", err)
-	// }
-	count, err := db.db.countDeviceOnScheduler("http://localhost:1081")
+
+	err := db.addAccessPoints("sz", "http://192.168.0.1:1080/rpc/v0", 100)
 	if err != nil {
-		fmt.Println("err:", err)
+		fmt.Printf("err:%s", err.Error())
 		return
 	}
-
-	fmt.Printf("count:%d\n", count)
-	// err := db.db.setDeviceInfo("1234567", "http://localhost:1081", "sz", false)
+	// db.addAccessPoints("gz", "http://localhost:1080/rpc/v0", 100)
+	// db.removeAccessPoints("sz")
+	// areaIDs, err := db.listAccessPoints()
 	// if err != nil {
-	// 	fmt.Println("err:", err)
+	// 	fmt.Printf("err:%s", err.Error())
+	// 	return
 	// }
+	// fmt.Printf("areaID %v", areaIDs)
+
 }

@@ -11,7 +11,7 @@ type db struct {
 }
 
 // locaton config
-type locationCfg struct {
+type locatorCfg struct {
 	ID           int
 	SchedulerURL string `db:"scheduler_url"`
 	AreaID       string `db:"area_id"`
@@ -109,8 +109,8 @@ func (db *db) countDeviceOnScheduler(schedulerURL string) (int, error) {
 	return db.db.countDeviceOnScheduler(schedulerURL)
 }
 
-func (db *db) getDeviceInfos(deviceID string) ([]*deviceInfo, error) {
-	return db.db.getDeviceInfos(deviceID)
+func (db *db) getDeviceInfo(deviceID string) (*deviceInfo, error) {
+	return db.db.getDeviceInfo(deviceID)
 }
 
 func (db *db) close() error {
@@ -138,16 +138,17 @@ func initSQLDB(url string) (*sqlDB, error) {
 	return db, nil
 }
 
-func (db *sqlDB) getAllCfg() ([]*locationCfg, error) {
-	rows, err := db.cli.NamedQuery(`SELECT * FROM location`, nil)
+func (db *sqlDB) getAllCfg() ([]*locatorCfg, error) {
+	cfg := &locatorCfg{}
+	rows, err := db.cli.NamedQuery(`SELECT * FROM config`, cfg)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	cfgs := make([]*locationCfg, 0)
+	cfgs := make([]*locatorCfg, 0)
 	for rows.Next() {
-		var cfg locationCfg
+		var cfg locatorCfg
 		err = rows.StructScan(&cfg)
 		if err != nil {
 			return nil, err
@@ -158,17 +159,17 @@ func (db *sqlDB) getAllCfg() ([]*locationCfg, error) {
 	return cfgs, nil
 }
 
-func (db *sqlDB) getCfgs(areaID string) ([]*locationCfg, error) {
-	cfg := locationCfg{AreaID: areaID}
-	rows, err := db.cli.NamedQuery(`SELECT * FROM location WHERE area_id=:area_id`, cfg)
+func (db *sqlDB) getCfgs(areaID string) ([]*locatorCfg, error) {
+	cfg := &locatorCfg{AreaID: areaID}
+	rows, err := db.cli.NamedQuery(`SELECT * FROM config WHERE area_id=:area_id`, cfg)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	cfgs := make([]*locationCfg, 0)
+	cfgs := make([]*locatorCfg, 0)
 	for rows.Next() {
-		cfg := locationCfg{}
+		cfg := locatorCfg{}
 		err = rows.StructScan(&cfg)
 		if err != nil {
 			return nil, err
@@ -180,28 +181,28 @@ func (db *sqlDB) getCfgs(areaID string) ([]*locationCfg, error) {
 }
 
 func (db *sqlDB) addCfg(areaID string, schedulerURL string, weight int) error {
-	cfg := locationCfg{SchedulerURL: schedulerURL, AreaID: areaID, Weight: weight}
+	cfg := &locatorCfg{SchedulerURL: schedulerURL, AreaID: areaID, Weight: weight}
 	_, err := db.cli.NamedExec(`INSERT INTO config (scheduler_url, area_id, weight) VALUES (:scheduler_url, :area_id, :weight)`, cfg)
 	return err
 }
 
 func (db *sqlDB) DeleteCfgWithAreaID(areaID string) error {
-	cfg := locationCfg{AreaID: areaID}
+	cfg := &locatorCfg{AreaID: areaID}
 	_, err := db.cli.NamedExec(`DELETE FROM config WHERE area_id=:area_id`, cfg)
 	return err
 }
 
 func (db *sqlDB) DeleteCfgWithURL(schedulerURL string) error {
-	cfg := locationCfg{SchedulerURL: schedulerURL}
+	cfg := &locatorCfg{SchedulerURL: schedulerURL}
 	_, err := db.cli.NamedExec(`DELETE FROM config WHERE scheduler_url=:scheduler_url`, cfg)
 	return err
 }
 
-func (db *sqlDB) getDeviceInfos(deviceID string) ([]*deviceInfo, error) {
-	devInfo := deviceInfo{DeviceID: deviceID}
+func (db *sqlDB) getDeviceInfo(deviceID string) (*deviceInfo, error) {
+	devInfo := &deviceInfo{DeviceID: deviceID}
 	rows, err := db.cli.NamedQuery(`SELECT * FROM device WHERE device_id=:device_id`, devInfo)
 	if err != nil {
-		return make([]*deviceInfo, 0), err
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -210,22 +211,26 @@ func (db *sqlDB) getDeviceInfos(deviceID string) ([]*deviceInfo, error) {
 		info := deviceInfo{}
 		err = rows.StructScan(&info)
 		if err != nil {
-			return make([]*deviceInfo, 0), err
+			return nil, err
 		}
 		devInfos = append(devInfos, &info)
 	}
 
-	return devInfos, nil
+	if len(devInfos) > 0 {
+		return devInfos[0], nil
+	}
+
+	return nil, nil
 }
 
 func (db *sqlDB) setDeviceInfo(deviceID string, schedulerURL string, areaID string, online bool) error {
-	devInfo := deviceInfo{DeviceID: deviceID, SchedulerURL: schedulerURL, AreaID: areaID, Online: online}
+	devInfo := &deviceInfo{DeviceID: deviceID, SchedulerURL: schedulerURL, AreaID: areaID, Online: online}
 	_, err := db.cli.NamedExec(`INSERT INTO device (device_id,scheduler_url, area_id, online) VALUES (:device_id, :scheduler_url, :area_id, :online) ON DUPLICATE KEY UPDATE scheduler_url=:device_id,area_id=:area_id,online:=online`, devInfo)
 	return err
 }
 
 func (db *sqlDB) deleteDeviceInfo(deviceID string) error {
-	devInfo := deviceInfo{DeviceID: deviceID}
+	devInfo := &deviceInfo{DeviceID: deviceID}
 	_, err := db.cli.NamedExec(`DELETE FROM device WHERE device_id=:device_id`, devInfo)
 	return err
 }
