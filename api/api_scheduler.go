@@ -27,7 +27,7 @@ type Scheduler interface {
 	ValidateSwitch(ctx context.Context, open bool) error                                               //perm:admin
 
 	// call by locator
-	LocatorConnect(ctx context.Context, edgePort int, areaID string) error //perm:write
+	LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID string) error //perm:write
 
 	// call by node
 	DownloadBlockResult(ctx context.Context, stat DownloadStat) error                                    //perm:write
