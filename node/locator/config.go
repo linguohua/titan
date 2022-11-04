@@ -40,7 +40,7 @@ func newLocalCfg(lr repo.LockedRepo) *localCfg {
 // 	return serverURLs, nil
 // }
 
-func (cfg *localCfg) addAccessPoints(areaID string, schedulerURL string, weight int) error {
+func (cfg *localCfg) addAccessPoints(areaID string, schedulerURL string, weight int, accessToken string) error {
 	err := cfg.lr.SetConfig(func(raw interface{}) {
 		rcfg, ok := raw.(*config.Location)
 		if !ok {
@@ -66,7 +66,7 @@ func (cfg *localCfg) addAccessPoints(areaID string, schedulerURL string, weight 
 		}
 
 		if !isExist {
-			serverCfg := config.SchedulerCfg{URL: schedulerURL, Weight: weight}
+			serverCfg := config.SchedulerCfg{URL: schedulerURL, Weight: weight, Accesstoken: accessToken}
 			accessPoint.SchedulerCfgs = append(accessPoint.SchedulerCfgs, serverCfg)
 		}
 		rcfg.AccessPoints[areaID] = accessPoint
@@ -125,7 +125,7 @@ func (cfg *localCfg) getAccessPoint(areaID string) (api.AccessPoint, error) {
 	result := api.AccessPoint{AreaID: accessPoint.AreaID, SchedulerInfos: make([]api.SchedulerInfo, 0, len(accessPoint.SchedulerCfgs))}
 
 	for _, serverCfg := range accessPoint.SchedulerCfgs {
-		scfg := api.SchedulerInfo{URL: serverCfg.URL, Weight: serverCfg.Weight}
+		scfg := api.SchedulerInfo{URL: serverCfg.URL, Weight: serverCfg.Weight, AccessToken: serverCfg.Accesstoken}
 		result.SchedulerInfos = append(result.SchedulerInfos, scfg)
 	}
 

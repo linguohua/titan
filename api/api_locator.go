@@ -2,13 +2,13 @@ package api
 
 import "context"
 
-type Location interface {
+type Locator interface {
 	Common
-	GetAccessPoints(ctx context.Context, deviceID string, securityKey string) ([]string, error) //perm:read
-	AddAccessPoints(ctx context.Context, areaID string, schedulerURL string, weight int) error  //perm:read
-	RemoveAccessPoints(ctx context.Context, areaID string) error                                //perm:read                                  //perm:admin
-	ListAccessPoints(ctx context.Context) (areaIDs []string, err error)                         //perm:read
-	ShowAccessPoint(ctx context.Context, areaID string) (AccessPoint, error)                    //perm:read
+	GetAccessPoints(ctx context.Context, deviceID string, securityKey string) ([]SchedulerAuth, error)                      //perm:read
+	AddAccessPoints(ctx context.Context, areaID string, schedulerURL string, weight int, schedulerAccessToken string) error //perm:read
+	RemoveAccessPoints(ctx context.Context, areaID string) error                                                            //perm:read                                  //perm:admin
+	ListAccessPoints(ctx context.Context) (areaIDs []string, err error)                                                     //perm:read
+	ShowAccessPoint(ctx context.Context, areaID string) (AccessPoint, error)                                                //perm:read
 
 	DeviceOnline(ctx context.Context, deviceID string, areaID string, port int) error //perm:read
 	DeviceOffline(ctx context.Context, deviceID string) error                         //perm:read
@@ -18,10 +18,16 @@ type Location interface {
 	GetDownloadInfoWithBlock(ctx context.Context, cid string) (DownloadInfo, error)                   //perm:read
 }
 
+type SchedulerAuth struct {
+	URL         string
+	AccessToken string
+}
+
 type SchedulerInfo struct {
-	URL    string
-	Weight int
-	Online bool
+	URL         string
+	Weight      int
+	Online      bool
+	AccessToken string
 }
 type AccessPoint struct {
 	AreaID         string

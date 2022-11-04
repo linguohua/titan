@@ -4,12 +4,10 @@ package api
 
 import (
 	"context"
-
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 
 )
 
@@ -179,19 +177,19 @@ type EdgeStub struct {
 
 }
 
-type LocationStruct struct {
+type LocatorStruct struct {
 
 	CommonStruct
 
 	Internal struct {
 
-		AddAccessPoints func(p0 context.Context, p1 string, p2 string, p3 int) (error) `perm:"read"`
+		AddAccessPoints func(p0 context.Context, p1 string, p2 string, p3 int, p4 string) (error) `perm:"read"`
 
 		DeviceOffline func(p0 context.Context, p1 string) (error) `perm:"read"`
 
 		DeviceOnline func(p0 context.Context, p1 string, p2 string, p3 int) (error) `perm:"read"`
 
-		GetAccessPoints func(p0 context.Context, p1 string, p2 string) ([]string, error) `perm:"read"`
+		GetAccessPoints func(p0 context.Context, p1 string, p2 string) ([]SchedulerAuth, error) `perm:"read"`
 
 		GetDownloadInfoWithBlock func(p0 context.Context, p1 string) (DownloadInfo, error) `perm:"read"`
 
@@ -208,7 +206,7 @@ type LocationStruct struct {
 	}
 }
 
-type LocationStub struct {
+type LocatorStub struct {
 
 	CommonStub
 
@@ -628,113 +626,113 @@ func (s *EdgeStub) WaitQuiet(p0 context.Context) (error) {
 
 
 
-func (s *LocationStruct) AddAccessPoints(p0 context.Context, p1 string, p2 string, p3 int) (error) {
+func (s *LocatorStruct) AddAccessPoints(p0 context.Context, p1 string, p2 string, p3 int, p4 string) (error) {
 	if s.Internal.AddAccessPoints == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.AddAccessPoints(p0, p1, p2, p3)
+	return s.Internal.AddAccessPoints(p0, p1, p2, p3, p4)
 }
 
-func (s *LocationStub) AddAccessPoints(p0 context.Context, p1 string, p2 string, p3 int) (error) {
+func (s *LocatorStub) AddAccessPoints(p0 context.Context, p1 string, p2 string, p3 int, p4 string) (error) {
 	return ErrNotSupported
 }
 
-func (s *LocationStruct) DeviceOffline(p0 context.Context, p1 string) (error) {
+func (s *LocatorStruct) DeviceOffline(p0 context.Context, p1 string) (error) {
 	if s.Internal.DeviceOffline == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.DeviceOffline(p0, p1)
 }
 
-func (s *LocationStub) DeviceOffline(p0 context.Context, p1 string) (error) {
+func (s *LocatorStub) DeviceOffline(p0 context.Context, p1 string) (error) {
 	return ErrNotSupported
 }
 
-func (s *LocationStruct) DeviceOnline(p0 context.Context, p1 string, p2 string, p3 int) (error) {
+func (s *LocatorStruct) DeviceOnline(p0 context.Context, p1 string, p2 string, p3 int) (error) {
 	if s.Internal.DeviceOnline == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.DeviceOnline(p0, p1, p2, p3)
 }
 
-func (s *LocationStub) DeviceOnline(p0 context.Context, p1 string, p2 string, p3 int) (error) {
+func (s *LocatorStub) DeviceOnline(p0 context.Context, p1 string, p2 string, p3 int) (error) {
 	return ErrNotSupported
 }
 
-func (s *LocationStruct) GetAccessPoints(p0 context.Context, p1 string, p2 string) ([]string, error) {
+func (s *LocatorStruct) GetAccessPoints(p0 context.Context, p1 string, p2 string) ([]SchedulerAuth, error) {
 	if s.Internal.GetAccessPoints == nil {
-		return *new([]string), ErrNotSupported
+		return *new([]SchedulerAuth), ErrNotSupported
 	}
 	return s.Internal.GetAccessPoints(p0, p1, p2)
 }
 
-func (s *LocationStub) GetAccessPoints(p0 context.Context, p1 string, p2 string) ([]string, error) {
-	return *new([]string), ErrNotSupported
+func (s *LocatorStub) GetAccessPoints(p0 context.Context, p1 string, p2 string) ([]SchedulerAuth, error) {
+	return *new([]SchedulerAuth), ErrNotSupported
 }
 
-func (s *LocationStruct) GetDownloadInfoWithBlock(p0 context.Context, p1 string) (DownloadInfo, error) {
+func (s *LocatorStruct) GetDownloadInfoWithBlock(p0 context.Context, p1 string) (DownloadInfo, error) {
 	if s.Internal.GetDownloadInfoWithBlock == nil {
 		return *new(DownloadInfo), ErrNotSupported
 	}
 	return s.Internal.GetDownloadInfoWithBlock(p0, p1)
 }
 
-func (s *LocationStub) GetDownloadInfoWithBlock(p0 context.Context, p1 string) (DownloadInfo, error) {
+func (s *LocatorStub) GetDownloadInfoWithBlock(p0 context.Context, p1 string) (DownloadInfo, error) {
 	return *new(DownloadInfo), ErrNotSupported
 }
 
-func (s *LocationStruct) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]DownloadInfo, error) {
+func (s *LocatorStruct) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]DownloadInfo, error) {
 	if s.Internal.GetDownloadInfoWithBlocks == nil {
 		return *new(map[string]DownloadInfo), ErrNotSupported
 	}
 	return s.Internal.GetDownloadInfoWithBlocks(p0, p1)
 }
 
-func (s *LocationStub) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]DownloadInfo, error) {
+func (s *LocatorStub) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]DownloadInfo, error) {
 	return *new(map[string]DownloadInfo), ErrNotSupported
 }
 
-func (s *LocationStruct) GetDownloadInfosWithBlocks(p0 context.Context, p1 []string) (map[string][]DownloadInfo, error) {
+func (s *LocatorStruct) GetDownloadInfosWithBlocks(p0 context.Context, p1 []string) (map[string][]DownloadInfo, error) {
 	if s.Internal.GetDownloadInfosWithBlocks == nil {
 		return *new(map[string][]DownloadInfo), ErrNotSupported
 	}
 	return s.Internal.GetDownloadInfosWithBlocks(p0, p1)
 }
 
-func (s *LocationStub) GetDownloadInfosWithBlocks(p0 context.Context, p1 []string) (map[string][]DownloadInfo, error) {
+func (s *LocatorStub) GetDownloadInfosWithBlocks(p0 context.Context, p1 []string) (map[string][]DownloadInfo, error) {
 	return *new(map[string][]DownloadInfo), ErrNotSupported
 }
 
-func (s *LocationStruct) ListAccessPoints(p0 context.Context) ([]string, error) {
+func (s *LocatorStruct) ListAccessPoints(p0 context.Context) ([]string, error) {
 	if s.Internal.ListAccessPoints == nil {
 		return *new([]string), ErrNotSupported
 	}
 	return s.Internal.ListAccessPoints(p0)
 }
 
-func (s *LocationStub) ListAccessPoints(p0 context.Context) ([]string, error) {
+func (s *LocatorStub) ListAccessPoints(p0 context.Context) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 
-func (s *LocationStruct) RemoveAccessPoints(p0 context.Context, p1 string) (error) {
+func (s *LocatorStruct) RemoveAccessPoints(p0 context.Context, p1 string) (error) {
 	if s.Internal.RemoveAccessPoints == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.RemoveAccessPoints(p0, p1)
 }
 
-func (s *LocationStub) RemoveAccessPoints(p0 context.Context, p1 string) (error) {
+func (s *LocatorStub) RemoveAccessPoints(p0 context.Context, p1 string) (error) {
 	return ErrNotSupported
 }
 
-func (s *LocationStruct) ShowAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
+func (s *LocatorStruct) ShowAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
 	if s.Internal.ShowAccessPoint == nil {
 		return *new(AccessPoint), ErrNotSupported
 	}
 	return s.Internal.ShowAccessPoint(p0, p1)
 }
 
-func (s *LocationStub) ShowAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
+func (s *LocatorStub) ShowAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
 	return *new(AccessPoint), ErrNotSupported
 }
 
@@ -1071,7 +1069,7 @@ var _ Common = new(CommonStruct)
 var _ Device = new(DeviceStruct)
 var _ Download = new(DownloadStruct)
 var _ Edge = new(EdgeStruct)
-var _ Location = new(LocationStruct)
+var _ Locator = new(LocatorStruct)
 var _ Scheduler = new(SchedulerStruct)
 var _ Validate = new(ValidateStruct)
 

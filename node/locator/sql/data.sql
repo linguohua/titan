@@ -4,6 +4,7 @@ CREATE TABLE `config` (
 	`scheduler_url` varchar(128) NOT NULL UNIQUE ,
     `area_id` varchar(64) DEFAULT NULL ,
     `weight` int(5)  DEFAULT '0' ,
+    `access_token` varchar(256) DEFAULT NULL ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='location config';
 
@@ -17,4 +18,4 @@ CREATE TABLE `device` (
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='device info';
 
 
--- GRANT ALL ON my_db.* TO 'new_user'@'localhost';
+-- GRANT ALL ON locator.* TO 'user01'@'localhost';

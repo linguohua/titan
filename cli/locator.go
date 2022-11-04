@@ -39,12 +39,17 @@ var addCmd = &cli.Command{
 		&cli.Float64Flag{
 			Name:  "weight",
 			Usage: "block file id",
-			Value: 1,
+			Value: 100,
+		},
+		&cli.StringFlag{
+			Name:  "token",
+			Usage: "scheduler access token",
+			Value: "",
 		},
 	},
 
 	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetLocationAPI(cctx)
+		api, closer, err := GetLocatorAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -53,10 +58,11 @@ var addCmd = &cli.Command{
 		areaID := cctx.String("area-id")
 		url := cctx.String("url")
 		weight := cctx.Int("weight")
+		token := cctx.String("token")
 		ctx := ReqContext(cctx)
 		// TODO: print more useful things
 
-		err = api.AddAccessPoints(ctx, areaID, url, weight)
+		err = api.AddAccessPoints(ctx, areaID, url, weight, token)
 		if err != nil {
 			return err
 		}
@@ -77,7 +83,7 @@ var removeCmd = &cli.Command{
 	},
 
 	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetLocationAPI(cctx)
+		api, closer, err := GetLocatorAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -101,7 +107,7 @@ var listCmd = &cli.Command{
 	Flags: []cli.Flag{},
 
 	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetLocationAPI(cctx)
+		api, closer, err := GetLocatorAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -135,7 +141,7 @@ var infoCmd = &cli.Command{
 	},
 
 	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetLocationAPI(cctx)
+		api, closer, err := GetLocatorAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -175,7 +181,7 @@ var getCmd = &cli.Command{
 	},
 
 	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetLocationAPI(cctx)
+		api, closer, err := GetLocatorAPI(cctx)
 		if err != nil {
 			return err
 		}

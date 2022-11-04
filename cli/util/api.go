@@ -222,8 +222,8 @@ func GetEdgeAPI(ctx *cli.Context) (api.Edge, jsonrpc.ClientCloser, error) {
 	return a, c, e
 }
 
-func GetLocationAPI(ctx *cli.Context) (api.Location, jsonrpc.ClientCloser, error) {
-	addr, headers, err := GetRawAPI(ctx, repo.Location, "v0")
+func GetLocatorAPI(ctx *cli.Context) (api.Locator, jsonrpc.ClientCloser, error) {
+	addr, headers, err := GetRawAPI(ctx, repo.Locator, "v0")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -232,7 +232,7 @@ func GetLocationAPI(ctx *cli.Context) (api.Location, jsonrpc.ClientCloser, error
 		_, _ = fmt.Fprintln(ctx.App.Writer, "using full node API v0 endpoint:", addr)
 	}
 
-	a, c, e := client.NewLocation(ctx.Context, addr, headers)
+	a, c, e := client.NewLocator(ctx.Context, addr, headers)
 	v, err := a.Version(ctx.Context)
 	if err != nil {
 		return nil, nil, err

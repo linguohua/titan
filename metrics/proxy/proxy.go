@@ -28,8 +28,8 @@ func MetricedEdgeAPI(a api.Edge) api.Edge {
 	return &out
 }
 
-func MetricedLocationAPI(a api.Location) api.Location {
-	var out api.LocationStruct
+func MetricedLocatorAPI(a api.Locator) api.Locator {
+	var out api.LocatorStruct
 	proxy(a, &out)
 	return &out
 }

@@ -23,12 +23,12 @@ import (
 // 	}
 // }
 
-func WorkerHandler(authv func(ctx context.Context, token string) ([]auth.Permission, error), a api.Location, permissioned bool) http.Handler {
+func WorkerHandler(authv func(ctx context.Context, token string) ([]auth.Permission, error), a api.Locator, permissioned bool) http.Handler {
 	mux := mux.NewRouter()
 	readerHandler, readerServerOpt := rpcenc.ReaderParamDecoder()
 	rpcServer := jsonrpc.NewServer(readerServerOpt)
 
-	wapi := proxy.MetricedLocationAPI(a)
+	wapi := proxy.MetricedLocatorAPI(a)
 	if permissioned {
 		wapi = api.PermissionedLocationAPI(wapi)
 	}
