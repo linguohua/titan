@@ -91,15 +91,17 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string, se
 		return []api.SchedulerAuth{}, err
 	}
 
-	if device == nil {
+	if device == nil || device.AreaID != areaID {
+		log.Info("device == nil || device.AreaID != areaID")
 		return locator.getAccessPointWithWeightCount(areaID)
 	}
 
-	if device.AreaID != areaID {
+	cfg := locator.getCfg(areaID, device.SchedulerURL)
+	if cfg == nil {
 		return locator.getAccessPointWithWeightCount(areaID)
 	}
 
-	schedulerApi, ok := locator.apMgr.getSchedulerAPI(device.SchedulerURL, areaID)
+	schedulerApi, ok := locator.apMgr.getSchedulerAPI(device.SchedulerURL, areaID, cfg.AccessToken)
 	if ok {
 		token, err := locator.authNewToken(schedulerApi)
 		if err == nil {
@@ -110,6 +112,7 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string, se
 		log.Errorf("GetAccessPoints authNewToken error:%s", err.Error())
 	}
 
+	log.Infof("area %s scheduler api %s not online", areaID, device.SchedulerURL)
 	return locator.getAccessPointWithWeightCount(areaID)
 }
 
@@ -214,7 +217,7 @@ func (locator *Locator) getAccessPointWithWeightCount(areaID string) ([]api.Sche
 	urls := make([]string, 0)
 	for url, weight := range cfgWeights {
 		currentWeight := currentWeights[url]
-		if currentWeight < weight {
+		if currentWeight <= weight {
 			urls = append(urls, url)
 		}
 	}
@@ -355,4 +358,20 @@ func (locator *Locator) authNewToken(schedulerAPI *schedulerAPI) (string, error)
 		return "", err
 	}
 	return string(token), err
+}
+
+func (locator *Locator) getCfg(areaID, schedulerURL string) *api.SchedulerInfo {
+	accessPoint, err := locator.cfg.getAccessPoint(areaID)
+	if err != nil {
+		log.Errorf("getCfg, acccess point %s not exist", areaID)
+		return nil
+	}
+
+	for _, info := range accessPoint.SchedulerInfos {
+		if info.URL == schedulerURL {
+			return &info
+		}
+	}
+
+	return nil
 }

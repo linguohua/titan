@@ -129,16 +129,21 @@ func (mgr *accessPointMgr) removeAccessPoint(areaID string) {
 	mgr.deleteAccessPointFromMap(areaID)
 }
 
-func (mgr *accessPointMgr) getSchedulerAPI(url, areaID string) (*schedulerAPI, bool) {
+func (mgr *accessPointMgr) getSchedulerAPI(url, areaID, accessToken string) (*schedulerAPI, bool) {
 	ap, ok := mgr.loadAccessPointFromMap(areaID)
-	if !ok {
-		return nil, false
+	if ok {
+		for _, api := range ap.apis {
+			if api.url == url {
+				return api, true
+			}
+		}
+
 	}
 
-	for _, api := range ap.apis {
-		if api.url == url {
-			return api, true
-		}
+	// reconnect scheduler
+	api, err := mgr.newSchedulerAPI(url, areaID, accessToken)
+	if err == nil {
+		return api, true
 	}
 
 	return nil, false
@@ -149,7 +154,7 @@ func (mgr *accessPointMgr) isSchedulerOnline(url, areaID, accessToken string) bo
 	ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
 	defer cancel()
 
-	api, ok := mgr.getSchedulerAPI(url, areaID)
+	api, ok := mgr.getSchedulerAPI(url, areaID, accessToken)
 	if ok {
 		_, err := api.Version(ctx)
 		if err != nil {
@@ -157,12 +162,6 @@ func (mgr *accessPointMgr) isSchedulerOnline(url, areaID, accessToken string) bo
 			return false
 		}
 
-		return true
-	}
-
-	// reconnect scheduler
-	_, err := mgr.newSchedulerAPI(url, areaID, accessToken)
-	if err == nil {
 		return true
 	}
 
