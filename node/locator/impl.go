@@ -6,11 +6,14 @@ import (
 	"time"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
+	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/handler"
 	"github.com/linguohua/titan/node/repo"
+	"github.com/linguohua/titan/node/secret"
 	"github.com/linguohua/titan/region"
+	"golang.org/x/xerrors"
 
 	logging "github.com/ipfs/go-log/v2"
 )
@@ -23,16 +26,31 @@ const (
 	// 3 seconds
 	connectTimeout = 3
 	defaultAreaID  = "CN-GD-Shenzhen"
+	localIP        = "127.0.0.1"
 )
 
 func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, uuid string, locatorPort int) api.Locator {
-	locator := &Locator{apMgr: newAccessPointMgr(locatorPort, uuid)}
+	locator := &Locator{}
 	if len(dbAddr) > 0 {
 		locator.db = newDB(dbAddr)
 		locator.cfg = locator.db
 	} else {
 		locator.cfg = newLocalCfg(lr)
 	}
+
+	sec, err := secret.APISecret(lr)
+	if err != nil {
+		log.Panicf("NewLocalScheduleNode, new APISecret failed:%s", err.Error())
+	}
+	locator.APISecret = sec
+
+	// auth new token to scheduler
+	token, err := locator.AuthNew(ctx, []auth.Permission{api.PermRead, api.PermWrite})
+	if err != nil {
+		log.Panicf("NewLocalScheduleNode,new token to scheduler:%s", err.Error())
+	}
+
+	locator.apMgr = newAccessPointMgr(locatorPort, uuid, string(token))
 	return locator
 
 }
@@ -46,10 +64,29 @@ type lconfig interface {
 }
 
 type Locator struct {
-	cfg lconfig
-	*common.CommonAPI
+	common.CommonAPI
+	cfg   lconfig
 	apMgr *accessPointMgr
 	db    *db
+}
+
+type jwtPayload struct {
+	Allow []auth.Permission
+}
+
+func (locator *Locator) AuthUser(ctx context.Context, token string) ([]auth.Permission, error) {
+	ip := handler.GetRequestIP(ctx)
+	log.Infof("AuthUser, ip:%s", ip)
+	if ip == localIP {
+		return api.AllPermissions, nil
+	}
+
+	var payload jwtPayload
+	if _, err := jwt.Verify([]byte(token), (*jwt.HMACSHA)(locator.APISecret), &payload); err != nil {
+		return nil, xerrors.Errorf("JWT Verification failed: %w", err)
+	}
+
+	return payload.Allow, nil
 }
 
 func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string, securityKey string) ([]api.SchedulerAuth, error) {
@@ -152,6 +189,7 @@ func (locator *Locator) ShowAccessPoint(ctx context.Context, areaID string) (api
 }
 
 func (locator *Locator) DeviceOnline(ctx context.Context, deviceID string, areaID string, port int) error {
+	log.Infof("areaID:%s device %s online", areaID, deviceID)
 	ip := handler.GetRequestIP(ctx)
 	schedulerURL := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
 	locator.db.db.setDeviceInfo(deviceID, schedulerURL, areaID, true)
@@ -159,12 +197,15 @@ func (locator *Locator) DeviceOnline(ctx context.Context, deviceID string, areaI
 }
 
 func (locator *Locator) DeviceOffline(ctx context.Context, deviceID string) error {
+	log.Infof("device %s offline", deviceID)
 	info, err := locator.db.getDeviceInfo(deviceID)
 	if err != nil {
+		log.Errorf("DeviceOffline, get device %s error:%s", deviceID, err.Error())
 		return err
 	}
 
 	if info == nil {
+		log.Errorf("DeviceOffline, device %s not in locator", deviceID)
 		return fmt.Errorf("device %s not exist", deviceID)
 	}
 

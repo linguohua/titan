@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -183,11 +182,11 @@ type LocatorStruct struct {
 
 	Internal struct {
 
-		AddAccessPoints func(p0 context.Context, p1 string, p2 string, p3 int, p4 string) (error) `perm:"read"`
+		AddAccessPoints func(p0 context.Context, p1 string, p2 string, p3 int, p4 string) (error) `perm:"admin"`
 
-		DeviceOffline func(p0 context.Context, p1 string) (error) `perm:"read"`
+		DeviceOffline func(p0 context.Context, p1 string) (error) `perm:"write"`
 
-		DeviceOnline func(p0 context.Context, p1 string, p2 string, p3 int) (error) `perm:"read"`
+		DeviceOnline func(p0 context.Context, p1 string, p2 string, p3 int) (error) `perm:"write"`
 
 		GetAccessPoints func(p0 context.Context, p1 string, p2 string) ([]SchedulerAuth, error) `perm:"read"`
 
@@ -197,11 +196,11 @@ type LocatorStruct struct {
 
 		GetDownloadInfosWithBlocks func(p0 context.Context, p1 []string) (map[string][]DownloadInfo, error) `perm:"read"`
 
-		ListAccessPoints func(p0 context.Context) ([]string, error) `perm:"read"`
+		ListAccessPoints func(p0 context.Context) ([]string, error) `perm:"admin"`
 
-		RemoveAccessPoints func(p0 context.Context, p1 string) (error) `perm:"read"`
+		RemoveAccessPoints func(p0 context.Context, p1 string) (error) `perm:"admin"`
 
-		ShowAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"read"`
+		ShowAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
 
 	}
 }
@@ -252,7 +251,7 @@ type SchedulerStruct struct {
 
 		ListDatas func(p0 context.Context, p1 int) (DataListInfo, error) `perm:"read"`
 
-		LocatorConnect func(p0 context.Context, p1 int, p2 string, p3 string) (error) `perm:"write"`
+		LocatorConnect func(p0 context.Context, p1 int, p2 string, p3 string, p4 string) (error) `perm:"write"`
 
 		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"read"`
 
@@ -926,14 +925,14 @@ func (s *SchedulerStub) ListDatas(p0 context.Context, p1 int) (DataListInfo, err
 	return *new(DataListInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 int, p2 string, p3 string) (error) {
+func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 int, p2 string, p3 string, p4 string) (error) {
 	if s.Internal.LocatorConnect == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.LocatorConnect(p0, p1, p2, p3)
+	return s.Internal.LocatorConnect(p0, p1, p2, p3, p4)
 }
 
-func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 int, p2 string, p3 string) (error) {
+func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 int, p2 string, p3 string, p4 string) (error) {
 	return ErrNotSupported
 }
 
