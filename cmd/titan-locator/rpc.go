@@ -13,7 +13,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/linguohua/titan/node/handler"
-	"github.com/linguohua/titan/node/locator"
 )
 
 // func blockDownload(a api.Edge) http.HandlerFunc {
@@ -43,10 +42,8 @@ func WorkerHandler(a api.Locator, permissioned bool) http.Handler {
 		return mux
 	}
 
-	locator := a.(*locator.Locator)
-
 	ah := &auth.Handler{
-		Verify: locator.AuthUser,
+		Verify: a.AuthVerify,
 		Next:   mux.ServeHTTP,
 	}
 
