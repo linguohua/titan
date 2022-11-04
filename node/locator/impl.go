@@ -6,14 +6,12 @@ import (
 	"time"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
-	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/handler"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/secret"
 	"github.com/linguohua/titan/region"
-	"golang.org/x/xerrors"
 
 	logging "github.com/ipfs/go-log/v2"
 )
@@ -26,7 +24,6 @@ const (
 	// 3 seconds
 	connectTimeout = 3
 	defaultAreaID  = "CN-GD-Shenzhen"
-	localIP        = "127.0.0.1"
 )
 
 func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, uuid string, locatorPort int) api.Locator {
@@ -50,7 +47,7 @@ func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, uuid strin
 		log.Panicf("NewLocalScheduleNode,new token to scheduler:%s", err.Error())
 	}
 
-	locator.apMgr = newAccessPointMgr(locatorPort, uuid, string(token))
+	locator.apMgr = newAccessPointMgr(locatorPort, string(token), uuid)
 	return locator
 
 }
@@ -68,25 +65,6 @@ type Locator struct {
 	cfg   lconfig
 	apMgr *accessPointMgr
 	db    *db
-}
-
-type jwtPayload struct {
-	Allow []auth.Permission
-}
-
-func (locator *Locator) AuthUser(ctx context.Context, token string) ([]auth.Permission, error) {
-	ip := handler.GetRequestIP(ctx)
-	log.Infof("AuthUser, ip:%s", ip)
-	if ip == localIP {
-		return api.AllPermissions, nil
-	}
-
-	var payload jwtPayload
-	if _, err := jwt.Verify([]byte(token), (*jwt.HMACSHA)(locator.APISecret), &payload); err != nil {
-		return nil, xerrors.Errorf("JWT Verification failed: %w", err)
-	}
-
-	return payload.Allow, nil
 }
 
 func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string, securityKey string) ([]api.SchedulerAuth, error) {
@@ -214,6 +192,8 @@ func (locator *Locator) DeviceOffline(ctx context.Context, deviceID string) erro
 }
 
 func (locator *Locator) getAccessPointWithWeightCount(areaID string) ([]api.SchedulerAuth, error) {
+	log.Infof("getAccessPointWithWeightCount, areaID:%s", areaID)
+
 	ap, err := locator.cfg.getAccessPoint(areaID)
 	if err != nil {
 		return []api.SchedulerAuth{}, err
@@ -227,7 +207,8 @@ func (locator *Locator) getAccessPointWithWeightCount(areaID string) ([]api.Sche
 	onlineSchedulers := make(map[string]*api.SchedulerInfo)
 	for _, info := range ap.SchedulerInfos {
 		if locator.apMgr.isSchedulerOnline(info.URL, areaID, info.AccessToken) {
-			onlineSchedulers[info.URL] = &info
+			var schedulerInfo = info
+			onlineSchedulers[schedulerInfo.URL] = &schedulerInfo
 		}
 	}
 

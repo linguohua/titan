@@ -5,6 +5,7 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/journal/alerting"
+	"github.com/linguohua/titan/node/handler"
 
 	"github.com/linguohua/titan/build"
 
@@ -16,6 +17,7 @@ import (
 )
 
 var session = uuid.New()
+var localIP = "127.0.0.1"
 
 type CommonAPI struct {
 	Alerting     *alerting.Alerting
@@ -37,6 +39,10 @@ func NewCommonAPI(sessionCallBack func(string)) CommonAPI {
 }
 
 func (a *CommonAPI) AuthVerify(ctx context.Context, token string) ([]auth.Permission, error) {
+	if handler.GetRequestIP(ctx) == localIP {
+		return api.AllPermissions, nil
+	}
+
 	var payload jwtPayload
 	if _, err := jwt.Verify([]byte(token), (*jwt.HMACSHA)(a.APISecret), &payload); err != nil {
 		return nil, xerrors.Errorf("JWT Verification failed: %w", err)
