@@ -35,13 +35,13 @@ import (
 
 var log = logging.Logger("main")
 
-const FlagLocationRepo = "locator-repo"
+const FlagLocatorRepo = "locator-repo"
 
 // TODO remove after deprecation period
-const FlagLocationRepoDeprecation = "locatorrepo"
+const FlagLocatorRepoDeprecation = "locatorrepo"
 
 func main() {
-	api.RunningNodeType = api.NodeLocation
+	api.RunningNodeType = api.NodeLocator
 	cpu.Percent(0, false)
 	titanlog.SetupLogLevels()
 
@@ -58,11 +58,11 @@ func main() {
 		EnableBashCompletion: true,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    FlagLocationRepo,
-				Aliases: []string{FlagLocationRepoDeprecation},
+				Name:    FlagLocatorRepo,
+				Aliases: []string{FlagLocatorRepoDeprecation},
 				EnvVars: []string{"TITAN_LOCATION_PATH", "LOCATION_PATH"},
 				Value:   "~/.titanlocation", // TODO: Consider XDG_DATA_HOME
-				Usage:   fmt.Sprintf("Specify locator repo path. flag %s and env TITAN_EDGE_PATH are DEPRECATION, will REMOVE SOON", FlagLocationRepoDeprecation),
+				Usage:   fmt.Sprintf("Specify locator repo path. flag %s and env TITAN_EDGE_PATH are DEPRECATION, will REMOVE SOON", FlagLocatorRepoDeprecation),
 			},
 			&cli.StringFlag{
 				Name:    "panic-reports",
@@ -75,7 +75,7 @@ func main() {
 		After: func(c *cli.Context) error {
 			if r := recover(); r != nil {
 				// Generate report in LOTUS_PATH and re-raise panic
-				build.GeneratePanicReport(c.String("panic-reports"), c.String(FlagLocationRepo), c.App.Name)
+				build.GeneratePanicReport(c.String("panic-reports"), c.String(FlagLocatorRepo), c.App.Name)
 				panic(r)
 			}
 			return nil
@@ -179,7 +179,7 @@ var runCmd = &cli.Command{
 		}
 
 		// Open repo
-		repoPath := cctx.String(FlagLocationRepo)
+		repoPath := cctx.String(FlagLocatorRepo)
 		r, err := repo.NewFS(repoPath)
 		if err != nil {
 			return err
@@ -268,7 +268,7 @@ var runCmd = &cli.Command{
 		}
 
 		srv := &http.Server{
-			Handler: WorkerHandler(nil, locator.NewLocalLocator(ctx, lr, dbAddr, uuid, port), true),
+			Handler: WorkerHandler(locator.NewLocalLocator(ctx, lr, dbAddr, uuid, port), true),
 			BaseContext: func(listener net.Listener) context.Context {
 				ctx, _ := tag.New(context.Background(), tag.Upsert(metrics.APIInterface, "titan-edge"))
 				return ctx

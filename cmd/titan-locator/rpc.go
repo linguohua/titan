@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/linguohua/titan/lib/rpcenc"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/linguohua/titan/node/handler"
+	"github.com/linguohua/titan/node/locator"
 )
 
 // func blockDownload(a api.Edge) http.HandlerFunc {
@@ -23,7 +23,7 @@ import (
 // 	}
 // }
 
-func WorkerHandler(authv func(ctx context.Context, token string) ([]auth.Permission, error), a api.Locator, permissioned bool) http.Handler {
+func WorkerHandler(a api.Locator, permissioned bool) http.Handler {
 	mux := mux.NewRouter()
 	readerHandler, readerServerOpt := rpcenc.ReaderParamDecoder()
 	rpcServer := jsonrpc.NewServer(readerServerOpt)
@@ -43,8 +43,10 @@ func WorkerHandler(authv func(ctx context.Context, token string) ([]auth.Permiss
 		return mux
 	}
 
+	locator := a.(*locator.Locator)
+
 	ah := &auth.Handler{
-		Verify: authv,
+		Verify: locator.AuthUser,
 		Next:   mux.ServeHTTP,
 	}
 

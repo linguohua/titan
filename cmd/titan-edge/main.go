@@ -485,7 +485,7 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (ap
 	if err != nil {
 		return nil, nil, err
 	}
-
+	log.Infof("scheduler url:%s", auth.URL)
 	os.Setenv("FULLNODE_API_INFO", auth.AccessToken+":"+auth.URL)
 	return schedulerAPI, closer, nil
 }

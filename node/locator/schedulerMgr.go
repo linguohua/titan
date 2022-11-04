@@ -30,11 +30,12 @@ type accessPointMgr struct {
 	locatorPort  int
 	random       *rand.Rand
 	uuid         string
+	locatorToken string
 }
 
-func newAccessPointMgr(locatorPort int, uuid string) *accessPointMgr {
+func newAccessPointMgr(locatorPort int, locatorToken, uuid string) *accessPointMgr {
 	s := rand.NewSource(time.Now().UnixNano())
-	mgr := &accessPointMgr{locatorPort: locatorPort, random: rand.New(s), uuid: uuid}
+	mgr := &accessPointMgr{locatorPort: locatorPort, random: rand.New(s), uuid: uuid, locatorToken: locatorToken}
 	return mgr
 }
 
@@ -78,13 +79,13 @@ func (mgr *accessPointMgr) newSchedulerAPI(url string, areaID string, schedulerA
 		return nil, err
 	}
 
-	err = api.LocatorConnect(ctx, mgr.locatorPort, areaID, "")
+	err = api.LocatorConnect(ctx, mgr.locatorPort, areaID, mgr.uuid, mgr.locatorToken)
 	if err != nil {
 		log.Errorf("newSchedulerAPI connect to scheduler err:%s", err.Error())
 		return nil, err
 	}
 
-	log.Infof("newSchedulerAPI connect to scheduler %s", url)
+	log.Infof("newSchedulerAPI connect to scheduler %s, locator token:%s", url, mgr.locatorToken)
 
 	newAPI := &schedulerAPI{api, close, url}
 	ap.apis = append(ap.apis, newAPI)
