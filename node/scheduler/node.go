@@ -16,7 +16,7 @@ import (
 
 // Location Edge node
 type Location struct {
-	nodeAPI   api.Location
+	nodeAPI   api.Locator
 	closer    jsonrpc.ClientCloser
 	locatorID string
 }
