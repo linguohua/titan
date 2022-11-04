@@ -3,7 +3,9 @@ package locator
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/handler"
@@ -23,20 +25,20 @@ const (
 	defaultAreaID  = "CN-GD-Shenzhen"
 )
 
-func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, schedulerToken string, locatorPort int) api.Location {
-	location := &Locator{apMgr: newAccessPointMgr(schedulerToken, locatorPort)}
+func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, uuid string, locatorPort int) api.Locator {
+	locator := &Locator{apMgr: newAccessPointMgr(locatorPort, uuid)}
 	if len(dbAddr) > 0 {
-		location.db = newDB(dbAddr)
-		location.cfg = location.db
+		locator.db = newDB(dbAddr)
+		locator.cfg = locator.db
 	} else {
-		location.cfg = newLocalCfg(lr)
+		locator.cfg = newLocalCfg(lr)
 	}
-	return location
+	return locator
 
 }
 
 type lconfig interface {
-	addAccessPoints(areaID string, schedulerURL string, weight int) error
+	addAccessPoints(areaID string, schedulerURL string, weight int, accessToken string) error
 	removeAccessPoints(areaID string) error
 	listAccessPoints() (areaIDs []string, err error)
 	getAccessPoint(areaID string) (api.AccessPoint, error)
@@ -48,10 +50,9 @@ type Locator struct {
 	*common.CommonAPI
 	apMgr *accessPointMgr
 	db    *db
-	// connectMgr
 }
 
-func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string, securityKey string) ([]string, error) {
+func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string, securityKey string) ([]api.SchedulerAuth, error) {
 	// TODO: verify securityKey
 	ip := handler.GetRequestIP(ctx)
 	areaID := ""
@@ -65,13 +66,14 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string, se
 	log.Infof("device %s ip %s get Area areaID %s", deviceID, ip, areaID)
 
 	if areaID == "" || areaID == "unknown-unknown-unknown" {
-		log.Errorf("device %s can not get areaID", deviceID)
+		log.Warnf("GetAccessPoints device %s can not get areaID, use default areaID:%s", deviceID, defaultAreaID)
 		areaID = defaultAreaID
 	}
 
 	device, err := locator.db.getDeviceInfo(deviceID)
 	if err != nil {
-		return []string{}, err
+		log.Errorf("GetAccessPoints, getDeviceInfo:%s", err.Error())
+		return []api.SchedulerAuth{}, err
 	}
 
 	if device == nil {
@@ -82,13 +84,25 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string, se
 		return locator.getAccessPointWithWeightCount(areaID)
 	}
 
-	if locator.apMgr.isSchedulerOnline(device.SchedulerURL, areaID) {
-		return []string{device.SchedulerURL}, nil
+	schedulerApi, ok := locator.apMgr.getSchedulerAPI(device.SchedulerURL, areaID)
+	if ok {
+		token, err := locator.authNewToken(schedulerApi)
+		if err == nil {
+			auth := api.SchedulerAuth{URL: device.SchedulerURL, AccessToken: token}
+			return []api.SchedulerAuth{auth}, nil
+		}
+
+		log.Errorf("GetAccessPoints authNewToken error:%s", err.Error())
 	}
+	// if locator.apMgr.isSchedulerOnline(device.SchedulerURL, areaID) {
+
+	// 	auth := api.SchedulerAuth{URL: device.SchedulerURL, AccessToken: ""}
+	// 	return []api.SchedulerAuth{auth}, nil
+	// }
 	return locator.getAccessPointWithWeightCount(areaID)
 }
 
-func (locator *Locator) AddAccessPoints(ctx context.Context, areaID string, schedulerURL string, weight int) error {
+func (locator *Locator) AddAccessPoints(ctx context.Context, areaID string, schedulerURL string, weight int, schedulerAccessToken string) error {
 	if weight < miniWeight || weight > maxWeight {
 		return fmt.Errorf("weith is out of range, need to set %d ~ %d", miniWeight, maxWeight)
 	}
@@ -102,12 +116,12 @@ func (locator *Locator) AddAccessPoints(ctx context.Context, areaID string, sche
 		return fmt.Errorf("access point aready exist")
 	}
 
-	_, err = locator.apMgr.newSchedulerAPI(schedulerURL, areaID)
+	_, err = locator.apMgr.newSchedulerAPI(schedulerURL, areaID, schedulerAccessToken)
 	if err != nil {
 		return err
 	}
 
-	return locator.cfg.addAccessPoints(areaID, schedulerURL, weight)
+	return locator.cfg.addAccessPoints(areaID, schedulerURL, weight, schedulerAccessToken)
 }
 
 func (locator *Locator) RemoveAccessPoints(ctx context.Context, areaID string) error {
@@ -126,7 +140,7 @@ func (locator *Locator) ShowAccessPoint(ctx context.Context, areaID string) (api
 	}
 	infos := make([]api.SchedulerInfo, 0, len(ap.SchedulerInfos))
 	for _, cfg := range ap.SchedulerInfos {
-		if locator.apMgr.isSchedulerOnline(cfg.URL, areaID) {
+		if locator.apMgr.isSchedulerOnline(cfg.URL, areaID, cfg.AccessToken) {
 			cfg.Online = true
 		}
 
@@ -158,39 +172,48 @@ func (locator *Locator) DeviceOffline(ctx context.Context, deviceID string) erro
 	return nil
 }
 
-func (locator *Locator) getAccessPointWithWeightCount(areaID string) ([]string, error) {
+func (locator *Locator) getAccessPointWithWeightCount(areaID string) ([]api.SchedulerAuth, error) {
 	ap, err := locator.cfg.getAccessPoint(areaID)
 	if err != nil {
-		return []string{}, nil
+		return []api.SchedulerAuth{}, err
 	}
 
 	if len(ap.SchedulerInfos) == 0 {
-		return []string{}, fmt.Errorf("Area %s no config exist", areaID)
+		return []api.SchedulerAuth{}, nil
 	}
 
 	// filter online scheduler cfg
-	infos := make([]api.SchedulerInfo, 0, len(ap.SchedulerInfos))
+	onlineSchedulers := make(map[string]*api.SchedulerInfo)
 	for _, info := range ap.SchedulerInfos {
-		if locator.apMgr.isSchedulerOnline(info.URL, areaID) {
-			infos = append(infos, info)
+		if locator.apMgr.isSchedulerOnline(info.URL, areaID, info.AccessToken) {
+			onlineSchedulers[info.URL] = &info
 		}
 	}
 
-	cfgWeights := countSchedulerWeightWithInfo(infos)
-	currentWeights := locator.countSchedulerWeightByDevice(infos)
+	log.Infof("area %s onlineSchedulers count:%d", areaID, len(onlineSchedulers))
 
-	result := make([]string, 0)
+	cfgWeights := countSchedulerWeightWithInfo(onlineSchedulers)
+	currentWeights := locator.countSchedulerWeightByDevice(onlineSchedulers)
+	log.Infof("cfgWeights %v currentWeights:%v", cfgWeights, currentWeights)
+
+	urls := make([]string, 0)
 	for url, weight := range cfgWeights {
 		currentWeight := currentWeights[url]
 		if currentWeight < weight {
-			result = append(result, url)
+			urls = append(urls, url)
 		}
 	}
 
-	return result, nil
+	auths := make([]api.SchedulerAuth, 0, len(urls))
+	for _, url := range urls {
+		accessToken := onlineSchedulers[url].AccessToken
+		auth := api.SchedulerAuth{URL: url, AccessToken: accessToken}
+		auths = append(auths, auth)
+	}
+	return auths, nil
 }
 
-func countSchedulerWeightWithInfo(schedulerCfgs []api.SchedulerInfo) map[string]float32 {
+func countSchedulerWeightWithInfo(schedulerCfgs map[string]*api.SchedulerInfo) map[string]float32 {
 	totalWeight := 0
 	for _, cfg := range schedulerCfgs {
 		totalWeight += cfg.Weight
@@ -204,13 +227,14 @@ func countSchedulerWeightWithInfo(schedulerCfgs []api.SchedulerInfo) map[string]
 	return result
 }
 
-func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs []api.SchedulerInfo) map[string]float32 {
+func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*api.SchedulerInfo) map[string]float32 {
 	totalWeight := 0
 
 	weightMap := make(map[string]int)
 	for _, cfg := range schedulerCfgs {
 		count, err := locator.db.countDeviceOnScheduler(cfg.URL)
 		if err != nil {
+			log.Errorf("countSchedulerWeightByDevice, error:%s", err.Error())
 			continue
 		}
 
@@ -220,7 +244,11 @@ func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs []api.Schedul
 
 	result := make(map[string]float32)
 	for url, weight := range weightMap {
-		result[url] = float32(weight) / float32(totalWeight)
+		if totalWeight == 0 {
+			result[url] = 0
+		} else {
+			result[url] = float32(weight) / float32(totalWeight)
+		}
 	}
 	return result
 }
@@ -298,4 +326,16 @@ func (locator *Locator) GetDownloadInfoWithBlock(ctx context.Context, cid string
 	}
 	// TODO: new scheduler
 	return api.DownloadInfo{}, nil
+}
+
+func (locator *Locator) authNewToken(schedulerAPI *schedulerAPI) (string, error) {
+	ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
+	defer cancel()
+
+	perms := []auth.Permission{api.PermRead, api.PermWrite}
+	token, err := schedulerAPI.AuthNew(ctx, perms)
+	if err != nil {
+		return "", err
+	}
+	return string(token), err
 }

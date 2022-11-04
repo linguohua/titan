@@ -27,14 +27,14 @@ type accessPointMgr struct {
 	// key is areaID
 	// TODO change to async
 	accessPoints sync.Map
-	token        string
 	locatorPort  int
 	random       *rand.Rand
+	uuid         string
 }
 
-func newAccessPointMgr(token string, locatorPort int) *accessPointMgr {
+func newAccessPointMgr(locatorPort int, uuid string) *accessPointMgr {
 	s := rand.NewSource(time.Now().UnixNano())
-	mgr := &accessPointMgr{token: token, locatorPort: locatorPort, random: rand.New(s)}
+	mgr := &accessPointMgr{locatorPort: locatorPort, random: rand.New(s), uuid: uuid}
 	return mgr
 }
 
@@ -54,7 +54,7 @@ func (mgr *accessPointMgr) addAccessPointToMap(areaID string, ap *accessPoint) {
 	mgr.accessPoints.Store(areaID, ap)
 }
 
-func (mgr *accessPointMgr) newSchedulerAPI(url string, areaID string) (*schedulerAPI, error) {
+func (mgr *accessPointMgr) newSchedulerAPI(url string, areaID string, schedulerAccessToken string) (*schedulerAPI, error) {
 	ap, ok := mgr.loadAccessPointFromMap(areaID)
 	if !ok {
 		ap = &accessPoint{apis: make([]*schedulerAPI, 0)}
@@ -69,8 +69,9 @@ func (mgr *accessPointMgr) newSchedulerAPI(url string, areaID string) (*schedule
 	ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
 	defer cancel()
 
+	log.Infof("newSchedulerAPI, url:%s, areaID:%s, accessToken:%s", url, areaID, schedulerAccessToken)
 	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+string(mgr.token))
+	headers.Add("Authorization", "Bearer "+string(schedulerAccessToken))
 	api, close, err := client.NewScheduler(ctx, url, headers)
 	if err != nil {
 		log.Errorf("newSchedulerAPI err:%s,url:%s", err.Error(), url)
@@ -79,7 +80,7 @@ func (mgr *accessPointMgr) newSchedulerAPI(url string, areaID string) (*schedule
 
 	err = api.LocatorConnect(ctx, mgr.locatorPort, areaID, "")
 	if err != nil {
-		log.Errorf("newSchedulerAPI get version err:%s", err.Error())
+		log.Errorf("newSchedulerAPI connect to scheduler err:%s", err.Error())
 		return nil, err
 	}
 
@@ -143,7 +144,7 @@ func (mgr *accessPointMgr) getSchedulerAPI(url, areaID string) (*schedulerAPI, b
 
 }
 
-func (mgr *accessPointMgr) isSchedulerOnline(url, areaID string) bool {
+func (mgr *accessPointMgr) isSchedulerOnline(url, areaID, accessToken string) bool {
 	ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
 	defer cancel()
 
@@ -158,12 +159,13 @@ func (mgr *accessPointMgr) isSchedulerOnline(url, areaID string) bool {
 		return true
 	}
 
-	// if offline, reconnect to scheduler
-	_, err := mgr.newSchedulerAPI(url, areaID)
-	if err != nil {
-		return false
+	// reconnect scheduler
+	_, err := mgr.newSchedulerAPI(url, areaID, accessToken)
+	if err == nil {
+		return true
 	}
-	return true
+
+	return false
 }
 
 func (mgr *accessPointMgr) randSchedulerAPI(areaID string) (*schedulerAPI, bool) {

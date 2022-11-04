@@ -479,8 +479,9 @@ type FeeConfig struct {
 }
 
 type SchedulerCfg struct {
-	URL    string
-	Weight int
+	URL         string
+	Weight      int
+	Accesstoken string
 }
 type AccessPoint struct {
 	AreaID        string

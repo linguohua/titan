@@ -16,6 +16,7 @@ type locatorCfg struct {
 	SchedulerURL string `db:"scheduler_url"`
 	AreaID       string `db:"area_id"`
 	Weight       int    `db:"weight"`
+	AccessToken  string `db:"access_token"`
 }
 
 type deviceInfo struct {
@@ -53,8 +54,8 @@ func newDB(dbAddr string) *db {
 // 	return []string{}, nil
 // }
 
-func (db *db) addAccessPoints(areaID string, schedulerURL string, weight int) error {
-	return db.db.addCfg(areaID, schedulerURL, weight)
+func (db *db) addAccessPoints(areaID string, schedulerURL string, weight int, accessToken string) error {
+	return db.db.addCfg(areaID, schedulerURL, weight, accessToken)
 }
 func (db *db) removeAccessPoints(areaID string) error {
 	return db.db.DeleteCfgWithAreaID(areaID)
@@ -83,7 +84,7 @@ func (db *db) getAccessPoint(areaID string) (api.AccessPoint, error) {
 	}
 	ap := api.AccessPoint{AreaID: areaID, SchedulerInfos: make([]api.SchedulerInfo, 0, len(cfgs))}
 	for _, cfg := range cfgs {
-		serverCfg := api.SchedulerInfo{URL: cfg.SchedulerURL, Weight: cfg.Weight}
+		serverCfg := api.SchedulerInfo{URL: cfg.SchedulerURL, Weight: cfg.Weight, AccessToken: cfg.AccessToken}
 		ap.SchedulerInfos = append(ap.SchedulerInfos, serverCfg)
 	}
 
@@ -180,9 +181,9 @@ func (db *sqlDB) getCfgs(areaID string) ([]*locatorCfg, error) {
 	return cfgs, nil
 }
 
-func (db *sqlDB) addCfg(areaID string, schedulerURL string, weight int) error {
-	cfg := &locatorCfg{SchedulerURL: schedulerURL, AreaID: areaID, Weight: weight}
-	_, err := db.cli.NamedExec(`INSERT INTO config (scheduler_url, area_id, weight) VALUES (:scheduler_url, :area_id, :weight)`, cfg)
+func (db *sqlDB) addCfg(areaID string, schedulerURL string, weight int, accessToken string) error {
+	cfg := &locatorCfg{SchedulerURL: schedulerURL, AreaID: areaID, Weight: weight, AccessToken: accessToken}
+	_, err := db.cli.NamedExec(`INSERT INTO config (scheduler_url, area_id, weight, access_token) VALUES (:scheduler_url, :area_id, :weight, :access_token)`, cfg)
 	return err
 }
 

@@ -35,10 +35,10 @@ import (
 
 var log = logging.Logger("main")
 
-const FlagLocationRepo = "location-repo"
+const FlagLocationRepo = "locator-repo"
 
 // TODO remove after deprecation period
-const FlagLocationRepoDeprecation = "locationrepo"
+const FlagLocationRepoDeprecation = "locatorrepo"
 
 func main() {
 	api.RunningNodeType = api.NodeLocation
@@ -52,8 +52,8 @@ func main() {
 	local = append(local, lcli.CommonCommands...)
 
 	app := &cli.App{
-		Name:                 "titan-location",
-		Usage:                "Titan location node",
+		Name:                 "titan-locator",
+		Usage:                "Titan locator node",
 		Version:              build.UserVersion(),
 		EnableBashCompletion: true,
 		Flags: []cli.Flag{
@@ -62,13 +62,13 @@ func main() {
 				Aliases: []string{FlagLocationRepoDeprecation},
 				EnvVars: []string{"TITAN_LOCATION_PATH", "LOCATION_PATH"},
 				Value:   "~/.titanlocation", // TODO: Consider XDG_DATA_HOME
-				Usage:   fmt.Sprintf("Specify location repo path. flag %s and env TITAN_EDGE_PATH are DEPRECATION, will REMOVE SOON", FlagLocationRepoDeprecation),
+				Usage:   fmt.Sprintf("Specify locator repo path. flag %s and env TITAN_EDGE_PATH are DEPRECATION, will REMOVE SOON", FlagLocationRepoDeprecation),
 			},
 			&cli.StringFlag{
 				Name:    "panic-reports",
 				EnvVars: []string{"TITAN_PANIC_REPORT_PATH"},
 				Hidden:  true,
-				Value:   "~/.titanlocation", // should follow --repo default
+				Value:   "~/.titanlocator", // should follow --repo default
 			},
 		},
 
@@ -83,7 +83,7 @@ func main() {
 		Commands: append(local, lcli.LocationCmds...),
 	}
 	app.Setup()
-	app.Metadata["repoType"] = repo.Location
+	app.Metadata["repoType"] = repo.Locator
 
 	if err := app.Run(os.Args); err != nil {
 		log.Errorf("%+v", err)
@@ -122,12 +122,17 @@ var runCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:  "accesspoint-etcd",
 			Usage: "use mysql to save config",
-			Value: "user01:sql001@tcp(127.0.0.1:3306)/test",
+			Value: "user01:sql001@tcp(127.0.0.1:3306)/locator",
 		},
+		// &cli.StringFlag{
+		// 	Name:  "scheduler-token",
+		// 	Usage: "connect to scheduler",
+		// 	Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.Ewk-SQFNQi7ovTWfRI8ZfOnrDVNyU6iv3w40wsu-O4Y",
+		// },
 		&cli.StringFlag{
-			Name:  "scheduler-token",
-			Usage: "connect to scheduler",
-			Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.Ewk-SQFNQi7ovTWfRI8ZfOnrDVNyU6iv3w40wsu-O4Y",
+			Name:  "uuid",
+			Usage: "locator uuid",
+			Value: "f936b0dc-9e59-476b-a16c-36e3d2d7a752",
 		},
 	},
 
@@ -142,7 +147,7 @@ var runCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		log.Info("Starting titan location node")
+		log.Info("Starting titan locator node")
 
 		limit, _, err := ulimit.GetLimit()
 		switch {
@@ -185,11 +190,11 @@ var runCmd = &cli.Command{
 			return err
 		}
 		if !ok {
-			if err := r.Init(repo.Location); err != nil {
+			if err := r.Init(repo.Locator); err != nil {
 				return err
 			}
 
-			lr, err := r.Lock(repo.Location)
+			lr, err := r.Lock(repo.Locator)
 			if err != nil {
 				return err
 			}
@@ -234,7 +239,7 @@ var runCmd = &cli.Command{
 			}
 		}
 
-		lr, err := r.Lock(repo.Location)
+		lr, err := r.Lock(repo.Locator)
 		if err != nil {
 			return err
 		}
@@ -249,7 +254,7 @@ var runCmd = &cli.Command{
 		}
 
 		dbAddr := cctx.String("accesspoint-etcd")
-		token := cctx.String("scheduler-token")
+		uuid := cctx.String("uuid")
 
 		address := cctx.String("listen")
 		addrSplit := strings.Split(address, ":")
@@ -263,7 +268,7 @@ var runCmd = &cli.Command{
 		}
 
 		srv := &http.Server{
-			Handler: WorkerHandler(nil, locator.NewLocalLocator(ctx, lr, dbAddr, token, port), true),
+			Handler: WorkerHandler(nil, locator.NewLocalLocator(ctx, lr, dbAddr, uuid, port), true),
 			BaseContext: func(listener net.Listener) context.Context {
 				ctx, _ := tag.New(context.Background(), tag.Upsert(metrics.APIInterface, "titan-edge"))
 				return ctx
@@ -284,7 +289,7 @@ var runCmd = &cli.Command{
 			return err
 		}
 
-		log.Infof("Titan location server listen on %s", address)
+		log.Infof("Titan locator server listen on %s", address)
 
 		return srv.Serve(nl)
 	},

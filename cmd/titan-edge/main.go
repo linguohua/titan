@@ -13,7 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/blockstore"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
@@ -120,7 +122,7 @@ var runCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:  "blockstore-path",
 			Usage: "block store path, example: --blockstore-path=./blockstore",
-			Value: "./blockstore", // should follow --repo default
+			Value: "./edge-blockstore", // should follow --repo default
 		},
 		&cli.StringFlag{
 			Name:  "blockstore-type",
@@ -153,6 +155,11 @@ var runCmd = &cli.Command{
 			Usage:   "connect to scheduler key",
 			Value:   "2521c39087cecd74a853850dd56e9c859b786fbc",
 		},
+		&cli.BoolFlag{
+			Name:  "locator",
+			Usage: "direct connect to scheduler, not use locator",
+			Value: false,
+		},
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -179,11 +186,17 @@ var runCmd = &cli.Command{
 				return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.EdgeFDLimit, limit)
 			}
 		}
-
+		isLocator := cctx.Bool("locator")
+		deviceID := cctx.String("device-id")
+		securityKey := cctx.String("secret")
 		// Connect to scheduler
 		var schedulerAPI api.Scheduler
 		var closer func()
-		schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx)
+		if isLocator {
+			schedulerAPI, closer, err = newSchedulerAPI(cctx, deviceID, securityKey)
+		} else {
+			schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx)
+		}
 		if err != nil {
 			return err
 		}
@@ -203,8 +216,7 @@ var runCmd = &cli.Command{
 		}
 		log.Infof("Remote version %s", v)
 
-		deviceID := cctx.String("device-id")
-		tk, err := schedulerAPI.GetToken(ctx, deviceID, cctx.String("secret"))
+		tk, err := schedulerAPI.GetToken(ctx, deviceID, securityKey)
 		if err != nil {
 			return err
 		}
@@ -429,7 +441,7 @@ func extractRoutableIP(cctx *cli.Context) (string, error) {
 
 	ainfo, err := lcli.GetAPIInfo(cctx, repo.FullNode)
 	if err != nil {
-		return "", xerrors.Errorf("could not get miner API info: %w", err)
+		return "", xerrors.Errorf("could not get FullNode API info: %w", err)
 	}
 
 	schedulerAddr := strings.Split(ainfo.Addr, "/")
@@ -443,4 +455,37 @@ func extractRoutableIP(cctx *cli.Context) (string, error) {
 
 	return strings.Split(localAddr.IP.String(), ":")[0], nil
 
+}
+
+func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (api.Scheduler, jsonrpc.ClientCloser, error) {
+	locator, closer, err := lcli.GetLocatorAPI(cctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closer()
+
+	ctx, cancel := context.WithTimeout(context.TODO(), 3*time.Second)
+	defer cancel()
+
+	auths, err := locator.GetAccessPoints(ctx, deviceID, securityKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(auths) <= 0 {
+		return nil, nil, fmt.Errorf("device %s not exist access point", deviceID)
+	}
+
+	auth := auths[0]
+
+	headers := http.Header{}
+	headers.Add("Authorization", "Bearer "+string(auth.AccessToken))
+
+	schedulerAPI, closer, err := client.NewScheduler(ctx, auth.URL, headers)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	os.Setenv("FULLNODE_API_INFO", auth.AccessToken+":"+auth.URL)
+	return schedulerAPI, closer, nil
 }

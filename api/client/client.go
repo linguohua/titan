@@ -85,13 +85,13 @@ func NewCommonRPCV0(ctx context.Context, addr string, requestHeader http.Header)
 	return &res, closer, err
 }
 
-func NewLocation(ctx context.Context, addr string, requestHeader http.Header) (api.Location, jsonrpc.ClientCloser, error) {
+func NewLocator(ctx context.Context, addr string, requestHeader http.Header) (api.Locator, jsonrpc.ClientCloser, error) {
 	pushUrl, err := getPushUrl(addr)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var res api.LocationStruct
+	var res api.LocatorStruct
 	closer, err := jsonrpc.NewMergeClient(ctx, addr, "titan",
 		api.GetInternalStructs(&res),
 		requestHeader,

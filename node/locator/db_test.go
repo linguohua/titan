@@ -10,7 +10,7 @@ func TestDB(t *testing.T) {
 	db := newDB(url)
 	defer db.close()
 
-	err := db.addAccessPoints("sz", "http://192.168.0.1:1080/rpc/v0", 100)
+	err := db.addAccessPoints("sz", "http://192.168.0.1:1080/rpc/v0", 100, "111111111111111")
 	if err != nil {
 		fmt.Printf("err:%s", err.Error())
 		return

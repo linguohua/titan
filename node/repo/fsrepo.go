@@ -206,28 +206,28 @@ func (wallet) APIInfoEnvVars() (primary string, fallbacks []string, deprecated [
 	panic("not supported")
 }
 
-var Location location
+var Locator locator
 
-type location struct{}
+type locator struct{}
 
-func (location) Type() string {
+func (locator) Type() string {
 	return "Location"
 }
 
-func (location) Config() interface{} {
+func (locator) Config() interface{} {
 	return &config.Location{}
 }
 
-func (location) APIFlags() []string {
-	return []string{"location-api-url"}
+func (locator) APIFlags() []string {
+	return []string{"locator-api-url"}
 }
 
-func (location) RepoFlags() []string {
-	return []string{"location-repo"}
+func (locator) RepoFlags() []string {
+	return []string{"locator-repo"}
 }
 
-func (location) APIInfoEnvVars() (primary string, fallbacks []string, deprecated []string) {
-	return "LOCATION_API_INFO", nil, nil
+func (locator) APIInfoEnvVars() (primary string, fallbacks []string, deprecated []string) {
+	return "LOCATOR_API_INFO", nil, nil
 }
 
 var log = logging.Logger("repo")
