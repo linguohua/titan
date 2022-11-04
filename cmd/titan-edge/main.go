@@ -157,7 +157,7 @@ var runCmd = &cli.Command{
 		},
 		&cli.BoolFlag{
 			Name:  "locator",
-			Usage: "direct connect to scheduler, not use locator",
+			Usage: "connect to locator get scheduler url",
 			Value: false,
 		},
 	},
@@ -464,7 +464,7 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (ap
 	}
 	defer closer()
 
-	ctx, cancel := context.WithTimeout(context.TODO(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Second)
 	defer cancel()
 
 	auths, err := locator.GetAccessPoints(ctx, deviceID, securityKey)

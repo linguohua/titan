@@ -49,11 +49,6 @@ func newDB(dbAddr string) *db {
 	return &db{cli}
 }
 
-// func (db *db) getAccessPoints(areaID, deviceID string) ([]string, error) {
-
-// 	return []string{}, nil
-// }
-
 func (db *db) addAccessPoints(areaID string, schedulerURL string, weight int, accessToken string) error {
 	return db.db.addCfg(areaID, schedulerURL, weight, accessToken)
 }

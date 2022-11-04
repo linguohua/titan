@@ -13,7 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/blockstore"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
@@ -164,6 +166,11 @@ var runCmd = &cli.Command{
 			Usage:   "ipfs gate way",
 			Value:   "http://127.0.0.1:8080/ipfs",
 		},
+		&cli.BoolFlag{
+			Name:  "locator",
+			Usage: "connect to locator get scheduler url",
+			Value: false,
+		},
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -190,11 +197,17 @@ var runCmd = &cli.Command{
 				return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.EdgeFDLimit, limit)
 			}
 		}
-
+		isLocator := cctx.Bool("locator")
+		deviceID := cctx.String("device-id")
+		securityKey := cctx.String("secret")
 		// Connect to scheduler
 		var schedulerAPI api.Scheduler
 		var closer func()
-		schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx)
+		if isLocator {
+			schedulerAPI, closer, err = newSchedulerAPI(cctx, deviceID, securityKey)
+		} else {
+			schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx)
+		}
 		if err != nil {
 			return err
 		}
@@ -213,8 +226,7 @@ var runCmd = &cli.Command{
 		}
 		log.Infof("Remote version %s", v)
 
-		deviceID := cctx.String("device-id")
-		tk, err := schedulerAPI.GetToken(ctx, deviceID, cctx.String("secret"))
+		tk, err := schedulerAPI.GetToken(ctx, deviceID, securityKey)
 		if err != nil {
 			return err
 		}
@@ -454,4 +466,37 @@ func extractRoutableIP(cctx *cli.Context) (string, error) {
 
 	return strings.Split(localAddr.IP.String(), ":")[0], nil
 
+}
+
+func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (api.Scheduler, jsonrpc.ClientCloser, error) {
+	locator, closer, err := lcli.GetLocatorAPI(cctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closer()
+
+	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Second)
+	defer cancel()
+
+	auths, err := locator.GetAccessPoints(ctx, deviceID, securityKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(auths) <= 0 {
+		return nil, nil, fmt.Errorf("device %s not exist access point", deviceID)
+	}
+
+	auth := auths[0]
+
+	headers := http.Header{}
+	headers.Add("Authorization", "Bearer "+string(auth.AccessToken))
+
+	schedulerAPI, closer, err := client.NewScheduler(ctx, auth.URL, headers)
+	if err != nil {
+		return nil, nil, err
+	}
+	log.Infof("scheduler url:%s", auth.URL)
+	os.Setenv("FULLNODE_API_INFO", auth.AccessToken+":"+auth.URL)
+	return schedulerAPI, closer, nil
 }
