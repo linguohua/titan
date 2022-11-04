@@ -20,8 +20,8 @@ type DataManager struct {
 
 	runningTaskMap sync.Map
 
-	taskTimeWheel *timewheel.TimeWheel
-	taskTimeout   int // keepalive time interval (minute)
+	timeoutTimeWheel *timewheel.TimeWheel
+	taskTimeout      int // check timeout time interval (minute)
 
 	runningMax int
 }
@@ -42,12 +42,12 @@ func newDataManager(nodeManager *NodeManager) *DataManager {
 }
 
 func (m *DataManager) initTimewheel() {
-	m.taskTimeWheel = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		m.taskTimeWheel.AddTimer((time.Duration(m.taskTimeout)*60-1)*time.Second, "TaskTimeout", nil)
+	m.timeoutTimeWheel = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
+		m.timeoutTimeWheel.AddTimer((time.Duration(m.taskTimeout)*60-1)*time.Second, "TaskTimeout", nil)
 		m.checkTaskTimeout()
 	})
-	m.taskTimeWheel.Start()
-	m.taskTimeWheel.AddTimer((time.Duration(m.taskTimeout)*60-1)*time.Second, "TaskTimeout", nil)
+	m.timeoutTimeWheel.Start()
+	m.timeoutTimeWheel.AddTimer((time.Duration(m.taskTimeout)*60-1)*time.Second, "TaskTimeout", nil)
 }
 
 func (m *DataManager) findData(cid string, isStore bool) *Data {
