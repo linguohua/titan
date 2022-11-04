@@ -771,7 +771,7 @@ func (s *Scheduler) StateNetwork(ctx context.Context) (api.StateNetwork, error) 
 }
 
 // LocatorConnect Locator Connect
-func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locatorID string) error {
+func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locatorID string, locatorToken string) error {
 	ip := handler.GetRequestIP(ctx)
 	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
 	log.Infof("locatorID:%s,areaID:%s,LocatorConnect ip:%s,port:%d", locatorID, areaID, ip, port)
@@ -780,16 +780,11 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locato
 		return xerrors.Errorf("area err:%s", areaID)
 	}
 
-	t, err := s.AuthNew(ctx, api.AllPermissions)
-	if err != nil {
-		return xerrors.Errorf("creating auth token for remote connection: %s", err.Error())
-	}
-
 	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+string(t))
+	headers.Add("Authorization", "Bearer "+string(locatorToken))
 	// Connect to scheduler
 	// log.Infof("EdgeNodeConnect edge url:%v", url)
-	locationAPI, closer, err := client.NewLocation(ctx, url, headers)
+	locationAPI, closer, err := client.NewLocator(ctx, url, headers)
 	if err != nil {
 		log.Errorf("LocatorConnect err:%s,url:%s", err.Error(), url)
 		return err
