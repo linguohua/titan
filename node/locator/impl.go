@@ -109,11 +109,7 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string, se
 
 		log.Errorf("GetAccessPoints authNewToken error:%s", err.Error())
 	}
-	// if locator.apMgr.isSchedulerOnline(device.SchedulerURL, areaID) {
 
-	// 	auth := api.SchedulerAuth{URL: device.SchedulerURL, AccessToken: ""}
-	// 	return []api.SchedulerAuth{auth}, nil
-	// }
 	return locator.getAccessPointWithWeightCount(areaID)
 }
 
@@ -212,11 +208,8 @@ func (locator *Locator) getAccessPointWithWeightCount(areaID string) ([]api.Sche
 		}
 	}
 
-	log.Infof("area %s onlineSchedulers count:%d", areaID, len(onlineSchedulers))
-
 	cfgWeights := countSchedulerWeightWithInfo(onlineSchedulers)
 	currentWeights := locator.countSchedulerWeightByDevice(onlineSchedulers)
-	log.Infof("cfgWeights %v currentWeights:%v", cfgWeights, currentWeights)
 
 	urls := make([]string, 0)
 	for url, weight := range cfgWeights {
@@ -232,6 +225,8 @@ func (locator *Locator) getAccessPointWithWeightCount(areaID string) ([]api.Sche
 		auth := api.SchedulerAuth{URL: url, AccessToken: accessToken}
 		auths = append(auths, auth)
 	}
+
+	log.Infof("area %s onlineSchedulers count:%d, access server %v", areaID, len(onlineSchedulers), urls)
 	return auths, nil
 }
 
