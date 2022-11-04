@@ -51,22 +51,25 @@ const (
 )
 
 // NewLocalScheduleNode NewLocalScheduleNode
-func NewLocalScheduleNode(lr repo.LockedRepo) api.Scheduler {
+func NewLocalScheduleNode(lr repo.LockedRepo, port int) api.Scheduler {
 	verifiedNodeMax := 10
 
+	locatorManager := newLoactorManager(port)
 	pool := newValidatePool(verifiedNodeMax)
-	manager := newNodeManager(pool)
+	manager := newNodeManager(pool, locatorManager)
 	election := newElection(pool)
 	validate := newValidate(pool, manager)
 	dataManager := newDataManager(manager)
 
 	s := &Scheduler{
-		CommonAPI:    common.NewCommonAPI(manager.updateLastRequestTime),
-		nodeManager:  manager,
-		validatePool: pool,
-		election:     election,
-		validate:     validate,
-		dataManager:  dataManager,
+		CommonAPI:      common.NewCommonAPI(manager.updateLastRequestTime),
+		nodeManager:    manager,
+		validatePool:   pool,
+		election:       election,
+		validate:       validate,
+		dataManager:    dataManager,
+		locatorManager: locatorManager,
+		serverPort:     port,
 	}
 
 	sec, err := secret.APISecret(lr)
@@ -82,13 +85,14 @@ func NewLocalScheduleNode(lr repo.LockedRepo) api.Scheduler {
 type Scheduler struct {
 	common.CommonAPI
 
-	nodeManager  *NodeManager
-	validatePool *ValidatePool
+	nodeManager    *NodeManager
+	validatePool   *ValidatePool
+	election       *Election
+	validate       *Validate
+	dataManager    *DataManager
+	locatorManager *LocatorManager
 
-	election *Election
-	validate *Validate
-
-	dataManager *DataManager
+	serverPort int
 }
 
 // EdgeNodeConnect edge connect
@@ -172,6 +176,9 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 	// 		}
 	// 	}
 	// }
+
+	// notify locator
+	s.locatorManager.notifyNodeStatusToLocator(deviceID, true)
 
 	return ip, nil
 }
@@ -642,6 +649,8 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token st
 	// 	}
 	// }
 
+	s.locatorManager.notifyNodeStatusToLocator(deviceID, true)
+
 	return ip, nil
 }
 
@@ -762,7 +771,32 @@ func (s *Scheduler) StateNetwork(ctx context.Context) (api.StateNetwork, error) 
 }
 
 // LocatorConnect Locator Connect
-func (s *Scheduler) LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID string) error {
+func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locatorID string) error {
+	ip := handler.GetRequestIP(ctx)
+	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
+	log.Infof("locatorID:%s,areaID:%s,LocatorConnect ip:%s,port:%d", locatorID, areaID, ip, port)
+
+	if areaID != serverArea {
+		return xerrors.Errorf("area err:%s", areaID)
+	}
+
+	t, err := s.AuthNew(ctx, api.AllPermissions)
+	if err != nil {
+		return xerrors.Errorf("creating auth token for remote connection: %s", err.Error())
+	}
+
+	headers := http.Header{}
+	headers.Add("Authorization", "Bearer "+string(t))
+	// Connect to scheduler
+	// log.Infof("EdgeNodeConnect edge url:%v", url)
+	locationAPI, closer, err := client.NewLocation(ctx, url, headers)
+	if err != nil {
+		log.Errorf("LocatorConnect err:%s,url:%s", err.Error(), url)
+		return err
+	}
+
+	s.locatorManager.addLocator(&Location{locatorID: locatorID, nodeAPI: locationAPI, closer: closer})
+
 	return nil
 }
 

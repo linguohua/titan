@@ -6,6 +6,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/gbrlsnchs/jwt/v3"
@@ -237,7 +239,15 @@ var runCmd = &cli.Command{
 
 		scheduler.InitServerArea(area)
 
-		schedulerAPI := scheduler.NewLocalScheduleNode(lr)
+		address := cctx.String("listen")
+
+		addressList := strings.Split(address, ":")
+		portStr := addressList[1]
+		port, err := strconv.Atoi(portStr)
+		if err != nil {
+			log.Panic(err.Error())
+		}
+		schedulerAPI := scheduler.NewLocalScheduleNode(lr, port)
 
 		srv := &http.Server{
 			Handler: schedulerHandler(schedulerAPI, true),
@@ -255,8 +265,6 @@ var runCmd = &cli.Command{
 			}
 			log.Warn("Graceful shutdown successful")
 		}()
-
-		address := cctx.String("listen")
 
 		nl, err := net.Listen("tcp", address)
 		if err != nil {

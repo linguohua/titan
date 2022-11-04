@@ -34,16 +34,18 @@ type NodeManager struct {
 	timewheelKeepalive *timewheel.TimeWheel
 	keepaliveTime      float64 // keepalive time interval (minute)
 
-	validatePool *ValidatePool
+	validatePool   *ValidatePool
+	locatorManager *LocatorManager
 
 	state api.StateNetwork
 	// areaManager *AreaManager
 }
 
-func newNodeManager(pool *ValidatePool) *NodeManager {
+func newNodeManager(pool *ValidatePool, locatorManager *LocatorManager) *NodeManager {
 	nodeManager := &NodeManager{
-		keepaliveTime: 0.5,
-		validatePool:  pool,
+		keepaliveTime:  0.5,
+		validatePool:   pool,
+		locatorManager: locatorManager,
 		// areaManager:   &AreaManager{},
 	}
 
@@ -197,6 +199,8 @@ func (m *NodeManager) edgeOffline(node *EdgeNode) {
 	m.validatePool.removeEdge(deviceID)
 
 	node.setNodeOffline(deviceID, node.geoInfo, api.TypeNameEdge, node.lastRequestTime)
+
+	m.locatorManager.notifyNodeStatusToLocator(deviceID, false)
 }
 
 func (m *NodeManager) candidateOnline(node *CandidateNode) error {
@@ -264,6 +268,8 @@ func (m *NodeManager) candidateOffline(node *CandidateNode) {
 	m.validatePool.removeCandidate(deviceID)
 
 	node.setNodeOffline(deviceID, node.geoInfo, api.TypeNameCandidate, node.lastRequestTime)
+
+	m.locatorManager.notifyNodeStatusToLocator(deviceID, false)
 }
 
 func (m *NodeManager) findEdgeNodes(useDeviceIDs []string, filterDeviceIDs map[string]string) []*EdgeNode {
