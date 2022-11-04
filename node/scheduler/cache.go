@@ -36,17 +36,6 @@ type Cache struct {
 	// lastUpdateTime time.Time
 }
 
-// Block Block Info
-// type Block struct {
-// 	cid         string
-// 	deviceID    string
-// 	deviceArea  string
-// 	deviceIP    string
-// 	status      cacheStatus
-// 	reliability int
-// 	size        int
-// }
-
 func newCacheID(cid string) (string, error) {
 	fid, err := cache.GetDB().IncrCacheID(serverArea)
 	if err != nil {
@@ -100,45 +89,8 @@ func loadCache(cacheID, carfileCid string, nodeManager *NodeManager, data *Data)
 	c.status = cacheStatus(info.Status)
 	c.reliability = info.Reliability
 
-	// c.unDoneBlocks, err = persistent.GetDB().HaveBlocks(c.cacheID, int(cacheStatusCreate))
-	// if err != nil {
-	// 	log.Errorf("loadCache %s,%s HaveBlocks err:%v", carfileCid, cacheID, err)
-	// }
-
-	// c.failedBlocks, err = persistent.GetDB().HaveBlocks(c.cacheID, int(cacheStatusFail))
-	// if err != nil {
-	// 	log.Errorf("loadCache %s,%s HaveBlocks err:%v", carfileCid, cacheID, err)
-	// }
-
 	return c
 }
-
-// func (c *Cache) startTimer() {
-// 	if c.timewheelCache != nil {
-// 		return
-// 	}
-// 	tt := 1 // (minute)
-// 	// timewheel
-// 	c.timewheelCache = timewheel.New(time.Second, 3600, func(_ interface{}) {
-// 		if c.status > cacheStatusCreate {
-// 			c.timewheelCache.RemoveTimer("cache")
-// 			c.timewheelCache = nil
-// 			return
-// 		}
-
-// 		nowTime := time.Now().Add(-time.Duration(tt*60) * time.Second)
-// 		if !c.lastUpdateTime.After(nowTime) {
-// 			c.timewheelCache.RemoveTimer("cache")
-// 			c.timewheelCache = nil
-// 			// timeout
-// 			c.endCache()
-// 			return
-// 		}
-// 		c.timewheelCache.AddTimer((time.Duration(tt)*60-1)*time.Second, "cache", nil)
-// 	})
-// 	c.timewheelCache.Start()
-// 	c.timewheelCache.AddTimer(time.Duration(tt)*60*time.Second, "cache", nil)
-// }
 
 func (c *Cache) cacheBlocksToNode(deviceID string, cids []string) error {
 	cNode := c.nodeManager.getCandidateNode(deviceID)

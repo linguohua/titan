@@ -14,7 +14,7 @@ type DB interface {
 
 	SetCidToRunningList(cid, cacheID string) error
 	RemoveRunningList(cid, cacheID string) error
-	GetTasksWithList() ([]string, error)
+	GetTasksWithRunningList() ([]string, error)
 	// IsCidInRunningList(cid string) (bool, error)
 
 	SetRunningCacheTask(cid, cacheID string) error

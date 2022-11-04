@@ -14,6 +14,13 @@ import (
 
 // var dataDefaultTag = "-1"
 
+// Location Edge node
+type Location struct {
+	nodeAPI   api.Location
+	closer    jsonrpc.ClientCloser
+	locatorID string
+}
+
 // EdgeNode Edge node
 type EdgeNode struct {
 	nodeAPI api.Edge

@@ -221,36 +221,56 @@ func (d *Data) endData(c *Cache) (err error) {
 		}
 	}
 
-	taskEnd := false
+	dataTtaskEnd := false
 
 	defer func() {
-		if taskEnd {
+		if dataTtaskEnd {
 			d.dataManager.dataTaskEnd(d.cid)
 		}
 	}()
 
 	err = d.saveCacheEndResults(c)
 	if err != nil {
-		taskEnd = true
+		dataTtaskEnd = true
 		err = xerrors.Errorf("saveCacheEndResults err:%s", err.Error())
 		return
 	}
 
 	if d.cacheCount > d.needReliability {
-		taskEnd = true
+		dataTtaskEnd = true
 		return nil
 	}
 
 	if d.needReliability <= d.reliability {
-		taskEnd = true
+		dataTtaskEnd = true
 		return nil
 	}
 
-	// create cache again
-	err = d.startData()
-	if err != nil {
-		taskEnd = true
-		err = xerrors.Errorf("startData err:%s", err.Error())
+	var unDoneCache *Cache
+	d.cacheMap.Range(func(key, value interface{}) bool {
+		c := value.(*Cache)
+
+		if c.status != cacheStatusSuccess {
+			unDoneCache = c
+			return true
+		}
+
+		return true
+	})
+
+	if unDoneCache != nil {
+		err = d.cacheContinue(unDoneCache.cacheID)
+		if err != nil {
+			dataTtaskEnd = true
+			err = xerrors.Errorf("cacheContinue err:%s", err.Error())
+		}
+	} else {
+		// create cache again
+		err = d.startData()
+		if err != nil {
+			dataTtaskEnd = true
+			err = xerrors.Errorf("startData err:%s", err.Error())
+		}
 	}
 
 	return

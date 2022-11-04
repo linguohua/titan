@@ -68,7 +68,7 @@ func (m *DataManager) findData(cid string, isStore bool) *Data {
 }
 
 func (m *DataManager) checkTaskTimeout() {
-	list, err := cache.GetDB().GetTasksWithList()
+	list, err := cache.GetDB().GetTasksWithRunningList()
 	if err != nil {
 		log.Errorf("GetTasksWithList err:%s", err.Error())
 		return
@@ -86,15 +86,30 @@ func (m *DataManager) checkTaskTimeout() {
 		cid := cidList[0]
 		cacheID := cidList[1]
 
-		cID, _ := cache.GetDB().GetRunningCacheTask(cid)
+		cID, err := cache.GetDB().GetRunningCacheTask(cid)
+		if err != nil && !cache.GetDB().IsNilErr(err) {
+			log.Errorf("checkTaskTimeout %s,%s GetRunningCacheTask err:%s", cid, cacheID, err.Error())
+			continue
+		}
 		if cID != "" {
 			continue
 		}
 
 		// task timeout
 		data := m.findData(cid, true)
+		if data == nil {
+			err = cache.GetDB().RemoveRunningList(cid, cacheID)
+			if err != nil {
+				log.Errorf("checkTaskTimeout %s,%s RemoveRunningList err:%s", cid, cacheID, err.Error())
+			}
+			continue
+		}
 		value, ok := data.cacheMap.Load(cacheID)
 		if !ok {
+			err = cache.GetDB().RemoveRunningList(cid, cacheID)
+			if err != nil {
+				log.Errorf("checkTaskTimeout %s,%s RemoveRunningList err:%s", cid, cacheID, err.Error())
+			}
 			continue
 		}
 
@@ -102,7 +117,7 @@ func (m *DataManager) checkTaskTimeout() {
 
 		unDoneBlocks, err := persistent.GetDB().HaveBlocks(c.cacheID, int(cacheStatusCreate))
 		if err != nil {
-			log.Errorf("checkTaskTimeout %s,%s HaveBlocks err:%v", c.carfileCid, c.cacheID, err)
+			log.Errorf("checkTaskTimeout %s,%s HaveBlocks err:%s", c.carfileCid, c.cacheID, err.Error())
 			continue
 		}
 
@@ -156,8 +171,17 @@ func (m *DataManager) startCacheData(cid string, reliability int) error {
 	return data.startData()
 }
 
+func (m *DataManager) startCacheContinue(cid, cacheID string) error {
+	data := m.findData(cid, true)
+	if data == nil {
+		return xerrors.Errorf("%s,cid:%s,cacheID:%s", ErrNotFoundTask, cid, cacheID)
+	}
+
+	return data.cacheContinue(cacheID)
+}
+
 func (m *DataManager) cacheData(cid string, reliability int) error {
-	list, err := cache.GetDB().GetTasksWithList()
+	list, err := cache.GetDB().GetTasksWithRunningList()
 	if err != nil {
 		return err
 	}
@@ -173,12 +197,19 @@ func (m *DataManager) cacheData(cid string, reliability int) error {
 }
 
 func (m *DataManager) cacheContinue(cid, cacheID string) error {
-	data := m.findData(cid, true)
-	if data == nil {
-		return xerrors.Errorf("%s,cid:%s,cacheID:%s", ErrNotFoundTask, cid, cacheID)
+	list, err := cache.GetDB().GetTasksWithRunningList()
+	if err != nil {
+		return err
 	}
 
-	return data.cacheContinue(cacheID)
+	if len(list) > m.runningMax {
+		err = cache.GetDB().SetWaitingCacheTask(api.CacheDataInfo{Cid: cid, CacheInfos: []api.CacheInfo{{CacheID: cacheID}}})
+		if err != nil {
+			return err
+		}
+	}
+
+	return m.startCacheContinue(cid, cacheID)
 }
 
 func (m *DataManager) removeCarfile(carfileCid string) error {
@@ -248,10 +279,20 @@ func (m *DataManager) dataTaskEnd(cid string) {
 		return
 	}
 
-	err = m.startCacheData(info.Cid, info.NeedReliability)
-	if err != nil {
-		log.Errorf("startCacheData err:%s", err.Error())
-		return
+	if info.CacheInfos != nil && len(info.CacheInfos) > 0 {
+		cacheID := info.CacheInfos[0].CacheID
+
+		err = m.startCacheContinue(info.Cid, cacheID)
+		if err != nil {
+			log.Errorf("startCacheContinue err:%s", err.Error())
+			return
+		}
+	} else {
+		err = m.startCacheData(info.Cid, info.NeedReliability)
+		if err != nil {
+			log.Errorf("startCacheData err:%s", err.Error())
+			return
+		}
 	}
 
 	err = cache.GetDB().RemoveWaitingCacheTask()

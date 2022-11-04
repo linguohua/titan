@@ -546,7 +546,7 @@ func (rd redisDB) RemoveRunningList(cid, cacheID string) error {
 }
 
 // SMembers
-func (rd redisDB) GetTasksWithList() ([]string, error) {
+func (rd redisDB) GetTasksWithRunningList() ([]string, error) {
 	key := fmt.Sprintf(redisKeyRunningList, serverName)
 
 	return rd.cli.SMembers(context.Background(), key).Result()
