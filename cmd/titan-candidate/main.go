@@ -122,7 +122,7 @@ var runCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:  "blockstore-path",
 			Usage: "block store path, example: --blockstore-path=./blockstore",
-			Value: "./blockstore", // should follow --repo default
+			Value: "./candidate-blockstore", // should follow --repo default
 		},
 		&cli.StringFlag{
 			Name:  "blockstore-type",
