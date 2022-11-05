@@ -58,7 +58,7 @@ func newNodeManager(pool *ValidatePool, locatorManager *LocatorManager) *NodeMan
 // InitKeepaliveTimewheel ndoe Keepalive
 func (m *NodeManager) initKeepaliveTimewheel() {
 	m.timewheelKeepalive = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		m.timewheelKeepalive.AddTimer(time.Duration(m.keepaliveTime*60)*time.Second, "Keepalive", nil)
+		m.timewheelKeepalive.AddTimer(time.Duration(m.keepaliveTime*60-1)*time.Second, "Keepalive", nil)
 		m.nodeKeepalive()
 	})
 	m.timewheelKeepalive.Start()
@@ -67,6 +67,7 @@ func (m *NodeManager) initKeepaliveTimewheel() {
 
 func (m *NodeManager) nodeKeepalive() {
 	nowTime := time.Now().Add(-time.Duration(m.keepaliveTime*60) * time.Second)
+	// log.Warnf("nodeKeepalive nowTime :%s", nowTime.String())
 
 	m.edgeNodeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
@@ -77,6 +78,7 @@ func (m *NodeManager) nodeKeepalive() {
 		}
 
 		lastTime := node.lastRequestTime
+		// log.Warnf("%s, lastTime :%s", deviceID, lastTime.String())
 
 		if !lastTime.After(nowTime) {
 			// offline

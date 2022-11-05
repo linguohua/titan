@@ -367,58 +367,20 @@ func (s *Scheduler) ListDatas(ctx context.Context, page int) (api.DataListInfo, 
 	return api.DataListInfo{Page: page, TotalPage: totalPage, Cids: count, CidList: list}, nil
 }
 
-// ShowDataInfos Show DataInfos
-func (s *Scheduler) ShowDataInfos(ctx context.Context, cid string) ([]api.CacheDataInfo, error) {
+// ShowDataTask Show Data Task
+func (s *Scheduler) ShowDataTask(ctx context.Context, cid string) (api.CacheDataInfo, error) {
+	info := api.CacheDataInfo{}
+
 	if cid == "" {
-		return nil, xerrors.Errorf("%s:%s", ErrCidNotFind, cid)
-	}
-
-	infos := make([]api.CacheDataInfo, 0)
-
-	toData := func(d *Data) api.CacheDataInfo {
-		info := api.CacheDataInfo{}
-		if d != nil {
-			info.Cid = d.cid
-			info.TotalSize = d.totalSize
-			info.NeedReliability = d.needReliability
-			info.CurReliability = d.reliability
-			info.Blocks = d.totalBlocks
-
-			caches := make([]api.CacheInfo, 0)
-
-			d.cacheMap.Range(func(key, value interface{}) bool {
-				c := value.(*Cache)
-
-				cache := api.CacheInfo{
-					CacheID:    c.cacheID,
-					Status:     int(c.status),
-					DoneSize:   c.doneSize,
-					DoneBlocks: c.doneBlocks,
-				}
-
-				num, err := persistent.GetDB().GetDevicesFromCache(c.cacheID)
-				if err != nil {
-					log.Errorf("GetDevicesFromCache err:%s", err.Error())
-				}
-				cache.Nodes = num
-
-				caches = append(caches, cache)
-				return true
-			})
-
-			info.CacheInfos = caches
-		}
-
-		return info
+		return info, xerrors.Errorf("%s:%s", ErrCidNotFind, cid)
 	}
 
 	d := s.dataManager.findData(cid, false)
 	if d != nil {
-		infos = append(infos, toData(d))
-		return infos, nil
+		return dataToCacheDataInfo(d), nil
 	}
 
-	return nil, xerrors.Errorf("%s:%s", ErrCidNotFind, cid)
+	return info, xerrors.Errorf("%s:%s", ErrCidNotFind, cid)
 }
 
 // CacheBlocks Cache Block
@@ -797,4 +759,57 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locato
 
 func (s *Scheduler) GetDownloadInfo(ctx context.Context, deviceID string) ([]*api.BlockDownloadInfo, error) {
 	return persistent.GetDB().GetDownloadInfo(deviceID)
+}
+
+// ShowDataTasks Show Data Tasks
+func (s *Scheduler) ShowDataTasks(ctx context.Context) ([]api.CacheDataInfo, error) {
+	infos := make([]api.CacheDataInfo, 0)
+
+	s.dataManager.runningTaskMap.Range(func(key, value interface{}) bool {
+		// cid := key.(string)
+		data := value.(*Data)
+		if data != nil {
+			infos = append(infos, dataToCacheDataInfo(data))
+		}
+		return true
+	})
+
+	return infos, nil
+}
+
+func dataToCacheDataInfo(d *Data) api.CacheDataInfo {
+	info := api.CacheDataInfo{}
+	if d != nil {
+		info.Cid = d.cid
+		info.TotalSize = d.totalSize
+		info.NeedReliability = d.needReliability
+		info.CurReliability = d.reliability
+		info.Blocks = d.totalBlocks
+
+		caches := make([]api.CacheInfo, 0)
+
+		d.cacheMap.Range(func(key, value interface{}) bool {
+			c := value.(*Cache)
+
+			cache := api.CacheInfo{
+				CacheID:    c.cacheID,
+				Status:     int(c.status),
+				DoneSize:   c.doneSize,
+				DoneBlocks: c.doneBlocks,
+			}
+
+			num, err := persistent.GetDB().GetDevicesFromCache(c.cacheID)
+			if err != nil {
+				log.Errorf("GetDevicesFromCache err:%s", err.Error())
+			}
+			cache.Nodes = num
+
+			caches = append(caches, cache)
+			return true
+		})
+
+		info.CacheInfos = caches
+	}
+
+	return info
 }

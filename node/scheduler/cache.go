@@ -230,7 +230,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 
 	err = cache.GetDB().SetRunningCacheTask(c.carfileCid, c.cacheID)
 	if err != nil {
-		return xerrors.Errorf("cacheID:%s,%s SetRunningCacheTask err:%s ", info.CacheID, info.Cid, err.Error())
+		log.Errorf("cacheID:%s,%s SetRunningCacheTask err:%s ", info.CacheID, info.Cid, err.Error())
 	}
 
 	status := cacheStatusFail

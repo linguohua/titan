@@ -29,6 +29,7 @@ var SchedulerCmds = []*cli.Command{
 	validateSwitchCmd,
 	removeCarfileCmd,
 	removeCacheCmd,
+	showDatasInfoCmd,
 }
 
 var (
@@ -310,6 +311,55 @@ var validateSwitchCmd = &cli.Command{
 	},
 }
 
+var showDatasInfoCmd = &cli.Command{
+	Name:  "show-running-datas",
+	Usage: "show data",
+	Flags: []cli.Flag{
+		// schedulerURLFlag,
+		// cidFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		// url := cctx.String("scheduler-url")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		infos, err := schedulerAPI.ShowDataTasks(ctx)
+		if err != nil {
+			return err
+		}
+
+		statusToStr := func(s int) string {
+			switch s {
+			case 1:
+				return "running"
+			case 3:
+				return "done"
+			default:
+				return "failed"
+			}
+		}
+
+		for _, info := range infos {
+			fmt.Printf("Data CID:%s , Total Size:%d MB , Total Blocks:%d \n", info.Cid, info.TotalSize/(1024*1024), info.Blocks)
+			for _, cache := range info.CacheInfos {
+				fmt.Printf("TaskID:%s ,  Status:%s , Done Size:%d MB ,Done Blocks:%d , Nodes:%d\n",
+					cache.CacheID, statusToStr(cache.Status), cache.DoneSize/(1024*1024), cache.DoneBlocks, cache.Nodes)
+			}
+		}
+
+		return nil
+	},
+}
+
 var showDataInfoCmd = &cli.Command{
 	Name:  "show-data",
 	Usage: "show data",
@@ -332,7 +382,7 @@ var showDataInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		infos, err := schedulerAPI.ShowDataInfos(ctx, cid)
+		info, err := schedulerAPI.ShowDataTask(ctx, cid)
 		if err != nil {
 			return err
 		}
@@ -348,12 +398,10 @@ var showDataInfoCmd = &cli.Command{
 			}
 		}
 
-		for _, info := range infos {
-			fmt.Printf("Data CID:%s , Total Size:%d MB , Total Blocks:%d \n", info.Cid, info.TotalSize/(1024*1024), info.Blocks)
-			for _, cache := range info.CacheInfos {
-				fmt.Printf("TaskID:%s ,  Status:%s , Done Size:%d MB ,Done Blocks:%d , Nodes:%d\n",
-					cache.CacheID, statusToStr(cache.Status), cache.DoneSize/(1024*1024), cache.DoneBlocks, cache.Nodes)
-			}
+		fmt.Printf("Data CID:%s , Total Size:%d MB , Total Blocks:%d \n", info.Cid, info.TotalSize/(1024*1024), info.Blocks)
+		for _, cache := range info.CacheInfos {
+			fmt.Printf("TaskID:%s ,  Status:%s , Done Size:%d MB ,Done Blocks:%d , Nodes:%d\n",
+				cache.CacheID, statusToStr(cache.Status), cache.DoneSize/(1024*1024), cache.DoneBlocks, cache.Nodes)
 		}
 
 		return nil

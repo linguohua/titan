@@ -19,8 +19,9 @@ type Scheduler interface {
 	CacheCarfile(ctx context.Context, cid string, reliability int) error                               //perm:admin
 	RemoveCarfile(ctx context.Context, carfileID string) error                                         //perm:admin
 	RemoveCache(ctx context.Context, carfileID, cacheID string) error                                  //perm:admin
-	ShowDataInfos(ctx context.Context, cid string) ([]CacheDataInfo, error)                            //perm:read
+	ShowDataTask(ctx context.Context, cid string) (CacheDataInfo, error)                               //perm:read
 	ListDatas(ctx context.Context, page int) (DataListInfo, error)                                     //perm:read
+	ShowDataTasks(ctx context.Context) ([]CacheDataInfo, error)                                        //perm:read
 	RegisterNode(ctx context.Context, t NodeType) (NodeRegisterInfo, error)                            //perm:admin
 	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) //perm:admin
 	CacheContinue(ctx context.Context, cid, cacheID string) error                                      //perm:admin

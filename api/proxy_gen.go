@@ -263,7 +263,9 @@ type SchedulerStruct struct {
 
 		RemoveCarfile func(p0 context.Context, p1 string) (error) `perm:"admin"`
 
-		ShowDataInfos func(p0 context.Context, p1 string) ([]CacheDataInfo, error) `perm:"read"`
+		ShowDataTask func(p0 context.Context, p1 string) (CacheDataInfo, error) `perm:"read"`
+
+		ShowDataTasks func(p0 context.Context) ([]CacheDataInfo, error) `perm:"read"`
 
 		StateNetwork func(p0 context.Context) (StateNetwork, error) `perm:"read"`
 
@@ -991,14 +993,25 @@ func (s *SchedulerStub) RemoveCarfile(p0 context.Context, p1 string) (error) {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ShowDataInfos(p0 context.Context, p1 string) ([]CacheDataInfo, error) {
-	if s.Internal.ShowDataInfos == nil {
-		return *new([]CacheDataInfo), ErrNotSupported
+func (s *SchedulerStruct) ShowDataTask(p0 context.Context, p1 string) (CacheDataInfo, error) {
+	if s.Internal.ShowDataTask == nil {
+		return *new(CacheDataInfo), ErrNotSupported
 	}
-	return s.Internal.ShowDataInfos(p0, p1)
+	return s.Internal.ShowDataTask(p0, p1)
 }
 
-func (s *SchedulerStub) ShowDataInfos(p0 context.Context, p1 string) ([]CacheDataInfo, error) {
+func (s *SchedulerStub) ShowDataTask(p0 context.Context, p1 string) (CacheDataInfo, error) {
+	return *new(CacheDataInfo), ErrNotSupported
+}
+
+func (s *SchedulerStruct) ShowDataTasks(p0 context.Context) ([]CacheDataInfo, error) {
+	if s.Internal.ShowDataTasks == nil {
+		return *new([]CacheDataInfo), ErrNotSupported
+	}
+	return s.Internal.ShowDataTasks(p0)
+}
+
+func (s *SchedulerStub) ShowDataTasks(p0 context.Context) ([]CacheDataInfo, error) {
 	return *new([]CacheDataInfo), ErrNotSupported
 }
 
