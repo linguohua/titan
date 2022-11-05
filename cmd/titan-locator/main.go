@@ -61,7 +61,7 @@ func main() {
 				Name:    FlagLocatorRepo,
 				Aliases: []string{FlagLocatorRepoDeprecation},
 				EnvVars: []string{"TITAN_LOCATION_PATH", "LOCATION_PATH"},
-				Value:   "~/.titanlocation", // TODO: Consider XDG_DATA_HOME
+				Value:   "~/.titanlocator", // TODO: Consider XDG_DATA_HOME
 				Usage:   fmt.Sprintf("Specify locator repo path. flag %s and env TITAN_EDGE_PATH are DEPRECATION, will REMOVE SOON", FlagLocatorRepoDeprecation),
 			},
 			&cli.StringFlag{
