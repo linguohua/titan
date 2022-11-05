@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 var ErrNotSupported = xerrors.New("method not supported")
@@ -154,8 +153,6 @@ type LocatorStruct struct {
 	CommonStruct
 
 	Internal struct {
-		AddAccessPoints func(p0 context.Context, p1 string, p2 string, p3 int) error `perm:"read"`
-
 		AddAccessPoints func(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error `perm:"admin"`
 
 		DeviceOffline func(p0 context.Context, p1 string) error `perm:"write"`
@@ -869,6 +866,10 @@ func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 int, p2 string, 
 		return ErrNotSupported
 	}
 	return s.Internal.LocatorConnect(p0, p1, p2, p3, p4)
+}
+
+func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 int, p2 string, p3 string, p4 string) error {
+	return ErrNotSupported
 }
 
 func (s *SchedulerStruct) QueryCacheStatWithNode(p0 context.Context, p1 string) ([]CacheStat, error) {
