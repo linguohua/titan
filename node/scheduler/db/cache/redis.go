@@ -507,6 +507,10 @@ func (rd redisDB) GetWaitingCacheTask() (api.CacheDataInfo, error) {
 
 	value, err := rd.cli.LIndex(context.Background(), key, 0).Result()
 
+	if value == "" {
+		return api.CacheDataInfo{}, redis.Nil
+	}
+
 	var info api.CacheDataInfo
 	bytes, err := redigo.Bytes(value, nil)
 	if err != nil {
@@ -531,7 +535,7 @@ func (rd redisDB) RemoveWaitingCacheTask() error {
 func (rd redisDB) SetCidToRunningList(cid, cacheID string) error {
 	key := fmt.Sprintf(redisKeyRunningList, serverName)
 
-	cKey := fmt.Sprintf("%s;%s", cid, cacheID)
+	cKey := fmt.Sprintf("%s:%s", cid, cacheID)
 	_, err := rd.cli.SAdd(context.Background(), key, cKey).Result()
 	return err
 }
@@ -540,7 +544,7 @@ func (rd redisDB) SetCidToRunningList(cid, cacheID string) error {
 func (rd redisDB) RemoveRunningList(cid, cacheID string) error {
 	key := fmt.Sprintf(redisKeyRunningList, serverName)
 
-	cKey := fmt.Sprintf("%s;%s", cid, cacheID)
+	cKey := fmt.Sprintf("%s:%s", cid, cacheID)
 	_, err := rd.cli.SRem(context.Background(), key, cKey).Result()
 	return err
 }

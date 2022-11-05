@@ -133,7 +133,7 @@ func (d *Data) updateDataInfo(blockInfo *persistent.BlockInfo, fid string, info 
 		// isUpdate = true
 	}
 
-	return d.saveCacheingResults(c, blockInfo, info.Fid, createBlocks)
+	return d.saveCacheingResults(c, blockInfo, fid, createBlocks)
 }
 
 func (d *Data) saveCacheingResults(cache *Cache, bInfo *persistent.BlockInfo, fid string, createBlocks []*persistent.BlockInfo) error {
