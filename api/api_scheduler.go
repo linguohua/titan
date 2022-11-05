@@ -118,4 +118,5 @@ type DownloadStat struct {
 	DeviceID      string
 	BlockSize     int
 	DownloadSpeed int64
+	ClientIP      string
 }

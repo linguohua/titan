@@ -84,15 +84,28 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		speedRate = int64(float64(n) / float64(costTime) * float64(time.Second))
 	}
 
-	go bd.statistics(bd.device.GetDeviceID(), cidStr, int(n), speedRate)
+	go bd.statistics(bd.device.GetDeviceID(), cidStr, int(n), speedRate, getClientIP(r))
 
 	log.Infof("Download block %s costTime %d, size %d, speed %d", cidStr, costTime, n, speedRate)
 
 	return
 }
 
-func (bd *BlockDownload) statistics(deviceID, cid string, size int, downloadSpeed int64) {
-	stat := api.DownloadStat{Cid: cid, DeviceID: deviceID, BlockSize: size, DownloadSpeed: downloadSpeed}
+func getClientIP(r *http.Request) string {
+	reqIP := r.Header.Get("X-Real-IP")
+	if reqIP == "" {
+		h, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			log.Errorf("could not get ip from: %s, err: %s", r.RemoteAddr, err)
+		}
+		reqIP = h
+	}
+
+	return reqIP
+}
+
+func (bd *BlockDownload) statistics(deviceID, cid string, size int, downloadSpeed int64, clientIP string) {
+	stat := api.DownloadStat{Cid: cid, DeviceID: deviceID, BlockSize: size, DownloadSpeed: downloadSpeed, ClientIP: clientIP}
 	bd.scheduler.DownloadBlockResult(context.Background(), stat)
 }
 
