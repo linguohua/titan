@@ -103,7 +103,7 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string, se
 
 	schedulerApi, ok := locator.apMgr.getSchedulerAPI(device.SchedulerURL, areaID, cfg.AccessToken)
 	if ok {
-		token, err := locator.authNewToken(schedulerApi)
+		token, err := locator.authNewTokenFromScheduler(schedulerApi)
 		if err == nil {
 			auth := api.SchedulerAuth{URL: device.SchedulerURL, AccessToken: token}
 			return []api.SchedulerAuth{auth}, nil
@@ -348,7 +348,7 @@ func (locator *Locator) GetDownloadInfoWithBlock(ctx context.Context, cid string
 	return api.DownloadInfo{}, nil
 }
 
-func (locator *Locator) authNewToken(schedulerAPI *schedulerAPI) (string, error) {
+func (locator *Locator) authNewTokenFromScheduler(schedulerAPI *schedulerAPI) (string, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
 	defer cancel()
 
