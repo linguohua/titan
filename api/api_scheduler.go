@@ -37,6 +37,7 @@ type Scheduler interface {
 	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                      //perm:write
 	CandidateNodeConnect(ctx context.Context, edgePort int, token string) (externalIP string, err error) //perm:write
 	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) (string, error)        //perm:write
+	UpdateDownloadServerAccessAuth(ctx context.Context, accessAuth DownloadServerAccessAuth) error       //perm:write
 
 	// call by user
 	FindNodeWithBlock(ctx context.Context, cid string) (string, error)                                //perm:read
@@ -119,4 +120,10 @@ type DownloadStat struct {
 	BlockSize     int
 	DownloadSpeed int64
 	ClientIP      string
+}
+
+type DownloadServerAccessAuth struct {
+	DeviceID    string
+	URL         string
+	SecurityKey string
 }

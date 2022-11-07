@@ -3,11 +3,12 @@ package candidate
 import (
 	"context"
 	"fmt"
-	"github.com/linguohua/titan/lib/httptrace"
 	"net"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/linguohua/titan/lib/httptrace"
 
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
@@ -226,7 +227,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	defer cancel()
 
 	addrSplit := strings.Split(candidate.tcpSrvAddr, ":")
-	candidateTcpSrvAddr := fmt.Sprintf("%s:%s", candidate.GetPublicIP(), addrSplit[1])
+	candidateTcpSrvAddr := fmt.Sprintf("%s:%s", candidate.GetExternaIP(), addrSplit[1])
 	err = api.BeValidate(wctx, *req, candidateTcpSrvAddr)
 	if err != nil {
 		result.IsTimeout = true

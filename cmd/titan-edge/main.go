@@ -415,6 +415,7 @@ var runCmd = &cli.Command{
 
 						edge := edgeApi.(*edge.Edge)
 						edge.SetExternaIP(externalIP)
+						edge.UpdateDownloadServerAccessAuth(externalIP)
 
 						log.Info("Worker registered successfully, waiting for tasks")
 						errCount = 0

@@ -418,7 +418,7 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						external, err := schedulerAPI.CandidateNodeConnect(ctx, port, tk)
+						externalIP, err := schedulerAPI.CandidateNodeConnect(ctx, port, tk)
 						if err != nil {
 							log.Errorf("Registering worker failed: %+v", err)
 							cancel()
@@ -426,7 +426,8 @@ var runCmd = &cli.Command{
 						}
 
 						candidate := candidateApi.(*candidate.Candidate)
-						candidate.SetExternaIP(external)
+						candidate.SetExternaIP(externalIP)
+						candidate.UpdateDownloadServerAccessAuth(externalIP)
 						log.Info("Worker registered successfully, waiting for tasks")
 						errCount = 0
 						readyCh = nil
@@ -469,25 +470,29 @@ func extractRoutableIP(cctx *cli.Context) (string, error) {
 }
 
 func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (api.Scheduler, jsonrpc.ClientCloser, error) {
+	log.Infof("newSchedulerAPI...")
 	locator, closer, err := lcli.GetLocatorAPI(cctx)
 	if err != nil {
+		log.Errorf("%s", err.Error())
 		return nil, nil, err
 	}
 	defer closer()
-
-	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Second)
+	log.Infof("GetLocatorAPI success")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	auths, err := locator.GetAccessPoints(ctx, deviceID, securityKey)
 	if err != nil {
 		return nil, nil, err
 	}
+	log.Infof("GetAccessPoints success")
 
 	if len(auths) <= 0 {
 		return nil, nil, fmt.Errorf("device %s not exist access point", deviceID)
 	}
 
 	auth := auths[0]
+	log.Infof("newSchedulerAPI url:%s", auth.URL)
 
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+string(auth.AccessToken))
@@ -496,7 +501,7 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (ap
 	if err != nil {
 		return nil, nil, err
 	}
-	log.Infof("scheduler url:%s", auth.URL)
+
 	os.Setenv("FULLNODE_API_INFO", auth.AccessToken+":"+auth.URL)
 	return schedulerAPI, closer, nil
 }

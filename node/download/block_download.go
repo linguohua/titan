@@ -163,7 +163,7 @@ func (bd *BlockDownload) GetDownloadInfo(ctx context.Context) (api.DownloadInfo,
 
 	addrSplit := strings.Split(bd.srvAddr, ":")
 	info := api.DownloadInfo{
-		URL:   fmt.Sprintf("http://%s:%s%s", bd.device.GetPublicIP(), addrSplit[1], helper.DownloadSrvPath),
+		URL:   fmt.Sprintf("http://%s:%s%s", bd.device.GetExternaIP(), addrSplit[1], helper.DownloadSrvPath),
 		Token: tk,
 	}
 
@@ -173,4 +173,11 @@ func (bd *BlockDownload) GetDownloadInfo(ctx context.Context) (api.DownloadInfo,
 func (bd *BlockDownload) GetRateLimit() int64 {
 	log.Debug("GenerateDownloadToken")
 	return int64(bd.limiter.Limit())
+}
+
+func (bd *BlockDownload) UpdateDownloadServerAccessAuth(exteranlIP string) {
+	addrSplit := strings.Split(bd.srvAddr, ":")
+	url := fmt.Sprintf("http://%s:%s%s", exteranlIP, addrSplit[1], helper.DownloadSrvPath)
+	accessAuth := api.DownloadServerAccessAuth{DeviceID: bd.device.GetDeviceID(), URL: url, SecurityKey: bd.downloadSrvKey}
+	bd.scheduler.UpdateDownloadServerAccessAuth(context.Background(), accessAuth)
 }
