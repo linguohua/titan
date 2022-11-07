@@ -24,18 +24,18 @@ type DataManager struct {
 	timeoutTime      int // check timeout time interval (minute)
 
 	taskTimeWheel *timewheel.TimeWheel
-	doTaskTime    int // task time interval (minute)
+	doTaskTime    int // task time interval (Second)
 
-	runningMax int
+	runningTaskMax int
 }
 
 func newDataManager(nodeManager *NodeManager) *DataManager {
 	d := &DataManager{
-		nodeManager:   nodeManager,
-		blockLoaderCh: make(chan bool),
-		timeoutTime:   1,
-		doTaskTime:    1,
-		runningMax:    1,
+		nodeManager:    nodeManager,
+		blockLoaderCh:  make(chan bool),
+		timeoutTime:    1,
+		doTaskTime:     30,
+		runningTaskMax: 1,
 	}
 
 	d.initTimewheel()
@@ -54,14 +54,14 @@ func (m *DataManager) initTimewheel() {
 	m.timeoutTimeWheel.AddTimer((time.Duration(m.timeoutTime)*60-1)*time.Second, "TaskTimeout", nil)
 
 	m.taskTimeWheel = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		m.taskTimeWheel.AddTimer((time.Duration(m.doTaskTime)*60-1)*time.Second, "DataTask", nil)
+		m.taskTimeWheel.AddTimer(time.Duration(m.doTaskTime-1)*time.Second, "DataTask", nil)
 		err := m.doDataTask()
 		if err != nil {
 			log.Errorf("doTask err :%s", err.Error())
 		}
 	})
 	m.taskTimeWheel.Start()
-	m.taskTimeWheel.AddTimer((time.Duration(m.doTaskTime)*60-1)*time.Second, "DataTask", nil)
+	m.taskTimeWheel.AddTimer(time.Duration(m.doTaskTime-1)*time.Second, "DataTask", nil)
 }
 
 func (m *DataManager) doDataTask() error {
@@ -70,7 +70,7 @@ func (m *DataManager) doDataTask() error {
 		return xerrors.Errorf("GetTasksWithRunningList err:%s", err.Error())
 	}
 
-	if len(list) > m.runningMax {
+	if len(list) >= m.runningTaskMax {
 		return nil
 	}
 
@@ -82,6 +82,13 @@ func (m *DataManager) doDataTask() error {
 		}
 		return xerrors.Errorf("GetWaitingCacheTask err:%s", err.Error())
 	}
+
+	defer func() {
+		err = cache.GetDB().RemoveWaitingCacheTask()
+		if err != nil {
+			log.Errorf("RemoveWaitingCacheTask err:%s", err.Error())
+		}
+	}()
 
 	if info.CacheInfos != nil && len(info.CacheInfos) > 0 {
 		cacheID := info.CacheInfos[0].CacheID
@@ -95,11 +102,6 @@ func (m *DataManager) doDataTask() error {
 		if err != nil {
 			return xerrors.Errorf("startCacheData err:%s", err.Error())
 		}
-	}
-
-	err = cache.GetDB().RemoveWaitingCacheTask()
-	if err != nil {
-		return xerrors.Errorf("RemoveWaitingCacheTask err:%s", err.Error())
 	}
 
 	return nil
@@ -123,9 +125,9 @@ func (m *DataManager) findData(cid string, isStore bool) *Data {
 }
 
 func (m *DataManager) checkTaskTimeout(cid, cacheID string) {
-	cID, err := cache.GetDB().GetRunningCacheTask(cid)
+	cID, err := cache.GetDB().GetRunningTask(cid)
 	if err != nil && !cache.GetDB().IsNilErr(err) {
-		log.Errorf("checkTaskTimeout %s,%s GetRunningCacheTask err:%s", cid, cacheID, err.Error())
+		log.Errorf("checkTaskTimeout %s,%s GetRunningTask err:%s", cid, cacheID, err.Error())
 		return
 	}
 	if cID != "" {
@@ -133,9 +135,9 @@ func (m *DataManager) checkTaskTimeout(cid, cacheID string) {
 	}
 
 	defer func() {
-		err = cache.GetDB().RemoveRunningList(cid, cacheID)
+		err = cache.GetDB().RemoveTaskWithRunningList(cid, cacheID)
 		if err != nil {
-			log.Errorf("checkTaskTimeout %s,%s RemoveRunningList err:%s", cid, cacheID, err.Error())
+			log.Errorf("checkTaskTimeout %s,%s RemoveTaskWithRunningList err:%s", cid, cacheID, err.Error())
 		}
 	}()
 
@@ -149,9 +151,9 @@ func (m *DataManager) checkTaskTimeout(cid, cacheID string) {
 
 		c := value.(*Cache)
 
-		unDoneBlocks, err := persistent.GetDB().HaveBlocks(c.cacheID, int(cacheStatusCreate))
+		unDoneBlocks, err := persistent.GetDB().GetBloackCountWhitStatus(c.cacheID, int(cacheStatusCreate))
 		if err != nil {
-			log.Errorf("checkTaskTimeout %s,%s HaveBlocks err:%s", c.carfileCid, c.cacheID, err.Error())
+			log.Errorf("checkTaskTimeout %s,%s GetBloackCountWhitStatus err:%s", c.carfileCid, c.cacheID, err.Error())
 			return
 		}
 

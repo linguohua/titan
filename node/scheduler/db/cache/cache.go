@@ -12,14 +12,14 @@ type DB interface {
 	RemoveCacheResultInfo() error
 	GetCacheResultNum() int64
 
-	SetCidToRunningList(cid, cacheID string) error
-	RemoveRunningList(cid, cacheID string) error
+	SetTaskToRunningList(cid, cacheID string) error
+	RemoveTaskWithRunningList(cid, cacheID string) error
 	GetTasksWithRunningList() ([]string, error)
 	// IsCidInRunningList(cid string) (bool, error)
 
-	SetRunningCacheTask(cid, cacheID string) error
-	GetRunningCacheTask(cid string) (string, error)
-	RemoveRunningCacheTask(cid, cacheID string) error
+	SetRunningTask(cid, cacheID string) error
+	GetRunningTask(cid string) (string, error)
+	RemoveRunningTask(cid, cacheID string) error
 
 	SetWaitingCacheTask(info api.CacheDataInfo) error
 	GetWaitingCacheTask() (api.CacheDataInfo, error)

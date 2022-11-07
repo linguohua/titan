@@ -33,13 +33,13 @@ type DB interface {
 	// cache info
 	// SetCacheInfo(info *CacheInfo) error
 	GetCacheInfo(cacheID, carfileID string) (*CacheInfo, error)
-	RemoveCacheInfo(cacheID, carfileID, cachesID, rootCacheID string, caches []string, reliability int) error
+	RemoveAndUpdateCacheInfo(cacheID, carfileID, cachesID, rootCacheID string, caches []string, reliability int) error
 
 	// block info
-	SetBlockInfos(infos []*BlockInfo) error
+	SetBlockInfos(infos []*BlockInfo, carfileCid string) error
 	// SetBlockInfo(info *BlockInfo, carfileCid, fid string, isUpdate bool) error
 	GetBlockInfo(cacheID, cid, deviceID string) (*BlockInfo, error)
-	HaveBlocks(cacheID string, status int) (int, error)
+	GetBloackCountWhitStatus(cacheID string, status int) (int, error)
 	GetUndoneBlocks(cacheID string) (map[string]int, error)
 	GetAllBlocks(cacheID string) (map[string][]string, error)
 	GetDevicesFromCache(cacheID string) (int, error)

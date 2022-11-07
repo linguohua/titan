@@ -169,21 +169,20 @@ func (n *Node) getNodeInfo(deviceID string) (*persistent.NodeInfo, error) {
 // filter cached blocks and find download url from candidate
 func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, carFileCid, cacheID string) []api.ReqCacheData {
 	reqList := make([]api.ReqCacheData, 0)
-	notFindCandidateData := make([]api.BlockInfo, 0)
+	notFindCandidateDatas := make([]api.BlockInfo, 0)
 
-	fid, err := cache.GetDB().IncrNodeCacheFid(n.deviceInfo.DeviceId, len(cids))
+	fidMax, err := cache.GetDB().IncrNodeCacheFid(n.deviceInfo.DeviceId, len(cids))
 	if err != nil {
 		log.Errorf("deviceID:%s,IncrNodeCacheFid:%s", n.deviceInfo.DeviceId, err.Error())
 		return reqList
 	}
 
-	// if node is edge , find data with candidate
 	csMap := make(map[string][]api.BlockInfo)
 	for i, cid := range cids {
 		candidates, err := nodeManager.getCandidateNodesWithData(cid)
 		if err != nil || len(candidates) < 1 {
 			// not find candidate
-			notFindCandidateData = append(notFindCandidateData, api.BlockInfo{Cid: cid, Fid: fmt.Sprintf("%d", fid-i)})
+			notFindCandidateDatas = append(notFindCandidateDatas, api.BlockInfo{Cid: cid, Fid: fmt.Sprintf("%d", fidMax-i)})
 			continue
 		}
 
@@ -196,7 +195,7 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, carFile
 			list = make([]api.BlockInfo, 0)
 		}
 
-		list = append(list, api.BlockInfo{Cid: cid, Fid: fmt.Sprintf("%d", fid-i)})
+		list = append(list, api.BlockInfo{Cid: cid, Fid: fmt.Sprintf("%d", fidMax-i)})
 
 		csMap[deviceID] = list
 	}
@@ -206,12 +205,12 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, carFile
 		if node != nil {
 			reqList = append(reqList, api.ReqCacheData{BlockInfos: list, CandidateURL: node.addr, CardFileCid: carFileCid, CacheID: cacheID})
 		} else {
-			notFindCandidateData = append(notFindCandidateData, list...)
+			notFindCandidateDatas = append(notFindCandidateDatas, list...)
 		}
 	}
 
-	if len(notFindCandidateData) > 0 {
-		reqList = append(reqList, api.ReqCacheData{BlockInfos: notFindCandidateData, CardFileCid: carFileCid, CacheID: cacheID})
+	if len(notFindCandidateDatas) > 0 {
+		reqList = append(reqList, api.ReqCacheData{BlockInfos: notFindCandidateDatas, CardFileCid: carFileCid, CacheID: cacheID})
 	}
 
 	return reqList
