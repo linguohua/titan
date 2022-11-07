@@ -154,7 +154,7 @@ func (device *Device) SetExternaIP(externaIP string) {
 	device.publicIP = externaIP
 }
 
-func (device *Device) GetPublicIP() string {
+func (device *Device) GetExternaIP() string {
 	return device.publicIP
 }
 

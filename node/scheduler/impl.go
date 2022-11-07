@@ -813,3 +813,7 @@ func dataToCacheDataInfo(d *Data) api.CacheDataInfo {
 
 	return info
 }
+
+func (s *Scheduler) UpdateDownloadServerAccessAuth(ctx context.Context, access api.DownloadServerAccessAuth) error {
+	return nil
+}
