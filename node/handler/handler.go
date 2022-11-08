@@ -12,6 +12,7 @@ import (
 var log = logging.Logger("handler")
 
 type RequestIP struct{}
+type DeviceID struct{}
 
 type Handler struct {
 	handler *auth.Handler
@@ -19,6 +20,14 @@ type Handler struct {
 
 func GetRequestIP(ctx context.Context) string {
 	v, ok := ctx.Value(RequestIP{}).(string)
+	if !ok {
+		return ""
+	}
+	return v
+}
+
+func GetDeviceID(ctx context.Context) string {
+	v, ok := ctx.Value(DeviceID{}).(string)
 	if !ok {
 		return ""
 	}
@@ -40,9 +49,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// fmt.Println("server http:", reqIP)
+	deviceID := r.Header.Get("Device-ID")
 
 	ctx := r.Context()
 	ctx = context.WithValue(ctx, RequestIP{}, reqIP)
+	ctx = context.WithValue(ctx, DeviceID{}, deviceID)
 
 	h.handler.ServeHTTP(w, r.WithContext(ctx))
 }
