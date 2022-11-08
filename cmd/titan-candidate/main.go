@@ -206,7 +206,7 @@ var runCmd = &cli.Command{
 		if isLocator {
 			schedulerAPI, closer, err = newSchedulerAPI(cctx, deviceID, securityKey)
 		} else {
-			schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx)
+			schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx, deviceID)
 		}
 		if err != nil {
 			return err

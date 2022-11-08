@@ -115,7 +115,7 @@ var registerNodeCmd = &cli.Command{
 		t := cctx.Int("node-type")
 		ctx := ReqContext(cctx)
 
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
@@ -151,7 +151,7 @@ var removeCarfileCmd = &cli.Command{
 
 		ctx := ReqContext(cctx)
 
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
@@ -178,7 +178,7 @@ var removeCacheCmd = &cli.Command{
 
 		ctx := ReqContext(cctx)
 
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
@@ -203,7 +203,7 @@ var validateCmd = &cli.Command{
 
 		ctx := ReqContext(cctx)
 
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
@@ -228,7 +228,7 @@ var electionCmd = &cli.Command{
 
 		ctx := ReqContext(cctx)
 
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
@@ -251,7 +251,7 @@ var listDataCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
@@ -296,7 +296,7 @@ var validateSwitchCmd = &cli.Command{
 		open := cctx.Bool("open")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
@@ -326,7 +326,7 @@ var showDatasInfoCmd = &cli.Command{
 		// url := cctx.String("scheduler-url")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
@@ -376,7 +376,7 @@ var showDataInfoCmd = &cli.Command{
 		cid := cctx.String("cid")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
@@ -429,7 +429,7 @@ var cacheCarfileCmd = &cli.Command{
 		}
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
@@ -466,7 +466,7 @@ var cacheContinueCmd = &cli.Command{
 		cacgeID := cctx.String("cache-id")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
@@ -501,7 +501,7 @@ var cacheContinueCmd = &cli.Command{
 // 		cidsPath := cctx.String("cids-file-path")
 
 // 		ctx := ReqContext(cctx)
-// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 // 		if err != nil {
 // 			return err
 // 		}
@@ -550,7 +550,7 @@ var getDownloadInfoCmd = &cli.Command{
 		cidsPath := cctx.String("cids-file-path")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
@@ -599,7 +599,7 @@ var getDownloadInfoCmd = &cli.Command{
 // 		cidsPath := cctx.String("cids-file-path")
 
 // 		ctx := ReqContext(cctx)
-// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 // 		if err != nil {
 // 			return err
 // 		}
@@ -641,7 +641,7 @@ var showOnlineNodeCmd = &cli.Command{
 		// url := cctx.String("scheduler-url")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
@@ -669,7 +669,7 @@ var showOnlineNodeCmd = &cli.Command{
 // 		// url := cctx.String("scheduler-url")
 
 // 		ctx := ReqContext(cctx)
-// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 // 		if err != nil {
 // 			return err
 // 		}
@@ -696,7 +696,7 @@ var cachingBlocksCmd = &cli.Command{
 		deviceID := cctx.String("device-id")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
@@ -729,7 +729,7 @@ var cacheStatCmd = &cli.Command{
 		deviceID := cctx.String("device-id")
 
 		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
