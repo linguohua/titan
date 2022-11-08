@@ -121,7 +121,7 @@ var registerNodeCmd = &cli.Command{
 		}
 		defer closer()
 
-		if t != int(api.NodeEdge) && t != int(api.NodeCandidate) {
+		if t != int(api.NodeEdge) && t != int(api.NodeCandidate) && t != int(api.NodeScheduler) {
 			return xerrors.Errorf("node-type err:%d", t)
 		}
 

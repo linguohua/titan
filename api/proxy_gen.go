@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -91,7 +90,7 @@ type CommonStruct struct {
 
 		AuthNew func(p0 context.Context, p1 []auth.Permission) ([]byte, error) `perm:"admin"`
 
-		AuthNodeNew func(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) `perm:"admin"`
+		AuthNodeNew func(p0 context.Context, p1 []auth.Permission, p2 string) ([]byte, error) `perm:"admin"`
 
 		AuthNodeVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
 
@@ -479,14 +478,14 @@ func (s *CommonStub) AuthNew(p0 context.Context, p1 []auth.Permission) ([]byte, 
 	return *new([]byte), ErrNotSupported
 }
 
-func (s *CommonStruct) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) {
+func (s *CommonStruct) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string) ([]byte, error) {
 	if s.Internal.AuthNodeNew == nil {
 		return *new([]byte), ErrNotSupported
 	}
-	return s.Internal.AuthNodeNew(p0, p1, p2, p3)
+	return s.Internal.AuthNodeNew(p0, p1, p2)
 }
 
-func (s *CommonStub) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) {
+func (s *CommonStub) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string) ([]byte, error) {
 	return *new([]byte), ErrNotSupported
 }
 

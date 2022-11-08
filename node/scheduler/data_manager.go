@@ -69,7 +69,7 @@ func (m *DataManager) doDataTask() error {
 	if err != nil {
 		return xerrors.Errorf("GetTasksWithRunningList err:%s", err.Error())
 	}
-	log.Warnf("doDataTask running list:%v", list)
+	// log.Warnf("doDataTask running list:%v", list)
 	if len(list) >= m.runningTaskMax {
 		return nil
 	}
@@ -135,7 +135,7 @@ func (m *DataManager) checkTaskTimeout(cid, cacheID string) {
 	}
 
 	defer func() {
-		log.Warnf("checkTaskTimeout remove runing llist:%s", cid)
+		// log.Warnf("checkTaskTimeout remove runing llist:%s", cid)
 		err = cache.GetDB().RemoveTaskWithRunningList(cid, cacheID)
 		if err != nil {
 			log.Errorf("checkTaskTimeout %s,%s RemoveTaskWithRunningList err:%s", cid, cacheID, err.Error())
@@ -195,6 +195,8 @@ func (m *DataManager) startCacheData(cid string, reliability int) error {
 	if data == nil {
 		isSave = true
 		data = newData(m.nodeManager, m, cid, reliability)
+
+		m.runningTaskMap.Store(cid, data)
 	}
 
 	if data.needReliability != reliability {
