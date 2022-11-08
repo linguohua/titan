@@ -463,7 +463,7 @@ func (rd redisDB) RemoveCacheResultInfo() error {
 func (rd redisDB) SetRunningTask(cid, cacheID string) error {
 	key := fmt.Sprintf(redisKeyRunningTask, serverName, cid)
 	// Expire
-	_, err := rd.cli.Set(context.Background(), key, cacheID, time.Second*20).Result()
+	_, err := rd.cli.Set(context.Background(), key, cacheID, time.Second*40).Result()
 	return err
 }
 

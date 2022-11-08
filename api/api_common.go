@@ -26,10 +26,10 @@ import (
 type Common interface {
 	// MethodGroup: Auth
 
-	AuthVerify(ctx context.Context, token string) ([]auth.Permission, error)                                 //perm:read
-	AuthNew(ctx context.Context, perms []auth.Permission) ([]byte, error)                                    //perm:admin
-	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                             //perm:read
-	AuthNodeNew(ctx context.Context, perms []auth.Permission, deviceID, deviceSecret string) ([]byte, error) //perm:admin
+	AuthVerify(ctx context.Context, token string) ([]auth.Permission, error)                       //perm:read
+	AuthNew(ctx context.Context, perms []auth.Permission) ([]byte, error)                          //perm:admin
+	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                   //perm:read
+	AuthNodeNew(ctx context.Context, perms []auth.Permission, deviceSecret string) ([]byte, error) //perm:admin
 
 	// MethodGroup: Log
 

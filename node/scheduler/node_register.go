@@ -47,6 +47,9 @@ func newDeviceID(nodeType api.NodeType) (string, error) {
 	case api.NodeCandidate:
 		s = fmt.Sprintf("c_%s", s)
 		return s, nil
+	case api.NodeScheduler:
+		s = fmt.Sprintf("s_%s", s)
+		return s, nil
 	}
 
 	return "", xerrors.Errorf("nodetype err:%d", nodeType)
