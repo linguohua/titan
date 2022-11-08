@@ -814,6 +814,17 @@ func dataToCacheDataInfo(d *Data) api.CacheDataInfo {
 	return info
 }
 
+// UpdateDownloadServerAccessAuth Update Access Auth
 func (s *Scheduler) UpdateDownloadServerAccessAuth(ctx context.Context, access api.DownloadServerAccessAuth) error {
-	return nil
+	cNode := s.nodeManager.getCandidateNode(access.DeviceID)
+	if cNode != nil {
+		return cNode.updateAccessAuth(&access)
+	}
+
+	eNode := s.nodeManager.getEdgeNode(access.DeviceID)
+	if eNode != nil {
+		return eNode.updateAccessAuth(&access)
+	}
+
+	return xerrors.Errorf("%s :%s", ErrNodeNotFind, access.DeviceID)
 }

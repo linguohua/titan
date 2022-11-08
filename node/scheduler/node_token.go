@@ -12,7 +12,7 @@ var secretKey = "00112233"
 func generateToken(deviceID, secret string) (string, error) {
 	dict := make(jwt.MapClaims)
 	dict["deviceID"] = deviceID
-	// dict["secret"] = secret
+	dict["secret"] = secret
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, dict)
 	return token.SignedString([]byte(secretKey))

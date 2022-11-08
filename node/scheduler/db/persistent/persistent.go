@@ -13,6 +13,8 @@ type DB interface {
 	SetNodeInfo(deviceID string, info *NodeInfo) error
 	GetNodeInfo(deviceID string) (*NodeInfo, error)
 	SetAllNodeOffline() error
+	SetNodeAuthInfo(info *api.DownloadServerAccessAuth) error
+	GetNodeAuthInfo(deviceID string) (*api.DownloadServerAccessAuth, error)
 	// AddAllNodeOnlineTime(onLineTime int64) error
 	// AddNodeOnlineTime(deviceID string, onLineTime int64) error
 
@@ -103,16 +105,17 @@ func GetDB() DB {
 
 // NodeInfo base info
 type NodeInfo struct {
-	ID         int
-	DeviceID   string `db:"device_id"`
-	LastTime   string `db:"last_time"`
-	OnlineTime int64  `db:"online_time"` // 废弃
-	Geo        string `db:"geo"`
-	IsOnline   int    `db:"is_online"`
-	NodeType   string `db:"node_type"`
-	Address    string `db:"address"`
-	ServerName string `db:"server_name"`
-	CreateTime string `db:"create_time"`
+	ID          int
+	DeviceID    string `db:"device_id"`
+	LastTime    string `db:"last_time"`
+	Geo         string `db:"geo"`
+	IsOnline    int    `db:"is_online"`
+	NodeType    string `db:"node_type"`
+	Address     string `db:"address"`
+	ServerName  string `db:"server_name"`
+	CreateTime  string `db:"create_time"`
+	URL         string `db:"url"`
+	SecurityKey string `db:"security"`
 }
 
 // ValidateResult validate result
