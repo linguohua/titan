@@ -69,7 +69,7 @@ func (m *DataManager) doDataTask() error {
 	if err != nil {
 		return xerrors.Errorf("GetTasksWithRunningList err:%s", err.Error())
 	}
-
+	log.Warnf("doDataTask running list:%v", list)
 	if len(list) >= m.runningTaskMax {
 		return nil
 	}
@@ -86,7 +86,7 @@ func (m *DataManager) doDataTask() error {
 	defer func() {
 		err = cache.GetDB().RemoveWaitingCacheTask()
 		if err != nil {
-			log.Errorf("RemoveWaitingCacheTask err:%s", err.Error())
+			log.Errorf("cid:%s ; RemoveWaitingCacheTask err:%s", info.Cid, err.Error())
 		}
 	}()
 
@@ -95,12 +95,12 @@ func (m *DataManager) doDataTask() error {
 
 		err = m.startCacheContinue(info.Cid, cacheID)
 		if err != nil {
-			return xerrors.Errorf("startCacheContinue err:%s", err.Error())
+			return xerrors.Errorf("cid:%s,cacheID:%s ; startCacheContinue err:%s", info.Cid, cacheID, err.Error())
 		}
 	} else {
 		err = m.startCacheData(info.Cid, info.NeedReliability)
 		if err != nil {
-			return xerrors.Errorf("startCacheData err:%s", err.Error())
+			return xerrors.Errorf("cid:%s,reliability:%d ; startCacheData err:%s", info.Cid, info.NeedReliability, err.Error())
 		}
 	}
 
@@ -135,6 +135,7 @@ func (m *DataManager) checkTaskTimeout(cid, cacheID string) {
 	}
 
 	defer func() {
+		log.Warnf("checkTaskTimeout remove runing llist:%s", cid)
 		err = cache.GetDB().RemoveTaskWithRunningList(cid, cacheID)
 		if err != nil {
 			log.Errorf("checkTaskTimeout %s,%s RemoveTaskWithRunningList err:%s", cid, cacheID, err.Error())

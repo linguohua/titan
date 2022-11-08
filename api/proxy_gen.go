@@ -91,6 +91,10 @@ type CommonStruct struct {
 
 		AuthNew func(p0 context.Context, p1 []auth.Permission) ([]byte, error) `perm:"admin"`
 
+		AuthNodeNew func(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) `perm:"admin"`
+
+		AuthNodeVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
+
 		AuthVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
 
 		Closing func(p0 context.Context) (<-chan struct{}, error) `perm:"read"`
@@ -473,6 +477,28 @@ func (s *CommonStruct) AuthNew(p0 context.Context, p1 []auth.Permission) ([]byte
 
 func (s *CommonStub) AuthNew(p0 context.Context, p1 []auth.Permission) ([]byte, error) {
 	return *new([]byte), ErrNotSupported
+}
+
+func (s *CommonStruct) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) {
+	if s.Internal.AuthNodeNew == nil {
+		return *new([]byte), ErrNotSupported
+	}
+	return s.Internal.AuthNodeNew(p0, p1, p2, p3)
+}
+
+func (s *CommonStub) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) {
+	return *new([]byte), ErrNotSupported
+}
+
+func (s *CommonStruct) AuthNodeVerify(p0 context.Context, p1 string) ([]auth.Permission, error) {
+	if s.Internal.AuthNodeVerify == nil {
+		return *new([]auth.Permission), ErrNotSupported
+	}
+	return s.Internal.AuthNodeVerify(p0, p1)
+}
+
+func (s *CommonStub) AuthNodeVerify(p0 context.Context, p1 string) ([]auth.Permission, error) {
+	return *new([]auth.Permission), ErrNotSupported
 }
 
 func (s *CommonStruct) AuthVerify(p0 context.Context, p1 string) ([]auth.Permission, error) {

@@ -216,6 +216,10 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, carFile
 	return reqList
 }
 
+func (n *Node) updateAccessAuth(access *api.DownloadServerAccessAuth) error {
+	return persistent.GetDB().SetNodeAuthInfo(access)
+}
+
 // cache block Result
 // TODO save to sql
 // func (n *Node) cacheBlockResult(info *api.CacheResultInfo, carfileID, cacheID string) (string, error) {

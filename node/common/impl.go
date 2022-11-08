@@ -2,9 +2,13 @@ package common
 
 import (
 	"context"
+	"encoding/base64"
+	"fmt"
+	"strings"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/journal/alerting"
+	"github.com/linguohua/titan/node/scheduler/db/persistent"
 
 	"github.com/linguohua/titan/build"
 
@@ -51,6 +55,53 @@ func (a *CommonAPI) AuthNew(ctx context.Context, perms []auth.Permission) ([]byt
 	}
 
 	return jwt.Sign(&p, (*jwt.HMACSHA)(a.APISecret))
+}
+
+func (a *CommonAPI) AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error) {
+	var payload jwtPayload
+
+	bToken := []byte(token)
+
+	str := base64.StdEncoding.EncodeToString(bToken)
+	strs := strings.Split(str, ";")
+
+	if len(strs) == 2 {
+		token = strs[0]
+		deviceID := strs[1]
+
+		// TODO
+		info, err := persistent.GetDB().GetRegisterInfo(deviceID)
+		if err != nil {
+			return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", deviceID, err)
+		}
+		deviceSecret := info.Secret
+
+		if _, err := jwt.Verify([]byte(token), (*jwt.HMACSHA)(jwt.NewHS256([]byte(deviceSecret))), &payload); err != nil {
+			return nil, xerrors.Errorf("JWT Verification failed: %w", err)
+		}
+
+	} else {
+		if _, err := jwt.Verify(bToken, (*jwt.HMACSHA)(a.APISecret), &payload); err != nil {
+			return nil, xerrors.Errorf("JWT Verification failed: %w", err)
+		}
+	}
+
+	return payload.Allow, nil
+}
+
+func (a *CommonAPI) AuthNodeNew(ctx context.Context, perms []auth.Permission, deviceID, deviceSecret string) ([]byte, error) {
+	p := jwtPayload{
+		Allow: perms, // TODO: consider checking validity
+	}
+
+	b, err := jwt.Sign(&p, (*jwt.HMACSHA)(jwt.NewHS256([]byte(deviceSecret))))
+	if err != nil {
+		return nil, err
+	}
+
+	str := fmt.Sprintf("%s;%s", string(b), deviceID)
+
+	return base64.StdEncoding.DecodeString(str)
 }
 
 func (a *CommonAPI) LogList(context.Context) ([]string, error) {
