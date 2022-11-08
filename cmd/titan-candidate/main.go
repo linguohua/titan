@@ -427,7 +427,10 @@ var runCmd = &cli.Command{
 
 						candidate := candidateApi.(*candidate.Candidate)
 						candidate.SetExternaIP(externalIP)
-						candidate.UpdateDownloadServerAccessAuth(externalIP)
+						err = candidate.UpdateDownloadServerAccessAuth(externalIP)
+						if err != nil {
+							log.Errorf("UpdateDownloadServerAccessAuth failed:%s", err.Error())
+						}
 						log.Info("Worker registered successfully, waiting for tasks")
 						errCount = 0
 						readyCh = nil

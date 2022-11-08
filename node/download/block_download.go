@@ -175,9 +175,9 @@ func (bd *BlockDownload) GetRateLimit() int64 {
 	return int64(bd.limiter.Limit())
 }
 
-func (bd *BlockDownload) UpdateDownloadServerAccessAuth(exteranlIP string) {
+func (bd *BlockDownload) UpdateDownloadServerAccessAuth(exteranlIP string) error {
 	addrSplit := strings.Split(bd.srvAddr, ":")
 	url := fmt.Sprintf("http://%s:%s%s", exteranlIP, addrSplit[1], helper.DownloadSrvPath)
 	accessAuth := api.DownloadServerAccessAuth{DeviceID: bd.device.GetDeviceID(), URL: url, SecurityKey: bd.downloadSrvKey}
-	bd.scheduler.UpdateDownloadServerAccessAuth(context.Background(), accessAuth)
+	return bd.scheduler.UpdateDownloadServerAccessAuth(context.Background(), accessAuth)
 }
