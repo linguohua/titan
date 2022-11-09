@@ -24,6 +24,7 @@ type Data struct {
 	cacheCount      int
 	rootCacheID     string
 	totalBlocks     int
+	nodes           int
 }
 
 func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, reliability int) *Data {

@@ -30,6 +30,9 @@ type Cache struct {
 	reliability int
 	doneSize    int
 	doneBlocks  int
+	totalSize   int
+	totalBlocks int
+	nodes       int
 	// dbID        int
 
 	// timewheelCache *timewheel.TimeWheel
