@@ -44,6 +44,7 @@ CREATE TABLE `data_info_cn_gd_shenzhen` (
     `cache_count` int  DEFAULT '0' ,
     `root_cache_id` varchar(64)  DEFAULT '' ,
     `total_blocks` int  DEFAULT '0' ,
+    `ndoes` int  DEFAULT '0' ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='data infos';
 
@@ -55,6 +56,9 @@ CREATE TABLE `cache_info_cn_gd_shenzhen` (
     `done_size` int  DEFAULT '0' ,
     `done_blocks` int  DEFAULT '0' ,
 	`reliability` TINYINT DEFAULT '0' ,
+    `total_size` int  DEFAULT '0' ,
+    `total_blocks` int  DEFAULT '0' ,
+    `ndoes` int  DEFAULT '0' ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='cache infos';
 
