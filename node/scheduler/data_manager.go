@@ -213,7 +213,6 @@ func (m *DataManager) startCacheData(cid string, reliability int) error {
 	if isSave {
 		err = persistent.GetDB().SetDataInfo(&persistent.DataInfo{
 			CID:             data.cid,
-			CacheIDs:        data.cacheIDs,
 			TotalSize:       data.totalSize,
 			NeedReliability: data.needReliability,
 			Reliability:     data.reliability,

@@ -36,7 +36,6 @@ CREATE TABLE `validate_err` (
 CREATE TABLE `data_info_cn_gd_shenzhen` (
     `id` int unsigned NOT NULL AUTO_INCREMENT,
 	`cid` varchar(128) NOT NULL UNIQUE,
-    `cache_ids` varchar(640) NOT NULL ,
     `status` TINYINT  DEFAULT '0' ,
     `total_size` int  DEFAULT '0' ,
 	`reliability` TINYINT DEFAULT '0' ,
@@ -44,21 +43,21 @@ CREATE TABLE `data_info_cn_gd_shenzhen` (
     `cache_count` int  DEFAULT '0' ,
     `root_cache_id` varchar(64)  DEFAULT '' ,
     `total_blocks` int  DEFAULT '0' ,
-    `ndoes` int  DEFAULT '0' ,
+    `nodes` int  DEFAULT '0' ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='data infos';
 
 CREATE TABLE `cache_info_cn_gd_shenzhen` (
     `id` int unsigned NOT NULL AUTO_INCREMENT,
 	`carfile_id` varchar(128) NOT NULL,
-    `cache_id` varchar(64) NOT NULL ,
+    `cache_id` varchar(64) NOT NULL UNIQUE,
     `status` TINYINT  DEFAULT '0' ,
     `done_size` int  DEFAULT '0' ,
     `done_blocks` int  DEFAULT '0' ,
 	`reliability` TINYINT DEFAULT '0' ,
     `total_size` int  DEFAULT '0' ,
     `total_blocks` int  DEFAULT '0' ,
-    `ndoes` int  DEFAULT '0' ,
+    `nodes` int  DEFAULT '0' ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='cache infos';
 

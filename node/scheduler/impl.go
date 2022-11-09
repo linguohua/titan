@@ -770,7 +770,7 @@ func (s *Scheduler) StateNetwork(ctx context.Context) (api.StateNetwork, error) 
 func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locatorID string, locatorToken string) error {
 	ip := handler.GetRequestIP(ctx)
 	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
-	log.Infof("locatorID:%s,areaID:%s,LocatorConnect ip:%s,port:%d", locatorID, areaID, ip, port)
+	log.Infof("LocatorConnect locatorID:%s,areaID:%s,LocatorConnect ip:%s,port:%d", locatorID, areaID, ip, port)
 
 	if areaID != serverArea {
 		return xerrors.Errorf("area err:%s", areaID)
@@ -819,6 +819,7 @@ func dataToCacheDataInfo(d *Data) api.CacheDataInfo {
 		info.NeedReliability = d.needReliability
 		info.CurReliability = d.reliability
 		info.Blocks = d.totalBlocks
+		info.Nodes = d.nodes
 
 		caches := make([]api.CacheInfo, 0)
 
@@ -830,13 +831,8 @@ func dataToCacheDataInfo(d *Data) api.CacheDataInfo {
 				Status:     int(c.status),
 				DoneSize:   c.doneSize,
 				DoneBlocks: c.doneBlocks,
+				Nodes:      c.nodes,
 			}
-
-			num, err := persistent.GetDB().GetDevicesFromCache(c.cacheID)
-			if err != nil {
-				log.Errorf("GetDevicesFromCache err:%s", err.Error())
-			}
-			cache.Nodes = num
 
 			caches = append(caches, cache)
 			return true

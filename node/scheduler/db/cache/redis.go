@@ -26,32 +26,14 @@ const (
 	redisKeyCacheResult = "Titan:CacheResult:%s"
 	// RedisKeyNodeBlockFid  deviceID
 	redisKeyNodeBlockFid = "Titan:NodeBlockFid:%s"
-	// RedisKeyBlockNodeList  cid
-	redisKeyBlockNodeList = "Titan:BlockNodeList:%s"
-	// // RedisKeyGeoNodeList  geo
-	// redisKeyGeoNodeList = "Titan:GeoNodeList:%s"
 	// RedisKeyValidatorList server name
 	redisKeyValidatorList = "Titan:ValidatorList:%s"
 	// RedisKeyValidateRoundID server name
 	redisKeyValidateRoundID = "Titan:ValidateRoundID:%s"
 	// redisKeyValidateingList server name
 	redisKeyValidateingList = "Titan:ValidateingList:%s"
-	// // RedisKeyEdgeDeviceIDList
-	// redisKeyEdgeDeviceIDList = "Titan:EdgeDeviceIDList"
-	// // RedisKeyCandidateDeviceIDList
-	// redisKeyCandidateDeviceIDList = "Titan:CandidateDeviceIDList"
 	// RedisKeyNodeInfo  deviceID
 	redisKeyNodeInfo = "Titan:NodeInfo:%s"
-	// RedisKeyCacheID area
-	redisKeyCacheID = "Titan:CacheID:%s"
-	// redisKeyDataCacheKey
-	redisKeyDataCacheKey = "Titan:DataCacheKey:%s"
-	// RedisKeyCacheTask
-	redisKeyCacheTask = "Titan:CacheTask"
-	// RedisKeyNodeDeviceID
-	redisKeyNodeDeviceID = "Titan:NodeDeviceID"
-	// RedisKeyNodeReward
-	redisKeyNodeDayReward = "Titan:NodeDayReward:%s"
 
 	// NodeInfo field
 	onlineTimeField         = "OnlineTime"
@@ -100,19 +82,6 @@ func (rd redisDB) IsNilErr(err error) bool {
 	return errors.Is(err, redis.Nil)
 }
 
-// func (rd redisDB) IncrDataCacheKey(cacheID string) (int64, error) {
-// 	key := fmt.Sprintf(redisKeyDataCacheKey, cacheID)
-
-// 	return rd.cli.IncrBy(context.Background(), key, 1).Result()
-// }
-
-// func (rd redisDB) DeleteDataCache(cacheID string) error {
-// 	key := fmt.Sprintf(redisKeyDataCacheKey, cacheID)
-
-// 	_, err := rd.cli.Del(context.Background(), key).Result()
-// 	return err
-// }
-
 func (rd redisDB) IncrNodeOnlineTime(deviceID string, onlineTime float64) (float64, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
@@ -123,13 +92,6 @@ func (rd redisDB) IncrNodeValidateTime(deviceID string, validateSuccessTime int6
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
 	return rd.cli.HIncrBy(context.Background(), key, validateSuccessField, validateSuccessTime).Result()
-}
-
-// node cache tag ++1
-func (rd redisDB) IncrCacheID(area string) (int64, error) {
-	key := fmt.Sprintf(redisKeyCacheID, area)
-
-	return rd.cli.IncrBy(context.Background(), key, 1).Result()
 }
 
 // node cache tag ++1
@@ -194,59 +156,6 @@ func (rd redisDB) RemoveValidateingList() error {
 }
 
 // add
-func (rd redisDB) SetNodeToCacheList(deviceID, cid string) error {
-	key := fmt.Sprintf(redisKeyBlockNodeList, cid)
-
-	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
-	return err
-}
-
-// SMembers
-func (rd redisDB) GetNodesWithCacheList(cid string) ([]string, error) {
-	key := fmt.Sprintf(redisKeyBlockNodeList, cid)
-
-	return rd.cli.SMembers(context.Background(), key).Result()
-}
-
-// SISMEMBER
-func (rd redisDB) IsNodeInCacheList(cid, deviceID string) (bool, error) {
-	key := fmt.Sprintf(redisKeyBlockNodeList, cid)
-
-	return rd.cli.SIsMember(context.Background(), key, deviceID).Result()
-}
-
-// del
-func (rd redisDB) RemoveNodeWithCacheList(deviceID, cid string) error {
-	key := fmt.Sprintf(redisKeyBlockNodeList, cid)
-
-	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
-	return err
-}
-
-// //  add
-// func (rd redisDB) SetNodeToGeoList(deviceID, geo string) error {
-// 	key := fmt.Sprintf(redisKeyGeoNodeList, geo)
-
-// 	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
-// 	return err
-// }
-
-// // SMembers
-// func (rd redisDB) GetNodesWithGeoList(geo string) ([]string, error) {
-// 	key := fmt.Sprintf(redisKeyGeoNodeList, geo)
-
-// 	return rd.cli.SMembers(context.Background(), key).Result()
-// }
-
-// //  del
-// func (rd redisDB) RemoveNodeWithGeoList(deviceID, geo string) error {
-// 	key := fmt.Sprintf(redisKeyGeoNodeList, geo)
-
-// 	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
-// 	return err
-// }
-
-// add
 func (rd redisDB) SetValidatorToList(deviceID string) error {
 	key := fmt.Sprintf(redisKeyValidatorList, serverName)
 
@@ -268,60 +177,6 @@ func (rd redisDB) RemoveValidatorList() error {
 	_, err := rd.cli.Del(context.Background(), key).Result()
 	return err
 }
-
-// SISMEMBER
-func (rd redisDB) IsNodeInValidatorList(deviceID string) (bool, error) {
-	key := fmt.Sprintf(redisKeyValidatorList, serverName)
-
-	return rd.cli.SIsMember(context.Background(), key, deviceID).Result()
-}
-
-// //  add
-// func (rd redisDB) SetEdgeDeviceIDList(deviceIDs []string) error {
-// 	_, err := rd.cli.SAdd(context.Background(), redisKeyEdgeDeviceIDList, deviceIDs).Result()
-// 	return err
-// }
-
-// // SISMEMBER
-// func (rd redisDB) IsEdgeInDeviceIDList(deviceID string) (bool, error) {
-// 	return rd.cli.SIsMember(context.Background(), redisKeyEdgeDeviceIDList, deviceID).Result()
-// }
-
-// //  add
-// func (rd redisDB) SetCandidateDeviceIDList(deviceIDs []string) error {
-// 	_, err := rd.cli.SAdd(context.Background(), redisKeyCandidateDeviceIDList, deviceIDs).Result()
-// 	return err
-// }
-
-// // SISMEMBER
-// func (rd redisDB) IsCandidateInDeviceIDList(deviceID string) (bool, error) {
-// 	return rd.cli.SIsMember(context.Background(), redisKeyCandidateDeviceIDList, deviceID).Result()
-// }
-
-// func (rd redisDB) SetCacheDataTask(cid, cacheID string) error {
-// 	rd.cli.Expire(context.Background(), redisKeyCacheTask, time.Second*20)
-
-// 	_, err := rd.cli.HMSet(context.Background(), redisKeyCacheTask, carFileIDField, cid, cacheIDField, cacheID).Result()
-// 	return err
-// }
-
-// // SISMEMBER
-// func (rd redisDB) RemoveCacheDataTask() error {
-// 	_, err := rd.cli.Del(context.Background(), redisKeyCacheTask).Result()
-// 	return err
-// }
-
-// // SISMEMBER
-// func (rd redisDB) GetCacheDataTask() (string, string) {
-// 	vals, err := rd.cli.HMGet(context.Background(), redisKeyCacheTask, carFileIDField, cacheIDField).Result()
-// 	if err != nil || vals == nil || len(vals) <= 0 {
-// 		return "", ""
-// 	}
-
-// 	cid, _ := redigo.String(vals[0], nil)
-// 	cacheID, _ := redigo.String(vals[1], nil)
-// 	return cid, cacheID
-// }
 
 func (rd redisDB) IncrDeviceReward(deviceID string, reward int64) error {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
@@ -467,12 +322,6 @@ func (rd redisDB) SetRunningTask(cid, cacheID string) error {
 	return err
 }
 
-// func (rd redisDB) GetRunningCacheTask(cid string) (int64, error) {
-// 	key := fmt.Sprintf(redisKeyRunningTask, serverName, cid)
-
-// 	return rd.cli.Exists(context.Background(), key).Result()
-// }
-
 func (rd redisDB) GetRunningTask(cid string) (string, error) {
 	key := fmt.Sprintf(redisKeyRunningTask, serverName, cid)
 
@@ -555,13 +404,6 @@ func (rd redisDB) GetTasksWithRunningList() ([]string, error) {
 
 	return rd.cli.SMembers(context.Background(), key).Result()
 }
-
-// // SISMEMBER
-// func (rd redisDB) IsCidInRunningList(cid string) (bool, error) {
-// 	key := fmt.Sprintf(redisKeyRunningTask, serverName)
-
-// 	return rd.cli.SIsMember(context.Background(), key, cid).Result()
-// }
 
 func (rd redisDB) SetDeviceLatency(deviceID string, latency float64) error {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)

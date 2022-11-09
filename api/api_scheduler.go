@@ -91,6 +91,7 @@ type CacheDataInfo struct {
 	CurReliability  int // 当前可靠性
 	TotalSize       int // 总大小
 	Blocks          int // 总block个数
+	Nodes           int
 
 	CacheInfos []CacheInfo
 }

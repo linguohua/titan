@@ -12,46 +12,38 @@ type DB interface {
 	// Node Info
 	SetNodeInfo(deviceID string, info *NodeInfo) error
 	GetNodeInfo(deviceID string) (*NodeInfo, error)
-	SetAllNodeOffline() error
 	SetNodeAuthInfo(info *api.DownloadServerAccessAuth) error
 	GetNodeAuthInfo(deviceID string) (*api.DownloadServerAccessAuth, error)
-	// AddAllNodeOnlineTime(onLineTime int64) error
-	// AddNodeOnlineTime(deviceID string, onLineTime int64) error
 
 	// Validate Result
 	SetValidateResultInfo(info *ValidateResult) error
 	SetNodeToValidateErrorList(sID, deviceID string) error
 
-	CreateCache(dInfo *DataInfo, cInfo *CacheInfo) error
+	CreateCache(cInfo *CacheInfo) error
 	SaveCacheEndResults(dInfo *DataInfo, cInfo *CacheInfo) error
 	SaveCacheingResults(dInfo *DataInfo, cInfo *CacheInfo, updateBlock *BlockInfo, fid string, createBlocks []*BlockInfo) error
 
 	// data info
 	SetDataInfo(info *DataInfo) error
 	GetDataInfo(cid string) (*DataInfo, error)
-	GetDataInfos() ([]*DataInfo, error)
 	GetDataCidWithPage(page int) (count int, totalPage int, list []string, err error)
+	GetCacheWhitData(cid string) ([]string, error)
 
 	// cache info
-	// SetCacheInfo(info *CacheInfo) error
 	GetCacheInfo(cacheID, carfileID string) (*CacheInfo, error)
-	RemoveAndUpdateCacheInfo(cacheID, carfileID, cachesID, rootCacheID string, caches []string, reliability int) error
+	RemoveAndUpdateCacheInfo(cacheID, carfileID, rootCacheID string, isDeleteData bool, reliability int) error
 
 	// block info
 	SetBlockInfos(infos []*BlockInfo, carfileCid string) error
-	// SetBlockInfo(info *BlockInfo, carfileCid, fid string, isUpdate bool) error
 	GetBlockInfo(cacheID, cid, deviceID string) (*BlockInfo, error)
 	GetBloackCountWhitStatus(cacheID string, status int) (int, error)
 	GetUndoneBlocks(cacheID string) (map[string]int, error)
 	GetAllBlocks(cacheID string) (map[string][]string, error)
 	GetDevicesFromCache(cacheID string) (int, error)
-	// SetCacheInfos( infos []*BlockInfo, isUpdate bool) error
-	// GetCacheInfos( cacheID string) ([]*BlockInfo, error)
+	GetDevicesFromData(cid string) (int, error)
 
 	// node block
 	DeleteBlockInfos(carfileID, cacheID, deviceID string, cids []string) error
-	// AddBlockInfo( deviceID, cid, fid, carfileID, cacheID string) error
-	GetBlockFidWithCid(deviceID, cid string) (string, error)
 	GetBlocksFID(deviceID string) (map[string]string, error)
 	GetDeviceBlockNum(deviceID string) (int64, error)
 	GetNodesWithCacheList(cid string) ([]string, error)
@@ -152,14 +144,14 @@ type NodeBlocks struct {
 type DataInfo struct {
 	ID              int
 	CID             string `db:"cid"`
-	CacheIDs        string `db:"cache_ids"`
 	Status          int    `db:"status"`
-	TotalSize       int    `db:"total_size"`
 	Reliability     int    `db:"reliability"`
 	NeedReliability int    `db:"need_reliability"`
 	CacheCount      int    `db:"cache_count"`
 	RootCacheID     string `db:"root_cache_id"`
+	TotalSize       int    `db:"total_size"`
 	TotalBlocks     int    `db:"total_blocks"`
+	Nodes           int    `db:"nodes"`
 }
 
 // CacheInfo Data Block info
@@ -171,6 +163,9 @@ type CacheInfo struct {
 	Reliability int    `db:"reliability"`
 	DoneSize    int    `db:"done_size"`
 	DoneBlocks  int    `db:"done_blocks"`
+	TotalSize   int    `db:"total_size"`
+	TotalBlocks int    `db:"total_blocks"`
+	Nodes       int    `db:"nodes"`
 }
 
 // BlockInfo Data Block info
