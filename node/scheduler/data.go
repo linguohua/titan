@@ -246,6 +246,7 @@ func (d *Data) endData(c *Cache) (err error) {
 		return nil
 	}
 
+	// old cache
 	var unDoneCache *Cache
 	d.cacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)
