@@ -48,8 +48,7 @@ func newNodeManager(pool *ValidatePool, locatorManager *LocatorManager) *NodeMan
 		locatorManager: locatorManager,
 		// areaManager:   &AreaManager{},
 	}
-
-	nodeManager.stateNetwork()
+	
 	nodeManager.initKeepaliveTimewheel()
 
 	return nodeManager
@@ -159,7 +158,7 @@ func (m *NodeManager) edgeOnline(node *EdgeNode) error {
 
 	m.validatePool.addPendingNode(node, nil)
 
-	m.stateNetwork()
+	m.StateNetwork()
 
 	return nil
 }
@@ -241,7 +240,7 @@ func (m *NodeManager) candidateOnline(node *CandidateNode) error {
 
 	m.validatePool.addPendingNode(nil, node)
 
-	m.stateNetwork()
+	m.StateNetwork()
 
 	return nil
 }
@@ -704,7 +703,7 @@ func (n *NodeManager) SetDeviceInfo(deviceID string, info api.DevicesInfo) error
 	return nil
 }
 
-func (n *NodeManager) stateNetwork() error {
+func (n *NodeManager) StateNetwork() error {
 	state, err := cache.GetDB().GetDeviceStat()
 	if err != nil {
 		log.Errorf("get node stat: %v", err)

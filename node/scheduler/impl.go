@@ -72,6 +72,8 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int) api.Scheduler {
 		serverPort:     port,
 	}
 
+	go manager.StateNetwork()
+
 	sec, err := secret.APISecret(lr)
 	if err != nil {
 		log.Panicf("NewLocalScheduleNode failed:%s", err.Error())
@@ -91,6 +93,7 @@ type Scheduler struct {
 	validate       *Validate
 	dataManager    *DataManager
 	locatorManager *LocatorManager
+	selector       *ValidateSelector
 
 	serverPort int
 }
@@ -185,6 +188,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 
 	// notify locator
 	s.locatorManager.notifyNodeStatusToLocator(deviceID, true)
+	s.selector.NodeConnect(deviceID)
 
 	return ip, nil
 }
@@ -638,6 +642,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token st
 	// }
 
 	s.locatorManager.notifyNodeStatusToLocator(deviceID, true)
+	s.selector.NodeConnect(deviceID)
 
 	return ip, nil
 }
