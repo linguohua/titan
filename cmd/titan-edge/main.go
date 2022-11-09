@@ -484,12 +484,13 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (ap
 
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+string(auth.AccessToken))
+	headers.Add("Device-ID", deviceID)
 
 	schedulerAPI, closer, err := client.NewScheduler(ctx, auth.URL, headers)
 	if err != nil {
 		return nil, nil, err
 	}
-	log.Infof("scheduler url:%s", auth.URL)
+	log.Infof("scheduler url:%s, token:%s", auth.URL, auth.AccessToken)
 	os.Setenv("FULLNODE_API_INFO", auth.AccessToken+":"+auth.URL)
 	return schedulerAPI, closer, nil
 }
