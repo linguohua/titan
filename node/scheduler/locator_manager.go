@@ -20,7 +20,9 @@ func (m *LocatorManager) addLocator(location *Location) {
 }
 
 func (m *LocatorManager) notifyNodeStatusToLocator(deviceID string, isOnline bool) {
+	// log.Warnf("notifyNodeStatusToLocator : %v", m.locatorMap)
 	for _, locator := range m.locatorMap {
+		// log.Warnf("locator : %v", locator)
 		if locator != nil && locator.nodeAPI != nil {
 			if isOnline {
 				locator.nodeAPI.DeviceOnline(context.Background(), deviceID, serverArea, m.port)

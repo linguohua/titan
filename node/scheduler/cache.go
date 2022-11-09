@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
@@ -40,14 +41,21 @@ type Cache struct {
 }
 
 func newCacheID(cid string) (string, error) {
-	fid, err := cache.GetDB().IncrCacheID(serverArea)
+	// fid, err := cache.GetDB().IncrCacheID(serverArea)
+	// if err != nil {
+	// 	return "", err
+	// }
+
+	// aName := persistent.GetDB().ReplaceArea()
+
+	// return fmt.Sprintf("%s_cache_%d", aName, fid), nil
+	u2, err := uuid.NewUUID()
 	if err != nil {
 		return "", err
 	}
 
-	aName := persistent.GetDB().ReplaceArea()
-
-	return fmt.Sprintf("%s_cache_%d", aName, fid), nil
+	s := strings.Replace(u2.String(), "-", "", -1)
+	return s, nil
 }
 
 func newCache(nodeManager *NodeManager, data *Data, cid string) (*Cache, error) {
@@ -91,6 +99,9 @@ func loadCache(cacheID, carfileCid string, nodeManager *NodeManager, data *Data)
 	c.doneBlocks = info.DoneBlocks
 	c.status = cacheStatus(info.Status)
 	c.reliability = info.Reliability
+	c.nodes = info.Nodes
+	c.totalBlocks = info.TotalBlocks
+	c.totalSize = info.TotalSize
 
 	return c
 }
@@ -236,6 +247,11 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		log.Errorf("cacheID:%s,%s SetRunningTask err:%s ", info.CacheID, info.Cid, err.Error())
 	}
 
+	if info.Cid == c.carfileCid {
+		c.totalSize = int(info.LinksSize) + info.BlockSize
+	}
+	c.totalBlocks += len(info.Links)
+
 	status := cacheStatusFail
 	fid := ""
 	if info.IsOK {
@@ -267,7 +283,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	// save info to db
 	err = c.data.updateDataInfo(bInfo, fid, info, c, createBlocks)
 	if err != nil {
-		return xerrors.Errorf("cacheID:%s,%s updateDataInfo err:%s ", info.CacheID, info.Cid, err.Error())
+		return xerrors.Errorf("cacheID:%s,%s UpdateCacheInfo err:%s ", info.CacheID, info.Cid, err.Error())
 	}
 
 	unDoneBlocks, err := persistent.GetDB().GetBloackCountWhitStatus(c.cacheID, int(cacheStatusCreate))
@@ -368,27 +384,30 @@ func (c *Cache) removeCache() error {
 	}
 
 	if !haveErr {
-		newCacheList := make([]string, 0)
-		cacheIDs := ""
 		rootCacheID := c.data.rootCacheID
 		reliability -= c.reliability
 
-		idList := strings.Split(c.data.cacheIDs, ",")
-		for _, cacheID := range idList {
-			if cacheID != "" && cacheID != c.cacheID {
-				newCacheList = append(newCacheList, cacheID)
-				cacheIDs = fmt.Sprintf("%s%s,", cacheIDs, cacheID)
+		c.data.cacheMap.Delete(c.cacheID)
+
+		isDelete := true
+		c.data.cacheMap.Range(func(key, value interface{}) bool {
+			if value != nil {
+				c := value.(*Cache)
+				if c != nil {
+					isDelete = false
+				}
 			}
-		}
+
+			return true
+		})
 
 		if c.cacheID == rootCacheID {
 			rootCacheID = ""
 		}
 		// delete cache and update data info
-		err = persistent.GetDB().RemoveAndUpdateCacheInfo(c.cacheID, c.carfileCid, cacheIDs, rootCacheID, newCacheList, reliability)
+		err = persistent.GetDB().RemoveAndUpdateCacheInfo(c.cacheID, c.carfileCid, rootCacheID, isDelete, reliability)
 		if err == nil {
 			c.data.reliability = reliability
-			c.data.cacheIDs = cacheIDs
 			c.data.rootCacheID = rootCacheID
 		}
 	}

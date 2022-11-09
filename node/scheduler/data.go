@@ -1,8 +1,6 @@
 package scheduler
 
 import (
-	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/linguohua/titan/api"
@@ -17,7 +15,6 @@ type Data struct {
 	dataManager     *DataManager
 	cid             string
 	cacheMap        sync.Map
-	cacheIDs        string
 	reliability     int
 	needReliability int
 	totalSize       int
@@ -48,7 +45,6 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 	}
 	if dInfo != nil {
 		data := newData(nodeManager, dataManager, cid, 0)
-		data.cacheIDs = dInfo.CacheIDs
 		data.totalSize = dInfo.TotalSize
 		data.needReliability = dInfo.NeedReliability
 		data.reliability = dInfo.Reliability
@@ -56,7 +52,12 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 		data.rootCacheID = dInfo.RootCacheID
 		data.totalBlocks = dInfo.TotalBlocks
 
-		idList := strings.Split(dInfo.CacheIDs, ",")
+		idList, err := persistent.GetDB().GetCacheWhitData(cid)
+		if err != nil {
+			log.Warnf("loadData GetCacheWhitData err:%s", err.Error())
+			return data
+		}
+
 		for _, cacheID := range idList {
 			if cacheID == "" {
 				continue
@@ -127,10 +128,12 @@ func (d *Data) createCache() (*Cache, error) {
 
 func (d *Data) updateDataInfo(blockInfo *persistent.BlockInfo, fid string, info *api.CacheResultInfo, c *Cache, createBlocks []*persistent.BlockInfo) error {
 	if !d.haveRootCache() {
-		if info.Cid == d.cid {
-			d.totalSize = int(info.LinksSize) + info.BlockSize
-		}
-		d.totalBlocks += len(info.Links)
+		d.totalSize = c.totalSize
+		d.totalBlocks = c.totalBlocks
+		// if info.Cid == d.cid {
+		// 	d.totalSize = int(info.LinksSize) + info.BlockSize
+		// }
+		// d.totalBlocks += len(info.Links)
 		// isUpdate = true
 	}
 
@@ -155,12 +158,24 @@ func (d *Data) saveCacheingResults(cache *Cache, bInfo *persistent.BlockInfo, fi
 		Status:      int(cache.status),
 		DoneBlocks:  cache.doneBlocks,
 		Reliability: cache.reliability,
+		TotalSize:   cache.totalSize,
+		TotalBlocks: cache.totalBlocks,
 	}
 
 	return persistent.GetDB().SaveCacheingResults(dInfo, cInfo, bInfo, fid, createBlocks)
 }
 
 func (d *Data) saveCacheEndResults(cache *Cache) error {
+	cNodes, err := persistent.GetDB().GetDevicesFromCache(cache.cacheID)
+	if err != nil {
+		log.Warnf("saveCacheEndResults GetDevicesFromCache err:%s", err.Error())
+	}
+
+	dNodes, err := persistent.GetDB().GetDevicesFromData(cache.cacheID)
+	if err != nil {
+		log.Warnf("saveCacheEndResults GetDevicesFromData err:%s", err.Error())
+	}
+
 	dInfo := &persistent.DataInfo{
 		CID:         d.cid,
 		TotalSize:   d.totalSize,
@@ -168,6 +183,7 @@ func (d *Data) saveCacheEndResults(cache *Cache) error {
 		Reliability: d.reliability,
 		CacheCount:  d.cacheCount,
 		RootCacheID: d.rootCacheID,
+		Nodes:       dNodes,
 	}
 
 	cInfo := &persistent.CacheInfo{
@@ -178,6 +194,9 @@ func (d *Data) saveCacheEndResults(cache *Cache) error {
 		Status:      int(cache.status),
 		DoneBlocks:  cache.doneBlocks,
 		Reliability: cache.reliability,
+		TotalSize:   cache.totalSize,
+		TotalBlocks: cache.totalBlocks,
+		Nodes:       cNodes,
 	}
 
 	return persistent.GetDB().SaveCacheEndResults(dInfo, cInfo)
@@ -195,10 +214,8 @@ func (d *Data) startData() error {
 	}
 
 	d.cacheMap.Store(c.cacheID, c)
-	d.cacheIDs = fmt.Sprintf("%s%s,", d.cacheIDs, c.cacheID)
 
 	err = persistent.GetDB().CreateCache(
-		&persistent.DataInfo{CID: d.cid, CacheIDs: d.cacheIDs},
 		&persistent.CacheInfo{
 			CarfileID: c.carfileCid,
 			CacheID:   c.cacheID,

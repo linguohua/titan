@@ -15,7 +15,6 @@ type DB interface {
 	SetTaskToRunningList(cid, cacheID string) error
 	RemoveTaskWithRunningList(cid, cacheID string) error
 	GetTasksWithRunningList() ([]string, error)
-	// IsCidInRunningList(cid string) (bool, error)
 
 	SetRunningTask(cid, cacheID string) error
 	GetRunningTask(cid string) (string, error)
@@ -24,9 +23,6 @@ type DB interface {
 	SetWaitingCacheTask(info api.CacheDataInfo) error
 	GetWaitingCacheTask() (api.CacheDataInfo, error)
 	RemoveWaitingCacheTask() error
-
-	// IncrDataCacheKey(cacheID string) (int64, error)
-	// DeleteDataCache(cacheID string) error
 
 	IncrNodeCacheFid(deviceID string, num int) (int, error)
 	GetNodeCacheFid(deviceID string) (int64, error)
@@ -39,23 +35,12 @@ type DB interface {
 	GetNodesWithValidateingList() ([]string, error)
 	RemoveValidateingList() error
 
-	// RemoveNodeWithCacheList(deviceID, cid string) error
-	// SetNodeToCacheList(deviceID, cid string) error
-	// GetNodesWithCacheList(cid string) ([]string, error)
-
 	SetValidatorToList(deviceID string) error
 	GetValidatorsWithList() ([]string, error)
 	RemoveValidatorList() error
-	IsNodeInValidatorList(deviceID string) (bool, error)
 
 	IncrNodeOnlineTime(deviceID string, onlineTime float64) (float64, error)
 	IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error)
-
-	IncrCacheID(area string) (int64, error)
-
-	// SetCacheDataTask(cid, cacheID string) error
-	// RemoveCacheDataTask() error
-	// GetCacheDataTask() (string, string)
 
 	GetDeviceStat() (api.StateNetwork, error)
 	SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, error)
