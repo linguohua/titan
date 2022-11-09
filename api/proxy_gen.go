@@ -261,7 +261,7 @@ type SchedulerStruct struct {
 
 		QueryCachingBlocksWithNode func(p0 context.Context, p1 string) (CachingBlockList, error) `perm:"read"`
 
-		RegisterNode func(p0 context.Context, p1 NodeType) (NodeRegisterInfo, error) `perm:"admin"`
+		RegisterNode func(p0 context.Context, p1 NodeType) (NodeRegisterInfo, error) `perm:"read"`
 
 		RemoveCache func(p0 context.Context, p1 string, p2 string) (error) `perm:"admin"`
 

@@ -715,3 +715,16 @@ func (n *NodeManager) stateNetwork() error {
 	n.state = state
 	return nil
 }
+
+func (n *NodeManager) isDeviceExist(deviceID string, nodeType int) bool {
+	info, err := persistent.GetDB().GetRegisterInfo(deviceID)
+	if err != nil {
+		return false
+	}
+
+	if nodeType != 0 {
+		return info.NodeType == nodeType
+	}
+
+	return true
+}
