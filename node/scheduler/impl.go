@@ -98,14 +98,20 @@ type Scheduler struct {
 // EdgeNodeConnect edge connect
 func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string) (externalIP string, err error) {
 	ip := handler.GetRequestIP(ctx)
-	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
-	log.Infof("EdgeNodeConnect ip:%s,port:%d", ip, port)
+	deviceID := handler.GetDeviceID(ctx)
 
-	deviceID, err := verifySecret(token, api.NodeEdge)
-	if err != nil {
-		log.Errorf("EdgeNodeConnect verifySecret err:%s", err.Error())
-		return "", err
+	if !s.nodeManager.isDeviceExist(deviceID, int(api.NodeEdge)) {
+		return "", xerrors.Errorf("edge node not Exist: %s", deviceID)
 	}
+
+	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
+	log.Infof("EdgeNodeConnect %s ;ip:%s,port:%d", deviceID, ip, port)
+
+	// deviceID, err := verifySecret(token, api.NodeEdge)
+	// if err != nil {
+	// 	log.Errorf("EdgeNodeConnect verifySecret err:%s", err.Error())
+	// 	return "", err
+	// }
 
 	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
@@ -185,7 +191,16 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 
 // ValidateBlockResult Validate Block Result
 func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.ValidateResults) error {
-	err := s.validate.pushResultToQueue(&validateResults)
+	deviceID := handler.GetDeviceID(ctx)
+
+	if !s.nodeManager.isDeviceExist(deviceID, 0) {
+		return xerrors.Errorf("node not Exist: %s", deviceID)
+	}
+
+	vs := &validateResults
+	vs.DeviceID = deviceID
+
+	err := s.validate.pushResultToQueue(vs)
 	if err != nil {
 		log.Errorf("ValidateBlockResult err:%s", err.Error())
 	}
@@ -222,6 +237,12 @@ func (s *Scheduler) CacheContinue(ctx context.Context, cid, cacheID string) erro
 
 // CacheResult Cache Data Result
 func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
+	deviceID = handler.GetDeviceID(ctx)
+
+	if !s.nodeManager.isDeviceExist(deviceID, 0) {
+		return "", xerrors.Errorf("node not Exist: %s", deviceID)
+	}
+
 	// log.Warnf("CacheResult deviceID:%s ,cid:%s", deviceID, info.Cid)
 	err := s.dataManager.pushCacheResultToQueue(deviceID, &info)
 
@@ -532,14 +553,20 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string) (a
 // CandidateNodeConnect Candidate connect
 func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token string) (externalIP string, err error) {
 	ip := handler.GetRequestIP(ctx)
-	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
-	log.Infof("CandidateNodeConnect ip:%s,port:%d", ip, port)
+	deviceID := handler.GetDeviceID(ctx)
 
-	deviceID, err := verifySecret(token, api.NodeCandidate)
-	if err != nil {
-		log.Errorf("CandidateNodeConnect verifySecret err:%s", err.Error())
-		return "", err
+	if !s.nodeManager.isDeviceExist(deviceID, int(api.NodeCandidate)) {
+		return "", xerrors.Errorf("candidate node not Exist: %s", deviceID)
 	}
+
+	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
+	log.Infof("CandidateNodeConnect %s ;ip:%s,port:%d", deviceID, ip, port)
+
+	// deviceID, err := verifySecret(token, api.NodeCandidate)
+	// if err != nil {
+	// 	log.Errorf("CandidateNodeConnect verifySecret err:%s", err.Error())
+	// 	return "", err
+	// }
 
 	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
@@ -549,7 +576,6 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token st
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+string(t))
 	// Connect to scheduler
-	// log.Infof("EdgeNodeConnect edge url:%v", url)
 	candicateAPI, closer, err := client.NewCandicate(ctx, url, headers)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect NewCandicate err:%s,url:%s", err.Error(), url)
@@ -816,15 +842,24 @@ func dataToCacheDataInfo(d *Data) api.CacheDataInfo {
 
 // UpdateDownloadServerAccessAuth Update Access Auth
 func (s *Scheduler) UpdateDownloadServerAccessAuth(ctx context.Context, access api.DownloadServerAccessAuth) error {
-	cNode := s.nodeManager.getCandidateNode(access.DeviceID)
+	deviceID := handler.GetDeviceID(ctx)
+
+	if !s.nodeManager.isDeviceExist(deviceID, 0) {
+		return xerrors.Errorf("node not Exist: %s", deviceID)
+	}
+
+	info := &access
+	info.DeviceID = deviceID
+
+	cNode := s.nodeManager.getCandidateNode(info.DeviceID)
 	if cNode != nil {
-		return cNode.updateAccessAuth(&access)
+		return cNode.updateAccessAuth(info)
 	}
 
-	eNode := s.nodeManager.getEdgeNode(access.DeviceID)
+	eNode := s.nodeManager.getEdgeNode(info.DeviceID)
 	if eNode != nil {
-		return eNode.updateAccessAuth(&access)
+		return eNode.updateAccessAuth(info)
 	}
 
-	return xerrors.Errorf("%s :%s", ErrNodeNotFind, access.DeviceID)
+	return xerrors.Errorf("%s :%s", ErrNodeNotFind, info.DeviceID)
 }
