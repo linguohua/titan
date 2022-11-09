@@ -214,6 +214,11 @@ func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api
 
 // DownloadBlockResult user download block result
 func (s *Scheduler) DownloadBlockResult(ctx context.Context, stat api.DownloadStat) error {
+	deviceID := handler.GetDeviceID(ctx)
+
+	if !s.nodeManager.isDeviceExist(deviceID, 0) {
+		return xerrors.Errorf("node not Exist: %s", deviceID)
+	}
 	// TODO check cid
 
 	// add reward
