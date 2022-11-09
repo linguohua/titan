@@ -188,7 +188,6 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 
 	// notify locator
 	s.locatorManager.notifyNodeStatusToLocator(deviceID, true)
-	s.selector.NodeConnect(deviceID)
 
 	return ip, nil
 }
@@ -647,7 +646,6 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token st
 	// }
 
 	s.locatorManager.notifyNodeStatusToLocator(deviceID, true)
-	s.selector.NodeConnect(deviceID)
 
 	return ip, nil
 }
