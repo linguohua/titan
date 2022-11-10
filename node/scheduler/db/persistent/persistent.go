@@ -177,6 +177,7 @@ type BlockInfo struct {
 	Status      int    `db:"status"`
 	Size        int    `db:"size"`
 	Reliability int    `db:"reliability"`
+	CarfileID   string `db:"carfile_id"`
 }
 
 // ValidateStatus Validate Status

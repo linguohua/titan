@@ -51,6 +51,7 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 		data.cacheCount = dInfo.CacheCount
 		data.rootCacheID = dInfo.RootCacheID
 		data.totalBlocks = dInfo.TotalBlocks
+		data.nodes = dInfo.Nodes
 
 		idList, err := persistent.GetDB().GetCacheWhitData(cid)
 		if err != nil {
@@ -171,7 +172,7 @@ func (d *Data) saveCacheEndResults(cache *Cache) error {
 		log.Warnf("saveCacheEndResults GetDevicesFromCache err:%s", err.Error())
 	}
 
-	dNodes, err := persistent.GetDB().GetDevicesFromData(cache.cacheID)
+	dNodes, err := persistent.GetDB().GetDevicesFromData(d.cid)
 	if err != nil {
 		log.Warnf("saveCacheEndResults GetDevicesFromData err:%s", err.Error())
 	}
