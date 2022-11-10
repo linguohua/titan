@@ -66,6 +66,7 @@ CREATE TABLE `block_info_cn_gd_shenzhen` (
 	`cid` varchar(128) NOT NULL,
     `cache_id` varchar(64) NOT NULL ,
     `device_id` varchar(128) NOT NULL ,
+    `carfile_id` varchar(128) NOT NULL,
     `status` TINYINT  DEFAULT '0' ,
     `size` int(20)  DEFAULT '0' ,
 	`reliability` int(64) DEFAULT '0' ,
@@ -95,7 +96,7 @@ CREATE TABLE `block_download_info_cn_gd_shenzhen` (
 
 CREATE TABLE `register` (
     `id` int unsigned NOT NULL AUTO_INCREMENT,
-	`device_id` varchar(128) NOT NULL,
+	`device_id` varchar(128) NOT NULL UNIQUE,
     `secret` varchar(64) NOT NULL ,
     `create_time` varchar(64) DEFAULT '' ,
 	`node_type` varchar(64) DEFAULT '' ,

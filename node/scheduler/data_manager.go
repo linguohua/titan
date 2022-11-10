@@ -229,12 +229,33 @@ func (m *DataManager) startCacheData(cid string, reliability int) error {
 		return xerrors.Errorf("reliability is enough:%d/%d", data.reliability, data.needReliability)
 	}
 
-	err = data.startData()
-	if err != nil {
-		return err
+	// old cache
+	var unDoneCache *Cache
+	data.cacheMap.Range(func(key, value interface{}) bool {
+		c := value.(*Cache)
+
+		if c.status != cacheStatusSuccess {
+			unDoneCache = c
+			return true
+		}
+
+		return true
+	})
+
+	if unDoneCache != nil {
+		err = data.cacheContinue(unDoneCache.cacheID)
+		if err != nil {
+			err = xerrors.Errorf("cacheContinue err:%s", err.Error())
+		}
+	} else {
+		// create cache again
+		err = data.startData()
+		if err != nil {
+			err = xerrors.Errorf("startData err:%s", err.Error())
+		}
 	}
 
-	return nil
+	return err
 }
 
 func (m *DataManager) startCacheContinue(cid, cacheID string) error {

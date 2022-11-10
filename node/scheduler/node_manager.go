@@ -48,7 +48,7 @@ func newNodeManager(pool *ValidatePool, locatorManager *LocatorManager) *NodeMan
 		locatorManager: locatorManager,
 		// areaManager:   &AreaManager{},
 	}
-	
+
 	nodeManager.initKeepaliveTimewheel()
 
 	return nodeManager
@@ -325,6 +325,7 @@ func (m *NodeManager) findEdgeNodes(useDeviceIDs []string, filterDeviceIDs map[s
 		sort.Slice(list, func(i, j int) bool {
 			return list[i].deviceInfo.DeviceId > list[j].deviceInfo.DeviceId
 		})
+
 		return list
 	}
 

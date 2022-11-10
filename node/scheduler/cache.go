@@ -174,7 +174,9 @@ func (c *Cache) matchingNodeAndBlock(cids map[string]int, isHaveCache bool) ([]*
 	nodeCacheMap := make(map[string][]string)
 	blockList := make([]*persistent.BlockInfo, 0)
 
+	i := 0
 	for cid, dbID := range cids {
+		i++
 		status := cacheStatusFail
 		deviceID := ""
 
@@ -189,7 +191,7 @@ func (c *Cache) matchingNodeAndBlock(cids map[string]int, isHaveCache bool) ([]*
 				}
 			}
 
-			deviceID = c.findNode(isHaveCache, filterDeviceIDs, dbID)
+			deviceID = c.findNode(isHaveCache, filterDeviceIDs, i)
 			if deviceID != "" {
 				status = cacheStatusCreate
 
@@ -204,12 +206,13 @@ func (c *Cache) matchingNodeAndBlock(cids map[string]int, isHaveCache bool) ([]*
 		}
 
 		b := &persistent.BlockInfo{
-			CacheID:  c.cacheID,
-			CID:      cid,
-			DeviceID: deviceID,
-			Status:   int(status),
-			Size:     0,
-			ID:       dbID,
+			CacheID:   c.cacheID,
+			CID:       cid,
+			DeviceID:  deviceID,
+			Status:    int(status),
+			Size:      0,
+			ID:        dbID,
+			CarfileID: c.carfileCid,
 		}
 
 		blockList = append(blockList, b)
@@ -269,6 +272,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		Size:        info.BlockSize,
 		Status:      int(status),
 		Reliability: 1,
+		CarfileID:   c.carfileCid,
 	}
 
 	linkMap := make(map[string]int)

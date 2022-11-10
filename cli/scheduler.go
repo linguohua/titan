@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/linguohua/titan/api"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
@@ -30,6 +31,7 @@ var SchedulerCmds = []*cli.Command{
 	removeCarfileCmd,
 	removeCacheCmd,
 	showDatasInfoCmd,
+	nodeTokenCmd,
 }
 
 var (
@@ -99,6 +101,41 @@ var (
 		Value: 0,
 	}
 )
+
+var nodeTokenCmd = &cli.Command{
+	Name:  "node-token",
+	Usage: "get node token whit secret ",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "secret",
+			Usage: "node secret",
+			Value: "",
+		},
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		secret := cctx.String("secret")
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		os := []auth.Permission{api.PermRead, api.PermWrite}
+		info, err := schedulerAPI.AuthNodeNew(ctx, os, secret)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(string(info))
+		return nil
+	},
+}
 
 var registerNodeCmd = &cli.Command{
 	Name:  "register-node",
@@ -398,7 +435,7 @@ var showDataInfoCmd = &cli.Command{
 			}
 		}
 
-		fmt.Printf("Data CID:%s , Total Size:%d MB , Total Blocks:%d \n", info.Cid, info.TotalSize/(1024*1024), info.Blocks)
+		fmt.Printf("Data CID:%s , Total Size:%d MB , Total Blocks:%d , Nodes:%d \n", info.Cid, info.TotalSize/(1024*1024), info.Blocks, info.Nodes)
 		for _, cache := range info.CacheInfos {
 			fmt.Printf("TaskID:%s ,  Status:%s , Done Size:%d MB ,Done Blocks:%d , Nodes:%d\n",
 				cache.CacheID, statusToStr(cache.Status), cache.DoneSize/(1024*1024), cache.DoneBlocks, cache.Nodes)

@@ -303,7 +303,7 @@ func (sd sqlDB) SaveCacheEndResults(dInfo *DataInfo, cInfo *CacheInfo) error {
 
 	// data info
 	dCmd := fmt.Sprintf("UPDATE %s SET total_size=?,reliability=?,cache_count=?,root_cache_id=?,total_blocks=?,nodes=? WHERE cid=?", dTableName)
-	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.CacheCount, dInfo.RootCacheID, dInfo.TotalBlocks, cInfo.Nodes, dInfo.CID)
+	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.CacheCount, dInfo.RootCacheID, dInfo.TotalBlocks, dInfo.Nodes, dInfo.CID)
 
 	// cache info
 	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=?,total_size=?,total_blocks=?,nodes=? WHERE cache_id=? `, cTableName)
@@ -353,8 +353,8 @@ func (sd sqlDB) SaveCacheingResults(dInfo *DataInfo, cInfo *CacheInfo, updateBlo
 				cmd := fmt.Sprintf(`UPDATE %s SET status=?,size=?,reliability=?,device_id=? WHERE id=?`, bTableName)
 				tx.MustExec(cmd, info.Status, info.Size, info.Reliability, info.DeviceID, info.ID)
 			} else {
-				cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, cid, device_id, status, size, reliability) VALUES (?, ?, ?, ?, ?, ?)`, bTableName)
-				tx.MustExec(cmd, info.CacheID, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability)
+				cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_id, cid, device_id, status, size, reliability) VALUES (?, ?, ?, ?, ?, ?, ?)`, bTableName)
+				tx.MustExec(cmd, info.CacheID, info.CarfileID, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability)
 			}
 		}
 	}
@@ -521,8 +521,8 @@ func (sd sqlDB) SetBlockInfos(infos []*BlockInfo, carfileCid string) error {
 			// cmd1 := fmt.Sprintf(`UPDATE %s SET device_id=? WHERE cid=? AND cache_id=? AND carfile_id=?,`, fmt.Sprintf(deviceBlockTable, area))
 			// tx.MustExec(cmd1, info.DeviceID, info.CID, info.CacheID, carfileCid)
 		} else {
-			cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, cid, device_id, status, size, reliability) VALUES (?, ?, ?, ?, ?, ?)`, tableName)
-			tx.MustExec(cmd, info.CacheID, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability)
+			cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_id, cid, device_id, status, size, reliability) VALUES (?, ?, ?, ?, ?, ?, ?)`, tableName)
+			tx.MustExec(cmd, info.CacheID, info.CarfileID, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability)
 
 			// cmd1 := fmt.Sprintf(`INSERT INTO %s (cid, fid, cache_id, carfile_id, device_id) VALUES (?, ?, ?, ?, ?)`, fmt.Sprintf(deviceBlockTable, area))
 			// tx.MustExec(cmd1, info.CID, "", info.CacheID, carfileCid, info.DeviceID)
@@ -744,10 +744,11 @@ func (sd sqlDB) ReplaceArea() string {
 
 func (sd sqlDB) GetDevicesFromData(cid string) (int, error) {
 	area := sd.ReplaceArea()
-	// select DISTINCT size from block_info_cn_gd_shenzhen where cache_id='cn_gd_shenzhen_cache_1';
-	i := &BlockInfo{CID: cid}
 
-	cmd := fmt.Sprintf("SELECT DISTINCT device_id FROM %s WHERE cid=:cid", fmt.Sprintf(blockInfoTable, area))
+	i := &BlockInfo{CarfileID: cid}
+
+	cmd := fmt.Sprintf("SELECT DISTINCT device_id FROM %s WHERE carfile_id=:carfile_id", fmt.Sprintf(blockInfoTable, area))
+
 	rows, err := sd.cli.NamedQuery(cmd, i)
 	if err != nil {
 		return 0, err
@@ -768,7 +769,7 @@ func (sd sqlDB) GetDevicesFromData(cid string) (int, error) {
 
 func (sd sqlDB) GetDevicesFromCache(cacheID string) (int, error) {
 	area := sd.ReplaceArea()
-	// select DISTINCT size from block_info_cn_gd_shenzhen where cache_id='cn_gd_shenzhen_cache_1';
+
 	i := &BlockInfo{CacheID: cacheID}
 
 	cmd := fmt.Sprintf("SELECT DISTINCT device_id FROM %s WHERE cache_id=:cache_id", fmt.Sprintf(blockInfoTable, area))
