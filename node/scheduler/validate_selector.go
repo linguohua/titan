@@ -360,8 +360,19 @@ func (v *ValidateSelector) GenerateValidation() map[string][]string {
 	candidates := v.getAllCandidates()
 	allNodes := v.getAllNode()
 
-	sort.Slice(allNodes, func(i, j int) bool {
-		return allNodes[i].deviceInfo.BandwidthUp > allNodes[j].deviceInfo.BandwidthUp
+	var validations []*Node
+	for _, node := range allNodes {
+		v.vlk.RLock()
+		_, ok := v.validators[node.deviceInfo.DeviceId]
+		v.vlk.RUnlock()
+		if ok {
+			continue
+		}
+		validations = append(validations, node)
+	}
+
+	sort.Slice(validations, func(i, j int) bool {
+		return validations[i].deviceInfo.BandwidthUp > validations[j].deviceInfo.BandwidthUp
 	})
 
 	var currentValidators []*CandidateNode
@@ -381,34 +392,34 @@ func (v *ValidateSelector) GenerateValidation() map[string][]string {
 
 	out := make(map[string][]string)
 
-	minBandwidthUp := allNodes[len(allNodes)-1].deviceInfo.BandwidthUp
+	minBandwidthUp := validations[len(validations)-1].deviceInfo.BandwidthUp
 	for _, candidate := range currentValidators {
 		var skips []*Node
 		bandwidth := candidate.deviceInfo.BandwidthDown
-		for i := 0; i < len(allNodes); i++ {
-			if candidate.deviceInfo.BandwidthDown < allNodes[i].deviceInfo.BandwidthUp {
-				skips = append(skips, allNodes[i])
+		for i := 0; i < len(validations); i++ {
+			if candidate.deviceInfo.BandwidthDown < validations[i].deviceInfo.BandwidthUp {
+				skips = append(skips, validations[i])
 				continue
 			}
-			if bandwidth < allNodes[i].deviceInfo.BandwidthUp {
-				skips = append(skips, allNodes[i])
+			if bandwidth < validations[i].deviceInfo.BandwidthUp {
+				skips = append(skips, validations[i])
 				continue
 			}
 			if bandwidth < minBandwidthUp {
-				skips = append(skips, allNodes[i:]...)
+				skips = append(skips, validations[i:]...)
 				break
 			}
-			bandwidth = bandwidth - allNodes[i].deviceInfo.BandwidthUp
+			bandwidth = bandwidth - validations[i].deviceInfo.BandwidthUp
 			if _, ok := out[candidate.deviceInfo.DeviceId]; !ok {
 				out[candidate.deviceInfo.DeviceId] = make([]string, 0)
 			}
-			out[candidate.deviceInfo.DeviceId] = append(out[candidate.deviceInfo.DeviceId], allNodes[i].deviceInfo.DeviceId)
+			out[candidate.deviceInfo.DeviceId] = append(out[candidate.deviceInfo.DeviceId], validations[i].deviceInfo.DeviceId)
 		}
-		allNodes = skips
+		validations = skips
 	}
 
-	if len(allNodes) > 0 {
-		log.Errorf("GenerateValidation remain nodes: %d", len(allNodes))
+	if len(validations) > 0 {
+		log.Errorf("GenerateValidation remain nodes: %d", len(validations))
 	}
 
 	return out
