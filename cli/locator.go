@@ -29,7 +29,7 @@ var addCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:  "area-id",
 			Usage: "area id",
-			Value: "sz",
+			Value: "CN-GD-Shenzhen",
 		},
 		&cli.StringFlag{
 			Name:  "url",
@@ -38,7 +38,7 @@ var addCmd = &cli.Command{
 		},
 		&cli.Float64Flag{
 			Name:  "weight",
-			Usage: "block file id",
+			Usage: "range 0~1000",
 			Value: 100,
 		},
 		&cli.StringFlag{
@@ -78,7 +78,7 @@ var removeCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:  "area-id",
 			Usage: "area id",
-			Value: "sz",
+			Value: "CN-GD-Shenzhen",
 		},
 	},
 
@@ -136,7 +136,7 @@ var infoCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:  "area-id",
 			Usage: "area id",
-			Value: "sz",
+			Value: "CN-GD-Shenzhen",
 		},
 	},
 
