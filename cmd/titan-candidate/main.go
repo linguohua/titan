@@ -473,14 +473,13 @@ func extractRoutableIP(cctx *cli.Context) (string, error) {
 }
 
 func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (api.Scheduler, jsonrpc.ClientCloser, error) {
-	log.Infof("newSchedulerAPI...")
 	locator, closer, err := lcli.GetLocatorAPI(cctx)
 	if err != nil {
 		log.Errorf("%s", err.Error())
 		return nil, nil, err
 	}
 	defer closer()
-	log.Infof("GetLocatorAPI success")
+
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -488,22 +487,23 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (ap
 	if err != nil {
 		return nil, nil, err
 	}
-	log.Infof("GetAccessPoints success")
 
 	if len(auths) <= 0 {
 		return nil, nil, fmt.Errorf("device %s not exist access point", deviceID)
 	}
 
 	auth := auths[0]
-	log.Infof("newSchedulerAPI url:%s", auth.URL)
 
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+string(auth.AccessToken))
+	headers.Add("Device-ID", deviceID)
 
 	schedulerAPI, closer, err := client.NewScheduler(ctx, auth.URL, headers)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	log.Infof("scheduler url:%s, token:%s", auth.URL, auth.AccessToken)
 
 	os.Setenv("FULLNODE_API_INFO", auth.AccessToken+":"+auth.URL)
 	return schedulerAPI, closer, nil
