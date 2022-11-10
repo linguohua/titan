@@ -177,6 +177,7 @@ func (d *Data) saveCacheEndResults(cache *Cache) error {
 		log.Warnf("saveCacheEndResults GetDevicesFromData err:%s", err.Error())
 	}
 
+	d.nodes = dNodes
 	dInfo := &persistent.DataInfo{
 		CID:         d.cid,
 		TotalSize:   d.totalSize,
@@ -184,9 +185,10 @@ func (d *Data) saveCacheEndResults(cache *Cache) error {
 		Reliability: d.reliability,
 		CacheCount:  d.cacheCount,
 		RootCacheID: d.rootCacheID,
-		Nodes:       dNodes,
+		Nodes:       d.nodes,
 	}
 
+	cache.nodes = cNodes
 	cInfo := &persistent.CacheInfo{
 		// ID:          cache.dbID,
 		CarfileID:   cache.carfileCid,
@@ -197,7 +199,7 @@ func (d *Data) saveCacheEndResults(cache *Cache) error {
 		Reliability: cache.reliability,
 		TotalSize:   cache.totalSize,
 		TotalBlocks: cache.totalBlocks,
-		Nodes:       cNodes,
+		Nodes:       cache.nodes,
 	}
 
 	return persistent.GetDB().SaveCacheEndResults(dInfo, cInfo)
