@@ -1,12 +1,13 @@
 package scheduler
 
 import (
-	"context"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/lib/token"
+	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/ouqiang/timewheel"
@@ -496,30 +497,33 @@ func (m *NodeManager) updateLastRequestTime(deviceID string) {
 }
 
 // getNodeURLWithData find device
-func (m *NodeManager) findNodeDownloadInfo(cid string) (api.DownloadInfo, error) {
-	var downloadInfo api.DownloadInfo
+func (m *NodeManager) findNodeDownloadInfos(cid string) ([]api.DownloadInfo, error) {
+	infos := make([]api.DownloadInfo, 0)
+
 	deviceIDs, err := persistent.GetDB().GetNodesWithCacheList(cid)
 	if err != nil {
-		return downloadInfo, err
+		return nil, err
 	}
 
 	if len(deviceIDs) <= 0 {
-		return downloadInfo, xerrors.Errorf("%s , whit cid:%s", ErrNodeNotFind, cid)
+		return nil, xerrors.Errorf("%s , with cid:%s", ErrNodeNotFind, cid)
 	}
 
-	nodeEs := m.findEdgeNodes(deviceIDs, nil)
-	if nodeEs != nil {
-		node := nodeEs[randomNum(0, len(nodeEs))]
-		return node.nodeAPI.GetDownloadInfo(context.Background())
+	for _, deviceID := range deviceIDs {
+		info, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
+		if err != nil {
+			continue
+		}
+
+		tk, err := token.GenerateToken(info.SecurityKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
+		if err != nil {
+			continue
+		}
+
+		infos = append(infos, api.DownloadInfo{URL: info.URL, Token: tk})
 	}
 
-	nodeCs := m.findCandidateNodes(deviceIDs, nil)
-	if nodeCs != nil {
-		node := nodeCs[randomNum(0, len(nodeCs))]
-		return node.nodeAPI.GetDownloadInfo(context.Background())
-	}
-
-	return downloadInfo, xerrors.Errorf("%s , whit cid:%s", ErrNodeNotFind, cid)
+	return infos, xerrors.Errorf("%s , with cid:%s", ErrNodeNotFind, cid)
 }
 
 // getCandidateNodesWithData find device
@@ -531,7 +535,7 @@ func (m *NodeManager) getCandidateNodesWithData(cid string) ([]*CandidateNode, e
 	// log.Infof("getCandidateNodesWithData deviceIDs : %v", deviceIDs)
 
 	if len(deviceIDs) <= 0 {
-		return nil, xerrors.Errorf("%s , whit cid:%s", ErrNodeNotFind, cid)
+		return nil, xerrors.Errorf("%s , with cid:%s", ErrNodeNotFind, cid)
 	}
 
 	nodeCs := m.findCandidateNodes(deviceIDs, nil)

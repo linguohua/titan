@@ -34,7 +34,6 @@ CREATE TABLE `validate_err` (
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='validate error device';
   
 CREATE TABLE `data_info_cn_gd_shenzhen` (
-    `id` int unsigned NOT NULL AUTO_INCREMENT,
 	`cid` varchar(128) NOT NULL UNIQUE,
     `status` TINYINT  DEFAULT '0' ,
     `total_size` int  DEFAULT '0' ,
@@ -44,25 +43,25 @@ CREATE TABLE `data_info_cn_gd_shenzhen` (
     `root_cache_id` varchar(64)  DEFAULT '' ,
     `total_blocks` int  DEFAULT '0' ,
     `nodes` int  DEFAULT '0' ,
-	PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='data infos';
+	PRIMARY KEY (`cid`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='data infos';
 
 CREATE TABLE `cache_info_cn_gd_shenzhen` (
-    `id` int unsigned NOT NULL AUTO_INCREMENT,
-	`carfile_id` varchar(128) NOT NULL,
     `cache_id` varchar(64) NOT NULL UNIQUE,
+	`carfile_id` varchar(128) NOT NULL,
     `status` TINYINT  DEFAULT '0' ,
     `done_size` int  DEFAULT '0' ,
     `done_blocks` int  DEFAULT '0' ,
 	`reliability` TINYINT DEFAULT '0' ,
     `total_size` int  DEFAULT '0' ,
     `total_blocks` int  DEFAULT '0' ,
+    `remove_blocks` int  DEFAULT '0' ,
     `nodes` int  DEFAULT '0' ,
-	PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='cache infos';
+	PRIMARY KEY (`cache_id`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='cache infos';
 
 CREATE TABLE `block_info_cn_gd_shenzhen` (
-    `id` int unsigned NOT NULL AUTO_INCREMENT,
+    `id` varchar(64) NOT NULL UNIQUE,
 	`cid` varchar(128) NOT NULL,
     `cache_id` varchar(64) NOT NULL ,
     `device_id` varchar(128) NOT NULL ,
@@ -71,17 +70,15 @@ CREATE TABLE `block_info_cn_gd_shenzhen` (
     `size` int(20)  DEFAULT '0' ,
 	`reliability` int(64) DEFAULT '0' ,
 	PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='block infos';
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='block infos';
 
 CREATE TABLE `device_blocks_cn_gd_shenzhen` (
-    `id` int unsigned NOT NULL AUTO_INCREMENT,
 	`cid` varchar(128) NOT NULL,
     `device_id` varchar(128) NOT NULL ,
     `fid` varchar(18) NOT NULL ,
     `carfile_id` varchar(128) NOT NULL,
-    `cache_id` varchar(64) NOT NULL,
-	PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='device blocks';
+    `cache_id` varchar(64) NOT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='device blocks';
 
 CREATE TABLE `block_download_info_cn_gd_shenzhen` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -102,3 +99,4 @@ CREATE TABLE `register` (
 	`node_type` varchar(64) DEFAULT '' ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='register';
+

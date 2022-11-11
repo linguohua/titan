@@ -500,21 +500,16 @@ func (s *Scheduler) GetDownloadInfosWithBlocks(ctx context.Context, cids []strin
 		return nil, xerrors.New("cids is nil")
 	}
 
-	// geoInfo, err := region.GetRegion().GetGeoInfo(ip)
-	// if err != nil {
-	// 	log.Warnf("getNodeURLWithData GetGeoInfo err:%s,ip:%s", err.Error(), ip)
-	// }
-
 	infoMap := make(map[string][]api.DownloadInfo)
 
-	// for _, cid := range cids {
-	// info, err := s.nodeManager.findNodeDownloadInfo(cid)
-	// if err != nil {
-	// 	continue
-	// }
+	for _, cid := range cids {
+		infos, err := s.nodeManager.findNodeDownloadInfos(cid)
+		if err != nil {
+			continue
+		}
 
-	// infoMap[cid] = info
-	// }
+		infoMap[cid] = infos
+	}
 
 	return infoMap, nil
 }
@@ -525,18 +520,15 @@ func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string
 		return nil, xerrors.New("cids is nil")
 	}
 
-	// geoInfo, err := region.GetRegion().GetGeoInfo(ip)
-	// if err != nil {
-	// 	log.Warnf("getNodeURLWithData GetGeoInfo err:%s,ip:%s", err.Error(), ip)
-	// }
-
 	infoMap := make(map[string]api.DownloadInfo)
 
 	for _, cid := range cids {
-		info, err := s.nodeManager.findNodeDownloadInfo(cid)
+		infos, err := s.nodeManager.findNodeDownloadInfos(cid)
 		if err != nil {
 			continue
 		}
+
+		info := infos[randomNum(0, len(infos))]
 
 		infoMap[cid] = info
 	}
@@ -550,12 +542,12 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string) (a
 		return api.DownloadInfo{}, xerrors.New("cids is nil")
 	}
 
-	// geoInfo, err := region.GetRegion().GetGeoInfo(ip)
-	// if err != nil {
-	// 	log.Warnf("getNodeURLWithData GetGeoInfo err:%s,ip:%s", err.Error(), ip)
-	// }
+	infos, err := s.nodeManager.findNodeDownloadInfos(cid)
+	if err != nil {
+		return api.DownloadInfo{}, err
+	}
 
-	return s.nodeManager.findNodeDownloadInfo(cid)
+	return infos[randomNum(0, len(infos))], nil
 }
 
 // CandidateNodeConnect Candidate connect

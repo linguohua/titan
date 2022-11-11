@@ -104,7 +104,7 @@ var (
 
 var nodeTokenCmd = &cli.Command{
 	Name:  "node-token",
-	Usage: "get node token whit secret ",
+	Usage: "get node token with secret ",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "secret",
