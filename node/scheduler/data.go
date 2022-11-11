@@ -53,9 +53,9 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 		data.totalBlocks = dInfo.TotalBlocks
 		data.nodes = dInfo.Nodes
 
-		idList, err := persistent.GetDB().GetCacheWhitData(cid)
+		idList, err := persistent.GetDB().GetCacheWithData(cid)
 		if err != nil {
-			log.Warnf("loadData GetCacheWhitData err:%s", err.Error())
+			log.Warnf("loadData GetCacheWithData err:%s", err.Error())
 			return data
 		}
 
@@ -161,20 +161,21 @@ func (d *Data) saveCacheingResults(cache *Cache, bInfo *persistent.BlockInfo, fi
 		Reliability: cache.reliability,
 		TotalSize:   cache.totalSize,
 		TotalBlocks: cache.totalBlocks,
+		// RemoveBlocks: cache.removeBlocks,
 	}
 
 	return persistent.GetDB().SaveCacheingResults(dInfo, cInfo, bInfo, fid, createBlocks)
 }
 
 func (d *Data) saveCacheEndResults(cache *Cache) error {
-	cNodes, err := persistent.GetDB().GetDevicesFromCache(cache.cacheID)
+	cNodes, err := persistent.GetDB().GetNodesFromCache(cache.cacheID)
 	if err != nil {
-		log.Warnf("saveCacheEndResults GetDevicesFromCache err:%s", err.Error())
+		log.Warnf("saveCacheEndResults GetNodesFromCache err:%s", err.Error())
 	}
 
-	dNodes, err := persistent.GetDB().GetDevicesFromData(d.cid)
+	dNodes, err := persistent.GetDB().GetNodesFromData(d.cid)
 	if err != nil {
-		log.Warnf("saveCacheEndResults GetDevicesFromData err:%s", err.Error())
+		log.Warnf("saveCacheEndResults GetNodesFromData err:%s", err.Error())
 	}
 
 	d.nodes = dNodes
@@ -229,7 +230,7 @@ func (d *Data) startData() error {
 	}
 	// c.dbID = id
 
-	return c.startCache(map[string]int{c.carfileCid: 0}, d.haveRootCache())
+	return c.startCache(map[string]string{c.carfileCid: ""}, d.haveRootCache())
 }
 
 func (d *Data) endData(c *Cache) (err error) {

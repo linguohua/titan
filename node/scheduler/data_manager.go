@@ -152,9 +152,9 @@ func (m *DataManager) checkTaskTimeout(cid, cacheID string) {
 
 		c := value.(*Cache)
 
-		unDoneBlocks, err := persistent.GetDB().GetBloackCountWhitStatus(c.cacheID, int(cacheStatusCreate))
+		unDoneBlocks, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusCreate))
 		if err != nil {
-			log.Errorf("checkTaskTimeout %s,%s GetBloackCountWhitStatus err:%s", c.carfileCid, c.cacheID, err.Error())
+			log.Errorf("checkTaskTimeout %s,%s GetBloackCountWithStatus err:%s", c.carfileCid, c.cacheID, err.Error())
 			return
 		}
 

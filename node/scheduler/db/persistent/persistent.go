@@ -27,23 +27,24 @@ type DB interface {
 	SetDataInfo(info *DataInfo) error
 	GetDataInfo(cid string) (*DataInfo, error)
 	GetDataCidWithPage(page int) (count int, totalPage int, list []string, err error)
-	GetCacheWhitData(cid string) ([]string, error)
+	GetCacheWithData(cid string) ([]string, error)
 
 	// cache info
-	GetCacheInfo(cacheID, carfileID string) (*CacheInfo, error)
+	GetCacheInfo(cacheID string) (*CacheInfo, error)
 	RemoveAndUpdateCacheInfo(cacheID, carfileID, rootCacheID string, isDeleteData bool, reliability int) error
+	GetCachesSize(cacheID string, status int) (int, error)
 
 	// block info
 	SetBlockInfos(infos []*BlockInfo, carfileCid string) error
 	GetBlockInfo(cacheID, cid, deviceID string) (*BlockInfo, error)
-	GetBloackCountWhitStatus(cacheID string, status int) (int, error)
-	GetUndoneBlocks(cacheID string) (map[string]int, error)
+	GetBloackCountWithStatus(cacheID string, status int) (int, error)
+	GetUndoneBlocks(cacheID string) (map[string]string, error)
 	GetAllBlocks(cacheID string) (map[string][]string, error)
-	GetDevicesFromCache(cacheID string) (int, error)
-	GetDevicesFromData(cid string) (int, error)
+	GetNodesFromCache(cacheID string) (int, error)
+	GetNodesFromData(cid string) (int, error)
 
 	// node block
-	DeleteBlockInfos(carfileID, cacheID, deviceID string, cids []string) error
+	DeleteBlockInfos(cacheID, deviceID string, cids []string, removeBlocks int) error
 	GetBlocksFID(deviceID string) (map[string]string, error)
 	GetDeviceBlockNum(deviceID string) (int64, error)
 	GetNodesWithCacheList(cid string) ([]string, error)
@@ -125,7 +126,6 @@ type ValidateResult struct {
 
 // NodeBlocks Node Block
 type NodeBlocks struct {
-	ID        int
 	DeviceID  string `db:"device_id"`
 	FID       string `db:"fid"`
 	CID       string `db:"cid"`
@@ -142,7 +142,6 @@ type NodeBlocks struct {
 
 // DataInfo Data info
 type DataInfo struct {
-	ID              int
 	CID             string `db:"cid"`
 	Status          int    `db:"status"`
 	Reliability     int    `db:"reliability"`
@@ -156,21 +155,21 @@ type DataInfo struct {
 
 // CacheInfo Data Block info
 type CacheInfo struct {
-	ID          int
-	CarfileID   string `db:"carfile_id"`
-	CacheID     string `db:"cache_id"`
-	Status      int    `db:"status"`
-	Reliability int    `db:"reliability"`
-	DoneSize    int    `db:"done_size"`
-	DoneBlocks  int    `db:"done_blocks"`
-	TotalSize   int    `db:"total_size"`
-	TotalBlocks int    `db:"total_blocks"`
-	Nodes       int    `db:"nodes"`
+	CarfileID    string `db:"carfile_id"`
+	CacheID      string `db:"cache_id"`
+	Status       int    `db:"status"`
+	Reliability  int    `db:"reliability"`
+	DoneSize     int    `db:"done_size"`
+	DoneBlocks   int    `db:"done_blocks"`
+	TotalSize    int    `db:"total_size"`
+	TotalBlocks  int    `db:"total_blocks"`
+	RemoveBlocks int    `db:"remove_blocks"`
+	Nodes        int    `db:"nodes"`
 }
 
 // BlockInfo Data Block info
 type BlockInfo struct {
-	ID          int
+	ID          string
 	CacheID     string `db:"cache_id"`
 	CID         string `db:"cid"`
 	DeviceID    string `db:"device_id"`
@@ -178,6 +177,7 @@ type BlockInfo struct {
 	Size        int    `db:"size"`
 	Reliability int    `db:"reliability"`
 	CarfileID   string `db:"carfile_id"`
+	IsUpdate    bool
 }
 
 // ValidateStatus Validate Status
