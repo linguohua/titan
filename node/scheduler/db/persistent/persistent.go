@@ -154,7 +154,7 @@ type DataInfo struct {
 	TotalBlocks     int       `db:"total_blocks"`
 	Nodes           int       `db:"nodes"`
 	ExpiredTime     time.Time `db:"expired_time"`
-	CreateTime      time.Time `db:"create_time"`
+	CreateTime      time.Time `db:"created_time"`
 }
 
 // CacheInfo Data Block info
@@ -170,7 +170,7 @@ type CacheInfo struct {
 	RemoveBlocks int       `db:"remove_blocks"`
 	Nodes        int       `db:"nodes"`
 	ExpiredTime  time.Time `db:"expired_time"`
-	CreateTime   time.Time `db:"create_time"`
+	CreateTime   time.Time `db:"created_time"`
 }
 
 // BlockInfo Data Block info

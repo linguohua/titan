@@ -34,6 +34,8 @@ var (
 
 // InitSQL init sql
 func InitSQL(url string) (DB, error) {
+	url = fmt.Sprintf("%s?parseTime=true", url)
+
 	db := &sqlDB{url: url}
 	database, err := sqlx.Open("mysql", url)
 	if err != nil {
@@ -225,7 +227,7 @@ func (sd sqlDB) GetDeviceBlockNum(deviceID string) (int64, error) {
 	area := sd.ReplaceArea()
 
 	var count int64
-	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE device_id=? ;", fmt.Sprintf(deviceBlockTable, area))
+	cmd := fmt.Sprintf("SELECT count(*) FROM %s WHERE device_id=? ;", fmt.Sprintf(deviceBlockTable, area))
 	err := sd.cli.Get(&count, cmd, deviceID)
 
 	return count, err
@@ -419,7 +421,7 @@ func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []s
 	area := sd.ReplaceArea()
 	p := 20
 
-	cmd := fmt.Sprintf("SELECT count(id) FROM %s ;", fmt.Sprintf(dataInfoTable, area))
+	cmd := fmt.Sprintf("SELECT count(cid) FROM %s ;", fmt.Sprintf(dataInfoTable, area))
 	err = sd.cli.Get(&count, cmd)
 	if err != nil {
 		return
@@ -435,7 +437,9 @@ func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []s
 		return
 	}
 
-	cmd = fmt.Sprintf("SELECT * FROM %s WHERE id>=(SELECT id FROM %s order by id limit %d,1) LIMIT %d", fmt.Sprintf(dataInfoTable, area), fmt.Sprintf(dataInfoTable, area), (p * (page - 1)), p)
+	// select * from table order by id limit m, n;
+	// cmd = fmt.Sprintf("SELECT * FROM %s WHERE id>=(SELECT id FROM %s order by id limit %d,1) LIMIT %d", fmt.Sprintf(dataInfoTable, area), fmt.Sprintf(dataInfoTable, area), (p * (page - 1)), p)
+	cmd = fmt.Sprintf("SELECT cid FROM %s LIMIT %d,%d", fmt.Sprintf(dataInfoTable, area), (p * (page - 1)), p)
 	rows, err := sd.cli.Queryx(cmd)
 	if err != nil {
 		return
@@ -446,6 +450,7 @@ func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []s
 	for rows.Next() {
 		info := &DataInfo{}
 		err := rows.StructScan(info)
+
 		if err == nil {
 			list = append(list, info.CID)
 		}
