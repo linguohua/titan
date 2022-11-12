@@ -91,13 +91,13 @@ func (sd sqlDB) GetNodeAuthInfo(deviceID string) (*api.DownloadServerAccessAuth,
 func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
 	info.DeviceID = deviceID
 	info.ServerName = serverName
-	info.CreateTime = time.Now().Format("2006-01-02 15:04:05")
+	// info.CreateTime = time.Now().Format("2006-01-02 15:04:05")
 
 	_, err := sd.GetNodeInfo(deviceID)
 	if err != nil {
 		if sd.IsNilErr(err) {
-			_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address, server_name, create_time)
-                VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address, :server_name, :create_time)`, info)
+			_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address, server_name)
+                VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address, :server_name)`, info)
 		}
 		return err
 	}
@@ -273,8 +273,8 @@ func (sd sqlDB) CreateCache(cInfo *CacheInfo) error {
 	tx := sd.cli.MustBegin()
 
 	// cache info
-	cCmd := fmt.Sprintf("INSERT INTO %s (carfile_id, cache_id, status) VALUES (?, ?, ?)", cTableName)
-	tx.MustExec(cCmd, cInfo.CarfileID, cInfo.CacheID, cInfo.Status)
+	cCmd := fmt.Sprintf("INSERT INTO %s (carfile_id, cache_id, status, expired_time) VALUES (?, ?, ?, ?)", cTableName)
+	tx.MustExec(cCmd, cInfo.CarfileID, cInfo.CacheID, cInfo.Status, cInfo.ExpiredTime)
 
 	// data info
 	// dCmd := fmt.Sprintf("UPDATE %s SET cache_ids=? WHERE cid=?", dTableName)
@@ -378,13 +378,13 @@ func (sd sqlDB) SetDataInfo(info *DataInfo) error {
 	}
 
 	if oldInfo == nil {
-		cmd := fmt.Sprintf("INSERT INTO %s (cid, status, need_reliability, total_blocks) VALUES (:cid, :status, :need_reliability, :total_blocks)", tableName)
+		cmd := fmt.Sprintf("INSERT INTO %s (cid, status, need_reliability, total_blocks, expired_time) VALUES (:cid, :status, :need_reliability, :total_blocks, :expired_time)", tableName)
 		_, err = sd.cli.NamedExec(cmd, info)
 		return err
 	}
 
 	// update
-	cmd := fmt.Sprintf("UPDATE %s SET status=:status,total_size=:total_size,reliability=:reliability,cache_count=:cache_count,root_cache_id=:root_cache_id,total_blocks=:total_blocks WHERE cid=:cid", tableName)
+	cmd := fmt.Sprintf("UPDATE %s SET expired_time=:expired_time,status=:status,total_size=:total_size,reliability=:reliability,cache_count=:cache_count,root_cache_id=:root_cache_id,total_blocks=:total_blocks WHERE cid=:cid", tableName)
 	_, err = sd.cli.NamedExec(cmd, info)
 
 	return err
