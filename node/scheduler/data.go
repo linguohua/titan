@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"sync"
+	"time"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
@@ -22,6 +23,7 @@ type Data struct {
 	rootCacheID     string
 	totalBlocks     int
 	nodes           int
+	expiredTime     time.Time
 }
 
 func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, reliability int) *Data {
@@ -52,6 +54,7 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 		data.rootCacheID = dInfo.RootCacheID
 		data.totalBlocks = dInfo.TotalBlocks
 		data.nodes = dInfo.Nodes
+		data.expiredTime = dInfo.ExpiredTime
 
 		idList, err := persistent.GetDB().GetCacheWithData(cid)
 		if err != nil {
@@ -221,9 +224,10 @@ func (d *Data) startData() error {
 
 	err = persistent.GetDB().CreateCache(
 		&persistent.CacheInfo{
-			CarfileID: c.carfileCid,
-			CacheID:   c.cacheID,
-			Status:    int(c.status),
+			CarfileID:   c.carfileCid,
+			CacheID:     c.cacheID,
+			Status:      int(c.status),
+			ExpiredTime: d.expiredTime,
 		})
 	if err != nil {
 		return err

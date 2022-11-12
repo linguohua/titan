@@ -1,6 +1,8 @@
 package persistent
 
 import (
+	"time"
+
 	"github.com/linguohua/titan/api"
 	"golang.org/x/xerrors"
 )
@@ -99,16 +101,16 @@ func GetDB() DB {
 // NodeInfo base info
 type NodeInfo struct {
 	ID          int
-	DeviceID    string `db:"device_id"`
-	LastTime    string `db:"last_time"`
-	Geo         string `db:"geo"`
-	IsOnline    int    `db:"is_online"`
-	NodeType    string `db:"node_type"`
-	Address     string `db:"address"`
-	ServerName  string `db:"server_name"`
-	CreateTime  string `db:"create_time"`
-	URL         string `db:"url"`
-	SecurityKey string `db:"security"`
+	DeviceID    string    `db:"device_id"`
+	LastTime    string    `db:"last_time"`
+	Geo         string    `db:"geo"`
+	IsOnline    int       `db:"is_online"`
+	NodeType    string    `db:"node_type"`
+	Address     string    `db:"address"`
+	ServerName  string    `db:"server_name"`
+	CreateTime  time.Time `db:"create_time"`
+	URL         string    `db:"url"`
+	SecurityKey string    `db:"security"`
 }
 
 // ValidateResult validate result
@@ -142,29 +144,33 @@ type NodeBlocks struct {
 
 // DataInfo Data info
 type DataInfo struct {
-	CID             string `db:"cid"`
-	Status          int    `db:"status"`
-	Reliability     int    `db:"reliability"`
-	NeedReliability int    `db:"need_reliability"`
-	CacheCount      int    `db:"cache_count"`
-	RootCacheID     string `db:"root_cache_id"`
-	TotalSize       int    `db:"total_size"`
-	TotalBlocks     int    `db:"total_blocks"`
-	Nodes           int    `db:"nodes"`
+	CID             string    `db:"cid"`
+	Status          int       `db:"status"`
+	Reliability     int       `db:"reliability"`
+	NeedReliability int       `db:"need_reliability"`
+	CacheCount      int       `db:"cache_count"`
+	RootCacheID     string    `db:"root_cache_id"`
+	TotalSize       int       `db:"total_size"`
+	TotalBlocks     int       `db:"total_blocks"`
+	Nodes           int       `db:"nodes"`
+	ExpiredTime     time.Time `db:"expired_time"`
+	CreateTime      time.Time `db:"create_time"`
 }
 
 // CacheInfo Data Block info
 type CacheInfo struct {
-	CarfileID    string `db:"carfile_id"`
-	CacheID      string `db:"cache_id"`
-	Status       int    `db:"status"`
-	Reliability  int    `db:"reliability"`
-	DoneSize     int    `db:"done_size"`
-	DoneBlocks   int    `db:"done_blocks"`
-	TotalSize    int    `db:"total_size"`
-	TotalBlocks  int    `db:"total_blocks"`
-	RemoveBlocks int    `db:"remove_blocks"`
-	Nodes        int    `db:"nodes"`
+	CarfileID    string    `db:"carfile_id"`
+	CacheID      string    `db:"cache_id"`
+	Status       int       `db:"status"`
+	Reliability  int       `db:"reliability"`
+	DoneSize     int       `db:"done_size"`
+	DoneBlocks   int       `db:"done_blocks"`
+	TotalSize    int       `db:"total_size"`
+	TotalBlocks  int       `db:"total_blocks"`
+	RemoveBlocks int       `db:"remove_blocks"`
+	Nodes        int       `db:"nodes"`
+	ExpiredTime  time.Time `db:"expired_time"`
+	CreateTime   time.Time `db:"create_time"`
 }
 
 // BlockInfo Data Block info

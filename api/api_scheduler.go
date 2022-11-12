@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"time"
 )
 
 // Scheduler Scheduler node
@@ -92,17 +93,18 @@ type CacheDataInfo struct {
 	TotalSize       int // 总大小
 	Blocks          int // 总block个数
 	Nodes           int
-
-	CacheInfos []CacheInfo
+	ExpiredTime     time.Time
+	CacheInfos      []CacheInfo
 }
 
 // CacheInfo Cache Info
 type CacheInfo struct {
-	CacheID    string
-	Status     int // cache 状态 1:创建 2:失败 3:成功
-	DoneSize   int // 已完成大小
-	DoneBlocks int // 已完成block
-	Nodes      int
+	CacheID     string
+	Status      int // cache 状态 1:创建 2:失败 3:成功
+	DoneSize    int // 已完成大小
+	DoneBlocks  int // 已完成block
+	Nodes       int
+	ExpiredTime time.Time
 
 	// BloackInfo []BloackInfo
 }

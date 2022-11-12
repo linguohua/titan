@@ -40,7 +40,6 @@ func newDataManager(nodeManager *NodeManager) *DataManager {
 
 	d.initTimewheel()
 	go d.startBlockLoader()
-	// go d.startDataTask()
 
 	return d
 }
@@ -98,7 +97,7 @@ func (m *DataManager) doDataTask() error {
 			return xerrors.Errorf("cid:%s,cacheID:%s ; startCacheContinue err:%s", info.Cid, cacheID, err.Error())
 		}
 	} else {
-		err = m.startCacheData(info.Cid, info.NeedReliability)
+		err = m.startCacheData(info.Cid, info.NeedReliability, info.ExpiredTime)
 		if err != nil {
 			return xerrors.Errorf("cid:%s,reliability:%d ; startCacheData err:%s", info.Cid, info.NeedReliability, err.Error())
 		}
@@ -188,7 +187,7 @@ func (m *DataManager) checkTaskTimeouts() {
 	}
 }
 
-func (m *DataManager) startCacheData(cid string, reliability int) error {
+func (m *DataManager) startCacheData(cid string, reliability int, expiredTime time.Time) error {
 	var err error
 	isSave := false
 	data := m.findData(cid, true)
@@ -201,6 +200,11 @@ func (m *DataManager) startCacheData(cid string, reliability int) error {
 
 	if data.needReliability != reliability {
 		data.needReliability = reliability
+		isSave = true
+	}
+
+	if data.expiredTime != expiredTime {
+		data.expiredTime = expiredTime
 		isSave = true
 	}
 
@@ -219,6 +223,7 @@ func (m *DataManager) startCacheData(cid string, reliability int) error {
 			CacheCount:      data.cacheCount,
 			TotalBlocks:     data.totalBlocks,
 			RootCacheID:     data.rootCacheID,
+			ExpiredTime:     data.expiredTime,
 		})
 		if err != nil {
 			return xerrors.Errorf("cid:%s,SetDataInfo err:%s", data.cid, err.Error())
@@ -274,7 +279,9 @@ func (m *DataManager) startCacheContinue(cid, cacheID string) error {
 }
 
 func (m *DataManager) cacheData(cid string, reliability int) error {
-	return cache.GetDB().SetWaitingCacheTask(api.CacheDataInfo{Cid: cid, NeedReliability: reliability})
+	t := time.Now().Add(7 * 24 * time.Hour)
+
+	return cache.GetDB().SetWaitingCacheTask(api.CacheDataInfo{Cid: cid, NeedReliability: reliability, ExpiredTime: t})
 	// return m.startCacheData(cid, reliability)
 }
 

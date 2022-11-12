@@ -95,7 +95,6 @@ func loadCache(cacheID, carfileCid string, nodeManager *NodeManager, data *Data)
 		return nil
 	}
 
-	// c.dbID = info.ID
 	c.doneSize = info.DoneSize
 	c.doneBlocks = info.DoneBlocks
 	c.status = cacheStatus(info.Status)
@@ -104,6 +103,7 @@ func loadCache(cacheID, carfileCid string, nodeManager *NodeManager, data *Data)
 	c.totalBlocks = info.TotalBlocks
 	c.removeBlocks = info.RemoveBlocks
 	c.totalSize = info.TotalSize
+	// info.ExpiredTime
 
 	return c
 }
@@ -268,11 +268,13 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 
 	status := cacheStatusFail
 	fid := ""
+	reliability := 0
 	if info.IsOK {
 		c.doneBlocks++
 		c.doneSize += info.BlockSize
 		status = cacheStatusSuccess
 		fid = info.Fid
+		reliability = c.calculateReliability(blockInfo.DeviceID)
 	}
 
 	bInfo := &persistent.BlockInfo{
@@ -282,7 +284,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		DeviceID:    blockInfo.DeviceID,
 		Size:        info.BlockSize,
 		Status:      int(status),
-		Reliability: 1,
+		Reliability: reliability,
 		CarfileID:   c.carfileCid,
 		IsUpdate:    true,
 	}
@@ -364,12 +366,11 @@ func (c *Cache) endCache(unDoneBlocks int) (err error) {
 	}
 
 	if failedBlocks > 0 || unDoneBlocks > 0 {
-		c.reliability = 0
 		c.status = cacheStatusFail
 	} else {
-		c.reliability = 1
 		c.status = cacheStatusSuccess
 	}
+	c.reliability = c.calculateReliability("")
 
 	return
 }
@@ -431,55 +432,54 @@ func (c *Cache) removeCache() error {
 	return err
 }
 
-func (c *Cache) updateCache() error {
+func (c *Cache) updateCacheInfos() (bool, error) {
 	cCount, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusCreate))
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	fCount, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusFail))
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	sCount, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusSuccess))
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	totalCount := cCount + fCount + sCount
 
 	if totalCount == 0 {
 		// remove
-
-		return nil
+		return true, nil
 	}
 
 	size, err := persistent.GetDB().GetCachesSize(c.cacheID, int(cacheStatusSuccess))
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	cNodes, err := persistent.GetDB().GetNodesFromCache(c.cacheID)
 	if err != nil {
-		return err
-	}
-
-	if c.removeBlocks > 0 || totalCount > sCount {
-		c.status = cacheStatusFail
-		c.reliability = c.calculateReliability()
-
-		return nil
+		return false, err
 	}
 
 	c.doneSize = size
 	c.doneBlocks = sCount
 	c.nodes = cNodes
 
-	c.status = cacheStatusSuccess
-	c.reliability = c.calculateReliability()
+	if c.removeBlocks > 0 || totalCount > sCount {
+		c.status = cacheStatusFail
+		c.reliability = c.calculateReliability("")
 
-	return nil
+		return false, nil
+	}
+
+	c.status = cacheStatusSuccess
+	c.reliability = c.calculateReliability("")
+
+	return false, nil
 }
 
 func (c *Cache) removeCacheBlocks(deviceID string, cids []string) (map[string]string, error) {
@@ -546,7 +546,7 @@ func (c *Cache) removeCacheBlocks(deviceID string, cids []string) (map[string]st
 	return nodeErrs, nil
 }
 
-func (c *Cache) calculateReliability() int {
+func (c *Cache) calculateReliability(deviceID string) int {
 	if c.status == cacheStatusSuccess {
 		return 1
 	}
