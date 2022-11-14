@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
 )
@@ -56,7 +55,7 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 		data.nodes = dInfo.Nodes
 		data.expiredTime = dInfo.ExpiredTime
 
-		idList, err := persistent.GetDB().GetCacheWithData(cid)
+		idList, err := persistent.GetDB().GetCachesWithData(cid)
 		if err != nil {
 			log.Warnf("loadData GetCacheWithData err:%s", err.Error())
 			return data
@@ -79,27 +78,6 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 	}
 
 	return nil
-}
-
-func (d *Data) cacheContinue(cacheID string) error {
-	cID, _ := cache.GetDB().GetRunningTask(d.cid)
-	if cID != "" {
-		return xerrors.New("data have task running,please wait")
-	}
-
-	cacheI, ok := d.cacheMap.Load(cacheID)
-	if !ok || cacheI == nil {
-		return xerrors.Errorf("Not Found CacheID :%s", cacheID)
-	}
-	cache := cacheI.(*Cache)
-
-	list, err := persistent.GetDB().GetUndoneBlocks(cacheID)
-	if err != nil {
-		return err
-	}
-	// return cache.doCache(list, d.haveRootCache())
-
-	return cache.startCache(list, d.haveRootCache())
 }
 
 func (d *Data) haveRootCache() bool {
@@ -130,7 +108,7 @@ func (d *Data) createCache() (*Cache, error) {
 	return cache, nil
 }
 
-func (d *Data) updateDataInfo(blockInfo *persistent.BlockInfo, fid string, info *api.CacheResultInfo, c *Cache, createBlocks []*persistent.BlockInfo) error {
+func (d *Data) updateAndSaveInfo(blockInfo *persistent.BlockInfo, fid string, info *api.CacheResultInfo, c *Cache, createBlocks []*persistent.BlockInfo) error {
 	if !d.haveRootCache() {
 		d.totalSize = c.totalSize
 		d.totalBlocks = c.totalBlocks
@@ -209,37 +187,62 @@ func (d *Data) saveCacheEndResults(cache *Cache) error {
 	return persistent.GetDB().SaveCacheEndResults(dInfo, cInfo)
 }
 
-func (d *Data) startData() error {
-	cacheID, _ := cache.GetDB().GetRunningTask(d.cid)
+func (d *Data) startData(cacheID string) error {
+	// cID, _ := cache.GetDB().GetRunningTask(d.cid)
+	// if cID != "" {
+	// 	return xerrors.New("data have task running,please wait")
+	// }
+
+	var err error
+	defer func() {
+		if err == nil {
+			// running
+			d.cacheCount++
+			d.dataManager.dataTaskStart(d.cid, cacheID)
+		}
+	}()
+
+	var cache *Cache
+	var list map[string]string
+
 	if cacheID != "" {
-		return xerrors.New("data have task running,please wait")
+		cacheI, ok := d.cacheMap.Load(cacheID)
+		if !ok || cacheI == nil {
+			return xerrors.Errorf("Not Found CacheID :%s", cacheID)
+		}
+		cache = cacheI.(*Cache)
+
+		list, err = persistent.GetDB().GetUndoneBlocks(cacheID)
+		if err != nil {
+			return err
+		}
+	} else {
+		cache, err = d.createCache()
+		if err != nil {
+			return err
+		}
+
+		d.cacheMap.Store(cache.cacheID, cache)
+		cacheID = cache.cacheID
+
+		err = persistent.GetDB().CreateCache(
+			&persistent.CacheInfo{
+				CarfileID:   cache.carfileCid,
+				CacheID:     cache.cacheID,
+				Status:      int(cache.status),
+				ExpiredTime: d.expiredTime,
+			})
+		if err != nil {
+			return err
+		}
+
+		list = map[string]string{cache.carfileCid: ""}
 	}
 
-	c, err := d.createCache()
-	if err != nil {
-		return err
-	}
-
-	d.cacheMap.Store(c.cacheID, c)
-
-	err = persistent.GetDB().CreateCache(
-		&persistent.CacheInfo{
-			CarfileID:   c.carfileCid,
-			CacheID:     c.cacheID,
-			Status:      int(c.status),
-			ExpiredTime: d.expiredTime,
-		})
-	if err != nil {
-		return err
-	}
-	// c.dbID = id
-
-	return c.startCache(map[string]string{c.carfileCid: ""}, d.haveRootCache())
+	return cache.startCache(list, d.haveRootCache())
 }
 
 func (d *Data) endData(c *Cache) (err error) {
-	d.cacheCount++
-
 	if c.status == cacheStatusSuccess {
 		d.reliability += c.reliability
 		if !d.haveRootCache() {
@@ -273,31 +276,22 @@ func (d *Data) endData(c *Cache) (err error) {
 	}
 
 	// old cache
-	var unDoneCache *Cache
+	cacheID := ""
 	d.cacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)
 
 		if c.status != cacheStatusSuccess {
-			unDoneCache = c
+			cacheID = c.cacheID
 			return true
 		}
 
 		return true
 	})
 
-	if unDoneCache != nil {
-		err = d.cacheContinue(unDoneCache.cacheID)
-		if err != nil {
-			dataTaskEnd = true
-			err = xerrors.Errorf("cacheContinue err:%s", err.Error())
-		}
-	} else {
-		// create cache again
-		err = d.startData()
-		if err != nil {
-			dataTaskEnd = true
-			err = xerrors.Errorf("startData err:%s", err.Error())
-		}
+	err = d.startData(cacheID)
+	if err != nil {
+		dataTaskEnd = true
+		err = xerrors.Errorf("startData err:%s", err.Error())
 	}
 
 	return

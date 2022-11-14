@@ -1,7 +1,6 @@
 package scheduler
 
 import (
-	"strings"
 	"sync"
 	"time"
 
@@ -18,7 +17,7 @@ type DataManager struct {
 	blockLoaderCh  chan bool
 	waitingCacheCh chan bool
 
-	runningTaskMap sync.Map
+	taskMap sync.Map
 
 	timeoutTimeWheel *timewheel.TimeWheel
 	timeoutTime      int // check timeout time interval (minute)
@@ -64,14 +63,17 @@ func (m *DataManager) initTimewheel() {
 }
 
 func (m *DataManager) doDataTask() error {
-	list, err := cache.GetDB().GetTasksWithRunningList()
-	if err != nil {
-		return xerrors.Errorf("GetTasksWithRunningList err:%s", err.Error())
-	}
-	// log.Warnf("doDataTask running list:%v", list)
-	if len(list) >= m.runningTaskMax {
+	if len(m.getRunningTasks()) > 0 {
 		return nil
 	}
+	// list, err := cache.GetDB().GetTasksWithRunningList()
+	// if err != nil {
+	// 	return xerrors.Errorf("GetTasksWithRunningList err:%s", err.Error())
+	// }
+	// // log.Warnf("doDataTask running list:%v", list)
+	// if len(list) >= m.runningTaskMax {
+	// 	return nil
+	// }
 
 	// next data task
 	info, err := cache.GetDB().GetWaitingCacheTask()
@@ -107,7 +109,7 @@ func (m *DataManager) doDataTask() error {
 }
 
 func (m *DataManager) findData(cid string, isStore bool) *Data {
-	dI, ok := m.runningTaskMap.Load(cid)
+	dI, ok := m.taskMap.Load(cid)
 	if ok && dI != nil {
 		return dI.(*Data)
 	}
@@ -115,7 +117,7 @@ func (m *DataManager) findData(cid string, isStore bool) *Data {
 	data := loadData(cid, m.nodeManager, m)
 	if data != nil {
 		if isStore {
-			m.runningTaskMap.Store(cid, data)
+			m.taskMap.Store(cid, data)
 		}
 		return data
 	}
@@ -123,67 +125,48 @@ func (m *DataManager) findData(cid string, isStore bool) *Data {
 	return nil
 }
 
-func (m *DataManager) checkTaskTimeout(cid, cacheID string) {
-	cID, err := cache.GetDB().GetRunningTask(cid)
-	if err != nil && !cache.GetDB().IsNilErr(err) {
-		log.Errorf("checkTaskTimeout %s,%s GetRunningTask err:%s", cid, cacheID, err.Error())
-		return
-	}
-	if cID != "" {
+func (m *DataManager) checkTaskTimeout(cid string) {
+	if m.isTaskRunnning(cid) {
 		return
 	}
 
-	defer func() {
-		// log.Warnf("checkTaskTimeout remove runing llist:%s", cid)
-		err = cache.GetDB().RemoveTaskWithRunningList(cid, cacheID)
-		if err != nil {
-			log.Errorf("checkTaskTimeout %s,%s RemoveTaskWithRunningList err:%s", cid, cacheID, err.Error())
-		}
-	}()
+	m.dataTaskEnd(cid)
+	// defer func() {
+	// 	// log.Warnf("checkTaskTimeout remove runing llist:%s", cid)
+	// 	m.taskEnd(cid)
+	// }()
 
-	// task timeout
-	data := m.findData(cid, true)
-	if data != nil {
-		value, ok := data.cacheMap.Load(cacheID)
-		if !ok {
-			return
-		}
+	// // task timeout
+	// data := m.findData(cid, true)
+	// if data != nil {
+	// 	value, ok := data.cacheMap.Load(cacheID)
+	// 	if !ok {
+	// 		return
+	// 	}
 
-		c := value.(*Cache)
+	// 	c := value.(*Cache)
 
-		unDoneBlocks, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusCreate))
-		if err != nil {
-			log.Errorf("checkTaskTimeout %s,%s GetBloackCountWithStatus err:%s", c.carfileCid, c.cacheID, err.Error())
-			return
-		}
+	// 	unDoneBlocks, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusCreate))
+	// 	if err != nil {
+	// 		log.Errorf("checkTaskTimeout %s,%s GetBloackCountWithStatus err:%s", c.carfileCid, c.cacheID, err.Error())
+	// 		return
+	// 	}
 
-		err = c.endCache(unDoneBlocks)
-		if err != nil {
-			log.Errorf("checkTaskTimeout %s", err.Error())
-		}
-	}
+	// 	err = c.endCache(unDoneBlocks)
+	// 	if err != nil {
+	// 		log.Errorf("checkTaskTimeout %s", err.Error())
+	// 	}
+	// }
 }
 
 func (m *DataManager) checkTaskTimeouts() {
-	list, err := cache.GetDB().GetTasksWithRunningList()
-	if err != nil {
-		log.Errorf("GetTasksWithList err:%s", err.Error())
+	list := m.getRunningTasks()
+	if len(list) <= 0 {
 		return
 	}
 
-	if list == nil || len(list) <= 0 {
-		return
-	}
-
-	for _, cKey := range list {
-		cidList := strings.Split(cKey, ":")
-		if len(cidList) != 2 {
-			continue
-		}
-		cid := cidList[0]
-		cacheID := cidList[1]
-
-		m.checkTaskTimeout(cid, cacheID)
+	for _, cid := range list {
+		m.checkTaskTimeout(cid)
 	}
 }
 
@@ -195,7 +178,7 @@ func (m *DataManager) startCacheData(cid string, reliability int, expiredTime ti
 		isSave = true
 		data = newData(m.nodeManager, m, cid, reliability)
 
-		m.runningTaskMap.Store(cid, data)
+		m.taskMap.Store(cid, data)
 	}
 
 	if data.needReliability != reliability {
@@ -208,11 +191,11 @@ func (m *DataManager) startCacheData(cid string, reliability int, expiredTime ti
 		isSave = true
 	}
 
-	defer func() {
-		if err != nil {
-			m.dataTaskEnd(data.cid)
-		}
-	}()
+	// defer func() {
+	// 	if err != nil {
+	// 		m.dataTaskEnd(data.cid)
+	// 	}
+	// }()
 
 	if isSave {
 		err = persistent.GetDB().SetDataInfo(&persistent.DataInfo{
@@ -235,32 +218,24 @@ func (m *DataManager) startCacheData(cid string, reliability int, expiredTime ti
 	}
 
 	// old cache
-	var unDoneCache *Cache
+	cacheID := ""
 	data.cacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)
 
 		if c.status != cacheStatusSuccess {
-			unDoneCache = c
+			cacheID = c.cacheID
 			return true
 		}
 
 		return true
 	})
 
-	if unDoneCache != nil {
-		err = data.cacheContinue(unDoneCache.cacheID)
-		if err != nil {
-			err = xerrors.Errorf("cacheContinue err:%s", err.Error())
-		}
-	} else {
-		// create cache again
-		err = data.startData()
-		if err != nil {
-			err = xerrors.Errorf("startData err:%s", err.Error())
-		}
-	}
+	// err = data.startData(cacheID)
+	// if err != nil {
+	// 	err = xerrors.Errorf("startData err:%s", err.Error())
+	// }
 
-	return err
+	return data.startData(cacheID)
 }
 
 func (m *DataManager) startCacheContinue(cid, cacheID string) error {
@@ -269,13 +244,13 @@ func (m *DataManager) startCacheContinue(cid, cacheID string) error {
 		return xerrors.Errorf("%s,cid:%s,cacheID:%s", ErrNotFoundTask, cid, cacheID)
 	}
 
-	err := data.cacheContinue(cacheID)
-	if err != nil {
-		m.dataTaskEnd(data.cid)
-		return err
-	}
+	// err := data.startData(cacheID)
+	// if err != nil {
+	// 	m.dataTaskEnd(data.cid)
+	// 	return err
+	// }
 
-	return nil
+	return data.startData(cacheID)
 }
 
 func (m *DataManager) cacheData(cid string, reliability int) error {
@@ -342,13 +317,14 @@ func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultI
 	if !ok {
 		return xerrors.Errorf("cacheCarfileResult not found cacheID:%s,Cid:%s", info.CacheID, data.cid)
 	}
-	cache := cacheI.(*Cache)
+	c := cacheI.(*Cache)
 
-	return cache.blockCacheResult(info)
-}
+	err := cache.GetDB().SetRunningTask(c.carfileCid, info.CacheID)
+	if err != nil {
+		log.Errorf("cacheID:%s,%s SetRunningTask err:%s ", info.CacheID, info.Cid, err.Error())
+	}
 
-func (m *DataManager) dataTaskEnd(cid string) {
-	m.runningTaskMap.Delete(cid)
+	return c.blockCacheResult(info)
 }
 
 func (m *DataManager) doResultTask() {
@@ -397,4 +373,48 @@ func (m *DataManager) notifyBlockLoader() {
 	case m.blockLoaderCh <- true:
 	default:
 	}
+}
+
+func (m *DataManager) dataTaskStart(cid, cacheID string) {
+	log.Infof("taskStart:%s ; cacheID:%s ---------- ", cid, cacheID)
+
+	err := cache.GetDB().SetRunningTask(cid, cacheID)
+	if err != nil {
+		log.Panicf("dataTaskStart %s , SetRunningTask err:%s", cacheID, err.Error())
+	}
+
+	err = cache.GetDB().SetTaskToRunningList(cid)
+	if err != nil {
+		log.Panicf("dataTaskStart %s , SetTaskToRunningList err:%s", cacheID, err.Error())
+	}
+}
+
+func (m *DataManager) dataTaskEnd(cid string) {
+	log.Infof("taskEnd:%s ---------- ", cid)
+
+	err := cache.GetDB().RemoveRunningTask(cid)
+	if err != nil {
+		err = xerrors.Errorf("dataTaskEnd RemoveRunningTask err: %s", err.Error())
+		return
+	}
+}
+
+func (m *DataManager) getRunningTasks() []string {
+	list, err := cache.GetDB().GetTasksWithRunningList()
+	if err != nil {
+		log.Errorf("GetTasksWithRunningList err:%s", err.Error())
+		return make([]string, 0)
+	}
+
+	return list
+}
+
+func (m *DataManager) isTaskRunnning(cid string) bool {
+	cID, err := cache.GetDB().GetRunningTask(cid)
+	if err != nil && !cache.GetDB().IsNilErr(err) {
+		log.Errorf("isTaskRunnning %s GetRunningTask err:%s", cid, err.Error())
+		return true
+	}
+
+	return cID != ""
 }

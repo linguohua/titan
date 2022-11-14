@@ -29,7 +29,7 @@ type DB interface {
 	SetDataInfo(info *DataInfo) error
 	GetDataInfo(cid string) (*DataInfo, error)
 	GetDataCidWithPage(page int) (count int, totalPage int, list []string, err error)
-	GetCacheWithData(cid string) ([]string, error)
+	GetCachesWithData(cid string) ([]string, error)
 
 	// cache info
 	GetCacheInfo(cacheID string) (*CacheInfo, error)
