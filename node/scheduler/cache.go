@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
 )
@@ -42,14 +41,6 @@ type Cache struct {
 }
 
 func newCacheID(cid string) (string, error) {
-	// fid, err := cache.GetDB().IncrCacheID(serverArea)
-	// if err != nil {
-	// 	return "", err
-	// }
-
-	// aName := persistent.GetDB().ReplaceArea()
-
-	// return fmt.Sprintf("%s_cache_%d", aName, fid), nil
 	u2, err := uuid.NewUUID()
 	if err != nil {
 		return "", err
@@ -255,14 +246,14 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		return xerrors.Errorf("cacheID:%s,%s block saved ", info.CacheID, info.Cid)
 	}
 
-	err = cache.GetDB().SetRunningTask(c.carfileCid, c.cacheID)
-	if err != nil {
-		log.Errorf("cacheID:%s,%s SetRunningTask err:%s ", info.CacheID, info.Cid, err.Error())
-	}
+	// err = cache.GetDB().SetRunningTask(c.carfileCid, c.cacheID)
+	// if err != nil {
+	// 	log.Errorf("cacheID:%s,%s SetRunningTask err:%s ", info.CacheID, info.Cid, err.Error())
+	// }
 
 	if info.Cid == c.carfileCid {
 		c.totalSize = int(info.LinksSize) + info.BlockSize
-		c.totalBlocks++
+		c.totalBlocks = 1
 	}
 	c.totalBlocks += len(info.Links)
 
@@ -299,7 +290,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	createBlocks, nodeCacheMap := c.matchingNodeAndBlock(linkMap, c.data.haveRootCache())
 
 	// save info to db
-	err = c.data.updateDataInfo(bInfo, fid, info, c, createBlocks)
+	err = c.data.updateAndSaveInfo(bInfo, fid, info, c, createBlocks)
 	if err != nil {
 		return xerrors.Errorf("cacheID:%s,%s UpdateCacheInfo err:%s ", info.CacheID, info.Cid, err.Error())
 	}
@@ -329,35 +320,35 @@ func (c *Cache) startCache(cids map[string]string, haveRootCache bool) error {
 		return xerrors.Errorf("startCache %s fail not find node", c.cacheID)
 	}
 
-	err = cache.GetDB().SetRunningTask(c.carfileCid, c.cacheID)
-	if err != nil {
-		return xerrors.Errorf("startCache %s , SetRunningTask err:%s", c.cacheID, err.Error())
-	}
+	// err = cache.GetDB().SetRunningTask(c.carfileCid, c.cacheID)
+	// if err != nil {
+	// 	return xerrors.Errorf("startCache %s , SetRunningTask err:%s", c.cacheID, err.Error())
+	// }
 
-	err = cache.GetDB().SetTaskToRunningList(c.carfileCid, c.cacheID)
-	if err != nil {
-		return xerrors.Errorf("startCache %s , SetTaskToRunningList err:%s", c.cacheID, err.Error())
-	}
+	// err = cache.GetDB().SetTaskToRunningList(c.carfileCid, c.cacheID)
+	// if err != nil {
+	// 	return xerrors.Errorf("startCache %s , SetTaskToRunningList err:%s", c.cacheID, err.Error())
+	// }
 
-	log.Infof("start cache %s,%s ---------- ", c.carfileCid, c.cacheID)
+	// log.Infof("start cache %s,%s ---------- ", c.carfileCid, c.cacheID)
 	c.cacheToNodes(nodeCacheMap)
 
 	return nil
 }
 
 func (c *Cache) endCache(unDoneBlocks int) (err error) {
-	log.Infof("end cache %s,%s ----------", c.carfileCid, c.cacheID)
+	// log.Infof("end cache %s,%s ----------", c.carfileCid, c.cacheID)
 
 	defer func() {
 		err = c.data.endData(c)
 		return
 	}()
 
-	err = cache.GetDB().RemoveRunningTask(c.carfileCid, c.cacheID)
-	if err != nil {
-		err = xerrors.Errorf("endCache RemoveRunningTask err: %s", err.Error())
-		return
-	}
+	// err = cache.GetDB().RemoveRunningTask(c.carfileCid, c.cacheID)
+	// if err != nil {
+	// 	err = xerrors.Errorf("endCache RemoveRunningTask err: %s", err.Error())
+	// 	return
+	// }
 
 	failedBlocks, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusFail))
 	if err != nil {

@@ -41,13 +41,15 @@ const (
 	ErrNotFoundTask = "Not Found Data Task"
 	// ErrCidIsNil node not found
 	ErrCidIsNil = "Cid Is Nil"
-	// ErrCacheIDIsNil
+	// ErrCacheIDIsNil CacheID Is Nil
 	ErrCacheIDIsNil = "CacheID Is Nil"
 )
 
 const (
+	// StatusOffline node offline
 	StatusOffline = "offline"
-	StatusOnline  = "online"
+	// StatusOnline node online
+	StatusOnline = "online"
 )
 
 // NewLocalScheduleNode NewLocalScheduleNode
@@ -791,15 +793,21 @@ func (s *Scheduler) GetDownloadInfo(ctx context.Context, deviceID string) ([]*ap
 func (s *Scheduler) ShowDataTasks(ctx context.Context) ([]api.CacheDataInfo, error) {
 	infos := make([]api.CacheDataInfo, 0)
 
-	s.dataManager.runningTaskMap.Range(func(key, value interface{}) bool {
-		// cid := key.(string)
-		data := value.(*Data)
+	list, err := cache.GetDB().GetTasksWithRunningList()
+	if err != nil {
+		return infos, xerrors.Errorf("GetTasksWithRunningList err:%s", err.Error())
+	}
+
+	// log.Infof("ShowDataTasks:%v", list)
+
+	for _, cid := range list {
+		data := loadData(cid, s.nodeManager, s.dataManager)
 		if data != nil {
 			infos = append(infos, dataToCacheDataInfo(data))
 		}
-		return true
-	})
+	}
 
+	// log.Infof("ShowDataTasks:%v", infos)
 	return infos, nil
 }
 

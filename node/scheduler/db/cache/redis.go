@@ -328,7 +328,7 @@ func (rd redisDB) GetRunningTask(cid string) (string, error) {
 	return rd.cli.Get(context.Background(), key).Result()
 }
 
-func (rd redisDB) RemoveRunningTask(cid, cacheID string) error {
+func (rd redisDB) RemoveRunningTask(cid string) error {
 	key := fmt.Sprintf(redisKeyRunningTask, serverName, cid)
 
 	_, err := rd.cli.Del(context.Background(), key).Result()
@@ -336,7 +336,7 @@ func (rd redisDB) RemoveRunningTask(cid, cacheID string) error {
 		return err
 	}
 
-	return rd.RemoveTaskWithRunningList(cid, cacheID)
+	return rd.RemoveTaskWithRunningList(cid)
 }
 
 func (rd redisDB) SetWaitingCacheTask(info api.CacheDataInfo) error {
@@ -381,20 +381,18 @@ func (rd redisDB) RemoveWaitingCacheTask() error {
 }
 
 // add
-func (rd redisDB) SetTaskToRunningList(cid, cacheID string) error {
+func (rd redisDB) SetTaskToRunningList(cid string) error {
 	key := fmt.Sprintf(redisKeyRunningList, serverName)
 
-	cKey := fmt.Sprintf("%s:%s", cid, cacheID)
-	_, err := rd.cli.SAdd(context.Background(), key, cKey).Result()
+	_, err := rd.cli.SAdd(context.Background(), key, cid).Result()
 	return err
 }
 
 // del
-func (rd redisDB) RemoveTaskWithRunningList(cid, cacheID string) error {
+func (rd redisDB) RemoveTaskWithRunningList(cid string) error {
 	key := fmt.Sprintf(redisKeyRunningList, serverName)
 
-	cKey := fmt.Sprintf("%s:%s", cid, cacheID)
-	_, err := rd.cli.SRem(context.Background(), key, cKey).Result()
+	_, err := rd.cli.SRem(context.Background(), key, cid).Result()
 	return err
 }
 

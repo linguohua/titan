@@ -459,7 +459,7 @@ func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []s
 	return
 }
 
-func (sd sqlDB) GetCacheWithData(cid string) ([]string, error) {
+func (sd sqlDB) GetCachesWithData(cid string) ([]string, error) {
 	area := sd.ReplaceArea()
 
 	list := make([]string, 0)
