@@ -159,7 +159,7 @@ func (m *NodeManager) edgeOnline(node *EdgeNode) error {
 
 	m.validatePool.addPendingNode(node, nil)
 
-	m.StateNetwork()
+	m.stateNetwork()
 
 	return nil
 }
@@ -241,7 +241,7 @@ func (m *NodeManager) candidateOnline(node *CandidateNode) error {
 
 	m.validatePool.addPendingNode(nil, node)
 
-	m.StateNetwork()
+	m.stateNetwork()
 
 	return nil
 }
@@ -523,7 +523,11 @@ func (m *NodeManager) findNodeDownloadInfos(cid string) ([]api.DownloadInfo, err
 		infos = append(infos, api.DownloadInfo{URL: info.URL, Token: tk})
 	}
 
-	return infos, xerrors.Errorf("%s , with cid:%s", ErrNodeNotFind, cid)
+	if len(infos) <= 0 {
+		return nil, xerrors.Errorf("device auth err, deviceIDs:%v", deviceIDs)
+	}
+
+	return infos, nil
 }
 
 // getCandidateNodesWithData find device
@@ -699,7 +703,7 @@ func (m *NodeManager) getCandidateNodesWithData(cid string) ([]*CandidateNode, e
 // 	}
 // }
 
-func (n *NodeManager) SetDeviceInfo(deviceID string, info api.DevicesInfo) error {
+func (m *NodeManager) setDeviceInfo(deviceID string, info api.DevicesInfo) error {
 	_, err := cache.GetDB().SetDeviceInfo(deviceID, info)
 	if err != nil {
 		log.Errorf("set device info: %s", err.Error())
@@ -708,19 +712,19 @@ func (n *NodeManager) SetDeviceInfo(deviceID string, info api.DevicesInfo) error
 	return nil
 }
 
-func (n *NodeManager) StateNetwork() error {
+func (m *NodeManager) stateNetwork() error {
 	state, err := cache.GetDB().GetDeviceStat()
 	if err != nil {
 		log.Errorf("get node stat: %v", err)
 		return err
 	}
 
-	state.AllVerifier = len(n.validatePool.veriftorList)
-	n.state = state
+	state.AllVerifier = len(m.validatePool.veriftorList)
+	m.state = state
 	return nil
 }
 
-func (n *NodeManager) isDeviceExist(deviceID string, nodeType int) bool {
+func (m *NodeManager) isDeviceExist(deviceID string, nodeType int) bool {
 	info, err := persistent.GetDB().GetRegisterInfo(deviceID)
 	if err != nil {
 		return false
