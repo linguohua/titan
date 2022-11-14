@@ -74,7 +74,7 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int) api.Scheduler {
 		serverPort:     port,
 	}
 
-	go manager.StateNetwork()
+	go manager.stateNetwork()
 
 	sec, err := secret.APISecret(lr)
 	if err != nil {
@@ -170,7 +170,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 	}
 
 	deviceInfo.IpLocation = edgeNode.geoInfo.Geo
-	err = s.nodeManager.SetDeviceInfo(deviceID, deviceInfo)
+	err = s.nodeManager.setDeviceInfo(deviceID, deviceInfo)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect set device info: %s", err.Error())
 		return "", err
@@ -621,7 +621,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token st
 	}
 
 	deviceInfo.IpLocation = candidateNode.geoInfo.Geo
-	err = s.nodeManager.SetDeviceInfo(deviceID, deviceInfo)
+	err = s.nodeManager.setDeviceInfo(deviceID, deviceInfo)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect set device info: %s", err.Error())
 		return "", err
