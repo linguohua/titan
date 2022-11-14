@@ -208,7 +208,8 @@ func (d *Data) startData(cacheID string) error {
 	if cacheID != "" {
 		cacheI, ok := d.cacheMap.Load(cacheID)
 		if !ok || cacheI == nil {
-			return xerrors.Errorf("Not Found CacheID :%s", cacheID)
+			err = xerrors.Errorf("Not Found CacheID :%s", cacheID)
+			return err
 		}
 		cache = cacheI.(*Cache)
 

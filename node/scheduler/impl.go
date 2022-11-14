@@ -785,6 +785,7 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locato
 	return nil
 }
 
+// GetDownloadInfo get node download info
 func (s *Scheduler) GetDownloadInfo(ctx context.Context, deviceID string) ([]*api.BlockDownloadInfo, error) {
 	return persistent.GetDB().GetDownloadInfo(deviceID)
 }

@@ -222,7 +222,7 @@ func (c *Cache) matchingNodeAndBlock(cids map[string]string, isHaveCache bool) (
 	return blockList, nodeCacheMap
 }
 
-func (c *Cache) cacheToNodes(nodeCacheMap map[string][]string) {
+func (c *Cache) cacheDataToNodes(nodeCacheMap map[string][]string) {
 	if nodeCacheMap == nil {
 		return
 	}
@@ -304,7 +304,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		return c.endCache(unDoneBlocks)
 	}
 
-	c.cacheToNodes(nodeCacheMap)
+	c.cacheDataToNodes(nodeCacheMap)
 	return nil
 }
 
@@ -331,7 +331,7 @@ func (c *Cache) startCache(cids map[string]string, haveRootCache bool) error {
 	// }
 
 	// log.Infof("start cache %s,%s ---------- ", c.carfileCid, c.cacheID)
-	c.cacheToNodes(nodeCacheMap)
+	c.cacheDataToNodes(nodeCacheMap)
 
 	return nil
 }
