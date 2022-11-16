@@ -8,6 +8,7 @@ import (
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/common"
+	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/handler"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/secret"
@@ -56,7 +57,7 @@ type lconfig interface {
 	addAccessPoints(areaID string, schedulerURL string, weight int, accessToken string) error
 	removeAccessPoints(areaID string) error
 	listAccessPoints() (areaIDs []string, err error)
-	getAccessPoint(areaID string) (api.AccessPoint, error)
+	getAccessPoint(areaID string) (*config.AccessPoint, error)
 	isAccessPointExist(areaID, schedulerURL string) (bool, error)
 }
 
@@ -152,18 +153,19 @@ func (locator *Locator) ShowAccessPoint(ctx context.Context, areaID string) (api
 	if err != nil {
 		return api.AccessPoint{}, err
 	}
-	infos := make([]api.SchedulerInfo, 0, len(ap.SchedulerInfos))
-	for _, cfg := range ap.SchedulerInfos {
+	infos := make([]api.SchedulerInfo, 0, len(ap.SchedulerCfgs))
+	for _, cfg := range ap.SchedulerCfgs {
+		schedulerInfo := api.SchedulerInfo{URL: cfg.URL, Weight: cfg.Weight, AccessToken: cfg.AccessToken}
 		_, ok := locator.apMgr.getSchedulerAPI(cfg.URL, areaID, cfg.AccessToken)
 		if ok {
-			cfg.Online = true
+			schedulerInfo.Online = true
 		}
 
-		infos = append(infos, cfg)
+		infos = append(infos, schedulerInfo)
 	}
 
-	ap.SchedulerInfos = infos
-	return ap, nil
+	accessPoint := api.AccessPoint{AreaID: ap.AreaID, SchedulerInfos: infos}
+	return accessPoint, nil
 }
 
 func (locator *Locator) DeviceOnline(ctx context.Context, deviceID string, areaID string, port int) error {
@@ -199,25 +201,25 @@ func (locator *Locator) getAccessPointWithWeightCount(areaID, securityKey string
 		return []api.SchedulerAuth{}, err
 	}
 
-	if len(ap.SchedulerInfos) == 0 {
+	if len(ap.SchedulerCfgs) == 0 {
 		return []api.SchedulerAuth{}, nil
 	}
 
 	// filter online scheduler
 	onlineSchedulerAPI := make(map[string]*schedulerAPI)
-	onlineSchedulerCfgs := make(map[string]*api.SchedulerInfo)
-	for _, info := range ap.SchedulerInfos {
-		api, ok := locator.apMgr.getSchedulerAPI(info.URL, areaID, info.AccessToken)
+	onlineSchedulerCfgs := make(map[string]*config.SchedulerCfg)
+	for _, cfg := range ap.SchedulerCfgs {
+		api, ok := locator.apMgr.getSchedulerAPI(cfg.URL, areaID, cfg.AccessToken)
 		if !ok {
 			continue
 		}
 
-		var schedulerInfo = info
-		onlineSchedulerCfgs[schedulerInfo.URL] = &schedulerInfo
-		onlineSchedulerAPI[schedulerInfo.URL] = api
+		var schedulerCfg = cfg
+		onlineSchedulerCfgs[schedulerCfg.URL] = &schedulerCfg
+		onlineSchedulerAPI[schedulerCfg.URL] = api
 	}
 
-	cfgWeights := countSchedulerWeightWithInfo(onlineSchedulerCfgs)
+	cfgWeights := countSchedulerWeightWithCfgs(onlineSchedulerCfgs)
 	currentWeights := locator.countSchedulerWeightByDevice(onlineSchedulerCfgs)
 
 	urls := make([]string, 0)
@@ -248,7 +250,7 @@ func (locator *Locator) getAccessPointWithWeightCount(areaID, securityKey string
 	return auths, nil
 }
 
-func countSchedulerWeightWithInfo(schedulerCfgs map[string]*api.SchedulerInfo) map[string]float32 {
+func countSchedulerWeightWithCfgs(schedulerCfgs map[string]*config.SchedulerCfg) map[string]float32 {
 	totalWeight := 0
 	for _, cfg := range schedulerCfgs {
 		totalWeight += cfg.Weight
@@ -262,7 +264,7 @@ func countSchedulerWeightWithInfo(schedulerCfgs map[string]*api.SchedulerInfo) m
 	return result
 }
 
-func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*api.SchedulerInfo) map[string]float32 {
+func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*config.SchedulerCfg) map[string]float32 {
 	totalWeight := 0
 
 	weightMap := make(map[string]int)
@@ -306,11 +308,13 @@ func (locator *Locator) GetDownloadInfosWithBlocks(ctx context.Context, cids []s
 	}
 
 	schedulerAPI, ok := locator.apMgr.randSchedulerAPI(areaID)
+	if !ok {
+		schedulerAPI, ok = locator.getFirstOnlineSchedulerAPIAt(areaID)
+	}
 	if ok {
 		return schedulerAPI.GetDownloadInfosWithBlocks(ctx, cids)
 	}
 
-	// TODO: new scheduler
 	return make(map[string][]api.DownloadInfo), nil
 
 }
@@ -332,10 +336,12 @@ func (locator *Locator) GetDownloadInfoWithBlocks(ctx context.Context, cids []st
 	}
 
 	schedulerAPI, ok := locator.apMgr.randSchedulerAPI(areaID)
+	if !ok {
+		schedulerAPI, ok = locator.getFirstOnlineSchedulerAPIAt(areaID)
+	}
 	if ok {
 		return schedulerAPI.GetDownloadInfoWithBlocks(ctx, cids)
 	}
-	// TODO: new scheduler
 	return make(map[string]api.DownloadInfo), nil
 }
 func (locator *Locator) GetDownloadInfoWithBlock(ctx context.Context, cid string) (api.DownloadInfo, error) {
@@ -356,10 +362,12 @@ func (locator *Locator) GetDownloadInfoWithBlock(ctx context.Context, cid string
 	}
 
 	schedulerAPI, ok := locator.apMgr.randSchedulerAPI(areaID)
+	if !ok {
+		schedulerAPI, ok = locator.getFirstOnlineSchedulerAPIAt(areaID)
+	}
 	if ok {
 		return schedulerAPI.GetDownloadInfoWithBlock(ctx, cid)
 	}
-	// TODO: new scheduler
 	return api.DownloadInfo{}, nil
 }
 
@@ -375,18 +383,35 @@ func (locator *Locator) newAuthTokenFromScheduler(schedulerAPI *schedulerAPI, se
 	return string(token), err
 }
 
-func (locator *Locator) getCfg(areaID, schedulerURL string) *api.SchedulerInfo {
+func (locator *Locator) getCfg(areaID, schedulerURL string) *config.SchedulerCfg {
 	accessPoint, err := locator.cfg.getAccessPoint(areaID)
 	if err != nil {
 		log.Errorf("getCfg, acccess point %s not exist", areaID)
 		return nil
 	}
 
-	for _, info := range accessPoint.SchedulerInfos {
-		if info.URL == schedulerURL {
-			return &info
+	for _, cfg := range accessPoint.SchedulerCfgs {
+		if cfg.URL == schedulerURL {
+			return &cfg
 		}
 	}
 
 	return nil
+}
+
+func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerAPI, bool) {
+	accessPoint, err := locator.cfg.getAccessPoint(areaID)
+	if err != nil {
+		log.Errorf("getCfg, acccess point %s not exist", areaID)
+		return nil, false
+	}
+
+	for _, cfg := range accessPoint.SchedulerCfgs {
+		api, ok := locator.apMgr.getSchedulerAPI(cfg.URL, areaID, cfg.AccessToken)
+		if ok {
+			return api, true
+		}
+	}
+
+	return nil, false
 }

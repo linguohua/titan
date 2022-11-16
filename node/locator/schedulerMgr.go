@@ -145,6 +145,7 @@ func (mgr *accessPointMgr) getSchedulerAPI(url, areaID, accessToken string) (*sc
 	if ok {
 		for _, api := range ap.apis {
 			if api.url == url {
+				// check scheduler if online
 				uuid, err := api.Session(ctx, "")
 				if err != nil {
 					log.Warnf("scheduler aready %s offline", url)
@@ -172,24 +173,6 @@ func (mgr *accessPointMgr) getSchedulerAPI(url, areaID, accessToken string) (*sc
 
 	return nil, false
 
-}
-
-func (mgr *accessPointMgr) isSchedulerOnline(url, areaID, accessToken string) bool {
-	ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
-	defer cancel()
-
-	api, ok := mgr.getSchedulerAPI(url, areaID, accessToken)
-	if ok {
-		_, err := api.Version(ctx)
-		if err != nil {
-			mgr.removeSchedulerAPI(url, areaID)
-			return false
-		}
-
-		return true
-	}
-
-	return false
 }
 
 func (mgr *accessPointMgr) randSchedulerAPI(areaID string) (*schedulerAPI, bool) {

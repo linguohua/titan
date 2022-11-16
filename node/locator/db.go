@@ -3,7 +3,7 @@ package locator
 import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
-	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/config"
 )
 
 type db struct {
@@ -72,18 +72,18 @@ func (db *db) listAccessPoints() (areaIDs []string, err error) {
 	return areaIDs, nil
 }
 
-func (db *db) getAccessPoint(areaID string) (api.AccessPoint, error) {
+func (db *db) getAccessPoint(areaID string) (*config.AccessPoint, error) {
 	cfgs, err := db.db.getCfgs(areaID)
 	if err != nil {
-		return api.AccessPoint{}, err
+		return nil, err
 	}
-	ap := api.AccessPoint{AreaID: areaID, SchedulerInfos: make([]api.SchedulerInfo, 0, len(cfgs))}
+	ap := config.AccessPoint{AreaID: areaID, SchedulerCfgs: make([]config.SchedulerCfg, 0, len(cfgs))}
 	for _, cfg := range cfgs {
-		serverCfg := api.SchedulerInfo{URL: cfg.SchedulerURL, Weight: cfg.Weight, AccessToken: cfg.AccessToken}
-		ap.SchedulerInfos = append(ap.SchedulerInfos, serverCfg)
+		schedulerCfg := config.SchedulerCfg{URL: cfg.SchedulerURL, Weight: cfg.Weight, AccessToken: cfg.AccessToken}
+		ap.SchedulerCfgs = append(ap.SchedulerCfgs, schedulerCfg)
 	}
 
-	return ap, nil
+	return &ap, nil
 }
 
 func (db *db) isAccessPointExist(areaID, schedulerURL string) (bool, error) {
