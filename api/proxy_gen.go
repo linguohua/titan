@@ -248,8 +248,6 @@ type SchedulerStruct struct {
 
 		ElectionValidators func(p0 context.Context) (error) `perm:"admin"`
 
-		FindNodeWithBlock func(p0 context.Context, p1 string) (string, error) `perm:"read"`
-
 		GetDevicesInfo func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
 
 		GetDownloadInfo func(p0 context.Context, p1 string) ([]*BlockDownloadInfo, error) `perm:"read"`
@@ -868,17 +866,6 @@ func (s *SchedulerStruct) ElectionValidators(p0 context.Context) (error) {
 
 func (s *SchedulerStub) ElectionValidators(p0 context.Context) (error) {
 	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) FindNodeWithBlock(p0 context.Context, p1 string) (string, error) {
-	if s.Internal.FindNodeWithBlock == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.FindNodeWithBlock(p0, p1)
-}
-
-func (s *SchedulerStub) FindNodeWithBlock(p0 context.Context, p1 string) (string, error) {
-	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetDevicesInfo(p0 context.Context, p1 string) (DevicesInfo, error) {

@@ -41,7 +41,6 @@ type Scheduler interface {
 	UpdateDownloadServerAccessAuth(ctx context.Context, accessAuth DownloadServerAccessAuth) error       //perm:write
 
 	// call by user
-	FindNodeWithBlock(ctx context.Context, cid string) (string, error)                                //perm:read
 	GetDownloadInfosWithBlocks(ctx context.Context, cids []string) (map[string][]DownloadInfo, error) //perm:read
 	GetDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]DownloadInfo, error)    //perm:read
 	GetDownloadInfoWithBlock(ctx context.Context, cid string) (DownloadInfo, error)                   //perm:read

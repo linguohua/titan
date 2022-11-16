@@ -104,3 +104,9 @@ CREATE TABLE `register` (
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='register';
 
+CREATE TABLE `block_delete_cn_gd_shenzhen` (
+	`device_id` varchar(128) NOT NULL,
+	`msg` varchar(128) NOT NULL,
+    `cache_id` varchar(64) NOT NULL,
+	`cid` varchar(128) NOT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='block to be delete';

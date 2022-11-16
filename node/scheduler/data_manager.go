@@ -254,7 +254,7 @@ func (m *DataManager) startCacheContinue(cid, cacheID string) error {
 }
 
 func (m *DataManager) cacheData(cid string, reliability int) error {
-	t := time.Now().Add(7 * 24 * time.Hour)
+	t := time.Now().Add(7 * 24 * time.Hour) // TODO
 
 	return cache.GetDB().SetWaitingCacheTask(api.CacheDataInfo{Cid: cid, NeedReliability: reliability, ExpiredTime: t})
 	// return m.startCacheData(cid, reliability)

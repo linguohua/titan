@@ -30,6 +30,7 @@ var (
 	blockInfoTable    = "block_info_%s"
 	cacheInfoTable    = "cache_info_%s"
 	blockDownloadInfo = "block_download_info_%s"
+	blockDeleteTable  = "block_delete_%s"
 )
 
 // InitSQL init sql
@@ -174,7 +175,7 @@ func (sd sqlDB) GetBlocksFID(deviceID string) (map[string]string, error) {
 
 	m := make(map[string]string)
 
-	info := &NodeBlocks{
+	info := &NodeBlock{
 		DeviceID: deviceID,
 	}
 
@@ -186,7 +187,7 @@ func (sd sqlDB) GetBlocksFID(deviceID string) (map[string]string, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		i := &NodeBlocks{}
+		i := &NodeBlock{}
 		err = rows.StructScan(i)
 		if err == nil {
 			m[i.FID] = i.CID
@@ -196,10 +197,37 @@ func (sd sqlDB) GetBlocksFID(deviceID string) (map[string]string, error) {
 	return m, nil
 }
 
+func (sd sqlDB) GetNodeBlock(deviceID, cid string) (*NodeBlock, error) {
+	area := sd.ReplaceArea()
+
+	info := &NodeBlock{
+		CID:      cid,
+		DeviceID: deviceID,
+	}
+
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cid=:cid AND device_id=:device_id`, fmt.Sprintf(deviceBlockTable, area))
+	rows, err := sd.cli.NamedQuery(cmd, info)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		err = rows.StructScan(info)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, nil
+	}
+
+	return info, nil
+}
+
 func (sd sqlDB) GetBlockCidWithFid(deviceID, fid string) (string, error) {
 	area := sd.ReplaceArea()
 
-	info := &NodeBlocks{
+	info := &NodeBlock{
 		FID:      fid,
 		DeviceID: deviceID,
 	}
@@ -253,6 +281,10 @@ func (sd sqlDB) RemoveAndUpdateCacheInfo(cacheID, carfileID, rootCacheID string,
 		dCmd := fmt.Sprintf(`DELETE FROM %s WHERE cid=?`, dTableName)
 		tx.MustExec(dCmd, carfileID)
 	}
+
+	// delete device block info
+	dCmd := fmt.Sprintf(`DELETE FROM %s WHERE cache_id=?`, fmt.Sprintf(deviceBlockTable, area))
+	tx.MustExec(dCmd, cacheID)
 
 	// delete block info
 	bCmd := fmt.Sprintf(`DELETE FROM %s WHERE cache_id=?`, bTableName)
@@ -700,7 +732,7 @@ func (sd sqlDB) GetNodesWithCacheList(cid string) ([]string, error) {
 
 	m := make([]string, 0)
 
-	info := &NodeBlocks{
+	info := &NodeBlock{
 		CID: cid,
 	}
 
@@ -713,7 +745,7 @@ func (sd sqlDB) GetNodesWithCacheList(cid string) ([]string, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		i := &NodeBlocks{}
+		i := &NodeBlock{}
 		err = rows.StructScan(i)
 		if err != nil {
 			return m, err
@@ -724,34 +756,34 @@ func (sd sqlDB) GetNodesWithCacheList(cid string) ([]string, error) {
 	return m, nil
 }
 
-func (sd sqlDB) DeleteBlockInfos(cacheID, deviceID string, cids []string, removeBlocks int) error {
-	area := sd.ReplaceArea()
-	bTableName := fmt.Sprintf(blockInfoTable, area)
-	cTableName := fmt.Sprintf(cacheInfoTable, area)
-	if cids == nil || len(cids) < 0 {
-		return nil
-	}
+// func (sd sqlDB) DeleteBlockInfos(cacheID, deviceID string, cids []string, removeBlocks int) error {
+// 	area := sd.ReplaceArea()
+// 	bTableName := fmt.Sprintf(blockInfoTable, area)
+// 	cTableName := fmt.Sprintf(cacheInfoTable, area)
+// 	if cids == nil || len(cids) < 0 {
+// 		return nil
+// 	}
 
-	tx := sd.cli.MustBegin()
-	for _, cid := range cids {
-		// delete device block info
-		dCmd := fmt.Sprintf(`DELETE FROM %s WHERE cid=? AND device_id=? AND cache_id=?`, fmt.Sprintf(deviceBlockTable, area))
-		tx.MustExec(dCmd, cid, deviceID, cacheID)
-		// delete block info
-		bCmd := fmt.Sprintf(`DELETE FROM %s WHERE cid=? AND device_id=? AND cache_id=?`, bTableName)
-		tx.MustExec(bCmd, cid, deviceID, cacheID)
-	}
+// 	tx := sd.cli.MustBegin()
+// 	for _, cid := range cids {
+// 		// delete device block info
+// 		dCmd := fmt.Sprintf(`DELETE FROM %s WHERE cid=? AND device_id=? AND cache_id=?`, fmt.Sprintf(deviceBlockTable, area))
+// 		tx.MustExec(dCmd, cid, deviceID, cacheID)
+// 		// delete block info
+// 		bCmd := fmt.Sprintf(`DELETE FROM %s WHERE cid=? AND device_id=? AND cache_id=?`, bTableName)
+// 		tx.MustExec(bCmd, cid, deviceID, cacheID)
+// 	}
 
-	cCmd := fmt.Sprintf("UPDATE %s SET remove_blocks=? WHERE cache_id=?", cTableName)
-	tx.MustExec(cCmd, removeBlocks+len(cids), cacheID)
+// 	cCmd := fmt.Sprintf("UPDATE %s SET remove_blocks=? WHERE cache_id=?", cTableName)
+// 	tx.MustExec(cCmd, removeBlocks+len(cids), cacheID)
 
-	err := tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-	}
+// 	err := tx.Commit()
+// 	if err != nil {
+// 		err = tx.Rollback()
+// 	}
 
-	return err
-}
+// 	return err
+// }
 
 func (sd sqlDB) ReplaceArea() string {
 	str := strings.ToLower(serverArea)
@@ -832,4 +864,71 @@ func (sd sqlDB) GetDownloadInfo(deviceID string) ([]*api.BlockDownloadInfo, erro
 	}
 
 	return out, nil
+}
+
+func (sd sqlDB) AddToBeDeleteBlock(infos []*BlockDelete) error {
+	area := sd.ReplaceArea()
+	tableName := fmt.Sprintf(blockDeleteTable, area)
+
+	tx := sd.cli.MustBegin()
+
+	for _, info := range infos {
+		cCmd := fmt.Sprintf("INSERT INTO %s (cid, device_id, cache_id, msg) VALUES (?, ?, ?, ?)", tableName)
+		tx.MustExec(cCmd, info.CID, info.DeviceID, info.CacheID, info.Msg)
+	}
+
+	err := tx.Commit()
+	if err != nil {
+		err = tx.Rollback()
+		return err
+	}
+
+	return nil
+}
+
+func (sd sqlDB) GetToBeDeleteBlocks(deviceID string) ([]*BlockDelete, error) {
+	area := sd.ReplaceArea()
+
+	list := make([]*BlockDelete, 0)
+
+	info := &BlockDelete{
+		DeviceID: deviceID,
+	}
+
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE device_id=:device_id`, fmt.Sprintf(blockDeleteTable, area))
+	rows, err := sd.cli.NamedQuery(cmd, info)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		i := &BlockDelete{}
+		err = rows.StructScan(i)
+		if err == nil {
+			list = append(list, i)
+		}
+	}
+
+	return list, nil
+}
+
+func (sd sqlDB) RemoveToBeDeleteBlock(infos []*BlockDelete) error {
+	area := sd.ReplaceArea()
+	tableName := fmt.Sprintf(blockDeleteTable, area)
+
+	tx := sd.cli.MustBegin()
+
+	for _, info := range infos {
+		cCmd := fmt.Sprintf(`DELETE FROM %s WHERE cid=? AND device_id=?`, tableName)
+		tx.MustExec(cCmd, info.CID, info.DeviceID)
+	}
+
+	err := tx.Commit()
+	if err != nil {
+		err = tx.Rollback()
+		return err
+	}
+
+	return nil
 }

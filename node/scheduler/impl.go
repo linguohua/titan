@@ -100,6 +100,74 @@ type Scheduler struct {
 	serverPort int
 }
 
+// CandidateNodeConnect Candidate connect
+func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token string) (externalIP string, err error) {
+	ip := handler.GetRequestIP(ctx)
+	deviceID := handler.GetDeviceID(ctx)
+
+	if !s.nodeManager.isDeviceExist(deviceID, int(api.NodeCandidate)) {
+		return "", xerrors.Errorf("candidate node not Exist: %s", deviceID)
+	}
+
+	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
+	log.Infof("CandidateNodeConnect %s ;ip:%s,port:%d", deviceID, ip, port)
+
+	t, err := s.AuthNew(ctx, api.AllPermissions)
+	if err != nil {
+		return "", xerrors.Errorf("creating auth token for remote connection: %s", err.Error())
+	}
+
+	headers := http.Header{}
+	headers.Add("Authorization", "Bearer "+string(t))
+	// Connect to scheduler
+	candicateAPI, closer, err := client.NewCandicate(ctx, url, headers)
+	if err != nil {
+		log.Errorf("CandidateNodeConnect NewCandicate err:%s,url:%s", err.Error(), url)
+		return "", err
+	}
+
+	// load device info
+	deviceInfo, err := candicateAPI.DeviceInfo(ctx)
+	if err != nil {
+		log.Errorf("CandidateNodeConnect DeviceInfo err:%s", err.Error())
+		return "", err
+	}
+
+	if deviceID != deviceInfo.DeviceId {
+		return "", xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
+	}
+
+	deviceInfo.NodeType = api.NodeCandidate
+	deviceInfo.ExternalIp = ip
+
+	candidateNode := &CandidateNode{
+		nodeAPI: candicateAPI,
+		closer:  closer,
+
+		Node: Node{
+			addr:       url,
+			deviceInfo: deviceInfo,
+		},
+	}
+
+	err = s.nodeManager.candidateOnline(candidateNode)
+	if err != nil {
+		log.Errorf("CandidateNodeConnect addEdgeNode err:%s,deviceID:%s", err.Error(), deviceID)
+		return "", err
+	}
+
+	deviceInfo.IpLocation = candidateNode.geoInfo.Geo
+	err = s.nodeManager.setDeviceInfo(deviceID, deviceInfo)
+	if err != nil {
+		log.Errorf("CandidateNodeConnect setDeviceInfo err:%s,deviceID:%s", err.Error(), deviceID)
+		return "", err
+	}
+
+	s.locatorManager.notifyNodeStatusToLocator(deviceID, true)
+
+	return ip, nil
+}
+
 // EdgeNodeConnect edge connect
 func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string) (externalIP string, err error) {
 	ip := handler.GetRequestIP(ctx)
@@ -112,12 +180,6 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
 	log.Infof("EdgeNodeConnect %s ;ip:%s,port:%d", deviceID, ip, port)
 
-	// deviceID, err := verifySecret(token, api.NodeEdge)
-	// if err != nil {
-	// 	log.Errorf("EdgeNodeConnect verifySecret err:%s", err.Error())
-	// 	return "", err
-	// }
-
 	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
 		return "", xerrors.Errorf("creating auth token for remote connection: %s", err.Error())
@@ -125,8 +187,8 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+string(t))
+
 	// Connect to scheduler
-	// log.Infof("EdgeNodeConnect edge url:%v", url)
 	edgeAPI, closer, err := client.NewEdge(ctx, url, headers)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect NewEdge err:%s,url:%s", err.Error(), url)
@@ -157,12 +219,6 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 		},
 	}
 
-	// ok, err := cache.GetDB().IsEdgeInDeviceIDList(deviceInfo.DeviceId)
-	// if err != nil || !ok {
-	// 	log.Errorf("EdgeNodeConnect IsEdgeInDeviceIDList err:%v,deviceID:%s", err, deviceInfo.DeviceId)
-	// 	return xerrors.Errorf("deviceID does not exist")
-	// }
-
 	err = s.nodeManager.edgeOnline(edgeNode)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect addEdgeNode err:%s,deviceID:%s", err.Error(), deviceInfo.DeviceId)
@@ -175,18 +231,6 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string)
 		log.Errorf("EdgeNodeConnect set device info: %s", err.Error())
 		return "", err
 	}
-
-	// edgeNode.getCacheFailCids()
-	// if cids != nil && len(cids) > 0 {
-	// 	reqDatas, _ := edgeNode.getReqCacheDatas(s, cids, true)
-
-	// 	for _, reqData := range reqDatas {
-	// 		err := edgeNode.nodeAPI.CacheBlocks(ctx, reqData)
-	// 		if err != nil {
-	// 			log.Errorf("EdgeNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
-	// 		}
-	// 	}
-	// }
 
 	// notify locator
 	s.locatorManager.notifyNodeStatusToLocator(deviceID, true)
@@ -310,75 +354,6 @@ func (s *Scheduler) RemoveCache(ctx context.Context, carfileID, cacheID string) 
 	return s.dataManager.removeCache(carfileID, cacheID)
 }
 
-// // DeleteBlocks  Delete Blocks
-// func (s *Scheduler) DeleteBlocks(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
-// 	if len(cids) <= 0 {
-// 		return nil, xerrors.New("cids is nil")
-// 	}
-
-// 	errorMap := make(map[string]string)
-
-// 	nodeFinded := false
-
-// 	var node Node
-
-// 	edge := s.nodeManager.getEdgeNode(deviceID)
-// 	if edge != nil {
-// 		results, err := edge.nodeAPI.DeleteBlocks(ctx, cids)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		nodeFinded = true
-
-// 		if len(results) > 0 {
-// 			for _, data := range results {
-// 				errorMap[data.Cid] = data.ErrMsg
-// 			}
-// 		}
-
-// 		node = edge.Node
-// 	}
-
-// 	candidate := s.nodeManager.getCandidateNode(deviceID)
-// 	if candidate != nil {
-// 		resultList, err := candidate.nodeAPI.DeleteBlocks(ctx, cids)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		nodeFinded = true
-
-// 		if len(resultList) > 0 {
-// 			for _, data := range resultList {
-// 				errorMap[data.Cid] = data.ErrMsg
-// 			}
-// 		}
-
-// 		node = candidate.Node
-// 	}
-
-// 	if !nodeFinded {
-// 		return nil, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
-// 	}
-
-// 	delRecordList := make([]string, 0)
-// 	for _, cid := range cids {
-// 		if errorMap[cid] != "" {
-// 			continue
-// 		}
-
-// 		delRecordList = append(delRecordList, cid)
-// 	}
-
-// 	eList, err := node.deleteBlockRecords(delRecordList)
-// 	for cid, eSrt := range eList {
-// 		errorMap[cid] = eSrt
-// 	}
-
-// 	return errorMap, err
-// }
-
 // CacheCarfile Cache Carfile
 func (s *Scheduler) CacheCarfile(ctx context.Context, cid string, reliability int) error {
 	if cid == "" {
@@ -414,49 +389,6 @@ func (s *Scheduler) ShowDataTask(ctx context.Context, cid string) (api.CacheData
 	return info, xerrors.Errorf("%s:%s", ErrCidNotFind, cid)
 }
 
-// CacheBlocks Cache Block
-// func (s *Scheduler) CacheBlocks(ctx context.Context, cids []string, deviceID string) ([]string, error) {
-// 	if len(cids) <= 0 {
-// 		return nil, xerrors.New("cids is nil")
-// 	}
-
-// 	edge := s.nodeManager.getEdgeNode(deviceID)
-// 	if edge != nil {
-// 		errList := make([]string, 0)
-
-// 		reqDatas, notFindList := edge.getReqCacheDatas(s.nodeManager, cids, "", "")
-// 		for _, reqData := range reqDatas {
-// 			err := edge.nodeAPI.CacheBlocks(ctx, reqData)
-// 			if err != nil {
-// 				log.Errorf("edge CacheData err:%s,url:%s,cids:%v", err.Error(), reqData.CandidateURL, reqData.BlockInfos)
-// 				errList = append(errList, reqData.CandidateURL)
-// 			}
-// 		}
-
-// 		errList = append(errList, notFindList...)
-
-// 		return errList, nil
-// 	}
-
-// 	candidate := s.nodeManager.getCandidateNode(deviceID)
-// 	if candidate != nil {
-// 		errList := make([]string, 0)
-
-// 		reqDatas, _ := candidate.getReqCacheDatas(s.nodeManager, cids, "", "")
-// 		for _, reqData := range reqDatas {
-// 			err := candidate.nodeAPI.CacheBlocks(ctx, reqData)
-// 			if err != nil {
-// 				log.Errorf("candidate CacheData err:%s,url:%s,cids:%v", err.Error(), reqData.CandidateURL, reqData.BlockInfos)
-// 				errList = append(errList, reqData.CandidateURL)
-// 			}
-// 		}
-
-// 		return errList, nil
-// 	}
-
-// 	return nil, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
-// }
-
 // GetOnlineDeviceIDs Get all online node id
 func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTypeName) ([]string, error) {
 	list := make([]string, 0)
@@ -484,16 +416,6 @@ func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTyp
 	}
 
 	return list, nil
-}
-
-// FindNodeWithBlock find node
-func (s *Scheduler) FindNodeWithBlock(ctx context.Context, cid string) (string, error) {
-	// node, err := getNodeWithData(cid, ip)
-	// if err != nil {
-	// 	return "", err
-	// }
-
-	return "", nil
 }
 
 // GetDownloadInfosWithBlocks find node
@@ -550,98 +472,6 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string) (a
 	}
 
 	return infos[randomNum(0, len(infos))], nil
-}
-
-// CandidateNodeConnect Candidate connect
-func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token string) (externalIP string, err error) {
-	ip := handler.GetRequestIP(ctx)
-	deviceID := handler.GetDeviceID(ctx)
-
-	if !s.nodeManager.isDeviceExist(deviceID, int(api.NodeCandidate)) {
-		return "", xerrors.Errorf("candidate node not Exist: %s", deviceID)
-	}
-
-	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
-	log.Infof("CandidateNodeConnect %s ;ip:%s,port:%d", deviceID, ip, port)
-
-	// deviceID, err := verifySecret(token, api.NodeCandidate)
-	// if err != nil {
-	// 	log.Errorf("CandidateNodeConnect verifySecret err:%s", err.Error())
-	// 	return "", err
-	// }
-
-	t, err := s.AuthNew(ctx, api.AllPermissions)
-	if err != nil {
-		return "", xerrors.Errorf("creating auth token for remote connection: %s", err.Error())
-	}
-
-	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+string(t))
-	// Connect to scheduler
-	candicateAPI, closer, err := client.NewCandicate(ctx, url, headers)
-	if err != nil {
-		log.Errorf("CandidateNodeConnect NewCandicate err:%s,url:%s", err.Error(), url)
-		return "", err
-	}
-
-	// load device info
-	deviceInfo, err := candicateAPI.DeviceInfo(ctx)
-	if err != nil {
-		log.Errorf("CandidateNodeConnect DeviceInfo err:%s", err.Error())
-		return "", err
-	}
-
-	if deviceID != deviceInfo.DeviceId {
-		return "", xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
-	}
-
-	deviceInfo.NodeType = api.NodeCandidate
-	deviceInfo.ExternalIp = ip
-
-	candidateNode := &CandidateNode{
-		nodeAPI: candicateAPI,
-		closer:  closer,
-
-		Node: Node{
-			addr:       url,
-			deviceInfo: deviceInfo,
-		},
-	}
-
-	// ok, err := cache.GetDB().IsCandidateInDeviceIDList(deviceInfo.DeviceId)
-	// if err != nil || !ok {
-	// 	log.Errorf("EdgeNodeConnect IsCandidateInDeviceIDList err:%v,deviceID:%s", err, deviceInfo.DeviceId)
-	// 	return xerrors.Errorf("deviceID does not exist")
-	// }
-
-	err = s.nodeManager.candidateOnline(candidateNode)
-	if err != nil {
-		log.Errorf("CandidateNodeConnect addEdgeNode err:%s,deviceID:%s", err.Error(), deviceInfo.DeviceId)
-		return "", err
-	}
-
-	deviceInfo.IpLocation = candidateNode.geoInfo.Geo
-	err = s.nodeManager.setDeviceInfo(deviceID, deviceInfo)
-	if err != nil {
-		log.Errorf("CandidateNodeConnect set device info: %s", err.Error())
-		return "", err
-	}
-
-	// cids := candidateNode.getCacheFailCids()
-	// if cids != nil && len(cids) > 0 {
-	// 	reqDatas, _ := candidateNode.getReqCacheDatas(s, cids, false)
-
-	// 	for _, reqData := range reqDatas {
-	// 		err := candidateNode.nodeAPI.CacheBlocks(ctx, reqData)
-	// 		if err != nil {
-	// 			log.Errorf("CandidateNodeConnect CacheData err:%v,url:%v,cids:%v", err.Error(), reqData.CandidateURL, reqData.Cids)
-	// 		}
-	// 	}
-	// }
-
-	s.locatorManager.notifyNodeStatusToLocator(deviceID, true)
-
-	return ip, nil
 }
 
 // QueryCacheStatWithNode Query Cache Stat
@@ -867,4 +697,54 @@ func (s *Scheduler) UpdateDownloadServerAccessAuth(ctx context.Context, access a
 	}
 
 	return xerrors.Errorf("%s :%s", ErrNodeNotFind, info.DeviceID)
+}
+
+func (s *Scheduler) checkToBeDeleteBlocks(deviceID string) error {
+	dBlocks, err := persistent.GetDB().GetToBeDeleteBlocks(deviceID)
+	if err != nil {
+		log.Errorf("checkToBeDeleteBlocks GetToBeDeleteBlocks err:%s,deviceID:%s", err.Error(), deviceID)
+		return err
+	}
+
+	list := make([]string, 0)
+	blockDeletes := make([]*persistent.BlockDelete, 0)
+	// check block is in new cache
+	for _, info := range dBlocks {
+		nBlock, err := persistent.GetDB().GetNodeBlock(deviceID, info.CID)
+		if err != nil {
+			continue
+		}
+
+		blockDeletes = append(blockDeletes, &persistent.BlockDelete{CID: info.CID, DeviceID: deviceID})
+
+		if nBlock != nil && nBlock.CacheID != info.CacheID {
+			// in new cache
+			continue
+		}
+
+		list = append(list, info.CID)
+	}
+
+	ctx := context.Background()
+	candidata := s.nodeManager.getCandidateNode(deviceID)
+	if candidata != nil {
+		_, err = candidata.nodeAPI.DeleteBlocks(ctx, list)
+		if err != nil {
+			return err
+		}
+
+		return persistent.GetDB().RemoveToBeDeleteBlock(blockDeletes)
+	}
+
+	edge := s.nodeManager.getEdgeNode(deviceID)
+	if edge != nil {
+		_, err = edge.nodeAPI.DeleteBlocks(ctx, list)
+		if err != nil {
+			return err
+		}
+
+		return persistent.GetDB().RemoveToBeDeleteBlock(blockDeletes)
+	}
+
+	return xerrors.New(ErrNodeNotFind)
 }
