@@ -16,15 +16,15 @@ import (
 
 // node manager
 
-type geoLevel int64
+// type geoLevel int64
 
 const (
-	defaultLevel  geoLevel = 0
-	countryLevel  geoLevel = 1
-	provinceLevel geoLevel = 2
-	cityLevel     geoLevel = 3
+// defaultLevel  geoLevel = 0
+// countryLevel  geoLevel = 1
+// provinceLevel geoLevel = 2
+// cityLevel     geoLevel = 3
 
-	defaultKey = "default"
+// defaultKey = "default"
 )
 
 // NodeManager Node Manager
@@ -128,11 +128,6 @@ func (m *NodeManager) nodeKeepalive() {
 
 func (m *NodeManager) edgeOnline(node *EdgeNode) error {
 	deviceID := node.deviceInfo.DeviceId
-	// geo ip
-	// geoInfo, _ := region.GetRegion().GetGeoInfo(node.deviceInfo.ExternalIp)
-	// if err != nil {
-	// 	log.Warnf("edgeOnline GetGeoInfo err:%v,node:%v", err, node.deviceInfo.ExternalIp)
-	// }
 
 	isOk, geoInfo := ipLegality(node.deviceInfo.ExternalIp)
 	if !isOk {
@@ -208,13 +203,6 @@ func (m *NodeManager) edgeOffline(node *EdgeNode) {
 func (m *NodeManager) candidateOnline(node *CandidateNode) error {
 	deviceID := node.deviceInfo.DeviceId
 
-	// node.isValidator, _ = cache.GetDB().IsNodeInValidatorList(deviceID)
-
-	// geo ip
-	// geoInfo, _ := region.GetRegion().GetGeoInfo(node.deviceInfo.ExternalIp)
-	// if err != nil {
-	// 	log.Warnf("candidateOnline GetGeoInfo err:%v,ExternalIp:%v", err, node.deviceInfo.ExternalIp)
-	// }
 	isOk, geoInfo := ipLegality(node.deviceInfo.ExternalIp)
 	if !isOk {
 		log.Errorf("candidateOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.deviceInfo.ExternalIp, geoInfo.Geo)
@@ -279,10 +267,6 @@ func (m *NodeManager) findEdgeNodes(useDeviceIDs []string, filterDeviceIDs map[s
 		filterDeviceIDs = make(map[string]string)
 	}
 
-	// eMap := m.areaManager.getEdges(geoKey)
-	// if eMap == nil || len(eMap) <= 0 {
-	// 	return nil
-	// }
 	list := make([]*EdgeNode, 0)
 
 	if useDeviceIDs != nil && len(useDeviceIDs) > 0 {
@@ -312,14 +296,6 @@ func (m *NodeManager) findEdgeNodes(useDeviceIDs []string, filterDeviceIDs map[s
 
 			return true
 		})
-
-		// for _, node := range eMap {
-		// 	if _, ok := filterDeviceIDs[node.deviceInfo.DeviceId]; ok {
-		// 		continue
-		// 	}
-
-		// 	list = append(list, node)
-		// }
 	}
 
 	if len(list) > 0 {
@@ -338,10 +314,6 @@ func (m *NodeManager) findCandidateNodes(useDeviceIDs []string, filterDeviceIDs 
 		filterDeviceIDs = make(map[string]string)
 	}
 
-	// eMap := m.areaManager.getCandidates(geoKey)
-	// if eMap == nil || len(eMap) <= 0 {
-	// 	return nil
-	// }
 	list := make([]*CandidateNode, 0)
 
 	if len(useDeviceIDs) > 0 {
@@ -371,12 +343,6 @@ func (m *NodeManager) findCandidateNodes(useDeviceIDs []string, filterDeviceIDs 
 
 			return true
 		})
-		// for _, node := range eMap {
-		// 	if _, ok := filterDeviceIDs[node.deviceInfo.DeviceId]; ok {
-		// 		continue
-		// 	}
-		// 	list = append(list, node)
-		// }
 	}
 
 	if len(list) > 0 {
@@ -388,97 +354,6 @@ func (m *NodeManager) findCandidateNodes(useDeviceIDs []string, filterDeviceIDs 
 
 	return nil
 }
-
-// func (m *NodeManager) findEdges(userGeoInfo *region.GeoInfo, useDeviceIDs []string, filterDeviceIDs map[string]string) ([]*EdgeNode, geoLevel) {
-// 	if userGeoInfo != nil {
-// 		countryKey, provinceKey, cityKey := m.areaManager.getAreaKey(userGeoInfo)
-
-// 		list := m.findEdgeNodeWithGeo(cityKey, useDeviceIDs, filterDeviceIDs)
-// 		if list != nil {
-// 			return list, cityLevel
-// 		}
-
-// 		list = m.findEdgeNodeWithGeo(provinceKey, useDeviceIDs, filterDeviceIDs)
-// 		if list != nil {
-// 			return list, provinceLevel
-// 		}
-
-// 		list = m.findEdgeNodeWithGeo(countryKey, useDeviceIDs, filterDeviceIDs)
-// 		if list != nil {
-// 			return list, countryLevel
-// 		}
-// 	}
-
-// 	list := m.findEdgeNodeWithGeo(defaultKey, useDeviceIDs, filterDeviceIDs)
-// 	if list != nil {
-// 		return list, defaultLevel
-// 	}
-
-// 	return nil, defaultLevel
-// }
-
-// func (m *NodeManager) findCandidates(userGeoInfo *region.GeoInfo, useDeviceIDs []string, filterDeviceIDs map[string]string) ([]*CandidateNode, geoLevel) {
-// 	if userGeoInfo != nil {
-// 		countryKey, provinceKey, cityKey := m.areaManager.getAreaKey(userGeoInfo)
-
-// 		list := m.findCandidateNodeWithGeo(cityKey, useDeviceIDs, filterDeviceIDs)
-// 		if list != nil {
-// 			return list, cityLevel
-// 		}
-
-// 		list = m.findCandidateNodeWithGeo(provinceKey, useDeviceIDs, filterDeviceIDs)
-// 		if list != nil {
-// 			return list, provinceLevel
-// 		}
-
-// 		list = m.findCandidateNodeWithGeo(countryKey, useDeviceIDs, filterDeviceIDs)
-// 		if list != nil {
-// 			return list, countryLevel
-// 		}
-// 	}
-
-// 	list := m.findCandidateNodeWithGeo(defaultKey, useDeviceIDs, filterDeviceIDs)
-// 	if list != nil {
-// 		return list, defaultLevel
-// 	}
-
-// 	return nil, defaultLevel
-// }
-
-// func (m *NodeManager) filterCandidates(filterDeviceIDs []string, nodes []*CandidateNode) []*CandidateNode {
-// 	nodes2 := make([]*CandidateNode, 0)
-// 	for _, node := range nodes {
-// 		isHave := false
-// 		for _, nd := range filterDeviceIDs {
-// 			if node.deviceInfo.DeviceId == nd {
-// 				isHave = true
-// 			}
-// 		}
-
-// 		if !isHave {
-// 			nodes2 = append(nodes2, node)
-// 		}
-// 	}
-
-// 	return nodes2
-// }
-
-// func (m *NodeManager) resetCandidateAndValidatorCount() {
-// 	m.candidateCount = 0
-// 	m.validatorCount = 0
-
-// 	m.candidateNodeMap.Range(func(key, value interface{}) bool {
-// 		node := value.(*CandidateNode)
-
-// 		if node.isValidator {
-// 			m.validatorCount++
-// 		} else {
-// 			m.candidateCount++
-// 		}
-
-// 		return true
-// 	})
-// }
 
 func (m *NodeManager) updateLastRequestTime(deviceID string) {
 	lastTime := time.Now()

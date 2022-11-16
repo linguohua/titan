@@ -40,12 +40,9 @@ type CandidateNode struct {
 
 // Node Common
 type Node struct {
-	deviceInfo api.DevicesInfo
-
-	geoInfo *region.GeoInfo
-
-	addr string
-
+	deviceInfo      api.DevicesInfo
+	geoInfo         *region.GeoInfo
+	addr            string
 	lastRequestTime time.Time
 }
 
@@ -53,21 +50,6 @@ type Node struct {
 func (n *Node) setNodeOnline(typeName api.NodeTypeName) error {
 	deviceID := n.deviceInfo.DeviceId
 	geoInfo := n.geoInfo
-
-	// oldNodeInfo, err := persistent.GetDB().GetNodeInfo(deviceID)
-	// if err == nil {
-	// 	if oldNodeInfo.Geo != geoInfo.Geo {
-	// 		err = cache.GetDB().RemoveNodeWithGeoList(deviceID, oldNodeInfo.Geo)
-	// 		if err != nil {
-	// 			log.Errorf("RemoveNodeWithGeoList err:%v,deviceID:%v,Geo:%v", err.Error(), deviceID, oldNodeInfo.Geo)
-	// 		}
-	// 	}
-	// } else {
-	// 	if !persistent.GetDB().IsNilErr(err) {
-	// 		log.Warnf("GetNodeInfo err:%v,deviceID:%v", err.Error(), deviceID)
-	// 	}
-	// }
-	// log.Infof("oldgeo:%v,newgeo:%v,err:%v", nodeInfo.Geo, geoInfo.Geo, err)
 
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
 	err := persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{
@@ -80,18 +62,6 @@ func (n *Node) setNodeOnline(typeName api.NodeTypeName) error {
 	if err != nil {
 		return err
 	}
-
-	// err = cache.GetDB().SetNodeToGeoList(deviceID, geoInfo.Geo)
-	// if err != nil {
-	// 	log.Errorf("SetNodeToGeoList err:%v,deviceID:%v,Geo:%v", err.Error(), deviceID, geoInfo.Geo)
-	// 	return err
-	// }
-
-	// err = cache.GetDB().SetGeoToList(geoInfo.Geo)
-	// if err != nil {
-	// 	log.Errorf("SetGeoToList err:%v,Geo:%v", err.Error(), geoInfo.Geo)
-	// 	return err
-	// }
 
 	return nil
 }
@@ -123,48 +93,6 @@ func (n *Node) getNodeInfo(deviceID string) (*persistent.NodeInfo, error) {
 	}
 	return node, nil
 }
-
-// get all cache fail cid
-// func (n *Node) getCacheFailCids() []string {
-// 	deviceID := n.deviceInfo.DeviceId
-
-// 	infos, err := persistent.GetDB().GetBlockInfos(deviceID)
-// 	if err != nil {
-// 		return nil
-// 	}
-
-// 	if len(infos) <= 0 {
-// 		return nil
-// 	}
-
-// 	cs := make([]string, 0)
-// 	for cid, tag := range infos {
-// 		if tag == dataDefaultTag {
-// 			cs = append(cs, cid)
-// 		}
-// 	}
-
-// 	return cs
-
-// 	// cids, err := cache.GetDB().GetBlocksWithNodeFailList(deviceID)
-// 	// if err != nil {
-// 	// 	return nil
-// 	// }
-
-// 	// return cids
-// }
-
-// delete block records
-// func (n *Node) deleteBlockRecords(cids []string, carfileID, cacheID string) error {
-// 	deviceID := n.deviceInfo.DeviceId
-
-// 	err := persistent.GetDB().DeleteBlockInfos(carfileID, cacheID, deviceID, cids)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
 
 // filter cached blocks and find download url from candidate
 func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, carFileCid, cacheID string) []api.ReqCacheData {
@@ -219,63 +147,3 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, carFile
 func (n *Node) updateAccessAuth(access *api.DownloadServerAccessAuth) error {
 	return persistent.GetDB().SetNodeAuthInfo(access)
 }
-
-// cache block Result
-// TODO save to sql
-// func (n *Node) cacheBlockResult(info *api.CacheResultInfo, carfileID, cacheID string) (string, error) {
-// 	deviceID := n.deviceInfo.DeviceId
-// 	// log.Infof("nodeCacheResult deviceID:%v,Cid:%v", deviceID, info.Cid)
-
-// 	// isExist := false
-// 	// v, err := persistent.GetDB().GetBlockFidWithCid(deviceID, info.Cid)
-// 	// if err == nil {
-// 	// 	if v != dataDefaultTag {
-// 	// 		return v, nil
-// 	// 	}
-
-// 	// 	isExist = true
-// 	// }
-
-// 	if !info.IsOK {
-// 		return "", nil
-// 	}
-
-// 	fid, err := cache.GetDB().IncrNodeCacheFid(deviceID)
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	fidStr := fmt.Sprintf("%d", fid)
-
-// 	err = persistent.GetDB().AddBlockInfo(n.geoInfo.Geo, deviceID, info.Cid, fidStr, carfileID, cacheID)
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	// err = cache.GetDB().SetBlockCidWithFid(deviceID, info.Cid, fidStr)
-// 	// if err != nil {
-// 	// 	return "", err
-// 	// }
-// 	// err = persistent.GetDB().SetNodeToCacheList(deviceID, info.Cid)
-// 	// if err != nil {
-// 	// 	log.Errorf("nodeCacheResult SetNodeToCacheList err:%v", err.Error())
-// 	// }
-
-// 	return fidStr, err
-// }
-
-// func (n *Node) cacheBlockReady(cid string) error {
-// 	deviceID := n.deviceInfo.DeviceId
-
-// 	isExist := false
-// 	v, err := persistent.GetDB().GetBlockFidWithCid(deviceID, cid)
-// 	if err == nil {
-// 		if v != dataDefaultTag {
-// 			return xerrors.Errorf("already cache")
-// 		}
-
-// 		isExist = true
-// 	}
-
-// 	return persistent.GetDB().SetBlockInfo(deviceID, cid, dataDefaultTag, isExist)
-// }

@@ -46,10 +46,11 @@ type DB interface {
 	GetNodesFromData(cid string) (int, error)
 
 	// node block
-	DeleteBlockInfos(cacheID, deviceID string, cids []string, removeBlocks int) error
+	// DeleteBlockInfos(cacheID, deviceID string, cids []string, removeBlocks int) error
 	GetBlocksFID(deviceID string) (map[string]string, error)
 	GetDeviceBlockNum(deviceID string) (int64, error)
 	GetNodesWithCacheList(cid string) ([]string, error)
+	GetNodeBlock(deviceID, cid string) (*NodeBlock, error)
 
 	// temporary node register
 	BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error
@@ -58,6 +59,10 @@ type DB interface {
 	// AddDownloadInfo user download block information
 	AddDownloadInfo(deviceID string, info *api.BlockDownloadInfo) error
 	GetDownloadInfo(deviceID string) ([]*api.BlockDownloadInfo, error)
+
+	AddToBeDeleteBlock(infos []*BlockDelete) error
+	RemoveToBeDeleteBlock(infos []*BlockDelete) error
+	GetToBeDeleteBlocks(deviceID string) ([]*BlockDelete, error)
 
 	// tool
 	ReplaceArea() string
@@ -126,8 +131,8 @@ type ValidateResult struct {
 	ServerName  string `db:"server_name"`
 }
 
-// NodeBlocks Node Block
-type NodeBlocks struct {
+// NodeBlock Node Block
+type NodeBlock struct {
 	DeviceID  string `db:"device_id"`
 	FID       string `db:"fid"`
 	CID       string `db:"cid"`
@@ -184,6 +189,14 @@ type BlockInfo struct {
 	Reliability int    `db:"reliability"`
 	CarfileID   string `db:"carfile_id"`
 	IsUpdate    bool
+}
+
+// BlockDelete block to be delete
+type BlockDelete struct {
+	CID      string `db:"cid"`
+	DeviceID string `db:"device_id"`
+	Msg      string `db:"msg"`
+	CacheID  string `db:"cache_id"`
 }
 
 // ValidateStatus Validate Status

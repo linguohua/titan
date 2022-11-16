@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -374,50 +373,38 @@ func (c *Cache) removeCache() error {
 		return err
 	}
 
-	haveErr := false
-
 	for deviceID, cids := range cidMap {
 		if deviceID == "" {
 			continue
 		}
-		nodeErrMap, err := c.removeCacheBlocks(deviceID, cids)
-		if err != nil {
-			log.Errorf("%s, removeCacheBlocks err:%s", deviceID, err.Error())
-			haveErr = true
-		}
-		if len(nodeErrMap) > 0 {
-			log.Errorf("%s,removeCacheBlocks errorMap:%v", deviceID, nodeErrMap)
-			haveErr = true
-		}
+		c.removeCacheBlocks(deviceID, cids)
 	}
 
-	if !haveErr {
-		rootCacheID := c.data.rootCacheID
-		reliability -= c.reliability
+	rootCacheID := c.data.rootCacheID
+	reliability -= c.reliability
 
-		c.data.cacheMap.Delete(c.cacheID)
+	c.data.cacheMap.Delete(c.cacheID)
 
-		isDelete := true
-		c.data.cacheMap.Range(func(key, value interface{}) bool {
-			if value != nil {
-				c := value.(*Cache)
-				if c != nil {
-					isDelete = false
-				}
+	isDelete := true
+	c.data.cacheMap.Range(func(key, value interface{}) bool {
+		if value != nil {
+			c := value.(*Cache)
+			if c != nil {
+				isDelete = false
 			}
-
-			return true
-		})
-
-		if c.cacheID == rootCacheID {
-			rootCacheID = ""
 		}
-		// delete cache and update data info
-		err = persistent.GetDB().RemoveAndUpdateCacheInfo(c.cacheID, c.carfileCid, rootCacheID, isDelete, reliability)
-		if err == nil {
-			c.data.reliability = reliability
-			c.data.rootCacheID = rootCacheID
-		}
+
+		return true
+	})
+
+	if c.cacheID == rootCacheID {
+		rootCacheID = ""
+	}
+	// delete cache and update data info
+	err = persistent.GetDB().RemoveAndUpdateCacheInfo(c.cacheID, c.carfileCid, rootCacheID, isDelete, reliability)
+	if err == nil {
+		c.data.reliability = reliability
+		c.data.rootCacheID = rootCacheID
 	}
 
 	return err
@@ -473,68 +460,83 @@ func (c *Cache) updateCacheInfos() (bool, error) {
 	return false, nil
 }
 
-func (c *Cache) removeCacheBlocks(deviceID string, cids []string) (map[string]string, error) {
+func (c *Cache) removeCacheBlocks(deviceID string, cids []string) {
 	ctx := context.Background()
-	nodeErrs := make(map[string]string)
+	nodeErrs := make([]*persistent.BlockDelete, 0)
 
-	nodeFinded := false
+	defer func() {
+		if len(nodeErrs) > 0 {
+			err := persistent.GetDB().AddToBeDeleteBlock(nodeErrs)
+			if err != nil {
+				log.Errorf("AddToBeDeleteBlock err:%s , nodeErrs:%v", err.Error(), nodeErrs)
+			}
+		}
+	}()
 
 	edge := c.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
-		results, err := edge.nodeAPI.DeleteBlocks(ctx, cids)
+		_, err := edge.nodeAPI.DeleteBlocks(ctx, cids)
 		if err != nil {
-			return nil, err
-		}
-
-		nodeFinded = true
-
-		if len(results) > 0 {
-			for _, data := range results {
-				nodeErrs[data.Cid] = fmt.Sprintf("node err:%s", data.ErrMsg)
+			for _, cid := range cids {
+				info := &persistent.BlockDelete{
+					DeviceID: deviceID,
+					CID:      cid,
+					CacheID:  c.cacheID,
+					Msg:      err.Error(),
+				}
+				nodeErrs = append(nodeErrs, info)
 			}
 		}
 
+		return
 	}
 
 	candidate := c.nodeManager.getCandidateNode(deviceID)
 	if candidate != nil {
-		resultList, err := candidate.nodeAPI.DeleteBlocks(ctx, cids)
+		_, err := candidate.nodeAPI.DeleteBlocks(ctx, cids)
 		if err != nil {
-			return nil, err
-		}
-
-		nodeFinded = true
-
-		if len(resultList) > 0 {
-			for _, data := range resultList {
-				nodeErrs[data.Cid] = fmt.Sprintf("node err:%s", data.ErrMsg)
+			for _, cid := range cids {
+				info := &persistent.BlockDelete{
+					DeviceID: deviceID,
+					CID:      cid,
+					CacheID:  c.cacheID,
+					Msg:      err.Error(),
+				}
+				nodeErrs = append(nodeErrs, info)
 			}
 		}
 
+		return
 	}
 
-	if !nodeFinded {
-		return nil, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
-	}
-
-	delRecordList := make([]string, 0)
 	for _, cid := range cids {
-		_, ok := nodeErrs[cid]
-		if ok {
-			continue
+		info := &persistent.BlockDelete{
+			DeviceID: deviceID,
+			CacheID:  c.cacheID,
+			CID:      cid,
+			Msg:      ErrNodeNotFind,
 		}
-
-		delRecordList = append(delRecordList, cid)
+		nodeErrs = append(nodeErrs, info)
 	}
 
-	err := persistent.GetDB().DeleteBlockInfos(c.cacheID, deviceID, delRecordList, c.removeBlocks)
-	if err != nil {
-		return nodeErrs, err
-	}
+	// delRecordList := make([]string, 0)
+	// for _, cid := range cids {
+	// 	_, ok := nodeErrs[cid]
+	// 	if ok {
+	// 		continue
+	// 	}
 
-	c.removeBlocks += len(delRecordList)
+	// 	delRecordList = append(delRecordList, cid)
+	// }
 
-	return nodeErrs, nil
+	// err := persistent.GetDB().DeleteBlockInfos(c.cacheID, deviceID, delRecordList, c.removeBlocks)
+	// if err != nil {
+	// 	return nodeErrs, err
+	// }
+
+	// c.removeBlocks += len(delRecordList)
+
+	return
 }
 
 func (c *Cache) calculateReliability(deviceID string) int {
