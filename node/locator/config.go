@@ -1,7 +1,6 @@
 package locator
 
 import (
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/repo"
 )
@@ -66,7 +65,7 @@ func (cfg *localCfg) addAccessPoints(areaID string, schedulerURL string, weight 
 		}
 
 		if !isExist {
-			serverCfg := config.SchedulerCfg{URL: schedulerURL, Weight: weight, Accesstoken: accessToken}
+			serverCfg := config.SchedulerCfg{URL: schedulerURL, Weight: weight, AccessToken: accessToken}
 			accessPoint.SchedulerCfgs = append(accessPoint.SchedulerCfgs, serverCfg)
 		}
 		rcfg.AccessPoints[areaID] = accessPoint
@@ -112,24 +111,13 @@ func (cfg *localCfg) listAccessPoints() (areaIDs []string, err error) {
 	return areaIDs, nil
 }
 
-func (cfg *localCfg) getAccessPoint(areaID string) (api.AccessPoint, error) {
+func (cfg *localCfg) getAccessPoint(areaID string) (*config.AccessPoint, error) {
 	if cfg.cfg.AccessPoints == nil {
-		return api.AccessPoint{}, nil
+		return nil, nil
 	}
 
-	accessPoint, ok := cfg.cfg.AccessPoints[areaID]
-	if !ok {
-		return api.AccessPoint{}, nil
-	}
-
-	result := api.AccessPoint{AreaID: accessPoint.AreaID, SchedulerInfos: make([]api.SchedulerInfo, 0, len(accessPoint.SchedulerCfgs))}
-
-	for _, serverCfg := range accessPoint.SchedulerCfgs {
-		scfg := api.SchedulerInfo{URL: serverCfg.URL, Weight: serverCfg.Weight, AccessToken: serverCfg.Accesstoken}
-		result.SchedulerInfos = append(result.SchedulerInfos, scfg)
-	}
-
-	return result, nil
+	accessPoint, _ := cfg.cfg.AccessPoints[areaID]
+	return &accessPoint, nil
 }
 
 func (cfg *localCfg) isAccessPointExist(areaID, schedulerURL string) (bool, error) {
