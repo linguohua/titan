@@ -160,10 +160,10 @@ func (block *Block) addReq2WaitList(delayReqs []*delayReq) {
 
 func (block *Block) cacheResultWithError(ctx context.Context, bStat blockStat, err error) {
 	log.Errorf("cacheResultWithError, cid:%s, fid:%s, cacheID:%s, carFileID:%s, error:%v", bStat.cid, bStat.fid, bStat.CacheID, bStat.carFileCid, err)
-	block.cacheResult(ctx, "", err, bStat)
+	block.cacheResult(ctx, err, bStat)
 }
 
-func (block *Block) cacheResult(ctx context.Context, from string, err error, bStat blockStat) {
+func (block *Block) cacheResult(ctx context.Context, err error, bStat blockStat) {
 	errMsg := ""
 	success := true
 	if err != nil {
@@ -175,7 +175,7 @@ func (block *Block) cacheResult(ctx context.Context, from string, err error, bSt
 		Cid:        bStat.cid,
 		IsOK:       success,
 		Msg:        errMsg,
-		From:       from,
+		From:       "",
 		Links:      bStat.links,
 		BlockSize:  bStat.blockSize,
 		LinksSize:  bStat.linksSize,
@@ -228,8 +228,6 @@ func (block *Block) cacheResult(ctx context.Context, from string, err error, bSt
 
 func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 	ctx := context.Background()
-
-	from := ""
 	results := make([]*delayReq, 0, len(reqs))
 	for _, reqData := range reqs {
 		// target, err := cid.Decode(reqData.Cid)
@@ -266,7 +264,7 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 			}
 
 			bStat := blockStat{cid: cidStr, fid: reqData.blockInfo.Fid, links: cids, blockSize: len(buf), linksSize: linksSize, carFileCid: reqData.carFileCid, CacheID: reqData.CacheID}
-			block.cacheResult(ctx, from, nil, bStat)
+			block.cacheResult(ctx, nil, bStat)
 			continue
 		}
 
