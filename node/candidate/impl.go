@@ -20,6 +20,7 @@ import (
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/download"
 	"github.com/linguohua/titan/node/helper"
+	datasync "github.com/linguohua/titan/node/sync"
 
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
@@ -53,6 +54,7 @@ func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *devic
 		Validate:      validate,
 		scheduler:     params.Scheduler,
 		tcpSrvAddr:    tcpSrvAddr,
+		DataSync:      datasync.NewDataSync(block),
 	}
 
 	go candidate.startTcpServer()
@@ -90,6 +92,7 @@ type Candidate struct {
 	*download.BlockDownload
 	*device.Device
 	*vd.Validate
+	*datasync.DataSync
 
 	scheduler      api.Scheduler
 	tcpSrvAddr     string

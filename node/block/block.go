@@ -5,7 +5,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"strconv"
 	"sync"
 	"time"
 
@@ -412,12 +411,8 @@ func (block *Block) LoadBlockWithFid(fid string) ([]byte, error) {
 	return block.blockStore.Get(cid)
 }
 
-func (block *Block) GetBlockStoreCheckSum(ctx context.Context) (string, error) {
-	return block.getBlockStoreCheckSum()
-}
-
-func (block *Block) ScrubBlocks(ctx context.Context, scrub api.ScrubBlocks) error {
-	return nil
+func (block *Block) GetDatastore(ctx context.Context) datastore.Batching {
+	return block.ds
 }
 
 func (block *Block) getCID(fid string) (string, error) {
@@ -539,54 +534,6 @@ func (block *Block) getBlockStoreCheckSum() (string, error) {
 	hash := hasher.Sum(nil)
 
 	return hex.EncodeToString(hash), nil
-}
-
-func (block *Block) scrubBlockStore(scrub api.ScrubBlocks) error {
-	startFid, err := strconv.Atoi(scrub.StartFid)
-	if err != nil {
-		log.Errorf("scrubBlockStore parse  error:%s", err.Error())
-		return err
-	}
-
-	endFid, err := strconv.Atoi(scrub.EndFix)
-	if err != nil {
-		log.Errorf("scrubBlockStore error:%s", err.Error())
-		return err
-	}
-
-	need2DeleteBlocks := make([]string, 0)
-	blocks := scrub.Blocks
-	for i := startFid; i <= endFid; i++ {
-		fid := fmt.Sprintf("%d", i)
-		cid, err := block.getCID(fid)
-		if err == datastore.ErrNotFound {
-			continue
-		}
-
-		_, ok := blocks[fid]
-		if ok {
-			delete(blocks, fid)
-		} else {
-			need2DeleteBlocks = append(need2DeleteBlocks, cid)
-		}
-	}
-
-	// delete blocks that not exist on scheduler
-	for _, cid := range need2DeleteBlocks {
-		err = block.deleteFidAndCid(cid)
-		if err != nil {
-			log.Errorf("deleteFidAndCid error:%s", err.Error())
-		}
-
-		err = block.blockStore.Delete(cid)
-		if err != nil {
-			log.Errorf("deleteFidAndCid error:%s", err.Error())
-		}
-	}
-
-	// TODO: download block that not exist in local
-
-	return nil
 }
 
 func (block *Block) resolveLinks(blk blocks.Block) ([]*format.Link, error) {

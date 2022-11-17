@@ -22,10 +22,6 @@ type Block interface {
 	GetCID(ctx context.Context, fid string) (string, error) //perm:read
 	GetFID(ctx context.Context, cid string) (string, error) //perm:read
 	DeleteAllBlocks(ctx context.Context) error              //perm:admin
-
-	// hash to check block store data consistent
-	GetBlockStoreCheckSum(ctx context.Context) (string, error) //perm:read
-	ScrubBlocks(ctx context.Context, scrub ScrubBlocks) error  //perm:read
 }
 
 type BlockInfo struct {

@@ -88,7 +88,7 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string, se
 
 	device, err := locator.db.getDeviceInfo(deviceID)
 	if err != nil {
-		log.Errorf("GetAccessPoints, getDeviceInfo:%s", err.Error())
+		log.Errorf("GetAccessPoints, getDeviceInfo error:%s", err.Error())
 		return []api.SchedulerAuth{}, err
 	}
 
