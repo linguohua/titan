@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/lib/token"
+	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/region"
@@ -129,12 +131,18 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, carFile
 	}
 
 	for deviceID, list := range csMap {
-		node := nodeManager.getCandidateNode(deviceID)
-		if node != nil {
-			reqList = append(reqList, api.ReqCacheData{BlockInfos: list, CandidateURL: node.addr, CardFileCid: carFileCid, CacheID: cacheID})
-		} else {
-			notFindCandidateDatas = append(notFindCandidateDatas, list...)
+		// node := nodeManager.getCandidateNode(deviceID)
+		info, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
+		if err == nil {
+			tk, err := token.GenerateToken(info.SecurityKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
+			if err == nil {
+				reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: info.URL, DownloadToken: tk, CardFileCid: carFileCid, CacheID: cacheID})
+
+				continue
+			}
 		}
+
+		notFindCandidateDatas = append(notFindCandidateDatas, list...)
 	}
 
 	if len(notFindCandidateDatas) > 0 {

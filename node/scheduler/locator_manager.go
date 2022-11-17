@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"context"
-	"time"
 )
 
 // LocatorManager Locator Manager
@@ -23,17 +22,14 @@ func (m *LocatorManager) addLocator(location *Location) {
 }
 
 func (m *LocatorManager) notifyNodeStatusToLocator(deviceID string, isOnline bool) {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
 	// log.Warnf("notifyNodeStatusToLocator : %v", m.locatorMap)
 	for _, locator := range m.locatorMap {
 		// log.Warnf("locator : %v", locator)
 		if locator != nil && locator.nodeAPI != nil {
 			if isOnline {
-				locator.nodeAPI.DeviceOnline(ctx, deviceID, serverArea, m.port)
+				locator.nodeAPI.DeviceOnline(context.Background(), deviceID, serverArea, m.port)
 			} else {
-				locator.nodeAPI.DeviceOffline(ctx, deviceID)
+				locator.nodeAPI.DeviceOffline(context.Background(), deviceID)
 			}
 		}
 	}
