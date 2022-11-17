@@ -4,7 +4,7 @@ import "context"
 
 type Block interface {
 	// cache blocks
-	CacheBlocks(ctx context.Context, req ReqCacheData) error //perm:write
+	CacheBlocks(ctx context.Context, req []ReqCacheData) error //perm:write
 	// told to scheduler local block was delete
 	AnnounceBlocksWasDelete(ctx context.Context, cids []string) ([]BlockOperationResult, error) //perm:write
 	// delete blocks
@@ -30,10 +30,11 @@ type BlockInfo struct {
 }
 
 type ReqCacheData struct {
-	BlockInfos   []BlockInfo
-	CandidateURL string
-	CardFileCid  string
-	CacheID      string
+	BlockInfos    []BlockInfo
+	DownloadURL   string
+	DownloadToken string
+	CardFileCid   string
+	CacheID       string
 }
 
 type BlockOperationResult struct {
@@ -57,12 +58,4 @@ type CachingBlockStat struct {
 
 type CachingBlockList struct {
 	List []CachingBlockStat
-}
-
-type ScrubBlocks struct {
-	// key fid, value cid
-	// compare cid one by one
-	Blocks   map[string]string
-	StartFid string
-	EndFix   string
 }

@@ -24,14 +24,14 @@ func NewDataSync(block *block.Block) *DataSync {
 	return &DataSync{block: block}
 }
 
-func (dataSync *DataSync) GetSummaryCheckSum(ctx context.Context) (string, error) {
-	return dataSync.getSummaryCheckSum(ctx)
+func (dataSync *DataSync) GetCheckSums(ctx context.Context, req api.ReqCheckSum) (string, error) {
+	return dataSync.getCheckSums(ctx, req)
 }
 func (dataSync *DataSync) ScrubBlocks(ctx context.Context, scrub api.ScrubBlocks) error {
 	return dataSync.scrubBlocks(scrub)
 }
 
-func (dataSync *DataSync) getSummaryCheckSum(ctx context.Context) (string, error) {
+func (dataSync *DataSync) getCheckSums(ctx context.Context, req api.ReqCheckSum) (string, error) {
 	q := query.Query{Prefix: "fid"}
 	ds := dataSync.block.GetDatastore(ctx)
 	results, err := ds.Query(ctx, q)

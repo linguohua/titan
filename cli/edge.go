@@ -83,9 +83,9 @@ var CacheBlockCmd = &cli.Command{
 
 		blockInfo := api.BlockInfo{Cid: cid, Fid: "1"}
 
-		reqData := API.ReqCacheData{BlockInfos: []api.BlockInfo{blockInfo}, CandidateURL: candidateURL}
+		reqData := API.ReqCacheData{BlockInfos: []api.BlockInfo{blockInfo}, DownloadURL: candidateURL}
 
-		err = adgeAPI.CacheBlocks(ctx, reqData)
+		err = adgeAPI.CacheBlocks(ctx, []api.ReqCacheData{reqData})
 		if err != nil {
 			return err
 		}
