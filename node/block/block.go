@@ -31,9 +31,10 @@ type delayReq struct {
 	blockInfo api.BlockInfo
 	count     int
 	// use for edge node load block
-	candidateURL string
-	carFileCid   string
-	CacheID      string
+	downloadURL   string
+	downloadToken string
+	carFileCid    string
+	CacheID       string
 }
 
 type blockStat struct {
@@ -96,7 +97,7 @@ func apiReq2DelayReq(req *api.ReqCacheData) []*delayReq {
 			continue
 		}
 
-		req := &delayReq{blockInfo: blockInfo, count: 0, candidateURL: req.CandidateURL, carFileCid: req.CardFileCid, CacheID: req.CacheID}
+		req := &delayReq{blockInfo: blockInfo, count: 0, downloadURL: req.DownloadURL, downloadToken: req.DownloadToken, carFileCid: req.CardFileCid, CacheID: req.CacheID}
 		results = append(results, req)
 	}
 
@@ -275,14 +276,16 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 	return results
 }
 
-func (block *Block) CacheBlocks(ctx context.Context, req api.ReqCacheData) error {
-	log.Infof("CacheBlocks, req carFileCid:%s, cacheID:%s, candidate_url:%s, cid len:%d", req.CardFileCid, req.CacheID, req.CandidateURL, len(req.BlockInfos))
+func (block *Block) CacheBlocks(ctx context.Context, reqs []api.ReqCacheData) error {
+	log.Infof("CacheBlocks, reqs:%d", len(reqs))
 	// delayReq := block.filterAvailableReq(apiReq2DelayReq(&req))
 	// if len(delayReq) == 0 {
 	// 	log.Debug("CacheData, len(req) == 0 not need to handle")
 	// 	return nil
 	// }
-	block.addReq2WaitList(apiReq2DelayReq(&req))
+	for _, req := range reqs {
+		block.addReq2WaitList(apiReq2DelayReq(&req))
+	}
 	return nil
 }
 

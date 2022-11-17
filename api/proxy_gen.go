@@ -22,13 +22,11 @@ type BlockStruct struct {
 
 		BlockStoreStat func(p0 context.Context) (error) `perm:"read"`
 
-		CacheBlocks func(p0 context.Context, p1 ReqCacheData) (error) `perm:"write"`
+		CacheBlocks func(p0 context.Context, p1 []ReqCacheData) (error) `perm:"write"`
 
 		DeleteAllBlocks func(p0 context.Context) (error) `perm:"admin"`
 
 		DeleteBlocks func(p0 context.Context, p1 []string) ([]BlockOperationResult, error) `perm:"write"`
-
-		GetBlockStoreCheckSum func(p0 context.Context) (string, error) `perm:"read"`
 
 		GetCID func(p0 context.Context, p1 string) (string, error) `perm:"read"`
 
@@ -39,8 +37,6 @@ type BlockStruct struct {
 		QueryCacheStat func(p0 context.Context) (CacheStat, error) `perm:"read"`
 
 		QueryCachingBlocks func(p0 context.Context) (CachingBlockList, error) `perm:"read"`
-
-		ScrubBlocks func(p0 context.Context, p1 ScrubBlocks) (error) `perm:"read"`
 
 	}
 }
@@ -116,6 +112,21 @@ type CommonStruct struct {
 }
 
 type CommonStub struct {
+
+}
+
+type DataSyncStruct struct {
+
+	Internal struct {
+
+		GetCheckSums func(p0 context.Context, p1 ReqCheckSum) (CheckSumRsp, error) `perm:"read"`
+
+		ScrubBlocks func(p0 context.Context, p1 ScrubBlocks) (error) `perm:"write"`
+
+	}
+}
+
+type DataSyncStub struct {
 
 }
 
@@ -329,14 +340,14 @@ func (s *BlockStub) BlockStoreStat(p0 context.Context) (error) {
 	return ErrNotSupported
 }
 
-func (s *BlockStruct) CacheBlocks(p0 context.Context, p1 ReqCacheData) (error) {
+func (s *BlockStruct) CacheBlocks(p0 context.Context, p1 []ReqCacheData) (error) {
 	if s.Internal.CacheBlocks == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheBlocks(p0, p1)
 }
 
-func (s *BlockStub) CacheBlocks(p0 context.Context, p1 ReqCacheData) (error) {
+func (s *BlockStub) CacheBlocks(p0 context.Context, p1 []ReqCacheData) (error) {
 	return ErrNotSupported
 }
 
@@ -360,17 +371,6 @@ func (s *BlockStruct) DeleteBlocks(p0 context.Context, p1 []string) ([]BlockOper
 
 func (s *BlockStub) DeleteBlocks(p0 context.Context, p1 []string) ([]BlockOperationResult, error) {
 	return *new([]BlockOperationResult), ErrNotSupported
-}
-
-func (s *BlockStruct) GetBlockStoreCheckSum(p0 context.Context) (string, error) {
-	if s.Internal.GetBlockStoreCheckSum == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.GetBlockStoreCheckSum(p0)
-}
-
-func (s *BlockStub) GetBlockStoreCheckSum(p0 context.Context) (string, error) {
-	return "", ErrNotSupported
 }
 
 func (s *BlockStruct) GetCID(p0 context.Context, p1 string) (string, error) {
@@ -426,17 +426,6 @@ func (s *BlockStruct) QueryCachingBlocks(p0 context.Context) (CachingBlockList, 
 
 func (s *BlockStub) QueryCachingBlocks(p0 context.Context) (CachingBlockList, error) {
 	return *new(CachingBlockList), ErrNotSupported
-}
-
-func (s *BlockStruct) ScrubBlocks(p0 context.Context, p1 ScrubBlocks) (error) {
-	if s.Internal.ScrubBlocks == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.ScrubBlocks(p0, p1)
-}
-
-func (s *BlockStub) ScrubBlocks(p0 context.Context, p1 ScrubBlocks) (error) {
-	return ErrNotSupported
 }
 
 
@@ -597,6 +586,31 @@ func (s *CommonStruct) Version(p0 context.Context) (APIVersion, error) {
 
 func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 	return *new(APIVersion), ErrNotSupported
+}
+
+
+
+
+func (s *DataSyncStruct) GetCheckSums(p0 context.Context, p1 ReqCheckSum) (CheckSumRsp, error) {
+	if s.Internal.GetCheckSums == nil {
+		return *new(CheckSumRsp), ErrNotSupported
+	}
+	return s.Internal.GetCheckSums(p0, p1)
+}
+
+func (s *DataSyncStub) GetCheckSums(p0 context.Context, p1 ReqCheckSum) (CheckSumRsp, error) {
+	return *new(CheckSumRsp), ErrNotSupported
+}
+
+func (s *DataSyncStruct) ScrubBlocks(p0 context.Context, p1 ScrubBlocks) (error) {
+	if s.Internal.ScrubBlocks == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ScrubBlocks(p0, p1)
+}
+
+func (s *DataSyncStub) ScrubBlocks(p0 context.Context, p1 ScrubBlocks) (error) {
+	return ErrNotSupported
 }
 
 
@@ -1117,6 +1131,7 @@ func (s *ValidateStub) BeValidate(p0 context.Context, p1 ReqValidate, p2 string)
 var _ Block = new(BlockStruct)
 var _ Candidate = new(CandidateStruct)
 var _ Common = new(CommonStruct)
+var _ DataSync = new(DataSyncStruct)
 var _ Device = new(DeviceStruct)
 var _ Download = new(DownloadStruct)
 var _ Edge = new(EdgeStruct)
