@@ -478,6 +478,9 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string) (a
 func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]api.CacheStat, error) {
 	statList := make([]api.CacheStat, 0)
 
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
 	// node datas
 	candidata := s.nodeManager.getCandidateNode(deviceID)
 	if candidata != nil {
@@ -515,6 +518,9 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 
 // QueryCachingBlocksWithNode Query Caching Blocks
 func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (api.CachingBlockList, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
 	candidata := s.nodeManager.getCandidateNode(deviceID)
 	if candidata != nil {
 		return candidata.nodeAPI.QueryCachingBlocks(ctx)

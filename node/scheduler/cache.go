@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/api"
@@ -99,12 +100,15 @@ func loadCache(cacheID, carfileCid string, nodeManager *NodeManager, data *Data)
 }
 
 func (c *Cache) cacheBlocksToNode(deviceID string, cids []string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
 	cNode := c.nodeManager.getCandidateNode(deviceID)
 	if cNode != nil {
 		reqDatas := cNode.getReqCacheDatas(c.nodeManager, cids, c.carfileCid, c.cacheID)
 
 		for _, reqData := range reqDatas {
-			err := cNode.nodeAPI.CacheBlocks(context.Background(), reqData)
+			err := cNode.nodeAPI.CacheBlocks(ctx, reqData)
 			if err != nil {
 				log.Errorf("candidate %s, CacheData err:%s,url:%s,cids:%v", deviceID, err.Error(), reqData.CandidateURL, reqData.BlockInfos)
 			}
@@ -117,7 +121,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, cids []string) error {
 		reqDatas := eNode.getReqCacheDatas(c.nodeManager, cids, c.carfileCid, c.cacheID)
 
 		for _, reqData := range reqDatas {
-			err := eNode.nodeAPI.CacheBlocks(context.Background(), reqData)
+			err := eNode.nodeAPI.CacheBlocks(ctx, reqData)
 			if err != nil {
 				log.Errorf("edge %s, CacheData err:%s,url:%s,cids:%v", deviceID, err.Error(), reqData.CandidateURL, reqData.BlockInfos)
 			}
@@ -245,11 +249,6 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,%s block saved ", info.CacheID, info.Cid)
 	}
 
-	// err = cache.GetDB().SetRunningTask(c.carfileCid, c.cacheID)
-	// if err != nil {
-	// 	log.Errorf("cacheID:%s,%s SetRunningTask err:%s ", info.CacheID, info.Cid, err.Error())
-	// }
-
 	if info.Cid == c.carfileCid {
 		c.totalSize = int(info.LinksSize) + info.BlockSize
 		c.totalBlocks = 1
@@ -319,16 +318,6 @@ func (c *Cache) startCache(cids map[string]string, haveRootCache bool) error {
 		return xerrors.Errorf("startCache %s fail not find node", c.cacheID)
 	}
 
-	// err = cache.GetDB().SetRunningTask(c.carfileCid, c.cacheID)
-	// if err != nil {
-	// 	return xerrors.Errorf("startCache %s , SetRunningTask err:%s", c.cacheID, err.Error())
-	// }
-
-	// err = cache.GetDB().SetTaskToRunningList(c.carfileCid, c.cacheID)
-	// if err != nil {
-	// 	return xerrors.Errorf("startCache %s , SetTaskToRunningList err:%s", c.cacheID, err.Error())
-	// }
-
 	// log.Infof("start cache %s,%s ---------- ", c.carfileCid, c.cacheID)
 	c.cacheDataToNodes(nodeCacheMap)
 
@@ -342,12 +331,6 @@ func (c *Cache) endCache(unDoneBlocks int) (err error) {
 		err = c.data.endData(c)
 		return
 	}()
-
-	// err = cache.GetDB().RemoveRunningTask(c.carfileCid, c.cacheID)
-	// if err != nil {
-	// 	err = xerrors.Errorf("endCache RemoveRunningTask err: %s", err.Error())
-	// 	return
-	// }
 
 	failedBlocks, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusFail))
 	if err != nil {
@@ -462,30 +445,31 @@ func (c *Cache) updateCacheInfos() (bool, error) {
 
 func (c *Cache) removeCacheBlocks(deviceID string, cids []string) {
 	ctx := context.Background()
-	nodeErrs := make([]*persistent.BlockDelete, 0)
+	// nodeErrs := make([]*persistent.BlockDelete, 0)
 
-	defer func() {
-		if len(nodeErrs) > 0 {
-			err := persistent.GetDB().AddToBeDeleteBlock(nodeErrs)
-			if err != nil {
-				log.Errorf("AddToBeDeleteBlock err:%s , nodeErrs:%v", err.Error(), nodeErrs)
-			}
-		}
-	}()
+	// defer func() {
+	// 	if len(nodeErrs) > 0 {
+	// 		err := persistent.GetDB().AddToBeDeleteBlock(nodeErrs)
+	// 		if err != nil {
+	// 			log.Errorf("AddToBeDeleteBlock err:%s , nodeErrs:%v", err.Error(), nodeErrs)
+	// 		}
+	// 	}
+	// }()
 
 	edge := c.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
 		_, err := edge.nodeAPI.DeleteBlocks(ctx, cids)
 		if err != nil {
-			for _, cid := range cids {
-				info := &persistent.BlockDelete{
-					DeviceID: deviceID,
-					CID:      cid,
-					CacheID:  c.cacheID,
-					Msg:      err.Error(),
-				}
-				nodeErrs = append(nodeErrs, info)
-			}
+			log.Warnf("removeCacheBlocks DeleteBlocks err:%s", err.Error())
+			// 	for _, cid := range cids {
+			// 		info := &persistent.BlockDelete{
+			// 			DeviceID: deviceID,
+			// 			CID:      cid,
+			// 			CacheID:  c.cacheID,
+			// 			Msg:      err.Error(),
+			// 		}
+			// 		nodeErrs = append(nodeErrs, info)
+			// 	}
 		}
 
 		return
@@ -495,46 +479,30 @@ func (c *Cache) removeCacheBlocks(deviceID string, cids []string) {
 	if candidate != nil {
 		_, err := candidate.nodeAPI.DeleteBlocks(ctx, cids)
 		if err != nil {
-			for _, cid := range cids {
-				info := &persistent.BlockDelete{
-					DeviceID: deviceID,
-					CID:      cid,
-					CacheID:  c.cacheID,
-					Msg:      err.Error(),
-				}
-				nodeErrs = append(nodeErrs, info)
-			}
+			log.Warnf("removeCacheBlocks DeleteBlocks err:%s", err.Error())
+			// for _, cid := range cids {
+			// 	info := &persistent.BlockDelete{
+			// 		DeviceID: deviceID,
+			// 		CID:      cid,
+			// 		CacheID:  c.cacheID,
+			// 		Msg:      err.Error(),
+			// 	}
+			// 	nodeErrs = append(nodeErrs, info)
+			// }
 		}
 
 		return
 	}
 
-	for _, cid := range cids {
-		info := &persistent.BlockDelete{
-			DeviceID: deviceID,
-			CacheID:  c.cacheID,
-			CID:      cid,
-			Msg:      ErrNodeNotFind,
-		}
-		nodeErrs = append(nodeErrs, info)
-	}
-
-	// delRecordList := make([]string, 0)
 	// for _, cid := range cids {
-	// 	_, ok := nodeErrs[cid]
-	// 	if ok {
-	// 		continue
+	// 	info := &persistent.BlockDelete{
+	// 		DeviceID: deviceID,
+	// 		CacheID:  c.cacheID,
+	// 		CID:      cid,
+	// 		Msg:      ErrNodeNotFind,
 	// 	}
-
-	// 	delRecordList = append(delRecordList, cid)
+	// 	nodeErrs = append(nodeErrs, info)
 	// }
-
-	// err := persistent.GetDB().DeleteBlockInfos(c.cacheID, deviceID, delRecordList, c.removeBlocks)
-	// if err != nil {
-	// 	return nodeErrs, err
-	// }
-
-	// c.removeBlocks += len(delRecordList)
 
 	return
 }
