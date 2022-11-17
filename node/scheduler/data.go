@@ -112,11 +112,6 @@ func (d *Data) updateAndSaveInfo(blockInfo *persistent.BlockInfo, fid string, in
 	if !d.haveRootCache() {
 		d.totalSize = c.totalSize
 		d.totalBlocks = c.totalBlocks
-		// if info.Cid == d.cid {
-		// 	d.totalSize = int(info.LinksSize) + info.BlockSize
-		// }
-		// d.totalBlocks += len(info.Links)
-		// isUpdate = true
 	}
 
 	return d.saveCacheingResults(c, blockInfo, fid, createBlocks)
@@ -188,11 +183,6 @@ func (d *Data) saveCacheEndResults(cache *Cache) error {
 }
 
 func (d *Data) startData(cacheID string) error {
-	// cID, _ := cache.GetDB().GetRunningTask(d.cid)
-	// if cID != "" {
-	// 	return xerrors.New("data have task running,please wait")
-	// }
-
 	var err error
 	defer func() {
 		if err == nil {
