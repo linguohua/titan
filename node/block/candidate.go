@@ -122,7 +122,7 @@ func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 		}
 
 		bInfo := blockStat{cid: req.blockInfo.Cid, fid: req.blockInfo.Fid, links: cids, blockSize: len(data), linksSize: linksSize, carFileCid: req.carFileCid, CacheID: req.CacheID}
-		block.cacheResult(ctx, "", nil, bInfo)
+		block.cacheResult(ctx, nil, bInfo)
 
 		log.Infof("loadBlocksFromCandidate, cid:%s,err:%v", req.blockInfo.Cid, err)
 	}
