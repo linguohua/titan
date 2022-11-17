@@ -6,6 +6,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/helper"
+	datasync "github.com/linguohua/titan/node/sync"
 	"github.com/linguohua/titan/node/validate"
 	"golang.org/x/time/rate"
 
@@ -40,6 +41,7 @@ func NewLocalEdgeNode(ctx context.Context, device *device.Device, params *helper
 		Block:         block,
 		BlockDownload: blockDownload,
 		Validate:      validate,
+		DataSync:      datasync.NewDataSync(block),
 	}
 
 	return edge
@@ -51,6 +53,7 @@ type Edge struct {
 	*block.Block
 	*download.BlockDownload
 	*validate.Validate
+	*datasync.DataSync
 }
 
 func (edge *Edge) WaitQuiet(ctx context.Context) error {
