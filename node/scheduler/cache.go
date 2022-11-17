@@ -107,11 +107,9 @@ func (c *Cache) cacheBlocksToNode(deviceID string, cids []string) error {
 	if cNode != nil {
 		reqDatas := cNode.getReqCacheDatas(c.nodeManager, cids, c.carfileCid, c.cacheID)
 
-		for _, reqData := range reqDatas {
-			err := cNode.nodeAPI.CacheBlocks(ctx, reqData)
-			if err != nil {
-				log.Errorf("candidate %s, CacheData err:%s,url:%s,cids:%v", deviceID, err.Error(), reqData.CandidateURL, reqData.BlockInfos)
-			}
+		err := cNode.nodeAPI.CacheBlocks(ctx, reqDatas)
+		if err != nil {
+			log.Errorf("candidate %s, CacheData err:%s", deviceID, err.Error())
 		}
 		return nil
 	}
@@ -120,11 +118,9 @@ func (c *Cache) cacheBlocksToNode(deviceID string, cids []string) error {
 	if eNode != nil {
 		reqDatas := eNode.getReqCacheDatas(c.nodeManager, cids, c.carfileCid, c.cacheID)
 
-		for _, reqData := range reqDatas {
-			err := eNode.nodeAPI.CacheBlocks(ctx, reqData)
-			if err != nil {
-				log.Errorf("edge %s, CacheData err:%s,url:%s,cids:%v", deviceID, err.Error(), reqData.CandidateURL, reqData.BlockInfos)
-			}
+		err := eNode.nodeAPI.CacheBlocks(ctx, reqDatas)
+		if err != nil {
+			log.Errorf("edge %s, CacheData err:%s", deviceID, err.Error())
 		}
 		return nil
 	}
