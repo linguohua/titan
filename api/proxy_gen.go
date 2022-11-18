@@ -58,6 +58,8 @@ type CandidateStruct struct {
 
 	ValidateStruct
 
+	DataSyncStruct
+
 	Internal struct {
 
 		ValidateBlocks func(p0 context.Context, p1 []ReqValidate) (error) `perm:"read"`
@@ -78,6 +80,8 @@ type CandidateStub struct {
 	DownloadStub
 
 	ValidateStub
+
+	DataSyncStub
 
 }
 
@@ -120,7 +124,9 @@ type DataSyncStruct struct {
 
 	Internal struct {
 
-		GetCheckSums func(p0 context.Context, p1 ReqCheckSum) (CheckSumRsp, error) `perm:"read"`
+		GetAllCheckSums func(p0 context.Context, p1 int) (CheckSumRsp, error) `perm:"read"`
+
+		GetCheckSumsInRange func(p0 context.Context, p1 ReqCheckSumInRange) (CheckSumRsp, error) `perm:"read"`
 
 		ScrubBlocks func(p0 context.Context, p1 ScrubBlocks) (error) `perm:"write"`
 
@@ -171,6 +177,8 @@ type EdgeStruct struct {
 
 	ValidateStruct
 
+	DataSyncStruct
+
 	Internal struct {
 
 		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
@@ -189,6 +197,8 @@ type EdgeStub struct {
 	DownloadStub
 
 	ValidateStub
+
+	DataSyncStub
 
 }
 
@@ -588,14 +598,25 @@ func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 
 
 
-func (s *DataSyncStruct) GetCheckSums(p0 context.Context, p1 ReqCheckSum) (CheckSumRsp, error) {
-	if s.Internal.GetCheckSums == nil {
+func (s *DataSyncStruct) GetAllCheckSums(p0 context.Context, p1 int) (CheckSumRsp, error) {
+	if s.Internal.GetAllCheckSums == nil {
 		return *new(CheckSumRsp), ErrNotSupported
 	}
-	return s.Internal.GetCheckSums(p0, p1)
+	return s.Internal.GetAllCheckSums(p0, p1)
 }
 
-func (s *DataSyncStub) GetCheckSums(p0 context.Context, p1 ReqCheckSum) (CheckSumRsp, error) {
+func (s *DataSyncStub) GetAllCheckSums(p0 context.Context, p1 int) (CheckSumRsp, error) {
+	return *new(CheckSumRsp), ErrNotSupported
+}
+
+func (s *DataSyncStruct) GetCheckSumsInRange(p0 context.Context, p1 ReqCheckSumInRange) (CheckSumRsp, error) {
+	if s.Internal.GetCheckSumsInRange == nil {
+		return *new(CheckSumRsp), ErrNotSupported
+	}
+	return s.Internal.GetCheckSumsInRange(p0, p1)
+}
+
+func (s *DataSyncStub) GetCheckSumsInRange(p0 context.Context, p1 ReqCheckSumInRange) (CheckSumRsp, error) {
 	return *new(CheckSumRsp), ErrNotSupported
 }
 
