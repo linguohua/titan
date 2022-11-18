@@ -3,9 +3,12 @@ package api
 import "context"
 
 type DataSync interface {
-	// hash to check block store data consistent
-	GetCheckSums(ctx context.Context, req ReqCheckSum) (CheckSumRsp, error) //perm:read
-	ScrubBlocks(ctx context.Context, scrub ScrubBlocks) error               //perm:write
+	// get all block check sum
+	GetAllCheckSums(ctx context.Context, maxGroupNum int) (CheckSumRsp, error) //perm:read
+	// get block check sum in this range
+	GetCheckSumsInRange(ctx context.Context, reqCheckSum ReqCheckSumInRange) (CheckSumRsp, error) //perm:read
+	// scrub block that is repair blockstore
+	ScrubBlocks(ctx context.Context, scrub ScrubBlocks) error //perm:write
 }
 
 type ScrubBlocks struct {
@@ -26,11 +29,11 @@ type CheckSumRsp struct {
 	CheckSums []CheckSum
 }
 
-type ReqCheckSum struct {
+type ReqCheckSumInRange struct {
 	// StartFID default 0
 	StartFid string
 	// EndFID, -1 is end of block fid
 	EndFid string
-	// block number in group
-	GroupSize string
+	// rsp max group num
+	MaxGroupNum int
 }

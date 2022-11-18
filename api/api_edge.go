@@ -1,6 +1,8 @@
 package api
 
-import "context"
+import (
+	"context"
+)
 
 type Edge interface {
 	Common
@@ -8,5 +10,6 @@ type Edge interface {
 	Block
 	Download
 	Validate
+	DataSync
 	WaitQuiet(ctx context.Context) error //perm:read
 }
