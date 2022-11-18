@@ -81,7 +81,7 @@ var CacheBlockCmd = &cli.Command{
 		candidateURL := cctx.String("candidate")
 		ctx := ReqContext(cctx)
 
-		blockInfo := api.BlockInfo{Cid: cid, Fid: "1"}
+		blockInfo := api.BlockInfo{Cid: cid, Fid: 1}
 
 		reqData := API.ReqCacheData{BlockInfos: []api.BlockInfo{blockInfo}, DownloadURL: candidateURL}
 

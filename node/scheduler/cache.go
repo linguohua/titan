@@ -172,7 +172,7 @@ func (c *Cache) matchingNodeAndBlock(cids map[string]string, isHaveCache bool) (
 		status := cacheStatusFail
 		deviceID := ""
 
-		ds, err := persistent.GetDB().GetNodesWithCacheList(cid)
+		ds, err := persistent.GetDB().GetNodesWithCacheList(cid, false)
 		if err != nil {
 			log.Errorf("matchingNodeAndBlock cache:%s,cid:%s, GetNodesWithCacheList err:%s", c.cacheID, cid, err.Error())
 		} else {
@@ -252,7 +252,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	c.totalBlocks += len(info.Links)
 
 	status := cacheStatusFail
-	fid := ""
+	fid := "0"
 	reliability := 0
 	if info.IsOK {
 		c.doneBlocks++
@@ -272,6 +272,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		Reliability: reliability,
 		CarfileID:   c.carfileCid,
 		IsUpdate:    true,
+		FID:         fid,
 	}
 
 	linkMap := make(map[string]string)
@@ -284,7 +285,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	createBlocks, nodeCacheMap := c.matchingNodeAndBlock(linkMap, c.data.haveRootCache())
 
 	// save info to db
-	err = c.data.updateAndSaveInfo(bInfo, fid, info, c, createBlocks)
+	err = c.data.updateAndSaveInfo(bInfo, info, c, createBlocks)
 	if err != nil {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,%s UpdateCacheInfo err:%s ", info.CacheID, info.Cid, err.Error())
 	}
