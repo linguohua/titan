@@ -297,8 +297,7 @@ func (block *Block) DeleteBlocks(ctx context.Context, cids []string) ([]api.Bloc
 	}
 
 	for _, cid := range cids {
-		block.deleteFidAndCid(cid)
-		err := block.blockStore.Delete(cid)
+		err := block.deleteBlock(cid)
 		if err == datastore.ErrNotFound {
 			log.Infof("DeleteBlocks cid %s not exist", cid)
 			continue
@@ -332,11 +331,10 @@ func (block *Block) AnnounceBlocksWasDelete(ctx context.Context, cids []string) 
 			continue
 		}
 
-		err = block.blockStore.Delete(cid)
+		err = block.deleteBlock(cid)
 		if err != nil {
 			result[cid] = err.Error()
 		}
-		block.deleteFidAndCid(cid)
 	}
 
 	for k, v := range result {
@@ -440,7 +438,7 @@ func (block *Block) getFID(cid string) (string, error) {
 	return string(value), nil
 }
 
-func (block *Block) deleteFidAndCid(cid string) error {
+func (block *Block) deleteBlock(cid string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -461,23 +459,12 @@ func (block *Block) deleteFidAndCid(cid string) error {
 		return err
 	}
 
-	return nil
-}
-
-func (block *Block) getMaxFid() (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	q := query.Query{Prefix: "fid", Orders: []query.Order{query.OrderByKeyDescending{}}}
-	results, err := block.ds.Query(ctx, q)
+	err = block.blockStore.Delete(cid)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	result := results.Next()
-	r := <-result
-	log.Infof("last key:%s, value:%s", r.Key, string(r.Value))
-
-	return r.Key, nil
+	return nil
 }
 
 func (block *Block) deleteAllBlocks() error {
