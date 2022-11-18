@@ -37,80 +37,32 @@ func getBlockFromCandidate(url string, tk string) ([]byte, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
-// func getCandidate(candidateURL string) (*Candidate, error) {
-// 	ctx, cancel := context.WithCancel(context.Background())
-// 	defer cancel()
-
-// 	api, close, err := client.NewCandicate(ctx, candidateURL, nil)
-// 	if err != nil {
-// 		log.Errorf("getCandidateAPI, NewCandicate err:%v", err)
-// 		return nil, err
-// 	}
-// 	defer close()
-
-// 	info, err := api.DeviceInfo(ctx)
-// 	if err != nil {
-// 		log.Errorf("getCandidateAPI, NewCandicate err:%v", err)
-// 		return nil, err
-// 	}
-
-// 	download, err := api.GetDownloadInfo(ctx)
-// 	if err != nil {
-// 		log.Errorf("getCandidateAPI, NewCandicate err:%v", err)
-// 		return nil, err
-// 	}
-
-// 	candidate := &Candidate{deviceID: info.DeviceId, downSrvURL: download.URL, token: download.Token}
-// 	return candidate, nil
-// }
-
-// func getCandidateWithMap(candidateMap map[string]*Candidate, candidateURL string) (*Candidate, error) {
-// 	var err error
-// 	candidate, ok := candidateMap[candidateURL]
-// 	if !ok {
-// 		candidate, err = getCandidate(candidateURL)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		candidateMap[candidateURL] = candidate
-// 	}
-// 	return candidate, nil
-// }
-
 func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 	reqs = block.filterAvailableReq(reqs)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// candidateMap := make(map[string]*Candidate)
 	for _, req := range reqs {
-		// candidate, err := getCandidateWithMap(candidateMap, req.candidateURL)
-		// if err != nil {
-		// 	log.Errorf("getCandidateWithMap error:%v", err)
-		// 	block.cacheResultWithError(ctx, blockStat{cid: req.blockInfo.Cid, fid: req.blockInfo.Fid, carFileCid: req.carFileCid, CacheID: req.CacheID}, err)
-		// 	continue
-		// }
-
 		url := fmt.Sprintf("%s?cid=%s", req.downloadURL, req.blockInfo.Cid)
 
 		data, err := getBlockFromCandidate(url, req.downloadToken)
 		if err != nil {
 			log.Errorf("loadBlocksFromCandidate get block from candidate error:%s", err.Error())
-			block.cacheResultWithError(ctx, blockStat{cid: req.blockInfo.Cid, fid: req.blockInfo.Fid, carFileCid: req.carFileCid, CacheID: req.CacheID}, err)
+			block.cacheResultWithError(ctx, blockStat{cid: req.blockInfo.Cid, carFileCid: req.carFileCid, CacheID: req.CacheID}, err)
 			continue
 		}
 
-		err = block.saveBlock(ctx, data, req.blockInfo.Cid, req.blockInfo.Fid)
+		err = block.saveBlock(ctx, data, req.blockInfo.Cid, fmt.Sprintf("%d", req.blockInfo.Fid))
 		if err != nil {
 			log.Errorf("loadBlocksFromCandidate save block error:%s", err.Error())
-			block.cacheResultWithError(ctx, blockStat{cid: req.blockInfo.Cid, fid: req.blockInfo.Fid, carFileCid: req.carFileCid, CacheID: req.CacheID}, err)
+			block.cacheResultWithError(ctx, blockStat{cid: req.blockInfo.Cid, carFileCid: req.carFileCid, CacheID: req.CacheID}, err)
 			continue
 		}
 
 		links, err := getLinks(block, data, req.blockInfo.Cid)
 		if err != nil {
 			log.Errorf("loadBlocksFromCandidate resolveLinks error:%s", err.Error())
-			block.cacheResultWithError(ctx, blockStat{cid: req.blockInfo.Cid, fid: req.blockInfo.Fid, carFileCid: req.carFileCid, CacheID: req.CacheID}, err)
+			block.cacheResultWithError(ctx, blockStat{cid: req.blockInfo.Cid, carFileCid: req.carFileCid, CacheID: req.CacheID}, err)
 			continue
 		}
 
@@ -121,7 +73,7 @@ func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 			linksSize += link.Size
 		}
 
-		bInfo := blockStat{cid: req.blockInfo.Cid, fid: req.blockInfo.Fid, links: cids, blockSize: len(data), linksSize: linksSize, carFileCid: req.carFileCid, CacheID: req.CacheID}
+		bInfo := blockStat{cid: req.blockInfo.Cid, links: cids, blockSize: len(data), linksSize: linksSize, carFileCid: req.carFileCid, CacheID: req.CacheID}
 		block.cacheResult(ctx, nil, bInfo)
 
 		log.Infof("loadBlocksFromCandidate, cid:%s,err:%v", req.blockInfo.Cid, err)

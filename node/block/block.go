@@ -39,7 +39,6 @@ type delayReq struct {
 
 type blockStat struct {
 	cid        string
-	fid        string
 	links      []string
 	blockSize  int
 	linksSize  uint64
@@ -157,7 +156,7 @@ func (block *Block) addReq2WaitList(delayReqs []*delayReq) {
 }
 
 func (block *Block) cacheResultWithError(ctx context.Context, bStat blockStat, err error) {
-	log.Errorf("cacheResultWithError, cid:%s, fid:%s, cacheID:%s, carFileID:%s, error:%v", bStat.cid, bStat.fid, bStat.CacheID, bStat.carFileCid, err)
+	log.Errorf("cacheResultWithError, cid:%s, fid:%s, cacheID:%s, carFileID:%s, error:%v", bStat.cid, bStat.CacheID, bStat.carFileCid, err)
 	block.cacheResult(ctx, err, bStat)
 }
 
@@ -179,7 +178,6 @@ func (block *Block) cacheResult(ctx context.Context, err error, bStat blockStat)
 		LinksSize:  bStat.linksSize,
 		CarFileCid: bStat.carFileCid,
 		CacheID:    bStat.CacheID,
-		Fid:        bStat.fid,
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
@@ -190,62 +188,20 @@ func (block *Block) cacheResult(ctx context.Context, err error, bStat blockStat)
 		log.Errorf("cacheResult CacheResult error:%v", err)
 		return
 	}
-
-	// if success && fid != "" {
-	// 	oldCid, _ := block.getCID(fid)
-	// 	if len(oldCid) != 0 && oldCid != bStat.cid {
-	// 		log.Infof("cacheResult delete old cid:%s, new cid:%s", oldCid, bStat.cid)
-	// 		err = block.ds.Delete(ctx, helper.NewKeyCID(oldCid))
-	// 		if err != nil {
-	// 			log.Errorf("cacheResult, delete key fid %s error:%v", fid, err)
-	// 		}
-	// 	}
-
-	// 	oldFid, _ := block.getFID(bStat.cid)
-	// 	if oldFid != "" {
-	// 		// delete old fid key
-	// 		log.Infof("cacheResult delete old fid:%s, new fid:%s", oldFid, fid)
-	// 		err = block.ds.Delete(ctx, helper.NewKeyFID(oldFid))
-	// 		if err != nil {
-	// 			log.Errorf("cacheResult, delete key fid %s error:%v", fid, err)
-	// 		}
-	// 	}
-
-	// 	err = block.ds.Put(ctx, helper.NewKeyFID(fid), []byte(bStat.cid))
-	// 	if err != nil {
-	// 		log.Errorf("cacheResult save fid error:%v", err)
-	// 	}
-
-	// 	err = block.ds.Put(ctx, helper.NewKeyCID(bStat.cid), []byte(fid))
-	// 	if err != nil {
-	// 		log.Errorf("cacheResult save cid error:%v", err)
-	// 	}
-
-	// }
 }
 
 func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 	ctx := context.Background()
 	results := make([]*delayReq, 0, len(reqs))
 	for _, reqData := range reqs {
-		// target, err := cid.Decode(reqData.Cid)
-		// if err != nil {
-		// 	log.Errorf("loadBlocksAsync failed to decode CID %v", err)
-		// 	continue
-		// }
-
-		// // convert cid to v0
-		// if target.Version() != 0 && target.Type() == cid.DagProtobuf {
-		// 	target = cid.NewCidV0(target.Hash())
-		// }
-
 		cidStr := fmt.Sprintf("%s", reqData.blockInfo.Cid)
+		fidStr := fmt.Sprintf("%d", reqData.blockInfo.Fid)
 
 		buf, err := block.blockStore.Get(cidStr)
 		if err == nil {
 			fid, _ := block.getFID(reqData.blockInfo.Cid)
-			if fid != reqData.blockInfo.Fid {
-				block.updateCidAndFid(ctx, reqData.blockInfo.Cid, reqData.blockInfo.Fid)
+			if fid != fidStr {
+				block.updateCidAndFid(ctx, reqData.blockInfo.Cid, fidStr)
 			}
 
 			links, err := getLinks(block, buf, cidStr)
@@ -261,7 +217,7 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 				linksSize += link.Size
 			}
 
-			bStat := blockStat{cid: cidStr, fid: reqData.blockInfo.Fid, links: cids, blockSize: len(buf), linksSize: linksSize, carFileCid: reqData.carFileCid, CacheID: reqData.CacheID}
+			bStat := blockStat{cid: cidStr, links: cids, blockSize: len(buf), linksSize: linksSize, carFileCid: reqData.carFileCid, CacheID: reqData.CacheID}
 			block.cacheResult(ctx, nil, bStat)
 			continue
 		}
@@ -274,11 +230,6 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 
 func (block *Block) CacheBlocks(ctx context.Context, reqs []api.ReqCacheData) error {
 	log.Infof("CacheBlocks, reqs:%d", len(reqs))
-	// delayReq := block.filterAvailableReq(apiReq2DelayReq(&req))
-	// if len(delayReq) == 0 {
-	// 	log.Debug("CacheData, len(req) == 0 not need to handle")
-	// 	return nil
-	// }
 	for _, req := range reqs {
 		block.addReq2WaitList(apiReq2DelayReq(&req))
 	}
