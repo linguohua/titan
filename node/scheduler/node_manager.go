@@ -375,7 +375,7 @@ func (m *NodeManager) updateLastRequestTime(deviceID string) {
 func (m *NodeManager) findNodeDownloadInfos(cid string) ([]api.DownloadInfo, error) {
 	infos := make([]api.DownloadInfo, 0)
 
-	deviceIDs, err := persistent.GetDB().GetNodesWithCacheList(cid, true)
+	deviceIDs, err := persistent.GetDB().GetNodesWithCache(cid, true)
 	if err != nil {
 		return nil, err
 	}
@@ -407,7 +407,7 @@ func (m *NodeManager) findNodeDownloadInfos(cid string) ([]api.DownloadInfo, err
 
 // getCandidateNodesWithData find device
 func (m *NodeManager) getCandidateNodesWithData(cid, filterDeviceID string) ([]*CandidateNode, error) {
-	deviceIDs, err := persistent.GetDB().GetNodesWithCacheList(cid, true)
+	deviceIDs, err := persistent.GetDB().GetNodesWithCache(cid, true)
 	if err != nil {
 		return nil, err
 	}

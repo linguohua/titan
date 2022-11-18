@@ -49,7 +49,7 @@ type DB interface {
 	// DeleteBlockInfos(cacheID, deviceID string, cids []string, removeBlocks int) error
 	GetBlocksFID(deviceID string) (map[int]string, error)
 	GetDeviceBlockNum(deviceID string) (int64, error)
-	GetNodesWithCacheList(cid string, isSuccess bool) ([]string, error)
+	GetNodesWithCache(cid string, isSuccess bool) ([]string, error)
 	// GetNodeBlock(deviceID, cid string) ([]*BlockInfo, error)
 
 	// temporary node register
@@ -176,6 +176,7 @@ type CacheInfo struct {
 	Nodes        int       `db:"nodes"`
 	ExpiredTime  time.Time `db:"expired_time"`
 	CreateTime   time.Time `db:"created_time"`
+	RootCache    bool      `db:"root_cache"`
 }
 
 // BlockInfo Data Block info

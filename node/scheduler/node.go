@@ -6,7 +6,6 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/lib/token"
 	"github.com/linguohua/titan/node/helper"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/region"
 
@@ -96,22 +95,22 @@ func (n *Node) getNodeInfo(deviceID string) (*persistent.NodeInfo, error) {
 }
 
 // filter cached blocks and find download url from candidate
-func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, carFileCid, cacheID string) []api.ReqCacheData {
+func (n *Node) getReqCacheDatas(nodeManager *NodeManager, blocks []api.BlockInfo, carFileCid, cacheID string) []api.ReqCacheData {
 	reqList := make([]api.ReqCacheData, 0)
 	notFindCandidateDatas := make([]api.BlockInfo, 0)
 
-	fidMax, err := cache.GetDB().IncrNodeCacheFid(n.deviceInfo.DeviceId, len(cids))
-	if err != nil {
-		log.Errorf("deviceID:%s,IncrNodeCacheFid:%s", n.deviceInfo.DeviceId, err.Error())
-		return reqList
-	}
+	// fidMax, err := cache.GetDB().IncrNodeCacheFid(n.deviceInfo.DeviceId, len(cids))
+	// if err != nil {
+	// 	log.Errorf("deviceID:%s,IncrNodeCacheFid:%s", n.deviceInfo.DeviceId, err.Error())
+	// 	return reqList
+	// }
 
 	csMap := make(map[string][]api.BlockInfo)
-	for i, cid := range cids {
-		candidates, err := nodeManager.getCandidateNodesWithData(cid, n.deviceInfo.DeviceId)
+	for _, block := range blocks {
+		candidates, err := nodeManager.getCandidateNodesWithData(block.Cid, n.deviceInfo.DeviceId)
 		if err != nil || len(candidates) < 1 {
 			// not find candidate
-			notFindCandidateDatas = append(notFindCandidateDatas, api.BlockInfo{Cid: cid, Fid: fidMax - i})
+			notFindCandidateDatas = append(notFindCandidateDatas, block)
 			continue
 		}
 
@@ -124,7 +123,7 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, carFile
 			list = make([]api.BlockInfo, 0)
 		}
 
-		list = append(list, api.BlockInfo{Cid: cid, Fid: fidMax - i})
+		list = append(list, block)
 
 		csMap[deviceID] = list
 	}

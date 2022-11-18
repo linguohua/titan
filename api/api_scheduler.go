@@ -80,7 +80,7 @@ type CacheResultInfo struct {
 
 	CarFileCid string
 	CacheID    string
-	Fid        int
+	// Fid        int
 }
 
 // CacheDataInfo Cache Data Info
