@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"sort"
 	"strconv"
 
 	"github.com/ipfs/go-datastore"
@@ -48,7 +49,7 @@ func (dataSync *DataSync) getAllCheckSums(ctx context.Context, maxGroupNum int) 
 	}
 
 	type block struct {
-		fid string
+		fid int
 		cid string
 	}
 
@@ -60,9 +61,20 @@ func (dataSync *DataSync) getAllCheckSums(ctx context.Context, maxGroupNum int) 
 			break
 		}
 
-		block := block{fid: r.Key[len(helper.KeyFidPrefix):], cid: string(r.Value)}
+		fidStr := r.Key[len(helper.KeyFidPrefix)+1:]
+		fid, err := strconv.Atoi(fidStr)
+		if err != nil {
+			log.Errorf("scrubBlockStore error:%s", err.Error())
+		}
+
+		block := block{fid: fid, cid: string(r.Value)}
+		// log.Infof("fid:%s,key:%s", block.fid, r.Key)
 		blockCollection = append(blockCollection, block)
 	}
+
+	sort.Slice(blockCollection, func(i, j int) bool {
+		return blockCollection[i].fid < blockCollection[j].fid
+	})
 
 	blockCollectionSize := len(blockCollection)
 	groupSize := blockCollectionSize / maxGroupNum
@@ -75,7 +87,7 @@ func (dataSync *DataSync) getAllCheckSums(ctx context.Context, maxGroupNum int) 
 		groupNum += 1
 	}
 
-	startFid := "0"
+	startFid := 0
 	for i := 0; i < groupNum; i++ {
 		startIndex := i * groupSize
 		endIndex := startIndex + groupSize
@@ -90,15 +102,11 @@ func (dataSync *DataSync) getAllCheckSums(ctx context.Context, maxGroupNum int) 
 
 		hash := string2Hash(blockCollectionStr)
 		endFid := blockCollection[endIndex-1].fid
-		checkSum := api.CheckSum{Hash: hash, StartFid: startFid, EndFid: endFid}
+		checkSum := api.CheckSum{Hash: hash, StartFid: startFid, EndFid: endFid, BlockCount: endIndex - startIndex}
+
 		rsp.CheckSums = append(rsp.CheckSums, checkSum)
 
-		endFidInt, err := strconv.Atoi(endFid)
-		if err != nil {
-			log.Panicf("getCheckSums faile:%s", err.Error())
-		}
-
-		startFid = fmt.Sprintf("%d", endFidInt+1)
+		startFid = endFid + 1
 
 	}
 
@@ -107,52 +115,32 @@ func (dataSync *DataSync) getAllCheckSums(ctx context.Context, maxGroupNum int) 
 
 func (dataSync *DataSync) getCheckSumsInRange(ctx context.Context, req api.ReqCheckSumInRange) (api.CheckSumRsp, error) {
 	rsp := api.CheckSumRsp{CheckSums: make([]api.CheckSum, 0)}
-	startFidInt, err := strconv.Atoi(req.StartFid)
-	if err != nil {
-		log.Errorf("scrubBlockStore parse  error:%s", err.Error())
-		return rsp, err
-	}
 
-	endFidInt, err := strconv.Atoi(req.EndFid)
-	if err != nil {
-		log.Errorf("scrubBlockStore error:%s", err.Error())
-		return rsp, err
-	}
-
-	maxFid, err := dataSync.getMaxFid()
-	if err != nil {
-		log.Errorf("scrubBlockStore error:%s", err.Error())
-		return rsp, err
-	}
-
-	if maxFid == 0 {
-		log.Infow("scrubBlockStore, no block exist")
-		return rsp, nil
-	}
-
-	if endFidInt > maxFid {
-		endFidInt = maxFid
-	}
+	startFid := req.StartFid
+	endFid := req.EndFid
 
 	type block struct {
-		fid string
+		fid int
 		cid string
 	}
 
 	var blockCollection = make([]block, 0, 10000)
 
-	for i := startFidInt; i <= endFidInt; i++ {
+	for i := startFid; i <= endFid; i++ {
 		fid := fmt.Sprintf("%d", i)
 		cid, err := dataSync.block.GetCID(context.TODO(), fid)
 		if err == datastore.ErrNotFound {
 			continue
 		}
 
-		block := block{fid: fid, cid: cid}
+		block := block{fid: i, cid: cid}
 		blockCollection = append(blockCollection, block)
 	}
 
 	blockCollectionSize := len(blockCollection)
+	// use req endFid return to scheduler
+	blockCollection[blockCollectionSize-1].fid = req.EndFid
+
 	groupSize := blockCollectionSize / req.MaxGroupNum
 	if blockCollectionSize%req.MaxGroupNum != 0 {
 		groupSize += 1
@@ -163,7 +151,7 @@ func (dataSync *DataSync) getCheckSumsInRange(ctx context.Context, req api.ReqCh
 		groupNum += 1
 	}
 
-	startFid := req.StartFid
+	// startFid := req.StartFid
 	for i := 0; i < groupNum; i++ {
 		startIndex := i * groupSize
 		endIndex := startIndex + groupSize
@@ -178,15 +166,10 @@ func (dataSync *DataSync) getCheckSumsInRange(ctx context.Context, req api.ReqCh
 
 		hash := string2Hash(blockCollectionStr)
 		endFid := blockCollection[endIndex-1].fid
-		checkSum := api.CheckSum{Hash: hash, StartFid: startFid, EndFid: endFid}
+		checkSum := api.CheckSum{Hash: hash, StartFid: startFid, EndFid: endFid, BlockCount: endIndex - startIndex}
 		rsp.CheckSums = append(rsp.CheckSums, checkSum)
 
-		endFidInt, err := strconv.Atoi(endFid)
-		if err != nil {
-			log.Panicf("getCheckSums faile:%s", err.Error())
-		}
-
-		startFid = fmt.Sprintf("%d", endFidInt+1)
+		startFid = endFid + 1
 
 	}
 
@@ -194,32 +177,8 @@ func (dataSync *DataSync) getCheckSumsInRange(ctx context.Context, req api.ReqCh
 }
 
 func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
-	startFid, err := strconv.Atoi(scrub.StartFid)
-	if err != nil {
-		log.Errorf("scrubBlockStore parse  error:%s", err.Error())
-		return err
-	}
-
-	endFid, err := strconv.Atoi(scrub.EndFix)
-	if err != nil {
-		log.Errorf("scrubBlockStore error:%s", err.Error())
-		return err
-	}
-
-	maxFid, err := dataSync.getMaxFid()
-	if err != nil {
-		log.Errorf("scrubBlockStore error:%s", err.Error())
-		return err
-	}
-
-	if maxFid == 0 {
-		log.Infow("scrubBlockStore, no block exist")
-		return nil
-	}
-
-	if endFid > maxFid {
-		endFid = maxFid
-	}
+	startFid := scrub.StartFid
+	endFid := scrub.EndFid
 
 	need2DeleteBlocks := make([]string, 0)
 	blocks := scrub.Blocks
@@ -230,8 +189,12 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 			continue
 		}
 
-		_, ok := blocks[fid]
+		targetCid, ok := blocks[fid]
 		if ok {
+			if cid != targetCid {
+				log.Errorf("scrubBlocks fid %s, local cid is %s but sheduler cid is %s", cid, targetCid)
+				return fmt.Errorf("")
+			}
 			delete(blocks, fid)
 		} else {
 			need2DeleteBlocks = append(need2DeleteBlocks, cid)
@@ -239,11 +202,16 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 	}
 
 	// delete blocks that not exist on scheduler
-	dataSync.block.DeleteBlocks(context.TODO(), need2DeleteBlocks)
+	if len(need2DeleteBlocks) > 0 {
+		dataSync.block.DeleteBlocks(context.TODO(), need2DeleteBlocks)
+	}
 
-	// TODO: download block that not exist in local
-	// blocks is need to download
+	if len(blocks) > 0 {
+		// TODO: download block that not exist in local
+		// blocks is need to download
+	}
 
+	log.Infof("scrubBlocks need to delete blocks %d, need to download blocks %d", len(need2DeleteBlocks), len(blocks))
 	return nil
 }
 
@@ -252,33 +220,4 @@ func string2Hash(value string) string {
 	hasher.Write([]byte(value))
 	hash := hasher.Sum(nil)
 	return hex.EncodeToString(hash)
-}
-
-func (dataSync *DataSync) getMaxFid() (int, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	ds := dataSync.block.GetDatastore(ctx)
-
-	q := query.Query{Prefix: "fid", Orders: []query.Order{query.OrderByKeyDescending{}}}
-	results, err := ds.Query(ctx, q)
-	if err != nil {
-		log.Errorf("getCheckSums datastore query error:%s", err.Error())
-		return 0, err
-	}
-
-	r, ok := results.NextSync()
-	if ok {
-		fid := r.Key[len(helper.KeyFidPrefix):]
-		fidInt, err := strconv.Atoi(fid)
-		if err != nil {
-			log.Errorf("scrubBlockStore error:%s", err.Error())
-			return 0, err
-		}
-
-		return fidInt, nil
-	}
-
-	return 0, nil
-
 }

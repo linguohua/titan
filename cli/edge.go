@@ -20,6 +20,7 @@ var EdgeCmds = []*cli.Command{
 	CacheStatCmd,
 	StoreKeyCmd,
 	DeleteAllBlocksCmd,
+	testSyncCmd,
 }
 
 var DeviceInfoCmd = &cli.Command{
@@ -309,6 +310,120 @@ var DeleteAllBlocksCmd = &cli.Command{
 
 		ctx := ReqContext(cctx)
 		err = api.DeleteAllBlocks(ctx)
+		return err
+	},
+}
+
+var testSyncCmd = &cli.Command{
+	Name:  "sync",
+	Usage: "data sync",
+	Subcommands: []*cli.Command{
+		checksum,
+		checksumInRange,
+		scrubBlocks,
+	},
+}
+
+var checksum = &cli.Command{
+	Name:  "checksum",
+	Usage: "get all check sums",
+	Flags: []cli.Flag{},
+	Action: func(cctx *cli.Context) error {
+		api, closer, err := GetEdgeAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		ctx := ReqContext(cctx)
+		rsp, err := api.GetAllCheckSums(ctx, 10)
+		if err != nil {
+			return err
+		}
+
+		for _, checksum := range rsp.CheckSums {
+			fmt.Printf("Range %d ~ %d block count %d hash %s\n", checksum.StartFid, checksum.EndFid, checksum.BlockCount, checksum.Hash)
+		}
+		return nil
+	},
+}
+
+var checksumInRange = &cli.Command{
+	Name:  "range",
+	Usage: "get all check sum in range",
+	Flags: []cli.Flag{
+		&cli.IntFlag{
+			Name:  "start-fid",
+			Usage: "start fid",
+			Value: 0,
+		},
+		&cli.IntFlag{
+			Name:  "end-fid",
+			Usage: "end fid",
+			Value: 1000,
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		edgeApi, closer, err := GetEdgeAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		ctx := ReqContext(cctx)
+
+		startFid := cctx.Int("start-fid")
+		endFid := cctx.Int("end-fid")
+
+		req := api.ReqCheckSumInRange{StartFid: startFid, EndFid: endFid, MaxGroupNum: 10}
+		rsp, err := edgeApi.GetCheckSumsInRange(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		for _, checksum := range rsp.CheckSums {
+			fmt.Printf("Range %d ~ %d block count %d hash %s\n", checksum.StartFid, checksum.EndFid, checksum.BlockCount, checksum.Hash)
+		}
+		return err
+	},
+}
+
+var scrubBlocks = &cli.Command{
+	Name:  "scrub",
+	Usage: "scrub block in range",
+	Flags: []cli.Flag{
+		&cli.IntFlag{
+			Name:  "start-fid",
+			Usage: "start fid",
+			Value: 0,
+		},
+		&cli.IntFlag{
+			Name:  "end-fid",
+			Usage: "end fid",
+			Value: 1000,
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		edgeAPI, closer, err := GetEdgeAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		ctx := ReqContext(cctx)
+		startFid := cctx.Int("start-fid")
+		endFid := cctx.Int("end-fid")
+
+		blocks := map[string]string{
+			"1": "379099ae6a34973218a4c565e2d64496",
+			"2": "d79ec281b8eeae427f117fbe5554df1a",
+			"3": "4efe63a0aab312eac8319e297f28abdd",
+			"4": "a2a108a7c7925d0d43dbee587f193f28",
+			"5": "63c387782d8146c98524117a61893f5f",
+			"6": "9b4c0675e1bd4a6ef678d02310c11f28",
+		}
+		req := api.ScrubBlocks{Blocks: blocks, StartFid: startFid, EndFid: endFid}
+		err = edgeAPI.ScrubBlocks(ctx, req)
 		return err
 	},
 }

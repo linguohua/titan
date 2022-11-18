@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -124,9 +123,9 @@ type DataSyncStruct struct {
 
 	Internal struct {
 
-		GetAllCheckSums func(p0 context.Context, p1 int) (CheckSumRsp, error) `perm:"read"`
+		GetAllCheckSums func(p0 context.Context, p1 int) (CheckSumRsp, error) `perm:"write"`
 
-		GetCheckSumsInRange func(p0 context.Context, p1 ReqCheckSumInRange) (CheckSumRsp, error) `perm:"read"`
+		GetCheckSumsInRange func(p0 context.Context, p1 ReqCheckSumInRange) (CheckSumRsp, error) `perm:"write"`
 
 		ScrubBlocks func(p0 context.Context, p1 ScrubBlocks) (error) `perm:"write"`
 
