@@ -20,7 +20,7 @@ type DataManager struct {
 	taskMap sync.Map
 
 	timeoutTimeWheel *timewheel.TimeWheel
-	timeoutTime      int // check timeout time interval (minute)
+	timeoutTime      int // check timeout time interval (Second)
 
 	taskTimeWheel *timewheel.TimeWheel
 	doTaskTime    int // task time interval (Second)
@@ -32,7 +32,7 @@ func newDataManager(nodeManager *NodeManager) *DataManager {
 	d := &DataManager{
 		nodeManager:    nodeManager,
 		blockLoaderCh:  make(chan bool),
-		timeoutTime:    1,
+		timeoutTime:    30,
 		doTaskTime:     30,
 		runningTaskMax: 1,
 	}
@@ -45,11 +45,11 @@ func newDataManager(nodeManager *NodeManager) *DataManager {
 
 func (m *DataManager) initTimewheel() {
 	m.timeoutTimeWheel = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		m.timeoutTimeWheel.AddTimer((time.Duration(m.timeoutTime)*60-1)*time.Second, "TaskTimeout", nil)
+		m.timeoutTimeWheel.AddTimer(time.Duration(m.timeoutTime-1)*time.Second, "TaskTimeout", nil)
 		m.checkTaskTimeouts()
 	})
 	m.timeoutTimeWheel.Start()
-	m.timeoutTimeWheel.AddTimer((time.Duration(m.timeoutTime)*60-1)*time.Second, "TaskTimeout", nil)
+	m.timeoutTimeWheel.AddTimer(time.Duration(m.timeoutTime-1)*time.Second, "TaskTimeout", nil)
 
 	m.taskTimeWheel = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
 		m.taskTimeWheel.AddTimer(time.Duration(m.doTaskTime-1)*time.Second, "DataTask", nil)
@@ -86,12 +86,12 @@ func (m *DataManager) doDataTask() error {
 	if info.CacheInfos != nil && len(info.CacheInfos) > 0 {
 		cacheID := info.CacheInfos[0].CacheID
 
-		err = m.startCacheContinue(info.Cid, cacheID)
+		err = m.askCacheContinue(info.Cid, cacheID)
 		if err != nil {
 			return xerrors.Errorf("cid:%s,cacheID:%s ; startCacheContinue err:%s", info.Cid, cacheID, err.Error())
 		}
 	} else {
-		err = m.startCacheData(info.Cid, info.NeedReliability, info.ExpiredTime)
+		err = m.askCacheData(info.Cid, info.NeedReliability, info.ExpiredTime)
 		if err != nil {
 			return xerrors.Errorf("cid:%s,reliability:%d ; startCacheData err:%s", info.Cid, info.NeedReliability, err.Error())
 		}
@@ -136,7 +136,7 @@ func (m *DataManager) checkTaskTimeouts() {
 	}
 }
 
-func (m *DataManager) startCacheData(cid string, reliability int, expiredTime time.Time) error {
+func (m *DataManager) askCacheData(cid string, reliability int, expiredTime time.Time) error {
 	var err error
 	isSave := false
 	data := m.findData(cid, true)
@@ -156,12 +156,6 @@ func (m *DataManager) startCacheData(cid string, reliability int, expiredTime ti
 		data.expiredTime = expiredTime
 		isSave = true
 	}
-
-	// defer func() {
-	// 	if err != nil {
-	// 		m.dataTaskEnd(data.cid)
-	// 	}
-	// }()
 
 	if isSave {
 		err = persistent.GetDB().SetDataInfo(&persistent.DataInfo{
@@ -199,7 +193,7 @@ func (m *DataManager) startCacheData(cid string, reliability int, expiredTime ti
 	return data.startData(cacheID)
 }
 
-func (m *DataManager) startCacheContinue(cid, cacheID string) error {
+func (m *DataManager) askCacheContinue(cid, cacheID string) error {
 	data := m.findData(cid, true)
 	if data == nil {
 		return xerrors.Errorf("%s,cid:%s,cacheID:%s", ErrNotFoundTask, cid, cacheID)

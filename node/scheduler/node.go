@@ -109,7 +109,7 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, carFile
 
 	csMap := make(map[string][]api.BlockInfo)
 	for i, cid := range cids {
-		candidates, err := nodeManager.getCandidateNodesWithData(cid)
+		candidates, err := nodeManager.getCandidateNodesWithData(cid, n.deviceInfo.DeviceId)
 		if err != nil || len(candidates) < 1 {
 			// not find candidate
 			notFindCandidateDatas = append(notFindCandidateDatas, api.BlockInfo{Cid: cid, Fid: fmt.Sprintf("%d", fidMax-i)})

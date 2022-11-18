@@ -705,52 +705,52 @@ func (s *Scheduler) UpdateDownloadServerAccessAuth(ctx context.Context, access a
 	return xerrors.Errorf("%s :%s", ErrNodeNotFind, info.DeviceID)
 }
 
-func (s *Scheduler) checkToBeDeleteBlocks(deviceID string) error {
-	dBlocks, err := persistent.GetDB().GetToBeDeleteBlocks(deviceID)
-	if err != nil {
-		log.Errorf("checkToBeDeleteBlocks GetToBeDeleteBlocks err:%s,deviceID:%s", err.Error(), deviceID)
-		return err
-	}
+// func (s *Scheduler) checkToBeDeleteBlocks(deviceID string) error {
+// 	dBlocks, err := persistent.GetDB().GetToBeDeleteBlocks(deviceID)
+// 	if err != nil {
+// 		log.Errorf("checkToBeDeleteBlocks GetToBeDeleteBlocks err:%s,deviceID:%s", err.Error(), deviceID)
+// 		return err
+// 	}
 
-	list := make([]string, 0)
-	blockDeletes := make([]*persistent.BlockDelete, 0)
-	// check block is in new cache
-	for _, info := range dBlocks {
-		nBlock, err := persistent.GetDB().GetNodeBlock(deviceID, info.CID)
-		if err != nil {
-			continue
-		}
+// 	list := make([]string, 0)
+// 	blockDeletes := make([]*persistent.BlockDelete, 0)
+// 	// check block is in new cache
+// 	for _, info := range dBlocks {
+// 		nBlock, err := persistent.GetDB().GetNodeBlock(deviceID, info.CID)
+// 		if err != nil {
+// 			continue
+// 		}
 
-		blockDeletes = append(blockDeletes, &persistent.BlockDelete{CID: info.CID, DeviceID: deviceID})
+// 		blockDeletes = append(blockDeletes, &persistent.BlockDelete{CID: info.CID, DeviceID: deviceID})
 
-		if nBlock != nil && nBlock.CacheID != info.CacheID {
-			// in new cache
-			continue
-		}
+// 		if nBlock != nil && nBlock.CacheID != info.CacheID {
+// 			// in new cache
+// 			continue
+// 		}
 
-		list = append(list, info.CID)
-	}
+// 		list = append(list, info.CID)
+// 	}
 
-	ctx := context.Background()
-	candidata := s.nodeManager.getCandidateNode(deviceID)
-	if candidata != nil {
-		_, err = candidata.nodeAPI.DeleteBlocks(ctx, list)
-		if err != nil {
-			return err
-		}
+// 	ctx := context.Background()
+// 	candidata := s.nodeManager.getCandidateNode(deviceID)
+// 	if candidata != nil {
+// 		_, err = candidata.nodeAPI.DeleteBlocks(ctx, list)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		return persistent.GetDB().RemoveToBeDeleteBlock(blockDeletes)
-	}
+// 		return persistent.GetDB().RemoveToBeDeleteBlock(blockDeletes)
+// 	}
 
-	edge := s.nodeManager.getEdgeNode(deviceID)
-	if edge != nil {
-		_, err = edge.nodeAPI.DeleteBlocks(ctx, list)
-		if err != nil {
-			return err
-		}
+// 	edge := s.nodeManager.getEdgeNode(deviceID)
+// 	if edge != nil {
+// 		_, err = edge.nodeAPI.DeleteBlocks(ctx, list)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		return persistent.GetDB().RemoveToBeDeleteBlock(blockDeletes)
-	}
+// 		return persistent.GetDB().RemoveToBeDeleteBlock(blockDeletes)
+// 	}
 
-	return xerrors.New(ErrNodeNotFind)
-}
+// 	return xerrors.New(ErrNodeNotFind)
+// }

@@ -289,13 +289,15 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,%s UpdateCacheInfo err:%s ", info.CacheID, info.Cid, err.Error())
 	}
 
-	unDoneBlocks, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusCreate))
-	if err != nil {
-		return xerrors.Errorf("blockCacheResult cacheID:%s,%s GetBloackCountWithStatus err:%s ", info.CacheID, info.Cid, err.Error())
-	}
+	if len(linkMap) == 0 {
+		unDoneBlocks, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusCreate))
+		if err != nil {
+			return xerrors.Errorf("blockCacheResult cacheID:%s,%s GetBloackCountWithStatus err:%s ", info.CacheID, info.Cid, err.Error())
+		}
 
-	if unDoneBlocks <= 0 {
-		return c.endCache(unDoneBlocks)
+		if unDoneBlocks <= 0 {
+			return c.endCache(unDoneBlocks)
+		}
 	}
 
 	c.cacheDataToNodes(nodeCacheMap)
@@ -441,31 +443,12 @@ func (c *Cache) updateCacheInfos() (bool, error) {
 
 func (c *Cache) removeCacheBlocks(deviceID string, cids []string) {
 	ctx := context.Background()
-	// nodeErrs := make([]*persistent.BlockDelete, 0)
-
-	// defer func() {
-	// 	if len(nodeErrs) > 0 {
-	// 		err := persistent.GetDB().AddToBeDeleteBlock(nodeErrs)
-	// 		if err != nil {
-	// 			log.Errorf("AddToBeDeleteBlock err:%s , nodeErrs:%v", err.Error(), nodeErrs)
-	// 		}
-	// 	}
-	// }()
 
 	edge := c.nodeManager.getEdgeNode(deviceID)
 	if edge != nil {
 		_, err := edge.nodeAPI.DeleteBlocks(ctx, cids)
 		if err != nil {
 			log.Warnf("removeCacheBlocks DeleteBlocks err:%s", err.Error())
-			// 	for _, cid := range cids {
-			// 		info := &persistent.BlockDelete{
-			// 			DeviceID: deviceID,
-			// 			CID:      cid,
-			// 			CacheID:  c.cacheID,
-			// 			Msg:      err.Error(),
-			// 		}
-			// 		nodeErrs = append(nodeErrs, info)
-			// 	}
 		}
 
 		return
@@ -476,31 +459,10 @@ func (c *Cache) removeCacheBlocks(deviceID string, cids []string) {
 		_, err := candidate.nodeAPI.DeleteBlocks(ctx, cids)
 		if err != nil {
 			log.Warnf("removeCacheBlocks DeleteBlocks err:%s", err.Error())
-			// for _, cid := range cids {
-			// 	info := &persistent.BlockDelete{
-			// 		DeviceID: deviceID,
-			// 		CID:      cid,
-			// 		CacheID:  c.cacheID,
-			// 		Msg:      err.Error(),
-			// 	}
-			// 	nodeErrs = append(nodeErrs, info)
-			// }
 		}
 
 		return
 	}
-
-	// for _, cid := range cids {
-	// 	info := &persistent.BlockDelete{
-	// 		DeviceID: deviceID,
-	// 		CacheID:  c.cacheID,
-	// 		CID:      cid,
-	// 		Msg:      ErrNodeNotFind,
-	// 	}
-	// 	nodeErrs = append(nodeErrs, info)
-	// }
-
-	return
 }
 
 func (c *Cache) calculateReliability(deviceID string) int {
