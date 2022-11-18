@@ -60,9 +60,9 @@ type DB interface {
 	AddDownloadInfo(deviceID string, info *api.BlockDownloadInfo) error
 	GetDownloadInfo(deviceID string) ([]*api.BlockDownloadInfo, error)
 
-	AddToBeDeleteBlock(infos []*BlockDelete) error
-	RemoveToBeDeleteBlock(infos []*BlockDelete) error
-	GetToBeDeleteBlocks(deviceID string) ([]*BlockDelete, error)
+	// AddToBeDeleteBlock(infos []*BlockDelete) error
+	// RemoveToBeDeleteBlock(infos []*BlockDelete) error
+	// GetToBeDeleteBlocks(deviceID string) ([]*BlockDelete, error)
 
 	// tool
 	ReplaceArea() string
@@ -191,13 +191,13 @@ type BlockInfo struct {
 	IsUpdate    bool
 }
 
-// BlockDelete block to be delete
-type BlockDelete struct {
-	CID      string `db:"cid"`
-	DeviceID string `db:"device_id"`
-	Msg      string `db:"msg"`
-	CacheID  string `db:"cache_id"`
-}
+// // BlockDelete block to be delete
+// type BlockDelete struct {
+// 	CID      string `db:"cid"`
+// 	DeviceID string `db:"device_id"`
+// 	Msg      string `db:"msg"`
+// 	CacheID  string `db:"cache_id"`
+// }
 
 // ValidateStatus Validate Status
 type ValidateStatus int

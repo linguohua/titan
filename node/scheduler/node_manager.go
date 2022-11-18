@@ -406,7 +406,7 @@ func (m *NodeManager) findNodeDownloadInfos(cid string) ([]api.DownloadInfo, err
 }
 
 // getCandidateNodesWithData find device
-func (m *NodeManager) getCandidateNodesWithData(cid string) ([]*CandidateNode, error) {
+func (m *NodeManager) getCandidateNodesWithData(cid, filterDeviceID string) ([]*CandidateNode, error) {
 	deviceIDs, err := persistent.GetDB().GetNodesWithCacheList(cid)
 	if err != nil {
 		return nil, err
@@ -417,7 +417,13 @@ func (m *NodeManager) getCandidateNodesWithData(cid string) ([]*CandidateNode, e
 		return nil, xerrors.Errorf("%s , with cid:%s", ErrNodeNotFind, cid)
 	}
 
-	nodeCs := m.findCandidateNodes(deviceIDs, nil)
+	filters := make(map[string]string)
+
+	if filterDeviceID != "" {
+		filters[filterDeviceID] = cid
+	}
+
+	nodeCs := m.findCandidateNodes(deviceIDs, filters)
 
 	return nodeCs, nil
 }

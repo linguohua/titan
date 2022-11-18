@@ -866,69 +866,69 @@ func (sd sqlDB) GetDownloadInfo(deviceID string) ([]*api.BlockDownloadInfo, erro
 	return out, nil
 }
 
-func (sd sqlDB) AddToBeDeleteBlock(infos []*BlockDelete) error {
-	area := sd.ReplaceArea()
-	tableName := fmt.Sprintf(blockDeleteTable, area)
+// func (sd sqlDB) AddToBeDeleteBlock(infos []*BlockDelete) error {
+// 	area := sd.ReplaceArea()
+// 	tableName := fmt.Sprintf(blockDeleteTable, area)
 
-	tx := sd.cli.MustBegin()
+// 	tx := sd.cli.MustBegin()
 
-	for _, info := range infos {
-		cCmd := fmt.Sprintf("INSERT INTO %s (cid, device_id, cache_id, msg) VALUES (?, ?, ?, ?)", tableName)
-		tx.MustExec(cCmd, info.CID, info.DeviceID, info.CacheID, info.Msg)
-	}
+// 	for _, info := range infos {
+// 		cCmd := fmt.Sprintf("INSERT INTO %s (cid, device_id, cache_id, msg) VALUES (?, ?, ?, ?)", tableName)
+// 		tx.MustExec(cCmd, info.CID, info.DeviceID, info.CacheID, info.Msg)
+// 	}
 
-	err := tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-		return err
-	}
+// 	err := tx.Commit()
+// 	if err != nil {
+// 		err = tx.Rollback()
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (sd sqlDB) GetToBeDeleteBlocks(deviceID string) ([]*BlockDelete, error) {
-	area := sd.ReplaceArea()
+// func (sd sqlDB) GetToBeDeleteBlocks(deviceID string) ([]*BlockDelete, error) {
+// 	area := sd.ReplaceArea()
 
-	list := make([]*BlockDelete, 0)
+// 	list := make([]*BlockDelete, 0)
 
-	info := &BlockDelete{
-		DeviceID: deviceID,
-	}
+// 	info := &BlockDelete{
+// 		DeviceID: deviceID,
+// 	}
 
-	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE device_id=:device_id`, fmt.Sprintf(blockDeleteTable, area))
-	rows, err := sd.cli.NamedQuery(cmd, info)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+// 	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE device_id=:device_id`, fmt.Sprintf(blockDeleteTable, area))
+// 	rows, err := sd.cli.NamedQuery(cmd, info)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
 
-	for rows.Next() {
-		i := &BlockDelete{}
-		err = rows.StructScan(i)
-		if err == nil {
-			list = append(list, i)
-		}
-	}
+// 	for rows.Next() {
+// 		i := &BlockDelete{}
+// 		err = rows.StructScan(i)
+// 		if err == nil {
+// 			list = append(list, i)
+// 		}
+// 	}
 
-	return list, nil
-}
+// 	return list, nil
+// }
 
-func (sd sqlDB) RemoveToBeDeleteBlock(infos []*BlockDelete) error {
-	area := sd.ReplaceArea()
-	tableName := fmt.Sprintf(blockDeleteTable, area)
+// func (sd sqlDB) RemoveToBeDeleteBlock(infos []*BlockDelete) error {
+// 	area := sd.ReplaceArea()
+// 	tableName := fmt.Sprintf(blockDeleteTable, area)
 
-	tx := sd.cli.MustBegin()
+// 	tx := sd.cli.MustBegin()
 
-	for _, info := range infos {
-		cCmd := fmt.Sprintf(`DELETE FROM %s WHERE cid=? AND device_id=?`, tableName)
-		tx.MustExec(cCmd, info.CID, info.DeviceID)
-	}
+// 	for _, info := range infos {
+// 		cCmd := fmt.Sprintf(`DELETE FROM %s WHERE cid=? AND device_id=?`, tableName)
+// 		tx.MustExec(cCmd, info.CID, info.DeviceID)
+// 	}
 
-	err := tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-		return err
-	}
+// 	err := tx.Commit()
+// 	if err != nil {
+// 		err = tx.Rollback()
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
