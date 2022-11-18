@@ -82,25 +82,42 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 
 func (d *Data) haveRootCache() bool {
 	// log.Infof("%v d.rootCacheID ---------- ", d.rootCacheID)
-	if d.rootCacheID == "" {
-		return false
-	}
+	// if d.rootCacheID == "" {
+	// 	return false
+	// }
 
-	cI, ok := d.cacheMap.Load(d.rootCacheID)
-	if ok {
-		cache := cI.(*Cache)
-		return cache.status == cacheStatusSuccess
-	}
+	// cI, ok := d.cacheMap.Load(d.rootCacheID)
+	// if ok {
+	// 	cache := cI.(*Cache)
+	// 	return cache.status == cacheStatusSuccess
+	// }
 
-	return false
+	have := false
+
+	d.cacheMap.Range(func(key, value interface{}) bool {
+		if have {
+			return true
+		}
+
+		if value != nil {
+			c := value.(*Cache)
+			if c != nil {
+				have = c.isRootCache && c.status == cacheStatusSuccess
+			}
+		}
+
+		return true
+	})
+
+	return have
 }
 
-func (d *Data) createCache() (*Cache, error) {
+func (d *Data) createCache(isRootCache bool) (*Cache, error) {
 	if d.reliability >= d.needReliability {
 		return nil, xerrors.Errorf("reliability is enough:%d/%d", d.reliability, d.needReliability)
 	}
 
-	cache, err := newCache(d.nodeManager, d, d.cid)
+	cache, err := newCache(d.nodeManager, d, d.cid, isRootCache)
 	if err != nil {
 		return nil, xerrors.Errorf("new cache err:%s", err.Error())
 	}
@@ -108,16 +125,12 @@ func (d *Data) createCache() (*Cache, error) {
 	return cache, nil
 }
 
-func (d *Data) updateAndSaveInfo(blockInfo *persistent.BlockInfo, info *api.CacheResultInfo, c *Cache, createBlocks []*persistent.BlockInfo) error {
+func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, info *api.CacheResultInfo, cache *Cache, createBlocks []*persistent.BlockInfo) error {
 	if !d.haveRootCache() {
-		d.totalSize = c.totalSize
-		d.totalBlocks = c.totalBlocks
+		d.totalSize = cache.totalSize
+		d.totalBlocks = cache.totalBlocks
 	}
 
-	return d.saveCacheingResults(c, blockInfo, createBlocks)
-}
-
-func (d *Data) saveCacheingResults(cache *Cache, bInfo *persistent.BlockInfo, createBlocks []*persistent.BlockInfo) error {
 	dInfo := &persistent.DataInfo{
 		CID:         d.cid,
 		TotalSize:   d.totalSize,
@@ -140,18 +153,18 @@ func (d *Data) saveCacheingResults(cache *Cache, bInfo *persistent.BlockInfo, cr
 		// RemoveBlocks: cache.removeBlocks,
 	}
 
-	return persistent.GetDB().SaveCacheingResults(dInfo, cInfo, bInfo, createBlocks)
+	return persistent.GetDB().SaveCacheingResults(dInfo, cInfo, blockInfo, createBlocks)
 }
 
-func (d *Data) saveCacheEndResults(cache *Cache) error {
+func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 	cNodes, err := persistent.GetDB().GetNodesFromCache(cache.cacheID)
 	if err != nil {
-		log.Warnf("saveCacheEndResults GetNodesFromCache err:%s", err.Error())
+		log.Warnf("updateAndSaveCacheEndInfo GetNodesFromCache err:%s", err.Error())
 	}
 
 	dNodes, err := persistent.GetDB().GetNodesFromData(d.cid)
 	if err != nil {
-		log.Warnf("saveCacheEndResults GetNodesFromData err:%s", err.Error())
+		log.Warnf("updateAndSaveCacheEndInfo GetNodesFromData err:%s", err.Error())
 	}
 
 	d.nodes = dNodes
@@ -208,7 +221,7 @@ func (d *Data) startData(cacheID string) error {
 			return err
 		}
 	} else {
-		cache, err = d.createCache()
+		cache, err = d.createCache(!d.haveRootCache())
 		if err != nil {
 			return err
 		}
@@ -222,6 +235,7 @@ func (d *Data) startData(cacheID string) error {
 				CacheID:     cache.cacheID,
 				Status:      int(cache.status),
 				ExpiredTime: d.expiredTime,
+				RootCache:   cache.isRootCache,
 			})
 		if err != nil {
 			return err
@@ -230,7 +244,7 @@ func (d *Data) startData(cacheID string) error {
 		list = map[string]string{cache.carfileCid: ""}
 	}
 
-	return cache.startCache(list, d.haveRootCache())
+	return cache.startCache(list)
 }
 
 func (d *Data) endData(c *Cache) (err error) {
@@ -249,7 +263,7 @@ func (d *Data) endData(c *Cache) (err error) {
 		}
 	}()
 
-	err = d.saveCacheEndResults(c)
+	err = d.updateAndSaveCacheEndInfo(c)
 	if err != nil {
 		dataTaskEnd = true
 		err = xerrors.Errorf("saveCacheEndResults err:%s", err.Error())

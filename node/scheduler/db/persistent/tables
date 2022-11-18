@@ -61,6 +61,7 @@ CREATE TABLE `cache_info_cn_gd_shenzhen` (
     `nodes` int  DEFAULT '0' ,
     `expired_time` datetime NOT NULL,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
+    `root_cache` BOOLEAN,
 	PRIMARY KEY (`cache_id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='cache infos';
 

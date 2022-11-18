@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
 )
@@ -22,22 +23,19 @@ const (
 
 // Cache Cache
 type Cache struct {
-	data         *Data
-	nodeManager  *NodeManager
-	cacheID      string
-	carfileCid   string
-	status       cacheStatus
-	reliability  int
-	doneSize     int
-	doneBlocks   int
-	totalSize    int
-	totalBlocks  int
-	nodes        int
-	removeBlocks int
-	// dbID        int
-
-	// timewheelCache *timewheel.TimeWheel
-	// lastUpdateTime time.Time
+	data        *Data
+	nodeManager *NodeManager
+	cacheID     string
+	carfileCid  string
+	status      cacheStatus
+	reliability int
+	doneSize    int
+	doneBlocks  int
+	totalSize   int
+	totalBlocks int
+	nodes       int
+	isRootCache bool
+	// removeBlocks int
 }
 
 func newCacheID(cid string) (string, error) {
@@ -50,7 +48,7 @@ func newCacheID(cid string) (string, error) {
 	return s, nil
 }
 
-func newCache(nodeManager *NodeManager, data *Data, cid string) (*Cache, error) {
+func newCache(nodeManager *NodeManager, data *Data, cid string, isRootCache bool) (*Cache, error) {
 	id, err := newCacheID(cid)
 	if err != nil {
 		return nil, err
@@ -63,6 +61,7 @@ func newCache(nodeManager *NodeManager, data *Data, cid string) (*Cache, error) 
 		status:      cacheStatusCreate,
 		cacheID:     id,
 		carfileCid:  cid,
+		isRootCache: isRootCache,
 	}
 
 	return cache, err
@@ -92,20 +91,21 @@ func loadCache(cacheID, carfileCid string, nodeManager *NodeManager, data *Data)
 	c.reliability = info.Reliability
 	c.nodes = info.Nodes
 	c.totalBlocks = info.TotalBlocks
-	c.removeBlocks = info.RemoveBlocks
+	// c.removeBlocks = info.RemoveBlocks
 	c.totalSize = info.TotalSize
+	c.isRootCache = info.RootCache
 	// info.ExpiredTime
 
 	return c
 }
 
-func (c *Cache) cacheBlocksToNode(deviceID string, cids []string) error {
+func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockInfo) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	cNode := c.nodeManager.getCandidateNode(deviceID)
 	if cNode != nil {
-		reqDatas := cNode.getReqCacheDatas(c.nodeManager, cids, c.carfileCid, c.cacheID)
+		reqDatas := cNode.getReqCacheDatas(c.nodeManager, blocks, c.carfileCid, c.cacheID)
 
 		err := cNode.nodeAPI.CacheBlocks(ctx, reqDatas)
 		if err != nil {
@@ -116,7 +116,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, cids []string) error {
 
 	eNode := c.nodeManager.getEdgeNode(deviceID)
 	if eNode != nil {
-		reqDatas := eNode.getReqCacheDatas(c.nodeManager, cids, c.carfileCid, c.cacheID)
+		reqDatas := eNode.getReqCacheDatas(c.nodeManager, blocks, c.carfileCid, c.cacheID)
 
 		err := eNode.nodeAPI.CacheBlocks(ctx, reqDatas)
 		if err != nil {
@@ -128,16 +128,15 @@ func (c *Cache) cacheBlocksToNode(deviceID string, cids []string) error {
 	return xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
 }
 
-func (c *Cache) findNode(isHaveCache bool, filterDeviceIDs map[string]string, i int) (deviceID string) {
+func (c *Cache) findNode(filterDeviceIDs map[string]string, i int) (deviceID string) {
 	deviceID = ""
 
-	if isHaveCache {
-		cs := c.nodeManager.findEdgeNodes(nil, filterDeviceIDs)
+	if c.isRootCache {
+		cs := c.nodeManager.findCandidateNodes(nil, filterDeviceIDs)
 		if cs == nil || len(cs) <= 0 {
 			return
 		}
 		// rand node
-		// node := cs[randomNum(0, len(cs))]
 		node := cs[i%len(cs)]
 
 		deviceID = node.deviceInfo.DeviceId
@@ -145,11 +144,12 @@ func (c *Cache) findNode(isHaveCache bool, filterDeviceIDs map[string]string, i 
 		return
 	}
 
-	cs := c.nodeManager.findCandidateNodes(nil, filterDeviceIDs)
+	cs := c.nodeManager.findEdgeNodes(nil, filterDeviceIDs)
 	if cs == nil || len(cs) <= 0 {
 		return
 	}
 	// rand node
+	// node := cs[randomNum(0, len(cs))]
 	node := cs[i%len(cs)]
 
 	deviceID = node.deviceInfo.DeviceId
@@ -157,13 +157,13 @@ func (c *Cache) findNode(isHaveCache bool, filterDeviceIDs map[string]string, i 
 	return
 }
 
-func (c *Cache) matchingNodeAndBlock(cids map[string]string, isHaveCache bool) ([]*persistent.BlockInfo, map[string][]string) {
+func (c *Cache) matchingNodeAndBlocks(cids map[string]string) ([]*persistent.BlockInfo, map[string][]api.BlockInfo) {
 	if cids == nil {
 		return nil, nil
 	}
 	// c.totalBlocks += len(cids)
 
-	nodeCacheMap := make(map[string][]string)
+	nodeCacheMap := make(map[string][]api.BlockInfo)
 	blockList := make([]*persistent.BlockInfo, 0)
 
 	i := 0
@@ -171,28 +171,35 @@ func (c *Cache) matchingNodeAndBlock(cids map[string]string, isHaveCache bool) (
 		i++
 		status := cacheStatusFail
 		deviceID := ""
+		fid := 0
 
-		ds, err := persistent.GetDB().GetNodesWithCacheList(cid, false)
+		nodes, err := persistent.GetDB().GetNodesWithCache(cid, false)
 		if err != nil {
 			log.Errorf("matchingNodeAndBlock cache:%s,cid:%s, GetNodesWithCacheList err:%s", c.cacheID, cid, err.Error())
 		} else {
 			filterDeviceIDs := make(map[string]string)
-			if ds != nil {
-				for _, d := range ds {
-					filterDeviceIDs[d] = cid
+			if nodes != nil {
+				for _, dID := range nodes {
+					filterDeviceIDs[dID] = cid
 				}
 			}
 
-			deviceID = c.findNode(isHaveCache, filterDeviceIDs, i)
+			deviceID = c.findNode(filterDeviceIDs, i)
 			if deviceID != "" {
 				status = cacheStatusCreate
 
 				cList, ok := nodeCacheMap[deviceID]
 				if !ok {
-					cList = make([]string, 0)
+					cList = make([]api.BlockInfo, 0)
 				}
 
-				cList = append(cList, cid)
+				fid, err = cache.GetDB().IncrNodeCacheFid(deviceID, 1)
+				if err != nil {
+					log.Errorf("deviceID:%s,IncrNodeCacheFid:%s", deviceID, err.Error())
+					continue
+				}
+
+				cList = append(cList, api.BlockInfo{Cid: cid, Fid: fid})
 				nodeCacheMap[deviceID] = cList
 			}
 		}
@@ -213,6 +220,7 @@ func (c *Cache) matchingNodeAndBlock(cids map[string]string, isHaveCache bool) (
 			ID:        dbID,
 			CarfileID: c.carfileCid,
 			IsUpdate:  isUpdate,
+			FID:       fid,
 		}
 
 		blockList = append(blockList, b)
@@ -221,7 +229,7 @@ func (c *Cache) matchingNodeAndBlock(cids map[string]string, isHaveCache bool) (
 	return blockList, nodeCacheMap
 }
 
-func (c *Cache) cacheDataToNodes(nodeCacheMap map[string][]string) {
+func (c *Cache) cacheDataToNodes(nodeCacheMap map[string][]api.BlockInfo) {
 	if nodeCacheMap == nil {
 		return
 	}
@@ -252,13 +260,13 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	c.totalBlocks += len(info.Links)
 
 	status := cacheStatusFail
-	fid := 0
+	// fid := 0
 	reliability := 0
 	if info.IsOK {
 		c.doneBlocks++
 		c.doneSize += info.BlockSize
 		status = cacheStatusSuccess
-		fid = info.Fid
+		// fid = info.Fid
 		reliability = c.calculateReliability(blockInfo.DeviceID)
 	}
 
@@ -271,8 +279,8 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		Status:      int(status),
 		Reliability: reliability,
 		CarfileID:   c.carfileCid,
-		IsUpdate:    true,
-		FID:         fid,
+		// FID:         blockInfo.FID,
+		// IsUpdate:    true,
 	}
 
 	linkMap := make(map[string]string)
@@ -282,10 +290,10 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		}
 	}
 
-	createBlocks, nodeCacheMap := c.matchingNodeAndBlock(linkMap, c.data.haveRootCache())
+	createBlocks, nodeCacheMap := c.matchingNodeAndBlocks(linkMap)
 
 	// save info to db
-	err = c.data.updateAndSaveInfo(bInfo, info, c, createBlocks)
+	err = c.data.updateAndSaveCacheingInfo(bInfo, info, c, createBlocks)
 	if err != nil {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,%s UpdateCacheInfo err:%s ", info.CacheID, info.Cid, err.Error())
 	}
@@ -305,8 +313,8 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	return nil
 }
 
-func (c *Cache) startCache(cids map[string]string, haveRootCache bool) error {
-	createBlocks, nodeCacheMap := c.matchingNodeAndBlock(cids, haveRootCache)
+func (c *Cache) startCache(cids map[string]string) error {
+	createBlocks, nodeCacheMap := c.matchingNodeAndBlocks(cids)
 
 	err := persistent.GetDB().SetBlockInfos(createBlocks, c.carfileCid)
 	if err != nil {
@@ -392,55 +400,55 @@ func (c *Cache) removeCache() error {
 	return err
 }
 
-func (c *Cache) updateCacheInfos() (bool, error) {
-	cCount, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusCreate))
-	if err != nil {
-		return false, err
-	}
+// func (c *Cache) updateCacheInfos() (bool, error) {
+// 	cCount, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusCreate))
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	fCount, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusFail))
-	if err != nil {
-		return false, err
-	}
+// 	fCount, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusFail))
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	sCount, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusSuccess))
-	if err != nil {
-		return false, err
-	}
+// 	sCount, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusSuccess))
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	totalCount := cCount + fCount + sCount
+// 	totalCount := cCount + fCount + sCount
 
-	if totalCount == 0 {
-		// remove
-		return true, nil
-	}
+// 	if totalCount == 0 {
+// 		// remove
+// 		return true, nil
+// 	}
 
-	size, err := persistent.GetDB().GetCachesSize(c.cacheID, int(cacheStatusSuccess))
-	if err != nil {
-		return false, err
-	}
+// 	size, err := persistent.GetDB().GetCachesSize(c.cacheID, int(cacheStatusSuccess))
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	cNodes, err := persistent.GetDB().GetNodesFromCache(c.cacheID)
-	if err != nil {
-		return false, err
-	}
+// 	cNodes, err := persistent.GetDB().GetNodesFromCache(c.cacheID)
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	c.doneSize = size
-	c.doneBlocks = sCount
-	c.nodes = cNodes
+// 	c.doneSize = size
+// 	c.doneBlocks = sCount
+// 	c.nodes = cNodes
 
-	if c.removeBlocks > 0 || totalCount > sCount {
-		c.status = cacheStatusFail
-		c.reliability = c.calculateReliability("")
+// 	if c.removeBlocks > 0 || totalCount > sCount {
+// 		c.status = cacheStatusFail
+// 		c.reliability = c.calculateReliability("")
 
-		return false, nil
-	}
+// 		return false, nil
+// 	}
 
-	c.status = cacheStatusSuccess
-	c.reliability = c.calculateReliability("")
+// 	c.status = cacheStatusSuccess
+// 	c.reliability = c.calculateReliability("")
 
-	return false, nil
-}
+// 	return false, nil
+// }
 
 func (c *Cache) removeCacheBlocks(deviceID string, cids []string) {
 	ctx := context.Background()
