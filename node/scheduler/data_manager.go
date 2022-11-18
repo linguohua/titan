@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -13,9 +14,9 @@ import (
 
 // DataManager Data
 type DataManager struct {
-	nodeManager    *NodeManager
-	blockLoaderCh  chan bool
-	waitingCacheCh chan bool
+	nodeManager      *NodeManager
+	blockLoaderCh    chan bool
+	dataTaskLoaderCh chan bool
 
 	taskMap sync.Map
 
@@ -30,14 +31,16 @@ type DataManager struct {
 
 func newDataManager(nodeManager *NodeManager) *DataManager {
 	d := &DataManager{
-		nodeManager:    nodeManager,
-		blockLoaderCh:  make(chan bool),
-		timeoutTime:    30,
-		doTaskTime:     30,
-		runningTaskMax: 1,
+		nodeManager:      nodeManager,
+		blockLoaderCh:    make(chan bool),
+		dataTaskLoaderCh: make(chan bool),
+		timeoutTime:      30,
+		doTaskTime:       5,
+		runningTaskMax:   10,
 	}
 
 	d.initTimewheel()
+	go d.startDataTaskLoader()
 	go d.startBlockLoader()
 
 	return d
@@ -51,37 +54,55 @@ func (m *DataManager) initTimewheel() {
 	m.timeoutTimeWheel.Start()
 	m.timeoutTimeWheel.AddTimer(time.Duration(m.timeoutTime-1)*time.Second, "TaskTimeout", nil)
 
-	m.taskTimeWheel = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		m.taskTimeWheel.AddTimer(time.Duration(m.doTaskTime-1)*time.Second, "DataTask", nil)
-		err := m.doDataTask()
+	// m.taskTimeWheel = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
+	// 	m.taskTimeWheel.AddTimer(time.Duration(m.doTaskTime-1)*time.Second, "DataTask", nil)
+	// 	err := m.doDataTask()
+	// 	if err != nil {
+	// 		log.Errorf("doTask err :%s", err.Error())
+	// 	}
+	// })
+	// m.taskTimeWheel.Start()
+	// m.taskTimeWheel.AddTimer(time.Duration(m.doTaskTime-1)*time.Second, "DataTask", nil)
+}
+
+func (m *DataManager) getNextWaitingTask(index int64) (api.CacheDataInfo, error) {
+	// log.Infof("index:%d,get list:%v", index, cache.GetDB().Test())
+	// next data task
+	info, err := cache.GetDB().GetWaitingCacheTask(index)
+	if err != nil {
+		return info, err
+	}
+
+	if m.isTaskRunnning(info.Cid) {
+		info, err = m.getNextWaitingTask(index + 1)
 		if err != nil {
-			log.Errorf("doTask err :%s", err.Error())
+			return info, err
 		}
-	})
-	m.taskTimeWheel.Start()
-	m.taskTimeWheel.AddTimer(time.Duration(m.doTaskTime-1)*time.Second, "DataTask", nil)
+	}
+
+	return info, nil
 }
 
 func (m *DataManager) doDataTask() error {
-	if len(m.getRunningTasks()) > 0 {
-		return nil
-	}
+	// if len(m.getRunningTasks()) >= m.runningTaskMax {
+	// 	return nil
+	// }
 
 	// next data task
-	info, err := cache.GetDB().GetWaitingCacheTask()
+	info, err := m.getNextWaitingTask(0)
 	if err != nil {
 		if cache.GetDB().IsNilErr(err) {
 			return nil
 		}
-		return xerrors.Errorf("GetWaitingCacheTask err:%s", err.Error())
+		return xerrors.Errorf("getNextWaitingTask err:%s", err.Error())
 	}
 
 	defer func() {
 		if err != nil {
-			m.callToEvent(info.Cid, "", "", "task-err")
+			m.callToEvent(info.Cid, "", "", "task-err", err.Error())
 		}
 
-		err = cache.GetDB().RemoveWaitingCacheTask()
+		err = cache.GetDB().RemoveWaitingCacheTask(info)
 		if err != nil {
 			log.Errorf("cid:%s ; RemoveWaitingCacheTask err:%s", info.Cid, err.Error())
 		}
@@ -214,7 +235,14 @@ func (m *DataManager) cacheData(cid string, reliability int) error {
 		return err
 	}
 
-	return m.callToEvent(cid, "", "", "cacheData")
+	err = m.callToEvent(cid, "", "user", "cacheData", fmt.Sprintf("%d", reliability))
+	if err != nil {
+		return err
+	}
+
+	m.notifyDataLoader()
+
+	return nil
 }
 
 func (m *DataManager) cacheContinue(cid, cacheID string) error {
@@ -223,11 +251,18 @@ func (m *DataManager) cacheContinue(cid, cacheID string) error {
 		return err
 	}
 
-	return m.callToEvent(cid, "", "", "cacheContinue")
+	err = m.callToEvent(cid, "", "user", "cacheContinue", "")
+	if err != nil {
+		return err
+	}
+
+	m.notifyDataLoader()
+
+	return nil
 }
 
 func (m *DataManager) removeCarfile(carfileCid string) error {
-	err := m.callToEvent(carfileCid, "", "", "removeCarfile")
+	err := m.callToEvent(carfileCid, "", "user", "removeCarfile", "")
 	if err != nil {
 		return err
 	}
@@ -252,7 +287,7 @@ func (m *DataManager) removeCarfile(carfileCid string) error {
 }
 
 func (m *DataManager) removeCache(carfileCid, cacheID string) error {
-	err := m.callToEvent(carfileCid, "", "", "removeCache")
+	err := m.callToEvent(carfileCid, "", "user", "removeCache", "")
 	if err != nil {
 		return err
 	}
@@ -346,6 +381,26 @@ func (m *DataManager) notifyBlockLoader() {
 	}
 }
 
+func (m *DataManager) startDataTaskLoader() {
+	for {
+		<-m.dataTaskLoaderCh
+
+		doLen := m.runningTaskMax - len(m.getRunningTasks())
+		if doLen > 0 {
+			for i := 0; i < doLen; i++ {
+				m.doDataTask()
+			}
+		}
+	}
+}
+
+func (m *DataManager) notifyDataLoader() {
+	select {
+	case m.dataTaskLoaderCh <- true:
+	default:
+	}
+}
+
 func (m *DataManager) dataTaskStart(cid, cacheID string) {
 	log.Infof("taskStart:%s ; cacheID:%s ---------- ", cid, cacheID)
 
@@ -359,7 +414,7 @@ func (m *DataManager) dataTaskStart(cid, cacheID string) {
 		log.Panicf("dataTaskStart %s , SetTaskToRunningList err:%s", cacheID, err.Error())
 	}
 
-	m.callToEvent(cid, "", "", "task-start")
+	m.callToEvent(cid, "", "server", "task-start", "")
 }
 
 func (m *DataManager) dataTaskEnd(cid string) {
@@ -371,7 +426,7 @@ func (m *DataManager) dataTaskEnd(cid string) {
 		return
 	}
 
-	m.callToEvent(cid, "", "", "task-end")
+	m.callToEvent(cid, "", "server", "task-end", "")
 }
 
 func (m *DataManager) getRunningTasks() []string {
@@ -394,8 +449,9 @@ func (m *DataManager) isTaskRunnning(cid string) bool {
 	return cID != ""
 }
 
-func (m *DataManager) callToEvent(cid, deviceID, userID, event string) error {
+func (m *DataManager) callToEvent(cid, deviceID, userID, event, msg string) error {
 	// TODO event
+	// log.Warnf("callToEvent userID:%s,cid:%s,event:%s,msg:%s", userID, cid, event, msg)
 
 	return nil
 }
