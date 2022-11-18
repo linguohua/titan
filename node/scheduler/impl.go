@@ -101,7 +101,7 @@ type Scheduler struct {
 }
 
 // CandidateNodeConnect Candidate connect
-func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token string) (externalIP string, err error) {
+func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int) (externalIP string, err error) {
 	ip := handler.GetRequestIP(ctx)
 	deviceID := handler.GetDeviceID(ctx)
 
@@ -169,7 +169,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int, token st
 }
 
 // EdgeNodeConnect edge connect
-func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int, token string) (externalIP string, err error) {
+func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int) (externalIP string, err error) {
 	ip := handler.GetRequestIP(ctx)
 	deviceID := handler.GetDeviceID(ctx)
 
@@ -308,10 +308,10 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeType api.NodeType) (ap
 	return registerNode(nodeType)
 }
 
-// GetToken get token
-func (s *Scheduler) GetToken(ctx context.Context, deviceID, secret string) (string, error) {
-	return generateToken(deviceID, secret)
-}
+// // GetToken get token
+// func (s *Scheduler) GetToken(ctx context.Context, deviceID, secret string) (string, error) {
+// 	return generateToken(deviceID, secret)
+// }
 
 // DeleteBlockRecords  Delete Block Record
 func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
