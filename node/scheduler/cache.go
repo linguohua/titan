@@ -252,7 +252,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	c.totalBlocks += len(info.Links)
 
 	status := cacheStatusFail
-	fid := "0"
+	fid := 0
 	reliability := 0
 	if info.IsOK {
 		c.doneBlocks++
