@@ -204,13 +204,13 @@ func (c *Cache) matchingNodeAndBlocks(cids map[string]string) ([]*persistent.Blo
 			}
 		}
 
-		isUpdate := true
-		if dbID == "" {
-			isUpdate = false
+		// isUpdate := true
+		// if dbID == "" {
+		// 	isUpdate = false
 
-			u2 := uuid.NewString()
-			dbID = strings.Replace(u2, "-", "", -1)
-		}
+		// 	u2 := uuid.NewString()
+		// 	dbID = strings.Replace(u2, "-", "", -1)
+		// }
 		b := &persistent.BlockInfo{
 			CacheID:   c.cacheID,
 			CID:       cid,
@@ -219,8 +219,8 @@ func (c *Cache) matchingNodeAndBlocks(cids map[string]string) ([]*persistent.Blo
 			Size:      0,
 			ID:        dbID,
 			CarfileID: c.carfileCid,
-			IsUpdate:  isUpdate,
-			FID:       fid,
+			// IsUpdate:  isUpdate,
+			FID: fid,
 		}
 
 		blockList = append(blockList, b)

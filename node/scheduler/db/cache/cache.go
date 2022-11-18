@@ -21,8 +21,8 @@ type DB interface {
 	RemoveRunningTask(cid string) error
 
 	SetWaitingCacheTask(info api.CacheDataInfo) error
-	GetWaitingCacheTask() (api.CacheDataInfo, error)
-	RemoveWaitingCacheTask() error
+	GetWaitingCacheTask(index int64) (api.CacheDataInfo, error)
+	RemoveWaitingCacheTask(info api.CacheDataInfo) error
 
 	IncrNodeCacheFid(deviceID string, num int) (int, error)
 	GetNodeCacheFid(deviceID string) (int64, error)

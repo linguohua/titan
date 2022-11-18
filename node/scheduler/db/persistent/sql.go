@@ -379,12 +379,12 @@ func (sd sqlDB) SaveCacheingResults(dInfo *DataInfo, cInfo *CacheInfo, updateBlo
 
 	if createBlocks != nil {
 		for _, info := range createBlocks {
-			if info.IsUpdate {
+			if info.ID != "" {
 				cmd := fmt.Sprintf(`UPDATE %s SET status=?,size=?,reliability=?,device_id=?,fid=? WHERE id=?`, bTableName)
 				tx.MustExec(cmd, info.Status, info.Size, info.Reliability, info.DeviceID, info.FID, info.ID)
 			} else {
-				cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_id, cid, device_id, status, size, reliability, id, fid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, bTableName)
-				tx.MustExec(cmd, info.CacheID, info.CarfileID, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability, info.ID, info.FID)
+				cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_id, cid, device_id, status, size, reliability, id, fid) VALUES (?, ?, ?, ?, ?, ?, ?, REPLACE(UUID(),"-",""), ?)`, bTableName)
+				tx.MustExec(cmd, info.CacheID, info.CarfileID, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability, info.FID)
 			}
 		}
 	}
@@ -546,15 +546,15 @@ func (sd sqlDB) SetBlockInfos(infos []*BlockInfo, carfileCid string) error {
 	tx := sd.cli.MustBegin()
 
 	for _, info := range infos {
-		if info.IsUpdate {
+		if info.ID != "" {
 			cmd := fmt.Sprintf(`UPDATE %s SET status=?,size=?,reliability=?,device_id=? WHERE id=?`, tableName)
 			tx.MustExec(cmd, info.Status, info.Size, info.Reliability, info.DeviceID, info.ID)
 
 			// cmd1 := fmt.Sprintf(`UPDATE %s SET device_id=? WHERE cid=? AND cache_id=? AND carfile_id=?,`, fmt.Sprintf(deviceBlockTable, area))
 			// tx.MustExec(cmd1, info.DeviceID, info.CID, info.CacheID, carfileCid)
 		} else {
-			cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_id, cid, device_id, status, size, reliability, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, tableName)
-			tx.MustExec(cmd, info.CacheID, info.CarfileID, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability, info.ID)
+			cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_id, cid, device_id, status, size, reliability, id) VALUES (?, ?, ?, ?, ?, ?, ?, REPLACE(UUID(),"-",""))`, tableName)
+			tx.MustExec(cmd, info.CacheID, info.CarfileID, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability)
 
 			// cmd1 := fmt.Sprintf(`INSERT INTO %s (cid, fid, cache_id, carfile_id, device_id) VALUES (?, ?, ?, ?, ?)`, fmt.Sprintf(deviceBlockTable, area))
 			// tx.MustExec(cmd1, info.CID, "", info.CacheID, carfileCid, info.DeviceID)

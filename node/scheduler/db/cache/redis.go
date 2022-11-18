@@ -351,10 +351,32 @@ func (rd redisDB) SetWaitingCacheTask(info api.CacheDataInfo) error {
 	return err
 }
 
-func (rd redisDB) GetWaitingCacheTask() (api.CacheDataInfo, error) {
+// func (rd redisDB) Test() []string {
+// 	key := fmt.Sprintf(redisKeyWaitingTask, serverName)
+
+// 	values, _ := rd.cli.LRange(context.Background(), key, 0, -1).Result()
+// 	list := make([]string, 0)
+// 	for _, value := range values {
+// 		var info api.CacheDataInfo
+// 		bytes, err := redigo.Bytes(value, nil)
+// 		if err != nil {
+// 			continue
+// 		}
+
+// 		if err := json.Unmarshal(bytes, &info); err != nil {
+// 			continue
+// 		}
+
+// 		list = append(list, fmt.Sprintf("%s_%d", info.Cid, info.NeedReliability))
+// 	}
+
+// 	return list
+// }
+
+func (rd redisDB) GetWaitingCacheTask(index int64) (api.CacheDataInfo, error) {
 	key := fmt.Sprintf(redisKeyWaitingTask, serverName)
 
-	value, err := rd.cli.LIndex(context.Background(), key, 0).Result()
+	value, err := rd.cli.LIndex(context.Background(), key, index).Result()
 
 	if value == "" {
 		return api.CacheDataInfo{}, redis.Nil
@@ -373,10 +395,15 @@ func (rd redisDB) GetWaitingCacheTask() (api.CacheDataInfo, error) {
 	return info, nil
 }
 
-func (rd redisDB) RemoveWaitingCacheTask() error {
+func (rd redisDB) RemoveWaitingCacheTask(info api.CacheDataInfo) error {
 	key := fmt.Sprintf(redisKeyWaitingTask, serverName)
 
-	_, err := rd.cli.LPop(context.Background(), key).Result()
+	bytes, err := json.Marshal(info)
+	if err != nil {
+		return err
+	}
+	_, err = rd.cli.LRem(context.Background(), key, 1, bytes).Result()
+	// _, err := rd.cli.LPop(context.Background(), key).Result()
 	return err
 }
 

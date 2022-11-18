@@ -202,8 +202,6 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int) (externalIP s
 		return "", err
 	}
 
-	log.Errorf("DeviceId:%v", deviceInfo)
-
 	if deviceID != deviceInfo.DeviceId {
 		return "", xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
