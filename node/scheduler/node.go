@@ -1,7 +1,6 @@
 package scheduler
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -112,7 +111,7 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, carFile
 		candidates, err := nodeManager.getCandidateNodesWithData(cid, n.deviceInfo.DeviceId)
 		if err != nil || len(candidates) < 1 {
 			// not find candidate
-			notFindCandidateDatas = append(notFindCandidateDatas, api.BlockInfo{Cid: cid, Fid: fmt.Sprintf("%d", fidMax-i)})
+			notFindCandidateDatas = append(notFindCandidateDatas, api.BlockInfo{Cid: cid, Fid: fidMax - i})
 			continue
 		}
 
@@ -125,7 +124,7 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, cids []string, carFile
 			list = make([]api.BlockInfo, 0)
 		}
 
-		list = append(list, api.BlockInfo{Cid: cid, Fid: fmt.Sprintf("%d", fidMax-i)})
+		list = append(list, api.BlockInfo{Cid: cid, Fid: fidMax - i})
 
 		csMap[deviceID] = list
 	}

@@ -19,7 +19,7 @@ const (
 	errMsgTimeOut  = "TimeOut"
 	missBlock      = "MissBlock"
 	errMsgBlockNil = "Block Nil;map len:%d,count:%d"
-	errMsgCidFail  = "Cid Fail;resultCid:%s,cid_db:%s,fid:%s,index:%d"
+	errMsgCidFail  = "Cid Fail;resultCid:%s,cid_db:%s,fid:%d,index:%d"
 )
 
 // Validate Validate
@@ -282,9 +282,9 @@ func (v *Validate) validate(validateResults *api.ValidateResults) error {
 		fid := v.getRandNum(int(maxFid), r) + 1
 		resultCid := validateResults.Cids[index]
 
-		fidStr := fmt.Sprintf("%d", fid)
+		// fidStr := fmt.Sprintf("%d", fid)
 
-		cid := cacheInfos[fidStr]
+		cid := cacheInfos[fid]
 		// cid, err := persistent.GetDB().GetBlockCidWithFid(deviceID, fidStr)
 		if cid == "" {
 			// log.Warnf("cid nil;fid:%s", fidStr)
@@ -295,7 +295,7 @@ func (v *Validate) validate(validateResults *api.ValidateResults) error {
 
 		if !v.compareCid(cid, resultCid) {
 			status = persistent.ValidateStatusFail
-			msg = fmt.Sprintf(errMsgCidFail, resultCid, cid, fidStr, index)
+			msg = fmt.Sprintf(errMsgCidFail, resultCid, cid, fid, index)
 			break
 		}
 	}

@@ -77,6 +77,10 @@ func (m *DataManager) doDataTask() error {
 	}
 
 	defer func() {
+		if err != nil {
+			m.callToEvent(info.Cid, "", "", "task-err")
+		}
+
 		err = cache.GetDB().RemoveWaitingCacheTask()
 		if err != nil {
 			log.Errorf("cid:%s ; RemoveWaitingCacheTask err:%s", info.Cid, err.Error())
@@ -354,6 +358,8 @@ func (m *DataManager) dataTaskStart(cid, cacheID string) {
 	if err != nil {
 		log.Panicf("dataTaskStart %s , SetTaskToRunningList err:%s", cacheID, err.Error())
 	}
+
+	m.callToEvent(cid, "", "", "task-start")
 }
 
 func (m *DataManager) dataTaskEnd(cid string) {
@@ -364,6 +370,8 @@ func (m *DataManager) dataTaskEnd(cid string) {
 		err = xerrors.Errorf("dataTaskEnd RemoveRunningTask err: %s", err.Error())
 		return
 	}
+
+	m.callToEvent(cid, "", "", "task-end")
 }
 
 func (m *DataManager) getRunningTasks() []string {

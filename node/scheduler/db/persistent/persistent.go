@@ -23,7 +23,7 @@ type DB interface {
 
 	CreateCache(cInfo *CacheInfo) error
 	SaveCacheEndResults(dInfo *DataInfo, cInfo *CacheInfo) error
-	SaveCacheingResults(dInfo *DataInfo, cInfo *CacheInfo, updateBlock *BlockInfo, fid string, createBlocks []*BlockInfo) error
+	SaveCacheingResults(dInfo *DataInfo, cInfo *CacheInfo, updateBlock *BlockInfo, createBlocks []*BlockInfo) error
 
 	// data info
 	SetDataInfo(info *DataInfo) error
@@ -47,10 +47,10 @@ type DB interface {
 
 	// node block
 	// DeleteBlockInfos(cacheID, deviceID string, cids []string, removeBlocks int) error
-	GetBlocksFID(deviceID string) (map[string]string, error)
+	GetBlocksFID(deviceID string) (map[int]string, error)
 	GetDeviceBlockNum(deviceID string) (int64, error)
-	GetNodesWithCacheList(cid string) ([]string, error)
-	GetNodeBlock(deviceID, cid string) (*NodeBlock, error)
+	GetNodesWithCacheList(cid string, isSuccess bool) ([]string, error)
+	// GetNodeBlock(deviceID, cid string) ([]*BlockInfo, error)
 
 	// temporary node register
 	BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error
@@ -131,14 +131,14 @@ type ValidateResult struct {
 	ServerName  string `db:"server_name"`
 }
 
-// NodeBlock Node Block
-type NodeBlock struct {
-	DeviceID  string `db:"device_id"`
-	FID       string `db:"fid"`
-	CID       string `db:"cid"`
-	CarfileID string `db:"carfile_id"`
-	CacheID   string `db:"cache_id"`
-}
+// // NodeBlock Node Block
+// type NodeBlock struct {
+// 	DeviceID  string `db:"device_id"`
+// 	FID       string `db:"fid"`
+// 	CID       string `db:"cid"`
+// 	CarfileID string `db:"carfile_id"`
+// 	CacheID   string `db:"cache_id"`
+// }
 
 // // BlockNodes Node Block
 // type BlockNodes struct {
@@ -188,6 +188,7 @@ type BlockInfo struct {
 	Size        int    `db:"size"`
 	Reliability int    `db:"reliability"`
 	CarfileID   string `db:"carfile_id"`
+	FID         int    `db:"fid"`
 	IsUpdate    bool
 }
 

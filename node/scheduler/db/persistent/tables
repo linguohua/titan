@@ -73,16 +73,9 @@ CREATE TABLE `block_info_cn_gd_shenzhen` (
     `status` TINYINT  DEFAULT '0' ,
     `size` int(20)  DEFAULT '0' ,
 	`reliability` int(64) DEFAULT '0' ,
+    `fid` int DEFAULT '0' ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='block infos';
-
-CREATE TABLE `device_blocks_cn_gd_shenzhen` (
-	`cid` varchar(128) NOT NULL,
-    `device_id` varchar(128) NOT NULL ,
-    `fid` varchar(18) NOT NULL ,
-    `carfile_id` varchar(128) NOT NULL,
-    `cache_id` varchar(64) NOT NULL
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='device blocks';
 
 CREATE TABLE `block_download_info_cn_gd_shenzhen` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,

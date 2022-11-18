@@ -108,16 +108,16 @@ func (d *Data) createCache() (*Cache, error) {
 	return cache, nil
 }
 
-func (d *Data) updateAndSaveInfo(blockInfo *persistent.BlockInfo, fid string, info *api.CacheResultInfo, c *Cache, createBlocks []*persistent.BlockInfo) error {
+func (d *Data) updateAndSaveInfo(blockInfo *persistent.BlockInfo, info *api.CacheResultInfo, c *Cache, createBlocks []*persistent.BlockInfo) error {
 	if !d.haveRootCache() {
 		d.totalSize = c.totalSize
 		d.totalBlocks = c.totalBlocks
 	}
 
-	return d.saveCacheingResults(c, blockInfo, fid, createBlocks)
+	return d.saveCacheingResults(c, blockInfo, createBlocks)
 }
 
-func (d *Data) saveCacheingResults(cache *Cache, bInfo *persistent.BlockInfo, fid string, createBlocks []*persistent.BlockInfo) error {
+func (d *Data) saveCacheingResults(cache *Cache, bInfo *persistent.BlockInfo, createBlocks []*persistent.BlockInfo) error {
 	dInfo := &persistent.DataInfo{
 		CID:         d.cid,
 		TotalSize:   d.totalSize,
@@ -140,7 +140,7 @@ func (d *Data) saveCacheingResults(cache *Cache, bInfo *persistent.BlockInfo, fi
 		// RemoveBlocks: cache.removeBlocks,
 	}
 
-	return persistent.GetDB().SaveCacheingResults(dInfo, cInfo, bInfo, fid, createBlocks)
+	return persistent.GetDB().SaveCacheingResults(dInfo, cInfo, bInfo, createBlocks)
 }
 
 func (d *Data) saveCacheEndResults(cache *Cache) error {

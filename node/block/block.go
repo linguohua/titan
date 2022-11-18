@@ -128,14 +128,12 @@ func (block *Block) dequeue(len int) []*delayReq {
 	reqs := block.reqList[:len]
 	block.reqList = block.reqList[len:]
 	return reqs
-
 }
 
 func (block *Block) enqueue(delayReqs []*delayReq) {
 	block.reqListLock.Lock()
 	defer block.reqListLock.Unlock()
 	block.reqList = append(block.reqList, delayReqs...)
-
 }
 
 func (block *Block) doLoadBlock() {

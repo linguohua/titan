@@ -26,7 +26,7 @@ type Block interface {
 
 type BlockInfo struct {
 	Cid string
-	Fid string
+	Fid int
 }
 
 type ReqCacheData struct {
