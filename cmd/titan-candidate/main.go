@@ -226,10 +226,10 @@ var runCmd = &cli.Command{
 		}
 		log.Infof("Remote version %s", v)
 
-		tk, err := schedulerAPI.GetToken(ctx, deviceID, securityKey)
-		if err != nil {
-			return err
-		}
+		// tk, err := schedulerAPI.GetToken(ctx, deviceID, securityKey)
+		// if err != nil {
+		// 	return err
+		// }
 
 		// Register all metric views
 		if err := view.Register(
@@ -400,7 +400,7 @@ var runCmd = &cli.Command{
 					readyCh = waitQuietCh()
 				}
 
-				var errCount = 0
+				errCount := 0
 				for {
 					curSession, err := schedulerAPI.Session(ctx, deviceID)
 					if err != nil {
@@ -418,7 +418,7 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						externalIP, err := schedulerAPI.CandidateNodeConnect(ctx, port, tk)
+						externalIP, err := schedulerAPI.CandidateNodeConnect(ctx, port)
 						if err != nil {
 							log.Errorf("Registering worker failed: %+v", err)
 							cancel()
@@ -469,7 +469,6 @@ func extractRoutableIP(cctx *cli.Context) (string, error) {
 	localAddr := conn.LocalAddr().(*net.TCPAddr)
 
 	return strings.Split(localAddr.IP.String(), ":")[0], nil
-
 }
 
 func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (api.Scheduler, jsonrpc.ClientCloser, error) {

@@ -32,13 +32,12 @@ type Scheduler interface {
 	LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID, locatorToken string) error //perm:write
 
 	// call by node
-	DownloadBlockResult(ctx context.Context, stat DownloadStat) error                                    //perm:write
-	GetToken(ctx context.Context, deviceID, secret string) (string, error)                               //perm:write
-	EdgeNodeConnect(ctx context.Context, edgePort int, token string) (externalIP string, err error)      //perm:write
-	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                      //perm:write
-	CandidateNodeConnect(ctx context.Context, edgePort int, token string) (externalIP string, err error) //perm:write
-	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) (string, error)        //perm:write
-	UpdateDownloadServerAccessAuth(ctx context.Context, accessAuth DownloadServerAccessAuth) error       //perm:write
+	DownloadBlockResult(ctx context.Context, stat DownloadStat) error                              //perm:write
+	EdgeNodeConnect(ctx context.Context, edgePort int) (externalIP string, err error)              //perm:write
+	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                //perm:write
+	CandidateNodeConnect(ctx context.Context, edgePort int) (externalIP string, err error)         //perm:write
+	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) (string, error)  //perm:write
+	UpdateDownloadServerAccessAuth(ctx context.Context, accessAuth DownloadServerAccessAuth) error //perm:write
 
 	// call by user
 	GetDownloadInfosWithBlocks(ctx context.Context, cids []string) (map[string][]DownloadInfo, error) //perm:read

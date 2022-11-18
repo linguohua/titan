@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
+
 )
 
 
@@ -238,13 +239,13 @@ type SchedulerStruct struct {
 
 		CacheResult func(p0 context.Context, p1 string, p2 CacheResultInfo) (string, error) `perm:"write"`
 
-		CandidateNodeConnect func(p0 context.Context, p1 int, p2 string) (string, error) `perm:"write"`
+		CandidateNodeConnect func(p0 context.Context, p1 int) (string, error) `perm:"write"`
 
 		DeleteBlockRecords func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"admin"`
 
 		DownloadBlockResult func(p0 context.Context, p1 DownloadStat) (error) `perm:"write"`
 
-		EdgeNodeConnect func(p0 context.Context, p1 int, p2 string) (string, error) `perm:"write"`
+		EdgeNodeConnect func(p0 context.Context, p1 int) (string, error) `perm:"write"`
 
 		ElectionValidators func(p0 context.Context) (error) `perm:"admin"`
 
@@ -259,8 +260,6 @@ type SchedulerStruct struct {
 		GetDownloadInfosWithBlocks func(p0 context.Context, p1 []string) (map[string][]DownloadInfo, error) `perm:"read"`
 
 		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
-
-		GetToken func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
 
 		ListDatas func(p0 context.Context, p1 int) (DataListInfo, error) `perm:"read"`
 
@@ -813,14 +812,14 @@ func (s *SchedulerStub) CacheResult(p0 context.Context, p1 string, p2 CacheResul
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context, p1 int, p2 string) (string, error) {
+func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context, p1 int) (string, error) {
 	if s.Internal.CandidateNodeConnect == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.CandidateNodeConnect(p0, p1, p2)
+	return s.Internal.CandidateNodeConnect(p0, p1)
 }
 
-func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 int, p2 string) (string, error) {
+func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 int) (string, error) {
 	return "", ErrNotSupported
 }
 
@@ -846,14 +845,14 @@ func (s *SchedulerStub) DownloadBlockResult(p0 context.Context, p1 DownloadStat)
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context, p1 int, p2 string) (string, error) {
+func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context, p1 int) (string, error) {
 	if s.Internal.EdgeNodeConnect == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.EdgeNodeConnect(p0, p1, p2)
+	return s.Internal.EdgeNodeConnect(p0, p1)
 }
 
-func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context, p1 int, p2 string) (string, error) {
+func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context, p1 int) (string, error) {
 	return "", ErrNotSupported
 }
 
@@ -932,17 +931,6 @@ func (s *SchedulerStruct) GetOnlineDeviceIDs(p0 context.Context, p1 NodeTypeName
 
 func (s *SchedulerStub) GetOnlineDeviceIDs(p0 context.Context, p1 NodeTypeName) ([]string, error) {
 	return *new([]string), ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetToken(p0 context.Context, p1 string, p2 string) (string, error) {
-	if s.Internal.GetToken == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.GetToken(p0, p1, p2)
-}
-
-func (s *SchedulerStub) GetToken(p0 context.Context, p1 string, p2 string) (string, error) {
-	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) ListDatas(p0 context.Context, p1 int) (DataListInfo, error) {
