@@ -60,6 +60,7 @@ type DB interface {
 	AddDownloadInfo(deviceID string, info *api.BlockDownloadInfo) error
 	GetDownloadInfo(deviceID string) ([]*api.BlockDownloadInfo, error)
 
+	SetEventInfo(info *EventInfo) error
 	// AddToBeDeleteBlock(infos []*BlockDelete) error
 	// RemoveToBeDeleteBlock(infos []*BlockDelete) error
 	// GetToBeDeleteBlocks(deviceID string) ([]*BlockDelete, error)
@@ -191,6 +192,17 @@ type BlockInfo struct {
 	CarfileID   string `db:"carfile_id"`
 	FID         int    `db:"fid"`
 	IsUpdate    bool
+}
+
+// EventInfo Event Info
+type EventInfo struct {
+	ID         int
+	CID        string    `db:"cid"`
+	DeviceID   string    `db:"device_id"`
+	User       string    `db:"user"`
+	Event      string    `db:"event"`
+	Msg        string    `db:"msg"`
+	CreateTime time.Time `db:"created_time"`
 }
 
 // // BlockDelete block to be delete

@@ -335,8 +335,7 @@ func (c *Cache) endCache(unDoneBlocks int) (err error) {
 	// log.Infof("end cache %s,%s ----------", c.carfileCid, c.cacheID)
 
 	defer func() {
-		err = c.data.endData(c)
-		return
+		c.data.endData(c)
 	}()
 
 	failedBlocks, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(cacheStatusFail))
