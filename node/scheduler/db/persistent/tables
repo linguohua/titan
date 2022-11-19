@@ -105,6 +105,7 @@ CREATE TABLE `event_info_cn_gd_shenzhen` (
     `user` varchar(20) NOT NULL ,
     `event` varchar(20) NOT NULL ,
     `msg` varchar(128) DEFAULT '',
+    `cache_id` varchar(64) DEFAULT '' ,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='event';
