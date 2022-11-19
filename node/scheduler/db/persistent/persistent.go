@@ -48,6 +48,7 @@ type DB interface {
 	// node block
 	// DeleteBlockInfos(cacheID, deviceID string, cids []string, removeBlocks int) error
 	GetBlocksFID(deviceID string) (map[int]string, error)
+	GetBlocksInRange(deviceID string, startFid, endFid int) (map[int]string, error)
 	GetDeviceBlockNum(deviceID string) (int64, error)
 	GetNodesWithCache(cid string, isSuccess bool) ([]string, error)
 	// GetNodeBlock(deviceID, cid string) ([]*BlockInfo, error)

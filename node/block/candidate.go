@@ -43,8 +43,12 @@ func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 	defer cancel()
 
 	for _, req := range reqs {
-		url := fmt.Sprintf("%s?cid=%s", req.downloadURL, req.blockInfo.Cid)
+		if len(req.downloadURL) == 0 {
+			log.Errorf("loadBlocksFromCandidate req downloadURL is nil")
+			continue
+		}
 
+		url := fmt.Sprintf("%s?cid=%s", req.downloadURL, req.blockInfo.Cid)
 		data, err := getBlockFromCandidate(url, req.downloadToken)
 		if err != nil {
 			log.Errorf("loadBlocksFromCandidate get block from candidate error:%s", err.Error())
