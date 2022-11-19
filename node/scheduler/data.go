@@ -195,7 +195,7 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 	return persistent.GetDB().SaveCacheEndResults(dInfo, cInfo)
 }
 
-func (d *Data) startData(cacheID, userID string) error {
+func (d *Data) startData(cacheID string) (string, error) {
 	var err error
 	var cache *Cache
 	var list map[string]string
@@ -204,18 +204,18 @@ func (d *Data) startData(cacheID, userID string) error {
 		cacheI, ok := d.cacheMap.Load(cacheID)
 		if !ok || cacheI == nil {
 			err = xerrors.Errorf("Not Found CacheID :%s", cacheID)
-			return err
+			return cacheID, err
 		}
 		cache = cacheI.(*Cache)
 
 		list, err = persistent.GetDB().GetUndoneBlocks(cacheID)
 		if err != nil {
-			return err
+			return cacheID, err
 		}
 	} else {
 		cache, err = d.createCache(!d.haveRootCache())
 		if err != nil {
-			return err
+			return cacheID, err
 		}
 
 		d.cacheMap.Store(cache.cacheID, cache)
@@ -230,21 +230,15 @@ func (d *Data) startData(cacheID, userID string) error {
 				RootCache:   cache.isRootCache,
 			})
 		if err != nil {
-			return err
+			return cacheID, err
 		}
-
-		d.cacheCount++
 
 		list = map[string]string{cache.carfileCid: ""}
 	}
 
-	err = cache.startCache(list)
-	if err != nil {
-		return err
-	}
-	d.dataManager.dataTaskStart(d.cid, cacheID, userID)
+	d.cacheCount++
 
-	return nil
+	return cacheID, cache.startCache(list)
 }
 
 func (d *Data) endData(c *Cache) {
@@ -259,7 +253,9 @@ func (d *Data) endData(c *Cache) {
 	cacheID := ""
 	defer func() {
 		if err != nil {
-			c.data.dataManager.dataTaskEnd(c.data.cid, err.Error())
+			d.dataManager.dataTaskEnd(d.cid, err.Error(), c.cacheID)
+		} else {
+			d.dataManager.dataTaskStart(d.cid, cacheID, "server")
 		}
 	}()
 
@@ -290,5 +286,5 @@ func (d *Data) endData(c *Cache) {
 		return true
 	})
 
-	err = d.startData(cacheID, "server")
+	cacheID, err = d.startData(cacheID)
 }
