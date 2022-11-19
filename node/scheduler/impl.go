@@ -165,6 +165,8 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int) (externa
 
 	s.locatorManager.notifyNodeStatusToLocator(deviceID, true)
 
+	go doDataSync(candicateAPI, deviceID)
+
 	return ip, nil
 }
 
@@ -234,6 +236,8 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int) (externalIP s
 
 	// notify locator
 	s.locatorManager.notifyNodeStatusToLocator(deviceID, true)
+
+	go doDataSync(edgeAPI, deviceID)
 
 	return ip, nil
 }
