@@ -4,13 +4,17 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
+	"sort"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/scheduler/db/persistent"
 )
 
 const (
 	maxGroupNum        = 10
 	maxNumOfScrubBlock = 1000
+	maxRow             = 10000
 )
 
 type blockItem struct {
@@ -34,7 +38,12 @@ func doDataSync(syncApi api.DataSync, deviceID string) {
 
 	inconformityBlocksList := make([]*inconformityBlocks, 0)
 	for _, checksum := range rsp.CheckSums {
-		blockItems := loadBlockItemsFromDB(deviceID, checksum.StartFid, checksum.EndFid)
+		blockItems, err := loadBlockItemsFromDB(deviceID, checksum.StartFid, checksum.EndFid)
+		if err != nil {
+			log.Errorf("doDataSync loadBlockItemsFromDB, deviceID:%s, range %d ~ %d, error:%s", deviceID, checksum.StartFid, checksum.EndFid, err.Error())
+			return
+		}
+
 		hash := getBlockItemsHash(blockItems)
 		if hash == checksum.Hash {
 			continue
@@ -48,7 +57,7 @@ func doDataSync(syncApi api.DataSync, deviceID string) {
 
 		blocksList, err := getInconformityBlocksList(syncApi, inconfBlocks)
 		if err != nil {
-			log.Errorf("getInconformityBlocksList error:%s", err.Error())
+			log.Errorf("doDataSync getInconformityBlocksList, deviceID:%s, range %d ~ %d, error:%s", deviceID, checksum.StartFid, checksum.EndFid, err.Error())
 			return
 		}
 
@@ -59,11 +68,11 @@ func doDataSync(syncApi api.DataSync, deviceID string) {
 		req := api.ScrubBlocks{StartFid: inconfBlocks.startFid, EndFid: inconfBlocks.endFid}
 		err = syncApi.ScrubBlocks(ctx, req)
 		if err != nil {
-			log.Errorf("doDataSync scrub blocks, fid range %d ~ %d error:%s", inconfBlocks.startFid, inconfBlocks.endFid, err)
+			log.Errorf("doDataSync scrub blocks, deviceID:%s fid range %d ~ %d error:%s", deviceID, inconfBlocks.startFid, inconfBlocks.endFid, err)
 			continue
 		}
 
-		log.Infof("doDataSync scrub inconformity blocks, fid range %d ~ %d", inconfBlocks.startFid, inconfBlocks.endFid)
+		log.Infof("doDataSync scrub inconformity blocks, deviceID:%s fid range %d ~ %d", deviceID, inconfBlocks.startFid, inconfBlocks.endFid)
 	}
 
 	// 注意:sheduler的最大fid有可能大于设备的最大fid
@@ -119,9 +128,28 @@ func getBlockItemWith(startFid, endFid int, blocks []*blockItem) []*blockItem {
 }
 
 // TODO: change to map
-func loadBlockItemsFromDB(deviceID string, startFid, endFid int) []*blockItem {
-	// TODO get block cid from database
-	return []*blockItem{}
+func loadBlockItemsFromDB(deviceID string, startFid, endFid int) ([]*blockItem, error) {
+	if endFid < startFid {
+		log.Errorf("loadBlockItemsFromDB")
+		return []*blockItem{}, fmt.Errorf("error param endFid < startFid, startFid:%d,, endFid:%d", startFid, endFid)
+	}
+	// TODO: get in batches
+	result := make([]*blockItem, 0)
+	cidMap, err := persistent.GetDB().GetBlocksInRange(deviceID, startFid, endFid)
+	if err != nil {
+		return result, err
+	}
+
+	for fid, cid := range cidMap {
+		block := &blockItem{fid: fid, cid: cid}
+		result = append(result, block)
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].fid < result[j].fid
+	})
+
+	return result, nil
 }
 
 func getBlockItemsHash(blocks []*blockItem) string {
