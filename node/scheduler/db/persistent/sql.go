@@ -26,6 +26,7 @@ const errNodeNotFind = "Not Found"
 
 var (
 	// deviceBlockTable  = "device_blocks_%s"
+	eventInfoTable    = "event_info_%s"
 	dataInfoTable     = "data_info_%s"
 	blockInfoTable    = "block_info_%s"
 	cacheInfoTable    = "cache_info_%s"
@@ -863,6 +864,16 @@ func (sd sqlDB) GetDownloadInfo(deviceID string) ([]*api.BlockDownloadInfo, erro
 	}
 
 	return out, nil
+}
+
+func (sd sqlDB) SetEventInfo(info *EventInfo) error {
+	area := sd.ReplaceArea()
+
+	tableName := fmt.Sprintf(eventInfoTable, area)
+
+	cmd := fmt.Sprintf("INSERT INTO %s (cid, device_id, user, event, msg) VALUES (:cid, :device_id, :user, :event, :msg)", tableName)
+	_, err := sd.cli.NamedExec(cmd, info)
+	return err
 }
 
 // func (sd sqlDB) AddToBeDeleteBlock(infos []*BlockDelete) error {

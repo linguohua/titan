@@ -36,7 +36,7 @@ func newDataManager(nodeManager *NodeManager) *DataManager {
 		dataTaskLoaderCh: make(chan bool),
 		timeoutTime:      30,
 		doTaskTime:       5,
-		runningTaskMax:   10,
+		runningTaskMax:   2,
 	}
 
 	d.initTimewheel()
@@ -147,7 +147,7 @@ func (m *DataManager) checkTaskTimeout(cid string) {
 		return
 	}
 
-	m.dataTaskEnd(cid)
+	m.dataTaskEnd(cid, "time out")
 }
 
 func (m *DataManager) checkTaskTimeouts() {
@@ -163,43 +163,32 @@ func (m *DataManager) checkTaskTimeouts() {
 
 func (m *DataManager) askCacheData(cid string, reliability int, expiredTime time.Time) error {
 	var err error
-	isSave := false
 	data := m.findData(cid, true)
 	if data == nil {
-		isSave = true
 		data = newData(m.nodeManager, m, cid, reliability)
+		data.expiredTime = expiredTime
 
 		m.taskMap.Store(cid, data)
-	}
-
-	if data.needReliability != reliability {
-		data.needReliability = reliability
-		isSave = true
-	}
-
-	if data.expiredTime != expiredTime {
-		data.expiredTime = expiredTime
-		isSave = true
-	}
-
-	if isSave {
-		err = persistent.GetDB().SetDataInfo(&persistent.DataInfo{
-			CID:             data.cid,
-			TotalSize:       data.totalSize,
-			NeedReliability: data.needReliability,
-			Reliability:     data.reliability,
-			CacheCount:      data.cacheCount,
-			TotalBlocks:     data.totalBlocks,
-			RootCacheID:     data.rootCacheID,
-			ExpiredTime:     data.expiredTime,
-		})
-		if err != nil {
-			return xerrors.Errorf("cid:%s,SetDataInfo err:%s", data.cid, err.Error())
+	} else {
+		if reliability <= data.reliability {
+			return xerrors.Errorf("reliability is enough:%d/%d", data.reliability, reliability)
 		}
+		data.needReliability = reliability
+		// TODO expiredTime
 	}
 
-	if data.needReliability <= data.reliability {
-		return xerrors.Errorf("reliability is enough:%d/%d", data.reliability, data.needReliability)
+	err = persistent.GetDB().SetDataInfo(&persistent.DataInfo{
+		CID:             data.cid,
+		TotalSize:       data.totalSize,
+		NeedReliability: data.needReliability,
+		Reliability:     data.reliability,
+		CacheCount:      data.cacheCount,
+		TotalBlocks:     data.totalBlocks,
+		RootCacheID:     data.rootCacheID,
+		ExpiredTime:     data.expiredTime,
+	})
+	if err != nil {
+		return xerrors.Errorf("cid:%s,SetDataInfo err:%s", data.cid, err.Error())
 	}
 
 	// old cache
@@ -215,7 +204,9 @@ func (m *DataManager) askCacheData(cid string, reliability int, expiredTime time
 		return true
 	})
 
-	return data.startData(cacheID)
+	data.cacheCount = data.reliability
+
+	return data.startData(cacheID, "user")
 }
 
 func (m *DataManager) askCacheContinue(cid, cacheID string) error {
@@ -224,7 +215,9 @@ func (m *DataManager) askCacheContinue(cid, cacheID string) error {
 		return xerrors.Errorf("%s,cid:%s,cacheID:%s", ErrNotFoundTask, cid, cacheID)
 	}
 
-	return data.startData(cacheID)
+	data.cacheCount = data.reliability
+
+	return data.startData(cacheID, "user")
 }
 
 func (m *DataManager) cacheData(cid string, reliability int) error {
@@ -401,7 +394,7 @@ func (m *DataManager) notifyDataLoader() {
 	}
 }
 
-func (m *DataManager) dataTaskStart(cid, cacheID string) {
+func (m *DataManager) dataTaskStart(cid, cacheID, userID string) {
 	log.Infof("taskStart:%s ; cacheID:%s ---------- ", cid, cacheID)
 
 	err := cache.GetDB().SetRunningTask(cid, cacheID)
@@ -414,10 +407,10 @@ func (m *DataManager) dataTaskStart(cid, cacheID string) {
 		log.Panicf("dataTaskStart %s , SetTaskToRunningList err:%s", cacheID, err.Error())
 	}
 
-	m.callToEvent(cid, "", "server", "task-start", "")
+	m.callToEvent(cid, "", userID, "task-start", "")
 }
 
-func (m *DataManager) dataTaskEnd(cid string) {
+func (m *DataManager) dataTaskEnd(cid, msg string) {
 	log.Infof("taskEnd:%s ---------- ", cid)
 
 	err := cache.GetDB().RemoveRunningTask(cid)
@@ -426,7 +419,10 @@ func (m *DataManager) dataTaskEnd(cid string) {
 		return
 	}
 
-	m.callToEvent(cid, "", "server", "task-end", "")
+	m.callToEvent(cid, "", "server", "task-end", msg)
+
+	// continue task
+	m.notifyDataLoader()
 }
 
 func (m *DataManager) getRunningTasks() []string {
@@ -452,6 +448,5 @@ func (m *DataManager) isTaskRunnning(cid string) bool {
 func (m *DataManager) callToEvent(cid, deviceID, userID, event, msg string) error {
 	// TODO event
 	// log.Warnf("callToEvent userID:%s,cid:%s,event:%s,msg:%s", userID, cid, event, msg)
-
-	return nil
+	return persistent.GetDB().SetEventInfo(&persistent.EventInfo{CID: cid, DeviceID: deviceID, User: userID, Msg: msg, Event: event})
 }

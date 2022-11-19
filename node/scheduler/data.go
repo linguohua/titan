@@ -195,16 +195,8 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 	return persistent.GetDB().SaveCacheEndResults(dInfo, cInfo)
 }
 
-func (d *Data) startData(cacheID string) error {
+func (d *Data) startData(cacheID, userID string) error {
 	var err error
-	defer func() {
-		if err == nil {
-			// running
-			d.cacheCount++
-			d.dataManager.dataTaskStart(d.cid, cacheID)
-		}
-	}()
-
 	var cache *Cache
 	var list map[string]string
 
@@ -241,13 +233,21 @@ func (d *Data) startData(cacheID string) error {
 			return err
 		}
 
+		d.cacheCount++
+
 		list = map[string]string{cache.carfileCid: ""}
 	}
 
-	return cache.startCache(list)
+	err = cache.startCache(list)
+	if err != nil {
+		return err
+	}
+	d.dataManager.dataTaskStart(d.cid, cacheID, userID)
+
+	return nil
 }
 
-func (d *Data) endData(c *Cache) (err error) {
+func (d *Data) endData(c *Cache) {
 	if c.status == cacheStatusSuccess {
 		d.reliability += c.reliability
 		if !d.haveRootCache() {
@@ -255,49 +255,40 @@ func (d *Data) endData(c *Cache) (err error) {
 		}
 	}
 
-	dataTaskEnd := false
-
+	var err error
+	cacheID := ""
 	defer func() {
-		if dataTaskEnd {
-			d.dataManager.dataTaskEnd(d.cid)
+		if err != nil {
+			c.data.dataManager.dataTaskEnd(c.data.cid, err.Error())
 		}
 	}()
 
 	err = d.updateAndSaveCacheEndInfo(c)
 	if err != nil {
-		dataTaskEnd = true
 		err = xerrors.Errorf("saveCacheEndResults err:%s", err.Error())
 		return
 	}
 
 	if d.cacheCount > d.needReliability {
-		dataTaskEnd = true
-		return nil
+		err = xerrors.Errorf("cacheCount:%d reach needReliability:%d", d.cacheCount, d.needReliability)
+		return
 	}
 
 	if d.needReliability <= d.reliability {
-		dataTaskEnd = true
-		return nil
+		err = xerrors.Errorf("reliability is enough:%d/%d", d.reliability, d.needReliability)
+		return
 	}
 
 	// old cache
-	cacheID := ""
 	d.cacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)
 
 		if c.status != cacheStatusSuccess {
 			cacheID = c.cacheID
-			return true
 		}
 
 		return true
 	})
 
-	err = d.startData(cacheID)
-	if err != nil {
-		dataTaskEnd = true
-		err = xerrors.Errorf("startData err:%s", err.Error())
-	}
-
-	return
+	err = d.startData(cacheID, "server")
 }
