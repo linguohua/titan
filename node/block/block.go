@@ -2,8 +2,6 @@ package block
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -395,6 +393,7 @@ func (block *Block) deleteBlock(cid string) error {
 
 	value, err := block.ds.Get(ctx, helper.NewKeyCID(cid))
 	if err != nil {
+		log.Errorf("deleteBlock datastore get fid from cid %s error:%s", cid, err.Error())
 		return err
 	}
 
@@ -402,19 +401,23 @@ func (block *Block) deleteBlock(cid string) error {
 
 	err = block.ds.Delete(ctx, helper.NewKeyFID(fid))
 	if err != nil {
+		log.Errorf("deleteBlock datastore delete fid %s error:%s", fid, err.Error())
 		return err
 	}
 
 	err = block.ds.Delete(ctx, helper.NewKeyCID(cid))
 	if err != nil {
+		log.Errorf("deleteBlock datastore delete cid %s error:%s", cid, err.Error())
 		return err
 	}
 
 	err = block.blockStore.Delete(cid)
 	if err != nil {
+		log.Errorf("deleteBlock blockstore delete block %s error:%s", cid, err.Error())
 		return err
 	}
 
+	log.Infof("Delete block %s fid %s", cid, fid)
 	return nil
 }
 
@@ -443,34 +446,6 @@ func (block *Block) deleteAllBlocks() error {
 		}
 		log.Infof("deleteAllBlocks key:%s", r.Key)
 	}
-}
-
-func (block *Block) getBlockStoreCheckSum() (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	q := query.Query{Prefix: "fid"}
-	results, err := block.ds.Query(ctx, q)
-	if err != nil {
-		log.Errorf("deleteAllBlocks error:%s", err.Error())
-		return "", err
-	}
-	var cidCollection string
-	result := results.Next()
-	for {
-		r, ok := <-result
-		if !ok {
-			break
-		}
-
-		cidCollection += string(r.Value)
-	}
-
-	hasher := md5.New()
-	hasher.Write([]byte(cidCollection))
-	hash := hasher.Sum(nil)
-
-	return hex.EncodeToString(hash), nil
 }
 
 func (block *Block) resolveLinks(blk blocks.Block) ([]*format.Link, error) {
@@ -508,7 +483,7 @@ func (block *Block) updateCidAndFid(ctx context.Context, cid, fid string) error 
 	// delete old cid relate fid
 	oldFid, _ := block.getFID(cid)
 	if len(oldFid) > 0 && oldFid != fid {
-		block.ds.Delete(ctx, helper.NewKeyCID(oldFid))
+		block.ds.Delete(ctx, helper.NewKeyFID(oldFid))
 		log.Errorf("Cid %s aready exist, and relate fid %s will be delete", cid, oldFid)
 	}
 

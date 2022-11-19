@@ -336,7 +336,7 @@ var checksum = &cli.Command{
 		defer closer()
 
 		ctx := ReqContext(cctx)
-		rsp, err := api.GetAllCheckSums(ctx, 10)
+		rsp, err := api.GetAllChecksums(ctx, 10)
 		if err != nil {
 			return err
 		}
@@ -376,7 +376,7 @@ var checksumInRange = &cli.Command{
 		endFid := cctx.Int("end-fid")
 
 		req := api.ReqCheckSumInRange{StartFid: startFid, EndFid: endFid, MaxGroupNum: 10}
-		rsp, err := edgeApi.GetCheckSumsInRange(ctx, req)
+		rsp, err := edgeApi.GetChecksumsInRange(ctx, req)
 		if err != nil {
 			return err
 		}
@@ -415,12 +415,12 @@ var scrubBlocks = &cli.Command{
 		endFid := cctx.Int("end-fid")
 
 		blocks := map[string]string{
-			"1": "379099ae6a34973218a4c565e2d64496",
-			"2": "d79ec281b8eeae427f117fbe5554df1a",
-			"3": "4efe63a0aab312eac8319e297f28abdd",
-			"4": "a2a108a7c7925d0d43dbee587f193f28",
-			"5": "63c387782d8146c98524117a61893f5f",
-			"6": "9b4c0675e1bd4a6ef678d02310c11f28",
+			"1": "QmTYG4itLJrAC3R9EhpVBb1Hfs65NgMffDDSxP4Pv1KoiX",
+			"2": "QmRKw91PPKVbKcHK6HAiYE9ouBJtFsDfo16XSQaDZ9H6WL",
+			"3": "QmeHWv892UWYzDvnYpCtJeR5qKs64G2d6aXh2yXg1WvZdC",
+			"4": "QmapeQSKYWpNkdkdxhrYsFGca3fLG6FDZFKiojhSxXtYJD",
+			"5": "Qme6FgRySo1bHDSwBt1jQsz4VaYLTr4Mm7nBrwZw11jjbN",
+			// "6": "9b4c0675e1bd4a6ef678d02310c11f28",
 		}
 		req := api.ScrubBlocks{Blocks: blocks, StartFid: startFid, EndFid: endFid}
 		err = edgeAPI.ScrubBlocks(ctx, req)

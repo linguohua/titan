@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
+
 )
 
 
@@ -123,9 +124,9 @@ type DataSyncStruct struct {
 
 	Internal struct {
 
-		GetAllCheckSums func(p0 context.Context, p1 int) (CheckSumRsp, error) `perm:"write"`
+		GetAllChecksums func(p0 context.Context, p1 int) (CheckSumRsp, error) `perm:"write"`
 
-		GetCheckSumsInRange func(p0 context.Context, p1 ReqCheckSumInRange) (CheckSumRsp, error) `perm:"write"`
+		GetChecksumsInRange func(p0 context.Context, p1 ReqCheckSumInRange) (CheckSumRsp, error) `perm:"write"`
 
 		ScrubBlocks func(p0 context.Context, p1 ScrubBlocks) (error) `perm:"write"`
 
@@ -597,25 +598,25 @@ func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 
 
 
-func (s *DataSyncStruct) GetAllCheckSums(p0 context.Context, p1 int) (CheckSumRsp, error) {
-	if s.Internal.GetAllCheckSums == nil {
+func (s *DataSyncStruct) GetAllChecksums(p0 context.Context, p1 int) (CheckSumRsp, error) {
+	if s.Internal.GetAllChecksums == nil {
 		return *new(CheckSumRsp), ErrNotSupported
 	}
-	return s.Internal.GetAllCheckSums(p0, p1)
+	return s.Internal.GetAllChecksums(p0, p1)
 }
 
-func (s *DataSyncStub) GetAllCheckSums(p0 context.Context, p1 int) (CheckSumRsp, error) {
+func (s *DataSyncStub) GetAllChecksums(p0 context.Context, p1 int) (CheckSumRsp, error) {
 	return *new(CheckSumRsp), ErrNotSupported
 }
 
-func (s *DataSyncStruct) GetCheckSumsInRange(p0 context.Context, p1 ReqCheckSumInRange) (CheckSumRsp, error) {
-	if s.Internal.GetCheckSumsInRange == nil {
+func (s *DataSyncStruct) GetChecksumsInRange(p0 context.Context, p1 ReqCheckSumInRange) (CheckSumRsp, error) {
+	if s.Internal.GetChecksumsInRange == nil {
 		return *new(CheckSumRsp), ErrNotSupported
 	}
-	return s.Internal.GetCheckSumsInRange(p0, p1)
+	return s.Internal.GetChecksumsInRange(p0, p1)
 }
 
-func (s *DataSyncStub) GetCheckSumsInRange(p0 context.Context, p1 ReqCheckSumInRange) (CheckSumRsp, error) {
+func (s *DataSyncStub) GetChecksumsInRange(p0 context.Context, p1 ReqCheckSumInRange) (CheckSumRsp, error) {
 	return *new(CheckSumRsp), ErrNotSupported
 }
 
