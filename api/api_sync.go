@@ -4,9 +4,9 @@ import "context"
 
 type DataSync interface {
 	// get all block check sum
-	GetAllCheckSums(ctx context.Context, maxGroupNum int) (CheckSumRsp, error) //perm:write
+	GetAllChecksums(ctx context.Context, maxGroupNum int) (CheckSumRsp, error) //perm:write
 	// get block check sum in this range
-	GetCheckSumsInRange(ctx context.Context, reqCheckSum ReqCheckSumInRange) (CheckSumRsp, error) //perm:write
+	GetChecksumsInRange(ctx context.Context, reqCheckSum ReqCheckSumInRange) (CheckSumRsp, error) //perm:write
 	// scrub block that is repair blockstore
 	ScrubBlocks(ctx context.Context, scrub ScrubBlocks) error //perm:write
 }

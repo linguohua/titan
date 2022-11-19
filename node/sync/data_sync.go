@@ -12,6 +12,7 @@ import (
 	"github.com/ipfs/go-datastore/query"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/blockstore"
 	"github.com/linguohua/titan/node/block"
 	"github.com/linguohua/titan/node/helper"
 )
@@ -26,18 +27,18 @@ func NewDataSync(block *block.Block) *DataSync {
 	return &DataSync{block: block}
 }
 
-func (dataSync *DataSync) GetAllCheckSums(ctx context.Context, maxGroupNum int) (api.CheckSumRsp, error) {
-	return dataSync.getAllCheckSums(ctx, maxGroupNum)
+func (dataSync *DataSync) GetAllChecksums(ctx context.Context, maxGroupNum int) (api.CheckSumRsp, error) {
+	return dataSync.getAllChecksums(ctx, maxGroupNum)
 }
 func (dataSync *DataSync) ScrubBlocks(ctx context.Context, scrub api.ScrubBlocks) error {
 	return dataSync.scrubBlocks(scrub)
 }
 
-func (dataSync *DataSync) GetCheckSumsInRange(ctx context.Context, req api.ReqCheckSumInRange) (api.CheckSumRsp, error) {
-	return dataSync.getCheckSumsInRange(ctx, req)
+func (dataSync *DataSync) GetChecksumsInRange(ctx context.Context, req api.ReqCheckSumInRange) (api.CheckSumRsp, error) {
+	return dataSync.getChecksumsInRange(ctx, req)
 }
 
-func (dataSync *DataSync) getAllCheckSums(ctx context.Context, maxGroupNum int) (api.CheckSumRsp, error) {
+func (dataSync *DataSync) getAllChecksums(ctx context.Context, maxGroupNum int) (api.CheckSumRsp, error) {
 	rsp := api.CheckSumRsp{CheckSums: make([]api.CheckSum, 0)}
 	ds := dataSync.block.GetDatastore(ctx)
 
@@ -113,7 +114,7 @@ func (dataSync *DataSync) getAllCheckSums(ctx context.Context, maxGroupNum int) 
 	return rsp, nil
 }
 
-func (dataSync *DataSync) getCheckSumsInRange(ctx context.Context, req api.ReqCheckSumInRange) (api.CheckSumRsp, error) {
+func (dataSync *DataSync) getChecksumsInRange(ctx context.Context, req api.ReqCheckSumInRange) (api.CheckSumRsp, error) {
 	rsp := api.CheckSumRsp{CheckSums: make([]api.CheckSum, 0)}
 
 	startFid := req.StartFid
@@ -124,7 +125,7 @@ func (dataSync *DataSync) getCheckSumsInRange(ctx context.Context, req api.ReqCh
 		cid string
 	}
 
-	var blockCollection = make([]block, 0, 10000)
+	var blockCollection = make([]block, 0, 1000)
 
 	for i := startFid; i <= endFid; i++ {
 		fid := fmt.Sprintf("%d", i)
@@ -135,6 +136,10 @@ func (dataSync *DataSync) getCheckSumsInRange(ctx context.Context, req api.ReqCh
 
 		block := block{fid: i, cid: cid}
 		blockCollection = append(blockCollection, block)
+	}
+
+	if len(blockCollection) == 0 {
+		return rsp, nil
 	}
 
 	blockCollectionSize := len(blockCollection)
@@ -192,8 +197,9 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 		targetCid, ok := blocks[fid]
 		if ok {
 			if cid != targetCid {
-				log.Errorf("scrubBlocks fid %s, local cid is %s but sheduler cid is %s", cid, targetCid)
-				return fmt.Errorf("")
+				errmsg := fmt.Sprintf("scrubBlocks fid %s, local cid is %s but sheduler cid is %s", fid, cid, targetCid)
+				log.Errorf(errmsg)
+				return fmt.Errorf(errmsg)
 			}
 			delete(blocks, fid)
 		} else {
@@ -211,7 +217,7 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 		// blocks is need to download
 	}
 
-	log.Infof("scrubBlocks need to delete blocks %d, need to download blocks %d", len(need2DeleteBlocks), len(blocks))
+	log.Infof("scrubBlocks, delete blocks %d, download blocks %d", len(need2DeleteBlocks), len(blocks))
 	return nil
 }
 
@@ -220,4 +226,94 @@ func string2Hash(value string) string {
 	hasher.Write([]byte(value))
 	hash := hasher.Sum(nil)
 	return hex.EncodeToString(hash)
+}
+
+func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore) error {
+	log.Info("start sync local block store")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// ds := dataSync.block.GetDatastore(ctx)
+
+	fidQuery := query.Query{Prefix: "fid"}
+	results, err := ds.Query(ctx, fidQuery)
+	if err != nil {
+		log.Errorf("getCheckSums datastore query error:%s", err.Error())
+		return err
+	}
+
+	targetCidMap := make(map[string]string)
+
+	for {
+		r, ok := results.NextSync()
+		if !ok {
+			break
+		}
+
+		fidStr := r.Key[len(helper.KeyFidPrefix)+1:]
+		cid := string(r.Value)
+		targetCidMap[cid] = fidStr
+	}
+
+	log.Info("start sync fid and cid")
+
+	cidQuery := query.Query{Prefix: "cid"}
+	results, err = ds.Query(ctx, cidQuery)
+	if err != nil {
+		log.Errorf("getCheckSums datastore query error:%s", err.Error())
+		return err
+	}
+
+	cidMap := make(map[string]string)
+
+	for {
+		r, ok := results.NextSync()
+		if !ok {
+			break
+		}
+
+		cidStr := r.Key[len(helper.KeyCidPrefix)+1:]
+		cidMap[cidStr] = string(r.Value)
+	}
+
+	for targetCid, targetFid := range targetCidMap {
+		fid, ok := cidMap[targetCid]
+		if ok {
+			delete(cidMap, targetCid)
+			if fid == targetFid {
+				continue
+			}
+
+		}
+		ds.Put(ctx, helper.NewKeyCID(targetCid), []byte(targetFid))
+		log.Warnf("cid:fid %s ==> %s not match in target fid:cid %s ==> %s ", targetCid, fid, targetFid, targetCid)
+	}
+
+	for cid, fid := range cidMap {
+		ds.Delete(ctx, helper.NewKeyCID(cid))
+		log.Warnf("cid:fid %s ==> %s not in fid map, was delete", cid, fid)
+	}
+
+	cids, err := blockstore.GetAllKeys()
+	if err != nil {
+		return err
+	}
+
+	log.Info("start sync block")
+	need2DeleteBlock := make([]string, 0)
+	for _, cid := range cids {
+		_, ok := targetCidMap[cid]
+		if !ok {
+			need2DeleteBlock = append(need2DeleteBlock, cid)
+		}
+	}
+
+	for _, cid := range need2DeleteBlock {
+		blockstore.Delete(cid)
+		log.Warnf("block %s not exist fid, was delete", cid)
+	}
+
+	log.Info("sync local block store complete")
+
+	return nil
 }

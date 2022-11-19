@@ -35,6 +35,7 @@ import (
 	"golang.org/x/xerrors"
 
 	"github.com/linguohua/titan/node/edge"
+	dataSync "github.com/linguohua/titan/node/sync"
 	"github.com/linguohua/titan/stores"
 )
 
@@ -311,6 +312,9 @@ var runCmd = &cli.Command{
 		}
 
 		blockStore := blockstore.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
+
+		dataSync.SyncLocalBlockstore(ds, blockStore)
+
 		device := device.NewDevice(
 			deviceID,
 			"",
