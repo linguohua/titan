@@ -219,7 +219,7 @@ func (m *DataManager) askCacheData(cid string, reliability int, expiredTime time
 	data.cacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)
 
-		if c.status != cacheStatusSuccess {
+		if c.status != persistent.CacheStatusSuccess {
 			cacheID = c.cacheID
 			return true
 		}

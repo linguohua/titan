@@ -313,8 +313,8 @@ func (sd sqlDB) GetDeviceBlockNum(deviceID string) (int64, error) {
 	area := sd.ReplaceArea()
 
 	var count int64
-	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE device_id=? AND status=3 ;", fmt.Sprintf(blockInfoTable, area))
-	err := sd.cli.Get(&count, cmd, deviceID)
+	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE device_id=? AND status=? ;", fmt.Sprintf(blockInfoTable, area))
+	err := sd.cli.Get(&count, cmd, deviceID, CacheStatusSuccess)
 
 	return count, err
 }
@@ -660,9 +660,9 @@ func (sd sqlDB) GetUndoneBlocks(cacheID string) (map[string]string, error) {
 
 	list := make(map[string]string, 0)
 
-	i := &BlockInfo{CacheID: cacheID, Status: 3}
+	i := &BlockInfo{CacheID: cacheID, Status: int(CacheStatusSuccess)}
 
-	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cache_id=:cache_id AND status<:status`, fmt.Sprintf(blockInfoTable, area))
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cache_id=:cache_id AND status!=:status`, fmt.Sprintf(blockInfoTable, area))
 	rows, err := sd.cli.NamedQuery(cmd, i)
 	if err != nil {
 		return list, err
@@ -786,12 +786,13 @@ func (sd sqlDB) GetNodesWithCache(cid string, isSuccess bool) ([]string, error) 
 	list := make([]string, 0)
 
 	info := &BlockInfo{
-		CID: cid,
+		CID:    cid,
+		Status: int(CacheStatusSuccess),
 	}
 
 	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cid=:cid `, fmt.Sprintf(blockInfoTable, area))
 	if isSuccess {
-		cmd = fmt.Sprintf(`SELECT * FROM %s WHERE cid=:cid AND status=3`, fmt.Sprintf(blockInfoTable, area))
+		cmd = fmt.Sprintf(`SELECT * FROM %s WHERE cid=:cid AND status=:status`, fmt.Sprintf(blockInfoTable, area))
 	}
 
 	rows, err := sd.cli.NamedQuery(cmd, info)

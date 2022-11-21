@@ -70,7 +70,6 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 				continue
 			}
 
-			// data.cacheMap[cacheID] = c
 			data.cacheMap.Store(cacheID, c)
 		}
 
@@ -81,17 +80,6 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 }
 
 func (d *Data) haveRootCache() bool {
-	// log.Infof("%v d.rootCacheID ---------- ", d.rootCacheID)
-	// if d.rootCacheID == "" {
-	// 	return false
-	// }
-
-	// cI, ok := d.cacheMap.Load(d.rootCacheID)
-	// if ok {
-	// 	cache := cI.(*Cache)
-	// 	return cache.status == cacheStatusSuccess
-	// }
-
 	have := false
 
 	d.cacheMap.Range(func(key, value interface{}) bool {
@@ -102,7 +90,7 @@ func (d *Data) haveRootCache() bool {
 		if value != nil {
 			c := value.(*Cache)
 			if c != nil {
-				have = c.isRootCache && c.status == cacheStatusSuccess
+				have = c.isRootCache && c.status == persistent.CacheStatusSuccess
 			}
 		}
 
@@ -242,7 +230,7 @@ func (d *Data) startData(cacheID string) (string, error) {
 }
 
 func (d *Data) endData(c *Cache) {
-	if c.status == cacheStatusSuccess {
+	if c.status == persistent.CacheStatusSuccess {
 		d.reliability += c.reliability
 		if !d.haveRootCache() {
 			d.rootCacheID = c.cacheID
@@ -279,7 +267,7 @@ func (d *Data) endData(c *Cache) {
 	d.cacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)
 
-		if c.status != cacheStatusSuccess {
+		if c.status != persistent.CacheStatusSuccess {
 			cacheID = c.cacheID
 		}
 
