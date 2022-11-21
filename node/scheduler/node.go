@@ -44,6 +44,9 @@ type Node struct {
 	geoInfo         *region.GeoInfo
 	addr            string
 	lastRequestTime time.Time
+
+	nodeCacheStat     api.CacheStat
+	nodeCacheNeedTime int64 // Second
 }
 
 // node online
@@ -152,4 +155,11 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, blocks []api.BlockInfo
 
 func (n *Node) updateAccessAuth(access *api.DownloadServerAccessAuth) error {
 	return persistent.GetDB().SetNodeAuthInfo(access)
+}
+
+func (n *Node) updateCacheStat(info api.CacheStat) {
+	n.nodeCacheStat = info
+
+	num := info.WaitCacheBlockNum + info.DoingCacheBlockNum
+	n.nodeCacheNeedTime = int64(num * info.DownloadTimeout)
 }
