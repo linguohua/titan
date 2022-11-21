@@ -52,6 +52,18 @@ func newCache(nodeManager *NodeManager, data *Data, cid string, isRootCache bool
 		isRootCache: isRootCache,
 	}
 
+	err = persistent.GetDB().CreateCache(
+		&persistent.CacheInfo{
+			CarfileID:   cache.carfileCid,
+			CacheID:     cache.cacheID,
+			Status:      int(cache.status),
+			ExpiredTime: data.expiredTime,
+			RootCache:   cache.isRootCache,
+		})
+	if err != nil {
+		return nil, err
+	}
+
 	return cache, err
 }
 
@@ -304,7 +316,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		}
 
 		if unDoneBlocks <= 0 {
-			return c.endCache(unDoneBlocks)
+			return c.stopCache(unDoneBlocks)
 		}
 	}
 
@@ -331,11 +343,11 @@ func (c *Cache) startCache(cids map[string]string) error {
 	return nil
 }
 
-func (c *Cache) endCache(unDoneBlocks int) (err error) {
+func (c *Cache) stopCache(unDoneBlocks int) (err error) {
 	// log.Infof("end cache %s,%s ----------", c.carfileCid, c.cacheID)
 
 	defer func() {
-		c.data.endData(c)
+		c.data.cacheEnd(c)
 	}()
 
 	failedBlocks, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(persistent.CacheStatusFail))
