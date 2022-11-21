@@ -232,8 +232,8 @@ func (c *Cache) cacheDataToNodes(nodeCacheMap map[string][]api.BlockInfo) {
 		return
 	}
 
-	timeStamp := time.Now().Unix()
-	timeStampMax := timeStamp
+	// timeStamp := time.Now().Unix()
+	timeStampMax := int64(0)
 
 	for deviceID, caches := range nodeCacheMap {
 		needTime, err := c.cacheBlocksToNode(deviceID, caches)
@@ -242,14 +242,13 @@ func (c *Cache) cacheDataToNodes(nodeCacheMap map[string][]api.BlockInfo) {
 			continue
 		}
 
-		t := timeStampMax + needTime
-		if t > timeStampMax {
-			timeStampMax = t
+		if needTime > timeStampMax {
+			timeStampMax = needTime
 		}
 	}
 
 	// TODO update data/cache timeout
-	c.data.dataManager.updateDataTimeout()
+	c.data.dataManager.updateDataTimeout(c.carfileCid, c.cacheID, timeStampMax)
 
 	return
 }

@@ -434,8 +434,12 @@ func (m *DataManager) dataTaskStart(cid, cacheID string) {
 	m.saveEvent(cid, cacheID, "", "", "", eventTypeDoDataTaskStart)
 }
 
-func (m *DataManager) updateDataTimeout() {
+func (m *DataManager) updateDataTimeout(carfileCid, cacheID string, timeout int64) {
 	// TODO
+	err := cache.GetDB().SetRunningTask(carfileCid, cacheID, timeout)
+	if err != nil {
+		log.Panicf("dataTaskStart %s , SetRunningTask err:%s", cacheID, err.Error())
+	}
 }
 
 func (m *DataManager) dataTaskEnd(cid, msg, cacheID string) {
