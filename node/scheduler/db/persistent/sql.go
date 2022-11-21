@@ -317,7 +317,7 @@ func (sd sqlDB) GetDeviceBlockNum(deviceID string) (int64, error) {
 	return count, err
 }
 
-func (sd sqlDB) RemoveAndUpdateCacheInfo(cacheID, carfileID, rootCacheID string, isDeleteData bool, reliability int) error {
+func (sd sqlDB) RemoveAndUpdateCacheInfo(cacheID, carfileID string, isDeleteData bool, reliability int) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 	dTableName := fmt.Sprintf(dataInfoTable, area)
@@ -331,8 +331,8 @@ func (sd sqlDB) RemoveAndUpdateCacheInfo(cacheID, carfileID, rootCacheID string,
 
 	// data info
 	if !isDeleteData {
-		dCmd := fmt.Sprintf("UPDATE %s SET reliability=?,root_cache_id=? WHERE cid=?", dTableName)
-		tx.MustExec(dCmd, reliability, rootCacheID, carfileID)
+		dCmd := fmt.Sprintf("UPDATE %s SET reliability=? WHERE cid=?", dTableName)
+		tx.MustExec(dCmd, reliability, carfileID)
 	} else {
 		dCmd := fmt.Sprintf(`DELETE FROM %s WHERE cid=?`, dTableName)
 		tx.MustExec(dCmd, carfileID)
@@ -392,8 +392,8 @@ func (sd sqlDB) SaveCacheEndResults(dInfo *DataInfo, cInfo *CacheInfo) error {
 	tx := sd.cli.MustBegin()
 
 	// data info
-	dCmd := fmt.Sprintf("UPDATE %s SET total_size=?,reliability=?,cache_count=?,root_cache_id=?,total_blocks=?,nodes=? WHERE cid=?", dTableName)
-	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.CacheCount, dInfo.RootCacheID, dInfo.TotalBlocks, dInfo.Nodes, dInfo.CID)
+	dCmd := fmt.Sprintf("UPDATE %s SET total_size=?,reliability=?,cache_count=?,total_blocks=?,nodes=? WHERE cid=?", dTableName)
+	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.CacheCount, dInfo.TotalBlocks, dInfo.Nodes, dInfo.CID)
 
 	// cache info
 	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=?,total_size=?,total_blocks=?,nodes=? WHERE cache_id=? `, cTableName)
@@ -416,8 +416,8 @@ func (sd sqlDB) SaveCacheingResults(dInfo *DataInfo, cInfo *CacheInfo, updateBlo
 	tx := sd.cli.MustBegin()
 
 	// data info
-	dCmd := fmt.Sprintf("UPDATE %s SET total_size=?,reliability=?,cache_count=?,root_cache_id=?,total_blocks=? WHERE cid=?", dTableName)
-	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.CacheCount, dInfo.RootCacheID, dInfo.TotalBlocks, dInfo.CID)
+	dCmd := fmt.Sprintf("UPDATE %s SET total_size=?,reliability=?,cache_count=?,total_blocks=? WHERE cid=?", dTableName)
+	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.CacheCount, dInfo.TotalBlocks, dInfo.CID)
 
 	// cache info
 	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=?,total_size=?,total_blocks=? WHERE cache_id=? `, cTableName)

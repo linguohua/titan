@@ -369,7 +369,6 @@ func (c *Cache) removeCache() error {
 		c.removeCacheBlocks(deviceID, cids)
 	}
 
-	rootCacheID := c.data.rootCacheID
 	reliability -= c.reliability
 
 	c.data.cacheMap.Delete(c.cacheID)
@@ -386,14 +385,10 @@ func (c *Cache) removeCache() error {
 		return true
 	})
 
-	if c.cacheID == rootCacheID {
-		rootCacheID = ""
-	}
 	// delete cache and update data info
-	err = persistent.GetDB().RemoveAndUpdateCacheInfo(c.cacheID, c.carfileCid, rootCacheID, isDelete, reliability)
+	err = persistent.GetDB().RemoveAndUpdateCacheInfo(c.cacheID, c.carfileCid, isDelete, reliability)
 	if err == nil {
 		c.data.reliability = reliability
-		c.data.rootCacheID = rootCacheID
 	}
 
 	return err

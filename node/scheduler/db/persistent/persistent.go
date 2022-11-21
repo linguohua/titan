@@ -33,7 +33,7 @@ type DB interface {
 
 	// cache info
 	GetCacheInfo(cacheID string) (*CacheInfo, error)
-	RemoveAndUpdateCacheInfo(cacheID, carfileID, rootCacheID string, isDeleteData bool, reliability int) error
+	RemoveAndUpdateCacheInfo(cacheID, carfileID string, isDeleteData bool, reliability int) error
 	GetCachesSize(cacheID string, status int) (int, error)
 
 	// block info
@@ -157,7 +157,6 @@ type DataInfo struct {
 	Reliability     int       `db:"reliability"`
 	NeedReliability int       `db:"need_reliability"`
 	CacheCount      int       `db:"cache_count"`
-	RootCacheID     string    `db:"root_cache_id"`
 	TotalSize       int       `db:"total_size"`
 	TotalBlocks     int       `db:"total_blocks"`
 	Nodes           int       `db:"nodes"`
