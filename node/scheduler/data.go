@@ -101,10 +101,6 @@ func (d *Data) haveRootCache() bool {
 }
 
 func (d *Data) createCache(isRootCache bool) (*Cache, error) {
-	if d.reliability >= d.needReliability {
-		return nil, xerrors.Errorf("reliability is enough:%d/%d", d.reliability, d.needReliability)
-	}
-
 	cache, err := newCache(d.nodeManager, d, d.cid, isRootCache)
 	if err != nil {
 		return nil, xerrors.Errorf("new cache err:%s", err.Error())
@@ -243,7 +239,7 @@ func (d *Data) endData(c *Cache) {
 		if err != nil {
 			d.dataManager.dataTaskEnd(d.cid, err.Error(), c.cacheID)
 		} else {
-			d.dataManager.dataTaskStart(d.cid, cacheID, "server")
+			d.dataManager.dataTaskStart(d.cid, cacheID)
 		}
 	}()
 

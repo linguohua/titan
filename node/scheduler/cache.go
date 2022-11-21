@@ -30,10 +30,7 @@ type Cache struct {
 }
 
 func newCacheID(cid string) (string, error) {
-	u2, err := uuid.NewUUID()
-	if err != nil {
-		return "", err
-	}
+	u2 := uuid.New()
 
 	s := strings.Replace(u2.String(), "-", "", -1)
 	return s, nil
@@ -90,33 +87,38 @@ func loadCache(cacheID, carfileCid string, nodeManager *NodeManager, data *Data)
 	return c
 }
 
-func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockInfo) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockInfo) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	cNode := c.nodeManager.getCandidateNode(deviceID)
 	if cNode != nil {
 		reqDatas := cNode.getReqCacheDatas(c.nodeManager, blocks, c.carfileCid, c.cacheID)
 
-		_, err := cNode.nodeAPI.CacheBlocks(ctx, reqDatas)
+		nodeCacheStat, err := cNode.nodeAPI.CacheBlocks(ctx, reqDatas)
 		if err != nil {
 			log.Errorf("candidate %s, CacheData err:%s", deviceID, err.Error())
+		} else {
+			cNode.updateCacheStat(nodeCacheStat)
 		}
-		return nil
+		return cNode.nodeCacheNeedTime, err
 	}
 
 	eNode := c.nodeManager.getEdgeNode(deviceID)
 	if eNode != nil {
 		reqDatas := eNode.getReqCacheDatas(c.nodeManager, blocks, c.carfileCid, c.cacheID)
 
-		_, err := eNode.nodeAPI.CacheBlocks(ctx, reqDatas)
+		nodeCacheStat, err := eNode.nodeAPI.CacheBlocks(ctx, reqDatas)
 		if err != nil {
 			log.Errorf("edge %s, CacheData err:%s", deviceID, err.Error())
+		} else {
+			eNode.updateCacheStat(nodeCacheStat)
 		}
-		return nil
+
+		return eNode.nodeCacheNeedTime, err
 	}
 
-	return xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
+	return 0, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
 }
 
 func (c *Cache) findNode(filterDeviceIDs map[string]string, i int) (deviceID string) {
@@ -195,13 +197,6 @@ func (c *Cache) matchingNodeAndBlocks(cids map[string]string) ([]*persistent.Blo
 			}
 		}
 
-		// isUpdate := true
-		// if dbID == "" {
-		// 	isUpdate = false
-
-		// 	u2 := uuid.NewString()
-		// 	dbID = strings.Replace(u2, "-", "", -1)
-		// }
 		b := &persistent.BlockInfo{
 			CacheID:   c.cacheID,
 			CID:       cid,
@@ -225,13 +220,26 @@ func (c *Cache) cacheDataToNodes(nodeCacheMap map[string][]api.BlockInfo) {
 		return
 	}
 
+	timeStamp := time.Now().Unix()
+	timeStampMax := timeStamp
+
 	for deviceID, caches := range nodeCacheMap {
-		err := c.cacheBlocksToNode(deviceID, caches)
+		needTime, err := c.cacheBlocksToNode(deviceID, caches)
 		if err != nil {
 			log.Errorf("cacheBlocksToNode err:%s", err.Error())
 			continue
 		}
+
+		t := timeStampMax + needTime
+		if t > timeStampMax {
+			timeStampMax = t
+		}
 	}
+
+	// TODO update data/cache timeout
+	c.data.dataManager.updateDataTimeout()
+
+	return
 }
 
 func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
@@ -301,6 +309,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	}
 
 	c.cacheDataToNodes(nodeCacheMap)
+
 	return nil
 }
 

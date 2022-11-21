@@ -315,10 +315,10 @@ func (rd redisDB) RemoveCacheResultInfo() error {
 	return err
 }
 
-func (rd redisDB) SetRunningTask(cid, cacheID string) error {
+func (rd redisDB) SetRunningTask(cid, cacheID string, timeout int64) error {
 	key := fmt.Sprintf(redisKeyRunningTask, serverName, cid)
 	// Expire
-	_, err := rd.cli.Set(context.Background(), key, cacheID, time.Second*60).Result()
+	_, err := rd.cli.Set(context.Background(), key, cacheID, time.Second*time.Duration(timeout)).Result()
 	return err
 }
 
