@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
+
+	"github.com/linguohua/titan/node/helper"
 )
 
 type Candidate struct {
@@ -18,7 +21,7 @@ func (candidate *Candidate) loadBlocks(block *Block, req []*delayReq) {
 }
 
 func getBlockFromCandidate(url string, tk string) ([]byte, error) {
-	client := &http.Client{}
+	client := &http.Client{Timeout: helper.BlockDownloadTimeout * time.Second}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err

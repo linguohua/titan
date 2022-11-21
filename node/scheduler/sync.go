@@ -23,9 +23,11 @@ type blockItem struct {
 }
 
 type inconformityBlocks struct {
-	blocks   []*blockItem
+	blocks []*blockItem
+	// startFid is not same as block first item
 	startFid int
-	endFid   int
+	// endFid is not same as block last item
+	endFid int
 }
 
 func doDataSync(syncApi api.DataSync, deviceID string) {
@@ -36,8 +38,12 @@ func doDataSync(syncApi api.DataSync, deviceID string) {
 		log.Errorf("doDataSync error:%s", err.Error())
 	}
 
+	if len(rsp.Checksums) == 0 {
+		return
+	}
+
 	inconformityBlocksList := make([]*inconformityBlocks, 0)
-	for _, checksum := range rsp.CheckSums {
+	for _, checksum := range rsp.Checksums {
 		blockItems, err := loadBlockItemsFromDB(deviceID, checksum.StartFid, checksum.EndFid)
 		if err != nil {
 			log.Errorf("doDataSync loadBlockItemsFromDB, deviceID:%s, range %d ~ %d, error:%s", deviceID, checksum.StartFid, checksum.EndFid, err.Error())
@@ -65,31 +71,60 @@ func doDataSync(syncApi api.DataSync, deviceID string) {
 	}
 
 	for _, inconfBlocks := range inconformityBlocksList {
-		req := api.ScrubBlocks{StartFid: inconfBlocks.startFid, EndFid: inconfBlocks.endFid}
-		err = syncApi.ScrubBlocks(ctx, req)
+		err = scrubBlocks(syncApi, inconfBlocks.startFid, inconfBlocks.endFid, inconfBlocks.blocks)
 		if err != nil {
-			log.Errorf("doDataSync scrub blocks, deviceID:%s fid range %d ~ %d error:%s", deviceID, inconfBlocks.startFid, inconfBlocks.endFid, err)
-			continue
+			log.Errorf("doDataSync scrubBlocks, deviceID:%s fid range %d ~ %d, error:%s", deviceID, inconfBlocks.startFid, inconfBlocks.endFid, err.Error())
 		}
 
 		log.Infof("doDataSync scrub inconformity blocks, deviceID:%s fid range %d ~ %d", deviceID, inconfBlocks.startFid, inconfBlocks.endFid)
 	}
 
-	// 注意:sheduler的最大fid有可能大于设备的最大fid
+	lasChecksum := rsp.Checksums[len(rsp.Checksums)-1]
+	blocks, err := loadBlockItemsBiggerThan(lasChecksum.EndFid, deviceID)
+	if err != nil {
+		log.Errorf("doDataSync loadBlockItemsBiggerThan, deviceID:%s, startFid:%d , error:%s", deviceID, lasChecksum.EndFid, err.Error())
+		return
+	}
+
+	if len(blocks) > 0 {
+		startBlock := blocks[0]
+		endBlock := blocks[len(blocks)-1]
+		err = scrubBlocks(syncApi, startBlock.fid, endBlock.fid, blocks)
+		if err != nil {
+			log.Errorf("doDataSync scrub blocks, deviceID:%s fid range %d ~ %d error:%s", deviceID, startBlock.fid, endBlock.fid, err)
+		}
+	}
+
+}
+
+func scrubBlocks(syncApi api.DataSync, startFid, endFid int, blocks []*blockItem) error {
+	// TODO: do in batches
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	blockMap := make(map[int]string)
+
+	for _, block := range blocks {
+		blockMap[block.fid] = block.cid
+	}
+
+	req := api.ScrubBlocks{StartFid: startFid, EndFid: endFid, Blocks: blockMap}
+	return syncApi.ScrubBlocks(ctx, req)
+
 }
 
 func getInconformityBlocksList(syncApi api.DataSync, inconfBlocks *inconformityBlocks) ([]*inconformityBlocks, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := api.ReqCheckSumInRange{StartFid: inconfBlocks.startFid, EndFid: inconfBlocks.endFid, MaxGroupNum: maxGroupNum}
+	req := api.ReqChecksumInRange{StartFid: inconfBlocks.startFid, EndFid: inconfBlocks.endFid, MaxGroupNum: maxGroupNum}
 	rsp, err := syncApi.GetChecksumsInRange(ctx, req)
 	if err != nil {
 		return []*inconformityBlocks{}, err
 	}
 
 	inconformityBlocksList := make([]*inconformityBlocks, 0)
-	for _, checksum := range rsp.CheckSums {
+	for _, checksum := range rsp.Checksums {
 		blocks := getBlockItemWith(checksum.StartFid, checksum.EndFid, inconfBlocks.blocks)
 		hash := getBlockItemsHash(blocks)
 		if checksum.Hash == hash {
@@ -127,7 +162,6 @@ func getBlockItemWith(startFid, endFid int, blocks []*blockItem) []*blockItem {
 	return blockItems
 }
 
-// TODO: change to map
 func loadBlockItemsFromDB(deviceID string, startFid, endFid int) ([]*blockItem, error) {
 	if endFid < startFid {
 		log.Errorf("loadBlockItemsFromDB")
@@ -135,7 +169,7 @@ func loadBlockItemsFromDB(deviceID string, startFid, endFid int) ([]*blockItem, 
 	}
 	// TODO: get in batches
 	result := make([]*blockItem, 0)
-	cidMap, err := persistent.GetDB().GetBlocksInRange(deviceID, startFid, endFid)
+	cidMap, err := persistent.GetDB().GetBlocksInRange(startFid, endFid, deviceID)
 	if err != nil {
 		return result, err
 	}
@@ -150,6 +184,26 @@ func loadBlockItemsFromDB(deviceID string, startFid, endFid int) ([]*blockItem, 
 	})
 
 	return result, nil
+}
+
+func loadBlockItemsBiggerThan(startFid int, deviceID string) ([]*blockItem, error) {
+	result := make([]*blockItem, 0)
+	cidMap, err := persistent.GetDB().GetBlocksBiggerThan(startFid, deviceID)
+	if err != nil {
+		return result, err
+	}
+
+	for fid, cid := range cidMap {
+		block := &blockItem{fid: fid, cid: cid}
+		result = append(result, block)
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].fid < result[j].fid
+	})
+
+	return result, nil
+
 }
 
 func getBlockItemsHash(blocks []*blockItem) string {

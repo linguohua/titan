@@ -10,12 +10,15 @@ import (
 )
 
 const (
-	Batch       = 5
-	MaxReqCount = 5
+	Batch = 5
+	// number download block if failed
+	BlockDownloadRetryNum = 3
 	// Millisecond
 	LoadBockTick = 10
 	// validate timeout
 	ValidateTimeout = 5
+	// seconds
+	BlockDownloadTimeout = 15
 
 	DownloadSrvPath          = "/block/get"
 	DownloadTokenExpireAfter = 24 * time.Hour

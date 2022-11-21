@@ -198,8 +198,9 @@ func (sd sqlDB) GetBlocksFID(deviceID string) (map[int]string, error) {
 	return m, nil
 }
 
-func (sd sqlDB) GetBlocksInRange(deviceID string, startFid, endFid int) (map[int]string, error) {
+func (sd sqlDB) GetBlocksInRange(startFid, endFid int, deviceID string) (map[int]string, error) {
 	area := sd.ReplaceArea()
+	successStatus := 3
 
 	m := make(map[int]string)
 
@@ -207,7 +208,35 @@ func (sd sqlDB) GetBlocksInRange(deviceID string, startFid, endFid int) (map[int
 		DeviceID: deviceID,
 	}
 
-	cmd := fmt.Sprintf(`SELECT cid,fid FROM %s WHERE device_id=:device_id and fid between %d and %d`, fmt.Sprintf(blockInfoTable, area), startFid, endFid)
+	cmd := fmt.Sprintf(`SELECT cid,fid FROM %s WHERE device_id=:device_id and status=%d and fid between %d and %d`, fmt.Sprintf(blockInfoTable, area), successStatus, startFid, endFid)
+	rows, err := sd.cli.NamedQuery(cmd, info)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		i := &BlockInfo{}
+		err = rows.StructScan(i)
+		if err == nil && i.FID > 0 {
+			m[i.FID] = i.CID
+		}
+	}
+
+	return m, nil
+}
+
+func (sd sqlDB) GetBlocksBiggerThan(startFid int, deviceID string) (map[int]string, error) {
+	area := sd.ReplaceArea()
+	successStatus := 3
+
+	m := make(map[int]string)
+
+	info := &BlockInfo{
+		DeviceID: deviceID,
+	}
+
+	cmd := fmt.Sprintf(`SELECT cid,fid FROM %s WHERE device_id=:device_id and status=%d and fid > %d`, fmt.Sprintf(blockInfoTable, area), successStatus, startFid)
 	rows, err := sd.cli.NamedQuery(cmd, info)
 	if err != nil {
 		return nil, err

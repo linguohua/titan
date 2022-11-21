@@ -4,6 +4,7 @@ package api
 
 import (
 	"context"
+
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
@@ -23,7 +24,7 @@ type BlockStruct struct {
 
 		BlockStoreStat func(p0 context.Context) (error) `perm:"read"`
 
-		CacheBlocks func(p0 context.Context, p1 []ReqCacheData) (error) `perm:"write"`
+		CacheBlocks func(p0 context.Context, p1 []ReqCacheData) (CacheStat, error) `perm:"write"`
 
 		DeleteAllBlocks func(p0 context.Context) (error) `perm:"admin"`
 
@@ -124,9 +125,9 @@ type DataSyncStruct struct {
 
 	Internal struct {
 
-		GetAllChecksums func(p0 context.Context, p1 int) (CheckSumRsp, error) `perm:"write"`
+		GetAllChecksums func(p0 context.Context, p1 int) (ChecksumRsp, error) `perm:"write"`
 
-		GetChecksumsInRange func(p0 context.Context, p1 ReqCheckSumInRange) (CheckSumRsp, error) `perm:"write"`
+		GetChecksumsInRange func(p0 context.Context, p1 ReqChecksumInRange) (ChecksumRsp, error) `perm:"write"`
 
 		ScrubBlocks func(p0 context.Context, p1 ScrubBlocks) (error) `perm:"write"`
 
@@ -347,15 +348,15 @@ func (s *BlockStub) BlockStoreStat(p0 context.Context) (error) {
 	return ErrNotSupported
 }
 
-func (s *BlockStruct) CacheBlocks(p0 context.Context, p1 []ReqCacheData) (error) {
+func (s *BlockStruct) CacheBlocks(p0 context.Context, p1 []ReqCacheData) (CacheStat, error) {
 	if s.Internal.CacheBlocks == nil {
-		return ErrNotSupported
+		return *new(CacheStat), ErrNotSupported
 	}
 	return s.Internal.CacheBlocks(p0, p1)
 }
 
-func (s *BlockStub) CacheBlocks(p0 context.Context, p1 []ReqCacheData) (error) {
-	return ErrNotSupported
+func (s *BlockStub) CacheBlocks(p0 context.Context, p1 []ReqCacheData) (CacheStat, error) {
+	return *new(CacheStat), ErrNotSupported
 }
 
 func (s *BlockStruct) DeleteAllBlocks(p0 context.Context) (error) {
@@ -598,26 +599,26 @@ func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 
 
 
-func (s *DataSyncStruct) GetAllChecksums(p0 context.Context, p1 int) (CheckSumRsp, error) {
+func (s *DataSyncStruct) GetAllChecksums(p0 context.Context, p1 int) (ChecksumRsp, error) {
 	if s.Internal.GetAllChecksums == nil {
-		return *new(CheckSumRsp), ErrNotSupported
+		return *new(ChecksumRsp), ErrNotSupported
 	}
 	return s.Internal.GetAllChecksums(p0, p1)
 }
 
-func (s *DataSyncStub) GetAllChecksums(p0 context.Context, p1 int) (CheckSumRsp, error) {
-	return *new(CheckSumRsp), ErrNotSupported
+func (s *DataSyncStub) GetAllChecksums(p0 context.Context, p1 int) (ChecksumRsp, error) {
+	return *new(ChecksumRsp), ErrNotSupported
 }
 
-func (s *DataSyncStruct) GetChecksumsInRange(p0 context.Context, p1 ReqCheckSumInRange) (CheckSumRsp, error) {
+func (s *DataSyncStruct) GetChecksumsInRange(p0 context.Context, p1 ReqChecksumInRange) (ChecksumRsp, error) {
 	if s.Internal.GetChecksumsInRange == nil {
-		return *new(CheckSumRsp), ErrNotSupported
+		return *new(ChecksumRsp), ErrNotSupported
 	}
 	return s.Internal.GetChecksumsInRange(p0, p1)
 }
 
-func (s *DataSyncStub) GetChecksumsInRange(p0 context.Context, p1 ReqCheckSumInRange) (CheckSumRsp, error) {
-	return *new(CheckSumRsp), ErrNotSupported
+func (s *DataSyncStub) GetChecksumsInRange(p0 context.Context, p1 ReqChecksumInRange) (ChecksumRsp, error) {
+	return *new(ChecksumRsp), ErrNotSupported
 }
 
 func (s *DataSyncStruct) ScrubBlocks(p0 context.Context, p1 ScrubBlocks) (error) {

@@ -27,19 +27,19 @@ func NewDataSync(block *block.Block) *DataSync {
 	return &DataSync{block: block}
 }
 
-func (dataSync *DataSync) GetAllChecksums(ctx context.Context, maxGroupNum int) (api.CheckSumRsp, error) {
+func (dataSync *DataSync) GetAllChecksums(ctx context.Context, maxGroupNum int) (api.ChecksumRsp, error) {
 	return dataSync.getAllChecksums(ctx, maxGroupNum)
 }
 func (dataSync *DataSync) ScrubBlocks(ctx context.Context, scrub api.ScrubBlocks) error {
 	return dataSync.scrubBlocks(scrub)
 }
 
-func (dataSync *DataSync) GetChecksumsInRange(ctx context.Context, req api.ReqCheckSumInRange) (api.CheckSumRsp, error) {
+func (dataSync *DataSync) GetChecksumsInRange(ctx context.Context, req api.ReqChecksumInRange) (api.ChecksumRsp, error) {
 	return dataSync.getChecksumsInRange(ctx, req)
 }
 
-func (dataSync *DataSync) getAllChecksums(ctx context.Context, maxGroupNum int) (api.CheckSumRsp, error) {
-	rsp := api.CheckSumRsp{CheckSums: make([]api.CheckSum, 0)}
+func (dataSync *DataSync) getAllChecksums(ctx context.Context, maxGroupNum int) (api.ChecksumRsp, error) {
+	rsp := api.ChecksumRsp{Checksums: make([]api.Checksum, 0)}
 	ds := dataSync.block.GetDatastore(ctx)
 
 	q := query.Query{Prefix: "fid"}
@@ -103,9 +103,9 @@ func (dataSync *DataSync) getAllChecksums(ctx context.Context, maxGroupNum int) 
 
 		hash := string2Hash(blockCollectionStr)
 		endFid := blockCollection[endIndex-1].fid
-		checkSum := api.CheckSum{Hash: hash, StartFid: startFid, EndFid: endFid, BlockCount: endIndex - startIndex}
+		checksum := api.Checksum{Hash: hash, StartFid: startFid, EndFid: endFid, BlockCount: endIndex - startIndex}
 
-		rsp.CheckSums = append(rsp.CheckSums, checkSum)
+		rsp.Checksums = append(rsp.Checksums, checksum)
 
 		startFid = endFid + 1
 
@@ -114,8 +114,8 @@ func (dataSync *DataSync) getAllChecksums(ctx context.Context, maxGroupNum int) 
 	return rsp, nil
 }
 
-func (dataSync *DataSync) getChecksumsInRange(ctx context.Context, req api.ReqCheckSumInRange) (api.CheckSumRsp, error) {
-	rsp := api.CheckSumRsp{CheckSums: make([]api.CheckSum, 0)}
+func (dataSync *DataSync) getChecksumsInRange(ctx context.Context, req api.ReqChecksumInRange) (api.ChecksumRsp, error) {
+	rsp := api.ChecksumRsp{Checksums: make([]api.Checksum, 0)}
 
 	startFid := req.StartFid
 	endFid := req.EndFid
@@ -171,8 +171,8 @@ func (dataSync *DataSync) getChecksumsInRange(ctx context.Context, req api.ReqCh
 
 		hash := string2Hash(blockCollectionStr)
 		endFid := blockCollection[endIndex-1].fid
-		checkSum := api.CheckSum{Hash: hash, StartFid: startFid, EndFid: endFid, BlockCount: endIndex - startIndex}
-		rsp.CheckSums = append(rsp.CheckSums, checkSum)
+		checksum := api.Checksum{Hash: hash, StartFid: startFid, EndFid: endFid, BlockCount: endIndex - startIndex}
+		rsp.Checksums = append(rsp.Checksums, checksum)
 
 		startFid = endFid + 1
 
@@ -187,9 +187,9 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 
 	need2DeleteBlocks := make([]string, 0)
 	blocks := scrub.Blocks
-	for i := startFid; i <= endFid; i++ {
-		fid := fmt.Sprintf("%d", i)
-		cid, err := dataSync.block.GetCID(context.TODO(), fid)
+	for fid := startFid; fid <= endFid; fid++ {
+		fidStr := fmt.Sprintf("%d", fid)
+		cid, err := dataSync.block.GetCID(context.TODO(), fidStr)
 		if err == datastore.ErrNotFound {
 			continue
 		}
@@ -197,11 +197,11 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 		targetCid, ok := blocks[fid]
 		if ok {
 			if cid != targetCid {
-				errmsg := fmt.Sprintf("scrubBlocks fid %s, local cid is %s but sheduler cid is %s", fid, cid, targetCid)
-				log.Errorf(errmsg)
-				return fmt.Errorf(errmsg)
+				log.Errorf("scrubBlocks fid %s, local cid is %s but sheduler cid is %s", fid, cid, targetCid)
+				need2DeleteBlocks = append(need2DeleteBlocks, cid)
+			} else {
+				delete(blocks, fid)
 			}
-			delete(blocks, fid)
 		} else {
 			need2DeleteBlocks = append(need2DeleteBlocks, cid)
 		}
