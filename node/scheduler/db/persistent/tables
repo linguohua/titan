@@ -40,7 +40,6 @@ CREATE TABLE `data_info_cn_gd_shenzhen` (
 	`reliability` TINYINT DEFAULT '0' ,
 	`need_reliability` TINYINT DEFAULT '0' ,
     `cache_count` int  DEFAULT '0' ,
-    `root_cache_id` varchar(64)  DEFAULT '' ,
     `total_blocks` int  DEFAULT '0' ,
     `nodes` int  DEFAULT '0' ,
     `expired_time` datetime NOT NULL,

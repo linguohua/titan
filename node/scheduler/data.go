@@ -19,10 +19,10 @@ type Data struct {
 	needReliability int
 	totalSize       int
 	cacheCount      int
-	rootCacheID     string
-	totalBlocks     int
-	nodes           int
-	expiredTime     time.Time
+	// rootCacheID     string
+	totalBlocks int
+	nodes       int
+	expiredTime time.Time
 }
 
 func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, reliability int) *Data {
@@ -34,7 +34,7 @@ func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, rel
 		needReliability: reliability,
 		cacheCount:      0,
 		totalBlocks:     1,
-		rootCacheID:     "",
+		// rootCacheID:     "",
 	}
 }
 
@@ -50,7 +50,7 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 		data.needReliability = dInfo.NeedReliability
 		data.reliability = dInfo.Reliability
 		data.cacheCount = dInfo.CacheCount
-		data.rootCacheID = dInfo.RootCacheID
+		// data.rootCacheID = dInfo.RootCacheID
 		data.totalBlocks = dInfo.TotalBlocks
 		data.nodes = dInfo.Nodes
 		data.expiredTime = dInfo.ExpiredTime
@@ -121,7 +121,6 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, info *
 		TotalBlocks: d.totalBlocks,
 		Reliability: d.reliability,
 		CacheCount:  d.cacheCount,
-		RootCacheID: d.rootCacheID,
 	}
 
 	cInfo := &persistent.CacheInfo{
@@ -141,6 +140,13 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, info *
 }
 
 func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
+	if cache.status == persistent.CacheStatusSuccess {
+		d.reliability += cache.reliability
+		// if !d.haveRootCache() {
+		// 	d.rootCacheID = cache.cacheID
+		// }
+	}
+
 	cNodes, err := persistent.GetDB().GetNodesFromCache(cache.cacheID)
 	if err != nil {
 		log.Warnf("updateAndSaveCacheEndInfo GetNodesFromCache err:%s", err.Error())
@@ -158,7 +164,6 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 		TotalBlocks: d.totalBlocks,
 		Reliability: d.reliability,
 		CacheCount:  d.cacheCount,
-		RootCacheID: d.rootCacheID,
 		Nodes:       d.nodes,
 	}
 
@@ -226,13 +231,6 @@ func (d *Data) startData(cacheID string) (string, error) {
 }
 
 func (d *Data) endData(c *Cache) {
-	if c.status == persistent.CacheStatusSuccess {
-		d.reliability += c.reliability
-		if !d.haveRootCache() {
-			d.rootCacheID = c.cacheID
-		}
-	}
-
 	var err error
 	cacheID := ""
 	defer func() {

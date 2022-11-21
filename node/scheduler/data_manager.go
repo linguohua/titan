@@ -37,8 +37,8 @@ type DataManager struct {
 	timeoutTimeWheel *timewheel.TimeWheel
 	timeoutTime      int // check timeout time interval (Second)
 
-	taskTimeWheel *timewheel.TimeWheel
-	doTaskTime    int // task time interval (Second)
+	// taskTimeWheel *timewheel.TimeWheel
+	// doTaskTime    int // task time interval (Second)
 
 	runningTaskMax int
 }
@@ -49,8 +49,8 @@ func newDataManager(nodeManager *NodeManager) *DataManager {
 		blockLoaderCh:    make(chan bool),
 		dataTaskLoaderCh: make(chan bool),
 		timeoutTime:      30,
-		doTaskTime:       5,
-		runningTaskMax:   2,
+		// doTaskTime:       5,
+		runningTaskMax: 2,
 	}
 
 	d.initTimewheel()
@@ -207,7 +207,6 @@ func (m *DataManager) makeDataTask(cid string, reliability int, expiredTime time
 		Reliability:     data.reliability,
 		CacheCount:      data.cacheCount,
 		TotalBlocks:     data.totalBlocks,
-		RootCacheID:     data.rootCacheID,
 		ExpiredTime:     data.expiredTime,
 	})
 	if err != nil {
