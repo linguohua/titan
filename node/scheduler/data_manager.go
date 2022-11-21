@@ -228,7 +228,7 @@ func (m *DataManager) makeDataTask(cid string, reliability int, expiredTime time
 
 	data.cacheCount = data.reliability
 
-	return data.startData(cacheID)
+	return data.findOrCreateCache(cacheID)
 }
 
 func (m *DataManager) makeDataContinue(cid, cacheID string) (string, error) {
@@ -239,7 +239,7 @@ func (m *DataManager) makeDataContinue(cid, cacheID string) (string, error) {
 
 	data.cacheCount = data.reliability
 
-	return data.startData(cacheID)
+	return data.findOrCreateCache(cacheID)
 }
 
 func (m *DataManager) cacheData(cid string, reliability int) error {
