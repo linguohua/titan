@@ -4,7 +4,7 @@ import "context"
 
 type Block interface {
 	// cache blocks
-	CacheBlocks(ctx context.Context, req []ReqCacheData) error //perm:write
+	CacheBlocks(ctx context.Context, req []ReqCacheData) (CacheStat, error) //perm:write
 	// told to scheduler local block was delete
 	AnnounceBlocksWasDelete(ctx context.Context, cids []string) ([]BlockOperationResult, error) //perm:write
 	// delete blocks
@@ -42,10 +42,15 @@ type BlockOperationResult struct {
 	ErrMsg string
 }
 
+// (WaitCacheBlockNum + DoingCacheBlockNum )* (retryNum * DownloadTimeout)
 type CacheStat struct {
 	CacheBlockCount    int
 	WaitCacheBlockNum  int
 	DoingCacheBlockNum int
+	// retry download number
+	RetryNum int
+	// timeout of download, seconds
+	DownloadTimeout int
 }
 
 type CachingBlockStat struct {

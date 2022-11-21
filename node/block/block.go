@@ -226,12 +226,13 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 	return results
 }
 
-func (block *Block) CacheBlocks(ctx context.Context, reqs []api.ReqCacheData) error {
+func (block *Block) CacheBlocks(ctx context.Context, reqs []api.ReqCacheData) (api.CacheStat, error) {
 	log.Infof("CacheBlocks, reqs:%d", len(reqs))
 	for _, req := range reqs {
 		block.addReq2WaitList(apiReq2DelayReq(&req))
 	}
-	return nil
+
+	return block.QueryCacheStat(ctx)
 }
 
 // delete block in local store and scheduler
@@ -306,6 +307,8 @@ func (block *Block) QueryCacheStat(ctx context.Context) (api.CacheStat, error) {
 	result.CacheBlockCount = keyCount
 	result.WaitCacheBlockNum = len(block.reqList)
 	result.DoingCacheBlockNum = len(block.cachingList)
+	result.RetryNum = helper.BlockDownloadRetryNum
+	result.DownloadTimeout = helper.BlockDownloadTimeout
 
 	log.Infof("CacheBlockCount:%d,WaitCacheBlockNum:%d, DoingCacheBlockNum:%d", result.CacheBlockCount, result.WaitCacheBlockNum, result.DoingCacheBlockNum)
 	return result, nil

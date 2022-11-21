@@ -86,7 +86,7 @@ var CacheBlockCmd = &cli.Command{
 
 		reqData := API.ReqCacheData{BlockInfos: []api.BlockInfo{blockInfo}, DownloadURL: candidateURL}
 
-		err = adgeAPI.CacheBlocks(ctx, []api.ReqCacheData{reqData})
+		_, err = adgeAPI.CacheBlocks(ctx, []api.ReqCacheData{reqData})
 		if err != nil {
 			return err
 		}
@@ -341,7 +341,7 @@ var checksum = &cli.Command{
 			return err
 		}
 
-		for _, checksum := range rsp.CheckSums {
+		for _, checksum := range rsp.Checksums {
 			fmt.Printf("Range %d ~ %d block count %d hash %s\n", checksum.StartFid, checksum.EndFid, checksum.BlockCount, checksum.Hash)
 		}
 		return nil
@@ -375,13 +375,13 @@ var checksumInRange = &cli.Command{
 		startFid := cctx.Int("start-fid")
 		endFid := cctx.Int("end-fid")
 
-		req := api.ReqCheckSumInRange{StartFid: startFid, EndFid: endFid, MaxGroupNum: 10}
+		req := api.ReqChecksumInRange{StartFid: startFid, EndFid: endFid, MaxGroupNum: 10}
 		rsp, err := edgeApi.GetChecksumsInRange(ctx, req)
 		if err != nil {
 			return err
 		}
 
-		for _, checksum := range rsp.CheckSums {
+		for _, checksum := range rsp.Checksums {
 			fmt.Printf("Range %d ~ %d block count %d hash %s\n", checksum.StartFid, checksum.EndFid, checksum.BlockCount, checksum.Hash)
 		}
 		return err
@@ -414,12 +414,12 @@ var scrubBlocks = &cli.Command{
 		startFid := cctx.Int("start-fid")
 		endFid := cctx.Int("end-fid")
 
-		blocks := map[string]string{
-			"1": "QmTYG4itLJrAC3R9EhpVBb1Hfs65NgMffDDSxP4Pv1KoiX",
-			"2": "QmRKw91PPKVbKcHK6HAiYE9ouBJtFsDfo16XSQaDZ9H6WL",
-			"3": "QmeHWv892UWYzDvnYpCtJeR5qKs64G2d6aXh2yXg1WvZdC",
-			"4": "QmapeQSKYWpNkdkdxhrYsFGca3fLG6FDZFKiojhSxXtYJD",
-			"5": "Qme6FgRySo1bHDSwBt1jQsz4VaYLTr4Mm7nBrwZw11jjbN",
+		blocks := map[int]string{
+			1: "QmTYG4itLJrAC3R9EhpVBb1Hfs65NgMffDDSxP4Pv1KoiX",
+			2: "QmRKw91PPKVbKcHK6HAiYE9ouBJtFsDfo16XSQaDZ9H6WL",
+			3: "QmeHWv892UWYzDvnYpCtJeR5qKs64G2d6aXh2yXg1WvZdC",
+			4: "QmapeQSKYWpNkdkdxhrYsFGca3fLG6FDZFKiojhSxXtYJD",
+			5: "Qme6FgRySo1bHDSwBt1jQsz4VaYLTr4Mm7nBrwZw11jjbN",
 			// "6": "9b4c0675e1bd4a6ef678d02310c11f28",
 		}
 		req := api.ScrubBlocks{Blocks: blocks, StartFid: startFid, EndFid: endFid}

@@ -32,7 +32,7 @@ func getBlockFromIPFSGateway(wg *sync.WaitGroup, block *ipfsBlock, url string) {
 
 	// log.Infof("getBlockFromIPFSGateway url:%s", url)
 
-	client := &http.Client{Timeout: 15 * time.Second}
+	client := &http.Client{Timeout: helper.BlockDownloadTimeout * time.Second}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		block.err = err
@@ -188,15 +188,21 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 	}
 
 	if len(reqMap) > 0 {
+		tryDelayReqs := make([]*delayReq, 0)
 		err = fmt.Errorf("Request timeout")
 		for _, v := range reqMap {
-			if v.count > helper.MaxReqCount {
+			if v.count > helper.BlockDownloadRetryNum {
 				block.cacheResultWithError(ctx, blockStat{cid: v.blockInfo.Cid, carFileCid: v.carFileCid, CacheID: v.CacheID}, err)
 				log.Infof("cache data faile, cid:%s, count:%d", v.blockInfo.Cid, v.count)
 			} else {
 				v.count++
-				block.addReq2WaitList([]*delayReq{v})
+				delayReq := v
+				tryDelayReqs = append(tryDelayReqs, delayReq)
 			}
+		}
+
+		if len(tryDelayReqs) > 0 {
+			loadBlocksFromIPFS(block, tryDelayReqs)
 		}
 	}
 }

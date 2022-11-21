@@ -107,7 +107,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockInfo) error
 	if cNode != nil {
 		reqDatas := cNode.getReqCacheDatas(c.nodeManager, blocks, c.carfileCid, c.cacheID)
 
-		err := cNode.nodeAPI.CacheBlocks(ctx, reqDatas)
+		_, err := cNode.nodeAPI.CacheBlocks(ctx, reqDatas)
 		if err != nil {
 			log.Errorf("candidate %s, CacheData err:%s", deviceID, err.Error())
 		}
@@ -118,7 +118,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockInfo) error
 	if eNode != nil {
 		reqDatas := eNode.getReqCacheDatas(c.nodeManager, blocks, c.carfileCid, c.cacheID)
 
-		err := eNode.nodeAPI.CacheBlocks(ctx, reqDatas)
+		_, err := eNode.nodeAPI.CacheBlocks(ctx, reqDatas)
 		if err != nil {
 			log.Errorf("edge %s, CacheData err:%s", deviceID, err.Error())
 		}
