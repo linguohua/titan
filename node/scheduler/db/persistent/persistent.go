@@ -233,3 +233,19 @@ const (
 	// ValidateStatusOther status
 	ValidateStatusOther
 )
+
+// CacheStatus Cache Status
+type CacheStatus int
+
+const (
+	// CacheStatusUnknown status
+	CacheStatusUnknown CacheStatus = iota
+	// CacheStatusCreate status
+	CacheStatusCreate
+	// CacheStatusFail status
+	CacheStatusFail
+	// CacheStatusSuccess status
+	CacheStatusSuccess
+	// CacheStatusTimeout status
+	CacheStatusTimeout
+)
