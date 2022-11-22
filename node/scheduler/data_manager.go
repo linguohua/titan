@@ -108,7 +108,7 @@ func (m *DataManager) doDataTask() error {
 
 		err = cache.GetDB().RemoveWaitingCacheTask(info)
 		if err != nil {
-			log.Errorf("cid:%s ; RemoveWaitingCacheTask err:%s", info.CarfileCid, err.Error())
+			log.Errorf("RemoveWaitingCacheTask err:%s", err.Error())
 		}
 	}()
 
@@ -117,12 +117,12 @@ func (m *DataManager) doDataTask() error {
 
 		err = m.makeDataContinue(info.CarfileCid, cacheID)
 		if err != nil {
-			return xerrors.Errorf("cid:%s,cacheID:%s ; startCacheContinue err:%s", info.CarfileCid, cacheID, err.Error())
+			return xerrors.Errorf("makeDataContinue err:%s", err.Error())
 		}
 	} else {
 		cacheID, err = m.makeDataTask(info.CarfileCid, info.NeedReliability, info.ExpiredTime)
 		if err != nil {
-			return xerrors.Errorf("cid:%s,reliability:%d ; startCacheData err:%s", info.CarfileCid, info.NeedReliability, err.Error())
+			return xerrors.Errorf("makeDataTask err:%s", err.Error())
 		}
 	}
 
