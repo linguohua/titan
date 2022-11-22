@@ -6,12 +6,12 @@ import (
 
 type Web interface {
 	// cursor: start index, count: load number of device
-	ListNodes(ctx context.Context, cursor int, count int) ([]WebNode, error)                       //perm:read
-	GetNodeInfoByID(ctx context.Context, nodeID string) (DevicesInfo, error)                       //perm:read
-	ListDownloadInfo(ctx context.Context, req ListDownloadInfoReq) ([]DownloadBlockStat, error)    //perm:read
-	ListCaches(ctx context.Context, req ListCachesReq) ([]WebCarfile, error)                       //perm:read
-	StatCaches(ctx context.Context, req ListCachesReq) (StatCachesRsp, error)                      //perm:read
-	ListNodeConnectionLog(ctx context.Context, cursor int, count int) ([]NodeConnectionLog, error) //perm:read
+	ListNodes(ctx context.Context, cursor int, count int) ([]WebNode, error)                              //perm:read
+	GetNodeInfoByID(ctx context.Context, nodeID string) (DevicesInfo, error)                              //perm:read
+	ListBlockDownloadInfo(ctx context.Context, req ListBlockDownloadInfoReq) ([]BlockDownloadInfo, error) //perm:read
+	ListCaches(ctx context.Context, req ListCachesReq) ([]WebCarfile, error)                              //perm:read
+	StatCaches(ctx context.Context, req ListCachesReq) (StatCachesRsp, error)                             //perm:read
+	ListNodeConnectionLog(ctx context.Context, cursor int, count int) ([]NodeConnectionLog, error)        //perm:read
 
 	// cache manager
 	AddCacheTask(ctx context.Context, carFileCID string, reliability int) error     //perm:read
@@ -33,14 +33,14 @@ type WebNode struct {
 	NodeName string
 }
 
-type ListDownloadInfoReq struct {
+type ListBlockDownloadInfoReq struct {
 	DeviceID string
 	// Unix timestamp
 	StartTime int64
 	// Unix timestamp
 	EndTime int64
 	Cursor  int
-	count   int
+	Count   int
 }
 
 type ListCachesReq struct {
