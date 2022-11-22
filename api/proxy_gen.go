@@ -4,7 +4,6 @@ package api
 
 import (
 	"context"
-
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
@@ -336,11 +335,11 @@ type WebStruct struct {
 
 		GetNodeInfoByID func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
 
+		ListBlockDownloadInfo func(p0 context.Context, p1 ListBlockDownloadInfoReq) ([]BlockDownloadInfo, error) `perm:"read"`
+
 		ListCacheTask func(p0 context.Context, p1 int, p2 int) (DataListInfo, error) `perm:"read"`
 
 		ListCaches func(p0 context.Context, p1 ListCachesReq) ([]WebCarfile, error) `perm:"read"`
-
-		ListDownloadInfo func(p0 context.Context, p1 ListDownloadInfoReq) ([]DownloadBlockStat, error) `perm:"read"`
 
 		ListNodeConnectionLog func(p0 context.Context, p1 int, p2 int) ([]NodeConnectionLog, error) `perm:"read"`
 
@@ -1222,6 +1221,17 @@ func (s *WebStub) GetNodeInfoByID(p0 context.Context, p1 string) (DevicesInfo, e
 	return *new(DevicesInfo), ErrNotSupported
 }
 
+func (s *WebStruct) ListBlockDownloadInfo(p0 context.Context, p1 ListBlockDownloadInfoReq) ([]BlockDownloadInfo, error) {
+	if s.Internal.ListBlockDownloadInfo == nil {
+		return *new([]BlockDownloadInfo), ErrNotSupported
+	}
+	return s.Internal.ListBlockDownloadInfo(p0, p1)
+}
+
+func (s *WebStub) ListBlockDownloadInfo(p0 context.Context, p1 ListBlockDownloadInfoReq) ([]BlockDownloadInfo, error) {
+	return *new([]BlockDownloadInfo), ErrNotSupported
+}
+
 func (s *WebStruct) ListCacheTask(p0 context.Context, p1 int, p2 int) (DataListInfo, error) {
 	if s.Internal.ListCacheTask == nil {
 		return *new(DataListInfo), ErrNotSupported
@@ -1242,17 +1252,6 @@ func (s *WebStruct) ListCaches(p0 context.Context, p1 ListCachesReq) ([]WebCarfi
 
 func (s *WebStub) ListCaches(p0 context.Context, p1 ListCachesReq) ([]WebCarfile, error) {
 	return *new([]WebCarfile), ErrNotSupported
-}
-
-func (s *WebStruct) ListDownloadInfo(p0 context.Context, p1 ListDownloadInfoReq) ([]DownloadBlockStat, error) {
-	if s.Internal.ListDownloadInfo == nil {
-		return *new([]DownloadBlockStat), ErrNotSupported
-	}
-	return s.Internal.ListDownloadInfo(p0, p1)
-}
-
-func (s *WebStub) ListDownloadInfo(p0 context.Context, p1 ListDownloadInfoReq) ([]DownloadBlockStat, error) {
-	return *new([]DownloadBlockStat), ErrNotSupported
 }
 
 func (s *WebStruct) ListNodeConnectionLog(p0 context.Context, p1 int, p2 int) ([]NodeConnectionLog, error) {

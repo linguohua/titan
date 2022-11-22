@@ -33,19 +33,23 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) ([]api.WebNo
 
 	return webNodes, nil
 }
+
 func (w *web) GetNodeInfoByID(ctx context.Context, deviceID string) (api.DevicesInfo, error) {
 	return w.scheduler.GetDevicesInfo(ctx, deviceID)
 }
 
-func (w *web) ListDownloadInfo(ctx context.Context, req api.ListDownloadInfoReq) ([]api.DownloadBlockStat, error) {
-	return []api.DownloadBlockStat{}, nil
+func (w *web) ListBlockDownloadInfo(ctx context.Context, req api.ListBlockDownloadInfoReq) ([]api.BlockDownloadInfo, error) {
+	return persistent.GetDB().GetBlockDownloadInfos(req.DeviceID, req.StartTime, req.EndTime, req.Cursor, req.Count)
 }
+
 func (w *web) ListCaches(ctx context.Context, req api.ListCachesReq) ([]api.WebCarfile, error) {
 	return []api.WebCarfile{}, nil
 }
+
 func (w *web) StatCaches(ctx context.Context, req api.ListCachesReq) (api.StatCachesRsp, error) {
 	return api.StatCachesRsp{}, nil
 }
+
 func (w *web) ListNodeConnectionLog(ctx context.Context, cursor int, count int) ([]api.NodeConnectionLog, error) {
 	return []api.NodeConnectionLog{}, nil
 }
