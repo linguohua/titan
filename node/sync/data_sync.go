@@ -39,6 +39,9 @@ func (dataSync *DataSync) GetChecksumsInRange(ctx context.Context, req api.ReqCh
 }
 
 func (dataSync *DataSync) getAllChecksums(ctx context.Context, maxGroupNum int) (api.ChecksumRsp, error) {
+	if maxGroupNum == 0 {
+		maxGroupNum = 10
+	}
 	rsp := api.ChecksumRsp{Checksums: make([]api.Checksum, 0)}
 	ds := dataSync.block.GetDatastore(ctx)
 
@@ -81,6 +84,10 @@ func (dataSync *DataSync) getAllChecksums(ctx context.Context, maxGroupNum int) 
 	groupSize := blockCollectionSize / maxGroupNum
 	if blockCollectionSize%maxGroupNum != 0 {
 		groupSize += 1
+	}
+
+	if groupSize == 0 {
+		groupSize = 1
 	}
 
 	groupNum := blockCollectionSize / groupSize
@@ -305,13 +312,18 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 		_, ok := targetCidMap[cid]
 		if !ok {
 			need2DeleteBlock = append(need2DeleteBlock, cid)
+		} else {
+			delete(targetCidMap, cid)
 		}
+
 	}
 
 	for _, cid := range need2DeleteBlock {
 		blockstore.Delete(cid)
 		log.Warnf("block %s not exist fid, was delete", cid)
 	}
+
+	// TODO: need to download targetCidMap block
 
 	log.Info("sync local block store complete")
 

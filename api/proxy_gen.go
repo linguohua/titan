@@ -4,6 +4,7 @@ package api
 
 import (
 	"context"
+
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
@@ -154,7 +155,7 @@ type DownloadStruct struct {
 
 	Internal struct {
 
-		SetDownloadSpeed func(p0 context.Context, p1 int64) (error) ``
+		SetDownloadSpeed func(p0 context.Context, p1 int64) (error) `perm:"write"`
 
 	}
 }
@@ -323,37 +324,37 @@ type WebStruct struct {
 
 	Internal struct {
 
-		AddCacheTask func(p0 context.Context, p1 string, p2 int) (error) ``
+		AddCacheTask func(p0 context.Context, p1 string, p2 int) (error) `perm:"read"`
 
-		CancelCacheTask func(p0 context.Context, p1 string) (error) ``
+		CancelCacheTask func(p0 context.Context, p1 string) (error) `perm:"read"`
 
-		GetBlocksByCarfileCID func(p0 context.Context, p1 string) ([]WebBlock, error) ``
+		GetBlocksByCarfileCID func(p0 context.Context, p1 string) ([]WebBlock, error) `perm:"read"`
 
-		GetCacheTaskInfo func(p0 context.Context, p1 string) (CacheDataInfo, error) ``
+		GetCacheTaskInfo func(p0 context.Context, p1 string) (CacheDataInfo, error) `perm:"read"`
 
-		GetCarfileByCID func(p0 context.Context, p1 string) (WebCarfile, error) ``
+		GetCarfileByCID func(p0 context.Context, p1 string) (WebCarfile, error) `perm:"read"`
 
-		GetDeviceInfoByID func(p0 context.Context, p1 string) (Device, error) ``
+		GetNodeInfoByID func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
 
-		ListCacheTask func(p0 context.Context, p1 int, p2 int) (DataListInfo, error) ``
+		ListCacheTask func(p0 context.Context, p1 int, p2 int) (DataListInfo, error) `perm:"read"`
 
-		ListCaches func(p0 context.Context, p1 ListCachesReq) ([]WebCarfile, error) ``
+		ListCaches func(p0 context.Context, p1 ListCachesReq) ([]WebCarfile, error) `perm:"read"`
 
-		ListDeviceConnectionLog func(p0 context.Context, p1 int, p2 int) ([]DeviceConnectionLog, error) ``
+		ListDownloadInfo func(p0 context.Context, p1 ListDownloadInfoReq) ([]DownloadBlockStat, error) `perm:"read"`
 
-		ListDevices func(p0 context.Context, p1 int, p2 int) ([]WebDevice, error) ``
+		ListNodeConnectionLog func(p0 context.Context, p1 int, p2 int) ([]NodeConnectionLog, error) `perm:"read"`
 
-		ListDownloadInfo func(p0 context.Context, p1 ListDownloadInfoReq) ([]DownloadBlockStat, error) ``
+		ListNodes func(p0 context.Context, p1 int, p2 int) ([]WebNode, error) `perm:"read"`
 
-		ListVadiateResult func(p0 context.Context, p1 int, p2 int) ([]WebValidateResult, error) ``
+		ListVadiateResult func(p0 context.Context, p1 int, p2 int) ([]WebValidateResult, error) `perm:"read"`
 
-		ListValidators func(p0 context.Context, p1 int, p2 int) (ListValidatorsRsp, error) ``
+		ListValidators func(p0 context.Context, p1 int, p2 int) (ListValidatorsRsp, error) `perm:"read"`
 
-		RemoveCarfile func(p0 context.Context, p1 string) (error) ``
+		RemoveCarfile func(p0 context.Context, p1 string) (error) `perm:"read"`
 
-		SetupValidation func(p0 context.Context, p1 string) (error) ``
+		SetupValidation func(p0 context.Context, p1 string) (error) `perm:"read"`
 
-		StatCaches func(p0 context.Context, p1 ListCachesReq) (StatCachesRsp, error) ``
+		StatCaches func(p0 context.Context, p1 ListCachesReq) (StatCachesRsp, error) `perm:"read"`
 
 	}
 }
@@ -1210,15 +1211,15 @@ func (s *WebStub) GetCarfileByCID(p0 context.Context, p1 string) (WebCarfile, er
 	return *new(WebCarfile), ErrNotSupported
 }
 
-func (s *WebStruct) GetDeviceInfoByID(p0 context.Context, p1 string) (Device, error) {
-	if s.Internal.GetDeviceInfoByID == nil {
-		return *new(Device), ErrNotSupported
+func (s *WebStruct) GetNodeInfoByID(p0 context.Context, p1 string) (DevicesInfo, error) {
+	if s.Internal.GetNodeInfoByID == nil {
+		return *new(DevicesInfo), ErrNotSupported
 	}
-	return s.Internal.GetDeviceInfoByID(p0, p1)
+	return s.Internal.GetNodeInfoByID(p0, p1)
 }
 
-func (s *WebStub) GetDeviceInfoByID(p0 context.Context, p1 string) (Device, error) {
-	return *new(Device), ErrNotSupported
+func (s *WebStub) GetNodeInfoByID(p0 context.Context, p1 string) (DevicesInfo, error) {
+	return *new(DevicesInfo), ErrNotSupported
 }
 
 func (s *WebStruct) ListCacheTask(p0 context.Context, p1 int, p2 int) (DataListInfo, error) {
@@ -1243,28 +1244,6 @@ func (s *WebStub) ListCaches(p0 context.Context, p1 ListCachesReq) ([]WebCarfile
 	return *new([]WebCarfile), ErrNotSupported
 }
 
-func (s *WebStruct) ListDeviceConnectionLog(p0 context.Context, p1 int, p2 int) ([]DeviceConnectionLog, error) {
-	if s.Internal.ListDeviceConnectionLog == nil {
-		return *new([]DeviceConnectionLog), ErrNotSupported
-	}
-	return s.Internal.ListDeviceConnectionLog(p0, p1, p2)
-}
-
-func (s *WebStub) ListDeviceConnectionLog(p0 context.Context, p1 int, p2 int) ([]DeviceConnectionLog, error) {
-	return *new([]DeviceConnectionLog), ErrNotSupported
-}
-
-func (s *WebStruct) ListDevices(p0 context.Context, p1 int, p2 int) ([]WebDevice, error) {
-	if s.Internal.ListDevices == nil {
-		return *new([]WebDevice), ErrNotSupported
-	}
-	return s.Internal.ListDevices(p0, p1, p2)
-}
-
-func (s *WebStub) ListDevices(p0 context.Context, p1 int, p2 int) ([]WebDevice, error) {
-	return *new([]WebDevice), ErrNotSupported
-}
-
 func (s *WebStruct) ListDownloadInfo(p0 context.Context, p1 ListDownloadInfoReq) ([]DownloadBlockStat, error) {
 	if s.Internal.ListDownloadInfo == nil {
 		return *new([]DownloadBlockStat), ErrNotSupported
@@ -1274,6 +1253,28 @@ func (s *WebStruct) ListDownloadInfo(p0 context.Context, p1 ListDownloadInfoReq)
 
 func (s *WebStub) ListDownloadInfo(p0 context.Context, p1 ListDownloadInfoReq) ([]DownloadBlockStat, error) {
 	return *new([]DownloadBlockStat), ErrNotSupported
+}
+
+func (s *WebStruct) ListNodeConnectionLog(p0 context.Context, p1 int, p2 int) ([]NodeConnectionLog, error) {
+	if s.Internal.ListNodeConnectionLog == nil {
+		return *new([]NodeConnectionLog), ErrNotSupported
+	}
+	return s.Internal.ListNodeConnectionLog(p0, p1, p2)
+}
+
+func (s *WebStub) ListNodeConnectionLog(p0 context.Context, p1 int, p2 int) ([]NodeConnectionLog, error) {
+	return *new([]NodeConnectionLog), ErrNotSupported
+}
+
+func (s *WebStruct) ListNodes(p0 context.Context, p1 int, p2 int) ([]WebNode, error) {
+	if s.Internal.ListNodes == nil {
+		return *new([]WebNode), ErrNotSupported
+	}
+	return s.Internal.ListNodes(p0, p1, p2)
+}
+
+func (s *WebStub) ListNodes(p0 context.Context, p1 int, p2 int) ([]WebNode, error) {
+	return *new([]WebNode), ErrNotSupported
 }
 
 func (s *WebStruct) ListVadiateResult(p0 context.Context, p1 int, p2 int) ([]WebValidateResult, error) {

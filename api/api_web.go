@@ -6,31 +6,31 @@ import (
 
 type Web interface {
 	// cursor: start index, count: load number of device
-	ListDevices(ctx context.Context, cursor int, count int) ([]WebDevice, error)
-	GetDeviceInfoByID(ctx context.Context, deviceID string) (Device, error)
-	ListDownloadInfo(ctx context.Context, req ListDownloadInfoReq) ([]DownloadBlockStat, error)
-	ListCaches(ctx context.Context, req ListCachesReq) ([]WebCarfile, error)
-	StatCaches(ctx context.Context, req ListCachesReq) (StatCachesRsp, error)
-	ListDeviceConnectionLog(ctx context.Context, cursor int, count int) ([]DeviceConnectionLog, error)
+	ListNodes(ctx context.Context, cursor int, count int) ([]WebNode, error)                       //perm:read
+	GetNodeInfoByID(ctx context.Context, nodeID string) (DevicesInfo, error)                       //perm:read
+	ListDownloadInfo(ctx context.Context, req ListDownloadInfoReq) ([]DownloadBlockStat, error)    //perm:read
+	ListCaches(ctx context.Context, req ListCachesReq) ([]WebCarfile, error)                       //perm:read
+	StatCaches(ctx context.Context, req ListCachesReq) (StatCachesRsp, error)                      //perm:read
+	ListNodeConnectionLog(ctx context.Context, cursor int, count int) ([]NodeConnectionLog, error) //perm:read
 
 	// cache manager
-	AddCacheTask(ctx context.Context, carFileCID string, reliability int) error
-	ListCacheTask(ctx context.Context, cursor int, count int) (DataListInfo, error)
-	GetCacheTaskInfo(ctx context.Context, carFileCID string) (CacheDataInfo, error)
-	CancelCacheTask(ctx context.Context, carFileCID string) error
+	AddCacheTask(ctx context.Context, carFileCID string, reliability int) error     //perm:read
+	ListCacheTask(ctx context.Context, cursor int, count int) (DataListInfo, error) //perm:read
+	GetCacheTaskInfo(ctx context.Context, carFileCID string) (CacheDataInfo, error) //perm:read
+	CancelCacheTask(ctx context.Context, carFileCID string) error                   //perm:read
 
-	GetCarfileByCID(ctx context.Context, carFileCID string) (WebCarfile, error)
-	GetBlocksByCarfileCID(ctx context.Context, carFileCID string) ([]WebBlock, error)
-	RemoveCarfile(ctx context.Context, carFileCID string) error
+	GetCarfileByCID(ctx context.Context, carFileCID string) (WebCarfile, error)       //perm:read
+	GetBlocksByCarfileCID(ctx context.Context, carFileCID string) ([]WebBlock, error) //perm:read
+	RemoveCarfile(ctx context.Context, carFileCID string) error                       //perm:read
 
-	ListValidators(ctx context.Context, cursor int, count int) (ListValidatorsRsp, error)
-	ListVadiateResult(ctx context.Context, cursor int, count int) ([]WebValidateResult, error)
-	SetupValidation(ctx context.Context, DeviceID string) error
+	ListValidators(ctx context.Context, cursor int, count int) (ListValidatorsRsp, error)      //perm:read
+	ListVadiateResult(ctx context.Context, cursor int, count int) ([]WebValidateResult, error) //perm:read
+	SetupValidation(ctx context.Context, DeviceID string) error                                //perm:read
 }
 
-type WebDevice struct {
-	DeviceID   string
-	DeviceName string
+type WebNode struct {
+	NodeID   string
+	NodeName string
 }
 
 type ListDownloadInfoReq struct {
@@ -66,7 +66,7 @@ type StatCachesRsp struct {
 	HitRate       float32
 }
 
-type DeviceConnectionLog struct {
+type NodeConnectionLog struct {
 	DeviceID    string
 	OnlineTime  int64
 	OfflineTime int64

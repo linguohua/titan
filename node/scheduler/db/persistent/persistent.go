@@ -69,6 +69,9 @@ type DB interface {
 
 	// tool
 	ReplaceArea() string
+
+	// web
+	webDB
 }
 
 var (
