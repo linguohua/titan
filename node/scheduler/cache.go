@@ -113,7 +113,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockInfo) (int6
 		} else {
 			cNode.updateCacheStat(nodeCacheStat)
 		}
-		return cNode.nodeCacheNeedTime, err
+		return cNode.cacheNeedTime, err
 	}
 
 	eNode := c.nodeManager.getEdgeNode(deviceID)
@@ -127,7 +127,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockInfo) (int6
 			eNode.updateCacheStat(nodeCacheStat)
 		}
 
-		return eNode.nodeCacheNeedTime, err
+		return eNode.cacheNeedTime, err
 	}
 
 	return 0, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
@@ -228,7 +228,7 @@ func (c *Cache) matchingNodeAndBlocks(cids map[string]string) ([]*persistent.Blo
 }
 
 func (c *Cache) cacheDataToNodes(nodeCacheMap map[string][]api.BlockInfo) {
-	if nodeCacheMap == nil {
+	if nodeCacheMap == nil || len(nodeCacheMap) <= 0 {
 		return
 	}
 
@@ -247,7 +247,6 @@ func (c *Cache) cacheDataToNodes(nodeCacheMap map[string][]api.BlockInfo) {
 		}
 	}
 
-	// needTimeMax +=
 	// TODO update data/cache timeout
 	c.data.dataManager.updateDataTimeout(c.carfileCid, c.cacheID, needTimeMax)
 
@@ -341,9 +340,10 @@ func (c *Cache) startCache(cids map[string]string) error {
 	c.cacheDataToNodes(nodeCacheMap)
 
 	c.data.dataManager.saveEvent(c.carfileCid, c.cacheID, "", "", "", eventTypeDoCacheTaskStart)
+
 	err = cache.GetDB().SetTaskToRunningList(c.carfileCid, c.cacheID)
 	if err != nil {
-		log.Panicf("startCache %s , SetTaskToRunningList err:%s", c.carfileCid, err.Error())
+		return xerrors.Errorf("startCache %s , SetTaskToRunningList err:%s", c.carfileCid, err.Error())
 	}
 
 	return nil
@@ -357,14 +357,14 @@ func (c *Cache) stopCache(unDoneBlocks int, isTimeout bool) (err error) {
 	}
 	c.data.dataManager.saveEvent(c.carfileCid, c.cacheID, "", "", msg, eventTypeDoCacheTaskEnd)
 
-	err = cache.GetDB().RemoveRunningTask(c.carfileCid, c.cacheID)
-	if err != nil {
-		err = xerrors.Errorf("stopCache RemoveRunningTask err: %s", err.Error())
-		return
-	}
-
 	defer func() {
 		c.data.cacheEnd(c)
+
+		err = cache.GetDB().RemoveRunningTask(c.carfileCid, c.cacheID)
+		if err != nil {
+			err = xerrors.Errorf("stopCache RemoveRunningTask err: %s", err.Error())
+			return
+		}
 	}()
 
 	if isTimeout {

@@ -638,19 +638,27 @@ func (s *Scheduler) GetDownloadInfo(ctx context.Context, deviceID string) ([]*ap
 func (s *Scheduler) ShowDataTasks(ctx context.Context) ([]api.CacheDataInfo, error) {
 	infos := make([]api.CacheDataInfo, 0)
 
-	list, err := cache.GetDB().GetTasksWithRunningList()
-	if err != nil {
-		return infos, xerrors.Errorf("GetTasksWithRunningList err:%s", err.Error())
-	}
+	// list, err := cache.GetDB().GetTasksWithRunningList()
+	// if err != nil {
+	// 	return infos, xerrors.Errorf("GetTasksWithRunningList err:%s", err.Error())
+	// }
 
-	// log.Infof("ShowDataTasks:%v", list)
+	// // log.Infof("ShowDataTasks:%v", list)
 
-	for _, info := range list {
-		data := loadData(info.CarfileCid, s.nodeManager, s.dataManager)
-		if data != nil {
-			infos = append(infos, dataToCacheDataInfo(data))
-		}
-	}
+	// for _, info := range list {
+	// 	data := loadData(info.CarfileCid, s.nodeManager, s.dataManager)
+	// 	if data != nil {
+	// 		infos = append(infos, dataToCacheDataInfo(data))
+	// 	}
+	// }
+
+	s.dataManager.taskMap.Range(func(key, value interface{}) bool {
+		data := value.(*Data)
+
+		infos = append(infos, dataToCacheDataInfo(data))
+
+		return true
+	})
 
 	// log.Infof("ShowDataTasks:%v", infos)
 	return infos, nil
