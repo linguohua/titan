@@ -262,7 +262,7 @@ func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api
 }
 
 // DownloadBlockResult user download block result
-func (s *Scheduler) DownloadBlockResult(ctx context.Context, stat api.DownloadStat) error {
+func (s *Scheduler) DownloadBlockResult(ctx context.Context, stat api.DownloadBlockStat) error {
 	deviceID := handler.GetDeviceID(ctx)
 
 	if !s.nodeManager.isDeviceExist(deviceID, 0) {

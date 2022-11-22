@@ -16,7 +16,6 @@ var EdgeCmds = []*cli.Command{
 	DeleteBlockCmd,
 	ValidateBlockCmd,
 	LimitRateCmd,
-	DownloadInfoCmd,
 	CacheStatCmd,
 	StoreKeyCmd,
 	DeleteAllBlocksCmd,
@@ -203,29 +202,29 @@ var LimitRateCmd = &cli.Command{
 	},
 }
 
-var DownloadInfoCmd = &cli.Command{
-	Name:  "downinfo",
-	Usage: "get download server url and token",
-	Flags: []cli.Flag{},
-	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetEdgeAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
+// var DownloadInfoCmd = &cli.Command{
+// 	Name:  "downinfo",
+// 	Usage: "get download server url and token",
+// 	Flags: []cli.Flag{},
+// 	Action: func(cctx *cli.Context) error {
+// 		api, closer, err := GetEdgeAPI(cctx)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		defer closer()
 
-		ctx := ReqContext(cctx)
-		info, err := api.GetDownloadInfo(ctx)
-		if err != nil {
-			fmt.Printf("Unlimit speed failed:%v", err)
-			return err
-		}
+// 		ctx := ReqContext(cctx)
+// 		info, err := api.GetDownloadInfo(ctx)
+// 		if err != nil {
+// 			fmt.Printf("Unlimit speed failed:%v", err)
+// 			return err
+// 		}
 
-		fmt.Printf("URL:%s\n", info.URL)
-		fmt.Printf("Token:%s\n", info.Token)
-		return nil
-	},
-}
+// 		fmt.Printf("URL:%s\n", info.URL)
+// 		fmt.Printf("Token:%s\n", info.Token)
+// 		return nil
+// 	},
+// }
 
 var CacheStatCmd = &cli.Command{
 	Name:  "stat",

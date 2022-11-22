@@ -32,7 +32,7 @@ type Scheduler interface {
 	LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID, locatorToken string) error //perm:write
 
 	// call by node
-	DownloadBlockResult(ctx context.Context, stat DownloadStat) error                              //perm:write
+	DownloadBlockResult(ctx context.Context, stat DownloadBlockStat) error                         //perm:write
 	EdgeNodeConnect(ctx context.Context, edgePort int) (externalIP string, err error)              //perm:write
 	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                //perm:write
 	CandidateNodeConnect(ctx context.Context, edgePort int) (externalIP string, err error)         //perm:write
@@ -115,7 +115,7 @@ type CacheInfo struct {
 // 	Size     int
 // }
 
-type DownloadStat struct {
+type DownloadBlockStat struct {
 	Cid           string
 	DeviceID      string
 	BlockSize     int

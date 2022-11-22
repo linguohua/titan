@@ -105,7 +105,7 @@ func getClientIP(r *http.Request) string {
 }
 
 func (bd *BlockDownload) statistics(deviceID, cid string, size int, downloadSpeed int64, clientIP string) {
-	stat := api.DownloadStat{Cid: cid, DeviceID: deviceID, BlockSize: size, DownloadSpeed: downloadSpeed, ClientIP: clientIP}
+	stat := api.DownloadBlockStat{Cid: cid, DeviceID: deviceID, BlockSize: size, DownloadSpeed: downloadSpeed, ClientIP: clientIP}
 	bd.scheduler.DownloadBlockResult(context.Background(), stat)
 }
 
