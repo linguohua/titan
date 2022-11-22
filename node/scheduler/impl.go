@@ -389,7 +389,7 @@ func (s *Scheduler) ShowDataTask(ctx context.Context, cid string) (api.CacheData
 		return info, xerrors.Errorf("%s:%s", ErrCidNotFind, cid)
 	}
 
-	d := s.dataManager.findData(cid, false)
+	d := s.dataManager.findData(cid)
 	if d != nil {
 		return dataToCacheDataInfo(d), nil
 	}
@@ -645,8 +645,8 @@ func (s *Scheduler) ShowDataTasks(ctx context.Context) ([]api.CacheDataInfo, err
 
 	// log.Infof("ShowDataTasks:%v", list)
 
-	for _, cid := range list {
-		data := loadData(cid, s.nodeManager, s.dataManager)
+	for _, info := range list {
+		data := loadData(info.CarfileCid, s.nodeManager, s.dataManager)
 		if data != nil {
 			infos = append(infos, dataToCacheDataInfo(data))
 		}
@@ -659,7 +659,7 @@ func (s *Scheduler) ShowDataTasks(ctx context.Context) ([]api.CacheDataInfo, err
 func dataToCacheDataInfo(d *Data) api.CacheDataInfo {
 	info := api.CacheDataInfo{}
 	if d != nil {
-		info.Cid = d.cid
+		info.CarfileCid = d.carfileCid
 		info.TotalSize = d.totalSize
 		info.NeedReliability = d.needReliability
 		info.CurReliability = d.reliability

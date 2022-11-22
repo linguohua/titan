@@ -34,7 +34,7 @@ CREATE TABLE `validate_err` (
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='validate error device';
   
 CREATE TABLE `data_info_cn_gd_shenzhen` (
-	`cid` varchar(128) NOT NULL UNIQUE,
+	`carfile_cid` varchar(128) NOT NULL UNIQUE,
     `status` TINYINT  DEFAULT '0' ,
     `total_size` int  DEFAULT '0' ,
 	`reliability` TINYINT DEFAULT '0' ,
@@ -49,7 +49,7 @@ CREATE TABLE `data_info_cn_gd_shenzhen` (
 
 CREATE TABLE `cache_info_cn_gd_shenzhen` (
     `cache_id` varchar(64) NOT NULL UNIQUE,
-	`carfile_id` varchar(128) NOT NULL,
+	`carfile_cid` varchar(128) NOT NULL,
     `status` TINYINT  DEFAULT '0' ,
     `done_size` int  DEFAULT '0' ,
     `done_blocks` int  DEFAULT '0' ,
@@ -69,7 +69,7 @@ CREATE TABLE `block_info_cn_gd_shenzhen` (
 	`cid` varchar(128) NOT NULL,
     `cache_id` varchar(64) NOT NULL ,
     `device_id` varchar(128) NOT NULL ,
-    `carfile_id` varchar(128) NOT NULL,
+    `carfile_cid` varchar(128) NOT NULL,
     `status` TINYINT  DEFAULT '0' ,
     `size` int(20)  DEFAULT '0' ,
 	`reliability` int(64) DEFAULT '0' ,

@@ -85,7 +85,7 @@ type CacheResultInfo struct {
 
 // CacheDataInfo Cache Data Info
 type CacheDataInfo struct {
-	Cid             string
+	CarfileCid      string
 	NeedReliability int // 预期可靠性
 	CurReliability  int // 当前可靠性
 	TotalSize       int // 总大小

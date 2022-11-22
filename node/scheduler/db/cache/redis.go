@@ -328,7 +328,7 @@ func (rd redisDB) GetRunningTask(cid string) (string, error) {
 	return rd.cli.Get(context.Background(), key).Result()
 }
 
-func (rd redisDB) RemoveRunningTask(cid string) error {
+func (rd redisDB) RemoveRunningTask(cid, cacheID string) error {
 	key := fmt.Sprintf(redisKeyRunningTask, serverName, cid)
 
 	_, err := rd.cli.Del(context.Background(), key).Result()
@@ -336,7 +336,7 @@ func (rd redisDB) RemoveRunningTask(cid string) error {
 		return err
 	}
 
-	return rd.RemoveTaskWithRunningList(cid)
+	return rd.RemoveTaskWithRunningList(cid, cacheID)
 }
 
 func (rd redisDB) SetWaitingCacheTask(info api.CacheDataInfo) error {
@@ -408,26 +408,58 @@ func (rd redisDB) RemoveWaitingCacheTask(info api.CacheDataInfo) error {
 }
 
 // add
-func (rd redisDB) SetTaskToRunningList(cid string) error {
+func (rd redisDB) SetTaskToRunningList(cid, cacheID string) error {
 	key := fmt.Sprintf(redisKeyRunningList, serverName)
 
-	_, err := rd.cli.SAdd(context.Background(), key, cid).Result()
+	info := DataTask{CarfileCid: cid, CacheID: cacheID}
+	bytes, err := json.Marshal(info)
+	if err != nil {
+		return err
+	}
+
+	_, err = rd.cli.SAdd(context.Background(), key, bytes).Result()
 	return err
 }
 
 // del
-func (rd redisDB) RemoveTaskWithRunningList(cid string) error {
+func (rd redisDB) RemoveTaskWithRunningList(cid, cacheID string) error {
 	key := fmt.Sprintf(redisKeyRunningList, serverName)
 
-	_, err := rd.cli.SRem(context.Background(), key, cid).Result()
+	info := DataTask{CarfileCid: cid, CacheID: cacheID}
+	bytes, err := json.Marshal(info)
+	if err != nil {
+		return err
+	}
+
+	_, err = rd.cli.SRem(context.Background(), key, bytes).Result()
 	return err
 }
 
 // SMembers
-func (rd redisDB) GetTasksWithRunningList() ([]string, error) {
+func (rd redisDB) GetTasksWithRunningList() ([]DataTask, error) {
 	key := fmt.Sprintf(redisKeyRunningList, serverName)
 
-	return rd.cli.SMembers(context.Background(), key).Result()
+	values, err := rd.cli.SMembers(context.Background(), key).Result()
+	if err != nil || values == nil {
+		return nil, err
+	}
+
+	list := make([]DataTask, 0)
+	for _, value := range values {
+		var info DataTask
+		bytes, err := redigo.Bytes(value, nil)
+		if err != nil {
+			continue
+		}
+
+		if err := json.Unmarshal(bytes, &info); err != nil {
+			continue
+		}
+
+		list = append(list, info)
+	}
+
+	return list, nil
 }
 
 func (rd redisDB) SetDeviceLatency(deviceID string, latency float64) error {

@@ -13,7 +13,7 @@ import (
 type Data struct {
 	nodeManager     *NodeManager
 	dataManager     *DataManager
-	cid             string
+	carfileCid      string
 	cacheMap        sync.Map
 	reliability     int
 	needReliability int
@@ -29,7 +29,7 @@ func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, rel
 	return &Data{
 		nodeManager:     nodeManager,
 		dataManager:     dataManager,
-		cid:             cid,
+		carfileCid:      cid,
 		reliability:     0,
 		needReliability: reliability,
 		cacheCount:      0,
@@ -46,7 +46,7 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 	}
 	if dInfo != nil {
 		data := &Data{}
-		data.cid = cid
+		data.carfileCid = cid
 		data.nodeManager = nodeManager
 		data.dataManager = dataManager
 		data.totalSize = dInfo.TotalSize
@@ -104,7 +104,7 @@ func (d *Data) haveRootCache() bool {
 }
 
 func (d *Data) createCache(isRootCache bool) (*Cache, error) {
-	cache, err := newCache(d.nodeManager, d, d.cid, isRootCache)
+	cache, err := newCache(d.nodeManager, d, d.carfileCid, isRootCache)
 	if err != nil {
 		return nil, xerrors.Errorf("new cache err:%s", err.Error())
 	}
@@ -119,7 +119,7 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, info *
 	}
 
 	dInfo := &persistent.DataInfo{
-		CID:         d.cid,
+		CarfileCid:  d.carfileCid,
 		TotalSize:   d.totalSize,
 		TotalBlocks: d.totalBlocks,
 		Reliability: d.reliability,
@@ -128,7 +128,7 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, info *
 
 	cInfo := &persistent.CacheInfo{
 		// ID:          cache.dbID,
-		CarfileID:   cache.carfileCid,
+		CarfileCid:  cache.carfileCid,
 		CacheID:     cache.cacheID,
 		DoneSize:    cache.doneSize,
 		Status:      int(cache.status),
@@ -155,14 +155,14 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 		log.Warnf("updateAndSaveCacheEndInfo GetNodesFromCache err:%s", err.Error())
 	}
 
-	dNodes, err := persistent.GetDB().GetNodesFromData(d.cid)
+	dNodes, err := persistent.GetDB().GetNodesFromData(d.carfileCid)
 	if err != nil {
 		log.Warnf("updateAndSaveCacheEndInfo GetNodesFromData err:%s", err.Error())
 	}
 
 	d.nodes = dNodes
 	dInfo := &persistent.DataInfo{
-		CID:         d.cid,
+		CarfileCid:  d.carfileCid,
 		TotalSize:   d.totalSize,
 		TotalBlocks: d.totalBlocks,
 		Reliability: d.reliability,
@@ -173,7 +173,7 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 	cache.nodes = cNodes
 	cInfo := &persistent.CacheInfo{
 		// ID:          cache.dbID,
-		CarfileID:   cache.carfileCid,
+		CarfileCid:  cache.carfileCid,
 		CacheID:     cache.cacheID,
 		DoneSize:    cache.doneSize,
 		Status:      int(cache.status),
@@ -187,7 +187,7 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 	return persistent.GetDB().SaveCacheEndResults(dInfo, cInfo)
 }
 
-func (d *Data) findOrCreateCache(cacheID string) (string, error) {
+func (d *Data) dispatchCache(cacheID string) (string, error) {
 	var err error
 	var cache *Cache
 	var list map[string]string
@@ -218,17 +218,20 @@ func (d *Data) findOrCreateCache(cacheID string) (string, error) {
 
 	d.cacheCount++
 
-	return cacheID, cache.startCache(list)
+	err = cache.startCache(list)
+	if err != nil {
+		return cacheID, err
+	}
+
+	return cacheID, nil
 }
 
 func (d *Data) cacheEnd(c *Cache) {
 	var err error
-	cacheID := ""
+	cacheID := c.cacheID
 	defer func() {
 		if err != nil {
-			d.dataManager.dataTaskEnd(d.cid, err.Error(), c.cacheID)
-		} else {
-			d.dataManager.dataTaskStart(d.cid, cacheID)
+			d.dataManager.dataTaskEnd(d.carfileCid, err.Error())
 		}
 	}()
 
@@ -259,5 +262,5 @@ func (d *Data) cacheEnd(c *Cache) {
 		return true
 	})
 
-	cacheID, err = d.findOrCreateCache(cacheID)
+	cacheID, err = d.dispatchCache(cacheID)
 }

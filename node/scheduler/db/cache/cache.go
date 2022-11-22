@@ -12,13 +12,13 @@ type DB interface {
 	RemoveCacheResultInfo() error
 	GetCacheResultNum() int64
 
-	SetTaskToRunningList(cid string) error
-	RemoveTaskWithRunningList(cid string) error
-	GetTasksWithRunningList() ([]string, error)
+	SetTaskToRunningList(cid, cacheID string) error
+	RemoveTaskWithRunningList(cid, cacheID string) error
+	GetTasksWithRunningList() ([]DataTask, error)
 
 	SetRunningTask(cid, cacheID string, timeout int64) error
 	GetRunningTask(cid string) (string, error)
-	RemoveRunningTask(cid string) error
+	RemoveRunningTask(cid, cacheID string) error
 
 	SetWaitingCacheTask(info api.CacheDataInfo) error
 	GetWaitingCacheTask(index int64) (api.CacheDataInfo, error)
@@ -90,4 +90,10 @@ type NodeInfo struct {
 	Geo        string
 	IsOnline   bool
 	NodeType   api.NodeTypeName
+}
+
+// DataTask data cache task
+type DataTask struct {
+	CarfileCid string
+	CacheID    string
 }
