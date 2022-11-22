@@ -100,6 +100,12 @@ var (
 		Usage: "page",
 		Value: 0,
 	}
+
+	expiredTimeFlag = &cli.IntFlag{
+		Name:  "expired-time",
+		Usage: "the cache expired time (unit:hour)",
+		Value: 0,
+	}
 )
 
 var nodeTokenCmd = &cli.Command{
@@ -452,11 +458,7 @@ var cacheCarfileCmd = &cli.Command{
 		// schedulerURLFlag,
 		cidFlag,
 		reliabilityFlag,
-		&cli.IntFlag{
-			Name:  "expired-time",
-			Usage: "the cache expired time (unit:hour)",
-			Value: 0,
-		},
+		expiredTimeFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
