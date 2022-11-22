@@ -19,6 +19,7 @@ import (
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/linguohua/titan/node/scheduler/web"
 	"github.com/linguohua/titan/node/secret"
 	"golang.org/x/xerrors"
 )
@@ -74,6 +75,8 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int) api.Scheduler {
 		serverPort:     port,
 	}
 
+	s.Web = web.NewWeb(s)
+
 	go manager.stateNetwork()
 
 	sec, err := secret.APISecret(lr)
@@ -88,6 +91,7 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int) api.Scheduler {
 // Scheduler node
 type Scheduler struct {
 	common.CommonAPI
+	api.Web
 
 	nodeManager    *NodeManager
 	validatePool   *ValidatePool
