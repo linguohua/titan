@@ -4,7 +4,6 @@ package api
 
 import (
 	"context"
-
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
@@ -155,9 +154,7 @@ type DownloadStruct struct {
 
 	Internal struct {
 
-		GetDownloadInfo func(p0 context.Context) (DownloadInfo, error) `perm:"read"`
-
-		SetDownloadSpeed func(p0 context.Context, p1 int64) (error) `perm:"write"`
+		SetDownloadSpeed func(p0 context.Context, p1 int64) (error) ``
 
 	}
 }
@@ -254,7 +251,7 @@ type SchedulerStruct struct {
 
 		DeleteBlockRecords func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"admin"`
 
-		DownloadBlockResult func(p0 context.Context, p1 DownloadStat) (error) `perm:"write"`
+		DownloadBlockResult func(p0 context.Context, p1 DownloadBlockStat) (error) `perm:"write"`
 
 		EdgeNodeConnect func(p0 context.Context, p1 int) (string, error) `perm:"write"`
 
@@ -319,6 +316,49 @@ type ValidateStruct struct {
 }
 
 type ValidateStub struct {
+
+}
+
+type WebStruct struct {
+
+	Internal struct {
+
+		AddCacheTask func(p0 context.Context, p1 string, p2 int) (error) ``
+
+		CancelCacheTask func(p0 context.Context, p1 string) (error) ``
+
+		GetBlocksByCarfileCID func(p0 context.Context, p1 string) ([]WebBlock, error) ``
+
+		GetCacheTaskInfo func(p0 context.Context, p1 string) (CacheDataInfo, error) ``
+
+		GetCarfileByCID func(p0 context.Context, p1 string) (WebCarfile, error) ``
+
+		GetDeviceInfoByID func(p0 context.Context, p1 string) (Device, error) ``
+
+		ListCacheTask func(p0 context.Context, p1 int, p2 int) (DataListInfo, error) ``
+
+		ListCaches func(p0 context.Context, p1 ListCachesReq) ([]WebCarfile, error) ``
+
+		ListDeviceConnectionLog func(p0 context.Context, p1 int, p2 int) ([]DeviceConnectionLog, error) ``
+
+		ListDevices func(p0 context.Context, p1 int, p2 int) ([]WebDevice, error) ``
+
+		ListDownloadInfo func(p0 context.Context, p1 ListDownloadInfoReq) ([]DownloadBlockStat, error) ``
+
+		ListVadiateResult func(p0 context.Context, p1 int, p2 int) ([]WebValidateResult, error) ``
+
+		ListValidators func(p0 context.Context, p1 int, p2 int) (ListValidatorsRsp, error) ``
+
+		RemoveCarfile func(p0 context.Context, p1 string) (error) ``
+
+		SetupValidation func(p0 context.Context, p1 string) (error) ``
+
+		StatCaches func(p0 context.Context, p1 ListCachesReq) (StatCachesRsp, error) ``
+
+	}
+}
+
+type WebStub struct {
 
 }
 
@@ -649,17 +689,6 @@ func (s *DeviceStub) DeviceInfo(p0 context.Context) (DevicesInfo, error) {
 
 
 
-func (s *DownloadStruct) GetDownloadInfo(p0 context.Context) (DownloadInfo, error) {
-	if s.Internal.GetDownloadInfo == nil {
-		return *new(DownloadInfo), ErrNotSupported
-	}
-	return s.Internal.GetDownloadInfo(p0)
-}
-
-func (s *DownloadStub) GetDownloadInfo(p0 context.Context) (DownloadInfo, error) {
-	return *new(DownloadInfo), ErrNotSupported
-}
-
 func (s *DownloadStruct) SetDownloadSpeed(p0 context.Context, p1 int64) (error) {
 	if s.Internal.SetDownloadSpeed == nil {
 		return ErrNotSupported
@@ -856,14 +885,14 @@ func (s *SchedulerStub) DeleteBlockRecords(p0 context.Context, p1 string, p2 []s
 	return *new(map[string]string), ErrNotSupported
 }
 
-func (s *SchedulerStruct) DownloadBlockResult(p0 context.Context, p1 DownloadStat) (error) {
+func (s *SchedulerStruct) DownloadBlockResult(p0 context.Context, p1 DownloadBlockStat) (error) {
 	if s.Internal.DownloadBlockResult == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.DownloadBlockResult(p0, p1)
 }
 
-func (s *SchedulerStub) DownloadBlockResult(p0 context.Context, p1 DownloadStat) (error) {
+func (s *SchedulerStub) DownloadBlockResult(p0 context.Context, p1 DownloadBlockStat) (error) {
 	return ErrNotSupported
 }
 
@@ -1125,6 +1154,185 @@ func (s *ValidateStub) BeValidate(p0 context.Context, p1 ReqValidate, p2 string)
 
 
 
+
+func (s *WebStruct) AddCacheTask(p0 context.Context, p1 string, p2 int) (error) {
+	if s.Internal.AddCacheTask == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.AddCacheTask(p0, p1, p2)
+}
+
+func (s *WebStub) AddCacheTask(p0 context.Context, p1 string, p2 int) (error) {
+	return ErrNotSupported
+}
+
+func (s *WebStruct) CancelCacheTask(p0 context.Context, p1 string) (error) {
+	if s.Internal.CancelCacheTask == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.CancelCacheTask(p0, p1)
+}
+
+func (s *WebStub) CancelCacheTask(p0 context.Context, p1 string) (error) {
+	return ErrNotSupported
+}
+
+func (s *WebStruct) GetBlocksByCarfileCID(p0 context.Context, p1 string) ([]WebBlock, error) {
+	if s.Internal.GetBlocksByCarfileCID == nil {
+		return *new([]WebBlock), ErrNotSupported
+	}
+	return s.Internal.GetBlocksByCarfileCID(p0, p1)
+}
+
+func (s *WebStub) GetBlocksByCarfileCID(p0 context.Context, p1 string) ([]WebBlock, error) {
+	return *new([]WebBlock), ErrNotSupported
+}
+
+func (s *WebStruct) GetCacheTaskInfo(p0 context.Context, p1 string) (CacheDataInfo, error) {
+	if s.Internal.GetCacheTaskInfo == nil {
+		return *new(CacheDataInfo), ErrNotSupported
+	}
+	return s.Internal.GetCacheTaskInfo(p0, p1)
+}
+
+func (s *WebStub) GetCacheTaskInfo(p0 context.Context, p1 string) (CacheDataInfo, error) {
+	return *new(CacheDataInfo), ErrNotSupported
+}
+
+func (s *WebStruct) GetCarfileByCID(p0 context.Context, p1 string) (WebCarfile, error) {
+	if s.Internal.GetCarfileByCID == nil {
+		return *new(WebCarfile), ErrNotSupported
+	}
+	return s.Internal.GetCarfileByCID(p0, p1)
+}
+
+func (s *WebStub) GetCarfileByCID(p0 context.Context, p1 string) (WebCarfile, error) {
+	return *new(WebCarfile), ErrNotSupported
+}
+
+func (s *WebStruct) GetDeviceInfoByID(p0 context.Context, p1 string) (Device, error) {
+	if s.Internal.GetDeviceInfoByID == nil {
+		return *new(Device), ErrNotSupported
+	}
+	return s.Internal.GetDeviceInfoByID(p0, p1)
+}
+
+func (s *WebStub) GetDeviceInfoByID(p0 context.Context, p1 string) (Device, error) {
+	return *new(Device), ErrNotSupported
+}
+
+func (s *WebStruct) ListCacheTask(p0 context.Context, p1 int, p2 int) (DataListInfo, error) {
+	if s.Internal.ListCacheTask == nil {
+		return *new(DataListInfo), ErrNotSupported
+	}
+	return s.Internal.ListCacheTask(p0, p1, p2)
+}
+
+func (s *WebStub) ListCacheTask(p0 context.Context, p1 int, p2 int) (DataListInfo, error) {
+	return *new(DataListInfo), ErrNotSupported
+}
+
+func (s *WebStruct) ListCaches(p0 context.Context, p1 ListCachesReq) ([]WebCarfile, error) {
+	if s.Internal.ListCaches == nil {
+		return *new([]WebCarfile), ErrNotSupported
+	}
+	return s.Internal.ListCaches(p0, p1)
+}
+
+func (s *WebStub) ListCaches(p0 context.Context, p1 ListCachesReq) ([]WebCarfile, error) {
+	return *new([]WebCarfile), ErrNotSupported
+}
+
+func (s *WebStruct) ListDeviceConnectionLog(p0 context.Context, p1 int, p2 int) ([]DeviceConnectionLog, error) {
+	if s.Internal.ListDeviceConnectionLog == nil {
+		return *new([]DeviceConnectionLog), ErrNotSupported
+	}
+	return s.Internal.ListDeviceConnectionLog(p0, p1, p2)
+}
+
+func (s *WebStub) ListDeviceConnectionLog(p0 context.Context, p1 int, p2 int) ([]DeviceConnectionLog, error) {
+	return *new([]DeviceConnectionLog), ErrNotSupported
+}
+
+func (s *WebStruct) ListDevices(p0 context.Context, p1 int, p2 int) ([]WebDevice, error) {
+	if s.Internal.ListDevices == nil {
+		return *new([]WebDevice), ErrNotSupported
+	}
+	return s.Internal.ListDevices(p0, p1, p2)
+}
+
+func (s *WebStub) ListDevices(p0 context.Context, p1 int, p2 int) ([]WebDevice, error) {
+	return *new([]WebDevice), ErrNotSupported
+}
+
+func (s *WebStruct) ListDownloadInfo(p0 context.Context, p1 ListDownloadInfoReq) ([]DownloadBlockStat, error) {
+	if s.Internal.ListDownloadInfo == nil {
+		return *new([]DownloadBlockStat), ErrNotSupported
+	}
+	return s.Internal.ListDownloadInfo(p0, p1)
+}
+
+func (s *WebStub) ListDownloadInfo(p0 context.Context, p1 ListDownloadInfoReq) ([]DownloadBlockStat, error) {
+	return *new([]DownloadBlockStat), ErrNotSupported
+}
+
+func (s *WebStruct) ListVadiateResult(p0 context.Context, p1 int, p2 int) ([]WebValidateResult, error) {
+	if s.Internal.ListVadiateResult == nil {
+		return *new([]WebValidateResult), ErrNotSupported
+	}
+	return s.Internal.ListVadiateResult(p0, p1, p2)
+}
+
+func (s *WebStub) ListVadiateResult(p0 context.Context, p1 int, p2 int) ([]WebValidateResult, error) {
+	return *new([]WebValidateResult), ErrNotSupported
+}
+
+func (s *WebStruct) ListValidators(p0 context.Context, p1 int, p2 int) (ListValidatorsRsp, error) {
+	if s.Internal.ListValidators == nil {
+		return *new(ListValidatorsRsp), ErrNotSupported
+	}
+	return s.Internal.ListValidators(p0, p1, p2)
+}
+
+func (s *WebStub) ListValidators(p0 context.Context, p1 int, p2 int) (ListValidatorsRsp, error) {
+	return *new(ListValidatorsRsp), ErrNotSupported
+}
+
+func (s *WebStruct) RemoveCarfile(p0 context.Context, p1 string) (error) {
+	if s.Internal.RemoveCarfile == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.RemoveCarfile(p0, p1)
+}
+
+func (s *WebStub) RemoveCarfile(p0 context.Context, p1 string) (error) {
+	return ErrNotSupported
+}
+
+func (s *WebStruct) SetupValidation(p0 context.Context, p1 string) (error) {
+	if s.Internal.SetupValidation == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.SetupValidation(p0, p1)
+}
+
+func (s *WebStub) SetupValidation(p0 context.Context, p1 string) (error) {
+	return ErrNotSupported
+}
+
+func (s *WebStruct) StatCaches(p0 context.Context, p1 ListCachesReq) (StatCachesRsp, error) {
+	if s.Internal.StatCaches == nil {
+		return *new(StatCachesRsp), ErrNotSupported
+	}
+	return s.Internal.StatCaches(p0, p1)
+}
+
+func (s *WebStub) StatCaches(p0 context.Context, p1 ListCachesReq) (StatCachesRsp, error) {
+	return *new(StatCachesRsp), ErrNotSupported
+}
+
+
+
 var _ Block = new(BlockStruct)
 var _ Candidate = new(CandidateStruct)
 var _ Common = new(CommonStruct)
@@ -1135,5 +1343,6 @@ var _ Edge = new(EdgeStruct)
 var _ Locator = new(LocatorStruct)
 var _ Scheduler = new(SchedulerStruct)
 var _ Validate = new(ValidateStruct)
+var _ Web = new(WebStruct)
 
 
