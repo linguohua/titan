@@ -44,7 +44,7 @@ CREATE TABLE `data_info_cn_gd_shenzhen` (
     `nodes` int  DEFAULT '0' ,
     `expired_time` datetime NOT NULL,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
-	PRIMARY KEY (`cid`)
+	PRIMARY KEY (`carfile_cid`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='data infos';
 
 CREATE TABLE `cache_info_cn_gd_shenzhen` (
@@ -56,7 +56,6 @@ CREATE TABLE `cache_info_cn_gd_shenzhen` (
 	`reliability` TINYINT DEFAULT '0' ,
     `total_size` int  DEFAULT '0' ,
     `total_blocks` int  DEFAULT '0' ,
-    `remove_blocks` int  DEFAULT '0' ,
     `nodes` int  DEFAULT '0' ,
     `expired_time` datetime NOT NULL,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,

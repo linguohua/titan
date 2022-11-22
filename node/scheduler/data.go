@@ -228,7 +228,7 @@ func (d *Data) dispatchCache(cacheID string) (string, error) {
 
 func (d *Data) cacheEnd(c *Cache) {
 	var err error
-	cacheID := c.cacheID
+
 	defer func() {
 		if err != nil {
 			d.dataManager.dataTaskEnd(d.carfileCid, err.Error())
@@ -252,6 +252,7 @@ func (d *Data) cacheEnd(c *Cache) {
 	}
 
 	// old cache
+	cacheID := ""
 	d.cacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)
 
@@ -262,5 +263,5 @@ func (d *Data) cacheEnd(c *Cache) {
 		return true
 	})
 
-	cacheID, err = d.dispatchCache(cacheID)
+	_, err = d.dispatchCache(cacheID)
 }

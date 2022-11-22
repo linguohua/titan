@@ -45,8 +45,8 @@ type Node struct {
 	addr            string
 	lastRequestTime time.Time
 
-	nodeCacheStat     api.CacheStat
-	nodeCacheNeedTime int64 // Second
+	cacheStat     api.CacheStat
+	cacheNeedTime int64 //
 }
 
 // node online
@@ -158,8 +158,10 @@ func (n *Node) updateAccessAuth(access *api.DownloadServerAccessAuth) error {
 }
 
 func (n *Node) updateCacheStat(info api.CacheStat) {
-	n.nodeCacheStat = info
+	n.cacheStat = info
 
 	num := info.WaitCacheBlockNum + info.DoingCacheBlockNum
-	n.nodeCacheNeedTime = int64(num * info.DownloadTimeout)
+
+	timeStamp := time.Now().Unix()
+	n.cacheNeedTime = timeStamp + int64(num*info.DownloadTimeout) + int64(info.DownloadTimeout)
 }

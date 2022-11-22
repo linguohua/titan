@@ -40,9 +40,6 @@ type DataManager struct {
 	timeoutTimeWheel *timewheel.TimeWheel
 	timeoutTime      int // check timeout time interval (Second)
 
-	// taskTimeWheel *timewheel.TimeWheel
-	// doTaskTime    int // task time interval (Second)
-
 	runningTaskMax int
 }
 
@@ -52,8 +49,7 @@ func newDataManager(nodeManager *NodeManager) *DataManager {
 		blockLoaderCh:    make(chan bool),
 		dataTaskLoaderCh: make(chan bool),
 		timeoutTime:      30,
-		// doTaskTime:       5,
-		runningTaskMax: 2,
+		runningTaskMax:   5,
 	}
 
 	d.initTimewheel()
@@ -74,16 +70,6 @@ func (m *DataManager) initTimewheel() {
 	})
 	m.timeoutTimeWheel.Start()
 	m.timeoutTimeWheel.AddTimer(time.Duration(m.timeoutTime-1)*time.Second, "TaskTimeout", nil)
-
-	// m.taskTimeWheel = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-	// 	m.taskTimeWheel.AddTimer(time.Duration(m.doTaskTime-1)*time.Second, "DataTask", nil)
-	// 	err := m.doDataTask()
-	// 	if err != nil {
-	// 		log.Errorf("doTask err :%s", err.Error())
-	// 	}
-	// })
-	// m.taskTimeWheel.Start()
-	// m.taskTimeWheel.AddTimer(time.Duration(m.doTaskTime-1)*time.Second, "DataTask", nil)
 }
 
 func (m *DataManager) getNextWaitingTask(index int64) (api.CacheDataInfo, error) {
@@ -94,7 +80,7 @@ func (m *DataManager) getNextWaitingTask(index int64) (api.CacheDataInfo, error)
 		return info, err
 	}
 
-	if m.isTaskRunnning(info.CarfileCid) {
+	if m.isTaskRunnning(info.CarfileCid, "") {
 		info, err = m.getNextWaitingTask(index + 1)
 		if err != nil {
 			return info, err
@@ -105,10 +91,6 @@ func (m *DataManager) getNextWaitingTask(index int64) (api.CacheDataInfo, error)
 }
 
 func (m *DataManager) doDataTask() error {
-	// if len(m.getRunningTasks()) >= m.runningTaskMax {
-	// 	return nil
-	// }
-
 	// next data task
 	info, err := m.getNextWaitingTask(0)
 	if err != nil {
@@ -162,7 +144,7 @@ func (m *DataManager) findData(cid string) *Data {
 }
 
 func (m *DataManager) checkTaskTimeout(taskInfo cache.DataTask) {
-	if m.isTaskRunnning(taskInfo.CarfileCid) {
+	if m.isTaskRunnning(taskInfo.CarfileCid, taskInfo.CacheID) {
 		return
 	}
 
@@ -348,8 +330,11 @@ func (m *DataManager) removeCache(carfileCid, cacheID string) error {
 func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultInfo) error {
 	// area := m.nodeManager.getNodeArea(deviceID)
 	data := m.findData(info.CarFileCid)
-
 	if data == nil {
+		return xerrors.Errorf("%s : %s", ErrNotFoundTask, info.CarFileCid)
+	}
+
+	if !m.isTaskRunnning(info.CarFileCid, info.CacheID) {
 		return xerrors.Errorf("%s : %s", ErrNotFoundTask, info.CarFileCid)
 	}
 
@@ -422,7 +407,10 @@ func (m *DataManager) startDataTaskLoader() {
 		doLen := m.runningTaskMax - len(m.getRunningTasks())
 		if doLen > 0 {
 			for i := 0; i < doLen; i++ {
-				m.doDataTask()
+				err := m.doDataTask()
+				if err != nil {
+					log.Errorf("doDataTask er:%s", err.Error())
+				}
 			}
 		}
 	}
@@ -471,14 +459,18 @@ func (m *DataManager) getRunningTasks() []cache.DataTask {
 	return list
 }
 
-func (m *DataManager) isTaskRunnning(cid string) bool {
+func (m *DataManager) isTaskRunnning(cid, cacheID string) bool {
 	cID, err := cache.GetDB().GetRunningTask(cid)
 	if err != nil && !cache.GetDB().IsNilErr(err) {
 		log.Errorf("isTaskRunnning %s GetRunningTask err:%s", cid, err.Error())
 		return true
 	}
 
-	return cID != ""
+	if cacheID == "" {
+		return cID != ""
+	}
+
+	return cID == cacheID
 }
 
 func (m *DataManager) saveEvent(cid, cacheID, deviceID, userID, msg string, event EventType) error {
