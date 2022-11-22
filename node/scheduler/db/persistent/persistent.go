@@ -165,6 +165,7 @@ type DataInfo struct {
 	Nodes           int       `db:"nodes"`
 	ExpiredTime     time.Time `db:"expired_time"`
 	CreateTime      time.Time `db:"created_time"`
+	EndTime         time.Time `db:"end_time"`
 }
 
 // CacheInfo Data Block info
@@ -181,6 +182,7 @@ type CacheInfo struct {
 	ExpiredTime time.Time `db:"expired_time"`
 	CreateTime  time.Time `db:"created_time"`
 	RootCache   bool      `db:"root_cache"`
+	EndTime     time.Time `db:"end_time"`
 }
 
 // BlockInfo Data Block info

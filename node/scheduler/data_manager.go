@@ -73,7 +73,6 @@ func (m *DataManager) initTimewheel() {
 }
 
 func (m *DataManager) getNextWaitingTask(index int64) (api.CacheDataInfo, error) {
-	// log.Infof("index:%d,get list:%v", index, cache.GetDB().Test())
 	// next data task
 	info, err := cache.GetDB().GetWaitingCacheTask(index)
 	if err != nil {
@@ -375,13 +374,7 @@ func (m *DataManager) pushCacheResultToQueue(deviceID string, info *api.CacheRes
 
 	err := cache.GetDB().SetCacheResultInfo(*info)
 
-	// m.enqueue(info)
 	m.notifyBlockLoader()
-
-	// err = cache.GetDB().SetRunningTask(info.CarFileCid, info.CacheID)
-	// if err != nil {
-	// 	log.Errorf("cacheID:%s,%s SetRunningTask err:%s ", info.CacheID, info.Cid, err.Error())
-	// }
 
 	return err
 }
