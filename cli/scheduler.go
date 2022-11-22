@@ -452,6 +452,11 @@ var cacheCarfileCmd = &cli.Command{
 		// schedulerURLFlag,
 		cidFlag,
 		reliabilityFlag,
+		&cli.IntFlag{
+			Name:  "expired-time",
+			Usage: "the cache expired time (unit:hour)",
+			Value: 0,
+		},
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -465,6 +470,11 @@ var cacheCarfileCmd = &cli.Command{
 			return xerrors.New("reliability is 0")
 		}
 
+		expiredTime := cctx.Int("expired-time")
+		if expiredTime <= 0 {
+			return xerrors.New("expiredTime not 0")
+		}
+
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
@@ -476,7 +486,7 @@ var cacheCarfileCmd = &cli.Command{
 			return xerrors.New("cid is nil")
 		}
 
-		err = schedulerAPI.CacheCarfile(ctx, cid, reliability)
+		err = schedulerAPI.CacheCarfile(ctx, cid, reliability, expiredTime)
 		if err != nil {
 			return err
 		}

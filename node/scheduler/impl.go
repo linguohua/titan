@@ -363,12 +363,12 @@ func (s *Scheduler) RemoveCache(ctx context.Context, carfileID, cacheID string) 
 }
 
 // CacheCarfile Cache Carfile
-func (s *Scheduler) CacheCarfile(ctx context.Context, cid string, reliability int) error {
+func (s *Scheduler) CacheCarfile(ctx context.Context, cid string, reliability int, expiredTime int) error {
 	if cid == "" {
 		return xerrors.New("cid is nil")
 	}
 
-	return s.dataManager.cacheData(cid, reliability)
+	return s.dataManager.cacheData(cid, reliability, expiredTime)
 }
 
 // ListDatas List Datas
