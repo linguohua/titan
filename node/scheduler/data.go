@@ -19,10 +19,9 @@ type Data struct {
 	needReliability int
 	totalSize       int
 	cacheCount      int
-	// rootCacheID     string
-	totalBlocks int
-	nodes       int
-	expiredTime time.Time
+	totalBlocks     int
+	nodes           int
+	expiredTime     time.Time
 }
 
 func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, reliability int) *Data {
@@ -34,7 +33,6 @@ func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, rel
 		needReliability: reliability,
 		cacheCount:      0,
 		totalBlocks:     1,
-		// rootCacheID:     "",
 	}
 }
 
@@ -53,7 +51,6 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 		data.needReliability = dInfo.NeedReliability
 		data.reliability = dInfo.Reliability
 		data.cacheCount = dInfo.CacheCount
-		// data.rootCacheID = dInfo.RootCacheID
 		data.totalBlocks = dInfo.TotalBlocks
 		data.nodes = dInfo.Nodes
 		data.expiredTime = dInfo.ExpiredTime
@@ -136,7 +133,6 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, info *
 		Reliability: cache.reliability,
 		TotalSize:   cache.totalSize,
 		TotalBlocks: cache.totalBlocks,
-		// RemoveBlocks: cache.removeBlocks,
 	}
 
 	return persistent.GetDB().SaveCacheingResults(dInfo, cInfo, blockInfo, createBlocks)
@@ -145,9 +141,6 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, info *
 func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 	if cache.status == persistent.CacheStatusSuccess {
 		d.reliability += cache.reliability
-		// if !d.haveRootCache() {
-		// 	d.rootCacheID = cache.cacheID
-		// }
 	}
 
 	cNodes, err := persistent.GetDB().GetNodesFromCache(cache.cacheID)
@@ -172,7 +165,6 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 
 	cache.nodes = cNodes
 	cInfo := &persistent.CacheInfo{
-		// ID:          cache.dbID,
 		CarfileCid:  cache.carfileCid,
 		CacheID:     cache.cacheID,
 		DoneSize:    cache.doneSize,

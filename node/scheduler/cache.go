@@ -26,7 +26,6 @@ type Cache struct {
 	totalBlocks int
 	nodes       int
 	isRootCache bool
-	// removeBlocks int
 }
 
 func newCacheID(cid string) (string, error) {
@@ -79,7 +78,6 @@ func loadCache(cacheID, carfileCid string, nodeManager *NodeManager, data *Data)
 	}
 
 	info, err := persistent.GetDB().GetCacheInfo(cacheID)
-	// list, err := persistent.GetDB().GetCacheInfos(area, cacheID)
 	if err != nil || info == nil {
 		log.Errorf("loadCache %s,%s GetCacheInfo err:%v", carfileCid, cacheID, err)
 		return nil
@@ -91,7 +89,6 @@ func loadCache(cacheID, carfileCid string, nodeManager *NodeManager, data *Data)
 	c.reliability = info.Reliability
 	c.nodes = info.Nodes
 	c.totalBlocks = info.TotalBlocks
-	// c.removeBlocks = info.RemoveBlocks
 	c.totalSize = info.TotalSize
 	c.isRootCache = info.RootCache
 	// info.ExpiredTime
@@ -145,7 +142,6 @@ func (c *Cache) findNode(filterDeviceIDs map[string]string, i int) (deviceID str
 		node := cs[i%len(cs)]
 
 		deviceID = node.deviceInfo.DeviceId
-		// deviceAddr = node.addr
 		return
 	}
 
@@ -154,11 +150,9 @@ func (c *Cache) findNode(filterDeviceIDs map[string]string, i int) (deviceID str
 		return
 	}
 	// rand node
-	// node := cs[randomNum(0, len(cs))]
 	node := cs[i%len(cs)]
 
 	deviceID = node.deviceInfo.DeviceId
-	// deviceAddr = node.addr
 	return
 }
 
@@ -166,7 +160,6 @@ func (c *Cache) matchingNodeAndBlocks(cids map[string]string) ([]*persistent.Blo
 	if cids == nil {
 		return nil, nil
 	}
-	// c.totalBlocks += len(cids)
 
 	nodeCacheMap := make(map[string][]api.BlockInfo)
 	blockList := make([]*persistent.BlockInfo, 0)
@@ -217,8 +210,7 @@ func (c *Cache) matchingNodeAndBlocks(cids map[string]string) ([]*persistent.Blo
 			Size:       0,
 			ID:         dbID,
 			CarfileCid: c.carfileCid,
-			// IsUpdate:  isUpdate,
-			FID: fid,
+			FID:        fid,
 		}
 
 		blockList = append(blockList, b)
@@ -351,7 +343,7 @@ func (c *Cache) stopCache(unDoneBlocks int, isTimeout bool) (err error) {
 	// log.Infof("end cache %s,%s ----------", c.carfileCid, c.cacheID)
 	msg := ""
 	if isTimeout {
-		msg = "time out"
+		msg = "timeout"
 	}
 	c.data.dataManager.saveEvent(c.carfileCid, c.cacheID, "", "", msg, eventTypeDoCacheTaskEnd)
 
