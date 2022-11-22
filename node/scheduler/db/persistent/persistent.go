@@ -33,7 +33,7 @@ type DB interface {
 
 	// cache info
 	GetCacheInfo(cacheID string) (*CacheInfo, error)
-	RemoveAndUpdateCacheInfo(cacheID, carfileID string, isDeleteData bool, reliability int) error
+	RemoveCacheInfo(cacheID, carfileID string, isDeleteData bool, reliability int) error
 	GetCachesSize(cacheID string, status int) (int, error)
 
 	// block info
@@ -155,7 +155,7 @@ type ValidateResult struct {
 
 // DataInfo Data info
 type DataInfo struct {
-	CID             string    `db:"cid"`
+	CarfileCid      string    `db:"carfile_cid"`
 	Status          int       `db:"status"`
 	Reliability     int       `db:"reliability"`
 	NeedReliability int       `db:"need_reliability"`
@@ -169,7 +169,7 @@ type DataInfo struct {
 
 // CacheInfo Data Block info
 type CacheInfo struct {
-	CarfileID    string    `db:"carfile_id"`
+	CarfileCid   string    `db:"carfile_cid"`
 	CacheID      string    `db:"cache_id"`
 	Status       int       `db:"status"`
 	Reliability  int       `db:"reliability"`
@@ -193,7 +193,7 @@ type BlockInfo struct {
 	Status      int    `db:"status"`
 	Size        int    `db:"size"`
 	Reliability int    `db:"reliability"`
-	CarfileID   string `db:"carfile_id"`
+	CarfileCid  string `db:"carfile_cid"`
 	FID         int    `db:"fid"`
 	IsUpdate    bool
 }

@@ -386,7 +386,7 @@ var showDatasInfoCmd = &cli.Command{
 		}
 
 		for _, info := range infos {
-			fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d \n", info.Cid, float64(info.TotalSize)/(1024*1024), info.Blocks)
+			fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d \n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.Blocks)
 			for _, cache := range info.CacheInfos {
 				fmt.Printf("TaskID:%s ,  Status:%s , Done Size:%f MB ,Done Blocks:%d , Nodes:%d\n",
 					cache.CacheID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.Nodes)
@@ -435,7 +435,7 @@ var showDataInfoCmd = &cli.Command{
 			}
 		}
 
-		fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d , Nodes:%d \n", info.Cid, float64(info.TotalSize)/(1024*1024), info.Blocks, info.Nodes)
+		fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d , Nodes:%d \n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.Blocks, info.Nodes)
 		for _, cache := range info.CacheInfos {
 			fmt.Printf("TaskID:%s ,  Status:%s , Done Size:%f MB ,Done Blocks:%d , Nodes:%d\n",
 				cache.CacheID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.Nodes)

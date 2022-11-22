@@ -54,7 +54,7 @@ func newCache(nodeManager *NodeManager, data *Data, cid string, isRootCache bool
 
 	err = persistent.GetDB().CreateCache(
 		&persistent.CacheInfo{
-			CarfileID:   cache.carfileCid,
+			CarfileCid:  cache.carfileCid,
 			CacheID:     cache.cacheID,
 			Status:      int(cache.status),
 			ExpiredTime: data.expiredTime,
@@ -210,13 +210,13 @@ func (c *Cache) matchingNodeAndBlocks(cids map[string]string) ([]*persistent.Blo
 		}
 
 		b := &persistent.BlockInfo{
-			CacheID:   c.cacheID,
-			CID:       cid,
-			DeviceID:  deviceID,
-			Status:    int(status),
-			Size:      0,
-			ID:        dbID,
-			CarfileID: c.carfileCid,
+			CacheID:    c.cacheID,
+			CID:        cid,
+			DeviceID:   deviceID,
+			Status:     int(status),
+			Size:       0,
+			ID:         dbID,
+			CarfileCid: c.carfileCid,
 			// IsUpdate:  isUpdate,
 			FID: fid,
 		}
@@ -233,7 +233,7 @@ func (c *Cache) cacheDataToNodes(nodeCacheMap map[string][]api.BlockInfo) {
 	}
 
 	// timeStamp := time.Now().Unix()
-	timeStampMax := int64(0)
+	needTimeMax := int64(0)
 
 	for deviceID, caches := range nodeCacheMap {
 		needTime, err := c.cacheBlocksToNode(deviceID, caches)
@@ -242,13 +242,14 @@ func (c *Cache) cacheDataToNodes(nodeCacheMap map[string][]api.BlockInfo) {
 			continue
 		}
 
-		if needTime > timeStampMax {
-			timeStampMax = needTime
+		if needTime > needTimeMax {
+			needTimeMax = needTime
 		}
 	}
 
+	// needTimeMax +=
 	// TODO update data/cache timeout
-	c.data.dataManager.updateDataTimeout(c.carfileCid, c.cacheID, timeStampMax)
+	c.data.dataManager.updateDataTimeout(c.carfileCid, c.cacheID, needTimeMax)
 
 	return
 }
@@ -288,7 +289,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		Size:        info.BlockSize,
 		Status:      int(status),
 		Reliability: reliability,
-		CarfileID:   c.carfileCid,
+		CarfileCid:  c.carfileCid,
 		// FID:         blockInfo.FID,
 		// IsUpdate:    true,
 	}
@@ -315,7 +316,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		}
 
 		if unDoneBlocks <= 0 {
-			return c.stopCache(unDoneBlocks)
+			return c.stopCache(unDoneBlocks, false)
 		}
 	}
 
@@ -339,15 +340,37 @@ func (c *Cache) startCache(cids map[string]string) error {
 	// log.Infof("start cache %s,%s ---------- ", c.carfileCid, c.cacheID)
 	c.cacheDataToNodes(nodeCacheMap)
 
+	c.data.dataManager.saveEvent(c.carfileCid, c.cacheID, "", "", "", eventTypeDoCacheTaskStart)
+	err = cache.GetDB().SetTaskToRunningList(c.carfileCid, c.cacheID)
+	if err != nil {
+		log.Panicf("startCache %s , SetTaskToRunningList err:%s", c.carfileCid, err.Error())
+	}
+
 	return nil
 }
 
-func (c *Cache) stopCache(unDoneBlocks int) (err error) {
+func (c *Cache) stopCache(unDoneBlocks int, isTimeout bool) (err error) {
 	// log.Infof("end cache %s,%s ----------", c.carfileCid, c.cacheID)
+	msg := ""
+	if isTimeout {
+		msg = "time out"
+	}
+	c.data.dataManager.saveEvent(c.carfileCid, c.cacheID, "", "", msg, eventTypeDoCacheTaskEnd)
+
+	err = cache.GetDB().RemoveRunningTask(c.carfileCid, c.cacheID)
+	if err != nil {
+		err = xerrors.Errorf("stopCache RemoveRunningTask err: %s", err.Error())
+		return
+	}
 
 	defer func() {
 		c.data.cacheEnd(c)
 	}()
+
+	if isTimeout {
+		c.status = persistent.CacheStatusTimeout
+		return
+	}
 
 	failedBlocks, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(persistent.CacheStatusFail))
 	if err != nil {
@@ -397,7 +420,7 @@ func (c *Cache) removeCache() error {
 	})
 
 	// delete cache and update data info
-	err = persistent.GetDB().RemoveAndUpdateCacheInfo(c.cacheID, c.carfileCid, isDelete, reliability)
+	err = persistent.GetDB().RemoveCacheInfo(c.cacheID, c.carfileCid, isDelete, reliability)
 	if err == nil {
 		c.data.reliability = reliability
 	}
