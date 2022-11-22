@@ -240,8 +240,8 @@ func (m *DataManager) makeDataContinue(cid, cacheID string) error {
 	return nil
 }
 
-func (m *DataManager) cacheData(cid string, reliability int) error {
-	t := time.Now().Add(7 * 24 * time.Hour) // TODO
+func (m *DataManager) cacheData(cid string, reliability int, expiredTime int) error {
+	t := time.Now().Add(time.Duration(expiredTime) * time.Hour)
 
 	err := cache.GetDB().SetWaitingCacheTask(api.CacheDataInfo{CarfileCid: cid, NeedReliability: reliability, ExpiredTime: t})
 	if err != nil {

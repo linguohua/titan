@@ -240,7 +240,7 @@ type SchedulerStruct struct {
 
 	Internal struct {
 
-		CacheCarfile func(p0 context.Context, p1 string, p2 int) (error) `perm:"admin"`
+		CacheCarfile func(p0 context.Context, p1 string, p2 int, p3 int) (error) `perm:"admin"`
 
 		CacheContinue func(p0 context.Context, p1 string, p2 string) (error) `perm:"admin"`
 
@@ -829,14 +829,14 @@ func (s *LocatorStub) ShowAccessPoint(p0 context.Context, p1 string) (AccessPoin
 
 
 
-func (s *SchedulerStruct) CacheCarfile(p0 context.Context, p1 string, p2 int) (error) {
+func (s *SchedulerStruct) CacheCarfile(p0 context.Context, p1 string, p2 int, p3 int) (error) {
 	if s.Internal.CacheCarfile == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.CacheCarfile(p0, p1, p2)
+	return s.Internal.CacheCarfile(p0, p1, p2, p3)
 }
 
-func (s *SchedulerStub) CacheCarfile(p0 context.Context, p1 string, p2 int) (error) {
+func (s *SchedulerStub) CacheCarfile(p0 context.Context, p1 string, p2 int, p3 int) (error) {
 	return ErrNotSupported
 }
 
