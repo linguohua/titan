@@ -44,8 +44,8 @@ type DataManager struct {
 func newDataManager(nodeManager *NodeManager) *DataManager {
 	d := &DataManager{
 		nodeManager:      nodeManager,
-		blockLoaderCh:    make(chan bool),
-		dataTaskLoaderCh: make(chan bool),
+		blockLoaderCh:    make(chan bool, 1),
+		dataTaskLoaderCh: make(chan bool, 1),
 		timerInterval:    30,
 		runningTaskMax:   5,
 	}
@@ -80,10 +80,7 @@ func (m *DataManager) getWaitingTask(index int64) (api.CacheDataInfo, error) {
 	}
 
 	if m.isTaskRunnning(info.CarfileCid, "") {
-		info, err = m.getWaitingTask(index + 1)
-		if err != nil {
-			return info, err
-		}
+		return m.getWaitingTask(index + 1)
 	}
 
 	return info, nil
@@ -98,10 +95,16 @@ func (m *DataManager) doDataTask() error {
 		return xerrors.Errorf("getWaitingTask err:%s", err.Error())
 	}
 
-	cacheID := ""
+	var c *Cache
 	defer func() {
 		if err != nil {
+			cacheID := ""
+			if c != nil {
+				cacheID = c.cacheID
+			}
 			m.saveEvent(info.CarfileCid, cacheID, "", err.Error(), eventTypeDoDataTaskErr)
+		} else {
+			m.dataTaskStart(c.data)
 		}
 
 		err = cache.GetDB().RemoveWaitingCacheTask(info)
@@ -111,14 +114,14 @@ func (m *DataManager) doDataTask() error {
 	}()
 
 	if info.CacheInfos != nil && len(info.CacheInfos) > 0 {
-		cacheID = info.CacheInfos[0].CacheID
+		cacheID := info.CacheInfos[0].CacheID
 
-		err = m.makeDataContinue(info.CarfileCid, cacheID)
+		c, err = m.makeDataContinue(info.CarfileCid, cacheID)
 		if err != nil {
 			return xerrors.Errorf("makeDataContinue err:%s", err.Error())
 		}
 	} else {
-		cacheID, err = m.makeDataTask(info.CarfileCid, info.NeedReliability, info.ExpiredTime)
+		c, err = m.makeDataTask(info.CarfileCid, info.NeedReliability, info.ExpiredTime)
 		if err != nil {
 			return xerrors.Errorf("makeDataTask err:%s", err.Error())
 		}
@@ -172,7 +175,7 @@ func (m *DataManager) checkTaskTimeouts() {
 	}
 }
 
-func (m *DataManager) makeDataTask(cid string, reliability int, expiredTime time.Time) (string, error) {
+func (m *DataManager) makeDataTask(cid string, reliability int, expiredTime time.Time) (*Cache, error) {
 	var err error
 	data := m.findData(cid)
 	if data == nil {
@@ -180,7 +183,7 @@ func (m *DataManager) makeDataTask(cid string, reliability int, expiredTime time
 		data.expiredTime = expiredTime
 	} else {
 		if reliability <= data.reliability {
-			return "", xerrors.Errorf("reliability is enough:%d/%d", data.reliability, reliability)
+			return nil, xerrors.Errorf("reliability is enough:%d/%d", data.reliability, reliability)
 		}
 		data.needReliability = reliability
 		// TODO expiredTime
@@ -198,7 +201,7 @@ func (m *DataManager) makeDataTask(cid string, reliability int, expiredTime time
 		ExpiredTime:     data.expiredTime,
 	})
 	if err != nil {
-		return "", xerrors.Errorf("cid:%s,SetDataInfo err:%s", data.carfileCid, err.Error())
+		return nil, xerrors.Errorf("cid:%s,SetDataInfo err:%s", data.carfileCid, err.Error())
 	}
 
 	// old cache
@@ -216,30 +219,18 @@ func (m *DataManager) makeDataTask(cid string, reliability int, expiredTime time
 
 	data.cacheCount = data.reliability
 
-	cacheID, err = data.dispatchCache(cacheID)
-	if err != nil {
-		return cacheID, err
-	}
-
-	m.dataTaskStart(data)
-	return cacheID, nil
+	return data.dispatchCache(cacheID)
 }
 
-func (m *DataManager) makeDataContinue(cid, cacheID string) error {
+func (m *DataManager) makeDataContinue(cid, cacheID string) (*Cache, error) {
 	data := m.findData(cid)
 	if data == nil {
-		return xerrors.Errorf("%s,cid:%s,cacheID:%s", ErrNotFoundTask, cid, cacheID)
+		return nil, xerrors.Errorf("%s,cid:%s,cacheID:%s", ErrNotFoundTask, cid, cacheID)
 	}
 
 	data.cacheCount = data.reliability
 
-	_, err := data.dispatchCache(cacheID)
-	if err != nil {
-		return err
-	}
-
-	m.dataTaskStart(data)
-	return nil
+	return data.dispatchCache(cacheID)
 }
 
 func (m *DataManager) cacheData(cid string, reliability int, expiredTime int) error {
