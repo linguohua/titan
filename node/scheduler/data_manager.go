@@ -205,13 +205,12 @@ func (m *DataManager) makeDataTask(cid string, reliability int, expiredTime time
 	}
 
 	// old cache
-	cacheID := ""
+	var oldCache *Cache
 	data.cacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)
 
 		if c.status != persistent.CacheStatusSuccess {
-			cacheID = c.cacheID
-			return true
+			oldCache = c
 		}
 
 		return true
@@ -219,7 +218,7 @@ func (m *DataManager) makeDataTask(cid string, reliability int, expiredTime time
 
 	data.cacheCount = data.reliability
 
-	return data.dispatchCache(cacheID)
+	return data.dispatchCache(oldCache)
 }
 
 func (m *DataManager) makeDataContinue(cid, cacheID string) (*Cache, error) {
@@ -228,9 +227,15 @@ func (m *DataManager) makeDataContinue(cid, cacheID string) (*Cache, error) {
 		return nil, xerrors.Errorf("%s,cid:%s,cacheID:%s", ErrNotFoundTask, cid, cacheID)
 	}
 
+	cacheI, ok := data.cacheMap.Load(cacheID)
+	if !ok || cacheI == nil {
+		return nil, xerrors.Errorf("Not Found CacheID :%s", cacheID)
+	}
+	cache := cacheI.(*Cache)
+
 	data.cacheCount = data.reliability
 
-	return data.dispatchCache(cacheID)
+	return data.dispatchCache(cache)
 }
 
 func (m *DataManager) cacheData(cid string, reliability int, expiredTime int) error {
