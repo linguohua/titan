@@ -2,11 +2,12 @@ package scheduler
 
 import (
 	"context"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"math/rand"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/linguohua/titan/node/scheduler/db/cache"
 )
 
 var HeartbeatInterval = 1 * time.Minute
