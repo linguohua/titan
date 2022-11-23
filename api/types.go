@@ -87,5 +87,6 @@ type BlockDownloadInfo struct {
 	BlockSize   int64     `json:"blockSize" db:"block_size"`
 	Speed       int64     `json:"speed" db:"speed"`
 	Reward      int64     `json:"reward" db:"reward"`
+	ClientIP    string    `json:"client_ip" db:"client_ip"`
 	CreatedTime time.Time `json:"createdAt" db:"created_time"`
 }

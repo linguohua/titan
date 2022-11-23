@@ -2,35 +2,35 @@ package api
 
 import (
 	"context"
+	"time"
 )
 
 type Web interface {
-	// cursor: start index, count: load number of device
-	ListNodes(ctx context.Context, cursor int, count int) ([]WebNode, error)                              //perm:read
-	GetNodeInfoByID(ctx context.Context, nodeID string) (DevicesInfo, error)                              //perm:read
-	ListNodeConnectionLog(ctx context.Context, cursor int, count int) ([]NodeConnectionLog, error)        //perm:read
-	ListBlockDownloadInfo(ctx context.Context, req ListBlockDownloadInfoReq) ([]BlockDownloadInfo, error) //perm:read
+	// ListNodes cursor: start index, count: load number of device
+	ListNodes(ctx context.Context, cursor int, count int) (ListNodesRsp, error)                                //perm:read
+	GetNodeInfoByID(ctx context.Context, nodeID string) (DevicesInfo, error)                                   //perm:read
+	ListNodeConnectionLog(ctx context.Context, req ListNodeConnectionLogReq) (ListNodeConnectionLogRsp, error) //perm:read
+	ListBlockDownloadInfo(ctx context.Context, req ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) //perm:read
 
-	// cache manager
-	ListCaches(ctx context.Context, req ListCachesReq) ([]WebCarfile, error)           //perm:read
-	StatCaches(ctx context.Context) (StatCachesRsp, error)                             //perm:read
-	AddCacheTask(ctx context.Context, carFileCID string, reliability int) error        //perm:read
-	ListCacheTask(ctx context.Context, cursor int, count int) ([]CacheDataInfo, error) //perm:read
-	GetCacheTaskInfo(ctx context.Context, carFileCID string) (CacheDataInfo, error)    //perm:read
-	CancelCacheTask(ctx context.Context, carFileCID string) error                      //perm:read
+	// ListCaches cache manager
+	ListCaches(ctx context.Context, req ListCachesReq) (ListCachesRsp, error)             //perm:read
+	StatCaches(ctx context.Context) (StatCachesRsp, error)                                //perm:read
+	AddCacheTask(ctx context.Context, carFileCID string, reliability int) error           //perm:read
+	ListCacheTasks(ctx context.Context, cursor int, count int) (ListCacheTasksRsp, error) //perm:read
+	GetCacheTaskInfo(ctx context.Context, carFileCID string) (CacheDataInfo, error)       //perm:read
+	CancelCacheTask(ctx context.Context, carFileCID string) error                         //perm:read
 
-	GetCarfileByCID(ctx context.Context, carFileCID string) (WebCarfile, error)       //perm:read
-	GetBlocksByCarfileCID(ctx context.Context, carFileCID string) ([]WebBlock, error) //perm:read
-	RemoveCarfile(ctx context.Context, carFileCID string) error                       //perm:read
+	GetCarfileByCID(ctx context.Context, carFileCID string) (WebCarfile, error) //perm:read
+	RemoveCarfile(ctx context.Context, carFileCID string) error                 //perm:read
 
-	ListValidators(ctx context.Context, cursor int, count int) (ListValidatorsRsp, error)      //perm:read
-	ListVadiateResult(ctx context.Context, cursor int, count int) ([]WebValidateResult, error) //perm:read
-	SetupValidation(ctx context.Context, DeviceID string) error                                //perm:read
+	GetValidationInfo(ctx context.Context) (ValidationInfo, error)                                //perm:read
+	ListValidateResult(ctx context.Context, cursor int, count int) (ListValidateResultRsp, error) //perm:read
+	SetupValidation(ctx context.Context, DeviceID string) error                                   //perm:read
 }
 
-type WebNode struct {
-	NodeID   string
-	NodeName string
+type ListNodesRsp struct {
+	Data  []*DevicesInfo
+	Total int64
 }
 
 type ListBlockDownloadInfoReq struct {
@@ -52,10 +52,25 @@ type ListCachesReq struct {
 	count   int
 }
 
+type ListCachesRsp struct {
+	Data  []WebCarfile
+	Total int64
+}
+
+type WebCarfileStatus int
+
+const (
+	WebCarfileStatusAdd WebCarfileStatus = iota + 1
+	WebCarfileStatusRemove
+)
+
 type WebCarfile struct {
-	Cid  string
-	Name string
-	Size int64
+	Cid       string
+	Name      string
+	Size      int64
+	Status    WebCarfileStatus
+	Blocks    []WebBlock
+	CreatedAt time.Time
 }
 
 type StatCachesRsp struct {
@@ -66,10 +81,37 @@ type StatCachesRsp struct {
 	HitRate       float32
 }
 
+type NodeConnectionStatus int
+
+const (
+	NodeConnectionStatusOnline NodeConnectionStatus = iota + 1
+	NodeConnectionStatusOffline
+)
+
+type ListNodeConnectionLogReq struct {
+	NodeID string
+	// Unix timestamp
+	StartTime int64
+	// Unix timestamp
+	EndTime int64
+	Cursor  int
+	Count   int
+}
+
+type ListNodeConnectionLogRsp struct {
+	Data  []NodeConnectionLog
+	Total int64
+}
+
+type ListBlockDownloadInfoRsp struct {
+	Data  []BlockDownloadInfo
+	Total int64
+}
+
 type NodeConnectionLog struct {
-	DeviceID    string
-	OnlineTime  int64
-	OfflineTime int64
+	DeviceID  string
+	Status    NodeConnectionStatus
+	CreatedAt time.Time
 }
 
 type WebBlock struct {
@@ -78,9 +120,20 @@ type WebBlock struct {
 	BlockSize int
 }
 
-type ListValidatorsRsp struct {
+type ListCacheTasksRsp struct {
+	Data  []CacheDataInfo
+	Total int64
+}
+
+type ValidationInfo struct {
 	Validators       []string
 	NextElectionTime int64
+	EnableValidation bool
+}
+
+type ListValidateResultRsp struct {
+	Data  []WebValidateResult
+	Total int64
 }
 
 type WebValidateResult struct {
@@ -90,7 +143,7 @@ type WebValidateResult struct {
 	ValidatorID string
 	Msg         string
 	Status      int
-	StratTime   string
+	StartTime   string
 	EndTime     string
 	ServerName  string
 }
