@@ -123,7 +123,8 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int) (externa
 
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+string(t))
-	// Connect to scheduler
+
+	// Connect to node
 	candicateAPI, closer, err := client.NewCandicate(ctx, url, headers)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect NewCandicate err:%s,url:%s", err.Error(), url)
@@ -194,7 +195,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int) (externalIP s
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+string(t))
 
-	// Connect to scheduler
+	// Connect to node
 	edgeAPI, closer, err := client.NewEdge(ctx, url, headers)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect NewEdge err:%s,url:%s", err.Error(), url)
