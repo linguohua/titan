@@ -29,32 +29,32 @@ type Web interface {
 }
 
 type ListNodesRsp struct {
-	Data  []*DevicesInfo
-	Total int64
+	Data  []DevicesInfo `json:"data"`
+	Total int64         `json:"total"`
 }
 
 type ListBlockDownloadInfoReq struct {
-	DeviceID string
+	DeviceID string `json:"device_id"`
 	// Unix timestamp
-	StartTime int64
+	StartTime int64 `json:"start_time"`
 	// Unix timestamp
-	EndTime int64
-	Cursor  int
-	Count   int
+	EndTime int64 `json:"end_time"`
+	Cursor  int   `json:"cursor"`
+	Count   int   `json:"count"`
 }
 
 type ListCachesReq struct {
 	// Unix timestamp
-	StartTime int64
+	StartTime int64 `json:"start_time"`
 	// Unix timestamp
-	EndTime int64
-	Cursor  int
-	count   int
+	EndTime int64 `json:"end_time"`
+	Cursor  int   `json:"cursor"`
+	count   int   `json:"count"`
 }
 
 type ListCachesRsp struct {
-	Data  []WebCarfile
-	Total int64
+	Data  []WebCarfile `json:"data"`
+	Total int64        `json:"total"`
 }
 
 type WebCarfileStatus int
@@ -65,20 +65,20 @@ const (
 )
 
 type WebCarfile struct {
-	Cid       string
-	Name      string
-	Size      int64
-	Status    WebCarfileStatus
-	Blocks    []WebBlock
-	CreatedAt time.Time
+	Cid       string           `json:"cid"`
+	Name      string           `json:"name"`
+	Size      int64            `json:"size"`
+	Status    WebCarfileStatus `json:"status"`
+	Blocks    []WebBlock       `json:"blocks"`
+	CreatedAt time.Time        `json:"created_at"`
 }
 
 type StatCachesRsp struct {
-	CarFileCount  int
-	TotalSize     int64
-	DeviceCount   int
-	DownloadCount int
-	HitRate       float32
+	CarFileCount  int     `json:"car_file_count"`
+	TotalSize     int64   `json:"total_size"`
+	DeviceCount   int     `json:"device_count"`
+	DownloadCount int     `json:"download_count"`
+	HitRate       float32 `json:"hit_rate"`
 }
 
 type NodeConnectionStatus int
@@ -89,61 +89,61 @@ const (
 )
 
 type ListNodeConnectionLogReq struct {
-	NodeID string
+	NodeID string `json:"node_id"`
 	// Unix timestamp
-	StartTime int64
+	StartTime int64 `json:"start_time"`
 	// Unix timestamp
-	EndTime int64
-	Cursor  int
-	Count   int
+	EndTime int64 `json:"end_time"`
+	Cursor  int   `json:"cursor"`
+	Count   int   `json:"count"`
 }
 
 type ListNodeConnectionLogRsp struct {
-	Data  []NodeConnectionLog
-	Total int64
+	Data  []NodeConnectionLog `json:"data"`
+	Total int64               `json:"total"`
 }
 
 type ListBlockDownloadInfoRsp struct {
-	Data  []BlockDownloadInfo
-	Total int64
+	Data  []BlockDownloadInfo `json:"data"`
+	Total int64               `json:"total"`
 }
 
 type NodeConnectionLog struct {
-	DeviceID  string
-	Status    NodeConnectionStatus
-	CreatedAt time.Time
+	DeviceID  string               `json:"device_id"`
+	Status    NodeConnectionStatus `json:"status"`
+	CreatedAt time.Time            `json:"created_at"`
 }
 
 type WebBlock struct {
-	Cid       string
-	DeviceID  string
-	BlockSize int
+	Cid       string `json:"cid"`
+	DeviceID  string `json:"device_id"`
+	BlockSize int    `json:"block_size"`
 }
 
 type ListCacheTasksRsp struct {
-	Data  []CacheDataInfo
-	Total int64
+	Data  []CacheDataInfo `json:"data"`
+	Total int64           `json:"total"`
 }
 
 type ValidationInfo struct {
-	Validators       []string
-	NextElectionTime int64
-	EnableValidation bool
+	Validators       []string `json:"validators"`
+	NextElectionTime int64    `json:"next_election_time"`
+	EnableValidation bool     `json:"enable_validation"`
 }
 
 type ListValidateResultRsp struct {
-	Data  []WebValidateResult
-	Total int64
+	Data  []WebValidateResult `json:"data"`
+	Total int64               `json:"total"`
 }
 
 type WebValidateResult struct {
-	ID          int
-	RoundID     string
-	DeviceID    string
-	ValidatorID string
-	Msg         string
-	Status      int
-	StartTime   string
-	EndTime     string
-	ServerName  string
+	ID          int    `json:"id"`
+	RoundID     string `json:"round_id"`
+	DeviceID    string `json:"device_id"`
+	ValidatorID string `json:"validator_id"`
+	Msg         string `json:"msg"`
+	Status      int    `json:"status"`
+	StartTime   string `json:"start_time"`
+	EndTime     string `json:"end_time"`
+	ServerName  string `json:"server_name"`
 }
