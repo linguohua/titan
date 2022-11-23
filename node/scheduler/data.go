@@ -179,20 +179,12 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 	return persistent.GetDB().SaveCacheEndResults(dInfo, cInfo)
 }
 
-func (d *Data) dispatchCache(cacheID string) (*Cache, error) {
+func (d *Data) dispatchCache(cache *Cache) (*Cache, error) {
 	var err error
-	var cache *Cache
 	var list map[string]string
 
-	if cacheID != "" {
-		cacheI, ok := d.cacheMap.Load(cacheID)
-		if !ok || cacheI == nil {
-			err = xerrors.Errorf("Not Found CacheID :%s", cacheID)
-			return nil, err
-		}
-		cache = cacheI.(*Cache)
-
-		list, err = persistent.GetDB().GetUndoneBlocks(cacheID)
+	if cache != nil {
+		list, err = persistent.GetDB().GetUndoneBlocks(cache.cacheID)
 		if err != nil {
 			return cache, err
 		}
@@ -203,7 +195,6 @@ func (d *Data) dispatchCache(cacheID string) (*Cache, error) {
 		}
 
 		d.cacheMap.Store(cache.cacheID, cache)
-		cacheID = cache.cacheID
 
 		list = map[string]string{cache.carfileCid: ""}
 	}
@@ -218,7 +209,7 @@ func (d *Data) dispatchCache(cacheID string) (*Cache, error) {
 	return cache, nil
 }
 
-func (d *Data) cacheEnd(c *Cache) {
+func (d *Data) cacheEnd(doneCache *Cache) {
 	var err error
 
 	defer func() {
@@ -227,7 +218,7 @@ func (d *Data) cacheEnd(c *Cache) {
 		}
 	}()
 
-	err = d.updateAndSaveCacheEndInfo(c)
+	err = d.updateAndSaveCacheEndInfo(doneCache)
 	if err != nil {
 		err = xerrors.Errorf("saveCacheEndResults err:%s", err.Error())
 		return
@@ -244,16 +235,16 @@ func (d *Data) cacheEnd(c *Cache) {
 	}
 
 	// old cache
-	cacheID := ""
+	var oldCache *Cache
 	d.cacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)
 
 		if c.status != persistent.CacheStatusSuccess {
-			cacheID = c.cacheID
+			oldCache = c
 		}
 
 		return true
 	})
 
-	_, err = d.dispatchCache(cacheID)
+	_, err = d.dispatchCache(oldCache)
 }
