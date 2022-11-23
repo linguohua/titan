@@ -26,6 +26,7 @@ type Cache struct {
 	totalBlocks int
 	nodes       int
 	isRootCache bool
+	expiredTime time.Time
 }
 
 func newCacheID(cid string) (string, error) {
@@ -49,6 +50,7 @@ func newCache(nodeManager *NodeManager, data *Data, cid string, isRootCache bool
 		cacheID:     id,
 		carfileCid:  cid,
 		isRootCache: isRootCache,
+		expiredTime: data.expiredTime,
 	}
 
 	err = persistent.GetDB().CreateCache(
@@ -56,7 +58,7 @@ func newCache(nodeManager *NodeManager, data *Data, cid string, isRootCache bool
 			CarfileCid:  cache.carfileCid,
 			CacheID:     cache.cacheID,
 			Status:      int(cache.status),
-			ExpiredTime: data.expiredTime,
+			ExpiredTime: cache.expiredTime,
 			RootCache:   cache.isRootCache,
 		})
 	if err != nil {
@@ -91,7 +93,7 @@ func loadCache(cacheID, carfileCid string, nodeManager *NodeManager, data *Data)
 	c.totalBlocks = info.TotalBlocks
 	c.totalSize = info.TotalSize
 	c.isRootCache = info.RootCache
-	// info.ExpiredTime
+	c.expiredTime = info.ExpiredTime
 
 	return c
 }

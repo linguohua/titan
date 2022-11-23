@@ -17,8 +17,8 @@ type Data struct {
 	cacheMap        sync.Map
 	reliability     int
 	needReliability int
-	totalSize       int
 	cacheCount      int
+	totalSize       int
 	totalBlocks     int
 	nodes           int
 	expiredTime     time.Time

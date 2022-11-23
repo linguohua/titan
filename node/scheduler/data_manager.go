@@ -164,6 +164,28 @@ func (m *DataManager) checkTaskTimeout(taskInfo cache.DataTask) {
 	}
 }
 
+func (m *DataManager) checkCacheExpired(cid string) {
+	now := time.Now()
+	data := m.findData(cid)
+
+	data.cacheMap.Range(func(key, value interface{}) bool {
+		c := value.(*Cache)
+		if c.expiredTime.After(now) {
+			return true
+		}
+
+		// do remove
+		err := c.removeCache()
+		if err != nil {
+			m.saveEvent(cid, c.cacheID, "expired", err.Error(), eventTypeRemoveCacheEnd)
+		} else {
+			m.saveEvent(cid, c.cacheID, "expired", "", eventTypeRemoveCacheEnd)
+		}
+
+		return true
+	})
+}
+
 func (m *DataManager) checkTaskTimeouts() {
 	list := m.getRunningTasks()
 	if list == nil || len(list) <= 0 {
