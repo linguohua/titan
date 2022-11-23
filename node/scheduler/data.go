@@ -179,7 +179,7 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 	return persistent.GetDB().SaveCacheEndResults(dInfo, cInfo)
 }
 
-func (d *Data) dispatchCache(cacheID string) (string, error) {
+func (d *Data) dispatchCache(cacheID string) (*Cache, error) {
 	var err error
 	var cache *Cache
 	var list map[string]string
@@ -188,18 +188,18 @@ func (d *Data) dispatchCache(cacheID string) (string, error) {
 		cacheI, ok := d.cacheMap.Load(cacheID)
 		if !ok || cacheI == nil {
 			err = xerrors.Errorf("Not Found CacheID :%s", cacheID)
-			return cacheID, err
+			return nil, err
 		}
 		cache = cacheI.(*Cache)
 
 		list, err = persistent.GetDB().GetUndoneBlocks(cacheID)
 		if err != nil {
-			return cacheID, err
+			return cache, err
 		}
 	} else {
 		cache, err = d.createCache(!d.haveRootCache())
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		d.cacheMap.Store(cache.cacheID, cache)
@@ -212,10 +212,10 @@ func (d *Data) dispatchCache(cacheID string) (string, error) {
 
 	err = cache.startCache(list)
 	if err != nil {
-		return cacheID, err
+		return cache, err
 	}
 
-	return cacheID, nil
+	return cache, nil
 }
 
 func (d *Data) cacheEnd(c *Cache) {
