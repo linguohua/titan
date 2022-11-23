@@ -319,6 +319,43 @@ var listDataCmd = &cli.Command{
 	},
 }
 
+// var listEventCmd = &cli.Command{
+// 	Name:  "list-event",
+// 	Usage: "list events",
+// 	Flags: []cli.Flag{
+// 		pageFlag,
+// 	},
+
+// 	Before: func(cctx *cli.Context) error {
+// 		return nil
+// 	},
+// 	Action: func(cctx *cli.Context) error {
+// 		ctx := ReqContext(cctx)
+// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+// 		if err != nil {
+// 			return err
+// 		}
+// 		defer closer()
+
+// 		page := cctx.Int("page")
+// 		if page < 1 {
+// 			return xerrors.New("page need greater than 1")
+// 		}
+
+// 		info, err := schedulerAPI.ListDatas(ctx, page)
+// 		if err != nil {
+// 			return err
+// 		}
+
+// 		for _, str := range info.CidList {
+// 			fmt.Println(str)
+// 		}
+// 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
+
+// 		return nil
+// 	},
+// }
+
 var validateSwitchCmd = &cli.Command{
 	Name:  "validate-switch",
 	Usage: "validate switch",
@@ -386,6 +423,8 @@ var showDatasInfoCmd = &cli.Command{
 				return "running"
 			case 3:
 				return "done"
+			case 4:
+				return "time out"
 			default:
 				return "failed"
 			}
@@ -436,6 +475,8 @@ var showDataInfoCmd = &cli.Command{
 				return "running"
 			case 3:
 				return "done"
+			case 4:
+				return "time out"
 			default:
 				return "failed"
 			}

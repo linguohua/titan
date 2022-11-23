@@ -515,9 +515,12 @@ func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []s
 		totalPage++
 	}
 
-	if page > totalPage {
-		err = xerrors.Errorf("totalPage:%d but page:%d", totalPage, page)
+	if totalPage == 0 {
 		return
+	}
+
+	if page > totalPage {
+		page = totalPage
 	}
 
 	// select * from table order by id limit m, n;
