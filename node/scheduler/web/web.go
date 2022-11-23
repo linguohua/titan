@@ -46,7 +46,7 @@ func (w *web) ListCaches(ctx context.Context, req api.ListCachesReq) ([]api.WebC
 	return []api.WebCarfile{}, nil
 }
 
-func (w *web) StatCaches(ctx context.Context, req api.ListCachesReq) (api.StatCachesRsp, error) {
+func (w *web) StatCaches(ctx context.Context) (api.StatCachesRsp, error) {
 	return api.StatCachesRsp{}, nil
 }
 
@@ -58,8 +58,8 @@ func (w *web) ListNodeConnectionLog(ctx context.Context, cursor int, count int) 
 func (w *web) AddCacheTask(ctx context.Context, carFileCID string, reliability int) error {
 	return nil
 }
-func (w *web) ListCacheTask(ctx context.Context, cursor int, count int) (api.DataListInfo, error) {
-	return api.DataListInfo{}, nil
+func (w *web) ListCacheTask(ctx context.Context, cursor int, count int) ([]api.CacheDataInfo, error) {
+	return []api.CacheDataInfo{}, nil
 }
 func (w *web) GetCacheTaskInfo(ctx context.Context, carFileCID string) (api.CacheDataInfo, error) {
 	return api.CacheDataInfo{}, nil

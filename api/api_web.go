@@ -8,16 +8,16 @@ type Web interface {
 	// cursor: start index, count: load number of device
 	ListNodes(ctx context.Context, cursor int, count int) ([]WebNode, error)                              //perm:read
 	GetNodeInfoByID(ctx context.Context, nodeID string) (DevicesInfo, error)                              //perm:read
-	ListBlockDownloadInfo(ctx context.Context, req ListBlockDownloadInfoReq) ([]BlockDownloadInfo, error) //perm:read
-	ListCaches(ctx context.Context, req ListCachesReq) ([]WebCarfile, error)                              //perm:read
-	StatCaches(ctx context.Context, req ListCachesReq) (StatCachesRsp, error)                             //perm:read
 	ListNodeConnectionLog(ctx context.Context, cursor int, count int) ([]NodeConnectionLog, error)        //perm:read
+	ListBlockDownloadInfo(ctx context.Context, req ListBlockDownloadInfoReq) ([]BlockDownloadInfo, error) //perm:read
 
 	// cache manager
-	AddCacheTask(ctx context.Context, carFileCID string, reliability int) error     //perm:read
-	ListCacheTask(ctx context.Context, cursor int, count int) (DataListInfo, error) //perm:read
-	GetCacheTaskInfo(ctx context.Context, carFileCID string) (CacheDataInfo, error) //perm:read
-	CancelCacheTask(ctx context.Context, carFileCID string) error                   //perm:read
+	ListCaches(ctx context.Context, req ListCachesReq) ([]WebCarfile, error)           //perm:read
+	StatCaches(ctx context.Context) (StatCachesRsp, error)                             //perm:read
+	AddCacheTask(ctx context.Context, carFileCID string, reliability int) error        //perm:read
+	ListCacheTask(ctx context.Context, cursor int, count int) ([]CacheDataInfo, error) //perm:read
+	GetCacheTaskInfo(ctx context.Context, carFileCID string) (CacheDataInfo, error)    //perm:read
+	CancelCacheTask(ctx context.Context, carFileCID string) error                      //perm:read
 
 	GetCarfileByCID(ctx context.Context, carFileCID string) (WebCarfile, error)       //perm:read
 	GetBlocksByCarfileCID(ctx context.Context, carFileCID string) ([]WebBlock, error) //perm:read
@@ -73,7 +73,7 @@ type NodeConnectionLog struct {
 }
 
 type WebBlock struct {
-	CID       string
+	Cid       string
 	DeviceID  string
 	BlockSize int
 }

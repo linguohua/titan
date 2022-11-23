@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -337,7 +336,7 @@ type WebStruct struct {
 
 		ListBlockDownloadInfo func(p0 context.Context, p1 ListBlockDownloadInfoReq) ([]BlockDownloadInfo, error) `perm:"read"`
 
-		ListCacheTask func(p0 context.Context, p1 int, p2 int) (DataListInfo, error) `perm:"read"`
+		ListCacheTask func(p0 context.Context, p1 int, p2 int) ([]CacheDataInfo, error) `perm:"read"`
 
 		ListCaches func(p0 context.Context, p1 ListCachesReq) ([]WebCarfile, error) `perm:"read"`
 
@@ -353,7 +352,7 @@ type WebStruct struct {
 
 		SetupValidation func(p0 context.Context, p1 string) (error) `perm:"read"`
 
-		StatCaches func(p0 context.Context, p1 ListCachesReq) (StatCachesRsp, error) `perm:"read"`
+		StatCaches func(p0 context.Context) (StatCachesRsp, error) `perm:"read"`
 
 	}
 }
@@ -1232,15 +1231,15 @@ func (s *WebStub) ListBlockDownloadInfo(p0 context.Context, p1 ListBlockDownload
 	return *new([]BlockDownloadInfo), ErrNotSupported
 }
 
-func (s *WebStruct) ListCacheTask(p0 context.Context, p1 int, p2 int) (DataListInfo, error) {
+func (s *WebStruct) ListCacheTask(p0 context.Context, p1 int, p2 int) ([]CacheDataInfo, error) {
 	if s.Internal.ListCacheTask == nil {
-		return *new(DataListInfo), ErrNotSupported
+		return *new([]CacheDataInfo), ErrNotSupported
 	}
 	return s.Internal.ListCacheTask(p0, p1, p2)
 }
 
-func (s *WebStub) ListCacheTask(p0 context.Context, p1 int, p2 int) (DataListInfo, error) {
-	return *new(DataListInfo), ErrNotSupported
+func (s *WebStub) ListCacheTask(p0 context.Context, p1 int, p2 int) ([]CacheDataInfo, error) {
+	return *new([]CacheDataInfo), ErrNotSupported
 }
 
 func (s *WebStruct) ListCaches(p0 context.Context, p1 ListCachesReq) ([]WebCarfile, error) {
@@ -1320,14 +1319,14 @@ func (s *WebStub) SetupValidation(p0 context.Context, p1 string) (error) {
 	return ErrNotSupported
 }
 
-func (s *WebStruct) StatCaches(p0 context.Context, p1 ListCachesReq) (StatCachesRsp, error) {
+func (s *WebStruct) StatCaches(p0 context.Context) (StatCachesRsp, error) {
 	if s.Internal.StatCaches == nil {
 		return *new(StatCachesRsp), ErrNotSupported
 	}
-	return s.Internal.StatCaches(p0, p1)
+	return s.Internal.StatCaches(p0)
 }
 
-func (s *WebStub) StatCaches(p0 context.Context, p1 ListCachesReq) (StatCachesRsp, error) {
+func (s *WebStub) StatCaches(p0 context.Context) (StatCachesRsp, error) {
 	return *new(StatCachesRsp), ErrNotSupported
 }
 
