@@ -8,7 +8,6 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
-	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
 )
 
@@ -37,7 +36,6 @@ type DataManager struct {
 
 	taskMap sync.Map
 
-	dataTimeWheel *timewheel.TimeWheel
 	timerInterval int //  time interval (Second)
 
 	runningTaskMax int
@@ -52,26 +50,27 @@ func newDataManager(nodeManager *NodeManager) *DataManager {
 		runningTaskMax:   5,
 	}
 
-	d.initTimewheel()
-	go d.startDataTaskLoader()
-	go d.startBlockLoader()
+	go d.run()
 
 	return d
 }
 
-func (m *DataManager) initTimewheel() {
-	m.dataTimeWheel = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		m.dataTimeWheel.AddTimer(time.Duration(m.timerInterval-1)*time.Second, "DataTimer", nil)
+func (m *DataManager) run() {
+	ticker := time.NewTicker(time.Duration(m.timerInterval) * time.Second)
+	defer ticker.Stop()
 
-		m.checkTaskTimeouts()
-
-		// check data task
-		m.notifyDataLoader()
-
-		// check data expired TODO
-	})
-	m.dataTimeWheel.Start()
-	m.dataTimeWheel.AddTimer(time.Duration(m.timerInterval-1)*time.Second, "DataTimer", nil)
+	for {
+		select {
+		case <-ticker.C:
+			m.checkTaskTimeouts()
+			m.notifyDataLoader()
+			// check data expired TODO
+		case <-m.dataTaskLoaderCh:
+			m.doDataTasks()
+		case <-m.blockLoaderCh:
+			m.doResultTasks()
+		}
+	}
 }
 
 func (m *DataManager) getWaitingTask(index int64) (api.CacheDataInfo, error) {
@@ -349,7 +348,7 @@ func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultI
 	return c.blockCacheResult(info)
 }
 
-func (m *DataManager) doResultTask() {
+func (m *DataManager) doResultTasks() {
 	// defer m.notifyBlockLoader()
 	for cache.GetDB().GetCacheResultNum() > 0 {
 		info, err := cache.GetDB().GetCacheResultInfo()
@@ -382,13 +381,6 @@ func (m *DataManager) pushCacheResultToQueue(deviceID string, info *api.CacheRes
 	return err
 }
 
-func (m *DataManager) startBlockLoader() {
-	for {
-		<-m.blockLoaderCh
-		m.doResultTask()
-	}
-}
-
 func (m *DataManager) notifyBlockLoader() {
 	select {
 	case m.blockLoaderCh <- true:
@@ -396,17 +388,13 @@ func (m *DataManager) notifyBlockLoader() {
 	}
 }
 
-func (m *DataManager) startDataTaskLoader() {
-	for {
-		<-m.dataTaskLoaderCh
-
-		doLen := m.runningTaskMax - len(m.getRunningTasks())
-		if doLen > 0 {
-			for i := 0; i < doLen; i++ {
-				err := m.doDataTask()
-				if err != nil {
-					log.Errorf("doDataTask er:%s", err.Error())
-				}
+func (m *DataManager) doDataTasks() {
+	doLen := m.runningTaskMax - len(m.getRunningTasks())
+	if doLen > 0 {
+		for i := 0; i < doLen; i++ {
+			err := m.doDataTask()
+			if err != nil {
+				log.Errorf("doDataTask er:%s", err.Error())
 			}
 		}
 	}
