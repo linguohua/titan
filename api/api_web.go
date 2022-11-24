@@ -69,7 +69,6 @@ type WebCarfile struct {
 	Name      string           `json:"name"`
 	Size      int64            `json:"size"`
 	Status    WebCarfileStatus `json:"status"`
-	Blocks    []WebBlock       `json:"blocks"`
 	CreatedAt time.Time        `json:"created_at"`
 }
 

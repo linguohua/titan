@@ -68,13 +68,21 @@ func (w *web) ListNodeConnectionLog(ctx context.Context, req api.ListNodeConnect
 
 	logs, total, err := persistent.GetDB().GetNodeConnectionLogs(req.NodeID, startTime, endTime, req.Cursor, req.Count)
 	if err != nil {
-		return api.ListNodeConnectionLogRsp{}, nil
+		return api.ListNodeConnectionLogRsp{}, err
 	}
 
 	return api.ListNodeConnectionLogRsp{Total: total, Data: logs}, nil
 }
 
 func (w *web) ListCaches(ctx context.Context, req api.ListCachesReq) (api.ListCachesRsp, error) {
+	// startTime := time.Unix(req.StartTime, 0)
+	// endTime := time.Unix(req.EndTime, 0)
+
+	// datas, total, err := persistent.GetDB().GetDataInfos(startTime, endTime, req.Cursor, req.Count)
+	// if err != nil {
+	// 	return api.ListCachesRsp{}, err
+	// }
+
 	return api.ListCachesRsp{}, nil
 }
 
@@ -86,9 +94,11 @@ func (w *web) StatCaches(ctx context.Context) (api.StatCachesRsp, error) {
 func (w *web) AddCacheTask(ctx context.Context, carFileCID string, reliability int, expireTime int) error {
 	return w.scheduler.CacheCarfile(ctx, carFileCID, reliability, expireTime)
 }
+
 func (w *web) ListCacheTasks(ctx context.Context, cursor int, count int) (api.ListCacheTasksRsp, error) {
 	return api.ListCacheTasksRsp{}, nil
 }
+
 func (w *web) GetCacheTaskInfo(ctx context.Context, carFileCID string) (api.CacheDataInfo, error) {
 	return w.scheduler.ShowDataTask(ctx, carFileCID)
 }
@@ -100,9 +110,11 @@ func (w *web) CancelCacheTask(ctx context.Context, carFileCID string) error {
 func (w *web) GetCarfileByCID(ctx context.Context, carFileCID string) (api.WebCarfile, error) {
 	return api.WebCarfile{}, nil
 }
+
 func (w *web) GetBlocksByCarfileCID(ctx context.Context, carFileCID string) ([]api.WebBlock, error) {
 	return []api.WebBlock{}, nil
 }
+
 func (w *web) RemoveCarfile(ctx context.Context, carFileCID string) error {
 	return w.scheduler.RemoveCarfile(ctx, carFileCID)
 }
@@ -112,7 +124,6 @@ func (w *web) GetValidationInfo(ctx context.Context) (api.ValidationInfo, error)
 }
 
 func (w *web) ListValidateResult(ctx context.Context, cursor int, count int) (api.ListValidateResultRsp, error) {
-
 	results, total, err := persistent.GetDB().GetValidateResults(cursor, count)
 	if err != nil {
 		return api.ListValidateResultRsp{}, nil
