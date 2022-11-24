@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -430,9 +431,20 @@ var showDatasInfoCmd = &cli.Command{
 			}
 		}
 
-		for _, info := range infos {
+		sort.Slice(infos, func(i, j int) bool {
+			return infos[i].CarfileCid < infos[j].CarfileCid
+		})
+
+		for w := 0; w < len(infos); w++ {
+			info := infos[w]
 			fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d \n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.Blocks)
-			for _, cache := range info.CacheInfos {
+
+			sort.Slice(info.CacheInfos, func(i, j int) bool {
+				return info.CacheInfos[i].CacheID < info.CacheInfos[j].CacheID
+			})
+
+			for j := 0; j < len(info.CacheInfos); j++ {
+				cache := info.CacheInfos[j]
 				fmt.Printf("TaskID:%s ,  Status:%s , Done Size:%f MB ,Done Blocks:%d , Nodes:%d\n",
 					cache.CacheID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.Nodes)
 			}

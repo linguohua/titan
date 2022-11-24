@@ -57,7 +57,7 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 
 		idList, err := persistent.GetDB().GetCachesWithData(cid)
 		if err != nil {
-			log.Warnf("loadData GetCacheWithData err:%s", err.Error())
+			log.Errorf("loadData cid:%s, GetCachesWithData err:%s", cid, err.Error())
 			return data
 		}
 
@@ -220,7 +220,7 @@ func (d *Data) cacheEnd(doneCache *Cache) {
 
 	err = d.updateAndSaveCacheEndInfo(doneCache)
 	if err != nil {
-		err = xerrors.Errorf("saveCacheEndResults err:%s", err.Error())
+		err = xerrors.Errorf("updateAndSaveCacheEndInfo err:%s", err.Error())
 		return
 	}
 

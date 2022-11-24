@@ -45,9 +45,9 @@ type Node struct {
 	addr            string
 	lastRequestTime time.Time
 
-	cacheStat          api.CacheStat
-	cacheNeedTime      int64 //
-	cacheNextCacheTime int64 //
+	cacheStat                 api.CacheStat
+	cacheTimeoutTimeStamp     int64 // TimeStamp of cache timeout
+	cacheNextTimeoutTimeStamp int64 // TimeStamp of next cache timeout
 }
 
 // node online
@@ -101,7 +101,7 @@ func (n *Node) getNodeInfo(deviceID string) (*persistent.NodeInfo, error) {
 // filter cached blocks and find download url from candidate
 func (n *Node) getReqCacheDatas(nodeManager *NodeManager, blocks []api.BlockInfo, carFileCid, cacheID string) []api.ReqCacheData {
 	reqList := make([]api.ReqCacheData, 0)
-	notFindCandidateDatas := make([]api.BlockInfo, 0)
+	notFindCandidateBlocks := make([]api.BlockInfo, 0)
 
 	// fidMax, err := cache.GetDB().IncrNodeCacheFid(n.deviceInfo.DeviceId, len(cids))
 	// if err != nil {
@@ -114,7 +114,7 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, blocks []api.BlockInfo
 		candidates, err := nodeManager.getCandidateNodesWithData(block.Cid, n.deviceInfo.DeviceId)
 		if err != nil || len(candidates) < 1 {
 			// not find candidate
-			notFindCandidateDatas = append(notFindCandidateDatas, block)
+			notFindCandidateBlocks = append(notFindCandidateBlocks, block)
 			continue
 		}
 
@@ -126,7 +126,6 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, blocks []api.BlockInfo
 		if list == nil {
 			list = make([]api.BlockInfo, 0)
 		}
-
 		list = append(list, block)
 
 		csMap[deviceID] = list
@@ -144,11 +143,11 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, blocks []api.BlockInfo
 			}
 		}
 
-		notFindCandidateDatas = append(notFindCandidateDatas, list...)
+		notFindCandidateBlocks = append(notFindCandidateBlocks, list...)
 	}
 
-	if len(notFindCandidateDatas) > 0 {
-		reqList = append(reqList, api.ReqCacheData{BlockInfos: notFindCandidateDatas, CardFileCid: carFileCid, CacheID: cacheID})
+	if len(notFindCandidateBlocks) > 0 {
+		reqList = append(reqList, api.ReqCacheData{BlockInfos: notFindCandidateBlocks, CardFileCid: carFileCid, CacheID: cacheID})
 	}
 
 	return reqList
@@ -164,7 +163,7 @@ func (n *Node) updateCacheStat(info api.CacheStat) {
 	num := info.WaitCacheBlockNum + info.DoingCacheBlockNum
 
 	timeStamp := time.Now().Unix()
-	n.cacheNeedTime = timeStamp + int64(num*info.DownloadTimeout*info.RetryNum)
+	n.cacheTimeoutTimeStamp = timeStamp + int64(num*info.DownloadTimeout*info.RetryNum)
 
-	n.cacheNextCacheTime = n.cacheNeedTime + int64(info.DownloadTimeout*info.RetryNum)
+	n.cacheNextTimeoutTimeStamp = n.cacheTimeoutTimeStamp + int64(info.DownloadTimeout*info.RetryNum)
 }
