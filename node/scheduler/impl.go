@@ -722,6 +722,18 @@ func (s *Scheduler) UpdateDownloadServerAccessAuth(ctx context.Context, access a
 	return xerrors.Errorf("%s :%s", ErrNodeNotFind, info.DeviceID)
 }
 
+func (s *Scheduler) GetValidationInfo(ctx context.Context) (api.ValidationInfo, error) {
+	var nextElectionTime = s.selector.getNextElectionTime()
+	var isEnable = s.validate.open
+
+	validators, err := cache.GetDB().GetValidatorsWithList()
+	if err != nil {
+		return api.ValidationInfo{}, err
+	}
+
+	return api.ValidationInfo{Validators: validators, NextElectionTime: nextElectionTime.Unix(), EnableValidation: isEnable}, nil
+}
+
 // func (s *Scheduler) checkToBeDeleteBlocks(deviceID string) error {
 // 	dBlocks, err := persistent.GetDB().GetToBeDeleteBlocks(deviceID)
 // 	if err != nil {

@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"time"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
@@ -48,7 +49,10 @@ func (w *web) GetNodeInfoByID(ctx context.Context, deviceID string) (api.Devices
 }
 
 func (w *web) ListBlockDownloadInfo(ctx context.Context, req api.ListBlockDownloadInfoReq) (api.ListBlockDownloadInfoRsp, error) {
-	downloadInfos, total, err := persistent.GetDB().GetBlockDownloadInfos(req.DeviceID, req.StartTime, req.EndTime, req.Cursor, req.Count)
+	startTime := time.Unix(req.StartTime, 0)
+	endTime := time.Unix(req.EndTime, 0)
+
+	downloadInfos, total, err := persistent.GetDB().GetBlockDownloadInfos(req.DeviceID, startTime, endTime, req.Cursor, req.Count)
 	if err != nil {
 		return api.ListBlockDownloadInfoRsp{}, nil
 	}
@@ -56,6 +60,18 @@ func (w *web) ListBlockDownloadInfo(ctx context.Context, req api.ListBlockDownlo
 		Data:  downloadInfos,
 		Total: total,
 	}, nil
+}
+
+func (w *web) ListNodeConnectionLog(ctx context.Context, req api.ListNodeConnectionLogReq) (api.ListNodeConnectionLogRsp, error) {
+	startTime := time.Unix(req.StartTime, 0)
+	endTime := time.Unix(req.EndTime, 0)
+
+	logs, total, err := persistent.GetDB().GetNodeConnectionLogs(req.NodeID, startTime, endTime, req.Cursor, req.Count)
+	if err != nil {
+		return api.ListNodeConnectionLogRsp{}, nil
+	}
+
+	return api.ListNodeConnectionLogRsp{Total: total, Data: logs}, nil
 }
 
 func (w *web) ListCaches(ctx context.Context, req api.ListCachesReq) (api.ListCachesRsp, error) {
@@ -66,20 +82,17 @@ func (w *web) StatCaches(ctx context.Context) (api.StatCachesRsp, error) {
 	return api.StatCachesRsp{}, nil
 }
 
-func (w *web) ListNodeConnectionLog(ctx context.Context, req api.ListNodeConnectionLogReq) (api.ListNodeConnectionLogRsp, error) {
-	return api.ListNodeConnectionLogRsp{}, nil
-}
-
 // cache manager
-func (w *web) AddCacheTask(ctx context.Context, carFileCID string, reliability int) error {
-	return nil
+func (w *web) AddCacheTask(ctx context.Context, carFileCID string, reliability int, expireTime int) error {
+	return w.scheduler.CacheCarfile(ctx, carFileCID, reliability, expireTime)
 }
 func (w *web) ListCacheTasks(ctx context.Context, cursor int, count int) (api.ListCacheTasksRsp, error) {
 	return api.ListCacheTasksRsp{}, nil
 }
 func (w *web) GetCacheTaskInfo(ctx context.Context, carFileCID string) (api.CacheDataInfo, error) {
-	return api.CacheDataInfo{}, nil
+	return w.scheduler.ShowDataTask(ctx, carFileCID)
 }
+
 func (w *web) CancelCacheTask(ctx context.Context, carFileCID string) error {
 	return nil
 }
@@ -91,15 +104,23 @@ func (w *web) GetBlocksByCarfileCID(ctx context.Context, carFileCID string) ([]a
 	return []api.WebBlock{}, nil
 }
 func (w *web) RemoveCarfile(ctx context.Context, carFileCID string) error {
-	return nil
+	return w.scheduler.RemoveCarfile(ctx, carFileCID)
 }
 
 func (w *web) GetValidationInfo(ctx context.Context) (api.ValidationInfo, error) {
-	return api.ValidationInfo{}, nil
+	return w.scheduler.GetValidationInfo(ctx)
 }
+
 func (w *web) ListValidateResult(ctx context.Context, cursor int, count int) (api.ListValidateResultRsp, error) {
-	return api.ListValidateResultRsp{}, nil
+
+	results, total, err := persistent.GetDB().GetValidateResults(cursor, count)
+	if err != nil {
+		return api.ListValidateResultRsp{}, nil
+	}
+
+	return api.ListValidateResultRsp{Total: total, Data: results}, nil
 }
-func (w *web) SetupValidation(ctx context.Context, DeviceID string) error {
-	return nil
+
+func (w *web) SetupValidation(ctx context.Context, enable bool) error {
+	return w.scheduler.ValidateSwitch(ctx, enable)
 }

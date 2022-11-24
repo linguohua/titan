@@ -144,11 +144,11 @@ func (sd sqlDB) SetValidateResultInfo(info *ValidateResult) error {
 	nowTime := time.Now().Format("2006-01-02 15:04:05")
 
 	if ValidateStatus(info.Status) == ValidateStatusCreate || ValidateStatus(info.Status) == ValidateStatusOther {
-		info.StratTime = nowTime
+		info.StartTime = nowTime
 		info.ServerName = serverName
 
-		_, err := sd.cli.NamedExec(`INSERT INTO validate_result (round_id, device_id, validator_id, status, strat_time, server_name, msg)
-                VALUES (:round_id, :device_id, :validator_id, :status, :strat_time, :server_name, :msg)`, info)
+		_, err := sd.cli.NamedExec(`INSERT INTO validate_result (round_id, device_id, validator_id, status, start_time, server_name, msg)
+                VALUES (:round_id, :device_id, :validator_id, :status, :start_time, :server_name, :msg)`, info)
 		return err
 
 	} else if ValidateStatus(info.Status) > ValidateStatusCreate {

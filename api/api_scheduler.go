@@ -26,7 +26,8 @@ type Scheduler interface {
 	RegisterNode(ctx context.Context, t NodeType) (NodeRegisterInfo, error)                            //perm:read
 	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) //perm:admin
 	CacheContinue(ctx context.Context, cid, cacheID string) error                                      //perm:admin
-	ValidateSwitch(ctx context.Context, open bool) error                                               //perm:admin
+	ValidateSwitch(ctx context.Context, open bool) error
+	GetValidationInfo(ctx context.Context) (ValidationInfo, error) //perm:admin
 
 	// call by locator
 	LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID, locatorToken string) error //perm:write

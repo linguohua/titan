@@ -19,6 +19,8 @@ type ValidateSelector struct {
 	manage     *NodeManager
 	vlk        sync.RWMutex
 	validators map[string]time.Time
+
+	startTime time.Time
 }
 
 type ValidateOptions struct {
@@ -90,11 +92,11 @@ func (v *ValidateSelector) Run() {
 }
 
 func (v *ValidateSelector) elect() error {
-	start := time.Now()
+	v.startTime = time.Now()
 
 	log.Info("election starting")
 	defer func() {
-		log.Infof("election completed, cost: %v", time.Since(start))
+		log.Infof("election completed, cost: %v", time.Since(v.startTime))
 	}()
 
 	winners, err := v.winner(false)
@@ -424,4 +426,14 @@ func (v *ValidateSelector) GenerateValidation() map[string][]string {
 	}
 
 	return out
+}
+
+func (v *ValidateSelector) getNextElectionTime() time.Time {
+	diff := time.Now().Sub(v.startTime)
+	left := v.opts.interval - diff
+	if left <= 0 {
+		return time.Now()
+	}
+
+	return time.Now().Add(left)
 }
