@@ -321,7 +321,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		}
 
 		if unDoneBlocks <= 0 {
-			return c.stopCache(unDoneBlocks, false)
+			return c.endCache(unDoneBlocks, false)
 		}
 	}
 
@@ -355,7 +355,7 @@ func (c *Cache) startCache(cids map[string]string) error {
 	return nil
 }
 
-func (c *Cache) stopCache(unDoneBlocks int, isTimeout bool) (err error) {
+func (c *Cache) endCache(unDoneBlocks int, isTimeout bool) (err error) {
 	// log.Infof("end cache %s,%s ----------", c.carfileCid, c.cacheID)
 	msg := ""
 	if isTimeout {

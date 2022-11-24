@@ -22,6 +22,8 @@ type Data struct {
 	totalBlocks     int
 	nodes           int
 	expiredTime     time.Time
+
+	isStop bool
 }
 
 func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, reliability int) *Data {

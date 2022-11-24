@@ -16,23 +16,23 @@ import (
 )
 
 const (
-	// redisKeyWaitingTask  server name
-	redisKeyWaitingTask = "Titan:WaitingTask:%s"
-	// redisKeyRunningList  server name
-	redisKeyRunningList = "Titan:RunningList:%s"
-	// redisKeyRunningTask  server name:cid
-	redisKeyRunningTask = "Titan:RunningTask:%s:%s"
+	// redisKeyWaitingDataTaskList  server name
+	redisKeyWaitingDataTaskList = "Titan:WaitingDataTaskList:%s"
+	// redisKeyRunningDataTaskList  server name
+	redisKeyRunningDataTaskList = "Titan:RunningDataTaskList:%s"
+	// redisKeyRunningDataTask  server name:cid
+	redisKeyRunningDataTask = "Titan:RunningDataTask:%s:%s"
 	// redisKeyCacheResult  server name
 	redisKeyCacheResult = "Titan:CacheResult:%s"
-	// RedisKeyNodeBlockFid  deviceID
+	// redisKeyNodeBlockFid  deviceID
 	redisKeyNodeBlockFid = "Titan:NodeBlockFid:%s"
-	// RedisKeyValidatorList server name
+	// redisKeyValidatorList server name
 	redisKeyValidatorList = "Titan:ValidatorList:%s"
-	// RedisKeyValidateRoundID server name
+	// redisKeyValidateRoundID server name
 	redisKeyValidateRoundID = "Titan:ValidateRoundID:%s"
 	// redisKeyValidateingList server name
 	redisKeyValidateingList = "Titan:ValidateingList:%s"
-	// RedisKeyNodeInfo  deviceID
+	// redisKeyNodeInfo  deviceID
 	redisKeyNodeInfo = "Titan:NodeInfo:%s"
 
 	// NodeInfo field
@@ -316,20 +316,20 @@ func (rd redisDB) RemoveCacheResultInfo() error {
 }
 
 func (rd redisDB) SetRunningDataTask(cid, cacheID string, timeout int64) error {
-	key := fmt.Sprintf(redisKeyRunningTask, serverName, cid)
+	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, cid)
 	// Expire
 	_, err := rd.cli.Set(context.Background(), key, cacheID, time.Second*time.Duration(timeout)).Result()
 	return err
 }
 
 func (rd redisDB) GetRunningDataTask(cid string) (string, error) {
-	key := fmt.Sprintf(redisKeyRunningTask, serverName, cid)
+	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, cid)
 
 	return rd.cli.Get(context.Background(), key).Result()
 }
 
 func (rd redisDB) RemoveRunningDataTask(cid, cacheID string) error {
-	key := fmt.Sprintf(redisKeyRunningTask, serverName, cid)
+	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, cid)
 
 	_, err := rd.cli.Del(context.Background(), key).Result()
 	if err != nil {
@@ -340,7 +340,7 @@ func (rd redisDB) RemoveRunningDataTask(cid, cacheID string) error {
 }
 
 func (rd redisDB) SetWaitingDataTask(info api.CacheDataInfo) error {
-	key := fmt.Sprintf(redisKeyWaitingTask, serverName)
+	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	bytes, err := json.Marshal(info)
 	if err != nil {
@@ -374,7 +374,7 @@ func (rd redisDB) SetWaitingDataTask(info api.CacheDataInfo) error {
 // }
 
 func (rd redisDB) GetWaitingDataTask(index int64) (api.CacheDataInfo, error) {
-	key := fmt.Sprintf(redisKeyWaitingTask, serverName)
+	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	value, err := rd.cli.LIndex(context.Background(), key, index).Result()
 
@@ -396,7 +396,7 @@ func (rd redisDB) GetWaitingDataTask(index int64) (api.CacheDataInfo, error) {
 }
 
 func (rd redisDB) RemoveWaitingDataTask(info api.CacheDataInfo) error {
-	key := fmt.Sprintf(redisKeyWaitingTask, serverName)
+	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	bytes, err := json.Marshal(info)
 	if err != nil {
@@ -409,7 +409,7 @@ func (rd redisDB) RemoveWaitingDataTask(info api.CacheDataInfo) error {
 
 // add
 func (rd redisDB) SetDataTaskToRunningList(cid, cacheID string) error {
-	key := fmt.Sprintf(redisKeyRunningList, serverName)
+	key := fmt.Sprintf(redisKeyRunningDataTaskList, serverName)
 
 	info := DataTask{CarfileCid: cid, CacheID: cacheID}
 	bytes, err := json.Marshal(info)
@@ -423,7 +423,7 @@ func (rd redisDB) SetDataTaskToRunningList(cid, cacheID string) error {
 
 // del
 func (rd redisDB) RemoveDataTaskWithRunningList(cid, cacheID string) error {
-	key := fmt.Sprintf(redisKeyRunningList, serverName)
+	key := fmt.Sprintf(redisKeyRunningDataTaskList, serverName)
 
 	info := DataTask{CarfileCid: cid, CacheID: cacheID}
 	bytes, err := json.Marshal(info)
@@ -437,7 +437,7 @@ func (rd redisDB) RemoveDataTaskWithRunningList(cid, cacheID string) error {
 
 // SMembers
 func (rd redisDB) GetDataTasksWithRunningList() ([]DataTask, error) {
-	key := fmt.Sprintf(redisKeyRunningList, serverName)
+	key := fmt.Sprintf(redisKeyRunningDataTaskList, serverName)
 
 	values, err := rd.cli.SMembers(context.Background(), key).Result()
 	if err != nil || values == nil {

@@ -26,6 +26,7 @@ const (
 	eventTypeRemoveCacheStart    EventType = "RemoveCacheStart"
 	eventTypeRemoveDataEnd       EventType = "RemoveDataEnd"
 	eventTypeRemoveCacheEnd      EventType = "RemoveCacheEnd"
+	eventTypeStopDataTask        EventType = "StopDataTask"
 )
 
 // DataManager Data
@@ -158,33 +159,11 @@ func (m *DataManager) checkTaskTimeout(taskInfo cache.DataTask) {
 	cI, ok := data.cacheMap.Load(taskInfo.CacheID)
 	if ok && cI != nil {
 		cache := cI.(*Cache)
-		err := cache.stopCache(0, true)
+		err := cache.endCache(0, true)
 		if err != nil {
 			log.Errorf("stopCache err:%s", err.Error())
 		}
 	}
-}
-
-func (m *DataManager) checkCacheExpired(cid string) {
-	now := time.Now()
-	data := m.findData(cid)
-
-	data.cacheMap.Range(func(key, value interface{}) bool {
-		c := value.(*Cache)
-		if c.expiredTime.After(now) {
-			return true
-		}
-
-		// do remove
-		err := c.removeCache()
-		if err != nil {
-			m.saveEvent(cid, c.cacheID, "expired", err.Error(), eventTypeRemoveCacheEnd)
-		} else {
-			m.saveEvent(cid, c.cacheID, "expired", "", eventTypeRemoveCacheEnd)
-		}
-
-		return true
-	})
 }
 
 func (m *DataManager) checkTaskTimeouts() {
@@ -440,14 +419,13 @@ func (m *DataManager) dataTaskStart(data *Data) {
 		return
 	}
 	m.saveEvent(data.carfileCid, "", "", "", eventTypeDoDataTaskStart)
-	// log.Infof("taskStart:%s ---------- ", data.cid)
 
 	m.taskMap.Store(data.carfileCid, data)
 }
 
 func (m *DataManager) dataTaskEnd(cid, msg string) {
 	m.saveEvent(cid, "", "", msg, eventTypeDoDataTaskEnd)
-	// log.Infof("taskEnd:%s ---------- ", cid)
+
 	m.taskMap.Delete(cid)
 
 	// continue task
@@ -479,4 +457,37 @@ func (m *DataManager) isDataTaskRunnning(cid, cacheID string) bool {
 
 func (m *DataManager) saveEvent(cid, cacheID, userID, msg string, event EventType) error {
 	return persistent.GetDB().SetEventInfo(&persistent.EventInfo{CID: cid, User: userID, Msg: msg, Event: string(event), CacheID: cacheID})
+}
+
+// replenish time
+
+// stop
+func (m *DataManager) stopDataTask(cid string) {
+	m.saveEvent(cid, "", "user", "", eventTypeStopDataTask)
+
+	data := m.findData(cid)
+	data.isStop = true
+}
+
+// expired
+func (m *DataManager) checkCacheExpired(cid string) {
+	now := time.Now()
+	data := m.findData(cid)
+
+	data.cacheMap.Range(func(key, value interface{}) bool {
+		c := value.(*Cache)
+		if c.expiredTime.After(now) {
+			return true
+		}
+
+		// do remove
+		err := c.removeCache()
+		if err != nil {
+			m.saveEvent(cid, c.cacheID, "expired", err.Error(), eventTypeRemoveCacheEnd)
+		} else {
+			m.saveEvent(cid, c.cacheID, "expired", "", eventTypeRemoveCacheEnd)
+		}
+
+		return true
+	})
 }
