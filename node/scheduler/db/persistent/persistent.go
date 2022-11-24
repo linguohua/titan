@@ -195,6 +195,7 @@ type BlockInfo struct {
 	Size        int    `db:"size"`
 	Reliability int    `db:"reliability"`
 	CarfileCid  string `db:"carfile_cid"`
+	Source      string `db:"source"`
 	FID         int    `db:"fid"`
 	IsUpdate    bool
 }

@@ -25,13 +25,11 @@ type sqlDB struct {
 const errNodeNotFind = "Not Found"
 
 var (
-	// deviceBlockTable  = "device_blocks_%s"
 	eventInfoTable    = "event_info_%s"
 	dataInfoTable     = "data_info_%s"
 	blockInfoTable    = "block_info_%s"
 	cacheInfoTable    = "cache_info_%s"
 	blockDownloadInfo = "block_download_info_%s"
-	blockDeleteTable  = "block_delete_%s"
 )
 
 // InitSQL init sql
@@ -252,34 +250,6 @@ func (sd sqlDB) GetBlocksBiggerThan(startFid int, deviceID string) (map[int]stri
 	return m, nil
 }
 
-// func (sd sqlDB) GetNodeBlock(deviceID, cid string) ([]*BlockInfo, error) {
-// 	area := sd.ReplaceArea()
-
-// 	list := make([]*BlockInfo, 0)
-
-// 	info := &BlockInfo{
-// 		CID:      cid,
-// 		DeviceID: deviceID,
-// 	}
-
-// 	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cid=:cid AND device_id=:device_id`, fmt.Sprintf(blockInfoTable, area))
-// 	rows, err := sd.cli.NamedQuery(cmd, info)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer rows.Close()
-
-// 	for rows.Next() {
-// 		i := &BlockInfo{}
-// 		err = rows.StructScan(i)
-// 		if err == nil {
-// 			list = append(list, i)
-// 		}
-// 	}
-
-// 	return list, nil
-// }
-
 func (sd sqlDB) GetBlockCidWithFid(deviceID string, fid int) (string, error) {
 	area := sd.ReplaceArea()
 
@@ -435,11 +405,11 @@ func (sd sqlDB) SaveCacheingResults(dInfo *DataInfo, cInfo *CacheInfo, updateBlo
 	if createBlocks != nil {
 		for _, info := range createBlocks {
 			if info.ID != "" {
-				cmd := fmt.Sprintf(`UPDATE %s SET status=?,size=?,reliability=?,device_id=?,fid=? WHERE id=?`, bTableName)
-				tx.MustExec(cmd, info.Status, info.Size, info.Reliability, info.DeviceID, info.FID, info.ID)
+				cmd := fmt.Sprintf(`UPDATE %s SET status=?,size=?,reliability=?,device_id=?,fid=?,source=? WHERE id=?`, bTableName)
+				tx.MustExec(cmd, info.Status, info.Size, info.Reliability, info.DeviceID, info.FID, info.Source, info.ID)
 			} else {
-				cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_cid, cid, device_id, status, size, reliability, id, fid) VALUES (?, ?, ?, ?, ?, ?, ?, REPLACE(UUID(),"-",""), ?)`, bTableName)
-				tx.MustExec(cmd, info.CacheID, info.CarfileCid, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability, info.FID)
+				cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_cid, cid, device_id, status, size, reliability, id, fid, source) VALUES (?, ?, ?, ?, ?, ?, ?, REPLACE(UUID(),"-",""), ?, ?)`, bTableName)
+				tx.MustExec(cmd, info.CacheID, info.CarfileCid, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability, info.FID, info.Source)
 			}
 		}
 	}
@@ -605,14 +575,14 @@ func (sd sqlDB) SetBlockInfos(infos []*BlockInfo, carfileCid string) error {
 
 	for _, info := range infos {
 		if info.ID != "" {
-			cmd := fmt.Sprintf(`UPDATE %s SET status=?,size=?,reliability=?,device_id=?,fid=? WHERE id=?`, tableName)
-			tx.MustExec(cmd, info.Status, info.Size, info.Reliability, info.DeviceID, info.FID, info.ID)
+			cmd := fmt.Sprintf(`UPDATE %s SET status=?,size=?,reliability=?,device_id=?,fid=?,source=? WHERE id=?`, tableName)
+			tx.MustExec(cmd, info.Status, info.Size, info.Reliability, info.DeviceID, info.FID, info.ID, info.Source)
 
 			// cmd1 := fmt.Sprintf(`UPDATE %s SET device_id=? WHERE cid=? AND cache_id=? AND carfile_cid=?,`, fmt.Sprintf(deviceBlockTable, area))
 			// tx.MustExec(cmd1, info.DeviceID, info.CID, info.CacheID, carfileCid)
 		} else {
-			cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_cid, cid, device_id, status, size, reliability, fid, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, REPLACE(UUID(),"-",""))`, tableName)
-			tx.MustExec(cmd, info.CacheID, info.CarfileCid, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability, info.FID)
+			cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_cid, cid, device_id, status, size, reliability, fid, source, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, REPLACE(UUID(),"-",""))`, tableName)
+			tx.MustExec(cmd, info.CacheID, info.CarfileCid, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability, info.Source, info.FID)
 
 			// cmd1 := fmt.Sprintf(`INSERT INTO %s (cid, fid, cache_id, carfile_cid, device_id) VALUES (?, ?, ?, ?, ?)`, fmt.Sprintf(deviceBlockTable, area))
 			// tx.MustExec(cmd1, info.CID, "", info.CacheID, carfileCid, info.DeviceID)
