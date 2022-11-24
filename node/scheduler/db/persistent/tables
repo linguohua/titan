@@ -19,7 +19,7 @@ CREATE TABLE `validate_result` (
 	`validator_id` varchar(128) NOT NULL ,
     `round_id` varchar(64) NOT NULL ,
     `msg` varchar(512) ,
-	`strat_time` varchar(64) DEFAULT '',
+	`start_time` varchar(64) DEFAULT '',
 	`end_time` varchar(64) DEFAULT '',
 	`server_name` varchar(64) DEFAULT '',
     `status` TINYINT  DEFAULT '0' ,
@@ -106,6 +106,14 @@ CREATE TABLE `event_info_cn_gd_shenzhen` (
     `event` varchar(20) NOT NULL ,
     `msg` varchar(128) DEFAULT '',
     `cache_id` varchar(64) DEFAULT '' ,
+    `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='event';
+
+  CREATE TABLE `node_connection_log` (
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `device_id` varchar(128) NOT NULL ,
+    `status` TINYINT  DEFAULT '0' ,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='event';

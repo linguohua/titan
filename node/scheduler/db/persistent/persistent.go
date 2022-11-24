@@ -132,7 +132,7 @@ type ValidateResult struct {
 	ValidatorID string `db:"validator_id"`
 	Msg         string `db:"msg"`
 	Status      int    `db:"status"`
-	StratTime   string `db:"strat_time"`
+	StartTime   string `db:"start_time"`
 	EndTime     string `db:"end_time"`
 	ServerName  string `db:"server_name"`
 }

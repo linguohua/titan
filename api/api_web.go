@@ -13,19 +13,19 @@ type Web interface {
 	ListBlockDownloadInfo(ctx context.Context, req ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) //perm:read
 
 	// ListCaches cache manager
-	ListCaches(ctx context.Context, req ListCachesReq) (ListCachesRsp, error)             //perm:read
-	StatCaches(ctx context.Context) (StatCachesRsp, error)                                //perm:read
-	AddCacheTask(ctx context.Context, carFileCID string, reliability int) error           //perm:read
-	ListCacheTasks(ctx context.Context, cursor int, count int) (ListCacheTasksRsp, error) //perm:read
-	GetCacheTaskInfo(ctx context.Context, carFileCID string) (CacheDataInfo, error)       //perm:read
-	CancelCacheTask(ctx context.Context, carFileCID string) error                         //perm:read
+	ListCaches(ctx context.Context, req ListCachesReq) (ListCachesRsp, error)                   //perm:read
+	StatCaches(ctx context.Context) (StatCachesRsp, error)                                      //perm:read
+	AddCacheTask(ctx context.Context, carFileCID string, reliability int, expireTime int) error //perm:read
+	ListCacheTasks(ctx context.Context, cursor int, count int) (ListCacheTasksRsp, error)       //perm:read
+	GetCacheTaskInfo(ctx context.Context, carFileCID string) (CacheDataInfo, error)             //perm:read
+	CancelCacheTask(ctx context.Context, carFileCID string) error                               //perm:read
 
 	GetCarfileByCID(ctx context.Context, carFileCID string) (WebCarfile, error) //perm:read
 	RemoveCarfile(ctx context.Context, carFileCID string) error                 //perm:read
 
 	GetValidationInfo(ctx context.Context) (ValidationInfo, error)                                //perm:read
 	ListValidateResult(ctx context.Context, cursor int, count int) (ListValidateResultRsp, error) //perm:read
-	SetupValidation(ctx context.Context, DeviceID string) error                                   //perm:read
+	SetupValidation(ctx context.Context, enable bool) error                                       //perm:read
 }
 
 type ListNodesRsp struct {
@@ -49,7 +49,7 @@ type ListCachesReq struct {
 	// Unix timestamp
 	EndTime int64 `json:"end_time"`
 	Cursor  int   `json:"cursor"`
-	count   int   `json:"count"`
+	Count   int   `json:"count"`
 }
 
 type ListCachesRsp struct {
@@ -109,9 +109,9 @@ type ListBlockDownloadInfoRsp struct {
 }
 
 type NodeConnectionLog struct {
-	DeviceID  string               `json:"device_id"`
-	Status    NodeConnectionStatus `json:"status"`
-	CreatedAt time.Time            `json:"created_at"`
+	DeviceID  string               `json:"device_id" db:"device_id"`
+	Status    NodeConnectionStatus `json:"status" db:"status"`
+	CreatedAt time.Time            `json:"created_at" db:"created_time"`
 }
 
 type WebBlock struct {
@@ -126,9 +126,10 @@ type ListCacheTasksRsp struct {
 }
 
 type ValidationInfo struct {
-	Validators       []string `json:"validators"`
-	NextElectionTime int64    `json:"next_election_time"`
-	EnableValidation bool     `json:"enable_validation"`
+	Validators []string `json:"validators"`
+	// Unix timestamp
+	NextElectionTime int64 `json:"next_election_time"`
+	EnableValidation bool  `json:"enable_validation"`
 }
 
 type ListValidateResultRsp struct {
@@ -137,13 +138,13 @@ type ListValidateResultRsp struct {
 }
 
 type WebValidateResult struct {
-	ID          int    `json:"id"`
-	RoundID     string `json:"round_id"`
-	DeviceID    string `json:"device_id"`
-	ValidatorID string `json:"validator_id"`
-	Msg         string `json:"msg"`
-	Status      int    `json:"status"`
-	StartTime   string `json:"start_time"`
-	EndTime     string `json:"end_time"`
-	ServerName  string `json:"server_name"`
+	ID          int    `json:"-"`
+	RoundID     string `json:"round_id" db:"round_id"`
+	DeviceID    string `json:"device_id" db:"device_id"`
+	ValidatorID string `json:"validator_id" db:"validator_id"`
+	Msg         string `json:"msg" db:"msg"`
+	Status      int    `json:"status" db:"status"`
+	StartTime   string `json:"start_time" db:"start_time"`
+	EndTime     string `json:"end_time" db:"end_time"`
+	ServerName  string `json:"server_name" db:"server_name"`
 }
