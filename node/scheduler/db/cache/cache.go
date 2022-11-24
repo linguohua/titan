@@ -12,17 +12,17 @@ type DB interface {
 	RemoveCacheResultInfo() error
 	GetCacheResultNum() int64
 
-	SetTaskToRunningList(cid, cacheID string) error
-	RemoveTaskWithRunningList(cid, cacheID string) error
-	GetTasksWithRunningList() ([]DataTask, error)
+	SetDataTaskToRunningList(cid, cacheID string) error
+	RemoveDataTaskWithRunningList(cid, cacheID string) error
+	GetDataTasksWithRunningList() ([]DataTask, error)
 
-	SetRunningTask(cid, cacheID string, timeout int64) error
-	GetRunningTask(cid string) (string, error)
-	RemoveRunningTask(cid, cacheID string) error
+	SetRunningDataTask(cid, cacheID string, timeout int64) error
+	GetRunningDataTask(cid string) (string, error)
+	RemoveRunningDataTask(cid, cacheID string) error
 
-	SetWaitingCacheTask(info api.CacheDataInfo) error
-	GetWaitingCacheTask(index int64) (api.CacheDataInfo, error)
-	RemoveWaitingCacheTask(info api.CacheDataInfo) error
+	SetWaitingDataTask(info api.CacheDataInfo) error
+	GetWaitingDataTask(index int64) (api.CacheDataInfo, error)
+	RemoveWaitingDataTask(info api.CacheDataInfo) error
 
 	IncrNodeCacheFid(deviceID string, num int) (int, error)
 	GetNodeCacheFid(deviceID string) (int64, error)

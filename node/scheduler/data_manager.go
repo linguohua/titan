@@ -68,26 +68,27 @@ func (m *DataManager) run() {
 		case <-m.dataTaskLoaderCh:
 			m.doDataTasks()
 		case <-m.blockLoaderCh:
-			m.doResultTasks()
+			m.doCacheResults()
 		}
 	}
 }
 
-func (m *DataManager) getWaitingTask(index int64) (api.CacheDataInfo, error) {
-	info, err := cache.GetDB().GetWaitingCacheTask(index)
+func (m *DataManager) getWaitingDataTask(index int64) (api.CacheDataInfo, error) {
+	info, err := cache.GetDB().GetWaitingDataTask(index)
 	if err != nil {
 		return info, err
 	}
 
-	if m.isTaskRunnning(info.CarfileCid, "") {
-		return m.getWaitingTask(index + 1)
+	// Find the next task if the task is in progress
+	if m.isDataTaskRunnning(info.CarfileCid, "") {
+		return m.getWaitingDataTask(index + 1)
 	}
 
 	return info, nil
 }
 
 func (m *DataManager) doDataTask() error {
-	info, err := m.getWaitingTask(0)
+	info, err := m.getWaitingDataTask(0)
 	if err != nil {
 		if cache.GetDB().IsNilErr(err) {
 			return nil
@@ -107,9 +108,9 @@ func (m *DataManager) doDataTask() error {
 			m.dataTaskStart(c.data)
 		}
 
-		err = cache.GetDB().RemoveWaitingCacheTask(info)
+		err = cache.GetDB().RemoveWaitingDataTask(info)
 		if err != nil {
-			log.Errorf("RemoveWaitingCacheTask err:%s", err.Error())
+			log.Errorf("RemoveWaitingDataTask err:%s", err.Error())
 		}
 	}()
 
@@ -145,7 +146,7 @@ func (m *DataManager) findData(cid string) *Data {
 }
 
 func (m *DataManager) checkTaskTimeout(taskInfo cache.DataTask) {
-	if m.isTaskRunnning(taskInfo.CarfileCid, taskInfo.CacheID) {
+	if m.isDataTaskRunnning(taskInfo.CarfileCid, taskInfo.CacheID) {
 		return
 	}
 
@@ -263,7 +264,7 @@ func (m *DataManager) makeDataContinue(cid, cacheID string) (*Cache, error) {
 func (m *DataManager) cacheData(cid string, reliability int, expiredTime int) error {
 	t := time.Now().Add(time.Duration(expiredTime) * time.Hour)
 
-	err := cache.GetDB().SetWaitingCacheTask(api.CacheDataInfo{CarfileCid: cid, NeedReliability: reliability, ExpiredTime: t})
+	err := cache.GetDB().SetWaitingDataTask(api.CacheDataInfo{CarfileCid: cid, NeedReliability: reliability, ExpiredTime: t})
 	if err != nil {
 		return err
 	}
@@ -279,7 +280,7 @@ func (m *DataManager) cacheData(cid string, reliability int, expiredTime int) er
 }
 
 func (m *DataManager) cacheContinue(cid, cacheID string) error {
-	err := cache.GetDB().SetWaitingCacheTask(api.CacheDataInfo{CarfileCid: cid, CacheInfos: []api.CacheInfo{{CacheID: cacheID}}})
+	err := cache.GetDB().SetWaitingDataTask(api.CacheDataInfo{CarfileCid: cid, CacheInfos: []api.CacheInfo{{CacheID: cacheID}}})
 	if err != nil {
 		return err
 	}
@@ -340,7 +341,7 @@ func (m *DataManager) removeCache(carfileCid, cacheID string) error {
 	e := ""
 	if err != nil {
 		e = err.Error()
-		log.Errorf("cacheID:%s, removeBlocks err:%s", cache.cacheID, err.Error())
+		log.Errorf("cacheID:%s, removeCache err:%s", cache.cacheID, err.Error())
 	}
 
 	return m.saveEvent(carfileCid, cacheID, "user", e, eventTypeRemoveCacheEnd)
@@ -353,7 +354,7 @@ func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultI
 		return xerrors.Errorf("%s : %s", ErrNotFoundTask, info.CarFileCid)
 	}
 
-	if !m.isTaskRunnning(info.CarFileCid, info.CacheID) {
+	if !m.isDataTaskRunnning(info.CarFileCid, info.CacheID) {
 		return xerrors.Errorf("%s : %s", ErrNotFoundTask, info.CarFileCid)
 	}
 
@@ -366,7 +367,7 @@ func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultI
 	return c.blockCacheResult(info)
 }
 
-func (m *DataManager) doResultTasks() {
+func (m *DataManager) doCacheResults() {
 	// defer m.notifyBlockLoader()
 	for cache.GetDB().GetCacheResultNum() > 0 {
 		info, err := cache.GetDB().GetCacheResultInfo()
@@ -425,10 +426,11 @@ func (m *DataManager) notifyDataLoader() {
 	}
 }
 
+// update the data task timeout
 func (m *DataManager) updateDataTimeout(carfileCid, cacheID string, timeout int64) {
-	err := cache.GetDB().SetRunningTask(carfileCid, cacheID, timeout)
+	err := cache.GetDB().SetRunningDataTask(carfileCid, cacheID, timeout)
 	if err != nil {
-		log.Panicf("dataTaskStart %s , SetRunningTask err:%s", cacheID, err.Error())
+		log.Panicf("dataTaskStart %s , SetRunningDataTask err:%s", cacheID, err.Error())
 	}
 }
 
@@ -453,18 +455,18 @@ func (m *DataManager) dataTaskEnd(cid, msg string) {
 }
 
 func (m *DataManager) getRunningTasks() []cache.DataTask {
-	list, err := cache.GetDB().GetTasksWithRunningList()
+	list, err := cache.GetDB().GetDataTasksWithRunningList()
 	if err != nil {
-		log.Errorf("GetTasksWithRunningList err:%s", err.Error())
+		log.Errorf("GetDataTasksWithRunningList err:%s", err.Error())
 	}
 
 	return list
 }
 
-func (m *DataManager) isTaskRunnning(cid, cacheID string) bool {
-	cID, err := cache.GetDB().GetRunningTask(cid)
+func (m *DataManager) isDataTaskRunnning(cid, cacheID string) bool {
+	cID, err := cache.GetDB().GetRunningDataTask(cid)
 	if err != nil && !cache.GetDB().IsNilErr(err) {
-		log.Errorf("isTaskRunnning %s GetRunningTask err:%s", cid, err.Error())
+		log.Errorf("isTaskRunnning %s GetRunningDataTask err:%s", cid, err.Error())
 		return true
 	}
 

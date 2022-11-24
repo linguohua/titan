@@ -1,7 +1,6 @@
 package scheduler
 
 import (
-	"sort"
 	"sync"
 	"time"
 
@@ -299,11 +298,6 @@ func (m *NodeManager) findEdgeNodes(useDeviceIDs []string, filterDeviceIDs map[s
 	}
 
 	if len(list) > 0 {
-		sort.Slice(list, func(i, j int) bool {
-			return list[i].cacheNeedTime < list[j].cacheNeedTime
-			// return list[i].deviceInfo.DeviceId > list[j].deviceInfo.DeviceId
-		})
-
 		return list
 	}
 
@@ -347,10 +341,6 @@ func (m *NodeManager) findCandidateNodes(useDeviceIDs []string, filterDeviceIDs 
 	}
 
 	if len(list) > 0 {
-		sort.Slice(list, func(i, j int) bool {
-			return list[i].cacheNeedTime < list[j].cacheNeedTime
-			// return list[i].deviceInfo.DeviceId > list[j].deviceInfo.DeviceId
-		})
 		return list
 	}
 
