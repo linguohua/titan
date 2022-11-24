@@ -103,27 +103,12 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, blocks []api.BlockInfo
 	reqList := make([]api.ReqCacheData, 0)
 	notFindCandidateBlocks := make([]api.BlockInfo, 0)
 
-	// fidMax, err := cache.GetDB().IncrNodeCacheFid(n.deviceInfo.DeviceId, len(cids))
-	// if err != nil {
-	// 	log.Errorf("deviceID:%s,IncrNodeCacheFid:%s", n.deviceInfo.DeviceId, err.Error())
-	// 	return reqList
-	// }
-
 	csMap := make(map[string][]api.BlockInfo)
 	for _, block := range blocks {
-		candidates, err := nodeManager.getCandidateNodesWithData(block.Cid, n.deviceInfo.DeviceId)
-		if err != nil || len(candidates) < 1 {
-			// not find candidate
-			notFindCandidateBlocks = append(notFindCandidateBlocks, block)
-			continue
-		}
+		deviceID := block.From
 
-		candidate := candidates[randomNum(0, len(candidates))]
-
-		deviceID := candidate.deviceInfo.DeviceId
-
-		list := csMap[deviceID]
-		if list == nil {
+		list, ok := csMap[deviceID]
+		if !ok {
 			list = make([]api.BlockInfo, 0)
 		}
 		list = append(list, block)
@@ -132,7 +117,6 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, blocks []api.BlockInfo
 	}
 
 	for deviceID, list := range csMap {
-		// node := nodeManager.getCandidateNode(deviceID)
 		info, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
 		if err == nil {
 			tk, err := token.GenerateToken(info.SecurityKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())

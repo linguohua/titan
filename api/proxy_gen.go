@@ -296,7 +296,7 @@ type SchedulerStruct struct {
 
 		ValidateBlockResult func(p0 context.Context, p1 ValidateResults) (error) `perm:"write"`
 
-		ValidateSwitch func(p0 context.Context, p1 bool) (error) ``
+		ValidateSwitch func(p0 context.Context, p1 bool) (error) `perm:"admin"`
 
 	}
 }

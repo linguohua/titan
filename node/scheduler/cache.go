@@ -184,16 +184,23 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.Blo
 		i++
 		status := persistent.CacheStatusFail
 		deviceID := ""
+		from := "IPFS"
 		fid := 0
 
-		nodes, err := persistent.GetDB().GetNodesWithCache(cid, false)
+		froms, err := persistent.GetDB().GetNodesWithCache(cid, false)
 		if err != nil {
 			log.Errorf("matchingNodeAndBlocks cache:%s,cid:%s, GetNodesWithCache err:%s", c.cacheID, cid, err.Error())
 		} else {
 			filterDeviceIDs := make(map[string]string)
-			if nodes != nil {
-				for _, dID := range nodes {
+			if froms != nil {
+				for _, dID := range froms {
 					filterDeviceIDs[dID] = cid
+
+					// fid from
+					node := c.nodeManager.getCandidateNode(dID)
+					if node != nil {
+						from = node.deviceInfo.DeviceId
+					}
 				}
 			}
 
@@ -212,7 +219,7 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.Blo
 					continue
 				}
 
-				cList = append(cList, api.BlockInfo{Cid: cid, Fid: fid})
+				cList = append(cList, api.BlockInfo{Cid: cid, Fid: fid, From: from})
 				nodeCacheMap[deviceID] = cList
 			}
 		}
@@ -226,6 +233,7 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.Blo
 			ID:         dbID,
 			CarfileCid: c.carfileCid,
 			FID:        fid,
+			Source:     from,
 		}
 
 		blockList = append(blockList, b)

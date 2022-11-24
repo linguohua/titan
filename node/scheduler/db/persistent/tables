@@ -75,6 +75,7 @@ CREATE TABLE `block_info_cn_gd_shenzhen` (
     `size` int(20)  DEFAULT '0' ,
 	`reliability` int(64) DEFAULT '0' ,
     `fid` int DEFAULT '0' ,
+    `source` varchar(64) NOT NULL,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='block infos';
 
