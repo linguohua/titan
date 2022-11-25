@@ -76,6 +76,8 @@ CREATE TABLE `block_info_cn_gd_shenzhen` (
 	`reliability` int(64) DEFAULT '0' ,
     `fid` int DEFAULT '0' ,
     `source` varchar(64) NOT NULL,
+    `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
+	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='block infos';
 
@@ -120,16 +122,31 @@ CREATE TABLE `node_connection_log` (
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='event';
 
 CREATE TABLE `message_info_cn_gd_shenzhen` (
-    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-	`carfile_cid` varchar(128) NOT NULL,
-    `msg_type` int(10) NOT NULL,
-    `source` varchar(64) NOT NULL ,
-    `to` varchar(64) NOT NULL ,
-    `done_blocks` int  DEFAULT '0' ,
-    `fail_blocks` int  DEFAULT '0' ,
-    `total_blocks` int  DEFAULT '0' ,
-    `total_size` int  DEFAULT '0' ,
-    `time` int  DEFAULT '0' ,
+    `id` varchar(64) NOT NULL UNIQUE,
+	`cid` varchar(128) NOT NULL,
+    `cache_id` varchar(64) DEFAULT '' ,
+    `to` varchar(128) DEFAULT '' ,
+    `carfile_cid` varchar(128) DEFAULT '',
+    `status` TINYINT  DEFAULT '0' ,
+    `size` int(20)  DEFAULT '0' ,
+    `source` varchar(64) NOT NULL,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
+	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
+    `msg_type` int(10) NOT NULL,
     PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='event';
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='message detailed info';
+
+-- CREATE TABLE `message_info_cn_gd_shenzhen` (
+--     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+-- 	`carfile_cid` varchar(128) NOT NULL,
+--     `msg_type` int(10) NOT NULL,
+--     `source` varchar(64) NOT NULL ,
+--     `to` varchar(64) NOT NULL ,
+--     `done_blocks` int  DEFAULT '0' ,
+--     `fail_blocks` int  DEFAULT '0' ,
+--     `total_blocks` int  DEFAULT '0' ,
+--     `total_size` int  DEFAULT '0' ,
+--     `time` int  DEFAULT '0' ,
+--     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
+--     PRIMARY KEY (`id`)
+--   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='message info';

@@ -351,28 +351,6 @@ func (rd redisDB) SetWaitingDataTask(info api.CacheDataInfo) error {
 	return err
 }
 
-// func (rd redisDB) Test() []string {
-// 	key := fmt.Sprintf(redisKeyWaitingTask, serverName)
-
-// 	values, _ := rd.cli.LRange(context.Background(), key, 0, -1).Result()
-// 	list := make([]string, 0)
-// 	for _, value := range values {
-// 		var info api.CacheDataInfo
-// 		bytes, err := redigo.Bytes(value, nil)
-// 		if err != nil {
-// 			continue
-// 		}
-
-// 		if err := json.Unmarshal(bytes, &info); err != nil {
-// 			continue
-// 		}
-
-// 		list = append(list, fmt.Sprintf("%s_%d", info.Cid, info.NeedReliability))
-// 	}
-
-// 	return list
-// }
-
 func (rd redisDB) GetWaitingDataTask(index int64) (api.CacheDataInfo, error) {
 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 

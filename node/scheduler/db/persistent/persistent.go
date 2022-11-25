@@ -37,11 +37,11 @@ type DB interface {
 	GetCachesSize(cacheID string, status int) (int, error)
 
 	// block info
-	SetBlockInfos(infos []*BlockInfo, carfileCid string) error
+	// SetBlockInfos(infos []*BlockInfo, carfileCid string) error
 	GetBlockInfo(cacheID, cid, deviceID string) (*BlockInfo, error)
 	GetBloackCountWithStatus(cacheID string, status int) (int, error)
 	GetUndoneBlocks(cacheID string) (map[string]string, error)
-	GetAllBlocks(cacheID string) (map[string][]string, error)
+	GetAllBlocks(cacheID string) ([]*BlockInfo, error)
 	GetNodesFromCache(cacheID string) (int, error)
 	GetNodesFromData(cid string) (int, error)
 
@@ -66,6 +66,7 @@ type DB interface {
 	// AddToBeDeleteBlock(infos []*BlockDelete) error
 	// RemoveToBeDeleteBlock(infos []*BlockDelete) error
 	// GetToBeDeleteBlocks(deviceID string) ([]*BlockDelete, error)
+	SetMessageInfo(infos []*MessageInfo) error
 
 	// tool
 	ReplaceArea() string
@@ -188,15 +189,17 @@ type CacheInfo struct {
 // BlockInfo Data Block info
 type BlockInfo struct {
 	ID          string
-	CacheID     string `db:"cache_id"`
-	CID         string `db:"cid"`
-	DeviceID    string `db:"device_id"`
-	Status      int    `db:"status"`
-	Size        int    `db:"size"`
-	Reliability int    `db:"reliability"`
-	CarfileCid  string `db:"carfile_cid"`
-	Source      string `db:"source"`
-	FID         int    `db:"fid"`
+	CacheID     string    `db:"cache_id"`
+	CID         string    `db:"cid"`
+	DeviceID    string    `db:"device_id"`
+	Status      int       `db:"status"`
+	Size        int       `db:"size"`
+	Reliability int       `db:"reliability"`
+	CarfileCid  string    `db:"carfile_cid"`
+	Source      string    `db:"source"`
+	FID         int       `db:"fid"`
+	CreateTime  time.Time `db:"created_time"`
+	EndTime     time.Time `db:"end_time"`
 	IsUpdate    bool
 }
 
@@ -210,6 +213,21 @@ type EventInfo struct {
 	Event      string    `db:"event"`
 	Msg        string    `db:"msg"`
 	CreateTime time.Time `db:"created_time"`
+}
+
+// MessageInfo Message Info
+type MessageInfo struct {
+	ID         string
+	CID        string    `db:"cid"`
+	To         string    `db:"to"`
+	CacheID    string    `db:"cache_id"`
+	CarfileCid string    `db:"carfile_cid"`
+	Status     MsgStatus `db:"status"`
+	Size       int       `db:"size"`
+	Type       MsgType   `db:"msg_type"`
+	Source     string    `db:"source"`
+	CreateTime time.Time `db:"created_time"`
+	EndTime    time.Time `db:"end_time"`
 }
 
 // // BlockDelete block to be delete
@@ -238,6 +256,18 @@ const (
 	ValidateStatusOther
 )
 
+// MsgType message type
+type MsgType int
+
+const (
+	// MsgTypeCache type
+	MsgTypeCache MsgType = iota
+	// MsgTypeDowload type
+	MsgTypeDowload
+	// MsgTypeValidate type
+	MsgTypeValidate
+)
+
 // CacheStatus Cache Status
 type CacheStatus int
 
@@ -252,4 +282,18 @@ const (
 	CacheStatusSuccess
 	// CacheStatusTimeout status
 	CacheStatusTimeout
+	// CacheStatusRemove status
+	CacheStatusRemove
+)
+
+// MsgStatus message Status
+type MsgStatus int
+
+const (
+	// MsgStatusUnknown status
+	MsgStatusUnknown MsgStatus = iota
+	// MsgStatusFail status
+	MsgStatustusFail
+	// MsgStatusSuccess status
+	MsgStatusSuccess
 )
