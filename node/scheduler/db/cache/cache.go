@@ -1,6 +1,9 @@
 package cache
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/linguohua/titan/api"
 	"golang.org/x/xerrors"
 )
@@ -47,6 +50,8 @@ type DB interface {
 	GetDeviceInfo(deviceID string) (api.DevicesInfo, error)
 	IncrDeviceReward(deviceID string, reward int64) error
 	SetDeviceLatency(deviceID string, latency float64) error
+	SetBlockDownloadRecord(sn int64, cid string, userPublicKey string) error
+	GetBlockDownloadRecord(sn int64) (blockDownloadRecord, error)
 
 	IsNilErr(err error) bool
 }
@@ -96,4 +101,17 @@ type NodeInfo struct {
 type DataTask struct {
 	CarfileCid string
 	CacheID    string
+}
+
+type blockDownloadRecord struct {
+	Cid              string `redis:"Cid"`
+	UserPublicKey    string `redis:"UserPublicKey"`
+	UserVerifyStatus int    `redis:"UserVerifyStatus"`
+	NodeVerifyStatus int    `redis:"NodeVerifyStatus"`
+}
+
+func (blockDownload blockDownloadRecord) MarshalBinary() (data []byte, err error) {
+	data, err = json.Marshal(&blockDownload)
+	fmt.Printf("data:%s", string(data))
+	return
 }

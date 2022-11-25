@@ -31,7 +31,8 @@ type Scheduler interface {
 	LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID, locatorToken string) error //perm:write
 
 	// call by node
-	DownloadBlockResult(ctx context.Context, stat DownloadBlockStat) error                         //perm:write
+	// node send result when user download block complete
+	NodeDownloadBlockResult(ctx context.Context, result NodeBlockDownloadResult) error             //perm:write                             //perm:write
 	EdgeNodeConnect(ctx context.Context, edgePort int) (externalIP string, err error)              //perm:write
 	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                //perm:write
 	CandidateNodeConnect(ctx context.Context, edgePort int) (externalIP string, err error)         //perm:write
@@ -45,6 +46,8 @@ type Scheduler interface {
 	GetDevicesInfo(ctx context.Context, deviceID string) (DevicesInfo, error)                         //perm:read
 	StateNetwork(ctx context.Context) (StateNetwork, error)                                           //perm:read
 	GetDownloadInfo(ctx context.Context, deviceID string) ([]*BlockDownloadInfo, error)               //perm:read
+	// user send result when user download block complete
+	UserDownloadBlockResults(ctx context.Context, results []UserBlockDownloadResult) error
 }
 
 // DataListInfo Data List Info
@@ -114,10 +117,11 @@ type CacheInfo struct {
 // 	Size     int
 // }
 
-type DownloadBlockStat struct {
-	Cid           string
-	DeviceID      string
-	BlockSize     int
+type NodeBlockDownloadResult struct {
+	//serial number
+	SN int64
+	//scheduler signature
+	Sign          string
 	DownloadSpeed int64
 	ClientIP      string
 }
@@ -126,4 +130,12 @@ type DownloadServerAccessAuth struct {
 	DeviceID    string
 	URL         string
 	SecurityKey string
+}
+
+type UserBlockDownloadResult struct {
+	// serial number
+	SN int64
+	// user signature
+	Sign   string
+	Result bool
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/linguohua/titan/api"
 
+	"github.com/fatih/structs"
 	"github.com/go-redis/redis/v8"
 	redigo "github.com/gomodule/redigo/redis"
 )
@@ -35,12 +36,16 @@ const (
 	// redisKeyNodeInfo  deviceID
 	redisKeyNodeInfo = "Titan:NodeInfo:%s"
 
+	redisKeyBlockDownloadRecord = "Titan:BlockDownloadRecord:%d"
+
 	// NodeInfo field
-	onlineTimeField         = "OnlineTime"
-	validateSuccessField    = "ValidateSuccessTime"
-	nodeTodayRewardField    = "TodayProfit"
-	nodeRewardDateTimeField = "RewardDateTime"
-	nodeLatencyField        = "Latency"
+	onlineTimeField             = "OnlineTime"
+	validateSuccessField        = "ValidateSuccessTime"
+	nodeTodayRewardField        = "TodayProfit"
+	nodeRewardDateTimeField     = "RewardDateTime"
+	nodeLatencyField            = "Latency"
+	blockDownloadCIDField       = "CID"
+	blockDownloadPublicKeyField = "UserPublicKey"
 	// CacheTask field
 	// carFileIDField = "CarFileID"
 	// cacheIDField = "cacheID"
@@ -477,4 +482,26 @@ func (rd redisDB) GetDeviceStat() (out api.StateNetwork, err error) {
 	}
 
 	return
+}
+
+func (rd redisDB) SetBlockDownloadRecord(sn int64, cid string, userPublicKey string) error {
+	key := fmt.Sprintf(redisKeyBlockDownloadRecord, sn)
+	record := blockDownloadRecord{Cid: cid, UserPublicKey: userPublicKey}
+	_, err := rd.cli.HMSet(context.Background(), key, structs.Map(record)).Result()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rd redisDB) GetBlockDownloadRecord(sn int64) (blockDownloadRecord, error) {
+	key := fmt.Sprintf(redisKeyBlockDownloadRecord, sn)
+
+	var record blockDownloadRecord
+	err := rd.cli.HGetAll(context.Background(), key).Scan(&record)
+	if err != nil {
+		return blockDownloadRecord{}, err
+	}
+
+	return record, nil
 }
