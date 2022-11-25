@@ -53,6 +53,14 @@ const (
 	StatusOnline = "online"
 )
 
+type blockDownloadVerifyStatus int
+
+const (
+	blockDownloadVerifyUnknow blockDownloadVerifyStatus = iota
+	blockDownloadVerifySuccess
+	blockDownloadVerifyFailed
+)
+
 // NewLocalScheduleNode NewLocalScheduleNode
 func NewLocalScheduleNode(lr repo.LockedRepo, port int) api.Scheduler {
 	verifiedNodeMax := 10
@@ -266,27 +274,101 @@ func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api
 	return err
 }
 
-// DownloadBlockResult user download block result
-func (s *Scheduler) DownloadBlockResult(ctx context.Context, stat api.DownloadBlockStat) error {
+// DownloadBlockResult node result for user download block
+func (s *Scheduler) NodeDownloadBlockResult(ctx context.Context, result api.NodeBlockDownloadResult) error {
 	deviceID := handler.GetDeviceID(ctx)
 
 	if !s.nodeManager.isDeviceExist(deviceID, 0) {
 		return xerrors.Errorf("node not Exist: %s", deviceID)
 	}
-	// TODO check cid
 
-	// add reward
-	if err := cache.GetDB().IncrDeviceReward(stat.DeviceID, 1); err != nil {
+	ok, err := s.verifyNodeDownloadBlockSign(deviceID, result.Sign)
+	if err != nil {
+		log.Errorf("NodeDownloadBlockResult, verifyNodeDownloadBlockSign error:%s", err.Error())
 		return err
 	}
 
-	return persistent.GetDB().AddDownloadInfo(stat.DeviceID, &api.BlockDownloadInfo{
-		DeviceID:  stat.DeviceID,
-		BlockCID:  stat.Cid,
-		Reward:    1,
-		BlockSize: int64(stat.BlockSize),
-		Speed:     stat.DownloadSpeed,
+	record, err := cache.GetDB().GetBlockDownloadRecord(result.SN)
+	if err != nil {
+		log.Errorf("NodeDownloadBlockResult, GetBlockDownloadRecord error:%s", err.Error())
+		return err
+	}
+
+	record.NodeVerifyStatus = int(blockDownloadVerifyFailed)
+	if ok {
+		record.NodeVerifyStatus = int(blockDownloadVerifySuccess)
+	}
+
+	var reward = int64(0)
+	if record.NodeVerifyStatus == int(blockDownloadVerifySuccess) && record.UserVerifyStatus == int(blockDownloadVerifySuccess) {
+		reward = 1
+		// add reward
+		if err := cache.GetDB().IncrDeviceReward(deviceID, reward); err != nil {
+			return err
+		}
+	}
+
+	// TODO update downloadInfo
+	return persistent.GetDB().AddDownloadInfo(deviceID, &api.BlockDownloadInfo{
+		DeviceID: deviceID,
+		BlockCID: record.Cid,
+		Reward:   reward,
+		// BlockSize: int64(stat.BlockSize),
+		Speed: result.DownloadSpeed,
 	})
+}
+
+func (s *Scheduler) handleUserDownloadBlockResult(result api.UserBlockDownloadResult) error {
+	record, err := cache.GetDB().GetBlockDownloadRecord(result.SN)
+	if err != nil {
+		log.Errorf("NodeDownloadBlockResult, GetBlockDownloadRecord error:%s", err.Error())
+		return err
+	}
+
+	ok, err := s.verifyUserDownloadBlockSign(record.UserPublicKey, result.Sign)
+	if err != nil {
+		log.Errorf("NodeDownloadBlockResult, verifyNodeDownloadBlockSign error:%s", err.Error())
+		return err
+	}
+
+	record.NodeVerifyStatus = int(blockDownloadVerifyFailed)
+	if ok {
+		record.NodeVerifyStatus = int(blockDownloadVerifySuccess)
+	}
+
+	var deviceID string
+
+	var reward = int64(0)
+	if record.NodeVerifyStatus == int(blockDownloadVerifySuccess) && record.UserVerifyStatus == int(blockDownloadVerifySuccess) {
+		reward = 1
+		// add reward
+		if err := cache.GetDB().IncrDeviceReward(deviceID, reward); err != nil {
+			return err
+		}
+	}
+
+	// return persistent.GetDB().AddDownloadInfo(deviceID, &api.BlockDownloadInfo{
+	// 	DeviceID:  deviceID,
+	// 	BlockCID:  record.Cid,
+	// 	Reward:    reward,
+	// 	BlockSize: int64(stat.BlockSize),
+	// 	Speed:     result.DownloadSpeed,
+	// })
+
+	// TODO update downloadInfo
+
+	return nil
+}
+
+// DownloadBlockResult node result for user download block
+func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []api.UserBlockDownloadResult) error {
+	for _, result := range results {
+		err := s.handleUserDownloadBlockResult(result)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // CacheContinue Cache Continue
@@ -783,3 +865,11 @@ func (s *Scheduler) GetValidationInfo(ctx context.Context) (api.ValidationInfo, 
 
 // 	return xerrors.New(ErrNodeNotFind)
 // }
+
+func (s *Scheduler) verifyNodeDownloadBlockSign(deviceID, sign string) (bool, error) {
+	return true, nil
+}
+
+func (s *Scheduler) verifyUserDownloadBlockSign(publicKey, sign string) (bool, error) {
+	return true, nil
+}

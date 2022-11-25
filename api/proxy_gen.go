@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
+
 )
 
 
@@ -250,8 +251,6 @@ type SchedulerStruct struct {
 
 		DeleteBlockRecords func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"admin"`
 
-		DownloadBlockResult func(p0 context.Context, p1 DownloadBlockStat) (error) `perm:"write"`
-
 		EdgeNodeConnect func(p0 context.Context, p1 int) (string, error) `perm:"write"`
 
 		ElectionValidators func(p0 context.Context) (error) `perm:"admin"`
@@ -274,6 +273,8 @@ type SchedulerStruct struct {
 
 		LocatorConnect func(p0 context.Context, p1 int, p2 string, p3 string, p4 string) (error) `perm:"write"`
 
+		NodeDownloadBlockResult func(p0 context.Context, p1 NodeBlockDownloadResult) (error) `perm:"write"`
+
 		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"read"`
 
 		QueryCachingBlocksWithNode func(p0 context.Context, p1 string) (CachingBlockList, error) `perm:"read"`
@@ -291,6 +292,8 @@ type SchedulerStruct struct {
 		StateNetwork func(p0 context.Context) (StateNetwork, error) `perm:"read"`
 
 		UpdateDownloadServerAccessAuth func(p0 context.Context, p1 DownloadServerAccessAuth) (error) `perm:"write"`
+
+		UserDownloadBlockResults func(p0 context.Context, p1 []UserBlockDownloadResult) (error) ``
 
 		Validate func(p0 context.Context) (error) `perm:"admin"`
 
@@ -884,17 +887,6 @@ func (s *SchedulerStub) DeleteBlockRecords(p0 context.Context, p1 string, p2 []s
 	return *new(map[string]string), ErrNotSupported
 }
 
-func (s *SchedulerStruct) DownloadBlockResult(p0 context.Context, p1 DownloadBlockStat) (error) {
-	if s.Internal.DownloadBlockResult == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.DownloadBlockResult(p0, p1)
-}
-
-func (s *SchedulerStub) DownloadBlockResult(p0 context.Context, p1 DownloadBlockStat) (error) {
-	return ErrNotSupported
-}
-
 func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context, p1 int) (string, error) {
 	if s.Internal.EdgeNodeConnect == nil {
 		return "", ErrNotSupported
@@ -1016,6 +1008,17 @@ func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 int, p2 string, p3
 	return ErrNotSupported
 }
 
+func (s *SchedulerStruct) NodeDownloadBlockResult(p0 context.Context, p1 NodeBlockDownloadResult) (error) {
+	if s.Internal.NodeDownloadBlockResult == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.NodeDownloadBlockResult(p0, p1)
+}
+
+func (s *SchedulerStub) NodeDownloadBlockResult(p0 context.Context, p1 NodeBlockDownloadResult) (error) {
+	return ErrNotSupported
+}
+
 func (s *SchedulerStruct) QueryCacheStatWithNode(p0 context.Context, p1 string) ([]CacheStat, error) {
 	if s.Internal.QueryCacheStatWithNode == nil {
 		return *new([]CacheStat), ErrNotSupported
@@ -1112,6 +1115,17 @@ func (s *SchedulerStruct) UpdateDownloadServerAccessAuth(p0 context.Context, p1 
 }
 
 func (s *SchedulerStub) UpdateDownloadServerAccessAuth(p0 context.Context, p1 DownloadServerAccessAuth) (error) {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) UserDownloadBlockResults(p0 context.Context, p1 []UserBlockDownloadResult) (error) {
+	if s.Internal.UserDownloadBlockResults == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.UserDownloadBlockResults(p0, p1)
+}
+
+func (s *SchedulerStub) UserDownloadBlockResults(p0 context.Context, p1 []UserBlockDownloadResult) (error) {
 	return ErrNotSupported
 }
 

@@ -46,14 +46,19 @@ func NewBlockDownload(limiter *rate.Limiter, params *helper.NodeParams, device *
 
 func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 	appName := r.Header.Get("App-Name")
-	tk := r.Header.Get("Token")
+	// sign := r.Header.Get("Sign")
 	cidStr := r.URL.Query().Get("cid")
+	sign := r.URL.Query().Get("sign")
+	snStr := r.URL.Query().Get("sn")
 
-	log.Infof("GetBlock, App-Name:%s, Token:%s,  cid:%s", appName, tk, cidStr)
+	log.Infof("GetBlock, App-Name:%s, sign:%s, sn:%d  cid:%s", appName, sign, snStr, cidStr)
 
-	if !token.ValidToken(tk, bd.downloadSrvKey) {
-		log.Errorf("Valid token %s error", tk)
-		http.Error(w, fmt.Sprintf("Valid token %s error", tk), http.StatusBadRequest)
+	// TODO: need to verify sign
+
+	sn, err := strconv.ParseInt(snStr, 10, 64)
+	if err != nil {
+		log.Errorf("Parser param sn(%s) error:%s", sn, err.Error())
+		http.Error(w, fmt.Sprintf("Parser param sn(%s) error:%s", snStr, err.Error()), http.StatusBadRequest)
 		return
 	}
 
@@ -84,7 +89,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		speedRate = int64(float64(n) / float64(costTime) * float64(time.Second))
 	}
 
-	go bd.statistics(bd.device.GetDeviceID(), cidStr, int(n), speedRate, getClientIP(r))
+	go bd.downloadBlockResult(sign, bd.device.GetDeviceID(), 0, speedRate, getClientIP(r))
 
 	log.Infof("Download block %s costTime %d, size %d, speed %d", cidStr, costTime, n, speedRate)
 
@@ -104,9 +109,9 @@ func getClientIP(r *http.Request) string {
 	return reqIP
 }
 
-func (bd *BlockDownload) statistics(deviceID, cid string, size int, downloadSpeed int64, clientIP string) {
-	stat := api.DownloadBlockStat{Cid: cid, DeviceID: deviceID, BlockSize: size, DownloadSpeed: downloadSpeed, ClientIP: clientIP}
-	bd.scheduler.DownloadBlockResult(context.Background(), stat)
+func (bd *BlockDownload) downloadBlockResult(sign, deviceID string, sn, downloadSpeed int64, clientIP string) {
+	result := api.NodeBlockDownloadResult{SN: sn, Sign: sign, DownloadSpeed: downloadSpeed, ClientIP: clientIP}
+	bd.scheduler.NodeDownloadBlockResult(context.Background(), result)
 }
 
 func (bd *BlockDownload) startDownloadServer() {
