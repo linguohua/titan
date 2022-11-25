@@ -317,7 +317,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	createBlocks, nodeCacheMap := c.allocateBlocksToNodes(linkMap)
 
 	// save info to db
-	err = c.data.updateAndSaveCacheingInfo(bInfo, info, c, createBlocks)
+	err = c.data.updateAndSaveCacheingInfo(bInfo, c, createBlocks)
 	if err != nil {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,%s updateAndSaveCacheingInfo err:%s ", info.CacheID, info.Cid, err.Error())
 	}
@@ -341,7 +341,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 func (c *Cache) startCache(cids map[string]string) error {
 	createBlocks, nodeCacheMap := c.allocateBlocksToNodes(cids)
 
-	err := persistent.GetDB().SetBlockInfos(createBlocks, c.carfileCid)
+	err := persistent.GetDB().SaveCacheingResults(nil, nil, nil, createBlocks)
 	if err != nil {
 		return xerrors.Errorf("startCache %s, SetBlockInfos err:%s", c.cacheID, err.Error())
 	}
@@ -378,6 +378,9 @@ func (c *Cache) endCache(unDoneBlocks int, isTimeout bool) (err error) {
 	}
 
 	defer func() {
+		// save message info
+		c.setCacheMessageInfo()
+
 		c.data.cacheEnd(c)
 	}()
 
@@ -405,9 +408,20 @@ func (c *Cache) endCache(unDoneBlocks int, isTimeout bool) (err error) {
 func (c *Cache) removeCache() error {
 	reliability := c.data.reliability
 
-	cidMap, err := persistent.GetDB().GetAllBlocks(c.cacheID)
+	blocks, err := persistent.GetDB().GetAllBlocks(c.cacheID)
 	if err != nil {
 		return err
+	}
+
+	cidMap := make(map[string][]string, 0)
+
+	for _, block := range blocks {
+		cids, ok := cidMap[block.DeviceID]
+		if !ok {
+			cids = make([]string, 0)
+		}
+		cids = append(cids, block.CID)
+		cidMap[block.DeviceID] = cids
 	}
 
 	for deviceID, cids := range cidMap {
@@ -473,4 +487,43 @@ func (c *Cache) calculateReliability(deviceID string) int {
 	}
 
 	return 0
+}
+
+func (c *Cache) setCacheMessageInfo() {
+	blocks, err := persistent.GetDB().GetAllBlocks(c.cacheID)
+	if err != nil {
+		log.Errorf("cache:%s setCacheMessage GetAllBlocks err:%s", c.cacheID, err.Error())
+		return
+	}
+
+	log.Info("----------------------------------------:", c.cacheID, "======", len(blocks))
+
+	messages := make([]*persistent.MessageInfo, 0)
+
+	for _, block := range blocks {
+		info := &persistent.MessageInfo{
+			CID:        block.CID,
+			To:         block.DeviceID,
+			CacheID:    block.CacheID,
+			CarfileCid: c.carfileCid,
+			Size:       block.Size,
+			Type:       persistent.MsgTypeCache,
+			Source:     block.Source,
+			EndTime:    block.EndTime,
+			CreateTime: block.CreateTime,
+		}
+
+		if block.Status == int(persistent.CacheStatusSuccess) {
+			info.Status = persistent.MsgStatusSuccess
+		} else {
+			info.Status = persistent.MsgStatustusFail
+		}
+
+		messages = append(messages, info)
+	}
+
+	err = persistent.GetDB().SetMessageInfo(messages)
+	if err != nil {
+		log.Errorf("cache:%s setCacheMessage SetMessageInfo err:%s", c.cacheID, err.Error())
+	}
 }

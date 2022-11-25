@@ -465,6 +465,8 @@ func (m *DataManager) saveEvent(cid, cacheID, userID, msg string, event EventTyp
 func (m *DataManager) stopDataTask(cid string) {
 	m.saveEvent(cid, "", "user", "", eventTypeStopDataTask)
 
+	// if data unstart
+
 	data := m.findData(cid)
 	data.isStop = true
 }

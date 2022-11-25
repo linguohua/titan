@@ -4,7 +4,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
 )
@@ -111,7 +110,7 @@ func (d *Data) createCache(isRootCache bool) (*Cache, error) {
 	return cache, nil
 }
 
-func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, info *api.CacheResultInfo, cache *Cache, createBlocks []*persistent.BlockInfo) error {
+func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, cache *Cache, createBlocks []*persistent.BlockInfo) error {
 	if !d.haveRootCache() {
 		d.totalSize = cache.totalSize
 		d.totalBlocks = cache.totalBlocks
