@@ -219,7 +219,7 @@ type EventInfo struct {
 type MessageInfo struct {
 	ID         string
 	CID        string    `db:"cid"`
-	To         string    `db:"to"`
+	Target     string    `db:"target"`
 	CacheID    string    `db:"cache_id"`
 	CarfileCid string    `db:"carfile_cid"`
 	Status     MsgStatus `db:"status"`

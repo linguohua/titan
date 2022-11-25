@@ -125,7 +125,7 @@ CREATE TABLE `message_info_cn_gd_shenzhen` (
     `id` varchar(64) NOT NULL UNIQUE,
 	`cid` varchar(128) NOT NULL,
     `cache_id` varchar(64) DEFAULT '' ,
-    `to` varchar(128) DEFAULT '' ,
+    `target` varchar(128) DEFAULT '' ,
     `carfile_cid` varchar(128) DEFAULT '',
     `status` TINYINT  DEFAULT '0' ,
     `size` int(20)  DEFAULT '0' ,
