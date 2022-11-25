@@ -822,11 +822,11 @@ func (sd sqlDB) SetMessageInfo(infos []*MessageInfo) error {
 
 	for _, info := range infos {
 		if info.ID != "" {
-			cmd := fmt.Sprintf(`UPDATE %s SET cid=?,to=?,cache_id=?,carfile_cid=?,status=?,size=?,msg_type=?,source=?,created_time=?,end_time=? WHERE id=?`, tableName)
-			tx.MustExec(cmd, info.CID, info.To, info.CacheID, info.CarfileCid, info.Status, info.Size, info.Type, info.Source, info.CreateTime, info.EndTime, info.ID)
+			cmd := fmt.Sprintf(`UPDATE %s SET cid=?,target=?,cache_id=?,carfile_cid=?,status=?,size=?,msg_type=?,source=?,created_time=?,end_time=? WHERE id=?`, tableName)
+			tx.MustExec(cmd, info.CID, info.Target, info.CacheID, info.CarfileCid, info.Status, info.Size, info.Type, info.Source, info.CreateTime, info.EndTime, info.ID)
 		} else {
-			cmd := fmt.Sprintf(`INSERT INTO %s (cid, to, cache_id, carfile_cid, status, size, msg_type, source, created_time, end_time, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, REPLACE(UUID(),"-",""))`, tableName)
-			tx.MustExec(cmd, info.CID, info.To, info.CacheID, info.CarfileCid, info.Status, info.Size, info.Type, info.Source, info.CreateTime, info.EndTime)
+			cmd := fmt.Sprintf(`INSERT INTO %s (cid, target, cache_id, carfile_cid, status, size, msg_type, source, created_time, end_time, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, REPLACE(UUID(),"-",""))`, tableName)
+			tx.MustExec(cmd, info.CID, info.Target, info.CacheID, info.CarfileCid, info.Status, info.Size, info.Type, info.Source, info.CreateTime, info.EndTime)
 		}
 	}
 

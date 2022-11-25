@@ -503,7 +503,7 @@ func (c *Cache) setCacheMessageInfo() {
 	for _, block := range blocks {
 		info := &persistent.MessageInfo{
 			CID:        block.CID,
-			To:         block.DeviceID,
+			Target:     block.DeviceID,
 			CacheID:    block.CacheID,
 			CarfileCid: c.carfileCid,
 			Size:       block.Size,
