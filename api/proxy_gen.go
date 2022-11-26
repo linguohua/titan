@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-
 )
 
 
@@ -255,6 +254,8 @@ type SchedulerStruct struct {
 
 		ElectionValidators func(p0 context.Context) (error) `perm:"admin"`
 
+		GetCandidateDownloadInfoWithBlocks func(p0 context.Context, p1 []string) (map[string]DownloadInfo, error) `perm:"write"`
+
 		GetDevicesInfo func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
 
 		GetDownloadInfo func(p0 context.Context, p1 string) ([]*BlockDownloadInfo, error) `perm:"read"`
@@ -270,6 +271,8 @@ type SchedulerStruct struct {
 		GetValidationInfo func(p0 context.Context) (ValidationInfo, error) `perm:"admin"`
 
 		ListDatas func(p0 context.Context, p1 int) (DataListInfo, error) `perm:"read"`
+
+		ListEvents func(p0 context.Context, p1 int) (EventListInfo, error) `perm:"read"`
 
 		LocatorConnect func(p0 context.Context, p1 int, p2 string, p3 string, p4 string) (error) `perm:"write"`
 
@@ -293,7 +296,7 @@ type SchedulerStruct struct {
 
 		UpdateDownloadServerAccessAuth func(p0 context.Context, p1 DownloadServerAccessAuth) (error) `perm:"write"`
 
-		UserDownloadBlockResults func(p0 context.Context, p1 []UserBlockDownloadResult) (error) ``
+		UserDownloadBlockResults func(p0 context.Context, p1 []UserBlockDownloadResult) (error) `perm:"read"`
 
 		Validate func(p0 context.Context) (error) `perm:"admin"`
 
@@ -909,6 +912,17 @@ func (s *SchedulerStub) ElectionValidators(p0 context.Context) (error) {
 	return ErrNotSupported
 }
 
+func (s *SchedulerStruct) GetCandidateDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]DownloadInfo, error) {
+	if s.Internal.GetCandidateDownloadInfoWithBlocks == nil {
+		return *new(map[string]DownloadInfo), ErrNotSupported
+	}
+	return s.Internal.GetCandidateDownloadInfoWithBlocks(p0, p1)
+}
+
+func (s *SchedulerStub) GetCandidateDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]DownloadInfo, error) {
+	return *new(map[string]DownloadInfo), ErrNotSupported
+}
+
 func (s *SchedulerStruct) GetDevicesInfo(p0 context.Context, p1 string) (DevicesInfo, error) {
 	if s.Internal.GetDevicesInfo == nil {
 		return *new(DevicesInfo), ErrNotSupported
@@ -995,6 +1009,17 @@ func (s *SchedulerStruct) ListDatas(p0 context.Context, p1 int) (DataListInfo, e
 
 func (s *SchedulerStub) ListDatas(p0 context.Context, p1 int) (DataListInfo, error) {
 	return *new(DataListInfo), ErrNotSupported
+}
+
+func (s *SchedulerStruct) ListEvents(p0 context.Context, p1 int) (EventListInfo, error) {
+	if s.Internal.ListEvents == nil {
+		return *new(EventListInfo), ErrNotSupported
+	}
+	return s.Internal.ListEvents(p0, p1)
+}
+
+func (s *SchedulerStub) ListEvents(p0 context.Context, p1 int) (EventListInfo, error) {
+	return *new(EventListInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 int, p2 string, p3 string, p4 string) (error) {

@@ -251,33 +251,6 @@ func (sd sqlDB) GetBlocksBiggerThan(startFid int, deviceID string) (map[int]stri
 	return m, nil
 }
 
-func (sd sqlDB) GetBlockCidWithFid(deviceID string, fid int) (string, error) {
-	area := sd.ReplaceArea()
-
-	info := &BlockInfo{
-		FID:      fid,
-		DeviceID: deviceID,
-	}
-
-	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE fid=:fid AND device_id=:device_id`, fmt.Sprintf(blockInfoTable, area))
-	rows, err := sd.cli.NamedQuery(cmd, info)
-	if err != nil {
-		return "", err
-	}
-	defer rows.Close()
-
-	if rows.Next() {
-		err = rows.StructScan(info)
-		if err != nil {
-			return "", err
-		}
-	} else {
-		return "", xerrors.New(errNodeNotFind)
-	}
-
-	return info.CID, err
-}
-
 func (sd sqlDB) GetDeviceBlockNum(deviceID string) (int64, error) {
 	area := sd.ReplaceArea()
 
@@ -337,20 +310,11 @@ func (sd sqlDB) CreateCache(cInfo *CacheInfo) error {
 	cCmd := fmt.Sprintf("INSERT INTO %s (carfile_cid, cache_id, status, expired_time, root_cache) VALUES (?, ?, ?, ?, ?)", cTableName)
 	tx.MustExec(cCmd, cInfo.CarfileCid, cInfo.CacheID, cInfo.Status, cInfo.ExpiredTime, cInfo.RootCache)
 
-	// data info
-	// dCmd := fmt.Sprintf("UPDATE %s SET cache_ids=? WHERE cid=?", dTableName)
-	// tx.MustExec(dCmd, dInfo.CacheIDs, dInfo.CID)
-
 	err := tx.Commit()
 	if err != nil {
 		err = tx.Rollback()
 		return err
 	}
-
-	// info, err := sd.GetCacheInfo(cInfo.CacheID, cInfo.CarfileID)
-	// if err != nil {
-	// 	return 0, err
-	// }
 
 	return nil
 }
@@ -502,23 +466,9 @@ func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []s
 		page = totalPage
 	}
 
-	// select * from table order by id limit m, n;
-	// cmd = fmt.Sprintf("SELECT * FROM %s WHERE id>=(SELECT id FROM %s order by id limit %d,1) LIMIT %d", fmt.Sprintf(dataInfoTable, area), fmt.Sprintf(dataInfoTable, area), (p * (page - 1)), p)
 	cmd = fmt.Sprintf("SELECT carfile_cid FROM %s LIMIT %d,%d", fmt.Sprintf(dataInfoTable, area), (p * (page - 1)), p)
-	rows, err := sd.cli.Queryx(cmd)
-	if err != nil {
+	if err = sd.cli.Select(&list, cmd); err != nil {
 		return
-	}
-	defer rows.Close()
-
-	list = make([]string, 0)
-	for rows.Next() {
-		info := &DataInfo{}
-		err := rows.StructScan(info)
-
-		if err == nil {
-			list = append(list, info.CarfileCid)
-		}
 	}
 
 	return
@@ -804,7 +754,7 @@ func (sd sqlDB) GetDownloadInfo(deviceID string) ([]*api.BlockDownloadInfo, erro
 	return out, nil
 }
 
-func (sd sqlDB) SetEventInfo(info *EventInfo) error {
+func (sd sqlDB) SetEventInfo(info *api.EventInfo) error {
 	area := sd.ReplaceArea()
 
 	tableName := fmt.Sprintf(eventInfoTable, area)
@@ -812,6 +762,37 @@ func (sd sqlDB) SetEventInfo(info *EventInfo) error {
 	cmd := fmt.Sprintf("INSERT INTO %s (cid, device_id, user, event, msg, cache_id) VALUES (:cid, :device_id, :user, :event, :msg, :cache_id)", tableName)
 	_, err := sd.cli.NamedExec(cmd, info)
 	return err
+}
+
+func (sd sqlDB) GetEventInfos(page int) (count int, totalPage int, out []api.EventInfo, err error) {
+	area := "cn_gd_shenzhen"
+	p := 20
+
+	cmd := fmt.Sprintf("SELECT count(cid) FROM %s ;", fmt.Sprintf(eventInfoTable, area))
+	err = sd.cli.Get(&count, cmd)
+	if err != nil {
+		return
+	}
+
+	totalPage = count / p
+	if count%p > 0 {
+		totalPage++
+	}
+
+	if totalPage == 0 {
+		return
+	}
+
+	if page > totalPage {
+		page = totalPage
+	}
+
+	cmd = fmt.Sprintf("SELECT * FROM %s LIMIT %d,%d", fmt.Sprintf(eventInfoTable, area), (p * (page - 1)), p)
+	if err = sd.cli.Select(&out, cmd); err != nil {
+		return
+	}
+
+	return
 }
 
 func (sd sqlDB) SetMessageInfo(infos []*MessageInfo) error {

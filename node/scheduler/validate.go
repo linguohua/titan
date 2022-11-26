@@ -7,8 +7,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ipfs/go-cid"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/ouqiang/timewheel"
@@ -285,7 +285,6 @@ func (v *Validate) validate(validateResults *api.ValidateResults) error {
 		// fidStr := fmt.Sprintf("%d", fid)
 
 		cid := cacheInfos[fid]
-		// cid, err := persistent.GetDB().GetBlockCidWithFid(deviceID, fidStr)
 		if cid == "" {
 			// log.Warnf("cid nil;fid:%s", fidStr)
 			// status = cache.ValidateStatusFail
@@ -438,22 +437,17 @@ func (v *Validate) startValidate() error {
 }
 
 func (v *Validate) compareCid(cidStr1, cidStr2 string) bool {
-	// log.Warnf("cidStr1:%s,cidStr2:%s", cidStr1, cidStr2)
-
-	target1, err := cid.Decode(cidStr1)
+	hash1, err := helper.CIDString2HashString(cidStr1)
 	if err != nil {
-		// log.Warnf("err1:%s", err.Error())
 		return false
 	}
 
-	target2, err := cid.Decode(cidStr2)
+	hash2, err := helper.CIDString2HashString(cidStr2)
 	if err != nil {
-		// log.Warnf("err2:%s", err.Error())
 		return false
 	}
-	// log.Warnf("Hash1:%s,Hash2:%s", target1.Hash().String(), target2.Hash().String())
 
-	return target1.Hash().String() == target2.Hash().String()
+	return hash1 == hash2
 }
 
 func (v *Validate) updateLatency(deviceID string, latency float64) error {

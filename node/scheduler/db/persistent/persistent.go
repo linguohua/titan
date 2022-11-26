@@ -62,7 +62,8 @@ type DB interface {
 	AddDownloadInfo(deviceID string, info *api.BlockDownloadInfo) error
 	GetDownloadInfo(deviceID string) ([]*api.BlockDownloadInfo, error)
 
-	SetEventInfo(info *EventInfo) error
+	SetEventInfo(info *api.EventInfo) error
+	GetEventInfos(page int) (count int, totalPage int, out []api.EventInfo, err error)
 	// AddToBeDeleteBlock(infos []*BlockDelete) error
 	// RemoveToBeDeleteBlock(infos []*BlockDelete) error
 	// GetToBeDeleteBlocks(deviceID string) ([]*BlockDelete, error)
@@ -138,22 +139,6 @@ type ValidateResult struct {
 	ServerName  string `db:"server_name"`
 }
 
-// // NodeBlock Node Block
-// type NodeBlock struct {
-// 	DeviceID  string `db:"device_id"`
-// 	FID       string `db:"fid"`
-// 	CID       string `db:"cid"`
-// 	CarfileID string `db:"carfile_id"`
-// 	CacheID   string `db:"cache_id"`
-// }
-
-// // BlockNodes Node Block
-// type BlockNodes struct {
-// 	ID       int
-// 	DeviceID string `db:"device_id"`
-// 	CID      string `db:"cid"`
-// }
-
 // DataInfo Data info
 type DataInfo struct {
 	CarfileCid      string    `db:"carfile_cid"`
@@ -201,18 +186,6 @@ type BlockInfo struct {
 	CreateTime  time.Time `db:"created_time"`
 	EndTime     time.Time `db:"end_time"`
 	IsUpdate    bool
-}
-
-// EventInfo Event Info
-type EventInfo struct {
-	ID         int
-	CID        string    `db:"cid"`
-	CacheID    string    `db:"cache_id"`
-	DeviceID   string    `db:"device_id"`
-	User       string    `db:"user"`
-	Event      string    `db:"event"`
-	Msg        string    `db:"msg"`
-	CreateTime time.Time `db:"created_time"`
 }
 
 // MessageInfo Message Info
