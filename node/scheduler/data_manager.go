@@ -456,7 +456,7 @@ func (m *DataManager) isDataTaskRunnning(cid, cacheID string) bool {
 }
 
 func (m *DataManager) saveEvent(cid, cacheID, userID, msg string, event EventType) error {
-	return persistent.GetDB().SetEventInfo(&persistent.EventInfo{CID: cid, User: userID, Msg: msg, Event: string(event), CacheID: cacheID})
+	return persistent.GetDB().SetEventInfo(&api.EventInfo{CID: cid, User: userID, Msg: msg, Event: string(event), CacheID: cacheID})
 }
 
 // replenish time

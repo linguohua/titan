@@ -33,6 +33,7 @@ var SchedulerCmds = []*cli.Command{
 	removeCacheCmd,
 	showDatasInfoCmd,
 	nodeTokenCmd,
+	listEventCmd,
 }
 
 var (
@@ -315,6 +316,43 @@ var listDataCmd = &cli.Command{
 			fmt.Println(str)
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
+
+		return nil
+	},
+}
+
+var listEventCmd = &cli.Command{
+	Name:  "list-event",
+	Usage: "list event",
+	Flags: []cli.Flag{
+		pageFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		page := cctx.Int("page")
+		if page < 1 {
+			return xerrors.New("page need greater than 1")
+		}
+
+		info, err := schedulerAPI.ListEvents(ctx, page)
+		if err != nil {
+			return err
+		}
+
+		for _, event := range info.EventList {
+			fmt.Printf("CID:%s,Event:%s,CacheID:%s,Msg:%s,User:%s,Time:%s \n", event.CID, event.Event, event.CacheID, event.Msg, event.User, event.CreateTime.String())
+		}
+		fmt.Printf("total:%d            %d/%d \n", info.Count, info.Page, info.TotalPage)
 
 		return nil
 	},

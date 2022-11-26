@@ -12,8 +12,10 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
+	"github.com/linguohua/titan/lib/token"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/handler"
+	"github.com/linguohua/titan/node/helper"
 
 	// "github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/repo"
@@ -299,7 +301,7 @@ func (s *Scheduler) NodeDownloadBlockResult(ctx context.Context, result api.Node
 		record.NodeVerifyStatus = int(blockDownloadVerifySuccess)
 	}
 
-	var reward = int64(0)
+	reward := int64(0)
 	if record.NodeVerifyStatus == int(blockDownloadVerifySuccess) && record.UserVerifyStatus == int(blockDownloadVerifySuccess) {
 		reward = 1
 		// add reward
@@ -338,7 +340,7 @@ func (s *Scheduler) handleUserDownloadBlockResult(result api.UserBlockDownloadRe
 
 	var deviceID string
 
-	var reward = int64(0)
+	reward := int64(0)
 	if record.NodeVerifyStatus == int(blockDownloadVerifySuccess) && record.UserVerifyStatus == int(blockDownloadVerifySuccess) {
 		reward = 1
 		// add reward
@@ -507,6 +509,54 @@ func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTyp
 	}
 
 	return list, nil
+}
+
+// ListEvents get data events
+func (s *Scheduler) ListEvents(ctx context.Context, page int) (api.EventListInfo, error) {
+	count, totalPage, list, err := persistent.GetDB().GetEventInfos(page)
+	if err != nil {
+		return api.EventListInfo{}, err
+	}
+
+	return api.EventListInfo{Page: page, TotalPage: totalPage, Count: count, EventList: list}, nil
+}
+
+// GetCandidateDownloadInfoWithBlocks find node
+func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]api.DownloadInfo, error) {
+	deviceID := handler.GetDeviceID(ctx)
+
+	if !s.nodeManager.isDeviceExist(deviceID, 0) {
+		return nil, xerrors.Errorf("node not Exist: %s", deviceID)
+	}
+
+	if len(cids) < 1 {
+		return nil, xerrors.New("cids is nil")
+	}
+
+	infoMap := make(map[string]api.DownloadInfo)
+
+	for _, cid := range cids {
+		infos, err := s.nodeManager.getCandidateNodesWithData(cid, deviceID)
+		if err != nil || len(infos) <= 0 {
+			continue
+		}
+
+		candidate := infos[randomNum(0, len(infos))]
+
+		info, err := persistent.GetDB().GetNodeAuthInfo(candidate.deviceInfo.DeviceId)
+		if err != nil {
+			continue
+		}
+
+		tk, err := token.GenerateToken(info.SecurityKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
+		if err != nil {
+			continue
+		}
+
+		infoMap[cid] = api.DownloadInfo{URL: info.URL, Token: tk}
+	}
+
+	return infoMap, nil
 }
 
 // GetDownloadInfosWithBlocks find node
@@ -805,8 +855,8 @@ func (s *Scheduler) UpdateDownloadServerAccessAuth(ctx context.Context, access a
 }
 
 func (s *Scheduler) GetValidationInfo(ctx context.Context) (api.ValidationInfo, error) {
-	var nextElectionTime = s.selector.getNextElectionTime()
-	var isEnable = s.validate.open
+	nextElectionTime := s.selector.getNextElectionTime()
+	isEnable := s.validate.open
 
 	validators, err := cache.GetDB().GetValidatorsWithList()
 	if err != nil {

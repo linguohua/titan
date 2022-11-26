@@ -26,18 +26,20 @@ type Scheduler interface {
 	CacheContinue(ctx context.Context, cid, cacheID string) error                                      //perm:admin
 	ValidateSwitch(ctx context.Context, open bool) error                                               //perm:admin
 	GetValidationInfo(ctx context.Context) (ValidationInfo, error)                                     //perm:admin
+	ListEvents(ctx context.Context, page int) (EventListInfo, error)                                   //perm:read
 
 	// call by locator
 	LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID, locatorToken string) error //perm:write
 
 	// call by node
 	// node send result when user download block complete
-	NodeDownloadBlockResult(ctx context.Context, result NodeBlockDownloadResult) error             //perm:write                             //perm:write
-	EdgeNodeConnect(ctx context.Context, edgePort int) (externalIP string, err error)              //perm:write
-	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                //perm:write
-	CandidateNodeConnect(ctx context.Context, edgePort int) (externalIP string, err error)         //perm:write
-	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) (string, error)  //perm:write
-	UpdateDownloadServerAccessAuth(ctx context.Context, accessAuth DownloadServerAccessAuth) error //perm:write
+	NodeDownloadBlockResult(ctx context.Context, result NodeBlockDownloadResult) error                      //perm:write
+	EdgeNodeConnect(ctx context.Context, edgePort int) (externalIP string, err error)                       //perm:write
+	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                         //perm:write
+	CandidateNodeConnect(ctx context.Context, edgePort int) (externalIP string, err error)                  //perm:write
+	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) (string, error)           //perm:write
+	UpdateDownloadServerAccessAuth(ctx context.Context, accessAuth DownloadServerAccessAuth) error          //perm:write
+	GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]DownloadInfo, error) //perm:write
 
 	// call by user
 	GetDownloadInfosWithBlocks(ctx context.Context, cids []string) (map[string][]DownloadInfo, error) //perm:read
@@ -46,8 +48,9 @@ type Scheduler interface {
 	GetDevicesInfo(ctx context.Context, deviceID string) (DevicesInfo, error)                         //perm:read
 	StateNetwork(ctx context.Context) (StateNetwork, error)                                           //perm:read
 	GetDownloadInfo(ctx context.Context, deviceID string) ([]*BlockDownloadInfo, error)               //perm:read
+
 	// user send result when user download block complete
-	UserDownloadBlockResults(ctx context.Context, results []UserBlockDownloadResult) error
+	UserDownloadBlockResults(ctx context.Context, results []UserBlockDownloadResult) error //perm:read
 }
 
 // DataListInfo Data List Info
@@ -56,6 +59,26 @@ type DataListInfo struct {
 	TotalPage int
 	Cids      int
 	CidList   []string
+}
+
+// EventInfo Event Info
+type EventInfo struct {
+	ID         int
+	CID        string    `db:"cid"`
+	CacheID    string    `db:"cache_id"`
+	DeviceID   string    `db:"device_id"`
+	User       string    `db:"user"`
+	Event      string    `db:"event"`
+	Msg        string    `db:"msg"`
+	CreateTime time.Time `db:"created_time"`
+}
+
+// EventListInfo Event List Info
+type EventListInfo struct {
+	Page      int
+	TotalPage int
+	Count     int
+	EventList []EventInfo
 }
 
 // NodeRegisterInfo Node Register Info
@@ -118,9 +141,9 @@ type CacheInfo struct {
 // }
 
 type NodeBlockDownloadResult struct {
-	//serial number
+	// serial number
 	SN int64
-	//scheduler signature
+	// scheduler signature
 	Sign          string
 	DownloadSpeed int64
 	ClientIP      string
