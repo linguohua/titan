@@ -284,15 +284,15 @@ func (s *Scheduler) NodeDownloadBlockResult(ctx context.Context, result api.Node
 		return xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
-	ok, err := s.verifyNodeDownloadBlockSign(deviceID, result.Sign)
-	if err != nil {
-		log.Errorf("NodeDownloadBlockResult, verifyNodeDownloadBlockSign error:%s", err.Error())
-		return err
-	}
-
 	record, err := cache.GetDB().GetBlockDownloadRecord(result.SN)
 	if err != nil {
 		log.Errorf("NodeDownloadBlockResult, GetBlockDownloadRecord error:%s", err.Error())
+		return err
+	}
+
+	ok, err := s.verifyNodeDownloadBlockSign(deviceID, result.Sign, record.Cid)
+	if err != nil {
+		log.Errorf("NodeDownloadBlockResult, verifyNodeDownloadBlockSign error:%s", err.Error())
 		return err
 	}
 
@@ -327,7 +327,7 @@ func (s *Scheduler) handleUserDownloadBlockResult(result api.UserBlockDownloadRe
 		return err
 	}
 
-	ok, err := s.verifyUserDownloadBlockSign(record.UserPublicKey, result.Sign)
+	ok, err := s.verifyUserDownloadBlockSign(record.UserPublicKey, result.Sign, record.Cid)
 	if err != nil {
 		log.Errorf("NodeDownloadBlockResult, verifyNodeDownloadBlockSign error:%s", err.Error())
 		return err
@@ -921,10 +921,12 @@ func (s *Scheduler) GetValidationInfo(ctx context.Context) (api.ValidationInfo, 
 // 	return xerrors.New(ErrNodeNotFind)
 // }
 
-func (s *Scheduler) verifyNodeDownloadBlockSign(deviceID, sign string) (bool, error) {
-	return true, nil
+func (s *Scheduler) verifyNodeDownloadBlockSign(deviceID, sign, cid string) (bool, error) {
+	// TODO: get publicKey from device
+	var publicKey string
+	return verifyRsaSign(publicKey, sign, cid)
 }
 
-func (s *Scheduler) verifyUserDownloadBlockSign(publicKey, sign string) (bool, error) {
-	return true, nil
+func (s *Scheduler) verifyUserDownloadBlockSign(publicKey, sign, cid string) (bool, error) {
+	return verifyRsaSign(publicKey, sign, cid)
 }
