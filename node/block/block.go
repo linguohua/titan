@@ -9,7 +9,6 @@ import (
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/query"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	"github.com/ipfs/go-merkledag"
 	dagpb "github.com/ipld/go-codec-dagpb"
@@ -195,9 +194,9 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 		cidStr := fmt.Sprintf("%s", reqData.blockInfo.Cid)
 		fidStr := fmt.Sprintf("%d", reqData.blockInfo.Fid)
 
-		buf, err := block.blockStore.Get(cidStr)
+		buf, err := block.getBlock(cidStr)
 		if err == nil {
-			fid, _ := block.getFID(reqData.blockInfo.Cid)
+			fid, _ := block.getFIDFromCID(reqData.blockInfo.Cid)
 			if fid != fidStr {
 				block.updateCidAndFid(ctx, reqData.blockInfo.Cid, fidStr)
 			}
@@ -332,7 +331,7 @@ func (block *Block) LoadBlock(ctx context.Context, cid string) ([]byte, error) {
 		return nil, nil
 	}
 
-	return block.blockStore.Get(cid)
+	return block.getBlock(cid)
 }
 
 func (block *Block) GetAllCidsFromBlockStore() ([]string, error) {
@@ -344,111 +343,28 @@ func (block *Block) DeleteAllBlocks(ctx context.Context) error {
 }
 
 func (block *Block) GetCID(ctx context.Context, fid string) (string, error) {
-	return block.getCID(fid)
+	cid, err := block.getCIDFromFID(fid)
+	if err != nil {
+		return "", err
+	}
+	return cid.String(), nil
 }
 
 func (block *Block) GetFID(ctx context.Context, cid string) (string, error) {
-	return block.getFID(cid)
+	return block.getFIDFromCID(cid)
 }
 
 func (block *Block) LoadBlockWithFid(fid string) ([]byte, error) {
-	cid, err := block.getCID(fid)
+	cid, err := block.getCIDFromFID(fid)
 	if err != nil {
 		return nil, err
 	}
 
-	return block.blockStore.Get(cid)
+	return block.getBlock(cid.String())
 }
 
 func (block *Block) GetDatastore(ctx context.Context) datastore.Batching {
 	return block.ds
-}
-
-func (block *Block) getCID(fid string) (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	value, err := block.ds.Get(ctx, helper.NewKeyFID(fid))
-	if err != nil {
-		// log.Errorf("Get cid from store error:%v, fid:%s", err, fid)
-		return "", err
-	}
-
-	return string(value), nil
-}
-
-func (block *Block) getFID(cid string) (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	value, err := block.ds.Get(ctx, helper.NewKeyCID(cid))
-	if err != nil {
-		// log.Errorf("Get fid from store error:%v, cid:%s", err, cid)
-		return "", err
-	}
-
-	return string(value), nil
-}
-
-func (block *Block) deleteBlock(cid string) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	value, err := block.ds.Get(ctx, helper.NewKeyCID(cid))
-	if err != nil {
-		log.Errorf("deleteBlock datastore get fid from cid %s error:%s", cid, err.Error())
-		return err
-	}
-
-	fid := string(value)
-
-	err = block.ds.Delete(ctx, helper.NewKeyFID(fid))
-	if err != nil {
-		log.Errorf("deleteBlock datastore delete fid %s error:%s", fid, err.Error())
-		return err
-	}
-
-	err = block.ds.Delete(ctx, helper.NewKeyCID(cid))
-	if err != nil {
-		log.Errorf("deleteBlock datastore delete cid %s error:%s", cid, err.Error())
-		return err
-	}
-
-	err = block.blockStore.Delete(cid)
-	if err != nil {
-		log.Errorf("deleteBlock blockstore delete block %s error:%s", cid, err.Error())
-		return err
-	}
-
-	log.Infof("Delete block %s fid %s", cid, fid)
-	return nil
-}
-
-func (block *Block) deleteAllBlocks() error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	q := query.Query{Prefix: "fid"}
-	results, err := block.ds.Query(ctx, q)
-	if err != nil {
-		log.Errorf("deleteAllBlocks error:%s", err.Error())
-		return err
-	}
-
-	result := results.Next()
-	for {
-		r, ok := <-result
-		if !ok {
-			log.Info("delete all block complete")
-			return nil
-		}
-
-		_, err = block.AnnounceBlocksWasDelete(ctx, []string{string(r.Value)})
-		if err != nil {
-			log.Infof("err:%v, cid:%s", err, string(r.Value))
-		}
-		log.Infof("deleteAllBlocks key:%s", r.Key)
-	}
 }
 
 func (block *Block) resolveLinks(blk blocks.Block) ([]*format.Link, error) {
@@ -461,46 +377,6 @@ func (block *Block) resolveLinks(blk blocks.Block) ([]*format.Link, error) {
 	}
 
 	return node.Links(), nil
-}
-
-func (block *Block) saveBlock(ctx context.Context, data []byte, cid, fid string) error {
-	block.saveBlockLock.Lock()
-	defer block.saveBlockLock.Unlock()
-
-	log.Infof("saveBlock fid:%s, cid:%s", fid, cid)
-	err := block.blockStore.Put(cid, data)
-	if err != nil {
-		return err
-	}
-
-	return block.updateCidAndFid(ctx, cid, fid)
-}
-
-func (block *Block) updateCidAndFid(ctx context.Context, cid, fid string) error {
-	// delete old fid relate cid
-	oldCid, _ := block.getCID(fid)
-	if len(oldCid) > 0 && oldCid != cid {
-		block.ds.Delete(ctx, helper.NewKeyCID(oldCid))
-		log.Errorf("Fid %s aready exist, and relate cid %s will be delete", fid, oldCid)
-	}
-	// delete old cid relate fid
-	oldFid, _ := block.getFID(cid)
-	if len(oldFid) > 0 && oldFid != fid {
-		block.ds.Delete(ctx, helper.NewKeyFID(oldFid))
-		log.Errorf("Cid %s aready exist, and relate fid %s will be delete", cid, oldFid)
-	}
-
-	err := block.ds.Put(ctx, helper.NewKeyFID(fid), []byte(cid))
-	if err != nil {
-		return err
-	}
-
-	err = block.ds.Put(ctx, helper.NewKeyCID(cid), []byte(fid))
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func getLinks(block *Block, data []byte, cidStr string) ([]*format.Link, error) {

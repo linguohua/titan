@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/ipfs/go-cid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 )
@@ -211,12 +212,13 @@ func getBlockItemsHash(blocks []*blockItem) string {
 		return ""
 	}
 
-	var cidCollection string
+	var hashCollection string
 	for _, block := range blocks {
-		cidCollection += block.cid
+		hash, _ := cidString2HashString(block.cid)
+		hashCollection += hash
 	}
 
-	return string2Hash(cidCollection)
+	return string2Hash(hashCollection)
 }
 
 func string2Hash(value string) string {
@@ -224,4 +226,13 @@ func string2Hash(value string) string {
 	hasher.Write([]byte(value))
 	hash := hasher.Sum(nil)
 	return hex.EncodeToString(hash)
+}
+
+func cidString2HashString(cidString string) (string, error) {
+	cid, err := cid.Decode(cidString)
+	if err != nil {
+		return "", err
+	}
+
+	return cid.Hash().String(), nil
 }
