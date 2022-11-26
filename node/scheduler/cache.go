@@ -496,8 +496,6 @@ func (c *Cache) setCacheMessageInfo() {
 		return
 	}
 
-	log.Info("----------------------------------------:", c.cacheID, "======", len(blocks))
-
 	messages := make([]*persistent.MessageInfo, 0)
 
 	for _, block := range blocks {

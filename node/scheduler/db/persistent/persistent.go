@@ -260,8 +260,10 @@ const (
 type MsgType int
 
 const (
+	// MsgTypeUnknown type
+	MsgTypeUnknown MsgType = iota
 	// MsgTypeCache type
-	MsgTypeCache MsgType = iota
+	MsgTypeCache
 	// MsgTypeDowload type
 	MsgTypeDowload
 	// MsgTypeValidate type
