@@ -62,7 +62,14 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reader, err := bd.blockStore.GetReader(cidStr)
+	hash, err := helper.CIDString2HashString(cidStr)
+	if err != nil {
+		log.Errorf("Parser param cid(%s) error:%s", cidStr, err.Error())
+		http.Error(w, fmt.Sprintf("Parser param cid(%s) error:%s", cidStr, err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	reader, err := bd.blockStore.GetReader(hash)
 	if err != nil {
 		log.Errorf("GetBlock, GetReader:%v", err)
 		http.NotFound(w, r)

@@ -26,7 +26,7 @@ const (
 	DownloadTokenExpireAfter = 24 * time.Hour
 
 	KeyFidPrefix     = "fid/"
-	KeyCidPrefix     = "cid/"
+	KeyCidPrefix     = "hash/"
 	TcpPackMaxLength = 52428800
 )
 
@@ -45,7 +45,7 @@ func NewKeyFID(fid string) datastore.Key {
 	return datastore.NewKey(key)
 }
 
-func NewKeyCID(cid string) datastore.Key {
+func NewKeyHash(cid string) datastore.Key {
 	key := fmt.Sprintf("%s%s", KeyCidPrefix, cid)
 	return datastore.NewKey(key)
 }

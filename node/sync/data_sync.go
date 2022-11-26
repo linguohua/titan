@@ -53,8 +53,8 @@ func (dataSync *DataSync) getAllChecksums(ctx context.Context, maxGroupNum int) 
 	}
 
 	type block struct {
-		fid int
-		cid string
+		fid  int
+		hash string
 	}
 
 	var blockCollection = make([]block, 0, 10000)
@@ -71,7 +71,7 @@ func (dataSync *DataSync) getAllChecksums(ctx context.Context, maxGroupNum int) 
 			log.Errorf("scrubBlockStore error:%s", err.Error())
 		}
 
-		block := block{fid: fid, cid: string(r.Value)}
+		block := block{fid: fid, hash: string(r.Value)}
 		// log.Infof("fid:%s,key:%s", block.fid, r.Key)
 		blockCollection = append(blockCollection, block)
 	}
@@ -105,7 +105,7 @@ func (dataSync *DataSync) getAllChecksums(ctx context.Context, maxGroupNum int) 
 
 		var blockCollectionStr string
 		for j := startIndex; j < endIndex; j++ {
-			blockCollectionStr += blockCollection[j].cid
+			blockCollectionStr += blockCollection[j].hash
 		}
 
 		hash := string2Hash(blockCollectionStr)
@@ -128,8 +128,8 @@ func (dataSync *DataSync) getChecksumsInRange(ctx context.Context, req api.ReqCh
 	endFid := req.EndFid
 
 	type block struct {
-		fid int
-		cid string
+		fid  int
+		hash string
 	}
 
 	var blockCollection = make([]block, 0, 1000)
@@ -141,7 +141,12 @@ func (dataSync *DataSync) getChecksumsInRange(ctx context.Context, req api.ReqCh
 			continue
 		}
 
-		block := block{fid: i, cid: cid}
+		hash, err := helper.CIDString2HashString(cid)
+		if err != nil {
+			continue
+		}
+
+		block := block{fid: i, hash: hash}
 		blockCollection = append(blockCollection, block)
 	}
 
@@ -173,7 +178,7 @@ func (dataSync *DataSync) getChecksumsInRange(ctx context.Context, req api.ReqCh
 
 		var blockCollectionStr string
 		for j := startIndex; j < endIndex; j++ {
-			blockCollectionStr += blockCollection[j].cid
+			blockCollectionStr += blockCollection[j].hash
 		}
 
 		hash := string2Hash(blockCollectionStr)
@@ -189,11 +194,22 @@ func (dataSync *DataSync) getChecksumsInRange(ctx context.Context, req api.ReqCh
 }
 
 func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
+	// blocks key fid, value hash
+	var blocks = make(map[int]string)
+	for fid, cid := range scrub.Blocks {
+		hash, err := helper.CIDString2HashString(cid)
+		if err != nil {
+			log.Errorf("scrubBlocks, CIDString2HashString error:%s, cid:%s", err.Error(), cid)
+			continue
+		}
+
+		blocks[fid] = hash
+	}
+
 	startFid := scrub.StartFid
 	endFid := scrub.EndFid
-
 	need2DeleteBlocks := make([]string, 0)
-	blocks := scrub.Blocks
+
 	for fid := startFid; fid <= endFid; fid++ {
 		fidStr := fmt.Sprintf("%d", fid)
 		cid, err := dataSync.block.GetCID(context.TODO(), fidStr)
@@ -248,8 +264,8 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 		log.Errorf("getCheckSums datastore query error:%s", err.Error())
 		return err
 	}
-
-	targetCidMap := make(map[string]string)
+	// key hash, value fid
+	targetMap := make(map[string]string)
 
 	for {
 		r, ok := results.NextSync()
@@ -258,20 +274,20 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 		}
 
 		fidStr := r.Key[len(helper.KeyFidPrefix)+1:]
-		cid := string(r.Value)
-		targetCidMap[cid] = fidStr
+		hash := string(r.Value)
+		targetMap[hash] = fidStr
 	}
 
 	log.Info("start sync fid and cid")
 
-	cidQuery := query.Query{Prefix: "cid"}
-	results, err = ds.Query(ctx, cidQuery)
+	hashQuery := query.Query{Prefix: "hash"}
+	results, err = ds.Query(ctx, hashQuery)
 	if err != nil {
 		log.Errorf("getCheckSums datastore query error:%s", err.Error())
 		return err
 	}
 
-	cidMap := make(map[string]string)
+	hashMap := make(map[string]string)
 
 	for {
 		r, ok := results.NextSync()
@@ -279,41 +295,43 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 			break
 		}
 
-		cidStr := r.Key[len(helper.KeyCidPrefix)+1:]
-		cidMap[cidStr] = string(r.Value)
+		hash := r.Key[len(helper.KeyCidPrefix)+1:]
+		hashMap[hash] = string(r.Value)
 	}
 
-	for targetCid, targetFid := range targetCidMap {
-		fid, ok := cidMap[targetCid]
+	for targetHash, targetFid := range targetMap {
+		fid, ok := hashMap[targetHash]
 		if ok {
-			delete(cidMap, targetCid)
+			delete(hashMap, targetHash)
 			if fid == targetFid {
 				continue
 			}
 
 		}
-		ds.Put(ctx, helper.NewKeyCID(targetCid), []byte(targetFid))
-		log.Warnf("cid:fid %s ==> %s not match in target fid:cid %s ==> %s ", targetCid, fid, targetFid, targetCid)
+
+		ds.Put(ctx, helper.NewKeyHash(targetHash), []byte(targetFid))
+
+		log.Warnf("cid:hash %s ==> %s not match in target fid:hash %s ==> %s ", targetHash, fid, targetFid, targetHash)
 	}
 
-	for cid, fid := range cidMap {
-		ds.Delete(ctx, helper.NewKeyCID(cid))
-		log.Warnf("cid:fid %s ==> %s not in fid map, was delete", cid, fid)
+	for hash, fid := range hashMap {
+		ds.Delete(ctx, helper.NewKeyHash(hash))
+		log.Warnf("hash:fid %s ==> %s not in fid map, was delete", hash, fid)
 	}
 
-	cids, err := blockstore.GetAllKeys()
+	hashs, err := blockstore.GetAllKeys()
 	if err != nil {
 		return err
 	}
 
 	log.Info("start sync block")
 	need2DeleteBlock := make([]string, 0)
-	for _, cid := range cids {
-		_, ok := targetCidMap[cid]
+	for _, hash := range hashs {
+		_, ok := targetMap[hash]
 		if !ok {
-			need2DeleteBlock = append(need2DeleteBlock, cid)
+			need2DeleteBlock = append(need2DeleteBlock, hash)
 		} else {
-			delete(targetCidMap, cid)
+			delete(targetMap, hash)
 		}
 
 	}
@@ -323,7 +341,7 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 		log.Warnf("block %s not exist fid, was delete", cid)
 	}
 
-	// TODO: need to download targetCidMap block
+	// TODO: need to download targetMap block
 
 	log.Info("sync local block store complete")
 
