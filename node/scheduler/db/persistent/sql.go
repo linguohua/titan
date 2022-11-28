@@ -60,12 +60,12 @@ func (sd sqlDB) IsNilErr(err error) bool {
 
 func (sd sqlDB) SetNodeAuthInfo(aInfo *api.DownloadServerAccessAuth) error {
 	info := &NodeInfo{
-		URL:         aInfo.URL,
-		DeviceID:    aInfo.DeviceID,
-		SecurityKey: aInfo.SecurityKey,
+		URL:        aInfo.URL,
+		DeviceID:   aInfo.DeviceID,
+		PrivateKey: aInfo.PrivateKey,
 	}
 
-	_, err := sd.cli.NamedExec(`UPDATE node SET security=:security,url=:url WHERE device_id=:device_id`, info)
+	_, err := sd.cli.NamedExec(`UPDATE node SET private_key=:private_key,url=:url WHERE device_id=:device_id`, info)
 
 	return err
 }
@@ -73,7 +73,7 @@ func (sd sqlDB) SetNodeAuthInfo(aInfo *api.DownloadServerAccessAuth) error {
 func (sd sqlDB) GetNodeAuthInfo(deviceID string) (*api.DownloadServerAccessAuth, error) {
 	info := &NodeInfo{DeviceID: deviceID}
 
-	rows, err := sd.cli.NamedQuery(`SELECT security,url FROM node WHERE device_id=:device_id`, info)
+	rows, err := sd.cli.NamedQuery(`SELECT private_key,url FROM node WHERE device_id=:device_id`, info)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (sd sqlDB) GetNodeAuthInfo(deviceID string) (*api.DownloadServerAccessAuth,
 		return nil, xerrors.New(errNodeNotFind)
 	}
 
-	return &api.DownloadServerAccessAuth{URL: info.URL, SecurityKey: info.SecurityKey, DeviceID: deviceID}, err
+	return &api.DownloadServerAccessAuth{URL: info.URL, PrivateKey: info.PrivateKey, DeviceID: deviceID}, err
 }
 
 func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
