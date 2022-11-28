@@ -119,7 +119,7 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, blocks []api.BlockInfo
 	for deviceID, list := range csMap {
 		info, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
 		if err == nil {
-			tk, err := token.GenerateToken(info.SecurityKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
+			tk, err := token.GenerateToken(info.PrivateKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
 			if err == nil {
 				reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: info.URL, DownloadToken: tk, CardFileHash: carfileHash, CacheID: cacheID})
 
