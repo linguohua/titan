@@ -9,15 +9,17 @@ import (
 	"github.com/multiformats/go-multihash"
 )
 
-func (block *Block) getFIDFromCID(cid string) (string, error) {
+func (block *Block) getFIDFromCID(cidStr string) (string, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	hash, err := helper.CIDString2HashString(cid)
+	cid, err := cid.Decode(cidStr)
 	if err != nil {
+		log.Errorf("getFIDFromCID decode cid %s error:%s", cidStr, err.Error())
 		return "", err
 	}
-	value, err := block.ds.Get(ctx, helper.NewKeyHash(hash))
+
+	value, err := block.ds.Get(ctx, helper.NewKeyHash(cid.Hash().String()))
 	if err != nil {
 		return "", err
 	}
@@ -43,10 +45,16 @@ func (block *Block) getCIDFromFID(fid string) (*cid.Cid, error) {
 
 }
 
-func (block *Block) deleteBlock(cid string) error {
-	fid, err := block.getFIDFromCID(cid)
+func (block *Block) deleteBlock(cidStr string) error {
+	cid, err := cid.Decode(cidStr)
 	if err != nil {
-		log.Errorf("deleteBlock getFIDFromCID %s error:%s", cid, err.Error())
+		log.Errorf("deleteBlock Decode cid %s error:%s", cidStr, err.Error())
+		return err
+	}
+
+	fid, err := block.getFIDFromCID(cid.String())
+	if err != nil {
+		log.Errorf("deleteBlock getFIDFromCID %s error:%s", cid.String(), err.Error())
 		return err
 	}
 
@@ -59,54 +67,42 @@ func (block *Block) deleteBlock(cid string) error {
 		return err
 	}
 
-	hash, err := helper.CIDString2HashString(cid)
-	if err != nil {
-		log.Errorf("deleteBlock CIDString2HashString error:%s, cid:%s", err.Error(), cid)
-		return err
-	}
-
-	err = block.ds.Delete(ctx, helper.NewKeyHash(hash))
+	err = block.ds.Delete(ctx, helper.NewKeyHash(cid.Hash().String()))
 	if err != nil {
 		log.Errorf("deleteBlock datastore delete cid %s error:%s", cid, err.Error())
 		return err
 	}
 
-	err = block.blockStore.Delete(cid)
+	err = block.blockStore.Delete(cid.Hash().String())
 	if err != nil {
 		log.Errorf("deleteBlock blockstore delete block %s error:%s", cid, err.Error())
 		return err
 	}
 
-	log.Infof("Delete block %s fid %s", cid, fid)
+	log.Infof("Delete block %s fid %s", cid.String(), fid)
 	return nil
 }
 
-func (block *Block) updateCidAndFid(ctx context.Context, cid, fid string) error {
+func (block *Block) updateCidAndFid(ctx context.Context, cid cid.Cid, fid string) error {
 	// delete old fid relate cid
 	oldCid, _ := block.getCIDFromFID(fid)
-	if oldCid != nil && oldCid.String() != cid {
+	if oldCid != nil && oldCid.String() != cid.String() {
 		block.ds.Delete(ctx, helper.NewKeyHash(oldCid.Hash().String()))
 		log.Errorf("updateCidAndFid Fid %s aready exist, and relate cid %s will be delete", fid, oldCid)
 	}
 	// delete old cid relate fid
-	oldFid, _ := block.getFIDFromCID(cid)
+	oldFid, _ := block.getFIDFromCID(cid.String())
 	if len(oldFid) > 0 && oldFid != fid {
 		block.ds.Delete(ctx, helper.NewKeyFID(oldFid))
 		log.Errorf("updateCidAndFid Cid %s aready exist, and relate fid %s will be delete", cid, oldFid)
 	}
 
-	err := block.ds.Put(ctx, helper.NewKeyFID(fid), []byte(cid))
+	err := block.ds.Put(ctx, helper.NewKeyFID(fid), []byte(cid.Hash().String()))
 	if err != nil {
 		return err
 	}
 
-	hash, err := helper.CIDString2HashString(cid)
-	if err != nil {
-		log.Errorf("updateCidAndFid CIDString2HashString error:%s, cid:%s", err.Error(), cid)
-		return err
-	}
-
-	err = block.ds.Put(ctx, helper.NewKeyHash(hash), []byte(fid))
+	err = block.ds.Put(ctx, helper.NewKeyHash(cid.Hash().String()), []byte(fid))
 	if err != nil {
 		return err
 	}
@@ -114,20 +110,27 @@ func (block *Block) updateCidAndFid(ctx context.Context, cid, fid string) error 
 	return nil
 }
 
-func (block *Block) getBlock(cid string) ([]byte, error) {
-	hash, err := helper.CIDString2HashString(cid)
+func (block *Block) getBlock(cidStr string) ([]byte, error) {
+	cid, err := cid.Decode(cidStr)
 	if err != nil {
+		log.Errorf("getBlock decode cid %s error:%s", cidStr, err.Error())
 		return nil, err
 	}
-	return block.blockStore.Get(hash)
+	return block.blockStore.Get(cid.Hash().String())
 }
 
-func (block *Block) saveBlock(ctx context.Context, data []byte, cid, fid string) error {
+func (block *Block) saveBlock(ctx context.Context, data []byte, cidStr, fid string) error {
 	block.saveBlockLock.Lock()
 	defer block.saveBlockLock.Unlock()
 
-	log.Infof("saveBlock fid:%s, cid:%s", fid, cid)
-	err := block.blockStore.Put(cid, data)
+	log.Infof("saveBlock fid:%s, cid:%s", fid, cidStr)
+
+	cid, err := cid.Decode(cidStr)
+	if err != nil {
+		return err
+	}
+
+	err = block.blockStore.Put(cid.Hash().String(), data)
 	if err != nil {
 		return err
 	}

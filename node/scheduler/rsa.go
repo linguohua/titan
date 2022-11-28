@@ -80,3 +80,20 @@ func pem2PrivateKey(privateKeyStr string) (*rsa.PrivateKey, error) {
 
 	return privateKey, nil
 }
+
+func privateKey2Pem(privateKey *rsa.PrivateKey) string {
+	if privateKey == nil {
+		return ""
+	}
+
+	private := x509.MarshalPKCS1PrivateKey(privateKey)
+
+	privateKeyBytes := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: private,
+		},
+	)
+
+	return string(privateKeyBytes)
+}

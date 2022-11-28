@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/lib/token"
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
@@ -387,12 +386,8 @@ func (m *NodeManager) findNodeDownloadInfos(cid string) ([]api.DownloadInfo, err
 			continue
 		}
 
-		tk, err := token.GenerateToken(info.PrivateKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
-		if err != nil {
-			continue
-		}
-
-		infos = append(infos, api.DownloadInfo{URL: info.URL, Token: tk})
+		// TODO: complete downloadInfo
+		infos = append(infos, api.DownloadInfo{URL: info.URL, Sign: []byte(""), SN: 0, SignTime: time.Now().Unix(), TimeOut: 60})
 	}
 
 	if len(infos) <= 0 {
