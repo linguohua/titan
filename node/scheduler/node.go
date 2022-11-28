@@ -99,7 +99,7 @@ func (n *Node) getNodeInfo(deviceID string) (*persistent.NodeInfo, error) {
 }
 
 // filter cached blocks and find download url from candidate
-func (n *Node) getReqCacheDatas(nodeManager *NodeManager, blocks []api.BlockInfo, carFileCid, cacheID string) []api.ReqCacheData {
+func (n *Node) getReqCacheDatas(nodeManager *NodeManager, blocks []api.BlockInfo, carfileHash, cacheID string) []api.ReqCacheData {
 	reqList := make([]api.ReqCacheData, 0)
 	notFindCandidateBlocks := make([]api.BlockInfo, 0)
 
@@ -121,7 +121,7 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, blocks []api.BlockInfo
 		if err == nil {
 			tk, err := token.GenerateToken(info.SecurityKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
 			if err == nil {
-				reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: info.URL, DownloadToken: tk, CardFileCid: carFileCid, CacheID: cacheID})
+				reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: info.URL, DownloadToken: tk, CardFileHash: carfileHash, CacheID: cacheID})
 
 				continue
 			}
@@ -131,7 +131,7 @@ func (n *Node) getReqCacheDatas(nodeManager *NodeManager, blocks []api.BlockInfo
 	}
 
 	if len(notFindCandidateBlocks) > 0 {
-		reqList = append(reqList, api.ReqCacheData{BlockInfos: notFindCandidateBlocks, CardFileCid: carFileCid, CacheID: cacheID})
+		reqList = append(reqList, api.ReqCacheData{BlockInfos: notFindCandidateBlocks, CardFileHash: carfileHash, CacheID: cacheID})
 	}
 
 	return reqList

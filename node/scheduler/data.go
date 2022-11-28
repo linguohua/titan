@@ -13,6 +13,7 @@ type Data struct {
 	nodeManager     *NodeManager
 	dataManager     *DataManager
 	carfileCid      string
+	carfileHash     string
 	cacheMap        sync.Map
 	reliability     int
 	needReliability int
@@ -25,7 +26,7 @@ type Data struct {
 	isStop bool
 }
 
-func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, reliability int) *Data {
+func newData(nodeManager *NodeManager, dataManager *DataManager, cid, hash string, reliability int) *Data {
 	return &Data{
 		nodeManager:     nodeManager,
 		dataManager:     dataManager,
@@ -34,18 +35,19 @@ func newData(nodeManager *NodeManager, dataManager *DataManager, cid string, rel
 		needReliability: reliability,
 		cacheCount:      0,
 		totalBlocks:     1,
+		carfileHash:     hash,
 	}
 }
 
-func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *Data {
-	dInfo, err := persistent.GetDB().GetDataInfo(cid)
+func loadData(hash string, nodeManager *NodeManager, dataManager *DataManager) *Data {
+	dInfo, err := persistent.GetDB().GetDataInfo(hash)
 	if err != nil {
-		log.Errorf("loadData %s err :%s", cid, err.Error())
+		log.Errorf("loadData %s err :%s", hash, err.Error())
 		return nil
 	}
 	if dInfo != nil {
 		data := &Data{}
-		data.carfileCid = cid
+		data.carfileCid = dInfo.CarfileCid
 		data.nodeManager = nodeManager
 		data.dataManager = dataManager
 		data.totalSize = dInfo.TotalSize
@@ -55,10 +57,11 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 		data.totalBlocks = dInfo.TotalBlocks
 		data.nodes = dInfo.Nodes
 		data.expiredTime = dInfo.ExpiredTime
+		data.carfileHash = dInfo.CarfileHash
 
-		idList, err := persistent.GetDB().GetCachesWithData(cid)
+		idList, err := persistent.GetDB().GetCachesWithData(hash)
 		if err != nil {
-			log.Errorf("loadData cid:%s, GetCachesWithData err:%s", cid, err.Error())
+			log.Errorf("loadData hash:%s, GetCachesWithData err:%s", hash, err.Error())
 			return data
 		}
 
@@ -66,7 +69,7 @@ func loadData(cid string, nodeManager *NodeManager, dataManager *DataManager) *D
 			if cacheID == "" {
 				continue
 			}
-			c := loadCache(cacheID, cid, nodeManager, data)
+			c := loadCache(cacheID, hash, nodeManager, data)
 			if c == nil {
 				continue
 			}
@@ -102,7 +105,7 @@ func (d *Data) haveRootCache() bool {
 }
 
 func (d *Data) createCache(isRootCache bool) (*Cache, error) {
-	cache, err := newCache(d.nodeManager, d, d.carfileCid, isRootCache)
+	cache, err := newCache(d.nodeManager, d, d.carfileHash, isRootCache)
 	if err != nil {
 		return nil, xerrors.Errorf("new cache err:%s", err.Error())
 	}
@@ -117,7 +120,7 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, cache 
 	}
 
 	dInfo := &persistent.DataInfo{
-		CarfileCid:  d.carfileCid,
+		CarfileHash: d.carfileHash,
 		TotalSize:   d.totalSize,
 		TotalBlocks: d.totalBlocks,
 		Reliability: d.reliability,
@@ -126,7 +129,7 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, cache 
 
 	cInfo := &persistent.CacheInfo{
 		// ID:          cache.dbID,
-		CarfileCid:  cache.carfileCid,
+		CarfileHash: cache.carfileHash,
 		CacheID:     cache.cacheID,
 		DoneSize:    cache.doneSize,
 		Status:      int(cache.status),
@@ -149,7 +152,7 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 		log.Warnf("updateAndSaveCacheEndInfo GetNodesFromCache err:%s", err.Error())
 	}
 
-	dNodes, err := persistent.GetDB().GetNodesFromData(d.carfileCid)
+	dNodes, err := persistent.GetDB().GetNodesFromData(d.carfileHash)
 	if err != nil {
 		log.Warnf("updateAndSaveCacheEndInfo GetNodesFromData err:%s", err.Error())
 	}
@@ -166,7 +169,7 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 
 	cache.nodes = cNodes
 	cInfo := &persistent.CacheInfo{
-		CarfileCid:  cache.carfileCid,
+		CarfileHash: cache.carfileHash,
 		CacheID:     cache.cacheID,
 		DoneSize:    cache.doneSize,
 		Status:      int(cache.status),
@@ -197,7 +200,7 @@ func (d *Data) dispatchCache(cache *Cache) (*Cache, error) {
 
 		d.cacheMap.Store(cache.cacheID, cache)
 
-		list = map[string]string{cache.carfileCid: ""}
+		list = map[string]string{d.carfileHash: ""}
 	}
 
 	d.cacheCount++

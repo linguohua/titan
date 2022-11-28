@@ -35,7 +35,7 @@ type ReqCacheData struct {
 	BlockInfos    []BlockInfo
 	DownloadURL   string
 	DownloadToken string
-	CardFileCid   string
+	CardFileHash  string
 	CacheID       string
 }
 

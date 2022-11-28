@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
@@ -18,7 +19,7 @@ type Cache struct {
 	data        *Data
 	nodeManager *NodeManager
 	cacheID     string
-	carfileCid  string
+	carfileHash string
 	status      persistent.CacheStatus
 	reliability int
 	doneSize    int
@@ -30,15 +31,15 @@ type Cache struct {
 	expiredTime time.Time
 }
 
-func newCacheID(cid string) (string, error) {
+func newCacheID() (string, error) {
 	u2 := uuid.New()
 
 	s := strings.Replace(u2.String(), "-", "", -1)
 	return s, nil
 }
 
-func newCache(nodeManager *NodeManager, data *Data, cid string, isRootCache bool) (*Cache, error) {
-	id, err := newCacheID(cid)
+func newCache(nodeManager *NodeManager, data *Data, hash string, isRootCache bool) (*Cache, error) {
+	id, err := newCacheID()
 	if err != nil {
 		return nil, err
 	}
@@ -49,14 +50,14 @@ func newCache(nodeManager *NodeManager, data *Data, cid string, isRootCache bool
 		reliability: 0,
 		status:      persistent.CacheStatusCreate,
 		cacheID:     id,
-		carfileCid:  cid,
+		carfileHash: hash,
 		isRootCache: isRootCache,
 		expiredTime: data.expiredTime,
 	}
 
 	err = persistent.GetDB().CreateCache(
 		&persistent.CacheInfo{
-			CarfileCid:  cache.carfileCid,
+			CarfileHash: cache.carfileHash,
 			CacheID:     cache.cacheID,
 			Status:      int(cache.status),
 			ExpiredTime: cache.expiredTime,
@@ -69,20 +70,20 @@ func newCache(nodeManager *NodeManager, data *Data, cid string, isRootCache bool
 	return cache, err
 }
 
-func loadCache(cacheID, carfileCid string, nodeManager *NodeManager, data *Data) *Cache {
+func loadCache(cacheID, carfileHash string, nodeManager *NodeManager, data *Data) *Cache {
 	if cacheID == "" {
 		return nil
 	}
 	c := &Cache{
 		cacheID:     cacheID,
-		carfileCid:  carfileCid,
+		carfileHash: carfileHash,
 		nodeManager: nodeManager,
 		data:        data,
 	}
 
 	info, err := persistent.GetDB().GetCacheInfo(cacheID)
 	if err != nil || info == nil {
-		log.Errorf("loadCache %s,%s GetCacheInfo err:%v", carfileCid, cacheID, err)
+		log.Errorf("loadCache %s,%s GetCacheInfo err:%v", carfileHash, cacheID, err)
 		return nil
 	}
 
@@ -106,7 +107,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockInfo) (int6
 
 	cNode := c.nodeManager.getCandidateNode(deviceID)
 	if cNode != nil {
-		reqDatas := cNode.getReqCacheDatas(c.nodeManager, blocks, c.carfileCid, c.cacheID)
+		reqDatas := cNode.getReqCacheDatas(c.nodeManager, blocks, c.carfileHash, c.cacheID)
 
 		nodeCacheStat, err := cNode.nodeAPI.CacheBlocks(ctx, reqDatas)
 		if err != nil {
@@ -119,7 +120,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockInfo) (int6
 
 	eNode := c.nodeManager.getEdgeNode(deviceID)
 	if eNode != nil {
-		reqDatas := eNode.getReqCacheDatas(c.nodeManager, blocks, c.carfileCid, c.cacheID)
+		reqDatas := eNode.getReqCacheDatas(c.nodeManager, blocks, c.carfileHash, c.cacheID)
 
 		nodeCacheStat, err := eNode.nodeAPI.CacheBlocks(ctx, reqDatas)
 		if err != nil {
@@ -187,9 +188,15 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.Blo
 		from := "IPFS"
 		fid := 0
 
-		froms, err := persistent.GetDB().GetNodesWithCache(cid, false)
+		hash, err := helper.CIDString2HashString(cid)
 		if err != nil {
-			log.Errorf("matchingNodeAndBlocks cache:%s,cid:%s, GetNodesWithCache err:%s", c.cacheID, cid, err.Error())
+			log.Errorf("allocateBlocksToNodes %s cid to hash err:%s", cid, err.Error())
+			continue
+		}
+
+		froms, err := persistent.GetDB().GetNodesWithCache(hash, false)
+		if err != nil {
+			log.Errorf("allocateBlocksToNodes cache:%s,hash:%s, GetNodesWithCache err:%s", c.cacheID, hash, err.Error())
 		} else {
 			filterDeviceIDs := make(map[string]string)
 			if froms != nil {
@@ -225,15 +232,16 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.Blo
 		}
 
 		b := &persistent.BlockInfo{
-			CacheID:    c.cacheID,
-			CID:        cid,
-			DeviceID:   deviceID,
-			Status:     int(status),
-			Size:       0,
-			ID:         dbID,
-			CarfileCid: c.carfileCid,
-			FID:        fid,
-			Source:     from,
+			CacheID:     c.cacheID,
+			CID:         cid,
+			DeviceID:    deviceID,
+			Status:      int(status),
+			Size:        0,
+			ID:          dbID,
+			CarfileHash: c.carfileHash,
+			FID:         fid,
+			Source:      from,
+			CIDHash:     hash,
 		}
 
 		blockList = append(blockList, b)
@@ -266,22 +274,27 @@ func (c *Cache) cacheBlocksToNodes(nodeCacheMap map[string][]api.BlockInfo) {
 	timeStamp := time.Now().Unix()
 	timeout := needTimeMax - timeStamp
 	// update data/cache timeout
-	c.data.dataManager.updateDataTimeout(c.carfileCid, c.cacheID, timeout)
+	c.data.dataManager.updateDataTimeout(c.carfileHash, c.cacheID, timeout)
 
 	return
 }
 
 func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
-	blockInfo, err := persistent.GetDB().GetBlockInfo(info.CacheID, info.Cid, info.DeviceID)
+	hash, err := helper.CIDString2HashString(info.Cid)
+	if err != nil {
+		return xerrors.Errorf("blockCacheResult %s cid to hash err:%s", info.Cid, err.Error())
+	}
+
+	blockInfo, err := persistent.GetDB().GetBlockInfo(info.CacheID, hash, info.DeviceID)
 	if err != nil || blockInfo == nil {
-		return xerrors.Errorf("blockCacheResult cacheID:%s,cid:%s,deviceID:%s, GetBlockInfo err:%v", info.CacheID, info.Cid, info.DeviceID, err)
+		return xerrors.Errorf("blockCacheResult cacheID:%s,hash:%s,deviceID:%s, GetBlockInfo err:%v", info.CacheID, hash, info.DeviceID, err)
 	}
 
 	if blockInfo.Status == int(persistent.CacheStatusSuccess) {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,%s block saved ", info.CacheID, info.Cid)
 	}
 
-	if info.Cid == c.carfileCid {
+	if info.Cid == c.data.carfileCid {
 		c.totalSize = int(info.LinksSize) + info.BlockSize
 		c.totalBlocks = 1
 	}
@@ -304,7 +317,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		Size:        info.BlockSize,
 		Status:      int(status),
 		Reliability: reliability,
-		CarfileCid:  c.carfileCid,
+		CarfileHash: c.carfileHash,
 	}
 
 	linkMap := make(map[string]string)
@@ -353,11 +366,11 @@ func (c *Cache) startCache(cids map[string]string) error {
 	// log.Infof("start cache %s,%s ---------- ", c.carfileCid, c.cacheID)
 	c.cacheBlocksToNodes(nodeCacheMap)
 
-	c.data.dataManager.saveEvent(c.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskStart)
+	c.data.dataManager.saveEvent(c.data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskStart)
 
-	err = cache.GetDB().SetDataTaskToRunningList(c.carfileCid, c.cacheID)
+	err = cache.GetDB().SetDataTaskToRunningList(c.carfileHash, c.cacheID)
 	if err != nil {
-		return xerrors.Errorf("startCache %s , SetDataTaskToRunningList err:%s", c.carfileCid, err.Error())
+		return xerrors.Errorf("startCache %s , SetDataTaskToRunningList err:%s", c.carfileHash, err.Error())
 	}
 
 	return nil
@@ -369,9 +382,9 @@ func (c *Cache) endCache(unDoneBlocks int, isTimeout bool) (err error) {
 	if isTimeout {
 		msg = "timeout"
 	}
-	c.data.dataManager.saveEvent(c.carfileCid, c.cacheID, "", msg, eventTypeDoCacheTaskEnd)
+	c.data.dataManager.saveEvent(c.data.carfileCid, c.cacheID, "", msg, eventTypeDoCacheTaskEnd)
 
-	err = cache.GetDB().RemoveRunningDataTask(c.carfileCid, c.cacheID)
+	err = cache.GetDB().RemoveRunningDataTask(c.carfileHash, c.cacheID)
 	if err != nil {
 		err = xerrors.Errorf("stopCache RemoveRunningDataTask err: %s", err.Error())
 		return
@@ -391,7 +404,7 @@ func (c *Cache) endCache(unDoneBlocks int, isTimeout bool) (err error) {
 
 	failedBlocks, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(persistent.CacheStatusFail))
 	if err != nil {
-		err = xerrors.Errorf("stopCache %s,%s GetBloackCountWithStatus err:%v", c.carfileCid, c.cacheID, err.Error())
+		err = xerrors.Errorf("stopCache %s,%s GetBloackCountWithStatus err:%v", c.data.carfileCid, c.cacheID, err.Error())
 		return
 	}
 
@@ -448,7 +461,7 @@ func (c *Cache) removeCache() error {
 	})
 
 	// delete cache and update data info
-	err = persistent.GetDB().RemoveCacheInfo(c.cacheID, c.carfileCid, isDelete, reliability)
+	err = persistent.GetDB().RemoveCacheInfo(c.cacheID, c.carfileHash, isDelete, reliability)
 	if err == nil {
 		c.data.reliability = reliability
 	}
@@ -503,7 +516,7 @@ func (c *Cache) setCacheMessageInfo() {
 			CID:        block.CID,
 			Target:     block.DeviceID,
 			CacheID:    block.CacheID,
-			CarfileCid: c.carfileCid,
+			CarfileCid: c.data.carfileCid,
 			Size:       block.Size,
 			Type:       persistent.MsgTypeCache,
 			Source:     block.Source,

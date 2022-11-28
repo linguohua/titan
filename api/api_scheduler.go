@@ -103,8 +103,8 @@ type CacheResultInfo struct {
 	BlockSize int
 	LinksSize uint64
 
-	CarFileCid string
-	CacheID    string
+	CarFileHash string
+	CacheID     string
 	// Fid        int
 }
 
@@ -118,6 +118,8 @@ type CacheDataInfo struct {
 	Nodes           int
 	ExpiredTime     time.Time
 	CacheInfos      []CacheInfo
+
+	CarfileHash string
 }
 
 // CacheInfo Cache Info
