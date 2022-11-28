@@ -474,7 +474,12 @@ func (s *Scheduler) ShowDataTask(ctx context.Context, cid string) (api.CacheData
 		return info, xerrors.Errorf("%s:%s", ErrCidNotFind, cid)
 	}
 
-	d := s.dataManager.findData(cid)
+	hash, err := helper.CIDString2HashString(cid)
+	if err != nil {
+		return info, err
+	}
+
+	d := s.dataManager.findData(hash)
 	if d != nil {
 		return dataToCacheDataInfo(d), nil
 	}
@@ -773,20 +778,6 @@ func (s *Scheduler) GetDownloadInfo(ctx context.Context, deviceID string) ([]*ap
 func (s *Scheduler) ShowDataTasks(ctx context.Context) ([]api.CacheDataInfo, error) {
 	infos := make([]api.CacheDataInfo, 0)
 
-	// list, err := cache.GetDB().GetTasksWithRunningList()
-	// if err != nil {
-	// 	return infos, xerrors.Errorf("GetTasksWithRunningList err:%s", err.Error())
-	// }
-
-	// // log.Infof("ShowDataTasks:%v", list)
-
-	// for _, info := range list {
-	// 	data := loadData(info.CarfileCid, s.nodeManager, s.dataManager)
-	// 	if data != nil {
-	// 		infos = append(infos, dataToCacheDataInfo(data))
-	// 	}
-	// }
-
 	s.dataManager.taskMap.Range(func(key, value interface{}) bool {
 		data := value.(*Data)
 
@@ -803,6 +794,7 @@ func dataToCacheDataInfo(d *Data) api.CacheDataInfo {
 	info := api.CacheDataInfo{}
 	if d != nil {
 		info.CarfileCid = d.carfileCid
+		info.CarfileHash = d.carfileHash
 		info.TotalSize = d.totalSize
 		info.NeedReliability = d.needReliability
 		info.CurReliability = d.reliability

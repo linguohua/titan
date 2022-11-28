@@ -107,7 +107,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockInfo) (int6
 
 	cNode := c.nodeManager.getCandidateNode(deviceID)
 	if cNode != nil {
-		reqDatas := cNode.getReqCacheDatas(c.nodeManager, blocks, c.carfileHash, c.cacheID)
+		reqDatas := cNode.findDownloadinfoForBlocks(c.nodeManager, blocks, c.carfileHash, c.cacheID)
 
 		nodeCacheStat, err := cNode.nodeAPI.CacheBlocks(ctx, reqDatas)
 		if err != nil {
@@ -120,7 +120,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockInfo) (int6
 
 	eNode := c.nodeManager.getEdgeNode(deviceID)
 	if eNode != nil {
-		reqDatas := eNode.getReqCacheDatas(c.nodeManager, blocks, c.carfileHash, c.cacheID)
+		reqDatas := eNode.findDownloadinfoForBlocks(c.nodeManager, blocks, c.carfileHash, c.cacheID)
 
 		nodeCacheStat, err := eNode.nodeAPI.CacheBlocks(ctx, reqDatas)
 		if err != nil {
@@ -135,11 +135,11 @@ func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockInfo) (int6
 	return 0, xerrors.Errorf("%s:%s", ErrNodeNotFind, deviceID)
 }
 
-func (c *Cache) findNode(filterDeviceIDs map[string]string, i int) (deviceID string) {
+func (c *Cache) findIdleNode(skips map[string]string, i int) (deviceID string) {
 	deviceID = ""
 
 	if c.isRootCache {
-		list := c.nodeManager.findCandidateNodes(nil, filterDeviceIDs)
+		list := c.nodeManager.findCandidateNodes(nil, skips)
 		if list == nil || len(list) <= 0 {
 			return
 		}
@@ -155,7 +155,7 @@ func (c *Cache) findNode(filterDeviceIDs map[string]string, i int) (deviceID str
 		return
 	}
 
-	list := c.nodeManager.findEdgeNodes(nil, filterDeviceIDs)
+	list := c.nodeManager.findEdgeNodes(nil, skips)
 	if list == nil || len(list) <= 0 {
 		return
 	}
@@ -198,10 +198,10 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.Blo
 		if err != nil {
 			log.Errorf("allocateBlocksToNodes cache:%s,hash:%s, GetNodesWithCache err:%s", c.cacheID, hash, err.Error())
 		} else {
-			filterDeviceIDs := make(map[string]string)
+			skips := make(map[string]string)
 			if froms != nil {
 				for _, dID := range froms {
-					filterDeviceIDs[dID] = cid
+					skips[dID] = cid
 
 					// fid from
 					node := c.nodeManager.getCandidateNode(dID)
@@ -211,7 +211,7 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.Blo
 				}
 			}
 
-			deviceID = c.findNode(filterDeviceIDs, i)
+			deviceID = c.findIdleNode(skips, i)
 			if deviceID != "" {
 				status = persistent.CacheStatusCreate
 
@@ -273,7 +273,7 @@ func (c *Cache) cacheBlocksToNodes(nodeCacheMap map[string][]api.BlockInfo) {
 
 	timeStamp := time.Now().Unix()
 	timeout := needTimeMax - timeStamp
-	// update data/cache timeout
+	// update data task timeout
 	c.data.dataManager.updateDataTimeout(c.carfileHash, c.cacheID, timeout)
 
 	return
@@ -363,7 +363,7 @@ func (c *Cache) startCache(cids map[string]string) error {
 		return xerrors.Errorf("startCache %s fail not find node", c.cacheID)
 	}
 
-	// log.Infof("start cache %s,%s ---------- ", c.carfileCid, c.cacheID)
+	// log.Infof("start cache %s,%s ---------- ", c.data.carfileCid, c.cacheID)
 	c.cacheBlocksToNodes(nodeCacheMap)
 
 	c.data.dataManager.saveEvent(c.data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskStart)
@@ -377,7 +377,7 @@ func (c *Cache) startCache(cids map[string]string) error {
 }
 
 func (c *Cache) endCache(unDoneBlocks int, isTimeout bool) (err error) {
-	// log.Infof("end cache %s,%s ----------", c.carfileCid, c.cacheID)
+	// log.Infof("end cache %s,%s ----------", c.data.carfileCid, c.cacheID)
 	msg := ""
 	if isTimeout {
 		msg = "timeout"

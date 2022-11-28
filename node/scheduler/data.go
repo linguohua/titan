@@ -159,7 +159,7 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 
 	d.nodes = dNodes
 	dInfo := &persistent.DataInfo{
-		CarfileCid:  d.carfileCid,
+		CarfileHash: d.carfileHash,
 		TotalSize:   d.totalSize,
 		TotalBlocks: d.totalBlocks,
 		Reliability: d.reliability,
@@ -200,7 +200,7 @@ func (d *Data) dispatchCache(cache *Cache) (*Cache, error) {
 
 		d.cacheMap.Store(cache.cacheID, cache)
 
-		list = map[string]string{d.carfileHash: ""}
+		list = map[string]string{d.carfileCid: ""}
 	}
 
 	d.cacheCount++
@@ -218,7 +218,7 @@ func (d *Data) cacheEnd(doneCache *Cache) {
 
 	defer func() {
 		if err != nil {
-			d.dataManager.dataTaskEnd(d.carfileCid, err.Error())
+			d.dataManager.dataTaskEnd(d.carfileCid, d.carfileHash, err.Error())
 		}
 	}()
 
