@@ -13,9 +13,9 @@ type Locator interface {
 	DeviceOnline(ctx context.Context, deviceID string, areaID string, port int) error //perm:write
 	DeviceOffline(ctx context.Context, deviceID string) error                         //perm:write
 
-	GetDownloadInfosWithBlocks(ctx context.Context, cids []string) (map[string][]DownloadInfo, error) //perm:read
-	GetDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]DownloadInfo, error)    //perm:read
-	GetDownloadInfoWithBlock(ctx context.Context, cid string) (DownloadInfo, error)                   //perm:read
+	GetDownloadInfosWithBlocks(ctx context.Context, reqs []DownloadInfoReq) (map[string][]DownloadInfoResult, error) //perm:read
+	GetDownloadInfoWithBlocks(ctx context.Context, reqs []DownloadInfoReq) (map[string]DownloadInfoResult, error)    //perm:read
+	GetDownloadInfoWithBlock(ctx context.Context, req DownloadInfoReq) (DownloadInfoResult, error)                   //perm:read
 }
 
 type SchedulerAuth struct {

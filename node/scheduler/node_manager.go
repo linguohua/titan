@@ -363,8 +363,8 @@ func (m *NodeManager) updateLastRequestTime(deviceID string) {
 }
 
 // getNodeURLWithData find device
-func (m *NodeManager) findNodeDownloadInfos(cid string) ([]api.DownloadInfo, error) {
-	infos := make([]api.DownloadInfo, 0)
+func (m *NodeManager) findNodeDownloadInfos(cid string) ([]api.DownloadInfoResult, error) {
+	infos := make([]api.DownloadInfoResult, 0)
 
 	hash, err := helper.CIDString2HashString(cid)
 	if err != nil {
@@ -387,7 +387,7 @@ func (m *NodeManager) findNodeDownloadInfos(cid string) ([]api.DownloadInfo, err
 		}
 
 		// TODO: complete downloadInfo
-		infos = append(infos, api.DownloadInfo{URL: info.URL, Sign: []byte(""), SN: 0, SignTime: time.Now().Unix(), TimeOut: 60})
+		infos = append(infos, api.DownloadInfoResult{URL: info.URL, Sign: []byte(""), SN: 0, SignTime: time.Now().Unix(), TimeOut: 60})
 	}
 
 	if len(infos) <= 0 {

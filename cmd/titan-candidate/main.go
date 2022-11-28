@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -226,11 +225,6 @@ var runCmd = &cli.Command{
 		}
 		log.Infof("Remote version %s", v)
 
-		// tk, err := schedulerAPI.GetToken(ctx, deviceID, securityKey)
-		// if err != nil {
-		// 	return err
-		// }
-
 		// Register all metric views
 		if err := view.Register(
 			metrics.DefaultViews...,
@@ -320,10 +314,15 @@ var runCmd = &cli.Command{
 			return err
 		}
 
+		externalIP, err := schedulerAPI.GetExternalIP(ctx)
+		if err != nil {
+			return err
+		}
+
 		blockStore := blockstore.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
 		device := device.NewDevice(
 			deviceID,
-			"",
+			externalIP,
 			internalIP,
 			cctx.Int64("bandwidth-up"),
 			cctx.Int64("bandwidth-down"))
@@ -368,10 +367,10 @@ var runCmd = &cli.Command{
 		}
 
 		addressSlice := strings.Split(address, ":")
-		port, err := strconv.Atoi(addressSlice[1])
-		if err != nil {
-			return err
-		}
+		rpcURL := fmt.Sprintf("http://%s:%d/rpc/v0", externalIP, addressSlice[1])
+
+		candidate := candidateApi.(*candidate.Candidate)
+		downloadSrvURL := candidate.GetDownloadSrvURL()
 
 		minerSession, err := schedulerAPI.Session(ctx, deviceID)
 		if err != nil {
@@ -418,19 +417,14 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						externalIP, err := schedulerAPI.CandidateNodeConnect(ctx, port)
+						err := schedulerAPI.CandidateNodeConnect(ctx, rpcURL, downloadSrvURL)
 						if err != nil {
 							log.Errorf("Registering worker failed: %+v", err)
 							cancel()
 							return
 						}
+						candidate.LoadPublicKey()
 
-						candidate := candidateApi.(*candidate.Candidate)
-						candidate.SetExternaIP(externalIP)
-						err = candidate.UpdateDownloadServerAccessAuth(externalIP)
-						if err != nil {
-							log.Errorf("UpdateDownloadServerAccessAuth failed:%s", err.Error())
-						}
 						log.Info("Worker registered successfully, waiting for tasks")
 						errCount = 0
 						readyCh = nil

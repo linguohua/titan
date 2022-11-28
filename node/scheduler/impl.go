@@ -2,7 +2,7 @@ package scheduler
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/rsa"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -115,41 +115,41 @@ type Scheduler struct {
 }
 
 // CandidateNodeConnect Candidate connect
-func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int) (externalIP string, err error) {
+func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error {
 	ip := handler.GetRequestIP(ctx)
 	deviceID := handler.GetDeviceID(ctx)
 
 	if !s.nodeManager.isDeviceExist(deviceID, int(api.NodeCandidate)) {
-		return "", xerrors.Errorf("candidate node not Exist: %s", deviceID)
+		return xerrors.Errorf("candidate node not Exist: %s", deviceID)
 	}
 
-	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
-	log.Infof("CandidateNodeConnect %s ;ip:%s,port:%d", deviceID, ip, port)
+	// url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
+	log.Infof("CandidateNodeConnect deviceID:%s, rpc url:%s", deviceID, rpcURL)
 
 	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
-		return "", xerrors.Errorf("creating auth token for remote connection: %s", err.Error())
+		return xerrors.Errorf("creating auth token for remote connection: %s", err.Error())
 	}
 
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+string(t))
 
 	// Connect to node
-	candicateAPI, closer, err := client.NewCandicate(ctx, url, headers)
+	candicateAPI, closer, err := client.NewCandicate(ctx, rpcURL, headers)
 	if err != nil {
-		log.Errorf("CandidateNodeConnect NewCandicate err:%s,url:%s", err.Error(), url)
-		return "", err
+		log.Errorf("CandidateNodeConnect NewCandicate err:%s,url:%s", err.Error(), rpcURL)
+		return err
 	}
 
 	// load device info
 	deviceInfo, err := candicateAPI.DeviceInfo(ctx)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect DeviceInfo err:%s", err.Error())
-		return "", err
+		return err
 	}
 
 	if deviceID != deviceInfo.DeviceId {
-		return "", xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
+		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
 
 	deviceInfo.NodeType = api.NodeCandidate
@@ -160,7 +160,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int) (externa
 		closer:  closer,
 
 		Node: Node{
-			addr:       url,
+			addr:       rpcURL,
 			deviceInfo: deviceInfo,
 		},
 	}
@@ -168,59 +168,75 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, port int) (externa
 	err = s.nodeManager.candidateOnline(candidateNode)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect addEdgeNode err:%s,deviceID:%s", err.Error(), deviceID)
-		return "", err
+		return err
 	}
 
 	deviceInfo.IpLocation = candidateNode.geoInfo.Geo
 	err = s.nodeManager.setDeviceInfo(deviceID, deviceInfo)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect setDeviceInfo err:%s,deviceID:%s", err.Error(), deviceID)
-		return "", err
+		return err
 	}
 
 	s.locatorManager.notifyNodeStatusToLocator(deviceID, true)
 
 	go doDataSync(candicateAPI, deviceID)
 
-	return ip, nil
+	return nil
 }
 
 // EdgeNodeConnect edge connect
-func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int) (externalIP string, err error) {
+func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error {
 	ip := handler.GetRequestIP(ctx)
 	deviceID := handler.GetDeviceID(ctx)
 
 	if !s.nodeManager.isDeviceExist(deviceID, int(api.NodeEdge)) {
-		return "", xerrors.Errorf("edge node not Exist: %s", deviceID)
+		return xerrors.Errorf("edge node not Exist: %s", deviceID)
 	}
 
-	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
-	log.Infof("EdgeNodeConnect %s ;ip:%s,port:%d", deviceID, ip, port)
+	// url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
+	// log.Infof("EdgeNodeConnect %s ;ip:%s,port:%d", deviceID, ip, port)
 
 	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
-		return "", xerrors.Errorf("creating auth token for remote connection: %s", err.Error())
+		return xerrors.Errorf("creating auth token for remote connection: %s", err.Error())
 	}
 
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+string(t))
 
 	// Connect to node
-	edgeAPI, closer, err := client.NewEdge(ctx, url, headers)
+	edgeAPI, closer, err := client.NewEdge(ctx, rpcURL, headers)
 	if err != nil {
-		log.Errorf("EdgeNodeConnect NewEdge err:%s,url:%s", err.Error(), url)
-		return "", err
+		log.Errorf("EdgeNodeConnect NewEdge err:%s,url:%s", err.Error(), rpcURL)
+		return err
 	}
 
 	// load device info
 	deviceInfo, err := edgeAPI.DeviceInfo(ctx)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect DeviceInfo err:%s", err.Error())
-		return "", err
+		return err
 	}
 
 	if deviceID != deviceInfo.DeviceId {
-		return "", xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
+		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
+	}
+
+	authInfo, _ := persistent.GetDB().GetNodeAuthInfo(deviceID)
+	var privateKeyStr = authInfo.PrivateKey
+	var privateKey *rsa.PrivateKey
+	if len(privateKeyStr) > 0 {
+		privateKey, err = pem2PrivateKey(privateKeyStr)
+		if err != nil {
+			return err
+		}
+	} else {
+		key, err := generatePrivateKey(1024)
+		if err != nil {
+			return err
+		}
+		privateKey = key
 	}
 
 	deviceInfo.NodeType = api.NodeEdge
@@ -231,22 +247,24 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int) (externalIP s
 		closer:  closer,
 
 		Node: Node{
-			addr:       url,
-			deviceInfo: deviceInfo,
+			addr:           rpcURL,
+			deviceInfo:     deviceInfo,
+			downloadSrvURL: downloadSrvURL,
+			privateKey:     privateKey,
 		},
 	}
 
 	err = s.nodeManager.edgeOnline(edgeNode)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect addEdgeNode err:%s,deviceID:%s", err.Error(), deviceInfo.DeviceId)
-		return "", err
+		return err
 	}
 
 	deviceInfo.IpLocation = edgeNode.geoInfo.Geo
 	err = s.nodeManager.setDeviceInfo(deviceID, deviceInfo)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect set device info: %s", err.Error())
-		return "", err
+		return err
 	}
 
 	// notify locator
@@ -254,7 +272,27 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, port int) (externalIP s
 
 	go doDataSync(edgeAPI, deviceID)
 
-	return ip, nil
+	return nil
+}
+
+func (s *Scheduler) GetPublicKey(ctx context.Context) (string, error) {
+	deviceID := handler.GetDeviceID(ctx)
+
+	var edgeNode = s.nodeManager.getEdgeNode(deviceID)
+	if edgeNode != nil {
+		return privateKey2Pem(edgeNode.privateKey), nil
+	}
+
+	var candidateNode = s.nodeManager.getCandidateNode(deviceID)
+	if candidateNode != nil {
+		return privateKey2Pem(candidateNode.privateKey), nil
+	}
+
+	return "", fmt.Errorf("Can not get node %s publicKey", deviceID)
+}
+
+func (s *Scheduler) GetExternalIP(ctx context.Context) (string, error) {
+	return handler.GetRequestIP(ctx), nil
 }
 
 // ValidateBlockResult Validate Block Result
@@ -527,7 +565,7 @@ func (s *Scheduler) ListEvents(ctx context.Context, page int) (api.EventListInfo
 }
 
 // GetCandidateDownloadInfoWithBlocks find node
-func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]api.DownloadInfo, error) {
+func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]api.DownloadInfoResult, error) {
 	deviceID := handler.GetDeviceID(ctx)
 
 	if !s.nodeManager.isDeviceExist(deviceID, 0) {
@@ -538,7 +576,7 @@ func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids
 		return nil, xerrors.New("cids is nil")
 	}
 
-	infoMap := make(map[string]api.DownloadInfo)
+	infoMap := make(map[string]api.DownloadInfoResult)
 
 	for _, cid := range cids {
 		hash, err := helper.CIDString2HashString(cid)
@@ -560,63 +598,63 @@ func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids
 
 		// TODO: complete downloadInfo
 
-		infoMap[cid] = api.DownloadInfo{URL: info.URL, Sign: []byte(""), SN: 0, SignTime: time.Now().Unix(), TimeOut: 60}
+		infoMap[cid] = api.DownloadInfoResult{URL: info.URL, Sign: []byte(""), SN: 0, SignTime: time.Now().Unix(), TimeOut: 60}
 	}
 
 	return infoMap, nil
 }
 
 // GetDownloadInfosWithBlocks find node
-func (s *Scheduler) GetDownloadInfosWithBlocks(ctx context.Context, cids []string) (map[string][]api.DownloadInfo, error) {
-	if len(cids) < 1 {
+func (s *Scheduler) GetDownloadInfosWithBlocks(ctx context.Context, reqs []api.DownloadInfoReq) (map[string][]api.DownloadInfoResult, error) {
+	if len(reqs) < 1 {
 		return nil, xerrors.New("cids is nil")
 	}
 
-	infoMap := make(map[string][]api.DownloadInfo)
+	infoMap := make(map[string][]api.DownloadInfoResult)
 
-	for _, cid := range cids {
-		infos, err := s.nodeManager.findNodeDownloadInfos(cid)
+	for _, req := range reqs {
+		infos, err := s.nodeManager.findNodeDownloadInfos(req.Cid)
 		if err != nil {
 			continue
 		}
 
-		infoMap[cid] = infos
+		infoMap[req.Cid] = infos
 	}
 
 	return infoMap, nil
 }
 
 // GetDownloadInfoWithBlocks find node
-func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]api.DownloadInfo, error) {
-	if len(cids) < 1 {
+func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, reqs []api.DownloadInfoReq) (map[string]api.DownloadInfoResult, error) {
+	if len(reqs) < 1 {
 		return nil, xerrors.New("cids is nil")
 	}
 
-	infoMap := make(map[string]api.DownloadInfo)
+	infoMap := make(map[string]api.DownloadInfoResult)
 
-	for _, cid := range cids {
-		infos, err := s.nodeManager.findNodeDownloadInfos(cid)
+	for _, req := range reqs {
+		infos, err := s.nodeManager.findNodeDownloadInfos(req.Cid)
 		if err != nil {
 			continue
 		}
 
 		info := infos[randomNum(0, len(infos))]
 
-		infoMap[cid] = info
+		infoMap[req.Cid] = info
 	}
 
 	return infoMap, nil
 }
 
 // GetDownloadInfoWithBlock find node
-func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string) (api.DownloadInfo, error) {
-	if cid == "" {
-		return api.DownloadInfo{}, xerrors.New("cids is nil")
+func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, req api.DownloadInfoReq) (api.DownloadInfoResult, error) {
+	if req.Cid == "" {
+		return api.DownloadInfoResult{}, xerrors.New("cids is nil")
 	}
 
-	infos, err := s.nodeManager.findNodeDownloadInfos(cid)
+	infos, err := s.nodeManager.findNodeDownloadInfos(req.Cid)
 	if err != nil {
-		return api.DownloadInfo{}, err
+		return api.DownloadInfoResult{}, err
 	}
 
 	return infos[randomNum(0, len(infos))], nil
@@ -910,34 +948,33 @@ func (s *Scheduler) GetValidationInfo(ctx context.Context) (api.ValidationInfo, 
 // 	return xerrors.New(ErrNodeNotFind)
 // }
 
-func (s *Scheduler) GetPublicKeyForDownloadBlock(ctx context.Context) (string, error) {
-	deviceID := handler.GetDeviceID(ctx)
-	info, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
-	if err != nil {
-		return "", err
-	}
-
-	privateKey, err := pem2PrivateKey(info.PrivateKey)
-	if err != nil {
-		return "", err
-	}
-
-	publicKey := privateKey.PublicKey
-
-	publicKeyBytes, err := x509.MarshalPKIXPublicKey(&publicKey)
-	if err != nil {
-		fmt.Printf("MarshalPKIXPublicKey error:%s", err.Error())
-		return "", err
-	}
-	return string(publicKeyBytes), nil
-}
-
 func (s *Scheduler) verifyNodeDownloadBlockSign(deviceID, cid string, sign []byte) (bool, error) {
-	// TODO: get publicKey from device
-	var publicKey string
-	return verifyRsaSign(publicKey, sign, cid)
+	edgeNode := s.nodeManager.getEdgeNode(deviceID)
+	if edgeNode != nil {
+		return verifyRsaSign(&edgeNode.privateKey.PublicKey, sign, cid)
+	}
+
+	candidate := s.nodeManager.getCandidateNode(deviceID)
+	if candidate != nil {
+		return verifyRsaSign(&candidate.privateKey.PublicKey, sign, cid)
+	}
+
+	authInfo, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
+	if err != nil {
+		return false, err
+	}
+
+	privateKey, err := pem2PrivateKey(authInfo.PrivateKey)
+	if err != nil {
+		return false, err
+	}
+	return verifyRsaSign(&privateKey.PublicKey, sign, cid)
 }
 
-func (s *Scheduler) verifyUserDownloadBlockSign(publicKey, cid string, sign []byte) (bool, error) {
+func (s *Scheduler) verifyUserDownloadBlockSign(publicPem, cid string, sign []byte) (bool, error) {
+	publicKey, err := pem2PublicKey(publicPem)
+	if err != nil {
+		return false, err
+	}
 	return verifyRsaSign(publicKey, sign, cid)
 }
