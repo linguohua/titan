@@ -479,7 +479,7 @@ func (s *Scheduler) ShowDataTask(ctx context.Context, cid string) (api.CacheData
 		return info, err
 	}
 
-	d := s.dataManager.findData(hash)
+	d := s.dataManager.getData(hash)
 	if d != nil {
 		return dataToCacheDataInfo(d), nil
 	}
