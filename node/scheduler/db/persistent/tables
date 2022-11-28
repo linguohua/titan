@@ -138,17 +138,3 @@ CREATE TABLE `message_info_cn_gd_shenzhen` (
     PRIMARY KEY (`id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='message detailed info';
 
--- CREATE TABLE `message_info_cn_gd_shenzhen` (
---     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
--- 	`carfile_cid` varchar(128) NOT NULL,
---     `msg_type` int(10) NOT NULL,
---     `source` varchar(64) NOT NULL ,
---     `to` varchar(64) NOT NULL ,
---     `done_blocks` int  DEFAULT '0' ,
---     `fail_blocks` int  DEFAULT '0' ,
---     `total_blocks` int  DEFAULT '0' ,
---     `total_size` int  DEFAULT '0' ,
---     `time` int  DEFAULT '0' ,
---     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
---     PRIMARY KEY (`id`)
---   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='message info';
