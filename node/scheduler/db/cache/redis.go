@@ -320,28 +320,28 @@ func (rd redisDB) RemoveCacheResultInfo() error {
 	return err
 }
 
-func (rd redisDB) SetRunningDataTask(cid, cacheID string, timeout int64) error {
-	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, cid)
+func (rd redisDB) SetRunningDataTask(hash, cacheID string, timeout int64) error {
+	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash)
 	// Expire
 	_, err := rd.cli.Set(context.Background(), key, cacheID, time.Second*time.Duration(timeout)).Result()
 	return err
 }
 
-func (rd redisDB) GetRunningDataTask(cid string) (string, error) {
-	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, cid)
+func (rd redisDB) GetRunningDataTask(hash string) (string, error) {
+	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash)
 
 	return rd.cli.Get(context.Background(), key).Result()
 }
 
-func (rd redisDB) RemoveRunningDataTask(cid, cacheID string) error {
-	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, cid)
+func (rd redisDB) RemoveRunningDataTask(hash, cacheID string) error {
+	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash)
 
 	_, err := rd.cli.Del(context.Background(), key).Result()
 	if err != nil {
 		return err
 	}
 
-	return rd.RemoveDataTaskWithRunningList(cid, cacheID)
+	return rd.RemoveDataTaskWithRunningList(hash, cacheID)
 }
 
 func (rd redisDB) SetWaitingDataTask(info api.CacheDataInfo) error {
@@ -391,10 +391,10 @@ func (rd redisDB) RemoveWaitingDataTask(info api.CacheDataInfo) error {
 }
 
 // add
-func (rd redisDB) SetDataTaskToRunningList(cid, cacheID string) error {
+func (rd redisDB) SetDataTaskToRunningList(hash, cacheID string) error {
 	key := fmt.Sprintf(redisKeyRunningDataTaskList, serverName)
 
-	info := DataTask{CarfileCid: cid, CacheID: cacheID}
+	info := DataTask{CarfileHash: hash, CacheID: cacheID}
 	bytes, err := json.Marshal(info)
 	if err != nil {
 		return err
@@ -405,10 +405,10 @@ func (rd redisDB) SetDataTaskToRunningList(cid, cacheID string) error {
 }
 
 // del
-func (rd redisDB) RemoveDataTaskWithRunningList(cid, cacheID string) error {
+func (rd redisDB) RemoveDataTaskWithRunningList(hash, cacheID string) error {
 	key := fmt.Sprintf(redisKeyRunningDataTaskList, serverName)
 
-	info := DataTask{CarfileCid: cid, CacheID: cacheID}
+	info := DataTask{CarfileHash: hash, CacheID: cacheID}
 	bytes, err := json.Marshal(info)
 	if err != nil {
 		return err

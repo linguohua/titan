@@ -31,17 +31,17 @@ type delayReq struct {
 	// use for edge node load block
 	downloadURL   string
 	downloadToken string
-	carFileCid    string
+	carFileHash   string
 	CacheID       string
 }
 
 type blockStat struct {
-	cid        string
-	links      []string
-	blockSize  int
-	linksSize  uint64
-	carFileCid string
-	CacheID    string
+	cid         string
+	links       []string
+	blockSize   int
+	linksSize   uint64
+	carFileHash string
+	CacheID     string
 }
 
 type Block struct {
@@ -94,7 +94,7 @@ func apiReq2DelayReq(req *api.ReqCacheData) []*delayReq {
 			continue
 		}
 
-		req := &delayReq{blockInfo: blockInfo, count: 0, downloadURL: req.DownloadURL, downloadToken: req.DownloadToken, carFileCid: req.CardFileCid, CacheID: req.CacheID}
+		req := &delayReq{blockInfo: blockInfo, count: 0, downloadURL: req.DownloadURL, downloadToken: req.DownloadToken, carFileHash: req.CardFileHash, CacheID: req.CacheID}
 		results = append(results, req)
 	}
 
@@ -154,7 +154,7 @@ func (block *Block) addReq2WaitList(delayReqs []*delayReq) {
 }
 
 func (block *Block) cacheResultWithError(ctx context.Context, bStat blockStat, err error) {
-	log.Errorf("cacheResultWithError, cid:%s, fid:%s, cacheID:%s, carFileID:%s, error:%v", bStat.cid, bStat.CacheID, bStat.carFileCid, err)
+	log.Errorf("cacheResultWithError, cid:%s, fid:%s, cacheID:%s, carFileHash:%s, error:%v", bStat.cid, bStat.CacheID, bStat.carFileHash, err)
 	block.cacheResult(ctx, err, bStat)
 }
 
@@ -167,15 +167,15 @@ func (block *Block) cacheResult(ctx context.Context, err error, bStat blockStat)
 	}
 
 	result := api.CacheResultInfo{
-		Cid:        bStat.cid,
-		IsOK:       success,
-		Msg:        errMsg,
-		From:       "",
-		Links:      bStat.links,
-		BlockSize:  bStat.blockSize,
-		LinksSize:  bStat.linksSize,
-		CarFileCid: bStat.carFileCid,
-		CacheID:    bStat.CacheID,
+		Cid:         bStat.cid,
+		IsOK:        success,
+		Msg:         errMsg,
+		From:        "",
+		Links:       bStat.links,
+		BlockSize:   bStat.blockSize,
+		LinksSize:   bStat.linksSize,
+		CarFileHash: bStat.carFileHash,
+		CacheID:     bStat.CacheID,
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
@@ -215,7 +215,7 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 				linksSize += link.Size
 			}
 
-			bStat := blockStat{cid: cidStr, links: cids, blockSize: len(buf), linksSize: linksSize, carFileCid: reqData.carFileCid, CacheID: reqData.CacheID}
+			bStat := blockStat{cid: cidStr, links: cids, blockSize: len(buf), linksSize: linksSize, carFileHash: reqData.carFileHash, CacheID: reqData.CacheID}
 			block.cacheResult(ctx, nil, bStat)
 			continue
 		}

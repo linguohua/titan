@@ -13,8 +13,7 @@ import (
 	"github.com/linguohua/titan/node/helper"
 )
 
-type IPFS struct {
-}
+type IPFS struct{}
 
 type ipfsBlock struct {
 	cid cid.Cid
@@ -65,8 +64,8 @@ func getBlocksWithHttp(block *Block, cids []cid.Cid) ([]blocks.Block, error) {
 	var wg sync.WaitGroup
 
 	for _, cid := range cids {
-		var url = fmt.Sprintf("%s/%s?format=raw", block.ipfsGateway, cid.String())
-		var ipfsb = &ipfsBlock{cid: cid, err: nil, raw: nil}
+		url := fmt.Sprintf("%s/%s?format=raw", block.ipfsGateway, cid.String())
+		ipfsb := &ipfsBlock{cid: cid, err: nil, raw: nil}
 		ipfsbs = append(ipfsbs, ipfsb)
 
 		wg.Add(1)
@@ -179,7 +178,7 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 			linksSize += link.Size
 		}
 
-		bStat := blockStat{cid: cidStr, links: cids, blockSize: len(b.RawData()), linksSize: linksSize, carFileCid: req.carFileCid, CacheID: req.CacheID}
+		bStat := blockStat{cid: cidStr, links: cids, blockSize: len(b.RawData()), linksSize: linksSize, carFileHash: req.carFileHash, CacheID: req.CacheID}
 		block.cacheResult(ctx, nil, bStat)
 
 		log.Infof("cache data,cid:%s,err:%v", cidStr, err)
@@ -192,7 +191,7 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 		err = fmt.Errorf("Request timeout")
 		for _, v := range reqMap {
 			if v.count > helper.BlockDownloadRetryNum {
-				block.cacheResultWithError(ctx, blockStat{cid: v.blockInfo.Cid, carFileCid: v.carFileCid, CacheID: v.CacheID}, err)
+				block.cacheResultWithError(ctx, blockStat{cid: v.blockInfo.Cid, carFileHash: v.carFileHash, CacheID: v.CacheID}, err)
 				log.Infof("cache data faile, cid:%s, count:%d", v.blockInfo.Cid, v.count)
 			} else {
 				v.count++

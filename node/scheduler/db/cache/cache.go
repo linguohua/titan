@@ -15,13 +15,13 @@ type DB interface {
 	RemoveCacheResultInfo() error
 	GetCacheResultNum() int64
 
-	SetDataTaskToRunningList(cid, cacheID string) error
-	RemoveDataTaskWithRunningList(cid, cacheID string) error
+	SetDataTaskToRunningList(hash, cacheID string) error
+	RemoveDataTaskWithRunningList(hash, cacheID string) error
 	GetDataTasksWithRunningList() ([]DataTask, error)
 
-	SetRunningDataTask(cid, cacheID string, timeout int64) error
-	GetRunningDataTask(cid string) (string, error)
-	RemoveRunningDataTask(cid, cacheID string) error
+	SetRunningDataTask(hash, cacheID string, timeout int64) error
+	GetRunningDataTask(hash string) (string, error)
+	RemoveRunningDataTask(hash, cacheID string) error
 
 	SetWaitingDataTask(info api.CacheDataInfo) error
 	GetWaitingDataTask(index int64) (api.CacheDataInfo, error)
@@ -99,8 +99,8 @@ type NodeInfo struct {
 
 // DataTask data cache task
 type DataTask struct {
-	CarfileCid string
-	CacheID    string
+	CarfileHash string
+	CacheID     string
 }
 
 type blockDownloadRecord struct {

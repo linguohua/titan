@@ -536,7 +536,12 @@ func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids
 	infoMap := make(map[string]api.DownloadInfo)
 
 	for _, cid := range cids {
-		infos, err := s.nodeManager.getCandidateNodesWithData(cid, deviceID)
+		hash, err := helper.CIDString2HashString(cid)
+		if err != nil {
+			continue
+		}
+
+		infos, err := s.nodeManager.getCandidateNodesWithData(hash, deviceID)
 		if err != nil || len(infos) <= 0 {
 			continue
 		}

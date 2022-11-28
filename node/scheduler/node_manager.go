@@ -367,13 +367,18 @@ func (m *NodeManager) updateLastRequestTime(deviceID string) {
 func (m *NodeManager) findNodeDownloadInfos(cid string) ([]api.DownloadInfo, error) {
 	infos := make([]api.DownloadInfo, 0)
 
-	deviceIDs, err := persistent.GetDB().GetNodesWithCache(cid, true)
+	hash, err := helper.CIDString2HashString(cid)
+	if err != nil {
+		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
+	}
+
+	deviceIDs, err := persistent.GetDB().GetNodesWithCache(hash, true)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(deviceIDs) <= 0 {
-		return nil, xerrors.Errorf("%s , with cid:%s", ErrNodeNotFind, cid)
+		return nil, xerrors.Errorf("%s , with hash:%s", ErrNodeNotFind, hash)
 	}
 
 	for _, deviceID := range deviceIDs {
@@ -398,21 +403,21 @@ func (m *NodeManager) findNodeDownloadInfos(cid string) ([]api.DownloadInfo, err
 }
 
 // getCandidateNodesWithData find device
-func (m *NodeManager) getCandidateNodesWithData(cid, filterDeviceID string) ([]*CandidateNode, error) {
-	deviceIDs, err := persistent.GetDB().GetNodesWithCache(cid, true)
+func (m *NodeManager) getCandidateNodesWithData(hash, filterDeviceID string) ([]*CandidateNode, error) {
+	deviceIDs, err := persistent.GetDB().GetNodesWithCache(hash, true)
 	if err != nil {
 		return nil, err
 	}
 	// log.Infof("getCandidateNodesWithData deviceIDs : %v", deviceIDs)
 
 	if len(deviceIDs) <= 0 {
-		return nil, xerrors.Errorf("%s , with cid:%s", ErrNodeNotFind, cid)
+		return nil, xerrors.Errorf("%s , with hash:%s", ErrNodeNotFind, hash)
 	}
 
 	filters := make(map[string]string)
 
 	if filterDeviceID != "" {
-		filters[filterDeviceID] = cid
+		filters[filterDeviceID] = hash
 	}
 
 	nodeCs := m.findCandidateNodes(deviceIDs, filters)

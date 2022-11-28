@@ -35,6 +35,7 @@ CREATE TABLE `validate_err` (
   
 CREATE TABLE `data_info_cn_gd_shenzhen` (
 	`carfile_cid` varchar(128) NOT NULL UNIQUE,
+	`carfile_hash` varchar(128) NOT NULL UNIQUE,
     `status` TINYINT  DEFAULT '0' ,
     `total_size` int  DEFAULT '0' ,
 	`reliability` TINYINT DEFAULT '0' ,
@@ -45,12 +46,12 @@ CREATE TABLE `data_info_cn_gd_shenzhen` (
     `expired_time` datetime NOT NULL,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
-	PRIMARY KEY (`carfile_cid`)
+	PRIMARY KEY (`carfile_hash`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='data infos';
 
 CREATE TABLE `cache_info_cn_gd_shenzhen` (
     `cache_id` varchar(64) NOT NULL UNIQUE,
-	`carfile_cid` varchar(128) NOT NULL,
+	`carfile_hash` varchar(128) NOT NULL,
     `status` TINYINT  DEFAULT '0' ,
     `done_size` int  DEFAULT '0' ,
     `done_blocks` int  DEFAULT '0' ,
@@ -67,10 +68,11 @@ CREATE TABLE `cache_info_cn_gd_shenzhen` (
 
 CREATE TABLE `block_info_cn_gd_shenzhen` (
     `id` varchar(64) NOT NULL UNIQUE,
+	`cid_hash` varchar(128) NOT NULL,
 	`cid` varchar(128) NOT NULL,
     `cache_id` varchar(64) NOT NULL ,
     `device_id` varchar(128) NOT NULL ,
-    `carfile_cid` varchar(128) NOT NULL,
+    `carfile_hash` varchar(128) NOT NULL,
     `status` TINYINT  DEFAULT '0' ,
     `size` int(20)  DEFAULT '0' ,
 	`reliability` int(64) DEFAULT '0' ,
