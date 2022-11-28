@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -310,11 +309,16 @@ var runCmd = &cli.Command{
 			return err
 		}
 
+		externalIP, err := schedulerAPI.GetExternalIP(ctx)
+		if err != nil {
+			return err
+		}
+
 		blockStore := blockstore.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
 
 		device := device.NewDevice(
 			deviceID,
-			"",
+			externalIP,
 			internalIP,
 			cctx.Int64("bandwidth-up"),
 			cctx.Int64("bandwidth-down"))
@@ -356,10 +360,10 @@ var runCmd = &cli.Command{
 		log.Infof("Edge listen on %s", address)
 
 		addressSlice := strings.Split(address, ":")
-		port, err := strconv.Atoi(addressSlice[1])
-		if err != nil {
-			return err
-		}
+		rpcURL := fmt.Sprintf("http://%s:%d/rpc/v0", externalIP, addressSlice[1])
+
+		edge := edgeApi.(*edge.Edge)
+		downloadSrvURL := edge.GetDownloadSrvURL()
 
 		minerSession, err := schedulerAPI.Session(ctx, deviceID)
 		if err != nil {
@@ -407,20 +411,14 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						externalIP, err := schedulerAPI.EdgeNodeConnect(ctx, port)
+						err := schedulerAPI.EdgeNodeConnect(ctx, rpcURL, downloadSrvURL)
 						if err != nil {
 							log.Errorf("Registering worker failed: %+v", err)
 							cancel()
 							return
 						}
 
-						edge := edgeApi.(*edge.Edge)
-						edge.SetExternaIP(externalIP)
-						err = edge.UpdateDownloadServerAccessAuth(externalIP)
-						if err != nil {
-							log.Errorf("UpdateDownloadServerAccessAuth failed:%s", err.Error())
-						}
-
+						edge.LoadPublicKey()
 						log.Info("Worker registered successfully, waiting for tasks")
 						errCount = 0
 						readyCh = nil

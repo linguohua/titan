@@ -19,13 +19,8 @@ func generatePrivateKey(bits int) (*rsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
-func verifyRsaSign(publicKeyStr string, sign []byte, digest string) (bool, error) {
-	publicKey, err := pem2PublicKey(publicKeyStr)
-	if err != nil {
-		return false, err
-	}
-
-	err = rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, []byte(digest), sign)
+func verifyRsaSign(publicKey *rsa.PublicKey, sign []byte, digest string) (bool, error) {
+	err := rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, []byte(digest), sign)
 	if err != nil {
 		fmt.Println("could not verify signature: ", err)
 		return false, err

@@ -34,21 +34,22 @@ type Scheduler interface {
 
 	// call by node
 	// node send result when user download block complete
-	NodeDownloadBlockResult(ctx context.Context, result NodeBlockDownloadResult) error                      //perm:write
-	EdgeNodeConnect(ctx context.Context, edgePort int) (externalIP string, err error)                       //perm:write
-	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                         //perm:write
-	CandidateNodeConnect(ctx context.Context, edgePort int) (externalIP string, err error)                  //perm:write
-	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) (string, error)           //perm:write
-	UpdateDownloadServerAccessAuth(ctx context.Context, accessAuth DownloadServerAccessAuth) error          //perm:write
-	GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]DownloadInfo, error) //perm:write
+	NodeDownloadBlockResult(ctx context.Context, result NodeBlockDownloadResult) error                            //perm:write
+	EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error                                     //perm:write
+	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                               //perm:write
+	CandidateNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error                                //perm:write
+	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) (string, error)                 //perm:write
+	GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]DownloadInfoResult, error) //perm:write
+	GetExternalIP(ctx context.Context) (string, error)                                                            //perm:write
+	GetPublicKey(ctx context.Context) (string, error)                                                             //perm:write
 
 	// call by user
-	GetDownloadInfosWithBlocks(ctx context.Context, cids []string) (map[string][]DownloadInfo, error) //perm:read
-	GetDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]DownloadInfo, error)    //perm:read
-	GetDownloadInfoWithBlock(ctx context.Context, cid string) (DownloadInfo, error)                   //perm:read
-	GetDevicesInfo(ctx context.Context, deviceID string) (DevicesInfo, error)                         //perm:read
-	StateNetwork(ctx context.Context) (StateNetwork, error)                                           //perm:read
-	GetDownloadInfo(ctx context.Context, deviceID string) ([]*BlockDownloadInfo, error)               //perm:read
+	GetDownloadInfosWithBlocks(ctx context.Context, reqs []DownloadInfoReq) (map[string][]DownloadInfoResult, error) //perm:read
+	GetDownloadInfoWithBlocks(ctx context.Context, reqs []DownloadInfoReq) (map[string]DownloadInfoResult, error)    //perm:read
+	GetDownloadInfoWithBlock(ctx context.Context, req DownloadInfoReq) (DownloadInfoResult, error)                   //perm:read
+	GetDevicesInfo(ctx context.Context, deviceID string) (DevicesInfo, error)                                        //perm:read
+	StateNetwork(ctx context.Context) (StateNetwork, error)                                                          //perm:read
+	GetDownloadInfo(ctx context.Context, deviceID string) ([]*BlockDownloadInfo, error)                              //perm:read
 
 	// user send result when user download block complete
 	UserDownloadBlockResults(ctx context.Context, results []UserBlockDownloadResult) error //perm:read
@@ -164,4 +165,17 @@ type UserBlockDownloadResult struct {
 	// user signature
 	Sign   []byte
 	Result bool
+}
+
+type DownloadInfoReq struct {
+	Cid       string
+	PublicKey string
+}
+
+type DownloadInfoResult struct {
+	URL      string
+	Sign     []byte
+	SN       int64
+	SignTime int64
+	TimeOut  int
 }

@@ -50,6 +50,7 @@ type Node struct {
 	cacheTimeoutTimeStamp     int64 // TimeStamp of cache timeout
 	cacheNextTimeoutTimeStamp int64 // TimeStamp of next cache timeout
 	privateKey                *rsa.PrivateKey
+	downloadSrvURL            string
 }
 
 // node online
@@ -65,6 +66,7 @@ func (n *Node) setNodeOnline(typeName api.NodeTypeName) error {
 		NodeType:   string(typeName),
 		Address:    n.addr,
 		PrivateKey: privateKey2Pem(n.privateKey),
+		URL:        n.downloadSrvURL,
 	})
 	if err != nil {
 		return err
