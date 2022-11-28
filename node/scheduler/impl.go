@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -12,7 +13,6 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
-	"github.com/linguohua/titan/lib/token"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/handler"
 	"github.com/linguohua/titan/node/helper"
@@ -553,12 +553,9 @@ func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids
 			continue
 		}
 
-		tk, err := token.GenerateToken(info.PrivateKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
-		if err != nil {
-			continue
-		}
+		// TODO: complete downloadInfo
 
-		infoMap[cid] = api.DownloadInfo{URL: info.URL, Token: tk}
+		infoMap[cid] = api.DownloadInfo{URL: info.URL, Sign: []byte(""), SN: 0, SignTime: time.Now().Unix(), TimeOut: 60}
 	}
 
 	return infoMap, nil
@@ -920,6 +917,28 @@ func (s *Scheduler) GetValidationInfo(ctx context.Context) (api.ValidationInfo, 
 
 // 	return xerrors.New(ErrNodeNotFind)
 // }
+
+func (s *Scheduler) GetPublicKeyForDownloadBlock(ctx context.Context) (string, error) {
+	deviceID := handler.GetDeviceID(ctx)
+	info, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
+	if err != nil {
+		return "", err
+	}
+
+	privateKey, err := pem2PrivateKey(info.PrivateKey)
+	if err != nil {
+		return "", err
+	}
+
+	publicKey := privateKey.PublicKey
+
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(&publicKey)
+	if err != nil {
+		fmt.Printf("MarshalPKIXPublicKey error:%s", err.Error())
+		return "", err
+	}
+	return string(publicKeyBytes), nil
+}
 
 func (s *Scheduler) verifyNodeDownloadBlockSign(deviceID, cid string, sign []byte) (bool, error) {
 	// TODO: get publicKey from device

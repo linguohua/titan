@@ -13,7 +13,6 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/blockstore"
-	"github.com/linguohua/titan/lib/token"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/helper"
 	"golang.org/x/time/rate"
@@ -55,12 +54,12 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: need to verify sign
 
-	sn, err := strconv.ParseInt(snStr, 10, 64)
-	if err != nil {
-		log.Errorf("Parser param sn(%s) error:%s", sn, err.Error())
-		http.Error(w, fmt.Sprintf("Parser param sn(%s) error:%s", snStr, err.Error()), http.StatusBadRequest)
-		return
-	}
+	// sn, err := strconv.ParseInt(snStr, 10, 64)
+	// if err != nil {
+	// 	log.Errorf("Parser param sn(%s) error:%s", sn, err.Error())
+	// 	http.Error(w, fmt.Sprintf("Parser param sn(%s) error:%s", snStr, err.Error()), http.StatusBadRequest)
+	// 	return
+	// }
 
 	hash, err := helper.CIDString2HashString(cidStr)
 	if err != nil {
@@ -165,21 +164,6 @@ func (bd *BlockDownload) UnlimitDownloadSpeed() error {
 	bd.limiter.SetBurst(0)
 	bd.device.SetBandwidthUp(int64(bd.limiter.Limit()))
 	return nil
-}
-
-func (bd *BlockDownload) GetDownloadInfo(ctx context.Context) (api.DownloadInfo, error) {
-	tk, err := token.GenerateToken(bd.downloadSrvKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
-	if err != nil {
-		return api.DownloadInfo{}, err
-	}
-
-	addrSplit := strings.Split(bd.srvAddr, ":")
-	info := api.DownloadInfo{
-		URL:   fmt.Sprintf("http://%s:%s%s", bd.device.GetExternaIP(), addrSplit[1], helper.DownloadSrvPath),
-		Token: tk,
-	}
-
-	return info, nil
 }
 
 func (bd *BlockDownload) GetRateLimit() int64 {

@@ -191,17 +191,20 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 	ctx := context.Background()
 	results := make([]*delayReq, 0, len(reqs))
 	for _, reqData := range reqs {
-		cidStr := fmt.Sprintf("%s", reqData.blockInfo.Cid)
-		fidStr := fmt.Sprintf("%d", reqData.blockInfo.Fid)
+		cid, err := cid.Decode(reqData.blockInfo.Cid)
+		if err != nil {
+			continue
+		}
 
-		buf, err := block.getBlock(cidStr)
+		buf, err := block.getBlock(cid.String())
 		if err == nil {
-			fid, _ := block.getFIDFromCID(reqData.blockInfo.Cid)
-			if fid != fidStr {
-				block.updateCidAndFid(ctx, reqData.blockInfo.Cid, fidStr)
+			newFid := fmt.Sprintf("%d", reqData.blockInfo.Fid)
+			oldFid, _ := block.getFIDFromCID(reqData.blockInfo.Cid)
+			if oldFid != newFid {
+				block.updateCidAndFid(ctx, cid, newFid)
 			}
 
-			links, err := getLinks(block, buf, cidStr)
+			links, err := getLinks(block, buf, cid.String())
 			if err != nil {
 				log.Errorf("filterAvailableReq getLinks error:%s", err.Error())
 				continue
@@ -214,7 +217,7 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 				linksSize += link.Size
 			}
 
-			bStat := blockStat{cid: cidStr, links: cids, blockSize: len(buf), linksSize: linksSize, carFileHash: reqData.carFileHash, CacheID: reqData.CacheID}
+			bStat := blockStat{cid: cid.String(), links: cids, blockSize: len(buf), linksSize: linksSize, carFileHash: reqData.carFileHash, CacheID: reqData.CacheID}
 			block.cacheResult(ctx, nil, bStat)
 			continue
 		}

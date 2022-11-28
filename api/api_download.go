@@ -8,6 +8,9 @@ type Download interface {
 }
 
 type DownloadInfo struct {
-	URL   string
-	Token string
+	URL      string
+	Sign     []byte
+	SN       int64
+	SignTime int64
+	TimeOut  int
 }

@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"crypto/rsa"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -48,6 +49,7 @@ type Node struct {
 	cacheStat                 api.CacheStat
 	cacheTimeoutTimeStamp     int64 // TimeStamp of cache timeout
 	cacheNextTimeoutTimeStamp int64 // TimeStamp of next cache timeout
+	privateKey                *rsa.PrivateKey
 }
 
 // node online
@@ -57,11 +59,12 @@ func (n *Node) setNodeOnline(typeName api.NodeTypeName) error {
 
 	lastTime := time.Now().Format("2006-01-02 15:04:05")
 	err := persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{
-		Geo:      geoInfo.Geo,
-		LastTime: lastTime,
-		IsOnline: 1,
-		NodeType: string(typeName),
-		Address:  n.addr,
+		Geo:        geoInfo.Geo,
+		LastTime:   lastTime,
+		IsOnline:   1,
+		NodeType:   string(typeName),
+		Address:    n.addr,
+		PrivateKey: privateKey2Pem(n.privateKey),
 	})
 	if err != nil {
 		return err
