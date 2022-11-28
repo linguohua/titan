@@ -102,7 +102,7 @@ func (n *Node) getNodeInfo(deviceID string) (*persistent.NodeInfo, error) {
 }
 
 // filter cached blocks and find download url from candidate
-func (n *Node) getReqCacheDatas(nodeManager *NodeManager, blocks []api.BlockInfo, carfileHash, cacheID string) []api.ReqCacheData {
+func (n *Node) findDownloadinfoForBlocks(nodeManager *NodeManager, blocks []api.BlockInfo, carfileHash, cacheID string) []api.ReqCacheData {
 	reqList := make([]api.ReqCacheData, 0)
 	notFindCandidateBlocks := make([]api.BlockInfo, 0)
 

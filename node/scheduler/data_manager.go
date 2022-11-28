@@ -180,7 +180,7 @@ func (m *DataManager) checkTaskTimeouts() {
 
 func (m *DataManager) makeDataTask(cid, hash string, reliability int, expiredTime time.Time) (*Cache, error) {
 	var err error
-	data := m.findData(cid)
+	data := m.findData(hash)
 	if data == nil {
 		data = newData(m.nodeManager, m, cid, hash, reliability)
 		data.expiredTime = expiredTime
@@ -292,7 +292,12 @@ func (m *DataManager) removeCarfile(carfileCid string) error {
 		return err
 	}
 
-	data := m.findData(carfileCid)
+	hash, err := helper.CIDString2HashString(carfileCid)
+	if err != nil {
+		return err
+	}
+
+	data := m.findData(hash)
 	if data == nil {
 		return xerrors.Errorf("%s : %s", ErrNotFoundTask, carfileCid)
 	}
@@ -317,7 +322,12 @@ func (m *DataManager) removeCache(carfileCid, cacheID string) error {
 		return err
 	}
 
-	data := m.findData(carfileCid)
+	hash, err := helper.CIDString2HashString(carfileCid)
+	if err != nil {
+		return err
+	}
+
+	data := m.findData(hash)
 	if data == nil {
 		return xerrors.Errorf("%s : %s", ErrNotFoundTask, carfileCid)
 	}
@@ -432,13 +442,13 @@ func (m *DataManager) dataTaskStart(data *Data) {
 	}
 	m.saveEvent(data.carfileCid, "", "", "", eventTypeDoDataTaskStart)
 
-	m.taskMap.Store(data.carfileCid, data)
+	m.taskMap.Store(data.carfileHash, data)
 }
 
-func (m *DataManager) dataTaskEnd(cid, msg string) {
+func (m *DataManager) dataTaskEnd(cid, hash, msg string) {
 	m.saveEvent(cid, "", "", msg, eventTypeDoDataTaskEnd)
 
-	m.taskMap.Delete(cid)
+	m.taskMap.Delete(hash)
 
 	// continue task
 	m.notifyDataLoader()
@@ -477,16 +487,25 @@ func (m *DataManager) saveEvent(cid, cacheID, userID, msg string, event EventTyp
 func (m *DataManager) stopDataTask(cid string) {
 	m.saveEvent(cid, "", "user", "", eventTypeStopDataTask)
 
+	hash, err := helper.CIDString2HashString(cid)
+	if err != nil {
+		return
+	}
 	// if data unstart
 
-	data := m.findData(cid)
+	data := m.findData(hash)
 	data.isStop = true
 }
 
 // expired
 func (m *DataManager) checkCacheExpired(cid string) {
+	hash, err := helper.CIDString2HashString(cid)
+	if err != nil {
+		return
+	}
+
 	now := time.Now()
-	data := m.findData(cid)
+	data := m.findData(hash)
 
 	data.cacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)

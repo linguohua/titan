@@ -260,16 +260,16 @@ func (m *NodeManager) candidateOffline(node *CandidateNode) {
 	m.locatorManager.notifyNodeStatusToLocator(deviceID, false)
 }
 
-func (m *NodeManager) findEdgeNodes(useDeviceIDs []string, filterDeviceIDs map[string]string) []*EdgeNode {
-	if filterDeviceIDs == nil {
-		filterDeviceIDs = make(map[string]string)
+func (m *NodeManager) findEdgeNodes(useDeviceIDs []string, skips map[string]string) []*EdgeNode {
+	if skips == nil {
+		skips = make(map[string]string)
 	}
 
 	list := make([]*EdgeNode, 0)
 
 	if useDeviceIDs != nil && len(useDeviceIDs) > 0 {
 		for _, dID := range useDeviceIDs {
-			if _, ok := filterDeviceIDs[dID]; ok {
+			if _, ok := skips[dID]; ok {
 				continue
 			}
 
@@ -283,7 +283,7 @@ func (m *NodeManager) findEdgeNodes(useDeviceIDs []string, filterDeviceIDs map[s
 			deviceID := key.(string)
 			node := value.(*EdgeNode)
 
-			if _, ok := filterDeviceIDs[deviceID]; ok {
+			if _, ok := skips[deviceID]; ok {
 				return true
 			}
 
@@ -303,16 +303,16 @@ func (m *NodeManager) findEdgeNodes(useDeviceIDs []string, filterDeviceIDs map[s
 	return nil
 }
 
-func (m *NodeManager) findCandidateNodes(useDeviceIDs []string, filterDeviceIDs map[string]string) []*CandidateNode {
-	if filterDeviceIDs == nil {
-		filterDeviceIDs = make(map[string]string)
+func (m *NodeManager) findCandidateNodes(useDeviceIDs []string, skips map[string]string) []*CandidateNode {
+	if skips == nil {
+		skips = make(map[string]string)
 	}
 
 	list := make([]*CandidateNode, 0)
 
 	if len(useDeviceIDs) > 0 {
 		for _, dID := range useDeviceIDs {
-			if _, ok := filterDeviceIDs[dID]; ok {
+			if _, ok := skips[dID]; ok {
 				continue
 			}
 			// node, ok := eMap[dID]
@@ -326,7 +326,7 @@ func (m *NodeManager) findCandidateNodes(useDeviceIDs []string, filterDeviceIDs 
 			deviceID := key.(string)
 			node := value.(*CandidateNode)
 
-			if _, ok := filterDeviceIDs[deviceID]; ok {
+			if _, ok := skips[deviceID]; ok {
 				return true
 			}
 
@@ -398,7 +398,7 @@ func (m *NodeManager) findNodeDownloadInfos(cid string) ([]api.DownloadInfo, err
 }
 
 // getCandidateNodesWithData find device
-func (m *NodeManager) getCandidateNodesWithData(hash, filterDeviceID string) ([]*CandidateNode, error) {
+func (m *NodeManager) getCandidateNodesWithData(hash, skip string) ([]*CandidateNode, error) {
 	deviceIDs, err := persistent.GetDB().GetNodesWithCache(hash, true)
 	if err != nil {
 		return nil, err
@@ -409,13 +409,13 @@ func (m *NodeManager) getCandidateNodesWithData(hash, filterDeviceID string) ([]
 		return nil, xerrors.Errorf("%s , with hash:%s", ErrNodeNotFind, hash)
 	}
 
-	filters := make(map[string]string)
+	skips := make(map[string]string)
 
-	if filterDeviceID != "" {
-		filters[filterDeviceID] = hash
+	if skip != "" {
+		skips[skip] = hash
 	}
 
-	nodeCs := m.findCandidateNodes(deviceIDs, filters)
+	nodeCs := m.findCandidateNodes(deviceIDs, skips)
 
 	return nodeCs, nil
 }
