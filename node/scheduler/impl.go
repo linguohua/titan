@@ -553,7 +553,7 @@ func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids
 			continue
 		}
 
-		tk, err := token.GenerateToken(info.SecurityKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
+		tk, err := token.GenerateToken(info.PrivateKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
 		if err != nil {
 			continue
 		}
