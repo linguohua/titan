@@ -8,6 +8,7 @@ import (
 // Scheduler Scheduler node
 type Scheduler interface {
 	Common
+	Web
 
 	// call by command
 	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeTypeName) ([]string, error)                   //perm:read
