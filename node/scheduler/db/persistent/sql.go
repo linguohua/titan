@@ -22,7 +22,7 @@ type sqlDB struct {
 	url string
 }
 
-const errNodeNotFind = "Not Found"
+const errNotFind = "Not Found"
 
 var (
 	eventInfoTable    = "event_info_%s"
@@ -55,7 +55,7 @@ func InitSQL(url string) (DB, error) {
 
 // IsNilErr Is NilErr
 func (sd sqlDB) IsNilErr(err error) bool {
-	return err.Error() == errNodeNotFind
+	return err.Error() == errNotFind
 }
 
 func (sd sqlDB) SetNodeAuthInfo(aInfo *api.DownloadServerAccessAuth) error {
@@ -85,7 +85,7 @@ func (sd sqlDB) GetNodeAuthInfo(deviceID string) (*api.DownloadServerAccessAuth,
 			return nil, err
 		}
 	} else {
-		return nil, xerrors.New(errNodeNotFind)
+		return nil, xerrors.New(errNotFind)
 	}
 
 	return &api.DownloadServerAccessAuth{URL: info.URL, PrivateKey: info.PrivateKey, DeviceID: deviceID}, err
@@ -133,7 +133,7 @@ func (sd sqlDB) GetNodeInfo(deviceID string) (*NodeInfo, error) {
 			return nil, err
 		}
 	} else {
-		return nil, xerrors.New(errNodeNotFind)
+		return nil, xerrors.New(errNotFind)
 	}
 
 	return info, err
@@ -401,7 +401,7 @@ func (sd sqlDB) SetDataInfo(info *DataInfo) error {
 	tableName := fmt.Sprintf(dataInfoTable, area)
 
 	oldInfo, err := sd.GetDataInfo(info.CarfileHash)
-	if err != nil {
+	if err != nil && !sd.IsNilErr(err) {
 		return err
 	}
 
@@ -437,7 +437,7 @@ func (sd sqlDB) GetDataInfo(hash string) (*DataInfo, error) {
 			return nil, err
 		}
 	} else {
-		return nil, nil
+		return nil, xerrors.New(errNotFind)
 	}
 
 	return info, err
@@ -520,7 +520,7 @@ func (sd sqlDB) GetCacheInfo(cacheID string) (*CacheInfo, error) {
 			return nil, err
 		}
 	} else {
-		return nil, nil
+		return nil, xerrors.New(errNotFind)
 	}
 
 	return info, err
@@ -549,7 +549,7 @@ func (sd sqlDB) GetBlockInfo(cacheID, hash, deviceID string) (*BlockInfo, error)
 			return nil, err
 		}
 	} else {
-		return nil, nil
+		return nil, xerrors.New(errNotFind)
 	}
 
 	return info, err
@@ -643,7 +643,7 @@ func (sd sqlDB) GetRegisterInfo(deviceID string) (*api.NodeRegisterInfo, error) 
 			return info, err
 		}
 	} else {
-		return info, xerrors.New(errNodeNotFind)
+		return info, xerrors.New(errNotFind)
 	}
 
 	return info, err
