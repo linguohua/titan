@@ -367,6 +367,16 @@ func (block *Block) GetDatastore(ctx context.Context) datastore.Batching {
 	return block.ds
 }
 
+func (block *Block) IsLoadBlockFromIPFS() bool {
+	switch block.block.(type) {
+	case *IPFS:
+		return true
+	default:
+	}
+
+	return false
+}
+
 func (block *Block) resolveLinks(blk blocks.Block) ([]*format.Link, error) {
 	ctx := context.Background()
 

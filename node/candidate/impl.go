@@ -31,21 +31,13 @@ import (
 var log = logging.Logger("candidate")
 
 func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *device.Device, params *helper.NodeParams) api.Candidate {
-	// addrs, err := build.BuiltinBootstrap()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// exchange, err := p2p.Bootstrap(ctx, addrs)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
 	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
 	blockDownload := download.NewBlockDownload(rateLimiter, params, device)
 
 	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, params.IPFSGateway, device.GetDeviceID())
 	validate := vd.NewValidate(blockDownload, block, device.GetDeviceID())
+
+	datasync.SyncLocalBlockstore(params.DS, params.BlockStore, block)
 
 	candidate := &Candidate{
 		Device:        device,

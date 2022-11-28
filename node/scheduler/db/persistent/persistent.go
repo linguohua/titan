@@ -113,17 +113,17 @@ func GetDB() DB {
 
 // NodeInfo base info
 type NodeInfo struct {
-	ID          int
-	DeviceID    string    `db:"device_id"`
-	LastTime    string    `db:"last_time"`
-	Geo         string    `db:"geo"`
-	IsOnline    int       `db:"is_online"`
-	NodeType    string    `db:"node_type"`
-	Address     string    `db:"address"`
-	ServerName  string    `db:"server_name"`
-	CreateTime  time.Time `db:"create_time"`
-	URL         string    `db:"url"`
-	SecurityKey string    `db:"security"`
+	ID         int
+	DeviceID   string    `db:"device_id"`
+	LastTime   string    `db:"last_time"`
+	Geo        string    `db:"geo"`
+	IsOnline   int       `db:"is_online"`
+	NodeType   string    `db:"node_type"`
+	Address    string    `db:"address"`
+	ServerName string    `db:"server_name"`
+	CreateTime time.Time `db:"create_time"`
+	URL        string    `db:"url"`
+	PrivateKey string    `db:"private_key"`
 }
 
 // ValidateResult validate result

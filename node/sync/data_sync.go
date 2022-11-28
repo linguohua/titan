@@ -217,10 +217,15 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 			continue
 		}
 
-		targetCid, ok := blocks[fid]
+		hash, err := helper.CIDString2HashString(cid)
+		if err != nil {
+			continue
+		}
+
+		targetHash, ok := blocks[fid]
 		if ok {
-			if cid != targetCid {
-				log.Errorf("scrubBlocks fid %s, local cid is %s but sheduler cid is %s", fid, cid, targetCid)
+			if hash != targetHash {
+				log.Errorf("scrubBlocks fid %s, local block hash is %s but sheduler block hash is %s", fid, hash, targetHash)
 				need2DeleteBlocks = append(need2DeleteBlocks, cid)
 			} else {
 				delete(blocks, fid)
@@ -236,6 +241,11 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 	}
 
 	if len(blocks) > 0 {
+		if dataSync.block.IsLoadBlockFromIPFS() {
+			loadBlockFromIPFS(dataSync.block, blocks)
+		} else {
+
+		}
 		// TODO: download block that not exist in local
 		// blocks is need to download
 	}
@@ -251,7 +261,7 @@ func string2Hash(value string) string {
 	return hex.EncodeToString(hash)
 }
 
-func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore) error {
+func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore, block *block.Block) error {
 	log.Info("start sync local block store")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -311,7 +321,7 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 
 		ds.Put(ctx, helper.NewKeyHash(targetHash), []byte(targetFid))
 
-		log.Warnf("cid:hash %s ==> %s not match in target fid:hash %s ==> %s ", targetHash, fid, targetFid, targetHash)
+		log.Warnf("hash:fid %s ==> %s not match in target fid:hash %s ==> %s ", targetHash, fid, targetFid, targetHash)
 	}
 
 	for hash, fid := range hashMap {
@@ -336,14 +346,36 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 
 	}
 
-	for _, cid := range need2DeleteBlock {
-		blockstore.Delete(cid)
-		log.Warnf("block %s not exist fid, was delete", cid)
-	}
+	block.DeleteBlocks(context.Background(), need2DeleteBlock)
 
 	// TODO: need to download targetMap block
+	if block.IsLoadBlockFromIPFS() {
+		blocks := make(map[int]string)
+		for hash, fidStr := range targetMap {
+			fid, err := strconv.Atoi(fidStr)
+			if err != nil {
+				continue
+			}
+			blocks[fid] = hash
+		}
+		loadBlockFromIPFS(block, blocks)
+	}
 
 	log.Info("sync local block store complete")
 
 	return nil
+}
+
+func loadBlockFromIPFS(block *block.Block, blocks map[int]string) {
+	blockInfos := make([]api.BlockInfo, 0)
+	for fid, hash := range blocks {
+		cid, err := helper.HashString2CidString(hash)
+		if err != nil {
+			continue
+		}
+		blockInfo := api.BlockInfo{Cid: cid, Fid: fid}
+		blockInfos = append(blockInfos, blockInfo)
+	}
+	req := api.ReqCacheData{BlockInfos: blockInfos}
+	block.CacheBlocks(context.Background(), []api.ReqCacheData{req})
 }

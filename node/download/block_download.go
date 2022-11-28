@@ -96,7 +96,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		speedRate = int64(float64(n) / float64(costTime) * float64(time.Second))
 	}
 
-	go bd.downloadBlockResult(sign, bd.device.GetDeviceID(), 0, speedRate, getClientIP(r))
+	go bd.downloadBlockResult([]byte(sign), bd.device.GetDeviceID(), 0, speedRate, getClientIP(r))
 
 	log.Infof("Download block %s costTime %d, size %d, speed %d", cidStr, costTime, n, speedRate)
 
@@ -116,7 +116,7 @@ func getClientIP(r *http.Request) string {
 	return reqIP
 }
 
-func (bd *BlockDownload) downloadBlockResult(sign, deviceID string, sn, downloadSpeed int64, clientIP string) {
+func (bd *BlockDownload) downloadBlockResult(sign []byte, deviceID string, sn, downloadSpeed int64, clientIP string) {
 	result := api.NodeBlockDownloadResult{SN: sn, Sign: sign, DownloadSpeed: downloadSpeed, ClientIP: clientIP}
 	bd.scheduler.NodeDownloadBlockResult(context.Background(), result)
 }
@@ -190,6 +190,6 @@ func (bd *BlockDownload) GetRateLimit() int64 {
 func (bd *BlockDownload) UpdateDownloadServerAccessAuth(exteranlIP string) error {
 	addrSplit := strings.Split(bd.srvAddr, ":")
 	url := fmt.Sprintf("http://%s:%s%s", exteranlIP, addrSplit[1], helper.DownloadSrvPath)
-	accessAuth := api.DownloadServerAccessAuth{DeviceID: bd.device.GetDeviceID(), URL: url, SecurityKey: bd.downloadSrvKey}
+	accessAuth := api.DownloadServerAccessAuth{DeviceID: bd.device.GetDeviceID(), URL: url, PrivateKey: bd.downloadSrvKey}
 	return bd.scheduler.UpdateDownloadServerAccessAuth(context.Background(), accessAuth)
 }

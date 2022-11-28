@@ -4,18 +4,28 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 )
 
-func verifyRsaSign(publicKeyStr, sign, digest string) (bool, error) {
+func generatePrivateKey(bits int) (*rsa.PrivateKey, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, bits)
+	if err != nil {
+		return nil, err
+	}
+
+	return privateKey, nil
+}
+
+func verifyRsaSign(publicKeyStr string, sign []byte, digest string) (bool, error) {
 	publicKey, err := pem2PublicKey(publicKeyStr)
 	if err != nil {
 		return false, err
 	}
 
-	err = rsa.VerifyPSS(publicKey, crypto.SHA256, []byte(digest), []byte(sign), nil)
+	err = rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, []byte(digest), sign)
 	if err != nil {
 		fmt.Println("could not verify signature: ", err)
 		return false, err
@@ -23,17 +33,24 @@ func verifyRsaSign(publicKeyStr, sign, digest string) (bool, error) {
 	return true, nil
 }
 
-func rsaSign(privateKeyStr, digest string) (string, error) {
+func rsaSign(privateKeyStr, digest string) ([]byte, error) {
+	msgHash := sha256.New()
+	_, err := msgHash.Write([]byte(digest))
+	if err != nil {
+		return nil, nil
+	}
+	msgHashSum := msgHash.Sum(nil)
+
 	privateKey, err := pem2PrivateKey(privateKeyStr)
 	if err != nil {
-		return "", nil
+		return nil, nil
 	}
 
-	signature, err := rsa.SignPSS(rand.Reader, privateKey, crypto.SHA256, []byte(digest), nil)
+	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, msgHashSum)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return string(signature), nil
+	return signature, nil
 }
 
 func pem2PublicKey(publicKeyStr string) (*rsa.PublicKey, error) {

@@ -146,21 +146,21 @@ type NodeBlockDownloadResult struct {
 	// serial number
 	SN int64
 	// scheduler signature
-	Sign          string
+	Sign          []byte
 	DownloadSpeed int64
 	ClientIP      string
 }
 
 type DownloadServerAccessAuth struct {
-	DeviceID    string
-	URL         string
-	SecurityKey string
+	DeviceID   string
+	URL        string
+	PrivateKey string
 }
 
 type UserBlockDownloadResult struct {
 	// serial number
 	SN int64
 	// user signature
-	Sign   string
+	Sign   []byte
 	Result bool
 }

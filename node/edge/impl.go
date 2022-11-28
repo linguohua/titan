@@ -36,6 +36,8 @@ func NewLocalEdgeNode(ctx context.Context, device *device.Device, params *helper
 
 	validate := validate.NewValidate(blockDownload, block, device.GetDeviceID())
 
+	datasync.SyncLocalBlockstore(params.DS, params.BlockStore, block)
+
 	edge := &Edge{
 		Device:        device,
 		Block:         block,
