@@ -75,14 +75,6 @@ func (w *web) ListNodeConnectionLog(ctx context.Context, req api.ListNodeConnect
 }
 
 func (w *web) ListCaches(ctx context.Context, req api.ListCachesReq) (api.ListCachesRsp, error) {
-	// startTime := time.Unix(req.StartTime, 0)
-	// endTime := time.Unix(req.EndTime, 0)
-
-	// datas, total, err := persistent.GetDB().GetDataInfos(startTime, endTime, req.Cursor, req.Count)
-	// if err != nil {
-	// 	return api.ListCachesRsp{}, err
-	// }
-
 	return api.ListCachesRsp{}, nil
 }
 

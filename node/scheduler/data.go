@@ -41,7 +41,7 @@ func newData(nodeManager *NodeManager, dataManager *DataManager, cid, hash strin
 
 func loadData(hash string, nodeManager *NodeManager, dataManager *DataManager) *Data {
 	dInfo, err := persistent.GetDB().GetDataInfo(hash)
-	if err != nil {
+	if err != nil && !persistent.GetDB().IsNilErr(err) {
 		log.Errorf("loadData %s err :%s", hash, err.Error())
 		return nil
 	}
