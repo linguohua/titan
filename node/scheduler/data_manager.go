@@ -133,7 +133,7 @@ func (m *DataManager) doDataTask() error {
 	return nil
 }
 
-func (m *DataManager) findData(hash string) *Data {
+func (m *DataManager) getData(hash string) *Data {
 	dI, ok := m.taskMap.Load(hash)
 	if ok && dI != nil {
 		return dI.(*Data)
@@ -152,7 +152,7 @@ func (m *DataManager) checkTaskTimeout(taskInfo cache.DataTask) {
 		return
 	}
 
-	data := m.findData(taskInfo.CarfileHash)
+	data := m.getData(taskInfo.CarfileHash)
 	if data == nil {
 		return
 	}
@@ -180,7 +180,7 @@ func (m *DataManager) checkTaskTimeouts() {
 
 func (m *DataManager) makeDataTask(cid, hash string, reliability int, expiredTime time.Time) (*Cache, error) {
 	var err error
-	data := m.findData(hash)
+	data := m.getData(hash)
 	if data == nil {
 		data = newData(m.nodeManager, m, cid, hash, reliability)
 		data.expiredTime = expiredTime
@@ -226,7 +226,7 @@ func (m *DataManager) makeDataTask(cid, hash string, reliability int, expiredTim
 }
 
 func (m *DataManager) makeDataContinue(hash, cacheID string) (*Cache, error) {
-	data := m.findData(hash)
+	data := m.getData(hash)
 	if data == nil {
 		return nil, xerrors.Errorf("%s,cid:%s,cacheID:%s", ErrNotFoundTask, hash, cacheID)
 	}
@@ -297,7 +297,7 @@ func (m *DataManager) removeCarfile(carfileCid string) error {
 		return err
 	}
 
-	data := m.findData(hash)
+	data := m.getData(hash)
 	if data == nil {
 		return xerrors.Errorf("%s : %s", ErrNotFoundTask, carfileCid)
 	}
@@ -327,7 +327,7 @@ func (m *DataManager) removeCache(carfileCid, cacheID string) error {
 		return err
 	}
 
-	data := m.findData(hash)
+	data := m.getData(hash)
 	if data == nil {
 		return xerrors.Errorf("%s : %s", ErrNotFoundTask, carfileCid)
 	}
@@ -350,7 +350,7 @@ func (m *DataManager) removeCache(carfileCid, cacheID string) error {
 
 func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultInfo) error {
 	// area := m.nodeManager.getNodeArea(deviceID)
-	data := m.findData(info.CarFileHash)
+	data := m.getData(info.CarFileHash)
 	if data == nil {
 		return xerrors.Errorf("%s : %s", ErrNotFoundTask, info.CarFileHash)
 	}
@@ -493,7 +493,7 @@ func (m *DataManager) stopDataTask(cid string) {
 	}
 	// if data unstart
 
-	data := m.findData(hash)
+	data := m.getData(hash)
 	data.isStop = true
 }
 
@@ -505,7 +505,7 @@ func (m *DataManager) checkCacheExpired(cid string) {
 	}
 
 	now := time.Now()
-	data := m.findData(hash)
+	data := m.getData(hash)
 
 	data.cacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)
