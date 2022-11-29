@@ -441,7 +441,7 @@ func (c *Cache) removeCache() error {
 		if deviceID == "" {
 			continue
 		}
-		c.removeBlocks(deviceID, cids)
+		go c.removeBlocks(deviceID, cids)
 	}
 
 	reliability -= c.reliability

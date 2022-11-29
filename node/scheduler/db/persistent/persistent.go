@@ -31,6 +31,7 @@ type DB interface {
 	GetDataCidWithPage(page int) (count int, totalPage int, list []string, err error)
 	GetCachesWithData(hash string) ([]string, error)
 
+	GetExpiredCaches() ([]*CacheInfo, error)
 	// cache info
 	GetCacheInfo(cacheID string) (*CacheInfo, error)
 	RemoveCacheInfo(cacheID, carfileHash string, isDeleteData bool, reliability int) error

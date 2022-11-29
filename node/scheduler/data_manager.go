@@ -66,7 +66,7 @@ func (m *DataManager) run() {
 		case <-ticker.C:
 			m.checkTaskTimeouts()
 			m.notifyDataLoader()
-			// check data expired TODO
+			m.checkCachesExpired()
 		case <-m.dataTaskLoaderCh:
 			m.doDataTasks()
 		case <-m.blockLoaderCh:
@@ -505,30 +505,60 @@ func (m *DataManager) stopDataTask(cid string) error {
 	return nil
 }
 
-// expired
-func (m *DataManager) checkCacheExpired(cid string) {
-	hash, err := helper.CIDString2HashString(cid)
+// check expired caches
+func (m *DataManager) checkCachesExpired() {
+	cacheInfos, err := persistent.GetDB().GetExpiredCaches()
 	if err != nil {
+		log.Errorf("GetExpiredCaches err:%s", err.Error())
 		return
 	}
 
-	now := time.Now()
-	data := m.getData(hash)
-
-	data.cacheMap.Range(func(key, value interface{}) bool {
-		c := value.(*Cache)
-		if c.expiredTime.After(now) {
-			return true
+	for _, cacheInfo := range cacheInfos {
+		data := m.getData(cacheInfo.CarfileHash)
+		if data == nil {
+			continue
 		}
+
+		cI, ok := data.cacheMap.Load(cacheInfo.CacheID)
+		if !ok {
+			continue
+		}
+		cache := cI.(*Cache)
 
 		// do remove
-		err := c.removeCache()
+		err := cache.removeCache()
 		if err != nil {
-			m.saveEvent(cid, c.cacheID, "expired", err.Error(), eventTypeRemoveCacheEnd)
+			m.saveEvent(data.carfileCid, cache.cacheID, "expired", err.Error(), eventTypeRemoveCacheEnd)
 		} else {
-			m.saveEvent(cid, c.cacheID, "expired", "", eventTypeRemoveCacheEnd)
+			m.saveEvent(data.carfileCid, cache.cacheID, "expired", "", eventTypeRemoveCacheEnd)
 		}
-
-		return true
-	})
+	}
 }
+
+// // expired
+// func (m *DataManager) checkCacheExpired(hash string) error {
+// 	data := m.getData(hash)
+// 	if data == nil {
+// 		return xerrors.Errorf("%s:%s", ErrCidNotFind, hash)
+// 	}
+
+// 	now := time.Now()
+// 	data.cacheMap.Range(func(key, value interface{}) bool {
+// 		c := value.(*Cache)
+// 		if c.expiredTime.After(now) {
+// 			return true
+// 		}
+
+// 		// do remove
+// 		err := c.removeCache()
+// 		if err != nil {
+// 			m.saveEvent(hash, c.cacheID, "expired", err.Error(), eventTypeRemoveCacheEnd)
+// 		} else {
+// 			m.saveEvent(hash, c.cacheID, "expired", "", eventTypeRemoveCacheEnd)
+// 		}
+
+// 		return true
+// 	})
+
+// 	return nil
+// }
