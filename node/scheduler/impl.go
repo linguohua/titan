@@ -981,6 +981,34 @@ func (s *Scheduler) verifyUserDownloadBlockSign(publicPem, cid string, sign []by
 	return verifyRsaSign(publicKey, sign, cid)
 }
 
+func (s *Scheduler) signDownloadInfoResult(cid string, results []api.DownloadInfoResult, devicePrivateKeys map[string]*rsa.PrivateKey) ([]api.DownloadInfoResult, error) {
+	return nil, nil
+}
+
+func (s *Scheduler) getDeviccePrivateKey(deviceID string) (*rsa.PrivateKey, error) {
+	edge := s.nodeManager.getEdgeNode(deviceID)
+	if edge != nil {
+		return edge.privateKey, nil
+	}
+
+	candidate := s.nodeManager.getCandidateNode(deviceID)
+	if candidate != nil {
+		return candidate.privateKey, nil
+	}
+
+	authInfo, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
+	if err != nil {
+		return nil, err
+	}
+
+	privateKey, err := pem2PrivateKey(authInfo.PrivateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return privateKey, nil
+}
+
 func (s *Scheduler) recordBlockDownload(cid string, downloadInfo api.DownloadInfoResult) {
 	persistent.GetDB().AddDownloadInfo(downloadInfo.DeviceID, &api.BlockDownloadInfo{})
 }

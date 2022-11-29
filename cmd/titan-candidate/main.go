@@ -367,7 +367,7 @@ var runCmd = &cli.Command{
 		}
 
 		addressSlice := strings.Split(address, ":")
-		rpcURL := fmt.Sprintf("http://%s:%d/rpc/v0", externalIP, addressSlice[1])
+		rpcURL := fmt.Sprintf("http://%s:%s/rpc/v0", externalIP, addressSlice[1])
 
 		candidate := candidateApi.(*candidate.Candidate)
 		downloadSrvURL := candidate.GetDownloadSrvURL()

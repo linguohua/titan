@@ -360,7 +360,7 @@ var runCmd = &cli.Command{
 		log.Infof("Edge listen on %s", address)
 
 		addressSlice := strings.Split(address, ":")
-		rpcURL := fmt.Sprintf("http://%s:%d/rpc/v0", externalIP, addressSlice[1])
+		rpcURL := fmt.Sprintf("http://%s:%s/rpc/v0", externalIP, addressSlice[1])
 
 		edge := edgeApi.(*edge.Edge)
 		downloadSrvURL := edge.GetDownloadSrvURL()
