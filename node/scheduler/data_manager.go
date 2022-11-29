@@ -484,17 +484,25 @@ func (m *DataManager) saveEvent(cid, cacheID, userID, msg string, event EventTyp
 // replenish time
 
 // stop
-func (m *DataManager) stopDataTask(cid string) {
-	m.saveEvent(cid, "", "user", "", eventTypeStopDataTask)
-
+func (m *DataManager) stopDataTask(cid string) error {
 	hash, err := helper.CIDString2HashString(cid)
 	if err != nil {
-		return
+		return err
 	}
-	// if data unstart
 
-	data := m.getData(hash)
-	data.isStop = true
+	m.saveEvent(cid, "", "user", "", eventTypeStopDataTask)
+
+	dI, ok := m.taskMap.Load(hash)
+	if ok && dI != nil {
+		data := dI.(*Data)
+		data.isStop = true
+
+		return nil
+	}
+
+	// TODO if data unstart , save to redis
+
+	return nil
 }
 
 // expired
