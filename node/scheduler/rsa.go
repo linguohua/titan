@@ -28,18 +28,13 @@ func verifyRsaSign(publicKey *rsa.PublicKey, sign []byte, digest string) (bool, 
 	return true, nil
 }
 
-func rsaSign(privateKeyStr, digest string) ([]byte, error) {
+func rsaSign(privateKey *rsa.PrivateKey, digest string) ([]byte, error) {
 	msgHash := sha256.New()
 	_, err := msgHash.Write([]byte(digest))
 	if err != nil {
 		return nil, nil
 	}
 	msgHashSum := msgHash.Sum(nil)
-
-	privateKey, err := pem2PrivateKey(privateKeyStr)
-	if err != nil {
-		return nil, nil
-	}
 
 	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, msgHashSum)
 	if err != nil {

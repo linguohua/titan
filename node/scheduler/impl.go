@@ -53,6 +53,8 @@ const (
 	StatusOffline = "offline"
 	// StatusOnline node online
 	StatusOnline = "online"
+	// seconds
+	blockDonwloadTimeout = 30 * 60
 )
 
 type blockDownloadVerifyStatus int
@@ -977,4 +979,8 @@ func (s *Scheduler) verifyUserDownloadBlockSign(publicPem, cid string, sign []by
 		return false, err
 	}
 	return verifyRsaSign(publicKey, sign, cid)
+}
+
+func (s *Scheduler) recordBlockDownload() {
+
 }

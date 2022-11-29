@@ -1,6 +1,8 @@
 package scheduler
 
 import (
+	"crypto/rsa"
+	"fmt"
 	"sync"
 	"time"
 
@@ -386,8 +388,23 @@ func (m *NodeManager) findNodeDownloadInfos(cid string) ([]api.DownloadInfoResul
 			continue
 		}
 
-		// TODO: complete downloadInfo
-		infos = append(infos, api.DownloadInfoResult{URL: info.URL, Sign: []byte(""), SN: 0, SignTime: time.Now().Unix(), TimeOut: 60})
+		privateKey, err := m.getDeviccePrivateKey(deviceID, info)
+		if err != nil {
+			continue
+		}
+
+		sn, err := cache.GetDB().IncrBlockDownloadSN()
+		if err != nil {
+			continue
+		}
+
+		signTime := time.Now().Unix()
+		sign, err := rsaSign(privateKey, fmt.Sprintf("%s%d%d%d", cid, sn, signTime, blockDonwloadTimeout))
+		if err != nil {
+			continue
+		}
+
+		infos = append(infos, api.DownloadInfoResult{URL: info.URL, Sign: sign, SN: sn, SignTime: time.Now().Unix(), TimeOut: blockDonwloadTimeout})
 	}
 
 	if len(infos) <= 0 {
@@ -608,4 +625,23 @@ func (m *NodeManager) isDeviceExist(deviceID string, nodeType int) bool {
 	}
 
 	return true
+}
+
+func (m *NodeManager) getDeviccePrivateKey(deviceID string, authInfo *api.DownloadServerAccessAuth) (*rsa.PrivateKey, error) {
+	edge := m.getEdgeNode(deviceID)
+	if edge != nil {
+		return edge.privateKey, nil
+	}
+
+	candidate := m.getCandidateNode(deviceID)
+	if candidate != nil {
+		return candidate.privateKey, nil
+	}
+
+	privateKey, err := pem2PrivateKey(authInfo.PrivateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return privateKey, nil
 }

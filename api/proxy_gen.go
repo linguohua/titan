@@ -230,6 +230,8 @@ type SchedulerStruct struct {
 
 		GetDownloadInfosWithBlocks func(p0 context.Context, p1 []string) (map[string][]DownloadInfo, error) `perm:"read"`
 
+		GetExternalIP func(p0 context.Context) (string, error) `perm:"write"`
+
 		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
 
 		GetValidationInfo func(p0 context.Context) (ValidationInfo, error) `perm:"admin"`
@@ -903,6 +905,17 @@ func (s *SchedulerStruct) GetDownloadInfosWithBlocks(p0 context.Context, p1 []st
 
 func (s *SchedulerStub) GetDownloadInfosWithBlocks(p0 context.Context, p1 []string) (map[string][]DownloadInfo, error) {
 	return *new(map[string][]DownloadInfo), ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetExternalIP(p0 context.Context) (string, error) {
+	if s.Internal.GetExternalIP == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.GetExternalIP(p0)
+}
+
+func (s *SchedulerStub) GetExternalIP(p0 context.Context) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetOnlineDeviceIDs(p0 context.Context, p1 NodeTypeName) ([]string, error) {
