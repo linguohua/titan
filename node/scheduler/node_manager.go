@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"crypto/rsa"
-	"fmt"
 	"sync"
 	"time"
 
@@ -388,23 +387,7 @@ func (m *NodeManager) findNodeDownloadInfos(cid string) ([]api.DownloadInfoResul
 			continue
 		}
 
-		privateKey, err := m.getDeviccePrivateKey(deviceID, info)
-		if err != nil {
-			continue
-		}
-
-		sn, err := cache.GetDB().IncrBlockDownloadSN()
-		if err != nil {
-			continue
-		}
-
-		signTime := time.Now().Unix()
-		sign, err := rsaSign(privateKey, fmt.Sprintf("%s%d%d%d", cid, sn, signTime, blockDonwloadTimeout))
-		if err != nil {
-			continue
-		}
-
-		infos = append(infos, api.DownloadInfoResult{URL: info.URL, Sign: sign, SN: sn, SignTime: time.Now().Unix(), TimeOut: blockDonwloadTimeout, DeviceID: deviceID})
+		infos = append(infos, api.DownloadInfoResult{URL: info.URL, DeviceID: deviceID})
 	}
 
 	if len(infos) <= 0 {

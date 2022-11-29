@@ -29,6 +29,7 @@ type BlockInfo struct {
 	Fid int
 
 	From string
+	Sign []byte
 }
 
 type ReqCacheData struct {

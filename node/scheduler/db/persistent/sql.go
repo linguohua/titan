@@ -99,14 +99,14 @@ func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
 	_, err := sd.GetNodeInfo(deviceID)
 	if err != nil {
 		if sd.IsNilErr(err) {
-			_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address, server_name)
-                VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address, :server_name)`, info)
+			_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address, server_name,private_key, url)
+                VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address, :server_name,:private_key,:url)`, info)
 		}
 		return err
 	}
 
 	// update
-	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address,server_name=:server_name  WHERE device_id=:device_id`, info)
+	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address,server_name=:server_name,url=:url  WHERE device_id=:device_id`, info)
 
 	return err
 }
@@ -729,7 +729,7 @@ func (sd sqlDB) GetNodesFromCache(cacheID string) (int, error) {
 	return len(out), nil
 }
 
-func (sd sqlDB) AddDownloadInfo(deviceID string, info *api.BlockDownloadInfo) error {
+func (sd sqlDB) AddDownloadInfo(info *api.BlockDownloadInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (block_cid, device_id, block_size, speed, reward) 
 				VALUES (:block_cid, :device_id, :block_size, :speed, :reward)`, fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
@@ -742,8 +742,8 @@ func (sd sqlDB) AddDownloadInfo(deviceID string, info *api.BlockDownloadInfo) er
 	return nil
 }
 
-func (sd sqlDB) GetDownloadInfo(deviceID string) ([]*api.BlockDownloadInfo, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE device_id = ? and TO_DAYS(created_time) >= TO_DAYS(NOW()) ORDER BY created_time DESC`,
+func (sd sqlDB) GetDownloadInfoByDeviceID(deviceID string) ([]*api.BlockDownloadInfo, error) {
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE device_id = ? and created_time >= TO_DAYS(NOW()) ORDER BY created_time DESC`,
 		fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
 
 	var out []*api.BlockDownloadInfo
@@ -817,4 +817,15 @@ func (sd sqlDB) SetMessageInfo(infos []*MessageInfo) error {
 	}
 
 	return err
+}
+
+func (sd sqlDB) GetDownloadInfoBySN(sn int64) (*api.BlockDownloadInfo, error) {
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE sn = ?`, fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
+
+	var out *api.BlockDownloadInfo
+	if err := sd.cli.Select(&out, query, sn); err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
