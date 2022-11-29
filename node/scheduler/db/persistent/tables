@@ -138,3 +138,4 @@ CREATE TABLE `message_info_cn_gd_shenzhen` (
     PRIMARY KEY (`id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='message detailed info';
 
+

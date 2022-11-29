@@ -186,10 +186,10 @@ func (m *DataManager) makeDataTask(cid, hash string, reliability int, expiredTim
 		data.expiredTime = expiredTime
 	} else {
 		if reliability <= data.reliability {
-			return nil, xerrors.Errorf("reliability is enough:%d/%d", data.reliability, reliability)
+			return nil, xerrors.Errorf("reliability is enough:%d/%d ", data.reliability, reliability)
 		}
 		data.needReliability = reliability
-		// TODO expiredTime
+		data.expiredTime = expiredTime
 	}
 
 	// log.Warnf("askCacheData reliability:%d,data.needReliability:%d,data.reliability:%d", reliability, data.needReliability, data.reliability)
@@ -414,7 +414,7 @@ func (m *DataManager) doDataTasks() {
 		for i := 0; i < doLen; i++ {
 			err := m.doDataTask()
 			if err != nil {
-				log.Errorf("doDataTask er:%s", err.Error())
+				log.Errorf("doDataTask err:%s", err.Error())
 			}
 		}
 	}
@@ -482,6 +482,19 @@ func (m *DataManager) saveEvent(cid, cacheID, userID, msg string, event EventTyp
 }
 
 // replenish time
+// func (m *DataManager) replenishTimeToData(cid string, time int) error {
+// 	hash, err := helper.CIDString2HashString(cid)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	data := m.getData(hash)
+// 	if data == nil {
+// 		return xerrors.Errorf("%s:%s", ErrCidNotFind, hash)
+// 	}
+
+// 	return nil
+// }
 
 // stop
 func (m *DataManager) stopDataTask(cid string) error {
