@@ -52,6 +52,7 @@ type DB interface {
 	SetDeviceLatency(deviceID string, latency float64) error
 	SetBlockDownloadRecord(sn int64, cid string, userPublicKey string) error
 	GetBlockDownloadRecord(sn int64) (blockDownloadRecord, error)
+	IncrBlockDownloadSN() (int64, error)
 
 	IsNilErr(err error) bool
 }

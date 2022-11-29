@@ -290,7 +290,7 @@ func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*c
 	return result
 }
 
-func (locator *Locator) GetDownloadInfosWithBlocks(ctx context.Context, cids []string) (map[string][]api.DownloadInfo, error) {
+func (locator *Locator) GetDownloadInfosWithBlocks(ctx context.Context, reqs []api.DownloadInfoReq) (map[string][]api.DownloadInfoResult, error) {
 	ip := handler.GetRequestIP(ctx)
 	areaID := ""
 	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
@@ -312,13 +312,13 @@ func (locator *Locator) GetDownloadInfosWithBlocks(ctx context.Context, cids []s
 		schedulerAPI, ok = locator.getFirstOnlineSchedulerAPIAt(areaID)
 	}
 	if ok {
-		return schedulerAPI.GetDownloadInfosWithBlocks(ctx, cids)
+		return schedulerAPI.GetDownloadInfosWithBlocks(ctx, reqs)
 	}
 
-	return make(map[string][]api.DownloadInfo), nil
+	return make(map[string][]api.DownloadInfoResult), nil
 
 }
-func (locator *Locator) GetDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]api.DownloadInfo, error) {
+func (locator *Locator) GetDownloadInfoWithBlocks(ctx context.Context, reqs []api.DownloadInfoReq) (map[string]api.DownloadInfoResult, error) {
 	ip := handler.GetRequestIP(ctx)
 	areaID := ""
 	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
@@ -340,11 +340,11 @@ func (locator *Locator) GetDownloadInfoWithBlocks(ctx context.Context, cids []st
 		schedulerAPI, ok = locator.getFirstOnlineSchedulerAPIAt(areaID)
 	}
 	if ok {
-		return schedulerAPI.GetDownloadInfoWithBlocks(ctx, cids)
+		return schedulerAPI.GetDownloadInfoWithBlocks(ctx, reqs)
 	}
-	return make(map[string]api.DownloadInfo), nil
+	return make(map[string]api.DownloadInfoResult), nil
 }
-func (locator *Locator) GetDownloadInfoWithBlock(ctx context.Context, cid string) (api.DownloadInfo, error) {
+func (locator *Locator) GetDownloadInfoWithBlock(ctx context.Context, req api.DownloadInfoReq) (api.DownloadInfoResult, error) {
 	ip := handler.GetRequestIP(ctx)
 	areaID := ""
 	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
@@ -366,9 +366,9 @@ func (locator *Locator) GetDownloadInfoWithBlock(ctx context.Context, cid string
 		schedulerAPI, ok = locator.getFirstOnlineSchedulerAPIAt(areaID)
 	}
 	if ok {
-		return schedulerAPI.GetDownloadInfoWithBlock(ctx, cid)
+		return schedulerAPI.GetDownloadInfoWithBlock(ctx, req)
 	}
-	return api.DownloadInfo{}, nil
+	return api.DownloadInfoResult{}, nil
 }
 
 func (locator *Locator) newAuthTokenFromScheduler(schedulerAPI *schedulerAPI, securityKey string) (string, error) {

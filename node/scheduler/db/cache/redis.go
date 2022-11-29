@@ -35,8 +35,10 @@ const (
 	redisKeyValidateingList = "Titan:ValidateingList:%s"
 	// redisKeyNodeInfo  deviceID
 	redisKeyNodeInfo = "Titan:NodeInfo:%s"
-
+	// redisKeyBlockDownloadRecord serial number
 	redisKeyBlockDownloadRecord = "Titan:BlockDownloadRecord:%d"
+	// redisKeyBlockDownloadSN
+	redisKeyBlockDownloadSN = "Titan:BlockDownloadRecordSN"
 
 	// NodeInfo field
 	onlineTimeField             = "OnlineTime"
@@ -504,4 +506,15 @@ func (rd redisDB) GetBlockDownloadRecord(sn int64) (blockDownloadRecord, error) 
 	}
 
 	return record, nil
+}
+
+// node cache tag ++1
+func (rd redisDB) IncrBlockDownloadSN() (int64, error) {
+	n, err := rd.cli.IncrBy(context.Background(), redisKeyBlockDownloadSN, 1).Result()
+	return n, err
+}
+
+func (rd redisDB) ResetBlockDownloadSN() error {
+	_, err := rd.cli.Set(context.Background(), redisKeyBlockDownloadSN, 0, 0).Result()
+	return err
 }
