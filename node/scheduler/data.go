@@ -219,6 +219,12 @@ func (d *Data) cacheEnd(doneCache *Cache) {
 	defer func() {
 		if err != nil {
 			d.dataManager.dataTaskEnd(d.carfileCid, d.carfileHash, err.Error())
+
+			// change other cache expired time
+			err = persistent.GetDB().ChangeExpiredTimeWhitCaches(d.carfileHash, d.expiredTime)
+			if err != nil {
+				log.Errorf("ChangeExpiredTimeWhitCaches err:%s", err.Error())
+			}
 		}
 	}()
 

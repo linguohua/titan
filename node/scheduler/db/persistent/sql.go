@@ -35,7 +35,7 @@ var (
 
 // InitSQL init sql
 func InitSQL(url string) (DB, error) {
-	url = fmt.Sprintf("%s?parseTime=true", url)
+	url = fmt.Sprintf("%s?parseTime=true&loc=Local", url)
 
 	db := &sqlDB{url: url}
 	database, err := sqlx.Open("mysql", url)
@@ -472,6 +472,24 @@ func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []s
 	}
 
 	return
+}
+
+func (sd sqlDB) ChangeExpiredTimeWhitCaches(carfileHash string, time time.Time) error {
+	tx := sd.cli.MustBegin()
+
+	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=? AND TO_DAYS(expired_time) < TO_DAYS(?)`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+	tx.MustExec(cmd, time, carfileHash, time)
+
+	cmd = fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=?`, fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
+	tx.MustExec(cmd, time, carfileHash)
+
+	err := tx.Commit()
+	if err != nil {
+		err = tx.Rollback()
+		return err
+	}
+
+	return nil
 }
 
 func (sd sqlDB) GetExpiredCaches() ([]*CacheInfo, error) {
