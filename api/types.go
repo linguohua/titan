@@ -63,7 +63,9 @@ type DevicesInfo struct {
 	PkgLossRatio    float64  `json:"pkg_loss_ratio" form:"pkgLossRatio" gorm:"column:pkg_loss_ratio;comment:;" redis:"PkgLossRatio"`
 	Latency         float64  `json:"latency" form:"latency" gorm:"column:latency;comment:;" redis:"Latency"`
 	CpuUsage        float64  `json:"cpu_usage" form:"cpuUsage" gorm:"column:cpu_usage;comment:;" redis:"CpuUsage"`
+	CPUCores        int      `json:"cpu_cores" form:"cpuCores" gorm:"column:cpu_cores;comment:;" redis:"cpuCores"`
 	MemoryUsage     float64  `json:"memory_usage" form:"memoryUsage" gorm:"column:memory_usage;comment:;" redis:"MemoryUsage"`
+	Memory          float64  `json:"memory" form:"memory" gorm:"column:memory;comment:;" redis:"Memory"`
 	DiskUsage       float64  `json:"disk_usage" form:"diskUsage" gorm:"column:disk_usage;comment:;" redis:"DiskUsage"`
 	DiskSpace       float64  `json:"disk_space" form:"diskSpace" gorm:"column:disk_space;comment:;" redis:"DiskSpace"`
 	DiskType        string   `json:"disk_type" form:"diskType" gorm:"column:disk_type;comment:;" redis:"DiskType"`
