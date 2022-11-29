@@ -474,6 +474,18 @@ func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []s
 	return
 }
 
+func (sd sqlDB) GetExpiredCaches() ([]*CacheInfo, error) {
+	query := fmt.Sprintf(`SELECT carfile_hash,cache_id FROM %s WHERE TO_DAYS(expired_time) <= TO_DAYS(NOW())`,
+		fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+
+	var out []*CacheInfo
+	if err := sd.cli.Select(&out, query); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
 func (sd sqlDB) GetCachesWithData(hash string) ([]string, error) {
 	area := sd.ReplaceArea()
 
@@ -713,7 +725,7 @@ func (sd sqlDB) AddDownloadInfo(deviceID string, info *api.BlockDownloadInfo) er
 }
 
 func (sd sqlDB) GetDownloadInfo(deviceID string) ([]*api.BlockDownloadInfo, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE device_id = ? and created_time >= TO_DAYS(NOW()) ORDER BY created_time DESC`,
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE device_id = ? and TO_DAYS(created_time) >= TO_DAYS(NOW()) ORDER BY created_time DESC`,
 		fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
 
 	var out []*api.BlockDownloadInfo

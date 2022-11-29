@@ -296,12 +296,12 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 func (s *Scheduler) GetPublicKey(ctx context.Context) (string, error) {
 	deviceID := handler.GetDeviceID(ctx)
 
-	var edgeNode = s.nodeManager.getEdgeNode(deviceID)
+	edgeNode := s.nodeManager.getEdgeNode(deviceID)
 	if edgeNode != nil {
 		return privateKey2Pem(edgeNode.privateKey), nil
 	}
 
-	var candidateNode = s.nodeManager.getCandidateNode(deviceID)
+	candidateNode := s.nodeManager.getCandidateNode(deviceID)
 	if candidateNode != nil {
 		return privateKey2Pem(candidateNode.privateKey), nil
 	}
