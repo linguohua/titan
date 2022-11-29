@@ -154,6 +154,21 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
 
+	authInfo, _ := persistent.GetDB().GetNodeAuthInfo(deviceID)
+	var privateKey *rsa.PrivateKey
+	if authInfo != nil && len(authInfo.PrivateKey) > 0 {
+		privateKey, err = pem2PrivateKey(authInfo.PrivateKey)
+		if err != nil {
+			return err
+		}
+	} else {
+		key, err := generatePrivateKey(1024)
+		if err != nil {
+			return err
+		}
+		privateKey = key
+	}
+
 	deviceInfo.NodeType = api.NodeCandidate
 	deviceInfo.ExternalIp = ip
 
@@ -162,8 +177,10 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 		closer:  closer,
 
 		Node: Node{
-			addr:       rpcURL,
-			deviceInfo: deviceInfo,
+			addr:           rpcURL,
+			deviceInfo:     deviceInfo,
+			downloadSrvURL: downloadSrvURL,
+			privateKey:     privateKey,
 		},
 	}
 
@@ -226,10 +243,9 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 	}
 
 	authInfo, _ := persistent.GetDB().GetNodeAuthInfo(deviceID)
-	var privateKeyStr = authInfo.PrivateKey
 	var privateKey *rsa.PrivateKey
-	if len(privateKeyStr) > 0 {
-		privateKey, err = pem2PrivateKey(privateKeyStr)
+	if authInfo != nil && len(authInfo.PrivateKey) > 0 {
+		privateKey, err = pem2PrivateKey(authInfo.PrivateKey)
 		if err != nil {
 			return err
 		}
