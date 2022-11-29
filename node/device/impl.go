@@ -75,6 +75,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 
 	if vmStat != nil {
 		info.MemoryUsage = vmStat.UsedPercent
+		info.Memory = float64(vmStat.Total)
 	}
 
 	cpuPercent, err := cpu.Percent(0, false)
@@ -83,6 +84,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	}
 
 	info.CpuUsage = cpuPercent[0]
+	info.CPUCores, _ = cpu.Counts(false)
 
 	partitions, err := disk.Partitions(true)
 	if len(partitions) > 0 {
