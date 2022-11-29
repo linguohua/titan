@@ -44,12 +44,12 @@ type Scheduler interface {
 	GetPublicKey(ctx context.Context) (string, error)                                                             //perm:write
 
 	// call by user
-	GetDownloadInfosWithBlocks(ctx context.Context, reqs []DownloadInfoReq) (map[string][]DownloadInfoResult, error) //perm:read
-	GetDownloadInfoWithBlocks(ctx context.Context, reqs []DownloadInfoReq) (map[string]DownloadInfoResult, error)    //perm:read
-	GetDownloadInfoWithBlock(ctx context.Context, req DownloadInfoReq) (DownloadInfoResult, error)                   //perm:read
-	GetDevicesInfo(ctx context.Context, deviceID string) (DevicesInfo, error)                                        //perm:read
-	StateNetwork(ctx context.Context) (StateNetwork, error)                                                          //perm:read
-	GetDownloadInfo(ctx context.Context, deviceID string) ([]*BlockDownloadInfo, error)                              //perm:read
+	GetDownloadInfosWithBlocks(ctx context.Context, cids []string, publicKey string) (map[string][]DownloadInfoResult, error) //perm:read
+	GetDownloadInfoWithBlocks(ctx context.Context, cids []string, publicKey string) (map[string]DownloadInfoResult, error)    //perm:read
+	GetDownloadInfoWithBlock(ctx context.Context, cid, publicKey string) (DownloadInfoResult, error)                          //perm:read
+	GetDevicesInfo(ctx context.Context, deviceID string) (DevicesInfo, error)                                                 //perm:read
+	StateNetwork(ctx context.Context) (StateNetwork, error)                                                                   //perm:read
+	GetDownloadInfo(ctx context.Context, deviceID string) ([]*BlockDownloadInfo, error)                                       //perm:read
 
 	// user send result when user download block complete
 	UserDownloadBlockResults(ctx context.Context, results []UserBlockDownloadResult) error //perm:read
@@ -167,15 +167,11 @@ type UserBlockDownloadResult struct {
 	Result bool
 }
 
-type DownloadInfoReq struct {
-	Cid       string
-	PublicKey string
-}
-
 type DownloadInfoResult struct {
 	URL      string
 	Sign     []byte
 	SN       int64
 	SignTime int64
 	TimeOut  int
+	DeviceID string `json:"-"`
 }
