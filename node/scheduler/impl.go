@@ -607,54 +607,54 @@ func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids
 }
 
 // GetDownloadInfosWithBlocks find node
-func (s *Scheduler) GetDownloadInfosWithBlocks(ctx context.Context, reqs []api.DownloadInfoReq) (map[string][]api.DownloadInfoResult, error) {
-	if len(reqs) < 1 {
+func (s *Scheduler) GetDownloadInfosWithBlocks(ctx context.Context, cids []string, publicKey string) (map[string][]api.DownloadInfoResult, error) {
+	if len(cids) < 1 {
 		return nil, xerrors.New("cids is nil")
 	}
 
 	infoMap := make(map[string][]api.DownloadInfoResult)
 
-	for _, req := range reqs {
-		infos, err := s.nodeManager.findNodeDownloadInfos(req.Cid)
+	for _, cid := range cids {
+		infos, err := s.nodeManager.findNodeDownloadInfos(cid)
 		if err != nil {
 			continue
 		}
 
-		infoMap[req.Cid] = infos
+		infoMap[cid] = infos
 	}
 
 	return infoMap, nil
 }
 
 // GetDownloadInfoWithBlocks find node
-func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, reqs []api.DownloadInfoReq) (map[string]api.DownloadInfoResult, error) {
-	if len(reqs) < 1 {
+func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string, publicKey string) (map[string]api.DownloadInfoResult, error) {
+	if len(cids) < 1 {
 		return nil, xerrors.New("cids is nil")
 	}
 
 	infoMap := make(map[string]api.DownloadInfoResult)
 
-	for _, req := range reqs {
-		infos, err := s.nodeManager.findNodeDownloadInfos(req.Cid)
+	for _, cid := range cids {
+		infos, err := s.nodeManager.findNodeDownloadInfos(cid)
 		if err != nil {
 			continue
 		}
 
 		info := infos[randomNum(0, len(infos))]
 
-		infoMap[req.Cid] = info
+		infoMap[cid] = info
 	}
 
 	return infoMap, nil
 }
 
 // GetDownloadInfoWithBlock find node
-func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, req api.DownloadInfoReq) (api.DownloadInfoResult, error) {
-	if req.Cid == "" {
+func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, publicKey string) (api.DownloadInfoResult, error) {
+	if cid == "" {
 		return api.DownloadInfoResult{}, xerrors.New("cids is nil")
 	}
 
-	infos, err := s.nodeManager.findNodeDownloadInfos(req.Cid)
+	infos, err := s.nodeManager.findNodeDownloadInfos(cid)
 	if err != nil {
 		return api.DownloadInfoResult{}, err
 	}
@@ -981,6 +981,6 @@ func (s *Scheduler) verifyUserDownloadBlockSign(publicPem, cid string, sign []by
 	return verifyRsaSign(publicKey, sign, cid)
 }
 
-func (s *Scheduler) recordBlockDownload() {
-
+func (s *Scheduler) recordBlockDownload(cid string, downloadInfo api.DownloadInfoResult) {
+	persistent.GetDB().AddDownloadInfo(downloadInfo.DeviceID, &api.BlockDownloadInfo{})
 }

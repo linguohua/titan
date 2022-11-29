@@ -404,7 +404,7 @@ func (m *NodeManager) findNodeDownloadInfos(cid string) ([]api.DownloadInfoResul
 			continue
 		}
 
-		infos = append(infos, api.DownloadInfoResult{URL: info.URL, Sign: sign, SN: sn, SignTime: time.Now().Unix(), TimeOut: blockDonwloadTimeout})
+		infos = append(infos, api.DownloadInfoResult{URL: info.URL, Sign: sign, SN: sn, SignTime: time.Now().Unix(), TimeOut: blockDonwloadTimeout, DeviceID: deviceID})
 	}
 
 	if len(infos) <= 0 {

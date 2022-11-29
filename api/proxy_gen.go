@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
+
 )
 
 
@@ -213,11 +214,11 @@ type LocatorStruct struct {
 
 		GetAccessPoints func(p0 context.Context, p1 string, p2 string) ([]SchedulerAuth, error) `perm:"read"`
 
-		GetDownloadInfoWithBlock func(p0 context.Context, p1 DownloadInfoReq) (DownloadInfoResult, error) `perm:"read"`
+		GetDownloadInfoWithBlock func(p0 context.Context, p1 string, p2 string) (DownloadInfoResult, error) `perm:"read"`
 
-		GetDownloadInfoWithBlocks func(p0 context.Context, p1 []DownloadInfoReq) (map[string]DownloadInfoResult, error) `perm:"read"`
+		GetDownloadInfoWithBlocks func(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfoResult, error) `perm:"read"`
 
-		GetDownloadInfosWithBlocks func(p0 context.Context, p1 []DownloadInfoReq) (map[string][]DownloadInfoResult, error) `perm:"read"`
+		GetDownloadInfosWithBlocks func(p0 context.Context, p1 []string, p2 string) (map[string][]DownloadInfoResult, error) `perm:"read"`
 
 		ListAccessPoints func(p0 context.Context) ([]string, error) `perm:"admin"`
 
@@ -262,11 +263,11 @@ type SchedulerStruct struct {
 
 		GetDownloadInfo func(p0 context.Context, p1 string) ([]*BlockDownloadInfo, error) `perm:"read"`
 
-		GetDownloadInfoWithBlock func(p0 context.Context, p1 DownloadInfoReq) (DownloadInfoResult, error) `perm:"read"`
+		GetDownloadInfoWithBlock func(p0 context.Context, p1 string, p2 string) (DownloadInfoResult, error) `perm:"read"`
 
-		GetDownloadInfoWithBlocks func(p0 context.Context, p1 []DownloadInfoReq) (map[string]DownloadInfoResult, error) `perm:"read"`
+		GetDownloadInfoWithBlocks func(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfoResult, error) `perm:"read"`
 
-		GetDownloadInfosWithBlocks func(p0 context.Context, p1 []DownloadInfoReq) (map[string][]DownloadInfoResult, error) `perm:"read"`
+		GetDownloadInfosWithBlocks func(p0 context.Context, p1 []string, p2 string) (map[string][]DownloadInfoResult, error) `perm:"read"`
 
 		GetExternalIP func(p0 context.Context) (string, error) `perm:"write"`
 
@@ -772,36 +773,36 @@ func (s *LocatorStub) GetAccessPoints(p0 context.Context, p1 string, p2 string) 
 	return *new([]SchedulerAuth), ErrNotSupported
 }
 
-func (s *LocatorStruct) GetDownloadInfoWithBlock(p0 context.Context, p1 DownloadInfoReq) (DownloadInfoResult, error) {
+func (s *LocatorStruct) GetDownloadInfoWithBlock(p0 context.Context, p1 string, p2 string) (DownloadInfoResult, error) {
 	if s.Internal.GetDownloadInfoWithBlock == nil {
 		return *new(DownloadInfoResult), ErrNotSupported
 	}
-	return s.Internal.GetDownloadInfoWithBlock(p0, p1)
+	return s.Internal.GetDownloadInfoWithBlock(p0, p1, p2)
 }
 
-func (s *LocatorStub) GetDownloadInfoWithBlock(p0 context.Context, p1 DownloadInfoReq) (DownloadInfoResult, error) {
+func (s *LocatorStub) GetDownloadInfoWithBlock(p0 context.Context, p1 string, p2 string) (DownloadInfoResult, error) {
 	return *new(DownloadInfoResult), ErrNotSupported
 }
 
-func (s *LocatorStruct) GetDownloadInfoWithBlocks(p0 context.Context, p1 []DownloadInfoReq) (map[string]DownloadInfoResult, error) {
+func (s *LocatorStruct) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfoResult, error) {
 	if s.Internal.GetDownloadInfoWithBlocks == nil {
 		return *new(map[string]DownloadInfoResult), ErrNotSupported
 	}
-	return s.Internal.GetDownloadInfoWithBlocks(p0, p1)
+	return s.Internal.GetDownloadInfoWithBlocks(p0, p1, p2)
 }
 
-func (s *LocatorStub) GetDownloadInfoWithBlocks(p0 context.Context, p1 []DownloadInfoReq) (map[string]DownloadInfoResult, error) {
+func (s *LocatorStub) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfoResult, error) {
 	return *new(map[string]DownloadInfoResult), ErrNotSupported
 }
 
-func (s *LocatorStruct) GetDownloadInfosWithBlocks(p0 context.Context, p1 []DownloadInfoReq) (map[string][]DownloadInfoResult, error) {
+func (s *LocatorStruct) GetDownloadInfosWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string][]DownloadInfoResult, error) {
 	if s.Internal.GetDownloadInfosWithBlocks == nil {
 		return *new(map[string][]DownloadInfoResult), ErrNotSupported
 	}
-	return s.Internal.GetDownloadInfosWithBlocks(p0, p1)
+	return s.Internal.GetDownloadInfosWithBlocks(p0, p1, p2)
 }
 
-func (s *LocatorStub) GetDownloadInfosWithBlocks(p0 context.Context, p1 []DownloadInfoReq) (map[string][]DownloadInfoResult, error) {
+func (s *LocatorStub) GetDownloadInfosWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string][]DownloadInfoResult, error) {
 	return *new(map[string][]DownloadInfoResult), ErrNotSupported
 }
 
@@ -951,36 +952,36 @@ func (s *SchedulerStub) GetDownloadInfo(p0 context.Context, p1 string) ([]*Block
 	return *new([]*BlockDownloadInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetDownloadInfoWithBlock(p0 context.Context, p1 DownloadInfoReq) (DownloadInfoResult, error) {
+func (s *SchedulerStruct) GetDownloadInfoWithBlock(p0 context.Context, p1 string, p2 string) (DownloadInfoResult, error) {
 	if s.Internal.GetDownloadInfoWithBlock == nil {
 		return *new(DownloadInfoResult), ErrNotSupported
 	}
-	return s.Internal.GetDownloadInfoWithBlock(p0, p1)
+	return s.Internal.GetDownloadInfoWithBlock(p0, p1, p2)
 }
 
-func (s *SchedulerStub) GetDownloadInfoWithBlock(p0 context.Context, p1 DownloadInfoReq) (DownloadInfoResult, error) {
+func (s *SchedulerStub) GetDownloadInfoWithBlock(p0 context.Context, p1 string, p2 string) (DownloadInfoResult, error) {
 	return *new(DownloadInfoResult), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetDownloadInfoWithBlocks(p0 context.Context, p1 []DownloadInfoReq) (map[string]DownloadInfoResult, error) {
+func (s *SchedulerStruct) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfoResult, error) {
 	if s.Internal.GetDownloadInfoWithBlocks == nil {
 		return *new(map[string]DownloadInfoResult), ErrNotSupported
 	}
-	return s.Internal.GetDownloadInfoWithBlocks(p0, p1)
+	return s.Internal.GetDownloadInfoWithBlocks(p0, p1, p2)
 }
 
-func (s *SchedulerStub) GetDownloadInfoWithBlocks(p0 context.Context, p1 []DownloadInfoReq) (map[string]DownloadInfoResult, error) {
+func (s *SchedulerStub) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfoResult, error) {
 	return *new(map[string]DownloadInfoResult), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetDownloadInfosWithBlocks(p0 context.Context, p1 []DownloadInfoReq) (map[string][]DownloadInfoResult, error) {
+func (s *SchedulerStruct) GetDownloadInfosWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string][]DownloadInfoResult, error) {
 	if s.Internal.GetDownloadInfosWithBlocks == nil {
 		return *new(map[string][]DownloadInfoResult), ErrNotSupported
 	}
-	return s.Internal.GetDownloadInfosWithBlocks(p0, p1)
+	return s.Internal.GetDownloadInfosWithBlocks(p0, p1, p2)
 }
 
-func (s *SchedulerStub) GetDownloadInfosWithBlocks(p0 context.Context, p1 []DownloadInfoReq) (map[string][]DownloadInfoResult, error) {
+func (s *SchedulerStub) GetDownloadInfosWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string][]DownloadInfoResult, error) {
 	return *new(map[string][]DownloadInfoResult), ErrNotSupported
 }
 

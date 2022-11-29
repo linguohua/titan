@@ -708,13 +708,7 @@ var getDownloadInfoCmd = &cli.Command{
 			}
 		}
 
-		var reqs []api.DownloadInfoReq
-		for _, cid := range cidList {
-			req := api.DownloadInfoReq{Cid: cid}
-			reqs = append(reqs, req)
-		}
-
-		data, err := schedulerAPI.GetDownloadInfoWithBlocks(ctx, reqs)
+		data, err := schedulerAPI.GetDownloadInfoWithBlocks(ctx, cidList, "")
 		if err != nil {
 			return err
 		}
