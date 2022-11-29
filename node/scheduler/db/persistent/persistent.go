@@ -61,8 +61,9 @@ type DB interface {
 	GetRegisterInfo(deviceID string) (*api.NodeRegisterInfo, error)
 
 	// AddDownloadInfo user download block information
-	AddDownloadInfo(deviceID string, info *api.BlockDownloadInfo) error
-	GetDownloadInfo(deviceID string) ([]*api.BlockDownloadInfo, error)
+	AddDownloadInfo(info *api.BlockDownloadInfo) error
+	GetDownloadInfoByDeviceID(deviceID string) ([]*api.BlockDownloadInfo, error)
+	GetDownloadInfoBySN(sn int64) (*api.BlockDownloadInfo, error)
 
 	SetEventInfo(info *api.EventInfo) error
 	GetEventInfos(page int) (count int, totalPage int, out []api.EventInfo, err error)

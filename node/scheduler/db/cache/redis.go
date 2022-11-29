@@ -486,9 +486,8 @@ func (rd redisDB) GetDeviceStat() (out api.StateNetwork, err error) {
 	return
 }
 
-func (rd redisDB) SetBlockDownloadRecord(sn int64, cid string, userPublicKey string) error {
-	key := fmt.Sprintf(redisKeyBlockDownloadRecord, sn)
-	record := blockDownloadRecord{Cid: cid, UserPublicKey: userPublicKey}
+func (rd redisDB) SetDownloadBlockRecord(record DownloadBlockRecord) error {
+	key := fmt.Sprintf(redisKeyBlockDownloadRecord, record.SN)
 	_, err := rd.cli.HMSet(context.Background(), key, structs.Map(record)).Result()
 	if err != nil {
 		return err
@@ -496,13 +495,13 @@ func (rd redisDB) SetBlockDownloadRecord(sn int64, cid string, userPublicKey str
 	return nil
 }
 
-func (rd redisDB) GetBlockDownloadRecord(sn int64) (blockDownloadRecord, error) {
+func (rd redisDB) GetDownloadBlockRecord(sn int64) (DownloadBlockRecord, error) {
 	key := fmt.Sprintf(redisKeyBlockDownloadRecord, sn)
 
-	var record blockDownloadRecord
+	var record DownloadBlockRecord
 	err := rd.cli.HGetAll(context.Background(), key).Scan(&record)
 	if err != nil {
-		return blockDownloadRecord{}, err
+		return DownloadBlockRecord{}, err
 	}
 
 	return record, nil
