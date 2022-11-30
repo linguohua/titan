@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"io"
@@ -51,17 +52,28 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 	appName := r.Header.Get("App-Name")
 	// sign := r.Header.Get("Sign")
 	cidStr := r.URL.Query().Get("cid")
-	sign := r.URL.Query().Get("sign")
+	signStr := r.URL.Query().Get("sign")
 	snStr := r.URL.Query().Get("sn")
 	signTime := r.URL.Query().Get("signTime")
 	timeout := r.URL.Query().Get("timeout")
 
-	log.Infof("GetBlock, App-Name:%s, sign:%s, sn:%d  cid:%s", appName, sign, snStr, cidStr)
+	log.Infof("GetBlock, App-Name:%s, sign:%s, sn:%d  cid:%s", appName, signStr, snStr, cidStr)
 
 	sn, err := strconv.ParseInt(snStr, 10, 64)
 	if err != nil {
 		log.Errorf("Parser param sn(%s) error:%s", sn, err.Error())
 		http.Error(w, fmt.Sprintf("Parser param sn(%s) error:%s", snStr, err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	sign, err := hex.DecodeString(signStr)
+	if err != nil {
+		log.Errorf("DecodeString (%s) error:%s", signStr, err.Error())
+		http.Error(w, fmt.Sprintf("DecodeString sign(%s) error:%s", signStr, err.Error()), http.StatusBadRequest)
+		return
+	}
+	if bd.publicKey == nil {
+		log.Errorf("bd.publicKey == nil ")
 		return
 	}
 
@@ -75,7 +87,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 	}
 	hashSum := hash.Sum(nil)
 
-	_, err = verifyRsaSign(bd.publicKey, []byte(sign), hashSum)
+	_, err = verifyRsaSign(bd.publicKey, sign, hashSum)
 	if err != nil {
 		log.Errorf("Verify sign cid:%s, sign:%s,sn:%s,signTime:%s, timeout:%s, error:%s,", cidStr, sign, snStr, signTime, timeout, err.Error())
 		http.Error(w, fmt.Sprintf("Write content %s to hash error:%s", content, err.Error()), http.StatusBadRequest)
@@ -220,16 +232,16 @@ func pem2PublicKey(publicKeyStr string) (*rsa.PublicKey, error) {
 		return nil, fmt.Errorf("failed to decode public key")
 	}
 
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	pub, err := x509.ParsePKCS1PublicKey(block.Bytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse public key")
 	}
 
-	return pub.(*rsa.PublicKey), nil
+	return pub, nil
 }
 
 func verifyRsaSign(publicKey *rsa.PublicKey, sign []byte, digest []byte) (bool, error) {
-	err := rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, []byte(digest), sign)
+	err := rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, digest, sign)
 	if err != nil {
 		fmt.Println("could not verify signature: ", err)
 		return false, err

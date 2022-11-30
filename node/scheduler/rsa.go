@@ -49,12 +49,12 @@ func pem2PublicKey(publicKeyStr string) (*rsa.PublicKey, error) {
 		return nil, fmt.Errorf("failed to decode public key")
 	}
 
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	pub, err := x509.ParsePKCS1PublicKey(block.Bytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse public key")
 	}
 
-	return pub.(*rsa.PublicKey), nil
+	return pub, nil
 }
 
 func pem2PrivateKey(privateKeyStr string) (*rsa.PrivateKey, error) {
@@ -86,4 +86,21 @@ func privateKey2Pem(privateKey *rsa.PrivateKey) string {
 	)
 
 	return string(privateKeyBytes)
+}
+
+func publicKey2Pem(publicKey *rsa.PublicKey) string {
+	if publicKey == nil {
+		return ""
+	}
+
+	public := x509.MarshalPKCS1PublicKey(publicKey)
+
+	publicKeyBytes := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "RSA PUBLIC KEY",
+			Bytes: public,
+		},
+	)
+
+	return string(publicKeyBytes)
 }
