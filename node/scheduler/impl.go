@@ -299,12 +299,12 @@ func (s *Scheduler) GetPublicKey(ctx context.Context) (string, error) {
 
 	edgeNode := s.nodeManager.getEdgeNode(deviceID)
 	if edgeNode != nil {
-		return privateKey2Pem(edgeNode.privateKey), nil
+		return publicKey2Pem(&edgeNode.privateKey.PublicKey), nil
 	}
 
 	candidateNode := s.nodeManager.getCandidateNode(deviceID)
 	if candidateNode != nil {
-		return privateKey2Pem(candidateNode.privateKey), nil
+		return publicKey2Pem(&candidateNode.privateKey.PublicKey), nil
 	}
 
 	return "", fmt.Errorf("Can not get node %s publicKey", deviceID)

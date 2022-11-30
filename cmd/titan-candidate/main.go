@@ -423,7 +423,10 @@ var runCmd = &cli.Command{
 							cancel()
 							return
 						}
-						candidate.LoadPublicKey()
+						err = candidate.LoadPublicKey()
+						if err != nil {
+							log.Errorf("LoadPublicKey error:%s", err.Error())
+						}
 
 						log.Info("Worker registered successfully, waiting for tasks")
 						errCount = 0

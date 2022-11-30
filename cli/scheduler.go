@@ -1,6 +1,10 @@
 package cli
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"sort"
 	"strings"
@@ -794,7 +798,10 @@ var getDownloadInfoCmd = &cli.Command{
 			}
 		}
 
-		data, err := schedulerAPI.GetDownloadInfoWithBlocks(ctx, cidList, "")
+		privateKey, _ := generatePrivateKey(1024)
+		publicKey := publicKey2Pem(&privateKey.PublicKey)
+
+		data, err := schedulerAPI.GetDownloadInfoWithBlocks(ctx, cidList, publicKey)
 		if err != nil {
 			return err
 		}
@@ -803,6 +810,32 @@ var getDownloadInfoCmd = &cli.Command{
 
 		return nil
 	},
+}
+
+func generatePrivateKey(bits int) (*rsa.PrivateKey, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, bits)
+	if err != nil {
+		return nil, err
+	}
+
+	return privateKey, nil
+}
+
+func publicKey2Pem(publicKey *rsa.PublicKey) string {
+	if publicKey == nil {
+		return ""
+	}
+
+	public := x509.MarshalPKCS1PublicKey(publicKey)
+
+	publicKeyBytes := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "RSA PUBLIC KEY",
+			Bytes: public,
+		},
+	)
+
+	return string(publicKeyBytes)
 }
 
 // var deleteBlocksCmd = &cli.Command{
