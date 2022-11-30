@@ -8,6 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
+	"time"
+
 )
 
 
@@ -293,6 +295,10 @@ type SchedulerStruct struct {
 		RemoveCache func(p0 context.Context, p1 string, p2 string) (error) `perm:"admin"`
 
 		RemoveCarfile func(p0 context.Context, p1 string) (error) `perm:"admin"`
+
+		ReplenishCacheExpiredTime func(p0 context.Context, p1 string, p2 string, p3 int) (error) `perm:"admin"`
+
+		ResetCacheExpiredTime func(p0 context.Context, p1 string, p2 string, p3 time.Time) (error) `perm:"admin"`
 
 		ShowDataTask func(p0 context.Context, p1 string) (CacheDataInfo, error) `perm:"read"`
 
@@ -1124,6 +1130,28 @@ func (s *SchedulerStruct) RemoveCarfile(p0 context.Context, p1 string) (error) {
 }
 
 func (s *SchedulerStub) RemoveCarfile(p0 context.Context, p1 string) (error) {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) ReplenishCacheExpiredTime(p0 context.Context, p1 string, p2 string, p3 int) (error) {
+	if s.Internal.ReplenishCacheExpiredTime == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ReplenishCacheExpiredTime(p0, p1, p2, p3)
+}
+
+func (s *SchedulerStub) ReplenishCacheExpiredTime(p0 context.Context, p1 string, p2 string, p3 int) (error) {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) ResetCacheExpiredTime(p0 context.Context, p1 string, p2 string, p3 time.Time) (error) {
+	if s.Internal.ResetCacheExpiredTime == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ResetCacheExpiredTime(p0, p1, p2, p3)
+}
+
+func (s *SchedulerStub) ResetCacheExpiredTime(p0 context.Context, p1 string, p2 string, p3 time.Time) (error) {
 	return ErrNotSupported
 }
 

@@ -474,14 +474,21 @@ func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []s
 	return
 }
 
-func (sd sqlDB) ChangeExpiredTimeWhitCaches(carfileHash string, time time.Time) error {
+func (sd sqlDB) ChangeExpiredTimeWhitCaches(carfileHash, cacheID string, expiredTime time.Time) error {
 	tx := sd.cli.MustBegin()
 
-	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=? AND TO_DAYS(expired_time) < TO_DAYS(?)`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
-	tx.MustExec(cmd, time, carfileHash, time)
+	if cacheID == "" {
+		// cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+		cmd := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+		tx.MustExec(cmd, expiredTime, carfileHash)
+	} else {
+		// cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=? AND cache_id=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+		cmd := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=? AND cache_id=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+		tx.MustExec(cmd, expiredTime, carfileHash, cacheID)
+	}
 
-	cmd = fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=?`, fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
-	tx.MustExec(cmd, time, carfileHash)
+	// cmdData := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=?`, fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
+	// tx.MustExec(cmdData, time, carfileHash)
 
 	err := tx.Commit()
 	if err != nil {

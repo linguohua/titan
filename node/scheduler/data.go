@@ -221,10 +221,10 @@ func (d *Data) cacheEnd(doneCache *Cache) {
 			d.dataManager.dataTaskEnd(d.carfileCid, d.carfileHash, err.Error())
 
 			// change other cache expired time
-			err = persistent.GetDB().ChangeExpiredTimeWhitCaches(d.carfileHash, d.expiredTime)
-			if err != nil {
-				log.Errorf("ChangeExpiredTimeWhitCaches err:%s", err.Error())
-			}
+			// err = persistent.GetDB().ChangeExpiredTimeWhitCaches(d.carfileHash, doneCache.cacheID, d.expiredTime)
+			// if err != nil {
+			// 	log.Errorf("ChangeExpiredTimeWhitCaches err:%s", err.Error())
+			// }
 		}
 	}()
 

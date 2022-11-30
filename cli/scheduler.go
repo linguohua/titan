@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/filecoin-project/go-jsonrpc/auth"
@@ -34,6 +35,8 @@ var SchedulerCmds = []*cli.Command{
 	showDatasInfoCmd,
 	nodeTokenCmd,
 	listEventCmd,
+	resetCacheExpiredTimeCmd,
+	replenishCacheExpiredTimeCmd,
 }
 
 var (
@@ -108,7 +111,90 @@ var (
 		Usage: "the cache expired time (unit:hour)",
 		Value: 0,
 	}
+
+	dateFlag = &cli.StringFlag{
+		Name:  "date-time",
+		Usage: "date time",
+		Value: "",
+	}
 )
+
+var resetCacheExpiredTimeCmd = &cli.Command{
+	Name:  "reset-cache-expired",
+	Usage: "reset cache expired time",
+	Flags: []cli.Flag{
+		cidFlag,
+		cacheIDFlag,
+		dateFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		cardileCid := cctx.String("cid")
+		cacheID := cctx.String("cache-id")
+		dateTime := cctx.String("date-time")
+
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		time, err := time.ParseInLocation("2006-1-2 15:04:05", dateTime, time.Local)
+		if err != nil {
+			return xerrors.Errorf("date time err:%s", err.Error())
+		}
+
+		err = schedulerAPI.ResetCacheExpiredTime(ctx, cardileCid, cacheID, time)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
+}
+
+var replenishCacheExpiredTimeCmd = &cli.Command{
+	Name:  "replenish-cache-expired",
+	Usage: "replenish cache expired time",
+	Flags: []cli.Flag{
+		cidFlag,
+		cacheIDFlag,
+		expiredTimeFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		cardileCid := cctx.String("cid")
+		cacheID := cctx.String("cache-id")
+		hour := cctx.Int("expired-time")
+
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		if hour <= 0 {
+			return xerrors.Errorf("expired time err:%d", hour)
+		}
+
+		err = schedulerAPI.ReplenishCacheExpiredTime(ctx, cardileCid, cacheID, hour)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
+}
 
 var nodeTokenCmd = &cli.Command{
 	Name:  "get-node-token",
