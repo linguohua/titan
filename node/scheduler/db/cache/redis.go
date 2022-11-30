@@ -504,6 +504,7 @@ func (rd redisDB) GetDownloadBlockRecord(sn int64) (DownloadBlockRecord, error) 
 		return DownloadBlockRecord{}, err
 	}
 
+	record.SN = sn
 	return record, nil
 }
 
