@@ -538,3 +538,21 @@ func (c *Cache) setCacheMessageInfo() {
 		log.Errorf("cache:%s setCacheMessage SetMessageInfo err:%s", c.cacheID, err.Error())
 	}
 }
+
+func (c *Cache) replenishExpiredTime(hour int) {
+	c.expiredTime = c.expiredTime.Add((time.Duration(hour) * time.Hour))
+
+	err := persistent.GetDB().ChangeExpiredTimeWhitCaches(c.carfileHash, c.cacheID, c.expiredTime)
+	if err != nil {
+		log.Errorf("ChangeExpiredTimeWhitCaches err:%s", err.Error())
+	}
+}
+
+func (c *Cache) resetExpiredTime(expiredTime time.Time) {
+	c.expiredTime = expiredTime
+
+	err := persistent.GetDB().ChangeExpiredTimeWhitCaches(c.carfileHash, c.cacheID, c.expiredTime)
+	if err != nil {
+		log.Errorf("ChangeExpiredTimeWhitCaches err:%s", err.Error())
+	}
+}

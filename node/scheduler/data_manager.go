@@ -186,7 +186,7 @@ func (m *DataManager) makeDataTask(cid, hash string, reliability int, expiredTim
 		data.expiredTime = expiredTime
 	} else {
 		if reliability <= data.reliability {
-			return nil, xerrors.Errorf("reliability is enough:%d/%d ", data.reliability, reliability)
+			return nil, xerrors.Errorf("reliable enough :%d/%d ", data.reliability, reliability)
 		}
 		data.needReliability = reliability
 		data.expiredTime = expiredTime
@@ -247,6 +247,8 @@ func (m *DataManager) cacheData(cid string, reliability int, expiredTime int) er
 	if err != nil {
 		return xerrors.Errorf("%s cid to hash err:", cid, err.Error())
 	}
+
+	// TODO check reliability expiredTime
 
 	t := time.Now().Add(time.Duration(expiredTime) * time.Hour)
 
@@ -482,19 +484,72 @@ func (m *DataManager) saveEvent(cid, cacheID, userID, msg string, event EventTyp
 }
 
 // replenish time
-// func (m *DataManager) replenishTimeToData(cid string, time int) error {
-// 	hash, err := helper.CIDString2HashString(cid)
-// 	if err != nil {
-// 		return err
-// 	}
+func (m *DataManager) replenishExpiredTimeToData(cid, cacheID string, hour int) error {
+	hash, err := helper.CIDString2HashString(cid)
+	if err != nil {
+		return err
+	}
 
-// 	data := m.getData(hash)
-// 	if data == nil {
-// 		return xerrors.Errorf("%s:%s", ErrCidNotFind, hash)
-// 	}
+	data := m.getData(hash)
+	if data == nil {
+		return xerrors.Errorf("%s:%s", ErrCidNotFind, hash)
+	}
 
-// 	return nil
-// }
+	if cacheID != "" {
+		cI, ok := data.cacheMap.Load(cacheID)
+		if ok && cI != nil {
+			cache := cI.(*Cache)
+			cache.replenishExpiredTime(hour)
+		}
+	} else {
+		data.cacheMap.Range(func(key, value interface{}) bool {
+			if value != nil {
+				cache := value.(*Cache)
+				if cache != nil {
+					cache.replenishExpiredTime(hour)
+				}
+			}
+
+			return true
+		})
+	}
+
+	return nil
+}
+
+// reset expired time
+func (m *DataManager) resetExpiredTime(cid, cacheID string, expiredTime time.Time) error {
+	hash, err := helper.CIDString2HashString(cid)
+	if err != nil {
+		return err
+	}
+
+	data := m.getData(hash)
+	if data == nil {
+		return xerrors.Errorf("%s:%s", ErrCidNotFind, hash)
+	}
+
+	if cacheID != "" {
+		cI, ok := data.cacheMap.Load(cacheID)
+		if ok && cI != nil {
+			cache := cI.(*Cache)
+			cache.resetExpiredTime(expiredTime)
+		}
+	} else {
+		data.cacheMap.Range(func(key, value interface{}) bool {
+			if value != nil {
+				cache := value.(*Cache)
+				if cache != nil {
+					cache.resetExpiredTime(expiredTime)
+				}
+			}
+
+			return true
+		})
+	}
+
+	return nil
+}
 
 // stop
 func (m *DataManager) stopDataTask(cid string) error {

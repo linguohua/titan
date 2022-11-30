@@ -293,6 +293,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 	return nil
 }
 
+// GetPublicKey get node Public Key
 func (s *Scheduler) GetPublicKey(ctx context.Context) (string, error) {
 	deviceID := handler.GetDeviceID(ctx)
 
@@ -309,6 +310,7 @@ func (s *Scheduler) GetPublicKey(ctx context.Context) (string, error) {
 	return "", fmt.Errorf("Can not get node %s publicKey", deviceID)
 }
 
+// GetExternalIP get node External IP
 func (s *Scheduler) GetExternalIP(ctx context.Context) (string, error) {
 	return handler.GetRequestIP(ctx), nil
 }
@@ -332,7 +334,7 @@ func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api
 	return err
 }
 
-// DownloadBlockResult node result for user download block
+// NodeDownloadBlockResult node result for user download block
 func (s *Scheduler) NodeDownloadBlockResult(ctx context.Context, result api.NodeBlockDownloadResult) error {
 	deviceID := handler.GetDeviceID(ctx)
 
@@ -403,7 +405,7 @@ func (s *Scheduler) handleUserDownloadBlockResult(result api.UserBlockDownloadRe
 	return nil
 }
 
-// DownloadBlockResult node result for user download block
+// UserDownloadBlockResults node result for user download block
 func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []api.UserBlockDownloadResult) error {
 	for _, result := range results {
 		err := s.handleUserDownloadBlockResult(result)
@@ -956,6 +958,7 @@ func dataToCacheDataInfo(d *Data) api.CacheDataInfo {
 // 	return xerrors.Errorf("%s :%s", ErrNodeNotFind, info.DeviceID)
 // }
 
+// GetValidationInfo Get Validation Info
 func (s *Scheduler) GetValidationInfo(ctx context.Context) (api.ValidationInfo, error) {
 	nextElectionTime := s.selector.getNextElectionTime()
 	isEnable := s.validate.open
@@ -1115,4 +1118,18 @@ func (s *Scheduler) recordDownloadBlock(record cache.DownloadBlockRecord) error 
 		// ClientIP:    clientIP,
 	}
 	return persistent.GetDB().AddDownloadInfo(info)
+}
+
+// ResetCacheExpiredTime reset expired time with data cache
+func (s *Scheduler) ResetCacheExpiredTime(ctx context.Context, carfileCid, cacheID string, expiredTime time.Time) error {
+	return s.dataManager.resetExpiredTime(carfileCid, cacheID, expiredTime)
+}
+
+// ReplenishCacheExpiredTime replenish expired time with data cache
+func (s *Scheduler) ReplenishCacheExpiredTime(ctx context.Context, carfileCid, cacheID string, hour int) error {
+	if hour <= 0 {
+		return xerrors.Errorf("hour is :%d", hour)
+	}
+
+	return s.dataManager.replenishExpiredTimeToData(carfileCid, cacheID, hour)
 }
