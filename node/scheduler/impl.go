@@ -348,7 +348,7 @@ func (s *Scheduler) NodeDownloadBlockResult(ctx context.Context, result api.Node
 		return err
 	}
 
-	ok, err := s.verifyNodeDownloadBlockSign(deviceID, record.Cid, result.Sign)
+	ok, err := s.verifyNodeDownloadBlockSign(deviceID, record, result.Sign)
 	if err != nil {
 		log.Errorf("NodeDownloadBlockResult, verifyNodeDownloadBlockSign error:%s", err.Error())
 		return err
@@ -375,13 +375,13 @@ func (s *Scheduler) NodeDownloadBlockResult(ctx context.Context, result api.Node
 func (s *Scheduler) handleUserDownloadBlockResult(result api.UserBlockDownloadResult) error {
 	record, err := cache.GetDB().GetDownloadBlockRecord(result.SN)
 	if err != nil {
-		log.Errorf("NodeDownloadBlockResult, GetBlockDownloadRecord error:%s", err.Error())
+		log.Errorf("handleUserDownloadBlockResult, GetBlockDownloadRecord error:%s", err.Error())
 		return err
 	}
 
 	ok, err := s.verifyUserDownloadBlockSign(record.UserPublicKey, record.Cid, result.Sign)
 	if err != nil {
-		log.Errorf("NodeDownloadBlockResult, verifyNodeDownloadBlockSign error:%s", err.Error())
+		log.Errorf("handleUserDownloadBlockResult, verifyNodeDownloadBlockSign error:%s", err.Error())
 		return err
 	}
 
@@ -1021,15 +1021,17 @@ func (s *Scheduler) GetValidationInfo(ctx context.Context) (api.ValidationInfo, 
 // 	return xerrors.New(ErrNodeNotFind)
 // }
 
-func (s *Scheduler) verifyNodeDownloadBlockSign(deviceID, cid string, sign []byte) (bool, error) {
+func (s *Scheduler) verifyNodeDownloadBlockSign(deviceID string, record cache.DownloadBlockRecord, sign []byte) (bool, error) {
+	verifyContent := fmt.Sprintf("%s%d%d%d", record.Cid, record.SN, record.SignTime, record.Timeout)
+
 	edgeNode := s.nodeManager.getEdgeNode(deviceID)
 	if edgeNode != nil {
-		return verifyRsaSign(&edgeNode.privateKey.PublicKey, sign, cid)
+		return verifyRsaSign(&edgeNode.privateKey.PublicKey, sign, verifyContent)
 	}
 
 	candidate := s.nodeManager.getCandidateNode(deviceID)
 	if candidate != nil {
-		return verifyRsaSign(&candidate.privateKey.PublicKey, sign, cid)
+		return verifyRsaSign(&candidate.privateKey.PublicKey, sign, verifyContent)
 	}
 
 	authInfo, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
@@ -1041,7 +1043,7 @@ func (s *Scheduler) verifyNodeDownloadBlockSign(deviceID, cid string, sign []byt
 	if err != nil {
 		return false, err
 	}
-	return verifyRsaSign(&privateKey.PublicKey, sign, cid)
+	return verifyRsaSign(&privateKey.PublicKey, sign, verifyContent)
 }
 
 func (s *Scheduler) verifyUserDownloadBlockSign(publicPem, cid string, sign []byte) (bool, error) {

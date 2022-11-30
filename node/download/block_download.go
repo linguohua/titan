@@ -57,7 +57,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 	signTime := r.URL.Query().Get("signTime")
 	timeout := r.URL.Query().Get("timeout")
 
-	log.Infof("GetBlock, App-Name:%s, sign:%s, sn:%d  cid:%s", appName, signStr, snStr, cidStr)
+	log.Infof("GetBlock, App-Name:%s, sign:%s, sn:%d, signTime:%s, timeout:%s,  cid:%s", appName, signStr, snStr, signTime, timeout, cidStr)
 
 	sn, err := strconv.ParseInt(snStr, 10, 64)
 	if err != nil {
@@ -78,16 +78,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 	}
 
 	content := cidStr + snStr + signTime + timeout
-	hash := sha256.New()
-	_, err = hash.Write([]byte(content))
-	if err != nil {
-		log.Errorf("Write content %s to hash error:%s", content, err.Error())
-		http.Error(w, fmt.Sprintf("Write content %s to hash error:%s", content, err.Error()), http.StatusBadRequest)
-		return
-	}
-	hashSum := hash.Sum(nil)
-
-	_, err = verifyRsaSign(bd.publicKey, sign, hashSum)
+	_, err = verifyRsaSign(bd.publicKey, sign, content)
 	if err != nil {
 		log.Errorf("Verify sign cid:%s, sign:%s,sn:%s,signTime:%s, timeout:%s, error:%s,", cidStr, sign, snStr, signTime, timeout, err.Error())
 		http.Error(w, fmt.Sprintf("Write content %s to hash error:%s", content, err.Error()), http.StatusBadRequest)
@@ -240,8 +231,15 @@ func pem2PublicKey(publicKeyStr string) (*rsa.PublicKey, error) {
 	return pub, nil
 }
 
-func verifyRsaSign(publicKey *rsa.PublicKey, sign []byte, digest []byte) (bool, error) {
-	err := rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, digest, sign)
+func verifyRsaSign(publicKey *rsa.PublicKey, sign []byte, content string) (bool, error) {
+	hash := sha256.New()
+	_, err := hash.Write([]byte(content))
+	if err != nil {
+		return false, err
+	}
+	hashSum := hash.Sum(nil)
+
+	err = rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, hashSum, sign)
 	if err != nil {
 		fmt.Println("could not verify signature: ", err)
 		return false, err
