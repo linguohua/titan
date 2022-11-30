@@ -28,6 +28,8 @@ const (
 	eventTypeRemoveDataEnd       EventType = "RemoveDataEnd"
 	eventTypeRemoveCacheEnd      EventType = "RemoveCacheEnd"
 	eventTypeStopDataTask        EventType = "StopDataTask"
+	eventTypeReplenishCacheTime  EventType = "ReplenishCacheTime"
+	eventTypeResetCacheTime      EventType = "ResetCacheTime"
 )
 
 // DataManager Data
@@ -495,6 +497,8 @@ func (m *DataManager) replenishExpiredTimeToData(cid, cacheID string, hour int) 
 		return xerrors.Errorf("%s:%s", ErrCidNotFind, hash)
 	}
 
+	m.saveEvent(cid, cacheID, "", fmt.Sprintf("add hour:%d", hour), eventTypeReplenishCacheTime)
+
 	if cacheID != "" {
 		cI, ok := data.cacheMap.Load(cacheID)
 		if ok && cI != nil {
@@ -528,6 +532,8 @@ func (m *DataManager) resetExpiredTime(cid, cacheID string, expiredTime time.Tim
 	if data == nil {
 		return xerrors.Errorf("%s:%s", ErrCidNotFind, hash)
 	}
+
+	m.saveEvent(cid, cacheID, "", fmt.Sprintf("expiredTime:%s", expiredTime.String()), eventTypeResetCacheTime)
 
 	if cacheID != "" {
 		cI, ok := data.cacheMap.Load(cacheID)
