@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"crypto/rsa"
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -1072,7 +1073,7 @@ func (s *Scheduler) signDownloadInfos(cid string, sn int64, signTime int64, resu
 			return nil, err
 		}
 
-		downloadInfoResult := api.DownloadInfoResult{URL: result.URL, Sign: sign, SN: sn, SignTime: signTime, TimeOut: blockDonwloadTimeout}
+		downloadInfoResult := api.DownloadInfoResult{URL: result.URL, Sign: hex.EncodeToString(sign), SN: sn, SignTime: signTime, TimeOut: blockDonwloadTimeout}
 		downloadInfoResults = append(downloadInfoResults, downloadInfoResult)
 	}
 

@@ -171,7 +171,7 @@ type UserBlockDownloadResult struct {
 
 type DownloadInfoResult struct {
 	URL      string
-	Sign     []byte
+	Sign     string
 	SN       int64
 	SignTime int64
 	TimeOut  int
