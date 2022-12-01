@@ -565,7 +565,7 @@ var showDatasInfoCmd = &cli.Command{
 
 		for w := 0; w < len(infos); w++ {
 			info := infos[w]
-			fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d \n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.Blocks)
+			fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d , Task Timeout:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.Blocks, info.DataTimeout.String())
 
 			sort.Slice(info.CacheInfos, func(i, j int) bool {
 				return info.CacheInfos[i].CacheID < info.CacheInfos[j].CacheID
@@ -622,7 +622,7 @@ var showDataInfoCmd = &cli.Command{
 			}
 		}
 
-		fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d , Nodes:%d \n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.Blocks, info.Nodes)
+		fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d , Nodes:%d , Task Timeout:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.Blocks, info.Nodes, info.DataTimeout.String())
 		for _, cache := range info.CacheInfos {
 			fmt.Printf("TaskID:%s ,  Status:%s , Done Size:%f MB ,Done Blocks:%d , Nodes:%d\n",
 				cache.CacheID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.Nodes)

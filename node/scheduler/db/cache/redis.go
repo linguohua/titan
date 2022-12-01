@@ -329,6 +329,12 @@ func (rd redisDB) SetRunningDataTask(hash, cacheID string, timeout int64) error 
 	return err
 }
 
+func (rd redisDB) GetRunningDataTaskExpiredTime(hash string) (time.Duration, error) {
+	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash)
+	// Expire
+	return rd.cli.TTL(context.Background(), key).Result()
+}
+
 func (rd redisDB) GetRunningDataTask(hash string) (string, error) {
 	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash)
 

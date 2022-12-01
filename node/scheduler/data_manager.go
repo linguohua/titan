@@ -462,6 +462,7 @@ func (m *DataManager) getRunningTasks() []cache.DataTask {
 	list, err := cache.GetDB().GetDataTasksWithRunningList()
 	if err != nil {
 		log.Errorf("GetDataTasksWithRunningList err:%s", err.Error())
+		return make([]cache.DataTask, 0)
 	}
 
 	return list
@@ -558,26 +559,26 @@ func (m *DataManager) resetExpiredTime(cid, cacheID string, expiredTime time.Tim
 }
 
 // stop
-func (m *DataManager) stopDataTask(cid string) error {
-	hash, err := helper.CIDString2HashString(cid)
-	if err != nil {
-		return err
-	}
+// func (m *DataManager) stopDataTask(cid string) error {
+// 	hash, err := helper.CIDString2HashString(cid)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	m.saveEvent(cid, "", "user", "", eventTypeStopDataTask)
+// 	m.saveEvent(cid, "", "user", "", eventTypeStopDataTask)
 
-	dI, ok := m.taskMap.Load(hash)
-	if ok && dI != nil {
-		data := dI.(*Data)
-		data.isStop = true
+// 	dI, ok := m.taskMap.Load(hash)
+// 	if ok && dI != nil {
+// 		data := dI.(*Data)
+// 		data.isStop = true
 
-		return nil
-	}
+// 		return nil
+// 	}
 
-	// TODO if data unstart , save to redis
+// 	// TODO if data unstart , save to redis
 
-	return nil
-}
+// 	return nil
+// }
 
 // check expired caches
 func (m *DataManager) checkCachesExpired() {

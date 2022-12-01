@@ -107,7 +107,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockInfo) (int6
 
 	cNode := c.nodeManager.getCandidateNode(deviceID)
 	if cNode != nil {
-		reqDatas := cNode.findDownloadinfoForBlocks(c.nodeManager, blocks, c.carfileHash, c.cacheID)
+		reqDatas := cNode.findDownloadinfoForBlocks(blocks, c.carfileHash, c.cacheID)
 
 		nodeCacheStat, err := cNode.nodeAPI.CacheBlocks(ctx, reqDatas)
 		if err != nil {
@@ -120,7 +120,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockInfo) (int6
 
 	eNode := c.nodeManager.getEdgeNode(deviceID)
 	if eNode != nil {
-		reqDatas := eNode.findDownloadinfoForBlocks(c.nodeManager, blocks, c.carfileHash, c.cacheID)
+		reqDatas := eNode.findDownloadinfoForBlocks(blocks, c.carfileHash, c.cacheID)
 
 		nodeCacheStat, err := eNode.nodeAPI.CacheBlocks(ctx, reqDatas)
 		if err != nil {
@@ -294,7 +294,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,%s block saved ", info.CacheID, info.Cid)
 	}
 
-	if info.Cid == c.data.carfileCid {
+	if hash == c.carfileHash {
 		c.totalSize = int(info.LinksSize) + info.BlockSize
 		c.totalBlocks = 1
 	}
