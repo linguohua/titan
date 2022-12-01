@@ -500,7 +500,7 @@ func (sd sqlDB) ChangeExpiredTimeWhitCaches(carfileHash, cacheID string, expired
 }
 
 func (sd sqlDB) GetExpiredCaches() ([]*CacheInfo, error) {
-	query := fmt.Sprintf(`SELECT carfile_hash,cache_id FROM %s WHERE TO_DAYS(expired_time) <= TO_DAYS(NOW())`,
+	query := fmt.Sprintf(`SELECT carfile_hash,cache_id FROM %s WHERE expired_time <= NOW()`,
 		fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
 
 	var out []*CacheInfo
@@ -750,7 +750,7 @@ func (sd sqlDB) AddDownloadInfo(info *api.BlockDownloadInfo) error {
 }
 
 func (sd sqlDB) GetDownloadInfoByDeviceID(deviceID string) ([]*api.BlockDownloadInfo, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE device_id = ? and created_time >= TO_DAYS(NOW()) ORDER BY created_time DESC`,
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE device_id = ? and TO_DAYS(created_time) >= TO_DAYS(NOW()) ORDER BY created_time DESC`,
 		fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
 
 	var out []*api.BlockDownloadInfo
