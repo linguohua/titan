@@ -30,7 +30,6 @@ func verifyRsaSign(publicKey *rsa.PublicKey, sign []byte, content string) (bool,
 
 	err = rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, hashSum, sign)
 	if err != nil {
-		fmt.Println("could not verify signature: ", err)
 		return false, err
 	}
 	return true, nil
@@ -51,15 +50,15 @@ func rsaSign(privateKey *rsa.PrivateKey, digest string) ([]byte, error) {
 	return signature, nil
 }
 
-func pem2PublicKey(publicKeyStr string) (*rsa.PublicKey, error) {
-	block, _ := pem.Decode([]byte(publicKeyStr))
+func pem2PublicKey(publicPem string) (*rsa.PublicKey, error) {
+	block, _ := pem.Decode([]byte(publicPem))
 	if block == nil {
 		return nil, fmt.Errorf("failed to decode public key")
 	}
 
 	pub, err := x509.ParsePKCS1PublicKey(block.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse public key")
+		return nil, fmt.Errorf("failed to parse public key, %s", err.Error())
 	}
 
 	return pub, nil

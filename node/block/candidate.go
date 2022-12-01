@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/helper"
 )
 
@@ -40,21 +42,60 @@ func getBlockFromCandidate(url string, tk string) ([]byte, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
+func newCandidateAPI(url string, tk string) (api.Candidate, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	headers := http.Header{}
+	headers.Add("Authorization", "Bearer "+string(tk))
+
+	// Connect to node
+	candicateAPI, _, err := client.NewCandicate(ctx, url, headers)
+	if err != nil {
+		log.Errorf("CandidateNodeConnect NewCandicate err:%s,url:%s", err.Error(), url)
+		return nil, err
+	}
+
+	return candicateAPI, nil
+}
+
+func getCandidateAPI(url string, tk string, candidates map[string]api.Candidate) (api.Candidate, error) {
+	candidate, ok := candidates[url]
+	if !ok {
+		var err error
+		candidate, err = newCandidateAPI(url, tk)
+		if err != nil {
+			return nil, err
+		}
+		candidates[url] = candidate
+	}
+	return candidate, nil
+}
+
 func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 	reqs = block.filterAvailableReq(reqs)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	candidates := make(map[string]api.Candidate)
 	for _, req := range reqs {
 		if len(req.downloadURL) == 0 {
 			log.Errorf("loadBlocksFromCandidate req downloadURL is nil")
 			continue
 		}
 
-		url := fmt.Sprintf("%s?cid=%s", req.downloadURL, req.blockInfo.Cid)
-		data, err := getBlockFromCandidate(url, req.downloadToken)
+		// url := fmt.Sprintf("%s?cid=%s", req.downloadURL, req.blockInfo.Cid)
+		// data, err := getBlockFromCandidate(url, req.downloadToken)
+		candidate, err := getCandidateAPI(req.downloadURL, req.downloadToken, candidates)
 		if err != nil {
-			log.Errorf("loadBlocksFromCandidate get block from candidate error:%s", err.Error())
+			log.Errorf("loadBlocksFromCandidate getCandidateAPI error:%s", err.Error())
+			block.cacheResultWithError(ctx, blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, err)
+			continue
+		}
+
+		data, err := candidate.LoadBlock(ctx, req.blockInfo.Cid)
+		if err != nil {
+			log.Errorf("loadBlocksFromCandidate LoadBlock error:%s", err.Error())
 			block.cacheResultWithError(ctx, blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, err)
 			continue
 		}

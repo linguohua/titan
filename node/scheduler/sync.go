@@ -39,10 +39,6 @@ func doDataSync(syncApi api.DataSync, deviceID string) {
 		log.Errorf("doDataSync error:%s", err.Error())
 	}
 
-	if len(rsp.Checksums) == 0 {
-		return
-	}
-
 	inconformityBlocksList := make([]*inconformityBlocks, 0)
 	for _, checksum := range rsp.Checksums {
 		blockItems, err := loadBlockItemsFromDB(deviceID, checksum.StartFid, checksum.EndFid)
@@ -80,13 +76,18 @@ func doDataSync(syncApi api.DataSync, deviceID string) {
 		log.Infof("doDataSync scrub inconformity blocks, deviceID:%s fid range %d ~ %d", deviceID, inconfBlocks.startFid, inconfBlocks.endFid)
 	}
 
-	lasChecksum := rsp.Checksums[len(rsp.Checksums)-1]
-	blocks, err := loadBlockItemsBiggerThan(lasChecksum.EndFid, deviceID)
+	var endFid = 0
+	if len(rsp.Checksums) > 0 {
+		lasChecksum := rsp.Checksums[len(rsp.Checksums)-1]
+		endFid = lasChecksum.EndFid
+
+	}
+	blocks, err := loadBlockItemsBiggerThan(endFid, deviceID)
 	if err != nil {
-		log.Errorf("doDataSync loadBlockItemsBiggerThan, deviceID:%s, startFid:%d , error:%s", deviceID, lasChecksum.EndFid, err.Error())
+		log.Errorf("doDataSync loadBlockItemsBiggerThan, deviceID:%s, startFid:%d , error:%s", deviceID, endFid, err.Error())
 		return
 	}
-
+	log.Infof("loadBlockItemsBiggerThan fid:%d,, blocks len:%d", endFid, len(blocks))
 	if len(blocks) > 0 {
 		startBlock := blocks[0]
 		endBlock := blocks[len(blocks)-1]
