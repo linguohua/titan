@@ -82,14 +82,13 @@ type DevicesInfo struct {
 
 type BlockDownloadInfo struct {
 	ID           string    `json:"-"`
-	SN           int64     `json:"sn" db:"sn"`
 	DeviceID     string    `json:"deviceId" db:"device_id"`
 	BlockCID     string    `json:"blockCid" db:"block_cid"`
-	BlockSize    int64     `json:"blockSize" db:"block_size"`
+	BlockSize    int       `json:"blockSize" db:"block_size"`
 	Speed        int64     `json:"speed" db:"speed"`
 	Reward       int64     `json:"reward" db:"reward"`
-	NodeStatus   int       `json:"nodeStatus" db:"node_status"`
-	UserStatus   int       `json:"userStatus" db:"user_status"`
+	Status       int       `json:"status" db:"status"`
+	FailedReason string    `json:"failed_reason" db:"failed_reason"`
 	ClientIP     string    `json:"client_ip" db:"client_ip"`
 	CreatedTime  time.Time `json:"createdAt" db:"created_time"`
 	CompleteTime time.Time `json:"completeTime" db:"complete_time"`

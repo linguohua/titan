@@ -153,7 +153,10 @@ type NodeBlockDownloadResult struct {
 	// scheduler signature
 	Sign          []byte
 	DownloadSpeed int64
+	BlockSize     int
 	ClientIP      string
+	Result        bool
+	FailedReason  string
 }
 
 type DownloadServerAccessAuth struct {

@@ -736,10 +736,10 @@ func (sd sqlDB) GetNodesFromCache(cacheID string) (int, error) {
 	return len(out), nil
 }
 
-func (sd sqlDB) AddDownloadInfo(info *api.BlockDownloadInfo) error {
+func (sd sqlDB) SetBlockDownloadInfo(info *api.BlockDownloadInfo) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (block_cid, device_id, block_size, speed, reward) 
-				VALUES (:block_cid, :device_id, :block_size, :speed, :reward)`, fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
+		`INSERT INTO %s (id, device_id, block_cid, block_size, speed, reward, status, failed_reason, client_ip, created_time, complete_time) 
+				VALUES (:id, :device_id, :block_cid, :block_size, :speed, :reward, :status, :failed_reason, :client_ip, :created_time, :complete_time) ON DUPLICATE KEY UPDATE device_id=:device_id, block_cid=:block_cid, block_size=:block_size, speed=:speed, reward=:reward, status=:status, failed_reason=:failed_reason, client_ip=:client_ip, complete_time=:complete_time`, fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
 
 	_, err := sd.cli.NamedExec(query, info)
 	if err != nil {
@@ -749,7 +749,7 @@ func (sd sqlDB) AddDownloadInfo(info *api.BlockDownloadInfo) error {
 	return nil
 }
 
-func (sd sqlDB) GetDownloadInfoByDeviceID(deviceID string) ([]*api.BlockDownloadInfo, error) {
+func (sd sqlDB) GetBlockDownloadInfoByDeviceID(deviceID string) ([]*api.BlockDownloadInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE device_id = ? and TO_DAYS(created_time) >= TO_DAYS(NOW()) ORDER BY created_time DESC`,
 		fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
 
@@ -759,6 +759,21 @@ func (sd sqlDB) GetDownloadInfoByDeviceID(deviceID string) ([]*api.BlockDownload
 	}
 
 	return out, nil
+}
+
+func (sd sqlDB) GetBlockDownloadInfoByID(id string) (*api.BlockDownloadInfo, error) {
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE id = ?`,
+		fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
+
+	var out []*api.BlockDownloadInfo
+	if err := sd.cli.Select(&out, query, id); err != nil {
+		return nil, err
+	}
+
+	if len(out) > 0 {
+		return out[0], nil
+	}
+	return nil, nil
 }
 
 func (sd sqlDB) SetEventInfo(info *api.EventInfo) error {

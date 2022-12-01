@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 	"time"
@@ -493,11 +494,17 @@ func (rd redisDB) GetDeviceStat() (out api.StateNetwork, err error) {
 }
 
 func (rd redisDB) SetDownloadBlockRecord(record DownloadBlockRecord) error {
+	ctx := context.Background()
 	key := fmt.Sprintf(redisKeyBlockDownloadRecord, record.SN)
-	_, err := rd.cli.HMSet(context.Background(), key, structs.Map(record)).Result()
+	_, err := rd.cli.HMSet(ctx, key, structs.Map(record)).Result()
 	if err != nil {
 		return err
 	}
+	_, err = rd.cli.Expire(ctx, key, time.Duration(record.Timeout)*time.Second).Result()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -510,17 +517,21 @@ func (rd redisDB) GetDownloadBlockRecord(sn int64) (DownloadBlockRecord, error) 
 		return DownloadBlockRecord{}, err
 	}
 
-	record.SN = sn
 	return record, nil
+}
+
+func (rd redisDB) RemoveDownloadBlockRecord(sn int64) error {
+	key := fmt.Sprintf(redisKeyBlockDownloadRecord, sn)
+	_, err := rd.cli.Del(context.Background(), key).Result()
+	return err
 }
 
 // node cache tag ++1
 func (rd redisDB) IncrBlockDownloadSN() (int64, error) {
 	n, err := rd.cli.IncrBy(context.Background(), redisKeyBlockDownloadSN, 1).Result()
-	return n, err
-}
+	if n >= math.MaxInt64 {
+		rd.cli.Set(context.Background(), redisKeyBlockDownloadSN, 0, 0).Result()
+	}
 
-func (rd redisDB) ResetBlockDownloadSN() error {
-	_, err := rd.cli.Set(context.Background(), redisKeyBlockDownloadSN, 0, 0).Result()
-	return err
+	return n, err
 }
