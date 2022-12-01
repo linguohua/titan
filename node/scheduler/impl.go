@@ -437,7 +437,7 @@ func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.C
 		return "", xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
-	// log.Warnf("CacheResult deviceID:%s ,cid:%s", deviceID, info.Cid)
+	// log.Warnf("CacheResult ,CacheID:%s Cid:%s", info.CacheID, info.Cid)
 	err := s.dataManager.pushCacheResultToQueue(deviceID, &info)
 
 	return "", err

@@ -140,7 +140,7 @@ func (n *Node) findDownloadinfoForBlocks(blocks []api.BlockInfo, carfileHash, ca
 			// if err == nil {
 			// 	reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: info.URL, DownloadToken: tk, CardFileHash: carfileHash, CacheID: cacheID})
 
-			// 	continue
+			continue
 			// }
 		}
 

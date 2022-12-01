@@ -499,6 +499,18 @@ func (sd sqlDB) ChangeExpiredTimeWhitCaches(carfileHash, cacheID string, expired
 	return nil
 }
 
+func (sd sqlDB) GetMinExpiredTimeWithCaches() (time.Time, error) {
+	query := fmt.Sprintf(`SELECT MIN(expired_time) FROM %s`,
+		fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+
+	var out time.Time
+	if err := sd.cli.Get(&out, query); err != nil {
+		return out, err
+	}
+
+	return out, nil
+}
+
 func (sd sqlDB) GetExpiredCaches() ([]*CacheInfo, error) {
 	query := fmt.Sprintf(`SELECT carfile_hash,cache_id FROM %s WHERE expired_time <= NOW()`,
 		fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
@@ -563,16 +575,15 @@ func (sd sqlDB) GetCacheInfo(cacheID string) (*CacheInfo, error) {
 	return info, err
 }
 
-func (sd sqlDB) GetBlockInfo(cacheID, hash, deviceID string) (*BlockInfo, error) {
+func (sd sqlDB) GetBlockInfo(cacheID, hash string) (*BlockInfo, error) {
 	area := sd.ReplaceArea()
 
 	info := &BlockInfo{
-		CacheID:  cacheID,
-		CIDHash:  hash,
-		DeviceID: deviceID,
+		CacheID: cacheID,
+		CIDHash: hash,
 	}
 
-	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cache_id=:cache_id AND cid_hash=:cid_hash AND device_id=:device_id`, fmt.Sprintf(blockInfoTable, area))
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cache_id=:cache_id AND cid_hash=:cid_hash`, fmt.Sprintf(blockInfoTable, area))
 
 	rows, err := sd.cli.NamedQuery(cmd, info)
 	if err != nil {
@@ -590,6 +601,18 @@ func (sd sqlDB) GetBlockInfo(cacheID, hash, deviceID string) (*BlockInfo, error)
 	}
 
 	return info, err
+}
+
+func (sd sqlDB) GetBlocksWithStatus(cacheID string, status CacheStatus) ([]BlockInfo, error) {
+	area := sd.ReplaceArea()
+
+	var out []BlockInfo
+	cmd := fmt.Sprintf("SELECT * FROM %s WHERE cache_id=? AND status=?", fmt.Sprintf(blockInfoTable, area))
+	if err := sd.cli.Select(&out, cmd, cacheID, int(status)); err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 func (sd sqlDB) GetUndoneBlocks(cacheID string) (map[string]string, error) {
@@ -630,7 +653,7 @@ func (sd sqlDB) GetAllBlocks(cacheID string) ([]*BlockInfo, error) {
 	return out, nil
 }
 
-func (sd sqlDB) GetBloackCountWithStatus(cacheID string, status int) (int, error) {
+func (sd sqlDB) GetBlockCountWithStatus(cacheID string, status CacheStatus) (int, error) {
 	area := sd.ReplaceArea()
 
 	var count int
@@ -640,7 +663,7 @@ func (sd sqlDB) GetBloackCountWithStatus(cacheID string, status int) (int, error
 	return count, err
 }
 
-func (sd sqlDB) GetCachesSize(cacheID string, status int) (int, error) {
+func (sd sqlDB) GetCachesSize(cacheID string, status CacheStatus) (int, error) {
 	area := sd.ReplaceArea()
 
 	var count int

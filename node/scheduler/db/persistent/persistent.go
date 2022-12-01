@@ -33,15 +33,18 @@ type DB interface {
 
 	ChangeExpiredTimeWhitCaches(carfileHash, cacheID string, expiredTime time.Time) error
 	GetExpiredCaches() ([]*CacheInfo, error)
+	GetMinExpiredTimeWithCaches() (time.Time, error)
+
 	// cache info
 	GetCacheInfo(cacheID string) (*CacheInfo, error)
 	RemoveCacheInfo(cacheID, carfileHash string, isDeleteData bool, reliability int) error
-	GetCachesSize(cacheID string, status int) (int, error)
+	GetCachesSize(cacheID string, status CacheStatus) (int, error)
 
 	// block info
 	// SetBlockInfos(infos []*BlockInfo, carfileCid string) error
-	GetBlockInfo(cacheID, hash, deviceID string) (*BlockInfo, error)
-	GetBloackCountWithStatus(cacheID string, status int) (int, error)
+	GetBlockInfo(cacheID, hash string) (*BlockInfo, error)
+	GetBlockCountWithStatus(cacheID string, status CacheStatus) (int, error)
+	GetBlocksWithStatus(cacheID string, status CacheStatus) ([]BlockInfo, error)
 	GetUndoneBlocks(cacheID string) (map[string]string, error)
 	GetAllBlocks(cacheID string) ([]*BlockInfo, error)
 	GetNodesFromCache(cacheID string) (int, error)

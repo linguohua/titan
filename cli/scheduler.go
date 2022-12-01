@@ -118,7 +118,7 @@ var (
 
 	dateFlag = &cli.StringFlag{
 		Name:  "date-time",
-		Usage: "date time",
+		Usage: "date time (2006-1-2 15:04:05)",
 		Value: "",
 	}
 )
