@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/blockstore"
@@ -48,6 +49,22 @@ func NewBlockDownload(limiter *rate.Limiter, params *helper.NodeParams, device *
 	return blockDownload
 }
 
+func (bd *BlockDownload) resultFailed(w http.ResponseWriter, r *http.Request, sn int64, sign []byte, err error) {
+	log.Errorf("result failed:%s", err.Error())
+
+	if sign != nil {
+		result := api.NodeBlockDownloadResult{SN: sn, Sign: sign, DownloadSpeed: 0, BlockSize: 0, ClientIP: getClientIP(r), Result: false, FailedReason: err.Error()}
+		go bd.downloadBlockResult(result)
+	}
+
+	if err == datastore.ErrNotFound {
+		http.NotFound(w, r)
+		return
+	}
+
+	http.Error(w, err.Error(), http.StatusBadRequest)
+}
+
 func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 	appName := r.Header.Get("App-Name")
 	// sign := r.Header.Get("Sign")
@@ -57,45 +74,40 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 	signTime := r.URL.Query().Get("signTime")
 	timeout := r.URL.Query().Get("timeout")
 
-	log.Infof("GetBlock, App-Name:%s, sign:%s, sn:%d, signTime:%s, timeout:%s,  cid:%s", appName, signStr, snStr, signTime, timeout, cidStr)
+	log.Infof("GetBlock, App-Name:%s, sign:%s, sn:%s, signTime:%s, timeout:%s,  cid:%s", appName, signStr, snStr, signTime, timeout, cidStr)
 
 	sn, err := strconv.ParseInt(snStr, 10, 64)
 	if err != nil {
-		log.Errorf("Parser param sn(%s) error:%s", sn, err.Error())
-		http.Error(w, fmt.Sprintf("Parser param sn(%s) error:%s", snStr, err.Error()), http.StatusBadRequest)
+		bd.resultFailed(w, r, 0, nil, fmt.Errorf("Parser param sn(%s) error:%s", snStr, err.Error()))
 		return
 	}
 
 	sign, err := hex.DecodeString(signStr)
 	if err != nil {
-		log.Errorf("DecodeString (%s) error:%s", signStr, err.Error())
-		http.Error(w, fmt.Sprintf("DecodeString sign(%s) error:%s", signStr, err.Error()), http.StatusBadRequest)
+		bd.resultFailed(w, r, 0, nil, fmt.Errorf("DecodeString sign(%s) error:%s", signStr, err.Error()))
 		return
 	}
 	if bd.publicKey == nil {
-		log.Errorf("bd.publicKey == nil ")
+		bd.resultFailed(w, r, sn, sign, fmt.Errorf("node %s publicKey == nil", bd.device.GetDeviceID()))
 		return
 	}
 
 	content := cidStr + snStr + signTime + timeout
 	_, err = verifyRsaSign(bd.publicKey, sign, content)
 	if err != nil {
-		log.Errorf("Verify sign cid:%s, sign:%s,sn:%s,signTime:%s, timeout:%s, error:%s,", cidStr, sign, snStr, signTime, timeout, err.Error())
-		http.Error(w, fmt.Sprintf("Write content %s to hash error:%s", content, err.Error()), http.StatusBadRequest)
+		bd.resultFailed(w, r, sn, sign, fmt.Errorf("Verify sign cid:%s,sn:%s,signTime:%s, timeout:%s, error:%s,", cidStr, snStr, signTime, timeout, err.Error()))
 		return
 	}
 
 	blockHash, err := helper.CIDString2HashString(cidStr)
 	if err != nil {
-		log.Errorf("Parser param cid(%s) error:%s", cidStr, err.Error())
-		http.Error(w, fmt.Sprintf("Parser param cid(%s) error:%s", cidStr, err.Error()), http.StatusBadRequest)
+		bd.resultFailed(w, r, sn, sign, fmt.Errorf("Parser param cid(%s) error:%s", cidStr, err.Error()))
 		return
 	}
 
 	reader, err := bd.blockStore.GetReader(blockHash)
 	if err != nil {
-		log.Errorf("GetBlock, GetReader:%v", err)
-		http.NotFound(w, r)
+		bd.resultFailed(w, r, sn, sign, err)
 		return
 	}
 	defer reader.Close()
@@ -119,7 +131,8 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		speedRate = int64(float64(n) / float64(costTime) * float64(time.Second))
 	}
 
-	go bd.downloadBlockResult([]byte(sign), bd.device.GetDeviceID(), sn, speedRate, getClientIP(r))
+	result := api.NodeBlockDownloadResult{SN: sn, Sign: sign, DownloadSpeed: speedRate, BlockSize: int(n), ClientIP: getClientIP(r), Result: true}
+	go bd.downloadBlockResult(result)
 
 	log.Infof("Download block %s costTime %d, size %d, speed %d", cidStr, costTime, n, speedRate)
 
@@ -139,8 +152,7 @@ func getClientIP(r *http.Request) string {
 	return reqIP
 }
 
-func (bd *BlockDownload) downloadBlockResult(sign []byte, deviceID string, sn, downloadSpeed int64, clientIP string) {
-	result := api.NodeBlockDownloadResult{SN: sn, Sign: sign, DownloadSpeed: downloadSpeed, ClientIP: clientIP}
+func (bd *BlockDownload) downloadBlockResult(result api.NodeBlockDownloadResult) {
 	bd.scheduler.NodeDownloadBlockResult(context.Background(), result)
 }
 

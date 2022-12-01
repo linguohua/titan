@@ -344,18 +344,28 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 	}
 
 	log.Info("start sync block")
-	need2DeleteBlock := make([]string, 0)
+	need2DeleteBlockHashs := make([]string, 0)
 	for _, hash := range hashs {
 		_, ok := targetMap[hash]
 		if !ok {
-			need2DeleteBlock = append(need2DeleteBlock, hash)
+			need2DeleteBlockHashs = append(need2DeleteBlockHashs, hash)
 		} else {
 			delete(targetMap, hash)
 		}
 
 	}
 
-	block.DeleteBlocks(context.Background(), need2DeleteBlock)
+	need2DeleteBlockCids := make([]string, 0)
+	for _, hash := range need2DeleteBlockHashs {
+		cid, err := helper.HashString2CidString(hash)
+		if err != nil {
+			continue
+		}
+
+		need2DeleteBlockCids = append(need2DeleteBlockCids, cid)
+	}
+
+	block.DeleteBlocks(context.Background(), need2DeleteBlockCids)
 
 	// TODO: need to download targetMap block
 	if block.IsLoadBlockFromIPFS() {

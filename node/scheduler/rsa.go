@@ -19,20 +19,20 @@ func generatePrivateKey(bits int) (*rsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
-func verifyRsaSign(publicKey *rsa.PublicKey, sign []byte, content string) (bool, error) {
+func verifyRsaSign(publicKey *rsa.PublicKey, sign []byte, content string) error {
 	hash := sha256.New()
 	_, err := hash.Write([]byte(content))
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	hashSum := hash.Sum(nil)
 
 	err = rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, hashSum, sign)
 	if err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
 
 func rsaSign(privateKey *rsa.PrivateKey, digest string) ([]byte, error) {

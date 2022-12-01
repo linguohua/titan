@@ -51,6 +51,7 @@ type DB interface {
 	IncrDeviceReward(deviceID string, reward int64) error
 	SetDeviceLatency(deviceID string, latency float64) error
 	SetDownloadBlockRecord(record DownloadBlockRecord) error
+	RemoveDownloadBlockRecord(sn int64) error
 	GetDownloadBlockRecord(sn int64) (DownloadBlockRecord, error)
 	IncrBlockDownloadSN() (int64, error)
 
@@ -105,7 +106,8 @@ type DataTask struct {
 }
 
 type DownloadBlockRecord struct {
-	SN            int64  `redis:"-"`
+	SN            int64  `redis:"SN"`
+	ID            string `redis:"ID"`
 	Cid           string `redis:"Cid"`
 	UserPublicKey string `redis:"UserPublicKey"`
 	NodeStatus    int    `redis:"NodeStatus"`

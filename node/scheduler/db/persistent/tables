@@ -84,15 +84,15 @@ CREATE TABLE `block_info_cn_gd_shenzhen` (
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='block infos';
 
 CREATE TABLE `block_download_info_cn_gd_shenzhen` (
-    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-    `sn` int(20) NOT NULL UNIQUE,
+    `id` varchar(64) NOT NULL UNIQUE,
     `block_cid` varchar(128) NOT NULL,
     `device_id` varchar(128) NOT NULL,
     `block_size` int(20) DEFAULT '0',
     `speed` int(20)  DEFAULT '0' ,
     `reward` int(20) DEFAULT '0',
-    `node_status` TINYINT  DEFAULT '0' ,
-    `user_status` TINYINT  DEFAULT '0' ,
+    `status` TINYINT  DEFAULT '0' ,
+    `failed_reason` varchar(128) DEFAULT '' ,
+    `client_ip` varchar(18) NOT NULL,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
     `complete_time` datetime,
     PRIMARY KEY (`id`)
