@@ -178,6 +178,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 		closer:  closer,
 
 		Node: Node{
+			scheduler:      s,
 			addr:           rpcURL,
 			deviceInfo:     deviceInfo,
 			downloadSrvURL: downloadSrvURL,
@@ -215,7 +216,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 	}
 
 	// url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
-	// log.Infof("EdgeNodeConnect %s ;ip:%s,port:%d", deviceID, ip, port)
+	log.Infof("EdgeNodeConnect %s ;ip:%s", deviceID, ip)
 
 	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
@@ -266,6 +267,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 		closer:  closer,
 
 		Node: Node{
+			scheduler:      s,
 			addr:           rpcURL,
 			deviceInfo:     deviceInfo,
 			downloadSrvURL: downloadSrvURL,
@@ -525,7 +527,13 @@ func (s *Scheduler) ShowDataTask(ctx context.Context, cid string) (api.CacheData
 
 	d := s.dataManager.getData(hash)
 	if d != nil {
-		return dataToCacheDataInfo(d), nil
+		cInfo := dataToCacheDataInfo(d)
+		t, err := cache.GetDB().GetRunningDataTaskExpiredTime(hash)
+		if err == nil {
+			cInfo.DataTimeout = t
+		}
+
+		return cInfo, nil
 	}
 
 	return info, xerrors.Errorf("%s:%s", ErrCidNotFind, cid)
@@ -889,13 +897,29 @@ func (s *Scheduler) GetDownloadInfo(ctx context.Context, deviceID string) ([]*ap
 func (s *Scheduler) ShowDataTasks(ctx context.Context) ([]api.CacheDataInfo, error) {
 	infos := make([]api.CacheDataInfo, 0)
 
-	s.dataManager.taskMap.Range(func(key, value interface{}) bool {
-		data := value.(*Data)
+	list := s.dataManager.getRunningTasks()
 
-		infos = append(infos, dataToCacheDataInfo(data))
+	for _, info := range list {
+		data := s.dataManager.getData(info.CarfileHash)
+		if data != nil {
+			cInfo := dataToCacheDataInfo(data)
 
-		return true
-	})
+			t, err := cache.GetDB().GetRunningDataTaskExpiredTime(info.CarfileHash)
+			if err == nil {
+				cInfo.DataTimeout = t
+			}
+
+			infos = append(infos, cInfo)
+		}
+	}
+
+	// s.dataManager.taskMap.Range(func(key, value interface{}) bool {
+	// 	data := value.(*Data)
+
+	// 	infos = append(infos, dataToCacheDataInfo(data))
+
+	// 	return true
+	// })
 
 	// log.Infof("ShowDataTasks:%v", infos)
 	return infos, nil

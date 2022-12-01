@@ -124,6 +124,7 @@ type CacheDataInfo struct {
 	CacheInfos      []CacheInfo
 
 	CarfileHash string
+	DataTimeout time.Duration
 }
 
 // CacheInfo Cache Info

@@ -1,16 +1,16 @@
 package scheduler
 
 import (
+	"context"
 	"crypto/rsa"
 	"time"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/lib/token"
-	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/region"
 
 	"github.com/filecoin-project/go-jsonrpc"
+	"github.com/filecoin-project/go-jsonrpc/auth"
 )
 
 // var dataDefaultTag = "-1"
@@ -41,6 +41,8 @@ type CandidateNode struct {
 
 // Node Common
 type Node struct {
+	scheduler *Scheduler
+
 	deviceInfo      api.DevicesInfo
 	geoInfo         *region.GeoInfo
 	addr            string
@@ -104,7 +106,7 @@ func (n *Node) getNodeInfo(deviceID string) (*persistent.NodeInfo, error) {
 }
 
 // filter cached blocks and find download url from candidate
-func (n *Node) findDownloadinfoForBlocks(nodeManager *NodeManager, blocks []api.BlockInfo, carfileHash, cacheID string) []api.ReqCacheData {
+func (n *Node) findDownloadinfoForBlocks(blocks []api.BlockInfo, carfileHash, cacheID string) []api.ReqCacheData {
 	reqList := make([]api.ReqCacheData, 0)
 	notFindCandidateBlocks := make([]api.BlockInfo, 0)
 
@@ -121,15 +123,25 @@ func (n *Node) findDownloadinfoForBlocks(nodeManager *NodeManager, blocks []api.
 		csMap[deviceID] = list
 	}
 
-	for deviceID, list := range csMap {
-		info, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
-		if err == nil {
-			tk, err := token.GenerateToken(info.PrivateKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
-			if err == nil {
-				reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: info.URL, DownloadToken: tk, CardFileHash: carfileHash, CacheID: cacheID})
+	tk, err := n.scheduler.AuthNew(context.Background(), []auth.Permission{api.PermRead, api.PermWrite})
+	if err != nil {
+		log.Errorf("findDownloadinfoForBlocks AuthNew err:%s", err.Error())
+		return reqList
+	}
 
-				continue
-			}
+	for deviceID, list := range csMap {
+		// info, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
+
+		node := n.scheduler.nodeManager.getCandidateNode(deviceID)
+		if node != nil {
+			reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: node.addr, DownloadToken: string(tk), CardFileHash: carfileHash, CacheID: cacheID})
+
+			// tk, err := token.GenerateToken(info.PrivateKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
+			// if err == nil {
+			// 	reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: info.URL, DownloadToken: tk, CardFileHash: carfileHash, CacheID: cacheID})
+
+			// 	continue
+			// }
 		}
 
 		notFindCandidateBlocks = append(notFindCandidateBlocks, list...)

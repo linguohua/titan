@@ -1,6 +1,8 @@
 package cache
 
 import (
+	"time"
+
 	"github.com/linguohua/titan/api"
 	"golang.org/x/xerrors"
 )
@@ -19,6 +21,7 @@ type DB interface {
 	SetRunningDataTask(hash, cacheID string, timeout int64) error
 	GetRunningDataTask(hash string) (string, error)
 	RemoveRunningDataTask(hash, cacheID string) error
+	GetRunningDataTaskExpiredTime(hash string) (time.Duration, error)
 
 	SetWaitingDataTask(info api.CacheDataInfo) error
 	GetWaitingDataTask(index int64) (api.CacheDataInfo, error)
