@@ -264,7 +264,7 @@ func (m *DataManager) cacheData(cid string, reliability int, expiredTime int) er
 		return err
 	}
 
-	m.notifyDataLoader()
+	// m.notifyDataLoader()
 
 	return nil
 }
@@ -285,7 +285,7 @@ func (m *DataManager) cacheContinue(cid, cacheID string) error {
 		return err
 	}
 
-	m.notifyDataLoader()
+	// m.notifyDataLoader()
 
 	return nil
 }
@@ -455,7 +455,7 @@ func (m *DataManager) dataTaskEnd(cid, hash, msg string) {
 	m.taskMap.Delete(hash)
 
 	// continue task
-	m.notifyDataLoader()
+	// m.notifyDataLoader()
 }
 
 func (m *DataManager) getRunningTasks() []cache.DataTask {
