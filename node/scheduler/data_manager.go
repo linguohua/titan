@@ -34,15 +34,14 @@ const (
 
 // DataManager Data
 type DataManager struct {
-	nodeManager      *NodeManager
-	blockLoaderCh    chan bool
-	dataTaskLoaderCh chan bool
-
-	taskMap sync.Map
-
-	timerInterval int //  time interval (Second)
-
-	runningTaskMax int
+	nodeManager        *NodeManager
+	blockLoaderCh      chan bool
+	dataTaskLoaderCh   chan bool
+	taskMap            sync.Map
+	timerInterval      int //  time interval (Second)
+	runningTaskMax     int
+	expiredTimeOfCache time.Time
+	defaultTime        time.Time
 }
 
 func newDataManager(nodeManager *NodeManager) *DataManager {
@@ -50,7 +49,7 @@ func newDataManager(nodeManager *NodeManager) *DataManager {
 		nodeManager:      nodeManager,
 		blockLoaderCh:    make(chan bool, 1),
 		dataTaskLoaderCh: make(chan bool, 1),
-		timerInterval:    30,
+		timerInterval:    10,
 		runningTaskMax:   5,
 	}
 
@@ -171,7 +170,7 @@ func (m *DataManager) checkTaskTimeout(taskInfo cache.DataTask) {
 
 func (m *DataManager) checkTaskTimeouts() {
 	list := m.getRunningTasks()
-	if list == nil || len(list) <= 0 {
+	if len(list) <= 0 {
 		return
 	}
 
@@ -360,7 +359,7 @@ func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultI
 	}
 
 	if !m.isDataTaskRunnning(info.CarFileHash, info.CacheID) {
-		return xerrors.Errorf("%s : %s", ErrNotFoundTask, info.CarFileHash)
+		return xerrors.Errorf("data not running : %s,%s", info.CacheID, info.Cid)
 	}
 
 	cacheI, ok := data.cacheMap.Load(info.CacheID)
@@ -387,11 +386,11 @@ func (m *DataManager) doCacheResults() {
 			// return
 		}
 
-		err = cache.GetDB().RemoveCacheResultInfo()
-		if err != nil {
-			log.Errorf("doResultTask RemoveCacheResultInfo err:%s", err.Error())
-			return
-		}
+		// err = cache.GetDB().RemoveCacheResultInfo()
+		// if err != nil {
+		// 	log.Errorf("doResultTask RemoveCacheResultInfo err:%s", err.Error())
+		// 	return
+		// }
 	}
 }
 
@@ -582,6 +581,19 @@ func (m *DataManager) resetExpiredTime(cid, cacheID string, expiredTime time.Tim
 
 // check expired caches
 func (m *DataManager) checkCachesExpired() {
+	if m.expiredTimeOfCache.Equal(m.defaultTime) {
+		var err error
+		m.expiredTimeOfCache, err = persistent.GetDB().GetMinExpiredTimeWithCaches()
+		if err != nil {
+			// log.Errorf("GetMinExpiredTimeWithCaches err:%s", err.Error())
+			return
+		}
+	}
+
+	if m.expiredTimeOfCache.After(time.Now()) {
+		return
+	}
+
 	cacheInfos, err := persistent.GetDB().GetExpiredCaches()
 	if err != nil {
 		log.Errorf("GetExpiredCaches err:%s", err.Error())
@@ -608,6 +620,8 @@ func (m *DataManager) checkCachesExpired() {
 			m.saveEvent(data.carfileCid, cache.cacheID, "expired", "", eventTypeRemoveCacheEnd)
 		}
 	}
+
+	m.expiredTimeOfCache = m.defaultTime
 }
 
 // // expired

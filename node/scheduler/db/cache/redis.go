@@ -294,7 +294,8 @@ func (rd redisDB) SetCacheResultInfo(info api.CacheResultInfo) error {
 func (rd redisDB) GetCacheResultInfo() (api.CacheResultInfo, error) {
 	key := fmt.Sprintf(redisKeyCacheResult, serverName)
 
-	value, err := rd.cli.LIndex(context.Background(), key, 0).Result()
+	// value, err := rd.cli.LIndex(context.Background(), key, 0).Result()
+	value, err := rd.cli.LPop(context.Background(), key).Result()
 
 	var info api.CacheResultInfo
 	bytes, err := redigo.Bytes(value, nil)

@@ -29,6 +29,8 @@ type Cache struct {
 	nodes       int
 	isRootCache bool
 	expiredTime time.Time
+
+	blockMap map[string]string
 }
 
 func newCacheID() (string, error) {
@@ -53,6 +55,7 @@ func newCache(nodeManager *NodeManager, data *Data, hash string, isRootCache boo
 		carfileHash: hash,
 		isRootCache: isRootCache,
 		expiredTime: data.expiredTime,
+		blockMap:    map[string]string{},
 	}
 
 	err = persistent.GetDB().CreateCache(
@@ -79,6 +82,7 @@ func loadCache(cacheID, carfileHash string, nodeManager *NodeManager, data *Data
 		carfileHash: carfileHash,
 		nodeManager: nodeManager,
 		data:        data,
+		blockMap:    map[string]string{},
 	}
 
 	info, err := persistent.GetDB().GetCacheInfo(cacheID)
@@ -96,6 +100,16 @@ func loadCache(cacheID, carfileHash string, nodeManager *NodeManager, data *Data
 	c.totalSize = info.TotalSize
 	c.isRootCache = info.RootCache
 	c.expiredTime = info.ExpiredTime
+
+	blocks, err := persistent.GetDB().GetBlocksWithStatus(c.cacheID, persistent.CacheStatusSuccess)
+	if err != nil || blocks == nil {
+		log.Errorf("loadCache %s,%s GetBlocksWithStatus err:%v", carfileHash, cacheID, err)
+		return nil
+	}
+
+	for _, block := range blocks {
+		c.blockMap[block.CIDHash] = block.DeviceID
+	}
 
 	return c
 }
@@ -182,17 +196,21 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.Blo
 
 	i := 0
 	for cid, dbID := range cids {
-		i++
-		status := persistent.CacheStatusFail
-		deviceID := ""
-		from := "IPFS"
-		fid := 0
-
 		hash, err := helper.CIDString2HashString(cid)
 		if err != nil {
 			log.Errorf("allocateBlocksToNodes %s cid to hash err:%s", cid, err.Error())
 			continue
 		}
+
+		if _, ok := c.blockMap[hash]; ok {
+			continue
+		}
+
+		i++
+		status := persistent.CacheStatusFail
+		deviceID := ""
+		from := "IPFS"
+		fid := 0
 
 		froms, err := persistent.GetDB().GetNodesWithCache(hash, false)
 		if err != nil {
@@ -285,7 +303,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		return xerrors.Errorf("blockCacheResult %s cid to hash err:%s", info.Cid, err.Error())
 	}
 
-	blockInfo, err := persistent.GetDB().GetBlockInfo(info.CacheID, hash, info.DeviceID)
+	blockInfo, err := persistent.GetDB().GetBlockInfo(info.CacheID, hash)
 	if err != nil || blockInfo == nil {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,hash:%s,deviceID:%s, GetBlockInfo err:%v", info.CacheID, hash, info.DeviceID, err)
 	}
@@ -293,6 +311,8 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	if blockInfo.Status == int(persistent.CacheStatusSuccess) {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,%s block saved ", info.CacheID, info.Cid)
 	}
+
+	c.blockMap[hash] = info.DeviceID
 
 	if hash == c.carfileHash {
 		c.totalSize = int(info.LinksSize) + info.BlockSize
@@ -328,17 +348,16 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	}
 
 	createBlocks, nodeCacheMap := c.allocateBlocksToNodes(linkMap)
-
 	// save info to db
 	err = c.data.updateAndSaveCacheingInfo(bInfo, c, createBlocks)
 	if err != nil {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,%s updateAndSaveCacheingInfo err:%s ", info.CacheID, info.Cid, err.Error())
 	}
 
-	if len(linkMap) == 0 {
-		unDoneBlocks, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(persistent.CacheStatusCreate))
+	if len(createBlocks) == 0 {
+		unDoneBlocks, err := persistent.GetDB().GetBlockCountWithStatus(c.cacheID, persistent.CacheStatusCreate)
 		if err != nil {
-			return xerrors.Errorf("blockCacheResult cacheID:%s,%s GetBloackCountWithStatus err:%s ", info.CacheID, info.Cid, err.Error())
+			return xerrors.Errorf("blockCacheResult cacheID:%s,%s GetBlockCountWithStatus err:%s ", info.CacheID, info.Cid, err.Error())
 		}
 
 		if unDoneBlocks <= 0 {
@@ -402,9 +421,9 @@ func (c *Cache) endCache(unDoneBlocks int, isTimeout bool) (err error) {
 		return
 	}
 
-	failedBlocks, err := persistent.GetDB().GetBloackCountWithStatus(c.cacheID, int(persistent.CacheStatusFail))
+	failedBlocks, err := persistent.GetDB().GetBlockCountWithStatus(c.cacheID, persistent.CacheStatusFail)
 	if err != nil {
-		err = xerrors.Errorf("stopCache %s,%s GetBloackCountWithStatus err:%v", c.data.carfileCid, c.cacheID, err.Error())
+		err = xerrors.Errorf("stopCache %s,%s GetBlockCountWithStatus err:%v", c.data.carfileCid, c.cacheID, err.Error())
 		return
 	}
 
