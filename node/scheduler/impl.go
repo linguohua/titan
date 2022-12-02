@@ -493,10 +493,12 @@ func (s *Scheduler) RemoveCache(ctx context.Context, carfileID, cacheID string) 
 }
 
 // CacheCarfile Cache Carfile
-func (s *Scheduler) CacheCarfile(ctx context.Context, cid string, reliability int, expiredTime int) error {
+func (s *Scheduler) CacheCarfile(ctx context.Context, cid string, reliability int, hour int) error {
 	if cid == "" {
 		return xerrors.New("cid is nil")
 	}
+
+	expiredTime := time.Now().Add(time.Duration(hour) * time.Hour)
 
 	return s.dataManager.cacheData(cid, reliability, expiredTime)
 }
@@ -1191,4 +1193,13 @@ func (s *Scheduler) ReplenishCacheExpiredTime(ctx context.Context, carfileCid, c
 	}
 
 	return s.dataManager.replenishExpiredTimeToData(carfileCid, cacheID, hour)
+}
+
+// NodeExits node want to exits titan
+func (s *Scheduler) NodeExits(ctx context.Context, deviceID string) error {
+	s.dataManager.nodeExitsTheSystem(deviceID)
+
+	// TODO remove node manager nodemap and db
+
+	return nil
 }

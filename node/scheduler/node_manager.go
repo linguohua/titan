@@ -9,21 +9,7 @@ import (
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
-	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
-)
-
-// node manager
-
-// type geoLevel int64
-
-const (
-// defaultLevel  geoLevel = 0
-// countryLevel  geoLevel = 1
-// provinceLevel geoLevel = 2
-// cityLevel     geoLevel = 3
-
-// defaultKey = "default"
 )
 
 // NodeManager Node Manager
@@ -31,8 +17,8 @@ type NodeManager struct {
 	edgeNodeMap      sync.Map
 	candidateNodeMap sync.Map
 
-	timewheelKeepalive *timewheel.TimeWheel
-	keepaliveTime      float64 // keepalive time interval (minute)
+	// timewheelKeepalive *timewheel.TimeWheel
+	keepaliveTime float64 // keepalive time interval (minute)
 
 	validatePool   *ValidatePool
 	locatorManager *LocatorManager
@@ -48,19 +34,30 @@ func newNodeManager(pool *ValidatePool, locatorManager *LocatorManager) *NodeMan
 		// areaManager:   &AreaManager{},
 	}
 
-	nodeManager.initKeepaliveTimewheel()
+	go nodeManager.run()
 
 	return nodeManager
 }
 
-// InitKeepaliveTimewheel ndoe Keepalive
-func (m *NodeManager) initKeepaliveTimewheel() {
-	m.timewheelKeepalive = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-		m.timewheelKeepalive.AddTimer(time.Duration(m.keepaliveTime*60-1)*time.Second, "Keepalive", nil)
-		m.nodeKeepalive()
-	})
-	m.timewheelKeepalive.Start()
-	m.timewheelKeepalive.AddTimer(time.Duration(m.keepaliveTime*60)*time.Second, "Keepalive", nil)
+func (m *NodeManager) run() {
+	ticker := time.NewTicker(time.Duration(m.keepaliveTime*60) * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			m.nodeKeepalive()
+
+			// check node offline how time
+		}
+	}
+
+	// m.timewheelKeepalive = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
+	// 	m.timewheelKeepalive.AddTimer(time.Duration(m.keepaliveTime*60-1)*time.Second, "Keepalive", nil)
+	// 	m.nodeKeepalive()
+	// })
+	// m.timewheelKeepalive.Start()
+	// m.timewheelKeepalive.AddTimer(time.Duration(m.keepaliveTime*60)*time.Second, "Keepalive", nil)
 }
 
 func (m *NodeManager) nodeKeepalive() {

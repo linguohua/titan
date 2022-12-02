@@ -1,7 +1,7 @@
 CREATE TABLE `node` (
     `id` int unsigned NOT NULL AUTO_INCREMENT,
 	`device_id` varchar(128) NOT NULL UNIQUE ,
-    `last_time` varchar(64) DEFAULT '' ,
+    `last_time` datetime DEFAULT CURRENT_TIMESTAMP ,
     `create_time` datetime DEFAULT CURRENT_TIMESTAMP ,
     `geo` varchar(64),
 	`node_type` varchar(64) DEFAULT '' ,

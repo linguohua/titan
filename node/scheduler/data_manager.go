@@ -30,6 +30,7 @@ const (
 	eventTypeStopDataTask        EventType = "StopDataTask"
 	eventTypeReplenishCacheTime  EventType = "ReplenishCacheTime"
 	eventTypeResetCacheTime      EventType = "ResetCacheTime"
+	eventTypeRestoreCache        EventType = "RestoreCache"
 )
 
 // DataManager Data
@@ -42,6 +43,8 @@ type DataManager struct {
 	runningTaskMax     int
 	expiredTimeOfCache time.Time
 	defaultTime        time.Time
+
+	haveCacheNodes map[string]time.Time
 }
 
 func newDataManager(nodeManager *NodeManager) *DataManager {
@@ -238,12 +241,16 @@ func (m *DataManager) makeDataContinue(hash, cacheID string) (*Cache, error) {
 	}
 	cache := cacheI.(*Cache)
 
+	if cache.status == persistent.CacheStatusSuccess {
+		return nil, xerrors.Errorf("Cache completed :%s", cacheID)
+	}
+
 	data.cacheCount = data.reliability
 
 	return data.dispatchCache(cache)
 }
 
-func (m *DataManager) cacheData(cid string, reliability int, expiredTime int) error {
+func (m *DataManager) cacheData(cid string, reliability int, expiredTime time.Time) error {
 	hash, err := helper.CIDString2HashString(cid)
 	if err != nil {
 		return xerrors.Errorf("%s cid to hash err:", cid, err.Error())
@@ -251,9 +258,7 @@ func (m *DataManager) cacheData(cid string, reliability int, expiredTime int) er
 
 	// TODO check reliability expiredTime
 
-	t := time.Now().Add(time.Duration(expiredTime) * time.Hour)
-
-	err = cache.GetDB().SetWaitingDataTask(api.CacheDataInfo{CarfileHash: hash, CarfileCid: cid, NeedReliability: reliability, ExpiredTime: t})
+	err = cache.GetDB().SetWaitingDataTask(api.CacheDataInfo{CarfileHash: hash, CarfileCid: cid, NeedReliability: reliability, ExpiredTime: expiredTime})
 	if err != nil {
 		return err
 	}
@@ -555,6 +560,53 @@ func (m *DataManager) resetExpiredTime(cid, cacheID string, expiredTime time.Tim
 	}
 
 	return nil
+}
+
+func (m *DataManager) nodeExitsTheSystem(deviceID string) {
+	// find node caches
+	caches, err := persistent.GetDB().GetCachesFromNode(deviceID)
+	if err != nil {
+		log.Errorf("nodeExitsTheSystem GetCachesFromNode err:%s", err.Error())
+		return
+	}
+
+	if len(caches) <= 0 {
+		log.Warn("nodeExitsTheSystem caches is nil")
+		return
+	}
+
+	// clean node caches and change cache info \ data info
+	err = persistent.GetDB().NodeExits(deviceID, caches)
+	if err != nil {
+		log.Errorf("nodeExitsTheSystem NodeExits err:%s", err.Error())
+		return
+	}
+
+	// restore cache info
+	dataMap := make(map[string]int)
+	for _, c := range caches {
+		dataMap[c.CarfileHash]++
+	}
+
+	for carfileHash := range dataMap {
+		info, err := persistent.GetDB().GetDataInfo(carfileHash)
+		if err != nil {
+			log.Errorf("nodeExitsTheSystem GetDataInfo err:%s", err.Error())
+			continue
+		}
+
+		err = m.cacheData(info.CarfileCid, info.NeedReliability, info.ExpiredTime)
+		if err != nil {
+			log.Errorf("nodeExitsTheSystem err:%s", err.Error())
+			continue
+		}
+
+		err = persistent.GetDB().SetEventInfo(&api.EventInfo{CID: info.CarfileCid, DeviceID: deviceID, Msg: "", Event: string(eventTypeRestoreCache)})
+		if err != nil {
+			log.Errorf("nodeExitsTheSystem SetEventInfo err:%s", err.Error())
+			continue
+		}
+	}
 }
 
 // stop
