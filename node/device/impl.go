@@ -88,7 +88,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 
 	partitions, err := disk.Partitions(true)
 	if len(partitions) > 0 {
-		info.DiskType = partitions[0].Fstype
+		info.IoSystem = partitions[0].Fstype
 
 		use := uint64(0)
 		total := uint64(0)

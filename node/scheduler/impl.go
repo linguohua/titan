@@ -91,8 +91,6 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int) api.Scheduler {
 
 	s.Web = web.NewWeb(s)
 
-	go manager.stateNetwork()
-
 	sec, err := secret.APISecret(lr)
 	if err != nil {
 		log.Panicf("NewLocalScheduleNode failed:%s", err.Error())
@@ -871,11 +869,6 @@ func randomNum(start, end int) int {
 func (s *Scheduler) ValidateSwitch(ctx context.Context, open bool) error {
 	s.validate.open = open
 	return nil
-}
-
-// StateNetwork State Network
-func (s *Scheduler) StateNetwork(ctx context.Context) (api.StateNetwork, error) {
-	return s.nodeManager.state, nil
 }
 
 // LocatorConnect Locator Connect

@@ -464,36 +464,6 @@ func (rd redisDB) SetDeviceLatency(deviceID string, latency float64) error {
 	return nil
 }
 
-func (rd redisDB) GetDeviceStat() (out api.StateNetwork, err error) {
-	ctx := context.Background()
-	keys, err := rd.cli.Keys(ctx, fmt.Sprintf(redisKeyNodeInfo, "*")).Result()
-	if err != nil {
-		return
-	}
-
-	for _, key := range keys {
-		node := api.DevicesInfo{}
-		if err = rd.cli.HGetAll(ctx, key).Scan(&node); err != nil {
-			continue
-		}
-
-		switch node.NodeType {
-		case api.NodeCandidate:
-			out.AllCandidate++
-		case api.NodeEdge:
-			out.AllEdgeNode++
-		default:
-			continue
-		}
-
-		out.StorageT += node.DiskSpace / float64(tebibyte)
-		out.TotalBandwidthDown += node.BandwidthDown
-		out.TotalBandwidthUp += node.BandwidthUp
-	}
-
-	return
-}
-
 func (rd redisDB) SetDownloadBlockRecord(record DownloadBlockRecord) error {
 	ctx := context.Background()
 	key := fmt.Sprintf(redisKeyBlockDownloadRecord, record.SN)

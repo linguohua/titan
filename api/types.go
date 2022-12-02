@@ -20,19 +20,6 @@ const (
 
 type OpenRPCDocument map[string]interface{}
 
-type AllMinerInfo struct {
-	AllVerifier        int     `json:"all_verifier"`         // 全网验证人
-	AllCandidate       int     `json:"all_candidate"`        // 全网候选人
-	AllEdgeNode        int     `json:"all_edgeNode"`         // 全网边缘节点
-	StorageT           float64 `json:"storage_t"`            // 全网存储（T）
-	TotalBandwidthUp   float64 `json:"total_bandwidth_up"`   // 上行带宽B/s
-	TotalBandwidthDown float64 `json:"total_bandwidth_down"` // 下行带宽B/s
-}
-
-type StateNetwork struct {
-	AllMinerInfo
-}
-
 type Base struct {
 	ID        uint      `gorm:"primarykey"`
 	CreatedAt time.Time `json:"created_at" gorm:"comment:'创建时间';type:timestamp;"`
