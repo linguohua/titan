@@ -735,6 +735,18 @@ func (sd sqlDB) ReplaceArea() string {
 	return str
 }
 
+// func (sd sqlDB) GetNodesFromAllData() ([]string, error) {
+// 	area := sd.ReplaceArea()
+
+// 	query := fmt.Sprintf("SELECT DISTINCT device_id FROM %s WHERE status=3", fmt.Sprintf(blockInfoTable, area))
+// 	var out []string
+// 	if err := sd.cli.Select(&out, query); err != nil {
+// 		return nil, err
+// 	}
+
+// 	return out, nil
+// }
+
 func (sd sqlDB) GetNodesFromData(hash string) (int, error) {
 	area := sd.ReplaceArea()
 
@@ -757,6 +769,66 @@ func (sd sqlDB) GetNodesFromCache(cacheID string) (int, error) {
 	}
 
 	return len(out), nil
+}
+
+func (sd sqlDB) GetCachesFromNode(deviceID string) ([]*CacheInfo, error) {
+	area := sd.ReplaceArea()
+
+	query := fmt.Sprintf("SELECT DISTINCT cache_id FROM %s WHERE device_id=?", fmt.Sprintf(blockInfoTable, area))
+	var blocks []*BlockInfo
+	if err := sd.cli.Select(&blocks, query, deviceID); err != nil {
+		return nil, err
+	}
+
+	caches := make([]*CacheInfo, 0)
+	for _, block := range blocks {
+		var cache CacheInfo
+		query := fmt.Sprintf("SELECT * FROM %s WHERE cache_id=?", fmt.Sprintf(cacheInfoTable, area))
+		if err := sd.cli.Get(&cache, query, block.CacheID); err != nil {
+			fmt.Println("err:", err.Error())
+			continue
+		}
+
+		caches = append(caches, &cache)
+	}
+
+	return caches, nil
+}
+
+func (sd sqlDB) NodeExits(deviceID string, caches []*CacheInfo) error {
+	area := sd.ReplaceArea()
+	cTableName := fmt.Sprintf(cacheInfoTable, area)
+	dTableName := fmt.Sprintf(dataInfoTable, area)
+	bTableName := fmt.Sprintf(blockInfoTable, area)
+
+	tx := sd.cli.MustBegin()
+
+	// block info
+	cmdB := fmt.Sprintf(`UPDATE %s SET status=? WHERE device_id=?`, bTableName)
+	tx.MustExec(cmdB, int(CacheStatusRestore), deviceID)
+
+	carfileReliabilitys := make(map[string]int)
+	// cache info
+	for _, cache := range caches {
+		cmdC := fmt.Sprintf(`UPDATE %s SET status=? WHERE cache_id=?`, cTableName)
+		tx.MustExec(cmdC, int(CacheStatusRestore), cache.CacheID)
+
+		carfileReliabilitys[cache.CarfileHash] += cache.Reliability
+	}
+
+	// data info
+	for carfileHash, reliability := range carfileReliabilitys {
+		cmdD := fmt.Sprintf(`UPDATE %s SET reliability=reliability-? WHERE carfile_hash=?`, dTableName)
+		tx.MustExec(cmdD, reliability, carfileHash)
+	}
+
+	err := tx.Commit()
+	if err != nil {
+		err = tx.Rollback()
+		return err
+	}
+
+	return nil
 }
 
 func (sd sqlDB) SetBlockDownloadInfo(info *api.BlockDownloadInfo) error {

@@ -247,6 +247,8 @@ type SchedulerStruct struct {
 
 		NodeDownloadBlockResult func(p0 context.Context, p1 NodeBlockDownloadResult) error `perm:"write"`
 
+		NodeExits func(p0 context.Context, p1 string) (error) `perm:"admin"`
+
 		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"read"`
 
 		QueryCachingBlocksWithNode func(p0 context.Context, p1 string) (CachingBlockList, error) `perm:"read"`
@@ -995,6 +997,17 @@ func (s *SchedulerStruct) NodeDownloadBlockResult(p0 context.Context, p1 NodeBlo
 }
 
 func (s *SchedulerStub) NodeDownloadBlockResult(p0 context.Context, p1 NodeBlockDownloadResult) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) NodeExits(p0 context.Context, p1 string) (error) {
+	if s.Internal.NodeExits == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.NodeExits(p0, p1)
+}
+
+func (s *SchedulerStub) NodeExits(p0 context.Context, p1 string) (error) {
 	return ErrNotSupported
 }
 

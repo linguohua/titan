@@ -102,9 +102,9 @@ func loadCache(cacheID, carfileHash string, nodeManager *NodeManager, data *Data
 	c.expiredTime = info.ExpiredTime
 
 	blocks, err := persistent.GetDB().GetBlocksWithStatus(c.cacheID, persistent.CacheStatusSuccess)
-	if err != nil || blocks == nil {
+	if err != nil {
 		log.Errorf("loadCache %s,%s GetBlocksWithStatus err:%v", carfileHash, cacheID, err)
-		return nil
+		return c
 	}
 
 	for _, block := range blocks {
@@ -187,10 +187,6 @@ func (c *Cache) findIdleNode(skips map[string]string, i int) (deviceID string) {
 
 // Allocate blocks to nodes
 func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.BlockInfo, map[string][]api.BlockInfo) {
-	if cids == nil {
-		return nil, nil
-	}
-
 	nodeCacheMap := make(map[string][]api.BlockInfo)
 	blockList := make([]*persistent.BlockInfo, 0)
 
@@ -312,21 +308,31 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,%s block saved ", info.CacheID, info.Cid)
 	}
 
-	c.blockMap[hash] = info.DeviceID
-
-	if hash == c.carfileHash {
-		c.totalSize = int(info.LinksSize) + info.BlockSize
-		c.totalBlocks = 1
-	}
-	c.totalBlocks += len(info.Links)
-
 	status := persistent.CacheStatusFail
 	reliability := 0
-	if info.IsOK {
-		c.doneBlocks++
-		c.doneSize += info.BlockSize
-		status = persistent.CacheStatusSuccess
-		reliability = c.calculateReliability(blockInfo.DeviceID)
+
+	if c.status != persistent.CacheStatusRestore {
+		if hash == c.carfileHash {
+			c.totalSize = int(info.LinksSize) + info.BlockSize
+			c.totalBlocks = 1
+		}
+		c.totalBlocks += len(info.Links)
+
+		if info.IsOK {
+			c.blockMap[hash] = info.DeviceID
+			c.doneBlocks++
+			c.doneSize += info.BlockSize
+			status = persistent.CacheStatusSuccess
+			reliability = c.calculateReliability(blockInfo.DeviceID)
+		}
+	} else {
+		info.Links = make([]string, 0)
+
+		if info.IsOK {
+			c.blockMap[hash] = info.DeviceID
+			status = persistent.CacheStatusSuccess
+			reliability = c.calculateReliability(blockInfo.DeviceID)
+		}
 	}
 
 	bInfo := &persistent.BlockInfo{
@@ -514,6 +520,10 @@ func (c *Cache) removeBlocks(deviceID string, cids []string) {
 }
 
 func (c *Cache) calculateReliability(deviceID string) int {
+	if deviceID != "" {
+		return 1
+	}
+
 	if c.status == persistent.CacheStatusSuccess {
 		return 1
 	}

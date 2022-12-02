@@ -49,6 +49,9 @@ type DB interface {
 	GetAllBlocks(cacheID string) ([]*BlockInfo, error)
 	GetNodesFromCache(cacheID string) (int, error)
 	GetNodesFromData(hash string) (int, error)
+	GetCachesFromNode(deviceID string) ([]*CacheInfo, error)
+	NodeExits(deviceID string, caches []*CacheInfo) error // TODO rename
+	// GetNodesFromAllData() ([]string, error)
 
 	// node block
 	// DeleteBlockInfos(cacheID, deviceID string, cids []string, removeBlocks int) error
@@ -121,7 +124,7 @@ func GetDB() DB {
 type NodeInfo struct {
 	ID         int
 	DeviceID   string    `db:"device_id"`
-	LastTime   string    `db:"last_time"`
+	LastTime   time.Time `db:"last_time"`
 	Geo        string    `db:"geo"`
 	IsOnline   int       `db:"is_online"`
 	NodeType   string    `db:"node_type"`
@@ -265,8 +268,8 @@ const (
 	CacheStatusSuccess
 	// CacheStatusTimeout status
 	CacheStatusTimeout
-	// CacheStatusRemove status
-	CacheStatusRemove
+	// CacheStatusRestore status
+	CacheStatusRestore
 )
 
 // MsgStatus message Status
@@ -275,7 +278,7 @@ type MsgStatus int
 const (
 	// MsgStatusUnknown status
 	MsgStatusUnknown MsgStatus = iota
-	// MsgStatusFail status
+	// MsgStatustusFail status
 	MsgStatustusFail
 	// MsgStatusSuccess status
 	MsgStatusSuccess

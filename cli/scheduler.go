@@ -41,6 +41,7 @@ var SchedulerCmds = []*cli.Command{
 	listEventCmd,
 	resetCacheExpiredTimeCmd,
 	replenishCacheExpiredTimeCmd,
+	nodeExitsCmd,
 }
 
 var (
@@ -122,6 +123,36 @@ var (
 		Value: "",
 	}
 )
+
+var nodeExitsCmd = &cli.Command{
+	Name:  "node-exits",
+	Usage: "node exits the titan",
+	Flags: []cli.Flag{
+		deviceIDFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		deviceID := cctx.String("device-id")
+
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		err = schedulerAPI.NodeExits(ctx, deviceID)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
+}
 
 var resetCacheExpiredTimeCmd = &cli.Command{
 	Name:  "reset-cache-expired",

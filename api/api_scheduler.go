@@ -16,7 +16,7 @@ type Scheduler interface {
 	Validate(ctx context.Context) error                                                                 //perm:admin
 	QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]CacheStat, error)                   //perm:read
 	QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (CachingBlockList, error)          //perm:read
-	CacheCarfile(ctx context.Context, cid string, reliability, expiredTime int) error                   //perm:admin
+	CacheCarfile(ctx context.Context, cid string, reliability, hour int) error                          //perm:admin
 	RemoveCarfile(ctx context.Context, carfileID string) error                                          //perm:admin
 	RemoveCache(ctx context.Context, carfileID, cacheID string) error                                   //perm:admin
 	ShowDataTask(ctx context.Context, cid string) (CacheDataInfo, error)                                //perm:read
@@ -30,6 +30,7 @@ type Scheduler interface {
 	ListEvents(ctx context.Context, page int) (EventListInfo, error)                                    //perm:read
 	ResetCacheExpiredTime(ctx context.Context, carfileCid, cacheID string, expiredTime time.Time) error //perm:admin
 	ReplenishCacheExpiredTime(ctx context.Context, carfileCid, cacheID string, hour int) error          //perm:admin
+	NodeExits(ctx context.Context, device string) error                                                 //perm:admin
 
 	// call by locator
 	LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID, locatorToken string) error //perm:write
