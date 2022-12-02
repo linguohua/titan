@@ -50,7 +50,6 @@ type Scheduler interface {
 	GetDownloadInfoWithBlocks(ctx context.Context, cids []string, publicKey string) (map[string]DownloadInfoResult, error)    //perm:read
 	GetDownloadInfoWithBlock(ctx context.Context, cid, publicKey string) (DownloadInfoResult, error)                          //perm:read
 	GetDevicesInfo(ctx context.Context, deviceID string) (DevicesInfo, error)                                                 //perm:read
-	StateNetwork(ctx context.Context) (StateNetwork, error)                                                                   //perm:read
 	GetDownloadInfo(ctx context.Context, deviceID string) ([]*BlockDownloadInfo, error)                                       //perm:read
 
 	// user send result when user download block complete

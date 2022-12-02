@@ -45,7 +45,6 @@ type DB interface {
 	IncrNodeOnlineTime(deviceID string, onlineTime float64) (float64, error)
 	IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error)
 
-	GetDeviceStat() (api.StateNetwork, error)
 	SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, error)
 	GetDeviceInfo(deviceID string) (api.DevicesInfo, error)
 	IncrDeviceReward(deviceID string, reward int64) error

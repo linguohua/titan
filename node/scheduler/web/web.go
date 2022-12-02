@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -29,12 +30,19 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 
 	deviceInfos := make([]api.DevicesInfo, 0)
 	for _, node := range nodes {
-		deviceInfo, err := w.scheduler.GetDevicesInfo(context.Background(), node.DeviceID)
+		deviceInfo, err := cache.GetDB().GetDeviceInfo(node.DeviceID)
 		if err != nil {
-			log.Errorf("ListNodes, get device info error:%s", err.Error())
+			log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), node.DeviceID)
 			continue
 		}
-
+		switch node.IsOnline {
+		case 0:
+			deviceInfo.DeviceStatus = "offline"
+		case 1:
+			deviceInfo.DeviceStatus = "online"
+		default:
+			deviceInfo.DeviceStatus = "abnormal"
+		}
 		deviceInfos = append(deviceInfos, deviceInfo)
 	}
 

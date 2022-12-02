@@ -35,6 +35,7 @@ const (
 
 	NodeEdge
 	NodeCandidate
+	NodeValidate
 	NodeScheduler
 	NodeLocator
 )
