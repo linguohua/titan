@@ -366,6 +366,8 @@ var runCmd = &cli.Command{
 			return err
 		}
 
+		log.Infof("Candidate listen on %s", address)
+
 		addressSlice := strings.Split(address, ":")
 		rpcURL := fmt.Sprintf("http://%s:%s/rpc/v0", externalIP, addressSlice[1])
 

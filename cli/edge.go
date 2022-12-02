@@ -63,6 +63,11 @@ var CacheBlockCmd = &cli.Command{
 			Usage: "block cids",
 			Value: "",
 		},
+		&cli.IntFlag{
+			Name:  "fid",
+			Usage: "block fid",
+			Value: 0,
+		},
 		&cli.StringFlag{
 			Name:  "candidate",
 			Usage: "block file id",
@@ -78,10 +83,11 @@ var CacheBlockCmd = &cli.Command{
 		defer closer()
 
 		cid := cctx.String("cid")
+		fid := cctx.Int("fid")
 		candidateURL := cctx.String("candidate")
 		ctx := ReqContext(cctx)
 
-		blockInfo := api.BlockInfo{Cid: cid, Fid: 1}
+		blockInfo := api.BlockInfo{Cid: cid, Fid: fid}
 
 		reqData := API.ReqCacheData{BlockInfos: []api.BlockInfo{blockInfo}, DownloadURL: candidateURL}
 
@@ -201,30 +207,6 @@ var LimitRateCmd = &cli.Command{
 		return nil
 	},
 }
-
-// var DownloadInfoCmd = &cli.Command{
-// 	Name:  "downinfo",
-// 	Usage: "get download server url and token",
-// 	Flags: []cli.Flag{},
-// 	Action: func(cctx *cli.Context) error {
-// 		api, closer, err := GetEdgeAPI(cctx)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		defer closer()
-
-// 		ctx := ReqContext(cctx)
-// 		info, err := api.GetDownloadInfo(ctx)
-// 		if err != nil {
-// 			fmt.Printf("Unlimit speed failed:%v", err)
-// 			return err
-// 		}
-
-// 		fmt.Printf("URL:%s\n", info.URL)
-// 		fmt.Printf("Token:%s\n", info.Token)
-// 		return nil
-// 	},
-// }
 
 var CacheStatCmd = &cli.Command{
 	Name:  "stat",

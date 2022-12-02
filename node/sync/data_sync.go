@@ -206,8 +206,6 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 		blocks[fid] = hash
 	}
 
-	log.Infof("scrubBlocks,blocks:%s", scrub.Blocks)
-
 	startFid := scrub.StartFid
 	endFid := scrub.EndFid
 	need2DeleteBlocks := make([]string, 0)
@@ -241,7 +239,6 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 		} else {
 			need2DeleteBlocks = append(need2DeleteBlocks, cid)
 		}
-		log.Infof("scrub fid %s ~%s, cid %s", startFid, endFid, cid)
 	}
 
 	// delete blocks that not exist on scheduler
@@ -259,7 +256,7 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 		// blocks is need to download
 	}
 
-	log.Infof("scrubBlocks, delete blocks %d, download blocks %d", len(need2DeleteBlocks), len(blocks))
+	log.Infof("scrubBlocks, fid %d~%d delete blocks %d, download blocks %d", startFid, endFid, len(need2DeleteBlocks), len(blocks))
 	return nil
 }
 

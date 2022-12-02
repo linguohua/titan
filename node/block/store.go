@@ -157,9 +157,17 @@ func (block *Block) deleteAllBlocks() error {
 			return nil
 		}
 
-		_, err = block.AnnounceBlocksWasDelete(ctx, []string{string(r.Value)})
+		multihash, err := multihash.FromHexString(string(r.Value))
 		if err != nil {
-			log.Infof("err:%v, cid:%s", err, string(r.Value))
+			log.Errorf("parse block hash error:%s", err.Error())
+			continue
+		}
+
+		cid := cid.NewCidV1(cid.Raw, multihash)
+		_, err = block.AnnounceBlocksWasDelete(ctx, []string{cid.String()})
+		if err != nil {
+			log.Infof("err:%v, cid:%s", err, cid.String())
+			continue
 		}
 		log.Infof("deleteAllBlocks key:%s", r.Key)
 	}
