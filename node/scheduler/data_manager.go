@@ -607,6 +607,14 @@ func (m *DataManager) cleanNodeAndRestoreCaches(deviceID string) {
 			continue
 		}
 	}
+
+	// update node block count
+	err = cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
+		deviceInfo.BlockCount = 0
+	})
+	if err != nil {
+		log.Errorf("UpdateDeviceInfo err:%s ", err.Error())
+	}
 }
 
 // stop
