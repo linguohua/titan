@@ -47,8 +47,7 @@ type DB interface {
 
 	SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, error)
 	GetDeviceInfo(deviceID string) (api.DevicesInfo, error)
-	IncrDeviceReward(deviceID string, reward int64) error
-	SetDeviceLatency(deviceID string, latency float64) error
+	UpdateDeviceInfo(deviceID string, update func(deviceInfo *api.DevicesInfo)) error
 	SetDownloadBlockRecord(record DownloadBlockRecord) error
 	RemoveDownloadBlockRecord(sn int64) error
 	GetDownloadBlockRecord(sn int64) (DownloadBlockRecord, error)

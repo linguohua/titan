@@ -186,62 +186,22 @@ func (rd redisDB) RemoveValidatorList() error {
 	return err
 }
 
-func (rd redisDB) IncrDeviceReward(deviceID string, reward int64) error {
-	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
-
-	results, err := rd.cli.HMGet(context.Background(), key, nodeTodayRewardField, nodeRewardDateTimeField).Result()
-	if err != nil {
-		return err
-	}
-
-	var (
-		datetime     time.Time
-		beforeReward int64
-	)
-
-	if resReward, ok := results[0].(string); ok {
-		beforeReward, err = strconv.ParseInt(resReward, 10, 64)
-		if err != nil {
-			return err
-		}
-	}
-
-	if date, ok := results[1].(string); ok {
-		datetime, err = time.Parse(dayFormatLayout, date)
-		if err != nil {
-			return err
-		}
-	}
-
-	if getStartOfDay(datetime).Equal(getStartOfDay(time.Now())) {
-		reward += beforeReward
-	}
-
-	_, err = rd.cli.HMSet(context.Background(), key,
-		nodeTodayRewardField, reward,
-		nodeRewardDateTimeField, getStartOfDay(time.Now()).Format(dayFormatLayout),
-	).Result()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func getStartOfDay(t time.Time) time.Time {
-	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
-}
-
 func (rd redisDB) SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
 	ctx := context.Background()
-	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+	exist, err := rd.cli.Exists(ctx, key).Result()
+	if err != nil {
+		return false, err
+	}
+
+	if exist == 1 {
+		return true, rd.updateBaseDeviceInfo(deviceID, info)
+	}
+
+	_, err = rd.cli.Pipelined(ctx, func(pipeline redis.Pipeliner) error {
 		for field, value := range toMap(info) {
-			if field == nodeTodayRewardField || field == onlineTimeField {
-				continue
-			}
-			pipeliner.HMSet(ctx, key, field, value)
+			pipeline.HMSet(ctx, key, field, value)
 		}
 		return nil
 	})
@@ -250,6 +210,37 @@ func (rd redisDB) SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, er
 	}
 
 	return true, nil
+}
+
+func (rd redisDB) updateBaseDeviceInfo(deviceID string, info api.DevicesInfo) error {
+	return rd.UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
+		deviceInfo.NodeType = info.NodeType
+		deviceInfo.DeviceName = info.DeviceName
+		deviceInfo.SnCode = info.SnCode
+		deviceInfo.Operator = info.Operator
+		deviceInfo.NetworkType = info.NetworkType
+		deviceInfo.SystemVersion = info.SystemVersion
+		deviceInfo.ProductType = info.ProductType
+		deviceInfo.NetworkInfo = info.NetworkInfo
+		deviceInfo.ExternalIp = info.ExternalIp
+		deviceInfo.InternalIp = info.InternalIp
+		deviceInfo.IpLocation = info.IpLocation
+		deviceInfo.MacLocation = info.MacLocation
+		deviceInfo.NatType = info.NatType
+		deviceInfo.Upnp = info.Upnp
+		deviceInfo.CpuUsage = info.CpuUsage
+		deviceInfo.CPUCores = info.CPUCores
+		deviceInfo.MemoryUsage = info.MemoryUsage
+		deviceInfo.Memory = info.Memory
+		deviceInfo.DiskUsage = info.DiskUsage
+		deviceInfo.DiskSpace = info.DiskSpace
+		deviceInfo.DiskType = info.DiskType
+		deviceInfo.DeviceStatus = info.DeviceStatus
+		deviceInfo.WorkStatus = info.WorkStatus
+		deviceInfo.IoSystem = info.IoSystem
+		deviceInfo.BandwidthUp = info.BandwidthUp
+		deviceInfo.BandwidthDown = info.BandwidthDown
+	})
 }
 
 func toMap(info api.DevicesInfo) map[string]interface{} {
@@ -455,15 +446,6 @@ func (rd redisDB) GetDataTasksWithRunningList() ([]DataTask, error) {
 	return list, nil
 }
 
-func (rd redisDB) SetDeviceLatency(deviceID string, latency float64) error {
-	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
-	_, err := rd.cli.HMSet(context.Background(), key, nodeLatencyField, latency).Result()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (rd redisDB) SetDownloadBlockRecord(record DownloadBlockRecord) error {
 	ctx := context.Background()
 	key := fmt.Sprintf(redisKeyBlockDownloadRecord, record.SN)
@@ -505,4 +487,24 @@ func (rd redisDB) IncrBlockDownloadSN() (int64, error) {
 	}
 
 	return n, err
+}
+
+func (rd redisDB) UpdateDeviceInfo(deviceID string, update func(deviceInfo *api.DevicesInfo)) error {
+	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+	deviceInfo, err := rd.GetDeviceInfo(deviceID)
+	if err != nil {
+		return err
+	}
+
+	update(&deviceInfo)
+
+	ctx := context.Background()
+	_, err = rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+		for field, value := range toMap(deviceInfo) {
+			pipeliner.HMSet(ctx, key, field, value)
+		}
+		return nil
+	})
+
+	return err
 }

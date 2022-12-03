@@ -36,8 +36,6 @@ type DevicesInfo struct {
 	SnCode          string   `json:"sn_code" form:"snCode" gorm:"column:sn_code;comment:;"`
 	Operator        string   `json:"operator" form:"operator" gorm:"column:operator;comment:;" redis:"Operator"`
 	NetworkType     string   `json:"network_type" form:"networkType" gorm:"column:network_type;comment:;" redis:"NetworkType"`
-	YesterdayIncome float64  `json:"yesterday_income" form:"yesterdayIncome" gorm:"column:yesterday_income;comment:;"`
-	CumuProfit      float64  `json:"cumu_profit" form:"cumuProfit" gorm:"column:cumu_profit;comment:;"`
 	SystemVersion   string   `json:"system_version" form:"systemVersion" gorm:"column:system_version;comment:;" redis:"SystemVersion"`
 	ProductType     string   `json:"product_type" form:"productType" gorm:"column:product_type;comment:;" redis:"ProductType"`
 	NetworkInfo     string   `json:"network_info" form:"networkInfo" gorm:"column:network_info;comment:;" redis:"NetworkInfo"`
@@ -63,6 +61,7 @@ type DevicesInfo struct {
 	NatRatio        float64  `json:"nat_ratio" form:"nat_ratio" gorm:"column:nat_ratio;comment:;" redis:"NatRatio"`
 	OnlineTime      float64  `json:"online_time" form:"OnlineTime" redis:"OnlineTime"`
 	TodayProfit     float64  `json:"today_profit" redis:"TodayProfit"`
+	LastRewardDate  string   `json:"-" redis:"LastRewardDate"`
 	BandwidthUp     float64  `json:"bandwidth_up" redis:"BandwidthUp"`
 	BandwidthDown   float64  `json:"bandwidth_down" redis:"BandwidthDown"`
 	TotalDownload   float64  `json:"total_download" redis:"TotalDownload"`
