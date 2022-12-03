@@ -576,7 +576,7 @@ func (m *DataManager) cleanNodeAndRestoreCaches(deviceID string) {
 	}
 
 	// clean node caches and change cache info \ data info
-	err = persistent.GetDB().NodeExits(deviceID, caches)
+	err = persistent.GetDB().CleanCacheDataWithNode(deviceID, caches)
 	if err != nil {
 		log.Errorf("nodeExitsTheSystem NodeExits err:%s", err.Error())
 		return

@@ -1231,8 +1231,12 @@ func incrDeviceReward(deviceID string, incrReward int64) error {
 	})
 }
 
-func incrDeviceBlock(deviceID string, blocks int) error {
-	return cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
-		deviceInfo.BlockCount += blocks
-	})
+// func incrDeviceBlock(deviceID string, blocks int) error {
+// 	return cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
+// 		deviceInfo.BlockCount += blocks
+// 	})
+// }
+
+func getStartOfDay(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
 }

@@ -50,7 +50,7 @@ type DB interface {
 	GetNodesFromCache(cacheID string) (int, error)
 	GetNodesFromData(hash string) (int, error)
 	GetCachesFromNode(deviceID string) ([]*CacheInfo, error)
-	NodeExits(deviceID string, caches []*CacheInfo) error // TODO rename
+	CleanCacheDataWithNode(deviceID string, caches []*CacheInfo) error // TODO rename
 	// GetNodesFromAllData() ([]string, error)
 
 	// node block

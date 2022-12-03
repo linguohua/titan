@@ -36,8 +36,6 @@ var SchedulerCmds = []*cli.Command{
 	validateSwitchCmd,
 	// node
 	showOnlineNodeCmd,
-	// deleteBlocksCmd,
-	// initDeviceIDsCmd,
 	cachingBlocksCmd,
 	cacheStatCmd,
 	getDownloadInfoCmd,
@@ -480,43 +478,6 @@ var listEventCmd = &cli.Command{
 	},
 }
 
-// var listEventCmd = &cli.Command{
-// 	Name:  "list-event",
-// 	Usage: "list events",
-// 	Flags: []cli.Flag{
-// 		pageFlag,
-// 	},
-
-// 	Before: func(cctx *cli.Context) error {
-// 		return nil
-// 	},
-// 	Action: func(cctx *cli.Context) error {
-// 		ctx := ReqContext(cctx)
-// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-// 		if err != nil {
-// 			return err
-// 		}
-// 		defer closer()
-
-// 		page := cctx.Int("page")
-// 		if page < 1 {
-// 			return xerrors.New("page need greater than 1")
-// 		}
-
-// 		info, err := schedulerAPI.ListDatas(ctx, page)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		for _, str := range info.CidList {
-// 			fmt.Println(str)
-// 		}
-// 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
-
-// 		return nil
-// 	},
-// }
-
 var validateSwitchCmd = &cli.Command{
 	Name:  "validate-switch",
 	Usage: "validate switch",
@@ -743,55 +704,6 @@ var cacheContinueCmd = &cli.Command{
 	},
 }
 
-// var cacheBlocksCmd = &cli.Command{
-// 	Name:  "cache-blocks",
-// 	Usage: "specify node cache blocks",
-// 	Flags: []cli.Flag{
-// 		// schedulerURLFlag,
-// 		cidsFlag,
-// 		deviceIDFlag,
-// 		cidsPathFlag,
-// 	},
-
-// 	Before: func(cctx *cli.Context) error {
-// 		return nil
-// 	},
-// 	Action: func(cctx *cli.Context) error {
-// 		// url := cctx.String("scheduler-url")
-// 		cids := cctx.String("cids")
-// 		deviceID := cctx.String("device-id")
-// 		cidsPath := cctx.String("cids-file-path")
-
-// 		ctx := ReqContext(cctx)
-// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-// 		if err != nil {
-// 			return err
-// 		}
-// 		defer closer()
-
-// 		var cidList []string
-// 		if cids != "" {
-// 			cidList = strings.Split(cids, ",")
-// 		}
-
-// 		if cidsPath != "" {
-// 			cidList, err = loadCidsFromFile(cidsPath)
-// 			if err != nil {
-// 				return fmt.Errorf("loadFile err:%s", err.Error())
-// 			}
-// 		}
-
-// 		errCids, err := schedulerAPI.CacheBlocks(ctx, cidList, deviceID)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		fmt.Printf("errCids:%v", errCids)
-
-// 		return nil
-// 	},
-// }
-
 var getDownloadInfoCmd = &cli.Command{
 	Name:  "download-infos",
 	Usage: "specify node cache blocks",
@@ -870,54 +782,6 @@ func publicKey2Pem(publicKey *rsa.PublicKey) string {
 	return string(publicKeyBytes)
 }
 
-// var deleteBlocksCmd = &cli.Command{
-// 	Name:  "delete-blocks",
-// 	Usage: "delete cache blocks",
-// 	Flags: []cli.Flag{
-// 		// schedulerURLFlag,
-// 		cidsFlag,
-// 		deviceIDFlag,
-// 		cidsPathFlag,
-// 	},
-
-// 	Before: func(cctx *cli.Context) error {
-// 		return nil
-// 	},
-// 	Action: func(cctx *cli.Context) error {
-// 		// url := cctx.String("scheduler-url")
-// 		cids := cctx.String("cids")
-// 		deviceID := cctx.String("device-id")
-// 		cidsPath := cctx.String("cids-file-path")
-
-// 		ctx := ReqContext(cctx)
-// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-// 		if err != nil {
-// 			return err
-// 		}
-// 		defer closer()
-
-// 		var cidList []string
-// 		if cids != "" {
-// 			cidList = strings.Split(cids, ",")
-// 		}
-
-// 		if cidsPath != "" {
-// 			cidList, err = loadCidsFromFile(cidsPath)
-// 			if err != nil {
-// 				return fmt.Errorf("loadFile err:%s", err.Error())
-// 			}
-// 		}
-
-// 		errorCids, err := schedulerAPI.DeleteBlocks(ctx, deviceID, cidList)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		fmt.Printf("errorCids:%v", errorCids)
-
-// 		return nil
-// 	},
-// }
-
 var showOnlineNodeCmd = &cli.Command{
 	Name:  "show-nodes",
 	Usage: "show all online node",
@@ -945,30 +809,6 @@ var showOnlineNodeCmd = &cli.Command{
 		return err
 	},
 }
-
-// var initDeviceIDsCmd = &cli.Command{
-// 	Name:  "init-devices",
-// 	Usage: "init deviceIDs",
-// 	Flags: []cli.Flag{
-// 		schedulerURLFlag,
-// 	},
-
-// 	Before: func(cctx *cli.Context) error {
-// 		return nil
-// 	},
-// 	Action: func(cctx *cli.Context) error {
-// 		// url := cctx.String("scheduler-url")
-
-// 		ctx := ReqContext(cctx)
-// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-// 		if err != nil {
-// 			return err
-// 		}
-// 		defer closer()
-
-// 		return schedulerAPI.InitNodeDeviceIDs(ctx)
-// 	},
-// }
 
 var cachingBlocksCmd = &cli.Command{
 	Name:  "caching-blocks",
