@@ -1197,7 +1197,7 @@ func (s *Scheduler) ReplenishCacheExpiredTime(ctx context.Context, carfileCid, c
 
 // NodeExits node want to exits titan
 func (s *Scheduler) NodeExits(ctx context.Context, deviceID string) error {
-	s.dataManager.nodeExitsTheSystem(deviceID)
+	s.dataManager.cleanNodeAndRestoreCaches(deviceID)
 
 	// TODO remove node manager nodemap and db
 
