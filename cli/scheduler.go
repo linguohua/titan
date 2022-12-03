@@ -433,8 +433,8 @@ var listDataCmd = &cli.Command{
 			return err
 		}
 
-		for _, str := range info.CidList {
-			fmt.Println(str)
+		for _, info := range info.CacheInfos {
+			fmt.Printf("%s ,Reliabilit: %d/%d \n", info.CarfileCid, info.CurReliability, info.NeedReliability)
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
 
