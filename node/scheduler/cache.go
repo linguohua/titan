@@ -360,6 +360,14 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,%s updateAndSaveCacheingInfo err:%s ", info.CacheID, info.Cid, err.Error())
 	}
 
+	// save block count to redis
+	err = cache.GetDB().UpdateDeviceInfo(info.DeviceID, func(deviceInfo *api.DevicesInfo) {
+		deviceInfo.BlockCount++
+	})
+	if err != nil {
+		log.Errorf("UpdateDeviceInfo err:%s ", err.Error())
+	}
+
 	if len(createBlocks) == 0 {
 		unDoneBlocks, err := persistent.GetDB().GetBlockCountWithStatus(c.cacheID, persistent.CacheStatusCreate)
 		if err != nil {
@@ -466,6 +474,15 @@ func (c *Cache) removeCache() error {
 		if deviceID == "" {
 			continue
 		}
+
+		// update node block count
+		err = cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
+			deviceInfo.BlockCount -= len(cids)
+		})
+		if err != nil {
+			log.Errorf("UpdateDeviceInfo err:%s ", err.Error())
+		}
+
 		go c.removeBlocks(deviceID, cids)
 	}
 
