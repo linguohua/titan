@@ -451,5 +451,5 @@ func (v *Validate) compareCid(cidStr1, cidStr2 string) bool {
 }
 
 func (v *Validate) updateLatency(deviceID string, latency float64) error {
-	return cache.GetDB().SetDeviceLatency(deviceID, latency)
+	return updateLatency(deviceID, latency)
 }

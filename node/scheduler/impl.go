@@ -365,7 +365,7 @@ func (s *Scheduler) NodeDownloadBlockResult(ctx context.Context, result api.Node
 	if record.NodeStatus == int(blockDownloadStatusSuccess) && record.UserStatus == int(blockDownloadStatusSuccess) {
 		reward = 1
 		// add reward
-		if err := cache.GetDB().IncrDeviceReward(deviceID, reward); err != nil {
+		if err := incrDeviceReward(deviceID, reward); err != nil {
 			return err
 		}
 	}
@@ -398,7 +398,7 @@ func (s *Scheduler) handleUserDownloadBlockResult(ctx context.Context, result ap
 	if record.NodeStatus == int(blockDownloadStatusSuccess) && record.UserStatus == int(blockDownloadStatusSuccess) {
 		reward = 1
 		// add reward
-		if err := cache.GetDB().IncrDeviceReward(deviceID, reward); err != nil {
+		if err := incrDeviceReward(deviceID, reward); err != nil {
 			return err
 		}
 	}
@@ -1202,4 +1202,26 @@ func (s *Scheduler) NodeExits(ctx context.Context, deviceID string) error {
 	// TODO remove node manager nodemap and db
 
 	return nil
+}
+
+func updateLatency(deviceID string, latency float64) error {
+	return cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
+		deviceInfo.Latency = latency
+	})
+}
+
+func incrDeviceReward(deviceID string, incrReward int64) error {
+	return cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
+		lastRewardDate, _ := time.Parse(time.RFC3339, deviceInfo.LastRewardDate)
+		if getStartOfDay(lastRewardDate).Equal(getStartOfDay(time.Now())) {
+			deviceInfo.TodayProfit += float64(incrReward)
+			return
+		}
+		deviceInfo.TodayProfit = float64(incrReward)
+		deviceInfo.LastRewardDate = getStartOfDay(time.Now()).Format(time.RFC3339)
+	})
+}
+
+func getStartOfDay(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
 }
