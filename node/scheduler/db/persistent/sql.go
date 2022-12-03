@@ -795,7 +795,7 @@ func (sd sqlDB) GetCachesFromNode(deviceID string) ([]*CacheInfo, error) {
 	return caches, nil
 }
 
-func (sd sqlDB) NodeExits(deviceID string, caches []*CacheInfo) error {
+func (sd sqlDB) CleanCacheDataWithNode(deviceID string, caches []*CacheInfo) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 	dTableName := fmt.Sprintf(dataInfoTable, area)
