@@ -562,7 +562,7 @@ func (m *DataManager) resetExpiredTime(cid, cacheID string, expiredTime time.Tim
 	return nil
 }
 
-func (m *DataManager) nodeExitsTheSystem(deviceID string) {
+func (m *DataManager) cleanNodeAndRestoreCaches(deviceID string) {
 	// find node caches
 	caches, err := persistent.GetDB().GetCachesFromNode(deviceID)
 	if err != nil {
