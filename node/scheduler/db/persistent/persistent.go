@@ -28,7 +28,7 @@ type DB interface {
 	// data info
 	SetDataInfo(info *DataInfo) error
 	GetDataInfo(hash string) (*DataInfo, error)
-	GetDataCidWithPage(page int) (count int, totalPage int, list []string, err error)
+	GetDataCidWithPage(page int) (count int, totalPage int, list []DataInfo, err error)
 	GetCachesWithData(hash string) ([]string, error)
 
 	ChangeExpiredTimeWhitCaches(carfileHash, cacheID string, expiredTime time.Time) error

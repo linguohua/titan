@@ -443,7 +443,7 @@ func (sd sqlDB) GetDataInfo(hash string) (*DataInfo, error) {
 	return info, err
 }
 
-func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []string, err error) {
+func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []DataInfo, err error) {
 	area := sd.ReplaceArea()
 	p := 20
 
@@ -466,7 +466,7 @@ func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []s
 		page = totalPage
 	}
 
-	cmd = fmt.Sprintf("SELECT carfile_cid FROM %s LIMIT %d,%d", fmt.Sprintf(dataInfoTable, area), (p * (page - 1)), p)
+	cmd = fmt.Sprintf("SELECT * FROM %s LIMIT %d,%d", fmt.Sprintf(dataInfoTable, area), (p * (page - 1)), p)
 	if err = sd.cli.Select(&list, cmd); err != nil {
 		return
 	}

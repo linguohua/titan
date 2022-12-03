@@ -59,10 +59,10 @@ type Scheduler interface {
 
 // DataListInfo Data List Info
 type DataListInfo struct {
-	Page      int
-	TotalPage int
-	Cids      int
-	CidList   []string
+	Page       int
+	TotalPage  int
+	Cids       int
+	CacheInfos []*CacheDataInfo
 }
 
 // EventInfo Event Info

@@ -17,7 +17,6 @@ type NodeManager struct {
 	edgeNodeMap      sync.Map
 	candidateNodeMap sync.Map
 
-	// timewheelKeepalive *timewheel.TimeWheel
 	keepaliveTime float64 // keepalive time interval (minute)
 
 	validatePool   *ValidatePool
@@ -51,13 +50,6 @@ func (m *NodeManager) run() {
 			// check node offline how time
 		}
 	}
-
-	// m.timewheelKeepalive = timewheel.New(1*time.Second, 3600, func(_ interface{}) {
-	// 	m.timewheelKeepalive.AddTimer(time.Duration(m.keepaliveTime*60-1)*time.Second, "Keepalive", nil)
-	// 	m.nodeKeepalive()
-	// })
-	// m.timewheelKeepalive.Start()
-	// m.timewheelKeepalive.AddTimer(time.Duration(m.keepaliveTime*60)*time.Second, "Keepalive", nil)
 }
 
 func (m *NodeManager) nodeKeepalive() {

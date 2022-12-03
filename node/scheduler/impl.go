@@ -510,7 +510,22 @@ func (s *Scheduler) ListDatas(ctx context.Context, page int) (api.DataListInfo, 
 		return api.DataListInfo{}, err
 	}
 
-	return api.DataListInfo{Page: page, TotalPage: totalPage, Cids: count, CidList: list}, nil
+	out := make([]*api.CacheDataInfo, 0)
+	for _, info := range list {
+		dInfo := &api.CacheDataInfo{
+			CarfileCid:      info.CarfileCid,
+			CarfileHash:     info.CarfileHash,
+			NeedReliability: info.NeedReliability,
+			CurReliability:  info.Reliability,
+			TotalSize:       info.TotalSize,
+			Blocks:          info.TotalBlocks,
+			Nodes:           info.Nodes,
+		}
+
+		out = append(out, dInfo)
+	}
+
+	return api.DataListInfo{Page: page, TotalPage: totalPage, Cids: count, CacheInfos: out}, nil
 }
 
 // ShowDataTask Show Data Task
