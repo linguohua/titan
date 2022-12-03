@@ -19,29 +19,31 @@ import (
 
 // SchedulerCmds Scheduler Cmds
 var SchedulerCmds = []*cli.Command{
-	// cacheBlocksCmd,
+	// cache
+	listDataCmd,
+	cacheContinueCmd,
+	cacheCarfileCmd,
+	showDataInfoCmd,
+	removeCarfileCmd,
+	removeCacheCmd,
+	showDatasInfoCmd,
+	resetCacheExpiredTimeCmd,
+	replenishCacheExpiredTimeCmd,
+	nodeExitsCmd,
+	// validate
 	electionCmd,
 	validateCmd,
+	validateSwitchCmd,
+	// node
 	showOnlineNodeCmd,
 	// deleteBlocksCmd,
 	// initDeviceIDsCmd,
 	cachingBlocksCmd,
 	cacheStatCmd,
 	getDownloadInfoCmd,
-	cacheCarfileCmd,
-	showDataInfoCmd,
 	registerNodeCmd,
-	cacheContinueCmd,
-	listDataCmd,
-	validateSwitchCmd,
-	removeCarfileCmd,
-	removeCacheCmd,
-	showDatasInfoCmd,
 	nodeTokenCmd,
 	listEventCmd,
-	resetCacheExpiredTimeCmd,
-	replenishCacheExpiredTimeCmd,
-	nodeExitsCmd,
 }
 
 var (
@@ -305,7 +307,6 @@ var removeCarfileCmd = &cli.Command{
 	Name:  "remove-carfile",
 	Usage: "remove a carfile",
 	Flags: []cli.Flag{
-		cacheIDFlag,
 		cidFlag,
 	},
 
@@ -434,7 +435,7 @@ var listDataCmd = &cli.Command{
 		}
 
 		for _, info := range info.CacheInfos {
-			fmt.Printf("%s ,Reliabilit: %d/%d \n", info.CarfileCid, info.CurReliability, info.NeedReliability)
+			fmt.Printf("%s ,Reliabilit: %d/%d , Blocks:%d , Nodes:%d \n", info.CarfileCid, info.CurReliability, info.NeedReliability, info.Blocks, info.Nodes)
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
 
