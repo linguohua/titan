@@ -30,7 +30,7 @@ var (
 	blockInfoTable    = "block_info_%s"
 	cacheInfoTable    = "cache_info_%s"
 	blockDownloadInfo = "block_download_info_%s"
-	messageInfoTable  = "message_info_%s"
+	// messageInfoTable  = "message_info_%s"
 )
 
 // InitSQL init sql
@@ -106,13 +106,33 @@ func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
 	}
 
 	// update
-	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address,server_name=:server_name,url=:url  WHERE device_id=:device_id`, info)
+	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address,server_name=:server_name,url=:url,exited=:exited WHERE device_id=:device_id`, info)
 
 	return err
 }
 
+func (sd sqlDB) SetNodeExited(deviceID string) error {
+	info := &NodeInfo{
+		DeviceID: deviceID,
+		Exited:   true,
+	}
+	_, err := sd.cli.NamedExec(`UPDATE node SET exited=:exited WHERE device_id=:device_id`, info)
+	return err
+}
+
+func (sd sqlDB) GetOfflineNodes() ([]*NodeInfo, error) {
+	list := make([]*NodeInfo, 0)
+
+	cmd := "SELECT * FROM node WHERE exited=? AND is_online=? AND server_name=?"
+	if err := sd.cli.Select(&list, cmd, false, false, serverName); err != nil {
+		return nil, err
+	}
+
+	return list, nil
+}
+
 func (sd sqlDB) setAllNodeOffline() error {
-	info := &NodeInfo{IsOnline: 0, ServerName: serverName}
+	info := &NodeInfo{IsOnline: false, ServerName: serverName}
 	_, err := sd.cli.NamedExec(`UPDATE node SET is_online=:is_online WHERE server_name=:server_name`, info)
 
 	return err
@@ -804,8 +824,8 @@ func (sd sqlDB) CleanCacheDataWithNode(deviceID string, caches []*CacheInfo) err
 	tx := sd.cli.MustBegin()
 
 	// block info
-	cmdB := fmt.Sprintf(`UPDATE %s SET status=? WHERE device_id=?`, bTableName)
-	tx.MustExec(cmdB, int(CacheStatusRestore), deviceID)
+	cmdB := fmt.Sprintf(`UPDATE %s SET status=? WHERE device_id=? AND status=?`, bTableName)
+	tx.MustExec(cmdB, int(CacheStatusRestore), deviceID, int(CacheStatusSuccess))
 
 	carfileReliabilitys := make(map[string]int)
 	// cache info
@@ -912,29 +932,29 @@ func (sd sqlDB) GetEventInfos(page int) (count int, totalPage int, out []api.Eve
 	return
 }
 
-func (sd sqlDB) SetMessageInfo(infos []*MessageInfo) error {
-	area := sd.ReplaceArea()
-	tableName := fmt.Sprintf(messageInfoTable, area)
+// func (sd sqlDB) SetMessageInfo(infos []*MessageInfo) error {
+// 	area := sd.ReplaceArea()
+// 	tableName := fmt.Sprintf(messageInfoTable, area)
 
-	tx := sd.cli.MustBegin()
+// 	tx := sd.cli.MustBegin()
 
-	for _, info := range infos {
-		if info.ID != "" {
-			cmd := fmt.Sprintf(`UPDATE %s SET cid=?,target=?,cache_id=?,carfile_cid=?,status=?,size=?,msg_type=?,source=?,created_time=?,end_time=? WHERE id=?`, tableName)
-			tx.MustExec(cmd, info.CID, info.Target, info.CacheID, info.CarfileCid, info.Status, info.Size, info.Type, info.Source, info.CreateTime, info.EndTime, info.ID)
-		} else {
-			cmd := fmt.Sprintf(`INSERT INTO %s (cid, target, cache_id, carfile_cid, status, size, msg_type, source, created_time, end_time, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, REPLACE(UUID(),"-",""))`, tableName)
-			tx.MustExec(cmd, info.CID, info.Target, info.CacheID, info.CarfileCid, info.Status, info.Size, info.Type, info.Source, info.CreateTime, info.EndTime)
-		}
-	}
+// 	for _, info := range infos {
+// 		if info.ID != "" {
+// 			cmd := fmt.Sprintf(`UPDATE %s SET cid=?,target=?,cache_id=?,carfile_cid=?,status=?,size=?,msg_type=?,source=?,created_time=?,end_time=? WHERE id=?`, tableName)
+// 			tx.MustExec(cmd, info.CID, info.Target, info.CacheID, info.CarfileCid, info.Status, info.Size, info.Type, info.Source, info.CreateTime, info.EndTime, info.ID)
+// 		} else {
+// 			cmd := fmt.Sprintf(`INSERT INTO %s (cid, target, cache_id, carfile_cid, status, size, msg_type, source, created_time, end_time, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, REPLACE(UUID(),"-",""))`, tableName)
+// 			tx.MustExec(cmd, info.CID, info.Target, info.CacheID, info.CarfileCid, info.Status, info.Size, info.Type, info.Source, info.CreateTime, info.EndTime)
+// 		}
+// 	}
 
-	err := tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-	}
+// 	err := tx.Commit()
+// 	if err != nil {
+// 		err = tx.Rollback()
+// 	}
 
-	return err
-}
+// 	return err
+// }
 
 func (sd sqlDB) GetDownloadInfoBySN(sn int64) (*api.BlockDownloadInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE sn = ?`, fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))

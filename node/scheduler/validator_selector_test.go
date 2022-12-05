@@ -1,12 +1,13 @@
 package scheduler
 
 import (
+	"testing"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 var (
@@ -37,7 +38,7 @@ var (
 
 func TestWinner(t *testing.T) {
 	assert := assert.New(t)
-	manager := newNodeManager(nil, nil)
+	manager := newNodeManager(nil, nil, nil)
 
 	var (
 		amountOf100MbpsCandidates = 5
@@ -59,7 +60,7 @@ func TestWinner(t *testing.T) {
 	assert.Equal(len(winners), amountOf100MbpsCandidates)
 
 	// the candidates have same download bandwidth
-	manager = newNodeManager(nil, nil)
+	manager = newNodeManager(nil, nil, nil)
 	amountOf100MbpsCandidates = 30
 	amountOf100MbpsEdges = 30
 	amountOf300MbpsEdges = 30
@@ -99,7 +100,7 @@ func TestWinner(t *testing.T) {
 	}
 	assert.Condition(afterAppendContainsWinners)
 
-	manager = newNodeManager(nil, nil)
+	manager = newNodeManager(nil, nil, nil)
 	// the candidates have difference download bandwidth
 	amountOf100MbpsCandidates = 13
 	amountOf500MbpsCandidates = 5
@@ -122,7 +123,7 @@ func TestWinner(t *testing.T) {
 
 	assert.Greater(totalDownloadBdw, float64(amountOf300MbpsEdges*30<<20))
 
-	manager = newNodeManager(nil, nil)
+	manager = newNodeManager(nil, nil, nil)
 	amountOf100MbpsCandidates = 1200
 	amountOf100MbpsEdges = 10000
 
@@ -135,7 +136,6 @@ func TestWinner(t *testing.T) {
 	winners, err = selector.winner(false)
 	require.NoError(t, err)
 	assert.Equal(1120, len(winners))
-
 }
 
 func addCandidateOfBandwidth100Mbps(manage *NodeManager, amount int) {

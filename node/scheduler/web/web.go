@@ -37,9 +37,9 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 			continue
 		}
 		switch node.IsOnline {
-		case 0:
+		case false:
 			deviceInfo.DeviceStatus = "offline"
-		case 1:
+		case true:
 			deviceInfo.DeviceStatus = "online"
 		default:
 			deviceInfo.DeviceStatus = "abnormal"

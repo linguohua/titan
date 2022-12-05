@@ -63,11 +63,12 @@ func (n *Node) setNodeOnline(typeName api.NodeTypeName) error {
 	err := persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{
 		Geo:        geoInfo.Geo,
 		LastTime:   time.Now(),
-		IsOnline:   1,
+		IsOnline:   true,
 		NodeType:   string(typeName),
 		Address:    n.addr,
 		PrivateKey: privateKey2Pem(n.privateKey),
 		URL:        n.downloadSrvURL,
+		Exited:     false,
 	})
 	if err != nil {
 		return err
@@ -86,9 +87,10 @@ func (n *Node) setNodeOffline(deviceID string, geoInfo *region.GeoInfo, nodeType
 	err := persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{
 		Geo:      geoInfo.Geo,
 		LastTime: lastTime,
-		IsOnline: 0,
+		IsOnline: false,
 		NodeType: string(nodeType),
 		Address:  n.addr,
+		Exited:   false,
 	})
 	if err != nil {
 		log.Errorf("node offline SetNodeInfo err : %s ,deviceID : %s", err.Error(), deviceID)
