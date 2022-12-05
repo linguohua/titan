@@ -311,7 +311,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	status := persistent.CacheStatusFail
 	reliability := 0
 
-	if c.status != persistent.CacheStatusRestore {
+	if persistent.CacheStatus(blockInfo.Status) != persistent.CacheStatusRestore {
 		if hash == c.carfileHash {
 			c.totalSize = int(info.LinksSize) + info.BlockSize
 			c.totalBlocks = 1
@@ -324,6 +324,14 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 			c.doneSize += info.BlockSize
 			status = persistent.CacheStatusSuccess
 			reliability = c.calculateReliability(blockInfo.DeviceID)
+
+			// save block count to redis
+			err = cache.GetDB().UpdateDeviceInfo(info.DeviceID, func(deviceInfo *api.DevicesInfo) {
+				deviceInfo.BlockCount++
+			})
+			if err != nil {
+				log.Errorf("UpdateDeviceInfo err:%s ", err.Error())
+			}
 		}
 	} else {
 		info.Links = make([]string, 0)
@@ -332,6 +340,14 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 			c.blockMap[hash] = info.DeviceID
 			status = persistent.CacheStatusSuccess
 			reliability = c.calculateReliability(blockInfo.DeviceID)
+
+			// save block count to redis
+			err = cache.GetDB().UpdateDeviceInfo(info.DeviceID, func(deviceInfo *api.DevicesInfo) {
+				deviceInfo.BlockCount++
+			})
+			if err != nil {
+				log.Errorf("UpdateDeviceInfo err:%s ", err.Error())
+			}
 		}
 	}
 
@@ -358,14 +374,6 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	err = c.data.updateAndSaveCacheingInfo(bInfo, c, createBlocks)
 	if err != nil {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,%s updateAndSaveCacheingInfo err:%s ", info.CacheID, info.Cid, err.Error())
-	}
-
-	// save block count to redis
-	err = cache.GetDB().UpdateDeviceInfo(info.DeviceID, func(deviceInfo *api.DevicesInfo) {
-		deviceInfo.BlockCount++
-	})
-	if err != nil {
-		log.Errorf("UpdateDeviceInfo err:%s ", err.Error())
 	}
 
 	if len(createBlocks) == 0 {
@@ -425,7 +433,7 @@ func (c *Cache) endCache(unDoneBlocks int, isTimeout bool) (err error) {
 
 	defer func() {
 		// save message info
-		c.setCacheMessageInfo()
+		// c.setCacheMessageInfo()
 
 		c.data.cacheEnd(c)
 	}()
@@ -548,42 +556,42 @@ func (c *Cache) calculateReliability(deviceID string) int {
 	return 0
 }
 
-func (c *Cache) setCacheMessageInfo() {
-	blocks, err := persistent.GetDB().GetAllBlocks(c.cacheID)
-	if err != nil {
-		log.Errorf("cache:%s setCacheMessage GetAllBlocks err:%s", c.cacheID, err.Error())
-		return
-	}
+// func (c *Cache) setCacheMessageInfo() {
+// 	blocks, err := persistent.GetDB().GetAllBlocks(c.cacheID)
+// 	if err != nil {
+// 		log.Errorf("cache:%s setCacheMessage GetAllBlocks err:%s", c.cacheID, err.Error())
+// 		return
+// 	}
 
-	messages := make([]*persistent.MessageInfo, 0)
+// 	messages := make([]*persistent.MessageInfo, 0)
 
-	for _, block := range blocks {
-		info := &persistent.MessageInfo{
-			CID:        block.CID,
-			Target:     block.DeviceID,
-			CacheID:    block.CacheID,
-			CarfileCid: c.data.carfileCid,
-			Size:       block.Size,
-			Type:       persistent.MsgTypeCache,
-			Source:     block.Source,
-			EndTime:    block.EndTime,
-			CreateTime: block.CreateTime,
-		}
+// 	for _, block := range blocks {
+// 		info := &persistent.MessageInfo{
+// 			CID:        block.CID,
+// 			Target:     block.DeviceID,
+// 			CacheID:    block.CacheID,
+// 			CarfileCid: c.data.carfileCid,
+// 			Size:       block.Size,
+// 			Type:       persistent.MsgTypeCache,
+// 			Source:     block.Source,
+// 			EndTime:    block.EndTime,
+// 			CreateTime: block.CreateTime,
+// 		}
 
-		if block.Status == int(persistent.CacheStatusSuccess) {
-			info.Status = persistent.MsgStatusSuccess
-		} else {
-			info.Status = persistent.MsgStatustusFail
-		}
+// 		if block.Status == int(persistent.CacheStatusSuccess) {
+// 			info.Status = persistent.MsgStatusSuccess
+// 		} else {
+// 			info.Status = persistent.MsgStatustusFail
+// 		}
 
-		messages = append(messages, info)
-	}
+// 		messages = append(messages, info)
+// 	}
 
-	err = persistent.GetDB().SetMessageInfo(messages)
-	if err != nil {
-		log.Errorf("cache:%s setCacheMessage SetMessageInfo err:%s", c.cacheID, err.Error())
-	}
-}
+// 	err = persistent.GetDB().SetMessageInfo(messages)
+// 	if err != nil {
+// 		log.Errorf("cache:%s setCacheMessage SetMessageInfo err:%s", c.cacheID, err.Error())
+// 	}
+// }
 
 func (c *Cache) replenishExpiredTime(hour int) {
 	c.expiredTime = c.expiredTime.Add((time.Duration(hour) * time.Hour))

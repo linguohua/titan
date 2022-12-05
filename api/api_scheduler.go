@@ -30,7 +30,7 @@ type Scheduler interface {
 	ListEvents(ctx context.Context, page int) (EventListInfo, error)                                    //perm:read
 	ResetCacheExpiredTime(ctx context.Context, carfileCid, cacheID string, expiredTime time.Time) error //perm:admin
 	ReplenishCacheExpiredTime(ctx context.Context, carfileCid, cacheID string, hour int) error          //perm:admin
-	NodeExits(ctx context.Context, device string) error                                                 //perm:admin
+	NodeExit(ctx context.Context, device string) error                                                  //perm:admin
 
 	// call by locator
 	LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID, locatorToken string) error //perm:write

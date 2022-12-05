@@ -6,10 +6,11 @@ CREATE TABLE `node` (
     `geo` varchar(64),
 	`node_type` varchar(64) DEFAULT '' ,
 	`address` varchar(64) DEFAULT '' ,
-    `is_online` TINYINT  DEFAULT '0' ,
+    `is_online` BOOLEAN DEFAULT '0' ,
 	`server_name` varchar(64) DEFAULT '' ,
 	`private_key` varchar(1024) DEFAULT '' ,
-	`url` varchar(64) DEFAULT '' ,
+	`url` varchar(64) DEFAULT '' ,    
+    `exited` BOOLEAN DEFAULT '0' ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node info';
 

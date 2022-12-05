@@ -29,7 +29,7 @@ var SchedulerCmds = []*cli.Command{
 	showDatasInfoCmd,
 	resetCacheExpiredTimeCmd,
 	replenishCacheExpiredTimeCmd,
-	nodeExitsCmd,
+	nodeExitCmd,
 	// validate
 	electionCmd,
 	validateCmd,
@@ -124,9 +124,9 @@ var (
 	}
 )
 
-var nodeExitsCmd = &cli.Command{
-	Name:  "node-exits",
-	Usage: "node exits the titan",
+var nodeExitCmd = &cli.Command{
+	Name:  "node-exit",
+	Usage: "node exit the titan",
 	Flags: []cli.Flag{
 		deviceIDFlag,
 	},
@@ -145,7 +145,7 @@ var nodeExitsCmd = &cli.Command{
 		}
 		defer closer()
 
-		err = schedulerAPI.NodeExits(ctx, deviceID)
+		err = schedulerAPI.NodeExit(ctx, deviceID)
 		if err != nil {
 			return err
 		}

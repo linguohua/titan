@@ -566,19 +566,19 @@ func (m *DataManager) cleanNodeAndRestoreCaches(deviceID string) {
 	// find node caches
 	caches, err := persistent.GetDB().GetCachesFromNode(deviceID)
 	if err != nil {
-		log.Errorf("nodeExitsTheSystem GetCachesFromNode err:%s", err.Error())
+		log.Errorf("cleanNodeAndRestoreCaches GetCachesFromNode err:%s", err.Error())
 		return
 	}
 
 	if len(caches) <= 0 {
-		log.Warn("nodeExitsTheSystem caches is nil")
+		log.Warn("cleanNodeAndRestoreCaches caches is nil")
 		return
 	}
 
 	// clean node caches and change cache info \ data info
 	err = persistent.GetDB().CleanCacheDataWithNode(deviceID, caches)
 	if err != nil {
-		log.Errorf("nodeExitsTheSystem NodeExits err:%s", err.Error())
+		log.Errorf("cleanNodeAndRestoreCaches CleanCacheDataWithNode err:%s", err.Error())
 		return
 	}
 
@@ -591,19 +591,19 @@ func (m *DataManager) cleanNodeAndRestoreCaches(deviceID string) {
 	for carfileHash := range dataMap {
 		info, err := persistent.GetDB().GetDataInfo(carfileHash)
 		if err != nil {
-			log.Errorf("nodeExitsTheSystem GetDataInfo err:%s", err.Error())
+			log.Errorf("cleanNodeAndRestoreCaches GetDataInfo err:%s", err.Error())
 			continue
 		}
 
 		err = m.cacheData(info.CarfileCid, info.NeedReliability, info.ExpiredTime)
 		if err != nil {
-			log.Errorf("nodeExitsTheSystem err:%s", err.Error())
+			log.Errorf("cleanNodeAndRestoreCaches err:%s", err.Error())
 			continue
 		}
 
 		err = persistent.GetDB().SetEventInfo(&api.EventInfo{CID: info.CarfileCid, DeviceID: deviceID, Msg: "", Event: string(eventTypeRestoreCache)})
 		if err != nil {
-			log.Errorf("nodeExitsTheSystem SetEventInfo err:%s", err.Error())
+			log.Errorf("cleanNodeAndRestoreCaches SetEventInfo err:%s", err.Error())
 			continue
 		}
 	}

@@ -71,23 +71,22 @@ const (
 func NewLocalScheduleNode(lr repo.LockedRepo, port int) api.Scheduler {
 	verifiedNodeMax := 10
 
+	s := &Scheduler{serverPort: port}
+
 	locatorManager := newLoactorManager(port)
 	pool := newValidatePool(verifiedNodeMax)
-	manager := newNodeManager(pool, locatorManager)
+	manager := newNodeManager(pool, locatorManager, s)
 	election := newElection(pool)
 	validate := newValidate(pool, manager)
 	dataManager := newDataManager(manager)
 
-	s := &Scheduler{
-		CommonAPI:      common.NewCommonAPI(manager.updateLastRequestTime),
-		nodeManager:    manager,
-		validatePool:   pool,
-		election:       election,
-		validate:       validate,
-		dataManager:    dataManager,
-		locatorManager: locatorManager,
-		serverPort:     port,
-	}
+	s.validatePool = pool
+	s.locatorManager = locatorManager
+	s.nodeManager = manager
+	s.election = election
+	s.validate = validate
+	s.dataManager = dataManager
+	s.CommonAPI = common.NewCommonAPI(manager.updateLastRequestTime)
 
 	s.Web = web.NewWeb(s)
 
@@ -1210,11 +1209,9 @@ func (s *Scheduler) ReplenishCacheExpiredTime(ctx context.Context, carfileCid, c
 	return s.dataManager.replenishExpiredTimeToData(carfileCid, cacheID, hour)
 }
 
-// NodeExits node want to exits titan
-func (s *Scheduler) NodeExits(ctx context.Context, deviceID string) error {
-	s.dataManager.cleanNodeAndRestoreCaches(deviceID)
-
-	// TODO remove node manager nodemap and db
+// NodeExit node want to exit titan
+func (s *Scheduler) NodeExit(ctx context.Context, deviceID string) error {
+	s.nodeManager.nodeExited(deviceID)
 
 	return nil
 }

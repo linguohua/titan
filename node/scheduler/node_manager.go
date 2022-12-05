@@ -12,6 +12,8 @@ import (
 	"golang.org/x/xerrors"
 )
 
+const exitTime = 5 // If it is not online after this time, it is determined that the node has exited the system (hour)
+
 // NodeManager Node Manager
 type NodeManager struct {
 	edgeNodeMap      sync.Map
@@ -22,15 +24,15 @@ type NodeManager struct {
 	validatePool   *ValidatePool
 	locatorManager *LocatorManager
 
-	// areaManager *AreaManager
+	scheduler *Scheduler
 }
 
-func newNodeManager(pool *ValidatePool, locatorManager *LocatorManager) *NodeManager {
+func newNodeManager(pool *ValidatePool, locatorManager *LocatorManager, scheduler *Scheduler) *NodeManager {
 	nodeManager := &NodeManager{
 		keepaliveTime:  0.5,
 		validatePool:   pool,
 		locatorManager: locatorManager,
-		// areaManager:   &AreaManager{},
+		scheduler:      scheduler,
 	}
 
 	go nodeManager.run()
@@ -48,6 +50,7 @@ func (m *NodeManager) run() {
 			m.nodeKeepalive()
 
 			// check node offline how time
+			m.checkNodeExited()
 		}
 	}
 }
@@ -404,162 +407,6 @@ func (m *NodeManager) getCandidateNodesWithData(hash, skip string) ([]*Candidate
 	return nodeCs, nil
 }
 
-// AreaManager Node Area Manager
-// type AreaManager struct {
-// 	edgeNodeMap      sync.Map
-// 	candidateNodeMap sync.Map
-// }
-
-// func (a *AreaManager) getAllAreaMap() (map[string]map[string]*EdgeNode, map[string]map[string]*CandidateNode) {
-// 	edges := make(map[string]map[string]*EdgeNode)
-// 	candidates := make(map[string]map[string]*CandidateNode)
-
-// 	a.edgeNodeMap.Range(func(key, value interface{}) bool {
-// 		geo := key.(string)
-
-// 		if len(strings.Split(geo, "-")) < 3 {
-// 			// not city
-// 			return true
-// 		}
-// 		// city
-// 		m := value.(map[string]*EdgeNode)
-// 		edges[geo] = m
-
-// 		return true
-// 	})
-
-// 	a.candidateNodeMap.Range(func(key, value interface{}) bool {
-// 		geo := key.(string)
-
-// 		if len(strings.Split(geo, "-")) < 3 {
-// 			// not city
-// 			return true
-// 		}
-// 		// city
-// 		m := value.(map[string]*CandidateNode)
-// 		candidates[geo] = m
-
-// 		return true
-// 	})
-
-// 	return edges, candidates
-// }
-
-// func (a *AreaManager) getAreaKey(geoInfo *region.GeoInfo) (countryKey, provinceKey, cityKey string) {
-// 	if geoInfo == nil {
-// 		geoInfo = region.GetRegion().DefaultGeoInfo("")
-// 	}
-// 	countryKey = geoInfo.Country
-// 	provinceKey = fmt.Sprintf("%s-%s", geoInfo.Country, geoInfo.Province)
-// 	cityKey = fmt.Sprintf("%s-%s-%s", geoInfo.Country, geoInfo.Province, geoInfo.City)
-
-// 	return
-// }
-
-// func (a *AreaManager) addEdge(node *EdgeNode) {
-// 	countryKey, provinceKey, cityKey := a.getAreaKey(node.geoInfo)
-
-// 	a.storeEdge(node, countryKey)
-// 	a.storeEdge(node, provinceKey)
-// 	a.storeEdge(node, cityKey)
-// 	a.storeEdge(node, defaultKey)
-// }
-
-// func (a *AreaManager) removeEdge(node *EdgeNode) {
-// 	countryKey, provinceKey, cityKey := a.getAreaKey(node.geoInfo)
-
-// 	deviceID := node.deviceInfo.DeviceId
-
-// 	a.deleteEdge(deviceID, countryKey)
-// 	a.deleteEdge(deviceID, provinceKey)
-// 	a.deleteEdge(deviceID, cityKey)
-// 	a.deleteEdge(deviceID, defaultKey)
-// }
-
-// func (a *AreaManager) getEdges(key string) map[string]*EdgeNode {
-// 	m, ok := a.edgeNodeMap.Load(key)
-// 	if ok && m != nil {
-// 		return m.(map[string]*EdgeNode)
-// 	}
-
-// 	return nil
-// }
-
-// func (a *AreaManager) addCandidate(node *CandidateNode) {
-// 	countryKey, provinceKey, cityKey := a.getAreaKey(node.geoInfo)
-
-// 	a.storeCandidate(node, countryKey)
-// 	a.storeCandidate(node, provinceKey)
-// 	a.storeCandidate(node, cityKey)
-// 	a.storeCandidate(node, defaultKey)
-// }
-
-// func (a *AreaManager) removeCandidate(node *CandidateNode) {
-// 	countryKey, provinceKey, cityKey := a.getAreaKey(node.geoInfo)
-
-// 	deviceID := node.deviceInfo.DeviceId
-
-// 	a.deleteCandidate(deviceID, countryKey)
-// 	a.deleteCandidate(deviceID, provinceKey)
-// 	a.deleteCandidate(deviceID, cityKey)
-// 	a.deleteCandidate(deviceID, defaultKey)
-// }
-
-// func (a *AreaManager) getCandidates(key string) map[string]*CandidateNode {
-// 	m, ok := a.candidateNodeMap.Load(key)
-// 	if ok && m != nil {
-// 		return m.(map[string]*CandidateNode)
-// 	}
-
-// 	return nil
-// }
-
-// func (a *AreaManager) storeEdge(node *EdgeNode, key string) {
-// 	countryMap := make(map[string]*EdgeNode)
-// 	m, ok := a.edgeNodeMap.Load(key)
-// 	if ok && m != nil {
-// 		countryMap = m.(map[string]*EdgeNode)
-// 	}
-
-// 	countryMap[node.deviceInfo.DeviceId] = node
-// 	a.edgeNodeMap.Store(key, countryMap)
-// }
-
-// func (a *AreaManager) deleteEdge(deviceID string, key string) {
-// 	m, ok := a.edgeNodeMap.Load(key)
-// 	if ok && m != nil {
-// 		nodeMap := m.(map[string]*EdgeNode)
-// 		_, ok := nodeMap[deviceID]
-// 		if ok {
-// 			delete(nodeMap, deviceID)
-// 			a.edgeNodeMap.Store(key, nodeMap)
-// 		}
-// 	}
-// }
-
-// func (a *AreaManager) storeCandidate(node *CandidateNode, key string) {
-// 	countryMap := make(map[string]*CandidateNode)
-// 	m, ok := a.candidateNodeMap.Load(key)
-// 	if ok && m != nil {
-// 		countryMap = m.(map[string]*CandidateNode)
-// 	}
-
-// 	countryMap[node.deviceInfo.DeviceId] = node
-// 	a.candidateNodeMap.Store(key, countryMap)
-// }
-
-// func (a *AreaManager) deleteCandidate(deviceID string, key string) {
-// 	m, ok := a.candidateNodeMap.Load(key)
-// 	if ok && m != nil {
-// 		nodeMap := m.(map[string]*CandidateNode)
-// 		_, ok := nodeMap[deviceID]
-// 		if ok {
-// 			delete(nodeMap, deviceID)
-// 			a.candidateNodeMap.Store(key, nodeMap)
-// 		}
-// 	}
-// }
-
 func (m *NodeManager) setDeviceInfo(deviceID string, info api.DevicesInfo) error {
 	_, err := cache.GetDB().SetDeviceInfo(deviceID, info)
 	if err != nil {
@@ -599,4 +446,39 @@ func (m *NodeManager) getDeviccePrivateKey(deviceID string, authInfo *api.Downlo
 	}
 
 	return privateKey, nil
+}
+
+func (m *NodeManager) checkNodeExited() {
+	nodes, err := persistent.GetDB().GetOfflineNodes()
+	if err != nil {
+		log.Warnf("checkNodeExited GetOfflineNodes err:%s", err.Error())
+		return
+	}
+
+	t := time.Now().Add(-time.Duration(exitTime) * time.Hour)
+
+	exiteds := make([]string, 0)
+
+	for _, node := range nodes {
+		if node.LastTime.After(t) {
+			continue
+		}
+
+		// node exited
+		exiteds = append(exiteds, node.DeviceID)
+
+		// clean node cache
+		m.nodeExited(node.DeviceID)
+	}
+}
+
+func (m *NodeManager) nodeExited(deviceID string) {
+	err := persistent.GetDB().SetNodeExited(deviceID)
+	if err != nil {
+		log.Warnf("checkNodeExited SetNodeExited err:%s", err.Error())
+		return
+	}
+
+	// clean node cache
+	m.scheduler.dataManager.cleanNodeAndRestoreCaches(deviceID)
 }

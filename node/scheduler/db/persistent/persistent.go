@@ -16,6 +16,8 @@ type DB interface {
 	GetNodeInfo(deviceID string) (*NodeInfo, error)
 	SetNodeAuthInfo(info *api.DownloadServerAccessAuth) error
 	GetNodeAuthInfo(deviceID string) (*api.DownloadServerAccessAuth, error)
+	GetOfflineNodes() ([]*NodeInfo, error)
+	SetNodeExited(deviceID string) error
 
 	// Validate Result
 	SetValidateResultInfo(info *ValidateResult) error
@@ -76,7 +78,7 @@ type DB interface {
 	// AddToBeDeleteBlock(infos []*BlockDelete) error
 	// RemoveToBeDeleteBlock(infos []*BlockDelete) error
 	// GetToBeDeleteBlocks(deviceID string) ([]*BlockDelete, error)
-	SetMessageInfo(infos []*MessageInfo) error
+	// SetMessageInfo(infos []*MessageInfo) error
 
 	// tool
 	ReplaceArea() string
@@ -126,13 +128,14 @@ type NodeInfo struct {
 	DeviceID   string    `db:"device_id"`
 	LastTime   time.Time `db:"last_time"`
 	Geo        string    `db:"geo"`
-	IsOnline   int       `db:"is_online"`
+	IsOnline   bool      `db:"is_online"`
 	NodeType   string    `db:"node_type"`
 	Address    string    `db:"address"`
 	ServerName string    `db:"server_name"`
 	CreateTime time.Time `db:"create_time"`
 	URL        string    `db:"url"`
 	PrivateKey string    `db:"private_key"`
+	Exited     bool      `db:"exited"`
 }
 
 // ValidateResult validate result
