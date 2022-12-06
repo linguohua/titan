@@ -147,6 +147,34 @@ func (m *Manager) GetNodes(nodeType api.NodeTypeName) ([]string, error) {
 	return list, nil
 }
 
+// GetAllCandidate get nodes
+func (m *Manager) GetAllCandidate() []*CandidateNode {
+	list := make([]*CandidateNode, 0)
+
+	m.candidateNodeMap.Range(func(key, value interface{}) bool {
+		c := value.(*CandidateNode)
+		list = append(list, c)
+
+		return true
+	})
+
+	return list
+}
+
+// GetAllEdge get nodes
+func (m *Manager) GetAllEdge() []*EdgeNode {
+	list := make([]*EdgeNode, 0)
+
+	m.edgeNodeMap.Range(func(key, value interface{}) bool {
+		e := value.(*EdgeNode)
+		list = append(list, e)
+
+		return true
+	})
+
+	return list
+}
+
 // EdgeOnline Edge Online
 func (m *Manager) EdgeOnline(node *EdgeNode) error {
 	deviceID := node.DeviceInfo.DeviceId

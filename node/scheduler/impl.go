@@ -553,12 +553,6 @@ func (s *Scheduler) NodeExit(ctx context.Context, deviceID string) error {
 	return nil
 }
 
-func updateLatency(deviceID string, latency float64) error {
-	return cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
-		deviceInfo.Latency = latency
-	})
-}
-
 func incrDeviceReward(deviceID string, incrReward int64) error {
 	return cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
 		deviceInfo.CumulativeProfit += float64(incrReward)
