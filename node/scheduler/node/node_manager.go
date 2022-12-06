@@ -8,6 +8,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/helper"
+	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/common"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
@@ -486,7 +487,7 @@ func (m *Manager) getDeviccePrivateKey(deviceID string, authInfo *api.DownloadSe
 		return candidate.PrivateKey, nil
 	}
 
-	privateKey, err := common.Pem2PrivateKey(authInfo.PrivateKey)
+	privateKey, err := titanRsa.Pem2PrivateKey(authInfo.PrivateKey)
 	if err != nil {
 		return nil, err
 	}

@@ -5,11 +5,11 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
+	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/region"
 
 	"github.com/filecoin-project/go-jsonrpc"
-	"github.com/linguohua/titan/node/scheduler/common"
 )
 
 // var dataDefaultTag = "-1"
@@ -63,7 +63,7 @@ func (n *Node) setNodeOnline(typeName api.NodeTypeName) error {
 		IsOnline:   true,
 		NodeType:   string(typeName),
 		Address:    n.Addr,
-		PrivateKey: common.PrivateKey2Pem(n.PrivateKey),
+		PrivateKey: titanRsa.PrivateKey2Pem(n.PrivateKey),
 		URL:        n.DownloadSrvURL,
 		Exited:     false,
 	})

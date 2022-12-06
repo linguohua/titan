@@ -153,7 +153,7 @@ func getClientIP(r *http.Request) string {
 }
 
 func (bd *BlockDownload) downloadBlockResult(result api.NodeBlockDownloadResult) {
-	bd.scheduler.NodeDownloadBlockResult(context.Background(), result)
+	bd.scheduler.NodeResultForUserDownloadBlock(context.Background(), result)
 }
 
 func (bd *BlockDownload) startDownloadServer() {
