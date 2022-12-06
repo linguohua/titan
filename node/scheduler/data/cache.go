@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/helper"
-	"github.com/linguohua/titan/node/scheduler/common"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/linguohua/titan/node/scheduler/errmsg"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
@@ -148,7 +148,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockInfo) (int6
 		return eNode.CacheNextTimeoutTimeStamp, err
 	}
 
-	return 0, xerrors.Errorf("%s:%s", common.ErrNodeNotFind, deviceID)
+	return 0, xerrors.Errorf("%s:%s", errmsg.ErrNodeNotFind, deviceID)
 }
 
 func (c *Cache) findIdleNode(skips map[string]string, i int) (deviceID string) {

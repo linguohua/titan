@@ -9,9 +9,10 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/helper"
 	titanRsa "github.com/linguohua/titan/node/rsa"
-	"github.com/linguohua/titan/node/scheduler/common"
+	"github.com/linguohua/titan/node/scheduler/area"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/linguohua/titan/node/scheduler/errmsg"
 	"golang.org/x/xerrors"
 )
 
@@ -150,10 +151,10 @@ func (m *Manager) GetNodes(nodeType api.NodeTypeName) ([]string, error) {
 func (m *Manager) EdgeOnline(node *EdgeNode) error {
 	deviceID := node.DeviceInfo.DeviceId
 
-	isOk, geoInfo := common.IPLegality(node.DeviceInfo.ExternalIp)
+	isOk, geoInfo := area.IPLegality(node.DeviceInfo.ExternalIp)
 	if !isOk {
 		log.Errorf("edgeOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.DeviceInfo.ExternalIp, geoInfo.Geo)
-		return xerrors.Errorf(common.ErrAreaNotExist, geoInfo.Geo, node.DeviceInfo.ExternalIp)
+		return xerrors.Errorf(errmsg.ErrAreaNotExist, geoInfo.Geo, node.DeviceInfo.ExternalIp)
 	}
 
 	node.GeoInfo = geoInfo
@@ -228,10 +229,10 @@ func (m *Manager) edgeOffline(node *EdgeNode) {
 func (m *Manager) CandidateOnline(node *CandidateNode) error {
 	deviceID := node.DeviceInfo.DeviceId
 
-	isOk, geoInfo := common.IPLegality(node.DeviceInfo.ExternalIp)
+	isOk, geoInfo := area.IPLegality(node.DeviceInfo.ExternalIp)
 	if !isOk {
 		log.Errorf("candidateOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.DeviceInfo.ExternalIp, geoInfo.Geo)
-		return xerrors.Errorf(common.ErrAreaNotExist, geoInfo.Geo, node.DeviceInfo.ExternalIp)
+		return xerrors.Errorf(errmsg.ErrAreaNotExist, geoInfo.Geo, node.DeviceInfo.ExternalIp)
 	}
 
 	node.GeoInfo = geoInfo
@@ -410,7 +411,7 @@ func (m *Manager) FindNodeDownloadInfos(cid string) ([]api.DownloadInfoResult, e
 	}
 
 	if len(deviceIDs) <= 0 {
-		return nil, xerrors.Errorf("%s , with hash:%s", common.ErrNodeNotFind, hash)
+		return nil, xerrors.Errorf("%s , with hash:%s", errmsg.ErrNodeNotFind, hash)
 	}
 
 	for _, deviceID := range deviceIDs {
@@ -438,7 +439,7 @@ func (m *Manager) GetCandidateNodesWithData(hash, skip string) ([]*CandidateNode
 	// log.Infof("getCandidateNodesWithData deviceIDs : %v", deviceIDs)
 
 	if len(deviceIDs) <= 0 {
-		return nil, xerrors.Errorf("%s , with hash:%s", common.ErrNodeNotFind, hash)
+		return nil, xerrors.Errorf("%s , with hash:%s", errmsg.ErrNodeNotFind, hash)
 	}
 
 	skips := make(map[string]string)
