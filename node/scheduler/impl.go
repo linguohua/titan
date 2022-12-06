@@ -1227,13 +1227,7 @@ func updateLatency(deviceID string, latency float64) error {
 
 func incrDeviceReward(deviceID string, incrReward int64) error {
 	return cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
-		lastRewardDate, _ := time.Parse(time.RFC3339, deviceInfo.LastRewardDate)
-		if getStartOfDay(lastRewardDate).Equal(getStartOfDay(time.Now())) {
-			deviceInfo.TodayProfit += float64(incrReward)
-			return
-		}
-		deviceInfo.TodayProfit = float64(incrReward)
-		deviceInfo.LastRewardDate = getStartOfDay(time.Now()).Format(time.RFC3339)
+		deviceInfo.CumulativeProfit += float64(incrReward)
 	})
 }
 
@@ -1241,8 +1235,4 @@ func incrDeviceBlock(deviceID string, blocks int) error {
 	return cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
 		deviceInfo.BlockCount += blocks
 	})
-}
-
-func getStartOfDay(t time.Time) time.Time {
-	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
 }
