@@ -29,7 +29,7 @@ type Base struct {
 // DevicesInfo Info
 type DevicesInfo struct {
 	Base
-	NodeType         NodeType `redis:"NodeType"`
+	NodeType         NodeType `json:"node_type" redis:"NodeType"`
 	DeviceId         string   `json:"device_id" form:"deviceId" gorm:"column:device_id;comment:;" redis:"DeviceId"`
 	DeviceName       string   `json:"device_name" form:"deviceName" gorm:"column:device_name;comment:;" redis:"DeviceName"`
 	UserId           string   `json:"user_id" form:"userId" gorm:"column:user_id;comment:;"`
