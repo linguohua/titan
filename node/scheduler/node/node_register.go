@@ -1,4 +1,4 @@
-package scheduler
+package node
 
 import (
 	"crypto/sha1"
@@ -12,7 +12,8 @@ import (
 	"golang.org/x/xerrors"
 )
 
-func registerNode(nodeType api.NodeType) (api.NodeRegisterInfo, error) {
+// RegisterNode Register a Node
+func RegisterNode(nodeType api.NodeType) (api.NodeRegisterInfo, error) {
 	info := api.NodeRegisterInfo{}
 
 	deviceID, err := newDeviceID(nodeType)

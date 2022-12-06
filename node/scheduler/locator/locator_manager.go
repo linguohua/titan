@@ -1,4 +1,4 @@
-package scheduler
+package locator
 
 import (
 	"context"
@@ -7,24 +7,27 @@ import (
 	"github.com/linguohua/titan/node/scheduler/node"
 )
 
-// LocatorManager Locator Manager
-type LocatorManager struct {
+// Manager Locator Manager
+type Manager struct {
 	locatorMap map[string]*node.Location
 	port       int
 }
 
-func newLoactorManager(port int) *LocatorManager {
-	return &LocatorManager{
+// NewLoactorManager new
+func NewLoactorManager(port int) *Manager {
+	return &Manager{
 		locatorMap: make(map[string]*node.Location),
 		port:       port,
 	}
 }
 
-func (m *LocatorManager) addLocator(location *node.Location) {
+// AddLocator add
+func (m *Manager) AddLocator(location *node.Location) {
 	m.locatorMap[location.LocatorID] = location
 }
 
-func (m *LocatorManager) notifyNodeStatusToLocator(deviceID string, isOnline bool) {
+// NotifyNodeStatusToLocator Notify Node Status To Locator
+func (m *Manager) NotifyNodeStatusToLocator(deviceID string, isOnline bool) {
 	// log.Warnf("notifyNodeStatusToLocator : %v", m.locatorMap)
 	for _, locator := range m.locatorMap {
 		// log.Warnf("locator : %v", locator)
