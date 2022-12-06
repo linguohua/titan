@@ -18,7 +18,8 @@ import (
 	"github.com/linguohua/titan/node/handler"
 	"github.com/linguohua/titan/node/helper"
 	titanRsa "github.com/linguohua/titan/node/rsa"
-	sCommon "github.com/linguohua/titan/node/scheduler/common"
+	"github.com/linguohua/titan/node/scheduler/area"
+	"github.com/linguohua/titan/node/scheduler/errmsg"
 	"github.com/linguohua/titan/node/scheduler/node"
 
 	// "github.com/linguohua/titan/node/device"
@@ -54,7 +55,7 @@ const (
 )
 
 // NewLocalScheduleNode NewLocalScheduleNode
-func NewLocalScheduleNode(lr repo.LockedRepo, port int, area string) api.Scheduler {
+func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Scheduler {
 	// verifiedNodeMax := 10
 
 	s := &Scheduler{serverPort: port}
@@ -82,7 +83,7 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, area string) api.Schedul
 	}
 	s.APISecret = sec
 
-	sCommon.InitServerArea(area)
+	area.InitServerArea(areaStr)
 
 	return s
 }
@@ -370,13 +371,13 @@ func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cid
 	// 	return candidate.deleteBlockRecords(cids)
 	// }
 
-	return nil, xerrors.Errorf("%s:%s", sCommon.ErrNodeNotFind, deviceID)
+	return nil, xerrors.Errorf("%s:%s", errmsg.ErrNodeNotFind, deviceID)
 }
 
 // RemoveCarfile remove all caches with carfile
 func (s *Scheduler) RemoveCarfile(ctx context.Context, carfileID string) error {
 	if carfileID == "" {
-		return xerrors.Errorf(sCommon.ErrCidIsNil)
+		return xerrors.Errorf(errmsg.ErrCidIsNil)
 	}
 
 	return s.dataManager.RemoveCarfile(carfileID)
@@ -385,11 +386,11 @@ func (s *Scheduler) RemoveCarfile(ctx context.Context, carfileID string) error {
 // RemoveCache remove a caches with carfile
 func (s *Scheduler) RemoveCache(ctx context.Context, carfileID, cacheID string) error {
 	if carfileID == "" {
-		return xerrors.Errorf(sCommon.ErrCidIsNil)
+		return xerrors.Errorf(errmsg.ErrCidIsNil)
 	}
 
 	if cacheID == "" {
-		return xerrors.Errorf(sCommon.ErrCacheIDIsNil)
+		return xerrors.Errorf(errmsg.ErrCacheIDIsNil)
 	}
 
 	return s.dataManager.RemoveCache(carfileID, cacheID)
@@ -436,7 +437,7 @@ func (s *Scheduler) ShowDataTask(ctx context.Context, cid string) (api.CacheData
 	info := api.CacheDataInfo{}
 
 	if cid == "" {
-		return info, xerrors.Errorf("%s:%s", sCommon.ErrCidNotFind, cid)
+		return info, xerrors.Errorf("%s:%s", errmsg.ErrCidNotFind, cid)
 	}
 
 	hash, err := helper.CIDString2HashString(cid)
@@ -455,7 +456,7 @@ func (s *Scheduler) ShowDataTask(ctx context.Context, cid string) (api.CacheData
 		return cInfo, nil
 	}
 
-	return info, xerrors.Errorf("%s:%s", sCommon.ErrCidNotFind, cid)
+	return info, xerrors.Errorf("%s:%s", errmsg.ErrCidNotFind, cid)
 }
 
 // GetOnlineDeviceIDs Get all online node id
@@ -556,7 +557,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 		return statList, nil
 	}
 
-	return statList, xerrors.Errorf("%s:%s", sCommon.ErrNodeNotFind, deviceID)
+	return statList, xerrors.Errorf("%s:%s", errmsg.ErrNodeNotFind, deviceID)
 }
 
 // QueryCachingBlocksWithNode Query Caching Blocks
@@ -574,7 +575,7 @@ func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID str
 		return edge.NodeAPI.QueryCachingBlocks(ctx)
 	}
 
-	return api.CachingBlockList{}, xerrors.Errorf("%s:%s", sCommon.ErrNodeNotFind, deviceID)
+	return api.CachingBlockList{}, xerrors.Errorf("%s:%s", errmsg.ErrNodeNotFind, deviceID)
 }
 
 // ElectionValidators Election Validators
@@ -642,7 +643,7 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locato
 	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
 	log.Infof("LocatorConnect locatorID:%s,areaID:%s,LocatorConnect ip:%s,port:%d", locatorID, areaID, ip, port)
 
-	if areaID != sCommon.ServerArea {
+	if areaID != area.ServerArea {
 		return xerrors.Errorf("area err:%s", areaID)
 	}
 

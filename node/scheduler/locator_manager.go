@@ -3,7 +3,7 @@ package scheduler
 import (
 	"context"
 
-	sCommon "github.com/linguohua/titan/node/scheduler/common"
+	"github.com/linguohua/titan/node/scheduler/area"
 	"github.com/linguohua/titan/node/scheduler/node"
 )
 
@@ -30,7 +30,7 @@ func (m *LocatorManager) notifyNodeStatusToLocator(deviceID string, isOnline boo
 		// log.Warnf("locator : %v", locator)
 		if locator != nil && locator.NodeAPI != nil {
 			if isOnline {
-				locator.NodeAPI.DeviceOnline(context.Background(), deviceID, sCommon.ServerArea, m.port)
+				locator.NodeAPI.DeviceOnline(context.Background(), deviceID, area.ServerArea, m.port)
 			} else {
 				locator.NodeAPI.DeviceOffline(context.Background(), deviceID)
 			}

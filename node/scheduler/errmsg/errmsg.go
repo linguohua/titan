@@ -1,4 +1,4 @@
-package common
+package errmsg
 
 const (
 	// ErrNodeNotFind node not found

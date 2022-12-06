@@ -8,9 +8,9 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/helper"
-	"github.com/linguohua/titan/node/scheduler/common"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/linguohua/titan/node/scheduler/errmsg"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
@@ -117,7 +117,7 @@ func (m *DataManager) doDataTask() error {
 			}
 			m.saveEvent(info.CarfileCid, cacheID, "", err.Error(), eventTypeDoDataTaskErr)
 		} else {
-			m.dataTaskStart(c.Data)
+			m.dataTaskStart(c.data)
 		}
 
 		err = cache.GetDB().RemoveWaitingDataTask(info)
@@ -239,7 +239,7 @@ func (m *DataManager) makeDataTask(cid, hash string, reliability int, expiredTim
 func (m *DataManager) makeDataContinue(hash, cacheID string) (*Cache, error) {
 	data := m.GetData(hash)
 	if data == nil {
-		return nil, xerrors.Errorf("%s,cid:%s,cacheID:%s", common.ErrNotFoundTask, hash, cacheID)
+		return nil, xerrors.Errorf("%s,cid:%s,cacheID:%s", errmsg.ErrNotFoundTask, hash, cacheID)
 	}
 
 	cacheI, ok := data.CacheMap.Load(cacheID)
@@ -317,7 +317,7 @@ func (m *DataManager) RemoveCarfile(carfileCid string) error {
 
 	data := m.GetData(hash)
 	if data == nil {
-		return xerrors.Errorf("%s : %s", common.ErrNotFoundTask, carfileCid)
+		return xerrors.Errorf("%s : %s", errmsg.ErrNotFoundTask, carfileCid)
 	}
 
 	data.CacheMap.Range(func(key, value interface{}) bool {
@@ -348,7 +348,7 @@ func (m *DataManager) RemoveCache(carfileCid, cacheID string) error {
 
 	data := m.GetData(hash)
 	if data == nil {
-		return xerrors.Errorf("%s : %s", common.ErrNotFoundTask, carfileCid)
+		return xerrors.Errorf("%s : %s", errmsg.ErrNotFoundTask, carfileCid)
 	}
 
 	cacheI, ok := data.CacheMap.Load(cacheID)
@@ -371,7 +371,7 @@ func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultI
 	// area := m.nodeManager.getNodeArea(deviceID)
 	data := m.GetData(info.CarFileHash)
 	if data == nil {
-		return xerrors.Errorf("%s : %s", common.ErrNotFoundTask, info.CarFileHash)
+		return xerrors.Errorf("%s : %s", errmsg.ErrNotFoundTask, info.CarFileHash)
 	}
 
 	if !m.isDataTaskRunnning(info.CarFileHash, info.CacheID) {
@@ -512,7 +512,7 @@ func (m *DataManager) ReplenishExpiredTimeToData(cid, cacheID string, hour int) 
 
 	data := m.GetData(hash)
 	if data == nil {
-		return xerrors.Errorf("%s:%s", common.ErrCidNotFind, hash)
+		return xerrors.Errorf("%s:%s", errmsg.ErrCidNotFind, hash)
 	}
 
 	m.saveEvent(cid, cacheID, "", fmt.Sprintf("add hour:%d", hour), eventTypeReplenishCacheTime)
@@ -548,7 +548,7 @@ func (m *DataManager) ResetExpiredTime(cid, cacheID string, expiredTime time.Tim
 
 	data := m.GetData(hash)
 	if data == nil {
-		return xerrors.Errorf("%s:%s", common.ErrCidNotFind, hash)
+		return xerrors.Errorf("%s:%s", errmsg.ErrCidNotFind, hash)
 	}
 
 	m.saveEvent(cid, cacheID, "", fmt.Sprintf("expiredTime:%s", expiredTime.String()), eventTypeResetCacheTime)

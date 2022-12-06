@@ -95,7 +95,7 @@ func (d *Data) haveRootCache() bool {
 		if value != nil {
 			c := value.(*Cache)
 			if c != nil {
-				have = c.IsRootCache && c.Status == persistent.CacheStatusSuccess
+				have = c.isRootCache && c.Status == persistent.CacheStatusSuccess
 			}
 		}
 
@@ -116,8 +116,8 @@ func (d *Data) createCache(isRootCache bool) (*Cache, error) {
 
 func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, cache *Cache, createBlocks []*persistent.BlockInfo) error {
 	if !d.haveRootCache() {
-		d.TotalSize = cache.TotalSize
-		d.TotalBlocks = cache.TotalBlocks
+		d.TotalSize = cache.totalSize
+		d.TotalBlocks = cache.totalBlocks
 	}
 
 	dInfo := &persistent.DataInfo{
@@ -130,14 +130,14 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, cache 
 
 	cInfo := &persistent.CacheInfo{
 		// ID:          cache.dbID,
-		CarfileHash: cache.CarfileHash,
+		CarfileHash: cache.carfileHash,
 		CacheID:     cache.CacheID,
 		DoneSize:    cache.DoneSize,
 		Status:      int(cache.Status),
 		DoneBlocks:  cache.DoneBlocks,
-		Reliability: cache.Reliability,
-		TotalSize:   cache.TotalSize,
-		TotalBlocks: cache.TotalBlocks,
+		Reliability: cache.reliability,
+		TotalSize:   cache.totalSize,
+		TotalBlocks: cache.totalBlocks,
 	}
 
 	return persistent.GetDB().SaveCacheingResults(dInfo, cInfo, blockInfo, createBlocks)
@@ -145,7 +145,7 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, cache 
 
 func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 	if cache.Status == persistent.CacheStatusSuccess {
-		d.Reliability += cache.Reliability
+		d.Reliability += cache.reliability
 	}
 
 	cNodes, err := persistent.GetDB().GetNodesFromCache(cache.CacheID)
@@ -170,14 +170,14 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 
 	cache.Nodes = cNodes
 	cInfo := &persistent.CacheInfo{
-		CarfileHash: cache.CarfileHash,
+		CarfileHash: cache.carfileHash,
 		CacheID:     cache.CacheID,
 		DoneSize:    cache.DoneSize,
 		Status:      int(cache.Status),
 		DoneBlocks:  cache.DoneBlocks,
-		Reliability: cache.Reliability,
-		TotalSize:   cache.TotalSize,
-		TotalBlocks: cache.TotalBlocks,
+		Reliability: cache.reliability,
+		TotalSize:   cache.totalSize,
+		TotalBlocks: cache.totalBlocks,
 		Nodes:       cache.Nodes,
 	}
 
