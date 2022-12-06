@@ -38,8 +38,8 @@ const (
 	eventTypeRestoreCache        EventType = "RestoreCache"
 )
 
-// DataManager Data
-type DataManager struct {
+// Manager Data
+type Manager struct {
 	nodeManager        *node.Manager
 	blockLoaderCh      chan bool
 	dataTaskLoaderCh   chan bool
@@ -53,8 +53,8 @@ type DataManager struct {
 }
 
 // NewDataManager new
-func NewDataManager(nodeManager *node.Manager) *DataManager {
-	d := &DataManager{
+func NewDataManager(nodeManager *node.Manager) *Manager {
+	d := &Manager{
 		nodeManager:      nodeManager,
 		blockLoaderCh:    make(chan bool, 1),
 		dataTaskLoaderCh: make(chan bool, 1),
@@ -67,7 +67,7 @@ func NewDataManager(nodeManager *node.Manager) *DataManager {
 	return d
 }
 
-func (m *DataManager) run() {
+func (m *Manager) run() {
 	ticker := time.NewTicker(time.Duration(m.timerInterval) * time.Second)
 	defer ticker.Stop()
 
@@ -85,7 +85,7 @@ func (m *DataManager) run() {
 	}
 }
 
-func (m *DataManager) getWaitingDataTask(index int64) (api.CacheDataInfo, error) {
+func (m *Manager) getWaitingDataTask(index int64) (api.CacheDataInfo, error) {
 	info, err := cache.GetDB().GetWaitingDataTask(index)
 	if err != nil {
 		return info, err
@@ -99,7 +99,7 @@ func (m *DataManager) getWaitingDataTask(index int64) (api.CacheDataInfo, error)
 	return info, nil
 }
 
-func (m *DataManager) doDataTask() error {
+func (m *Manager) doDataTask() error {
 	info, err := m.getWaitingDataTask(0)
 	if err != nil {
 		if cache.GetDB().IsNilErr(err) {
@@ -117,7 +117,7 @@ func (m *DataManager) doDataTask() error {
 			}
 			m.saveEvent(info.CarfileCid, cacheID, "", err.Error(), eventTypeDoDataTaskErr)
 		} else {
-			m.dataTaskStart(c.data)
+			m.dataTaskStart(c.Data)
 		}
 
 		err = cache.GetDB().RemoveWaitingDataTask(info)
@@ -144,7 +144,7 @@ func (m *DataManager) doDataTask() error {
 }
 
 // GetData get a data from map or db
-func (m *DataManager) GetData(hash string) *Data {
+func (m *Manager) GetData(hash string) *Data {
 	dI, ok := m.taskMap.Load(hash)
 	if ok && dI != nil {
 		return dI.(*Data)
@@ -158,7 +158,7 @@ func (m *DataManager) GetData(hash string) *Data {
 	return nil
 }
 
-func (m *DataManager) checkTaskTimeout(taskInfo cache.DataTask) {
+func (m *Manager) checkTaskTimeout(taskInfo cache.DataTask) {
 	if m.isDataTaskRunnning(taskInfo.CarfileHash, taskInfo.CacheID) {
 		return
 	}
@@ -178,7 +178,7 @@ func (m *DataManager) checkTaskTimeout(taskInfo cache.DataTask) {
 	}
 }
 
-func (m *DataManager) checkTaskTimeouts() {
+func (m *Manager) checkTaskTimeouts() {
 	list := m.GetRunningTasks()
 	if len(list) <= 0 {
 		return
@@ -189,7 +189,7 @@ func (m *DataManager) checkTaskTimeouts() {
 	}
 }
 
-func (m *DataManager) makeDataTask(cid, hash string, reliability int, expiredTime time.Time) (*Cache, error) {
+func (m *Manager) makeDataTask(cid, hash string, reliability int, expiredTime time.Time) (*Cache, error) {
 	var err error
 	data := m.GetData(hash)
 	if data == nil {
@@ -236,7 +236,7 @@ func (m *DataManager) makeDataTask(cid, hash string, reliability int, expiredTim
 	return data.dispatchCache(oldCache)
 }
 
-func (m *DataManager) makeDataContinue(hash, cacheID string) (*Cache, error) {
+func (m *Manager) makeDataContinue(hash, cacheID string) (*Cache, error) {
 	data := m.GetData(hash)
 	if data == nil {
 		return nil, xerrors.Errorf("%s,cid:%s,cacheID:%s", errmsg.ErrNotFoundTask, hash, cacheID)
@@ -258,7 +258,7 @@ func (m *DataManager) makeDataContinue(hash, cacheID string) (*Cache, error) {
 }
 
 // CacheData new data task
-func (m *DataManager) CacheData(cid string, reliability int, expiredTime time.Time) error {
+func (m *Manager) CacheData(cid string, reliability int, expiredTime time.Time) error {
 	hash, err := helper.CIDString2HashString(cid)
 	if err != nil {
 		return xerrors.Errorf("%s cid to hash err:", cid, err.Error())
@@ -282,7 +282,7 @@ func (m *DataManager) CacheData(cid string, reliability int, expiredTime time.Ti
 }
 
 // CacheContinue continue a cache
-func (m *DataManager) CacheContinue(cid, cacheID string) error {
+func (m *Manager) CacheContinue(cid, cacheID string) error {
 	hash, err := helper.CIDString2HashString(cid)
 	if err != nil {
 		return xerrors.Errorf("%s cid to hash err:", cid, err.Error())
@@ -304,7 +304,7 @@ func (m *DataManager) CacheContinue(cid, cacheID string) error {
 }
 
 // RemoveCarfile remove a carfile
-func (m *DataManager) RemoveCarfile(carfileCid string) error {
+func (m *Manager) RemoveCarfile(carfileCid string) error {
 	err := m.saveEvent(carfileCid, "", "user", "", eventTypeRemoveDataStart)
 	if err != nil {
 		return err
@@ -335,7 +335,7 @@ func (m *DataManager) RemoveCarfile(carfileCid string) error {
 }
 
 // RemoveCache remove a cache
-func (m *DataManager) RemoveCache(carfileCid, cacheID string) error {
+func (m *Manager) RemoveCache(carfileCid, cacheID string) error {
 	err := m.saveEvent(carfileCid, cacheID, "user", "", eventTypeRemoveCacheStart)
 	if err != nil {
 		return err
@@ -367,7 +367,7 @@ func (m *DataManager) RemoveCache(carfileCid, cacheID string) error {
 	return m.saveEvent(carfileCid, cacheID, "user", e, eventTypeRemoveCacheEnd)
 }
 
-func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultInfo) error {
+func (m *Manager) cacheCarfileResult(deviceID string, info *api.CacheResultInfo) error {
 	// area := m.nodeManager.getNodeArea(deviceID)
 	data := m.GetData(info.CarFileHash)
 	if data == nil {
@@ -387,7 +387,7 @@ func (m *DataManager) cacheCarfileResult(deviceID string, info *api.CacheResultI
 	return c.blockCacheResult(info)
 }
 
-func (m *DataManager) doCacheResults() {
+func (m *Manager) doCacheResults() {
 	// defer m.notifyBlockLoader()
 	for cache.GetDB().GetCacheResultNum() > 0 {
 		info, err := cache.GetDB().GetCacheResultInfo()
@@ -411,7 +411,7 @@ func (m *DataManager) doCacheResults() {
 }
 
 // PushCacheResultToQueue new cache task
-func (m *DataManager) PushCacheResultToQueue(deviceID string, info *api.CacheResultInfo) error {
+func (m *Manager) PushCacheResultToQueue(deviceID string, info *api.CacheResultInfo) error {
 	info.DeviceID = deviceID
 
 	err := cache.GetDB().SetCacheResultInfo(*info)
@@ -421,14 +421,14 @@ func (m *DataManager) PushCacheResultToQueue(deviceID string, info *api.CacheRes
 	return err
 }
 
-func (m *DataManager) notifyBlockLoader() {
+func (m *Manager) notifyBlockLoader() {
 	select {
 	case m.blockLoaderCh <- true:
 	default:
 	}
 }
 
-func (m *DataManager) doDataTasks() {
+func (m *Manager) doDataTasks() {
 	doLen := m.runningTaskMax - len(m.GetRunningTasks())
 	if doLen > 0 {
 		for i := 0; i < doLen; i++ {
@@ -440,7 +440,7 @@ func (m *DataManager) doDataTasks() {
 	}
 }
 
-func (m *DataManager) notifyDataLoader() {
+func (m *Manager) notifyDataLoader() {
 	select {
 	case m.dataTaskLoaderCh <- true:
 	default:
@@ -448,14 +448,14 @@ func (m *DataManager) notifyDataLoader() {
 }
 
 // update the data task timeout
-func (m *DataManager) updateDataTimeout(carfileHash, cacheID string, timeout int64) {
+func (m *Manager) updateDataTimeout(carfileHash, cacheID string, timeout int64) {
 	err := cache.GetDB().SetRunningDataTask(carfileHash, cacheID, timeout)
 	if err != nil {
 		log.Panicf("dataTaskStart %s , SetRunningDataTask err:%s", cacheID, err.Error())
 	}
 }
 
-func (m *DataManager) dataTaskStart(data *Data) {
+func (m *Manager) dataTaskStart(data *Data) {
 	if data == nil {
 		log.Error("dataTaskStart err data is nil")
 		return
@@ -465,7 +465,7 @@ func (m *DataManager) dataTaskStart(data *Data) {
 	m.taskMap.Store(data.CarfileHash, data)
 }
 
-func (m *DataManager) dataTaskEnd(cid, hash, msg string) {
+func (m *Manager) dataTaskEnd(cid, hash, msg string) {
 	m.saveEvent(cid, "", "", msg, eventTypeDoDataTaskEnd)
 
 	m.taskMap.Delete(hash)
@@ -475,7 +475,7 @@ func (m *DataManager) dataTaskEnd(cid, hash, msg string) {
 }
 
 // GetRunningTasks get running tasks
-func (m *DataManager) GetRunningTasks() []cache.DataTask {
+func (m *Manager) GetRunningTasks() []cache.DataTask {
 	list, err := cache.GetDB().GetDataTasksWithRunningList()
 	if err != nil {
 		log.Errorf("GetDataTasksWithRunningList err:%s", err.Error())
@@ -485,7 +485,7 @@ func (m *DataManager) GetRunningTasks() []cache.DataTask {
 	return list
 }
 
-func (m *DataManager) isDataTaskRunnning(hash, cacheID string) bool {
+func (m *Manager) isDataTaskRunnning(hash, cacheID string) bool {
 	cID, err := cache.GetDB().GetRunningDataTask(hash)
 	if err != nil && !cache.GetDB().IsNilErr(err) {
 		log.Errorf("isTaskRunnning %s GetRunningDataTask err:%s", hash, err.Error())
@@ -499,12 +499,12 @@ func (m *DataManager) isDataTaskRunnning(hash, cacheID string) bool {
 	return cID == cacheID
 }
 
-func (m *DataManager) saveEvent(cid, cacheID, userID, msg string, event EventType) error {
+func (m *Manager) saveEvent(cid, cacheID, userID, msg string, event EventType) error {
 	return persistent.GetDB().SetEventInfo(&api.EventInfo{CID: cid, User: userID, Msg: msg, Event: string(event), CacheID: cacheID})
 }
 
 // ReplenishExpiredTimeToData replenish time
-func (m *DataManager) ReplenishExpiredTimeToData(cid, cacheID string, hour int) error {
+func (m *Manager) ReplenishExpiredTimeToData(cid, cacheID string, hour int) error {
 	hash, err := helper.CIDString2HashString(cid)
 	if err != nil {
 		return err
@@ -540,7 +540,7 @@ func (m *DataManager) ReplenishExpiredTimeToData(cid, cacheID string, hour int) 
 }
 
 // ResetExpiredTime reset expired time
-func (m *DataManager) ResetExpiredTime(cid, cacheID string, expiredTime time.Time) error {
+func (m *Manager) ResetExpiredTime(cid, cacheID string, expiredTime time.Time) error {
 	hash, err := helper.CIDString2HashString(cid)
 	if err != nil {
 		return err
@@ -576,7 +576,7 @@ func (m *DataManager) ResetExpiredTime(cid, cacheID string, expiredTime time.Tim
 }
 
 // CleanNodeAndRestoreCaches clean a node caches info and restore caches
-func (m *DataManager) CleanNodeAndRestoreCaches(deviceID string) {
+func (m *Manager) CleanNodeAndRestoreCaches(deviceID string) {
 	// find node caches
 	caches, err := persistent.GetDB().GetCachesFromNode(deviceID)
 	if err != nil {
@@ -632,7 +632,7 @@ func (m *DataManager) CleanNodeAndRestoreCaches(deviceID string) {
 }
 
 // stop
-// func (m *DataManager) stopDataTask(cid string) error {
+// func (m *Manager) stopDataTask(cid string) error {
 // 	hash, err := helper.CIDString2HashString(cid)
 // 	if err != nil {
 // 		return err
@@ -654,7 +654,7 @@ func (m *DataManager) CleanNodeAndRestoreCaches(deviceID string) {
 // }
 
 // check expired caches
-func (m *DataManager) checkCachesExpired() {
+func (m *Manager) checkCachesExpired() {
 	if m.expiredTimeOfCache.Equal(m.defaultTime) {
 		var err error
 		m.expiredTimeOfCache, err = persistent.GetDB().GetMinExpiredTimeWithCaches()
@@ -699,7 +699,7 @@ func (m *DataManager) checkCachesExpired() {
 }
 
 // // expired
-// func (m *DataManager) checkCacheExpired(hash string) error {
+// func (m *Manager) checkCacheExpired(hash string) error {
 // 	data := m.getData(hash)
 // 	if data == nil {
 // 		return xerrors.Errorf("%s:%s", ErrCidNotFind, hash)

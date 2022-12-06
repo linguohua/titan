@@ -97,7 +97,7 @@ type Scheduler struct {
 	// validatePool   *ValidatePool
 	// election       *Election
 	// validate       *Validate
-	dataManager    *data.DataManager
+	dataManager    *data.Manager
 	locatorManager *LocatorManager
 	// selector       *ValidateSelector
 
