@@ -11,8 +11,8 @@ import (
 
 // Data Data
 type Data struct {
-	Manager         *node.Manager
-	DataManager     *DataManager
+	NodeManager     *node.Manager
+	DataManager     *Manager
 	CarfileCid      string
 	CarfileHash     string
 	CacheMap        sync.Map
@@ -27,9 +27,9 @@ type Data struct {
 	IsStop bool
 }
 
-func newData(nodeManager *node.Manager, dataManager *DataManager, cid, hash string, reliability int) *Data {
+func newData(nodeManager *node.Manager, dataManager *Manager, cid, hash string, reliability int) *Data {
 	return &Data{
-		Manager:         nodeManager,
+		NodeManager:     nodeManager,
 		DataManager:     dataManager,
 		CarfileCid:      cid,
 		Reliability:     0,
@@ -40,7 +40,7 @@ func newData(nodeManager *node.Manager, dataManager *DataManager, cid, hash stri
 	}
 }
 
-func loadData(hash string, nodeManager *node.Manager, dataManager *DataManager) *Data {
+func loadData(hash string, nodeManager *node.Manager, dataManager *Manager) *Data {
 	dInfo, err := persistent.GetDB().GetDataInfo(hash)
 	if err != nil && !persistent.GetDB().IsNilErr(err) {
 		log.Errorf("loadData %s err :%s", hash, err.Error())
@@ -49,7 +49,7 @@ func loadData(hash string, nodeManager *node.Manager, dataManager *DataManager) 
 	if dInfo != nil {
 		data := &Data{}
 		data.CarfileCid = dInfo.CarfileCid
-		data.Manager = nodeManager
+		data.NodeManager = nodeManager
 		data.DataManager = dataManager
 		data.TotalSize = dInfo.TotalSize
 		data.NeedReliability = dInfo.NeedReliability
@@ -95,7 +95,7 @@ func (d *Data) haveRootCache() bool {
 		if value != nil {
 			c := value.(*Cache)
 			if c != nil {
-				have = c.isRootCache && c.Status == persistent.CacheStatusSuccess
+				have = c.IsRootCache && c.Status == persistent.CacheStatusSuccess
 			}
 		}
 
@@ -106,7 +106,7 @@ func (d *Data) haveRootCache() bool {
 }
 
 func (d *Data) createCache(isRootCache bool) (*Cache, error) {
-	cache, err := newCache(d.Manager, d, d.CarfileHash, isRootCache)
+	cache, err := newCache(d.NodeManager, d, d.CarfileHash, isRootCache)
 	if err != nil {
 		return nil, xerrors.Errorf("new cache err:%s", err.Error())
 	}
@@ -116,8 +116,8 @@ func (d *Data) createCache(isRootCache bool) (*Cache, error) {
 
 func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, cache *Cache, createBlocks []*persistent.BlockInfo) error {
 	if !d.haveRootCache() {
-		d.TotalSize = cache.totalSize
-		d.TotalBlocks = cache.totalBlocks
+		d.TotalSize = cache.TotalSize
+		d.TotalBlocks = cache.TotalBlocks
 	}
 
 	dInfo := &persistent.DataInfo{
@@ -130,14 +130,14 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, cache 
 
 	cInfo := &persistent.CacheInfo{
 		// ID:          cache.dbID,
-		CarfileHash: cache.carfileHash,
+		CarfileHash: cache.CarfileHash,
 		CacheID:     cache.CacheID,
 		DoneSize:    cache.DoneSize,
 		Status:      int(cache.Status),
 		DoneBlocks:  cache.DoneBlocks,
-		Reliability: cache.reliability,
-		TotalSize:   cache.totalSize,
-		TotalBlocks: cache.totalBlocks,
+		Reliability: cache.Reliability,
+		TotalSize:   cache.TotalSize,
+		TotalBlocks: cache.TotalBlocks,
 	}
 
 	return persistent.GetDB().SaveCacheingResults(dInfo, cInfo, blockInfo, createBlocks)
@@ -145,7 +145,7 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, cache 
 
 func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 	if cache.Status == persistent.CacheStatusSuccess {
-		d.Reliability += cache.reliability
+		d.Reliability += cache.Reliability
 	}
 
 	cNodes, err := persistent.GetDB().GetNodesFromCache(cache.CacheID)
@@ -170,14 +170,14 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 
 	cache.Nodes = cNodes
 	cInfo := &persistent.CacheInfo{
-		CarfileHash: cache.carfileHash,
+		CarfileHash: cache.CarfileHash,
 		CacheID:     cache.CacheID,
 		DoneSize:    cache.DoneSize,
 		Status:      int(cache.Status),
 		DoneBlocks:  cache.DoneBlocks,
-		Reliability: cache.reliability,
-		TotalSize:   cache.totalSize,
-		TotalBlocks: cache.totalBlocks,
+		Reliability: cache.Reliability,
+		TotalSize:   cache.TotalSize,
+		TotalBlocks: cache.TotalBlocks,
 		Nodes:       cache.Nodes,
 	}
 
