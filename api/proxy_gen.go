@@ -284,9 +284,9 @@ type SchedulerStruct struct {
 
 		LocatorConnect func(p0 context.Context, p1 int, p2 string, p3 string, p4 string) (error) `perm:"write"`
 
-		NodeDownloadBlockResult func(p0 context.Context, p1 NodeBlockDownloadResult) (error) `perm:"write"`
-
 		NodeExit func(p0 context.Context, p1 string) (error) `perm:"admin"`
+
+		NodeResultForUserDownloadBlock func(p0 context.Context, p1 NodeBlockDownloadResult) (error) `perm:"write"`
 
 		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"read"`
 
@@ -1067,17 +1067,6 @@ func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 int, p2 string, p3
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) NodeDownloadBlockResult(p0 context.Context, p1 NodeBlockDownloadResult) (error) {
-	if s.Internal.NodeDownloadBlockResult == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.NodeDownloadBlockResult(p0, p1)
-}
-
-func (s *SchedulerStub) NodeDownloadBlockResult(p0 context.Context, p1 NodeBlockDownloadResult) (error) {
-	return ErrNotSupported
-}
-
 func (s *SchedulerStruct) NodeExit(p0 context.Context, p1 string) (error) {
 	if s.Internal.NodeExit == nil {
 		return ErrNotSupported
@@ -1086,6 +1075,17 @@ func (s *SchedulerStruct) NodeExit(p0 context.Context, p1 string) (error) {
 }
 
 func (s *SchedulerStub) NodeExit(p0 context.Context, p1 string) (error) {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) NodeResultForUserDownloadBlock(p0 context.Context, p1 NodeBlockDownloadResult) (error) {
+	if s.Internal.NodeResultForUserDownloadBlock == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.NodeResultForUserDownloadBlock(p0, p1)
+}
+
+func (s *SchedulerStub) NodeResultForUserDownloadBlock(p0 context.Context, p1 NodeBlockDownloadResult) (error) {
 	return ErrNotSupported
 }
 

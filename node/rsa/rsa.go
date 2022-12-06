@@ -1,4 +1,4 @@
-package common
+package rsa
 
 import (
 	"crypto"
@@ -38,9 +38,9 @@ func VerifyRsaSign(publicKey *rsa.PublicKey, sign []byte, content string) error 
 }
 
 // RsaSign Rsa Sign
-func RsaSign(privateKey *rsa.PrivateKey, digest string) ([]byte, error) {
+func RsaSign(privateKey *rsa.PrivateKey, content string) ([]byte, error) {
 	msgHash := sha256.New()
-	_, err := msgHash.Write([]byte(digest))
+	_, err := msgHash.Write([]byte(content))
 	if err != nil {
 		return nil, nil
 	}
