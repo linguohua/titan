@@ -1,4 +1,4 @@
-package scheduler
+package common
 
 import (
 	"regexp"
@@ -7,14 +7,15 @@ import (
 )
 
 var (
-	serverArea = "CN-GD-Shenzhen"
+	// ServerArea Server Area
+	ServerArea = "CN-GD-Shenzhen"
 	whitelist  = []string{}
 )
 
 // InitServerArea set area
 func InitServerArea(area string) {
-	log.Infof("server area :%s", area)
-	serverArea = area
+	// log.Infof("server area :%s", area)
+	ServerArea = area
 }
 
 func initAreaTable() {
@@ -25,14 +26,15 @@ func areaExist(area string) bool {
 		return false
 	}
 
-	return area == serverArea
+	return area == ServerArea
 }
 
-func ipLegality(ip string) (bool, *region.GeoInfo) {
+// IPLegality ip
+func IPLegality(ip string) (bool, *region.GeoInfo) {
 	geoInfo, _ := region.GetRegion().GetGeoInfo(ip)
 
 	if ipAddrACL(ip) {
-		geoInfo.Geo = serverArea
+		geoInfo.Geo = ServerArea
 		return true, geoInfo
 	}
 
@@ -42,7 +44,7 @@ func ipLegality(ip string) (bool, *region.GeoInfo) {
 
 	for _, p := range whitelist {
 		if p == ip {
-			geoInfo.Geo = serverArea
+			geoInfo.Geo = ServerArea
 			return true, geoInfo
 		}
 	}

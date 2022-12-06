@@ -237,8 +237,6 @@ var runCmd = &cli.Command{
 			log.Panic(err.Error())
 		}
 
-		scheduler.InitServerArea(area)
-
 		address := cctx.String("listen")
 
 		addressList := strings.Split(address, ":")
@@ -247,7 +245,7 @@ var runCmd = &cli.Command{
 		if err != nil {
 			log.Panic(err.Error())
 		}
-		schedulerAPI := scheduler.NewLocalScheduleNode(lr, port)
+		schedulerAPI := scheduler.NewLocalScheduleNode(lr, port, area)
 
 		srv := &http.Server{
 			Handler: schedulerHandler(schedulerAPI, true),
