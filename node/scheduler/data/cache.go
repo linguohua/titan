@@ -341,13 +341,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 			status = api.CacheStatusSuccess
 			reliability = c.calculateReliability(blockInfo.DeviceID)
 
-			// save block count to redis
-			err = cache.GetDB().UpdateDeviceInfo(info.DeviceID, func(deviceInfo *api.DevicesInfo) {
-				deviceInfo.BlockCount++
-			})
-			if err != nil {
-				log.Errorf("UpdateDeviceInfo err:%s ", err.Error())
-			}
+			c.updateNodeBlockInfo(info.DeviceID, blockInfo.Source, info.BlockSize)
 		}
 	} else {
 		info.Links = make([]string, 0)
@@ -357,13 +351,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 			status = api.CacheStatusSuccess
 			reliability = c.calculateReliability(blockInfo.DeviceID)
 
-			// save block count to redis
-			err = cache.GetDB().UpdateDeviceInfo(info.DeviceID, func(deviceInfo *api.DevicesInfo) {
-				deviceInfo.BlockCount++
-			})
-			if err != nil {
-				log.Errorf("UpdateDeviceInfo err:%s ", err.Error())
-			}
+			c.updateNodeBlockInfo(info.DeviceID, blockInfo.Source, info.BlockSize)
 		}
 	}
 
@@ -406,6 +394,29 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	c.cacheBlocksToNodes(nodeCacheMap)
 
 	return nil
+}
+
+func (c *Cache) updateNodeBlockInfo(deviceID, fromID string, blockSize int) {
+	err := cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
+		deviceInfo.BlockCount++
+		deviceInfo.TotalDownload += float64(blockSize)
+	})
+	if err != nil {
+		log.Warnf("UpdateDeviceInfo err:%s", err.Error())
+	}
+
+	node := c.Data.NodeManager.GetCandidateNode(fromID)
+	if node == nil {
+		return
+	}
+
+	err = cache.GetDB().UpdateDeviceInfo(node.DeviceInfo.DeviceId, func(deviceInfo *api.DevicesInfo) {
+		deviceInfo.DownloadCount++
+		deviceInfo.TotalUpload += float64(blockSize)
+	})
+	if err != nil {
+		log.Warnf("UpdateDeviceInfo err:%s", err.Error())
+	}
 }
 
 func (c *Cache) startCache(cids map[string]string) error {

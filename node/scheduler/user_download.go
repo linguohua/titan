@@ -424,7 +424,6 @@ func (s *Scheduler) getBlockInfoFromDB(cid string, userIP string) (*api.BlockInf
 	}
 
 	return s.getBlockInfoWithLatestDownloadList(blockInfos, latestDownloadList), nil
-
 }
 
 func (s *Scheduler) getBlockInfoIfCarfile(blockHash string, blocks map[string]*api.BlockInfo) *api.BlockInfo {
@@ -462,7 +461,7 @@ func (s *Scheduler) getBlockInfoWithLatestDownloadList(blockInfos map[string]*ap
 
 func (s *Scheduler) deviceBlockDownloadCount(deviceID string, blockSize int) error {
 	return cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
-		deviceInfo.DownloadCount += 1
+		deviceInfo.DownloadCount++
 		deviceInfo.TotalUpload += float64(blockSize)
 	})
 }
