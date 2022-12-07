@@ -8,8 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/linguohua/titan/lib/httptrace"
-
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
@@ -195,8 +193,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	}
 	defer closer()
 
-	tracer := httptrace.NewTracer()
-	info, err := api.DeviceInfo(httptrace.WithClientTrace(ctx, tracer))
+	info, err := api.DeviceInfo(ctx)
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(ctx, candidate, result)
@@ -205,7 +202,6 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	}
 
 	result.DeviceID = info.DeviceId
-	result.Latency = float64(tracer.GetLatency())
 
 	bw, ok := candidate.loadBlockWaiterFromMap(info.DeviceId)
 	if ok {
