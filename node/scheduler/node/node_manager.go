@@ -2,6 +2,7 @@ package node
 
 import (
 	"crypto/rsa"
+	"github.com/go-ping/ping"
 	"sync"
 	"time"
 
@@ -88,6 +89,19 @@ func (m *Manager) nodeKeepalive() {
 			log.Warnf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), deviceID)
 		}
 
+		result, err := statisticsPing(node.DeviceInfo.ExternalIp)
+		if err != nil {
+			log.Warnf("statistics ping %s: %v", deviceID, err)
+		} else {
+			err = cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
+				deviceInfo.PkgLossRatio = result.PacketLoss
+				deviceInfo.Latency = float64(result.AvgRtt.Milliseconds())
+			})
+			if err != nil {
+				log.Warnf("update packet loss and lantency: %v", err)
+			}
+		}
+
 		return true
 	})
 
@@ -111,6 +125,19 @@ func (m *Manager) nodeKeepalive() {
 		_, err := cache.GetDB().IncrNodeOnlineTime(deviceID, m.keepaliveTime)
 		if err != nil {
 			log.Warnf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), deviceID)
+		}
+
+		result, err := statisticsPing(node.DeviceInfo.ExternalIp)
+		if err != nil {
+			log.Errorf("statistics ping %s: %v", deviceID, err)
+		} else {
+			err = cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
+				deviceInfo.PkgLossRatio = result.PacketLoss
+				deviceInfo.Latency = float64(result.AvgRtt.Milliseconds())
+			})
+			if err != nil {
+				log.Errorf("update packet loss and lantency: %v", err)
+			}
 		}
 
 		return true
@@ -608,4 +635,19 @@ func (m *Manager) FindDownloadinfoForBlocks(blocks []api.BlockCacheInfo, carfile
 	}
 
 	return reqList
+}
+
+func statisticsPing(ip string) (*ping.Statistics, error) {
+	pinger, err := ping.NewPinger(ip)
+	if err != nil {
+		return nil, err
+	}
+
+	pinger.Count = 3
+	err = pinger.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	return pinger.Statistics(), nil
 }
