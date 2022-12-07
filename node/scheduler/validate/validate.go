@@ -4,10 +4,11 @@ import (
 	"container/list"
 	"context"
 	"fmt"
-	logging "github.com/ipfs/go-log/v2"
-	"github.com/linguohua/titan/node/scheduler/node"
 	"math/rand"
 	"time"
+
+	logging "github.com/ipfs/go-log/v2"
+	"github.com/linguohua/titan/node/scheduler/node"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/helper"
@@ -24,8 +25,10 @@ const (
 	errMsgCidFail  = "Cid Fail;resultCid:%s,cid_db:%s,fid:%d,index:%d"
 )
 
-var log = logging.Logger("validate")
-var myRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+var (
+	log    = logging.Logger("validate")
+	myRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+)
 
 // Validate Validate
 type Validate struct {
@@ -326,7 +329,6 @@ func randomNum(start, end int) int {
 }
 
 func (v *Validate) matchValidator(validatorList []string, deviceID string, validatorMap map[string][]string) (map[string][]string, []string) {
-
 	cs := v.nodeManager.FindCandidateNodes(validatorList, nil)
 
 	if cs == nil || len(cs) == 0 {
@@ -348,8 +350,7 @@ func (v *Validate) matchValidator(validatorList []string, deviceID string, valid
 
 func (v *Validate) validateMapping(validatorList []string) map[string][]string {
 	result := make(map[string][]string)
-	v.nodeManager.EdgeNodeMap.Range(func(key, value any) bool {
-
+	v.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
 		validatorID := validatorList[randomNum(0, len(validatorList))]
 
 		if validated, ok := result[validatorID]; ok {
@@ -364,8 +365,7 @@ func (v *Validate) validateMapping(validatorList []string) map[string][]string {
 		return true
 	})
 
-	v.nodeManager.CandidateNodeMap.Range(func(key, value any) bool {
-
+	v.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
 		validatorID := differentValue(validatorList, key.(string))
 		if validatorID == "" {
 			return false
