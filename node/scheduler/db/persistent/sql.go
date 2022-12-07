@@ -635,6 +635,24 @@ func (sd sqlDB) GetBlocksWithStatus(cacheID string, status api.CacheStatus) ([]a
 	return out, nil
 }
 
+func (sd sqlDB) GetBlocksWithHash(hash string) (map[string]*api.BlockInfo, error) {
+	area := sd.ReplaceArea()
+
+	var out []api.BlockInfo
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cid_hash=? AND status=?`, fmt.Sprintf(blockInfoTable, area))
+	if err := sd.cli.Select(&out, cmd, hash, int(api.CacheStatusSuccess)); err != nil {
+		return nil, err
+	}
+
+	blocks := make(map[string]*api.BlockInfo)
+	for _, block := range out {
+		var blockInfo = block
+		blocks[block.CarfileHash] = &blockInfo
+	}
+
+	return blocks, nil
+}
+
 func (sd sqlDB) GetUndoneBlocks(cacheID string) (map[string]string, error) {
 	area := sd.ReplaceArea()
 

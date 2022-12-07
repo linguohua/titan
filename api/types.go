@@ -72,6 +72,7 @@ type BlockDownloadInfo struct {
 	ID           string    `json:"-"`
 	DeviceID     string    `json:"device_id" db:"device_id"`
 	BlockCID     string    `json:"block_cid" db:"block_cid"`
+	CarfileCID   string    `json:"carfile_cid" db:"carfile_cid"`
 	BlockSize    int       `json:"block_size" db:"block_size"`
 	Speed        int64     `json:"speed" db:"speed"`
 	Reward       int64     `json:"reward" db:"reward"`

@@ -39,7 +39,8 @@ const (
 	// redisKeyBlockDownloadRecord serial number
 	redisKeyBlockDownloadRecord = "Titan:BlockDownloadRecord:%d"
 	// redisKeyBlockDownloadSN
-	redisKeyBlockDownloadSN = "Titan:BlockDownloadRecordSN"
+	redisKeyBlockDownloadSN       = "Titan:BlockDownloadRecordSN"
+	redisKeyCarfileLatestDownload = "Titan:LatestDownload:%s"
 
 	// NodeInfo field
 	onlineTimeField             = "OnlineTime"
@@ -507,4 +508,42 @@ func (rd redisDB) UpdateDeviceInfo(deviceID string, update func(deviceInfo *api.
 	})
 
 	return err
+}
+
+func (rd redisDB) AddLatestDownloadCarfile(carfileCID string, userIP string) error {
+	var maxCount = 5
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	key := fmt.Sprintf(redisKeyCarfileLatestDownload, userIP)
+
+	err := rd.cli.ZAdd(ctx, key, &redis.Z{Score: float64(time.Now().Unix()), Member: carfileCID}).Err()
+	if err != nil {
+		return err
+	}
+
+	count, err := rd.cli.ZCard(ctx, key).Result()
+	if err != nil {
+		return err
+	}
+
+	if count > int64(maxCount) {
+		err = rd.cli.ZRemRangeByRank(ctx, key, 0, count-int64(maxCount)-1).Err()
+		if err != nil {
+			return err
+		}
+	}
+
+	return rd.cli.Expire(ctx, key, 24*time.Hour).Err()
+
+}
+
+func (rd redisDB) GetLatestDownloadCarfiles(userIP string) ([]string, error) {
+	key := fmt.Sprintf(redisKeyCarfileLatestDownload, userIP)
+
+	members, err := rd.cli.ZRevRange(context.Background(), key, 0, -1).Result()
+	if err != nil {
+		return []string{}, err
+	}
+	return members, nil
 }

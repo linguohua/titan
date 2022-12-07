@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/handler"
+	"github.com/linguohua/titan/node/helper"
 	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
@@ -50,7 +51,7 @@ func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result a
 		}
 	}
 
-	s.recordDownloadBlock(record, &result, int(reward), deviceID)
+	s.recordDownloadBlock(record, &result, int(reward), deviceID, "")
 	return nil
 }
 
@@ -83,7 +84,7 @@ func (s *Scheduler) handleUserDownloadBlockResult(ctx context.Context, result ap
 		}
 	}
 
-	s.recordDownloadBlock(record, nil, 0, "")
+	s.recordDownloadBlock(record, nil, 0, "", "")
 	return nil
 }
 
@@ -103,7 +104,7 @@ func (s *Scheduler) GetDownloadInfosWithBlocks(ctx context.Context, cids []strin
 	if len(cids) < 1 {
 		return nil, xerrors.New("cids is nil")
 	}
-
+	clientIP := handler.GetRequestIP(ctx)
 	devicePrivateKey := make(map[string]*rsa.PrivateKey)
 	infoMap := make(map[string][]api.DownloadInfoResult)
 
@@ -135,7 +136,7 @@ func (s *Scheduler) GetDownloadInfosWithBlocks(ctx context.Context, cids []strin
 			NodeStatus:    int(blockDownloadStatusUnknow),
 			UserStatus:    int(blockDownloadStatusUnknow),
 		}
-		err = s.recordDownloadBlock(record, nil, 0, "")
+		err = s.recordDownloadBlock(record, nil, 0, "", clientIP)
 		if err != nil {
 			log.Errorf("GetDownloadInfosWithBlocks,recordDownloadBlock error %s", err.Error())
 		}
@@ -150,6 +151,7 @@ func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string
 		return nil, xerrors.New("cids is nil")
 	}
 
+	clientIP := handler.GetRequestIP(ctx)
 	devicePrivateKey := make(map[string]*rsa.PrivateKey)
 	infoMap := make(map[string]api.DownloadInfoResult)
 
@@ -184,7 +186,7 @@ func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string
 			NodeStatus:    int(blockDownloadStatusUnknow),
 			UserStatus:    int(blockDownloadStatusUnknow),
 		}
-		err = s.recordDownloadBlock(record, nil, 0, "")
+		err = s.recordDownloadBlock(record, nil, 0, "", clientIP)
 		if err != nil {
 			log.Errorf("GetDownloadInfoWithBlocks,recordDownloadBlock error %s", err.Error())
 		}
@@ -227,7 +229,7 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, pu
 		UserStatus:    int(blockDownloadStatusUnknow),
 	}
 
-	err = s.recordDownloadBlock(record, nil, 0, "")
+	err = s.recordDownloadBlock(record, nil, 0, "", handler.GetRequestIP(ctx))
 	if err != nil {
 		log.Errorf("GetDownloadInfoWithBlock,recordDownloadBlock error %s", err.Error())
 	}
@@ -316,20 +318,43 @@ func (s *Scheduler) getDeviccePrivateKey(deviceID string) (*rsa.PrivateKey, erro
 	return privateKey, nil
 }
 
-func (s *Scheduler) recordDownloadBlock(record cache.DownloadBlockRecord, nodeResult *api.NodeBlockDownloadResult, reward int, deviceID string) error {
+func (s *Scheduler) recordDownloadBlock(record cache.DownloadBlockRecord, nodeResult *api.NodeBlockDownloadResult, reward int, deviceID string, clientIP string) error {
 	info, err := persistent.GetDB().GetBlockDownloadInfoByID(record.ID)
 	if err != nil {
 		return err
 	}
 
 	if info == nil {
-		info = &api.BlockDownloadInfo{ID: record.ID, BlockCID: record.Cid, CreatedTime: time.Unix(record.SignTime, 0)}
+		info = &api.BlockDownloadInfo{ID: record.ID, CreatedTime: time.Unix(record.SignTime, 0)}
+
+		blockInfo, err := s.getBlockInfoFromDB(record.Cid, clientIP)
+		if err != nil {
+			return err
+		}
+		if blockInfo != nil {
+			carfileCID, err := helper.HashString2CidString(blockInfo.CarfileHash)
+			if err != nil {
+				return err
+			}
+			// block cid and carfile cid is convert to same version cid, so can compare later
+			blockCID, err := helper.HashString2CidString(blockInfo.CIDHash)
+			if err != nil {
+				return err
+			}
+			info.CarfileCID = carfileCID
+			info.BlockCID = blockCID
+			info.BlockSize = blockInfo.Size
+			info.ClientIP = clientIP
+		}
+
+		if info.BlockCID == info.CarfileCID {
+			cache.GetDB().AddLatestDownloadCarfile(info.CarfileCID, clientIP)
+		}
 	}
 
 	if nodeResult != nil {
 		info.Speed = int64(nodeResult.DownloadSpeed)
 		info.BlockSize = nodeResult.BlockSize
-		info.ClientIP = nodeResult.ClientIP
 		info.FailedReason = nodeResult.FailedReason
 	}
 
@@ -358,4 +383,72 @@ func (s *Scheduler) recordDownloadBlock(record cache.DownloadBlockRecord, nodeRe
 	}
 
 	return persistent.GetDB().SetBlockDownloadInfo(info)
+}
+
+func (s *Scheduler) getBlockInfoFromDB(cid string, userIP string) (*api.BlockInfo, error) {
+	blockHash, err := helper.CIDString2HashString(cid)
+	if err != nil {
+		return nil, err
+	}
+
+	blockInfos, err := persistent.GetDB().GetBlocksWithHash(blockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(blockInfos) == 0 {
+		return nil, fmt.Errorf("Block %s not exist in db", cid)
+	}
+
+	blockInfo := s.getBlockInfoIfCarfile(blockHash, blockInfos)
+	if blockInfo != nil {
+		return blockInfo, nil
+	}
+
+	if len(blockInfos) == 1 {
+		for _, v := range blockInfos {
+			return v, nil
+		}
+	}
+
+	latestDownloadList, err := cache.GetDB().GetLatestDownloadCarfiles(userIP)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.getBlockInfoWithLatestDownloadList(blockInfos, latestDownloadList), nil
+
+}
+
+func (s *Scheduler) getBlockInfoIfCarfile(blockHash string, blocks map[string]*api.BlockInfo) *api.BlockInfo {
+	for k, v := range blocks {
+		if k == blockHash {
+			return v
+		}
+	}
+
+	return nil
+}
+
+func (s *Scheduler) getFirstElementFromMap(blocks map[string]*api.BlockInfo) *api.BlockInfo {
+	for _, v := range blocks {
+		return v
+	}
+
+	return nil
+}
+
+func (s *Scheduler) getBlockInfoWithLatestDownloadList(blockInfos map[string]*api.BlockInfo, latestDowwnloadCarfiles []string) *api.BlockInfo {
+	for _, carfileCID := range latestDowwnloadCarfiles {
+		blockInfo, ok := blockInfos[carfileCID]
+		if ok {
+			return blockInfo
+		}
+	}
+
+	for _, v := range blockInfos {
+		return v
+	}
+
+	return nil
 }

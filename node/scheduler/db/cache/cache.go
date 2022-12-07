@@ -53,6 +53,9 @@ type DB interface {
 	GetDownloadBlockRecord(sn int64) (DownloadBlockRecord, error)
 	IncrBlockDownloadSN() (int64, error)
 
+	AddLatestDownloadCarfile(carfileCID string, userIP string) error
+	GetLatestDownloadCarfiles(userIP string) ([]string, error)
+
 	IsNilErr(err error) bool
 }
 
@@ -107,6 +110,7 @@ type DownloadBlockRecord struct {
 	SN            int64  `redis:"SN"`
 	ID            string `redis:"ID"`
 	Cid           string `redis:"Cid"`
+	BlockSize     int    `redis:"BlockSize"`
 	UserPublicKey string `redis:"UserPublicKey"`
 	NodeStatus    int    `redis:"NodeStatus"`
 	UserStatus    int    `redis:"UserStatus"`
