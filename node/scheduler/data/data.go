@@ -96,7 +96,7 @@ func (d *Data) haveRootCache() bool {
 		if value != nil {
 			c := value.(*Cache)
 			if c != nil {
-				have = c.IsRootCache && c.Status == persistent.CacheStatusSuccess
+				have = c.IsRootCache && c.Status == api.CacheStatusSuccess
 			}
 		}
 
@@ -115,7 +115,7 @@ func (d *Data) createCache(isRootCache bool) (*Cache, error) {
 	return cache, nil
 }
 
-func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, cache *Cache, createBlocks []*persistent.BlockInfo) error {
+func (d *Data) updateAndSaveCacheingInfo(blockInfo *api.BlockInfo, cache *Cache, createBlocks []*api.BlockInfo) error {
 	if !d.haveRootCache() {
 		d.TotalSize = cache.TotalSize
 		d.TotalBlocks = cache.TotalBlocks
@@ -134,7 +134,7 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, cache 
 		CarfileHash: cache.CarfileHash,
 		CacheID:     cache.CacheID,
 		DoneSize:    cache.DoneSize,
-		Status:      int(cache.Status),
+		Status:      cache.Status,
 		DoneBlocks:  cache.DoneBlocks,
 		Reliability: cache.Reliability,
 		TotalSize:   cache.TotalSize,
@@ -145,7 +145,7 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, cache 
 }
 
 func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
-	if cache.Status == persistent.CacheStatusSuccess {
+	if cache.Status == api.CacheStatusSuccess {
 		d.Reliability += cache.Reliability
 	}
 
@@ -174,7 +174,7 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 		CarfileHash: cache.CarfileHash,
 		CacheID:     cache.CacheID,
 		DoneSize:    cache.DoneSize,
-		Status:      int(cache.Status),
+		Status:      cache.Status,
 		DoneBlocks:  cache.DoneBlocks,
 		Reliability: cache.Reliability,
 		TotalSize:   cache.TotalSize,
@@ -245,7 +245,7 @@ func (d *Data) cacheEnd(doneCache *Cache) {
 	d.CacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)
 
-		if c.Status != persistent.CacheStatusSuccess {
+		if c.Status != api.CacheStatusSuccess {
 			oldCache = c
 		}
 

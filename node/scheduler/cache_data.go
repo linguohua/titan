@@ -101,7 +101,7 @@ func dataToCacheDataInfo(d *data.Data) api.DataInfo {
 
 			cache := api.CacheInfo{
 				CacheID:    c.CacheID,
-				Status:     int(c.Status),
+				Status:     c.Status,
 				DoneSize:   c.DoneSize,
 				DoneBlocks: c.DoneBlocks,
 				Nodes:      c.Nodes,

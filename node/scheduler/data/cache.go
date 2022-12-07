@@ -22,7 +22,7 @@ type Cache struct {
 	Manager     *node.Manager
 	CacheID     string
 	CarfileHash string
-	Status      persistent.CacheStatus
+	Status      api.CacheStatus
 	Reliability int
 	DoneSize    int
 	DoneBlocks  int
@@ -52,7 +52,7 @@ func newCache(nodeManager *node.Manager, data *Data, hash string, isRootCache bo
 		Manager:     nodeManager,
 		Data:        data,
 		Reliability: 0,
-		Status:      persistent.CacheStatusCreate,
+		Status:      api.CacheStatusCreate,
 		CacheID:     id,
 		CarfileHash: hash,
 		IsRootCache: isRootCache,
@@ -64,7 +64,7 @@ func newCache(nodeManager *node.Manager, data *Data, hash string, isRootCache bo
 		&api.CacheInfo{
 			CarfileHash: cache.CarfileHash,
 			CacheID:     cache.CacheID,
-			Status:      int(cache.Status),
+			Status:      cache.Status,
 			ExpiredTime: cache.ExpiredTime,
 			RootCache:   cache.IsRootCache,
 		})
@@ -95,7 +95,7 @@ func loadCache(cacheID, carfileHash string, nodeManager *node.Manager, data *Dat
 
 	c.DoneSize = info.DoneSize
 	c.DoneBlocks = info.DoneBlocks
-	c.Status = persistent.CacheStatus(info.Status)
+	c.Status = api.CacheStatus(info.Status)
 	c.Reliability = info.Reliability
 	c.Nodes = info.Nodes
 	c.TotalBlocks = info.TotalBlocks
@@ -103,7 +103,7 @@ func loadCache(cacheID, carfileHash string, nodeManager *node.Manager, data *Dat
 	c.IsRootCache = info.RootCache
 	c.ExpiredTime = info.ExpiredTime
 
-	blocks, err := persistent.GetDB().GetBlocksWithStatus(c.CacheID, persistent.CacheStatusSuccess)
+	blocks, err := persistent.GetDB().GetBlocksWithStatus(c.CacheID, api.CacheStatusSuccess)
 	if err != nil {
 		log.Errorf("loadCache %s,%s GetBlocksWithStatus err:%v", carfileHash, cacheID, err)
 		return c
@@ -188,9 +188,9 @@ func (c *Cache) findIdleNode(skips map[string]string, i int) (deviceID string) {
 }
 
 // Allocate blocks to nodes
-func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.BlockInfo, map[string][]api.BlockCacheInfo) {
+func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*api.BlockInfo, map[string][]api.BlockCacheInfo) {
 	nodeCacheMap := make(map[string][]api.BlockCacheInfo)
-	blockList := make([]*persistent.BlockInfo, 0)
+	blockList := make([]*api.BlockInfo, 0)
 
 	i := 0
 	for cid, dbID := range cids {
@@ -205,7 +205,7 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.Blo
 		}
 
 		i++
-		status := persistent.CacheStatusFail
+		status := api.CacheStatusFail
 		deviceID := ""
 		from := "IPFS"
 		fid := 0
@@ -229,7 +229,7 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.Blo
 
 			deviceID = c.findIdleNode(skips, i)
 			if deviceID != "" {
-				status = persistent.CacheStatusCreate
+				status = api.CacheStatusCreate
 
 				cList, ok := nodeCacheMap[deviceID]
 				if !ok {
@@ -247,11 +247,11 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.Blo
 			}
 		}
 
-		b := &persistent.BlockInfo{
+		b := &api.BlockInfo{
 			CacheID:     c.CacheID,
 			CID:         cid,
 			DeviceID:    deviceID,
-			Status:      int(status),
+			Status:      status,
 			Size:        0,
 			ID:          dbID,
 			CarfileHash: c.CarfileHash,
@@ -306,14 +306,14 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,hash:%s,deviceID:%s, GetBlockInfo err:%v", info.CacheID, hash, info.DeviceID, err)
 	}
 
-	if blockInfo.Status == int(persistent.CacheStatusSuccess) {
+	if blockInfo.Status == api.CacheStatusSuccess {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,%s block saved ", info.CacheID, info.Cid)
 	}
 
-	status := persistent.CacheStatusFail
+	status := api.CacheStatusFail
 	reliability := 0
 
-	if persistent.CacheStatus(blockInfo.Status) != persistent.CacheStatusRestore {
+	if api.CacheStatus(blockInfo.Status) != api.CacheStatusRestore {
 		if hash == c.CarfileHash {
 			c.TotalSize = int(info.LinksSize) + info.BlockSize
 			c.TotalBlocks = 1
@@ -324,7 +324,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 			c.BlockMap[hash] = info.DeviceID
 			c.DoneBlocks++
 			c.DoneSize += info.BlockSize
-			status = persistent.CacheStatusSuccess
+			status = api.CacheStatusSuccess
 			reliability = c.calculateReliability(blockInfo.DeviceID)
 
 			// save block count to redis
@@ -340,7 +340,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 
 		if info.IsOK {
 			c.BlockMap[hash] = info.DeviceID
-			status = persistent.CacheStatusSuccess
+			status = api.CacheStatusSuccess
 			reliability = c.calculateReliability(blockInfo.DeviceID)
 
 			// save block count to redis
@@ -353,13 +353,13 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		}
 	}
 
-	bInfo := &persistent.BlockInfo{
+	bInfo := &api.BlockInfo{
 		ID:          blockInfo.ID,
 		CacheID:     c.CacheID,
 		CID:         blockInfo.CID,
 		DeviceID:    blockInfo.DeviceID,
 		Size:        info.BlockSize,
-		Status:      int(status),
+		Status:      status,
 		Reliability: reliability,
 		CarfileHash: c.CarfileHash,
 	}
@@ -379,7 +379,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	}
 
 	if len(createBlocks) == 0 {
-		unDoneBlocks, err := persistent.GetDB().GetBlockCountWithStatus(c.CacheID, persistent.CacheStatusCreate)
+		unDoneBlocks, err := persistent.GetDB().GetBlockCountWithStatus(c.CacheID, api.CacheStatusCreate)
 		if err != nil {
 			return xerrors.Errorf("blockCacheResult cacheID:%s,%s GetBlockCountWithStatus err:%s ", info.CacheID, info.Cid, err.Error())
 		}
@@ -441,20 +441,20 @@ func (c *Cache) endCache(unDoneBlocks int, isTimeout bool) (err error) {
 	}()
 
 	if isTimeout {
-		c.Status = persistent.CacheStatusTimeout
+		c.Status = api.CacheStatusTimeout
 		return
 	}
 
-	failedBlocks, err := persistent.GetDB().GetBlockCountWithStatus(c.CacheID, persistent.CacheStatusFail)
+	failedBlocks, err := persistent.GetDB().GetBlockCountWithStatus(c.CacheID, api.CacheStatusFail)
 	if err != nil {
 		err = xerrors.Errorf("stopCache %s,%s GetBlockCountWithStatus err:%v", c.Data.CarfileCid, c.CacheID, err.Error())
 		return
 	}
 
 	if failedBlocks > 0 || unDoneBlocks > 0 {
-		c.Status = persistent.CacheStatusFail
+		c.Status = api.CacheStatusFail
 	} else {
-		c.Status = persistent.CacheStatusSuccess
+		c.Status = api.CacheStatusSuccess
 	}
 	c.Reliability = c.calculateReliability("")
 
@@ -551,7 +551,7 @@ func (c *Cache) calculateReliability(deviceID string) int {
 		return 1
 	}
 
-	if c.Status == persistent.CacheStatusSuccess {
+	if c.Status == api.CacheStatusSuccess {
 		return 1
 	}
 

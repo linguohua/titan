@@ -114,18 +114,18 @@ type CacheResultInfo struct {
 
 // DataInfo Data info
 type DataInfo struct {
-	CarfileCid      string    `db:"carfile_cid"`
-	CarfileHash     string    `db:"carfile_hash"`
-	Status          int       `db:"status"`
-	Reliability     int       `db:"reliability"`
-	NeedReliability int       `db:"need_reliability"`
-	CacheCount      int       `db:"cache_count"`
-	TotalSize       int       `db:"total_size"`
-	TotalBlocks     int       `db:"total_blocks"`
-	Nodes           int       `db:"nodes"`
-	ExpiredTime     time.Time `db:"expired_time"`
-	CreateTime      time.Time `db:"created_time"`
-	EndTime         time.Time `db:"end_time"`
+	CarfileCid      string      `db:"carfile_cid"`
+	CarfileHash     string      `db:"carfile_hash"`
+	Status          CacheStatus `db:"status"`
+	Reliability     int         `db:"reliability"`
+	NeedReliability int         `db:"need_reliability"`
+	CacheCount      int         `db:"cache_count"`
+	TotalSize       int         `db:"total_size"`
+	TotalBlocks     int         `db:"total_blocks"`
+	Nodes           int         `db:"nodes"`
+	ExpiredTime     time.Time   `db:"expired_time"`
+	CreateTime      time.Time   `db:"created_time"`
+	EndTime         time.Time   `db:"end_time"`
 
 	CacheInfos  []CacheInfo
 	DataTimeout time.Duration
@@ -133,28 +133,37 @@ type DataInfo struct {
 
 // CacheInfo Data Block info
 type CacheInfo struct {
-	CarfileHash string    `db:"carfile_hash"`
-	CacheID     string    `db:"cache_id"`
-	Status      int       `db:"status"`
-	Reliability int       `db:"reliability"`
-	DoneSize    int       `db:"done_size"`
-	DoneBlocks  int       `db:"done_blocks"`
-	TotalSize   int       `db:"total_size"`
-	TotalBlocks int       `db:"total_blocks"`
-	Nodes       int       `db:"nodes"`
-	ExpiredTime time.Time `db:"expired_time"`
-	CreateTime  time.Time `db:"created_time"`
-	RootCache   bool      `db:"root_cache"`
-	EndTime     time.Time `db:"end_time"`
+	CarfileHash string      `db:"carfile_hash"`
+	CacheID     string      `db:"cache_id"`
+	Status      CacheStatus `db:"status"`
+	Reliability int         `db:"reliability"`
+	DoneSize    int         `db:"done_size"`
+	DoneBlocks  int         `db:"done_blocks"`
+	TotalSize   int         `db:"total_size"`
+	TotalBlocks int         `db:"total_blocks"`
+	Nodes       int         `db:"nodes"`
+	ExpiredTime time.Time   `db:"expired_time"`
+	CreateTime  time.Time   `db:"created_time"`
+	RootCache   bool        `db:"root_cache"`
+	EndTime     time.Time   `db:"end_time"`
 }
 
-// BloackInfo Bloack Info
-// type BloackInfo struct {
-// 	Cid      string
-// 	Status   int    // cache 状态 1:创建 2:失败 3:成功
-// 	DeviceID string // 在哪个设备上
-// 	Size     int
-// }
+// BlockInfo Data Block info
+type BlockInfo struct {
+	ID          string
+	CacheID     string      `db:"cache_id"`
+	CID         string      `db:"cid"`
+	CIDHash     string      `db:"cid_hash"`
+	DeviceID    string      `db:"device_id"`
+	Status      CacheStatus `db:"status"`
+	Size        int         `db:"size"`
+	Reliability int         `db:"reliability"`
+	CarfileHash string      `db:"carfile_hash"`
+	Source      string      `db:"source"`
+	FID         int         `db:"fid"`
+	CreateTime  time.Time   `db:"created_time"`
+	EndTime     time.Time   `db:"end_time"`
+}
 
 type NodeBlockDownloadResult struct {
 	// serial number
@@ -190,3 +199,21 @@ type DownloadInfoResult struct {
 	TimeOut  int
 	DeviceID string `json:"-"`
 }
+
+// CacheStatus Cache Status
+type CacheStatus int
+
+const (
+	// CacheStatusUnknown status
+	CacheStatusUnknown CacheStatus = iota
+	// CacheStatusCreate status
+	CacheStatusCreate
+	// CacheStatusFail status
+	CacheStatusFail
+	// CacheStatusSuccess status
+	CacheStatusSuccess
+	// CacheStatusTimeout status
+	CacheStatusTimeout
+	// CacheStatusRestore status
+	CacheStatusRestore
+)

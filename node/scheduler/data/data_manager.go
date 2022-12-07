@@ -224,7 +224,7 @@ func (m *Manager) makeDataTask(cid, hash string, reliability int, expiredTime ti
 	data.CacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)
 
-		if c.Status != persistent.CacheStatusSuccess {
+		if c.Status != api.CacheStatusSuccess {
 			oldCache = c
 		}
 
@@ -248,7 +248,7 @@ func (m *Manager) makeDataContinue(hash, cacheID string) (*Cache, error) {
 	}
 	cache := cacheI.(*Cache)
 
-	if cache.Status == persistent.CacheStatusSuccess {
+	if cache.Status == api.CacheStatusSuccess {
 		return nil, xerrors.Errorf("Cache completed :%s", cacheID)
 	}
 
