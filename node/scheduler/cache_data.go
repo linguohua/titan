@@ -52,8 +52,8 @@ func (s *Scheduler) ReplenishCacheExpiredTime(ctx context.Context, carfileCid, c
 }
 
 // ShowDataTasks Show Data Tasks
-func (s *Scheduler) ShowDataTasks(ctx context.Context) ([]api.CacheDataInfo, error) {
-	infos := make([]api.CacheDataInfo, 0)
+func (s *Scheduler) ShowDataTasks(ctx context.Context) ([]api.DataInfo, error) {
+	infos := make([]api.DataInfo, 0)
 
 	list := s.dataManager.GetRunningTasks()
 
@@ -83,15 +83,15 @@ func (s *Scheduler) ShowDataTasks(ctx context.Context) ([]api.CacheDataInfo, err
 	return infos, nil
 }
 
-func dataToCacheDataInfo(d *data.Data) api.CacheDataInfo {
-	info := api.CacheDataInfo{}
+func dataToCacheDataInfo(d *data.Data) api.DataInfo {
+	info := api.DataInfo{}
 	if d != nil {
 		info.CarfileCid = d.CarfileCid
 		info.CarfileHash = d.CarfileHash
 		info.TotalSize = d.TotalSize
 		info.NeedReliability = d.NeedReliability
-		info.CurReliability = d.Reliability
-		info.Blocks = d.TotalBlocks
+		info.Reliability = d.Reliability
+		info.TotalBlocks = d.TotalBlocks
 		info.Nodes = d.Nodes
 
 		caches := make([]api.CacheInfo, 0)
@@ -118,8 +118,8 @@ func dataToCacheDataInfo(d *data.Data) api.CacheDataInfo {
 }
 
 // ShowDataTask Show Data Task
-func (s *Scheduler) ShowDataTask(ctx context.Context, cid string) (api.CacheDataInfo, error) {
-	info := api.CacheDataInfo{}
+func (s *Scheduler) ShowDataTask(ctx context.Context, cid string) (api.DataInfo, error) {
+	info := api.DataInfo{}
 
 	if cid == "" {
 		return info, xerrors.Errorf("%s:%s", errmsg.ErrCidNotFind, cid)
@@ -161,15 +161,15 @@ func (s *Scheduler) ListDatas(ctx context.Context, page int) (api.DataListInfo, 
 		return api.DataListInfo{}, err
 	}
 
-	out := make([]*api.CacheDataInfo, 0)
+	out := make([]*api.DataInfo, 0)
 	for _, info := range list {
-		dInfo := &api.CacheDataInfo{
+		dInfo := &api.DataInfo{
 			CarfileCid:      info.CarfileCid,
 			CarfileHash:     info.CarfileHash,
 			NeedReliability: info.NeedReliability,
-			CurReliability:  info.Reliability,
+			Reliability:     info.Reliability,
 			TotalSize:       info.TotalSize,
-			Blocks:          info.TotalBlocks,
+			TotalBlocks:     info.TotalBlocks,
 			Nodes:           info.Nodes,
 		}
 

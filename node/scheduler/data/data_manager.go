@@ -85,7 +85,7 @@ func (m *Manager) run() {
 	}
 }
 
-func (m *Manager) getWaitingDataTask(index int64) (api.CacheDataInfo, error) {
+func (m *Manager) getWaitingDataTask(index int64) (api.DataInfo, error) {
 	info, err := cache.GetDB().GetWaitingDataTask(index)
 	if err != nil {
 		return info, err
@@ -205,7 +205,7 @@ func (m *Manager) makeDataTask(cid, hash string, reliability int, expiredTime ti
 
 	// log.Warnf("askCacheData reliability:%d,data.needReliability:%d,data.reliability:%d", reliability, data.needReliability, data.reliability)
 
-	err = persistent.GetDB().SetDataInfo(&persistent.DataInfo{
+	err = persistent.GetDB().SetDataInfo(&api.DataInfo{
 		CarfileCid:      data.CarfileCid,
 		TotalSize:       data.TotalSize,
 		NeedReliability: data.NeedReliability,
@@ -266,7 +266,7 @@ func (m *Manager) CacheData(cid string, reliability int, expiredTime time.Time) 
 
 	// TODO check reliability expiredTime
 
-	err = cache.GetDB().SetWaitingDataTask(api.CacheDataInfo{CarfileHash: hash, CarfileCid: cid, NeedReliability: reliability, ExpiredTime: expiredTime})
+	err = cache.GetDB().SetWaitingDataTask(api.DataInfo{CarfileHash: hash, CarfileCid: cid, NeedReliability: reliability, ExpiredTime: expiredTime})
 	if err != nil {
 		return err
 	}
@@ -288,7 +288,7 @@ func (m *Manager) CacheContinue(cid, cacheID string) error {
 		return xerrors.Errorf("%s cid to hash err:", cid, err.Error())
 	}
 
-	err = cache.GetDB().SetWaitingDataTask(api.CacheDataInfo{CarfileHash: hash, CarfileCid: cid, CacheInfos: []api.CacheInfo{{CacheID: cacheID}}})
+	err = cache.GetDB().SetWaitingDataTask(api.DataInfo{CarfileHash: hash, CarfileCid: cid, CacheInfos: []api.CacheInfo{{CacheID: cacheID}}})
 	if err != nil {
 		return err
 	}

@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
@@ -120,7 +121,7 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, cache 
 		d.TotalBlocks = cache.TotalBlocks
 	}
 
-	dInfo := &persistent.DataInfo{
+	dInfo := &api.DataInfo{
 		CarfileHash: d.CarfileHash,
 		TotalSize:   d.TotalSize,
 		TotalBlocks: d.TotalBlocks,
@@ -128,7 +129,7 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *persistent.BlockInfo, cache 
 		CacheCount:  d.CacheCount,
 	}
 
-	cInfo := &persistent.CacheInfo{
+	cInfo := &api.CacheInfo{
 		// ID:          cache.dbID,
 		CarfileHash: cache.CarfileHash,
 		CacheID:     cache.CacheID,
@@ -159,7 +160,7 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 	}
 
 	d.Nodes = dNodes
-	dInfo := &persistent.DataInfo{
+	dInfo := &api.DataInfo{
 		CarfileHash: d.CarfileHash,
 		TotalSize:   d.TotalSize,
 		TotalBlocks: d.TotalBlocks,
@@ -169,7 +170,7 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 	}
 
 	cache.Nodes = cNodes
-	cInfo := &persistent.CacheInfo{
+	cInfo := &api.CacheInfo{
 		CarfileHash: cache.CarfileHash,
 		CacheID:     cache.CacheID,
 		DoneSize:    cache.DoneSize,

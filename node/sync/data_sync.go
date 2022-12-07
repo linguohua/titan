@@ -30,6 +30,7 @@ func NewDataSync(block *block.Block) *DataSync {
 func (dataSync *DataSync) GetAllChecksums(ctx context.Context, maxGroupNum int) (api.ChecksumRsp, error) {
 	return dataSync.getAllChecksums(ctx, maxGroupNum)
 }
+
 func (dataSync *DataSync) ScrubBlocks(ctx context.Context, scrub api.ScrubBlocks) error {
 	return dataSync.scrubBlocks(scrub)
 }
@@ -57,7 +58,7 @@ func (dataSync *DataSync) getAllChecksums(ctx context.Context, maxGroupNum int) 
 		hash string
 	}
 
-	var blockCollection = make([]block, 0, 10000)
+	blockCollection := make([]block, 0, 10000)
 
 	for {
 		r, ok := results.NextSync()
@@ -132,7 +133,7 @@ func (dataSync *DataSync) getChecksumsInRange(ctx context.Context, req api.ReqCh
 		hash string
 	}
 
-	var blockCollection = make([]block, 0, 1000)
+	blockCollection := make([]block, 0, 1000)
 
 	for i := startFid; i <= endFid; i++ {
 		fid := fmt.Sprintf("%d", i)
@@ -195,7 +196,7 @@ func (dataSync *DataSync) getChecksumsInRange(ctx context.Context, req api.ReqCh
 
 func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 	// blocks key fid, value hash
-	var blocks = make(map[int]string)
+	blocks := make(map[int]string)
 	for fid, cid := range scrub.Blocks {
 		hash, err := helper.CIDString2HashString(cid)
 		if err != nil {
@@ -250,7 +251,6 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 		if dataSync.block.IsLoadBlockFromIPFS() {
 			loadBlockFromIPFS(dataSync.block, blocks)
 		} else {
-
 		}
 		// TODO: download block that not exist in local
 		// blocks is need to download
@@ -383,13 +383,13 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 }
 
 func loadBlockFromIPFS(block *block.Block, blocks map[int]string) {
-	blockInfos := make([]api.BlockInfo, 0)
+	blockInfos := make([]api.BlockCacheInfo, 0)
 	for fid, hash := range blocks {
 		cid, err := helper.HashString2CidString(hash)
 		if err != nil {
 			continue
 		}
-		blockInfo := api.BlockInfo{Cid: cid, Fid: fid}
+		blockInfo := api.BlockCacheInfo{Cid: cid, Fid: fid}
 		blockInfos = append(blockInfos, blockInfo)
 	}
 	req := api.ReqCacheData{BlockInfos: blockInfos}

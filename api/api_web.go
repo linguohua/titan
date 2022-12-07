@@ -17,7 +17,7 @@ type Web interface {
 	StatCaches(ctx context.Context) (StatCachesRsp, error)                                      //perm:read
 	AddCacheTask(ctx context.Context, carFileCID string, reliability int, expireTime int) error //perm:read
 	ListCacheTasks(ctx context.Context, cursor int, count int) (ListCacheTasksRsp, error)       //perm:read
-	GetCacheTaskInfo(ctx context.Context, carFileCID string) (CacheDataInfo, error)             //perm:read
+	GetCacheTaskInfo(ctx context.Context, carFileCID string) (DataInfo, error)                  //perm:read
 	CancelCacheTask(ctx context.Context, carFileCID string) error                               //perm:read
 
 	GetCarfileByCID(ctx context.Context, carFileCID string) (WebCarfile, error) //perm:read
@@ -120,8 +120,8 @@ type WebBlock struct {
 }
 
 type ListCacheTasksRsp struct {
-	Data  []CacheDataInfo `json:"data"`
-	Total int64           `json:"total"`
+	Data  []DataInfo `json:"data"`
+	Total int64      `json:"total"`
 }
 
 type ValidationInfo struct {

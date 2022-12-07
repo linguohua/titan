@@ -25,7 +25,7 @@ import (
 var log = logging.Logger("block")
 
 type delayReq struct {
-	blockInfo api.BlockInfo
+	blockInfo api.BlockCacheInfo
 	count     int
 	// use for edge node load block
 	downloadURL   string

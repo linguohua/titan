@@ -61,7 +61,7 @@ func newCache(nodeManager *node.Manager, data *Data, hash string, isRootCache bo
 	}
 
 	err = persistent.GetDB().CreateCache(
-		&persistent.CacheInfo{
+		&api.CacheInfo{
 			CarfileHash: cache.CarfileHash,
 			CacheID:     cache.CacheID,
 			Status:      int(cache.Status),
@@ -117,7 +117,7 @@ func loadCache(cacheID, carfileHash string, nodeManager *node.Manager, data *Dat
 }
 
 // Notify node to cache blocks
-func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockInfo) (int64, error) {
+func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockCacheInfo) (int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -188,8 +188,8 @@ func (c *Cache) findIdleNode(skips map[string]string, i int) (deviceID string) {
 }
 
 // Allocate blocks to nodes
-func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.BlockInfo, map[string][]api.BlockInfo) {
-	nodeCacheMap := make(map[string][]api.BlockInfo)
+func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.BlockInfo, map[string][]api.BlockCacheInfo) {
+	nodeCacheMap := make(map[string][]api.BlockCacheInfo)
 	blockList := make([]*persistent.BlockInfo, 0)
 
 	i := 0
@@ -233,7 +233,7 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.Blo
 
 				cList, ok := nodeCacheMap[deviceID]
 				if !ok {
-					cList = make([]api.BlockInfo, 0)
+					cList = make([]api.BlockCacheInfo, 0)
 				}
 
 				fid, err = cache.GetDB().IncrNodeCacheFid(deviceID, 1)
@@ -242,7 +242,7 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.Blo
 					continue
 				}
 
-				cList = append(cList, api.BlockInfo{Cid: cid, Fid: fid, From: from})
+				cList = append(cList, api.BlockCacheInfo{Cid: cid, Fid: fid, From: from})
 				nodeCacheMap[deviceID] = cList
 			}
 		}
@@ -267,7 +267,7 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*persistent.Blo
 }
 
 // Notify nodes to cache blocks and setting timeout
-func (c *Cache) cacheBlocksToNodes(nodeCacheMap map[string][]api.BlockInfo) {
+func (c *Cache) cacheBlocksToNodes(nodeCacheMap map[string][]api.BlockCacheInfo) {
 	if nodeCacheMap == nil || len(nodeCacheMap) <= 0 {
 		return
 	}

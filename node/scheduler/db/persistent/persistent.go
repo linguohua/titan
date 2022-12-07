@@ -23,22 +23,22 @@ type DB interface {
 	SetValidateResultInfo(info *ValidateResult) error
 	SetNodeToValidateErrorList(sID, deviceID string) error
 
-	CreateCache(cInfo *CacheInfo) error
-	SaveCacheEndResults(dInfo *DataInfo, cInfo *CacheInfo) error
-	SaveCacheingResults(dInfo *DataInfo, cInfo *CacheInfo, updateBlock *BlockInfo, createBlocks []*BlockInfo) error
+	CreateCache(cInfo *api.CacheInfo) error
+	SaveCacheEndResults(dInfo *api.DataInfo, cInfo *api.CacheInfo) error
+	SaveCacheingResults(dInfo *api.DataInfo, cInfo *api.CacheInfo, updateBlock *BlockInfo, createBlocks []*BlockInfo) error
 
 	// data info
-	SetDataInfo(info *DataInfo) error
-	GetDataInfo(hash string) (*DataInfo, error)
-	GetDataCidWithPage(page int) (count int, totalPage int, list []DataInfo, err error)
+	SetDataInfo(info *api.DataInfo) error
+	GetDataInfo(hash string) (*api.DataInfo, error)
+	GetDataCidWithPage(page int) (count int, totalPage int, list []api.DataInfo, err error)
 	GetCachesWithData(hash string) ([]string, error)
 
 	ChangeExpiredTimeWhitCaches(carfileHash, cacheID string, expiredTime time.Time) error
-	GetExpiredCaches() ([]*CacheInfo, error)
+	GetExpiredCaches() ([]*api.CacheInfo, error)
 	GetMinExpiredTimeWithCaches() (time.Time, error)
 
 	// cache info
-	GetCacheInfo(cacheID string) (*CacheInfo, error)
+	GetCacheInfo(cacheID string) (*api.CacheInfo, error)
 	RemoveCacheInfo(cacheID, carfileHash string, isDeleteData bool, reliability int) error
 	GetCachesSize(cacheID string, status CacheStatus) (int, error)
 
@@ -51,8 +51,8 @@ type DB interface {
 	GetAllBlocks(cacheID string) ([]*BlockInfo, error)
 	GetNodesFromCache(cacheID string) (int, error)
 	GetNodesFromData(hash string) (int, error)
-	GetCachesFromNode(deviceID string) ([]*CacheInfo, error)
-	CleanCacheDataWithNode(deviceID string, caches []*CacheInfo) error // TODO rename
+	GetCachesFromNode(deviceID string) ([]*api.CacheInfo, error)
+	CleanCacheDataWithNode(deviceID string, caches []*api.CacheInfo) error // TODO rename
 	// GetNodesFromAllData() ([]string, error)
 
 	// node block
@@ -151,39 +151,6 @@ type ValidateResult struct {
 	ServerName  string `db:"server_name"`
 }
 
-// DataInfo Data info
-type DataInfo struct {
-	CarfileCid      string    `db:"carfile_cid"`
-	CarfileHash     string    `db:"carfile_hash"`
-	Status          int       `db:"status"`
-	Reliability     int       `db:"reliability"`
-	NeedReliability int       `db:"need_reliability"`
-	CacheCount      int       `db:"cache_count"`
-	TotalSize       int       `db:"total_size"`
-	TotalBlocks     int       `db:"total_blocks"`
-	Nodes           int       `db:"nodes"`
-	ExpiredTime     time.Time `db:"expired_time"`
-	CreateTime      time.Time `db:"created_time"`
-	EndTime         time.Time `db:"end_time"`
-}
-
-// CacheInfo Data Block info
-type CacheInfo struct {
-	CarfileHash string    `db:"carfile_hash"`
-	CacheID     string    `db:"cache_id"`
-	Status      int       `db:"status"`
-	Reliability int       `db:"reliability"`
-	DoneSize    int       `db:"done_size"`
-	DoneBlocks  int       `db:"done_blocks"`
-	TotalSize   int       `db:"total_size"`
-	TotalBlocks int       `db:"total_blocks"`
-	Nodes       int       `db:"nodes"`
-	ExpiredTime time.Time `db:"expired_time"`
-	CreateTime  time.Time `db:"created_time"`
-	RootCache   bool      `db:"root_cache"`
-	EndTime     time.Time `db:"end_time"`
-}
-
 // BlockInfo Data Block info
 type BlockInfo struct {
 	ID          string
@@ -199,7 +166,6 @@ type BlockInfo struct {
 	FID         int       `db:"fid"`
 	CreateTime  time.Time `db:"created_time"`
 	EndTime     time.Time `db:"end_time"`
-	IsUpdate    bool
 }
 
 // MessageInfo Message Info

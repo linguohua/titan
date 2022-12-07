@@ -87,9 +87,9 @@ var CacheBlockCmd = &cli.Command{
 		candidateURL := cctx.String("candidate")
 		ctx := ReqContext(cctx)
 
-		blockInfo := api.BlockInfo{Cid: cid, Fid: fid}
+		blockInfo := api.BlockCacheInfo{Cid: cid, Fid: fid}
 
-		reqData := API.ReqCacheData{BlockInfos: []api.BlockInfo{blockInfo}, DownloadURL: candidateURL}
+		reqData := API.ReqCacheData{BlockInfos: []api.BlockCacheInfo{blockInfo}, DownloadURL: candidateURL}
 
 		_, err = adgeAPI.CacheBlocks(ctx, []api.ReqCacheData{reqData})
 		if err != nil {

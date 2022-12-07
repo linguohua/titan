@@ -24,7 +24,7 @@ type Block interface {
 	DeleteAllBlocks(ctx context.Context) error              //perm:admin
 }
 
-type BlockInfo struct {
+type BlockCacheInfo struct {
 	Cid string
 	Fid int
 
@@ -33,7 +33,7 @@ type BlockInfo struct {
 }
 
 type ReqCacheData struct {
-	BlockInfos    []BlockInfo
+	BlockInfos    []BlockCacheInfo
 	DownloadURL   string
 	DownloadToken string
 	CardFileHash  string
