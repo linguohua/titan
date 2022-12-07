@@ -871,8 +871,8 @@ func (sd sqlDB) CleanCacheDataWithNode(deviceID string, caches []*api.CacheInfo)
 
 func (sd sqlDB) SetBlockDownloadInfo(info *api.BlockDownloadInfo) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (id, device_id, block_cid, block_size, speed, reward, status, failed_reason, client_ip, created_time, complete_time) 
-				VALUES (:id, :device_id, :block_cid, :block_size, :speed, :reward, :status, :failed_reason, :client_ip, :created_time, :complete_time) ON DUPLICATE KEY UPDATE device_id=:device_id, block_cid=:block_cid, block_size=:block_size, speed=:speed, reward=:reward, status=:status, failed_reason=:failed_reason, client_ip=:client_ip, complete_time=:complete_time`, fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
+		`INSERT INTO %s (id, device_id, block_cid, carfile_cid, block_size, speed, reward, status, failed_reason, client_ip, created_time, complete_time) 
+				VALUES (:id, :device_id, :block_cid, :carfile_cid, :block_size, :speed, :reward, :status, :failed_reason, :client_ip, :created_time, :complete_time) ON DUPLICATE KEY UPDATE device_id=:device_id, speed=:speed, reward=:reward, status=:status, failed_reason=:failed_reason, complete_time=:complete_time`, fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
 
 	_, err := sd.cli.NamedExec(query, info)
 	if err != nil {
