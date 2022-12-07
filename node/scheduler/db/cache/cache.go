@@ -110,7 +110,6 @@ type DownloadBlockRecord struct {
 	SN            int64  `redis:"SN"`
 	ID            string `redis:"ID"`
 	Cid           string `redis:"Cid"`
-	BlockSize     int    `redis:"BlockSize"`
 	UserPublicKey string `redis:"UserPublicKey"`
 	NodeStatus    int    `redis:"NodeStatus"`
 	UserStatus    int    `redis:"UserStatus"`
