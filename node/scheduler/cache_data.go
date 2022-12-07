@@ -230,3 +230,11 @@ func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cid
 
 	return nil, xerrors.Errorf("%s:%s", errmsg.ErrNodeNotFind, deviceID)
 }
+
+func (s *Scheduler) deviceBlockCacheCount(deviceID string, blockSize int) error {
+	// save block count to redis
+	return cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
+		deviceInfo.BlockCount++
+		deviceInfo.TotalDownload += float64(blockSize)
+	})
+}
