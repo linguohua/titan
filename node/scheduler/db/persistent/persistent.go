@@ -25,7 +25,7 @@ type DB interface {
 
 	CreateCache(cInfo *api.CacheInfo) error
 	SaveCacheEndResults(dInfo *api.DataInfo, cInfo *api.CacheInfo) error
-	SaveCacheingResults(dInfo *api.DataInfo, cInfo *api.CacheInfo, updateBlock *BlockInfo, createBlocks []*BlockInfo) error
+	SaveCacheingResults(dInfo *api.DataInfo, cInfo *api.CacheInfo, updateBlock *api.BlockInfo, createBlocks []*api.BlockInfo) error
 
 	// data info
 	SetDataInfo(info *api.DataInfo) error
@@ -40,15 +40,15 @@ type DB interface {
 	// cache info
 	GetCacheInfo(cacheID string) (*api.CacheInfo, error)
 	RemoveCacheInfo(cacheID, carfileHash string, isDeleteData bool, reliability int) error
-	GetCachesSize(cacheID string, status CacheStatus) (int, error)
+	GetCachesSize(cacheID string, status api.CacheStatus) (int, error)
 
 	// block info
 	// SetBlockInfos(infos []*BlockInfo, carfileCid string) error
-	GetBlockInfo(cacheID, hash string) (*BlockInfo, error)
-	GetBlockCountWithStatus(cacheID string, status CacheStatus) (int, error)
-	GetBlocksWithStatus(cacheID string, status CacheStatus) ([]BlockInfo, error)
+	GetBlockInfo(cacheID, hash string) (*api.BlockInfo, error)
+	GetBlockCountWithStatus(cacheID string, status api.CacheStatus) (int, error)
+	GetBlocksWithStatus(cacheID string, status api.CacheStatus) ([]api.BlockInfo, error)
 	GetUndoneBlocks(cacheID string) (map[string]string, error)
-	GetAllBlocks(cacheID string) ([]*BlockInfo, error)
+	GetAllBlocks(cacheID string) ([]*api.BlockInfo, error)
 	GetNodesFromCache(cacheID string) (int, error)
 	GetNodesFromData(hash string) (int, error)
 	GetCachesFromNode(deviceID string) ([]*api.CacheInfo, error)
@@ -151,23 +151,6 @@ type ValidateResult struct {
 	ServerName  string `db:"server_name"`
 }
 
-// BlockInfo Data Block info
-type BlockInfo struct {
-	ID          string
-	CacheID     string    `db:"cache_id"`
-	CID         string    `db:"cid"`
-	CIDHash     string    `db:"cid_hash"`
-	DeviceID    string    `db:"device_id"`
-	Status      int       `db:"status"`
-	Size        int       `db:"size"`
-	Reliability int       `db:"reliability"`
-	CarfileHash string    `db:"carfile_hash"`
-	Source      string    `db:"source"`
-	FID         int       `db:"fid"`
-	CreateTime  time.Time `db:"created_time"`
-	EndTime     time.Time `db:"end_time"`
-}
-
 // MessageInfo Message Info
 type MessageInfo struct {
 	ID         string
@@ -221,24 +204,6 @@ const (
 	MsgTypeDowload
 	// MsgTypeValidate type
 	MsgTypeValidate
-)
-
-// CacheStatus Cache Status
-type CacheStatus int
-
-const (
-	// CacheStatusUnknown status
-	CacheStatusUnknown CacheStatus = iota
-	// CacheStatusCreate status
-	CacheStatusCreate
-	// CacheStatusFail status
-	CacheStatusFail
-	// CacheStatusSuccess status
-	CacheStatusSuccess
-	// CacheStatusTimeout status
-	CacheStatusTimeout
-	// CacheStatusRestore status
-	CacheStatusRestore
 )
 
 // MsgStatus message Status
