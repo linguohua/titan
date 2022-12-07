@@ -51,7 +51,7 @@ func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result a
 		}
 	}
 
-	s.recordDownloadBlock(record, &result, int(reward), deviceID, "")
+	s.recordDownloadBlock(record, &result, deviceID, "")
 	return nil
 }
 
@@ -84,7 +84,7 @@ func (s *Scheduler) handleUserDownloadBlockResult(ctx context.Context, result ap
 		}
 	}
 
-	s.recordDownloadBlock(record, nil, 0, "", "")
+	s.recordDownloadBlock(record, nil, "", "")
 	return nil
 }
 
@@ -136,7 +136,7 @@ func (s *Scheduler) GetDownloadInfosWithBlocks(ctx context.Context, cids []strin
 			NodeStatus:    int(blockDownloadStatusUnknow),
 			UserStatus:    int(blockDownloadStatusUnknow),
 		}
-		err = s.recordDownloadBlock(record, nil, 0, "", clientIP)
+		err = s.recordDownloadBlock(record, nil, "", clientIP)
 		if err != nil {
 			log.Errorf("GetDownloadInfosWithBlocks,recordDownloadBlock error %s", err.Error())
 		}
@@ -186,7 +186,7 @@ func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string
 			NodeStatus:    int(blockDownloadStatusUnknow),
 			UserStatus:    int(blockDownloadStatusUnknow),
 		}
-		err = s.recordDownloadBlock(record, nil, 0, "", clientIP)
+		err = s.recordDownloadBlock(record, nil, "", clientIP)
 		if err != nil {
 			log.Errorf("GetDownloadInfoWithBlocks,recordDownloadBlock error %s", err.Error())
 		}
@@ -229,7 +229,7 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, pu
 		UserStatus:    int(blockDownloadStatusUnknow),
 	}
 
-	err = s.recordDownloadBlock(record, nil, 0, "", handler.GetRequestIP(ctx))
+	err = s.recordDownloadBlock(record, nil, "", handler.GetRequestIP(ctx))
 	if err != nil {
 		log.Errorf("GetDownloadInfoWithBlock,recordDownloadBlock error %s", err.Error())
 	}
@@ -318,7 +318,7 @@ func (s *Scheduler) getDeviccePrivateKey(deviceID string) (*rsa.PrivateKey, erro
 	return privateKey, nil
 }
 
-func (s *Scheduler) recordDownloadBlock(record cache.DownloadBlockRecord, nodeResult *api.NodeBlockDownloadResult, reward int, deviceID string, clientIP string) error {
+func (s *Scheduler) recordDownloadBlock(record cache.DownloadBlockRecord, nodeResult *api.NodeBlockDownloadResult, deviceID string, clientIP string) error {
 	info, err := persistent.GetDB().GetBlockDownloadInfoByID(record.ID)
 	if err != nil {
 		return err
@@ -354,16 +354,11 @@ func (s *Scheduler) recordDownloadBlock(record cache.DownloadBlockRecord, nodeRe
 
 	if nodeResult != nil {
 		info.Speed = int64(nodeResult.DownloadSpeed)
-		info.BlockSize = nodeResult.BlockSize
 		info.FailedReason = nodeResult.FailedReason
 	}
 
 	if len(deviceID) > 0 {
 		info.DeviceID = deviceID
-	}
-
-	if reward > 0 {
-		info.Reward = int64(reward)
 	}
 
 	if record.NodeStatus == int(blockDownloadStatusFailed) || record.UserStatus == int(blockDownloadStatusFailed) {
@@ -372,14 +367,26 @@ func (s *Scheduler) recordDownloadBlock(record cache.DownloadBlockRecord, nodeRe
 
 	if record.NodeStatus == int(blockDownloadStatusSuccess) && record.UserStatus == int(blockDownloadStatusSuccess) {
 		info.CompleteTime = time.Now()
+		info.Reward = 1
 		info.Status = int(blockDownloadStatusSuccess)
 		err = cache.GetDB().RemoveDownloadBlockRecord(record.SN)
+		if err != nil {
+			return err
+		}
+		// add reward
+		err = incrDeviceReward(info.DeviceID, info.Reward)
+		if err != nil {
+			return err
+		}
+		err = s.deviceBlockDownloadCount(info.DeviceID, info.BlockSize)
+		if err != nil {
+			return err
+		}
 	} else {
 		err = cache.GetDB().SetDownloadBlockRecord(record)
-	}
-
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	return persistent.GetDB().SetBlockDownloadInfo(info)
@@ -451,4 +458,11 @@ func (s *Scheduler) getBlockInfoWithLatestDownloadList(blockInfos map[string]*ap
 	}
 
 	return nil
+}
+
+func (s *Scheduler) deviceBlockDownloadCount(deviceID string, blockSize int) error {
+	return cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
+		deviceInfo.DownloadCount += 1
+		deviceInfo.TotalUpload += float64(blockSize)
+	})
 }
