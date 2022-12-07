@@ -2,22 +2,21 @@ package election
 
 import (
 	"context"
+	logging "github.com/ipfs/go-log/v2"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
+	"github.com/linguohua/titan/node/scheduler/node"
 	"math/rand"
 	"sort"
 	"sync"
 	"time"
-
-	logging "github.com/ipfs/go-log/v2"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
-	"github.com/linguohua/titan/node/scheduler/node"
 )
 
 var log = logging.Logger("election")
 
 var HeartbeatInterval = 1 * time.Minute
 
-type ValidateSelector struct {
-	opts       ValidateOptions
+type Election struct {
+	opts       EleOption
 	connect    chan string
 	update     chan struct{}
 	manage     *node.Manager
@@ -27,7 +26,7 @@ type ValidateSelector struct {
 	startTime time.Time
 }
 
-type ValidateOptions struct {
+type EleOption struct {
 	ctx context.Context
 	// interval is the time interval for re-election
 	interval time.Duration
@@ -35,8 +34,8 @@ type ValidateOptions struct {
 	expiration time.Duration
 }
 
-func newValidateOption(opts ...Option) ValidateOptions {
-	opt := ValidateOptions{
+func newEleOption(opts ...Option) EleOption {
+	opt := EleOption{
 		ctx:        context.Background(),
 		interval:   2 * 24 * time.Hour,
 		expiration: 30 * time.Minute,
@@ -47,31 +46,31 @@ func newValidateOption(opts ...Option) ValidateOptions {
 	return opt
 }
 
-type Option func(opt *ValidateOptions)
+type Option func(opt *EleOption)
 
 func ElectIntervalOption(interval time.Duration) Option {
-	return func(opt *ValidateOptions) {
+	return func(opt *EleOption) {
 		opt.interval = interval
 	}
 }
 
 func ExpirationOption(expiration time.Duration) Option {
-	return func(opt *ValidateOptions) {
+	return func(opt *EleOption) {
 		opt.expiration = expiration
 	}
 }
 
-func newValidateSelector(manage *node.Manager, opts ...Option) *ValidateSelector {
-	return &ValidateSelector{
+func NewElection(manage *node.Manager, opts ...Option) *Election {
+	return &Election{
 		manage:     manage,
-		opts:       newValidateOption(opts...),
+		opts:       newEleOption(opts...),
 		validators: make(map[string]time.Time),
 		connect:    make(chan string, 1),
 		update:     make(chan struct{}, 1),
 	}
 }
 
-func (v *ValidateSelector) Run() {
+func (v *Election) Run() {
 	go v.checkValidatorExpiration()
 	if err := v.fetchCurrentValidators(); err != nil {
 		log.Errorf("fetch current validators: %v", err)
@@ -95,7 +94,7 @@ func (v *ValidateSelector) Run() {
 	}
 }
 
-func (v *ValidateSelector) elect() error {
+func (v *Election) elect() error {
 	v.startTime = time.Now()
 
 	log.Info("election starting")
@@ -112,7 +111,7 @@ func (v *ValidateSelector) elect() error {
 	return v.saveWinners(winners)
 }
 
-func (v *ValidateSelector) winner(isAppend bool) ([]*node.CandidateNode, error) {
+func (v *Election) winner(isAppend bool) ([]*node.CandidateNode, error) {
 	var out []*node.CandidateNode
 	defer func() {
 		log.Infof("election winners count: %d", len(out))
@@ -197,7 +196,7 @@ func chooseCandidates(candidates []*node.CandidateNode, allNodes []*node.Node) (
 	return
 }
 
-func (v *ValidateSelector) saveWinners(winners []*node.CandidateNode) error {
+func (v *Election) saveWinners(winners []*node.CandidateNode) error {
 	err := cache.GetDB().RemoveValidatorList()
 	if err != nil {
 		return err
@@ -218,7 +217,7 @@ func (v *ValidateSelector) saveWinners(winners []*node.CandidateNode) error {
 	return nil
 }
 
-func (v *ValidateSelector) fetchCurrentValidators() error {
+func (v *Election) fetchCurrentValidators() error {
 	validators, err := cache.GetDB().GetValidatorsWithList()
 	if err != nil {
 		return err
@@ -232,7 +231,7 @@ func (v *ValidateSelector) fetchCurrentValidators() error {
 }
 
 // sufficientCandidates the total download bandwidth of all candidate nodes must be greater than the total upload bandwidth of all nodes
-func (v *ValidateSelector) sufficientCandidates() bool {
+func (v *Election) sufficientCandidates() bool {
 	var candidateDwnBdw, needUpBdw float64
 
 	for _, candidate := range v.getAllCandidates() {
@@ -251,7 +250,7 @@ func (v *ValidateSelector) sufficientCandidates() bool {
 }
 
 // deviceConnect when a batch of edge nodes goes online, the number of validators may need to be recalculated.
-func (v *ValidateSelector) deviceConnect(deviceID string) error {
+func (v *Election) deviceConnect(deviceID string) error {
 	log.Infof("device connect: %s", deviceID)
 	v.vlk.Lock()
 	_, ok := v.validators[deviceID]
@@ -266,7 +265,7 @@ func (v *ValidateSelector) deviceConnect(deviceID string) error {
 	return nil
 }
 
-func (v *ValidateSelector) maybeReElect() error {
+func (v *Election) maybeReElect() error {
 	var validators []*node.CandidateNode
 	candidates := v.getAllCandidates()
 	allNodes := v.getAllNode()
@@ -288,7 +287,7 @@ func (v *ValidateSelector) maybeReElect() error {
 	return nil
 }
 
-func (v *ValidateSelector) updateValidators() error {
+func (v *Election) updateValidators() error {
 	start := time.Now()
 
 	log.Infof("re-election start")
@@ -304,33 +303,37 @@ func (v *ValidateSelector) updateValidators() error {
 	return v.saveWinners(winners)
 }
 
-func (v *ValidateSelector) NodeConnect(deviceID string) {
+func (v *Election) NodeConnect(deviceID string) {
 	v.connect <- deviceID
 }
 
-func (v *ValidateSelector) getAllCandidates() []*node.CandidateNode {
-	return v.manage.GetAllCandidate()
+func (v *Election) getAllCandidates() []*node.CandidateNode {
+	var candidates []*node.CandidateNode
+
+	v.manage.CandidateNodeMap.Range(func(key, value interface{}) bool {
+		candidates = append(candidates, value.(*node.CandidateNode))
+		return true
+	})
+	return candidates
 }
 
-func (v *ValidateSelector) getAllNode() []*node.Node {
+func (v *Election) getAllNode() []*node.Node {
 	var nodes []*node.Node
-
-	cs := v.manage.GetAllCandidate()
-	for _, c := range cs {
-		nodes = append(nodes, &c.Node)
-	}
-
-	es := v.manage.GetAllEdge()
-	for _, e := range es {
-		nodes = append(nodes, &e.Node)
-	}
+	v.manage.EdgeNodeMap.Range(func(key, value interface{}) bool {
+		nodes = append(nodes, &value.(*node.EdgeNode).Node)
+		return true
+	})
+	v.manage.CandidateNodeMap.Range(func(key, value interface{}) bool {
+		nodes = append(nodes, &value.(*node.CandidateNode).Node)
+		return true
+	})
 
 	return nodes
 }
 
 // checkValidatorExpiration if the validator node goes offline (for a long time), it is necessary to re-elect a new validator.
 // But the edge node doesn't need to do anything.
-func (v *ValidateSelector) checkValidatorExpiration() {
+func (v *Election) checkValidatorExpiration() {
 	ticker := time.NewTicker(HeartbeatInterval)
 	defer ticker.Stop()
 
@@ -340,8 +343,8 @@ func (v *ValidateSelector) checkValidatorExpiration() {
 			v.vlk.Lock()
 			var expire bool
 			for deviceID, lastActive := range v.validators {
-				cNode := v.manage.GetCandidateNode(deviceID)
-				if cNode != nil {
+				_, ok := v.manage.CandidateNodeMap.Load(deviceID)
+				if ok {
 					v.validators[deviceID] = time.Now()
 					continue
 				}
@@ -360,7 +363,7 @@ func (v *ValidateSelector) checkValidatorExpiration() {
 	}
 }
 
-func (v *ValidateSelector) GenerateValidation() map[string][]string {
+func (v *Election) GenerateValidation() map[string][]string {
 	candidates := v.getAllCandidates()
 	allNodes := v.getAllNode()
 
@@ -429,7 +432,7 @@ func (v *ValidateSelector) GenerateValidation() map[string][]string {
 	return out
 }
 
-func (v *ValidateSelector) getNextElectionTime() time.Time {
+func (v *Election) getNextElectionTime() time.Time {
 	diff := time.Now().Sub(v.startTime)
 	left := v.opts.interval - diff
 	if left <= 0 {

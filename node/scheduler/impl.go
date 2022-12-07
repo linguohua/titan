@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
+	"github.com/linguohua/titan/node/scheduler/election"
+	validate2 "github.com/linguohua/titan/node/scheduler/validate"
 	"math/rand"
 	"net/http"
 	"time"
@@ -65,15 +67,16 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Sche
 	locatorManager := locator.NewLoactorManager(port)
 	// pool := newValidatePool(verifiedNodeMax)
 	nodeManager := node.NewNodeManager(s.nodeOfflineCallback, s.nodeExitedCallback, s.authNew)
-	// election := newElection(pool)
-	// validate := newValidate(pool, nodeManager)
+
+	ele := election.NewElection(nodeManager)
+	validate := validate2.NewValidate(nodeManager)
+
 	dataManager := data.NewDataManager(nodeManager)
 
-	// s.validatePool = pool
 	s.locatorManager = locatorManager
 	s.nodeManager = nodeManager
-	// s.election = election
-	// s.validate = validate
+	s.election = ele
+	s.validate = validate
 	s.dataManager = dataManager
 	s.CommonAPI = common.NewCommonAPI(nodeManager.UpdateLastRequestTime)
 
@@ -95,10 +98,9 @@ type Scheduler struct {
 	common.CommonAPI
 	api.Web
 
-	nodeManager *node.Manager
-	// validatePool   *ValidatePool
-	// election       *Election
-	// validate       *Validate
+	nodeManager    *node.Manager
+	election       *election.Election
+	validate       *validate2.Validate
 	dataManager    *data.Manager
 	locatorManager *locator.Manager
 	// selector       *ValidateSelector
@@ -316,10 +318,11 @@ func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api
 	vs := &validateResults
 	vs.DeviceID = deviceID
 
-	// err := s.validate.pushResultToQueue(vs)
-	// if err != nil {
-	// 	log.Errorf("ValidateBlockResult err:%s", err.Error())
-	// }
+	err := s.validate.PushResultToQueue(vs)
+	if err != nil {
+		log.Errorf("ValidateBlockResult err:%s", err.Error())
+		return err
+	}
 
 	return nil
 }
@@ -443,7 +446,7 @@ func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID str
 	return api.CachingBlockList{}, xerrors.Errorf("%s:%s", errmsg.ErrNodeNotFind, deviceID)
 }
 
-// ElectionValidators Election Validators
+// ElectionValidators Validators
 func (s *Scheduler) ElectionValidators(ctx context.Context) error {
 	// return s.election.startElection()
 	return nil

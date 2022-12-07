@@ -4,20 +4,18 @@ import (
 	"container/list"
 	"context"
 	"fmt"
+	logging "github.com/ipfs/go-log/v2"
+	"github.com/linguohua/titan/node/scheduler/node"
 	"math/rand"
 	"time"
 
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
-	"github.com/linguohua/titan/node/scheduler/node"
 	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
 )
-
-var log = logging.Logger("validate")
 
 const (
 	errMsgTimeOut  = "TimeOut"
@@ -26,6 +24,7 @@ const (
 	errMsgCidFail  = "Cid Fail;resultCid:%s,cid_db:%s,fid:%d,index:%d"
 )
 
+var log = logging.Logger("validate")
 var myRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // Validate Validate
@@ -35,10 +34,10 @@ type Validate struct {
 	roundID string
 
 	duration         int
-	validateBlockMax int // validate block num limit
+	validateBlockMax int // block num limit
 
 	timewheelValidate *timewheel.TimeWheel
-	validateTime      int // validate time interval (minute)
+	validateTime      int // time interval (minute)
 
 	maxFidMap map[string]int64
 
@@ -66,9 +65,9 @@ func (v *Validate) initValidateTask() {
 	go v.initChannelTask()
 }
 
-func newValidate(manager *node.Manager) *Validate {
+func NewValidate(manager *node.Manager) *Validate {
 	e := &Validate{
-		seed:             int64(1),
+		seed:             1,
 		duration:         10,
 		validateBlockMax: 100,
 		validateTime:     5,
@@ -160,17 +159,6 @@ func (v *Validate) getRandNum(max int, r *rand.Rand) int {
 	return max
 }
 
-// func toCidV0(c cid.Cid) (cid.Cid, error) {
-// 	if c.Type() != cid.DagProtobuf {
-// 		return cid.Cid{}, fmt.Errorf("can't convert non-dag-pb nodes to cidv0")
-// 	}
-// 	return cid.NewCidV0(c.Hash()), nil
-// }
-
-// func toCidV1(c cid.Cid) (cid.Cid, error) {
-// 	return cid.NewCidV1(c.Type(), c.Hash()), nil
-// }
-
 // TODO save to sql
 func (v *Validate) saveValidateResult(rID string, deviceID string, validatorID string, msg string, status persistent.ValidateStatus) error {
 	resultInfo := &persistent.ValidateResult{RoundID: rID, DeviceID: deviceID, Status: int(status), Msg: msg}
@@ -226,12 +214,10 @@ func (v *Validate) doValidate() {
 		v.validate(validateResults)
 
 		v.resultQueue.Remove(element) // Dequeue
-
-		// v.writeChanWithSelect(true)
 	}
 }
 
-func (v *Validate) pushResultToQueue(validateResults *api.ValidateResults) error {
+func (v *Validate) PushResultToQueue(validateResults *api.ValidateResults) error {
 	log.Infof("validateResult:%s,round:%s", validateResults.DeviceID, validateResults.RoundID)
 	if v.resultQueue == nil {
 		return xerrors.New("resultQueue is nil")
@@ -250,7 +236,11 @@ func (v *Validate) validate(validateResults *api.ValidateResults) error {
 	log.Infof("do validate:%s,round:%s", validateResults.DeviceID, validateResults.RoundID)
 
 	defer func() {
-		v.updateLatency(validateResults.DeviceID, validateResults.Latency)
+		err := v.updateLatency(validateResults.DeviceID, validateResults.Latency)
+		if err != nil {
+			log.Errorf(err.Error())
+			return
+		}
 	}()
 
 	deviceID := validateResults.DeviceID
@@ -323,15 +313,27 @@ func (v *Validate) checkValidateTimeOut() error {
 	return nil
 }
 
+func randomNum(start, end int) int {
+	max := end - start
+	if max <= 0 {
+		return start
+	}
+
+	x := myRand.Intn(10000)
+	y := x % end
+
+	return y + start
+}
+
 func (v *Validate) matchValidator(validatorList []string, deviceID string, validatorMap map[string][]string) (map[string][]string, []string) {
+
 	cs := v.nodeManager.FindCandidateNodes(validatorList, nil)
 
-	validatorID := ""
-	if len(cs) > 0 {
-		validatorID = cs[randomNum(0, len(cs))].DeviceInfo.DeviceId
-	} else {
-		return validatorMap, validatorList
+	if cs == nil || len(cs) == 0 {
+		return nil, nil
 	}
+
+	validatorID := cs[randomNum(0, len(cs))].DeviceInfo.DeviceId
 
 	vList := make([]string, 0)
 	if list, ok := validatorMap[validatorID]; ok {
@@ -341,25 +343,61 @@ func (v *Validate) matchValidator(validatorList []string, deviceID string, valid
 	}
 	validatorMap[validatorID] = vList
 
-	// if len(vList) >= v.validatePool.verifiedNodeMax {
-	// 	for i, id := range validatorList {
-	// 		if id == validatorID {
-	// 			if i >= len(validatorList)-1 {
-	// 				validatorList = validatorList[0:i]
-	// 			} else {
-	// 				validatorList = append(validatorList[0:i], validatorList[i+1:]...)
-	// 			}
-	// 			break
-	// 		}
-	// 	}
-	// }
-
 	return validatorMap, validatorList
+}
+
+func (v *Validate) validateMapping(validatorList []string) map[string][]string {
+	result := make(map[string][]string)
+	v.nodeManager.EdgeNodeMap.Range(func(key, value any) bool {
+
+		validatorID := validatorList[randomNum(0, len(validatorList))]
+
+		if validated, ok := result[validatorID]; ok {
+			validated = append(validated, key.(string))
+			result[validatorID] = validated
+		} else {
+			vd := make([]string, 0)
+			vd = append(vd, key.(string))
+			result[validatorID] = vd
+		}
+
+		return true
+	})
+
+	v.nodeManager.CandidateNodeMap.Range(func(key, value any) bool {
+
+		validatorID := differentValue(validatorList, key.(string))
+		if validatorID == "" {
+			return false
+		}
+
+		if validated, ok := result[validatorID]; ok {
+			validated = append(validated, key.(string))
+			result[validatorID] = validated
+		} else {
+			vd := make([]string, 0)
+			vd = append(vd, key.(string))
+			result[validatorID] = vd
+		}
+
+		return true
+	})
+	return result
+}
+
+func differentValue(list []string, compare string) string {
+	if list == nil || len(list) == 0 {
+		return ""
+	}
+	value := list[randomNum(0, len(list))]
+	if compare == value {
+		return differentValue(list, compare)
+	}
+	return value
 }
 
 // Validate
 func (v *Validate) startValidate() error {
-	// log.Infof("------------startValidate:open,%v", v.open)
 	if !v.open {
 		return nil
 	}
@@ -379,24 +417,15 @@ func (v *Validate) startValidate() error {
 	v.seed = time.Now().UnixNano()
 	v.maxFidMap = make(map[string]int64)
 
-	// find validators
-	validatorMap := make(map[string][]string)
+	validatorList, err := cache.GetDB().GetValidatorsWithList()
+	if err != nil {
+		return err
+	}
 
-	// validatorList, err := cache.GetDB().GetValidatorsWithList()
-	// if err != nil {
-	// 	return err
-	// }
+	validatorMap := v.validateMapping(validatorList)
 
-	// for deviceID := range v.validatePool.edgeNodeMap {
-	// 	validatorMap, validatorList = v.matchValidator(validatorList, deviceID, validatorMap)
-	// }
-
-	// for deviceID := range v.validatePool.candidateNodeMap {
-	// 	validatorMap, validatorList = v.matchValidator(validatorList, deviceID, validatorMap)
-	// }
-
-	for validatorID, list := range validatorMap {
-		req, errList := v.getReqValidates(validatorID, list)
+	for validatorID, validatedList := range validatorMap {
+		req, errList := v.getReqValidates(validatorID, validatedList)
 		offline := false
 		validator := v.nodeManager.GetCandidateNode(validatorID)
 		if validator != nil {
@@ -427,7 +456,7 @@ func (v *Validate) startValidate() error {
 			}
 		}
 
-		log.Infof("validatorID :%s, List:%v", validatorID, list)
+		log.Infof("validatorID :%s, List:%v", validatorID, validatedList)
 	}
 
 	t := time.NewTimer(time.Duration(v.duration*2) * time.Second)
@@ -455,22 +484,6 @@ func (v *Validate) compareCid(cidStr1, cidStr2 string) bool {
 }
 
 func (v *Validate) updateLatency(deviceID string, latency float64) error {
-	return updateLatency(deviceID, latency)
-}
-
-func randomNum(start, end int) int {
-	max := end - start
-	if max <= 0 {
-		return start
-	}
-
-	x := myRand.Intn(10000)
-	y := x % end
-
-	return y + start
-}
-
-func updateLatency(deviceID string, latency float64) error {
 	return cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
 		deviceInfo.Latency = latency
 	})

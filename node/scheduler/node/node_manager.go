@@ -22,8 +22,8 @@ const exitTime = 5 // If it is not online after this time, it is determined that
 
 // Manager Node Manager
 type Manager struct {
-	edgeNodeMap      sync.Map
-	candidateNodeMap sync.Map
+	EdgeNodeMap      sync.Map
+	CandidateNodeMap sync.Map
 
 	keepaliveTime float64 // keepalive time interval (minute)
 
@@ -65,7 +65,7 @@ func (m *Manager) nodeKeepalive() {
 	nowTime := time.Now().Add(-time.Duration(m.keepaliveTime*60) * time.Second)
 	// log.Warnf("nodeKeepalive nowTime :%s", nowTime.String())
 
-	m.edgeNodeMap.Range(func(key, value interface{}) bool {
+	m.EdgeNodeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
 		node := value.(*EdgeNode)
 
@@ -91,7 +91,7 @@ func (m *Manager) nodeKeepalive() {
 		return true
 	})
 
-	m.candidateNodeMap.Range(func(key, value interface{}) bool {
+	m.CandidateNodeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
 		node := value.(*CandidateNode)
 
@@ -127,7 +127,7 @@ func (m *Manager) GetNodes(nodeType api.NodeTypeName) ([]string, error) {
 	list := make([]string, 0)
 
 	if nodeType == api.TypeNameAll || nodeType == api.TypeNameCandidate {
-		m.candidateNodeMap.Range(func(key, value interface{}) bool {
+		m.CandidateNodeMap.Range(func(key, value interface{}) bool {
 			deviceID := key.(string)
 			list = append(list, deviceID)
 
@@ -136,7 +136,7 @@ func (m *Manager) GetNodes(nodeType api.NodeTypeName) ([]string, error) {
 	}
 
 	if nodeType == api.TypeNameAll || nodeType == api.TypeNameEdge {
-		m.edgeNodeMap.Range(func(key, value interface{}) bool {
+		m.EdgeNodeMap.Range(func(key, value interface{}) bool {
 			deviceID := key.(string)
 			list = append(list, deviceID)
 
@@ -151,7 +151,7 @@ func (m *Manager) GetNodes(nodeType api.NodeTypeName) ([]string, error) {
 func (m *Manager) GetAllCandidate() []*CandidateNode {
 	list := make([]*CandidateNode, 0)
 
-	m.candidateNodeMap.Range(func(key, value interface{}) bool {
+	m.CandidateNodeMap.Range(func(key, value interface{}) bool {
 		c := value.(*CandidateNode)
 		list = append(list, c)
 
@@ -165,7 +165,7 @@ func (m *Manager) GetAllCandidate() []*CandidateNode {
 func (m *Manager) GetAllEdge() []*EdgeNode {
 	list := make([]*EdgeNode, 0)
 
-	m.edgeNodeMap.Range(func(key, value interface{}) bool {
+	m.EdgeNodeMap.Range(func(key, value interface{}) bool {
 		e := value.(*EdgeNode)
 		list = append(list, e)
 
@@ -199,7 +199,7 @@ func (m *Manager) EdgeOnline(node *EdgeNode) error {
 		return err
 	}
 
-	m.edgeNodeMap.Store(deviceID, node)
+	m.EdgeNodeMap.Store(deviceID, node)
 	// m.areaManager.addEdge(node)
 
 	// m.validatePool.addPendingNode(node, nil)
@@ -209,7 +209,7 @@ func (m *Manager) EdgeOnline(node *EdgeNode) error {
 
 // GetEdgeNode Get EdgeNode
 func (m *Manager) GetEdgeNode(deviceID string) *EdgeNode {
-	nodeI, ok := m.edgeNodeMap.Load(deviceID)
+	nodeI, ok := m.EdgeNodeMap.Load(deviceID)
 	if ok && nodeI != nil {
 		node := nodeI.(*EdgeNode)
 
@@ -240,7 +240,7 @@ func (m *Manager) edgeOffline(node *EdgeNode) {
 
 	log.Warnf("edgeOffline :%s", deviceID)
 
-	m.edgeNodeMap.Delete(deviceID)
+	m.EdgeNodeMap.Delete(deviceID)
 	// m.areaManager.removeEdge(node)
 	// m.validatePool.removeEdge(deviceID)
 
@@ -278,7 +278,7 @@ func (m *Manager) CandidateOnline(node *CandidateNode) error {
 		return err
 	}
 
-	m.candidateNodeMap.Store(deviceID, node)
+	m.CandidateNodeMap.Store(deviceID, node)
 	// m.areaManager.addCandidate(node)
 
 	// m.validatePool.addPendingNode(nil, node)
@@ -288,7 +288,7 @@ func (m *Manager) CandidateOnline(node *CandidateNode) error {
 
 // GetCandidateNode Get Candidate Node
 func (m *Manager) GetCandidateNode(deviceID string) *CandidateNode {
-	nodeI, ok := m.candidateNodeMap.Load(deviceID)
+	nodeI, ok := m.CandidateNodeMap.Load(deviceID)
 	if ok && nodeI != nil {
 		node := nodeI.(*CandidateNode)
 
@@ -305,7 +305,7 @@ func (m *Manager) candidateOffline(node *CandidateNode) {
 
 	log.Warnf("candidateOffline :%s", deviceID)
 
-	m.candidateNodeMap.Delete(deviceID)
+	m.CandidateNodeMap.Delete(deviceID)
 	// m.areaManager.removeCandidate(node)
 
 	// m.validatePool.removeCandidate(deviceID)
@@ -339,7 +339,7 @@ func (m *Manager) FindEdgeNodes(useDeviceIDs []string, skips map[string]string) 
 			}
 		}
 	} else {
-		m.edgeNodeMap.Range(func(key, value interface{}) bool {
+		m.EdgeNodeMap.Range(func(key, value interface{}) bool {
 			deviceID := key.(string)
 			node := value.(*EdgeNode)
 
@@ -383,7 +383,7 @@ func (m *Manager) FindCandidateNodes(useDeviceIDs []string, skips map[string]str
 			}
 		}
 	} else {
-		m.candidateNodeMap.Range(func(key, value interface{}) bool {
+		m.CandidateNodeMap.Range(func(key, value interface{}) bool {
 			deviceID := key.(string)
 			node := value.(*CandidateNode)
 
