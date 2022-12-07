@@ -101,7 +101,7 @@ func (w *web) ListCacheTasks(ctx context.Context, cursor int, count int) (api.Li
 }
 
 func (w *web) GetCacheTaskInfo(ctx context.Context, carFileCID string) (api.DataInfo, error) {
-	return w.scheduler.ShowDataTask(ctx, carFileCID)
+	return w.scheduler.GetCacheData(ctx, carFileCID)
 }
 
 func (w *web) CancelCacheTask(ctx context.Context, carFileCID string) error {

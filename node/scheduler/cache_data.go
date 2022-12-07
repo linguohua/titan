@@ -117,8 +117,8 @@ func dataToCacheDataInfo(d *data.Data) api.DataInfo {
 	return info
 }
 
-// ShowDataTask Show Data Task
-func (s *Scheduler) ShowDataTask(ctx context.Context, cid string) (api.DataInfo, error) {
+// GetCacheData Show Data Task
+func (s *Scheduler) GetCacheData(ctx context.Context, cid string) (api.DataInfo, error) {
 	info := api.DataInfo{}
 
 	if cid == "" {
@@ -154,8 +154,8 @@ func (s *Scheduler) ListEvents(ctx context.Context, page int) (api.EventListInfo
 	return api.EventListInfo{Page: page, TotalPage: totalPage, Count: count, EventList: list}, nil
 }
 
-// ListDatas List Datas
-func (s *Scheduler) ListDatas(ctx context.Context, page int) (api.DataListInfo, error) {
+// ListCacheDatas List Datas
+func (s *Scheduler) ListCacheDatas(ctx context.Context, page int) (api.DataListInfo, error) {
 	count, totalPage, list, err := persistent.GetDB().GetDataCidWithPage(page)
 	if err != nil {
 		return api.DataListInfo{}, err

@@ -18,7 +18,7 @@ import (
 
 var log = logging.Logger("node")
 
-const exitTime = 5 // If it is not online after this time, it is determined that the node has exited the system (hour)
+const exitTime = 24 // If it is not online after this time, it is determined that the node has exited the system (hour)
 
 // Manager Node Manager
 type Manager struct {

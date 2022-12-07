@@ -258,6 +258,8 @@ type SchedulerStruct struct {
 
 		ElectionValidators func(p0 context.Context) (error) `perm:"admin"`
 
+		GetCacheData func(p0 context.Context, p1 string) (DataInfo, error) `perm:"read"`
+
 		GetCandidateDownloadInfoWithBlocks func(p0 context.Context, p1 []string) (map[string]DownloadInfoResult, error) `perm:"write"`
 
 		GetDevicesInfo func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
@@ -278,7 +280,7 @@ type SchedulerStruct struct {
 
 		GetValidationInfo func(p0 context.Context) (ValidationInfo, error) `perm:"admin"`
 
-		ListDatas func(p0 context.Context, p1 int) (DataListInfo, error) `perm:"read"`
+		ListCacheDatas func(p0 context.Context, p1 int) (DataListInfo, error) `perm:"read"`
 
 		ListEvents func(p0 context.Context, p1 int) (EventListInfo, error) `perm:"read"`
 
@@ -292,7 +294,7 @@ type SchedulerStruct struct {
 
 		QueryCachingBlocksWithNode func(p0 context.Context, p1 string) (CachingBlockList, error) `perm:"read"`
 
-		RegisterNode func(p0 context.Context, p1 NodeType) (NodeRegisterInfo, error) `perm:"read"`
+		RegisterNode func(p0 context.Context, p1 NodeType, p2 int) ([]NodeRegisterInfo, error) `perm:"read"`
 
 		RemoveCache func(p0 context.Context, p1 string, p2 string) (error) `perm:"admin"`
 
@@ -301,8 +303,6 @@ type SchedulerStruct struct {
 		ReplenishCacheExpiredTime func(p0 context.Context, p1 string, p2 string, p3 int) (error) `perm:"admin"`
 
 		ResetCacheExpiredTime func(p0 context.Context, p1 string, p2 string, p3 time.Time) (error) `perm:"admin"`
-
-		ShowDataTask func(p0 context.Context, p1 string) (DataInfo, error) `perm:"read"`
 
 		ShowDataTasks func(p0 context.Context) ([]DataInfo, error) `perm:"read"`
 
@@ -924,6 +924,17 @@ func (s *SchedulerStub) ElectionValidators(p0 context.Context) (error) {
 	return ErrNotSupported
 }
 
+func (s *SchedulerStruct) GetCacheData(p0 context.Context, p1 string) (DataInfo, error) {
+	if s.Internal.GetCacheData == nil {
+		return *new(DataInfo), ErrNotSupported
+	}
+	return s.Internal.GetCacheData(p0, p1)
+}
+
+func (s *SchedulerStub) GetCacheData(p0 context.Context, p1 string) (DataInfo, error) {
+	return *new(DataInfo), ErrNotSupported
+}
+
 func (s *SchedulerStruct) GetCandidateDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]DownloadInfoResult, error) {
 	if s.Internal.GetCandidateDownloadInfoWithBlocks == nil {
 		return *new(map[string]DownloadInfoResult), ErrNotSupported
@@ -1034,14 +1045,14 @@ func (s *SchedulerStub) GetValidationInfo(p0 context.Context) (ValidationInfo, e
 	return *new(ValidationInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) ListDatas(p0 context.Context, p1 int) (DataListInfo, error) {
-	if s.Internal.ListDatas == nil {
+func (s *SchedulerStruct) ListCacheDatas(p0 context.Context, p1 int) (DataListInfo, error) {
+	if s.Internal.ListCacheDatas == nil {
 		return *new(DataListInfo), ErrNotSupported
 	}
-	return s.Internal.ListDatas(p0, p1)
+	return s.Internal.ListCacheDatas(p0, p1)
 }
 
-func (s *SchedulerStub) ListDatas(p0 context.Context, p1 int) (DataListInfo, error) {
+func (s *SchedulerStub) ListCacheDatas(p0 context.Context, p1 int) (DataListInfo, error) {
 	return *new(DataListInfo), ErrNotSupported
 }
 
@@ -1111,15 +1122,15 @@ func (s *SchedulerStub) QueryCachingBlocksWithNode(p0 context.Context, p1 string
 	return *new(CachingBlockList), ErrNotSupported
 }
 
-func (s *SchedulerStruct) RegisterNode(p0 context.Context, p1 NodeType) (NodeRegisterInfo, error) {
+func (s *SchedulerStruct) RegisterNode(p0 context.Context, p1 NodeType, p2 int) ([]NodeRegisterInfo, error) {
 	if s.Internal.RegisterNode == nil {
-		return *new(NodeRegisterInfo), ErrNotSupported
+		return *new([]NodeRegisterInfo), ErrNotSupported
 	}
-	return s.Internal.RegisterNode(p0, p1)
+	return s.Internal.RegisterNode(p0, p1, p2)
 }
 
-func (s *SchedulerStub) RegisterNode(p0 context.Context, p1 NodeType) (NodeRegisterInfo, error) {
-	return *new(NodeRegisterInfo), ErrNotSupported
+func (s *SchedulerStub) RegisterNode(p0 context.Context, p1 NodeType, p2 int) ([]NodeRegisterInfo, error) {
+	return *new([]NodeRegisterInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) RemoveCache(p0 context.Context, p1 string, p2 string) (error) {
@@ -1164,17 +1175,6 @@ func (s *SchedulerStruct) ResetCacheExpiredTime(p0 context.Context, p1 string, p
 
 func (s *SchedulerStub) ResetCacheExpiredTime(p0 context.Context, p1 string, p2 string, p3 time.Time) (error) {
 	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) ShowDataTask(p0 context.Context, p1 string) (DataInfo, error) {
-	if s.Internal.ShowDataTask == nil {
-		return *new(DataInfo), ErrNotSupported
-	}
-	return s.Internal.ShowDataTask(p0, p1)
-}
-
-func (s *SchedulerStub) ShowDataTask(p0 context.Context, p1 string) (DataInfo, error) {
-	return *new(DataInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) ShowDataTasks(p0 context.Context) ([]DataInfo, error) {

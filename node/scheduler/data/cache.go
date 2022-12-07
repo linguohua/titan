@@ -160,8 +160,15 @@ func (c *Cache) findIdleNode(skips map[string]string, i int) (deviceID string) {
 			return
 		}
 
-		sort.Slice(list, func(i, j int) bool {
-			return list[i].CacheTimeoutTimeStamp < list[j].CacheTimeoutTimeStamp
+		newList := make([]*node.CandidateNode, 0)
+		for _, node := range list {
+			if node.DeviceInfo.DiskUsage < 0.9 {
+				newList = append(newList, node)
+			}
+		}
+
+		sort.Slice(newList, func(i, j int) bool {
+			return newList[i].CacheTimeoutTimeStamp < newList[j].CacheTimeoutTimeStamp
 		})
 
 		// rand node
@@ -176,8 +183,15 @@ func (c *Cache) findIdleNode(skips map[string]string, i int) (deviceID string) {
 		return
 	}
 
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].CacheTimeoutTimeStamp < list[j].CacheTimeoutTimeStamp
+	newList := make([]*node.EdgeNode, 0)
+	for _, node := range list {
+		if node.DeviceInfo.DiskUsage < 0.9 {
+			newList = append(newList, node)
+		}
+	}
+
+	sort.Slice(newList, func(i, j int) bool {
+		return newList[i].CacheTimeoutTimeStamp < newList[j].CacheTimeoutTimeStamp
 	})
 
 	// rand node
