@@ -328,8 +328,23 @@ func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api
 }
 
 // RegisterNode Register Node
-func (s *Scheduler) RegisterNode(ctx context.Context, nodeType api.NodeType) (api.NodeRegisterInfo, error) {
-	return node.RegisterNode(nodeType)
+func (s *Scheduler) RegisterNode(ctx context.Context, nodeType api.NodeType, count int) ([]api.NodeRegisterInfo, error) {
+	list := make([]api.NodeRegisterInfo, 0)
+	if count <= 0 {
+		return list, nil
+	}
+
+	for i := 0; i <= count; i++ {
+		info, err := node.RegisterNode(nodeType)
+		if err != nil {
+			log.Errorf("RegisterNode err:%s", err.Error())
+			continue
+		}
+
+		list = append(list, info)
+	}
+
+	return list, nil
 }
 
 // // GetToken get token

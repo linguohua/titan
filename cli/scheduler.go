@@ -291,12 +291,12 @@ var registerNodeCmd = &cli.Command{
 			return xerrors.Errorf("node-type err:%d", t)
 		}
 
-		info, err := schedulerAPI.RegisterNode(ctx, api.NodeType(t))
+		infos, err := schedulerAPI.RegisterNode(ctx, api.NodeType(t), 1)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("\nDeviceID:%s\nSecret:%s", info.DeviceID, info.Secret)
+		fmt.Printf("\nDeviceID:%s\nSecret:%s", infos[0].DeviceID, infos[0].Secret)
 		return nil
 	},
 }
@@ -427,7 +427,7 @@ var listDataCmd = &cli.Command{
 			return xerrors.New("page need greater than 1")
 		}
 
-		info, err := schedulerAPI.ListDatas(ctx, page)
+		info, err := schedulerAPI.ListCacheDatas(ctx, page)
 		if err != nil {
 			return err
 		}
@@ -597,7 +597,7 @@ var showDataInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		info, err := schedulerAPI.ShowDataTask(ctx, cid)
+		info, err := schedulerAPI.GetCacheData(ctx, cid)
 		if err != nil {
 			return err
 		}
