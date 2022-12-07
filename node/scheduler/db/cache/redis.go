@@ -345,7 +345,7 @@ func (rd redisDB) RemoveRunningDataTask(hash, cacheID string) error {
 	return rd.RemoveDataTaskWithRunningList(hash, cacheID)
 }
 
-func (rd redisDB) SetWaitingDataTask(info api.CacheDataInfo) error {
+func (rd redisDB) SetWaitingDataTask(info api.DataInfo) error {
 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	bytes, err := json.Marshal(info)
@@ -357,29 +357,29 @@ func (rd redisDB) SetWaitingDataTask(info api.CacheDataInfo) error {
 	return err
 }
 
-func (rd redisDB) GetWaitingDataTask(index int64) (api.CacheDataInfo, error) {
+func (rd redisDB) GetWaitingDataTask(index int64) (api.DataInfo, error) {
 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	value, err := rd.cli.LIndex(context.Background(), key, index).Result()
 
 	if value == "" {
-		return api.CacheDataInfo{}, redis.Nil
+		return api.DataInfo{}, redis.Nil
 	}
 
-	var info api.CacheDataInfo
+	var info api.DataInfo
 	bytes, err := redigo.Bytes(value, nil)
 	if err != nil {
-		return api.CacheDataInfo{}, err
+		return api.DataInfo{}, err
 	}
 
 	if err := json.Unmarshal(bytes, &info); err != nil {
-		return api.CacheDataInfo{}, err
+		return api.DataInfo{}, err
 	}
 
 	return info, nil
 }
 
-func (rd redisDB) RemoveWaitingDataTask(info api.CacheDataInfo) error {
+func (rd redisDB) RemoveWaitingDataTask(info api.DataInfo) error {
 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	bytes, err := json.Marshal(info)

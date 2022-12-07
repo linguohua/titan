@@ -302,9 +302,9 @@ type SchedulerStruct struct {
 
 		ResetCacheExpiredTime func(p0 context.Context, p1 string, p2 string, p3 time.Time) (error) `perm:"admin"`
 
-		ShowDataTask func(p0 context.Context, p1 string) (CacheDataInfo, error) `perm:"read"`
+		ShowDataTask func(p0 context.Context, p1 string) (DataInfo, error) `perm:"read"`
 
-		ShowDataTasks func(p0 context.Context) ([]CacheDataInfo, error) `perm:"read"`
+		ShowDataTasks func(p0 context.Context) ([]DataInfo, error) `perm:"read"`
 
 		UserDownloadBlockResults func(p0 context.Context, p1 []UserBlockDownloadResult) (error) `perm:"read"`
 
@@ -346,7 +346,7 @@ type WebStruct struct {
 
 		CancelCacheTask func(p0 context.Context, p1 string) (error) `perm:"read"`
 
-		GetCacheTaskInfo func(p0 context.Context, p1 string) (CacheDataInfo, error) `perm:"read"`
+		GetCacheTaskInfo func(p0 context.Context, p1 string) (DataInfo, error) `perm:"read"`
 
 		GetCarfileByCID func(p0 context.Context, p1 string) (WebCarfile, error) `perm:"read"`
 
@@ -1166,26 +1166,26 @@ func (s *SchedulerStub) ResetCacheExpiredTime(p0 context.Context, p1 string, p2 
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ShowDataTask(p0 context.Context, p1 string) (CacheDataInfo, error) {
+func (s *SchedulerStruct) ShowDataTask(p0 context.Context, p1 string) (DataInfo, error) {
 	if s.Internal.ShowDataTask == nil {
-		return *new(CacheDataInfo), ErrNotSupported
+		return *new(DataInfo), ErrNotSupported
 	}
 	return s.Internal.ShowDataTask(p0, p1)
 }
 
-func (s *SchedulerStub) ShowDataTask(p0 context.Context, p1 string) (CacheDataInfo, error) {
-	return *new(CacheDataInfo), ErrNotSupported
+func (s *SchedulerStub) ShowDataTask(p0 context.Context, p1 string) (DataInfo, error) {
+	return *new(DataInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) ShowDataTasks(p0 context.Context) ([]CacheDataInfo, error) {
+func (s *SchedulerStruct) ShowDataTasks(p0 context.Context) ([]DataInfo, error) {
 	if s.Internal.ShowDataTasks == nil {
-		return *new([]CacheDataInfo), ErrNotSupported
+		return *new([]DataInfo), ErrNotSupported
 	}
 	return s.Internal.ShowDataTasks(p0)
 }
 
-func (s *SchedulerStub) ShowDataTasks(p0 context.Context) ([]CacheDataInfo, error) {
-	return *new([]CacheDataInfo), ErrNotSupported
+func (s *SchedulerStub) ShowDataTasks(p0 context.Context) ([]DataInfo, error) {
+	return *new([]DataInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) UserDownloadBlockResults(p0 context.Context, p1 []UserBlockDownloadResult) (error) {
@@ -1271,15 +1271,15 @@ func (s *WebStub) CancelCacheTask(p0 context.Context, p1 string) (error) {
 	return ErrNotSupported
 }
 
-func (s *WebStruct) GetCacheTaskInfo(p0 context.Context, p1 string) (CacheDataInfo, error) {
+func (s *WebStruct) GetCacheTaskInfo(p0 context.Context, p1 string) (DataInfo, error) {
 	if s.Internal.GetCacheTaskInfo == nil {
-		return *new(CacheDataInfo), ErrNotSupported
+		return *new(DataInfo), ErrNotSupported
 	}
 	return s.Internal.GetCacheTaskInfo(p0, p1)
 }
 
-func (s *WebStub) GetCacheTaskInfo(p0 context.Context, p1 string) (CacheDataInfo, error) {
-	return *new(CacheDataInfo), ErrNotSupported
+func (s *WebStub) GetCacheTaskInfo(p0 context.Context, p1 string) (DataInfo, error) {
+	return *new(DataInfo), ErrNotSupported
 }
 
 func (s *WebStruct) GetCarfileByCID(p0 context.Context, p1 string) (WebCarfile, error) {

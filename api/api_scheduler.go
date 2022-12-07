@@ -19,9 +19,9 @@ type Scheduler interface {
 	CacheCarfile(ctx context.Context, cid string, reliability, hour int) error                          //perm:admin
 	RemoveCarfile(ctx context.Context, carfileID string) error                                          //perm:admin
 	RemoveCache(ctx context.Context, carfileID, cacheID string) error                                   //perm:admin
-	ShowDataTask(ctx context.Context, cid string) (CacheDataInfo, error)                                //perm:read
+	ShowDataTask(ctx context.Context, cid string) (DataInfo, error)                                     //perm:read
 	ListDatas(ctx context.Context, page int) (DataListInfo, error)                                      //perm:read
-	ShowDataTasks(ctx context.Context) ([]CacheDataInfo, error)                                         //perm:read
+	ShowDataTasks(ctx context.Context) ([]DataInfo, error)                                              //perm:read
 	RegisterNode(ctx context.Context, t NodeType) (NodeRegisterInfo, error)                             //perm:read
 	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error)  //perm:admin
 	CacheContinue(ctx context.Context, cid, cacheID string) error                                       //perm:admin
@@ -62,7 +62,7 @@ type DataListInfo struct {
 	Page       int
 	TotalPage  int
 	Cids       int
-	CacheInfos []*CacheDataInfo
+	CacheInfos []*DataInfo
 }
 
 // EventInfo Event Info
@@ -112,31 +112,40 @@ type CacheResultInfo struct {
 	// Fid        int
 }
 
-// CacheDataInfo Cache Data Info
-type CacheDataInfo struct {
-	CarfileCid      string
-	NeedReliability int // 预期可靠性
-	CurReliability  int // 当前可靠性
-	TotalSize       int // 总大小
-	Blocks          int // 总block个数
-	Nodes           int
-	ExpiredTime     time.Time
-	CacheInfos      []CacheInfo
+// DataInfo Data info
+type DataInfo struct {
+	CarfileCid      string    `db:"carfile_cid"`
+	CarfileHash     string    `db:"carfile_hash"`
+	Status          int       `db:"status"`
+	Reliability     int       `db:"reliability"`
+	NeedReliability int       `db:"need_reliability"`
+	CacheCount      int       `db:"cache_count"`
+	TotalSize       int       `db:"total_size"`
+	TotalBlocks     int       `db:"total_blocks"`
+	Nodes           int       `db:"nodes"`
+	ExpiredTime     time.Time `db:"expired_time"`
+	CreateTime      time.Time `db:"created_time"`
+	EndTime         time.Time `db:"end_time"`
 
-	CarfileHash string
+	CacheInfos  []CacheInfo
 	DataTimeout time.Duration
 }
 
-// CacheInfo Cache Info
+// CacheInfo Data Block info
 type CacheInfo struct {
-	CacheID     string
-	Status      int // cache 状态 1:创建 2:失败 3:成功
-	DoneSize    int // 已完成大小
-	DoneBlocks  int // 已完成block
-	Nodes       int
-	ExpiredTime time.Time
-
-	// BloackInfo []BloackInfo
+	CarfileHash string    `db:"carfile_hash"`
+	CacheID     string    `db:"cache_id"`
+	Status      int       `db:"status"`
+	Reliability int       `db:"reliability"`
+	DoneSize    int       `db:"done_size"`
+	DoneBlocks  int       `db:"done_blocks"`
+	TotalSize   int       `db:"total_size"`
+	TotalBlocks int       `db:"total_blocks"`
+	Nodes       int       `db:"nodes"`
+	ExpiredTime time.Time `db:"expired_time"`
+	CreateTime  time.Time `db:"created_time"`
+	RootCache   bool      `db:"root_cache"`
+	EndTime     time.Time `db:"end_time"`
 }
 
 // BloackInfo Bloack Info

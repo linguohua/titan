@@ -319,7 +319,7 @@ func (sd sqlDB) RemoveCacheInfo(cacheID, carfileHash string, isDeleteData bool, 
 	return nil
 }
 
-func (sd sqlDB) CreateCache(cInfo *CacheInfo) error {
+func (sd sqlDB) CreateCache(cInfo *api.CacheInfo) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 	// dTableName := fmt.Sprintf(dataInfoTable, area)
@@ -339,7 +339,7 @@ func (sd sqlDB) CreateCache(cInfo *CacheInfo) error {
 	return nil
 }
 
-func (sd sqlDB) SaveCacheEndResults(dInfo *DataInfo, cInfo *CacheInfo) error {
+func (sd sqlDB) SaveCacheEndResults(dInfo *api.DataInfo, cInfo *api.CacheInfo) error {
 	area := sd.ReplaceArea()
 	dTableName := fmt.Sprintf(dataInfoTable, area)
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
@@ -369,7 +369,7 @@ func (sd sqlDB) SaveCacheEndResults(dInfo *DataInfo, cInfo *CacheInfo) error {
 	return err
 }
 
-func (sd sqlDB) SaveCacheingResults(dInfo *DataInfo, cInfo *CacheInfo, blockResult *BlockInfo, createBlocks []*BlockInfo) error {
+func (sd sqlDB) SaveCacheingResults(dInfo *api.DataInfo, cInfo *api.CacheInfo, blockResult *BlockInfo, createBlocks []*BlockInfo) error {
 	area := sd.ReplaceArea()
 	bTableName := fmt.Sprintf(blockInfoTable, area)
 	dTableName := fmt.Sprintf(dataInfoTable, area)
@@ -415,7 +415,7 @@ func (sd sqlDB) SaveCacheingResults(dInfo *DataInfo, cInfo *CacheInfo, blockResu
 	return err
 }
 
-func (sd sqlDB) SetDataInfo(info *DataInfo) error {
+func (sd sqlDB) SetDataInfo(info *api.DataInfo) error {
 	area := sd.ReplaceArea()
 
 	tableName := fmt.Sprintf(dataInfoTable, area)
@@ -438,10 +438,10 @@ func (sd sqlDB) SetDataInfo(info *DataInfo) error {
 	return err
 }
 
-func (sd sqlDB) GetDataInfo(hash string) (*DataInfo, error) {
+func (sd sqlDB) GetDataInfo(hash string) (*api.DataInfo, error) {
 	area := sd.ReplaceArea()
 
-	info := &DataInfo{CarfileHash: hash}
+	info := &api.DataInfo{CarfileHash: hash}
 
 	cmd := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=:carfile_hash", fmt.Sprintf(dataInfoTable, area))
 
@@ -463,7 +463,7 @@ func (sd sqlDB) GetDataInfo(hash string) (*DataInfo, error) {
 	return info, err
 }
 
-func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []DataInfo, err error) {
+func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []api.DataInfo, err error) {
 	area := sd.ReplaceArea()
 	p := 20
 
@@ -531,11 +531,11 @@ func (sd sqlDB) GetMinExpiredTimeWithCaches() (time.Time, error) {
 	return out, nil
 }
 
-func (sd sqlDB) GetExpiredCaches() ([]*CacheInfo, error) {
+func (sd sqlDB) GetExpiredCaches() ([]*api.CacheInfo, error) {
 	query := fmt.Sprintf(`SELECT carfile_hash,cache_id FROM %s WHERE expired_time <= NOW()`,
 		fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
 
-	var out []*CacheInfo
+	var out []*api.CacheInfo
 	if err := sd.cli.Select(&out, query); err != nil {
 		return nil, err
 	}
@@ -548,7 +548,7 @@ func (sd sqlDB) GetCachesWithData(hash string) ([]string, error) {
 
 	list := make([]string, 0)
 
-	i := &CacheInfo{CarfileHash: hash}
+	i := &api.CacheInfo{CarfileHash: hash}
 
 	cmd := fmt.Sprintf(`SELECT cache_id FROM %s WHERE carfile_hash=:carfile_hash`, fmt.Sprintf(cacheInfoTable, area))
 	rows, err := sd.cli.NamedQuery(cmd, i)
@@ -558,7 +558,7 @@ func (sd sqlDB) GetCachesWithData(hash string) ([]string, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		info := &CacheInfo{}
+		info := &api.CacheInfo{}
 		err := rows.StructScan(info)
 		if err == nil {
 			list = append(list, info.CacheID)
@@ -568,10 +568,10 @@ func (sd sqlDB) GetCachesWithData(hash string) ([]string, error) {
 	return list, err
 }
 
-func (sd sqlDB) GetCacheInfo(cacheID string) (*CacheInfo, error) {
+func (sd sqlDB) GetCacheInfo(cacheID string) (*api.CacheInfo, error) {
 	area := sd.ReplaceArea()
 
-	info := &CacheInfo{
+	info := &api.CacheInfo{
 		CacheID: cacheID,
 	}
 
@@ -791,7 +791,7 @@ func (sd sqlDB) GetNodesFromCache(cacheID string) (int, error) {
 	return len(out), nil
 }
 
-func (sd sqlDB) GetCachesFromNode(deviceID string) ([]*CacheInfo, error) {
+func (sd sqlDB) GetCachesFromNode(deviceID string) ([]*api.CacheInfo, error) {
 	area := sd.ReplaceArea()
 
 	query := fmt.Sprintf("SELECT DISTINCT cache_id FROM %s WHERE device_id=?", fmt.Sprintf(blockInfoTable, area))
@@ -800,9 +800,9 @@ func (sd sqlDB) GetCachesFromNode(deviceID string) ([]*CacheInfo, error) {
 		return nil, err
 	}
 
-	caches := make([]*CacheInfo, 0)
+	caches := make([]*api.CacheInfo, 0)
 	for _, block := range blocks {
-		var cache CacheInfo
+		var cache api.CacheInfo
 		query := fmt.Sprintf("SELECT * FROM %s WHERE cache_id=?", fmt.Sprintf(cacheInfoTable, area))
 		if err := sd.cli.Get(&cache, query, block.CacheID); err != nil {
 			fmt.Println("err:", err.Error())
@@ -815,7 +815,7 @@ func (sd sqlDB) GetCachesFromNode(deviceID string) ([]*CacheInfo, error) {
 	return caches, nil
 }
 
-func (sd sqlDB) CleanCacheDataWithNode(deviceID string, caches []*CacheInfo) error {
+func (sd sqlDB) CleanCacheDataWithNode(deviceID string, caches []*api.CacheInfo) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 	dTableName := fmt.Sprintf(dataInfoTable, area)

@@ -100,7 +100,7 @@ func (w *web) ListCacheTasks(ctx context.Context, cursor int, count int) (api.Li
 	return api.ListCacheTasksRsp{}, nil
 }
 
-func (w *web) GetCacheTaskInfo(ctx context.Context, carFileCID string) (api.CacheDataInfo, error) {
+func (w *web) GetCacheTaskInfo(ctx context.Context, carFileCID string) (api.DataInfo, error) {
 	return w.scheduler.ShowDataTask(ctx, carFileCID)
 }
 

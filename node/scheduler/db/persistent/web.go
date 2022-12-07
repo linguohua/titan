@@ -22,10 +22,10 @@ type webDB interface {
 
 	GetCacheStat() (api.StatCachesRsp, error)
 
-	GetCacheTasks(startTime time.Time, endTime time.Time, cursor, count int) ([]api.CacheDataInfo, error)
+	GetCacheTasks(startTime time.Time, endTime time.Time, cursor, count int) ([]api.DataInfo, error)
 	GetValidateResults(cursor int, count int) ([]api.WebValidateResult, int64, error)
 
-	GetDataInfos(startTime time.Time, endTime time.Time, cursor, count int) ([]DataInfo, int64, error)
+	GetDataInfos(startTime time.Time, endTime time.Time, cursor, count int) ([]api.DataInfo, int64, error)
 }
 
 func (sd sqlDB) GetNodes(cursor int, count int) ([]*NodeInfo, int64, error) {
@@ -99,12 +99,12 @@ func (sd sqlDB) GetCacheStat() (api.StatCachesRsp, error) {
 	return api.StatCachesRsp{}, nil
 }
 
-func (sd sqlDB) GetCacheTasks(startTime time.Time, endTime time.Time, cursor, count int) ([]api.CacheDataInfo, error) {
+func (sd sqlDB) GetCacheTasks(startTime time.Time, endTime time.Time, cursor, count int) ([]api.DataInfo, error) {
 	area := sd.ReplaceArea()
 
 	query := fmt.Sprintf("SELECT * FROM %s WHERE created_time between ? and ? limit ?,?", fmt.Sprintf(dataInfoTable, area))
 
-	var out []api.CacheDataInfo
+	var out []api.DataInfo
 	err := sd.cli.Select(&out, query, startTime, endTime, cursor, count)
 	if err != nil {
 		return nil, err
@@ -128,19 +128,19 @@ func (sd sqlDB) GetValidateResults(cursor int, count int) ([]api.WebValidateResu
 	return out, total, nil
 }
 
-func (sd sqlDB) GetDataInfos(startTime time.Time, endTime time.Time, cursor, count int) ([]DataInfo, int64, error) {
+func (sd sqlDB) GetDataInfos(startTime time.Time, endTime time.Time, cursor, count int) ([]api.DataInfo, int64, error) {
 	var total int64
 
 	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE created_time between ? and ?`,
 		fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
 	if err := sd.cli.Get(&total, countSQL, startTime, endTime); err != nil {
-		return []DataInfo{}, 0, err
+		return []api.DataInfo{}, 0, err
 	}
 
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE created_time between ? and ? limit ?,?`,
 		fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
 
-	var out []DataInfo
+	var out []api.DataInfo
 	if err := sd.cli.Select(&out, query, startTime, endTime, cursor, count); err != nil {
 		return nil, 0, err
 	}
