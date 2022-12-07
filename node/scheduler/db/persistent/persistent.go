@@ -44,9 +44,12 @@ type DB interface {
 
 	// block info
 	// SetBlockInfos(infos []*BlockInfo, carfileCid string) error
+
 	GetBlockInfo(cacheID, hash string) (*api.BlockInfo, error)
 	GetBlockCountWithStatus(cacheID string, status api.CacheStatus) (int, error)
 	GetBlocksWithStatus(cacheID string, status api.CacheStatus) ([]api.BlockInfo, error)
+	GetBlocksWithHash(hash string) (map[string]*api.BlockInfo, error)
+
 	GetUndoneBlocks(cacheID string) (map[string]string, error)
 	GetAllBlocks(cacheID string) ([]*api.BlockInfo, error)
 	GetNodesFromCache(cacheID string) (int, error)

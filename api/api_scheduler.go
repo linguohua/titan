@@ -172,9 +172,9 @@ type NodeBlockDownloadResult struct {
 	Sign          []byte
 	DownloadSpeed int64
 	BlockSize     int
-	ClientIP      string
-	Result        bool
-	FailedReason  string
+	// ClientIP      string
+	Result       bool
+	FailedReason string
 }
 
 type DownloadServerAccessAuth struct {

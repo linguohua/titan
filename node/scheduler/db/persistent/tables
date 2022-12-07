@@ -88,6 +88,7 @@ CREATE TABLE `block_download_info_cn_gd_shenzhen` (
     `id` varchar(64) NOT NULL UNIQUE,
     `block_cid` varchar(128) NOT NULL,
     `device_id` varchar(128) NOT NULL,
+    `carfile_cid` varchar(128) NOT NULL,
     `block_size` int(20) DEFAULT '0',
     `speed` int(20)  DEFAULT '0' ,
     `reward` int(20) DEFAULT '0',
@@ -98,6 +99,7 @@ CREATE TABLE `block_download_info_cn_gd_shenzhen` (
     `complete_time` datetime,
     PRIMARY KEY (`id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='block download information';
+
 
 CREATE TABLE `register` (
     `id` int unsigned NOT NULL AUTO_INCREMENT,
