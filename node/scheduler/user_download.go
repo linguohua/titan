@@ -378,7 +378,7 @@ func (s *Scheduler) recordDownloadBlock(record cache.DownloadBlockRecord, nodeRe
 		if err != nil {
 			return err
 		}
-		err = s.deviceBlockDownloadCount(info.DeviceID, info.BlockSize)
+		err = s.countDownload(info.DeviceID, info)
 		if err != nil {
 			return err
 		}
@@ -459,9 +459,23 @@ func (s *Scheduler) getBlockInfoWithLatestDownloadList(blockInfos map[string]*ap
 	return nil
 }
 
-func (s *Scheduler) deviceBlockDownloadCount(deviceID string, blockSize int) error {
-	return cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
+func (s *Scheduler) countDownload(deviceID string, blockDownnloadInfo *api.BlockDownloadInfo) error {
+	// count block download
+	err := cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
 		deviceInfo.DownloadCount++
-		deviceInfo.TotalUpload += float64(blockSize)
+		deviceInfo.TotalUpload += float64(blockDownnloadInfo.BlockSize)
 	})
+
+	if err != nil {
+		return err
+	}
+
+	// count carfile download
+	if blockDownnloadInfo.BlockCID == blockDownnloadInfo.CarfileCID {
+		return cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
+			info.DownloadCount++
+		})
+	}
+
+	return nil
 }
