@@ -56,6 +56,9 @@ type DB interface {
 	AddLatestDownloadCarfile(carfileCID string, userIP string) error
 	GetLatestDownloadCarfiles(userIP string) ([]string, error)
 
+	GetSystemInfo() (api.BaseInfo, error)
+	UpdateSystemInfo(update func(info *api.BaseInfo)) error
+
 	IsNilErr(err error) bool
 }
 

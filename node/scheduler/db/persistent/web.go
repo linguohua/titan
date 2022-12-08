@@ -21,8 +21,6 @@ type webDB interface {
 	GetCarfiles(startTime time.Time, endTime time.Time, cursor, count int) ([]api.WebCarfile, error)
 	GetBlocksByCarfileID(carfileID string) ([]api.WebBlock, error)
 
-	GetCacheStat() (api.StatCachesRsp, error)
-
 	GetCacheTasks(startTime time.Time, endTime time.Time, cursor, count int) ([]api.DataInfo, error)
 	GetValidateResults(cursor int, count int) ([]api.WebValidateResult, int64, error)
 
@@ -94,10 +92,6 @@ func (sd sqlDB) GetCarfiles(startTime time.Time, endTime time.Time, cursor, coun
 
 func (sd sqlDB) GetBlocksByCarfileID(carfileID string) ([]api.WebBlock, error) {
 	return []api.WebBlock{}, nil
-}
-
-func (sd sqlDB) GetCacheStat() (api.StatCachesRsp, error) {
-	return api.StatCachesRsp{}, nil
 }
 
 func (sd sqlDB) GetCacheTasks(startTime time.Time, endTime time.Time, cursor, count int) ([]api.DataInfo, error) {

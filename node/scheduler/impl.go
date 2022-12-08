@@ -4,11 +4,12 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
-	"github.com/linguohua/titan/node/scheduler/election"
-	validate2 "github.com/linguohua/titan/node/scheduler/validate"
 	"math/rand"
 	"net/http"
 	"time"
+
+	"github.com/linguohua/titan/node/scheduler/election"
+	validate2 "github.com/linguohua/titan/node/scheduler/validate"
 
 	// "github.com/linguohua/titan/node/device"
 
@@ -582,10 +583,6 @@ func incrDeviceReward(deviceID string, incrReward int64) error {
 // 		deviceInfo.BlockCount += blocks
 // 	})
 // }
-
-func getStartOfDay(t time.Time) time.Time {
-	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
-}
 
 func (s *Scheduler) nodeOfflineCallback(deviceID string) {
 	s.locatorManager.NotifyNodeStatusToLocator(deviceID, false)
