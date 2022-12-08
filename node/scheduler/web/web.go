@@ -83,13 +83,21 @@ func (w *web) ListNodeConnectionLog(ctx context.Context, req api.ListNodeConnect
 	return api.ListNodeConnectionLogRsp{Total: total, Data: logs}, nil
 }
 
-func (w *web) ListCaches(ctx context.Context, req api.ListCachesReq) (api.ListCachesRsp, error) {
-	return api.ListCachesRsp{}, nil
+func (w *web) GetCacheBlockInfos(ctx context.Context, req api.ListCacheBlocksReq) (api.ListCacheBlocksRsp, error) {
+	startTime := time.Unix(req.StartTime, 0)
+	endTime := time.Unix(req.EndTime, 0)
+
+	blocks, total, err := persistent.GetDB().GetBlockInfos(startTime, endTime, req.Cursor, req.Count)
+	if err != nil {
+		return api.ListCacheBlocksRsp{}, err
+	}
+
+	return api.ListCacheBlocksRsp{Total: total, Data: blocks}, nil
 }
 
-func (w *web) StatCaches(ctx context.Context) (api.StatCachesRsp, error) {
-	return api.StatCachesRsp{}, nil
-}
+// func (w *web) StatCaches(ctx context.Context) (api.StatCachesRsp, error) {
+// 	return api.StatCachesRsp{}, nil
+// }
 
 // cache manager
 func (w *web) AddCacheTask(ctx context.Context, carFileCID string, reliability int, expireTime int) error {

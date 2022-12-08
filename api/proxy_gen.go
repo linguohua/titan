@@ -346,6 +346,8 @@ type WebStruct struct {
 
 		CancelCacheTask func(p0 context.Context, p1 string) (error) `perm:"read"`
 
+		GetCacheBlockInfos func(p0 context.Context, p1 ListCacheBlocksReq) (ListCacheBlocksRsp, error) `perm:"read"`
+
 		GetCacheTaskInfo func(p0 context.Context, p1 string) (DataInfo, error) `perm:"read"`
 
 		GetCarfileByCID func(p0 context.Context, p1 string) (WebCarfile, error) `perm:"read"`
@@ -358,8 +360,6 @@ type WebStruct struct {
 
 		ListCacheTasks func(p0 context.Context, p1 int, p2 int) (ListCacheTasksRsp, error) `perm:"read"`
 
-		ListCaches func(p0 context.Context, p1 ListCachesReq) (ListCachesRsp, error) `perm:"read"`
-
 		ListNodeConnectionLog func(p0 context.Context, p1 ListNodeConnectionLogReq) (ListNodeConnectionLogRsp, error) `perm:"read"`
 
 		ListNodes func(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) `perm:"read"`
@@ -369,8 +369,6 @@ type WebStruct struct {
 		RemoveCarfile func(p0 context.Context, p1 string) (error) `perm:"read"`
 
 		SetupValidation func(p0 context.Context, p1 bool) (error) `perm:"read"`
-
-		StatCaches func(p0 context.Context) (StatCachesRsp, error) `perm:"read"`
 
 	}
 }
@@ -1271,6 +1269,17 @@ func (s *WebStub) CancelCacheTask(p0 context.Context, p1 string) (error) {
 	return ErrNotSupported
 }
 
+func (s *WebStruct) GetCacheBlockInfos(p0 context.Context, p1 ListCacheBlocksReq) (ListCacheBlocksRsp, error) {
+	if s.Internal.GetCacheBlockInfos == nil {
+		return *new(ListCacheBlocksRsp), ErrNotSupported
+	}
+	return s.Internal.GetCacheBlockInfos(p0, p1)
+}
+
+func (s *WebStub) GetCacheBlockInfos(p0 context.Context, p1 ListCacheBlocksReq) (ListCacheBlocksRsp, error) {
+	return *new(ListCacheBlocksRsp), ErrNotSupported
+}
+
 func (s *WebStruct) GetCacheTaskInfo(p0 context.Context, p1 string) (DataInfo, error) {
 	if s.Internal.GetCacheTaskInfo == nil {
 		return *new(DataInfo), ErrNotSupported
@@ -1337,17 +1346,6 @@ func (s *WebStub) ListCacheTasks(p0 context.Context, p1 int, p2 int) (ListCacheT
 	return *new(ListCacheTasksRsp), ErrNotSupported
 }
 
-func (s *WebStruct) ListCaches(p0 context.Context, p1 ListCachesReq) (ListCachesRsp, error) {
-	if s.Internal.ListCaches == nil {
-		return *new(ListCachesRsp), ErrNotSupported
-	}
-	return s.Internal.ListCaches(p0, p1)
-}
-
-func (s *WebStub) ListCaches(p0 context.Context, p1 ListCachesReq) (ListCachesRsp, error) {
-	return *new(ListCachesRsp), ErrNotSupported
-}
-
 func (s *WebStruct) ListNodeConnectionLog(p0 context.Context, p1 ListNodeConnectionLogReq) (ListNodeConnectionLogRsp, error) {
 	if s.Internal.ListNodeConnectionLog == nil {
 		return *new(ListNodeConnectionLogRsp), ErrNotSupported
@@ -1401,17 +1399,6 @@ func (s *WebStruct) SetupValidation(p0 context.Context, p1 bool) (error) {
 
 func (s *WebStub) SetupValidation(p0 context.Context, p1 bool) (error) {
 	return ErrNotSupported
-}
-
-func (s *WebStruct) StatCaches(p0 context.Context) (StatCachesRsp, error) {
-	if s.Internal.StatCaches == nil {
-		return *new(StatCachesRsp), ErrNotSupported
-	}
-	return s.Internal.StatCaches(p0)
-}
-
-func (s *WebStub) StatCaches(p0 context.Context) (StatCachesRsp, error) {
-	return *new(StatCachesRsp), ErrNotSupported
 }
 
 
