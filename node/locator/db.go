@@ -1,6 +1,8 @@
 package locator
 
 import (
+	"fmt"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/node/config"
@@ -114,12 +116,12 @@ func (db *db) close() error {
 }
 
 type sqlDB struct {
-	url string
 	cli *sqlx.DB
 }
 
 func initSQLDB(url string) (*sqlDB, error) {
-	db := &sqlDB{url: url}
+	url = fmt.Sprintf("%s?parseTime=true&loc=Local", url)
+	db := &sqlDB{}
 	database, err := sqlx.Open("mysql", url)
 	if err != nil {
 		return nil, err

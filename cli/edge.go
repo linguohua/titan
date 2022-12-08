@@ -139,10 +139,20 @@ var ValidateBlockCmd = &cli.Command{
 	Name:  "validate",
 	Usage: "validate data",
 	Flags: []cli.Flag{
+		&cli.IntFlag{
+			Name:  "max-fid",
+			Usage: "max fid",
+			Value: 0,
+		},
+		&cli.IntFlag{
+			Name:  "node-type",
+			Usage: "edge=1,candidate=2",
+			Value: 1,
+		},
 		&cli.StringFlag{
-			Name:  "fid",
-			Usage: "file id",
-			Value: "",
+			Name:  "round-id",
+			Usage: "round id",
+			Value: "1",
 		},
 		&cli.StringFlag{
 			Name:  "edge-url",
@@ -157,14 +167,16 @@ var ValidateBlockCmd = &cli.Command{
 		}
 		defer closer()
 
-		fid := cctx.String("fid")
+		maxFid := cctx.Int("max-fid")
+		nodeType := cctx.Int("node-type")
 		url := cctx.String("edge-url")
-		fmt.Printf("fid:%s,url:%s", fid, url)
+		roundID := cctx.String("round-id")
+		fmt.Printf("maxFid:%d,url:%s", maxFid, url)
 		ctx := ReqContext(cctx)
 		// TODO: print more useful things
 		req := make([]API.ReqValidate, 0)
 		seed := time.Now().UnixNano()
-		varify := API.ReqValidate{NodeURL: url, Seed: seed, Duration: 10}
+		varify := API.ReqValidate{NodeURL: url, Seed: seed, Duration: 10, RoundID: roundID, NodeType: nodeType, MaxFid: maxFid}
 		req = append(req, varify)
 
 		err = api.ValidateBlocks(ctx, req)

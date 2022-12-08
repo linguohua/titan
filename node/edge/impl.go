@@ -19,22 +19,12 @@ import (
 var log = logging.Logger("edge")
 
 func NewLocalEdgeNode(ctx context.Context, device *device.Device, params *helper.NodeParams) api.Edge {
-	// addrs, err := build.BuiltinBootstrap()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// exchange, err := p2p.Bootstrap(ctx, addrs)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
 	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
-	blockDownload := download.NewBlockDownload(rateLimiter, params, device)
 
 	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.Candidate{}, params.IPFSGateway, device.GetDeviceID())
 
-	validate := validate.NewValidate(blockDownload, block, device.GetDeviceID())
+	validate := validate.NewValidate(block, device)
+	blockDownload := download.NewBlockDownload(rateLimiter, params, device, validate)
 
 	datasync.SyncLocalBlockstore(params.DS, params.BlockStore, block)
 
