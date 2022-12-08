@@ -196,7 +196,7 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 			continue
 		}
 
-		buf, err := block.getBlock(cid.String())
+		buf, err := block.getBlockWithCID(cid.String())
 		if err == nil {
 			newFid := fmt.Sprintf("%d", reqData.blockInfo.Fid)
 			oldFid, _ := block.getFIDFromCID(reqData.blockInfo.Cid)
@@ -334,7 +334,7 @@ func (block *Block) LoadBlock(ctx context.Context, cid string) ([]byte, error) {
 		return nil, nil
 	}
 
-	return block.getBlock(cid)
+	return block.getBlockWithCID(cid)
 }
 
 func (block *Block) GetAllCidsFromBlockStore() ([]string, error) {
@@ -358,12 +358,7 @@ func (block *Block) GetFID(ctx context.Context, cid string) (string, error) {
 }
 
 func (block *Block) LoadBlockWithFid(fid string) ([]byte, error) {
-	cid, err := block.getCIDFromFID(fid)
-	if err != nil {
-		return nil, err
-	}
-
-	return block.getBlock(cid.String())
+	return block.getBlockWithFID(fid)
 }
 
 func (block *Block) GetDatastore(ctx context.Context) datastore.Batching {

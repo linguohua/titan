@@ -7,7 +7,8 @@ import (
 	"io"
 	"net"
 
-	"github.com/linguohua/titan/node/download"
+	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/lib/limiter"
 	"golang.org/x/time/rate"
 )
 
@@ -20,31 +21,41 @@ func newTcpClient(addr string) (*net.TCPConn, error) {
 	return net.DialTCP("tcp", nil, tcpAddr)
 }
 
-func packData(data []byte) ([]byte, error) {
+func packData(data []byte, msgType api.ValidateTcpMsgType) ([]byte, error) {
+	// msg type is uint8
+	msgTypeLen := 1
+	contentLen := int32(msgTypeLen + len(data))
+
 	lenBuf := new(bytes.Buffer)
-	contentLen := int32(len(data))
 	err := binary.Write(lenBuf, binary.LittleEndian, contentLen)
 	if err != nil {
 		return nil, err
 	}
 
-	buf := make([]byte, len(data)+4)
+	msgTypeBuf := new(bytes.Buffer)
+	err = binary.Write(msgTypeBuf, binary.LittleEndian, uint8(msgType))
+	if err != nil {
+		return nil, err
+	}
+
+	buf := make([]byte, contentLen+4)
 	copy(buf[0:4], lenBuf.Bytes())
+	copy(buf[4:5], msgTypeBuf.Bytes())
 
 	if len(data) > 0 {
-		copy(buf[4:], data)
+		copy(buf[5:], data)
 	}
 
 	return buf, nil
 }
 
-func sendData(conn *net.TCPConn, data []byte, limiter *rate.Limiter) error {
-	buf, err := packData(data)
+func sendData(conn *net.TCPConn, data []byte, msgType api.ValidateTcpMsgType, rateLimiter *rate.Limiter) error {
+	buf, err := packData(data, msgType)
 	if err != nil {
 		return err
 	}
 
-	n, err := io.Copy(conn, download.NewReader(bytes.NewBuffer(buf), limiter))
+	n, err := io.Copy(conn, limiter.NewReader(bytes.NewBuffer(buf), rateLimiter))
 	if err != nil {
 		log.Errorf("sendData, io.Copy error:%s", err.Error())
 		return err
@@ -62,5 +73,5 @@ func sendDeviceID(conn *net.TCPConn, deviceID string, limiter *rate.Limiter) err
 		return fmt.Errorf("deviceID can not empty")
 	}
 
-	return sendData(conn, []byte(deviceID), limiter)
+	return sendData(conn, []byte(deviceID), api.ValidateTcpMsgTypeDeviceID, limiter)
 }

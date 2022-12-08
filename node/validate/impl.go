@@ -11,27 +11,25 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/block"
-	"github.com/linguohua/titan/node/download"
+	"github.com/linguohua/titan/node/device"
 	"golang.org/x/time/rate"
 )
 
 var log = logging.Logger("validate")
 
 type Validate struct {
-	blockDownload *download.BlockDownload
-	block         *block.Block
-	deviceID      string
+	// blockDownload         *download.BlockDownload
+	block                 *block.Block
+	device                *device.Device
+	cancelValidateChannel chan bool
 }
 
-func NewValidate(blockDownload *download.BlockDownload, block *block.Block, deviceID string) *Validate {
-	return &Validate{blockDownload: blockDownload, block: block, deviceID: deviceID}
+func NewValidate(block *block.Block, device *device.Device) *Validate {
+	return &Validate{block: block, device: device}
 }
 
 func (validate *Validate) BeValidate(ctx context.Context, reqValidate api.ReqValidate, candidateTcpSrvAddr string) error {
 	log.Debug("BeValidate")
-
-	oldRate := validate.limitBlockUploadRate()
-	defer validate.resetBlockUploadRate(oldRate)
 
 	conn, err := newTcpClient(candidateTcpSrvAddr)
 	if err != nil {
@@ -39,33 +37,39 @@ func (validate *Validate) BeValidate(ctx context.Context, reqValidate api.ReqVal
 		return err
 	}
 
-	go validate.sendBlocks(conn, &reqValidate, oldRate)
+	go validate.sendBlocks(conn, &reqValidate, validate.device.GetBandwidthUp())
 
 	return nil
 }
 
-func (validate *Validate) limitBlockUploadRate() int64 {
-	oldRate := validate.blockDownload.GetRateLimit()
-	validate.blockDownload.SetDownloadSpeed(context.TODO(), 0)
-	return int64(oldRate)
+func (validate *Validate) CancelValidate() {
+	if validate.cancelValidateChannel != nil {
+		validate.cancelValidateChannel <- true
+	}
 }
-
-func (validate *Validate) resetBlockUploadRate(oldRate int64) {
-	validate.blockDownload.SetDownloadSpeed(context.TODO(), oldRate)
-}
-
 func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqValidate, speedRate int64) {
-	defer conn.Close()
+	defer func() {
+		validate.cancelValidateChannel = nil
+		conn.Close()
+	}()
+
+	validate.cancelValidateChannel = make(chan bool)
 
 	r := rand.New(rand.NewSource(reqValidate.Seed))
 	t := time.NewTimer(time.Duration(reqValidate.Duration) * time.Second)
 
 	limiter := rate.NewLimiter(rate.Limit(speedRate), int(speedRate))
 
-	sendDeviceID(conn, validate.deviceID, limiter)
+	sendDeviceID(conn, validate.device.GetDeviceID(), limiter)
 	for {
 		select {
 		case <-t.C:
+			return
+		case <-validate.cancelValidateChannel:
+			err := sendData(conn, nil, api.ValidateTcpMsgTypeCancelValidate, limiter)
+			if err != nil {
+				log.Errorf("sendBlocks, send cancel validate error:%v", err)
+			}
 			return
 		default:
 		}
@@ -77,7 +81,7 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 			return
 		}
 
-		err = sendData(conn, block, limiter)
+		err = sendData(conn, block, api.ValidateTcpMsgTypeBlockContent, limiter)
 		if err != nil {
 			log.Errorf("sendBlocks, send data error:%v", err)
 			return

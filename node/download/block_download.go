@@ -2,12 +2,8 @@ package download
 
 import (
 	"context"
-	"crypto"
 	"crypto/rsa"
-	"crypto/sha256"
-	"crypto/x509"
 	"encoding/hex"
-	"encoding/pem"
 	"fmt"
 	"io"
 	"net"
@@ -16,12 +12,16 @@ import (
 	"strings"
 	"time"
 
+	titanRsa "github.com/linguohua/titan/node/rsa"
+
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/blockstore"
+	"github.com/linguohua/titan/lib/limiter"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/helper"
+	"github.com/linguohua/titan/node/validate"
 	"golang.org/x/time/rate"
 )
 
@@ -33,15 +33,17 @@ type BlockDownload struct {
 	publicKey  *rsa.PublicKey
 	scheduler  api.Scheduler
 	device     *device.Device
+	validate   *validate.Validate
 	srvAddr    string
 }
 
-func NewBlockDownload(limiter *rate.Limiter, params *helper.NodeParams, device *device.Device) *BlockDownload {
+func NewBlockDownload(limiter *rate.Limiter, params *helper.NodeParams, device *device.Device, validate *validate.Validate) *BlockDownload {
 	var blockDownload = &BlockDownload{
 		limiter:    limiter,
 		blockStore: params.BlockStore,
 		scheduler:  params.Scheduler,
 		srvAddr:    params.DownloadSrvAddr,
+		validate:   validate,
 		device:     device}
 
 	go blockDownload.startDownloadServer()
@@ -93,7 +95,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 	}
 
 	content := cidStr + snStr + signTime + timeout
-	_, err = verifyRsaSign(bd.publicKey, sign, content)
+	err = titanRsa.VerifyRsaSign(bd.publicKey, sign, content)
 	if err != nil {
 		bd.resultFailed(w, r, sn, sign, fmt.Errorf("Verify sign cid:%s,sn:%s,signTime:%s, timeout:%s, error:%s,", cidStr, snStr, signTime, timeout, err.Error()))
 		return
@@ -112,13 +114,15 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 	}
 	defer reader.Close()
 
+	bd.validate.CancelValidate()
+
 	contentDisposition := fmt.Sprintf("attachment; filename=%s", cidStr)
 	w.Header().Set("Content-Disposition", contentDisposition)
 	w.Header().Set("Content-Length", strconv.FormatInt(reader.Size(), 10))
 
 	now := time.Now()
 
-	n, err := io.Copy(w, NewReader(reader, bd.limiter))
+	n, err := io.Copy(w, limiter.NewReader(reader, bd.limiter))
 	if err != nil {
 		log.Errorf("GetBlock, io.Copy error:%v", err)
 		return
@@ -222,39 +226,9 @@ func (bd *BlockDownload) LoadPublicKey() error {
 		return err
 	}
 
-	bd.publicKey, err = pem2PublicKey(publicKeyStr)
+	bd.publicKey, err = titanRsa.Pem2PublicKey(publicKeyStr)
 	if err != nil {
 		return err
 	}
 	return nil
-}
-
-func pem2PublicKey(publicKeyStr string) (*rsa.PublicKey, error) {
-	block, _ := pem.Decode([]byte(publicKeyStr))
-	if block == nil {
-		return nil, fmt.Errorf("failed to decode public key")
-	}
-
-	pub, err := x509.ParsePKCS1PublicKey(block.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse public key")
-	}
-
-	return pub, nil
-}
-
-func verifyRsaSign(publicKey *rsa.PublicKey, sign []byte, content string) (bool, error) {
-	hash := sha256.New()
-	_, err := hash.Write([]byte(content))
-	if err != nil {
-		return false, err
-	}
-	hashSum := hash.Sum(nil)
-
-	err = rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, hashSum, sign)
-	if err != nil {
-		fmt.Println("could not verify signature: ", err)
-		return false, err
-	}
-	return true, nil
 }

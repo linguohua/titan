@@ -8,8 +8,15 @@ import (
 	"os"
 	"time"
 
+	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/helper"
 )
+
+type tcpMsg struct {
+	msgType api.ValidateTcpMsgType
+	msg     []byte
+	length  int
+}
 
 func (candidate *Candidate) startTcpServer() {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", candidate.tcpSrvAddr)
@@ -55,12 +62,17 @@ func handleMessage(conn *net.TCPConn, candidate *Candidate) {
 	}()
 
 	// first item is device id
-	buf, err := readItem(conn)
+	tcpMsg, err := readTcpMsg(conn)
 	if err != nil {
 		log.Errorf("read deviceID error:%v", err)
 		return
 	}
-	deviceID = string(buf)
+
+	if tcpMsg.msgType != api.ValidateTcpMsgTypeDeviceID {
+		log.Errorf("read tcp msg error, msg type not ValidateTcpMsgTypeDeviceID")
+		return
+	}
+	deviceID = string(tcpMsg.msg)
 	if len(deviceID) == 0 {
 		log.Errorf("deviceID is empty")
 		return
@@ -82,7 +94,7 @@ func handleMessage(conn *net.TCPConn, candidate *Candidate) {
 
 	for {
 		// next item is file content
-		buf, err = readItem(conn)
+		tcpMsg, err = readTcpMsg(conn)
 		if err != nil {
 			log.Infof("read item error:%v, deviceID:%s", err, deviceID)
 			close(bw.ch)
@@ -90,32 +102,53 @@ func handleMessage(conn *net.TCPConn, candidate *Candidate) {
 			return
 		}
 
-		size += int64(len(buf))
+		size += int64(tcpMsg.length)
 
-		bw.ch <- buf
+		bw.ch <- *tcpMsg
 	}
 }
 
-func readItem(conn net.Conn) ([]byte, error) {
-	len, err := readContentLen(conn)
+func readTcpMsg(conn net.Conn) (*tcpMsg, error) {
+	contentLen, err := readContentLen(conn)
 	if err != nil {
-		return nil, fmt.Errorf("read len error %v", err)
+		return nil, fmt.Errorf("read tcp msgg error %v", err)
 	}
 
-	if len <= 0 {
-		return []byte{}, nil
+	if contentLen <= 0 {
+		return nil, nil
 	}
 
-	if len > helper.TcpPackMaxLength {
-		return nil, fmt.Errorf("pack len %d is invalid", len)
+	if contentLen > helper.TcpPackMaxLength {
+		return nil, fmt.Errorf("pack len %d is invalid", contentLen)
 	}
 
-	buf, err := readContent(conn, len)
+	buf, err := readContent(conn, contentLen)
 	if err != nil {
 		return nil, fmt.Errorf("read content error %v", err)
 	}
 
-	return buf, nil
+	if len(buf) <= 0 {
+		return nil, fmt.Errorf("Invalid tcp msg, content len == 0")
+	}
+
+	msgType, err := readMsgType(buf[0:1])
+	if err != nil {
+		return nil, err
+	}
+
+	msg := &tcpMsg{msgType: msgType, length: contentLen + 4, msg: buf[1:]}
+	// log.Infof("read tcp msg, type:%d, buf len:%d", msg.msgType, len(msg.msg))
+	return msg, nil
+}
+
+func readMsgType(buf []byte) (api.ValidateTcpMsgType, error) {
+	var msgType uint8
+	err := binary.Read(bytes.NewReader(buf), binary.LittleEndian, &msgType)
+	if err != nil {
+		return 0, err
+	}
+
+	return api.ValidateTcpMsgType(msgType), nil
 }
 
 func readContentLen(conn net.Conn) (int, error) {

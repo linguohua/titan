@@ -30,10 +30,10 @@ var log = logging.Logger("candidate")
 
 func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *device.Device, params *helper.NodeParams) api.Candidate {
 	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
-	blockDownload := download.NewBlockDownload(rateLimiter, params, device)
 
 	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, params.IPFSGateway, device.GetDeviceID())
-	validate := vd.NewValidate(blockDownload, block, device.GetDeviceID())
+	validate := vd.NewValidate(block, device)
+	blockDownload := download.NewBlockDownload(rateLimiter, params, device, validate)
 
 	datasync.SyncLocalBlockstore(params.DS, params.BlockStore, block)
 
@@ -73,7 +73,7 @@ func cidFromData(data []byte) (string, error) {
 
 type blockWaiter struct {
 	conn *net.TCPConn
-	ch   chan []byte
+	ch   chan tcpMsg
 }
 
 type Candidate struct {
@@ -122,13 +122,16 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 		candidate.blockWaiterMap.Delete(result.DeviceID)
 	}()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	size := int64(0)
 	now := time.Now()
 	isBreak := false
 	t := time.NewTimer(time.Duration(req.Duration+helper.ValidateTimeout) * time.Second)
 	for {
 		select {
-		case block, ok := <-vb.ch:
+		case tcpMsg, ok := <-vb.ch:
 			if !ok {
 				// log.Infof("waitblock close channel %s", result.DeviceID)
 				isBreak = true
@@ -136,15 +139,22 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 				break
 			}
 
-			if len(block) > 0 {
-				size += int64(len(block))
-				cid, err := cidFromData(block)
+			if tcpMsg.msgType == api.ValidateTcpMsgTypeCancelValidate {
+				result.IsCancel = true
+				sendValidateResult(ctx, candidate, result)
+				log.Infof("device %s cancel validate", result.DeviceID)
+				return
+			}
+
+			if tcpMsg.msgType == api.ValidateTcpMsgTypeBlockContent && len(tcpMsg.msg) > 0 {
+				cid, err := cidFromData(tcpMsg.msg)
 				if err != nil {
 					log.Errorf("waitBlock, cidFromData error:%v", err)
 				} else {
 					result.Cids[result.RandomCount] = cid
 				}
 			}
+			size += int64(tcpMsg.length)
 			result.RandomCount++
 		case <-t.C:
 			if vb.conn != nil {
@@ -170,9 +180,6 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 
 	log.Infof("validate %s %d block, bandwidth:%f, cost time:%d, IsTimeout:%v, duration:%d, size:%d, randCount:%d",
 		result.DeviceID, len(result.Cids), result.Bandwidth, result.CostTime, result.IsTimeout, req.Duration, size, result.RandomCount)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	sendValidateResult(ctx, candidate, result)
 }
@@ -209,7 +216,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 		return
 	}
 
-	bw = &blockWaiter{conn: nil, ch: make(chan []byte, 1)}
+	bw = &blockWaiter{conn: nil, ch: make(chan tcpMsg, 1)}
 	candidate.blockWaiterMap.Store(info.DeviceId, bw)
 
 	go waitBlock(bw, req, candidate, result)

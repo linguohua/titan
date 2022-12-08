@@ -110,13 +110,25 @@ func (block *Block) updateCidAndFid(ctx context.Context, cid cid.Cid, fid string
 	return nil
 }
 
-func (block *Block) getBlock(cidStr string) ([]byte, error) {
+func (block *Block) getBlockWithCID(cidStr string) ([]byte, error) {
 	cid, err := cid.Decode(cidStr)
 	if err != nil {
 		log.Errorf("getBlock decode cid %s error:%s", cidStr, err.Error())
 		return nil, err
 	}
 	return block.blockStore.Get(cid.Hash().String())
+}
+
+func (block *Block) getBlockWithFID(fid string) ([]byte, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	value, err := block.ds.Get(ctx, helper.NewKeyFID(fid))
+	if err != nil {
+		return nil, err
+	}
+
+	return block.blockStore.Get(string(value))
 }
 
 func (block *Block) saveBlock(ctx context.Context, data []byte, cidStr, fid string) error {
