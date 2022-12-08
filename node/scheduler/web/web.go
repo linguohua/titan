@@ -144,3 +144,7 @@ func (w *web) ListValidateResult(ctx context.Context, cursor int, count int) (ap
 func (w *web) SetupValidation(ctx context.Context, enable bool) error {
 	return w.scheduler.ValidateSwitch(ctx, enable)
 }
+
+func (w *web) GetSystemInfo(ctx context.Context) (api.BaseInfo, error) {
+	return cache.GetDB().GetSystemInfo()
+}

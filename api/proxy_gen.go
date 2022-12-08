@@ -354,6 +354,8 @@ type WebStruct struct {
 
 		GetNodeInfoByID func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
 
+		GetSystemInfo func(p0 context.Context) (BaseInfo, error) ``
+
 		GetValidationInfo func(p0 context.Context) (ValidationInfo, error) `perm:"read"`
 
 		ListBlockDownloadInfo func(p0 context.Context, p1 ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) `perm:"read"`
@@ -1311,6 +1313,17 @@ func (s *WebStruct) GetNodeInfoByID(p0 context.Context, p1 string) (DevicesInfo,
 
 func (s *WebStub) GetNodeInfoByID(p0 context.Context, p1 string) (DevicesInfo, error) {
 	return *new(DevicesInfo), ErrNotSupported
+}
+
+func (s *WebStruct) GetSystemInfo(p0 context.Context) (BaseInfo, error) {
+	if s.Internal.GetSystemInfo == nil {
+		return *new(BaseInfo), ErrNotSupported
+	}
+	return s.Internal.GetSystemInfo(p0)
+}
+
+func (s *WebStub) GetSystemInfo(p0 context.Context) (BaseInfo, error) {
+	return *new(BaseInfo), ErrNotSupported
 }
 
 func (s *WebStruct) GetValidationInfo(p0 context.Context) (ValidationInfo, error) {

@@ -14,6 +14,7 @@ type Web interface {
 
 	// ListCaches cache manager
 	GetCacheBlockInfos(ctx context.Context, req ListCacheBlocksReq) (ListCacheBlocksRsp, error) //perm:read
+	GetSystemInfo(ctx context.Context) (BaseInfo, error)
 	AddCacheTask(ctx context.Context, carFileCID string, reliability int, expireTime int) error //perm:read
 	ListCacheTasks(ctx context.Context, cursor int, count int) (ListCacheTasksRsp, error)       //perm:read
 	GetCacheTaskInfo(ctx context.Context, carFileCID string) (DataInfo, error)                  //perm:read
@@ -71,12 +72,9 @@ type WebCarfile struct {
 	CreatedAt time.Time        `json:"created_at"`
 }
 
-type StatCachesRsp struct {
-	CarFileCount  int     `json:"car_file_count"`
-	TotalSize     int64   `json:"total_size"`
-	DeviceCount   int     `json:"device_count"`
-	DownloadCount int     `json:"download_count"`
-	HitRate       float32 `json:"hit_rate"`
+type BaseInfo struct {
+	CarFileCount  int `json:"car_file_count"`
+	DownloadCount int `json:"download_count"`
 }
 
 type NodeConnectionStatus int

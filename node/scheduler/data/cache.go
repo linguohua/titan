@@ -454,15 +454,19 @@ func (c *Cache) endCache(unDoneBlocks int, isTimeout bool) (err error) {
 
 	err = cache.GetDB().RemoveRunningDataTask(c.CarfileHash, c.CacheID)
 	if err != nil {
-		err = xerrors.Errorf("stopCache RemoveRunningDataTask err: %s", err.Error())
+		err = xerrors.Errorf("endCache RemoveRunningDataTask err: %s", err.Error())
 		return
 	}
 
 	defer func() {
-		// save message info
-		// c.setCacheMessageInfo()
-
 		c.Data.cacheEnd(c)
+
+		err = cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
+			info.CarFileCount++
+		})
+		if err != nil {
+			log.Errorf("endCache UpdateSystemInfo err: %s", err.Error())
+		}
 	}()
 
 	if isTimeout {
@@ -472,7 +476,7 @@ func (c *Cache) endCache(unDoneBlocks int, isTimeout bool) (err error) {
 
 	failedBlocks, err := persistent.GetDB().GetBlockCountWithStatus(c.CacheID, api.CacheStatusFail)
 	if err != nil {
-		err = xerrors.Errorf("stopCache %s,%s GetBlockCountWithStatus err:%v", c.Data.CarfileCid, c.CacheID, err.Error())
+		err = xerrors.Errorf("endCache %s,%s GetBlockCountWithStatus err:%v", c.Data.CarfileCid, c.CacheID, err.Error())
 		return
 	}
 
@@ -542,6 +546,10 @@ func (c *Cache) removeCache() error {
 	if err == nil {
 		c.Data.Reliability = reliability
 	}
+
+	err = cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
+		info.CarFileCount--
+	})
 
 	return err
 }

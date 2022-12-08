@@ -50,6 +50,9 @@ const (
 	nodeLatencyField            = "Latency"
 	blockDownloadCIDField       = "CID"
 	blockDownloadPublicKeyField = "UserPublicKey"
+
+	// redisKeySystemInfo  server name
+	redisKeySystemInfo = "Titan:BaseInfo:%s"
 	// CacheTask field
 	// carFileIDField = "CarFileID"
 	// cacheIDField = "cacheID"
@@ -510,8 +513,55 @@ func (rd redisDB) UpdateDeviceInfo(deviceID string, update func(deviceInfo *api.
 	return err
 }
 
+func (rd redisDB) UpdateSystemInfo(update func(info *api.BaseInfo)) error {
+	key := fmt.Sprintf(redisKeySystemInfo, serverName)
+	info, err := rd.GetSystemInfo()
+	if err != nil {
+		return err
+	}
+
+	update(&info)
+
+	ctx := context.Background()
+	_, err = rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+		for field, value := range systemInfoToMap(info) {
+			pipeliner.HMSet(ctx, key, field, value)
+		}
+		return nil
+	})
+
+	return err
+}
+
+func (rd redisDB) GetSystemInfo() (api.BaseInfo, error) {
+	key := fmt.Sprintf(redisKeySystemInfo, serverName)
+
+	var info api.BaseInfo
+	err := rd.cli.HGetAll(context.Background(), key).Scan(&info)
+	if err != nil {
+		return api.BaseInfo{}, err
+	}
+
+	return info, nil
+}
+
+func systemInfoToMap(info api.BaseInfo) map[string]interface{} {
+	out := make(map[string]interface{})
+	t := reflect.TypeOf(info)
+	v := reflect.ValueOf(info)
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		redisTag := field.Tag.Get("redis")
+		if redisTag == "" {
+			continue
+		}
+		out[redisTag] = v.Field(i).Interface()
+	}
+	return out
+}
+
 func (rd redisDB) AddLatestDownloadCarfile(carfileCID string, userIP string) error {
-	var maxCount = 5
+	maxCount := 5
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -535,7 +585,6 @@ func (rd redisDB) AddLatestDownloadCarfile(carfileCID string, userIP string) err
 	}
 
 	return rd.cli.Expire(ctx, key, 24*time.Hour).Err()
-
 }
 
 func (rd redisDB) GetLatestDownloadCarfiles(userIP string) ([]string, error) {
