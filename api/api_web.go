@@ -14,7 +14,7 @@ type Web interface {
 
 	// ListCaches cache manager
 	GetCacheBlockInfos(ctx context.Context, req ListCacheBlocksReq) (ListCacheBlocksRsp, error) //perm:read
-	GetSystemInfo(ctx context.Context) (BaseInfo, error)
+	GetSystemInfo(ctx context.Context) (BaseInfo, error)                                        //perm:read
 	AddCacheTask(ctx context.Context, carFileCID string, reliability int, expireTime int) error //perm:read
 	ListCacheTasks(ctx context.Context, cursor int, count int) (ListCacheTasksRsp, error)       //perm:read
 	GetCacheTaskInfo(ctx context.Context, carFileCID string) (DataInfo, error)                  //perm:read
