@@ -35,7 +35,7 @@ type Validate struct {
 	ctx  context.Context
 	seed int64
 
-	roundID string
+	roundID int64
 
 	duration         int
 	validateBlockMax int // block num limit
@@ -145,7 +145,7 @@ func (v *Validate) getRandNum(max int, r *rand.Rand) int {
 	return max
 }
 
-func (v *Validate) UpdateValidateResult(roundId, deviceID, msg string, status persistent.ValidateStatus) error {
+func (v *Validate) UpdateValidateResult(roundId int64, deviceID, msg string, status persistent.ValidateStatus) error {
 	resultInfo := &persistent.ValidateResult{RoundID: roundId, DeviceID: deviceID, Msg: msg, Status: status.Int(), EndTime: time.Now()}
 	return persistent.GetDB().UpdateValidateResultInfo(resultInfo)
 }
@@ -259,26 +259,6 @@ func randomNum(start, end int) int {
 	return y + start
 }
 
-func (v *Validate) matchValidator(validatorList []string, deviceID string, validatorMap map[string][]string) (map[string][]string, []string) {
-	cs := v.nodeManager.FindCandidateNodes(validatorList, nil)
-
-	if cs == nil || len(cs) == 0 {
-		return nil, nil
-	}
-
-	validatorID := cs[randomNum(0, len(cs))].DeviceInfo.DeviceId
-
-	vList := make([]string, 0)
-	if list, ok := validatorMap[validatorID]; ok {
-		vList = append(list, deviceID)
-	} else {
-		vList = append(vList, deviceID)
-	}
-	validatorMap[validatorID] = vList
-
-	return validatorMap, validatorList
-}
-
 type tmpDeviceMeta struct {
 	deviceId string
 	nodeType api.NodeType
@@ -360,7 +340,7 @@ func (v *Validate) startValidate() error {
 		return err
 	}
 
-	v.roundID = fmt.Sprintf("%d", sID)
+	v.roundID = sID
 	v.seed = time.Now().UnixNano()
 	v.maxFidMap = make(map[string]int64)
 

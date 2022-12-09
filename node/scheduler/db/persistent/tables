@@ -9,23 +9,24 @@ CREATE TABLE `node` (
     `is_online` BOOLEAN DEFAULT '0' ,
 	`server_name` varchar(64) DEFAULT '' ,
 	`private_key` varchar(1024) DEFAULT '' ,
-	`url` varchar(64) DEFAULT '' ,    
+	`url` varchar(64) DEFAULT '' ,
     `exited` BOOLEAN DEFAULT '0' ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node info';
 
 CREATE TABLE `validate_result` (
-    `id` int unsigned NOT NULL AUTO_INCREMENT,
-	`device_id` varchar(128) NOT NULL ,
-	`validator_id` varchar(128) NOT NULL ,
-    `round_id` varchar(64) NOT NULL ,
-    `msg` varchar(512) ,
-	`start_time` varchar(64) DEFAULT '',
-	`end_time` varchar(64) DEFAULT '',
-	`server_name` varchar(64) DEFAULT '',
-    `status` TINYINT  DEFAULT '0' ,
-	PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='validate result info';
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `round_id` bigint NOT NULL,
+  `device_id` varchar(128) NOT NULL,
+  `validator_id` varchar(128) NOT NULL,
+  `server_name` varchar(64) DEFAULT NULL,
+  `msg` varchar(512) DEFAULT NULL,
+  `status` tinyint DEFAULT '0',
+  `start_time` datetime DEFAULT NULL,
+  `end_time` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `round_device` (`round_id`,`device_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='validate result info';
 
 CREATE TABLE `validate_err` (
     `id` int unsigned NOT NULL AUTO_INCREMENT,
@@ -33,7 +34,7 @@ CREATE TABLE `validate_err` (
     `round_id` varchar(64) NOT NULL ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='validate error device';
-  
+
 CREATE TABLE `data_info_cn_gd_shenzhen` (
 	`carfile_cid` varchar(128) NOT NULL UNIQUE,
 	`carfile_hash` varchar(128) NOT NULL UNIQUE,

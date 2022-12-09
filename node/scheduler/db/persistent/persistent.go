@@ -146,7 +146,7 @@ type NodeInfo struct {
 // ValidateResult validate result
 type ValidateResult struct {
 	ID          int
-	RoundID     string    `db:"round_id"`
+	RoundID     int64     `db:"round_id"`
 	DeviceID    string    `db:"device_id"`
 	ValidatorID string    `db:"validator_id"`
 	ServerName  string    `db:"server_name"`

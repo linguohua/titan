@@ -166,7 +166,7 @@ func (sd sqlDB) InsertValidateResultInfo(info *ValidateResult) error {
 }
 
 func (sd sqlDB) UpdateValidateResultInfo(info *ValidateResult) error {
-	query := fmt.Sprintf("UPDATE%s", " validate_result SET msg=:msg, status=:status, end_time=:end_time WHERE device_id=:device_id AND round_id=:round_id")
+	query := fmt.Sprintf("UPDATE%s", " validate_result SET msg=:msg, status=:status, end_time=:end_time WHERE round_id=:round_id AND device_id=:device_id")
 	_, err := sd.cli.NamedExec(query, info)
 	return err
 }

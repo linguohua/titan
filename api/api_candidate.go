@@ -18,7 +18,7 @@ type ReqValidate struct {
 	Seed    int64
 	// seconds
 	Duration int
-	RoundID  string
+	RoundID  int64
 	// node type, for example, edge or candidate
 	NodeType int
 	// current max fid
@@ -41,5 +41,5 @@ type ValidateResults struct {
 	// if radmon fid all exist, RandomCount == len(Cids)
 	RandomCount int
 
-	RoundID string
+	RoundID int64
 }
