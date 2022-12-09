@@ -375,6 +375,10 @@ func (block *Block) IsLoadBlockFromIPFS() bool {
 	return false
 }
 
+func (block *Block) GetCandidateDownloadInfo(ctx context.Context, cids []string) (map[string]api.CandidateDownloadInfo, error) {
+	return block.scheduler.GetCandidateDownloadInfoWithBlocks(ctx, cids)
+}
+
 func (block *Block) resolveLinks(blk blocks.Block) ([]*format.Link, error) {
 	ctx := context.Background()
 
