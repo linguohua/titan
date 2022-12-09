@@ -646,7 +646,7 @@ func (sd sqlDB) GetBlocksWithHash(hash string) (map[string]*api.BlockInfo, error
 
 	blocks := make(map[string]*api.BlockInfo)
 	for _, block := range out {
-		var blockInfo = block
+		blockInfo := block
 		blocks[block.CarfileHash] = &blockInfo
 	}
 
@@ -842,8 +842,8 @@ func (sd sqlDB) CleanCacheDataWithNode(deviceID string, caches []*api.CacheInfo)
 	tx := sd.cli.MustBegin()
 
 	// block info
-	cmdB := fmt.Sprintf(`UPDATE %s SET status=? WHERE device_id=? AND status=?`, bTableName)
-	tx.MustExec(cmdB, int(api.CacheStatusRestore), deviceID, int(api.CacheStatusSuccess))
+	cmdB := fmt.Sprintf(`UPDATE %s SET status=?,device_id=? WHERE device_id=? AND status=?`, bTableName)
+	tx.MustExec(cmdB, int(api.CacheStatusRestore), "", deviceID, int(api.CacheStatusSuccess))
 
 	carfileReliabilitys := make(map[string]int)
 	// cache info
