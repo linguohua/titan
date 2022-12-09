@@ -390,6 +390,9 @@ func (sd sqlDB) SaveCacheingResults(dInfo *api.DataInfo, cInfo *api.CacheInfo, b
 			if info.ID != "" {
 				cmd := fmt.Sprintf(`UPDATE %s SET status=?,size=?,reliability=?,device_id=?,fid=?,source=? WHERE id=?`, bTableName)
 				tx.MustExec(cmd, info.Status, info.Size, info.Reliability, info.DeviceID, info.FID, info.Source, info.ID)
+				// other
+				cmd2 := fmt.Sprintf(`UPDATE %s SET fid=? WHERE cid_hash=? AND device_id=?`, bTableName)
+				tx.MustExec(cmd2, info.FID, info.CIDHash, info.DeviceID)
 			} else {
 				cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_hash, cid, device_id, status, size, reliability, id, fid, source, cid_hash) VALUES (?, ?, ?, ?, ?, ?, ?, REPLACE(UUID(),"-",""), ?, ?, ?)`, bTableName)
 				tx.MustExec(cmd, info.CacheID, info.CarfileHash, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability, info.FID, info.Source, info.CIDHash)
@@ -832,8 +835,8 @@ func (sd sqlDB) CleanCacheDataWithNode(deviceID string, caches []*api.CacheInfo)
 	tx := sd.cli.MustBegin()
 
 	// block info
-	cmdB := fmt.Sprintf(`UPDATE %s SET status=?,device_id=? WHERE device_id=? AND status=?`, bTableName)
-	tx.MustExec(cmdB, int(api.CacheStatusRestore), "", deviceID, int(api.CacheStatusSuccess))
+	cmdB := fmt.Sprintf(`UPDATE %s SET status=? WHERE device_id=? AND status=?`, bTableName)
+	tx.MustExec(cmdB, int(api.CacheStatusRestore), deviceID, int(api.CacheStatusSuccess))
 
 	carfileReliabilitys := make(map[string]int)
 	// cache info

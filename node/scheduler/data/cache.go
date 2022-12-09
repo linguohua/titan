@@ -224,7 +224,7 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*api.BlockInfo,
 		from := "IPFS"
 		fid := 0
 
-		froms, err := persistent.GetDB().GetNodesWithCache(hash, false)
+		froms, err := persistent.GetDB().GetNodesWithCache(hash, true)
 		if err != nil {
 			log.Errorf("allocateBlocksToNodes cache:%s,hash:%s, GetNodesWithCache err:%s", c.CacheID, hash, err.Error())
 		} else {
