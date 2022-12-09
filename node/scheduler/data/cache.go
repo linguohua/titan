@@ -321,7 +321,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	}
 
 	if blockInfo.Status == api.CacheStatusSuccess {
-		return xerrors.Errorf("blockCacheResult cacheID:%s,%s block saved ", info.CacheID, info.Cid)
+		return xerrors.Errorf("blockCacheResult cacheID:%s,%s block saved ", info.CacheID, hash)
 	}
 
 	status := api.CacheStatusFail
@@ -366,6 +366,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		CarfileHash: c.CarfileHash,
 	}
 
+	// log.Warnf("block:%s,Status:%v, link len:%d ", hash, blockInfo.Status, len(info.Links))
 	linkMap := make(map[string]string)
 	if len(info.Links) > 0 {
 		for _, link := range info.Links {
@@ -385,6 +386,13 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		if err != nil {
 			return xerrors.Errorf("blockCacheResult cacheID:%s,%s GetBlockCountWithStatus err:%s ", info.CacheID, info.Cid, err.Error())
 		}
+
+		restoreBlocks, err := persistent.GetDB().GetBlockCountWithStatus(c.CacheID, api.CacheStatusRestore)
+		if err != nil {
+			return xerrors.Errorf("blockCacheResult cacheID:%s,%s GetBlockCountWithStatus err:%s ", info.CacheID, info.Cid, err.Error())
+		}
+
+		unDoneBlocks += restoreBlocks
 
 		if unDoneBlocks <= 0 {
 			return c.endCache(unDoneBlocks, false)
