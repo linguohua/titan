@@ -388,15 +388,15 @@ func (sd sqlDB) SaveCacheingResults(dInfo *api.DataInfo, cInfo *api.CacheInfo, b
 	if createBlocks != nil {
 		for _, info := range createBlocks {
 			if info.ID != "" {
-				cmd := fmt.Sprintf(`UPDATE %s SET status=?,size=?,reliability=?,device_id=?,fid=?,source=? WHERE id=?`, bTableName)
-				tx.MustExec(cmd, info.Status, info.Size, info.Reliability, info.DeviceID, info.FID, info.Source, info.ID)
-				// other
-				cmd2 := fmt.Sprintf(`UPDATE %s SET fid=? WHERE cid_hash=? AND device_id=?`, bTableName)
-				tx.MustExec(cmd2, info.FID, info.CIDHash, info.DeviceID)
+				cmd := fmt.Sprintf(`UPDATE %s SET size=?,reliability=?,device_id=?,fid=?,source=? WHERE id=?`, bTableName)
+				tx.MustExec(cmd, info.Size, info.Reliability, info.DeviceID, info.FID, info.Source, info.ID)
 			} else {
 				cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_hash, cid, device_id, status, size, reliability, id, fid, source, cid_hash) VALUES (?, ?, ?, ?, ?, ?, ?, REPLACE(UUID(),"-",""), ?, ?, ?)`, bTableName)
 				tx.MustExec(cmd, info.CacheID, info.CarfileHash, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability, info.FID, info.Source, info.CIDHash)
 			}
+			// other
+			cmd2 := fmt.Sprintf(`UPDATE %s SET fid=? WHERE cid_hash=? AND device_id=?`, bTableName)
+			tx.MustExec(cmd2, info.FID, info.CIDHash, info.DeviceID)
 		}
 	}
 
