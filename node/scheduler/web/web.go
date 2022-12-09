@@ -142,7 +142,8 @@ func (w *web) ListValidateResult(ctx context.Context, cursor int, count int) (ap
 }
 
 func (w *web) SetupValidation(ctx context.Context, enable bool) error {
-	return w.scheduler.ValidateSwitch(ctx, enable)
+	w.scheduler.ValidateSwitch(enable)
+	return nil
 }
 
 func (w *web) GetSystemInfo(ctx context.Context) (api.BaseInfo, error) {

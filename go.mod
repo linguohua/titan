@@ -6,11 +6,12 @@ require (
 	contrib.go.opencensus.io/exporter/prometheus v0.4.1
 	github.com/BurntSushi/toml v1.2.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fatih/color v1.13.0
+	github.com/fatih/structs v1.1.0
 	github.com/filecoin-project/go-jsonrpc v0.1.6
 	github.com/filecoin-project/lotus v1.17.0
 	github.com/gbrlsnchs/jwt/v3 v3.0.1
+	github.com/go-ping/ping v1.1.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
@@ -47,6 +48,7 @@ require (
 	github.com/oschwald/geoip2-golang v1.7.0
 	github.com/ouqiang/timewheel v1.0.1
 	github.com/prometheus/client_golang v1.12.2
+	github.com/robfig/cron v1.2.0
 	github.com/shirou/gopsutil/v3 v3.22.9
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tecbot/gorocksdb v0.0.0-20191217155057-f0fad39f321c
@@ -55,7 +57,6 @@ require (
 	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f
-	gorm.io/gorm v1.23.8
 )
 
 require (
@@ -78,7 +79,6 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/elastic/gosigar v0.14.2 // indirect
-	github.com/fatih/structs v1.1.0 // indirect
 	github.com/flynn/noise v1.0.0 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
 	github.com/go-kit/log v0.2.0 // indirect
@@ -86,7 +86,6 @@ require (
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
-	github.com/go-ping/ping v1.1.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -115,7 +114,6 @@ require (
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jbenet/goprocess v0.1.4 // indirect
-	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/klauspost/compress v1.15.1 // indirect
 	github.com/libp2p/go-cidranger v1.1.0 // indirect
 	github.com/libp2p/go-eventbus v0.2.1 // indirect
@@ -198,7 +196,6 @@ require (
 	github.com/facebookgo/subset v0.0.0-20200203212716-c811ad88dec4 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/ipfs/go-blockservice v0.4.0 // indirect
-	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.14 // indirect
 	github.com/koron/go-ssdp v0.0.3 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
