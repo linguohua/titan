@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"context"
 	"fmt"
+	"github.com/robfig/cron"
 	"math/rand"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
-	"github.com/ouqiang/timewheel"
 	"golang.org/x/xerrors"
 )
 
@@ -35,36 +35,51 @@ type Validate struct {
 	ctx  context.Context
 	seed int64
 
+	// validate round number
 	roundID int64
 
-	duration         int
-	validateBlockMax int // block num limit
+	duration int
 
-	timewheelValidate *timewheel.TimeWheel
-	validateTime      int // time interval (minute)
+	// block num limit
+	validateBlockMax int
 
+	// time interval (minute)
+	validateTime int
+
+	// fid is maximum value of each device storage record
+	// key is device id
+	// value is fid
 	maxFidMap map[string]int64
 
-	resultQueue   *list.List
+	// temporary storage of call back message
+	resultQueue *list.List
+	// heartbeat of call back
 	resultChannel chan bool
 
 	nodeManager *node.Manager
 
+	// validate switch
 	open bool
 }
 
 // init timers
 func (v *Validate) initValidateTask() {
-	v.timewheelValidate = timewheel.New(time.Second, 3600, func(_ interface{}) {
-		v.timewheelValidate.AddTimer((time.Duration(v.validateTime)*60-1)*time.Second, "validate", nil)
+	spec := fmt.Sprintf("* */%d * * * *", v.validateTime)
+	crontab := cron.New()
+	err := crontab.AddFunc(spec, func() {
 		err := v.startValidate()
 		if err != nil {
 			log.Panicf("startValidate err:%s", err.Error())
 		}
 	})
-	v.timewheelValidate.Start()
-	v.timewheelValidate.AddTimer(time.Duration(2)*60*time.Second, "validate", nil)
 
+	if err != nil {
+		log.Panicf(err.Error())
+	}
+
+	crontab.Start()
+
+	// wait call back message
 	go v.initChannelTask()
 }
 
@@ -173,7 +188,7 @@ func (v *Validate) doCallback() {
 }
 
 func (v *Validate) PushResultToQueue(validateResults *api.ValidateResults) {
-	log.Infof("validateResult:%s,round:%s", validateResults.DeviceID, validateResults.RoundID)
+	log.Infof("validateResult:%s,round:%d", validateResults.DeviceID, validateResults.RoundID)
 	v.resultQueue.PushBack(validateResults)
 	v.resultChannel <- true
 }
@@ -349,6 +364,7 @@ func (v *Validate) startValidate() error {
 		return err
 	}
 	log.Debug("validator is ", validatorList)
+
 	// no successful election
 	if validatorList == nil || len(validatorList) == 0 {
 		return nil
@@ -402,4 +418,12 @@ func (v *Validate) compareCid(cidStr1, cidStr2 string) bool {
 	}
 
 	return hash1 == hash2
+}
+
+func (v *Validate) SetValidateSwitch(open bool) {
+	v.open = open
+}
+
+func (v *Validate) GetValidateRunningState() bool {
+	return v.open
 }

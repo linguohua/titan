@@ -25,7 +25,8 @@ type Scheduler interface {
 	RegisterNode(ctx context.Context, nodeType NodeType, count int) ([]NodeRegisterInfo, error)         //perm:read
 	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error)  //perm:admin
 	CacheContinue(ctx context.Context, cid, cacheID string) error                                       //perm:admin
-	ValidateSwitch(ctx context.Context, open bool) error                                                //perm:admin
+	ValidateSwitch(open bool)                                                                           //perm:admin
+	ValidateRunningState() bool                                                                         //perm:admin
 	GetValidationInfo(ctx context.Context) (ValidationInfo, error)                                      //perm:admin
 	ListEvents(ctx context.Context, page int) (EventListInfo, error)                                    //perm:read
 	ResetCacheExpiredTime(ctx context.Context, carfileCid, cacheID string, expiredTime time.Time) error //perm:admin

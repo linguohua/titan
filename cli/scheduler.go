@@ -498,17 +498,13 @@ var validateSwitchCmd = &cli.Command{
 		// url := cctx.String("scheduler-url")
 		open := cctx.Bool("open")
 
-		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
 		defer closer()
 
-		err = schedulerAPI.ValidateSwitch(ctx, open)
-		if err != nil {
-			return err
-		}
+		schedulerAPI.ValidateSwitch(open)
 
 		return nil
 	},
