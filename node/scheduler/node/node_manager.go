@@ -3,6 +3,7 @@ package node
 import (
 	"crypto/rsa"
 	"github.com/go-ping/ping"
+	"runtime"
 	"sync"
 	"time"
 
@@ -129,14 +130,14 @@ func (m *Manager) nodeKeepalive() {
 
 		result, err := statisticsPing(node.DeviceInfo.ExternalIp)
 		if err != nil {
-			log.Errorf("statistics ping %s: %v", deviceID, err)
+			log.Warnf("statistics ping %s: %v", deviceID, err)
 		} else {
 			err = cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
 				deviceInfo.PkgLossRatio = result.PacketLoss
 				deviceInfo.Latency = float64(result.AvgRtt.Milliseconds())
 			})
 			if err != nil {
-				log.Errorf("update packet loss and lantency: %v", err)
+				log.Warnf("update packet loss and lantency: %v", err)
 			}
 		}
 
@@ -641,6 +642,10 @@ func statisticsPing(ip string) (*ping.Statistics, error) {
 	pinger, err := ping.NewPinger(ip)
 	if err != nil {
 		return nil, err
+	}
+
+	if runtime.GOOS == "windows" {
+		pinger.SetPrivileged(true)
 	}
 
 	pinger.Count = 3
