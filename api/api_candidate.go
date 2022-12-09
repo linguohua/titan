@@ -29,6 +29,8 @@ type ValidateResults struct {
 	// cancel for use download block
 	IsCancel  bool
 	Validator string
+	// cancel for use download block
+	IsCancel  bool
 	DeviceID  string
 	Bandwidth float64
 	// microsecond
