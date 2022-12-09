@@ -26,8 +26,6 @@ type ReqValidate struct {
 }
 
 type ValidateResults struct {
-	// cancel for use download block
-	IsCancel  bool
 	Validator string
 	// cancel for use download block
 	IsCancel  bool
