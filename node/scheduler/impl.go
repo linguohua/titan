@@ -70,6 +70,9 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Sche
 	nodeManager := node.NewNodeManager(s.nodeOfflineCallback, s.nodeExitedCallback, s.authNew)
 
 	ele := election.NewElection(nodeManager)
+	// open election
+	ele.Run()
+
 	validate := validate2.NewValidate(nodeManager)
 
 	dataManager := data.NewDataManager(nodeManager)
@@ -310,21 +313,16 @@ func (s *Scheduler) GetExternalIP(ctx context.Context) (string, error) {
 
 // ValidateBlockResult Validate Block Result
 func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.ValidateResults) error {
-	deviceID := handler.GetDeviceID(ctx)
-
-	if !s.nodeManager.IsDeviceExist(deviceID, 0) {
-		return xerrors.Errorf("node not Exist: %s", deviceID)
+	validator := handler.GetDeviceID(ctx)
+	log.Debug("call back validate block result, validator is", validator)
+	if !s.nodeManager.IsDeviceExist(validator, 0) {
+		return xerrors.Errorf("node not Exist: %s", validator)
 	}
 
 	vs := &validateResults
-	vs.DeviceID = deviceID
+	vs.Validator = validator
 
-	err := s.validate.PushResultToQueue(vs)
-	if err != nil {
-		log.Errorf("ValidateBlockResult err:%s", err.Error())
-		return err
-	}
-
+	s.validate.PushResultToQueue(vs)
 	return nil
 }
 
@@ -414,7 +412,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 	if candidata != nil {
 		// redis datas
 		body := api.CacheStat{}
-		count, err := persistent.GetDB().GetDeviceBlockNum(deviceID)
+		count, err := persistent.GetDB().CountCidOfDevice(deviceID)
 		if err == nil {
 			body.CacheBlockCount = int(count)
 		}
@@ -429,7 +427,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 	edge := s.nodeManager.GetEdgeNode(deviceID)
 	if edge != nil {
 		body := api.CacheStat{}
-		count, err := persistent.GetDB().GetDeviceBlockNum(deviceID)
+		count, err := persistent.GetDB().CountCidOfDevice(deviceID)
 		if err == nil {
 			body.CacheBlockCount = int(count)
 		}
