@@ -36,11 +36,12 @@ var SchedulerCmds = []*cli.Command{
 	validateSwitchCmd,
 	// node
 	showOnlineNodeCmd,
+	nodeTokenCmd,
+	registerNodeCmd,
+	// other
 	cachingBlocksCmd,
 	cacheStatCmd,
 	getDownloadInfoCmd,
-	registerNodeCmd,
-	nodeTokenCmd,
 	listEventCmd,
 }
 

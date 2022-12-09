@@ -219,21 +219,9 @@ func (m *Manager) makeDataTask(cid, hash string, reliability int, expiredTime ti
 		return nil, xerrors.Errorf("cid:%s,SetDataInfo err:%s", data.CarfileCid, err.Error())
 	}
 
-	// old cache
-	var oldCache *Cache
-	data.CacheMap.Range(func(key, value interface{}) bool {
-		c := value.(*Cache)
-
-		if c.Status != api.CacheStatusSuccess {
-			oldCache = c
-		}
-
-		return true
-	})
-
 	data.CacheCount = data.Reliability
 
-	return data.dispatchCache(oldCache)
+	return data.dispatchCache(data.getOldUndoneCache())
 }
 
 func (m *Manager) makeDataContinue(hash, cacheID string) (*Cache, error) {

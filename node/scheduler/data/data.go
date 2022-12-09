@@ -240,17 +240,31 @@ func (d *Data) cacheEnd(doneCache *Cache) {
 		return
 	}
 
+	_, err = d.dispatchCache(d.getOldUndoneCache())
+}
+
+func (d *Data) getOldUndoneCache() *Cache {
 	// old cache
 	var oldCache *Cache
+	var oldRootCache *Cache
+
 	d.CacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)
 
 		if c.Status != api.CacheStatusSuccess {
 			oldCache = c
+
+			if c.IsRootCache {
+				oldRootCache = c
+			}
 		}
 
 		return true
 	})
 
-	_, err = d.dispatchCache(oldCache)
+	if oldRootCache != nil {
+		return oldRootCache
+	}
+
+	return oldCache
 }
