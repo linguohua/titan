@@ -974,3 +974,16 @@ func (sd sqlDB) GetDownloadInfoBySN(sn int64) (*api.BlockDownloadInfo, error) {
 
 	return out, nil
 }
+
+func (sd sqlDB) GetNodesByUserDownloadBlockIn(minute int) ([]string, error) {
+	starTime := time.Now().Add(time.Duration(minute) * time.Minute * -1)
+
+	query := fmt.Sprintf(`SELECT device_id FROM %s WHERE complete_time > ? group by device_id`, fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
+
+	var out []string
+	if err := sd.cli.Select(&out, query, starTime); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
