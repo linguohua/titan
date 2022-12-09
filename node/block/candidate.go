@@ -81,6 +81,7 @@ func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 	for _, req := range reqs {
 		if len(req.downloadURL) == 0 {
 			log.Errorf("loadBlocksFromCandidate req downloadURL is nil")
+			block.cacheResultWithError(ctx, blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, fmt.Errorf("candidate download url is empty"))
 			continue
 		}
 
