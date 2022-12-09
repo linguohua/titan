@@ -361,7 +361,7 @@ func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTyp
 }
 
 // GetCandidateDownloadInfoWithBlocks find node
-func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]api.DownloadInfoResult, error) {
+func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]api.CandidateDownloadInfo, error) {
 	deviceID := handler.GetDeviceID(ctx)
 
 	if !s.nodeManager.IsDeviceExist(deviceID, 0) {
@@ -372,7 +372,13 @@ func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids
 		return nil, xerrors.New("cids is nil")
 	}
 
-	infoMap := make(map[string]api.DownloadInfoResult)
+	tk, err := s.authNew()
+	if err != nil {
+		log.Errorf("GetCandidateDownloadInfoWithBlocks error:%s", err.Error())
+		return nil, err
+	}
+
+	infoMap := make(map[string]api.CandidateDownloadInfo)
 
 	for _, cid := range cids {
 		hash, err := helper.CIDString2HashString(cid)
@@ -386,15 +392,7 @@ func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids
 		}
 
 		candidate := infos[randomNum(0, len(infos))]
-
-		info, err := persistent.GetDB().GetNodeAuthInfo(candidate.DeviceInfo.DeviceId)
-		if err != nil {
-			continue
-		}
-
-		// TODO: complete downloadInfo
-
-		infoMap[cid] = api.DownloadInfoResult{URL: info.URL}
+		infoMap[cid] = api.CandidateDownloadInfo{URL: candidate.Addr, Token: string(tk)}
 	}
 
 	return infoMap, nil

@@ -9,7 +9,6 @@ import (
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	xerrors "golang.org/x/xerrors"
 )
 
@@ -222,7 +221,7 @@ type SchedulerStruct struct {
 
 		GetCacheData func(p0 context.Context, p1 string) (DataInfo, error) `perm:"read"`
 
-		GetCandidateDownloadInfoWithBlocks func(p0 context.Context, p1 []string) (map[string]DownloadInfoResult, error) `perm:"write"`
+		GetCandidateDownloadInfoWithBlocks func(p0 context.Context, p1 []string) (map[string]CandidateDownloadInfo, error) `perm:"write"`
 
 		GetDevicesInfo func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
 
@@ -239,8 +238,6 @@ type SchedulerStruct struct {
 		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
 
 		GetPublicKey func(p0 context.Context) (string, error) `perm:"write"`
-
-		GetValidationInfo func(p0 context.Context) (ValidationInfo, error) `perm:"admin"`
 
 		ListCacheDatas func(p0 context.Context, p1 int) (DataListInfo, error) `perm:"read"`
 
@@ -311,9 +308,9 @@ type WebStruct struct {
 
 		GetNodeInfoByID func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
 
-		GetSystemInfo func(p0 context.Context) (BaseInfo, error) `perm:"read"`
+		GetSummaryValidateMessage func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) ([]SummeryValidateResultInfo, error) `perm:"read"`
 
-		GetValidationInfo func(p0 context.Context) (ValidationInfo, error) `perm:"read"`
+		GetSystemInfo func(p0 context.Context) (BaseInfo, error) `perm:"read"`
 
 		ListBlockDownloadInfo func(p0 context.Context, p1 ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) `perm:"read"`
 
@@ -328,8 +325,6 @@ type WebStruct struct {
 		RemoveCarfile func(p0 context.Context, p1 string) error `perm:"read"`
 
 		SetupValidation func(p0 context.Context, p1 bool) error `perm:"read"`
-
-		ValidateResultSummery func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) ([]persistent.SummeryValidateResultInfo, error) `perm:"read"`
 	}
 }
 
@@ -864,15 +859,15 @@ func (s *SchedulerStub) GetCacheData(p0 context.Context, p1 string) (DataInfo, e
 	return *new(DataInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetCandidateDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]DownloadInfoResult, error) {
+func (s *SchedulerStruct) GetCandidateDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]CandidateDownloadInfo, error) {
 	if s.Internal.GetCandidateDownloadInfoWithBlocks == nil {
-		return *new(map[string]DownloadInfoResult), ErrNotSupported
+		return *new(map[string]CandidateDownloadInfo), ErrNotSupported
 	}
 	return s.Internal.GetCandidateDownloadInfoWithBlocks(p0, p1)
 }
 
-func (s *SchedulerStub) GetCandidateDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]DownloadInfoResult, error) {
-	return *new(map[string]DownloadInfoResult), ErrNotSupported
+func (s *SchedulerStub) GetCandidateDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]CandidateDownloadInfo, error) {
+	return *new(map[string]CandidateDownloadInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetDevicesInfo(p0 context.Context, p1 string) (DevicesInfo, error) {
@@ -961,17 +956,6 @@ func (s *SchedulerStruct) GetPublicKey(p0 context.Context) (string, error) {
 
 func (s *SchedulerStub) GetPublicKey(p0 context.Context) (string, error) {
 	return "", ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetValidationInfo(p0 context.Context) (ValidationInfo, error) {
-	if s.Internal.GetValidationInfo == nil {
-		return *new(ValidationInfo), ErrNotSupported
-	}
-	return s.Internal.GetValidationInfo(p0)
-}
-
-func (s *SchedulerStub) GetValidationInfo(p0 context.Context) (ValidationInfo, error) {
-	return *new(ValidationInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) ListCacheDatas(p0 context.Context, p1 int) (DataListInfo, error) {
@@ -1260,6 +1244,17 @@ func (s *WebStub) GetNodeInfoByID(p0 context.Context, p1 string) (DevicesInfo, e
 	return *new(DevicesInfo), ErrNotSupported
 }
 
+func (s *WebStruct) GetSummaryValidateMessage(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) ([]SummeryValidateResultInfo, error) {
+	if s.Internal.GetSummaryValidateMessage == nil {
+		return *new([]SummeryValidateResultInfo), ErrNotSupported
+	}
+	return s.Internal.GetSummaryValidateMessage(p0, p1, p2, p3, p4)
+}
+
+func (s *WebStub) GetSummaryValidateMessage(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) ([]SummeryValidateResultInfo, error) {
+	return *new([]SummeryValidateResultInfo), ErrNotSupported
+}
+
 func (s *WebStruct) GetSystemInfo(p0 context.Context) (BaseInfo, error) {
 	if s.Internal.GetSystemInfo == nil {
 		return *new(BaseInfo), ErrNotSupported
@@ -1269,17 +1264,6 @@ func (s *WebStruct) GetSystemInfo(p0 context.Context) (BaseInfo, error) {
 
 func (s *WebStub) GetSystemInfo(p0 context.Context) (BaseInfo, error) {
 	return *new(BaseInfo), ErrNotSupported
-}
-
-func (s *WebStruct) GetValidationInfo(p0 context.Context) (ValidationInfo, error) {
-	if s.Internal.GetValidationInfo == nil {
-		return *new(ValidationInfo), ErrNotSupported
-	}
-	return s.Internal.GetValidationInfo(p0)
-}
-
-func (s *WebStub) GetValidationInfo(p0 context.Context) (ValidationInfo, error) {
-	return *new(ValidationInfo), ErrNotSupported
 }
 
 func (s *WebStruct) ListBlockDownloadInfo(p0 context.Context, p1 ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) {
@@ -1357,17 +1341,6 @@ func (s *WebStruct) SetupValidation(p0 context.Context, p1 bool) error {
 
 func (s *WebStub) SetupValidation(p0 context.Context, p1 bool) error {
 	return ErrNotSupported
-}
-
-func (s *WebStruct) ValidateResultSummery(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) ([]persistent.SummeryValidateResultInfo, error) {
-	if s.Internal.ValidateResultSummery == nil {
-		return *new([]persistent.SummeryValidateResultInfo), ErrNotSupported
-	}
-	return s.Internal.ValidateResultSummery(p0, p1, p2, p3, p4)
-}
-
-func (s *WebStub) ValidateResultSummery(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) ([]persistent.SummeryValidateResultInfo, error) {
-	return *new([]persistent.SummeryValidateResultInfo), ErrNotSupported
 }
 
 var _ Block = new(BlockStruct)

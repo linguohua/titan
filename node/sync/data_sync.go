@@ -196,7 +196,7 @@ func (dataSync *DataSync) getChecksumsInRange(ctx context.Context, req api.ReqCh
 
 func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 	// blocks key fid, value hash
-	blocks := make(map[int]string)
+	blocksHashMap := make(map[int]string)
 	for fid, cid := range scrub.Blocks {
 		hash, err := helper.CIDString2HashString(cid)
 		if err != nil {
@@ -204,7 +204,7 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 			continue
 		}
 
-		blocks[fid] = hash
+		blocksHashMap[fid] = hash
 	}
 
 	startFid := scrub.StartFid
@@ -229,13 +229,13 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 			continue
 		}
 
-		targetHash, ok := blocks[fid]
+		targetHash, ok := blocksHashMap[fid]
 		if ok {
 			if hash != targetHash {
 				log.Errorf("scrubBlocks fid %s, local block hash is %s but sheduler block hash is %s", fid, hash, targetHash)
 				need2DeleteBlocks = append(need2DeleteBlocks, cid)
 			} else {
-				delete(blocks, fid)
+				delete(blocksHashMap, fid)
 			}
 		} else {
 			need2DeleteBlocks = append(need2DeleteBlocks, cid)
@@ -247,16 +247,22 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 		dataSync.block.DeleteBlocks(context.TODO(), need2DeleteBlocks)
 	}
 
-	if len(blocks) > 0 {
-		if dataSync.block.IsLoadBlockFromIPFS() {
-			loadBlockFromIPFS(dataSync.block, blocks)
-		} else {
+	blocksCIDMap := make(map[int]string)
+	for fid, hash := range blocksHashMap {
+		cid, err := helper.HashString2CidString(hash)
+		if err != nil {
+			continue
 		}
-		// TODO: download block that not exist in local
-		// blocks is need to download
+		blocksCIDMap[fid] = cid
 	}
 
-	log.Infof("scrubBlocks, fid %d~%d delete blocks %d, download blocks %d", startFid, endFid, len(need2DeleteBlocks), len(blocks))
+	if dataSync.block.IsLoadBlockFromIPFS() {
+		loadBlockFromIPFS(dataSync.block, blocksCIDMap)
+	} else {
+		loadBlockFromCandidate(dataSync.block, blocksCIDMap)
+	}
+
+	log.Infof("scrubBlocks, fid %d~%d delete blocks %d, download blocks %d", startFid, endFid, len(need2DeleteBlocks), len(blocksCIDMap))
 	return nil
 }
 
@@ -364,7 +370,7 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 
 	block.DeleteBlocks(context.Background(), need2DeleteBlockCids)
 
-	blocks := make(map[int]string)
+	blocksCIDMap := make(map[int]string)
 	for hash, fidStr := range targetMap {
 		fid, err := strconv.Atoi(fidStr)
 		if err != nil {
@@ -374,14 +380,14 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 		if err != nil {
 			continue
 		}
-		blocks[fid] = cid
+		blocksCIDMap[fid] = cid
 	}
 
 	// need to download blocks
 	if block.IsLoadBlockFromIPFS() {
-		loadBlockFromIPFS(block, blocks)
+		loadBlockFromIPFS(block, blocksCIDMap)
 	} else {
-		loadBlockFromCandidate(block, blocks)
+		loadBlockFromCandidate(block, blocksCIDMap)
 	}
 
 	log.Info("sync local block store complete")
@@ -389,9 +395,13 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 	return nil
 }
 
-func loadBlockFromIPFS(block *block.Block, blocks map[int]string) {
+func loadBlockFromIPFS(block *block.Block, blocksCIDMap map[int]string) {
+	if len(blocksCIDMap) == 0 {
+		return
+	}
+
 	blockInfos := make([]api.BlockCacheInfo, 0)
-	for fid, cid := range blocks {
+	for fid, cid := range blocksCIDMap {
 		blockInfo := api.BlockCacheInfo{Cid: cid, Fid: fid}
 		blockInfos = append(blockInfos, blockInfo)
 	}
@@ -399,6 +409,43 @@ func loadBlockFromIPFS(block *block.Block, blocks map[int]string) {
 	block.CacheBlocks(context.Background(), []api.ReqCacheData{req})
 }
 
-func loadBlockFromCandidate(block *block.Block, blocks map[int]string) {
+func loadBlockFromCandidate(block *block.Block, blocksCIDMap map[int]string) {
+	if len(blocksCIDMap) == 0 {
+		return
+	}
+	blockFIDMap := make(map[string]int)
+	cids := make([]string, 0, len(blocksCIDMap))
+	for fid, cid := range blocksCIDMap {
+		cids = append(cids, cid)
+		blockFIDMap[cid] = fid
+	}
 
+	// do in batch
+	batch := 1000
+	for i := 0; i < len(cids); i += batch {
+		j := i + batch
+		if j > len(cids) {
+			j = len(cids)
+		}
+
+		infos, err := block.GetCandidateDownloadInfo(context.Background(), cids[i:j])
+		if err != nil {
+			continue
+		}
+
+		reqs := make([]api.ReqCacheData, 0, len(infos))
+		for cid, info := range infos {
+			fid, ok := blockFIDMap[cid]
+			if !ok {
+				continue
+			}
+
+			blockInfo := api.BlockCacheInfo{Cid: cid, Fid: fid}
+			blockInfos := []api.BlockCacheInfo{blockInfo}
+			req := api.ReqCacheData{BlockInfos: blockInfos, DownloadURL: info.URL, DownloadToken: info.Token}
+			reqs = append(reqs, req)
+		}
+
+		block.CacheBlocks(context.Background(), reqs)
+	}
 }
