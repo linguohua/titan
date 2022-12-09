@@ -364,17 +364,24 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 
 	block.DeleteBlocks(context.Background(), need2DeleteBlockCids)
 
-	// TODO: need to download targetMap block
-	if block.IsLoadBlockFromIPFS() {
-		blocks := make(map[int]string)
-		for hash, fidStr := range targetMap {
-			fid, err := strconv.Atoi(fidStr)
-			if err != nil {
-				continue
-			}
-			blocks[fid] = hash
+	blocks := make(map[int]string)
+	for hash, fidStr := range targetMap {
+		fid, err := strconv.Atoi(fidStr)
+		if err != nil {
+			continue
 		}
+		cid, err := helper.HashString2CidString(hash)
+		if err != nil {
+			continue
+		}
+		blocks[fid] = cid
+	}
+
+	// need to download blocks
+	if block.IsLoadBlockFromIPFS() {
 		loadBlockFromIPFS(block, blocks)
+	} else {
+		loadBlockFromCandidate(block, blocks)
 	}
 
 	log.Info("sync local block store complete")
@@ -384,14 +391,14 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 
 func loadBlockFromIPFS(block *block.Block, blocks map[int]string) {
 	blockInfos := make([]api.BlockCacheInfo, 0)
-	for fid, hash := range blocks {
-		cid, err := helper.HashString2CidString(hash)
-		if err != nil {
-			continue
-		}
+	for fid, cid := range blocks {
 		blockInfo := api.BlockCacheInfo{Cid: cid, Fid: fid}
 		blockInfos = append(blockInfos, blockInfo)
 	}
 	req := api.ReqCacheData{BlockInfos: blockInfos}
 	block.CacheBlocks(context.Background(), []api.ReqCacheData{req})
+}
+
+func loadBlockFromCandidate(block *block.Block, blocks map[int]string) {
+
 }
