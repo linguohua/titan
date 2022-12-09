@@ -273,6 +273,8 @@ type SchedulerStruct struct {
 
 		ValidateBlockResult func(p0 context.Context, p1 ValidateResults) error `perm:"write"`
 
+		ValidateRunningState func(p0 context.Context) (bool, error) `perm:"admin"`
+
 		ValidateSwitch func(p0 context.Context, p1 bool) error `perm:"admin"`
 	}
 }
@@ -1141,6 +1143,17 @@ func (s *SchedulerStruct) ValidateBlockResult(p0 context.Context, p1 ValidateRes
 
 func (s *SchedulerStub) ValidateBlockResult(p0 context.Context, p1 ValidateResults) error {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) ValidateRunningState(p0 context.Context) (bool, error) {
+	if s.Internal.ValidateRunningState == nil {
+		return false, ErrNotSupported
+	}
+	return s.Internal.ValidateRunningState(p0)
+}
+
+func (s *SchedulerStub) ValidateRunningState(p0 context.Context) (bool, error) {
+	return false, ErrNotSupported
 }
 
 func (s *SchedulerStruct) ValidateSwitch(p0 context.Context, p1 bool) error {

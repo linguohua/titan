@@ -514,15 +514,17 @@ func randomNum(start, end int) int {
 }
 
 // ValidateSwitch open or close validate task
-func (s *Scheduler) ValidateSwitch(open bool) {
+func (s *Scheduler) ValidateSwitch(ctx context.Context, open bool) error {
 	s.validate.SetValidateSwitch(open)
+	return nil
 }
 
 // ValidateRunningState get validate running state,
 // false is close
 // true is open
-func (s *Scheduler) ValidateRunningState() bool {
-	return s.validate.GetValidateRunningState()
+func (s *Scheduler) ValidateRunningState(ctx context.Context) (bool, error) {
+	// the framework requires that the method must return error
+	return s.validate.GetValidateRunningState(), nil
 }
 
 // LocatorConnect Locator Connect
