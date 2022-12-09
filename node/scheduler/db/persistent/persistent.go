@@ -72,10 +72,11 @@ type DB interface {
 	BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error
 	GetRegisterInfo(deviceID string) (*api.NodeRegisterInfo, error)
 
-	// AddDownloadInfo user download block information
+	// SetBlockDownloadInfo set user download block information
 	SetBlockDownloadInfo(info *api.BlockDownloadInfo) error
 	GetBlockDownloadInfoByDeviceID(deviceID string) ([]*api.BlockDownloadInfo, error)
 	GetBlockDownloadInfoByID(id string) (*api.BlockDownloadInfo, error)
+	GetNodesByUserDownloadBlockIn(minute int) ([]string, error)
 
 	SetEventInfo(info *api.EventInfo) error
 	GetEventInfos(page int) (count int, totalPage int, out []api.EventInfo, err error)

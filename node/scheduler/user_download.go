@@ -479,3 +479,7 @@ func (s *Scheduler) countDownload(deviceID string, blockDownnloadInfo *api.Block
 
 	return nil
 }
+
+func (s *Scheduler) getNodesUnValidate(minute int) ([]string, error) {
+	return persistent.GetDB().GetNodesByUserDownloadBlockIn(minute)
+}
