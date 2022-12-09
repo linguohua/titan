@@ -32,6 +32,7 @@ var (
 
 // Validate Validate
 type Validate struct {
+	ctx  context.Context
 	seed int64
 
 	roundID string
@@ -54,7 +55,6 @@ type Validate struct {
 
 // init timers
 func (v *Validate) initValidateTask() {
-	// validate timewheel
 	v.timewheelValidate = timewheel.New(time.Second, 3600, func(_ interface{}) {
 		v.timewheelValidate.AddTimer((time.Duration(v.validateTime)*60-1)*time.Second, "validate", nil)
 		err := v.startValidate()
@@ -70,6 +70,7 @@ func (v *Validate) initValidateTask() {
 
 func NewValidate(manager *node.Manager) *Validate {
 	e := &Validate{
+		ctx:              context.Background(),
 		seed:             1,
 		duration:         10,
 		validateBlockMax: 100,
@@ -85,73 +86,55 @@ func NewValidate(manager *node.Manager) *Validate {
 	return e
 }
 
-func (v *Validate) getReqValidates(validatorID string, list []string) ([]api.ReqValidate, []string) {
+func (v *Validate) assemblyReqValidates(validatorID string, list []*tmpDeviceMeta) []api.ReqValidate {
 	req := make([]api.ReqValidate, 0)
-	errList := make([]string, 0)
 
-	var nodeType api.NodeType
-
-	for _, deviceID := range list {
-		addr := ""
-		edgeNode := v.nodeManager.GetEdgeNode(deviceID)
-		if edgeNode == nil {
-			candidateNode := v.nodeManager.GetCandidateNode(deviceID)
-			if candidateNode == nil {
-				errList = append(errList, deviceID)
-				continue
-			}
-			addr = candidateNode.Node.Addr
-			nodeType = api.NodeCandidate
-		} else {
-			addr = edgeNode.Node.Addr
-			nodeType = api.NodeEdge
-		}
-
-		// cache datas
-		num, err := persistent.GetDB().GetDeviceBlockNum(deviceID)
+	for _, device := range list {
+		// count device cid number
+		num, err := persistent.GetDB().CountCidOfDevice(device.deviceId)
 		if err != nil {
-			// log.Warnf("validate GetBlockNum err:%v,DeviceId:%v", err.Error(), deviceID)
-			err = v.saveValidateResult(v.roundID, deviceID, validatorID, err.Error(), persistent.ValidateStatusOther)
-			if err != nil {
-				log.Warnf("validate SetValidateResultInfo err:%s,DeviceId:%s", err.Error(), deviceID)
-			}
-
+			log.Warnf("failed to count cid from device : %s", device.deviceId)
 			continue
 		}
 
+		// there is no cached cid in the device
 		if num <= 0 {
-			err = v.saveValidateResult(v.roundID, deviceID, validatorID, missBlock, persistent.ValidateStatusOther)
-			if err != nil {
-				log.Warnf("validate SetValidateResultInfo err:%s,DeviceId:%s", err.Error(), deviceID)
-			}
-
+			log.Warnf("no cached cid of device : %s", device.deviceId)
 			continue
 		}
 
-		maxFid, err := cache.GetDB().GetNodeCacheFid(deviceID)
+		maxFid, err := cache.GetDB().GetNodeCacheFid(device.deviceId)
 		if err != nil {
-			log.Warnf("validate GetNodeCacheTag err:%s,DeviceId:%s", err.Error(), deviceID)
-			continue
-		}
-		v.maxFidMap[deviceID] = maxFid
-
-		req = append(req, api.ReqValidate{Seed: v.seed, NodeURL: addr, Duration: v.duration, RoundID: v.roundID, NodeType: int(nodeType), MaxFid: int(maxFid)})
-
-		resultInfo := &persistent.ValidateResult{RoundID: v.roundID, DeviceID: deviceID, ValidatorID: validatorID, Status: int(persistent.ValidateStatusCreate)}
-		err = persistent.GetDB().SetValidateResultInfo(resultInfo)
-		if err != nil {
-			log.Warnf("validate SetValidateResultInfo err:%s,DeviceId:%s", err.Error(), deviceID)
+			log.Warnf("GetNodeCacheTag err:%s,DeviceId:%s", err.Error(), device.deviceId)
 			continue
 		}
 
-		err = cache.GetDB().SetNodeToValidateingList(deviceID)
+		v.maxFidMap[device.deviceId] = maxFid
+
+		req = append(req, api.ReqValidate{Seed: v.seed, NodeURL: device.addr, Duration: v.duration, RoundID: v.roundID, NodeType: int(device.nodeType), MaxFid: int(maxFid)})
+
+		err = cache.GetDB().SetNodeToValidateingList(device.deviceId)
 		if err != nil {
-			log.Warnf("validate SetNodeToValidateingList err:%s,DeviceId:%s", err.Error(), deviceID)
+			log.Warnf("SetNodeToValidateingList err:%s, DeviceId:%s", err.Error(), device.deviceId)
+			continue
+		}
+
+		resultInfo := &persistent.ValidateResult{
+			RoundID:     v.roundID,
+			DeviceID:    device.deviceId,
+			ValidatorID: validatorID,
+			Status:      persistent.ValidateStatusCreate.Int(),
+			StartTime:   time.Now(),
+		}
+
+		err = persistent.GetDB().InsertValidateResultInfo(resultInfo)
+		if err != nil {
+			log.Errorf("InsertValidateResultInfo err:%s, DeviceId:%s", err.Error(), device.deviceId)
 			continue
 		}
 	}
 
-	return req, errList
+	return req
 }
 
 func (v *Validate) getRandNum(max int, r *rand.Rand) int {
@@ -162,77 +145,41 @@ func (v *Validate) getRandNum(max int, r *rand.Rand) int {
 	return max
 }
 
-// TODO save to sql
-func (v *Validate) saveValidateResult(rID string, deviceID string, validatorID string, msg string, status persistent.ValidateStatus) error {
-	resultInfo := &persistent.ValidateResult{RoundID: rID, DeviceID: deviceID, Status: int(status), Msg: msg}
-	err := persistent.GetDB().SetValidateResultInfo(resultInfo)
-	if err != nil {
-		return err
-	}
-
-	err = cache.GetDB().RemoveNodeWithValidateingList(deviceID)
-	if err != nil {
-		return err
-	}
-
-	if status == persistent.ValidateStatusSuccess || status == persistent.ValidateStatusOther {
-		_, err = cache.GetDB().IncrNodeValidateTime(deviceID, 1)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-
-	if status == persistent.ValidateStatusFail || status == persistent.ValidateStatusTimeOut {
-		err = persistent.GetDB().SetNodeToValidateErrorList(rID, deviceID)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+func (v *Validate) UpdateValidateResult(roundId, deviceID, msg string, status persistent.ValidateStatus) error {
+	resultInfo := &persistent.ValidateResult{RoundID: roundId, DeviceID: deviceID, Msg: msg, Status: status.Int(), EndTime: time.Now()}
+	return persistent.GetDB().UpdateValidateResultInfo(resultInfo)
 }
 
 func (v *Validate) initChannelTask() {
 	for {
-		<-v.resultChannel
-
-		v.doValidate()
+		select {
+		case <-v.resultChannel:
+			v.doCallback()
+		}
 	}
 }
 
-func (v *Validate) writeChanWithSelect(b bool) {
-	select {
-	case v.resultChannel <- b:
-		return
-	default:
-		// log.Warnf("channel blocked, can not write")
-	}
-}
-
-func (v *Validate) doValidate() {
+func (v *Validate) doCallback() {
 	for v.resultQueue.Len() > 0 {
 		element := v.resultQueue.Front() // First element
-		validateResults := element.Value.(*api.ValidateResults)
-		v.validate(validateResults)
-
-		v.resultQueue.Remove(element) // Dequeue
+		if validateResults, ok := element.Value.(*api.ValidateResults); ok {
+			err := v.handleValidateResult(validateResults)
+			if err != nil {
+				log.Errorf("deviceId[%s] handle validate result fail : %s", validateResults.DeviceID, err.Error())
+			}
+			v.resultQueue.Remove(element) // Dequeue
+		}
 	}
 }
 
-func (v *Validate) PushResultToQueue(validateResults *api.ValidateResults) error {
+func (v *Validate) PushResultToQueue(validateResults *api.ValidateResults) {
 	log.Infof("validateResult:%s,round:%s", validateResults.DeviceID, validateResults.RoundID)
-	if v.resultQueue == nil {
-		return xerrors.New("resultQueue is nil")
-	}
 	v.resultQueue.PushBack(validateResults)
-
-	v.writeChanWithSelect(true)
-
-	return nil
+	v.resultChannel <- true
 }
 
-func (v *Validate) validate(validateResults *api.ValidateResults) error {
+func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) error {
+	log.Debug("validate result : %v", *validateResults)
 	if validateResults.RoundID != v.roundID {
 		return xerrors.Errorf("roundID err")
 	}
@@ -240,29 +187,23 @@ func (v *Validate) validate(validateResults *api.ValidateResults) error {
 
 	deviceID := validateResults.DeviceID
 
-	status := persistent.ValidateStatusSuccess
-	msg := ""
-
 	if validateResults.IsTimeout {
-		status = persistent.ValidateStatusTimeOut
-		msg = errMsgTimeOut
-		return v.saveValidateResult(v.roundID, deviceID, "", msg, status)
+		return v.UpdateValidateResult(v.roundID, deviceID, errMsgTimeOut, persistent.ValidateStatusTimeOut)
 	}
 
 	r := rand.New(rand.NewSource(v.seed))
-	rlen := len(validateResults.Cids)
+	cidLength := len(validateResults.Cids)
 
-	if rlen <= 0 || validateResults.RandomCount <= 0 {
-		status = persistent.ValidateStatusFail
-		msg = fmt.Sprintf(errMsgBlockNil, rlen, validateResults.RandomCount)
-		return v.saveValidateResult(v.roundID, deviceID, "", msg, status)
+	if cidLength <= 0 || validateResults.RandomCount <= 0 {
+		msg := fmt.Sprintf(errMsgBlockNil, cidLength, validateResults.RandomCount)
+		log.Debug("validate fail :", msg)
+		return v.UpdateValidateResult(v.roundID, deviceID, msg, persistent.ValidateStatusFail)
 	}
 
 	cacheInfos, err := persistent.GetDB().GetBlocksFID(deviceID)
 	if err != nil || len(cacheInfos) <= 0 {
-		status = persistent.ValidateStatusOther
-		msg = err.Error()
-		return v.saveValidateResult(v.roundID, deviceID, "", msg, status)
+		msg := fmt.Sprintf("failed to query by device [%s] : %s", deviceID, err.Error())
+		return v.UpdateValidateResult(v.roundID, deviceID, msg, persistent.ValidateStatusOther)
 	}
 
 	maxFid := v.maxFidMap[deviceID]
@@ -271,24 +212,19 @@ func (v *Validate) validate(validateResults *api.ValidateResults) error {
 		fid := v.getRandNum(int(maxFid), r) + 1
 		resultCid := validateResults.Cids[index]
 
-		// fidStr := fmt.Sprintf("%d", fid)
-
 		cid := cacheInfos[fid]
 		if cid == "" {
-			// log.Warnf("cid nil;fid:%s", fidStr)
-			// status = cache.ValidateStatusFail
-			// msg = fmt.Sprintf("GetCacheBlockInfos err:%v,resultCid:%v,cid:%v,index:%v", err.Error(), resultCid, cid, index)
 			continue
 		}
 
 		if !v.compareCid(cid, resultCid) {
-			status = persistent.ValidateStatusFail
-			msg = fmt.Sprintf(errMsgCidFail, resultCid, cid, fid, index)
-			break
+			msg := fmt.Sprintf(errMsgCidFail, resultCid, cid, fid, index)
+			log.Debug("validate fail :", msg)
+			return v.UpdateValidateResult(v.roundID, deviceID, msg, persistent.ValidateStatusFail)
 		}
 	}
 
-	return v.saveValidateResult(v.roundID, deviceID, "", msg, status)
+	return v.UpdateValidateResult(v.roundID, deviceID, "ok", persistent.ValidateStatusSuccess)
 }
 
 func (v *Validate) checkValidateTimeOut() error {
@@ -301,7 +237,10 @@ func (v *Validate) checkValidateTimeOut() error {
 		log.Infof("checkValidateTimeOut list:%v", deviceIDs)
 
 		for _, deviceID := range deviceIDs {
-			v.saveValidateResult(v.roundID, deviceID, "", errMsgTimeOut, persistent.ValidateStatusTimeOut)
+			err := v.UpdateValidateResult(v.roundID, deviceID, errMsgTimeOut, persistent.ValidateStatusTimeOut)
+			if err != nil {
+				log.Errorf(err.Error())
+			}
 		}
 	}
 
@@ -340,41 +279,57 @@ func (v *Validate) matchValidator(validatorList []string, deviceID string, valid
 	return validatorMap, validatorList
 }
 
-func (v *Validate) validateMapping(validatorList []string) map[string][]string {
-	result := make(map[string][]string)
-	v.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
+type tmpDeviceMeta struct {
+	deviceId string
+	nodeType api.NodeType
+	addr     string
+}
+
+func (v *Validate) validateMapping(validatorList []string) (map[string][]*tmpDeviceMeta, error) {
+	result := make(map[string][]*tmpDeviceMeta)
+	edges := v.nodeManager.GetAllEdge()
+	for _, edgeNode := range edges {
+		tn := new(tmpDeviceMeta)
+		tn.nodeType = api.NodeEdge
+		tn.deviceId = edgeNode.DeviceInfo.DeviceId
+		tn.addr = edgeNode.Node.Addr
+
 		validatorID := validatorList[randomNum(0, len(validatorList))]
 
 		if validated, ok := result[validatorID]; ok {
-			validated = append(validated, key.(string))
+			validated = append(validated, tn)
 			result[validatorID] = validated
 		} else {
-			vd := make([]string, 0)
-			vd = append(vd, key.(string))
+			vd := make([]*tmpDeviceMeta, 0)
+			vd = append(vd, tn)
 			result[validatorID] = vd
 		}
+	}
 
-		return true
-	})
+	candidates := v.nodeManager.GetAllCandidate()
+	for _, candidateNode := range candidates {
+		tn := new(tmpDeviceMeta)
+		tn.deviceId = candidateNode.DeviceInfo.DeviceId
+		tn.nodeType = api.NodeCandidate
+		tn.addr = candidateNode.Node.Addr
 
-	v.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
-		validatorID := differentValue(validatorList, key.(string))
-		if validatorID == "" {
-			return false
-		}
+		validatorID := differentValue(validatorList, candidateNode.DeviceInfo.DeviceId)
 
 		if validated, ok := result[validatorID]; ok {
-			validated = append(validated, key.(string))
+			validated = append(validated, tn)
 			result[validatorID] = validated
 		} else {
-			vd := make([]string, 0)
-			vd = append(vd, key.(string))
+			vd := make([]*tmpDeviceMeta, 0)
+			vd = append(vd, tn)
 			result[validatorID] = vd
 		}
+	}
 
-		return true
-	})
-	return result
+	if len(result) == 0 {
+		return nil, fmt.Errorf("%s", "edge node and candidate node are empty")
+	}
+
+	return result, nil
 }
 
 func differentValue(list []string, compare string) string {
@@ -413,52 +368,46 @@ func (v *Validate) startValidate() error {
 	if err != nil {
 		return err
 	}
+	log.Debug("validator is ", validatorList)
+	// no successful election
+	if validatorList == nil || len(validatorList) == 0 {
+		return nil
+	}
 
-	validatorMap := v.validateMapping(validatorList)
+	validatorMap, err := v.validateMapping(validatorList)
+	if err != nil {
+		return err
+	}
 
 	for validatorID, validatedList := range validatorMap {
-		req, errList := v.getReqValidates(validatorID, validatedList)
-		offline := false
+
+		req := v.assemblyReqValidates(validatorID, validatedList)
+
 		validator := v.nodeManager.GetCandidateNode(validatorID)
-		if validator != nil {
-			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-			defer cancel()
-
-			err := validator.NodeAPI.ValidateBlocks(ctx, req)
-			if err != nil {
-				log.Warnf("ValidateData err:%s, DeviceId:%s", err.Error(), validatorID)
-				offline = true
-			}
-
-		} else {
-			offline = true
+		if validator == nil {
+			log.Warnf("validator [%s] is null", validatorID)
+			continue
 		}
 
-		if offline {
-			err = persistent.GetDB().SetNodeToValidateErrorList(v.roundID, validatorID)
-			if err != nil {
-				log.Errorf("SetNodeToValidateErrorList ,err:%s,deviceID:%s", err.Error(), validatorID)
-			}
-		}
-
-		for _, deviceID := range errList {
-			err = persistent.GetDB().SetNodeToValidateErrorList(v.roundID, deviceID)
-			if err != nil {
-				log.Errorf("SetNodeToValidateErrorList ,err:%s,deviceID:%s", err.Error(), deviceID)
-			}
+		err = validator.NodeAPI.ValidateBlocks(v.ctx, req)
+		if err != nil {
+			log.Errorf(err.Error())
+			continue
 		}
 
 		log.Infof("validatorID :%s, List:%v", validatorID, validatedList)
 	}
 
-	t := time.NewTimer(time.Duration(v.duration*2) * time.Second)
-
-	for {
-		select {
-		case <-t.C:
-			return v.checkValidateTimeOut()
+	go func() {
+		time.Sleep(time.Duration(v.duration*2) * time.Second)
+		err := v.checkValidateTimeOut()
+		if err != nil {
+			log.Errorf(err.Error())
+			return
 		}
-	}
+	}()
+
+	return nil
 }
 
 func (v *Validate) compareCid(cidStr1, cidStr2 string) bool {

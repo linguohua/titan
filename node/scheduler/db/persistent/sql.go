@@ -159,26 +159,16 @@ func (sd sqlDB) GetNodeInfo(deviceID string) (*NodeInfo, error) {
 	return info, err
 }
 
-func (sd sqlDB) SetValidateResultInfo(info *ValidateResult) error {
-	nowTime := time.Now().Format("2006-01-02 15:04:05")
+func (sd sqlDB) InsertValidateResultInfo(info *ValidateResult) error {
+	query := fmt.Sprintf("INSERT INTO%s", " validate_result (round_id, device_id, validator_id, status, start_time, server_name, msg) VALUES (:round_id, :device_id, :validator_id, :status, :start_time, :server_name, :msg)")
+	_, err := sd.cli.NamedExec(query, info)
+	return err
+}
 
-	if ValidateStatus(info.Status) == ValidateStatusCreate || ValidateStatus(info.Status) == ValidateStatusOther {
-		info.StartTime = nowTime
-		info.ServerName = serverName
-
-		_, err := sd.cli.NamedExec(`INSERT INTO validate_result (round_id, device_id, validator_id, status, start_time, server_name, msg)
-                VALUES (:round_id, :device_id, :validator_id, :status, :start_time, :server_name, :msg)`, info)
-		return err
-
-	} else if ValidateStatus(info.Status) > ValidateStatusCreate {
-		info.EndTime = nowTime
-
-		_, err := sd.cli.NamedExec(`UPDATE validate_result SET end_time=:end_time,status=:status,msg=:msg  WHERE device_id=:device_id AND round_id=:round_id`, info)
-
-		return err
-	}
-
-	return xerrors.Errorf("SetValidateResultInfo err deviceid:%s ,status:%d, roundID:%s, serverName:%s", info.DeviceID, info.Status, info.RoundID, info.ServerName)
+func (sd sqlDB) UpdateValidateResultInfo(info *ValidateResult) error {
+	query := fmt.Sprintf("UPDATE%s", " validate_result SET msg=:msg, status=:status, end_time=:end_time WHERE device_id=:device_id AND round_id=:round_id")
+	_, err := sd.cli.NamedExec(query, info)
+	return err
 }
 
 func (sd sqlDB) SetNodeToValidateErrorList(sID, deviceID string) error {
@@ -271,7 +261,7 @@ func (sd sqlDB) GetBlocksBiggerThan(startFid int, deviceID string) (map[int]stri
 	return m, nil
 }
 
-func (sd sqlDB) GetDeviceBlockNum(deviceID string) (int64, error) {
+func (sd sqlDB) CountCidOfDevice(deviceID string) (int64, error) {
 	area := sd.ReplaceArea()
 
 	var count int64

@@ -20,7 +20,8 @@ type DB interface {
 	SetNodeExited(deviceID string) error
 
 	// Validate Result
-	SetValidateResultInfo(info *ValidateResult) error
+	InsertValidateResultInfo(info *ValidateResult) error
+	UpdateValidateResultInfo(info *ValidateResult) error
 	SetNodeToValidateErrorList(sID, deviceID string) error
 
 	CreateCache(cInfo *api.CacheInfo) error
@@ -63,7 +64,7 @@ type DB interface {
 	GetBlocksFID(deviceID string) (map[int]string, error)
 	GetBlocksInRange(startFid, endFid int, deviceID string) (map[int]string, error)
 	GetBlocksBiggerThan(startFid int, deviceID string) (map[int]string, error)
-	GetDeviceBlockNum(deviceID string) (int64, error)
+	CountCidOfDevice(deviceID string) (int64, error)
 	GetNodesWithCache(hash string, isSuccess bool) ([]string, error)
 	// GetNodeBlock(deviceID, cid string) ([]*BlockInfo, error)
 
@@ -144,14 +145,14 @@ type NodeInfo struct {
 // ValidateResult validate result
 type ValidateResult struct {
 	ID          int
-	RoundID     string `db:"round_id"`
-	DeviceID    string `db:"device_id"`
-	ValidatorID string `db:"validator_id"`
-	Msg         string `db:"msg"`
-	Status      int    `db:"status"`
-	StartTime   string `db:"start_time"`
-	EndTime     string `db:"end_time"`
-	ServerName  string `db:"server_name"`
+	RoundID     string    `db:"round_id"`
+	DeviceID    string    `db:"device_id"`
+	ValidatorID string    `db:"validator_id"`
+	ServerName  string    `db:"server_name"`
+	Msg         string    `db:"msg"`
+	Status      int       `db:"status"`
+	StartTime   time.Time `db:"start_time"`
+	EndTime     time.Time `db:"end_time"`
 }
 
 // MessageInfo Message Info
@@ -194,6 +195,10 @@ const (
 	// ValidateStatusOther status
 	ValidateStatusOther
 )
+
+func (v ValidateStatus) Int() int {
+	return int(v)
+}
 
 // MsgType message type
 type MsgType int
