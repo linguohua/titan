@@ -149,10 +149,10 @@ var ValidateBlockCmd = &cli.Command{
 			Usage: "edge=1,candidate=2",
 			Value: 1,
 		},
-		&cli.StringFlag{
+		&cli.Int64Flag{
 			Name:  "round-id",
 			Usage: "round id",
-			Value: "1",
+			Value: 1,
 		},
 		&cli.StringFlag{
 			Name:  "edge-url",
@@ -170,7 +170,7 @@ var ValidateBlockCmd = &cli.Command{
 		maxFid := cctx.Int("max-fid")
 		nodeType := cctx.Int("node-type")
 		url := cctx.String("edge-url")
-		roundID := cctx.String("round-id")
+		roundID := cctx.Int64("round-id")
 		fmt.Printf("maxFid:%d,url:%s", maxFid, url)
 		ctx := ReqContext(cctx)
 		// TODO: print more useful things
