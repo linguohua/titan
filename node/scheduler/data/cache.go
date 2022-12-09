@@ -461,11 +461,13 @@ func (c *Cache) endCache(unDoneBlocks int, isTimeout bool) (err error) {
 	defer func() {
 		c.Data.cacheEnd(c)
 
-		err = cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
-			info.CarFileCount++
-		})
-		if err != nil {
-			log.Errorf("endCache UpdateSystemInfo err: %s", err.Error())
+		if c.Status == api.CacheStatusSuccess {
+			err = cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
+				info.CarFileCount++
+			})
+			if err != nil {
+				log.Errorf("endCache UpdateSystemInfo err: %s", err.Error())
+			}
 		}
 	}()
 
