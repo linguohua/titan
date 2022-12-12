@@ -27,7 +27,7 @@ type Scheduler interface {
 	CacheContinue(ctx context.Context, cid, cacheID string) error                                       //perm:admin
 	ValidateSwitch(ctx context.Context, open bool) error                                                //perm:admin
 	ValidateRunningState(ctx context.Context) (bool, error)                                             //perm:admin
-	GetValidationInfo(ctx context.Context) (ValidationInfo, error)                                      //perm:admin
+	ValidateStart(ctx context.Context) error                                                            //perm:admin
 	ListEvents(ctx context.Context, page int) (EventListInfo, error)                                    //perm:read
 	ResetCacheExpiredTime(ctx context.Context, carfileCid, cacheID string, expiredTime time.Time) error //perm:admin
 	ReplenishCacheExpiredTime(ctx context.Context, carfileCid, cacheID string, hour int) error          //perm:admin

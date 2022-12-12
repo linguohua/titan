@@ -73,7 +73,7 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Sche
 	// open election
 	go ele.Run()
 
-	validate := validate2.NewValidate(nodeManager)
+	validate := validate2.NewValidate(nodeManager, true)
 
 	dataManager := data.NewDataManager(nodeManager)
 
@@ -527,6 +527,10 @@ func (s *Scheduler) ValidateRunningState(ctx context.Context) (bool, error) {
 	return s.validate.GetValidateRunningState(), nil
 }
 
+func (s *Scheduler) ValidateStart(ctx context.Context) error {
+	return s.validate.StartValidateOnceTask()
+}
+
 // LocatorConnect Locator Connect
 func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locatorID string, locatorToken string) error {
 	ip := handler.GetRequestIP(ctx)
@@ -555,20 +559,6 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locato
 // GetDownloadInfo get node download info
 func (s *Scheduler) GetDownloadInfo(ctx context.Context, deviceID string) ([]*api.BlockDownloadInfo, error) {
 	return persistent.GetDB().GetBlockDownloadInfoByDeviceID(deviceID)
-}
-
-// GetValidationInfo Get Validation Info
-func (s *Scheduler) GetValidationInfo(ctx context.Context) (api.ValidationInfo, error) {
-	// nextElectionTime := s.selector.getNextElectionTime()
-	// isEnable := s.validate.open
-
-	// validators, err := cache.GetDB().GetValidatorsWithList()
-	// if err != nil {
-	// 	return api.ValidationInfo{}, err
-	// }
-
-	// return api.ValidationInfo{Validators: validators, NextElectionTime: nextElectionTime.Unix(), EnableValidation: isEnable}, nil
-	return api.ValidationInfo{}, nil
 }
 
 // NodeExit node want to exit titan

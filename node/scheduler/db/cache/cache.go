@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"context"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -31,12 +32,14 @@ type DB interface {
 	GetNodeCacheFid(deviceID string) (int64, error)
 
 	IncrValidateRoundID() (int64, error)
+	GetPreviousAndCurrentRoundId() (pre, cur int64, err error)
 	GetValidateRoundID() (string, error)
 
-	RemoveNodeWithValidateingList(deviceID string) error
-	SetNodeToValidateingList(deviceID string) error
-	GetNodesWithValidateingList() ([]string, error)
-	RemoveValidateingList() error
+	SetNodeToVerifyingList(deviceID string) error
+	RemoveNodeWithVerifyingList(deviceID string) error
+	RemoveVerifyingList() error
+	GetNodesWithVerifyingList() ([]string, error)
+	CountVerifyingNode(ctx context.Context) (int64, error)
 
 	SetValidatorToList(deviceID string) error
 	GetValidatorsWithList() ([]string, error)

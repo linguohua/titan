@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"time"
 )
 
@@ -23,9 +24,10 @@ type Web interface {
 	GetCarfileByCID(ctx context.Context, carFileCID string) (WebCarfile, error) //perm:read
 	RemoveCarfile(ctx context.Context, carFileCID string) error                 //perm:read
 
-	GetValidationInfo(ctx context.Context) (ValidationInfo, error)                                //perm:read
 	ListValidateResult(ctx context.Context, cursor int, count int) (ListValidateResultRsp, error) //perm:read
 	SetupValidation(ctx context.Context, enable bool) error                                       //perm:read
+
+	GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) ([]persistent.SummeryValidateResultInfo, error) //perm:read
 }
 
 type ListNodesRsp struct {

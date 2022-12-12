@@ -165,10 +165,34 @@ func (sd sqlDB) InsertValidateResultInfo(info *ValidateResult) error {
 	return err
 }
 
-func (sd sqlDB) UpdateValidateResultInfo(info *ValidateResult) error {
+func (sd sqlDB) UpdateFailValidateResultInfo(info *ValidateResult) error {
 	query := fmt.Sprintf("UPDATE%s", " validate_result SET msg=:msg, status=:status, end_time=:end_time WHERE round_id=:round_id AND device_id=:device_id")
 	_, err := sd.cli.NamedExec(query, info)
 	return err
+}
+
+func (sd sqlDB) UpdateSuccessValidateResultInfo(info *ValidateResult) error {
+	query := fmt.Sprintf("UPDATE%s", " validate_result SET block_number=:block_number, msg=:msg, status=:status, duration=:duration, bandwidth=:bandwidth, end_time=:end_time WHERE round_id=:round_id AND device_id=:device_id")
+	_, err := sd.cli.NamedExec(query, info)
+	return err
+}
+
+func (sd sqlDB) SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) ([]SummeryValidateResultInfo, error) {
+	var infos []SummeryValidateResultInfo
+	query := fmt.Sprintf("SELECT%s%s%v%s%v%s%d,%d;",
+		" `device_id`,`validator_id`,`block_number`,`status`,`start_time` AS `validate_time`, `duration` AS `completion_time`, (duration/1e3 * bandwidth) AS `upload_traffic` FROM validate_result",
+		" WHERE start_time >= ",
+		startTime,
+		" AND end_time <= ",
+		endTime,
+		" LIMIT ",
+		(pageNumber-1)*pageSize,
+		pageSize)
+	err := sd.cli.Select(&infos, query)
+	if err != nil {
+		return nil, err
+	}
+	return infos, nil
 }
 
 func (sd sqlDB) SetNodeToValidateErrorList(sID, deviceID string) error {

@@ -128,10 +128,6 @@ func (w *web) RemoveCarfile(ctx context.Context, carFileCID string) error {
 	return w.scheduler.RemoveCarfile(ctx, carFileCID)
 }
 
-func (w *web) GetValidationInfo(ctx context.Context) (api.ValidationInfo, error) {
-	return w.scheduler.GetValidationInfo(ctx)
-}
-
 func (w *web) ListValidateResult(ctx context.Context, cursor int, count int) (api.ListValidateResultRsp, error) {
 	results, total, err := persistent.GetDB().GetValidateResults(cursor, count)
 	if err != nil {
@@ -148,4 +144,18 @@ func (w *web) SetupValidation(ctx context.Context, enable bool) error {
 
 func (w *web) GetSystemInfo(ctx context.Context) (api.BaseInfo, error) {
 	return cache.GetDB().GetSystemInfo()
+}
+
+func (w *web) GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) ([]persistent.SummeryValidateResultInfo, error) {
+	if pageNumber <= 0 {
+		pageNumber = 1
+	}
+	if pageSize > 500 {
+		pageSize = 500
+	}
+	result, err := persistent.GetDB().SummaryValidateMessage(startTime, endTime, pageNumber, pageSize)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

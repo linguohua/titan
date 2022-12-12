@@ -171,7 +171,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 	}
 
 	duration := time.Now().Sub(now)
-	result.CostTime = int(duration / time.Millisecond)
+	result.CostTime = int64(duration / time.Millisecond)
 
 	if duration < time.Duration(req.Duration)*time.Second {
 		duration = time.Duration(req.Duration) * time.Second
