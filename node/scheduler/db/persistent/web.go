@@ -37,6 +37,10 @@ func (sd sqlDB) GetNodes(cursor int, count int) ([]*NodeInfo, int64, error) {
 
 	queryString := "SELECT device_id FROM node limit ?,?"
 
+	if count > maxCount {
+		count = maxCount
+	}
+
 	var out []*NodeInfo
 	err = sd.cli.Select(&out, queryString, cursor, count)
 	if err != nil {
@@ -54,6 +58,10 @@ func (sd sqlDB) GetBlockDownloadInfos(deviceID string, startTime time.Time, endT
 	countSql := fmt.Sprintf(`SELECT count(*) FROM %s WHERE device_id = ? and created_time between ? and ?`, fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
 	if err := sd.cli.Get(&total, countSql, deviceID, startTime, endTime); err != nil {
 		return nil, 0, err
+	}
+
+	if count > maxCount {
+		count = maxCount
 	}
 
 	var out []api.BlockDownloadInfo
@@ -78,6 +86,10 @@ func (sd sqlDB) GetNodeConnectionLogs(deviceID string, startTime time.Time, endT
 		return []api.NodeConnectionLog{}, 0, err
 	}
 
+	if count > maxCount {
+		count = maxCount
+	}
+
 	query := "SELECT device_id, status, created_time FROM node_connection_log WHERE device_id = ? and created_time between ? and ? limit ?,?"
 	var out []api.NodeConnectionLog
 	if err := sd.cli.Select(&out, query, deviceID, startTime, endTime, cursor, count); err != nil {
@@ -98,6 +110,10 @@ func (sd sqlDB) GetCacheTasks(startTime time.Time, endTime time.Time, cursor, co
 	area := sd.ReplaceArea()
 
 	query := fmt.Sprintf("SELECT * FROM %s WHERE created_time between ? and ? limit ?,?", fmt.Sprintf(dataInfoTable, area))
+
+	if count > maxCount {
+		count = maxCount
+	}
 
 	var out []api.DataInfo
 	err := sd.cli.Select(&out, query, startTime, endTime, cursor, count)
@@ -135,6 +151,10 @@ func (sd sqlDB) GetDataInfos(startTime time.Time, endTime time.Time, cursor, cou
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE created_time between ? and ? limit ?,?`,
 		fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
 
+	if count > maxCount {
+		count = maxCount
+	}
+
 	var out []api.DataInfo
 	if err := sd.cli.Select(&out, query, startTime, endTime, cursor, count); err != nil {
 		return nil, 0, err
@@ -146,6 +166,10 @@ func (sd sqlDB) GetDataInfos(startTime time.Time, endTime time.Time, cursor, cou
 func (sd sqlDB) GetBlockInfos(startTime time.Time, endTime time.Time, cursor, count int) ([]api.BlockInfo, int64, error) {
 	area := sd.ReplaceArea()
 	bTable := fmt.Sprintf(blockInfoTable, area)
+
+	if count > maxCount {
+		count = maxCount
+	}
 
 	var total int64
 	cmd := fmt.Sprintf(`SELECT count(*) FROM %s WHERE created_time between ? and ?`, bTable)

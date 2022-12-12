@@ -329,31 +329,48 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	status := api.CacheStatusFail
 	reliability := 0
 
-	if api.CacheStatus(c.Status) != api.CacheStatusRestore {
-		if hash == c.CarfileHash {
-			c.TotalSize = int(info.LinksSize) + info.BlockSize
-			c.TotalBlocks = 1
-		}
-		c.TotalBlocks += len(info.Links)
+	if info.IsOK {
+		if api.CacheStatus(c.Status) == api.CacheStatusCreate {
+			if hash == c.CarfileHash {
+				c.TotalSize = int(info.LinksSize) + info.BlockSize
+				c.TotalBlocks = 1
+			}
+			c.TotalBlocks += len(info.Links)
 
-		if info.IsOK {
 			c.DoneBlocks++
 			c.DoneSize += info.BlockSize
-			status = api.CacheStatusSuccess
-			reliability = c.calculateReliability(blockInfo.DeviceID)
-
-			c.updateNodeBlockInfo(info.DeviceID, blockInfo.Source, info.BlockSize)
 		}
-	} else {
-		// info.Links = make([]string, 0)
+		status = api.CacheStatusSuccess
+		reliability = c.calculateReliability(blockInfo.DeviceID)
 
-		if info.IsOK {
-			status = api.CacheStatusSuccess
-			reliability = c.calculateReliability(blockInfo.DeviceID)
-
-			c.updateNodeBlockInfo(info.DeviceID, blockInfo.Source, info.BlockSize)
-		}
+		c.updateNodeBlockInfo(info.DeviceID, blockInfo.Source, info.BlockSize)
 	}
+
+	// if api.CacheStatus(c.Status) != api.CacheStatusRestore {
+	// 	if hash == c.CarfileHash {
+	// 		c.TotalSize = int(info.LinksSize) + info.BlockSize
+	// 		c.TotalBlocks = 1
+	// 	}
+	// 	c.TotalBlocks += len(info.Links)
+
+	// 	if info.IsOK {
+	// 		c.DoneBlocks++
+	// 		c.DoneSize += info.BlockSize
+	// 		status = api.CacheStatusSuccess
+	// 		reliability = c.calculateReliability(blockInfo.DeviceID)
+
+	// 		c.updateNodeBlockInfo(info.DeviceID, blockInfo.Source, info.BlockSize)
+	// 	}
+	// } else {
+	// 	// info.Links = make([]string, 0)
+
+	// 	if info.IsOK {
+	// 		status = api.CacheStatusSuccess
+	// 		reliability = c.calculateReliability(blockInfo.DeviceID)
+
+	// 		c.updateNodeBlockInfo(info.DeviceID, blockInfo.Source, info.BlockSize)
+	// 	}
+	// }
 
 	bInfo := &api.BlockInfo{
 		ID:          blockInfo.ID,
@@ -374,25 +391,25 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		}
 	}
 
-	createBlocks, nodeCacheMap := c.allocateBlocksToNodes(linkMap)
+	saveDbBlocks, nodeCacheMap := c.allocateBlocksToNodes(linkMap)
 	// save info to db
-	err = c.Data.updateAndSaveCacheingInfo(bInfo, c, createBlocks)
+	err = c.Data.updateAndSaveCacheingInfo(bInfo, c, saveDbBlocks)
 	if err != nil {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,%s updateAndSaveCacheingInfo err:%s ", info.CacheID, info.Cid, err.Error())
 	}
 
-	if len(createBlocks) == 0 {
+	if len(saveDbBlocks) == 0 {
 		unDoneBlocks, err := persistent.GetDB().GetBlockCountWithStatus(c.CacheID, api.CacheStatusCreate)
 		if err != nil {
 			return xerrors.Errorf("blockCacheResult cacheID:%s,%s GetBlockCountWithStatus err:%s ", info.CacheID, info.Cid, err.Error())
 		}
 
-		restoreBlocks, err := persistent.GetDB().GetBlockCountWithStatus(c.CacheID, api.CacheStatusRestore)
-		if err != nil {
-			return xerrors.Errorf("blockCacheResult cacheID:%s,%s GetBlockCountWithStatus err:%s ", info.CacheID, info.Cid, err.Error())
-		}
+		// restoreBlocks, err := persistent.GetDB().GetBlockCountWithStatus(c.CacheID, api.CacheStatusRestore)
+		// if err != nil {
+		// 	return xerrors.Errorf("blockCacheResult cacheID:%s,%s GetBlockCountWithStatus err:%s ", info.CacheID, info.Cid, err.Error())
+		// }
 
-		unDoneBlocks += restoreBlocks
+		// unDoneBlocks += restoreBlocks
 
 		if unDoneBlocks <= 0 {
 			return c.endCache(unDoneBlocks, false)
@@ -428,9 +445,9 @@ func (c *Cache) updateNodeBlockInfo(deviceID, fromID string, blockSize int) {
 }
 
 func (c *Cache) startCache(cids map[string]string) error {
-	createBlocks, nodeCacheMap := c.allocateBlocksToNodes(cids)
+	saveDbBlocks, nodeCacheMap := c.allocateBlocksToNodes(cids)
 
-	err := persistent.GetDB().SaveCacheingResults(nil, nil, nil, createBlocks)
+	err := persistent.GetDB().SaveCacheingResults(nil, nil, nil, saveDbBlocks)
 	if err != nil {
 		return xerrors.Errorf("startCache %s, SetBlockInfos err:%s", c.CacheID, err.Error())
 	}
@@ -439,7 +456,7 @@ func (c *Cache) startCache(cids map[string]string) error {
 		return xerrors.Errorf("startCache %s fail not find node", c.CacheID)
 	}
 
-	// log.Infof("start cache %s,%s ---------- ", c.data.carfileCid, c.cacheID)
+	// log.Infof("start cache %s,%s ---------- ", c.CarfileHash, c.CacheID)
 	c.cacheBlocksToNodes(nodeCacheMap)
 
 	c.Data.DataManager.saveEvent(c.Data.CarfileCid, c.CacheID, "", "", eventTypeDoCacheTaskStart)
