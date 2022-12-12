@@ -32,7 +32,7 @@ type Cache struct {
 	IsRootCache bool
 	ExpiredTime time.Time
 
-	BlockMap map[string]string
+	alreadyCacheBlockMap map[string]string
 }
 
 func newCacheID() (string, error) {
@@ -49,15 +49,15 @@ func newCache(nodeManager *node.Manager, data *Data, hash string, isRootCache bo
 	}
 
 	cache := &Cache{
-		Manager:     nodeManager,
-		Data:        data,
-		Reliability: 0,
-		Status:      api.CacheStatusCreate,
-		CacheID:     id,
-		CarfileHash: hash,
-		IsRootCache: isRootCache,
-		ExpiredTime: data.ExpiredTime,
-		BlockMap:    map[string]string{},
+		Manager:              nodeManager,
+		Data:                 data,
+		Reliability:          0,
+		Status:               api.CacheStatusCreate,
+		CacheID:              id,
+		CarfileHash:          hash,
+		IsRootCache:          isRootCache,
+		ExpiredTime:          data.ExpiredTime,
+		alreadyCacheBlockMap: map[string]string{},
 	}
 
 	err = persistent.GetDB().CreateCache(
@@ -80,11 +80,11 @@ func loadCache(cacheID, carfileHash string, nodeManager *node.Manager, data *Dat
 		return nil
 	}
 	c := &Cache{
-		CacheID:     cacheID,
-		CarfileHash: carfileHash,
-		Manager:     nodeManager,
-		Data:        data,
-		BlockMap:    map[string]string{},
+		CacheID:              cacheID,
+		CarfileHash:          carfileHash,
+		Manager:              nodeManager,
+		Data:                 data,
+		alreadyCacheBlockMap: map[string]string{},
 	}
 
 	info, err := persistent.GetDB().GetCacheInfo(cacheID)
@@ -110,7 +110,7 @@ func loadCache(cacheID, carfileHash string, nodeManager *node.Manager, data *Dat
 	}
 
 	for _, block := range blocks {
-		c.BlockMap[block.CIDHash] = block.DeviceID
+		c.alreadyCacheBlockMap[block.CIDHash] = block.DeviceID
 	}
 
 	return c
@@ -214,7 +214,7 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*api.BlockInfo,
 			continue
 		}
 
-		if _, ok := c.BlockMap[hash]; ok {
+		if _, ok := c.alreadyCacheBlockMap[hash]; ok {
 			continue
 		}
 
@@ -258,6 +258,8 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*api.BlockInfo,
 
 				cList = append(cList, api.BlockCacheInfo{Cid: cid, Fid: fid, From: from})
 				nodeCacheMap[deviceID] = cList
+
+				c.alreadyCacheBlockMap[hash] = deviceID
 			}
 		}
 
@@ -327,7 +329,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	status := api.CacheStatusFail
 	reliability := 0
 
-	if api.CacheStatus(blockInfo.Status) != api.CacheStatusRestore {
+	if api.CacheStatus(c.Status) != api.CacheStatusRestore {
 		if hash == c.CarfileHash {
 			c.TotalSize = int(info.LinksSize) + info.BlockSize
 			c.TotalBlocks = 1
@@ -335,7 +337,6 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		c.TotalBlocks += len(info.Links)
 
 		if info.IsOK {
-			c.BlockMap[hash] = info.DeviceID
 			c.DoneBlocks++
 			c.DoneSize += info.BlockSize
 			status = api.CacheStatusSuccess
@@ -344,10 +345,9 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 			c.updateNodeBlockInfo(info.DeviceID, blockInfo.Source, info.BlockSize)
 		}
 	} else {
-		info.Links = make([]string, 0)
+		// info.Links = make([]string, 0)
 
 		if info.IsOK {
-			c.BlockMap[hash] = info.DeviceID
 			status = api.CacheStatusSuccess
 			reliability = c.calculateReliability(blockInfo.DeviceID)
 
