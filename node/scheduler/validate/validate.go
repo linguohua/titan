@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/robfig/cron"
+	"golang.org/x/xerrors"
 	"math/rand"
 	"time"
 
@@ -15,18 +16,23 @@ import (
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
-	"golang.org/x/xerrors"
 )
 
 const (
 	errMsgTimeOut  = "TimeOut"
-	missBlock      = "MissBlock"
 	errMsgBlockNil = "Block Nil;map len:%d,count:%d"
 	errMsgCidFail  = "Cid Fail;resultCid:%s,cid_db:%s,fid:%d,index:%d"
 )
 
+type validateState int
+
+const (
+	validationNotStarted validateState = iota
+	validationStarting
+)
+
 var (
-	log    = logging.Logger("validate")
+	log    = logging.Logger("scheduler/validate")
 	myRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
 
@@ -36,15 +42,16 @@ type Validate struct {
 	seed int64
 
 	// validate round number
-	roundID int64
+	// current round number
+	curRoundId int64
 
 	duration int
 
 	// block num limit
 	validateBlockMax int
 
-	// time interval (minute)
-	validateTime int
+	// validate start-up time interval (minute)
+	interval int
 
 	// fid is maximum value of each device storage record
 	// key is device id
@@ -58,15 +65,20 @@ type Validate struct {
 
 	nodeManager *node.Manager
 
+	// timer
+	crontab *cron.Cron
+
+	// validate state
+	validateState validateState
+
 	// validate switch
 	open bool
 }
 
 // init timers
 func (v *Validate) initValidateTask() {
-	spec := fmt.Sprintf("* */%d * * * *", v.validateTime)
-	crontab := cron.New()
-	err := crontab.AddFunc(spec, func() {
+	spec := fmt.Sprintf("* */%d * * * *", v.interval)
+	err := v.crontab.AddFunc(spec, func() {
 		err := v.startValidate()
 		if err != nil {
 			log.Panicf("startValidate err:%s", err.Error())
@@ -77,23 +89,25 @@ func (v *Validate) initValidateTask() {
 		log.Panicf(err.Error())
 	}
 
-	crontab.Start()
+	v.crontab.Start()
 
 	// wait call back message
 	go v.initChannelTask()
 }
 
-func NewValidate(manager *node.Manager) *Validate {
+func NewValidate(manager *node.Manager, open bool) *Validate {
 	e := &Validate{
 		ctx:              context.Background(),
 		seed:             1,
 		duration:         10,
 		validateBlockMax: 100,
-		validateTime:     5,
+		interval:         5,
 		resultQueue:      list.New(),
 		resultChannel:    make(chan bool, 1),
 		nodeManager:      manager,
-		open:             false,
+		crontab:          cron.New(),
+		validateState:    validationNotStarted,
+		open:             open,
 	}
 
 	e.initValidateTask()
@@ -126,16 +140,16 @@ func (v *Validate) assemblyReqValidates(validatorID string, list []*tmpDeviceMet
 
 		v.maxFidMap[device.deviceId] = maxFid
 
-		req = append(req, api.ReqValidate{Seed: v.seed, NodeURL: device.addr, Duration: v.duration, RoundID: v.roundID, NodeType: int(device.nodeType), MaxFid: int(maxFid)})
+		req = append(req, api.ReqValidate{Seed: v.seed, NodeURL: device.addr, Duration: v.duration, RoundID: v.curRoundId, NodeType: int(device.nodeType), MaxFid: int(maxFid)})
 
-		err = cache.GetDB().SetNodeToValidateingList(device.deviceId)
+		err = cache.GetDB().SetNodeToVerifyingList(device.deviceId)
 		if err != nil {
-			log.Warnf("SetNodeToValidateingList err:%s, DeviceId:%s", err.Error(), device.deviceId)
+			log.Warnf("SetNodeToVerifyingList err:%s, DeviceId:%s", err.Error(), device.deviceId)
 			continue
 		}
 
 		resultInfo := &persistent.ValidateResult{
-			RoundID:     v.roundID,
+			RoundID:     v.curRoundId,
 			DeviceID:    device.deviceId,
 			ValidatorID: validatorID,
 			Status:      persistent.ValidateStatusCreate.Int(),
@@ -160,9 +174,23 @@ func (v *Validate) getRandNum(max int, r *rand.Rand) int {
 	return max
 }
 
-func (v *Validate) UpdateValidateResult(roundId int64, deviceID, msg string, status persistent.ValidateStatus) error {
+func (v *Validate) UpdateFailValidateResult(roundId int64, deviceID, msg string, status persistent.ValidateStatus) error {
 	resultInfo := &persistent.ValidateResult{RoundID: roundId, DeviceID: deviceID, Msg: msg, Status: status.Int(), EndTime: time.Now()}
-	return persistent.GetDB().UpdateValidateResultInfo(resultInfo)
+	return persistent.GetDB().UpdateFailValidateResultInfo(resultInfo)
+}
+
+func (v *Validate) UpdateSuccessValidateResult(validateResults *api.ValidateResults) error {
+	resultInfo := &persistent.ValidateResult{
+		RoundID:     validateResults.RoundID,
+		DeviceID:    validateResults.DeviceID,
+		BlockNumber: int64(len(validateResults.Cids)),
+		Msg:         "ok",
+		Status:      persistent.ValidateStatusSuccess.Int(),
+		Bandwidth:   validateResults.Bandwidth,
+		Duration:    validateResults.CostTime,
+		EndTime:     time.Now(),
+	}
+	return persistent.GetDB().UpdateSuccessValidateResultInfo(resultInfo)
 }
 
 func (v *Validate) initChannelTask() {
@@ -195,15 +223,34 @@ func (v *Validate) PushResultToQueue(validateResults *api.ValidateResults) {
 
 func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) error {
 	log.Debug("validate result : %v", *validateResults)
-	if validateResults.RoundID != v.roundID {
+	if validateResults.RoundID != v.curRoundId {
 		return xerrors.Errorf("roundID err")
 	}
-	log.Infof("do validate:%s,round:%s", validateResults.DeviceID, validateResults.RoundID)
+
+	log.Infof("do validate:%s,round:%d", validateResults.DeviceID, validateResults.RoundID)
+
+	defer func() {
+		count, err := cache.GetDB().CountVerifyingNode(v.ctx)
+		if err != nil {
+			log.Error("CountVerifyingNode fail :", err.Error())
+			return
+		}
+		if count == 0 {
+			v.validateState = validationNotStarted
+		}
+	}()
+	defer func() {
+		err := cache.GetDB().RemoveNodeWithVerifyingList(validateResults.DeviceID)
+		if err != nil {
+			log.Errorf("remove edge node [%s] fail : %s", validateResults.DeviceID, err.Error())
+			return
+		}
+	}()
 
 	deviceID := validateResults.DeviceID
 
 	if validateResults.IsTimeout {
-		return v.UpdateValidateResult(v.roundID, deviceID, errMsgTimeOut, persistent.ValidateStatusTimeOut)
+		return v.UpdateFailValidateResult(v.curRoundId, deviceID, errMsgTimeOut, persistent.ValidateStatusTimeOut)
 	}
 
 	r := rand.New(rand.NewSource(v.seed))
@@ -212,13 +259,13 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 	if cidLength <= 0 || validateResults.RandomCount <= 0 {
 		msg := fmt.Sprintf(errMsgBlockNil, cidLength, validateResults.RandomCount)
 		log.Debug("validate fail :", msg)
-		return v.UpdateValidateResult(v.roundID, deviceID, msg, persistent.ValidateStatusFail)
+		return v.UpdateFailValidateResult(v.curRoundId, deviceID, msg, persistent.ValidateStatusFail)
 	}
 
 	cacheInfos, err := persistent.GetDB().GetBlocksFID(deviceID)
 	if err != nil || len(cacheInfos) <= 0 {
 		msg := fmt.Sprintf("failed to query by device [%s] : %s", deviceID, err.Error())
-		return v.UpdateValidateResult(v.roundID, deviceID, msg, persistent.ValidateStatusOther)
+		return v.UpdateFailValidateResult(v.curRoundId, deviceID, msg, persistent.ValidateStatusOther)
 	}
 
 	maxFid := v.maxFidMap[deviceID]
@@ -235,27 +282,30 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 		if !v.compareCid(cid, resultCid) {
 			msg := fmt.Sprintf(errMsgCidFail, resultCid, cid, fid, index)
 			log.Debug("validate fail :", msg)
-			return v.UpdateValidateResult(v.roundID, deviceID, msg, persistent.ValidateStatusFail)
+			return v.UpdateFailValidateResult(v.curRoundId, deviceID, msg, persistent.ValidateStatusFail)
 		}
 	}
 
-	return v.UpdateValidateResult(v.roundID, deviceID, "ok", persistent.ValidateStatusSuccess)
+	return v.UpdateSuccessValidateResult(validateResults)
 }
 
 func (v *Validate) checkValidateTimeOut() error {
-	deviceIDs, err := cache.GetDB().GetNodesWithValidateingList()
+	deviceIDs, err := cache.GetDB().GetNodesWithVerifyingList()
 	if err != nil {
 		return err
 	}
 
-	if len(deviceIDs) > 0 {
+	if deviceIDs != nil && len(deviceIDs) > 0 {
 		log.Infof("checkValidateTimeOut list:%v", deviceIDs)
 
 		for _, deviceID := range deviceIDs {
-			err := v.UpdateValidateResult(v.roundID, deviceID, errMsgTimeOut, persistent.ValidateStatusTimeOut)
-			if err != nil {
-				log.Errorf(err.Error())
-			}
+			di := deviceID
+			go func() {
+				err := v.UpdateFailValidateResult(v.curRoundId, di, errMsgTimeOut, persistent.ValidateStatusTimeOut)
+				if err != nil {
+					log.Errorf(err.Error())
+				}
+			}()
 		}
 	}
 
@@ -280,6 +330,7 @@ type tmpDeviceMeta struct {
 	addr     string
 }
 
+// verified edge node are allocated to verifiers one by one
 func (v *Validate) validateMapping(validatorList []string) (map[string][]*tmpDeviceMeta, error) {
 	result := make(map[string][]*tmpDeviceMeta)
 	edges := v.nodeManager.GetAllEdge()
@@ -340,22 +391,33 @@ func differentValue(list []string, compare string) string {
 
 // Validate
 func (v *Validate) startValidate() error {
+
+	// before opening validation
+	// check the last round of verification
+	err := v.checkValidateTimeOut()
+	if err != nil {
+		log.Errorf(err.Error())
+		return err
+	}
+
 	if !v.open {
+		v.validateState = validationNotStarted
 		return nil
 	}
 
+	v.validateState = validationStarting
+
 	log.Info("------------startValidate:")
-	err := cache.GetDB().RemoveValidateingList()
+	err = cache.GetDB().RemoveVerifyingList()
 	if err != nil {
 		return err
 	}
 
-	sID, err := cache.GetDB().IncrValidateRoundID()
+	cur, err := cache.GetDB().IncrValidateRoundID()
 	if err != nil {
 		return err
 	}
-
-	v.roundID = sID
+	v.curRoundId = cur
 	v.seed = time.Now().UnixNano()
 	v.maxFidMap = make(map[string]int64)
 
@@ -363,12 +425,14 @@ func (v *Validate) startValidate() error {
 	if err != nil {
 		return err
 	}
-	log.Debug("validator is ", validatorList)
 
 	// no successful election
 	if validatorList == nil || len(validatorList) == 0 {
+		log.Warn("validator list is null")
 		return nil
 	}
+
+	log.Debug("validator is", validatorList)
 
 	validatorMap, err := v.validateMapping(validatorList)
 	if err != nil {
@@ -394,15 +458,6 @@ func (v *Validate) startValidate() error {
 		log.Infof("validatorID :%s, List:%v", validatorID, validatedList)
 	}
 
-	go func() {
-		time.Sleep(time.Duration(v.duration*2) * time.Second)
-		err := v.checkValidateTimeOut()
-		if err != nil {
-			log.Errorf(err.Error())
-			return
-		}
-	}()
-
 	return nil
 }
 
@@ -426,4 +481,24 @@ func (v *Validate) SetValidateSwitch(open bool) {
 
 func (v *Validate) GetValidateRunningState() bool {
 	return v.open
+}
+
+func (v *Validate) StartValidateOnceTask() error {
+	if v.validateState == validationStarting {
+		return fmt.Errorf("validation in progress, cannot start again")
+	}
+
+	go func() {
+		time.Sleep(time.Duration(v.interval) * time.Minute)
+		v.crontab.Start()
+	}()
+
+	v.open = true
+	v.crontab.Stop()
+	err := v.startValidate()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

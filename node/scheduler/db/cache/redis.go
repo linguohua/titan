@@ -129,6 +129,16 @@ func (rd redisDB) IncrValidateRoundID() (int64, error) {
 	return rd.cli.IncrBy(context.Background(), key, 1).Result()
 }
 
+func (rd redisDB) GetPreviousAndCurrentRoundId() (pre, cur int64, err error) {
+	key := fmt.Sprintf(redisKeyValidateRoundID, serverName)
+	cur, err = rd.cli.IncrBy(context.Background(), key, 1).Result()
+	if err != nil {
+		return
+	}
+	pre = cur - 1
+	return
+}
+
 // get ValidateID
 func (rd redisDB) GetValidateRoundID() (string, error) {
 	key := fmt.Sprintf(redisKeyValidateRoundID, serverName)
@@ -137,7 +147,7 @@ func (rd redisDB) GetValidateRoundID() (string, error) {
 }
 
 // add
-func (rd redisDB) SetNodeToValidateingList(deviceID string) error {
+func (rd redisDB) SetNodeToVerifyingList(deviceID string) error {
 	key := fmt.Sprintf(redisKeyValidateingList, serverName)
 
 	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
@@ -145,14 +155,19 @@ func (rd redisDB) SetNodeToValidateingList(deviceID string) error {
 }
 
 // SMembers
-func (rd redisDB) GetNodesWithValidateingList() ([]string, error) {
+func (rd redisDB) GetNodesWithVerifyingList() ([]string, error) {
 	key := fmt.Sprintf(redisKeyValidateingList, serverName)
 
 	return rd.cli.SMembers(context.Background(), key).Result()
 }
 
+func (rd redisDB) CountVerifyingNode(ctx context.Context) (int64, error) {
+	key := fmt.Sprintf(redisKeyValidateingList, serverName)
+	return rd.cli.SCard(ctx, key).Result()
+}
+
 // del device
-func (rd redisDB) RemoveNodeWithValidateingList(deviceID string) error {
+func (rd redisDB) RemoveNodeWithVerifyingList(deviceID string) error {
 	key := fmt.Sprintf(redisKeyValidateingList, serverName)
 
 	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
@@ -160,7 +175,7 @@ func (rd redisDB) RemoveNodeWithValidateingList(deviceID string) error {
 }
 
 // del key
-func (rd redisDB) RemoveValidateingList() error {
+func (rd redisDB) RemoveVerifyingList() error {
 	key := fmt.Sprintf(redisKeyValidateingList, serverName)
 
 	_, err := rd.cli.Del(context.Background(), key).Result()

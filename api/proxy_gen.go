@@ -9,6 +9,7 @@ import (
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/journal/alerting"
+	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	xerrors "golang.org/x/xerrors"
 )
 
@@ -275,6 +276,8 @@ type SchedulerStruct struct {
 
 		ValidateRunningState func(p0 context.Context) (bool, error) `perm:"admin"`
 
+		ValidateStart func(p0 context.Context) error `perm:"admin"`
+
 		ValidateSwitch func(p0 context.Context, p1 bool) error `perm:"admin"`
 	}
 }
@@ -325,6 +328,8 @@ type WebStruct struct {
 		RemoveCarfile func(p0 context.Context, p1 string) error `perm:"read"`
 
 		SetupValidation func(p0 context.Context, p1 bool) error `perm:"read"`
+
+		ValidateResultSummery func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) ([]persistent.SummeryValidateResultInfo, error) `perm:"read"`
 	}
 }
 
@@ -1156,6 +1161,17 @@ func (s *SchedulerStub) ValidateRunningState(p0 context.Context) (bool, error) {
 	return false, ErrNotSupported
 }
 
+func (s *SchedulerStruct) ValidateStart(p0 context.Context) error {
+	if s.Internal.ValidateStart == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ValidateStart(p0)
+}
+
+func (s *SchedulerStub) ValidateStart(p0 context.Context) error {
+	return ErrNotSupported
+}
+
 func (s *SchedulerStruct) ValidateSwitch(p0 context.Context, p1 bool) error {
 	if s.Internal.ValidateSwitch == nil {
 		return ErrNotSupported
@@ -1341,6 +1357,17 @@ func (s *WebStruct) SetupValidation(p0 context.Context, p1 bool) error {
 
 func (s *WebStub) SetupValidation(p0 context.Context, p1 bool) error {
 	return ErrNotSupported
+}
+
+func (s *WebStruct) ValidateResultSummery(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) ([]persistent.SummeryValidateResultInfo, error) {
+	if s.Internal.ValidateResultSummery == nil {
+		return *new([]persistent.SummeryValidateResultInfo), ErrNotSupported
+	}
+	return s.Internal.ValidateResultSummery(p0, p1, p2, p3, p4)
+}
+
+func (s *WebStub) ValidateResultSummery(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) ([]persistent.SummeryValidateResultInfo, error) {
+	return *new([]persistent.SummeryValidateResultInfo), ErrNotSupported
 }
 
 var _ Block = new(BlockStruct)

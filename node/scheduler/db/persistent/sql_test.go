@@ -18,6 +18,7 @@ func TestSqlDB_InsertValidateResultInfo(t *testing.T) {
 	info.ValidatorID = "1"
 	info.RoundID = 100
 	info.ServerName = "test"
+	info.BlockNumber = 0
 	info.Status = ValidateStatusCreate.Int()
 	info.StartTime = time.Now()
 	err = db.InsertValidateResultInfo(info)
@@ -36,10 +37,11 @@ func TestSqlDB_UpdateValidateResultInfo(t *testing.T) {
 	info := new(ValidateResult)
 	info.DeviceID = "001"
 	info.RoundID = 100
+	info.BlockNumber = 9999
 	info.Msg = "ok"
 	info.EndTime = time.Now()
 	info.Status = ValidateStatusSuccess.Int()
-	err = db.UpdateValidateResultInfo(info)
+	err = db.UpdateSuccessValidateResultInfo(info)
 	if err != nil {
 		t.Error(err.Error())
 		return
