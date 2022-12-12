@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"time"
 )
 
@@ -27,7 +26,7 @@ type Web interface {
 	ListValidateResult(ctx context.Context, cursor int, count int) (ListValidateResultRsp, error) //perm:read
 	SetupValidation(ctx context.Context, enable bool) error                                       //perm:read
 
-	GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) ([]persistent.SummeryValidateResultInfo, error) //perm:read
+	GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) ([]SummeryValidateResultInfo, error) //perm:read
 }
 
 type ListNodesRsp struct {
@@ -145,4 +144,14 @@ type WebValidateResult struct {
 	StartTime   string `json:"start_time" db:"start_time"`
 	EndTime     string `json:"end_time" db:"end_time"`
 	ServerName  string `json:"server_name" db:"server_name"`
+}
+
+type SummeryValidateResultInfo struct {
+	DeviceID      string    `db:"device_id"`
+	ValidatorID   string    `db:"validator_id"`
+	BlockNumber   int64     `db:"block_number"`
+	Status        int       `db:"status"`
+	ValidateTime  time.Time `db:"validate_time"`
+	Duration      int64     `db:"duration"`
+	UploadTraffic float64   `db:"upload_traffic"`
 }
