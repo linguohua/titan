@@ -388,8 +388,8 @@ func (sd sqlDB) SaveCacheingResults(dInfo *api.DataInfo, cInfo *api.CacheInfo, b
 	if createBlocks != nil {
 		for _, info := range createBlocks {
 			if info.ID != "" {
-				cmd := fmt.Sprintf(`UPDATE %s SET size=?,reliability=?,device_id=?,fid=?,source=? WHERE id=?`, bTableName)
-				tx.MustExec(cmd, info.Size, info.Reliability, info.DeviceID, info.FID, info.Source, info.ID)
+				cmd := fmt.Sprintf(`UPDATE %s SET size=?,reliability=?,device_id=?,fid=?,source=?,status=? WHERE id=?`, bTableName)
+				tx.MustExec(cmd, info.Size, info.Reliability, info.DeviceID, info.FID, info.Source, info.Status, info.ID)
 			} else {
 				cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_hash, cid, device_id, status, size, reliability, id, fid, source, cid_hash) VALUES (?, ?, ?, ?, ?, ?, ?, REPLACE(UUID(),"-",""), ?, ?, ?)`, bTableName)
 				tx.MustExec(cmd, info.CacheID, info.CarfileHash, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability, info.FID, info.Source, info.CIDHash)
@@ -458,7 +458,7 @@ func (sd sqlDB) GetDataInfo(hash string) (*api.DataInfo, error) {
 
 func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []api.DataInfo, err error) {
 	area := sd.ReplaceArea()
-	p := 20
+	num := 20
 
 	cmd := fmt.Sprintf("SELECT count(carfile_cid) FROM %s ;", fmt.Sprintf(dataInfoTable, area))
 	err = sd.cli.Get(&count, cmd)
@@ -466,8 +466,8 @@ func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []a
 		return
 	}
 
-	totalPage = count / p
-	if count%p > 0 {
+	totalPage = count / num
+	if count%num > 0 {
 		totalPage++
 	}
 
@@ -479,7 +479,7 @@ func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []a
 		page = totalPage
 	}
 
-	cmd = fmt.Sprintf("SELECT * FROM %s LIMIT %d,%d", fmt.Sprintf(dataInfoTable, area), (p * (page - 1)), p)
+	cmd = fmt.Sprintf("SELECT * FROM %s LIMIT %d,%d", fmt.Sprintf(dataInfoTable, area), (num * (page - 1)), num)
 	if err = sd.cli.Select(&list, cmd); err != nil {
 		return
 	}
@@ -914,7 +914,7 @@ func (sd sqlDB) SetEventInfo(info *api.EventInfo) error {
 
 func (sd sqlDB) GetEventInfos(page int) (count int, totalPage int, out []api.EventInfo, err error) {
 	area := "cn_gd_shenzhen"
-	p := 20
+	num := 20
 
 	cmd := fmt.Sprintf("SELECT count(cid) FROM %s ;", fmt.Sprintf(eventInfoTable, area))
 	err = sd.cli.Get(&count, cmd)
@@ -922,8 +922,8 @@ func (sd sqlDB) GetEventInfos(page int) (count int, totalPage int, out []api.Eve
 		return
 	}
 
-	totalPage = count / p
-	if count%p > 0 {
+	totalPage = count / num
+	if count%num > 0 {
 		totalPage++
 	}
 
@@ -935,7 +935,7 @@ func (sd sqlDB) GetEventInfos(page int) (count int, totalPage int, out []api.Eve
 		page = totalPage
 	}
 
-	cmd = fmt.Sprintf("SELECT * FROM %s LIMIT %d,%d", fmt.Sprintf(eventInfoTable, area), (p * (page - 1)), p)
+	cmd = fmt.Sprintf("SELECT * FROM %s LIMIT %d,%d", fmt.Sprintf(eventInfoTable, area), (num * (page - 1)), num)
 	if err = sd.cli.Select(&out, cmd); err != nil {
 		return
 	}

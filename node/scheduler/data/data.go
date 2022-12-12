@@ -240,6 +240,7 @@ func (d *Data) cacheEnd(doneCache *Cache) {
 		return
 	}
 
+	log.Info("dispatchCache : end")
 	_, err = d.dispatchCache(d.getOldUndoneCache())
 }
 
