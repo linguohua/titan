@@ -77,7 +77,7 @@ type Validate struct {
 
 // init timers
 func (v *Validate) initValidateTask() {
-	spec := fmt.Sprintf("* */%d * * * *", v.interval)
+	spec := fmt.Sprintf("0 */%d * * * *", v.interval)
 	err := v.crontab.AddFunc(spec, func() {
 		err := v.startValidate()
 		if err != nil {

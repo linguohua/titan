@@ -30,13 +30,6 @@ CREATE TABLE `validate_result` (
   KEY `round_device` (`round_id`,`device_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='validate result info';
 
-CREATE TABLE `validate_err` (
-    `id` int unsigned NOT NULL AUTO_INCREMENT,
-	`device_id` varchar(128) NOT NULL,
-    `round_id` varchar(64) NOT NULL ,
-	PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='validate error device';
-
 CREATE TABLE `data_info_cn_gd_shenzhen` (
 	`carfile_cid` varchar(128) NOT NULL UNIQUE,
 	`carfile_hash` varchar(128) NOT NULL UNIQUE,
