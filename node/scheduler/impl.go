@@ -333,7 +333,7 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeType api.NodeType, cou
 		return list, nil
 	}
 
-	for i := 0; i <= count; i++ {
+	for i := 0; i < count; i++ {
 		info, err := node.RegisterNode(nodeType)
 		if err != nil {
 			log.Errorf("RegisterNode err:%s", err.Error())
