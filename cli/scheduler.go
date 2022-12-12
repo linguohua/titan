@@ -375,7 +375,7 @@ var validateCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.Validate(ctx)
+		return schedulerAPI.ValidateStart(ctx)
 	},
 }
 

@@ -464,12 +464,6 @@ func (s *Scheduler) ElectionValidators(ctx context.Context) error {
 	return nil
 }
 
-// Validate Validate edge
-func (s *Scheduler) Validate(ctx context.Context) error {
-	// return s.validate.startValidate()
-	return nil
-}
-
 // GetDevicesInfo return the devices information
 func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.DevicesInfo, error) {
 	// node datas
