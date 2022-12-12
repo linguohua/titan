@@ -359,7 +359,7 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]*tmpDev
 		tn.nodeType = api.NodeCandidate
 		tn.addr = candidateNode.Node.Addr
 
-		validatorID := differentValue(validatorList, candidateNode.DeviceInfo.DeviceId)
+		validatorID := validatorList[randomNum(0, len(validatorList))]
 
 		if validated, ok := result[validatorID]; ok {
 			validated = append(validated, tn)
@@ -376,17 +376,6 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]*tmpDev
 	}
 
 	return result, nil
-}
-
-func differentValue(list []string, compare string) string {
-	if list == nil || len(list) == 0 {
-		return ""
-	}
-	value := list[randomNum(0, len(list))]
-	if compare == value {
-		return differentValue(list, compare)
-	}
-	return value
 }
 
 // Validate
