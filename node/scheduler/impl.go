@@ -73,7 +73,7 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Sche
 	// open election
 	go ele.Run()
 
-	validate := validate2.NewValidate(nodeManager, true)
+	validate := validate2.NewValidate(nodeManager, false)
 
 	dataManager := data.NewDataManager(nodeManager)
 
