@@ -8,7 +8,7 @@ const (
 	// ErrUnknownNodeType unknown node type
 	ErrUnknownNodeType = "Unknown Node Type"
 	// ErrAreaNotExist Area not exist
-	ErrAreaNotExist = "%s, Area not exist! ip:%s"
+	ErrAreaNotExist = "Area not exist"
 	// ErrNotFoundTask Not Found Task
 	ErrNotFoundTask = "Not Found Data Task"
 	// ErrCidIsNil node not found

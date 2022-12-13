@@ -2,10 +2,11 @@ package node
 
 import (
 	"crypto/rsa"
-	"github.com/go-ping/ping"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/go-ping/ping"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
@@ -210,7 +211,7 @@ func (m *Manager) EdgeOnline(node *EdgeNode) error {
 	isOk, geoInfo := area.IPLegality(node.DeviceInfo.ExternalIp)
 	if !isOk {
 		log.Errorf("edgeOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.DeviceInfo.ExternalIp, geoInfo.Geo)
-		return xerrors.Errorf(errmsg.ErrAreaNotExist, geoInfo.Geo, node.DeviceInfo.ExternalIp)
+		return xerrors.New(errmsg.ErrAreaNotExist)
 	}
 
 	node.GeoInfo = geoInfo
@@ -288,7 +289,7 @@ func (m *Manager) CandidateOnline(node *CandidateNode) error {
 	isOk, geoInfo := area.IPLegality(node.DeviceInfo.ExternalIp)
 	if !isOk {
 		log.Errorf("candidateOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.DeviceInfo.ExternalIp, geoInfo.Geo)
-		return xerrors.Errorf(errmsg.ErrAreaNotExist, geoInfo.Geo, node.DeviceInfo.ExternalIp)
+		return xerrors.New(errmsg.ErrAreaNotExist)
 	}
 
 	node.GeoInfo = geoInfo
