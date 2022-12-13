@@ -267,8 +267,6 @@ type SchedulerStruct struct {
 
 		UserDownloadBlockResults func(p0 context.Context, p1 []UserBlockDownloadResult) error `perm:"read"`
 
-		Validate func(p0 context.Context) error `perm:"admin"`
-
 		ValidateBlockResult func(p0 context.Context, p1 ValidateResults) error `perm:"write"`
 
 		ValidateRunningState func(p0 context.Context) (bool, error) `perm:"admin"`
@@ -1109,17 +1107,6 @@ func (s *SchedulerStruct) UserDownloadBlockResults(p0 context.Context, p1 []User
 }
 
 func (s *SchedulerStub) UserDownloadBlockResults(p0 context.Context, p1 []UserBlockDownloadResult) error {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) Validate(p0 context.Context) error {
-	if s.Internal.Validate == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.Validate(p0)
-}
-
-func (s *SchedulerStub) Validate(p0 context.Context) error {
 	return ErrNotSupported
 }
 

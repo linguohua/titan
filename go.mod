@@ -54,7 +54,7 @@ require (
 	github.com/tecbot/gorocksdb v0.0.0-20191217155057-f0fad39f321c
 	github.com/urfave/cli/v2 v2.11.1
 	go.opencensus.io v0.23.0
-	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f
+	golang.org/x/sys v0.3.0
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f
 )
@@ -179,8 +179,8 @@ require (
 	go.uber.org/zap v1.21.0 // indirect
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
-	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
+	golang.org/x/mod v0.7.0 // indirect
+	golang.org/x/sync v0.1.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
@@ -207,7 +207,7 @@ require (
 	github.com/prometheus/common v0.35.0 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect
 	github.com/stretchr/testify v1.8.0
-	golang.org/x/net v0.0.0-20220630215102-69896b714898 // indirect
-	golang.org/x/tools v0.1.11 // indirect
+	golang.org/x/net v0.3.0 // indirect
+	golang.org/x/tools v0.4.0 // indirect
 	google.golang.org/grpc v1.49.0 // indirect
 )
