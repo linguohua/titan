@@ -3,6 +3,7 @@ package election
 import (
 	"context"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"math/rand"
@@ -95,7 +96,14 @@ func (v *Election) Run() {
 }
 
 func (v *Election) elect() error {
-	v.startTime = time.Now()
+	now := time.Now()
+	v.startTime = now
+	err := cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
+		info.NextElectionTime = now.Add(v.opts.interval)
+	})
+	if err != nil {
+		return err
+	}
 
 	log.Info("election starting")
 	defer func() {
