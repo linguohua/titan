@@ -306,7 +306,7 @@ type WebStruct struct {
 
 		GetNodeInfoByID func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
 
-		GetSummaryValidateMessage func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) ([]SummeryValidateResultInfo, error) `perm:"read"`
+		GetSummaryValidateMessage func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*SummeryValidateResult, error) `perm:"read"`
 
 		GetSystemInfo func(p0 context.Context) (BaseInfo, error) `perm:"read"`
 
@@ -1231,15 +1231,15 @@ func (s *WebStub) GetNodeInfoByID(p0 context.Context, p1 string) (DevicesInfo, e
 	return *new(DevicesInfo), ErrNotSupported
 }
 
-func (s *WebStruct) GetSummaryValidateMessage(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) ([]SummeryValidateResultInfo, error) {
+func (s *WebStruct) GetSummaryValidateMessage(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*SummeryValidateResult, error) {
 	if s.Internal.GetSummaryValidateMessage == nil {
-		return *new([]SummeryValidateResultInfo), ErrNotSupported
+		return nil, ErrNotSupported
 	}
 	return s.Internal.GetSummaryValidateMessage(p0, p1, p2, p3, p4)
 }
 
-func (s *WebStub) GetSummaryValidateMessage(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) ([]SummeryValidateResultInfo, error) {
-	return *new([]SummeryValidateResultInfo), ErrNotSupported
+func (s *WebStub) GetSummaryValidateMessage(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*SummeryValidateResult, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *WebStruct) GetSystemInfo(p0 context.Context) (BaseInfo, error) {

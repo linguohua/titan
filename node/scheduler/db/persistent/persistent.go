@@ -23,7 +23,7 @@ type DB interface {
 	InsertValidateResultInfo(info *ValidateResult) error
 	UpdateFailValidateResultInfo(info *ValidateResult) error
 	UpdateSuccessValidateResultInfo(info *ValidateResult) error
-	SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) ([]SummeryValidateResultInfo, error)
+	SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error)
 	SetNodeToValidateErrorList(sID, deviceID string) error
 
 	CreateCache(cInfo *api.CacheInfo) error
@@ -159,16 +159,6 @@ type ValidateResult struct {
 	Bandwidth   float64   `db:"bandwidth"`
 	StartTime   time.Time `db:"start_time"`
 	EndTime     time.Time `db:"end_time"`
-}
-
-type SummeryValidateResultInfo struct {
-	DeviceID      string    `db:"device_id"`
-	ValidatorID   string    `db:"validator_id"`
-	BlockNumber   int64     `db:"block_number"`
-	Status        int       `db:"status"`
-	ValidateTime  time.Time `db:"validate_time"`
-	Duration      int64     `db:"duration"`
-	UploadTraffic float64   `db:"upload_traffic"`
 }
 
 // MessageInfo Message Info
