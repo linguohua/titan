@@ -54,8 +54,8 @@ type DB interface {
 
 	GetUndoneBlocks(cacheID string) (map[string]string, error)
 	GetAllBlocks(cacheID string) ([]*api.BlockInfo, error)
-	GetNodesFromCache(cacheID string) (int, error)
-	GetNodesFromData(hash string) (int, error)
+	GetNodesFromCache(cacheID string) ([]string, error)
+	GetNodesFromData(hash string) ([]string, error)
 	GetCachesFromNode(deviceID string) ([]*api.CacheInfo, error)
 	CleanCacheDataWithNode(deviceID string, caches []*api.CacheInfo) error // TODO rename
 	// GetNodesFromAllData() ([]string, error)

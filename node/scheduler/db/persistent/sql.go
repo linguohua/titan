@@ -814,28 +814,28 @@ func (sd sqlDB) ReplaceArea() string {
 // 	return out, nil
 // }
 
-func (sd sqlDB) GetNodesFromData(hash string) (int, error) {
+func (sd sqlDB) GetNodesFromData(hash string) ([]string, error) {
 	area := sd.ReplaceArea()
 
 	query := fmt.Sprintf("SELECT DISTINCT device_id FROM %s WHERE carfile_hash=?", fmt.Sprintf(blockInfoTable, area))
-	var out []*api.BlockInfo
+	out := make([]string, 0)
 	if err := sd.cli.Select(&out, query, hash); err != nil {
-		return 0, err
+		return out, err
 	}
 
-	return len(out), nil
+	return out, nil
 }
 
-func (sd sqlDB) GetNodesFromCache(cacheID string) (int, error) {
+func (sd sqlDB) GetNodesFromCache(cacheID string) ([]string, error) {
 	area := sd.ReplaceArea()
 
 	query := fmt.Sprintf("SELECT DISTINCT device_id FROM %s WHERE cache_id=?", fmt.Sprintf(blockInfoTable, area))
-	var out []*api.BlockInfo
+	out := make([]string, 0)
 	if err := sd.cli.Select(&out, query, cacheID); err != nil {
-		return 0, err
+		return out, err
 	}
 
-	return len(out), nil
+	return out, nil
 }
 
 func (sd sqlDB) GetCachesFromNode(deviceID string) ([]*api.CacheInfo, error) {

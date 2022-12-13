@@ -267,6 +267,8 @@ type SchedulerStruct struct {
 
 		ShowDataTasks func(p0 context.Context) ([]DataInfo, error) `perm:"read"`
 
+		StopCacheTask func(p0 context.Context, p1 string) error `perm:"admin"`
+
 		UserDownloadBlockResults func(p0 context.Context, p1 []UserBlockDownloadResult) error `perm:"read"`
 
 		ValidateBlockResult func(p0 context.Context, p1 ValidateResults) error `perm:"write"`
@@ -1110,6 +1112,17 @@ func (s *SchedulerStruct) ShowDataTasks(p0 context.Context) ([]DataInfo, error) 
 
 func (s *SchedulerStub) ShowDataTasks(p0 context.Context) ([]DataInfo, error) {
 	return *new([]DataInfo), ErrNotSupported
+}
+
+func (s *SchedulerStruct) StopCacheTask(p0 context.Context, p1 string) error {
+	if s.Internal.StopCacheTask == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.StopCacheTask(p0, p1)
+}
+
+func (s *SchedulerStub) StopCacheTask(p0 context.Context, p1 string) error {
+	return ErrNotSupported
 }
 
 func (s *SchedulerStruct) UserDownloadBlockResults(p0 context.Context, p1 []UserBlockDownloadResult) error {

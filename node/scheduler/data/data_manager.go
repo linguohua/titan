@@ -171,7 +171,7 @@ func (m *Manager) checkTaskTimeout(taskInfo cache.DataTask) {
 	cI, ok := data.CacheMap.Load(taskInfo.CacheID)
 	if ok && cI != nil {
 		cache := cI.(*Cache)
-		err := cache.endCache(0, true)
+		err := cache.endCache(0, api.CacheStatusTimeout)
 		if err != nil {
 			log.Errorf("stopCache err:%s", err.Error())
 		}
@@ -473,6 +473,45 @@ func (m *Manager) GetRunningTasks() []cache.DataTask {
 	return list
 }
 
+// StopCacheTask stop cache data
+func (m *Manager) StopCacheTask(cid string) error {
+	hash, err := helper.CIDString2HashString(cid)
+	if err != nil {
+		return err
+	}
+
+	cID, err := cache.GetDB().GetRunningDataTask(hash)
+	if err != nil && !cache.GetDB().IsNilErr(err) {
+		return err
+	}
+
+	data := m.GetData(hash)
+	if data == nil {
+		return xerrors.New(errmsg.ErrCidNotFind)
+	}
+
+	cI, ok := data.CacheMap.Load(cID)
+	if ok && cI != nil {
+		cache := cI.(*Cache)
+		err := cache.endCache(0, api.CacheStatusFail)
+		if err != nil {
+			return err
+		}
+	}
+
+	m.saveEvent(cid, cID, "", "", eventTypeStopDataTask)
+
+	nodes, err := persistent.GetDB().GetNodesFromCache(cID)
+	if err != nil {
+		return err
+	}
+
+	for range nodes {
+	}
+
+	return nil
+}
+
 func (m *Manager) isDataTaskRunnning(hash, cacheID string) bool {
 	cID, err := cache.GetDB().GetRunningDataTask(hash)
 	if err != nil && !cache.GetDB().IsNilErr(err) {
@@ -597,9 +636,9 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceID string) {
 			continue
 		}
 
-		err = m.CacheData(info.CarfileCid, info.NeedReliability, info.ExpiredTime)
+		err = cache.GetDB().SetWaitingDataTask(api.DataInfo{CarfileHash: carfileHash, CarfileCid: info.CarfileCid, NeedReliability: info.NeedReliability, ExpiredTime: info.ExpiredTime})
 		if err != nil {
-			log.Errorf("cleanNodeAndRestoreCaches err:%s", err.Error())
+			log.Errorf("cleanNodeAndRestoreCaches SetWaitingDataTask err:%s", err.Error())
 			continue
 		}
 
@@ -608,6 +647,13 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceID string) {
 			log.Errorf("cleanNodeAndRestoreCaches SetEventInfo err:%s", err.Error())
 			continue
 		}
+
+		// err = m.CacheData(info.CarfileCid, info.NeedReliability, info.ExpiredTime)
+		// if err != nil {
+		// 	log.Errorf("cleanNodeAndRestoreCaches err:%s", err.Error())
+		// 	continue
+		// }
+
 	}
 
 	// update node block count
@@ -618,28 +664,6 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceID string) {
 		log.Errorf("UpdateDeviceInfo err:%s ", err.Error())
 	}
 }
-
-// stop
-// func (m *Manager) stopDataTask(cid string) error {
-// 	hash, err := helper.CIDString2HashString(cid)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	m.saveEvent(cid, "", "user", "", eventTypeStopDataTask)
-
-// 	dI, ok := m.taskMap.Load(hash)
-// 	if ok && dI != nil {
-// 		data := dI.(*Data)
-// 		data.isStop = true
-
-// 		return nil
-// 	}
-
-// 	// TODO if data unstart , save to redis
-
-// 	return nil
-// }
 
 // check expired caches
 func (m *Manager) checkCachesExpired() {

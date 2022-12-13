@@ -412,7 +412,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		// unDoneBlocks += restoreBlocks
 
 		if unDoneBlocks <= 0 {
-			return c.endCache(unDoneBlocks, false)
+			return c.endCache(unDoneBlocks, api.CacheStatusCreate)
 		}
 	}
 
@@ -469,13 +469,9 @@ func (c *Cache) startCache(cids map[string]string) error {
 	return nil
 }
 
-func (c *Cache) endCache(unDoneBlocks int, isTimeout bool) (err error) {
+func (c *Cache) endCache(unDoneBlocks int, status api.CacheStatus) (err error) {
 	// log.Infof("end cache %s,%s ----------", c.data.carfileCid, c.cacheID)
-	msg := ""
-	if isTimeout {
-		msg = "timeout"
-	}
-	c.Data.DataManager.saveEvent(c.Data.CarfileCid, c.CacheID, "", msg, eventTypeDoCacheTaskEnd)
+	c.Data.DataManager.saveEvent(c.Data.CarfileCid, c.CacheID, "", "", eventTypeDoCacheTaskEnd)
 
 	err = cache.GetDB().RemoveRunningDataTask(c.CarfileHash, c.CacheID)
 	if err != nil {
@@ -496,8 +492,8 @@ func (c *Cache) endCache(unDoneBlocks int, isTimeout bool) (err error) {
 		}
 	}()
 
-	if isTimeout {
-		c.Status = api.CacheStatusTimeout
+	if status == api.CacheStatusTimeout || status == api.CacheStatusFail {
+		c.Status = status
 		return
 	}
 
