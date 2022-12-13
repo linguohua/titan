@@ -24,7 +24,6 @@ type DB interface {
 	UpdateFailValidateResultInfo(info *ValidateResult) error
 	UpdateSuccessValidateResultInfo(info *ValidateResult) error
 	SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error)
-	SetNodeToValidateErrorList(sID, deviceID string) error
 
 	CreateCache(cInfo *api.CacheInfo) error
 	SaveCacheEndResults(dInfo *api.DataInfo, cInfo *api.CacheInfo) error

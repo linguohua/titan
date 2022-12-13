@@ -216,15 +216,6 @@ func (sd sqlDB) SummaryValidateMessage(startTime, endTime time.Time, pageNumber,
 	return res, nil
 }
 
-func (sd sqlDB) SetNodeToValidateErrorList(sID, deviceID string) error {
-	_, err := sd.cli.NamedExec(`INSERT INTO validate_err (round_id, device_id)
-                VALUES (:round_id, :device_id)`, map[string]interface{}{
-		"round_id":  sID,
-		"device_id": deviceID,
-	})
-	return err
-}
-
 func (sd sqlDB) GetBlocksFID(deviceID string) (map[int]string, error) {
 	area := sd.ReplaceArea()
 
