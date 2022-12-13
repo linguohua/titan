@@ -1,6 +1,7 @@
 package block
 
 import (
+	"container/list"
 	"context"
 	"fmt"
 	"sync"
@@ -43,14 +44,44 @@ type blockStat struct {
 	CacheID     string
 }
 
+type carfile struct {
+	carfileHash string
+	delayReqs   []*delayReq
+	lock        *sync.Mutex
+}
+
+func (carfile *carfile) removeReq(len int) []*delayReq {
+	if carfile == nil {
+		log.Panicf("removeReqFromCarfile,  carfile == nil")
+	}
+	carfile.lock.Lock()
+	defer carfile.lock.Unlock()
+	reqs := carfile.delayReqs[:len]
+	carfile.delayReqs = carfile.delayReqs[len:]
+	return reqs
+}
+
+func (carfile *carfile) addReq(delayReqs []*delayReq) {
+	if carfile == nil {
+		log.Panicf("removeReqFromCarfile,  carfile == nil")
+	}
+
+	carfile.lock.Lock()
+	defer carfile.lock.Unlock()
+	carfile.delayReqs = append(carfile.delayReqs, delayReqs...)
+}
+
 type Block struct {
-	ds            datastore.Batching
-	blockStore    blockstore.BlockStore
-	scheduler     api.Scheduler
-	reqList       []*delayReq
+	ds         datastore.Batching
+	blockStore blockstore.BlockStore
+	scheduler  api.Scheduler
+	// carfile block list
+	carfileList list.List
+	// key is carfile hash
+	carfileMap    map[string]*list.Element
 	cachingList   []*delayReq
 	saveBlockLock *sync.Mutex
-	reqListLock   *sync.Mutex
+	// reqListLock   *sync.Mutex
 	block         BlockInterface
 	deviceID      string
 	exchange      exchange.Interface
@@ -73,7 +104,7 @@ func NewBlock(ds datastore.Batching, blockStore blockstore.BlockStore, scheduler
 		deviceID:   deviceID,
 
 		saveBlockLock: &sync.Mutex{},
-		reqListLock:   &sync.Mutex{},
+		// reqListLock:   &sync.Mutex{},
 		blockLoaderCh: make(chan bool),
 		ipfsGateway:   ipfsGateway,
 	}
@@ -118,37 +149,58 @@ func (block *Block) notifyBlockLoader() {
 	}
 }
 
-func (block *Block) dequeue(len int) []*delayReq {
-	block.reqListLock.Lock()
-	defer block.reqListLock.Unlock()
-	reqs := block.reqList[:len]
-	block.reqList = block.reqList[len:]
-	return reqs
-}
-
-func (block *Block) enqueue(delayReqs []*delayReq) {
-	block.reqListLock.Lock()
-	defer block.reqListLock.Unlock()
-	block.reqList = append(block.reqList, delayReqs...)
-}
-
 func (block *Block) doLoadBlock() {
-	for len(block.reqList) > 0 {
-		doLen := len(block.reqList)
+	element := block.carfileList.Back()
+	if element == nil {
+		return
+	}
+
+	carfile, ok := element.Value.(*carfile)
+	if !ok {
+		log.Panicf("doLoadBlock error, can convert elemnet to carfile")
+	}
+
+	for len(carfile.delayReqs) > 0 {
+		doLen := len(carfile.delayReqs)
 		if doLen > helper.Batch {
 			doLen = helper.Batch
 		}
 
-		doReqs := block.dequeue(doLen)
+		doReqs := carfile.removeReq(doLen)
 		block.cachingList = doReqs
 
 		block.block.loadBlocks(block, doReqs)
 		block.cachingList = nil
 	}
+
+	block.carfileList.Remove(element)
+	delete(block.carfileMap, carfile.carfileHash)
 }
 
-func (block *Block) addReq2WaitList(delayReqs []*delayReq) {
-	block.enqueue(delayReqs)
+func (block *Block) getWaitCacheBlockNum() int {
+	count := 0
+	for e := block.carfileList.Front(); e != nil; e = e.Next() {
+		carfile := e.Value.(*carfile)
+		count += len(carfile.delayReqs)
+	}
+	return count
+}
+
+func (block *Block) addReq2WaitList(req *api.ReqCacheData) {
+	element, ok := block.carfileMap[req.CardFileHash]
+	if !ok {
+		cf := &carfile{carfileHash: req.CardFileHash, lock: &sync.Mutex{}, delayReqs: make([]*delayReq, 0)}
+		element = block.carfileList.PushBack(cf)
+		block.carfileMap[req.CardFileHash] = element
+	}
+
+	carfile, ok := element.Value.(*carfile)
+	if !ok {
+		log.Panicf("addReq2WaitList error, can convert elemnet to carfile")
+	}
+
+	carfile.addReq(apiReq2DelayReq(req))
+
 	block.notifyBlockLoader()
 }
 
@@ -231,10 +283,29 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 func (block *Block) CacheBlocks(ctx context.Context, reqs []api.ReqCacheData) (api.CacheStat, error) {
 	log.Infof("CacheBlocks, reqs:%d", len(reqs))
 	for _, req := range reqs {
-		block.addReq2WaitList(apiReq2DelayReq(&req))
+		reqCacheData := req
+		block.addReq2WaitList(&reqCacheData)
 	}
 
 	return block.QueryCacheStat(ctx)
+}
+
+func (block *Block) RemoveWaitCacheBlockWith(ctx context.Context, carfileCID string) error {
+	carfileHash, err := helper.CIDString2HashString(carfileCID)
+	if err != nil {
+		return err
+	}
+
+	element, ok := block.carfileMap[carfileHash]
+	if !ok {
+		log.Errorf("RemoveWaitingBlockWithCarfileCID, no carfile %s block wait cache", carfileCID)
+		return nil
+	}
+
+	delete(block.carfileMap, carfileHash)
+	block.carfileList.Remove(element)
+
+	return nil
 }
 
 // delete block in local store and scheduler
@@ -307,7 +378,7 @@ func (block *Block) QueryCacheStat(ctx context.Context) (api.CacheStat, error) {
 	}
 
 	result.CacheBlockCount = keyCount
-	result.WaitCacheBlockNum = len(block.reqList)
+	result.WaitCacheBlockNum = block.getWaitCacheBlockNum()
 	result.DoingCacheBlockNum = len(block.cachingList)
 	result.RetryNum = helper.BlockDownloadRetryNum
 	result.DownloadTimeout = helper.BlockDownloadTimeout

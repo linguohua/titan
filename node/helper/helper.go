@@ -14,7 +14,7 @@ import (
 const (
 	Batch = 5
 	// number download block if failed
-	BlockDownloadRetryNum = 3
+	BlockDownloadRetryNum = 1
 	// Millisecond
 	LoadBockTick = 10
 	// validate timeout

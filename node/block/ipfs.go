@@ -190,7 +190,7 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 		tryDelayReqs := make([]*delayReq, 0)
 		err = fmt.Errorf("Request timeout")
 		for _, v := range reqMap {
-			if v.count > helper.BlockDownloadRetryNum {
+			if v.count >= helper.BlockDownloadRetryNum {
 				block.cacheResultWithError(ctx, blockStat{cid: v.blockInfo.Cid, carFileHash: v.carFileHash, CacheID: v.CacheID}, err)
 				log.Infof("cache data faile, cid:%s, count:%d", v.blockInfo.Cid, v.count)
 			} else {

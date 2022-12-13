@@ -257,9 +257,9 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 	}
 
 	if dataSync.block.IsLoadBlockFromIPFS() {
-		loadBlockFromIPFS(dataSync.block, blocksCIDMap)
+		// loadBlockFromIPFS(dataSync.block, blocksCIDMap)
 	} else {
-		loadBlockFromCandidate(dataSync.block, blocksCIDMap)
+		// loadBlockFromCandidate(dataSync.block, blocksCIDMap)
 	}
 
 	log.Infof("scrubBlocks, fid %d~%d delete blocks %d, download blocks %d", startFid, endFid, len(need2DeleteBlocks), len(blocksCIDMap))
@@ -385,9 +385,9 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 
 	// need to download blocks
 	if block.IsLoadBlockFromIPFS() {
-		loadBlockFromIPFS(block, blocksCIDMap)
+		// loadBlockFromIPFS(block, blocksCIDMap)
 	} else {
-		loadBlockFromCandidate(block, blocksCIDMap)
+		// loadBlockFromCandidate(block, blocksCIDMap)
 	}
 
 	log.Info("sync local block store complete")
