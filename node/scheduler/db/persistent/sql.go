@@ -181,12 +181,12 @@ func (sd sqlDB) SummaryValidateMessage(startTime, endTime time.Time, pageNumber,
 	res := new(api.SummeryValidateResult)
 	var infos []api.ValidateResultInfo
 	query := fmt.Sprintf("SELECT%s%s%v%s%v%s%d,%d;",
-		" `device_id`,`validator_id`,`block_number`,`status`,`start_time` AS `validate_time`, `duration` AS `completion_time`, (duration/1e3 * bandwidth) AS `upload_traffic` FROM validate_result",
-		" WHERE start_time >= ",
+		" `device_id`,`validator_id`,`block_number`,`status`,`start_time` AS `validate_time`, `duration`, (duration/1e3 * bandwidth) AS `upload_traffic` FROM validate_result",
+		" WHERE start_time >= '",
 		startTime,
-		" AND end_time <= ",
+		"' AND end_time <= '",
 		endTime,
-		" LIMIT ",
+		"' LIMIT ",
 		(pageNumber-1)*pageSize,
 		pageSize)
 	err := sd.cli.Select(&infos, query)
@@ -196,12 +196,13 @@ func (sd sqlDB) SummaryValidateMessage(startTime, endTime time.Time, pageNumber,
 
 	res.ValidateResultInfos = infos
 
-	countQuery := fmt.Sprintf("SELECT%s%s%v%s%v;",
+	countQuery := fmt.Sprintf("SELECT%s%s%v%s%v%s;",
 		" COUNT(*) FROM validate_result",
-		" WHERE start_time >= ",
+		" WHERE start_time >= '",
 		startTime,
-		" AND end_time <= ",
+		"' AND end_time <= '",
 		endTime,
+		"'",
 	)
 
 	var count int
