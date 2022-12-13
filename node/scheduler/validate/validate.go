@@ -360,6 +360,9 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]*tmpDev
 		tn.addr = candidateNode.Node.Addr
 
 		validatorID := validatorList[randomNum(0, len(validatorList))]
+		if validatorID == candidateNode.DeviceInfo.DeviceId {
+			continue
+		}
 
 		if validated, ok := result[validatorID]; ok {
 			validated = append(validated, tn)
