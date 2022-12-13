@@ -29,6 +29,15 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 		return rsp, err
 	}
 
+	deviceInValidator := make(map[string]struct{})
+	validatorList, err := cache.GetDB().GetValidatorsWithList()
+	if err != nil {
+		log.Errorf("get validator list: %v", err)
+	}
+	for _, id := range validatorList {
+		deviceInValidator[id] = struct{}{}
+	}
+
 	deviceInfos := make([]api.DevicesInfo, 0)
 	for _, node := range nodes {
 		deviceInfo, err := cache.GetDB().GetDeviceInfo(node.DeviceID)
@@ -44,6 +53,12 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 		default:
 			deviceInfo.DeviceStatus = "abnormal"
 		}
+
+		_, ok := deviceInValidator[node.DeviceID]
+		if ok {
+			deviceInfo.NodeType = api.NodeValidate
+		}
+
 		deviceInfos = append(deviceInfos, deviceInfo)
 	}
 
