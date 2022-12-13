@@ -109,6 +109,10 @@ func (mgr *accessPointMgr) removeSchedulerAPI(url, areaID string) {
 		return
 	}
 
+	if len(ap.apis) == 0 {
+		return
+	}
+
 	var index = 0
 	for i, api := range ap.apis {
 		if api.url == url {
