@@ -30,6 +30,7 @@ var SchedulerCmds = []*cli.Command{
 	resetCacheExpiredTimeCmd,
 	replenishCacheExpiredTimeCmd,
 	nodeExitCmd,
+	stopCacheCmd,
 	// validate
 	electionCmd,
 	validateCmd,
@@ -224,6 +225,36 @@ var replenishCacheExpiredTimeCmd = &cli.Command{
 		}
 
 		err = schedulerAPI.ReplenishCacheExpiredTime(ctx, cardileCid, cacheID, hour)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
+}
+
+var stopCacheCmd = &cli.Command{
+	Name:  "stop-cache",
+	Usage: "stop cache task",
+	Flags: []cli.Flag{
+		cidFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		cardileCid := cctx.String("cid")
+
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		err = schedulerAPI.StopCacheTask(ctx, cardileCid)
 		if err != nil {
 			return err
 		}

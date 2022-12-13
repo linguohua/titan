@@ -51,6 +51,11 @@ func (s *Scheduler) ReplenishCacheExpiredTime(ctx context.Context, carfileCid, c
 	return s.dataManager.ReplenishExpiredTimeToData(carfileCid, cacheID, hour)
 }
 
+// StopCacheTask stop cache
+func (s *Scheduler) StopCacheTask(ctx context.Context, carfileCid string) error {
+	return s.dataManager.StopCacheTask(carfileCid)
+}
+
 // ShowDataTasks Show Data Tasks
 func (s *Scheduler) ShowDataTasks(ctx context.Context) ([]api.DataInfo, error) {
 	infos := make([]api.DataInfo, 0)

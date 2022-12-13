@@ -159,7 +159,7 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 		log.Warnf("updateAndSaveCacheEndInfo GetNodesFromData err:%s", err.Error())
 	}
 
-	d.Nodes = dNodes
+	d.Nodes = len(dNodes)
 	dInfo := &api.DataInfo{
 		CarfileHash: d.CarfileHash,
 		TotalSize:   d.TotalSize,
@@ -169,7 +169,7 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 		Nodes:       d.Nodes,
 	}
 
-	cache.Nodes = cNodes
+	cache.Nodes = len(cNodes)
 	cInfo := &api.CacheInfo{
 		CarfileHash: cache.CarfileHash,
 		CacheID:     cache.CacheID,
