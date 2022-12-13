@@ -49,3 +49,19 @@ func TestSqlDB_UpdateValidateResultInfo(t *testing.T) {
 		return
 	}
 }
+
+func TestSqlDB_SummaryValidateMessage(t *testing.T) {
+	db, err := InitSQL(url)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	start := time.Now().Add(-10 * time.Hour)
+	end := time.Now()
+	res, err := db.SummaryValidateMessage(start, end, 1, 10)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	t.Log(res)
+}
