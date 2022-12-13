@@ -22,6 +22,8 @@ type Block interface {
 	GetCID(ctx context.Context, fid string) (string, error) //perm:read
 	GetFID(ctx context.Context, cid string) (string, error) //perm:read
 	DeleteAllBlocks(ctx context.Context) error              //perm:admin
+
+	RemoveWaitCacheBlockWith(ctx context.Context, carfileCID string) error
 }
 
 type BlockCacheInfo struct {
@@ -29,7 +31,6 @@ type BlockCacheInfo struct {
 	Fid int
 
 	From string
-	Sign []byte
 }
 
 type ReqCacheData struct {

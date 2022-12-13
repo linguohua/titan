@@ -35,6 +35,8 @@ type BlockStruct struct {
 		QueryCacheStat func(p0 context.Context) (CacheStat, error) `perm:"read"`
 
 		QueryCachingBlocks func(p0 context.Context) (CachingBlockList, error) `perm:"read"`
+
+		RemoveWaitCacheBlockWith func(p0 context.Context, p1 string) error ``
 	}
 }
 
@@ -437,6 +439,17 @@ func (s *BlockStruct) QueryCachingBlocks(p0 context.Context) (CachingBlockList, 
 
 func (s *BlockStub) QueryCachingBlocks(p0 context.Context) (CachingBlockList, error) {
 	return *new(CachingBlockList), ErrNotSupported
+}
+
+func (s *BlockStruct) RemoveWaitCacheBlockWith(p0 context.Context, p1 string) error {
+	if s.Internal.RemoveWaitCacheBlockWith == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.RemoveWaitCacheBlockWith(p0, p1)
+}
+
+func (s *BlockStub) RemoveWaitCacheBlockWith(p0 context.Context, p1 string) error {
+	return ErrNotSupported
 }
 
 func (s *CandidateStruct) ValidateBlocks(p0 context.Context, p1 []ReqValidate) error {
