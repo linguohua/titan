@@ -146,7 +146,7 @@ func (w *web) GetSystemInfo(ctx context.Context) (api.BaseInfo, error) {
 	return cache.GetDB().GetSystemInfo()
 }
 
-func (w *web) GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) ([]api.SummeryValidateResultInfo, error) {
+func (w *web) GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error) {
 	if pageNumber <= 0 {
 		pageNumber = 1
 	}
@@ -157,18 +157,6 @@ func (w *web) GetSummaryValidateMessage(ctx context.Context, startTime, endTime 
 	if err != nil {
 		return nil, err
 	}
-	result := make([]api.SummeryValidateResultInfo, 0, len(svm))
-	for _, v := range svm {
-		midSvm := api.SummeryValidateResultInfo{
-			DeviceID:      v.DeviceID,
-			ValidatorID:   v.ValidatorID,
-			BlockNumber:   v.BlockNumber,
-			Status:        v.Status,
-			ValidateTime:  v.ValidateTime,
-			Duration:      v.Duration,
-			UploadTraffic: v.UploadTraffic,
-		}
-		result = append(result, midSvm)
-	}
-	return result, nil
+
+	return svm, nil
 }

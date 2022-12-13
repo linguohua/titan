@@ -177,8 +177,9 @@ func (sd sqlDB) UpdateSuccessValidateResultInfo(info *ValidateResult) error {
 	return err
 }
 
-func (sd sqlDB) SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) ([]SummeryValidateResultInfo, error) {
-	var infos []SummeryValidateResultInfo
+func (sd sqlDB) SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error) {
+	res := new(api.SummeryValidateResult)
+	var infos []api.ValidateResultInfo
 	query := fmt.Sprintf("SELECT%s%s%v%s%v%s%d,%d;",
 		" `device_id`,`validator_id`,`block_number`,`status`,`start_time` AS `validate_time`, `duration` AS `completion_time`, (duration/1e3 * bandwidth) AS `upload_traffic` FROM validate_result",
 		" WHERE start_time >= ",
@@ -192,7 +193,26 @@ func (sd sqlDB) SummaryValidateMessage(startTime, endTime time.Time, pageNumber,
 	if err != nil {
 		return nil, err
 	}
-	return infos, nil
+
+	res.ValidateResultInfos = infos
+
+	countQuery := fmt.Sprintf("SELECT%s%s%v%s%v;",
+		" COUNT(*) FROM validate_result",
+		" WHERE start_time >= ",
+		startTime,
+		" AND end_time <= ",
+		endTime,
+	)
+
+	var count int
+	err = sd.cli.Get(&count, countQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Total = count
+
+	return res, nil
 }
 
 func (sd sqlDB) SetNodeToValidateErrorList(sID, deviceID string) error {

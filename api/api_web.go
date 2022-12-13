@@ -26,7 +26,7 @@ type Web interface {
 	ListValidateResult(ctx context.Context, cursor int, count int) (ListValidateResultRsp, error) //perm:read
 	SetupValidation(ctx context.Context, enable bool) error                                       //perm:read
 
-	GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) ([]SummeryValidateResultInfo, error) //perm:read
+	GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*SummeryValidateResult, error) //perm:read
 }
 
 type ListNodesRsp struct {
@@ -147,7 +147,7 @@ type WebValidateResult struct {
 	ServerName  string `json:"server_name" db:"server_name"`
 }
 
-type SummeryValidateResultInfo struct {
+type ValidateResultInfo struct {
 	DeviceID      string    `db:"device_id"`
 	ValidatorID   string    `db:"validator_id"`
 	BlockNumber   int64     `db:"block_number"`
@@ -155,4 +155,9 @@ type SummeryValidateResultInfo struct {
 	ValidateTime  time.Time `db:"validate_time"`
 	Duration      int64     `db:"duration"`
 	UploadTraffic float64   `db:"upload_traffic"`
+}
+
+type SummeryValidateResult struct {
+	Total               int                  `json:"total"`
+	ValidateResultInfos []ValidateResultInfo `json:"validate_result_infos"`
 }
