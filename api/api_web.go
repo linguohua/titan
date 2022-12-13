@@ -74,9 +74,9 @@ type WebCarfile struct {
 }
 
 type BaseInfo struct {
-	CarFileCount     int       `json:"car_file_count" redis:"car_file_count"`
-	DownloadCount    int       `json:"download_count" redis:"download_count"`
-	NextElectionTime time.Time `json:"next_election_time" redis:"next_election_time"`
+	CarFileCount     int   `json:"car_file_count" redis:"car_file_count"`
+	DownloadCount    int   `json:"download_count" redis:"download_count"`
+	NextElectionTime int64 `json:"next_election_time" redis:"next_election_time"`
 }
 
 type NodeConnectionStatus int

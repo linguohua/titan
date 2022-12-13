@@ -99,7 +99,7 @@ func (v *Election) elect() error {
 	now := time.Now()
 	v.startTime = now
 	err := cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
-		info.NextElectionTime = now.Add(v.opts.interval)
+		info.NextElectionTime = now.Add(v.opts.interval).Unix()
 	})
 	if err != nil {
 		return err
