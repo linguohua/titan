@@ -23,7 +23,7 @@ type Block interface {
 	GetFID(ctx context.Context, cid string) (string, error) //perm:read
 	DeleteAllBlocks(ctx context.Context) error              //perm:admin
 
-	RemoveWaitCacheBlockWith(ctx context.Context, carfileCID string) error
+	RemoveWaitCacheBlockWith(ctx context.Context, carfileCID string) error //perm:admin
 }
 
 type BlockCacheInfo struct {
