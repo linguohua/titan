@@ -42,7 +42,7 @@ type DB interface {
 	// cache info
 	GetCacheInfo(cacheID string) (*api.CacheInfo, error)
 	RemoveCacheInfo(cacheID, carfileHash string, isDeleteData bool, reliability int) error
-	GetCachesSize(cacheID string, status api.CacheStatus) (int, error)
+	// GetCachesSize(cacheID string, status api.CacheStatus) (int, error)
 
 	// block info
 	// SetBlockInfos(infos []*BlockInfo, carfileCid string) error
@@ -65,6 +65,7 @@ type DB interface {
 	GetBlocksFID(deviceID string) (map[int]string, error)
 	GetBlocksInRange(startFid, endFid int, deviceID string) (map[int]string, error)
 	GetBlocksBiggerThan(startFid int, deviceID string) (map[int]string, error)
+	GetCacheBlocksWithNode(deviceID, cacheID string) ([]*api.BlockInfo, error)
 	CountCidOfDevice(deviceID string) (int64, error)
 	GetNodesWithCache(hash string, isSuccess bool) ([]string, error)
 	// GetNodeBlock(deviceID, cid string) ([]*BlockInfo, error)

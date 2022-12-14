@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -506,7 +507,24 @@ func (m *Manager) StopCacheTask(cid string) error {
 		return err
 	}
 
-	for range nodes {
+	for _, deviceID := range nodes {
+		cNode := m.nodeManager.GetCandidateNode(deviceID)
+		if cNode != nil {
+			err = cNode.NodeAPI.RemoveWaitCacheBlockWith(context.Background(), cid)
+			if err != nil {
+				log.Errorf("%s , RemoveWaitCacheBlockWith err:%s", deviceID, err.Error())
+				continue
+			}
+		}
+
+		eNode := m.nodeManager.GetEdgeNode(deviceID)
+		if eNode != nil {
+			err = eNode.NodeAPI.RemoveWaitCacheBlockWith(context.Background(), cid)
+			if err != nil {
+				log.Errorf("%s , RemoveWaitCacheBlockWith err:%s", deviceID, err.Error())
+				continue
+			}
+		}
 	}
 
 	return nil
@@ -614,6 +632,19 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceID string) {
 	if len(caches) <= 0 {
 		log.Warn("cleanNodeAndRestoreCaches caches is nil")
 		return
+	}
+
+	for _, cache := range caches {
+		blocks, err := persistent.GetDB().GetCacheBlocksWithNode(deviceID, cache.CacheID)
+		if err != nil {
+			log.Errorf("GetCacheBlocksWithNode err:%s", err.Error())
+			continue
+		}
+
+		cache.DoneBlocks -= len(blocks)
+		for _, block := range blocks {
+			cache.DoneSize -= block.Size
+		}
 	}
 
 	// clean node caches and change cache info \ data info

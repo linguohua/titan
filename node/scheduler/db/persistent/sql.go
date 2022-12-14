@@ -216,6 +216,24 @@ func (sd sqlDB) SummaryValidateMessage(startTime, endTime time.Time, pageNumber,
 	return res, nil
 }
 
+func (sd sqlDB) GetCacheBlocksWithNode(deviceID, cacheID string) ([]*api.BlockInfo, error) {
+	area := sd.ReplaceArea()
+
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE cache_id=? AND device_id=? AND status=?`, fmt.Sprintf(blockInfoTable, area))
+	var out []*api.BlockInfo
+	if err := sd.cli.Select(&out, query, cacheID, deviceID, api.CacheStatusSuccess); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+
+	// cmd1 := fmt.Sprintf("SELECT count(id) FROM %s WHERE cache_id=? AND device_id=? AND status=? ;", fmt.Sprintf(blockInfoTable, area))
+	// err = sd.cli.Get(&count, cmd1, cacheID, deviceID, api.CacheStatusSuccess)
+
+	// cmd2 := fmt.Sprintf("SELECT sum(size) FROM %s WHERE cache_id=? AND device_id=? AND status=? ;", fmt.Sprintf(blockInfoTable, area))
+	// err = sd.cli.Get(&size, cmd2, cacheID, deviceID, api.CacheStatusSuccess)
+}
+
 func (sd sqlDB) GetBlocksFID(deviceID string) (map[int]string, error) {
 	area := sd.ReplaceArea()
 
@@ -730,15 +748,15 @@ func (sd sqlDB) GetBlockCountWithStatus(cacheID string, status api.CacheStatus) 
 	return count, err
 }
 
-func (sd sqlDB) GetCachesSize(cacheID string, status api.CacheStatus) (int, error) {
-	area := sd.ReplaceArea()
+// func (sd sqlDB) GetCachesSize(cacheID string, status api.CacheStatus) (int, error) {
+// 	area := sd.ReplaceArea()
 
-	var count int
-	cmd := fmt.Sprintf("SELECT sum(size) FROM %s WHERE cache_id=? AND status=?;", fmt.Sprintf(blockInfoTable, area))
-	err := sd.cli.Get(&count, cmd, cacheID, status)
+// 	var count int
+// 	cmd := fmt.Sprintf("SELECT sum(size) FROM %s WHERE cache_id=? AND status=?;", fmt.Sprintf(blockInfoTable, area))
+// 	err := sd.cli.Get(&count, cmd, cacheID, status)
 
-	return count, err
-}
+// 	return count, err
+// }
 
 func (sd sqlDB) BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error {
 	info := api.NodeRegisterInfo{
@@ -877,8 +895,8 @@ func (sd sqlDB) CleanCacheDataWithNode(deviceID string, caches []*api.CacheInfo)
 	carfileReliabilitys := make(map[string]int)
 	// cache info
 	for _, cache := range caches {
-		cmdC := fmt.Sprintf(`UPDATE %s SET status=? WHERE cache_id=?`, cTableName)
-		tx.MustExec(cmdC, int(api.CacheStatusRestore), cache.CacheID)
+		cmdC := fmt.Sprintf(`UPDATE %s SET status=?,done_size=?,done_blocks=? WHERE cache_id=?`, cTableName)
+		tx.MustExec(cmdC, int(api.CacheStatusRestore), cache.DoneSize, cache.DoneBlocks, cache.CacheID)
 
 		carfileReliabilitys[cache.CarfileHash] += cache.Reliability
 	}
