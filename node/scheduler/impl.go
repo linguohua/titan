@@ -73,7 +73,7 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Sche
 	// open election
 	go ele.Run()
 
-	validate := validate2.NewValidate(nodeManager, false)
+	validate := validate2.NewValidate(nodeManager, true)
 
 	dataManager := data.NewDataManager(nodeManager)
 
@@ -460,7 +460,7 @@ func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID str
 
 // ElectionValidators Validators
 func (s *Scheduler) ElectionValidators(ctx context.Context) error {
-	// return s.election.startElection()
+	s.election.Start()
 	return nil
 }
 
