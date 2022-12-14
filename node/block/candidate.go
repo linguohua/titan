@@ -22,6 +22,10 @@ func (candidate *Candidate) loadBlocks(block *Block, req []*delayReq) {
 	loadBlocksFromCandidate(block, req)
 }
 
+func (candidate *Candidate) syncData(block *Block, reqs []*DataSyncReq) error {
+	return nil
+}
+
 func getBlockFromCandidate(url string, tk string) ([]byte, error) {
 	client := &http.Client{Timeout: helper.BlockDownloadTimeout * time.Second}
 	req, err := http.NewRequest("GET", url, nil)
@@ -127,4 +131,8 @@ func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 
 		log.Infof("loadBlocksFromCandidate, cid:%s,err:%v", req.blockInfo.Cid, err)
 	}
+}
+
+func syncDataFromCandidate(block *Block, reqs []*DataSyncReq) error {
+	return nil
 }

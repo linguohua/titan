@@ -25,6 +25,10 @@ func (ipfs *IPFS) loadBlocks(block *Block, req []*delayReq) {
 	loadBlocksFromIPFS(block, req)
 }
 
+func (ipfs *IPFS) syncData(block *Block, reqs []*DataSyncReq) error {
+	return nil
+}
+
 // curl "http://127.0.0.1:8080/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi?format=raw" > cat.jpg
 func getBlockFromIPFSGateway(wg *sync.WaitGroup, block *ipfsBlock, url string) {
 	defer wg.Done()

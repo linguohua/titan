@@ -36,7 +36,7 @@ type BlockStruct struct {
 
 		QueryCachingBlocks func(p0 context.Context) (CachingBlockList, error) `perm:"read"`
 
-		RemoveWaitCacheBlockWith func(p0 context.Context, p1 string) error ``
+		RemoveWaitCacheBlockWith func(p0 context.Context, p1 string) error `perm:"admin"`
 	}
 }
 

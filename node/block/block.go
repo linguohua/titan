@@ -44,31 +44,10 @@ type blockStat struct {
 	CacheID     string
 }
 
-type carfile struct {
-	carfileHash string
-	delayReqs   []*delayReq
-	lock        *sync.Mutex
-}
-
-func (carfile *carfile) removeReq(len int) []*delayReq {
-	if carfile == nil {
-		log.Panicf("removeReqFromCarfile,  carfile == nil")
-	}
-	carfile.lock.Lock()
-	defer carfile.lock.Unlock()
-	reqs := carfile.delayReqs[:len]
-	carfile.delayReqs = carfile.delayReqs[len:]
-	return reqs
-}
-
-func (carfile *carfile) addReq(delayReqs []*delayReq) {
-	if carfile == nil {
-		log.Panicf("removeReqFromCarfile,  carfile == nil")
-	}
-
-	carfile.lock.Lock()
-	defer carfile.lock.Unlock()
-	carfile.delayReqs = append(carfile.delayReqs, delayReqs...)
+type DataSyncReq struct {
+	cid           string
+	downloadURL   string
+	downloadToken string
 }
 
 type Block struct {
@@ -76,12 +55,11 @@ type Block struct {
 	blockStore blockstore.BlockStore
 	scheduler  api.Scheduler
 	// carfile block list
-	carfileList list.List
+	carfileList *list.List
 	// key is carfile hash
 	carfileMap    map[string]*list.Element
 	cachingList   []*delayReq
 	saveBlockLock *sync.Mutex
-	// reqListLock   *sync.Mutex
 	block         BlockInterface
 	deviceID      string
 	exchange      exchange.Interface
@@ -92,6 +70,7 @@ type Block struct {
 // TODO need to rename
 type BlockInterface interface {
 	loadBlocks(block *Block, req []*delayReq)
+	syncData(block *Block, reqs []*DataSyncReq) error
 }
 
 func NewBlock(ds datastore.Batching, blockStore blockstore.BlockStore, scheduler api.Scheduler, blockInterface BlockInterface, ipfsGateway, deviceID string) *Block {
@@ -107,6 +86,8 @@ func NewBlock(ds datastore.Batching, blockStore blockstore.BlockStore, scheduler
 		// reqListLock:   &sync.Mutex{},
 		blockLoaderCh: make(chan bool),
 		ipfsGateway:   ipfsGateway,
+		carfileList:   list.New(),
+		carfileMap:    make(map[string]*list.Element),
 	}
 
 	go block.startBlockLoader()
@@ -205,7 +186,7 @@ func (block *Block) addReq2WaitList(req *api.ReqCacheData) {
 }
 
 func (block *Block) cacheResultWithError(ctx context.Context, bStat blockStat, err error) {
-	log.Errorf("cacheResultWithError, cid:%s, fid:%s, cacheID:%s, carFileHash:%s, error:%v", bStat.cid, bStat.CacheID, bStat.carFileHash, err)
+	log.Errorf("cacheResultWithError, cid:%s, cacheID:%s, carFileHash:%s, error:%v", bStat.cid, bStat.CacheID, bStat.carFileHash, err)
 	block.cacheResult(ctx, err, bStat)
 }
 
@@ -301,6 +282,13 @@ func (block *Block) RemoveWaitCacheBlockWith(ctx context.Context, carfileCID str
 		log.Errorf("RemoveWaitingBlockWithCarfileCID, no carfile %s block wait cache", carfileCID)
 		return nil
 	}
+
+	carfile, ok := element.Value.(*carfile)
+	if !ok {
+		log.Panicf("addReq2WaitList error, can convert elemnet to carfile")
+	}
+
+	carfile.delayReqs = nil
 
 	delete(block.carfileMap, carfileHash)
 	block.carfileList.Remove(element)
@@ -460,6 +448,10 @@ func (block *Block) resolveLinks(blk blocks.Block) ([]*format.Link, error) {
 	}
 
 	return node.Links(), nil
+}
+
+func (block *Block) SyncData(reqs []*DataSyncReq) error {
+	return block.block.syncData(block, reqs)
 }
 
 func getLinks(block *Block, data []byte, cidStr string) ([]*format.Link, error) {
