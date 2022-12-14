@@ -7,6 +7,7 @@ import (
 	"github.com/robfig/cron"
 	"golang.org/x/xerrors"
 	"math/rand"
+	"sync"
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -56,7 +57,8 @@ type Validate struct {
 	// fid is maximum value of each device storage record
 	// key is device id
 	// value is fid
-	maxFidMap map[string]int64
+
+	maxFidMap sync.Map
 
 	// temporary storage of call back message
 	resultQueue *list.List
@@ -81,7 +83,7 @@ func (v *Validate) initValidateTask() {
 	err := v.crontab.AddFunc(spec, func() {
 		err := v.startValidate()
 		if err != nil {
-			log.Panicf("startValidate err:%s", err.Error())
+			log.Errorf("startValidate err:%s", err.Error())
 		}
 	})
 
@@ -115,7 +117,7 @@ func NewValidate(manager *node.Manager, open bool) *Validate {
 	return e
 }
 
-func (v *Validate) assemblyReqValidates(validatorID string, list []*tmpDeviceMeta) []api.ReqValidate {
+func (v *Validate) assemblyReqValidates(validatorID string, list []tmpDeviceMeta) []api.ReqValidate {
 	req := make([]api.ReqValidate, 0)
 
 	for _, device := range list {
@@ -138,7 +140,7 @@ func (v *Validate) assemblyReqValidates(validatorID string, list []*tmpDeviceMet
 			continue
 		}
 
-		v.maxFidMap[device.deviceId] = maxFid
+		v.maxFidMap.Store(device.deviceId, maxFid)
 
 		req = append(req, api.ReqValidate{Seed: v.seed, NodeURL: device.addr, Duration: v.duration, RoundID: v.curRoundId, NodeType: int(device.nodeType), MaxFid: int(maxFid)})
 
@@ -210,24 +212,23 @@ func (v *Validate) doCallback() {
 			if err != nil {
 				log.Errorf("deviceId[%s] handle validate result fail : %s", validateResults.DeviceID, err.Error())
 			}
-			v.resultQueue.Remove(element) // Dequeue
 		}
+		v.resultQueue.Remove(element) // Dequeue
 	}
 }
 
 func (v *Validate) PushResultToQueue(validateResults *api.ValidateResults) {
-	log.Infof("validateResult:%s,round:%d", validateResults.DeviceID, validateResults.RoundID)
 	v.resultQueue.PushBack(validateResults)
 	v.resultChannel <- true
 }
 
 func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) error {
-	log.Debug("validate result : %v", *validateResults)
 	if validateResults.RoundID != v.curRoundId {
-		return xerrors.Errorf("roundID err")
+		return xerrors.Errorf("round id mismatch")
 	}
 
-	log.Infof("do validate:%s,round:%d", validateResults.DeviceID, validateResults.RoundID)
+	log.Infof("%s : %d, %s : %s", "validated round", validateResults.RoundID, "device id", validateResults.DeviceID)
+	log.Debugf("validate result : %+v", *validateResults)
 
 	defer func() {
 		count, err := cache.GetDB().CountVerifyingNode(v.ctx)
@@ -247,10 +248,8 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 		}
 	}()
 
-	deviceID := validateResults.DeviceID
-
 	if validateResults.IsTimeout {
-		return v.UpdateFailValidateResult(v.curRoundId, deviceID, errMsgTimeOut, persistent.ValidateStatusTimeOut)
+		return v.UpdateFailValidateResult(v.curRoundId, validateResults.DeviceID, errMsgTimeOut, persistent.ValidateStatusTimeOut)
 	}
 
 	r := rand.New(rand.NewSource(v.seed))
@@ -259,16 +258,17 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 	if cidLength <= 0 || validateResults.RandomCount <= 0 {
 		msg := fmt.Sprintf(errMsgBlockNil, cidLength, validateResults.RandomCount)
 		log.Debug("validate fail :", msg)
-		return v.UpdateFailValidateResult(v.curRoundId, deviceID, msg, persistent.ValidateStatusFail)
+		return v.UpdateFailValidateResult(v.curRoundId, validateResults.DeviceID, msg, persistent.ValidateStatusFail)
 	}
 
-	cacheInfos, err := persistent.GetDB().GetBlocksFID(deviceID)
+	cacheInfos, err := persistent.GetDB().GetBlocksFID(validateResults.DeviceID)
 	if err != nil || len(cacheInfos) <= 0 {
-		msg := fmt.Sprintf("failed to query by device [%s] : %s", deviceID, err.Error())
-		return v.UpdateFailValidateResult(v.curRoundId, deviceID, msg, persistent.ValidateStatusOther)
+		msg := fmt.Sprintf("failed to query by device [%s] : %s", validateResults.DeviceID, err.Error())
+		return v.UpdateFailValidateResult(v.curRoundId, validateResults.DeviceID, msg, persistent.ValidateStatusOther)
 	}
 
-	maxFid := v.maxFidMap[deviceID]
+	mFValue, _ := v.maxFidMap.Load(validateResults.DeviceID)
+	maxFid := mFValue.(int64)
 
 	for index := 0; index < validateResults.RandomCount; index++ {
 		fid := v.getRandNum(int(maxFid), r) + 1
@@ -282,7 +282,7 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 		if !v.compareCid(cid, resultCid) {
 			msg := fmt.Sprintf(errMsgCidFail, resultCid, cid, fid, index)
 			log.Debug("validate fail :", msg)
-			return v.UpdateFailValidateResult(v.curRoundId, deviceID, msg, persistent.ValidateStatusFail)
+			return v.UpdateFailValidateResult(v.curRoundId, validateResults.DeviceID, msg, persistent.ValidateStatusFail)
 		}
 	}
 
@@ -331,11 +331,11 @@ type tmpDeviceMeta struct {
 }
 
 // verified edge node are allocated to verifiers one by one
-func (v *Validate) validateMapping(validatorList []string) (map[string][]*tmpDeviceMeta, error) {
-	result := make(map[string][]*tmpDeviceMeta)
+func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDeviceMeta, error) {
+	result := make(map[string][]tmpDeviceMeta)
 	edges := v.nodeManager.GetAllEdge()
 	for _, edgeNode := range edges {
-		tn := new(tmpDeviceMeta)
+		var tn tmpDeviceMeta
 		tn.nodeType = api.NodeEdge
 		tn.deviceId = edgeNode.DeviceInfo.DeviceId
 		tn.addr = edgeNode.Node.Addr
@@ -346,7 +346,7 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]*tmpDev
 			validated = append(validated, tn)
 			result[validatorID] = validated
 		} else {
-			vd := make([]*tmpDeviceMeta, 0)
+			vd := make([]tmpDeviceMeta, 0)
 			vd = append(vd, tn)
 			result[validatorID] = vd
 		}
@@ -354,7 +354,7 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]*tmpDev
 
 	candidates := v.nodeManager.GetAllCandidate()
 	for _, candidateNode := range candidates {
-		tn := new(tmpDeviceMeta)
+		var tn tmpDeviceMeta
 		tn.deviceId = candidateNode.DeviceInfo.DeviceId
 		tn.nodeType = api.NodeCandidate
 		tn.addr = candidateNode.Node.Addr
@@ -368,7 +368,7 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]*tmpDev
 			validated = append(validated, tn)
 			result[validatorID] = validated
 		} else {
-			vd := make([]*tmpDeviceMeta, 0)
+			vd := make([]tmpDeviceMeta, 0)
 			vd = append(vd, tn)
 			result[validatorID] = vd
 		}
@@ -383,7 +383,7 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]*tmpDev
 
 // Validate
 func (v *Validate) startValidate() error {
-
+	log.Info("=======>> start validate <<=======")
 	// before opening validation
 	// check the last round of verification
 	err := v.checkValidateTimeOut()
@@ -397,10 +397,21 @@ func (v *Validate) startValidate() error {
 		return nil
 	}
 
+	err = v.execute()
+	if err != nil {
+		v.validateState = validationNotStarted
+		log.Errorf(err.Error())
+		return err
+	}
+	return nil
+}
+
+func (v *Validate) execute() error {
+	log.Info("=======>> begin execute <<=======")
+
 	v.validateState = validationStarting
 
-	log.Info("------------startValidate:")
-	err = cache.GetDB().RemoveVerifyingList()
+	err := cache.GetDB().RemoveVerifyingList()
 	if err != nil {
 		return err
 	}
@@ -411,7 +422,7 @@ func (v *Validate) startValidate() error {
 	}
 	v.curRoundId = cur
 	v.seed = time.Now().UnixNano()
-	v.maxFidMap = make(map[string]int64)
+	// v.maxFidMap = make(map[string]int64)
 
 	validatorList, err := cache.GetDB().GetValidatorsWithList()
 	if err != nil {
@@ -420,8 +431,7 @@ func (v *Validate) startValidate() error {
 
 	// no successful election
 	if validatorList == nil || len(validatorList) == 0 {
-		log.Warn("validator list is null")
-		return nil
+		return fmt.Errorf("validator list is null")
 	}
 
 	log.Debug("validator is", validatorList)
@@ -432,24 +442,27 @@ func (v *Validate) startValidate() error {
 	}
 
 	for validatorID, validatedList := range validatorMap {
+		vi := validatorID
+		vl := validatedList
+		go func(vId string, list []tmpDeviceMeta) {
+			log.Debugf("validator id : %s, list : %v", vId, list)
+			req := v.assemblyReqValidates(vId, list)
 
-		req := v.assemblyReqValidates(validatorID, validatedList)
+			validator := v.nodeManager.GetCandidateNode(vId)
+			if validator == nil {
+				log.Warnf("validator [%s] is null", vId)
+				return
+			}
 
-		validator := v.nodeManager.GetCandidateNode(validatorID)
-		if validator == nil {
-			log.Warnf("validator [%s] is null", validatorID)
-			continue
-		}
+			err = validator.NodeAPI.ValidateBlocks(v.ctx, req)
+			if err != nil {
+				log.Errorf(err.Error())
+				return
+			}
+			log.Debugf("validator id : %s, send success", vId)
 
-		err = validator.NodeAPI.ValidateBlocks(v.ctx, req)
-		if err != nil {
-			log.Errorf(err.Error())
-			continue
-		}
-
-		log.Infof("validatorID :%s, List:%v", validatorID, validatedList)
+		}(vi, vl)
 	}
-
 	return nil
 }
 

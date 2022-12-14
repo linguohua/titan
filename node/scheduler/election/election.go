@@ -119,6 +119,10 @@ func (v *Election) elect() error {
 	return v.saveWinners(winners)
 }
 
+func (v *Election) Start() {
+	v.update <- struct{}{}
+}
+
 func (v *Election) winner(isAppend bool) ([]*node.CandidateNode, error) {
 	var out []*node.CandidateNode
 	defer func() {
