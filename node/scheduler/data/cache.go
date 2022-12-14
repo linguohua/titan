@@ -330,16 +330,17 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	reliability := 0
 
 	if info.IsOK {
-		if api.CacheStatus(c.Status) == api.CacheStatusCreate {
+		if api.CacheStatus(c.Status) == api.CacheStatusCreate || api.CacheStatus(c.Status) == api.CacheStatusFail {
 			if hash == c.CarfileHash {
 				c.TotalSize = int(info.LinksSize) + info.BlockSize
 				c.TotalBlocks = 1
 			}
 			c.TotalBlocks += len(info.Links)
-
-			c.DoneBlocks++
-			c.DoneSize += info.BlockSize
 		}
+
+		c.DoneBlocks++
+		c.DoneSize += info.BlockSize
+		// }
 		status = api.CacheStatusSuccess
 		reliability = c.calculateReliability(blockInfo.DeviceID)
 
