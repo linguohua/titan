@@ -650,6 +650,7 @@ func statisticsPing(ip string) (*ping.Statistics, error) {
 	}
 
 	pinger.Count = 3
+	pinger.Timeout = 5 * time.Second
 	err = pinger.Run()
 	if err != nil {
 		return nil, err

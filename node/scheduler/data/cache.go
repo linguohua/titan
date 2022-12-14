@@ -515,6 +515,11 @@ func (c *Cache) endCache(unDoneBlocks int, status api.CacheStatus) (err error) {
 }
 
 func (c *Cache) removeCache() error {
+	err := cache.GetDB().RemoveRunningDataTask(c.CarfileHash, c.CacheID)
+	if err != nil {
+		err = xerrors.Errorf("removeCache RemoveRunningDataTask err: %s", err.Error())
+	}
+
 	reliability := c.Data.Reliability
 
 	blocks, err := persistent.GetDB().GetAllBlocks(c.CacheID)
