@@ -371,6 +371,33 @@ func (locator *Locator) GetDownloadInfoWithBlock(ctx context.Context, cid string
 	return api.DownloadInfoResult{}, nil
 }
 
+func (locator *Locator) UserDownloadBlockResults(ctx context.Context, results []api.UserBlockDownloadResult) error {
+	ip := handler.GetRequestIP(ctx)
+	areaID := ""
+	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
+	if err != nil {
+		log.Errorf("GetAccessPoints get geo from ip error %s", err.Error())
+	} else {
+		areaID = geoInfo.Geo
+	}
+
+	log.Infof("user %s get Area areaID %s", ip, areaID)
+
+	if areaID == "" || areaID == "unknown-unknown-unknown" {
+		log.Errorf("user %s can not get areaID", ip)
+		areaID = defaultAreaID
+	}
+
+	schedulerAPI, ok := locator.apMgr.randSchedulerAPI(areaID)
+	if !ok {
+		schedulerAPI, ok = locator.getFirstOnlineSchedulerAPIAt(areaID)
+	}
+	if ok {
+		return schedulerAPI.UserDownloadBlockResults(ctx, results)
+	}
+	return nil
+}
+
 func (locator *Locator) newAuthTokenFromScheduler(schedulerAPI *schedulerAPI, securityKey string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
 	defer cancel()

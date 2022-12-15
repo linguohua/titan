@@ -194,6 +194,8 @@ type LocatorStruct struct {
 		RemoveAccessPoints func(p0 context.Context, p1 string) error `perm:"admin"`
 
 		ShowAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
+
+		UserDownloadBlockResults func(p0 context.Context, p1 []UserBlockDownloadResult) error `perm:"read"`
 	}
 }
 
@@ -782,6 +784,17 @@ func (s *LocatorStruct) ShowAccessPoint(p0 context.Context, p1 string) (AccessPo
 
 func (s *LocatorStub) ShowAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
 	return *new(AccessPoint), ErrNotSupported
+}
+
+func (s *LocatorStruct) UserDownloadBlockResults(p0 context.Context, p1 []UserBlockDownloadResult) error {
+	if s.Internal.UserDownloadBlockResults == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.UserDownloadBlockResults(p0, p1)
+}
+
+func (s *LocatorStub) UserDownloadBlockResults(p0 context.Context, p1 []UserBlockDownloadResult) error {
+	return ErrNotSupported
 }
 
 func (s *SchedulerStruct) CacheCarfile(p0 context.Context, p1 string, p2 int, p3 int) error {
