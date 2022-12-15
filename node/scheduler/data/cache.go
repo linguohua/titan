@@ -576,9 +576,11 @@ func (c *Cache) removeCache() error {
 		c.Data.Reliability = reliability
 	}
 
-	err = cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
-		info.CarFileCount--
-	})
+	if c.Status == api.CacheStatusSuccess {
+		err = cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
+			info.CarFileCount--
+		})
+	}
 
 	return err
 }

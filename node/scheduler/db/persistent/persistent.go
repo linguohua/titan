@@ -40,6 +40,7 @@ type DB interface {
 	GetMinExpiredTimeWithCaches() (time.Time, error)
 
 	// cache info
+	GetSuccessCaches() ([]*api.CacheInfo, error)
 	GetCacheInfo(cacheID string) (*api.CacheInfo, error)
 	RemoveCacheInfo(cacheID, carfileHash string, isDeleteData bool, reliability int) error
 	// GetCachesSize(cacheID string, status api.CacheStatus) (int, error)

@@ -615,6 +615,18 @@ func (sd sqlDB) GetCachesWithData(hash string) ([]string, error) {
 	return list, err
 }
 
+func (sd sqlDB) GetSuccessCaches() ([]*api.CacheInfo, error) {
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE status=?`,
+		fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+
+	var out []*api.CacheInfo
+	if err := sd.cli.Select(&out, query, api.CacheStatusSuccess); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
 func (sd sqlDB) GetCacheInfo(cacheID string) (*api.CacheInfo, error) {
 	area := sd.ReplaceArea()
 

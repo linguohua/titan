@@ -63,6 +63,7 @@ func NewDataManager(nodeManager *node.Manager) *Manager {
 		runningTaskMax:   5,
 	}
 
+	d.initSystemData()
 	go d.run()
 
 	return d
@@ -84,6 +85,18 @@ func (m *Manager) run() {
 			m.doCacheResults()
 		}
 	}
+}
+
+func (m *Manager) initSystemData() {
+	infos, err := persistent.GetDB().GetSuccessCaches()
+	if err != nil {
+		log.Warnf("initSystemData GetSuccessCaches err:%s", err.Error())
+		return
+	}
+
+	err = cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
+		info.CarFileCount = len(infos)
+	})
 }
 
 func (m *Manager) getWaitingDataTask(index int64) (api.DataInfo, error) {
@@ -634,16 +647,22 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceID string) {
 		return
 	}
 
-	for _, cache := range caches {
-		blocks, err := persistent.GetDB().GetCacheBlocksWithNode(deviceID, cache.CacheID)
+	for _, c := range caches {
+		blocks, err := persistent.GetDB().GetCacheBlocksWithNode(deviceID, c.CacheID)
 		if err != nil {
 			log.Errorf("GetCacheBlocksWithNode err:%s", err.Error())
 			continue
 		}
 
-		cache.DoneBlocks -= len(blocks)
+		c.DoneBlocks -= len(blocks)
 		for _, block := range blocks {
-			cache.DoneSize -= block.Size
+			c.DoneSize -= block.Size
+		}
+
+		if c.Status == api.CacheStatusSuccess {
+			err = cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
+				info.CarFileCount--
+			})
 		}
 	}
 
@@ -667,6 +686,7 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceID string) {
 			continue
 		}
 
+		// Restore cache
 		err = cache.GetDB().SetWaitingDataTask(api.DataInfo{CarfileHash: carfileHash, CarfileCid: info.CarfileCid, NeedReliability: info.NeedReliability, ExpiredTime: info.ExpiredTime})
 		if err != nil {
 			log.Errorf("cleanNodeAndRestoreCaches SetWaitingDataTask err:%s", err.Error())
@@ -678,12 +698,6 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceID string) {
 			log.Errorf("cleanNodeAndRestoreCaches SetEventInfo err:%s", err.Error())
 			continue
 		}
-
-		// err = m.CacheData(info.CarfileCid, info.NeedReliability, info.ExpiredTime)
-		// if err != nil {
-		// 	log.Errorf("cleanNodeAndRestoreCaches err:%s", err.Error())
-		// 	continue
-		// }
 
 	}
 
