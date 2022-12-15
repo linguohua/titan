@@ -152,10 +152,15 @@ func readMsgType(buf []byte) (api.ValidateTcpMsgType, error) {
 }
 
 func readContentLen(conn net.Conn) (int, error) {
-	buffer := make([]byte, 4)
-	_, err := conn.Read(buffer)
+	bufferLen := 4
+	buffer := make([]byte, bufferLen)
+	n, err := conn.Read(buffer)
 	if err != nil {
 		return 0, err
+	}
+
+	if n != bufferLen {
+		return 0, fmt.Errorf("readContentLen error,bufferLen != %d", bufferLen)
 	}
 
 	var contentLen int32
