@@ -345,6 +345,7 @@ func (s *Scheduler) recordDownloadBlock(record cache.DownloadBlockRecord, nodeRe
 			info.BlockCID = blockCID
 			info.BlockSize = blockInfo.Size
 			info.ClientIP = clientIP
+			info.CompleteTime = time.Unix(0, 0)
 		}
 
 		if info.BlockCID == info.CarfileCID {
