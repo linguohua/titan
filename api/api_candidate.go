@@ -31,7 +31,7 @@ type ValidateResults struct {
 	IsCancel  bool
 	DeviceID  string
 	Bandwidth float64
-	// microsecond duration
+	// millisecond duration
 	CostTime  int64
 	IsTimeout bool
 	// key is random index

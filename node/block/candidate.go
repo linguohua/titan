@@ -23,6 +23,30 @@ func (candidate *Candidate) loadBlocks(block *Block, req []*delayReq) {
 }
 
 func (candidate *Candidate) syncData(block *Block, reqs []*DataSyncReq) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	candidates := make(map[string]api.Candidate)
+
+	for _, req := range reqs {
+		candidate, err := getCandidateAPI(req.DownloadURL, req.DownloadToken, candidates)
+		if err != nil {
+			log.Errorf("syncData getCandidateAPI error:%s", err.Error())
+			continue
+		}
+
+		data, err := candidate.LoadBlock(ctx, req.Cid)
+		if err != nil {
+			log.Errorf("syncData LoadBlock error:%s", err.Error())
+			continue
+		}
+
+		err = block.saveBlock(ctx, data, req.Cid, fmt.Sprintf("%d", req.Fid))
+		if err != nil {
+			log.Errorf("syncData save block error:%s", err.Error())
+			continue
+		}
+	}
 	return nil
 }
 

@@ -26,6 +26,33 @@ func (ipfs *IPFS) loadBlocks(block *Block, req []*delayReq) {
 }
 
 func (ipfs *IPFS) syncData(block *Block, reqs []*DataSyncReq) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	for _, req := range reqs {
+		target, err := cid.Decode(req.Cid)
+		if err != nil {
+			log.Errorf("loadBlocksAsync failed to decode CID %v", err)
+			continue
+		}
+
+		blocks, err := getBlocksWithHttp(block, []cid.Cid{target})
+		if err != nil {
+			log.Errorf("syncData getBlocksWithHttp err %v", err)
+			return err
+		}
+
+		if len(blocks) == 0 {
+			return fmt.Errorf("syncData get blocks is empty")
+		}
+
+		err = block.saveBlock(ctx, blocks[0].RawData(), req.Cid, fmt.Sprintf("%d", req.Fid))
+		if err != nil {
+			log.Errorf("loadBlocksFromIPFS save block error:%s", err.Error())
+			continue
+		}
+	}
+
 	return nil
 }
 

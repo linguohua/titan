@@ -45,9 +45,10 @@ type blockStat struct {
 }
 
 type DataSyncReq struct {
-	cid           string
-	downloadURL   string
-	downloadToken string
+	Fid           int
+	Cid           string
+	DownloadURL   string
+	DownloadToken string
 }
 
 type Block struct {
