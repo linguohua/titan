@@ -150,8 +150,8 @@ var runCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "tcp-srv-addr",
-			Usage: "tcp server addr, use by edge node validate data: --tcp-srv-addr=0.0.0.0:4000",
-			Value: "0.0.0.0:4000", // should follow --repo default
+			Usage: "tcp server addr, use by edge node validate data: --tcp-srv-addr=0.0.0.0:9000",
+			Value: "0.0.0.0:9000", // should follow --repo default
 		},
 		&cli.StringFlag{
 			Name:    "secret",
