@@ -25,7 +25,7 @@ func packData(data []byte, msgType api.ValidateTcpMsgType) ([]byte, error) {
 	// msg type is uint8
 	msgTypeLen := 1
 	contentLen := int32(msgTypeLen + len(data))
-
+	log.Infof("packData, len:%d", len(data))
 	lenBuf := new(bytes.Buffer)
 	err := binary.Write(lenBuf, binary.LittleEndian, contentLen)
 	if err != nil {
