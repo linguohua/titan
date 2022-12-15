@@ -282,6 +282,7 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 		if !v.compareCid(cid, resultCid) {
 			msg := fmt.Sprintf(errMsgCidFail, resultCid, cid, fid, index)
 			log.Debug("validate fail :", msg)
+			log.Infof("validate fail resultCid:%s,cid_db:%s,fid:%d,index:%d", resultCid, cid, fid, index)
 			return v.UpdateFailValidateResult(v.curRoundId, validateResults.DeviceID, msg, persistent.ValidateStatusFail)
 		}
 	}
@@ -445,7 +446,7 @@ func (v *Validate) execute() error {
 		vi := validatorID
 		vl := validatedList
 		go func(vId string, list []tmpDeviceMeta) {
-			log.Debugf("validator id : %s, list : %v", vId, list)
+			log.Infof("validator id : %s, list : %v", vId, list)
 			req := v.assemblyReqValidates(vId, list)
 
 			validator := v.nodeManager.GetCandidateNode(vId)

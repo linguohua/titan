@@ -96,15 +96,6 @@ func (v *Election) Run() {
 }
 
 func (v *Election) elect() error {
-	now := time.Now()
-	v.startTime = now
-	err := cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
-		info.NextElectionTime = now.Add(v.opts.interval).Unix()
-	})
-	if err != nil {
-		return err
-	}
-
 	log.Info("election starting")
 	defer func() {
 		log.Infof("election completed, cost: %v", time.Since(v.startTime))
@@ -127,6 +118,17 @@ func (v *Election) winner(isAppend bool) ([]*node.CandidateNode, error) {
 	var out []*node.CandidateNode
 	defer func() {
 		log.Infof("election winners count: %d", len(out))
+	}()
+
+	defer func() {
+		now := time.Now()
+		v.startTime = now
+		err := cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
+			info.NextElectionTime = now.Add(v.opts.interval).Unix()
+		})
+		if err != nil {
+			log.Error(err.Error())
+		}
 	}()
 
 	if !v.sufficientCandidates() {
