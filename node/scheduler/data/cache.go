@@ -345,6 +345,9 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		reliability = c.calculateReliability(blockInfo.DeviceID)
 
 		c.updateNodeBlockInfo(info.DeviceID, blockInfo.Source, info.BlockSize)
+
+		//
+		c.alreadyCacheBlockMap[hash] = info.DeviceID
 	}
 
 	// if api.CacheStatus(c.Status) != api.CacheStatusRestore {
