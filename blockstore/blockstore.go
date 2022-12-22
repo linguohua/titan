@@ -32,15 +32,16 @@ func NewBlockStore(path string, storeType string) BlockStore {
 }
 
 var (
-	RocksDB   rocksdb
+	// RocksDB   rocksdb
 	FileStore fileStore
 )
 
 func NewBlockStoreFromString(t string, path string) BlockStore {
 	switch t {
 	case "RocksDB":
-		RocksDB.Path = path
-		return &RocksDB
+		// RocksDB.Path = path
+		// return &RocksDB
+		return nil
 	case "FileStore":
 		FileStore.Path = path
 		return &FileStore
