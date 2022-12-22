@@ -190,6 +190,8 @@ func (d *Data) dispatchCache(cache *Cache) (*Cache, error) {
 	var list map[string]string
 
 	if cache != nil {
+		cache.updateAlreadyMap()
+
 		list, err = persistent.GetDB().GetUndoneBlocks(cache.CacheID)
 		if err != nil {
 			return cache, err

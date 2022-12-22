@@ -103,17 +103,23 @@ func loadCache(cacheID, carfileHash string, nodeManager *node.Manager, data *Dat
 	c.IsRootCache = info.RootCache
 	c.ExpiredTime = info.ExpiredTime
 
+	// c.updateAlreadyMap()
+
+	return c
+}
+
+func (c *Cache) updateAlreadyMap() {
+	c.alreadyCacheBlockMap = map[string]string{}
+
 	blocks, err := persistent.GetDB().GetBlocksWithStatus(c.CacheID, api.CacheStatusSuccess)
 	if err != nil {
-		log.Errorf("loadCache %s,%s GetBlocksWithStatus err:%v", carfileHash, cacheID, err)
-		return c
+		log.Errorf("loadCache %s GetBlocksWithStatus err:%v", c.CacheID, err)
+		return
 	}
 
 	for _, block := range blocks {
 		c.alreadyCacheBlockMap[block.CIDHash] = block.DeviceID
 	}
-
-	return c
 }
 
 // Notify node to cache blocks
@@ -202,9 +208,11 @@ func (c *Cache) findIdleNode(skips map[string]string, i int) (deviceID string) {
 }
 
 // Allocate blocks to nodes
-func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*api.BlockInfo, map[string][]api.BlockCacheInfo) {
+func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*api.BlockInfo, map[string][]api.BlockCacheInfo, []string) {
 	nodeCacheMap := make(map[string][]api.BlockCacheInfo)
 	blockList := make([]*api.BlockInfo, 0)
+
+	notNodeCids := make([]string, 0)
 
 	i := 0
 	for cid, dbID := range cids {
@@ -260,6 +268,8 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*api.BlockInfo,
 				nodeCacheMap[deviceID] = cList
 
 				c.alreadyCacheBlockMap[hash] = deviceID
+			} else {
+				notNodeCids = append(notNodeCids, cid)
 			}
 		}
 
@@ -279,7 +289,7 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*api.BlockInfo,
 		blockList = append(blockList, b)
 	}
 
-	return blockList, nodeCacheMap
+	return blockList, nodeCacheMap, notNodeCids
 }
 
 // Notify nodes to cache blocks and setting timeout
@@ -398,7 +408,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		}
 	}
 
-	saveDbBlocks, nodeCacheMap := c.allocateBlocksToNodes(linkMap)
+	saveDbBlocks, nodeCacheMap, _ := c.allocateBlocksToNodes(linkMap)
 	// save info to db
 	err = c.Data.updateAndSaveCacheingInfo(bInfo, c, saveDbBlocks)
 	if err != nil {
@@ -452,7 +462,7 @@ func (c *Cache) updateNodeBlockInfo(deviceID, fromID string, blockSize int) {
 }
 
 func (c *Cache) startCache(cids map[string]string) error {
-	saveDbBlocks, nodeCacheMap := c.allocateBlocksToNodes(cids)
+	saveDbBlocks, nodeCacheMap, notNodeCids := c.allocateBlocksToNodes(cids)
 
 	err := persistent.GetDB().SaveCacheingResults(nil, nil, nil, saveDbBlocks)
 	if err != nil {
@@ -460,7 +470,7 @@ func (c *Cache) startCache(cids map[string]string) error {
 	}
 
 	if len(nodeCacheMap) <= 0 {
-		return xerrors.Errorf("startCache %s fail not find node", c.CacheID)
+		return xerrors.Errorf("startCache %s fail not find node , cids:%v", c.CacheID, notNodeCids)
 	}
 
 	// log.Infof("start cache %s,%s ---------- ", c.CarfileHash, c.CacheID)
