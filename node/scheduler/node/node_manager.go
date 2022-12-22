@@ -176,7 +176,7 @@ func (m *Manager) GetNodes(nodeType api.NodeTypeName) ([]string, error) {
 	return list, nil
 }
 
-// GetAllCandidate get nodes
+// GetAllCandidate get all candidate node
 func (m *Manager) GetAllCandidate() []*CandidateNode {
 	list := make([]*CandidateNode, 0)
 
@@ -190,7 +190,7 @@ func (m *Manager) GetAllCandidate() []*CandidateNode {
 	return list
 }
 
-// GetAllEdge get nodes
+// GetAllEdge  get all edge node
 func (m *Manager) GetAllEdge() []*EdgeNode {
 	list := make([]*EdgeNode, 0)
 

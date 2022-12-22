@@ -785,25 +785,33 @@ func (sd sqlDB) BindRegisterInfo(secret, deviceID string, nodeType api.NodeType)
 }
 
 func (sd sqlDB) GetRegisterInfo(deviceID string) (*api.NodeRegisterInfo, error) {
-	info := &api.NodeRegisterInfo{
-		DeviceID: deviceID,
+	// info := &api.NodeRegisterInfo{
+	// 	DeviceID: deviceID,
+	// }
+
+	info := &api.NodeRegisterInfo{}
+	query := "SELECT * FROM register WHERE device_id=?"
+	if err := sd.cli.Get(info, query, deviceID); err != nil {
+		return nil, err
 	}
 
-	rows, err := sd.cli.NamedQuery(`SELECT * FROM register WHERE device_id=:device_id`, info)
-	if err != nil {
-		return info, err
-	}
-	defer rows.Close()
-	if rows.Next() {
-		err = rows.StructScan(info)
-		if err != nil {
-			return info, err
-		}
-	} else {
-		return info, xerrors.New(errNotFind)
-	}
+	return info, nil
 
-	return info, err
+	// rows, err := sd.cli.NamedQuery(`SELECT * FROM register WHERE device_id=:device_id`, info)
+	// if err != nil {
+	// 	return info, err
+	// }
+	// defer rows.Close()
+	// if rows.Next() {
+	// 	err = rows.StructScan(info)
+	// 	if err != nil {
+	// 		return info, err
+	// 	}
+	// } else {
+	// 	return info, xerrors.New(errNotFind)
+	// }
+
+	// return info, err
 }
 
 func (sd sqlDB) GetNodesWithCache(hash string, isSuccess bool) ([]string, error) {

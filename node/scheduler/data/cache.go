@@ -305,6 +305,9 @@ func (c *Cache) cacheBlocksToNodes(nodeCacheMap map[string][]api.BlockCacheInfo)
 
 	timeStamp := time.Now().Unix()
 	timeout := needTimeMax - timeStamp
+	if timeout <= 0 {
+		timeout = 15
+	}
 	// update data task timeout
 	c.Data.DataManager.updateDataTimeout(c.CarfileHash, c.CacheID, timeout)
 
