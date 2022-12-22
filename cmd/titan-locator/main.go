@@ -120,7 +120,7 @@ var runCmd = &cli.Command{
 			Value: "./cfg.toml",
 		},
 		&cli.StringFlag{
-			Name:  "accesspoint-etcd",
+			Name:  "accesspoint-db",
 			Usage: "use mysql to save config",
 			Value: "user01:sql001@tcp(127.0.0.1:3306)/locator",
 		},
@@ -253,7 +253,7 @@ var runCmd = &cli.Command{
 			log.Errorf("SetConfig err:%s", err.Error())
 		}
 
-		dbAddr := cctx.String("accesspoint-etcd")
+		dbAddr := cctx.String("accesspoint-db")
 		uuid := cctx.String("uuid")
 
 		address := cctx.String("listen")
