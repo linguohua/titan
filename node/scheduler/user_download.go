@@ -42,15 +42,6 @@ func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result a
 		record.NodeStatus = int(blockDownloadStatusSuccess)
 	}
 
-	reward := int64(0)
-	if record.NodeStatus == int(blockDownloadStatusSuccess) && record.UserStatus == int(blockDownloadStatusSuccess) {
-		reward = 1
-		// add reward
-		if err := incrDeviceReward(deviceID, reward); err != nil {
-			return err
-		}
-	}
-
 	s.recordDownloadBlock(record, &result, deviceID, "")
 	return nil
 }
@@ -71,17 +62,6 @@ func (s *Scheduler) handleUserDownloadBlockResult(ctx context.Context, result ap
 	record.UserStatus = int(blockDownloadStatusFailed)
 	if result.Result {
 		record.UserStatus = int(blockDownloadStatusSuccess)
-	}
-
-	var deviceID string
-
-	reward := int64(0)
-	if record.NodeStatus == int(blockDownloadStatusSuccess) && record.UserStatus == int(blockDownloadStatusSuccess) {
-		reward = 1
-		// add reward
-		if err := incrDeviceReward(deviceID, reward); err != nil {
-			return err
-		}
 	}
 
 	s.recordDownloadBlock(record, nil, "", "")
@@ -114,23 +94,17 @@ func (s *Scheduler) GetDownloadInfosWithBlocks(ctx context.Context, cids []strin
 			continue
 		}
 
-		sn, err := cache.GetDB().IncrBlockDownloadSN()
-		if err != nil {
-			continue
-		}
-
-		signTime := time.Now().Unix()
-		infos, err = s.signDownloadInfos(cid, sn, signTime, infos, devicePrivateKey)
+		err = s.signDownloadInfos(cid, infos, devicePrivateKey)
 		if err != nil {
 			continue
 		}
 		infoMap[cid] = infos
 
 		record := cache.DownloadBlockRecord{
-			SN:            sn,
+			SN:            infos[0].SN,
 			ID:            uuid.New().String(),
 			Cid:           cid,
-			SignTime:      signTime,
+			SignTime:      infos[0].SignTime,
 			Timeout:       blockDonwloadTimeout,
 			UserPublicKey: publicKey,
 			NodeStatus:    int(blockDownloadStatusUnknow),
@@ -162,25 +136,18 @@ func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string
 		}
 
 		info := infos[randomNum(0, len(infos))]
-
-		sn, err := cache.GetDB().IncrBlockDownloadSN()
+		err = s.signDownloadInfos(cid, []api.DownloadInfoResult{info}, devicePrivateKey)
 		if err != nil {
 			continue
 		}
 
-		signTime := time.Now().Unix()
-		infos, err = s.signDownloadInfos(cid, sn, signTime, []api.DownloadInfoResult{info}, devicePrivateKey)
-		if err != nil {
-			continue
-		}
-
-		infoMap[cid] = infos[0]
+		infoMap[cid] = info
 
 		record := cache.DownloadBlockRecord{
-			SN:            sn,
+			SN:            info.SN,
 			ID:            uuid.New().String(),
 			Cid:           cid,
-			SignTime:      signTime,
+			SignTime:      info.SignTime,
 			Timeout:       blockDonwloadTimeout,
 			UserPublicKey: publicKey,
 			NodeStatus:    int(blockDownloadStatusUnknow),
@@ -207,22 +174,16 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, pu
 	}
 
 	info := infos[randomNum(0, len(infos))]
-
-	sn, err := cache.GetDB().IncrBlockDownloadSN()
-	if err != nil {
-		return api.DownloadInfoResult{}, err
-	}
-	signTime := time.Now().Unix()
-	infos, err = s.signDownloadInfos(cid, sn, signTime, []api.DownloadInfoResult{info}, make(map[string]*rsa.PrivateKey))
+	err = s.signDownloadInfos(cid, []api.DownloadInfoResult{info}, make(map[string]*rsa.PrivateKey))
 	if err != nil {
 		return api.DownloadInfoResult{}, err
 	}
 
 	record := cache.DownloadBlockRecord{
-		SN:            sn,
+		SN:            info.SN,
 		ID:            uuid.New().String(),
 		Cid:           cid,
-		SignTime:      signTime,
+		SignTime:      info.SignTime,
 		Timeout:       blockDonwloadTimeout,
 		UserPublicKey: publicKey,
 		NodeStatus:    int(blockDownloadStatusUnknow),
@@ -234,7 +195,7 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, pu
 		log.Errorf("GetDownloadInfoWithBlock,recordDownloadBlock error %s", err.Error())
 	}
 
-	return infos[0], nil
+	return info, nil
 }
 
 func (s *Scheduler) verifyNodeResultForUserDownloadBlock(deviceID string, record cache.DownloadBlockRecord, sign []byte) error {
@@ -269,32 +230,40 @@ func (s *Scheduler) verifyUserDownloadBlockSign(publicPem, cid string, sign []by
 	return titanRsa.VerifyRsaSign(publicKey, sign, cid)
 }
 
-func (s *Scheduler) signDownloadInfos(cid string, sn int64, signTime int64, results []api.DownloadInfoResult, devicePrivateKeys map[string]*rsa.PrivateKey) ([]api.DownloadInfoResult, error) {
-	downloadInfoResults := make([]api.DownloadInfoResult, 0, len(results))
-	for _, result := range results {
-		privateKey, ok := devicePrivateKeys[result.DeviceID]
+func (s *Scheduler) signDownloadInfos(cid string, results []api.DownloadInfoResult, devicePrivateKeys map[string]*rsa.PrivateKey) error {
+	sn, err := cache.GetDB().IncrBlockDownloadSN()
+	if err != nil {
+		return err
+	}
+
+	signTime := time.Now().Unix()
+
+	for index := range results {
+		deviceID := results[index].DeviceID
+
+		privateKey, ok := devicePrivateKeys[deviceID]
 		if !ok {
 			var err error
-			privateKey, err = s.getDeviccePrivateKey(result.DeviceID)
+			privateKey, err = s.getDevicePrivateKey(deviceID)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			devicePrivateKeys[result.DeviceID] = privateKey
+			devicePrivateKeys[deviceID] = privateKey
 		}
 
 		sign, err := titanRsa.RsaSign(privateKey, fmt.Sprintf("%s%d%d%d", cid, sn, signTime, blockDonwloadTimeout))
 		if err != nil {
-			return nil, err
+			return err
 		}
-
-		downloadInfoResult := api.DownloadInfoResult{URL: result.URL, Sign: hex.EncodeToString(sign), SN: sn, SignTime: signTime, TimeOut: blockDonwloadTimeout}
-		downloadInfoResults = append(downloadInfoResults, downloadInfoResult)
+		results[index].Sign = hex.EncodeToString(sign)
+		results[index].SN = sn
+		results[index].SignTime = signTime
+		results[index].TimeOut = blockDonwloadTimeout
 	}
-
-	return downloadInfoResults, nil
+	return nil
 }
 
-func (s *Scheduler) getDeviccePrivateKey(deviceID string) (*rsa.PrivateKey, error) {
+func (s *Scheduler) getDevicePrivateKey(deviceID string) (*rsa.PrivateKey, error) {
 	edge := s.nodeManager.GetEdgeNode(deviceID)
 	if edge != nil {
 		return edge.GetPrivateKey(), nil
