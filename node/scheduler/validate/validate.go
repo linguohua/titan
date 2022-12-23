@@ -34,10 +34,7 @@ const (
 	validationStarting
 )
 
-var (
-	log    = logging.Logger("scheduler/validate")
-	myRand = rand.New(rand.NewSource(time.Now().UnixNano()))
-)
+var log = logging.Logger("scheduler/validate")
 
 type Validate struct {
 	ctx  context.Context
