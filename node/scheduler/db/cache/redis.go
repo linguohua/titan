@@ -51,8 +51,8 @@ const (
 	blockDownloadCIDField       = "CID"
 	blockDownloadPublicKeyField = "UserPublicKey"
 
-	// redisKeySystemInfo  server name
-	redisKeySystemInfo = "Titan:BaseInfo:%s"
+	// redisKeyBaseInfo  server name
+	redisKeyBaseInfo = "Titan:BaseInfo:%s"
 	// CacheTask field
 	// carFileIDField = "CarFileID"
 	// cacheIDField = "cacheID"
@@ -94,10 +94,12 @@ func (rd redisDB) IsNilErr(err error) bool {
 	return errors.Is(err, redis.Nil)
 }
 
-func (rd redisDB) IncrNodeOnlineTime(deviceID string, onlineTime float64) (float64, error) {
+func (rd redisDB) IncrNodeOnlineTime(deviceID string, onlineTime int64) (float64, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	return rd.cli.HIncrByFloat(context.Background(), key, onlineTimeField, onlineTime).Result()
+	mTime := float64(onlineTime) / 60 // second to minute
+
+	return rd.cli.HIncrByFloat(context.Background(), key, onlineTimeField, mTime).Result()
 }
 
 func (rd redisDB) IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error) {
@@ -232,7 +234,7 @@ func (rd redisDB) SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, er
 }
 
 func (rd redisDB) updateBaseDeviceInfo(deviceID string, info api.DevicesInfo) error {
-	return rd.UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
+	return rd.resetDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
 		deviceInfo.NodeType = info.NodeType
 		deviceInfo.DeviceName = info.DeviceName
 		deviceInfo.SnCode = info.SnCode
@@ -508,7 +510,29 @@ func (rd redisDB) IncrBlockDownloadSN() (int64, error) {
 	return n, err
 }
 
-func (rd redisDB) UpdateDeviceInfo(deviceID string, update func(deviceInfo *api.DevicesInfo)) error {
+func (rd redisDB) UpdateDeviceInfo(deviceID, field string, value interface{}) error {
+	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+
+	_, err := rd.cli.HMSet(context.Background(), key, field, value).Result()
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func (rd redisDB) IncrByDeviceInfo(deviceID, field string, value int64) error {
+	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+
+	_, err := rd.cli.HIncrBy(context.Background(), key, field, value).Result()
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func (rd redisDB) resetDeviceInfo(deviceID string, update func(deviceInfo *api.DevicesInfo)) error {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 	deviceInfo, err := rd.GetDeviceInfo(deviceID)
 	if err != nil {
@@ -528,28 +552,30 @@ func (rd redisDB) UpdateDeviceInfo(deviceID string, update func(deviceInfo *api.
 	return err
 }
 
-func (rd redisDB) UpdateSystemInfo(update func(info *api.BaseInfo)) error {
-	key := fmt.Sprintf(redisKeySystemInfo, serverName)
-	info, err := rd.GetSystemInfo()
+func (rd redisDB) UpdateBaseInfo(field string, value interface{}) error {
+	key := fmt.Sprintf(redisKeyBaseInfo, serverName)
+
+	_, err := rd.cli.HMSet(context.Background(), key, field, value).Result()
 	if err != nil {
 		return err
 	}
 
-	update(&info)
+	return err
+}
 
-	ctx := context.Background()
-	_, err = rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-		for field, value := range systemInfoToMap(info) {
-			pipeliner.HMSet(ctx, key, field, value)
-		}
-		return nil
-	})
+func (rd redisDB) IncrByBaseInfo(field string, value int64) error {
+	key := fmt.Sprintf(redisKeyBaseInfo, serverName)
+
+	_, err := rd.cli.HIncrBy(context.Background(), key, field, value).Result()
+	if err != nil {
+		return err
+	}
 
 	return err
 }
 
-func (rd redisDB) GetSystemInfo() (api.BaseInfo, error) {
-	key := fmt.Sprintf(redisKeySystemInfo, serverName)
+func (rd redisDB) GetBaseInfo() (api.BaseInfo, error) {
+	key := fmt.Sprintf(redisKeyBaseInfo, serverName)
 
 	var info api.BaseInfo
 	err := rd.cli.HGetAll(context.Background(), key).Scan(&info)
@@ -558,21 +584,6 @@ func (rd redisDB) GetSystemInfo() (api.BaseInfo, error) {
 	}
 
 	return info, nil
-}
-
-func systemInfoToMap(info api.BaseInfo) map[string]interface{} {
-	out := make(map[string]interface{})
-	t := reflect.TypeOf(info)
-	v := reflect.ValueOf(info)
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		redisTag := field.Tag.Get("redis")
-		if redisTag == "" {
-			continue
-		}
-		out[redisTag] = v.Field(i).Interface()
-	}
-	return out
 }
 
 func (rd redisDB) AddLatestDownloadCarfile(carfileCID string, userIP string) error {

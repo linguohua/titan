@@ -67,11 +67,13 @@ func (a *CommonAPI) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 		return payload.Allow, nil
 	}
 
-	info, err := persistent.GetDB().GetRegisterInfo(deviceID)
+	var secret string
+	err := persistent.GetDB().GetRegisterInfo(deviceID, "secret", &secret)
 	if err != nil {
 		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", deviceID, err)
 	}
-	deviceSecret := info.Secret
+
+	deviceSecret := secret
 	// fmt.Println("AuthNodeVerify deviceSecret:", deviceSecret)
 
 	if _, err := jwt.Verify([]byte(token), (*jwt.HMACSHA)(jwt.NewHS256([]byte(deviceSecret))), &payload); err != nil {

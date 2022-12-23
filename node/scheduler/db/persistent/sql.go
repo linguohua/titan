@@ -91,6 +91,18 @@ func (sd sqlDB) GetNodeAuthInfo(deviceID string) (*api.DownloadServerAccessAuth,
 	return &api.DownloadServerAccessAuth{URL: info.URL, PrivateKey: info.PrivateKey, DeviceID: deviceID}, err
 }
 
+func (sd sqlDB) SetNodeOffline(deviceID string, lastTime time.Time) error {
+	info := &NodeInfo{
+		DeviceID: deviceID,
+		LastTime: lastTime,
+		IsOnline: false,
+	}
+
+	_, err := sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,is_online=:is_online WHERE device_id=:device_id`, info)
+
+	return err
+}
+
 func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
 	info.DeviceID = deviceID
 	info.ServerName = serverName
@@ -784,34 +796,32 @@ func (sd sqlDB) BindRegisterInfo(secret, deviceID string, nodeType api.NodeType)
 	return err
 }
 
-func (sd sqlDB) GetRegisterInfo(deviceID string) (*api.NodeRegisterInfo, error) {
-	// info := &api.NodeRegisterInfo{
-	// 	DeviceID: deviceID,
-	// }
+// func (sd sqlDB) GetRegisterInfo(deviceID string) (*api.NodeRegisterInfo, error) {
+// 	info := &api.NodeRegisterInfo{}
+// 	query := "SELECT * FROM register WHERE device_id=?"
+// 	if err := sd.cli.Get(info, query, deviceID); err != nil {
+// 		return nil, err
+// 	}
+// 	return info, nil
+// }
 
-	info := &api.NodeRegisterInfo{}
-	query := "SELECT * FROM register WHERE device_id=?"
-	if err := sd.cli.Get(info, query, deviceID); err != nil {
-		return nil, err
+func (sd sqlDB) GetRegisterInfo(deviceID, key string, out interface{}) error {
+	if key != "" {
+		query := fmt.Sprintf(`SELECT %s FROM register WHERE device_id=?`, key)
+		// query := "SELECT * FROM register WHERE device_id=?"
+		if err := sd.cli.Get(out, query, deviceID); err != nil {
+			return err
+		}
+
+		return nil
 	}
 
-	return info, nil
+	query := "SELECT * FROM register WHERE device_id=?"
+	if err := sd.cli.Get(out, query, deviceID); err != nil {
+		return err
+	}
 
-	// rows, err := sd.cli.NamedQuery(`SELECT * FROM register WHERE device_id=:device_id`, info)
-	// if err != nil {
-	// 	return info, err
-	// }
-	// defer rows.Close()
-	// if rows.Next() {
-	// 	err = rows.StructScan(info)
-	// 	if err != nil {
-	// 		return info, err
-	// 	}
-	// } else {
-	// 	return info, xerrors.New(errNotFind)
-	// }
-
-	// return info, err
+	return nil
 }
 
 func (sd sqlDB) GetNodesWithCache(hash string, isSuccess bool) ([]string, error) {

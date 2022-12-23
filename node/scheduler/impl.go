@@ -22,7 +22,6 @@ import (
 	"github.com/linguohua/titan/node/helper"
 	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/area"
-	"github.com/linguohua/titan/node/scheduler/errmsg"
 	"github.com/linguohua/titan/node/scheduler/node"
 
 	// "github.com/linguohua/titan/node/device"
@@ -177,6 +176,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 			DeviceInfo:     deviceInfo,
 			DownloadSrvURL: downloadSrvURL,
 			PrivateKey:     privateKey,
+			NodeType:       api.TypeNameCandidate,
 		},
 	}
 
@@ -265,6 +265,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 			DeviceInfo:     deviceInfo,
 			DownloadSrvURL: downloadSrvURL,
 			PrivateKey:     privateKey,
+			NodeType:       api.TypeNameEdge,
 		},
 	}
 
@@ -437,7 +438,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 		return statList, nil
 	}
 
-	return statList, xerrors.Errorf("%s:%s", errmsg.ErrNodeNotFind, deviceID)
+	return statList, xerrors.Errorf("Not Found Node:%s", deviceID)
 }
 
 // QueryCachingBlocksWithNode Query Caching Blocks
@@ -455,7 +456,7 @@ func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID str
 		return edge.NodeAPI.QueryCachingBlocks(ctx)
 	}
 
-	return api.CachingBlockList{}, xerrors.Errorf("%s:%s", errmsg.ErrNodeNotFind, deviceID)
+	return api.CachingBlockList{}, xerrors.Errorf("Not Found Node:%s", deviceID)
 }
 
 // ElectionValidators Validators
@@ -529,7 +530,7 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locato
 	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
 	log.Infof("LocatorConnect locatorID:%s,areaID:%s,LocatorConnect ip:%s,port:%d", locatorID, areaID, ip, port)
 
-	if areaID != area.ServerArea {
+	if area.IsExist(areaID) {
 		return xerrors.Errorf("area err:%s", areaID)
 	}
 
@@ -561,9 +562,13 @@ func (s *Scheduler) NodeExit(ctx context.Context, deviceID string) error {
 }
 
 func incrDeviceReward(deviceID string, incrReward int64) error {
-	return cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
-		deviceInfo.CumulativeProfit += float64(incrReward)
-	})
+	err := cache.GetDB().IncrByDeviceInfo(deviceID, "CumulativeProfit", incrReward)
+	if err != nil {
+		log.Errorf("IncrByDeviceInfo err:%s ", err.Error())
+		return err
+	}
+
+	return nil
 }
 
 // func incrDeviceBlock(deviceID string, blocks int) error {

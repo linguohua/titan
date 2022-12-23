@@ -1,77 +1,65 @@
 package area
 
 import (
-	"regexp"
+	"net"
 
 	"github.com/linguohua/titan/region"
 )
 
 var (
-	// ServerArea Server Area
-	ServerArea = "CN-GD-Shenzhen"
-	whitelist  = []string{}
+	serverArea string
 )
 
 // InitServerArea set area
 func InitServerArea(area string) {
 	// log.Infof("server area :%s", area)
-	ServerArea = area
+	serverArea = area
 }
 
-func initAreaTable() {
-}
-
-func areaExist(area string) bool {
+// IsExist area exist
+func IsExist(area string) bool {
 	if area == "" {
 		return false
 	}
 
-	return area == ServerArea
+	return area == serverArea
 }
 
-// IPLegality ip
-func IPLegality(ip string) (bool, *region.GeoInfo) {
+// GetServerArea get area
+func GetServerArea() string {
+	return serverArea
+}
+
+// GetGeoInfoWithIP get geo info
+func GetGeoInfoWithIP(ip string) (*region.GeoInfo, bool) {
 	geoInfo, _ := region.GetRegion().GetGeoInfo(ip)
 
-	if ipAddrACL(ip) {
-		geoInfo.Geo = ServerArea
-		return true, geoInfo
+	if hasLocalIP(ip) {
+		geoInfo.Geo = serverArea
+		return geoInfo, true
 	}
 
-	if areaExist(geoInfo.Geo) {
-		return true, geoInfo
+	if IsExist(geoInfo.Geo) {
+		return geoInfo, true
 	}
 
-	for _, p := range whitelist {
-		if p == ip {
-			geoInfo.Geo = ServerArea
-			return true, geoInfo
-		}
-	}
-
-	return false, geoInfo
+	return nil, false
 }
 
-func ipAddrACL(ip string) bool {
-	if match0, _ := regexp.MatchString(`127\.0\.0\.1`, ip); match0 {
+func hasLocalIP(ipStr string) bool {
+	ip := net.ParseIP(ipStr)
+
+	if ip.IsLoopback() {
 		return true
 	}
 
-	if match2, _ := regexp.MatchString(`10\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])`, ip); match2 {
-		if match3, _ := regexp.MatchString(`10\.10\.30\.1`, ip); match3 {
-			return false
-		}
-		return true
+	ip4 := ip.To4()
+	if ip4 == nil {
+		return false
 	}
 
-	if match4, _ := regexp.MatchString(`172\.((1[6-9])|(2[0-9])|(3[0-1]))\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])`, ip); match4 {
-		return true
-	}
-
-	if match5, _ := regexp.MatchString(
-		`192\.168\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])`, ip); match5 {
-		return true
-	}
-
-	return false
+	return ip4[0] == 10 || // 10.0.0.0/8
+		(ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31) || // 172.16.0.0/12
+		(ip4[0] == 169 && ip4[1] == 254) || // 169.254.0.0/16
+		(ip4[0] == 192 && ip4[1] == 168) // 192.168.0.0/16
 }

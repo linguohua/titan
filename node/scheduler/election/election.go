@@ -2,14 +2,14 @@ package election
 
 import (
 	"context"
-	logging "github.com/ipfs/go-log/v2"
-	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
-	"github.com/linguohua/titan/node/scheduler/node"
 	"math/rand"
 	"sort"
 	"sync"
 	"time"
+
+	logging "github.com/ipfs/go-log/v2"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
+	"github.com/linguohua/titan/node/scheduler/node"
 )
 
 var log = logging.Logger("election")
@@ -123,9 +123,7 @@ func (v *Election) winner(isAppend bool) ([]*node.CandidateNode, error) {
 	defer func() {
 		now := time.Now()
 		v.startTime = now
-		err := cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
-			info.NextElectionTime = now.Add(v.opts.interval).Unix()
-		})
+		err := cache.GetDB().UpdateBaseInfo("NextElectionTime", now.Add(v.opts.interval).Unix())
 		if err != nil {
 			log.Error(err.Error())
 		}

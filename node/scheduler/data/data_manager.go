@@ -11,7 +11,6 @@ import (
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
-	"github.com/linguohua/titan/node/scheduler/errmsg"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
@@ -94,9 +93,7 @@ func (m *Manager) initSystemData() {
 		return
 	}
 
-	err = cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
-		info.CarFileCount = len(infos)
-	})
+	err = cache.GetDB().UpdateBaseInfo("CarfileCount", len(infos))
 }
 
 func (m *Manager) getWaitingDataTask(index int64) (api.DataInfo, error) {
@@ -241,7 +238,7 @@ func (m *Manager) makeDataTask(cid, hash string, reliability int, expiredTime ti
 func (m *Manager) makeDataContinue(hash, cacheID string) (*Cache, error) {
 	data := m.GetData(hash)
 	if data == nil {
-		return nil, xerrors.Errorf("%s,cid:%s,cacheID:%s", errmsg.ErrNotFoundTask, hash, cacheID)
+		return nil, xerrors.Errorf("Not Found Data Task,cid:%s,cacheID:%s", hash, cacheID)
 	}
 
 	cacheI, ok := data.CacheMap.Load(cacheID)
@@ -319,7 +316,7 @@ func (m *Manager) RemoveCarfile(carfileCid string) error {
 
 	data := m.GetData(hash)
 	if data == nil {
-		return xerrors.Errorf("%s : %s", errmsg.ErrNotFoundTask, carfileCid)
+		return xerrors.Errorf("Not Found Data Task: %s", carfileCid)
 	}
 
 	data.CacheMap.Range(func(key, value interface{}) bool {
@@ -350,7 +347,7 @@ func (m *Manager) RemoveCache(carfileCid, cacheID string) error {
 
 	data := m.GetData(hash)
 	if data == nil {
-		return xerrors.Errorf("%s : %s", errmsg.ErrNotFoundTask, carfileCid)
+		return xerrors.Errorf("Not Found Data Task: %s", carfileCid)
 	}
 
 	cacheI, ok := data.CacheMap.Load(cacheID)
@@ -373,7 +370,7 @@ func (m *Manager) cacheCarfileResult(deviceID string, info *api.CacheResultInfo)
 	// area := m.nodeManager.getNodeArea(deviceID)
 	data := m.GetData(info.CarFileHash)
 	if data == nil {
-		return xerrors.Errorf("%s : %s", errmsg.ErrNotFoundTask, info.CarFileHash)
+		return xerrors.Errorf("Not Found Data Task: %s", info.CarFileHash)
 	}
 
 	if !m.isDataTaskRunnning(info.CarFileHash, info.CacheID) {
@@ -451,6 +448,13 @@ func (m *Manager) notifyDataLoader() {
 
 // update the data task timeout
 func (m *Manager) updateDataTimeout(carfileHash, cacheID string, timeout int64) {
+	// et, err := cache.GetDB().GetRunningDataTaskExpiredTime(carfileHash)
+	// if err == nil {
+	// 	if et > timeout {
+	// 		return
+	// 	}
+	// }
+
 	err := cache.GetDB().SetRunningDataTask(carfileHash, cacheID, timeout)
 	if err != nil {
 		log.Panicf("dataTaskStart %s , SetRunningDataTask err:%s", cacheID, err.Error())
@@ -501,7 +505,7 @@ func (m *Manager) StopCacheTask(cid string) error {
 
 	data := m.GetData(hash)
 	if data == nil {
-		return xerrors.New(errmsg.ErrCidNotFind)
+		return xerrors.Errorf("Not Found Cid:%s", cid)
 	}
 
 	cI, ok := data.CacheMap.Load(cID)
@@ -570,7 +574,7 @@ func (m *Manager) ReplenishExpiredTimeToData(cid, cacheID string, hour int) erro
 
 	data := m.GetData(hash)
 	if data == nil {
-		return xerrors.Errorf("%s:%s", errmsg.ErrCidNotFind, hash)
+		return xerrors.Errorf("Not Found Cid:%s", cid)
 	}
 
 	m.saveEvent(cid, cacheID, "", fmt.Sprintf("add hour:%d", hour), eventTypeReplenishCacheTime)
@@ -606,7 +610,7 @@ func (m *Manager) ResetExpiredTime(cid, cacheID string, expiredTime time.Time) e
 
 	data := m.GetData(hash)
 	if data == nil {
-		return xerrors.Errorf("%s:%s", errmsg.ErrCidNotFind, hash)
+		return xerrors.Errorf("Not Found Cid:%s", cid)
 	}
 
 	m.saveEvent(cid, cacheID, "", fmt.Sprintf("expiredTime:%s", expiredTime.String()), eventTypeResetCacheTime)
@@ -660,9 +664,7 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceID string) {
 		}
 
 		if c.Status == api.CacheStatusSuccess {
-			err = cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
-				info.CarFileCount--
-			})
+			err = cache.GetDB().IncrByBaseInfo("CarfileCount", -1)
 		}
 	}
 
@@ -702,9 +704,7 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceID string) {
 	}
 
 	// update node block count
-	err = cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
-		deviceInfo.BlockCount = 0
-	})
+	err = cache.GetDB().UpdateDeviceInfo(deviceID, "BlockCount", 0)
 	if err != nil {
 		log.Errorf("UpdateDeviceInfo err:%s ", err.Error())
 	}

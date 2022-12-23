@@ -14,6 +14,7 @@ type DB interface {
 	// Node Info
 	SetNodeInfo(deviceID string, info *NodeInfo) error
 	GetNodeInfo(deviceID string) (*NodeInfo, error)
+	SetNodeOffline(deviceID string, lastTime time.Time) error
 	SetNodeAuthInfo(info *api.DownloadServerAccessAuth) error
 	GetNodeAuthInfo(deviceID string) (*api.DownloadServerAccessAuth, error)
 	GetOfflineNodes() ([]*NodeInfo, error)
@@ -73,7 +74,7 @@ type DB interface {
 
 	// temporary node register
 	BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error
-	GetRegisterInfo(deviceID string) (*api.NodeRegisterInfo, error)
+	GetRegisterInfo(deviceID, key string, out interface{}) error
 
 	// SetBlockDownloadInfo set user download block information
 	SetBlockDownloadInfo(info *api.BlockDownloadInfo) error

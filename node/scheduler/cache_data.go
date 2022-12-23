@@ -10,7 +10,6 @@ import (
 	"github.com/linguohua/titan/node/scheduler/data"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
-	"github.com/linguohua/titan/node/scheduler/errmsg"
 	"golang.org/x/xerrors"
 )
 
@@ -127,7 +126,7 @@ func (s *Scheduler) GetCacheData(ctx context.Context, cid string) (api.DataInfo,
 	info := api.DataInfo{}
 
 	if cid == "" {
-		return info, xerrors.Errorf("%s:%s", errmsg.ErrCidNotFind, cid)
+		return info, xerrors.Errorf("Not Found Cid:%s", cid)
 	}
 
 	hash, err := helper.CIDString2HashString(cid)
@@ -146,7 +145,7 @@ func (s *Scheduler) GetCacheData(ctx context.Context, cid string) (api.DataInfo,
 		return cInfo, nil
 	}
 
-	return info, xerrors.Errorf("%s:%s", errmsg.ErrCidNotFind, cid)
+	return info, xerrors.Errorf("Not Found Cid:%s", cid)
 }
 
 // ListEvents get data events
@@ -187,7 +186,7 @@ func (s *Scheduler) ListCacheDatas(ctx context.Context, page int) (api.DataListI
 // RemoveCarfile remove all caches with carfile
 func (s *Scheduler) RemoveCarfile(ctx context.Context, carfileID string) error {
 	if carfileID == "" {
-		return xerrors.Errorf(errmsg.ErrCidIsNil)
+		return xerrors.Errorf("Cid Is Nil")
 	}
 
 	return s.dataManager.RemoveCarfile(carfileID)
@@ -196,11 +195,11 @@ func (s *Scheduler) RemoveCarfile(ctx context.Context, carfileID string) error {
 // RemoveCache remove a caches with carfile
 func (s *Scheduler) RemoveCache(ctx context.Context, carfileID, cacheID string) error {
 	if carfileID == "" {
-		return xerrors.Errorf(errmsg.ErrCidIsNil)
+		return xerrors.Errorf("Cid Is Nil")
 	}
 
 	if cacheID == "" {
-		return xerrors.Errorf(errmsg.ErrCacheIDIsNil)
+		return xerrors.Errorf("CacheID Is Nil")
 	}
 
 	return s.dataManager.RemoveCache(carfileID, cacheID)
@@ -209,7 +208,7 @@ func (s *Scheduler) RemoveCache(ctx context.Context, carfileID, cacheID string) 
 // CacheCarfile Cache Carfile
 func (s *Scheduler) CacheCarfile(ctx context.Context, cid string, reliability int, hour int) error {
 	if cid == "" {
-		return xerrors.New("cid is nil")
+		return xerrors.New("Cid is Nil")
 	}
 
 	expiredTime := time.Now().Add(time.Duration(hour) * time.Hour)
@@ -220,7 +219,7 @@ func (s *Scheduler) CacheCarfile(ctx context.Context, cid string, reliability in
 // DeleteBlockRecords  Delete Block Record
 func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
 	if len(cids) <= 0 {
-		return nil, xerrors.New("cids is nil")
+		return nil, xerrors.New("Cid is Nil")
 	}
 
 	// edge := s.nodeManager.getEdgeNode(deviceID)
@@ -233,13 +232,22 @@ func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cid
 	// 	return candidate.deleteBlockRecords(cids)
 	// }
 
-	return nil, xerrors.Errorf("%s:%s", errmsg.ErrNodeNotFind, deviceID)
+	return nil, xerrors.Errorf("Not Found Node:%s", deviceID)
 }
 
 func (s *Scheduler) deviceBlockCacheCount(deviceID string, blockSize int) error {
 	// save block count to redis
-	return cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
-		deviceInfo.BlockCount++
-		deviceInfo.TotalDownload += float64(blockSize)
-	})
+	err := cache.GetDB().IncrByDeviceInfo(deviceID, "BlockCount", 1)
+	if err != nil {
+		log.Errorf("IncrByDeviceInfo err:%s ", err.Error())
+		return err
+	}
+
+	err = cache.GetDB().IncrByDeviceInfo(deviceID, "TotalDownload", int64(blockSize))
+	if err != nil {
+		log.Errorf("IncrByDeviceInfo err:%s ", err.Error())
+		return err
+	}
+
+	return nil
 }
