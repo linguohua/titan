@@ -4,12 +4,18 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
+)
+
+var (
+	myRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
 
 // RegisterNode Register a Node
@@ -35,10 +41,7 @@ func RegisterNode(nodeType api.NodeType) (api.NodeRegisterInfo, error) {
 }
 
 func newDeviceID(nodeType api.NodeType) (string, error) {
-	u2, err := uuid.NewUUID()
-	if err != nil {
-		return "", err
-	}
+	u2 := uuid.New()
 
 	s := strings.Replace(u2.String(), "-", "", -1)
 	switch nodeType {
@@ -57,32 +60,11 @@ func newDeviceID(nodeType api.NodeType) (string, error) {
 }
 
 func newSecret(input string) string {
+	v := myRand.Intn(100000000)
+	input = fmt.Sprintf("%s%d", input, v)
+
 	c := sha1.New()
 	c.Write([]byte(input))
 	bytes := c.Sum(nil)
 	return hex.EncodeToString(bytes)
 }
-
-// func verifySecret(token string, nodeType api.NodeType) (string, error) {
-// 	deviceID, secret, err := parseToken(token)
-// 	if err != nil {
-// 		return deviceID, xerrors.Errorf("token err:%s,deviceID:%s,secret:%s", err.Error(), deviceID, secret)
-// 	}
-
-// 	return deviceID, nil
-
-// 	// info, err := persistent.GetDB().GetRegisterInfo(deviceID)
-// 	// if err != nil {
-// 	// 	return deviceID, xerrors.Errorf("info err:%s,deviceID:%s,secret:%s", err.Error(), deviceID, secret)
-// 	// }
-
-// 	// if info.Secret != secret {
-// 	// 	return deviceID, xerrors.Errorf("err:%s,deviceID:%s,secret:%s,info_s:%s", "secret mismatch", deviceID, secret, info.Secret)
-// 	// }
-
-// 	// if info.NodeType != int(nodeType) {
-// 	// 	return deviceID, xerrors.Errorf("err:%s,deviceID:%s,nodeType:%v,info_n:%v", "node type mismatch", deviceID, nodeType, info.NodeType)
-// 	// }
-
-// 	// return deviceID, nil
-// }

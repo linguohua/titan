@@ -67,7 +67,7 @@ type DB interface {
 	GetBlocksFID(deviceID string) (map[int]string, error)
 	GetBlocksInRange(startFid, endFid int, deviceID string) (map[int]string, error)
 	GetBlocksBiggerThan(startFid int, deviceID string) (map[int]string, error)
-	GetCacheBlocksWithNode(deviceID, cacheID string) ([]*api.BlockInfo, error)
+	GetCacheBlocksSizeWithNode(deviceID, cacheID string) ([]int, error)
 	CountCidOfDevice(deviceID string) (int64, error)
 	GetNodesWithCache(hash string, isSuccess bool) ([]string, error)
 	// GetNodeBlock(deviceID, cid string) ([]*BlockInfo, error)

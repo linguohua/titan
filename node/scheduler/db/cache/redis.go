@@ -486,6 +486,7 @@ func (rd redisDB) GetDownloadBlockRecord(sn int64) (DownloadBlockRecord, error) 
 	key := fmt.Sprintf(redisKeyBlockDownloadRecord, sn)
 
 	var record DownloadBlockRecord
+
 	err := rd.cli.HGetAll(context.Background(), key).Scan(&record)
 	if err != nil {
 		return DownloadBlockRecord{}, err

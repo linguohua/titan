@@ -24,23 +24,23 @@ const exitTime = 24 // If it is not online after this time, it is determined tha
 
 // Manager Node Manager
 type Manager struct {
-	EdgeNodeMap      sync.Map
-	CandidateNodeMap sync.Map
+	edgeNodeMap      sync.Map
+	candidateNodeMap sync.Map
 
 	keepaliveTime int64 // keepalive time interval (second)
 
 	nodeOfflineCallBack func(string)
 	nodeExitedCallBack  func(string)
-	authNew             func() ([]byte, error)
+	getToken            func() []byte
 }
 
 // NewNodeManager New
-func NewNodeManager(nodeOfflineCallBack, nodeExitedCallBack func(string), authNew func() ([]byte, error)) *Manager {
+func NewNodeManager(nodeOfflineCallBack, nodeExitedCallBack func(string), getToken func() []byte) *Manager {
 	nodeManager := &Manager{
 		keepaliveTime:       30,
 		nodeOfflineCallBack: nodeOfflineCallBack,
 		nodeExitedCallBack:  nodeExitedCallBack,
-		authNew:             authNew,
+		getToken:            getToken,
 	}
 
 	go nodeManager.run()
@@ -64,7 +64,7 @@ func (m *Manager) run() {
 }
 
 func (m *Manager) edgeKeepalive(node *EdgeNode, nowTime time.Time) {
-	lastTime := node.LastRequestTime
+	lastTime := node.GetLastRequestTime()
 	// log.Warnf("%s, lastTime :%s", deviceID, lastTime.String())
 
 	if !lastTime.After(nowTime) {
@@ -74,14 +74,14 @@ func (m *Manager) edgeKeepalive(node *EdgeNode, nowTime time.Time) {
 		return
 	}
 
-	_, err := cache.GetDB().IncrNodeOnlineTime(node.DeviceInfo.DeviceId, m.keepaliveTime)
+	_, err := cache.GetDB().IncrNodeOnlineTime(node.GetDeviceInfo().DeviceId, m.keepaliveTime)
 	if err != nil {
-		log.Warnf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceInfo.DeviceId)
+		log.Warnf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.GetDeviceInfo().DeviceId)
 	}
 }
 
 func (m *Manager) candidateKeepalive(node *CandidateNode, nowTime time.Time) {
-	lastTime := node.LastRequestTime
+	lastTime := node.GetLastRequestTime()
 	// log.Warnf("%s, lastTime :%s", deviceID, lastTime.String())
 
 	if !lastTime.After(nowTime) {
@@ -91,9 +91,9 @@ func (m *Manager) candidateKeepalive(node *CandidateNode, nowTime time.Time) {
 		return
 	}
 
-	_, err := cache.GetDB().IncrNodeOnlineTime(node.DeviceInfo.DeviceId, m.keepaliveTime)
+	_, err := cache.GetDB().IncrNodeOnlineTime(node.GetDeviceInfo().DeviceId, m.keepaliveTime)
 	if err != nil {
-		log.Warnf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceInfo.DeviceId)
+		log.Warnf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.GetDeviceInfo().DeviceId)
 	}
 }
 
@@ -101,7 +101,7 @@ func (m *Manager) checkNodesKeepalive() {
 	nowTime := time.Now().Add(-time.Duration(m.keepaliveTime) * time.Second)
 	// log.Warnf("nodeKeepalive nowTime :%s", nowTime.String())
 
-	m.EdgeNodeMap.Range(func(key, value interface{}) bool {
+	m.edgeNodeMap.Range(func(key, value interface{}) bool {
 		// deviceID := key.(string)
 		node := value.(*EdgeNode)
 
@@ -127,7 +127,7 @@ func (m *Manager) checkNodesKeepalive() {
 		return true
 	})
 
-	m.CandidateNodeMap.Range(func(key, value interface{}) bool {
+	m.candidateNodeMap.Range(func(key, value interface{}) bool {
 		// deviceID := key.(string)
 		node := value.(*CandidateNode)
 
@@ -151,11 +151,6 @@ func (m *Manager) checkNodesKeepalive() {
 
 		return true
 	})
-
-	// err := persistent.GetDB().AddAllNodeOnlineTime(int64(m.keepaliveTime))
-	// if err != nil {
-	// 	log.Warnf("AddAllNodeOnlineTime err:%v", err.Error())
-	// }
 }
 
 // GetNodes get nodes with type
@@ -163,7 +158,7 @@ func (m *Manager) GetNodes(nodeType api.NodeTypeName) ([]string, error) {
 	list := make([]string, 0)
 
 	if nodeType == api.TypeNameAll || nodeType == api.TypeNameCandidate {
-		m.CandidateNodeMap.Range(func(key, value interface{}) bool {
+		m.candidateNodeMap.Range(func(key, value interface{}) bool {
 			deviceID := key.(string)
 			list = append(list, deviceID)
 
@@ -172,7 +167,7 @@ func (m *Manager) GetNodes(nodeType api.NodeTypeName) ([]string, error) {
 	}
 
 	if nodeType == api.TypeNameAll || nodeType == api.TypeNameEdge {
-		m.EdgeNodeMap.Range(func(key, value interface{}) bool {
+		m.edgeNodeMap.Range(func(key, value interface{}) bool {
 			deviceID := key.(string)
 			list = append(list, deviceID)
 
@@ -187,7 +182,7 @@ func (m *Manager) GetNodes(nodeType api.NodeTypeName) ([]string, error) {
 func (m *Manager) GetAllCandidate() []*CandidateNode {
 	list := make([]*CandidateNode, 0)
 
-	m.CandidateNodeMap.Range(func(key, value interface{}) bool {
+	m.candidateNodeMap.Range(func(key, value interface{}) bool {
 		c := value.(*CandidateNode)
 		list = append(list, c)
 
@@ -201,7 +196,7 @@ func (m *Manager) GetAllCandidate() []*CandidateNode {
 func (m *Manager) GetAllEdge() []*EdgeNode {
 	list := make([]*EdgeNode, 0)
 
-	m.EdgeNodeMap.Range(func(key, value interface{}) bool {
+	m.edgeNodeMap.Range(func(key, value interface{}) bool {
 		e := value.(*EdgeNode)
 		list = append(list, e)
 
@@ -213,19 +208,19 @@ func (m *Manager) GetAllEdge() []*EdgeNode {
 
 // EdgeOnline Edge Online
 func (m *Manager) EdgeOnline(node *EdgeNode) error {
-	deviceID := node.DeviceInfo.DeviceId
+	deviceID := node.GetDeviceInfo().DeviceId
 
-	geoInfo, isOk := area.GetGeoInfoWithIP(node.DeviceInfo.ExternalIp)
+	geoInfo, isOk := area.GetGeoInfoWithIP(node.GetDeviceInfo().ExternalIp)
 	if !isOk {
-		log.Errorf("edgeOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.DeviceInfo.ExternalIp, geoInfo.Geo)
+		log.Errorf("edgeOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.GetDeviceInfo().ExternalIp, geoInfo.Geo)
 		return xerrors.New("Area not exist")
 	}
 
-	node.GeoInfo = geoInfo
+	node.SetGeoInfo(geoInfo)
 
 	nodeOld := m.GetEdgeNode(deviceID)
 	if nodeOld != nil {
-		nodeOld.Closer()
+		nodeOld.ClientCloser()
 
 		nodeOld = nil
 	}
@@ -235,14 +230,14 @@ func (m *Manager) EdgeOnline(node *EdgeNode) error {
 		return err
 	}
 
-	m.EdgeNodeMap.Store(deviceID, node)
+	m.edgeNodeMap.Store(deviceID, node)
 
 	return nil
 }
 
 // GetEdgeNode Get EdgeNode
 func (m *Manager) GetEdgeNode(deviceID string) *EdgeNode {
-	nodeI, ok := m.EdgeNodeMap.Load(deviceID)
+	nodeI, ok := m.edgeNodeMap.Load(deviceID)
 	if ok && nodeI != nil {
 		node := nodeI.(*EdgeNode)
 
@@ -252,30 +247,16 @@ func (m *Manager) GetEdgeNode(deviceID string) *EdgeNode {
 	return nil
 }
 
-func (m *Manager) getNodeArea(deviceID string) string {
-	e := m.GetEdgeNode(deviceID)
-	if e != nil {
-		return e.GeoInfo.Geo
-	}
-
-	c := m.GetCandidateNode(deviceID)
-	if c != nil {
-		return c.GeoInfo.Geo
-	}
-
-	return ""
-}
-
 func (m *Manager) edgeOffline(node *EdgeNode) {
-	deviceID := node.DeviceInfo.DeviceId
+	deviceID := node.GetDeviceInfo().DeviceId
 	// close old node
-	node.Closer()
+	node.ClientCloser()
 
 	log.Warnf("edgeOffline :%s", deviceID)
 
-	m.EdgeNodeMap.Delete(deviceID)
+	m.edgeNodeMap.Delete(deviceID)
 
-	node.setNodeOffline(node.LastRequestTime)
+	node.setNodeOffline()
 
 	if m.nodeOfflineCallBack != nil {
 		m.nodeOfflineCallBack(deviceID)
@@ -284,19 +265,19 @@ func (m *Manager) edgeOffline(node *EdgeNode) {
 
 // CandidateOnline Candidate Online
 func (m *Manager) CandidateOnline(node *CandidateNode) error {
-	deviceID := node.DeviceInfo.DeviceId
+	deviceID := node.GetDeviceInfo().DeviceId
 
-	geoInfo, isOk := area.GetGeoInfoWithIP(node.DeviceInfo.ExternalIp)
+	geoInfo, isOk := area.GetGeoInfoWithIP(node.GetDeviceInfo().ExternalIp)
 	if !isOk {
-		log.Errorf("candidateOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.DeviceInfo.ExternalIp, geoInfo.Geo)
+		log.Errorf("candidateOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.GetDeviceInfo().ExternalIp, geoInfo.Geo)
 		return xerrors.New("Area not exist")
 	}
 
-	node.GeoInfo = geoInfo
+	node.SetGeoInfo(geoInfo)
 
 	nodeOld := m.GetCandidateNode(deviceID)
 	if nodeOld != nil {
-		nodeOld.Closer()
+		nodeOld.ClientCloser()
 
 		nodeOld = nil
 	}
@@ -307,17 +288,14 @@ func (m *Manager) CandidateOnline(node *CandidateNode) error {
 		return err
 	}
 
-	m.CandidateNodeMap.Store(deviceID, node)
-	// m.areaManager.addCandidate(node)
-
-	// m.validatePool.addPendingNode(nil, node)
+	m.candidateNodeMap.Store(deviceID, node)
 
 	return nil
 }
 
 // GetCandidateNode Get Candidate Node
 func (m *Manager) GetCandidateNode(deviceID string) *CandidateNode {
-	nodeI, ok := m.CandidateNodeMap.Load(deviceID)
+	nodeI, ok := m.candidateNodeMap.Load(deviceID)
 	if ok && nodeI != nil {
 		node := nodeI.(*CandidateNode)
 
@@ -328,22 +306,22 @@ func (m *Manager) GetCandidateNode(deviceID string) *CandidateNode {
 }
 
 func (m *Manager) candidateOffline(node *CandidateNode) {
-	deviceID := node.DeviceInfo.DeviceId
+	deviceID := node.GetDeviceInfo().DeviceId
 	// close old node
-	node.Closer()
+	node.ClientCloser()
 
 	log.Warnf("candidateOffline :%s", deviceID)
 
-	m.CandidateNodeMap.Delete(deviceID)
+	m.candidateNodeMap.Delete(deviceID)
 
-	node.setNodeOffline(node.LastRequestTime)
+	node.setNodeOffline()
 
 	if m.nodeOfflineCallBack != nil {
 		m.nodeOfflineCallBack(deviceID)
 	}
 }
 
-// FindEdgeNodes Find EdgeNodes
+// FindEdgeNodes Find EdgeNodes from useDeviceIDs and skip skips
 func (m *Manager) FindEdgeNodes(useDeviceIDs []string, skips map[string]string) []*EdgeNode {
 	if skips == nil {
 		skips = make(map[string]string)
@@ -363,7 +341,7 @@ func (m *Manager) FindEdgeNodes(useDeviceIDs []string, skips map[string]string) 
 			}
 		}
 	} else {
-		m.EdgeNodeMap.Range(func(key, value interface{}) bool {
+		m.edgeNodeMap.Range(func(key, value interface{}) bool {
 			deviceID := key.(string)
 			node := value.(*EdgeNode)
 
@@ -387,7 +365,7 @@ func (m *Manager) FindEdgeNodes(useDeviceIDs []string, skips map[string]string) 
 	return nil
 }
 
-// FindCandidateNodes Find CandidateNodes
+// FindCandidateNodes Find CandidateNodes from useDeviceIDs and skip skips
 func (m *Manager) FindCandidateNodes(useDeviceIDs []string, skips map[string]string) []*CandidateNode {
 	if skips == nil {
 		skips = make(map[string]string)
@@ -407,7 +385,7 @@ func (m *Manager) FindCandidateNodes(useDeviceIDs []string, skips map[string]str
 			}
 		}
 	} else {
-		m.CandidateNodeMap.Range(func(key, value interface{}) bool {
+		m.candidateNodeMap.Range(func(key, value interface{}) bool {
 			deviceID := key.(string)
 			node := value.(*CandidateNode)
 
@@ -437,18 +415,18 @@ func (m *Manager) UpdateLastRequestTime(deviceID string) {
 
 	edge := m.GetEdgeNode(deviceID)
 	if edge != nil {
-		edge.LastRequestTime = lastTime
+		edge.SetLastRequestTime(lastTime)
 		return
 	}
 
 	candidate := m.GetCandidateNode(deviceID)
 	if candidate != nil {
-		candidate.LastRequestTime = lastTime
+		candidate.SetLastRequestTime(lastTime)
 		return
 	}
 }
 
-// FindNodeDownloadInfos  find device
+// FindNodeDownloadInfos  find device with block cid
 func (m *Manager) FindNodeDownloadInfos(cid string) ([]api.DownloadInfoResult, error) {
 	infos := make([]api.DownloadInfoResult, 0)
 
@@ -482,7 +460,7 @@ func (m *Manager) FindNodeDownloadInfos(cid string) ([]api.DownloadInfoResult, e
 	return infos, nil
 }
 
-// GetCandidateNodesWithData find device
+// GetCandidateNodesWithData find device with block hash
 func (m *Manager) GetCandidateNodesWithData(hash, skip string) ([]*CandidateNode, error) {
 	deviceIDs, err := persistent.GetDB().GetNodesWithCache(hash, true)
 	if err != nil {
@@ -533,12 +511,12 @@ func (m *Manager) IsDeviceExist(deviceID string, nodeType int) bool {
 func (m *Manager) getDeviccePrivateKey(deviceID string, authInfo *api.DownloadServerAccessAuth) (*rsa.PrivateKey, error) {
 	edge := m.GetEdgeNode(deviceID)
 	if edge != nil {
-		return edge.PrivateKey, nil
+		return edge.GetPrivateKey(), nil
 	}
 
 	candidate := m.GetCandidateNode(deviceID)
 	if candidate != nil {
-		return candidate.PrivateKey, nil
+		return candidate.GetPrivateKey(), nil
 	}
 
 	privateKey, err := titanRsa.Pem2PrivateKey(authInfo.PrivateKey)
@@ -569,7 +547,7 @@ func (m *Manager) checkNodesExited() {
 		exiteds = append(exiteds, node.DeviceID)
 
 		// clean node cache
-		m.NodeExited(node.DeviceID)
+		go m.NodeExited(node.DeviceID)
 	}
 }
 
@@ -604,18 +582,12 @@ func (m *Manager) FindDownloadinfoForBlocks(blocks []api.BlockCacheInfo, carfile
 		csMap[deviceID] = list
 	}
 
-	tk, err := m.authNew()
-	if err != nil {
-		log.Errorf("findDownloadinfoForBlocks AuthNew err:%s", err.Error())
-		return reqList
-	}
-
 	for deviceID, list := range csMap {
 		// info, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
 
 		node := m.GetCandidateNode(deviceID)
 		if node != nil {
-			reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: node.Addr, DownloadToken: string(tk), CardFileHash: carfileHash, CacheID: cacheID})
+			reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: node.GetAddress(), DownloadToken: string(m.getToken()), CardFileHash: carfileHash, CacheID: cacheID})
 
 			// tk, err := token.GenerateToken(info.PrivateKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
 			// if err == nil {

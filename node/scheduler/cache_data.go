@@ -90,25 +90,27 @@ func (s *Scheduler) ShowDataTasks(ctx context.Context) ([]api.DataInfo, error) {
 func dataToCacheDataInfo(d *data.Data) api.DataInfo {
 	info := api.DataInfo{}
 	if d != nil {
-		info.CarfileCid = d.CarfileCid
-		info.CarfileHash = d.CarfileHash
-		info.TotalSize = d.TotalSize
-		info.NeedReliability = d.NeedReliability
-		info.Reliability = d.Reliability
-		info.TotalBlocks = d.TotalBlocks
-		info.Nodes = d.Nodes
+		info.CarfileCid = d.GetCarfileCid()
+		info.CarfileHash = d.GetCarfileHash()
+		info.TotalSize = d.GetTotalSize()
+		info.NeedReliability = d.GetNeedReliability()
+		info.Reliability = d.GetReliability()
+		info.TotalBlocks = d.GetTotalBlocks()
+		info.Nodes = d.GetTotalNodes()
 
 		caches := make([]api.CacheInfo, 0)
 
-		d.CacheMap.Range(func(key, value interface{}) bool {
+		cMap := d.GetCacheMap()
+
+		cMap.Range(func(key, value interface{}) bool {
 			c := value.(*data.Cache)
 
 			cache := api.CacheInfo{
-				CacheID:    c.CacheID,
-				Status:     c.Status,
-				DoneSize:   c.DoneSize,
-				DoneBlocks: c.DoneBlocks,
-				Nodes:      c.Nodes,
+				CacheID:    c.GetCacheID(),
+				Status:     c.GetStatus(),
+				DoneSize:   c.GetDoneSize(),
+				DoneBlocks: c.GetDoneBlocks(),
+				Nodes:      c.GetNodes(),
 			}
 
 			caches = append(caches, cache)

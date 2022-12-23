@@ -135,7 +135,7 @@ func (sd sqlDB) SetNodeExited(deviceID string) error {
 func (sd sqlDB) GetOfflineNodes() ([]*NodeInfo, error) {
 	list := make([]*NodeInfo, 0)
 
-	cmd := "SELECT * FROM node WHERE exited=? AND is_online=? AND server_name=?"
+	cmd := "SELECT device_id,last_time FROM node WHERE exited=? AND is_online=? AND server_name=?"
 	if err := sd.cli.Select(&list, cmd, false, false, serverName); err != nil {
 		return nil, err
 	}
@@ -228,11 +228,11 @@ func (sd sqlDB) SummaryValidateMessage(startTime, endTime time.Time, pageNumber,
 	return res, nil
 }
 
-func (sd sqlDB) GetCacheBlocksWithNode(deviceID, cacheID string) ([]*api.BlockInfo, error) {
+func (sd sqlDB) GetCacheBlocksSizeWithNode(deviceID, cacheID string) ([]int, error) {
 	area := sd.ReplaceArea()
 
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE cache_id=? AND device_id=? AND status=?`, fmt.Sprintf(blockInfoTable, area))
-	var out []*api.BlockInfo
+	query := fmt.Sprintf(`SELECT size FROM %s WHERE cache_id=? AND device_id=? AND status=?`, fmt.Sprintf(blockInfoTable, area))
+	var out []int
 	if err := sd.cli.Select(&out, query, cacheID, deviceID, api.CacheStatusSuccess); err != nil {
 		return nil, err
 	}
