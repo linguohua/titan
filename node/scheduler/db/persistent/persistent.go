@@ -194,10 +194,12 @@ const (
 	ValidateStatusUnknown ValidateStatus = iota
 	// ValidateStatusCreate status
 	ValidateStatusCreate
-	// ValidateStatusTimeOut status
-	ValidateStatusTimeOut
 	// ValidateStatusSuccess status
 	ValidateStatusSuccess
+	// ValidateStatusTimeOut status
+	ValidateStatusTimeOut
+	// ValidateStatusCancel status
+	ValidateStatusCancel
 	// ValidateStatusFail status
 	ValidateStatusFail
 	// ValidateStatusOther status
