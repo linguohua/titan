@@ -44,6 +44,7 @@ type Node struct {
 	GeoInfo         *region.GeoInfo
 	Addr            string
 	LastRequestTime time.Time
+	NodeType        api.NodeTypeName
 
 	CacheStat                 api.CacheStat
 	CacheTimeoutTimeStamp     int64 // TimeStamp of cache timeout
@@ -53,15 +54,16 @@ type Node struct {
 }
 
 // node online
-func (n *Node) setNodeOnline(typeName api.NodeTypeName) error {
+func (n *Node) setNodeOnline() error {
 	deviceID := n.DeviceInfo.DeviceId
 	geoInfo := n.GeoInfo
+	typeName := string(n.NodeType)
 
 	err := persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{
 		Geo:        geoInfo.Geo,
 		LastTime:   time.Now(),
 		IsOnline:   true,
-		NodeType:   string(typeName),
+		NodeType:   typeName,
 		Address:    n.Addr,
 		PrivateKey: titanRsa.PrivateKey2Pem(n.PrivateKey),
 		URL:        n.DownloadSrvURL,
@@ -75,36 +77,13 @@ func (n *Node) setNodeOnline(typeName api.NodeTypeName) error {
 }
 
 // node offline
-func (n *Node) setNodeOffline(deviceID string, geoInfo *region.GeoInfo, nodeType api.NodeTypeName, lastTime time.Time) {
-	// err := cache.GetDB().RemoveNodeWithGeoList(deviceID, geoInfo.Geo)
-	// if err != nil {
-	// 	log.Warnf("node offline RemoveNodeWithGeoList err : %v ,deviceID : %v", err.Error(), deviceID)
-	// }
+func (n *Node) setNodeOffline(lastTime time.Time) {
+	deviceID := n.DeviceInfo.DeviceId
 
-	err := persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{
-		Geo:      geoInfo.Geo,
-		LastTime: lastTime,
-		IsOnline: false,
-		NodeType: string(nodeType),
-		Address:  n.Addr,
-		Exited:   false,
-	})
+	err := persistent.GetDB().SetNodeOffline(deviceID, lastTime)
 	if err != nil {
-		log.Errorf("node offline SetNodeInfo err : %s ,deviceID : %s", err.Error(), deviceID)
+		log.Errorf("node offline SetNodeOffline err : %s ,deviceID : %s", err.Error(), deviceID)
 	}
-}
-
-// getNodeInfo  get node information
-func (n *Node) getNodeInfo(deviceID string) (*persistent.NodeInfo, error) {
-	node, err := persistent.GetDB().GetNodeInfo(deviceID)
-	if err != nil {
-		log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
-	}
-	return node, nil
-}
-
-func (n *Node) updateAccessAuth(access *api.DownloadServerAccessAuth) error {
-	return persistent.GetDB().SetNodeAuthInfo(access)
 }
 
 // UpdateCacheStat Update Cache Stat

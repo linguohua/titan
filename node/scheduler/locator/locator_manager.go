@@ -33,7 +33,7 @@ func (m *Manager) NotifyNodeStatusToLocator(deviceID string, isOnline bool) {
 		// log.Warnf("locator : %v", locator)
 		if locator != nil && locator.NodeAPI != nil {
 			if isOnline {
-				locator.NodeAPI.DeviceOnline(context.Background(), deviceID, area.ServerArea, m.port)
+				locator.NodeAPI.DeviceOnline(context.Background(), deviceID, area.GetServerArea(), m.port)
 			} else {
 				locator.NodeAPI.DeviceOffline(context.Background(), deviceID)
 			}

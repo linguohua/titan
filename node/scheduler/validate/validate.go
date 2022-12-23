@@ -4,11 +4,12 @@ import (
 	"container/list"
 	"context"
 	"fmt"
-	"github.com/robfig/cron"
-	"golang.org/x/xerrors"
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/robfig/cron"
+	"golang.org/x/xerrors"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/scheduler/node"
@@ -384,7 +385,7 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 
 // Validate
 func (v *Validate) startValidate() error {
-	log.Info("=======>> start validate <<=======")
+	// log.Info("=======>> start validate <<=======")
 	// before opening validation
 	// check the last round of verification
 	err := v.checkValidateTimeOut()
@@ -408,7 +409,7 @@ func (v *Validate) startValidate() error {
 }
 
 func (v *Validate) execute() error {
-	log.Info("=======>> begin execute <<=======")
+	// log.Info("=======>> begin execute <<=======")
 
 	v.validateState = validationStarting
 

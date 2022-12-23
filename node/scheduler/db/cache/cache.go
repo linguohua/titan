@@ -45,12 +45,14 @@ type DB interface {
 	GetValidatorsWithList() ([]string, error)
 	RemoveValidatorList() error
 
-	IncrNodeOnlineTime(deviceID string, onlineTime float64) (float64, error)
+	IncrNodeOnlineTime(deviceID string, onlineTime int64) (float64, error)
 	IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error)
 
 	SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, error)
 	GetDeviceInfo(deviceID string) (api.DevicesInfo, error)
-	UpdateDeviceInfo(deviceID string, update func(deviceInfo *api.DevicesInfo)) error
+	UpdateDeviceInfo(deviceID, field string, value interface{}) error
+	IncrByDeviceInfo(deviceID, field string, value int64) error
+	// UpdateDeviceInfo(deviceID string, update func(deviceInfo *api.DevicesInfo)) error
 	SetDownloadBlockRecord(record DownloadBlockRecord) error
 	RemoveDownloadBlockRecord(sn int64) error
 	GetDownloadBlockRecord(sn int64) (DownloadBlockRecord, error)
@@ -59,8 +61,9 @@ type DB interface {
 	AddLatestDownloadCarfile(carfileCID string, userIP string) error
 	GetLatestDownloadCarfiles(userIP string) ([]string, error)
 
-	GetSystemInfo() (api.BaseInfo, error)
-	UpdateSystemInfo(update func(info *api.BaseInfo)) error
+	GetBaseInfo() (api.BaseInfo, error)
+	UpdateBaseInfo(field string, value interface{}) error
+	IncrByBaseInfo(field string, value int64) error
 
 	IsNilErr(err error) bool
 }

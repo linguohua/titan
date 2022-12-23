@@ -11,7 +11,6 @@ import (
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
-	"github.com/linguohua/titan/node/scheduler/errmsg"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
@@ -154,7 +153,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockCacheInfo) 
 		return eNode.CacheNextTimeoutTimeStamp, err
 	}
 
-	return 0, xerrors.Errorf("%s:%s", errmsg.ErrNodeNotFind, deviceID)
+	return 0, xerrors.Errorf("Not Found Node:%s", deviceID)
 }
 
 func (c *Cache) findIdleNode(skips map[string]string, i int) (deviceID string) {
@@ -439,12 +438,13 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 }
 
 func (c *Cache) updateNodeBlockInfo(deviceID, fromID string, blockSize int) {
-	err := cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
-		deviceInfo.BlockCount++
-		deviceInfo.TotalDownload += float64(blockSize)
-	})
+	err := cache.GetDB().IncrByDeviceInfo(deviceID, "BlockCount", 1)
 	if err != nil {
-		log.Warnf("UpdateDeviceInfo err:%s", err.Error())
+		log.Warnf("IncrByDeviceInfo err:%s", err.Error())
+	}
+	err = cache.GetDB().IncrByDeviceInfo(deviceID, "TotalDownload", int64(blockSize))
+	if err != nil {
+		log.Warnf("IncrByDeviceInfo err:%s", err.Error())
 	}
 
 	node := c.Data.NodeManager.GetCandidateNode(fromID)
@@ -452,12 +452,13 @@ func (c *Cache) updateNodeBlockInfo(deviceID, fromID string, blockSize int) {
 		return
 	}
 
-	err = cache.GetDB().UpdateDeviceInfo(node.DeviceInfo.DeviceId, func(deviceInfo *api.DevicesInfo) {
-		deviceInfo.DownloadCount++
-		deviceInfo.TotalUpload += float64(blockSize)
-	})
+	err = cache.GetDB().IncrByDeviceInfo(node.DeviceInfo.DeviceId, "DownloadCount", 1)
 	if err != nil {
-		log.Warnf("UpdateDeviceInfo err:%s", err.Error())
+		log.Warnf("IncrByDeviceInfo err:%s", err.Error())
+	}
+	err = cache.GetDB().IncrByDeviceInfo(node.DeviceInfo.DeviceId, "TotalUpload", int64(blockSize))
+	if err != nil {
+		log.Warnf("IncrByDeviceInfo err:%s", err.Error())
 	}
 }
 
@@ -500,9 +501,7 @@ func (c *Cache) endCache(unDoneBlocks int, status api.CacheStatus) (err error) {
 		c.Data.cacheEnd(c)
 
 		if c.Status == api.CacheStatusSuccess {
-			err = cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
-				info.CarFileCount++
-			})
+			err = cache.GetDB().IncrByBaseInfo("CarfileCount", 1)
 			if err != nil {
 				log.Errorf("endCache UpdateSystemInfo err: %s", err.Error())
 			}
@@ -560,9 +559,7 @@ func (c *Cache) removeCache() error {
 		}
 
 		// update node block count
-		err = cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
-			deviceInfo.BlockCount -= len(cids)
-		})
+		err = cache.GetDB().IncrByDeviceInfo(deviceID, "BlockCount", int64(-len(cids)))
 		if err != nil {
 			log.Errorf("UpdateDeviceInfo err:%s ", err.Error())
 		}
@@ -593,9 +590,7 @@ func (c *Cache) removeCache() error {
 	}
 
 	if c.Status == api.CacheStatusSuccess {
-		err = cache.GetDB().UpdateSystemInfo(func(info *api.BaseInfo) {
-			info.CarFileCount--
-		})
+		err = cache.GetDB().IncrByBaseInfo("CarfileCount", -1)
 	}
 
 	return err

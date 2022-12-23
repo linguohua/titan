@@ -64,8 +64,8 @@ type DevicesInfo struct {
 	BandwidthDown    float64  `json:"bandwidth_down" redis:"BandwidthDown"`
 	TotalDownload    float64  `json:"total_download" redis:"TotalDownload"`
 	TotalUpload      float64  `json:"total_upload" redis:"TotalUpload"`
-	BlockCount       int      `json:"block_count" form:"blockCount" gorm:"column:block_count;comment:;" redis:"blockCount"`
-	DownloadCount    int      `json:"download_count" form:"downloadCount" gorm:"column:download_count;comment:;" redis:"downloadCount"`
+	BlockCount       int      `json:"block_count" form:"blockCount" gorm:"column:block_count;comment:;" redis:"BlockCount"`
+	DownloadCount    int      `json:"download_count" form:"downloadCount" gorm:"column:download_count;comment:;" redis:"DownloadCount"`
 }
 
 type BlockDownloadInfo struct {
