@@ -241,12 +241,12 @@ func (s *Scheduler) verifyNodeResultForUserDownloadBlock(deviceID string, record
 	verifyContent := fmt.Sprintf("%s%d%d%d", record.Cid, record.SN, record.SignTime, record.Timeout)
 	edgeNode := s.nodeManager.GetEdgeNode(deviceID)
 	if edgeNode != nil {
-		return titanRsa.VerifyRsaSign(&edgeNode.PrivateKey.PublicKey, sign, verifyContent)
+		return titanRsa.VerifyRsaSign(&edgeNode.GetPrivateKey().PublicKey, sign, verifyContent)
 	}
 
 	candidate := s.nodeManager.GetCandidateNode(deviceID)
 	if candidate != nil {
-		return titanRsa.VerifyRsaSign(&candidate.PrivateKey.PublicKey, sign, verifyContent)
+		return titanRsa.VerifyRsaSign(&candidate.GetPrivateKey().PublicKey, sign, verifyContent)
 	}
 
 	authInfo, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
@@ -297,12 +297,12 @@ func (s *Scheduler) signDownloadInfos(cid string, sn int64, signTime int64, resu
 func (s *Scheduler) getDeviccePrivateKey(deviceID string) (*rsa.PrivateKey, error) {
 	edge := s.nodeManager.GetEdgeNode(deviceID)
 	if edge != nil {
-		return edge.PrivateKey, nil
+		return edge.GetPrivateKey(), nil
 	}
 
 	candidate := s.nodeManager.GetCandidateNode(deviceID)
 	if candidate != nil {
-		return candidate.PrivateKey, nil
+		return candidate.GetPrivateKey(), nil
 	}
 
 	authInfo, err := persistent.GetDB().GetNodeAuthInfo(deviceID)

@@ -65,8 +65,9 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Sche
 	s := &Scheduler{serverPort: port}
 
 	locatorManager := locator.NewLoactorManager(port)
+
 	// pool := newValidatePool(verifiedNodeMax)
-	nodeManager := node.NewNodeManager(s.nodeOfflineCallback, s.nodeExitedCallback, s.authNew)
+	nodeManager := node.NewNodeManager(s.nodeOfflineCallback, s.nodeExitedCallback, s.getAuthToken)
 
 	ele := election.NewElection(nodeManager)
 	// open election
@@ -93,6 +94,11 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Sche
 
 	area.InitServerArea(areaStr)
 
+	err = s.authNew()
+	if err != nil {
+		log.Panic("authNew err:%s", err.Error())
+	}
+
 	return s
 }
 
@@ -109,6 +115,12 @@ type Scheduler struct {
 	// selector       *ValidateSelector
 
 	serverPort int
+
+	authToken []byte
+}
+
+func (s *Scheduler) getAuthToken() []byte {
+	return s.authToken
 }
 
 // CandidateNodeConnect Candidate connect
@@ -167,18 +179,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 	deviceInfo.NodeType = api.NodeCandidate
 	deviceInfo.ExternalIp = ip
 
-	candidateNode := &node.CandidateNode{
-		NodeAPI: candicateAPI,
-		Closer:  closer,
-
-		Node: node.Node{
-			Addr:           rpcURL,
-			DeviceInfo:     deviceInfo,
-			DownloadSrvURL: downloadSrvURL,
-			PrivateKey:     privateKey,
-			NodeType:       api.TypeNameCandidate,
-		},
-	}
+	candidateNode := node.NewCandidateNode(candicateAPI, closer, node.NewNode(deviceInfo, rpcURL, downloadSrvURL, privateKey, api.TypeNameCandidate))
 
 	err = s.nodeManager.CandidateOnline(candidateNode)
 	if err != nil {
@@ -186,7 +187,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 		return err
 	}
 
-	deviceInfo.IpLocation = candidateNode.GeoInfo.Geo
+	deviceInfo.IpLocation = candidateNode.GetGeoInfo().Geo
 	err = s.nodeManager.SetDeviceInfo(deviceID, deviceInfo)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect setDeviceInfo err:%s,deviceID:%s", err.Error(), deviceID)
@@ -256,18 +257,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 	deviceInfo.NodeType = api.NodeEdge
 	deviceInfo.ExternalIp = ip
 
-	edgeNode := &node.EdgeNode{
-		NodeAPI: edgeAPI,
-		Closer:  closer,
-
-		Node: node.Node{
-			Addr:           rpcURL,
-			DeviceInfo:     deviceInfo,
-			DownloadSrvURL: downloadSrvURL,
-			PrivateKey:     privateKey,
-			NodeType:       api.TypeNameEdge,
-		},
-	}
+	edgeNode := node.NewEdgeNode(edgeAPI, closer, node.NewNode(deviceInfo, rpcURL, downloadSrvURL, privateKey, api.TypeNameEdge))
 
 	err = s.nodeManager.EdgeOnline(edgeNode)
 	if err != nil {
@@ -275,7 +265,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 		return err
 	}
 
-	deviceInfo.IpLocation = edgeNode.GeoInfo.Geo
+	deviceInfo.IpLocation = edgeNode.GetGeoInfo().Geo
 	err = s.nodeManager.SetDeviceInfo(deviceID, deviceInfo)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect set device info: %s", err.Error())
@@ -296,12 +286,12 @@ func (s *Scheduler) GetPublicKey(ctx context.Context) (string, error) {
 
 	edgeNode := s.nodeManager.GetEdgeNode(deviceID)
 	if edgeNode != nil {
-		return titanRsa.PublicKey2Pem(&edgeNode.PrivateKey.PublicKey), nil
+		return titanRsa.PublicKey2Pem(&edgeNode.GetPrivateKey().PublicKey), nil
 	}
 
 	candidateNode := s.nodeManager.GetCandidateNode(deviceID)
 	if candidateNode != nil {
-		return titanRsa.PublicKey2Pem(&candidateNode.PrivateKey.PublicKey), nil
+		return titanRsa.PublicKey2Pem(&candidateNode.GetPrivateKey().PublicKey), nil
 	}
 
 	return "", fmt.Errorf("Can not get node %s publicKey", deviceID)
@@ -373,11 +363,7 @@ func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids
 		return nil, xerrors.New("cids is nil")
 	}
 
-	tk, err := s.authNew()
-	if err != nil {
-		log.Errorf("GetCandidateDownloadInfoWithBlocks error:%s", err.Error())
-		return nil, err
-	}
+	tk := s.getAuthToken()
 
 	infoMap := make(map[string]api.CandidateDownloadInfo)
 
@@ -393,7 +379,7 @@ func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids
 		}
 
 		candidate := infos[randomNum(0, len(infos))]
-		infoMap[cid] = api.CandidateDownloadInfo{URL: candidate.Addr, Token: string(tk)}
+		infoMap[cid] = api.CandidateDownloadInfo{URL: candidate.GetAddress(), Token: string(tk)}
 	}
 
 	return infoMap, nil
@@ -418,7 +404,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 
 		statList = append(statList, body)
 
-		nodeBody, _ := candidata.NodeAPI.QueryCacheStat(ctx)
+		nodeBody, _ := candidata.GetAPI().QueryCacheStat(ctx)
 		statList = append(statList, nodeBody)
 		return statList, nil
 	}
@@ -433,7 +419,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 
 		statList = append(statList, body)
 
-		nodeBody, _ := edge.NodeAPI.QueryCacheStat(ctx)
+		nodeBody, _ := edge.GetAPI().QueryCacheStat(ctx)
 		statList = append(statList, nodeBody)
 		return statList, nil
 	}
@@ -448,12 +434,12 @@ func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID str
 
 	candidata := s.nodeManager.GetCandidateNode(deviceID)
 	if candidata != nil {
-		return candidata.NodeAPI.QueryCachingBlocks(ctx)
+		return candidata.GetAPI().QueryCachingBlocks(ctx)
 	}
 
 	edge := s.nodeManager.GetEdgeNode(deviceID)
 	if edge != nil {
-		return edge.NodeAPI.QueryCachingBlocks(ctx)
+		return edge.GetAPI().QueryCachingBlocks(ctx)
 	}
 
 	return api.CachingBlockList{}, xerrors.Errorf("Not Found Node:%s", deviceID)
@@ -586,12 +572,14 @@ func (s *Scheduler) nodeExitedCallback(deviceID string) {
 	s.dataManager.CleanNodeAndRestoreCaches(deviceID)
 }
 
-func (s *Scheduler) authNew() ([]byte, error) {
+func (s *Scheduler) authNew() error {
 	tk, err := s.AuthNew(context.Background(), []auth.Permission{api.PermRead, api.PermWrite})
 	if err != nil {
 		log.Errorf("findDownloadinfoForBlocks AuthNew err:%s", err.Error())
-		return nil, err
+		return err
 	}
 
-	return tk, nil
+	s.authToken = tk
+
+	return nil
 }

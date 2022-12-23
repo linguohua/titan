@@ -12,32 +12,31 @@ import (
 
 // Data Data
 type Data struct {
-	NodeManager     *node.Manager
-	DataManager     *Manager
-	CarfileCid      string
-	CarfileHash     string
-	CacheMap        sync.Map
-	Reliability     int
-	NeedReliability int
-	CacheCount      int
-	TotalSize       int
-	TotalBlocks     int
-	Nodes           int
-	ExpiredTime     time.Time
+	NodeManager *node.Manager
+	DataManager *Manager
 
-	IsStop bool
+	carfileCid      string
+	carfileHash     string
+	cacheMap        sync.Map
+	reliability     int
+	needReliability int
+	cacheCount      int
+	totalSize       int
+	totalBlocks     int
+	nodes           int
+	expiredTime     time.Time
 }
 
 func newData(nodeManager *node.Manager, dataManager *Manager, cid, hash string, reliability int) *Data {
 	return &Data{
 		NodeManager:     nodeManager,
 		DataManager:     dataManager,
-		CarfileCid:      cid,
-		Reliability:     0,
-		NeedReliability: reliability,
-		CacheCount:      0,
-		TotalBlocks:     1,
-		CarfileHash:     hash,
+		carfileCid:      cid,
+		reliability:     0,
+		needReliability: reliability,
+		cacheCount:      0,
+		totalBlocks:     1,
+		carfileHash:     hash,
 	}
 }
 
@@ -49,17 +48,17 @@ func loadData(hash string, nodeManager *node.Manager, dataManager *Manager) *Dat
 	}
 	if dInfo != nil {
 		data := &Data{}
-		data.CarfileCid = dInfo.CarfileCid
+		data.carfileCid = dInfo.CarfileCid
 		data.NodeManager = nodeManager
 		data.DataManager = dataManager
-		data.TotalSize = dInfo.TotalSize
-		data.NeedReliability = dInfo.NeedReliability
-		data.Reliability = dInfo.Reliability
-		data.CacheCount = dInfo.CacheCount
-		data.TotalBlocks = dInfo.TotalBlocks
-		data.Nodes = dInfo.Nodes
-		data.ExpiredTime = dInfo.ExpiredTime
-		data.CarfileHash = dInfo.CarfileHash
+		data.totalSize = dInfo.TotalSize
+		data.needReliability = dInfo.NeedReliability
+		data.reliability = dInfo.Reliability
+		data.cacheCount = dInfo.CacheCount
+		data.totalBlocks = dInfo.TotalBlocks
+		data.nodes = dInfo.Nodes
+		data.expiredTime = dInfo.ExpiredTime
+		data.carfileHash = dInfo.CarfileHash
 
 		idList, err := persistent.GetDB().GetCachesWithData(hash)
 		if err != nil {
@@ -76,7 +75,7 @@ func loadData(hash string, nodeManager *node.Manager, dataManager *Manager) *Dat
 				continue
 			}
 
-			data.CacheMap.Store(cacheID, c)
+			data.cacheMap.Store(cacheID, c)
 		}
 
 		return data
@@ -88,7 +87,7 @@ func loadData(hash string, nodeManager *node.Manager, dataManager *Manager) *Dat
 func (d *Data) haveRootCache() bool {
 	have := false
 
-	d.CacheMap.Range(func(key, value interface{}) bool {
+	d.cacheMap.Range(func(key, value interface{}) bool {
 		if have {
 			return true
 		}
@@ -96,7 +95,7 @@ func (d *Data) haveRootCache() bool {
 		if value != nil {
 			c := value.(*Cache)
 			if c != nil {
-				have = c.IsRootCache && c.Status == api.CacheStatusSuccess
+				have = c.isRootCache && c.status == api.CacheStatusSuccess
 			}
 		}
 
@@ -107,7 +106,7 @@ func (d *Data) haveRootCache() bool {
 }
 
 func (d *Data) createCache(isRootCache bool) (*Cache, error) {
-	cache, err := newCache(d.NodeManager, d, d.CarfileHash, isRootCache)
+	cache, err := newCache(d.NodeManager, d, d.carfileHash, isRootCache)
 	if err != nil {
 		return nil, xerrors.Errorf("new cache err:%s", err.Error())
 	}
@@ -117,69 +116,69 @@ func (d *Data) createCache(isRootCache bool) (*Cache, error) {
 
 func (d *Data) updateAndSaveCacheingInfo(blockInfo *api.BlockInfo, cache *Cache, createBlocks []*api.BlockInfo) error {
 	if !d.haveRootCache() {
-		d.TotalSize = cache.TotalSize
-		d.TotalBlocks = cache.TotalBlocks
+		d.totalSize = cache.totalSize
+		d.totalBlocks = cache.totalBlocks
 	}
 
 	dInfo := &api.DataInfo{
-		CarfileHash: d.CarfileHash,
-		TotalSize:   d.TotalSize,
-		TotalBlocks: d.TotalBlocks,
-		Reliability: d.Reliability,
-		CacheCount:  d.CacheCount,
+		CarfileHash: d.carfileHash,
+		TotalSize:   d.totalSize,
+		TotalBlocks: d.totalBlocks,
+		Reliability: d.reliability,
+		CacheCount:  d.cacheCount,
 	}
 
 	cInfo := &api.CacheInfo{
 		// ID:          cache.dbID,
-		CarfileHash: cache.CarfileHash,
-		CacheID:     cache.CacheID,
-		DoneSize:    cache.DoneSize,
-		Status:      cache.Status,
-		DoneBlocks:  cache.DoneBlocks,
-		Reliability: cache.Reliability,
-		TotalSize:   cache.TotalSize,
-		TotalBlocks: cache.TotalBlocks,
+		CarfileHash: cache.carfileHash,
+		CacheID:     cache.cacheID,
+		DoneSize:    cache.doneSize,
+		Status:      cache.status,
+		DoneBlocks:  cache.doneBlocks,
+		Reliability: cache.reliability,
+		TotalSize:   cache.totalSize,
+		TotalBlocks: cache.totalBlocks,
 	}
 
 	return persistent.GetDB().SaveCacheingResults(dInfo, cInfo, blockInfo, createBlocks)
 }
 
 func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
-	if cache.Status == api.CacheStatusSuccess {
-		d.Reliability += cache.Reliability
+	if cache.status == api.CacheStatusSuccess {
+		d.reliability += cache.reliability
 	}
 
-	cNodes, err := persistent.GetDB().GetNodesFromCache(cache.CacheID)
+	cNodes, err := persistent.GetDB().GetNodesFromCache(cache.cacheID)
 	if err != nil {
 		log.Warnf("updateAndSaveCacheEndInfo GetNodesFromCache err:%s", err.Error())
 	}
 
-	dNodes, err := persistent.GetDB().GetNodesFromData(d.CarfileHash)
+	dNodes, err := persistent.GetDB().GetNodesFromData(d.carfileHash)
 	if err != nil {
 		log.Warnf("updateAndSaveCacheEndInfo GetNodesFromData err:%s", err.Error())
 	}
 
-	d.Nodes = len(dNodes)
+	d.nodes = len(dNodes)
 	dInfo := &api.DataInfo{
-		CarfileHash: d.CarfileHash,
-		TotalSize:   d.TotalSize,
-		TotalBlocks: d.TotalBlocks,
-		Reliability: d.Reliability,
-		CacheCount:  d.CacheCount,
-		Nodes:       d.Nodes,
+		CarfileHash: d.carfileHash,
+		TotalSize:   d.totalSize,
+		TotalBlocks: d.totalBlocks,
+		Reliability: d.reliability,
+		CacheCount:  d.cacheCount,
+		Nodes:       d.nodes,
 	}
 
-	cache.Nodes = len(cNodes)
+	cache.nodes = len(cNodes)
 	cInfo := &api.CacheInfo{
-		CarfileHash: cache.CarfileHash,
-		CacheID:     cache.CacheID,
-		DoneSize:    cache.DoneSize,
-		Status:      cache.Status,
-		DoneBlocks:  cache.DoneBlocks,
-		Reliability: cache.Reliability,
-		TotalSize:   cache.TotalSize,
-		TotalBlocks: cache.TotalBlocks,
-		Nodes:       cache.Nodes,
+		CarfileHash: cache.carfileHash,
+		CacheID:     cache.cacheID,
+		DoneSize:    cache.doneSize,
+		Status:      cache.status,
+		DoneBlocks:  cache.doneBlocks,
+		Reliability: cache.reliability,
+		TotalSize:   cache.totalSize,
+		TotalBlocks: cache.totalBlocks,
+		Nodes:       cache.nodes,
 	}
 
 	return persistent.GetDB().SaveCacheEndResults(dInfo, cInfo)
@@ -192,7 +191,7 @@ func (d *Data) dispatchCache(cache *Cache) (*Cache, error) {
 	if cache != nil {
 		cache.updateAlreadyMap()
 
-		list, err = persistent.GetDB().GetUndoneBlocks(cache.CacheID)
+		list, err = persistent.GetDB().GetUndoneBlocks(cache.cacheID)
 		if err != nil {
 			return cache, err
 		}
@@ -202,12 +201,12 @@ func (d *Data) dispatchCache(cache *Cache) (*Cache, error) {
 			return nil, err
 		}
 
-		d.CacheMap.Store(cache.CacheID, cache)
+		d.cacheMap.Store(cache.cacheID, cache)
 
-		list = map[string]string{d.CarfileCid: ""}
+		list = map[string]string{d.carfileCid: ""}
 	}
 
-	d.CacheCount++
+	d.cacheCount++
 
 	err = cache.startCache(list)
 	if err != nil {
@@ -222,7 +221,7 @@ func (d *Data) cacheEnd(doneCache *Cache) {
 
 	defer func() {
 		if err != nil {
-			d.DataManager.dataTaskEnd(d.CarfileCid, d.CarfileHash, err.Error())
+			d.DataManager.dataTaskEnd(d.carfileCid, d.carfileHash, err.Error())
 		}
 	}()
 
@@ -232,13 +231,13 @@ func (d *Data) cacheEnd(doneCache *Cache) {
 		return
 	}
 
-	if d.CacheCount > d.NeedReliability {
-		err = xerrors.Errorf("cacheCount:%d reach needReliability:%d", d.CacheCount, d.NeedReliability)
+	if d.cacheCount > d.needReliability {
+		err = xerrors.Errorf("cacheCount:%d reach needReliability:%d", d.cacheCount, d.needReliability)
 		return
 	}
 
-	if d.NeedReliability <= d.Reliability {
-		err = xerrors.Errorf("reliability is enough:%d/%d", d.Reliability, d.NeedReliability)
+	if d.needReliability <= d.reliability {
+		err = xerrors.Errorf("reliability is enough:%d/%d", d.reliability, d.needReliability)
 		return
 	}
 
@@ -250,13 +249,13 @@ func (d *Data) getOldUndoneCache() *Cache {
 	var oldCache *Cache
 	var oldRootCache *Cache
 
-	d.CacheMap.Range(func(key, value interface{}) bool {
+	d.cacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)
 
-		if c.Status != api.CacheStatusSuccess {
+		if c.status != api.CacheStatusSuccess {
 			oldCache = c
 
-			if c.IsRootCache {
+			if c.isRootCache {
 				oldRootCache = c
 			}
 		}
@@ -269,4 +268,44 @@ func (d *Data) getOldUndoneCache() *Cache {
 	}
 
 	return oldCache
+}
+
+// GetCarfileCid get carfile cid
+func (d *Data) GetCarfileCid() string {
+	return d.carfileCid
+}
+
+// GetCarfileHash get carfile hash
+func (d *Data) GetCarfileHash() string {
+	return d.carfileHash
+}
+
+// GetTotalSize get total size
+func (d *Data) GetTotalSize() int {
+	return d.totalSize
+}
+
+// GetNeedReliability get need reliability
+func (d *Data) GetNeedReliability() int {
+	return d.needReliability
+}
+
+// GetReliability get reliability
+func (d *Data) GetReliability() int {
+	return d.reliability
+}
+
+// GetTotalBlocks get total blocks
+func (d *Data) GetTotalBlocks() int {
+	return d.totalBlocks
+}
+
+// GetTotalNodes get total nodes
+func (d *Data) GetTotalNodes() int {
+	return d.nodes
+}
+
+// GetCacheMap get cache map
+func (d *Data) GetCacheMap() sync.Map {
+	return d.cacheMap
 }

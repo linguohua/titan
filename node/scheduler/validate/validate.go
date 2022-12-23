@@ -339,8 +339,8 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 	for _, edgeNode := range edges {
 		var tn tmpDeviceMeta
 		tn.nodeType = api.NodeEdge
-		tn.deviceId = edgeNode.DeviceInfo.DeviceId
-		tn.addr = edgeNode.Node.Addr
+		tn.deviceId = edgeNode.GetDeviceInfo().DeviceId
+		tn.addr = edgeNode.Node.GetAddress()
 
 		validatorID := validatorList[randomNum(0, len(validatorList))]
 
@@ -357,12 +357,12 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 	candidates := v.nodeManager.GetAllCandidate()
 	for _, candidateNode := range candidates {
 		var tn tmpDeviceMeta
-		tn.deviceId = candidateNode.DeviceInfo.DeviceId
+		tn.deviceId = candidateNode.GetDeviceInfo().DeviceId
 		tn.nodeType = api.NodeCandidate
-		tn.addr = candidateNode.Node.Addr
+		tn.addr = candidateNode.Node.GetAddress()
 
 		validatorID := validatorList[randomNum(0, len(validatorList))]
-		if validatorID == candidateNode.DeviceInfo.DeviceId {
+		if validatorID == candidateNode.GetDeviceInfo().DeviceId {
 			continue
 		}
 
@@ -456,7 +456,7 @@ func (v *Validate) execute() error {
 				return
 			}
 
-			err = validator.NodeAPI.ValidateBlocks(v.ctx, req)
+			err = validator.GetAPI().ValidateBlocks(v.ctx, req)
 			if err != nil {
 				log.Errorf(err.Error())
 				return
