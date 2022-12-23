@@ -90,6 +90,7 @@ func getBlockFromIPFSGateway(wg *sync.WaitGroup, block *ipfsBlock, url string) {
 }
 
 func getBlocksWithHttp(block *Block, cids []cid.Cid) ([]blocks.Block, error) {
+	startTime := time.Now()
 	ipfsbs := make([]*ipfsBlock, 0, len(cids))
 
 	var wg sync.WaitGroup
@@ -126,7 +127,7 @@ func getBlocksWithHttp(block *Block, cids []cid.Cid) ([]blocks.Block, error) {
 		bs = append(bs, block)
 	}
 
-	log.Infof("getBlocksWithHttp block len:%d", len(bs))
+	log.Infof("getBlocksWithHttp block len:%d, duration:%d", len(bs), time.Since(startTime))
 	return bs, nil
 }
 
