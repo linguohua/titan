@@ -27,13 +27,14 @@ type ReqValidate struct {
 
 type ValidateResults struct {
 	Validator string
-	// cancel for use download block
+	// verification canceled due to download
 	IsCancel  bool
 	DeviceID  string
 	Bandwidth float64
 	// millisecond duration
 	CostTime  int64
 	IsTimeout bool
+
 	// key is random index
 	// values is cid
 	Cids map[int]string
