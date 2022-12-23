@@ -127,7 +127,7 @@ func getBlocksWithHttp(block *Block, cids []cid.Cid) ([]blocks.Block, error) {
 		bs = append(bs, block)
 	}
 
-	log.Infof("getBlocksWithHttp block len:%d, duration:%d", len(bs), time.Since(startTime))
+	log.Infof("getBlocksWithHttp block len:%d, duration:%dns", len(bs), time.Since(startTime))
 	return bs, nil
 }
 

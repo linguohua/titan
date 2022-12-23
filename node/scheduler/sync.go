@@ -47,7 +47,7 @@ func doDataSync(syncApi api.DataSync, deviceID string) {
 			return
 		}
 
-		hash := getBlockItemsHash(blockItems)
+		hash := encodeBlockItems2Hash(blockItems)
 		if hash == checksum.Hash {
 			continue
 		}
@@ -128,7 +128,7 @@ func getInconformityBlocksList(syncApi api.DataSync, inconfBlocks *inconformityB
 	inconformityBlocksList := make([]*inconformityBlocks, 0)
 	for _, checksum := range rsp.Checksums {
 		blocks := getBlockItemWith(checksum.StartFid, checksum.EndFid, inconfBlocks.blocks)
-		hash := getBlockItemsHash(blocks)
+		hash := encodeBlockItems2Hash(blocks)
 		if checksum.Hash == hash {
 			continue
 		}
@@ -167,15 +167,15 @@ func getBlockItemWith(startFid, endFid int, blocks []*blockItem) []*blockItem {
 func loadBlockItemsFromDB(deviceID string, startFid, endFid int) ([]*blockItem, error) {
 	if endFid < startFid {
 		log.Errorf("loadBlockItemsFromDB")
-		return []*blockItem{}, fmt.Errorf("error param endFid < startFid, startFid:%d,, endFid:%d", startFid, endFid)
+		return nil, fmt.Errorf("error param endFid < startFid, startFid:%d,, endFid:%d", startFid, endFid)
 	}
-	// TODO: get in batches
-	result := make([]*blockItem, 0)
+	// TODO: get in batches and sort in db
 	cidMap, err := persistent.GetDB().GetBlocksInRange(startFid, endFid, deviceID)
 	if err != nil {
-		return result, err
+		return nil, err
 	}
 
+	result := make([]*blockItem, 0)
 	for fid, cid := range cidMap {
 		block := &blockItem{fid: fid, cid: cid}
 		result = append(result, block)
@@ -208,7 +208,7 @@ func loadBlockItemsBiggerThan(startFid int, deviceID string) ([]*blockItem, erro
 
 }
 
-func getBlockItemsHash(blocks []*blockItem) string {
+func encodeBlockItems2Hash(blocks []*blockItem) string {
 	if len(blocks) == 0 {
 		return ""
 	}
@@ -219,10 +219,10 @@ func getBlockItemsHash(blocks []*blockItem) string {
 		hashCollection += hash
 	}
 
-	return string2Hash(hashCollection)
+	return encodeString2Hash(hashCollection)
 }
 
-func string2Hash(value string) string {
+func encodeString2Hash(value string) string {
 	hasher := md5.New()
 	hasher.Write([]byte(value))
 	hash := hasher.Sum(nil)
