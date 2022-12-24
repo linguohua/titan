@@ -12,7 +12,6 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/helper"
 	titanRsa "github.com/linguohua/titan/node/rsa"
-	"github.com/linguohua/titan/node/scheduler/area"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
@@ -211,14 +210,6 @@ func (m *Manager) GetAllEdge() []*EdgeNode {
 func (m *Manager) EdgeOnline(node *EdgeNode) error {
 	deviceID := node.GetDeviceInfo().DeviceId
 
-	geoInfo, isOk := area.GetGeoInfoWithIP(node.GetDeviceInfo().ExternalIp)
-	if !isOk {
-		log.Errorf("edgeOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.GetDeviceInfo().ExternalIp, geoInfo.Geo)
-		return xerrors.New("Area not exist")
-	}
-
-	node.SetGeoInfo(geoInfo)
-
 	nodeOld := m.GetEdgeNode(deviceID)
 	if nodeOld != nil {
 		nodeOld.ClientCloser()
@@ -267,14 +258,6 @@ func (m *Manager) edgeOffline(node *EdgeNode) {
 // CandidateOnline Candidate Online
 func (m *Manager) CandidateOnline(node *CandidateNode) error {
 	deviceID := node.GetDeviceInfo().DeviceId
-
-	geoInfo, isOk := area.GetGeoInfoWithIP(node.GetDeviceInfo().ExternalIp)
-	if !isOk {
-		log.Errorf("candidateOnline err DeviceId:%s,ip%s,geo:%s", deviceID, node.GetDeviceInfo().ExternalIp, geoInfo.Geo)
-		return xerrors.New("Area not exist")
-	}
-
-	node.SetGeoInfo(geoInfo)
 
 	nodeOld := m.GetCandidateNode(deviceID)
 	if nodeOld != nil {
@@ -482,31 +465,6 @@ func (m *Manager) GetCandidateNodesWithData(hash, skip string) ([]*CandidateNode
 	nodeCs := m.FindCandidateNodes(deviceIDs, skips)
 
 	return nodeCs, nil
-}
-
-// SetDeviceInfo Set Device Info
-func (m *Manager) SetDeviceInfo(deviceID string, info api.DevicesInfo) error {
-	_, err := cache.GetDB().SetDeviceInfo(deviceID, info)
-	if err != nil {
-		log.Errorf("set device info: %s", err.Error())
-		return err
-	}
-	return nil
-}
-
-// IsDeviceExist Check if the id exists
-func (m *Manager) IsDeviceExist(deviceID string, nodeType int) bool {
-	var nType int
-	err := persistent.GetDB().GetRegisterInfo(deviceID, "node_type", &nType)
-	if err != nil {
-		return false
-	}
-
-	if nodeType != 0 {
-		return nType == nodeType
-	}
-
-	return true
 }
 
 func (m *Manager) getDeviccePrivateKey(deviceID string, authInfo *api.DownloadServerAccessAuth) (*rsa.PrivateKey, error) {

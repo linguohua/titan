@@ -135,7 +135,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockCacheInfo) 
 		if err != nil {
 			log.Errorf("CacheBlocks %s, CacheBlocks err:%s", deviceID, err.Error())
 		} else {
-			cNode.UpdateCacheStat(nodeCacheStat)
+			cNode.UpdateCacheStat(&nodeCacheStat)
 		}
 		return cNode.GetCacheNextTimeoutTimeStamp(), err
 	}
@@ -148,7 +148,7 @@ func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockCacheInfo) 
 		if err != nil {
 			log.Errorf("CacheBlocks %s, CacheBlocks err:%s", deviceID, err.Error())
 		} else {
-			eNode.UpdateCacheStat(nodeCacheStat)
+			eNode.UpdateCacheStat(&nodeCacheStat)
 		}
 
 		return eNode.GetCacheNextTimeoutTimeStamp(), err
@@ -363,32 +363,6 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		c.alreadyCacheBlockMap[hash] = info.DeviceID
 	}
 
-	// if api.CacheStatus(c.Status) != api.CacheStatusRestore {
-	// 	if hash == c.CarfileHash {
-	// 		c.TotalSize = int(info.LinksSize) + info.BlockSize
-	// 		c.TotalBlocks = 1
-	// 	}
-	// 	c.TotalBlocks += len(info.Links)
-
-	// 	if info.IsOK {
-	// 		c.DoneBlocks++
-	// 		c.DoneSize += info.BlockSize
-	// 		status = api.CacheStatusSuccess
-	// 		reliability = c.calculateReliability(blockInfo.DeviceID)
-
-	// 		c.updateNodeBlockInfo(info.DeviceID, blockInfo.Source, info.BlockSize)
-	// 	}
-	// } else {
-	// 	// info.Links = make([]string, 0)
-
-	// 	if info.IsOK {
-	// 		status = api.CacheStatusSuccess
-	// 		reliability = c.calculateReliability(blockInfo.DeviceID)
-
-	// 		c.updateNodeBlockInfo(info.DeviceID, blockInfo.Source, info.BlockSize)
-	// 	}
-	// }
-
 	bInfo := &api.BlockInfo{
 		ID:          blockInfo.ID,
 		CacheID:     c.cacheID,
@@ -438,28 +412,17 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	return nil
 }
 
-func (c *Cache) updateNodeBlockInfo(deviceID, fromID string, blockSize int) {
-	err := cache.GetDB().IncrByDeviceInfo(deviceID, "BlockCount", 1)
-	if err != nil {
-		log.Warnf("IncrByDeviceInfo err:%s", err.Error())
-	}
-	err = cache.GetDB().IncrByDeviceInfo(deviceID, "TotalDownload", int64(blockSize))
-	if err != nil {
-		log.Warnf("IncrByDeviceInfo err:%s", err.Error())
+func (c *Cache) updateNodeBlockInfo(deviceID, fromDeviceID string, blockSize int) {
+	fromID := ""
+
+	node := c.Data.NodeManager.GetCandidateNode(fromDeviceID)
+	if node != nil {
+		fromID = fromDeviceID
 	}
 
-	node := c.Data.NodeManager.GetCandidateNode(fromID)
-	if node == nil {
-		return
-	}
-
-	err = cache.GetDB().IncrByDeviceInfo(node.GetDeviceInfo().DeviceId, "DownloadCount", 1)
+	err := cache.GetDB().UpdateNodeCacheBlockInfo(deviceID, fromID, blockSize)
 	if err != nil {
-		log.Warnf("IncrByDeviceInfo err:%s", err.Error())
-	}
-	err = cache.GetDB().IncrByDeviceInfo(node.GetDeviceInfo().DeviceId, "TotalUpload", int64(blockSize))
-	if err != nil {
-		log.Warnf("IncrByDeviceInfo err:%s", err.Error())
+		log.Errorf("UpdateNodeCacheBlockInfo err:%s", err.Error())
 	}
 }
 

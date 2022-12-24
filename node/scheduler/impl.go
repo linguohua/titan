@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/node/scheduler/election"
-	validate2 "github.com/linguohua/titan/node/scheduler/validate"
+	"github.com/linguohua/titan/node/scheduler/validate"
 
 	// "github.com/linguohua/titan/node/device"
 
@@ -61,32 +61,17 @@ const (
 
 // NewLocalScheduleNode NewLocalScheduleNode
 func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Scheduler {
-	// verifiedNodeMax := 10
+	s := &Scheduler{}
 
-	s := &Scheduler{serverPort: port}
-
-	locatorManager := locator.NewLoactorManager(port)
-
-	// pool := newValidatePool(verifiedNodeMax)
 	nodeManager := node.NewNodeManager(s.nodeOfflineCallback, s.nodeExitedCallback, s.getAuthToken)
 
-	ele := election.NewElection(nodeManager)
-	// open election
-	go ele.Run()
-
-	validate := validate2.NewValidate(nodeManager, true)
-
-	dataManager := data.NewDataManager(nodeManager)
-
-	s.locatorManager = locatorManager
+	s.locatorManager = locator.NewLoactorManager(port)
 	s.nodeManager = nodeManager
-	s.election = ele
-	s.validate = validate
-	s.dataManager = dataManager
+	s.election = election.NewElection(nodeManager)
+	s.validate = validate.NewValidate(nodeManager, true)
+	s.dataManager = data.NewDataManager(nodeManager)
 	s.CommonAPI = common.NewCommonAPI(nodeManager.UpdateLastRequestTime)
-
 	s.Web = web.NewWeb(s)
-
 	s.dataSync = sync.NewDataSync()
 
 	sec, err := secret.APISecret(lr)
@@ -99,7 +84,7 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Sche
 
 	err = s.authNew()
 	if err != nil {
-		log.Panic("authNew err:%s", err.Error())
+		log.Panicf("authNew err:%s", err.Error())
 	}
 
 	return s
@@ -112,13 +97,11 @@ type Scheduler struct {
 
 	nodeManager    *node.Manager
 	election       *election.Election
-	validate       *validate2.Validate
+	validate       *validate.Validate
 	dataManager    *data.Manager
 	locatorManager *locator.Manager
 	// selector       *ValidateSelector
 	dataSync *sync.DataSync
-
-	serverPort int
 
 	authToken []byte
 }
@@ -132,7 +115,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 	ip := handler.GetRequestIP(ctx)
 	deviceID := handler.GetDeviceID(ctx)
 
-	if !s.nodeManager.IsDeviceExist(deviceID, int(api.NodeCandidate)) {
+	if !isDeviceExist(deviceID, int(api.NodeCandidate)) {
 		return xerrors.Errorf("candidate node not Exist: %s", deviceID)
 	}
 
@@ -183,7 +166,14 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 	deviceInfo.NodeType = api.NodeCandidate
 	deviceInfo.ExternalIp = ip
 
-	candidateNode := node.NewCandidateNode(candicateAPI, closer, node.NewNode(deviceInfo, rpcURL, downloadSrvURL, privateKey, api.TypeNameCandidate))
+	geoInfo, isOk := area.GetGeoInfoWithIP(deviceInfo.ExternalIp)
+	if !isOk {
+		log.Errorf("CandidateNodeConnect err DeviceId:%s,ip%s,geo:%s", deviceID, deviceInfo.ExternalIp, geoInfo.Geo)
+		return xerrors.New("Area not exist")
+	}
+	deviceInfo.IpLocation = geoInfo.Geo
+
+	candidateNode := node.NewCandidateNode(candicateAPI, closer, node.NewNode(&deviceInfo, rpcURL, downloadSrvURL, privateKey, api.TypeNameCandidate, geoInfo))
 
 	err = s.nodeManager.CandidateOnline(candidateNode)
 	if err != nil {
@@ -191,10 +181,9 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 		return err
 	}
 
-	deviceInfo.IpLocation = candidateNode.GetGeoInfo().Geo
-	err = s.nodeManager.SetDeviceInfo(deviceID, deviceInfo)
+	err = candidateNode.SaveInfo()
 	if err != nil {
-		log.Errorf("CandidateNodeConnect setDeviceInfo err:%s,deviceID:%s", err.Error(), deviceID)
+		log.Errorf("CandidateNodeConnect SaveInfo err:%s,deviceID:%s", err.Error(), deviceID)
 		return err
 	}
 
@@ -210,7 +199,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 	ip := handler.GetRequestIP(ctx)
 	deviceID := handler.GetDeviceID(ctx)
 
-	if !s.nodeManager.IsDeviceExist(deviceID, int(api.NodeEdge)) {
+	if !isDeviceExist(deviceID, int(api.NodeEdge)) {
 		return xerrors.Errorf("edge node not Exist: %s", deviceID)
 	}
 
@@ -261,7 +250,15 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 	deviceInfo.NodeType = api.NodeEdge
 	deviceInfo.ExternalIp = ip
 
-	edgeNode := node.NewEdgeNode(edgeAPI, closer, node.NewNode(deviceInfo, rpcURL, downloadSrvURL, privateKey, api.TypeNameEdge))
+	geoInfo, isOk := area.GetGeoInfoWithIP(deviceInfo.ExternalIp)
+	if !isOk {
+		log.Errorf("edgeOnline err DeviceId:%s,ip%s,geo:%s", deviceID, deviceInfo.ExternalIp, geoInfo.Geo)
+		return xerrors.New("Area not exist")
+	}
+
+	deviceInfo.IpLocation = geoInfo.Geo
+
+	edgeNode := node.NewEdgeNode(edgeAPI, closer, node.NewNode(&deviceInfo, rpcURL, downloadSrvURL, privateKey, api.TypeNameEdge, geoInfo))
 
 	err = s.nodeManager.EdgeOnline(edgeNode)
 	if err != nil {
@@ -269,8 +266,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 		return err
 	}
 
-	deviceInfo.IpLocation = edgeNode.GetGeoInfo().Geo
-	err = s.nodeManager.SetDeviceInfo(deviceID, deviceInfo)
+	err = edgeNode.SaveInfo()
 	if err != nil {
 		log.Errorf("EdgeNodeConnect set device info: %s", err.Error())
 		return err
@@ -310,7 +306,7 @@ func (s *Scheduler) GetExternalIP(ctx context.Context) (string, error) {
 func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.ValidateResults) error {
 	validator := handler.GetDeviceID(ctx)
 	log.Debug("call back validate block result, validator is", validator)
-	if !s.nodeManager.IsDeviceExist(validator, 0) {
+	if !isDeviceExist(validator, 0) {
 		return xerrors.Errorf("node not Exist: %s", validator)
 	}
 
@@ -349,7 +345,8 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeType api.NodeType, cou
 // GetOnlineDeviceIDs Get all online node id
 func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTypeName) ([]string, error) {
 	if nodeType == api.TypeNameValidator {
-		// return s.validatePool.veriftorList, nil
+		//TODO get validators
+		// return s.validate.
 	}
 
 	return s.nodeManager.GetNodes(nodeType)
@@ -359,7 +356,7 @@ func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTyp
 func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]api.CandidateDownloadInfo, error) {
 	deviceID := handler.GetDeviceID(ctx)
 
-	if !s.nodeManager.IsDeviceExist(deviceID, 0) {
+	if !isDeviceExist(deviceID, 0) {
 		return nil, xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
@@ -471,7 +468,7 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.De
 
 	deviceInfo.DeviceStatus = getDeviceStatus(isOnline)
 
-	return deviceInfo, nil
+	return *deviceInfo, nil
 }
 
 // GetDeviceStatus return the status of the device
@@ -516,13 +513,13 @@ func (s *Scheduler) ValidateStart(ctx context.Context) error {
 
 // LocatorConnect Locator Connect
 func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locatorID string, locatorToken string) error {
-	ip := handler.GetRequestIP(ctx)
-	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
-	log.Infof("LocatorConnect locatorID:%s,areaID:%s,LocatorConnect ip:%s,port:%d", locatorID, areaID, ip, port)
-
 	if !area.IsExist(areaID) {
 		return xerrors.Errorf("area err:%s", areaID)
 	}
+
+	ip := handler.GetRequestIP(ctx)
+	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
+	log.Infof("LocatorConnect locatorID:%s,areaID:%s,LocatorConnect ip:%s,port:%d", locatorID, areaID, ip, port)
 
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+string(locatorToken))
@@ -534,7 +531,7 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locato
 		return err
 	}
 
-	s.locatorManager.AddLocator(&node.Location{LocatorID: locatorID, NodeAPI: locationAPI, Closer: closer})
+	s.locatorManager.AddLocator(node.NewLocation(locationAPI, closer, locatorID))
 
 	return nil
 }
@@ -586,4 +583,19 @@ func (s *Scheduler) authNew() error {
 	s.authToken = tk
 
 	return nil
+}
+
+// isDeviceExist Check if the id exists
+func isDeviceExist(deviceID string, nodeType int) bool {
+	var nType int
+	err := persistent.GetDB().GetRegisterInfo(deviceID, "node_type", &nType)
+	if err != nil {
+		return false
+	}
+
+	if nodeType != 0 {
+		return nType == nodeType
+	}
+
+	return true
 }

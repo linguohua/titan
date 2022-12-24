@@ -26,7 +26,7 @@ func (s *Scheduler) CacheContinue(ctx context.Context, cid, cacheID string) erro
 func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
 	deviceID = handler.GetDeviceID(ctx)
 
-	if !s.nodeManager.IsDeviceExist(deviceID, 0) {
+	if !isDeviceExist(deviceID, 0) {
 		return "", xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
@@ -38,6 +38,10 @@ func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.C
 
 // ResetCacheExpiredTime reset expired time with data cache
 func (s *Scheduler) ResetCacheExpiredTime(ctx context.Context, carfileCid, cacheID string, expiredTime time.Time) error {
+	if time.Now().After(expiredTime) {
+		return xerrors.Errorf("now is after the expiredTime:%s", expiredTime.String())
+	}
+
 	return s.dataManager.ResetExpiredTime(carfileCid, cacheID, expiredTime)
 }
 
@@ -235,21 +239,4 @@ func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cid
 	// }
 
 	return nil, xerrors.Errorf("Not Found Node:%s", deviceID)
-}
-
-func (s *Scheduler) deviceBlockCacheCount(deviceID string, blockSize int) error {
-	// save block count to redis
-	err := cache.GetDB().IncrByDeviceInfo(deviceID, "BlockCount", 1)
-	if err != nil {
-		log.Errorf("IncrByDeviceInfo err:%s ", err.Error())
-		return err
-	}
-
-	err = cache.GetDB().IncrByDeviceInfo(deviceID, "TotalDownload", int64(blockSize))
-	if err != nil {
-		log.Errorf("IncrByDeviceInfo err:%s ", err.Error())
-		return err
-	}
-
-	return nil
 }

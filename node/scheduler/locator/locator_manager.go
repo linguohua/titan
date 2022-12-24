@@ -23,7 +23,7 @@ func NewLoactorManager(port int) *Manager {
 
 // AddLocator add
 func (m *Manager) AddLocator(location *node.Location) {
-	m.locatorMap[location.LocatorID] = location
+	m.locatorMap[location.GetLocatorID()] = location
 }
 
 // NotifyNodeStatusToLocator Notify Node Status To Locator
@@ -31,11 +31,11 @@ func (m *Manager) NotifyNodeStatusToLocator(deviceID string, isOnline bool) {
 	// log.Warnf("notifyNodeStatusToLocator : %v", m.locatorMap)
 	for _, locator := range m.locatorMap {
 		// log.Warnf("locator : %v", locator)
-		if locator != nil && locator.NodeAPI != nil {
+		if locator != nil && locator.GetAPI() != nil {
 			if isOnline {
-				locator.NodeAPI.DeviceOnline(context.Background(), deviceID, area.GetServerArea(), m.port)
+				locator.GetAPI().DeviceOnline(context.Background(), deviceID, area.GetServerArea(), m.port)
 			} else {
-				locator.NodeAPI.DeviceOffline(context.Background(), deviceID)
+				locator.GetAPI().DeviceOffline(context.Background(), deviceID)
 			}
 		}
 	}

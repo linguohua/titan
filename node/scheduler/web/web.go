@@ -59,7 +59,7 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 			deviceInfo.NodeType = api.NodeValidate
 		}
 
-		deviceInfos = append(deviceInfos, deviceInfo)
+		deviceInfos = append(deviceInfos, *deviceInfo)
 	}
 
 	rsp.Data = deviceInfos
