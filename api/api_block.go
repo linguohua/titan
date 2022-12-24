@@ -30,7 +30,7 @@ type BlockCacheInfo struct {
 	Cid string
 	Fid int
 
-	From string
+	// From string
 }
 
 type ReqCacheData struct {

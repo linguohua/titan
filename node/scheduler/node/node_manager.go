@@ -523,48 +523,53 @@ func (m *Manager) NodeExited(deviceID string) {
 	}
 }
 
-// FindDownloadinfoForBlocks  filter cached blocks and find download url from candidate
-func (m *Manager) FindDownloadinfoForBlocks(blocks []*api.BlockCacheInfo, carfileHash, cacheID string) []api.ReqCacheData {
-	reqList := make([]api.ReqCacheData, 0)
-	notFindCandidateBlocks := make([]api.BlockCacheInfo, 0)
-
-	csMap := make(map[string][]api.BlockCacheInfo)
-	for _, block := range blocks {
-		deviceID := block.From
-
-		list, ok := csMap[deviceID]
-		if !ok {
-			list = make([]api.BlockCacheInfo, 0)
-		}
-		list = append(list, *block)
-
-		csMap[deviceID] = list
-	}
-
-	for deviceID, list := range csMap {
-		// info, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
-
-		node := m.GetCandidateNode(deviceID)
-		if node != nil {
-			reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: node.GetAddress(), DownloadToken: string(m.getAuthToken()), CardFileHash: carfileHash, CacheID: cacheID})
-
-			// tk, err := token.GenerateToken(info.PrivateKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
-			// if err == nil {
-			// 	reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: info.URL, DownloadToken: tk, CardFileHash: carfileHash, CacheID: cacheID})
-
-			continue
-			// }
-		}
-
-		notFindCandidateBlocks = append(notFindCandidateBlocks, list...)
-	}
-
-	if len(notFindCandidateBlocks) > 0 {
-		reqList = append(reqList, api.ReqCacheData{BlockInfos: notFindCandidateBlocks, CardFileHash: carfileHash, CacheID: cacheID})
-	}
-
-	return reqList
+// GetAuthToken get token
+func (m *Manager) GetAuthToken() []byte {
+	return m.getAuthToken()
 }
+
+// FindDownloadinfoForBlocks  filter cached blocks and find download url from candidate
+// func (m *Manager) FindDownloadinfoForBlocks(blocks []*api.BlockCacheInfo, carfileHash, cacheID string) []api.ReqCacheData {
+// 	reqList := make([]api.ReqCacheData, 0)
+// 	notFindCandidateBlocks := make([]api.BlockCacheInfo, 0)
+
+// 	csMap := make(map[string][]api.BlockCacheInfo)
+// 	for _, block := range blocks {
+// 		deviceID := block.From
+
+// 		list, ok := csMap[deviceID]
+// 		if !ok {
+// 			list = make([]api.BlockCacheInfo, 0)
+// 		}
+// 		list = append(list, *block)
+
+// 		csMap[deviceID] = list
+// 	}
+
+// 	for deviceID, list := range csMap {
+// 		// info, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
+
+// 		node := m.GetCandidateNode(deviceID)
+// 		if node != nil {
+// 			reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: node.GetAddress(), DownloadToken: string(m.getAuthToken()), CardFileHash: carfileHash, CacheID: cacheID})
+
+// 			// tk, err := token.GenerateToken(info.PrivateKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
+// 			// if err == nil {
+// 			// 	reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: info.URL, DownloadToken: tk, CardFileHash: carfileHash, CacheID: cacheID})
+
+// 			continue
+// 			// }
+// 		}
+
+// 		notFindCandidateBlocks = append(notFindCandidateBlocks, list...)
+// 	}
+
+// 	if len(notFindCandidateBlocks) > 0 {
+// 		reqList = append(reqList, api.ReqCacheData{BlockInfos: notFindCandidateBlocks, CardFileHash: carfileHash, CacheID: cacheID})
+// 	}
+
+// 	return reqList
+// }
 
 func statisticsPing(ip string) (*ping.Statistics, error) {
 	pinger, err := ping.NewPinger(ip)
