@@ -89,15 +89,13 @@ func (db *db) getAccessPoint(areaID string) (*config.AccessPoint, error) {
 }
 
 func (db *db) isAccessPointExist(areaID, schedulerURL string) (bool, error) {
-	cfgs, err := db.db.getCfgs(areaID)
+	count, err := db.db.countCfgWith(areaID, schedulerURL)
 	if err != nil {
 		return false, err
 	}
 
-	for _, cfg := range cfgs {
-		if cfg.SchedulerURL == schedulerURL {
-			return true, nil
-		}
+	if count > 0 {
+		return true, nil
 	}
 
 	return false, nil
@@ -243,6 +241,13 @@ func (db *sqlDB) countDeviceOnScheduler(schedulerURL string) (int, error) {
 func (db *sqlDB) countDeviceWithID(deviceID string) (int, error) {
 	var count int
 	err := db.cli.Get(&count, `select count(*) from device WHERE device_id=?`, deviceID)
+
+	return count, err
+}
+
+func (db *sqlDB) countCfgWith(areaID, schedulerURL string) (int, error) {
+	var count int
+	err := db.cli.Get(&count, `SELECT count(*) FROM config WHERE scheduler_url=? and area_id=?`, schedulerURL, areaID)
 
 	return count, err
 }

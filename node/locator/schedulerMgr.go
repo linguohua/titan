@@ -44,9 +44,9 @@ func newAccessPointMgr(locatorPort int, locatorToken, uuid string) *accessPointM
 func (mgr *accessPointMgr) loadAccessPointFromMap(key string) (*accessPoint, bool) {
 	vb, ok := mgr.accessPoints.Load(key)
 	if ok {
-		return vb.(*accessPoint), ok
+		return vb.(*accessPoint), true
 	}
-	return nil, ok
+	return nil, false
 }
 
 func (mgr *accessPointMgr) deleteAccessPointFromMap(key string) {

@@ -1,6 +1,7 @@
 package locator
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -9,13 +10,19 @@ func TestDB(t *testing.T) {
 	db := newDB(url)
 	defer db.close()
 
+	count, err := db.db.countCfgWith("CN-GD-Shenzh", "http://192.168.1.102:6789/rpc/v0")
+	if err != nil {
+		fmt.Printf("err:%s", err.Error())
+		return
+	}
+	fmt.Printf("count:%d", count)
 	// info, err := db.getDeviceInfo("525e7729506711ed8c2c902e1671f843")
 	// if err != nil {
 	// 	fmt.Printf("err:%s", err.Error())
 	// 	return
 	// }
 	// 525e7729506711ed8c2c902e1671f843	http://192.168.0.26:3456/rpc/v0	CN-GD-Shenzhen	1
-	db.db.setDeviceInfo("525e7729506711ed8c2c902e1671f843", "http://192.168.0.29:3456/rpc/v0", "CN-GD-Shenzhenabc", false)
+	// db.db.setDeviceInfo("525e7729506711ed8c2c902e1671f843", "http://192.168.0.29:3456/rpc/v0", "CN-GD-Shenzhenabc", false)
 	// l := &Locator{db: db}
 	// l.DeviceOffline(nil, info.DeviceID)
 	// db.addAccessPoints("gz", "http://localhost:1080/rpc/v0", 100)
