@@ -21,9 +21,9 @@ var fsDatastores = map[string]dsCtor{
 	"metadata": levelDs,
 
 	// Those need to be fast for large writes... but also need a really good GC :c
-	"staging": badgerDs, // miner specific
+	// "staging": badgerDs, // miner specific
 
-	"client": badgerDs, // client specific
+	// "client": badgerDs, // client specific
 }
 
 func badgerDs(path string, readonly bool) (datastore.Batching, error) {

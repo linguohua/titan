@@ -233,6 +233,7 @@ func (s *Scheduler) verifyUserDownloadBlockSign(publicPem, cid string, sign []by
 func (s *Scheduler) signDownloadInfos(cid string, results []api.DownloadInfoResult, devicePrivateKeys map[string]*rsa.PrivateKey) error {
 	sn, err := cache.GetDB().IncrBlockDownloadSN()
 	if err != nil {
+		log.Errorf("signDownloadInfos incr block download sn error:%s", err.Error())
 		return err
 	}
 
@@ -246,6 +247,7 @@ func (s *Scheduler) signDownloadInfos(cid string, results []api.DownloadInfoResu
 			var err error
 			privateKey, err = s.getDevicePrivateKey(deviceID)
 			if err != nil {
+				log.Errorf("signDownloadInfos get private key error:%s", err.Error())
 				return err
 			}
 			devicePrivateKeys[deviceID] = privateKey
@@ -253,6 +255,7 @@ func (s *Scheduler) signDownloadInfos(cid string, results []api.DownloadInfoResu
 
 		sign, err := titanRsa.RsaSign(privateKey, fmt.Sprintf("%s%d%d%d", cid, sn, signTime, blockDonwloadTimeout))
 		if err != nil {
+			log.Errorf("signDownloadInfos rsa sign error:%s", err.Error())
 			return err
 		}
 		results[index].Sign = hex.EncodeToString(sign)

@@ -1,4 +1,4 @@
-package scheduler
+package sync
 
 import (
 	"context"
@@ -6,17 +6,33 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sort"
+	"sync"
 
 	"github.com/ipfs/go-cid"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 )
 
+var log = logging.Logger("web")
+
 const (
 	maxGroupNum        = 10
 	maxNumOfScrubBlock = 1000
-	maxRow             = 10000
 )
+
+type DataSync struct {
+	maxGroupNum        int
+	maxNumOfScrubBlock int
+	nodeList           []*node
+	lock               *sync.Mutex
+	waitChannel        chan bool
+}
+
+type node struct {
+	nodeID string
+	api    api.DataSync
+}
 
 type blockItem struct {
 	fid int
@@ -31,10 +47,77 @@ type inconformityBlocks struct {
 	endFid int
 }
 
-func doDataSync(syncApi api.DataSync, deviceID string) {
+//maxGroupNum: max group for device sync data
+//maxNumOfScrubBlock: max number of block on scrub block
+func NewDataSync() *DataSync {
+	dataSync := &DataSync{
+		maxGroupNum:        maxGroupNum,
+		maxNumOfScrubBlock: maxNumOfScrubBlock,
+		nodeList:           make([]*node, 0),
+		lock:               &sync.Mutex{},
+		waitChannel:        make(chan bool),
+	}
+
+	go dataSync.run()
+
+	return dataSync
+}
+
+func (ds DataSync) Add2List(syncApi api.DataSync, nodeID string) {
+	ds.lock.Lock()
+	defer ds.lock.Unlock()
+
+	for _, node := range ds.nodeList {
+		if node.nodeID == nodeID {
+			log.Warnf("add2List node %s aready in wait list", nodeID)
+			return
+		}
+	}
+
+	node := &node{nodeID: nodeID, api: syncApi}
+	ds.nodeList = append(ds.nodeList, node)
+
+	ds.notifyRunner()
+}
+
+func (ds DataSync) run() {
+	for {
+		<-ds.waitChannel
+		ds.syncData()
+	}
+}
+
+func (ds DataSync) syncData() {
+	for len(ds.nodeList) > 0 {
+		node := ds.removeFirstNode()
+		ds.doDataSync(node.api, node.nodeID)
+	}
+}
+
+func (ds DataSync) notifyRunner() {
+	select {
+	case ds.waitChannel <- true:
+	default:
+	}
+}
+
+func (ds DataSync) removeFirstNode() *node {
+	ds.lock.Lock()
+	defer ds.lock.Unlock()
+
+	if len(ds.nodeList) == 0 {
+		return nil
+	}
+
+	node := ds.nodeList[0]
+	ds.nodeList = ds.nodeList[1:]
+	return node
+}
+
+func (ds DataSync) doDataSync(syncApi api.DataSync, deviceID string) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	rsp, err := syncApi.GetAllChecksums(ctx, maxGroupNum)
+	rsp, err := syncApi.GetAllChecksums(ctx, ds.maxGroupNum)
 	if err != nil {
 		log.Errorf("doDataSync error:%s", err.Error())
 	}
@@ -53,12 +136,12 @@ func doDataSync(syncApi api.DataSync, deviceID string) {
 		}
 
 		inconfBlocks := &inconformityBlocks{blocks: blockItems, startFid: checksum.StartFid, endFid: checksum.EndFid}
-		if checksum.BlockCount <= maxNumOfScrubBlock {
+		if checksum.BlockCount <= ds.maxNumOfScrubBlock {
 			inconformityBlocksList = append(inconformityBlocksList, inconfBlocks)
 			continue
 		}
 
-		blocksList, err := getInconformityBlocksList(syncApi, inconfBlocks)
+		blocksList, err := ds.getInconformityBlocksList(syncApi, inconfBlocks)
 		if err != nil {
 			log.Errorf("doDataSync getInconformityBlocksList, deviceID:%s, range %d ~ %d, error:%s", deviceID, checksum.StartFid, checksum.EndFid, err.Error())
 			return
@@ -68,7 +151,7 @@ func doDataSync(syncApi api.DataSync, deviceID string) {
 	}
 
 	for _, inconfBlocks := range inconformityBlocksList {
-		err = scrubBlocks(syncApi, inconfBlocks.startFid, inconfBlocks.endFid, inconfBlocks.blocks)
+		err = ds.scrubBlocks(syncApi, inconfBlocks.startFid, inconfBlocks.endFid, inconfBlocks.blocks)
 		if err != nil {
 			log.Errorf("doDataSync scrubBlocks, deviceID:%s fid range %d ~ %d, error:%s", deviceID, inconfBlocks.startFid, inconfBlocks.endFid, err.Error())
 		}
@@ -91,7 +174,7 @@ func doDataSync(syncApi api.DataSync, deviceID string) {
 	if len(blocks) > 0 {
 		startBlock := blocks[0]
 		endBlock := blocks[len(blocks)-1]
-		err = scrubBlocks(syncApi, startBlock.fid, endBlock.fid, blocks)
+		err = ds.scrubBlocks(syncApi, startBlock.fid, endBlock.fid, blocks)
 		if err != nil {
 			log.Errorf("doDataSync scrub blocks, deviceID:%s fid range %d ~ %d error:%s", deviceID, startBlock.fid, endBlock.fid, err)
 		}
@@ -99,7 +182,7 @@ func doDataSync(syncApi api.DataSync, deviceID string) {
 
 }
 
-func scrubBlocks(syncApi api.DataSync, startFid, endFid int, blocks []*blockItem) error {
+func (ds DataSync) scrubBlocks(syncApi api.DataSync, startFid, endFid int, blocks []*blockItem) error {
 	// TODO: do in batches
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -115,11 +198,11 @@ func scrubBlocks(syncApi api.DataSync, startFid, endFid int, blocks []*blockItem
 
 }
 
-func getInconformityBlocksList(syncApi api.DataSync, inconfBlocks *inconformityBlocks) ([]*inconformityBlocks, error) {
+func (ds DataSync) getInconformityBlocksList(syncApi api.DataSync, inconfBlocks *inconformityBlocks) ([]*inconformityBlocks, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := api.ReqChecksumInRange{StartFid: inconfBlocks.startFid, EndFid: inconfBlocks.endFid, MaxGroupNum: maxGroupNum}
+	req := api.ReqChecksumInRange{StartFid: inconfBlocks.startFid, EndFid: inconfBlocks.endFid, MaxGroupNum: ds.maxGroupNum}
 	rsp, err := syncApi.GetChecksumsInRange(ctx, req)
 	if err != nil {
 		return []*inconformityBlocks{}, err
@@ -134,12 +217,12 @@ func getInconformityBlocksList(syncApi api.DataSync, inconfBlocks *inconformityB
 		}
 
 		inconfBlocks := &inconformityBlocks{blocks: blocks, startFid: checksum.StartFid, endFid: checksum.EndFid}
-		if checksum.BlockCount <= maxNumOfScrubBlock {
+		if checksum.BlockCount <= ds.maxNumOfScrubBlock {
 			inconformityBlocksList = append(inconformityBlocksList, inconfBlocks)
 			continue
 		}
 
-		blocksList, err := getInconformityBlocksList(syncApi, inconfBlocks)
+		blocksList, err := ds.getInconformityBlocksList(syncApi, inconfBlocks)
 		if err != nil {
 			return inconformityBlocksList, err
 		}

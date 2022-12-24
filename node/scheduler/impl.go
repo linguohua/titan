@@ -30,6 +30,7 @@ import (
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/locator"
+	"github.com/linguohua/titan/node/scheduler/sync"
 	"github.com/linguohua/titan/node/scheduler/web"
 
 	"github.com/linguohua/titan/node/secret"
@@ -86,6 +87,8 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Sche
 
 	s.Web = web.NewWeb(s)
 
+	s.dataSync = sync.NewDataSync()
+
 	sec, err := secret.APISecret(lr)
 	if err != nil {
 		log.Panicf("NewLocalScheduleNode failed:%s", err.Error())
@@ -113,6 +116,7 @@ type Scheduler struct {
 	dataManager    *data.Manager
 	locatorManager *locator.Manager
 	// selector       *ValidateSelector
+	dataSync *sync.DataSync
 
 	serverPort int
 
@@ -196,7 +200,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 
 	s.locatorManager.NotifyNodeStatusToLocator(deviceID, true)
 
-	go doDataSync(candicateAPI, deviceID)
+	s.dataSync.Add2List(candicateAPI, deviceID)
 
 	return nil
 }
@@ -275,7 +279,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 	// notify locator
 	s.locatorManager.NotifyNodeStatusToLocator(deviceID, true)
 
-	go doDataSync(edgeAPI, deviceID)
+	s.dataSync.Add2List(edgeAPI, deviceID)
 
 	return nil
 }
@@ -516,7 +520,7 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locato
 	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
 	log.Infof("LocatorConnect locatorID:%s,areaID:%s,LocatorConnect ip:%s,port:%d", locatorID, areaID, ip, port)
 
-	if area.IsExist(areaID) {
+	if !area.IsExist(areaID) {
 		return xerrors.Errorf("area err:%s", areaID)
 	}
 
