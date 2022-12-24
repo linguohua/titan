@@ -25,12 +25,12 @@ func (ipfs *IPFS) loadBlocks(block *Block, req []*delayReq) {
 	loadBlocksFromIPFS(block, req)
 }
 
-func (ipfs *IPFS) syncData(block *Block, reqs []*DataSyncReq) error {
+func (ipfs *IPFS) syncData(block *Block, reqs map[int]string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	for _, req := range reqs {
-		target, err := cid.Decode(req.Cid)
+	for fid, cidStr := range reqs {
+		target, err := cid.Decode(cidStr)
 		if err != nil {
 			log.Errorf("loadBlocksAsync failed to decode CID %v", err)
 			continue
@@ -46,7 +46,7 @@ func (ipfs *IPFS) syncData(block *Block, reqs []*DataSyncReq) error {
 			return fmt.Errorf("syncData get blocks is empty")
 		}
 
-		err = block.saveBlock(ctx, blocks[0].RawData(), req.Cid, fmt.Sprintf("%d", req.Fid))
+		err = block.saveBlock(ctx, blocks[0].RawData(), cidStr, fmt.Sprintf("%d", fid))
 		if err != nil {
 			log.Errorf("loadBlocksFromIPFS save block error:%s", err.Error())
 			continue

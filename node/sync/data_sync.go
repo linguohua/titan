@@ -256,11 +256,7 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 		blocksCIDMap[fid] = cid
 	}
 
-	if dataSync.block.IsLoadBlockFromIPFS() {
-		loadBlockFromIPFS(dataSync.block, blocksCIDMap)
-	} else {
-		loadBlockFromCandidate(dataSync.block, blocksCIDMap)
-	}
+	dataSync.block.SyncData(blocksCIDMap)
 
 	log.Infof("scrubBlocks, fid %d~%d delete blocks %d, download blocks %d", startFid, endFid, len(need2DeleteBlocks), len(blocksCIDMap))
 	return nil
@@ -383,67 +379,9 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 		blocksCIDMap[fid] = cid
 	}
 
-	// need to download blocks
-	if block.IsLoadBlockFromIPFS() {
-		loadBlockFromIPFS(block, blocksCIDMap)
-	} else {
-		loadBlockFromCandidate(block, blocksCIDMap)
-	}
+	block.SyncData(blocksCIDMap)
 
-	log.Info("sync local block store complete")
+	log.Infof("sync local block store complete, delete blocks %d, download blocks %d", len(need2DeleteBlockCids), len(blocksCIDMap))
 
 	return nil
-}
-
-func loadBlockFromIPFS(blockAPI *block.Block, blocksCIDMap map[int]string) {
-	if len(blocksCIDMap) == 0 {
-		return
-	}
-
-	dataSyncReqs := make([]*block.DataSyncReq, 0)
-	for fid, cid := range blocksCIDMap {
-		dataSyncReq := &block.DataSyncReq{Cid: cid, Fid: fid}
-		dataSyncReqs = append(dataSyncReqs, dataSyncReq)
-	}
-
-	blockAPI.SyncData(dataSyncReqs)
-}
-
-func loadBlockFromCandidate(blockAPI *block.Block, blocksCIDMap map[int]string) {
-	if len(blocksCIDMap) == 0 {
-		return
-	}
-	blockFIDMap := make(map[string]int)
-	cids := make([]string, 0, len(blocksCIDMap))
-	for fid, cid := range blocksCIDMap {
-		cids = append(cids, cid)
-		blockFIDMap[cid] = fid
-	}
-
-	// do in batch
-	batch := 1000
-	for i := 0; i < len(cids); i += batch {
-		j := i + batch
-		if j > len(cids) {
-			j = len(cids)
-		}
-
-		infos, err := blockAPI.GetCandidateDownloadInfo(context.Background(), cids[i:j])
-		if err != nil {
-			continue
-		}
-
-		dataSyncReqs := make([]*block.DataSyncReq, 0)
-		for cid, downloadInfo := range infos {
-			fid, ok := blockFIDMap[cid]
-			if !ok {
-				continue
-			}
-
-			dataSyncReq := &block.DataSyncReq{Cid: cid, Fid: fid, DownloadURL: downloadInfo.URL, DownloadToken: downloadInfo.Token}
-			dataSyncReqs = append(dataSyncReqs, dataSyncReq)
-		}
-
-		blockAPI.SyncData(dataSyncReqs)
-	}
 }

@@ -44,13 +44,6 @@ type blockStat struct {
 	CacheID     string
 }
 
-type DataSyncReq struct {
-	Fid           int
-	Cid           string
-	DownloadURL   string
-	DownloadToken string
-}
-
 type Block struct {
 	ds         datastore.Batching
 	blockStore blockstore.BlockStore
@@ -61,30 +54,31 @@ type Block struct {
 	carfileMap    map[string]*list.Element
 	cachingList   []*delayReq
 	saveBlockLock *sync.Mutex
-	block         BlockInterface
+	blockLoader   BlockLoader
 	deviceID      string
 	exchange      exchange.Interface
 	blockLoaderCh chan bool
 	ipfsGateway   string
 }
 
-// TODO need to rename
-type BlockInterface interface {
+type BlockLoader interface {
+	// scheduler request cache carfile
 	loadBlocks(block *Block, req []*delayReq)
-	syncData(block *Block, reqs []*DataSyncReq) error
+	// local sync miss data
+	syncData(block *Block, reqs map[int]string) error
 }
 
-func NewBlock(ds datastore.Batching, blockStore blockstore.BlockStore, scheduler api.Scheduler, blockInterface BlockInterface, ipfsGateway, deviceID string) *Block {
+func NewBlock(ds datastore.Batching, blockStore blockstore.BlockStore, scheduler api.Scheduler, blockLoader BlockLoader, ipfsGateway, deviceID string) *Block {
 	block := &Block{
-		ds:         ds,
-		blockStore: blockStore,
-		scheduler:  scheduler,
-		block:      blockInterface,
-		exchange:   nil,
-		deviceID:   deviceID,
+		ds:          ds,
+		blockStore:  blockStore,
+		scheduler:   scheduler,
+		blockLoader: blockLoader,
+		exchange:    nil,
+		deviceID:    deviceID,
 
 		saveBlockLock: &sync.Mutex{},
-		// reqListLock:   &sync.Mutex{},
+
 		blockLoaderCh: make(chan bool),
 		ipfsGateway:   ipfsGateway,
 		carfileList:   list.New(),
@@ -114,7 +108,7 @@ func apiReq2DelayReq(req *api.ReqCacheData) []*delayReq {
 }
 
 func (block *Block) startBlockLoader() {
-	if block.block == nil {
+	if block.blockLoader == nil {
 		log.Panic("block.block == nil")
 	}
 
@@ -151,7 +145,7 @@ func (block *Block) doLoadBlock() {
 		doReqs := carfile.removeReq(doLen)
 		block.cachingList = doReqs
 
-		block.block.loadBlocks(block, doReqs)
+		block.blockLoader.loadBlocks(block, doReqs)
 		block.cachingList = nil
 	}
 
@@ -425,20 +419,6 @@ func (block *Block) GetDatastore(ctx context.Context) datastore.Batching {
 	return block.ds
 }
 
-func (block *Block) IsLoadBlockFromIPFS() bool {
-	switch block.block.(type) {
-	case *IPFS:
-		return true
-	default:
-	}
-
-	return false
-}
-
-func (block *Block) GetCandidateDownloadInfo(ctx context.Context, cids []string) (map[string]api.CandidateDownloadInfo, error) {
-	return block.scheduler.GetCandidateDownloadInfoWithBlocks(ctx, cids)
-}
-
 func (block *Block) resolveLinks(blk blocks.Block) ([]*format.Link, error) {
 	ctx := context.Background()
 
@@ -451,8 +431,8 @@ func (block *Block) resolveLinks(blk blocks.Block) ([]*format.Link, error) {
 	return node.Links(), nil
 }
 
-func (block *Block) SyncData(reqs []*DataSyncReq) error {
-	return block.block.syncData(block, reqs)
+func (block *Block) SyncData(reqs map[int]string) error {
+	return block.blockLoader.syncData(block, reqs)
 }
 
 func getLinks(block *Block, data []byte, cidStr string) ([]*format.Link, error) {

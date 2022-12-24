@@ -63,7 +63,7 @@ func NewDataSync() *DataSync {
 	return dataSync
 }
 
-func (ds DataSync) Add2List(syncApi api.DataSync, nodeID string) {
+func (ds *DataSync) Add2List(syncApi api.DataSync, nodeID string) {
 	ds.lock.Lock()
 	defer ds.lock.Unlock()
 
@@ -80,28 +80,28 @@ func (ds DataSync) Add2List(syncApi api.DataSync, nodeID string) {
 	ds.notifyRunner()
 }
 
-func (ds DataSync) run() {
+func (ds *DataSync) run() {
 	for {
 		<-ds.waitChannel
 		ds.syncData()
 	}
 }
 
-func (ds DataSync) syncData() {
+func (ds *DataSync) syncData() {
 	for len(ds.nodeList) > 0 {
 		node := ds.removeFirstNode()
 		ds.doDataSync(node.api, node.nodeID)
 	}
 }
 
-func (ds DataSync) notifyRunner() {
+func (ds *DataSync) notifyRunner() {
 	select {
 	case ds.waitChannel <- true:
 	default:
 	}
 }
 
-func (ds DataSync) removeFirstNode() *node {
+func (ds *DataSync) removeFirstNode() *node {
 	ds.lock.Lock()
 	defer ds.lock.Unlock()
 
@@ -114,7 +114,7 @@ func (ds DataSync) removeFirstNode() *node {
 	return node
 }
 
-func (ds DataSync) doDataSync(syncApi api.DataSync, deviceID string) {
+func (ds *DataSync) doDataSync(syncApi api.DataSync, deviceID string) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	rsp, err := syncApi.GetAllChecksums(ctx, ds.maxGroupNum)
@@ -182,7 +182,7 @@ func (ds DataSync) doDataSync(syncApi api.DataSync, deviceID string) {
 
 }
 
-func (ds DataSync) scrubBlocks(syncApi api.DataSync, startFid, endFid int, blocks []*blockItem) error {
+func (ds *DataSync) scrubBlocks(syncApi api.DataSync, startFid, endFid int, blocks []*blockItem) error {
 	// TODO: do in batches
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -198,7 +198,7 @@ func (ds DataSync) scrubBlocks(syncApi api.DataSync, startFid, endFid int, block
 
 }
 
-func (ds DataSync) getInconformityBlocksList(syncApi api.DataSync, inconfBlocks *inconformityBlocks) ([]*inconformityBlocks, error) {
+func (ds *DataSync) getInconformityBlocksList(syncApi api.DataSync, inconfBlocks *inconformityBlocks) ([]*inconformityBlocks, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
