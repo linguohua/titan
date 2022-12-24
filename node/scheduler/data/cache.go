@@ -276,11 +276,11 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 				if !ok {
 					reqData = &api.ReqCacheData{}
 					reqData.BlockInfos = make([]api.BlockCacheInfo, 0)
+					reqData.CardFileHash = c.Data.carfileHash
+					reqData.CacheID = c.cacheID
 					if fromNode != nil {
 						reqData.DownloadURL = fromNode.GetAddress()
 						reqData.DownloadToken = string(c.Manager.GetAuthToken())
-						reqData.CardFileHash = c.Data.carfileHash
-						reqData.CacheID = c.cacheID
 					}
 				}
 
@@ -365,7 +365,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	reliability := 0
 
 	if info.IsOK {
-		if api.CacheStatus(c.status) == api.CacheStatusCreate || api.CacheStatus(c.status) == api.CacheStatusFail {
+		if api.CacheStatus(c.status) != api.CacheStatusRestore {
 			if hash == c.carfileHash {
 				c.totalSize = int(info.LinksSize) + info.BlockSize
 				c.totalBlocks = 1
