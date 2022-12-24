@@ -28,24 +28,23 @@ const (
 )
 
 func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, uuid string, locatorPort int) api.Locator {
-	locator := &Locator{}
-	if len(dbAddr) > 0 {
-		locator.db = newDB(dbAddr)
-		locator.cfg = locator.db
-	} else {
-		locator.cfg = newLocalCfg(lr)
+	if len(dbAddr) == 0 {
+		log.Panic("NewLocalLocator, db addr cannot empty")
 	}
+
+	locator := &Locator{}
+	locator.db = newDB(dbAddr)
 
 	sec, err := secret.APISecret(lr)
 	if err != nil {
-		log.Panicf("NewLocalScheduleNode, new APISecret failed:%s", err.Error())
+		log.Panicf("NewLocalLocator, new APISecret failed:%s", err.Error())
 	}
 	locator.APISecret = sec
 
-	// auth new token to scheduler
+	// auth new token to scheduler connect locator
 	token, err := locator.AuthNew(ctx, []auth.Permission{api.PermRead, api.PermWrite})
 	if err != nil {
-		log.Panicf("NewLocalScheduleNode,new token to scheduler:%s", err.Error())
+		log.Panicf("NewLocalLocator,new token to scheduler:%s", err.Error())
 	}
 
 	locator.apMgr = newAccessPointMgr(locatorPort, string(token), uuid)
@@ -53,17 +52,9 @@ func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, uuid strin
 
 }
 
-type lconfig interface {
-	addAccessPoints(areaID string, schedulerURL string, weight int, accessToken string) error
-	removeAccessPoints(areaID string) error
-	listAccessPoints() (areaIDs []string, err error)
-	getAccessPoint(areaID string) (*config.AccessPoint, error)
-	isAccessPointExist(areaID, schedulerURL string) (bool, error)
-}
-
 type Locator struct {
 	common.CommonAPI
-	cfg   lconfig
+	// cfg   lconfig
 	apMgr *accessPointMgr
 	db    *db
 }
@@ -122,7 +113,7 @@ func (locator *Locator) AddAccessPoints(ctx context.Context, areaID string, sche
 		return fmt.Errorf("weith is out of range, need to set %d ~ %d", miniWeight, maxWeight)
 	}
 
-	exist, err := locator.cfg.isAccessPointExist(areaID, schedulerURL)
+	exist, err := locator.db.isAccessPointExist(areaID, schedulerURL)
 	if err != nil {
 		return err
 	}
@@ -136,20 +127,20 @@ func (locator *Locator) AddAccessPoints(ctx context.Context, areaID string, sche
 		return err
 	}
 
-	return locator.cfg.addAccessPoints(areaID, schedulerURL, weight, schedulerAccessToken)
+	return locator.db.addAccessPoints(areaID, schedulerURL, weight, schedulerAccessToken)
 }
 
 func (locator *Locator) RemoveAccessPoints(ctx context.Context, areaID string) error {
 	locator.apMgr.removeAccessPoint(areaID)
-	return locator.cfg.removeAccessPoints(areaID)
+	return locator.db.removeAccessPoints(areaID)
 }
 
 func (locator *Locator) ListAccessPoints(ctx context.Context) (areaIDs []string, err error) {
-	return locator.cfg.listAccessPoints()
+	return locator.db.listAccessPoints()
 }
 
 func (locator *Locator) ShowAccessPoint(ctx context.Context, areaID string) (api.AccessPoint, error) {
-	ap, err := locator.cfg.getAccessPoint(areaID)
+	ap, err := locator.db.getAccessPoint(areaID)
 	if err != nil {
 		return api.AccessPoint{}, err
 	}
@@ -196,7 +187,7 @@ func (locator *Locator) DeviceOffline(ctx context.Context, deviceID string) erro
 func (locator *Locator) getAccessPointWithWeightCount(areaID, securityKey string) ([]api.SchedulerAuth, error) {
 	log.Infof("getAccessPointWithWeightCount, areaID:%s", areaID)
 
-	ap, err := locator.cfg.getAccessPoint(areaID)
+	ap, err := locator.db.getAccessPoint(areaID)
 	if err != nil {
 		return []api.SchedulerAuth{}, err
 	}
@@ -411,7 +402,7 @@ func (locator *Locator) newAuthTokenFromScheduler(schedulerAPI *schedulerAPI, se
 }
 
 func (locator *Locator) getCfg(areaID, schedulerURL string) *config.SchedulerCfg {
-	accessPoint, err := locator.cfg.getAccessPoint(areaID)
+	accessPoint, err := locator.db.getAccessPoint(areaID)
 	if err != nil {
 		log.Errorf("getCfg, acccess point %s not exist", areaID)
 		return nil
@@ -427,7 +418,7 @@ func (locator *Locator) getCfg(areaID, schedulerURL string) *config.SchedulerCfg
 }
 
 func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerAPI, bool) {
-	accessPoint, err := locator.cfg.getAccessPoint(areaID)
+	accessPoint, err := locator.db.getAccessPoint(areaID)
 	if err != nil {
 		log.Errorf("getCfg, acccess point %s not exist", areaID)
 		return nil, false
