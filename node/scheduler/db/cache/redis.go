@@ -267,8 +267,8 @@ func (rd redisDB) updateBaseDeviceInfo(deviceID string, info *api.DevicesInfo) e
 
 func toMap(info *api.DevicesInfo) map[string]interface{} {
 	out := make(map[string]interface{})
-	t := reflect.TypeOf(info)
-	v := reflect.ValueOf(info)
+	t := reflect.TypeOf(*info)
+	v := reflect.ValueOf(*info)
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		redisTag := field.Tag.Get("redis")
@@ -283,13 +283,13 @@ func toMap(info *api.DevicesInfo) map[string]interface{} {
 func (rd redisDB) GetDeviceInfo(deviceID string) (*api.DevicesInfo, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	var info *api.DevicesInfo
-	err := rd.cli.HGetAll(context.Background(), key).Scan(info)
+	var info api.DevicesInfo
+	err := rd.cli.HGetAll(context.Background(), key).Scan(&info)
 	if err != nil {
-		return info, err
+		return nil, err
 	}
 
-	return info, nil
+	return &info, nil
 }
 
 func (rd redisDB) SetCacheResultInfo(info api.CacheResultInfo) error {
