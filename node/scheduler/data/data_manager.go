@@ -404,7 +404,7 @@ func (m *Manager) cacheCarfileResult(deviceID string, info *api.CacheResultInfo)
 }
 
 func (m *Manager) doCacheResults() {
-	// defer m.notifyBlockLoader()
+	//TODO Frequent use of redis
 	for cache.GetDB().GetCacheResultNum() > 0 {
 		info, err := cache.GetDB().GetCacheResultInfo()
 		if err != nil {
