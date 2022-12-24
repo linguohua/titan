@@ -459,13 +459,16 @@ func (m *Manager) doDataTasks() {
 		err := m.doDataTask(info)
 		if err != nil {
 			// log.Errorf("doDataTask err:%s", err.Error())
-			m.saveEvent(info.CarfileCid, "", "", err.Error(), eventTypeDoDataTaskErr)
+			err = m.saveEvent(info.CarfileCid, "", "", err.Error(), eventTypeDoDataTaskErr)
+			if err != nil {
+				log.Errorf("doDataTasks saveEvent err:%s", err.Error())
+			}
 		}
 	}
 
 	err := cache.GetDB().RemoveWaitingDataTasks(list)
 	if err != nil {
-		log.Errorf("RemoveWaitingDataTasks err:%s", err.Error())
+		log.Errorf("doDataTasks RemoveWaitingDataTasks err:%s", err.Error())
 	}
 }
 
@@ -496,13 +499,20 @@ func (m *Manager) recordTaskStart(data *Data) {
 		log.Error("recordTaskStart err data is nil")
 		return
 	}
-	m.saveEvent(data.carfileCid, "", "", "", eventTypeDoDataTaskStart)
+
+	err := m.saveEvent(data.carfileCid, "", "", "", eventTypeDoDataTaskStart)
+	if err != nil {
+		log.Errorf("recordTaskStart saveEvent err:%s", err.Error())
+	}
 
 	m.dataMap.Store(data.carfileHash, data)
 }
 
 func (m *Manager) recordTaskEnd(cid, hash, msg string) {
-	m.saveEvent(cid, "", "", msg, eventTypeDoDataTaskEnd)
+	err := m.saveEvent(cid, "", "", msg, eventTypeDoDataTaskEnd)
+	if err != nil {
+		log.Errorf("recordTaskEnd saveEvent err:%s", err.Error())
+	}
 
 	m.dataMap.Delete(hash)
 
@@ -547,7 +557,10 @@ func (m *Manager) StopCacheTask(cid string) error {
 		}
 	}
 
-	m.saveEvent(cid, cID, "", "", eventTypeStopDataTask)
+	err = m.saveEvent(cid, cID, "", "", eventTypeStopDataTask)
+	if err != nil {
+		return err
+	}
 
 	nodes, err := persistent.GetDB().GetNodesFromCache(cID)
 	if err != nil {
@@ -607,7 +620,10 @@ func (m *Manager) ReplenishExpiredTimeToData(cid, cacheID string, hour int) erro
 		return xerrors.Errorf("Not Found Cid:%s", cid)
 	}
 
-	m.saveEvent(cid, cacheID, "", fmt.Sprintf("add hour:%d", hour), eventTypeReplenishCacheTime)
+	err = m.saveEvent(cid, cacheID, "", fmt.Sprintf("add hour:%d", hour), eventTypeReplenishCacheTime)
+	if err != nil {
+		return err
+	}
 
 	if cacheID != "" {
 		cI, ok := data.cacheMap.Load(cacheID)
@@ -643,7 +659,10 @@ func (m *Manager) ResetExpiredTime(cid, cacheID string, expiredTime time.Time) e
 		return xerrors.Errorf("Not Found Cid:%s", cid)
 	}
 
-	m.saveEvent(cid, cacheID, "", fmt.Sprintf("expiredTime:%s", expiredTime.String()), eventTypeResetCacheTime)
+	err = m.saveEvent(cid, cacheID, "", fmt.Sprintf("expiredTime:%s", expiredTime.String()), eventTypeResetCacheTime)
+	if err != nil {
+		return err
+	}
 
 	if cacheID != "" {
 		cI, ok := data.cacheMap.Load(cacheID)
@@ -778,9 +797,13 @@ func (m *Manager) checkCachesExpired() {
 		// do remove
 		err := cache.removeCache()
 		if err != nil {
-			m.saveEvent(data.carfileCid, cache.cacheID, "expired", err.Error(), eventTypeRemoveCacheEnd)
+			err = m.saveEvent(data.carfileCid, cache.cacheID, "expired", err.Error(), eventTypeRemoveCacheEnd)
 		} else {
-			m.saveEvent(data.carfileCid, cache.cacheID, "expired", "", eventTypeRemoveCacheEnd)
+			err = m.saveEvent(data.carfileCid, cache.cacheID, "expired", "", eventTypeRemoveCacheEnd)
+		}
+
+		if err != nil {
+			log.Errorf("checkCachesExpired saveEvent err:%s", err.Error())
 		}
 	}
 

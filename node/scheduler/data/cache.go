@@ -17,8 +17,8 @@ import (
 
 // Cache Cache
 type Cache struct {
-	Data    *Data
-	Manager *node.Manager
+	data    *Data
+	manager *node.Manager
 
 	cacheID     string
 	carfileHash string
@@ -49,8 +49,8 @@ func newCache(nodeManager *node.Manager, data *Data, hash string, isRootCache bo
 	}
 
 	cache := &Cache{
-		Manager:              nodeManager,
-		Data:                 data,
+		manager:              nodeManager,
+		data:                 data,
 		reliability:          0,
 		status:               api.CacheStatusCreate,
 		cacheID:              id,
@@ -82,8 +82,8 @@ func loadCache(cacheID, carfileHash string, nodeManager *node.Manager, data *Dat
 	c := &Cache{
 		cacheID:              cacheID,
 		carfileHash:          carfileHash,
-		Manager:              nodeManager,
-		Data:                 data,
+		manager:              nodeManager,
+		data:                 data,
 		alreadyCacheBlockMap: map[string]string{},
 	}
 
@@ -132,7 +132,7 @@ func (c *Cache) sendBlocksToNode(deviceID string, reqDataMap map[string]*api.Req
 		reqDatas = append(reqDatas, *reqData)
 	}
 
-	cNode := c.Manager.GetCandidateNode(deviceID)
+	cNode := c.manager.GetCandidateNode(deviceID)
 	if cNode != nil {
 		// reqDatas := c.Manager.FindDownloadinfoForBlocks(blocks, c.carfileHash, c.cacheID)
 
@@ -145,7 +145,7 @@ func (c *Cache) sendBlocksToNode(deviceID string, reqDataMap map[string]*api.Req
 		return cNode.GetCacheNextTimeoutTimeStamp(), err
 	}
 
-	eNode := c.Manager.GetEdgeNode(deviceID)
+	eNode := c.manager.GetEdgeNode(deviceID)
 	if eNode != nil {
 		// reqDatas := c.Manager.FindDownloadinfoForBlocks(blocks, c.carfileHash, c.cacheID)
 
@@ -166,7 +166,7 @@ func (c *Cache) findIdleNode(skips map[string]string, i int) (deviceID string) {
 	deviceID = ""
 
 	if c.isRootCache {
-		list := c.Manager.FindCandidateNodes(nil, skips)
+		list := c.manager.FindCandidateNodes(nil, skips)
 		if list == nil || len(list) <= 0 {
 			return
 		}
@@ -189,7 +189,7 @@ func (c *Cache) findIdleNode(skips map[string]string, i int) (deviceID string) {
 		return
 	}
 
-	list := c.Manager.FindEdgeNodes(nil, skips)
+	list := c.manager.FindEdgeNodes(nil, skips)
 	if list == nil || len(list) <= 0 {
 		return
 	}
@@ -248,7 +248,7 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 
 					// fid from
 					if fromNode == nil {
-						node := c.Manager.GetCandidateNode(dID)
+						node := c.manager.GetCandidateNode(dID)
 						if node != nil {
 							fromNode = node
 							fromStr = node.GetDeviceInfo().DeviceId
@@ -276,11 +276,11 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 				if !ok {
 					reqData = &api.ReqCacheData{}
 					reqData.BlockInfos = make([]api.BlockCacheInfo, 0)
-					reqData.CardFileHash = c.Data.carfileHash
+					reqData.CardFileHash = c.data.carfileHash
 					reqData.CacheID = c.cacheID
 					if fromNode != nil {
 						reqData.DownloadURL = fromNode.GetAddress()
-						reqData.DownloadToken = string(c.Manager.GetAuthToken())
+						reqData.DownloadToken = string(c.manager.GetAuthToken())
 					}
 				}
 
@@ -341,7 +341,7 @@ func (c *Cache) sendBlocksToNodes(nodeCacheMap map[string]map[string]*api.ReqCac
 		timeout = 15
 	}
 	// update data task timeout
-	c.Data.dataManager.updateDataTimeout(c.carfileHash, c.cacheID, timeout)
+	c.data.dataManager.updateDataTimeout(c.carfileHash, c.cacheID, timeout)
 
 	return
 }
@@ -406,7 +406,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 
 	saveDbBlocks, nodeCacheMap, _ := c.allocateBlocksToNodes(linkMap)
 	// save info to db
-	err = c.Data.updateAndSaveCacheingInfo(bInfo, c, saveDbBlocks)
+	err = c.data.updateAndSaveCacheingInfo(bInfo, c, saveDbBlocks)
 	if err != nil {
 		return xerrors.Errorf("blockCacheResult cacheID:%s,%s updateAndSaveCacheingInfo err:%s ", info.CacheID, info.Cid, err.Error())
 	}
@@ -437,7 +437,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 func (c *Cache) updateNodeBlockInfo(deviceID, fromDeviceID string, blockSize int) {
 	fromID := ""
 
-	node := c.Data.nodeManager.GetCandidateNode(fromDeviceID)
+	node := c.data.nodeManager.GetCandidateNode(fromDeviceID)
 	if node != nil {
 		fromID = fromDeviceID
 	}
@@ -463,7 +463,7 @@ func (c *Cache) startCache(cids map[string]string) error {
 	// log.Infof("start cache %s,%s ---------- ", c.CarfileHash, c.CacheID)
 	c.sendBlocksToNodes(nodeCacheMap)
 
-	c.Data.dataManager.saveEvent(c.Data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskStart)
+	c.data.dataManager.saveEvent(c.data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskStart)
 
 	err = cache.GetDB().SetDataTaskToRunningList(c.carfileHash, c.cacheID)
 	if err != nil {
@@ -475,7 +475,7 @@ func (c *Cache) startCache(cids map[string]string) error {
 
 func (c *Cache) endCache(unDoneBlocks int, status api.CacheStatus) (err error) {
 	// log.Infof("end cache %s,%s ----------", c.data.carfileCid, c.cacheID)
-	c.Data.dataManager.saveEvent(c.Data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskEnd)
+	c.data.dataManager.saveEvent(c.data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskEnd)
 
 	err = cache.GetDB().RemoveRunningDataTask(c.carfileHash, c.cacheID)
 	if err != nil {
@@ -484,7 +484,7 @@ func (c *Cache) endCache(unDoneBlocks int, status api.CacheStatus) (err error) {
 	}
 
 	defer func() {
-		c.Data.cacheEnd(c)
+		c.data.cacheEnd(c)
 
 		if c.status == api.CacheStatusSuccess {
 			err = cache.GetDB().IncrByBaseInfo("CarfileCount", 1)
@@ -501,7 +501,7 @@ func (c *Cache) endCache(unDoneBlocks int, status api.CacheStatus) (err error) {
 
 	failedBlocks, err := persistent.GetDB().GetBlockCountWithStatus(c.cacheID, api.CacheStatusFail)
 	if err != nil {
-		err = xerrors.Errorf("endCache %s,%s GetBlockCountWithStatus err:%v", c.Data.carfileCid, c.cacheID, err.Error())
+		err = xerrors.Errorf("endCache %s,%s GetBlockCountWithStatus err:%v", c.data.carfileCid, c.cacheID, err.Error())
 		return
 	}
 
@@ -521,7 +521,7 @@ func (c *Cache) removeCache() error {
 		err = xerrors.Errorf("removeCache RemoveRunningDataTask err: %s", err.Error())
 	}
 
-	reliability := c.Data.reliability
+	reliability := c.data.reliability
 
 	blocks, err := persistent.GetDB().GetAllBlocks(c.cacheID)
 	if err != nil {
@@ -555,10 +555,10 @@ func (c *Cache) removeCache() error {
 
 	reliability -= c.reliability
 
-	c.Data.cacheMap.Delete(c.cacheID)
+	c.data.cacheMap.Delete(c.cacheID)
 
 	isDelete := true
-	c.Data.cacheMap.Range(func(key, value interface{}) bool {
+	c.data.cacheMap.Range(func(key, value interface{}) bool {
 		if value != nil {
 			c := value.(*Cache)
 			if c != nil {
@@ -572,7 +572,7 @@ func (c *Cache) removeCache() error {
 	// delete cache and update data info
 	err = persistent.GetDB().RemoveCacheInfo(c.cacheID, c.carfileHash, isDelete, reliability)
 	if err == nil {
-		c.Data.reliability = reliability
+		c.data.reliability = reliability
 	}
 
 	if c.status == api.CacheStatusSuccess {
@@ -586,7 +586,7 @@ func (c *Cache) removeCache() error {
 func (c *Cache) removeBlocks(deviceID string, cids []string) {
 	ctx := context.Background()
 
-	edge := c.Manager.GetEdgeNode(deviceID)
+	edge := c.manager.GetEdgeNode(deviceID)
 	if edge != nil {
 		_, err := edge.GetAPI().DeleteBlocks(ctx, cids)
 		if err != nil {
@@ -596,7 +596,7 @@ func (c *Cache) removeBlocks(deviceID string, cids []string) {
 		return
 	}
 
-	candidate := c.Manager.GetCandidateNode(deviceID)
+	candidate := c.manager.GetCandidateNode(deviceID)
 	if candidate != nil {
 		_, err := candidate.GetAPI().DeleteBlocks(ctx, cids)
 		if err != nil {
@@ -608,6 +608,7 @@ func (c *Cache) removeBlocks(deviceID string, cids []string) {
 }
 
 func (c *Cache) calculateReliability(deviceID string) int {
+	//TODO To be perfected
 	if deviceID != "" {
 		return 1
 	}
