@@ -103,11 +103,14 @@ func (m *Manager) checkExpiredTicker() {
 func (m *Manager) initBaseInfo() {
 	infos, err := persistent.GetDB().GetSuccessCaches()
 	if err != nil {
-		log.Warnf("initSystemData GetSuccessCaches err:%s", err.Error())
+		log.Errorf("initBaseInfo GetSuccessCaches err:%s", err.Error())
 		return
 	}
 
 	err = cache.GetDB().UpdateBaseInfo("CarfileCount", len(infos))
+	if err != nil {
+		log.Errorf("initBaseInfo UpdateBaseInfo err:%s", err.Error())
+	}
 }
 
 func (m *Manager) getWaitingDataTasks(count int) []*api.DataInfo {
@@ -431,10 +434,13 @@ func (m *Manager) PushCacheResultToQueue(deviceID string, info *api.CacheResultI
 	info.DeviceID = deviceID
 
 	err := cache.GetDB().SetCacheResultInfo(*info)
+	if err != nil {
+		return err
+	}
 
 	m.notifyBlockLoader()
 
-	return err
+	return nil
 }
 
 func (m *Manager) notifyBlockLoader() {
