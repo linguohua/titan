@@ -20,27 +20,28 @@ import (
 
 var log = logging.Logger("node")
 
-const exitTime = 24 // If it is not online after this time, it is determined that the node has exited the system (hour)
+const (
+	nodeExitTime = 24 // If it is not online after this time, it is determined that the node has exited the system (hour)
+
+	keepaliveTime = 30 // keepalive time interval (second)
+)
 
 // Manager Node Manager
 type Manager struct {
 	edgeNodeMap      sync.Map
 	candidateNodeMap sync.Map
 
-	keepaliveTime int64 // keepalive time interval (second)
-
 	nodeOfflineCallBack func(string)
 	nodeExitedCallBack  func(string)
-	getToken            func() []byte
+	getAuthToken        func() []byte
 }
 
 // NewNodeManager New
 func NewNodeManager(nodeOfflineCallBack, nodeExitedCallBack func(string), getToken func() []byte) *Manager {
 	nodeManager := &Manager{
-		keepaliveTime:       30,
 		nodeOfflineCallBack: nodeOfflineCallBack,
 		nodeExitedCallBack:  nodeExitedCallBack,
-		getToken:            getToken,
+		getAuthToken:        getToken,
 	}
 
 	go nodeManager.run()
@@ -49,7 +50,7 @@ func NewNodeManager(nodeOfflineCallBack, nodeExitedCallBack func(string), getTok
 }
 
 func (m *Manager) run() {
-	ticker := time.NewTicker(time.Duration(m.keepaliveTime) * time.Second)
+	ticker := time.NewTicker(time.Duration(keepaliveTime) * time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -74,7 +75,7 @@ func (m *Manager) edgeKeepalive(node *EdgeNode, nowTime time.Time) {
 		return
 	}
 
-	_, err := cache.GetDB().IncrNodeOnlineTime(node.GetDeviceInfo().DeviceId, m.keepaliveTime)
+	_, err := cache.GetDB().IncrNodeOnlineTime(node.GetDeviceInfo().DeviceId, keepaliveTime)
 	if err != nil {
 		log.Warnf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.GetDeviceInfo().DeviceId)
 	}
@@ -91,14 +92,14 @@ func (m *Manager) candidateKeepalive(node *CandidateNode, nowTime time.Time) {
 		return
 	}
 
-	_, err := cache.GetDB().IncrNodeOnlineTime(node.GetDeviceInfo().DeviceId, m.keepaliveTime)
+	_, err := cache.GetDB().IncrNodeOnlineTime(node.GetDeviceInfo().DeviceId, keepaliveTime)
 	if err != nil {
 		log.Warnf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.GetDeviceInfo().DeviceId)
 	}
 }
 
 func (m *Manager) checkNodesKeepalive() {
-	nowTime := time.Now().Add(-time.Duration(m.keepaliveTime) * time.Second)
+	nowTime := time.Now().Add(-time.Duration(keepaliveTime) * time.Second)
 	// log.Warnf("nodeKeepalive nowTime :%s", nowTime.String())
 
 	m.edgeNodeMap.Range(func(key, value interface{}) bool {
@@ -534,7 +535,7 @@ func (m *Manager) checkNodesExited() {
 		return
 	}
 
-	t := time.Now().Add(-time.Duration(exitTime) * time.Hour)
+	t := time.Now().Add(-time.Duration(nodeExitTime) * time.Hour)
 
 	exiteds := make([]string, 0)
 
@@ -587,7 +588,7 @@ func (m *Manager) FindDownloadinfoForBlocks(blocks []api.BlockCacheInfo, carfile
 
 		node := m.GetCandidateNode(deviceID)
 		if node != nil {
-			reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: node.GetAddress(), DownloadToken: string(m.getToken()), CardFileHash: carfileHash, CacheID: cacheID})
+			reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: node.GetAddress(), DownloadToken: string(m.getAuthToken()), CardFileHash: carfileHash, CacheID: cacheID})
 
 			// tk, err := token.GenerateToken(info.PrivateKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
 			// if err == nil {
