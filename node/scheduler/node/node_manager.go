@@ -524,7 +524,7 @@ func (m *Manager) NodeExited(deviceID string) {
 }
 
 // FindDownloadinfoForBlocks  filter cached blocks and find download url from candidate
-func (m *Manager) FindDownloadinfoForBlocks(blocks []api.BlockCacheInfo, carfileHash, cacheID string) []api.ReqCacheData {
+func (m *Manager) FindDownloadinfoForBlocks(blocks []*api.BlockCacheInfo, carfileHash, cacheID string) []api.ReqCacheData {
 	reqList := make([]api.ReqCacheData, 0)
 	notFindCandidateBlocks := make([]api.BlockCacheInfo, 0)
 
@@ -536,7 +536,7 @@ func (m *Manager) FindDownloadinfoForBlocks(blocks []api.BlockCacheInfo, carfile
 		if !ok {
 			list = make([]api.BlockCacheInfo, 0)
 		}
-		list = append(list, block)
+		list = append(list, *block)
 
 		csMap[deviceID] = list
 	}

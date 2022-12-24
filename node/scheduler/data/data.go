@@ -148,14 +148,15 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 		d.reliability += cache.reliability
 	}
 
+	// TODO how to merge this two
 	cNodes, err := persistent.GetDB().GetNodesFromCache(cache.cacheID)
 	if err != nil {
-		log.Warnf("updateAndSaveCacheEndInfo GetNodesFromCache err:%s", err.Error())
+		log.Errorf("updateAndSaveCacheEndInfo GetNodesFromCache err:%s", err.Error())
 	}
 
 	dNodes, err := persistent.GetDB().GetNodesFromData(d.carfileHash)
 	if err != nil {
-		log.Warnf("updateAndSaveCacheEndInfo GetNodesFromData err:%s", err.Error())
+		log.Errorf("updateAndSaveCacheEndInfo GetNodesFromData err:%s", err.Error())
 	}
 
 	d.nodes = len(dNodes)
@@ -184,7 +185,7 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 	return persistent.GetDB().SaveCacheEndResults(dInfo, cInfo)
 }
 
-func (d *Data) dispatchCache(cache *Cache) (*Cache, error) {
+func (d *Data) dispatchCache(cache *Cache) error {
 	var err error
 	var list map[string]string
 
@@ -193,12 +194,12 @@ func (d *Data) dispatchCache(cache *Cache) (*Cache, error) {
 
 		list, err = persistent.GetDB().GetUndoneBlocks(cache.cacheID)
 		if err != nil {
-			return cache, err
+			return err
 		}
 	} else {
 		cache, err = d.createCache(!d.haveRootCache())
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		d.cacheMap.Store(cache.cacheID, cache)
@@ -210,10 +211,10 @@ func (d *Data) dispatchCache(cache *Cache) (*Cache, error) {
 
 	err = cache.startCache(list)
 	if err != nil {
-		return cache, err
+		return err
 	}
 
-	return cache, nil
+	return nil
 }
 
 func (d *Data) cacheEnd(doneCache *Cache) {
@@ -221,7 +222,7 @@ func (d *Data) cacheEnd(doneCache *Cache) {
 
 	defer func() {
 		if err != nil {
-			d.DataManager.dataTaskEnd(d.carfileCid, d.carfileHash, err.Error())
+			d.DataManager.recordTaskEnd(d.carfileCid, d.carfileHash, err.Error())
 		}
 	}()
 
@@ -241,10 +242,10 @@ func (d *Data) cacheEnd(doneCache *Cache) {
 		return
 	}
 
-	_, err = d.dispatchCache(d.getOldUndoneCache())
+	err = d.dispatchCache(d.getUndoneCache())
 }
 
-func (d *Data) getOldUndoneCache() *Cache {
+func (d *Data) getUndoneCache() *Cache {
 	// old cache
 	var oldCache *Cache
 	var oldRootCache *Cache
