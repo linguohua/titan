@@ -341,7 +341,7 @@ func (c *Cache) sendBlocksToNodes(nodeCacheMap map[string]map[string]*api.ReqCac
 		timeout = 15
 	}
 	// update data task timeout
-	c.Data.DataManager.updateDataTimeout(c.carfileHash, c.cacheID, timeout)
+	c.Data.dataManager.updateDataTimeout(c.carfileHash, c.cacheID, timeout)
 
 	return
 }
@@ -437,7 +437,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 func (c *Cache) updateNodeBlockInfo(deviceID, fromDeviceID string, blockSize int) {
 	fromID := ""
 
-	node := c.Data.NodeManager.GetCandidateNode(fromDeviceID)
+	node := c.Data.nodeManager.GetCandidateNode(fromDeviceID)
 	if node != nil {
 		fromID = fromDeviceID
 	}
@@ -463,7 +463,7 @@ func (c *Cache) startCache(cids map[string]string) error {
 	// log.Infof("start cache %s,%s ---------- ", c.CarfileHash, c.CacheID)
 	c.sendBlocksToNodes(nodeCacheMap)
 
-	c.Data.DataManager.saveEvent(c.Data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskStart)
+	c.Data.dataManager.saveEvent(c.Data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskStart)
 
 	err = cache.GetDB().SetDataTaskToRunningList(c.carfileHash, c.cacheID)
 	if err != nil {
@@ -475,7 +475,7 @@ func (c *Cache) startCache(cids map[string]string) error {
 
 func (c *Cache) endCache(unDoneBlocks int, status api.CacheStatus) (err error) {
 	// log.Infof("end cache %s,%s ----------", c.data.carfileCid, c.cacheID)
-	c.Data.DataManager.saveEvent(c.Data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskEnd)
+	c.Data.dataManager.saveEvent(c.Data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskEnd)
 
 	err = cache.GetDB().RemoveRunningDataTask(c.carfileHash, c.cacheID)
 	if err != nil {

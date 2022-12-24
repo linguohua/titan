@@ -12,8 +12,8 @@ import (
 
 // Data Data
 type Data struct {
-	NodeManager *node.Manager
-	DataManager *Manager
+	nodeManager *node.Manager
+	dataManager *Manager
 
 	carfileCid      string
 	carfileHash     string
@@ -29,8 +29,8 @@ type Data struct {
 
 func newData(nodeManager *node.Manager, dataManager *Manager, cid, hash string, reliability int) *Data {
 	return &Data{
-		NodeManager:     nodeManager,
-		DataManager:     dataManager,
+		nodeManager:     nodeManager,
+		dataManager:     dataManager,
 		carfileCid:      cid,
 		reliability:     0,
 		needReliability: reliability,
@@ -49,8 +49,8 @@ func loadData(hash string, nodeManager *node.Manager, dataManager *Manager) *Dat
 	if dInfo != nil {
 		data := &Data{}
 		data.carfileCid = dInfo.CarfileCid
-		data.NodeManager = nodeManager
-		data.DataManager = dataManager
+		data.nodeManager = nodeManager
+		data.dataManager = dataManager
 		data.totalSize = dInfo.TotalSize
 		data.needReliability = dInfo.NeedReliability
 		data.reliability = dInfo.Reliability
@@ -106,7 +106,7 @@ func (d *Data) haveRootCache() bool {
 }
 
 func (d *Data) createCache(isRootCache bool) (*Cache, error) {
-	cache, err := newCache(d.NodeManager, d, d.carfileHash, isRootCache)
+	cache, err := newCache(d.nodeManager, d, d.carfileHash, isRootCache)
 	if err != nil {
 		return nil, xerrors.Errorf("new cache err:%s", err.Error())
 	}
@@ -222,7 +222,7 @@ func (d *Data) cacheEnd(doneCache *Cache) {
 
 	defer func() {
 		if err != nil {
-			d.DataManager.recordTaskEnd(d.carfileCid, d.carfileHash, err.Error())
+			d.dataManager.recordTaskEnd(d.carfileCid, d.carfileHash, err.Error())
 		}
 	}()
 
