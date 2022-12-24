@@ -460,9 +460,9 @@ func (sd sqlDB) SaveCacheingResults(dInfo *api.DataInfo, cInfo *api.CacheInfo, b
 				cmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_hash, cid, device_id, status, size, reliability, id, fid, source, cid_hash) VALUES (?, ?, ?, ?, ?, ?, ?, REPLACE(UUID(),"-",""), ?, ?, ?)`, bTableName)
 				tx.MustExec(cmd, info.CacheID, info.CarfileHash, info.CID, info.DeviceID, info.Status, info.Size, info.Reliability, info.FID, info.Source, info.CIDHash)
 			}
-			// other
-			cmd2 := fmt.Sprintf(`UPDATE %s SET fid=? WHERE cid_hash=? AND device_id=?`, bTableName)
-			tx.MustExec(cmd2, info.FID, info.CIDHash, info.DeviceID)
+			// // other
+			// cmd2 := fmt.Sprintf(`UPDATE %s SET fid=? WHERE cid_hash=? AND device_id=?`, bTableName)
+			// tx.MustExec(cmd2, info.FID, info.CIDHash, info.DeviceID)
 		}
 	}
 

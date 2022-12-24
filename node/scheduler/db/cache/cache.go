@@ -25,8 +25,9 @@ type DB interface {
 	GetRunningDataTaskExpiredTime(hash string) (time.Duration, error)
 
 	SetWaitingDataTask(info api.DataInfo) error
-	GetWaitingDataTask(index int64) (api.DataInfo, error)
+	GetWaitingDataTask(index int64) (*api.DataInfo, error)
 	RemoveWaitingDataTask(info api.DataInfo) error
+	RemoveWaitingDataTasks(infos []*api.DataInfo) error
 
 	IncrNodeCacheFid(deviceID string, num int) (int, error)
 	GetNodeCacheFid(deviceID string) (int64, error)

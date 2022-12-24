@@ -123,7 +123,7 @@ func (c *Cache) updateAlreadyMap() {
 }
 
 // Notify node to cache blocks
-func (c *Cache) cacheBlocksToNode(deviceID string, blocks []api.BlockCacheInfo) (int64, error) {
+func (c *Cache) sendBlocksToNode(deviceID string, blocks []*api.BlockCacheInfo) (int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -208,8 +208,8 @@ func (c *Cache) findIdleNode(skips map[string]string, i int) (deviceID string) {
 }
 
 // Allocate blocks to nodes
-func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*api.BlockInfo, map[string][]api.BlockCacheInfo, []string) {
-	nodeCacheMap := make(map[string][]api.BlockCacheInfo)
+func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*api.BlockInfo, map[string][]*api.BlockCacheInfo, []string) {
+	nodeCacheMap := make(map[string][]*api.BlockCacheInfo)
 	blockList := make([]*api.BlockInfo, 0)
 
 	notNodeCids := make([]string, 0)
@@ -255,7 +255,7 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*api.BlockInfo,
 
 				cList, ok := nodeCacheMap[deviceID]
 				if !ok {
-					cList = make([]api.BlockCacheInfo, 0)
+					cList = make([]*api.BlockCacheInfo, 0)
 				}
 
 				fid, err = cache.GetDB().IncrNodeCacheFid(deviceID, 1)
@@ -264,7 +264,7 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*api.BlockInfo,
 					continue
 				}
 
-				cList = append(cList, api.BlockCacheInfo{Cid: cid, Fid: fid, From: from})
+				cList = append(cList, &api.BlockCacheInfo{Cid: cid, Fid: fid, From: from})
 				nodeCacheMap[deviceID] = cList
 
 				c.alreadyCacheBlockMap[hash] = deviceID
@@ -293,7 +293,7 @@ func (c *Cache) allocateBlocksToNodes(cids map[string]string) ([]*api.BlockInfo,
 }
 
 // Notify nodes to cache blocks and setting timeout
-func (c *Cache) cacheBlocksToNodes(nodeCacheMap map[string][]api.BlockCacheInfo) {
+func (c *Cache) sendBlocksToNodes(nodeCacheMap map[string][]*api.BlockCacheInfo) {
 	if nodeCacheMap == nil || len(nodeCacheMap) <= 0 {
 		return
 	}
@@ -302,7 +302,7 @@ func (c *Cache) cacheBlocksToNodes(nodeCacheMap map[string][]api.BlockCacheInfo)
 	needTimeMax := int64(0)
 
 	for deviceID, caches := range nodeCacheMap {
-		needTime, err := c.cacheBlocksToNode(deviceID, caches)
+		needTime, err := c.sendBlocksToNode(deviceID, caches)
 		if err != nil {
 			log.Errorf("cacheBlocksToNodes deviceID:%s, err:%s", deviceID, err.Error())
 			continue
@@ -407,7 +407,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		}
 	}
 
-	c.cacheBlocksToNodes(nodeCacheMap)
+	c.sendBlocksToNodes(nodeCacheMap)
 
 	return nil
 }
@@ -439,7 +439,7 @@ func (c *Cache) startCache(cids map[string]string) error {
 	}
 
 	// log.Infof("start cache %s,%s ---------- ", c.CarfileHash, c.CacheID)
-	c.cacheBlocksToNodes(nodeCacheMap)
+	c.sendBlocksToNodes(nodeCacheMap)
 
 	c.Data.DataManager.saveEvent(c.Data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskStart)
 

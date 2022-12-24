@@ -379,26 +379,26 @@ func (rd redisDB) SetWaitingDataTask(info api.DataInfo) error {
 	return err
 }
 
-func (rd redisDB) GetWaitingDataTask(index int64) (api.DataInfo, error) {
+func (rd redisDB) GetWaitingDataTask(index int64) (*api.DataInfo, error) {
 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	value, err := rd.cli.LIndex(context.Background(), key, index).Result()
 
 	if value == "" {
-		return api.DataInfo{}, redis.Nil
+		return nil, redis.Nil
 	}
 
 	var info api.DataInfo
 	bytes, err := redigo.Bytes(value, nil)
 	if err != nil {
-		return api.DataInfo{}, err
+		return nil, err
 	}
 
 	if err := json.Unmarshal(bytes, &info); err != nil {
-		return api.DataInfo{}, err
+		return nil, err
 	}
 
-	return info, nil
+	return &info, nil
 }
 
 func (rd redisDB) RemoveWaitingDataTask(info api.DataInfo) error {
@@ -410,6 +410,27 @@ func (rd redisDB) RemoveWaitingDataTask(info api.DataInfo) error {
 	}
 	_, err = rd.cli.LRem(context.Background(), key, 1, bytes).Result()
 	// _, err := rd.cli.LPop(context.Background(), key).Result()
+	return err
+}
+
+func (rd redisDB) RemoveWaitingDataTasks(infos []*api.DataInfo) error {
+	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
+
+	ctx := context.Background()
+	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+
+		for _, info := range infos {
+			bytes, err := json.Marshal(info)
+			if err != nil {
+				continue
+			}
+
+			pipeliner.LRem(context.Background(), key, 1, bytes).Result()
+		}
+
+		return nil
+	})
+
 	return err
 }
 

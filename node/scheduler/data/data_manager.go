@@ -36,18 +36,21 @@ const (
 	eventTypeReplenishCacheTime  EventType = "ReplenishCacheTime"
 	eventTypeResetCacheTime      EventType = "ResetCacheTime"
 	eventTypeRestoreCache        EventType = "RestoreCache"
+
+	dataCacheTimerInterval    = 10     //  time interval (Second)
+	checkExpiredTimerInterval = 60 * 5 //  time interval (Second)
+
+	runningTaskMaxCount = 5
 )
 
 // Manager Data
 type Manager struct {
-	nodeManager        *node.Manager
-	blockLoaderCh      chan bool
-	dataTaskLoaderCh   chan bool
-	taskMap            sync.Map
-	timerInterval      int //  time interval (Second)
-	runningTaskMax     int
+	nodeManager         *node.Manager
+	blockResultLoaderCh chan bool
+	// dataTaskLoaderCh    chan bool
+	dataMap            sync.Map
 	expiredTimeOfCache time.Time
-	defaultTime        time.Time
+	isLoadExpiredTime  bool
 
 	haveCacheNodes map[string]time.Time
 }
@@ -55,38 +58,49 @@ type Manager struct {
 // NewDataManager new
 func NewDataManager(nodeManager *node.Manager) *Manager {
 	d := &Manager{
-		nodeManager:      nodeManager,
-		blockLoaderCh:    make(chan bool, 1),
-		dataTaskLoaderCh: make(chan bool, 1),
-		timerInterval:    10,
-		runningTaskMax:   5,
+		nodeManager:         nodeManager,
+		blockResultLoaderCh: make(chan bool, 1),
+		// dataTaskLoaderCh:    make(chan bool, 1),
+		isLoadExpiredTime: true,
 	}
 
-	d.initSystemData()
-	go d.run()
+	d.initBaseInfo()
+	go d.dataCacheTicker()
+	go d.checkExpiredTicker()
 
 	return d
 }
 
-func (m *Manager) run() {
-	ticker := time.NewTicker(time.Duration(m.timerInterval) * time.Second)
+func (m *Manager) dataCacheTicker() {
+	ticker := time.NewTicker(time.Duration(dataCacheTimerInterval) * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
 			m.checkTaskTimeouts()
-			m.notifyDataLoader()
-			m.checkCachesExpired()
-		case <-m.dataTaskLoaderCh:
+			// m.notifyDataLoader()
+			// case <-m.dataTaskLoaderCh:
 			m.doDataTasks()
-		case <-m.blockLoaderCh:
+		case <-m.blockResultLoaderCh:
 			m.doCacheResults()
 		}
 	}
 }
 
-func (m *Manager) initSystemData() {
+func (m *Manager) checkExpiredTicker() {
+	ticker := time.NewTicker(time.Duration(checkExpiredTimerInterval) * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			m.checkCachesExpired()
+		}
+	}
+}
+
+func (m *Manager) initBaseInfo() {
 	infos, err := persistent.GetDB().GetSuccessCaches()
 	if err != nil {
 		log.Warnf("initSystemData GetSuccessCaches err:%s", err.Error())
@@ -96,56 +110,48 @@ func (m *Manager) initSystemData() {
 	err = cache.GetDB().UpdateBaseInfo("CarfileCount", len(infos))
 }
 
-func (m *Manager) getWaitingDataTask(index int64) (api.DataInfo, error) {
-	info, err := cache.GetDB().GetWaitingDataTask(index)
-	if err != nil {
-		return info, err
+func (m *Manager) getWaitingDataTasks(count int) []*api.DataInfo {
+	list := make([]*api.DataInfo, 0)
+
+	curCount := int64(0)
+	isGet := true
+
+	for isGet {
+		info, err := cache.GetDB().GetWaitingDataTask(curCount)
+		if err != nil {
+			if cache.GetDB().IsNilErr(err) {
+				isGet = false
+				continue
+			}
+			log.Errorf("GetWaitingDataTask err:%s", err.Error())
+			continue
+		}
+
+		curCount++
+
+		if m.isDataTaskRunnning(info.CarfileHash, "") {
+			continue
+		}
+
+		list = append(list, info)
+		if len(list) >= count {
+			isGet = false
+		}
 	}
 
-	// Find the next task if the task is in progress
-	if m.isDataTaskRunnning(info.CarfileHash, "") {
-		return m.getWaitingDataTask(index + 1)
-	}
-
-	return info, nil
+	return list
 }
 
-func (m *Manager) doDataTask() error {
-	info, err := m.getWaitingDataTask(0)
-	if err != nil {
-		if cache.GetDB().IsNilErr(err) {
-			return nil
-		}
-		return xerrors.Errorf("getWaitingTask err:%s", err.Error())
-	}
-
-	var c *Cache
-	defer func() {
-		if err != nil {
-			cacheID := ""
-			if c != nil {
-				cacheID = c.cacheID
-			}
-			m.saveEvent(info.CarfileCid, cacheID, "", err.Error(), eventTypeDoDataTaskErr)
-		} else {
-			m.dataTaskStart(c.Data)
-		}
-
-		err = cache.GetDB().RemoveWaitingDataTask(info)
-		if err != nil {
-			log.Errorf("RemoveWaitingDataTask err:%s", err.Error())
-		}
-	}()
-
+func (m *Manager) doDataTask(info *api.DataInfo) error {
 	if info.CacheInfos != nil && len(info.CacheInfos) > 0 {
 		cacheID := info.CacheInfos[0].CacheID
 
-		c, err = m.makeDataContinue(info.CarfileHash, cacheID)
+		err := m.makeDataContinue(info.CarfileHash, cacheID)
 		if err != nil {
 			return xerrors.Errorf("makeDataContinue err:%s", err.Error())
 		}
 	} else {
-		c, err = m.makeDataTask(info.CarfileCid, info.CarfileHash, info.NeedReliability, info.ExpiredTime)
+		err := m.makeDataTask(info.CarfileCid, info.CarfileHash, info.NeedReliability, info.ExpiredTime)
 		if err != nil {
 			return xerrors.Errorf("makeDataTask err:%s", err.Error())
 		}
@@ -156,7 +162,7 @@ func (m *Manager) doDataTask() error {
 
 // GetData get a data from map or db
 func (m *Manager) GetData(hash string) *Data {
-	dI, ok := m.taskMap.Load(hash)
+	dI, ok := m.dataMap.Load(hash)
 	if ok && dI != nil {
 		return dI.(*Data)
 	}
@@ -200,7 +206,7 @@ func (m *Manager) checkTaskTimeouts() {
 	}
 }
 
-func (m *Manager) makeDataTask(cid, hash string, reliability int, expiredTime time.Time) (*Cache, error) {
+func (m *Manager) makeDataTask(cid, hash string, reliability int, expiredTime time.Time) error {
 	var err error
 	data := m.GetData(hash)
 	if data == nil {
@@ -208,7 +214,7 @@ func (m *Manager) makeDataTask(cid, hash string, reliability int, expiredTime ti
 		data.expiredTime = expiredTime
 	} else {
 		if reliability <= data.reliability {
-			return nil, xerrors.Errorf("reliable enough :%d/%d ", data.reliability, reliability)
+			return xerrors.Errorf("reliable enough :%d/%d ", data.reliability, reliability)
 		}
 		data.needReliability = reliability
 		data.expiredTime = expiredTime
@@ -227,33 +233,45 @@ func (m *Manager) makeDataTask(cid, hash string, reliability int, expiredTime ti
 		CarfileHash:     data.carfileHash,
 	})
 	if err != nil {
-		return nil, xerrors.Errorf("cid:%s,SetDataInfo err:%s", data.carfileCid, err.Error())
+		return xerrors.Errorf("cid:%s,SetDataInfo err:%s", data.carfileCid, err.Error())
 	}
 
 	data.cacheCount = data.reliability
 
-	return data.dispatchCache(data.getOldUndoneCache())
+	err = data.dispatchCache(data.getUndoneCache())
+	if err != nil {
+		return err
+	}
+
+	m.recordTaskStart(data)
+	return nil
 }
 
-func (m *Manager) makeDataContinue(hash, cacheID string) (*Cache, error) {
+func (m *Manager) makeDataContinue(hash, cacheID string) error {
 	data := m.GetData(hash)
 	if data == nil {
-		return nil, xerrors.Errorf("Not Found Data Task,cid:%s,cacheID:%s", hash, cacheID)
+		return xerrors.Errorf("Not Found Data Task,cid:%s,cacheID:%s", hash, cacheID)
 	}
 
 	cacheI, ok := data.cacheMap.Load(cacheID)
 	if !ok || cacheI == nil {
-		return nil, xerrors.Errorf("Not Found CacheID :%s", cacheID)
+		return xerrors.Errorf("Not Found CacheID :%s", cacheID)
 	}
 	cache := cacheI.(*Cache)
 
 	if cache.status == api.CacheStatusSuccess {
-		return nil, xerrors.Errorf("Cache completed :%s", cacheID)
+		return xerrors.Errorf("Cache completed :%s", cacheID)
 	}
 
 	data.cacheCount = data.reliability
 
-	return data.dispatchCache(cache)
+	err := data.dispatchCache(cache)
+	if err != nil {
+		return err
+	}
+
+	m.recordTaskStart(data)
+	return nil
 }
 
 // CacheData new data task
@@ -421,59 +439,72 @@ func (m *Manager) PushCacheResultToQueue(deviceID string, info *api.CacheResultI
 
 func (m *Manager) notifyBlockLoader() {
 	select {
-	case m.blockLoaderCh <- true:
+	case m.blockResultLoaderCh <- true:
 	default:
 	}
 }
 
 func (m *Manager) doDataTasks() {
-	doLen := m.runningTaskMax - len(m.GetRunningTasks())
-	if doLen > 0 {
-		for i := 0; i < doLen; i++ {
-			err := m.doDataTask()
-			if err != nil {
-				log.Errorf("doDataTask err:%s", err.Error())
-			}
+	doLen := runningTaskMaxCount - len(m.GetRunningTasks())
+	if doLen <= 0 {
+		return
+	}
+
+	list := m.getWaitingDataTasks(doLen)
+	if len(list) <= 0 {
+		return
+	}
+
+	for _, info := range list {
+		err := m.doDataTask(info)
+		if err != nil {
+			// log.Errorf("doDataTask err:%s", err.Error())
+			m.saveEvent(info.CarfileCid, "", "", err.Error(), eventTypeDoDataTaskErr)
 		}
+	}
+
+	err := cache.GetDB().RemoveWaitingDataTasks(list)
+	if err != nil {
+		log.Errorf("RemoveWaitingDataTasks err:%s", err.Error())
 	}
 }
 
-func (m *Manager) notifyDataLoader() {
-	select {
-	case m.dataTaskLoaderCh <- true:
-	default:
-	}
-}
+// func (m *Manager) notifyDataLoader() {
+// 	select {
+// 	case m.dataTaskLoaderCh <- true:
+// 	default:
+// 	}
+// }
 
 // update the data task timeout
 func (m *Manager) updateDataTimeout(carfileHash, cacheID string, timeout int64) {
-	// et, err := cache.GetDB().GetRunningDataTaskExpiredTime(carfileHash)
-	// if err == nil {
-	// 	if et > timeout {
-	// 		return
-	// 	}
-	// }
+	et, err := cache.GetDB().GetRunningDataTaskExpiredTime(carfileHash)
+	if err == nil {
+		if int64(et.Seconds()) > timeout {
+			return
+		}
+	}
 
-	err := cache.GetDB().SetRunningDataTask(carfileHash, cacheID, timeout)
+	err = cache.GetDB().SetRunningDataTask(carfileHash, cacheID, timeout)
 	if err != nil {
 		log.Panicf("dataTaskStart %s , SetRunningDataTask err:%s", cacheID, err.Error())
 	}
 }
 
-func (m *Manager) dataTaskStart(data *Data) {
+func (m *Manager) recordTaskStart(data *Data) {
 	if data == nil {
-		log.Error("dataTaskStart err data is nil")
+		log.Error("recordTaskStart err data is nil")
 		return
 	}
 	m.saveEvent(data.carfileCid, "", "", "", eventTypeDoDataTaskStart)
 
-	m.taskMap.Store(data.carfileHash, data)
+	m.dataMap.Store(data.carfileHash, data)
 }
 
-func (m *Manager) dataTaskEnd(cid, hash, msg string) {
+func (m *Manager) recordTaskEnd(cid, hash, msg string) {
 	m.saveEvent(cid, "", "", msg, eventTypeDoDataTaskEnd)
 
-	m.taskMap.Delete(hash)
+	m.dataMap.Delete(hash)
 
 	// continue task
 	// m.notifyDataLoader()
@@ -711,13 +742,15 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceID string) {
 
 // check expired caches
 func (m *Manager) checkCachesExpired() {
-	if m.expiredTimeOfCache.Equal(m.defaultTime) {
+	if m.isLoadExpiredTime {
 		var err error
 		m.expiredTimeOfCache, err = persistent.GetDB().GetMinExpiredTimeWithCaches()
 		if err != nil {
 			// log.Errorf("GetMinExpiredTimeWithCaches err:%s", err.Error())
 			return
 		}
+
+		m.isLoadExpiredTime = false
 	}
 
 	if m.expiredTimeOfCache.After(time.Now()) {
@@ -751,7 +784,7 @@ func (m *Manager) checkCachesExpired() {
 		}
 	}
 
-	m.expiredTimeOfCache = m.defaultTime
+	m.isLoadExpiredTime = true
 }
 
 // // expired
