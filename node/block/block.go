@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
+	ipfsApi "github.com/ipfs/go-ipfs-http-client"
 	"github.com/ipfs/go-merkledag"
 	dagpb "github.com/ipld/go-codec-dagpb"
 	"github.com/ipld/go-ipld-prime/node/basicnode"
@@ -58,6 +60,7 @@ type Block struct {
 	deviceID      string
 	exchange      exchange.Interface
 	blockLoaderCh chan bool
+	ipfsApi       *ipfsApi.HttpApi
 	ipfsGateway   string
 }
 
@@ -68,7 +71,13 @@ type BlockLoader interface {
 	syncData(block *Block, reqs map[int]string) error
 }
 
-func NewBlock(ds datastore.Batching, blockStore blockstore.BlockStore, scheduler api.Scheduler, blockLoader BlockLoader, ipfsGateway, deviceID string) *Block {
+func NewBlock(ds datastore.Batching, blockStore blockstore.BlockStore, scheduler api.Scheduler, blockLoader BlockLoader, ipfsApiURL, deviceID string) *Block {
+	httpClient := &http.Client{}
+	httpApi, err := ipfsApi.NewURLApiWithClient(ipfsApiURL, httpClient)
+	if err != nil {
+		log.Panicf("NewBlock,NewURLApiWithClient error:%s, url:%s", err.Error(), ipfsApiURL)
+	}
+
 	block := &Block{
 		ds:          ds,
 		blockStore:  blockStore,
@@ -80,7 +89,7 @@ func NewBlock(ds datastore.Batching, blockStore blockstore.BlockStore, scheduler
 		saveBlockLock: &sync.Mutex{},
 
 		blockLoaderCh: make(chan bool),
-		ipfsGateway:   ipfsGateway,
+		ipfsApi:       httpApi,
 		carfileList:   list.New(),
 		carfileMap:    make(map[string]*list.Element),
 	}
@@ -297,11 +306,6 @@ func (block *Block) DeleteBlocks(ctx context.Context, cids []string) ([]api.Bloc
 	// delResult := api.DelResult{}
 	results := make([]api.BlockOperationResult, 0)
 
-	if block.blockStore == nil {
-		log.Errorf("DeleteBlocks, blockStore not setting")
-		return results, fmt.Errorf("edge.blockStore == nil")
-	}
-
 	for _, cid := range cids {
 		err := block.deleteBlock(cid)
 		if err == datastore.ErrNotFound {
@@ -383,11 +387,6 @@ func (block *Block) QueryCachingBlocks(ctx context.Context) (api.CachingBlockLis
 
 func (block *Block) LoadBlock(ctx context.Context, cid string) ([]byte, error) {
 	// log.Infof("LoadBlock, cid:%s", cid)
-	if block.blockStore == nil {
-		log.Errorf("LoadData, blockStore not setting")
-		return nil, nil
-	}
-
 	return block.getBlockWithCID(cid)
 }
 
@@ -415,8 +414,8 @@ func (block *Block) LoadBlockWithFid(fid string) ([]byte, error) {
 	return block.getBlockWithFID(fid)
 }
 
-func (block *Block) GetDatastore(ctx context.Context) datastore.Batching {
-	return block.ds
+func (block *Block) SyncData(reqs map[int]string) error {
+	return block.blockLoader.syncData(block, reqs)
 }
 
 func (block *Block) resolveLinks(blk blocks.Block) ([]*format.Link, error) {
@@ -429,10 +428,6 @@ func (block *Block) resolveLinks(blk blocks.Block) ([]*format.Link, error) {
 	}
 
 	return node.Links(), nil
-}
-
-func (block *Block) SyncData(reqs map[int]string) error {
-	return block.blockLoader.syncData(block, reqs)
 }
 
 func getLinks(block *Block, data []byte, cidStr string) ([]*format.Link, error) {

@@ -21,7 +21,7 @@ var log = logging.Logger("edge")
 func NewLocalEdgeNode(ctx context.Context, device *device.Device, params *helper.NodeParams) api.Edge {
 	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
 
-	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.Candidate{}, params.IPFSGateway, device.GetDeviceID())
+	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.Candidate{}, params.IPFSAPI, device.GetDeviceID())
 
 	validate := validate.NewValidate(block, device)
 	blockDownload := download.NewBlockDownload(rateLimiter, params, device, validate)
@@ -33,7 +33,7 @@ func NewLocalEdgeNode(ctx context.Context, device *device.Device, params *helper
 		Block:         block,
 		BlockDownload: blockDownload,
 		Validate:      validate,
-		DataSync:      datasync.NewDataSync(block),
+		DataSync:      datasync.NewDataSync(block, params.DS),
 	}
 
 	return edge

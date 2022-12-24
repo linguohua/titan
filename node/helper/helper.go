@@ -37,7 +37,7 @@ type NodeParams struct {
 	// Device          *device.Device
 	DownloadSrvKey  string
 	DownloadSrvAddr string
-	IPFSGateway     string
+	IPFSAPI         string
 }
 
 func NewKeyFID(fid string) datastore.Key {
