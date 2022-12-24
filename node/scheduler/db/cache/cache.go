@@ -48,10 +48,11 @@ type DB interface {
 	IncrNodeOnlineTime(deviceID string, onlineTime int64) (float64, error)
 	IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error)
 
-	SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, error)
-	GetDeviceInfo(deviceID string) (api.DevicesInfo, error)
+	SetDeviceInfo(deviceID string, info *api.DevicesInfo) (bool, error)
+	GetDeviceInfo(deviceID string) (*api.DevicesInfo, error)
 	UpdateDeviceInfo(deviceID, field string, value interface{}) error
 	IncrByDeviceInfo(deviceID, field string, value int64) error
+	UpdateNodeCacheBlockInfo(toDeviceID, fromDeviceID string, blockSize int) error
 	// UpdateDeviceInfo(deviceID string, update func(deviceInfo *api.DevicesInfo)) error
 	SetDownloadBlockRecord(record DownloadBlockRecord) error
 	RemoveDownloadBlockRecord(sn int64) error

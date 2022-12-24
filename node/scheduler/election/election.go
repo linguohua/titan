@@ -62,13 +62,18 @@ func ExpirationOption(expiration time.Duration) Option {
 }
 
 func NewElection(manage *node.Manager, opts ...Option) *Election {
-	return &Election{
+	ele := &Election{
 		manage:     manage,
 		opts:       newEleOption(opts...),
 		validators: make(map[string]time.Time),
 		connect:    make(chan string, 1),
 		update:     make(chan struct{}, 1),
 	}
+
+	// open election
+	go ele.Run()
+
+	return ele
 }
 
 func (v *Election) Run() {

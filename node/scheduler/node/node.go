@@ -6,6 +6,7 @@ import (
 
 	"github.com/linguohua/titan/api"
 	titanRsa "github.com/linguohua/titan/node/rsa"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/region"
 
@@ -16,9 +17,31 @@ import (
 
 // Location Edge node
 type Location struct {
-	NodeAPI   api.Locator
-	Closer    jsonrpc.ClientCloser
-	LocatorID string
+	nodeAPI api.Locator
+	closer  jsonrpc.ClientCloser
+
+	locatorID string
+}
+
+// NewLocation new location
+func NewLocation(api api.Locator, closer jsonrpc.ClientCloser, locatorID string) *Location {
+	location := &Location{
+		nodeAPI:   api,
+		closer:    closer,
+		locatorID: locatorID,
+	}
+
+	return location
+}
+
+// GetAPI get node api
+func (l *Location) GetAPI() api.Locator {
+	return l.nodeAPI
+}
+
+// GetLocatorID get id
+func (l *Location) GetLocatorID() string {
+	return l.locatorID
 }
 
 // EdgeNode Edge node
@@ -30,12 +53,12 @@ type EdgeNode struct {
 }
 
 // NewEdgeNode new edge
-func NewEdgeNode(candicateAPI api.Edge, closer jsonrpc.ClientCloser, node Node) *EdgeNode {
+func NewEdgeNode(candicateAPI api.Edge, closer jsonrpc.ClientCloser, node *Node) *EdgeNode {
 	edgeNode := &EdgeNode{
 		nodeAPI: candicateAPI,
 		closer:  closer,
 
-		Node: node,
+		Node: *node,
 	}
 
 	return edgeNode
@@ -61,12 +84,12 @@ type CandidateNode struct {
 }
 
 // NewCandidateNode new candidate
-func NewCandidateNode(candicateAPI api.Candidate, closer jsonrpc.ClientCloser, node Node) *CandidateNode {
+func NewCandidateNode(candicateAPI api.Candidate, closer jsonrpc.ClientCloser, node *Node) *CandidateNode {
 	candidateNode := &CandidateNode{
 		nodeAPI: candicateAPI,
 		closer:  closer,
 
-		Node: node,
+		Node: *node,
 	}
 
 	return candidateNode
@@ -84,7 +107,7 @@ func (c *CandidateNode) ClientCloser() {
 
 // Node Common
 type Node struct {
-	deviceInfo     api.DevicesInfo
+	deviceInfo     *api.DevicesInfo
 	addr           string
 	privateKey     *rsa.PrivateKey
 	nodeType       api.NodeTypeName
@@ -93,26 +116,27 @@ type Node struct {
 	geoInfo         *region.GeoInfo
 	lastRequestTime time.Time
 
-	cacheStat                 api.CacheStat
+	cacheStat                 *api.CacheStat
 	cacheTimeoutTimeStamp     int64 // TimeStamp of cache timeout
 	cacheNextTimeoutTimeStamp int64 // TimeStamp of next cache timeout
 }
 
 // NewNode new
-func NewNode(deviceInfo api.DevicesInfo, rpcURL, downloadSrvURL string, privateKey *rsa.PrivateKey, nodeType api.NodeTypeName) Node {
-	node := Node{
+func NewNode(deviceInfo *api.DevicesInfo, rpcURL, downloadSrvURL string, privateKey *rsa.PrivateKey, nodeType api.NodeTypeName, geoInfo *region.GeoInfo) *Node {
+	node := &Node{
 		addr:           rpcURL,
 		deviceInfo:     deviceInfo,
 		downloadSrvURL: downloadSrvURL,
 		privateKey:     privateKey,
 		nodeType:       nodeType,
+		geoInfo:        geoInfo,
 	}
 
 	return node
 }
 
 // GetDeviceInfo get device info
-func (n *Node) GetDeviceInfo() api.DevicesInfo {
+func (n *Node) GetDeviceInfo() *api.DevicesInfo {
 	return n.deviceInfo
 }
 
@@ -190,7 +214,7 @@ func (n *Node) setNodeOffline() {
 }
 
 // UpdateCacheStat Update Cache Stat
-func (n *Node) UpdateCacheStat(info api.CacheStat) {
+func (n *Node) UpdateCacheStat(info *api.CacheStat) {
 	n.cacheStat = info
 
 	num := info.WaitCacheBlockNum + info.DoingCacheBlockNum
@@ -199,4 +223,14 @@ func (n *Node) UpdateCacheStat(info api.CacheStat) {
 	n.cacheTimeoutTimeStamp = timeStamp + int64(num*info.DownloadTimeout*info.RetryNum)
 
 	n.cacheNextTimeoutTimeStamp = n.cacheTimeoutTimeStamp + int64(info.DownloadTimeout*info.RetryNum)
+}
+
+// SaveInfo Save Device Info
+func (n *Node) SaveInfo() error {
+	_, err := cache.GetDB().SetDeviceInfo(n.deviceInfo.DeviceId, n.deviceInfo)
+	if err != nil {
+		log.Errorf("set device info: %s", err.Error())
+		return err
+	}
+	return nil
 }

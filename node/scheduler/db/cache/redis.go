@@ -207,7 +207,7 @@ func (rd redisDB) RemoveValidatorList() error {
 	return err
 }
 
-func (rd redisDB) SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, error) {
+func (rd redisDB) SetDeviceInfo(deviceID string, info *api.DevicesInfo) (bool, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
 	ctx := context.Background()
@@ -217,6 +217,7 @@ func (rd redisDB) SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, er
 	}
 
 	if exist == 1 {
+		//TODO if info exist, filter some parameters
 		return true, rd.updateBaseDeviceInfo(deviceID, info)
 	}
 
@@ -233,7 +234,7 @@ func (rd redisDB) SetDeviceInfo(deviceID string, info api.DevicesInfo) (bool, er
 	return true, nil
 }
 
-func (rd redisDB) updateBaseDeviceInfo(deviceID string, info api.DevicesInfo) error {
+func (rd redisDB) updateBaseDeviceInfo(deviceID string, info *api.DevicesInfo) error {
 	return rd.resetDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
 		deviceInfo.NodeType = info.NodeType
 		deviceInfo.DeviceName = info.DeviceName
@@ -264,7 +265,7 @@ func (rd redisDB) updateBaseDeviceInfo(deviceID string, info api.DevicesInfo) er
 	})
 }
 
-func toMap(info api.DevicesInfo) map[string]interface{} {
+func toMap(info *api.DevicesInfo) map[string]interface{} {
 	out := make(map[string]interface{})
 	t := reflect.TypeOf(info)
 	v := reflect.ValueOf(info)
@@ -279,13 +280,13 @@ func toMap(info api.DevicesInfo) map[string]interface{} {
 	return out
 }
 
-func (rd redisDB) GetDeviceInfo(deviceID string) (api.DevicesInfo, error) {
+func (rd redisDB) GetDeviceInfo(deviceID string) (*api.DevicesInfo, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	var info api.DevicesInfo
-	err := rd.cli.HGetAll(context.Background(), key).Scan(&info)
+	var info *api.DevicesInfo
+	err := rd.cli.HGetAll(context.Background(), key).Scan(info)
 	if err != nil {
-		return api.DevicesInfo{}, err
+		return info, err
 	}
 
 	return info, nil
@@ -522,6 +523,30 @@ func (rd redisDB) UpdateDeviceInfo(deviceID, field string, value interface{}) er
 	return err
 }
 
+//UpdateNodeCacheBlockInfo update node cache block info
+func (rd redisDB) UpdateNodeCacheBlockInfo(toDeviceID, fromDeviceID string, blockSize int) error {
+	size := int64(blockSize)
+
+	toKey := fmt.Sprintf(redisKeyNodeInfo, toDeviceID)
+
+	ctx := context.Background()
+	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+
+		pipeliner.HIncrBy(context.Background(), toKey, "BlockCount", 1)
+		pipeliner.HIncrBy(context.Background(), toKey, "TotalDownload", size)
+
+		if fromDeviceID != "" {
+			fromKey := fmt.Sprintf(redisKeyNodeInfo, toDeviceID)
+			pipeliner.HIncrBy(context.Background(), fromKey, "DownloadCount", 1)
+			pipeliner.HIncrBy(context.Background(), fromKey, "TotalUpload", size)
+		}
+
+		return nil
+	})
+
+	return err
+}
+
 func (rd redisDB) IncrByDeviceInfo(deviceID, field string, value int64) error {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
@@ -540,7 +565,7 @@ func (rd redisDB) resetDeviceInfo(deviceID string, update func(deviceInfo *api.D
 		return err
 	}
 
-	update(&deviceInfo)
+	update(deviceInfo)
 
 	ctx := context.Background()
 	_, err = rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
