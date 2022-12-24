@@ -21,10 +21,11 @@ var log = logging.Logger("datasync")
 
 type DataSync struct {
 	block *block.Block
+	ds    datastore.Batching
 }
 
-func NewDataSync(block *block.Block) *DataSync {
-	return &DataSync{block: block}
+func NewDataSync(block *block.Block, ds datastore.Batching) *DataSync {
+	return &DataSync{block: block, ds: ds}
 }
 
 func (dataSync *DataSync) GetAllChecksums(ctx context.Context, maxGroupNum int) (api.ChecksumRsp, error) {
@@ -44,10 +45,9 @@ func (dataSync *DataSync) getAllChecksums(ctx context.Context, maxGroupNum int) 
 		maxGroupNum = 10
 	}
 	rsp := api.ChecksumRsp{Checksums: make([]api.Checksum, 0)}
-	ds := dataSync.block.GetDatastore(ctx)
 
 	q := query.Query{Prefix: "fid"}
-	results, err := ds.Query(ctx, q)
+	results, err := dataSync.ds.Query(ctx, q)
 	if err != nil {
 		log.Errorf("getCheckSums datastore query error:%s", err.Error())
 		return rsp, err
@@ -273,8 +273,6 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 	log.Info("start sync local block store")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	// ds := dataSync.block.GetDatastore(ctx)
 
 	fidQuery := query.Query{Prefix: "fid"}
 	results, err := ds.Query(ctx, fidQuery)

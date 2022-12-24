@@ -9,17 +9,12 @@ import (
 	"time"
 
 	blocks "github.com/ipfs/go-block-format"
-	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-cid" // v0.1.0
+	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/linguohua/titan/node/helper"
 )
 
 type IPFS struct{}
-
-type ipfsBlock struct {
-	cid cid.Cid
-	raw []byte
-	err error
-}
 
 func (ipfs *IPFS) loadBlocks(block *Block, req []*delayReq) {
 	loadBlocksFromIPFS(block, req)
@@ -29,14 +24,37 @@ func (ipfs *IPFS) syncData(block *Block, reqs map[int]string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	if len(reqs) == 0 {
+		return nil
+	}
+
+	blockFIDMap := make(map[string]int)
+	cids := make([]cid.Cid, 0, len(reqs))
 	for fid, cidStr := range reqs {
 		target, err := cid.Decode(cidStr)
 		if err != nil {
-			log.Errorf("loadBlocksAsync failed to decode CID %v", err)
+			log.Errorf("syncData failed to decode CID %s, error:%s", cidStr, err.Error())
 			continue
 		}
+		cids = append(cids, target)
+		blockFIDMap[cidStr] = fid
+	}
 
-		blocks, err := getBlocksWithHttp(block, []cid.Cid{target})
+	// group cids
+	sizeOfGroup := helper.Batch
+	groups := make([][]cid.Cid, 0)
+	for i := 0; i < len(cids); i += sizeOfGroup {
+		j := i + sizeOfGroup
+		if j > len(cids) {
+			j = len(cids)
+		}
+
+		group := cids[i:j]
+		groups = append(groups, group)
+	}
+
+	for _, group := range groups {
+		blocks, err := getBlocksWithHttp(block, group)
 		if err != nil {
 			log.Errorf("syncData getBlocksWithHttp err %v", err)
 			return err
@@ -46,10 +64,12 @@ func (ipfs *IPFS) syncData(block *Block, reqs map[int]string) error {
 			return fmt.Errorf("syncData get blocks is empty")
 		}
 
-		err = block.saveBlock(ctx, blocks[0].RawData(), cidStr, fmt.Sprintf("%d", fid))
-		if err != nil {
-			log.Errorf("loadBlocksFromIPFS save block error:%s", err.Error())
-			continue
+		for _, b := range blocks {
+			cidStr := b.Cid().String()
+			err = block.saveBlock(ctx, b.RawData(), cidStr, fmt.Sprintf("%d", blockFIDMap[cidStr]))
+			if err != nil {
+				log.Errorf("syncData save block error:%s", err.Error())
+			}
 		}
 	}
 
@@ -57,78 +77,91 @@ func (ipfs *IPFS) syncData(block *Block, reqs map[int]string) error {
 }
 
 // curl "http://127.0.0.1:8080/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi?format=raw" > cat.jpg
-func getBlockFromIPFSGateway(wg *sync.WaitGroup, block *ipfsBlock, url string) {
-	defer wg.Done()
-
-	// log.Infof("getBlockFromIPFSGateway url:%s", url)
-
+func getBlockFromIPFSGateway(block *Block, cidStr string) (blocks.Block, error) {
+	url := fmt.Sprintf("%s/%s?format=raw", block.ipfsGateway, cidStr)
 	client := &http.Client{Timeout: helper.BlockDownloadTimeout * time.Second}
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		block.err = err
-		return
+		return nil, err
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		block.err = err
-		return
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		block.err = fmt.Errorf("resp.StatusCode != 200 ")
-		return
+		return nil, fmt.Errorf("resp.StatusCode != 200 ")
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		block.err = err
-		return
+		return nil, err
 	}
-	block.raw = data
+
+	target, err := cid.Decode(cidStr)
+	if err != nil {
+		return nil, err
+	}
+
+	basicBlock, err := blocks.NewBlockWithCid(data, target)
+	if err != nil {
+		log.Fatalf("NewBlockWithCid err:%s", err.Error())
+	}
+
+	return basicBlock, nil
+}
+
+func getBlockWithIPFSApi(block *Block, cidStr string) (blocks.Block, error) {
+	reader, err := block.ipfsApi.Block().Get(context.Background(), path.New(cidStr))
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	target, err := cid.Decode(cidStr)
+	if err != nil {
+		return nil, err
+	}
+
+	basicBlock, err := blocks.NewBlockWithCid(data, target)
+	if err != nil {
+		return nil, err
+	}
+
+	return basicBlock, nil
 }
 
 func getBlocksWithHttp(block *Block, cids []cid.Cid) ([]blocks.Block, error) {
 	startTime := time.Now()
-	ipfsbs := make([]*ipfsBlock, 0, len(cids))
+	blks := make([]blocks.Block, 0, len(cids))
 
 	var wg sync.WaitGroup
 
 	for _, cid := range cids {
-		url := fmt.Sprintf("%s/%s?format=raw", block.ipfsGateway, cid.String())
-		ipfsb := &ipfsBlock{cid: cid, err: nil, raw: nil}
-		ipfsbs = append(ipfsbs, ipfsb)
-
+		cidStr := cid.String()
 		wg.Add(1)
-		go getBlockFromIPFSGateway(&wg, ipfsb, url)
-	}
 
+		go func() {
+			defer wg.Done()
+			b, err := getBlockWithIPFSApi(block, cidStr)
+			if err != nil {
+				log.Errorf("getBlockWithWaitGroup error:%s", err.Error())
+				return
+			}
+			blks = append(blks, b)
+		}()
+	}
 	wg.Wait()
 
-	bs := make([]blocks.Block, 0, len(ipfsbs))
-	for _, b := range ipfsbs {
-		if b.err != nil {
-			log.Errorf("get ipfs block error:%s", b.err.Error())
-			continue
-		}
-
-		if b.raw == nil {
-			log.Errorf("b.raw == nil")
-			continue
-		}
-
-		block, err := blocks.NewBlockWithCid(b.raw, b.cid)
-		if err != nil {
-			log.Errorf("getBlocksWithHttp error:%s", err)
-			continue
-		}
-
-		bs = append(bs, block)
-	}
-
-	log.Infof("getBlocksWithHttp block len:%d, duration:%dns", len(bs), time.Since(startTime))
-	return bs, nil
+	log.Infof("getBlocksWithHttp block len:%d, duration:%dns", len(blks), time.Since(startTime))
+	return blks, nil
 }
 
 func loadBlocksAsync(block *Block, cids []cid.Cid) ([]blocks.Block, error) {
@@ -218,22 +251,20 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 		delete(reqMap, cidStr)
 	}
 
-	if len(reqMap) > 0 {
-		tryDelayReqs := make([]*delayReq, 0)
-		err = fmt.Errorf("Request timeout")
-		for _, v := range reqMap {
-			if v.count >= helper.BlockDownloadRetryNum {
-				block.cacheResultWithError(ctx, blockStat{cid: v.blockInfo.Cid, carFileHash: v.carFileHash, CacheID: v.CacheID}, err)
-				log.Infof("cache data faile, cid:%s, count:%d", v.blockInfo.Cid, v.count)
-			} else {
-				v.count++
-				delayReq := v
-				tryDelayReqs = append(tryDelayReqs, delayReq)
-			}
+	err = fmt.Errorf("Request timeout")
+	tryDelayReqs := make([]*delayReq, 0)
+	for _, v := range reqMap {
+		if v.count >= helper.BlockDownloadRetryNum {
+			block.cacheResultWithError(ctx, blockStat{cid: v.blockInfo.Cid, carFileHash: v.carFileHash, CacheID: v.CacheID}, err)
+			log.Infof("cache data faile, cid:%s, count:%d", v.blockInfo.Cid, v.count)
+		} else {
+			v.count++
+			delayReq := v
+			tryDelayReqs = append(tryDelayReqs, delayReq)
 		}
+	}
 
-		if len(tryDelayReqs) > 0 {
-			loadBlocksFromIPFS(block, tryDelayReqs)
-		}
+	if len(tryDelayReqs) > 0 {
+		loadBlocksFromIPFS(block, tryDelayReqs)
 	}
 }

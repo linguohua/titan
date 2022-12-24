@@ -329,7 +329,7 @@ var runCmd = &cli.Command{
 			BlockStore:      blockStore,
 			DownloadSrvKey:  cctx.String("download-srv-key"),
 			DownloadSrvAddr: cctx.String("download-srv-addr"),
-			IPFSGateway:     cctx.String("ipfs-gateway"),
+			IPFSAPI:         cctx.String("ipfs-api"),
 		}
 
 		edgeApi := edge.NewLocalEdgeNode(context.Background(), device, params)

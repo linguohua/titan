@@ -160,10 +160,10 @@ var runCmd = &cli.Command{
 			Value:   "2521c39087cecd74a853850dd56e9c859b786fbc",
 		},
 		&cli.StringFlag{
-			Name:    "ipfs-gateway",
-			EnvVars: []string{"IPFS_GATEWAY"},
-			Usage:   "ipfs gate way",
-			Value:   "http://127.0.0.1:8080/ipfs",
+			Name:    "ipfs-api",
+			EnvVars: []string{"IPFS_API"},
+			Usage:   "ipfs api url",
+			Value:   "http://127.0.0.1:5001",
 		},
 		&cli.BoolFlag{
 			Name:  "locator",
@@ -333,10 +333,10 @@ var runCmd = &cli.Command{
 			BlockStore:      blockStore,
 			DownloadSrvKey:  cctx.String("download-srv-key"),
 			DownloadSrvAddr: cctx.String("download-srv-addr"),
-			IPFSGateway:     cctx.String("ipfs-gateway"),
+			IPFSAPI:         cctx.String("ipfs-api"),
 		}
 
-		log.Info("ipfs-gateway " + nodeParams.IPFSGateway)
+		log.Info("ipfs-api " + nodeParams.IPFSAPI)
 		tcpSrvAddr := cctx.String("tcp-srv-addr")
 
 		candidateApi := candidate.NewLocalCandidateNode(context.Background(), tcpSrvAddr, device, nodeParams)
