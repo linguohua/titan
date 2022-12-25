@@ -262,14 +262,14 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 		fromNodeID := "IPFS"
 		fid := 0
 
-		froms, err := persistent.GetDB().GetNodesWithCache(hash, true)
+		froms, err := persistent.GetDB().GetNodesWithBlock(hash, true)
 		if err == nil {
 			skips := make(map[string]string)
 			if froms != nil {
 				for _, dID := range froms {
 					skips[dID] = cid
 
-					// fid from
+					// find from
 					if fromNode == nil {
 						node := c.manager.GetCandidateNode(dID)
 						if node != nil {
@@ -282,17 +282,16 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 
 			deviceID = c.searchIdleNode(skips)
 			if deviceID != "" {
+				fid, err = cache.GetDB().IncrNodeCacheFid(deviceID, 1)
+				if err != nil {
+					log.Errorf("deviceID:%s,IncrNodeCacheFid:%s", deviceID, err.Error())
+					continue
+				}
 				status = api.CacheStatusCreate
 
 				reqDataMap, ok := nodeReqCacheDataMap[deviceID]
 				if !ok {
 					reqDataMap = map[string]*api.ReqCacheData{}
-				}
-
-				fid, err = cache.GetDB().IncrNodeCacheFid(deviceID, 1)
-				if err != nil {
-					log.Errorf("deviceID:%s,IncrNodeCacheFid:%s", deviceID, err.Error())
-					continue
 				}
 
 				reqData, ok := reqDataMap[fromNodeID]

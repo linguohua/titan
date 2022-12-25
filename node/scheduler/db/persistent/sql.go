@@ -824,7 +824,7 @@ func (sd sqlDB) GetRegisterInfo(deviceID, key string, out interface{}) error {
 	return nil
 }
 
-func (sd sqlDB) GetNodesWithCache(hash string, isSuccess bool) ([]string, error) {
+func (sd sqlDB) GetNodesWithBlock(hash string, isSuccess bool) ([]string, error) {
 	area := sd.ReplaceArea()
 
 	var out []string
