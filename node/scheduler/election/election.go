@@ -328,9 +328,12 @@ func (v *Election) getAllCandidates() []*node.CandidateNode {
 	var candidates []*node.CandidateNode
 
 	cs := v.manage.GetAllCandidate()
-	for _, candidate := range cs {
-		candidates = append(candidates, candidate)
-	}
+	cs.Range(func(key, value interface{}) bool {
+		node := value.(*node.CandidateNode)
+		candidates = append(candidates, node)
+
+		return true
+	})
 
 	return candidates
 }
@@ -338,16 +341,19 @@ func (v *Election) getAllCandidates() []*node.CandidateNode {
 func (v *Election) getAllNode() []*node.Node {
 	var nodes []*node.Node
 
-	cs := v.manage.GetAllCandidate()
 	es := v.manage.GetAllEdge()
+	es.Range(func(key, value interface{}) bool {
+		node := value.(*node.CandidateNode)
+		nodes = append(nodes, &node.Node)
+		return true
+	})
 
-	for _, edge := range es {
-		nodes = append(nodes, &edge.Node)
-	}
-
-	for _, candidate := range cs {
-		nodes = append(nodes, &candidate.Node)
-	}
+	cs := v.manage.GetAllCandidate()
+	cs.Range(func(key, value interface{}) bool {
+		node := value.(*node.CandidateNode)
+		nodes = append(nodes, &node.Node)
+		return true
+	})
 
 	return nodes
 }

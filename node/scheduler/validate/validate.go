@@ -87,7 +87,6 @@ func (v *Validate) initValidateTask() {
 			log.Errorf("startValidate err:%s", err.Error())
 		}
 	})
-
 	if err != nil {
 		log.Panicf(err.Error())
 	}
@@ -335,8 +334,11 @@ type tmpDeviceMeta struct {
 // verified edge node are allocated to verifiers one by one
 func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDeviceMeta, error) {
 	result := make(map[string][]tmpDeviceMeta)
+
 	edges := v.nodeManager.GetAllEdge()
-	for _, edgeNode := range edges {
+	edges.Range(func(key, value interface{}) bool {
+		edgeNode := value.(*node.EdgeNode)
+
 		var tn tmpDeviceMeta
 		tn.nodeType = api.NodeEdge
 		tn.deviceId = edgeNode.GetDeviceInfo().DeviceId
@@ -352,10 +354,14 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 			vd = append(vd, tn)
 			result[validatorID] = vd
 		}
-	}
+
+		return true
+	})
 
 	candidates := v.nodeManager.GetAllCandidate()
-	for _, candidateNode := range candidates {
+	candidates.Range(func(key, value interface{}) bool {
+		candidateNode := value.(*node.CandidateNode)
+
 		var tn tmpDeviceMeta
 		tn.deviceId = candidateNode.GetDeviceInfo().DeviceId
 		tn.nodeType = api.NodeCandidate
@@ -363,7 +369,7 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 
 		validatorID := validatorList[randomNum(0, len(validatorList))]
 		if validatorID == candidateNode.GetDeviceInfo().DeviceId {
-			continue
+			return true
 		}
 
 		if validated, ok := result[validatorID]; ok {
@@ -374,7 +380,9 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 			vd = append(vd, tn)
 			result[validatorID] = vd
 		}
-	}
+
+		return true
+	})
 
 	if len(result) == 0 {
 		return nil, fmt.Errorf("%s", "edge node and candidate node are empty")
@@ -462,7 +470,6 @@ func (v *Validate) execute() error {
 				return
 			}
 			log.Debugf("validator id : %s, send success", vId)
-
 		}(vi, vl)
 	}
 	return nil
