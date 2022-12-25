@@ -179,31 +179,13 @@ func (m *Manager) GetNodes(nodeType api.NodeTypeName) ([]string, error) {
 }
 
 // GetAllCandidate get all candidate node
-func (m *Manager) GetAllCandidate() []*CandidateNode {
-	list := make([]*CandidateNode, 0)
-
-	m.candidateNodeMap.Range(func(key, value interface{}) bool {
-		c := value.(*CandidateNode)
-		list = append(list, c)
-
-		return true
-	})
-
-	return list
+func (m *Manager) GetAllCandidate() sync.Map {
+	return m.candidateNodeMap
 }
 
 // GetAllEdge  get all edge node
-func (m *Manager) GetAllEdge() []*EdgeNode {
-	list := make([]*EdgeNode, 0)
-
-	m.edgeNodeMap.Range(func(key, value interface{}) bool {
-		e := value.(*EdgeNode)
-		list = append(list, e)
-
-		return true
-	})
-
-	return list
+func (m *Manager) GetAllEdge() sync.Map {
+	return m.edgeNodeMap
 }
 
 // EdgeOnline Edge Online
@@ -377,10 +359,9 @@ func (m *Manager) FindCandidateNodes(useDeviceIDs []string, skips map[string]str
 				return true
 			}
 
-			if node == nil {
-				return true
+			if node != nil {
+				list = append(list, node)
 			}
-			list = append(list, node)
 
 			return true
 		})

@@ -162,51 +162,76 @@ func (c *Cache) sendBlocksToNode(deviceID string, reqDataMap map[string]*api.Req
 	return 0, xerrors.Errorf("Not Found Node:%s", deviceID)
 }
 
-func (c *Cache) findIdleNode(skips map[string]string, i int) (deviceID string) {
+func (c *Cache) searchIdleNode(skips map[string]string) (deviceID string) {
+	// TODO Search strategy to be optimized
 	deviceID = ""
 
 	if c.isRootCache {
-		list := c.manager.FindCandidateNodes(nil, skips)
-		if list == nil || len(list) <= 0 {
-			return
-		}
-
 		newList := make([]*node.CandidateNode, 0)
-		for _, node := range list {
-			if node.GetDeviceInfo().DiskUsage < 0.9 {
-				newList = append(newList, node)
+
+		candidates := c.manager.GetAllCandidate()
+		candidates.Range(func(key, value interface{}) bool {
+			deviceID := key.(string)
+			node := value.(*node.CandidateNode)
+
+			if _, ok := skips[deviceID]; ok {
+				return true
 			}
-		}
+
+			if node.GetDeviceInfo().DiskUsage >= 0.9 {
+				return true
+			}
+
+			newList = append(newList, node)
+
+			return true
+		})
 
 		sort.Slice(newList, func(i, j int) bool {
 			return newList[i].GetCacheTimeoutTimeStamp() < newList[j].GetCacheTimeoutTimeStamp()
 		})
 
-		// rand node
-		node := list[i%len(list)]
+		if len(newList) <= 0 {
+			return
+		}
+
+		// node := newList[i%len(list)]
+		node := newList[0]
 
 		deviceID = node.GetDeviceInfo().DeviceId
 		return
 	}
 
-	list := c.manager.FindEdgeNodes(nil, skips)
-	if list == nil || len(list) <= 0 {
-		return
-	}
-
 	newList := make([]*node.EdgeNode, 0)
-	for _, node := range list {
-		if node.GetDeviceInfo().DiskUsage < 0.9 {
-			newList = append(newList, node)
+
+	edges := c.manager.GetAllEdge()
+	edges.Range(func(key, value interface{}) bool {
+		deviceID := key.(string)
+		node := value.(*node.EdgeNode)
+
+		if _, ok := skips[deviceID]; ok {
+			return true
 		}
-	}
+
+		if node.GetDeviceInfo().DiskUsage >= 0.9 {
+			return true
+		}
+
+		newList = append(newList, node)
+
+		return true
+	})
 
 	sort.Slice(newList, func(i, j int) bool {
 		return newList[i].GetCacheTimeoutTimeStamp() < newList[j].GetCacheTimeoutTimeStamp()
 	})
 
-	// rand node
-	node := list[i%len(list)]
+	if len(newList) <= 0 {
+		return
+	}
+
+	// node := newList[i%len(list)]
+	node := newList[0]
 
 	deviceID = node.GetDeviceInfo().DeviceId
 	return
@@ -220,7 +245,6 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 
 	notNodeCids := make([]string, 0)
 
-	index := 0
 	for cid, dbID := range cidMap {
 		hash, err := helper.CIDString2HashString(cid)
 		if err != nil {
@@ -232,11 +256,10 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 			continue
 		}
 
-		index++
 		status := api.CacheStatusFail
 		deviceID := ""
 		var fromNode *node.CandidateNode
-		fromStr := "IPFS"
+		fromNodeID := "IPFS"
 		fid := 0
 
 		froms, err := persistent.GetDB().GetNodesWithCache(hash, true)
@@ -251,13 +274,13 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 						node := c.manager.GetCandidateNode(dID)
 						if node != nil {
 							fromNode = node
-							fromStr = node.GetDeviceInfo().DeviceId
+							fromNodeID = node.GetDeviceInfo().DeviceId
 						}
 					}
 				}
 			}
 
-			deviceID = c.findIdleNode(skips, index)
+			deviceID = c.searchIdleNode(skips)
 			if deviceID != "" {
 				status = api.CacheStatusCreate
 
@@ -272,7 +295,7 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 					continue
 				}
 
-				reqData, ok := reqDataMap[fromStr]
+				reqData, ok := reqDataMap[fromNodeID]
 				if !ok {
 					reqData = &api.ReqCacheData{}
 					reqData.BlockInfos = make([]api.BlockCacheInfo, 0)
@@ -285,7 +308,7 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 				}
 
 				reqData.BlockInfos = append(reqData.BlockInfos, api.BlockCacheInfo{Cid: cid, Fid: fid})
-				reqDataMap[fromStr] = reqData
+				reqDataMap[fromNodeID] = reqData
 				// cList = append(cList, &api.BlockCacheInfo{Cid: cid, Fid: fid, From: from})
 				nodeReqCacheDataMap[deviceID] = reqDataMap
 
@@ -297,15 +320,15 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 
 		b := &api.BlockInfo{
 			CacheID:     c.cacheID,
+			CarfileHash: c.carfileHash,
 			CID:         cid,
 			DeviceID:    deviceID,
 			Status:      status,
-			Size:        0,
 			ID:          dbID,
-			CarfileHash: c.carfileHash,
 			FID:         fid,
-			Source:      fromStr,
+			Source:      fromNodeID,
 			CIDHash:     hash,
+			// Size:        0,
 		}
 
 		saveDBblockList = append(saveDBblockList, b)
@@ -608,7 +631,7 @@ func (c *Cache) removeBlocks(deviceID string, cids []string) {
 }
 
 func (c *Cache) calculateReliability(deviceID string) int {
-	//TODO To be perfected
+	// TODO To be perfected
 	if deviceID != "" {
 		return 1
 	}
@@ -675,27 +698,27 @@ func (c *Cache) resetExpiredTime(expiredTime time.Time) {
 	}
 }
 
-//GetCacheID get cache id
+// GetCacheID get cache id
 func (c *Cache) GetCacheID() string {
 	return c.cacheID
 }
 
-//GetStatus get status
+// GetStatus get status
 func (c *Cache) GetStatus() api.CacheStatus {
 	return c.status
 }
 
-//GetDoneSize get done size
+// GetDoneSize get done size
 func (c *Cache) GetDoneSize() int {
 	return c.doneSize
 }
 
-//GetDoneBlocks get done blocks
+// GetDoneBlocks get done blocks
 func (c *Cache) GetDoneBlocks() int {
 	return c.doneBlocks
 }
 
-//GetNodes get nodes
+// GetNodes get nodes
 func (c *Cache) GetNodes() int {
 	return c.nodes
 }
