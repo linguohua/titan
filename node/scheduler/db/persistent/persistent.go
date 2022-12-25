@@ -69,7 +69,7 @@ type DB interface {
 	GetBlocksBiggerThan(startFid int, deviceID string) (map[int]string, error)
 	GetCacheBlocksSizeWithNode(deviceID, cacheID string) ([]int, error)
 	CountCidOfDevice(deviceID string) (int64, error)
-	GetNodesWithCache(hash string, isSuccess bool) ([]string, error)
+	GetNodesWithBlock(hash string, isSuccess bool) ([]string, error)
 	// GetNodeBlock(deviceID, cid string) ([]*BlockInfo, error)
 
 	// temporary node register

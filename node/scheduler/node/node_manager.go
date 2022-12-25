@@ -400,7 +400,7 @@ func (m *Manager) FindNodeDownloadInfos(cid string) ([]api.DownloadInfoResult, e
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}
 
-	deviceIDs, err := persistent.GetDB().GetNodesWithCache(hash, true)
+	deviceIDs, err := persistent.GetDB().GetNodesWithBlock(hash, true)
 	if err != nil {
 		return nil, err
 	}
@@ -427,7 +427,7 @@ func (m *Manager) FindNodeDownloadInfos(cid string) ([]api.DownloadInfoResult, e
 
 // GetCandidateNodesWithData find device with block hash
 func (m *Manager) GetCandidateNodesWithData(hash, skip string) ([]*CandidateNode, error) {
-	deviceIDs, err := persistent.GetDB().GetNodesWithCache(hash, true)
+	deviceIDs, err := persistent.GetDB().GetNodesWithBlock(hash, true)
 	if err != nil {
 		return nil, err
 	}
