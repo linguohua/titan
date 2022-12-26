@@ -157,7 +157,13 @@ func getClientIP(r *http.Request) string {
 }
 
 func (bd *BlockDownload) downloadBlockResult(result api.NodeBlockDownloadResult) {
-	bd.scheduler.NodeResultForUserDownloadBlock(context.Background(), result)
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	defer cancel()
+
+	err := bd.scheduler.NodeResultForUserDownloadBlock(ctx, result)
+	if err != nil {
+		log.Errorf("downloadBlockResult error:%s", err.Error())
+	}
 }
 
 func (bd *BlockDownload) startDownloadServer() {
@@ -218,7 +224,7 @@ func (bd *BlockDownload) GetDownloadSrvURL() string {
 }
 
 func (bd *BlockDownload) LoadPublicKey() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
 	defer cancel()
 
 	publicKeyStr, err := bd.scheduler.GetPublicKey(ctx)
