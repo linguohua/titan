@@ -343,7 +343,7 @@ func (v *Election) getAllNode() []*node.Node {
 
 	es := v.manage.GetAllEdge()
 	es.Range(func(key, value interface{}) bool {
-		node := value.(*node.CandidateNode)
+		node := value.(*node.EdgeNode)
 		nodes = append(nodes, &node.Node)
 		return true
 	})
