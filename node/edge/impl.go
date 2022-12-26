@@ -21,7 +21,7 @@ var log = logging.Logger("edge")
 func NewLocalEdgeNode(ctx context.Context, device *device.Device, params *helper.NodeParams) api.Edge {
 	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
 
-	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.Candidate{}, params.IPFSAPI, device.GetDeviceID())
+	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.Candidate{}, device, params.IPFSAPI)
 
 	validate := validate.NewValidate(block, device)
 	blockDownload := download.NewBlockDownload(rateLimiter, params, device, validate)

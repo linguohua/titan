@@ -31,7 +31,7 @@ var log = logging.Logger("candidate")
 func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *device.Device, params *helper.NodeParams) api.Candidate {
 	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
 
-	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, params.IPFSAPI, device.GetDeviceID())
+	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, device, params.IPFSAPI)
 	validate := vd.NewValidate(block, device)
 	blockDownload := download.NewBlockDownload(rateLimiter, params, device, validate)
 
