@@ -468,7 +468,7 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 		if !v.compareCid(cid, resultCid) {
 			msg := fmt.Sprintf(errMsgCidFail, resultCid, cid, fid, index)
 			log.Debug("validate fail :", msg)
-			log.Infof("validate fail resultCid:%s,cid_db:%s,fid:%d,index:%d", resultCid, cid, fid, index)
+			log.Infof("validate fail deviceID [%s] resultCid:%s,cid_db:%s,fid:%d,index:%d", validateResults.DeviceID, resultCid, cid, fid, index)
 			return v.UpdateFailValidateResult(v.curRoundId, validateResults.DeviceID, msg, persistent.ValidateStatusFail)
 		}
 	}
