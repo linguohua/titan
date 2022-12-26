@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
@@ -134,13 +135,40 @@ func (d *Data) updateAndSaveCacheingInfo(blockInfo *api.BlockInfo, cache *Cache,
 	return persistent.GetDB().SaveCacheingResults(dInfo, cInfo, blockInfo, createBlocks)
 }
 
-func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
-	if cache.status == api.CacheStatusSuccess {
-		d.reliability += cache.reliability
+func (d *Data) updateNodeDiskUsage(nodes []string) {
+	values := make(map[string]interface{})
+
+	for _, deviceID := range nodes {
+		e := d.nodeManager.GetEdgeNode(deviceID)
+		if e != nil {
+			values[e.GetDeviceInfo().DeviceId] = e.GetDeviceInfo().DiskUsage
+			continue
+		}
+
+		c := d.nodeManager.GetCandidateNode(deviceID)
+		if c != nil {
+			values[c.GetDeviceInfo().DeviceId] = c.GetDeviceInfo().DiskUsage
+			continue
+		}
 	}
 
-	// TODO how to merge this two
-	cNodes, err := persistent.GetDB().GetNodesFromCache(cache.cacheID)
+	err := cache.GetDB().UpdateDevicesInfo("DiskUsage", values)
+	if err != nil {
+		log.Errorf("updateNodeDiskUsage err:%s", err.Error())
+	}
+}
+
+func (d *Data) updateAndSaveCacheEndInfo(doneCache *Cache) error {
+	if doneCache.status == api.CacheStatusSuccess {
+		d.reliability += doneCache.reliability
+
+		err := cache.GetDB().IncrByBaseInfo("CarfileCount", 1)
+		if err != nil {
+			log.Errorf("updateAndSaveCacheEndInfo IncrByBaseInfo err: %s", err.Error())
+		}
+	}
+
+	cNodes, err := persistent.GetDB().GetNodesFromCache(doneCache.cacheID)
 	if err != nil {
 		log.Errorf("updateAndSaveCacheEndInfo GetNodesFromCache err:%s", err.Error())
 	}
@@ -149,6 +177,8 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 	if err != nil {
 		log.Errorf("updateAndSaveCacheEndInfo GetNodesFromData err:%s", err.Error())
 	}
+
+	d.updateNodeDiskUsage(dNodes)
 
 	d.nodes = len(dNodes)
 	dInfo := &api.DataInfo{
@@ -160,17 +190,17 @@ func (d *Data) updateAndSaveCacheEndInfo(cache *Cache) error {
 		Nodes:       d.nodes,
 	}
 
-	cache.nodes = len(cNodes)
+	doneCache.nodes = len(cNodes)
 	cInfo := &api.CacheInfo{
-		CarfileHash: cache.carfileHash,
-		CacheID:     cache.cacheID,
-		DoneSize:    cache.doneSize,
-		Status:      cache.status,
-		DoneBlocks:  cache.doneBlocks,
-		Reliability: cache.reliability,
-		TotalSize:   cache.totalSize,
-		TotalBlocks: cache.totalBlocks,
-		Nodes:       cache.nodes,
+		CarfileHash: doneCache.carfileHash,
+		CacheID:     doneCache.cacheID,
+		DoneSize:    doneCache.doneSize,
+		Status:      doneCache.status,
+		DoneBlocks:  doneCache.doneBlocks,
+		Reliability: doneCache.reliability,
+		TotalSize:   doneCache.totalSize,
+		TotalBlocks: doneCache.totalBlocks,
+		Nodes:       doneCache.nodes,
 	}
 
 	return persistent.GetDB().SaveCacheEndResults(dInfo, cInfo)

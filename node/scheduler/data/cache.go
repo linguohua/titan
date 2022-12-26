@@ -535,13 +535,6 @@ func (c *Cache) endCache(unDoneBlocks int, status api.CacheStatus) (err error) {
 	isContinue := true
 	defer func() {
 		c.data.cacheEnd(c, isContinue)
-
-		if c.status == api.CacheStatusSuccess {
-			err = cache.GetDB().IncrByBaseInfo("CarfileCount", 1)
-			if err != nil {
-				log.Errorf("endCache UpdateSystemInfo err: %s", err.Error())
-			}
-		}
 	}()
 
 	if status == api.CacheStatusTimeout || status == api.CacheStatusFail {

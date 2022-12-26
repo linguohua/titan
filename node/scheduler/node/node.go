@@ -215,8 +215,6 @@ func (n *Node) setNodeOffline() {
 
 // UpdateCacheStat Update Cache Stat
 func (n *Node) UpdateCacheStat(info *api.CacheStat) {
-	// TODO DiskUsage
-
 	n.cacheStat = info
 
 	num := info.WaitCacheBlockNum + info.DoingCacheBlockNum
@@ -225,6 +223,8 @@ func (n *Node) UpdateCacheStat(info *api.CacheStat) {
 	n.cacheTimeoutTimeStamp = timeStamp + int64(num*info.DownloadTimeout*info.RetryNum)
 
 	n.cacheNextTimeoutTimeStamp = n.cacheTimeoutTimeStamp + int64(info.DownloadTimeout*info.RetryNum)
+
+	n.deviceInfo.DiskUsage = info.DiskUsage
 }
 
 // SaveInfo Save Device Info
