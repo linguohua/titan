@@ -42,7 +42,7 @@ type Scheduler interface {
 	EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error                                        //perm:write
 	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                                  //perm:write
 	CandidateNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error                                   //perm:write
-	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) (string, error)                    //perm:write
+	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) error                              //perm:write
 	GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]CandidateDownloadInfo, error) //perm:write
 	GetExternalIP(ctx context.Context) (string, error)                                                               //perm:write
 	GetPublicKey(ctx context.Context) (string, error)                                                                //perm:write

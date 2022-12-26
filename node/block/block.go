@@ -217,7 +217,7 @@ func (block *Block) cacheResult(ctx context.Context, err error, bStat blockStat)
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
-	_, err = block.scheduler.CacheResult(ctx, block.deviceID, result)
+	err = block.scheduler.CacheResult(ctx, block.deviceID, result)
 	if err != nil {
 		log.Errorf("cacheResult CacheResult error:%v", err)
 		return
