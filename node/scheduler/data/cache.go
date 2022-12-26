@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,7 +33,7 @@ type Cache struct {
 	isRootCache bool
 	expiredTime time.Time
 
-	alreadyCacheBlockMap map[string]string
+	alreadyCacheBlockMap sync.Map
 }
 
 func newUUID() string {
@@ -46,15 +47,15 @@ func newCache(data *Data, isRootCache bool) (*Cache, string, error) {
 	cacheID := newUUID()
 
 	cache := &Cache{
-		manager:              data.nodeManager,
-		data:                 data,
-		reliability:          0,
-		status:               api.CacheStatusCreate,
-		cacheID:              cacheID,
-		carfileHash:          data.carfileHash,
-		isRootCache:          isRootCache,
-		expiredTime:          data.expiredTime,
-		alreadyCacheBlockMap: map[string]string{},
+		manager:     data.nodeManager,
+		data:        data,
+		reliability: 0,
+		status:      api.CacheStatusCreate,
+		cacheID:     cacheID,
+		carfileHash: data.carfileHash,
+		isRootCache: isRootCache,
+		expiredTime: data.expiredTime,
+		// alreadyCacheBlockMap: map[string]string{},
 	}
 
 	blockID := newUUID()
@@ -86,11 +87,11 @@ func loadCache(cacheID, carfileHash string, nodeManager *node.Manager, data *Dat
 		return nil
 	}
 	c := &Cache{
-		cacheID:              cacheID,
-		carfileHash:          carfileHash,
-		manager:              nodeManager,
-		data:                 data,
-		alreadyCacheBlockMap: map[string]string{},
+		cacheID:     cacheID,
+		carfileHash: carfileHash,
+		manager:     nodeManager,
+		data:        data,
+		// alreadyCacheBlockMap: map[string]string{},
 	}
 
 	info, err := persistent.GetDB().GetCacheInfo(cacheID)
@@ -115,7 +116,12 @@ func loadCache(cacheID, carfileHash string, nodeManager *node.Manager, data *Dat
 }
 
 func (c *Cache) updateAlreadyMap() {
-	c.alreadyCacheBlockMap = map[string]string{}
+	c.alreadyCacheBlockMap.Range(func(key interface{}, value interface{}) bool {
+		c.alreadyCacheBlockMap.Delete(key)
+		return true
+	})
+
+	// c.alreadyCacheBlockMap = map[string]string{}
 
 	blocks, err := persistent.GetDB().GetBlocksWithStatus(c.cacheID, api.CacheStatusSuccess)
 	if err != nil {
@@ -124,7 +130,8 @@ func (c *Cache) updateAlreadyMap() {
 	}
 
 	for _, block := range blocks {
-		c.alreadyCacheBlockMap[block.CIDHash] = block.DeviceID
+		// c.alreadyCacheBlockMap[block.CIDHash] = block.DeviceID
+		c.alreadyCacheBlockMap.Store(block.CIDHash, block.DeviceID)
 	}
 }
 
@@ -258,7 +265,8 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 			continue
 		}
 
-		if _, ok := c.alreadyCacheBlockMap[hash]; ok {
+		// if _, ok := c.alreadyCacheBlockMap[hash]; ok {
+		if _, ok := c.alreadyCacheBlockMap.Load(hash); ok {
 			continue
 		}
 
@@ -317,7 +325,8 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 				// cList = append(cList, &api.BlockCacheInfo{Cid: cid, Fid: fid, From: from})
 				nodeReqCacheDataMap[deviceID] = reqDataMap
 
-				c.alreadyCacheBlockMap[hash] = deviceID
+				// c.alreadyCacheBlockMap[hash] = deviceID
+				c.alreadyCacheBlockMap.Store(hash, deviceID)
 			} else {
 				notNodeCids = append(notNodeCids, cid)
 			}
@@ -410,7 +419,8 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		c.updateNodeBlockInfo(info.DeviceID, blockInfo.Source, info.BlockSize)
 
 		//
-		c.alreadyCacheBlockMap[hash] = info.DeviceID
+		// c.alreadyCacheBlockMap[hash] = info.DeviceID
+		c.alreadyCacheBlockMap.Store(hash, info.DeviceID)
 	}
 
 	bInfo := &api.BlockInfo{
@@ -511,8 +521,9 @@ func (c *Cache) endCache(unDoneBlocks int, status api.CacheStatus) (err error) {
 		return
 	}
 
+	isContinue := true
 	defer func() {
-		c.data.cacheEnd(c)
+		c.data.cacheEnd(c, isContinue)
 
 		if c.status == api.CacheStatusSuccess {
 			err = cache.GetDB().IncrByBaseInfo("CarfileCount", 1)
@@ -524,6 +535,7 @@ func (c *Cache) endCache(unDoneBlocks int, status api.CacheStatus) (err error) {
 
 	if status == api.CacheStatusTimeout || status == api.CacheStatusFail {
 		c.status = status
+		isContinue = false
 		return
 	}
 

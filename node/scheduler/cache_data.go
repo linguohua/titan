@@ -30,8 +30,16 @@ func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.C
 		return "", xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
+	info.DeviceID = deviceID
+
 	// log.Warnf("CacheResult ,CacheID:%s Cid:%s", info.CacheID, info.Cid)
-	err := s.dataManager.PushCacheResultToQueue(deviceID, &info)
+	// err := s.dataManager.PushCacheResultToQueue(&info)
+
+	err := s.dataManager.CacheCarfileResult(&info)
+	if err != nil {
+		log.Errorf("doResultTask cacheCarfileResult err:%s", err.Error())
+		// return
+	}
 
 	return "", err
 }

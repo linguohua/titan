@@ -870,9 +870,9 @@ func (sd sqlDB) ReplaceArea() string {
 func (sd sqlDB) GetNodesFromData(hash string) ([]string, error) {
 	area := sd.ReplaceArea()
 
-	query := fmt.Sprintf("SELECT DISTINCT device_id FROM %s WHERE carfile_hash=?", fmt.Sprintf(blockInfoTable, area))
+	query := fmt.Sprintf("SELECT DISTINCT device_id FROM %s WHERE carfile_hash=? AND status=?", fmt.Sprintf(blockInfoTable, area))
 	out := make([]string, 0)
-	if err := sd.cli.Select(&out, query, hash); err != nil {
+	if err := sd.cli.Select(&out, query, hash, api.CacheStatusSuccess); err != nil {
 		return out, err
 	}
 
@@ -882,9 +882,9 @@ func (sd sqlDB) GetNodesFromData(hash string) ([]string, error) {
 func (sd sqlDB) GetNodesFromCache(cacheID string) ([]string, error) {
 	area := sd.ReplaceArea()
 
-	query := fmt.Sprintf("SELECT DISTINCT device_id FROM %s WHERE cache_id=?", fmt.Sprintf(blockInfoTable, area))
+	query := fmt.Sprintf("SELECT DISTINCT device_id FROM %s WHERE cache_id=? AND status=?", fmt.Sprintf(blockInfoTable, area))
 	out := make([]string, 0)
-	if err := sd.cli.Select(&out, query, cacheID); err != nil {
+	if err := sd.cli.Select(&out, query, cacheID, api.CacheStatusSuccess); err != nil {
 		return out, err
 	}
 
