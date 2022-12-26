@@ -387,7 +387,8 @@ func (m *Manager) RemoveCache(carfileCid, cacheID string) error {
 	return m.saveEvent(carfileCid, cacheID, "user", e, eventTypeRemoveCacheEnd)
 }
 
-func (m *Manager) cacheCarfileResult(deviceID string, info *api.CacheResultInfo) error {
+// CacheCarfileResult block cache result
+func (m *Manager) CacheCarfileResult(info *api.CacheResultInfo) error {
 	data := m.GetData(info.CarFileHash)
 	if data == nil {
 		return xerrors.Errorf("Not Found Data Task: %s", info.CarFileHash)
@@ -415,24 +416,16 @@ func (m *Manager) doCacheResults() {
 			return
 		}
 
-		err = m.cacheCarfileResult(info.DeviceID, info)
+		err = m.CacheCarfileResult(info)
 		if err != nil {
 			log.Errorf("doResultTask cacheCarfileResult err:%s", err.Error())
 			// return
 		}
-
-		// err = cache.GetDB().RemoveCacheResultInfo()
-		// if err != nil {
-		// 	log.Errorf("doResultTask RemoveCacheResultInfo err:%s", err.Error())
-		// 	return
-		// }
 	}
 }
 
 // PushCacheResultToQueue new cache task
-func (m *Manager) PushCacheResultToQueue(deviceID string, info *api.CacheResultInfo) error {
-	info.DeviceID = deviceID
-
+func (m *Manager) PushCacheResultToQueue(info *api.CacheResultInfo) error {
 	_, err := cache.GetDB().SetCacheResultInfo(info)
 	if err != nil {
 		return err
@@ -556,6 +549,11 @@ func (m *Manager) StopCacheTask(cid string) error {
 		return xerrors.Errorf("Not Found Cid:%s", cid)
 	}
 
+	err = m.saveEvent(cid, cID, "", "", eventTypeStopDataTask)
+	if err != nil {
+		return err
+	}
+
 	cI, ok := data.cacheMap.Load(cID)
 	if ok && cI != nil {
 		cache := cI.(*Cache)
@@ -563,11 +561,6 @@ func (m *Manager) StopCacheTask(cid string) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	err = m.saveEvent(cid, cID, "", "", eventTypeStopDataTask)
-	if err != nil {
-		return err
 	}
 
 	nodes, err := persistent.GetDB().GetNodesFromCache(cID)

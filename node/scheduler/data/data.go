@@ -210,7 +210,7 @@ func (d *Data) dispatchCache(cache *Cache) error {
 	return nil
 }
 
-func (d *Data) cacheEnd(doneCache *Cache) {
+func (d *Data) cacheEnd(doneCache *Cache, isContinue bool) {
 	var err error
 
 	defer func() {
@@ -222,6 +222,11 @@ func (d *Data) cacheEnd(doneCache *Cache) {
 	err = d.updateAndSaveCacheEndInfo(doneCache)
 	if err != nil {
 		err = xerrors.Errorf("updateAndSaveCacheEndInfo err:%s", err.Error())
+		return
+	}
+
+	if !isContinue {
+		err = xerrors.Errorf("do not continue")
 		return
 	}
 
