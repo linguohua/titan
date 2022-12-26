@@ -81,6 +81,21 @@ func (v *Election) Run() {
 	if err := v.fetchCurrentValidators(); err != nil {
 		log.Errorf("fetch current validators: %v", err)
 	}
+	// todo: may be delete
+	go func() {
+		tn := time.NewTicker(10 * time.Minute)
+		defer tn.Stop()
+		for {
+			select {
+			case <-tn.C:
+				err := v.elect()
+				if err != nil {
+					log.Error(err.Error())
+				}
+				return
+			}
+		}
+	}()
 
 	ticker := time.NewTicker(v.opts.interval)
 	defer ticker.Stop()
