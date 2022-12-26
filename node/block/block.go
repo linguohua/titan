@@ -18,6 +18,7 @@ import (
 	"github.com/ipld/go-ipld-prime/node/basicnode"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/blockstore"
+	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/helper"
 
 	format "github.com/ipfs/go-ipld-format"
@@ -57,7 +58,7 @@ type Block struct {
 	cachingList   []*delayReq
 	saveBlockLock *sync.Mutex
 	blockLoader   BlockLoader
-	deviceID      string
+	device        *device.Device
 	exchange      exchange.Interface
 	blockLoaderCh chan bool
 	ipfsApi       *ipfsApi.HttpApi
@@ -71,7 +72,7 @@ type BlockLoader interface {
 	syncData(block *Block, reqs map[int]string) error
 }
 
-func NewBlock(ds datastore.Batching, blockStore blockstore.BlockStore, scheduler api.Scheduler, blockLoader BlockLoader, ipfsApiURL, deviceID string) *Block {
+func NewBlock(ds datastore.Batching, blockStore blockstore.BlockStore, scheduler api.Scheduler, blockLoader BlockLoader, device *device.Device, ipfsApiURL string) *Block {
 	httpClient := &http.Client{}
 	httpApi, err := ipfsApi.NewURLApiWithClient(ipfsApiURL, httpClient)
 	if err != nil {
@@ -84,7 +85,7 @@ func NewBlock(ds datastore.Batching, blockStore blockstore.BlockStore, scheduler
 		scheduler:   scheduler,
 		blockLoader: blockLoader,
 		exchange:    nil,
-		deviceID:    deviceID,
+		device:      device,
 
 		saveBlockLock: &sync.Mutex{},
 
@@ -217,7 +218,7 @@ func (block *Block) cacheResult(bStat blockStat, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
 	defer cancel()
 
-	err = block.scheduler.CacheResult(ctx, block.deviceID, result)
+	err = block.scheduler.CacheResult(ctx, block.device.GetDeviceID(), result)
 	if err != nil {
 		log.Errorf("cacheResult CacheResult error:%v", err)
 		return
@@ -302,7 +303,6 @@ func (block *Block) RemoveWaitCacheBlockWith(ctx context.Context, carfileCID str
 // delete block in local store and scheduler
 func (block *Block) DeleteBlocks(ctx context.Context, cids []string) ([]api.BlockOperationResult, error) {
 	log.Infof("DeleteBlocks, cids len:%d", len(cids))
-	// delResult := api.DelResult{}
 	results := make([]api.BlockOperationResult, 0)
 
 	for _, cid := range cids {
@@ -325,10 +325,9 @@ func (block *Block) DeleteBlocks(ctx context.Context, cids []string) ([]api.Bloc
 // told to scheduler, local block was delete
 func (block *Block) AnnounceBlocksWasDelete(ctx context.Context, cids []string) ([]api.BlockOperationResult, error) {
 	log.Debug("AnnounceBlocksWasDelete")
-	// delResult := api.DelResult{}
 	failedResults := make([]api.BlockOperationResult, 0)
 
-	result, err := block.scheduler.DeleteBlockRecords(ctx, block.deviceID, cids)
+	result, err := block.scheduler.DeleteBlockRecords(ctx, block.device.GetDeviceID(), cids)
 	if err != nil {
 		log.Errorf("AnnounceBlocksWasDelete, delete block error:%v", err)
 		return failedResults, err
@@ -368,6 +367,11 @@ func (block *Block) QueryCacheStat(ctx context.Context) (api.CacheStat, error) {
 	result.DoingCacheBlockNum = len(block.cachingList)
 	result.RetryNum = helper.BlockDownloadRetryNum
 	result.DownloadTimeout = helper.BlockDownloadTimeout
+
+	deviceInfo, err := block.device.DeviceInfo(context.Background())
+	if err == nil {
+		result.DiskUsage = deviceInfo.DiskUsage
+	}
 
 	log.Infof("CacheBlockCount:%d,WaitCacheBlockNum:%d, DoingCacheBlockNum:%d", result.CacheBlockCount, result.WaitCacheBlockNum, result.DoingCacheBlockNum)
 	return result, nil

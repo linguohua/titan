@@ -55,6 +55,7 @@ type CacheStat struct {
 	RetryNum int
 	// timeout of download, seconds
 	DownloadTimeout int
+	DiskUsage       float64
 }
 
 type CachingBlockStat struct {
