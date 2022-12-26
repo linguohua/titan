@@ -539,7 +539,7 @@ func (m *Manager) StopCacheTask(cid string) error {
 		return err
 	}
 
-	cID, err := cache.GetDB().GetRunningDataTask(hash)
+	cacheID, err := cache.GetDB().GetRunningDataTask(hash)
 	if err != nil && !cache.GetDB().IsNilErr(err) {
 		return err
 	}
@@ -549,12 +549,12 @@ func (m *Manager) StopCacheTask(cid string) error {
 		return xerrors.Errorf("Not Found Cid:%s", cid)
 	}
 
-	err = m.saveEvent(cid, cID, "", "", eventTypeStopDataTask)
+	err = m.saveEvent(cid, cacheID, "", "", eventTypeStopDataTask)
 	if err != nil {
 		return err
 	}
 
-	cI, ok := data.cacheMap.Load(cID)
+	cI, ok := data.cacheMap.Load(cacheID)
 	if ok && cI != nil {
 		cache := cI.(*Cache)
 		err := cache.endCache(0, api.CacheStatusFail)
@@ -563,29 +563,39 @@ func (m *Manager) StopCacheTask(cid string) error {
 		}
 	}
 
-	nodes, err := persistent.GetDB().GetNodesFromCache(cID)
+	nodes, err := persistent.GetDB().GetNodesFromCache(cacheID)
 	if err != nil {
 		return err
 	}
 
 	for _, deviceID := range nodes {
-		cNode := m.nodeManager.GetCandidateNode(deviceID)
-		if cNode != nil {
-			err = cNode.GetAPI().RemoveWaitCacheBlockWith(context.Background(), cid)
-			if err != nil {
-				log.Errorf("%s , RemoveWaitCacheBlockWith err:%s", deviceID, err.Error())
-				continue
-			}
+		go m.removeWaitCacheBlockWithNode(deviceID, cid)
+	}
+
+	return nil
+}
+
+func (m *Manager) removeWaitCacheBlockWithNode(deviceID, cid string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cNode := m.nodeManager.GetCandidateNode(deviceID)
+	if cNode != nil {
+		err := cNode.GetAPI().RemoveWaitCacheBlockWith(ctx, cid)
+		if err != nil {
+			log.Errorf("%s , RemoveWaitCacheBlockWith err:%s", deviceID, err.Error())
+		}
+		return err
+	}
+
+	eNode := m.nodeManager.GetEdgeNode(deviceID)
+	if eNode != nil {
+		err := eNode.GetAPI().RemoveWaitCacheBlockWith(ctx, cid)
+		if err != nil {
+			log.Errorf("%s , RemoveWaitCacheBlockWith err:%s", deviceID, err.Error())
 		}
 
-		eNode := m.nodeManager.GetEdgeNode(deviceID)
-		if eNode != nil {
-			err = eNode.GetAPI().RemoveWaitCacheBlockWith(context.Background(), cid)
-			if err != nil {
-				log.Errorf("%s , RemoveWaitCacheBlockWith err:%s", deviceID, err.Error())
-				continue
-			}
-		}
+		return err
 	}
 
 	return nil
