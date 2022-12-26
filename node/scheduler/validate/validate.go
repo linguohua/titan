@@ -206,7 +206,7 @@ func (v *Validate) execute() error {
 				return
 			}
 
-			err = validator.NodeAPI.ValidateBlocks(v.ctx, req)
+			err = validator.GetAPI().ValidateBlocks(v.ctx, req)
 			if err != nil {
 				log.Errorf(err.Error())
 				return
@@ -228,11 +228,13 @@ type tmpDeviceMeta struct {
 func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDeviceMeta, error) {
 	result := make(map[string][]tmpDeviceMeta)
 	edges := v.nodeManager.GetAllEdge()
-	for _, edgeNode := range edges {
+
+	edges.Range(func(key, value interface{}) bool {
+		edgeNode := value.(*node.EdgeNode)
 		var tn tmpDeviceMeta
 		tn.nodeType = api.NodeEdge
-		tn.deviceId = edgeNode.DeviceInfo.DeviceId
-		tn.addr = edgeNode.Node.Addr
+		tn.deviceId = edgeNode.GetDeviceInfo().DeviceId
+		tn.addr = edgeNode.Node.GetAddress()
 
 		validatorID := validatorList[v.generatorForRandomNumber(0, len(validatorList))]
 
@@ -244,18 +246,22 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 			vd = append(vd, tn)
 			result[validatorID] = vd
 		}
-	}
+
+		return true
+	})
 
 	candidates := v.nodeManager.GetAllCandidate()
-	for _, candidateNode := range candidates {
+
+	candidates.Range(func(key, value interface{}) bool {
+		candidateNode := value.(*node.CandidateNode)
 		var tn tmpDeviceMeta
-		tn.deviceId = candidateNode.DeviceInfo.DeviceId
+		tn.deviceId = candidateNode.GetDeviceInfo().DeviceId
 		tn.nodeType = api.NodeCandidate
-		tn.addr = candidateNode.Node.Addr
+		tn.addr = candidateNode.Node.GetAddress()
 
 		validatorID := validatorList[v.generatorForRandomNumber(0, len(validatorList))]
-		if validatorID == candidateNode.DeviceInfo.DeviceId {
-			continue
+		if validatorID == candidateNode.GetDeviceInfo().DeviceId {
+			return true
 		}
 
 		if validated, ok := result[validatorID]; ok {
@@ -266,7 +272,9 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 			vd = append(vd, tn)
 			result[validatorID] = vd
 		}
-	}
+
+		return true
+	})
 
 	if len(result) == 0 {
 		return nil, fmt.Errorf("%s", "edge node and candidate node are empty")
