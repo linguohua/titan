@@ -629,7 +629,8 @@ func (c *Cache) removeCache() error {
 
 // Notify nodes to delete blocks
 func (c *Cache) notifyNodeRemoveBlocks(deviceID string, cids []string) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
 	edge := c.manager.GetEdgeNode(deviceID)
 	if edge != nil {

@@ -187,7 +187,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 		return err
 	}
 
-	s.locatorManager.NotifyNodeStatusToLocator(deviceID, true)
+	go s.locatorManager.NotifyNodeStatusToLocator(deviceID, true)
 
 	s.dataSync.Add2List(candicateAPI, deviceID)
 
@@ -273,7 +273,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 	}
 
 	// notify locator
-	s.locatorManager.NotifyNodeStatusToLocator(deviceID, true)
+	go s.locatorManager.NotifyNodeStatusToLocator(deviceID, true)
 
 	s.dataSync.Add2List(edgeAPI, deviceID)
 
@@ -565,7 +565,7 @@ func incrDeviceReward(deviceID string, incrReward int64) error {
 // }
 
 func (s *Scheduler) nodeOfflineCallback(deviceID string) {
-	s.locatorManager.NotifyNodeStatusToLocator(deviceID, false)
+	go s.locatorManager.NotifyNodeStatusToLocator(deviceID, false)
 }
 
 func (s *Scheduler) nodeExitedCallback(deviceID string) {
