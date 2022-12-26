@@ -102,7 +102,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 			use += usageStat.Used
 			total += usageStat.Total
 		}
-
+		// TODO: to be blockstore, not all disk
 		info.DiskUsage = float64(use) / float64(total) * 100
 		info.DiskSpace = float64(total)
 
