@@ -26,14 +26,14 @@ type DB interface {
 	UpdateSuccessValidateResultInfo(info *ValidateResult) error
 	SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error)
 
-	CreateCache(cInfo *api.CacheInfo) error
+	CreateCache(cInfo *api.CacheInfo, bInfo *api.BlockInfo) error
 	SaveCacheEndResults(dInfo *api.DataInfo, cInfo *api.CacheInfo) error
 	SaveCacheingResults(dInfo *api.DataInfo, cInfo *api.CacheInfo, updateBlock *api.BlockInfo, createBlocks []*api.BlockInfo) error
 
 	// data info
 	SetDataInfo(info *api.DataInfo) error
 	GetDataInfo(hash string) (*api.DataInfo, error)
-	GetDataCidWithPage(page int) (count int, totalPage int, list []api.DataInfo, err error)
+	GetDataCidWithPage(page int) (count int, totalPage int, list []*api.DataInfo, err error)
 	GetCachesWithData(hash string) ([]string, error)
 
 	ChangeExpiredTimeWhitCaches(carfileHash, cacheID string, expiredTime time.Time) error
@@ -51,7 +51,7 @@ type DB interface {
 
 	GetBlockInfo(cacheID, hash string) (*api.BlockInfo, error)
 	GetBlockCountWithStatus(cacheID string, status api.CacheStatus) (int, error)
-	GetBlocksWithStatus(cacheID string, status api.CacheStatus) ([]api.BlockInfo, error)
+	GetBlocksWithStatus(cacheID string, status api.CacheStatus) ([]*api.BlockInfo, error)
 	GetBlocksWithHash(hash string) (map[string]*api.BlockInfo, error)
 
 	GetUndoneBlocks(cacheID string) (map[string]string, error)
@@ -83,7 +83,7 @@ type DB interface {
 	GetNodesByUserDownloadBlockIn(minute int) ([]string, error)
 
 	SetEventInfo(info *api.EventInfo) error
-	GetEventInfos(page int) (count int, totalPage int, out []api.EventInfo, err error)
+	GetEventInfos(page int) (count int, totalPage int, out []*api.EventInfo, err error)
 	// AddToBeDeleteBlock(infos []*BlockDelete) error
 	// RemoveToBeDeleteBlock(infos []*BlockDelete) error
 	// GetToBeDeleteBlocks(deviceID string) ([]*BlockDelete, error)

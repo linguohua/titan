@@ -10,23 +10,23 @@ import (
 
 // DB cache db
 type DB interface {
-	SetCacheResultInfo(info api.CacheResultInfo) error
-	GetCacheResultInfo() (api.CacheResultInfo, error)
+	SetCacheResultInfo(info *api.CacheResultInfo) (int64, error)
+	GetCacheResultInfo() (*api.CacheResultInfo, error)
 	RemoveCacheResultInfo() error
 	GetCacheResultNum() int64
 
 	SetDataTaskToRunningList(hash, cacheID string) error
 	RemoveDataTaskWithRunningList(hash, cacheID string) error
-	GetDataTasksWithRunningList() ([]DataTask, error)
+	GetDataTasksWithRunningList() ([]*DataTask, error)
 
 	SetRunningDataTask(hash, cacheID string, timeout int64) error
 	GetRunningDataTask(hash string) (string, error)
 	RemoveRunningDataTask(hash, cacheID string) error
 	GetRunningDataTaskExpiredTime(hash string) (time.Duration, error)
 
-	SetWaitingDataTask(info api.DataInfo) error
+	SetWaitingDataTask(info *api.DataInfo) error
 	GetWaitingDataTask(index int64) (*api.DataInfo, error)
-	RemoveWaitingDataTask(info api.DataInfo) error
+	RemoveWaitingDataTask(info *api.DataInfo) error
 	RemoveWaitingDataTasks(infos []*api.DataInfo) error
 
 	IncrNodeCacheFid(deviceID string, num int) (int, error)
@@ -53,17 +53,18 @@ type DB interface {
 	GetDeviceInfo(deviceID string) (*api.DevicesInfo, error)
 	UpdateDeviceInfo(deviceID, field string, value interface{}) error
 	IncrByDeviceInfo(deviceID, field string, value int64) error
+	IncrByDevicesInfo(field string, values map[string]int64) error
 	UpdateNodeCacheBlockInfo(toDeviceID, fromDeviceID string, blockSize int) error
 	// UpdateDeviceInfo(deviceID string, update func(deviceInfo *api.DevicesInfo)) error
-	SetDownloadBlockRecord(record DownloadBlockRecord) error
+	SetDownloadBlockRecord(record *DownloadBlockRecord) error
 	RemoveDownloadBlockRecord(sn int64) error
-	GetDownloadBlockRecord(sn int64) (DownloadBlockRecord, error)
+	GetDownloadBlockRecord(sn int64) (*DownloadBlockRecord, error)
 	IncrBlockDownloadSN() (int64, error)
 
 	AddLatestDownloadCarfile(carfileCID string, userIP string) error
 	GetLatestDownloadCarfiles(userIP string) ([]string, error)
 
-	GetBaseInfo() (api.BaseInfo, error)
+	GetBaseInfo() (*api.BaseInfo, error)
 	UpdateBaseInfo(field string, value interface{}) error
 	IncrByBaseInfo(field string, value int64) error
 

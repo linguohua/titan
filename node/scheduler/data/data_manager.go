@@ -178,7 +178,7 @@ func (m *Manager) GetData(hash string) *Data {
 	return nil
 }
 
-func (m *Manager) checkTaskTimeout(taskInfo cache.DataTask) {
+func (m *Manager) checkTaskTimeout(taskInfo *cache.DataTask) {
 	if m.isDataTaskRunnning(taskInfo.CarfileHash, taskInfo.CacheID) {
 		return
 	}
@@ -286,7 +286,7 @@ func (m *Manager) CacheData(cid string, reliability int, expiredTime time.Time) 
 
 	// TODO check reliability expiredTime
 
-	err = cache.GetDB().SetWaitingDataTask(api.DataInfo{CarfileHash: hash, CarfileCid: cid, NeedReliability: reliability, ExpiredTime: expiredTime})
+	err = cache.GetDB().SetWaitingDataTask(&api.DataInfo{CarfileHash: hash, CarfileCid: cid, NeedReliability: reliability, ExpiredTime: expiredTime})
 	if err != nil {
 		return err
 	}
@@ -308,7 +308,7 @@ func (m *Manager) CacheContinue(cid, cacheID string) error {
 		return xerrors.Errorf("%s cid to hash err:", cid, err.Error())
 	}
 
-	err = cache.GetDB().SetWaitingDataTask(api.DataInfo{CarfileHash: hash, CarfileCid: cid, CacheInfos: []api.CacheInfo{{CacheID: cacheID}}})
+	err = cache.GetDB().SetWaitingDataTask(&api.DataInfo{CarfileHash: hash, CarfileCid: cid, CacheInfos: []api.CacheInfo{{CacheID: cacheID}}})
 	if err != nil {
 		return err
 	}
@@ -415,7 +415,7 @@ func (m *Manager) doCacheResults() {
 			return
 		}
 
-		err = m.cacheCarfileResult(info.DeviceID, &info)
+		err = m.cacheCarfileResult(info.DeviceID, info)
 		if err != nil {
 			log.Errorf("doResultTask cacheCarfileResult err:%s", err.Error())
 			// return
@@ -433,10 +433,12 @@ func (m *Manager) doCacheResults() {
 func (m *Manager) PushCacheResultToQueue(deviceID string, info *api.CacheResultInfo) error {
 	info.DeviceID = deviceID
 
-	err := cache.GetDB().SetCacheResultInfo(*info)
+	_, err := cache.GetDB().SetCacheResultInfo(info)
 	if err != nil {
 		return err
 	}
+
+	//TODO reset timeout: index
 
 	m.notifyBlockLoader()
 
@@ -527,11 +529,11 @@ func (m *Manager) recordTaskEnd(cid, hash, msg string) {
 }
 
 // GetRunningTasks get running tasks
-func (m *Manager) GetRunningTasks() []cache.DataTask {
+func (m *Manager) GetRunningTasks() []*cache.DataTask {
 	list, err := cache.GetDB().GetDataTasksWithRunningList()
 	if err != nil {
 		log.Errorf("GetDataTasksWithRunningList err:%s", err.Error())
-		return make([]cache.DataTask, 0)
+		return make([]*cache.DataTask, 0)
 	}
 
 	return list
@@ -744,7 +746,7 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceID string) {
 		}
 
 		// Restore cache
-		err = cache.GetDB().SetWaitingDataTask(api.DataInfo{CarfileHash: carfileHash, CarfileCid: info.CarfileCid, NeedReliability: info.NeedReliability, ExpiredTime: info.ExpiredTime})
+		err = cache.GetDB().SetWaitingDataTask(&api.DataInfo{CarfileHash: carfileHash, CarfileCid: info.CarfileCid, NeedReliability: info.NeedReliability, ExpiredTime: info.ExpiredTime})
 		if err != nil {
 			log.Errorf("cleanNodeAndRestoreCaches SetWaitingDataTask err:%s", err.Error())
 			continue

@@ -292,19 +292,18 @@ func (rd redisDB) GetDeviceInfo(deviceID string) (*api.DevicesInfo, error) {
 	return &info, nil
 }
 
-func (rd redisDB) SetCacheResultInfo(info api.CacheResultInfo) error {
+func (rd redisDB) SetCacheResultInfo(info *api.CacheResultInfo) (int64, error) {
 	key := fmt.Sprintf(redisKeyCacheResult, serverName)
 
 	bytes, err := json.Marshal(info)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	_, err = rd.cli.RPush(context.Background(), key, bytes).Result()
-	return err
+	return rd.cli.RPush(context.Background(), key, bytes).Result()
 }
 
-func (rd redisDB) GetCacheResultInfo() (api.CacheResultInfo, error) {
+func (rd redisDB) GetCacheResultInfo() (*api.CacheResultInfo, error) {
 	key := fmt.Sprintf(redisKeyCacheResult, serverName)
 
 	// value, err := rd.cli.LIndex(context.Background(), key, 0).Result()
@@ -313,14 +312,14 @@ func (rd redisDB) GetCacheResultInfo() (api.CacheResultInfo, error) {
 	var info api.CacheResultInfo
 	bytes, err := redigo.Bytes(value, nil)
 	if err != nil {
-		return api.CacheResultInfo{}, err
+		return nil, err
 	}
 
 	if err := json.Unmarshal(bytes, &info); err != nil {
-		return api.CacheResultInfo{}, err
+		return nil, err
 	}
 
-	return info, nil
+	return &info, nil
 }
 
 func (rd redisDB) GetCacheResultNum() int64 {
@@ -367,7 +366,7 @@ func (rd redisDB) RemoveRunningDataTask(hash, cacheID string) error {
 	return rd.RemoveDataTaskWithRunningList(hash, cacheID)
 }
 
-func (rd redisDB) SetWaitingDataTask(info api.DataInfo) error {
+func (rd redisDB) SetWaitingDataTask(info *api.DataInfo) error {
 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	bytes, err := json.Marshal(info)
@@ -401,7 +400,7 @@ func (rd redisDB) GetWaitingDataTask(index int64) (*api.DataInfo, error) {
 	return &info, nil
 }
 
-func (rd redisDB) RemoveWaitingDataTask(info api.DataInfo) error {
+func (rd redisDB) RemoveWaitingDataTask(info *api.DataInfo) error {
 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	bytes, err := json.Marshal(info)
@@ -463,7 +462,7 @@ func (rd redisDB) RemoveDataTaskWithRunningList(hash, cacheID string) error {
 }
 
 // SMembers
-func (rd redisDB) GetDataTasksWithRunningList() ([]DataTask, error) {
+func (rd redisDB) GetDataTasksWithRunningList() ([]*DataTask, error) {
 	key := fmt.Sprintf(redisKeyRunningDataTaskList, serverName)
 
 	values, err := rd.cli.SMembers(context.Background(), key).Result()
@@ -471,7 +470,7 @@ func (rd redisDB) GetDataTasksWithRunningList() ([]DataTask, error) {
 		return nil, err
 	}
 
-	list := make([]DataTask, 0)
+	list := make([]*DataTask, 0)
 	for _, value := range values {
 		var info DataTask
 		bytes, err := redigo.Bytes(value, nil)
@@ -483,13 +482,13 @@ func (rd redisDB) GetDataTasksWithRunningList() ([]DataTask, error) {
 			continue
 		}
 
-		list = append(list, info)
+		list = append(list, &info)
 	}
 
 	return list, nil
 }
 
-func (rd redisDB) SetDownloadBlockRecord(record DownloadBlockRecord) error {
+func (rd redisDB) SetDownloadBlockRecord(record *DownloadBlockRecord) error {
 	ctx := context.Background()
 	key := fmt.Sprintf(redisKeyBlockDownloadRecord, record.SN)
 	_, err := rd.cli.HMSet(ctx, key, structs.Map(record)).Result()
@@ -504,17 +503,17 @@ func (rd redisDB) SetDownloadBlockRecord(record DownloadBlockRecord) error {
 	return nil
 }
 
-func (rd redisDB) GetDownloadBlockRecord(sn int64) (DownloadBlockRecord, error) {
+func (rd redisDB) GetDownloadBlockRecord(sn int64) (*DownloadBlockRecord, error) {
 	key := fmt.Sprintf(redisKeyBlockDownloadRecord, sn)
 
 	var record DownloadBlockRecord
 
 	err := rd.cli.HGetAll(context.Background(), key).Scan(&record)
 	if err != nil {
-		return DownloadBlockRecord{}, err
+		return nil, err
 	}
 
-	return record, nil
+	return &record, nil
 }
 
 func (rd redisDB) RemoveDownloadBlockRecord(sn int64) error {
@@ -579,6 +578,20 @@ func (rd redisDB) IncrByDeviceInfo(deviceID, field string, value int64) error {
 	return err
 }
 
+func (rd redisDB) IncrByDevicesInfo(field string, values map[string]int64) error {
+	ctx := context.Background()
+	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+		for deviceID, value := range values {
+			key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+			pipeliner.HIncrBy(context.Background(), key, field, value)
+		}
+
+		return nil
+	})
+
+	return err
+}
+
 func (rd redisDB) resetDeviceInfo(deviceID string, update func(deviceInfo *api.DevicesInfo)) error {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 	deviceInfo, err := rd.GetDeviceInfo(deviceID)
@@ -621,16 +634,16 @@ func (rd redisDB) IncrByBaseInfo(field string, value int64) error {
 	return err
 }
 
-func (rd redisDB) GetBaseInfo() (api.BaseInfo, error) {
+func (rd redisDB) GetBaseInfo() (*api.BaseInfo, error) {
 	key := fmt.Sprintf(redisKeyBaseInfo, serverName)
 
 	var info api.BaseInfo
 	err := rd.cli.HGetAll(context.Background(), key).Scan(&info)
 	if err != nil {
-		return api.BaseInfo{}, err
+		return nil, err
 	}
 
-	return info, nil
+	return &info, nil
 }
 
 func (rd redisDB) AddLatestDownloadCarfile(carfileCID string, userIP string) error {

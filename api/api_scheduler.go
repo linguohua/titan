@@ -83,7 +83,7 @@ type EventListInfo struct {
 	Page      int
 	TotalPage int
 	Count     int
-	EventList []EventInfo
+	EventList []*EventInfo
 }
 
 // NodeRegisterInfo Node Register Info

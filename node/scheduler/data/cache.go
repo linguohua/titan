@@ -35,44 +35,50 @@ type Cache struct {
 	alreadyCacheBlockMap map[string]string
 }
 
-func newCacheID() (string, error) {
+func newUUID() string {
 	u2 := uuid.New()
 
 	s := strings.Replace(u2.String(), "-", "", -1)
-	return s, nil
+	return s
 }
 
-func newCache(nodeManager *node.Manager, data *Data, hash string, isRootCache bool) (*Cache, error) {
-	id, err := newCacheID()
-	if err != nil {
-		return nil, err
-	}
+func newCache(data *Data, isRootCache bool) (*Cache, string, error) {
+	cacheID := newUUID()
 
 	cache := &Cache{
-		manager:              nodeManager,
+		manager:              data.nodeManager,
 		data:                 data,
 		reliability:          0,
 		status:               api.CacheStatusCreate,
-		cacheID:              id,
-		carfileHash:          hash,
+		cacheID:              cacheID,
+		carfileHash:          data.carfileHash,
 		isRootCache:          isRootCache,
 		expiredTime:          data.expiredTime,
 		alreadyCacheBlockMap: map[string]string{},
 	}
 
-	err = persistent.GetDB().CreateCache(
+	blockID := newUUID()
+	block := &api.BlockInfo{
+		CacheID:     cacheID,
+		CarfileHash: data.carfileHash,
+		CID:         data.carfileCid,
+		CIDHash:     data.carfileHash,
+		ID:          blockID,
+	}
+
+	err := persistent.GetDB().CreateCache(
 		&api.CacheInfo{
 			CarfileHash: cache.carfileHash,
 			CacheID:     cache.cacheID,
 			Status:      cache.status,
 			ExpiredTime: cache.expiredTime,
 			RootCache:   cache.isRootCache,
-		})
+		}, block)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return cache, err
+	return cache, blockID, err
 }
 
 func loadCache(cacheID, carfileHash string, nodeManager *node.Manager, data *Data) *Cache {
@@ -178,7 +184,7 @@ func (c *Cache) searchIdleNode(skips map[string]string) (deviceID string) {
 				return true
 			}
 
-			if node.GetDeviceInfo().DiskUsage >= 0.9 {
+			if node.GetDeviceInfo().DiskUsage >= 90 {
 				return true
 			}
 
@@ -213,7 +219,7 @@ func (c *Cache) searchIdleNode(skips map[string]string) (deviceID string) {
 			return true
 		}
 
-		if node.GetDeviceInfo().DiskUsage >= 0.9 {
+		if node.GetDeviceInfo().DiskUsage >= 90 {
 			return true
 		}
 
@@ -561,21 +567,30 @@ func (c *Cache) removeCache() error {
 		cidMap[block.DeviceID] = cids
 	}
 
+	values := make(map[string]int64, 0)
 	for deviceID, cids := range cidMap {
 		if deviceID == "" {
 			continue
 		}
 
-		// update node block count
-		err = cache.GetDB().IncrByDeviceInfo(deviceID, "BlockCount", int64(-len(cids)))
-		if err != nil {
-			log.Errorf("UpdateDeviceInfo err:%s ", err.Error())
-		}
+		values[deviceID] = int64(-len(cids))
 
-		go c.removeBlocks(deviceID, cids)
+		go c.notifyNodeRemoveBlocks(deviceID, cids)
 	}
 
-	reliability -= c.reliability
+	// update node block count
+	err = cache.GetDB().IncrByDevicesInfo("BlockCount", values)
+	if err != nil {
+		log.Errorf("IncrByDevicesInfo err:%s ", err.Error())
+	}
+
+	if c.status == api.CacheStatusSuccess {
+		reliability -= c.reliability
+		err = cache.GetDB().IncrByBaseInfo("CarfileCount", -1)
+		if err != nil {
+			log.Errorf("removeCache IncrByBaseInfo err:%s", err.Error())
+		}
+	}
 
 	c.data.cacheMap.Delete(c.cacheID)
 
@@ -597,15 +612,11 @@ func (c *Cache) removeCache() error {
 		c.data.reliability = reliability
 	}
 
-	if c.status == api.CacheStatusSuccess {
-		err = cache.GetDB().IncrByBaseInfo("CarfileCount", -1)
-	}
-
 	return err
 }
 
 // Notify nodes to delete blocks
-func (c *Cache) removeBlocks(deviceID string, cids []string) {
+func (c *Cache) notifyNodeRemoveBlocks(deviceID string, cids []string) {
 	ctx := context.Background()
 
 	edge := c.manager.GetEdgeNode(deviceID)

@@ -337,6 +337,7 @@ func (sd sqlDB) CountCidOfDevice(deviceID string) (int64, error) {
 	return count, err
 }
 
+// remove cache info and update data info
 func (sd sqlDB) RemoveCacheInfo(cacheID, carfileHash string, isDeleteData bool, reliability int) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
@@ -375,16 +376,20 @@ func (sd sqlDB) RemoveCacheInfo(cacheID, carfileHash string, isDeleteData bool, 
 	return nil
 }
 
-func (sd sqlDB) CreateCache(cInfo *api.CacheInfo) error {
+func (sd sqlDB) CreateCache(cInfo *api.CacheInfo, bInfo *api.BlockInfo) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
-	// dTableName := fmt.Sprintf(dataInfoTable, area)
+	bTableName := fmt.Sprintf(blockInfoTable, area)
 
 	tx := sd.cli.MustBegin()
 
 	// cache info
 	cCmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, cache_id, status, expired_time, root_cache) VALUES (?, ?, ?, ?, ?)", cTableName)
 	tx.MustExec(cCmd, cInfo.CarfileHash, cInfo.CacheID, cInfo.Status, cInfo.ExpiredTime, cInfo.RootCache)
+
+	// block info
+	bCmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_hash, cid, id, cid_hash) VALUES (?, ?, ?, ?, ?)`, bTableName)
+	tx.MustExec(bCmd, bInfo.CacheID, bInfo.CarfileHash, bInfo.CID, bInfo.ID, bInfo.CIDHash)
 
 	err := tx.Commit()
 	if err != nil {
@@ -522,7 +527,7 @@ func (sd sqlDB) GetDataInfo(hash string) (*api.DataInfo, error) {
 	return info, err
 }
 
-func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []api.DataInfo, err error) {
+func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []*api.DataInfo, err error) {
 	area := sd.ReplaceArea()
 	num := 20
 
@@ -694,10 +699,10 @@ func (sd sqlDB) GetBlockInfo(cacheID, hash string) (*api.BlockInfo, error) {
 	return info, err
 }
 
-func (sd sqlDB) GetBlocksWithStatus(cacheID string, status api.CacheStatus) ([]api.BlockInfo, error) {
+func (sd sqlDB) GetBlocksWithStatus(cacheID string, status api.CacheStatus) ([]*api.BlockInfo, error) {
 	area := sd.ReplaceArea()
 
-	var out []api.BlockInfo
+	var out []*api.BlockInfo
 	cmd := fmt.Sprintf("SELECT * FROM %s WHERE cache_id=? AND status=?", fmt.Sprintf(blockInfoTable, area))
 	if err := sd.cli.Select(&out, cmd, cacheID, int(status)); err != nil {
 		return nil, err
@@ -731,7 +736,7 @@ func (sd sqlDB) GetUndoneBlocks(cacheID string) (map[string]string, error) {
 
 	i := &api.BlockInfo{CacheID: cacheID, Status: api.CacheStatusSuccess}
 
-	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE cache_id=:cache_id AND status!=:status`, fmt.Sprintf(blockInfoTable, area))
+	cmd := fmt.Sprintf(`SELECT cid,id FROM %s WHERE cache_id=:cache_id AND status!=:status`, fmt.Sprintf(blockInfoTable, area))
 	rows, err := sd.cli.NamedQuery(cmd, i)
 	if err != nil {
 		return list, err
@@ -996,7 +1001,7 @@ func (sd sqlDB) SetEventInfo(info *api.EventInfo) error {
 	return err
 }
 
-func (sd sqlDB) GetEventInfos(page int) (count int, totalPage int, out []api.EventInfo, err error) {
+func (sd sqlDB) GetEventInfos(page int) (count int, totalPage int, out []*api.EventInfo, err error) {
 	area := "cn_gd_shenzhen"
 	num := 20
 
