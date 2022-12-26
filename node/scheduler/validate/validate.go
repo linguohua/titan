@@ -183,7 +183,8 @@ func (v *Validate) execute() error {
 
 	// no successful election
 	if validatorList == nil || len(validatorList) == 0 {
-		return fmt.Errorf("validator list is null")
+		log.Warn("validator list is null")
+		return nil
 	}
 
 	log.Debug("validator is", validatorList)
