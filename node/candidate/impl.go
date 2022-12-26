@@ -113,7 +113,10 @@ func (candidate *Candidate) loadBlockWaiterFromMap(key string) (*blockWaiter, bo
 	return nil, ok
 }
 
-func sendValidateResult(ctx context.Context, candidate *Candidate, result *api.ValidateResults) error {
+func sendValidateResult(candidate *Candidate, result *api.ValidateResults) error {
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	defer cancel()
+
 	return candidate.scheduler.ValidateBlockResult(ctx, *result)
 }
 
@@ -121,9 +124,6 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 	defer func() {
 		candidate.blockWaiterMap.Delete(result.DeviceID)
 	}()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	size := int64(0)
 	now := time.Now()
@@ -141,7 +141,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 
 			if tcpMsg.msgType == api.ValidateTcpMsgTypeCancelValidate {
 				result.IsCancel = true
-				sendValidateResult(ctx, candidate, result)
+				sendValidateResult(candidate, result)
 				log.Infof("device %s cancel validate", result.DeviceID)
 				return
 			}
@@ -181,29 +181,28 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 	log.Infof("validate %s %d block, bandwidth:%f, cost time:%d, IsTimeout:%v, duration:%d, size:%d, randCount:%d",
 		result.DeviceID, len(result.Cids), result.Bandwidth, result.CostTime, result.IsTimeout, req.Duration, size, result.RandomCount)
 
-	sendValidateResult(ctx, candidate, result)
+	sendValidateResult(candidate, result)
 }
 
 func validate(req *api.ReqValidate, candidate *Candidate) {
 	result := &api.ValidateResults{RoundID: req.RoundID, RandomCount: 0, Cids: make(map[int]string)}
-	// result.Results = make([]api.ValidateResult, 0)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	api, closer, err := getNodeApi(req.NodeType, req.NodeURL)
 	if err != nil {
 		result.IsTimeout = true
-		sendValidateResult(ctx, candidate, result)
+		sendValidateResult(candidate, result)
 		log.Errorf("validate get node api err: %v", err)
 		return
 	}
 	defer closer()
 
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	defer cancel()
+
 	info, err := api.DeviceInfo(ctx)
 	if err != nil {
 		result.IsTimeout = true
-		sendValidateResult(ctx, candidate, result)
+		sendValidateResult(candidate, result)
 		log.Errorf("validate get device info err: %v", err)
 		return
 	}
@@ -229,7 +228,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	err = api.BeValidate(wctx, *req, candidateTcpSrvAddr)
 	if err != nil {
 		result.IsTimeout = true
-		sendValidateResult(ctx, candidate, result)
+		sendValidateResult(candidate, result)
 		log.Errorf("validate, edge DoValidate err: %v", err)
 		return
 	}

@@ -189,12 +189,12 @@ func (block *Block) addReq2WaitList(req *api.ReqCacheData) {
 	block.notifyBlockLoader()
 }
 
-func (block *Block) cacheResultWithError(ctx context.Context, bStat blockStat, err error) {
-	log.Errorf("cacheResultWithError, cid:%s, cacheID:%s, carFileHash:%s, error:%v", bStat.cid, bStat.CacheID, bStat.carFileHash, err)
-	block.cacheResult(ctx, err, bStat)
+func (block *Block) cacheResultWithError(bStat blockStat, err error) {
+	log.Errorf("cacheResultWithError, cid:%s, cacheID:%s, carFileHash:%s, error:%s", bStat.cid, bStat.CacheID, bStat.carFileHash, err.Error())
+	block.cacheResult(bStat, err)
 }
 
-func (block *Block) cacheResult(ctx context.Context, err error, bStat blockStat) {
+func (block *Block) cacheResult(bStat blockStat, err error) {
 	errMsg := ""
 	success := true
 	if err != nil {
@@ -214,7 +214,7 @@ func (block *Block) cacheResult(ctx context.Context, err error, bStat blockStat)
 		CacheID:     bStat.CacheID,
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
 	defer cancel()
 
 	err = block.scheduler.CacheResult(ctx, block.deviceID, result)
@@ -225,7 +225,6 @@ func (block *Block) cacheResult(ctx context.Context, err error, bStat blockStat)
 }
 
 func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
-	ctx := context.Background()
 	results := make([]*delayReq, 0, len(reqs))
 	for _, reqData := range reqs {
 		cid, err := cid.Decode(reqData.blockInfo.Cid)
@@ -238,7 +237,7 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 			newFid := fmt.Sprintf("%d", reqData.blockInfo.Fid)
 			oldFid, _ := block.getFIDFromCID(reqData.blockInfo.Cid)
 			if oldFid != newFid {
-				block.updateCidAndFid(ctx, cid, newFid)
+				block.updateCidAndFid(context.Background(), cid, newFid)
 			}
 
 			links, err := getLinks(block, buf, cid.String())
@@ -255,7 +254,7 @@ func (block *Block) filterAvailableReq(reqs []*delayReq) []*delayReq {
 			}
 
 			bStat := blockStat{cid: cid.String(), links: cids, blockSize: len(buf), linksSize: linksSize, carFileHash: reqData.carFileHash, CacheID: reqData.CacheID}
-			block.cacheResult(ctx, nil, bStat)
+			block.cacheResult(bStat, nil)
 			continue
 		}
 

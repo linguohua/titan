@@ -19,6 +19,8 @@ const (
 	LoadBockTick = 10
 	// validate timeout
 	ValidateTimeout = 5
+	// 3 seconds
+	SchedulerApiTimeout = 3
 	// seconds
 	BlockDownloadTimeout = 15
 

@@ -115,7 +115,10 @@ func getBlockFromIPFSGateway(block *Block, cidStr string) (blocks.Block, error) 
 }
 
 func getBlockWithIPFSApi(block *Block, cidStr string) (blocks.Block, error) {
-	reader, err := block.ipfsApi.Block().Get(context.Background(), path.New(cidStr))
+	ctx, cancel := context.WithTimeout(context.Background(), helper.BlockDownloadTimeout*time.Second)
+	defer cancel()
+
+	reader, err := block.ipfsApi.Block().Get(ctx, path.New(cidStr))
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +247,7 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 		}
 
 		bStat := blockStat{cid: cidStr, links: cids, blockSize: len(b.RawData()), linksSize: linksSize, carFileHash: req.carFileHash, CacheID: req.CacheID}
-		block.cacheResult(ctx, nil, bStat)
+		block.cacheResult(bStat, nil)
 
 		log.Infof("cache data,cid:%s,err:%v", cidStr, err)
 
@@ -255,7 +258,7 @@ func loadBlocksFromIPFS(block *Block, req []*delayReq) {
 	tryDelayReqs := make([]*delayReq, 0)
 	for _, v := range reqMap {
 		if v.count >= helper.BlockDownloadRetryNum {
-			block.cacheResultWithError(ctx, blockStat{cid: v.blockInfo.Cid, carFileHash: v.carFileHash, CacheID: v.CacheID}, err)
+			block.cacheResultWithError(blockStat{cid: v.blockInfo.Cid, carFileHash: v.carFileHash, CacheID: v.CacheID}, err)
 			log.Infof("cache data faile, cid:%s, count:%d", v.blockInfo.Cid, v.count)
 		} else {
 			v.count++

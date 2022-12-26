@@ -54,7 +54,7 @@ type Scheduler interface {
 	GetDevicesInfo(ctx context.Context, deviceID string) (DevicesInfo, error)                                                 //perm:read
 	GetDownloadInfo(ctx context.Context, deviceID string) ([]*BlockDownloadInfo, error)                                       //perm:read
 
-	// user send result when user download block complete
+	// user send result when user download block complete or failed
 	UserDownloadBlockResults(ctx context.Context, results []UserBlockDownloadResult) error //perm:read
 }
 
