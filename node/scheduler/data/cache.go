@@ -39,8 +39,7 @@ type Cache struct {
 func newUUID() string {
 	u2 := uuid.New()
 
-	s := strings.Replace(u2.String(), "-", "", -1)
-	return s
+	return strings.Replace(u2.String(), "-", "", -1)
 }
 
 func newCache(data *Data, isRootCache bool) (*Cache, string, error) {
@@ -148,7 +147,6 @@ func (c *Cache) sendBlocksToNode(deviceID string, reqDataMap map[string]*api.Req
 	cNode := c.manager.GetCandidateNode(deviceID)
 	if cNode != nil {
 		// reqDatas := c.Manager.FindDownloadinfoForBlocks(blocks, c.carfileHash, c.cacheID)
-
 		nodeCacheStat, err := cNode.GetAPI().CacheBlocks(ctx, reqDatas)
 		if err != nil {
 			log.Errorf("CacheBlocks %s, CacheBlocks err:%s", deviceID, err.Error())
@@ -161,7 +159,6 @@ func (c *Cache) sendBlocksToNode(deviceID string, reqDataMap map[string]*api.Req
 	eNode := c.manager.GetEdgeNode(deviceID)
 	if eNode != nil {
 		// reqDatas := c.Manager.FindDownloadinfoForBlocks(blocks, c.carfileHash, c.cacheID)
-
 		nodeCacheStat, err := eNode.GetAPI().CacheBlocks(ctx, reqDatas)
 		if err != nil {
 			log.Errorf("CacheBlocks %s, CacheBlocks err:%s", deviceID, err.Error())
@@ -250,6 +247,33 @@ func (c *Cache) searchIdleNode(skips map[string]string) (deviceID string) {
 	return
 }
 
+func (c *Cache) findFromNodeAndBlockMap(hash string) (map[string]string, *node.CandidateNode) {
+	var fromNode *node.CandidateNode
+
+	froms, err := persistent.GetDB().GetNodesWithBlock(hash, true)
+	if err == nil {
+		skips := make(map[string]string)
+		if froms != nil {
+			for _, dID := range froms {
+				skips[dID] = hash
+
+				// find from
+				if fromNode == nil {
+					node := c.manager.GetCandidateNode(dID)
+					if node != nil {
+						fromNode = node
+					}
+				}
+			}
+		}
+
+		return skips, fromNode
+	}
+
+	log.Errorf("findFromNodeAndBlockMap err:%s", err.Error())
+	return nil, nil
+}
+
 // Allocate blocks to nodes
 // TODO Need to refactor the function
 func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInfo, map[string]map[string]*api.ReqCacheData, []string) {
@@ -272,26 +296,13 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 
 		status := api.CacheStatusFail
 		deviceID := ""
-		var fromNode *node.CandidateNode
 		fromNodeID := "IPFS"
 		fid := 0
 
-		froms, err := persistent.GetDB().GetNodesWithBlock(hash, true)
-		if err == nil {
-			skips := make(map[string]string)
-			if froms != nil {
-				for _, dID := range froms {
-					skips[dID] = cid
-
-					// find from
-					if fromNode == nil {
-						node := c.manager.GetCandidateNode(dID)
-						if node != nil {
-							fromNode = node
-							fromNodeID = node.GetDeviceInfo().DeviceId
-						}
-					}
-				}
+		skips, fromNode := c.findFromNodeAndBlockMap(hash)
+		if skips != nil {
+			if fromNode != nil {
+				fromNodeID = fromNode.GetDeviceInfo().DeviceId
 			}
 
 			deviceID = c.searchIdleNode(skips)
@@ -665,43 +676,6 @@ func (c *Cache) calculateReliability(deviceID string) int {
 
 	return 0
 }
-
-// func (c *Cache) setCacheMessageInfo() {
-// 	blocks, err := persistent.GetDB().GetAllBlocks(c.cacheID)
-// 	if err != nil {
-// 		log.Errorf("cache:%s setCacheMessage GetAllBlocks err:%s", c.cacheID, err.Error())
-// 		return
-// 	}
-
-// 	messages := make([]*persistent.MessageInfo, 0)
-
-// 	for _, block := range blocks {
-// 		info := &persistent.MessageInfo{
-// 			CID:        block.CID,
-// 			Target:     block.DeviceID,
-// 			CacheID:    block.CacheID,
-// 			CarfileCid: c.data.carfileCid,
-// 			Size:       block.Size,
-// 			Type:       persistent.MsgTypeCache,
-// 			Source:     block.Source,
-// 			EndTime:    block.EndTime,
-// 			CreateTime: block.CreateTime,
-// 		}
-
-// 		if block.Status == int(persistent.CacheStatusSuccess) {
-// 			info.Status = persistent.MsgStatusSuccess
-// 		} else {
-// 			info.Status = persistent.MsgStatustusFail
-// 		}
-
-// 		messages = append(messages, info)
-// 	}
-
-// 	err = persistent.GetDB().SetMessageInfo(messages)
-// 	if err != nil {
-// 		log.Errorf("cache:%s setCacheMessage SetMessageInfo err:%s", c.cacheID, err.Error())
-// 	}
-// }
 
 func (c *Cache) replenishExpiredTime(hour int) {
 	c.expiredTime = c.expiredTime.Add((time.Duration(hour) * time.Hour))
