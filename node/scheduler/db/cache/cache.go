@@ -52,6 +52,7 @@ type DB interface {
 	SetDeviceInfo(deviceID string, info *api.DevicesInfo) (bool, error)
 	GetDeviceInfo(deviceID string) (*api.DevicesInfo, error)
 	UpdateDeviceInfo(deviceID, field string, value interface{}) error
+	UpdateDevicesInfo(field string, values map[string]interface{}) error
 	IncrByDeviceInfo(deviceID, field string, value int64) error
 	IncrByDevicesInfo(field string, values map[string]int64) error
 	UpdateNodeCacheBlockInfo(toDeviceID, fromDeviceID string, blockSize int) error

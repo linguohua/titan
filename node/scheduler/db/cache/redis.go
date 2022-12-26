@@ -223,7 +223,7 @@ func (rd redisDB) SetDeviceInfo(deviceID string, info *api.DevicesInfo) (bool, e
 
 	_, err = rd.cli.Pipelined(ctx, func(pipeline redis.Pipeliner) error {
 		for field, value := range toMap(info) {
-			pipeline.HMSet(ctx, key, field, value)
+			pipeline.HSet(ctx, key, field, value)
 		}
 		return nil
 	})
@@ -535,10 +535,24 @@ func (rd redisDB) IncrBlockDownloadSN() (int64, error) {
 func (rd redisDB) UpdateDeviceInfo(deviceID, field string, value interface{}) error {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	_, err := rd.cli.HMSet(context.Background(), key, field, value).Result()
+	_, err := rd.cli.HSet(context.Background(), key, field, value).Result()
 	if err != nil {
 		return err
 	}
+
+	return err
+}
+
+func (rd redisDB) UpdateDevicesInfo(field string, values map[string]interface{}) error {
+	ctx := context.Background()
+	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+		for deviceID, value := range values {
+			key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+			pipeliner.HSet(context.Background(), key, field, value)
+		}
+
+		return nil
+	})
 
 	return err
 }
@@ -604,7 +618,7 @@ func (rd redisDB) resetDeviceInfo(deviceID string, update func(deviceInfo *api.D
 	ctx := context.Background()
 	_, err = rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
 		for field, value := range toMap(deviceInfo) {
-			pipeliner.HMSet(ctx, key, field, value)
+			pipeliner.HSet(ctx, key, field, value)
 		}
 		return nil
 	})
@@ -615,7 +629,7 @@ func (rd redisDB) resetDeviceInfo(deviceID string, update func(deviceInfo *api.D
 func (rd redisDB) UpdateBaseInfo(field string, value interface{}) error {
 	key := fmt.Sprintf(redisKeyBaseInfo, serverName)
 
-	_, err := rd.cli.HMSet(context.Background(), key, field, value).Result()
+	_, err := rd.cli.HSet(context.Background(), key, field, value).Result()
 	if err != nil {
 		return err
 	}
