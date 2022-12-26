@@ -23,11 +23,11 @@ func (s *Scheduler) CacheContinue(ctx context.Context, cid, cacheID string) erro
 }
 
 // CacheResult Cache Data Result
-func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) (string, error) {
+func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) error {
 	deviceID = handler.GetDeviceID(ctx)
 
 	if !isDeviceExist(deviceID, 0) {
-		return "", xerrors.Errorf("node not Exist: %s", deviceID)
+		return xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
 	info.DeviceID = deviceID
@@ -35,13 +35,7 @@ func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.C
 	// log.Warnf("CacheResult ,CacheID:%s Cid:%s", info.CacheID, info.Cid)
 	// err := s.dataManager.PushCacheResultToQueue(&info)
 
-	err := s.dataManager.CacheCarfileResult(&info)
-	if err != nil {
-		log.Errorf("doResultTask cacheCarfileResult err:%s", err.Error())
-		// return
-	}
-
-	return "", err
+	return s.dataManager.CacheCarfileResult(&info)
 }
 
 // ResetCacheExpiredTime reset expired time with data cache
