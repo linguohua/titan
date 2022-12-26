@@ -105,15 +105,6 @@ func (d *Data) haveRootCache() bool {
 	return have
 }
 
-// func (d *Data) createCache(isRootCache bool) (*Cache, error) {
-// 	cache, err := newCache(d, isRootCache)
-// 	if err != nil {
-// 		return nil, xerrors.Errorf("new cache err:%s", err.Error())
-// 	}
-
-// 	return cache, nil
-// }
-
 func (d *Data) updateAndSaveCacheingInfo(blockInfo *api.BlockInfo, cache *Cache, createBlocks []*api.BlockInfo) error {
 	if !d.haveRootCache() {
 		d.totalSize = cache.totalSize

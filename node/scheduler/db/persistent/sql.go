@@ -388,8 +388,8 @@ func (sd sqlDB) CreateCache(cInfo *api.CacheInfo, bInfo *api.BlockInfo) error {
 	tx.MustExec(cCmd, cInfo.CarfileHash, cInfo.CacheID, cInfo.Status, cInfo.ExpiredTime, cInfo.RootCache)
 
 	// block info
-	bCmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_hash, cid, id, cid_hash) VALUES (?, ?, ?, ?, ?)`, bTableName)
-	tx.MustExec(bCmd, bInfo.CacheID, bInfo.CarfileHash, bInfo.CID, bInfo.ID, bInfo.CIDHash)
+	bCmd := fmt.Sprintf(`INSERT INTO %s (cache_id, carfile_hash, cid, id, cid_hash, device_id, source) VALUES (?, ?, ?, ?, ?, ?, ?)`, bTableName)
+	tx.MustExec(bCmd, bInfo.CacheID, bInfo.CarfileHash, bInfo.CID, bInfo.ID, bInfo.CIDHash, "", "")
 
 	err := tx.Commit()
 	if err != nil {
