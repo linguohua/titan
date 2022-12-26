@@ -158,7 +158,12 @@ func (w *web) SetupValidation(ctx context.Context, enable bool) error {
 }
 
 func (w *web) GetSystemInfo(ctx context.Context) (api.BaseInfo, error) {
-	return cache.GetDB().GetBaseInfo()
+	info, err := cache.GetDB().GetBaseInfo()
+	if err != nil {
+		return api.BaseInfo{}, err
+	}
+
+	return *info, nil
 }
 
 func (w *web) GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error) {

@@ -105,14 +105,14 @@ func (d *Data) haveRootCache() bool {
 	return have
 }
 
-func (d *Data) createCache(isRootCache bool) (*Cache, error) {
-	cache, err := newCache(d.nodeManager, d, d.carfileHash, isRootCache)
-	if err != nil {
-		return nil, xerrors.Errorf("new cache err:%s", err.Error())
-	}
+// func (d *Data) createCache(isRootCache bool) (*Cache, error) {
+// 	cache, err := newCache(d, isRootCache)
+// 	if err != nil {
+// 		return nil, xerrors.Errorf("new cache err:%s", err.Error())
+// 	}
 
-	return cache, nil
-}
+// 	return cache, nil
+// }
 
 func (d *Data) updateAndSaveCacheingInfo(blockInfo *api.BlockInfo, cache *Cache, createBlocks []*api.BlockInfo) error {
 	if !d.haveRootCache() {
@@ -196,15 +196,17 @@ func (d *Data) dispatchCache(cache *Cache) error {
 		if err != nil {
 			return err
 		}
+
 	} else {
-		cache, err = d.createCache(!d.haveRootCache())
+		var blockID string
+		cache, blockID, err = newCache(d, !d.haveRootCache())
 		if err != nil {
 			return err
 		}
 
 		d.cacheMap.Store(cache.cacheID, cache)
 
-		list = map[string]string{d.carfileCid: ""}
+		list = map[string]string{d.carfileCid: blockID}
 	}
 
 	d.cacheCount++

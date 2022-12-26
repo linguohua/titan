@@ -100,7 +100,7 @@ func (s *Scheduler) GetDownloadInfosWithBlocks(ctx context.Context, cids []strin
 		}
 		infoMap[cid] = infos
 
-		record := cache.DownloadBlockRecord{
+		record := &cache.DownloadBlockRecord{
 			SN:            infos[0].SN,
 			ID:            uuid.New().String(),
 			Cid:           cid,
@@ -143,7 +143,7 @@ func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string
 
 		infoMap[cid] = info
 
-		record := cache.DownloadBlockRecord{
+		record := &cache.DownloadBlockRecord{
 			SN:            info.SN,
 			ID:            uuid.New().String(),
 			Cid:           cid,
@@ -179,7 +179,7 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, pu
 		return api.DownloadInfoResult{}, err
 	}
 
-	record := cache.DownloadBlockRecord{
+	record := &cache.DownloadBlockRecord{
 		SN:            info.SN,
 		ID:            uuid.New().String(),
 		Cid:           cid,
@@ -198,7 +198,7 @@ func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, pu
 	return info, nil
 }
 
-func (s *Scheduler) verifyNodeResultForUserDownloadBlock(deviceID string, record cache.DownloadBlockRecord, sign []byte) error {
+func (s *Scheduler) verifyNodeResultForUserDownloadBlock(deviceID string, record *cache.DownloadBlockRecord, sign []byte) error {
 	verifyContent := fmt.Sprintf("%s%d%d%d", record.Cid, record.SN, record.SignTime, record.Timeout)
 	edgeNode := s.nodeManager.GetEdgeNode(deviceID)
 	if edgeNode != nil {
@@ -290,7 +290,7 @@ func (s *Scheduler) getDevicePrivateKey(deviceID string) (*rsa.PrivateKey, error
 	return privateKey, nil
 }
 
-func (s *Scheduler) recordDownloadBlock(record cache.DownloadBlockRecord, nodeResult *api.NodeBlockDownloadResult, deviceID string, clientIP string) error {
+func (s *Scheduler) recordDownloadBlock(record *cache.DownloadBlockRecord, nodeResult *api.NodeBlockDownloadResult, deviceID string, clientIP string) error {
 	info, err := persistent.GetDB().GetBlockDownloadInfoByID(record.ID)
 	if err != nil {
 		return err
