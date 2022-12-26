@@ -122,7 +122,7 @@ func readTcpMsg(conn net.Conn) (*tcpMsg, error) {
 		return nil, fmt.Errorf("pack len %d is invalid", contentLen)
 	}
 
-	buf, err := readContent(conn, contentLen)
+	buf, err := readBuffer(conn, contentLen)
 	if err != nil {
 		return nil, fmt.Errorf("read content error %v", err)
 	}
@@ -152,15 +152,9 @@ func readMsgType(buf []byte) (api.ValidateTcpMsgType, error) {
 }
 
 func readContentLen(conn net.Conn) (int, error) {
-	bufferLen := 4
-	buffer := make([]byte, bufferLen)
-	n, err := conn.Read(buffer)
+	buffer, err := readBuffer(conn, 4)
 	if err != nil {
 		return 0, err
-	}
-
-	if n != bufferLen {
-		return 0, fmt.Errorf("readContentLen error,bufferLen != %d", bufferLen)
 	}
 
 	var contentLen int32
@@ -172,34 +166,26 @@ func readContentLen(conn net.Conn) (int, error) {
 	return int(contentLen), nil
 }
 
-func readContent(conn net.Conn, conotentLen int) ([]byte, error) {
-	content := make([]byte, 0, conotentLen)
-	var readLen = 128
+func readBuffer(conn net.Conn, bufferLen int) ([]byte, error) {
+	buffer := make([]byte, bufferLen)
+	var readLen = 0
 	for {
-		if conotentLen-len(content) < 128 {
-			readLen = conotentLen - len(content)
-		}
-
-		buffer := make([]byte, readLen)
-		n, err := conn.Read(buffer)
+		n, err := conn.Read(buffer[readLen:])
 		if err != nil {
 			return nil, err
 		}
 
 		if n == 0 {
-			return nil, fmt.Errorf("Content len not match, content len:%d, current read len:%d", conotentLen, len(content)+n)
+			return nil, fmt.Errorf("buffer len not match, buffer len:%d, current read len:%d", bufferLen, readLen+n)
 		}
 
-		if len(content)+n > conotentLen {
-			return nil, fmt.Errorf("Content len not match, content len:%d, current read len:%d", conotentLen, len(content)+n)
+		readLen += n
+		if readLen > len(buffer) {
+			return nil, fmt.Errorf("buffer len not match, buffer len:%d, current read len:%d", bufferLen, readLen)
 		}
 
-		if n > 0 {
-			content = append(content, buffer[0:n]...)
-		}
-
-		if len(content) == conotentLen {
-			return content, nil
+		if len(buffer) == readLen {
+			return buffer, nil
 		}
 	}
 
