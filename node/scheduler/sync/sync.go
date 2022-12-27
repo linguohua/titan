@@ -170,7 +170,7 @@ func (ds *DataSync) doDataSync(syncApi api.DataSync, deviceID string) {
 		log.Errorf("doDataSync loadBlockItemsBiggerThan, deviceID:%s, startFid:%d , error:%s", deviceID, endFid, err.Error())
 		return
 	}
-	log.Infof("loadBlockItemsBiggerThan fid:%d, blocks len:%d", endFid, len(blocks))
+	log.Infof("loadBlockItemsBiggerThan fid:%d, deviceID:%s, blocks len:%d", endFid, deviceID, len(blocks))
 	if len(blocks) > 0 {
 		startBlock := blocks[0]
 		endBlock := blocks[len(blocks)-1]
