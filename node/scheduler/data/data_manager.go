@@ -28,10 +28,8 @@ const (
 	eventTypeDoDataTaskEnd       EventType = "DoDataTaskEnd"
 	eventTypeAddNewDataTask      EventType = "AddNewDataTask"
 	eventTypeAddContinueDataTask EventType = "AddContinueDataTask"
-	eventTypeRemoveDataStart     EventType = "RemoveDataStart"
-	eventTypeRemoveCacheStart    EventType = "RemoveCacheStart"
-	eventTypeRemoveDataEnd       EventType = "RemoveDataEnd"
-	eventTypeRemoveCacheEnd      EventType = "RemoveCacheEnd"
+	eventTypeRemoveData          EventType = "RemoveData"
+	eventTypeRemoveCache         EventType = "RemoveCache"
 	eventTypeStopDataTask        EventType = "StopDataTask"
 	eventTypeReplenishCacheTime  EventType = "ReplenishCacheTime"
 	eventTypeResetCacheTime      EventType = "ResetCacheTime"
@@ -325,11 +323,6 @@ func (m *Manager) CacheContinue(cid, cacheID string) error {
 
 // RemoveCarfile remove a carfile
 func (m *Manager) RemoveCarfile(carfileCid string) error {
-	err := m.saveEvent(carfileCid, "", "user", "", eventTypeRemoveDataStart)
-	if err != nil {
-		return err
-	}
-
 	hash, err := helper.CIDString2HashString(carfileCid)
 	if err != nil {
 		return err
@@ -338,6 +331,11 @@ func (m *Manager) RemoveCarfile(carfileCid string) error {
 	data := m.GetData(hash)
 	if data == nil {
 		return xerrors.Errorf("Not Found Data Task: %s", carfileCid)
+	}
+
+	err = m.saveEvent(carfileCid, "", "user", "", eventTypeRemoveData)
+	if err != nil {
+		return err
 	}
 
 	data.cacheMap.Range(func(key, value interface{}) bool {
@@ -351,16 +349,11 @@ func (m *Manager) RemoveCarfile(carfileCid string) error {
 		return true
 	})
 
-	return m.saveEvent(carfileCid, "", "user", "", eventTypeRemoveDataEnd)
+	return nil
 }
 
 // RemoveCache remove a cache
 func (m *Manager) RemoveCache(carfileCid, cacheID string) error {
-	err := m.saveEvent(carfileCid, cacheID, "user", "", eventTypeRemoveCacheStart)
-	if err != nil {
-		return err
-	}
-
 	hash, err := helper.CIDString2HashString(carfileCid)
 	if err != nil {
 		return err
@@ -381,10 +374,9 @@ func (m *Manager) RemoveCache(carfileCid, cacheID string) error {
 	e := ""
 	if err != nil {
 		e = err.Error()
-		log.Errorf("cacheID:%s, removeCache err:%s", cache.cacheID, err.Error())
 	}
 
-	return m.saveEvent(carfileCid, cacheID, "user", e, eventTypeRemoveCacheEnd)
+	return m.saveEvent(carfileCid, cacheID, "user", e, eventTypeRemoveCache)
 }
 
 // CacheCarfileResult block cache result
@@ -808,9 +800,9 @@ func (m *Manager) checkCachesExpired() {
 		// do remove
 		err := cache.removeCache()
 		if err != nil {
-			err = m.saveEvent(data.carfileCid, cache.cacheID, "expired", err.Error(), eventTypeRemoveCacheEnd)
+			err = m.saveEvent(data.carfileCid, cache.cacheID, "expired", err.Error(), eventTypeRemoveCache)
 		} else {
-			err = m.saveEvent(data.carfileCid, cache.cacheID, "expired", "", eventTypeRemoveCacheEnd)
+			err = m.saveEvent(data.carfileCid, cache.cacheID, "expired", "", eventTypeRemoveCache)
 		}
 
 		if err != nil {

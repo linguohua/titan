@@ -16,6 +16,9 @@ import (
 	"golang.org/x/xerrors"
 )
 
+// If the node disk size is greater than this value, caching will not continue
+const diskUsageMax = 90
+
 // Cache Cache
 type Cache struct {
 	data    *Data
@@ -139,13 +142,13 @@ func (c *Cache) sendBlocksToNode(deviceID string, reqDataMap map[string]*api.Req
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	reqDatas := make([]api.ReqCacheData, 0)
-	for _, reqData := range reqDataMap {
-		reqDatas = append(reqDatas, *reqData)
-	}
-
 	cNode := c.manager.GetCandidateNode(deviceID)
 	if cNode != nil {
+		reqDatas := make([]api.ReqCacheData, 0)
+		for _, reqData := range reqDataMap {
+			reqDatas = append(reqDatas, *reqData)
+		}
+
 		// reqDatas := c.Manager.FindDownloadinfoForBlocks(blocks, c.carfileHash, c.cacheID)
 		nodeCacheStat, err := cNode.GetAPI().CacheBlocks(ctx, reqDatas)
 		if err != nil {
@@ -158,6 +161,10 @@ func (c *Cache) sendBlocksToNode(deviceID string, reqDataMap map[string]*api.Req
 
 	eNode := c.manager.GetEdgeNode(deviceID)
 	if eNode != nil {
+		reqDatas := make([]api.ReqCacheData, 0)
+		for _, reqData := range reqDataMap {
+			reqDatas = append(reqDatas, *reqData)
+		}
 		// reqDatas := c.Manager.FindDownloadinfoForBlocks(blocks, c.carfileHash, c.cacheID)
 		nodeCacheStat, err := eNode.GetAPI().CacheBlocks(ctx, reqDatas)
 		if err != nil {
@@ -172,7 +179,7 @@ func (c *Cache) sendBlocksToNode(deviceID string, reqDataMap map[string]*api.Req
 	return 0, xerrors.Errorf("Not Found Node:%s", deviceID)
 }
 
-func (c *Cache) searchIdleNode(skips map[string]string) (deviceID string) {
+func (c *Cache) searchAppropriateNode(skips map[string]string, index int) (deviceID string) {
 	// TODO Search strategy to be optimized
 	deviceID = ""
 
@@ -188,7 +195,7 @@ func (c *Cache) searchIdleNode(skips map[string]string) (deviceID string) {
 				return true
 			}
 
-			if node.GetDeviceInfo().DiskUsage >= 90 {
+			if node.GetDeviceInfo().DiskUsage >= diskUsageMax {
 				return true
 			}
 
@@ -198,15 +205,16 @@ func (c *Cache) searchIdleNode(skips map[string]string) (deviceID string) {
 		})
 
 		sort.Slice(newList, func(i, j int) bool {
-			return newList[i].GetCacheTimeoutTimeStamp() < newList[j].GetCacheTimeoutTimeStamp()
+			// return newList[i].GetCacheTimeoutTimeStamp() < newList[j].GetCacheTimeoutTimeStamp()
+			return newList[i].GetDeviceInfo().DeviceId < newList[j].GetDeviceInfo().DeviceId
 		})
 
 		if len(newList) <= 0 {
 			return
 		}
 
-		// node := newList[i%len(list)]
-		node := newList[0]
+		node := newList[index%len(newList)]
+		// node := newList[0]
 
 		deviceID = node.GetDeviceInfo().DeviceId
 		return
@@ -223,7 +231,7 @@ func (c *Cache) searchIdleNode(skips map[string]string) (deviceID string) {
 			return true
 		}
 
-		if node.GetDeviceInfo().DiskUsage >= 90 {
+		if node.GetDeviceInfo().DiskUsage >= diskUsageMax {
 			return true
 		}
 
@@ -233,15 +241,16 @@ func (c *Cache) searchIdleNode(skips map[string]string) (deviceID string) {
 	})
 
 	sort.Slice(newList, func(i, j int) bool {
-		return newList[i].GetCacheTimeoutTimeStamp() < newList[j].GetCacheTimeoutTimeStamp()
+		// return newList[i].GetCacheTimeoutTimeStamp() < newList[j].GetCacheTimeoutTimeStamp()
+		return newList[i].GetDeviceInfo().DeviceId < newList[j].GetDeviceInfo().DeviceId
 	})
 
 	if len(newList) <= 0 {
 		return
 	}
 
-	// node := newList[i%len(list)]
-	node := newList[0]
+	node := newList[index%len(newList)]
+	// node := newList[0]
 
 	deviceID = node.GetDeviceInfo().DeviceId
 	return
@@ -282,6 +291,7 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 
 	notNodeCids := make([]string, 0)
 
+	index := 0
 	for cid, dbID := range cidMap {
 		hash, err := helper.CIDString2HashString(cid)
 		if err != nil {
@@ -305,7 +315,7 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 				fromNodeID = fromNode.GetDeviceInfo().DeviceId
 			}
 
-			deviceID = c.searchIdleNode(skips)
+			deviceID = c.searchAppropriateNode(skips, index)
 			if deviceID != "" {
 				fid, err = cache.GetDB().IncrNodeCacheFid(deviceID, 1)
 				if err != nil {
@@ -338,6 +348,8 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 
 				// c.alreadyCacheBlockMap[hash] = deviceID
 				c.alreadyCacheBlockMap.Store(hash, deviceID)
+
+				index++
 			} else {
 				notNodeCids = append(notNodeCids, cid)
 			}
@@ -429,7 +441,6 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 
 		c.updateNodeBlockInfo(info.DeviceID, blockInfo.Source, info.BlockSize)
 
-		//
 		// c.alreadyCacheBlockMap[hash] = info.DeviceID
 		c.alreadyCacheBlockMap.Store(hash, info.DeviceID)
 	}
@@ -509,15 +520,15 @@ func (c *Cache) startCache(cids map[string]string) error {
 		return xerrors.Errorf("startCache %s fail not find node , cids:%v", c.cacheID, notFindNodeCids)
 	}
 
-	// log.Infof("start cache %s,%s ---------- ", c.CarfileHash, c.CacheID)
-	c.sendBlocksToNodes(nodeCacheMap)
-
-	c.data.dataManager.saveEvent(c.data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskStart)
-
 	err = cache.GetDB().SetDataTaskToRunningList(c.carfileHash, c.cacheID)
 	if err != nil {
 		return xerrors.Errorf("startCache %s , SetDataTaskToRunningList err:%s", c.carfileHash, err.Error())
 	}
+
+	// log.Infof("start cache %s,%s ---------- ", c.CarfileHash, c.CacheID)
+	c.sendBlocksToNodes(nodeCacheMap)
+
+	c.data.dataManager.saveEvent(c.data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskStart)
 
 	return nil
 }

@@ -27,8 +27,8 @@ const (
 
 // Manager Node Manager
 type Manager struct {
-	edgeNodeMap      sync.Map
-	candidateNodeMap sync.Map
+	edgeNodeMap      *sync.Map
+	candidateNodeMap *sync.Map
 
 	nodeOfflineCallBack func(string)
 	nodeExitedCallBack  func(string)
@@ -41,6 +41,8 @@ func NewNodeManager(nodeOfflineCallBack, nodeExitedCallBack func(string), getTok
 		nodeOfflineCallBack: nodeOfflineCallBack,
 		nodeExitedCallBack:  nodeExitedCallBack,
 		getAuthToken:        getToken,
+		edgeNodeMap:         &sync.Map{},
+		candidateNodeMap:    &sync.Map{},
 	}
 
 	go nodeManager.run()
@@ -179,12 +181,12 @@ func (m *Manager) GetNodes(nodeType api.NodeTypeName) ([]string, error) {
 }
 
 // GetAllCandidate get all candidate node
-func (m *Manager) GetAllCandidate() sync.Map {
+func (m *Manager) GetAllCandidate() *sync.Map {
 	return m.candidateNodeMap
 }
 
 // GetAllEdge  get all edge node
-func (m *Manager) GetAllEdge() sync.Map {
+func (m *Manager) GetAllEdge() *sync.Map {
 	return m.edgeNodeMap
 }
 
