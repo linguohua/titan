@@ -200,12 +200,12 @@ func (v *Validate) execute() error {
 
 	for validatorID, validatedList := range validatorMap {
 		go func(vId string, list []tmpDeviceMeta) {
-			log.Infof("validator id : %s, list : %v", vId, list)
+			log.Debugf("validator id : %s, validated list : %v", vId, list)
 			req := v.assemblyValidateReqAndStore(vId, list)
 
 			validator := v.nodeManager.GetCandidateNode(vId)
 			if validator == nil {
-				log.Warnf("validator [%s] is null", vId)
+				log.Errorf("validator [%s] is null", vId)
 				return
 			}
 
