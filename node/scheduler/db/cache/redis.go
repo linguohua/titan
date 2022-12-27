@@ -417,7 +417,6 @@ func (rd redisDB) RemoveWaitingDataTasks(infos []*api.DataInfo) error {
 
 	ctx := context.Background()
 	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-
 		for _, info := range infos {
 			bytes, err := json.Marshal(info)
 			if err != nil {
@@ -442,8 +441,16 @@ func (rd redisDB) SetDataTaskToRunningList(hash, cacheID string) error {
 	if err != nil {
 		return err
 	}
+	key2 := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash)
 
-	_, err = rd.cli.SAdd(context.Background(), key, bytes).Result()
+	ctx := context.Background()
+	_, err = rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+		pipeliner.SAdd(context.Background(), key, bytes).Result()
+		// Expire
+		pipeliner.Set(context.Background(), key2, cacheID, time.Second*time.Duration(15)).Result()
+
+		return nil
+	})
 	return err
 }
 

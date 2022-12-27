@@ -18,7 +18,7 @@ type Data struct {
 
 	carfileCid      string
 	carfileHash     string
-	cacheMap        sync.Map
+	cacheMap        *sync.Map
 	reliability     int
 	needReliability int
 	cacheCount      int
@@ -38,6 +38,7 @@ func newData(nodeManager *node.Manager, dataManager *Manager, cid, hash string, 
 		cacheCount:      0,
 		totalBlocks:     1,
 		carfileHash:     hash,
+		cacheMap:        &sync.Map{},
 	}
 }
 
@@ -60,6 +61,7 @@ func loadData(hash string, nodeManager *node.Manager, dataManager *Manager) *Dat
 		data.nodes = dInfo.Nodes
 		data.expiredTime = dInfo.ExpiredTime
 		data.carfileHash = dInfo.CarfileHash
+		data.cacheMap = &sync.Map{}
 
 		idList, err := persistent.GetDB().GetCachesWithData(hash)
 		if err != nil {
@@ -335,6 +337,6 @@ func (d *Data) GetTotalNodes() int {
 }
 
 // GetCacheMap get cache map
-func (d *Data) GetCacheMap() sync.Map {
+func (d *Data) GetCacheMap() *sync.Map {
 	return d.cacheMap
 }

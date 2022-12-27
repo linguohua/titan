@@ -253,9 +253,10 @@ func (sd sqlDB) GetBlocksFID(deviceID string) (map[int]string, error) {
 
 	info := &api.BlockInfo{
 		DeviceID: deviceID,
+		Status:   api.CacheStatusSuccess,
 	}
 
-	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE device_id=:device_id`, fmt.Sprintf(blockInfoTable, area))
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE device_id=:device_id AND status=:status`, fmt.Sprintf(blockInfoTable, area))
 	rows, err := sd.cli.NamedQuery(cmd, info)
 	if err != nil {
 		return nil, err
