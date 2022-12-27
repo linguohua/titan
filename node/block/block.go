@@ -136,31 +136,31 @@ func (block *Block) notifyBlockLoader() {
 }
 
 func (block *Block) doLoadBlock() {
-	element := block.carfileList.Back()
-	if element == nil {
-		return
-	}
-
-	carfile, ok := element.Value.(*carfile)
-	if !ok {
-		log.Panicf("doLoadBlock error, can convert elemnet to carfile")
-	}
-
-	for len(carfile.delayReqs) > 0 {
-		doLen := len(carfile.delayReqs)
-		if doLen > helper.Batch {
-			doLen = helper.Batch
+	for element := block.carfileList.Front(); element != nil; {
+		carfile, ok := element.Value.(*carfile)
+		if !ok {
+			log.Panicf("doLoadBlock error, can convert elemnet to carfile")
 		}
 
-		doReqs := carfile.removeReq(doLen)
-		block.cachingList = doReqs
+		log.Infof("doLoadBlock, carfile hash:%s, delay reqs len:%d", carfile.carfileHash, len(carfile.delayReqs))
+		for len(carfile.delayReqs) > 0 {
+			doLen := len(carfile.delayReqs)
+			if doLen > helper.Batch {
+				doLen = helper.Batch
+			}
 
-		block.blockLoader.loadBlocks(block, doReqs)
-		block.cachingList = nil
+			doReqs := carfile.removeReq(doLen)
+			block.cachingList = doReqs
+
+			block.blockLoader.loadBlocks(block, doReqs)
+			block.cachingList = nil
+		}
+
+		preElement := element
+		element = preElement.Next()
+		block.carfileList.Remove(preElement)
+		delete(block.carfileMap, carfile.carfileHash)
 	}
-
-	block.carfileList.Remove(element)
-	delete(block.carfileMap, carfile.carfileHash)
 }
 
 func (block *Block) getWaitCacheBlockNum() int {
