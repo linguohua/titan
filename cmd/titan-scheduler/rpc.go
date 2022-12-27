@@ -12,6 +12,8 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/gorilla/mux"
+
+	_ "net/http/pprof"
 )
 
 func schedulerHandler(a api.Scheduler, permissioned bool) http.Handler {

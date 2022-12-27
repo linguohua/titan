@@ -26,7 +26,7 @@ type Data struct {
 	nodes           int
 	expiredTime     time.Time
 
-	CacheMap *sync.Map
+	CacheMap sync.Map
 }
 
 func newData(nodeManager *node.Manager, dataManager *Manager, cid, hash string, reliability int) *Data {
@@ -39,7 +39,7 @@ func newData(nodeManager *node.Manager, dataManager *Manager, cid, hash string, 
 		cacheCount:      0,
 		totalBlocks:     1,
 		carfileHash:     hash,
-		CacheMap:        new(sync.Map),
+		// CacheMap:        new(sync.Map),
 	}
 }
 
@@ -62,7 +62,7 @@ func loadData(hash string, nodeManager *node.Manager, dataManager *Manager) *Dat
 		data.nodes = dInfo.Nodes
 		data.expiredTime = dInfo.ExpiredTime
 		data.carfileHash = dInfo.CarfileHash
-		data.CacheMap = new(sync.Map)
+		// data.CacheMap = new(sync.Map)
 
 		idList, err := persistent.GetDB().GetCachesWithData(hash)
 		if err != nil {
