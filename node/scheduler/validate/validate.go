@@ -41,6 +41,8 @@ type Validate struct {
 	seed int64
 
 	// validate round number
+	// previous round
+	preRoundId int64
 	// current round number
 	curRoundId int64
 
@@ -116,9 +118,18 @@ func (v *Validate) initValidateTask() {
 
 func (v *Validate) startValidate() error {
 	log.Info("=======>> start validate <<=======")
+
+	pre, cur, err := cache.GetDB().GetPreviousAndCurrentRoundId()
+	if err != nil {
+		return err
+	}
+	v.preRoundId = pre
+	v.curRoundId = cur
+	v.seed = time.Now().UnixNano()
+
 	// before opening validation
 	// check the last round of verification
-	err := v.checkValidateTimeOut()
+	err = v.checkValidateTimeOut()
 	if err != nil {
 		log.Errorf(err.Error())
 		return err
@@ -150,7 +161,7 @@ func (v *Validate) checkValidateTimeOut() error {
 		for _, deviceID := range deviceIDs {
 			di := deviceID
 			go func() {
-				err := v.UpdateFailValidateResult(v.curRoundId, di, errMsgTimeOut, persistent.ValidateStatusTimeOut)
+				err := v.UpdateFailValidateResult(v.preRoundId, di, errMsgTimeOut, persistent.ValidateStatusTimeOut)
 				if err != nil {
 					log.Errorf(err.Error())
 				}
@@ -168,13 +179,6 @@ func (v *Validate) execute() error {
 	if err != nil {
 		return err
 	}
-
-	cur, err := cache.GetDB().IncrValidateRoundID()
-	if err != nil {
-		return err
-	}
-	v.curRoundId = cur
-	v.seed = time.Now().UnixNano()
 
 	validatorList, err := cache.GetDB().GetValidatorsWithList()
 	if err != nil {
@@ -195,11 +199,9 @@ func (v *Validate) execute() error {
 	}
 
 	for validatorID, validatedList := range validatorMap {
-		vi := validatorID
-		vl := validatedList
 		go func(vId string, list []tmpDeviceMeta) {
 			log.Infof("validator id : %s, list : %v", vId, list)
-			req := v.assemblyReqValidates(vId, list)
+			req := v.assemblyValidateReqAndStore(vId, list)
 
 			validator := v.nodeManager.GetCandidateNode(vId)
 			if validator == nil {
@@ -214,7 +216,7 @@ func (v *Validate) execute() error {
 			}
 			log.Debugf("validator id : %s, send success", vId)
 
-		}(vi, vl)
+		}(validatorID, validatedList)
 	}
 	return nil
 }
@@ -294,7 +296,7 @@ func (v *Validate) generatorForRandomNumber(start, end int) int {
 	return start + y
 }
 
-func (v *Validate) assemblyReqValidates(validatorID string, list []tmpDeviceMeta) []api.ReqValidate {
+func (v *Validate) assemblyValidateReqAndStore(validatorID string, list []tmpDeviceMeta) []api.ReqValidate {
 	req := make([]api.ReqValidate, 0)
 
 	for _, device := range list {
@@ -431,11 +433,11 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 	}()
 
 	if validateResults.IsCancel {
-		return v.UpdateFailValidateResult(v.curRoundId, validateResults.DeviceID, errMsgCancel, persistent.ValidateStatusCancel)
+		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, errMsgCancel, persistent.ValidateStatusCancel)
 	}
 
 	if validateResults.IsTimeout {
-		return v.UpdateFailValidateResult(v.curRoundId, validateResults.DeviceID, errMsgTimeOut, persistent.ValidateStatusTimeOut)
+		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, errMsgTimeOut, persistent.ValidateStatusTimeOut)
 	}
 
 	r := rand.New(rand.NewSource(v.seed))
@@ -444,13 +446,13 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 	if cidLength <= 0 || validateResults.RandomCount <= 0 {
 		msg := fmt.Sprintf(errMsgBlockNil, cidLength, validateResults.RandomCount)
 		log.Debug("validate fail :", msg)
-		return v.UpdateFailValidateResult(v.curRoundId, validateResults.DeviceID, msg, persistent.ValidateStatusFail)
+		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, msg, persistent.ValidateStatusFail)
 	}
 
 	cacheInfos, err := persistent.GetDB().GetBlocksFID(validateResults.DeviceID)
 	if err != nil || len(cacheInfos) <= 0 {
 		msg := fmt.Sprintf("failed to query by device [%s] : %s", validateResults.DeviceID, err.Error())
-		return v.UpdateFailValidateResult(v.curRoundId, validateResults.DeviceID, msg, persistent.ValidateStatusOther)
+		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, msg, persistent.ValidateStatusOther)
 	}
 
 	mFValue, _ := v.maxFidMap.Load(validateResults.DeviceID)
@@ -469,7 +471,7 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 			msg := fmt.Sprintf(errMsgCidFail, resultCid, cid, fid, index)
 			log.Debug("validate fail :", msg)
 			log.Infof("validate fail deviceID [%s] resultCid:%s,cid_db:%s,fid:%d,index:%d", validateResults.DeviceID, resultCid, cid, fid, index)
-			return v.UpdateFailValidateResult(v.curRoundId, validateResults.DeviceID, msg, persistent.ValidateStatusFail)
+			return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, msg, persistent.ValidateStatusFail)
 		}
 	}
 
