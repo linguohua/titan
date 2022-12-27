@@ -33,9 +33,9 @@ func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.C
 	info.DeviceID = deviceID
 
 	// log.Warnf("CacheResult ,CacheID:%s Cid:%s", info.CacheID, info.Cid)
-	// err := s.dataManager.PushCacheResultToQueue(&info)
+	return s.dataManager.PushCacheResultToQueue(&info)
 
-	return s.dataManager.CacheCarfileResult(&info)
+	// return s.dataManager.CacheCarfileResult(&info)
 }
 
 // ResetCacheExpiredTime reset expired time with data cache
@@ -59,6 +59,11 @@ func (s *Scheduler) ReplenishCacheExpiredTime(ctx context.Context, carfileCid, c
 // StopCacheTask stop cache
 func (s *Scheduler) StopCacheTask(ctx context.Context, carfileCid string) error {
 	return s.dataManager.StopCacheTask(carfileCid)
+}
+
+//GetBlocksCacheError get block cache error info
+func (s *Scheduler) GetBlocksCacheError(ctx context.Context, cacheID string) ([]*api.CacheError, error) {
+	return cache.GetDB().GetCacheErrors(cacheID)
 }
 
 // ShowDataTasks Show Data Tasks
@@ -106,9 +111,7 @@ func dataToCacheDataInfo(d *data.Data) api.DataInfo {
 
 		caches := make([]api.CacheInfo, 0)
 
-		cMap := d.GetCacheMap()
-
-		cMap.Range(func(key, value interface{}) bool {
+		d.CacheMap.Range(func(key, value interface{}) bool {
 			c := value.(*data.Cache)
 
 			cache := api.CacheInfo{

@@ -42,6 +42,9 @@ const (
 	redisKeyBlockDownloadSN       = "Titan:BlockDownloadRecordSN"
 	redisKeyCarfileLatestDownload = "Titan:LatestDownload:%s"
 
+	// redisKeyCacheErrorList server name cacheID
+	redisKeyCacheErrorList = "Titan:CacheErrorList:%s:%s"
+
 	// NodeInfo field
 	onlineTimeField             = "OnlineTime"
 	validateSuccessField        = "ValidateSuccessTime"
@@ -309,6 +312,10 @@ func (rd redisDB) GetCacheResultInfo() (*api.CacheResultInfo, error) {
 	// value, err := rd.cli.LIndex(context.Background(), key, 0).Result()
 	value, err := rd.cli.LPop(context.Background(), key).Result()
 
+	if value == "" {
+		return nil, nil
+	}
+
 	var info api.CacheResultInfo
 	bytes, err := redigo.Bytes(value, nil)
 	if err != nil {
@@ -430,6 +437,59 @@ func (rd redisDB) RemoveWaitingDataTasks(infos []*api.DataInfo) error {
 	})
 
 	return err
+}
+
+// add
+func (rd redisDB) SaveCacheErrors(cacheID string, infos []*api.CacheError, isClean bool) error {
+	key := fmt.Sprintf(redisKeyCacheErrorList, serverName, cacheID)
+
+	ctx := context.Background()
+	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+		if isClean {
+			pipeliner.Del(context.Background(), key)
+		}
+
+		for _, info := range infos {
+			bytes, err := json.Marshal(info)
+			if err != nil {
+				continue
+			}
+			pipeliner.SAdd(context.Background(), key, bytes).Result()
+		}
+		// Expire
+		pipeliner.PExpire(context.Background(), key, time.Hour*time.Duration(72)).Result()
+
+		return nil
+	})
+
+	return err
+}
+
+// SMembers
+func (rd redisDB) GetCacheErrors(cacheID string) ([]*api.CacheError, error) {
+	key := fmt.Sprintf(redisKeyCacheErrorList, serverName, cacheID)
+
+	values, err := rd.cli.SMembers(context.Background(), key).Result()
+	if err != nil || values == nil {
+		return nil, err
+	}
+
+	list := make([]*api.CacheError, 0)
+	for _, value := range values {
+		var info api.CacheError
+		bytes, err := redigo.Bytes(value, nil)
+		if err != nil {
+			continue
+		}
+
+		if err := json.Unmarshal(bytes, &info); err != nil {
+			continue
+		}
+
+		list = append(list, &info)
+	}
+
+	return list, nil
 }
 
 // add

@@ -228,9 +228,9 @@ type tmpDeviceMeta struct {
 // verified edge node are allocated to verifiers one by one
 func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDeviceMeta, error) {
 	result := make(map[string][]tmpDeviceMeta)
-	edges := v.nodeManager.GetAllEdge()
+	// edges := v.nodeManager.GetAllEdge()
 
-	edges.Range(func(key, value interface{}) bool {
+	v.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
 		edgeNode := value.(*node.EdgeNode)
 		var tn tmpDeviceMeta
 		tn.nodeType = api.NodeEdge
@@ -251,9 +251,9 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 		return true
 	})
 
-	candidates := v.nodeManager.GetAllCandidate()
+	// candidates := v.nodeManager.GetAllCandidate()
 
-	candidates.Range(func(key, value interface{}) bool {
+	v.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
 		candidateNode := value.(*node.CandidateNode)
 		var tn tmpDeviceMeta
 		tn.deviceId = candidateNode.GetDeviceInfo().DeviceId
