@@ -38,7 +38,8 @@ const (
 	dataCacheTimerInterval    = 10     //  time interval (Second)
 	checkExpiredTimerInterval = 60 * 5 //  time interval (Second)
 
-	runningTaskMaxCount = 5
+	runningTaskMaxCount    = 5
+	blockResultThreadCount = 10
 )
 
 // Manager Data
@@ -404,7 +405,7 @@ func (m *Manager) doCacheResults() {
 	//TODO Frequent use of redis
 	// size := cache.GetDB().GetCacheResultNum()
 	var wg sync.WaitGroup
-	for i := 0; i < 5; i++ {
+	for i := 0; i < blockResultThreadCount; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -764,7 +765,6 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceID string) {
 			log.Errorf("cleanNodeAndRestoreCaches SetEventInfo err:%s", err.Error())
 			continue
 		}
-
 	}
 
 	// update node block count

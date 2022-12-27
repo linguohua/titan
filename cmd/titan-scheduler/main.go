@@ -51,6 +51,7 @@ func main() {
 	}
 
 	local = append(local, lcli.SchedulerCmds...)
+	local = append(local, lcli.CommonCommands...)
 
 	app := &cli.App{
 		Name:                 "titan-scheduler",
