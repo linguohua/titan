@@ -18,7 +18,6 @@ type Data struct {
 
 	carfileCid      string
 	carfileHash     string
-	cacheMap        *sync.Map
 	reliability     int
 	needReliability int
 	cacheCount      int
@@ -26,6 +25,8 @@ type Data struct {
 	totalBlocks     int
 	nodes           int
 	expiredTime     time.Time
+
+	CacheMap *sync.Map
 }
 
 func newData(nodeManager *node.Manager, dataManager *Manager, cid, hash string, reliability int) *Data {
@@ -38,7 +39,7 @@ func newData(nodeManager *node.Manager, dataManager *Manager, cid, hash string, 
 		cacheCount:      0,
 		totalBlocks:     1,
 		carfileHash:     hash,
-		cacheMap:        &sync.Map{},
+		CacheMap:        new(sync.Map),
 	}
 }
 
@@ -61,7 +62,7 @@ func loadData(hash string, nodeManager *node.Manager, dataManager *Manager) *Dat
 		data.nodes = dInfo.Nodes
 		data.expiredTime = dInfo.ExpiredTime
 		data.carfileHash = dInfo.CarfileHash
-		data.cacheMap = &sync.Map{}
+		data.CacheMap = new(sync.Map)
 
 		idList, err := persistent.GetDB().GetCachesWithData(hash)
 		if err != nil {
@@ -78,7 +79,7 @@ func loadData(hash string, nodeManager *node.Manager, dataManager *Manager) *Dat
 				continue
 			}
 
-			data.cacheMap.Store(cacheID, c)
+			data.CacheMap.Store(cacheID, c)
 		}
 
 		return data
@@ -90,7 +91,7 @@ func loadData(hash string, nodeManager *node.Manager, dataManager *Manager) *Dat
 func (d *Data) haveRootCache() bool {
 	have := false
 
-	d.cacheMap.Range(func(key, value interface{}) bool {
+	d.CacheMap.Range(func(key, value interface{}) bool {
 		if have {
 			return true
 		}
@@ -227,7 +228,7 @@ func (d *Data) dispatchCache(cache *Cache) error {
 			return err
 		}
 
-		d.cacheMap.Store(cache.cacheID, cache)
+		d.CacheMap.Store(cache.cacheID, cache)
 
 		list = map[string]string{d.carfileCid: blockID}
 	}
@@ -280,7 +281,7 @@ func (d *Data) getUndoneCache() *Cache {
 	var oldCache *Cache
 	var oldRootCache *Cache
 
-	d.cacheMap.Range(func(key, value interface{}) bool {
+	d.CacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)
 
 		if c.status != api.CacheStatusSuccess {
@@ -334,9 +335,4 @@ func (d *Data) GetTotalBlocks() int {
 // GetTotalNodes get total nodes
 func (d *Data) GetTotalNodes() int {
 	return d.nodes
-}
-
-// GetCacheMap get cache map
-func (d *Data) GetCacheMap() *sync.Map {
-	return d.cacheMap
 }

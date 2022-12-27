@@ -69,6 +69,9 @@ type DB interface {
 	UpdateBaseInfo(field string, value interface{}) error
 	IncrByBaseInfo(field string, value int64) error
 
+	SaveCacheErrors(cacheID string, infos []*api.CacheError, isClean bool) error
+	GetCacheErrors(cacheID string) ([]*api.CacheError, error)
+
 	IsNilErr(err error) bool
 }
 

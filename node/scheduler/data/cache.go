@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -179,23 +180,27 @@ func (c *Cache) sendBlocksToNode(deviceID string, reqDataMap map[string]*api.Req
 	return 0, xerrors.Errorf("Not Found Node:%s", deviceID)
 }
 
-func (c *Cache) searchAppropriateNode(skips map[string]string, index int) (deviceID string) {
+func (c *Cache) searchAppropriateNode(skips map[string]string, index int, info *api.CacheError) (deviceID string) {
 	// TODO Search strategy to be optimized
 	deviceID = ""
 
 	if c.isRootCache {
 		newList := make([]*node.CandidateNode, 0)
 
-		candidates := c.manager.GetAllCandidate()
-		candidates.Range(func(key, value interface{}) bool {
-			deviceID := key.(string)
+		// candidates := c.manager.GetAllCandidate()
+		c.manager.CandidateNodeMap.Range(func(key, value interface{}) bool {
 			node := value.(*node.CandidateNode)
+			deviceID := node.GetDeviceInfo().DeviceId
+
+			info.Nodes++
 
 			if _, ok := skips[deviceID]; ok {
+				info.SkipCount++
 				return true
 			}
 
 			if node.GetDeviceInfo().DiskUsage >= diskUsageMax {
+				info.DiskCount++
 				return true
 			}
 
@@ -204,14 +209,14 @@ func (c *Cache) searchAppropriateNode(skips map[string]string, index int) (devic
 			return true
 		})
 
+		if len(newList) <= 0 {
+			return
+		}
+
 		sort.Slice(newList, func(i, j int) bool {
 			// return newList[i].GetCacheTimeoutTimeStamp() < newList[j].GetCacheTimeoutTimeStamp()
 			return newList[i].GetDeviceInfo().DeviceId < newList[j].GetDeviceInfo().DeviceId
 		})
-
-		if len(newList) <= 0 {
-			return
-		}
 
 		node := newList[index%len(newList)]
 		// node := newList[0]
@@ -222,16 +227,20 @@ func (c *Cache) searchAppropriateNode(skips map[string]string, index int) (devic
 
 	newList := make([]*node.EdgeNode, 0)
 
-	edges := c.manager.GetAllEdge()
-	edges.Range(func(key, value interface{}) bool {
-		deviceID := key.(string)
+	// edges := c.manager.GetAllEdge()
+	c.manager.EdgeNodeMap.Range(func(key, value interface{}) bool {
 		node := value.(*node.EdgeNode)
+		deviceID := node.GetDeviceInfo().DeviceId
+
+		info.Nodes++
 
 		if _, ok := skips[deviceID]; ok {
+			info.SkipCount++
 			return true
 		}
 
 		if node.GetDeviceInfo().DiskUsage >= diskUsageMax {
+			info.DiskCount++
 			return true
 		}
 
@@ -240,14 +249,14 @@ func (c *Cache) searchAppropriateNode(skips map[string]string, index int) (devic
 		return true
 	})
 
+	if len(newList) <= 0 {
+		return
+	}
+
 	sort.Slice(newList, func(i, j int) bool {
 		// return newList[i].GetCacheTimeoutTimeStamp() < newList[j].GetCacheTimeoutTimeStamp()
 		return newList[i].GetDeviceInfo().DeviceId < newList[j].GetDeviceInfo().DeviceId
 	})
-
-	if len(newList) <= 0 {
-		return
-	}
 
 	node := newList[index%len(newList)]
 	// node := newList[0]
@@ -256,7 +265,7 @@ func (c *Cache) searchAppropriateNode(skips map[string]string, index int) (devic
 	return
 }
 
-func (c *Cache) findFromNodeAndBlockMap(hash string) (map[string]string, *node.CandidateNode) {
+func (c *Cache) findFromNodeAndBlockMap(hash string) (map[string]string, *node.CandidateNode, error) {
 	var fromNode *node.CandidateNode
 
 	froms, err := persistent.GetDB().GetNodesWithBlock(hash, true)
@@ -276,31 +285,34 @@ func (c *Cache) findFromNodeAndBlockMap(hash string) (map[string]string, *node.C
 			}
 		}
 
-		return skips, fromNode
+		return skips, fromNode, nil
 	}
 
-	log.Errorf("findFromNodeAndBlockMap err:%s", err.Error())
-	return nil, nil
+	return nil, nil, err
 }
 
 // Allocate blocks to nodes
 // TODO Need to refactor the function
-func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInfo, map[string]map[string]*api.ReqCacheData, []string) {
+func (c *Cache) allocateBlocksToNodes(cidMap map[string]string, isClean bool) ([]*api.BlockInfo, map[string]map[string]*api.ReqCacheData) {
 	nodeReqCacheDataMap := make(map[string]map[string]*api.ReqCacheData)
 	saveDBblockList := make([]*api.BlockInfo, 0)
-
-	notNodeCids := make([]string, 0)
+	cacheErrorList := make([]*api.CacheError, 0)
 
 	index := 0
 	for cid, dbID := range cidMap {
+		cError := &api.CacheError{CID: cid, Time: time.Now()}
+
 		hash, err := helper.CIDString2HashString(cid)
 		if err != nil {
-			log.Errorf("allocateBlocksToNodes %s cid to hash err:%s", cid, err.Error())
+			cError.Msg = fmt.Sprintf("cid to hash err:%s", err.Error())
+			cacheErrorList = append(cacheErrorList, cError)
 			continue
 		}
 
 		// if _, ok := c.alreadyCacheBlockMap[hash]; ok {
 		if _, ok := c.alreadyCacheBlockMap.Load(hash); ok {
+			cError.Msg = "cid already cache"
+			cacheErrorList = append(cacheErrorList, cError)
 			continue
 		}
 
@@ -309,17 +321,21 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 		fromNodeID := "IPFS"
 		fid := 0
 
-		skips, fromNode := c.findFromNodeAndBlockMap(hash)
-		if skips != nil {
+		skips, fromNode, err := c.findFromNodeAndBlockMap(hash)
+		if err != nil {
+			cError.Msg = fmt.Sprintf("find hash err:%s", err.Error())
+			cacheErrorList = append(cacheErrorList, cError)
+		} else {
 			if fromNode != nil {
 				fromNodeID = fromNode.GetDeviceInfo().DeviceId
 			}
 
-			deviceID = c.searchAppropriateNode(skips, index)
+			deviceID = c.searchAppropriateNode(skips, index, cError)
 			if deviceID != "" {
 				fid, err = cache.GetDB().IncrNodeCacheFid(deviceID, 1)
 				if err != nil {
-					log.Errorf("deviceID:%s,IncrNodeCacheFid:%s", deviceID, err.Error())
+					cError.Msg = fmt.Sprintf("deviceID:%s,IncrNodeCacheFid err:%s", deviceID, err.Error())
+					cacheErrorList = append(cacheErrorList, cError)
 					continue
 				}
 				status = api.CacheStatusCreate
@@ -351,7 +367,7 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 
 				index++
 			} else {
-				notNodeCids = append(notNodeCids, cid)
+				cacheErrorList = append(cacheErrorList, cError)
 			}
 		}
 
@@ -371,7 +387,14 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string) ([]*api.BlockInf
 		saveDBblockList = append(saveDBblockList, b)
 	}
 
-	return saveDBblockList, nodeReqCacheDataMap, notNodeCids
+	if len(cacheErrorList) > 0 {
+		err := cache.GetDB().SaveCacheErrors(c.cacheID, cacheErrorList, isClean)
+		if err != nil {
+			log.Errorf("startCache %s, SaveCacheErrors err:%s", c.cacheID, err.Error())
+		}
+	}
+
+	return saveDBblockList, nodeReqCacheDataMap
 }
 
 // Notify nodes to cache blocks and setting timeout
@@ -464,7 +487,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		}
 	}
 
-	saveDbBlocks, nodeCacheMap, _ := c.allocateBlocksToNodes(linkMap)
+	saveDbBlocks, nodeCacheMap := c.allocateBlocksToNodes(linkMap, false)
 	// save info to db
 	err = c.data.updateAndSaveCacheingInfo(bInfo, c, saveDbBlocks)
 	if err != nil {
@@ -509,7 +532,7 @@ func (c *Cache) updateNodeBlockInfo(deviceID, fromDeviceID string, blockSize int
 }
 
 func (c *Cache) startCache(cids map[string]string) error {
-	saveDbBlocks, nodeCacheMap, notFindNodeCids := c.allocateBlocksToNodes(cids)
+	saveDbBlocks, nodeCacheMap := c.allocateBlocksToNodes(cids, true)
 
 	err := persistent.GetDB().SaveCacheingResults(nil, nil, nil, saveDbBlocks)
 	if err != nil {
@@ -517,7 +540,7 @@ func (c *Cache) startCache(cids map[string]string) error {
 	}
 
 	if len(nodeCacheMap) <= 0 {
-		return xerrors.Errorf("startCache %s fail not find node , cids:%v", c.cacheID, notFindNodeCids)
+		return xerrors.Errorf("startCache %s fail not find node", c.cacheID)
 	}
 
 	err = cache.GetDB().SetDataTaskToRunningList(c.carfileHash, c.cacheID)
@@ -525,10 +548,12 @@ func (c *Cache) startCache(cids map[string]string) error {
 		return xerrors.Errorf("startCache %s , SetDataTaskToRunningList err:%s", c.carfileHash, err.Error())
 	}
 
+	err = c.data.dataManager.saveEvent(c.data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskStart)
+	if err != nil {
+		return xerrors.Errorf("startCache %s , saveEvent err:%s", c.carfileHash, err.Error())
+	}
 	// log.Infof("start cache %s,%s ---------- ", c.CarfileHash, c.CacheID)
 	c.sendBlocksToNodes(nodeCacheMap)
-
-	c.data.dataManager.saveEvent(c.data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskStart)
 
 	return nil
 }
@@ -619,10 +644,10 @@ func (c *Cache) removeCache() error {
 		}
 	}
 
-	c.data.cacheMap.Delete(c.cacheID)
+	c.data.CacheMap.Delete(c.cacheID)
 
 	isDelete := true
-	c.data.cacheMap.Range(func(key, value interface{}) bool {
+	c.data.CacheMap.Range(func(key, value interface{}) bool {
 		if value != nil {
 			c := value.(*Cache)
 			if c != nil {

@@ -342,8 +342,8 @@ func (v *Election) NodeConnect(deviceID string) {
 func (v *Election) getAllCandidates() []*node.CandidateNode {
 	var candidates []*node.CandidateNode
 
-	cs := v.manage.GetAllCandidate()
-	cs.Range(func(key, value interface{}) bool {
+	// cs := v.manage.GetAllCandidate()
+	v.manage.CandidateNodeMap.Range(func(key, value interface{}) bool {
 		node := value.(*node.CandidateNode)
 		candidates = append(candidates, node)
 
@@ -356,15 +356,15 @@ func (v *Election) getAllCandidates() []*node.CandidateNode {
 func (v *Election) getAllNode() []*node.Node {
 	var nodes []*node.Node
 
-	es := v.manage.GetAllEdge()
-	es.Range(func(key, value interface{}) bool {
+	// es := v.manage.GetAllEdge()
+	v.manage.EdgeNodeMap.Range(func(key, value interface{}) bool {
 		node := value.(*node.EdgeNode)
 		nodes = append(nodes, &node.Node)
 		return true
 	})
 
-	cs := v.manage.GetAllCandidate()
-	cs.Range(func(key, value interface{}) bool {
+	// cs := v.manage.GetAllCandidate()
+	v.manage.CandidateNodeMap.Range(func(key, value interface{}) bool {
 		node := value.(*node.CandidateNode)
 		nodes = append(nodes, &node.Node)
 		return true

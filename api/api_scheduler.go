@@ -32,6 +32,7 @@ type Scheduler interface {
 	ReplenishCacheExpiredTime(ctx context.Context, carfileCid, cacheID string, hour int) error          //perm:admin
 	NodeExit(ctx context.Context, device string) error                                                  //perm:admin
 	StopCacheTask(ctx context.Context, carfileCid string) error                                         //perm:admin
+	GetBlocksCacheError(ctx context.Context, cacheID string) ([]*CacheError, error)                     //perm:read
 
 	// call by locator
 	LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID, locatorToken string) error //perm:write
@@ -223,3 +224,13 @@ const (
 	// CacheStatusRestore status
 	CacheStatusRestore
 )
+
+//CacheError cache error
+type CacheError struct {
+	CID       string
+	Nodes     int
+	SkipCount int
+	DiskCount int
+	Msg       string
+	Time      time.Time
+}

@@ -60,6 +60,7 @@ func NewDataManager(nodeManager *node.Manager) *Manager {
 		blockResultLoaderCh: make(chan bool, 1),
 		// dataTaskLoaderCh:    make(chan bool, 1),
 		isLoadExpiredTime: true,
+		// dataMap:           new(sync.Map),
 	}
 
 	d.initBaseInfo()
@@ -149,12 +150,12 @@ func (m *Manager) doDataTask(info *api.DataInfo) error {
 
 		err := m.makeDataContinue(info.CarfileHash, cacheID)
 		if err != nil {
-			return xerrors.Errorf("makeDataContinue err:%s", err.Error())
+			return err
 		}
 	} else {
 		err := m.makeDataTask(info.CarfileCid, info.CarfileHash, info.NeedReliability, info.ExpiredTime)
 		if err != nil {
-			return xerrors.Errorf("makeDataTask err:%s", err.Error())
+			return err
 		}
 	}
 
@@ -186,7 +187,7 @@ func (m *Manager) checkTaskTimeout(taskInfo *cache.DataTask) {
 		return
 	}
 
-	cI, ok := data.cacheMap.Load(taskInfo.CacheID)
+	cI, ok := data.CacheMap.Load(taskInfo.CacheID)
 	if ok && cI != nil {
 		cache := cI.(*Cache)
 		err := cache.endCache(0, api.CacheStatusTimeout)
@@ -254,7 +255,7 @@ func (m *Manager) makeDataContinue(hash, cacheID string) error {
 		return xerrors.Errorf("Not Found Data Task,cid:%s,cacheID:%s", hash, cacheID)
 	}
 
-	cacheI, ok := data.cacheMap.Load(cacheID)
+	cacheI, ok := data.CacheMap.Load(cacheID)
 	if !ok || cacheI == nil {
 		return xerrors.Errorf("Not Found CacheID :%s", cacheID)
 	}
@@ -338,7 +339,7 @@ func (m *Manager) RemoveCarfile(carfileCid string) error {
 		return err
 	}
 
-	data.cacheMap.Range(func(key, value interface{}) bool {
+	data.CacheMap.Range(func(key, value interface{}) bool {
 		c := value.(*Cache)
 
 		err := c.removeCache()
@@ -364,7 +365,7 @@ func (m *Manager) RemoveCache(carfileCid, cacheID string) error {
 		return xerrors.Errorf("Not Found Data Task: %s", carfileCid)
 	}
 
-	cacheI, ok := data.cacheMap.Load(cacheID)
+	cacheI, ok := data.CacheMap.Load(cacheID)
 	if !ok {
 		return xerrors.Errorf("removeCache not found cacheID:%s,Cid:%s", cacheID, data.carfileCid)
 	}
@@ -390,7 +391,7 @@ func (m *Manager) CacheCarfileResult(info *api.CacheResultInfo) error {
 		return xerrors.Errorf("data not running : %s,%s", info.CacheID, info.Cid)
 	}
 
-	cacheI, ok := data.cacheMap.Load(info.CacheID)
+	cacheI, ok := data.CacheMap.Load(info.CacheID)
 	if !ok {
 		return xerrors.Errorf("cacheCarfileResult not found cacheID:%s,Cid:%s", info.CacheID, data.carfileCid)
 	}
@@ -401,19 +402,30 @@ func (m *Manager) CacheCarfileResult(info *api.CacheResultInfo) error {
 
 func (m *Manager) doCacheResults() {
 	//TODO Frequent use of redis
-	for cache.GetDB().GetCacheResultNum() > 0 {
-		info, err := cache.GetDB().GetCacheResultInfo()
-		if err != nil {
-			log.Errorf("doResultTask GetCacheResultInfo err:%s", err.Error())
-			return
-		}
+	// size := cache.GetDB().GetCacheResultNum()
+	var wg sync.WaitGroup
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			info, err := cache.GetDB().GetCacheResultInfo()
+			if err != nil {
+				log.Errorf("doResultTask GetCacheResultInfo err:%s", err.Error())
+				return
+			}
 
-		err = m.CacheCarfileResult(info)
-		if err != nil {
-			log.Errorf("doResultTask cacheCarfileResult err:%s", err.Error())
-			// return
-		}
+			if info != nil {
+				err = m.CacheCarfileResult(info)
+				if err != nil {
+					log.Errorf("doResultTask cacheCarfileResult err:%s", err.Error())
+					// return
+				}
+			}
+		}()
 	}
+	wg.Wait()
+
+	m.notifyBlockLoader()
 }
 
 // PushCacheResultToQueue new cache task
@@ -546,7 +558,7 @@ func (m *Manager) StopCacheTask(cid string) error {
 		return err
 	}
 
-	cI, ok := data.cacheMap.Load(cacheID)
+	cI, ok := data.CacheMap.Load(cacheID)
 	if ok && cI != nil {
 		cache := cI.(*Cache)
 		err := cache.endCache(0, api.CacheStatusFail)
@@ -629,13 +641,13 @@ func (m *Manager) ReplenishExpiredTimeToData(cid, cacheID string, hour int) erro
 	}
 
 	if cacheID != "" {
-		cI, ok := data.cacheMap.Load(cacheID)
+		cI, ok := data.CacheMap.Load(cacheID)
 		if ok && cI != nil {
 			cache := cI.(*Cache)
 			cache.replenishExpiredTime(hour)
 		}
 	} else {
-		data.cacheMap.Range(func(key, value interface{}) bool {
+		data.CacheMap.Range(func(key, value interface{}) bool {
 			if value != nil {
 				cache := value.(*Cache)
 				if cache != nil {
@@ -668,13 +680,13 @@ func (m *Manager) ResetExpiredTime(cid, cacheID string, expiredTime time.Time) e
 	}
 
 	if cacheID != "" {
-		cI, ok := data.cacheMap.Load(cacheID)
+		cI, ok := data.CacheMap.Load(cacheID)
 		if ok && cI != nil {
 			cache := cI.(*Cache)
 			cache.resetExpiredTime(expiredTime)
 		}
 	} else {
-		data.cacheMap.Range(func(key, value interface{}) bool {
+		data.CacheMap.Range(func(key, value interface{}) bool {
 			if value != nil {
 				cache := value.(*Cache)
 				if cache != nil {
@@ -791,7 +803,7 @@ func (m *Manager) checkCachesExpired() {
 			continue
 		}
 
-		cI, ok := data.cacheMap.Load(cacheInfo.CacheID)
+		cI, ok := data.CacheMap.Load(cacheInfo.CacheID)
 		if !ok {
 			continue
 		}
@@ -821,7 +833,7 @@ func (m *Manager) checkCachesExpired() {
 // 	}
 
 // 	now := time.Now()
-// 	data.cacheMap.Range(func(key, value interface{}) bool {
+// 	data.CacheMap.Range(func(key, value interface{}) bool {
 // 		c := value.(*Cache)
 // 		if c.expiredTime.After(now) {
 // 			return true
