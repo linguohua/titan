@@ -643,13 +643,11 @@ func (c *Cache) removeCache() error {
 		}
 	}
 
-	c.data.CacheMap.Delete(c.cacheID)
-
 	isDelete := true
 	c.data.CacheMap.Range(func(key, value interface{}) bool {
 		if value != nil {
-			c := value.(*Cache)
-			if c != nil {
+			ca := value.(*Cache)
+			if ca != nil && c.cacheID != ca.cacheID {
 				isDelete = false
 			}
 		}
@@ -658,10 +656,13 @@ func (c *Cache) removeCache() error {
 	})
 
 	// delete cache and update data info
-	err = persistent.GetDB().RemoveCacheInfo(c.cacheID, c.carfileHash, isDelete, reliability)
+	err = persistent.GetDB().RemoveCacheAndUpdateData(c.cacheID, c.carfileHash, isDelete, reliability)
 	if err == nil {
 		c.data.reliability = reliability
 	}
+
+	c.data.CacheMap.Delete(c.cacheID)
+	c = nil
 
 	return err
 }
@@ -675,7 +676,7 @@ func (c *Cache) notifyNodeRemoveBlocks(deviceID string, cids []string) {
 	if edge != nil {
 		_, err := edge.GetAPI().DeleteBlocks(ctx, cids)
 		if err != nil {
-			log.Errorf("removeBlocks DeleteBlocks err:%s", err.Error())
+			log.Errorf("notifyNodeRemoveBlocks DeleteBlocks err:%s", err.Error())
 		}
 
 		return
@@ -685,7 +686,7 @@ func (c *Cache) notifyNodeRemoveBlocks(deviceID string, cids []string) {
 	if candidate != nil {
 		_, err := candidate.GetAPI().DeleteBlocks(ctx, cids)
 		if err != nil {
-			log.Errorf("removeBlocks DeleteBlocks err:%s", err.Error())
+			log.Errorf("notifyNodeRemoveBlocks DeleteBlocks err:%s", err.Error())
 		}
 
 		return
@@ -705,22 +706,16 @@ func (c *Cache) calculateReliability(deviceID string) int {
 	return 0
 }
 
-func (c *Cache) replenishExpiredTime(hour int) {
+func (c *Cache) replenishExpiredTime(hour int) error {
 	c.expiredTime = c.expiredTime.Add((time.Duration(hour) * time.Hour))
 
-	err := persistent.GetDB().ChangeExpiredTimeWhitCaches(c.carfileHash, c.cacheID, c.expiredTime)
-	if err != nil {
-		log.Errorf("ChangeExpiredTimeWhitCaches err:%s", err.Error())
-	}
+	return persistent.GetDB().ChangeExpiredTimeWhitCaches(c.carfileHash, c.cacheID, c.expiredTime)
 }
 
-func (c *Cache) resetExpiredTime(expiredTime time.Time) {
+func (c *Cache) resetExpiredTime(expiredTime time.Time) error {
 	c.expiredTime = expiredTime
 
-	err := persistent.GetDB().ChangeExpiredTimeWhitCaches(c.carfileHash, c.cacheID, c.expiredTime)
-	if err != nil {
-		log.Errorf("ChangeExpiredTimeWhitCaches err:%s", err.Error())
-	}
+	return persistent.GetDB().ChangeExpiredTimeWhitCaches(c.carfileHash, c.cacheID, c.expiredTime)
 }
 
 // GetCacheID get cache id
