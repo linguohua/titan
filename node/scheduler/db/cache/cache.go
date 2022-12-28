@@ -49,7 +49,7 @@ type DB interface {
 	IncrNodeOnlineTime(deviceID string, onlineTime int64) (float64, error)
 	IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error)
 
-	SetDeviceInfo(deviceID string, info *api.DevicesInfo) (bool, error)
+	SetDeviceInfo(deviceID string, info *api.DevicesInfo) error
 	GetDeviceInfo(deviceID string) (*api.DevicesInfo, error)
 	UpdateDeviceInfo(deviceID, field string, value interface{}) error
 	UpdateDevicesInfo(field string, values map[string]interface{}) error

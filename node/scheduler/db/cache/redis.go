@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -212,78 +211,83 @@ func (rd redisDB) RemoveValidatorList() error {
 	return err
 }
 
-func (rd redisDB) SetDeviceInfo(deviceID string, info *api.DevicesInfo) (bool, error) {
+func (rd redisDB) SetDeviceInfo(deviceID string, info *api.DevicesInfo) error {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
 	ctx := context.Background()
 	exist, err := rd.cli.Exists(ctx, key).Result()
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if exist == 1 {
-		//TODO if info exist, filter some parameters
-		return true, rd.updateBaseDeviceInfo(deviceID, info)
-	}
-
-	_, err = rd.cli.Pipelined(ctx, func(pipeline redis.Pipeliner) error {
-		for field, value := range toMap(info) {
-			pipeline.HSet(ctx, key, field, value)
-		}
+		// TODO update some value
 		return nil
-	})
+	}
+
+	_, err = rd.cli.HMSet(ctx, key, structs.Map(info)).Result()
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	return true, nil
+	// _, err = rd.cli.Pipelined(ctx, func(pipeline redis.Pipeliner) error {
+	// 	for field, value := range toMap(info) {
+	// 		pipeline.HSet(ctx, key, field, value)
+	// 	}
+	// 	return nil
+	// })
+	// if err != nil {
+	// 	return err
+	// }
+
+	return nil
 }
 
-func (rd redisDB) updateBaseDeviceInfo(deviceID string, info *api.DevicesInfo) error {
-	return rd.resetDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
-		deviceInfo.NodeType = info.NodeType
-		deviceInfo.DeviceName = info.DeviceName
-		deviceInfo.SnCode = info.SnCode
-		deviceInfo.Operator = info.Operator
-		deviceInfo.NetworkType = info.NetworkType
-		deviceInfo.SystemVersion = info.SystemVersion
-		deviceInfo.ProductType = info.ProductType
-		deviceInfo.NetworkInfo = info.NetworkInfo
-		deviceInfo.ExternalIp = info.ExternalIp
-		deviceInfo.InternalIp = info.InternalIp
-		deviceInfo.IpLocation = info.IpLocation
-		deviceInfo.MacLocation = info.MacLocation
-		deviceInfo.NatType = info.NatType
-		deviceInfo.Upnp = info.Upnp
-		deviceInfo.CpuUsage = info.CpuUsage
-		deviceInfo.CPUCores = info.CPUCores
-		deviceInfo.MemoryUsage = info.MemoryUsage
-		deviceInfo.Memory = info.Memory
-		deviceInfo.DiskUsage = info.DiskUsage
-		deviceInfo.DiskSpace = info.DiskSpace
-		deviceInfo.DiskType = info.DiskType
-		deviceInfo.DeviceStatus = info.DeviceStatus
-		deviceInfo.WorkStatus = info.WorkStatus
-		deviceInfo.IoSystem = info.IoSystem
-		deviceInfo.BandwidthUp = info.BandwidthUp
-		deviceInfo.BandwidthDown = info.BandwidthDown
-	})
-}
+// func (rd redisDB) updateBaseDeviceInfo(deviceID string, info *api.DevicesInfo) error {
+// 	return rd.resetDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
+// 		deviceInfo.NodeType = info.NodeType
+// 		deviceInfo.DeviceName = info.DeviceName
+// 		deviceInfo.SnCode = info.SnCode
+// 		deviceInfo.Operator = info.Operator
+// 		deviceInfo.NetworkType = info.NetworkType
+// 		deviceInfo.SystemVersion = info.SystemVersion
+// 		deviceInfo.ProductType = info.ProductType
+// 		deviceInfo.NetworkInfo = info.NetworkInfo
+// 		deviceInfo.ExternalIp = info.ExternalIp
+// 		deviceInfo.InternalIp = info.InternalIp
+// 		deviceInfo.IpLocation = info.IpLocation
+// 		deviceInfo.MacLocation = info.MacLocation
+// 		deviceInfo.NatType = info.NatType
+// 		deviceInfo.Upnp = info.Upnp
+// 		deviceInfo.CpuUsage = info.CpuUsage
+// 		deviceInfo.CPUCores = info.CPUCores
+// 		deviceInfo.MemoryUsage = info.MemoryUsage
+// 		deviceInfo.Memory = info.Memory
+// 		deviceInfo.DiskUsage = info.DiskUsage
+// 		deviceInfo.DiskSpace = info.DiskSpace
+// 		deviceInfo.DiskType = info.DiskType
+// 		deviceInfo.DeviceStatus = info.DeviceStatus
+// 		deviceInfo.WorkStatus = info.WorkStatus
+// 		deviceInfo.IoSystem = info.IoSystem
+// 		deviceInfo.BandwidthUp = info.BandwidthUp
+// 		deviceInfo.BandwidthDown = info.BandwidthDown
+// 	})
+// }
 
-func toMap(info *api.DevicesInfo) map[string]interface{} {
-	out := make(map[string]interface{})
-	t := reflect.TypeOf(*info)
-	v := reflect.ValueOf(*info)
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		redisTag := field.Tag.Get("redis")
-		if redisTag == "" {
-			continue
-		}
-		out[redisTag] = v.Field(i).Interface()
-	}
-	return out
-}
+// func toMap(info *api.DevicesInfo) map[string]interface{} {
+// 	out := make(map[string]interface{})
+// 	t := reflect.TypeOf(*info)
+// 	v := reflect.ValueOf(*info)
+// 	for i := 0; i < t.NumField(); i++ {
+// 		field := t.Field(i)
+// 		redisTag := field.Tag.Get("redis")
+// 		if redisTag == "" {
+// 			continue
+// 		}
+// 		out[redisTag] = v.Field(i).Interface()
+// 	}
+// 	return out
+// }
 
 func (rd redisDB) GetDeviceInfo(deviceID string) (*api.DevicesInfo, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
@@ -686,25 +690,25 @@ func (rd redisDB) IncrByDevicesInfo(field string, values map[string]int64) error
 	return err
 }
 
-func (rd redisDB) resetDeviceInfo(deviceID string, update func(deviceInfo *api.DevicesInfo)) error {
-	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
-	deviceInfo, err := rd.GetDeviceInfo(deviceID)
-	if err != nil {
-		return err
-	}
+// func (rd redisDB) resetDeviceInfo(deviceID string, update func(deviceInfo *api.DevicesInfo)) error {
+// 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+// 	deviceInfo, err := rd.GetDeviceInfo(deviceID)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	update(deviceInfo)
+// 	update(deviceInfo)
 
-	ctx := context.Background()
-	_, err = rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-		for field, value := range toMap(deviceInfo) {
-			pipeliner.HSet(ctx, key, field, value)
-		}
-		return nil
-	})
+// 	ctx := context.Background()
+// 	_, err = rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+// 		for field, value := range toMap(deviceInfo) {
+// 			pipeliner.HSet(ctx, key, field, value)
+// 		}
+// 		return nil
+// 	})
 
-	return err
-}
+// 	return err
+// }
 
 func (rd redisDB) UpdateBaseInfo(field string, value interface{}) error {
 	key := fmt.Sprintf(redisKeyBaseInfo, serverName)
