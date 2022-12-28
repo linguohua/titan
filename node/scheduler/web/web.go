@@ -115,7 +115,7 @@ func (w *web) GetCacheBlockInfos(ctx context.Context, req api.ListCacheBlocksReq
 // }
 
 // cache manager
-func (w *web) AddCacheTask(ctx context.Context, carFileCID string, reliability int, expireTime int) error {
+func (w *web) AddCacheTask(ctx context.Context, carFileCID string, reliability int, expireTime time.Time) error {
 	return w.scheduler.CacheCarfile(ctx, carFileCID, reliability, expireTime)
 }
 

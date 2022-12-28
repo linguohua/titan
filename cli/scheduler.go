@@ -120,6 +120,12 @@ var (
 		Value: 0,
 	}
 
+	expiredDateFlag = &cli.StringFlag{
+		Name:  "expired-date",
+		Usage: "date time (2006-1-2 15:04:05)",
+		Value: "",
+	}
+
 	dateFlag = &cli.StringFlag{
 		Name:  "date-time",
 		Usage: "date time (2006-1-2 15:04:05)",
@@ -702,7 +708,7 @@ var cacheCarfileCmd = &cli.Command{
 		// schedulerURLFlag,
 		cidFlag,
 		reliabilityFlag,
-		expiredTimeFlag,
+		expiredDateFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -716,10 +722,7 @@ var cacheCarfileCmd = &cli.Command{
 			return xerrors.New("reliability is 0")
 		}
 
-		expiredTime := cctx.Int("expired-time")
-		if expiredTime <= 0 {
-			return xerrors.New("expiredTime not 0")
-		}
+		expiredDate := cctx.String("expired-date")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -732,7 +735,12 @@ var cacheCarfileCmd = &cli.Command{
 			return xerrors.New("cid is nil")
 		}
 
-		err = schedulerAPI.CacheCarfile(ctx, cid, reliability, expiredTime)
+		time, err := time.ParseInLocation("2006-1-2 15:04:05", expiredDate, time.Local)
+		if err != nil {
+			return xerrors.Errorf("expired date err:%s", err.Error())
+		}
+
+		err = schedulerAPI.CacheCarfile(ctx, cid, reliability, time)
 		if err != nil {
 			return err
 		}

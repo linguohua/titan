@@ -345,8 +345,7 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeType api.NodeType, cou
 // GetOnlineDeviceIDs Get all online node id
 func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTypeName) ([]string, error) {
 	if nodeType == api.TypeNameValidator {
-		//TODO get validators
-		// return s.validate.
+		return cache.GetDB().GetValidatorsWithList()
 	}
 
 	return s.nodeManager.GetNodes(nodeType)

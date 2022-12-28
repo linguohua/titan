@@ -325,6 +325,8 @@ func (m *Manager) CacheContinue(cid, cacheID string) error {
 
 // RemoveCarfile remove a carfile
 func (m *Manager) RemoveCarfile(carfileCid string) error {
+	//if cache running, stop it
+
 	hash, err := helper.CIDString2HashString(carfileCid)
 	if err != nil {
 		return err
@@ -356,6 +358,8 @@ func (m *Manager) RemoveCarfile(carfileCid string) error {
 
 // RemoveCache remove a cache
 func (m *Manager) RemoveCache(carfileCid, cacheID string) error {
+	//if cache running, stop it
+
 	hash, err := helper.CIDString2HashString(carfileCid)
 	if err != nil {
 		return err
@@ -382,27 +386,42 @@ func (m *Manager) RemoveCache(carfileCid, cacheID string) error {
 }
 
 // CacheCarfileResult block cache result
-func (m *Manager) CacheCarfileResult(info *api.CacheResultInfo) error {
-	data := m.GetData(info.CarFileHash)
-	if data == nil {
-		return xerrors.Errorf("Not Found Data Task: %s", info.CarFileHash)
+func (m *Manager) CacheCarfileResult(info *api.CacheResultInfo) (err error) {
+	var data *Data
+	dI, ok := m.dataMap.Load(info.CarFileHash)
+	if ok && dI != nil {
+		data = dI.(*Data)
+	} else {
+		data = loadData(info.CarFileHash, m.nodeManager, m)
+		if data == nil {
+			return xerrors.Errorf("Not Found Data Task: %s", info.CarFileHash)
+		}
+
+		m.dataMap.Store(info.CarFileHash, data)
+		defer func() {
+			if err != nil {
+				m.dataMap.Delete(info.CarFileHash)
+			}
+		}()
 	}
 
 	if !m.isDataTaskRunnning(info.CarFileHash, info.CacheID) {
-		return xerrors.Errorf("data not running : %s,%s", info.CacheID, info.Cid)
+		err = xerrors.Errorf("data not running : %s,%s", info.CacheID, info.Cid)
+		return
 	}
 
 	cacheI, ok := data.CacheMap.Load(info.CacheID)
 	if !ok {
-		return xerrors.Errorf("cacheCarfileResult not found cacheID:%s,Cid:%s", info.CacheID, data.carfileCid)
+		err = xerrors.Errorf("cacheCarfileResult not found cacheID:%s,Cid:%s", info.CacheID, data.carfileCid)
+		return
 	}
 	c := cacheI.(*Cache)
 
-	return c.blockCacheResult(info)
+	err = c.blockCacheResult(info)
+	return
 }
 
 func (m *Manager) doCacheResults() {
-	//TODO Frequent use of redis
 	// size := cache.GetDB().GetCacheResultNum()
 	var wg sync.WaitGroup
 	for i := 0; i < blockResultThreadCount; i++ {
@@ -436,7 +455,7 @@ func (m *Manager) PushCacheResultToQueue(info *api.CacheResultInfo) error {
 		return err
 	}
 
-	//TODO reset timeout: index
+	//TODO reset timeout
 
 	m.notifyBlockLoader()
 

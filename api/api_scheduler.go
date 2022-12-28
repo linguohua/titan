@@ -15,7 +15,7 @@ type Scheduler interface {
 	ElectionValidators(ctx context.Context) error                                                       //perm:admin                                                               //perm:admin
 	QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]CacheStat, error)                   //perm:read
 	QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (CachingBlockList, error)          //perm:read
-	CacheCarfile(ctx context.Context, cid string, reliability, hour int) error                          //perm:admin
+	CacheCarfile(ctx context.Context, cid string, reliability int, expiredTime time.Time) error         //perm:admin
 	RemoveCarfile(ctx context.Context, carfileID string) error                                          //perm:admin
 	RemoveCache(ctx context.Context, carfileID, cacheID string) error                                   //perm:admin
 	GetCacheData(ctx context.Context, cid string) (DataInfo, error)                                     //perm:read
