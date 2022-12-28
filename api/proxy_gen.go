@@ -209,7 +209,7 @@ type SchedulerStruct struct {
 	WebStruct
 
 	Internal struct {
-		CacheCarfile func(p0 context.Context, p1 string, p2 int, p3 int) error `perm:"admin"`
+		CacheCarfile func(p0 context.Context, p1 string, p2 int, p3 time.Time) error `perm:"admin"`
 
 		CacheContinue func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
@@ -302,7 +302,7 @@ type ValidateStub struct {
 
 type WebStruct struct {
 	Internal struct {
-		AddCacheTask func(p0 context.Context, p1 string, p2 int, p3 int) error `perm:"read"`
+		AddCacheTask func(p0 context.Context, p1 string, p2 int, p3 time.Time) error `perm:"read"`
 
 		CancelCacheTask func(p0 context.Context, p1 string) error `perm:"read"`
 
@@ -799,14 +799,14 @@ func (s *LocatorStub) UserDownloadBlockResults(p0 context.Context, p1 []UserBloc
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) CacheCarfile(p0 context.Context, p1 string, p2 int, p3 int) error {
+func (s *SchedulerStruct) CacheCarfile(p0 context.Context, p1 string, p2 int, p3 time.Time) error {
 	if s.Internal.CacheCarfile == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheCarfile(p0, p1, p2, p3)
 }
 
-func (s *SchedulerStub) CacheCarfile(p0 context.Context, p1 string, p2 int, p3 int) error {
+func (s *SchedulerStub) CacheCarfile(p0 context.Context, p1 string, p2 int, p3 time.Time) error {
 	return ErrNotSupported
 }
 
@@ -1217,14 +1217,14 @@ func (s *ValidateStub) BeValidate(p0 context.Context, p1 ReqValidate, p2 string)
 	return ErrNotSupported
 }
 
-func (s *WebStruct) AddCacheTask(p0 context.Context, p1 string, p2 int, p3 int) error {
+func (s *WebStruct) AddCacheTask(p0 context.Context, p1 string, p2 int, p3 time.Time) error {
 	if s.Internal.AddCacheTask == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.AddCacheTask(p0, p1, p2, p3)
 }
 
-func (s *WebStub) AddCacheTask(p0 context.Context, p1 string, p2 int, p3 int) error {
+func (s *WebStub) AddCacheTask(p0 context.Context, p1 string, p2 int, p3 time.Time) error {
 	return ErrNotSupported
 }
 

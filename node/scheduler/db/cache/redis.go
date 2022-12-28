@@ -64,6 +64,8 @@ const (
 const (
 	dayFormatLayout = "20060102"
 	tebibyte        = 1024 * 1024 * 1024 * 1024
+
+	cacheErrorExpiration = 72 //hour
 )
 
 // TypeRedis redis
@@ -364,13 +366,24 @@ func (rd redisDB) GetRunningDataTask(hash string) (string, error) {
 
 func (rd redisDB) RemoveRunningDataTask(hash, cacheID string) error {
 	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash)
+	key2 := fmt.Sprintf(redisKeyRunningDataTaskList, serverName)
 
-	_, err := rd.cli.Del(context.Background(), key).Result()
-	if err != nil {
-		return err
-	}
+	ctx := context.Background()
+	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+		pipeliner.Del(context.Background(), key)
 
-	return rd.RemoveDataTaskWithRunningList(hash, cacheID)
+		info := DataTask{CarfileHash: hash, CacheID: cacheID}
+		bytes, err := json.Marshal(info)
+		if err != nil {
+			return err
+		}
+
+		pipeliner.SRem(context.Background(), key2, bytes).Result()
+
+		return nil
+	})
+
+	return err
 }
 
 func (rd redisDB) SetWaitingDataTask(info *api.DataInfo) error {
@@ -457,7 +470,7 @@ func (rd redisDB) SaveCacheErrors(cacheID string, infos []*api.CacheError, isCle
 			pipeliner.SAdd(context.Background(), key, bytes).Result()
 		}
 		// Expire
-		pipeliner.PExpire(context.Background(), key, time.Hour*time.Duration(72)).Result()
+		pipeliner.PExpire(context.Background(), key, time.Hour*time.Duration(cacheErrorExpiration)).Result()
 
 		return nil
 	})

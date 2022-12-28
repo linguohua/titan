@@ -74,7 +74,7 @@ func loadData(hash string, nodeManager *node.Manager, dataManager *Manager) *Dat
 			if cacheID == "" {
 				continue
 			}
-			c := loadCache(cacheID, hash, nodeManager, data)
+			c := loadCache(cacheID, data)
 			if c == nil {
 				continue
 			}

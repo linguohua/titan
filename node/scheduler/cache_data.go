@@ -217,12 +217,20 @@ func (s *Scheduler) RemoveCache(ctx context.Context, carfileID, cacheID string) 
 }
 
 // CacheCarfile Cache Carfile
-func (s *Scheduler) CacheCarfile(ctx context.Context, cid string, reliability int, hour int) error {
+func (s *Scheduler) CacheCarfile(ctx context.Context, cid string, reliability int, expiredTime time.Time) error {
 	if cid == "" {
 		return xerrors.New("Cid is Nil")
 	}
 
-	expiredTime := time.Now().Add(time.Duration(hour) * time.Hour)
+	if reliability < 1 {
+		return xerrors.Errorf("reliability is %d < 1", reliability)
+	}
+
+	if time.Now().After(expiredTime) {
+		return xerrors.Errorf("now after expiredTime:%s", expiredTime.String())
+	}
+
+	// expiredTime := time.Now().Add(time.Duration(hour) * time.Hour)
 
 	return s.dataManager.CacheData(cid, reliability, expiredTime)
 }
