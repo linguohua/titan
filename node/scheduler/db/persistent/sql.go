@@ -500,13 +500,32 @@ func (sd sqlDB) SetDataInfo(info *api.DataInfo) error {
 func (sd sqlDB) GetDataInfo(hash string) (*api.DataInfo, error) {
 	area := sd.ReplaceArea()
 
-	var cache api.DataInfo
-	query := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=?", fmt.Sprintf(dataInfoTable, area))
-	if err := sd.cli.Get(&cache, query, hash); err != nil {
+	info := &api.DataInfo{CarfileHash: hash}
+	cmd := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=:carfile_hash", fmt.Sprintf(dataInfoTable, area))
+
+	rows, err := sd.cli.NamedQuery(cmd, info)
+	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	return &cache, nil
+	if rows.Next() {
+		err = rows.StructScan(info)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, xerrors.New(errNotFind)
+	}
+
+	return info, err
+	// var cache api.DataInfo
+	// query := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=?", fmt.Sprintf(dataInfoTable, area))
+	// if err := sd.cli.Get(&cache, query, hash); err != nil {
+	// 	return nil, err
+	// }
+
+	// return &cache, nil
 }
 
 func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []*api.DataInfo, err error) {
