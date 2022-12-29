@@ -229,7 +229,7 @@ func (n *Node) UpdateCacheStat(info *api.CacheStat) {
 
 // SaveInfo Save Device Info
 func (n *Node) SaveInfo() error {
-	err := cache.GetDB().SetDeviceInfo(n.deviceInfo.DeviceId, n.deviceInfo)
+	err := cache.GetDB().SetDeviceInfo(n.deviceInfo)
 	if err != nil {
 		log.Errorf("set device info: %s", err.Error())
 		return err

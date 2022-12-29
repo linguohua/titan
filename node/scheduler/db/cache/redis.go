@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -211,8 +212,8 @@ func (rd redisDB) RemoveValidatorList() error {
 	return err
 }
 
-func (rd redisDB) SetDeviceInfo(deviceID string, info *api.DevicesInfo) error {
-	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+func (rd redisDB) SetDeviceInfo(info *api.DevicesInfo) error {
+	key := fmt.Sprintf(redisKeyNodeInfo, info.DeviceId)
 
 	ctx := context.Background()
 	exist, err := rd.cli.Exists(ctx, key).Result()
@@ -225,20 +226,20 @@ func (rd redisDB) SetDeviceInfo(deviceID string, info *api.DevicesInfo) error {
 		return nil
 	}
 
-	_, err = rd.cli.HMSet(ctx, key, structs.Map(info)).Result()
-	if err != nil {
-		return err
-	}
-
-	// _, err = rd.cli.Pipelined(ctx, func(pipeline redis.Pipeliner) error {
-	// 	for field, value := range toMap(info) {
-	// 		pipeline.HSet(ctx, key, field, value)
-	// 	}
-	// 	return nil
-	// })
+	// _, err = rd.cli.HMSet(ctx, key, structs.Map(info)).Result()
 	// if err != nil {
 	// 	return err
 	// }
+
+	_, err = rd.cli.Pipelined(ctx, func(pipeline redis.Pipeliner) error {
+		for field, value := range toMap(info) {
+			pipeline.HSet(ctx, key, field, value)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -274,20 +275,20 @@ func (rd redisDB) SetDeviceInfo(deviceID string, info *api.DevicesInfo) error {
 // 	})
 // }
 
-// func toMap(info *api.DevicesInfo) map[string]interface{} {
-// 	out := make(map[string]interface{})
-// 	t := reflect.TypeOf(*info)
-// 	v := reflect.ValueOf(*info)
-// 	for i := 0; i < t.NumField(); i++ {
-// 		field := t.Field(i)
-// 		redisTag := field.Tag.Get("redis")
-// 		if redisTag == "" {
-// 			continue
-// 		}
-// 		out[redisTag] = v.Field(i).Interface()
-// 	}
-// 	return out
-// }
+func toMap(info *api.DevicesInfo) map[string]interface{} {
+	out := make(map[string]interface{})
+	t := reflect.TypeOf(*info)
+	v := reflect.ValueOf(*info)
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		redisTag := field.Tag.Get("redis")
+		if redisTag == "" {
+			continue
+		}
+		out[redisTag] = v.Field(i).Interface()
+	}
+	return out
+}
 
 func (rd redisDB) GetDeviceInfo(deviceID string) (*api.DevicesInfo, error) {
 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
