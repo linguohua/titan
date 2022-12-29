@@ -35,6 +35,7 @@ type Cache struct {
 	nodes       int
 	isRootCache bool
 	expiredTime time.Time
+	lock        *sync.Mutex
 
 	alreadyCacheBlockMap sync.Map
 }
@@ -56,6 +57,7 @@ func newCache(data *Data, isRootCache bool) (*Cache, string, error) {
 		carfileHash: data.carfileHash,
 		isRootCache: isRootCache,
 		expiredTime: data.expiredTime,
+		lock:        &sync.Mutex{},
 		// alreadyCacheBlockMap: map[string]string{},
 	}
 
@@ -90,6 +92,7 @@ func loadCache(cacheID string, data *Data) *Cache {
 	c := &Cache{
 		cacheID: cacheID,
 		data:    data,
+		lock:    &sync.Mutex{},
 		// alreadyCacheBlockMap: map[string]string{},
 	}
 
@@ -445,6 +448,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	reliability := 0
 
 	if info.IsOK {
+		c.lock.Lock()
 		if api.CacheStatus(c.status) != api.CacheStatusRestore {
 			if hash == c.carfileHash {
 				c.totalSize = int(info.LinksSize) + info.BlockSize
@@ -452,9 +456,9 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 			}
 			c.totalBlocks += len(info.Links)
 		}
-
 		c.doneBlocks++
 		c.doneSize += info.BlockSize
+		c.lock.Unlock()
 		// }
 		status = api.CacheStatusSuccess
 		reliability = c.calculateReliability(info.DeviceID)
