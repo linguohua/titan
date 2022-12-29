@@ -547,7 +547,7 @@ func (c *Cache) startCache(cids map[string]string) error {
 		return xerrors.Errorf("startCache %s , SetDataTaskToRunningList err:%s", c.carfileHash, err.Error())
 	}
 
-	err = c.data.dataManager.saveEvent(c.data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskStart)
+	err = saveEvent(c.data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskStart)
 	if err != nil {
 		return xerrors.Errorf("startCache %s , saveEvent err:%s", c.carfileHash, err.Error())
 	}
@@ -559,7 +559,7 @@ func (c *Cache) startCache(cids map[string]string) error {
 
 func (c *Cache) endCache(unDoneBlocks int, status api.CacheStatus) (err error) {
 	// log.Infof("end cache %s,%s ----------", c.data.carfileCid, c.cacheID)
-	c.data.dataManager.saveEvent(c.data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskEnd)
+	saveEvent(c.data.carfileCid, c.cacheID, "", "", eventTypeDoCacheTaskEnd)
 
 	err = cache.GetDB().RemoveRunningDataTask(c.carfileHash, c.cacheID)
 	if err != nil {
