@@ -40,6 +40,7 @@ var SchedulerCmds = []*cli.Command{
 	showOnlineNodeCmd,
 	nodeTokenCmd,
 	registerNodeCmd,
+	redressInfoCmd,
 	// other
 	cachingBlocksCmd,
 	cacheStatCmd,
@@ -132,6 +133,31 @@ var (
 		Value: "",
 	}
 )
+
+var redressInfoCmd = &cli.Command{
+	Name:  "redress-node-info",
+	Usage: "redress node info",
+	Flags: []cli.Flag{
+		deviceIDFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		deviceID := cctx.String("device-id")
+
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		return schedulerAPI.RedressDeveiceInfo(ctx, deviceID)
+	},
+}
 
 var showCacheErrorCmd = &cli.Command{
 	Name:  "cache-error",
