@@ -3,7 +3,6 @@ package block
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
@@ -21,8 +20,8 @@ type Candidate struct {
 	token      string
 }
 
-func (candidate *Candidate) loadBlocks(block *Block, req []*delayReq) {
-	loadBlocksFromCandidate(block, req)
+func (candidate *Candidate) loadBlocks(block *Block, reqs []*delayReq) ([]blocks.Block, error) {
+	return getBlocksFromCandidate(reqs)
 }
 
 func (candidate *Candidate) syncData(block *Block, reqs map[int]string) error {
@@ -82,26 +81,6 @@ func getCandidateDownloadInfoWithBlocks(scheduler api.Scheduler, cids []string) 
 	return scheduler.GetCandidateDownloadInfoWithBlocks(ctx, cids)
 }
 
-func getBlockFromCandidateWithHttp(url string, tk string) ([]byte, error) {
-	client := &http.Client{Timeout: helper.BlockDownloadTimeout * time.Second}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Token", tk)
-	req.Header.Set("App-Name", "edge")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	return ioutil.ReadAll(resp.Body)
-}
-
 func getBlockFromCandidateWithApi(candidate api.Candidate, cidStr string) (blocks.Block, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), helper.BlockDownloadTimeout*time.Second)
 	defer cancel()
@@ -124,7 +103,7 @@ func getBlockFromCandidateWithApi(candidate api.Candidate, cidStr string) (block
 	return basicBlock, nil
 }
 
-func getBlocksFromCandidateWithApi(reqs []*delayReq) ([]blocks.Block, error) {
+func getBlocksFromCandidate(reqs []*delayReq) ([]blocks.Block, error) {
 	startTime := time.Now()
 	blks := make([]blocks.Block, 0, len(reqs))
 	candidates := make(map[string]api.Candidate)
@@ -187,137 +166,6 @@ func getCandidateAPI(url string, tk string, candidates map[string]api.Candidate)
 		candidates[url] = candidate
 	}
 	return candidate, nil
-}
-
-// func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
-// 	reqs = block.filterAvailableReq(reqs)
-// 	candidates := make(map[string]api.Candidate)
-
-// 	for _, req := range reqs {
-// 		if len(req.downloadURL) == 0 {
-// 			log.Errorf("loadBlocksFromCandidate req downloadURL is nil")
-// 			block.cacheResultWithError(blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, fmt.Errorf("candidate download url is empty"))
-// 			continue
-// 		}
-
-// 		// url := fmt.Sprintf("%s?cid=%s", req.downloadURL, req.blockInfo.Cid)
-// 		// data, err := getBlockFromCandidate(url, req.downloadToken)
-// 		candidate, err := getCandidateAPI(req.downloadURL, req.downloadToken, candidates)
-// 		if err != nil {
-// 			log.Errorf("loadBlocksFromCandidate getCandidateAPI error:%s", err.Error())
-// 			block.cacheResultWithError(blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, err)
-// 			continue
-// 		}
-
-// 		data, err := getBlockFromCandidateWithApi(candidate, req.blockInfo.Cid)
-// 		if err != nil {
-// 			log.Errorf("loadBlocksFromCandidate LoadBlock error:%s", err.Error())
-// 			block.cacheResultWithError(blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, err)
-// 			continue
-// 		}
-
-// 		err = block.saveBlock(context.Background(), data, req.blockInfo.Cid, fmt.Sprintf("%d", req.blockInfo.Fid))
-// 		if err != nil {
-// 			log.Errorf("loadBlocksFromCandidate save block error:%s", err.Error())
-// 			block.cacheResultWithError(blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, err)
-// 			continue
-// 		}
-
-// 		links, err := getLinks(block, data, req.blockInfo.Cid)
-// 		if err != nil {
-// 			log.Errorf("loadBlocksFromCandidate resolveLinks error:%s", err.Error())
-// 			block.cacheResultWithError(blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, err)
-// 			continue
-// 		}
-
-// 		linksSize := uint64(0)
-// 		cids := make([]string, 0, len(links))
-// 		for _, link := range links {
-// 			cids = append(cids, link.Cid.String())
-// 			linksSize += link.Size
-// 		}
-
-// 		bInfo := blockStat{cid: req.blockInfo.Cid, links: cids, blockSize: len(data), linksSize: linksSize, carFileHash: req.carFileHash, CacheID: req.CacheID}
-// 		block.cacheResult(bInfo, nil)
-
-// 		log.Infof("loadBlocksFromCandidate, cid:%s,err:%v", req.blockInfo.Cid, err)
-// 	}
-// }
-
-func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
-	reqs = block.filterAvailableReq(reqs)
-	if len(reqs) == 0 {
-		log.Debug("loadBlocksFromCandidate, len(reqs) == 0")
-		return
-	}
-
-	ctx := context.Background()
-
-	cids := make([]string, 0, len(reqs))
-	reqMap := make(map[string]*delayReq)
-	for _, reqData := range reqs {
-		cids = append(cids, reqData.blockInfo.Cid)
-		reqMap[reqData.blockInfo.Cid] = reqData
-	}
-
-	blocks, err := getBlocksFromCandidateWithApi(reqs)
-	if err != nil {
-		log.Errorf("loadBlocksFromCandidate getBlocksFromCandidateWithApi err %v", err)
-		return
-	}
-
-	for _, b := range blocks {
-		cidStr := b.Cid().String()
-		req, ok := reqMap[cidStr]
-		if !ok {
-			log.Errorf("loadBlocksFromIPFS cid %s not in map", cidStr)
-			continue
-		}
-
-		err = block.saveBlock(ctx, b.RawData(), req.blockInfo.Cid, fmt.Sprintf("%d", req.blockInfo.Fid))
-		if err != nil {
-			log.Errorf("loadBlocksFromIPFS save block error:%s", err.Error())
-			continue
-		}
-
-		// get block links
-		links, err := block.resolveLinks(b)
-		if err != nil {
-			log.Errorf("loadBlocksFromIPFS resolveLinks error:%s", err.Error())
-			continue
-		}
-
-		linksSize := uint64(0)
-		cids := make([]string, 0, len(links))
-		for _, link := range links {
-			cids = append(cids, link.Cid.String())
-			linksSize += link.Size
-		}
-
-		bStat := blockStat{cid: cidStr, links: cids, blockSize: len(b.RawData()), linksSize: linksSize, carFileHash: req.carFileHash, CacheID: req.CacheID}
-		block.cacheResult(bStat, nil)
-
-		log.Infof("cache data,cid:%s,err:%v", cidStr, err)
-
-		delete(reqMap, cidStr)
-	}
-
-	err = fmt.Errorf("Request timeout")
-	tryDelayReqs := make([]*delayReq, 0)
-	for _, v := range reqMap {
-		if v.count >= helper.BlockDownloadRetryNum {
-			block.cacheResultWithError(blockStat{cid: v.blockInfo.Cid, carFileHash: v.carFileHash, CacheID: v.CacheID}, err)
-			log.Infof("cache data faile, cid:%s, count:%d", v.blockInfo.Cid, v.count)
-		} else {
-			v.count++
-			delayReq := v
-			tryDelayReqs = append(tryDelayReqs, delayReq)
-		}
-	}
-
-	if len(tryDelayReqs) > 0 {
-		loadBlocksFromCandidate(block, tryDelayReqs)
-	}
 }
 
 // do in batch

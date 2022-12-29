@@ -15,8 +15,8 @@ import (
 
 type IPFS struct{}
 
-func (ipfs *IPFS) loadBlocks(block *Block, req []*delayReq) {
-	loadBlocksFromIPFS(block, req)
+func (ipfs *IPFS) loadBlocks(block *Block, reqs []*delayReq) ([]blocks.Block, error) {
+	return getBlocksWithDelayReqs(reqs, block)
 }
 
 func (ipfs *IPFS) syncData(block *Block, reqs map[int]string) error {
@@ -48,7 +48,7 @@ func (ipfs *IPFS) syncData(block *Block, reqs map[int]string) error {
 	}
 
 	for _, group := range groups {
-		blocks, err := getBlocksWithHttp(block, group)
+		blocks, err := getBlocksFromIPFS(block, group)
 		if err != nil {
 			log.Errorf("syncData getBlocksWithHttp err %v", err)
 			return err
@@ -97,7 +97,7 @@ func getBlockWithIPFSApi(block *Block, cidStr string) (blocks.Block, error) {
 	return basicBlock, nil
 }
 
-func getBlocksWithHttp(block *Block, cids []string) ([]blocks.Block, error) {
+func getBlocksFromIPFS(block *Block, cids []string) ([]blocks.Block, error) {
 	startTime := time.Now()
 	blks := make([]blocks.Block, 0, len(cids))
 
@@ -123,78 +123,13 @@ func getBlocksWithHttp(block *Block, cids []string) ([]blocks.Block, error) {
 	return blks, nil
 }
 
-func loadBlocksFromIPFS(block *Block, req []*delayReq) {
-	req = block.filterAvailableReq(req)
-	ctx := context.Background()
+func getBlocksWithDelayReqs(reqs []*delayReq, block *Block) ([]blocks.Block, error) {
+	cids := make([]string, 0, len(reqs))
 
-	cids := make([]string, 0, len(req))
-	reqMap := make(map[string]*delayReq)
-	for _, reqData := range req {
-		cids = append(cids, reqData.blockInfo.Cid)
-		reqMap[reqData.blockInfo.Cid] = reqData
+	for _, req := range reqs {
+		cids = append(cids, req.blockInfo.Cid)
 	}
 
-	if len(cids) == 0 {
-		log.Debug("loadBlocksAsync, len(cids) == 0")
-		return
-	}
+	return getBlocksFromIPFS(block, cids)
 
-	blocks, err := getBlocksWithHttp(block, cids)
-	if err != nil {
-		log.Errorf("loadBlocksAsync loadBlocks err %v", err)
-		return
-	}
-
-	for _, b := range blocks {
-		cidStr := b.Cid().String()
-		req, ok := reqMap[cidStr]
-		if !ok {
-			log.Errorf("loadBlocksFromIPFS cid %s not in map", cidStr)
-			continue
-		}
-
-		err = block.saveBlock(ctx, b.RawData(), req.blockInfo.Cid, fmt.Sprintf("%d", req.blockInfo.Fid))
-		if err != nil {
-			log.Errorf("loadBlocksFromIPFS save block error:%s", err.Error())
-			continue
-		}
-
-		// get block links
-		links, err := block.resolveLinks(b)
-		if err != nil {
-			log.Errorf("loadBlocksFromIPFS resolveLinks error:%s", err.Error())
-			continue
-		}
-
-		linksSize := uint64(0)
-		cids := make([]string, 0, len(links))
-		for _, link := range links {
-			cids = append(cids, link.Cid.String())
-			linksSize += link.Size
-		}
-
-		bStat := blockStat{cid: cidStr, links: cids, blockSize: len(b.RawData()), linksSize: linksSize, carFileHash: req.carFileHash, CacheID: req.CacheID}
-		block.cacheResult(bStat, nil)
-
-		log.Infof("cache data,cid:%s,err:%v", cidStr, err)
-
-		delete(reqMap, cidStr)
-	}
-
-	err = fmt.Errorf("Request timeout")
-	tryDelayReqs := make([]*delayReq, 0)
-	for _, v := range reqMap {
-		if v.count >= helper.BlockDownloadRetryNum {
-			block.cacheResultWithError(blockStat{cid: v.blockInfo.Cid, carFileHash: v.carFileHash, CacheID: v.CacheID}, err)
-			log.Infof("cache data faile, cid:%s, count:%d", v.blockInfo.Cid, v.count)
-		} else {
-			v.count++
-			delayReq := v
-			tryDelayReqs = append(tryDelayReqs, delayReq)
-		}
-	}
-
-	if len(tryDelayReqs) > 0 {
-		loadBlocksFromIPFS(block, tryDelayReqs)
-	}
 }
