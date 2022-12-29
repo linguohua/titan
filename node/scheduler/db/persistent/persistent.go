@@ -35,7 +35,7 @@ type DB interface {
 	GetDataInfo(hash string) (*api.DataInfo, error)
 	GetDataCidWithPage(page int) (count int, totalPage int, list []*api.DataInfo, err error)
 	GetCachesWithData(hash string) ([]string, error)
-
+	ExtendExpiredTimeWhitCaches(carfileHash, cacheID string, hour int) error
 	ChangeExpiredTimeWhitCaches(carfileHash, cacheID string, expiredTime time.Time) error
 	GetExpiredCaches() ([]*api.CacheInfo, error)
 	GetMinExpiredTimeWithCaches() (time.Time, error)

@@ -424,7 +424,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 		return statList, nil
 	}
 
-	return statList, xerrors.Errorf("Not Found Node:%s", deviceID)
+	return statList, xerrors.Errorf("not found node:%s", deviceID)
 }
 
 // QueryCachingBlocksWithNode Query Caching Blocks
@@ -442,7 +442,7 @@ func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID str
 		return edge.GetAPI().QueryCachingBlocks(ctx)
 	}
 
-	return api.CachingBlockList{}, xerrors.Errorf("Not Found Node:%s", deviceID)
+	return api.CachingBlockList{}, xerrors.Errorf("not found node:%s", deviceID)
 }
 
 // ElectionValidators Validators

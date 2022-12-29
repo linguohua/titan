@@ -540,6 +540,26 @@ func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []*
 	return
 }
 
+func (sd sqlDB) ExtendExpiredTimeWhitCaches(carfileHash, cacheID string, hour int) error {
+	tx := sd.cli.MustBegin()
+
+	if cacheID == "" {
+		cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+		tx.MustExec(cmd, hour, carfileHash)
+	} else {
+		cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=? AND cache_id=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+		tx.MustExec(cmd, hour, carfileHash, cacheID)
+	}
+
+	err := tx.Commit()
+	if err != nil {
+		err = tx.Rollback()
+		return err
+	}
+
+	return nil
+}
+
 func (sd sqlDB) ChangeExpiredTimeWhitCaches(carfileHash, cacheID string, expiredTime time.Time) error {
 	tx := sd.cli.MustBegin()
 
