@@ -54,7 +54,7 @@ type Block struct {
 	// carfile block list
 	carfileList *list.List
 	// key is carfile hash
-	carfileMap    map[string]*list.Element
+	// carfileMap    map[string]*list.Element
 	cachingList   []*delayReq
 	saveBlockLock *sync.Mutex
 	blockLoader   BlockLoader
@@ -92,7 +92,6 @@ func NewBlock(ds datastore.Batching, blockStore blockstore.BlockStore, scheduler
 		blockLoaderCh: make(chan bool),
 		ipfsApi:       httpApi,
 		carfileList:   list.New(),
-		carfileMap:    make(map[string]*list.Element),
 	}
 
 	go block.startBlockLoader()
@@ -159,7 +158,6 @@ func (block *Block) doLoadBlock() {
 		preElement := element
 		element = preElement.Next()
 		block.carfileList.Remove(preElement)
-		delete(block.carfileMap, carfile.carfileHash)
 	}
 }
 
@@ -172,22 +170,53 @@ func (block *Block) getWaitCacheBlockNum() int {
 	return count
 }
 
+func (block *Block) getElementFromList(carfileHash string) *list.Element {
+	for e := block.carfileList.Front(); e != nil; e = e.Next() {
+		carfile := e.Value.(*carfile)
+		if carfile.carfileHash == carfileHash {
+			return e
+		}
+	}
+	return nil
+}
+
 func (block *Block) addReq2WaitList(req *api.ReqCacheData) {
-	element, ok := block.carfileMap[req.CardFileHash]
-	if !ok {
+	e := block.getElementFromList(req.CardFileHash)
+	if e == nil {
 		cf := &carfile{carfileHash: req.CardFileHash, lock: &sync.Mutex{}, delayReqs: make([]*delayReq, 0)}
-		element = block.carfileList.PushBack(cf)
-		block.carfileMap[req.CardFileHash] = element
+		e = block.carfileList.PushBack(cf)
 	}
 
-	carfile, ok := element.Value.(*carfile)
+	carfile, ok := e.Value.(*carfile)
 	if !ok {
-		log.Panicf("addReq2WaitList error, can convert elemnet to carfile")
+		log.Panicf("addReq2WaitList, can not convert elemnet to carfile")
 	}
 
 	carfile.addReq(apiReq2DelayReq(req))
 
 	block.notifyBlockLoader()
+}
+func (block *Block) RemoveWaitCacheBlockWith(ctx context.Context, carfileCID string) error {
+	carfileHash, err := helper.CIDString2HashString(carfileCID)
+	if err != nil {
+		return err
+	}
+
+	e := block.getElementFromList(carfileHash)
+	if e == nil {
+		return nil
+	}
+
+	carfile, ok := e.Value.(*carfile)
+	if !ok {
+		log.Panicf("RemoveCarfileFromList error, can not convert elemnet to carfile")
+	}
+
+	carfile.delayReqs = nil
+
+	block.carfileList.Remove(e)
+
+	return nil
 }
 
 func (block *Block) cacheResultWithError(bStat blockStat, err error) {
@@ -273,31 +302,6 @@ func (block *Block) CacheBlocks(ctx context.Context, reqs []api.ReqCacheData) (a
 	}
 
 	return block.QueryCacheStat(ctx)
-}
-
-func (block *Block) RemoveWaitCacheBlockWith(ctx context.Context, carfileCID string) error {
-	carfileHash, err := helper.CIDString2HashString(carfileCID)
-	if err != nil {
-		return err
-	}
-
-	element, ok := block.carfileMap[carfileHash]
-	if !ok {
-		log.Errorf("RemoveWaitingBlockWithCarfileCID, no carfile %s block wait cache", carfileCID)
-		return nil
-	}
-
-	carfile, ok := element.Value.(*carfile)
-	if !ok {
-		log.Panicf("addReq2WaitList error, can convert elemnet to carfile")
-	}
-
-	carfile.delayReqs = nil
-
-	delete(block.carfileMap, carfileHash)
-	block.carfileList.Remove(element)
-
-	return nil
 }
 
 // delete block in local store and scheduler

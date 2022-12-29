@@ -133,20 +133,21 @@ func getBlocksFromCandidateWithApi(reqs []*delayReq) ([]blocks.Block, error) {
 
 	for _, req := range reqs {
 		delayReq := req
+
+		candidate, err := getCandidateAPI(delayReq.downloadURL, delayReq.downloadToken, candidates)
+		if err != nil {
+			log.Errorf("loadBlocksFromCandidate getCandidateAPI error:%s", err.Error())
+			continue
+		}
+
 		wg.Add(1)
 
 		go func() {
 			defer wg.Done()
 
-			candidate, err := getCandidateAPI(delayReq.downloadURL, delayReq.downloadToken, candidates)
-			if err != nil {
-				log.Errorf("loadBlocksFromCandidate getCandidateAPI error:%s", err.Error())
-				return
-			}
-
 			b, err := getBlockFromCandidateWithApi(candidate, delayReq.blockInfo.Cid)
 			if err != nil {
-				log.Errorf("getBlockWithWaitGroup error:%s", err.Error())
+				log.Errorf("getBlocksFromCandidateWithApi error:%s", err.Error())
 				return
 			}
 			blks = append(blks, b)
