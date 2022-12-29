@@ -86,8 +86,8 @@ var (
 
 	reliabilityFlag = &cli.IntFlag{
 		Name:  "reliability",
-		Usage: "cache reliability",
-		Value: 0,
+		Usage: "cache reliability (default:2)",
+		Value: 2,
 	}
 
 	nodeTypeFlag = &cli.IntFlag{
@@ -122,7 +122,7 @@ var (
 
 	expiredDateFlag = &cli.StringFlag{
 		Name:  "expired-date",
-		Usage: "date time (2006-1-2 15:04:05)",
+		Usage: "date time ('2006-1-2 15:04:05') (default:7 day later)",
 		Value: "",
 	}
 
@@ -744,6 +744,10 @@ var cacheCarfileCmd = &cli.Command{
 
 		if cid == "" {
 			return xerrors.New("cid is nil")
+		}
+
+		if expiredDate == "" {
+			expiredDate = time.Now().Add(time.Duration(7*24) * time.Hour).Format("2006-1-2 15:04:05")
 		}
 
 		time, err := time.ParseInLocation("2006-1-2 15:04:05", expiredDate, time.Local)
