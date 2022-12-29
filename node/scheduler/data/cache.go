@@ -150,7 +150,7 @@ func (c *Cache) sendBlocksToNode(deviceID string, reqDataMap map[string]*api.Req
 		// reqDatas := c.Manager.FindDownloadinfoForBlocks(blocks, c.carfileHash, c.cacheID)
 		nodeCacheStat, err := cNode.GetAPI().CacheBlocks(ctx, reqDatas)
 		if err != nil {
-			log.Errorf("CacheBlocks %s, CacheBlocks err:%s", deviceID, err.Error())
+			log.Errorf("sendBlocksToNode %s, CacheBlocks err:%s", deviceID, err.Error())
 		} else {
 			cNode.UpdateCacheStat(&nodeCacheStat)
 		}
@@ -166,7 +166,7 @@ func (c *Cache) sendBlocksToNode(deviceID string, reqDataMap map[string]*api.Req
 		// reqDatas := c.Manager.FindDownloadinfoForBlocks(blocks, c.carfileHash, c.cacheID)
 		nodeCacheStat, err := eNode.GetAPI().CacheBlocks(ctx, reqDatas)
 		if err != nil {
-			log.Errorf("CacheBlocks %s, CacheBlocks err:%s", deviceID, err.Error())
+			log.Errorf("sendBlocksToNode %s, CacheBlocks err:%s", deviceID, err.Error())
 		} else {
 			eNode.UpdateCacheStat(&nodeCacheStat)
 		}
@@ -174,7 +174,7 @@ func (c *Cache) sendBlocksToNode(deviceID string, reqDataMap map[string]*api.Req
 		return eNode.GetCacheNextTimeoutTimeStamp(), err
 	}
 
-	return 0, xerrors.Errorf("Not Found Node:%s", deviceID)
+	return 0, xerrors.Errorf("not found node:%s", deviceID)
 }
 
 func (c *Cache) searchAppropriateNode(skips map[string]string, index int, info *api.CacheError) (deviceID string) {
@@ -597,10 +597,8 @@ func (c *Cache) endCache(unDoneBlocks int, status api.CacheStatus) (err error) {
 func (c *Cache) removeCache() error {
 	err := cache.GetDB().RemoveRunningDataTask(c.carfileHash, c.cacheID)
 	if err != nil {
-		err = xerrors.Errorf("removeCache RemoveRunningDataTask err: %s", err.Error())
+		return xerrors.Errorf("removeCache RemoveRunningDataTask err: %s", err.Error())
 	}
-
-	reliability := c.data.reliability
 
 	blocks, err := persistent.GetDB().GetAllBlocks(c.cacheID)
 	if err != nil {
@@ -636,7 +634,7 @@ func (c *Cache) removeCache() error {
 	}
 
 	if c.status == api.CacheStatusSuccess {
-		reliability -= c.reliability
+		c.data.reliability -= c.reliability
 		err = cache.GetDB().IncrByBaseInfo("CarfileCount", -1)
 		if err != nil {
 			log.Errorf("removeCache IncrByBaseInfo err:%s", err.Error())
@@ -656,10 +654,7 @@ func (c *Cache) removeCache() error {
 	})
 
 	// delete cache and update data info
-	err = persistent.GetDB().RemoveCacheAndUpdateData(c.cacheID, c.carfileHash, isDelete, reliability)
-	if err == nil {
-		c.data.reliability = reliability
-	}
+	err = persistent.GetDB().RemoveCacheAndUpdateData(c.cacheID, c.carfileHash, isDelete, c.data.reliability)
 
 	c.data.CacheMap.Delete(c.cacheID)
 	c = nil
@@ -704,18 +699,6 @@ func (c *Cache) calculateReliability(deviceID string) int {
 	}
 
 	return 0
-}
-
-func (c *Cache) replenishExpiredTime(hour int) error {
-	c.expiredTime = c.expiredTime.Add((time.Duration(hour) * time.Hour))
-
-	return persistent.GetDB().ChangeExpiredTimeWhitCaches(c.carfileHash, c.cacheID, c.expiredTime)
-}
-
-func (c *Cache) resetExpiredTime(expiredTime time.Time) error {
-	c.expiredTime = expiredTime
-
-	return persistent.GetDB().ChangeExpiredTimeWhitCaches(c.carfileHash, c.cacheID, c.expiredTime)
 }
 
 // GetCacheID get cache id

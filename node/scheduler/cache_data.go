@@ -137,7 +137,7 @@ func (s *Scheduler) GetCacheData(ctx context.Context, cid string) (api.DataInfo,
 	info := api.DataInfo{}
 
 	if cid == "" {
-		return info, xerrors.Errorf("Not Found Cid:%s", cid)
+		return info, xerrors.Errorf("not found cid:%s", cid)
 	}
 
 	hash, err := helper.CIDString2HashString(cid)
@@ -156,7 +156,7 @@ func (s *Scheduler) GetCacheData(ctx context.Context, cid string) (api.DataInfo,
 		return cInfo, nil
 	}
 
-	return info, xerrors.Errorf("Not Found Cid:%s", cid)
+	return info, xerrors.Errorf("not found cid:%s", cid)
 }
 
 // ListEvents get data events
@@ -251,22 +251,5 @@ func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cid
 	// 	return candidate.deleteBlockRecords(cids)
 	// }
 
-	return nil, xerrors.Errorf("Not Found Node:%s", deviceID)
-}
-
-func (s *Scheduler) deviceBlockCacheCount(deviceID string, blockSize int) error {
-	// save block count to redis
-	err := cache.GetDB().IncrByDeviceInfo(deviceID, "BlockCount", 1)
-	if err != nil {
-		log.Errorf("IncrByDeviceInfo err:%s ", err.Error())
-		return err
-	}
-
-	err = cache.GetDB().IncrByDeviceInfo(deviceID, "TotalDownload", int64(blockSize))
-	if err != nil {
-		log.Errorf("IncrByDeviceInfo err:%s ", err.Error())
-		return err
-	}
-
-	return nil
+	return nil, xerrors.Errorf("not found node:%s", deviceID)
 }

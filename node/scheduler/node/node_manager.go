@@ -406,7 +406,7 @@ func (m *Manager) FindNodeDownloadInfos(cid string) ([]api.DownloadInfoResult, e
 	}
 
 	if len(deviceIDs) <= 0 {
-		return nil, xerrors.Errorf("Not Found Node , with hash:%s", hash)
+		return nil, xerrors.Errorf("not found node , with hash:%s", hash)
 	}
 
 	for _, deviceID := range deviceIDs {
@@ -434,7 +434,7 @@ func (m *Manager) GetCandidateNodesWithData(hash, skip string) ([]*CandidateNode
 	// log.Infof("getCandidateNodesWithData deviceIDs : %v", deviceIDs)
 
 	if len(deviceIDs) <= 0 {
-		return nil, xerrors.Errorf("Not Found Node, with hash:%s", hash)
+		return nil, xerrors.Errorf("not found node, with hash:%s", hash)
 	}
 
 	skips := make(map[string]string)
