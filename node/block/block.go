@@ -67,7 +67,7 @@ type Block struct {
 
 type BlockLoader interface {
 	// scheduler request cache carfile
-	loadBlocks(block *Block, req []*delayReq)
+	loadBlocks(block *Block, reqs []*delayReq) ([]blocks.Block, error)
 	// local sync miss data
 	syncData(block *Block, reqs map[int]string) error
 }
@@ -151,13 +151,89 @@ func (block *Block) doLoadBlock() {
 			doReqs := carfile.removeReq(doLen)
 			block.cachingList = doReqs
 
-			block.blockLoader.loadBlocks(block, doReqs)
+			block.loadBlocks(doReqs)
 			block.cachingList = nil
 		}
 
 		preElement := element
 		element = preElement.Next()
 		block.carfileList.Remove(preElement)
+	}
+}
+
+func (block *Block) loadBlocks(reqs []*delayReq) {
+	reqs = block.filterAvailableReq(reqs)
+	if len(reqs) == 0 {
+		log.Debug("loadBlocks, len(reqs) == 0")
+		return
+	}
+
+	ctx := context.Background()
+
+	cids := make([]string, 0, len(reqs))
+	reqMap := make(map[string]*delayReq)
+	for _, req := range reqs {
+		cids = append(cids, req.blockInfo.Cid)
+		reqMap[req.blockInfo.Cid] = req
+	}
+
+	blocks, err := block.blockLoader.loadBlocks(block, reqs)
+	if err != nil {
+		log.Errorf("loadBlocksAsync loadBlocks err %v", err)
+		return
+	}
+
+	for _, b := range blocks {
+		cidStr := b.Cid().String()
+		req, ok := reqMap[cidStr]
+		if !ok {
+			log.Errorf("loadBlocksFromIPFS cid %s not in map", cidStr)
+			continue
+		}
+
+		err = block.saveBlock(ctx, b.RawData(), req.blockInfo.Cid, fmt.Sprintf("%d", req.blockInfo.Fid))
+		if err != nil {
+			log.Errorf("loadBlocksFromIPFS save block error:%s", err.Error())
+			continue
+		}
+
+		// get block links
+		links, err := block.resolveLinks(b)
+		if err != nil {
+			log.Errorf("loadBlocksFromIPFS resolveLinks error:%s", err.Error())
+			continue
+		}
+
+		linksSize := uint64(0)
+		cids := make([]string, 0, len(links))
+		for _, link := range links {
+			cids = append(cids, link.Cid.String())
+			linksSize += link.Size
+		}
+
+		bStat := blockStat{cid: cidStr, links: cids, blockSize: len(b.RawData()), linksSize: linksSize, carFileHash: req.carFileHash, CacheID: req.CacheID}
+		block.cacheResult(bStat, nil)
+
+		log.Infof("cache data,cid:%s,err:%v", cidStr, err)
+
+		delete(reqMap, cidStr)
+	}
+
+	err = fmt.Errorf("Request timeout")
+	tryDelayReqs := make([]*delayReq, 0)
+	for _, v := range reqMap {
+		if v.count >= helper.BlockDownloadRetryNum {
+			block.cacheResultWithError(blockStat{cid: v.blockInfo.Cid, carFileHash: v.carFileHash, CacheID: v.CacheID}, err)
+			log.Infof("cache data faile, cid:%s, count:%d", v.blockInfo.Cid, v.count)
+		} else {
+			v.count++
+			delayReq := v
+			tryDelayReqs = append(tryDelayReqs, delayReq)
+		}
+	}
+
+	if len(tryDelayReqs) > 0 {
+		block.loadBlocks(tryDelayReqs)
 	}
 }
 
