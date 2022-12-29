@@ -405,6 +405,7 @@ var runCmd = &cli.Command{
 				for {
 					curSession, err := schedulerAPI.Session(ctx, deviceID)
 					if err != nil {
+						errCount++
 						log.Errorf("heartbeat: checking remote session failed: %+v", err)
 					} else {
 						if curSession != minerSession {
@@ -414,6 +415,7 @@ var runCmd = &cli.Command{
 
 						if errCount > 0 {
 							break
+
 						}
 					}
 
