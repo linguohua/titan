@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sync"
 	"time"
 
+	blocks "github.com/ipfs/go-block-format"
+	"github.com/ipfs/go-cid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/helper"
@@ -54,13 +57,13 @@ func (candidate *Candidate) syncData(block *Block, reqs map[int]string) error {
 				continue
 			}
 
-			data, err := getBlockFromCandidateWithApi(candidate, cid)
+			blk, err := getBlockFromCandidateWithApi(candidate, cid)
 			if err != nil {
 				log.Errorf("syncData LoadBlock error:%s", err.Error())
 				continue
 			}
 
-			err = block.saveBlock(ctx, data, cid, fmt.Sprintf("%d", blockFIDMap[cid]))
+			err = block.saveBlock(ctx, blk.RawData(), cid, fmt.Sprintf("%d", blockFIDMap[cid]))
 			if err != nil {
 				log.Errorf("syncData save block error:%s", err.Error())
 				continue
@@ -99,16 +102,60 @@ func getBlockFromCandidateWithHttp(url string, tk string) ([]byte, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
-func getBlockFromCandidateWithApi(candidate api.Candidate, cid string) ([]byte, error) {
+func getBlockFromCandidateWithApi(candidate api.Candidate, cidStr string) (blocks.Block, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), helper.BlockDownloadTimeout*time.Second)
 	defer cancel()
 
-	data, err := candidate.LoadBlock(ctx, cid)
+	data, err := candidate.LoadBlock(ctx, cidStr)
 	if err != nil {
 		return nil, err
 	}
 
-	return data, nil
+	target, err := cid.Decode(cidStr)
+	if err != nil {
+		return nil, err
+	}
+
+	basicBlock, err := blocks.NewBlockWithCid(data, target)
+	if err != nil {
+		return nil, err
+	}
+
+	return basicBlock, nil
+}
+
+func getBlocksFromCandidateWithApi(reqs []*delayReq) ([]blocks.Block, error) {
+	startTime := time.Now()
+	blks := make([]blocks.Block, 0, len(reqs))
+	candidates := make(map[string]api.Candidate)
+
+	var wg sync.WaitGroup
+
+	for _, req := range reqs {
+		delayReq := req
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			candidate, err := getCandidateAPI(delayReq.downloadURL, delayReq.downloadToken, candidates)
+			if err != nil {
+				log.Errorf("loadBlocksFromCandidate getCandidateAPI error:%s", err.Error())
+				return
+			}
+
+			b, err := getBlockFromCandidateWithApi(candidate, delayReq.blockInfo.Cid)
+			if err != nil {
+				log.Errorf("getBlockWithWaitGroup error:%s", err.Error())
+				return
+			}
+			blks = append(blks, b)
+		}()
+	}
+	wg.Wait()
+
+	log.Infof("getBlocksFromCandidateWithApi block len:%d, duration:%dns", len(blks), time.Since(startTime))
+	return blks, nil
 }
 
 func newCandidateAPI(url string, tk string) (api.Candidate, error) {
@@ -141,44 +188,101 @@ func getCandidateAPI(url string, tk string, candidates map[string]api.Candidate)
 	return candidate, nil
 }
 
+// func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
+// 	reqs = block.filterAvailableReq(reqs)
+// 	candidates := make(map[string]api.Candidate)
+
+// 	for _, req := range reqs {
+// 		if len(req.downloadURL) == 0 {
+// 			log.Errorf("loadBlocksFromCandidate req downloadURL is nil")
+// 			block.cacheResultWithError(blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, fmt.Errorf("candidate download url is empty"))
+// 			continue
+// 		}
+
+// 		// url := fmt.Sprintf("%s?cid=%s", req.downloadURL, req.blockInfo.Cid)
+// 		// data, err := getBlockFromCandidate(url, req.downloadToken)
+// 		candidate, err := getCandidateAPI(req.downloadURL, req.downloadToken, candidates)
+// 		if err != nil {
+// 			log.Errorf("loadBlocksFromCandidate getCandidateAPI error:%s", err.Error())
+// 			block.cacheResultWithError(blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, err)
+// 			continue
+// 		}
+
+// 		data, err := getBlockFromCandidateWithApi(candidate, req.blockInfo.Cid)
+// 		if err != nil {
+// 			log.Errorf("loadBlocksFromCandidate LoadBlock error:%s", err.Error())
+// 			block.cacheResultWithError(blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, err)
+// 			continue
+// 		}
+
+// 		err = block.saveBlock(context.Background(), data, req.blockInfo.Cid, fmt.Sprintf("%d", req.blockInfo.Fid))
+// 		if err != nil {
+// 			log.Errorf("loadBlocksFromCandidate save block error:%s", err.Error())
+// 			block.cacheResultWithError(blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, err)
+// 			continue
+// 		}
+
+// 		links, err := getLinks(block, data, req.blockInfo.Cid)
+// 		if err != nil {
+// 			log.Errorf("loadBlocksFromCandidate resolveLinks error:%s", err.Error())
+// 			block.cacheResultWithError(blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, err)
+// 			continue
+// 		}
+
+// 		linksSize := uint64(0)
+// 		cids := make([]string, 0, len(links))
+// 		for _, link := range links {
+// 			cids = append(cids, link.Cid.String())
+// 			linksSize += link.Size
+// 		}
+
+// 		bInfo := blockStat{cid: req.blockInfo.Cid, links: cids, blockSize: len(data), linksSize: linksSize, carFileHash: req.carFileHash, CacheID: req.CacheID}
+// 		block.cacheResult(bInfo, nil)
+
+// 		log.Infof("loadBlocksFromCandidate, cid:%s,err:%v", req.blockInfo.Cid, err)
+// 	}
+// }
+
 func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 	reqs = block.filterAvailableReq(reqs)
-	candidates := make(map[string]api.Candidate)
+	if len(reqs) == 0 {
+		log.Debug("loadBlocksFromCandidate, len(reqs) == 0")
+		return
+	}
 
-	for _, req := range reqs {
-		if len(req.downloadURL) == 0 {
-			log.Errorf("loadBlocksFromCandidate req downloadURL is nil")
-			block.cacheResultWithError(blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, fmt.Errorf("candidate download url is empty"))
+	ctx := context.Background()
+
+	cids := make([]string, 0, len(reqs))
+	reqMap := make(map[string]*delayReq)
+	for _, reqData := range reqs {
+		cids = append(cids, reqData.blockInfo.Cid)
+		reqMap[reqData.blockInfo.Cid] = reqData
+	}
+
+	blocks, err := getBlocksFromCandidateWithApi(reqs)
+	if err != nil {
+		log.Errorf("loadBlocksFromCandidate getBlocksFromCandidateWithApi err %v", err)
+		return
+	}
+
+	for _, b := range blocks {
+		cidStr := b.Cid().String()
+		req, ok := reqMap[cidStr]
+		if !ok {
+			log.Errorf("loadBlocksFromIPFS cid %s not in map", cidStr)
 			continue
 		}
 
-		// url := fmt.Sprintf("%s?cid=%s", req.downloadURL, req.blockInfo.Cid)
-		// data, err := getBlockFromCandidate(url, req.downloadToken)
-		candidate, err := getCandidateAPI(req.downloadURL, req.downloadToken, candidates)
+		err = block.saveBlock(ctx, b.RawData(), req.blockInfo.Cid, fmt.Sprintf("%d", req.blockInfo.Fid))
 		if err != nil {
-			log.Errorf("loadBlocksFromCandidate getCandidateAPI error:%s", err.Error())
-			block.cacheResultWithError(blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, err)
+			log.Errorf("loadBlocksFromIPFS save block error:%s", err.Error())
 			continue
 		}
 
-		data, err := getBlockFromCandidateWithApi(candidate, req.blockInfo.Cid)
+		// get block links
+		links, err := block.resolveLinks(b)
 		if err != nil {
-			log.Errorf("loadBlocksFromCandidate LoadBlock error:%s", err.Error())
-			block.cacheResultWithError(blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, err)
-			continue
-		}
-
-		err = block.saveBlock(context.Background(), data, req.blockInfo.Cid, fmt.Sprintf("%d", req.blockInfo.Fid))
-		if err != nil {
-			log.Errorf("loadBlocksFromCandidate save block error:%s", err.Error())
-			block.cacheResultWithError(blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, err)
-			continue
-		}
-
-		links, err := getLinks(block, data, req.blockInfo.Cid)
-		if err != nil {
-			log.Errorf("loadBlocksFromCandidate resolveLinks error:%s", err.Error())
-			block.cacheResultWithError(blockStat{cid: req.blockInfo.Cid, carFileHash: req.carFileHash, CacheID: req.CacheID}, err)
+			log.Errorf("loadBlocksFromIPFS resolveLinks error:%s", err.Error())
 			continue
 		}
 
@@ -189,10 +293,29 @@ func loadBlocksFromCandidate(block *Block, reqs []*delayReq) {
 			linksSize += link.Size
 		}
 
-		bInfo := blockStat{cid: req.blockInfo.Cid, links: cids, blockSize: len(data), linksSize: linksSize, carFileHash: req.carFileHash, CacheID: req.CacheID}
-		block.cacheResult(bInfo, nil)
+		bStat := blockStat{cid: cidStr, links: cids, blockSize: len(b.RawData()), linksSize: linksSize, carFileHash: req.carFileHash, CacheID: req.CacheID}
+		block.cacheResult(bStat, nil)
 
-		log.Infof("loadBlocksFromCandidate, cid:%s,err:%v", req.blockInfo.Cid, err)
+		log.Infof("cache data,cid:%s,err:%v", cidStr, err)
+
+		delete(reqMap, cidStr)
+	}
+
+	err = fmt.Errorf("Request timeout")
+	tryDelayReqs := make([]*delayReq, 0)
+	for _, v := range reqMap {
+		if v.count >= helper.BlockDownloadRetryNum {
+			block.cacheResultWithError(blockStat{cid: v.blockInfo.Cid, carFileHash: v.carFileHash, CacheID: v.CacheID}, err)
+			log.Infof("cache data faile, cid:%s, count:%d", v.blockInfo.Cid, v.count)
+		} else {
+			v.count++
+			delayReq := v
+			tryDelayReqs = append(tryDelayReqs, delayReq)
+		}
+	}
+
+	if len(tryDelayReqs) > 0 {
+		loadBlocksFromCandidate(block, tryDelayReqs)
 	}
 }
 
