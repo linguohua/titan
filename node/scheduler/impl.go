@@ -572,6 +572,25 @@ func (s *Scheduler) nodeExitedCallback(deviceID string) {
 	s.dataManager.CleanNodeAndRestoreCaches(deviceID)
 }
 
+//RedressDeveiceInfo redress device info
+func (s *Scheduler) RedressDeveiceInfo(ctx context.Context, deviceID string) error {
+	if !isDeviceExist(deviceID, 0) {
+		return xerrors.Errorf("node not Exist: %s", deviceID)
+	}
+
+	blocks, err := persistent.GetDB().GetBlocksFID(deviceID)
+	if err != nil {
+		return err
+	}
+
+	err = cache.GetDB().UpdateDeviceInfo(deviceID, "BlockCount", len(blocks))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *Scheduler) authNew() error {
 	tk, err := s.AuthNew(context.Background(), []auth.Permission{api.PermRead, api.PermWrite})
 	if err != nil {

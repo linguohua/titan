@@ -753,9 +753,9 @@ func (sd sqlDB) GetUndoneBlocks(cacheID string) (map[string]string, error) {
 func (sd sqlDB) GetAllBlocks(cacheID string) ([]*api.BlockInfo, error) {
 	area := sd.ReplaceArea()
 
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE cache_id=?`, fmt.Sprintf(blockInfoTable, area))
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE cache_id=? AND status=?`, fmt.Sprintf(blockInfoTable, area))
 	var out []*api.BlockInfo
-	if err := sd.cli.Select(&out, query, cacheID); err != nil {
+	if err := sd.cli.Select(&out, query, cacheID, api.CacheStatusSuccess); err != nil {
 		return nil, err
 	}
 

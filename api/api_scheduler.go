@@ -33,6 +33,7 @@ type Scheduler interface {
 	NodeExit(ctx context.Context, device string) error                                                  //perm:admin
 	StopCacheTask(ctx context.Context, carfileCid string) error                                         //perm:admin
 	GetBlocksCacheError(ctx context.Context, cacheID string) ([]*CacheError, error)                     //perm:read
+	RedressDeveiceInfo(ctx context.Context, deviceID string) error                                      //perm:admin
 
 	// call by locator
 	LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID, locatorToken string) error //perm:write
