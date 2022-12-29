@@ -102,7 +102,7 @@ var runCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:  "listen",
 			Usage: "host address and port the worker api will listen on",
-			Value: "0.0.0.0:3456",
+			Value: "0.0.0.0:2345",
 		},
 		&cli.StringFlag{
 			Name:   "address",
