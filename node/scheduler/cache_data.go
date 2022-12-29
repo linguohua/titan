@@ -120,6 +120,7 @@ func dataToCacheDataInfo(d *data.Data) api.DataInfo {
 				DoneSize:   c.GetDoneSize(),
 				DoneBlocks: c.GetDoneBlocks(),
 				Nodes:      c.GetNodes(),
+				RootCache:  c.IsRootCache(),
 			}
 
 			caches = append(caches, cache)

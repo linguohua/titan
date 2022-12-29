@@ -57,7 +57,7 @@ type DB interface {
 	GetUndoneBlocks(cacheID string) (map[string]string, error)
 	GetAllBlocks(cacheID string) ([]*api.BlockInfo, error)
 	GetNodesFromCache(cacheID string) ([]string, error)
-	GetNodesFromData(hash string) ([]string, error)
+	GetNodesFromDataCache(hash, cacheID string) (dataOut, cacheOut []string)
 	GetCachesFromNode(deviceID string) ([]*api.CacheInfo, error)
 	CleanCacheDataWithNode(deviceID string, caches []*api.CacheInfo) error // TODO rename
 	// GetNodesFromAllData() ([]string, error)
@@ -88,6 +88,7 @@ type DB interface {
 	// RemoveToBeDeleteBlock(infos []*BlockDelete) error
 	// GetToBeDeleteBlocks(deviceID string) ([]*BlockDelete, error)
 	// SetMessageInfo(infos []*MessageInfo) error
+	GetDoneBlocksWithCache(cacheID string) (size, count int, err error)
 
 	// tool
 	ReplaceArea() string

@@ -170,7 +170,7 @@ func (m *Manager) GetData(hash string) *Data {
 		return dI.(*Data)
 	}
 
-	data := loadData(hash, m.nodeManager, m)
+	data := loadData(hash, m)
 	if data != nil {
 		return data
 	}
@@ -396,7 +396,7 @@ func (m *Manager) CacheCarfileResult(info *api.CacheResultInfo) (err error) {
 	if ok && dI != nil {
 		data = dI.(*Data)
 	} else {
-		data = loadData(info.CarFileHash, m.nodeManager, m)
+		data = loadData(info.CarFileHash, m)
 		if data == nil {
 			return xerrors.Errorf("not found data task: %s", info.CarFileHash)
 		}
