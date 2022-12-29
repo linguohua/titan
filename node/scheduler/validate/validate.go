@@ -21,10 +21,8 @@ import (
 )
 
 const (
-	errMsgTimeOut  = "time out"
-	errMsgBlockNil = "Block Nil;map len:%d,count:%d"
-	errMsgCidFail  = "Cid Fail;resultCid:%s,cid_db:%s,fid:%d,index:%d"
-	errMsgCancel   = "verification canceled due to download"
+	errMsgTimeOut = "time out"
+	errMsgCancel  = "verification canceled due to download"
 )
 
 type validateState int
@@ -47,9 +45,6 @@ type Validate struct {
 	curRoundId int64
 
 	duration int
-
-	// block num limit
-	validateBlockMax int
 
 	// validate start-up time interval (minute)
 	interval int
@@ -78,17 +73,15 @@ type Validate struct {
 
 func NewValidate(manager *node.Manager, open bool) *Validate {
 	e := &Validate{
-		ctx:              context.Background(),
-		seed:             1,
-		duration:         10,
-		validateBlockMax: 100,
-		interval:         5,
-		resultQueue:      list.New(),
-		resultChannel:    make(chan bool, 1),
-		nodeManager:      manager,
-		crontab:          cron.New(),
-		validateState:    validationNotStarted,
-		open:             open,
+		ctx:           context.Background(),
+		duration:      10,
+		interval:      5,
+		resultQueue:   list.New(),
+		resultChannel: make(chan bool, 1),
+		nodeManager:   manager,
+		crontab:       cron.New(),
+		validateState: validationNotStarted,
+		open:          open,
 	}
 
 	e.initValidateTask()
@@ -321,7 +314,14 @@ func (v *Validate) assemblyValidateReqAndStore(validatorID string, list []tmpDev
 
 		v.maxFidMap.Store(device.deviceId, maxFid)
 
-		req = append(req, api.ReqValidate{Seed: v.seed, NodeURL: device.addr, Duration: v.duration, RoundID: v.curRoundId, NodeType: int(device.nodeType), MaxFid: int(maxFid)})
+		req = append(req, api.ReqValidate{
+			Seed:     v.seed,
+			NodeURL:  device.addr,
+			Duration: v.duration,
+			RoundID:  v.curRoundId,
+			NodeType: int(device.nodeType),
+			MaxFid:   int(maxFid)},
+		)
 
 		err = cache.GetDB().SetNodeToVerifyingList(device.deviceId)
 		if err != nil {
@@ -411,7 +411,6 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 		return xerrors.Errorf("round id mismatch")
 	}
 
-	log.Infof("%s : %d, %s : %s", "validated round", validateResults.RoundID, "device id", validateResults.DeviceID)
 	log.Debugf("validate result : %+v", *validateResults)
 
 	defer func() {
@@ -444,14 +443,13 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 	cidLength := len(validateResults.Cids)
 
 	if cidLength <= 0 || validateResults.RandomCount <= 0 {
-		msg := fmt.Sprintf(errMsgBlockNil, cidLength, validateResults.RandomCount)
-		log.Debug("validate fail :", msg)
+		msg := "validate result is null or random count is 0"
 		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, msg, persistent.ValidateStatusFail)
 	}
 
 	cacheInfos, err := persistent.GetDB().GetBlocksFID(validateResults.DeviceID)
 	if err != nil || len(cacheInfos) <= 0 {
-		msg := fmt.Sprintf("failed to query by device [%s] : %s", validateResults.DeviceID, err.Error())
+		msg := fmt.Sprintf("failed to query : %s", err.Error())
 		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, msg, persistent.ValidateStatusOther)
 	}
 
@@ -468,9 +466,8 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 		}
 
 		if !v.compareCid(cid, resultCid) {
-			msg := fmt.Sprintf(errMsgCidFail, resultCid, cid, fid, index)
-			log.Debug("validate fail :", msg)
-			log.Infof("validate fail deviceID [%s] resultCid:%s,cid_db:%s,fid:%d,index:%d", validateResults.DeviceID, resultCid, cid, fid, index)
+			msg := fmt.Sprintf("validate fail; resultCid:%s,cid_db:%s,fid:%d,index:%d", resultCid, cid, fid, index)
+			log.Errorf("validate fail deviceID [%s] resultCid:%s,cid_db:%s,fid:%d,index:%d", validateResults.DeviceID, resultCid, cid, fid, index)
 			return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, msg, persistent.ValidateStatusFail)
 		}
 	}
