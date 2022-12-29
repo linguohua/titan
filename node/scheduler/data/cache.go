@@ -728,3 +728,8 @@ func (c *Cache) GetDoneBlocks() int {
 func (c *Cache) GetNodes() int {
 	return c.nodes
 }
+
+// IsRootCache get is root cache
+func (c *Cache) IsRootCache() bool {
+	return c.isRootCache
+}

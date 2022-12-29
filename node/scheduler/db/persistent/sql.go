@@ -772,6 +772,21 @@ func (sd sqlDB) GetBlockCountWithStatus(cacheID string, status api.CacheStatus) 
 	return count, err
 }
 
+func (sd sqlDB) GetDoneBlocksWithCache(cacheID string) (size, count int, err error) {
+	area := sd.ReplaceArea()
+
+	type info struct {
+		Size  int `db:"sum(size)"`
+		Count int `db:"count(size)"`
+	}
+
+	i := info{}
+	cmd := fmt.Sprintf("SELECT sum(size),count(size) FROM %s WHERE cache_id=? AND status=?;", fmt.Sprintf(blockInfoTable, area))
+	err = sd.cli.Get(&i, cmd, cacheID, api.CacheStatusSuccess)
+
+	return i.Size, i.Count, err
+}
+
 // func (sd sqlDB) GetCachesSize(cacheID string, status api.CacheStatus) (int, error) {
 // 	area := sd.ReplaceArea()
 
@@ -862,16 +877,16 @@ func (sd sqlDB) ReplaceArea() string {
 // 	return out, nil
 // }
 
-func (sd sqlDB) GetNodesFromData(hash string) ([]string, error) {
+func (sd sqlDB) GetNodesFromDataCache(hash, cacheID string) (dataOut, cacheOut []string) {
 	area := sd.ReplaceArea()
 
 	query := fmt.Sprintf("SELECT DISTINCT device_id FROM %s WHERE carfile_hash=? AND status=?", fmt.Sprintf(blockInfoTable, area))
-	out := make([]string, 0)
-	if err := sd.cli.Select(&out, query, hash, api.CacheStatusSuccess); err != nil {
-		return out, err
-	}
+	sd.cli.Select(&dataOut, query, hash, api.CacheStatusSuccess)
 
-	return out, nil
+	query2 := fmt.Sprintf("SELECT DISTINCT device_id FROM %s WHERE cache_id=? AND status=?", fmt.Sprintf(blockInfoTable, area))
+	sd.cli.Select(&cacheOut, query2, cacheID, api.CacheStatusSuccess)
+
+	return
 }
 
 func (sd sqlDB) GetNodesFromCache(cacheID string) ([]string, error) {

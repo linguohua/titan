@@ -43,7 +43,7 @@ func newData(nodeManager *node.Manager, dataManager *Manager, cid, hash string, 
 	}
 }
 
-func loadData(hash string, nodeManager *node.Manager, dataManager *Manager) *Data {
+func loadData(hash string, dataManager *Manager) *Data {
 	dInfo, err := persistent.GetDB().GetDataInfo(hash)
 	if err != nil && !persistent.GetDB().IsNilErr(err) {
 		log.Errorf("loadData %s err :%s", hash, err.Error())
@@ -52,7 +52,7 @@ func loadData(hash string, nodeManager *node.Manager, dataManager *Manager) *Dat
 	if dInfo != nil {
 		data := &Data{}
 		data.carfileCid = dInfo.CarfileCid
-		data.nodeManager = nodeManager
+		data.nodeManager = dataManager.nodeManager
 		data.dataManager = dataManager
 		data.totalSize = dInfo.TotalSize
 		data.needReliability = dInfo.NeedReliability
@@ -171,19 +171,15 @@ func (d *Data) updateAndSaveCacheEndInfo(doneCache *Cache) error {
 		}
 	}
 
-	cNodes, err := persistent.GetDB().GetNodesFromCache(doneCache.cacheID)
-	if err != nil {
-		log.Errorf("updateAndSaveCacheEndInfo GetNodesFromCache err:%s", err.Error())
+	dNodes, cNodes := persistent.GetDB().GetNodesFromDataCache(d.carfileHash, doneCache.cacheID)
+	if dNodes != nil && len(dNodes) > 0 {
+		d.nodes = len(dNodes)
+		d.updateNodeDiskUsage(dNodes)
+	}
+	if cNodes != nil && len(cNodes) > 0 {
+		doneCache.nodes = len(cNodes)
 	}
 
-	dNodes, err := persistent.GetDB().GetNodesFromData(d.carfileHash)
-	if err != nil {
-		log.Errorf("updateAndSaveCacheEndInfo GetNodesFromData err:%s", err.Error())
-	}
-
-	d.updateNodeDiskUsage(dNodes)
-
-	d.nodes = len(dNodes)
 	dInfo := &api.DataInfo{
 		CarfileHash: d.carfileHash,
 		TotalSize:   d.totalSize,
@@ -193,7 +189,6 @@ func (d *Data) updateAndSaveCacheEndInfo(doneCache *Cache) error {
 		Nodes:       d.nodes,
 	}
 
-	doneCache.nodes = len(cNodes)
 	cInfo := &api.CacheInfo{
 		CarfileHash: doneCache.carfileHash,
 		CacheID:     doneCache.cacheID,
