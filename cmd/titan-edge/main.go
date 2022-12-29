@@ -205,7 +205,7 @@ var runCmd = &cli.Command{
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
-		v, err := schedulerAPI.Version(ctx)
+		v, err := getSchedulerVersion(schedulerAPI)
 		if err != nil {
 			return err
 		}
@@ -309,7 +309,7 @@ var runCmd = &cli.Command{
 			return err
 		}
 
-		externalIP, err := schedulerAPI.GetExternalIP(ctx)
+		externalIP, err := getExternalIP(schedulerAPI)
 		if err != nil {
 			return err
 		}
@@ -365,7 +365,7 @@ var runCmd = &cli.Command{
 		edge := edgeApi.(*edge.Edge)
 		downloadSrvURL := edge.GetDownloadSrvURL()
 
-		minerSession, err := schedulerAPI.Session(ctx, deviceID)
+		minerSession, err := getSchedulerSession(schedulerAPI, deviceID)
 		if err != nil {
 			return xerrors.Errorf("getting miner session: %w", err)
 		}
@@ -394,7 +394,7 @@ var runCmd = &cli.Command{
 
 				errCount := 0
 				for {
-					curSession, err := schedulerAPI.Session(ctx, deviceID)
+					curSession, err := getSchedulerSession(schedulerAPI, deviceID)
 					if err != nil {
 						errCount++
 						log.Errorf("heartbeat: checking remote session failed: %+v", err)
@@ -408,10 +408,11 @@ var runCmd = &cli.Command{
 							break
 						}
 					}
+					log.Infof("Session uuid:%s", curSession)
 
 					select {
 					case <-readyCh:
-						err := schedulerAPI.EdgeNodeConnect(ctx, rpcURL, downloadSrvURL)
+						err := edgeNodeConnect(schedulerAPI, rpcURL, downloadSrvURL)
 						if err != nil {
 							log.Errorf("Registering worker failed: %+v", err)
 							cancel()
@@ -434,6 +435,33 @@ var runCmd = &cli.Command{
 
 		return srv.Serve(nl)
 	},
+}
+
+func edgeNodeConnect(api api.Scheduler, rpcURL string, downloadSrvURL string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	defer cancel()
+	return api.EdgeNodeConnect(ctx, rpcURL, downloadSrvURL)
+}
+
+func getSchedulerSession(api api.Scheduler, deviceID string) (uuid.UUID, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	defer cancel()
+
+	return api.Session(ctx, deviceID)
+}
+
+func getExternalIP(api api.Scheduler) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	defer cancel()
+
+	return api.GetExternalIP(ctx)
+}
+
+func getSchedulerVersion(api api.Scheduler) (api.APIVersion, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	defer cancel()
+
+	return api.Version(ctx)
 }
 
 func extractRoutableIP(cctx *cli.Context) (string, error) {

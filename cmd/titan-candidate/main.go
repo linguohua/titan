@@ -216,7 +216,7 @@ var runCmd = &cli.Command{
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
-		v, err := schedulerAPI.Version(ctx)
+		v, err := getSchedulerVersion(schedulerAPI)
 		if err != nil {
 			return err
 		}
@@ -314,7 +314,7 @@ var runCmd = &cli.Command{
 			return err
 		}
 
-		externalIP, err := schedulerAPI.GetExternalIP(ctx)
+		externalIP, err := getExternalIP(schedulerAPI)
 		if err != nil {
 			return err
 		}
@@ -374,7 +374,7 @@ var runCmd = &cli.Command{
 		candidate := candidateApi.(*candidate.Candidate)
 		downloadSrvURL := candidate.GetDownloadSrvURL()
 
-		minerSession, err := schedulerAPI.Session(ctx, deviceID)
+		minerSession, err := getSchedulerSession(schedulerAPI, deviceID)
 		if err != nil {
 			return xerrors.Errorf("getting miner session: %w", err)
 		}
@@ -403,7 +403,7 @@ var runCmd = &cli.Command{
 
 				errCount := 0
 				for {
-					curSession, err := schedulerAPI.Session(ctx, deviceID)
+					curSession, err := getSchedulerSession(schedulerAPI, deviceID)
 					if err != nil {
 						errCount++
 						log.Errorf("heartbeat: checking remote session failed: %+v", err)
@@ -421,7 +421,7 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						err := schedulerAPI.CandidateNodeConnect(ctx, rpcURL, downloadSrvURL)
+						err := candidateNodeConnect(schedulerAPI, rpcURL, downloadSrvURL)
 						if err != nil {
 							log.Errorf("Registering worker failed: %+v", err)
 							cancel()
@@ -447,6 +447,33 @@ var runCmd = &cli.Command{
 
 		return srv.Serve(nl)
 	},
+}
+
+func candidateNodeConnect(api api.Scheduler, rpcURL string, downloadSrvURL string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	defer cancel()
+	return api.CandidateNodeConnect(ctx, rpcURL, downloadSrvURL)
+}
+
+func getSchedulerSession(api api.Scheduler, deviceID string) (uuid.UUID, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	defer cancel()
+
+	return api.Session(ctx, deviceID)
+}
+
+func getExternalIP(api api.Scheduler) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	defer cancel()
+
+	return api.GetExternalIP(ctx)
+}
+
+func getSchedulerVersion(api api.Scheduler) (api.APIVersion, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	defer cancel()
+
+	return api.Version(ctx)
 }
 
 func extractRoutableIP(cctx *cli.Context) (string, error) {
@@ -480,7 +507,7 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (ap
 	}
 	defer closer()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
 	defer cancel()
 
 	auths, err := locator.GetAccessPoints(ctx, deviceID, securityKey)
@@ -498,7 +525,7 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (ap
 	headers.Add("Authorization", "Bearer "+string(auth.AccessToken))
 	headers.Add("Device-ID", deviceID)
 
-	schedulerAPI, closer, err := client.NewScheduler(ctx, auth.URL, headers)
+	schedulerAPI, closer, err := client.NewScheduler(context.Background(), auth.URL, headers)
 	if err != nil {
 		return nil, nil, err
 	}
