@@ -608,6 +608,9 @@ func (c *Cache) removeCache() error {
 	cidMap := make(map[string][]string, 0)
 
 	for _, block := range blocks {
+		if block.Status != api.CacheStatusSuccess {
+			continue
+		}
 		cids, ok := cidMap[block.DeviceID]
 		if !ok {
 			cids = make([]string, 0)
