@@ -426,7 +426,11 @@ func (m *Manager) CacheCarfileResult(info *api.CacheResultInfo) (err error) {
 }
 
 func (m *Manager) doCacheResults() {
-	// size := cache.GetDB().GetCacheResultNum()
+	size := cache.GetDB().GetCacheResultNum()
+	if size <= 0 {
+		return
+	}
+
 	var wg sync.WaitGroup
 	for i := 0; i < blockResultThreadCount; i++ {
 		wg.Add(1)
