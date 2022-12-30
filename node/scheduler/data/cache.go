@@ -293,10 +293,14 @@ func (c *Cache) findNodeAndBlockMapWithHash(hash string) (map[string]string, *no
 
 // Allocate blocks to nodes
 // TODO Need to refactor the function
-func (c *Cache) allocateBlocksToNodes(cidMap map[string]string, isStarted bool) ([]*api.BlockInfo, map[string]map[string]*api.ReqCacheData) {
+func (c *Cache) allocateBlocksToNodes(cidMap map[string]string, isStarted bool, cacheError *api.CacheError) ([]*api.BlockInfo, map[string]map[string]*api.ReqCacheData) {
 	nodeReqCacheDataMap := make(map[string]map[string]*api.ReqCacheData)
 	saveDBblockList := make([]*api.BlockInfo, 0)
 	cacheErrorList := make([]*api.CacheError, 0)
+
+	if cacheError != nil {
+		cacheErrorList = append(cacheErrorList, cacheError)
+	}
 
 	index := 0
 	for cid, dbID := range cidMap {
@@ -446,6 +450,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 
 	status := api.CacheStatusFail
 	reliability := 0
+	var cacheError *api.CacheError
 
 	if info.IsOK {
 		c.lock.Lock()
@@ -468,6 +473,13 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 
 		// c.alreadyCacheBlockMap[hash] = info.DeviceID
 		c.alreadyCacheBlockMap.Store(hash, info.DeviceID)
+	} else {
+		cacheError = &api.CacheError{
+			CID:      info.Cid,
+			Msg:      info.Msg,
+			Time:     time.Now(),
+			DeviceID: info.DeviceID,
+		}
 	}
 
 	bInfo := &api.BlockInfo{
@@ -489,7 +501,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		}
 	}
 
-	saveDbBlocks, nodeCacheMap := c.allocateBlocksToNodes(linkMap, true)
+	saveDbBlocks, nodeCacheMap := c.allocateBlocksToNodes(linkMap, true, cacheError)
 	// save info to mysql
 	err = c.data.updateAndSaveCacheingInfo(bInfo, c, saveDbBlocks)
 	if err != nil {
@@ -535,7 +547,7 @@ func (c *Cache) updateNodeBlockInfo(deviceID, fromDeviceID string, blockSize int
 }
 
 func (c *Cache) startCache(cids map[string]string) error {
-	saveDbBlocks, nodeCacheMap := c.allocateBlocksToNodes(cids, false)
+	saveDbBlocks, nodeCacheMap := c.allocateBlocksToNodes(cids, false, nil)
 
 	err := persistent.GetDB().SaveCacheingResults(nil, nil, nil, saveDbBlocks)
 	if err != nil {

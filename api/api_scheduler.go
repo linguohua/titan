@@ -234,4 +234,5 @@ type CacheError struct {
 	DiskCount int
 	Msg       string
 	Time      time.Time
+	DeviceID  string
 }
