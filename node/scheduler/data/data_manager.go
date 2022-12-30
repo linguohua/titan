@@ -468,12 +468,14 @@ func (m *Manager) doCacheResults() {
 
 // PushCacheResultToQueue new cache task
 func (m *Manager) PushCacheResultToQueue(info *api.CacheResultInfo) error {
-	_, err := cache.GetDB().SetCacheResultInfo(info)
+	count, err := cache.GetDB().SetCacheResultInfo(info)
 	if err != nil {
 		return err
 	}
 
-	//TODO reset timeout
+	//reset timeout
+	addSecond := count / 50
+	m.updateDataTimeout(info.CarFileHash, info.CacheID, 0, addSecond)
 
 	m.notifyBlockLoader()
 
@@ -523,15 +525,25 @@ func (m *Manager) doDataTasks() {
 // }
 
 // update the data task timeout
-func (m *Manager) updateDataTimeout(carfileHash, cacheID string, timeout int64) {
+func (m *Manager) updateDataTimeout(carfileHash, cacheID string, timeoutSecond int64, addSecond int64) {
 	et, err := cache.GetDB().GetRunningDataTaskExpiredTime(carfileHash)
-	if err == nil {
-		if int64(et.Seconds()) > timeout {
-			return
-		}
+	if err != nil {
+		log.Errorf("updateDataTimeout GetRunningDataTaskExpiredTime err:%s", err.Error())
+		return
 	}
 
-	err = cache.GetDB().SetRunningDataTask(carfileHash, cacheID, timeout)
+	t := int64(et.Seconds())
+	if t > timeoutSecond {
+		if addSecond <= 0 {
+			return
+		}
+
+		timeoutSecond = t
+	}
+
+	timeoutSecond += addSecond
+
+	err = cache.GetDB().SetRunningDataTask(carfileHash, cacheID, timeoutSecond)
 	if err != nil {
 		log.Panicf("dataTaskStart %s , SetRunningDataTask err:%s", cacheID, err.Error())
 	}
