@@ -424,7 +424,7 @@ func (c *Cache) sendBlocksToNodes(nodeCacheMap map[string]map[string]*api.ReqCac
 		timeout = 15
 	}
 	// update data task timeout
-	c.data.dataManager.updateDataTimeout(c.carfileHash, c.cacheID, timeout)
+	c.data.dataManager.updateDataTimeout(c.carfileHash, c.cacheID, timeout, 0)
 
 	return
 }
