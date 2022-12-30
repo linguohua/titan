@@ -408,7 +408,6 @@ var runCmd = &cli.Command{
 							break
 						}
 					}
-					log.Infof("Session uuid:%s", curSession)
 
 					select {
 					case <-readyCh:
