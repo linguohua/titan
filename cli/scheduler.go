@@ -641,16 +641,12 @@ var showDatasInfoCmd = &cli.Command{
 			return err
 		}
 
-		statusToStr := func(s int) string {
+		statusToStr := func(s api.CacheStatus) string {
 			switch s {
-			case 1:
-				return "running"
-			case 3:
+			case api.CacheStatusSuccess:
 				return "done"
-			case 4:
-				return "time out"
 			default:
-				return "failed"
+				return "running"
 			}
 		}
 
@@ -675,7 +671,7 @@ var showDatasInfoCmd = &cli.Command{
 			for j := 0; j < len(info.CacheInfos); j++ {
 				cache := info.CacheInfos[j]
 				fmt.Printf("TaskID:%s ,  Status:%s , Done Size:%f MB , Done Blocks:%d , Nodes:%d , IsRootCache:%v\n",
-					cache.CacheID, statusToStr(int(cache.Status)), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.Nodes, cache.RootCache)
+					cache.CacheID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.Nodes, cache.RootCache)
 			}
 		}
 
@@ -710,13 +706,13 @@ var showDataInfoCmd = &cli.Command{
 			return err
 		}
 
-		statusToStr := func(s int) string {
+		statusToStr := func(s api.CacheStatus) string {
 			switch s {
-			case 1:
+			case api.CacheStatusCreate:
 				return "running"
-			case 3:
+			case api.CacheStatusSuccess:
 				return "done"
-			case 4:
+			case api.CacheStatusTimeout:
 				return "time out"
 			default:
 				return "failed"
@@ -731,7 +727,7 @@ var showDataInfoCmd = &cli.Command{
 		fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d , Nodes:%d %s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.Nodes, timeout)
 		for _, cache := range info.CacheInfos {
 			fmt.Printf("TaskID:%s ,  Status:%s , Done Size:%f MB ,Done Blocks:%d , Nodes:%d , IsRootCache:%v \n",
-				cache.CacheID, statusToStr(int(cache.Status)), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.Nodes, cache.RootCache)
+				cache.CacheID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.Nodes, cache.RootCache)
 		}
 
 		return nil
