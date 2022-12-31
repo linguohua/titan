@@ -118,24 +118,24 @@ func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
 	}
 
 	// update
-	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address,server_name=:server_name,url=:url,exited=:exited WHERE device_id=:device_id`, info)
+	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address,server_name=:server_name,url=:url,quitted=:quitted WHERE device_id=:device_id`, info)
 
 	return err
 }
 
-func (sd sqlDB) SetNodeExited(deviceID string) error {
+func (sd sqlDB) SetNodeQuit(deviceID string) error {
 	info := &NodeInfo{
 		DeviceID: deviceID,
-		Exited:   true,
+		Quitted:  true,
 	}
-	_, err := sd.cli.NamedExec(`UPDATE node SET exited=:exited WHERE device_id=:device_id`, info)
+	_, err := sd.cli.NamedExec(`UPDATE node SET quitted=:quitted WHERE device_id=:device_id`, info)
 	return err
 }
 
 func (sd sqlDB) GetOfflineNodes() ([]*NodeInfo, error) {
 	list := make([]*NodeInfo, 0)
 
-	cmd := "SELECT device_id,last_time FROM node WHERE exited=? AND is_online=? AND server_name=?"
+	cmd := "SELECT device_id,last_time FROM node WHERE quitted=? AND is_online=? AND server_name=?"
 	if err := sd.cli.Select(&list, cmd, false, false, serverName); err != nil {
 		return nil, err
 	}

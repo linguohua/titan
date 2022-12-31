@@ -1,7 +1,6 @@
 package node
 
 import (
-	"crypto/rsa"
 	"runtime"
 	"sync"
 	"time"
@@ -11,7 +10,6 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/helper"
-	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
@@ -20,7 +18,7 @@ import (
 var log = logging.Logger("node")
 
 const (
-	nodeExitTime = 24 // If it is not online after this time, it is determined that the node has exited the system (hour)
+	nodeExitTime = 24 // If it is not online after this time, it is determined that the node has quit the system (hour)
 
 	keepaliveTime = 30 // keepalive time interval (second)
 )
@@ -58,7 +56,7 @@ func (m *Manager) run() {
 			m.checkNodesKeepalive()
 
 			// check node offline how time
-			m.checkNodesExited()
+			m.checkNodesQuit()
 		}
 	}
 }
@@ -74,9 +72,9 @@ func (m *Manager) edgeKeepalive(node *EdgeNode, nowTime time.Time) {
 		return
 	}
 
-	_, err := cache.GetDB().IncrNodeOnlineTime(node.GetDeviceInfo().DeviceId, keepaliveTime)
+	_, err := cache.GetDB().IncrNodeOnlineTime(node.DeviceId, keepaliveTime)
 	if err != nil {
-		log.Warnf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.GetDeviceInfo().DeviceId)
+		log.Warnf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceId)
 	}
 }
 
@@ -91,9 +89,9 @@ func (m *Manager) candidateKeepalive(node *CandidateNode, nowTime time.Time) {
 		return
 	}
 
-	_, err := cache.GetDB().IncrNodeOnlineTime(node.GetDeviceInfo().DeviceId, keepaliveTime)
+	_, err := cache.GetDB().IncrNodeOnlineTime(node.DeviceId, keepaliveTime)
 	if err != nil {
-		log.Warnf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.GetDeviceInfo().DeviceId)
+		log.Warnf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceId)
 	}
 }
 
@@ -190,7 +188,7 @@ func (m *Manager) GetNodes(nodeType api.NodeTypeName) ([]string, error) {
 
 // EdgeOnline Edge Online
 func (m *Manager) EdgeOnline(node *EdgeNode) error {
-	deviceID := node.GetDeviceInfo().DeviceId
+	deviceID := node.DeviceId
 
 	nodeOld := m.GetEdgeNode(deviceID)
 	if nodeOld != nil {
@@ -222,7 +220,7 @@ func (m *Manager) GetEdgeNode(deviceID string) *EdgeNode {
 }
 
 func (m *Manager) edgeOffline(node *EdgeNode) {
-	deviceID := node.GetDeviceInfo().DeviceId
+	deviceID := node.DeviceId
 	// close old node
 	node.ClientCloser()
 
@@ -239,7 +237,7 @@ func (m *Manager) edgeOffline(node *EdgeNode) {
 
 // CandidateOnline Candidate Online
 func (m *Manager) CandidateOnline(node *CandidateNode) error {
-	deviceID := node.GetDeviceInfo().DeviceId
+	deviceID := node.DeviceId
 
 	nodeOld := m.GetCandidateNode(deviceID)
 	if nodeOld != nil {
@@ -272,7 +270,7 @@ func (m *Manager) GetCandidateNode(deviceID string) *CandidateNode {
 }
 
 func (m *Manager) candidateOffline(node *CandidateNode) {
-	deviceID := node.GetDeviceInfo().DeviceId
+	deviceID := node.DeviceId
 	// close old node
 	node.ClientCloser()
 
@@ -287,88 +285,118 @@ func (m *Manager) candidateOffline(node *CandidateNode) {
 	}
 }
 
-// FindEdgeNodes Find EdgeNodes from useDeviceIDs and skip skips
-func (m *Manager) FindEdgeNodes(useDeviceIDs []string, skips map[string]string) []*EdgeNode {
-	if skips == nil {
-		skips = make(map[string]string)
+// // FindEdgesByList find edges by list
+// func (m *Manager) FindEdgesByList(list []string, filterMap map[string]string) []*EdgeNode {
+// 	if filterMap == nil {
+// 		filterMap = make(map[string]string)
+// 	}
+
+// 	nodes := make([]*EdgeNode, 0)
+
+// 	for _, dID := range list {
+// 		if _, exist := filterMap[dID]; exist {
+// 			continue
+// 		}
+
+// 		node := m.GetEdgeNode(dID)
+// 		if node != nil {
+// 			nodes = append(nodes, node)
+// 		}
+// 	}
+
+// 	if len(nodes) > 0 {
+// 		return nodes
+// 	}
+
+// 	return nil
+// }
+
+// // FindEdges Find Edges by all edge
+// func (m *Manager) FindEdges(filterMap map[string]string) []*EdgeNode {
+// 	if filterMap == nil {
+// 		filterMap = make(map[string]string)
+// 	}
+
+// 	nodes := make([]*EdgeNode, 0)
+
+// 	m.EdgeNodeMap.Range(func(key, value interface{}) bool {
+// 		deviceID := key.(string)
+// 		node := value.(*EdgeNode)
+
+// 		if _, ok := filterMap[deviceID]; ok {
+// 			return true
+// 		}
+
+// 		if node == nil {
+// 			return true
+// 		}
+// 		nodes = append(nodes, node)
+
+// 		return true
+// 	})
+
+// 	if len(nodes) > 0 {
+// 		return nodes
+// 	}
+
+// 	return nil
+// }
+
+// FindCandidates Find CandidateNodes from all Candidate and filter filterMap
+func (m *Manager) FindCandidates(filterMap map[string]string) []*CandidateNode {
+	if filterMap == nil {
+		filterMap = make(map[string]string)
 	}
 
-	list := make([]*EdgeNode, 0)
+	nodes := make([]*CandidateNode, 0)
 
-	if useDeviceIDs != nil && len(useDeviceIDs) > 0 {
-		for _, dID := range useDeviceIDs {
-			if _, ok := skips[dID]; ok {
-				continue
-			}
+	m.CandidateNodeMap.Range(func(key, value interface{}) bool {
+		deviceID := key.(string)
+		node := value.(*CandidateNode)
 
-			node := m.GetEdgeNode(dID)
-			if node != nil {
-				list = append(list, node)
-			}
-		}
-	} else {
-		m.EdgeNodeMap.Range(func(key, value interface{}) bool {
-			deviceID := key.(string)
-			node := value.(*EdgeNode)
-
-			if _, ok := skips[deviceID]; ok {
-				return true
-			}
-
-			if node == nil {
-				return true
-			}
-			list = append(list, node)
-
+		if _, ok := filterMap[deviceID]; ok {
 			return true
-		})
-	}
+		}
 
-	if len(list) > 0 {
-		return list
+		if node != nil {
+			nodes = append(nodes, node)
+		}
+
+		return true
+	})
+
+	if len(nodes) > 0 {
+		return nodes
 	}
 
 	return nil
 }
 
-// FindCandidateNodes Find CandidateNodes from useDeviceIDs and skip skips
-func (m *Manager) FindCandidateNodes(useDeviceIDs []string, skips map[string]string) []*CandidateNode {
-	if skips == nil {
-		skips = make(map[string]string)
+// FindCandidatesByList Find CandidateNodes by list and filter filterMap
+func (m *Manager) FindCandidatesByList(list []string, filterMap map[string]string) []*CandidateNode {
+	if list == nil {
+		return nil
 	}
 
-	list := make([]*CandidateNode, 0)
+	if filterMap == nil {
+		filterMap = make(map[string]string)
+	}
 
-	if len(useDeviceIDs) > 0 {
-		for _, dID := range useDeviceIDs {
-			if _, ok := skips[dID]; ok {
-				continue
-			}
-			// node, ok := eMap[dID]
-			node := m.GetCandidateNode(dID)
-			if node != nil {
-				list = append(list, node)
-			}
+	nodes := make([]*CandidateNode, 0)
+
+	for _, dID := range list {
+		if _, ok := filterMap[dID]; ok {
+			continue
 		}
-	} else {
-		m.CandidateNodeMap.Range(func(key, value interface{}) bool {
-			deviceID := key.(string)
-			node := value.(*CandidateNode)
-
-			if _, ok := skips[deviceID]; ok {
-				return true
-			}
-
-			if node != nil {
-				list = append(list, node)
-			}
-
-			return true
-		})
+		// node, ok := eMap[dID]
+		node := m.GetCandidateNode(dID)
+		if node != nil {
+			nodes = append(nodes, node)
+		}
 	}
 
-	if len(list) > 0 {
-		return list
+	if len(nodes) > 0 {
+		return nodes
 	}
 
 	return nil
@@ -425,8 +453,8 @@ func (m *Manager) FindNodeDownloadInfos(cid string) ([]api.DownloadInfoResult, e
 	return infos, nil
 }
 
-// GetCandidateNodesWithData find device with block hash
-func (m *Manager) GetCandidateNodesWithData(hash, skip string) ([]*CandidateNode, error) {
+// GetCandidatesWithBlockHash find candidates with block hash
+func (m *Manager) GetCandidatesWithBlockHash(hash, filterHash string) ([]*CandidateNode, error) {
 	deviceIDs, err := persistent.GetDB().GetNodesWithBlock(hash, true)
 	if err != nil {
 		return nil, err
@@ -437,40 +465,21 @@ func (m *Manager) GetCandidateNodesWithData(hash, skip string) ([]*CandidateNode
 		return nil, xerrors.Errorf("not found node, with hash:%s", hash)
 	}
 
-	skips := make(map[string]string)
+	filterMap := make(map[string]string)
 
-	if skip != "" {
-		skips[skip] = hash
+	if filterHash != "" {
+		filterMap[filterHash] = hash
 	}
 
-	nodeCs := m.FindCandidateNodes(deviceIDs, skips)
+	nodeCs := m.FindCandidatesByList(deviceIDs, filterMap)
 
 	return nodeCs, nil
 }
 
-func (m *Manager) getDeviccePrivateKey(deviceID string, authInfo *api.DownloadServerAccessAuth) (*rsa.PrivateKey, error) {
-	edge := m.GetEdgeNode(deviceID)
-	if edge != nil {
-		return edge.GetPrivateKey(), nil
-	}
-
-	candidate := m.GetCandidateNode(deviceID)
-	if candidate != nil {
-		return candidate.GetPrivateKey(), nil
-	}
-
-	privateKey, err := titanRsa.Pem2PrivateKey(authInfo.PrivateKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return privateKey, nil
-}
-
-func (m *Manager) checkNodesExited() {
+func (m *Manager) checkNodesQuit() {
 	nodes, err := persistent.GetDB().GetOfflineNodes()
 	if err != nil {
-		log.Warnf("checkNodesExited GetOfflineNodes err:%s", err.Error())
+		log.Warnf("checkNodesQuit GetOfflineNodes err:%s", err.Error())
 		return
 	}
 
@@ -483,19 +492,19 @@ func (m *Manager) checkNodesExited() {
 			continue
 		}
 
-		// node exited
+		// node quitted
 		exiteds = append(exiteds, node.DeviceID)
 
 		// clean node cache
-		go m.NodeExited(node.DeviceID)
+		go m.NodeQuit(node.DeviceID)
 	}
 }
 
-// NodeExited Node Exited
-func (m *Manager) NodeExited(deviceID string) {
-	err := persistent.GetDB().SetNodeExited(deviceID)
+// NodeQuit Node quit
+func (m *Manager) NodeQuit(deviceID string) {
+	err := persistent.GetDB().SetNodeQuit(deviceID)
 	if err != nil {
-		log.Warnf("NodeExited SetNodeExited err:%s", err.Error())
+		log.Warnf("NodeExited SetNodeQuit err:%s", err.Error())
 		return
 	}
 

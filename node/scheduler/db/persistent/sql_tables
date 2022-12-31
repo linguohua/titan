@@ -10,7 +10,7 @@ CREATE TABLE `node` (
 	`server_name` varchar(64) DEFAULT '' ,
 	`private_key` varchar(1024) DEFAULT '' ,
 	`url` varchar(64) DEFAULT '' ,
-    `exited` BOOLEAN DEFAULT '0' ,
+    `quitted` BOOLEAN DEFAULT '0' ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node info';
 

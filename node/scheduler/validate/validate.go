@@ -68,10 +68,10 @@ type Validate struct {
 	validateState validateState
 
 	// validate switch
-	open bool
+	enable bool
 }
 
-func NewValidate(manager *node.Manager, open bool) *Validate {
+func NewValidate(manager *node.Manager, enable bool) *Validate {
 	e := &Validate{
 		ctx:           context.Background(),
 		duration:      10,
@@ -81,7 +81,7 @@ func NewValidate(manager *node.Manager, open bool) *Validate {
 		nodeManager:   manager,
 		crontab:       cron.New(),
 		validateState: validationNotStarted,
-		open:          open,
+		enable:        enable,
 	}
 
 	e.initValidateTask()
@@ -128,7 +128,7 @@ func (v *Validate) startValidate() error {
 		return err
 	}
 
-	if !v.open {
+	if !v.enable {
 		v.validateState = validationNotStarted
 		return nil
 	}
@@ -229,7 +229,7 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 		edgeNode := value.(*node.EdgeNode)
 		var tn tmpDeviceMeta
 		tn.nodeType = api.NodeEdge
-		tn.deviceId = edgeNode.GetDeviceInfo().DeviceId
+		tn.deviceId = edgeNode.DeviceId
 		tn.addr = edgeNode.Node.GetAddress()
 
 		validatorID := validatorList[v.generatorForRandomNumber(0, len(validatorList))]
@@ -251,12 +251,12 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 	v.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
 		candidateNode := value.(*node.CandidateNode)
 		var tn tmpDeviceMeta
-		tn.deviceId = candidateNode.GetDeviceInfo().DeviceId
+		tn.deviceId = candidateNode.DeviceId
 		tn.nodeType = api.NodeCandidate
 		tn.addr = candidateNode.Node.GetAddress()
 
 		validatorID := validatorList[v.generatorForRandomNumber(0, len(validatorList))]
-		if validatorID == candidateNode.GetDeviceInfo().DeviceId {
+		if validatorID == candidateNode.DeviceId {
 			return true
 		}
 
@@ -489,12 +489,12 @@ func (v *Validate) compareCid(cidStr1, cidStr2 string) bool {
 	return hash1 == hash2
 }
 
-func (v *Validate) SetValidateSwitch(open bool) {
-	v.open = open
+func (v *Validate) EnableValidate(enable bool) {
+	v.enable = enable
 }
 
-func (v *Validate) GetValidateRunningState() bool {
-	return v.open
+func (v *Validate) IsEnable() bool {
+	return v.enable
 }
 
 func (v *Validate) StartValidateOnceTask() error {
@@ -507,7 +507,7 @@ func (v *Validate) StartValidateOnceTask() error {
 		v.crontab.Start()
 	}()
 
-	v.open = true
+	v.enable = true
 	v.crontab.Stop()
 	err := v.startValidate()
 	if err != nil {

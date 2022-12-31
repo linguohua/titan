@@ -18,7 +18,7 @@ type DB interface {
 	SetNodeAuthInfo(info *api.DownloadServerAccessAuth) error
 	GetNodeAuthInfo(deviceID string) (*api.DownloadServerAccessAuth, error)
 	GetOfflineNodes() ([]*NodeInfo, error)
-	SetNodeExited(deviceID string) error
+	SetNodeQuit(deviceID string) error
 
 	// Validate Result
 	InsertValidateResultInfo(info *ValidateResult) error
@@ -145,7 +145,7 @@ type NodeInfo struct {
 	CreateTime time.Time `db:"create_time"`
 	URL        string    `db:"url"`
 	PrivateKey string    `db:"private_key"`
-	Exited     bool      `db:"exited"`
+	Quitted    bool      `db:"quitted"`
 }
 
 // ValidateResult validate result

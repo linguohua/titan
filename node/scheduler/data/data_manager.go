@@ -809,7 +809,7 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceID string) {
 			continue
 		}
 
-		err = persistent.GetDB().SetEventInfo(&api.EventInfo{CID: info.CarfileCid, DeviceID: deviceID, Msg: fmt.Sprintf("%s exited", deviceID), Event: string(eventTypeRestoreCache)})
+		err = persistent.GetDB().SetEventInfo(&api.EventInfo{CID: info.CarfileCid, DeviceID: deviceID, Msg: fmt.Sprintf("%s quitted", deviceID), Event: string(eventTypeRestoreCache)})
 		if err != nil {
 			log.Errorf("cleanNodeAndRestoreCaches SetEventInfo err:%s", err.Error())
 			continue

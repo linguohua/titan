@@ -20,7 +20,7 @@ type Election struct {
 	opts       EleOption
 	connect    chan string
 	update     chan struct{}
-	manage     *node.Manager
+	manager    *node.Manager
 	vlk        sync.RWMutex
 	validators map[string]time.Time
 
@@ -61,9 +61,9 @@ func ExpirationOption(expiration time.Duration) Option {
 	}
 }
 
-func NewElection(manage *node.Manager, opts ...Option) *Election {
+func NewElection(manager *node.Manager, opts ...Option) *Election {
 	ele := &Election{
-		manage:     manage,
+		manager:    manager,
 		opts:       newEleOption(opts...),
 		validators: make(map[string]time.Time),
 		connect:    make(chan string, 1),
@@ -157,7 +157,7 @@ func (v *Election) winner(isAppend bool) ([]*node.CandidateNode, error) {
 	candidates := v.getAllCandidates()
 	allNodes := v.getAllNode()
 	sort.Slice(allNodes, func(i, j int) bool {
-		return allNodes[i].GetDeviceInfo().BandwidthUp > allNodes[j].GetDeviceInfo().BandwidthUp
+		return allNodes[i].BandwidthUp > allNodes[j].BandwidthUp
 	})
 
 	if isAppend && len(v.validators) > 0 {
@@ -165,7 +165,7 @@ func (v *Election) winner(isAppend bool) ([]*node.CandidateNode, error) {
 		var excludeValidators []*node.CandidateNode
 		for _, candidate := range candidates {
 			v.vlk.RLock()
-			_, ok := v.validators[candidate.GetDeviceInfo().DeviceId]
+			_, ok := v.validators[candidate.DeviceId]
 			v.vlk.RUnlock()
 			if !ok {
 				excludeValidators = append(excludeValidators, candidate)
@@ -197,16 +197,16 @@ func chooseCandidates(candidates []*node.CandidateNode, allNodes []*node.Node) (
 	if len(allNodes) == 0 {
 		return
 	}
-	minBandwidthUp := allNodes[len(allNodes)-1].GetDeviceInfo().BandwidthUp
+	minBandwidthUp := allNodes[len(allNodes)-1].BandwidthUp
 	for _, candidate := range candidates {
-		bandwidth := candidate.GetDeviceInfo().BandwidthDown
+		bandwidth := candidate.BandwidthDown
 		var skips []*node.Node
 		for i := 0; i < len(allNodes); i++ {
-			if candidate.GetDeviceInfo().BandwidthDown < allNodes[i].GetDeviceInfo().BandwidthUp {
+			if candidate.BandwidthDown < allNodes[i].BandwidthUp {
 				skips = append(skips, allNodes[i])
 				continue
 			}
-			if bandwidth < allNodes[i].GetDeviceInfo().BandwidthUp {
+			if bandwidth < allNodes[i].BandwidthUp {
 				skips = append(skips, allNodes[i])
 				continue
 			}
@@ -214,9 +214,9 @@ func chooseCandidates(candidates []*node.CandidateNode, allNodes []*node.Node) (
 				skips = append(skips, allNodes[i:]...)
 				break
 			}
-			bandwidth = bandwidth - allNodes[i].GetDeviceInfo().BandwidthUp
+			bandwidth = bandwidth - allNodes[i].BandwidthUp
 		}
-		if bandwidth < candidate.GetDeviceInfo().BandwidthDown {
+		if bandwidth < candidate.BandwidthDown {
 			chosen = append(chosen, candidate)
 		}
 		if len(skips) == 0 {
@@ -237,10 +237,10 @@ func (v *Election) saveWinners(winners []*node.CandidateNode) error {
 	v.validators = make(map[string]time.Time)
 	for _, winner := range winners {
 		v.vlk.Lock()
-		v.validators[winner.GetDeviceInfo().DeviceId] = time.Now()
+		v.validators[winner.DeviceId] = time.Now()
 		v.vlk.Unlock()
 
-		err := cache.GetDB().SetValidatorToList(winner.GetDeviceInfo().DeviceId)
+		err := cache.GetDB().SetValidatorToList(winner.DeviceId)
 		if err != nil {
 			log.Errorf("SetValidatorToList err : %s", err.Error())
 		}
@@ -267,11 +267,11 @@ func (v *Election) sufficientCandidates() bool {
 	var candidateDwnBdw, needUpBdw float64
 
 	for _, candidate := range v.getAllCandidates() {
-		candidateDwnBdw += candidate.GetDeviceInfo().BandwidthDown
+		candidateDwnBdw += candidate.BandwidthDown
 	}
 
 	for _, node := range v.getAllNode() {
-		needUpBdw += node.GetDeviceInfo().BandwidthUp
+		needUpBdw += node.BandwidthUp
 	}
 
 	if candidateDwnBdw < needUpBdw {
@@ -304,7 +304,7 @@ func (v *Election) maybeReElect() error {
 
 	v.vlk.RLock()
 	for _, candidate := range candidates {
-		if _, ok := v.validators[candidate.GetDeviceInfo().DeviceId]; ok {
+		if _, ok := v.validators[candidate.DeviceId]; ok {
 			validators = append(validators, candidate)
 		}
 	}
@@ -343,7 +343,7 @@ func (v *Election) getAllCandidates() []*node.CandidateNode {
 	var candidates []*node.CandidateNode
 
 	// cs := v.manage.GetAllCandidate()
-	v.manage.CandidateNodeMap.Range(func(key, value interface{}) bool {
+	v.manager.CandidateNodeMap.Range(func(key, value interface{}) bool {
 		node := value.(*node.CandidateNode)
 		candidates = append(candidates, node)
 
@@ -357,14 +357,14 @@ func (v *Election) getAllNode() []*node.Node {
 	var nodes []*node.Node
 
 	// es := v.manage.GetAllEdge()
-	v.manage.EdgeNodeMap.Range(func(key, value interface{}) bool {
+	v.manager.EdgeNodeMap.Range(func(key, value interface{}) bool {
 		node := value.(*node.EdgeNode)
 		nodes = append(nodes, &node.Node)
 		return true
 	})
 
 	// cs := v.manage.GetAllCandidate()
-	v.manage.CandidateNodeMap.Range(func(key, value interface{}) bool {
+	v.manager.CandidateNodeMap.Range(func(key, value interface{}) bool {
 		node := value.(*node.CandidateNode)
 		nodes = append(nodes, &node.Node)
 		return true
@@ -385,7 +385,7 @@ func (v *Election) checkValidatorExpiration() {
 			v.vlk.Lock()
 			var expire bool
 			for deviceID, lastActive := range v.validators {
-				node := v.manage.GetCandidateNode(deviceID)
+				node := v.manager.GetCandidateNode(deviceID)
 				if node != nil {
 					v.validators[deviceID] = time.Now()
 					continue
@@ -412,7 +412,7 @@ func (v *Election) GenerateValidation() map[string][]string {
 	var validations []*node.Node
 	for _, node := range allNodes {
 		v.vlk.RLock()
-		_, ok := v.validators[node.GetDeviceInfo().DeviceId]
+		_, ok := v.validators[node.DeviceId]
 		v.vlk.RUnlock()
 		if ok {
 			continue
@@ -421,13 +421,13 @@ func (v *Election) GenerateValidation() map[string][]string {
 	}
 
 	sort.Slice(validations, func(i, j int) bool {
-		return validations[i].GetDeviceInfo().BandwidthUp > validations[j].GetDeviceInfo().BandwidthUp
+		return validations[i].BandwidthUp > validations[j].BandwidthUp
 	})
 
 	var currentValidators []*node.CandidateNode
 	for _, candidate := range candidates {
 		v.vlk.RLock()
-		_, ok := v.validators[candidate.GetDeviceInfo().DeviceId]
+		_, ok := v.validators[candidate.DeviceId]
 		v.vlk.RUnlock()
 		if !ok {
 			continue
@@ -441,16 +441,16 @@ func (v *Election) GenerateValidation() map[string][]string {
 
 	out := make(map[string][]string)
 
-	minBandwidthUp := validations[len(validations)-1].GetDeviceInfo().BandwidthUp
+	minBandwidthUp := validations[len(validations)-1].BandwidthUp
 	for _, candidate := range currentValidators {
 		var skips []*node.Node
-		bandwidth := candidate.GetDeviceInfo().BandwidthDown
+		bandwidth := candidate.BandwidthDown
 		for i := 0; i < len(validations); i++ {
-			if candidate.GetDeviceInfo().BandwidthDown < validations[i].GetDeviceInfo().BandwidthUp {
+			if candidate.BandwidthDown < validations[i].BandwidthUp {
 				skips = append(skips, validations[i])
 				continue
 			}
-			if bandwidth < validations[i].GetDeviceInfo().BandwidthUp {
+			if bandwidth < validations[i].BandwidthUp {
 				skips = append(skips, validations[i])
 				continue
 			}
@@ -458,11 +458,11 @@ func (v *Election) GenerateValidation() map[string][]string {
 				skips = append(skips, validations[i:]...)
 				break
 			}
-			bandwidth = bandwidth - validations[i].GetDeviceInfo().BandwidthUp
-			if _, ok := out[candidate.GetDeviceInfo().DeviceId]; !ok {
-				out[candidate.GetDeviceInfo().DeviceId] = make([]string, 0)
+			bandwidth = bandwidth - validations[i].BandwidthUp
+			if _, ok := out[candidate.DeviceId]; !ok {
+				out[candidate.DeviceId] = make([]string, 0)
 			}
-			out[candidate.GetDeviceInfo().DeviceId] = append(out[candidate.GetDeviceInfo().DeviceId], validations[i].GetDeviceInfo().DeviceId)
+			out[candidate.DeviceId] = append(out[candidate.DeviceId], validations[i].DeviceId)
 		}
 		validations = skips
 	}

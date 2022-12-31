@@ -9,20 +9,20 @@ import (
 
 // Manager Locator Manager
 type Manager struct {
-	locatorMap map[string]*node.Location
+	locatorMap map[string]*node.Locator
 	port       int
 }
 
 // NewLoactorManager new
 func NewLoactorManager(port int) *Manager {
 	return &Manager{
-		locatorMap: make(map[string]*node.Location),
+		locatorMap: make(map[string]*node.Locator),
 		port:       port,
 	}
 }
 
 // AddLocator add
-func (m *Manager) AddLocator(location *node.Location) {
+func (m *Manager) AddLocator(location *node.Locator) {
 	m.locatorMap[location.GetLocatorID()] = location
 }
 

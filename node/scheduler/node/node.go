@@ -15,8 +15,8 @@ import (
 
 // var dataDefaultTag = "-1"
 
-// Location Edge node
-type Location struct {
+// Locator Edge node
+type Locator struct {
 	nodeAPI api.Locator
 	closer  jsonrpc.ClientCloser
 
@@ -24,8 +24,8 @@ type Location struct {
 }
 
 // NewLocation new location
-func NewLocation(api api.Locator, closer jsonrpc.ClientCloser, locatorID string) *Location {
-	location := &Location{
+func NewLocation(api api.Locator, closer jsonrpc.ClientCloser, locatorID string) *Locator {
+	location := &Locator{
 		nodeAPI:   api,
 		closer:    closer,
 		locatorID: locatorID,
@@ -35,12 +35,12 @@ func NewLocation(api api.Locator, closer jsonrpc.ClientCloser, locatorID string)
 }
 
 // GetAPI get node api
-func (l *Location) GetAPI() api.Locator {
+func (l *Locator) GetAPI() api.Locator {
 	return l.nodeAPI
 }
 
 // GetLocatorID get id
-func (l *Location) GetLocatorID() string {
+func (l *Locator) GetLocatorID() string {
 	return l.locatorID
 }
 
@@ -107,7 +107,7 @@ func (c *CandidateNode) ClientCloser() {
 
 // Node Common
 type Node struct {
-	deviceInfo     *api.DevicesInfo
+	*api.DevicesInfo
 	addr           string
 	privateKey     *rsa.PrivateKey
 	nodeType       api.NodeTypeName
@@ -125,7 +125,7 @@ type Node struct {
 func NewNode(deviceInfo *api.DevicesInfo, rpcURL, downloadSrvURL string, privateKey *rsa.PrivateKey, nodeType api.NodeTypeName, geoInfo *region.GeoInfo) *Node {
 	node := &Node{
 		addr:           rpcURL,
-		deviceInfo:     deviceInfo,
+		DevicesInfo:    deviceInfo,
 		downloadSrvURL: downloadSrvURL,
 		privateKey:     privateKey,
 		nodeType:       nodeType,
@@ -135,10 +135,10 @@ func NewNode(deviceInfo *api.DevicesInfo, rpcURL, downloadSrvURL string, private
 	return node
 }
 
-// GetDeviceInfo get device info
-func (n *Node) GetDeviceInfo() *api.DevicesInfo {
-	return n.deviceInfo
-}
+// // GetDeviceInfo get device info
+// func (n *Node) GetDeviceInfo() *api.DevicesInfo {
+// 	return n.deviceInfo
+// }
 
 // GetPrivateKey get private key
 func (n *Node) GetPrivateKey() *rsa.PrivateKey {
@@ -182,7 +182,7 @@ func (n *Node) SetGeoInfo(info *region.GeoInfo) {
 
 // node online
 func (n *Node) setNodeOnline() error {
-	deviceID := n.deviceInfo.DeviceId
+	deviceID := n.DeviceId
 	geoInfo := n.geoInfo
 	typeName := string(n.nodeType)
 
@@ -194,7 +194,7 @@ func (n *Node) setNodeOnline() error {
 		Address:    n.addr,
 		PrivateKey: titanRsa.PrivateKey2Pem(n.privateKey),
 		URL:        n.downloadSrvURL,
-		Exited:     false,
+		Quitted:    false,
 	})
 	if err != nil {
 		return err
@@ -205,7 +205,7 @@ func (n *Node) setNodeOnline() error {
 
 // node offline
 func (n *Node) setNodeOffline() {
-	deviceID := n.deviceInfo.DeviceId
+	deviceID := n.DeviceId
 
 	err := persistent.GetDB().SetNodeOffline(deviceID, n.lastRequestTime)
 	if err != nil {
@@ -224,12 +224,12 @@ func (n *Node) UpdateCacheStat(info *api.CacheStat) {
 
 	n.cacheNextTimeoutTimeStamp = n.cacheTimeoutTimeStamp + int64(info.DownloadTimeout*info.RetryNum)
 
-	n.deviceInfo.DiskUsage = info.DiskUsage
+	n.DiskUsage = info.DiskUsage
 }
 
 // SaveInfo Save Device Info
 func (n *Node) SaveInfo() error {
-	err := cache.GetDB().SetDeviceInfo(n.deviceInfo)
+	err := cache.GetDB().SetDeviceInfo(n.DevicesInfo)
 	if err != nil {
 		log.Errorf("set device info: %s", err.Error())
 		return err
