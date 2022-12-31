@@ -190,7 +190,7 @@ func (c *Cache) searchAppropriateNode(skips map[string]string, index int, info *
 		// candidates := c.manager.GetAllCandidate()
 		c.data.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
 			node := value.(*node.CandidateNode)
-			deviceID := node.GetDeviceInfo().DeviceId
+			deviceID := node.DeviceId
 
 			info.Nodes++
 
@@ -199,7 +199,7 @@ func (c *Cache) searchAppropriateNode(skips map[string]string, index int, info *
 				return true
 			}
 
-			if node.GetDeviceInfo().DiskUsage >= diskUsageMax {
+			if node.DiskUsage >= diskUsageMax {
 				info.DiskCount++
 				return true
 			}
@@ -215,13 +215,13 @@ func (c *Cache) searchAppropriateNode(skips map[string]string, index int, info *
 
 		sort.Slice(newList, func(i, j int) bool {
 			// return newList[i].GetCacheTimeoutTimeStamp() < newList[j].GetCacheTimeoutTimeStamp()
-			return newList[i].GetDeviceInfo().DeviceId < newList[j].GetDeviceInfo().DeviceId
+			return newList[i].DeviceId < newList[j].DeviceId
 		})
 
 		node := newList[index%len(newList)]
 		// node := newList[0]
 
-		deviceID = node.GetDeviceInfo().DeviceId
+		deviceID = node.DeviceId
 		return
 	}
 
@@ -230,7 +230,7 @@ func (c *Cache) searchAppropriateNode(skips map[string]string, index int, info *
 	// edges := c.manager.GetAllEdge()
 	c.data.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
 		node := value.(*node.EdgeNode)
-		deviceID := node.GetDeviceInfo().DeviceId
+		deviceID := node.DeviceId
 
 		info.Nodes++
 
@@ -239,7 +239,7 @@ func (c *Cache) searchAppropriateNode(skips map[string]string, index int, info *
 			return true
 		}
 
-		if node.GetDeviceInfo().DiskUsage >= diskUsageMax {
+		if node.DiskUsage >= diskUsageMax {
 			info.DiskCount++
 			return true
 		}
@@ -255,13 +255,13 @@ func (c *Cache) searchAppropriateNode(skips map[string]string, index int, info *
 
 	sort.Slice(newList, func(i, j int) bool {
 		// return newList[i].GetCacheTimeoutTimeStamp() < newList[j].GetCacheTimeoutTimeStamp()
-		return newList[i].GetDeviceInfo().DeviceId < newList[j].GetDeviceInfo().DeviceId
+		return newList[i].DeviceId < newList[j].DeviceId
 	})
 
 	node := newList[index%len(newList)]
 	// node := newList[0]
 
-	deviceID = node.GetDeviceInfo().DeviceId
+	deviceID = node.DeviceId
 	return
 }
 
@@ -331,7 +331,7 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string, isStarted bool, 
 			cacheErrorList = append(cacheErrorList, cError)
 		} else {
 			if fromNode != nil {
-				fromNodeID = fromNode.GetDeviceInfo().DeviceId
+				fromNodeID = fromNode.DeviceId
 			}
 
 			deviceID = c.searchAppropriateNode(skips, index, cError)

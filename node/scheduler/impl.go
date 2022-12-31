@@ -373,7 +373,7 @@ func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids
 			continue
 		}
 
-		infos, err := s.nodeManager.GetCandidateNodesWithData(hash, deviceID)
+		infos, err := s.nodeManager.GetCandidatesWithBlockHash(hash, deviceID)
 		if err != nil || len(infos) <= 0 {
 			continue
 		}
@@ -494,7 +494,7 @@ func randomNum(start, end int) int {
 
 // ValidateSwitch open or close validate task
 func (s *Scheduler) ValidateSwitch(ctx context.Context, open bool) error {
-	s.validate.SetValidateSwitch(open)
+	s.validate.EnableValidate(open)
 	return nil
 }
 
@@ -503,7 +503,7 @@ func (s *Scheduler) ValidateSwitch(ctx context.Context, open bool) error {
 // true is open
 func (s *Scheduler) ValidateRunningState(ctx context.Context) (bool, error) {
 	// the framework requires that the method must return error
-	return s.validate.GetValidateRunningState(), nil
+	return s.validate.IsEnable(), nil
 }
 
 func (s *Scheduler) ValidateStart(ctx context.Context) error {
@@ -542,7 +542,7 @@ func (s *Scheduler) GetDownloadInfo(ctx context.Context, deviceID string) ([]*ap
 
 // NodeExit node want to exit titan
 func (s *Scheduler) NodeExit(ctx context.Context, deviceID string) error {
-	s.nodeManager.NodeExited(deviceID)
+	s.nodeManager.NodeQuit(deviceID)
 
 	return nil
 }

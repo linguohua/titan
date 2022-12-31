@@ -144,13 +144,13 @@ func (d *Data) updateNodeDiskUsage(nodes []string) {
 	for _, deviceID := range nodes {
 		e := d.nodeManager.GetEdgeNode(deviceID)
 		if e != nil {
-			values[e.GetDeviceInfo().DeviceId] = e.GetDeviceInfo().DiskUsage
+			values[e.DeviceId] = e.DiskUsage
 			continue
 		}
 
 		c := d.nodeManager.GetCandidateNode(deviceID)
 		if c != nil {
-			values[c.GetDeviceInfo().DeviceId] = c.GetDeviceInfo().DiskUsage
+			values[c.DeviceId] = c.DiskUsage
 			continue
 		}
 	}
