@@ -4,7 +4,7 @@ import "context"
 
 type Locator interface {
 	Common
-	GetAccessPoints(ctx context.Context, deviceID string, securityKey string) ([]SchedulerAuth, error)                      //perm:read
+	GetAccessPoints(ctx context.Context, deviceID string) ([]string, error)                                                 //perm:read
 	AddAccessPoints(ctx context.Context, areaID string, schedulerURL string, weight int, schedulerAccessToken string) error //perm:admin
 	RemoveAccessPoints(ctx context.Context, areaID string) error                                                            //perm:admin                                  //perm:admin
 	ListAccessPoints(ctx context.Context) (areaIDs []string, err error)                                                     //perm:admin

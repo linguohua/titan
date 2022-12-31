@@ -3,7 +3,6 @@ package locator
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/linguohua/titan/api"
@@ -59,8 +58,9 @@ type Locator struct {
 	db    *db
 }
 
-func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string, securityKey string) ([]api.SchedulerAuth, error) {
+func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string) ([]string, error) {
 	// TODO: verify securityKey
+	// TODO: take areaID with device
 	ip := handler.GetRequestIP(ctx)
 	areaID := ""
 	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
@@ -80,32 +80,26 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string, se
 	device, err := locator.db.getDeviceInfo(deviceID)
 	if err != nil {
 		log.Errorf("GetAccessPoints, getDeviceInfo error:%s", err.Error())
-		return []api.SchedulerAuth{}, err
+		return nil, err
 	}
 
 	if device == nil || device.AreaID != areaID {
 		log.Info("device == nil || device.AreaID != areaID")
-		return locator.getAccessPointWithWeightCount(areaID, securityKey)
+		return locator.getAccessPointWithWeightCount(areaID)
 	}
 
 	cfg := locator.getCfg(areaID, device.SchedulerURL)
 	if cfg == nil {
-		return locator.getAccessPointWithWeightCount(areaID, securityKey)
+		return locator.getAccessPointWithWeightCount(areaID)
 	}
 
-	schedulerApi, ok := locator.apMgr.getSchedulerAPI(device.SchedulerURL, areaID, cfg.AccessToken)
+	_, ok := locator.apMgr.getSchedulerAPI(device.SchedulerURL, areaID, cfg.AccessToken)
 	if ok {
-		token, err := locator.newAuthTokenFromScheduler(schedulerApi, securityKey)
-		if err == nil {
-			auth := api.SchedulerAuth{URL: device.SchedulerURL, AccessToken: token}
-			return []api.SchedulerAuth{auth}, nil
-		}
-
-		log.Errorf("GetAccessPoints authNewToken error:%s", err.Error())
+		return []string{device.SchedulerURL}, nil
 	}
 
 	log.Infof("area %s scheduler api %s not online", areaID, device.SchedulerURL)
-	return locator.getAccessPointWithWeightCount(areaID, securityKey)
+	return locator.getAccessPointWithWeightCount(areaID)
 }
 
 func (locator *Locator) AddAccessPoints(ctx context.Context, areaID string, schedulerURL string, weight int, schedulerAccessToken string) error {
@@ -184,16 +178,16 @@ func (locator *Locator) DeviceOffline(ctx context.Context, deviceID string) erro
 	return nil
 }
 
-func (locator *Locator) getAccessPointWithWeightCount(areaID, securityKey string) ([]api.SchedulerAuth, error) {
+func (locator *Locator) getAccessPointWithWeightCount(areaID string) ([]string, error) {
 	log.Infof("getAccessPointWithWeightCount, areaID:%s", areaID)
 
 	ap, err := locator.db.getAccessPoint(areaID)
 	if err != nil {
-		return []api.SchedulerAuth{}, err
+		return nil, err
 	}
 
 	if len(ap.SchedulerCfgs) == 0 {
-		return []api.SchedulerAuth{}, nil
+		return nil, nil
 	}
 
 	// filter online scheduler
@@ -221,24 +215,16 @@ func (locator *Locator) getAccessPointWithWeightCount(areaID, securityKey string
 		}
 	}
 
-	auths := make([]api.SchedulerAuth, 0, len(urls))
+	schedulerURLs := make([]string, 0, len(urls))
 	for _, url := range urls {
-		schedulerAPI, exist := onlineSchedulerAPI[url]
-		if !exist {
-			log.Errorf("onlineSchedulerAPI can not find scheduler %s", url)
-			continue
+		_, ok := onlineSchedulerAPI[url]
+		if ok {
+			schedulerURLs = append(schedulerURLs, url)
 		}
-		accessToken, err := locator.newAuthTokenFromScheduler(schedulerAPI, securityKey)
-		if err != nil {
-			log.Errorf("onlineSchedulerAPI can not new authToken from scheduler %s, error: %s", url, err.Error())
-			continue
-		}
-		auth := api.SchedulerAuth{URL: url, AccessToken: accessToken}
-		auths = append(auths, auth)
 	}
 
-	log.Infof("area %s onlineSchedulers count:%d, access server %v", areaID, len(onlineSchedulerCfgs), urls)
-	return auths, nil
+	log.Infof("area %s onlineSchedulers count:%d, access server %v", areaID, len(onlineSchedulerCfgs), schedulerURLs)
+	return schedulerURLs, nil
 }
 
 func countSchedulerWeightWithCfgs(schedulerCfgs map[string]*config.SchedulerCfg) map[string]float32 {
@@ -387,18 +373,6 @@ func (locator *Locator) UserDownloadBlockResults(ctx context.Context, results []
 		return schedulerAPI.UserDownloadBlockResults(ctx, results)
 	}
 	return nil
-}
-
-func (locator *Locator) newAuthTokenFromScheduler(schedulerAPI *schedulerAPI, securityKey string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
-	defer cancel()
-	log.Infof("authNewTokenFromScheduler, securityKey:%s", securityKey)
-	perms := []auth.Permission{api.PermRead, api.PermWrite}
-	token, err := schedulerAPI.AuthNodeNew(ctx, perms, securityKey)
-	if err != nil {
-		return "", err
-	}
-	return string(token), err
 }
 
 func (locator *Locator) getCfg(areaID, schedulerURL string) *config.SchedulerCfg {

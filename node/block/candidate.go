@@ -49,6 +49,10 @@ func (candidate *Candidate) syncData(block *Block, reqs map[int]string) error {
 			continue
 		}
 
+		if len(infos) < len(group) {
+			log.Errorf("syncData, need to get %d blocks info, but get %d blocks info", len(group), len(infos))
+		}
+
 		for cid, info := range infos {
 			candidate, err := getCandidateAPI(info.URL, info.Token, candidates)
 			if err != nil {
@@ -75,7 +79,7 @@ func (candidate *Candidate) syncData(block *Block, reqs map[int]string) error {
 }
 
 func getCandidateDownloadInfoWithBlocks(scheduler api.Scheduler, cids []string) (map[string]api.CandidateDownloadInfo, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), helper.BlockDownloadTimeout*time.Second)
 	defer cancel()
 
 	return scheduler.GetCandidateDownloadInfoWithBlocks(ctx, cids)

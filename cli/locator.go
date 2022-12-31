@@ -173,11 +173,6 @@ var getCmd = &cli.Command{
 			Usage: "device id",
 			Value: "2521c39087cecd74a853850dd56e9c859b786fbc",
 		},
-		&cli.StringFlag{
-			Name:  "security-key",
-			Usage: "security key",
-			Value: "2521c39087cecd74a853850dd56e9c859b786fbc",
-		},
 	},
 
 	Action: func(cctx *cli.Context) error {
@@ -188,10 +183,10 @@ var getCmd = &cli.Command{
 		defer closer()
 
 		deviceID := cctx.String("device-id")
-		securityKey := cctx.String("security-key")
+		// securityKey := cctx.String("security-key")
 		ctx := ReqContext(cctx)
 
-		urls, err := api.GetAccessPoints(ctx, deviceID, securityKey)
+		urls, err := api.GetAccessPoints(ctx, deviceID)
 		if err != nil {
 			return err
 		}
