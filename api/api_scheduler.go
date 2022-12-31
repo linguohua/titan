@@ -49,9 +49,9 @@ type Scheduler interface {
 	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) error                              //perm:write
 	GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]CandidateDownloadInfo, error) //perm:write
 	GetExternalIP(ctx context.Context) (string, error)                                                               //perm:write
-	GetPublicKey(ctx context.Context) (string, error)
-	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                             //perm:read
-	AuthNodeNew(ctx context.Context, perms []auth.Permission, deviceID, deviceSecret string) ([]byte, error) //perm:read                                                               //perm:write
+	GetPublicKey(ctx context.Context) (string, error)                                                                //perm:write
+	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                                     //perm:read
+	AuthNodeNew(ctx context.Context, perms []auth.Permission, deviceID, deviceSecret string) ([]byte, error)         //perm:read                                                               //perm:write
 
 	// call by user
 	GetDownloadInfosWithBlocks(ctx context.Context, cids []string, publicKey string) (map[string][]DownloadInfoResult, error) //perm:read

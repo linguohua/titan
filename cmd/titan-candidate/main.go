@@ -424,7 +424,7 @@ var runCmd = &cli.Command{
 					case <-readyCh:
 						err := candidateNodeConnect(schedulerAPI, rpcURL, downloadSrvURL)
 						if err != nil {
-							log.Errorf("Registering worker failed: %+v", err)
+							log.Errorf("Registering candidate failed: %+v", err)
 							cancel()
 							return
 						}
@@ -433,7 +433,7 @@ var runCmd = &cli.Command{
 							log.Errorf("LoadPublicKey error:%s", err.Error())
 						}
 
-						log.Info("Worker registered successfully, waiting for tasks")
+						log.Info("Candidate registered successfully, waiting for tasks")
 						errCount = 0
 						readyCh = nil
 					case <-heartbeats.C:
