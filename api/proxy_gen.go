@@ -245,7 +245,7 @@ type SchedulerStruct struct {
 
 		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
 
-		GetPublicKey func(p0 context.Context) (string, error) ``
+		GetPublicKey func(p0 context.Context) (string, error) `perm:"write"`
 
 		ListCacheDatas func(p0 context.Context, p1 int) (DataListInfo, error) `perm:"read"`
 

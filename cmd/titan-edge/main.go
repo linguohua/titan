@@ -414,13 +414,13 @@ var runCmd = &cli.Command{
 					case <-readyCh:
 						err := edgeNodeConnect(schedulerAPI, rpcURL, downloadSrvURL)
 						if err != nil {
-							log.Errorf("Registering worker failed: %+v", err)
+							log.Errorf("Registering edge failed: %+v", err)
 							cancel()
 							return
 						}
 
 						edge.LoadPublicKey()
-						log.Info("Worker registered successfully, waiting for tasks")
+						log.Info("Edge registered successfully, waiting for tasks")
 						errCount = 0
 						readyCh = nil
 					case <-heartbeats.C:
