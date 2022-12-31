@@ -81,10 +81,6 @@ type CommonStruct struct {
 	Internal struct {
 		AuthNew func(p0 context.Context, p1 []auth.Permission) ([]byte, error) `perm:"admin"`
 
-		AuthNodeNew func(p0 context.Context, p1 []auth.Permission, p2 string) ([]byte, error) `perm:"admin"`
-
-		AuthNodeVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
-
 		AuthVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
 
 		Closing func(p0 context.Context) (<-chan struct{}, error) `perm:"read"`
@@ -181,7 +177,7 @@ type LocatorStruct struct {
 
 		DeviceOnline func(p0 context.Context, p1 string, p2 string, p3 int) error `perm:"write"`
 
-		GetAccessPoints func(p0 context.Context, p1 string, p2 string) ([]SchedulerAuth, error) `perm:"read"`
+		GetAccessPoints func(p0 context.Context, p1 string) ([]string, error) `perm:"read"`
 
 		GetDownloadInfoWithBlock func(p0 context.Context, p1 string, p2 string) (DownloadInfoResult, error) `perm:"read"`
 
@@ -209,6 +205,10 @@ type SchedulerStruct struct {
 	WebStruct
 
 	Internal struct {
+		AuthNodeNew func(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) `perm:"read"`
+
+		AuthNodeVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
+
 		CacheCarfile func(p0 context.Context, p1 string, p2 int, p3 time.Time) error `perm:"admin"`
 
 		CacheContinue func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
@@ -243,7 +243,7 @@ type SchedulerStruct struct {
 
 		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
 
-		GetPublicKey func(p0 context.Context) (string, error) `perm:"write"`
+		GetPublicKey func(p0 context.Context) (string, error) ``
 
 		ListCacheDatas func(p0 context.Context, p1 int) (DataListInfo, error) `perm:"read"`
 
@@ -493,28 +493,6 @@ func (s *CommonStub) AuthNew(p0 context.Context, p1 []auth.Permission) ([]byte, 
 	return *new([]byte), ErrNotSupported
 }
 
-func (s *CommonStruct) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string) ([]byte, error) {
-	if s.Internal.AuthNodeNew == nil {
-		return *new([]byte), ErrNotSupported
-	}
-	return s.Internal.AuthNodeNew(p0, p1, p2)
-}
-
-func (s *CommonStub) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string) ([]byte, error) {
-	return *new([]byte), ErrNotSupported
-}
-
-func (s *CommonStruct) AuthNodeVerify(p0 context.Context, p1 string) ([]auth.Permission, error) {
-	if s.Internal.AuthNodeVerify == nil {
-		return *new([]auth.Permission), ErrNotSupported
-	}
-	return s.Internal.AuthNodeVerify(p0, p1)
-}
-
-func (s *CommonStub) AuthNodeVerify(p0 context.Context, p1 string) ([]auth.Permission, error) {
-	return *new([]auth.Permission), ErrNotSupported
-}
-
 func (s *CommonStruct) AuthVerify(p0 context.Context, p1 string) ([]auth.Permission, error) {
 	if s.Internal.AuthVerify == nil {
 		return *new([]auth.Permission), ErrNotSupported
@@ -713,15 +691,15 @@ func (s *LocatorStub) DeviceOnline(p0 context.Context, p1 string, p2 string, p3 
 	return ErrNotSupported
 }
 
-func (s *LocatorStruct) GetAccessPoints(p0 context.Context, p1 string, p2 string) ([]SchedulerAuth, error) {
+func (s *LocatorStruct) GetAccessPoints(p0 context.Context, p1 string) ([]string, error) {
 	if s.Internal.GetAccessPoints == nil {
-		return *new([]SchedulerAuth), ErrNotSupported
+		return *new([]string), ErrNotSupported
 	}
-	return s.Internal.GetAccessPoints(p0, p1, p2)
+	return s.Internal.GetAccessPoints(p0, p1)
 }
 
-func (s *LocatorStub) GetAccessPoints(p0 context.Context, p1 string, p2 string) ([]SchedulerAuth, error) {
-	return *new([]SchedulerAuth), ErrNotSupported
+func (s *LocatorStub) GetAccessPoints(p0 context.Context, p1 string) ([]string, error) {
+	return *new([]string), ErrNotSupported
 }
 
 func (s *LocatorStruct) GetDownloadInfoWithBlock(p0 context.Context, p1 string, p2 string) (DownloadInfoResult, error) {
@@ -799,6 +777,28 @@ func (s *LocatorStruct) UserDownloadBlockResults(p0 context.Context, p1 []UserBl
 
 func (s *LocatorStub) UserDownloadBlockResults(p0 context.Context, p1 []UserBlockDownloadResult) error {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) {
+	if s.Internal.AuthNodeNew == nil {
+		return *new([]byte), ErrNotSupported
+	}
+	return s.Internal.AuthNodeNew(p0, p1, p2, p3)
+}
+
+func (s *SchedulerStub) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) {
+	return *new([]byte), ErrNotSupported
+}
+
+func (s *SchedulerStruct) AuthNodeVerify(p0 context.Context, p1 string) ([]auth.Permission, error) {
+	if s.Internal.AuthNodeVerify == nil {
+		return *new([]auth.Permission), ErrNotSupported
+	}
+	return s.Internal.AuthNodeVerify(p0, p1)
+}
+
+func (s *SchedulerStub) AuthNodeVerify(p0 context.Context, p1 string) ([]auth.Permission, error) {
+	return *new([]auth.Permission), ErrNotSupported
 }
 
 func (s *SchedulerStruct) CacheCarfile(p0 context.Context, p1 string, p2 int, p3 time.Time) error {

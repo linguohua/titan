@@ -345,6 +345,11 @@ var nodeTokenCmd = &cli.Command{
 			Usage: "node secret",
 			Value: "",
 		},
+		&cli.StringFlag{
+			Name:  "device-id",
+			Usage: "device id",
+			Value: "",
+		},
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -352,6 +357,7 @@ var nodeTokenCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		secret := cctx.String("secret")
+		deviceID := cctx.String("device-id")
 		ctx := ReqContext(cctx)
 
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -360,8 +366,8 @@ var nodeTokenCmd = &cli.Command{
 		}
 		defer closer()
 
-		os := []auth.Permission{api.PermRead, api.PermWrite}
-		info, err := schedulerAPI.AuthNodeNew(ctx, os, secret)
+		perms := []auth.Permission{api.PermRead, api.PermWrite}
+		info, err := schedulerAPI.AuthNodeNew(ctx, perms, deviceID, secret)
 		if err != nil {
 			return err
 		}

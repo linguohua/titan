@@ -33,6 +33,7 @@ import (
 	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
 
+	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/linguohua/titan/node/candidate"
 	"github.com/linguohua/titan/stores"
 )
@@ -499,6 +500,22 @@ func extractRoutableIP(cctx *cli.Context) (string, error) {
 	return strings.Split(localAddr.IP.String(), ":")[0], nil
 }
 
+func newAuthTokenFromScheduler(schedulerURL, deviceID, secret string) ([]byte, error) {
+	schedulerAPI, closer, err := client.NewScheduler(context.Background(), schedulerURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	defer closer()
+
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	defer cancel()
+
+	perms := []auth.Permission{api.PermRead, api.PermWrite}
+
+	return schedulerAPI.AuthNodeNew(ctx, perms, deviceID, secret)
+}
+
 func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (api.Scheduler, jsonrpc.ClientCloser, error) {
 	locator, closer, err := lcli.GetLocatorAPI(cctx)
 	if err != nil {
@@ -510,28 +527,35 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (ap
 	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
 	defer cancel()
 
-	auths, err := locator.GetAccessPoints(ctx, deviceID, securityKey)
+	schedulerURLs, err := locator.GetAccessPoints(ctx, deviceID)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if len(auths) <= 0 {
-		return nil, nil, fmt.Errorf("device %s not exist access point", deviceID)
+	if len(schedulerURLs) <= 0 {
+		return nil, nil, fmt.Errorf("candidate %s can not get access point", deviceID)
 	}
 
-	auth := auths[0]
+	schedulerURL := schedulerURLs[0]
+
+	tokenBuf, err := newAuthTokenFromScheduler(schedulerURL, deviceID, securityKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	token := string(tokenBuf)
 
 	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+string(auth.AccessToken))
+	headers.Add("Authorization", "Bearer "+token)
 	headers.Add("Device-ID", deviceID)
 
-	schedulerAPI, closer, err := client.NewScheduler(context.Background(), auth.URL, headers)
+	schedulerAPI, closer, err := client.NewScheduler(context.Background(), schedulerURL, headers)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	log.Infof("scheduler url:%s, token:%s", auth.URL, auth.AccessToken)
+	log.Infof("scheduler url:%s, token:%s", schedulerURL, token)
 
-	os.Setenv("FULLNODE_API_INFO", auth.AccessToken+":"+auth.URL)
+	os.Setenv("FULLNODE_API_INFO", token+":"+schedulerURL)
 	return schedulerAPI, closer, nil
 }

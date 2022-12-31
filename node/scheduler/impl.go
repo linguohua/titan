@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/linguohua/titan/node/scheduler/election"
 	"github.com/linguohua/titan/node/scheduler/validate"
 
@@ -106,8 +107,58 @@ type Scheduler struct {
 	authToken []byte
 }
 
+type jwtPayload struct {
+	Allow []auth.Permission
+}
+
 func (s *Scheduler) getAuthToken() []byte {
 	return s.authToken
+}
+
+func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error) {
+	var payload jwtPayload
+
+	deviceID := handler.GetDeviceID(ctx)
+	// fmt.Println("AuthNodeVerify device id :", deviceID)
+	if deviceID == "" {
+		if _, err := jwt.Verify([]byte(token), (*jwt.HMACSHA)(s.APISecret), &payload); err != nil {
+			return nil, xerrors.Errorf("JWT Verification failed: %w", err)
+		}
+
+		return payload.Allow, nil
+	}
+
+	var secret string
+	err := persistent.GetDB().GetRegisterInfo(deviceID, "secret", &secret)
+	if err != nil {
+		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", deviceID, err)
+	}
+
+	deviceSecret := secret
+	// fmt.Println("AuthNodeVerify deviceSecret:", deviceSecret)
+
+	if _, err := jwt.Verify([]byte(token), (*jwt.HMACSHA)(jwt.NewHS256([]byte(deviceSecret))), &payload); err != nil {
+		return nil, xerrors.Errorf("JWT Verification failed: %w", err)
+	}
+	return payload.Allow, nil
+}
+
+func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, deviceID, deviceSecret string) ([]byte, error) {
+	p := jwtPayload{
+		Allow: perms,
+	}
+
+	var secret string
+	err := persistent.GetDB().GetRegisterInfo(deviceID, "secret", &secret)
+	if err != nil {
+		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", deviceID, err)
+	}
+
+	if secret != deviceSecret {
+		return nil, xerrors.Errorf("device %s secret not match", deviceID)
+	}
+
+	return jwt.Sign(&p, (*jwt.HMACSHA)(jwt.NewHS256([]byte(deviceSecret))))
 }
 
 // CandidateNodeConnect Candidate connect
