@@ -59,8 +59,6 @@ type Locator struct {
 }
 
 func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string) ([]string, error) {
-	// TODO: verify securityKey
-	// TODO: take areaID with device
 	ip := handler.GetRequestIP(ctx)
 	areaID := ""
 	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
@@ -83,22 +81,22 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string) ([
 		return nil, err
 	}
 
-	if device == nil || device.AreaID != areaID {
-		log.Info("device == nil || device.AreaID != areaID")
+	if device == nil {
+		log.Info("GetAccessPoints, device (%s) == nil", deviceID)
 		return locator.getAccessPointWithWeightCount(areaID)
 	}
 
-	cfg := locator.getCfg(areaID, device.SchedulerURL)
+	cfg := locator.getCfg(device.AreaID, device.SchedulerURL)
 	if cfg == nil {
-		return locator.getAccessPointWithWeightCount(areaID)
+		return locator.getAccessPointWithWeightCount(device.AreaID)
 	}
 
-	_, ok := locator.apMgr.getSchedulerAPI(device.SchedulerURL, areaID, cfg.AccessToken)
+	_, ok := locator.apMgr.getSchedulerAPI(device.SchedulerURL, device.AreaID, cfg.AccessToken)
 	if ok {
 		return []string{device.SchedulerURL}, nil
 	}
 
-	log.Infof("area %s scheduler api %s not online", areaID, device.SchedulerURL)
+	log.Infof("area %s scheduler api %s not online", device.AreaID, device.SchedulerURL)
 	return locator.getAccessPointWithWeightCount(areaID)
 }
 
@@ -406,4 +404,29 @@ func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerA
 	}
 
 	return nil, false
+}
+
+func (locator *Locator) RegisterNode(ctx context.Context, areaID string, nodeType api.NodeType, count int) ([]api.NodeRegisterInfo, error) {
+	schedulerURLs, err := locator.getAccessPointWithWeightCount(areaID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(schedulerURLs) == 0 {
+		return nil, fmt.Errorf("Can not find valid scheduler for areaID %s", areaID)
+	}
+
+	schedulerURL := schedulerURLs[0]
+
+	cfg := locator.getCfg(areaID, schedulerURL)
+	if cfg == nil {
+		return nil, fmt.Errorf("Can not find valid scheduler for areaID %s", areaID)
+	}
+
+	schedulerAPI, ok := locator.apMgr.getSchedulerAPI(schedulerURL, areaID, cfg.AccessToken)
+	if !ok {
+		return nil, fmt.Errorf("Can not find valid scheduler for areaID %s", areaID)
+	}
+
+	return schedulerAPI.RegisterNode(context.Background(), nodeType, count)
 }

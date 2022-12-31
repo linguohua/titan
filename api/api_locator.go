@@ -1,6 +1,8 @@
 package api
 
-import "context"
+import (
+	"context"
+)
 
 type Locator interface {
 	Common
@@ -19,6 +21,8 @@ type Locator interface {
 	GetDownloadInfoWithBlock(ctx context.Context, cids string, publicKey string) (DownloadInfoResult, error)                  //perm:read
 	// user send result when user download block complete
 	UserDownloadBlockResults(ctx context.Context, results []UserBlockDownloadResult) error //perm:read
+
+	RegisterNode(ctx context.Context, areaID string, nodeType NodeType, count int) ([]NodeRegisterInfo, error) // perm:admin
 }
 
 type SchedulerAuth struct {
