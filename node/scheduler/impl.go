@@ -404,6 +404,7 @@ func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTyp
 
 // GetCandidateDownloadInfoWithBlocks find node
 func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]api.CandidateDownloadInfo, error) {
+	//TODO too much cid
 	deviceID := handler.GetDeviceID(ctx)
 
 	if !isDeviceExist(deviceID, 0) {
@@ -498,7 +499,7 @@ func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID str
 
 // ElectionValidators Validators
 func (s *Scheduler) ElectionValidators(ctx context.Context) error {
-	s.election.Start()
+	s.election.StartElect()
 	return nil
 }
 
@@ -593,7 +594,7 @@ func (s *Scheduler) GetDownloadInfo(ctx context.Context, deviceID string) ([]*ap
 
 // NodeExit node want to exit titan
 func (s *Scheduler) NodeExit(ctx context.Context, deviceID string) error {
-	s.nodeManager.NodeQuit(deviceID)
+	s.nodeManager.NodeQuit([]string{deviceID})
 
 	return nil
 }
@@ -618,9 +619,9 @@ func (s *Scheduler) nodeOfflineCallback(deviceID string) {
 	go s.locatorManager.NotifyNodeStatusToLocator(deviceID, false)
 }
 
-func (s *Scheduler) nodeExitedCallback(deviceID string) {
+func (s *Scheduler) nodeExitedCallback(deviceIDs []string) {
 	// clean node cache
-	s.dataManager.CleanNodeAndRestoreCaches(deviceID)
+	s.dataManager.CleanNodeAndRestoreCaches(deviceIDs)
 }
 
 //RedressDeveiceInfo redress device info

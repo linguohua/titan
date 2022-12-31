@@ -752,50 +752,38 @@ func (m *Manager) ResetExpiredTime(cid, cacheID string, expiredTime time.Time) e
 }
 
 // CleanNodeAndRestoreCaches clean a node caches info and restore caches
-func (m *Manager) CleanNodeAndRestoreCaches(deviceID string) {
-	// find node caches
-	caches, err := persistent.GetDB().GetCachesFromNode(deviceID)
-	if err != nil {
-		log.Errorf("cleanNodeAndRestoreCaches GetCachesFromNode err:%s", err.Error())
-		return
-	}
-
-	if len(caches) <= 0 {
-		log.Warn("cleanNodeAndRestoreCaches caches is nil")
-		return
-	}
-
-	for _, c := range caches {
-		blocks, err := persistent.GetDB().GetCacheBlocksSizeWithNode(deviceID, c.CacheID)
+func (m *Manager) CleanNodeAndRestoreCaches(deviceIDs []string) {
+	count := 0
+	recacheMap := make(map[string]string)
+	for _, deviceID := range deviceIDs {
+		cacheCount, carfileMap, err := persistent.GetDB().UpdateCacheInfoOfQuitNode(deviceID)
 		if err != nil {
-			log.Errorf("GetCacheBlocksWithNode err:%s", err.Error())
+			log.Errorf("%s UpdateCacheInfoOfQuitNode err:%s", deviceID, err.Error())
 			continue
 		}
 
-		c.DoneBlocks -= len(blocks)
-		for _, size := range blocks {
-			c.DoneSize -= size
+		count += cacheCount
+
+		for cid := range carfileMap {
+			recacheMap[cid] = deviceID
 		}
 
-		if c.Status == api.CacheStatusSuccess {
-			err = cache.GetDB().IncrByBaseInfo("CarfileCount", -1)
+		// update node block count
+		err = cache.GetDB().UpdateDeviceInfo(deviceID, "BlockCount", 0)
+		if err != nil {
+			log.Errorf("CleanNodeAndRestoreCaches UpdateDeviceInfo err:%s ", err.Error())
 		}
 	}
 
-	// clean node caches and change cache info \ data info
-	err = persistent.GetDB().CleanCacheDataWithNode(deviceID, caches)
+	err := cache.GetDB().IncrByBaseInfo("CarfileCount", int64(-count))
 	if err != nil {
-		log.Errorf("cleanNodeAndRestoreCaches CleanCacheDataWithNode err:%s", err.Error())
-		return
+		log.Errorf("CleanNodeAndRestoreCaches IncrByBaseInfo err:%s", err.Error())
 	}
 
-	// restore cache info
-	dataMap := make(map[string]int)
-	for _, c := range caches {
-		dataMap[c.CarfileHash]++
-	}
+	return
 
-	for carfileHash := range dataMap {
+	// re cache
+	for carfileHash, deviceID := range recacheMap {
 		info, err := persistent.GetDB().GetDataInfo(carfileHash)
 		if err != nil {
 			log.Errorf("cleanNodeAndRestoreCaches GetDataInfo err:%s", err.Error())
@@ -814,12 +802,6 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceID string) {
 			log.Errorf("cleanNodeAndRestoreCaches SetEventInfo err:%s", err.Error())
 			continue
 		}
-	}
-
-	// update node block count
-	err = cache.GetDB().UpdateDeviceInfo(deviceID, "BlockCount", 0)
-	if err != nil {
-		log.Errorf("UpdateDeviceInfo err:%s ", err.Error())
 	}
 }
 

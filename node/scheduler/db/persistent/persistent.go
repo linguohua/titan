@@ -18,7 +18,7 @@ type DB interface {
 	SetNodeAuthInfo(info *api.DownloadServerAccessAuth) error
 	GetNodeAuthInfo(deviceID string) (*api.DownloadServerAccessAuth, error)
 	GetOfflineNodes() ([]*NodeInfo, error)
-	SetNodeQuit(deviceID string) error
+	SetNodesQuit(deviceIDs []string) error
 
 	// Validate Result
 	InsertValidateResultInfo(info *ValidateResult) error
@@ -58,8 +58,9 @@ type DB interface {
 	GetAllBlocks(cacheID string) ([]*api.BlockInfo, error)
 	GetNodesFromCache(cacheID string) ([]string, error)
 	GetNodesFromDataCache(hash, cacheID string) (dataOut, cacheOut []string)
-	GetCachesFromNode(deviceID string) ([]*api.CacheInfo, error)
-	CleanCacheDataWithNode(deviceID string, caches []*api.CacheInfo) error // TODO rename
+	// GetCachesFromNode(deviceID string) ([]*api.CacheInfo, error)
+	// CleanCacheDataWithNode(deviceID string, caches []*api.CacheInfo) error // TODO rename
+	UpdateCacheInfoOfQuitNode(deviceID string) (successCacheCount int, carfileReliabilitys map[string]int, err error)
 	// GetNodesFromAllData() ([]string, error)
 
 	// node block

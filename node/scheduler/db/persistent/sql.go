@@ -123,13 +123,27 @@ func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
 	return err
 }
 
-func (sd sqlDB) SetNodeQuit(deviceID string) error {
-	info := &NodeInfo{
-		DeviceID: deviceID,
-		Quitted:  true,
+func (sd sqlDB) SetNodesQuit(deviceIDs []string) error {
+	// info := &NodeInfo{
+	// 	DeviceID: deviceID,
+	// 	Quitted:  true,
+	// }
+	// _, err := sd.cli.NamedExec(`UPDATE node SET quitted=:quitted WHERE device_id=:device_id`, info)
+
+	tx := sd.cli.MustBegin()
+
+	for _, deviceID := range deviceIDs {
+		dCmd := `UPDATE node SET quitted=? WHERE device_id=?`
+		tx.MustExec(dCmd, true, deviceID)
 	}
-	_, err := sd.cli.NamedExec(`UPDATE node SET quitted=:quitted WHERE device_id=:device_id`, info)
-	return err
+
+	err := tx.Commit()
+	if err != nil {
+		err = tx.Rollback()
+		return err
+	}
+
+	return nil
 }
 
 func (sd sqlDB) GetOfflineNodes() ([]*NodeInfo, error) {
@@ -901,40 +915,52 @@ func (sd sqlDB) GetNodesFromCache(cacheID string) ([]string, error) {
 	return out, nil
 }
 
-func (sd sqlDB) GetCachesFromNode(deviceID string) ([]*api.CacheInfo, error) {
+func (sd sqlDB) UpdateCacheInfoOfQuitNode(deviceID string) (successCacheCount int, carfileReliabilitys map[string]int, err error) {
+	successCacheCount = 0
+	carfileReliabilitys = make(map[string]int)
+
 	area := sd.ReplaceArea()
 	bTableName := fmt.Sprintf(blockInfoTable, area)
-	cTableName := fmt.Sprintf(cacheInfoTable, area)
-
-	query := fmt.Sprintf("select * from (select cache_id from %s where device_id=? GROUP BY cache_id )as a LEFT JOIN %s as b on a.cache_id = b.cache_id", bTableName, cTableName)
-	var caches []*api.CacheInfo
-	if err := sd.cli.Select(&caches, query, deviceID); err != nil {
-		return nil, err
-	}
-
-	return caches, nil
-}
-
-func (sd sqlDB) CleanCacheDataWithNode(deviceID string, caches []*api.CacheInfo) error {
-	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 	dTableName := fmt.Sprintf(dataInfoTable, area)
-	bTableName := fmt.Sprintf(blockInfoTable, area)
 
 	tx := sd.cli.MustBegin()
 
-	// block info
-	cmdB := fmt.Sprintf(`UPDATE %s SET status=? WHERE device_id=? AND status=?`, bTableName)
-	tx.MustExec(cmdB, int(api.CacheStatusRestore), deviceID, int(api.CacheStatusSuccess))
+	query := fmt.Sprintf("select * from (select cache_id from %s where device_id=? GROUP BY cache_id )as a LEFT JOIN %s as b on a.cache_id = b.cache_id", bTableName, cTableName)
+	var caches []*api.CacheInfo
+	if err = tx.Select(&caches, query, deviceID); err != nil {
+		return
+	}
 
-	carfileReliabilitys := make(map[string]int)
+	type info struct {
+		Size  int `db:"sum(size)"`
+		Count int `db:"count(size)"`
+	}
+
 	// cache info
 	for _, cache := range caches {
+		i := info{}
+		cmd := fmt.Sprintf("SELECT sum(size),count(size) FROM %s WHERE cache_id=? AND device_id=? AND status=?;", bTableName)
+		if err = tx.Get(&i, cmd, cache.CacheID, deviceID, api.CacheStatusSuccess); err != nil {
+			return
+		}
+
+		if cache.Status == api.CacheStatusSuccess {
+			successCacheCount++
+		}
+
+		cache.DoneBlocks -= i.Count
+		cache.DoneSize -= i.Size
+
 		cmdC := fmt.Sprintf(`UPDATE %s SET status=?,done_size=?,done_blocks=? WHERE cache_id=?`, cTableName)
 		tx.MustExec(cmdC, int(api.CacheStatusRestore), cache.DoneSize, cache.DoneBlocks, cache.CacheID)
 
 		carfileReliabilitys[cache.CarfileHash] += cache.Reliability
 	}
+
+	// block info
+	cmdB := fmt.Sprintf(`UPDATE %s SET status=? WHERE device_id=? AND status=?`, bTableName)
+	tx.MustExec(cmdB, int(api.CacheStatusRestore), deviceID, int(api.CacheStatusSuccess))
 
 	// data info
 	for carfileHash, reliability := range carfileReliabilitys {
@@ -942,14 +968,64 @@ func (sd sqlDB) CleanCacheDataWithNode(deviceID string, caches []*api.CacheInfo)
 		tx.MustExec(cmdD, reliability, carfileHash)
 	}
 
-	err := tx.Commit()
+	err = tx.Commit()
 	if err != nil {
 		err = tx.Rollback()
-		return err
+		return
 	}
 
-	return nil
+	return
 }
+
+// func (sd sqlDB) GetCachesFromNode(deviceID string) ([]*api.CacheInfo, error) {
+// 	area := sd.ReplaceArea()
+// 	bTableName := fmt.Sprintf(blockInfoTable, area)
+// 	cTableName := fmt.Sprintf(cacheInfoTable, area)
+
+// 	query := fmt.Sprintf("select * from (select cache_id from %s where device_id=? GROUP BY cache_id )as a LEFT JOIN %s as b on a.cache_id = b.cache_id", bTableName, cTableName)
+// 	var caches []*api.CacheInfo
+// 	if err := sd.cli.Select(&caches, query, deviceID); err != nil {
+// 		return nil, err
+// 	}
+
+// 	return caches, nil
+// }
+
+// func (sd sqlDB) CleanCacheDataWithNode(deviceID string, caches []*api.CacheInfo) error {
+// 	area := sd.ReplaceArea()
+// 	cTableName := fmt.Sprintf(cacheInfoTable, area)
+// 	dTableName := fmt.Sprintf(dataInfoTable, area)
+// 	bTableName := fmt.Sprintf(blockInfoTable, area)
+
+// 	tx := sd.cli.MustBegin()
+
+// 	// block info
+// 	cmdB := fmt.Sprintf(`UPDATE %s SET status=? WHERE device_id=? AND status=?`, bTableName)
+// 	tx.MustExec(cmdB, int(api.CacheStatusRestore), deviceID, int(api.CacheStatusSuccess))
+
+// 	carfileReliabilitys := make(map[string]int)
+// 	// cache info
+// 	for _, cache := range caches {
+// 		cmdC := fmt.Sprintf(`UPDATE %s SET status=?,done_size=?,done_blocks=? WHERE cache_id=?`, cTableName)
+// 		tx.MustExec(cmdC, int(api.CacheStatusRestore), cache.DoneSize, cache.DoneBlocks, cache.CacheID)
+
+// 		carfileReliabilitys[cache.CarfileHash] += cache.Reliability
+// 	}
+
+// 	// data info
+// 	for carfileHash, reliability := range carfileReliabilitys {
+// 		cmdD := fmt.Sprintf(`UPDATE %s SET reliability=reliability-? WHERE carfile_hash=?`, dTableName)
+// 		tx.MustExec(cmdD, reliability, carfileHash)
+// 	}
+
+// 	err := tx.Commit()
+// 	if err != nil {
+// 		err = tx.Rollback()
+// 		return err
+// 	}
+
+// 	return nil
+// }
 
 func (sd sqlDB) SetBlockDownloadInfo(info *api.BlockDownloadInfo) error {
 	query := fmt.Sprintf(

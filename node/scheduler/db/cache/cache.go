@@ -42,9 +42,9 @@ type DB interface {
 	GetNodesWithVerifyingList() ([]string, error)
 	CountVerifyingNode(ctx context.Context) (int64, error)
 
-	SetValidatorToList(deviceID string) error
+	SetValidatorsToList(deviceIDs []string, expiration time.Duration) error
 	GetValidatorsWithList() ([]string, error)
-	RemoveValidatorList() error
+	GetValidatorsAndExpirationTime() ([]string, time.Duration, error)
 
 	IncrNodeOnlineTime(deviceID string, onlineTime int64) (float64, error)
 	IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error)
