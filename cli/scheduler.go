@@ -642,7 +642,7 @@ var showDatasInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		infos, err := schedulerAPI.ShowDataTasks(ctx)
+		infos, err := schedulerAPI.ShowRunningCacheDatas(ctx)
 		if err != nil {
 			return err
 		}

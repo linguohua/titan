@@ -66,8 +66,8 @@ func (s *Scheduler) GetBlocksCacheError(ctx context.Context, cacheID string) ([]
 	return cache.GetDB().GetCacheErrors(cacheID)
 }
 
-// ShowDataTasks Show Data Tasks
-func (s *Scheduler) ShowDataTasks(ctx context.Context) ([]api.DataInfo, error) {
+// ShowRunningCacheDatas Show Data Tasks
+func (s *Scheduler) ShowRunningCacheDatas(ctx context.Context) ([]api.DataInfo, error) {
 	infos := make([]api.DataInfo, 0)
 
 	list := s.dataManager.GetRunningTasks()
@@ -94,7 +94,7 @@ func (s *Scheduler) ShowDataTasks(ctx context.Context) ([]api.DataInfo, error) {
 	// 	return true
 	// })
 
-	// log.Infof("ShowDataTasks:%v", infos)
+	// log.Infof("ShowRunningCacheDatas:%v", infos)
 	return infos, nil
 }
 
