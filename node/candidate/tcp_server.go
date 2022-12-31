@@ -78,8 +78,8 @@ func handleMessage(conn *net.TCPConn, candidate *Candidate) {
 		return
 	}
 
-	bw, ok := candidate.loadBlockWaiterFromMap(deviceID)
-	if !ok {
+	bw, exist := candidate.loadBlockWaiterFromMap(deviceID)
+	if !exist {
 		log.Errorf("Candidate no wait for device %s", deviceID)
 		return
 	}

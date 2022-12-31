@@ -106,11 +106,11 @@ func (candidate *Candidate) ValidateBlocks(ctx context.Context, req []api.ReqVal
 }
 
 func (candidate *Candidate) loadBlockWaiterFromMap(key string) (*blockWaiter, bool) {
-	vb, ok := candidate.blockWaiterMap.Load(key)
-	if ok {
-		return vb.(*blockWaiter), ok
+	vb, exist := candidate.blockWaiterMap.Load(key)
+	if exist {
+		return vb.(*blockWaiter), exist
 	}
-	return nil, ok
+	return nil, exist
 }
 
 func sendValidateResult(candidate *Candidate, result *api.ValidateResults) error {
@@ -209,8 +209,8 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 
 	result.DeviceID = info.DeviceId
 
-	bw, ok := candidate.loadBlockWaiterFromMap(info.DeviceId)
-	if ok {
+	bw, exist := candidate.loadBlockWaiterFromMap(info.DeviceId)
+	if exist {
 		log.Errorf("Aready doing validate node, deviceID:%s, not need to repeat to do", info.DeviceId)
 		return
 	}

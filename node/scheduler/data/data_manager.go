@@ -376,8 +376,8 @@ func (m *Manager) RemoveCache(carfileCid, cacheID string) error {
 		return xerrors.Errorf("not found data task: %s", carfileCid)
 	}
 
-	cacheI, ok := data.CacheMap.Load(cacheID)
-	if !ok {
+	cacheI, exist := data.CacheMap.Load(cacheID)
+	if !exist {
 		return xerrors.Errorf("removeCache not found cacheID:%s,Cid:%s", cacheID, data.carfileCid)
 	}
 	cache := cacheI.(*Cache)
@@ -394,8 +394,8 @@ func (m *Manager) RemoveCache(carfileCid, cacheID string) error {
 // CacheCarfileResult block cache result
 func (m *Manager) CacheCarfileResult(info *api.CacheResultInfo) (err error) {
 	var data *Data
-	dI, ok := m.dataMap.Load(info.CarFileHash)
-	if ok && dI != nil {
+	dI, exist := m.dataMap.Load(info.CarFileHash)
+	if exist && dI != nil {
 		data = dI.(*Data)
 	} else {
 		data = loadData(info.CarFileHash, m)
@@ -417,8 +417,8 @@ func (m *Manager) CacheCarfileResult(info *api.CacheResultInfo) (err error) {
 		return
 	}
 
-	cacheI, ok := data.CacheMap.Load(info.CacheID)
-	if !ok {
+	cacheI, exist := data.CacheMap.Load(info.CacheID)
+	if !exist {
 		err = xerrors.Errorf("cacheCarfileResult not found cacheID:%s,Cid:%s", info.CacheID, data.carfileCid)
 		return
 	}
@@ -852,8 +852,8 @@ func (m *Manager) checkCachesExpired() {
 			continue
 		}
 
-		cI, ok := data.CacheMap.Load(cacheInfo.CacheID)
-		if !ok {
+		cI, exist := data.CacheMap.Load(cacheInfo.CacheID)
+		if !exist {
 			continue
 		}
 		cache := cI.(*Cache)

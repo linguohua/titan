@@ -223,8 +223,8 @@ func (locator *Locator) getAccessPointWithWeightCount(areaID, securityKey string
 
 	auths := make([]api.SchedulerAuth, 0, len(urls))
 	for _, url := range urls {
-		schedulerAPI, ok := onlineSchedulerAPI[url]
-		if !ok {
+		schedulerAPI, exist := onlineSchedulerAPI[url]
+		if !exist {
 			log.Errorf("onlineSchedulerAPI can not find scheduler %s", url)
 			continue
 		}
