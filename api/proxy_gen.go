@@ -273,7 +273,7 @@ type SchedulerStruct struct {
 
 		ResetCacheExpiredTime func(p0 context.Context, p1 string, p2 string, p3 time.Time) error `perm:"admin"`
 
-		ShowDataTasks func(p0 context.Context) ([]DataInfo, error) `perm:"read"`
+		ShowRunningCacheDatas func(p0 context.Context) ([]DataInfo, error) `perm:"read"`
 
 		StopCacheTask func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -1155,14 +1155,14 @@ func (s *SchedulerStub) ResetCacheExpiredTime(p0 context.Context, p1 string, p2 
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ShowDataTasks(p0 context.Context) ([]DataInfo, error) {
-	if s.Internal.ShowDataTasks == nil {
+func (s *SchedulerStruct) ShowRunningCacheDatas(p0 context.Context) ([]DataInfo, error) {
+	if s.Internal.ShowRunningCacheDatas == nil {
 		return *new([]DataInfo), ErrNotSupported
 	}
-	return s.Internal.ShowDataTasks(p0)
+	return s.Internal.ShowRunningCacheDatas(p0)
 }
 
-func (s *SchedulerStub) ShowDataTasks(p0 context.Context) ([]DataInfo, error) {
+func (s *SchedulerStub) ShowRunningCacheDatas(p0 context.Context) ([]DataInfo, error) {
 	return *new([]DataInfo), ErrNotSupported
 }
 

@@ -615,6 +615,11 @@ func (m *Manager) StopCacheTask(cid string) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		err := cache.GetDB().RemoveRunningDataTask(hash, cacheID)
+		if err != nil {
+			return xerrors.Errorf("endCache RemoveRunningDataTask err: %s", err.Error())
+		}
 	}
 
 	nodes, err := persistent.GetDB().GetNodesFromCache(cacheID)
