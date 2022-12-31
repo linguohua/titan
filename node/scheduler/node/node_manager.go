@@ -29,12 +29,12 @@ type Manager struct {
 	CandidateNodeMap sync.Map
 
 	nodeOfflineCallBack func(string)
-	nodeExitedCallBack  func(string)
+	nodeExitedCallBack  func([]string)
 	getAuthToken        func() []byte
 }
 
 // NewNodeManager New
-func NewNodeManager(nodeOfflineCallBack, nodeExitedCallBack func(string), getToken func() []byte) *Manager {
+func NewNodeManager(nodeOfflineCallBack func(string), nodeExitedCallBack func([]string), getToken func() []byte) *Manager {
 	nodeManager := &Manager{
 		nodeOfflineCallBack: nodeOfflineCallBack,
 		nodeExitedCallBack:  nodeExitedCallBack,
@@ -485,7 +485,7 @@ func (m *Manager) checkNodesQuit() {
 
 	t := time.Now().Add(-time.Duration(nodeExitTime) * time.Hour)
 
-	exiteds := make([]string, 0)
+	quits := make([]string, 0)
 
 	for _, node := range nodes {
 		if node.LastTime.After(t) {
@@ -493,23 +493,25 @@ func (m *Manager) checkNodesQuit() {
 		}
 
 		// node quitted
-		exiteds = append(exiteds, node.DeviceID)
+		quits = append(quits, node.DeviceID)
 
 		// clean node cache
-		go m.NodeQuit(node.DeviceID)
+		// go m.NodeQuit(node.DeviceID)
 	}
+
+	m.NodeQuit(quits)
 }
 
 // NodeQuit Node quit
-func (m *Manager) NodeQuit(deviceID string) {
-	err := persistent.GetDB().SetNodeQuit(deviceID)
+func (m *Manager) NodeQuit(deviceIDs []string) {
+	err := persistent.GetDB().SetNodesQuit(deviceIDs)
 	if err != nil {
-		log.Warnf("NodeExited SetNodeQuit err:%s", err.Error())
+		log.Warnf("NodeExited SetNodesQuit err:%s", err.Error())
 		return
 	}
 
 	if m.nodeExitedCallBack != nil {
-		m.nodeExitedCallBack(deviceID)
+		m.nodeExitedCallBack(deviceIDs)
 	}
 }
 

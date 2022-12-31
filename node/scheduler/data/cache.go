@@ -270,10 +270,10 @@ func (c *Cache) findNodeAndBlockMapWithHash(hash string) (map[string]string, *no
 
 	froms, err := persistent.GetDB().GetNodesWithBlock(hash, true)
 	if err == nil {
-		skips := make(map[string]string)
+		filterMap := make(map[string]string)
 		if froms != nil {
 			for _, dID := range froms {
-				skips[dID] = hash
+				filterMap[dID] = hash
 
 				// find from
 				if fromNode == nil {
@@ -285,7 +285,7 @@ func (c *Cache) findNodeAndBlockMapWithHash(hash string) (map[string]string, *no
 			}
 		}
 
-		return skips, fromNode, nil
+		return filterMap, fromNode, nil
 	}
 
 	return nil, nil, err
@@ -324,7 +324,7 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string, isStarted bool, 
 		fromNodeID := "IPFS"
 		fid := 0
 
-		skips, fromNode, err := c.findNodeAndBlockMapWithHash(hash)
+		filterMap, fromNode, err := c.findNodeAndBlockMapWithHash(hash)
 		if err != nil {
 			cError.Msg = fmt.Sprintf("find hash err:%s", err.Error())
 			cacheErrorList = append(cacheErrorList, cError)
@@ -333,7 +333,7 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string, isStarted bool, 
 				fromNodeID = fromNode.DeviceId
 			}
 
-			deviceID = c.searchAppropriateNode(skips, index, cError)
+			deviceID = c.searchAppropriateNode(filterMap, index, cError)
 			if deviceID != "" {
 				fid, err = cache.GetDB().IncrNodeCacheFid(deviceID, 1)
 				if err != nil {

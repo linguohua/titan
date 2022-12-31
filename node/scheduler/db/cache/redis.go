@@ -190,10 +190,23 @@ func (rd redisDB) RemoveVerifyingList() error {
 }
 
 // add
-func (rd redisDB) SetValidatorToList(deviceID string) error {
+func (rd redisDB) SetValidatorsToList(deviceIDs []string, expiration time.Duration) error {
 	key := fmt.Sprintf(redisKeyValidatorList, serverName)
 
-	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
+	// _, err := rd.cli.SAdd(context.Background(), key, deviceIDs).Result()
+
+	ctx := context.Background()
+	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+		pipeliner.Del(context.Background(), key)
+
+		pipeliner.SAdd(context.Background(), key, deviceIDs)
+
+		// Expire
+		pipeliner.PExpire(context.Background(), key, expiration)
+
+		return nil
+	})
+
 	return err
 }
 
@@ -204,12 +217,21 @@ func (rd redisDB) GetValidatorsWithList() ([]string, error) {
 	return rd.cli.SMembers(context.Background(), key).Result()
 }
 
-// del
-func (rd redisDB) RemoveValidatorList() error {
+// Expiration Time
+func (rd redisDB) GetValidatorsAndExpirationTime() ([]string, time.Duration, error) {
 	key := fmt.Sprintf(redisKeyValidatorList, serverName)
 
-	_, err := rd.cli.Del(context.Background(), key).Result()
-	return err
+	expiration, err := rd.cli.TTL(context.Background(), key).Result()
+	if err != nil {
+		return nil, expiration, err
+	}
+
+	list, err := rd.cli.SMembers(context.Background(), key).Result()
+	if err != nil {
+		return nil, expiration, err
+	}
+
+	return list, expiration, nil
 }
 
 func (rd redisDB) SetDeviceInfo(info *api.DevicesInfo) error {
@@ -383,7 +405,7 @@ func (rd redisDB) RemoveRunningDataTask(hash, cacheID string) error {
 			return err
 		}
 
-		pipeliner.SRem(context.Background(), key2, bytes).Result()
+		pipeliner.SRem(context.Background(), key2, bytes)
 
 		return nil
 	})
@@ -448,7 +470,7 @@ func (rd redisDB) RemoveWaitingDataTasks(infos []*api.DataInfo) error {
 				continue
 			}
 
-			pipeliner.LRem(context.Background(), key, 1, bytes).Result()
+			pipeliner.LRem(context.Background(), key, 1, bytes)
 		}
 
 		return nil
@@ -472,10 +494,10 @@ func (rd redisDB) SaveCacheErrors(cacheID string, infos []*api.CacheError, isCle
 			if err != nil {
 				continue
 			}
-			pipeliner.SAdd(context.Background(), key, bytes).Result()
+			pipeliner.SAdd(context.Background(), key, bytes)
 		}
 		// Expire
-		pipeliner.PExpire(context.Background(), key, time.Hour*time.Duration(cacheErrorExpiration)).Result()
+		pipeliner.PExpire(context.Background(), key, time.Hour*time.Duration(cacheErrorExpiration))
 
 		return nil
 	})
@@ -523,9 +545,9 @@ func (rd redisDB) SetDataTaskToRunningList(hash, cacheID string) error {
 
 	ctx := context.Background()
 	_, err = rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-		pipeliner.SAdd(context.Background(), key, bytes).Result()
+		pipeliner.SAdd(context.Background(), key, bytes)
 		// Expire
-		pipeliner.Set(context.Background(), key2, cacheID, time.Second*time.Duration(15)).Result()
+		pipeliner.Set(context.Background(), key2, cacheID, time.Second*time.Duration(15))
 
 		return nil
 	})
