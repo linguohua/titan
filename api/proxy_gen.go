@@ -187,6 +187,8 @@ type LocatorStruct struct {
 
 		ListAccessPoints func(p0 context.Context) ([]string, error) `perm:"admin"`
 
+		RegisterNode func(p0 context.Context, p1 string, p2 NodeType, p3 int) ([]NodeRegisterInfo, error) `perm:"admin"`
+
 		RemoveAccessPoints func(p0 context.Context, p1 string) error `perm:"admin"`
 
 		ShowAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
@@ -744,6 +746,17 @@ func (s *LocatorStruct) ListAccessPoints(p0 context.Context) ([]string, error) {
 
 func (s *LocatorStub) ListAccessPoints(p0 context.Context) ([]string, error) {
 	return *new([]string), ErrNotSupported
+}
+
+func (s *LocatorStruct) RegisterNode(p0 context.Context, p1 string, p2 NodeType, p3 int) ([]NodeRegisterInfo, error) {
+	if s.Internal.RegisterNode == nil {
+		return *new([]NodeRegisterInfo), ErrNotSupported
+	}
+	return s.Internal.RegisterNode(p0, p1, p2, p3)
+}
+
+func (s *LocatorStub) RegisterNode(p0 context.Context, p1 string, p2 NodeType, p3 int) ([]NodeRegisterInfo, error) {
+	return *new([]NodeRegisterInfo), ErrNotSupported
 }
 
 func (s *LocatorStruct) RemoveAccessPoints(p0 context.Context, p1 string) error {
