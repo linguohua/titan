@@ -185,8 +185,8 @@ func (block *Block) loadBlocks(reqs []*delayReq) {
 
 	for _, b := range blocks {
 		cidStr := b.Cid().String()
-		req, ok := reqMap[cidStr]
-		if !ok {
+		req, exist := reqMap[cidStr]
+		if !exist {
 			log.Errorf("loadBlocksFromIPFS cid %s not in map", cidStr)
 			continue
 		}
@@ -414,8 +414,8 @@ func (block *Block) AnnounceBlocksWasDelete(ctx context.Context, cids []string) 
 	}
 
 	for _, cid := range cids {
-		_, ok := result[cid]
-		if ok {
+		_, exist := result[cid]
+		if exist {
 			continue
 		}
 

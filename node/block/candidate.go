@@ -156,8 +156,8 @@ func newCandidateAPI(url string, tk string) (api.Candidate, error) {
 }
 
 func getCandidateAPI(url string, tk string, candidates map[string]api.Candidate) (api.Candidate, error) {
-	candidate, ok := candidates[url]
-	if !ok {
+	candidate, exist := candidates[url]
+	if !exist {
 		var err error
 		candidate, err = newCandidateAPI(url, tk)
 		if err != nil {

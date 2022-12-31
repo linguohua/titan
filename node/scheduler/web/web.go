@@ -54,8 +54,8 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 			deviceInfo.DeviceStatus = "abnormal"
 		}
 
-		_, ok := deviceInValidator[node.DeviceID]
-		if ok {
+		_, exist := deviceInValidator[node.DeviceID]
+		if exist {
 			deviceInfo.NodeType = api.NodeValidate
 		}
 

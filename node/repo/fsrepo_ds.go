@@ -76,8 +76,8 @@ func (fsr *fsLockedRepo) Datastore(_ context.Context, ns string) (datastore.Batc
 	if fsr.dsErr != nil {
 		return nil, fsr.dsErr
 	}
-	ds, ok := fsr.ds[ns]
-	if ok {
+	ds, exist := fsr.ds[ns]
+	if exist {
 		return ds, nil
 	}
 	return nil, xerrors.Errorf("no such datastore: %s", ns)

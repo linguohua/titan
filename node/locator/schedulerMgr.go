@@ -42,8 +42,8 @@ func newAccessPointMgr(locatorPort int, locatorToken, uuid string) *accessPointM
 }
 
 func (mgr *accessPointMgr) loadAccessPointFromMap(key string) (*accessPoint, bool) {
-	vb, ok := mgr.accessPoints.Load(key)
-	if ok {
+	vb, exist := mgr.accessPoints.Load(key)
+	if exist {
 		return vb.(*accessPoint), true
 	}
 	return nil, false
@@ -58,8 +58,8 @@ func (mgr *accessPointMgr) addAccessPointToMap(areaID string, ap *accessPoint) {
 }
 
 func (mgr *accessPointMgr) newSchedulerAPI(url string, areaID string, schedulerAccessToken string) (*schedulerAPI, error) {
-	ap, ok := mgr.loadAccessPointFromMap(areaID)
-	if !ok {
+	ap, exist := mgr.loadAccessPointFromMap(areaID)
+	if !exist {
 		ap = &accessPoint{apis: make([]*schedulerAPI, 0)}
 	}
 
@@ -104,8 +104,8 @@ func (mgr *accessPointMgr) newSchedulerAPI(url string, areaID string, schedulerA
 }
 
 func (mgr *accessPointMgr) removeSchedulerAPI(url, areaID string) {
-	ap, ok := mgr.loadAccessPointFromMap(areaID)
-	if !ok {
+	ap, exist := mgr.loadAccessPointFromMap(areaID)
+	if !exist {
 		return
 	}
 
@@ -129,8 +129,8 @@ func (mgr *accessPointMgr) removeSchedulerAPI(url, areaID string) {
 }
 
 func (mgr *accessPointMgr) removeAccessPoint(areaID string) {
-	ap, ok := mgr.loadAccessPointFromMap(areaID)
-	if !ok {
+	ap, exist := mgr.loadAccessPointFromMap(areaID)
+	if !exist {
 		return
 	}
 
@@ -145,8 +145,8 @@ func (mgr *accessPointMgr) getSchedulerAPI(url, areaID, accessToken string) (*sc
 	ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
 	defer cancel()
 
-	ap, ok := mgr.loadAccessPointFromMap(areaID)
-	if ok {
+	ap, exist := mgr.loadAccessPointFromMap(areaID)
+	if exist {
 		for _, api := range ap.apis {
 			if api.url == url {
 				// check scheduler if online
@@ -180,8 +180,8 @@ func (mgr *accessPointMgr) getSchedulerAPI(url, areaID, accessToken string) (*sc
 }
 
 func (mgr *accessPointMgr) randSchedulerAPI(areaID string) (*schedulerAPI, bool) {
-	ap, ok := mgr.loadAccessPointFromMap(areaID)
-	if !ok {
+	ap, exist := mgr.loadAccessPointFromMap(areaID)
+	if !exist {
 		return nil, false
 	}
 

@@ -234,7 +234,7 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 
 		validatorID := validatorList[v.generatorForRandomNumber(0, len(validatorList))]
 
-		if validated, ok := result[validatorID]; ok {
+		if validated, exist := result[validatorID]; exist {
 			validated = append(validated, tn)
 			result[validatorID] = validated
 		} else {
@@ -260,7 +260,7 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 			return true
 		}
 
-		if validated, ok := result[validatorID]; ok {
+		if validated, exist := result[validatorID]; exist {
 			validated = append(validated, tn)
 			result[validatorID] = validated
 		} else {

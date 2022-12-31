@@ -61,8 +61,8 @@ func (dataSync *DataSync) getAllChecksums(ctx context.Context, maxGroupNum int) 
 	blockCollection := make([]block, 0, 10000)
 
 	for {
-		r, ok := results.NextSync()
-		if !ok {
+		r, exist := results.NextSync()
+		if !exist {
 			break
 		}
 
@@ -229,8 +229,8 @@ func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 			continue
 		}
 
-		targetHash, ok := blocksHashMap[fid]
-		if ok {
+		targetHash, exist := blocksHashMap[fid]
+		if exist {
 			if hash != targetHash {
 				log.Errorf("scrubBlocks fid %s, local block hash is %s but sheduler block hash is %s", fid, hash, targetHash)
 				need2DeleteBlocks = append(need2DeleteBlocks, cid)
@@ -284,8 +284,8 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 	targetMap := make(map[string]string)
 
 	for {
-		r, ok := results.NextSync()
-		if !ok {
+		r, exist := results.NextSync()
+		if !exist {
 			break
 		}
 
@@ -306,8 +306,8 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 	hashMap := make(map[string]string)
 
 	for {
-		r, ok := results.NextSync()
-		if !ok {
+		r, exist := results.NextSync()
+		if !exist {
 			break
 		}
 
@@ -316,8 +316,8 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 	}
 
 	for targetHash, targetFid := range targetMap {
-		fid, ok := hashMap[targetHash]
-		if ok {
+		fid, exist := hashMap[targetHash]
+		if exist {
 			delete(hashMap, targetHash)
 			if fid == targetFid {
 				continue
@@ -343,8 +343,8 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 	log.Info("start sync block")
 	need2DeleteBlockHashs := make([]string, 0)
 	for _, hash := range hashs {
-		_, ok := targetMap[hash]
-		if !ok {
+		_, exist := targetMap[hash]
+		if !exist {
 			need2DeleteBlockHashs = append(need2DeleteBlockHashs, hash)
 		} else {
 			delete(targetMap, hash)

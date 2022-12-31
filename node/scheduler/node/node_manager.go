@@ -354,7 +354,7 @@ func (m *Manager) FindCandidates(filterMap map[string]string) []*CandidateNode {
 		deviceID := key.(string)
 		node := value.(*CandidateNode)
 
-		if _, ok := filterMap[deviceID]; ok {
+		if _, exist := filterMap[deviceID]; exist {
 			return true
 		}
 
@@ -385,7 +385,7 @@ func (m *Manager) FindCandidatesByList(list []string, filterMap map[string]strin
 	nodes := make([]*CandidateNode, 0)
 
 	for _, dID := range list {
-		if _, ok := filterMap[dID]; ok {
+		if _, exist := filterMap[dID]; exist {
 			continue
 		}
 		// node, ok := eMap[dID]

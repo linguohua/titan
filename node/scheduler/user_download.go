@@ -242,8 +242,8 @@ func (s *Scheduler) signDownloadInfos(cid string, results []api.DownloadInfoResu
 	for index := range results {
 		deviceID := results[index].DeviceID
 
-		privateKey, ok := devicePrivateKeys[deviceID]
-		if !ok {
+		privateKey, exist := devicePrivateKeys[deviceID]
+		if !exist {
 			var err error
 			privateKey, err = s.getDevicePrivateKey(deviceID)
 			if err != nil {
@@ -419,8 +419,8 @@ func (s *Scheduler) getFirstElementFromMap(blocks map[string]*api.BlockInfo) *ap
 
 func (s *Scheduler) getBlockInfoWithLatestDownloadList(blockInfos map[string]*api.BlockInfo, latestDowwnloadCarfiles []string) *api.BlockInfo {
 	for _, carfileCID := range latestDowwnloadCarfiles {
-		blockInfo, ok := blockInfos[carfileCID]
-		if ok {
+		blockInfo, exist := blockInfos[carfileCID]
+		if exist {
 			return blockInfo
 		}
 	}

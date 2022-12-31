@@ -16,6 +16,7 @@ var log = logging.Logger("election")
 
 var HeartbeatInterval = 1 * time.Minute
 
+// Election election
 type Election struct {
 	opts       EleOption
 	connect    chan string
@@ -25,8 +26,11 @@ type Election struct {
 	validators map[string]time.Time
 
 	startTime time.Time
+
+	validatorRatio float64 // Ratio of validators elected 0~1
 }
 
+//EleOption election option
 type EleOption struct {
 	ctx context.Context
 	// interval is the time interval for re-election
@@ -47,36 +51,39 @@ func newEleOption(opts ...Option) EleOption {
 	return opt
 }
 
+// Option election option
 type Option func(opt *EleOption)
 
-func ElectIntervalOption(interval time.Duration) Option {
-	return func(opt *EleOption) {
-		opt.interval = interval
-	}
-}
+// func ElectIntervalOption(interval time.Duration) Option {
+// 	return func(opt *EleOption) {
+// 		opt.interval = interval
+// 	}
+// }
 
-func ExpirationOption(expiration time.Duration) Option {
-	return func(opt *EleOption) {
-		opt.expiration = expiration
-	}
-}
+// func ExpirationOption(expiration time.Duration) Option {
+// 	return func(opt *EleOption) {
+// 		opt.expiration = expiration
+// 	}
+// }
 
+// NewElection new election
 func NewElection(manager *node.Manager, opts ...Option) *Election {
 	ele := &Election{
-		manager:    manager,
-		opts:       newEleOption(opts...),
-		validators: make(map[string]time.Time),
-		connect:    make(chan string, 1),
-		update:     make(chan struct{}, 1),
+		manager:        manager,
+		opts:           newEleOption(opts...),
+		validators:     make(map[string]time.Time),
+		connect:        make(chan string, 1),
+		update:         make(chan struct{}, 1),
+		validatorRatio: 1,
 	}
 
 	// open election
-	go ele.Run()
+	go ele.run()
 
 	return ele
 }
 
-func (v *Election) Run() {
+func (v *Election) run() {
 	go v.checkValidatorExpiration()
 	if err := v.fetchCurrentValidators(); err != nil {
 		log.Errorf("fetch current validators: %v", err)
@@ -165,9 +172,9 @@ func (v *Election) winner(isAppend bool) ([]*node.CandidateNode, error) {
 		var excludeValidators []*node.CandidateNode
 		for _, candidate := range candidates {
 			v.vlk.RLock()
-			_, ok := v.validators[candidate.DeviceId]
+			_, exist := v.validators[candidate.DeviceId]
 			v.vlk.RUnlock()
-			if !ok {
+			if !exist {
 				excludeValidators = append(excludeValidators, candidate)
 				continue
 			}
@@ -285,13 +292,13 @@ func (v *Election) sufficientCandidates() bool {
 func (v *Election) deviceConnect(deviceID string) error {
 	log.Infof("device connect: %s", deviceID)
 	v.vlk.Lock()
-	_, ok := v.validators[deviceID]
-	if ok {
+	_, exist := v.validators[deviceID]
+	if exist {
 		v.validators[deviceID] = time.Now()
 	}
 	v.vlk.Unlock()
 
-	if !ok {
+	if !exist {
 		return v.maybeReElect()
 	}
 	return nil
@@ -304,7 +311,7 @@ func (v *Election) maybeReElect() error {
 
 	v.vlk.RLock()
 	for _, candidate := range candidates {
-		if _, ok := v.validators[candidate.DeviceId]; ok {
+		if _, exist := v.validators[candidate.DeviceId]; exist {
 			validators = append(validators, candidate)
 		}
 	}
@@ -412,9 +419,9 @@ func (v *Election) GenerateValidation() map[string][]string {
 	var validations []*node.Node
 	for _, node := range allNodes {
 		v.vlk.RLock()
-		_, ok := v.validators[node.DeviceId]
+		_, exist := v.validators[node.DeviceId]
 		v.vlk.RUnlock()
-		if ok {
+		if exist {
 			continue
 		}
 		validations = append(validations, node)
@@ -427,9 +434,9 @@ func (v *Election) GenerateValidation() map[string][]string {
 	var currentValidators []*node.CandidateNode
 	for _, candidate := range candidates {
 		v.vlk.RLock()
-		_, ok := v.validators[candidate.DeviceId]
+		_, exist := v.validators[candidate.DeviceId]
 		v.vlk.RUnlock()
-		if !ok {
+		if !exist {
 			continue
 		}
 		currentValidators = append(currentValidators, candidate)
@@ -459,7 +466,7 @@ func (v *Election) GenerateValidation() map[string][]string {
 				break
 			}
 			bandwidth = bandwidth - validations[i].BandwidthUp
-			if _, ok := out[candidate.DeviceId]; !ok {
+			if _, exist := out[candidate.DeviceId]; !exist {
 				out[candidate.DeviceId] = make([]string, 0)
 			}
 			out[candidate.DeviceId] = append(out[candidate.DeviceId], validations[i].DeviceId)

@@ -180,7 +180,7 @@ func (c *Cache) sendBlocksToNode(deviceID string, reqDataMap map[string]*api.Req
 	return 0, xerrors.Errorf("not found node:%s", deviceID)
 }
 
-func (c *Cache) searchAppropriateNode(skips map[string]string, index int, info *api.CacheError) (deviceID string) {
+func (c *Cache) searchAppropriateNode(filterMap map[string]string, index int, info *api.CacheError) (deviceID string) {
 	// TODO Search strategy to be optimized
 	deviceID = ""
 
@@ -194,7 +194,7 @@ func (c *Cache) searchAppropriateNode(skips map[string]string, index int, info *
 
 			info.Nodes++
 
-			if _, ok := skips[deviceID]; ok {
+			if _, exist := filterMap[deviceID]; exist {
 				info.SkipCount++
 				return true
 			}
@@ -234,7 +234,7 @@ func (c *Cache) searchAppropriateNode(skips map[string]string, index int, info *
 
 		info.Nodes++
 
-		if _, ok := skips[deviceID]; ok {
+		if _, exist := filterMap[deviceID]; exist {
 			info.SkipCount++
 			return true
 		}
@@ -313,8 +313,7 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string, isStarted bool, 
 			continue
 		}
 
-		// if _, ok := c.alreadyCacheBlockMap[hash]; ok {
-		if _, ok := c.alreadyCacheBlockMap.Load(hash); ok {
+		if _, exist := c.alreadyCacheBlockMap.Load(hash); exist {
 			cError.Msg = "cid already cache"
 			cacheErrorList = append(cacheErrorList, cError)
 			continue
@@ -344,13 +343,13 @@ func (c *Cache) allocateBlocksToNodes(cidMap map[string]string, isStarted bool, 
 				}
 				status = api.CacheStatusCreate
 
-				reqDataMap, ok := nodeReqCacheDataMap[deviceID]
-				if !ok {
+				reqDataMap, exist := nodeReqCacheDataMap[deviceID]
+				if !exist {
 					reqDataMap = map[string]*api.ReqCacheData{}
 				}
 
-				reqData, ok := reqDataMap[fromNodeID]
-				if !ok {
+				reqData, exist := reqDataMap[fromNodeID]
+				if !exist {
 					reqData = &api.ReqCacheData{}
 					reqData.BlockInfos = make([]api.BlockCacheInfo, 0)
 					reqData.CardFileHash = c.data.carfileHash
@@ -624,8 +623,8 @@ func (c *Cache) removeCache() error {
 	cidMap := make(map[string][]string, 0)
 
 	for _, block := range blocks {
-		cids, ok := cidMap[block.DeviceID]
-		if !ok {
+		cids, exist := cidMap[block.DeviceID]
+		if !exist {
 			cids = make([]string, 0)
 		}
 		cids = append(cids, block.CID)
