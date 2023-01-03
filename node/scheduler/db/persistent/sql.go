@@ -936,40 +936,36 @@ func (sd sqlDB) UpdateCacheInfoOfQuitNode(deviceID string) (successCacheCount in
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 	dTableName := fmt.Sprintf(dataInfoTable, area)
 
-	tx := sd.cli.MustBegin()
-
-	query := fmt.Sprintf("select * from (select cache_id from %s where device_id=? GROUP BY cache_id )as a LEFT JOIN %s as b on a.cache_id = b.cache_id  where status=?", bTableName, cTableName)
+	getCachesCmd := fmt.Sprintf("select * from (select cache_id from %s where device_id=? GROUP BY cache_id )as a LEFT JOIN %s as b on a.cache_id = b.cache_id  where status=?", bTableName, cTableName)
 	var caches []*api.CacheInfo
-	if err = tx.Select(&caches, query, deviceID, api.CacheStatusSuccess); err != nil {
+	if err = sd.cli.Select(&caches, getCachesCmd, deviceID, api.CacheStatusSuccess); err != nil {
 		return
 	}
 
-	// type info struct {
-	// 	Size  int `db:"sum(size)"`
-	// 	Count int `db:"count(size)"`
-	// }
+	if len(caches) <= 0 {
+		err = xerrors.New(errNotFind)
+		return
+	}
 
-	successCacheCount = len(caches)
-	// cache info
+	cacheIDs := make([]string, 0)
 	for _, cache := range caches {
-		// i := info{}
-		// cmd := fmt.Sprintf("SELECT sum(size),count(size) FROM %s WHERE cache_id=? AND device_id=? AND status=?;", bTableName)
-		// if err = tx.Get(&i, cmd, cache.CacheID, deviceID, api.CacheStatusSuccess); err != nil {
-		// 	return
-		// }
-
-		// if cache.Status != api.CacheStatusSuccess {
-		// 	continue
-		// }
-
-		// cache.DoneBlocks -= i.Count
-		// cache.DoneSize -= i.Size
-
-		cmdC := fmt.Sprintf(`UPDATE %s SET status=? WHERE cache_id=?`, cTableName)
-		tx.MustExec(cmdC, int(api.CacheStatusRestore), cache.CacheID)
+		cacheIDs = append(cacheIDs, cache.CacheID)
 
 		carfileReliabilitys[cache.CarfileHash] += cache.Reliability
 	}
+	successCacheCount = len(caches)
+
+	tx := sd.cli.MustBegin()
+
+	updateCachesCmd := fmt.Sprintf(`UPDATE %s SET status=? WHERE cache_id in (?)`, cTableName)
+	query, args, err := sqlx.In(updateCachesCmd, int(api.CacheStatusRestore), cacheIDs)
+	if err != nil {
+		return
+	}
+
+	// cache info
+	query = sd.cli.Rebind(query)
+	tx.MustExec(query, args...)
 
 	// block info
 	cmdB := fmt.Sprintf(`UPDATE %s SET status=? WHERE device_id=? AND status=?`, bTableName)

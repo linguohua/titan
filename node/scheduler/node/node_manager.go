@@ -499,7 +499,9 @@ func (m *Manager) checkNodesQuit() {
 		// go m.NodeQuit(node.DeviceID)
 	}
 
-	m.NodeQuit(quits)
+	if len(quits) > 0 {
+		m.NodeQuit(quits)
+	}
 }
 
 // NodeQuit Node quit
