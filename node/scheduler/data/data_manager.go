@@ -38,7 +38,7 @@ const (
 	dataCacheTimerInterval    = 10     //  time interval (Second)
 	checkExpiredTimerInterval = 60 * 5 //  time interval (Second)
 
-	runningTaskMaxCount    = 5
+	runningTaskMaxCount    = 500
 	blockResultThreadCount = 10
 )
 
