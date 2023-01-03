@@ -230,7 +230,7 @@ const (
 	CacheStatusRestore
 )
 
-//CacheError cache error
+// CacheError cache error
 type CacheError struct {
 	CID       string
 	Nodes     int

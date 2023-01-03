@@ -50,6 +50,6 @@ api-gen:
 	goimports -w api
 	goimports -w api
 .PHONY: api-gen
-	
+
 build: titan-scheduler titan-candidate titan-edge
 .PHONY: build
