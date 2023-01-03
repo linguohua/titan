@@ -326,7 +326,8 @@ var runCmd = &cli.Command{
 			externalIP,
 			internalIP,
 			cctx.Int64("bandwidth-up"),
-			cctx.Int64("bandwidth-down"))
+			cctx.Int64("bandwidth-down"),
+			blockStore)
 
 		nodeParams := &helper.NodeParams{
 			DS:              ds,

@@ -19,6 +19,7 @@ type BlockStore interface {
 	Stat() (fsutil.FsStat, error)
 	KeyCount() (int, error)
 	GetAllKeys() ([]string, error)
+	GetPath() string
 	// GetSize(ctx context.Context, key string) (size int, err error)
 }
 
@@ -31,11 +32,6 @@ func NewBlockStore(path string, storeType string) BlockStore {
 	return NewBlockStoreFromString(storeType, path)
 }
 
-var (
-	// RocksDB   rocksdb
-	FileStore fileStore
-)
-
 func NewBlockStoreFromString(t string, path string) BlockStore {
 	switch t {
 	case "RocksDB":
@@ -43,8 +39,8 @@ func NewBlockStoreFromString(t string, path string) BlockStore {
 		// return &RocksDB
 		return nil
 	case "FileStore":
-		FileStore.Path = path
-		return &FileStore
+		fs := &fileStore{Path: path}
+		return fs
 
 	default:
 		panic("unknown BlockStore type")
