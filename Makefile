@@ -53,3 +53,19 @@ api-gen:
 
 build: titan-scheduler titan-candidate titan-edge
 .PHONY: build
+
+edge-image:
+	docker build -t edge:latest -f ./cmd/titan-edge/Dockerfile .
+.PHONY: edge-image
+
+candidate-image:
+	docker build -t candidate:latest -f ./cmd/titan-candidate/Dockerfile .
+.PHONY: candidate-image
+
+scheduler-image:
+	docker build -t scheduler:latest -f ./cmd/titan-scheduler/Dockerfile .
+.PHONY: scheduler-image
+
+locator-image:
+	docker build -t locator:latest -f ./cmd/titan-locator/Dockerfile .
+.PHONY: locator-image
