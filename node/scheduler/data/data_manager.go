@@ -763,7 +763,9 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceIDs []string) {
 	for _, deviceID := range deviceIDs {
 		cacheCount, carfileMap, err := persistent.GetDB().UpdateCacheInfoOfQuitNode(deviceID)
 		if err != nil {
-			log.Errorf("%s UpdateCacheInfoOfQuitNode err:%s", deviceID, err.Error())
+			if !persistent.GetDB().IsNilErr(err) {
+				log.Errorf("%s UpdateCacheInfoOfQuitNode err:%s", deviceID, err.Error())
+			}
 			continue
 		}
 
@@ -785,6 +787,7 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceIDs []string) {
 		log.Errorf("CleanNodeAndRestoreCaches IncrByBaseInfo err:%s", err.Error())
 	}
 
+	// log.Warnf("recacheMap : %v", recacheMap)
 	// recache
 	for carfileHash, deviceID := range recacheMap {
 		info, err := persistent.GetDB().GetDataInfo(carfileHash)
