@@ -143,6 +143,9 @@ func getBlocksFromCandidate(reqs []*delayReq) ([]blocks.Block, error) {
 }
 
 func newCandidateAPI(url string, tk string) (api.Candidate, error) {
+	if len(url) == 0 || len(tk) == 0 {
+		return nil, fmt.Errorf("newCandidateAPI failed, url:%s, token:%s", url, tk)
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
