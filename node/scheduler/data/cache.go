@@ -132,10 +132,16 @@ func (c *Cache) updateAlreadyMap() {
 		return
 	}
 
+	size := 0
+
 	for _, block := range blocks {
+		size += block.Size
 		// c.alreadyCacheBlockMap[block.CIDHash] = block.DeviceID
 		c.alreadyCacheBlockMap.Store(block.CIDHash, block.DeviceID)
 	}
+
+	c.doneBlocks = len(blocks)
+	c.doneSize = size
 }
 
 // Notify node to cache blocks

@@ -643,6 +643,11 @@ func (s *Scheduler) RedressDeveiceInfo(ctx context.Context, deviceID string) err
 	return nil
 }
 
+// // RedressCacheDataInfo redress the cache data
+// func (s *Scheduler) RedressCacheDataInfo(ctx context.Context, carfileCid string) error {
+// 	return s.dataManager.RedressCacheDataInfo(carfileCid)
+// }
+
 func (s *Scheduler) authNew() error {
 	tk, err := s.AuthNew(context.Background(), []auth.Permission{api.PermRead, api.PermWrite})
 	if err != nil {
