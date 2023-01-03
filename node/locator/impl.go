@@ -189,7 +189,7 @@ func (locator *Locator) getAccessPointWithWeightCount(areaID string) ([]string, 
 	}
 
 	// filter online scheduler
-	onlineSchedulerAPI := make(map[string]*schedulerAPI)
+	onlineSchedulerAPIs := make(map[string]*schedulerAPI)
 	onlineSchedulerCfgs := make(map[string]*config.SchedulerCfg)
 	for _, cfg := range ap.SchedulerCfgs {
 		api, ok := locator.apMgr.getSchedulerAPI(cfg.URL, areaID, cfg.AccessToken)
@@ -199,7 +199,7 @@ func (locator *Locator) getAccessPointWithWeightCount(areaID string) ([]string, 
 
 		var schedulerCfg = cfg
 		onlineSchedulerCfgs[schedulerCfg.URL] = &schedulerCfg
-		onlineSchedulerAPI[schedulerCfg.URL] = api
+		onlineSchedulerAPIs[schedulerCfg.URL] = api
 	}
 
 	cfgWeights := countSchedulerWeightWithCfgs(onlineSchedulerCfgs)
@@ -215,7 +215,7 @@ func (locator *Locator) getAccessPointWithWeightCount(areaID string) ([]string, 
 
 	schedulerURLs := make([]string, 0, len(urls))
 	for _, url := range urls {
-		_, ok := onlineSchedulerAPI[url]
+		_, ok := onlineSchedulerAPIs[url]
 		if ok {
 			schedulerURLs = append(schedulerURLs, url)
 		}
@@ -406,27 +406,79 @@ func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerA
 	return nil, false
 }
 
-func (locator *Locator) RegisterNode(ctx context.Context, areaID string, nodeType api.NodeType, count int) ([]api.NodeRegisterInfo, error) {
-	schedulerURLs, err := locator.getAccessPointWithWeightCount(areaID)
+func (locator *Locator) getSchedulerAPIWithWeightCount(areaID string) ([]*schedulerAPI, error) {
+	log.Infof("getSchedulerAPIWithWeightCount, areaID:%s", areaID)
+
+	ap, err := locator.db.getAccessPoint(areaID)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(schedulerURLs) == 0 {
+	if len(ap.SchedulerCfgs) == 0 {
+		return nil, nil
+	}
+
+	// filter online scheduler
+	onlineSchedulerAPIs := make(map[string]*schedulerAPI)
+	onlineSchedulerCfgs := make(map[string]*config.SchedulerCfg)
+	for _, cfg := range ap.SchedulerCfgs {
+		api, ok := locator.apMgr.getSchedulerAPI(cfg.URL, areaID, cfg.AccessToken)
+		if !ok {
+			continue
+		}
+
+		var schedulerCfg = cfg
+		onlineSchedulerCfgs[schedulerCfg.URL] = &schedulerCfg
+		onlineSchedulerAPIs[schedulerCfg.URL] = api
+	}
+
+	cfgWeights := countSchedulerWeightWithCfgs(onlineSchedulerCfgs)
+	currentWeights := locator.countSchedulerWeightByDevice(onlineSchedulerCfgs)
+
+	urls := make([]string, 0)
+	for url, weight := range cfgWeights {
+		currentWeight := currentWeights[url]
+		if currentWeight <= weight {
+			urls = append(urls, url)
+		}
+	}
+
+	schedulerAPIs := make([]*schedulerAPI, 0, len(urls))
+	for _, url := range urls {
+		onlineSchedulerAPI, ok := onlineSchedulerAPIs[url]
+		if ok {
+			schedulerAPIs = append(schedulerAPIs, onlineSchedulerAPI)
+		}
+	}
+	return schedulerAPIs, nil
+}
+
+func (locator *Locator) RegisterNode(ctx context.Context, areaID string, nodeType api.NodeType, count int) ([]api.NodeRegisterInfo, error) {
+	schedulerAPIs, err := locator.getSchedulerAPIWithWeightCount(areaID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(schedulerAPIs) == 0 {
 		return nil, fmt.Errorf("Can not find valid scheduler for areaID %s", areaID)
 	}
 
-	schedulerURL := schedulerURLs[0]
-
-	cfg := locator.getCfg(areaID, schedulerURL)
-	if cfg == nil {
-		return nil, fmt.Errorf("Can not find valid scheduler for areaID %s", areaID)
+	if len(schedulerAPIs) == 1 {
+		return schedulerAPIs[0].RegisterNode(context.Background(), nodeType, count)
 	}
 
-	schedulerAPI, ok := locator.apMgr.getSchedulerAPI(schedulerURL, areaID, cfg.AccessToken)
-	if !ok {
-		return nil, fmt.Errorf("Can not find valid scheduler for areaID %s", areaID)
+	registerInfos := make([]api.NodeRegisterInfo, 0, count)
+	for i := 0; i < count; i++ {
+		index := i % len(schedulerAPIs)
+		schedulerAPI := schedulerAPIs[index]
+		infos, err := schedulerAPI.RegisterNode(context.Background(), nodeType, 1)
+		if err != nil {
+			log.Errorf("RegisterNode error:%s", err.Error())
+			continue
+		}
+
+		registerInfos = append(registerInfos, infos[0])
 	}
 
-	return schedulerAPI.RegisterNode(context.Background(), nodeType, count)
+	return registerInfos, nil
 }
