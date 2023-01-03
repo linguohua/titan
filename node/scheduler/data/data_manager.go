@@ -21,19 +21,19 @@ var log = logging.Logger("data")
 type EventType string
 
 const (
-	eventTypeDoCacheTaskStart    EventType = "DoCacheTaskStart"
-	eventTypeDoCacheTaskEnd      EventType = "DoCacheTaskEnd"
-	eventTypeDoDataTaskErr       EventType = "DoDataTaskErr"
-	eventTypeDoDataTaskStart     EventType = "DoDataTaskStart"
-	eventTypeDoDataTaskEnd       EventType = "DoDataTaskEnd"
-	eventTypeAddNewDataTask      EventType = "AddNewDataTask"
-	eventTypeAddContinueDataTask EventType = "AddContinueDataTask"
-	eventTypeRemoveData          EventType = "RemoveData"
-	eventTypeRemoveCache         EventType = "RemoveCache"
-	eventTypeStopDataTask        EventType = "StopDataTask"
-	eventTypeReplenishCacheTime  EventType = "ReplenishCacheTime"
-	eventTypeResetCacheTime      EventType = "ResetCacheTime"
-	eventTypeRestoreCache        EventType = "RestoreCache"
+	eventTypeDoCacheTaskStart    EventType = "Start_Cache"
+	eventTypeDoCacheTaskEnd      EventType = "End_Cache"
+	eventTypeDoDataTaskErr       EventType = "Data_Error"
+	eventTypeDoDataTaskStart     EventType = "Start_Data"
+	eventTypeDoDataTaskEnd       EventType = "End_Data"
+	eventTypeAddNewDataTask      EventType = "Add_New_Data"
+	eventTypeAddContinueDataTask EventType = "Add_Continue_Data"
+	eventTypeRemoveData          EventType = "Remove_Data"
+	eventTypeRemoveCache         EventType = "Remove_Cache"
+	eventTypeStopDataTask        EventType = "Stop_Data"
+	eventTypeReplenishCacheTime  EventType = "Replenish_Cache_Expired"
+	eventTypeResetCacheTime      EventType = "Reset_Cache_Expired"
+	eventTypeRestoreCache        EventType = "Restore_Cache"
 
 	dataCacheTimerInterval    = 10     //  time interval (Second)
 	checkExpiredTimerInterval = 60 * 5 //  time interval (Second)
@@ -785,9 +785,7 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceIDs []string) {
 		log.Errorf("CleanNodeAndRestoreCaches IncrByBaseInfo err:%s", err.Error())
 	}
 
-	return
-
-	// re cache
+	// recache
 	for carfileHash, deviceID := range recacheMap {
 		info, err := persistent.GetDB().GetDataInfo(carfileHash)
 		if err != nil {
