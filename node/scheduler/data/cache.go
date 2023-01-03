@@ -685,12 +685,12 @@ func (c *Cache) removeCache() error {
 
 // Notify nodes to delete blocks
 func (c *Cache) notifyNodeRemoveBlocks(deviceID string, cids []string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// defer cancel()
 
 	edge := c.data.nodeManager.GetEdgeNode(deviceID)
 	if edge != nil {
-		_, err := edge.GetAPI().DeleteBlocks(ctx, cids)
+		_, err := edge.GetAPI().DeleteBlocks(context.Background(), cids)
 		if err != nil {
 			log.Errorf("notifyNodeRemoveBlocks DeleteBlocks err:%s", err.Error())
 		}
@@ -700,7 +700,7 @@ func (c *Cache) notifyNodeRemoveBlocks(deviceID string, cids []string) {
 
 	candidate := c.data.nodeManager.GetCandidateNode(deviceID)
 	if candidate != nil {
-		_, err := candidate.GetAPI().DeleteBlocks(ctx, cids)
+		_, err := candidate.GetAPI().DeleteBlocks(context.Background(), cids)
 		if err != nil {
 			log.Errorf("notifyNodeRemoveBlocks DeleteBlocks err:%s", err.Error())
 		}
