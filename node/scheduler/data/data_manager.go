@@ -808,6 +808,20 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceIDs []string) {
 	}
 }
 
+// //RedressCacheDataInfo redress cache data info
+// func (m *Manager) RedressCacheDataInfo(cid string) error {
+// 	hash, err := helper.CIDString2HashString(cid)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	isRunning, err := m.isDataTaskRunnning(hash, "")
+// 	if err != nil || isRunning {
+// 		return xerrors.Errorf("data is running , please try again later")
+// 	}
+
+// }
+
 // check expired caches
 func (m *Manager) checkCachesExpired() {
 	if m.isLoadExpiredTime {

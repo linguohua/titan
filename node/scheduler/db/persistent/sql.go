@@ -417,13 +417,25 @@ func (sd sqlDB) SaveCacheEndResults(dInfo *api.DataInfo, cInfo *api.CacheInfo) e
 
 	tx := sd.cli.MustBegin()
 
+	type info struct {
+		Size  int `db:"sum(size)"`
+		Count int `db:"count(size)"`
+	}
+
+	//blocks info
+	i := info{}
+	cmd := fmt.Sprintf("SELECT sum(size),count(size) FROM %s WHERE cache_id=? AND status=?;", bTableName)
+	if err := tx.Get(&i, cmd, cInfo.CacheID, api.CacheStatusSuccess); err != nil {
+		return err
+	}
+
 	// data info
 	dCmd := fmt.Sprintf("UPDATE %s SET total_size=?,reliability=?,cache_count=?,total_blocks=?,nodes=?,end_time=NOW() WHERE carfile_hash=?", dTableName)
 	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.CacheCount, dInfo.TotalBlocks, dInfo.Nodes, dInfo.CarfileHash)
 
 	// cache info
 	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=?,total_size=?,total_blocks=?,nodes=?,end_time=NOW() WHERE cache_id=? `, cTableName)
-	tx.MustExec(cCmd, cInfo.DoneSize, cInfo.DoneBlocks, cInfo.Reliability, cInfo.Status, cInfo.TotalSize, cInfo.TotalBlocks, cInfo.Nodes, cInfo.CacheID)
+	tx.MustExec(cCmd, i.Size, i.Count, cInfo.Reliability, cInfo.Status, cInfo.TotalSize, cInfo.TotalBlocks, cInfo.Nodes, cInfo.CacheID)
 
 	if cInfo.Status == api.CacheStatusTimeout {
 		// blocks timeout
@@ -926,34 +938,35 @@ func (sd sqlDB) UpdateCacheInfoOfQuitNode(deviceID string) (successCacheCount in
 
 	tx := sd.cli.MustBegin()
 
-	query := fmt.Sprintf("select * from (select cache_id from %s where device_id=? GROUP BY cache_id )as a LEFT JOIN %s as b on a.cache_id = b.cache_id", bTableName, cTableName)
+	query := fmt.Sprintf("select * from (select cache_id from %s where device_id=? GROUP BY cache_id )as a LEFT JOIN %s as b on a.cache_id = b.cache_id  where status=?", bTableName, cTableName)
 	var caches []*api.CacheInfo
-	if err = tx.Select(&caches, query, deviceID); err != nil {
+	if err = tx.Select(&caches, query, deviceID, api.CacheStatusSuccess); err != nil {
 		return
 	}
 
-	type info struct {
-		Size  int `db:"sum(size)"`
-		Count int `db:"count(size)"`
-	}
+	// type info struct {
+	// 	Size  int `db:"sum(size)"`
+	// 	Count int `db:"count(size)"`
+	// }
 
+	successCacheCount = len(caches)
 	// cache info
 	for _, cache := range caches {
-		i := info{}
-		cmd := fmt.Sprintf("SELECT sum(size),count(size) FROM %s WHERE cache_id=? AND device_id=? AND status=?;", bTableName)
-		if err = tx.Get(&i, cmd, cache.CacheID, deviceID, api.CacheStatusSuccess); err != nil {
-			return
-		}
+		// i := info{}
+		// cmd := fmt.Sprintf("SELECT sum(size),count(size) FROM %s WHERE cache_id=? AND device_id=? AND status=?;", bTableName)
+		// if err = tx.Get(&i, cmd, cache.CacheID, deviceID, api.CacheStatusSuccess); err != nil {
+		// 	return
+		// }
 
-		if cache.Status == api.CacheStatusSuccess {
-			successCacheCount++
-		}
+		// if cache.Status != api.CacheStatusSuccess {
+		// 	continue
+		// }
 
-		cache.DoneBlocks -= i.Count
-		cache.DoneSize -= i.Size
+		// cache.DoneBlocks -= i.Count
+		// cache.DoneSize -= i.Size
 
-		cmdC := fmt.Sprintf(`UPDATE %s SET status=?,done_size=?,done_blocks=? WHERE cache_id=?`, cTableName)
-		tx.MustExec(cmdC, int(api.CacheStatusRestore), cache.DoneSize, cache.DoneBlocks, cache.CacheID)
+		cmdC := fmt.Sprintf(`UPDATE %s SET status=? WHERE cache_id=?`, cTableName)
+		tx.MustExec(cmdC, int(api.CacheStatusRestore), cache.CacheID)
 
 		carfileReliabilitys[cache.CarfileHash] += cache.Reliability
 	}

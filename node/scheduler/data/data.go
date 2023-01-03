@@ -192,9 +192,7 @@ func (d *Data) updateAndSaveCacheEndInfo(doneCache *Cache) error {
 	cInfo := &api.CacheInfo{
 		CarfileHash: doneCache.carfileHash,
 		CacheID:     doneCache.cacheID,
-		DoneSize:    doneCache.doneSize,
 		Status:      doneCache.status,
-		DoneBlocks:  doneCache.doneBlocks,
 		Reliability: doneCache.reliability,
 		TotalSize:   doneCache.totalSize,
 		TotalBlocks: doneCache.totalBlocks,
