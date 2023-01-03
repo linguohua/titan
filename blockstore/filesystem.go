@@ -16,6 +16,10 @@ func (fs *fileStore) Type() string {
 	return "FileStore"
 }
 
+func (fs *fileStore) GetPath() string {
+	return fs.Path
+}
+
 func (fs *fileStore) Put(key string, value []byte) error {
 	filePath := filepath.Join(fs.Path, key)
 	return os.WriteFile(filePath, value, 0644)

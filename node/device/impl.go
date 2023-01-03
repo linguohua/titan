@@ -3,14 +3,16 @@ package device
 import (
 	"context"
 	"net"
+	"path/filepath"
 	"strings"
 
 	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/disk"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/blockstore"
 	"github.com/linguohua/titan/build"
-	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
@@ -22,15 +24,17 @@ type Device struct {
 	internalIP    string
 	bandwidthUp   int64
 	bandwidthDown int64
+	blockstore    blockstore.BlockStore
 }
 
-func NewDevice(deviceID, publicIP, internalIP string, bandwidthUp, bandwidthDown int64) *Device {
+func NewDevice(deviceID, publicIP, internalIP string, bandwidthUp, bandwidthDown int64, blockstore blockstore.BlockStore) *Device {
 	device := &Device{
 		deviceID:      deviceID,
 		publicIP:      publicIP,
 		internalIP:    internalIP,
 		bandwidthUp:   bandwidthUp,
 		bandwidthDown: bandwidthDown,
+		blockstore:    blockstore,
 	}
 
 	return device
@@ -63,14 +67,14 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	mac, err := getMacAddr(info.InternalIp)
 	if err != nil {
 		log.Errorf("DeviceInfo getMacAddr err:%s", err.Error())
-		return info, err
+		return api.DevicesInfo{}, err
 	}
 
 	info.MacLocation = mac
 
 	vmStat, err := mem.VirtualMemory()
 	if err != nil {
-		log.Errorf("getMemory: %v", err)
+		log.Errorf("getMemory: %s", err.Error())
 	}
 
 	if vmStat != nil {
@@ -80,33 +84,42 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 
 	cpuPercent, err := cpu.Percent(0, false)
 	if err != nil {
-		log.Errorf("getCpuInfo: %v", err)
+		log.Errorf("getCpuInfo: %s", err.Error())
 	}
 
 	info.CpuUsage = cpuPercent[0]
 	info.CPUCores, _ = cpu.Counts(false)
 
-	partitions, err := disk.Partitions(true)
-	if len(partitions) > 0 {
-		info.IoSystem = partitions[0].Fstype
+	blockStorePath := device.blockstore.GetPath()
+	usageStat, err := disk.Usage(blockStorePath)
+	if err != nil {
+		log.Errorf("get disk usage stat error: %s", err)
+		return api.DevicesInfo{}, err
+	}
 
-		use := uint64(0)
-		total := uint64(0)
-		for _, partition := range partitions {
-			usageStat, err := disk.Usage(partition.Mountpoint)
-			if err != nil {
-				log.Errorf("DeviceInfo get disk usage err:%s", err.Error())
-				return info, err
-			}
+	info.DiskUsage = usageStat.UsedPercent
+	info.DiskSpace = float64(usageStat.Total)
 
-			use += usageStat.Used
-			total += usageStat.Total
+	absPath, err := filepath.Abs(blockStorePath)
+	if err != nil {
+		return api.DevicesInfo{}, err
+	}
+
+	partitionsStat, err := disk.Partitions(false)
+	if err != nil {
+		log.Errorf("get partitioin stat: %s", err)
+		return api.DevicesInfo{}, err
+	}
+
+	for _, partition := range partitionsStat {
+		if len(absPath) > len(partition.Mountpoint) &&
+			absPath[0:len(partition.Mountpoint)] == partition.Mountpoint {
+			info.IoSystem = partition.Fstype
+			break
 		}
-		// TODO: to be blockstore, not all disk
-		info.DiskUsage = float64(use) / float64(total) * 100
-		info.DiskSpace = float64(total)
 
 	}
+
 	return info, nil
 }
 
