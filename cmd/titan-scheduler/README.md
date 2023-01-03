@@ -1,13 +1,13 @@
 ## build
 
-### first
+### first method
 ```shell
 cd ../../
 
 docker build -t scheduler:latest -f ./cmd/titan-scheduler/Dockerfile .
 ```
 
-### two
+### two method
 ```shell
 cd ../../
 

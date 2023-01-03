@@ -1,13 +1,13 @@
 ## build
 
-### first
+### first method
 ```shell
 cd ../../
 
 docker build -t candidate:latest -f ./cmd/titan-candidate/Dockerfile .
 ```
 
-### two
+### two method
 ```shell
 cd ../../
 

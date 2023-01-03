@@ -1,13 +1,13 @@
 ## build
 
-### first
+### first method
 ```shell
 cd ../../
 
 docker build -t edge:latest -f ./cmd/titan-edge/Dockerfile .
 ```
 
-### two
+### two method
 ```shell
 cd ../../
 
