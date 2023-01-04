@@ -26,44 +26,43 @@ const (
 
 // DB cache db
 type DB interface {
+	// cache result info
 	SetCacheResultInfo(info *api.CacheResultInfo) (int64, error)
 	GetCacheResultInfo() (*api.CacheResultInfo, error)
-	RemoveCacheResultInfo() error
 	GetCacheResultNum() int64
 
+	// running data list
 	SetDataTaskToRunningList(hash, cacheID string) error
-	RemoveDataTaskWithRunningList(hash, cacheID string) error
 	GetDataTasksWithRunningList() ([]*DataTask, error)
 
+	// running data details
 	SetRunningDataTask(hash, cacheID string, timeout int64) error
 	GetRunningDataTask(hash string) (string, error)
 	RemoveRunningDataTask(hash, cacheID string) error
 	GetRunningDataTaskExpiredTime(hash string) (time.Duration, error)
 
+	// waiting data list
 	SetWaitingDataTask(info *api.DataInfo) error
 	GetWaitingDataTask(index int64) (*api.DataInfo, error)
-	RemoveWaitingDataTask(info *api.DataInfo) error
 	RemoveWaitingDataTasks(infos []*api.DataInfo) error
 
-	IncrNodeCacheFid(deviceID string, num int) (int, error)
-	GetNodeCacheFid(deviceID string) (int64, error)
-
+	// validate round id
 	IncrValidateRoundID() (int64, error)
-	GetPreviousAndCurrentRoundId() (pre, cur int64, err error)
-	GetValidateRoundID() (string, error)
 
+	// verifying node list
 	SetNodeToVerifyingList(deviceID string) error
 	RemoveNodeWithVerifyingList(deviceID string) error
 	RemoveVerifyingList() error
 	GetNodesWithVerifyingList() ([]string, error)
 	CountVerifyingNode(ctx context.Context) (int64, error)
 
+	// validator list
 	SetValidatorsToList(deviceIDs []string, expiration time.Duration) error
 	GetValidatorsWithList() ([]string, error)
 	GetValidatorsAndExpirationTime() ([]string, time.Duration, error)
 
+	// device info
 	IncrNodeOnlineTime(deviceID string, onlineTime int64) (float64, error)
-
 	SetDeviceInfo(info *api.DevicesInfo) error
 	GetDeviceInfo(deviceID string) (*api.DevicesInfo, error)
 	UpdateDeviceInfo(deviceID, field string, value interface{}) error
@@ -71,23 +70,31 @@ type DB interface {
 	IncrByDeviceInfo(deviceID, field string, value int64) error
 	IncrByDevicesInfo(field string, values map[string]int64) error
 	UpdateNodeCacheBlockInfo(toDeviceID, fromDeviceID string, blockSize int) error
-	// UpdateDeviceInfo(deviceID string, update func(deviceInfo *api.DevicesInfo)) error
+
+	// download info
 	SetDownloadBlockRecord(record *DownloadBlockRecord) error
 	RemoveDownloadBlockRecord(sn int64) error
 	GetDownloadBlockRecord(sn int64) (*DownloadBlockRecord, error)
 	IncrBlockDownloadSN() (int64, error)
 
+	// latest data of download
 	AddLatestDownloadCarfile(carfileCID string, userIP string) error
 	GetLatestDownloadCarfiles(userIP string) ([]string, error)
 
-	GetBaseInfo() (*api.BaseInfo, error)
-	UpdateBaseInfo(field string, value interface{}) error
-	IncrByBaseInfo(field string, value int64) error
-
+	// cache error details
 	SaveCacheErrors(cacheID string, infos []*api.CacheError, isClean bool) error
 	GetCacheErrors(cacheID string) ([]*api.CacheError, error)
 
 	NodeDownloadCount(deviceID string, blockDownnloadInfo *api.BlockDownloadInfo) error
+
+	// system base info TODO save in db
+	GetBaseInfo() (*api.BaseInfo, error)
+	UpdateBaseInfo(field string, value interface{}) error
+	IncrByBaseInfo(field string, value int64) error
+
+	// node fid TODO save in db
+	IncrNodeCacheFid(deviceID string, num int) (int, error)
+	GetNodeCacheFid(deviceID string) (int64, error)
 
 	IsNilErr(err error) bool
 }
