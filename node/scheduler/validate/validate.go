@@ -32,8 +32,6 @@ type Validate struct {
 	seed int64
 
 	// validate round number
-	// previous round
-	preRoundId int64
 	// current round number
 	curRoundId int64
 
@@ -104,11 +102,10 @@ func (v *Validate) initValidateTask() {
 func (v *Validate) startValidate() error {
 	log.Info("=======>> start validate <<=======")
 
-	pre, cur, err := cache.GetDB().GetPreviousAndCurrentRoundId()
+	cur, err := cache.GetDB().IncrValidateRoundID()
 	if err != nil {
 		return err
 	}
-	v.preRoundId = pre
 	v.curRoundId = cur
 	v.seed = time.Now().UnixNano()
 
@@ -146,7 +143,7 @@ func (v *Validate) checkValidateTimeOut() error {
 		for _, deviceID := range deviceIDs {
 			di := deviceID
 			go func() {
-				err := v.UpdateFailValidateResult(v.preRoundId, di, errMsgTimeOut, persistent.ValidateStatusTimeOut)
+				err := v.UpdateFailValidateResult(v.curRoundId-1, di, errMsgTimeOut, persistent.ValidateStatusTimeOut)
 				if err != nil {
 					log.Errorf(err.Error())
 				}
