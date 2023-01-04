@@ -187,7 +187,9 @@ type LocatorStruct struct {
 
 		ListAccessPoints func(p0 context.Context) ([]string, error) `perm:"admin"`
 
-		RegisterNode func(p0 context.Context, p1 string, p2 NodeType, p3 int) ([]NodeRegisterInfo, error) `perm:"admin"`
+		LoadAccessPointListForWeb func(p0 context.Context) (LoadAccessPointListResult, error) `perm:"admin"`
+
+		RegisterNode func(p0 context.Context, p1 string, p2 string, p3 NodeType, p4 int) ([]NodeRegisterInfo, error) `perm:"admin"`
 
 		RemoveAccessPoints func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -748,14 +750,25 @@ func (s *LocatorStub) ListAccessPoints(p0 context.Context) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 
-func (s *LocatorStruct) RegisterNode(p0 context.Context, p1 string, p2 NodeType, p3 int) ([]NodeRegisterInfo, error) {
+func (s *LocatorStruct) LoadAccessPointListForWeb(p0 context.Context) (LoadAccessPointListResult, error) {
+	if s.Internal.LoadAccessPointListForWeb == nil {
+		return *new(LoadAccessPointListResult), ErrNotSupported
+	}
+	return s.Internal.LoadAccessPointListForWeb(p0)
+}
+
+func (s *LocatorStub) LoadAccessPointListForWeb(p0 context.Context) (LoadAccessPointListResult, error) {
+	return *new(LoadAccessPointListResult), ErrNotSupported
+}
+
+func (s *LocatorStruct) RegisterNode(p0 context.Context, p1 string, p2 string, p3 NodeType, p4 int) ([]NodeRegisterInfo, error) {
 	if s.Internal.RegisterNode == nil {
 		return *new([]NodeRegisterInfo), ErrNotSupported
 	}
-	return s.Internal.RegisterNode(p0, p1, p2, p3)
+	return s.Internal.RegisterNode(p0, p1, p2, p3, p4)
 }
 
-func (s *LocatorStub) RegisterNode(p0 context.Context, p1 string, p2 NodeType, p3 int) ([]NodeRegisterInfo, error) {
+func (s *LocatorStub) RegisterNode(p0 context.Context, p1 string, p2 string, p3 NodeType, p4 int) ([]NodeRegisterInfo, error) {
 	return *new([]NodeRegisterInfo), ErrNotSupported
 }
 

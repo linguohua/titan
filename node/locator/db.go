@@ -5,6 +5,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/config"
 )
 
@@ -72,6 +73,23 @@ func (db *db) listAccessPoints() (areaIDs []string, err error) {
 		areaIDs = append(areaIDs, k)
 	}
 	return areaIDs, nil
+}
+
+func (db *db) loadAccessPoints() (accessPoints []api.AccessPoint, err error) {
+	// allCfg, err := db.db.getAllCfg()
+	// if err != nil {
+	// 	return []string{}, err
+	// }
+	// cfgMap := make(map[string]string)
+	// for _, cfg := range allCfg {
+	// 	cfgMap[cfg.AreaID] = cfg.SchedulerURL
+	// }
+
+	// for k := range cfgMap {
+	// 	areaIDs = append(areaIDs, k)
+	// }
+	// return areaIDs, nil
+	return nil, nil
 }
 
 func (db *db) getAccessPoint(areaID string) (*config.AccessPoint, error) {
