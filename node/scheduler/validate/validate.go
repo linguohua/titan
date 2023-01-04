@@ -22,6 +22,7 @@ import (
 
 var log = logging.Logger("scheduler/validate")
 
+// Validate Validate
 type Validate struct {
 	ctx  context.Context
 	mu   sync.Mutex
@@ -29,7 +30,7 @@ type Validate struct {
 
 	// validate round number
 	// current round number
-	curRoundId int64
+	curRoundID int64
 
 	duration int
 
@@ -58,6 +59,7 @@ type Validate struct {
 	enable bool
 }
 
+// NewValidate new validate
 func NewValidate(manager *node.Manager, enable bool) *Validate {
 	e := &Validate{
 		ctx:           context.Background(),
@@ -101,7 +103,7 @@ func (v *Validate) startValidate() error {
 	if err != nil {
 		return err
 	}
-	v.curRoundId = cur
+	v.curRoundID = cur
 	v.seed = time.Now().UnixNano()
 
 	// before opening validation
@@ -138,7 +140,7 @@ func (v *Validate) checkValidateTimeOut() error {
 		for _, deviceID := range deviceIDs {
 			di := deviceID
 			go func() {
-				err := v.UpdateFailValidateResult(v.curRoundId-1, di, persistent.ValidateStatusTimeOut)
+				err := v.UpdateFailValidateResult(v.curRoundID-1, di, persistent.ValidateStatusTimeOut)
 				if err != nil {
 					log.Errorf(err.Error())
 				}
@@ -199,7 +201,7 @@ func (v *Validate) execute() error {
 }
 
 type tmpDeviceMeta struct {
-	deviceId string
+	deviceID string
 	nodeType api.NodeType
 	addr     string
 }
@@ -216,7 +218,7 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 		edgeNode := value.(*node.EdgeNode)
 		var tn tmpDeviceMeta
 		tn.nodeType = api.NodeEdge
-		tn.deviceId = edgeNode.DeviceId
+		tn.deviceID = edgeNode.DeviceId
 		tn.addr = edgeNode.Node.GetAddress()
 
 		validatorID := validatorList[v.generatorForRandomNumber(0, len(validatorList))]
@@ -241,7 +243,7 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 			return true
 		}
 		var tn tmpDeviceMeta
-		tn.deviceId = candidateNode.DeviceId
+		tn.deviceID = candidateNode.DeviceId
 		tn.nodeType = api.NodeCandidate
 		tn.addr = candidateNode.Node.GetAddress()
 
@@ -280,44 +282,44 @@ func (v *Validate) assemblyValidateReqAndStore(validatorID string, list []tmpDev
 
 	for _, device := range list {
 		// count device cid number
-		num, err := persistent.GetDB().CountCidOfDevice(device.deviceId)
+		num, err := persistent.GetDB().CountCidOfDevice(device.deviceID)
 		if err != nil {
-			log.Warnf("failed to count cid from device : %s", device.deviceId)
+			log.Warnf("failed to count cid from device : %s", device.deviceID)
 			continue
 		}
 
 		// there is no cached cid in the device
 		if num <= 0 {
-			log.Warnf("no cached cid of device : %s", device.deviceId)
+			log.Warnf("no cached cid of device : %s", device.deviceID)
 			continue
 		}
 
-		maxFid, err := cache.GetDB().GetNodeCacheFid(device.deviceId)
+		maxFid, err := cache.GetDB().GetNodeCacheFid(device.deviceID)
 		if err != nil {
-			log.Warnf("GetNodeCacheTag err:%s,DeviceId:%s", err.Error(), device.deviceId)
+			log.Warnf("GetNodeCacheTag err:%s,DeviceId:%s", err.Error(), device.deviceID)
 			continue
 		}
 
-		v.maxFidMap.Store(device.deviceId, maxFid)
+		v.maxFidMap.Store(device.deviceID, maxFid)
 
 		req = append(req, api.ReqValidate{
 			Seed:     v.seed,
 			NodeURL:  device.addr,
 			Duration: v.duration,
-			RoundID:  v.curRoundId,
+			RoundID:  v.curRoundID,
 			NodeType: int(device.nodeType),
 			MaxFid:   int(maxFid)},
 		)
 
-		err = cache.GetDB().SetNodeToVerifyingList(device.deviceId)
+		err = cache.GetDB().SetNodeToVerifyingList(device.deviceID)
 		if err != nil {
-			log.Warnf("SetNodeToVerifyingList err:%s, DeviceId:%s", err.Error(), device.deviceId)
+			log.Warnf("SetNodeToVerifyingList err:%s, DeviceId:%s", err.Error(), device.deviceID)
 			continue
 		}
 
 		resultInfo := &persistent.ValidateResult{
-			RoundID:     v.curRoundId,
-			DeviceID:    device.deviceId,
+			RoundID:     v.curRoundID,
+			DeviceID:    device.deviceID,
 			ValidatorID: validatorID,
 			Status:      persistent.ValidateStatusCreate.Int(),
 			StartTime:   time.Now(),
@@ -325,7 +327,7 @@ func (v *Validate) assemblyValidateReqAndStore(validatorID string, list []tmpDev
 
 		err = persistent.GetDB().InsertValidateResultInfo(resultInfo)
 		if err != nil {
-			log.Errorf("InsertValidateResultInfo err:%s, DeviceId:%s", err.Error(), device.deviceId)
+			log.Errorf("InsertValidateResultInfo err:%s, DeviceId:%s", err.Error(), device.deviceID)
 			continue
 		}
 	}
@@ -341,11 +343,13 @@ func (v *Validate) getRandNum(max int, r *rand.Rand) int {
 	return max
 }
 
-func (v *Validate) UpdateFailValidateResult(roundId int64, deviceID string, status persistent.ValidateStatus) error {
-	resultInfo := &persistent.ValidateResult{RoundID: roundId, DeviceID: deviceID, Status: status.Int(), EndTime: time.Now()}
+// UpdateFailValidateResult update validate result info
+func (v *Validate) UpdateFailValidateResult(roundID int64, deviceID string, status persistent.ValidateStatus) error {
+	resultInfo := &persistent.ValidateResult{RoundID: roundID, DeviceID: deviceID, Status: status.Int(), EndTime: time.Now()}
 	return persistent.GetDB().UpdateFailValidateResultInfo(resultInfo)
 }
 
+// UpdateSuccessValidateResult update validate result info
 func (v *Validate) UpdateSuccessValidateResult(validateResults *api.ValidateResults) error {
 	resultInfo := &persistent.ValidateResult{
 		RoundID:     validateResults.RoundID,
@@ -390,6 +394,7 @@ func (v *Validate) iterationValidateResult() {
 	}
 }
 
+// PushResultToQueue add result info to queue
 func (v *Validate) PushResultToQueue(validateResults *api.ValidateResults) {
 	v.mu.Lock()
 	v.resultQueue.PushBack(validateResults)
@@ -398,7 +403,7 @@ func (v *Validate) PushResultToQueue(validateResults *api.ValidateResults) {
 }
 
 func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) error {
-	if validateResults.RoundID != v.curRoundId {
+	if validateResults.RoundID != v.curRoundID {
 		return xerrors.Errorf("round id mismatch")
 	}
 
@@ -477,14 +482,17 @@ func (v *Validate) compareCid(cidStr1, cidStr2 string) bool {
 	return hash1 == hash2
 }
 
+// EnableValidate enable validate task
 func (v *Validate) EnableValidate(enable bool) {
 	v.enable = enable
 }
 
+// IsEnable is validate task enable
 func (v *Validate) IsEnable() bool {
 	return v.enable
 }
 
+// StartValidateOnceTask start validate task
 func (v *Validate) StartValidateOnceTask() error {
 	if v.running {
 		return fmt.Errorf("validation in progress, cannot start again")
@@ -497,10 +505,6 @@ func (v *Validate) StartValidateOnceTask() error {
 
 	v.enable = true
 	v.crontab.Stop()
-	err := v.startValidate()
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return v.startValidate()
 }

@@ -257,7 +257,7 @@ type SchedulerStruct struct {
 
 		LocatorConnect func(p0 context.Context, p1 int, p2 string, p3 string, p4 string) error `perm:"write"`
 
-		NodeExit func(p0 context.Context, p1 string) error `perm:"admin"`
+		NodeQuit func(p0 context.Context, p1 string) error `perm:"admin"`
 
 		NodeResultForUserDownloadBlock func(p0 context.Context, p1 NodeBlockDownloadResult) error `perm:"write"`
 
@@ -1071,14 +1071,14 @@ func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 int, p2 string, p3
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) NodeExit(p0 context.Context, p1 string) error {
-	if s.Internal.NodeExit == nil {
+func (s *SchedulerStruct) NodeQuit(p0 context.Context, p1 string) error {
+	if s.Internal.NodeQuit == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.NodeExit(p0, p1)
+	return s.Internal.NodeQuit(p0, p1)
 }
 
-func (s *SchedulerStub) NodeExit(p0 context.Context, p1 string) error {
+func (s *SchedulerStub) NodeQuit(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 

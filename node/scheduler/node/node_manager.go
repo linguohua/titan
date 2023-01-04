@@ -1,11 +1,8 @@
 package node
 
 import (
-	"runtime"
 	"sync"
 	"time"
-
-	"github.com/go-ping/ping"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
@@ -176,16 +173,6 @@ func (m *Manager) GetNodes(nodeType api.NodeTypeName) ([]string, error) {
 	return list, nil
 }
 
-// // GetAllCandidate get all candidate node
-// func (m *Manager) GetAllCandidate() *sync.Map {
-// 	return m.candidateNodeMap
-// }
-
-// // GetAllEdge  get all edge node
-// func (m *Manager) GetAllEdge() *sync.Map {
-// 	return m.edgeNodeMap
-// }
-
 // EdgeOnline Edge Online
 func (m *Manager) EdgeOnline(node *EdgeNode) error {
 	deviceID := node.DeviceId
@@ -284,63 +271,6 @@ func (m *Manager) candidateOffline(node *CandidateNode) {
 		m.nodeOfflineCallBack(deviceID)
 	}
 }
-
-// // FindEdgesByList find edges by list
-// func (m *Manager) FindEdgesByList(list []string, filterMap map[string]string) []*EdgeNode {
-// 	if filterMap == nil {
-// 		filterMap = make(map[string]string)
-// 	}
-
-// 	nodes := make([]*EdgeNode, 0)
-
-// 	for _, dID := range list {
-// 		if _, exist := filterMap[dID]; exist {
-// 			continue
-// 		}
-
-// 		node := m.GetEdgeNode(dID)
-// 		if node != nil {
-// 			nodes = append(nodes, node)
-// 		}
-// 	}
-
-// 	if len(nodes) > 0 {
-// 		return nodes
-// 	}
-
-// 	return nil
-// }
-
-// // FindEdges Find Edges by all edge
-// func (m *Manager) FindEdges(filterMap map[string]string) []*EdgeNode {
-// 	if filterMap == nil {
-// 		filterMap = make(map[string]string)
-// 	}
-
-// 	nodes := make([]*EdgeNode, 0)
-
-// 	m.EdgeNodeMap.Range(func(key, value interface{}) bool {
-// 		deviceID := key.(string)
-// 		node := value.(*EdgeNode)
-
-// 		if _, ok := filterMap[deviceID]; ok {
-// 			return true
-// 		}
-
-// 		if node == nil {
-// 			return true
-// 		}
-// 		nodes = append(nodes, node)
-
-// 		return true
-// 	})
-
-// 	if len(nodes) > 0 {
-// 		return nodes
-// 	}
-
-// 	return nil
-// }
 
 // FindCandidates Find CandidateNodes from all Candidate and filter filterMap
 func (m *Manager) FindCandidates(filterMap map[string]string) []*CandidateNode {
@@ -500,12 +430,12 @@ func (m *Manager) checkNodesQuit() {
 	}
 
 	if len(quits) > 0 {
-		m.NodeQuit(quits)
+		m.NodesQuit(quits)
 	}
 }
 
-// NodeQuit Node quit
-func (m *Manager) NodeQuit(deviceIDs []string) {
+// NodesQuit Nodes quit
+func (m *Manager) NodesQuit(deviceIDs []string) {
 	err := persistent.GetDB().SetNodesQuit(deviceIDs)
 	if err != nil {
 		log.Warnf("NodeExited SetNodesQuit err:%s", err.Error())
@@ -522,65 +452,22 @@ func (m *Manager) GetAuthToken() []byte {
 	return m.getAuthToken()
 }
 
-// FindDownloadinfoForBlocks  filter cached blocks and find download url from candidate
-// func (m *Manager) FindDownloadinfoForBlocks(blocks []*api.BlockCacheInfo, carfileHash, cacheID string) []api.ReqCacheData {
-// 	reqList := make([]api.ReqCacheData, 0)
-// 	notFindCandidateBlocks := make([]api.BlockCacheInfo, 0)
-
-// 	csMap := make(map[string][]api.BlockCacheInfo)
-// 	for _, block := range blocks {
-// 		deviceID := block.From
-
-// 		list, ok := csMap[deviceID]
-// 		if !ok {
-// 			list = make([]api.BlockCacheInfo, 0)
-// 		}
-// 		list = append(list, *block)
-
-// 		csMap[deviceID] = list
+// func statisticsPing(ip string) (*ping.Statistics, error) {
+// 	pinger, err := ping.NewPinger(ip)
+// 	if err != nil {
+// 		return nil, err
 // 	}
 
-// 	for deviceID, list := range csMap {
-// 		// info, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
-
-// 		node := m.GetCandidateNode(deviceID)
-// 		if node != nil {
-// 			reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: node.GetAddress(), DownloadToken: string(m.getAuthToken()), CardFileHash: carfileHash, CacheID: cacheID})
-
-// 			// tk, err := token.GenerateToken(info.PrivateKey, time.Now().Add(helper.DownloadTokenExpireAfter).Unix())
-// 			// if err == nil {
-// 			// 	reqList = append(reqList, api.ReqCacheData{BlockInfos: list, DownloadURL: info.URL, DownloadToken: tk, CardFileHash: carfileHash, CacheID: cacheID})
-
-// 			continue
-// 			// }
-// 		}
-
-// 		notFindCandidateBlocks = append(notFindCandidateBlocks, list...)
+// 	if runtime.GOOS == "windows" {
+// 		pinger.SetPrivileged(true)
 // 	}
 
-// 	if len(notFindCandidateBlocks) > 0 {
-// 		reqList = append(reqList, api.ReqCacheData{BlockInfos: notFindCandidateBlocks, CardFileHash: carfileHash, CacheID: cacheID})
+// 	pinger.Count = 3
+// 	pinger.Timeout = 5 * time.Second
+// 	err = pinger.Run()
+// 	if err != nil {
+// 		return nil, err
 // 	}
 
-// 	return reqList
+// 	return pinger.Statistics(), nil
 // }
-
-func statisticsPing(ip string) (*ping.Statistics, error) {
-	pinger, err := ping.NewPinger(ip)
-	if err != nil {
-		return nil, err
-	}
-
-	if runtime.GOOS == "windows" {
-		pinger.SetPrivileged(true)
-	}
-
-	pinger.Count = 3
-	pinger.Timeout = 5 * time.Second
-	err = pinger.Run()
-	if err != nil {
-		return nil, err
-	}
-
-	return pinger.Statistics(), nil
-}

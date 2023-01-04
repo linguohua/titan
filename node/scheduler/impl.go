@@ -115,6 +115,7 @@ func (s *Scheduler) getAuthToken() []byte {
 	return s.authToken
 }
 
+// AuthNodeVerify Verify Node Auth
 func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error) {
 	var payload jwtPayload
 
@@ -129,7 +130,7 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 	}
 
 	var secret string
-	err := persistent.GetDB().GetRegisterInfo(deviceID, "secret", &secret)
+	err := persistent.GetDB().GetRegisterInfo(deviceID, persistent.SecretKey, &secret)
 	if err != nil {
 		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", deviceID, err)
 	}
@@ -143,13 +144,14 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 	return payload.Allow, nil
 }
 
+// AuthNodeNew  Get Node Auth
 func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, deviceID, deviceSecret string) ([]byte, error) {
 	p := jwtPayload{
 		Allow: perms,
 	}
 
 	var secret string
-	err := persistent.GetDB().GetRegisterInfo(deviceID, "secret", &secret)
+	err := persistent.GetDB().GetRegisterInfo(deviceID, persistent.SecretKey, &secret)
 	if err != nil {
 		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", deviceID, err)
 	}
@@ -166,7 +168,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 	ip := handler.GetRequestIP(ctx)
 	deviceID := handler.GetDeviceID(ctx)
 
-	if !isDeviceExist(deviceID, int(api.NodeCandidate)) {
+	if !isDeviceExists(deviceID, int(api.NodeCandidate)) {
 		return xerrors.Errorf("candidate node not Exist: %s", deviceID)
 	}
 
@@ -250,7 +252,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 	ip := handler.GetRequestIP(ctx)
 	deviceID := handler.GetDeviceID(ctx)
 
-	if !isDeviceExist(deviceID, int(api.NodeEdge)) {
+	if !isDeviceExists(deviceID, int(api.NodeEdge)) {
 		return xerrors.Errorf("edge node not Exist: %s", deviceID)
 	}
 
@@ -357,7 +359,7 @@ func (s *Scheduler) GetExternalIP(ctx context.Context) (string, error) {
 func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.ValidateResults) error {
 	validator := handler.GetDeviceID(ctx)
 	log.Debug("call back validate block result, validator is", validator)
-	if !isDeviceExist(validator, 0) {
+	if !isDeviceExists(validator, 0) {
 		return xerrors.Errorf("node not Exist: %s", validator)
 	}
 
@@ -407,7 +409,7 @@ func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids
 	//TODO too much cid
 	deviceID := handler.GetDeviceID(ctx)
 
-	if !isDeviceExist(deviceID, 0) {
+	if !isDeviceExists(deviceID, 0) {
 		return nil, xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
@@ -592,9 +594,9 @@ func (s *Scheduler) GetDownloadInfo(ctx context.Context, deviceID string) ([]*ap
 	return persistent.GetDB().GetBlockDownloadInfoByDeviceID(deviceID)
 }
 
-// NodeExit node want to exit titan
-func (s *Scheduler) NodeExit(ctx context.Context, deviceID string) error {
-	s.nodeManager.NodeQuit([]string{deviceID})
+// NodeQuit node want to quit titan
+func (s *Scheduler) NodeQuit(ctx context.Context, deviceID string) error {
+	s.nodeManager.NodesQuit([]string{deviceID})
 
 	return nil
 }
@@ -626,7 +628,7 @@ func (s *Scheduler) nodeExitedCallback(deviceIDs []string) {
 
 //RedressDeveiceInfo redress device info
 func (s *Scheduler) RedressDeveiceInfo(ctx context.Context, deviceID string) error {
-	if !isDeviceExist(deviceID, 0) {
+	if !isDeviceExists(deviceID, 0) {
 		return xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
@@ -660,10 +662,10 @@ func (s *Scheduler) authNew() error {
 	return nil
 }
 
-// isDeviceExist Check if the id exists
-func isDeviceExist(deviceID string, nodeType int) bool {
+// isDeviceExists Check if the id exists
+func isDeviceExists(deviceID string, nodeType int) bool {
 	var nType int
-	err := persistent.GetDB().GetRegisterInfo(deviceID, "node_type", &nType)
+	err := persistent.GetDB().GetRegisterInfo(deviceID, persistent.NodeTypeKey, &nType)
 	if err != nil {
 		return false
 	}
