@@ -25,13 +25,6 @@ const (
 	errMsgCancel  = "verification canceled due to download"
 )
 
-type validateState int
-
-const (
-	validationNotStarted validateState = iota
-	validationStarting
-)
-
 var log = logging.Logger("scheduler/validate")
 
 type Validate struct {
@@ -65,7 +58,7 @@ type Validate struct {
 	crontab *cron.Cron
 
 	// validate state
-	validateState validateState
+	validateState bool
 
 	// validate switch
 	enable bool
@@ -80,7 +73,6 @@ func NewValidate(manager *node.Manager, enable bool) *Validate {
 		resultChannel: make(chan bool, 1),
 		nodeManager:   manager,
 		crontab:       cron.New(),
-		validateState: validationNotStarted,
 		enable:        enable,
 	}
 
@@ -129,13 +121,13 @@ func (v *Validate) startValidate() error {
 	}
 
 	if !v.enable {
-		v.validateState = validationNotStarted
+		v.validateState = false
 		return nil
 	}
 
 	err = v.execute()
 	if err != nil {
-		v.validateState = validationNotStarted
+		v.validateState = false
 		log.Errorf(err.Error())
 		return err
 	}
@@ -166,7 +158,7 @@ func (v *Validate) checkValidateTimeOut() error {
 }
 
 func (v *Validate) execute() error {
-	v.validateState = validationStarting
+	v.validateState = true
 
 	err := cache.GetDB().RemoveVerifyingList()
 	if err != nil {
@@ -420,7 +412,7 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 			return
 		}
 		if count == 0 {
-			v.validateState = validationNotStarted
+			v.validateState = false
 		}
 	}()
 	defer func() {
@@ -498,7 +490,7 @@ func (v *Validate) IsEnable() bool {
 }
 
 func (v *Validate) StartValidateOnceTask() error {
-	if v.validateState == validationStarting {
+	if v.validateState {
 		return fmt.Errorf("validation in progress, cannot start again")
 	}
 
