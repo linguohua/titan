@@ -143,7 +143,7 @@ func (v *Validate) checkValidateTimeOut() error {
 		for _, deviceID := range deviceIDs {
 			di := deviceID
 			go func() {
-				err := v.UpdateFailValidateResult(v.curRoundId-1, di, errMsgTimeOut, persistent.ValidateStatusTimeOut)
+				err := v.UpdateFailValidateResult(v.curRoundId-1, di, persistent.ValidateStatusTimeOut)
 				if err != nil {
 					log.Errorf(err.Error())
 				}
@@ -344,8 +344,8 @@ func (v *Validate) getRandNum(max int, r *rand.Rand) int {
 	return max
 }
 
-func (v *Validate) UpdateFailValidateResult(roundId int64, deviceID, msg string, status persistent.ValidateStatus) error {
-	resultInfo := &persistent.ValidateResult{RoundID: roundId, DeviceID: deviceID, Msg: msg, Status: status.Int(), EndTime: time.Now()}
+func (v *Validate) UpdateFailValidateResult(roundId int64, deviceID string, status persistent.ValidateStatus) error {
+	resultInfo := &persistent.ValidateResult{RoundID: roundId, DeviceID: deviceID, Status: status.Int(), EndTime: time.Now()}
 	return persistent.GetDB().UpdateFailValidateResultInfo(resultInfo)
 }
 
@@ -354,7 +354,6 @@ func (v *Validate) UpdateSuccessValidateResult(validateResults *api.ValidateResu
 		RoundID:     validateResults.RoundID,
 		DeviceID:    validateResults.DeviceID,
 		BlockNumber: int64(len(validateResults.Cids)),
-		Msg:         "ok",
 		Status:      persistent.ValidateStatusSuccess.Int(),
 		Bandwidth:   validateResults.Bandwidth,
 		Duration:    validateResults.CostTime,
@@ -421,25 +420,25 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 	}()
 
 	if validateResults.IsCancel {
-		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, errMsgCancel, persistent.ValidateStatusCancel)
+		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusCancel)
 	}
 
 	if validateResults.IsTimeout {
-		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, errMsgTimeOut, persistent.ValidateStatusTimeOut)
+		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusTimeOut)
 	}
 
 	r := rand.New(rand.NewSource(v.seed))
 	cidLength := len(validateResults.Cids)
 
 	if cidLength <= 0 || validateResults.RandomCount <= 0 {
-		msg := "validate result is null or random count is 0"
-		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, msg, persistent.ValidateStatusFail)
+		log.Errorf("round [%d] and deviceID [%s], %s", validateResults.RoundID, validateResults.DeviceID, "validate result is null or random count is 0")
+		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusFail)
 	}
 
 	cacheInfos, err := persistent.GetDB().GetBlocksFID(validateResults.DeviceID)
 	if err != nil || len(cacheInfos) <= 0 {
-		msg := fmt.Sprintf("failed to query : %s", err.Error())
-		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, msg, persistent.ValidateStatusOther)
+		log.Errorf("round [%d] and deviceID [%s], failed to query : %s", validateResults.RoundID, validateResults.DeviceID, err.Error())
+		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusOther)
 	}
 
 	mFValue, _ := v.maxFidMap.Load(validateResults.DeviceID)
@@ -455,9 +454,8 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 		}
 
 		if !v.compareCid(cid, resultCid) {
-			msg := fmt.Sprintf("validate fail; resultCid:%s,cid_db:%s,fid:%d,index:%d", resultCid, cid, fid, index)
-			log.Errorf("validate fail deviceID [%s] resultCid:%s,cid_db:%s,fid:%d,index:%d", validateResults.DeviceID, resultCid, cid, fid, index)
-			return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, msg, persistent.ValidateStatusFail)
+			log.Errorf("round [%d] and deviceID [%s], validate fail resultCid:%s, cid_db:%s,fid:%d,index:%d", validateResults.RoundID, validateResults.DeviceID, resultCid, cid, fid, index)
+			return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusFail)
 		}
 	}
 

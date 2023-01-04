@@ -157,7 +157,6 @@ type ValidateResult struct {
 	ValidatorID string    `db:"validator_id"`
 	ServerName  string    `db:"server_name"`
 	BlockNumber int64     `db:"block_number"` // number of blocks verified
-	Msg         string    `db:"msg"`
 	Status      int       `db:"status"`
 	Duration    int64     `db:"duration"` // validate duration, microsecond
 	Bandwidth   float64   `db:"bandwidth"`
