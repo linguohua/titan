@@ -24,6 +24,7 @@ const (
 	// 3 seconds
 	connectTimeout = 3
 	defaultAreaID  = "CN-GD-Shenzhen"
+	unknownAreaID  = "unknown-unknown-unknown"
 )
 
 func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, uuid string, locatorPort int) api.Locator {
@@ -70,7 +71,7 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string) ([
 
 	log.Infof("device %s ip %s get Area areaID %s", deviceID, ip, areaID)
 
-	if areaID == "" || areaID == "unknown-unknown-unknown" {
+	if areaID == "" || areaID == unknownAreaID {
 		log.Warnf("GetAccessPoints device %s can not get areaID, use default areaID:%s", deviceID, defaultAreaID)
 		areaID = defaultAreaID
 	}
@@ -138,11 +139,11 @@ func (locator *Locator) ShowAccessPoint(ctx context.Context, areaID string) (api
 	}
 	infos := make([]api.SchedulerInfo, 0, len(ap.SchedulerCfgs))
 	for _, cfg := range ap.SchedulerCfgs {
-		schedulerInfo := api.SchedulerInfo{URL: cfg.URL, Weight: cfg.Weight, AccessToken: cfg.AccessToken}
-		_, ok := locator.apMgr.getSchedulerAPI(cfg.URL, areaID, cfg.AccessToken)
-		if ok {
-			schedulerInfo.Online = true
-		}
+		schedulerInfo := api.SchedulerInfo{URL: cfg.URL, Weight: cfg.Weight}
+		// _, ok := locator.apMgr.getSchedulerAPI(cfg.URL, areaID, cfg.AccessToken)
+		// if ok {
+		// 	schedulerInfo.Online = true
+		// }
 
 		infos = append(infos, schedulerInfo)
 	}
@@ -467,10 +468,10 @@ func (locator *Locator) RegisterNode(ctx context.Context, areaID string, schedul
 	return schedulerAPI.RegisterNode(ctx, nodeType, count)
 }
 
-func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) (api.LoadAccessPointsResult, error) {
+func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) ([]api.AccessPoint, error) {
 	allCfg, err := locator.db.db.getAllCfg()
 	if err != nil {
-		return api.LoadAccessPointsResult{}, err
+		return make([]api.AccessPoint, 0), err
 	}
 
 	accessPointMap := make(map[string]*api.AccessPoint, 0)
@@ -483,11 +484,6 @@ func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) (api.LoadAcc
 		}
 
 		schedulerInfo := api.SchedulerInfo{URL: cfg.SchedulerURL, Weight: cfg.Weight}
-		_, ok = locator.apMgr.getSchedulerAPI(cfg.SchedulerURL, cfg.AreaID, cfg.AccessToken)
-		if ok {
-			schedulerInfo.Online = true
-		}
-
 		ap.SchedulerInfos = append(ap.SchedulerInfos, schedulerInfo)
 	}
 
@@ -496,17 +492,28 @@ func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) (api.LoadAcc
 		accessPoints = append(accessPoints, *accessPoint)
 	}
 
+	return accessPoints, nil
+}
+
+func (locator *Locator) LoadUserAccessPoint(ctx context.Context, userIP string) (api.AccessPoint, error) {
 	ip := handler.GetRequestIP(ctx)
+	areaID := defaultAreaID
 	geoInfo, _ := region.GetRegion().GetGeoInfo(ip)
-
-	ret := api.LoadAccessPointsResult{AccessPoints: accessPoints}
-	if geoInfo != nil {
-		ret.UserAreaID = geoInfo.Geo
+	if geoInfo != nil && geoInfo.Geo != unknownAreaID {
+		areaID = geoInfo.Geo
 	}
 
-	if ret.UserAreaID == "unknown-unknown-unknown" {
-		ret.UserAreaID = defaultAreaID
+	ap, err := locator.db.getAccessPoint(areaID)
+	if err != nil {
+		return api.AccessPoint{}, err
 	}
 
-	return ret, nil
+	infos := make([]api.SchedulerInfo, 0, len(ap.SchedulerCfgs))
+	for _, cfg := range ap.SchedulerCfgs {
+		schedulerInfo := api.SchedulerInfo{URL: cfg.URL, Weight: cfg.Weight}
+		infos = append(infos, schedulerInfo)
+	}
+
+	accessPoint := api.AccessPoint{AreaID: ap.AreaID, SchedulerInfos: infos}
+	return accessPoint, nil
 }

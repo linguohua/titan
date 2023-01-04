@@ -22,6 +22,7 @@ var accesspointCmd = &cli.Command{
 		getCmd,
 		registerCmd,
 		loadAccessPointList,
+		loadUserAccessPoint,
 	},
 }
 
@@ -251,7 +252,7 @@ var registerCmd = &cli.Command{
 		}
 
 		for _, info := range registerInfos {
-			fmt.Println("register infos:%v", info)
+			fmt.Printf("register infos:%v", info)
 		}
 
 		return nil
@@ -272,16 +273,39 @@ var loadAccessPointList = &cli.Command{
 
 		ctx := ReqContext(cctx)
 
-		result, err := locatorAPI.LoadAccessPointsForWeb(ctx)
+		aps, err := locatorAPI.LoadAccessPointsForWeb(ctx)
 		if err != nil {
 			return err
 		}
 
-		for _, ap := range result.AccessPoints {
+		for _, ap := range aps {
 			fmt.Printf("accesspoint:%v", ap)
 		}
-		fmt.Printf("user areaID:%s", result.UserAreaID)
 
+		return nil
+	},
+}
+
+var loadUserAccessPoint = &cli.Command{
+	Name:  "loadUser",
+	Usage: "load user access point list",
+	Flags: []cli.Flag{},
+
+	Action: func(cctx *cli.Context) error {
+		locatorAPI, closer, err := GetLocatorAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		ctx := ReqContext(cctx)
+
+		ap, err := locatorAPI.LoadUserAccessPoint(ctx, "192.168.0.83")
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("accesspoint:%v", ap)
 		return nil
 	},
 }
