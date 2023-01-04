@@ -33,9 +33,9 @@ func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.C
 	info.DeviceID = deviceID
 
 	// log.Warnf("CacheResult ,CacheID:%s Cid:%s", info.CacheID, info.Cid)
-	return s.dataManager.PushCacheResultToQueue(&info)
+	// return s.dataManager.PushCacheResultToQueue(&info)
 
-	// return s.dataManager.CacheCarfileResult(&info)
+	return s.dataManager.CacheCarfileResult(&info)
 }
 
 // ResetCacheExpiredTime reset expired time with data cache
