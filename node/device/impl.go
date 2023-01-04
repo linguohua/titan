@@ -116,11 +116,8 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 			len(absPath) >= len(partition.Mountpoint) &&
 			absPath[0:len(partition.Mountpoint)] == partition.Mountpoint {
 			info.IoSystem = partition.Fstype
-			log.Infof("absPath:%s, partition:%v", absPath, partition)
 			break
 		}
-		log.Infof("absPath:%s, partition:%v", absPath, partition)
-
 	}
 
 	return info, nil
