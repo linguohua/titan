@@ -402,6 +402,11 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 	log.Debugf("validate result : %+v", *validateResults)
 
 	defer func() {
+		err := cache.GetDB().RemoveNodeWithVerifyingList(validateResults.DeviceID)
+		if err != nil {
+			log.Errorf("remove edge node [%s] fail : %s", validateResults.DeviceID, err.Error())
+			return
+		}
 		count, err := cache.GetDB().CountVerifyingNode(v.ctx)
 		if err != nil {
 			log.Error("CountVerifyingNode fail :", err.Error())
@@ -409,13 +414,6 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 		}
 		if count == 0 {
 			v.validateState = false
-		}
-	}()
-	defer func() {
-		err := cache.GetDB().RemoveNodeWithVerifyingList(validateResults.DeviceID)
-		if err != nil {
-			log.Errorf("remove edge node [%s] fail : %s", validateResults.DeviceID, err.Error())
-			return
 		}
 	}()
 
