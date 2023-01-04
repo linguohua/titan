@@ -38,8 +38,8 @@ const (
 	dataCacheTimerInterval    = 10     //  time interval (Second)
 	checkExpiredTimerInterval = 60 * 5 //  time interval (Second)
 
-	runningTaskMaxCount    = 500
-	blockResultThreadCount = 10
+	runningTaskMaxCount = 5
+	// blockResultThreadCount = 10
 )
 
 // Manager Data
@@ -82,8 +82,8 @@ func (m *Manager) dataCacheTicker() {
 			// m.notifyDataLoader()
 			// case <-m.dataTaskLoaderCh:
 			m.doDataTasks()
-		case <-m.blockResultLoaderCh:
-			m.doCacheResults()
+			// case <-m.blockResultLoaderCh:
+			// 	m.doCacheResults()
 		}
 	}
 }
@@ -428,59 +428,59 @@ func (m *Manager) CacheCarfileResult(info *api.CacheResultInfo) (err error) {
 	return
 }
 
-func (m *Manager) doCacheResults() {
-	size := int(cache.GetDB().GetCacheResultNum())
-	if size <= 0 {
-		return
-	}
+// func (m *Manager) doCacheResults() {
+// 	size := int(cache.GetDB().GetCacheResultNum())
+// 	if size <= 0 {
+// 		return
+// 	}
 
-	if size > blockResultThreadCount {
-		size = blockResultThreadCount
-	}
+// 	if size > blockResultThreadCount {
+// 		size = blockResultThreadCount
+// 	}
 
-	var wg sync.WaitGroup
-	for i := 0; i < size; i++ {
-		info, err := cache.GetDB().GetCacheResultInfo()
-		if err != nil {
-			log.Errorf("doResultTask GetCacheResultInfo err:%s", err.Error())
-			continue
-		}
+// 	var wg sync.WaitGroup
+// 	for i := 0; i < size; i++ {
+// 		info, err := cache.GetDB().GetCacheResultInfo()
+// 		if err != nil {
+// 			log.Errorf("doResultTask GetCacheResultInfo err:%s", err.Error())
+// 			continue
+// 		}
 
-		if info == nil {
-			continue
-		}
+// 		if info == nil {
+// 			continue
+// 		}
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+// 		wg.Add(1)
+// 		go func() {
+// 			defer wg.Done()
 
-			err = m.CacheCarfileResult(info)
-			if err != nil {
-				log.Errorf("doResultTask cacheCarfileResult err:%s", err.Error())
-				// return
-			}
-		}()
-	}
-	wg.Wait()
+// 			err = m.CacheCarfileResult(info)
+// 			if err != nil {
+// 				log.Errorf("doResultTask cacheCarfileResult err:%s", err.Error())
+// 				// return
+// 			}
+// 		}()
+// 	}
+// 	wg.Wait()
 
-	m.notifyBlockLoader()
-}
+// 	m.notifyBlockLoader()
+// }
 
 // PushCacheResultToQueue new cache task
-func (m *Manager) PushCacheResultToQueue(info *api.CacheResultInfo) error {
-	count, err := cache.GetDB().SetCacheResultInfo(info)
-	if err != nil {
-		return err
-	}
+// func (m *Manager) PushCacheResultToQueue(info *api.CacheResultInfo) error {
+// 	count, err := cache.GetDB().SetCacheResultInfo(info)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	//reset timeout
-	addSecond := count / 50
-	m.updateDataTimeout(info.CarFileHash, info.CacheID, 0, addSecond)
+// 	//reset timeout
+// 	addSecond := count / 50
+// 	m.updateDataTimeout(info.CarFileHash, info.CacheID, 0, addSecond)
 
-	m.notifyBlockLoader()
+// 	m.notifyBlockLoader()
 
-	return nil
-}
+// 	return nil
+// }
 
 func (m *Manager) notifyBlockLoader() {
 	select {

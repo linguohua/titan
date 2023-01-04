@@ -201,7 +201,6 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 		}
 	} else if difference < 0 {
 		// need to reduce
-		// TODO random
 		out = out[:needValidatorCount]
 	}
 
