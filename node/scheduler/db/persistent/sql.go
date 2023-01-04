@@ -53,19 +53,38 @@ func InitSQL(url string) (DB, error) {
 	return db, err
 }
 
-// IsNilErr Is NilErr
-func (sd sqlDB) IsNilErr(err error) bool {
-	return err.Error() == errNotFind
-}
+// node info
+func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
+	info.DeviceID = deviceID
+	info.ServerName = serverName
+	// info.CreateTime = time.Now().Format("2006-01-02 15:04:05")
 
-func (sd sqlDB) SetNodeAuthInfo(aInfo *api.DownloadServerAccessAuth) error {
-	info := &NodeInfo{
-		URL:        aInfo.URL,
-		DeviceID:   aInfo.DeviceID,
-		PrivateKey: aInfo.PrivateKey,
+	var count int64
+	cmd := "SELECT count(device_id) FROM node WHERE device_id=?"
+	err := sd.cli.Get(&count, cmd, deviceID)
+	if err != nil {
+		return err
 	}
 
-	_, err := sd.cli.NamedExec(`UPDATE node SET private_key=:private_key,url=:url WHERE device_id=:device_id`, info)
+	if count == 0 {
+		_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address, server_name,private_key, url)
+                VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address, :server_name,:private_key,:url)`, info)
+		return err
+	}
+
+	// update
+	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address,server_name=:server_name,url=:url,quitted=:quitted WHERE device_id=:device_id`, info)
+	return err
+}
+
+func (sd sqlDB) SetNodeOffline(deviceID string, lastTime time.Time) error {
+	info := &NodeInfo{
+		DeviceID: deviceID,
+		LastTime: lastTime,
+		IsOnline: false,
+	}
+
+	_, err := sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,is_online=:is_online WHERE device_id=:device_id`, info)
 
 	return err
 }
@@ -91,48 +110,18 @@ func (sd sqlDB) GetNodeAuthInfo(deviceID string) (*api.DownloadServerAccessAuth,
 	return &api.DownloadServerAccessAuth{URL: info.URL, PrivateKey: info.PrivateKey, DeviceID: deviceID}, err
 }
 
-func (sd sqlDB) SetNodeOffline(deviceID string, lastTime time.Time) error {
-	info := &NodeInfo{
-		DeviceID: deviceID,
-		LastTime: lastTime,
-		IsOnline: false,
+func (sd sqlDB) GetOfflineNodes() ([]*NodeInfo, error) {
+	list := make([]*NodeInfo, 0)
+
+	cmd := "SELECT device_id,last_time FROM node WHERE quitted=? AND is_online=? AND server_name=?"
+	if err := sd.cli.Select(&list, cmd, false, false, serverName); err != nil {
+		return nil, err
 	}
 
-	_, err := sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,is_online=:is_online WHERE device_id=:device_id`, info)
-
-	return err
-}
-
-func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
-	info.DeviceID = deviceID
-	info.ServerName = serverName
-	// info.CreateTime = time.Now().Format("2006-01-02 15:04:05")
-
-	var count int64
-	cmd := "SELECT count(device_id) FROM node WHERE device_id=?"
-	err := sd.cli.Get(&count, cmd, deviceID)
-	if err != nil {
-		return err
-	}
-
-	if count == 0 {
-		_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address, server_name,private_key, url)
-                VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address, :server_name,:private_key,:url)`, info)
-		return err
-	}
-
-	// update
-	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address,server_name=:server_name,url=:url,quitted=:quitted WHERE device_id=:device_id`, info)
-	return err
+	return list, nil
 }
 
 func (sd sqlDB) SetNodesQuit(deviceIDs []string) error {
-	// info := &NodeInfo{
-	// 	DeviceID: deviceID,
-	// 	Quitted:  true,
-	// }
-	// _, err := sd.cli.NamedExec(`UPDATE node SET quitted=:quitted WHERE device_id=:device_id`, info)
-
 	tx := sd.cli.MustBegin()
 
 	for _, deviceID := range deviceIDs {
@@ -149,54 +138,7 @@ func (sd sqlDB) SetNodesQuit(deviceIDs []string) error {
 	return nil
 }
 
-func (sd sqlDB) GetOfflineNodes() ([]*NodeInfo, error) {
-	list := make([]*NodeInfo, 0)
-
-	cmd := "SELECT device_id,last_time FROM node WHERE quitted=? AND is_online=? AND server_name=?"
-	if err := sd.cli.Select(&list, cmd, false, false, serverName); err != nil {
-		return nil, err
-	}
-
-	return list, nil
-}
-
-func (sd sqlDB) setAllNodeOffline() error {
-	info := &NodeInfo{IsOnline: false, ServerName: serverName}
-	_, err := sd.cli.NamedExec(`UPDATE node SET is_online=:is_online WHERE server_name=:server_name`, info)
-
-	return err
-}
-
-func (sd sqlDB) GetNodeInfo(deviceID string) (*NodeInfo, error) {
-	// info := &NodeInfo{DeviceID: deviceID}
-
-	query := `SELECT * FROM node WHERE device_id=?`
-
-	var out *NodeInfo
-	if err := sd.cli.Select(&out, query, deviceID); err != nil {
-		return nil, err
-	}
-
-	return out, nil
-
-	// rows, err := sd.cli.NamedQuery(`SELECT * FROM node WHERE device_id=:device_id`, info)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// defer rows.Close()
-
-	// if rows.Next() {
-	// 	err = rows.StructScan(info)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// } else {
-	// 	return nil, xerrors.New(errNotFind)
-	// }
-
-	// return info, err
-}
-
+// Validate Result
 func (sd sqlDB) InsertValidateResultInfo(info *ValidateResult) error {
 	query := fmt.Sprintf("INSERT INTO%s", " validate_result (round_id, device_id, validator_id, status, start_time, server_name, msg) VALUES (:round_id, :device_id, :validator_id, :status, :start_time, :server_name, :msg)")
 	_, err := sd.cli.NamedExec(query, info)
@@ -254,149 +196,7 @@ func (sd sqlDB) SummaryValidateMessage(startTime, endTime time.Time, pageNumber,
 	return res, nil
 }
 
-func (sd sqlDB) GetCacheBlocksSizeWithNode(deviceID, cacheID string) ([]int, error) {
-	area := sd.ReplaceArea()
-
-	query := fmt.Sprintf(`SELECT size FROM %s WHERE cache_id=? AND device_id=? AND status=?`, fmt.Sprintf(blockInfoTable, area))
-	var out []int
-	if err := sd.cli.Select(&out, query, cacheID, deviceID, api.CacheStatusSuccess); err != nil {
-		return nil, err
-	}
-
-	return out, nil
-}
-
-func (sd sqlDB) GetBlocksFID(deviceID string) (map[int]string, error) {
-	area := sd.ReplaceArea()
-
-	m := make(map[int]string)
-
-	info := &api.BlockInfo{
-		DeviceID: deviceID,
-		Status:   api.CacheStatusSuccess,
-	}
-
-	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE device_id=:device_id AND status=:status`, fmt.Sprintf(blockInfoTable, area))
-	rows, err := sd.cli.NamedQuery(cmd, info)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		i := &api.BlockInfo{}
-		err = rows.StructScan(i)
-		if err == nil && i.FID > 0 {
-			m[i.FID] = i.CID
-		}
-	}
-
-	return m, nil
-}
-
-func (sd sqlDB) GetBlocksInRange(startFid, endFid int, deviceID string) (map[int]string, error) {
-	area := sd.ReplaceArea()
-
-	m := make(map[int]string)
-
-	info := &api.BlockInfo{
-		DeviceID: deviceID,
-	}
-
-	cmd := fmt.Sprintf(`SELECT cid,fid FROM %s WHERE device_id=:device_id and status=%d and fid between %d and %d`, fmt.Sprintf(blockInfoTable, area), api.CacheStatusSuccess, startFid, endFid)
-	rows, err := sd.cli.NamedQuery(cmd, info)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		i := &api.BlockInfo{}
-		err = rows.StructScan(i)
-		if err == nil && i.FID > 0 {
-			m[i.FID] = i.CID
-		}
-	}
-
-	return m, nil
-}
-
-func (sd sqlDB) GetBlocksBiggerThan(startFid int, deviceID string) (map[int]string, error) {
-	area := sd.ReplaceArea()
-
-	m := make(map[int]string)
-
-	info := &api.BlockInfo{
-		DeviceID: deviceID,
-	}
-
-	cmd := fmt.Sprintf(`SELECT cid,fid FROM %s WHERE device_id=:device_id and status=%d and fid > %d`, fmt.Sprintf(blockInfoTable, area), api.CacheStatusSuccess, startFid)
-	rows, err := sd.cli.NamedQuery(cmd, info)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		i := &api.BlockInfo{}
-		err = rows.StructScan(i)
-		if err == nil && i.FID > 0 {
-			m[i.FID] = i.CID
-		}
-	}
-
-	return m, nil
-}
-
-func (sd sqlDB) CountCidOfDevice(deviceID string) (int64, error) {
-	area := sd.ReplaceArea()
-
-	var count int64
-	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE device_id=? AND status=? ;", fmt.Sprintf(blockInfoTable, area))
-	err := sd.cli.Get(&count, cmd, deviceID, api.CacheStatusSuccess)
-
-	return count, err
-}
-
-// remove cache info and update data info
-func (sd sqlDB) RemoveCacheAndUpdateData(cacheID, carfileHash string, isDeleteData bool, reliability int) error {
-	area := sd.ReplaceArea()
-	cTableName := fmt.Sprintf(cacheInfoTable, area)
-	dTableName := fmt.Sprintf(dataInfoTable, area)
-	bTableName := fmt.Sprintf(blockInfoTable, area)
-
-	tx := sd.cli.MustBegin()
-
-	// cache info
-	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE cache_id=? `, cTableName)
-	tx.MustExec(cCmd, cacheID)
-
-	// data info
-	if !isDeleteData {
-		dCmd := fmt.Sprintf("UPDATE %s SET reliability=? WHERE carfile_hash=?", dTableName)
-		tx.MustExec(dCmd, reliability, carfileHash)
-	} else {
-		dCmd := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=?`, dTableName)
-		tx.MustExec(dCmd, carfileHash)
-	}
-
-	// delete device block info
-	// dCmd := fmt.Sprintf(`DELETE FROM %s WHERE cache_id=?`, fmt.Sprintf(deviceBlockTable, area))
-	// tx.MustExec(dCmd, cacheID)
-
-	// delete block info
-	bCmd := fmt.Sprintf(`DELETE FROM %s WHERE cache_id=?`, bTableName)
-	tx.MustExec(bCmd, cacheID)
-
-	err := tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-		return err
-	}
-
-	return nil
-}
-
+// cache data info
 func (sd sqlDB) CreateCache(cInfo *api.CacheInfo, bInfo *api.BlockInfo) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
@@ -557,13 +357,6 @@ func (sd sqlDB) GetDataInfo(hash string) (*api.DataInfo, error) {
 	}
 
 	return info, err
-	// var cache api.DataInfo
-	// query := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=?", fmt.Sprintf(dataInfoTable, area))
-	// if err := sd.cli.Get(&cache, query, hash); err != nil {
-	// 	return nil, err
-	// }
-
-	// return &cache, nil
 }
 
 func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []*api.DataInfo, err error) {
@@ -595,6 +388,20 @@ func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []*
 	}
 
 	return
+}
+
+func (sd sqlDB) GetCachesWithData(hash string) ([]string, error) {
+	area := sd.ReplaceArea()
+
+	query := fmt.Sprintf(`SELECT cache_id FROM %s WHERE carfile_hash=?`,
+		fmt.Sprintf(cacheInfoTable, area))
+
+	var out []string
+	if err := sd.cli.Select(&out, query, hash); err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 func (sd sqlDB) ExtendExpiredTimeWhitCaches(carfileHash, cacheID string, hour int) error {
@@ -666,20 +473,6 @@ func (sd sqlDB) GetExpiredCaches() ([]*api.CacheInfo, error) {
 	return out, nil
 }
 
-func (sd sqlDB) GetCachesWithData(hash string) ([]string, error) {
-	area := sd.ReplaceArea()
-
-	query := fmt.Sprintf(`SELECT cache_id FROM %s WHERE carfile_hash=?`,
-		fmt.Sprintf(cacheInfoTable, area))
-
-	var out []string
-	if err := sd.cli.Select(&out, query, hash); err != nil {
-		return nil, err
-	}
-
-	return out, nil
-}
-
 func (sd sqlDB) GetSuccessCaches() ([]*api.CacheInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE status=?`,
 		fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
@@ -702,6 +495,45 @@ func (sd sqlDB) GetCacheInfo(cacheID string) (*api.CacheInfo, error) {
 	}
 
 	return &cache, nil
+}
+
+// remove cache info and update data info
+func (sd sqlDB) RemoveCacheAndUpdateData(cacheID, carfileHash string, isDeleteData bool, reliability int) error {
+	area := sd.ReplaceArea()
+	cTableName := fmt.Sprintf(cacheInfoTable, area)
+	dTableName := fmt.Sprintf(dataInfoTable, area)
+	bTableName := fmt.Sprintf(blockInfoTable, area)
+
+	tx := sd.cli.MustBegin()
+
+	// cache info
+	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE cache_id=? `, cTableName)
+	tx.MustExec(cCmd, cacheID)
+
+	// data info
+	if !isDeleteData {
+		dCmd := fmt.Sprintf("UPDATE %s SET reliability=? WHERE carfile_hash=?", dTableName)
+		tx.MustExec(dCmd, reliability, carfileHash)
+	} else {
+		dCmd := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=?`, dTableName)
+		tx.MustExec(dCmd, carfileHash)
+	}
+
+	// delete device block info
+	// dCmd := fmt.Sprintf(`DELETE FROM %s WHERE cache_id=?`, fmt.Sprintf(deviceBlockTable, area))
+	// tx.MustExec(dCmd, cacheID)
+
+	// delete block info
+	bCmd := fmt.Sprintf(`DELETE FROM %s WHERE cache_id=?`, bTableName)
+	tx.MustExec(bCmd, cacheID)
+
+	err := tx.Commit()
+	if err != nil {
+		err = tx.Rollback()
+		return err
+	}
+
+	return nil
 }
 
 func (sd sqlDB) GetBlockInfo(cacheID, hash string) (*api.BlockInfo, error) {
@@ -730,6 +562,16 @@ func (sd sqlDB) GetBlockInfo(cacheID, hash string) (*api.BlockInfo, error) {
 	}
 
 	return info, err
+}
+
+func (sd sqlDB) GetBlockCountWithStatus(cacheID string, status api.CacheStatus) (int, error) {
+	area := sd.ReplaceArea()
+
+	var count int
+	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE cache_id=? AND status=?;", fmt.Sprintf(blockInfoTable, area))
+	err := sd.cli.Get(&count, cmd, cacheID, status)
+
+	return count, err
 }
 
 func (sd sqlDB) GetBlocksWithStatus(cacheID string, status api.CacheStatus) ([]*api.BlockInfo, error) {
@@ -800,120 +642,17 @@ func (sd sqlDB) GetAllBlocks(cacheID string) ([]*api.BlockInfo, error) {
 	return out, nil
 }
 
-func (sd sqlDB) GetBlockCountWithStatus(cacheID string, status api.CacheStatus) (int, error) {
+func (sd sqlDB) GetNodesFromCache(cacheID string) ([]string, error) {
 	area := sd.ReplaceArea()
 
-	var count int
-	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE cache_id=? AND status=?;", fmt.Sprintf(blockInfoTable, area))
-	err := sd.cli.Get(&count, cmd, cacheID, status)
-
-	return count, err
-}
-
-func (sd sqlDB) GetDoneBlocksWithCache(cacheID string) (size, count int, err error) {
-	area := sd.ReplaceArea()
-
-	type info struct {
-		Size  int `db:"sum(size)"`
-		Count int `db:"count(size)"`
-	}
-
-	i := info{}
-	cmd := fmt.Sprintf("SELECT sum(size),count(size) FROM %s WHERE cache_id=? AND status=?;", fmt.Sprintf(blockInfoTable, area))
-	err = sd.cli.Get(&i, cmd, cacheID, api.CacheStatusSuccess)
-
-	return i.Size, i.Count, err
-}
-
-// func (sd sqlDB) GetCachesSize(cacheID string, status api.CacheStatus) (int, error) {
-// 	area := sd.ReplaceArea()
-
-// 	var count int
-// 	cmd := fmt.Sprintf("SELECT sum(size) FROM %s WHERE cache_id=? AND status=?;", fmt.Sprintf(blockInfoTable, area))
-// 	err := sd.cli.Get(&count, cmd, cacheID, status)
-
-// 	return count, err
-// }
-
-func (sd sqlDB) BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error {
-	info := api.NodeRegisterInfo{
-		Secret:     secret,
-		DeviceID:   deviceID,
-		NodeType:   int(nodeType),
-		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
-	}
-
-	_, err := sd.cli.NamedExec(`INSERT INTO register (device_id, secret, create_time, node_type)
-	VALUES (:device_id, :secret, :create_time, :node_type)`, info)
-
-	return err
-}
-
-// func (sd sqlDB) GetRegisterInfo(deviceID string) (*api.NodeRegisterInfo, error) {
-// 	info := &api.NodeRegisterInfo{}
-// 	query := "SELECT * FROM register WHERE device_id=?"
-// 	if err := sd.cli.Get(info, query, deviceID); err != nil {
-// 		return nil, err
-// 	}
-// 	return info, nil
-// }
-
-func (sd sqlDB) GetRegisterInfo(deviceID, key string, out interface{}) error {
-	if key != "" {
-		query := fmt.Sprintf(`SELECT %s FROM register WHERE device_id=?`, key)
-		// query := "SELECT * FROM register WHERE device_id=?"
-		if err := sd.cli.Get(out, query, deviceID); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	query := "SELECT * FROM register WHERE device_id=?"
-	if err := sd.cli.Get(out, query, deviceID); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (sd sqlDB) GetNodesWithBlock(hash string, isSuccess bool) ([]string, error) {
-	area := sd.ReplaceArea()
-
-	var out []string
-	if isSuccess {
-		cmd := fmt.Sprintf(`SELECT device_id FROM %s WHERE cid_hash=? AND status=?`, fmt.Sprintf(blockInfoTable, area))
-		if err := sd.cli.Select(&out, cmd, hash, int(api.CacheStatusSuccess)); err != nil {
-			return nil, err
-		}
-	} else {
-		cmd := fmt.Sprintf(`SELECT device_id FROM %s WHERE cid_hash=? `, fmt.Sprintf(blockInfoTable, area))
-		if err := sd.cli.Select(&out, cmd, hash); err != nil {
-			return nil, err
-		}
+	query := fmt.Sprintf("SELECT DISTINCT device_id FROM %s WHERE cache_id=? AND status=?", fmt.Sprintf(blockInfoTable, area))
+	out := make([]string, 0)
+	if err := sd.cli.Select(&out, query, cacheID, api.CacheStatusSuccess); err != nil {
+		return out, err
 	}
 
 	return out, nil
 }
-
-func (sd sqlDB) ReplaceArea() string {
-	str := strings.ToLower(serverArea)
-	str = strings.Replace(str, "-", "_", -1)
-
-	return str
-}
-
-// func (sd sqlDB) GetNodesFromAllData() ([]string, error) {
-// 	area := sd.ReplaceArea()
-
-// 	query := fmt.Sprintf("SELECT DISTINCT device_id FROM %s WHERE status=3", fmt.Sprintf(blockInfoTable, area))
-// 	var out []string
-// 	if err := sd.cli.Select(&out, query); err != nil {
-// 		return nil, err
-// 	}
-
-// 	return out, nil
-// }
 
 func (sd sqlDB) GetNodesFromDataCache(hash, cacheID string) (dataOut, cacheOut []string) {
 	area := sd.ReplaceArea()
@@ -925,18 +664,6 @@ func (sd sqlDB) GetNodesFromDataCache(hash, cacheID string) (dataOut, cacheOut [
 	sd.cli.Select(&cacheOut, query2, cacheID, api.CacheStatusSuccess)
 
 	return
-}
-
-func (sd sqlDB) GetNodesFromCache(cacheID string) ([]string, error) {
-	area := sd.ReplaceArea()
-
-	query := fmt.Sprintf("SELECT DISTINCT device_id FROM %s WHERE cache_id=? AND status=?", fmt.Sprintf(blockInfoTable, area))
-	out := make([]string, 0)
-	if err := sd.cli.Select(&out, query, cacheID, api.CacheStatusSuccess); err != nil {
-		return out, err
-	}
-
-	return out, nil
 }
 
 func (sd sqlDB) UpdateCacheInfoOfQuitNode(deviceID string) (successCacheCount int, carfileReliabilitys map[string]int, err error) {
@@ -998,56 +725,152 @@ func (sd sqlDB) UpdateCacheInfoOfQuitNode(deviceID string) (successCacheCount in
 	return
 }
 
-// func (sd sqlDB) GetCachesFromNode(deviceID string) ([]*api.CacheInfo, error) {
-// 	area := sd.ReplaceArea()
-// 	bTableName := fmt.Sprintf(blockInfoTable, area)
-// 	cTableName := fmt.Sprintf(cacheInfoTable, area)
+func (sd sqlDB) GetBlocksFID(deviceID string) (map[int]string, error) {
+	area := sd.ReplaceArea()
 
-// 	query := fmt.Sprintf("select * from (select cache_id from %s where device_id=? GROUP BY cache_id )as a LEFT JOIN %s as b on a.cache_id = b.cache_id", bTableName, cTableName)
-// 	var caches []*api.CacheInfo
-// 	if err := sd.cli.Select(&caches, query, deviceID); err != nil {
-// 		return nil, err
-// 	}
+	m := make(map[int]string)
 
-// 	return caches, nil
-// }
+	info := &api.BlockInfo{
+		DeviceID: deviceID,
+		Status:   api.CacheStatusSuccess,
+	}
 
-// func (sd sqlDB) CleanCacheDataWithNode(deviceID string, caches []*api.CacheInfo) error {
-// 	area := sd.ReplaceArea()
-// 	cTableName := fmt.Sprintf(cacheInfoTable, area)
-// 	dTableName := fmt.Sprintf(dataInfoTable, area)
-// 	bTableName := fmt.Sprintf(blockInfoTable, area)
+	cmd := fmt.Sprintf(`SELECT * FROM %s WHERE device_id=:device_id AND status=:status`, fmt.Sprintf(blockInfoTable, area))
+	rows, err := sd.cli.NamedQuery(cmd, info)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-// 	tx := sd.cli.MustBegin()
+	for rows.Next() {
+		i := &api.BlockInfo{}
+		err = rows.StructScan(i)
+		if err == nil && i.FID > 0 {
+			m[i.FID] = i.CID
+		}
+	}
 
-// 	// block info
-// 	cmdB := fmt.Sprintf(`UPDATE %s SET status=? WHERE device_id=? AND status=?`, bTableName)
-// 	tx.MustExec(cmdB, int(api.CacheStatusRestore), deviceID, int(api.CacheStatusSuccess))
+	return m, nil
+}
 
-// 	carfileReliabilitys := make(map[string]int)
-// 	// cache info
-// 	for _, cache := range caches {
-// 		cmdC := fmt.Sprintf(`UPDATE %s SET status=?,done_size=?,done_blocks=? WHERE cache_id=?`, cTableName)
-// 		tx.MustExec(cmdC, int(api.CacheStatusRestore), cache.DoneSize, cache.DoneBlocks, cache.CacheID)
+func (sd sqlDB) GetBlocksInRange(startFid, endFid int, deviceID string) (map[int]string, error) {
+	area := sd.ReplaceArea()
 
-// 		carfileReliabilitys[cache.CarfileHash] += cache.Reliability
-// 	}
+	m := make(map[int]string)
 
-// 	// data info
-// 	for carfileHash, reliability := range carfileReliabilitys {
-// 		cmdD := fmt.Sprintf(`UPDATE %s SET reliability=reliability-? WHERE carfile_hash=?`, dTableName)
-// 		tx.MustExec(cmdD, reliability, carfileHash)
-// 	}
+	info := &api.BlockInfo{
+		DeviceID: deviceID,
+	}
 
-// 	err := tx.Commit()
-// 	if err != nil {
-// 		err = tx.Rollback()
-// 		return err
-// 	}
+	cmd := fmt.Sprintf(`SELECT cid,fid FROM %s WHERE device_id=:device_id and status=%d and fid between %d and %d`, fmt.Sprintf(blockInfoTable, area), api.CacheStatusSuccess, startFid, endFid)
+	rows, err := sd.cli.NamedQuery(cmd, info)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-// 	return nil
-// }
+	for rows.Next() {
+		i := &api.BlockInfo{}
+		err = rows.StructScan(i)
+		if err == nil && i.FID > 0 {
+			m[i.FID] = i.CID
+		}
+	}
 
+	return m, nil
+}
+
+func (sd sqlDB) GetBlocksBiggerThan(startFid int, deviceID string) (map[int]string, error) {
+	area := sd.ReplaceArea()
+
+	m := make(map[int]string)
+
+	info := &api.BlockInfo{
+		DeviceID: deviceID,
+	}
+
+	cmd := fmt.Sprintf(`SELECT cid,fid FROM %s WHERE device_id=:device_id and status=%d and fid > %d`, fmt.Sprintf(blockInfoTable, area), api.CacheStatusSuccess, startFid)
+	rows, err := sd.cli.NamedQuery(cmd, info)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		i := &api.BlockInfo{}
+		err = rows.StructScan(i)
+		if err == nil && i.FID > 0 {
+			m[i.FID] = i.CID
+		}
+	}
+
+	return m, nil
+}
+
+func (sd sqlDB) CountCidOfDevice(deviceID string) (int64, error) {
+	area := sd.ReplaceArea()
+
+	var count int64
+	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE device_id=? AND status=? ;", fmt.Sprintf(blockInfoTable, area))
+	err := sd.cli.Get(&count, cmd, deviceID, api.CacheStatusSuccess)
+
+	return count, err
+}
+
+func (sd sqlDB) GetNodesWithBlock(hash string, isSuccess bool) ([]string, error) {
+	area := sd.ReplaceArea()
+
+	var out []string
+	if isSuccess {
+		cmd := fmt.Sprintf(`SELECT device_id FROM %s WHERE cid_hash=? AND status=?`, fmt.Sprintf(blockInfoTable, area))
+		if err := sd.cli.Select(&out, cmd, hash, int(api.CacheStatusSuccess)); err != nil {
+			return nil, err
+		}
+	} else {
+		cmd := fmt.Sprintf(`SELECT device_id FROM %s WHERE cid_hash=? `, fmt.Sprintf(blockInfoTable, area))
+		if err := sd.cli.Select(&out, cmd, hash); err != nil {
+			return nil, err
+		}
+	}
+
+	return out, nil
+}
+
+// temporary node register
+func (sd sqlDB) BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error {
+	info := api.NodeRegisterInfo{
+		Secret:     secret,
+		DeviceID:   deviceID,
+		NodeType:   int(nodeType),
+		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
+	}
+
+	_, err := sd.cli.NamedExec(`INSERT INTO register (device_id, secret, create_time, node_type)
+	VALUES (:device_id, :secret, :create_time, :node_type)`, info)
+
+	return err
+}
+
+func (sd sqlDB) GetRegisterInfo(deviceID, key string, out interface{}) error {
+	if key != "" {
+		query := fmt.Sprintf(`SELECT %s FROM register WHERE device_id=?`, key)
+		// query := "SELECT * FROM register WHERE device_id=?"
+		if err := sd.cli.Get(out, query, deviceID); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	query := "SELECT * FROM register WHERE device_id=?"
+	if err := sd.cli.Get(out, query, deviceID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// download info
 func (sd sqlDB) SetBlockDownloadInfo(info *api.BlockDownloadInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (id, device_id, block_cid, carfile_cid, block_size, speed, reward, status, failed_reason, client_ip, created_time, complete_time) 
@@ -1088,6 +911,20 @@ func (sd sqlDB) GetBlockDownloadInfoByID(id string) (*api.BlockDownloadInfo, err
 	return nil, nil
 }
 
+func (sd sqlDB) GetNodesByUserDownloadBlockIn(minute int) ([]string, error) {
+	starTime := time.Now().Add(time.Duration(minute) * time.Minute * -1)
+
+	query := fmt.Sprintf(`SELECT device_id FROM %s WHERE complete_time > ? group by device_id`, fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
+
+	var out []string
+	if err := sd.cli.Select(&out, query, starTime); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+// cache event info
 func (sd sqlDB) SetEventInfo(info *api.EventInfo) error {
 	area := sd.ReplaceArea()
 
@@ -1129,50 +966,21 @@ func (sd sqlDB) GetEventInfos(page int) (count int, totalPage int, out []*api.Ev
 	return
 }
 
-// func (sd sqlDB) SetMessageInfo(infos []*MessageInfo) error {
-// 	area := sd.ReplaceArea()
-// 	tableName := fmt.Sprintf(messageInfoTable, area)
-
-// 	tx := sd.cli.MustBegin()
-
-// 	for _, info := range infos {
-// 		if info.ID != "" {
-// 			cmd := fmt.Sprintf(`UPDATE %s SET cid=?,target=?,cache_id=?,carfile_cid=?,status=?,size=?,msg_type=?,source=?,created_time=?,end_time=? WHERE id=?`, tableName)
-// 			tx.MustExec(cmd, info.CID, info.Target, info.CacheID, info.CarfileCid, info.Status, info.Size, info.Type, info.Source, info.CreateTime, info.EndTime, info.ID)
-// 		} else {
-// 			cmd := fmt.Sprintf(`INSERT INTO %s (cid, target, cache_id, carfile_cid, status, size, msg_type, source, created_time, end_time, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, REPLACE(UUID(),"-",""))`, tableName)
-// 			tx.MustExec(cmd, info.CID, info.Target, info.CacheID, info.CarfileCid, info.Status, info.Size, info.Type, info.Source, info.CreateTime, info.EndTime)
-// 		}
-// 	}
-
-// 	err := tx.Commit()
-// 	if err != nil {
-// 		err = tx.Rollback()
-// 	}
-
-// 	return err
-// }
-
-func (sd sqlDB) GetDownloadInfoBySN(sn int64) (*api.BlockDownloadInfo, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE sn = ?`, fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
-
-	var out *api.BlockDownloadInfo
-	if err := sd.cli.Select(&out, query, sn); err != nil {
-		return nil, err
-	}
-
-	return out, nil
+// IsNilErr Is NilErr
+func (sd sqlDB) IsNilErr(err error) bool {
+	return err.Error() == errNotFind
 }
 
-func (sd sqlDB) GetNodesByUserDownloadBlockIn(minute int) ([]string, error) {
-	starTime := time.Now().Add(time.Duration(minute) * time.Minute * -1)
+func (sd sqlDB) setAllNodeOffline() error {
+	info := &NodeInfo{IsOnline: false, ServerName: serverName}
+	_, err := sd.cli.NamedExec(`UPDATE node SET is_online=:is_online WHERE server_name=:server_name`, info)
 
-	query := fmt.Sprintf(`SELECT device_id FROM %s WHERE complete_time > ? group by device_id`, fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
+	return err
+}
 
-	var out []string
-	if err := sd.cli.Select(&out, query, starTime); err != nil {
-		return nil, err
-	}
+func (sd sqlDB) ReplaceArea() string {
+	str := strings.ToLower(serverArea)
+	str = strings.Replace(str, "-", "_", -1)
 
-	return out, nil
+	return str
 }

@@ -13,9 +13,7 @@ type DB interface {
 
 	// Node Info
 	SetNodeInfo(deviceID string, info *NodeInfo) error
-	GetNodeInfo(deviceID string) (*NodeInfo, error)
 	SetNodeOffline(deviceID string, lastTime time.Time) error
-	SetNodeAuthInfo(info *api.DownloadServerAccessAuth) error
 	GetNodeAuthInfo(deviceID string) (*api.DownloadServerAccessAuth, error)
 	GetOfflineNodes() ([]*NodeInfo, error)
 	SetNodesQuit(deviceIDs []string) error
@@ -26,6 +24,7 @@ type DB interface {
 	UpdateSuccessValidateResultInfo(info *ValidateResult) error
 	SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error)
 
+	// cache data info
 	CreateCache(cInfo *api.CacheInfo, bInfo *api.BlockInfo) error
 	SaveCacheEndResults(dInfo *api.DataInfo, cInfo *api.CacheInfo) error
 	SaveCacheingResults(dInfo *api.DataInfo, cInfo *api.CacheInfo, updateBlock *api.BlockInfo, createBlocks []*api.BlockInfo) error
@@ -44,52 +43,34 @@ type DB interface {
 	GetSuccessCaches() ([]*api.CacheInfo, error)
 	GetCacheInfo(cacheID string) (*api.CacheInfo, error)
 	RemoveCacheAndUpdateData(cacheID, carfileHash string, isDeleteData bool, reliability int) error
-	// GetCachesSize(cacheID string, status api.CacheStatus) (int, error)
-
-	// block info
-	// SetBlockInfos(infos []*BlockInfo, carfileCid string) error
-
 	GetBlockInfo(cacheID, hash string) (*api.BlockInfo, error)
 	GetBlockCountWithStatus(cacheID string, status api.CacheStatus) (int, error)
 	GetBlocksWithStatus(cacheID string, status api.CacheStatus) ([]*api.BlockInfo, error)
 	GetBlocksWithHash(hash string) (map[string]*api.BlockInfo, error)
-
 	GetUndoneBlocks(cacheID string) (map[string]string, error)
 	GetAllBlocks(cacheID string) ([]*api.BlockInfo, error)
 	GetNodesFromCache(cacheID string) ([]string, error)
 	GetNodesFromDataCache(hash, cacheID string) (dataOut, cacheOut []string)
-	// GetCachesFromNode(deviceID string) ([]*api.CacheInfo, error)
-	// CleanCacheDataWithNode(deviceID string, caches []*api.CacheInfo) error // TODO rename
 	UpdateCacheInfoOfQuitNode(deviceID string) (successCacheCount int, carfileReliabilitys map[string]int, err error)
-	// GetNodesFromAllData() ([]string, error)
-
-	// node block
-	// DeleteBlockInfos(cacheID, deviceID string, cids []string, removeBlocks int) error
 	GetBlocksFID(deviceID string) (map[int]string, error)
 	GetBlocksInRange(startFid, endFid int, deviceID string) (map[int]string, error)
 	GetBlocksBiggerThan(startFid int, deviceID string) (map[int]string, error)
-	GetCacheBlocksSizeWithNode(deviceID, cacheID string) ([]int, error)
 	CountCidOfDevice(deviceID string) (int64, error)
 	GetNodesWithBlock(hash string, isSuccess bool) ([]string, error)
-	// GetNodeBlock(deviceID, cid string) ([]*BlockInfo, error)
 
 	// temporary node register
 	BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error
 	GetRegisterInfo(deviceID, key string, out interface{}) error
 
-	// SetBlockDownloadInfo set user download block information
+	// download info
 	SetBlockDownloadInfo(info *api.BlockDownloadInfo) error
 	GetBlockDownloadInfoByDeviceID(deviceID string) ([]*api.BlockDownloadInfo, error)
 	GetBlockDownloadInfoByID(id string) (*api.BlockDownloadInfo, error)
 	GetNodesByUserDownloadBlockIn(minute int) ([]string, error)
 
+	// cache event info
 	SetEventInfo(info *api.EventInfo) error
 	GetEventInfos(page int) (count int, totalPage int, out []*api.EventInfo, err error)
-	// AddToBeDeleteBlock(infos []*BlockDelete) error
-	// RemoveToBeDeleteBlock(infos []*BlockDelete) error
-	// GetToBeDeleteBlocks(deviceID string) ([]*BlockDelete, error)
-	// SetMessageInfo(infos []*MessageInfo) error
-	GetDoneBlocksWithCache(cacheID string) (size, count int, err error)
 
 	// tool
 	ReplaceArea() string
@@ -207,6 +188,7 @@ const (
 	ValidateStatusOther
 )
 
+// Int to int
 func (v ValidateStatus) Int() int {
 	return int(v)
 }
