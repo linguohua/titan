@@ -20,15 +20,11 @@ import (
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 )
 
-const (
-	errMsgTimeOut = "time out"
-	errMsgCancel  = "verification canceled due to download"
-)
-
 var log = logging.Logger("scheduler/validate")
 
 type Validate struct {
 	ctx  context.Context
+	mu   sync.Mutex
 	seed int64
 
 	// validate round number
@@ -374,7 +370,9 @@ func (v *Validate) initCallbackTask() {
 func (v *Validate) doCallback() {
 	for v.resultQueue.Len() > 0 {
 		// take out first element
+		v.mu.Lock()
 		element := v.resultQueue.Front()
+		v.mu.Unlock()
 		if element == nil {
 			return
 		}
@@ -385,12 +383,16 @@ func (v *Validate) doCallback() {
 			}
 		}
 		// dequeue
+		v.mu.Lock()
 		v.resultQueue.Remove(element)
+		v.mu.Unlock()
 	}
 }
 
 func (v *Validate) PushResultToQueue(validateResults *api.ValidateResults) {
+	v.mu.Lock()
 	v.resultQueue.PushBack(validateResults)
+	v.mu.Unlock()
 	v.resultChannel <- true
 }
 
