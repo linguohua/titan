@@ -32,8 +32,8 @@ const (
 	redisKeyValidatorList = "Titan:ValidatorList:%s"
 	// redisKeyValidateRoundID server name
 	redisKeyValidateRoundID = "Titan:ValidateRoundID:%s"
-	// redisKeyValidateingList server name
-	redisKeyValidateingList = "Titan:ValidateingList:%s"
+	// redisKeyVerifyingList server name
+	redisKeyVerifyingList = "Titan:VerifyingList:%s"
 	// redisKeyNodeInfo  deviceID
 	redisKeyNodeInfo = "Titan:NodeInfo:%s"
 	// redisKeyBlockDownloadRecord serial number
@@ -49,12 +49,7 @@ const (
 	redisKeyBaseInfo = "Titan:BaseInfo:%s"
 )
 
-const (
-	dayFormatLayout = "20060102"
-	tebibyte        = 1024 * 1024 * 1024 * 1024
-
-	cacheErrorExpiration = 72 //hour
-)
+const cacheErrorExpiration = 72 //hour
 
 // TypeRedis redis
 func TypeRedis() string {
@@ -278,32 +273,32 @@ func (rd redisDB) IncrValidateRoundID() (int64, error) {
 
 // verifying node list
 func (rd redisDB) SetNodeToVerifyingList(deviceID string) error {
-	key := fmt.Sprintf(redisKeyValidateingList, serverName)
+	key := fmt.Sprintf(redisKeyVerifyingList, serverName)
 
 	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
 	return err
 }
 
 func (rd redisDB) GetNodesWithVerifyingList() ([]string, error) {
-	key := fmt.Sprintf(redisKeyValidateingList, serverName)
+	key := fmt.Sprintf(redisKeyVerifyingList, serverName)
 
 	return rd.cli.SMembers(context.Background(), key).Result()
 }
 
 func (rd redisDB) CountVerifyingNode(ctx context.Context) (int64, error) {
-	key := fmt.Sprintf(redisKeyValidateingList, serverName)
+	key := fmt.Sprintf(redisKeyVerifyingList, serverName)
 	return rd.cli.SCard(ctx, key).Result()
 }
 
 func (rd redisDB) RemoveNodeWithVerifyingList(deviceID string) error {
-	key := fmt.Sprintf(redisKeyValidateingList, serverName)
+	key := fmt.Sprintf(redisKeyVerifyingList, serverName)
 
 	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
 	return err
 }
 
 func (rd redisDB) RemoveVerifyingList() error {
-	key := fmt.Sprintf(redisKeyValidateingList, serverName)
+	key := fmt.Sprintf(redisKeyVerifyingList, serverName)
 
 	_, err := rd.cli.Del(context.Background(), key).Result()
 	return err
