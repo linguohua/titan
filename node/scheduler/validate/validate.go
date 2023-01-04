@@ -51,8 +51,8 @@ type Validate struct {
 	// timer
 	crontab *cron.Cron
 
-	// validate state
-	validateState bool
+	// validate is not running
+	running bool
 
 	// validate switch
 	enable bool
@@ -114,13 +114,13 @@ func (v *Validate) startValidate() error {
 	}
 
 	if !v.enable {
-		v.validateState = false
+		v.running = false
 		return nil
 	}
 
 	err = v.execute()
 	if err != nil {
-		v.validateState = false
+		v.running = false
 		log.Errorf(err.Error())
 		return err
 	}
@@ -151,7 +151,7 @@ func (v *Validate) checkValidateTimeOut() error {
 }
 
 func (v *Validate) execute() error {
-	v.validateState = true
+	v.running = true
 
 	err := cache.GetDB().RemoveVerifyingList()
 	if err != nil {
@@ -415,7 +415,7 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 			return
 		}
 		if count == 0 {
-			v.validateState = false
+			v.running = false
 		}
 	}()
 
@@ -485,7 +485,7 @@ func (v *Validate) IsEnable() bool {
 }
 
 func (v *Validate) StartValidateOnceTask() error {
-	if v.validateState {
+	if v.running {
 		return fmt.Errorf("validation in progress, cannot start again")
 	}
 
