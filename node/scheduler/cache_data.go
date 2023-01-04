@@ -26,7 +26,7 @@ func (s *Scheduler) CacheContinue(ctx context.Context, cid, cacheID string) erro
 func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) error {
 	deviceID = handler.GetDeviceID(ctx)
 
-	if !isDeviceExist(deviceID, 0) {
+	if !isDeviceExists(deviceID, 0) {
 		return xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 

@@ -273,7 +273,7 @@ func (v *Election) reelectTicker() {
 		case <-ticker.C:
 			v.vlk.Lock()
 			var expire bool
-			for deviceID, _ := range v.validators {
+			for deviceID := range v.validators {
 				node := v.manager.GetCandidateNode(deviceID)
 				if node != nil {
 					v.validators[deviceID] = time.Now()

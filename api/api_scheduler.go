@@ -32,7 +32,7 @@ type Scheduler interface {
 	ListEvents(ctx context.Context, page int) (EventListInfo, error)                                    //perm:read
 	ResetCacheExpiredTime(ctx context.Context, carfileCid, cacheID string, expiredTime time.Time) error //perm:admin
 	ReplenishCacheExpiredTime(ctx context.Context, carfileCid, cacheID string, hour int) error          //perm:admin
-	NodeExit(ctx context.Context, device string) error                                                  //perm:admin
+	NodeQuit(ctx context.Context, device string) error                                                  //perm:admin
 	StopCacheTask(ctx context.Context, carfileCid string) error                                         //perm:admin
 	GetBlocksCacheError(ctx context.Context, cacheID string) ([]*CacheError, error)                     //perm:read
 	RedressDeveiceInfo(ctx context.Context, deviceID string) error                                      //perm:admin

@@ -7,6 +7,13 @@ import (
 	"golang.org/x/xerrors"
 )
 
+const (
+	//NodeTypeKey node info key
+	NodeTypeKey = "node_type"
+	//SecretKey node info key
+	SecretKey = "secret"
+)
+
 // DB Persistent db
 type DB interface {
 	IsNilErr(err error) bool
