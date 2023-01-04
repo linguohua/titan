@@ -38,7 +38,7 @@ func TestSqlDB_UpdateValidateResultInfo(t *testing.T) {
 	info.DeviceID = "001"
 	info.RoundID = 100
 	info.BlockNumber = 9999
-	info.Msg = "ok"
+	// info.Msg = "ok"
 	info.EndTime = time.Now()
 	info.Status = ValidateStatusSuccess.Int()
 	info.Duration = 100000
