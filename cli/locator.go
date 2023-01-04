@@ -300,7 +300,7 @@ var loadUserAccessPoint = &cli.Command{
 
 		ctx := ReqContext(cctx)
 
-		ap, err := locatorAPI.LoadUserAccessPoint(ctx, "192.168.0.83")
+		ap, err := locatorAPI.LoadUserAccessPoint(ctx, "119.28.56.169")
 		if err != nil {
 			return err
 		}
