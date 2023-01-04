@@ -71,6 +71,8 @@ func NewValidate(manager *node.Manager, enable bool) *Validate {
 	}
 
 	e.initValidateTask()
+	// handle validate result data
+	go e.initValidateResultTask()
 
 	return e
 }
@@ -90,9 +92,6 @@ func (v *Validate) initValidateTask() {
 	}
 
 	v.crontab.Start()
-
-	// wait call back message
-	go v.initCallbackTask()
 }
 
 func (v *Validate) startValidate() error {
@@ -360,16 +359,16 @@ func (v *Validate) UpdateSuccessValidateResult(validateResults *api.ValidateResu
 	return persistent.GetDB().UpdateSuccessValidateResultInfo(resultInfo)
 }
 
-func (v *Validate) initCallbackTask() {
+func (v *Validate) initValidateResultTask() {
 	for {
 		select {
 		case <-v.resultChannel:
-			v.doCallback()
+			v.iterationValidateResult()
 		}
 	}
 }
 
-func (v *Validate) doCallback() {
+func (v *Validate) iterationValidateResult() {
 	for v.resultQueue.Len() > 0 {
 		// take out first element
 		v.mu.Lock()
