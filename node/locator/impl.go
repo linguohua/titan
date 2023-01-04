@@ -496,9 +496,8 @@ func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) ([]api.Acces
 }
 
 func (locator *Locator) LoadUserAccessPoint(ctx context.Context, userIP string) (api.AccessPoint, error) {
-	ip := handler.GetRequestIP(ctx)
 	areaID := defaultAreaID
-	geoInfo, _ := region.GetRegion().GetGeoInfo(ip)
+	geoInfo, _ := region.GetRegion().GetGeoInfo(userIP)
 	if geoInfo != nil && geoInfo.Geo != unknownAreaID {
 		areaID = geoInfo.Geo
 	}
