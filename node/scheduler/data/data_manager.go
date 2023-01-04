@@ -64,7 +64,7 @@ func NewDataManager(nodeManager *node.Manager) *Manager {
 		// dataMap:           new(sync.Map),
 	}
 
-	d.initBaseInfo()
+	d.resetBaseInfo()
 	go d.dataCacheTicker()
 	go d.checkExpiredTicker()
 
@@ -100,16 +100,16 @@ func (m *Manager) checkExpiredTicker() {
 	}
 }
 
-func (m *Manager) initBaseInfo() {
+func (m *Manager) resetBaseInfo() {
 	infos, err := persistent.GetDB().GetSuccessCaches()
 	if err != nil {
-		log.Errorf("initBaseInfo GetSuccessCaches err:%s", err.Error())
+		log.Errorf("resetBaseInfo GetSuccessCaches err:%s", err.Error())
 		return
 	}
 
 	err = cache.GetDB().UpdateBaseInfo(cache.CarFileCountField, len(infos))
 	if err != nil {
-		log.Errorf("initBaseInfo UpdateBaseInfo err:%s", err.Error())
+		log.Errorf("resetBaseInfo UpdateBaseInfo err:%s", err.Error())
 	}
 }
 
