@@ -453,32 +453,56 @@ func (locator *Locator) getSchedulerAPIWithWeightCount(areaID string) ([]*schedu
 	return schedulerAPIs, nil
 }
 
-func (locator *Locator) RegisterNode(ctx context.Context, areaID string, nodeType api.NodeType, count int) ([]api.NodeRegisterInfo, error) {
-	schedulerAPIs, err := locator.getSchedulerAPIWithWeightCount(areaID)
+func (locator *Locator) RegisterNode(ctx context.Context, areaID string, schedulerURL string, nodeType api.NodeType, count int) ([]api.NodeRegisterInfo, error) {
+	cfg := locator.getCfg(areaID, schedulerURL)
+	if cfg == nil {
+		return nil, fmt.Errorf("Scheduler %s not exist in area %s", schedulerURL, areaID)
+	}
+
+	schedulerAPI, ok := locator.apMgr.getSchedulerAPI(schedulerURL, areaID, cfg.AccessToken)
+	if !ok {
+		return nil, fmt.Errorf("Scheduler %s not online", schedulerURL)
+	}
+
+	return schedulerAPI.RegisterNode(ctx, nodeType, count)
+}
+
+func (locator *Locator) LoadAccessPointListForWeb(ctx context.Context) (api.LoadAccessPointListResult, error) {
+	allCfg, err := locator.db.db.getAllCfg()
 	if err != nil {
-		return nil, err
+		return api.LoadAccessPointListResult{}, err
 	}
 
-	if len(schedulerAPIs) == 0 {
-		return nil, fmt.Errorf("Can not find valid scheduler for areaID %s", areaID)
-	}
+	accessPointMap := make(map[string]*api.AccessPoint, 0)
 
-	if len(schedulerAPIs) == 1 {
-		return schedulerAPIs[0].RegisterNode(context.Background(), nodeType, count)
-	}
-
-	registerInfos := make([]api.NodeRegisterInfo, 0, count)
-	for i := 0; i < count; i++ {
-		index := i % len(schedulerAPIs)
-		schedulerAPI := schedulerAPIs[index]
-		infos, err := schedulerAPI.RegisterNode(context.Background(), nodeType, 1)
-		if err != nil {
-			log.Errorf("RegisterNode error:%s", err.Error())
-			continue
+	for _, cfg := range allCfg {
+		ap, ok := accessPointMap[cfg.AreaID]
+		if !ok {
+			ap = &api.AccessPoint{AreaID: cfg.AreaID, SchedulerInfos: make([]api.SchedulerInfo, 0)}
+			accessPointMap[cfg.AreaID] = ap
 		}
 
-		registerInfos = append(registerInfos, infos[0])
+		schedulerInfo := api.SchedulerInfo{URL: cfg.SchedulerURL, Weight: cfg.Weight}
+		_, ok = locator.apMgr.getSchedulerAPI(cfg.SchedulerURL, cfg.AreaID, cfg.AccessToken)
+		if ok {
+			schedulerInfo.Online = true
+		}
+
+		ap.SchedulerInfos = append(ap.SchedulerInfos, schedulerInfo)
 	}
 
-	return registerInfos, nil
+	accessPoints := make([]api.AccessPoint, 0, len(accessPointMap))
+	for _, accessPoint := range accessPointMap {
+		accessPoints = append(accessPoints, *accessPoint)
+	}
+
+	ip := handler.GetRequestIP(ctx)
+	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
+
+	ret := api.LoadAccessPointListResult{AccessPoints: accessPoints, UserAreaID: defaultAreaID}
+	if geoInfo != nil {
+		ret.UserAreaID = geoInfo.Geo
+	}
+
+	return ret, nil
 }

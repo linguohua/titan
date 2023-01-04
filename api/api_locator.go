@@ -22,12 +22,8 @@ type Locator interface {
 	// user send result when user download block complete
 	UserDownloadBlockResults(ctx context.Context, results []UserBlockDownloadResult) error //perm:read
 
-	RegisterNode(ctx context.Context, areaID string, nodeType NodeType, count int) ([]NodeRegisterInfo, error) // perm:admin
-}
-
-type SchedulerAuth struct {
-	URL         string
-	AccessToken string
+	RegisterNode(ctx context.Context, areaID, schedulerURL string, nodeType NodeType, count int) ([]NodeRegisterInfo, error) // perm:admin
+	LoadAccessPointListForWeb(ctx context.Context) (LoadAccessPointListResult, error)                                        // perm:admin
 }
 
 type SchedulerInfo struct {
@@ -39,4 +35,9 @@ type SchedulerInfo struct {
 type AccessPoint struct {
 	AreaID         string
 	SchedulerInfos []SchedulerInfo
+}
+
+type LoadAccessPointListResult struct {
+	AccessPoints []AccessPoint
+	UserAreaID   string
 }
