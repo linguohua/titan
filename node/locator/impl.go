@@ -467,10 +467,10 @@ func (locator *Locator) RegisterNode(ctx context.Context, areaID string, schedul
 	return schedulerAPI.RegisterNode(ctx, nodeType, count)
 }
 
-func (locator *Locator) LoadAccessPointListForWeb(ctx context.Context) (api.LoadAccessPointListResult, error) {
+func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) (api.LoadAccessPointsResult, error) {
 	allCfg, err := locator.db.db.getAllCfg()
 	if err != nil {
-		return api.LoadAccessPointListResult{}, err
+		return api.LoadAccessPointsResult{}, err
 	}
 
 	accessPointMap := make(map[string]*api.AccessPoint, 0)
@@ -497,11 +497,15 @@ func (locator *Locator) LoadAccessPointListForWeb(ctx context.Context) (api.Load
 	}
 
 	ip := handler.GetRequestIP(ctx)
-	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
+	geoInfo, _ := region.GetRegion().GetGeoInfo(ip)
 
-	ret := api.LoadAccessPointListResult{AccessPoints: accessPoints, UserAreaID: defaultAreaID}
+	ret := api.LoadAccessPointsResult{AccessPoints: accessPoints}
 	if geoInfo != nil {
 		ret.UserAreaID = geoInfo.Geo
+	}
+
+	if ret.UserAreaID == "unknown-unknown-unknown" {
+		ret.UserAreaID = defaultAreaID
 	}
 
 	return ret, nil

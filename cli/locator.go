@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 
+	"github.com/linguohua/titan/api"
 	"github.com/urfave/cli/v2"
 )
 
@@ -19,6 +20,8 @@ var accesspointCmd = &cli.Command{
 		listCmd,
 		infoCmd,
 		getCmd,
+		registerCmd,
+		loadAccessPointList,
 	},
 }
 
@@ -194,6 +197,90 @@ var getCmd = &cli.Command{
 		for _, url := range urls {
 			fmt.Println(url)
 		}
+
+		return nil
+	},
+}
+
+var registerCmd = &cli.Command{
+	Name:  "register",
+	Usage: "register node",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "area-id",
+			Usage: "area id",
+			Value: "",
+		},
+
+		&cli.StringFlag{
+			Name:  "scheduler-url",
+			Usage: "scheduler url",
+			Value: "",
+		},
+
+		&cli.IntFlag{
+			Name:  "node-type",
+			Usage: "edge or candidate",
+			Value: 1,
+		},
+
+		&cli.IntFlag{
+			Name:  "count",
+			Usage: "count of node",
+			Value: 1,
+		},
+	},
+
+	Action: func(cctx *cli.Context) error {
+		locatorAPI, closer, err := GetLocatorAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		areaID := cctx.String("area-id")
+		schedulerURL := cctx.String("scheduler-url")
+		nodeType := cctx.Int("node-type")
+		count := cctx.Int("count")
+
+		ctx := ReqContext(cctx)
+
+		registerInfos, err := locatorAPI.RegisterNode(ctx, areaID, schedulerURL, api.NodeType(nodeType), count)
+		if err != nil {
+			return err
+		}
+
+		for _, info := range registerInfos {
+			fmt.Println("register infos:%v", info)
+		}
+
+		return nil
+	},
+}
+
+var loadAccessPointList = &cli.Command{
+	Name:  "load",
+	Usage: "load access point list",
+	Flags: []cli.Flag{},
+
+	Action: func(cctx *cli.Context) error {
+		locatorAPI, closer, err := GetLocatorAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		ctx := ReqContext(cctx)
+
+		result, err := locatorAPI.LoadAccessPointsForWeb(ctx)
+		if err != nil {
+			return err
+		}
+
+		for _, ap := range result.AccessPoints {
+			fmt.Printf("accesspoint:%v", ap)
+		}
+		fmt.Printf("user areaID:%s", result.UserAreaID)
 
 		return nil
 	},
