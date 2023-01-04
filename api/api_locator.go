@@ -23,7 +23,7 @@ type Locator interface {
 	UserDownloadBlockResults(ctx context.Context, results []UserBlockDownloadResult) error //perm:read
 
 	RegisterNode(ctx context.Context, areaID, schedulerURL string, nodeType NodeType, count int) ([]NodeRegisterInfo, error) // perm:admin
-	LoadAccessPointListForWeb(ctx context.Context) (LoadAccessPointListResult, error)                                        // perm:admin
+	LoadAccessPointsForWeb(ctx context.Context) (LoadAccessPointsResult, error)                                              // perm:admin
 }
 
 type SchedulerInfo struct {
@@ -37,7 +37,7 @@ type AccessPoint struct {
 	SchedulerInfos []SchedulerInfo
 }
 
-type LoadAccessPointListResult struct {
+type LoadAccessPointsResult struct {
 	AccessPoints []AccessPoint
 	UserAreaID   string
 }
