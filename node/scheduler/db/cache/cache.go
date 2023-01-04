@@ -8,6 +8,22 @@ import (
 	"golang.org/x/xerrors"
 )
 
+const (
+	//CarFileCountField BaseInfo Field
+	CarFileCountField = "CarfileCount"
+	//DownloadCountField BaseInfo Field
+	DownloadCountField = "DownloadCount"
+	//NextElectionTimeField BaseInfo Field
+	NextElectionTimeField = "NextElectionTime"
+
+	//BlockCountField DeviceInfo Field
+	BlockCountField = "BlockCount"
+	//TotalDownloadField DeviceInfo Field
+	TotalDownloadField = "TotalDownload"
+	//TotalUploadField DeviceInfo Field
+	TotalUploadField = "TotalUpload"
+)
+
 // DB cache db
 type DB interface {
 	SetCacheResultInfo(info *api.CacheResultInfo) (int64, error)
@@ -47,7 +63,6 @@ type DB interface {
 	GetValidatorsAndExpirationTime() ([]string, time.Duration, error)
 
 	IncrNodeOnlineTime(deviceID string, onlineTime int64) (float64, error)
-	IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error)
 
 	SetDeviceInfo(info *api.DevicesInfo) error
 	GetDeviceInfo(deviceID string) (*api.DevicesInfo, error)
@@ -71,6 +86,8 @@ type DB interface {
 
 	SaveCacheErrors(cacheID string, infos []*api.CacheError, isClean bool) error
 	GetCacheErrors(cacheID string) ([]*api.CacheError, error)
+
+	NodeDownloadCount(deviceID string, blockDownnloadInfo *api.BlockDownloadInfo) error
 
 	IsNilErr(err error) bool
 }
@@ -107,14 +124,14 @@ func GetDB() DB {
 	return db
 }
 
-// NodeInfo base info
-type NodeInfo struct {
-	OnLineTime int64
-	LastTime   string
-	Geo        string
-	IsOnline   bool
-	NodeType   api.NodeTypeName
-}
+// // NodeInfo base info
+// type NodeInfo struct {
+// 	OnLineTime int64
+// 	LastTime   string
+// 	Geo        string
+// 	IsOnline   bool
+// 	NodeType   api.NodeTypeName
+// }
 
 // DataTask data cache task
 type DataTask struct {

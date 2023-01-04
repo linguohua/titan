@@ -649,14 +649,14 @@ func (c *Cache) removeCache() error {
 	}
 
 	// update node block count
-	err = cache.GetDB().IncrByDevicesInfo("BlockCount", values)
+	err = cache.GetDB().IncrByDevicesInfo(cache.BlockCountField, values)
 	if err != nil {
 		log.Errorf("IncrByDevicesInfo err:%s ", err.Error())
 	}
 
 	if c.status == api.CacheStatusSuccess {
 		c.data.reliability -= c.reliability
-		err = cache.GetDB().IncrByBaseInfo("CarfileCount", -1)
+		err = cache.GetDB().IncrByBaseInfo(cache.CarFileCountField, -1)
 		if err != nil {
 			log.Errorf("removeCache IncrByBaseInfo err:%s", err.Error())
 		}

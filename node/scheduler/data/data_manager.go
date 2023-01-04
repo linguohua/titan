@@ -107,7 +107,7 @@ func (m *Manager) initBaseInfo() {
 		return
 	}
 
-	err = cache.GetDB().UpdateBaseInfo("CarfileCount", len(infos))
+	err = cache.GetDB().UpdateBaseInfo(cache.CarFileCountField, len(infos))
 	if err != nil {
 		log.Errorf("initBaseInfo UpdateBaseInfo err:%s", err.Error())
 	}
@@ -776,13 +776,13 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceIDs []string) {
 		}
 
 		// update node block count
-		err = cache.GetDB().UpdateDeviceInfo(deviceID, "BlockCount", 0)
+		err = cache.GetDB().UpdateDeviceInfo(deviceID, cache.BlockCountField, 0)
 		if err != nil {
 			log.Errorf("CleanNodeAndRestoreCaches UpdateDeviceInfo err:%s ", err.Error())
 		}
 	}
 
-	err := cache.GetDB().IncrByBaseInfo("CarfileCount", int64(-count))
+	err := cache.GetDB().IncrByBaseInfo(cache.CarFileCountField, int64(-count))
 	if err != nil {
 		log.Errorf("CleanNodeAndRestoreCaches IncrByBaseInfo err:%s", err.Error())
 	}

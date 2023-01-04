@@ -23,7 +23,7 @@ type Scheduler interface {
 	GetCacheData(ctx context.Context, cid string) (DataInfo, error)                                     //perm:read
 	ListCacheDatas(ctx context.Context, page int) (DataListInfo, error)                                 //perm:read
 	ShowRunningCacheDatas(ctx context.Context) ([]DataInfo, error)                                      //perm:read
-	RegisterNode(ctx context.Context, nodeType NodeType, count int) ([]NodeRegisterInfo, error)         //perm:read
+	RegisterNode(ctx context.Context, nodeType NodeType, count int) ([]NodeRegisterInfo, error)         //perm:admin
 	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error)  //perm:admin
 	CacheContinue(ctx context.Context, cid, cacheID string) error                                       //perm:admin
 	ValidateSwitch(ctx context.Context, open bool) error                                                //perm:admin

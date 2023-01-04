@@ -165,7 +165,7 @@ func (d *Data) updateAndSaveCacheEndInfo(doneCache *Cache) error {
 	if doneCache.status == api.CacheStatusSuccess {
 		d.reliability += doneCache.reliability
 
-		err := cache.GetDB().IncrByBaseInfo("CarfileCount", 1)
+		err := cache.GetDB().IncrByBaseInfo(cache.CarFileCountField, 1)
 		if err != nil {
 			log.Errorf("updateAndSaveCacheEndInfo IncrByBaseInfo err: %s", err.Error())
 		}
