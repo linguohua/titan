@@ -367,8 +367,8 @@ func (rd redisDB) SetDeviceInfo(info *api.DevicesInfo) error {
 	}
 
 	if exist == 1 {
-		// TODO update some value
-		return nil
+		// update some value
+		return rd.updateDeviceInfos(info)
 	}
 
 	// _, err = rd.cli.HMSet(ctx, key, structs.Map(info)).Result()
@@ -387,6 +387,17 @@ func (rd redisDB) SetDeviceInfo(info *api.DevicesInfo) error {
 	}
 
 	return nil
+}
+
+func (rd redisDB) updateDeviceInfos(info *api.DevicesInfo) error {
+	key := fmt.Sprintf(redisKeyNodeInfo, info.DeviceId)
+
+	m := make(map[string]interface{})
+	m["DiskSpace"] = info.DiskSpace
+	m["Memory"] = info.Memory
+
+	_, err := rd.cli.HMSet(context.Background(), key, m).Result()
+	return err
 }
 
 func (rd redisDB) GetDeviceInfo(deviceID string) (*api.DevicesInfo, error) {
