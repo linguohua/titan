@@ -108,18 +108,21 @@ func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
 	info.ServerName = serverName
 	// info.CreateTime = time.Now().Format("2006-01-02 15:04:05")
 
-	_, err := sd.GetNodeInfo(deviceID)
+	var count int64
+	cmd := "SELECT count(device_id) FROM node WHERE device_id=?"
+	err := sd.cli.Get(&count, cmd, deviceID)
 	if err != nil {
-		if sd.IsNilErr(err) {
-			_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address, server_name,private_key, url)
+		return err
+	}
+
+	if count == 0 {
+		_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address, server_name,private_key, url)
                 VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address, :server_name,:private_key,:url)`, info)
-		}
 		return err
 	}
 
 	// update
 	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address,server_name=:server_name,url=:url,quitted=:quitted WHERE device_id=:device_id`, info)
-
 	return err
 }
 
@@ -165,24 +168,33 @@ func (sd sqlDB) setAllNodeOffline() error {
 }
 
 func (sd sqlDB) GetNodeInfo(deviceID string) (*NodeInfo, error) {
-	info := &NodeInfo{DeviceID: deviceID}
+	// info := &NodeInfo{DeviceID: deviceID}
 
-	rows, err := sd.cli.NamedQuery(`SELECT * FROM node WHERE device_id=:device_id`, info)
-	if err != nil {
+	query := `SELECT * FROM node WHERE device_id=?`
+
+	var out *NodeInfo
+	if err := sd.cli.Select(&out, query, deviceID); err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	if rows.Next() {
-		err = rows.StructScan(info)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		return nil, xerrors.New(errNotFind)
-	}
+	return out, nil
 
-	return info, err
+	// rows, err := sd.cli.NamedQuery(`SELECT * FROM node WHERE device_id=:device_id`, info)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer rows.Close()
+
+	// if rows.Next() {
+	// 	err = rows.StructScan(info)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// } else {
+	// 	return nil, xerrors.New(errNotFind)
+	// }
+
+	// return info, err
 }
 
 func (sd sqlDB) InsertValidateResultInfo(info *ValidateResult) error {

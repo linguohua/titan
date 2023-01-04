@@ -635,7 +635,7 @@ func (s *Scheduler) RedressDeveiceInfo(ctx context.Context, deviceID string) err
 		return err
 	}
 
-	err = cache.GetDB().UpdateDeviceInfo(deviceID, "BlockCount", len(blocks))
+	err = cache.GetDB().UpdateDeviceInfo(deviceID, cache.BlockCountField, len(blocks))
 	if err != nil {
 		return err
 	}

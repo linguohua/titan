@@ -265,7 +265,7 @@ type SchedulerStruct struct {
 
 		RedressDeveiceInfo func(p0 context.Context, p1 string) error `perm:"admin"`
 
-		RegisterNode func(p0 context.Context, p1 NodeType, p2 int) ([]NodeRegisterInfo, error) `perm:"read"`
+		RegisterNode func(p0 context.Context, p1 NodeType, p2 int) ([]NodeRegisterInfo, error) `perm:"admin"`
 
 		RemoveCache func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 

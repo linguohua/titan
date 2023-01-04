@@ -45,20 +45,8 @@ const (
 	// redisKeyCacheErrorList server name cacheID
 	redisKeyCacheErrorList = "Titan:CacheErrorList:%s:%s"
 
-	// NodeInfo field
-	onlineTimeField             = "OnlineTime"
-	validateSuccessField        = "ValidateSuccessTime"
-	nodeTodayRewardField        = "TodayProfit"
-	nodeRewardDateTimeField     = "RewardDateTime"
-	nodeLatencyField            = "Latency"
-	blockDownloadCIDField       = "CID"
-	blockDownloadPublicKeyField = "UserPublicKey"
-
 	// redisKeyBaseInfo  server name
 	redisKeyBaseInfo = "Titan:BaseInfo:%s"
-	// CacheTask field
-	// carFileIDField = "CarFileID"
-	// cacheIDField = "cacheID"
 )
 
 const (
@@ -104,13 +92,7 @@ func (rd redisDB) IncrNodeOnlineTime(deviceID string, onlineTime int64) (float64
 
 	mTime := float64(onlineTime) / 60 // second to minute
 
-	return rd.cli.HIncrByFloat(context.Background(), key, onlineTimeField, mTime).Result()
-}
-
-func (rd redisDB) IncrNodeValidateTime(deviceID string, validateSuccessTime int64) (int64, error) {
-	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
-
-	return rd.cli.HIncrBy(context.Background(), key, validateSuccessField, validateSuccessTime).Result()
+	return rd.cli.HIncrByFloat(context.Background(), key, "OnlineTime", mTime).Result()
 }
 
 // node cache tag ++1
@@ -199,10 +181,11 @@ func (rd redisDB) SetValidatorsToList(deviceIDs []string, expiration time.Durati
 	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
 		pipeliner.Del(context.Background(), key)
 
-		pipeliner.SAdd(context.Background(), key, deviceIDs)
-
-		// Expire
-		pipeliner.PExpire(context.Background(), key, expiration)
+		if len(deviceIDs) > 0 {
+			pipeliner.SAdd(context.Background(), key, deviceIDs)
+			// Expire
+			pipeliner.PExpire(context.Background(), key, expiration)
+		}
 
 		return nil
 	})
@@ -673,13 +656,34 @@ func (rd redisDB) UpdateNodeCacheBlockInfo(toDeviceID, fromDeviceID string, bloc
 	ctx := context.Background()
 	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
 
-		pipeliner.HIncrBy(context.Background(), toKey, "BlockCount", 1)
-		pipeliner.HIncrBy(context.Background(), toKey, "TotalDownload", size)
+		pipeliner.HIncrBy(context.Background(), toKey, BlockCountField, 1)
+		pipeliner.HIncrBy(context.Background(), toKey, TotalDownloadField, size)
 
 		if fromDeviceID != "" {
 			fromKey := fmt.Sprintf(redisKeyNodeInfo, toDeviceID)
-			pipeliner.HIncrBy(context.Background(), fromKey, "DownloadCount", 1)
-			pipeliner.HIncrBy(context.Background(), fromKey, "TotalUpload", size)
+			pipeliner.HIncrBy(context.Background(), fromKey, DownloadCountField, 1)
+			pipeliner.HIncrBy(context.Background(), fromKey, TotalUploadField, size)
+		}
+
+		return nil
+	})
+
+	return err
+}
+
+func (rd redisDB) NodeDownloadCount(deviceID string, blockDownnloadInfo *api.BlockDownloadInfo) error {
+	nodeKey := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+
+	ctx := context.Background()
+	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+
+		pipeliner.HIncrBy(context.Background(), nodeKey, DownloadCountField, 1)
+		pipeliner.HIncrBy(context.Background(), nodeKey, TotalUploadField, int64(blockDownnloadInfo.BlockSize))
+
+		// count carfile download
+		if blockDownnloadInfo.BlockCID == blockDownnloadInfo.CarfileCID {
+			key := fmt.Sprintf(redisKeyBaseInfo, serverName)
+			pipeliner.HIncrBy(context.Background(), key, DownloadCountField, 1)
 		}
 
 		return nil
