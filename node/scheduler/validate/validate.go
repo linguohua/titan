@@ -208,7 +208,10 @@ type tmpDeviceMeta struct {
 // verified edge node are allocated to verifiers one by one
 func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDeviceMeta, error) {
 	result := make(map[string][]tmpDeviceMeta)
-	// edges := v.nodeManager.GetAllEdge()
+	vm := make(map[string]struct{})
+	for _, v := range validatorList {
+		vm[v] = struct{}{}
+	}
 
 	v.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
 		edgeNode := value.(*node.EdgeNode)
@@ -232,19 +235,18 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 	})
 
 	// candidates := v.nodeManager.GetAllCandidate()
-
 	v.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
 		candidateNode := value.(*node.CandidateNode)
+		// the verifier is not verified
+		if _, ok := vm[candidateNode.DeviceId]; ok {
+			return true
+		}
 		var tn tmpDeviceMeta
 		tn.deviceId = candidateNode.DeviceId
 		tn.nodeType = api.NodeCandidate
 		tn.addr = candidateNode.Node.GetAddress()
 
 		validatorID := validatorList[v.generatorForRandomNumber(0, len(validatorList))]
-		if validatorID == candidateNode.DeviceId {
-			return true
-		}
-
 		if validated, exist := result[validatorID]; exist {
 			validated = append(validated, tn)
 			result[validatorID] = validated
