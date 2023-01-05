@@ -64,13 +64,13 @@ func loadData(hash string, dataManager *Manager) *Data {
 		data.carfileHash = dInfo.CarfileHash
 		// data.CacheMap = new(sync.Map)
 
-		idList, err := persistent.GetDB().GetCachesWithData(hash)
+		caches, err := persistent.GetDB().GetCachesWithData(hash)
 		if err != nil {
 			log.Errorf("loadData hash:%s, GetCachesWithData err:%s", hash, err.Error())
 			return data
 		}
 
-		for _, cacheID := range idList {
+		for _, cacheID := range caches {
 			if cacheID == "" {
 				continue
 			}
@@ -155,7 +155,7 @@ func (d *Data) updateNodeDiskUsage(nodes []string) {
 		}
 	}
 
-	err := cache.GetDB().UpdateDevicesInfo("DiskUsage", values)
+	err := cache.GetDB().UpdateDevicesInfo(cache.DiskUsageField, values)
 	if err != nil {
 		log.Errorf("updateNodeDiskUsage err:%s", err.Error())
 	}
@@ -207,7 +207,7 @@ func (d *Data) dispatchCache(cache *Cache) error {
 	var list map[string]string
 
 	if cache != nil {
-		cache.updateAlreadyMap()
+		cache.updateCacheInfo()
 
 		list, err = persistent.GetDB().GetUndoneBlocks(cache.cacheID)
 		if err != nil {

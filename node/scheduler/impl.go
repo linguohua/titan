@@ -373,7 +373,7 @@ func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api
 // RegisterNode Register Node
 func (s *Scheduler) RegisterNode(ctx context.Context, nodeType api.NodeType, count int) ([]api.NodeRegisterInfo, error) {
 	list := make([]api.NodeRegisterInfo, 0)
-	if count <= 0 {
+	if count <= 0 || count > 10 {
 		return list, nil
 	}
 

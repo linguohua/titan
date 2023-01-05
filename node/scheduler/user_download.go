@@ -81,6 +81,7 @@ func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []api.
 
 // GetDownloadInfosWithBlocks find node
 func (s *Scheduler) GetDownloadInfosWithBlocks(ctx context.Context, cids []string, publicKey string) (map[string][]api.DownloadInfoResult, error) {
+	//TODO too much cid
 	if len(cids) < 1 {
 		return nil, xerrors.New("cids is nil")
 	}
@@ -121,6 +122,7 @@ func (s *Scheduler) GetDownloadInfosWithBlocks(ctx context.Context, cids []strin
 
 // GetDownloadInfoWithBlocks find node
 func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string, publicKey string) (map[string]api.DownloadInfoResult, error) {
+	//TODO too much cid
 	if len(cids) < 1 {
 		return nil, xerrors.New("cids is nil")
 	}

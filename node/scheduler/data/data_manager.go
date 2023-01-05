@@ -758,6 +758,7 @@ func (m *Manager) ResetExpiredTime(cid, cacheID string, expiredTime time.Time) e
 
 // CleanNodeAndRestoreCaches clean a node caches info and restore caches
 func (m *Manager) CleanNodeAndRestoreCaches(deviceIDs []string) {
+	// TODO avoid loops
 	count := 0
 	recacheMap := make(map[string]string)
 	for _, deviceID := range deviceIDs {
