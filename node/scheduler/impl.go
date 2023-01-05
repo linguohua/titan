@@ -225,6 +225,8 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 		return xerrors.New("Area not exist")
 	}
 	deviceInfo.IpLocation = geoInfo.Geo
+	deviceInfo.Longitude = geoInfo.Longitude
+	deviceInfo.Latitude = geoInfo.Latitude
 
 	candidateNode := node.NewCandidateNode(candicateAPI, closer, node.NewNode(&deviceInfo, rpcURL, downloadSrvURL, privateKey, api.TypeNameCandidate, geoInfo))
 
