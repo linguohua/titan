@@ -34,7 +34,7 @@ func GetServerArea() string {
 func GetGeoInfoWithIP(ip string) (*region.GeoInfo, bool) {
 	geoInfo, _ := region.GetRegion().GetGeoInfo(ip)
 
-	if hasLocalIP(ip) {
+	if isLocalIP(ip) {
 		geoInfo.Geo = serverArea
 		return geoInfo, true
 	}
@@ -46,7 +46,7 @@ func GetGeoInfoWithIP(ip string) (*region.GeoInfo, bool) {
 	return nil, false
 }
 
-func hasLocalIP(ipStr string) bool {
+func isLocalIP(ipStr string) bool {
 	ip := net.ParseIP(ipStr)
 
 	if ip.IsLoopback() {
