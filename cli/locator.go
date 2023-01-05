@@ -210,7 +210,7 @@ var registerCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:  "area-id",
 			Usage: "area id",
-			Value: "",
+			Value: "CN-GD-Shenzhen",
 		},
 
 		&cli.StringFlag{
