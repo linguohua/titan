@@ -51,7 +51,7 @@ type Manager struct {
 	expiredTimeOfCache time.Time
 	isLoadExpiredTime  bool
 
-	haveCacheNodes map[string]time.Time
+	// haveCacheNodes map[string]time.Time
 }
 
 // NewDataManager new

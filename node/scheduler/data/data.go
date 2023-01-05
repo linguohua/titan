@@ -88,29 +88,29 @@ func loadData(hash string, dataManager *Manager) *Data {
 	return nil
 }
 
-func (d *Data) haveRootCache() bool {
-	have := false
+func (d *Data) existRootCache() bool {
+	exist := false
 
 	d.CacheMap.Range(func(key, value interface{}) bool {
-		if have {
+		if exist {
 			return true
 		}
 
 		if value != nil {
 			c := value.(*Cache)
 			if c != nil {
-				have = c.isRootCache && c.status == api.CacheStatusSuccess
+				exist = c.isRootCache && c.status == api.CacheStatusSuccess
 			}
 		}
 
 		return true
 	})
 
-	return have
+	return exist
 }
 
 func (d *Data) updateAndSaveCacheingInfo(blockInfo *api.BlockInfo, cache *Cache, createBlocks []*api.BlockInfo) error {
-	if !d.haveRootCache() {
+	if !d.existRootCache() {
 		d.totalSize = cache.totalSize
 		d.totalBlocks = cache.totalBlocks
 	}
@@ -216,7 +216,7 @@ func (d *Data) dispatchCache(cache *Cache) error {
 
 	} else {
 		var blockID string
-		cache, blockID, err = newCache(d, !d.haveRootCache())
+		cache, blockID, err = newCache(d, !d.existRootCache())
 		if err != nil {
 			return err
 		}
