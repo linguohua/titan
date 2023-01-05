@@ -278,7 +278,7 @@ func (v *Election) reelectTicker() {
 					v.validators[deviceID] = time.Now()
 					continue
 				}
-
+				expire = true
 				// if lastActive.Before(time.Now().Add(-v.opts.vExpiration)) {
 				// 	expire = true
 				// 	log.Infof("validator %s offline for more than %v", deviceID, v.opts.vExpiration)
