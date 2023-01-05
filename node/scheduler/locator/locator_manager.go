@@ -2,6 +2,7 @@ package locator
 
 import (
 	"context"
+	"sync"
 
 	"github.com/linguohua/titan/node/scheduler/area"
 	"github.com/linguohua/titan/node/scheduler/node"
@@ -9,34 +10,34 @@ import (
 
 // Manager Locator Manager
 type Manager struct {
-	locatorMap map[string]*node.Locator
+	locatorMap sync.Map
 	port       int
 }
 
 // NewLoactorManager new
 func NewLoactorManager(port int) *Manager {
 	return &Manager{
-		locatorMap: make(map[string]*node.Locator),
-		port:       port,
+		port: port,
 	}
 }
 
 // AddLocator add
 func (m *Manager) AddLocator(location *node.Locator) {
-	m.locatorMap[location.GetLocatorID()] = location
+	m.locatorMap.Store(location.GetLocatorID(), location)
 }
 
 // NotifyNodeStatusToLocator Notify Node Status To Locator
 func (m *Manager) NotifyNodeStatusToLocator(deviceID string, isOnline bool) {
-	// log.Warnf("notifyNodeStatusToLocator : %v", m.locatorMap)
-	for _, locator := range m.locatorMap {
-		// log.Warnf("locator : %v", locator)
+	m.locatorMap.Range(func(key, value interface{}) bool {
+		locator := value.(*node.Locator)
+
 		if locator != nil && locator.GetAPI() != nil {
 			if isOnline {
-				locator.GetAPI().DeviceOnline(context.Background(), deviceID, area.GetServerArea(), m.port)
+				go locator.GetAPI().DeviceOnline(context.Background(), deviceID, area.GetServerArea(), m.port)
 			} else {
-				locator.GetAPI().DeviceOffline(context.Background(), deviceID)
+				go locator.GetAPI().DeviceOffline(context.Background(), deviceID)
 			}
 		}
-	}
+		return true
+	})
 }
