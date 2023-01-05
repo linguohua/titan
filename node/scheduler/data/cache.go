@@ -118,7 +118,7 @@ func loadCache(cacheID string, data *Data) *Cache {
 	return c
 }
 
-func (c *Cache) updateAlreadyMap() {
+func (c *Cache) updateCacheInfo() {
 	c.alreadyCacheBlockMap.Range(func(key interface{}, value interface{}) bool {
 		c.alreadyCacheBlockMap.Delete(key)
 		return true
@@ -501,6 +501,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 	// log.Warnf("block:%s,Status:%v, link len:%d ", hash, blockInfo.Status, len(info.Links))
 	linkMap := make(map[string]string)
 	if len(info.Links) > 0 {
+		//TODO avoid loops
 		for _, link := range info.Links {
 			linkMap[link] = ""
 		}

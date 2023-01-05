@@ -22,6 +22,8 @@ const (
 	TotalDownloadField = "TotalDownload"
 	//TotalUploadField DeviceInfo Field
 	TotalUploadField = "TotalUpload"
+	//DiskUsageField DeviceInfo Field
+	DiskUsageField = "DiskUsage"
 )
 
 // DB cache db
