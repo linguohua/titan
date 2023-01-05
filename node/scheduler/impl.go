@@ -312,6 +312,8 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 	}
 
 	deviceInfo.IpLocation = geoInfo.Geo
+	deviceInfo.Longitude = geoInfo.Longitude
+	deviceInfo.Latitude = geoInfo.Latitude
 
 	edgeNode := node.NewEdgeNode(edgeAPI, closer, node.NewNode(&deviceInfo, rpcURL, downloadSrvURL, privateKey, api.TypeNameEdge, geoInfo))
 
