@@ -66,6 +66,8 @@ type DevicesInfo struct {
 	TotalUpload      float64  `json:"total_upload" redis:"TotalUpload"`
 	DownloadCount    int      `json:"download_count" form:"downloadCount" gorm:"column:download_count;comment:;" redis:"DownloadCount"`
 	BlockCount       int      `json:"block_count" form:"blockCount" gorm:"column:block_count;comment:;" redis:"BlockCount"`
+	Latitude         float64  `json:"latitude" redis:"Latitude"`
+	Longitude        float64  `json:"longitude" redis:"Longitude"`
 }
 
 type BlockDownloadInfo struct {

@@ -394,7 +394,10 @@ func (rd redisDB) updateDeviceInfos(info *api.DevicesInfo) error {
 
 	m := make(map[string]interface{})
 	m["DiskSpace"] = info.DiskSpace
-	m["Memory"] = info.Memory
+
+	//TODO
+	m["Longitude"] = info.Longitude
+	m["Latitude"] = info.Latitude
 
 	_, err := rd.cli.HMSet(context.Background(), key, m).Result()
 	return err
