@@ -172,13 +172,13 @@ func (v *Validate) execute() error {
 
 	log.Debug("validator is", validatorList)
 
-	validatorMap, err := v.validateMapping(validatorList)
+	validatorMap, err := v.validateMappingByUniformAlgorithm(validatorList)
 	if err != nil {
 		return err
 	}
 
 	for validatorID, validatedList := range validatorMap {
-		go func(vId string, list []tmpDeviceMeta) {
+		go func(vId string, list []validatedDeviceInfo) {
 			log.Debugf("validator id : %s, validated list : %v", vId, list)
 			req := v.assemblyValidateReqAndStore(vId, list)
 
@@ -200,15 +200,16 @@ func (v *Validate) execute() error {
 	return nil
 }
 
-type tmpDeviceMeta struct {
-	deviceID string
-	nodeType api.NodeType
-	addr     string
+type validatedDeviceInfo struct {
+	deviceID  string
+	nodeType  api.NodeType
+	addr      string
+	bandwidth float64
 }
 
 // verified edge node are allocated to verifiers one by one
-func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDeviceMeta, error) {
-	result := make(map[string][]tmpDeviceMeta)
+func (v *Validate) validateMapping(validatorList []string) (map[string][]validatedDeviceInfo, error) {
+	result := make(map[string][]validatedDeviceInfo)
 	vm := make(map[string]struct{})
 	for _, v := range validatorList {
 		vm[v] = struct{}{}
@@ -216,7 +217,7 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 
 	v.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
 		edgeNode := value.(*node.EdgeNode)
-		var tn tmpDeviceMeta
+		var tn validatedDeviceInfo
 		tn.nodeType = api.NodeEdge
 		tn.deviceID = edgeNode.DeviceId
 		tn.addr = edgeNode.Node.GetAddress()
@@ -227,7 +228,7 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 			validated = append(validated, tn)
 			result[validatorID] = validated
 		} else {
-			vd := make([]tmpDeviceMeta, 0)
+			vd := make([]validatedDeviceInfo, 0)
 			vd = append(vd, tn)
 			result[validatorID] = vd
 		}
@@ -242,7 +243,7 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 		if _, ok := vm[candidateNode.DeviceId]; ok {
 			return true
 		}
-		var tn tmpDeviceMeta
+		var tn validatedDeviceInfo
 		tn.deviceID = candidateNode.DeviceId
 		tn.nodeType = api.NodeCandidate
 		tn.addr = candidateNode.Node.GetAddress()
@@ -252,7 +253,7 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 			validated = append(validated, tn)
 			result[validatorID] = validated
 		} else {
-			vd := make([]tmpDeviceMeta, 0)
+			vd := make([]validatedDeviceInfo, 0)
 			vd = append(vd, tn)
 			result[validatorID] = vd
 		}
@@ -262,6 +263,83 @@ func (v *Validate) validateMapping(validatorList []string) (map[string][]tmpDevi
 
 	if len(result) == 0 {
 		return nil, fmt.Errorf("%s", "edge node and candidate node are empty")
+	}
+
+	return result, nil
+}
+
+func (v *Validate) validateMappingByUniformAlgorithm(validatorList []string) (map[string][]validatedDeviceInfo, error) {
+	result := make(map[string][]validatedDeviceInfo)
+
+	validatorMp := make(map[string]float64)
+	for _, id := range validatorList {
+		value, ok := v.nodeManager.CandidateNodeMap.Load(id)
+		if ok {
+			candidateNode := value.(*node.CandidateNode)
+			validatorMp[id] = candidateNode.BandwidthDown
+		}
+	}
+
+	validatedList := make([]validatedDeviceInfo, 0)
+	v.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
+		edgeNode := value.(*node.EdgeNode)
+		var info validatedDeviceInfo
+		info.nodeType = api.NodeEdge
+		info.deviceID = edgeNode.DeviceId
+		info.addr = edgeNode.Node.GetAddress()
+		info.bandwidth = edgeNode.BandwidthUp
+		validatedList = append(validatedList, info)
+		return true
+	})
+	v.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
+		candidateNode := value.(*node.CandidateNode)
+		if _, ok := validatorMp[candidateNode.DeviceId]; ok {
+			return true
+		}
+		var info validatedDeviceInfo
+		info.deviceID = candidateNode.DeviceId
+		info.nodeType = api.NodeCandidate
+		info.addr = candidateNode.Node.GetAddress()
+		info.bandwidth = candidateNode.BandwidthUp
+		validatedList = append(validatedList, info)
+		return true
+	})
+
+	if len(validatedList) == 0 {
+		return nil, fmt.Errorf("%s", "no verified person")
+	}
+
+	// based on facts BandwidthDown >> BandwidthUp, Don't judge BandwidthUp >= BandwidthDown
+	switch {
+	case len(validatorList) >= len(validatedList):
+		for k, vd := range validatedList {
+			result[validatorList[k]] = []validatedDeviceInfo{vd}
+		}
+	default:
+		avgList := GetAverageArray(validatedList, len(validatorList))
+		for k, vl := range avgList {
+			curList := vl
+			var sum float64
+			for _, validate := range curList {
+				sum += validate.bandwidth
+			}
+
+			realList := curList
+			if validatorMp[validatorList[k]] < sum {
+				delta := sum - validatorMp[validatorList[k]]
+				// index := 0
+				for ck, value := range curList {
+					delta = delta - value.bandwidth
+					if delta <= 0 {
+						// index = k+1
+						realList = curList[ck+1:]
+						break
+					}
+				}
+			}
+
+			result[validatorList[k]] = realList
+		}
 	}
 
 	return result, nil
@@ -277,7 +355,7 @@ func (v *Validate) generatorForRandomNumber(start, end int) int {
 	return start + y
 }
 
-func (v *Validate) assemblyValidateReqAndStore(validatorID string, list []tmpDeviceMeta) []api.ReqValidate {
+func (v *Validate) assemblyValidateReqAndStore(validatorID string, list []validatedDeviceInfo) []api.ReqValidate {
 	req := make([]api.ReqValidate, 0)
 
 	for _, device := range list {
