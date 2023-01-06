@@ -126,19 +126,31 @@ CREATE TABLE `node_connection_log` (
     PRIMARY KEY (`id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='event';
 
-CREATE TABLE `message_info_cn_gd_shenzhen` (
-    `id` varchar(64) NOT NULL UNIQUE,
-	`cid` varchar(128) NOT NULL,
-    `cache_id` varchar(64) DEFAULT '' ,
-    `target` varchar(128) DEFAULT '' ,
-    `carfile_cid` varchar(128) DEFAULT '',
+CREATE TABLE `node_caches_info_cn_gd_shenzhen` (
+	`carfile_hash` varchar(128) NOT NULL,
     `status` TINYINT  DEFAULT '0' ,
-    `size` int(20)  DEFAULT '0' ,
-    `source` varchar(64) NOT NULL,
+    `device_id` varchar(128) NOT NULL ,
+    `done_size` BIGINT  DEFAULT '0' ,
+    `done_blocks` int  DEFAULT '0' ,
+    `expired_time` datetime NOT NULL,
+    `root_cache` BOOLEAN,
+    `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
+	`end_time` datetime DEFAULT CURRENT_TIMESTAMP
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='node caches info';
+
+CREATE TABLE `data_infos_cn_gd_shenzhen` (
+	`carfile_hash` varchar(128) NOT NULL UNIQUE,
+	`carfile_cid` varchar(128) NOT NULL UNIQUE,
+    `total_size` BIGINT  DEFAULT '0' ,
+    `total_blocks` int  DEFAULT '0' ,
+	`reliability` TINYINT DEFAULT '0' ,
+	`need_reliability` TINYINT DEFAULT '0' ,
+    `cache_count` int  DEFAULT '0' ,
+    `nodes` int  DEFAULT '0' ,
+    `expired_time` datetime NOT NULL,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
-    `msg_type` int(10) NOT NULL,
-    PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='message detailed info';
+	PRIMARY KEY (`carfile_hash`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='data infos';
 
 
