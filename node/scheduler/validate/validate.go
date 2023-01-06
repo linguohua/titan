@@ -328,6 +328,7 @@ func (v *Validate) validateMappingByUniformAlgorithm(validatorList []string) (ma
 			if validatorMp[validatorList[k]] < sum {
 				delta := sum - validatorMp[validatorList[k]]
 				// index := 0
+				// todo: add store not verified
 				for ck, value := range curList {
 					delta = delta - value.bandwidth
 					if delta <= 0 {
