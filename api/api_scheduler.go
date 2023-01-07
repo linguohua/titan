@@ -46,7 +46,7 @@ type Scheduler interface {
 	EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error                                        //perm:write
 	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                                  //perm:write
 	CandidateNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error                                   //perm:write
-	CacheResult(ctx context.Context, deviceID string, resultInfo CacheResultInfo) error                              //perm:write
+	CacheResult(ctx context.Context, resultInfo CacheResultInfo) error                                               //perm:write
 	GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]CandidateDownloadInfo, error) //perm:write
 	GetExternalIP(ctx context.Context) (string, error)                                                               //perm:write
 	GetPublicKey(ctx context.Context) (string, error)                                                                //perm:write
@@ -103,71 +103,47 @@ type NodeRegisterInfo struct {
 
 // CacheResultInfo cache data result info
 type CacheResultInfo struct {
-	DeviceID      string
-	Cid           string
-	IsOK          bool
-	Msg           string
-	From          string
-	DownloadSpeed float32
-	// links cid
-	Links     []string
-	BlockSize int
-	LinksSize uint64
+	IsOK               bool
+	Msg                string
+	From               string
+	DownloadSpeed      float32
+	TotalBlock         int
+	DoneBlock          int
+	TotalSize          int
+	DoneSize           int
+	CarfileHash        string
+	RemainingDiskSpace float64
+	NeedTime           int //second
 
-	CarFileHash string
-	CacheID     string
-	// Fid        int
+	DeviceID string
 }
 
 // DataInfo Data info
 type DataInfo struct {
-	CarfileCid      string      `db:"carfile_cid"`
-	CarfileHash     string      `db:"carfile_hash"`
-	Status          CacheStatus `db:"status"`
-	Reliability     int         `db:"reliability"`
-	NeedReliability int         `db:"need_reliability"`
-	CacheCount      int         `db:"cache_count"`
-	TotalSize       int         `db:"total_size"`
-	TotalBlocks     int         `db:"total_blocks"`
-	Nodes           int         `db:"nodes"`
-	ExpiredTime     time.Time   `db:"expired_time"`
-	CreateTime      time.Time   `db:"created_time"`
-	EndTime         time.Time   `db:"end_time"`
-
-	CacheInfos  []CacheInfo
-	DataTimeout time.Duration
+	CarfileCid      string    `db:"carfile_cid"`
+	CarfileHash     string    `db:"carfile_hash"`
+	Reliability     int       `db:"reliability"`
+	NeedReliability int       `db:"need_reliability"`
+	TotalSize       int       `db:"total_size"`
+	TotalBlocks     int       `db:"total_blocks"`
+	ExpiredTime     time.Time `db:"expired_time"`
+	CreateTime      time.Time `db:"created_time"`
+	EndTime         time.Time `db:"end_time"`
+	CacheInfos      []CacheInfo
+	DataTimeout     time.Duration
 }
 
-// CacheInfo Data Block info
+// CacheInfo Data Cache info
 type CacheInfo struct {
 	CarfileHash string      `db:"carfile_hash"`
-	CacheID     string      `db:"cache_id"`
+	DeviceID    string      `db:"device_id"`
 	Status      CacheStatus `db:"status"`
 	Reliability int         `db:"reliability"`
 	DoneSize    int         `db:"done_size"`
 	DoneBlocks  int         `db:"done_blocks"`
-	TotalSize   int         `db:"total_size"`
-	TotalBlocks int         `db:"total_blocks"`
-	Nodes       int         `db:"nodes"`
-	ExpiredTime time.Time   `db:"expired_time"`
-	CreateTime  time.Time   `db:"created_time"`
+	CacheCount  int         `db:"cache_count"`
 	RootCache   bool        `db:"root_cache"`
-	EndTime     time.Time   `db:"end_time"`
-}
-
-// BlockInfo Data Block info
-type BlockInfo struct {
-	ID          string
-	CacheID     string      `db:"cache_id"`
-	CID         string      `db:"cid"`
-	CIDHash     string      `db:"cid_hash"`
-	DeviceID    string      `db:"device_id"`
-	Status      CacheStatus `db:"status"`
-	Size        int         `db:"size"`
-	Reliability int         `db:"reliability"`
-	CarfileHash string      `db:"carfile_hash"`
-	Source      string      `db:"source"`
-	FID         int         `db:"fid"`
+	ExpiredTime time.Time   `db:"expired_time"`
 	CreateTime  time.Time   `db:"created_time"`
 	EndTime     time.Time   `db:"end_time"`
 }

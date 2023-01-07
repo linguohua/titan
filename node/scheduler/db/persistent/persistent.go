@@ -32,15 +32,15 @@ type DB interface {
 	SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error)
 
 	// cache data info
-	CreateCache(cInfo *api.CacheInfo, bInfo *api.BlockInfo) error
+	CreateCache(cInfo *api.CacheInfo) error
 	SaveCacheEndResults(dInfo *api.DataInfo, cInfo *api.CacheInfo) error
-	SaveCacheingResults(dInfo *api.DataInfo, cInfo *api.CacheInfo, updateBlock *api.BlockInfo, createBlocks []*api.BlockInfo) error
+	SaveCacheingResults(dInfo *api.DataInfo, cInfo *api.CacheInfo) error
 
 	// data info
 	SetDataInfo(info *api.DataInfo) error
 	GetDataInfo(hash string) (*api.DataInfo, error)
 	GetDataCidWithPage(page int) (count int, totalPage int, list []*api.DataInfo, err error)
-	GetCachesWithData(hash string) ([]string, error)
+	GetCachesWithData(hash string, isSuccess bool) ([]*api.CacheInfo, error)
 	ExtendExpiredTimeWhitCaches(carfileHash, cacheID string, hour int) error
 	ChangeExpiredTimeWhitCaches(carfileHash, cacheID string, expiredTime time.Time) error
 	GetExpiredCaches() ([]*api.CacheInfo, error)
@@ -50,20 +50,7 @@ type DB interface {
 	GetSuccessCaches() ([]*api.CacheInfo, error)
 	GetCacheInfo(cacheID string) (*api.CacheInfo, error)
 	RemoveCacheAndUpdateData(cacheID, carfileHash string, isDeleteData bool, reliability int) error
-	GetBlockInfo(cacheID, hash string) (*api.BlockInfo, error)
-	GetBlockCountWithStatus(cacheID string, status api.CacheStatus) (int, error)
-	GetBlocksWithStatus(cacheID string, status api.CacheStatus) ([]*api.BlockInfo, error)
-	GetBlocksWithHash(hash string) (map[string]*api.BlockInfo, error)
-	GetUndoneBlocks(cacheID string) (map[string]string, error)
-	GetAllBlocks(cacheID string) ([]*api.BlockInfo, error)
-	GetNodesFromCache(cacheID string) ([]string, error)
-	GetNodesFromDataCache(hash, cacheID string) (dataOut, cacheOut []string)
 	UpdateCacheInfoOfQuitNode(deviceID string) (successCacheCount int, carfileReliabilitys map[string]int, err error)
-	GetBlocksFID(deviceID string) (map[int]string, error)
-	GetBlocksInRange(startFid, endFid int, deviceID string) (map[int]string, error)
-	GetBlocksBiggerThan(startFid int, deviceID string) (map[int]string, error)
-	CountCidOfDevice(deviceID string) (int64, error)
-	GetNodesWithBlock(hash string, isSuccess bool) ([]string, error)
 
 	// temporary node register
 	BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error

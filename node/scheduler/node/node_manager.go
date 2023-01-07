@@ -358,16 +358,17 @@ func (m *Manager) FindNodeDownloadInfos(cid string) ([]api.DownloadInfoResult, e
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}
 
-	deviceIDs, err := persistent.GetDB().GetNodesWithBlock(hash, true)
+	caches, err := persistent.GetDB().GetCachesWithData(hash, true)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(deviceIDs) <= 0 {
+	if len(caches) <= 0 {
 		return nil, xerrors.Errorf("not found node , with hash:%s", hash)
 	}
 
-	for _, deviceID := range deviceIDs {
+	for _, cache := range caches {
+		deviceID := cache.DeviceID
 		info, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
 		if err != nil {
 			continue
@@ -376,34 +377,39 @@ func (m *Manager) FindNodeDownloadInfos(cid string) ([]api.DownloadInfoResult, e
 		infos = append(infos, api.DownloadInfoResult{URL: info.URL, DeviceID: deviceID})
 	}
 
-	if len(infos) <= 0 {
-		return nil, xerrors.Errorf("device auth err, deviceIDs:%v", deviceIDs)
-	}
+	// if len(infos) <= 0 {
+	// 	return nil, xerrors.Errorf("device auth err, deviceIDs:%v", deviceIDs)
+	// }
 
 	return infos, nil
 }
 
 // GetCandidatesWithBlockHash find candidates with block hash
-func (m *Manager) GetCandidatesWithBlockHash(hash, filterHash string) ([]*CandidateNode, error) {
-	deviceIDs, err := persistent.GetDB().GetNodesWithBlock(hash, true)
+func (m *Manager) GetCandidatesWithBlockHash(hash, filterDevice string) ([]*CandidateNode, error) {
+	caches, err := persistent.GetDB().GetCachesWithData(hash, true)
 	if err != nil {
 		return nil, err
 	}
-	// log.Infof("getCandidateNodesWithData deviceIDs : %v", deviceIDs)
 
-	if len(deviceIDs) <= 0 {
+	if len(caches) <= 0 {
 		return nil, xerrors.Errorf("not found node, with hash:%s", hash)
 	}
 
-	filterMap := make(map[string]string)
+	nodes := make([]*CandidateNode, 0)
 
-	if filterHash != "" {
-		filterMap[filterHash] = hash
+	for _, cache := range caches {
+		dID := cache.DeviceID
+		if dID == filterDevice {
+			continue
+		}
+
+		node := m.GetCandidateNode(dID)
+		if node != nil {
+			nodes = append(nodes, node)
+		}
 	}
 
-	nodeCs := m.FindCandidatesByList(deviceIDs, filterMap)
-
-	return nodeCs, nil
+	return nodes, nil
 }
 
 func (m *Manager) checkNodesQuit() {

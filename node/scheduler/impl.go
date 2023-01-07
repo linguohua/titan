@@ -455,10 +455,10 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 	if candidata != nil {
 		// redis datas
 		body := api.CacheStat{}
-		count, err := persistent.GetDB().CountCidOfDevice(deviceID)
-		if err == nil {
-			body.CacheBlockCount = int(count)
-		}
+		// count, err := persistent.GetDB().CountCidOfDevice(deviceID)
+		// if err == nil {
+		// 	body.CacheBlockCount = int(count)
+		// }
 
 		statList = append(statList, body)
 
@@ -470,10 +470,10 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 	edge := s.nodeManager.GetEdgeNode(deviceID)
 	if edge != nil {
 		body := api.CacheStat{}
-		count, err := persistent.GetDB().CountCidOfDevice(deviceID)
-		if err == nil {
-			body.CacheBlockCount = int(count)
-		}
+		// count, err := persistent.GetDB().CountCidOfDevice(deviceID)
+		// if err == nil {
+		// 	body.CacheBlockCount = int(count)
+		// }
 
 		statList = append(statList, body)
 
@@ -636,15 +636,15 @@ func (s *Scheduler) RedressDeveiceInfo(ctx context.Context, deviceID string) err
 		return xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
-	blocks, err := persistent.GetDB().GetBlocksFID(deviceID)
-	if err != nil {
-		return err
-	}
+	// blocks, err := persistent.GetDB().GetBlocksFID(deviceID)
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = cache.GetDB().UpdateDeviceInfo(deviceID, cache.BlockCountField, len(blocks))
-	if err != nil {
-		return err
-	}
+	// err = cache.GetDB().UpdateDeviceInfo(deviceID, cache.BlockCountField, len(blocks))
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }

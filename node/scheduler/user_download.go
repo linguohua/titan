@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/handler"
-	"github.com/linguohua/titan/node/helper"
 	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
@@ -301,26 +300,26 @@ func (s *Scheduler) recordDownloadBlock(record *cache.DownloadBlockRecord, nodeR
 	if info == nil {
 		info = &api.BlockDownloadInfo{ID: record.ID, CreatedTime: time.Unix(record.SignTime, 0)}
 
-		blockInfo, err := s.getBlockInfoFromDB(record.Cid, clientIP)
-		if err != nil {
-			return err
-		}
-		if blockInfo != nil {
-			carfileCID, err := helper.HashString2CidString(blockInfo.CarfileHash)
-			if err != nil {
-				return err
-			}
-			// block cid and carfile cid is convert to same version cid, so can compare later
-			blockCID, err := helper.HashString2CidString(blockInfo.CIDHash)
-			if err != nil {
-				return err
-			}
-			info.CarfileCID = carfileCID
-			info.BlockCID = blockCID
-			info.BlockSize = blockInfo.Size
-			info.ClientIP = clientIP
-			info.CompleteTime = time.Unix(0, 0)
-		}
+		// blockInfo, err := s.getBlockInfoFromDB(record.Cid, clientIP)
+		// if err != nil {
+		// 	return err
+		// }
+		// if blockInfo != nil {
+		// 	carfileCID, err := helper.HashString2CidString(blockInfo.CarfileHash)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// 	// block cid and carfile cid is convert to same version cid, so can compare later
+		// 	blockCID, err := helper.HashString2CidString(blockInfo.CIDHash)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// 	info.CarfileCID = carfileCID
+		// 	info.BlockCID = blockCID
+		// 	info.BlockSize = blockInfo.Size
+		// 	info.ClientIP = clientIP
+		// 	info.CompleteTime = time.Unix(0, 0)
+		// }
 
 		if info.BlockCID == info.CarfileCID {
 			cache.GetDB().AddLatestDownloadCarfile(info.CarfileCID, clientIP)
@@ -367,72 +366,72 @@ func (s *Scheduler) recordDownloadBlock(record *cache.DownloadBlockRecord, nodeR
 	return persistent.GetDB().SetBlockDownloadInfo(info)
 }
 
-func (s *Scheduler) getBlockInfoFromDB(cid string, userIP string) (*api.BlockInfo, error) {
-	blockHash, err := helper.CIDString2HashString(cid)
-	if err != nil {
-		return nil, err
-	}
+// func (s *Scheduler) getBlockInfoFromDB(cid string, userIP string) (*api.BlockInfo, error) {
+// 	blockHash, err := helper.CIDString2HashString(cid)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	blockInfos, err := persistent.GetDB().GetBlocksWithHash(blockHash)
-	if err != nil {
-		return nil, err
-	}
+// 	blockInfos, err := persistent.GetDB().GetBlocksWithHash(blockHash)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	if len(blockInfos) == 0 {
-		return nil, fmt.Errorf("Block %s not exist in db", cid)
-	}
+// 	if len(blockInfos) == 0 {
+// 		return nil, fmt.Errorf("Block %s not exist in db", cid)
+// 	}
 
-	blockInfo := s.getBlockInfoIfCarfile(blockHash, blockInfos)
-	if blockInfo != nil {
-		return blockInfo, nil
-	}
+// 	blockInfo := s.getBlockInfoIfCarfile(blockHash, blockInfos)
+// 	if blockInfo != nil {
+// 		return blockInfo, nil
+// 	}
 
-	if len(blockInfos) == 1 {
-		for _, v := range blockInfos {
-			return v, nil
-		}
-	}
+// 	if len(blockInfos) == 1 {
+// 		for _, v := range blockInfos {
+// 			return v, nil
+// 		}
+// 	}
 
-	latestDownloadList, err := cache.GetDB().GetLatestDownloadCarfiles(userIP)
-	if err != nil {
-		return nil, err
-	}
+// 	latestDownloadList, err := cache.GetDB().GetLatestDownloadCarfiles(userIP)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return s.getBlockInfoWithLatestDownloadList(blockInfos, latestDownloadList), nil
-}
+// 	return s.getBlockInfoWithLatestDownloadList(blockInfos, latestDownloadList), nil
+// }
 
-func (s *Scheduler) getBlockInfoIfCarfile(blockHash string, blocks map[string]*api.BlockInfo) *api.BlockInfo {
-	for k, v := range blocks {
-		if k == blockHash {
-			return v
-		}
-	}
+// func (s *Scheduler) getBlockInfoIfCarfile(blockHash string, blocks map[string]*api.BlockInfo) *api.BlockInfo {
+// 	for k, v := range blocks {
+// 		if k == blockHash {
+// 			return v
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (s *Scheduler) getFirstElementFromMap(blocks map[string]*api.BlockInfo) *api.BlockInfo {
-	for _, v := range blocks {
-		return v
-	}
+// func (s *Scheduler) getFirstElementFromMap(blocks map[string]*api.BlockInfo) *api.BlockInfo {
+// 	for _, v := range blocks {
+// 		return v
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (s *Scheduler) getBlockInfoWithLatestDownloadList(blockInfos map[string]*api.BlockInfo, latestDowwnloadCarfiles []string) *api.BlockInfo {
-	for _, carfileCID := range latestDowwnloadCarfiles {
-		blockInfo, exist := blockInfos[carfileCID]
-		if exist {
-			return blockInfo
-		}
-	}
+// func (s *Scheduler) getBlockInfoWithLatestDownloadList(blockInfos map[string]*api.BlockInfo, latestDowwnloadCarfiles []string) *api.BlockInfo {
+// 	for _, carfileCID := range latestDowwnloadCarfiles {
+// 		blockInfo, exist := blockInfos[carfileCID]
+// 		if exist {
+// 			return blockInfo
+// 		}
+// 	}
 
-	for _, v := range blockInfos {
-		return v
-	}
+// 	for _, v := range blockInfos {
+// 		return v
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func (s *Scheduler) getNodesUnValidate(minute int) ([]string, error) {
 	return persistent.GetDB().GetNodesByUserDownloadBlockIn(minute)

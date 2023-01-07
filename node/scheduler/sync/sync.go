@@ -5,13 +5,11 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"sort"
 	"sync"
 
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
 )
 
 var log = logging.Logger("web")
@@ -253,39 +251,39 @@ func loadBlockItemsFromDB(deviceID string, startFid, endFid int) ([]*blockItem, 
 		return nil, fmt.Errorf("error param endFid < startFid, startFid:%d,, endFid:%d", startFid, endFid)
 	}
 	// TODO: get in batches and sort in db
-	cidMap, err := persistent.GetDB().GetBlocksInRange(startFid, endFid, deviceID)
-	if err != nil {
-		return nil, err
-	}
+	// cidMap, err := persistent.GetDB().GetBlocksInRange(startFid, endFid, deviceID)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	result := make([]*blockItem, 0)
-	for fid, cid := range cidMap {
-		block := &blockItem{fid: fid, cid: cid}
-		result = append(result, block)
-	}
+	// for fid, cid := range cidMap {
+	// 	block := &blockItem{fid: fid, cid: cid}
+	// 	result = append(result, block)
+	// }
 
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].fid < result[j].fid
-	})
+	// sort.Slice(result, func(i, j int) bool {
+	// 	return result[i].fid < result[j].fid
+	// })
 
 	return result, nil
 }
 
 func loadBlockItemsBiggerThan(startFid int, deviceID string) ([]*blockItem, error) {
 	result := make([]*blockItem, 0)
-	cidMap, err := persistent.GetDB().GetBlocksBiggerThan(startFid, deviceID)
-	if err != nil {
-		return result, err
-	}
+	// cidMap, err := persistent.GetDB().GetBlocksBiggerThan(startFid, deviceID)
+	// if err != nil {
+	// 	return result, err
+	// }
 
-	for fid, cid := range cidMap {
-		block := &blockItem{fid: fid, cid: cid}
-		result = append(result, block)
-	}
+	// for fid, cid := range cidMap {
+	// 	block := &blockItem{fid: fid, cid: cid}
+	// 	result = append(result, block)
+	// }
 
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].fid < result[j].fid
-	})
+	// sort.Slice(result, func(i, j int) bool {
+	// 	return result[i].fid < result[j].fid
+	// })
 
 	return result, nil
 

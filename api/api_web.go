@@ -54,8 +54,8 @@ type ListCacheBlocksReq struct {
 }
 
 type ListCacheBlocksRsp struct {
-	Data  []BlockInfo `json:"data"`
-	Total int64       `json:"total"`
+	// Data  []BlockInfo `json:"data"`
+	Total int64 `json:"total"`
 }
 
 type WebCarfileStatus int

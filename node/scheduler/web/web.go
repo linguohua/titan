@@ -99,15 +99,15 @@ func (w *web) ListNodeConnectionLog(ctx context.Context, req api.ListNodeConnect
 }
 
 func (w *web) GetCacheBlockInfos(ctx context.Context, req api.ListCacheBlocksReq) (api.ListCacheBlocksRsp, error) {
-	startTime := time.Unix(req.StartTime, 0)
-	endTime := time.Unix(req.EndTime, 0)
+	// startTime := time.Unix(req.StartTime, 0)
+	// endTime := time.Unix(req.EndTime, 0)
 
-	blocks, total, err := persistent.GetDB().GetBlockInfos(startTime, endTime, req.Cursor, req.Count)
-	if err != nil {
-		return api.ListCacheBlocksRsp{}, err
-	}
+	// _, total, err := persistent.GetDB().GetBlockInfos(startTime, endTime, req.Cursor, req.Count)
+	// if err != nil {
+	// 	return api.ListCacheBlocksRsp{}, err
+	// }
 
-	return api.ListCacheBlocksRsp{Total: total, Data: blocks}, nil
+	return api.ListCacheBlocksRsp{Total: 0}, nil
 }
 
 // func (w *web) StatCaches(ctx context.Context) (api.StatCachesRsp, error) {
