@@ -544,7 +544,7 @@ var listDataCmd = &cli.Command{
 		}
 
 		for _, info := range info.CacheInfos {
-			fmt.Printf("%s ,Reliabilit: %d/%d , Blocks:%d , Nodes:%d \n", info.CarfileCid, info.Reliability, info.NeedReliability, info.TotalBlocks, info.Nodes)
+			fmt.Printf("%s ,Reliabilit: %d/%d , Blocks:%d , \n", info.CarfileCid, info.Reliability, info.NeedReliability, info.TotalBlocks)
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
 
@@ -671,13 +671,13 @@ var showDatasInfoCmd = &cli.Command{
 			fmt.Printf("\nData CID:%s , Total Size:%f MB , Total Blocks:%d %s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, timeout)
 
 			sort.Slice(info.CacheInfos, func(i, j int) bool {
-				return info.CacheInfos[i].CacheID < info.CacheInfos[j].CacheID
+				return info.CacheInfos[i].DeviceID < info.CacheInfos[j].DeviceID
 			})
 
 			for j := 0; j < len(info.CacheInfos); j++ {
 				cache := info.CacheInfos[j]
-				fmt.Printf("TaskID:%s ,  Status:%s , Done Size:%f MB , Done Blocks:%d , Nodes:%d , IsRootCache:%v\n",
-					cache.CacheID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.Nodes, cache.RootCache)
+				fmt.Printf("DeviceID:%s ,  Status:%s , Done Size:%f MB , Done Blocks:%d , IsRootCache:%v\n",
+					cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.RootCache)
 			}
 		}
 
@@ -730,10 +730,10 @@ var showDataInfoCmd = &cli.Command{
 			timeout = fmt.Sprintf(", Task Timeout:%s", info.DataTimeout.String())
 		}
 
-		fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d , Nodes:%d %s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.Nodes, timeout)
+		fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d , %s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, timeout)
 		for _, cache := range info.CacheInfos {
-			fmt.Printf("TaskID:%s ,  Status:%s , Done Size:%f MB ,Done Blocks:%d , Nodes:%d , IsRootCache:%v \n",
-				cache.CacheID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.Nodes, cache.RootCache)
+			fmt.Printf("DeviceID:%s ,  Status:%s , Done Size:%f MB ,Done Blocks:%d , IsRootCache:%v \n",
+				cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.RootCache)
 		}
 
 		return nil

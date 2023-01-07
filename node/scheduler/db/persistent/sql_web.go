@@ -16,7 +16,6 @@ type webDB interface {
 	GetBlockDownloadInfos(DeviceID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.BlockDownloadInfo, int64, error)
 	SetNodeConnectionLog(deviceID string, status api.NodeConnectionStatus) error
 	GetNodeConnectionLogs(deviceID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.NodeConnectionLog, int64, error)
-	GetBlockInfos(startTime time.Time, endTime time.Time, cursor, count int) ([]api.BlockInfo, int64, error)
 	GetValidateResults(cursor int, count int) ([]api.WebValidateResult, int64, error)
 }
 
@@ -103,28 +102,5 @@ func (sd sqlDB) GetValidateResults(cursor int, count int) ([]api.WebValidateResu
 	if err := sd.cli.Select(&out, query, cursor, count); err != nil {
 		return nil, 0, err
 	}
-	return out, total, nil
-}
-
-func (sd sqlDB) GetBlockInfos(startTime time.Time, endTime time.Time, cursor, count int) ([]api.BlockInfo, int64, error) {
-	area := sd.ReplaceArea()
-	bTable := fmt.Sprintf(blockInfoTable, area)
-
-	if count > maxCount {
-		count = maxCount
-	}
-
-	var total int64
-	cmd := fmt.Sprintf(`SELECT count(*) FROM %s WHERE created_time between ? and ?`, bTable)
-	if err := sd.cli.Get(&total, cmd, startTime, endTime); err != nil {
-		return nil, 0, err
-	}
-
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE created_time between ? and ? limit ?,?`, bTable)
-	var out []api.BlockInfo
-	if err := sd.cli.Select(&out, query, startTime, endTime, cursor, count); err != nil {
-		return nil, 0, err
-	}
-
 	return out, total, nil
 }

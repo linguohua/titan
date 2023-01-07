@@ -309,21 +309,21 @@ func (block *Block) cacheResult(bStat blockStat, err error) {
 	}
 
 	result := api.CacheResultInfo{
-		Cid:         bStat.cid,
-		IsOK:        success,
-		Msg:         errMsg,
-		From:        "",
-		Links:       bStat.links,
-		BlockSize:   bStat.blockSize,
-		LinksSize:   bStat.linksSize,
-		CarFileHash: bStat.carFileHash,
-		CacheID:     bStat.CacheID,
+		// Cid:         bStat.cid,
+		IsOK: success,
+		Msg:  errMsg,
+		From: "",
+		// Links:       bStat.links,
+		// BlockSize:   bStat.blockSize,
+		// LinksSize:   bStat.linksSize,
+		// CarFileHash: bStat.carFileHash,
+		// CacheID:     bStat.CacheID,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
 	defer cancel()
 
-	err = block.scheduler.CacheResult(ctx, block.device.GetDeviceID(), result)
+	err = block.scheduler.CacheResult(ctx, result)
 	if err != nil {
 		log.Errorf("cacheResult CacheResult error:%v", err)
 		return

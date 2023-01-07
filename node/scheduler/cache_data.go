@@ -23,8 +23,8 @@ func (s *Scheduler) CacheContinue(ctx context.Context, cid, cacheID string) erro
 }
 
 // CacheResult Cache Data Result
-func (s *Scheduler) CacheResult(ctx context.Context, deviceID string, info api.CacheResultInfo) error {
-	deviceID = handler.GetDeviceID(ctx)
+func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) error {
+	deviceID := handler.GetDeviceID(ctx)
 
 	if !isDeviceExists(deviceID, 0) {
 		return xerrors.Errorf("node not Exist: %s", deviceID)
@@ -107,7 +107,6 @@ func dataToCacheDataInfo(d *data.Data) api.DataInfo {
 		info.NeedReliability = d.GetNeedReliability()
 		info.Reliability = d.GetReliability()
 		info.TotalBlocks = d.GetTotalBlocks()
-		info.Nodes = d.GetTotalNodes()
 
 		caches := make([]api.CacheInfo, 0)
 
@@ -115,11 +114,9 @@ func dataToCacheDataInfo(d *data.Data) api.DataInfo {
 			c := value.(*data.Cache)
 
 			cache := api.CacheInfo{
-				CacheID:    c.GetCacheID(),
 				Status:     c.GetStatus(),
 				DoneSize:   c.GetDoneSize(),
 				DoneBlocks: c.GetDoneBlocks(),
-				Nodes:      c.GetNodes(),
 				RootCache:  c.IsRootCache(),
 			}
 
@@ -186,7 +183,6 @@ func (s *Scheduler) ListCacheDatas(ctx context.Context, page int) (api.DataListI
 			Reliability:     info.Reliability,
 			TotalSize:       info.TotalSize,
 			TotalBlocks:     info.TotalBlocks,
-			Nodes:           info.Nodes,
 		}
 
 		out = append(out, dInfo)

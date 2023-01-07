@@ -359,57 +359,57 @@ func (v *Validate) generatorForRandomNumber(start, end int) int {
 func (v *Validate) assemblyValidateReqAndStore(validatorID string, list []validatedDeviceInfo) []api.ReqValidate {
 	req := make([]api.ReqValidate, 0)
 
-	for _, device := range list {
-		// count device cid number
-		num, err := persistent.GetDB().CountCidOfDevice(device.deviceID)
-		if err != nil {
-			log.Warnf("failed to count cid from device : %s", device.deviceID)
-			continue
-		}
+	// for _, device := range list {
+	// 	// count device cid number
+	// 	num, err := persistent.GetDB().CountCidOfDevice(device.deviceID)
+	// 	if err != nil {
+	// 		log.Warnf("failed to count cid from device : %s", device.deviceID)
+	// 		continue
+	// 	}
 
-		// there is no cached cid in the device
-		if num <= 0 {
-			log.Warnf("no cached cid of device : %s", device.deviceID)
-			continue
-		}
+	// 	// there is no cached cid in the device
+	// 	if num <= 0 {
+	// 		log.Warnf("no cached cid of device : %s", device.deviceID)
+	// 		continue
+	// 	}
 
-		maxFid, err := cache.GetDB().GetNodeCacheFid(device.deviceID)
-		if err != nil {
-			log.Warnf("GetNodeCacheTag err:%s,DeviceId:%s", err.Error(), device.deviceID)
-			continue
-		}
+	// 	maxFid, err := cache.GetDB().GetNodeCacheFid(device.deviceID)
+	// 	if err != nil {
+	// 		log.Warnf("GetNodeCacheTag err:%s,DeviceId:%s", err.Error(), device.deviceID)
+	// 		continue
+	// 	}
 
-		v.maxFidMap.Store(device.deviceID, maxFid)
+	// 	v.maxFidMap.Store(device.deviceID, maxFid)
 
-		req = append(req, api.ReqValidate{
-			Seed:     v.seed,
-			NodeURL:  device.addr,
-			Duration: v.duration,
-			RoundID:  v.curRoundID,
-			NodeType: int(device.nodeType),
-			MaxFid:   int(maxFid)},
-		)
+	// 	req = append(req, api.ReqValidate{
+	// 		Seed:     v.seed,
+	// 		NodeURL:  device.addr,
+	// 		Duration: v.duration,
+	// 		RoundID:  v.curRoundID,
+	// 		NodeType: int(device.nodeType),
+	// 		MaxFid:   int(maxFid)},
+	// 	)
 
-		err = cache.GetDB().SetNodeToVerifyingList(device.deviceID)
-		if err != nil {
-			log.Warnf("SetNodeToVerifyingList err:%s, DeviceId:%s", err.Error(), device.deviceID)
-			continue
-		}
+	// 	err = cache.GetDB().SetNodeToVerifyingList(device.deviceID)
+	// 	if err != nil {
+	// 		log.Warnf("SetNodeToVerifyingList err:%s, DeviceId:%s", err.Error(), device.deviceID)
+	// 		continue
+	// 	}
 
-		resultInfo := &persistent.ValidateResult{
-			RoundID:     v.curRoundID,
-			DeviceID:    device.deviceID,
-			ValidatorID: validatorID,
-			Status:      persistent.ValidateStatusCreate.Int(),
-			StartTime:   time.Now(),
-		}
+	// 	resultInfo := &persistent.ValidateResult{
+	// 		RoundID:     v.curRoundID,
+	// 		DeviceID:    device.deviceID,
+	// 		ValidatorID: validatorID,
+	// 		Status:      persistent.ValidateStatusCreate.Int(),
+	// 		StartTime:   time.Now(),
+	// 	}
 
-		err = persistent.GetDB().InsertValidateResultInfo(resultInfo)
-		if err != nil {
-			log.Errorf("InsertValidateResultInfo err:%s, DeviceId:%s", err.Error(), device.deviceID)
-			continue
-		}
-	}
+	// 	err = persistent.GetDB().InsertValidateResultInfo(resultInfo)
+	// 	if err != nil {
+	// 		log.Errorf("InsertValidateResultInfo err:%s, DeviceId:%s", err.Error(), device.deviceID)
+	// 		continue
+	// 	}
+	// }
 
 	return req
 }
@@ -512,37 +512,37 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusTimeOut)
 	}
 
-	r := rand.New(rand.NewSource(v.seed))
-	cidLength := len(validateResults.Cids)
+	// r := rand.New(rand.NewSource(v.seed))
+	// cidLength := len(validateResults.Cids)
 
-	if cidLength <= 0 || validateResults.RandomCount <= 0 {
-		log.Errorf("round [%d] and deviceID [%s], %s", validateResults.RoundID, validateResults.DeviceID, "validate result is null or random count is 0")
-		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusFail)
-	}
+	// if cidLength <= 0 || validateResults.RandomCount <= 0 {
+	// 	log.Errorf("round [%d] and deviceID [%s], %s", validateResults.RoundID, validateResults.DeviceID, "validate result is null or random count is 0")
+	// 	return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusFail)
+	// }
 
-	cacheInfos, err := persistent.GetDB().GetBlocksFID(validateResults.DeviceID)
-	if err != nil || len(cacheInfos) <= 0 {
-		log.Errorf("round [%d] and deviceID [%s], failed to query : %s", validateResults.RoundID, validateResults.DeviceID, err.Error())
-		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusOther)
-	}
+	// cacheInfos, err := persistent.GetDB().GetBlocksFID(validateResults.DeviceID)
+	// if err != nil || len(cacheInfos) <= 0 {
+	// 	log.Errorf("round [%d] and deviceID [%s], failed to query : %s", validateResults.RoundID, validateResults.DeviceID, err.Error())
+	// 	return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusOther)
+	// }
 
-	mFValue, _ := v.maxFidMap.Load(validateResults.DeviceID)
-	maxFid := mFValue.(int64)
+	// mFValue, _ := v.maxFidMap.Load(validateResults.DeviceID)
+	// maxFid := mFValue.(int64)
 
-	for index := 0; index < validateResults.RandomCount; index++ {
-		fid := v.getRandNum(int(maxFid), r) + 1
-		resultCid := validateResults.Cids[index]
+	// for index := 0; index < validateResults.RandomCount; index++ {
+	// 	fid := v.getRandNum(int(maxFid), r) + 1
+	// 	resultCid := validateResults.Cids[index]
 
-		cid := cacheInfos[fid]
-		if cid == "" {
-			continue
-		}
+	// 	cid := cacheInfos[fid]
+	// 	if cid == "" {
+	// 		continue
+	// 	}
 
-		if !v.compareCid(cid, resultCid) {
-			log.Errorf("round [%d] and deviceID [%s], validate fail resultCid:%s, cid_db:%s,fid:%d,index:%d", validateResults.RoundID, validateResults.DeviceID, resultCid, cid, fid, index)
-			return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusFail)
-		}
-	}
+	// 	if !v.compareCid(cid, resultCid) {
+	// 		log.Errorf("round [%d] and deviceID [%s], validate fail resultCid:%s, cid_db:%s,fid:%d,index:%d", validateResults.RoundID, validateResults.DeviceID, resultCid, cid, fid, index)
+	// 		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusFail)
+	// 	}
+	// }
 
 	return v.UpdateSuccessValidateResult(validateResults)
 }
