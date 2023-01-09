@@ -77,6 +77,21 @@ type CandidateStub struct {
 	DataSyncStub
 }
 
+type CarfileOperationStruct struct {
+	Internal struct {
+		CacheCarfile func(p0 context.Context, p1 string, p2 []*DowloadSource) (CacheCarfileResult, error) `perm:"write"`
+
+		DeleteAllCarfiles func(p0 context.Context) error `perm:"admin"`
+
+		DeleteCarfile func(p0 context.Context, p1 string) error `perm:"write"`
+
+		DeleteWaitCacheCarfile func(p0 context.Context, p1 string) error `perm:"admin"`
+	}
+}
+
+type CarfileOperationStub struct {
+}
+
 type CommonStruct struct {
 	Internal struct {
 		AuthNew func(p0 context.Context, p1 []auth.Permission) ([]byte, error) `perm:"admin"`
@@ -485,6 +500,50 @@ func (s *CandidateStruct) WaitQuiet(p0 context.Context) error {
 }
 
 func (s *CandidateStub) WaitQuiet(p0 context.Context) error {
+	return ErrNotSupported
+}
+
+func (s *CarfileOperationStruct) CacheCarfile(p0 context.Context, p1 string, p2 []*DowloadSource) (CacheCarfileResult, error) {
+	if s.Internal.CacheCarfile == nil {
+		return *new(CacheCarfileResult), ErrNotSupported
+	}
+	return s.Internal.CacheCarfile(p0, p1, p2)
+}
+
+func (s *CarfileOperationStub) CacheCarfile(p0 context.Context, p1 string, p2 []*DowloadSource) (CacheCarfileResult, error) {
+	return *new(CacheCarfileResult), ErrNotSupported
+}
+
+func (s *CarfileOperationStruct) DeleteAllCarfiles(p0 context.Context) error {
+	if s.Internal.DeleteAllCarfiles == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.DeleteAllCarfiles(p0)
+}
+
+func (s *CarfileOperationStub) DeleteAllCarfiles(p0 context.Context) error {
+	return ErrNotSupported
+}
+
+func (s *CarfileOperationStruct) DeleteCarfile(p0 context.Context, p1 string) error {
+	if s.Internal.DeleteCarfile == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.DeleteCarfile(p0, p1)
+}
+
+func (s *CarfileOperationStub) DeleteCarfile(p0 context.Context, p1 string) error {
+	return ErrNotSupported
+}
+
+func (s *CarfileOperationStruct) DeleteWaitCacheCarfile(p0 context.Context, p1 string) error {
+	if s.Internal.DeleteWaitCacheCarfile == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.DeleteWaitCacheCarfile(p0, p1)
+}
+
+func (s *CarfileOperationStub) DeleteWaitCacheCarfile(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
@@ -1436,6 +1495,7 @@ func (s *WebStub) SetupValidation(p0 context.Context, p1 bool) error {
 
 var _ Block = new(BlockStruct)
 var _ Candidate = new(CandidateStruct)
+var _ CarfileOperation = new(CarfileOperationStruct)
 var _ Common = new(CommonStruct)
 var _ DataSync = new(DataSyncStruct)
 var _ Device = new(DeviceStruct)
