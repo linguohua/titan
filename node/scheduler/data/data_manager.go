@@ -17,7 +17,7 @@ import (
 
 var log = logging.Logger("data")
 
-var nodeCacheResultInterval = 60 //(Second)
+var nodeCacheResultInterval = int64(70) //(Second)
 
 // EventType event
 type EventType string
@@ -448,31 +448,6 @@ func (m *Manager) doDataTasks() {
 // 	default:
 // 	}
 // }
-
-// update the data task timeout
-func (m *Manager) updateDataTimeout(carfileHash, deviceID string, timeoutSecond int64, addSecond int64) {
-	et, err := cache.GetDB().GetRunningDataTaskExpiredTime(carfileHash, deviceID)
-	if err != nil {
-		log.Errorf("updateDataTimeout GetRunningDataTaskExpiredTime err:%s", err.Error())
-		return
-	}
-
-	t := int64(et.Seconds())
-	if t > timeoutSecond {
-		if addSecond <= 0 {
-			return
-		}
-
-		timeoutSecond = t
-	}
-
-	timeoutSecond += addSecond
-
-	err = cache.GetDB().SetRunningDataTask(carfileHash, deviceID, timeoutSecond)
-	if err != nil {
-		log.Panicf("dataTaskStart %s , SetRunningDataTask err:%s", deviceID, err.Error())
-	}
-}
 
 func (m *Manager) recordTaskStart(data *Data) {
 	if data == nil {

@@ -11,5 +11,6 @@ type Edge interface {
 	Download
 	Validate
 	DataSync
+	CarfileOperation
 	WaitQuiet(ctx context.Context) error //perm:read
 }

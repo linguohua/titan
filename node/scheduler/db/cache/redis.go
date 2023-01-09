@@ -168,10 +168,10 @@ func (rd redisDB) GetDataTasksWithRunningList() ([]*DataTask, error) {
 }
 
 // running data details
-func (rd redisDB) SetRunningDataTask(hash, cacheID string, timeout int64) error {
-	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash)
+func (rd redisDB) SetRunningDataTask(hash, deviceID string, timeout int64) error {
+	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash, deviceID)
 	// Expire
-	_, err := rd.cli.Set(context.Background(), key, cacheID, time.Second*time.Duration(timeout)).Result()
+	_, err := rd.cli.Set(context.Background(), key, deviceID, time.Second*time.Duration(timeout)).Result()
 	return err
 }
 

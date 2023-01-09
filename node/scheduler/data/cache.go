@@ -58,37 +58,35 @@ func newCache(data *Data, deviceID string, isRootCache bool) (*Cache, error) {
 }
 
 // Notify node to cache blocks
-func (c *Cache) sendBlocksToNode() (int64, error) {
+func (c *Cache) sendBlocksToNode() error {
 	//TODO new api
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	cNode := c.data.nodeManager.GetCandidateNode(c.deviceID)
 	if cNode != nil {
-		// reqDatas := c.Manager.FindDownloadinfoForBlocks(blocks, c.carfileHash, c.cacheID)
-		nodeCacheStat, err := cNode.GetAPI().CacheBlocks(ctx, nil)
+		result, err := cNode.GetAPI().CacheCarfile(ctx, c.data.carfileCid, c.data.source)
 		if err != nil {
-			log.Errorf("sendBlocksToNode %s, CacheBlocks err:%s", c.deviceID, err.Error())
+			log.Errorf("sendBlocksToNode %s, CacheCarfile err:%s", c.deviceID, err.Error())
 		} else {
-			cNode.UpdateCacheStat(&nodeCacheStat)
+			c.data.nodeManager.UpdateNodeDiskUsage(c.deviceID, result.DiskUsage)
 		}
-		return cNode.GetCacheNextTimeoutTimeStamp(), err
+		return err
 	}
 
 	eNode := c.data.nodeManager.GetEdgeNode(c.deviceID)
 	if eNode != nil {
-		// reqDatas := c.Manager.FindDownloadinfoForBlocks(blocks, c.carfileHash, c.cacheID)
-		nodeCacheStat, err := eNode.GetAPI().CacheBlocks(ctx, nil)
+		result, err := eNode.GetAPI().CacheCarfile(ctx, c.data.carfileCid, c.data.source)
 		if err != nil {
-			log.Errorf("sendBlocksToNode %s, CacheBlocks err:%s", c.deviceID, err.Error())
+			log.Errorf("sendBlocksToNode %s, CacheCarfile err:%s", c.deviceID, err.Error())
 		} else {
-			eNode.UpdateCacheStat(&nodeCacheStat)
+			c.data.nodeManager.UpdateNodeDiskUsage(c.deviceID, result.DiskUsage)
 		}
 
-		return eNode.GetCacheNextTimeoutTimeStamp(), err
+		return err
 	}
 
-	return 0, xerrors.Errorf("not found node:%s", c.deviceID)
+	return xerrors.Errorf("not found node:%s", c.deviceID)
 }
 
 func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
@@ -102,7 +100,10 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 		c.endCache(api.CacheStatusSuccess)
 	} else {
 		// update data task timeout
-		c.data.dataManager.updateDataTimeout(c.carfileHash, c.deviceID, int64(info.TimeLeft), 0)
+		err := cache.GetDB().SetRunningDataTask(c.carfileHash, c.deviceID, nodeCacheResultInterval)
+		if err != nil {
+			log.Panicf("blockCacheResult %s , SetRunningDataTask err:%s", c.deviceID, err.Error())
+		}
 	}
 
 	return nil
@@ -126,12 +127,12 @@ func (c *Cache) updateNodeBlockInfo(deviceID, fromDeviceID string, blockSize int
 func (c *Cache) startCache() error {
 	c.cacheCount++
 	//TODO send to node
-	needTime, err := c.sendBlocksToNode()
+	err := c.sendBlocksToNode()
 	if err != nil {
 		return xerrors.Errorf("startCache deviceID:%s, err:%s", c.deviceID, err.Error())
 	}
 
-	err = cache.GetDB().SetDataTaskToRunningList(c.carfileHash, c.deviceID, needTime)
+	err = cache.GetDB().SetDataTaskToRunningList(c.carfileHash, c.deviceID, nodeCacheResultInterval)
 	if err != nil {
 		return xerrors.Errorf("startCache %s , SetDataTaskToRunningList err:%s", c.carfileHash, err.Error())
 	}
