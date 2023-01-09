@@ -40,10 +40,11 @@ import (
 
 var log = logging.Logger("main")
 
-const FlagWorkerRepo = "edge-repo"
-
-// TODO remove after deprecation period
-const FlagWorkerRepoDeprecation = "edgerepo"
+const (
+	FlagWorkerRepo            = "edge-repo"
+	FlagWorkerRepoDeprecation = "edgerepo"
+	DefaultBlockstoreDir      = "/blockstore"
+)
 
 func main() {
 	api.RunningNodeType = api.NodeEdge
@@ -117,37 +118,37 @@ var runCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:  "device-id",
 			Usage: "network external ip, example: --device-id=b26fb231-e986-42de-a5d9-7b512a35543d",
-			Value: "525e7729506711ed8c2c902e1671f843", // should follow --repo default
+			Value: "525e7729506711ed8c2c902e1671f843",
 		},
 		&cli.StringFlag{
 			Name:  "blockstore-path",
 			Usage: "block store path, example: --blockstore-path=./blockstore",
-			Value: "./edge-blockstore", // should follow --repo default
+			Value: "",
 		},
 		&cli.StringFlag{
 			Name:  "blockstore-type",
 			Usage: "block store type is FileStore or RocksDB, example: --blockstore-type=FileStore",
-			Value: "FileStore", // should follow --repo default
+			Value: "FileStore",
 		},
 		&cli.StringFlag{
 			Name:  "download-srv-key",
 			Usage: "download server key for who download block, example: --download-srv-key=KK20FeKPsE3qwQgR",
-			Value: "KK20FeKPsE3qwQgR", // should follow --repo default
+			Value: "KK20FeKPsE3qwQgR",
 		},
 		&cli.StringFlag{
 			Name:  "download-srv-addr",
 			Usage: "download server address for who download block, example: --download-srv-addr=192.168.0.136:3000",
-			Value: "0.0.0.0:3000", // should follow --repo default
+			Value: "0.0.0.0:3000",
 		},
 		&cli.StringFlag{
 			Name:  "bandwidth-up",
 			Usage: "upload file bandwidth, unit is B/s example set 100MB/s: --bandwidth-up=104857600",
-			Value: "104857600", // should follow --repo default
+			Value: "104857600",
 		},
 		&cli.StringFlag{
 			Name:  "bandwidth-down",
 			Usage: "download file bandwidth, unit is B/s example set 100MB/s: --bandwidth-down=104857600",
-			Value: "1073741824", // should follow --repo default
+			Value: "1073741824",
 		},
 		&cli.StringFlag{
 			Name:    "secret",
@@ -315,7 +316,14 @@ var runCmd = &cli.Command{
 			return err
 		}
 
-		blockStore := blockstore.NewBlockStore(cctx.String("blockstore-path"), cctx.String("blockstore-type"))
+		blockstorePath := cctx.String("blockstore-path")
+		if len(blockstorePath) == 0 {
+			blockstorePath = lr.Path() + DefaultBlockstoreDir
+		}
+
+		log.Infof("blockstorePath:%s", blockstorePath)
+
+		blockStore := blockstore.NewBlockStore(blockstorePath, cctx.String("blockstore-type"))
 
 		device := device.NewDevice(
 			deviceID,
