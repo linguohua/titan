@@ -312,7 +312,7 @@ func (block *Block) cacheResult(bStat blockStat, err error) {
 		// Cid:         bStat.cid,
 		IsOK: success,
 		Msg:  errMsg,
-		From: "",
+		// From: "",
 		// Links:       bStat.links,
 		// BlockSize:   bStat.blockSize,
 		// LinksSize:   bStat.linksSize,

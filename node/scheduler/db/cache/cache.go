@@ -34,14 +34,14 @@ type DB interface {
 	GetCacheResultNum() int64
 
 	// running data list
-	SetDataTaskToRunningList(hash, cacheID string) error
+	SetDataTaskToRunningList(hash, cacheID string, timeout int64) error
 	GetDataTasksWithRunningList() ([]*DataTask, error)
 
 	// running data details
-	SetRunningDataTask(hash, cacheID string, timeout int64) error
-	GetRunningDataTask(hash string) (string, error)
-	RemoveRunningDataTask(hash, cacheID string) error
-	GetRunningDataTaskExpiredTime(hash string) (time.Duration, error)
+	SetRunningDataTask(hash, deviceID string, timeout int64) error
+	GetRunningDataTask(hash, deviceID string) (string, error)
+	RemoveRunningDataTask(hash, deviceID string) error
+	GetRunningDataTaskExpiredTime(hash, deviceID string) (time.Duration, error)
 
 	// waiting data list
 	SetWaitingDataTask(info *api.DataInfo) error
@@ -145,7 +145,7 @@ func GetDB() DB {
 // DataTask data cache task
 type DataTask struct {
 	CarfileHash string
-	CacheID     string
+	DeviceID    string
 }
 
 type DownloadBlockRecord struct {

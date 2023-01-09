@@ -22,8 +22,8 @@ const (
 	redisKeyWaitingDataTaskList = "Titan:WaitingDataTaskList:%s"
 	// redisKeyRunningDataTaskList  server name
 	redisKeyRunningDataTaskList = "Titan:RunningDataTaskList:%s"
-	// redisKeyRunningDataTask  server name:cid
-	redisKeyRunningDataTask = "Titan:RunningDataTask:%s:%s"
+	// redisKeyRunningDataTask  server name:cid:deviceID
+	redisKeyRunningDataTask = "Titan:RunningDataTask:%s:%s:%s"
 	// redisKeyCacheResult  server name
 	redisKeyCacheResult = "Titan:CacheResult:%s"
 	// redisKeyNodeBlockFid  deviceID
@@ -120,21 +120,21 @@ func (rd redisDB) GetCacheResultNum() int64 {
 }
 
 // running data list
-func (rd redisDB) SetDataTaskToRunningList(hash, cacheID string) error {
+func (rd redisDB) SetDataTaskToRunningList(hash, deviceID string, timeout int64) error {
 	key := fmt.Sprintf(redisKeyRunningDataTaskList, serverName)
 
-	info := DataTask{CarfileHash: hash, CacheID: cacheID}
+	info := DataTask{CarfileHash: hash, DeviceID: deviceID}
 	bytes, err := json.Marshal(info)
 	if err != nil {
 		return err
 	}
-	key2 := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash)
+	key2 := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash, deviceID)
 
 	ctx := context.Background()
 	_, err = rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
 		pipeliner.SAdd(context.Background(), key, bytes)
 		// Expire
-		pipeliner.Set(context.Background(), key2, cacheID, time.Second*time.Duration(15))
+		pipeliner.Set(context.Background(), key2, deviceID, time.Second*time.Duration(timeout))
 
 		return nil
 	})
@@ -175,27 +175,27 @@ func (rd redisDB) SetRunningDataTask(hash, cacheID string, timeout int64) error 
 	return err
 }
 
-func (rd redisDB) GetRunningDataTaskExpiredTime(hash string) (time.Duration, error) {
-	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash)
+func (rd redisDB) GetRunningDataTaskExpiredTime(hash, deviceID string) (time.Duration, error) {
+	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash, deviceID)
 	// Expire
 	return rd.cli.TTL(context.Background(), key).Result()
 }
 
-func (rd redisDB) GetRunningDataTask(hash string) (string, error) {
-	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash)
+func (rd redisDB) GetRunningDataTask(hash, deviceID string) (string, error) {
+	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash, deviceID)
 
 	return rd.cli.Get(context.Background(), key).Result()
 }
 
-func (rd redisDB) RemoveRunningDataTask(hash, cacheID string) error {
-	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash)
+func (rd redisDB) RemoveRunningDataTask(hash, deviceID string) error {
+	key := fmt.Sprintf(redisKeyRunningDataTask, serverName, hash, deviceID)
 	key2 := fmt.Sprintf(redisKeyRunningDataTaskList, serverName)
 
 	ctx := context.Background()
 	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
 		pipeliner.Del(context.Background(), key)
 
-		info := DataTask{CarfileHash: hash, CacheID: cacheID}
+		info := DataTask{CarfileHash: hash, DeviceID: deviceID}
 		bytes, err := json.Marshal(info)
 		if err != nil {
 			return err
@@ -394,6 +394,7 @@ func (rd redisDB) updateDeviceInfos(info *api.DevicesInfo) error {
 
 	m := make(map[string]interface{})
 	m["DiskSpace"] = info.DiskSpace
+	m["DiskUsage"] = info.DiskUsage
 
 	//TODO
 	m["Longitude"] = info.Longitude
