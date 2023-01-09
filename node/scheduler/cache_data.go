@@ -30,12 +30,10 @@ func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) e
 		return xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
-	info.DeviceID = deviceID
-
 	// log.Warnf("CacheResult ,CacheID:%s Cid:%s", info.CacheID, info.Cid)
 	// return s.dataManager.PushCacheResultToQueue(&info)
 
-	return s.dataManager.CacheCarfileResult(&info)
+	return s.dataManager.CacheCarfileResult(deviceID, &info)
 }
 
 // ResetCacheExpiredTime reset expired time with data cache
@@ -73,14 +71,14 @@ func (s *Scheduler) ShowRunningCacheDatas(ctx context.Context) ([]api.DataInfo, 
 	list := s.dataManager.GetRunningTasks()
 
 	for _, info := range list {
-		data := s.dataManager.GetData(info.CarfileHash)
+		data, _ := s.dataManager.GetData(info.CarfileHash)
 		if data != nil {
 			cInfo := dataToCacheDataInfo(data)
 
-			t, err := cache.GetDB().GetRunningDataTaskExpiredTime(info.CarfileHash)
-			if err == nil {
-				cInfo.DataTimeout = t
-			}
+			// t, err := cache.GetDB().GetRunningDataTaskExpiredTime(info.CarfileHash)
+			// if err == nil {
+			// 	cInfo.DataTimeout = t
+			// }
 
 			infos = append(infos, cInfo)
 		}
@@ -113,14 +111,19 @@ func dataToCacheDataInfo(d *data.Data) api.DataInfo {
 		d.CacheMap.Range(func(key, value interface{}) bool {
 			c := value.(*data.Cache)
 
-			cache := api.CacheInfo{
+			cc := api.CacheInfo{
 				Status:     c.GetStatus(),
 				DoneSize:   c.GetDoneSize(),
 				DoneBlocks: c.GetDoneBlocks(),
 				RootCache:  c.IsRootCache(),
 			}
 
-			caches = append(caches, cache)
+			t, err := cache.GetDB().GetRunningDataTaskExpiredTime(d.GetCarfileHash(), c.GetDeviceID())
+			if err == nil {
+				cc.DataTimeout = t
+			}
+
+			caches = append(caches, cc)
 			return true
 		})
 
@@ -143,13 +146,9 @@ func (s *Scheduler) GetCacheData(ctx context.Context, cid string) (api.DataInfo,
 		return info, err
 	}
 
-	d := s.dataManager.GetData(hash)
+	d, _ := s.dataManager.GetData(hash)
 	if d != nil {
 		cInfo := dataToCacheDataInfo(d)
-		t, err := cache.GetDB().GetRunningDataTaskExpiredTime(hash)
-		if err == nil {
-			cInfo.DataTimeout = t
-		}
 
 		return cInfo, nil
 	}

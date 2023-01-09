@@ -103,19 +103,16 @@ type NodeRegisterInfo struct {
 
 // CacheResultInfo cache data result info
 type CacheResultInfo struct {
-	IsOK               bool
-	Msg                string
-	From               string
-	DownloadSpeed      float32
-	TotalBlock         int
-	DoneBlock          int
-	TotalSize          int
-	DoneSize           int
-	CarfileHash        string
-	RemainingDiskSpace float64
-	NeedTime           int //second
-
-	DeviceID string
+	IsDone      bool
+	Msg         string
+	TotalBlock  int
+	DoneBlocks  int
+	TotalSize   int
+	DoneSize    int
+	CarfileHash string
+	DiskSpace   float64
+	DiskUsage   float64
+	TimeLeft    int //second
 }
 
 // DataInfo Data info
@@ -130,7 +127,6 @@ type DataInfo struct {
 	CreateTime      time.Time `db:"created_time"`
 	EndTime         time.Time `db:"end_time"`
 	CacheInfos      []CacheInfo
-	DataTimeout     time.Duration
 }
 
 // CacheInfo Data Cache info
@@ -146,6 +142,7 @@ type CacheInfo struct {
 	ExpiredTime time.Time   `db:"expired_time"`
 	CreateTime  time.Time   `db:"created_time"`
 	EndTime     time.Time   `db:"end_time"`
+	DataTimeout time.Duration
 }
 
 type NodeBlockDownloadResult struct {

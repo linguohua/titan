@@ -663,12 +663,7 @@ var showDatasInfoCmd = &cli.Command{
 		for w := 0; w < len(infos); w++ {
 			info := infos[w]
 
-			timeout := ""
-			if info.DataTimeout > 0 {
-				timeout = fmt.Sprintf(", Task Timeout:%s", info.DataTimeout.String())
-			}
-
-			fmt.Printf("\nData CID:%s , Total Size:%f MB , Total Blocks:%d %s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, timeout)
+			fmt.Printf("\nData CID:%s , Total Size:%f MB , Total Blocks:%d \n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks)
 
 			sort.Slice(info.CacheInfos, func(i, j int) bool {
 				return info.CacheInfos[i].DeviceID < info.CacheInfos[j].DeviceID
@@ -676,8 +671,14 @@ var showDatasInfoCmd = &cli.Command{
 
 			for j := 0; j < len(info.CacheInfos); j++ {
 				cache := info.CacheInfos[j]
-				fmt.Printf("DeviceID:%s ,  Status:%s , Done Size:%f MB , Done Blocks:%d , IsRootCache:%v\n",
-					cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.RootCache)
+
+				timeout := ""
+				if cache.DataTimeout > 0 {
+					timeout = fmt.Sprintf(", Task Timeout:%s", cache.DataTimeout.String())
+				}
+
+				fmt.Printf("DeviceID:%s ,  Status:%s , Done Size:%f MB , Done Blocks:%d , IsRootCache:%v %s\n",
+					cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.RootCache, timeout)
 			}
 		}
 
@@ -725,15 +726,16 @@ var showDataInfoCmd = &cli.Command{
 			}
 		}
 
-		timeout := ""
-		if info.DataTimeout > 0 {
-			timeout = fmt.Sprintf(", Task Timeout:%s", info.DataTimeout.String())
-		}
-
-		fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d , %s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, timeout)
+		fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d \n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks)
 		for _, cache := range info.CacheInfos {
-			fmt.Printf("DeviceID:%s ,  Status:%s , Done Size:%f MB ,Done Blocks:%d , IsRootCache:%v \n",
-				cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.RootCache)
+
+			timeout := ""
+			if cache.DataTimeout > 0 {
+				timeout = fmt.Sprintf(", Task Timeout:%s", cache.DataTimeout.String())
+			}
+
+			fmt.Printf("DeviceID:%s ,  Status:%s , Done Size:%f MB ,Done Blocks:%d , IsRootCache:%v %s\n",
+				cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.RootCache, timeout)
 		}
 
 		return nil

@@ -24,64 +24,73 @@ type Data struct {
 	totalBlocks     int
 	nodes           int
 	expiredTime     time.Time
+	rootCaches      int
 
 	CacheMap sync.Map
+
+	candidates []string
+	edges      []string
 }
 
-func newData(nodeManager *node.Manager, dataManager *Manager, cid, hash string, reliability int) *Data {
+func newData(dataManager *Manager, cid, hash string) *Data {
 	return &Data{
-		nodeManager:     nodeManager,
-		dataManager:     dataManager,
-		carfileCid:      cid,
-		reliability:     0,
-		needReliability: reliability,
-		totalBlocks:     1,
-		carfileHash:     hash,
-		// CacheMap:        new(sync.Map),
+		nodeManager: dataManager.nodeManager,
+		dataManager: dataManager,
+		carfileCid:  cid,
+		reliability: 0,
+		totalBlocks: 1,
+		carfileHash: hash,
 	}
 }
 
-func loadData(hash string, dataManager *Manager) *Data {
+func loadData(hash string, dataManager *Manager) (*Data, error) {
 	dInfo, err := persistent.GetDB().GetDataInfo(hash)
-	if err != nil && !persistent.GetDB().IsNilErr(err) {
-		log.Errorf("loadData %s err :%s", hash, err.Error())
-		return nil
-	}
-	if dInfo != nil {
-		data := &Data{}
-		data.carfileCid = dInfo.CarfileCid
-		data.nodeManager = dataManager.nodeManager
-		data.dataManager = dataManager
-		data.totalSize = dInfo.TotalSize
-		data.needReliability = dInfo.NeedReliability
-		data.reliability = dInfo.Reliability
-		data.totalBlocks = dInfo.TotalBlocks
-		data.expiredTime = dInfo.ExpiredTime
-		data.carfileHash = dInfo.CarfileHash
-		// data.CacheMap = new(sync.Map)
-
-		caches, err := persistent.GetDB().GetCachesWithData(hash, false)
-		if err != nil {
-			log.Errorf("loadData hash:%s, GetCachesWithData err:%s", hash, err.Error())
-			return data
-		}
-
-		for _, cache := range caches {
-			if cache == nil {
-				continue
-			}
-			c := loadCache(cache, data)
-			if c == nil {
-				continue
-			}
-
-			data.CacheMap.Store(cache.DeviceID, c)
-		}
-
-		return data
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	data := &Data{}
+	data.carfileCid = dInfo.CarfileCid
+	data.nodeManager = dataManager.nodeManager
+	data.dataManager = dataManager
+	data.totalSize = dInfo.TotalSize
+	data.needReliability = dInfo.NeedReliability
+	data.reliability = dInfo.Reliability
+	data.totalBlocks = dInfo.TotalBlocks
+	data.expiredTime = dInfo.ExpiredTime
+	data.carfileHash = dInfo.CarfileHash
+
+	caches, err := persistent.GetDB().GetCachesWithData(hash, false)
+	if err != nil {
+		log.Errorf("loadData hash:%s, GetCachesWithData err:%s", hash, err.Error())
+		return data, err
+	}
+
+	for _, cache := range caches {
+		if cache == nil {
+			continue
+		}
+
+		c := &Cache{
+			deviceID:    cache.DeviceID,
+			data:        data,
+			doneSize:    cache.DoneSize,
+			doneBlocks:  cache.DoneBlocks,
+			status:      api.CacheStatus(cache.Status),
+			isRootCache: cache.RootCache,
+			expiredTime: cache.ExpiredTime,
+			carfileHash: cache.CarfileHash,
+			cacheCount:  cache.CacheCount,
+		}
+
+		if c.isRootCache && c.status == api.CacheStatusSuccess {
+			data.rootCaches++
+		}
+
+		data.CacheMap.Store(cache.DeviceID, c)
+	}
+
+	return data, nil
 }
 
 func (d *Data) existRootCache() bool {
@@ -119,7 +128,6 @@ func (d *Data) updateAndSaveCacheingInfo(cache *Cache) error {
 	}
 
 	cInfo := &api.CacheInfo{
-		// ID:          cache.dbID,
 		CarfileHash: cache.carfileHash,
 		DeviceID:    cache.deviceID,
 		DoneSize:    cache.doneSize,
@@ -128,29 +136,6 @@ func (d *Data) updateAndSaveCacheingInfo(cache *Cache) error {
 	}
 
 	return persistent.GetDB().SaveCacheingResults(dInfo, cInfo)
-}
-
-func (d *Data) updateNodeDiskUsage(nodes []string) {
-	values := make(map[string]interface{})
-
-	for _, deviceID := range nodes {
-		e := d.nodeManager.GetEdgeNode(deviceID)
-		if e != nil {
-			values[e.DeviceId] = e.DiskUsage
-			continue
-		}
-
-		c := d.nodeManager.GetCandidateNode(deviceID)
-		if c != nil {
-			values[c.DeviceId] = c.DiskUsage
-			continue
-		}
-	}
-
-	err := cache.GetDB().UpdateDevicesInfo(cache.DiskUsageField, values)
-	if err != nil {
-		log.Errorf("updateNodeDiskUsage err:%s", err.Error())
-	}
 }
 
 func (d *Data) updateAndSaveCacheEndInfo(doneCache *Cache) error {
@@ -163,8 +148,6 @@ func (d *Data) updateAndSaveCacheEndInfo(doneCache *Cache) error {
 		}
 	}
 
-	d.updateNodeDiskUsage([]string{doneCache.deviceID})
-
 	dInfo := &api.DataInfo{
 		CarfileHash: d.carfileHash,
 		TotalSize:   d.totalSize,
@@ -176,33 +159,57 @@ func (d *Data) updateAndSaveCacheEndInfo(doneCache *Cache) error {
 		CarfileHash: doneCache.carfileHash,
 		DeviceID:    doneCache.deviceID,
 		Status:      doneCache.status,
+		DoneSize:    doneCache.doneSize,
+		DoneBlocks:  doneCache.doneBlocks,
 	}
 
 	return persistent.GetDB().SaveCacheEndResults(dInfo, cInfo)
 }
 
-func (d *Data) dispatchCache(cache *Cache) error {
-	var err error
+func (d *Data) dispatchCache() map[string]string {
+	errorNodes := map[string]string{}
 
-	if cache == nil {
-		cache, err = newCache(d, !d.existRootCache())
-		if err != nil {
-			return err
+	if len(d.candidates) > 0 {
+		for _, deviceID := range d.candidates {
+			cache, err := newCache(d, deviceID, true)
+			if err != nil {
+				errorNodes[deviceID] = err.Error()
+				continue
+			}
+
+			d.CacheMap.Store(deviceID, cache)
+
+			err = cache.startCache()
+			if err != nil {
+				errorNodes[deviceID] = err.Error()
+				continue
+			}
 		}
 
-		d.CacheMap.Store(cache.deviceID, cache)
-
+		return errorNodes
 	}
 
-	err = cache.startCache()
-	if err != nil {
-		return err
+	// edge cache
+	for _, deviceID := range d.edges {
+		cache, err := newCache(d, deviceID, false)
+		if err != nil {
+			errorNodes[deviceID] = err.Error()
+			continue
+		}
+
+		d.CacheMap.Store(deviceID, cache)
+
+		err = cache.startCache()
+		if err != nil {
+			errorNodes[deviceID] = err.Error()
+			continue
+		}
 	}
 
-	return nil
+	return errorNodes
 }
 
-func (d *Data) cacheEnd(doneCache *Cache, isContinue bool) {
+func (d *Data) cacheEnd(doneCache *Cache) {
 	var err error
 
 	defer func() {
@@ -217,7 +224,7 @@ func (d *Data) cacheEnd(doneCache *Cache, isContinue bool) {
 		return
 	}
 
-	err = d.dispatchCache(d.getUndoneCache())
+	// err = d.dispatchCache(d.getUndoneCache())
 }
 
 func (d *Data) getUndoneCache() *Cache {
