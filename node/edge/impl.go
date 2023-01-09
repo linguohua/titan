@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/carfile"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/helper"
 	datasync "github.com/linguohua/titan/node/sync"
@@ -26,14 +27,17 @@ func NewLocalEdgeNode(ctx context.Context, device *device.Device, params *helper
 	validate := validate.NewValidate(block, device)
 	blockDownload := download.NewBlockDownload(rateLimiter, params, device, validate)
 
+	carfileOeration := carfile.NewCarfileOperation(params.DS, params.BlockStore, params.Scheduler, &carfile.Candidate{}, device)
+
 	datasync.SyncLocalBlockstore(params.DS, params.BlockStore, block)
 
 	edge := &Edge{
-		Device:        device,
-		Block:         block,
-		BlockDownload: blockDownload,
-		Validate:      validate,
-		DataSync:      datasync.NewDataSync(block, params.DS),
+		Device:           device,
+		Block:            block,
+		CarfileOperation: carfileOeration,
+		BlockDownload:    blockDownload,
+		Validate:         validate,
+		DataSync:         datasync.NewDataSync(block, params.DS),
 	}
 
 	return edge
@@ -43,6 +47,7 @@ type Edge struct {
 	*common.CommonAPI
 	*device.Device
 	*block.Block
+	*carfile.CarfileOperation
 	*download.BlockDownload
 	*validate.Validate
 	*datasync.DataSync
