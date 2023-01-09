@@ -14,6 +14,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/linguohua/titan/node/block"
+	"github.com/linguohua/titan/node/carfile"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/download"
@@ -34,17 +35,19 @@ func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *devic
 	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, device, params.IPFSAPI)
 	validate := vd.NewValidate(block, device)
 	blockDownload := download.NewBlockDownload(rateLimiter, params, device, validate)
+	carfileOperation := carfile.NewCarfileOperation(params.DS, params.BlockStore, params.Scheduler, carfile.NewIPFS(params.IPFSAPI), device)
 
 	datasync.SyncLocalBlockstore(params.DS, params.BlockStore, block)
 
 	candidate := &Candidate{
-		Device:        device,
-		Block:         block,
-		BlockDownload: blockDownload,
-		Validate:      validate,
-		scheduler:     params.Scheduler,
-		tcpSrvAddr:    tcpSrvAddr,
-		DataSync:      datasync.NewDataSync(block, params.DS),
+		Device:           device,
+		Block:            block,
+		CarfileOperation: carfileOperation,
+		BlockDownload:    blockDownload,
+		Validate:         validate,
+		scheduler:        params.Scheduler,
+		tcpSrvAddr:       tcpSrvAddr,
+		DataSync:         datasync.NewDataSync(block, params.DS),
 	}
 
 	go candidate.startTcpServer()
@@ -79,6 +82,7 @@ type blockWaiter struct {
 type Candidate struct {
 	*common.CommonAPI
 	*block.Block
+	*carfile.CarfileOperation
 	*download.BlockDownload
 	*device.Device
 	*vd.Validate
