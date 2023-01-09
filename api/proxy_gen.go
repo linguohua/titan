@@ -56,6 +56,8 @@ type CandidateStruct struct {
 
 	DataSyncStruct
 
+	CarfileOperationStruct
+
 	Internal struct {
 		ValidateBlocks func(p0 context.Context, p1 []ReqValidate) error `perm:"read"`
 
@@ -75,6 +77,8 @@ type CandidateStub struct {
 	ValidateStub
 
 	DataSyncStub
+
+	CarfileOperationStub
 }
 
 type CarfileOperationStruct struct {
@@ -163,6 +167,8 @@ type EdgeStruct struct {
 
 	DataSyncStruct
 
+	CarfileOperationStruct
+
 	Internal struct {
 		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
@@ -180,6 +186,8 @@ type EdgeStub struct {
 	ValidateStub
 
 	DataSyncStub
+
+	CarfileOperationStub
 }
 
 type LocatorStruct struct {

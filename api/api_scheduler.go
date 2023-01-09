@@ -110,9 +110,7 @@ type CacheResultInfo struct {
 	TotalSize   int
 	DoneSize    int
 	CarfileHash string
-	DiskSpace   float64
 	DiskUsage   float64
-	TimeLeft    int //second
 }
 
 // DataInfo Data info

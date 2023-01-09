@@ -310,8 +310,8 @@ func (block *Block) cacheResult(bStat blockStat, err error) {
 
 	result := api.CacheResultInfo{
 		// Cid:         bStat.cid,
-		IsOK: success,
-		Msg:  errMsg,
+		IsDone: success,
+		Msg:    errMsg,
 		// From: "",
 		// Links:       bStat.links,
 		// BlockSize:   bStat.blockSize,

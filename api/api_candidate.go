@@ -9,6 +9,7 @@ type Candidate interface {
 	Download
 	Validate
 	DataSync
+	CarfileOperation
 	WaitQuiet(ctx context.Context) error                         //perm:read
 	ValidateBlocks(ctx context.Context, req []ReqValidate) error //perm:read
 }

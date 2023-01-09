@@ -30,6 +30,8 @@ type Data struct {
 
 	candidates []string
 	edges      []string
+
+	source []*api.DowloadSource
 }
 
 func newData(dataManager *Manager, cid, hash string) *Data {
