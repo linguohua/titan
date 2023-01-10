@@ -423,7 +423,7 @@ func (sd sqlDB) GetMinExpiredTimeWithCaches() (time.Time, error) {
 }
 
 func (sd sqlDB) GetExpiredCaches() ([]*api.CacheTaskInfo, error) {
-	query := fmt.Sprintf(`SELECT carfile_hash,device_id FROM %s WHERE expired_time <= NOW()`,
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE expired_time <= NOW()`,
 		fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
 
 	var out []*api.CacheTaskInfo
@@ -446,20 +446,43 @@ func (sd sqlDB) GetSuccessCaches() ([]*api.CacheTaskInfo, error) {
 	return out, nil
 }
 
-func (sd sqlDB) GetCacheInfo(cacheID string) (*api.CacheTaskInfo, error) {
+func (sd sqlDB) GetCacheInfo(carfileHash, deviceID string) (*api.CacheTaskInfo, error) {
 	area := sd.ReplaceArea()
 
 	var cache api.CacheTaskInfo
-	query := fmt.Sprintf("SELECT * FROM %s WHERE device_id=?", fmt.Sprintf(cacheInfoTable, area))
-	if err := sd.cli.Get(&cache, query, cacheID); err != nil {
+	query := fmt.Sprintf("SELECT * FROM %s WHERE device_id=? AND carfile_hash=?", fmt.Sprintf(cacheInfoTable, area))
+	if err := sd.cli.Get(&cache, query, deviceID, carfileHash); err != nil {
 		return nil, err
 	}
 
 	return &cache, nil
 }
 
+func (sd sqlDB) RemoveCarfileRecord(carfileHash string) error {
+	area := sd.ReplaceArea()
+	cTableName := fmt.Sprintf(cacheInfoTable, area)
+	dTableName := fmt.Sprintf(dataInfoTable, area)
+
+	tx := sd.cli.MustBegin()
+	// cache info
+	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=? `, cTableName)
+	tx.MustExec(cCmd, carfileHash)
+
+	// data info
+	dCmd := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=?`, dTableName)
+	tx.MustExec(dCmd, carfileHash)
+
+	err := tx.Commit()
+	if err != nil {
+		err = tx.Rollback()
+		return err
+	}
+
+	return nil
+}
+
 // remove cache info and update data info
-func (sd sqlDB) RemoveCacheAndUpdateData(cacheID, carfileHash string, isDeleteData bool, reliability int) error {
+func (sd sqlDB) RemoveCacheAndUpdateData(cacheID, carfileHash string, reliability int) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 	dTableName := fmt.Sprintf(dataInfoTable, area)
@@ -470,16 +493,23 @@ func (sd sqlDB) RemoveCacheAndUpdateData(cacheID, carfileHash string, isDeleteDa
 	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE device_id=? `, cTableName)
 	tx.MustExec(cCmd, cacheID)
 
+	var count int64
+	cmd := fmt.Sprintf("SELECT count(cid) FROM %s WHERE carfile_hash=? ", cTableName)
+	err := tx.Get(&count, cmd, carfileHash)
+	if err != nil {
+		return err
+	}
+
 	// data info
-	if !isDeleteData {
-		dCmd := fmt.Sprintf("UPDATE %s SET reliability=? WHERE carfile_hash=?", dTableName)
+	if count > 0 {
+		dCmd := fmt.Sprintf("UPDATE %s SET reliability=reliability-? WHERE carfile_hash=?", dTableName)
 		tx.MustExec(dCmd, reliability, carfileHash)
 	} else {
 		dCmd := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=?`, dTableName)
 		tx.MustExec(dCmd, carfileHash)
 	}
 
-	err := tx.Commit()
+	err = tx.Commit()
 	if err != nil {
 		err = tx.Rollback()
 		return err

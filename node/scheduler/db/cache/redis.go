@@ -466,6 +466,44 @@ func (rd redisDB) IncrByDevicesInfo(field string, values map[string]int64) error
 	return err
 }
 
+func (rd redisDB) CacheEndRecord(dataTask *DataTask, fromDeviceID string, blockSize int, blocks int, isSuccess bool) error {
+	//CacheEndRecord update node cache block info and base info
+	toKey := fmt.Sprintf(redisKeyNodeInfo, dataTask.DeviceID)
+	taskKey := fmt.Sprintf(redisKeyRunningDataTask, serverName, dataTask.CarfileHash, dataTask.DeviceID)
+	taskListKey := fmt.Sprintf(redisKeyRunningDataTaskList, serverName)
+
+	ctx := context.Background()
+	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+
+		pipeliner.HIncrBy(context.Background(), toKey, BlockCountField, int64(blocks))
+		pipeliner.HIncrBy(context.Background(), toKey, TotalDownloadField, int64(blockSize))
+
+		if fromDeviceID != "" {
+			fromKey := fmt.Sprintf(redisKeyNodeInfo, fromDeviceID)
+			pipeliner.HIncrBy(context.Background(), fromKey, DownloadCountField, int64(blocks))
+			pipeliner.HIncrBy(context.Background(), fromKey, TotalUploadField, int64(blockSize))
+		}
+
+		if isSuccess {
+			baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
+			pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, 1).Result()
+		}
+
+		pipeliner.Del(context.Background(), taskKey)
+
+		bytes, err := json.Marshal(*dataTask)
+		if err != nil {
+			return err
+		}
+
+		pipeliner.SRem(context.Background(), taskListKey, bytes)
+
+		return nil
+	})
+
+	return err
+}
+
 func (rd redisDB) UpdateNodeCacheBlockInfo(toDeviceID, fromDeviceID string, blockSize int) error {
 	//UpdateNodeCacheBlockInfo update node cache block info
 	size := int64(blockSize)
@@ -715,4 +753,35 @@ func (rd redisDB) GetBaseInfo() (*api.BaseInfo, error) {
 	}
 
 	return &info, nil
+}
+
+func (rd redisDB) RemoveCarfileRecord(dataTasks []*DataTask, carfileCount int64, nodeBlockCounts map[string]int64) error {
+	ctx := context.Background()
+	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+		baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
+		pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, carfileCount).Result()
+
+		for deviceID, blocks := range nodeBlockCounts {
+			key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+			pipeliner.HIncrBy(context.Background(), key, BlockCountField, blocks)
+		}
+
+		for _, dataTask := range dataTasks {
+			taskKey := fmt.Sprintf(redisKeyRunningDataTask, serverName, dataTask.CarfileHash, dataTask.DeviceID)
+			taskListKey := fmt.Sprintf(redisKeyRunningDataTaskList, serverName)
+
+			pipeliner.Del(context.Background(), taskKey)
+
+			bytes, err := json.Marshal(*dataTask)
+			if err != nil {
+				return err
+			}
+
+			pipeliner.SRem(context.Background(), taskListKey, bytes)
+		}
+
+		return nil
+	})
+
+	return err
 }

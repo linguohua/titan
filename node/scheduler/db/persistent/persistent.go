@@ -41,15 +41,16 @@ type DB interface {
 	GetDataInfo(hash string) (*api.CarfileRecordInfo, error)
 	GetDataCidWithPage(page int) (count int, totalPage int, list []*api.CarfileRecordInfo, err error)
 	GetCachesWithData(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error)
-	ExtendExpiredTimeWhitCaches(carfileHash, cacheID string, hour int) error
-	ChangeExpiredTimeWhitCaches(carfileHash, cacheID string, expiredTime time.Time) error
+	ExtendExpiredTimeWhitCaches(carfileHash, deviceID string, hour int) error
+	ChangeExpiredTimeWhitCaches(carfileHash, deviceID string, expiredTime time.Time) error
 	GetExpiredCaches() ([]*api.CacheTaskInfo, error)
 	GetMinExpiredTimeWithCaches() (time.Time, error)
 
 	// cache info
 	GetSuccessCaches() ([]*api.CacheTaskInfo, error)
-	GetCacheInfo(cacheID string) (*api.CacheTaskInfo, error)
-	RemoveCacheAndUpdateData(cacheID, carfileHash string, isDeleteData bool, reliability int) error
+	GetCacheInfo(carfileHash, deviceID string) (*api.CacheTaskInfo, error)
+	RemoveCacheAndUpdateData(deviceID, carfileHash string, reliability int) error
+	RemoveCarfileRecord(carfileHash string) error
 	UpdateCacheInfoOfQuitNode(deviceID string) (successCacheCount int, carfileReliabilitys map[string]int, err error)
 
 	// temporary node register

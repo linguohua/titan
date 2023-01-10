@@ -71,7 +71,7 @@ func (s *Scheduler) ShowRunningCacheDatas(ctx context.Context) ([]api.CarfileRec
 	list := s.dataManager.GetRunningTasks()
 
 	for _, info := range list {
-		data, _ := s.dataManager.GetData(info.CarfileHash)
+		data, _ := s.dataManager.GetCarfileRecord(info.CarfileHash)
 		if data != nil {
 			cInfo := dataToCacheDataInfo(data)
 
@@ -108,7 +108,7 @@ func dataToCacheDataInfo(d *data.CarfileRecord) api.CarfileRecordInfo {
 
 		caches := make([]api.CacheTaskInfo, 0)
 
-		d.CacheMap.Range(func(key, value interface{}) bool {
+		d.CacheTaskMap.Range(func(key, value interface{}) bool {
 			c := value.(*data.CacheTask)
 
 			cc := api.CacheTaskInfo{
@@ -146,7 +146,7 @@ func (s *Scheduler) GetCacheData(ctx context.Context, cid string) (api.CarfileRe
 		return info, err
 	}
 
-	d, _ := s.dataManager.GetData(hash)
+	d, _ := s.dataManager.GetCarfileRecord(hash)
 	if d != nil {
 		cInfo := dataToCacheDataInfo(d)
 

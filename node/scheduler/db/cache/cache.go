@@ -98,6 +98,9 @@ type DB interface {
 	IncrNodeCacheFid(deviceID string, num int) (int, error)
 	GetNodeCacheFid(deviceID string) (int64, error)
 
+	RemoveCarfileRecord(dataTasks []*DataTask, carfileCount int64, nodeBlockCounts map[string]int64) error
+	CacheEndRecord(dataTask *DataTask, fromDeviceID string, blockSize int, blocks int, isSuccess bool) error
+
 	IsNilErr(err error) bool
 }
 
@@ -116,14 +119,8 @@ func NewCacheDB(url, dbType, sName string) error {
 	case TypeRedis():
 		db, err = InitRedis(url)
 	default:
-		// panic("unknown CacheDB type")
 		err = xerrors.New("unknown CacheDB type")
 	}
-
-	// if err != nil {
-	// 	eStr = fmt.Sprintf("NewCacheDB err:%v , url:%v", err.Error(), url)
-	// 	// panic(e)
-	// }
 
 	return err
 }
