@@ -122,7 +122,13 @@ func (carfileOperation *CarfileOperation) removeFirstCarfileFromWaitList() *carf
 func (carfileOperation *CarfileOperation) doDownloadCarfile() {
 	for len(carfileOperation.carfileWaitList) > 0 {
 		carfile := carfileOperation.getFirstCarfileFromWaitList()
-		carfile.downloadCarfile(carfileOperation)
+		err := carfile.downloadCarfile(carfileOperation)
+		if err != nil {
+			log.Errorf("downloadCarfile error:%s", err)
+		}
+
+		// TODO: Result to scheduler
+		// TODO: saveRecord to local
 
 		carfileOperation.removeFirstCarfileFromWaitList()
 	}
