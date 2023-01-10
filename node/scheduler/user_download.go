@@ -77,91 +77,6 @@ func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []api.
 	return nil
 }
 
-// // GetDownloadInfosWithBlocks find node
-// func (s *Scheduler) GetDownloadInfosWithBlocks(ctx context.Context, cids []string, publicKey string) (map[string][]api.DownloadInfoResult, error) {
-// 	//TODO too much cid
-// 	if len(cids) < 1 {
-// 		return nil, xerrors.New("cids is nil")
-// 	}
-// 	clientIP := handler.GetRequestIP(ctx)
-// 	devicePrivateKey := make(map[string]*rsa.PrivateKey)
-// 	infoMap := make(map[string][]api.DownloadInfoResult)
-
-// 	for _, cid := range cids {
-// 		infos, err := s.nodeManager.FindNodeDownloadInfos(cid)
-// 		if err != nil {
-// 			continue
-// 		}
-
-// 		err = s.signDownloadInfos(cid, infos, devicePrivateKey)
-// 		if err != nil {
-// 			continue
-// 		}
-// 		infoMap[cid] = infos
-
-// 		record := &cache.DownloadBlockRecord{
-// 			SN:            infos[0].SN,
-// 			ID:            uuid.New().String(),
-// 			Cid:           cid,
-// 			SignTime:      infos[0].SignTime,
-// 			Timeout:       blockDonwloadTimeout,
-// 			UserPublicKey: publicKey,
-// 			NodeStatus:    int(blockDownloadStatusUnknow),
-// 			UserStatus:    int(blockDownloadStatusUnknow),
-// 		}
-// 		err = s.recordDownloadBlock(record, nil, "", clientIP)
-// 		if err != nil {
-// 			log.Errorf("GetDownloadInfosWithBlocks,recordDownloadBlock error %s", err.Error())
-// 		}
-// 	}
-
-// 	return infoMap, nil
-// }
-
-// // GetDownloadInfoWithBlocks find node
-// func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string, publicKey string) (map[string]api.DownloadInfoResult, error) {
-// 	//TODO too much cid
-// 	if len(cids) < 1 {
-// 		return nil, xerrors.New("cids is nil")
-// 	}
-
-// 	clientIP := handler.GetRequestIP(ctx)
-// 	devicePrivateKey := make(map[string]*rsa.PrivateKey)
-// 	infoMap := make(map[string]api.DownloadInfoResult)
-
-// 	for _, cid := range cids {
-// 		infos, err := s.nodeManager.FindNodeDownloadInfos(cid)
-// 		if err != nil {
-// 			continue
-// 		}
-
-// 		info := infos[randomNum(0, len(infos))]
-// 		err = s.signDownloadInfos(cid, []api.DownloadInfoResult{info}, devicePrivateKey)
-// 		if err != nil {
-// 			continue
-// 		}
-
-// 		infoMap[cid] = info
-
-// 		record := &cache.DownloadBlockRecord{
-// 			SN:            info.SN,
-// 			ID:            uuid.New().String(),
-// 			Cid:           cid,
-// 			SignTime:      info.SignTime,
-// 			Timeout:       blockDonwloadTimeout,
-// 			UserPublicKey: publicKey,
-// 			NodeStatus:    int(blockDownloadStatusUnknow),
-// 			UserStatus:    int(blockDownloadStatusUnknow),
-// 		}
-// 		err = s.recordDownloadBlock(record, nil, "", clientIP)
-// 		if err != nil {
-// 			log.Errorf("GetDownloadInfoWithBlocks,recordDownloadBlock error %s", err.Error())
-// 		}
-// 	}
-
-// 	return infoMap, nil
-// }
-
 // GetDownloadInfosWithCarfile find node
 func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string, publicKey string) ([]*api.DownloadInfoResult, error) {
 	if cid == "" {
@@ -175,7 +90,7 @@ func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string,
 
 	return infos, nil
 
-	//TODO
+	//TODO record
 	// info := infos[randomNum(0, len(infos))]
 	// err = s.signDownloadInfos(cid, []api.DownloadInfoResult{info}, make(map[string]*rsa.PrivateKey))
 	// if err != nil {
