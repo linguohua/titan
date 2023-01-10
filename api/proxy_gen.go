@@ -202,11 +202,7 @@ type LocatorStruct struct {
 
 		GetAccessPoints func(p0 context.Context, p1 string) ([]string, error) `perm:"read"`
 
-		GetDownloadInfoWithBlock func(p0 context.Context, p1 string, p2 string) (DownloadInfoResult, error) `perm:"read"`
-
-		GetDownloadInfoWithBlocks func(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfoResult, error) `perm:"read"`
-
-		GetDownloadInfosWithBlocks func(p0 context.Context, p1 []string, p2 string) (map[string][]DownloadInfoResult, error) `perm:"read"`
+		GetDownloadInfosWithCarfile func(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) `perm:"read"`
 
 		ListAccessPoints func(p0 context.Context) ([]string, error) `perm:"admin"`
 
@@ -771,37 +767,15 @@ func (s *LocatorStub) GetAccessPoints(p0 context.Context, p1 string) ([]string, 
 	return *new([]string), ErrNotSupported
 }
 
-func (s *LocatorStruct) GetDownloadInfoWithBlock(p0 context.Context, p1 string, p2 string) (DownloadInfoResult, error) {
-	if s.Internal.GetDownloadInfoWithBlock == nil {
-		return *new(DownloadInfoResult), ErrNotSupported
+func (s *LocatorStruct) GetDownloadInfosWithCarfile(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) {
+	if s.Internal.GetDownloadInfosWithCarfile == nil {
+		return *new([]*DownloadInfoResult), ErrNotSupported
 	}
-	return s.Internal.GetDownloadInfoWithBlock(p0, p1, p2)
+	return s.Internal.GetDownloadInfosWithCarfile(p0, p1, p2)
 }
 
-func (s *LocatorStub) GetDownloadInfoWithBlock(p0 context.Context, p1 string, p2 string) (DownloadInfoResult, error) {
-	return *new(DownloadInfoResult), ErrNotSupported
-}
-
-func (s *LocatorStruct) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfoResult, error) {
-	if s.Internal.GetDownloadInfoWithBlocks == nil {
-		return *new(map[string]DownloadInfoResult), ErrNotSupported
-	}
-	return s.Internal.GetDownloadInfoWithBlocks(p0, p1, p2)
-}
-
-func (s *LocatorStub) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfoResult, error) {
-	return *new(map[string]DownloadInfoResult), ErrNotSupported
-}
-
-func (s *LocatorStruct) GetDownloadInfosWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string][]DownloadInfoResult, error) {
-	if s.Internal.GetDownloadInfosWithBlocks == nil {
-		return *new(map[string][]DownloadInfoResult), ErrNotSupported
-	}
-	return s.Internal.GetDownloadInfosWithBlocks(p0, p1, p2)
-}
-
-func (s *LocatorStub) GetDownloadInfosWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string][]DownloadInfoResult, error) {
-	return *new(map[string][]DownloadInfoResult), ErrNotSupported
+func (s *LocatorStub) GetDownloadInfosWithCarfile(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) {
+	return *new([]*DownloadInfoResult), ErrNotSupported
 }
 
 func (s *LocatorStruct) ListAccessPoints(p0 context.Context) ([]string, error) {

@@ -266,85 +266,32 @@ func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*c
 	return result
 }
 
-func (locator *Locator) GetDownloadInfosWithBlocks(ctx context.Context, cids []string, publicKey string) (map[string][]api.DownloadInfoResult, error) {
-	// ip := handler.GetRequestIP(ctx)
-	// areaID := ""
-	// geoInfo, err := region.GetRegion().GetGeoInfo(ip)
-	// if err != nil {
-	// 	log.Errorf("GetAccessPoints get geo from ip error %s", err.Error())
-	// } else {
-	// 	areaID = geoInfo.Geo
-	// }
+func (locator *Locator) GetDownloadInfosWithCarfile(ctx context.Context, cid string, publicKey string) ([]*api.DownloadInfoResult, error) {
+	ip := handler.GetRequestIP(ctx)
+	areaID := ""
+	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
+	if err != nil {
+		log.Errorf("GetAccessPoints get geo from ip error %s", err.Error())
+	} else {
+		areaID = geoInfo.Geo
+	}
 
-	// log.Infof("user %s get Area areaID %s", ip, areaID)
+	log.Infof("user %s get Area areaID %s", ip, areaID)
 
-	// if areaID == "" || areaID == "unknown-unknown-unknown" {
-	// 	log.Errorf("user %s can not get areaID", ip)
-	// 	areaID = defaultAreaID
-	// }
+	if areaID == "" || areaID == "unknown-unknown-unknown" {
+		log.Errorf("user %s can not get areaID", ip)
+		areaID = defaultAreaID
+	}
 
-	// schedulerAPI, ok := locator.apMgr.randSchedulerAPI(areaID)
-	// if !ok {
-	// 	schedulerAPI, ok = locator.getFirstOnlineSchedulerAPIAt(areaID)
-	// }
-	// if ok {
-	// 	return schedulerAPI.GetDownloadInfosWithBlocks(ctx, cids, publicKey)
-	// }
+	schedulerAPI, ok := locator.apMgr.randSchedulerAPI(areaID)
+	if !ok {
+		schedulerAPI, ok = locator.getFirstOnlineSchedulerAPIAt(areaID)
+	}
+	if ok {
+		return schedulerAPI.GetDownloadInfosWithCarfile(ctx, cid, publicKey)
+	}
 
-	return make(map[string][]api.DownloadInfoResult), nil
-
-}
-func (locator *Locator) GetDownloadInfoWithBlocks(ctx context.Context, cids []string, publicKey string) (map[string]api.DownloadInfoResult, error) {
-	// ip := handler.GetRequestIP(ctx)
-	// areaID := ""
-	// geoInfo, err := region.GetRegion().GetGeoInfo(ip)
-	// if err != nil {
-	// 	log.Errorf("GetAccessPoints get geo from ip error %s", err.Error())
-	// } else {
-	// 	areaID = geoInfo.Geo
-	// }
-
-	// log.Infof("user %s get Area areaID %s", ip, areaID)
-
-	// if areaID == "" || areaID == "unknown-unknown-unknown" {
-	// 	log.Errorf("user %s can not get areaID", ip)
-	// 	areaID = defaultAreaID
-	// }
-
-	// schedulerAPI, ok := locator.apMgr.randSchedulerAPI(areaID)
-	// if !ok {
-	// 	schedulerAPI, ok = locator.getFirstOnlineSchedulerAPIAt(areaID)
-	// }
-	// if ok {
-	// 	return schedulerAPI.GetDownloadInfoWithBlocks(ctx, cids, publicKey)
-	// }
-	return make(map[string]api.DownloadInfoResult), nil
-}
-func (locator *Locator) GetDownloadInfoWithBlock(ctx context.Context, cid string, publicKey string) (api.DownloadInfoResult, error) {
-	// ip := handler.GetRequestIP(ctx)
-	// areaID := ""
-	// geoInfo, err := region.GetRegion().GetGeoInfo(ip)
-	// if err != nil {
-	// 	log.Errorf("GetAccessPoints get geo from ip error %s", err.Error())
-	// } else {
-	// 	areaID = geoInfo.Geo
-	// }
-
-	// log.Infof("user %s get Area areaID %s", ip, areaID)
-
-	// if areaID == "" || areaID == "unknown-unknown-unknown" {
-	// 	log.Errorf("user %s can not get areaID", ip)
-	// 	areaID = defaultAreaID
-	// }
-
-	// schedulerAPI, ok := locator.apMgr.randSchedulerAPI(areaID)
-	// if !ok {
-	// 	schedulerAPI, ok = locator.getFirstOnlineSchedulerAPIAt(areaID)
-	// }
-	// if ok {
-	// 	return schedulerAPI.GetDownloadInfoWithBlock(ctx, cid, publicKey)
-	// }
-	return api.DownloadInfoResult{}, nil
+	return nil, nil
 }
 
 func (locator *Locator) UserDownloadBlockResults(ctx context.Context, results []api.UserBlockDownloadResult) error {
