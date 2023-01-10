@@ -64,13 +64,13 @@ const (
 func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Scheduler {
 	s := &Scheduler{}
 
-	nodeManager := node.NewNodeManager(s.nodeOfflineCallback, s.nodeExitedCallback, s.getAuthToken)
+	nodeManager := node.NewNodeManager(s.nodeOfflineCallback, s.nodeExitedCallback)
 
 	s.locatorManager = locator.NewLoactorManager(port)
 	s.nodeManager = nodeManager
 	s.election = election.NewElection(nodeManager)
 	s.validate = validate.NewValidate(nodeManager, true)
-	s.dataManager = data.NewDataManager(nodeManager)
+	s.dataManager = data.NewDataManager(nodeManager, s.getAuthToken)
 	s.CommonAPI = common.NewCommonAPI(nodeManager.UpdateLastRequestTime)
 	s.Web = web.NewWeb(s)
 	s.dataSync = sync.NewDataSync()

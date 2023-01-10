@@ -32,23 +32,23 @@ type DB interface {
 	SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error)
 
 	// cache data info
-	CreateCache(cInfo *api.CacheInfo) error
-	SaveCacheEndResults(dInfo *api.DataInfo, cInfo *api.CacheInfo) error
-	SaveCacheingResults(dInfo *api.DataInfo, cInfo *api.CacheInfo) error
+	CreateCache(cInfo *api.CacheTaskInfo) error
+	SaveCacheEndResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheTaskInfo) error
+	SaveCacheingResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheTaskInfo) error
 
 	// data info
-	SetDataInfo(info *api.DataInfo) error
-	GetDataInfo(hash string) (*api.DataInfo, error)
-	GetDataCidWithPage(page int) (count int, totalPage int, list []*api.DataInfo, err error)
-	GetCachesWithData(hash string, isSuccess bool) ([]*api.CacheInfo, error)
+	SetDataInfo(info *api.CarfileRecordInfo) error
+	GetDataInfo(hash string) (*api.CarfileRecordInfo, error)
+	GetDataCidWithPage(page int) (count int, totalPage int, list []*api.CarfileRecordInfo, err error)
+	GetCachesWithData(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error)
 	ExtendExpiredTimeWhitCaches(carfileHash, cacheID string, hour int) error
 	ChangeExpiredTimeWhitCaches(carfileHash, cacheID string, expiredTime time.Time) error
-	GetExpiredCaches() ([]*api.CacheInfo, error)
+	GetExpiredCaches() ([]*api.CacheTaskInfo, error)
 	GetMinExpiredTimeWithCaches() (time.Time, error)
 
 	// cache info
-	GetSuccessCaches() ([]*api.CacheInfo, error)
-	GetCacheInfo(cacheID string) (*api.CacheInfo, error)
+	GetSuccessCaches() ([]*api.CacheTaskInfo, error)
+	GetCacheInfo(cacheID string) (*api.CacheTaskInfo, error)
 	RemoveCacheAndUpdateData(cacheID, carfileHash string, isDeleteData bool, reliability int) error
 	UpdateCacheInfoOfQuitNode(deviceID string) (successCacheCount int, carfileReliabilitys map[string]int, err error)
 

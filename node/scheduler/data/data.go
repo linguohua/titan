@@ -11,8 +11,8 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// Data Data
-type Data struct {
+// CarfileRecord CarfileRecord
+type CarfileRecord struct {
 	nodeManager *node.Manager
 	dataManager *Manager
 
@@ -31,27 +31,29 @@ type Data struct {
 	candidates []string
 	edges      []string
 
+	//TODO
 	source []*api.DowloadSource
 }
 
-func newData(dataManager *Manager, cid, hash string) *Data {
-	return &Data{
+func newData(dataManager *Manager, cid, hash string) *CarfileRecord {
+	return &CarfileRecord{
 		nodeManager: dataManager.nodeManager,
 		dataManager: dataManager,
 		carfileCid:  cid,
 		reliability: 0,
 		totalBlocks: 1,
 		carfileHash: hash,
+		source:      make([]*api.DowloadSource, 0),
 	}
 }
 
-func loadData(hash string, dataManager *Manager) (*Data, error) {
+func loadData(hash string, dataManager *Manager) (*CarfileRecord, error) {
 	dInfo, err := persistent.GetDB().GetDataInfo(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	data := &Data{}
+	data := &CarfileRecord{}
 	data.carfileCid = dInfo.CarfileCid
 	data.nodeManager = dataManager.nodeManager
 	data.dataManager = dataManager
@@ -61,6 +63,7 @@ func loadData(hash string, dataManager *Manager) (*Data, error) {
 	data.totalBlocks = dInfo.TotalBlocks
 	data.expiredTime = dInfo.ExpiredTime
 	data.carfileHash = dInfo.CarfileHash
+	data.source = make([]*api.DowloadSource, 0)
 
 	caches, err := persistent.GetDB().GetCachesWithData(hash, false)
 	if err != nil {
@@ -73,7 +76,7 @@ func loadData(hash string, dataManager *Manager) (*Data, error) {
 			continue
 		}
 
-		c := &Cache{
+		c := &CacheTask{
 			deviceID:    cache.DeviceID,
 			data:        data,
 			doneSize:    cache.DoneSize,
@@ -87,6 +90,14 @@ func loadData(hash string, dataManager *Manager) (*Data, error) {
 
 		if c.isRootCache && c.status == api.CacheStatusSuccess {
 			data.rootCaches++
+
+			cNode := c.data.nodeManager.GetCandidateNode(c.deviceID)
+			if cNode != nil {
+				data.source = append(data.source, &api.DowloadSource{
+					CandidateURL:   cNode.GetAddress(),
+					CandidateToken: string(c.data.dataManager.getAuthToken()),
+				})
+			}
 		}
 
 		data.CacheMap.Store(cache.DeviceID, c)
@@ -95,7 +106,7 @@ func loadData(hash string, dataManager *Manager) (*Data, error) {
 	return data, nil
 }
 
-func (d *Data) existRootCache() bool {
+func (d *CarfileRecord) existRootCache() bool {
 	exist := false
 
 	d.CacheMap.Range(func(key, value interface{}) bool {
@@ -104,7 +115,7 @@ func (d *Data) existRootCache() bool {
 		}
 
 		if value != nil {
-			c := value.(*Cache)
+			c := value.(*CacheTask)
 			if c != nil {
 				exist = c.isRootCache && c.status == api.CacheStatusSuccess
 			}
@@ -116,20 +127,20 @@ func (d *Data) existRootCache() bool {
 	return exist
 }
 
-func (d *Data) updateAndSaveCacheingInfo(cache *Cache) error {
+func (d *CarfileRecord) updateAndSaveCacheingInfo(cache *CacheTask) error {
 	if !d.existRootCache() {
 		d.totalSize = cache.totalSize
 		d.totalBlocks = cache.totalBlocks
 	}
 
-	dInfo := &api.DataInfo{
+	dInfo := &api.CarfileRecordInfo{
 		CarfileHash: d.carfileHash,
 		TotalSize:   d.totalSize,
 		TotalBlocks: d.totalBlocks,
 		Reliability: d.reliability,
 	}
 
-	cInfo := &api.CacheInfo{
+	cInfo := &api.CacheTaskInfo{
 		CarfileHash: cache.carfileHash,
 		DeviceID:    cache.deviceID,
 		DoneSize:    cache.doneSize,
@@ -140,7 +151,7 @@ func (d *Data) updateAndSaveCacheingInfo(cache *Cache) error {
 	return persistent.GetDB().SaveCacheingResults(dInfo, cInfo)
 }
 
-func (d *Data) updateAndSaveCacheEndInfo(doneCache *Cache) error {
+func (d *CarfileRecord) updateAndSaveCacheEndInfo(doneCache *CacheTask) error {
 	if doneCache.status == api.CacheStatusSuccess {
 		d.reliability += doneCache.reliability
 
@@ -150,14 +161,14 @@ func (d *Data) updateAndSaveCacheEndInfo(doneCache *Cache) error {
 		}
 	}
 
-	dInfo := &api.DataInfo{
+	dInfo := &api.CarfileRecordInfo{
 		CarfileHash: d.carfileHash,
 		TotalSize:   d.totalSize,
 		TotalBlocks: d.totalBlocks,
 		Reliability: d.reliability,
 	}
 
-	cInfo := &api.CacheInfo{
+	cInfo := &api.CacheTaskInfo{
 		CarfileHash: doneCache.carfileHash,
 		DeviceID:    doneCache.deviceID,
 		Status:      doneCache.status,
@@ -168,7 +179,7 @@ func (d *Data) updateAndSaveCacheEndInfo(doneCache *Cache) error {
 	return persistent.GetDB().SaveCacheEndResults(dInfo, cInfo)
 }
 
-func (d *Data) dispatchCache() map[string]string {
+func (d *CarfileRecord) dispatchCache() map[string]string {
 	errorNodes := map[string]string{}
 
 	if len(d.candidates) > 0 {
@@ -211,7 +222,7 @@ func (d *Data) dispatchCache() map[string]string {
 	return errorNodes
 }
 
-func (d *Data) cacheEnd(doneCache *Cache) {
+func (d *CarfileRecord) cacheEnd(doneCache *CacheTask) {
 	var err error
 
 	defer func() {
@@ -229,13 +240,13 @@ func (d *Data) cacheEnd(doneCache *Cache) {
 	// err = d.dispatchCache(d.getUndoneCache())
 }
 
-func (d *Data) getUndoneCache() *Cache {
+func (d *CarfileRecord) getUndoneCache() *CacheTask {
 	// old cache
-	var oldCache *Cache
-	var oldRootCache *Cache
+	var oldCache *CacheTask
+	var oldRootCache *CacheTask
 
 	d.CacheMap.Range(func(key, value interface{}) bool {
-		c := value.(*Cache)
+		c := value.(*CacheTask)
 
 		if c.status != api.CacheStatusSuccess {
 			oldCache = c
@@ -256,36 +267,36 @@ func (d *Data) getUndoneCache() *Cache {
 }
 
 // GetCarfileCid get carfile cid
-func (d *Data) GetCarfileCid() string {
+func (d *CarfileRecord) GetCarfileCid() string {
 	return d.carfileCid
 }
 
 // GetCarfileHash get carfile hash
-func (d *Data) GetCarfileHash() string {
+func (d *CarfileRecord) GetCarfileHash() string {
 	return d.carfileHash
 }
 
 // GetTotalSize get total size
-func (d *Data) GetTotalSize() int {
+func (d *CarfileRecord) GetTotalSize() int {
 	return d.totalSize
 }
 
 // GetNeedReliability get need reliability
-func (d *Data) GetNeedReliability() int {
+func (d *CarfileRecord) GetNeedReliability() int {
 	return d.needReliability
 }
 
 // GetReliability get reliability
-func (d *Data) GetReliability() int {
+func (d *CarfileRecord) GetReliability() int {
 	return d.reliability
 }
 
 // GetTotalBlocks get total blocks
-func (d *Data) GetTotalBlocks() int {
+func (d *CarfileRecord) GetTotalBlocks() int {
 	return d.totalBlocks
 }
 
 // GetTotalNodes get total nodes
-func (d *Data) GetTotalNodes() int {
+func (d *CarfileRecord) GetTotalNodes() int {
 	return d.nodes
 }

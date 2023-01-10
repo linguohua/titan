@@ -7,7 +7,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -832,9 +831,9 @@ var getDownloadInfoCmd = &cli.Command{
 	Usage: "specify node cache blocks",
 	Flags: []cli.Flag{
 		// schedulerURLFlag,
-		cidsFlag,
+		cidFlag,
 		// ipFlag,
-		cidsPathFlag,
+		// cidsPathFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -842,9 +841,9 @@ var getDownloadInfoCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		// url := cctx.String("scheduler-url")
-		cids := cctx.String("cids")
+		cid := cctx.String("cid")
 		// ip := cctx.String("ip")
-		cidsPath := cctx.String("cids-file-path")
+		// cidsPath := cctx.String("cids-file-path")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -853,27 +852,27 @@ var getDownloadInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		var cidList []string
-		if cids != "" {
-			cidList = strings.Split(cids, ",")
-		}
+		// var cidList []string
+		// if cid != "" {
+		// 	cidList = strings.Split(cids, ",")
+		// }
 
-		if cidsPath != "" {
-			cidList, err = loadCidsFromFile(cidsPath)
-			if err != nil {
-				return fmt.Errorf("loadFile err:%s", err.Error())
-			}
-		}
+		// if cidsPath != "" {
+		// 	cidList, err = loadCidsFromFile(cidsPath)
+		// 	if err != nil {
+		// 		return fmt.Errorf("loadFile err:%s", err.Error())
+		// 	}
+		// }
 
 		privateKey, _ := generatePrivateKey(1024)
 		publicKey := publicKey2Pem(&privateKey.PublicKey)
 
-		data, err := schedulerAPI.GetDownloadInfoWithBlocks(ctx, cidList, publicKey)
+		datas, err := schedulerAPI.GetDownloadInfosWithCarfile(ctx, cid, publicKey)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("data:%v", data)
+		fmt.Printf("datas:%v", datas)
 
 		return nil
 	},
