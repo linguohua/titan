@@ -91,12 +91,11 @@ func (c *CacheTask) sendBlocksToNode() error {
 func (c *CacheTask) blockCacheResult(info *api.CacheResultInfo) error {
 	c.doneBlocks = info.DoneBlocks
 	c.doneSize = info.DoneSize
-
-	if info.IsDone {
+	if info.Status == api.CacheStatusSuccess || info.Status == api.CacheStatusFail {
 		//update node dick
 		c.data.nodeManager.UpdateNodeDiskUsage(c.deviceID, info.DiskUsage)
 
-		c.endCache(api.CacheStatusSuccess)
+		c.endCache(info.Status)
 	} else {
 		// update data task timeout
 		err := cache.GetDB().SetRunningDataTask(c.carfileHash, c.deviceID, nodeCacheResultInterval)

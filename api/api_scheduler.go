@@ -101,7 +101,7 @@ type NodeRegisterInfo struct {
 
 // CacheResultInfo cache data result info
 type CacheResultInfo struct {
-	IsDone      bool
+	Status      CacheStatus
 	Msg         string
 	TotalBlock  int
 	DoneBlocks  int

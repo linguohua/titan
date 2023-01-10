@@ -302,15 +302,15 @@ func (block *Block) cacheResultWithError(bStat blockStat, err error) {
 
 func (block *Block) cacheResult(bStat blockStat, err error) {
 	errMsg := ""
-	success := true
+	status := api.CacheStatusSuccess
 	if err != nil {
-		success = false
+		status = api.CacheStatusFail
 		errMsg = err.Error()
 	}
 
 	result := api.CacheResultInfo{
 		// Cid:         bStat.cid,
-		IsDone: success,
+		Status: status,
 		Msg:    errMsg,
 		// From: "",
 		// Links:       bStat.links,
