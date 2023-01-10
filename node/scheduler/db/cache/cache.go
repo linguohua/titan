@@ -44,9 +44,9 @@ type DB interface {
 	GetRunningDataTaskExpiredTime(hash, deviceID string) (time.Duration, error)
 
 	// waiting data list
-	SetWaitingDataTask(info *api.DataInfo) error
-	GetWaitingDataTask(index int64) (*api.DataInfo, error)
-	RemoveWaitingDataTasks(infos []*api.DataInfo) error
+	SetWaitingDataTask(info *api.CarfileRecordInfo) error
+	GetWaitingDataTask(index int64) (*api.CarfileRecordInfo, error)
+	RemoveWaitingDataTasks(infos []*api.CarfileRecordInfo) error
 
 	// validate round id
 	IncrValidateRoundID() (int64, error)

@@ -143,3 +143,15 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 
 	return api.CacheCarfileResult{}, nil
 }
+
+func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, carfileCID string) error {
+	return nil
+
+}
+func (carfileOperation *CarfileOperation) DeleteAllCarfiles(ctx context.Context) error {
+	return nil
+}
+func (carfileOperation *CarfileOperation) DeleteWaitCacheCarfile(ctx context.Context, carfileCID string) error {
+	return nil
+
+}

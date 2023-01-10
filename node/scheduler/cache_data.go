@@ -65,8 +65,8 @@ func (s *Scheduler) GetBlocksCacheError(ctx context.Context, cacheID string) ([]
 }
 
 // ShowRunningCacheDatas Show Data Tasks
-func (s *Scheduler) ShowRunningCacheDatas(ctx context.Context) ([]api.DataInfo, error) {
-	infos := make([]api.DataInfo, 0)
+func (s *Scheduler) ShowRunningCacheDatas(ctx context.Context) ([]api.CarfileRecordInfo, error) {
+	infos := make([]api.CarfileRecordInfo, 0)
 
 	list := s.dataManager.GetRunningTasks()
 
@@ -96,8 +96,8 @@ func (s *Scheduler) ShowRunningCacheDatas(ctx context.Context) ([]api.DataInfo, 
 	return infos, nil
 }
 
-func dataToCacheDataInfo(d *data.Data) api.DataInfo {
-	info := api.DataInfo{}
+func dataToCacheDataInfo(d *data.CarfileRecord) api.CarfileRecordInfo {
+	info := api.CarfileRecordInfo{}
 	if d != nil {
 		info.CarfileCid = d.GetCarfileCid()
 		info.CarfileHash = d.GetCarfileHash()
@@ -106,12 +106,12 @@ func dataToCacheDataInfo(d *data.Data) api.DataInfo {
 		info.Reliability = d.GetReliability()
 		info.TotalBlocks = d.GetTotalBlocks()
 
-		caches := make([]api.CacheInfo, 0)
+		caches := make([]api.CacheTaskInfo, 0)
 
 		d.CacheMap.Range(func(key, value interface{}) bool {
-			c := value.(*data.Cache)
+			c := value.(*data.CacheTask)
 
-			cc := api.CacheInfo{
+			cc := api.CacheTaskInfo{
 				Status:     c.GetStatus(),
 				DoneSize:   c.GetDoneSize(),
 				DoneBlocks: c.GetDoneBlocks(),
@@ -134,8 +134,8 @@ func dataToCacheDataInfo(d *data.Data) api.DataInfo {
 }
 
 // GetCacheData Show Data Task
-func (s *Scheduler) GetCacheData(ctx context.Context, cid string) (api.DataInfo, error) {
-	info := api.DataInfo{}
+func (s *Scheduler) GetCacheData(ctx context.Context, cid string) (api.CarfileRecordInfo, error) {
+	info := api.CarfileRecordInfo{}
 
 	if cid == "" {
 		return info, xerrors.Errorf("not found cid:%s", cid)
@@ -173,9 +173,9 @@ func (s *Scheduler) ListCacheDatas(ctx context.Context, page int) (api.DataListI
 		return api.DataListInfo{}, err
 	}
 
-	out := make([]*api.DataInfo, 0)
+	out := make([]*api.CarfileRecordInfo, 0)
 	for _, info := range list {
-		dInfo := &api.DataInfo{
+		dInfo := &api.CarfileRecordInfo{
 			CarfileCid:      info.CarfileCid,
 			CarfileHash:     info.CarfileHash,
 			NeedReliability: info.NeedReliability,

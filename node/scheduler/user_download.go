@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/handler"
 	titanRsa "github.com/linguohua/titan/node/rsa"
@@ -78,125 +77,128 @@ func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []api.
 	return nil
 }
 
-// GetDownloadInfosWithBlocks find node
-func (s *Scheduler) GetDownloadInfosWithBlocks(ctx context.Context, cids []string, publicKey string) (map[string][]api.DownloadInfoResult, error) {
-	//TODO too much cid
-	if len(cids) < 1 {
-		return nil, xerrors.New("cids is nil")
-	}
-	clientIP := handler.GetRequestIP(ctx)
-	devicePrivateKey := make(map[string]*rsa.PrivateKey)
-	infoMap := make(map[string][]api.DownloadInfoResult)
+// // GetDownloadInfosWithBlocks find node
+// func (s *Scheduler) GetDownloadInfosWithBlocks(ctx context.Context, cids []string, publicKey string) (map[string][]api.DownloadInfoResult, error) {
+// 	//TODO too much cid
+// 	if len(cids) < 1 {
+// 		return nil, xerrors.New("cids is nil")
+// 	}
+// 	clientIP := handler.GetRequestIP(ctx)
+// 	devicePrivateKey := make(map[string]*rsa.PrivateKey)
+// 	infoMap := make(map[string][]api.DownloadInfoResult)
 
-	for _, cid := range cids {
-		infos, err := s.nodeManager.FindNodeDownloadInfos(cid)
-		if err != nil {
-			continue
-		}
+// 	for _, cid := range cids {
+// 		infos, err := s.nodeManager.FindNodeDownloadInfos(cid)
+// 		if err != nil {
+// 			continue
+// 		}
 
-		err = s.signDownloadInfos(cid, infos, devicePrivateKey)
-		if err != nil {
-			continue
-		}
-		infoMap[cid] = infos
+// 		err = s.signDownloadInfos(cid, infos, devicePrivateKey)
+// 		if err != nil {
+// 			continue
+// 		}
+// 		infoMap[cid] = infos
 
-		record := &cache.DownloadBlockRecord{
-			SN:            infos[0].SN,
-			ID:            uuid.New().String(),
-			Cid:           cid,
-			SignTime:      infos[0].SignTime,
-			Timeout:       blockDonwloadTimeout,
-			UserPublicKey: publicKey,
-			NodeStatus:    int(blockDownloadStatusUnknow),
-			UserStatus:    int(blockDownloadStatusUnknow),
-		}
-		err = s.recordDownloadBlock(record, nil, "", clientIP)
-		if err != nil {
-			log.Errorf("GetDownloadInfosWithBlocks,recordDownloadBlock error %s", err.Error())
-		}
-	}
+// 		record := &cache.DownloadBlockRecord{
+// 			SN:            infos[0].SN,
+// 			ID:            uuid.New().String(),
+// 			Cid:           cid,
+// 			SignTime:      infos[0].SignTime,
+// 			Timeout:       blockDonwloadTimeout,
+// 			UserPublicKey: publicKey,
+// 			NodeStatus:    int(blockDownloadStatusUnknow),
+// 			UserStatus:    int(blockDownloadStatusUnknow),
+// 		}
+// 		err = s.recordDownloadBlock(record, nil, "", clientIP)
+// 		if err != nil {
+// 			log.Errorf("GetDownloadInfosWithBlocks,recordDownloadBlock error %s", err.Error())
+// 		}
+// 	}
 
-	return infoMap, nil
-}
+// 	return infoMap, nil
+// }
 
-// GetDownloadInfoWithBlocks find node
-func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string, publicKey string) (map[string]api.DownloadInfoResult, error) {
-	//TODO too much cid
-	if len(cids) < 1 {
-		return nil, xerrors.New("cids is nil")
-	}
+// // GetDownloadInfoWithBlocks find node
+// func (s *Scheduler) GetDownloadInfoWithBlocks(ctx context.Context, cids []string, publicKey string) (map[string]api.DownloadInfoResult, error) {
+// 	//TODO too much cid
+// 	if len(cids) < 1 {
+// 		return nil, xerrors.New("cids is nil")
+// 	}
 
-	clientIP := handler.GetRequestIP(ctx)
-	devicePrivateKey := make(map[string]*rsa.PrivateKey)
-	infoMap := make(map[string]api.DownloadInfoResult)
+// 	clientIP := handler.GetRequestIP(ctx)
+// 	devicePrivateKey := make(map[string]*rsa.PrivateKey)
+// 	infoMap := make(map[string]api.DownloadInfoResult)
 
-	for _, cid := range cids {
-		infos, err := s.nodeManager.FindNodeDownloadInfos(cid)
-		if err != nil {
-			continue
-		}
+// 	for _, cid := range cids {
+// 		infos, err := s.nodeManager.FindNodeDownloadInfos(cid)
+// 		if err != nil {
+// 			continue
+// 		}
 
-		info := infos[randomNum(0, len(infos))]
-		err = s.signDownloadInfos(cid, []api.DownloadInfoResult{info}, devicePrivateKey)
-		if err != nil {
-			continue
-		}
+// 		info := infos[randomNum(0, len(infos))]
+// 		err = s.signDownloadInfos(cid, []api.DownloadInfoResult{info}, devicePrivateKey)
+// 		if err != nil {
+// 			continue
+// 		}
 
-		infoMap[cid] = info
+// 		infoMap[cid] = info
 
-		record := &cache.DownloadBlockRecord{
-			SN:            info.SN,
-			ID:            uuid.New().String(),
-			Cid:           cid,
-			SignTime:      info.SignTime,
-			Timeout:       blockDonwloadTimeout,
-			UserPublicKey: publicKey,
-			NodeStatus:    int(blockDownloadStatusUnknow),
-			UserStatus:    int(blockDownloadStatusUnknow),
-		}
-		err = s.recordDownloadBlock(record, nil, "", clientIP)
-		if err != nil {
-			log.Errorf("GetDownloadInfoWithBlocks,recordDownloadBlock error %s", err.Error())
-		}
-	}
+// 		record := &cache.DownloadBlockRecord{
+// 			SN:            info.SN,
+// 			ID:            uuid.New().String(),
+// 			Cid:           cid,
+// 			SignTime:      info.SignTime,
+// 			Timeout:       blockDonwloadTimeout,
+// 			UserPublicKey: publicKey,
+// 			NodeStatus:    int(blockDownloadStatusUnknow),
+// 			UserStatus:    int(blockDownloadStatusUnknow),
+// 		}
+// 		err = s.recordDownloadBlock(record, nil, "", clientIP)
+// 		if err != nil {
+// 			log.Errorf("GetDownloadInfoWithBlocks,recordDownloadBlock error %s", err.Error())
+// 		}
+// 	}
 
-	return infoMap, nil
-}
+// 	return infoMap, nil
+// }
 
-// GetDownloadInfoWithBlock find node
-func (s *Scheduler) GetDownloadInfoWithBlock(ctx context.Context, cid string, publicKey string) (api.DownloadInfoResult, error) {
+// GetDownloadInfosWithCarfile find node
+func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string, publicKey string) ([]*api.DownloadInfoResult, error) {
 	if cid == "" {
-		return api.DownloadInfoResult{}, xerrors.New("cids is nil")
+		return nil, xerrors.New("cids is nil")
 	}
 
 	infos, err := s.nodeManager.FindNodeDownloadInfos(cid)
 	if err != nil {
-		return api.DownloadInfoResult{}, err
+		return nil, err
 	}
 
-	info := infos[randomNum(0, len(infos))]
-	err = s.signDownloadInfos(cid, []api.DownloadInfoResult{info}, make(map[string]*rsa.PrivateKey))
-	if err != nil {
-		return api.DownloadInfoResult{}, err
-	}
+	return infos, nil
 
-	record := &cache.DownloadBlockRecord{
-		SN:            info.SN,
-		ID:            uuid.New().String(),
-		Cid:           cid,
-		SignTime:      info.SignTime,
-		Timeout:       blockDonwloadTimeout,
-		UserPublicKey: publicKey,
-		NodeStatus:    int(blockDownloadStatusUnknow),
-		UserStatus:    int(blockDownloadStatusUnknow),
-	}
+	//TODO
+	// info := infos[randomNum(0, len(infos))]
+	// err = s.signDownloadInfos(cid, []api.DownloadInfoResult{info}, make(map[string]*rsa.PrivateKey))
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	err = s.recordDownloadBlock(record, nil, "", handler.GetRequestIP(ctx))
-	if err != nil {
-		log.Errorf("GetDownloadInfoWithBlock,recordDownloadBlock error %s", err.Error())
-	}
+	// record := &cache.DownloadBlockRecord{
+	// 	SN:            info.SN,
+	// 	ID:            uuid.New().String(),
+	// 	Cid:           cid,
+	// 	SignTime:      info.SignTime,
+	// 	Timeout:       blockDonwloadTimeout,
+	// 	UserPublicKey: publicKey,
+	// 	NodeStatus:    int(blockDownloadStatusUnknow),
+	// 	UserStatus:    int(blockDownloadStatusUnknow),
+	// }
 
-	return info, nil
+	// err = s.recordDownloadBlock(record, nil, "", handler.GetRequestIP(ctx))
+	// if err != nil {
+	// 	log.Errorf("GetDownloadInfoWithBlock,recordDownloadBlock error %s", err.Error())
+	// }
+
+	// return info, nil
 }
 
 func (s *Scheduler) verifyNodeResultForUserDownloadBlock(deviceID string, record *cache.DownloadBlockRecord, sign []byte) error {

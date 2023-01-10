@@ -50,13 +50,15 @@ type Manager struct {
 	dataMap            sync.Map
 	expiredTimeOfCache time.Time
 	isLoadExpiredTime  bool
+	getAuthToken       func() []byte
 }
 
 // NewDataManager new
-func NewDataManager(nodeManager *node.Manager) *Manager {
+func NewDataManager(nodeManager *node.Manager, getToken func() []byte) *Manager {
 	d := &Manager{
 		nodeManager:       nodeManager,
 		isLoadExpiredTime: true,
+		getAuthToken:      getToken,
 	}
 
 	d.resetBaseInfo()
@@ -104,8 +106,8 @@ func (m *Manager) resetBaseInfo() {
 	}
 }
 
-func (m *Manager) getWaitingDataTasks(count int) []*api.DataInfo {
-	list := make([]*api.DataInfo, 0)
+func (m *Manager) getWaitingDataTasks(count int) []*api.CarfileRecordInfo {
+	list := make([]*api.CarfileRecordInfo, 0)
 
 	curCount := int64(0)
 	isGet := true
@@ -137,7 +139,7 @@ func (m *Manager) getWaitingDataTasks(count int) []*api.DataInfo {
 	return list
 }
 
-func (m *Manager) doDataTask(info *api.DataInfo) error {
+func (m *Manager) doDataTask(info *api.CarfileRecordInfo) error {
 	if info.CacheInfos != nil && len(info.CacheInfos) > 0 {
 		deviceID := info.CacheInfos[0].DeviceID
 
@@ -156,10 +158,10 @@ func (m *Manager) doDataTask(info *api.DataInfo) error {
 }
 
 // GetData get a data from map or db
-func (m *Manager) GetData(hash string) (*Data, error) {
+func (m *Manager) GetData(hash string) (*CarfileRecord, error) {
 	dI, ok := m.dataMap.Load(hash)
 	if ok && dI != nil {
-		return dI.(*Data), nil
+		return dI.(*CarfileRecord), nil
 	}
 
 	return loadData(hash, m)
@@ -178,7 +180,7 @@ func (m *Manager) checkTaskTimeout(taskInfo *cache.DataTask) {
 
 	cI, ok := data.CacheMap.Load(taskInfo.DeviceID)
 	if ok && cI != nil {
-		cache := cI.(*Cache)
+		cache := cI.(*CacheTask)
 		err := cache.endCache(api.CacheStatusTimeout)
 		if err != nil {
 			log.Errorf("stopCache err:%s", err.Error())
@@ -211,7 +213,7 @@ func (m *Manager) makeDataTask(cid, hash string, reliability int, expiredTime ti
 		data.expiredTime = expiredTime
 	}
 
-	err = persistent.GetDB().SetDataInfo(&api.DataInfo{
+	err = persistent.GetDB().SetDataInfo(&api.CarfileRecordInfo{
 		CarfileCid:      data.carfileCid,
 		TotalSize:       data.totalSize,
 		NeedReliability: data.needReliability,
@@ -272,7 +274,7 @@ func (m *Manager) CacheData(cid string, reliability int, expiredTime time.Time) 
 		return xerrors.Errorf("%s cid to hash err:", cid, err.Error())
 	}
 
-	err = cache.GetDB().SetWaitingDataTask(&api.DataInfo{CarfileHash: hash, CarfileCid: cid, NeedReliability: reliability, ExpiredTime: expiredTime})
+	err = cache.GetDB().SetWaitingDataTask(&api.CarfileRecordInfo{CarfileHash: hash, CarfileCid: cid, NeedReliability: reliability, ExpiredTime: expiredTime})
 	if err != nil {
 		return err
 	}
@@ -294,7 +296,7 @@ func (m *Manager) CacheContinue(cid, deviceID string) error {
 		return xerrors.Errorf("%s cid to hash err:", cid, err.Error())
 	}
 
-	err = cache.GetDB().SetWaitingDataTask(&api.DataInfo{CarfileHash: hash, CarfileCid: cid, CacheInfos: []api.CacheInfo{{DeviceID: deviceID}}})
+	err = cache.GetDB().SetWaitingDataTask(&api.CarfileRecordInfo{CarfileHash: hash, CarfileCid: cid, CacheInfos: []api.CacheTaskInfo{{DeviceID: deviceID}}})
 	if err != nil {
 		return err
 	}
@@ -332,7 +334,7 @@ func (m *Manager) RemoveCarfile(carfileCid string) error {
 	}
 
 	data.CacheMap.Range(func(key, value interface{}) bool {
-		c := value.(*Cache)
+		c := value.(*CacheTask)
 
 		err := c.removeCache()
 		if err != nil {
@@ -366,7 +368,7 @@ func (m *Manager) RemoveCache(carfileCid, cacheID string) error {
 	if !exist {
 		return xerrors.Errorf("removeCache not found cacheID:%s,Cid:%s", cacheID, data.carfileCid)
 	}
-	cache := cacheI.(*Cache)
+	cache := cacheI.(*CacheTask)
 
 	err = cache.removeCache()
 	e := ""
@@ -379,10 +381,10 @@ func (m *Manager) RemoveCache(carfileCid, cacheID string) error {
 
 // CacheCarfileResult block cache result
 func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo) (err error) {
-	var data *Data
+	var data *CarfileRecord
 	dI, exist := m.dataMap.Load(info.CarfileHash)
 	if exist && dI != nil {
-		data = dI.(*Data)
+		data = dI.(*CarfileRecord)
 	} else {
 		data, _ = loadData(info.CarfileHash, m)
 		if data == nil {
@@ -408,7 +410,7 @@ func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo)
 		err = xerrors.Errorf("cacheCarfileResult not found cacheID:%s,Cid:%s", deviceID, data.carfileCid)
 		return
 	}
-	c := cacheI.(*Cache)
+	c := cacheI.(*CacheTask)
 
 	err = c.blockCacheResult(info)
 	return
@@ -449,7 +451,7 @@ func (m *Manager) doDataTasks() {
 // 	}
 // }
 
-func (m *Manager) recordTaskStart(data *Data) {
+func (m *Manager) recordTaskStart(data *CarfileRecord) {
 	if data == nil {
 		log.Error("recordTaskStart err data is nil")
 		return
@@ -512,7 +514,7 @@ func (m *Manager) StopCacheTask(cid string) error {
 
 	cI, ok := data.CacheMap.Load(deviceID)
 	if ok && cI != nil {
-		cache := cI.(*Cache)
+		cache := cI.(*CacheTask)
 		err := cache.endCache(api.CacheStatusFail)
 		if err != nil {
 			return err
@@ -583,12 +585,12 @@ func (m *Manager) ReplenishExpiredTimeToData(cid, cacheID string, hour int) erro
 
 	dI, ok := m.dataMap.Load(hash)
 	if ok && dI != nil {
-		data := dI.(*Data)
+		data := dI.(*CarfileRecord)
 
 		if cacheID != "" {
 			cI, ok := data.CacheMap.Load(cacheID)
 			if ok && cI != nil {
-				c := cI.(*Cache)
+				c := cI.(*CacheTask)
 				c.expiredTime = c.expiredTime.Add((time.Duration(hour) * time.Hour))
 			}
 
@@ -597,7 +599,7 @@ func (m *Manager) ReplenishExpiredTimeToData(cid, cacheID string, hour int) erro
 
 		data.CacheMap.Range(func(key, value interface{}) bool {
 			if value != nil {
-				c := value.(*Cache)
+				c := value.(*CacheTask)
 				if c != nil {
 					c.expiredTime = c.expiredTime.Add((time.Duration(hour) * time.Hour))
 				}
@@ -624,12 +626,12 @@ func (m *Manager) ResetExpiredTime(cid, cacheID string, expiredTime time.Time) e
 
 	dI, ok := m.dataMap.Load(hash)
 	if ok && dI != nil {
-		data := dI.(*Data)
+		data := dI.(*CarfileRecord)
 
 		if cacheID != "" {
 			cI, ok := data.CacheMap.Load(cacheID)
 			if ok && cI != nil {
-				c := cI.(*Cache)
+				c := cI.(*CacheTask)
 				c.expiredTime = expiredTime
 			}
 
@@ -638,7 +640,7 @@ func (m *Manager) ResetExpiredTime(cid, cacheID string, expiredTime time.Time) e
 
 		data.CacheMap.Range(func(key, value interface{}) bool {
 			if value != nil {
-				c := value.(*Cache)
+				c := value.(*CacheTask)
 				if c != nil {
 					c.expiredTime = expiredTime
 				}
@@ -693,7 +695,7 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceIDs []string) {
 		}
 
 		// Restore cache
-		err = cache.GetDB().SetWaitingDataTask(&api.DataInfo{CarfileHash: carfileHash, CarfileCid: info.CarfileCid, NeedReliability: info.NeedReliability, ExpiredTime: info.ExpiredTime})
+		err = cache.GetDB().SetWaitingDataTask(&api.CarfileRecordInfo{CarfileHash: carfileHash, CarfileCid: info.CarfileCid, NeedReliability: info.NeedReliability, ExpiredTime: info.ExpiredTime})
 		if err != nil {
 			log.Errorf("cleanNodeAndRestoreCaches SetWaitingDataTask err:%s", err.Error())
 			continue
@@ -740,7 +742,7 @@ func (m *Manager) checkCachesExpired() {
 		if !exist {
 			continue
 		}
-		cache := cI.(*Cache)
+		cache := cI.(*CacheTask)
 
 		// do remove
 		err = cache.removeCache()

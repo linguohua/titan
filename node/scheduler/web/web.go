@@ -123,7 +123,7 @@ func (w *web) ListCacheTasks(ctx context.Context, cursor int, count int) (api.Li
 	return api.ListCacheTasksRsp{}, nil
 }
 
-func (w *web) GetCacheTaskInfo(ctx context.Context, carFileCID string) (api.DataInfo, error) {
+func (w *web) GetCacheTaskInfo(ctx context.Context, carFileCID string) (api.CarfileRecordInfo, error) {
 	return w.scheduler.GetCacheData(ctx, carFileCID)
 }
 

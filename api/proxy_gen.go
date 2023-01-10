@@ -254,7 +254,7 @@ type SchedulerStruct struct {
 
 		GetBlocksCacheError func(p0 context.Context, p1 string) ([]*CacheError, error) `perm:"read"`
 
-		GetCacheData func(p0 context.Context, p1 string) (DataInfo, error) `perm:"read"`
+		GetCacheData func(p0 context.Context, p1 string) (CarfileRecordInfo, error) `perm:"read"`
 
 		GetCandidateDownloadInfoWithBlocks func(p0 context.Context, p1 []string) (map[string]CandidateDownloadInfo, error) `perm:"write"`
 
@@ -262,11 +262,7 @@ type SchedulerStruct struct {
 
 		GetDownloadInfo func(p0 context.Context, p1 string) ([]*BlockDownloadInfo, error) `perm:"read"`
 
-		GetDownloadInfoWithBlock func(p0 context.Context, p1 string, p2 string) (DownloadInfoResult, error) `perm:"read"`
-
-		GetDownloadInfoWithBlocks func(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfoResult, error) `perm:"read"`
-
-		GetDownloadInfosWithBlocks func(p0 context.Context, p1 []string, p2 string) (map[string][]DownloadInfoResult, error) `perm:"read"`
+		GetDownloadInfosWithCarfile func(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) `perm:"read"`
 
 		GetExternalIP func(p0 context.Context) (string, error) `perm:"write"`
 
@@ -300,7 +296,7 @@ type SchedulerStruct struct {
 
 		ResetCacheExpiredTime func(p0 context.Context, p1 string, p2 string, p3 time.Time) error `perm:"admin"`
 
-		ShowRunningCacheDatas func(p0 context.Context) ([]DataInfo, error) `perm:"read"`
+		ShowRunningCacheDatas func(p0 context.Context) ([]CarfileRecordInfo, error) `perm:"read"`
 
 		StopCacheTask func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -339,7 +335,7 @@ type WebStruct struct {
 
 		GetCacheBlockInfos func(p0 context.Context, p1 ListCacheBlocksReq) (ListCacheBlocksRsp, error) `perm:"read"`
 
-		GetCacheTaskInfo func(p0 context.Context, p1 string) (DataInfo, error) `perm:"read"`
+		GetCacheTaskInfo func(p0 context.Context, p1 string) (CarfileRecordInfo, error) `perm:"read"`
 
 		GetCarfileByCID func(p0 context.Context, p1 string) (WebCarfile, error) `perm:"read"`
 
@@ -995,15 +991,15 @@ func (s *SchedulerStub) GetBlocksCacheError(p0 context.Context, p1 string) ([]*C
 	return *new([]*CacheError), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetCacheData(p0 context.Context, p1 string) (DataInfo, error) {
+func (s *SchedulerStruct) GetCacheData(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
 	if s.Internal.GetCacheData == nil {
-		return *new(DataInfo), ErrNotSupported
+		return *new(CarfileRecordInfo), ErrNotSupported
 	}
 	return s.Internal.GetCacheData(p0, p1)
 }
 
-func (s *SchedulerStub) GetCacheData(p0 context.Context, p1 string) (DataInfo, error) {
-	return *new(DataInfo), ErrNotSupported
+func (s *SchedulerStub) GetCacheData(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
+	return *new(CarfileRecordInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetCandidateDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]CandidateDownloadInfo, error) {
@@ -1039,37 +1035,15 @@ func (s *SchedulerStub) GetDownloadInfo(p0 context.Context, p1 string) ([]*Block
 	return *new([]*BlockDownloadInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetDownloadInfoWithBlock(p0 context.Context, p1 string, p2 string) (DownloadInfoResult, error) {
-	if s.Internal.GetDownloadInfoWithBlock == nil {
-		return *new(DownloadInfoResult), ErrNotSupported
+func (s *SchedulerStruct) GetDownloadInfosWithCarfile(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) {
+	if s.Internal.GetDownloadInfosWithCarfile == nil {
+		return *new([]*DownloadInfoResult), ErrNotSupported
 	}
-	return s.Internal.GetDownloadInfoWithBlock(p0, p1, p2)
+	return s.Internal.GetDownloadInfosWithCarfile(p0, p1, p2)
 }
 
-func (s *SchedulerStub) GetDownloadInfoWithBlock(p0 context.Context, p1 string, p2 string) (DownloadInfoResult, error) {
-	return *new(DownloadInfoResult), ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfoResult, error) {
-	if s.Internal.GetDownloadInfoWithBlocks == nil {
-		return *new(map[string]DownloadInfoResult), ErrNotSupported
-	}
-	return s.Internal.GetDownloadInfoWithBlocks(p0, p1, p2)
-}
-
-func (s *SchedulerStub) GetDownloadInfoWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string]DownloadInfoResult, error) {
-	return *new(map[string]DownloadInfoResult), ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetDownloadInfosWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string][]DownloadInfoResult, error) {
-	if s.Internal.GetDownloadInfosWithBlocks == nil {
-		return *new(map[string][]DownloadInfoResult), ErrNotSupported
-	}
-	return s.Internal.GetDownloadInfosWithBlocks(p0, p1, p2)
-}
-
-func (s *SchedulerStub) GetDownloadInfosWithBlocks(p0 context.Context, p1 []string, p2 string) (map[string][]DownloadInfoResult, error) {
-	return *new(map[string][]DownloadInfoResult), ErrNotSupported
+func (s *SchedulerStub) GetDownloadInfosWithCarfile(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) {
+	return *new([]*DownloadInfoResult), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetExternalIP(p0 context.Context) (string, error) {
@@ -1248,15 +1222,15 @@ func (s *SchedulerStub) ResetCacheExpiredTime(p0 context.Context, p1 string, p2 
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ShowRunningCacheDatas(p0 context.Context) ([]DataInfo, error) {
+func (s *SchedulerStruct) ShowRunningCacheDatas(p0 context.Context) ([]CarfileRecordInfo, error) {
 	if s.Internal.ShowRunningCacheDatas == nil {
-		return *new([]DataInfo), ErrNotSupported
+		return *new([]CarfileRecordInfo), ErrNotSupported
 	}
 	return s.Internal.ShowRunningCacheDatas(p0)
 }
 
-func (s *SchedulerStub) ShowRunningCacheDatas(p0 context.Context) ([]DataInfo, error) {
-	return *new([]DataInfo), ErrNotSupported
+func (s *SchedulerStub) ShowRunningCacheDatas(p0 context.Context) ([]CarfileRecordInfo, error) {
+	return *new([]CarfileRecordInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) StopCacheTask(p0 context.Context, p1 string) error {
@@ -1369,15 +1343,15 @@ func (s *WebStub) GetCacheBlockInfos(p0 context.Context, p1 ListCacheBlocksReq) 
 	return *new(ListCacheBlocksRsp), ErrNotSupported
 }
 
-func (s *WebStruct) GetCacheTaskInfo(p0 context.Context, p1 string) (DataInfo, error) {
+func (s *WebStruct) GetCacheTaskInfo(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
 	if s.Internal.GetCacheTaskInfo == nil {
-		return *new(DataInfo), ErrNotSupported
+		return *new(CarfileRecordInfo), ErrNotSupported
 	}
 	return s.Internal.GetCacheTaskInfo(p0, p1)
 }
 
-func (s *WebStub) GetCacheTaskInfo(p0 context.Context, p1 string) (DataInfo, error) {
-	return *new(DataInfo), ErrNotSupported
+func (s *WebStub) GetCacheTaskInfo(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
+	return *new(CarfileRecordInfo), ErrNotSupported
 }
 
 func (s *WebStruct) GetCarfileByCID(p0 context.Context, p1 string) (WebCarfile, error) {

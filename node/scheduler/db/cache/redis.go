@@ -210,7 +210,7 @@ func (rd redisDB) RemoveRunningDataTask(hash, deviceID string) error {
 }
 
 // waiting data list
-func (rd redisDB) SetWaitingDataTask(info *api.DataInfo) error {
+func (rd redisDB) SetWaitingDataTask(info *api.CarfileRecordInfo) error {
 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	bytes, err := json.Marshal(info)
@@ -222,7 +222,7 @@ func (rd redisDB) SetWaitingDataTask(info *api.DataInfo) error {
 	return err
 }
 
-func (rd redisDB) GetWaitingDataTask(index int64) (*api.DataInfo, error) {
+func (rd redisDB) GetWaitingDataTask(index int64) (*api.CarfileRecordInfo, error) {
 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	value, err := rd.cli.LIndex(context.Background(), key, index).Result()
@@ -231,7 +231,7 @@ func (rd redisDB) GetWaitingDataTask(index int64) (*api.DataInfo, error) {
 		return nil, redis.Nil
 	}
 
-	var info api.DataInfo
+	var info api.CarfileRecordInfo
 	bytes, err := redigo.Bytes(value, nil)
 	if err != nil {
 		return nil, err
@@ -244,7 +244,7 @@ func (rd redisDB) GetWaitingDataTask(index int64) (*api.DataInfo, error) {
 	return &info, nil
 }
 
-func (rd redisDB) RemoveWaitingDataTasks(infos []*api.DataInfo) error {
+func (rd redisDB) RemoveWaitingDataTasks(infos []*api.CarfileRecordInfo) error {
 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	ctx := context.Background()

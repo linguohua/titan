@@ -27,15 +27,13 @@ type Manager struct {
 
 	nodeOfflineCallBack func(string)
 	nodeExitedCallBack  func([]string)
-	getAuthToken        func() []byte
 }
 
 // NewNodeManager New
-func NewNodeManager(nodeOfflineCallBack func(string), nodeExitedCallBack func([]string), getToken func() []byte) *Manager {
+func NewNodeManager(nodeOfflineCallBack func(string), nodeExitedCallBack func([]string)) *Manager {
 	nodeManager := &Manager{
 		nodeOfflineCallBack: nodeOfflineCallBack,
 		nodeExitedCallBack:  nodeExitedCallBack,
-		getAuthToken:        getToken,
 	}
 
 	go nodeManager.run()
@@ -372,8 +370,8 @@ func (m *Manager) UpdateNodeDiskUsage(deviceID string, diskUsage float64) {
 }
 
 // FindNodeDownloadInfos  find device with block cid
-func (m *Manager) FindNodeDownloadInfos(cid string) ([]api.DownloadInfoResult, error) {
-	infos := make([]api.DownloadInfoResult, 0)
+func (m *Manager) FindNodeDownloadInfos(cid string) ([]*api.DownloadInfoResult, error) {
+	infos := make([]*api.DownloadInfoResult, 0)
 
 	hash, err := helper.CIDString2HashString(cid)
 	if err != nil {
@@ -396,7 +394,7 @@ func (m *Manager) FindNodeDownloadInfos(cid string) ([]api.DownloadInfoResult, e
 			continue
 		}
 
-		infos = append(infos, api.DownloadInfoResult{URL: info.URL, DeviceID: deviceID})
+		infos = append(infos, &api.DownloadInfoResult{URL: info.URL, DeviceID: deviceID})
 	}
 
 	// if len(infos) <= 0 {
@@ -473,11 +471,6 @@ func (m *Manager) NodesQuit(deviceIDs []string) {
 	if m.nodeExitedCallBack != nil {
 		m.nodeExitedCallBack(deviceIDs)
 	}
-}
-
-// GetAuthToken get token
-func (m *Manager) GetAuthToken() []byte {
-	return m.getAuthToken()
 }
 
 // func statisticsPing(ip string) (*ping.Statistics, error) {

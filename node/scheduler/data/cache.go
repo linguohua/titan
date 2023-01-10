@@ -13,9 +13,9 @@ import (
 // If the node disk size is greater than this value, caching will not continue
 const diskUsageMax = 90
 
-// Cache Cache
-type Cache struct {
-	data *Data
+// CacheTask CacheTask
+type CacheTask struct {
+	data *CarfileRecord
 
 	deviceID    string
 	carfileHash string
@@ -25,14 +25,13 @@ type Cache struct {
 	doneBlocks  int
 	totalSize   int
 	totalBlocks int
-	nodes       int
 	isRootCache bool
 	expiredTime time.Time
 	cacheCount  int
 }
 
-func newCache(data *Data, deviceID string, isRootCache bool) (*Cache, error) {
-	cache := &Cache{
+func newCache(data *CarfileRecord, deviceID string, isRootCache bool) (*CacheTask, error) {
+	cache := &CacheTask{
 		data:        data,
 		reliability: 0,
 		status:      api.CacheStatusCreate,
@@ -43,7 +42,7 @@ func newCache(data *Data, deviceID string, isRootCache bool) (*Cache, error) {
 	}
 
 	err := persistent.GetDB().CreateCache(
-		&api.CacheInfo{
+		&api.CacheTaskInfo{
 			CarfileHash: cache.carfileHash,
 			DeviceID:    cache.deviceID,
 			Status:      cache.status,
@@ -58,7 +57,7 @@ func newCache(data *Data, deviceID string, isRootCache bool) (*Cache, error) {
 }
 
 // Notify node to cache blocks
-func (c *Cache) sendBlocksToNode() error {
+func (c *CacheTask) sendBlocksToNode() error {
 	//TODO new api
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -89,7 +88,7 @@ func (c *Cache) sendBlocksToNode() error {
 	return xerrors.Errorf("not found node:%s", c.deviceID)
 }
 
-func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
+func (c *CacheTask) blockCacheResult(info *api.CacheResultInfo) error {
 	c.doneBlocks = info.DoneBlocks
 	c.doneSize = info.DoneSize
 
@@ -110,7 +109,7 @@ func (c *Cache) blockCacheResult(info *api.CacheResultInfo) error {
 }
 
 // update node block info in redis
-func (c *Cache) updateNodeBlockInfo(deviceID, fromDeviceID string, blockSize int) {
+func (c *CacheTask) updateNodeBlockInfo(deviceID, fromDeviceID string, blockSize int) {
 	fromID := ""
 
 	node := c.data.nodeManager.GetCandidateNode(fromDeviceID)
@@ -124,7 +123,7 @@ func (c *Cache) updateNodeBlockInfo(deviceID, fromDeviceID string, blockSize int
 	}
 }
 
-func (c *Cache) startCache() error {
+func (c *CacheTask) startCache() error {
 	c.cacheCount++
 	//TODO send to node
 	err := c.sendBlocksToNode()
@@ -145,7 +144,7 @@ func (c *Cache) startCache() error {
 	return nil
 }
 
-func (c *Cache) endCache(status api.CacheStatus) (err error) {
+func (c *CacheTask) endCache(status api.CacheStatus) (err error) {
 	saveEvent(c.data.carfileCid, c.deviceID, "", "", eventTypeDoCacheTaskEnd)
 
 	err = cache.GetDB().RemoveRunningDataTask(c.carfileHash, c.deviceID)
@@ -164,7 +163,7 @@ func (c *Cache) endCache(status api.CacheStatus) (err error) {
 	return
 }
 
-func (c *Cache) removeCache() error {
+func (c *CacheTask) removeCache() error {
 	err := cache.GetDB().RemoveRunningDataTask(c.carfileHash, c.deviceID)
 	if err != nil {
 		return xerrors.Errorf("removeCache RemoveRunningDataTask err: %s", err.Error())
@@ -191,7 +190,7 @@ func (c *Cache) removeCache() error {
 	isDelete := true
 	c.data.CacheMap.Range(func(key, value interface{}) bool {
 		if value != nil {
-			ca := value.(*Cache)
+			ca := value.(*CacheTask)
 			if ca != nil && c.deviceID != ca.deviceID {
 				isDelete = false
 			}
@@ -210,7 +209,7 @@ func (c *Cache) removeCache() error {
 }
 
 // Notify nodes to delete blocks
-func (c *Cache) notifyNodeRemoveBlocks(deviceID string, cids []string) {
+func (c *CacheTask) notifyNodeRemoveBlocks(deviceID string, cids []string) {
 	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	// defer cancel()
 
@@ -235,7 +234,7 @@ func (c *Cache) notifyNodeRemoveBlocks(deviceID string, cids []string) {
 	}
 }
 
-func (c *Cache) calculateReliability(deviceID string) int {
+func (c *CacheTask) calculateReliability(deviceID string) int {
 	// TODO To be perfected
 	if deviceID != "" {
 		return 1
@@ -249,31 +248,26 @@ func (c *Cache) calculateReliability(deviceID string) int {
 }
 
 // GetDeviceID get device id
-func (c *Cache) GetDeviceID() string {
+func (c *CacheTask) GetDeviceID() string {
 	return c.deviceID
 }
 
 // GetStatus get status
-func (c *Cache) GetStatus() api.CacheStatus {
+func (c *CacheTask) GetStatus() api.CacheStatus {
 	return c.status
 }
 
 // GetDoneSize get done size
-func (c *Cache) GetDoneSize() int {
+func (c *CacheTask) GetDoneSize() int {
 	return c.doneSize
 }
 
 // GetDoneBlocks get done blocks
-func (c *Cache) GetDoneBlocks() int {
+func (c *CacheTask) GetDoneBlocks() int {
 	return c.doneBlocks
 }
 
-// GetNodes get nodes
-func (c *Cache) GetNodes() int {
-	return c.nodes
-}
-
 // IsRootCache get is root cache
-func (c *Cache) IsRootCache() bool {
+func (c *CacheTask) IsRootCache() bool {
 	return c.isRootCache
 }
