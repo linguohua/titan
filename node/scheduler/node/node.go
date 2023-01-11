@@ -119,6 +119,8 @@ type Node struct {
 	cacheStat                 *api.CacheStat
 	cacheTimeoutTimeStamp     int64 // TimeStamp of cache timeout
 	cacheNextTimeoutTimeStamp int64 // TimeStamp of next cache timeout
+
+	curCacheCount int //The number of caches waiting and in progress
 }
 
 // NewNode new
@@ -178,6 +180,16 @@ func (n *Node) GetGeoInfo() *region.GeoInfo {
 // SetGeoInfo set geo info
 func (n *Node) SetGeoInfo(info *region.GeoInfo) {
 	n.geoInfo = info
+}
+
+// SetCurCacheCount set cache count
+func (n *Node) SetCurCacheCount(t int) {
+	n.curCacheCount = t
+}
+
+// GetCurCacheCount cache count
+func (n *Node) GetCurCacheCount() int {
+	return n.curCacheCount
 }
 
 // node online
