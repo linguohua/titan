@@ -12,7 +12,6 @@ import (
 	"golang.org/x/time/rate"
 
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/linguohua/titan/node/block"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/download"
 )
@@ -21,23 +20,20 @@ var log = logging.Logger("edge")
 
 func NewLocalEdgeNode(ctx context.Context, device *device.Device, params *helper.NodeParams) api.Edge {
 	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
+	validate := validate.NewValidate(params.CarfileStore, device)
 
-	block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.Candidate{}, device, params.IPFSAPI)
-
-	validate := validate.NewValidate(block, device)
 	blockDownload := download.NewBlockDownload(rateLimiter, params, device, validate)
 
-	carfileOeration := carfile.NewCarfileOperation(params.DS, params.BlockStore, params.Scheduler, &carfile.Candidate{}, device)
+	carfileOeration := carfile.NewCarfileOperation(params.CarfileStore, params.Scheduler, carfile.NewCandidate(params.CarfileStore), device)
 
-	datasync.SyncLocalBlockstore(params.DS, params.BlockStore, block)
+	datasync.SyncLocalBlockstore(params.DS, params.CarfileStore)
 
 	edge := &Edge{
 		Device:           device,
-		Block:            block,
 		CarfileOperation: carfileOeration,
 		BlockDownload:    blockDownload,
 		Validate:         validate,
-		DataSync:         datasync.NewDataSync(block, params.DS),
+		DataSync:         datasync.NewDataSync(params.DS),
 	}
 
 	return edge
@@ -46,7 +42,6 @@ func NewLocalEdgeNode(ctx context.Context, device *device.Device, params *helper
 type Edge struct {
 	*common.CommonAPI
 	*device.Device
-	*block.Block
 	*carfile.CarfileOperation
 	*download.BlockDownload
 	*validate.Validate

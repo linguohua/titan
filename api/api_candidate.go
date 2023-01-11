@@ -5,13 +5,15 @@ import "context"
 type Candidate interface {
 	Common
 	Device
-	Block
+	// Block
 	Download
 	Validate
 	DataSync
 	CarfileOperation
 	WaitQuiet(ctx context.Context) error                         //perm:read
 	ValidateBlocks(ctx context.Context, req []ReqValidate) error //perm:read
+	// load block
+	LoadBlock(ctx context.Context, cid string) ([]byte, error) //perm:read
 }
 
 type ReqValidate struct {

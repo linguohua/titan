@@ -87,7 +87,7 @@ type CarfileOperationStruct struct {
 
 		DeleteAllCarfiles func(p0 context.Context) error `perm:"admin"`
 
-		DeleteCarfile func(p0 context.Context, p1 string) error `perm:"write"`
+		DeleteCarfile func(p0 context.Context, p1 string) (int, error) `perm:"write"`
 
 		DeleteWaitCacheCarfile func(p0 context.Context, p1 string) error `perm:"admin"`
 	}
@@ -523,15 +523,15 @@ func (s *CarfileOperationStub) DeleteAllCarfiles(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *CarfileOperationStruct) DeleteCarfile(p0 context.Context, p1 string) error {
+func (s *CarfileOperationStruct) DeleteCarfile(p0 context.Context, p1 string) (int, error) {
 	if s.Internal.DeleteCarfile == nil {
-		return ErrNotSupported
+		return 0, ErrNotSupported
 	}
 	return s.Internal.DeleteCarfile(p0, p1)
 }
 
-func (s *CarfileOperationStub) DeleteCarfile(p0 context.Context, p1 string) error {
-	return ErrNotSupported
+func (s *CarfileOperationStub) DeleteCarfile(p0 context.Context, p1 string) (int, error) {
+	return 0, ErrNotSupported
 }
 
 func (s *CarfileOperationStruct) DeleteWaitCacheCarfile(p0 context.Context, p1 string) error {

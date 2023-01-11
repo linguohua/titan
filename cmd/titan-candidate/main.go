@@ -15,12 +15,12 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
-	"github.com/linguohua/titan/blockstore"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/metrics"
+	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/repo"
@@ -45,7 +45,7 @@ const (
 
 	// TODO remove after deprecation period
 	FlagWorkerRepoDeprecation = "candidaterepo"
-	DefaultBlockstoreDir      = "/blockstore"
+	DefaultcarfileStoreDir    = "/carfilestore"
 )
 
 func main() {
@@ -123,8 +123,8 @@ var runCmd = &cli.Command{
 			Value: "123456789000000001",
 		},
 		&cli.StringFlag{
-			Name:  "blockstore-path",
-			Usage: "block store path, example: --blockstore-path=./blockstore",
+			Name:  "carfile-store-path",
+			Usage: "block store path, example: --carfile-store-path=./blockstore",
 			Value: "",
 		},
 		&cli.StringFlag{
@@ -323,24 +323,24 @@ var runCmd = &cli.Command{
 			return err
 		}
 
-		blockstorePath := cctx.String("blockstore-path")
-		if len(blockstorePath) == 0 {
-			blockstorePath = lr.Path() + DefaultBlockstoreDir
+		carfileStorePath := cctx.String("carfile-store-path")
+		if len(carfileStorePath) == 0 {
+			carfileStorePath = lr.Path() + DefaultcarfileStoreDir
 		}
 
-		blockStore := blockstore.NewBlockStore(blockstorePath, cctx.String("blockstore-type"))
+		carfileStore := carfilestore.NewCarfileStore(carfileStorePath, cctx.String("blockstore-type"))
 		device := device.NewDevice(
 			deviceID,
 			externalIP,
 			internalIP,
 			cctx.Int64("bandwidth-up"),
 			cctx.Int64("bandwidth-down"),
-			blockStore)
+			carfileStore)
 
 		nodeParams := &helper.NodeParams{
 			DS:              ds,
 			Scheduler:       schedulerAPI,
-			BlockStore:      blockStore,
+			CarfileStore:    carfileStore,
 			DownloadSrvKey:  cctx.String("download-srv-key"),
 			DownloadSrvAddr: cctx.String("download-srv-addr"),
 			IPFSAPI:         cctx.String("ipfs-api"),

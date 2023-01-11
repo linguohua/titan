@@ -2,7 +2,6 @@ package validate
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"net"
 	"time"
@@ -10,7 +9,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/block"
+	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/device"
 	"golang.org/x/time/rate"
 )
@@ -18,14 +17,13 @@ import (
 var log = logging.Logger("validate")
 
 type Validate struct {
-	// blockDownload         *download.BlockDownload
-	block                 *block.Block
+	carfileStore          *carfilestore.CarfileStore
 	device                *device.Device
 	cancelValidateChannel chan bool
 }
 
-func NewValidate(block *block.Block, device *device.Device) *Validate {
-	return &Validate{block: block, device: device}
+func NewValidate(carfileStore *carfilestore.CarfileStore, device *device.Device) *Validate {
+	return &Validate{carfileStore: carfileStore, device: device}
 }
 
 func (validate *Validate) BeValidate(ctx context.Context, reqValidate api.ReqValidate, candidateTcpSrvAddr string) error {
@@ -75,10 +73,19 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 		}
 
 		fid := r.Intn(reqValidate.MaxFid) + 1
-		block, err := validate.block.LoadBlockWithFid(fmt.Sprintf("%d", fid))
+		blockHashs, err := validate.carfileStore.GetBlocksHashOfCarfile("", []int{fid})
 		if err != nil && err != datastore.ErrNotFound {
-			log.Errorf("sendBlocks, get block error:%v", err)
+			log.Errorf("sendBlocks, get blockHashs error:%v", err)
 			return
+		}
+
+		var block []byte
+		if len(blockHashs) > 0 {
+			block, err = validate.carfileStore.GetBlock(blockHashs[0])
+			if err != nil && err != datastore.ErrNotFound {
+				log.Errorf("sendBlocks, get block error:%v", err)
+				return
+			}
 		}
 
 		err = sendData(conn, block, api.ValidateTcpMsgTypeBlockContent, limiter)

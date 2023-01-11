@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -17,7 +16,7 @@ var EdgeCmds = []*cli.Command{
 	ValidateBlockCmd,
 	LimitRateCmd,
 	CacheStatCmd,
-	StoreKeyCmd,
+	// StoreKeyCmd,
 	DeleteAllBlocksCmd,
 	testSyncCmd,
 }
@@ -57,22 +56,23 @@ var DeviceInfoCmd = &cli.Command{
 }
 
 var CacheBlockCmd = &cli.Command{
-	Name:  "cache",
-	Usage: "cache block content",
+	Name:  "cache-file",
+	Usage: "cache carfile",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "cid",
-			Usage: "block cids",
+			Usage: "carfile cid",
 			Value: "",
 		},
-		&cli.IntFlag{
-			Name:  "fid",
-			Usage: "block fid",
-			Value: 0,
-		},
 		&cli.StringFlag{
-			Name:  "candidate",
-			Usage: "block file id",
+			Name:  "source",
+			Usage: "download source",
+			Value: "",
+		},
+
+		&cli.StringFlag{
+			Name:  "token",
+			Usage: "download token",
 			Value: "",
 		},
 	},
@@ -84,16 +84,14 @@ var CacheBlockCmd = &cli.Command{
 		}
 		defer closer()
 
-		cid := cctx.String("cid")
-		fid := cctx.Int("fid")
-		candidateURL := cctx.String("candidate")
+		carfileCID := cctx.String("cid")
+		candidateURL := cctx.String("source")
+		candidateToken := cctx.String("token")
 		ctx := ReqContext(cctx)
 
-		blockInfo := api.BlockCacheInfo{Cid: cid, Fid: fid}
+		source := api.DowloadSource{CandidateURL: candidateURL, CandidateToken: candidateToken}
 
-		reqData := API.ReqCacheData{BlockInfos: []api.BlockCacheInfo{blockInfo}, DownloadURL: candidateURL}
-
-		_, err = adgeAPI.CacheBlocks(ctx, []api.ReqCacheData{reqData})
+		_, err = adgeAPI.CacheCarfile(ctx, carfileCID, []*api.DowloadSource{&source})
 		if err != nil {
 			return err
 		}
@@ -114,25 +112,25 @@ var DeleteBlockCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetEdgeAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
+		// api, closer, err := GetEdgeAPI(cctx)
+		// if err != nil {
+		// 	return err
+		// }
+		// defer closer()
 
-		cid := cctx.String("cid")
+		// cid := cctx.String("cid")
 
-		results, err := api.AnnounceBlocksWasDelete(context.Background(), []string{cid})
-		if err != nil {
-			return err
-		}
+		// results, err := api.AnnounceBlocksWasDelete(context.Background(), []string{cid})
+		// if err != nil {
+		// 	return err
+		// }
 
-		if len(results) > 0 {
-			log.Infof("delete block %s failed %v", cid, results[0].ErrMsg)
-			return nil
-		}
+		// if len(results) > 0 {
+		// 	log.Infof("delete block %s failed %v", cid, results[0].ErrMsg)
+		// 	return nil
+		// }
 
-		log.Infof("delete block %s success", cid)
+		// log.Infof("delete block %s success", cid)
 		return nil
 	},
 }
@@ -227,67 +225,20 @@ var CacheStatCmd = &cli.Command{
 	Usage: "cache stat",
 	Flags: []cli.Flag{},
 	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetEdgeAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
+		// api, closer, err := GetEdgeAPI(cctx)
+		// if err != nil {
+		// 	return err
+		// }
+		// defer closer()
 
-		ctx := ReqContext(cctx)
-		stat, err := api.QueryCacheStat(ctx)
-		if err != nil {
-			fmt.Printf("Unlimit speed failed:%v", err)
-			return err
-		}
+		// ctx := ReqContext(cctx)
+		// stat, err := api.QueryCacheStat(ctx)
+		// if err != nil {
+		// 	fmt.Printf("Unlimit speed failed:%v", err)
+		// 	return err
+		// }
 
-		fmt.Printf("Cache block count %d, Wait cache count %d, Caching count %d", stat.CacheBlockCount, stat.WaitCacheBlockNum, stat.DoingCacheBlockNum)
-		return nil
-	},
-}
-
-var StoreKeyCmd = &cli.Command{
-	Name:  "key",
-	Usage: "get cid or fid",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "fid",
-			Usage: "titan-edge key --fid=1",
-			Value: "",
-		},
-		&cli.StringFlag{
-			Name:  "cid",
-			Usage: "titan-edge key --cid=11111",
-			Value: "",
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetEdgeAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		ctx := ReqContext(cctx)
-
-		cid := cctx.String("cid")
-		fid := cctx.String("fid")
-
-		if len(cid) > 0 {
-			fid, err = api.GetFID(ctx, cid)
-			if err != nil {
-				return err
-			}
-			fmt.Printf("fid:%s", fid)
-			return nil
-		}
-
-		if len(fid) > 0 {
-			cid, err = api.GetCID(ctx, fid)
-			if err != nil {
-				return err
-			}
-			fmt.Printf("cid:%s", cid)
-		}
+		// fmt.Printf("Cache block count %d, Wait cache count %d, Caching count %d", stat.CacheBlockCount, stat.WaitCacheBlockNum, stat.DoingCacheBlockNum)
 		return nil
 	},
 }
@@ -297,15 +248,15 @@ var DeleteAllBlocksCmd = &cli.Command{
 	Usage: "delete all block",
 	Flags: []cli.Flag{},
 	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetEdgeAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
+		// api, closer, err := GetEdgeAPI(cctx)
+		// if err != nil {
+		// 	return err
+		// }
+		// defer closer()
 
-		ctx := ReqContext(cctx)
-		err = api.DeleteAllBlocks(ctx)
-		return err
+		// ctx := ReqContext(cctx)
+		// err = api.DeleteAllBlocks(ctx)
+		return nil
 	},
 }
 

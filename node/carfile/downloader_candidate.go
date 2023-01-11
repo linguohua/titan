@@ -11,16 +11,25 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
+	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/helper"
 )
 
-type Candidate struct {
-	deviceID   string
-	downSrvURL string
-	token      string
+// type CandidateAPI struct {
+// 	deviceID   string
+// 	downSrvURL string
+// 	token      string
+// }
+
+type candidate struct {
+	carfileStore *carfilestore.CarfileStore
 }
 
-func (candidate *Candidate) downloadBlocks(cids []string, downloadSource []*api.DowloadSource) ([]blocks.Block, error) {
+func NewCandidate(carfileStore *carfilestore.CarfileStore) *candidate {
+	return &candidate{carfileStore: carfileStore}
+}
+
+func (candidate *candidate) downloadBlocks(cids []string, downloadSource []*api.DowloadSource) ([]blocks.Block, error) {
 	return getBlocksFromCandidate(cids, downloadSource)
 }
 

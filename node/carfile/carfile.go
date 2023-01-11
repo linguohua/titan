@@ -26,37 +26,32 @@ type carfile struct {
 	downloadSources           []*api.DowloadSource
 	carfileSize               int64
 	downloadSize              int64
-	// waitListLock              *sync.Mutex
 }
 
 func newCarfileCache(carfileCID string, downloadSources []*api.DowloadSource) *carfile {
 	return &carfile{
 		carfileCID:                carfileCID,
-		blocksWaitList:            []string{carfileCID},
 		blocksDownloadSuccessList: make([]string, 0),
 		blocksDownloadFailedList:  make([]string, 0),
 		downloadSources:           downloadSources}
-	// waitListLock:              &sync.Mutex{}
 }
 
-func (cf *carfile) removeBlocksFromWaitList(n int) []string {
-	// cf.waitListLock.Lock()
-	// defer cf.waitListLock.Unlock()
-
+func (cf *carfile) getBlocksFromWaitListFront(n int) []string {
 	if len(cf.blocksWaitList) < n {
 		n = len(cf.blocksWaitList)
 	}
 
-	blocks := cf.blocksWaitList[:n]
-	cf.blocksWaitList = cf.blocksWaitList[n:]
+	return cf.blocksWaitList[:n]
+}
 
-	return blocks
+func (cf *carfile) removeBlocksFromWaitList(n int) {
+	if len(cf.blocksWaitList) < n {
+		n = len(cf.blocksWaitList)
+	}
+	cf.blocksWaitList = cf.blocksWaitList[n:]
 }
 
 func (cf *carfile) addBlocks2WaitList(blocks []string) {
-	// cf.waitListLock.Lock()
-	// defer cf.waitListLock.Unlock()
-
 	cf.blocksWaitList = append(cf.blocksWaitList, blocks...)
 }
 
@@ -65,8 +60,7 @@ func (cf *carfile) downloadCarfile(carfileOperation *CarfileOperation) error {
 	if err != nil {
 		return err
 	}
-
-	cf.carfileSize = int64(ret.linksSize)
+	cf.carfileSize = int64(ret.linksSize) + int64(ret.downloadSize)
 
 	for len(ret.netLayerCids) > 0 {
 		ret, err = cf.downloadBlocksWithBreadthFirst(ret.netLayerCids, carfileOperation)
@@ -75,7 +69,6 @@ func (cf *carfile) downloadCarfile(carfileOperation *CarfileOperation) error {
 		}
 
 	}
-
 	return nil
 }
 
@@ -88,7 +81,7 @@ func (cf *carfile) downloadBlocksWithBreadthFirst(layerCids []string, cfOperatio
 			doLen = helper.Batch
 		}
 
-		blocks := cf.removeBlocksFromWaitList(doLen)
+		blocks := cf.getBlocksFromWaitListFront(doLen)
 		ret, err := cf.downloadBlocks(blocks, cfOperation)
 		if err != nil {
 			cf.blocksDownloadFailedList = append(cf.blocksDownloadFailedList, blocks...)
@@ -101,20 +94,23 @@ func (cf *carfile) downloadBlocksWithBreadthFirst(layerCids []string, cfOperatio
 		result.linksSize += ret.linksSize
 		result.downloadSize += ret.downloadSize
 		result.netLayerCids = append(result.netLayerCids, ret.netLayerCids...)
+
+		cf.removeBlocksFromWaitList(doLen)
 	}
 
 	return result, nil
 }
 
 func (cf *carfile) downloadBlocks(cids []string, cfOperation *CarfileOperation) (*downloadResult, error) {
+	// log.Infof("downloadBlocks cids:%v", cids)
 	blks, err := cfOperation.downloader.downloadBlocks(cids, cf.downloadSources)
 	if err != nil {
-		log.Errorf("loadBlocksAsync loadBlocks err %v", err)
+		log.Errorf("loadBlocksAsync loadBlocks err %s", err.Error())
 		return nil, err
 	}
 
 	if len(blks) != len(cids) {
-		return nil, fmt.Errorf("download blocks failed")
+		return nil, fmt.Errorf("download blocks failed, blks len:%d, cids len:%v", len(blks), len(cids))
 	}
 
 	linksSize := uint64(0)
@@ -142,7 +138,7 @@ func (cf *carfile) downloadBlocks(cids []string, cfOperation *CarfileOperation) 
 			linksSize += link.Size
 		}
 
-		downloadSize = uint64(len(b.RawData()))
+		downloadSize += uint64(len(b.RawData()))
 		linksMap[cidStr] = cids
 	}
 
@@ -157,50 +153,57 @@ func (cf *carfile) downloadBlocks(cids []string, cfOperation *CarfileOperation) 
 	return ret, nil
 }
 
-// func (cf *carfile) downloadBlocks(cids []string, cfOperation *CarfileOperation) {
-// 	cidMap := make(map[string]bool)
-// 	for _, cid := range cids {
-// 		cidMap[cid] = false
-// 	}
+func (cf *carfile) saveCarfileTable(cfOperation *CarfileOperation) error {
+	log.Infof("saveCarfileTable, carfile cid:%s, download size:%d,carfileSize:%d", cf.carfileCID, cf.downloadSize, cf.carfileSize)
+	carfileHash, err := cf.getCarfileHashString()
+	if err != nil {
+		return err
+	}
 
-// 	blocks, err := cfOperation.downloader.downloadBlocks(cids, cf.downloadSources)
-// 	if err != nil {
-// 		log.Errorf("loadBlocksAsync loadBlocks err %v", err)
-// 		return
-// 	}
+	if cf.downloadSize != 0 && cf.downloadSize == cf.carfileSize {
+		blocksHashString, err := cf.blockList2BlocksHashString()
+		if err != nil {
+			return err
+		}
 
-// 	for _, b := range blocks {
-// 		cidStr := b.Cid().String()
-// 		err = cfOperation.saveBlock(b.RawData(), cidStr)
-// 		if err != nil {
-// 			log.Errorf("loadBlocksFromIPFS save block error:%s", err.Error())
-// 			continue
-// 		}
+		cfOperation.carfileStore.DeleteIncompleteCarfile(carfileHash)
+		return cfOperation.carfileStore.SaveBlockListOfCarfile(carfileHash, blocksHashString)
+	} else {
+		buf, err := cf.ecodeCarfile()
+		if err != nil {
+			return err
+		}
 
-// 		// get block links
-// 		links, err := resolveLinks(b)
-// 		if err != nil {
-// 			log.Errorf("loadBlocksFromIPFS resolveLinks error:%s", err.Error())
-// 			continue
-// 		}
+		cfOperation.carfileStore.DeleteCarfileTable(carfileHash)
+		return cfOperation.carfileStore.SaveIncomleteCarfile(carfileHash, buf)
+	}
+}
 
-// 		linksSize := uint64(0)
-// 		cids := make([]string, 0, len(links))
-// 		for _, link := range links {
-// 			cids = append(cids, link.Cid.String())
-// 			linksSize += link.Size
-// 		}
+func (cf *carfile) blockList2BlocksHashString() (string, error) {
+	var blocksHashString string
+	for _, cid := range cf.blocksDownloadSuccessList {
+		blockHash, err := helper.CIDString2HashString(cid)
+		if err != nil {
+			return "", err
+		}
+		blocksHashString += blockHash
+	}
 
-// 		cf.addBlocks2WaitList(cids)
+	return blocksHashString, nil
+}
 
-// 		delete(cidMap, cidStr)
-// 	}
+func (cf *carfile) getCarfileHashString() (string, error) {
+	carfileHash, err := helper.CIDString2HashString(cf.carfileCID)
+	if err != nil {
+		return "", err
+	}
+	return carfileHash, nil
+}
 
-// 	if len(cidMap) > 0 {
-// 		retryCids := make([]string, 0, len(cidMap))
-// 		for cid := range cidMap {
-// 			retryCids = append(retryCids, cid)
-// 		}
-// 		cf.downloadBlocks(retryCids, cfOperation)
-// 	}
-// }
+func (cf *carfile) ecodeCarfile() ([]byte, error) {
+	return ecodeCarfile(cf)
+}
+
+func (cf *carfile) decodeCarfileFromBuffer(carfileData []byte) error {
+	return decodeCarfileFromBuffer(carfileData, cf)
+}
