@@ -7,7 +7,7 @@ import (
 type Edge interface {
 	Common
 	Device
-	Block
+	// Block
 	Download
 	Validate
 	DataSync

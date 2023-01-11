@@ -7,7 +7,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/blockstore"
+	"github.com/linguohua/titan/node/carfile/carfilestore"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -33,10 +33,9 @@ const (
 )
 
 type NodeParams struct {
-	DS         datastore.Batching
-	Scheduler  api.Scheduler
-	BlockStore blockstore.BlockStore
-	// Device          *device.Device
+	DS              datastore.Batching
+	Scheduler       api.Scheduler
+	CarfileStore    *carfilestore.CarfileStore
 	DownloadSrvKey  string
 	DownloadSrvAddr string
 	IPFSAPI         string

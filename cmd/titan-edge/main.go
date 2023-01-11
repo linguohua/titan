@@ -16,12 +16,12 @@ import (
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
-	"github.com/linguohua/titan/blockstore"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/metrics"
+	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/repo"
@@ -43,7 +43,7 @@ var log = logging.Logger("main")
 const (
 	FlagWorkerRepo            = "edge-repo"
 	FlagWorkerRepoDeprecation = "edgerepo"
-	DefaultBlockstoreDir      = "/blockstore"
+	DefaultCarfileStoreDir    = "/carfilestore"
 )
 
 func main() {
@@ -121,8 +121,8 @@ var runCmd = &cli.Command{
 			Value: "525e7729506711ed8c2c902e1671f843",
 		},
 		&cli.StringFlag{
-			Name:  "blockstore-path",
-			Usage: "block store path, example: --blockstore-path=./blockstore",
+			Name:  "carfilestore-path",
+			Usage: "block store path, example: --carfilestore-path=./carfilestore",
 			Value: "",
 		},
 		&cli.StringFlag{
@@ -316,14 +316,14 @@ var runCmd = &cli.Command{
 			return err
 		}
 
-		blockstorePath := cctx.String("blockstore-path")
-		if len(blockstorePath) == 0 {
-			blockstorePath = lr.Path() + DefaultBlockstoreDir
+		carfileStorePath := cctx.String("carfilestore-path")
+		if len(carfileStorePath) == 0 {
+			carfileStorePath = lr.Path() + DefaultCarfileStoreDir
 		}
 
-		log.Infof("blockstorePath:%s", blockstorePath)
+		log.Infof("carfilestorePath:%s", carfileStorePath)
 
-		blockStore := blockstore.NewBlockStore(blockstorePath, cctx.String("blockstore-type"))
+		carfileStore := carfilestore.NewCarfileStore(carfileStorePath, cctx.String("blockstore-type"))
 
 		device := device.NewDevice(
 			deviceID,
@@ -331,12 +331,12 @@ var runCmd = &cli.Command{
 			internalIP,
 			cctx.Int64("bandwidth-up"),
 			cctx.Int64("bandwidth-down"),
-			blockStore)
+			carfileStore)
 
 		params := &helper.NodeParams{
 			DS:              ds,
 			Scheduler:       schedulerAPI,
-			BlockStore:      blockStore,
+			CarfileStore:    carfileStore,
 			DownloadSrvKey:  cctx.String("download-srv-key"),
 			DownloadSrvAddr: cctx.String("download-srv-addr"),
 			IPFSAPI:         cctx.String("ipfs-api"),

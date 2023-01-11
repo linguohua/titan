@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
 	"sort"
 	"strconv"
 
@@ -12,20 +11,20 @@ import (
 	"github.com/ipfs/go-datastore/query"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/blockstore"
-	"github.com/linguohua/titan/node/block"
+	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/helper"
 )
 
 var log = logging.Logger("datasync")
 
 type DataSync struct {
-	block *block.Block
-	ds    datastore.Batching
+	// block *block.Block
+	carfileStore *carfilestore.CarfileStore
+	ds           datastore.Batching
 }
 
-func NewDataSync(block *block.Block, ds datastore.Batching) *DataSync {
-	return &DataSync{block: block, ds: ds}
+func NewDataSync(ds datastore.Batching) *DataSync {
+	return &DataSync{ds: ds}
 }
 
 func (dataSync *DataSync) GetAllChecksums(ctx context.Context, maxGroupNum int) (api.ChecksumRsp, error) {
@@ -123,142 +122,142 @@ func (dataSync *DataSync) getAllChecksums(ctx context.Context, maxGroupNum int) 
 }
 
 func (dataSync *DataSync) getChecksumsInRange(ctx context.Context, req api.ReqChecksumInRange) (api.ChecksumRsp, error) {
-	rsp := api.ChecksumRsp{Checksums: make([]api.Checksum, 0)}
-
-	startFid := req.StartFid
-	endFid := req.EndFid
-
-	type block struct {
-		fid  int
-		hash string
-	}
-
-	blockCollection := make([]block, 0, 1000)
-
-	for i := startFid; i <= endFid; i++ {
-		fid := fmt.Sprintf("%d", i)
-		cid, err := dataSync.block.GetCID(context.TODO(), fid)
-		if err == datastore.ErrNotFound {
-			continue
-		}
-
-		hash, err := helper.CIDString2HashString(cid)
-		if err != nil {
-			continue
-		}
-
-		block := block{fid: i, hash: hash}
-		blockCollection = append(blockCollection, block)
-	}
-
-	if len(blockCollection) == 0 {
-		return rsp, nil
-	}
-
-	blockCollectionSize := len(blockCollection)
-	// use req endFid return to scheduler
-	blockCollection[blockCollectionSize-1].fid = req.EndFid
-
-	groupSize := blockCollectionSize / req.MaxGroupNum
-	if blockCollectionSize%req.MaxGroupNum != 0 {
-		groupSize += 1
-	}
-
-	groupNum := blockCollectionSize / groupSize
-	if blockCollectionSize%groupSize != 0 {
-		groupNum += 1
-	}
+	// rsp := api.ChecksumRsp{Checksums: make([]api.Checksum, 0)}
 
 	// startFid := req.StartFid
-	for i := 0; i < groupNum; i++ {
-		startIndex := i * groupSize
-		endIndex := startIndex + groupSize
-		if endIndex > blockCollectionSize {
-			endIndex = blockCollectionSize
-		}
+	// endFid := req.EndFid
 
-		var blockCollectionStr string
-		for j := startIndex; j < endIndex; j++ {
-			blockCollectionStr += blockCollection[j].hash
-		}
+	// type block struct {
+	// 	fid  int
+	// 	hash string
+	// }
 
-		hash := string2Hash(blockCollectionStr)
-		endFid := blockCollection[endIndex-1].fid
-		checksum := api.Checksum{Hash: hash, StartFid: startFid, EndFid: endFid, BlockCount: endIndex - startIndex}
-		rsp.Checksums = append(rsp.Checksums, checksum)
+	// blockCollection := make([]block, 0, 1000)
 
-		startFid = endFid + 1
+	// for i := startFid; i <= endFid; i++ {
+	// 	fid := fmt.Sprintf("%d", i)
+	// 	cid, err := dataSync.block.GetCID(context.TODO(), fid)
+	// 	if err == datastore.ErrNotFound {
+	// 		continue
+	// 	}
 
-	}
+	// 	hash, err := helper.CIDString2HashString(cid)
+	// 	if err != nil {
+	// 		continue
+	// 	}
 
-	return rsp, nil
+	// 	block := block{fid: i, hash: hash}
+	// 	blockCollection = append(blockCollection, block)
+	// }
+
+	// if len(blockCollection) == 0 {
+	// 	return rsp, nil
+	// }
+
+	// blockCollectionSize := len(blockCollection)
+	// // use req endFid return to scheduler
+	// blockCollection[blockCollectionSize-1].fid = req.EndFid
+
+	// groupSize := blockCollectionSize / req.MaxGroupNum
+	// if blockCollectionSize%req.MaxGroupNum != 0 {
+	// 	groupSize += 1
+	// }
+
+	// groupNum := blockCollectionSize / groupSize
+	// if blockCollectionSize%groupSize != 0 {
+	// 	groupNum += 1
+	// }
+
+	// // startFid := req.StartFid
+	// for i := 0; i < groupNum; i++ {
+	// 	startIndex := i * groupSize
+	// 	endIndex := startIndex + groupSize
+	// 	if endIndex > blockCollectionSize {
+	// 		endIndex = blockCollectionSize
+	// 	}
+
+	// 	var blockCollectionStr string
+	// 	for j := startIndex; j < endIndex; j++ {
+	// 		blockCollectionStr += blockCollection[j].hash
+	// 	}
+
+	// 	hash := string2Hash(blockCollectionStr)
+	// 	endFid := blockCollection[endIndex-1].fid
+	// 	checksum := api.Checksum{Hash: hash, StartFid: startFid, EndFid: endFid, BlockCount: endIndex - startIndex}
+	// 	rsp.Checksums = append(rsp.Checksums, checksum)
+
+	// 	startFid = endFid + 1
+
+	// }
+
+	return api.ChecksumRsp{}, nil
 }
 
 func (dataSync *DataSync) scrubBlocks(scrub api.ScrubBlocks) error {
 	// blocks key fid, value hash
-	blocksHashMap := make(map[int]string)
-	for fid, cid := range scrub.Blocks {
-		hash, err := helper.CIDString2HashString(cid)
-		if err != nil {
-			log.Errorf("scrubBlocks, CIDString2HashString error:%s, cid:%s", err.Error(), cid)
-			continue
-		}
+	// blocksHashMap := make(map[int]string)
+	// for fid, cid := range scrub.Blocks {
+	// 	hash, err := helper.CIDString2HashString(cid)
+	// 	if err != nil {
+	// 		log.Errorf("scrubBlocks, CIDString2HashString error:%s, cid:%s", err.Error(), cid)
+	// 		continue
+	// 	}
 
-		blocksHashMap[fid] = hash
-	}
+	// 	blocksHashMap[fid] = hash
+	// }
 
-	startFid := scrub.StartFid
-	endFid := scrub.EndFid
-	need2DeleteBlocks := make([]string, 0)
+	// startFid := scrub.StartFid
+	// endFid := scrub.EndFid
+	// need2DeleteBlocks := make([]string, 0)
 
-	for fid := startFid; fid <= endFid; fid++ {
-		fidStr := fmt.Sprintf("%d", fid)
-		cid, err := dataSync.block.GetCID(context.TODO(), fidStr)
-		if err == datastore.ErrNotFound {
-			continue
-		}
+	// for fid := startFid; fid <= endFid; fid++ {
+	// 	fidStr := fmt.Sprintf("%d", fid)
+	// 	cid, err := dataSync.block.GetCID(context.TODO(), fidStr)
+	// 	if err == datastore.ErrNotFound {
+	// 		continue
+	// 	}
 
-		if err != nil {
-			log.Infof("get cid from fid error:%s, fid:%s", err.Error(), fidStr)
-			continue
-		}
+	// 	if err != nil {
+	// 		log.Infof("get cid from fid error:%s, fid:%s", err.Error(), fidStr)
+	// 		continue
+	// 	}
 
-		hash, err := helper.CIDString2HashString(cid)
-		if err != nil {
-			log.Infof("CIDString2HashString error:%s, cid:%s", err.Error(), cid)
-			continue
-		}
+	// 	hash, err := helper.CIDString2HashString(cid)
+	// 	if err != nil {
+	// 		log.Infof("CIDString2HashString error:%s, cid:%s", err.Error(), cid)
+	// 		continue
+	// 	}
 
-		targetHash, exist := blocksHashMap[fid]
-		if exist {
-			if hash != targetHash {
-				log.Errorf("scrubBlocks fid %s, local block hash is %s but sheduler block hash is %s", fid, hash, targetHash)
-				need2DeleteBlocks = append(need2DeleteBlocks, cid)
-			} else {
-				delete(blocksHashMap, fid)
-			}
-		} else {
-			need2DeleteBlocks = append(need2DeleteBlocks, cid)
-		}
-	}
+	// 	targetHash, exist := blocksHashMap[fid]
+	// 	if exist {
+	// 		if hash != targetHash {
+	// 			log.Errorf("scrubBlocks fid %s, local block hash is %s but sheduler block hash is %s", fid, hash, targetHash)
+	// 			need2DeleteBlocks = append(need2DeleteBlocks, cid)
+	// 		} else {
+	// 			delete(blocksHashMap, fid)
+	// 		}
+	// 	} else {
+	// 		need2DeleteBlocks = append(need2DeleteBlocks, cid)
+	// 	}
+	// }
 
-	// delete blocks that not exist on scheduler
-	if len(need2DeleteBlocks) > 0 {
-		dataSync.block.DeleteBlocks(context.TODO(), need2DeleteBlocks)
-	}
+	// // delete blocks that not exist on scheduler
+	// if len(need2DeleteBlocks) > 0 {
+	// 	dataSync.block.DeleteBlocks(context.TODO(), need2DeleteBlocks)
+	// }
 
-	blocksCIDMap := make(map[int]string)
-	for fid, hash := range blocksHashMap {
-		cid, err := helper.HashString2CidString(hash)
-		if err != nil {
-			continue
-		}
-		blocksCIDMap[fid] = cid
-	}
+	// blocksCIDMap := make(map[int]string)
+	// for fid, hash := range blocksHashMap {
+	// 	cid, err := helper.HashString2CidString(hash)
+	// 	if err != nil {
+	// 		continue
+	// 	}
+	// 	blocksCIDMap[fid] = cid
+	// }
 
-	dataSync.block.SyncData(blocksCIDMap)
+	// dataSync.block.SyncData(blocksCIDMap)
 
-	log.Infof("scrubBlocks, fid %d~%d delete blocks %d, download blocks %d", startFid, endFid, len(need2DeleteBlocks), len(blocksCIDMap))
+	// log.Infof("scrubBlocks, fid %d~%d delete blocks %d, download blocks %d", startFid, endFid, len(need2DeleteBlocks), len(blocksCIDMap))
 	return nil
 }
 
@@ -269,7 +268,7 @@ func string2Hash(value string) string {
 	return hex.EncodeToString(hash)
 }
 
-func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore, block *block.Block) error {
+func SyncLocalBlockstore(ds datastore.Batching, carfileStore *carfilestore.CarfileStore) error {
 	log.Info("start sync local block store")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -335,7 +334,7 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 		log.Warnf("hash:fid %s ==> %s not in fid map, was delete", hash, fid)
 	}
 
-	hashs, err := blockstore.GetAllKeys()
+	hashs, err := carfileStore.GetAllBlocksHash()
 	if err != nil {
 		return err
 	}
@@ -352,17 +351,9 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 
 	}
 
-	need2DeleteBlockCids := make([]string, 0)
 	for _, hash := range need2DeleteBlockHashs {
-		cid, err := helper.HashString2CidString(hash)
-		if err != nil {
-			continue
-		}
-
-		need2DeleteBlockCids = append(need2DeleteBlockCids, cid)
+		carfileStore.DeleteBlock(hash)
 	}
-
-	block.DeleteBlocks(context.Background(), need2DeleteBlockCids)
 
 	blocksCIDMap := make(map[int]string)
 	for hash, fidStr := range targetMap {
@@ -377,9 +368,9 @@ func SyncLocalBlockstore(ds datastore.Batching, blockstore blockstore.BlockStore
 		blocksCIDMap[fid] = cid
 	}
 
-	block.SyncData(blocksCIDMap)
+	// block.SyncData(blocksCIDMap)
 
-	log.Infof("sync local block store complete, delete blocks %d, download blocks %d", len(need2DeleteBlockCids), len(blocksCIDMap))
+	log.Infof("sync local block store complete, delete blocks %d, download blocks %d", len(need2DeleteBlockHashs), len(blocksCIDMap))
 
 	return nil
 }

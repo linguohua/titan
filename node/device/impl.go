@@ -11,8 +11,8 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/blockstore"
 	"github.com/linguohua/titan/build"
+	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
@@ -24,17 +24,17 @@ type Device struct {
 	internalIP    string
 	bandwidthUp   int64
 	bandwidthDown int64
-	blockstore    blockstore.BlockStore
+	carfileStore  *carfilestore.CarfileStore
 }
 
-func NewDevice(deviceID, publicIP, internalIP string, bandwidthUp, bandwidthDown int64, blockstore blockstore.BlockStore) *Device {
+func NewDevice(deviceID, publicIP, internalIP string, bandwidthUp, bandwidthDown int64, carfileStore *carfilestore.CarfileStore) *Device {
 	device := &Device{
 		deviceID:      deviceID,
 		publicIP:      publicIP,
 		internalIP:    internalIP,
 		bandwidthUp:   bandwidthUp,
 		bandwidthDown: bandwidthDown,
-		blockstore:    blockstore,
+		carfileStore:  carfileStore,
 	}
 
 	return device
@@ -90,8 +90,8 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	info.CpuUsage = cpuPercent[0]
 	info.CPUCores, _ = cpu.Counts(false)
 
-	blockStorePath := device.blockstore.GetPath()
-	usageStat, err := disk.Usage(blockStorePath)
+	carfileStorePath := device.carfileStore.GetPath()
+	usageStat, err := disk.Usage(carfileStorePath)
 	if err != nil {
 		log.Errorf("get disk usage stat error: %s", err)
 		return api.DevicesInfo{}, err
@@ -100,7 +100,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	info.DiskUsage = usageStat.UsedPercent
 	info.DiskSpace = float64(usageStat.Total)
 
-	absPath, err := filepath.Abs(blockStorePath)
+	absPath, err := filepath.Abs(carfileStorePath)
 	if err != nil {
 		return api.DevicesInfo{}, err
 	}

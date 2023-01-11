@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/linguohua/titan/node/carfile/carfilestore"
 	titanRsa "github.com/linguohua/titan/node/rsa"
 
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/blockstore"
 	"github.com/linguohua/titan/lib/limiter"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/helper"
@@ -28,23 +28,23 @@ import (
 var log = logging.Logger("download")
 
 type BlockDownload struct {
-	limiter    *rate.Limiter
-	blockStore blockstore.BlockStore
-	publicKey  *rsa.PublicKey
-	scheduler  api.Scheduler
-	device     *device.Device
-	validate   *validate.Validate
-	srvAddr    string
+	limiter      *rate.Limiter
+	carfileStore *carfilestore.CarfileStore
+	publicKey    *rsa.PublicKey
+	scheduler    api.Scheduler
+	device       *device.Device
+	validate     *validate.Validate
+	srvAddr      string
 }
 
 func NewBlockDownload(limiter *rate.Limiter, params *helper.NodeParams, device *device.Device, validate *validate.Validate) *BlockDownload {
 	var blockDownload = &BlockDownload{
-		limiter:    limiter,
-		blockStore: params.BlockStore,
-		scheduler:  params.Scheduler,
-		srvAddr:    params.DownloadSrvAddr,
-		validate:   validate,
-		device:     device}
+		limiter:      limiter,
+		carfileStore: params.CarfileStore,
+		scheduler:    params.Scheduler,
+		srvAddr:      params.DownloadSrvAddr,
+		validate:     validate,
+		device:       device}
 
 	go blockDownload.startDownloadServer()
 
@@ -107,7 +107,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reader, err := bd.blockStore.GetReader(blockHash)
+	reader, err := bd.carfileStore.GetBlockReader(blockHash)
 	if err != nil {
 		bd.resultFailed(w, r, sn, sign, err)
 		return
