@@ -27,22 +27,22 @@ type CarfileRecord struct {
 
 	CacheTaskMap sync.Map
 
-	candidates []string
-	edges      []string
+	candidates []*node.CandidateNode
+	edges      []*node.EdgeNode
 
-	//TODO
-	source []*api.DowloadSource
+	dowloadInfoslook      sync.RWMutex
+	rootCacheDowloadInfos []*api.DowloadSource
 }
 
 func newData(dataManager *Manager, cid, hash string) *CarfileRecord {
 	return &CarfileRecord{
-		nodeManager: dataManager.nodeManager,
-		dataManager: dataManager,
-		carfileCid:  cid,
-		reliability: 0,
-		totalBlocks: 1,
-		carfileHash: hash,
-		source:      make([]*api.DowloadSource, 0),
+		nodeManager:           dataManager.nodeManager,
+		dataManager:           dataManager,
+		carfileCid:            cid,
+		reliability:           0,
+		totalBlocks:           1,
+		carfileHash:           hash,
+		rootCacheDowloadInfos: make([]*api.DowloadSource, 0),
 	}
 }
 
@@ -62,7 +62,7 @@ func loadCarfileRecord(hash string, dataManager *Manager) (*CarfileRecord, error
 	data.totalBlocks = dInfo.TotalBlocks
 	data.expiredTime = dInfo.ExpiredTime
 	data.carfileHash = dInfo.CarfileHash
-	data.source = make([]*api.DowloadSource, 0)
+	data.rootCacheDowloadInfos = make([]*api.DowloadSource, 0)
 
 	caches, err := persistent.GetDB().GetCachesWithData(hash, false)
 	if err != nil {
@@ -92,7 +92,7 @@ func loadCarfileRecord(hash string, dataManager *Manager) (*CarfileRecord, error
 
 			cNode := c.carfileRecord.nodeManager.GetCandidateNode(c.deviceID)
 			if cNode != nil {
-				data.source = append(data.source, &api.DowloadSource{
+				data.rootCacheDowloadInfos = append(data.rootCacheDowloadInfos, &api.DowloadSource{
 					CandidateURL:   cNode.GetAddress(),
 					CandidateToken: string(c.carfileRecord.dataManager.getAuthToken()),
 				})
@@ -186,7 +186,8 @@ func (d *CarfileRecord) dispatchCache() map[string]string {
 	errorNodes := map[string]string{}
 
 	if len(d.candidates) > 0 {
-		for _, deviceID := range d.candidates {
+		for _, node := range d.candidates {
+			deviceID := node.DeviceId
 			cache, err := newCache(d, deviceID, true)
 			if err != nil {
 				errorNodes[deviceID] = err.Error()
@@ -206,7 +207,8 @@ func (d *CarfileRecord) dispatchCache() map[string]string {
 	}
 
 	// edge cache
-	for _, deviceID := range d.edges {
+	for _, node := range d.edges {
+		deviceID := node.DeviceId
 		cache, err := newCache(d, deviceID, false)
 		if err != nil {
 			errorNodes[deviceID] = err.Error()
@@ -235,10 +237,12 @@ func (d *CarfileRecord) cacheDone(doneCache *CacheTask) error {
 	if doneCache.isRootCache {
 		cNode := d.nodeManager.GetCandidateNode(doneCache.deviceID)
 		if cNode != nil {
-			d.source = append(d.source, &api.DowloadSource{
+			d.dowloadInfoslook.Lock()
+			d.rootCacheDowloadInfos = append(d.rootCacheDowloadInfos, &api.DowloadSource{
 				CandidateURL:   cNode.GetAddress(),
 				CandidateToken: string(d.dataManager.getAuthToken()),
 			})
+			d.dowloadInfoslook.Unlock()
 		}
 	}
 

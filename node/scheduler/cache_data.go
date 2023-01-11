@@ -8,7 +8,6 @@ import (
 	"github.com/linguohua/titan/node/handler"
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/scheduler/data"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
 )
@@ -59,40 +58,22 @@ func (s *Scheduler) StopCacheTask(ctx context.Context, carfileCid string) error 
 	return s.dataManager.StopCacheTask(carfileCid)
 }
 
-//GetBlocksCacheError get block cache error info
-func (s *Scheduler) GetBlocksCacheError(ctx context.Context, cacheID string) ([]*api.CacheError, error) {
-	return cache.GetDB().GetCacheErrors(cacheID)
-}
-
 // ShowRunningCacheDatas Show Data Tasks
 func (s *Scheduler) ShowRunningCacheDatas(ctx context.Context) ([]api.CarfileRecordInfo, error) {
 	infos := make([]api.CarfileRecordInfo, 0)
 
-	list := s.dataManager.GetRunningTasks()
-
-	for _, info := range list {
-		data, _ := s.dataManager.GetCarfileRecord(info.CarfileHash)
-		if data != nil {
-			cInfo := dataToCacheDataInfo(data)
-
-			// t, err := cache.GetDB().GetRunningDataTaskExpiredTime(info.CarfileHash)
-			// if err == nil {
-			// 	cInfo.DataTimeout = t
-			// }
-
-			infos = append(infos, cInfo)
+	s.dataManager.CarfileRecordMap.Range(func(key, value interface{}) bool {
+		if value != nil {
+			data := value.(*data.CarfileRecord)
+			if data != nil {
+				cInfo := dataToCacheDataInfo(data)
+				infos = append(infos, cInfo)
+			}
 		}
-	}
 
-	// s.dataManager.taskMap.Range(func(key, value interface{}) bool {
-	// 	data := value.(*Data)
+		return true
+	})
 
-	// 	infos = append(infos, dataToCacheDataInfo(data))
-
-	// 	return true
-	// })
-
-	// log.Infof("ShowRunningCacheDatas:%v", infos)
 	return infos, nil
 }
 
@@ -118,10 +99,10 @@ func dataToCacheDataInfo(d *data.CarfileRecord) api.CarfileRecordInfo {
 				RootCache:  c.IsRootCache(),
 			}
 
-			t, err := cache.GetDB().GetRunningDataTaskExpiredTime(d.GetCarfileHash(), c.GetDeviceID())
-			if err == nil {
-				cc.DataTimeout = t
-			}
+			// t, err := cache.GetDB().GetRunningDataTaskExpiredTime(d.GetCarfileHash(), c.GetDeviceID())
+			// if err == nil {
+			// 	cc.DataTimeout = t
+			// }
 
 			caches = append(caches, cc)
 			return true

@@ -28,20 +28,24 @@ const (
 
 // DB cache db
 type DB interface {
-	// cache result info
-	SetCacheResultInfo(info *api.CacheResultInfo) (int64, error)
-	GetCacheResultInfo() (*api.CacheResultInfo, error)
-	GetCacheResultNum() int64
+	SetCacheStart(hash, deviceID string, timeout int64) error
+	SetCacheEnd(hash, deviceID string) error
+	UpdateNodeCacheingExpireTime(hash, deviceID string, timeout int64) error
+	GetCacheingNodes() ([]string, error)
+	GetNodeCaches(deviceID string) ([]string, error)
+	GetCacheingCarfiles() (map[string]int, error)
+	GetNodeCacheingCarfile(deviceID string) (string, error)
+	GetCacheTimeoutNodes() (map[string][]string, error)
 
 	// running data list
-	SetDataTaskToRunningList(hash, cacheID string, timeout int64) error
-	GetDataTasksWithRunningList() ([]*DataTask, error)
+	// SetDataTaskToRunningList(hash, cacheID string, timeout int64) error
+	// GetDataTasksWithRunningList() ([]*DataTask, error)
 
 	// running data details
-	SetRunningDataTask(hash, deviceID string, timeout int64) error
-	GetRunningDataTask(hash, deviceID string) (string, error)
-	RemoveRunningDataTask(hash, deviceID string) error
-	GetRunningDataTaskExpiredTime(hash, deviceID string) (time.Duration, error)
+	// SetRunningDataTask(hash, deviceID string, timeout int64) error
+	// GetRunningDataTask(hash, deviceID string) (string, error)
+	// RemoveRunningDataTask(hash, deviceID string) error
+	// GetRunningDataTaskExpiredTime(hash, deviceID string) (time.Duration, error)
 
 	// waiting data list
 	SetWaitingDataTask(info *api.CarfileRecordInfo) error
@@ -68,10 +72,7 @@ type DB interface {
 	SetDeviceInfo(info *api.DevicesInfo) error
 	GetDeviceInfo(deviceID string) (*api.DevicesInfo, error)
 	UpdateDeviceInfo(deviceID, field string, value interface{}) error
-	UpdateDevicesInfo(field string, values map[string]interface{}) error
 	IncrByDeviceInfo(deviceID, field string, value int64) error
-	IncrByDevicesInfo(field string, values map[string]int64) error
-	UpdateNodeCacheBlockInfo(toDeviceID, fromDeviceID string, blockSize int) error
 
 	// download info
 	SetDownloadBlockRecord(record *DownloadBlockRecord) error
@@ -83,10 +84,6 @@ type DB interface {
 	AddLatestDownloadCarfile(carfileCID string, userIP string) error
 	GetLatestDownloadCarfiles(userIP string) ([]string, error)
 
-	// cache error details
-	SaveCacheErrors(cacheID string, infos []*api.CacheError, isClean bool) error
-	GetCacheErrors(cacheID string) ([]*api.CacheError, error)
-
 	NodeDownloadCount(deviceID string, blockDownnloadInfo *api.BlockDownloadInfo) error
 
 	// system base info TODO save in db
@@ -95,8 +92,8 @@ type DB interface {
 	IncrByBaseInfo(field string, value int64) error
 
 	// node fid TODO save in db
-	IncrNodeCacheFid(deviceID string, num int) (int, error)
-	GetNodeCacheFid(deviceID string) (int64, error)
+	// IncrNodeCacheFid(deviceID string, num int) (int, error)
+	// GetNodeCacheFid(deviceID string) (int64, error)
 
 	RemoveCarfileRecord(dataTasks []*DataTask, carfileCount int64, nodeBlockCounts map[string]int64) error
 	CacheEndRecord(dataTask *DataTask, fromDeviceID string, blockSize int, blocks int, isSuccess bool) error

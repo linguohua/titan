@@ -30,7 +30,6 @@ var SchedulerCmds = []*cli.Command{
 	replenishCacheExpiredTimeCmd,
 	nodeQuitCmd,
 	stopCacheCmd,
-	showCacheErrorCmd,
 	// validate
 	electionCmd,
 	validateCmd,
@@ -155,46 +154,6 @@ var redressInfoCmd = &cli.Command{
 		defer closer()
 
 		return schedulerAPI.RedressDeveiceInfo(ctx, deviceID)
-	},
-}
-
-var showCacheErrorCmd = &cli.Command{
-	Name:  "cache-error",
-	Usage: "show cache error",
-	Flags: []cli.Flag{
-		cacheIDFlag,
-	},
-
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		cacheID := cctx.String("cache-id")
-
-		ctx := ReqContext(cctx)
-
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		list, err := schedulerAPI.GetBlocksCacheError(ctx, cacheID)
-		if err != nil {
-			return err
-		}
-
-		listLen := len(list)
-		if listLen > 0 {
-			for i := 0; i < listLen; i++ {
-				info := list[i]
-				fmt.Printf("CID:%s , insufficient_disk:%d, skip_node_count:%d, all_node:%d, msg:%s , time:%s \n", info.CID, info.DiskCount, info.SkipCount, info.Nodes, info.Msg, info.Time.Format("2006-01-02 15:04:05"))
-			}
-		} else {
-			fmt.Println("error list is nil...")
-		}
-
-		return nil
 	},
 }
 

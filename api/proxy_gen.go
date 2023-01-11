@@ -248,8 +248,6 @@ type SchedulerStruct struct {
 
 		ElectionValidators func(p0 context.Context) error `perm:"admin"`
 
-		GetBlocksCacheError func(p0 context.Context, p1 string) ([]*CacheError, error) `perm:"read"`
-
 		GetCacheData func(p0 context.Context, p1 string) (CarfileRecordInfo, error) `perm:"read"`
 
 		GetCandidateDownloadInfoWithBlocks func(p0 context.Context, p1 []string) (map[string]CandidateDownloadInfo, error) `perm:"write"`
@@ -952,17 +950,6 @@ func (s *SchedulerStruct) ElectionValidators(p0 context.Context) error {
 
 func (s *SchedulerStub) ElectionValidators(p0 context.Context) error {
 	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetBlocksCacheError(p0 context.Context, p1 string) ([]*CacheError, error) {
-	if s.Internal.GetBlocksCacheError == nil {
-		return *new([]*CacheError), ErrNotSupported
-	}
-	return s.Internal.GetBlocksCacheError(p0, p1)
-}
-
-func (s *SchedulerStub) GetBlocksCacheError(p0 context.Context, p1 string) ([]*CacheError, error) {
-	return *new([]*CacheError), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetCacheData(p0 context.Context, p1 string) (CarfileRecordInfo, error) {

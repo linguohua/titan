@@ -10,9 +10,6 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// If the node disk size is greater than this value, caching will not continue
-const diskUsageMax = 90
-
 // CacheTask CacheTask
 type CacheTask struct {
 	carfileRecord *CarfileRecord
@@ -57,13 +54,13 @@ func newCache(data *CarfileRecord, deviceID string, isRootCache bool) (*CacheTas
 }
 
 // Notify node to cache blocks
-func (c *CacheTask) sendBlocksToNode() error {
+func (c *CacheTask) cacheCarfile2Node() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	cNode := c.carfileRecord.nodeManager.GetCandidateNode(c.deviceID)
 	if cNode != nil {
-		result, err := cNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.source)
+		result, err := cNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.rootCacheDowloadInfos)
 		if err != nil {
 			log.Errorf("sendBlocksToNode %s, CacheCarfile err:%s", c.deviceID, err.Error())
 		} else {
@@ -74,7 +71,7 @@ func (c *CacheTask) sendBlocksToNode() error {
 
 	eNode := c.carfileRecord.nodeManager.GetEdgeNode(c.deviceID)
 	if eNode != nil {
-		result, err := eNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.source)
+		result, err := eNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.rootCacheDowloadInfos)
 		if err != nil {
 			log.Errorf("sendBlocksToNode %s, CacheCarfile err:%s", c.deviceID, err.Error())
 		} else {
@@ -97,7 +94,7 @@ func (c *CacheTask) blockCacheResult(info *api.CacheResultInfo) error {
 		return c.endCache(info.Status)
 	}
 	// update data task timeout
-	err := cache.GetDB().SetRunningDataTask(c.carfileHash, c.deviceID, nodeCacheResultInterval)
+	err := cache.GetDB().UpdateNodeCacheingExpireTime(c.carfileHash, c.deviceID, nodeCacheResultInterval)
 	if err != nil {
 		log.Errorf("blockCacheResult %s , SetRunningDataTask err:%s", c.deviceID, err.Error())
 	}
@@ -108,14 +105,14 @@ func (c *CacheTask) blockCacheResult(info *api.CacheResultInfo) error {
 func (c *CacheTask) startCache() error {
 	c.cacheCount++
 	// send to node
-	err := c.sendBlocksToNode()
+	err := c.cacheCarfile2Node()
 	if err != nil {
 		return xerrors.Errorf("startCache deviceID:%s, err:%s", c.deviceID, err.Error())
 	}
 
-	err = cache.GetDB().SetDataTaskToRunningList(c.carfileHash, c.deviceID, nodeCacheResultInterval)
+	err = cache.GetDB().SetCacheStart(c.carfileHash, c.deviceID, nodeCacheResultInterval)
 	if err != nil {
-		return xerrors.Errorf("startCache %s , SetDataTaskToRunningList err:%s", c.carfileHash, err.Error())
+		return xerrors.Errorf("startCache %s , SetCacheStart err:%s", c.carfileHash, err.Error())
 	}
 
 	err = saveEvent(c.carfileRecord.carfileCid, c.deviceID, "", "", eventTypeDoCacheTaskStart)
@@ -131,6 +128,11 @@ func (c *CacheTask) endCache(status api.CacheStatus) (err error) {
 
 	c.status = status
 	c.reliability = c.calculateReliability("")
+
+	err = cache.GetDB().SetCacheEnd(c.carfileHash, c.deviceID)
+	if err != nil {
+		return xerrors.Errorf("endCache %s , SetCacheEnd err:%s", c.carfileHash, err.Error())
+	}
 
 	return c.carfileRecord.cacheDone(c)
 }
