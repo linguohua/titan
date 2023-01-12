@@ -73,7 +73,6 @@ type DataListInfo struct {
 type EventInfo struct {
 	ID         int
 	CID        string    `db:"cid"`
-	CacheID    string    `db:"cache_id"`
 	DeviceID   string    `db:"device_id"`
 	User       string    `db:"user"`
 	Event      string    `db:"event"`

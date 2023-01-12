@@ -33,8 +33,8 @@ type DB interface {
 
 	// cache data info
 	CreateCache(cInfo *api.CacheTaskInfo) error
-	SaveCacheEndResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheTaskInfo) error
-	SaveCacheingResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheTaskInfo) error
+	SaveCacheResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheTaskInfo) error
+	UpdateCacheInfoOfTimeoutNodes(deviceIDs []string) error
 
 	// data info
 	SetDataInfo(info *api.CarfileRecordInfo) error
@@ -51,7 +51,7 @@ type DB interface {
 	GetCacheInfo(carfileHash, deviceID string) (*api.CacheTaskInfo, error)
 	RemoveCacheAndUpdateData(deviceID, carfileHash string, reliability int) error
 	RemoveCarfileRecord(carfileHash string) error
-	UpdateCacheInfoOfQuitNode(deviceID string) (successCacheCount int, carfileReliabilitys map[string]int, err error)
+	UpdateCacheInfoOfQuitNode(deviceIDs []string) ([]*api.CarfileRecordInfo, error)
 
 	// temporary node register
 	BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error

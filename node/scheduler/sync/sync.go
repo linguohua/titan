@@ -56,7 +56,7 @@ func NewDataSync() *DataSync {
 		waitChannel:        make(chan bool),
 	}
 
-	go dataSync.run()
+	// go dataSync.run()
 
 	return dataSync
 }

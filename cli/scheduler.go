@@ -539,7 +539,7 @@ var listEventCmd = &cli.Command{
 		}
 
 		for _, event := range info.EventList {
-			fmt.Printf("CID:%s,Event:%s,CacheID:%s,Msg:%s,User:%s,Time:%s \n", event.CID, event.Event, event.CacheID, event.Msg, event.User, event.CreateTime.String())
+			fmt.Printf("CID:%s,Event:%s,DeviceID:%s,Msg:%s,User:%s,Time:%s \n", event.CID, event.Event, event.DeviceID, event.Msg, event.User, event.CreateTime.String())
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Count, info.Page, info.TotalPage)
 

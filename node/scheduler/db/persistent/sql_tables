@@ -106,18 +106,6 @@ CREATE TABLE `register` (
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='register';
 
-CREATE TABLE `event_info_cn_gd_shenzhen` (
-    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-	`cid` varchar(128) DEFAULT '',
-    `device_id` varchar(128) DEFAULT '',
-    `user` varchar(20) NOT NULL ,
-    `event` varchar(20) NOT NULL ,
-    `msg` varchar(128) DEFAULT '',
-    `cache_id` varchar(64) DEFAULT '' ,
-    `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='event';
-
 CREATE TABLE `node_connection_log` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `device_id` varchar(128) NOT NULL ,
@@ -126,7 +114,19 @@ CREATE TABLE `node_connection_log` (
     PRIMARY KEY (`id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='event';
 
-CREATE TABLE `node_caches_info_cn_gd_shenzhen` (
+
+CREATE TABLE `event_info_cn_gd_shenzhen` (
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+	`cid` varchar(128) DEFAULT '',
+    `device_id` varchar(128) DEFAULT '',
+    `user` varchar(20) NOT NULL ,
+    `event` varchar(20) NOT NULL ,
+    `msg` varchar(128) DEFAULT '',
+    `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='event';
+
+CREATE TABLE `caches_cn_gd_shenzhen` (
 	`carfile_hash` varchar(128) NOT NULL,
     `status` TINYINT  DEFAULT '0' ,
     `device_id` varchar(128) NOT NULL ,
@@ -135,23 +135,22 @@ CREATE TABLE `node_caches_info_cn_gd_shenzhen` (
 	`reliability` TINYINT DEFAULT '0' ,
     `expired_time` datetime NOT NULL,
     `root_cache` BOOLEAN,
+    `cache_count` int  DEFAULT '0' ,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='node caches info';
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='caches info';
 
-CREATE TABLE `data_infos_cn_gd_shenzhen` (
+CREATE TABLE `carfiles_cn_gd_shenzhen` (
 	`carfile_hash` varchar(128) NOT NULL UNIQUE,
 	`carfile_cid` varchar(128) NOT NULL UNIQUE,
     `total_size` BIGINT  DEFAULT '0' ,
     `total_blocks` int  DEFAULT '0' ,
 	`reliability` TINYINT DEFAULT '0' ,
 	`need_reliability` TINYINT DEFAULT '0' ,
-    `cache_count` int  DEFAULT '0' ,
-    `nodes` int  DEFAULT '0' ,
     `expired_time` datetime NOT NULL,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (`carfile_hash`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='data infos';
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='carfile infos';
 
 
