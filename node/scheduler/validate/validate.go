@@ -97,7 +97,7 @@ func (v *Validate) initValidateTask() {
 }
 
 func (v *Validate) startValidate() error {
-	log.Info("=======>> start validate <<=======")
+	// log.Info("=======>> start validate <<=======")
 
 	cur, err := cache.GetDB().IncrValidateRoundID()
 	if err != nil {

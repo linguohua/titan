@@ -49,7 +49,7 @@ type EdgeNode struct {
 	nodeAPI api.Edge
 	closer  jsonrpc.ClientCloser
 
-	Node
+	*Node
 }
 
 // NewEdgeNode new edge
@@ -58,7 +58,7 @@ func NewEdgeNode(candicateAPI api.Edge, closer jsonrpc.ClientCloser, node *Node)
 		nodeAPI: candicateAPI,
 		closer:  closer,
 
-		Node: *node,
+		Node: node,
 	}
 
 	return edgeNode
@@ -80,7 +80,7 @@ type CandidateNode struct {
 	closer  jsonrpc.ClientCloser
 	// isValidator bool
 
-	Node
+	*Node
 }
 
 // NewCandidateNode new candidate
@@ -89,7 +89,7 @@ func NewCandidateNode(candicateAPI api.Candidate, closer jsonrpc.ClientCloser, n
 		nodeAPI: candicateAPI,
 		closer:  closer,
 
-		Node: *node,
+		Node: node,
 	}
 
 	return candidateNode
@@ -185,6 +185,11 @@ func (n *Node) SetGeoInfo(info *region.GeoInfo) {
 // SetCurCacheCount set cache count
 func (n *Node) SetCurCacheCount(t int) {
 	n.curCacheCount = t
+}
+
+// IncrCurCacheCount Incr cache count
+func (n *Node) IncrCurCacheCount(v int) {
+	n.curCacheCount += v
 }
 
 // GetCurCacheCount cache count

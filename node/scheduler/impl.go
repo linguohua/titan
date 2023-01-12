@@ -27,7 +27,7 @@ import (
 
 	// "github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/repo"
-	"github.com/linguohua/titan/node/scheduler/data"
+	"github.com/linguohua/titan/node/scheduler/carfile"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/locator"
@@ -69,8 +69,8 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Sche
 	s.locatorManager = locator.NewLoactorManager(port)
 	s.nodeManager = nodeManager
 	s.election = election.NewElection(nodeManager)
-	s.validate = validate.NewValidate(nodeManager, true)
-	s.dataManager = data.NewCarfileManager(nodeManager, s.getAuthToken)
+	s.validate = validate.NewValidate(nodeManager, false)
+	s.dataManager = carfile.NewCarfileManager(nodeManager, s.getAuthToken)
 	s.CommonAPI = common.NewCommonAPI(nodeManager.UpdateLastRequestTime)
 	s.Web = web.NewWeb(s)
 	s.dataSync = sync.NewDataSync()
@@ -99,7 +99,7 @@ type Scheduler struct {
 	nodeManager    *node.Manager
 	election       *election.Election
 	validate       *validate.Validate
-	dataManager    *data.Manager
+	dataManager    *carfile.Manager
 	locatorManager *locator.Manager
 	// selector       *ValidateSelector
 	dataSync *sync.DataSync

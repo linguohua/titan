@@ -7,7 +7,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/handler"
 	"github.com/linguohua/titan/node/helper"
-	"github.com/linguohua/titan/node/scheduler/data"
+	"github.com/linguohua/titan/node/scheduler/carfile"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
 )
@@ -64,7 +64,7 @@ func (s *Scheduler) ShowRunningCacheDatas(ctx context.Context) ([]api.CarfileRec
 
 	s.dataManager.CarfileRecordMap.Range(func(key, value interface{}) bool {
 		if value != nil {
-			data := value.(*data.CarfileRecord)
+			data := value.(*carfile.CarfileRecord)
 			if data != nil {
 				cInfo := dataToCacheDataInfo(data)
 				infos = append(infos, cInfo)
@@ -77,7 +77,7 @@ func (s *Scheduler) ShowRunningCacheDatas(ctx context.Context) ([]api.CarfileRec
 	return infos, nil
 }
 
-func dataToCacheDataInfo(d *data.CarfileRecord) api.CarfileRecordInfo {
+func dataToCacheDataInfo(d *carfile.CarfileRecord) api.CarfileRecordInfo {
 	info := api.CarfileRecordInfo{}
 	if d != nil {
 		info.CarfileCid = d.GetCarfileCid()
@@ -90,13 +90,14 @@ func dataToCacheDataInfo(d *data.CarfileRecord) api.CarfileRecordInfo {
 		caches := make([]api.CacheTaskInfo, 0)
 
 		d.CacheTaskMap.Range(func(key, value interface{}) bool {
-			c := value.(*data.CacheTask)
+			c := value.(*carfile.CacheTask)
 
 			cc := api.CacheTaskInfo{
 				Status:     c.GetStatus(),
 				DoneSize:   c.GetDoneSize(),
 				DoneBlocks: c.GetDoneBlocks(),
 				RootCache:  c.IsRootCache(),
+				DeviceID:   c.GetDeviceID(),
 			}
 
 			// t, err := cache.GetDB().GetRunningDataTaskExpiredTime(d.GetCarfileHash(), c.GetDeviceID())

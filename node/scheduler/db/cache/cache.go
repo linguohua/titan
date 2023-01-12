@@ -28,14 +28,15 @@ const (
 
 // DB cache db
 type DB interface {
-	SetCacheStart(hash, deviceID string, timeout int64) error
-	SetCacheEnd(hash, deviceID string) error
+	SetCacheTaskStart(hash, deviceID string, timeout int64) error
+	SetCacheTaskEnd(hash, deviceID string) error
 	UpdateNodeCacheingExpireTime(hash, deviceID string, timeout int64) error
 	GetCacheingNodes() ([]string, error)
 	GetNodeCaches(deviceID string) ([]string, error)
 	GetCacheingCarfiles() (map[string]int, error)
 	GetNodeCacheingCarfile(deviceID string) (string, error)
-	GetCacheTimeoutNodes() (map[string][]string, error)
+	GetCacheTimeoutNodes() ([]string, error)
+	NodesCacheTimeout(deviceIDs []string) error
 
 	// running data list
 	// SetDataTaskToRunningList(hash, cacheID string, timeout int64) error
@@ -73,6 +74,7 @@ type DB interface {
 	GetDeviceInfo(deviceID string) (*api.DevicesInfo, error)
 	UpdateDeviceInfo(deviceID, field string, value interface{}) error
 	IncrByDeviceInfo(deviceID, field string, value int64) error
+	UpdateDeviceInfos(field string, values map[string]interface{}) error
 
 	// download info
 	SetDownloadBlockRecord(record *DownloadBlockRecord) error
@@ -95,7 +97,7 @@ type DB interface {
 	// IncrNodeCacheFid(deviceID string, num int) (int, error)
 	// GetNodeCacheFid(deviceID string) (int64, error)
 
-	RemoveCarfileRecord(dataTasks []*DataTask, carfileCount int64, nodeBlockCounts map[string]int64) error
+	RemoveCarfileRecord(carfileCount int64, nodeBlockCounts map[string]int64) error
 	CacheEndRecord(dataTask *DataTask, fromDeviceID string, blockSize int, blocks int, isSuccess bool) error
 
 	IsNilErr(err error) bool
