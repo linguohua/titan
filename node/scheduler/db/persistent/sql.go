@@ -365,7 +365,7 @@ func (sd sqlDB) GetCarfileCidWithPage(page int) (count int, totalPage int, list 
 	return
 }
 
-func (sd sqlDB) GetCachesWithData(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error) {
+func (sd sqlDB) GetCachesWithHash(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error) {
 	area := sd.ReplaceArea()
 
 	var out []*api.CacheTaskInfo

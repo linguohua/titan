@@ -350,7 +350,7 @@ func (m *Manager) FindNodeDownloadInfos(cid string) ([]*api.DownloadInfoResult, 
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}
 
-	caches, err := persistent.GetDB().GetCachesWithData(hash, true)
+	caches, err := persistent.GetDB().GetCachesWithHash(hash, true)
 	if err != nil {
 		return nil, err
 	}
@@ -378,7 +378,7 @@ func (m *Manager) FindNodeDownloadInfos(cid string) ([]*api.DownloadInfoResult, 
 
 // GetCandidatesWithBlockHash find candidates with block hash
 func (m *Manager) GetCandidatesWithBlockHash(hash, filterDevice string) ([]*CandidateNode, error) {
-	caches, err := persistent.GetDB().GetCachesWithData(hash, true)
+	caches, err := persistent.GetDB().GetCachesWithHash(hash, true)
 	if err != nil {
 		return nil, err
 	}

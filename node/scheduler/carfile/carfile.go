@@ -30,7 +30,7 @@ type CarfileRecord struct {
 	rootCacheDowloadInfos []*api.DowloadSource
 }
 
-func newData(manager *Manager, cid, hash string) *CarfileRecord {
+func newCarfileRecord(manager *Manager, cid, hash string) *CarfileRecord {
 	return &CarfileRecord{
 		nodeManager:           manager.nodeManager,
 		carfileManager:        manager,
@@ -60,9 +60,9 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 	carfileRecord.carfileHash = dInfo.CarfileHash
 	carfileRecord.rootCacheDowloadInfos = make([]*api.DowloadSource, 0)
 
-	caches, err := persistent.GetDB().GetCachesWithData(hash, false)
+	caches, err := persistent.GetDB().GetCachesWithHash(hash, false)
 	if err != nil {
-		log.Errorf("loadData hash:%s, GetCachesWithData err:%s", hash, err.Error())
+		log.Errorf("loadData hash:%s, GetCachesWithHash err:%s", hash, err.Error())
 		return carfileRecord, err
 	}
 
@@ -301,7 +301,7 @@ func (d *CarfileRecord) cacheDone(doneCache *CacheTask) error {
 	}
 
 	if !isRunning {
-		d.carfileManager.recordTaskEnd(d.carfileCid, d.carfileHash)
+		d.carfileManager.recordTaskEnd(d.carfileHash)
 	}
 
 	return nil

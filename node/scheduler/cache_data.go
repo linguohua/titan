@@ -207,7 +207,7 @@ func (s *Scheduler) CacheCarfile(ctx context.Context, cid string, reliability in
 
 	// expiredTime := time.Now().Add(time.Duration(hour) * time.Hour)
 
-	return s.dataManager.CacheData(cid, reliability, expiredTime)
+	return s.dataManager.CacheCarfile(cid, reliability, expiredTime)
 }
 
 // DeleteBlockRecords  Delete Block Record
