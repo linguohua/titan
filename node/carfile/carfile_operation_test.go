@@ -25,7 +25,7 @@ func TestCarfileOperation(t *testing.T) {
 		carfileCID:                carfileCID,
 		blocksWaitList:            make([]string, 0),
 		blocksDownloadSuccessList: make([]string, 0),
-		blocksDownloadFailedList:  make([]string, 0),
+		nextLayerCIDs:             make([]string, 0),
 		downloadSources:           nil,
 		// waitListLock:              &sync.Mutex{},
 	}
@@ -38,7 +38,7 @@ func TestCarfileOperation(t *testing.T) {
 		return
 	}
 
-	carfile.carfileSize = int64(ret.linksSize) + int64(ret.downloadSize)
+	carfile.carfileSize = ret.linksSize + ret.downloadSize
 	t.Logf("carfile size:%d", carfile.carfileSize)
 
 	t.Logf("layer %d, cids:%v", layer, []string{carfile.carfileCID})

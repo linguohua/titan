@@ -26,7 +26,7 @@ func NewLocalEdgeNode(ctx context.Context, device *device.Device, params *helper
 
 	carfileOeration := carfile.NewCarfileOperation(params.CarfileStore, params.Scheduler, carfile.NewCandidate(params.CarfileStore), device)
 
-	datasync.SyncLocalBlockstore(params.DS, params.CarfileStore)
+	// datasync.SyncLocalBlockstore(params.DS, params.CarfileStore)
 
 	edge := &Edge{
 		Device:           device,

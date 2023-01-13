@@ -48,8 +48,6 @@ type CandidateStruct struct {
 
 	DeviceStruct
 
-	BlockStruct
-
 	DownloadStruct
 
 	ValidateStruct
@@ -59,6 +57,8 @@ type CandidateStruct struct {
 	CarfileOperationStruct
 
 	Internal struct {
+		LoadBlock func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
+
 		ValidateBlocks func(p0 context.Context, p1 []ReqValidate) error `perm:"read"`
 
 		WaitQuiet func(p0 context.Context) error `perm:"read"`
@@ -69,8 +69,6 @@ type CandidateStub struct {
 	CommonStub
 
 	DeviceStub
-
-	BlockStub
 
 	DownloadStub
 
@@ -89,7 +87,7 @@ type CarfileOperationStruct struct {
 
 		DeleteCarfile func(p0 context.Context, p1 string) (int, error) `perm:"write"`
 
-		DeleteWaitCacheCarfile func(p0 context.Context, p1 string) error `perm:"admin"`
+		DeleteWaitCacheCarfile func(p0 context.Context, p1 string) (int, error) `perm:"admin"`
 	}
 }
 
@@ -159,8 +157,6 @@ type EdgeStruct struct {
 
 	DeviceStruct
 
-	BlockStruct
-
 	DownloadStruct
 
 	ValidateStruct
@@ -178,8 +174,6 @@ type EdgeStub struct {
 	CommonStub
 
 	DeviceStub
-
-	BlockStub
 
 	DownloadStub
 
@@ -479,6 +473,17 @@ func (s *BlockStub) RemoveWaitCacheBlockWith(p0 context.Context, p1 string) erro
 	return ErrNotSupported
 }
 
+func (s *CandidateStruct) LoadBlock(p0 context.Context, p1 string) ([]byte, error) {
+	if s.Internal.LoadBlock == nil {
+		return *new([]byte), ErrNotSupported
+	}
+	return s.Internal.LoadBlock(p0, p1)
+}
+
+func (s *CandidateStub) LoadBlock(p0 context.Context, p1 string) ([]byte, error) {
+	return *new([]byte), ErrNotSupported
+}
+
 func (s *CandidateStruct) ValidateBlocks(p0 context.Context, p1 []ReqValidate) error {
 	if s.Internal.ValidateBlocks == nil {
 		return ErrNotSupported
@@ -534,15 +539,15 @@ func (s *CarfileOperationStub) DeleteCarfile(p0 context.Context, p1 string) (int
 	return 0, ErrNotSupported
 }
 
-func (s *CarfileOperationStruct) DeleteWaitCacheCarfile(p0 context.Context, p1 string) error {
+func (s *CarfileOperationStruct) DeleteWaitCacheCarfile(p0 context.Context, p1 string) (int, error) {
 	if s.Internal.DeleteWaitCacheCarfile == nil {
-		return ErrNotSupported
+		return 0, ErrNotSupported
 	}
 	return s.Internal.DeleteWaitCacheCarfile(p0, p1)
 }
 
-func (s *CarfileOperationStub) DeleteWaitCacheCarfile(p0 context.Context, p1 string) error {
-	return ErrNotSupported
+func (s *CarfileOperationStub) DeleteWaitCacheCarfile(p0 context.Context, p1 string) (int, error) {
+	return 0, ErrNotSupported
 }
 
 func (s *CommonStruct) AuthNew(p0 context.Context, p1 []auth.Permission) ([]byte, error) {
