@@ -58,7 +58,6 @@ func (m *Manager) run() {
 
 func (m *Manager) edgeKeepalive(node *EdgeNode, nowTime time.Time) {
 	lastTime := node.GetLastRequestTime()
-	// log.Warnf("%s, lastTime :%s", deviceID, lastTime.String())
 
 	if !lastTime.After(nowTime) {
 		// offline
@@ -69,13 +68,12 @@ func (m *Manager) edgeKeepalive(node *EdgeNode, nowTime time.Time) {
 
 	_, err := cache.GetDB().IncrNodeOnlineTime(node.DeviceId, keepaliveTime)
 	if err != nil {
-		log.Warnf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceId)
+		log.Errorf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceId)
 	}
 }
 
 func (m *Manager) candidateKeepalive(node *CandidateNode, nowTime time.Time) {
 	lastTime := node.GetLastRequestTime()
-	// log.Warnf("%s, lastTime :%s", deviceID, lastTime.String())
 
 	if !lastTime.After(nowTime) {
 		// offline
@@ -86,13 +84,12 @@ func (m *Manager) candidateKeepalive(node *CandidateNode, nowTime time.Time) {
 
 	_, err := cache.GetDB().IncrNodeOnlineTime(node.DeviceId, keepaliveTime)
 	if err != nil {
-		log.Warnf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceId)
+		log.Errorf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceId)
 	}
 }
 
 func (m *Manager) checkNodesKeepalive() {
 	nowTime := time.Now().Add(-time.Duration(keepaliveTime) * time.Second)
-	// log.Warnf("nodeKeepalive nowTime :%s", nowTime.String())
 
 	m.EdgeNodeMap.Range(func(key, value interface{}) bool {
 		// deviceID := key.(string)
@@ -103,19 +100,6 @@ func (m *Manager) checkNodesKeepalive() {
 		}
 
 		go m.edgeKeepalive(node, nowTime)
-
-		// result, err := statisticsPing(node.DeviceInfo.ExternalIp)
-		// if err != nil {
-		// 	log.Warnf("statistics ping %s: %v", deviceID, err)
-		// } else {
-		// 	err = cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
-		// 		deviceInfo.PkgLossRatio = result.PacketLoss
-		// 		deviceInfo.Latency = float64(result.AvgRtt.Milliseconds())
-		// 	})
-		// 	if err != nil {
-		// 		log.Warnf("update packet loss and lantency: %v", err)
-		// 	}
-		// }
 
 		return true
 	})
@@ -129,18 +113,6 @@ func (m *Manager) checkNodesKeepalive() {
 		}
 
 		go m.candidateKeepalive(node, nowTime)
-		// result, err := statisticsPing(node.DeviceInfo.ExternalIp)
-		// if err != nil {
-		// 	log.Warnf("statistics ping %s: %v", deviceID, err)
-		// } else {
-		// 	err = cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
-		// 		deviceInfo.PkgLossRatio = result.PacketLoss
-		// 		deviceInfo.Latency = float64(result.AvgRtt.Milliseconds())
-		// 	})
-		// 	if err != nil {
-		// 		log.Warnf("update packet loss and lantency: %v", err)
-		// 	}
-		// }
 
 		return true
 	})
@@ -209,7 +181,7 @@ func (m *Manager) edgeOffline(node *EdgeNode) {
 	// close old node
 	node.ClientCloser()
 
-	log.Warnf("edgeOffline :%s", deviceID)
+	log.Infof("edgeOffline :%s", deviceID)
 
 	m.EdgeNodeMap.Delete(deviceID)
 
@@ -259,7 +231,7 @@ func (m *Manager) candidateOffline(node *CandidateNode) {
 	// close old node
 	node.ClientCloser()
 
-	log.Warnf("candidateOffline :%s", deviceID)
+	log.Infof("candidateOffline :%s", deviceID)
 
 	m.CandidateNodeMap.Delete(deviceID)
 
@@ -435,7 +407,7 @@ func (m *Manager) GetCandidatesWithBlockHash(hash, filterDevice string) ([]*Cand
 func (m *Manager) checkNodesQuit() {
 	nodes, err := persistent.GetDB().GetOfflineNodes()
 	if err != nil {
-		log.Warnf("checkNodesQuit GetOfflineNodes err:%s", err.Error())
+		log.Errorf("checkNodesQuit GetOfflineNodes err:%s", err.Error())
 		return
 	}
 
@@ -464,13 +436,28 @@ func (m *Manager) checkNodesQuit() {
 func (m *Manager) NodesQuit(deviceIDs []string) {
 	err := persistent.GetDB().SetNodesQuit(deviceIDs)
 	if err != nil {
-		log.Warnf("NodeExited SetNodesQuit err:%s", err.Error())
+		log.Errorf("NodeExited SetNodesQuit err:%s", err.Error())
 		return
 	}
 
 	if m.nodeExitedCallBack != nil {
 		m.nodeExitedCallBack(deviceIDs)
 	}
+}
+
+// GetNode get node
+func (m *Manager) GetNode(deviceID string) *Node {
+	edge := m.GetEdgeNode(deviceID)
+	if edge != nil {
+		return edge.Node
+	}
+
+	candidate := m.GetCandidateNode(deviceID)
+	if candidate != nil {
+		return candidate.Node
+	}
+
+	return nil
 }
 
 // func statisticsPing(ip string) (*ping.Statistics, error) {

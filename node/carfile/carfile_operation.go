@@ -170,8 +170,8 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfile) error
 		Status:      status,
 		TotalBlock:  len(carfile.blocksDownloadSuccessList) + len(carfile.blocksWaitList),
 		DoneBlocks:  len(carfile.blocksDownloadSuccessList),
-		TotalSize:   int(carfile.carfileSize),
-		DoneSize:    int(carfile.downloadSize),
+		TotalSize:   carfile.carfileSize,
+		DoneSize:    carfile.downloadSize,
 		CarfileHash: carfileHash,
 		DiskUsage:   deviceInfo.DiskUsage,
 	}

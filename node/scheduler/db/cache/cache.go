@@ -31,22 +31,11 @@ type DB interface {
 	SetCacheTaskStart(hash, deviceID string, timeout int64) error
 	SetCacheTaskEnd(hash, deviceID string) error
 	UpdateNodeCacheingExpireTime(hash, deviceID string, timeout int64) error
-	GetCacheingNodes() ([]string, error)
-	GetNodeCaches(deviceID string) ([]string, error)
+	// GetCacheingNodes() ([]string, error)
+	// GetNodeCaches(deviceID string) ([]string, error)
 	GetCacheingCarfiles() (map[string]int, error)
-	GetNodeCacheingCarfile(deviceID string) (string, error)
-	GetCacheTimeoutNodes() ([]string, error)
-	NodesCacheTimeout(deviceIDs []string) error
-
-	// running data list
-	// SetDataTaskToRunningList(hash, cacheID string, timeout int64) error
-	// GetDataTasksWithRunningList() ([]*DataTask, error)
-
-	// running data details
-	// SetRunningDataTask(hash, deviceID string, timeout int64) error
-	// GetRunningDataTask(hash, deviceID string) (string, error)
-	// RemoveRunningDataTask(hash, deviceID string) error
-	// GetRunningDataTaskExpiredTime(hash, deviceID string) (time.Duration, error)
+	// GetNodeCacheingCarfile(deviceID string) (string, error)
+	NodeIsCaching(deviceID string) (bool, error)
 
 	// waiting data list
 	SetWaitingDataTask(info *api.CarfileRecordInfo) error
@@ -98,7 +87,7 @@ type DB interface {
 	// GetNodeCacheFid(deviceID string) (int64, error)
 
 	RemoveCarfileRecord(carfileCount int64, nodeBlockCounts map[string]int64) error
-	CacheEndRecord(dataTask *DataTask, fromDeviceID string, blockSize int, blocks int, isSuccess bool) error
+	// CacheEndRecord(dataTask *DataTask, fromDeviceID string, blockSize int, blocks int, isSuccess bool) error
 
 	IsNilErr(err error) bool
 }

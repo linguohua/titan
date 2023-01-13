@@ -25,12 +25,9 @@ func (s *Scheduler) CacheContinue(ctx context.Context, cid, cacheID string) erro
 func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) error {
 	deviceID := handler.GetDeviceID(ctx)
 
-	if !isDeviceExists(deviceID, 0) {
+	if !deviceExists(deviceID, 0) {
 		return xerrors.Errorf("node not Exist: %s", deviceID)
 	}
-
-	// log.Warnf("CacheResult ,CacheID:%s Cid:%s", info.CacheID, info.Cid)
-	// return s.dataManager.PushCacheResultToQueue(&info)
 
 	return s.dataManager.CacheCarfileResult(deviceID, &info)
 }
@@ -55,7 +52,7 @@ func (s *Scheduler) ReplenishCacheExpiredTime(ctx context.Context, carfileCid, c
 
 // StopCacheTask stop cache
 func (s *Scheduler) StopCacheTask(ctx context.Context, carfileCid string) error {
-	return s.dataManager.StopCacheTask(carfileCid)
+	return s.dataManager.StopCacheTask(carfileCid, "")
 }
 
 // ShowRunningCacheDatas Show Data Tasks
@@ -150,7 +147,7 @@ func (s *Scheduler) ListEvents(ctx context.Context, page int) (api.EventListInfo
 
 // ListCacheDatas List Datas
 func (s *Scheduler) ListCacheDatas(ctx context.Context, page int) (api.DataListInfo, error) {
-	count, totalPage, list, err := persistent.GetDB().GetDataCidWithPage(page)
+	count, totalPage, list, err := persistent.GetDB().GetCarfileCidWithPage(page)
 	if err != nil {
 		return api.DataListInfo{}, err
 	}

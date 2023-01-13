@@ -168,7 +168,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 	ip := handler.GetRequestIP(ctx)
 	deviceID := handler.GetDeviceID(ctx)
 
-	if !isDeviceExists(deviceID, int(api.NodeCandidate)) {
+	if !deviceExists(deviceID, int(api.NodeCandidate)) {
 		return xerrors.Errorf("candidate node not Exist: %s", deviceID)
 	}
 
@@ -254,7 +254,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 	ip := handler.GetRequestIP(ctx)
 	deviceID := handler.GetDeviceID(ctx)
 
-	if !isDeviceExists(deviceID, int(api.NodeEdge)) {
+	if !deviceExists(deviceID, int(api.NodeEdge)) {
 		return xerrors.Errorf("edge node not Exist: %s", deviceID)
 	}
 
@@ -363,7 +363,7 @@ func (s *Scheduler) GetExternalIP(ctx context.Context) (string, error) {
 func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.ValidateResults) error {
 	validator := handler.GetDeviceID(ctx)
 	log.Debug("call back validate block result, validator is", validator)
-	if !isDeviceExists(validator, 0) {
+	if !deviceExists(validator, 0) {
 		return xerrors.Errorf("node not Exist: %s", validator)
 	}
 
@@ -413,7 +413,7 @@ func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids
 	//TODO too much cid
 	deviceID := handler.GetDeviceID(ctx)
 
-	if !isDeviceExists(deviceID, 0) {
+	if !deviceExists(deviceID, 0) {
 		return nil, xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
@@ -462,8 +462,8 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 
 		statList = append(statList, body)
 
-		nodeBody, _ := candidata.GetAPI().QueryCacheStat(ctx)
-		statList = append(statList, nodeBody)
+		// nodeBody, _ := candidata.GetAPI().QueryCacheStat(ctx)
+		// statList = append(statList, nodeBody)
 		return statList, nil
 	}
 
@@ -477,8 +477,8 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 
 		statList = append(statList, body)
 
-		nodeBody, _ := edge.GetAPI().QueryCacheStat(ctx)
-		statList = append(statList, nodeBody)
+		// nodeBody, _ := edge.GetAPI().QueryCacheStat(ctx)
+		// statList = append(statList, nodeBody)
 		return statList, nil
 	}
 
@@ -490,15 +490,15 @@ func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID str
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	candidata := s.nodeManager.GetCandidateNode(deviceID)
-	if candidata != nil {
-		return candidata.GetAPI().QueryCachingBlocks(ctx)
-	}
+	// candidata := s.nodeManager.GetCandidateNode(deviceID)
+	// if candidata != nil {
+	// 	return candidata.GetAPI().QueryCachingBlocks(ctx)
+	// }
 
-	edge := s.nodeManager.GetEdgeNode(deviceID)
-	if edge != nil {
-		return edge.GetAPI().QueryCachingBlocks(ctx)
-	}
+	// edge := s.nodeManager.GetEdgeNode(deviceID)
+	// if edge != nil {
+	// 	return edge.GetAPI().QueryCachingBlocks(ctx)
+	// }
 
 	return api.CachingBlockList{}, xerrors.Errorf("not found node:%s", deviceID)
 }
@@ -632,7 +632,7 @@ func (s *Scheduler) nodeExitedCallback(deviceIDs []string) {
 
 //RedressDeveiceInfo redress device info
 func (s *Scheduler) RedressDeveiceInfo(ctx context.Context, deviceID string) error {
-	if !isDeviceExists(deviceID, 0) {
+	if !deviceExists(deviceID, 0) {
 		return xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
@@ -666,8 +666,8 @@ func (s *Scheduler) authNew() error {
 	return nil
 }
 
-// isDeviceExists Check if the id exists
-func isDeviceExists(deviceID string, nodeType int) bool {
+// deviceExists Check if the id exists
+func deviceExists(deviceID string, nodeType int) bool {
 	var nType int
 	err := persistent.GetDB().GetRegisterInfo(deviceID, persistent.NodeTypeKey, &nType)
 	if err != nil {

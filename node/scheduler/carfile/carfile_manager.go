@@ -2,7 +2,6 @@ package carfile
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -18,41 +17,41 @@ import (
 
 var log = logging.Logger("carfile")
 
-var nodeCacheResultInterval = int64(70) //(Second)
+const (
+	checkCacheTimeoutInterval = 60 + 5                        // (Unit:Second)
+	cacheResultTimeout        = checkCacheTimeoutInterval + 5 // (Unit:Second)
+	startTaskInterval         = 10                            //  time interval (Unit:Second)
+	checkExpiredTimerInterval = 60 * 30                       //  time interval (Unit:Second)
+
+	runningTaskMaxCount = 10
+
+	// If the node disk size is greater than this value, caching will not continue
+	diskUsageMax = 90.0
+)
 
 // EventType event
 type EventType string
 
 const (
-	eventTypeDoCacheTaskStart    EventType = "Start_Cache"
-	eventTypeDoCacheTaskEnd      EventType = "End_Cache"
-	eventTypeDoDataTaskErr       EventType = "Data_Error"
-	eventTypeDoDataTaskStart     EventType = "Start_Data"
-	eventTypeDoDataTaskEnd       EventType = "End_Data"
-	eventTypeAddNewDataTask      EventType = "Add_New_Data"
-	eventTypeAddContinueDataTask EventType = "Add_Continue_Data"
-	eventTypeRemoveData          EventType = "Remove_Data"
-	eventTypeRemoveCache         EventType = "Remove_Cache"
-	eventTypeStopDataTask        EventType = "Stop_Data"
-	eventTypeReplenishCacheTime  EventType = "Replenish_Cache_Expired"
-	eventTypeResetCacheTime      EventType = "Reset_Cache_Expired"
-	eventTypeRestoreCache        EventType = "Restore_Cache"
-
-	dataTimeoutInterval       = 60
-	dataCacheTimerInterval    = 10     //  time interval (Second)
-	checkExpiredTimerInterval = 60 * 5 //  time interval (Second)
-
-	runningTaskMaxCount = 10
-	// blockResultThreadCount = 10
-
-	// If the node disk size is greater than this value, caching will not continue
-	diskUsageMax = 90
+// eventTypeDoCacheTaskStart    EventType = "Start_Cache"
+// eventTypeDoCacheTaskEnd      EventType = "End_Cache"
+// eventTypeDoDataTaskErr       EventType = "Data_Error"
+// eventTypeDoDataTaskStart     EventType = "Start_Data"
+// eventTypeDoDataTaskEnd       EventType = "End_Data"
+// eventTypeAddNewDataTask      EventType = "Add_New_Data"
+// eventTypeAddContinueDataTask EventType = "Add_Continue_Data"
+// eventTypeRemoveData          EventType = "Remove_Data"
+// eventTypeRemoveCache         EventType = "Remove_Cache"
+// eventTypeStopDataTask        EventType = "Stop_Data"
+// eventTypeReplenishCacheTime  EventType = "Replenish_Cache_Expired"
+// eventTypeResetCacheTime      EventType = "Reset_Cache_Expired"
+// eventTypeRestoreCache        EventType = "Restore_Cache"
 )
 
 // Manager Data
 type Manager struct {
 	nodeManager        *node.Manager
-	CarfileRecordMap   sync.Map
+	CarfileRecordMap   sync.Map //cacheing carfile map
 	expiredTimeOfCache time.Time
 	isLoadExpiredTime  bool
 	getAuthToken       func() []byte
@@ -71,7 +70,6 @@ func NewCarfileManager(nodeManager *node.Manager, getToken func() []byte) *Manag
 	d.resetBaseInfo()
 	go d.dataCacheTicker()
 	go d.checkExpiredTicker()
-	go d.dataTimeoutTicker()
 
 	return d
 }
@@ -92,29 +90,29 @@ func (m *Manager) initCacheMap() {
 
 		m.CarfileRecordMap.Store(hash, cr)
 		m.runningTaskCount++
+
+		//start timout check
+		cr.CacheTaskMap.Range(func(key, value interface{}) bool {
+			if value != nil {
+				c := value.(*CacheTask)
+				if c != nil {
+					go c.startTimeoutTimer()
+				}
+			}
+
+			return true
+		})
 	}
 }
 
 func (m *Manager) dataCacheTicker() {
-	ticker := time.NewTicker(time.Duration(dataCacheTimerInterval) * time.Second)
+	ticker := time.NewTicker(time.Duration(startTaskInterval) * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
 			m.doDataTasks()
-		}
-	}
-}
-
-func (m *Manager) dataTimeoutTicker() {
-	ticker := time.NewTicker(time.Duration(dataTimeoutInterval) * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			m.checkTaskTimeouts()
 		}
 	}
 }
@@ -204,70 +202,6 @@ func (m *Manager) GetCarfileRecord(hash string) (*CarfileRecord, error) {
 	return loadCarfileRecord(hash, m)
 }
 
-func (m *Manager) checkTaskTimeout(taskInfo *cache.DataTask) {
-	hash, err := cache.GetDB().GetNodeCacheingCarfile(taskInfo.DeviceID)
-	if err != nil || hash != "" {
-		return
-	}
-
-	data, err := m.GetCarfileRecord(taskInfo.CarfileHash)
-	if data == nil {
-		return
-	}
-
-	cI, ok := data.CacheTaskMap.Load(taskInfo.DeviceID)
-	if ok && cI != nil {
-		cache := cI.(*CacheTask)
-		err := cache.endCache(api.CacheStatusTimeout)
-		if err != nil {
-			log.Errorf("stopCache err:%s", err.Error())
-		}
-	}
-}
-
-func (m *Manager) checkTaskTimeouts() {
-	timeoutNodes, err := cache.GetDB().GetCacheTimeoutNodes()
-	if err != nil {
-		log.Errorf("checkTaskTimeouts GetCacheTimeoutNodes err:%s", err.Error())
-		return
-	}
-	log.Warnf("timeoutNodes : %v", timeoutNodes)
-
-	if len(timeoutNodes) <= 0 {
-		return
-	}
-
-	m.CarfileRecordMap.Range(func(key, value interface{}) bool {
-		data := value.(*CarfileRecord)
-		if data == nil {
-			return true
-		}
-
-		for _, deviceID := range timeoutNodes {
-			cI, exist := data.CacheTaskMap.Load(deviceID)
-			if !exist {
-				continue
-			}
-			cache := cI.(*CacheTask)
-			cache.status = api.CacheStatusTimeout
-		}
-
-		return true
-	})
-
-	//save db
-	err = persistent.GetDB().UpdateCacheInfoOfTimeoutNodes(timeoutNodes)
-	if err != nil {
-		log.Errorf("UpdateCacheInfoOfTimeoutNodes err:%s", err.Error())
-	}
-
-	err = cache.GetDB().NodesCacheTimeout(timeoutNodes)
-	if err != nil {
-		log.Errorf("NodesCacheTimeout err:%s", err.Error())
-	}
-	// delete carfile of map
-}
-
 func (m *Manager) makeDataTask(cid, hash string, reliability int, expiredTime time.Time) error {
 	data, err := loadCarfileRecord(hash, m)
 	if err != nil {
@@ -286,7 +220,7 @@ func (m *Manager) makeDataTask(cid, hash string, reliability int, expiredTime ti
 		data.expiredTime = expiredTime
 	}
 
-	err = persistent.GetDB().SetDataInfo(&api.CarfileRecordInfo{
+	err = persistent.GetDB().CreateCarfileInfo(&api.CarfileRecordInfo{
 		CarfileCid:      data.carfileCid,
 		NeedReliability: data.needReliability,
 		ExpiredTime:     data.expiredTime,
@@ -296,19 +230,15 @@ func (m *Manager) makeDataTask(cid, hash string, reliability int, expiredTime ti
 		return xerrors.Errorf("cid:%s,SetDataInfo err:%s", data.carfileCid, err.Error())
 	}
 
-	errList, err := data.dispatchCache()
-	if len(errList) > 0 {
-		for deviceID, e := range errList {
-			log.Errorf("cache deviceID:%s, err:%s", deviceID, e)
-			// TODO record node
-		}
-	}
-
+	isRunning, err := data.dispatchCache()
 	if err != nil {
 		return err
 	}
 
-	m.recordTaskStart(data)
+	if isRunning {
+		m.recordTaskStart(data)
+	}
+
 	return nil
 }
 
@@ -349,10 +279,10 @@ func (m *Manager) CacheData(cid string, reliability int, expiredTime time.Time) 
 		return err
 	}
 
-	err = saveEvent(cid, "", "user", fmt.Sprintf("reliability:%d", reliability), eventTypeAddNewDataTask)
-	if err != nil {
-		return err
-	}
+	// err = saveEvent(cid, "", "user", fmt.Sprintf("reliability:%d", reliability), eventTypeAddNewDataTask)
+	// if err != nil {
+	// 	return err
+	// }
 
 	// m.notifyDataLoader()
 
@@ -543,44 +473,45 @@ func (m *Manager) recordTaskEnd(cid, hash string) {
 // }
 
 // StopCacheTask stop cache data
-func (m *Manager) StopCacheTask(cid string) error {
-	hash, err := helper.CIDString2HashString(cid)
-	if err != nil {
-		return err
-	}
-
-	//TODO
-	deviceID := ""
-	// deviceID, err := cache.GetDB().GetRunningDataTask(hash)
+func (m *Manager) StopCacheTask(cid, deviceID string) error {
+	//TODO undone
+	// hash, err := helper.CIDString2HashString(cid)
 	// if err != nil {
 	// 	return err
 	// }
 
-	data, err := m.GetCarfileRecord(hash)
-	if err != nil {
-		return xerrors.Errorf("not found cid:%s,err:%s", cid, err.Error())
-	}
+	// dI, ok := m.CarfileRecordMap.Load(hash)
+	// if !ok || dI == nil {
+	// 	return xerrors.Errorf("cache %s not running", cid)
+	// }
+	// data := dI.(*CarfileRecord)
 
-	err = saveEvent(cid, deviceID, "", "", eventTypeStopDataTask)
-	if err != nil {
-		return err
-	}
+	// if deviceID != "" {
+	// 	cI, ok := data.CacheTaskMap.Load(deviceID)
+	// 	if ok && cI != nil {
+	// 		cache := cI.(*CacheTask)
+	// 		err := cache.endCache(api.CacheStatusFail)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 	}
+	// }
 
-	cI, ok := data.CacheTaskMap.Load(deviceID)
-	if ok && cI != nil {
-		cache := cI.(*CacheTask)
-		err := cache.endCache(api.CacheStatusFail)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := cache.GetDB().SetCacheTaskEnd(hash, deviceID)
-		if err != nil {
-			return xerrors.Errorf("endCache SetCacheTaskEnd err: %s", err.Error())
-		}
-	}
+	// cI, ok := data.CacheTaskMap.Load(deviceID)
+	// if ok && cI != nil {
+	// 	cache := cI.(*CacheTask)
+	// 	err := cache.endCache(api.CacheStatusFail)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// } else {
+	// 	err := cache.GetDB().SetCacheTaskEnd(hash, deviceID)
+	// 	if err != nil {
+	// 		return xerrors.Errorf("endCache SetCacheTaskEnd err: %s", err.Error())
+	// 	}
+	// }
 
-	go m.removeWaitCacheBlockWithNode(deviceID, cid)
+	// go m.removeWaitCacheBlockWithNode(deviceID, cid)
 
 	return nil
 }
@@ -591,18 +522,18 @@ func (m *Manager) removeWaitCacheBlockWithNode(deviceID, cid string) error {
 
 	cNode := m.nodeManager.GetCandidateNode(deviceID)
 	if cNode != nil {
-		err := cNode.GetAPI().RemoveWaitCacheBlockWith(ctx, cid)
+		err := cNode.GetAPI().DeleteWaitCacheCarfile(ctx, cid)
 		if err != nil {
-			log.Errorf("%s , RemoveWaitCacheBlockWith err:%s", deviceID, err.Error())
+			log.Errorf("%s , DeleteWaitCacheCarfile err:%s", deviceID, err.Error())
 		}
 		return err
 	}
 
 	eNode := m.nodeManager.GetEdgeNode(deviceID)
 	if eNode != nil {
-		err := eNode.GetAPI().RemoveWaitCacheBlockWith(ctx, cid)
+		err := eNode.GetAPI().DeleteWaitCacheCarfile(ctx, cid)
 		if err != nil {
-			log.Errorf("%s , RemoveWaitCacheBlockWith err:%s", deviceID, err.Error())
+			log.Errorf("%s , DeleteWaitCacheCarfile err:%s", deviceID, err.Error())
 		}
 
 		return err
@@ -611,28 +542,9 @@ func (m *Manager) removeWaitCacheBlockWithNode(deviceID, cid string) error {
 	return nil
 }
 
-// func (m *Manager) isCacheTaskRunnning(hash, deviceID string) (bool, error) {
-// 	cID, err := cache.GetDB().GetRunningDataTask(hash, deviceID)
-// 	if err != nil && !cache.GetDB().IsNilErr(err) {
-// 		log.Errorf("isTaskRunnning %s GetRunningDataTask err:%s", hash, err.Error())
-// 		return false, err
-// 	}
-
-// 	if deviceID == "" {
-// 		return cID != "", nil
-// 	}
-
-// 	return cID == deviceID, nil
-// }
-
 // ReplenishExpiredTimeToData replenish time
 func (m *Manager) ReplenishExpiredTimeToData(cid, cacheID string, hour int) error {
 	hash, err := helper.CIDString2HashString(cid)
-	if err != nil {
-		return err
-	}
-
-	err = saveEvent(cid, cacheID, "", fmt.Sprintf("add hour:%d", hour), eventTypeReplenishCacheTime)
 	if err != nil {
 		return err
 	}
@@ -669,11 +581,6 @@ func (m *Manager) ReplenishExpiredTimeToData(cid, cacheID string, hour int) erro
 // ResetExpiredTime reset expired time
 func (m *Manager) ResetExpiredTime(cid, cacheID string, expiredTime time.Time) error {
 	hash, err := helper.CIDString2HashString(cid)
-	if err != nil {
-		return err
-	}
-
-	err = saveEvent(cid, cacheID, "", fmt.Sprintf("expiredTime:%s", expiredTime.String()), eventTypeResetCacheTime)
 	if err != nil {
 		return err
 	}
@@ -720,6 +627,8 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceIDs []string) {
 	for _, deviceID := range deviceIDs {
 		// update node block count
 		values[deviceID] = 0
+
+		// TODO notify node remove all carfile
 	}
 
 	err = cache.GetDB().UpdateDeviceInfos(cache.BlockCountField, values)
@@ -737,7 +646,7 @@ func (m *Manager) CleanNodeAndRestoreCaches(deviceIDs []string) {
 			log.Errorf("cleanNodeAndRestoreCaches SetWaitingDataTask err:%s", err.Error())
 			continue
 		}
-		log.Warnf("Restore carfile :%s", info.CarfileHash)
+		log.Infof("Restore carfile :%s", info.CarfileHash)
 	}
 }
 
@@ -815,12 +724,14 @@ func (m *Manager) removeCache(cacheInfo *api.CacheTaskInfo, carfileCid string) e
 func (m *Manager) notifyNodeRemoveCarfile(deviceID, cid string) error {
 	edge := m.nodeManager.GetEdgeNode(deviceID)
 	if edge != nil {
-		return edge.GetAPI().DeleteCarfile(context.Background(), cid)
+		_, err := edge.GetAPI().DeleteCarfile(context.Background(), cid)
+		return err
 	}
 
 	candidate := m.nodeManager.GetCandidateNode(deviceID)
 	if candidate != nil {
-		return candidate.GetAPI().DeleteCarfile(context.Background(), cid)
+		_, err := candidate.GetAPI().DeleteCarfile(context.Background(), cid)
+		return err
 	}
 
 	return nil
@@ -838,8 +749,11 @@ func (m *Manager) getNeedRootCacheCount(reliability int) int {
 }
 
 // find the edges
-func (m *Manager) findAppropriateEdges(cacheMap sync.Map, count int) []*node.EdgeNode {
-	list := make([]*node.EdgeNode, 0)
+func (m *Manager) findAppropriateEdges(cacheMap sync.Map, count int) []*node.Node {
+	list := make([]*node.Node, 0)
+	if count <= 0 {
+		return list
+	}
 
 	m.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
@@ -853,7 +767,7 @@ func (m *Manager) findAppropriateEdges(cacheMap sync.Map, count int) []*node.Edg
 			return true
 		}
 
-		list = append(list, node)
+		list = append(list, node.Node)
 		return true
 	})
 
@@ -869,8 +783,11 @@ func (m *Manager) findAppropriateEdges(cacheMap sync.Map, count int) []*node.Edg
 }
 
 // find the candidates
-func (m *Manager) findAppropriateCandidates(cacheMap sync.Map, count int) []*node.CandidateNode {
-	list := make([]*node.CandidateNode, 0)
+func (m *Manager) findAppropriateCandidates(cacheMap sync.Map, count int) []*node.Node {
+	list := make([]*node.Node, 0)
+	if count <= 0 {
+		return list
+	}
 
 	m.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
@@ -884,7 +801,7 @@ func (m *Manager) findAppropriateCandidates(cacheMap sync.Map, count int) []*nod
 			return true
 		}
 
-		list = append(list, node)
+		list = append(list, node.Node)
 		return true
 	})
 

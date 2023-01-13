@@ -32,19 +32,20 @@ type DB interface {
 	SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error)
 
 	// cache data info
-	CreateCache(cInfo *api.CacheTaskInfo) error
+	CreateCacheInfo(cInfo *api.CacheTaskInfo) error
 	SaveCacheResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheTaskInfo) error
-	UpdateCacheInfoOfTimeoutNodes(deviceIDs []string) error
+	// UpdateCacheInfoOfTimeoutNodes(deviceIDs []string) error
 
 	// data info
-	SetDataInfo(info *api.CarfileRecordInfo) error
-	GetDataInfo(hash string) (*api.CarfileRecordInfo, error)
-	GetDataCidWithPage(page int) (count int, totalPage int, list []*api.CarfileRecordInfo, err error)
+	CreateCarfileInfo(info *api.CarfileRecordInfo) error
+	GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error)
+	GetCarfileCidWithPage(page int) (count int, totalPage int, list []*api.CarfileRecordInfo, err error)
 	GetCachesWithData(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error)
 	ExtendExpiredTimeWhitCaches(carfileHash, deviceID string, hour int) error
 	ChangeExpiredTimeWhitCaches(carfileHash, deviceID string, expiredTime time.Time) error
 	GetExpiredCaches() ([]*api.CacheTaskInfo, error)
 	GetMinExpiredTimeWithCaches() (time.Time, error)
+	UpdateCacheStatusWithNodes(hash string, deviceIDs []string) error
 
 	// cache info
 	GetSuccessCaches() ([]*api.CacheTaskInfo, error)
