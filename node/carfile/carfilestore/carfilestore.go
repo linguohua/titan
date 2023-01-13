@@ -1,10 +1,8 @@
 package carfilestore
 
 import (
-	"os"
 	"path/filepath"
 
-	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/blockstore"
 	"github.com/linguohua/titan/node/fsutil"
@@ -64,11 +62,11 @@ func (carfileStore *CarfileStore) Stat() (fsutil.FsStat, error) {
 }
 
 func (carfileStore *CarfileStore) GetAllBlocksHash() ([]string, error) {
-	return nil, nil
+	return carfileStore.blockStore.GetAllKeys()
 }
 
 func (carfileStore *CarfileStore) BlocksCount() (int, error) {
-	return 0, nil
+	return carfileStore.blockStore.KeyCount()
 }
 
 func (carfileStore *CarfileStore) CarfilesCount() (int, error) {
@@ -105,22 +103,30 @@ func (carfileStore *CarfileStore) DeleteIncompleteCarfile(carfileHash string) er
 	return carfileStore.imcompleteCarfileTable.delete(carfileHash)
 }
 
-func (carfileStore *CarfileStore) GetBlocksHashOfCarfile(carfileHash string, positions []int) ([]string, error) {
+func (carfileStore *CarfileStore) GetIncomleteCarfileData(carfileHash string) ([]byte, error) {
+	return carfileStore.imcompleteCarfileTable.getCarfile(carfileHash)
+}
+
+func (carfileStore *CarfileStore) GetBlocksHashWithCarfilePositions(carfileHash string, positions []int) ([]string, error) {
 	return carfileStore.carfileTable.readBlocksHashOfCarfile(carfileHash, positions)
 }
 
-func (carfileStore *CarfileStore) SaveWaitList2File(data []byte) error {
-	filePath := filepath.Join(carfileStore.path, waitCacheListFile)
-	return os.WriteFile(filePath, data, 0644)
+func (carfileStore *CarfileStore) SaveWaitListToFile(data []byte) error {
+	return saveWaitListToFile(data, filepath.Join(carfileStore.path, waitCacheListFile))
 }
 
 func (carfileStore *CarfileStore) GetWaitListFromFile() ([]byte, error) {
-	filePath := filepath.Join(carfileStore.path, waitCacheListFile)
+	return getWaitListFromFile(filepath.Join(carfileStore.path, waitCacheListFile))
+}
 
-	data, err := os.ReadFile(filePath)
-	if err != nil && os.IsNotExist(err) {
-		return nil, datastore.ErrNotFound
-	}
+func (carfileStore *CarfileStore) GetBlocksHashOfCarfile(carfileHash string) ([]string, error) {
+	return carfileStore.carfileTable.readAllBlocksHashOfCarfile(carfileHash)
+}
 
-	return data, err
+func (carfileStore *CarfileStore) HasCarfile(carfileHash string) (bool, error) {
+	return carfileStore.carfileTable.has(carfileHash)
+}
+
+func (carfileStore *CarfileStore) BlocksCountOfCarfile(carfileHash string) (int, error) {
+	return carfileStore.carfileTable.blocksCountOfCarfile(carfileHash)
 }

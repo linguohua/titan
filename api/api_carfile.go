@@ -10,7 +10,7 @@ type CarfileOperation interface {
 	// delete all carfiles
 	DeleteAllCarfiles(ctx context.Context) error //perm:admin
 	// delete carfile with wait cache
-	DeleteWaitCacheCarfile(ctx context.Context, carfileCID string) error //perm:admin
+	DeleteWaitCacheCarfile(ctx context.Context, carfileCID string) (blockCount int, err error) //perm:admin
 }
 
 type CacheCarfileResult struct {

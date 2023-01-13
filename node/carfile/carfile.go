@@ -22,17 +22,19 @@ type carfile struct {
 	carfileCID                string
 	blocksWaitList            []string
 	blocksDownloadSuccessList []string
-	blocksDownloadFailedList  []string
-	downloadSources           []*api.DowloadSource
-	carfileSize               int64
-	downloadSize              int64
+	// netLayerCIDs just for restore download task
+	nextLayerCIDs   []string
+	downloadSources []*api.DowloadSource
+	carfileSize     uint64
+	downloadSize    uint64
 }
 
 func newCarfileCache(carfileCID string, downloadSources []*api.DowloadSource) *carfile {
 	return &carfile{
 		carfileCID:                carfileCID,
+		blocksWaitList:            make([]string, 0),
 		blocksDownloadSuccessList: make([]string, 0),
-		blocksDownloadFailedList:  make([]string, 0),
+		nextLayerCIDs:             make([]string, 0),
 		downloadSources:           downloadSources}
 }
 
@@ -56,17 +58,22 @@ func (cf *carfile) addBlocks2WaitList(blocks []string) {
 }
 
 func (cf *carfile) downloadCarfile(carfileOperation *CarfileOperation) error {
-	ret, err := cf.downloadBlocksWithBreadthFirst([]string{cf.carfileCID}, carfileOperation)
-	if err != nil {
-		return err
+	netLayerCIDs := cf.blocksWaitList
+	if len(netLayerCIDs) == 0 {
+		netLayerCIDs = append(netLayerCIDs, cf.carfileCID)
 	}
-	cf.carfileSize = int64(ret.linksSize) + int64(ret.downloadSize)
 
-	for len(ret.netLayerCids) > 0 {
-		ret, err = cf.downloadBlocksWithBreadthFirst(ret.netLayerCids, carfileOperation)
+	for len(netLayerCIDs) > 0 {
+		ret, err := cf.downloadBlocksWithBreadthFirst(netLayerCIDs, carfileOperation)
 		if err != nil {
 			return err
 		}
+
+		if cf.carfileSize == 0 {
+			cf.carfileSize = ret.linksSize + ret.downloadSize
+		}
+
+		netLayerCIDs = ret.netLayerCids
 
 	}
 	return nil
@@ -74,7 +81,7 @@ func (cf *carfile) downloadCarfile(carfileOperation *CarfileOperation) error {
 
 func (cf *carfile) downloadBlocksWithBreadthFirst(layerCids []string, cfOperation *CarfileOperation) (result *downloadResult, err error) {
 	cf.blocksWaitList = layerCids
-	result = &downloadResult{}
+	result = &downloadResult{netLayerCids: cf.nextLayerCIDs}
 	for len(cf.blocksWaitList) > 0 {
 		doLen := len(cf.blocksWaitList)
 		if doLen > helper.Batch {
@@ -84,19 +91,19 @@ func (cf *carfile) downloadBlocksWithBreadthFirst(layerCids []string, cfOperatio
 		blocks := cf.getBlocksFromWaitListFront(doLen)
 		ret, err := cf.downloadBlocks(blocks, cfOperation)
 		if err != nil {
-			cf.blocksDownloadFailedList = append(cf.blocksDownloadFailedList, blocks...)
 			return nil, err
 		}
-
-		cf.blocksDownloadSuccessList = append(cf.blocksDownloadSuccessList, blocks...)
-		cf.downloadSize += int64(ret.downloadSize)
 
 		result.linksSize += ret.linksSize
 		result.downloadSize += ret.downloadSize
 		result.netLayerCids = append(result.netLayerCids, ret.netLayerCids...)
 
+		cf.downloadSize += ret.downloadSize
+		cf.blocksDownloadSuccessList = append(cf.blocksDownloadSuccessList, blocks...)
+		cf.nextLayerCIDs = append(cf.nextLayerCIDs, ret.netLayerCids...)
 		cf.removeBlocksFromWaitList(doLen)
 	}
+	cf.nextLayerCIDs = make([]string, 0)
 
 	return result, nil
 }
@@ -153,32 +160,6 @@ func (cf *carfile) downloadBlocks(cids []string, cfOperation *CarfileOperation) 
 	return ret, nil
 }
 
-func (cf *carfile) saveCarfileTable(cfOperation *CarfileOperation) error {
-	log.Infof("saveCarfileTable, carfile cid:%s, download size:%d,carfileSize:%d", cf.carfileCID, cf.downloadSize, cf.carfileSize)
-	carfileHash, err := cf.getCarfileHashString()
-	if err != nil {
-		return err
-	}
-
-	if cf.downloadSize != 0 && cf.downloadSize == cf.carfileSize {
-		blocksHashString, err := cf.blockList2BlocksHashString()
-		if err != nil {
-			return err
-		}
-
-		cfOperation.carfileStore.DeleteIncompleteCarfile(carfileHash)
-		return cfOperation.carfileStore.SaveBlockListOfCarfile(carfileHash, blocksHashString)
-	} else {
-		buf, err := cf.ecodeCarfile()
-		if err != nil {
-			return err
-		}
-
-		cfOperation.carfileStore.DeleteCarfileTable(carfileHash)
-		return cfOperation.carfileStore.SaveIncomleteCarfile(carfileHash, buf)
-	}
-}
-
 func (cf *carfile) blockList2BlocksHashString() (string, error) {
 	var blocksHashString string
 	for _, cid := range cf.blocksDownloadSuccessList {
@@ -190,6 +171,19 @@ func (cf *carfile) blockList2BlocksHashString() (string, error) {
 	}
 
 	return blocksHashString, nil
+}
+
+func (cf *carfile) blockCidList2BlocksHashList() ([]string, error) {
+	blocksHashList := make([]string, 0, len(cf.blocksDownloadSuccessList))
+	for _, cid := range cf.blocksDownloadSuccessList {
+		blockHash, err := helper.CIDString2HashString(cid)
+		if err != nil {
+			return nil, err
+		}
+		blocksHashList = append(blocksHashList, blockHash)
+	}
+
+	return blocksHashList, nil
 }
 
 func (cf *carfile) getCarfileHashString() (string, error) {
@@ -205,5 +199,5 @@ func (cf *carfile) ecodeCarfile() ([]byte, error) {
 }
 
 func (cf *carfile) decodeCarfileFromBuffer(carfileData []byte) error {
-	return decodeCarfileFromBuffer(carfileData, cf)
+	return decodeCarfileFromData(carfileData, cf)
 }

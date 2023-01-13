@@ -73,7 +73,7 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 		}
 
 		fid := r.Intn(reqValidate.MaxFid) + 1
-		blockHashs, err := validate.carfileStore.GetBlocksHashOfCarfile("", []int{fid})
+		blockHashs, err := validate.carfileStore.GetBlocksHashWithCarfilePositions("", []int{fid})
 		if err != nil && err != datastore.ErrNotFound {
 			log.Errorf("sendBlocks, get blockHashs error:%v", err)
 			return

@@ -66,6 +66,7 @@ func getBlocksFromCandidate(cids []string, sources []*api.DowloadSource) ([]bloc
 	startTime := time.Now()
 	blks := make([]blocks.Block, 0, len(cids))
 	candidates := make(map[string]api.Candidate)
+	blksLock := &sync.Mutex{}
 
 	var wg sync.WaitGroup
 
@@ -90,7 +91,9 @@ func getBlocksFromCandidate(cids []string, sources []*api.DowloadSource) ([]bloc
 				log.Errorf("getBlocksFromCandidateWithApi error:%s", err.Error())
 				return
 			}
+			blksLock.Lock()
 			blks = append(blks, b)
+			blksLock.Unlock()
 		}()
 	}
 	wg.Wait()

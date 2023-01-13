@@ -1,6 +1,7 @@
 package carfilestore
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -55,6 +56,45 @@ func (cfTable *carfileTable) readBlocksHashOfCarfile(carfileHash string, positio
 	return cids, nil
 }
 
+func (cfTable *carfileTable) readAllBlocksHashOfCarfile(carfileHash string) ([]string, error) {
+	filePath := filepath.Join(cfTable.path, carfileHash)
+	data, err := os.ReadFile(filePath)
+	if err != nil && os.IsNotExist(err) {
+		return nil, datastore.ErrNotFound
+	}
+
+	blockHashStrLen := len(carfileHash)
+
+	if len(data)%blockHashStrLen != 0 {
+		return nil, fmt.Errorf("Carfile table content len not match")
+	}
+
+	blockCount := len(data) / blockHashStrLen
+	blocksHash := make([]string, 0, blockCount)
+
+	for i := 0; i < len(data); i += blockHashStrLen {
+		hash := data[i : i+blockHashStrLen]
+		blocksHash = append(blocksHash, string(hash))
+	}
+
+	return blocksHash, nil
+}
+
+func (cfTable *carfileTable) blocksCountOfCarfile(carfileHash string) (int, error) {
+	filePath := filepath.Join(cfTable.path, carfileHash)
+	data, err := os.ReadFile(filePath)
+	if err != nil && os.IsNotExist(err) {
+		return 0, datastore.ErrNotFound
+	}
+
+	blockHashStrLen := len(carfileHash)
+	if len(data)%blockHashStrLen != 0 {
+		return 0, fmt.Errorf("Carfile table content len not match")
+	}
+
+	return len(data) / blockHashStrLen, nil
+}
+
 func (cfTable *carfileTable) carfileCount() (int, error) {
 	dir, err := os.Open(cfTable.path)
 	if err != nil {
@@ -79,4 +119,18 @@ func (cfTable *carfileTable) delete(carfileHash string) error {
 	}
 
 	return err
+}
+
+func (cfTable *carfileTable) has(carfileHash string) (bool, error) {
+	filePath := filepath.Join(cfTable.path, carfileHash)
+	_, err := os.Stat(filePath)
+	if err == nil {
+		return true, nil
+	}
+
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return false, err
 }

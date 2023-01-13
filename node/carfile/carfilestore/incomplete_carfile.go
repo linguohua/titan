@@ -26,6 +26,16 @@ func (inCfTable *incompleteCarfileTable) saveCarfile(carfileHash string, carfile
 	return os.WriteFile(filePath, carfileData, 0644)
 }
 
+func (inCfTable *incompleteCarfileTable) getCarfile(carfileHash string) ([]byte, error) {
+	filePath := filepath.Join(inCfTable.path, carfileHash)
+
+	data, err := os.ReadFile(filePath)
+	if err != nil && os.IsNotExist(err) {
+		return nil, datastore.ErrNotFound
+	}
+	return data, err
+}
+
 func (inCfTable *incompleteCarfileTable) carfileCount() (int, error) {
 	dir, err := os.Open(inCfTable.path)
 	if err != nil {
