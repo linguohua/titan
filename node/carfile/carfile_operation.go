@@ -90,7 +90,9 @@ func (carfileOperation *CarfileOperation) startTick() {
 			}
 		}
 
-		carfileOperation.saveWaitList()
+		if len(carfileOperation.carfileWaitList) > 0 {
+			carfileOperation.saveWaitList()
+		}
 	}
 }
 
@@ -206,16 +208,12 @@ func (carfileOperation *CarfileOperation) saveCarfileTable(cf *carfile) error {
 }
 
 func (carfileOperation *CarfileOperation) saveWaitList() error {
-	if len(carfileOperation.carfileWaitList) > 0 {
-		data, err := ecodeWaitList(carfileOperation.carfileWaitList)
-		if err != nil {
-			return err
-		}
-
-		return carfileOperation.carfileStore.SaveWaitListToFile(data)
+	data, err := ecodeWaitList(carfileOperation.carfileWaitList)
+	if err != nil {
+		return err
 	}
 
-	return nil
+	return carfileOperation.carfileStore.SaveWaitListToFile(data)
 }
 
 func (carfileOperation *CarfileOperation) downloadResult(carfile *carfile, isComplete bool) error {
@@ -245,8 +243,8 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfile, isCom
 		Status:      status,
 		TotalBlock:  len(carfile.blocksDownloadSuccessList) + len(carfile.blocksWaitList),
 		DoneBlocks:  len(carfile.blocksDownloadSuccessList),
-		TotalSize:   carfile.carfileSize,
-		DoneSize:    carfile.downloadSize,
+		TotalSize:   int64(carfile.carfileSize),
+		DoneSize:    int64(carfile.downloadSize),
 		CarfileHash: carfileHash,
 		DiskUsage:   deviceInfo.DiskUsage,
 	}
@@ -331,8 +329,8 @@ func (carfileOperation *CarfileOperation) cacheResultForCarfileExist(carfileCID 
 		Status:      api.CacheStatusSuccess,
 		TotalBlock:  blocksCount,
 		DoneBlocks:  blocksCount,
-		TotalSize:   int(linksSize),
-		DoneSize:    int(linksSize),
+		TotalSize:   int64(linksSize),
+		DoneSize:    int64(linksSize),
 		CarfileHash: carfileHash,
 		DiskUsage:   deviceInfo.DiskUsage,
 	}
