@@ -19,7 +19,7 @@ import (
 func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result api.NodeBlockDownloadResult) error {
 	deviceID := handler.GetDeviceID(ctx)
 
-	if !isDeviceExists(deviceID, 0) {
+	if !deviceExists(deviceID, 0) {
 		return xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 

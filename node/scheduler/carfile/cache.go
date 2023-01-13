@@ -7,7 +7,6 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
-	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
 
@@ -15,33 +14,33 @@ import (
 type CacheTask struct {
 	carfileRecord *CarfileRecord
 
-	node        *node.Node
 	deviceID    string
 	carfileHash string
 	status      api.CacheStatus
 	reliability int
-	doneSize    int
+	doneSize    int64
 	doneBlocks  int
-	totalSize   int
+	totalSize   int64
 	totalBlocks int
 	isRootCache bool
 	expiredTime time.Time
 	cacheCount  int
+
+	timeoutTicker *time.Ticker
 }
 
-func newCache(data *CarfileRecord, node *node.Node, isRootCache bool) (*CacheTask, error) {
+func newCache(carfileRecord *CarfileRecord, deviceID string, isRootCache bool) (*CacheTask, error) {
 	cache := &CacheTask{
-		carfileRecord: data,
+		carfileRecord: carfileRecord,
 		reliability:   0,
 		status:        api.CacheStatusCreate,
-		carfileHash:   data.carfileHash,
+		carfileHash:   carfileRecord.carfileHash,
 		isRootCache:   isRootCache,
-		expiredTime:   data.expiredTime,
-		deviceID:      node.DeviceId,
-		node:          node,
+		expiredTime:   carfileRecord.expiredTime,
+		deviceID:      deviceID,
 	}
 
-	err := persistent.GetDB().CreateCache(
+	err := persistent.GetDB().CreateCacheInfo(
 		&api.CacheTaskInfo{
 			CarfileHash: cache.carfileHash,
 			DeviceID:    cache.deviceID,
@@ -56,6 +55,39 @@ func newCache(data *CarfileRecord, node *node.Node, isRootCache bool) (*CacheTas
 	return cache, err
 }
 
+func (c *CacheTask) startTimeoutTimer() {
+	c.timeoutTicker = time.NewTicker(time.Duration(checkCacheTimeoutInterval) * time.Second)
+	defer c.timeoutTicker.Stop()
+
+	for {
+		select {
+		case <-c.timeoutTicker.C:
+			if c.status != api.CacheStatusCreate {
+				return
+			}
+			//check redis
+			exist, err := cache.GetDB().NodeIsCaching(c.deviceID)
+			if err != nil {
+				log.Errorf("NodeIsCaching err:%s", err.Error())
+				break
+			}
+
+			log.Infof("check timeout device:%s , exist:%v", c.deviceID, exist)
+			if exist {
+				break
+			}
+
+			//cache is timeout
+			err = c.endCache(api.CacheStatusTimeout)
+			if err != nil {
+				log.Errorf("endCache err:%s", err.Error())
+			}
+
+			return
+		}
+	}
+}
+
 // Notify node to cache blocks
 func (c *CacheTask) cacheCarfile2Node() (api.CacheCarfileResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -63,13 +95,11 @@ func (c *CacheTask) cacheCarfile2Node() (api.CacheCarfileResult, error) {
 
 	cNode := c.carfileRecord.nodeManager.GetCandidateNode(c.deviceID)
 	if cNode != nil {
-		c.node = cNode.Node
 		return cNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.rootCacheDowloadInfos)
 	}
 
 	eNode := c.carfileRecord.nodeManager.GetEdgeNode(c.deviceID)
 	if eNode != nil {
-		c.node = eNode.Node
 		return eNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.rootCacheDowloadInfos)
 	}
 
@@ -83,28 +113,31 @@ func (c *CacheTask) blockCacheResult(info *api.CacheResultInfo) error {
 	c.totalBlocks = info.TotalBlock
 	c.totalSize = info.TotalSize
 
-	if !c.carfileRecord.existRootCache() {
+	if !c.carfileRecord.rootCacheExists() {
 		c.carfileRecord.totalSize = c.totalSize
 		c.carfileRecord.totalBlocks = c.totalBlocks
 	}
 
-	log.Warnf("blockCacheResult :%s , %d", c.deviceID, info.Status)
+	log.Infof("blockCacheResult :%s , %d , %s", c.deviceID, info.Status, info.CarfileHash)
 
 	if info.Status == api.CacheStatusSuccess || info.Status == api.CacheStatusFail {
 		//update node dick
 		// c.carfileRecord.nodeManager.UpdateNodeDiskUsage(c.deviceID, info.DiskUsage)
-		c.node.DiskUsage = info.DiskUsage
-		c.node.IncrCurCacheCount(-1)
+		node := c.carfileRecord.nodeManager.GetNode(c.deviceID)
+		if node != nil {
+			node.DiskUsage = info.DiskUsage
+			node.IncrCurCacheCount(-1)
+		}
 
 		return c.endCache(info.Status)
 	}
 
-	if err := c.carfileRecord.updateAndSaveCacheInfo(c); err != nil {
+	if err := c.carfileRecord.saveCarfileCacheInfo(c); err != nil {
 		return err
 	}
 
-	// update data task timeout
-	return cache.GetDB().UpdateNodeCacheingExpireTime(c.carfileHash, c.deviceID, nodeCacheResultInterval)
+	// update cache task timeout
+	return cache.GetDB().UpdateNodeCacheingExpireTime(c.carfileHash, c.deviceID, cacheResultTimeout)
 }
 
 func (c *CacheTask) startCache() error {
@@ -115,13 +148,20 @@ func (c *CacheTask) startCache() error {
 		return xerrors.Errorf("startCache deviceID:%s, err:%s", c.deviceID, err.Error())
 	}
 
-	c.node.DiskUsage = result.DiskUsage
-	c.node.SetCurCacheCount(result.DoingCacheCarfileNum + result.WaitCacheCarfileNum)
+	c.status = api.CacheStatusCreate
 
-	err = cache.GetDB().SetCacheTaskStart(c.carfileHash, c.deviceID, nodeCacheResultInterval)
+	node := c.carfileRecord.nodeManager.GetNode(c.deviceID)
+	if node != nil {
+		node.DiskUsage = result.DiskUsage
+		node.SetCurCacheCount(result.WaitCacheCarfileNum + 1)
+	}
+
+	err = cache.GetDB().SetCacheTaskStart(c.carfileHash, c.deviceID, cacheResultTimeout)
 	if err != nil {
 		return xerrors.Errorf("startCache %s , SetCacheTaskStart err:%s", c.carfileHash, err.Error())
 	}
+
+	go c.startTimeoutTimer()
 
 	return nil
 }
@@ -162,7 +202,7 @@ func (c *CacheTask) GetStatus() api.CacheStatus {
 }
 
 // GetDoneSize get done size
-func (c *CacheTask) GetDoneSize() int {
+func (c *CacheTask) GetDoneSize() int64 {
 	return c.doneSize
 }
 

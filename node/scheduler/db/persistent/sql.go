@@ -195,7 +195,7 @@ func (sd sqlDB) SummaryValidateMessage(startTime, endTime time.Time, pageNumber,
 }
 
 // cache data info
-func (sd sqlDB) CreateCache(cInfo *api.CacheTaskInfo) error {
+func (sd sqlDB) CreateCacheInfo(cInfo *api.CacheTaskInfo) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
@@ -214,14 +214,14 @@ func (sd sqlDB) CreateCache(cInfo *api.CacheTaskInfo) error {
 	return nil
 }
 
-func (sd sqlDB) UpdateCacheInfoOfTimeoutNodes(deviceIDs []string) error {
+func (sd sqlDB) UpdateCacheStatusWithNodes(hash string, deviceIDs []string) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
 	tx := sd.cli.MustBegin()
 
-	updateCachesCmd := fmt.Sprintf(`UPDATE %s SET status=? WHERE status=? AND device_id in (?)`, cTableName)
-	query, args, err := sqlx.In(updateCachesCmd, int(api.CacheStatusTimeout), int(api.CacheStatusCreate), deviceIDs)
+	updateCachesCmd := fmt.Sprintf(`UPDATE %s SET status=? WHERE carfile_hash=? AND device_id in (?)`, cTableName)
+	query, args, err := sqlx.In(updateCachesCmd, int(api.CacheStatusCreate), hash, deviceIDs)
 	if err != nil {
 		return err
 	}
@@ -239,10 +239,36 @@ func (sd sqlDB) UpdateCacheInfoOfTimeoutNodes(deviceIDs []string) error {
 	return err
 }
 
+// func (sd sqlDB) UpdateCacheInfoOfTimeoutNodes(deviceIDs []string) error {
+// 	area := sd.ReplaceArea()
+// 	cTableName := fmt.Sprintf(cacheInfoTable, area)
+
+// 	tx := sd.cli.MustBegin()
+
+// 	updateCachesCmd := fmt.Sprintf(`UPDATE %s SET status=? WHERE status=? AND device_id in (?)`, cTableName)
+// 	query, args, err := sqlx.In(updateCachesCmd, int(api.CacheStatusTimeout), int(api.CacheStatusCreate), deviceIDs)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	// cache info
+// 	query = sd.cli.Rebind(query)
+// 	tx.MustExec(query, args...)
+
+// 	err = tx.Commit()
+// 	if err != nil {
+// 		err = tx.Rollback()
+// 		return err
+// 	}
+
+// 	return err
+// }
+
 func (sd sqlDB) SaveCacheResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheTaskInfo) error {
 	area := sd.ReplaceArea()
 	dTableName := fmt.Sprintf(dataInfoTable, area)
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
+
 	tx := sd.cli.MustBegin()
 
 	// data info
@@ -250,8 +276,8 @@ func (sd sqlDB) SaveCacheResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheT
 	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.TotalBlocks, dInfo.CarfileHash)
 
 	// cache info
-	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=?,end_time=NOW(),cache_count=? WHERE device_id=? `, cTableName)
-	tx.MustExec(cCmd, cInfo.DoneSize, cInfo.DoneBlocks, cInfo.Reliability, cInfo.Status, cInfo.CacheCount, cInfo.DeviceID)
+	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=?,end_time=NOW(),cache_count=? WHERE device_id=? AND carfile_hash=?`, cTableName)
+	tx.MustExec(cCmd, cInfo.DoneSize, cInfo.DoneBlocks, cInfo.Reliability, cInfo.Status, cInfo.CacheCount, cInfo.DeviceID, cInfo.CarfileHash)
 
 	err := tx.Commit()
 	if err != nil {
@@ -261,12 +287,12 @@ func (sd sqlDB) SaveCacheResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheT
 	return err
 }
 
-func (sd sqlDB) SetDataInfo(info *api.CarfileRecordInfo) error {
+func (sd sqlDB) CreateCarfileInfo(info *api.CarfileRecordInfo) error {
 	area := sd.ReplaceArea()
 
 	tableName := fmt.Sprintf(dataInfoTable, area)
 
-	oldInfo, err := sd.GetDataInfo(info.CarfileHash)
+	oldInfo, err := sd.GetCarfileInfo(info.CarfileHash)
 	if err != nil && !sd.IsNilErr(err) {
 		return err
 	}
@@ -284,7 +310,7 @@ func (sd sqlDB) SetDataInfo(info *api.CarfileRecordInfo) error {
 	return err
 }
 
-func (sd sqlDB) GetDataInfo(hash string) (*api.CarfileRecordInfo, error) {
+func (sd sqlDB) GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error) {
 	area := sd.ReplaceArea()
 
 	info := &api.CarfileRecordInfo{CarfileHash: hash}
@@ -308,7 +334,7 @@ func (sd sqlDB) GetDataInfo(hash string) (*api.CarfileRecordInfo, error) {
 	return info, err
 }
 
-func (sd sqlDB) GetDataCidWithPage(page int) (count int, totalPage int, list []*api.CarfileRecordInfo, err error) {
+func (sd sqlDB) GetCarfileCidWithPage(page int) (count int, totalPage int, list []*api.CarfileRecordInfo, err error) {
 	area := sd.ReplaceArea()
 	num := 20
 

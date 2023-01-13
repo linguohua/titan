@@ -103,8 +103,8 @@ type CacheResultInfo struct {
 	Msg         string
 	TotalBlock  int
 	DoneBlocks  int
-	TotalSize   int
-	DoneSize    int
+	TotalSize   int64
+	DoneSize    int64
 	CarfileHash string
 	DiskUsage   float64
 }
@@ -115,7 +115,7 @@ type CarfileRecordInfo struct {
 	CarfileHash     string    `db:"carfile_hash"`
 	Reliability     int       `db:"reliability"`
 	NeedReliability int       `db:"need_reliability"`
-	TotalSize       int       `db:"total_size"`
+	TotalSize       int64     `db:"total_size"`
 	TotalBlocks     int       `db:"total_blocks"`
 	ExpiredTime     time.Time `db:"expired_time"`
 	CreateTime      time.Time `db:"created_time"`
@@ -129,7 +129,7 @@ type CacheTaskInfo struct {
 	DeviceID    string      `db:"device_id"`
 	Status      CacheStatus `db:"status"`
 	Reliability int         `db:"reliability"`
-	DoneSize    int         `db:"done_size"`
+	DoneSize    int64       `db:"done_size"`
 	DoneBlocks  int         `db:"done_blocks"`
 	CacheCount  int         `db:"cache_count"`
 	RootCache   bool        `db:"root_cache"`
@@ -193,8 +193,6 @@ const (
 	CacheStatusSuccess
 	// CacheStatusTimeout status
 	CacheStatusTimeout
-	// CacheStatusRestore status
-	CacheStatusRestore
 )
 
 // CacheError cache error
