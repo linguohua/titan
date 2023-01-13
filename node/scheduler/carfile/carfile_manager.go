@@ -125,20 +125,20 @@ func (m *Manager) resetBaseInfo() {
 	}
 }
 
-func (m *Manager) getWaitingDataTasks(count int) []*api.CarfileRecordInfo {
+func (m *Manager) getWaitingCarfileTasks(count int) []*api.CarfileRecordInfo {
 	list := make([]*api.CarfileRecordInfo, 0)
 
 	curCount := int64(0)
-	isGet := true
+	isLoad := true
 
-	for isGet {
+	for isLoad {
 		info, err := cache.GetDB().GetWaitingDataTask(curCount)
 		if err != nil {
 			if cache.GetDB().IsNilErr(err) {
-				isGet = false
+				isLoad = false
 				continue
 			}
-			log.Errorf("GetWaitingDataTask err:%s", err.Error())
+			log.Errorf("getWaitingCarfileTasks err:%s", err.Error())
 			continue
 		}
 
@@ -150,7 +150,7 @@ func (m *Manager) getWaitingDataTasks(count int) []*api.CarfileRecordInfo {
 
 		list = append(list, info)
 		if len(list) >= count {
-			isGet = false
+			isLoad = false
 		}
 	}
 
@@ -158,24 +158,24 @@ func (m *Manager) getWaitingDataTasks(count int) []*api.CarfileRecordInfo {
 }
 
 func (m *Manager) doCarfileTask(info *api.CarfileRecordInfo) error {
-	if info.CacheInfos != nil && len(info.CacheInfos) > 0 {
-		deviceID := info.CacheInfos[0].DeviceID
+	// if info.CacheInfos != nil && len(info.CacheInfos) > 0 {
+	// 	deviceID := info.CacheInfos[0].DeviceID
 
-		err := m.makeDataContinue(info.CarfileHash, deviceID)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := m.makeDataTask(info.CarfileCid, info.CarfileHash, info.NeedReliability, info.ExpiredTime)
-		if err != nil {
-			return err
-		}
+	// 	err := m.makeDataContinue(info.CarfileHash, deviceID)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// } else {
+	err := m.makeCarfileTask(info.CarfileCid, info.CarfileHash, info.NeedReliability, info.ExpiredTime)
+	if err != nil {
+		return err
 	}
+	// }
 
 	return nil
 }
 
-// GetCarfileRecord get a data from map or db
+// GetCarfileRecord get a carfileRecord from map or db
 func (m *Manager) GetCarfileRecord(hash string) (*CarfileRecord, error) {
 	dI, ok := m.CarfileRecordMap.Load(hash)
 	if ok && dI != nil {
@@ -185,41 +185,41 @@ func (m *Manager) GetCarfileRecord(hash string) (*CarfileRecord, error) {
 	return loadCarfileRecord(hash, m)
 }
 
-func (m *Manager) makeDataTask(cid, hash string, reliability int, expiredTime time.Time) error {
-	data, err := loadCarfileRecord(hash, m)
+func (m *Manager) makeCarfileTask(cid, hash string, reliability int, expiredTime time.Time) error {
+	carfileRecord, err := loadCarfileRecord(hash, m)
 	if err != nil {
 		if !persistent.GetDB().IsNilErr(err) {
 			return err
 		}
-		//not data
-		data = newData(m, cid, hash)
-		data.needReliability = reliability
-		data.expiredTime = expiredTime
+		//not found
+		carfileRecord = newCarfileRecord(m, cid, hash)
+		carfileRecord.needReliability = reliability
+		carfileRecord.expiredTime = expiredTime
 	} else {
-		if reliability <= data.reliability {
-			return xerrors.Errorf("reliable enough :%d/%d ", data.reliability, reliability)
+		if reliability <= carfileRecord.reliability {
+			return xerrors.Errorf("reliable enough :%d/%d ", carfileRecord.reliability, reliability)
 		}
-		data.needReliability = reliability
-		data.expiredTime = expiredTime
+		carfileRecord.needReliability = reliability
+		carfileRecord.expiredTime = expiredTime
 	}
 
 	err = persistent.GetDB().CreateCarfileInfo(&api.CarfileRecordInfo{
-		CarfileCid:      data.carfileCid,
-		NeedReliability: data.needReliability,
-		ExpiredTime:     data.expiredTime,
-		CarfileHash:     data.carfileHash,
+		CarfileCid:      carfileRecord.carfileCid,
+		NeedReliability: carfileRecord.needReliability,
+		ExpiredTime:     carfileRecord.expiredTime,
+		CarfileHash:     carfileRecord.carfileHash,
 	})
 	if err != nil {
-		return xerrors.Errorf("cid:%s,SetDataInfo err:%s", data.carfileCid, err.Error())
+		return xerrors.Errorf("cid:%s,CreateCarfileInfo err:%s", carfileRecord.carfileCid, err.Error())
 	}
 
-	isRunning, err := data.dispatchCache()
+	isRunning, err := carfileRecord.dispatchCache()
 	if err != nil {
 		return err
 	}
 
 	if isRunning {
-		m.recordTaskStart(data)
+		m.recordTaskStart(carfileRecord)
 	}
 
 	return nil
@@ -250,26 +250,14 @@ func (m *Manager) makeDataContinue(hash, deviceID string) error {
 	return nil
 }
 
-// CacheData new data task
-func (m *Manager) CacheData(cid string, reliability int, expiredTime time.Time) error {
+// CacheCarfile new carfile task
+func (m *Manager) CacheCarfile(cid string, reliability int, expiredTime time.Time) error {
 	hash, err := helper.CIDString2HashString(cid)
 	if err != nil {
 		return xerrors.Errorf("%s cid to hash err:", cid, err.Error())
 	}
 
-	err = cache.GetDB().SetWaitingDataTask(&api.CarfileRecordInfo{CarfileHash: hash, CarfileCid: cid, NeedReliability: reliability, ExpiredTime: expiredTime})
-	if err != nil {
-		return err
-	}
-
-	// err = saveEvent(cid, "", "user", fmt.Sprintf("reliability:%d", reliability), eventTypeAddNewDataTask)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// m.notifyDataLoader()
-
-	return nil
+	return cache.GetDB().SetWaitingDataTask(&api.CarfileRecordInfo{CarfileHash: hash, CarfileCid: cid, NeedReliability: reliability, ExpiredTime: expiredTime})
 }
 
 // CacheContinue continue a cache
@@ -304,9 +292,9 @@ func (m *Manager) RemoveCarfile(carfileCid string) error {
 		return err
 	}
 
-	cInfos, err := persistent.GetDB().GetCachesWithData(hash, false)
+	cInfos, err := persistent.GetDB().GetCachesWithHash(hash, false)
 	if err != nil {
-		return xerrors.Errorf("GetCachesWithData: %s,err:%s", carfileCid, err.Error())
+		return xerrors.Errorf("GetCachesWithHash: %s,err:%s", carfileCid, err.Error())
 	}
 
 	err = persistent.GetDB().RemoveCarfileRecord(hash)
@@ -317,10 +305,7 @@ func (m *Manager) RemoveCarfile(carfileCid string) error {
 	values := make(map[string]int64)
 	carfileCount := 0
 	for _, cInfo := range cInfos {
-		err := m.notifyNodeRemoveCarfile(cInfo.DeviceID, carfileCid)
-		if err != nil {
-			continue
-		}
+		go m.notifyNodeRemoveCarfile(cInfo.DeviceID, carfileCid)
 
 		if cInfo.Status == api.CacheStatusSuccess {
 			carfileCount++
@@ -329,10 +314,7 @@ func (m *Manager) RemoveCarfile(carfileCid string) error {
 		values[cInfo.DeviceID] = int64(-cInfo.DoneBlocks)
 	}
 
-	_, exist := m.CarfileRecordMap.LoadAndDelete(hash)
-	if exist {
-		m.runningTaskCount--
-	}
+	m.recordTaskEnd(hash)
 
 	// update record to redis
 	return cache.GetDB().RemoveCarfileRecord(-int64(carfileCount), values)
@@ -355,18 +337,18 @@ func (m *Manager) RemoveCache(carfileCid, deviceID string) error {
 
 // CacheCarfileResult block cache result
 func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo) (err error) {
-	var data *CarfileRecord
+	var carfileRecord *CarfileRecord
 	dI, exist := m.CarfileRecordMap.Load(info.CarfileHash)
 	if exist && dI != nil {
-		data = dI.(*CarfileRecord)
+		carfileRecord = dI.(*CarfileRecord)
 	} else {
 		err = xerrors.Errorf("data not running : %s,%s ,err:%v", deviceID, info.CarfileHash, err)
 		return
 	}
 
-	cacheI, exist := data.CacheTaskMap.Load(deviceID)
+	cacheI, exist := carfileRecord.CacheTaskMap.Load(deviceID)
 	if !exist {
-		err = xerrors.Errorf("cacheCarfileResult not found cacheID:%s,Cid:%s", deviceID, data.carfileCid)
+		err = xerrors.Errorf("cacheCarfileResult not found cacheID:%s,Cid:%s", deviceID, carfileRecord.carfileCid)
 		return
 	}
 	c := cacheI.(*CacheTask)
@@ -381,7 +363,7 @@ func (m *Manager) doCarfileTasks() {
 		return
 	}
 
-	list := m.getWaitingDataTasks(doLen)
+	list := m.getWaitingCarfileTasks(doLen)
 	if len(list) <= 0 {
 		return
 	}
@@ -405,13 +387,17 @@ func (m *Manager) recordTaskStart(cr *CarfileRecord) {
 		return
 	}
 
-	m.CarfileRecordMap.Store(cr.carfileHash, cr)
-	m.runningTaskCount++
+	_, exist := m.CarfileRecordMap.LoadOrStore(cr.carfileHash, cr)
+	if !exist {
+		m.runningTaskCount++
+	}
 }
 
-func (m *Manager) recordTaskEnd(cid, hash string) {
-	m.CarfileRecordMap.Delete(hash)
-	m.runningTaskCount--
+func (m *Manager) recordTaskEnd(hash string) {
+	_, exist := m.CarfileRecordMap.LoadAndDelete(hash)
+	if exist {
+		m.runningTaskCount--
+	}
 }
 
 // StopCacheTask stop cache data
@@ -659,7 +645,8 @@ func (m *Manager) removeCache(cacheInfo *api.CacheTaskInfo, carfileCid string) e
 		dI.(*CarfileRecord).CacheTaskMap.Delete(cacheInfo.DeviceID)
 	}
 
-	return m.notifyNodeRemoveCarfile(cacheInfo.DeviceID, carfileCid)
+	go m.notifyNodeRemoveCarfile(cacheInfo.DeviceID, carfileCid)
+	return nil
 }
 
 // Notify nodes to delete blocks
