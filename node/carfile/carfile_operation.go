@@ -225,7 +225,7 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfile, isCom
 		status = api.CacheStatusCreate
 	}
 
-	if carfile.downloadSize == carfile.carfileSize {
+	if carfile.carfileSize != 0 && carfile.downloadSize == carfile.carfileSize {
 		status = api.CacheStatusSuccess
 	}
 
@@ -252,6 +252,7 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfile, isCom
 }
 
 func (carfileOperation *CarfileOperation) onDownloadCarfileComplete(cf *carfile) {
+	log.Infof("onDownloadCarfileComplete, carfile %s", cf.carfileCID)
 	err := carfileOperation.saveCarfileTable(cf)
 	if err != nil {
 		log.Errorf("onDownloadCarfileComplete, saveCarfileTable error:%s", err)
@@ -383,6 +384,9 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 		if err != nil {
 			log.Errorf("CacheCarfile, cacheResultForCarfileExist error:%s", err.Error())
 		}
+
+		log.Infof("carfile %s carfileCID aready exist, not need to cache", carfileCID)
+
 		return carfileOperation.cacheCarfileResult()
 	}
 
