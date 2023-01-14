@@ -23,7 +23,8 @@ const (
 	startTaskInterval         = 10      //  time interval (Unit:Second)
 	checkExpiredTimerInterval = 60 * 30 //  time interval (Unit:Second)
 
-	runningTaskMaxCount = 10
+	// It needs to be changed to the number of caches
+	runningCarfileMaxCount = 10
 
 	// If the node disk size is greater than this value, caching will not continue
 	diskUsageMax = 90.0
@@ -327,7 +328,7 @@ func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo)
 }
 
 func (m *Manager) doCarfileTasks() {
-	doLen := runningTaskMaxCount - m.runningTaskCount
+	doLen := runningCarfileMaxCount - m.runningTaskCount
 	if doLen <= 0 {
 		return
 	}
