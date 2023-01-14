@@ -276,8 +276,8 @@ func (sd sqlDB) SaveCacheResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheT
 	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.TotalBlocks, dInfo.CarfileHash)
 
 	// cache info
-	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=?,end_time=NOW(),cache_count=? WHERE device_id=? AND carfile_hash=?`, cTableName)
-	tx.MustExec(cCmd, cInfo.DoneSize, cInfo.DoneBlocks, cInfo.Reliability, cInfo.Status, cInfo.CacheCount, cInfo.DeviceID, cInfo.CarfileHash)
+	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=?,end_time=NOW(),execute_count=? WHERE device_id=? AND carfile_hash=?`, cTableName)
+	tx.MustExec(cCmd, cInfo.DoneSize, cInfo.DoneBlocks, cInfo.Reliability, cInfo.Status, cInfo.ExecuteCount, cInfo.DeviceID, cInfo.CarfileHash)
 
 	err := tx.Commit()
 	if err != nil {
@@ -505,7 +505,7 @@ func (sd sqlDB) RemoveCarfileRecord(carfileHash string) error {
 }
 
 // remove cache info and update data info
-func (sd sqlDB) RemoveCacheAndUpdateData(cacheID, carfileHash string, reliability int) error {
+func (sd sqlDB) RemoveCacheAndUpdateData(cacheID, carfileHash string) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 	dTableName := fmt.Sprintf(dataInfoTable, area)
@@ -516,16 +516,16 @@ func (sd sqlDB) RemoveCacheAndUpdateData(cacheID, carfileHash string, reliabilit
 	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE device_id=? `, cTableName)
 	tx.MustExec(cCmd, cacheID)
 
-	var count int64
-	cmd := fmt.Sprintf("SELECT count(cid) FROM %s WHERE carfile_hash=? ", cTableName)
-	err := tx.Get(&count, cmd, carfileHash)
+	var reliability int
+	cmd := fmt.Sprintf("SELECT sum(reliability) FROM %s WHERE carfile_hash=? ", cTableName)
+	err := tx.Get(&reliability, cmd, carfileHash)
 	if err != nil {
 		return err
 	}
 
 	// data info
-	if count > 0 {
-		dCmd := fmt.Sprintf("UPDATE %s SET reliability=reliability-? WHERE carfile_hash=?", dTableName)
+	if reliability > 0 {
+		dCmd := fmt.Sprintf("UPDATE %s SET reliability=? WHERE carfile_hash=?", dTableName)
 		tx.MustExec(dCmd, reliability, carfileHash)
 	} else {
 		dCmd := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=?`, dTableName)
@@ -684,47 +684,47 @@ func (sd sqlDB) GetNodesByUserDownloadBlockIn(minute int) ([]string, error) {
 	return out, nil
 }
 
-// cache event info
-func (sd sqlDB) SetEventInfo(info *api.EventInfo) error {
-	area := sd.ReplaceArea()
+// // cache event info
+// func (sd sqlDB) SetEventInfo(info *api.EventInfo) error {
+// 	area := sd.ReplaceArea()
 
-	tableName := fmt.Sprintf(eventInfoTable, area)
+// 	tableName := fmt.Sprintf(eventInfoTable, area)
 
-	cmd := fmt.Sprintf("INSERT INTO %s (cid, device_id, user, event, msg) VALUES (:cid, :device_id, :user, :event, :msg)", tableName)
-	_, err := sd.cli.NamedExec(cmd, info)
-	return err
-}
+// 	cmd := fmt.Sprintf("INSERT INTO %s (cid, device_id, user, event, msg) VALUES (:cid, :device_id, :user, :event, :msg)", tableName)
+// 	_, err := sd.cli.NamedExec(cmd, info)
+// 	return err
+// }
 
-func (sd sqlDB) GetEventInfos(page int) (count int, totalPage int, out []*api.EventInfo, err error) {
-	area := "cn_gd_shenzhen"
-	num := 20
+// func (sd sqlDB) GetEventInfos(page int) (count int, totalPage int, out []*api.EventInfo, err error) {
+// 	area := "cn_gd_shenzhen"
+// 	num := 20
 
-	cmd := fmt.Sprintf("SELECT count(cid) FROM %s ;", fmt.Sprintf(eventInfoTable, area))
-	err = sd.cli.Get(&count, cmd)
-	if err != nil {
-		return
-	}
+// 	cmd := fmt.Sprintf("SELECT count(cid) FROM %s ;", fmt.Sprintf(eventInfoTable, area))
+// 	err = sd.cli.Get(&count, cmd)
+// 	if err != nil {
+// 		return
+// 	}
 
-	totalPage = count / num
-	if count%num > 0 {
-		totalPage++
-	}
+// 	totalPage = count / num
+// 	if count%num > 0 {
+// 		totalPage++
+// 	}
 
-	if totalPage == 0 {
-		return
-	}
+// 	if totalPage == 0 {
+// 		return
+// 	}
 
-	if page > totalPage {
-		page = totalPage
-	}
+// 	if page > totalPage {
+// 		page = totalPage
+// 	}
 
-	cmd = fmt.Sprintf("SELECT * FROM %s LIMIT %d,%d", fmt.Sprintf(eventInfoTable, area), (num * (page - 1)), num)
-	if err = sd.cli.Select(&out, cmd); err != nil {
-		return
-	}
+// 	cmd = fmt.Sprintf("SELECT * FROM %s LIMIT %d,%d", fmt.Sprintf(eventInfoTable, area), (num * (page - 1)), num)
+// 	if err = sd.cli.Select(&out, cmd); err != nil {
+// 		return
+// 	}
 
-	return
-}
+// 	return
+// }
 
 // IsNilErr Is NilErr
 func (sd sqlDB) IsNilErr(err error) bool {

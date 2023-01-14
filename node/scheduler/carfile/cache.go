@@ -14,17 +14,17 @@ import (
 type CacheTask struct {
 	carfileRecord *CarfileRecord
 
-	deviceID    string
-	carfileHash string
-	status      api.CacheStatus
-	reliability int
-	doneSize    int64
-	doneBlocks  int
-	totalSize   int64
-	totalBlocks int
-	isRootCache bool
-	expiredTime time.Time
-	cacheCount  int
+	deviceID     string
+	carfileHash  string
+	status       api.CacheStatus
+	reliability  int
+	doneSize     int64
+	doneBlocks   int
+	totalSize    int64
+	totalBlocks  int
+	isRootCache  bool
+	expiredTime  time.Time
+	executeCount int
 
 	timeoutTicker *time.Ticker
 }
@@ -66,7 +66,7 @@ func (c *CacheTask) startTimeoutTimer() {
 				return
 			}
 			//check redis
-			exist, err := cache.GetDB().NodeIsCaching(c.deviceID)
+			exist, err := cache.GetDB().IsNodeCaching(c.deviceID)
 			if err != nil {
 				log.Errorf("NodeIsCaching err:%s", err.Error())
 				break
@@ -118,11 +118,10 @@ func (c *CacheTask) blockCacheResult(info *api.CacheResultInfo) error {
 		c.carfileRecord.totalBlocks = c.totalBlocks
 	}
 
-	log.Infof("blockCacheResult :%s , %d , %s", c.deviceID, info.Status, info.CarfileHash)
+	log.Infof("blockCacheResult :%s , %d , %s , %d", c.deviceID, info.Status, info.CarfileHash, info.DoneBlocks)
 
 	if info.Status == api.CacheStatusSuccess || info.Status == api.CacheStatusFail {
 		//update node dick
-		// c.carfileRecord.nodeManager.UpdateNodeDiskUsage(c.deviceID, info.DiskUsage)
 		node := c.carfileRecord.nodeManager.GetNode(c.deviceID)
 		if node != nil {
 			node.DiskUsage = info.DiskUsage
@@ -132,16 +131,24 @@ func (c *CacheTask) blockCacheResult(info *api.CacheResultInfo) error {
 		return c.endCache(info.Status)
 	}
 
-	if err := c.carfileRecord.saveCarfileCacheInfo(c); err != nil {
-		return err
-	}
+	// if err := c.carfileRecord.saveCarfileCacheInfo(c); err != nil {
+	// 	return err
+	// }
 
 	// update cache task timeout
-	return cache.GetDB().UpdateNodeCacheingExpireTime(c.carfileHash, c.deviceID, cacheResultTimeout)
+	return cache.GetDB().UpdateNodeCacheingExpireTime(c.carfileHash, c.deviceID, nodeCacheTimeout)
 }
 
 func (c *CacheTask) startCache() error {
-	c.cacheCount++
+	c.executeCount++
+
+	err := cache.GetDB().SetCacheTaskStart(c.carfileHash, c.deviceID, nodeCacheTimeout)
+	if err != nil {
+		return xerrors.Errorf("startCache %s , SetCacheTaskStart err:%s", c.carfileHash, err.Error())
+	}
+
+	go c.startTimeoutTimer()
+
 	// send to node
 	result, err := c.cacheCarfile2Node()
 	if err != nil {
@@ -156,19 +163,12 @@ func (c *CacheTask) startCache() error {
 		node.SetCurCacheCount(result.WaitCacheCarfileNum + 1)
 	}
 
-	err = cache.GetDB().SetCacheTaskStart(c.carfileHash, c.deviceID, cacheResultTimeout)
-	if err != nil {
-		return xerrors.Errorf("startCache %s , SetCacheTaskStart err:%s", c.carfileHash, err.Error())
-	}
-
-	go c.startTimeoutTimer()
-
 	return nil
 }
 
 func (c *CacheTask) endCache(status api.CacheStatus) (err error) {
 	c.status = status
-	c.reliability = c.calculateReliability("")
+	c.reliability = c.calculateReliability()
 
 	err = cache.GetDB().SetCacheTaskEnd(c.carfileHash, c.deviceID)
 	if err != nil {
@@ -178,12 +178,8 @@ func (c *CacheTask) endCache(status api.CacheStatus) (err error) {
 	return c.carfileRecord.cacheDone(c)
 }
 
-func (c *CacheTask) calculateReliability(deviceID string) int {
+func (c *CacheTask) calculateReliability() int {
 	// TODO To be perfected
-	if deviceID != "" {
-		return 1
-	}
-
 	if !c.isRootCache && c.status == api.CacheStatusSuccess {
 		return 1
 	}

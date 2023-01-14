@@ -43,7 +43,7 @@ var SchedulerCmds = []*cli.Command{
 	cachingBlocksCmd,
 	cacheStatCmd,
 	getDownloadInfoCmd,
-	listEventCmd,
+	// listEventCmd,
 }
 
 var (
@@ -496,7 +496,7 @@ var listDataCmd = &cli.Command{
 			return xerrors.New("page need greater than 1")
 		}
 
-		info, err := schedulerAPI.ListCacheDatas(ctx, page)
+		info, err := schedulerAPI.ListCarfileRecords(ctx, page)
 		if err != nil {
 			return err
 		}
@@ -510,42 +510,42 @@ var listDataCmd = &cli.Command{
 	},
 }
 
-var listEventCmd = &cli.Command{
-	Name:  "list-event",
-	Usage: "list event",
-	Flags: []cli.Flag{
-		pageFlag,
-	},
+// var listEventCmd = &cli.Command{
+// 	Name:  "list-event",
+// 	Usage: "list event",
+// 	Flags: []cli.Flag{
+// 		pageFlag,
+// 	},
 
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
+// 	Before: func(cctx *cli.Context) error {
+// 		return nil
+// 	},
+// 	Action: func(cctx *cli.Context) error {
+// 		ctx := ReqContext(cctx)
+// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+// 		if err != nil {
+// 			return err
+// 		}
+// 		defer closer()
 
-		page := cctx.Int("page")
-		if page < 1 {
-			return xerrors.New("page need greater than 1")
-		}
+// 		page := cctx.Int("page")
+// 		if page < 1 {
+// 			return xerrors.New("page need greater than 1")
+// 		}
 
-		info, err := schedulerAPI.ListEvents(ctx, page)
-		if err != nil {
-			return err
-		}
+// 		info, err := schedulerAPI.ListEvents(ctx, page)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		for _, event := range info.EventList {
-			fmt.Printf("CID:%s,Event:%s,DeviceID:%s,Msg:%s,User:%s,Time:%s \n", event.CID, event.Event, event.DeviceID, event.Msg, event.User, event.CreateTime.String())
-		}
-		fmt.Printf("total:%d            %d/%d \n", info.Count, info.Page, info.TotalPage)
+// 		for _, event := range info.EventList {
+// 			fmt.Printf("CID:%s,Event:%s,DeviceID:%s,Msg:%s,User:%s,Time:%s \n", event.CID, event.Event, event.DeviceID, event.Msg, event.User, event.CreateTime.String())
+// 		}
+// 		fmt.Printf("total:%d            %d/%d \n", info.Count, info.Page, info.TotalPage)
 
-		return nil
-	},
-}
+// 		return nil
+// 	},
+// }
 
 var validateSwitchCmd = &cli.Command{
 	Name:  "validate-switch",
@@ -600,7 +600,7 @@ var showDatasInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		infos, err := schedulerAPI.ShowRunningCacheDatas(ctx)
+		infos, err := schedulerAPI.ShowRunningCarfileRecords(ctx)
 		if err != nil {
 			return err
 		}
@@ -666,7 +666,7 @@ var showDataInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		info, err := schedulerAPI.GetCacheData(ctx, cid)
+		info, err := schedulerAPI.GetCarfileRecord(ctx, cid)
 		if err != nil {
 			return err
 		}

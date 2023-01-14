@@ -242,9 +242,9 @@ type SchedulerStruct struct {
 
 		ElectionValidators func(p0 context.Context) error `perm:"admin"`
 
-		GetCacheData func(p0 context.Context, p1 string) (CarfileRecordInfo, error) `perm:"read"`
-
 		GetCandidateDownloadInfoWithBlocks func(p0 context.Context, p1 []string) (map[string]CandidateDownloadInfo, error) `perm:"write"`
+
+		GetCarfileRecord func(p0 context.Context, p1 string) (CarfileRecordInfo, error) `perm:"read"`
 
 		GetDevicesInfo func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
 
@@ -258,9 +258,7 @@ type SchedulerStruct struct {
 
 		GetPublicKey func(p0 context.Context) (string, error) `perm:"write"`
 
-		ListCacheDatas func(p0 context.Context, p1 int) (DataListInfo, error) `perm:"read"`
-
-		ListEvents func(p0 context.Context, p1 int) (EventListInfo, error) `perm:"read"`
+		ListCarfileRecords func(p0 context.Context, p1 int) (DataListInfo, error) `perm:"read"`
 
 		LocatorConnect func(p0 context.Context, p1 int, p2 string, p3 string, p4 string) error `perm:"write"`
 
@@ -284,7 +282,7 @@ type SchedulerStruct struct {
 
 		ResetCacheExpiredTime func(p0 context.Context, p1 string, p2 string, p3 time.Time) error `perm:"admin"`
 
-		ShowRunningCacheDatas func(p0 context.Context) ([]CarfileRecordInfo, error) `perm:"read"`
+		ShowRunningCarfileRecords func(p0 context.Context) ([]CarfileRecordInfo, error) `perm:"read"`
 
 		StopCacheTask func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -957,17 +955,6 @@ func (s *SchedulerStub) ElectionValidators(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetCacheData(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
-	if s.Internal.GetCacheData == nil {
-		return *new(CarfileRecordInfo), ErrNotSupported
-	}
-	return s.Internal.GetCacheData(p0, p1)
-}
-
-func (s *SchedulerStub) GetCacheData(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
-	return *new(CarfileRecordInfo), ErrNotSupported
-}
-
 func (s *SchedulerStruct) GetCandidateDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]CandidateDownloadInfo, error) {
 	if s.Internal.GetCandidateDownloadInfoWithBlocks == nil {
 		return *new(map[string]CandidateDownloadInfo), ErrNotSupported
@@ -977,6 +964,17 @@ func (s *SchedulerStruct) GetCandidateDownloadInfoWithBlocks(p0 context.Context,
 
 func (s *SchedulerStub) GetCandidateDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]CandidateDownloadInfo, error) {
 	return *new(map[string]CandidateDownloadInfo), ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetCarfileRecord(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
+	if s.Internal.GetCarfileRecord == nil {
+		return *new(CarfileRecordInfo), ErrNotSupported
+	}
+	return s.Internal.GetCarfileRecord(p0, p1)
+}
+
+func (s *SchedulerStub) GetCarfileRecord(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
+	return *new(CarfileRecordInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetDevicesInfo(p0 context.Context, p1 string) (DevicesInfo, error) {
@@ -1045,26 +1043,15 @@ func (s *SchedulerStub) GetPublicKey(p0 context.Context) (string, error) {
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) ListCacheDatas(p0 context.Context, p1 int) (DataListInfo, error) {
-	if s.Internal.ListCacheDatas == nil {
+func (s *SchedulerStruct) ListCarfileRecords(p0 context.Context, p1 int) (DataListInfo, error) {
+	if s.Internal.ListCarfileRecords == nil {
 		return *new(DataListInfo), ErrNotSupported
 	}
-	return s.Internal.ListCacheDatas(p0, p1)
+	return s.Internal.ListCarfileRecords(p0, p1)
 }
 
-func (s *SchedulerStub) ListCacheDatas(p0 context.Context, p1 int) (DataListInfo, error) {
+func (s *SchedulerStub) ListCarfileRecords(p0 context.Context, p1 int) (DataListInfo, error) {
 	return *new(DataListInfo), ErrNotSupported
-}
-
-func (s *SchedulerStruct) ListEvents(p0 context.Context, p1 int) (EventListInfo, error) {
-	if s.Internal.ListEvents == nil {
-		return *new(EventListInfo), ErrNotSupported
-	}
-	return s.Internal.ListEvents(p0, p1)
-}
-
-func (s *SchedulerStub) ListEvents(p0 context.Context, p1 int) (EventListInfo, error) {
-	return *new(EventListInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 int, p2 string, p3 string, p4 string) error {
@@ -1188,14 +1175,14 @@ func (s *SchedulerStub) ResetCacheExpiredTime(p0 context.Context, p1 string, p2 
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ShowRunningCacheDatas(p0 context.Context) ([]CarfileRecordInfo, error) {
-	if s.Internal.ShowRunningCacheDatas == nil {
+func (s *SchedulerStruct) ShowRunningCarfileRecords(p0 context.Context) ([]CarfileRecordInfo, error) {
+	if s.Internal.ShowRunningCarfileRecords == nil {
 		return *new([]CarfileRecordInfo), ErrNotSupported
 	}
-	return s.Internal.ShowRunningCacheDatas(p0)
+	return s.Internal.ShowRunningCarfileRecords(p0)
 }
 
-func (s *SchedulerStub) ShowRunningCacheDatas(p0 context.Context) ([]CarfileRecordInfo, error) {
+func (s *SchedulerStub) ShowRunningCarfileRecords(p0 context.Context) ([]CarfileRecordInfo, error) {
 	return *new([]CarfileRecordInfo), ErrNotSupported
 }
 
