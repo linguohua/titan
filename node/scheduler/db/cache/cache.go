@@ -35,12 +35,12 @@ type DB interface {
 	// GetNodeCaches(deviceID string) ([]string, error)
 	GetCacheingCarfiles() (map[string]int, error)
 	// GetNodeCacheingCarfile(deviceID string) (string, error)
-	NodeIsCaching(deviceID string) (bool, error)
+	IsNodeCaching(deviceID string) (bool, error)
 
 	// waiting data list
-	SetWaitingDataTask(info *api.CarfileRecordInfo) error
-	GetWaitingDataTask(index int64) (*api.CarfileRecordInfo, error)
-	RemoveWaitingDataTasks(infos []*api.CarfileRecordInfo) error
+	PushCarfileToWaitList(info *api.CarfileRecordInfo) error
+	GetWaitCarfile(index int64) (*api.CarfileRecordInfo, error)
+	RemoveWaitCarfiles(infos []*api.CarfileRecordInfo) error
 
 	// validate round id
 	IncrValidateRoundID() (int64, error)

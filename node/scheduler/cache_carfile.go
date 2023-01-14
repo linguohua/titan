@@ -55,15 +55,15 @@ func (s *Scheduler) StopCacheTask(ctx context.Context, carfileCid string) error 
 	return s.dataManager.StopCacheTask(carfileCid, "")
 }
 
-// ShowRunningCacheDatas Show Data Tasks
-func (s *Scheduler) ShowRunningCacheDatas(ctx context.Context) ([]api.CarfileRecordInfo, error) {
+// ShowRunningCarfileRecords Show Data Tasks
+func (s *Scheduler) ShowRunningCarfileRecords(ctx context.Context) ([]api.CarfileRecordInfo, error) {
 	infos := make([]api.CarfileRecordInfo, 0)
 
 	s.dataManager.CarfileRecordMap.Range(func(key, value interface{}) bool {
 		if value != nil {
 			data := value.(*carfile.CarfileRecord)
 			if data != nil {
-				cInfo := dataToCacheDataInfo(data)
+				cInfo := carfileRecord2Info(data)
 				infos = append(infos, cInfo)
 			}
 		}
@@ -74,7 +74,7 @@ func (s *Scheduler) ShowRunningCacheDatas(ctx context.Context) ([]api.CarfileRec
 	return infos, nil
 }
 
-func dataToCacheDataInfo(d *carfile.CarfileRecord) api.CarfileRecordInfo {
+func carfileRecord2Info(d *carfile.CarfileRecord) api.CarfileRecordInfo {
 	info := api.CarfileRecordInfo{}
 	if d != nil {
 		info.CarfileCid = d.GetCarfileCid()
@@ -97,11 +97,6 @@ func dataToCacheDataInfo(d *carfile.CarfileRecord) api.CarfileRecordInfo {
 				DeviceID:   c.GetDeviceID(),
 			}
 
-			// t, err := cache.GetDB().GetRunningDataTaskExpiredTime(d.GetCarfileHash(), c.GetDeviceID())
-			// if err == nil {
-			// 	cc.DataTimeout = t
-			// }
-
 			caches = append(caches, cc)
 			return true
 		})
@@ -112,8 +107,8 @@ func dataToCacheDataInfo(d *carfile.CarfileRecord) api.CarfileRecordInfo {
 	return info
 }
 
-// GetCacheData Show Data Task
-func (s *Scheduler) GetCacheData(ctx context.Context, cid string) (api.CarfileRecordInfo, error) {
+// GetCarfileRecord Show Data Task
+func (s *Scheduler) GetCarfileRecord(ctx context.Context, cid string) (api.CarfileRecordInfo, error) {
 	info := api.CarfileRecordInfo{}
 
 	if cid == "" {
@@ -127,7 +122,7 @@ func (s *Scheduler) GetCacheData(ctx context.Context, cid string) (api.CarfileRe
 
 	d, _ := s.dataManager.GetCarfileRecord(hash)
 	if d != nil {
-		cInfo := dataToCacheDataInfo(d)
+		cInfo := carfileRecord2Info(d)
 
 		return cInfo, nil
 	}
@@ -135,18 +130,18 @@ func (s *Scheduler) GetCacheData(ctx context.Context, cid string) (api.CarfileRe
 	return info, xerrors.Errorf("not found cid:%s", cid)
 }
 
-// ListEvents get data events
-func (s *Scheduler) ListEvents(ctx context.Context, page int) (api.EventListInfo, error) {
-	count, totalPage, list, err := persistent.GetDB().GetEventInfos(page)
-	if err != nil {
-		return api.EventListInfo{}, err
-	}
+// // ListEvents get data events
+// func (s *Scheduler) ListEvents(ctx context.Context, page int) (api.EventListInfo, error) {
+// 	count, totalPage, list, err := persistent.GetDB().GetEventInfos(page)
+// 	if err != nil {
+// 		return api.EventListInfo{}, err
+// 	}
 
-	return api.EventListInfo{Page: page, TotalPage: totalPage, Count: count, EventList: list}, nil
-}
+// 	return api.EventListInfo{Page: page, TotalPage: totalPage, Count: count, EventList: list}, nil
+// }
 
-// ListCacheDatas List Datas
-func (s *Scheduler) ListCacheDatas(ctx context.Context, page int) (api.DataListInfo, error) {
+// ListCarfileRecords List Datas
+func (s *Scheduler) ListCarfileRecords(ctx context.Context, page int) (api.DataListInfo, error) {
 	count, totalPage, list, err := persistent.GetDB().GetCarfileCidWithPage(page)
 	if err != nil {
 		return api.DataListInfo{}, err

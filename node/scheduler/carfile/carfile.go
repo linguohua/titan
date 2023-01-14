@@ -80,7 +80,7 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 			isRootCache:   cache.RootCache,
 			expiredTime:   cache.ExpiredTime,
 			carfileHash:   cache.CarfileHash,
-			cacheCount:    cache.CacheCount,
+			executeCount:  cache.ExecuteCount,
 		}
 
 		if c.isRootCache && c.status == api.CacheStatusSuccess {
@@ -138,13 +138,13 @@ func (d *CarfileRecord) saveCarfileCacheInfo(doneCache *CacheTask) error {
 	}
 
 	cInfo := &api.CacheTaskInfo{
-		CarfileHash: doneCache.carfileHash,
-		DeviceID:    doneCache.deviceID,
-		Status:      doneCache.status,
-		DoneSize:    doneCache.doneSize,
-		DoneBlocks:  doneCache.doneBlocks,
-		CacheCount:  doneCache.cacheCount,
-		Reliability: doneCache.reliability,
+		CarfileHash:  doneCache.carfileHash,
+		DeviceID:     doneCache.deviceID,
+		Status:       doneCache.status,
+		DoneSize:     doneCache.doneSize,
+		DoneBlocks:   doneCache.doneBlocks,
+		ExecuteCount: doneCache.executeCount,
+		Reliability:  doneCache.reliability,
 	}
 
 	return persistent.GetDB().SaveCacheResults(dInfo, cInfo)
@@ -260,7 +260,7 @@ func (d *CarfileRecord) dispatchCache() (isRunning bool, err error) {
 }
 
 func (d *CarfileRecord) cacheDone(doneCache *CacheTask) error {
-	if doneCache.isRootCache {
+	if doneCache.isRootCache && doneCache.status == api.CacheStatusSuccess {
 		d.rootCaches++
 
 		cNode := d.nodeManager.GetCandidateNode(doneCache.deviceID)
@@ -315,7 +315,7 @@ func (d *CarfileRecord) getUndoneCaches() []*CacheTask {
 	d.CacheTaskMap.Range(func(key, value interface{}) bool {
 		c := value.(*CacheTask)
 
-		if c.status != api.CacheStatusSuccess && c.cacheCount <= 1 {
+		if c.status != api.CacheStatusSuccess && c.executeCount <= 1 {
 			if c.isRootCache {
 				oldRootCache = append(oldRootCache, c)
 			} else {

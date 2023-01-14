@@ -135,7 +135,7 @@ CREATE TABLE `caches_cn_gd_shenzhen` (
 	`reliability` TINYINT DEFAULT '0' ,
     `expired_time` datetime NOT NULL,
     `root_cache` BOOLEAN,
-    `cache_count` int  DEFAULT '0' ,
+    `execute_count` int  DEFAULT '0' ,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='caches info';

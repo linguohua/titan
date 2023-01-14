@@ -615,12 +615,6 @@ func incrDeviceReward(deviceID string, incrReward int64) error {
 	return nil
 }
 
-// func incrDeviceBlock(deviceID string, blocks int) error {
-// 	return cache.GetDB().UpdateDeviceInfo(deviceID, func(deviceInfo *api.DevicesInfo) {
-// 		deviceInfo.BlockCount += blocks
-// 	})
-// }
-
 func (s *Scheduler) nodeOfflineCallback(deviceID string) {
 	go s.locatorManager.NotifyNodeStatusToLocator(deviceID, false)
 }

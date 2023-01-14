@@ -124,7 +124,7 @@ func (w *web) ListCacheTasks(ctx context.Context, cursor int, count int) (api.Li
 }
 
 func (w *web) GetCacheTaskInfo(ctx context.Context, carFileCID string) (api.CarfileRecordInfo, error) {
-	return w.scheduler.GetCacheData(ctx, carFileCID)
+	return w.scheduler.GetCarfileRecord(ctx, carFileCID)
 }
 
 func (w *web) CancelCacheTask(ctx context.Context, carFileCID string) error {

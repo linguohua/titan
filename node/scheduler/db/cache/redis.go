@@ -201,7 +201,7 @@ func (rd redisDB) GetCacheingCarfiles() (map[string]int, error) {
 // 	return rd.cli.Get(context.Background(), nodeKey).Result()
 // }
 
-func (rd redisDB) NodeIsCaching(deviceID string) (bool, error) {
+func (rd redisDB) IsNodeCaching(deviceID string) (bool, error) {
 	nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
 	exist, err := rd.cli.Exists(context.Background(), nodeKey).Result()
 	if err != nil {
@@ -238,7 +238,7 @@ func (rd redisDB) NodeIsCaching(deviceID string) (bool, error) {
 // }
 
 // waiting data list
-func (rd redisDB) SetWaitingDataTask(info *api.CarfileRecordInfo) error {
+func (rd redisDB) PushCarfileToWaitList(info *api.CarfileRecordInfo) error {
 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	bytes, err := json.Marshal(info)
@@ -250,7 +250,7 @@ func (rd redisDB) SetWaitingDataTask(info *api.CarfileRecordInfo) error {
 	return err
 }
 
-func (rd redisDB) GetWaitingDataTask(index int64) (*api.CarfileRecordInfo, error) {
+func (rd redisDB) GetWaitCarfile(index int64) (*api.CarfileRecordInfo, error) {
 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	value, err := rd.cli.LIndex(context.Background(), key, index).Result()
@@ -272,7 +272,7 @@ func (rd redisDB) GetWaitingDataTask(index int64) (*api.CarfileRecordInfo, error
 	return &info, nil
 }
 
-func (rd redisDB) RemoveWaitingDataTasks(infos []*api.CarfileRecordInfo) error {
+func (rd redisDB) RemoveWaitCarfiles(infos []*api.CarfileRecordInfo) error {
 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	ctx := context.Background()

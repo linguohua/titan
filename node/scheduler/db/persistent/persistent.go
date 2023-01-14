@@ -50,7 +50,7 @@ type DB interface {
 	// cache info
 	GetSuccessCaches() ([]*api.CacheTaskInfo, error)
 	GetCacheInfo(carfileHash, deviceID string) (*api.CacheTaskInfo, error)
-	RemoveCacheAndUpdateData(deviceID, carfileHash string, reliability int) error
+	RemoveCacheAndUpdateData(deviceID, carfileHash string) error
 	RemoveCarfileRecord(carfileHash string) error
 	UpdateCacheInfoOfQuitNode(deviceIDs []string) ([]*api.CarfileRecordInfo, error)
 
@@ -65,8 +65,8 @@ type DB interface {
 	GetNodesByUserDownloadBlockIn(minute int) ([]string, error)
 
 	// cache event info
-	SetEventInfo(info *api.EventInfo) error
-	GetEventInfos(page int) (count int, totalPage int, out []*api.EventInfo, err error)
+	// SetEventInfo(info *api.EventInfo) error
+	// GetEventInfos(page int) (count int, totalPage int, out []*api.EventInfo, err error)
 
 	// tool
 	ReplaceArea() string
