@@ -23,7 +23,7 @@ const (
 	startTaskInterval         = 10      //  time interval (Unit:Second)
 	checkExpiredTimerInterval = 60 * 30 //  time interval (Unit:Second)
 
-	runningTaskMaxCount = 1
+	runningTaskMaxCount = 10
 
 	// If the node disk size is greater than this value, caching will not continue
 	diskUsageMax = 90.0
