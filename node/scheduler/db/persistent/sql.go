@@ -539,7 +539,7 @@ func (sd sqlDB) RemoveCacheAndUpdateData(cacheID, carfileHash string) error {
 	return nil
 }
 
-func (sd sqlDB) UpdateCacheInfoOfQuitNode(deviceIDs []string) (carfiles []*api.CarfileRecordInfo, err error) {
+func (sd sqlDB) UpdateCacheInfoOfQuitNode(deviceIDs []string) (carfileRecords []*api.CarfileRecordInfo, err error) {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 	dTableName := fmt.Sprintf(dataInfoTable, area)
@@ -560,7 +560,7 @@ func (sd sqlDB) UpdateCacheInfoOfQuitNode(deviceIDs []string) (carfiles []*api.C
 
 	// var carfiles []*api.CarfileRecordInfo
 	carfilesQuery = sd.cli.Rebind(carfilesQuery)
-	tx.Select(&carfiles, carfilesQuery, args...)
+	tx.Select(&carfileRecords, carfilesQuery, args...)
 
 	// remove cache
 	removeCachesCmd := fmt.Sprintf(`DELETE FROM %s WHERE device_id in (?)`, cTableName)
@@ -573,16 +573,16 @@ func (sd sqlDB) UpdateCacheInfoOfQuitNode(deviceIDs []string) (carfiles []*api.C
 	tx.MustExec(removeCacheQuery, args...)
 
 	// update carfiles record
-	for _, carfile := range carfiles {
+	for _, carfileRecord := range carfileRecords {
 		var reliability int64
 		cmd := fmt.Sprintf("SELECT sum(reliability) FROM %s WHERE carfile_hash=? ", cTableName)
-		err := tx.Get(&reliability, cmd, carfile.CarfileHash)
+		err := tx.Get(&reliability, cmd, carfileRecord.CarfileHash)
 		if err != nil {
 			continue
 		}
 
 		cmdD := fmt.Sprintf(`UPDATE %s SET reliability=? WHERE carfile_hash=?`, dTableName)
-		tx.MustExec(cmdD, reliability, carfile.CarfileHash)
+		tx.MustExec(cmdD, reliability, carfileRecord.CarfileHash)
 	}
 
 	err = tx.Commit()
