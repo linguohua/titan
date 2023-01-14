@@ -29,17 +29,14 @@ const (
 // DB cache db
 type DB interface {
 	SetCacheTaskStart(hash, deviceID string, timeout int64) error
-	SetCacheTaskEnd(hash, deviceID string) error
+	SetCacheTaskEnd(hash, deviceID string, totalSize int64, totalBlocks int) error
 	UpdateNodeCacheingExpireTime(hash, deviceID string, timeout int64) error
-	// GetCacheingNodes() ([]string, error)
-	// GetNodeCaches(deviceID string) ([]string, error)
 	GetCacheingCarfiles() (map[string]int, error)
-	// GetNodeCacheingCarfile(deviceID string) (string, error)
 	IsNodeCaching(deviceID string) (bool, error)
 
 	// waiting data list
 	PushCarfileToWaitList(info *api.CarfileRecordInfo) error
-	GetWaitCarfile(index int64) (*api.CarfileRecordInfo, error)
+	GetWaitCarfile() (*api.CarfileRecordInfo, error)
 	RemoveWaitCarfiles(infos []*api.CarfileRecordInfo) error
 
 	// validate round id
@@ -81,13 +78,8 @@ type DB interface {
 	GetBaseInfo() (*api.BaseInfo, error)
 	UpdateBaseInfo(field string, value interface{}) error
 	IncrByBaseInfo(field string, value int64) error
-
-	// node fid TODO save in db
-	// IncrNodeCacheFid(deviceID string, num int) (int, error)
-	// GetNodeCacheFid(deviceID string) (int64, error)
-
-	RemoveCarfileRecord(carfileCount int64, nodeBlockCounts map[string]int64) error
-	// CacheEndRecord(dataTask *DataTask, fromDeviceID string, blockSize int, blocks int, isSuccess bool) error
+	RemoveCacheTask(deviceID string, size int64, blocks int) error
+	RemoveCarfileRecord(list []*api.CacheTaskInfo) error
 
 	IsNilErr(err error) bool
 }
