@@ -220,8 +220,8 @@ func (sd sqlDB) UpdateCacheStatusWithNodes(hash string, deviceIDs []string) erro
 
 	tx := sd.cli.MustBegin()
 
-	updateCachesCmd := fmt.Sprintf(`UPDATE %s SET status=? WHERE carfile_hash=? AND device_id in (?)`, cTableName)
-	query, args, err := sqlx.In(updateCachesCmd, int(api.CacheStatusCreate), hash, deviceIDs)
+	updateCachesCmd := fmt.Sprintf(`UPDATE %s SET status=? WHERE status!=? AND carfile_hash=? AND device_id in (?)`, cTableName)
+	query, args, err := sqlx.In(updateCachesCmd, int(api.CacheStatusCreate), int(api.CacheStatusSuccess), hash, deviceIDs)
 	if err != nil {
 		return err
 	}
@@ -412,11 +412,9 @@ func (sd sqlDB) ChangeExpiredTimeWhitCaches(carfileHash, cacheID string, expired
 	tx := sd.cli.MustBegin()
 
 	if cacheID == "" {
-		// cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
 		cmd := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
 		tx.MustExec(cmd, expiredTime, carfileHash)
 	} else {
-		// cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=? AND device_id=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
 		cmd := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=? AND device_id=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
 		tx.MustExec(cmd, expiredTime, carfileHash, cacheID)
 	}

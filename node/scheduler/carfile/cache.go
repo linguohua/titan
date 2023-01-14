@@ -14,14 +14,14 @@ import (
 type CacheTask struct {
 	carfileRecord *CarfileRecord
 
-	deviceID     string
-	carfileHash  string
-	status       api.CacheStatus
-	reliability  int
-	doneSize     int64
-	doneBlocks   int
-	totalSize    int64
-	totalBlocks  int
+	deviceID    string
+	carfileHash string
+	status      api.CacheStatus
+	reliability int
+	doneSize    int64
+	doneBlocks  int
+	// totalSize    int64
+	// totalBlocks  int
 	isRootCache  bool
 	expiredTime  time.Time
 	executeCount int
@@ -110,12 +110,9 @@ func (c *CacheTask) blockCacheResult(info *api.CacheResultInfo) error {
 	c.doneBlocks = info.DoneBlocks
 	c.doneSize = info.DoneSize
 
-	c.totalBlocks = info.TotalBlock
-	c.totalSize = info.TotalSize
-
 	if !c.carfileRecord.rootCacheExists() {
-		c.carfileRecord.totalSize = c.totalSize
-		c.carfileRecord.totalBlocks = c.totalBlocks
+		c.carfileRecord.totalSize = info.TotalSize
+		c.carfileRecord.totalBlocks = info.TotalBlock
 	}
 
 	log.Infof("blockCacheResult :%s , %d , %s , %d", c.deviceID, info.Status, info.CarfileHash, info.DoneBlocks)
@@ -170,7 +167,14 @@ func (c *CacheTask) endCache(status api.CacheStatus) (err error) {
 	c.status = status
 	c.reliability = c.calculateReliability()
 
-	err = cache.GetDB().SetCacheTaskEnd(c.carfileHash, c.deviceID)
+	size := int64(0)
+	blocks := 0
+	if status == api.CacheStatusSuccess {
+		size = c.carfileRecord.totalSize
+		blocks = c.carfileRecord.totalBlocks
+	}
+
+	err = cache.GetDB().SetCacheTaskEnd(c.carfileHash, c.deviceID, size, blocks)
 	if err != nil {
 		return xerrors.Errorf("endCache %s , SetCacheTaskEnd err:%s", c.carfileHash, err.Error())
 	}

@@ -301,7 +301,7 @@ func (d *CarfileRecord) cacheDone(doneCache *CacheTask) error {
 	}
 
 	if !isRunning {
-		d.carfileManager.recordTaskEnd(d.carfileHash)
+		d.carfileManager.removeCarfileRecord(d.carfileHash)
 	}
 
 	return nil
