@@ -170,7 +170,7 @@ func (s *Scheduler) RemoveCarfile(ctx context.Context, carfileID string) error {
 		return xerrors.Errorf("Cid Is Nil")
 	}
 
-	return s.dataManager.RemoveCarfile(carfileID)
+	return s.dataManager.RemoveCarfileRecord(carfileID)
 }
 
 // RemoveCache remove a caches with carfile

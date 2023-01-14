@@ -9,20 +9,20 @@ import (
 )
 
 const (
-	//CarFileCountField BaseInfo Field
+	// CarFileCountField BaseInfo Field
 	CarFileCountField = "CarfileCount"
-	//DownloadCountField BaseInfo Field
+	// DownloadCountField BaseInfo Field
 	DownloadCountField = "DownloadCount"
-	//NextElectionTimeField BaseInfo Field
+	// NextElectionTimeField BaseInfo Field
 	NextElectionTimeField = "NextElectionTime"
 
-	//BlockCountField DeviceInfo Field
+	// BlockCountField DeviceInfo Field
 	BlockCountField = "BlockCount"
-	//TotalDownloadField DeviceInfo Field
+	// TotalDownloadField DeviceInfo Field
 	TotalDownloadField = "TotalDownload"
-	//TotalUploadField DeviceInfo Field
+	// TotalUploadField DeviceInfo Field
 	TotalUploadField = "TotalUpload"
-	//DiskUsageField DeviceInfo Field
+	// DiskUsageField DeviceInfo Field
 	DiskUsageField = "DiskUsage"
 )
 
@@ -31,7 +31,7 @@ type DB interface {
 	SetCacheTaskStart(hash, deviceID string, timeout int64) error
 	SetCacheTaskEnd(hash, deviceID string, totalSize int64, totalBlocks int) error
 	UpdateNodeCacheingExpireTime(hash, deviceID string, timeout int64) error
-	GetCacheingCarfiles() (map[string]int, error)
+	GetCacheingCarfiles() ([]string, error)
 	IsNodeCaching(deviceID string) (bool, error)
 
 	// waiting data list

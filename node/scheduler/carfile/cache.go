@@ -55,36 +55,43 @@ func newCache(carfileRecord *CarfileRecord, deviceID string, isRootCache bool) (
 	return cache, err
 }
 
+func (c *CacheTask) isTimeout() bool {
+	// check redis
+	exist, err := cache.GetDB().IsNodeCaching(c.deviceID)
+	if err != nil {
+		log.Errorf("NodeIsCaching err:%s", err.Error())
+		return false
+	}
+
+	log.Infof("check timeout device:%s , exist:%v", c.deviceID, exist)
+	if exist {
+		return false
+	}
+
+	return true
+}
+
 func (c *CacheTask) startTimeoutTimer() {
 	c.timeoutTicker = time.NewTicker(time.Duration(checkCacheTimeoutInterval) * time.Second)
 	defer c.timeoutTicker.Stop()
 
 	for {
-		select {
-		case <-c.timeoutTicker.C:
-			if c.status != api.CacheStatusCreate {
-				return
-			}
-			//check redis
-			exist, err := cache.GetDB().IsNodeCaching(c.deviceID)
-			if err != nil {
-				log.Errorf("NodeIsCaching err:%s", err.Error())
-				break
-			}
-
-			log.Infof("check timeout device:%s , exist:%v", c.deviceID, exist)
-			if exist {
-				break
-			}
-
-			//cache is timeout
-			err = c.endCache(api.CacheStatusTimeout)
-			if err != nil {
-				log.Errorf("endCache err:%s", err.Error())
-			}
-
+		<-c.timeoutTicker.C
+		if c.status != api.CacheStatusCreate {
 			return
 		}
+
+		if !c.isTimeout() {
+			break
+		}
+
+		// cache is timeout
+		err := c.endCache(api.CacheStatusTimeout)
+		if err != nil {
+			log.Errorf("endCache err:%s", err.Error())
+		}
+
+		return
 	}
 }
 
@@ -106,7 +113,7 @@ func (c *CacheTask) cacheCarfile2Node() (api.CacheCarfileResult, error) {
 	return api.CacheCarfileResult{}, xerrors.Errorf("not found node:%s", c.deviceID)
 }
 
-func (c *CacheTask) blockCacheResult(info *api.CacheResultInfo) error {
+func (c *CacheTask) carfileCacheResult(info *api.CacheResultInfo) error {
 	c.doneBlocks = info.DoneBlocks
 	c.doneSize = info.DoneSize
 
@@ -115,10 +122,10 @@ func (c *CacheTask) blockCacheResult(info *api.CacheResultInfo) error {
 		c.carfileRecord.totalBlocks = info.TotalBlock
 	}
 
-	log.Infof("blockCacheResult :%s , %d , %s , %d", c.deviceID, info.Status, info.CarfileHash, info.DoneBlocks)
+	log.Infof("carfileCacheResult :%s , %d , %s , %d", c.deviceID, info.Status, info.CarfileHash, info.DoneBlocks)
 
 	if info.Status == api.CacheStatusSuccess || info.Status == api.CacheStatusFail {
-		//update node dick
+		// update node dick
 		node := c.carfileRecord.nodeManager.GetNode(c.deviceID)
 		if node != nil {
 			node.DiskUsage = info.DiskUsage
