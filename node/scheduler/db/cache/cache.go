@@ -28,8 +28,8 @@ const (
 
 // DB cache db
 type DB interface {
-	SetCacheTaskStart(hash, deviceID string, timeout int64) error
-	SetCacheTaskEnd(hash, deviceID string, totalSize int64, totalBlocks int) error
+	CacheTaskStart(hash, deviceID string, timeout int64) error
+	CacheTaskEnd(hash, deviceID string, totalSize int64, totalBlocks int) error
 	UpdateNodeCacheingExpireTime(hash, deviceID string, timeout int64) error
 	GetCacheingCarfiles() ([]string, error)
 	IsNodeCaching(deviceID string) (bool, error)

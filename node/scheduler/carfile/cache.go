@@ -22,8 +22,8 @@ type CacheTask struct {
 	doneBlocks  int
 	// totalSize    int64
 	// totalBlocks  int
-	isRootCache  bool
-	expiredTime  time.Time
+	isRootCache bool
+	// expiredTime  time.Time
 	executeCount int
 
 	timeoutTicker *time.Ticker
@@ -36,8 +36,8 @@ func newCache(carfileRecord *CarfileRecord, deviceID string, isRootCache bool) (
 		status:        api.CacheStatusCreate,
 		carfileHash:   carfileRecord.carfileHash,
 		isRootCache:   isRootCache,
-		expiredTime:   carfileRecord.expiredTime,
-		deviceID:      deviceID,
+		// expiredTime:   carfileRecord.expiredTime,
+		deviceID: deviceID,
 	}
 
 	err := persistent.GetDB().CreateCacheInfo(
@@ -45,8 +45,8 @@ func newCache(carfileRecord *CarfileRecord, deviceID string, isRootCache bool) (
 			CarfileHash: cache.carfileHash,
 			DeviceID:    cache.deviceID,
 			Status:      cache.status,
-			ExpiredTime: cache.expiredTime,
-			RootCache:   cache.isRootCache,
+			// ExpiredTime: cache.expiredTime,
+			RootCache: cache.isRootCache,
 		})
 	if err != nil {
 		return nil, err
@@ -72,8 +72,15 @@ func (c *CacheTask) isTimeout() bool {
 }
 
 func (c *CacheTask) startTimeoutTimer() {
+	if c.timeoutTicker != nil {
+		return
+	}
+
 	c.timeoutTicker = time.NewTicker(time.Duration(checkCacheTimeoutInterval) * time.Second)
-	defer c.timeoutTicker.Stop()
+	defer func() {
+		c.timeoutTicker.Stop()
+		c.timeoutTicker = nil
+	}()
 
 	for {
 		<-c.timeoutTicker.C
@@ -146,9 +153,9 @@ func (c *CacheTask) carfileCacheResult(info *api.CacheResultInfo) error {
 func (c *CacheTask) startCache() error {
 	c.executeCount++
 
-	err := cache.GetDB().SetCacheTaskStart(c.carfileHash, c.deviceID, nodeCacheTimeout)
+	err := cache.GetDB().CacheTaskStart(c.carfileHash, c.deviceID, nodeCacheTimeout)
 	if err != nil {
-		return xerrors.Errorf("startCache %s , SetCacheTaskStart err:%s", c.carfileHash, err.Error())
+		return xerrors.Errorf("startCache %s , CacheTaskStart err:%s", c.carfileHash, err.Error())
 	}
 
 	go c.startTimeoutTimer()
@@ -181,9 +188,9 @@ func (c *CacheTask) endCache(status api.CacheStatus) (err error) {
 		blocks = c.carfileRecord.totalBlocks
 	}
 
-	err = cache.GetDB().SetCacheTaskEnd(c.carfileHash, c.deviceID, size, blocks)
+	err = cache.GetDB().CacheTaskEnd(c.carfileHash, c.deviceID, size, blocks)
 	if err != nil {
-		return xerrors.Errorf("endCache %s , SetCacheTaskEnd err:%s", c.carfileHash, err.Error())
+		return xerrors.Errorf("endCache %s , CacheTaskEnd err:%s", c.carfileHash, err.Error())
 	}
 
 	return c.carfileRecord.cacheDone(c)

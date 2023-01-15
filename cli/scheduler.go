@@ -101,11 +101,11 @@ var (
 		Value: "CN-GD-Shenzhen",
 	}
 
-	cacheIDFlag = &cli.StringFlag{
-		Name:  "cache-id",
-		Usage: "cache id",
-		Value: "",
-	}
+	// cacheIDFlag = &cli.StringFlag{
+	// 	Name:  "cache-id",
+	// 	Usage: "cache id",
+	// 	Value: "",
+	// }
 
 	pageFlag = &cli.IntFlag{
 		Name:  "page",
@@ -192,7 +192,7 @@ var resetCacheExpiredTimeCmd = &cli.Command{
 	Usage: "reset cache expired time",
 	Flags: []cli.Flag{
 		cidFlag,
-		cacheIDFlag,
+		deviceIDFlag,
 		dateFlag,
 	},
 
@@ -201,7 +201,7 @@ var resetCacheExpiredTimeCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		cardileCid := cctx.String("cid")
-		cacheID := cctx.String("cache-id")
+		deviceID := cctx.String("device-id")
 		dateTime := cctx.String("date-time")
 
 		ctx := ReqContext(cctx)
@@ -217,7 +217,7 @@ var resetCacheExpiredTimeCmd = &cli.Command{
 			return xerrors.Errorf("date time err:%s", err.Error())
 		}
 
-		err = schedulerAPI.ResetCacheExpiredTime(ctx, cardileCid, cacheID, time)
+		err = schedulerAPI.ResetCacheExpiredTime(ctx, cardileCid, deviceID, time)
 		if err != nil {
 			return err
 		}
@@ -231,7 +231,7 @@ var replenishCacheExpiredTimeCmd = &cli.Command{
 	Usage: "replenish cache expired time",
 	Flags: []cli.Flag{
 		cidFlag,
-		cacheIDFlag,
+		deviceIDFlag,
 		expiredTimeFlag,
 	},
 
@@ -240,7 +240,7 @@ var replenishCacheExpiredTimeCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		cardileCid := cctx.String("cid")
-		cacheID := cctx.String("cache-id")
+		deviceID := cctx.String("device-id")
 		hour := cctx.Int("expired-time")
 
 		ctx := ReqContext(cctx)
@@ -255,7 +255,7 @@ var replenishCacheExpiredTimeCmd = &cli.Command{
 			return xerrors.Errorf("expired time err:%d", hour)
 		}
 
-		err = schedulerAPI.ReplenishCacheExpiredTime(ctx, cardileCid, cacheID, hour)
+		err = schedulerAPI.ReplenishCacheExpiredTime(ctx, cardileCid, deviceID, hour)
 		if err != nil {
 			return err
 		}
@@ -399,7 +399,7 @@ var removeCacheCmd = &cli.Command{
 	Name:  "remove-cache",
 	Usage: "remove a cache",
 	Flags: []cli.Flag{
-		cacheIDFlag,
+		deviceIDFlag,
 		cidFlag,
 	},
 
@@ -407,7 +407,7 @@ var removeCacheCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		cacheID := cctx.String("cache-id")
+		deviceID := cctx.String("device-id")
 		cid := cctx.String("cid")
 
 		ctx := ReqContext(cctx)
@@ -418,7 +418,7 @@ var removeCacheCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.RemoveCache(ctx, cid, cacheID)
+		return schedulerAPI.RemoveCache(ctx, cid, deviceID)
 	},
 }
 
@@ -758,7 +758,7 @@ var cacheContinueCmd = &cli.Command{
 	Flags: []cli.Flag{
 		// schedulerURLFlag,
 		cidFlag,
-		cacheIDFlag,
+		deviceIDFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -767,7 +767,7 @@ var cacheContinueCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		// url := cctx.String("scheduler-url")
 		cid := cctx.String("cid")
-		cacheID := cctx.String("cache-id")
+		deviceID := cctx.String("device-id")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -776,7 +776,7 @@ var cacheContinueCmd = &cli.Command{
 		}
 		defer closer()
 
-		err = schedulerAPI.CacheContinue(ctx, cid, cacheID)
+		err = schedulerAPI.CacheContinue(ctx, cid, deviceID)
 		if err != nil {
 			return err
 		}
