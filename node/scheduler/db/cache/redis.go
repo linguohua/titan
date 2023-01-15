@@ -72,7 +72,7 @@ func InitRedis(url string) (DB, error) {
 	return redisDB, err
 }
 
-func (rd redisDB) SetCacheTaskStart(hash, deviceID string, timeout int64) error {
+func (rd redisDB) CacheTaskStart(hash, deviceID string, timeout int64) error {
 	cacheingCarfileList := fmt.Sprintf(redisKeyCacheingCarfileList, serverName)
 	carfileNodeList := fmt.Sprintf(redisKeyCarfileCacheingNodeList, serverName, hash)
 	nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
@@ -91,7 +91,7 @@ func (rd redisDB) SetCacheTaskStart(hash, deviceID string, timeout int64) error 
 	return err
 }
 
-func (rd redisDB) SetCacheTaskEnd(hash, deviceID string, totalSize int64, totalBlocks int) error {
+func (rd redisDB) CacheTaskEnd(hash, deviceID string, totalSize int64, totalBlocks int) error {
 	cacheingCarfileList := fmt.Sprintf(redisKeyCacheingCarfileList, serverName)
 	carfileNodeList := fmt.Sprintf(redisKeyCarfileCacheingNodeList, serverName, hash)
 	// nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)

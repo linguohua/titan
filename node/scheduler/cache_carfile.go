@@ -13,12 +13,12 @@ import (
 )
 
 // CacheContinue Cache Continue
-func (s *Scheduler) CacheContinue(ctx context.Context, cid, cacheID string) error {
-	if cid == "" || cacheID == "" {
+func (s *Scheduler) CacheContinue(ctx context.Context, cid, deviceID string) error {
+	if cid == "" || deviceID == "" {
 		return xerrors.New("parameter is nil")
 	}
 
-	return s.dataManager.CacheContinue(cid, cacheID)
+	return s.dataManager.CacheContinue(cid, deviceID)
 }
 
 // CacheResult Cache Data Result
@@ -33,21 +33,21 @@ func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) e
 }
 
 // ResetCacheExpiredTime reset expired time with data cache
-func (s *Scheduler) ResetCacheExpiredTime(ctx context.Context, carfileCid, cacheID string, expiredTime time.Time) error {
+func (s *Scheduler) ResetCacheExpiredTime(ctx context.Context, carfileCid, deviceID string, expiredTime time.Time) error {
 	if time.Now().After(expiredTime) {
 		return xerrors.Errorf("now is after the expiredTime:%s", expiredTime.String())
 	}
 
-	return s.dataManager.ResetExpiredTime(carfileCid, cacheID, expiredTime)
+	return s.dataManager.ResetCacheExpiredTime(carfileCid, deviceID, expiredTime)
 }
 
 // ReplenishCacheExpiredTime replenish expired time with data cache
-func (s *Scheduler) ReplenishCacheExpiredTime(ctx context.Context, carfileCid, cacheID string, hour int) error {
+func (s *Scheduler) ReplenishCacheExpiredTime(ctx context.Context, carfileCid, deviceID string, hour int) error {
 	if hour <= 0 {
 		return xerrors.Errorf("hour is :%d", hour)
 	}
 
-	return s.dataManager.ReplenishExpiredTimeToData(carfileCid, cacheID, hour)
+	return s.dataManager.ReplenishCacheExpiredTime(carfileCid, deviceID, hour)
 }
 
 // StopCacheTask stop cache
@@ -174,16 +174,16 @@ func (s *Scheduler) RemoveCarfile(ctx context.Context, carfileID string) error {
 }
 
 // RemoveCache remove a caches with carfile
-func (s *Scheduler) RemoveCache(ctx context.Context, carfileID, cacheID string) error {
+func (s *Scheduler) RemoveCache(ctx context.Context, carfileID, deviceID string) error {
 	if carfileID == "" {
 		return xerrors.Errorf("Cid Is Nil")
 	}
 
-	if cacheID == "" {
-		return xerrors.Errorf("CacheID Is Nil")
+	if deviceID == "" {
+		return xerrors.Errorf("DeviceID Is Nil")
 	}
 
-	return s.dataManager.RemoveCache(carfileID, cacheID)
+	return s.dataManager.RemoveCache(carfileID, deviceID)
 }
 
 // CacheCarfile Cache Carfile

@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	//NodeTypeKey node info key
+	// NodeTypeKey node info key
 	NodeTypeKey = "node_type"
-	//SecretKey node info key
+	// SecretKey node info key
 	SecretKey = "secret"
 )
 
@@ -41,16 +41,16 @@ type DB interface {
 	GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error)
 	GetCarfileCidWithPage(page int) (count int, totalPage int, list []*api.CarfileRecordInfo, err error)
 	GetCachesWithHash(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error)
-	ExtendExpiredTimeWhitCaches(carfileHash, deviceID string, hour int) error
-	ChangeExpiredTimeWhitCaches(carfileHash, deviceID string, expiredTime time.Time) error
-	GetExpiredCaches() ([]*api.CacheTaskInfo, error)
+	ExtendExpiredTimeWhitCarfile(carfileHash string, hour int) error
+	ChangeExpiredTimeWhitCarfile(carfileHash string, expiredTime time.Time) error
+	GetExpiredCarfiles() ([]*api.CarfileRecordInfo, error)
 	GetMinExpiredTimeWithCaches() (time.Time, error)
 	UpdateCacheStatusWithNodes(hash string, deviceIDs []string) error
 
 	// cache info
-	GetSuccessCaches() ([]*api.CacheTaskInfo, error)
+	GetSuccessCachesCount() (int, error)
 	GetCacheInfo(carfileHash, deviceID string) (*api.CacheTaskInfo, error)
-	RemoveCacheAndUpdateData(deviceID, carfileHash string) error
+	RemoveCacheTask(deviceID, carfileHash string) error
 	RemoveCarfileRecord(carfileHash string) error
 	UpdateCacheInfoOfQuitNode(deviceIDs []string) ([]*api.CarfileRecordInfo, error)
 
@@ -141,20 +141,20 @@ type ValidateResult struct {
 	EndTime     time.Time `db:"end_time"`
 }
 
-// MessageInfo Message Info
-type MessageInfo struct {
-	ID         string
-	CID        string    `db:"cid"`
-	Target     string    `db:"target"`
-	CacheID    string    `db:"cache_id"`
-	CarfileCid string    `db:"carfile_cid"`
-	Status     MsgStatus `db:"status"`
-	Size       int       `db:"size"`
-	Type       MsgType   `db:"msg_type"`
-	Source     string    `db:"source"`
-	CreateTime time.Time `db:"created_time"`
-	EndTime    time.Time `db:"end_time"`
-}
+// // MessageInfo Message Info
+// type MessageInfo struct {
+// 	ID         string
+// 	CID        string    `db:"cid"`
+// 	Target     string    `db:"target"`
+// 	CacheID    string    `db:"cache_id"`
+// 	CarfileCid string    `db:"carfile_cid"`
+// 	Status     MsgStatus `db:"status"`
+// 	Size       int       `db:"size"`
+// 	Type       MsgType   `db:"msg_type"`
+// 	Source     string    `db:"source"`
+// 	CreateTime time.Time `db:"created_time"`
+// 	EndTime    time.Time `db:"end_time"`
+// }
 
 // // BlockDelete block to be delete
 // type BlockDelete struct {

@@ -78,9 +78,9 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 			doneBlocks:    cache.DoneBlocks,
 			status:        api.CacheStatus(cache.Status),
 			isRootCache:   cache.RootCache,
-			expiredTime:   cache.ExpiredTime,
-			carfileHash:   cache.CarfileHash,
-			executeCount:  cache.ExecuteCount,
+			// expiredTime:   cache.ExpiredTime,
+			carfileHash:  cache.CarfileHash,
+			executeCount: cache.ExecuteCount,
 		}
 
 		if c.isRootCache && c.status == api.CacheStatusSuccess {
@@ -163,7 +163,7 @@ func (d *CarfileRecord) restartUndoneCache() (isRuning bool) {
 	cacheList := d.getUndoneCaches()
 	if len(cacheList) > 0 {
 		runningList := make([]string, 0)
-		//need new cache
+		// need new cache
 		for _, cache := range cacheList {
 			err := cache.startCache()
 			if err != nil {
@@ -174,7 +174,7 @@ func (d *CarfileRecord) restartUndoneCache() (isRuning bool) {
 			runningList = append(runningList, cache.deviceID)
 			isRuning = true
 		}
-		//update db
+		// update db
 		err := persistent.GetDB().UpdateCacheStatusWithNodes(d.carfileHash, runningList)
 		if err != nil {
 			log.Errorf("UpdateCacheStatusWithNodes err:%s", err.Error())
@@ -301,7 +301,7 @@ func (d *CarfileRecord) cacheDone(doneCache *CacheTask) error {
 	}
 
 	if !isRunning {
-		d.carfileManager.removeCarfileRecord(d.carfileHash)
+		d.carfileManager.removeCarfileRecord(d)
 	}
 
 	return nil

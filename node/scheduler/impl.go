@@ -410,7 +410,7 @@ func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTyp
 
 // GetCandidateDownloadInfoWithBlocks find node
 func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]api.CandidateDownloadInfo, error) {
-	//TODO too much cid
+	// TODO too much cid
 	deviceID := handler.GetDeviceID(ctx)
 
 	if !deviceExists(deviceID, 0) {
@@ -621,10 +621,10 @@ func (s *Scheduler) nodeOfflineCallback(deviceID string) {
 
 func (s *Scheduler) nodeExitedCallback(deviceIDs []string) {
 	// clean node cache
-	s.dataManager.CleanNodeAndRestoreCaches(deviceIDs)
+	s.dataManager.NodesQuit(deviceIDs)
 }
 
-//RedressDeveiceInfo redress device info
+// RedressDeveiceInfo redress device info
 func (s *Scheduler) RedressDeveiceInfo(ctx context.Context, deviceID string) error {
 	if !deviceExists(deviceID, 0) {
 		return xerrors.Errorf("node not Exist: %s", deviceID)

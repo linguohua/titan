@@ -202,8 +202,8 @@ func (sd sqlDB) CreateCacheInfo(cInfo *api.CacheTaskInfo) error {
 	tx := sd.cli.MustBegin()
 
 	// cache info
-	cCmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, device_id, status, expired_time, root_cache) VALUES (?, ?, ?, ?, ?)", cTableName)
-	tx.MustExec(cCmd, cInfo.CarfileHash, cInfo.DeviceID, cInfo.Status, cInfo.ExpiredTime, cInfo.RootCache)
+	cCmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, device_id, status, root_cache) VALUES (?, ?, ?, ?)", cTableName)
+	tx.MustExec(cCmd, cInfo.CarfileHash, cInfo.DeviceID, cInfo.Status, cInfo.RootCache)
 
 	err := tx.Commit()
 	if err != nil {
@@ -388,16 +388,19 @@ func (sd sqlDB) GetCachesWithHash(hash string, isSuccess bool) ([]*api.CacheTask
 	return out, nil
 }
 
-func (sd sqlDB) ExtendExpiredTimeWhitCaches(carfileHash, cacheID string, hour int) error {
+func (sd sqlDB) ExtendExpiredTimeWhitCarfile(carfileHash string, hour int) error {
 	tx := sd.cli.MustBegin()
 
-	if cacheID == "" {
-		cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
-		tx.MustExec(cmd, hour, carfileHash)
-	} else {
-		cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=? AND device_id=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
-		tx.MustExec(cmd, hour, carfileHash, cacheID)
-	}
+	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=?`, fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
+	tx.MustExec(cmd, hour, carfileHash)
+
+	// if deviceID == "" {
+	// 	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+	// 	tx.MustExec(cmd, hour, carfileHash)
+	// } else {
+	// 	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=? AND device_id=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+	// 	tx.MustExec(cmd, hour, carfileHash, deviceID)
+	// }
 
 	err := tx.Commit()
 	if err != nil {
@@ -408,16 +411,19 @@ func (sd sqlDB) ExtendExpiredTimeWhitCaches(carfileHash, cacheID string, hour in
 	return nil
 }
 
-func (sd sqlDB) ChangeExpiredTimeWhitCaches(carfileHash, cacheID string, expiredTime time.Time) error {
+func (sd sqlDB) ChangeExpiredTimeWhitCarfile(carfileHash string, expiredTime time.Time) error {
 	tx := sd.cli.MustBegin()
 
-	if cacheID == "" {
-		cmd := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
-		tx.MustExec(cmd, expiredTime, carfileHash)
-	} else {
-		cmd := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=? AND device_id=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
-		tx.MustExec(cmd, expiredTime, carfileHash, cacheID)
-	}
+	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=?`, fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
+	tx.MustExec(cmd, expiredTime, carfileHash)
+
+	// if deviceID == "" {
+	// 	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+	// 	tx.MustExec(cmd, expiredTime, carfileHash)
+	// } else {
+	// 	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=? AND device_id=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+	// 	tx.MustExec(cmd, expiredTime, carfileHash, deviceID)
+	// }
 
 	// cmdData := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=?`, fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
 	// tx.MustExec(cmdData, time, carfileHash)
@@ -433,7 +439,7 @@ func (sd sqlDB) ChangeExpiredTimeWhitCaches(carfileHash, cacheID string, expired
 
 func (sd sqlDB) GetMinExpiredTimeWithCaches() (time.Time, error) {
 	query := fmt.Sprintf(`SELECT MIN(expired_time) FROM %s`,
-		fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+		fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
 
 	var out time.Time
 	if err := sd.cli.Get(&out, query); err != nil {
@@ -443,11 +449,11 @@ func (sd sqlDB) GetMinExpiredTimeWithCaches() (time.Time, error) {
 	return out, nil
 }
 
-func (sd sqlDB) GetExpiredCaches() ([]*api.CacheTaskInfo, error) {
+func (sd sqlDB) GetExpiredCarfiles() ([]*api.CarfileRecordInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE expired_time <= NOW()`,
-		fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+		fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
 
-	var out []*api.CacheTaskInfo
+	var out []*api.CarfileRecordInfo
 	if err := sd.cli.Select(&out, query); err != nil {
 		return nil, err
 	}
@@ -455,16 +461,21 @@ func (sd sqlDB) GetExpiredCaches() ([]*api.CacheTaskInfo, error) {
 	return out, nil
 }
 
-func (sd sqlDB) GetSuccessCaches() ([]*api.CacheTaskInfo, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE status=?`,
+func (sd sqlDB) GetSuccessCachesCount() (int, error) {
+	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE status=?`,
 		fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
 
-	var out []*api.CacheTaskInfo
-	if err := sd.cli.Select(&out, query, api.CacheStatusSuccess); err != nil {
-		return nil, err
+	// var out []*api.CacheTaskInfo
+	// if err := sd.cli.Select(&out, query, api.CacheStatusSuccess); err != nil {
+	// 	return nil, err
+	// }
+
+	var count int
+	if err := sd.cli.Get(&count, query, api.CacheStatusSuccess); err != nil {
+		return 0, err
 	}
 
-	return out, nil
+	return count, nil
 }
 
 func (sd sqlDB) GetCacheInfo(carfileHash, deviceID string) (*api.CacheTaskInfo, error) {
@@ -503,7 +514,7 @@ func (sd sqlDB) RemoveCarfileRecord(carfileHash string) error {
 }
 
 // remove cache info and update data info
-func (sd sqlDB) RemoveCacheAndUpdateData(cacheID, carfileHash string) error {
+func (sd sqlDB) RemoveCacheTask(deviceID, carfileHash string) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 	dTableName := fmt.Sprintf(dataInfoTable, area)
@@ -512,7 +523,7 @@ func (sd sqlDB) RemoveCacheAndUpdateData(cacheID, carfileHash string) error {
 
 	// cache info
 	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE device_id=? `, cTableName)
-	tx.MustExec(cCmd, cacheID)
+	tx.MustExec(cCmd, deviceID)
 
 	var reliability int
 	cmd := fmt.Sprintf("SELECT sum(reliability) FROM %s WHERE carfile_hash=? ", cTableName)
