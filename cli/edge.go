@@ -13,12 +13,13 @@ var EdgeCmds = []*cli.Command{
 	DeviceInfoCmd,
 	CacheBlockCmd,
 	DeleteBlockCmd,
-	ValidateBlockCmd,
+	ValidateNodeCmd,
 	LimitRateCmd,
 	CacheStatCmd,
 	// StoreKeyCmd,
 	DeleteAllBlocksCmd,
 	testSyncCmd,
+	getBlocksOfCarfile,
 }
 
 var DeviceInfoCmd = &cli.Command{
@@ -135,7 +136,7 @@ var DeleteBlockCmd = &cli.Command{
 	},
 }
 
-var ValidateBlockCmd = &cli.Command{
+var ValidateNodeCmd = &cli.Command{
 	Name:  "validate",
 	Usage: "validate data",
 	Flags: []cli.Flag{
@@ -371,5 +372,42 @@ var scrubBlocks = &cli.Command{
 		req := api.ScrubBlocks{Blocks: blocks, StartFid: startFid, EndFid: endFid}
 		err = edgeAPI.ScrubBlocks(ctx, req)
 		return err
+	},
+}
+
+var getBlocksOfCarfile = &cli.Command{
+	Name:  "get-blocks",
+	Usage: "get blocks of carfile",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "cid",
+			Usage: "carfile cid",
+			Value: "",
+		},
+		&cli.IntSliceFlag{
+			Name:  "indexs",
+			Usage: "index of block in carfile",
+			Value: cli.NewIntSlice(0),
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		candidateAPI, closer, err := GetCandidateAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		ctx := ReqContext(cctx)
+		cid := cctx.String("cid")
+		indexs := cctx.IntSlice("indexs")
+
+		blockCIDs, err := candidateAPI.GetBlocksOfCarfile(ctx, cid, indexs)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("blocks:%v", blockCIDs)
+
+		return nil
 	},
 }

@@ -97,10 +97,14 @@ func (candidate *Candidate) WaitQuiet(ctx context.Context) error {
 }
 
 func (candidate *Candidate) GetBlocksOfCarfile(ctx context.Context, carfileCID string, indexs []int) (map[int]string, error) {
-	return nil, nil
+	return candidate.CarfileOperation.GetBlocksOfCarfile(carfileCID, indexs)
 }
 
 func (candidate *Candidate) ValidateNodes(ctx context.Context, req []api.ReqValidate) error {
+	for _, reqValidate := range req {
+		param := reqValidate
+		go validate(&param, candidate)
+	}
 	return nil
 }
 
@@ -149,9 +153,8 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 				cid, err := cidFromData(tcpMsg.msg)
 				if err != nil {
 					log.Errorf("waitBlock, cidFromData error:%v", err)
-				} else {
-					result.Cids[result.RandomCount] = cid
 				}
+				result.Cids = append(result.Cids, cid)
 			}
 			size += int64(tcpMsg.length)
 			result.RandomCount++
@@ -184,7 +187,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 }
 
 func validate(req *api.ReqValidate, candidate *Candidate) {
-	result := &api.ValidateResults{RoundID: req.RoundID, RandomCount: 0, Cids: make(map[int]string)}
+	result := &api.ValidateResults{RoundID: req.RoundID, RandomCount: 0, Cids: make([]string, 0)}
 
 	api, closer, err := getNodeApi(req.NodeType, req.NodeURL)
 	if err != nil {

@@ -21,8 +21,6 @@ type ReqValidate struct {
 	NodeURL    string
 	CarfileCID string
 	RandomSeed int64
-	// validate number of blocks
-	BlockCount int
 	// seconds
 	Duration int
 	RoundID  int64
@@ -42,7 +40,7 @@ type ValidateResults struct {
 
 	// key is random index
 	// values is cid
-	Cids map[int]string
+	Cids []string
 	// The number of random for validate
 	// if random fid all exist, RandomCount == len(Cids)
 	RandomCount int
