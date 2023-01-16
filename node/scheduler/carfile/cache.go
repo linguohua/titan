@@ -177,7 +177,6 @@ func (c *CacheTask) endCache(cacheResult *api.CacheResultInfo) (err error) {
 
 		node.TotalDownload += float64(c.doneSize)
 		node.DownloadCount += c.doneBlocks
-		//This value is not accurate
 		node.BlockCount += c.doneBlocks
 
 		nodeInfo = &cache.NodeCacheInfo{}

@@ -35,8 +35,6 @@ func newCarfileRecord(manager *Manager, cid, hash string) *CarfileRecord {
 		nodeManager:           manager.nodeManager,
 		carfileManager:        manager,
 		carfileCid:            cid,
-		reliability:           0,
-		totalBlocks:           1,
 		carfileHash:           hash,
 		rootCacheDowloadInfos: make([]*api.DowloadSource, 0),
 	}
@@ -78,9 +76,8 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 			doneBlocks:    cache.DoneBlocks,
 			status:        api.CacheStatus(cache.Status),
 			isRootCache:   cache.RootCache,
-			// expiredTime:   cache.ExpiredTime,
-			carfileHash:  cache.CarfileHash,
-			executeCount: cache.ExecuteCount,
+			carfileHash:   cache.CarfileHash,
+			executeCount:  cache.ExecuteCount,
 		}
 
 		if c.isRootCache && c.status == api.CacheStatusSuccess {
@@ -148,13 +145,6 @@ func (d *CarfileRecord) saveCarfileCacheInfo(doneCache *CacheTask) error {
 	}
 
 	return persistent.GetDB().SaveCacheResults(dInfo, cInfo)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// dataTask := &cache.DataTask{CarfileHash: d.carfileHash, DeviceID: doneCache.deviceID}
-	// //TODO  doneSize doneBlocks Inaccurate
-	// return cache.GetDB().CacheEndRecord(dataTask, "", doneCache.doneSize, doneCache.doneBlocks, isSuccess)
 }
 
 func (d *CarfileRecord) restartUndoneCache() (isRuning bool) {
