@@ -16,14 +16,14 @@ const (
 	// NextElectionTimeField BaseInfo Field
 	NextElectionTimeField = "NextElectionTime"
 
-	// BlockCountField DeviceInfo Field
-	BlockCountField = "BlockCount"
-	// TotalDownloadField DeviceInfo Field
-	TotalDownloadField = "TotalDownload"
-	// TotalUploadField DeviceInfo Field
-	TotalUploadField = "TotalUpload"
-	// DiskUsageField DeviceInfo Field
-	DiskUsageField = "DiskUsage"
+	// blockCountField DeviceInfo Field
+	blockCountField = "BlockCount"
+	// totalDownloadField DeviceInfo Field
+	totalDownloadField = "TotalDownload"
+	// totalUploadField DeviceInfo Field
+	totalUploadField = "TotalUpload"
+	// diskUsageField DeviceInfo Field
+	diskUsageField = "DiskUsage"
 )
 
 // DB cache db
@@ -77,8 +77,7 @@ type DB interface {
 	GetBaseInfo() (*api.BaseInfo, error)
 	UpdateBaseInfo(field string, value interface{}) error
 	IncrByBaseInfo(field string, value int64) error
-	RemoveCacheTask(deviceID string, size int64, blocks int) error
-	RemoveCarfileRecord(list []*api.CacheTaskInfo) error
+	UpdateNodeCacheInfo(deviceID string, nodeInfo *NodeCacheInfo) error
 
 	IsNilErr(err error) bool
 }
@@ -129,7 +128,6 @@ type NodeCacheInfo struct {
 	DiskUsage     float64
 	TotalDownload float64
 	TotalUpload   float64
-	DownloadCount int
 	BlockCount    int
 	IsSuccess     bool
 }

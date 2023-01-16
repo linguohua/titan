@@ -222,17 +222,17 @@ func (m *Manager) RemoveCarfileRecord(carfileCid string) error {
 		return xerrors.Errorf("RemoveCarfileRecord err:%s ", err.Error())
 	}
 
-	successList := make([]*api.CacheTaskInfo, 0)
+	count := int64(0)
 	for _, cInfo := range cInfos {
 		go m.notifyNodeRemoveCarfile(cInfo.DeviceID, carfileCid)
 
 		if cInfo.Status == api.CacheStatusSuccess {
-			successList = append(successList, cInfo)
+			count++
 		}
 	}
 
 	// update record to redis
-	return cache.GetDB().RemoveCarfileRecord(successList)
+	return cache.GetDB().IncrByBaseInfo(cache.CarFileCountField, -count)
 }
 
 // RemoveCache remove a cache
@@ -369,7 +369,7 @@ func (m *Manager) ResetCacheExpiredTime(cid, deviceID string, expiredTime time.T
 	return nil
 }
 
-// NodesQuit clean a node caches info and restore caches
+// NodesQuit clean node caches info and restore caches
 func (m *Manager) NodesQuit(deviceIDs []string) {
 	// TODO need refactor
 	carfileMap, err := persistent.GetDB().UpdateCacheInfoOfQuitNode(deviceIDs)
@@ -455,9 +455,10 @@ func (m *Manager) removeCacheTask(cacheInfo *api.CacheTaskInfo, carfileCid strin
 	}
 
 	if cacheInfo.Status == api.CacheStatusSuccess {
-		err := cache.GetDB().RemoveCacheTask(cacheInfo.DeviceID, cacheInfo.DoneSize, cacheInfo.DoneBlocks)
+		// err := cache.GetDB().RemoveCacheTask(cacheInfo.DeviceID, cacheInfo.DoneBlocks)
+		err := cache.GetDB().IncrByBaseInfo(cache.CarFileCountField, -1)
 		if err != nil {
-			log.Errorf("removeCache RemoveCacheTask err:%s", err.Error())
+			log.Errorf("removeCache IncrByBaseInfo err:%s", err.Error())
 		}
 	}
 

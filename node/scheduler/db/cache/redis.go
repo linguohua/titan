@@ -114,16 +114,9 @@ func (rd redisDB) CacheTaskEnd(hash, deviceID string, nodeInfo *NodeCacheInfo) e
 		// Expire
 		// pipeliner.Del(context.Background(), nodeKey)
 
-		// if totalBlocks > 0 {
-		// 	pipeliner.HIncrBy(context.Background(), nodeInfoKey, BlockCountField, int64(totalBlocks))
-		// 	pipeliner.HIncrBy(context.Background(), nodeInfoKey, TotalDownloadField, int64(totalSize))
-		// 	baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
-		// 	pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, 1)
-		// }
-
 		if nodeInfo != nil {
 			nKey := fmt.Sprintf(redisKeyNodeInfo, deviceID)
-			pipeliner.HMSet(context.Background(), nKey, DiskUsageField, nodeInfo.DiskUsage, BlockCountField, nodeInfo.BlockCount, TotalDownloadField, nodeInfo.TotalDownload, DownloadCountField, nodeInfo.DownloadCount)
+			pipeliner.HMSet(context.Background(), nKey, diskUsageField, nodeInfo.DiskUsage, blockCountField, nodeInfo.BlockCount, totalDownloadField, nodeInfo.TotalDownload)
 			if nodeInfo.IsSuccess {
 				baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
 				pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, 1)
@@ -507,7 +500,7 @@ func (rd redisDB) NodeDownloadCount(deviceID string, blockDownnloadInfo *api.Blo
 	ctx := context.Background()
 	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
 		pipeliner.HIncrBy(context.Background(), nodeKey, DownloadCountField, 1)
-		pipeliner.HIncrBy(context.Background(), nodeKey, TotalUploadField, int64(blockDownnloadInfo.BlockSize))
+		pipeliner.HIncrBy(context.Background(), nodeKey, totalUploadField, int64(blockDownnloadInfo.BlockSize))
 
 		// count carfile download
 		if blockDownnloadInfo.BlockCID == blockDownnloadInfo.CarfileCID {
@@ -576,41 +569,57 @@ func (rd redisDB) GetBaseInfo() (*api.BaseInfo, error) {
 	return &info, nil
 }
 
-func (rd redisDB) RemoveCacheTask(deviceID string, size int64, blocks int) error {
-	ctx := context.Background()
-	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-		nodeKey := fmt.Sprintf(redisKeyNodeInfo, deviceID)
-		pipeliner.HIncrBy(context.Background(), nodeKey, BlockCountField, -int64(blocks))
-		pipeliner.HIncrBy(context.Background(), nodeKey, TotalDownloadField, -size)
-
-		baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
-		pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, -1)
-
-		return nil
-	})
-
-	return err
-}
-
-func (rd redisDB) RemoveCarfileRecord(list []*api.CacheTaskInfo) error {
-	listSize := len(list)
-	if listSize <= 0 {
+func (rd redisDB) UpdateNodeCacheInfo(deviceID string, nodeInfo *NodeCacheInfo) error {
+	if nodeInfo == nil {
 		return nil
 	}
 
 	ctx := context.Background()
 	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-		baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
-		pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, -int64(listSize))
 
-		for _, info := range list {
-			nodeKey := fmt.Sprintf(redisKeyNodeInfo, info.DeviceID)
-			pipeliner.HIncrBy(context.Background(), nodeKey, BlockCountField, -int64(info.DoneBlocks))
-			pipeliner.HIncrBy(context.Background(), nodeKey, TotalDownloadField, -info.DoneSize)
-		}
+		nKey := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+		pipeliner.HSet(context.Background(), nKey, diskUsageField, nodeInfo.DiskUsage)
+		pipeliner.HSet(context.Background(), nKey, blockCountField, nodeInfo.BlockCount)
 
 		return nil
 	})
 
 	return err
 }
+
+// func (rd redisDB) RemoveCacheTask(deviceID string, blocks int) error {
+// 	ctx := context.Background()
+// 	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+// 		nodeKey := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+// 		pipeliner.HIncrBy(context.Background(), nodeKey, BlockCountField, -int64(blocks))
+
+// 		baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
+// 		pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, -1)
+
+// 		return nil
+// 	})
+
+// 	return err
+// }
+
+// func (rd redisDB) RemoveCarfileRecord(list []*api.CacheTaskInfo) error {
+// 	listSize := len(list)
+// 	if listSize <= 0 {
+// 		return nil
+// 	}
+
+// 	ctx := context.Background()
+// 	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+// 		baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
+// 		pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, -int64(listSize))
+
+// 		for _, info := range list {
+// 			nodeKey := fmt.Sprintf(redisKeyNodeInfo, info.DeviceID)
+// 			pipeliner.HIncrBy(context.Background(), nodeKey, BlockCountField, -int64(info.DoneBlocks))
+// 		}
+
+// 		return nil
+// 	})
+
+// 	return err
+// }
