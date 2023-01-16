@@ -37,6 +37,7 @@ type DB interface {
 	UpdateSuccessValidateResultInfo(info *ValidateResult) error
 	SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error)
 	GetRandCarfileWithNode(deviceID string) (string, error)
+	InsertValidateResultInfos(infos []*ValidateResult) error
 
 	// cache data info
 	CreateCacheInfo(cInfo *api.CacheTaskInfo) error
