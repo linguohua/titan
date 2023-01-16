@@ -53,10 +53,16 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 
 	validate.cancelValidateChannel = make(chan bool)
 
-	r := rand.New(rand.NewSource(reqValidate.Seed))
+	r := rand.New(rand.NewSource(reqValidate.RandomSeed))
 	t := time.NewTimer(time.Duration(reqValidate.Duration) * time.Second)
 
 	limiter := rate.NewLimiter(rate.Limit(speedRate), int(speedRate))
+
+	blocksCount, err := validate.carfileStore.BlocksCountOfCarfile(reqValidate.CarfileCID)
+	if err != nil {
+		log.Errorf("sendBlocks, BlocksCountOfCarfile error:%s", err.Error())
+		return
+	}
 
 	sendDeviceID(conn, validate.device.GetDeviceID(), limiter)
 	for {
@@ -72,7 +78,7 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 		default:
 		}
 
-		fid := r.Intn(reqValidate.MaxFid) + 1
+		fid := r.Intn(blocksCount) + 1
 		blockHashs, err := validate.carfileStore.GetBlocksHashWithCarfilePositions("", []int{fid})
 		if err != nil && err != datastore.ErrNotFound {
 			log.Errorf("sendBlocks, get blockHashs error:%v", err)

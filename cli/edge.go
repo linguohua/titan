@@ -176,10 +176,10 @@ var ValidateBlockCmd = &cli.Command{
 		// TODO: print more useful things
 		req := make([]API.ReqValidate, 0)
 		seed := time.Now().UnixNano()
-		varify := API.ReqValidate{NodeURL: url, Seed: seed, Duration: 10, RoundID: roundID, NodeType: nodeType, MaxFid: maxFid}
+		varify := API.ReqValidate{NodeURL: url, RandomSeed: seed, Duration: 10, RoundID: roundID, NodeType: nodeType}
 		req = append(req, varify)
 
-		err = api.ValidateBlocks(ctx, req)
+		err = api.ValidateNodes(ctx, req)
 		if err != nil {
 			fmt.Println("err", err)
 			return err

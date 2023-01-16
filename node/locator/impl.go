@@ -83,7 +83,7 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string) ([
 	}
 
 	if device == nil {
-		log.Info("GetAccessPoints, device (%s) == nil", deviceID)
+		log.Infof("GetAccessPoints, device (%s) == nil", deviceID)
 		return locator.getAccessPointWithWeightCount(areaID)
 	}
 
