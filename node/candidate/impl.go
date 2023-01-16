@@ -80,7 +80,6 @@ type blockWaiter struct {
 
 type Candidate struct {
 	*common.CommonAPI
-	// *block.Block
 	*carfile.CarfileOperation
 	*download.BlockDownload
 	*device.Device
@@ -97,14 +96,11 @@ func (candidate *Candidate) WaitQuiet(ctx context.Context) error {
 	return nil
 }
 
-func (candidate *Candidate) ValidateBlocks(ctx context.Context, req []api.ReqValidate) error {
-	log.Debug("ValidateBlocks")
+func (candidate *Candidate) GetBlocksOfCarfileWithRandomSeed(ctx context.Context, carfileCID string, randomSeed int64) ([]string, error) {
+	return nil, nil
+}
 
-	for _, reqValidate := range req {
-		param := reqValidate
-		go validate(&param, candidate)
-	}
-
+func (candidate *Candidate) ValidateNodes(ctx context.Context, req []api.ReqValidate) error {
 	return nil
 }
 

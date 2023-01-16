@@ -10,22 +10,24 @@ type Candidate interface {
 	Validate
 	DataSync
 	CarfileOperation
-	WaitQuiet(ctx context.Context) error                         //perm:read
-	ValidateBlocks(ctx context.Context, req []ReqValidate) error //perm:read
+	WaitQuiet(ctx context.Context) error //perm:read
 	// load block
-	LoadBlock(ctx context.Context, cid string) ([]byte, error) //perm:read
+	LoadBlock(ctx context.Context, cid string) ([]byte, error)                                                   //perm:read
+	GetBlocksOfCarfileWithRandomSeed(ctx context.Context, carfileCID string, randomSeed int64) ([]string, error) //perm:read
+	ValidateNodes(ctx context.Context, req []ReqValidate) error                                                  //perm:read
 }
 
 type ReqValidate struct {
-	NodeURL string
-	Seed    int64
+	NodeURL    string
+	CarfileCID string
+	RandomSeed int64
+	// validate number of blocks
+	BlockCount int
 	// seconds
 	Duration int
 	RoundID  int64
 	// node type, for example, edge or candidate
 	NodeType int
-	// current max fid
-	MaxFid int
 }
 
 type ValidateResults struct {
