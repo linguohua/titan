@@ -490,14 +490,12 @@ func (m *Manager) notifyNodeRemoveAllCarfile(deviceID string) error {
 func (m *Manager) notifyNodeRemoveCarfile(deviceID, cid string) error {
 	edge := m.nodeManager.GetEdgeNode(deviceID)
 	if edge != nil {
-		_, err := edge.GetAPI().DeleteCarfile(context.Background(), cid)
-		return err
+		return edge.GetAPI().DeleteCarfile(context.Background(), cid)
 	}
 
 	candidate := m.nodeManager.GetCandidateNode(deviceID)
 	if candidate != nil {
-		_, err := candidate.GetAPI().DeleteCarfile(context.Background(), cid)
-		return err
+		return candidate.GetAPI().DeleteCarfile(context.Background(), cid)
 	}
 
 	return nil
