@@ -12,9 +12,9 @@ type Candidate interface {
 	CarfileOperation
 	WaitQuiet(ctx context.Context) error //perm:read
 	// load block
-	LoadBlock(ctx context.Context, cid string) ([]byte, error)                                       //perm:read
-	GetBlocksOfCarfile(ctx context.Context, carfileCID string, indexs []int) (map[int]string, error) //perm:read
-	ValidateNodes(ctx context.Context, req []ReqValidate) error                                      //perm:read
+	LoadBlock(ctx context.Context, cid string) ([]byte, error)                                                             //perm:read
+	GetBlocksOfCarfile(ctx context.Context, carfileCID string, randomSeed int64, randmonCount int) (map[int]string, error) //perm:read
+	ValidateNodes(ctx context.Context, req []ReqValidate) error                                                            //perm:read
 }
 
 type ReqValidate struct {

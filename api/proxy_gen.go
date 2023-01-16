@@ -57,7 +57,7 @@ type CandidateStruct struct {
 	CarfileOperationStruct
 
 	Internal struct {
-		GetBlocksOfCarfile func(p0 context.Context, p1 string, p2 []int) (map[int]string, error) `perm:"read"`
+		GetBlocksOfCarfile func(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) `perm:"read"`
 
 		LoadBlock func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
 
@@ -477,14 +477,14 @@ func (s *BlockStub) RemoveWaitCacheBlockWith(p0 context.Context, p1 string) erro
 	return ErrNotSupported
 }
 
-func (s *CandidateStruct) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 []int) (map[int]string, error) {
+func (s *CandidateStruct) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
 	if s.Internal.GetBlocksOfCarfile == nil {
 		return *new(map[int]string), ErrNotSupported
 	}
-	return s.Internal.GetBlocksOfCarfile(p0, p1, p2)
+	return s.Internal.GetBlocksOfCarfile(p0, p1, p2, p3)
 }
 
-func (s *CandidateStub) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 []int) (map[int]string, error) {
+func (s *CandidateStub) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
 	return *new(map[int]string), ErrNotSupported
 }
 

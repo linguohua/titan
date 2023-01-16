@@ -3,6 +3,7 @@ package candidate
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net"
 	"strings"
 	"sync"
@@ -96,7 +97,25 @@ func (candidate *Candidate) WaitQuiet(ctx context.Context) error {
 	return nil
 }
 
-func (candidate *Candidate) GetBlocksOfCarfile(ctx context.Context, carfileCID string, indexs []int) (map[int]string, error) {
+func (candidate *Candidate) GetBlocksOfCarfile(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error) {
+	blockCount, err := candidate.CarfileOperation.BlockCountOfCarfile(carfileCID)
+	if err != nil {
+		return nil, err
+	}
+
+	indexs := make([]int, 0)
+	indexMap := make(map[int]struct{})
+	r := rand.New(rand.NewSource(randomSeed))
+
+	for i := 0; i < randomCount; i++ {
+		index := r.Intn(blockCount)
+
+		if _, ok := indexMap[index]; !ok {
+			indexs = append(indexs, index)
+			indexMap[index] = struct{}{}
+		}
+	}
+
 	return candidate.CarfileOperation.GetBlocksOfCarfile(carfileCID, indexs)
 }
 
