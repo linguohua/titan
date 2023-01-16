@@ -58,13 +58,15 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 
 	limiter := rate.NewLimiter(rate.Limit(speedRate), int(speedRate))
 
-	blocksCount, err := validate.carfileStore.BlocksCountOfCarfile(reqValidate.CarfileCID)
+	blockCount, err := validate.carfileStore.BlockCountOfCarfile(reqValidate.CarfileCID)
 	if err != nil {
 		log.Errorf("sendBlocks, BlocksCountOfCarfile error:%s", err.Error())
 		return
 	}
 
-	sendDeviceID(conn, validate.device.GetDeviceID(), limiter)
+	deviceID, _ := validate.device.DeviceID(context.Background())
+
+	sendDeviceID(conn, deviceID, limiter)
 	for {
 		select {
 		case <-t.C:
@@ -78,7 +80,7 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 		default:
 		}
 
-		fid := r.Intn(blocksCount) + 1
+		fid := r.Intn(blockCount) + 1
 		blockHashs, err := validate.carfileStore.GetBlocksHashWithCarfilePositions("", []int{fid})
 		if err != nil && err != datastore.ErrNotFound {
 			log.Errorf("sendBlocks, get blockHashs error:%v", err)
@@ -101,3 +103,5 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 		}
 	}
 }
+
+// func (validate *Validate)

@@ -234,10 +234,7 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfile, isCom
 		return err
 	}
 
-	deviceInfo, err := carfileOperation.device.DeviceInfo(context.Background())
-	if err != nil {
-		return err
-	}
+	_, diskUsage := carfileOperation.device.GetDiskUsageStat()
 
 	result := api.CacheResultInfo{
 		Status:      status,
@@ -246,7 +243,7 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfile, isCom
 		TotalSize:   int64(carfile.carfileSize),
 		DoneSize:    int64(carfile.downloadSize),
 		CarfileHash: carfileHash,
-		DiskUsage:   deviceInfo.DiskUsage,
+		DiskUsage:   diskUsage,
 	}
 	return carfileOperation.scheduler.CacheResult(ctx, result)
 }
@@ -270,31 +267,25 @@ func (carfileOperation *CarfileOperation) onDownloadCarfileComplete(cf *carfile)
 }
 
 func (carfileOperation *CarfileOperation) cacheCarfileResult() (api.CacheCarfileResult, error) {
-	deviceInfo, err := carfileOperation.device.DeviceInfo(context.Background())
+	_, diskUsage := carfileOperation.device.GetDiskUsageStat()
+
+	carfileCount, err := carfileOperation.carfileStore.CarfileCount()
 	if err != nil {
 		return api.CacheCarfileResult{}, err
 	}
 
-	carfileCount, err := carfileOperation.carfileStore.CarfilesCount()
-	if err != nil {
-		return api.CacheCarfileResult{}, err
-	}
-
-	return api.CacheCarfileResult{CacheCarfileCount: carfileCount, WaitCacheCarfileNum: len(carfileOperation.carfileWaitList), DiskUsage: deviceInfo.DiskUsage}, nil
+	return api.CacheCarfileResult{CacheCarfileCount: carfileCount, WaitCacheCarfileNum: len(carfileOperation.carfileWaitList), DiskUsage: diskUsage}, nil
 }
 
 func (carfileOperation *CarfileOperation) cacheResultForCarfileExist(carfileCID string) error {
-	deviceInfo, err := carfileOperation.device.DeviceInfo(context.Background())
-	if err != nil {
-		return err
-	}
+	_, diskUsage := carfileOperation.device.GetDiskUsageStat()
 
 	carfileHash, err := helper.CIDString2HashString(carfileCID)
 	if err != nil {
 		return err
 	}
 
-	blocksCount, err := carfileOperation.carfileStore.BlocksCountOfCarfile(carfileHash)
+	blocksCount, err := carfileOperation.carfileStore.BlockCountOfCarfile(carfileHash)
 	if err != nil {
 		return err
 	}
@@ -333,7 +324,7 @@ func (carfileOperation *CarfileOperation) cacheResultForCarfileExist(carfileCID 
 		TotalSize:   int64(linksSize),
 		DoneSize:    int64(linksSize),
 		CarfileHash: carfileHash,
-		DiskUsage:   deviceInfo.DiskUsage,
+		DiskUsage:   diskUsage,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
@@ -358,6 +349,49 @@ func (carfileOperation *CarfileOperation) restoreWaitListFromFile() {
 	}
 
 	log.Infof("restoreWaitListFromFile:%v", carfileOperation.carfileWaitList)
+}
+
+func (carfileOperation *CarfileOperation) deleteCarfile(carfileCID string) (int, error) {
+	if carfileOperation.isCarfileInWaitList(carfileCID) {
+		return carfileOperation.DeleteWaitCacheCarfile(context.Background(), carfileCID)
+	}
+
+	carfileHash, err := helper.CIDString2HashString(carfileCID)
+	if err != nil {
+		return 0, err
+	}
+
+	hashs, err := carfileOperation.carfileStore.GetBlocksHashOfCarfile(carfileHash)
+	if err == datastore.ErrNotFound {
+		data, err := carfileOperation.carfileStore.GetIncomleteCarfileData(carfileHash)
+		if err != nil {
+			return 0, err
+		}
+
+		carfile := &carfile{}
+		err = carfile.decodeCarfileFromBuffer(data)
+		if err != nil {
+			return 0, err
+		}
+
+		hashs, err = carfile.blockCidList2BlocksHashList()
+		if err != nil {
+			return 0, err
+		}
+
+	}
+
+	for _, hash := range hashs {
+		err = carfileOperation.carfileStore.DeleteBlock(hash)
+		if err != nil {
+			log.Errorf("delete block %s error:%s", hash, err.Error())
+		}
+	}
+
+	carfileOperation.carfileStore.DeleteCarfileTable(carfileHash)
+	carfileOperation.carfileStore.DeleteIncompleteCarfile(carfileHash)
+
+	return len(hashs), nil
 }
 
 func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carfileCID string, sources []*api.DowloadSource) (api.CacheCarfileResult, error) {
@@ -406,47 +440,9 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 	return carfileOperation.cacheCarfileResult()
 }
 
-func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, carfileCID string) (int, error) {
-	if carfileOperation.isCarfileInWaitList(carfileCID) {
-		return carfileOperation.DeleteWaitCacheCarfile(ctx, carfileCID)
-	}
-
-	carfileHash, err := helper.CIDString2HashString(carfileCID)
-	if err != nil {
-		return 0, err
-	}
-
-	hashs, err := carfileOperation.carfileStore.GetBlocksHashOfCarfile(carfileHash)
-	if err == datastore.ErrNotFound {
-		data, err := carfileOperation.carfileStore.GetIncomleteCarfileData(carfileHash)
-		if err != nil {
-			return 0, err
-		}
-
-		carfile := &carfile{}
-		err = carfile.decodeCarfileFromBuffer(data)
-		if err != nil {
-			return 0, err
-		}
-
-		hashs, err = carfile.blockCidList2BlocksHashList()
-		if err != nil {
-			return 0, err
-		}
-
-	}
-
-	for _, hash := range hashs {
-		err = carfileOperation.carfileStore.DeleteBlock(hash)
-		if err != nil {
-			log.Errorf("delete block %s error:%s", hash, err.Error())
-		}
-	}
-
-	carfileOperation.carfileStore.DeleteCarfileTable(carfileHash)
-	carfileOperation.carfileStore.DeleteIncompleteCarfile(carfileHash)
-
-	return len(hashs), nil
+func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, carfileCID string) error {
+	go carfileOperation.deleteCarfile(carfileCID)
+	return nil
 }
 func (carfileOperation *CarfileOperation) DeleteAllCarfiles(ctx context.Context) error {
 	return nil

@@ -198,7 +198,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
 	defer cancel()
 
-	info, err := api.DeviceInfo(ctx)
+	deviceID, err := api.DeviceID(ctx)
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(candidate, result)
@@ -206,16 +206,16 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 		return
 	}
 
-	result.DeviceID = info.DeviceId
+	result.DeviceID = deviceID
 
-	bw, exist := candidate.loadBlockWaiterFromMap(info.DeviceId)
+	bw, exist := candidate.loadBlockWaiterFromMap(deviceID)
 	if exist {
-		log.Errorf("Aready doing validate node, deviceID:%s, not need to repeat to do", info.DeviceId)
+		log.Errorf("Aready doing validate node, deviceID:%s, not need to repeat to do", deviceID)
 		return
 	}
 
 	bw = &blockWaiter{conn: nil, ch: make(chan tcpMsg, 1)}
-	candidate.blockWaiterMap.Store(info.DeviceId, bw)
+	candidate.blockWaiterMap.Store(deviceID, bw)
 
 	go waitBlock(bw, req, candidate, result)
 
@@ -234,7 +234,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 }
 
 type nodeAPI interface {
-	DeviceInfo(ctx context.Context) (api.DevicesInfo, error)
+	DeviceID(ctx context.Context) (string, error)
 	BeValidate(ctx context.Context, reqValidate api.ReqValidate, candidateTcpSrvAddr string) error
 }
 
