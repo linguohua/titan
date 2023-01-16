@@ -29,7 +29,8 @@ type ReqValidate struct {
 }
 
 type ValidateResults struct {
-	Validator string
+	Validator  string
+	CarfileCID string
 	// verification canceled due to download
 	IsCancel  bool
 	DeviceID  string
