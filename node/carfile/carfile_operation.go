@@ -527,3 +527,11 @@ func (carfileOperation *CarfileOperation) GetBlocksOfCarfile(carfileCID string, 
 
 	return ret, nil
 }
+
+func (carfileOperation *CarfileOperation) BlockCountOfCarfile(carfileCID string) (int, error) {
+	carfileHash, err := helper.CIDString2HashString(carfileCID)
+	if err != nil {
+		return 0, err
+	}
+	return carfileOperation.carfileStore.BlockCountOfCarfile(carfileHash)
+}

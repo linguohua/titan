@@ -399,9 +399,9 @@ var getBlocksOfCarfile = &cli.Command{
 
 		ctx := ReqContext(cctx)
 		cid := cctx.String("cid")
-		indexs := cctx.IntSlice("indexs")
+		// indexs := cctx.IntSlice("indexs")
 
-		blockCIDs, err := candidateAPI.GetBlocksOfCarfile(ctx, cid, indexs)
+		blockCIDs, err := candidateAPI.GetBlocksOfCarfile(ctx, cid, 0, 100)
 		if err != nil {
 			return err
 		}
