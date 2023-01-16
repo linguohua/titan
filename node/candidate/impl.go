@@ -96,7 +96,7 @@ func (candidate *Candidate) WaitQuiet(ctx context.Context) error {
 	return nil
 }
 
-func (candidate *Candidate) GetBlocksOfCarfileWithRandomSeed(ctx context.Context, carfileCID string, randomSeed int64) ([]string, error) {
+func (candidate *Candidate) GetBlocksOfCarfile(ctx context.Context, carfileCID string, indexs []int) (map[int]string, error) {
 	return nil, nil
 }
 

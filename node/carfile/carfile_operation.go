@@ -441,7 +441,29 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 }
 
 func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, carfileCID string) error {
-	go carfileOperation.deleteCarfile(carfileCID)
+	go func() {
+		_, err := carfileOperation.deleteCarfile(carfileCID)
+		if err != nil {
+			log.Errorf("DeleteCarfile, delete carfile error:%s", err.Error())
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+		defer cancel()
+
+		blockCount, err := carfileOperation.carfileStore.BlockCount()
+		if err != nil {
+			log.Errorf("DeleteCarfile, BlockCount error:%s", err.Error())
+		}
+
+		_, diskUsage := carfileOperation.device.GetDiskUsageStat()
+		info := api.RemoveCarfileResultInfo{BlockCount: blockCount, DiskUsage: diskUsage}
+
+		err = carfileOperation.scheduler.RemoveCarfileResult(ctx, info)
+		if err != nil {
+			log.Errorf("DeleteCarfile, RemoveCarfileResult error:%s", err.Error())
+		}
+
+	}()
 	return nil
 }
 func (carfileOperation *CarfileOperation) DeleteAllCarfiles(ctx context.Context) error {
