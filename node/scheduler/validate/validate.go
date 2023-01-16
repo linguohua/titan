@@ -188,7 +188,7 @@ func (v *Validate) execute() error {
 				return
 			}
 
-			err = validator.GetAPI().ValidateBlocks(v.ctx, req)
+			err = validator.GetAPI().ValidateNodes(v.ctx, req)
 			if err != nil {
 				log.Errorf(err.Error())
 				return
