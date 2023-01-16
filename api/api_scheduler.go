@@ -45,6 +45,7 @@ type Scheduler interface {
 	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                                  //perm:write
 	CandidateNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error                                   //perm:write
 	CacheResult(ctx context.Context, resultInfo CacheResultInfo) error                                               //perm:write
+	RemoveCarfileResult(ctx context.Context, resultInfo RemoveCarfileResultInfo) error                               //perm:write
 	GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]CandidateDownloadInfo, error) //perm:write
 	GetExternalIP(ctx context.Context) (string, error)                                                               //perm:write
 	GetPublicKey(ctx context.Context) (string, error)                                                                //perm:write
@@ -106,6 +107,12 @@ type CacheResultInfo struct {
 	DoneSize    int64
 	CarfileHash string
 	DiskUsage   float64
+}
+
+// RemoveCarfileResultInfo remove carfile result
+type RemoveCarfileResultInfo struct {
+	BlockCount int
+	DiskUsage  float64
 }
 
 // CarfileRecordInfo Data info

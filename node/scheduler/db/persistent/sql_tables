@@ -133,7 +133,6 @@ CREATE TABLE `caches_cn_gd_shenzhen` (
     `done_size` BIGINT  DEFAULT '0' ,
     `done_blocks` int  DEFAULT '0' ,
 	`reliability` TINYINT DEFAULT '0' ,
-    `expired_time` datetime NOT NULL,
     `root_cache` BOOLEAN,
     `execute_count` int  DEFAULT '0' ,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,

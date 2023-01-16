@@ -91,7 +91,7 @@ func (rd redisDB) CacheTaskStart(hash, deviceID string, timeout int64) error {
 	return err
 }
 
-func (rd redisDB) CacheTaskEnd(hash, deviceID string, totalSize int64, totalBlocks int) error {
+func (rd redisDB) CacheTaskEnd(hash, deviceID string, nodeInfo *NodeCacheInfo) error {
 	cacheingCarfileList := fmt.Sprintf(redisKeyCacheingCarfileList, serverName)
 	carfileNodeList := fmt.Sprintf(redisKeyCarfileCacheingNodeList, serverName, hash)
 	// nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
@@ -114,12 +114,20 @@ func (rd redisDB) CacheTaskEnd(hash, deviceID string, totalSize int64, totalBloc
 		// Expire
 		// pipeliner.Del(context.Background(), nodeKey)
 
-		if totalBlocks > 0 {
-			nodeInfoKey := fmt.Sprintf(redisKeyNodeInfo, deviceID)
-			pipeliner.HIncrBy(context.Background(), nodeInfoKey, BlockCountField, int64(totalBlocks))
-			pipeliner.HIncrBy(context.Background(), nodeInfoKey, TotalDownloadField, int64(totalSize))
-			baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
-			pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, 1)
+		// if totalBlocks > 0 {
+		// 	pipeliner.HIncrBy(context.Background(), nodeInfoKey, BlockCountField, int64(totalBlocks))
+		// 	pipeliner.HIncrBy(context.Background(), nodeInfoKey, TotalDownloadField, int64(totalSize))
+		// 	baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
+		// 	pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, 1)
+		// }
+
+		if nodeInfo != nil {
+			nKey := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+			pipeliner.HMSet(context.Background(), nKey, DiskUsageField, nodeInfo.DiskUsage, BlockCountField, nodeInfo.BlockCount, TotalDownloadField, nodeInfo.TotalDownload, DownloadCountField, nodeInfo.DownloadCount)
+			if nodeInfo.IsSuccess {
+				baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
+				pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, 1)
+			}
 		}
 
 		return nil
@@ -384,17 +392,6 @@ func (rd redisDB) GetDeviceInfo(deviceID string) (*api.DevicesInfo, error) {
 	}
 
 	return &info, nil
-}
-
-func (rd redisDB) UpdateDeviceInfo(deviceID, field string, value interface{}) error {
-	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
-
-	_, err := rd.cli.HSet(context.Background(), key, field, value).Result()
-	if err != nil {
-		return err
-	}
-
-	return err
 }
 
 func (rd redisDB) UpdateDeviceInfos(field string, values map[string]interface{}) error {
