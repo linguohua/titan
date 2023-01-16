@@ -69,7 +69,7 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Sche
 	s.locatorManager = locator.NewLoactorManager(port)
 	s.nodeManager = nodeManager
 	s.election = election.NewElection(nodeManager)
-	s.validate = validate.NewValidate(nodeManager, false)
+	s.validate = validate.NewValidate(nodeManager, true)
 	s.dataManager = carfile.NewCarfileManager(nodeManager, s.getAuthToken)
 	s.CommonAPI = common.NewCommonAPI(nodeManager.UpdateLastRequestTime)
 	s.Web = web.NewWeb(s)

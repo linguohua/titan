@@ -143,6 +143,23 @@ func (sd sqlDB) InsertValidateResultInfo(info *ValidateResult) error {
 	return err
 }
 
+// Validate Result
+func (sd sqlDB) InsertValidateResultInfos(infos []*ValidateResult) error {
+	tx := sd.cli.MustBegin()
+	for _, info := range infos {
+		query := fmt.Sprintf("INSERT INTO%s", " validate_result (round_id, device_id, validator_id, status, start_time, server_name) VALUES (?, ?, ?, ?, ?, ?)")
+		tx.MustExec(query, info.RoundID, info.DeviceID, info.ValidatorID, info.Status, info.StartTime, serverName)
+	}
+
+	err := tx.Commit()
+	if err != nil {
+		err = tx.Rollback()
+		return err
+	}
+
+	return nil
+}
+
 func (sd sqlDB) UpdateFailValidateResultInfo(info *ValidateResult) error {
 	query := fmt.Sprintf("UPDATE%s", " validate_result SET msg=:msg, status=:status, end_time=:end_time WHERE round_id=:round_id AND device_id=:device_id")
 	_, err := sd.cli.NamedExec(query, info)
@@ -172,7 +189,7 @@ func (sd sqlDB) SetTimeoutToValidateInfos(info *ValidateResult, deviceIDs []stri
 }
 
 func (sd sqlDB) UpdateSuccessValidateResultInfo(info *ValidateResult) error {
-	query := fmt.Sprintf("UPDATE%s", " validate_result SET block_number=:block_number, msg=:msg, status=:status, duration=:duration, bandwidth=:bandwidth, end_time=:end_time WHERE round_id=:round_id AND device_id=:device_id")
+	query := fmt.Sprintf("UPDATE%s", " validate_result SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=:end_time WHERE round_id=:round_id AND device_id=:device_id")
 	_, err := sd.cli.NamedExec(query, info)
 	return err
 }
@@ -433,16 +450,26 @@ func (sd sqlDB) GetRandCarfileWithNode(deviceID string) (string, error) {
 		return "", err
 	}
 
+	if count < 1 {
+		return "", xerrors.Errorf("node %s no cache", deviceID)
+	}
+
 	//rand count
 	index := myRand.Intn(count)
 
-	var hash string
-	cmd := fmt.Sprintf("SELECT carfile_hash FROM %s WHERE device_id=? AND status=? AND LIMIT %d,%d", fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()), index, 1)
-	if err := sd.cli.Select(&hash, cmd, deviceID, api.CacheStatusSuccess); err != nil {
+	var hashs []string
+	cmd := fmt.Sprintf("SELECT carfile_hash FROM %s WHERE device_id=? AND status=? LIMIT %d,%d", fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()), index, 1)
+	if err := sd.cli.Select(&hashs, cmd, deviceID, api.CacheStatusSuccess); err != nil {
 		return "", err
 	}
 
-	return hash, nil
+	// fmt.Println("hashs :", hashs)
+
+	if len(hashs) > 0 {
+		return hashs[0], nil
+	}
+
+	return "", nil
 }
 
 func (sd sqlDB) ExtendExpiredTimeWhitCarfile(carfileHash string, hour int) error {

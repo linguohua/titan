@@ -66,7 +66,7 @@ func NewValidate(manager *node.Manager, enable bool) *Validate {
 		enable:        enable,
 	}
 
-	e.initValidateTask()
+	// e.initValidateTask()
 	// handle validate result data
 	go e.initValidateResultTask()
 
@@ -272,10 +272,18 @@ func (v *Validate) assignValidator(validatorList []string) map[string][]api.ReqV
 		return ""
 	}
 
+	infos := make([]*persistent.ValidateResult, 0)
+
 	for i, validated := range validatedList {
 		reqValidate, err := v.getNodeReqValidate(validated)
 		if err != nil {
 			log.Errorf("node:%s , getNodeReqValidate err:%s", validated.deviceID, err.Error())
+			continue
+		}
+
+		err = cache.GetDB().SetNodeToVerifyingList(validated.deviceID)
+		if err != nil {
+			log.Errorf("node:%s , SetNodeToVerifyingList err:%s", validated.deviceID, err.Error())
 			continue
 		}
 
@@ -287,6 +295,20 @@ func (v *Validate) assignValidator(validatorList []string) map[string][]api.ReqV
 		list = append(list, reqValidate)
 
 		result[validatorID] = list
+
+		info := &persistent.ValidateResult{
+			RoundID:     v.curRoundID,
+			DeviceID:    validated.deviceID,
+			ValidatorID: validatorID,
+			StartTime:   time.Now(),
+			Status:      int(persistent.ValidateStatusCreate),
+		}
+		infos = append(infos, info)
+	}
+
+	err := persistent.GetDB().InsertValidateResultInfos(infos)
+	if err != nil {
+		log.Errorf("InsertValidateResultInfos err:%s", err.Error())
 	}
 
 	return result
@@ -302,11 +324,14 @@ func (v *Validate) getNodeReqValidate(validated *validatedDeviceInfo) (api.ReqVa
 
 	hash, err := persistent.GetDB().GetRandCarfileWithNode(validated.deviceID)
 	if err != nil {
+		// log.Warnf("GetRandCarfileWithNode err: %s", err.Error())
 		return req, err
 	}
 
+	log.Warnf("hash: %s", hash)
 	cid, err := helper.HashString2CidString(hash)
 	if err != nil {
+		log.Warnf("HashString2CidString err: %s", err.Error())
 		return req, err
 	}
 	req.CarfileCID = cid
@@ -545,9 +570,14 @@ func (v *Validate) handleValidateResult(validateResult *api.ValidateResults) err
 	var status persistent.ValidateStatus
 
 	defer func() {
-		err := v.UpdateFailValidateResult(validateResult.RoundID, validateResult.DeviceID, status)
+		var err error
+		if status == persistent.ValidateStatusSuccess {
+			err = v.UpdateSuccessValidateResult(validateResult)
+		} else {
+			err = v.UpdateFailValidateResult(validateResult.RoundID, validateResult.DeviceID, status)
+		}
 		if err != nil {
-			log.Errorf("UpdateFailValidateResult [%s] fail : %s", validateResult.DeviceID, err.Error())
+			log.Errorf("UpdateValidateResult [%s] fail : %s", validateResult.DeviceID, err.Error())
 		}
 
 		count, err := cache.GetDB().RemoveValidatedWithList(validateResult.DeviceID)
@@ -555,11 +585,7 @@ func (v *Validate) handleValidateResult(validateResult *api.ValidateResults) err
 			log.Errorf("RemoveValidatedWithList [%s] fail : %s", validateResult.DeviceID, err.Error())
 			return
 		}
-		// count, err := cache.GetDB().CountVerifyingNode(v.ctx)
-		// if err != nil {
-		// 	log.Error("CountVerifyingNode fail :", err.Error())
-		// 	return
-		// }
+
 		if count == 0 {
 			v.running = false
 		}
@@ -575,86 +601,68 @@ func (v *Validate) handleValidateResult(validateResult *api.ValidateResults) err
 		return nil
 	}
 
-	// hash, err := helper.CIDString2HashString(validateResult.CarfileCID)
-	// if err != nil {
-	// 	status = persistent.ValidateStatusOther
-	// 	log.Errorf("handleValidateResult CIDString2HashString %s, err:%s", validateResult.CarfileCID, err.Error())
-	// 	return nil
-	// }
+	hash, err := helper.CIDString2HashString(validateResult.CarfileCID)
+	if err != nil {
+		status = persistent.ValidateStatusOther
+		log.Errorf("handleValidateResult CIDString2HashString %s, err:%s", validateResult.CarfileCID, err.Error())
+		return nil
+	}
 
-	// cacheInfos, err := persistent.GetDB().GetCachesWithHash(hash, true)
-	// if err != nil {
-	// 	status = persistent.ValidateStatusOther
-	// 	log.Errorf("handleValidateResult GetCachesWithHash %s , err:%s", validateResult.CarfileCID, err.Error())
-	// 	return nil
-	// }
+	cacheInfos, err := persistent.GetDB().GetCachesWithHash(hash, true)
+	if err != nil {
+		status = persistent.ValidateStatusOther
+		log.Errorf("handleValidateResult GetCachesWithHash %s , err:%s", validateResult.CarfileCID, err.Error())
+		return nil
+	}
 
-	// carfileRecord, err := persistent.GetDB().GetCarfileInfo(hash)
-	// if err != nil {
-	// 	status = persistent.ValidateStatusOther
-	// 	log.Errorf("handleValidateResult GetCarfileInfo %s , err:%s", validateResult.CarfileCID, err.Error())
-	// 	return nil
-	// }
+	max := len(validateResult.Cids)
+	var cCidMap map[int]string
+	for _, cacheInfo := range cacheInfos {
+		candidate := v.nodeManager.GetCandidateNode(cacheInfo.DeviceID)
+		if candidate == nil {
+			continue
+		}
 
-	// r := rand.New(rand.NewSource(v.seed))
+		log.Warnf("candidate : %s , seed: %d , max:%d", candidate.DeviceId, v.seed, max)
 
-	// for index := 0; index < len(validateResult.Cids); index++ {
-	// 	fid := v.getRandNum(int(carfileRecord.TotalBlocks), r) + 1
-	// 	resultCid := validateResults.Cids[index]
+		cCidMap, err = candidate.GetAPI().GetBlocksOfCarfile(context.Background(), validateResult.CarfileCID, v.seed, max)
+		if err != nil {
+			log.Errorf("candidate %s GetBlocksOfCarfile err:%s", cacheInfo.DeviceID, err.Error())
+			continue
+		}
 
-	// 	cid := cacheInfos[fid]
-	// 	if cid == "" {
-	// 		continue
-	// 	}
+		break
+	}
 
-	// 	if !v.compareCid(cid, resultCid) {
-	// 		log.Errorf("round [%d] and deviceID [%s], validate fail resultCid:%s, cid_db:%s,fid:%d,index:%d", validateResults.RoundID, validateResults.DeviceID, resultCid, cid, fid, index)
-	// 		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusFail)
-	// 	}
-	// }
+	if len(cCidMap) <= 0 {
+		status = persistent.ValidateStatusOther
+		log.Errorf("handleValidateResult candidate map is nil , %s", validateResult.CarfileCID)
+		return nil
+	}
 
-	// for _, cacheInfo := range cacheInfos {
-	// 	candidate := v.nodeManager.GetCandidateNode(cacheInfo.DeviceID)
-	// 	if candidate == nil {
-	// 		continue
-	// 	}
+	carfileRecord, err := persistent.GetDB().GetCarfileInfo(hash)
+	if err != nil {
+		status = persistent.ValidateStatusOther
+		log.Errorf("handleValidateResult GetCarfileInfo %s , err:%s", validateResult.CarfileCID, err.Error())
+		return nil
+	}
 
-	// 	candidate.GetAPI().GetBlocksOfCarfile(context.Background(), validateResult.CarfileCID)
-	// }
+	r := rand.New(rand.NewSource(v.seed))
+	//do validate
+	for i := 0; i < max; i++ {
+		resultCid := validateResult.Cids[i]
+		randNum := v.getRandNum(carfileRecord.TotalBlocks, r)
+		vCid := cCidMap[randNum]
 
-	// r := rand.New(rand.NewSource(v.seed))
-	// cidLength := len(validateResults.Cids)
+		if !v.compareCid(resultCid, vCid) {
+			status = persistent.ValidateStatusFail
+			log.Errorf("round [%d] and deviceID [%s], validate fail resultCid:%s, vCid:%s,randNum:%d,index:%d", validateResult.RoundID, validateResult.DeviceID, resultCid, vCid, randNum, i)
+			return nil
+		}
+	}
 
-	// if cidLength <= 0 || validateResults.RandomCount <= 0 {
-	// 	log.Errorf("round [%d] and deviceID [%s], %s", validateResults.RoundID, validateResults.DeviceID, "validate result is null or random count is 0")
-	// 	return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusFail)
-	// }
-
-	// cacheInfos, err := persistent.GetDB().GetBlocksFID(validateResults.DeviceID)
-	// if err != nil || len(cacheInfos) <= 0 {
-	// 	log.Errorf("round [%d] and deviceID [%s], failed to query : %s", validateResults.RoundID, validateResults.DeviceID, err.Error())
-	// 	return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusOther)
-	// }
-
-	// mFValue, _ := v.maxFidMap.Load(validateResults.DeviceID)
-	// maxFid := mFValue.(int64)
-
-	// for index := 0; index < validateResults.RandomCount; index++ {
-	// 	fid := v.getRandNum(int(maxFid), r) + 1
-	// 	resultCid := validateResults.Cids[index]
-
-	// 	cid := cacheInfos[fid]
-	// 	if cid == "" {
-	// 		continue
-	// 	}
-
-	// 	if !v.compareCid(cid, resultCid) {
-	// 		log.Errorf("round [%d] and deviceID [%s], validate fail resultCid:%s, cid_db:%s,fid:%d,index:%d", validateResults.RoundID, validateResults.DeviceID, resultCid, cid, fid, index)
-	// 		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusFail)
-	// 	}
-	// }
-
-	return v.UpdateSuccessValidateResult(validateResult)
+	status = persistent.ValidateStatusSuccess
+	return nil
 }
 
 func (v *Validate) compareCid(cidStr1, cidStr2 string) bool {
