@@ -6,8 +6,8 @@ import (
 )
 
 // GetAverageArray divide the array into n arrays, and the sum of each array should be as close as possible
-func GetAverageArray(validatedList []validatedDeviceInfo, arrNum int) [][]validatedDeviceInfo {
-	avgArrays := make([][]validatedDeviceInfo, 0)
+func GetAverageArray(validatedList []*validatedDeviceInfo, arrNum int) [][]*validatedDeviceInfo {
+	avgArrays := make([][]*validatedDeviceInfo, 0)
 	if len(validatedList) == 0 || len(validatedList) < arrNum {
 		return avgArrays
 	}
@@ -26,7 +26,7 @@ func GetAverageArray(validatedList []validatedDeviceInfo, arrNum int) [][]valida
 	})
 
 	for cnt := 0; cnt < arrNum; cnt++ {
-		var arr []validatedDeviceInfo
+		var arr []*validatedDeviceInfo
 		if cnt == arrNum-1 {
 			// the last group returns all the remaining numbers of the array
 			avgArrays = append(avgArrays, validatedList)
@@ -34,7 +34,7 @@ func GetAverageArray(validatedList []validatedDeviceInfo, arrNum int) [][]valida
 		}
 		// if the maximum number max>=mean, this number is a separate group
 		if len(validatedList) > 0 && validatedList[0].bandwidth >= mean {
-			arr = []validatedDeviceInfo{validatedList[0]}
+			arr = []*validatedDeviceInfo{validatedList[0]}
 			avgArrays = append(avgArrays, arr)
 			sum = sum - validatedList[0].bandwidth
 
@@ -52,8 +52,8 @@ func GetAverageArray(validatedList []validatedDeviceInfo, arrNum int) [][]valida
 	return avgArrays
 }
 
-func removeFromList(originalList []validatedDeviceInfo, removeNums []validatedDeviceInfo) []validatedDeviceInfo {
-	res := make([]validatedDeviceInfo, 0)
+func removeFromList(originalList []*validatedDeviceInfo, removeNums []*validatedDeviceInfo) []*validatedDeviceInfo {
+	res := make([]*validatedDeviceInfo, 0)
 	from := 0
 	for _, remove := range removeNums {
 		for i := from; i < len(originalList); i++ {
@@ -68,8 +68,8 @@ func removeFromList(originalList []validatedDeviceInfo, removeNums []validatedDe
 	return res
 }
 
-func getList(arr []validatedDeviceInfo, delta, distance float64) ([]validatedDeviceInfo, float64) {
-	res := make([]validatedDeviceInfo, 0)
+func getList(arr []*validatedDeviceInfo, delta, distance float64) ([]*validatedDeviceInfo, float64) {
+	res := make([]*validatedDeviceInfo, 0)
 	if len(arr) == 0 {
 		return res, -1
 	}
@@ -118,5 +118,5 @@ func getList(arr []validatedDeviceInfo, delta, distance float64) ([]validatedDev
 		return arr[len(arr)-1:], dis
 	}
 
-	return make([]validatedDeviceInfo, 0), -1
+	return make([]*validatedDeviceInfo, 0), -1
 }
