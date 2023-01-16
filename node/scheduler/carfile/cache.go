@@ -93,7 +93,7 @@ func (c *CacheTask) startTimeoutTimer() {
 		}
 
 		// cache is timeout
-		err := c.endCache(api.CacheStatusTimeout)
+		err := c.endCache(&api.CacheResultInfo{Status: api.CacheStatusTimeout})
 		if err != nil {
 			log.Errorf("endCache err:%s", err.Error())
 		}
@@ -132,14 +132,8 @@ func (c *CacheTask) carfileCacheResult(info *api.CacheResultInfo) error {
 	log.Infof("carfileCacheResult :%s , %d , %s , %d", c.deviceID, info.Status, info.CarfileHash, info.DoneBlocks)
 
 	if info.Status == api.CacheStatusSuccess || info.Status == api.CacheStatusFail {
-		// update node dick
-		node := c.carfileRecord.nodeManager.GetNode(c.deviceID)
-		if node != nil {
-			node.DiskUsage = info.DiskUsage
-			node.IncrCurCacheCount(-1)
-		}
 
-		return c.endCache(info.Status)
+		return c.endCache(info)
 	}
 
 	// if err := c.carfileRecord.saveCarfileCacheInfo(c); err != nil {
@@ -177,18 +171,30 @@ func (c *CacheTask) startCache() error {
 	return nil
 }
 
-func (c *CacheTask) endCache(status api.CacheStatus) (err error) {
-	c.status = status
+func (c *CacheTask) endCache(cacheResult *api.CacheResultInfo) (err error) {
+	c.status = cacheResult.Status
 	c.reliability = c.calculateReliability()
 
-	size := int64(0)
-	blocks := 0
-	if status == api.CacheStatusSuccess {
-		size = c.carfileRecord.totalSize
-		blocks = c.carfileRecord.totalBlocks
+	// update node dick
+	nodeInfo := &cache.NodeCacheInfo{}
+	node := c.carfileRecord.nodeManager.GetNode(c.deviceID)
+	if node != nil {
+		node.IncrCurCacheCount(-1)
+
+		if cacheResult.DiskUsage > 0 {
+			node.DiskUsage = cacheResult.DiskUsage
+		}
+
+		if c.status == api.CacheStatusSuccess {
+			node.BlockCount += c.carfileRecord.totalBlocks
+		}
+		//This value is not accurate
+		node.TotalDownload += float64(c.doneSize)
+		node.DownloadCount += c.doneBlocks
+
 	}
 
-	err = cache.GetDB().CacheTaskEnd(c.carfileHash, c.deviceID, size, blocks)
+	err = cache.GetDB().CacheTaskEnd(c.carfileHash, c.deviceID, nodeInfo)
 	if err != nil {
 		return xerrors.Errorf("endCache %s , CacheTaskEnd err:%s", c.carfileHash, err.Error())
 	}

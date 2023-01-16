@@ -384,12 +384,16 @@ func (m *Manager) NodesQuit(deviceIDs []string) {
 		values[deviceID] = 0
 
 		// TODO notify node remove all carfile
+		node := m.nodeManager.GetNode(deviceID)
+		if node != nil {
+			node.BlockCount = 0
+		}
 	}
 
-	err = cache.GetDB().UpdateDeviceInfos(cache.BlockCountField, values)
-	if err != nil {
-		log.Errorf("CleanNodeAndRestoreCaches UpdateDeviceInfos err:%s ", err.Error())
-	}
+	// err = cache.GetDB().UpdateDeviceInfos(cache.BlockCountField, values)
+	// if err != nil {
+	// 	log.Errorf("CleanNodeAndRestoreCaches UpdateDeviceInfos err:%s ", err.Error())
+	// }
 
 	m.resetBaseInfo()
 
@@ -466,7 +470,22 @@ func (m *Manager) removeCacheTask(cacheInfo *api.CacheTaskInfo, carfileCid strin
 	return nil
 }
 
-// Notify nodes to delete blocks
+// Notify node to delete all carfile
+func (m *Manager) notifyNodeRemoveAllCarfile(deviceID string) error {
+	edge := m.nodeManager.GetEdgeNode(deviceID)
+	if edge != nil {
+		return edge.GetAPI().DeleteAllCarfiles(context.Background())
+	}
+
+	candidate := m.nodeManager.GetCandidateNode(deviceID)
+	if candidate != nil {
+		return candidate.GetAPI().DeleteAllCarfiles(context.Background())
+	}
+
+	return nil
+}
+
+// Notify node to delete carfile
 func (m *Manager) notifyNodeRemoveCarfile(deviceID, cid string) error {
 	edge := m.nodeManager.GetEdgeNode(deviceID)
 	if edge != nil {

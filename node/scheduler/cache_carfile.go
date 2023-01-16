@@ -32,6 +32,25 @@ func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) e
 	return s.dataManager.CacheCarfileResult(deviceID, &info)
 }
 
+// RemoveCarfileResult remove carfile result
+func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.RemoveCarfileResultInfo) error {
+	deviceID := handler.GetDeviceID(ctx)
+
+	if !deviceExists(deviceID, 0) {
+		return xerrors.Errorf("node not Exist: %s", deviceID)
+	}
+
+	//update node info
+	node := s.nodeManager.GetNode(deviceID)
+	if node != nil {
+		node.BlockCount = resultInfo.BlockCount
+		node.DiskUsage = resultInfo.DiskUsage
+	}
+
+	//TODO redis
+	return nil
+}
+
 // ResetCacheExpiredTime reset expired time with data cache
 func (s *Scheduler) ResetCacheExpiredTime(ctx context.Context, carfileCid, deviceID string, expiredTime time.Time) error {
 	if time.Now().After(expiredTime) {

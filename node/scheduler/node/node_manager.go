@@ -319,28 +319,6 @@ func (m *Manager) UpdateLastRequestTime(deviceID string) {
 	}
 }
 
-// UpdateNodeDiskUsage node disk usage
-func (m *Manager) UpdateNodeDiskUsage(deviceID string, diskUsage float64) {
-	defer func() {
-		err := cache.GetDB().UpdateDeviceInfo(deviceID, cache.DiskUsageField, diskUsage)
-		if err != nil {
-			log.Errorf("updateNodeDiskUsage err:%s", err.Error())
-		}
-	}()
-
-	edge := m.GetEdgeNode(deviceID)
-	if edge != nil {
-		edge.DiskUsage = diskUsage
-		return
-	}
-
-	candidate := m.GetCandidateNode(deviceID)
-	if candidate != nil {
-		candidate.DiskUsage = diskUsage
-		return
-	}
-}
-
 // FindNodeDownloadInfos  find device with block cid
 func (m *Manager) FindNodeDownloadInfos(cid string) ([]*api.DownloadInfoResult, error) {
 	infos := make([]*api.DownloadInfoResult, 0)

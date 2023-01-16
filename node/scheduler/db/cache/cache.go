@@ -29,7 +29,7 @@ const (
 // DB cache db
 type DB interface {
 	CacheTaskStart(hash, deviceID string, timeout int64) error
-	CacheTaskEnd(hash, deviceID string, totalSize int64, totalBlocks int) error
+	CacheTaskEnd(hash, deviceID string, nodeInfo *NodeCacheInfo) error
 	UpdateNodeCacheingExpireTime(hash, deviceID string, timeout int64) error
 	GetCacheingCarfiles() ([]string, error)
 	IsNodeCaching(deviceID string) (bool, error)
@@ -58,7 +58,6 @@ type DB interface {
 	IncrNodeOnlineTime(deviceID string, onlineTime int64) (float64, error)
 	SetDeviceInfo(info *api.DevicesInfo) error
 	GetDeviceInfo(deviceID string) (*api.DevicesInfo, error)
-	UpdateDeviceInfo(deviceID, field string, value interface{}) error
 	IncrByDeviceInfo(deviceID, field string, value int64) error
 	UpdateDeviceInfos(field string, values map[string]interface{}) error
 
@@ -123,6 +122,16 @@ func GetDB() DB {
 type DataTask struct {
 	CarfileHash string
 	DeviceID    string
+}
+
+// NodeCacheInfo node cache info
+type NodeCacheInfo struct {
+	DiskUsage     float64
+	TotalDownload float64
+	TotalUpload   float64
+	DownloadCount int
+	BlockCount    int
+	IsSuccess     bool
 }
 
 type DownloadBlockRecord struct {
