@@ -8,6 +8,7 @@ import (
 	"github.com/linguohua/titan/node/handler"
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/scheduler/carfile"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
 )
@@ -47,8 +48,11 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.Remo
 		node.DiskUsage = resultInfo.DiskUsage
 	}
 
-	//TODO redis
-	return nil
+	//update redis
+	return cache.GetDB().UpdateNodeCacheInfo(deviceID, &cache.NodeCacheInfo{
+		BlockCount: node.BlockCount,
+		DiskUsage:  node.DiskUsage,
+	})
 }
 
 // ResetCacheExpiredTime reset expired time with data cache

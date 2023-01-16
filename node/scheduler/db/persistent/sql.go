@@ -394,14 +394,6 @@ func (sd sqlDB) ExtendExpiredTimeWhitCarfile(carfileHash string, hour int) error
 	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=?`, fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
 	tx.MustExec(cmd, hour, carfileHash)
 
-	// if deviceID == "" {
-	// 	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
-	// 	tx.MustExec(cmd, hour, carfileHash)
-	// } else {
-	// 	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=? AND device_id=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
-	// 	tx.MustExec(cmd, hour, carfileHash, deviceID)
-	// }
-
 	err := tx.Commit()
 	if err != nil {
 		err = tx.Rollback()
@@ -416,17 +408,6 @@ func (sd sqlDB) ChangeExpiredTimeWhitCarfile(carfileHash string, expiredTime tim
 
 	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=?`, fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
 	tx.MustExec(cmd, expiredTime, carfileHash)
-
-	// if deviceID == "" {
-	// 	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
-	// 	tx.MustExec(cmd, expiredTime, carfileHash)
-	// } else {
-	// 	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=? AND device_id=?`, fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
-	// 	tx.MustExec(cmd, expiredTime, carfileHash, deviceID)
-	// }
-
-	// cmdData := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=?`, fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
-	// tx.MustExec(cmdData, time, carfileHash)
 
 	err := tx.Commit()
 	if err != nil {
