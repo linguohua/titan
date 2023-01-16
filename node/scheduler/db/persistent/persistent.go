@@ -1,6 +1,7 @@
 package persistent
 
 import (
+	"math/rand"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -12,6 +13,10 @@ const (
 	NodeTypeKey = "node_type"
 	// SecretKey node info key
 	SecretKey = "secret"
+)
+
+var (
+	myRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
 
 // DB Persistent db
@@ -28,8 +33,10 @@ type DB interface {
 	// Validate Result
 	InsertValidateResultInfo(info *ValidateResult) error
 	UpdateFailValidateResultInfo(info *ValidateResult) error
+	SetTimeoutToValidateInfos(info *ValidateResult, deivceIDs []string) error
 	UpdateSuccessValidateResultInfo(info *ValidateResult) error
 	SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error)
+	GetRandCarfileWithNode(deviceID string) (string, error)
 
 	// cache data info
 	CreateCacheInfo(cInfo *api.CacheTaskInfo) error

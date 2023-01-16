@@ -24,15 +24,11 @@ var log = logging.Logger("scheduler/validate")
 
 // Validate Validate
 type Validate struct {
-	ctx  context.Context
-	mu   sync.Mutex
-	seed int64
-
-	// validate round number
-	// current round number
+	ctx        context.Context
+	mu         sync.Mutex
+	seed       int64
 	curRoundID int64
-
-	duration int
+	duration   int
 
 	// validate start-up time interval (minute)
 	interval int
@@ -51,10 +47,8 @@ type Validate struct {
 
 	// timer
 	crontab *cron.Cron
-
 	// validate is not running
 	running bool
-
 	// validate switch
 	enable bool
 }
@@ -135,20 +129,18 @@ func (v *Validate) checkValidateTimeOut() error {
 	}
 
 	if deviceIDs != nil && len(deviceIDs) > 0 {
-		log.Infof("checkValidateTimeOut list:%v", deviceIDs)
-
-		for _, deviceID := range deviceIDs {
-			di := deviceID
-			go func() {
-				err := v.UpdateFailValidateResult(v.curRoundID-1, di, persistent.ValidateStatusTimeOut)
-				if err != nil {
-					log.Errorf(err.Error())
-				}
-			}()
+		result := &persistent.ValidateResult{
+			RoundID: v.curRoundID - 1,
+			Status:  persistent.ValidateStatusTimeOut.Int(),
+			EndTime: time.Now(),
+		}
+		err = persistent.GetDB().SetTimeoutToValidateInfos(result, deviceIDs)
+		if err != nil {
+			log.Errorf(err.Error())
 		}
 	}
 
-	return nil
+	return err
 }
 
 func (v *Validate) execute() error {
@@ -172,104 +164,60 @@ func (v *Validate) execute() error {
 
 	log.Debug("validator is", validatorList)
 
-	validatorMap, err := v.validateMappingByUniformAlgorithm(validatorList)
-	if err != nil {
-		return err
+	validatorMap := v.assignValidator(validatorList)
+
+	for validatorID, reqList := range validatorMap {
+		v.sendValidateInfoToValidator(validatorID, reqList)
 	}
 
-	for validatorID, validatedList := range validatorMap {
-		go func(vId string, list []validatedDeviceInfo) {
-			log.Debugf("validator id : %s, validated list : %v", vId, list)
-			req := v.assemblyValidateReqAndStore(vId, list)
+	// validatorMap, err := v.validateMappingByUniformAlgorithm(validatorList)
+	// if err != nil {
+	// 	return err
+	// }
 
-			validator := v.nodeManager.GetCandidateNode(vId)
-			if validator == nil {
-				log.Errorf("validator [%s] is null", vId)
-				return
-			}
+	// for validatorID, validatedList := range validatorMap {
+	// 	go func(vId string, list []*validatedDeviceInfo) {
+	// 		log.Debugf("validator id : %s, validated list : %v", vId, list)
+	// 		req := v.assemblyValidateReqAndStore(vId, list)
 
-			err = validator.GetAPI().ValidateNodes(v.ctx, req)
-			if err != nil {
-				log.Errorf(err.Error())
-				return
-			}
-			log.Debugf("validator id : %s, send success", vId)
+	// 		validator := v.nodeManager.GetCandidateNode(vId)
+	// 		if validator == nil {
+	// 			log.Errorf("validator [%s] is null", vId)
+	// 			return
+	// 		}
 
-		}(validatorID, validatedList)
-	}
+	// 		err = validator.GetAPI().ValidateNodes(v.ctx, req)
+	// 		if err != nil {
+	// 			log.Errorf(err.Error())
+	// 			return
+	// 		}
+	// 		log.Debugf("validator id : %s, send success", vId)
+
+	// 	}(validatorID, validatedList)
+	// }
 	return nil
 }
 
-type validatedDeviceInfo struct {
-	deviceID  string
-	nodeType  api.NodeType
-	addr      string
-	bandwidth float64
-}
+func (v *Validate) sendValidateInfoToValidator(validatorID string, reqList []api.ReqValidate) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-// verified edge node are allocated to verifiers one by one
-func (v *Validate) validateMapping(validatorList []string) (map[string][]validatedDeviceInfo, error) {
-	result := make(map[string][]validatedDeviceInfo)
-	vm := make(map[string]struct{})
-	for _, v := range validatorList {
-		vm[v] = struct{}{}
+	validator := v.nodeManager.GetCandidateNode(validatorID)
+	if validator == nil {
+		log.Errorf("validator [%s] is null", validatorID)
+		return
 	}
 
-	v.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
-		edgeNode := value.(*node.EdgeNode)
-		var tn validatedDeviceInfo
-		tn.nodeType = api.NodeEdge
-		tn.deviceID = edgeNode.DeviceId
-		tn.addr = edgeNode.Node.GetAddress()
-
-		validatorID := validatorList[v.generatorForRandomNumber(0, len(validatorList))]
-
-		if validated, exist := result[validatorID]; exist {
-			validated = append(validated, tn)
-			result[validatorID] = validated
-		} else {
-			vd := make([]validatedDeviceInfo, 0)
-			vd = append(vd, tn)
-			result[validatorID] = vd
-		}
-
-		return true
-	})
-
-	// candidates := v.nodeManager.GetAllCandidate()
-	v.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
-		candidateNode := value.(*node.CandidateNode)
-		// the verifier is not verified
-		if _, ok := vm[candidateNode.DeviceId]; ok {
-			return true
-		}
-		var tn validatedDeviceInfo
-		tn.deviceID = candidateNode.DeviceId
-		tn.nodeType = api.NodeCandidate
-		tn.addr = candidateNode.Node.GetAddress()
-
-		validatorID := validatorList[v.generatorForRandomNumber(0, len(validatorList))]
-		if validated, exist := result[validatorID]; exist {
-			validated = append(validated, tn)
-			result[validatorID] = validated
-		} else {
-			vd := make([]validatedDeviceInfo, 0)
-			vd = append(vd, tn)
-			result[validatorID] = vd
-		}
-
-		return true
-	})
-
-	if len(result) == 0 {
-		return nil, fmt.Errorf("%s", "edge node and candidate node are empty")
+	err := validator.GetAPI().ValidateNodes(ctx, reqList)
+	if err != nil {
+		log.Errorf("ValidateNodes [%s] err:%s", validatorID, err.Error())
+		return
 	}
 
-	return result, nil
 }
 
-func (v *Validate) validateMappingByUniformAlgorithm(validatorList []string) (map[string][]validatedDeviceInfo, error) {
-	result := make(map[string][]validatedDeviceInfo)
+func (v *Validate) assignValidator(validatorList []string) map[string][]api.ReqValidate {
+	result := make(map[string][]api.ReqValidate)
 
 	validatorMp := make(map[string]float64)
 	for _, id := range validatorList {
@@ -280,10 +228,10 @@ func (v *Validate) validateMappingByUniformAlgorithm(validatorList []string) (ma
 		}
 	}
 
-	validatedList := make([]validatedDeviceInfo, 0)
+	validatedList := make([]*validatedDeviceInfo, 0)
 	v.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
 		edgeNode := value.(*node.EdgeNode)
-		var info validatedDeviceInfo
+		info := &validatedDeviceInfo{}
 		info.nodeType = api.NodeEdge
 		info.deviceID = edgeNode.DeviceId
 		info.addr = edgeNode.Node.GetAddress()
@@ -296,7 +244,7 @@ func (v *Validate) validateMappingByUniformAlgorithm(validatorList []string) (ma
 		if _, ok := validatorMp[candidateNode.DeviceId]; ok {
 			return true
 		}
-		var info validatedDeviceInfo
+		info := &validatedDeviceInfo{}
 		info.deviceID = candidateNode.DeviceId
 		info.nodeType = api.NodeCandidate
 		info.addr = candidateNode.Node.GetAddress()
@@ -305,46 +253,212 @@ func (v *Validate) validateMappingByUniformAlgorithm(validatorList []string) (ma
 		return true
 	})
 
-	if len(validatedList) == 0 {
-		return nil, fmt.Errorf("%s", "no verified person")
-	}
-
-	// based on facts BandwidthDown >> BandwidthUp, Don't judge BandwidthUp >= BandwidthDown
-	switch {
-	case len(validatorList) >= len(validatedList):
-		for k, vd := range validatedList {
-			result[validatorList[k]] = []validatedDeviceInfo{vd}
-		}
-	default:
-		avgList := GetAverageArray(validatedList, len(validatorList))
-		for k, vl := range avgList {
-			curList := vl
-			var sum float64
-			for _, validate := range curList {
-				sum += validate.bandwidth
+	vLen := len(validatorList)
+	getValidator := func(index int, bandwidthUp float64) string {
+		i := index % vLen
+		for j := i; j < vLen; j++ {
+			deviceID := validatorList[j]
+			bandwidthDown, ok := validatorMp[deviceID]
+			if !ok {
+				continue
 			}
 
-			realList := curList
-			if validatorMp[validatorList[k]] < sum {
-				delta := sum - validatorMp[validatorList[k]]
-				// index := 0
-				// todo: add store not verified
-				for ck, value := range curList {
-					delta = delta - value.bandwidth
-					if delta <= 0 {
-						// index = k+1
-						realList = curList[ck+1:]
-						break
-					}
-				}
+			if bandwidthDown >= bandwidthUp {
+				validatorMp[deviceID] -= bandwidthUp
+				return deviceID
 			}
-
-			result[validatorList[k]] = realList
 		}
+
+		return ""
 	}
 
-	return result, nil
+	for i, validated := range validatedList {
+		reqValidate, err := v.getNodeReqValidate(validated)
+		if err != nil {
+			log.Errorf("node:%s , getNodeReqValidate err:%s", validated.deviceID, err.Error())
+			continue
+		}
+
+		validatorID := getValidator(i, validated.bandwidth)
+		list, exit := result[validatorID]
+		if !exit {
+			list = make([]api.ReqValidate, 0)
+		}
+		list = append(list, reqValidate)
+
+		result[validatorID] = list
+	}
+
+	return result
 }
+
+func (v *Validate) getNodeReqValidate(validated *validatedDeviceInfo) (api.ReqValidate, error) {
+	req := api.ReqValidate{
+		RandomSeed: v.seed,
+		NodeURL:    validated.addr,
+		Duration:   v.duration,
+		RoundID:    v.curRoundID,
+		NodeType:   int(validated.nodeType)}
+
+	hash, err := persistent.GetDB().GetRandCarfileWithNode(validated.deviceID)
+	if err != nil {
+		return req, err
+	}
+
+	cid, err := helper.HashString2CidString(hash)
+	if err != nil {
+		return req, err
+	}
+	req.CarfileCID = cid
+
+	return req, nil
+}
+
+type validatedDeviceInfo struct {
+	deviceID  string
+	nodeType  api.NodeType
+	addr      string
+	bandwidth float64
+}
+
+// // verified edge node are allocated to verifiers one by one
+// func (v *Validate) validateMapping(validatorList []string) (map[string][]validatedDeviceInfo, error) {
+// 	result := make(map[string][]validatedDeviceInfo)
+// 	vm := make(map[string]struct{})
+// 	for _, v := range validatorList {
+// 		vm[v] = struct{}{}
+// 	}
+
+// 	v.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
+// 		edgeNode := value.(*node.EdgeNode)
+// 		var tn validatedDeviceInfo
+// 		tn.nodeType = api.NodeEdge
+// 		tn.deviceID = edgeNode.DeviceId
+// 		tn.addr = edgeNode.Node.GetAddress()
+
+// 		validatorID := validatorList[v.generatorForRandomNumber(0, len(validatorList))]
+
+// 		if validated, exist := result[validatorID]; exist {
+// 			validated = append(validated, tn)
+// 			result[validatorID] = validated
+// 		} else {
+// 			vd := make([]validatedDeviceInfo, 0)
+// 			vd = append(vd, tn)
+// 			result[validatorID] = vd
+// 		}
+
+// 		return true
+// 	})
+
+// 	// candidates := v.nodeManager.GetAllCandidate()
+// 	v.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
+// 		candidateNode := value.(*node.CandidateNode)
+// 		// the verifier is not verified
+// 		if _, ok := vm[candidateNode.DeviceId]; ok {
+// 			return true
+// 		}
+// 		var tn validatedDeviceInfo
+// 		tn.deviceID = candidateNode.DeviceId
+// 		tn.nodeType = api.NodeCandidate
+// 		tn.addr = candidateNode.Node.GetAddress()
+
+// 		validatorID := validatorList[v.generatorForRandomNumber(0, len(validatorList))]
+// 		if validated, exist := result[validatorID]; exist {
+// 			validated = append(validated, tn)
+// 			result[validatorID] = validated
+// 		} else {
+// 			vd := make([]validatedDeviceInfo, 0)
+// 			vd = append(vd, tn)
+// 			result[validatorID] = vd
+// 		}
+
+// 		return true
+// 	})
+
+// 	if len(result) == 0 {
+// 		return nil, fmt.Errorf("%s", "edge node and candidate node are empty")
+// 	}
+
+// 	return result, nil
+// }
+
+// func (v *Validate) validateMappingByUniformAlgorithm(validatorList []string) (map[string][]*validatedDeviceInfo, error) {
+// 	result := make(map[string][]*validatedDeviceInfo)
+
+// 	validatorMp := make(map[string]float64)
+// 	for _, id := range validatorList {
+// 		value, ok := v.nodeManager.CandidateNodeMap.Load(id)
+// 		if ok {
+// 			candidateNode := value.(*node.CandidateNode)
+// 			validatorMp[id] = candidateNode.BandwidthDown
+// 		}
+// 	}
+
+// 	validatedList := make([]*validatedDeviceInfo, 0)
+// 	v.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
+// 		edgeNode := value.(*node.EdgeNode)
+// 		info := &validatedDeviceInfo{}
+// 		info.nodeType = api.NodeEdge
+// 		info.deviceID = edgeNode.DeviceId
+// 		info.addr = edgeNode.Node.GetAddress()
+// 		info.bandwidth = edgeNode.BandwidthUp
+// 		validatedList = append(validatedList, info)
+// 		return true
+// 	})
+// 	v.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
+// 		candidateNode := value.(*node.CandidateNode)
+// 		if _, ok := validatorMp[candidateNode.DeviceId]; ok {
+// 			return true
+// 		}
+// 		info := &validatedDeviceInfo{}
+// 		info.deviceID = candidateNode.DeviceId
+// 		info.nodeType = api.NodeCandidate
+// 		info.addr = candidateNode.Node.GetAddress()
+// 		info.bandwidth = candidateNode.BandwidthUp
+// 		validatedList = append(validatedList, info)
+// 		return true
+// 	})
+
+// 	if len(validatedList) == 0 {
+// 		return nil, fmt.Errorf("%s", "no verified person")
+// 	}
+
+// 	// based on facts BandwidthDown >> BandwidthUp, Don't judge BandwidthUp >= BandwidthDown
+// 	switch {
+// 	case len(validatorList) >= len(validatedList):
+// 		for k, vd := range validatedList {
+// 			result[validatorList[k]] = []*validatedDeviceInfo{vd}
+// 		}
+// 	default:
+// 		avgList := GetAverageArray(validatedList, len(validatorList))
+// 		for k, vl := range avgList {
+// 			curList := vl
+// 			var sum float64
+// 			for _, validate := range curList {
+// 				sum += validate.bandwidth
+// 			}
+
+// 			realList := curList
+// 			if validatorMp[validatorList[k]] < sum {
+// 				delta := sum - validatorMp[validatorList[k]]
+// 				// index := 0
+// 				// todo: add store not verified
+// 				for ck, value := range curList {
+// 					delta = delta - value.bandwidth
+// 					if delta <= 0 {
+// 						// index = k+1
+// 						realList = curList[ck+1:]
+// 						break
+// 					}
+// 				}
+// 			}
+
+// 			result[validatorList[k]] = realList
+// 		}
+// 	}
+
+// 	return result, nil
+// }
 
 func (v *Validate) generatorForRandomNumber(start, end int) int {
 	max := end - start
@@ -354,64 +468,6 @@ func (v *Validate) generatorForRandomNumber(start, end int) int {
 	rand.Seed(time.Now().UnixNano())
 	y := rand.Intn(max)
 	return start + y
-}
-
-func (v *Validate) assemblyValidateReqAndStore(validatorID string, list []validatedDeviceInfo) []api.ReqValidate {
-	req := make([]api.ReqValidate, 0)
-
-	// for _, device := range list {
-	// 	// count device cid number
-	// 	num, err := persistent.GetDB().CountCidOfDevice(device.deviceID)
-	// 	if err != nil {
-	// 		log.Warnf("failed to count cid from device : %s", device.deviceID)
-	// 		continue
-	// 	}
-
-	// 	// there is no cached cid in the device
-	// 	if num <= 0 {
-	// 		log.Warnf("no cached cid of device : %s", device.deviceID)
-	// 		continue
-	// 	}
-
-	// 	maxFid, err := cache.GetDB().GetNodeCacheFid(device.deviceID)
-	// 	if err != nil {
-	// 		log.Warnf("GetNodeCacheTag err:%s,DeviceId:%s", err.Error(), device.deviceID)
-	// 		continue
-	// 	}
-
-	// 	v.maxFidMap.Store(device.deviceID, maxFid)
-
-	// 	req = append(req, api.ReqValidate{
-	// 		Seed:     v.seed,
-	// 		NodeURL:  device.addr,
-	// 		Duration: v.duration,
-	// 		RoundID:  v.curRoundID,
-	// 		NodeType: int(device.nodeType),
-	// 		MaxFid:   int(maxFid)},
-	// 	)
-
-	// 	err = cache.GetDB().SetNodeToVerifyingList(device.deviceID)
-	// 	if err != nil {
-	// 		log.Warnf("SetNodeToVerifyingList err:%s, DeviceId:%s", err.Error(), device.deviceID)
-	// 		continue
-	// 	}
-
-	// 	resultInfo := &persistent.ValidateResult{
-	// 		RoundID:     v.curRoundID,
-	// 		DeviceID:    device.deviceID,
-	// 		ValidatorID: validatorID,
-	// 		Status:      persistent.ValidateStatusCreate.Int(),
-	// 		StartTime:   time.Now(),
-	// 	}
-
-	// 	err = persistent.GetDB().InsertValidateResultInfo(resultInfo)
-	// 	if err != nil {
-	// 		log.Errorf("InsertValidateResultInfo err:%s, DeviceId:%s", err.Error(), device.deviceID)
-	// 		continue
-	// 	}
-	// }
-
-	return req
 }
 
 func (v *Validate) getRandNum(max int, r *rand.Rand) int {
@@ -444,10 +500,8 @@ func (v *Validate) UpdateSuccessValidateResult(validateResults *api.ValidateResu
 
 func (v *Validate) initValidateResultTask() {
 	for {
-		select {
-		case <-v.resultChannel:
-			v.iterationValidateResult()
-		}
+		<-v.resultChannel
+		v.iterationValidateResult()
 	}
 }
 

@@ -455,7 +455,6 @@ func (m *Manager) removeCacheTask(cacheInfo *api.CacheTaskInfo, carfileCid strin
 	}
 
 	if cacheInfo.Status == api.CacheStatusSuccess {
-		// err := cache.GetDB().RemoveCacheTask(cacheInfo.DeviceID, cacheInfo.DoneBlocks)
 		err := cache.GetDB().IncrByBaseInfo(cache.CarFileCountField, -1)
 		if err != nil {
 			log.Errorf("removeCache IncrByBaseInfo err:%s", err.Error())

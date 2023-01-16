@@ -8,7 +8,7 @@ import (
 )
 
 func TestGetAvgArr(t *testing.T) {
-	list := []validatedDeviceInfo{
+	list := []*validatedDeviceInfo{
 		{deviceID: "node01", nodeType: api.NodeCandidate, addr: "addr01", bandwidth: 500.21},
 		{deviceID: "node02", nodeType: api.NodeEdge, addr: "addr02", bandwidth: 18.0},
 		{deviceID: "node04", nodeType: api.NodeEdge, addr: "addr04", bandwidth: 2.0},

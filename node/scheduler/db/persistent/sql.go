@@ -149,6 +149,28 @@ func (sd sqlDB) UpdateFailValidateResultInfo(info *ValidateResult) error {
 	return err
 }
 
+func (sd sqlDB) SetTimeoutToValidateInfos(info *ValidateResult, deviceIDs []string) error {
+	tx := sd.cli.MustBegin()
+
+	updateCachesCmd := `UPDATE validate_result SET status=?,end_time=? WHERE round_id=? AND device_id in (?)`
+	query, args, err := sqlx.In(updateCachesCmd, info.Status, info.EndTime, info.RoundID, deviceIDs)
+	if err != nil {
+		return err
+	}
+
+	// cache info
+	query = sd.cli.Rebind(query)
+	tx.MustExec(query, args...)
+
+	err = tx.Commit()
+	if err != nil {
+		err = tx.Rollback()
+		return err
+	}
+
+	return nil
+}
+
 func (sd sqlDB) UpdateSuccessValidateResultInfo(info *ValidateResult) error {
 	query := fmt.Sprintf("UPDATE%s", " validate_result SET block_number=:block_number, msg=:msg, status=:status, duration=:duration, bandwidth=:bandwidth, end_time=:end_time WHERE round_id=:round_id AND device_id=:device_id")
 	_, err := sd.cli.NamedExec(query, info)
@@ -386,6 +408,27 @@ func (sd sqlDB) GetCachesWithHash(hash string, isSuccess bool) ([]*api.CacheTask
 	}
 
 	return out, nil
+}
+
+func (sd sqlDB) GetRandCarfileWithNode(deviceID string) (string, error) {
+	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE device_id=?`,
+		fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
+
+	var count int
+	if err := sd.cli.Get(&count, query, deviceID); err != nil {
+		return "", err
+	}
+
+	//rand count
+	index := myRand.Intn(count)
+
+	var hash string
+	cmd := fmt.Sprintf("SELECT carfile_hash FROM %s WHERE device_id=? AND LIMIT %d,%d", fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()), index, 1)
+	if err := sd.cli.Select(&hash, cmd, deviceID); err != nil {
+		return "", err
+	}
+
+	return hash, nil
 }
 
 func (sd sqlDB) ExtendExpiredTimeWhitCarfile(carfileHash string, hour int) error {
