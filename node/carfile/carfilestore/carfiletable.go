@@ -80,7 +80,7 @@ func (cfTable *carfileTable) readAllBlocksHashOfCarfile(carfileHash string) ([]s
 	return blocksHash, nil
 }
 
-func (cfTable *carfileTable) blocksCountOfCarfile(carfileHash string) (int, error) {
+func (cfTable *carfileTable) blockCountOfCarfile(carfileHash string) (int, error) {
 	filePath := filepath.Join(cfTable.path, carfileHash)
 	data, err := os.ReadFile(filePath)
 	if err != nil && os.IsNotExist(err) {

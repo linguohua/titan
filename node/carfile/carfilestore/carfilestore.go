@@ -65,11 +65,11 @@ func (carfileStore *CarfileStore) GetAllBlocksHash() ([]string, error) {
 	return carfileStore.blockStore.GetAllKeys()
 }
 
-func (carfileStore *CarfileStore) BlocksCount() (int, error) {
+func (carfileStore *CarfileStore) BlockCount() (int, error) {
 	return carfileStore.blockStore.KeyCount()
 }
 
-func (carfileStore *CarfileStore) CarfilesCount() (int, error) {
+func (carfileStore *CarfileStore) CarfileCount() (int, error) {
 	count1, err := carfileStore.carfileTable.carfileCount()
 	if err != nil {
 		return 0, err
@@ -127,6 +127,6 @@ func (carfileStore *CarfileStore) HasCarfile(carfileHash string) (bool, error) {
 	return carfileStore.carfileTable.has(carfileHash)
 }
 
-func (carfileStore *CarfileStore) BlocksCountOfCarfile(carfileHash string) (int, error) {
-	return carfileStore.carfileTable.blocksCountOfCarfile(carfileHash)
+func (carfileStore *CarfileStore) BlockCountOfCarfile(carfileHash string) (int, error) {
+	return carfileStore.carfileTable.blockCountOfCarfile(carfileHash)
 }

@@ -6,7 +6,7 @@ type CarfileOperation interface {
 	// cache carfile
 	CacheCarfile(ctx context.Context, carfileCID string, sources []*DowloadSource) (CacheCarfileResult, error) //perm:write
 	// delete carfile
-	DeleteCarfile(ctx context.Context, carfileCID string) (blockCount int, err error) //perm:write
+	DeleteCarfile(ctx context.Context, carfileCID string) error //perm:write
 	// delete all carfiles
 	DeleteAllCarfiles(ctx context.Context) error //perm:admin
 	// delete carfile with wait cache

@@ -63,6 +63,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 	info.InternalIp = device.internalIP
 	info.BandwidthDown = float64(device.bandwidthDown)
 	info.BandwidthUp = float64(device.bandwidthUp)
+	info.BlockCount, _ = device.carfileStore.BlockCount()
 
 	mac, err := getMacAddr(info.InternalIp)
 	if err != nil {
@@ -89,18 +90,9 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 
 	info.CpuUsage = cpuPercent[0]
 	info.CPUCores, _ = cpu.Counts(false)
+	info.DiskSpace, info.DiskUsage = device.GetDiskUsageStat()
 
-	carfileStorePath := device.carfileStore.GetPath()
-	usageStat, err := disk.Usage(carfileStorePath)
-	if err != nil {
-		log.Errorf("get disk usage stat error: %s", err)
-		return api.DevicesInfo{}, err
-	}
-
-	info.DiskUsage = usageStat.UsedPercent
-	info.DiskSpace = float64(usageStat.Total)
-
-	absPath, err := filepath.Abs(carfileStorePath)
+	absPath, err := filepath.Abs(device.carfileStore.GetPath())
 	if err != nil {
 		return api.DevicesInfo{}, err
 	}
@@ -147,10 +139,6 @@ func getMacAddr(ip string) (string, error) {
 	return "", nil
 }
 
-func (device *Device) GetDeviceID() string {
-	return device.deviceID
-}
-
 func (device *Device) SetBandwidthUp(bandwidthUp int64) {
 	device.bandwidthUp = bandwidthUp
 }
@@ -163,14 +151,24 @@ func (device *Device) GetBandwidthDown() int64 {
 	return device.bandwidthDown
 }
 
-func (device *Device) SetExternaIP(externaIP string) {
-	device.publicIP = externaIP
-}
-
 func (device *Device) GetExternaIP() string {
 	return device.publicIP
 }
 
 func (device *Device) GetInternalIP() string {
 	return device.internalIP
+}
+
+func (device *Device) DeviceID(ctx context.Context) (string, error) {
+	return device.deviceID, nil
+}
+
+func (device *Device) GetDiskUsageStat() (totalSpace, usage float64) {
+	carfileStorePath := device.carfileStore.GetPath()
+	usageStat, err := disk.Usage(carfileStorePath)
+	if err != nil {
+		log.Errorf("get disk usage stat error: %s", err)
+		return 0, 0
+	}
+	return float64(usageStat.Total), usageStat.UsedPercent
 }

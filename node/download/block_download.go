@@ -89,8 +89,10 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		bd.resultFailed(w, r, 0, nil, fmt.Errorf("DecodeString sign(%s) error:%s", signStr, err.Error()))
 		return
 	}
+
+	deviceID, _ := bd.device.DeviceID(context.Background())
 	if bd.publicKey == nil {
-		bd.resultFailed(w, r, sn, sign, fmt.Errorf("node %s publicKey == nil", bd.device.GetDeviceID()))
+		bd.resultFailed(w, r, sn, sign, fmt.Errorf("node %s publicKey == nil", deviceID))
 		return
 	}
 

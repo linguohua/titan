@@ -87,7 +87,7 @@ type CarfileOperationStruct struct {
 
 		DeleteAllCarfiles func(p0 context.Context) error `perm:"admin"`
 
-		DeleteCarfile func(p0 context.Context, p1 string) (int, error) `perm:"write"`
+		DeleteCarfile func(p0 context.Context, p1 string) error `perm:"write"`
 
 		DeleteWaitCacheCarfile func(p0 context.Context, p1 string) (int, error) `perm:"admin"`
 	}
@@ -138,6 +138,8 @@ type DataSyncStub struct {
 
 type DeviceStruct struct {
 	Internal struct {
+		DeviceID func(p0 context.Context) (string, error) `perm:"read"`
+
 		DeviceInfo func(p0 context.Context) (DevicesInfo, error) `perm:"read"`
 	}
 }
@@ -541,15 +543,15 @@ func (s *CarfileOperationStub) DeleteAllCarfiles(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *CarfileOperationStruct) DeleteCarfile(p0 context.Context, p1 string) (int, error) {
+func (s *CarfileOperationStruct) DeleteCarfile(p0 context.Context, p1 string) error {
 	if s.Internal.DeleteCarfile == nil {
-		return 0, ErrNotSupported
+		return ErrNotSupported
 	}
 	return s.Internal.DeleteCarfile(p0, p1)
 }
 
-func (s *CarfileOperationStub) DeleteCarfile(p0 context.Context, p1 string) (int, error) {
-	return 0, ErrNotSupported
+func (s *CarfileOperationStub) DeleteCarfile(p0 context.Context, p1 string) error {
+	return ErrNotSupported
 }
 
 func (s *CarfileOperationStruct) DeleteWaitCacheCarfile(p0 context.Context, p1 string) (int, error) {
@@ -704,6 +706,17 @@ func (s *DataSyncStruct) ScrubBlocks(p0 context.Context, p1 ScrubBlocks) error {
 
 func (s *DataSyncStub) ScrubBlocks(p0 context.Context, p1 ScrubBlocks) error {
 	return ErrNotSupported
+}
+
+func (s *DeviceStruct) DeviceID(p0 context.Context) (string, error) {
+	if s.Internal.DeviceID == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.DeviceID(p0)
+}
+
+func (s *DeviceStub) DeviceID(p0 context.Context) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *DeviceStruct) DeviceInfo(p0 context.Context) (DevicesInfo, error) {

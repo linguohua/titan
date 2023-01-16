@@ -407,7 +407,8 @@ func (block *Block) AnnounceBlocksWasDelete(ctx context.Context, cids []string) 
 	log.Debug("AnnounceBlocksWasDelete")
 	failedResults := make([]api.BlockOperationResult, 0)
 
-	result, err := block.scheduler.DeleteBlockRecords(ctx, block.device.GetDeviceID(), cids)
+	deviceID, _ := block.device.DeviceID(context.Background())
+	result, err := block.scheduler.DeleteBlockRecords(ctx, deviceID, cids)
 	if err != nil {
 		log.Errorf("AnnounceBlocksWasDelete, delete block error:%v", err)
 		return failedResults, err
