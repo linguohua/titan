@@ -387,6 +387,20 @@ func (sd sqlDB) GetCarfileCidWithPage(page int) (count int, totalPage int, list 
 	return
 }
 
+// func (sd sqlDB) GetCandidateWithHash(hash string) ([]*api.CacheTaskInfo, error) {
+// 	area := sd.ReplaceArea()
+
+// 	var out []*api.CacheTaskInfo
+// 	query := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash=? AND status=? AND root_cache=?`,
+// 		fmt.Sprintf(cacheInfoTable, area))
+
+// 	if err := sd.cli.Select(&out, query, hash, api.CacheStatusSuccess, true); err != nil {
+// 		return nil, err
+// 	}
+
+// 	return out, nil
+// }
+
 func (sd sqlDB) GetCachesWithHash(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error) {
 	area := sd.ReplaceArea()
 
@@ -411,11 +425,11 @@ func (sd sqlDB) GetCachesWithHash(hash string, isSuccess bool) ([]*api.CacheTask
 }
 
 func (sd sqlDB) GetRandCarfileWithNode(deviceID string) (string, error) {
-	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE device_id=?`,
+	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE device_id=? AND status=?`,
 		fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()))
 
 	var count int
-	if err := sd.cli.Get(&count, query, deviceID); err != nil {
+	if err := sd.cli.Get(&count, query, deviceID, api.CacheStatusSuccess); err != nil {
 		return "", err
 	}
 
@@ -423,8 +437,8 @@ func (sd sqlDB) GetRandCarfileWithNode(deviceID string) (string, error) {
 	index := myRand.Intn(count)
 
 	var hash string
-	cmd := fmt.Sprintf("SELECT carfile_hash FROM %s WHERE device_id=? AND LIMIT %d,%d", fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()), index, 1)
-	if err := sd.cli.Select(&hash, cmd, deviceID); err != nil {
+	cmd := fmt.Sprintf("SELECT carfile_hash FROM %s WHERE device_id=? AND status=? AND LIMIT %d,%d", fmt.Sprintf(cacheInfoTable, sd.ReplaceArea()), index, 1)
+	if err := sd.cli.Select(&hash, cmd, deviceID, api.CacheStatusSuccess); err != nil {
 		return "", err
 	}
 
