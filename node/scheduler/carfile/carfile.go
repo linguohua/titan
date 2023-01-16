@@ -152,7 +152,7 @@ func (d *CarfileRecord) restartUndoneCache() (isRuning bool) {
 
 	cacheList := d.getUndoneCaches()
 	if len(cacheList) > 0 {
-		runningList := make([]string, 0)
+		// runningList := make([]string, 0)
 		// need new cache
 		for _, cache := range cacheList {
 			err := cache.startCache()
@@ -161,14 +161,14 @@ func (d *CarfileRecord) restartUndoneCache() (isRuning bool) {
 				continue
 			}
 
-			runningList = append(runningList, cache.deviceID)
+			// runningList = append(runningList, cache.deviceID)
 			isRuning = true
 		}
 		// update db
-		err := persistent.GetDB().UpdateCacheStatusWithNodes(d.carfileHash, runningList)
-		if err != nil {
-			log.Errorf("UpdateCacheStatusWithNodes err:%s", err.Error())
-		}
+		// err := persistent.GetDB().UpdateCacheStatusWithNodes(d.carfileHash, runningList)
+		// if err != nil {
+		// 	log.Errorf("UpdateCacheStatusWithNodes err:%s", err.Error())
+		// }
 	}
 
 	return
@@ -205,6 +205,7 @@ func (d *CarfileRecord) dispatchCache() (isRunning bool, err error) {
 		return
 	}
 
+	// candidates cache
 	needCandidate := d.carfileManager.getNeedRootCacheCount(d.needReliability) - d.rootCaches
 	if needCandidate > 0 {
 		candidates := d.carfileManager.findAppropriateCandidates(d.CacheTaskMap, needCandidate)
