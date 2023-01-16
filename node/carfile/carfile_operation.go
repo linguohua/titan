@@ -501,3 +501,29 @@ func (carfileOperation *CarfileOperation) LoadBlock(ctx context.Context, cid str
 	}
 	return carfileOperation.carfileStore.GetBlock(blockHash)
 }
+
+func (carfileOperation *CarfileOperation) GetBlocksOfCarfile(carfileCID string, indexs []int) (map[int]string, error) {
+	carfileHash, err := helper.CIDString2HashString(carfileCID)
+	if err != nil {
+		return nil, err
+	}
+
+	blocksHash, err := carfileOperation.carfileStore.GetBlocksHashWithCarfilePositions(carfileHash, indexs)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make(map[int]string)
+	for index, blockHash := range blocksHash {
+		cid, err := helper.HashString2CidString(blockHash)
+		if err != nil {
+			log.Errorf("GetBlocksOfCarfile, can not convert hash %s to cid", blockHash)
+			continue
+		}
+
+		pos := indexs[index]
+		ret[pos] = cid
+	}
+
+	return ret, nil
+}

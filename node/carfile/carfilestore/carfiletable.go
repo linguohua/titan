@@ -2,6 +2,7 @@ package carfilestore
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -33,7 +34,6 @@ func (cfTable *carfileTable) readBlocksHashOfCarfile(carfileHash string, positio
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	defer tableFile.Close()
 
 	cids := make([]string, 0, len(positions))
@@ -46,6 +46,10 @@ func (cfTable *carfileTable) readBlocksHashOfCarfile(carfileHash string, positio
 
 		buffer := make([]byte, hashStringLen)
 		_, err = tableFile.Read(buffer)
+		if err == io.EOF {
+			return nil, fmt.Errorf("Position %d is out of range", pos)
+		}
+
 		if err != nil {
 			return nil, err
 		}
