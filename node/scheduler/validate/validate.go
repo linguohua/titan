@@ -535,17 +535,24 @@ func (v *Validate) PushResultToQueue(validateResults *api.ValidateResults) {
 	v.resultChannel <- true
 }
 
-func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) error {
-	if validateResults.RoundID != v.curRoundID {
+func (v *Validate) handleValidateResult(validateResult *api.ValidateResults) error {
+	if validateResult.RoundID != v.curRoundID {
 		return xerrors.Errorf("round id mismatch")
 	}
 
-	log.Debugf("validate result : %+v", *validateResults)
+	log.Debugf("validate result : %+v", *validateResult)
+
+	var status persistent.ValidateStatus
 
 	defer func() {
-		count, err := cache.GetDB().RemoveValidatedWithList(validateResults.DeviceID)
+		err := v.UpdateFailValidateResult(validateResult.RoundID, validateResult.DeviceID, status)
 		if err != nil {
-			log.Errorf("RemoveValidatedWithList [%s] fail : %s", validateResults.DeviceID, err.Error())
+			log.Errorf("UpdateFailValidateResult [%s] fail : %s", validateResult.DeviceID, err.Error())
+		}
+
+		count, err := cache.GetDB().RemoveValidatedWithList(validateResult.DeviceID)
+		if err != nil {
+			log.Errorf("RemoveValidatedWithList [%s] fail : %s", validateResult.DeviceID, err.Error())
 			return
 		}
 		// count, err := cache.GetDB().CountVerifyingNode(v.ctx)
@@ -558,17 +565,62 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 		}
 	}()
 
-	if validateResults.IsCancel {
-		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusCancel)
+	if validateResult.IsCancel {
+		status = persistent.ValidateStatusCancel
+		return nil
 	}
 
-	if validateResults.IsTimeout {
-		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusTimeOut)
+	if validateResult.IsTimeout {
+		status = persistent.ValidateStatusTimeOut
+		return nil
 	}
 
-	// candidateId := persistent.GetDB().GetCachesWithHash()
+	// hash, err := helper.CIDString2HashString(validateResult.CarfileCID)
+	// if err != nil {
+	// 	status = persistent.ValidateStatusOther
+	// 	log.Errorf("handleValidateResult CIDString2HashString %s, err:%s", validateResult.CarfileCID, err.Error())
+	// 	return nil
+	// }
 
-	// candidate := v.nodeManager.GetCandidateNode()
+	// cacheInfos, err := persistent.GetDB().GetCachesWithHash(hash, true)
+	// if err != nil {
+	// 	status = persistent.ValidateStatusOther
+	// 	log.Errorf("handleValidateResult GetCachesWithHash %s , err:%s", validateResult.CarfileCID, err.Error())
+	// 	return nil
+	// }
+
+	// carfileRecord, err := persistent.GetDB().GetCarfileInfo(hash)
+	// if err != nil {
+	// 	status = persistent.ValidateStatusOther
+	// 	log.Errorf("handleValidateResult GetCarfileInfo %s , err:%s", validateResult.CarfileCID, err.Error())
+	// 	return nil
+	// }
+
+	// r := rand.New(rand.NewSource(v.seed))
+
+	// for index := 0; index < len(validateResult.Cids); index++ {
+	// 	fid := v.getRandNum(int(carfileRecord.TotalBlocks), r) + 1
+	// 	resultCid := validateResults.Cids[index]
+
+	// 	cid := cacheInfos[fid]
+	// 	if cid == "" {
+	// 		continue
+	// 	}
+
+	// 	if !v.compareCid(cid, resultCid) {
+	// 		log.Errorf("round [%d] and deviceID [%s], validate fail resultCid:%s, cid_db:%s,fid:%d,index:%d", validateResults.RoundID, validateResults.DeviceID, resultCid, cid, fid, index)
+	// 		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusFail)
+	// 	}
+	// }
+
+	// for _, cacheInfo := range cacheInfos {
+	// 	candidate := v.nodeManager.GetCandidateNode(cacheInfo.DeviceID)
+	// 	if candidate == nil {
+	// 		continue
+	// 	}
+
+	// 	candidate.GetAPI().GetBlocksOfCarfile(context.Background(), validateResult.CarfileCID)
+	// }
 
 	// r := rand.New(rand.NewSource(v.seed))
 	// cidLength := len(validateResults.Cids)
@@ -602,7 +654,7 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 	// 	}
 	// }
 
-	return v.UpdateSuccessValidateResult(validateResults)
+	return v.UpdateSuccessValidateResult(validateResult)
 }
 
 func (v *Validate) compareCid(cidStr1, cidStr2 string) bool {
