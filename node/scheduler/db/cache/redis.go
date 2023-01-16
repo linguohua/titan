@@ -256,16 +256,20 @@ func (rd redisDB) GetNodesWithVerifyingList() ([]string, error) {
 	return rd.cli.SMembers(context.Background(), key).Result()
 }
 
-func (rd redisDB) CountVerifyingNode(ctx context.Context) (int64, error) {
-	key := fmt.Sprintf(redisKeyVerifyingList, serverName)
-	return rd.cli.SCard(ctx, key).Result()
-}
+// func (rd redisDB) CountVerifyingNode(ctx context.Context) (int64, error) {
+// 	key := fmt.Sprintf(redisKeyVerifyingList, serverName)
+// 	return rd.cli.SCard(ctx, key).Result()
+// }
 
-func (rd redisDB) RemoveNodeWithVerifyingList(deviceID string) error {
+func (rd redisDB) RemoveValidatedWithList(deviceID string) (int64, error) {
 	key := fmt.Sprintf(redisKeyVerifyingList, serverName)
 
 	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
-	return err
+	if err != nil {
+		return 0, err
+	}
+
+	return rd.cli.SCard(context.Background(), key).Result()
 }
 
 func (rd redisDB) RemoveVerifyingList() error {

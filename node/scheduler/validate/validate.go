@@ -543,16 +543,16 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 	log.Debugf("validate result : %+v", *validateResults)
 
 	defer func() {
-		err := cache.GetDB().RemoveNodeWithVerifyingList(validateResults.DeviceID)
+		count, err := cache.GetDB().RemoveValidatedWithList(validateResults.DeviceID)
 		if err != nil {
-			log.Errorf("remove edge node [%s] fail : %s", validateResults.DeviceID, err.Error())
+			log.Errorf("RemoveValidatedWithList [%s] fail : %s", validateResults.DeviceID, err.Error())
 			return
 		}
-		count, err := cache.GetDB().CountVerifyingNode(v.ctx)
-		if err != nil {
-			log.Error("CountVerifyingNode fail :", err.Error())
-			return
-		}
+		// count, err := cache.GetDB().CountVerifyingNode(v.ctx)
+		// if err != nil {
+		// 	log.Error("CountVerifyingNode fail :", err.Error())
+		// 	return
+		// }
 		if count == 0 {
 			v.running = false
 		}
@@ -565,6 +565,10 @@ func (v *Validate) handleValidateResult(validateResults *api.ValidateResults) er
 	if validateResults.IsTimeout {
 		return v.UpdateFailValidateResult(validateResults.RoundID, validateResults.DeviceID, persistent.ValidateStatusTimeOut)
 	}
+
+	// candidateId := persistent.GetDB().GetCachesWithHash()
+
+	// candidate := v.nodeManager.GetCandidateNode()
 
 	// r := rand.New(rand.NewSource(v.seed))
 	// cidLength := len(validateResults.Cids)

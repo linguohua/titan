@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"context"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -44,10 +43,10 @@ type DB interface {
 
 	// verifying node list
 	SetNodeToVerifyingList(deviceID string) error
-	RemoveNodeWithVerifyingList(deviceID string) error
+	RemoveValidatedWithList(deviceID string) (int64, error)
 	RemoveVerifyingList() error
 	GetNodesWithVerifyingList() ([]string, error)
-	CountVerifyingNode(ctx context.Context) (int64, error)
+	// CountVerifyingNode(ctx context.Context) (int64, error)
 
 	// validator list
 	SetValidatorsToList(deviceIDs []string, expiration time.Duration) error
