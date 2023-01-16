@@ -11,6 +11,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/device"
+	"github.com/linguohua/titan/node/helper"
 	"golang.org/x/time/rate"
 )
 
@@ -58,9 +59,14 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 
 	limiter := rate.NewLimiter(rate.Limit(speedRate), int(speedRate))
 
-	blockCount, err := validate.carfileStore.BlockCountOfCarfile(reqValidate.CarfileCID)
+	carfileHash, err := helper.CIDString2HashString(reqValidate.CarfileCID)
 	if err != nil {
-		log.Errorf("sendBlocks, BlocksCountOfCarfile error:%s", err.Error())
+		log.Errorf("sendBlocks, CIDString2HashString error:%s, carfileCID:%s", err.Error(), reqValidate.CarfileCID)
+		return
+	}
+	blockCount, err := validate.carfileStore.BlockCountOfCarfile(carfileHash)
+	if err != nil {
+		log.Errorf("sendBlocks, BlocksCountOfCarfile error:%s, carfileCID:%s", err.Error(), carfileHash)
 		return
 	}
 
@@ -80,8 +86,8 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 		default:
 		}
 
-		fid := r.Intn(blockCount) + 1
-		blockHashs, err := validate.carfileStore.GetBlocksHashWithCarfilePositions("", []int{fid})
+		fid := r.Intn(blockCount)
+		blockHashs, err := validate.carfileStore.GetBlocksHashWithCarfilePositions(carfileHash, []int{fid})
 		if err != nil && err != datastore.ErrNotFound {
 			log.Errorf("sendBlocks, get blockHashs error:%v", err)
 			return

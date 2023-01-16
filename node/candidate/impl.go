@@ -100,6 +100,7 @@ func (candidate *Candidate) WaitQuiet(ctx context.Context) error {
 func (candidate *Candidate) GetBlocksOfCarfile(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error) {
 	blockCount, err := candidate.CarfileOperation.BlockCountOfCarfile(carfileCID)
 	if err != nil {
+		log.Errorf("GetBlocksOfCarfile, BlockCountOfCarfile error:%s, carfileCID:%s", err.Error(), carfileCID)
 		return nil, err
 	}
 

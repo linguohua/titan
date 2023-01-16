@@ -505,6 +505,7 @@ func (carfileOperation *CarfileOperation) LoadBlock(ctx context.Context, cid str
 func (carfileOperation *CarfileOperation) GetBlocksOfCarfile(carfileCID string, indexs []int) (map[int]string, error) {
 	carfileHash, err := helper.CIDString2HashString(carfileCID)
 	if err != nil {
+		log.Errorf("GetBlocksOfCarfile, CIDString2HashString error:%s, carfileCID:%s", err.Error(), carfileCID)
 		return nil, err
 	}
 
