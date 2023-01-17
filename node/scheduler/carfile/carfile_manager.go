@@ -428,7 +428,7 @@ func (m *Manager) checkCachesExpired() {
 		return
 	}
 
-	//(On) : n = cache count
+	//(On) : n = carfile count
 	carfileRecords, err := persistent.GetDB().GetExpiredCarfiles()
 	if err != nil {
 		log.Errorf("GetExpiredCarfiles err:%s", err.Error())
@@ -442,11 +442,12 @@ func (m *Manager) checkCachesExpired() {
 	}
 
 	// reset latelyExpiredTime
-	m.latelyExpiredTime, err = persistent.GetDB().GetMinExpiredTimeWithCaches()
+	latelyExpiredTime, err := persistent.GetDB().GetMinExpiredTime()
 	if err != nil {
-		log.Errorf("GetMinExpiredTimeWithCaches err:%s", err.Error())
 		return
 	}
+
+	m.resetLatelyExpiredTime(latelyExpiredTime)
 }
 
 func (m *Manager) resetLatelyExpiredTime(t time.Time) {
