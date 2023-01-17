@@ -26,6 +26,7 @@ type CarfileRecord struct {
 	rootCaches   int
 	CacheTaskMap sync.Map
 
+	reliabilitylock       sync.RWMutex
 	dowloadInfoslock      sync.RWMutex
 	rootCacheDowloadInfos []*api.DowloadSource
 }
@@ -58,9 +59,9 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 	carfileRecord.carfileHash = dInfo.CarfileHash
 	carfileRecord.rootCacheDowloadInfos = make([]*api.DowloadSource, 0)
 
-	caches, err := persistent.GetDB().GetCachesWithHash(hash, false)
+	caches, err := persistent.GetDB().GetCaches(hash, false)
 	if err != nil {
-		log.Errorf("loadData hash:%s, GetCachesWithHash err:%s", hash, err.Error())
+		log.Errorf("loadData hash:%s, GetCaches err:%s", hash, err.Error())
 		return carfileRecord, err
 	}
 
@@ -123,10 +124,6 @@ func (d *CarfileRecord) rootCacheExists() bool {
 }
 
 func (d *CarfileRecord) saveCarfileCacheInfo(cache *CacheTask) error {
-	if cache.status == api.CacheStatusSuccess {
-		d.reliability += cache.reliability
-	}
-
 	dInfo := &api.CarfileRecordInfo{
 		CarfileHash: d.carfileHash,
 		TotalSize:   d.totalSize,
@@ -237,17 +234,23 @@ func (d *CarfileRecord) dispatchCache() (isRunning bool, err error) {
 }
 
 func (d *CarfileRecord) cacheDone(doneCache *CacheTask) error {
-	if doneCache.isRootCache && doneCache.status == api.CacheStatusSuccess {
-		d.rootCaches++
+	if doneCache.status == api.CacheStatusSuccess {
+		d.reliabilitylock.Lock()
+		d.reliability += doneCache.reliability
+		d.reliabilitylock.Unlock()
 
-		cNode := d.nodeManager.GetCandidateNode(doneCache.deviceID)
-		if cNode != nil {
-			d.dowloadInfoslock.Lock()
-			d.rootCacheDowloadInfos = append(d.rootCacheDowloadInfos, &api.DowloadSource{
-				CandidateURL:   cNode.GetAddress(),
-				CandidateToken: string(d.carfileManager.getAuthToken()),
-			})
-			d.dowloadInfoslock.Unlock()
+		if doneCache.isRootCache {
+			d.rootCaches++
+
+			cNode := d.nodeManager.GetCandidateNode(doneCache.deviceID)
+			if cNode != nil {
+				d.dowloadInfoslock.Lock()
+				d.rootCacheDowloadInfos = append(d.rootCacheDowloadInfos, &api.DowloadSource{
+					CandidateURL:   cNode.GetAddress(),
+					CandidateToken: string(d.carfileManager.getAuthToken()),
+				})
+				d.dowloadInfoslock.Unlock()
+			}
 		}
 	}
 

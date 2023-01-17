@@ -47,7 +47,8 @@ type DB interface {
 	SavceCarfileRecordInfo(info *api.CarfileRecordInfo) error
 	GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error)
 	GetCarfileCidWithPage(page int) (count int, totalPage int, list []*api.CarfileRecordInfo, err error)
-	GetCachesWithHash(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error)
+	GetCaches(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error)
+	GetCachesWithCandidate(hash string) ([]string, error)
 	ExtendExpiredTimeWhitCarfile(carfileHash string, hour int) error
 	ChangeExpiredTimeWhitCarfile(carfileHash string, expiredTime time.Time) error
 	GetExpiredCarfiles() ([]*api.CarfileRecordInfo, error)

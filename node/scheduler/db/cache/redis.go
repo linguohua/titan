@@ -243,10 +243,10 @@ func (rd redisDB) IncrValidateRoundID() (int64, error) {
 }
 
 // verifying node list
-func (rd redisDB) SetNodeToVerifyingList(deviceID string) error {
+func (rd redisDB) SetNodesToVerifyingList(deviceIDs []string) error {
 	key := fmt.Sprintf(redisKeyVerifyingList, serverName)
 
-	_, err := rd.cli.SAdd(context.Background(), key, deviceID).Result()
+	_, err := rd.cli.SAdd(context.Background(), key, deviceIDs).Result()
 	return err
 }
 
@@ -580,7 +580,6 @@ func (rd redisDB) UpdateNodeCacheInfo(deviceID string, nodeInfo *NodeCacheInfo) 
 
 	ctx := context.Background()
 	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-
 		nKey := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 		pipeliner.HSet(context.Background(), nKey, diskUsageField, nodeInfo.DiskUsage)
 		pipeliner.HSet(context.Background(), nKey, blockCountField, nodeInfo.BlockCount)
