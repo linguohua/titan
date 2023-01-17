@@ -370,7 +370,8 @@ func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api
 	vs := &validateResults
 	vs.Validator = validator
 
-	s.validate.PushResultToQueue(vs)
+	// s.validate.PushResultToQueue(vs)
+	s.validate.ValidateResult(vs)
 	return nil
 }
 

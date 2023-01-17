@@ -42,7 +42,7 @@ type DB interface {
 	IncrValidateRoundID() (int64, error)
 
 	// verifying node list
-	SetNodeToVerifyingList(deviceID string) error
+	SetNodesToVerifyingList(deviceIDs []string) error
 	RemoveValidatedWithList(deviceID string) (int64, error)
 	RemoveVerifyingList() error
 	GetNodesWithVerifyingList() ([]string, error)

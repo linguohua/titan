@@ -418,7 +418,21 @@ func (sd sqlDB) GetCarfileCidWithPage(page int) (count int, totalPage int, list 
 // 	return out, nil
 // }
 
-func (sd sqlDB) GetCachesWithHash(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error) {
+func (sd sqlDB) GetCachesWithCandidate(hash string) ([]string, error) {
+	area := sd.ReplaceArea()
+
+	var out []string
+	query := fmt.Sprintf(`SELECT device_id FROM %s WHERE carfile_hash=? AND status=? AND root_cache=?`,
+		fmt.Sprintf(cacheInfoTable, area))
+
+	if err := sd.cli.Select(&out, query, hash, api.CacheStatusSuccess, true); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func (sd sqlDB) GetCaches(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error) {
 	area := sd.ReplaceArea()
 
 	var out []*api.CacheTaskInfo
