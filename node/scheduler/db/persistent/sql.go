@@ -26,7 +26,7 @@ const errNotFind = "Not Found"
 
 var (
 	eventInfoTable    = "event_info_%s"
-	dataInfoTable     = "carfiles_%s"
+	carfileInfoTable  = "carfiles_%s"
 	cacheInfoTable    = "caches_%s"
 	blockDownloadInfo = "block_download_info_%s"
 )
@@ -305,7 +305,7 @@ func (sd sqlDB) CreateCacheInfo(cInfo *api.CacheTaskInfo) error {
 
 func (sd sqlDB) SaveCacheResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheTaskInfo) error {
 	area := sd.ReplaceArea()
-	dTableName := fmt.Sprintf(dataInfoTable, area)
+	dTableName := fmt.Sprintf(carfileInfoTable, area)
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
 	tx := sd.cli.MustBegin()
@@ -329,7 +329,7 @@ func (sd sqlDB) SaveCacheResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheT
 func (sd sqlDB) SavceCarfileRecordInfo(info *api.CarfileRecordInfo) error {
 	area := sd.ReplaceArea()
 
-	tableName := fmt.Sprintf(dataInfoTable, area)
+	tableName := fmt.Sprintf(carfileInfoTable, area)
 
 	oldInfo, err := sd.GetCarfileInfo(info.CarfileHash)
 	if err != nil && !sd.IsNilErr(err) {
@@ -353,7 +353,7 @@ func (sd sqlDB) GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error) {
 	area := sd.ReplaceArea()
 
 	info := &api.CarfileRecordInfo{CarfileHash: hash}
-	cmd := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=:carfile_hash", fmt.Sprintf(dataInfoTable, area))
+	cmd := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=:carfile_hash", fmt.Sprintf(carfileInfoTable, area))
 
 	rows, err := sd.cli.NamedQuery(cmd, info)
 	if err != nil {
@@ -377,7 +377,7 @@ func (sd sqlDB) GetCarfileCidWithPage(page int) (count int, totalPage int, list 
 	area := sd.ReplaceArea()
 	num := 20
 
-	cmd := fmt.Sprintf("SELECT count(carfile_cid) FROM %s ;", fmt.Sprintf(dataInfoTable, area))
+	cmd := fmt.Sprintf("SELECT count(carfile_cid) FROM %s ;", fmt.Sprintf(carfileInfoTable, area))
 	err = sd.cli.Get(&count, cmd)
 	if err != nil {
 		return
@@ -396,7 +396,7 @@ func (sd sqlDB) GetCarfileCidWithPage(page int) (count int, totalPage int, list 
 		page = totalPage
 	}
 
-	cmd = fmt.Sprintf("SELECT * FROM %s LIMIT %d,%d", fmt.Sprintf(dataInfoTable, area), (num * (page - 1)), num)
+	cmd = fmt.Sprintf("SELECT * FROM %s LIMIT %d,%d", fmt.Sprintf(carfileInfoTable, area), (num * (page - 1)), num)
 	if err = sd.cli.Select(&list, cmd); err != nil {
 		return
 	}
@@ -475,7 +475,7 @@ func (sd sqlDB) GetRandCarfileWithNode(deviceID string) (string, error) {
 func (sd sqlDB) ExtendExpiredTimeWhitCarfile(carfileHash string, hour int) error {
 	tx := sd.cli.MustBegin()
 
-	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=?`, fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
+	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=?`, fmt.Sprintf(carfileInfoTable, sd.ReplaceArea()))
 	tx.MustExec(cmd, hour, carfileHash)
 
 	err := tx.Commit()
@@ -490,7 +490,7 @@ func (sd sqlDB) ExtendExpiredTimeWhitCarfile(carfileHash string, hour int) error
 func (sd sqlDB) ChangeExpiredTimeWhitCarfile(carfileHash string, expiredTime time.Time) error {
 	tx := sd.cli.MustBegin()
 
-	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=?`, fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
+	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=? WHERE carfile_hash=?`, fmt.Sprintf(carfileInfoTable, sd.ReplaceArea()))
 	tx.MustExec(cmd, expiredTime, carfileHash)
 
 	err := tx.Commit()
@@ -502,9 +502,21 @@ func (sd sqlDB) ChangeExpiredTimeWhitCarfile(carfileHash string, expiredTime tim
 	return nil
 }
 
-func (sd sqlDB) GetMinExpiredTimeWithCaches() (time.Time, error) {
+// func (sd sqlDB) GetCarfileCount() (int, error) {
+// 	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s`,
+// 		fmt.Sprintf(carfileInfoTable, sd.ReplaceArea()))
+
+// 	var out int
+// 	if err := sd.cli.Get(&out, query); err != nil {
+// 		return out, err
+// 	}
+
+// 	return out, nil
+// }
+
+func (sd sqlDB) GetMinExpiredTime() (time.Time, error) {
 	query := fmt.Sprintf(`SELECT MIN(expired_time) FROM %s`,
-		fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
+		fmt.Sprintf(carfileInfoTable, sd.ReplaceArea()))
 
 	var out time.Time
 	if err := sd.cli.Get(&out, query); err != nil {
@@ -516,7 +528,7 @@ func (sd sqlDB) GetMinExpiredTimeWithCaches() (time.Time, error) {
 
 func (sd sqlDB) GetExpiredCarfiles() ([]*api.CarfileRecordInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE expired_time <= NOW()`,
-		fmt.Sprintf(dataInfoTable, sd.ReplaceArea()))
+		fmt.Sprintf(carfileInfoTable, sd.ReplaceArea()))
 
 	var out []*api.CarfileRecordInfo
 	if err := sd.cli.Select(&out, query); err != nil {
@@ -558,7 +570,7 @@ func (sd sqlDB) GetCacheInfo(carfileHash, deviceID string) (*api.CacheTaskInfo, 
 func (sd sqlDB) RemoveCarfileRecord(carfileHash string) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
-	dTableName := fmt.Sprintf(dataInfoTable, area)
+	dTableName := fmt.Sprintf(carfileInfoTable, area)
 
 	tx := sd.cli.MustBegin()
 	// cache info
@@ -582,7 +594,7 @@ func (sd sqlDB) RemoveCarfileRecord(carfileHash string) error {
 func (sd sqlDB) RemoveCacheTask(deviceID, carfileHash string) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
-	dTableName := fmt.Sprintf(dataInfoTable, area)
+	dTableName := fmt.Sprintf(carfileInfoTable, area)
 
 	tx := sd.cli.MustBegin()
 
@@ -618,7 +630,7 @@ func (sd sqlDB) RemoveCacheTask(deviceID, carfileHash string) error {
 func (sd sqlDB) UpdateCacheInfoOfQuitNode(deviceIDs []string) (carfileRecords []*api.CarfileRecordInfo, err error) {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
-	dTableName := fmt.Sprintf(dataInfoTable, area)
+	dTableName := fmt.Sprintf(carfileInfoTable, area)
 	// select * from (
 	// 	select carfile_hash from caches_cn_gd_shenzhen WHERE device_id in ('c_9e7c920e5f5a11edbdbb902e1671f843') GROUP BY carfile_hash )as a
 	// 	LEFT JOIN carfiles_cn_gd_shenzhen as b on a.carfile_hash = b.carfile_hash

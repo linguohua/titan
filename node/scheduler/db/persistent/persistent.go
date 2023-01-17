@@ -43,6 +43,7 @@ type DB interface {
 	// UpdateCacheInfoOfTimeoutNodes(deviceIDs []string) error
 
 	// data info
+	// GetCarfileCount() (int, error)
 	SavceCarfileRecordInfo(info *api.CarfileRecordInfo) error
 	GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error)
 	GetCarfileCidWithPage(page int) (count int, totalPage int, list []*api.CarfileRecordInfo, err error)
@@ -50,7 +51,7 @@ type DB interface {
 	ExtendExpiredTimeWhitCarfile(carfileHash string, hour int) error
 	ChangeExpiredTimeWhitCarfile(carfileHash string, expiredTime time.Time) error
 	GetExpiredCarfiles() ([]*api.CarfileRecordInfo, error)
-	GetMinExpiredTimeWithCaches() (time.Time, error)
+	GetMinExpiredTime() (time.Time, error)
 	// UpdateCacheStatusWithNodes(hash string, deviceIDs []string) error
 
 	// cache info
