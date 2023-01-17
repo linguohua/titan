@@ -253,30 +253,30 @@ func (sd sqlDB) CreateCacheInfo(cInfo *api.CacheTaskInfo) error {
 	return nil
 }
 
-func (sd sqlDB) UpdateCacheStatusWithNodes(hash string, deviceIDs []string) error {
-	area := sd.ReplaceArea()
-	cTableName := fmt.Sprintf(cacheInfoTable, area)
+// func (sd sqlDB) UpdateCacheStatusWithNodes(hash string, deviceIDs []string) error {
+// 	area := sd.ReplaceArea()
+// 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
-	tx := sd.cli.MustBegin()
+// 	tx := sd.cli.MustBegin()
 
-	updateCachesCmd := fmt.Sprintf(`UPDATE %s SET status=? WHERE status!=? AND carfile_hash=? AND device_id in (?)`, cTableName)
-	query, args, err := sqlx.In(updateCachesCmd, int(api.CacheStatusCreate), int(api.CacheStatusSuccess), hash, deviceIDs)
-	if err != nil {
-		return err
-	}
+// 	updateCachesCmd := fmt.Sprintf(`UPDATE %s SET status=? WHERE status!=? AND carfile_hash=? AND device_id in (?)`, cTableName)
+// 	query, args, err := sqlx.In(updateCachesCmd, int(api.CacheStatusCreate), int(api.CacheStatusSuccess), hash, deviceIDs)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	// cache info
-	query = sd.cli.Rebind(query)
-	tx.MustExec(query, args...)
+// 	// cache info
+// 	query = sd.cli.Rebind(query)
+// 	tx.MustExec(query, args...)
 
-	err = tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-		return err
-	}
+// 	err = tx.Commit()
+// 	if err != nil {
+// 		err = tx.Rollback()
+// 		return err
+// 	}
 
-	return err
-}
+// 	return err
+// }
 
 // func (sd sqlDB) UpdateCacheInfoOfTimeoutNodes(deviceIDs []string) error {
 // 	area := sd.ReplaceArea()
@@ -326,7 +326,7 @@ func (sd sqlDB) SaveCacheResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheT
 	return err
 }
 
-func (sd sqlDB) CreateCarfileInfo(info *api.CarfileRecordInfo) error {
+func (sd sqlDB) SavceCarfileRecordInfo(info *api.CarfileRecordInfo) error {
 	area := sd.ReplaceArea()
 
 	tableName := fmt.Sprintf(dataInfoTable, area)
@@ -454,7 +454,7 @@ func (sd sqlDB) GetRandCarfileWithNode(deviceID string) (string, error) {
 		return "", xerrors.Errorf("node %s no cache", deviceID)
 	}
 
-	//rand count
+	// rand count
 	index := myRand.Intn(count)
 
 	var hashs []string

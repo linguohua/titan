@@ -189,10 +189,10 @@ type CandidateDownloadInfo struct {
 type CacheStatus int
 
 const (
-	// CacheStatusUnknown status
-	CacheStatusUnknown CacheStatus = iota
 	// CacheStatusCreate status
-	CacheStatusCreate
+	CacheStatusCreate CacheStatus = iota
+	// CacheStatusRunning status
+	CacheStatusRunning
 	// CacheStatusFail status
 	CacheStatusFail
 	// CacheStatusSuccess status

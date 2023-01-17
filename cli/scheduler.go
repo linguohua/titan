@@ -605,15 +605,6 @@ var showDatasInfoCmd = &cli.Command{
 			return err
 		}
 
-		statusToStr := func(s api.CacheStatus) string {
-			switch s {
-			case api.CacheStatusSuccess:
-				return "done"
-			default:
-				return "running"
-			}
-		}
-
 		sort.Slice(infos, func(i, j int) bool {
 			return infos[i].CarfileCid < infos[j].CarfileCid
 		})
@@ -671,19 +662,6 @@ var showDataInfoCmd = &cli.Command{
 			return err
 		}
 
-		statusToStr := func(s api.CacheStatus) string {
-			switch s {
-			case api.CacheStatusCreate:
-				return "running"
-			case api.CacheStatusSuccess:
-				return "done"
-			case api.CacheStatusTimeout:
-				return "time out"
-			default:
-				return "failed"
-			}
-		}
-
 		fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d \n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks)
 		for _, cache := range info.CacheInfos {
 
@@ -698,6 +676,21 @@ var showDataInfoCmd = &cli.Command{
 
 		return nil
 	},
+}
+
+func statusToStr(s api.CacheStatus) string {
+	switch s {
+	case api.CacheStatusCreate:
+		return "create"
+	case api.CacheStatusRunning:
+		return "running"
+	case api.CacheStatusSuccess:
+		return "done"
+	case api.CacheStatusTimeout:
+		return "time out"
+	default:
+		return "failed"
+	}
 }
 
 var cacheCarfileCmd = &cli.Command{

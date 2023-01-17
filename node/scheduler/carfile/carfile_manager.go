@@ -79,7 +79,7 @@ func (m *Manager) initCarfileMap() {
 				return true
 			}
 			c := value.(*CacheTask)
-			if c == nil || c.status != api.CacheStatusCreate {
+			if c == nil || c.status != api.CacheStatusRunning {
 				return true
 			}
 
@@ -156,19 +156,22 @@ func (m *Manager) doCarfileCacheTasks(info *api.CarfileRecordInfo) error {
 		carfileRecord.expiredTime = expiredTime
 	}
 
-	err = persistent.GetDB().CreateCarfileInfo(&api.CarfileRecordInfo{
+	err = persistent.GetDB().SavceCarfileRecordInfo(&api.CarfileRecordInfo{
 		CarfileCid:      carfileRecord.carfileCid,
 		NeedReliability: carfileRecord.needReliability,
 		ExpiredTime:     carfileRecord.expiredTime,
 		CarfileHash:     carfileRecord.carfileHash,
 	})
 	if err != nil {
-		return xerrors.Errorf("cid:%s,CreateCarfileInfo err:%s", carfileRecord.carfileCid, err.Error())
+		return xerrors.Errorf("cid:%s,SavceCarfileRecordInfo err:%s", carfileRecord.carfileCid, err.Error())
 	}
 
-	isRunning, err := carfileRecord.dispatchCache(true)
-	if err != nil {
-		return err
+	isRunning := carfileRecord.restartUndoneCache()
+	if !isRunning {
+		isRunning, err = carfileRecord.dispatchCache()
+		if err != nil {
+			return err
+		}
 	}
 
 	if isRunning {
@@ -196,7 +199,17 @@ func (m *Manager) CacheCarfile(cid string, reliability int, expiredTime time.Tim
 }
 
 // CacheContinue continue a cache
-func (m *Manager) CacheContinue(cid, deviceID string) error {
+func (m *Manager) CacheContinue(carfileCid, deviceID string) error {
+	// hash, err := helper.CIDString2HashString(carfileCid)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// dI, exist := m.CarfileRecordMap.Load(hash)
+	// if exist && dI != nil {
+	// 	return xerrors.Errorf("carfileRecord %s is running, please wait", carfileCid)
+	// }
+
 	return xerrors.New("unrealized")
 }
 
@@ -299,7 +312,7 @@ func (m *Manager) startCarfileCacheTask() {
 
 		err = m.doCarfileCacheTasks(info)
 		if err != nil {
-			log.Errorf("doCarfileTask %s err:%s", info.CarfileCid, err.Error())
+			log.Errorf("doCarfileCacheTasks %s err:%s", info.CarfileCid, err.Error())
 		}
 	}
 }

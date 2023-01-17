@@ -79,7 +79,7 @@ func (c *CacheTask) startTimeoutTimer() {
 
 	for {
 		<-c.timeoutTicker.C
-		if c.status != api.CacheStatusCreate {
+		if c.status != api.CacheStatusRunning {
 			return
 		}
 
@@ -131,7 +131,12 @@ func (c *CacheTask) carfileCacheResult(info *api.CacheResultInfo) error {
 	}
 
 	// update cache task timeout
-	return cache.GetDB().UpdateNodeCacheingExpireTime(c.carfileHash, c.deviceID, nodeCacheTimeout)
+	err := cache.GetDB().UpdateNodeCacheingExpireTime(c.carfileHash, c.deviceID, nodeCacheTimeout)
+	if err != nil {
+		return err
+	}
+
+	return c.carfileRecord.saveCarfileCacheInfo(c)
 }
 
 func (c *CacheTask) startCache() error {
@@ -144,13 +149,23 @@ func (c *CacheTask) startCache() error {
 
 	go c.startTimeoutTimer()
 
+	defer func() {
+		if err != nil {
+			c.status = api.CacheStatusFail
+			// cache not start
+			err = cache.GetDB().CacheTaskEnd(c.carfileHash, c.deviceID, nil)
+			if err != nil {
+				log.Errorf("startCache %s , CacheTaskEnd err:%s", c.carfileHash, err.Error())
+			}
+		}
+	}()
+
+	c.status = api.CacheStatusRunning
 	// send to node
 	result, err := c.cacheCarfile2Node()
 	if err != nil {
 		return xerrors.Errorf("startCache deviceID:%s, err:%s", c.deviceID, err.Error())
 	}
-
-	c.status = api.CacheStatusCreate
 
 	node := c.carfileRecord.nodeManager.GetNode(c.deviceID)
 	if node != nil {
