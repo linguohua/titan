@@ -166,7 +166,7 @@ func (m *Manager) doCarfileCacheTasks(info *api.CarfileRecordInfo) error {
 		return xerrors.Errorf("cid:%s,CreateCarfileInfo err:%s", carfileRecord.carfileCid, err.Error())
 	}
 
-	isRunning, err := carfileRecord.dispatchCache()
+	isRunning, err := carfileRecord.dispatchCache(true)
 	if err != nil {
 		return err
 	}

@@ -147,10 +147,10 @@ func (d *CarfileRecord) saveCarfileCacheInfo(doneCache *CacheTask) error {
 	return persistent.GetDB().SaveCacheResults(dInfo, cInfo)
 }
 
-func (d *CarfileRecord) restartUndoneCache() (isRuning bool) {
+func (d *CarfileRecord) restartUndoneCache(isRestart bool) (isRuning bool) {
 	isRuning = false
 
-	cacheList := d.getUndoneCaches()
+	cacheList := d.getUndoneCaches(isRestart)
 	if len(cacheList) > 0 {
 		// runningList := make([]string, 0)
 		// need new cache
@@ -199,8 +199,8 @@ func (d *CarfileRecord) createAndDoCacheTasks(nodes []*node.Node, isRootCache bo
 	return
 }
 
-func (d *CarfileRecord) dispatchCache() (isRunning bool, err error) {
-	isRunning = d.restartUndoneCache()
+func (d *CarfileRecord) dispatchCache(isRestart bool) (isRunning bool, err error) {
+	isRunning = d.restartUndoneCache(isRestart)
 	if isRunning {
 		return
 	}
@@ -286,26 +286,29 @@ func (d *CarfileRecord) cacheDone(doneCache *CacheTask) error {
 		return nil
 	}
 
-	isRunning, err := d.dispatchCache()
+	isRunning, err := d.dispatchCache(false)
 	if err != nil {
 		log.Errorf("dispatchCache err:%s", err.Error())
 	}
 
 	if !isRunning {
-		//Carfile cache end
+		// Carfile cache end
 		d.carfileManager.removeCarfileRecord(d)
 	}
 
 	return nil
 }
 
-func (d *CarfileRecord) getUndoneCaches() []*CacheTask {
+func (d *CarfileRecord) getUndoneCaches(isRestart bool) []*CacheTask {
 	// old cache
 	oldCache := make([]*CacheTask, 0)
 	oldRootCache := make([]*CacheTask, 0)
 
 	d.CacheTaskMap.Range(func(key, value interface{}) bool {
 		c := value.(*CacheTask)
+		if isRestart {
+			c.executeCount = 0
+		}
 
 		if c.status != api.CacheStatusSuccess && c.executeCount <= 1 {
 			if c.isRootCache {
