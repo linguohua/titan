@@ -427,12 +427,18 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 	}
 
 	data, err := carfileOperation.carfileStore.GetIncomleteCarfileData(carfileHash)
-	if err == nil {
-		err = decodeCarfileFromData(data, cf)
-	}
-
 	if err != nil && err != datastore.ErrNotFound {
 		log.Errorf("CacheCarfile load incomplete carfile error %s", err.Error())
+	}
+
+	if err == nil {
+		err = decodeCarfileFromData(data, cf)
+		if err != nil {
+			log.Errorf("CacheCarfile, decodeCarfileFromData error:%s", err.Error())
+		} else {
+			// reassigned downloadSources to new
+			cf.downloadSources = sources
+		}
 	}
 
 	carfileOperation.addCarfile2WaitList(cf)
@@ -466,7 +472,7 @@ func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, car
 			log.Errorf("DeleteCarfile, RemoveCarfileResult error:%s, carfileCID:%s", err.Error(), carfileCID)
 		}
 
-		log.Infof("DeleteCarfile, carfile cid %s", carfileCID)
+		log.Infof("DeleteCarfile, carfile cid:%s", carfileCID)
 
 	}()
 	return nil
