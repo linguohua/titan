@@ -63,7 +63,7 @@ func getBlockFromCandidateWithApi(candidate api.Candidate, cidStr string) (block
 }
 
 func getBlocksFromCandidate(cids []string, sources []*api.DowloadSource) ([]blocks.Block, error) {
-	startTime := time.Now()
+	// startTime := time.Now()
 	blks := make([]blocks.Block, 0, len(cids))
 	candidates := make(map[string]api.Candidate)
 	blksLock := &sync.Mutex{}
@@ -98,7 +98,7 @@ func getBlocksFromCandidate(cids []string, sources []*api.DowloadSource) ([]bloc
 	}
 	wg.Wait()
 
-	log.Infof("getBlocksFromCandidateWithApi block len:%d, duration:%dns", len(blks), time.Since(startTime))
+	// log.Infof("getBlocksFromCandidateWithApi block len:%d, duration:%dns", len(blks), time.Since(startTime))
 	return blks, nil
 }
 

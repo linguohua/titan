@@ -70,7 +70,7 @@ func ecodeWaitList(carfiles []*carfile) ([]byte, error) {
 			CarfileSize:               cf.carfileSize,
 			DownloadSize:              cf.downloadSize}
 		waitList = append(waitList, encodeCarfile)
-		log.Infof("encodeCarfile %v", encodeCarfile)
+		// log.Infof("encodeCarfile %v", encodeCarfile)
 	}
 
 	var buffer bytes.Buffer
@@ -105,7 +105,7 @@ func decodeWaitListFromData(carfileData []byte) ([]*carfile, error) {
 		cf.downloadSize = encodeCarfile.DownloadSize
 
 		cfs = append(cfs, cf)
-		log.Infof("decodeWaitListFromData %v", encodeCarfile)
+		// log.Infof("decodeWaitListFromData %v", encodeCarfile)
 	}
 
 	return cfs, nil

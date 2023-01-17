@@ -405,11 +405,13 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 
 	carfileHash, err := helper.CIDString2HashString(carfileCID)
 	if err != nil {
+		log.Errorf("CacheCarfile, CIDString2HashString error:%s, carfile cid:%s", err.Error(), carfileCID)
 		return api.CacheCarfileResult{}, err
 	}
 
 	has, err := carfileOperation.carfileStore.HasCarfile(carfileHash)
 	if err != nil {
+		log.Errorf("CacheCarfile, HasCarfile error:%s, carfile hash :%s", err.Error(), carfileHash)
 		return api.CacheCarfileResult{}, err
 	}
 
@@ -437,6 +439,7 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 	carfileOperation.saveWaitList()
 	carfileOperation.notifyCarfileDownloader()
 
+	log.Infof("CacheCarfile carfile cid:%s", carfileCID)
 	return carfileOperation.cacheCarfileResult()
 }
 
@@ -444,11 +447,8 @@ func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, car
 	go func() {
 		_, err := carfileOperation.deleteCarfile(carfileCID)
 		if err != nil {
-			log.Errorf("DeleteCarfile, delete carfile error:%s", err.Error())
+			log.Errorf("DeleteCarfile, delete carfile error:%s, carfileCID:%s", err.Error(), carfileCID)
 		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
-		defer cancel()
 
 		blockCount, err := carfileOperation.carfileStore.BlockCount()
 		if err != nil {
@@ -458,10 +458,15 @@ func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, car
 		_, diskUsage := carfileOperation.device.GetDiskUsageStat()
 		info := api.RemoveCarfileResultInfo{BlockCount: blockCount, DiskUsage: diskUsage}
 
+		ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+		defer cancel()
+
 		err = carfileOperation.scheduler.RemoveCarfileResult(ctx, info)
 		if err != nil {
-			log.Errorf("DeleteCarfile, RemoveCarfileResult error:%s", err.Error())
+			log.Errorf("DeleteCarfile, RemoveCarfileResult error:%s, carfileCID:%s", err.Error(), carfileCID)
 		}
+
+		log.Infof("DeleteCarfile, carfile cid %s", carfileCID)
 
 	}()
 	return nil
@@ -490,6 +495,8 @@ func (carfileOperation *CarfileOperation) DeleteWaitCacheCarfile(ctx context.Con
 			log.Errorf("delete block error:%s", err.Error())
 		}
 	}
+
+	// TODO:save wait list
 	return len(hashs), nil
 
 }
