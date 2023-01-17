@@ -15,9 +15,7 @@ const (
 	SecretKey = "secret"
 )
 
-var (
-	myRand = rand.New(rand.NewSource(time.Now().UnixNano()))
-)
+var myRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // DB Persistent db
 type DB interface {
@@ -45,7 +43,7 @@ type DB interface {
 	// UpdateCacheInfoOfTimeoutNodes(deviceIDs []string) error
 
 	// data info
-	CreateCarfileInfo(info *api.CarfileRecordInfo) error
+	SavceCarfileRecordInfo(info *api.CarfileRecordInfo) error
 	GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error)
 	GetCarfileCidWithPage(page int) (count int, totalPage int, list []*api.CarfileRecordInfo, err error)
 	GetCachesWithHash(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error)
@@ -53,7 +51,7 @@ type DB interface {
 	ChangeExpiredTimeWhitCarfile(carfileHash string, expiredTime time.Time) error
 	GetExpiredCarfiles() ([]*api.CarfileRecordInfo, error)
 	GetMinExpiredTimeWithCaches() (time.Time, error)
-	UpdateCacheStatusWithNodes(hash string, deviceIDs []string) error
+	// UpdateCacheStatusWithNodes(hash string, deviceIDs []string) error
 
 	// cache info
 	GetSuccessCachesCount() (int, error)

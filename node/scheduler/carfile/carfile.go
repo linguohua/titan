@@ -122,9 +122,9 @@ func (d *CarfileRecord) rootCacheExists() bool {
 	return exist
 }
 
-func (d *CarfileRecord) saveCarfileCacheInfo(doneCache *CacheTask) error {
-	if doneCache.status == api.CacheStatusSuccess {
-		d.reliability += doneCache.reliability
+func (d *CarfileRecord) saveCarfileCacheInfo(cache *CacheTask) error {
+	if cache.status == api.CacheStatusSuccess {
+		d.reliability += cache.reliability
 	}
 
 	dInfo := &api.CarfileRecordInfo{
@@ -135,25 +135,23 @@ func (d *CarfileRecord) saveCarfileCacheInfo(doneCache *CacheTask) error {
 	}
 
 	cInfo := &api.CacheTaskInfo{
-		CarfileHash:  doneCache.carfileHash,
-		DeviceID:     doneCache.deviceID,
-		Status:       doneCache.status,
-		DoneSize:     doneCache.doneSize,
-		DoneBlocks:   doneCache.doneBlocks,
-		ExecuteCount: doneCache.executeCount,
-		Reliability:  doneCache.reliability,
+		CarfileHash:  cache.carfileHash,
+		DeviceID:     cache.deviceID,
+		Status:       cache.status,
+		DoneSize:     cache.doneSize,
+		DoneBlocks:   cache.doneBlocks,
+		ExecuteCount: cache.executeCount,
+		Reliability:  cache.reliability,
 	}
 
 	return persistent.GetDB().SaveCacheResults(dInfo, cInfo)
 }
 
-func (d *CarfileRecord) restartUndoneCache(isRestart bool) (isRuning bool) {
-	isRuning = false
+func (d *CarfileRecord) restartUndoneCache() (isRunning bool) {
+	isRunning = false
 
-	cacheList := d.getUndoneCaches(isRestart)
+	cacheList := d.getExecutableCaches()
 	if len(cacheList) > 0 {
-		// runningList := make([]string, 0)
-		// need new cache
 		for _, cache := range cacheList {
 			err := cache.startCache()
 			if err != nil {
@@ -161,14 +159,8 @@ func (d *CarfileRecord) restartUndoneCache(isRestart bool) (isRuning bool) {
 				continue
 			}
 
-			// runningList = append(runningList, cache.deviceID)
-			isRuning = true
+			isRunning = true
 		}
-		// update db
-		// err := persistent.GetDB().UpdateCacheStatusWithNodes(d.carfileHash, runningList)
-		// if err != nil {
-		// 	log.Errorf("UpdateCacheStatusWithNodes err:%s", err.Error())
-		// }
 	}
 
 	return
@@ -199,12 +191,7 @@ func (d *CarfileRecord) createAndDoCacheTasks(nodes []*node.Node, isRootCache bo
 	return
 }
 
-func (d *CarfileRecord) dispatchCache(isRestart bool) (isRunning bool, err error) {
-	isRunning = d.restartUndoneCache(isRestart)
-	if isRunning {
-		return
-	}
-
+func (d *CarfileRecord) dispatchCache() (isRunning bool, err error) {
 	// candidates cache
 	needCandidate := d.carfileManager.getNeedRootCacheCount(d.needReliability) - d.rootCaches
 	if needCandidate > 0 {
@@ -219,24 +206,23 @@ func (d *CarfileRecord) dispatchCache(isRestart bool) (isRunning bool, err error
 			return
 		}
 
-		err = xerrors.Errorf("candidates not running cache task")
+		// err = xerrors.Errorf("candidates not running cache task")
+		// return
+	}
+
+	if len(d.rootCacheDowloadInfos) <= 0 {
+		err = xerrors.New("not found rootCache")
 		return
 	}
 
 	needCount := d.needReliability - d.reliability
 	if needCount <= 0 {
-		// caches done
 		return
 	}
 
 	edges := d.carfileManager.findAppropriateEdges(d.CacheTaskMap, needCount)
 	if len(edges) <= 0 {
 		err = xerrors.New("not found edge")
-		return
-	}
-
-	if len(d.rootCacheDowloadInfos) <= 0 {
-		err = xerrors.New("not found rootCache")
 		return
 	}
 
@@ -286,7 +272,7 @@ func (d *CarfileRecord) cacheDone(doneCache *CacheTask) error {
 		return nil
 	}
 
-	isRunning, err := d.dispatchCache(false)
+	isRunning, err := d.dispatchCache()
 	if err != nil {
 		log.Errorf("dispatchCache err:%s", err.Error())
 	}
@@ -299,37 +285,31 @@ func (d *CarfileRecord) cacheDone(doneCache *CacheTask) error {
 	return nil
 }
 
-func (d *CarfileRecord) getUndoneCaches(isRestart bool) []*CacheTask {
+func (d *CarfileRecord) getExecutableCaches() []*CacheTask {
 	// old cache
-	oldCache := make([]*CacheTask, 0)
-	oldRootCache := make([]*CacheTask, 0)
+	list := make([]*CacheTask, 0)
+
+	haveRootCache := len(d.rootCacheDowloadInfos) > 0
 
 	d.CacheTaskMap.Range(func(key, value interface{}) bool {
 		c := value.(*CacheTask)
-		if isRestart {
-			c.executeCount = 0
+
+		if c.status == api.CacheStatusSuccess {
+			return true
 		}
 
-		if c.status != api.CacheStatusSuccess && c.executeCount <= 1 {
-			if c.isRootCache {
-				oldRootCache = append(oldRootCache, c)
-			} else {
-				oldCache = append(oldCache, c)
+		if c.isRootCache {
+			list = append(list, c)
+		} else {
+			if haveRootCache {
+				list = append(list, c)
 			}
 		}
 
 		return true
 	})
 
-	if len(oldRootCache) > 0 {
-		return oldRootCache
-	}
-
-	if len(d.rootCacheDowloadInfos) <= 0 {
-		return make([]*CacheTask, 0)
-	}
-
-	return oldCache
+	return list
 }
 
 // GetCarfileCid get carfile cid
