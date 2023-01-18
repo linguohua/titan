@@ -2,7 +2,6 @@ package carfile
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	blocks "github.com/ipfs/go-block-format"
@@ -15,6 +14,7 @@ import (
 	"github.com/ipld/go-ipld-prime/node/basicnode"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
+	"github.com/linguohua/titan/node/carfile/downloader"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/helper"
 )
@@ -22,40 +22,21 @@ import (
 var log = logging.Logger("carfile")
 
 type CarfileOperation struct {
-	scheduler api.Scheduler
-	// carfile list
-	carfileWaitList []*carfile
-	waitListLock    *sync.Mutex
-	downloader      BlockDownloader
-	device          *device.Device
-	carfileCacheCh  chan bool
-	carfileStore    *carfilestore.CarfileStore
-	ds              datastore.Batching
+	scheduler    api.Scheduler
+	device       *device.Device
+	downloadMgr  *DownloadMgr
+	carfileStore *carfilestore.CarfileStore
+	ds           datastore.Batching
 }
 
-type BlockDownloader interface {
-	// scheduler request cache carfile
-	downloadBlocks(cids []string, sources []*api.DowloadSource) ([]blocks.Block, error)
-	// // local sync miss data
-	// syncData(block *Block, reqs map[int]string) error
-}
-
-func NewCarfileOperation(carfileStore *carfilestore.CarfileStore, scheduler api.Scheduler, blockDownloader BlockDownloader, device *device.Device) *CarfileOperation {
+func NewCarfileOperation(carfileStore *carfilestore.CarfileStore, scheduler api.Scheduler, blockDownloader downloader.BlockDownloader, device *device.Device) *CarfileOperation {
 	carfileOperation := &CarfileOperation{
-		scheduler:       scheduler,
-		downloader:      blockDownloader,
-		carfileWaitList: make([]*carfile, 0),
-		waitListLock:    &sync.Mutex{},
-		device:          device,
-		carfileCacheCh:  make(chan bool),
-		carfileStore:    carfileStore,
+		scheduler:    scheduler,
+		device:       device,
+		carfileStore: carfileStore,
 	}
 
-	carfileOperation.restoreWaitListFromFile()
-
-	go carfileOperation.startCarfileDownloader()
-	go carfileOperation.startTick()
-	go carfileOperation.delayDownloadTask()
+	carfileOperation.downloadMgr = newDownloadMgr(carfileStore, &downloadOperation{carfileOperation: carfileOperation, downloader: blockDownloader})
 
 	legacy.RegisterCodec(cid.DagProtobuf, dagpb.Type.PBNode, merkledag.ProtoNodeConverter)
 	legacy.RegisterCodec(cid.Raw, basicnode.Prototype.Bytes, merkledag.RawNodeConverter)
@@ -63,161 +44,7 @@ func NewCarfileOperation(carfileStore *carfilestore.CarfileStore, scheduler api.
 	return carfileOperation
 }
 
-func (carfileOperation *CarfileOperation) startCarfileDownloader() {
-	if carfileOperation.downloader == nil {
-		log.Panic("block.block == nil")
-	}
-
-	for {
-		<-carfileOperation.carfileCacheCh
-		carfileOperation.doDownloadCarfile()
-	}
-}
-
-func (carfileOperation *CarfileOperation) delayDownloadTask() {
-	time.Sleep(3 * time.Second)
-	carfileOperation.notifyCarfileDownloader()
-}
-
-func (carfileOperation *CarfileOperation) startTick() {
-	for {
-		time.Sleep(time.Minute)
-
-		carfile := carfileOperation.getFirstCarfileFromWaitList()
-		if carfile != nil {
-			err := carfileOperation.downloadResult(carfile, false)
-			if err != nil {
-				log.Errorf("startTickForDownloadResult, downloadResult error:%s", err.Error())
-			}
-		}
-
-		if len(carfileOperation.carfileWaitList) > 0 {
-			carfileOperation.saveWaitList()
-		}
-	}
-}
-
-func (carfileOperation *CarfileOperation) notifyCarfileDownloader() {
-	select {
-	case carfileOperation.carfileCacheCh <- true:
-	default:
-	}
-}
-
-func (carfileOperation *CarfileOperation) addCarfile2WaitList(cf *carfile) {
-	carfileOperation.waitListLock.Lock()
-	defer carfileOperation.waitListLock.Unlock()
-
-	for _, carfile := range carfileOperation.carfileWaitList {
-		if carfile.carfileCID == cf.carfileCID {
-			return
-		}
-	}
-
-	carfileOperation.carfileWaitList = append(carfileOperation.carfileWaitList, cf)
-}
-
-func (carfileOperation *CarfileOperation) isCarfileInWaitList(carfileCID string) bool {
-	carfileOperation.waitListLock.Lock()
-	defer carfileOperation.waitListLock.Unlock()
-
-	for _, carfile := range carfileOperation.carfileWaitList {
-		if carfile.carfileCID == carfileCID {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (carfileOperation *CarfileOperation) getFirstCarfileFromWaitList() *carfile {
-	carfileOperation.waitListLock.Lock()
-	defer carfileOperation.waitListLock.Unlock()
-
-	if len(carfileOperation.carfileWaitList) == 0 {
-		return nil
-	}
-
-	return carfileOperation.carfileWaitList[0]
-}
-
-func (carfileOperation *CarfileOperation) removeCarfileFromWaitList(carfileCID string) *carfile {
-	carfileOperation.waitListLock.Lock()
-	defer carfileOperation.waitListLock.Unlock()
-
-	for i, carfile := range carfileOperation.carfileWaitList {
-		if carfile.carfileCID == carfileCID {
-			carfileOperation.carfileWaitList = append(carfileOperation.carfileWaitList[0:i], carfileOperation.carfileWaitList[i+1:]...)
-			return carfile
-		}
-	}
-
-	return nil
-}
-
-func (carfileOperation *CarfileOperation) removeFirstCarfileFromWaitList() *carfile {
-	carfileOperation.waitListLock.Lock()
-	defer carfileOperation.waitListLock.Unlock()
-
-	if len(carfileOperation.carfileWaitList) == 0 {
-		return nil
-	}
-
-	carfile := carfileOperation.carfileWaitList[0]
-	carfileOperation.carfileWaitList = carfileOperation.carfileWaitList[1:]
-
-	return carfile
-}
-
-func (carfileOperation *CarfileOperation) doDownloadCarfile() {
-	for len(carfileOperation.carfileWaitList) > 0 {
-		carfile := carfileOperation.getFirstCarfileFromWaitList()
-		err := carfile.downloadCarfile(carfileOperation)
-		if err != nil {
-			log.Errorf("doDownloadCarfile, downloadCarfile error:%s", err)
-		}
-		carfileOperation.removeFirstCarfileFromWaitList()
-
-		carfileOperation.onDownloadCarfileComplete(carfile)
-	}
-}
-
-func (carfileOperation *CarfileOperation) saveCarfileTable(cf *carfile) error {
-	log.Infof("saveCarfileTable, carfile cid:%s, download size:%d,carfileSize:%d", cf.carfileCID, cf.downloadSize, cf.carfileSize)
-	carfileHash, err := cf.getCarfileHashString()
-	if err != nil {
-		return err
-	}
-
-	if cf.downloadSize != 0 && cf.downloadSize == cf.carfileSize {
-		blocksHashString, err := cf.blockList2BlocksHashString()
-		if err != nil {
-			return err
-		}
-
-		carfileOperation.carfileStore.DeleteIncompleteCarfile(carfileHash)
-		return carfileOperation.carfileStore.SaveBlockListOfCarfile(carfileHash, blocksHashString)
-	} else {
-		buf, err := cf.ecodeCarfile()
-		if err != nil {
-			return err
-		}
-
-		carfileOperation.carfileStore.DeleteCarfileTable(carfileHash)
-		return carfileOperation.carfileStore.SaveIncomleteCarfile(carfileHash, buf)
-	}
-}
-
-func (carfileOperation *CarfileOperation) saveWaitList() error {
-	data, err := ecodeWaitList(carfileOperation.carfileWaitList)
-	if err != nil {
-		return err
-	}
-
-	return carfileOperation.carfileStore.SaveWaitListToFile(data)
-}
-
-func (carfileOperation *CarfileOperation) downloadResult(carfile *carfile, isComplete bool) error {
+func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, isComplete bool) error {
 	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
 	defer cancel()
 
@@ -249,24 +76,6 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfile, isCom
 	return carfileOperation.scheduler.CacheResult(ctx, result)
 }
 
-func (carfileOperation *CarfileOperation) onDownloadCarfileComplete(cf *carfile) {
-	log.Infof("onDownloadCarfileComplete, carfile %s", cf.carfileCID)
-	err := carfileOperation.saveCarfileTable(cf)
-	if err != nil {
-		log.Errorf("onDownloadCarfileComplete, saveCarfileTable error:%s", err)
-	}
-
-	err = carfileOperation.saveWaitList()
-	if err != nil {
-		log.Errorf("onDownloadCarfileComplete, saveCarfileTable error:%s", err)
-	}
-
-	err = carfileOperation.downloadResult(cf, true)
-	if err != nil {
-		log.Errorf("onDownloadCarfileComplete, downloadResult error:%s", err)
-	}
-}
-
 func (carfileOperation *CarfileOperation) cacheCarfileResult() (api.CacheCarfileResult, error) {
 	_, diskUsage := carfileOperation.device.GetDiskUsageStat()
 
@@ -275,7 +84,7 @@ func (carfileOperation *CarfileOperation) cacheCarfileResult() (api.CacheCarfile
 		return api.CacheCarfileResult{}, err
 	}
 
-	return api.CacheCarfileResult{CacheCarfileCount: carfileCount, WaitCacheCarfileNum: len(carfileOperation.carfileWaitList), DiskUsage: diskUsage}, nil
+	return api.CacheCarfileResult{CacheCarfileCount: carfileCount, WaitCacheCarfileNum: carfileOperation.downloadMgr.waitListLen(), DiskUsage: diskUsage}, nil
 }
 
 func (carfileOperation *CarfileOperation) cacheResultForCarfileExist(carfileCID string) error {
@@ -334,26 +143,8 @@ func (carfileOperation *CarfileOperation) cacheResultForCarfileExist(carfileCID 
 	return carfileOperation.scheduler.CacheResult(ctx, result)
 }
 
-func (carfileOperation *CarfileOperation) restoreWaitListFromFile() {
-	data, err := carfileOperation.carfileStore.GetWaitListFromFile()
-	if err != nil {
-		if err != datastore.ErrNotFound {
-			log.Errorf("getWaitListFromFile error:%s", err)
-		}
-		return
-	}
-
-	carfileOperation.carfileWaitList, err = decodeWaitListFromData(data)
-	if err != nil {
-		log.Errorf("getWaitListFromFile error:%s", err)
-		return
-	}
-
-	log.Infof("restoreWaitListFromFile:%v", carfileOperation.carfileWaitList)
-}
-
 func (carfileOperation *CarfileOperation) deleteCarfile(carfileCID string) (int, error) {
-	if carfileOperation.isCarfileInWaitList(carfileCID) {
+	if carfileOperation.downloadMgr.isCarfileInWaitList(carfileCID) {
 		return carfileOperation.DeleteWaitCacheCarfile(context.Background(), carfileCID)
 	}
 
@@ -369,7 +160,7 @@ func (carfileOperation *CarfileOperation) deleteCarfile(carfileCID string) (int,
 			return 0, err
 		}
 
-		carfile := &carfile{}
+		carfile := &carfileCache{}
 		err = carfile.decodeCarfileFromBuffer(data)
 		if err != nil {
 			return 0, err
@@ -383,7 +174,7 @@ func (carfileOperation *CarfileOperation) deleteCarfile(carfileCID string) (int,
 	}
 
 	for _, hash := range hashs {
-		err = carfileOperation.carfileStore.DeleteBlock(hash)
+		err = carfileOperation.deleteBlock(hash, carfileHash)
 		if err != nil {
 			log.Errorf("delete block %s error:%s", hash, err.Error())
 		}
@@ -393,127 +184,6 @@ func (carfileOperation *CarfileOperation) deleteCarfile(carfileCID string) (int,
 	carfileOperation.carfileStore.DeleteIncompleteCarfile(carfileHash)
 
 	return len(hashs), nil
-}
-
-func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carfileCID string, sources []*api.DowloadSource) (api.CacheCarfileResult, error) {
-	cf := &carfile{
-		carfileCID:                carfileCID,
-		blocksWaitList:            make([]string, 0),
-		blocksDownloadSuccessList: make([]string, 0),
-		nextLayerCIDs:             make([]string, 0),
-		downloadSources:           sources,
-	}
-
-	carfileHash, err := helper.CIDString2HashString(carfileCID)
-	if err != nil {
-		log.Errorf("CacheCarfile, CIDString2HashString error:%s, carfile cid:%s", err.Error(), carfileCID)
-		return api.CacheCarfileResult{}, err
-	}
-
-	has, err := carfileOperation.carfileStore.HasCarfile(carfileHash)
-	if err != nil {
-		log.Errorf("CacheCarfile, HasCarfile error:%s, carfile hash :%s", err.Error(), carfileHash)
-		return api.CacheCarfileResult{}, err
-	}
-
-	if has {
-		err = carfileOperation.cacheResultForCarfileExist(carfileCID)
-		if err != nil {
-			log.Errorf("CacheCarfile, cacheResultForCarfileExist error:%s", err.Error())
-		}
-
-		log.Infof("carfile %s carfileCID aready exist, not need to cache", carfileCID)
-
-		return carfileOperation.cacheCarfileResult()
-	}
-
-	data, err := carfileOperation.carfileStore.GetIncomleteCarfileData(carfileHash)
-	if err != nil && err != datastore.ErrNotFound {
-		log.Errorf("CacheCarfile load incomplete carfile error %s", err.Error())
-	}
-
-	if err == nil {
-		err = decodeCarfileFromData(data, cf)
-		if err != nil {
-			log.Errorf("CacheCarfile, decodeCarfileFromData error:%s", err.Error())
-		} else {
-			// reassigned downloadSources to new
-			cf.downloadSources = sources
-		}
-	}
-
-	carfileOperation.addCarfile2WaitList(cf)
-	carfileOperation.saveWaitList()
-	carfileOperation.notifyCarfileDownloader()
-
-	log.Infof("CacheCarfile carfile cid:%s", carfileCID)
-	return carfileOperation.cacheCarfileResult()
-}
-
-func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, carfileCID string) error {
-	go func() {
-		_, err := carfileOperation.deleteCarfile(carfileCID)
-		if err != nil {
-			log.Errorf("DeleteCarfile, delete carfile error:%s, carfileCID:%s", err.Error(), carfileCID)
-		}
-
-		blockCount, err := carfileOperation.carfileStore.BlockCount()
-		if err != nil {
-			log.Errorf("DeleteCarfile, BlockCount error:%s", err.Error())
-		}
-
-		_, diskUsage := carfileOperation.device.GetDiskUsageStat()
-		info := api.RemoveCarfileResultInfo{BlockCount: blockCount, DiskUsage: diskUsage}
-
-		ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
-		defer cancel()
-
-		err = carfileOperation.scheduler.RemoveCarfileResult(ctx, info)
-		if err != nil {
-			log.Errorf("DeleteCarfile, RemoveCarfileResult error:%s, carfileCID:%s", err.Error(), carfileCID)
-		}
-
-		log.Infof("DeleteCarfile, carfile cid:%s", carfileCID)
-
-	}()
-	return nil
-}
-func (carfileOperation *CarfileOperation) DeleteAllCarfiles(ctx context.Context) error {
-	return nil
-}
-func (carfileOperation *CarfileOperation) DeleteWaitCacheCarfile(ctx context.Context, carfileCID string) (int, error) {
-	carfile := carfileOperation.removeCarfileFromWaitList(carfileCID)
-	if carfile == nil {
-		return 0, nil
-	}
-
-	if len(carfile.blocksDownloadSuccessList) == 0 {
-		return 0, nil
-	}
-
-	hashs, err := carfile.blockCidList2BlocksHashList()
-	if err != nil {
-		return 0, err
-	}
-
-	for _, hash := range hashs {
-		err = carfileOperation.carfileStore.DeleteBlock(hash)
-		if err != nil {
-			log.Errorf("delete block error:%s", err.Error())
-		}
-	}
-
-	// TODO:save wait list
-	return len(hashs), nil
-
-}
-
-func (carfileOperation *CarfileOperation) LoadBlock(ctx context.Context, cid string) ([]byte, error) {
-	blockHash, err := helper.CIDString2HashString(cid)
-	if err != nil {
-		return nil, err
-	}
-	return carfileOperation.carfileStore.GetBlock(blockHash)
 }
 
 func (carfileOperation *CarfileOperation) GetBlocksOfCarfile(carfileCID string, indexs []int) (map[int]string, error) {

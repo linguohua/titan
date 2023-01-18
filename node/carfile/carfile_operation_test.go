@@ -4,12 +4,15 @@ import (
 	"testing"
 
 	"github.com/linguohua/titan/node/carfile/carfilestore"
+	"github.com/linguohua/titan/node/carfile/downloader"
 )
 
 func TestCarfileOperation(t *testing.T) {
 	// carfileStore := blockstore.NewBlockStore("./blockstore", "FileStore")
 	carfileStore := carfilestore.NewCarfileStore("./carfilestore", "FileStore")
-	carfileOperation := NewCarfileOperation(carfileStore, nil, NewIPFS("http://192.168.0.132:5001", carfileStore), nil)
+	downloader := downloader.NewIPFS("http://192.168.0.132:5001", carfileStore)
+	carfileOperation := NewCarfileOperation(carfileStore, nil, downloader, nil)
+	downloadOperation := &downloadOperation{downloader: downloader, carfileOperation: carfileOperation}
 	// go carfileOperation.startCarfileDownloader()
 	// t.Log("startCarfileDownloader")
 	// time.Sleep(1 * time.Second)
@@ -21,7 +24,7 @@ func TestCarfileOperation(t *testing.T) {
 	// t.Log("CacheCarfile")
 	// time.Sleep(2 * time.Minute)
 	carfileCID := "QmUuNfFwuRrxbRFt5ze3EhuQgkGnutwZtsYMbAcYbtb6j3"
-	carfile := &carfile{
+	carfile := &carfileCache{
 		carfileCID:                carfileCID,
 		blocksWaitList:            make([]string, 0),
 		blocksDownloadSuccessList: make([]string, 0),
@@ -32,7 +35,7 @@ func TestCarfileOperation(t *testing.T) {
 
 	layer := 1
 
-	ret, err := carfile.downloadBlocksWithBreadthFirst([]string{carfile.carfileCID}, carfileOperation)
+	ret, err := carfile.downloadBlocksWithBreadthFirst([]string{carfile.carfileCID}, downloadOperation)
 	if err != nil {
 		t.Errorf("downloadBlocksWithBreadthFirst error:%s", err.Error())
 		return
@@ -48,7 +51,7 @@ func TestCarfileOperation(t *testing.T) {
 	t.Logf("layer %d, cids len:%d, cids:%v", layer, len(ret.netLayerCids), ret.netLayerCids)
 
 	for len(ret.netLayerCids) > 0 {
-		ret, err = carfile.downloadBlocksWithBreadthFirst(ret.netLayerCids, carfileOperation)
+		ret, err = carfile.downloadBlocksWithBreadthFirst(ret.netLayerCids, downloadOperation)
 		if err != nil {
 			t.Errorf("downloadBlocksWithBreadthFirst error:%s", err.Error())
 			return

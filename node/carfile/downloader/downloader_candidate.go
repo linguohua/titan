@@ -1,4 +1,4 @@
-package carfile
+package downloader
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 	"time"
 
 	blocks "github.com/ipfs/go-block-format"
-	"github.com/ipfs/go-cid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
@@ -29,7 +28,7 @@ func NewCandidate(carfileStore *carfilestore.CarfileStore) *candidate {
 	return &candidate{carfileStore: carfileStore}
 }
 
-func (candidate *candidate) downloadBlocks(cids []string, downloadSource []*api.DowloadSource) ([]blocks.Block, error) {
+func (candidate *candidate) DownloadBlocks(cids []string, downloadSource []*api.DowloadSource) ([]blocks.Block, error) {
 	return getBlocksFromCandidate(cids, downloadSource)
 }
 
@@ -49,17 +48,7 @@ func getBlockFromCandidateWithApi(candidate api.Candidate, cidStr string) (block
 		return nil, err
 	}
 
-	target, err := cid.Decode(cidStr)
-	if err != nil {
-		return nil, err
-	}
-
-	basicBlock, err := blocks.NewBlockWithCid(data, target)
-	if err != nil {
-		return nil, err
-	}
-
-	return basicBlock, nil
+	return newBlock(cidStr, data)
 }
 
 func getBlocksFromCandidate(cids []string, sources []*api.DowloadSource) ([]blocks.Block, error) {

@@ -6,20 +6,14 @@ import (
 	"strings"
 
 	"github.com/ipfs/go-datastore"
-	"github.com/linguohua/titan/node/helper"
 )
 
 const (
 	carfileLinkPath = "/link/"
 )
 
-func (carfileOperation *CarfileOperation) deleteBlock(blockCID, carfileCID string) error {
-	blockHash, err := helper.CIDString2HashString(blockCID)
-	if err != nil {
-		return err
-	}
-
-	linkStr, err := carfileOperation.removeCarfileLinkFromBlock(blockCID, carfileCID)
+func (carfileOperation *CarfileOperation) deleteBlock(blockHash, carfileHash string) error {
+	linkStr, err := carfileOperation.removeCarfileLinkFromBlock(blockHash, carfileHash)
 	if err != nil {
 		return err
 	}
@@ -34,23 +28,18 @@ func (carfileOperation *CarfileOperation) deleteBlock(blockCID, carfileCID strin
 		return err
 	}
 
-	log.Infof("Delete block %s", blockCID)
+	log.Infof("Delete block %s", blockHash)
 	return nil
 }
 
-func (carfileOperation *CarfileOperation) saveBlock(data []byte, blockCID, carfileCID string) error {
-	blockHash, err := helper.CIDString2HashString(blockCID)
-	if err != nil {
-		return err
-	}
-
+func (carfileOperation *CarfileOperation) saveBlock(data []byte, blockHash, carfileHash string) error {
 	exist, err := carfileOperation.carfileStore.HasBlock(blockHash)
 	if err != nil {
 		return err
 	}
 
 	if exist {
-		log.Warnf("saveBlock, block %s aready exist", blockCID)
+		log.Warnf("saveBlock, block %s aready exist", blockHash)
 		return nil
 	}
 
@@ -59,16 +48,16 @@ func (carfileOperation *CarfileOperation) saveBlock(data []byte, blockCID, carfi
 		return err
 	}
 
-	err = carfileOperation.addCarfileLinkToBlock(blockCID, carfileCID)
+	err = carfileOperation.addCarfileLinkToBlock(blockHash, carfileHash)
 	if err != nil {
 		log.Errorf("saveBlock, addCarfileLinkToBlock error:%s", err)
 	}
 
-	log.Infof("saveBlock cid:%s", blockCID)
+	log.Infof("saveBlock cid:%s", blockHash)
 	return nil
 }
 
-func (carfileOperation *CarfileOperation) getCarfileLinkWithBlockHash(blockHash string) (string, error) {
+func (carfileOperation *CarfileOperation) getCarfileLinkFromBlock(blockHash string) (string, error) {
 	linkPath := path.Join(carfileLinkPath, blockHash)
 	value, err := carfileOperation.ds.Get(context.Background(), datastore.NewKey(linkPath))
 	if err == datastore.ErrNotFound {
@@ -82,18 +71,8 @@ func (carfileOperation *CarfileOperation) getCarfileLinkWithBlockHash(blockHash 
 	return string(value), nil
 }
 
-func (carfileOperation *CarfileOperation) addCarfileLinkToBlock(blockCID, carfileCID string) error {
-	blockHash, err := helper.CIDString2HashString(blockCID)
-	if err != nil {
-		return err
-	}
-
-	carfileHash, err := helper.CIDString2HashString(carfileCID)
-	if err != nil {
-		return err
-	}
-
-	linkStr, err := carfileOperation.getCarfileLinkWithBlockHash(blockHash)
+func (carfileOperation *CarfileOperation) addCarfileLinkToBlock(blockHash, carfileHash string) error {
+	linkStr, err := carfileOperation.getCarfileLinkFromBlock(blockHash)
 	if err != nil {
 		return err
 	}
@@ -102,25 +81,15 @@ func (carfileOperation *CarfileOperation) addCarfileLinkToBlock(blockCID, carfil
 		return nil
 	}
 
-	linkStr += carfileCID
+	linkStr += carfileHash
 
-	linkPath := path.Join(carfileLinkPath, blockCID)
+	linkPath := path.Join(carfileLinkPath, blockHash)
 	return carfileOperation.ds.Put(context.Background(), datastore.NewKey(linkPath), []byte(linkStr))
 }
 
 // return new carfile link
-func (carfileOperation *CarfileOperation) removeCarfileLinkFromBlock(blockCID, carfileCID string) (string, error) {
-	blockHash, err := helper.CIDString2HashString(blockCID)
-	if err != nil {
-		return "", err
-	}
-
-	carfileHash, err := helper.CIDString2HashString(carfileCID)
-	if err != nil {
-		return "", err
-	}
-
-	linkStr, err := carfileOperation.getCarfileLinkWithBlockHash(blockHash)
+func (carfileOperation *CarfileOperation) removeCarfileLinkFromBlock(blockHash, carfileHash string) (string, error) {
+	linkStr, err := carfileOperation.getCarfileLinkFromBlock(blockHash)
 	if err != nil {
 		return "", err
 	}
