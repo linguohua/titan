@@ -125,7 +125,7 @@ func (cf *carfile) downloadBlocks(cids []string, cfOperation *CarfileOperation) 
 	linksMap := make(map[string][]string)
 	for _, b := range blks {
 		cidStr := b.Cid().String()
-		err = cfOperation.saveBlock(b.RawData(), cidStr)
+		err = cfOperation.saveBlock(b.RawData(), cidStr, cf.carfileCID)
 		if err != nil {
 			log.Errorf("loadBlocksFromIPFS save block error:%s", err.Error())
 			continue

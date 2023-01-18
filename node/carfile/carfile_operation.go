@@ -30,6 +30,7 @@ type CarfileOperation struct {
 	device          *device.Device
 	carfileCacheCh  chan bool
 	carfileStore    *carfilestore.CarfileStore
+	ds              datastore.Batching
 }
 
 type BlockDownloader interface {
