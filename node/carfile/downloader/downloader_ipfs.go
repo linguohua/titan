@@ -1,4 +1,4 @@
-package carfile
+package downloader
 
 import (
 	"context"
@@ -30,7 +30,7 @@ func NewIPFS(ipfsApiURL string, carfileStore *carfilestore.CarfileStore) *ipfs {
 	return &ipfs{ipfsApi: httpApi, carfileStore: carfileStore}
 }
 
-func (ipfs *ipfs) downloadBlocks(cids []string, sources []*api.DowloadSource) ([]blocks.Block, error) {
+func (ipfs *ipfs) DownloadBlocks(cids []string, sources []*api.DowloadSource) ([]blocks.Block, error) {
 	return ipfs.getBlocksFromIPFS(cids)
 }
 

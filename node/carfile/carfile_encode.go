@@ -17,15 +17,15 @@ type EncodeCarfile struct {
 	DownloadSize              uint64
 }
 
-func ecodeCarfile(cf *carfile) ([]byte, error) {
+func ecodeCarfile(cfCache *carfileCache) ([]byte, error) {
 	encodeCarfile := &EncodeCarfile{
-		CarfileCID:                cf.carfileCID,
-		BlocksWaitList:            cf.blocksWaitList,
-		BlocksDownloadSuccessList: cf.blocksDownloadSuccessList,
-		NextLayerCIDs:             cf.nextLayerCIDs,
-		DownloadSources:           cf.downloadSources,
-		CarfileSize:               cf.carfileSize,
-		DownloadSize:              cf.downloadSize}
+		CarfileCID:                cfCache.carfileCID,
+		BlocksWaitList:            cfCache.blocksWaitList,
+		BlocksDownloadSuccessList: cfCache.blocksDownloadSuccessList,
+		NextLayerCIDs:             cfCache.nextLayerCIDs,
+		DownloadSources:           cfCache.downloadSources,
+		CarfileSize:               cfCache.carfileSize,
+		DownloadSize:              cfCache.downloadSize}
 
 	var buffer bytes.Buffer
 	enc := gob.NewEncoder(&buffer)
@@ -37,7 +37,7 @@ func ecodeCarfile(cf *carfile) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func decodeCarfileFromData(carfileData []byte, cf *carfile) error {
+func decodeCarfileFromData(carfileData []byte, cfCache *carfileCache) error {
 	encodeCarfile := &EncodeCarfile{}
 
 	buffer := bytes.NewBuffer(carfileData)
@@ -47,28 +47,28 @@ func decodeCarfileFromData(carfileData []byte, cf *carfile) error {
 		return err
 	}
 
-	cf.carfileCID = encodeCarfile.CarfileCID
-	cf.blocksWaitList = encodeCarfile.BlocksWaitList
-	cf.blocksDownloadSuccessList = encodeCarfile.BlocksDownloadSuccessList
-	cf.nextLayerCIDs = encodeCarfile.NextLayerCIDs
-	cf.downloadSources = encodeCarfile.DownloadSources
-	cf.carfileSize = encodeCarfile.CarfileSize
-	cf.downloadSize = encodeCarfile.DownloadSize
+	cfCache.carfileCID = encodeCarfile.CarfileCID
+	cfCache.blocksWaitList = encodeCarfile.BlocksWaitList
+	cfCache.blocksDownloadSuccessList = encodeCarfile.BlocksDownloadSuccessList
+	cfCache.nextLayerCIDs = encodeCarfile.NextLayerCIDs
+	cfCache.downloadSources = encodeCarfile.DownloadSources
+	cfCache.carfileSize = encodeCarfile.CarfileSize
+	cfCache.downloadSize = encodeCarfile.DownloadSize
 
 	return nil
 }
 
-func ecodeWaitList(carfiles []*carfile) ([]byte, error) {
-	waitList := make([]*EncodeCarfile, 0, len(carfiles))
-	for _, cf := range carfiles {
+func ecodeWaitList(carfileCaches []*carfileCache) ([]byte, error) {
+	waitList := make([]*EncodeCarfile, 0, len(carfileCaches))
+	for _, cfCache := range carfileCaches {
 		encodeCarfile := &EncodeCarfile{
-			CarfileCID:                cf.carfileCID,
-			BlocksWaitList:            cf.blocksWaitList,
-			BlocksDownloadSuccessList: cf.blocksDownloadSuccessList,
-			NextLayerCIDs:             cf.nextLayerCIDs,
-			DownloadSources:           cf.downloadSources,
-			CarfileSize:               cf.carfileSize,
-			DownloadSize:              cf.downloadSize}
+			CarfileCID:                cfCache.carfileCID,
+			BlocksWaitList:            cfCache.blocksWaitList,
+			BlocksDownloadSuccessList: cfCache.blocksDownloadSuccessList,
+			NextLayerCIDs:             cfCache.nextLayerCIDs,
+			DownloadSources:           cfCache.downloadSources,
+			CarfileSize:               cfCache.carfileSize,
+			DownloadSize:              cfCache.downloadSize}
 		waitList = append(waitList, encodeCarfile)
 		// log.Infof("encodeCarfile %v", encodeCarfile)
 	}
@@ -83,7 +83,7 @@ func ecodeWaitList(carfiles []*carfile) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func decodeWaitListFromData(carfileData []byte) ([]*carfile, error) {
+func decodeWaitListFromData(carfileData []byte) ([]*carfileCache, error) {
 	var encodeCarfiles []*EncodeCarfile
 
 	buffer := bytes.NewBuffer(carfileData)
@@ -93,20 +93,20 @@ func decodeWaitListFromData(carfileData []byte) ([]*carfile, error) {
 		return nil, err
 	}
 
-	cfs := make([]*carfile, 0, len(encodeCarfiles))
+	cfCaches := make([]*carfileCache, 0, len(encodeCarfiles))
 	for _, encodeCarfile := range encodeCarfiles {
-		cf := &carfile{}
-		cf.carfileCID = encodeCarfile.CarfileCID
-		cf.blocksWaitList = encodeCarfile.BlocksWaitList
-		cf.blocksDownloadSuccessList = encodeCarfile.BlocksDownloadSuccessList
-		cf.nextLayerCIDs = encodeCarfile.NextLayerCIDs
-		cf.downloadSources = encodeCarfile.DownloadSources
-		cf.carfileSize = encodeCarfile.CarfileSize
-		cf.downloadSize = encodeCarfile.DownloadSize
+		cfCache := &carfileCache{}
+		cfCache.carfileCID = encodeCarfile.CarfileCID
+		cfCache.blocksWaitList = encodeCarfile.BlocksWaitList
+		cfCache.blocksDownloadSuccessList = encodeCarfile.BlocksDownloadSuccessList
+		cfCache.nextLayerCIDs = encodeCarfile.NextLayerCIDs
+		cfCache.downloadSources = encodeCarfile.DownloadSources
+		cfCache.carfileSize = encodeCarfile.CarfileSize
+		cfCache.downloadSize = encodeCarfile.DownloadSize
 
-		cfs = append(cfs, cf)
+		cfCaches = append(cfCaches, cfCache)
 		// log.Infof("decodeWaitListFromData %v", encodeCarfile)
 	}
 
-	return cfs, nil
+	return cfCaches, nil
 }
