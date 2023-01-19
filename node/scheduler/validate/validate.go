@@ -65,7 +65,7 @@ func NewValidate(manager *node.Manager, enable bool) *Validate {
 		enable:      enable,
 	}
 
-	// e.initValidateTask()
+	e.initValidateTask()
 	// handle validate result data
 	// go e.initValidateResultTask()
 
