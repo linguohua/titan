@@ -124,7 +124,7 @@ func (c *CacheTask) carfileCacheResult(info *api.CacheResultInfo) error {
 		c.carfileRecord.totalBlocks = info.TotalBlock
 	}
 
-	log.Infof("carfileCacheResult :%s , %d , %s , %d", c.deviceID, info.Status, info.CarfileHash, info.DoneBlocks)
+	log.Infof("carfileCacheResult :%s , %d , %s", c.deviceID, info.Status, info.CarfileHash)
 
 	if info.Status == api.CacheStatusSuccess || info.Status == api.CacheStatusFail {
 		return c.endCache(info.Status, info.DiskUsage)
