@@ -38,13 +38,15 @@ type DB interface {
 	InsertValidateResultInfos(infos []*ValidateResult) error
 
 	// cache data info
-	CreateCacheInfo(cInfo *api.CacheTaskInfo) error
-	SaveCacheResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheTaskInfo) error
+	CreateCacheTaskInfo(info *api.CacheTaskInfo) error
+	// SaveCacheResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheTaskInfo) error
+	UpdateCacheTaskInfo(info *api.CacheTaskInfo) error
 	// UpdateCacheInfoOfTimeoutNodes(deviceIDs []string) error
 
 	// data info
 	// GetCarfileCount() (int, error)
-	SavceCarfileRecordInfo(info *api.CarfileRecordInfo) error
+	UpdateCarfileRecordBasisInfo(info *api.CarfileRecordInfo) error
+	UpdateCarfileRecordCachesInfo(info *api.CarfileRecordInfo) error
 	GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error)
 	GetCarfileCidWithPage(page int) (count int, totalPage int, list []*api.CarfileRecordInfo, err error)
 	GetCaches(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error)

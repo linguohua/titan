@@ -26,8 +26,7 @@ type CarfileRecord struct {
 	rootCaches   int
 	CacheTaskMap sync.Map
 
-	reliabilitylock       sync.RWMutex
-	dowloadInfoslock      sync.RWMutex
+	cacheDoneLock         sync.RWMutex
 	rootCacheDowloadInfos []*api.DowloadSource
 }
 
@@ -123,26 +122,26 @@ func (d *CarfileRecord) rootCacheExists() bool {
 	return exist
 }
 
-func (d *CarfileRecord) saveCarfileCacheInfo(cache *CacheTask) error {
-	dInfo := &api.CarfileRecordInfo{
-		CarfileHash: d.carfileHash,
-		TotalSize:   d.totalSize,
-		TotalBlocks: d.totalBlocks,
-		Reliability: d.reliability,
-	}
+// func (d *CarfileRecord) saveCarfileCacheInfo(cache *CacheTask) error {
+// 	dInfo := &api.CarfileRecordInfo{
+// 		CarfileHash: d.carfileHash,
+// 		TotalSize:   d.totalSize,
+// 		TotalBlocks: d.totalBlocks,
+// 		Reliability: d.reliability,
+// 	}
 
-	cInfo := &api.CacheTaskInfo{
-		CarfileHash:  cache.carfileHash,
-		DeviceID:     cache.deviceID,
-		Status:       cache.status,
-		DoneSize:     cache.doneSize,
-		DoneBlocks:   cache.doneBlocks,
-		ExecuteCount: cache.executeCount,
-		Reliability:  cache.reliability,
-	}
+// 	cInfo := &api.CacheTaskInfo{
+// 		CarfileHash:  cache.carfileHash,
+// 		DeviceID:     cache.deviceID,
+// 		Status:       cache.status,
+// 		DoneSize:     cache.doneSize,
+// 		DoneBlocks:   cache.doneBlocks,
+// 		ExecuteCount: cache.executeCount,
+// 		Reliability:  cache.reliability,
+// 	}
 
-	return persistent.GetDB().SaveCacheResults(dInfo, cInfo)
-}
+// 	return persistent.GetDB().SaveCacheResults(dInfo, cInfo)
+// }
 
 func (d *CarfileRecord) restartUndoneCache() (isRunning bool) {
 	isRunning = false
@@ -190,9 +189,9 @@ func (d *CarfileRecord) createAndDoCacheTasks(nodes []*node.Node, isRootCache bo
 
 func (d *CarfileRecord) dispatchCache() (isRunning bool, err error) {
 	// candidates cache
-	needCandidate := d.carfileManager.getNeedRootCacheCount(d.needReliability) - d.rootCaches
-	if needCandidate > 0 {
-		candidates := d.carfileManager.findAppropriateCandidates(d.CacheTaskMap, needCandidate)
+	needCandidateCount := d.carfileManager.needRootCacheCount(d.needReliability) - d.rootCaches
+	if needCandidateCount > 0 {
+		candidates := d.carfileManager.findAppropriateCandidates(d.CacheTaskMap, needCandidateCount)
 		if len(candidates) <= 0 {
 			err = xerrors.New("not found candidate")
 			return
@@ -202,9 +201,6 @@ func (d *CarfileRecord) dispatchCache() (isRunning bool, err error) {
 		if isRunning {
 			return
 		}
-
-		// err = xerrors.Errorf("candidates not running cache task")
-		// return
 	}
 
 	if len(d.rootCacheDowloadInfos) <= 0 {
@@ -235,35 +231,28 @@ func (d *CarfileRecord) dispatchCache() (isRunning bool, err error) {
 
 func (d *CarfileRecord) cacheDone(doneCache *CacheTask) error {
 	if doneCache.status == api.CacheStatusSuccess {
-		d.reliabilitylock.Lock()
+		d.cacheDoneLock.Lock()
 		d.reliability += doneCache.reliability
-		d.reliabilitylock.Unlock()
 
 		if doneCache.isRootCache {
 			d.rootCaches++
 
 			cNode := d.nodeManager.GetCandidateNode(doneCache.deviceID)
 			if cNode != nil {
-				d.dowloadInfoslock.Lock()
 				d.rootCacheDowloadInfos = append(d.rootCacheDowloadInfos, &api.DowloadSource{
 					CandidateURL:   cNode.GetAddress(),
 					CandidateToken: string(d.carfileManager.getAuthToken()),
 				})
-				d.dowloadInfoslock.Unlock()
 			}
 		}
-	}
-
-	err := d.saveCarfileCacheInfo(doneCache)
-	if err != nil {
-		return err
+		d.cacheDoneLock.Unlock()
 	}
 
 	haveRunningTask := false
 	d.CacheTaskMap.Range(func(key, value interface{}) bool {
 		c := value.(*CacheTask)
 
-		if c.status == api.CacheStatusCreate {
+		if c.status == api.CacheStatusRunning {
 			haveRunningTask = true
 			return false
 		}
@@ -281,7 +270,18 @@ func (d *CarfileRecord) cacheDone(doneCache *CacheTask) error {
 	}
 
 	if !isRunning {
-		// Carfile cache end
+		// Carfile caches end
+		dInfo := &api.CarfileRecordInfo{
+			CarfileHash: d.carfileHash,
+			TotalSize:   d.totalSize,
+			TotalBlocks: d.totalBlocks,
+			Reliability: d.reliability,
+		}
+		err := persistent.GetDB().UpdateCarfileRecordCachesInfo(dInfo)
+		if err != nil {
+			log.Errorf("UpdateCarfileRecordCachesInfo err:%s", err.Error())
+		}
+
 		d.carfileManager.removeCarfileRecord(d)
 	}
 

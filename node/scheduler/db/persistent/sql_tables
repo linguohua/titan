@@ -30,55 +30,6 @@ CREATE TABLE `validate_result` (
   KEY `round_device` (`round_id`,`device_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='validate result info';
 
-CREATE TABLE `data_info_cn_gd_shenzhen` (
-	`carfile_cid` varchar(128) NOT NULL UNIQUE,
-	`carfile_hash` varchar(128) NOT NULL UNIQUE,
-    `status` TINYINT  DEFAULT '0' ,
-    `total_size` BIGINT  DEFAULT '0' ,
-	`reliability` TINYINT DEFAULT '0' ,
-	`need_reliability` TINYINT DEFAULT '0' ,
-    `cache_count` int  DEFAULT '0' ,
-    `total_blocks` int  DEFAULT '0' ,
-    `nodes` int  DEFAULT '0' ,
-    `expired_time` datetime NOT NULL,
-    `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
-	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
-	PRIMARY KEY (`carfile_hash`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='data infos';
-
-CREATE TABLE `cache_info_cn_gd_shenzhen` (
-    `cache_id` varchar(64) NOT NULL UNIQUE,
-	`carfile_hash` varchar(128) NOT NULL,
-    `status` TINYINT  DEFAULT '0' ,
-    `done_size` BIGINT  DEFAULT '0' ,
-    `done_blocks` int  DEFAULT '0' ,
-	`reliability` TINYINT DEFAULT '0' ,
-    `total_size` BIGINT  DEFAULT '0' ,
-    `total_blocks` int  DEFAULT '0' ,
-    `nodes` int  DEFAULT '0' ,
-    `expired_time` datetime NOT NULL,
-    `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
-	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
-    `root_cache` BOOLEAN,
-	PRIMARY KEY (`cache_id`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='cache infos';
-
-CREATE TABLE `block_info_cn_gd_shenzhen` (
-    `id` varchar(64) NOT NULL UNIQUE,
-	`cid_hash` varchar(128) NOT NULL,
-	`cid` varchar(128) NOT NULL,
-    `cache_id` varchar(64) NOT NULL ,
-    `device_id` varchar(128) NOT NULL ,
-    `carfile_hash` varchar(128) NOT NULL,
-    `status` TINYINT  DEFAULT '0' ,
-    `size` int(20)  DEFAULT '0' ,
-	`reliability` int(64) DEFAULT '0' ,
-    `fid` int DEFAULT '0' ,
-    `source` varchar(64) NOT NULL,
-    `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
-	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
-	PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='block infos';
 
 CREATE TABLE `block_download_info_cn_gd_shenzhen` (
     `id` varchar(64) NOT NULL UNIQUE,

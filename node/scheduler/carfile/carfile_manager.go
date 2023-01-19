@@ -37,7 +37,7 @@ type Manager struct {
 	latelyExpiredTime time.Time
 	// isLoadExpiredTime  bool
 	getAuthToken     func() []byte
-	runningTaskCount int
+	RunningTaskCount int
 }
 
 // NewCarfileManager new
@@ -156,15 +156,17 @@ func (m *Manager) doCarfileCacheTasks(info *api.CarfileRecordInfo) error {
 		carfileRecord.expiredTime = expiredTime
 	}
 
-	err = persistent.GetDB().SavceCarfileRecordInfo(&api.CarfileRecordInfo{
+	err = persistent.GetDB().UpdateCarfileRecordBasisInfo(&api.CarfileRecordInfo{
 		CarfileCid:      carfileRecord.carfileCid,
 		NeedReliability: carfileRecord.needReliability,
 		ExpiredTime:     carfileRecord.expiredTime,
 		CarfileHash:     carfileRecord.carfileHash,
 	})
 	if err != nil {
-		return xerrors.Errorf("cid:%s,SavceCarfileRecordInfo err:%s", carfileRecord.carfileCid, err.Error())
+		return xerrors.Errorf("cid:%s,UpdateCarfileRecordBasisInfo err:%s", carfileRecord.carfileCid, err.Error())
 	}
+
+	m.addCarfileRecord(carfileRecord)
 
 	isRunning := carfileRecord.restartUndoneCache()
 	if !isRunning {
@@ -174,8 +176,8 @@ func (m *Manager) doCarfileCacheTasks(info *api.CarfileRecordInfo) error {
 		}
 	}
 
-	if isRunning {
-		m.addCarfileRecord(carfileRecord)
+	if !isRunning {
+		m.removeCarfileRecord(carfileRecord)
 	}
 
 	return nil
@@ -286,7 +288,7 @@ func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo)
 }
 
 func (m *Manager) startCarfileCacheTask() {
-	doLen := runningCarfileMaxCount - m.runningTaskCount
+	doLen := runningCarfileMaxCount - m.RunningTaskCount
 	if doLen <= 0 {
 		return
 	}
@@ -325,14 +327,14 @@ func (m *Manager) addCarfileRecord(cr *CarfileRecord) {
 
 	_, exist := m.CarfileRecordMap.LoadOrStore(cr.carfileHash, cr)
 	if !exist {
-		m.runningTaskCount++
+		m.RunningTaskCount++
 	}
 }
 
 func (m *Manager) removeCarfileRecord(cr *CarfileRecord) {
 	_, exist := m.CarfileRecordMap.LoadAndDelete(cr.carfileHash)
 	if exist {
-		m.runningTaskCount--
+		m.RunningTaskCount--
 	}
 
 	m.resetLatelyExpiredTime(cr.expiredTime)
@@ -515,7 +517,7 @@ func (m *Manager) notifyNodeRemoveCarfile(deviceID, cid string) error {
 }
 
 // Calculate the number of rootcache according to the reliability
-func (m *Manager) getNeedRootCacheCount(reliability int) int {
+func (m *Manager) needRootCacheCount(reliability int) int {
 	// TODO interim strategy
 	count := (reliability / 6) + 1
 	if count > 3 {
@@ -526,7 +528,7 @@ func (m *Manager) getNeedRootCacheCount(reliability int) int {
 }
 
 // find the edges
-func (m *Manager) findAppropriateEdges(cacheMap sync.Map, count int) []*node.Node {
+func (m *Manager) findAppropriateEdges(filterMap sync.Map, count int) []*node.Node {
 	list := make([]*node.Node, 0)
 	if count <= 0 {
 		return list
@@ -535,7 +537,7 @@ func (m *Manager) findAppropriateEdges(cacheMap sync.Map, count int) []*node.Nod
 	m.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
 
-		if _, exist := cacheMap.Load(deviceID); exist {
+		if _, exist := filterMap.Load(deviceID); exist {
 			return true
 		}
 
@@ -560,7 +562,7 @@ func (m *Manager) findAppropriateEdges(cacheMap sync.Map, count int) []*node.Nod
 }
 
 // find the candidates
-func (m *Manager) findAppropriateCandidates(cacheMap sync.Map, count int) []*node.Node {
+func (m *Manager) findAppropriateCandidates(filterMap sync.Map, count int) []*node.Node {
 	list := make([]*node.Node, 0)
 	if count <= 0 {
 		return list
@@ -569,7 +571,7 @@ func (m *Manager) findAppropriateCandidates(cacheMap sync.Map, count int) []*nod
 	m.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
 
-		if _, exist := cacheMap.Load(deviceID); exist {
+		if _, exist := filterMap.Load(deviceID); exist {
 			return true
 		}
 
