@@ -234,99 +234,65 @@ func (sd sqlDB) SummaryValidateMessage(startTime, endTime time.Time, pageNumber,
 }
 
 // cache data info
-func (sd sqlDB) CreateCacheInfo(cInfo *api.CacheTaskInfo) error {
+func (sd sqlDB) CreateCacheTaskInfo(cInfo *api.CacheTaskInfo) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
-	tx := sd.cli.MustBegin()
-
-	// cache info
-	cCmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, device_id, status, root_cache) VALUES (?, ?, ?, ?)", cTableName)
-	tx.MustExec(cCmd, cInfo.CarfileHash, cInfo.DeviceID, cInfo.Status, cInfo.RootCache)
-
-	err := tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-		return err
-	}
-
-	return nil
+	cmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, device_id, status, root_cache) VALUES (:carfile_hash, :device_id, :status, :root_cache)", cTableName)
+	_, err := sd.cli.NamedExec(cmd, cInfo)
+	return err
 }
 
-// func (sd sqlDB) UpdateCacheStatusWithNodes(hash string, deviceIDs []string) error {
-// 	area := sd.ReplaceArea()
-// 	cTableName := fmt.Sprintf(cacheInfoTable, area)
-
-// 	tx := sd.cli.MustBegin()
-
-// 	updateCachesCmd := fmt.Sprintf(`UPDATE %s SET status=? WHERE status!=? AND carfile_hash=? AND device_id in (?)`, cTableName)
-// 	query, args, err := sqlx.In(updateCachesCmd, int(api.CacheStatusCreate), int(api.CacheStatusSuccess), hash, deviceIDs)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// cache info
-// 	query = sd.cli.Rebind(query)
-// 	tx.MustExec(query, args...)
-
-// 	err = tx.Commit()
-// 	if err != nil {
-// 		err = tx.Rollback()
-// 		return err
-// 	}
-
-// 	return err
-// }
-
-// func (sd sqlDB) UpdateCacheInfoOfTimeoutNodes(deviceIDs []string) error {
-// 	area := sd.ReplaceArea()
-// 	cTableName := fmt.Sprintf(cacheInfoTable, area)
-
-// 	tx := sd.cli.MustBegin()
-
-// 	updateCachesCmd := fmt.Sprintf(`UPDATE %s SET status=? WHERE status=? AND device_id in (?)`, cTableName)
-// 	query, args, err := sqlx.In(updateCachesCmd, int(api.CacheStatusTimeout), int(api.CacheStatusCreate), deviceIDs)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// cache info
-// 	query = sd.cli.Rebind(query)
-// 	tx.MustExec(query, args...)
-
-// 	err = tx.Commit()
-// 	if err != nil {
-// 		err = tx.Rollback()
-// 		return err
-// 	}
-
-// 	return err
-// }
-
-func (sd sqlDB) SaveCacheResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheTaskInfo) error {
+func (sd sqlDB) UpdateCacheTaskInfo(cInfo *api.CacheTaskInfo) error {
 	area := sd.ReplaceArea()
-	dTableName := fmt.Sprintf(carfileInfoTable, area)
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
-	tx := sd.cli.MustBegin()
-
-	// data info
-	dCmd := fmt.Sprintf("UPDATE %s SET total_size=?,reliability=?,total_blocks=?,end_time=NOW() WHERE carfile_hash=?", dTableName)
-	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.TotalBlocks, dInfo.CarfileHash)
-
-	// cache info
-	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=?,end_time=NOW(),execute_count=? WHERE device_id=? AND carfile_hash=?`, cTableName)
-	tx.MustExec(cCmd, cInfo.DoneSize, cInfo.DoneBlocks, cInfo.Reliability, cInfo.Status, cInfo.ExecuteCount, cInfo.DeviceID, cInfo.CarfileHash)
-
-	err := tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
+	cmd := ""
+	if cInfo.Status == api.CacheStatusRunning {
+		cmd = fmt.Sprintf("UPDATE %s SET status=:status WHERE carfile_hash=:carfile_hash AND device_id=:device_id", cTableName)
+	} else {
+		cmd = fmt.Sprintf("UPDATE %s SET done_size=:done_size,done_blocks=:done_blocks,reliability=:reliability,status=:status,end_time=:end_time,execute_count=:execute_count WHERE carfile_hash=:carfile_hash AND device_id=:device_id", cTableName)
 	}
+
+	_, err := sd.cli.NamedExec(cmd, cInfo)
+	return err
+}
+
+// func (sd sqlDB) SaveCacheResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheTaskInfo) error {
+// 	area := sd.ReplaceArea()
+// 	dTableName := fmt.Sprintf(carfileInfoTable, area)
+// 	cTableName := fmt.Sprintf(cacheInfoTable, area)
+
+// 	tx := sd.cli.MustBegin()
+
+// 	// data info
+// 	dCmd := fmt.Sprintf("UPDATE %s SET total_size=?,reliability=?,total_blocks=?,end_time=NOW() WHERE carfile_hash=?", dTableName)
+// 	tx.MustExec(dCmd, dInfo.TotalSize, dInfo.Reliability, dInfo.TotalBlocks, dInfo.CarfileHash)
+
+// 	// cache info
+// 	cCmd := fmt.Sprintf(`UPDATE %s SET done_size=?,done_blocks=?,reliability=?,status=?,end_time=NOW(),execute_count=? WHERE device_id=? AND carfile_hash=?`, cTableName)
+// 	tx.MustExec(cCmd, cInfo.DoneSize, cInfo.DoneBlocks, cInfo.Reliability, cInfo.Status, cInfo.ExecuteCount, cInfo.DeviceID, cInfo.CarfileHash)
+
+// 	err := tx.Commit()
+// 	if err != nil {
+// 		err = tx.Rollback()
+// 	}
+
+// 	return err
+// }
+
+func (sd sqlDB) UpdateCarfileRecordCachesInfo(dInfo *api.CarfileRecordInfo) error {
+	area := sd.ReplaceArea()
+	dTableName := fmt.Sprintf(carfileInfoTable, area)
+
+	// update
+	cmd := fmt.Sprintf("UPDATE %s SET total_size=:total_size,total_blocks=:total_blocks,reliability=:reliability,end_time=NOW() WHERE carfile_hash=:carfile_hash", dTableName)
+	_, err := sd.cli.NamedExec(cmd, dInfo)
 
 	return err
 }
 
-func (sd sqlDB) SavceCarfileRecordInfo(info *api.CarfileRecordInfo) error {
+func (sd sqlDB) UpdateCarfileRecordBasisInfo(info *api.CarfileRecordInfo) error {
 	area := sd.ReplaceArea()
 
 	tableName := fmt.Sprintf(carfileInfoTable, area)
