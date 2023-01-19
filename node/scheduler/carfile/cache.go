@@ -58,7 +58,7 @@ func (c *CacheTask) isTimeout() bool {
 		return false
 	}
 
-	log.Infof("check timeout device:%s , exist:%v", c.deviceID, exist)
+	log.Debugf("check timeout device:%s , isTimeout:%v", c.deviceID, !exist)
 	if exist {
 		return false
 	}
@@ -124,7 +124,7 @@ func (c *CacheTask) carfileCacheResult(info *api.CacheResultInfo) error {
 		c.carfileRecord.totalBlocks = info.TotalBlock
 	}
 
-	log.Infof("carfileCacheResult :%s , %d , %s", c.deviceID, info.Status, info.CarfileHash)
+	log.Debugf("carfileCacheResult :%s , %d , %s", c.deviceID, info.Status, info.CarfileHash)
 
 	if info.Status == api.CacheStatusSuccess || info.Status == api.CacheStatusFail {
 		return c.endCache(info.Status, info.DiskUsage)
@@ -139,7 +139,7 @@ func (c *CacheTask) carfileCacheResult(info *api.CacheResultInfo) error {
 	// return c.carfileRecord.saveCarfileCacheInfo(c)
 }
 
-func (c *CacheTask) updateInfoToDb() error {
+func (c *CacheTask) updateCacheTaskInfo() error {
 	// update cache info to db
 	cInfo := &api.CacheTaskInfo{
 		CarfileHash:  c.carfileHash,
@@ -155,16 +155,20 @@ func (c *CacheTask) updateInfoToDb() error {
 	return persistent.GetDB().UpdateCacheTaskInfo(cInfo)
 }
 
-func (c *CacheTask) startCache() error {
-	c.executeCount++
-
-	err := cache.GetDB().CacheTaskStart(c.carfileHash, c.deviceID, nodeCacheTimeout)
-	if err != nil {
-		return xerrors.Errorf("startCache %s , CacheTaskStart err:%s", c.carfileHash, err.Error())
+func (c *CacheTask) updateCacheTaskStatus() error {
+	// update cache info to db
+	cInfo := &api.CacheTaskInfo{
+		CarfileHash: c.carfileHash,
+		DeviceID:    c.deviceID,
+		Status:      c.status,
 	}
 
-	go c.startTimeoutTimer()
+	return persistent.GetDB().UpdateCacheTaskStatus(cInfo)
+}
 
+func (c *CacheTask) startCache() error {
+	c.executeCount++
+	var err error
 	defer func() {
 		if err != nil {
 			c.status = api.CacheStatusFail
@@ -173,17 +177,27 @@ func (c *CacheTask) startCache() error {
 			if err != nil {
 				log.Errorf("startCache %s , CacheTaskEnd err:%s", c.carfileHash, err.Error())
 			}
-		}
 
-		if c.status != api.CacheStatusSuccess {
-			err := c.updateInfoToDb()
+			err = c.updateCacheTaskStatus()
 			if err != nil {
-				log.Errorf("startCache %s , updateInfoToDb err:%s", c.carfileHash, err.Error())
+				log.Errorf("startCache %s , updateCacheTaskStatus err:%s", c.carfileHash, err.Error())
 			}
 		}
 	}()
 
+	err = cache.GetDB().CacheTaskStart(c.carfileHash, c.deviceID, nodeCacheTimeout)
+	if err != nil {
+		return xerrors.Errorf("startCache %s , CacheTaskStart err:%s", c.carfileHash, err.Error())
+	}
+
+	go c.startTimeoutTimer()
+
 	c.status = api.CacheStatusRunning
+	err = c.updateCacheTaskStatus()
+	if err != nil {
+		return xerrors.Errorf("startCache %s , updateCacheTaskStatus err:%s", c.carfileHash, err.Error())
+	}
+
 	// send to node
 	result, err := c.cacheCarfile2Node()
 	if err != nil {
@@ -225,9 +239,9 @@ func (c *CacheTask) endCache(status api.CacheStatus, diskUsage float64) (err err
 		nodeInfo.IsSuccess = c.status == api.CacheStatusSuccess
 	}
 
-	err = c.updateInfoToDb()
+	err = c.updateCacheTaskInfo()
 	if err != nil {
-		log.Errorf("endCache %s , updateInfoToDb err:%s", c.carfileHash, err.Error())
+		log.Errorf("endCache %s , updateCacheTaskInfo err:%s", c.carfileHash, err.Error())
 	}
 
 	err = cache.GetDB().CacheTaskEnd(c.carfileHash, c.deviceID, nodeInfo)

@@ -82,7 +82,7 @@ func (s *Scheduler) StopCacheTask(ctx context.Context, carfileCid string) error 
 func (s *Scheduler) ShowRunningCarfileRecords(ctx context.Context) ([]api.CarfileRecordInfo, error) {
 	infos := make([]api.CarfileRecordInfo, 0)
 
-	log.Info("running count:", s.dataManager.RunningTaskCount)
+	log.Debug("running count:", s.dataManager.RunningTaskCount)
 
 	s.dataManager.CarfileRecordMap.Range(func(key, value interface{}) bool {
 		if value != nil {

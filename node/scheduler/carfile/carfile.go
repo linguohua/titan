@@ -248,19 +248,19 @@ func (d *CarfileRecord) cacheDone(doneCache *CacheTask) error {
 		d.cacheDoneLock.Unlock()
 	}
 
-	haveRunningTask := false
+	haveRunningTasks := false
 	d.CacheTaskMap.Range(func(key, value interface{}) bool {
 		c := value.(*CacheTask)
 
 		if c.status == api.CacheStatusRunning {
-			haveRunningTask = true
+			haveRunningTasks = true
 			return false
 		}
 
 		return true
 	})
 
-	if haveRunningTask {
+	if haveRunningTasks {
 		return nil
 	}
 
