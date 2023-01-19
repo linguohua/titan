@@ -243,18 +243,23 @@ func (sd sqlDB) CreateCacheTaskInfo(cInfo *api.CacheTaskInfo) error {
 	return err
 }
 
+func (sd sqlDB) UpdateCacheTaskStatus(cInfo *api.CacheTaskInfo) error {
+	area := sd.ReplaceArea()
+	cTableName := fmt.Sprintf(cacheInfoTable, area)
+
+	cmd := fmt.Sprintf("UPDATE %s SET status=:status WHERE carfile_hash=:carfile_hash AND device_id=:device_id", cTableName)
+	_, err := sd.cli.NamedExec(cmd, cInfo)
+
+	return err
+}
+
 func (sd sqlDB) UpdateCacheTaskInfo(cInfo *api.CacheTaskInfo) error {
 	area := sd.ReplaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
-	cmd := ""
-	if cInfo.Status == api.CacheStatusRunning {
-		cmd = fmt.Sprintf("UPDATE %s SET status=:status WHERE carfile_hash=:carfile_hash AND device_id=:device_id", cTableName)
-	} else {
-		cmd = fmt.Sprintf("UPDATE %s SET done_size=:done_size,done_blocks=:done_blocks,reliability=:reliability,status=:status,end_time=:end_time,execute_count=:execute_count WHERE carfile_hash=:carfile_hash AND device_id=:device_id", cTableName)
-	}
-
+	cmd := fmt.Sprintf("UPDATE %s SET done_size=:done_size,done_blocks=:done_blocks,reliability=:reliability,status=:status,end_time=:end_time,execute_count=:execute_count WHERE carfile_hash=:carfile_hash AND device_id=:device_id", cTableName)
 	_, err := sd.cli.NamedExec(cmd, cInfo)
+
 	return err
 }
 

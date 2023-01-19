@@ -41,6 +41,7 @@ type DB interface {
 	CreateCacheTaskInfo(info *api.CacheTaskInfo) error
 	// SaveCacheResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheTaskInfo) error
 	UpdateCacheTaskInfo(info *api.CacheTaskInfo) error
+	UpdateCacheTaskStatus(info *api.CacheTaskInfo) error
 	// UpdateCacheInfoOfTimeoutNodes(deviceIDs []string) error
 
 	// data info

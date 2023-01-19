@@ -341,7 +341,7 @@ func (v *Validate) getNodeReqValidate(validated *validatedDeviceInfo) (api.ReqVa
 		return req, err
 	}
 
-	log.Warnf("hash: %s", hash)
+	// log.Warnf("hash: %s", hash)
 	cid, err := helper.HashString2CidString(hash)
 	if err != nil {
 		log.Warnf("HashString2CidString err: %s", err.Error())
@@ -461,7 +461,7 @@ func (v *Validate) ValidateResult(validateResult *api.ValidateResults) error {
 			continue
 		}
 
-		log.Infof("candidate : %s , seed: %d , max:%d", node.DeviceId, v.seed, max)
+		// log.Infof("candidate : %s , seed: %d , max:%d", node.DeviceId, v.seed, max)
 
 		cCidMap, err = node.GetAPI().GetBlocksOfCarfile(context.Background(), validateResult.CarfileCID, v.seed, max)
 		if err != nil {
