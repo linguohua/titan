@@ -15,6 +15,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/linguohua/titan/node/carfile"
+	"github.com/linguohua/titan/node/carfile/downloader"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/download"
@@ -35,7 +36,7 @@ func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *devic
 	// block := block.NewBlock(params.DS, params.BlockStore, params.Scheduler, &block.IPFS{}, device, params.IPFSAPI)
 	validate := vd.NewValidate(params.CarfileStore, device)
 	blockDownload := download.NewBlockDownload(rateLimiter, params, device, validate)
-	carfileOperation := carfile.NewCarfileOperation(params.CarfileStore, params.Scheduler, carfile.NewIPFS(params.IPFSAPI, params.CarfileStore), device)
+	carfileOperation := carfile.NewCarfileOperation(params.DS, params.CarfileStore, params.Scheduler, downloader.NewIPFS(params.IPFSAPI, params.CarfileStore), device)
 
 	// datasync.SyncLocalBlockstore(params.DS, params.CarfileStore)
 
