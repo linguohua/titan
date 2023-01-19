@@ -24,7 +24,6 @@ func (carfileOperation *CarfileOperation) deleteBlock(blockHash, carfileHash str
 
 	err = carfileOperation.carfileStore.DeleteBlock(blockHash)
 	if err != nil {
-		log.Errorf("deleteBlock delete block %s error:%s", blockHash, err.Error())
 		return err
 	}
 
@@ -38,14 +37,13 @@ func (carfileOperation *CarfileOperation) saveBlock(data []byte, blockHash, carf
 		return err
 	}
 
-	if exist {
+	if !exist {
+		err = carfileOperation.carfileStore.SaveBlock(blockHash, data)
+		if err != nil {
+			return err
+		}
+	} else {
 		log.Warnf("saveBlock, block %s aready exist", blockHash)
-		return nil
-	}
-
-	err = carfileOperation.carfileStore.SaveBlock(blockHash, data)
-	if err != nil {
-		return err
 	}
 
 	err = carfileOperation.addCarfileLinkToBlock(blockHash, carfileHash)
@@ -53,7 +51,7 @@ func (carfileOperation *CarfileOperation) saveBlock(data []byte, blockHash, carf
 		log.Errorf("saveBlock, addCarfileLinkToBlock error:%s", err)
 	}
 
-	log.Infof("saveBlock cid:%s", blockHash)
+	log.Infof("saveBlock blockHash:%s", blockHash)
 	return nil
 }
 
@@ -72,6 +70,9 @@ func (carfileOperation *CarfileOperation) getCarfileLinkFromBlock(blockHash stri
 }
 
 func (carfileOperation *CarfileOperation) addCarfileLinkToBlock(blockHash, carfileHash string) error {
+	carfileOperation.carfileLinkLock.Lock()
+	defer carfileOperation.carfileLinkLock.Unlock()
+
 	linkStr, err := carfileOperation.getCarfileLinkFromBlock(blockHash)
 	if err != nil {
 		return err
@@ -89,6 +90,9 @@ func (carfileOperation *CarfileOperation) addCarfileLinkToBlock(blockHash, carfi
 
 // return new carfile link
 func (carfileOperation *CarfileOperation) removeCarfileLinkFromBlock(blockHash, carfileHash string) (string, error) {
+	carfileOperation.carfileLinkLock.Lock()
+	defer carfileOperation.carfileLinkLock.Unlock()
+
 	linkStr, err := carfileOperation.getCarfileLinkFromBlock(blockHash)
 	if err != nil {
 		return "", err

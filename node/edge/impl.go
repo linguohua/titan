@@ -5,6 +5,7 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/carfile"
+	"github.com/linguohua/titan/node/carfile/downloader"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/helper"
 	datasync "github.com/linguohua/titan/node/sync"
@@ -24,7 +25,7 @@ func NewLocalEdgeNode(ctx context.Context, device *device.Device, params *helper
 
 	blockDownload := download.NewBlockDownload(rateLimiter, params, device, validate)
 
-	carfileOeration := carfile.NewCarfileOperation(params.CarfileStore, params.Scheduler, carfile.NewCandidate(params.CarfileStore), device)
+	carfileOeration := carfile.NewCarfileOperation(params.DS, params.CarfileStore, params.Scheduler, downloader.NewCandidate(params.CarfileStore), device)
 
 	// datasync.SyncLocalBlockstore(params.DS, params.CarfileStore)
 

@@ -2,6 +2,7 @@ package carfile
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	blocks "github.com/ipfs/go-block-format"
@@ -22,18 +23,21 @@ import (
 var log = logging.Logger("carfile")
 
 type CarfileOperation struct {
-	scheduler    api.Scheduler
-	device       *device.Device
-	downloadMgr  *DownloadMgr
-	carfileStore *carfilestore.CarfileStore
-	ds           datastore.Batching
+	scheduler       api.Scheduler
+	device          *device.Device
+	downloadMgr     *DownloadMgr
+	carfileStore    *carfilestore.CarfileStore
+	ds              datastore.Batching
+	carfileLinkLock *sync.Mutex
 }
 
-func NewCarfileOperation(carfileStore *carfilestore.CarfileStore, scheduler api.Scheduler, blockDownloader downloader.BlockDownloader, device *device.Device) *CarfileOperation {
+func NewCarfileOperation(ds datastore.Batching, carfileStore *carfilestore.CarfileStore, scheduler api.Scheduler, blockDownloader downloader.BlockDownloader, device *device.Device) *CarfileOperation {
 	carfileOperation := &CarfileOperation{
-		scheduler:    scheduler,
-		device:       device,
-		carfileStore: carfileStore,
+		scheduler:       scheduler,
+		device:          device,
+		carfileStore:    carfileStore,
+		ds:              ds,
+		carfileLinkLock: &sync.Mutex{},
 	}
 
 	carfileOperation.downloadMgr = newDownloadMgr(carfileStore, &downloadOperation{carfileOperation: carfileOperation, downloader: blockDownloader})
@@ -176,7 +180,11 @@ func (carfileOperation *CarfileOperation) deleteCarfile(carfileCID string) (int,
 	for _, hash := range hashs {
 		err = carfileOperation.deleteBlock(hash, carfileHash)
 		if err != nil {
-			log.Errorf("delete block %s error:%s", hash, err.Error())
+			if err == datastore.ErrNotFound {
+				log.Warnf("deleteCarfile, multiple block %s in carfile %s", hash, carfileHash)
+			} else {
+				log.Errorf("deleteCarfile deleteBlock %s error:%s", hash, err.Error())
+			}
 		}
 	}
 
