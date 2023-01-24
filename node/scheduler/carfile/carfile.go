@@ -23,10 +23,13 @@ type CarfileRecord struct {
 	totalBlocks     int
 	expiredTime     time.Time
 
-	rootCaches   int
-	CacheTaskMap sync.Map
+	needRootCaches int
+	rootCaches     int
+	CacheTaskMap   sync.Map
 
-	cacheDoneLock         sync.RWMutex
+	requestedEdge bool
+
+	cacheLock             sync.RWMutex
 	rootCacheDowloadInfos []*api.DowloadSource
 }
 
@@ -57,6 +60,7 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 	carfileRecord.expiredTime = dInfo.ExpiredTime
 	carfileRecord.carfileHash = dInfo.CarfileHash
 	carfileRecord.rootCacheDowloadInfos = make([]*api.DowloadSource, 0)
+	carfileRecord.needRootCaches = manager.needRootCacheCount(carfileRecord.needReliability)
 
 	caches, err := persistent.GetDB().GetCaches(hash, false)
 	if err != nil {
@@ -187,57 +191,95 @@ func (d *CarfileRecord) createAndDoCacheTasks(nodes []*node.Node, isRootCache bo
 	return
 }
 
-func (d *CarfileRecord) dispatchCache() (isRunning bool, err error) {
-	// candidates cache
-	needCandidateCount := d.carfileManager.needRootCacheCount(d.needReliability) - d.rootCaches
-	if needCandidateCount > 0 {
-		candidates := d.carfileManager.findAppropriateCandidates(d.CacheTaskMap, needCandidateCount)
-		if len(candidates) <= 0 {
-			err = xerrors.New("not found candidate")
-			return
-		}
-
-		isRunning = d.createAndDoCacheTasks(candidates, true)
-		if isRunning {
-			return
-		}
+func (d *CarfileRecord) cacheToCandidates() error {
+	needCount := d.needRootCaches - d.rootCaches
+	if needCount <= 0 {
+		return xerrors.Errorf("needCount %d <= 0 ", needCount)
 	}
 
-	if len(d.rootCacheDowloadInfos) <= 0 {
-		err = xerrors.New("not found rootCache")
-		return
+	candidates := d.carfileManager.findAppropriateCandidates(d.CacheTaskMap, needCount)
+	if len(candidates) <= 0 {
+		return xerrors.New("not found candidate")
 	}
+
+	if !d.createAndDoCacheTasks(candidates, true) {
+		return xerrors.New("not running")
+	}
+
+	return nil
+}
+
+func (d *CarfileRecord) cacheToEdges() error {
+	d.requestedEdge = true
 
 	needCount := d.needReliability - d.reliability
 	if needCount <= 0 {
-		return
+		// no caching required
+		return xerrors.Errorf("needCount %d <= 0 ", needCount)
+	}
+
+	if len(d.rootCacheDowloadInfos) <= 0 {
+		return xerrors.New("not found rootCache")
 	}
 
 	edges := d.carfileManager.findAppropriateEdges(d.CacheTaskMap, needCount)
 	if len(edges) <= 0 {
-		err = xerrors.New("not found edge")
-		return
+		return xerrors.New("not found edge")
 	}
 
-	// edges cache
-	isRunning = d.createAndDoCacheTasks(edges, false)
-	if isRunning {
-		return
+	if !d.createAndDoCacheTasks(edges, false) {
+		return xerrors.New("not running")
 	}
 
-	err = xerrors.Errorf("edges not running cache task")
-	return
+	return nil
 }
 
-func (d *CarfileRecord) cacheDone(doneCache *CacheTask) error {
-	if doneCache.status == api.CacheStatusSuccess {
-		d.cacheDoneLock.Lock()
-		d.reliability += doneCache.reliability
+// func (d *CarfileRecord) dispatchCache() (isRunning bool, err error) {
 
-		if doneCache.isRootCache {
+// 	// candidates cache
+// 	needCandidateCount := d.needRootCaches - d.rootCaches
+// 	if needCandidateCount > 0 {
+// 		err = d.cacheToCandidates(needCandidateCount)
+// 		if err != nil {
+// 			return
+// 		}
+
+// 		return true, nil
+// 	}
+
+// 	if d.requestedEdge {
+// 		return
+// 	}
+
+// 	//edge cache
+// 	needEdgeCount := d.needReliability - d.reliability
+// 	if needEdgeCount <= 0 {
+// 		// no caching required
+// 		return
+// 	}
+
+// 	if len(d.rootCacheDowloadInfos) <= 0 {
+// 		err = xerrors.New("not found rootCache")
+// 		return
+// 	}
+
+// 	err = d.cacheToEdges(needEdgeCount)
+// 	if err != nil {
+// 		return
+// 	}
+
+// 	return true, nil
+// }
+
+func (d *CarfileRecord) cacheDone(endCache *CacheTask) error {
+	if endCache.status == api.CacheStatusSuccess {
+		d.cacheLock.Lock()
+		d.reliability += endCache.reliability
+
+		if endCache.isRootCache {
 			d.rootCaches++
 
-			cNode := d.nodeManager.GetCandidateNode(doneCache.deviceID)
+			cNode := d.nodeManager.GetCandidateNode(endCache.deviceID)
 			if cNode != nil {
 				d.rootCacheDowloadInfos = append(d.rootCacheDowloadInfos, &api.DowloadSource{
 					CandidateURL:   cNode.GetAddress(),
@@ -245,44 +287,28 @@ func (d *CarfileRecord) cacheDone(doneCache *CacheTask) error {
 				})
 			}
 		}
-		d.cacheDoneLock.Unlock()
+		d.cacheLock.Unlock()
 	}
 
-	haveRunningTasks := false
-	d.CacheTaskMap.Range(func(key, value interface{}) bool {
-		c := value.(*CacheTask)
-
-		if c.status == api.CacheStatusRunning {
-			haveRunningTasks = true
-			return false
-		}
-
-		return true
-	})
-
-	if haveRunningTasks {
-		return nil
-	}
-
-	isRunning, err := d.dispatchCache()
-	if err != nil {
-		log.Errorf("dispatchCache err:%s", err.Error())
-	}
-
-	if !isRunning {
-		// Carfile caches end
-		dInfo := &api.CarfileRecordInfo{
-			CarfileHash: d.carfileHash,
-			TotalSize:   d.totalSize,
-			TotalBlocks: d.totalBlocks,
-			Reliability: d.reliability,
-		}
-		err := persistent.GetDB().UpdateCarfileRecordCachesInfo(dInfo)
+	if endCache.isRootCache && !d.requestedEdge {
+		err := d.cacheToEdges()
 		if err != nil {
-			log.Errorf("UpdateCarfileRecordCachesInfo err:%s", err.Error())
-		}
+			log.Errorf("cacheToEdges err:%s", err.Error())
 
-		d.carfileManager.removeCarfileRecord(d)
+			// Carfile caches end
+			dInfo := &api.CarfileRecordInfo{
+				CarfileHash: d.carfileHash,
+				TotalSize:   d.totalSize,
+				TotalBlocks: d.totalBlocks,
+				Reliability: d.reliability,
+			}
+			err := persistent.GetDB().UpdateCarfileRecordCachesInfo(dInfo)
+			if err != nil {
+				log.Errorf("UpdateCarfileRecordCachesInfo err:%s", err.Error())
+			}
+
+			d.carfileManager.removeCarfileRecord(d)
+		}
 	}
 
 	return nil
