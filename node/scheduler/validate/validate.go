@@ -318,9 +318,11 @@ func (v *Validate) assignValidator(validatorList []string) map[string][]api.ReqV
 		return nil
 	}
 
-	err = cache.GetDB().SetNodesToVerifyingList(validateds)
-	if err != nil {
-		log.Errorf("SetNodesToVerifyingList err:%s", err.Error())
+	if len(validateds) > 0 {
+		err = cache.GetDB().SetNodesToVerifyingList(validateds)
+		if err != nil {
+			log.Errorf("SetNodesToVerifyingList err:%s", err.Error())
+		}
 	}
 
 	return validateReqs
@@ -403,7 +405,7 @@ func (v *Validate) ValidateResult(validateResult *api.ValidateResults) error {
 		return xerrors.Errorf("round id does not match")
 	}
 
-	log.Debugf("validate result : %+v", *validateResult)
+	// log.Debugf("validate result : %+v", *validateResult)
 
 	var status persistent.ValidateStatus
 

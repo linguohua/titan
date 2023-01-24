@@ -178,10 +178,11 @@ func (c *CacheTask) startCache() error {
 				log.Errorf("startCache %s , CacheTaskEnd err:%s", c.carfileHash, err.Error())
 			}
 
-			err = c.updateCacheTaskStatus()
-			if err != nil {
-				log.Errorf("startCache %s , updateCacheTaskStatus err:%s", c.carfileHash, err.Error())
-			}
+		}
+
+		err = c.updateCacheTaskStatus()
+		if err != nil {
+			log.Errorf("startCache %s , updateCacheTaskStatus err:%s", c.carfileHash, err.Error())
 		}
 	}()
 
@@ -193,10 +194,6 @@ func (c *CacheTask) startCache() error {
 	go c.startTimeoutTimer()
 
 	c.status = api.CacheStatusRunning
-	err = c.updateCacheTaskStatus()
-	if err != nil {
-		return xerrors.Errorf("startCache %s , updateCacheTaskStatus err:%s", c.carfileHash, err.Error())
-	}
 
 	// send to node
 	result, err := c.cacheCarfile2Node()

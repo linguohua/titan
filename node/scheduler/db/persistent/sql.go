@@ -297,6 +297,16 @@ func (sd sqlDB) UpdateCarfileRecordCachesInfo(dInfo *api.CarfileRecordInfo) erro
 	return err
 }
 
+func (sd sqlDB) CreateCarfileRecordInfo(info *api.CarfileRecordInfo) error {
+	area := sd.ReplaceArea()
+
+	tableName := fmt.Sprintf(carfileInfoTable, area)
+
+	cmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, carfile_cid, need_reliability,expired_time) VALUES (:carfile_hash, :carfile_cid, :need_reliability, :expired_time)", tableName)
+	_, err := sd.cli.NamedExec(cmd, info)
+	return err
+}
+
 func (sd sqlDB) UpdateCarfileRecordBasisInfo(info *api.CarfileRecordInfo) error {
 	area := sd.ReplaceArea()
 
@@ -318,6 +328,15 @@ func (sd sqlDB) UpdateCarfileRecordBasisInfo(info *api.CarfileRecordInfo) error 
 	_, err = sd.cli.NamedExec(cmd, info)
 
 	return err
+}
+
+func (sd sqlDB) CarfileRecordExist(hash string) (bool, error) {
+	area := sd.ReplaceArea()
+
+	var count int
+	cmd := fmt.Sprintf("SELECT count(carfile_hash) FROM %s WHERE carfile_hash=:carfile_hash", fmt.Sprintf(carfileInfoTable, area))
+	err := sd.cli.Get(&count, cmd)
+	return count > 0, err
 }
 
 func (sd sqlDB) GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error) {

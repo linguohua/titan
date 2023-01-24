@@ -48,7 +48,9 @@ type DB interface {
 	// GetCarfileCount() (int, error)
 	UpdateCarfileRecordBasisInfo(info *api.CarfileRecordInfo) error
 	UpdateCarfileRecordCachesInfo(info *api.CarfileRecordInfo) error
+	CreateCarfileRecordInfo(info *api.CarfileRecordInfo) error
 	GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error)
+	CarfileRecordExist(hash string) (bool, error)
 	GetCarfileCidWithPage(page int) (count int, totalPage int, list []*api.CarfileRecordInfo, err error)
 	GetCaches(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error)
 	GetCachesWithCandidate(hash string) ([]string, error)
