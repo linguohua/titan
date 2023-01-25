@@ -168,7 +168,12 @@ func (c *CacheTask) updateCacheTaskStatus() error {
 
 func (c *CacheTask) startCache() error {
 	c.executeCount++
-	var err error
+
+	err := cache.GetDB().CacheTaskStart(c.carfileHash, c.deviceID, nodeCacheTimeout)
+	if err != nil {
+		return xerrors.Errorf("startCache %s , CacheTaskStart err:%s", c.carfileHash, err.Error())
+	}
+
 	defer func() {
 		if err != nil {
 			c.status = api.CacheStatusFail
@@ -185,11 +190,6 @@ func (c *CacheTask) startCache() error {
 			log.Errorf("startCache %s , updateCacheTaskStatus err:%s", c.carfileHash, err.Error())
 		}
 	}()
-
-	err = cache.GetDB().CacheTaskStart(c.carfileHash, c.deviceID, nodeCacheTimeout)
-	if err != nil {
-		return xerrors.Errorf("startCache %s , CacheTaskStart err:%s", c.carfileHash, err.Error())
-	}
 
 	go c.startTimeoutTimer()
 

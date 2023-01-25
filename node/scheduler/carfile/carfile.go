@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
@@ -26,8 +27,6 @@ type CarfileRecord struct {
 	needRootCaches int
 	rootCaches     int
 	CacheTaskMap   sync.Map
-
-	requestedEdge bool
 
 	cacheLock             sync.RWMutex
 	rootCacheDowloadInfos []*api.DowloadSource
@@ -191,33 +190,20 @@ func (d *CarfileRecord) createAndDoCacheTasks(nodes []*node.Node, isRootCache bo
 	return
 }
 
-func (d *CarfileRecord) cacheToCandidates() error {
-	needCount := d.needRootCaches - d.rootCaches
-	if needCount <= 0 {
-		return xerrors.Errorf("needCount %d <= 0 ", needCount)
-	}
-
+func (d *CarfileRecord) cacheToCandidates(needCount int) error {
 	candidates := d.carfileManager.findAppropriateCandidates(d.CacheTaskMap, needCount)
 	if len(candidates) <= 0 {
 		return xerrors.New("not found candidate")
 	}
 
 	if !d.createAndDoCacheTasks(candidates, true) {
-		return xerrors.New("not running")
+		return xerrors.New("running err")
 	}
 
 	return nil
 }
 
-func (d *CarfileRecord) cacheToEdges() error {
-	d.requestedEdge = true
-
-	needCount := d.needReliability - d.reliability
-	if needCount <= 0 {
-		// no caching required
-		return xerrors.Errorf("needCount %d <= 0 ", needCount)
-	}
-
+func (d *CarfileRecord) cacheToEdges(needCount int) error {
 	if len(d.rootCacheDowloadInfos) <= 0 {
 		return xerrors.New("not found rootCache")
 	}
@@ -228,7 +214,7 @@ func (d *CarfileRecord) cacheToEdges() error {
 	}
 
 	if !d.createAndDoCacheTasks(edges, false) {
-		return xerrors.New("not running")
+		return xerrors.New("running err")
 	}
 
 	return nil
@@ -290,11 +276,20 @@ func (d *CarfileRecord) cacheDone(endCache *CacheTask) error {
 		d.cacheLock.Unlock()
 	}
 
-	if endCache.isRootCache && !d.requestedEdge {
-		err := d.cacheToEdges()
-		if err != nil {
-			log.Errorf("cacheToEdges err:%s", err.Error())
+	count, err := cache.GetDB().CarfileRunningCount(d.carfileHash)
+	if err != nil {
+		log.Errorf("CarfileRunningCount err:%s", err.Error())
+		return err
+	}
 
+	if count > 0 {
+		// carfile undone
+		return nil
+	}
+
+	isEnd := true
+	defer func() {
+		if isEnd {
 			// Carfile caches end
 			dInfo := &api.CarfileRecordInfo{
 				CarfileHash: d.carfileHash,
@@ -308,6 +303,22 @@ func (d *CarfileRecord) cacheDone(endCache *CacheTask) error {
 			}
 
 			d.carfileManager.removeCarfileRecord(d)
+		}
+	}()
+
+	if endCache.isRootCache {
+		//cache to edges
+		needCount := d.needReliability - d.reliability
+		if needCount <= 0 {
+			// no caching required
+			return nil
+		}
+
+		err := d.cacheToEdges(needCount)
+		if err != nil {
+			log.Errorf("cacheToEdges err:%s", err.Error())
+		} else {
+			isEnd = false
 		}
 	}
 
