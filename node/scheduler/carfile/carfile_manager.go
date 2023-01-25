@@ -133,6 +133,44 @@ func (m *Manager) GetCarfileRecord(hash string) (*CarfileRecord, error) {
 	return loadCarfileRecord(hash, m)
 }
 
+func (m *Manager) continueCarfileRecord(info *api.CarfileRecordInfo) error {
+	carfileRecord, err := loadCarfileRecord(info.CarfileHash, m)
+	if err != nil {
+		return err
+	}
+
+	m.addCarfileRecord(carfileRecord)
+	isRunning := false
+	defer func() {
+		if !isRunning {
+			m.removeCarfileRecord(carfileRecord)
+		}
+	}()
+
+	needCacdidateCount := carfileRecord.needRootCaches - carfileRecord.rootCaches
+	if needCacdidateCount > 0 {
+		err = carfileRecord.cacheToCandidates(needCacdidateCount)
+		if err == nil {
+			// cache to candidates
+			isRunning = true
+			return nil
+		}
+	}
+
+	needEdgeCount := carfileRecord.needReliability - carfileRecord.reliability
+	if needEdgeCount <= 0 {
+		// no caching required
+		return nil
+	}
+
+	err = carfileRecord.cacheToEdges(needEdgeCount)
+	if err == nil {
+		isRunning = true
+	}
+
+	return err
+}
+
 func (m *Manager) createCarfileRecord(info *api.CarfileRecordInfo) error {
 	carfileRecord := newCarfileRecord(m, info.CarfileCid, info.CarfileHash)
 	carfileRecord.needReliability = info.NeedReliability
@@ -148,6 +186,11 @@ func (m *Manager) createCarfileRecord(info *api.CarfileRecordInfo) error {
 		return xerrors.Errorf("cid:%s,CreateCarfileRecordInfo err:%s", carfileRecord.carfileCid, err.Error())
 	}
 
+	needCount := carfileRecord.needRootCaches - carfileRecord.rootCaches
+	if needCount <= 0 {
+		return xerrors.Errorf("needCount %d <= 0 ", needCount)
+	}
+
 	m.addCarfileRecord(carfileRecord)
 	defer func() {
 		if err != nil {
@@ -155,7 +198,7 @@ func (m *Manager) createCarfileRecord(info *api.CarfileRecordInfo) error {
 		}
 	}()
 
-	err = carfileRecord.cacheToCandidates()
+	err = carfileRecord.cacheToCandidates(needCount)
 	return err
 }
 
@@ -217,15 +260,6 @@ func (m *Manager) CacheCarfile(cid string, reliability int, expiredTime time.Tim
 	}
 
 	info := &api.CarfileRecordInfo{CarfileHash: hash, CarfileCid: cid, NeedReliability: reliability, ExpiredTime: expiredTime}
-
-	exist, err := persistent.GetDB().CarfileRecordExist(hash)
-	if err != nil {
-		return xerrors.Errorf("%s CarfileRecordExist err:", cid, err.Error())
-	}
-
-	if exist {
-		return xerrors.Errorf("%s Carfile record is exist", cid)
-	}
 
 	return cache.GetDB().PushCarfileToWaitList(info)
 }
@@ -324,7 +358,6 @@ func (m *Manager) startCarfileCacheTask() {
 	}
 
 	// TODO if doLen too big,
-	// lpop : Not executed after removal
 	for i := 0; i < doLen; i++ {
 		info, err := cache.GetDB().GetWaitCarfile()
 		if err != nil {
@@ -335,14 +368,25 @@ func (m *Manager) startCarfileCacheTask() {
 			continue
 		}
 
-		// if cI, exist := m.CarfileRecordMap.Load(info.CarfileHash); exist {
-		// 	carfileRecord := cI.(*CarfileRecord)
-		// 	carfileRecord.needReliability = info.NeedReliability
-		// 	carfileRecord.expiredTime = info.ExpiredTime
-		// 	continue
-		// }
+		if cI, exist := m.CarfileRecordMap.Load(info.CarfileHash); exist {
+			carfileRecord := cI.(*CarfileRecord)
+			carfileRecord.needReliability = info.NeedReliability
+			carfileRecord.expiredTime = info.ExpiredTime
+			continue
+		}
 
-		err = m.createCarfileRecord(info)
+		exist, err := persistent.GetDB().CarfileRecordExist(info.CarfileHash)
+		if err != nil {
+			log.Errorf("%s CarfileRecordExist err:", info.CarfileCid, err.Error())
+			continue
+		}
+
+		if exist {
+			err = m.continueCarfileRecord(info)
+		} else {
+			err = m.createCarfileRecord(info)
+		}
+
 		if err != nil {
 			log.Errorf("createCarfileRecord %s err:%s", info.CarfileCid, err.Error())
 		}

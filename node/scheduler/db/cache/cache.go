@@ -29,6 +29,7 @@ const (
 type DB interface {
 	CacheTaskStart(hash, deviceID string, timeout int64) error
 	CacheTaskEnd(hash, deviceID string, nodeInfo *NodeCacheInfo) error
+	CarfileRunningCount(hash string) (int64, error)
 	UpdateNodeCacheingExpireTime(hash, deviceID string, timeout int64) error
 	GetCacheingCarfiles() ([]string, error)
 	IsNodeCaching(deviceID string) (bool, error)

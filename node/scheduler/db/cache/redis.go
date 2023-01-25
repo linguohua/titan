@@ -72,6 +72,12 @@ func InitRedis(url string) (DB, error) {
 	return redisDB, err
 }
 
+func (rd redisDB) CarfileRunningCount(hash string) (int64, error) {
+	carfileNodeList := fmt.Sprintf(redisKeyCarfileCacheingNodeList, serverName, hash)
+
+	return rd.cli.SCard(context.Background(), carfileNodeList).Result()
+}
+
 func (rd redisDB) CacheTaskStart(hash, deviceID string, timeout int64) error {
 	cacheingCarfileList := fmt.Sprintf(redisKeyCacheingCarfileList, serverName)
 	carfileNodeList := fmt.Sprintf(redisKeyCarfileCacheingNodeList, serverName, hash)
