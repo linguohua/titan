@@ -97,24 +97,26 @@ func (rd redisDB) CacheTaskStart(hash, deviceID string, timeout int64) error {
 	return err
 }
 
-func (rd redisDB) CacheTaskEnd(hash, deviceID string, nodeInfo *NodeCacheInfo) error {
+func (rd redisDB) CacheTaskEnd(hash, deviceID string, nodeInfo *NodeCacheInfo) (bool, error) {
 	cacheingCarfileList := fmt.Sprintf(redisKeyCacheingCarfileList, serverName)
 	carfileNodeList := fmt.Sprintf(redisKeyCarfileCacheingNodeList, serverName, hash)
 	// nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
 
 	_, err := rd.cli.SRem(context.Background(), carfileNodeList, deviceID).Result()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	exist, err := rd.cli.Exists(context.Background(), carfileNodeList).Result()
 	if err != nil {
-		return err
+		return false, err
 	}
+
+	cachesDone := exist == 0
 
 	ctx := context.Background()
 	_, err = rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-		if exist == 0 {
+		if cachesDone {
 			pipeliner.SRem(context.Background(), cacheingCarfileList, hash)
 		}
 		// Expire
@@ -132,7 +134,7 @@ func (rd redisDB) CacheTaskEnd(hash, deviceID string, nodeInfo *NodeCacheInfo) e
 		return nil
 	})
 
-	return err
+	return cachesDone, err
 }
 
 func (rd redisDB) UpdateNodeCacheingExpireTime(hash, deviceID string, timeout int64) error {

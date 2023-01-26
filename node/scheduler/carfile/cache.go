@@ -178,11 +178,10 @@ func (c *CacheTask) startCache() error {
 		if err != nil {
 			c.status = api.CacheStatusFail
 			// cache not start
-			err = cache.GetDB().CacheTaskEnd(c.carfileHash, c.deviceID, nil)
+			_, err = cache.GetDB().CacheTaskEnd(c.carfileHash, c.deviceID, nil)
 			if err != nil {
 				log.Errorf("startCache %s , CacheTaskEnd err:%s", c.carfileHash, err.Error())
 			}
-
 		}
 
 		err = c.updateCacheTaskStatus()
@@ -241,12 +240,12 @@ func (c *CacheTask) endCache(status api.CacheStatus, diskUsage float64) (err err
 		log.Errorf("endCache %s , updateCacheTaskInfo err:%s", c.carfileHash, err.Error())
 	}
 
-	err = cache.GetDB().CacheTaskEnd(c.carfileHash, c.deviceID, nodeInfo)
+	cachesDone, err := cache.GetDB().CacheTaskEnd(c.carfileHash, c.deviceID, nodeInfo)
 	if err != nil {
 		return xerrors.Errorf("endCache %s , CacheTaskEnd err:%s", c.carfileHash, err.Error())
 	}
 
-	return c.carfileRecord.cacheDone(c)
+	return c.carfileRecord.cacheDone(c, cachesDone)
 }
 
 func (c *CacheTask) calculateReliability() int {

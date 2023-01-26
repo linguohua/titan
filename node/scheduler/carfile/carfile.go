@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
@@ -146,24 +145,24 @@ func (d *CarfileRecord) rootCacheExists() bool {
 // 	return persistent.GetDB().SaveCacheResults(dInfo, cInfo)
 // }
 
-func (d *CarfileRecord) restartUndoneCache() (isRunning bool) {
-	isRunning = false
+// func (d *CarfileRecord) restartUndoneCache() (isRunning bool) {
+// 	isRunning = false
 
-	cacheList := d.getExecutableCaches()
-	if len(cacheList) > 0 {
-		for _, cache := range cacheList {
-			err := cache.startCache()
-			if err != nil {
-				log.Errorf("startCache %s , node:%s,err:%s", cache.carfileRecord.carfileCid, cache.deviceID, err.Error())
-				continue
-			}
+// 	cacheList := d.getExecutableCaches()
+// 	if len(cacheList) > 0 {
+// 		for _, cache := range cacheList {
+// 			err := cache.startCache()
+// 			if err != nil {
+// 				log.Errorf("startCache %s , node:%s,err:%s", cache.carfileRecord.carfileCid, cache.deviceID, err.Error())
+// 				continue
+// 			}
 
-			isRunning = true
-		}
-	}
+// 			isRunning = true
+// 		}
+// 	}
 
-	return
-}
+// 	return
+// }
 
 func (d *CarfileRecord) createAndDoCacheTasks(nodes []*node.Node, isRootCache bool) (isRunning bool) {
 	isRunning = false
@@ -257,7 +256,7 @@ func (d *CarfileRecord) cacheToEdges(needCount int) error {
 // 	return true, nil
 // }
 
-func (d *CarfileRecord) cacheDone(endCache *CacheTask) error {
+func (d *CarfileRecord) cacheDone(endCache *CacheTask, cachesDone bool) error {
 	if endCache.status == api.CacheStatusSuccess {
 		d.cacheLock.Lock()
 		d.reliability += endCache.reliability
@@ -276,13 +275,13 @@ func (d *CarfileRecord) cacheDone(endCache *CacheTask) error {
 		d.cacheLock.Unlock()
 	}
 
-	count, err := cache.GetDB().CarfileRunningCount(d.carfileHash)
-	if err != nil {
-		log.Errorf("CarfileRunningCount err:%s", err.Error())
-		return err
-	}
+	// count, err := cache.GetDB().CarfileRunningCount(d.carfileHash)
+	// if err != nil {
+	// 	log.Errorf("CarfileRunningCount err:%s", err.Error())
+	// 	return err
+	// }
 
-	if count > 0 {
+	if !cachesDone {
 		// carfile undone
 		return nil
 	}
@@ -325,32 +324,32 @@ func (d *CarfileRecord) cacheDone(endCache *CacheTask) error {
 	return nil
 }
 
-func (d *CarfileRecord) getExecutableCaches() []*CacheTask {
-	// old cache
-	list := make([]*CacheTask, 0)
+// func (d *CarfileRecord) getExecutableCaches() []*CacheTask {
+// 	// old cache
+// 	list := make([]*CacheTask, 0)
 
-	haveRootCache := len(d.rootCacheDowloadInfos) > 0
+// 	haveRootCache := len(d.rootCacheDowloadInfos) > 0
 
-	d.CacheTaskMap.Range(func(key, value interface{}) bool {
-		c := value.(*CacheTask)
+// 	d.CacheTaskMap.Range(func(key, value interface{}) bool {
+// 		c := value.(*CacheTask)
 
-		if c.status == api.CacheStatusSuccess {
-			return true
-		}
+// 		if c.status == api.CacheStatusSuccess {
+// 			return true
+// 		}
 
-		if c.isRootCache {
-			list = append(list, c)
-		} else {
-			if haveRootCache {
-				list = append(list, c)
-			}
-		}
+// 		if c.isRootCache {
+// 			list = append(list, c)
+// 		} else {
+// 			if haveRootCache {
+// 				list = append(list, c)
+// 			}
+// 		}
 
-		return true
-	})
+// 		return true
+// 	})
 
-	return list
-}
+// 	return list
+// }
 
 // GetCarfileCid get carfile cid
 func (d *CarfileRecord) GetCarfileCid() string {

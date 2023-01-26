@@ -155,6 +155,7 @@ func (m *Manager) continueCarfileRecord(info *api.CarfileRecordInfo) error {
 			isRunning = true
 			return nil
 		}
+		log.Errorf("%s cacheToCandidates err:%s", info.CarfileCid, err.Error())
 	}
 
 	needEdgeCount := carfileRecord.needReliability - carfileRecord.reliability
@@ -165,9 +166,12 @@ func (m *Manager) continueCarfileRecord(info *api.CarfileRecordInfo) error {
 
 	err = carfileRecord.cacheToEdges(needEdgeCount)
 	if err == nil {
+		// cache to edges
 		isRunning = true
+		return nil
 	}
 
+	log.Errorf("%s cacheToEdges err:%s", info.CarfileCid, err.Error())
 	return err
 }
 
