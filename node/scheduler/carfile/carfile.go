@@ -286,9 +286,9 @@ func (d *CarfileRecord) cacheDone(endCache *CacheTask, cachesDone bool) error {
 		return nil
 	}
 
-	isEnd := true
+	ended := true
 	defer func() {
-		if isEnd {
+		if ended {
 			// Carfile caches end
 			dInfo := &api.CarfileRecordInfo{
 				CarfileHash: d.carfileHash,
@@ -317,7 +317,7 @@ func (d *CarfileRecord) cacheDone(endCache *CacheTask, cachesDone bool) error {
 		if err != nil {
 			log.Errorf("cacheToEdges err:%s", err.Error())
 		} else {
-			isEnd = false
+			ended = false
 		}
 	}
 
