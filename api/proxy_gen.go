@@ -209,8 +209,6 @@ type SchedulerStruct struct {
 
 		CacheCarfile func(p0 context.Context, p1 string, p2 int, p3 time.Time) error `perm:"admin"`
 
-		CacheContinue func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
-
 		CacheResult func(p0 context.Context, p1 CacheResultInfo) error `perm:"write"`
 
 		CandidateNodeConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
@@ -260,6 +258,8 @@ type SchedulerStruct struct {
 		RemoveCarfileResult func(p0 context.Context, p1 RemoveCarfileResultInfo) error `perm:"write"`
 
 		ReplenishCacheExpiredTime func(p0 context.Context, p1 string, p2 string, p3 int) error `perm:"admin"`
+
+		ResetBackupCacheCount func(p0 context.Context, p1 int) error `perm:"admin"`
 
 		ResetCacheExpiredTime func(p0 context.Context, p1 string, p2 string, p3 time.Time) error `perm:"admin"`
 
@@ -793,17 +793,6 @@ func (s *SchedulerStub) CacheCarfile(p0 context.Context, p1 string, p2 int, p3 t
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) CacheContinue(p0 context.Context, p1 string, p2 string) error {
-	if s.Internal.CacheContinue == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.CacheContinue(p0, p1, p2)
-}
-
-func (s *SchedulerStub) CacheContinue(p0 context.Context, p1 string, p2 string) error {
-	return ErrNotSupported
-}
-
 func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 CacheResultInfo) error {
 	if s.Internal.CacheResult == nil {
 		return ErrNotSupported
@@ -1076,6 +1065,17 @@ func (s *SchedulerStruct) ReplenishCacheExpiredTime(p0 context.Context, p1 strin
 }
 
 func (s *SchedulerStub) ReplenishCacheExpiredTime(p0 context.Context, p1 string, p2 string, p3 int) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) ResetBackupCacheCount(p0 context.Context, p1 int) error {
+	if s.Internal.ResetBackupCacheCount == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ResetBackupCacheCount(p0, p1)
+}
+
+func (s *SchedulerStub) ResetBackupCacheCount(p0 context.Context, p1 int) error {
 	return ErrNotSupported
 }
 

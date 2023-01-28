@@ -34,8 +34,8 @@ type DB interface {
 	IsNodeCaching(deviceID string) (bool, error)
 
 	// waiting data list
-	PushCarfileToWaitList(info *api.CarfileRecordInfo) error
-	GetWaitCarfile() (*api.CarfileRecordInfo, error)
+	PushCarfileToWaitList(info *api.CacheCarfileInfo) error
+	GetWaitCarfile() (*api.CacheCarfileInfo, error)
 
 	// validate round id
 	IncrValidateRoundID() (int64, error)

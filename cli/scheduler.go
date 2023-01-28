@@ -20,7 +20,6 @@ import (
 var SchedulerCmds = []*cli.Command{
 	// cache
 	listDataCmd,
-	cacheContinueCmd,
 	cacheCarfileCmd,
 	showDataInfoCmd,
 	removeCarfileCmd,
@@ -30,6 +29,7 @@ var SchedulerCmds = []*cli.Command{
 	replenishCacheExpiredTimeCmd,
 	nodeQuitCmd,
 	stopCacheCmd,
+	resetBackupCacheCountCmd,
 	// validate
 	electionCmd,
 	validateCmd,
@@ -101,11 +101,11 @@ var (
 		Value: "CN-GD-Shenzhen",
 	}
 
-	// cacheIDFlag = &cli.StringFlag{
-	// 	Name:  "cache-id",
-	// 	Usage: "cache id",
-	// 	Value: "",
-	// }
+	countFlag = &cli.IntFlag{
+		Name:  "count",
+		Usage: "count",
+		Value: 0,
+	}
 
 	pageFlag = &cli.IntFlag{
 		Name:  "page",
@@ -131,6 +131,31 @@ var (
 		Value: "",
 	}
 )
+
+var resetBackupCacheCountCmd = &cli.Command{
+	Name:  "reset-backup-count",
+	Usage: "reset backup cache count",
+	Flags: []cli.Flag{
+		countFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		count := cctx.Int("count")
+
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		return schedulerAPI.ResetBackupCacheCount(ctx, count)
+	},
+}
 
 var redressInfoCmd = &cli.Command{
 	Name:  "redress-node-info",
@@ -737,39 +762,6 @@ var cacheCarfileCmd = &cli.Command{
 		}
 
 		err = schedulerAPI.CacheCarfile(ctx, cid, reliability, time)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	},
-}
-
-var cacheContinueCmd = &cli.Command{
-	Name:  "cache-continue",
-	Usage: "cache continue",
-	Flags: []cli.Flag{
-		// schedulerURLFlag,
-		cidFlag,
-		deviceIDFlag,
-	},
-
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		// url := cctx.String("scheduler-url")
-		cid := cctx.String("cid")
-		deviceID := cctx.String("device-id")
-
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		err = schedulerAPI.CacheContinue(ctx, cid, deviceID)
 		if err != nil {
 			return err
 		}

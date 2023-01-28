@@ -132,11 +132,6 @@ func (c *CacheTask) carfileCacheResult(info *api.CacheResultInfo) error {
 
 	// update cache task timeout
 	return cache.GetDB().UpdateNodeCacheingExpireTime(c.carfileHash, c.deviceID, nodeCacheTimeout)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// return c.carfileRecord.saveCarfileCacheInfo(c)
 }
 
 func (c *CacheTask) updateCacheTaskInfo() error {

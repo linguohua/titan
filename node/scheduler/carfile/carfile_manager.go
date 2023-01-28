@@ -28,11 +28,6 @@ const (
 
 	// If the node disk size is greater than this value, caching will not continue
 	diskUsageMax = 90.0
-
-	//The number of caches in the first stage （from ipfs to titan）
-	rootCacheCount = 1
-	//Cache to the number of candidate nodes
-	backupCacheCount = 1
 )
 
 // Manager carfile
@@ -43,6 +38,11 @@ type Manager struct {
 	// isLoadExpiredTime  bool
 	getAuthToken     func() []byte
 	RunningTaskCount int
+
+	//The number of caches in the first stage （from ipfs to titan）
+	rootCacheCount int
+	//Cache to the number of candidate nodes （does not contain 'rootCacheCount'）
+	backupCacheCount int
 }
 
 // NewCarfileManager new
@@ -52,10 +52,12 @@ func NewCarfileManager(nodeManager *node.Manager, getToken func() []byte) *Manag
 		// isLoadExpiredTime: true,
 		latelyExpiredTime: time.Now(),
 		getAuthToken:      getToken,
+		rootCacheCount:    1,
+		backupCacheCount:  1,
 	}
 
-	d.initCarfileMap()
 	d.resetBaseInfo()
+	d.initCarfileMap()
 	go d.cacheTaskTicker()
 	go d.checkExpiredTicker()
 
@@ -78,6 +80,7 @@ func (m *Manager) initCarfileMap() {
 
 		m.addCarfileRecord(cr)
 
+		isRunning := false
 		// start timout check
 		cr.CacheTaskMap.Range(func(key, value interface{}) bool {
 			if value == nil {
@@ -88,10 +91,15 @@ func (m *Manager) initCarfileMap() {
 				return true
 			}
 
+			isRunning = true
 			go c.startTimeoutTimer()
 
 			return true
 		})
+
+		if !isRunning {
+			m.removeCarfileRecord(cr)
+		}
 	}
 }
 
@@ -138,9 +146,9 @@ func (m *Manager) GetCarfileRecord(hash string) (*CarfileRecord, error) {
 	return loadCarfileRecord(hash, m)
 }
 
-func (m *Manager) continueCarfileRecord(info *api.CarfileRecordInfo) error {
-	// remove fail cache
-	err := persistent.GetDB().RemoveFailCacheTasks(info.CarfileHash)
+func (m *Manager) continueCarfileRecord(info *api.CacheCarfileInfo) error {
+	// remove fail cache and update carfile info
+	err := persistent.GetDB().ResetCarfileRecordInfo(info)
 	if err != nil {
 		return err
 	}
@@ -166,7 +174,7 @@ func (m *Manager) continueCarfileRecord(info *api.CarfileRecordInfo) error {
 	return err
 }
 
-func (m *Manager) createCarfileRecord(info *api.CarfileRecordInfo) error {
+func (m *Manager) createCarfileRecord(info *api.CacheCarfileInfo) error {
 	carfileRecord := newCarfileRecord(m, info.CarfileCid, info.CarfileHash)
 	carfileRecord.needReliability = info.NeedReliability
 	carfileRecord.expiredTime = info.ExpiredTime
@@ -181,11 +189,6 @@ func (m *Manager) createCarfileRecord(info *api.CarfileRecordInfo) error {
 		return xerrors.Errorf("cid:%s,CreateCarfileRecordInfo err:%s", carfileRecord.carfileCid, err.Error())
 	}
 
-	// needCount := carfileRecord.needRootCaches - carfileRecord.rootCaches
-	// if needCount <= 0 {
-	// 	return xerrors.Errorf("needCount %d <= 0 ", needCount)
-	// }
-
 	m.addCarfileRecord(carfileRecord)
 	defer func() {
 		if err != nil {
@@ -193,59 +196,9 @@ func (m *Manager) createCarfileRecord(info *api.CarfileRecordInfo) error {
 		}
 	}()
 
-	err = carfileRecord.cacheToCandidates(rootCacheCount)
+	err = carfileRecord.cacheToCandidates(m.rootCacheCount)
 	return err
 }
-
-// func (m *Manager) doCarfileCacheTasks(info *api.CarfileRecordInfo) error {
-// 	hash := info.CarfileHash
-// 	cid := info.CarfileCid
-// 	needReliability := info.NeedReliability
-// 	expiredTime := info.ExpiredTime
-
-// 	carfileRecord, err := loadCarfileRecord(hash, m)
-// 	if err != nil {
-// 		if !persistent.GetDB().IsNilErr(err) {
-// 			return err
-// 		}
-// 		// not found
-// 		carfileRecord = newCarfileRecord(m, cid, hash)
-// 		carfileRecord.needReliability = needReliability
-// 		carfileRecord.expiredTime = expiredTime
-// 	} else {
-// 		if needReliability <= carfileRecord.reliability {
-// 			return xerrors.Errorf("reliable enough :%d/%d ", carfileRecord.reliability, needReliability)
-// 		}
-// 		carfileRecord.needReliability = needReliability
-// 		carfileRecord.expiredTime = expiredTime
-// 	}
-
-// 	err = persistent.GetDB().UpdateCarfileRecordBasisInfo(&api.CarfileRecordInfo{
-// 		CarfileCid:      carfileRecord.carfileCid,
-// 		NeedReliability: carfileRecord.needReliability,
-// 		ExpiredTime:     carfileRecord.expiredTime,
-// 		CarfileHash:     carfileRecord.carfileHash,
-// 	})
-// 	if err != nil {
-// 		return xerrors.Errorf("cid:%s,UpdateCarfileRecordBasisInfo err:%s", carfileRecord.carfileCid, err.Error())
-// 	}
-
-// 	m.addCarfileRecord(carfileRecord)
-
-// 	isRunning := carfileRecord.restartUndoneCache()
-// 	if !isRunning {
-// 		isRunning, err = carfileRecord.dispatchCache()
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	if !isRunning {
-// 		m.removeCarfileRecord(carfileRecord)
-// 	}
-
-// 	return nil
-// }
 
 // CacheCarfile new carfile task
 func (m *Manager) CacheCarfile(cid string, reliability int, expiredTime time.Time) error {
@@ -254,24 +207,9 @@ func (m *Manager) CacheCarfile(cid string, reliability int, expiredTime time.Tim
 		return xerrors.Errorf("%s cid to hash err:", cid, err.Error())
 	}
 
-	info := &api.CarfileRecordInfo{CarfileHash: hash, CarfileCid: cid, NeedReliability: reliability, ExpiredTime: expiredTime}
+	info := &api.CacheCarfileInfo{CarfileHash: hash, CarfileCid: cid, NeedReliability: reliability, ExpiredTime: expiredTime}
 
 	return cache.GetDB().PushCarfileToWaitList(info)
-}
-
-// CacheContinue continue a cache
-func (m *Manager) CacheContinue(carfileCid, deviceID string) error {
-	// hash, err := helper.CIDString2HashString(carfileCid)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// dI, exist := m.CarfileRecordMap.Load(hash)
-	// if exist && dI != nil {
-	// 	return xerrors.Errorf("carfileRecord %s is running, please wait", carfileCid)
-	// }
-
-	return xerrors.New("unrealized")
 }
 
 // RemoveCarfileRecord remove a carfile
@@ -585,17 +523,6 @@ func (m *Manager) notifyNodeRemoveCarfile(deviceID, cid string) error {
 	return nil
 }
 
-// // Calculate the number of rootcache according to the reliability
-// func (m *Manager) needRootCacheCount(reliability int) int {
-// 	// TODO interim strategy
-// 	count := (reliability / 6) + 1
-// 	if count > 3 {
-// 		count = 3
-// 	}
-
-// 	return count
-// }
-
 // find the edges
 func (m *Manager) findAppropriateEdges(filterMap sync.Map, count int) []*node.Node {
 	list := make([]*node.Node, 0)
@@ -606,11 +533,7 @@ func (m *Manager) findAppropriateEdges(filterMap sync.Map, count int) []*node.No
 	m.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
 
-		if cI, exist := filterMap.Load(deviceID); exist {
-			cache := cI.(*CacheTask)
-			if cache.status == api.CacheStatusSuccess {
-				return true
-			}
+		if _, exist := filterMap.Load(deviceID); exist {
 			return true
 		}
 
@@ -645,10 +568,7 @@ func (m *Manager) findAppropriateCandidates(filterMap sync.Map, count int) []*no
 		deviceID := key.(string)
 
 		if _, exist := filterMap.Load(deviceID); exist {
-			// cache := cI.(*CacheTask)
-			// if cache.status == api.CacheStatusSuccess {
 			return true
-			// }
 		}
 
 		node := value.(*node.CandidateNode)
@@ -669,4 +589,14 @@ func (m *Manager) findAppropriateCandidates(filterMap sync.Map, count int) []*no
 	}
 
 	return list[0:count]
+}
+
+// ResetBackupCacheCount reset backupCacheCount
+func (m *Manager) ResetBackupCacheCount(backupCacheCount int) {
+	m.backupCacheCount = backupCacheCount
+}
+
+// GetBackupCacheCounts get backupCacheCount
+func (m *Manager) GetBackupCacheCounts() int {
+	return m.backupCacheCount
 }

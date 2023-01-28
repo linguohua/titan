@@ -178,9 +178,9 @@ func (d *CarfileRecord) cacheToEdges(needCount int) error {
 }
 
 func (d *CarfileRecord) dispatchCaches() (isRunning bool, err error) {
-	needCacdidateCount := rootCacheCount
+	needCacdidateCount := d.carfileManager.rootCacheCount
 	if d.candidateCaches > 0 {
-		needCacdidateCount = (rootCacheCount + backupCacheCount) - d.candidateCaches
+		needCacdidateCount = (d.carfileManager.rootCacheCount + d.carfileManager.backupCacheCount) - d.candidateCaches
 	}
 	if needCacdidateCount > 0 {
 		err = d.cacheToCandidates(needCacdidateCount)

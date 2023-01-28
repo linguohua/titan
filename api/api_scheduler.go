@@ -25,7 +25,6 @@ type Scheduler interface {
 	ShowRunningCarfileRecords(ctx context.Context) ([]CarfileRecordInfo, error)                          //perm:read
 	RegisterNode(ctx context.Context, nodeType NodeType, count int) ([]NodeRegisterInfo, error)          //perm:admin
 	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error)   //perm:admin
-	CacheContinue(ctx context.Context, cid, deviceID string) error                                       //perm:admin
 	ValidateSwitch(ctx context.Context, open bool) error                                                 //perm:admin
 	ValidateRunningState(ctx context.Context) (bool, error)                                              //perm:admin
 	ValidateStart(ctx context.Context) error                                                             //perm:admin
@@ -34,6 +33,7 @@ type Scheduler interface {
 	NodeQuit(ctx context.Context, device string) error                                                   //perm:admin
 	StopCacheTask(ctx context.Context, carfileCid string) error                                          //perm:admin
 	RedressDeveiceInfo(ctx context.Context, deviceID string) error                                       //perm:admin
+	ResetBackupCacheCount(ctx context.Context, backupCacheCount int) error                               //perm:admin
 
 	// call by locator
 	LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID, locatorToken string) error //perm:write
@@ -143,6 +143,15 @@ type CacheTaskInfo struct {
 	CreateTime  time.Time `db:"created_time"`
 	EndTime     time.Time `db:"end_time"`
 	DataTimeout time.Duration
+}
+
+// CacheCarfileInfo Data info
+type CacheCarfileInfo struct {
+	CarfileCid      string    `db:"carfile_cid"`
+	CarfileHash     string    `db:"carfile_hash"`
+	Reliability     int       `db:"reliability"`
+	NeedReliability int       `db:"need_reliability"`
+	ExpiredTime     time.Time `db:"expired_time"`
 }
 
 type NodeBlockDownloadResult struct {
