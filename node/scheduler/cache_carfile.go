@@ -13,15 +13,6 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// CacheContinue Cache Continue
-func (s *Scheduler) CacheContinue(ctx context.Context, cid, deviceID string) error {
-	if cid == "" || deviceID == "" {
-		return xerrors.New("parameter is nil")
-	}
-
-	return s.dataManager.CacheContinue(cid, deviceID)
-}
-
 // CacheResult Cache Data Result
 func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) error {
 	deviceID := handler.GetDeviceID(ctx)
@@ -153,6 +144,12 @@ func (s *Scheduler) GetCarfileRecord(ctx context.Context, cid string) (api.Carfi
 	}
 
 	return info, xerrors.Errorf("not found cid:%s", cid)
+}
+
+// ResetBackupCacheCount reset backupCacheCount
+func (s *Scheduler) ResetBackupCacheCount(ctx context.Context, backupCacheCount int) error {
+	s.dataManager.ResetBackupCacheCount(backupCacheCount)
+	return nil
 }
 
 // // ListEvents get data events

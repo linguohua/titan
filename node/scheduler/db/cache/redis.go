@@ -154,7 +154,7 @@ func (rd redisDB) IsNodeCaching(deviceID string) (bool, error) {
 }
 
 // waiting data list
-func (rd redisDB) PushCarfileToWaitList(info *api.CarfileRecordInfo) error {
+func (rd redisDB) PushCarfileToWaitList(info *api.CacheCarfileInfo) error {
 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	bytes, err := json.Marshal(info)
@@ -166,19 +166,15 @@ func (rd redisDB) PushCarfileToWaitList(info *api.CarfileRecordInfo) error {
 	return err
 }
 
-func (rd redisDB) GetWaitCarfile() (*api.CarfileRecordInfo, error) {
+func (rd redisDB) GetWaitCarfile() (*api.CacheCarfileInfo, error) {
 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
 	value, err := rd.cli.LPop(context.Background(), key).Result()
 	if err != nil {
 		return nil, err
 	}
-	// value, err := rd.cli.LIndex(context.Background(), key, index).Result()
-	// if value == "" {
-	// 	return nil, redis.Nil
-	// }
 
-	var info api.CarfileRecordInfo
+	var info api.CacheCarfileInfo
 	bytes, err := redigo.Bytes(value, nil)
 	if err != nil {
 		return nil, err
@@ -190,26 +186,6 @@ func (rd redisDB) GetWaitCarfile() (*api.CarfileRecordInfo, error) {
 
 	return &info, nil
 }
-
-// func (rd redisDB) RemoveWaitCarfiles(infos []*api.CarfileRecordInfo) error {
-// 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
-
-// 	ctx := context.Background()
-// 	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-// 		for _, info := range infos {
-// 			bytes, err := json.Marshal(info)
-// 			if err != nil {
-// 				continue
-// 			}
-
-// 			pipeliner.LRem(context.Background(), key, 1, bytes)
-// 		}
-
-// 		return nil
-// 	})
-
-// 	return err
-// }
 
 // validate round id ++1
 func (rd redisDB) IncrValidateRoundID() (int64, error) {

@@ -537,18 +537,27 @@ func (sd sqlDB) RemoveCarfileRecord(carfileHash string) error {
 }
 
 // remove fail caches info
-func (sd sqlDB) RemoveFailCacheTasks(carfileHash string) error {
+func (sd sqlDB) ResetCarfileRecordInfo(info *api.CacheCarfileInfo) error {
 	area := sd.replaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
+	dTableName := fmt.Sprintf(carfileInfoTable, area)
 
-	info := api.CacheTaskInfo{
-		Status:      api.CacheStatusSuccess,
-		CarfileHash: carfileHash,
+	tx := sd.cli.MustBegin()
+
+	// cache info
+	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE status!=? AND carfile_hash=?`, cTableName)
+	tx.MustExec(cCmd, api.CacheStatusSuccess, info.CarfileHash)
+
+	dCmd := fmt.Sprintf("UPDATE %s SET need_reliability=?,expired_time=? WHERE carfile_hash=?", dTableName)
+	tx.MustExec(dCmd, info.NeedReliability, info.ExpiredTime, info.CarfileHash)
+
+	err := tx.Commit()
+	if err != nil {
+		err = tx.Rollback()
+		return err
 	}
-	cmd := fmt.Sprintf("DELETE FROM %s WHERE status!=:status AND carfile_hash=:carfile_hash", cTableName)
-	_, err := sd.cli.NamedExec(cmd, info)
 
-	return err
+	return nil
 }
 
 // remove cache info and update data info
