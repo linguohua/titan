@@ -85,7 +85,6 @@ CREATE TABLE `caches_cn_gd_shenzhen` (
     `done_blocks` int  DEFAULT '0' ,
 	`reliability` TINYINT DEFAULT '0' ,
     `candidate_cache` BOOLEAN,
-    `execute_count` int  DEFAULT '0' ,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='caches info';
