@@ -48,12 +48,11 @@ type Manager struct {
 // NewCarfileManager new
 func NewCarfileManager(nodeManager *node.Manager, getToken func() []byte) *Manager {
 	d := &Manager{
-		nodeManager: nodeManager,
-		// isLoadExpiredTime: true,
+		nodeManager:       nodeManager,
 		latelyExpiredTime: time.Now(),
 		getAuthToken:      getToken,
 		rootCacheCount:    1,
-		backupCacheCount:  1,
+		backupCacheCount:  0,
 	}
 
 	d.resetBaseInfo()

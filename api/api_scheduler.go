@@ -140,8 +140,6 @@ type CacheTaskInfo struct {
 	CandidateCache bool        `db:"candidate_cache"`
 	CreateTime     time.Time   `db:"created_time"`
 	EndTime        time.Time   `db:"end_time"`
-	// DataTimeout time.Duration
-	// ExecuteCount int         `db:"execute_count"`
 }
 
 // CacheCarfileInfo Data info
