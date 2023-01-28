@@ -14,26 +14,26 @@ import (
 type CacheTask struct {
 	carfileRecord *CarfileRecord
 
-	deviceID     string
-	carfileHash  string
-	status       api.CacheStatus
-	reliability  int
-	doneSize     int64
-	doneBlocks   int
-	isRootCache  bool
-	executeCount int
+	deviceID         string
+	carfileHash      string
+	status           api.CacheStatus
+	reliability      int
+	doneSize         int64
+	doneBlocks       int
+	isCandidateCache bool
+	executeCount     int
 
 	timeoutTicker *time.Ticker
 }
 
-func newCache(carfileRecord *CarfileRecord, deviceID string, isRootCache bool) (*CacheTask, error) {
+func newCache(carfileRecord *CarfileRecord, deviceID string, isCandidateCache bool) (*CacheTask, error) {
 	cache := &CacheTask{
-		carfileRecord: carfileRecord,
-		reliability:   0,
-		status:        api.CacheStatusCreate,
-		carfileHash:   carfileRecord.carfileHash,
-		isRootCache:   isRootCache,
-		deviceID:      deviceID,
+		carfileRecord:    carfileRecord,
+		reliability:      0,
+		status:           api.CacheStatusCreate,
+		carfileHash:      carfileRecord.carfileHash,
+		isCandidateCache: isCandidateCache,
+		deviceID:         deviceID,
 	}
 
 	err := persistent.GetDB().CreateCacheTaskInfo(
@@ -41,7 +41,7 @@ func newCache(carfileRecord *CarfileRecord, deviceID string, isRootCache bool) (
 			CarfileHash: cache.carfileHash,
 			DeviceID:    cache.deviceID,
 			Status:      cache.status,
-			RootCache:   cache.isRootCache,
+			RootCache:   cache.isCandidateCache,
 		})
 	if err != nil {
 		return nil, err
@@ -104,12 +104,12 @@ func (c *CacheTask) cacheCarfile2Node() (api.CacheCarfileResult, error) {
 
 	cNode := c.carfileRecord.nodeManager.GetCandidateNode(c.deviceID)
 	if cNode != nil {
-		return cNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.rootCacheDowloadInfos)
+		return cNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.dowloadSources)
 	}
 
 	eNode := c.carfileRecord.nodeManager.GetEdgeNode(c.deviceID)
 	if eNode != nil {
-		return eNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.rootCacheDowloadInfos)
+		return eNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.dowloadSources)
 	}
 
 	return api.CacheCarfileResult{}, xerrors.Errorf("not found node:%s", c.deviceID)
@@ -250,7 +250,7 @@ func (c *CacheTask) endCache(status api.CacheStatus, diskUsage float64) (err err
 
 func (c *CacheTask) calculateReliability() int {
 	// TODO To be perfected
-	if !c.isRootCache && c.status == api.CacheStatusSuccess {
+	if !c.isCandidateCache && c.status == api.CacheStatusSuccess {
 		return 1
 	}
 
@@ -279,5 +279,5 @@ func (c *CacheTask) GetDoneBlocks() int {
 
 // IsRootCache get is root cache
 func (c *CacheTask) IsRootCache() bool {
-	return c.isRootCache
+	return c.isCandidateCache
 }

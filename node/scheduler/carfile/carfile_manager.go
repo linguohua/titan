@@ -28,6 +28,11 @@ const (
 
 	// If the node disk size is greater than this value, caching will not continue
 	diskUsageMax = 90.0
+
+	//The number of caches in the first stage （from ipfs to titan）
+	rootCacheCount = 1
+	//Cache to the number of candidate nodes
+	backupCacheCount = 0
 )
 
 // Manager carfile
@@ -147,7 +152,10 @@ func (m *Manager) continueCarfileRecord(info *api.CarfileRecordInfo) error {
 		}
 	}()
 
-	needCacdidateCount := carfileRecord.needRootCaches - carfileRecord.rootCaches
+	needCacdidateCount := rootCacheCount
+	if carfileRecord.candidateCaches > 0 {
+		needCacdidateCount = (rootCacheCount + backupCacheCount) - carfileRecord.candidateCaches
+	}
 	if needCacdidateCount > 0 {
 		err = carfileRecord.cacheToCandidates(needCacdidateCount)
 		if err == nil {
@@ -190,10 +198,10 @@ func (m *Manager) createCarfileRecord(info *api.CarfileRecordInfo) error {
 		return xerrors.Errorf("cid:%s,CreateCarfileRecordInfo err:%s", carfileRecord.carfileCid, err.Error())
 	}
 
-	needCount := carfileRecord.needRootCaches - carfileRecord.rootCaches
-	if needCount <= 0 {
-		return xerrors.Errorf("needCount %d <= 0 ", needCount)
-	}
+	// needCount := carfileRecord.needRootCaches - carfileRecord.rootCaches
+	// if needCount <= 0 {
+	// 	return xerrors.Errorf("needCount %d <= 0 ", needCount)
+	// }
 
 	m.addCarfileRecord(carfileRecord)
 	defer func() {
@@ -202,7 +210,7 @@ func (m *Manager) createCarfileRecord(info *api.CarfileRecordInfo) error {
 		}
 	}()
 
-	err = carfileRecord.cacheToCandidates(needCount)
+	err = carfileRecord.cacheToCandidates(rootCacheCount)
 	return err
 }
 
@@ -594,16 +602,16 @@ func (m *Manager) notifyNodeRemoveCarfile(deviceID, cid string) error {
 	return nil
 }
 
-// Calculate the number of rootcache according to the reliability
-func (m *Manager) needRootCacheCount(reliability int) int {
-	// TODO interim strategy
-	count := (reliability / 6) + 1
-	if count > 3 {
-		count = 3
-	}
+// // Calculate the number of rootcache according to the reliability
+// func (m *Manager) needRootCacheCount(reliability int) int {
+// 	// TODO interim strategy
+// 	count := (reliability / 6) + 1
+// 	if count > 3 {
+// 		count = 3
+// 	}
 
-	return count
-}
+// 	return count
+// }
 
 // find the edges
 func (m *Manager) findAppropriateEdges(filterMap sync.Map, count int) []*node.Node {
