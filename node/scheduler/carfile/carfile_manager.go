@@ -32,7 +32,7 @@ const (
 	//The number of caches in the first stage （from ipfs to titan）
 	rootCacheCount = 1
 	//Cache to the number of candidate nodes
-	backupCacheCount = 0
+	backupCacheCount = 1
 )
 
 // Manager carfile
@@ -139,6 +139,12 @@ func (m *Manager) GetCarfileRecord(hash string) (*CarfileRecord, error) {
 }
 
 func (m *Manager) continueCarfileRecord(info *api.CarfileRecordInfo) error {
+	// remove fail cache
+	err := persistent.GetDB().RemoveFailCacheTasks(info.CarfileHash)
+	if err != nil {
+		return err
+	}
+
 	carfileRecord, err := loadCarfileRecord(info.CarfileHash, m)
 	if err != nil {
 		return err
@@ -152,34 +158,11 @@ func (m *Manager) continueCarfileRecord(info *api.CarfileRecordInfo) error {
 		}
 	}()
 
-	needCacdidateCount := rootCacheCount
-	if carfileRecord.candidateCaches > 0 {
-		needCacdidateCount = (rootCacheCount + backupCacheCount) - carfileRecord.candidateCaches
-	}
-	if needCacdidateCount > 0 {
-		err = carfileRecord.cacheToCandidates(needCacdidateCount)
-		if err == nil {
-			// cache to candidates
-			isRunning = true
-			return nil
-		}
-		log.Errorf("%s cacheToCandidates err:%s", info.CarfileCid, err.Error())
+	isRunning, err = carfileRecord.dispatchCaches()
+	if err != nil {
+		log.Errorf("%s dispatchCaches err:%s", info.CarfileCid, err.Error())
 	}
 
-	needEdgeCount := carfileRecord.needReliability - carfileRecord.reliability
-	if needEdgeCount <= 0 {
-		// no caching required
-		return nil
-	}
-
-	err = carfileRecord.cacheToEdges(needEdgeCount)
-	if err == nil {
-		// cache to edges
-		isRunning = true
-		return nil
-	}
-
-	log.Errorf("%s cacheToEdges err:%s", info.CarfileCid, err.Error())
 	return err
 }
 
@@ -389,7 +372,7 @@ func (m *Manager) startCarfileCacheTask() {
 
 		exist, err := persistent.GetDB().CarfileRecordExist(info.CarfileHash)
 		if err != nil {
-			log.Errorf("%s CarfileRecordExist err:", info.CarfileCid, err.Error())
+			log.Errorf("%s CarfileRecordExist err:%s", info.CarfileCid, err.Error())
 			continue
 		}
 
@@ -661,11 +644,11 @@ func (m *Manager) findAppropriateCandidates(filterMap sync.Map, count int) []*no
 	m.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
 
-		if cI, exist := filterMap.Load(deviceID); exist {
-			cache := cI.(*CacheTask)
-			if cache.status == api.CacheStatusSuccess {
-				return true
-			}
+		if _, exist := filterMap.Load(deviceID); exist {
+			// cache := cI.(*CacheTask)
+			// if cache.status == api.CacheStatusSuccess {
+			return true
+			// }
 		}
 
 		node := value.(*node.CandidateNode)

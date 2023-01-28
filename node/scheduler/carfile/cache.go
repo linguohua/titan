@@ -98,7 +98,7 @@ func (c *CacheTask) startTimeoutTimer() {
 }
 
 // Notify node to cache blocks
-func (c *CacheTask) cacheCarfile2Node() (api.CacheCarfileResult, error) {
+func (c *CacheTask) cacheCarfile2Node() (*api.CacheCarfileResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -112,7 +112,7 @@ func (c *CacheTask) cacheCarfile2Node() (api.CacheCarfileResult, error) {
 		return eNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.dowloadSources)
 	}
 
-	return api.CacheCarfileResult{}, xerrors.Errorf("not found node:%s", c.deviceID)
+	return nil, xerrors.Errorf("not found node:%s", c.deviceID)
 }
 
 func (c *CacheTask) carfileCacheResult(info *api.CacheResultInfo) error {

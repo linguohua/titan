@@ -72,12 +72,6 @@ func InitRedis(url string) (DB, error) {
 	return redisDB, err
 }
 
-func (rd redisDB) CarfileRunningCount(hash string) (int64, error) {
-	carfileNodeList := fmt.Sprintf(redisKeyCarfileCacheingNodeList, serverName, hash)
-
-	return rd.cli.SCard(context.Background(), carfileNodeList).Result()
-}
-
 func (rd redisDB) CacheTaskStart(hash, deviceID string, timeout int64) error {
 	cacheingCarfileList := fmt.Sprintf(redisKeyCacheingCarfileList, serverName)
 	carfileNodeList := fmt.Sprintf(redisKeyCarfileCacheingNodeList, serverName, hash)
@@ -159,32 +153,6 @@ func (rd redisDB) IsNodeCaching(deviceID string) (bool, error) {
 	return exist == 1, nil
 }
 
-// func (rd redisDB) GetCacheTimeoutNodes() ([]string, error) {
-// 	list := make([]string, 0)
-
-// 	cacheingNodeList := fmt.Sprintf(redisKeyCacheingNodeList, serverName)
-// 	nodes, err := rd.cli.SMembers(context.Background(), cacheingNodeList).Result()
-// 	if err != nil {
-// 		return list, err
-// 	}
-
-// 	for _, deviceID := range nodes {
-// 		nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
-// 		t, err := rd.cli.TTL(context.Background(), nodeKey).Result()
-// 		if err != nil {
-// 			continue
-// 		}
-
-// 		if t > 0 {
-// 			continue
-// 		}
-
-// 		list = append(list, deviceID)
-// 	}
-
-// 	return list, err
-// }
-
 // waiting data list
 func (rd redisDB) PushCarfileToWaitList(info *api.CarfileRecordInfo) error {
 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
@@ -223,25 +191,25 @@ func (rd redisDB) GetWaitCarfile() (*api.CarfileRecordInfo, error) {
 	return &info, nil
 }
 
-func (rd redisDB) RemoveWaitCarfiles(infos []*api.CarfileRecordInfo) error {
-	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
+// func (rd redisDB) RemoveWaitCarfiles(infos []*api.CarfileRecordInfo) error {
+// 	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
 
-	ctx := context.Background()
-	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-		for _, info := range infos {
-			bytes, err := json.Marshal(info)
-			if err != nil {
-				continue
-			}
+// 	ctx := context.Background()
+// 	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+// 		for _, info := range infos {
+// 			bytes, err := json.Marshal(info)
+// 			if err != nil {
+// 				continue
+// 			}
 
-			pipeliner.LRem(context.Background(), key, 1, bytes)
-		}
+// 			pipeliner.LRem(context.Background(), key, 1, bytes)
+// 		}
 
-		return nil
-	})
+// 		return nil
+// 	})
 
-	return err
-}
+// 	return err
+// }
 
 // validate round id ++1
 func (rd redisDB) IncrValidateRoundID() (int64, error) {
@@ -397,19 +365,6 @@ func (rd redisDB) GetDeviceInfo(deviceID string) (*api.DevicesInfo, error) {
 	}
 
 	return &info, nil
-}
-
-func (rd redisDB) UpdateDeviceInfos(field string, values map[string]interface{}) error {
-	ctx := context.Background()
-	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-		for deviceID, value := range values {
-			key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
-			pipeliner.HSet(context.Background(), key, field, value)
-		}
-		return nil
-	})
-
-	return err
 }
 
 func (rd redisDB) IncrByDeviceInfo(deviceID, field string, value int64) error {
@@ -597,40 +552,3 @@ func (rd redisDB) UpdateNodeCacheInfo(deviceID string, nodeInfo *NodeCacheInfo) 
 
 	return err
 }
-
-// func (rd redisDB) RemoveCacheTask(deviceID string, blocks int) error {
-// 	ctx := context.Background()
-// 	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-// 		nodeKey := fmt.Sprintf(redisKeyNodeInfo, deviceID)
-// 		pipeliner.HIncrBy(context.Background(), nodeKey, BlockCountField, -int64(blocks))
-
-// 		baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
-// 		pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, -1)
-
-// 		return nil
-// 	})
-
-// 	return err
-// }
-
-// func (rd redisDB) RemoveCarfileRecord(list []*api.CacheTaskInfo) error {
-// 	listSize := len(list)
-// 	if listSize <= 0 {
-// 		return nil
-// 	}
-
-// 	ctx := context.Background()
-// 	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-// 		baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
-// 		pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, -int64(listSize))
-
-// 		for _, info := range list {
-// 			nodeKey := fmt.Sprintf(redisKeyNodeInfo, info.DeviceID)
-// 			pipeliner.HIncrBy(context.Background(), nodeKey, BlockCountField, -int64(info.DoneBlocks))
-// 		}
-
-// 		return nil
-// 	})
-
-// 	return err
-// }
