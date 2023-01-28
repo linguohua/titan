@@ -21,7 +21,6 @@ type CacheTask struct {
 	doneSize         int64
 	doneBlocks       int
 	isCandidateCache bool
-	executeCount     int
 
 	timeoutTicker *time.Ticker
 }
@@ -38,15 +37,11 @@ func newCache(carfileRecord *CarfileRecord, deviceID string, isCandidateCache bo
 
 	err := persistent.GetDB().CreateCacheTaskInfo(
 		&api.CacheTaskInfo{
-			CarfileHash: cache.carfileHash,
-			DeviceID:    cache.deviceID,
-			Status:      cache.status,
-			RootCache:   cache.isCandidateCache,
+			CarfileHash:    cache.carfileHash,
+			DeviceID:       cache.deviceID,
+			Status:         cache.status,
+			CandidateCache: cache.isCandidateCache,
 		})
-	if err != nil {
-		return nil, err
-	}
-
 	return cache, err
 }
 
@@ -58,12 +53,7 @@ func (c *CacheTask) isTimeout() bool {
 		return false
 	}
 
-	log.Debugf("check timeout device:%s , isTimeout:%v", c.deviceID, !exist)
-	if exist {
-		return false
-	}
-
-	return true
+	return !exist
 }
 
 func (c *CacheTask) startTimeoutTimer() {
@@ -137,14 +127,13 @@ func (c *CacheTask) carfileCacheResult(info *api.CacheResultInfo) error {
 func (c *CacheTask) updateCacheTaskInfo() error {
 	// update cache info to db
 	cInfo := &api.CacheTaskInfo{
-		CarfileHash:  c.carfileHash,
-		DeviceID:     c.deviceID,
-		Status:       c.status,
-		DoneSize:     c.doneSize,
-		DoneBlocks:   c.doneBlocks,
-		ExecuteCount: c.executeCount,
-		Reliability:  c.reliability,
-		EndTime:      time.Now(),
+		CarfileHash: c.carfileHash,
+		DeviceID:    c.deviceID,
+		Status:      c.status,
+		DoneSize:    c.doneSize,
+		DoneBlocks:  c.doneBlocks,
+		Reliability: c.reliability,
+		EndTime:     time.Now(),
 	}
 
 	return persistent.GetDB().UpdateCacheTaskInfo(cInfo)
@@ -162,7 +151,7 @@ func (c *CacheTask) updateCacheTaskStatus() error {
 }
 
 func (c *CacheTask) startCache() error {
-	c.executeCount++
+	// c.executeCount++
 
 	err := cache.GetDB().CacheTaskStart(c.carfileHash, c.deviceID, nodeCacheTimeout)
 	if err != nil {

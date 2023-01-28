@@ -131,18 +131,17 @@ type CarfileRecordInfo struct {
 
 // CacheTaskInfo Data Cache info
 type CacheTaskInfo struct {
-	CarfileHash  string      `db:"carfile_hash"`
-	DeviceID     string      `db:"device_id"`
-	Status       CacheStatus `db:"status"`
-	Reliability  int         `db:"reliability"`
-	DoneSize     int64       `db:"done_size"`
-	DoneBlocks   int         `db:"done_blocks"`
-	ExecuteCount int         `db:"execute_count"`
-	RootCache    bool        `db:"root_cache"`
-	// ExpiredTime  time.Time   `db:"expired_time"`
-	CreateTime  time.Time `db:"created_time"`
-	EndTime     time.Time `db:"end_time"`
-	DataTimeout time.Duration
+	CarfileHash    string      `db:"carfile_hash"`
+	DeviceID       string      `db:"device_id"`
+	Status         CacheStatus `db:"status"`
+	Reliability    int         `db:"reliability"`
+	DoneSize       int64       `db:"done_size"`
+	DoneBlocks     int         `db:"done_blocks"`
+	CandidateCache bool        `db:"candidate_cache"`
+	CreateTime     time.Time   `db:"created_time"`
+	EndTime        time.Time   `db:"end_time"`
+	// DataTimeout time.Duration
+	// ExecuteCount int         `db:"execute_count"`
 }
 
 // CacheCarfileInfo Data info

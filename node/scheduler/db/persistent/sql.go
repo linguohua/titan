@@ -238,7 +238,7 @@ func (sd sqlDB) CreateCacheTaskInfo(cInfo *api.CacheTaskInfo) error {
 	area := sd.replaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
-	cmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, device_id, status, root_cache) VALUES (:carfile_hash, :device_id, :status, :root_cache)", cTableName)
+	cmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, device_id, status, candidate_cache) VALUES (:carfile_hash, :device_id, :status, :candidate_cache)", cTableName)
 	_, err := sd.cli.NamedExec(cmd, cInfo)
 	return err
 }
@@ -257,7 +257,7 @@ func (sd sqlDB) UpdateCacheTaskInfo(cInfo *api.CacheTaskInfo) error {
 	area := sd.replaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
-	cmd := fmt.Sprintf("UPDATE %s SET done_size=:done_size,done_blocks=:done_blocks,reliability=:reliability,status=:status,end_time=:end_time,execute_count=:execute_count WHERE carfile_hash=:carfile_hash AND device_id=:device_id", cTableName)
+	cmd := fmt.Sprintf("UPDATE %s SET done_size=:done_size,done_blocks=:done_blocks,reliability=:reliability,status=:status,end_time=:end_time WHERE carfile_hash=:carfile_hash AND device_id=:device_id", cTableName)
 	_, err := sd.cli.NamedExec(cmd, cInfo)
 
 	return err
@@ -348,25 +348,11 @@ func (sd sqlDB) GetCarfileCidWithPage(page int) (count int, totalPage int, list 
 	return
 }
 
-// func (sd sqlDB) GetCandidateWithHash(hash string) ([]*api.CacheTaskInfo, error) {
-// 	area := sd.ReplaceArea()
-
-// 	var out []*api.CacheTaskInfo
-// 	query := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash=? AND status=? AND root_cache=?`,
-// 		fmt.Sprintf(cacheInfoTable, area))
-
-// 	if err := sd.cli.Select(&out, query, hash, api.CacheStatusSuccess, true); err != nil {
-// 		return nil, err
-// 	}
-
-// 	return out, nil
-// }
-
 func (sd sqlDB) GetCachesWithCandidate(hash string) ([]string, error) {
 	area := sd.replaceArea()
 
 	var out []string
-	query := fmt.Sprintf(`SELECT device_id FROM %s WHERE carfile_hash=? AND status=? AND root_cache=?`,
+	query := fmt.Sprintf(`SELECT device_id FROM %s WHERE carfile_hash=? AND status=? AND candidate_cache=?`,
 		fmt.Sprintf(cacheInfoTable, area))
 
 	if err := sd.cli.Select(&out, query, hash, api.CacheStatusSuccess, true); err != nil {

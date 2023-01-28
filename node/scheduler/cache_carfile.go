@@ -106,11 +106,11 @@ func carfileRecord2Info(d *carfile.CarfileRecord) api.CarfileRecordInfo {
 			c := value.(*carfile.CacheTask)
 
 			cc := api.CacheTaskInfo{
-				Status:     c.GetStatus(),
-				DoneSize:   c.GetDoneSize(),
-				DoneBlocks: c.GetDoneBlocks(),
-				RootCache:  c.IsRootCache(),
-				DeviceID:   c.GetDeviceID(),
+				Status:         c.GetStatus(),
+				DoneSize:       c.GetDoneSize(),
+				DoneBlocks:     c.GetDoneBlocks(),
+				CandidateCache: c.IsRootCache(),
+				DeviceID:       c.GetDeviceID(),
 			}
 
 			caches = append(caches, cc)
