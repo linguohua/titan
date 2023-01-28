@@ -14,35 +14,6 @@ import (
 
 var ErrNotSupported = xerrors.New("method not supported")
 
-type BlockStruct struct {
-	Internal struct {
-		AnnounceBlocksWasDelete func(p0 context.Context, p1 []string) ([]BlockOperationResult, error) `perm:"write"`
-
-		BlockStoreStat func(p0 context.Context) error `perm:"read"`
-
-		CacheBlocks func(p0 context.Context, p1 []ReqCacheData) (CacheStat, error) `perm:"write"`
-
-		DeleteAllBlocks func(p0 context.Context) error `perm:"admin"`
-
-		DeleteBlocks func(p0 context.Context, p1 []string) ([]BlockOperationResult, error) `perm:"write"`
-
-		GetCID func(p0 context.Context, p1 string) (string, error) `perm:"read"`
-
-		GetFID func(p0 context.Context, p1 string) (string, error) `perm:"read"`
-
-		LoadBlock func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
-
-		QueryCacheStat func(p0 context.Context) (CacheStat, error) `perm:"read"`
-
-		QueryCachingBlocks func(p0 context.Context) (CachingBlockList, error) `perm:"read"`
-
-		RemoveWaitCacheBlockWith func(p0 context.Context, p1 string) error `perm:"admin"`
-	}
-}
-
-type BlockStub struct {
-}
-
 type CandidateStruct struct {
 	CommonStruct
 
@@ -83,13 +54,17 @@ type CandidateStub struct {
 
 type CarfileOperationStruct struct {
 	Internal struct {
-		CacheCarfile func(p0 context.Context, p1 string, p2 []*DowloadSource) (CacheCarfileResult, error) `perm:"write"`
+		CacheCarfile func(p0 context.Context, p1 string, p2 []*DowloadSource) (*CacheCarfileResult, error) `perm:"write"`
 
 		DeleteAllCarfiles func(p0 context.Context) error `perm:"admin"`
 
 		DeleteCarfile func(p0 context.Context, p1 string) error `perm:"write"`
 
 		DeleteWaitCacheCarfile func(p0 context.Context, p1 string) (int, error) `perm:"admin"`
+
+		QueryCacheStat func(p0 context.Context) (*CacheStat, error) `perm:"read"`
+
+		QueryCachingCarfile func(p0 context.Context) (*CachingCarfile, error) `perm:"read"`
 	}
 }
 
@@ -272,7 +247,7 @@ type SchedulerStruct struct {
 
 		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"read"`
 
-		QueryCachingBlocksWithNode func(p0 context.Context, p1 string) (CachingBlockList, error) `perm:"read"`
+		QueryCachingCarfileWithNode func(p0 context.Context, p1 string) (CachingCarfile, error) `perm:"read"`
 
 		RedressDeveiceInfo func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -356,127 +331,6 @@ type WebStruct struct {
 type WebStub struct {
 }
 
-func (s *BlockStruct) AnnounceBlocksWasDelete(p0 context.Context, p1 []string) ([]BlockOperationResult, error) {
-	if s.Internal.AnnounceBlocksWasDelete == nil {
-		return *new([]BlockOperationResult), ErrNotSupported
-	}
-	return s.Internal.AnnounceBlocksWasDelete(p0, p1)
-}
-
-func (s *BlockStub) AnnounceBlocksWasDelete(p0 context.Context, p1 []string) ([]BlockOperationResult, error) {
-	return *new([]BlockOperationResult), ErrNotSupported
-}
-
-func (s *BlockStruct) BlockStoreStat(p0 context.Context) error {
-	if s.Internal.BlockStoreStat == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.BlockStoreStat(p0)
-}
-
-func (s *BlockStub) BlockStoreStat(p0 context.Context) error {
-	return ErrNotSupported
-}
-
-func (s *BlockStruct) CacheBlocks(p0 context.Context, p1 []ReqCacheData) (CacheStat, error) {
-	if s.Internal.CacheBlocks == nil {
-		return *new(CacheStat), ErrNotSupported
-	}
-	return s.Internal.CacheBlocks(p0, p1)
-}
-
-func (s *BlockStub) CacheBlocks(p0 context.Context, p1 []ReqCacheData) (CacheStat, error) {
-	return *new(CacheStat), ErrNotSupported
-}
-
-func (s *BlockStruct) DeleteAllBlocks(p0 context.Context) error {
-	if s.Internal.DeleteAllBlocks == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.DeleteAllBlocks(p0)
-}
-
-func (s *BlockStub) DeleteAllBlocks(p0 context.Context) error {
-	return ErrNotSupported
-}
-
-func (s *BlockStruct) DeleteBlocks(p0 context.Context, p1 []string) ([]BlockOperationResult, error) {
-	if s.Internal.DeleteBlocks == nil {
-		return *new([]BlockOperationResult), ErrNotSupported
-	}
-	return s.Internal.DeleteBlocks(p0, p1)
-}
-
-func (s *BlockStub) DeleteBlocks(p0 context.Context, p1 []string) ([]BlockOperationResult, error) {
-	return *new([]BlockOperationResult), ErrNotSupported
-}
-
-func (s *BlockStruct) GetCID(p0 context.Context, p1 string) (string, error) {
-	if s.Internal.GetCID == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.GetCID(p0, p1)
-}
-
-func (s *BlockStub) GetCID(p0 context.Context, p1 string) (string, error) {
-	return "", ErrNotSupported
-}
-
-func (s *BlockStruct) GetFID(p0 context.Context, p1 string) (string, error) {
-	if s.Internal.GetFID == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.GetFID(p0, p1)
-}
-
-func (s *BlockStub) GetFID(p0 context.Context, p1 string) (string, error) {
-	return "", ErrNotSupported
-}
-
-func (s *BlockStruct) LoadBlock(p0 context.Context, p1 string) ([]byte, error) {
-	if s.Internal.LoadBlock == nil {
-		return *new([]byte), ErrNotSupported
-	}
-	return s.Internal.LoadBlock(p0, p1)
-}
-
-func (s *BlockStub) LoadBlock(p0 context.Context, p1 string) ([]byte, error) {
-	return *new([]byte), ErrNotSupported
-}
-
-func (s *BlockStruct) QueryCacheStat(p0 context.Context) (CacheStat, error) {
-	if s.Internal.QueryCacheStat == nil {
-		return *new(CacheStat), ErrNotSupported
-	}
-	return s.Internal.QueryCacheStat(p0)
-}
-
-func (s *BlockStub) QueryCacheStat(p0 context.Context) (CacheStat, error) {
-	return *new(CacheStat), ErrNotSupported
-}
-
-func (s *BlockStruct) QueryCachingBlocks(p0 context.Context) (CachingBlockList, error) {
-	if s.Internal.QueryCachingBlocks == nil {
-		return *new(CachingBlockList), ErrNotSupported
-	}
-	return s.Internal.QueryCachingBlocks(p0)
-}
-
-func (s *BlockStub) QueryCachingBlocks(p0 context.Context) (CachingBlockList, error) {
-	return *new(CachingBlockList), ErrNotSupported
-}
-
-func (s *BlockStruct) RemoveWaitCacheBlockWith(p0 context.Context, p1 string) error {
-	if s.Internal.RemoveWaitCacheBlockWith == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.RemoveWaitCacheBlockWith(p0, p1)
-}
-
-func (s *BlockStub) RemoveWaitCacheBlockWith(p0 context.Context, p1 string) error {
-	return ErrNotSupported
-}
-
 func (s *CandidateStruct) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
 	if s.Internal.GetBlocksOfCarfile == nil {
 		return *new(map[int]string), ErrNotSupported
@@ -521,15 +375,15 @@ func (s *CandidateStub) WaitQuiet(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *CarfileOperationStruct) CacheCarfile(p0 context.Context, p1 string, p2 []*DowloadSource) (CacheCarfileResult, error) {
+func (s *CarfileOperationStruct) CacheCarfile(p0 context.Context, p1 string, p2 []*DowloadSource) (*CacheCarfileResult, error) {
 	if s.Internal.CacheCarfile == nil {
-		return *new(CacheCarfileResult), ErrNotSupported
+		return nil, ErrNotSupported
 	}
 	return s.Internal.CacheCarfile(p0, p1, p2)
 }
 
-func (s *CarfileOperationStub) CacheCarfile(p0 context.Context, p1 string, p2 []*DowloadSource) (CacheCarfileResult, error) {
-	return *new(CacheCarfileResult), ErrNotSupported
+func (s *CarfileOperationStub) CacheCarfile(p0 context.Context, p1 string, p2 []*DowloadSource) (*CacheCarfileResult, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *CarfileOperationStruct) DeleteAllCarfiles(p0 context.Context) error {
@@ -563,6 +417,28 @@ func (s *CarfileOperationStruct) DeleteWaitCacheCarfile(p0 context.Context, p1 s
 
 func (s *CarfileOperationStub) DeleteWaitCacheCarfile(p0 context.Context, p1 string) (int, error) {
 	return 0, ErrNotSupported
+}
+
+func (s *CarfileOperationStruct) QueryCacheStat(p0 context.Context) (*CacheStat, error) {
+	if s.Internal.QueryCacheStat == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.QueryCacheStat(p0)
+}
+
+func (s *CarfileOperationStub) QueryCacheStat(p0 context.Context) (*CacheStat, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *CarfileOperationStruct) QueryCachingCarfile(p0 context.Context) (*CachingCarfile, error) {
+	if s.Internal.QueryCachingCarfile == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.QueryCachingCarfile(p0)
+}
+
+func (s *CarfileOperationStub) QueryCachingCarfile(p0 context.Context) (*CachingCarfile, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *CommonStruct) AuthNew(p0 context.Context, p1 []auth.Permission) ([]byte, error) {
@@ -1126,15 +1002,15 @@ func (s *SchedulerStub) QueryCacheStatWithNode(p0 context.Context, p1 string) ([
 	return *new([]CacheStat), ErrNotSupported
 }
 
-func (s *SchedulerStruct) QueryCachingBlocksWithNode(p0 context.Context, p1 string) (CachingBlockList, error) {
-	if s.Internal.QueryCachingBlocksWithNode == nil {
-		return *new(CachingBlockList), ErrNotSupported
+func (s *SchedulerStruct) QueryCachingCarfileWithNode(p0 context.Context, p1 string) (CachingCarfile, error) {
+	if s.Internal.QueryCachingCarfileWithNode == nil {
+		return *new(CachingCarfile), ErrNotSupported
 	}
-	return s.Internal.QueryCachingBlocksWithNode(p0, p1)
+	return s.Internal.QueryCachingCarfileWithNode(p0, p1)
 }
 
-func (s *SchedulerStub) QueryCachingBlocksWithNode(p0 context.Context, p1 string) (CachingBlockList, error) {
-	return *new(CachingBlockList), ErrNotSupported
+func (s *SchedulerStub) QueryCachingCarfileWithNode(p0 context.Context, p1 string) (CachingCarfile, error) {
+	return *new(CachingCarfile), ErrNotSupported
 }
 
 func (s *SchedulerStruct) RedressDeveiceInfo(p0 context.Context, p1 string) error {
@@ -1467,7 +1343,6 @@ func (s *WebStub) SetupValidation(p0 context.Context, p1 bool) error {
 	return ErrNotSupported
 }
 
-var _ Block = new(BlockStruct)
 var _ Candidate = new(CandidateStruct)
 var _ CarfileOperation = new(CarfileOperationStruct)
 var _ Common = new(CommonStruct)
