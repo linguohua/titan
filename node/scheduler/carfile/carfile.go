@@ -23,21 +23,20 @@ type CarfileRecord struct {
 	totalBlocks     int
 	expiredTime     time.Time
 
-	needRootCaches int
-	rootCaches     int
-	CacheTaskMap   sync.Map
+	candidateCaches int
+	CacheTaskMap    sync.Map
 
-	cacheLock             sync.RWMutex
-	rootCacheDowloadInfos []*api.DowloadSource
+	cacheLock      sync.RWMutex
+	dowloadSources []*api.DowloadSource
 }
 
 func newCarfileRecord(manager *Manager, cid, hash string) *CarfileRecord {
 	return &CarfileRecord{
-		nodeManager:           manager.nodeManager,
-		carfileManager:        manager,
-		carfileCid:            cid,
-		carfileHash:           hash,
-		rootCacheDowloadInfos: make([]*api.DowloadSource, 0),
+		nodeManager:    manager.nodeManager,
+		carfileManager: manager,
+		carfileCid:     cid,
+		carfileHash:    hash,
+		dowloadSources: make([]*api.DowloadSource, 0),
 	}
 }
 
@@ -57,8 +56,7 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 	carfileRecord.totalBlocks = dInfo.TotalBlocks
 	carfileRecord.expiredTime = dInfo.ExpiredTime
 	carfileRecord.carfileHash = dInfo.CarfileHash
-	carfileRecord.rootCacheDowloadInfos = make([]*api.DowloadSource, 0)
-	carfileRecord.needRootCaches = manager.needRootCacheCount(carfileRecord.needReliability)
+	carfileRecord.dowloadSources = make([]*api.DowloadSource, 0)
 
 	caches, err := persistent.GetDB().GetCaches(hash, false)
 	if err != nil {
@@ -72,22 +70,22 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 		}
 
 		c := &CacheTask{
-			deviceID:      cache.DeviceID,
-			carfileRecord: carfileRecord,
-			doneSize:      cache.DoneSize,
-			doneBlocks:    cache.DoneBlocks,
-			status:        api.CacheStatus(cache.Status),
-			isRootCache:   cache.RootCache,
-			carfileHash:   cache.CarfileHash,
-			executeCount:  cache.ExecuteCount,
+			deviceID:         cache.DeviceID,
+			carfileRecord:    carfileRecord,
+			doneSize:         cache.DoneSize,
+			doneBlocks:       cache.DoneBlocks,
+			status:           api.CacheStatus(cache.Status),
+			isCandidateCache: cache.RootCache,
+			carfileHash:      cache.CarfileHash,
+			executeCount:     cache.ExecuteCount,
 		}
 
-		if c.isRootCache && c.status == api.CacheStatusSuccess {
-			carfileRecord.rootCaches++
+		if c.isCandidateCache && c.status == api.CacheStatusSuccess {
+			carfileRecord.candidateCaches++
 
 			cNode := c.carfileRecord.nodeManager.GetCandidateNode(c.deviceID)
 			if cNode != nil {
-				carfileRecord.rootCacheDowloadInfos = append(carfileRecord.rootCacheDowloadInfos, &api.DowloadSource{
+				carfileRecord.dowloadSources = append(carfileRecord.dowloadSources, &api.DowloadSource{
 					CandidateURL:   cNode.GetAddress(),
 					CandidateToken: string(c.carfileRecord.carfileManager.getAuthToken()),
 				})
@@ -113,7 +111,7 @@ func (d *CarfileRecord) rootCacheExists() bool {
 			return true
 		}
 
-		exist = c.isRootCache && c.status == api.CacheStatusSuccess
+		exist = c.isCandidateCache && c.status == api.CacheStatusSuccess
 		if exist {
 			return false
 		}
@@ -203,7 +201,7 @@ func (d *CarfileRecord) cacheToCandidates(needCount int) error {
 }
 
 func (d *CarfileRecord) cacheToEdges(needCount int) error {
-	if len(d.rootCacheDowloadInfos) <= 0 {
+	if len(d.dowloadSources) <= 0 {
 		return xerrors.New("not found rootCache")
 	}
 
@@ -261,12 +259,12 @@ func (d *CarfileRecord) cacheDone(endCache *CacheTask, cachesDone bool) error {
 		d.cacheLock.Lock()
 		d.reliability += endCache.reliability
 
-		if endCache.isRootCache {
-			d.rootCaches++
+		if endCache.isCandidateCache {
+			d.candidateCaches++
 
 			cNode := d.nodeManager.GetCandidateNode(endCache.deviceID)
 			if cNode != nil {
-				d.rootCacheDowloadInfos = append(d.rootCacheDowloadInfos, &api.DowloadSource{
+				d.dowloadSources = append(d.dowloadSources, &api.DowloadSource{
 					CandidateURL:   cNode.GetAddress(),
 					CandidateToken: string(d.carfileManager.getAuthToken()),
 				})
@@ -275,14 +273,8 @@ func (d *CarfileRecord) cacheDone(endCache *CacheTask, cachesDone bool) error {
 		d.cacheLock.Unlock()
 	}
 
-	// count, err := cache.GetDB().CarfileRunningCount(d.carfileHash)
-	// if err != nil {
-	// 	log.Errorf("CarfileRunningCount err:%s", err.Error())
-	// 	return err
-	// }
-
 	if !cachesDone {
-		// carfile undone
+		// caches undone
 		return nil
 	}
 
@@ -305,7 +297,7 @@ func (d *CarfileRecord) cacheDone(endCache *CacheTask, cachesDone bool) error {
 		}
 	}()
 
-	if endCache.isRootCache {
+	if endCache.isCandidateCache {
 		//cache to edges
 		needCount := d.needReliability - d.reliability
 		if needCount <= 0 {
