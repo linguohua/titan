@@ -75,9 +75,9 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 			doneSize:         cache.DoneSize,
 			doneBlocks:       cache.DoneBlocks,
 			status:           cache.Status,
-			isCandidateCache: cache.RootCache,
+			isCandidateCache: cache.CandidateCache,
 			carfileHash:      cache.CarfileHash,
-			executeCount:     cache.ExecuteCount,
+			// executeCount:     cache.ExecuteCount,
 		}
 
 		if c.isCandidateCache && c.status == api.CacheStatusSuccess {
@@ -129,7 +129,7 @@ func (d *CarfileRecord) createAndDoCacheTasks(nodes []*node.Node, isRootCache bo
 		deviceID := node.DeviceId
 		cache, err := newCache(d, deviceID, isRootCache)
 		if err != nil {
-			log.Errorf("newCache %s , node:%s,err:%s", cache.carfileRecord.carfileCid, cache.deviceID, err.Error())
+			log.Errorf("newCache %s , node:%s,err:%s", d.carfileCid, deviceID, err.Error())
 			continue
 		}
 

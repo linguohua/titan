@@ -645,14 +645,8 @@ var showDatasInfoCmd = &cli.Command{
 
 			for j := 0; j < len(info.CacheInfos); j++ {
 				cache := info.CacheInfos[j]
-
-				timeout := ""
-				if cache.DataTimeout > 0 {
-					timeout = fmt.Sprintf(", Task Timeout:%s", cache.DataTimeout.String())
-				}
-
-				fmt.Printf("DeviceID:%s ,  Status:%s , Done Size:%f MB , Done Blocks:%d , IsRootCache:%v %s\n",
-					cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.RootCache, timeout)
+				fmt.Printf("DeviceID:%s ,  Status:%s , Done Size:%f MB , Done Blocks:%d , IsRootCache:%v \n",
+					cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.CandidateCache)
 			}
 		}
 
@@ -689,14 +683,8 @@ var showDataInfoCmd = &cli.Command{
 
 		fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d \n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks)
 		for _, cache := range info.CacheInfos {
-
-			timeout := ""
-			if cache.DataTimeout > 0 {
-				timeout = fmt.Sprintf(", Task Timeout:%s", cache.DataTimeout.String())
-			}
-
-			fmt.Printf("DeviceID:%s ,  Status:%s , Done Size:%f MB ,Done Blocks:%d , IsRootCache:%v %s\n",
-				cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.RootCache, timeout)
+			fmt.Printf("DeviceID:%s ,  Status:%s , Done Size:%f MB ,Done Blocks:%d , IsRootCache:%v \n",
+				cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.CandidateCache)
 		}
 
 		return nil
