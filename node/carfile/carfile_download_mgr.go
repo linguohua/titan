@@ -46,7 +46,7 @@ func (downloadMgr *DownloadMgr) delayNotifyDownloaderOnce() {
 
 func (downloadMgr *DownloadMgr) startTick() {
 	for {
-		time.Sleep(time.Minute)
+		time.Sleep(10 * time.Second)
 
 		carfile := downloadMgr.getFirstCarfileCacheFromWaitList()
 		if carfile != nil {
