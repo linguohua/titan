@@ -40,7 +40,7 @@ var SchedulerCmds = []*cli.Command{
 	registerNodeCmd,
 	redressInfoCmd,
 	// other
-	cachingBlocksCmd,
+	cachingCarfilesCmd,
 	cacheStatCmd,
 	getDownloadInfoCmd,
 	// listEventCmd,
@@ -884,8 +884,8 @@ var showOnlineNodeCmd = &cli.Command{
 	},
 }
 
-var cachingBlocksCmd = &cli.Command{
-	Name:  "caching-blocks",
+var cachingCarfilesCmd = &cli.Command{
+	Name:  "caching-carfiles",
 	Usage: "show caching blocks from node",
 	Flags: []cli.Flag{
 		// schedulerURLFlag,
@@ -907,7 +907,7 @@ var cachingBlocksCmd = &cli.Command{
 		}
 		defer closer()
 
-		body, err := schedulerAPI.QueryCachingBlocksWithNode(ctx, deviceID)
+		body, err := schedulerAPI.QueryCachingCarfileWithNode(ctx, deviceID)
 		if err != nil {
 			return err
 		}

@@ -338,7 +338,11 @@ func (m *Manager) FindNodeDownloadInfos(cid string) ([]*api.DownloadInfoResult, 
 	}
 
 	for _, cache := range caches {
+		if cache.RootCache {
+			continue
+		}
 		deviceID := cache.DeviceID
+
 		info, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
 		if err != nil {
 			continue

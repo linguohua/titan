@@ -39,14 +39,10 @@ type DB interface {
 
 	// cache data info
 	CreateCacheTaskInfo(info *api.CacheTaskInfo) error
-	// SaveCacheResults(dInfo *api.CarfileRecordInfo, cInfo *api.CacheTaskInfo) error
 	UpdateCacheTaskInfo(info *api.CacheTaskInfo) error
 	UpdateCacheTaskStatus(info *api.CacheTaskInfo) error
-	// UpdateCacheInfoOfTimeoutNodes(deviceIDs []string) error
 
 	// data info
-	// GetCarfileCount() (int, error)
-	UpdateCarfileRecordBasisInfo(info *api.CarfileRecordInfo) error
 	UpdateCarfileRecordCachesInfo(info *api.CarfileRecordInfo) error
 	CreateCarfileRecordInfo(info *api.CarfileRecordInfo) error
 	GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error)
@@ -58,11 +54,11 @@ type DB interface {
 	ChangeExpiredTimeWhitCarfile(carfileHash string, expiredTime time.Time) error
 	GetExpiredCarfiles() ([]*api.CarfileRecordInfo, error)
 	GetMinExpiredTime() (time.Time, error)
-	// UpdateCacheStatusWithNodes(hash string, deviceIDs []string) error
 
 	// cache info
 	GetSuccessCachesCount() (int, error)
 	GetCacheInfo(carfileHash, deviceID string) (*api.CacheTaskInfo, error)
+	RemoveFailCacheTasks(carfileHash string) error
 	RemoveCacheTask(deviceID, carfileHash string) error
 	RemoveCarfileRecord(carfileHash string) error
 	UpdateCacheInfoOfQuitNode(deviceIDs []string) ([]*api.CarfileRecordInfo, error)
@@ -76,13 +72,6 @@ type DB interface {
 	GetBlockDownloadInfoByDeviceID(deviceID string) ([]*api.BlockDownloadInfo, error)
 	GetBlockDownloadInfoByID(id string) (*api.BlockDownloadInfo, error)
 	GetNodesByUserDownloadBlockIn(minute int) ([]string, error)
-
-	// cache event info
-	// SetEventInfo(info *api.EventInfo) error
-	// GetEventInfos(page int) (count int, totalPage int, out []*api.EventInfo, err error)
-
-	// tool
-	ReplaceArea() string
 
 	// web
 	webDB

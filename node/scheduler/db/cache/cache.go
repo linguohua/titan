@@ -29,7 +29,6 @@ const (
 type DB interface {
 	CacheTaskStart(hash, deviceID string, timeout int64) error
 	CacheTaskEnd(hash, deviceID string, nodeInfo *NodeCacheInfo) (bool, error)
-	CarfileRunningCount(hash string) (int64, error)
 	UpdateNodeCacheingExpireTime(hash, deviceID string, timeout int64) error
 	GetCacheingCarfiles() ([]string, error)
 	IsNodeCaching(deviceID string) (bool, error)
@@ -37,7 +36,6 @@ type DB interface {
 	// waiting data list
 	PushCarfileToWaitList(info *api.CarfileRecordInfo) error
 	GetWaitCarfile() (*api.CarfileRecordInfo, error)
-	RemoveWaitCarfiles(infos []*api.CarfileRecordInfo) error
 
 	// validate round id
 	IncrValidateRoundID() (int64, error)
@@ -59,7 +57,6 @@ type DB interface {
 	SetDeviceInfo(info *api.DevicesInfo) error
 	GetDeviceInfo(deviceID string) (*api.DevicesInfo, error)
 	IncrByDeviceInfo(deviceID, field string, value int64) error
-	UpdateDeviceInfos(field string, values map[string]interface{}) error
 
 	// download info
 	SetDownloadBlockRecord(record *DownloadBlockRecord) error
@@ -73,7 +70,7 @@ type DB interface {
 
 	NodeDownloadCount(deviceID string, blockDownnloadInfo *api.BlockDownloadInfo) error
 
-	// system base info TODO save in db
+	// system base info
 	GetBaseInfo() (*api.BaseInfo, error)
 	UpdateBaseInfo(field string, value interface{}) error
 	IncrByBaseInfo(field string, value int64) error

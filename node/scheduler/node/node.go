@@ -116,9 +116,9 @@ type Node struct {
 	geoInfo         *region.GeoInfo
 	lastRequestTime time.Time
 
-	cacheStat                 *api.CacheStat
-	cacheTimeoutTimeStamp     int64 // TimeStamp of cache timeout
-	cacheNextTimeoutTimeStamp int64 // TimeStamp of next cache timeout
+	cacheStat *api.CacheStat
+	// cacheTimeoutTimeStamp     int64 // TimeStamp of cache timeout
+	// cacheNextTimeoutTimeStamp int64 // TimeStamp of next cache timeout
 
 	curCacheCount int //The number of caches waiting and in progress
 }
@@ -152,15 +152,15 @@ func (n *Node) GetAddress() string {
 	return n.addr
 }
 
-// GetCacheTimeoutTimeStamp get cache timeout stamp
-func (n *Node) GetCacheTimeoutTimeStamp() int64 {
-	return n.cacheTimeoutTimeStamp
-}
+// // GetCacheTimeoutTimeStamp get cache timeout stamp
+// func (n *Node) GetCacheTimeoutTimeStamp() int64 {
+// 	return n.cacheTimeoutTimeStamp
+// }
 
-// GetCacheNextTimeoutTimeStamp get cache timeout stamp with next cache
-func (n *Node) GetCacheNextTimeoutTimeStamp() int64 {
-	return n.cacheNextTimeoutTimeStamp
-}
+// // GetCacheNextTimeoutTimeStamp get cache timeout stamp with next cache
+// func (n *Node) GetCacheNextTimeoutTimeStamp() int64 {
+// 	return n.cacheNextTimeoutTimeStamp
+// }
 
 // GetLastRequestTime get node last request time
 func (n *Node) GetLastRequestTime() time.Time {
@@ -234,12 +234,12 @@ func (n *Node) setNodeOffline() {
 func (n *Node) UpdateCacheStat(info *api.CacheStat) {
 	n.cacheStat = info
 
-	num := info.WaitCacheBlockNum + info.DoingCacheBlockNum
+	// num := info.WaitCacheBlockNum + info.DoingCacheBlockNum
 
-	timeStamp := time.Now().Unix()
-	n.cacheTimeoutTimeStamp = timeStamp + int64(num*info.DownloadTimeout*info.RetryNum)
+	// timeStamp := time.Now().Unix()
+	// n.cacheTimeoutTimeStamp = timeStamp + int64(num*info.DownloadTimeout*info.RetryNum)
 
-	n.cacheNextTimeoutTimeStamp = n.cacheTimeoutTimeStamp + int64(info.DownloadTimeout*info.RetryNum)
+	// n.cacheNextTimeoutTimeStamp = n.cacheTimeoutTimeStamp + int64(info.DownloadTimeout*info.RetryNum)
 
 	n.DiskUsage = info.DiskUsage
 }

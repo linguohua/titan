@@ -44,10 +44,10 @@ func (sd sqlDB) GetNodes(cursor int, count int) ([]*NodeInfo, int64, error) {
 
 func (sd sqlDB) GetBlockDownloadInfos(deviceID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.BlockDownloadInfo, int64, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE device_id = ? and created_time between ? and ? limit ?,?`,
-		fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
+		fmt.Sprintf(blockDownloadInfo, sd.replaceArea()))
 
 	var total int64
-	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE device_id = ? and created_time between ? and ?`, fmt.Sprintf(blockDownloadInfo, sd.ReplaceArea()))
+	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE device_id = ? and created_time between ? and ?`, fmt.Sprintf(blockDownloadInfo, sd.replaceArea()))
 	if err := sd.cli.Get(&total, countSQL, deviceID, startTime, endTime); err != nil {
 		return nil, 0, err
 	}
