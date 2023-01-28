@@ -487,7 +487,7 @@ func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string)
 }
 
 // QueryCachingBlocksWithNode Query Caching Blocks
-func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (api.CachingBlockList, error) {
+func (s *Scheduler) QueryCachingCarfileWithNode(ctx context.Context, deviceID string) (api.CachingCarfile, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -501,7 +501,7 @@ func (s *Scheduler) QueryCachingBlocksWithNode(ctx context.Context, deviceID str
 	// 	return edge.GetAPI().QueryCachingBlocks(ctx)
 	// }
 
-	return api.CachingBlockList{}, xerrors.Errorf("not found node:%s", deviceID)
+	return api.CachingCarfile{}, xerrors.Errorf("not found node:%s", deviceID)
 }
 
 // ElectionValidators Validators

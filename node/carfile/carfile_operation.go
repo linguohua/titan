@@ -80,15 +80,15 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, 
 	return carfileOperation.scheduler.CacheResult(ctx, result)
 }
 
-func (carfileOperation *CarfileOperation) cacheCarfileResult() (api.CacheCarfileResult, error) {
+func (carfileOperation *CarfileOperation) cacheCarfileResult() (*api.CacheCarfileResult, error) {
 	_, diskUsage := carfileOperation.device.GetDiskUsageStat()
 
 	carfileCount, err := carfileOperation.carfileStore.CarfileCount()
 	if err != nil {
-		return api.CacheCarfileResult{}, err
+		return nil, err
 	}
 
-	return api.CacheCarfileResult{CacheCarfileCount: carfileCount, WaitCacheCarfileNum: carfileOperation.downloadMgr.waitListLen(), DiskUsage: diskUsage}, nil
+	return &api.CacheCarfileResult{CacheCarfileCount: carfileCount, WaitCacheCarfileNum: carfileOperation.downloadMgr.waitListLen(), DiskUsage: diskUsage}, nil
 }
 
 func (carfileOperation *CarfileOperation) cacheResultForCarfileExist(carfileCID string) error {

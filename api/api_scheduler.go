@@ -16,7 +16,7 @@ type Scheduler interface {
 	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeTypeName) ([]string, error)                     //perm:read
 	ElectionValidators(ctx context.Context) error                                                        //perm:admin                                                               //perm:admin
 	QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]CacheStat, error)                    //perm:read
-	QueryCachingBlocksWithNode(ctx context.Context, deviceID string) (CachingBlockList, error)           //perm:read
+	QueryCachingCarfileWithNode(ctx context.Context, deviceID string) (CachingCarfile, error)            //perm:read
 	CacheCarfile(ctx context.Context, cid string, reliability int, expiredTime time.Time) error          //perm:admin
 	RemoveCarfile(ctx context.Context, carfileID string) error                                           //perm:admin
 	RemoveCache(ctx context.Context, carfileID, deviceID string) error                                   //perm:admin

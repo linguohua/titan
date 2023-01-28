@@ -9,25 +9,17 @@ import (
 	"github.com/linguohua/titan/node/helper"
 )
 
-func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carfileCID string, sources []*api.DowloadSource) (api.CacheCarfileResult, error) {
-	cfCache := &carfileCache{
-		carfileCID:                carfileCID,
-		blocksWaitList:            make([]string, 0),
-		blocksDownloadSuccessList: make([]string, 0),
-		nextLayerCIDs:             make([]string, 0),
-		downloadSources:           sources,
-	}
-
+func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carfileCID string, sources []*api.DowloadSource) (*api.CacheCarfileResult, error) {
 	carfileHash, err := helper.CIDString2HashString(carfileCID)
 	if err != nil {
 		log.Errorf("CacheCarfile, CIDString2HashString error:%s, carfile cid:%s", err.Error(), carfileCID)
-		return api.CacheCarfileResult{}, err
+		return nil, err
 	}
 
 	has, err := carfileOperation.carfileStore.HasCarfile(carfileHash)
 	if err != nil {
 		log.Errorf("CacheCarfile, HasCarfile error:%s, carfile hash :%s", err.Error(), carfileHash)
-		return api.CacheCarfileResult{}, err
+		return nil, err
 	}
 
 	if has {
@@ -39,6 +31,14 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 		log.Infof("carfile %s carfileCID aready exist, not need to cache", carfileCID)
 
 		return carfileOperation.cacheCarfileResult()
+	}
+
+	cfCache := &carfileCache{
+		carfileCID:                carfileCID,
+		blocksWaitList:            make([]string, 0),
+		blocksDownloadSuccessList: make([]string, 0),
+		nextLayerCIDs:             make([]string, 0),
+		downloadSources:           sources,
 	}
 
 	data, err := carfileOperation.carfileStore.GetIncomleteCarfileData(carfileHash)
@@ -126,4 +126,46 @@ func (carfileOperation *CarfileOperation) LoadBlock(ctx context.Context, cid str
 		return nil, err
 	}
 	return carfileOperation.carfileStore.GetBlock(blockHash)
+}
+
+func (carfileOperation *CarfileOperation) QueryCacheStat(ctx context.Context) (*api.CacheStat, error) {
+	blockCount, err := carfileOperation.carfileStore.BlockCount()
+	if err != nil {
+		log.Errorf("QueryCacheStat, block count error:%v", err)
+		return nil, nil
+	}
+
+	carfileCount, err := carfileOperation.carfileStore.CarfileCount()
+	if err != nil {
+		log.Errorf("QueryCacheStat, block count error:%v", err)
+		return nil, nil
+	}
+
+	cacheStat := &api.CacheStat{}
+	cacheStat.TotalCarfileCount = carfileCount
+	cacheStat.TotalBlockCount = blockCount
+	cacheStat.WaitCacheCarfileCount = carfileOperation.downloadMgr.waitListLen()
+	_, cacheStat.DiskUsage = carfileOperation.device.GetDiskUsageStat()
+
+	carfileCache := carfileOperation.downloadMgr.getFirstCarfileCacheFromWaitList()
+	if carfileCache != nil {
+		cacheStat.CachingCarfileCID = carfileCache.carfileCID
+	}
+
+	log.Infof("QueryCacheStat, TotalCarfileCount:%d,TotalBlockCount:%d,WaitCacheCarfileCount:%d,DiskUsage:%f,CachingCarfileCID:%s",
+		cacheStat.TotalCarfileCount, cacheStat.TotalBlockCount, cacheStat.WaitCacheCarfileCount, cacheStat.DiskUsage, cacheStat.CachingCarfileCID)
+	return cacheStat, nil
+}
+
+func (carfileOperation *CarfileOperation) QueryCachingCarfile(ctx context.Context) (*api.CachingCarfile, error) {
+	carfileCache := carfileOperation.downloadMgr.getFirstCarfileCacheFromWaitList()
+	if carfileCache == nil {
+		return nil, nil
+	}
+
+	ret := &api.CachingCarfile{}
+	ret.CarfileCID = carfileCache.carfileCID
+	ret.BlockList = carfileCache.blocksWaitList
+
+	return ret, nil
 }
