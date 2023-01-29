@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/handler"
 	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
@@ -17,30 +16,30 @@ import (
 
 // NodeDownloadBlockResult node result for user download block
 func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result api.NodeBlockDownloadResult) error {
-	deviceID := handler.GetDeviceID(ctx)
+	// deviceID := handler.GetDeviceID(ctx)
 
-	if !deviceExists(deviceID, 0) {
-		return xerrors.Errorf("node not Exist: %s", deviceID)
-	}
+	// if !deviceExists(deviceID, 0) {
+	// 	return xerrors.Errorf("node not Exist: %s", deviceID)
+	// }
 
-	record, err := cache.GetDB().GetDownloadBlockRecord(result.SN)
-	if err != nil {
-		log.Errorf("NodeDownloadBlockResult, GetBlockDownloadRecord error:%s", err.Error())
-		return err
-	}
+	// record, err := cache.GetDB().GetDownloadBlockRecord(result.SN)
+	// if err != nil {
+	// 	log.Errorf("NodeDownloadBlockResult, GetBlockDownloadRecord error:%s", err.Error())
+	// 	return err
+	// }
 
-	err = s.verifyNodeResultForUserDownloadBlock(deviceID, record, result.Sign)
-	if err != nil {
-		log.Errorf("NodeDownloadBlockResult, verifyNodeDownloadBlockSign error:%s", err.Error())
-		return err
-	}
+	// err = s.verifyNodeResultForUserDownloadBlock(deviceID, record, result.Sign)
+	// if err != nil {
+	// 	log.Errorf("NodeDownloadBlockResult, verifyNodeDownloadBlockSign error:%s", err.Error())
+	// 	return err
+	// }
 
-	record.NodeStatus = int(blockDownloadStatusFailed)
-	if result.Result {
-		record.NodeStatus = int(blockDownloadStatusSuccess)
-	}
+	// record.NodeStatus = int(blockDownloadStatusFailed)
+	// if result.Result {
+	// 	record.NodeStatus = int(blockDownloadStatusSuccess)
+	// }
 
-	s.recordDownloadBlock(record, &result, deviceID, "")
+	// s.recordDownloadBlock(record, &result, deviceID, "")
 	return nil
 }
 
@@ -68,12 +67,12 @@ func (s *Scheduler) handleUserDownloadBlockResult(ctx context.Context, result ap
 
 // UserDownloadBlockResults node result for user download block
 func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []api.UserBlockDownloadResult) error {
-	for _, result := range results {
-		err := s.handleUserDownloadBlockResult(ctx, result)
-		if err != nil {
-			return err
-		}
-	}
+	// for _, result := range results {
+	// 	err := s.handleUserDownloadBlockResult(ctx, result)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 	return nil
 }
 
@@ -84,6 +83,11 @@ func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string,
 	}
 
 	infos, err := s.nodeManager.FindNodeDownloadInfos(cid)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.signDownloadInfos(cid, infos, make(map[string]*rsa.PrivateKey))
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +152,7 @@ func (s *Scheduler) verifyUserDownloadBlockSign(publicPem, cid string, sign []by
 	return titanRsa.VerifyRsaSign(publicKey, sign, cid)
 }
 
-func (s *Scheduler) signDownloadInfos(cid string, results []api.DownloadInfoResult, devicePrivateKeys map[string]*rsa.PrivateKey) error {
+func (s *Scheduler) signDownloadInfos(cid string, results []*api.DownloadInfoResult, devicePrivateKeys map[string]*rsa.PrivateKey) error {
 	sn, err := cache.GetDB().IncrBlockDownloadSN()
 	if err != nil {
 		log.Errorf("signDownloadInfos incr block download sn error:%s", err.Error())
@@ -171,7 +175,7 @@ func (s *Scheduler) signDownloadInfos(cid string, results []api.DownloadInfoResu
 			devicePrivateKeys[deviceID] = privateKey
 		}
 
-		sign, err := titanRsa.RsaSign(privateKey, fmt.Sprintf("%s%d%d%d", cid, sn, signTime, blockDonwloadTimeout))
+		sign, err := titanRsa.RsaSign(privateKey, fmt.Sprintf("%s%d%d%d", deviceID, sn, signTime, blockDonwloadTimeout))
 		if err != nil {
 			log.Errorf("signDownloadInfos rsa sign error:%s", err.Error())
 			return err
