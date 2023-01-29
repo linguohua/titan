@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"os"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
@@ -99,4 +100,25 @@ func (a *CommonAPI) Session(ctx context.Context, deviceID string) (uuid.UUID, er
 
 func (a *CommonAPI) Closing(context.Context) (<-chan struct{}, error) {
 	return make(chan struct{}), nil // relies on jsonrpc closing
+}
+
+func (a *CommonAPI) ShowLogFile(ctx context.Context) (*api.LogFile, error) {
+	logFilePath := os.Getenv("GOLOG_FILE")
+	if logFilePath == "" {
+		return nil, nil
+	}
+	info, err := os.Stat(logFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.LogFile{Name: info.Name(), Size: info.Size()}, nil
+}
+
+func (a *CommonAPI) DownloadLogFile(ctx context.Context) ([]byte, error) {
+	logFilePath := os.Getenv("GOLOG_FILE")
+	if logFilePath == "" {
+		return nil, nil
+	}
+	return os.ReadFile(logFilePath)
 }
