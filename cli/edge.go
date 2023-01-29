@@ -444,7 +444,7 @@ var listLogFileCmd = &cli.Command{
 			return nil
 		}
 
-		fmt.Printf("%s %d", info.Name, info.Size)
+		fmt.Printf("%s %dB", info.Name, info.Size)
 		return nil
 	},
 }
