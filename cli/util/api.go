@@ -181,13 +181,13 @@ func GetSchedulerAPI(ctx *cli.Context, deviceID string) (api.Scheduler, jsonrpc.
 }
 
 func GetCandidateAPI(ctx *cli.Context) (api.Candidate, jsonrpc.ClientCloser, error) {
-	addr, headers, err := GetRawAPI(ctx, repo.FullNode, "v0")
+	addr, headers, err := GetRawAPI(ctx, repo.Worker, "v0")
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if IsVeryVerbose {
-		_, _ = fmt.Fprintln(ctx.App.Writer, "using full node API v0 endpoint:", addr)
+		_, _ = fmt.Fprintln(ctx.App.Writer, "using worker node API v0 endpoint:", addr)
 	}
 
 	a, c, e := client.NewCandicate(ctx.Context, addr, headers)
@@ -204,13 +204,13 @@ func GetCandidateAPI(ctx *cli.Context) (api.Candidate, jsonrpc.ClientCloser, err
 }
 
 func GetEdgeAPI(ctx *cli.Context) (api.Edge, jsonrpc.ClientCloser, error) {
-	addr, headers, err := GetRawAPI(ctx, repo.FullNode, "v0")
+	addr, headers, err := GetRawAPI(ctx, repo.Worker, "v0")
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if IsVeryVerbose {
-		_, _ = fmt.Fprintln(ctx.App.Writer, "using full node API v0 endpoint:", addr)
+		_, _ = fmt.Fprintln(ctx.App.Writer, "using worker node API v0 endpoint:", addr)
 	}
 
 	a, c, e := client.NewEdge(ctx.Context, addr, headers)
