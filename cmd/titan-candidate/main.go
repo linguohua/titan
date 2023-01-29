@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -45,7 +46,7 @@ const (
 
 	// TODO remove after deprecation period
 	FlagWorkerRepoDeprecation = "candidaterepo"
-	DefaultcarfileStoreDir    = "/carfilestore"
+	DefaultCarfileStoreDir    = "carfilestore"
 )
 
 func main() {
@@ -325,7 +326,7 @@ var runCmd = &cli.Command{
 
 		carfileStorePath := cctx.String("carfile-store-path")
 		if len(carfileStorePath) == 0 {
-			carfileStorePath = lr.Path() + DefaultcarfileStoreDir
+			carfileStorePath = path.Join(lr.Path(), DefaultCarfileStoreDir)
 		}
 
 		carfileStore := carfilestore.NewCarfileStore(carfileStorePath, cctx.String("blockstore-type"))

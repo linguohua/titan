@@ -85,7 +85,7 @@ func main() {
 		Commands: local,
 	}
 	app.Setup()
-	app.Metadata["repoType"] = repo.Worker
+	app.Metadata["repoType"] = repo.FullNode
 
 	if err := app.Run(os.Args); err != nil {
 		log.Warnf("%+v", err)

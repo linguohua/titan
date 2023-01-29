@@ -226,20 +226,20 @@ var CacheStatCmd = &cli.Command{
 	Usage: "cache stat",
 	Flags: []cli.Flag{},
 	Action: func(cctx *cli.Context) error {
-		// api, closer, err := GetEdgeAPI(cctx)
-		// if err != nil {
-		// 	return err
-		// }
-		// defer closer()
+		api, closer, err := GetEdgeAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
 
-		// ctx := ReqContext(cctx)
-		// stat, err := api.QueryCacheStat(ctx)
-		// if err != nil {
-		// 	fmt.Printf("Unlimit speed failed:%v", err)
-		// 	return err
-		// }
+		ctx := ReqContext(cctx)
+		stat, err := api.QueryCacheStat(ctx)
+		if err != nil {
+			fmt.Printf("Unlimit speed failed:%v", err)
+			return err
+		}
 
-		// fmt.Printf("Cache block count %d, Wait cache count %d, Caching count %d", stat.CacheBlockCount, stat.WaitCacheBlockNum, stat.DoingCacheBlockNum)
+		fmt.Printf("Cache carfile count %d, block count %d, wati cache carfile count %d", stat.TotalCarfileCount, stat.TotalBlockCount, stat.WaitCacheCarfileCount)
 		return nil
 	},
 }

@@ -61,7 +61,7 @@ func (a *CommonAPI) LogSetLevel(ctx context.Context, subsystem, level string) er
 }
 
 func (a *CommonAPI) LogAlerts(ctx context.Context) ([]alerting.Alert, error) {
-	return a.Alerting.GetAlerts(), nil
+	return []alerting.Alert{}, nil
 }
 
 // Version provides information about API provider

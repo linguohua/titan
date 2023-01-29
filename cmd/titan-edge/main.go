@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -43,7 +44,7 @@ var log = logging.Logger("main")
 const (
 	FlagWorkerRepo            = "edge-repo"
 	FlagWorkerRepoDeprecation = "edgerepo"
-	DefaultCarfileStoreDir    = "/carfilestore"
+	DefaultCarfileStoreDir    = "carfilestore"
 )
 
 func main() {
@@ -318,7 +319,7 @@ var runCmd = &cli.Command{
 
 		carfileStorePath := cctx.String("carfilestore-path")
 		if len(carfileStorePath) == 0 {
-			carfileStorePath = lr.Path() + DefaultCarfileStoreDir
+			carfileStorePath = path.Join(lr.Path(), DefaultCarfileStoreDir)
 		}
 
 		log.Infof("carfilestorePath:%s", carfileStorePath)
