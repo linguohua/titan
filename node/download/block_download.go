@@ -96,7 +96,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	content := cidStr + snStr + signTime + timeout
+	content := deviceID + snStr + signTime + timeout
 	err = titanRsa.VerifyRsaSign(bd.publicKey, sign, content)
 	if err != nil {
 		bd.resultFailed(w, r, sn, sign, fmt.Errorf("Verify sign cid:%s,sn:%s,signTime:%s, timeout:%s, error:%s,", cidStr, snStr, signTime, timeout, err.Error()))
