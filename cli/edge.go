@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -20,6 +21,7 @@ var EdgeCmds = []*cli.Command{
 	DeleteAllBlocksCmd,
 	testSyncCmd,
 	getBlocksOfCarfile,
+	logFileCmd,
 }
 
 var DeviceInfoCmd = &cli.Command{
@@ -409,5 +411,71 @@ var getBlocksOfCarfile = &cli.Command{
 		fmt.Printf("blocks:%v", blockCIDs)
 
 		return nil
+	},
+}
+
+var logFileCmd = &cli.Command{
+	Name:  "log-file",
+	Usage: "ls log file or get log file",
+	Subcommands: []*cli.Command{
+		listLogFileCmd,
+		getLogFileCmd,
+	},
+}
+
+var listLogFileCmd = &cli.Command{
+	Name:  "ls",
+	Usage: "list log file",
+	Action: func(cctx *cli.Context) error {
+		edgeAPI, closer, err := GetEdgeAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		ctx := ReqContext(cctx)
+		info, err := edgeAPI.ShowLogFile(ctx)
+		if err != nil {
+			return err
+		}
+
+		if info == nil {
+			fmt.Printf("Log file not exist")
+			return nil
+		}
+
+		fmt.Printf("%s %d", info.Name, info.Size)
+		return nil
+	},
+}
+
+var getLogFileCmd = &cli.Command{
+	Name:  "get",
+	Usage: "get log file",
+	Action: func(cctx *cli.Context) error {
+		edgeAPI, closer, err := GetEdgeAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		ctx := ReqContext(cctx)
+		info, err := edgeAPI.ShowLogFile(ctx)
+		if err != nil {
+			return err
+		}
+
+		if info == nil {
+			fmt.Printf("Log file not exist")
+			return nil
+		}
+
+		data, err := edgeAPI.DownloadLogFile(ctx)
+		if err != nil {
+			return err
+		}
+
+		filePath := "./" + info.Name
+		return os.WriteFile(filePath, data, 0644)
 	},
 }

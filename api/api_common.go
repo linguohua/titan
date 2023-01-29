@@ -53,6 +53,9 @@ type Common interface {
 	Session(ctx context.Context, deviceID string) (uuid.UUID, error) //perm:read
 
 	Closing(context.Context) (<-chan struct{}, error) //perm:read
+
+	ShowLogFile(ctx context.Context) (*LogFile, error)   //perm:write
+	DownloadLogFile(ctx context.Context) ([]byte, error) //perm:write
 }
 
 // APIVersion provides various build-time information
@@ -73,4 +76,9 @@ type APIVersion struct {
 
 func (v APIVersion) String() string {
 	return fmt.Sprintf("%s+api%s", v.Version, v.APIVersion.String())
+}
+
+type LogFile struct {
+	Name string
+	Size int64
 }

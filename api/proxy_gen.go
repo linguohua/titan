@@ -62,9 +62,9 @@ type CarfileOperationStruct struct {
 
 		DeleteWaitCacheCarfile func(p0 context.Context, p1 string) (int, error) `perm:"admin"`
 
-		QueryCacheStat func(p0 context.Context) (*CacheStat, error) `perm:"read"`
+		QueryCacheStat func(p0 context.Context) (*CacheStat, error) `perm:"write"`
 
-		QueryCachingCarfile func(p0 context.Context) (*CachingCarfile, error) `perm:"read"`
+		QueryCachingCarfile func(p0 context.Context) (*CachingCarfile, error) `perm:"write"`
 	}
 }
 
@@ -81,6 +81,8 @@ type CommonStruct struct {
 
 		Discover func(p0 context.Context) (OpenRPCDocument, error) `perm:"read"`
 
+		DownloadLogFile func(p0 context.Context) ([]byte, error) `perm:"write"`
+
 		LogAlerts func(p0 context.Context) ([]alerting.Alert, error) `perm:"admin"`
 
 		LogList func(p0 context.Context) ([]string, error) `perm:"write"`
@@ -88,6 +90,8 @@ type CommonStruct struct {
 		LogSetLevel func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
 		Session func(p0 context.Context, p1 string) (uuid.UUID, error) `perm:"read"`
+
+		ShowLogFile func(p0 context.Context) (*LogFile, error) `perm:"write"`
 
 		Shutdown func(p0 context.Context) error `perm:"admin"`
 
@@ -485,6 +489,17 @@ func (s *CommonStub) Discover(p0 context.Context) (OpenRPCDocument, error) {
 	return *new(OpenRPCDocument), ErrNotSupported
 }
 
+func (s *CommonStruct) DownloadLogFile(p0 context.Context) ([]byte, error) {
+	if s.Internal.DownloadLogFile == nil {
+		return *new([]byte), ErrNotSupported
+	}
+	return s.Internal.DownloadLogFile(p0)
+}
+
+func (s *CommonStub) DownloadLogFile(p0 context.Context) ([]byte, error) {
+	return *new([]byte), ErrNotSupported
+}
+
 func (s *CommonStruct) LogAlerts(p0 context.Context) ([]alerting.Alert, error) {
 	if s.Internal.LogAlerts == nil {
 		return *new([]alerting.Alert), ErrNotSupported
@@ -527,6 +542,17 @@ func (s *CommonStruct) Session(p0 context.Context, p1 string) (uuid.UUID, error)
 
 func (s *CommonStub) Session(p0 context.Context, p1 string) (uuid.UUID, error) {
 	return *new(uuid.UUID), ErrNotSupported
+}
+
+func (s *CommonStruct) ShowLogFile(p0 context.Context) (*LogFile, error) {
+	if s.Internal.ShowLogFile == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.ShowLogFile(p0)
+}
+
+func (s *CommonStub) ShowLogFile(p0 context.Context) (*LogFile, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *CommonStruct) Shutdown(p0 context.Context) error {
