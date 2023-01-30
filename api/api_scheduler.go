@@ -99,14 +99,15 @@ type NodeRegisterInfo struct {
 
 // CacheResultInfo cache data result info
 type CacheResultInfo struct {
-	Status      CacheStatus
-	Msg         string
-	TotalBlock  int
-	DoneBlocks  int
-	TotalSize   int64
-	DoneSize    int64
-	CarfileHash string
-	DiskUsage   float64
+	Status            CacheStatus
+	Msg               string
+	CarfileBlockCount int
+	DoneBlockCount    int
+	CarfileSize       int64
+	DoneSize          int64
+	CarfileHash       string
+	DiskUsage         float64
+	TotalBlockCount   int
 }
 
 // RemoveCarfileResultInfo remove carfile result

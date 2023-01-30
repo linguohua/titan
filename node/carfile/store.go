@@ -42,6 +42,7 @@ func (carfileOperation *CarfileOperation) saveBlock(data []byte, blockHash, carf
 		if err != nil {
 			return err
 		}
+		carfileOperation.TotalBlockCount++
 	} else {
 		log.Warnf("saveBlock, block %s aready exist", blockHash)
 	}

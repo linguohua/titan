@@ -69,12 +69,14 @@ func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, car
 		}
 
 		blockCount, err := carfileOperation.carfileStore.BlockCount()
-		if err != nil {
+		if err == nil {
+			carfileOperation.TotalBlockCount = blockCount
+		} else {
 			log.Errorf("DeleteCarfile, BlockCount error:%s", err.Error())
 		}
 
 		_, diskUsage := carfileOperation.device.GetDiskUsageStat()
-		info := api.RemoveCarfileResultInfo{BlockCount: blockCount, DiskUsage: diskUsage}
+		info := api.RemoveCarfileResultInfo{BlockCount: carfileOperation.TotalBlockCount, DiskUsage: diskUsage}
 
 		ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
 		defer cancel()

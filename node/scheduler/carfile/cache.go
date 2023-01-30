@@ -124,7 +124,7 @@ func (c *CacheTask) cacheCarfile2Node() (err error) {
 }
 
 func (c *CacheTask) carfileCacheResult(info *api.CacheResultInfo) error {
-	c.doneBlocks = info.DoneBlocks
+	c.doneBlocks = info.DoneBlockCount
 	c.doneSize = info.DoneSize
 
 	if info.Status == api.CacheStatusSuccess || info.Status == api.CacheStatusFail {
