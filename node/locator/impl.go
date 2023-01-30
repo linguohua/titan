@@ -152,29 +152,30 @@ func (locator *Locator) ShowAccessPoint(ctx context.Context, areaID string) (api
 	return accessPoint, nil
 }
 
-func (locator *Locator) DeviceOnline(ctx context.Context, deviceID string, areaID string, port int) error {
-	log.Infof("areaID:%s device %s online", areaID, deviceID)
-	ip := handler.GetRequestIP(ctx)
-	schedulerURL := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
-	locator.db.db.setDeviceInfo(deviceID, schedulerURL, areaID, true)
-	return nil
-}
+func (locator *Locator) SetDeviceOnlineStatus(ctx context.Context, deviceID string, isOnline bool) error {
+	log.Infof("SetDeviceStatus device %s online status %t", deviceID, isOnline)
 
-func (locator *Locator) DeviceOffline(ctx context.Context, deviceID string) error {
-	log.Infof("device %s offline", deviceID)
 	info, err := locator.db.getDeviceInfo(deviceID)
 	if err != nil {
-		log.Errorf("DeviceOffline, get device %s error:%s", deviceID, err.Error())
+		log.Errorf("SetDeviceStatus, get device %s error:%s", deviceID, err.Error())
 		return err
 	}
 
 	if info == nil {
-		log.Errorf("DeviceOffline, device %s not in locator", deviceID)
+		log.Errorf("SetDeviceStatus, device %s not in locator", deviceID)
 		return fmt.Errorf("device %s not exist", deviceID)
 	}
 
-	locator.db.db.setDeviceInfo(deviceID, info.SchedulerURL, info.AreaID, false)
+	locator.db.db.setDeviceInfo(deviceID, info.SchedulerURL, info.AreaID, isOnline)
 	return nil
+}
+
+func (locator *Locator) DeviceOnline(ctx context.Context, deviceID string, areaID string, port int) error {
+	return locator.SetDeviceOnlineStatus(ctx, deviceID, true)
+}
+
+func (locator *Locator) DeviceOffline(ctx context.Context, deviceID string) error {
+	return locator.SetDeviceOnlineStatus(ctx, deviceID, false)
 }
 
 func (locator *Locator) getAccessPointWithWeightCount(areaID string) ([]string, error) {
@@ -412,7 +413,16 @@ func (locator *Locator) RegisterNode(ctx context.Context, areaID string, schedul
 		return nil, fmt.Errorf("Scheduler %s not online", schedulerURL)
 	}
 
-	return schedulerAPI.RegisterNode(ctx, nodeType, count)
+	registerInfos, err := schedulerAPI.RegisterNode(ctx, nodeType, count)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, registerInfo := range registerInfos {
+		locator.db.db.setDeviceInfo(registerInfo.DeviceID, schedulerURL, areaID, false)
+	}
+
+	return registerInfos, nil
 }
 
 func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) ([]api.AccessPoint, error) {
@@ -442,6 +452,7 @@ func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) ([]api.Acces
 	return accessPoints, nil
 }
 
+// load user access point for special user ip
 func (locator *Locator) LoadUserAccessPoint(ctx context.Context, userIP string) (api.AccessPoint, error) {
 	areaID := defaultAreaID
 	geoInfo, _ := region.GetRegion().GetGeoInfo(userIP)
