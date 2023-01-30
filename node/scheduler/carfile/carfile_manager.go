@@ -2,6 +2,9 @@ package carfile
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -36,7 +39,7 @@ type Manager struct {
 	CarfileRecordMap  sync.Map // cacheing carfile map
 	latelyExpiredTime time.Time
 	// isLoadExpiredTime  bool
-	getAuthToken     func() []byte
+	authToken        []byte
 	RunningTaskCount int
 
 	//The number of caches in the first stage （from ipfs to titan）
@@ -46,11 +49,11 @@ type Manager struct {
 }
 
 // NewCarfileManager new
-func NewCarfileManager(nodeManager *node.Manager, getToken func() []byte) *Manager {
+func NewCarfileManager(nodeManager *node.Manager, authToken []byte) *Manager {
 	d := &Manager{
 		nodeManager:       nodeManager,
 		latelyExpiredTime: time.Now(),
-		getAuthToken:      getToken,
+		authToken:         authToken,
 		rootCacheCount:    1,
 		backupCacheCount:  0,
 	}
@@ -77,7 +80,7 @@ func (m *Manager) initCarfileMap() {
 			continue
 		}
 
-		m.addCarfileRecord(cr)
+		m.carfileCacheStart(cr)
 
 		isRunning := false
 		// start timout check
@@ -97,7 +100,7 @@ func (m *Manager) initCarfileMap() {
 		})
 
 		if !isRunning {
-			m.removeCarfileRecord(cr)
+			m.carfileCacheEnd(cr)
 		}
 	}
 }
@@ -157,11 +160,11 @@ func (m *Manager) continueCarfileRecord(info *api.CacheCarfileInfo) error {
 		return err
 	}
 
-	m.addCarfileRecord(carfileRecord)
+	m.carfileCacheStart(carfileRecord)
 	isRunning := false
 	defer func() {
 		if !isRunning {
-			m.removeCarfileRecord(carfileRecord)
+			m.carfileCacheEnd(carfileRecord)
 		}
 	}()
 
@@ -188,10 +191,10 @@ func (m *Manager) createCarfileRecord(info *api.CacheCarfileInfo) error {
 		return xerrors.Errorf("cid:%s,CreateCarfileRecordInfo err:%s", carfileRecord.carfileCid, err.Error())
 	}
 
-	m.addCarfileRecord(carfileRecord)
+	m.carfileCacheStart(carfileRecord)
 	defer func() {
 		if err != nil {
-			m.removeCarfileRecord(carfileRecord)
+			m.carfileCacheEnd(carfileRecord)
 		}
 	}()
 
@@ -253,7 +256,7 @@ func (m *Manager) RemoveCache(carfileCid, deviceID string) error {
 		return err
 	}
 
-	cInfo, err := persistent.GetDB().GetCacheInfo(hash, deviceID)
+	cInfo, err := persistent.GetDB().GetCacheInfo(m.cacheTaskID(hash, deviceID))
 	if err != nil {
 		return xerrors.Errorf("GetCacheInfo: %s,err:%s", carfileCid, err.Error())
 	}
@@ -263,13 +266,21 @@ func (m *Manager) RemoveCache(carfileCid, deviceID string) error {
 
 // CacheCarfileResult block cache result
 func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo) (err error) {
+	log.Debugf("carfileCacheResult :%s , %d , %s", deviceID, info.Status, info.CarfileHash)
+
 	var carfileRecord *CarfileRecord
 	dI, exist := m.CarfileRecordMap.Load(info.CarfileHash)
 	if exist && dI != nil {
 		carfileRecord = dI.(*CarfileRecord)
 	} else {
 		err = xerrors.Errorf("task not running : %s,%s ,err:%v", deviceID, info.CarfileHash, err)
+		// TODO update db
 		return
+	}
+
+	if !carfileRecord.candidateCacheExists() {
+		carfileRecord.totalSize = info.TotalSize
+		carfileRecord.totalBlocks = info.TotalBlock
 	}
 
 	cacheI, exist := carfileRecord.CacheTaskMap.Load(deviceID)
@@ -325,9 +336,9 @@ func (m *Manager) startCarfileCacheTask() {
 	}
 }
 
-func (m *Manager) addCarfileRecord(cr *CarfileRecord) {
+func (m *Manager) carfileCacheStart(cr *CarfileRecord) {
 	if cr == nil {
-		log.Error("addCarfileRecord err carfileRecord is nil")
+		log.Error("carfileCacheStart err carfileRecord is nil")
 		return
 	}
 
@@ -337,7 +348,7 @@ func (m *Manager) addCarfileRecord(cr *CarfileRecord) {
 	}
 }
 
-func (m *Manager) removeCarfileRecord(cr *CarfileRecord) {
+func (m *Manager) carfileCacheEnd(cr *CarfileRecord) {
 	_, exist := m.CarfileRecordMap.LoadAndDelete(cr.carfileHash)
 	if exist {
 		m.RunningTaskCount--
@@ -598,4 +609,13 @@ func (m *Manager) ResetBackupCacheCount(backupCacheCount int) {
 // GetBackupCacheCounts get backupCacheCount
 func (m *Manager) GetBackupCacheCounts() int {
 	return m.backupCacheCount
+}
+
+func (m *Manager) cacheTaskID(hash, deviceID string) string {
+	input := fmt.Sprintf("%s%s", hash, deviceID)
+
+	c := sha1.New()
+	c.Write([]byte(input))
+	bytes := c.Sum(nil)
+	return hex.EncodeToString(bytes)
 }

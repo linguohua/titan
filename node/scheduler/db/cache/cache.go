@@ -27,8 +27,8 @@ const (
 
 // DB cache db
 type DB interface {
-	CacheTaskStart(hash, deviceID string, timeout int64) error
-	CacheTaskEnd(hash, deviceID string, nodeInfo *NodeCacheInfo) (bool, error)
+	CacheTasksStart(hash string, deviceIDs []string, timeout int64) error
+	CacheTasksEnd(hash string, deviceIDs []string, info *NodeCacheInfo) (bool, error)
 	UpdateNodeCacheingExpireTime(hash, deviceID string, timeout int64) error
 	GetCacheingCarfiles() ([]string, error)
 	IsNodeCaching(deviceID string) (bool, error)
@@ -127,6 +127,7 @@ type NodeCacheInfo struct {
 	TotalUpload   float64
 	BlockCount    int
 	IsSuccess     bool
+	DeviceID      string
 }
 
 type DownloadBlockRecord struct {

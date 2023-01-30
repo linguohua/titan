@@ -238,26 +238,46 @@ func (sd sqlDB) CreateCacheTaskInfo(cInfo *api.CacheTaskInfo) error {
 	area := sd.replaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
-	cmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, device_id, status, candidate_cache) VALUES (:carfile_hash, :device_id, :status, :candidate_cache)", cTableName)
+	cmd := fmt.Sprintf("INSERT INTO %s (id, carfile_hash, device_id, status, candidate_cache) VALUES (:id, :carfile_hash, :device_id, :status, :candidate_cache)", cTableName)
 	_, err := sd.cli.NamedExec(cmd, cInfo)
 	return err
 }
 
-func (sd sqlDB) UpdateCacheTaskStatus(cInfo *api.CacheTaskInfo) error {
+func (sd sqlDB) UpdateCacheTaskStatus(hash string, deviceIDs []string, status api.CacheStatus) error {
 	area := sd.replaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
-	cmd := fmt.Sprintf("UPDATE %s SET status=:status WHERE carfile_hash=:carfile_hash AND device_id=:device_id", cTableName)
-	_, err := sd.cli.NamedExec(cmd, cInfo)
+	// cmd := fmt.Sprintf("UPDATE %s SET status=:status WHERE carfile_hash=:carfile_hash AND device_id=:device_id", cTableName)
+	// cmd := fmt.Sprintf("UPDATE %s SET status=:status WHERE id=:id ", cTableName)
+	// _, err := sd.cli.NamedExec(cmd, cInfo)
 
-	return err
+	tx := sd.cli.MustBegin()
+
+	cmd := fmt.Sprintf("UPDATE %s SET status=? WHERE carfile_hash=? AND device_id in (?) ", cTableName)
+	query, args, err := sqlx.In(cmd, status, hash, deviceIDs)
+	if err != nil {
+		return err
+	}
+
+	// cache info
+	query = sd.cli.Rebind(query)
+	tx.MustExec(query, args...)
+
+	err = tx.Commit()
+	if err != nil {
+		err = tx.Rollback()
+		return err
+	}
+
+	return nil
 }
 
 func (sd sqlDB) UpdateCacheTaskInfo(cInfo *api.CacheTaskInfo) error {
 	area := sd.replaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
-	cmd := fmt.Sprintf("UPDATE %s SET done_size=:done_size,done_blocks=:done_blocks,reliability=:reliability,status=:status,end_time=:end_time WHERE carfile_hash=:carfile_hash AND device_id=:device_id", cTableName)
+	// cmd := fmt.Sprintf("UPDATE %s SET done_size=:done_size,done_blocks=:done_blocks,reliability=:reliability,status=:status,end_time=:end_time WHERE carfile_hash=:carfile_hash AND device_id=:device_id", cTableName)
+	cmd := fmt.Sprintf("UPDATE %s SET done_size=:done_size,done_blocks=:done_blocks,reliability=:reliability,status=:status,end_time=:end_time WHERE id=:id", cTableName)
 	_, err := sd.cli.NamedExec(cmd, cInfo)
 
 	return err
@@ -296,25 +316,30 @@ func (sd sqlDB) CarfileRecordExist(hash string) (bool, error) {
 func (sd sqlDB) GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error) {
 	area := sd.replaceArea()
 
-	info := &api.CarfileRecordInfo{CarfileHash: hash}
-	cmd := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=:carfile_hash", fmt.Sprintf(carfileInfoTable, area))
+	var info api.CarfileRecordInfo
+	cmd := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=?", fmt.Sprintf(carfileInfoTable, area))
+	err := sd.cli.Get(&info, cmd, hash)
+	return &info, err
 
-	rows, err := sd.cli.NamedQuery(cmd, info)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+	// info := &api.CarfileRecordInfo{CarfileHash: hash}
+	// cmd := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=:carfile_hash", fmt.Sprintf(carfileInfoTable, area))
 
-	if rows.Next() {
-		err = rows.StructScan(info)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		return nil, xerrors.New(errNotFind)
-	}
+	// rows, err := sd.cli.NamedQuery(cmd, info)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer rows.Close()
 
-	return info, err
+	// if rows.Next() {
+	// 	err = rows.StructScan(info)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// } else {
+	// 	return nil, xerrors.New(errNotFind)
+	// }
+
+	// return info, err
 }
 
 func (sd sqlDB) GetCarfileCidWithPage(page int) (count int, totalPage int, list []*api.CarfileRecordInfo, err error) {
@@ -487,12 +512,13 @@ func (sd sqlDB) GetSuccessCachesCount() (int, error) {
 	return count, nil
 }
 
-func (sd sqlDB) GetCacheInfo(carfileHash, deviceID string) (*api.CacheTaskInfo, error) {
+func (sd sqlDB) GetCacheInfo(id string) (*api.CacheTaskInfo, error) {
 	area := sd.replaceArea()
 
 	var cache api.CacheTaskInfo
-	query := fmt.Sprintf("SELECT * FROM %s WHERE device_id=? AND carfile_hash=?", fmt.Sprintf(cacheInfoTable, area))
-	if err := sd.cli.Get(&cache, query, deviceID, carfileHash); err != nil {
+	// query := fmt.Sprintf("SELECT * FROM %s WHERE device_id=? AND carfile_hash=?", fmt.Sprintf(cacheInfoTable, area))
+	query := fmt.Sprintf("SELECT * FROM %s WHERE id=? ", fmt.Sprintf(cacheInfoTable, area))
+	if err := sd.cli.Get(&cache, query, id); err != nil {
 		return nil, err
 	}
 

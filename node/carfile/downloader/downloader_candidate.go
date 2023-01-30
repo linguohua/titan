@@ -32,13 +32,6 @@ func (candidate *candidate) DownloadBlocks(cids []string, downloadSource []*api.
 	return getBlocksFromCandidate(cids, downloadSource)
 }
 
-func getCandidateDownloadInfoWithBlocks(scheduler api.Scheduler, cids []string) (map[string]api.CandidateDownloadInfo, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), helper.BlockDownloadTimeout*time.Second)
-	defer cancel()
-
-	return scheduler.GetCandidateDownloadInfoWithBlocks(ctx, cids)
-}
-
 func getBlockFromCandidateWithApi(candidate api.Candidate, cidStr string) (blocks.Block, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), helper.BlockDownloadTimeout*time.Second)
 	defer cancel()

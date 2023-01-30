@@ -72,31 +72,32 @@ func InitRedis(url string) (DB, error) {
 	return redisDB, err
 }
 
-func (rd redisDB) CacheTaskStart(hash, deviceID string, timeout int64) error {
+func (rd redisDB) CacheTasksStart(hash string, deviceIDs []string, timeout int64) error {
 	cacheingCarfileList := fmt.Sprintf(redisKeyCacheingCarfileList, serverName)
 	carfileNodeList := fmt.Sprintf(redisKeyCarfileCacheingNodeList, serverName, hash)
-	nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
 
 	ctx := context.Background()
+
 	_, err := rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
 		pipeliner.SAdd(context.Background(), cacheingCarfileList, hash)
-		pipeliner.SAdd(context.Background(), carfileNodeList, deviceID)
+		pipeliner.SAdd(context.Background(), carfileNodeList, deviceIDs)
 
-		// Expire
-		pipeliner.Set(context.Background(), nodeKey, hash, time.Second*time.Duration(timeout))
-
+		for _, deviceID := range deviceIDs {
+			nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
+			// Expire
+			pipeliner.Set(context.Background(), nodeKey, hash, time.Second*time.Duration(timeout))
+		}
 		return nil
 	})
 
 	return err
 }
 
-func (rd redisDB) CacheTaskEnd(hash, deviceID string, nodeInfo *NodeCacheInfo) (bool, error) {
+func (rd redisDB) CacheTasksEnd(hash string, deviceIDs []string, nodeInfo *NodeCacheInfo) (bool, error) {
 	cacheingCarfileList := fmt.Sprintf(redisKeyCacheingCarfileList, serverName)
 	carfileNodeList := fmt.Sprintf(redisKeyCarfileCacheingNodeList, serverName, hash)
-	// nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
 
-	_, err := rd.cli.SRem(context.Background(), carfileNodeList, deviceID).Result()
+	_, err := rd.cli.SRem(context.Background(), carfileNodeList, deviceIDs).Result()
 	if err != nil {
 		return false, err
 	}
@@ -113,11 +114,15 @@ func (rd redisDB) CacheTaskEnd(hash, deviceID string, nodeInfo *NodeCacheInfo) (
 		if cachesDone {
 			pipeliner.SRem(context.Background(), cacheingCarfileList, hash)
 		}
-		// Expire
-		// pipeliner.Del(context.Background(), nodeKey)
+
+		for _, deviceID := range deviceIDs {
+			nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
+			// Expire
+			pipeliner.Del(context.Background(), nodeKey)
+		}
 
 		if nodeInfo != nil {
-			nKey := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+			nKey := fmt.Sprintf(redisKeyNodeInfo, nodeInfo.DeviceID)
 			pipeliner.HMSet(context.Background(), nKey, diskUsageField, nodeInfo.DiskUsage, blockCountField, nodeInfo.BlockCount, totalDownloadField, nodeInfo.TotalDownload)
 			if nodeInfo.IsSuccess {
 				baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
@@ -320,12 +325,10 @@ func (rd redisDB) updateDeviceInfos(info *api.DevicesInfo) error {
 	key := fmt.Sprintf(redisKeyNodeInfo, info.DeviceId)
 
 	m := make(map[string]interface{})
-	m["DiskSpace"] = info.DiskSpace
+	// m["DiskSpace"] = info.DiskSpace
 	m["DiskUsage"] = info.DiskUsage
-
-	// TODO
-	m["Longitude"] = info.Longitude
-	m["Latitude"] = info.Latitude
+	// m["Longitude"] = info.Longitude
+	// m["Latitude"] = info.Latitude
 
 	_, err := rd.cli.HMSet(context.Background(), key, m).Result()
 	return err
