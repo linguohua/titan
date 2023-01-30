@@ -299,8 +299,8 @@ func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo)
 	}
 
 	if !carfileRecord.candidateCacheExist() {
-		carfileRecord.totalSize = info.TotalSize
-		carfileRecord.totalBlocks = info.TotalBlock
+		carfileRecord.totalSize = info.CarfileSize
+		carfileRecord.totalBlocks = info.CarfileBlockCount
 	}
 
 	cacheI, exist := carfileRecord.CacheTaskMap.Load(deviceID)

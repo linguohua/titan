@@ -29,6 +29,7 @@ type CarfileOperation struct {
 	carfileStore    *carfilestore.CarfileStore
 	ds              datastore.Batching
 	carfileLinkLock *sync.Mutex
+	TotalBlockCount int
 }
 
 func NewCarfileOperation(ds datastore.Batching, carfileStore *carfilestore.CarfileStore, scheduler api.Scheduler, blockDownloader downloader.BlockDownloader, device *device.Device) *CarfileOperation {
@@ -41,6 +42,12 @@ func NewCarfileOperation(ds datastore.Batching, carfileStore *carfilestore.Carfi
 	}
 
 	carfileOperation.downloadMgr = newDownloadMgr(carfileStore, &downloadOperation{carfileOperation: carfileOperation, downloader: blockDownloader})
+
+	totalBlockCount, err := carfileStore.BlockCount()
+	if err != nil {
+		log.Panicf("NewCarfileOperation block count error:%s", err.Error())
+	}
+	carfileOperation.TotalBlockCount = totalBlockCount
 
 	legacy.RegisterCodec(cid.DagProtobuf, dagpb.Type.PBNode, merkledag.ProtoNodeConverter)
 	legacy.RegisterCodec(cid.Raw, basicnode.Prototype.Bytes, merkledag.RawNodeConverter)
@@ -55,6 +62,15 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, 
 	status := api.CacheStatusFail
 	if !isComplete {
 		status = api.CacheStatusCreate
+	} else {
+		// count total block in filesystem is cost much time
+		// only do it on carfile download complete
+		totalBlockCount, err := carfileOperation.carfileStore.BlockCount()
+		if err == nil {
+			carfileOperation.TotalBlockCount = totalBlockCount
+		} else {
+			log.Errorf("downloadResult block count error:%s", err.Error())
+		}
 	}
 
 	if carfile.carfileSize != 0 && carfile.downloadSize == carfile.carfileSize {
@@ -69,13 +85,14 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, 
 	_, diskUsage := carfileOperation.device.GetDiskUsageStat()
 
 	result := api.CacheResultInfo{
-		Status:      status,
-		TotalBlock:  len(carfile.blocksDownloadSuccessList) + len(carfile.blocksWaitList),
-		DoneBlocks:  len(carfile.blocksDownloadSuccessList),
-		TotalSize:   int64(carfile.carfileSize),
-		DoneSize:    int64(carfile.downloadSize),
-		CarfileHash: carfileHash,
-		DiskUsage:   diskUsage,
+		Status:            status,
+		CarfileBlockCount: len(carfile.blocksDownloadSuccessList) + len(carfile.blocksWaitList),
+		DoneBlockCount:    len(carfile.blocksDownloadSuccessList),
+		CarfileSize:       int64(carfile.carfileSize),
+		DoneSize:          int64(carfile.downloadSize),
+		CarfileHash:       carfileHash,
+		DiskUsage:         diskUsage,
+		TotalBlockCount:   carfileOperation.TotalBlockCount,
 	}
 	return carfileOperation.scheduler.CacheResult(ctx, result)
 }
@@ -132,13 +149,14 @@ func (carfileOperation *CarfileOperation) cacheResultForCarfileExist(carfileCID 
 	}
 
 	result := api.CacheResultInfo{
-		Status:      api.CacheStatusSuccess,
-		TotalBlock:  blocksCount,
-		DoneBlocks:  blocksCount,
-		TotalSize:   int64(linksSize),
-		DoneSize:    int64(linksSize),
-		CarfileHash: carfileHash,
-		DiskUsage:   diskUsage,
+		Status:            api.CacheStatusSuccess,
+		CarfileBlockCount: blocksCount,
+		DoneBlockCount:    blocksCount,
+		CarfileSize:       int64(linksSize),
+		DoneSize:          int64(linksSize),
+		CarfileHash:       carfileHash,
+		DiskUsage:         diskUsage,
+		TotalBlockCount:   carfileOperation.TotalBlockCount,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
