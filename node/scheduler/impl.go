@@ -571,7 +571,17 @@ func (s *Scheduler) NodeQuit(ctx context.Context, deviceID string) error {
 }
 
 //UpdateActiveData update data
-func (s *Scheduler) UpdateActiveData(ctx context.Context, info *api.NodeActiveData) error {
+func (s *Scheduler) UpdateActiveData(ctx context.Context, info *api.CacheStat) error {
+	deviceID := handler.GetDeviceID(ctx)
+
+	if !deviceExists(deviceID, 0) {
+		return xerrors.Errorf("node not Exist: %s", deviceID)
+	}
+
+	node := s.nodeManager.GetNode(deviceID)
+	if node != nil {
+		// node.
+	}
 	return nil
 }
 

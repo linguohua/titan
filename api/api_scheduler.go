@@ -40,7 +40,7 @@ type Scheduler interface {
 
 	// call by node
 	// node send result when user download block complete
-	UpdateActiveData(ctx context.Context, info *NodeActiveData) error                                        //perm:write
+	UpdateActiveData(ctx context.Context, info *CacheStat) error                                             //perm:write
 	NodeResultForUserDownloadBlock(ctx context.Context, result NodeBlockDownloadResult) error                //perm:write
 	EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error                                //perm:write
 	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                          //perm:write
@@ -217,12 +217,4 @@ type CacheError struct {
 	Msg       string
 	Time      time.Time
 	DeviceID  string
-}
-
-// NodeActiveData Node Real-Time Data
-type NodeActiveData struct {
-	DiskUsage     float64
-	DownloadSize  float64
-	DownloadCount int
-	BlockCount    int
 }
