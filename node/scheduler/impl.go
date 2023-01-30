@@ -11,6 +11,7 @@ import (
 	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/linguohua/titan/node/scheduler/election"
 	"github.com/linguohua/titan/node/scheduler/validate"
+	"github.com/linguohua/titan/node/secret"
 
 	// "github.com/linguohua/titan/node/device"
 
@@ -20,7 +21,6 @@ import (
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/handler"
-	"github.com/linguohua/titan/node/helper"
 	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/area"
 	"github.com/linguohua/titan/node/scheduler/node"
@@ -34,7 +34,6 @@ import (
 	"github.com/linguohua/titan/node/scheduler/sync"
 	"github.com/linguohua/titan/node/scheduler/web"
 
-	"github.com/linguohua/titan/node/secret"
 	"golang.org/x/xerrors"
 )
 
@@ -65,15 +64,8 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Sche
 	s := &Scheduler{}
 
 	nodeManager := node.NewNodeManager(s.nodeOfflineCallback, s.nodeExitedCallback)
-
-	s.locatorManager = locator.NewLoactorManager(port)
-	s.nodeManager = nodeManager
-	s.election = election.NewElection(nodeManager)
-	s.validate = validate.NewValidate(nodeManager, false)
-	s.dataManager = carfile.NewCarfileManager(nodeManager, s.getAuthToken)
 	s.CommonAPI = common.NewCommonAPI(nodeManager.UpdateLastRequestTime)
 	s.Web = web.NewWeb(s)
-	s.dataSync = sync.NewDataSync()
 
 	sec, err := secret.APISecret(lr)
 	if err != nil {
@@ -87,6 +79,13 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Sche
 	if err != nil {
 		log.Panicf("authNew err:%s", err.Error())
 	}
+
+	s.locatorManager = locator.NewLoactorManager(port)
+	s.nodeManager = nodeManager
+	s.election = election.NewElection(nodeManager)
+	s.validate = validate.NewValidate(nodeManager, false)
+	s.dataManager = carfile.NewCarfileManager(nodeManager, s.authToken)
+	s.dataSync = sync.NewDataSync()
 
 	return s
 }
@@ -111,9 +110,9 @@ type jwtPayload struct {
 	Allow []auth.Permission
 }
 
-func (s *Scheduler) getAuthToken() []byte {
-	return s.authToken
-}
+// func (s *Scheduler) getAuthToken() []byte {
+// 	return s.authToken
+// }
 
 // AuthNodeVerify Verify Node Auth
 func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error) {
@@ -407,41 +406,6 @@ func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTyp
 	}
 
 	return s.nodeManager.GetNodes(nodeType)
-}
-
-// GetCandidateDownloadInfoWithBlocks find node
-func (s *Scheduler) GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]api.CandidateDownloadInfo, error) {
-	// TODO too much cid
-	deviceID := handler.GetDeviceID(ctx)
-
-	if !deviceExists(deviceID, 0) {
-		return nil, xerrors.Errorf("node not Exist: %s", deviceID)
-	}
-
-	if len(cids) < 1 {
-		return nil, xerrors.New("cids is nil")
-	}
-
-	tk := s.getAuthToken()
-
-	infoMap := make(map[string]api.CandidateDownloadInfo)
-
-	for _, cid := range cids {
-		hash, err := helper.CIDString2HashString(cid)
-		if err != nil {
-			continue
-		}
-
-		infos, err := s.nodeManager.GetCandidatesWithBlockHash(hash, deviceID)
-		if err != nil || len(infos) <= 0 {
-			continue
-		}
-
-		candidate := infos[randomNum(0, len(infos))]
-		infoMap[cid] = api.CandidateDownloadInfo{URL: candidate.GetAddress(), Token: string(tk)}
-	}
-
-	return infoMap, nil
 }
 
 // QueryCacheStatWithNode Query Cache Stat

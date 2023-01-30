@@ -78,6 +78,7 @@ CREATE TABLE `event_info_cn_gd_shenzhen` (
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='event';
 
 CREATE TABLE `caches_cn_gd_shenzhen` (
+    `id` varchar(128) NOT NULL UNIQUE,
 	`carfile_hash` varchar(128) NOT NULL,
     `status` TINYINT  DEFAULT '0' ,
     `device_id` varchar(128) NOT NULL ,
@@ -86,7 +87,8 @@ CREATE TABLE `caches_cn_gd_shenzhen` (
 	`reliability` TINYINT DEFAULT '0' ,
     `candidate_cache` BOOLEAN,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
-	`end_time` datetime DEFAULT CURRENT_TIMESTAMP
+	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='caches info';
 
 CREATE TABLE `carfiles_cn_gd_shenzhen` (

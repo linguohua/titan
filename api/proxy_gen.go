@@ -223,8 +223,6 @@ type SchedulerStruct struct {
 
 		ElectionValidators func(p0 context.Context) error `perm:"admin"`
 
-		GetCandidateDownloadInfoWithBlocks func(p0 context.Context, p1 []string) (map[string]CandidateDownloadInfo, error) `perm:"write"`
-
 		GetCarfileRecord func(p0 context.Context, p1 string) (CarfileRecordInfo, error) `perm:"read"`
 
 		GetDevicesInfo func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
@@ -872,17 +870,6 @@ func (s *SchedulerStruct) ElectionValidators(p0 context.Context) error {
 
 func (s *SchedulerStub) ElectionValidators(p0 context.Context) error {
 	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetCandidateDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]CandidateDownloadInfo, error) {
-	if s.Internal.GetCandidateDownloadInfoWithBlocks == nil {
-		return *new(map[string]CandidateDownloadInfo), ErrNotSupported
-	}
-	return s.Internal.GetCandidateDownloadInfoWithBlocks(p0, p1)
-}
-
-func (s *SchedulerStub) GetCandidateDownloadInfoWithBlocks(p0 context.Context, p1 []string) (map[string]CandidateDownloadInfo, error) {
-	return *new(map[string]CandidateDownloadInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetCarfileRecord(p0 context.Context, p1 string) (CarfileRecordInfo, error) {

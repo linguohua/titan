@@ -40,17 +40,16 @@ type Scheduler interface {
 
 	// call by node
 	// node send result when user download block complete
-	NodeResultForUserDownloadBlock(ctx context.Context, result NodeBlockDownloadResult) error                        //perm:write
-	EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error                                        //perm:write
-	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                                  //perm:write
-	CandidateNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error                                   //perm:write
-	CacheResult(ctx context.Context, resultInfo CacheResultInfo) error                                               //perm:write
-	RemoveCarfileResult(ctx context.Context, resultInfo RemoveCarfileResultInfo) error                               //perm:write
-	GetCandidateDownloadInfoWithBlocks(ctx context.Context, cids []string) (map[string]CandidateDownloadInfo, error) //perm:write
-	GetExternalIP(ctx context.Context) (string, error)                                                               //perm:write
-	GetPublicKey(ctx context.Context) (string, error)                                                                //perm:write
-	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                                     //perm:read
-	AuthNodeNew(ctx context.Context, perms []auth.Permission, deviceID, deviceSecret string) ([]byte, error)         //perm:read                                                               //perm:write
+	NodeResultForUserDownloadBlock(ctx context.Context, result NodeBlockDownloadResult) error                //perm:write
+	EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error                                //perm:write
+	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                          //perm:write
+	CandidateNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error                           //perm:write
+	CacheResult(ctx context.Context, resultInfo CacheResultInfo) error                                       //perm:write
+	RemoveCarfileResult(ctx context.Context, resultInfo RemoveCarfileResultInfo) error                       //perm:write
+	GetExternalIP(ctx context.Context) (string, error)                                                       //perm:write
+	GetPublicKey(ctx context.Context) (string, error)                                                        //perm:write
+	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                             //perm:read
+	AuthNodeNew(ctx context.Context, perms []auth.Permission, deviceID, deviceSecret string) ([]byte, error) //perm:read                                                               //perm:write
 
 	// call by user
 	GetDownloadInfosWithCarfile(ctx context.Context, cid, publicKey string) ([]*DownloadInfoResult, error) //perm:read
@@ -131,6 +130,7 @@ type CarfileRecordInfo struct {
 
 // CacheTaskInfo Data Cache info
 type CacheTaskInfo struct {
+	ID             string
 	CarfileHash    string      `db:"carfile_hash"`
 	DeviceID       string      `db:"device_id"`
 	Status         CacheStatus `db:"status"`
