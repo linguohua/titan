@@ -237,7 +237,7 @@ type SchedulerStruct struct {
 
 		GetPublicKey func(p0 context.Context) (string, error) `perm:"write"`
 
-		ListCarfileRecords func(p0 context.Context, p1 int) (DataListInfo, error) `perm:"read"`
+		ListCarfileRecords func(p0 context.Context, p1 int) (*DataListInfo, error) `perm:"read"`
 
 		LocatorConnect func(p0 context.Context, p1 int, p2 string, p3 string, p4 string) error `perm:"write"`
 
@@ -949,15 +949,15 @@ func (s *SchedulerStub) GetPublicKey(p0 context.Context) (string, error) {
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) ListCarfileRecords(p0 context.Context, p1 int) (DataListInfo, error) {
+func (s *SchedulerStruct) ListCarfileRecords(p0 context.Context, p1 int) (*DataListInfo, error) {
 	if s.Internal.ListCarfileRecords == nil {
-		return *new(DataListInfo), ErrNotSupported
+		return nil, ErrNotSupported
 	}
 	return s.Internal.ListCarfileRecords(p0, p1)
 }
 
-func (s *SchedulerStub) ListCarfileRecords(p0 context.Context, p1 int) (DataListInfo, error) {
-	return *new(DataListInfo), ErrNotSupported
+func (s *SchedulerStub) ListCarfileRecords(p0 context.Context, p1 int) (*DataListInfo, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 int, p2 string, p3 string, p4 string) error {

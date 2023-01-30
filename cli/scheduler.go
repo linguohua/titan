@@ -526,7 +526,7 @@ var listDataCmd = &cli.Command{
 			return err
 		}
 
-		for _, info := range info.CacheInfos {
+		for _, info := range info.CarfileRecords {
 			fmt.Printf("%s ,Reliabilit: %d/%d , Blocks:%d \n", info.CarfileCid, info.Reliability, info.NeedReliability, info.TotalBlocks)
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)

@@ -163,27 +163,27 @@ func (s *Scheduler) ResetBackupCacheCount(ctx context.Context, backupCacheCount 
 // }
 
 // ListCarfileRecords List Datas
-func (s *Scheduler) ListCarfileRecords(ctx context.Context, page int) (api.DataListInfo, error) {
-	count, totalPage, list, err := persistent.GetDB().GetCarfileCidWithPage(page)
-	if err != nil {
-		return api.DataListInfo{}, err
-	}
+func (s *Scheduler) ListCarfileRecords(ctx context.Context, page int) (*api.DataListInfo, error) {
+	return persistent.GetDB().GetCarfileCidWithPage(page)
+	// if err != nil {
+	// 	return api.DataListInfo{}, err
+	// }
 
-	out := make([]*api.CarfileRecordInfo, 0)
-	for _, info := range list {
-		dInfo := &api.CarfileRecordInfo{
-			CarfileCid:      info.CarfileCid,
-			CarfileHash:     info.CarfileHash,
-			NeedReliability: info.NeedReliability,
-			Reliability:     info.Reliability,
-			TotalSize:       info.TotalSize,
-			TotalBlocks:     info.TotalBlocks,
-		}
+	// out := make([]*api.CarfileRecordInfo, 0)
+	// for _, info := range info.CarfileRecords {
+	// 	dInfo := &api.CarfileRecordInfo{
+	// 		CarfileCid:      info.CarfileCid,
+	// 		CarfileHash:     info.CarfileHash,
+	// 		NeedReliability: info.NeedReliability,
+	// 		Reliability:     info.Reliability,
+	// 		TotalSize:       info.TotalSize,
+	// 		TotalBlocks:     info.TotalBlocks,
+	// 	}
 
-		out = append(out, dInfo)
-	}
+	// 	out = append(out, dInfo)
+	// }
 
-	return api.DataListInfo{Page: page, TotalPage: totalPage, Cids: count, CacheInfos: out}, nil
+	// return api.DataListInfo{Page: page, TotalPage: totalPage, Cids: count, CacheInfos: out}, nil
 }
 
 // RemoveCarfile remove all caches with carfile

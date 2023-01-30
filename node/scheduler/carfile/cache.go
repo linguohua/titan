@@ -81,7 +81,7 @@ func (c *CacheTask) startTimeoutTimer() {
 		}
 
 		// cache is timeout
-		err := c.endCache(api.CacheStatusTimeout, 0)
+		err := c.endTask(api.CacheStatusTimeout, 0)
 		if err != nil {
 			log.Errorf("endCache err:%s", err.Error())
 		}
@@ -128,7 +128,7 @@ func (c *CacheTask) carfileCacheResult(info *api.CacheResultInfo) error {
 	c.doneSize = info.DoneSize
 
 	if info.Status == api.CacheStatusSuccess || info.Status == api.CacheStatusFail {
-		return c.endCache(info.Status, info.DiskUsage)
+		return c.endTask(info.Status, info.DiskUsage)
 	}
 
 	// update cache task timeout
@@ -151,7 +151,7 @@ func (c *CacheTask) updateCacheTaskInfo() error {
 	return persistent.GetDB().UpdateCacheTaskInfo(cInfo)
 }
 
-func (c *CacheTask) startCache() (err error) {
+func (c *CacheTask) startTask() (err error) {
 	defer func() {
 		if err != nil {
 			c.status = api.CacheStatusFail
@@ -167,7 +167,7 @@ func (c *CacheTask) startCache() (err error) {
 	return err
 }
 
-func (c *CacheTask) endCache(status api.CacheStatus, diskUsage float64) (err error) {
+func (c *CacheTask) endTask(status api.CacheStatus, diskUsage float64) (err error) {
 	c.status = status
 	c.reliability = c.calculateReliability()
 
