@@ -101,7 +101,7 @@ func (c *CacheTask) cacheCarfile2Node() (err error) {
 			// update node info
 			node := c.carfileRecord.nodeManager.GetNode(c.deviceID)
 			if node != nil {
-				node.DiskUsage = result.DiskUsage
+				// node.DiskUsage = result.DiskUsage
 				node.SetCurCacheCount(result.WaitCacheCarfileNum + 1)
 			}
 		}
@@ -177,20 +177,18 @@ func (c *CacheTask) endTask(status api.CacheStatus, diskUsage float64) (err erro
 	if node != nil {
 		node.IncrCurCacheCount(-1)
 
-		if diskUsage > 0 {
-			node.DiskUsage = diskUsage
-		}
-
-		node.TotalDownload += float64(c.doneSize)
-		node.DownloadCount += c.doneBlocks
-		node.BlockCount += c.doneBlocks
-
-		nodeInfo = &cache.NodeCacheInfo{}
-		nodeInfo.BlockCount = node.BlockCount
-		nodeInfo.DiskUsage = node.DiskUsage
-		nodeInfo.TotalDownload = node.TotalDownload
-		nodeInfo.IsSuccess = c.status == api.CacheStatusSuccess
-		nodeInfo.DeviceID = c.deviceID
+		// if diskUsage > 0 {
+		// 	node.DiskUsage = diskUsage
+		// }
+		// node.TotalDownload += float64(c.doneSize)
+		// node.DownloadCount += c.doneBlocks
+		// node.BlockCount += c.doneBlocks
+		// nodeInfo = &cache.NodeCacheInfo{}
+		// nodeInfo.BlockCount = node.BlockCount
+		// nodeInfo.DiskUsage = node.DiskUsage
+		// nodeInfo.TotalDownload = node.TotalDownload
+		// nodeInfo.IsSuccess = c.status == api.CacheStatusSuccess
+		// nodeInfo.DeviceID = c.deviceID
 	}
 
 	err = c.updateCacheTaskInfo()
