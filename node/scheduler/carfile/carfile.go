@@ -238,6 +238,7 @@ func (d *CarfileRecord) dispatchCaches() (isRunning bool, err error) {
 	needEdgeCount := d.needReliability - d.reliability
 	if needEdgeCount <= 0 {
 		// no caching required
+		log.Info("no caching required")
 		return
 	}
 
