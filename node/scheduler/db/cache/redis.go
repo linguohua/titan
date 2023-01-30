@@ -93,7 +93,7 @@ func (rd redisDB) CacheTasksStart(hash string, deviceIDs []string, timeout int64
 	return err
 }
 
-func (rd redisDB) CacheTasksEnd(hash string, deviceIDs []string, nodeInfo *NodeCacheInfo) (bool, error) {
+func (rd redisDB) CacheTasksEnd(hash string, deviceIDs []string) (bool, error) {
 	cacheingCarfileList := fmt.Sprintf(redisKeyCacheingCarfileList, serverName)
 	carfileNodeList := fmt.Sprintf(redisKeyCarfileCacheingNodeList, serverName, hash)
 
@@ -121,14 +121,14 @@ func (rd redisDB) CacheTasksEnd(hash string, deviceIDs []string, nodeInfo *NodeC
 			pipeliner.Del(context.Background(), nodeKey)
 		}
 
-		if nodeInfo != nil {
-			nKey := fmt.Sprintf(redisKeyNodeInfo, nodeInfo.DeviceID)
-			pipeliner.HMSet(context.Background(), nKey, diskUsageField, nodeInfo.DiskUsage, blockCountField, nodeInfo.BlockCount, totalDownloadField, nodeInfo.TotalDownload)
-			if nodeInfo.IsSuccess {
-				baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
-				pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, 1)
-			}
-		}
+		// if nodeInfo != nil {
+		// 	nKey := fmt.Sprintf(redisKeyNodeInfo, nodeInfo.DeviceID)
+		// 	pipeliner.HMSet(context.Background(), nKey, diskUsageField, nodeInfo.DiskUsage, blockCountField, nodeInfo.BlockCount, totalDownloadField, nodeInfo.TotalDownload)
+		// 	if nodeInfo.IsSuccess {
+		// 		baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
+		// 		pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, 1)
+		// 	}
+		// }
 
 		return nil
 	})

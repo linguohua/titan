@@ -21,6 +21,22 @@ func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) e
 		return xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
+	//update node info
+	node := s.nodeManager.GetNode(deviceID)
+	if node != nil {
+		node.BlockCount = info.TotalBlock
+		node.DiskUsage = info.DiskUsage
+	}
+
+	//update redis
+	err := cache.GetDB().UpdateNodeCacheInfo(deviceID, &cache.NodeCacheInfo{
+		BlockCount: node.BlockCount,
+		DiskUsage:  node.DiskUsage,
+	})
+	if err != nil {
+		log.Errorf("UpdateNodeCacheInfo err:%s", err.Error())
+	}
+
 	return s.dataManager.CacheCarfileResult(deviceID, &info)
 }
 

@@ -180,7 +180,7 @@ func (d *CarfileRecord) startCacheTasks(nodes []*node.Node, isCandidate bool) (i
 			log.Errorf("startCacheTasks %s , UpdateCacheTaskStatus err:%s", d.carfileHash, err.Error())
 		}
 
-		_, err := cache.GetDB().CacheTasksEnd(d.carfileHash, errorList, nil)
+		_, err := cache.GetDB().CacheTasksEnd(d.carfileHash, errorList)
 		if err != nil {
 			log.Errorf("startCacheTasks %s , CacheTasksEnd err:%s", d.carfileHash, err.Error())
 			return
