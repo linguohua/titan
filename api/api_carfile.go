@@ -37,7 +37,6 @@ type CacheStat struct {
 	WaitCacheCarfileCount int
 	CachingCarfileCID     string
 	DiskUsage             float64
-	BlockCount            int
 }
 
 type CachingCarfile struct {

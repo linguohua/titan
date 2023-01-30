@@ -172,23 +172,9 @@ func (c *CacheTask) endTask(status api.CacheStatus, diskUsage float64) (err erro
 	c.reliability = c.calculateReliability()
 
 	// update node info
-	var nodeInfo *cache.NodeCacheInfo
 	node := c.carfileRecord.nodeManager.GetNode(c.deviceID)
 	if node != nil {
 		node.IncrCurCacheCount(-1)
-
-		// if diskUsage > 0 {
-		// 	node.DiskUsage = diskUsage
-		// }
-		// node.TotalDownload += float64(c.doneSize)
-		// node.DownloadCount += c.doneBlocks
-		// node.BlockCount += c.doneBlocks
-		// nodeInfo = &cache.NodeCacheInfo{}
-		// nodeInfo.BlockCount = node.BlockCount
-		// nodeInfo.DiskUsage = node.DiskUsage
-		// nodeInfo.TotalDownload = node.TotalDownload
-		// nodeInfo.IsSuccess = c.status == api.CacheStatusSuccess
-		// nodeInfo.DeviceID = c.deviceID
 	}
 
 	err = c.updateCacheTaskInfo()
@@ -196,7 +182,7 @@ func (c *CacheTask) endTask(status api.CacheStatus, diskUsage float64) (err erro
 		log.Errorf("endCache %s , updateCacheTaskInfo err:%s", c.carfileHash, err.Error())
 	}
 
-	cachesDone, err := cache.GetDB().CacheTasksEnd(c.carfileHash, []string{c.deviceID}, nodeInfo)
+	cachesDone, err := cache.GetDB().CacheTasksEnd(c.carfileHash, []string{c.deviceID})
 	if err != nil {
 		return xerrors.Errorf("endCache %s , CacheTasksEnd err:%s", c.carfileHash, err.Error())
 	}
