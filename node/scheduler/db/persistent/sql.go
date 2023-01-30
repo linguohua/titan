@@ -552,21 +552,31 @@ func (sd sqlDB) RemoveCarfileRecord(carfileHash string) error {
 }
 
 // remove fail caches info
-func (sd sqlDB) ResetCarfileRecordInfo(info *api.CacheCarfileInfo) error {
+func (sd sqlDB) ResetCarfileRecordInfo(info *api.CacheCarfileInfo, failList []string) error {
 	area := sd.replaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 	dTableName := fmt.Sprintf(carfileInfoTable, area)
 
 	tx := sd.cli.MustBegin()
 
-	// cache info TODO 索引不生效
-	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE status!=? AND carfile_hash=?`, cTableName)
-	tx.MustExec(cCmd, api.CacheStatusSuccess, info.CarfileHash)
+	// remove cache
+	removeCachesCmd := fmt.Sprintf(`DELETE FROM %s WHERE id in (?)`, cTableName)
+	removeCacheQuery, args, err := sqlx.In(removeCachesCmd, failList)
+	if err != nil {
+		return err
+	}
+
+	removeCacheQuery = sd.cli.Rebind(removeCacheQuery)
+	tx.MustExec(removeCacheQuery, args...)
+
+	// // cache info (!= 索引不生效)
+	// cCmd := fmt.Sprintf(`DELETE FROM %s WHERE status!=? AND carfile_hash=?`, cTableName)
+	// tx.MustExec(cCmd, api.CacheStatusSuccess, info.CarfileHash)
 
 	dCmd := fmt.Sprintf("UPDATE %s SET need_reliability=?,expired_time=? WHERE carfile_hash=?", dTableName)
 	tx.MustExec(dCmd, info.NeedReliability, info.ExpiredTime, info.CarfileHash)
 
-	err := tx.Commit()
+	err = tx.Commit()
 	if err != nil {
 		err = tx.Rollback()
 		return err

@@ -149,13 +149,29 @@ func (m *Manager) GetCarfileRecord(hash string) (*CarfileRecord, error) {
 }
 
 func (m *Manager) continueCarfileRecord(info *api.CacheCarfileInfo) error {
-	// remove fail cache and update carfile info
-	err := persistent.GetDB().ResetCarfileRecordInfo(info)
+	carfileRecord, err := loadCarfileRecord(info.CarfileHash, m)
 	if err != nil {
 		return err
 	}
 
-	carfileRecord, err := loadCarfileRecord(info.CarfileHash, m)
+	failList := make([]string, 0)
+
+	carfileRecord.CacheTaskMap.Range(func(key, value interface{}) bool {
+		if value == nil {
+			return true
+		}
+		c := value.(*CacheTask)
+		if c == nil || c.status == api.CacheStatusSuccess {
+			return true
+		}
+		failList = append(failList, c.id)
+		//delete cache task
+		carfileRecord.CacheTaskMap.Delete(c.deviceID)
+		return true
+	})
+
+	// remove fail cache and update carfile info
+	err = persistent.GetDB().ResetCarfileRecordInfo(info, failList)
 	if err != nil {
 		return err
 	}
@@ -274,11 +290,6 @@ func (m *Manager) RemoveCache(carfileCid, deviceID string) error {
 		}
 	}
 
-	// dI, ok := m.CarfileRecordMap.Load(cacheInfo.CarfileHash)
-	// if ok && dI != nil {
-	// 	dI.(*CarfileRecord).CacheTaskMap.Delete(cacheInfo.DeviceID)
-	// }
-
 	go m.notifyNodeRemoveCarfile(cacheInfo.DeviceID, carfileCid)
 
 	return nil
@@ -320,7 +331,6 @@ func (m *Manager) startCarfileCacheTask() {
 		return
 	}
 
-	// TODO if doLen too big,
 	for i := 0; i < doLen; i++ {
 		info, err := cache.GetDB().GetWaitCarfile()
 		if err != nil {
