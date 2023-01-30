@@ -24,7 +24,7 @@ func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) e
 	//update node info
 	node := s.nodeManager.GetNode(deviceID)
 	if node != nil {
-		node.BlockCount = info.TotalBlock
+		node.BlockCount = info.TotalBlockCount
 		node.DiskUsage = info.DiskUsage
 	}
 
