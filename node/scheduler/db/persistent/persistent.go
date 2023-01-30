@@ -47,8 +47,8 @@ type DB interface {
 	CreateCarfileRecordInfo(info *api.CarfileRecordInfo) error
 	GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error)
 	CarfileRecordExist(hash string) (bool, error)
-	GetCarfileCidWithPage(page int) (count int, totalPage int, list []*api.CarfileRecordInfo, err error)
-	GetCaches(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error)
+	GetCarfileCidWithPage(page int) (info *api.DataListInfo, err error)
+	GetCacheTaskInfos(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error)
 	GetCachesWithCandidate(hash string) ([]string, error)
 	ExtendExpiredTimeWhitCarfile(carfileHash string, hour int) error
 	ChangeExpiredTimeWhitCarfile(carfileHash string, expiredTime time.Time) error
@@ -72,6 +72,9 @@ type DB interface {
 	GetBlockDownloadInfoByDeviceID(deviceID string) ([]*api.BlockDownloadInfo, error)
 	GetBlockDownloadInfoByID(id string) (*api.BlockDownloadInfo, error)
 	GetNodesByUserDownloadBlockIn(minute int) ([]string, error)
+
+	SetEventInfo(info *api.EventInfo) error
+	GetEventInfos(page int) (info *api.EventListInfo, err error)
 
 	// web
 	webDB

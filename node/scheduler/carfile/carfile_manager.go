@@ -226,9 +226,9 @@ func (m *Manager) RemoveCarfileRecord(carfileCid string) error {
 		return xerrors.Errorf("carfileRecord %s is running, please wait", carfileCid)
 	}
 
-	cInfos, err := persistent.GetDB().GetCaches(hash, false)
+	cInfos, err := persistent.GetDB().GetCacheTaskInfos(hash, false)
 	if err != nil {
-		return xerrors.Errorf("GetCaches: %s,err:%s", carfileCid, err.Error())
+		return xerrors.Errorf("GetCacheTaskInfos: %s,err:%s", carfileCid, err.Error())
 	}
 
 	err = persistent.GetDB().RemoveCarfileRecord(hash)
@@ -256,17 +256,42 @@ func (m *Manager) RemoveCache(carfileCid, deviceID string) error {
 		return err
 	}
 
-	cInfo, err := persistent.GetDB().GetCacheInfo(m.cacheTaskID(hash, deviceID))
+	dI, exist := m.CarfileRecordMap.Load(hash)
+	if exist && dI != nil {
+		return xerrors.Errorf("task %s is running, please wait", carfileCid)
+	}
+
+	cacheInfo, err := persistent.GetDB().GetCacheInfo(m.cacheTaskID(hash, deviceID))
 	if err != nil {
 		return xerrors.Errorf("GetCacheInfo: %s,err:%s", carfileCid, err.Error())
 	}
 
-	return m.removeCacheTask(cInfo, carfileCid)
+	// delete cache and update carfile info
+	err = persistent.GetDB().RemoveCacheTask(cacheInfo.DeviceID, cacheInfo.CarfileHash)
+	if err != nil {
+		return err
+	}
+
+	if cacheInfo.Status == api.CacheStatusSuccess {
+		err = cache.GetDB().IncrByBaseInfo(cache.CarFileCountField, -1)
+		if err != nil {
+			log.Errorf("removeCache IncrByBaseInfo err:%s", err.Error())
+		}
+	}
+
+	// dI, ok := m.CarfileRecordMap.Load(cacheInfo.CarfileHash)
+	// if ok && dI != nil {
+	// 	dI.(*CarfileRecord).CacheTaskMap.Delete(cacheInfo.DeviceID)
+	// }
+
+	go m.notifyNodeRemoveCarfile(cacheInfo.DeviceID, carfileCid)
+
+	return nil
 }
 
 // CacheCarfileResult block cache result
 func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo) (err error) {
-	log.Debugf("carfileCacheResult :%s , %d , %s", deviceID, info.Status, info.CarfileHash)
+	log.Infof("carfileCacheResult :%s , %d , %s", deviceID, info.Status, info.CarfileHash)
 
 	var carfileRecord *CarfileRecord
 	dI, exist := m.CarfileRecordMap.Load(info.CarfileHash)
@@ -278,7 +303,7 @@ func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo)
 		return
 	}
 
-	if !carfileRecord.candidateCacheExists() {
+	if !carfileRecord.candidateCacheExist() {
 		carfileRecord.totalSize = info.TotalSize
 		carfileRecord.totalBlocks = info.TotalBlock
 	}
@@ -447,7 +472,6 @@ func (m *Manager) checkCachesExpired() {
 		return
 	}
 
-	//(On) : n = carfile count
 	carfileRecords, err := persistent.GetDB().GetExpiredCarfiles()
 	if err != nil {
 		log.Errorf("GetExpiredCarfiles err:%s", err.Error())
@@ -473,34 +497,6 @@ func (m *Manager) resetLatelyExpiredTime(t time.Time) {
 	if m.latelyExpiredTime.After(t) {
 		m.latelyExpiredTime = t
 	}
-}
-
-func (m *Manager) removeCacheTask(cacheInfo *api.CacheTaskInfo, carfileCid string) error {
-	dI, exist := m.CarfileRecordMap.Load(cacheInfo.CarfileHash)
-	if exist && dI != nil {
-		return xerrors.Errorf("task %s is running, please wait", carfileCid)
-	}
-
-	// delete cache and update carfile info
-	err := persistent.GetDB().RemoveCacheTask(cacheInfo.DeviceID, cacheInfo.CarfileHash)
-	if err != nil {
-		return err
-	}
-
-	if cacheInfo.Status == api.CacheStatusSuccess {
-		err := cache.GetDB().IncrByBaseInfo(cache.CarFileCountField, -1)
-		if err != nil {
-			log.Errorf("removeCache IncrByBaseInfo err:%s", err.Error())
-		}
-	}
-
-	dI, ok := m.CarfileRecordMap.Load(cacheInfo.CarfileHash)
-	if ok && dI != nil {
-		dI.(*CarfileRecord).CacheTaskMap.Delete(cacheInfo.DeviceID)
-	}
-
-	go m.notifyNodeRemoveCarfile(cacheInfo.DeviceID, carfileCid)
-	return nil
 }
 
 // Notify node to delete all carfile
@@ -544,7 +540,10 @@ func (m *Manager) findAppropriateEdges(filterMap sync.Map, count int) []*node.No
 		deviceID := key.(string)
 
 		if _, exist := filterMap.Load(deviceID); exist {
+			// cache := cI.(*CacheTask)
+			// if cache.status == api.CacheStatusSuccess {
 			return true
+			// }
 		}
 
 		node := value.(*node.EdgeNode)
@@ -578,7 +577,10 @@ func (m *Manager) findAppropriateCandidates(filterMap sync.Map, count int) []*no
 		deviceID := key.(string)
 
 		if _, exist := filterMap.Load(deviceID); exist {
+			// cache := cI.(*CacheTask)
+			// if cache.status == api.CacheStatusSuccess {
 			return true
+			// }
 		}
 
 		node := value.(*node.CandidateNode)

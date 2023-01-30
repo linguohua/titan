@@ -21,7 +21,7 @@ type Scheduler interface {
 	RemoveCarfile(ctx context.Context, carfileID string) error                                           //perm:admin
 	RemoveCache(ctx context.Context, carfileID, deviceID string) error                                   //perm:admin
 	GetCarfileRecord(ctx context.Context, cid string) (CarfileRecordInfo, error)                         //perm:read
-	ListCarfileRecords(ctx context.Context, page int) (DataListInfo, error)                              //perm:read
+	ListCarfileRecords(ctx context.Context, page int) (*DataListInfo, error)                             //perm:read
 	ShowRunningCarfileRecords(ctx context.Context) ([]CarfileRecordInfo, error)                          //perm:read
 	RegisterNode(ctx context.Context, nodeType NodeType, count int) ([]NodeRegisterInfo, error)          //perm:admin
 	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error)   //perm:admin
@@ -62,10 +62,10 @@ type Scheduler interface {
 
 // DataListInfo Data List Info
 type DataListInfo struct {
-	Page       int
-	TotalPage  int
-	Cids       int
-	CacheInfos []*CarfileRecordInfo
+	Page           int
+	TotalPage      int
+	Cids           int
+	CarfileRecords []*CarfileRecordInfo
 }
 
 // EventInfo Event Info

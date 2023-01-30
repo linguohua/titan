@@ -63,13 +63,12 @@ CREATE TABLE `node_connection_log` (
     `status` TINYINT  DEFAULT '0' ,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='event';
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='node log';
 
 
-CREATE TABLE `event_info_cn_gd_shenzhen` (
+CREATE TABLE `carfile_event_cn_gd_shenzhen` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
 	`cid` varchar(128) DEFAULT '',
-    `device_id` varchar(128) DEFAULT '',
     `user` varchar(20) NOT NULL ,
     `event` varchar(20) NOT NULL ,
     `msg` varchar(128) DEFAULT '',
