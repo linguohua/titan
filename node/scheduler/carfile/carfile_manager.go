@@ -215,12 +215,7 @@ func (m *Manager) CacheCarfile(cid string, reliability int, expiredTime time.Tim
 }
 
 // RemoveCarfileRecord remove a carfile
-func (m *Manager) RemoveCarfileRecord(carfileCid string) error {
-	hash, err := helper.CIDString2HashString(carfileCid)
-	if err != nil {
-		return err
-	}
-
+func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 	dI, exist := m.CarfileRecordMap.Load(hash)
 	if exist && dI != nil {
 		return xerrors.Errorf("carfileRecord %s is running, please wait", carfileCid)
@@ -480,7 +475,7 @@ func (m *Manager) checkCachesExpired() {
 
 	for _, carfileRecord := range carfileRecords {
 		// do remove
-		err = m.RemoveCarfileRecord(carfileRecord.CarfileCid)
+		err = m.RemoveCarfileRecord(carfileRecord.CarfileCid, carfileRecord.CarfileHash)
 		log.Warnf("cid:%s, expired,remove it ; %v", carfileRecord.CarfileCid, err)
 	}
 

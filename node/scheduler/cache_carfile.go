@@ -187,12 +187,17 @@ func (s *Scheduler) ListCarfileRecords(ctx context.Context, page int) (*api.Data
 }
 
 // RemoveCarfile remove all caches with carfile
-func (s *Scheduler) RemoveCarfile(ctx context.Context, carfileID string) error {
-	if carfileID == "" {
+func (s *Scheduler) RemoveCarfile(ctx context.Context, carfileCid string) error {
+	if carfileCid == "" {
 		return xerrors.Errorf("Cid Is Nil")
 	}
 
-	return s.dataManager.RemoveCarfileRecord(carfileID)
+	hash, err := helper.CIDString2HashString(carfileCid)
+	if err != nil {
+		return err
+	}
+
+	return s.dataManager.RemoveCarfileRecord(carfileCid, hash)
 }
 
 // RemoveCache remove a caches with carfile

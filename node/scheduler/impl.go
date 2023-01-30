@@ -570,6 +570,11 @@ func (s *Scheduler) NodeQuit(ctx context.Context, deviceID string) error {
 	return nil
 }
 
+//UpdateActiveData update data
+func (s *Scheduler) UpdateActiveData(ctx context.Context, info *api.NodeActiveData) error {
+	return nil
+}
+
 func incrDeviceReward(deviceID string, incrReward int64) error {
 	err := cache.GetDB().IncrByDeviceInfo(deviceID, "CumulativeProfit", incrReward)
 	if err != nil {
