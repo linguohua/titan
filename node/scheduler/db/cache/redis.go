@@ -325,10 +325,10 @@ func (rd redisDB) updateDeviceInfos(info *api.DevicesInfo) error {
 	key := fmt.Sprintf(redisKeyNodeInfo, info.DeviceId)
 
 	m := make(map[string]interface{})
-	// m["DiskSpace"] = info.DiskSpace
+	m["DiskSpace"] = info.DiskSpace
 	m["DiskUsage"] = info.DiskUsage
-	// m["Longitude"] = info.Longitude
-	// m["Latitude"] = info.Latitude
+	m["Longitude"] = info.Longitude
+	m["Latitude"] = info.Latitude
 
 	_, err := rd.cli.HMSet(context.Background(), key, m).Result()
 	return err

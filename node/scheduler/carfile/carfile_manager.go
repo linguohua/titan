@@ -31,6 +31,9 @@ const (
 
 	// If the node disk size is greater than this value, caching will not continue
 	diskUsageMax = 90.0
+
+	// carfile dispatch cache count limit
+	dispatchLimit = 5
 )
 
 // Manager carfile
@@ -361,7 +364,7 @@ func (m *Manager) startCarfileCacheTask() {
 		}
 
 		if err != nil {
-			log.Errorf("createCarfileRecord %s err:%s", info.CarfileCid, err.Error())
+			log.Errorf("%s do caches err:%s", info.CarfileCid, err.Error())
 		}
 	}
 }
@@ -446,10 +449,10 @@ func (m *Manager) NodesQuit(deviceIDs []string) {
 		values[deviceID] = 0
 
 		// TODO notify node remove all carfile
-		node := m.nodeManager.GetNode(deviceID)
-		if node != nil {
-			node.BlockCount = 0
-		}
+		// node := m.nodeManager.GetNode(deviceID)
+		// if node != nil {
+		// 	node.BlockCount = 0
+		// }
 	}
 
 	// err = cache.GetDB().UpdateDeviceInfos(cache.BlockCountField, values)
@@ -534,11 +537,22 @@ func (m *Manager) notifyNodeRemoveCarfile(deviceID, cid string) error {
 	return nil
 }
 
+type findNodeResult struct {
+	list                  []*node.Node
+	allNodeCount          int
+	filterCount           int
+	insufficientDiskCount int
+
+	needCount int
+}
+
 // find the edges
-func (m *Manager) findAppropriateEdges(filterMap sync.Map, count int) []*node.Node {
+func (m *Manager) findAppropriateEdges(filterMap sync.Map, count int) *findNodeResult {
+	resultInfo := &findNodeResult{needCount: count}
+
 	list := make([]*node.Node, 0)
 	if count <= 0 {
-		return list
+		return resultInfo
 	}
 
 	m.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
@@ -546,13 +560,17 @@ func (m *Manager) findAppropriateEdges(filterMap sync.Map, count int) []*node.No
 
 		if _, exist := filterMap.Load(deviceID); exist {
 			// cache := cI.(*CacheTask)
-			// if cache.status == api.CacheStatusSuccess {
+			// if cache.status == api.CacheStatusFail {
+			// 	resultInfo.failCount++
+			// }
+			resultInfo.filterCount++
 			return true
 			// }
 		}
 
 		node := value.(*node.EdgeNode)
 		if node.DiskUsage > diskUsageMax {
+			resultInfo.insufficientDiskCount++
 			return true
 		}
 
@@ -568,14 +586,17 @@ func (m *Manager) findAppropriateEdges(filterMap sync.Map, count int) []*node.No
 		count = len(list)
 	}
 
-	return list[0:count]
+	resultInfo.list = list[0:count]
+	return resultInfo
 }
 
 // find the candidates
-func (m *Manager) findAppropriateCandidates(filterMap sync.Map, count int) []*node.Node {
+func (m *Manager) findAppropriateCandidates(filterMap sync.Map, count int) *findNodeResult {
+	resultInfo := &findNodeResult{needCount: count}
+
 	list := make([]*node.Node, 0)
 	if count <= 0 {
-		return list
+		return resultInfo
 	}
 
 	m.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
@@ -583,13 +604,17 @@ func (m *Manager) findAppropriateCandidates(filterMap sync.Map, count int) []*no
 
 		if _, exist := filterMap.Load(deviceID); exist {
 			// cache := cI.(*CacheTask)
-			// if cache.status == api.CacheStatusSuccess {
+			// if cache.status == api.CacheStatusFail {
+			// 	resultInfo.failCount++
+			// }
+			resultInfo.filterCount++
 			return true
 			// }
 		}
 
 		node := value.(*node.CandidateNode)
 		if node.DiskUsage > diskUsageMax {
+			resultInfo.insufficientDiskCount++
 			return true
 		}
 
@@ -605,7 +630,8 @@ func (m *Manager) findAppropriateCandidates(filterMap sync.Map, count int) []*no
 		count = len(list)
 	}
 
-	return list[0:count]
+	resultInfo.list = list[0:count]
+	return resultInfo
 }
 
 // ResetBackupCacheCount reset backupCacheCount

@@ -235,7 +235,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 		return err
 	}
 
-	err = candidateNode.SaveInfo()
+	err = candidateNode.SaveInfo(&deviceInfo)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect SaveInfo err:%s,deviceID:%s", err.Error(), deviceID)
 		return err
@@ -322,7 +322,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 		return err
 	}
 
-	err = edgeNode.SaveInfo()
+	err = edgeNode.SaveInfo(&deviceInfo)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect set device info: %s", err.Error())
 		return err
