@@ -222,7 +222,7 @@ func (v *Validate) getValidatedList(validatorMap map[string]float64) []*validate
 		edgeNode := value.(*node.EdgeNode)
 		info := &validatedDeviceInfo{}
 		info.nodeType = api.NodeEdge
-		info.deviceID = edgeNode.DeviceId
+		info.deviceID = edgeNode.DeviceID
 		info.addr = edgeNode.Node.GetAddress()
 		info.bandwidth = edgeNode.BandwidthUp
 		validatedList = append(validatedList, info)
@@ -230,11 +230,11 @@ func (v *Validate) getValidatedList(validatorMap map[string]float64) []*validate
 	})
 	v.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
 		candidateNode := value.(*node.CandidateNode)
-		if _, ok := validatorMap[candidateNode.DeviceId]; ok {
+		if _, ok := validatorMap[candidateNode.DeviceID]; ok {
 			return true
 		}
 		info := &validatedDeviceInfo{}
-		info.deviceID = candidateNode.DeviceId
+		info.deviceID = candidateNode.DeviceID
 		info.nodeType = api.NodeCandidate
 		info.addr = candidateNode.Node.GetAddress()
 		info.bandwidth = candidateNode.BandwidthUp

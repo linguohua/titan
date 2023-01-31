@@ -164,7 +164,7 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 
 	if needValidatorCount >= candidateCount {
 		for _, candidate := range candidates {
-			out = append(out, candidate.DeviceId)
+			out = append(out, candidate.DeviceID)
 		}
 		return
 	}
@@ -177,7 +177,7 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 	if !isAppend {
 		for i := 0; i < needValidatorCount; i++ {
 			candidate := candidates[i]
-			out = append(out, candidate.DeviceId)
+			out = append(out, candidate.DeviceID)
 		}
 
 		return out
@@ -192,12 +192,12 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 		// need to add
 		for i := 0; i < needValidatorCount; i++ {
 			candidate := candidates[i]
-			deviceID := candidate.DeviceId
+			deviceID := candidate.DeviceID
 			if _, exist := v.validators[deviceID]; exist {
 				continue
 			}
 
-			out = append(out, candidate.DeviceId)
+			out = append(out, candidate.DeviceID)
 		}
 	} else if difference < 0 {
 		// need to reduce

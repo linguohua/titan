@@ -66,9 +66,9 @@ func (m *Manager) edgeKeepalive(node *EdgeNode, nowTime time.Time) {
 		return
 	}
 
-	_, err := cache.GetDB().IncrNodeOnlineTime(node.DeviceId, keepaliveTime)
+	_, err := cache.GetDB().IncrNodeOnlineTime(node.DeviceID, keepaliveTime)
 	if err != nil {
-		log.Errorf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceId)
+		log.Errorf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceID)
 	}
 }
 
@@ -82,9 +82,9 @@ func (m *Manager) candidateKeepalive(node *CandidateNode, nowTime time.Time) {
 		return
 	}
 
-	_, err := cache.GetDB().IncrNodeOnlineTime(node.DeviceId, keepaliveTime)
+	_, err := cache.GetDB().IncrNodeOnlineTime(node.DeviceID, keepaliveTime)
 	if err != nil {
-		log.Errorf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceId)
+		log.Errorf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceID)
 	}
 }
 
@@ -145,7 +145,7 @@ func (m *Manager) GetNodes(nodeType api.NodeTypeName) ([]string, error) {
 
 // EdgeOnline Edge Online
 func (m *Manager) EdgeOnline(node *EdgeNode) error {
-	deviceID := node.DeviceId
+	deviceID := node.DeviceID
 
 	nodeOld := m.GetEdgeNode(deviceID)
 	if nodeOld != nil {
@@ -177,7 +177,7 @@ func (m *Manager) GetEdgeNode(deviceID string) *EdgeNode {
 }
 
 func (m *Manager) edgeOffline(node *EdgeNode) {
-	deviceID := node.DeviceId
+	deviceID := node.DeviceID
 	// close old node
 	node.ClientCloser()
 
@@ -194,7 +194,7 @@ func (m *Manager) edgeOffline(node *EdgeNode) {
 
 // CandidateOnline Candidate Online
 func (m *Manager) CandidateOnline(node *CandidateNode) error {
-	deviceID := node.DeviceId
+	deviceID := node.DeviceID
 
 	nodeOld := m.GetCandidateNode(deviceID)
 	if nodeOld != nil {
@@ -227,7 +227,7 @@ func (m *Manager) GetCandidateNode(deviceID string) *CandidateNode {
 }
 
 func (m *Manager) candidateOffline(node *CandidateNode) {
-	deviceID := node.DeviceId
+	deviceID := node.DeviceID
 	// close old node
 	node.ClientCloser()
 

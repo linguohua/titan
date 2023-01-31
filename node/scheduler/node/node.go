@@ -107,7 +107,11 @@ func (c *CandidateNode) ClientCloser() {
 
 // Node Common
 type Node struct {
-	*api.DevicesInfo
+	DeviceID      string
+	DiskUsage     float64
+	BandwidthDown float64
+	BandwidthUp   float64
+	// *api.DevicesInfo
 	addr           string
 	privateKey     *rsa.PrivateKey
 	nodeType       api.NodeTypeName
@@ -126,12 +130,17 @@ type Node struct {
 // NewNode new
 func NewNode(deviceInfo *api.DevicesInfo, rpcURL, downloadSrvURL string, privateKey *rsa.PrivateKey, nodeType api.NodeTypeName, geoInfo *region.GeoInfo) *Node {
 	node := &Node{
-		addr:           rpcURL,
-		DevicesInfo:    deviceInfo,
+		addr: rpcURL,
+		// DevicesInfo:    deviceInfo,
 		downloadSrvURL: downloadSrvURL,
 		privateKey:     privateKey,
 		nodeType:       nodeType,
 		geoInfo:        geoInfo,
+
+		DeviceID:      deviceInfo.DeviceId,
+		DiskUsage:     deviceInfo.DiskUsage,
+		BandwidthDown: deviceInfo.BandwidthDown,
+		BandwidthUp:   deviceInfo.BandwidthUp,
 	}
 
 	return node
@@ -199,7 +208,7 @@ func (n *Node) GetCurCacheCount() int {
 
 // node online
 func (n *Node) setNodeOnline() error {
-	deviceID := n.DeviceId
+	deviceID := n.DeviceID
 	geoInfo := n.geoInfo
 	typeName := string(n.nodeType)
 
@@ -222,7 +231,7 @@ func (n *Node) setNodeOnline() error {
 
 // node offline
 func (n *Node) setNodeOffline() {
-	deviceID := n.DeviceId
+	deviceID := n.DeviceID
 
 	err := persistent.GetDB().SetNodeOffline(deviceID, n.lastRequestTime)
 	if err != nil {
@@ -230,23 +239,9 @@ func (n *Node) setNodeOffline() {
 	}
 }
 
-// UpdateCacheStat Update Cache Stat
-func (n *Node) UpdateCacheStat(info *api.CacheStat) {
-	n.cacheStat = info
-
-	// num := info.WaitCacheBlockNum + info.DoingCacheBlockNum
-
-	// timeStamp := time.Now().Unix()
-	// n.cacheTimeoutTimeStamp = timeStamp + int64(num*info.DownloadTimeout*info.RetryNum)
-
-	// n.cacheNextTimeoutTimeStamp = n.cacheTimeoutTimeStamp + int64(info.DownloadTimeout*info.RetryNum)
-
-	n.DiskUsage = info.DiskUsage
-}
-
 // SaveInfo Save Device Info
-func (n *Node) SaveInfo() error {
-	err := cache.GetDB().SetDeviceInfo(n.DevicesInfo)
+func (n *Node) SaveInfo(info *api.DevicesInfo) error {
+	err := cache.GetDB().SetDeviceInfo(info)
 	if err != nil {
 		log.Errorf("set device info: %s", err.Error())
 		return err
