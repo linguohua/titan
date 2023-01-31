@@ -186,7 +186,8 @@ func (c *CacheTask) endTask(status api.CacheStatus) (err error) {
 		return xerrors.Errorf("endCache %s , CacheTasksEnd err:%s", c.carfileHash, err.Error())
 	}
 
-	return c.carfileRecord.cacheDone(c, cachesDone)
+	c.carfileRecord.cacheDone(c, cachesDone)
+	return nil
 }
 
 func (c *CacheTask) calculateReliability() int {
