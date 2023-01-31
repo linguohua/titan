@@ -570,21 +570,6 @@ func (s *Scheduler) NodeQuit(ctx context.Context, deviceID string) error {
 	return nil
 }
 
-//UpdateActiveData update data
-func (s *Scheduler) UpdateActiveData(ctx context.Context, info *api.CacheStat) error {
-	deviceID := handler.GetDeviceID(ctx)
-
-	if !deviceExists(deviceID, 0) {
-		return xerrors.Errorf("node not Exist: %s", deviceID)
-	}
-
-	node := s.nodeManager.GetNode(deviceID)
-	if node != nil {
-		// node.
-	}
-	return nil
-}
-
 func incrDeviceReward(deviceID string, incrReward int64) error {
 	err := cache.GetDB().IncrByDeviceInfo(deviceID, "CumulativeProfit", incrReward)
 	if err != nil {

@@ -312,9 +312,9 @@ func (v *Validate) assignValidator(validatorList []string) map[string][]api.ReqV
 		infos = append(infos, info)
 	}
 
-	err := persistent.GetDB().InsertValidateResultInfos(infos)
+	err := persistent.GetDB().AddValidateResultInfos(infos)
 	if err != nil {
-		log.Errorf("InsertValidateResultInfos err:%s", err.Error())
+		log.Errorf("AddValidateResultInfos err:%s", err.Error())
 		return nil
 	}
 

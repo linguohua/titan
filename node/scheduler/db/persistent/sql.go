@@ -137,14 +137,7 @@ func (sd sqlDB) SetNodesQuit(deviceIDs []string) error {
 }
 
 // Validate Result
-func (sd sqlDB) InsertValidateResultInfo(info *ValidateResult) error {
-	query := fmt.Sprintf("INSERT INTO%s", " validate_result (round_id, device_id, validator_id, status, start_time, server_name, msg) VALUES (:round_id, :device_id, :validator_id, :status, :start_time, :server_name, :msg)")
-	_, err := sd.cli.NamedExec(query, info)
-	return err
-}
-
-// Validate Result
-func (sd sqlDB) InsertValidateResultInfos(infos []*ValidateResult) error {
+func (sd sqlDB) AddValidateResultInfos(infos []*ValidateResult) error {
 	tx := sd.cli.MustBegin()
 	for _, info := range infos {
 		query := fmt.Sprintf("INSERT INTO%s", " validate_result (round_id, device_id, validator_id, status, start_time, server_name) VALUES (?, ?, ?, ?, ?, ?)")
@@ -288,7 +281,7 @@ func (sd sqlDB) UpdateCarfileRecordCachesInfo(dInfo *api.CarfileRecordInfo) erro
 	dTableName := fmt.Sprintf(carfileInfoTable, area)
 
 	// update
-	cmd := fmt.Sprintf("UPDATE %s SET total_size=:total_size,total_blocks=:total_blocks,reliability=:reliability,end_time=NOW() WHERE carfile_hash=:carfile_hash", dTableName)
+	cmd := fmt.Sprintf("UPDATE %s SET total_size=:total_size,total_blocks=:total_blocks,reliability=:reliability,end_time=NOW(),need_reliability=:need_reliability,expired_time=:expired_time WHERE carfile_hash=:carfile_hash", dTableName)
 	_, err := sd.cli.NamedExec(cmd, dInfo)
 
 	return err
@@ -320,26 +313,6 @@ func (sd sqlDB) GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error) {
 	cmd := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=?", fmt.Sprintf(carfileInfoTable, area))
 	err := sd.cli.Get(&info, cmd, hash)
 	return &info, err
-
-	// info := &api.CarfileRecordInfo{CarfileHash: hash}
-	// cmd := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=:carfile_hash", fmt.Sprintf(carfileInfoTable, area))
-
-	// rows, err := sd.cli.NamedQuery(cmd, info)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// defer rows.Close()
-
-	// if rows.Next() {
-	// 	err = rows.StructScan(info)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// } else {
-	// 	return nil, xerrors.New(errNotFind)
-	// }
-
-	// return info, err
 }
 
 func (sd sqlDB) GetCarfileCidWithPage(page int) (info *api.DataListInfo, err error) {
@@ -551,16 +524,16 @@ func (sd sqlDB) RemoveCarfileRecord(carfileHash string) error {
 	return nil
 }
 
-// remove fail caches info
-func (sd sqlDB) ResetCarfileRecordInfo(info *api.CacheCarfileInfo) error {
-	area := sd.replaceArea()
-	dTableName := fmt.Sprintf(carfileInfoTable, area)
+// // remove fail caches info
+// func (sd sqlDB) ResetCarfileRecordInfo(info *api.CacheCarfileInfo) error {
+// 	area := sd.replaceArea()
+// 	dTableName := fmt.Sprintf(carfileInfoTable, area)
 
-	cmd := fmt.Sprintf("UPDATE %s SET need_reliability=:need_reliability,expired_time=:expired_time WHERE carfile_hash=:carfile_hash", dTableName)
-	_, err := sd.cli.NamedExec(cmd, info)
+// 	cmd := fmt.Sprintf("UPDATE %s SET need_reliability=:need_reliability,expired_time=:expired_time WHERE carfile_hash=:carfile_hash", dTableName)
+// 	_, err := sd.cli.NamedExec(cmd, info)
 
-	return err
-}
+// 	return err
+// }
 
 // remove cache info and update data info
 func (sd sqlDB) RemoveCacheTask(deviceID, carfileHash string) error {
