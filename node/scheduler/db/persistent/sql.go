@@ -552,37 +552,14 @@ func (sd sqlDB) RemoveCarfileRecord(carfileHash string) error {
 }
 
 // remove fail caches info
-func (sd sqlDB) ResetCarfileRecordInfo(info *api.CacheCarfileInfo, failList []string) error {
+func (sd sqlDB) ResetCarfileRecordInfo(info *api.CacheCarfileInfo) error {
 	area := sd.replaceArea()
-	cTableName := fmt.Sprintf(cacheInfoTable, area)
 	dTableName := fmt.Sprintf(carfileInfoTable, area)
 
-	tx := sd.cli.MustBegin()
+	cmd := fmt.Sprintf("UPDATE %s SET need_reliability=:need_reliability,expired_time=:expired_time WHERE carfile_hash=:carfile_hash", dTableName)
+	_, err := sd.cli.NamedExec(cmd, info)
 
-	// remove cache
-	removeCachesCmd := fmt.Sprintf(`DELETE FROM %s WHERE id in (?)`, cTableName)
-	removeCacheQuery, args, err := sqlx.In(removeCachesCmd, failList)
-	if err != nil {
-		return err
-	}
-
-	removeCacheQuery = sd.cli.Rebind(removeCacheQuery)
-	tx.MustExec(removeCacheQuery, args...)
-
-	// // cache info (!= 索引不生效)
-	// cCmd := fmt.Sprintf(`DELETE FROM %s WHERE status!=? AND carfile_hash=?`, cTableName)
-	// tx.MustExec(cCmd, api.CacheStatusSuccess, info.CarfileHash)
-
-	dCmd := fmt.Sprintf("UPDATE %s SET need_reliability=?,expired_time=? WHERE carfile_hash=?", dTableName)
-	tx.MustExec(dCmd, info.NeedReliability, info.ExpiredTime, info.CarfileHash)
-
-	err = tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // remove cache info and update data info
@@ -769,7 +746,7 @@ func (sd sqlDB) SetEventInfo(info *api.EventInfo) error {
 
 	tableName := fmt.Sprintf(eventInfoTable, area)
 
-	cmd := fmt.Sprintf("INSERT INTO %s (cid, device_id, user, event, msg) VALUES (:cid, :device_id, :user, :event, :msg)", tableName)
+	cmd := fmt.Sprintf("INSERT INTO %s (cid, user, event, msg) VALUES (:cid, :user, :event, :msg)", tableName)
 	_, err := sd.cli.NamedExec(cmd, info)
 	return err
 }
@@ -780,7 +757,7 @@ func (sd sqlDB) GetEventInfos(page int) (info *api.EventListInfo, err error) {
 
 	info = &api.EventListInfo{Page: page}
 
-	cmd := fmt.Sprintf("SELECT count(cid) FROM %s ;", fmt.Sprintf(eventInfoTable, area))
+	cmd := fmt.Sprintf("SELECT count(id) FROM %s ;", fmt.Sprintf(eventInfoTable, area))
 	err = sd.cli.Get(&info.Count, cmd)
 	if err != nil {
 		return

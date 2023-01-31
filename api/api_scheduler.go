@@ -71,13 +71,12 @@ type DataListInfo struct {
 
 // EventInfo Event Info
 type EventInfo struct {
-	ID         int
-	CID        string    `db:"cid"`
-	DeviceID   string    `db:"device_id"`
-	User       string    `db:"user"`
-	Event      string    `db:"event"`
-	Msg        string    `db:"msg"`
-	CreateTime time.Time `db:"created_time"`
+	ID    int
+	CID   string    `db:"cid"`
+	User  string    `db:"user"`
+	Event string    `db:"event"`
+	Msg   string    `db:"msg"`
+	Time  time.Time `db:"time"`
 }
 
 // EventListInfo Event List Info

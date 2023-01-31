@@ -65,16 +65,15 @@ CREATE TABLE `node_connection_log` (
     PRIMARY KEY (`id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='node log';
 
-
 CREATE TABLE `carfile_event_cn_gd_shenzhen` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
 	`cid` varchar(128) DEFAULT '',
     `user` varchar(20) NOT NULL ,
     `event` varchar(20) NOT NULL ,
-    `msg` varchar(128) DEFAULT '',
-    `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
+    `msg` varchar(1024) DEFAULT '',
+    `time` datetime DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='event';
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='carfile event';
 
 CREATE TABLE `caches_cn_gd_shenzhen` (
     `id` varchar(128) NOT NULL UNIQUE,

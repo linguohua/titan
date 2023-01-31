@@ -58,7 +58,7 @@ type DB interface {
 	// cache info
 	GetSuccessCachesCount() (int, error)
 	GetCacheInfo(id string) (*api.CacheTaskInfo, error)
-	ResetCarfileRecordInfo(info *api.CacheCarfileInfo, failList []string) error
+	ResetCarfileRecordInfo(info *api.CacheCarfileInfo) error
 	RemoveCacheTask(deviceID, carfileHash string) error
 	RemoveCarfileRecord(carfileHash string) error
 	UpdateCacheInfoOfQuitNode(deviceIDs []string) ([]*api.CarfileRecordInfo, error)
