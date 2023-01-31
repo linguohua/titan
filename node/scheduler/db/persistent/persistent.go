@@ -29,13 +29,12 @@ type DB interface {
 	SetNodesQuit(deviceIDs []string) error
 
 	// Validate Result
-	InsertValidateResultInfo(info *ValidateResult) error
 	UpdateFailValidateResultInfo(info *ValidateResult) error
 	SetTimeoutToValidateInfos(info *ValidateResult, deivceIDs []string) error
 	UpdateSuccessValidateResultInfo(info *ValidateResult) error
 	SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error)
 	GetRandCarfileWithNode(deviceID string) (string, error)
-	InsertValidateResultInfos(infos []*ValidateResult) error
+	AddValidateResultInfos(infos []*ValidateResult) error
 
 	// cache data info
 	CreateCacheTaskInfo(info *api.CacheTaskInfo) error
@@ -58,7 +57,7 @@ type DB interface {
 	// cache info
 	GetSuccessCachesCount() (int, error)
 	GetCacheInfo(id string) (*api.CacheTaskInfo, error)
-	ResetCarfileRecordInfo(info *api.CacheCarfileInfo) error
+	// ResetCarfileRecordInfo(info *api.CacheCarfileInfo) error
 	RemoveCacheTask(deviceID, carfileHash string) error
 	RemoveCarfileRecord(carfileHash string) error
 	UpdateCacheInfoOfQuitNode(deviceIDs []string) ([]*api.CarfileRecordInfo, error)

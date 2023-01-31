@@ -114,7 +114,7 @@ func (m *Manager) cacheTaskTicker() {
 
 	for {
 		<-ticker.C
-		m.startCarfileCacheTask()
+		m.startCarfileCacheTasks()
 	}
 }
 
@@ -151,7 +151,7 @@ func (m *Manager) GetCarfileRecord(hash string) (*CarfileRecord, error) {
 	return loadCarfileRecord(hash, m)
 }
 
-func (m *Manager) doCarfileCaches(info *api.CacheCarfileInfo) error {
+func (m *Manager) doCarfileCacheTask(info *api.CacheCarfileInfo) error {
 	exist, err := persistent.GetDB().CarfileRecordExist(info.CarfileHash)
 	if err != nil {
 		log.Errorf("%s CarfileRecordExist err:%s", info.CarfileCid, err.Error())
@@ -161,12 +161,6 @@ func (m *Manager) doCarfileCaches(info *api.CacheCarfileInfo) error {
 	var carfileRecord *CarfileRecord
 	if exist {
 		carfileRecord, err = loadCarfileRecord(info.CarfileHash, m)
-		if err != nil {
-			return err
-		}
-
-		// update carfile info
-		err = persistent.GetDB().ResetCarfileRecordInfo(info)
 		if err != nil {
 			return err
 		}
@@ -277,6 +271,7 @@ func (m *Manager) RemoveCache(carfileCid, deviceID string) error {
 // CacheCarfileResult block cache result
 func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo) (err error) {
 	log.Debugf("carfileCacheResult :%s , %d , %s", deviceID, info.Status, info.CarfileHash)
+	// log.Debugf("carfileCacheResult :%v", info)
 
 	var carfileRecord *CarfileRecord
 	dI, exist := m.CarfileRecordMap.Load(info.CarfileHash)
@@ -304,7 +299,7 @@ func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo)
 	return
 }
 
-func (m *Manager) startCarfileCacheTask() {
+func (m *Manager) startCarfileCacheTasks() {
 	doLen := runningCarfileMaxCount - m.RunningTaskCount
 	if doLen <= 0 {
 		return
@@ -327,7 +322,7 @@ func (m *Manager) startCarfileCacheTask() {
 			continue
 		}
 
-		err = m.doCarfileCaches(info)
+		err = m.doCarfileCacheTask(info)
 		if err != nil {
 			log.Errorf("%s do caches err:%s", info.CarfileCid, err.Error())
 		}
@@ -477,7 +472,7 @@ func (m *Manager) resetLatelyExpiredTime(t time.Time) {
 }
 
 // Notify node to delete all carfile
-func (m *Manager) notifyNodeRemoveAllCarfile(deviceID string) error {
+func (m *Manager) notifyNodeRemoveCarfiles(deviceID string) error {
 	edge := m.nodeManager.GetEdgeNode(deviceID)
 	if edge != nil {
 		return edge.GetAPI().DeleteAllCarfiles(context.Background())

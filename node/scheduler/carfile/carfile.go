@@ -149,16 +149,16 @@ func (d *CarfileRecord) startCacheTasks(nodes []*node.Node, isCandidate bool) (i
 		return
 	}
 
-	err := cache.GetDB().CacheTasksStart(d.carfileHash, runningList, nodeCacheTimeout)
+	// set cache status
+	err := persistent.GetDB().UpdateCacheTaskStatus(d.carfileHash, runningList, api.CacheStatusRunning)
 	if err != nil {
-		log.Errorf("startCacheTasks %s , CacheTasksStart err:%s", d.carfileHash, err.Error())
+		log.Errorf("startCacheTasks %s , UpdateCacheTaskStatus err:%s", d.carfileHash, err.Error())
 		return
 	}
 
-	// set cache status
-	err = persistent.GetDB().UpdateCacheTaskStatus(d.carfileHash, runningList, api.CacheStatusRunning)
+	err = cache.GetDB().CacheTasksStart(d.carfileHash, runningList, nodeCacheTimeout)
 	if err != nil {
-		log.Errorf("startCacheTasks %s , UpdateCacheTaskStatus err:%s", d.carfileHash, err.Error())
+		log.Errorf("startCacheTasks %s , CacheTasksStart err:%s", d.carfileHash, err.Error())
 		return
 	}
 
@@ -274,10 +274,12 @@ func (d *CarfileRecord) cacheDone(endCache *CacheTask, cachesDone bool) (err err
 		if err != nil {
 			// Carfile caches end
 			dInfo := &api.CarfileRecordInfo{
-				CarfileHash: d.carfileHash,
-				TotalSize:   d.totalSize,
-				TotalBlocks: d.totalBlocks,
-				Reliability: d.reliability,
+				CarfileHash:     d.carfileHash,
+				TotalSize:       d.totalSize,
+				TotalBlocks:     d.totalBlocks,
+				Reliability:     d.reliability,
+				NeedReliability: d.needReliability,
+				ExpiredTime:     d.expiredTime,
 			}
 			err2 := persistent.GetDB().UpdateCarfileRecordCachesInfo(dInfo)
 			if err2 != nil {
