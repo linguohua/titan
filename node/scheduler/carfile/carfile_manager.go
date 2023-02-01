@@ -360,7 +360,7 @@ func (m *Manager) StopCacheTask(cid, deviceID string) error {
 }
 
 // ReplenishCacheExpiredTime replenish time
-func (m *Manager) ReplenishCacheExpiredTime(cid, deviceID string, hour int) error {
+func (m *Manager) ReplenishCacheExpiredTime(cid string, hour int) error {
 	hash, err := helper.CIDString2HashString(cid)
 	if err != nil {
 		return err
@@ -376,7 +376,7 @@ func (m *Manager) ReplenishCacheExpiredTime(cid, deviceID string, hour int) erro
 }
 
 // ResetCacheExpiredTime reset expired time
-func (m *Manager) ResetCacheExpiredTime(cid, deviceID string, expiredTime time.Time) error {
+func (m *Manager) ResetCacheExpiredTime(cid string, expiredTime time.Time) error {
 	hash, err := helper.CIDString2HashString(cid)
 	if err != nil {
 		return err

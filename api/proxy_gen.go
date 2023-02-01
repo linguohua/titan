@@ -259,11 +259,11 @@ type SchedulerStruct struct {
 
 		RemoveCarfileResult func(p0 context.Context, p1 RemoveCarfileResultInfo) error `perm:"write"`
 
-		ReplenishCacheExpiredTime func(p0 context.Context, p1 string, p2 string, p3 int) error `perm:"admin"`
+		ReplenishCacheExpiredTime func(p0 context.Context, p1 string, p2 int) error `perm:"admin"`
 
 		ResetBackupCacheCount func(p0 context.Context, p1 int) error `perm:"admin"`
 
-		ResetCacheExpiredTime func(p0 context.Context, p1 string, p2 string, p3 time.Time) error `perm:"admin"`
+		ResetCacheExpiredTime func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
 
 		ShowRunningCarfileRecords func(p0 context.Context) ([]CarfileRecordInfo, error) `perm:"read"`
 
@@ -1070,14 +1070,14 @@ func (s *SchedulerStub) RemoveCarfileResult(p0 context.Context, p1 RemoveCarfile
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ReplenishCacheExpiredTime(p0 context.Context, p1 string, p2 string, p3 int) error {
+func (s *SchedulerStruct) ReplenishCacheExpiredTime(p0 context.Context, p1 string, p2 int) error {
 	if s.Internal.ReplenishCacheExpiredTime == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.ReplenishCacheExpiredTime(p0, p1, p2, p3)
+	return s.Internal.ReplenishCacheExpiredTime(p0, p1, p2)
 }
 
-func (s *SchedulerStub) ReplenishCacheExpiredTime(p0 context.Context, p1 string, p2 string, p3 int) error {
+func (s *SchedulerStub) ReplenishCacheExpiredTime(p0 context.Context, p1 string, p2 int) error {
 	return ErrNotSupported
 }
 
@@ -1092,14 +1092,14 @@ func (s *SchedulerStub) ResetBackupCacheCount(p0 context.Context, p1 int) error 
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ResetCacheExpiredTime(p0 context.Context, p1 string, p2 string, p3 time.Time) error {
+func (s *SchedulerStruct) ResetCacheExpiredTime(p0 context.Context, p1 string, p2 time.Time) error {
 	if s.Internal.ResetCacheExpiredTime == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.ResetCacheExpiredTime(p0, p1, p2, p3)
+	return s.Internal.ResetCacheExpiredTime(p0, p1, p2)
 }
 
-func (s *SchedulerStub) ResetCacheExpiredTime(p0 context.Context, p1 string, p2 string, p3 time.Time) error {
+func (s *SchedulerStub) ResetCacheExpiredTime(p0 context.Context, p1 string, p2 time.Time) error {
 	return ErrNotSupported
 }
 

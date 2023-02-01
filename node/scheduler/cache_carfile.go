@@ -60,21 +60,21 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.Remo
 }
 
 // ResetCacheExpiredTime reset expired time with data cache
-func (s *Scheduler) ResetCacheExpiredTime(ctx context.Context, carfileCid, deviceID string, expiredTime time.Time) error {
+func (s *Scheduler) ResetCacheExpiredTime(ctx context.Context, carfileCid string, expiredTime time.Time) error {
 	if time.Now().After(expiredTime) {
 		return xerrors.Errorf("now is after the expiredTime:%s", expiredTime.String())
 	}
 
-	return s.dataManager.ResetCacheExpiredTime(carfileCid, deviceID, expiredTime)
+	return s.dataManager.ResetCacheExpiredTime(carfileCid, expiredTime)
 }
 
 // ReplenishCacheExpiredTime replenish expired time with data cache
-func (s *Scheduler) ReplenishCacheExpiredTime(ctx context.Context, carfileCid, deviceID string, hour int) error {
+func (s *Scheduler) ReplenishCacheExpiredTime(ctx context.Context, carfileCid string, hour int) error {
 	if hour <= 0 {
 		return xerrors.Errorf("hour is :%d", hour)
 	}
 
-	return s.dataManager.ReplenishCacheExpiredTime(carfileCid, deviceID, hour)
+	return s.dataManager.ReplenishCacheExpiredTime(carfileCid, hour)
 }
 
 // StopCacheTask stop cache
@@ -112,6 +112,7 @@ func carfileRecord2Info(d *carfile.CarfileRecord) api.CarfileRecordInfo {
 		info.NeedReliability = d.GetNeedReliability()
 		info.Reliability = d.GetReliability()
 		info.TotalBlocks = d.GetTotalBlocks()
+		info.ExpiredTime = d.GetExpiredTime()
 
 		caches := make([]api.CacheTaskInfo, 0)
 

@@ -217,7 +217,6 @@ var resetCacheExpiredTimeCmd = &cli.Command{
 	Usage: "reset cache expired time",
 	Flags: []cli.Flag{
 		cidFlag,
-		deviceIDFlag,
 		dateFlag,
 	},
 
@@ -226,7 +225,6 @@ var resetCacheExpiredTimeCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		cardileCid := cctx.String("cid")
-		deviceID := cctx.String("device-id")
 		dateTime := cctx.String("date-time")
 
 		ctx := ReqContext(cctx)
@@ -242,7 +240,7 @@ var resetCacheExpiredTimeCmd = &cli.Command{
 			return xerrors.Errorf("date time err:%s", err.Error())
 		}
 
-		err = schedulerAPI.ResetCacheExpiredTime(ctx, cardileCid, deviceID, time)
+		err = schedulerAPI.ResetCacheExpiredTime(ctx, cardileCid, time)
 		if err != nil {
 			return err
 		}
@@ -256,7 +254,6 @@ var replenishCacheExpiredTimeCmd = &cli.Command{
 	Usage: "replenish cache expired time",
 	Flags: []cli.Flag{
 		cidFlag,
-		deviceIDFlag,
 		expiredTimeFlag,
 	},
 
@@ -265,7 +262,6 @@ var replenishCacheExpiredTimeCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		cardileCid := cctx.String("cid")
-		deviceID := cctx.String("device-id")
 		hour := cctx.Int("expired-time")
 
 		ctx := ReqContext(cctx)
@@ -280,7 +276,7 @@ var replenishCacheExpiredTimeCmd = &cli.Command{
 			return xerrors.Errorf("expired time err:%d", hour)
 		}
 
-		err = schedulerAPI.ReplenishCacheExpiredTime(ctx, cardileCid, deviceID, hour)
+		err = schedulerAPI.ReplenishCacheExpiredTime(ctx, cardileCid, hour)
 		if err != nil {
 			return err
 		}
@@ -527,7 +523,7 @@ var listDataCmd = &cli.Command{
 		}
 
 		for _, info := range info.CarfileRecords {
-			fmt.Printf("%s ,Reliabilit: %d/%d , Blocks:%d \n", info.CarfileCid, info.Reliability, info.NeedReliability, info.TotalBlocks)
+			fmt.Printf("%s ,Reliabilit: %d/%d , Blocks:%d , Expired Time:%s\n", info.CarfileCid, info.Reliability, info.NeedReliability, info.TotalBlocks, info.ExpiredTime.Format("2006-01-02 15:04:05"))
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
 
@@ -681,7 +677,7 @@ var showDataInfoCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d \n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks)
+		fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d ,Expired Time:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.ExpiredTime.Format("2006-01-02 15:04:05"))
 		for _, cache := range info.CacheInfos {
 			fmt.Printf("DeviceID:%s ,  Status:%s , Done Size:%f MB ,Done Blocks:%d , IsRootCache:%v \n",
 				cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.CandidateCache)

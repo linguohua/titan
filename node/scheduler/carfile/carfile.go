@@ -325,7 +325,7 @@ func (d *CarfileRecord) GetTotalBlocks() int {
 	return d.totalBlocks
 }
 
-// // GetTotalNodes get total nodes
-// func (d *CarfileRecord) GetTotalNodes() int {
-// 	return d.nodes
-// }
+// GetExpiredTime get expired time
+func (d *CarfileRecord) GetExpiredTime() time.Time {
+	return d.expiredTime
+}
