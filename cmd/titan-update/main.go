@@ -18,7 +18,6 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/build"
-	lcli "github.com/linguohua/titan/cli"
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/shirou/gopsutil/v3/cpu"
 
@@ -28,22 +27,10 @@ import (
 
 var log = logging.Logger("main")
 
-// const (
-// 	FlagWorkerRepo            = "edge-repo"
-// 	FlagWorkerRepoDeprecation = "edgerepo"
-// 	DefaultCarfileStoreDir    = "carfilestore"
-// )
-
 func main() {
-	api.RunningNodeType = api.NodeEdge
+	api.RunningNodeType = api.NodeUpdate
 	cpu.Percent(0, false)
 	titanlog.SetupLogLevels()
-
-	local := []*cli.Command{
-		runCmd,
-	}
-
-	local = append(local, lcli.CommonCommands...)
 
 	app := &cli.App{
 		Name:                 "titan-update",
@@ -74,10 +61,9 @@ func main() {
 		// 	}
 		// 	return nil
 		// },
-		Commands: append(local, lcli.EdgeCmds...),
+		Commands: []*cli.Command{runCmd},
 	}
 	app.Setup()
-	// app.Metadata["repoType"] = repo.Worker
 
 	if err := app.Run(os.Args); err != nil {
 		log.Errorf("%+v", err)
