@@ -233,6 +233,8 @@ type SchedulerStruct struct {
 
 		GetExternalIP func(p0 context.Context) (string, error) `perm:"write"`
 
+		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) `perm:"read"`
+
 		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
 
 		GetPublicKey func(p0 context.Context) (string, error) `perm:"write"`
@@ -264,6 +266,8 @@ type SchedulerStruct struct {
 		ResetBackupCacheCount func(p0 context.Context, p1 int) error `perm:"admin"`
 
 		ResetCacheExpiredTime func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
+
+		SetNodeAppUpdateInfo func(p0 context.Context, p1 NodeType, p2 *NodeAppUpdateInfo) error `perm:"admin"`
 
 		ShowRunningCarfileRecords func(p0 context.Context) ([]CarfileRecordInfo, error) `perm:"read"`
 
@@ -927,6 +931,17 @@ func (s *SchedulerStub) GetExternalIP(p0 context.Context) (string, error) {
 	return "", ErrNotSupported
 }
 
+func (s *SchedulerStruct) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) {
+	if s.Internal.GetNodeAppUpdateInfos == nil {
+		return *new(map[int]*NodeAppUpdateInfo), ErrNotSupported
+	}
+	return s.Internal.GetNodeAppUpdateInfos(p0)
+}
+
+func (s *SchedulerStub) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) {
+	return *new(map[int]*NodeAppUpdateInfo), ErrNotSupported
+}
+
 func (s *SchedulerStruct) GetOnlineDeviceIDs(p0 context.Context, p1 NodeTypeName) ([]string, error) {
 	if s.Internal.GetOnlineDeviceIDs == nil {
 		return *new([]string), ErrNotSupported
@@ -1100,6 +1115,17 @@ func (s *SchedulerStruct) ResetCacheExpiredTime(p0 context.Context, p1 string, p
 }
 
 func (s *SchedulerStub) ResetCacheExpiredTime(p0 context.Context, p1 string, p2 time.Time) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) SetNodeAppUpdateInfo(p0 context.Context, p1 NodeType, p2 *NodeAppUpdateInfo) error {
+	if s.Internal.SetNodeAppUpdateInfo == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.SetNodeAppUpdateInfo(p0, p1, p2)
+}
+
+func (s *SchedulerStub) SetNodeAppUpdateInfo(p0 context.Context, p1 NodeType, p2 *NodeAppUpdateInfo) error {
 	return ErrNotSupported
 }
 

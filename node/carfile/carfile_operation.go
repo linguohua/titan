@@ -142,9 +142,7 @@ func (carfileOperation *CarfileOperation) cacheResultForCarfileExist(carfileCID 
 	}
 
 	linksSize := uint64(len(data))
-	cids := make([]string, 0, len(links))
 	for _, link := range links {
-		cids = append(cids, link.Cid.String())
 		linksSize += link.Size
 	}
 

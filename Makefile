@@ -45,13 +45,19 @@ titan-edge: $(BUILD_DEPS)
 .PHONY: titan-edge
 
 
+titan-locator: $(BUILD_DEPS)
+	rm -f titan-locator
+	$(GOCC) build $(GOFLAGS) -o titan-locator ./cmd/titan-locator
+.PHONY: titan-locator
+
+
 api-gen:
 	$(GOCC) run ./gen/api
 	goimports -w api
 	goimports -w api
 .PHONY: api-gen
 
-build: titan-scheduler titan-candidate titan-edge
+build: titan-scheduler titan-candidate titan-edge titan-locator
 .PHONY: build
 
 edge-image:

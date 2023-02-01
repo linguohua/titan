@@ -86,6 +86,7 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Sche
 	s.validate = validate.NewValidate(nodeManager, false)
 	s.dataManager = carfile.NewCarfileManager(nodeManager, s.authToken)
 	s.dataSync = sync.NewDataSync()
+	s.nodeAppUpdateInfos = make(map[int]*api.NodeAppUpdateInfo)
 
 	return s
 }
@@ -103,7 +104,8 @@ type Scheduler struct {
 	// selector       *ValidateSelector
 	dataSync *sync.DataSync
 
-	authToken []byte
+	authToken          []byte
+	nodeAppUpdateInfos map[int]*api.NodeAppUpdateInfo
 }
 
 type jwtPayload struct {

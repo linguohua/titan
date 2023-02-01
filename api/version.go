@@ -38,6 +38,7 @@ const (
 	NodeValidate
 	NodeScheduler
 	NodeLocator
+	NodeUpdate
 )
 
 func (n NodeType) MarshalBinary() ([]byte, error) {
