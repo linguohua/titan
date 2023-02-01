@@ -7,6 +7,8 @@ import (
 	"encoding/pem"
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -43,6 +45,7 @@ var SchedulerCmds = []*cli.Command{
 	cachingCarfilesCmd,
 	cacheStatCmd,
 	getDownloadInfoCmd,
+	nodeAppUpdateCmd,
 	// listEventCmd,
 }
 
@@ -940,4 +943,135 @@ func loadCidsFromFile(configPath string) ([]string, error) {
 
 	c := &config
 	return c.Cids, nil
+}
+
+var nodeAppUpdateCmd = &cli.Command{
+	Name:  "node-update",
+	Usage: "get node update info or set node update info",
+	Subcommands: []*cli.Command{
+		getNodeAppUpdateInfoCmd,
+		setNodeAppUpdateInfoCmd,
+	},
+}
+
+var getNodeAppUpdateInfoCmd = &cli.Command{
+	Name:  "get",
+	Usage: "get node update info",
+	Action: func(cctx *cli.Context) error {
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		updateInfos, err := schedulerAPI.GetNodeAppUpdateInfos(ctx)
+		if err != nil {
+			return err
+		}
+
+		if len(updateInfos) == 0 {
+			fmt.Printf("No update info exist\n")
+			return nil
+		}
+
+		for k, updateInfo := range updateInfos {
+			fmt.Printf("AppName:%s\n", updateInfo.AppName)
+			fmt.Printf("NodeType:%d\n", k)
+			fmt.Printf("Hash:%s\n", updateInfo.Hash)
+			fmt.Printf("Version:%s\n", updateInfo.Version)
+			fmt.Printf("DownloadURL:%s\n", updateInfo.DownloadURL)
+		}
+
+		return nil
+	},
+}
+
+var setNodeAppUpdateInfoCmd = &cli.Command{
+	Name:  "set",
+	Usage: "set node update info",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "version",
+			Usage: "latest node app version",
+			Value: "0.0.1",
+		},
+		&cli.StringFlag{
+			Name:  "hash",
+			Usage: "latest node app hash",
+			Value: "",
+		},
+		&cli.StringFlag{
+			Name:  "download-url",
+			Usage: "latest node app download url",
+			Value: "",
+		},
+		&cli.IntFlag{
+			Name:  "node-type",
+			Usage: "node type",
+			Value: 1,
+		},
+	},
+
+	Action: func(cctx *cli.Context) error {
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		versionStr := cctx.String("version")
+		hash := cctx.String("hash")
+		downloadURL := cctx.String("download-url")
+		nodeType := cctx.Int("node-type")
+
+		appName := ""
+		switch nodeType {
+		case int(api.NodeEdge):
+			appName = "titan-edge"
+		case int(api.NodeUpdate):
+			appName = "titan-update"
+		default:
+			return fmt.Errorf("Not implement type %d of node update", nodeType)
+		}
+
+		version, err := newVersion(versionStr)
+		if err != nil {
+			return err
+		}
+
+		updateInfo := &api.NodeAppUpdateInfo{AppName: appName, Version: version, Hash: hash, DownloadURL: downloadURL}
+		err = schedulerAPI.SetNodeAppUpdateInfo(ctx, api.NodeType(nodeType), updateInfo)
+		if err != nil {
+			return err
+		}
+		return nil
+	},
+}
+
+func newVersion(version string) (api.Version, error) {
+	stringSplit := strings.Split(version, ".")
+	if len(stringSplit) != 3 {
+		return api.Version(0), fmt.Errorf("parse version error")
+	}
+
+	//major, minor, patch
+	major, err := strconv.Atoi(stringSplit[0])
+	if err != nil {
+		return api.Version(0), fmt.Errorf("parse version major error:%s", err)
+	}
+
+	minor, err := strconv.Atoi(stringSplit[1])
+	if err != nil {
+		return api.Version(0), fmt.Errorf("parse version minor error:%s", err)
+	}
+
+	patch, err := strconv.Atoi(stringSplit[2])
+	if err != nil {
+		return api.Version(0), fmt.Errorf("parse version patch error:%s", err)
+	}
+
+	return api.Version(uint32(major)<<16 | uint32(minor)<<8 | uint32(patch)), nil
+
 }

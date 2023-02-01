@@ -49,7 +49,10 @@ type Scheduler interface {
 	GetExternalIP(ctx context.Context) (string, error)                                                       //perm:write
 	GetPublicKey(ctx context.Context) (string, error)                                                        //perm:write
 	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                             //perm:read
-	AuthNodeNew(ctx context.Context, perms []auth.Permission, deviceID, deviceSecret string) ([]byte, error) //perm:read                                                               //perm:write
+	AuthNodeNew(ctx context.Context, perms []auth.Permission, deviceID, deviceSecret string) ([]byte, error) //perm:read
+
+	GetNodeAppUpdateInfos(ctx context.Context) (map[int]*NodeAppUpdateInfo, error)              //perm:read
+	SetNodeAppUpdateInfo(ctx context.Context, nodeType NodeType, info *NodeAppUpdateInfo) error //perm:admin                                                               //perm:write
 
 	// call by user
 	GetDownloadInfosWithCarfile(ctx context.Context, cid, publicKey string) ([]*DownloadInfoResult, error) //perm:read
@@ -216,4 +219,11 @@ type CacheError struct {
 	Msg       string
 	Time      time.Time
 	DeviceID  string
+}
+
+type NodeAppUpdateInfo struct {
+	AppName     string
+	Version     Version
+	Hash        string
+	DownloadURL string
 }
