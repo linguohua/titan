@@ -1024,6 +1024,7 @@ var getNodeAppUpdateInfoCmd = &cli.Command{
 			fmt.Printf("Hash:%s\n", updateInfo.Hash)
 			fmt.Printf("Version:%s\n", updateInfo.Version)
 			fmt.Printf("DownloadURL:%s\n", updateInfo.DownloadURL)
+			fmt.Println()
 		}
 
 		return nil
@@ -1049,9 +1050,14 @@ var setNodeAppUpdateInfoCmd = &cli.Command{
 			Usage: "latest node app download url",
 			Value: "",
 		},
+		&cli.StringFlag{
+			Name:  "app-name",
+			Usage: "app name",
+			Value: "",
+		},
 		&cli.IntFlag{
 			Name:  "node-type",
-			Usage: "node type",
+			Usage: "node type: 1 is edge, 6 is update",
 			Value: 1,
 		},
 	},
@@ -1068,16 +1074,7 @@ var setNodeAppUpdateInfoCmd = &cli.Command{
 		hash := cctx.String("hash")
 		downloadURL := cctx.String("download-url")
 		nodeType := cctx.Int("node-type")
-
-		appName := ""
-		switch nodeType {
-		case int(api.NodeEdge):
-			appName = "titan-edge"
-		case int(api.NodeUpdate):
-			appName = "titan-update"
-		default:
-			return fmt.Errorf("Not implement type %d of node update", nodeType)
-		}
+		appName := cctx.String("app-name")
 
 		version, err := newVersion(versionStr)
 		if err != nil {

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -90,7 +91,7 @@ var runCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		log.Info("Starting titan edge node")
+		log.Info("Starting titan update app")
 		schedulerURL := cctx.String("update-server")
 		schedulerAPI, close, err := newSchedulerAPI(cctx, schedulerURL)
 		if err != nil {
@@ -124,6 +125,7 @@ func checkUpdate(cctx *cli.Context, schedulerAPI api.Scheduler) {
 		log.Errorf("getNodeAppUpdateInfo error:%s", err.Error())
 	}
 
+	// log.Infof("checkUpdate, updateInfos:%v", updateInfos)
 	mySelfUpdateInfo, ok := updateInfos[int(api.NodeUpdate)]
 	if ok && isNeedToUpdateMySelf(cctx, mySelfUpdateInfo) {
 		updateApp(cctx, mySelfUpdateInfo)
@@ -149,12 +151,17 @@ func getLocalEdgeVersion(appPath string) (api.Version, error) {
 		return api.Version(0), err
 	}
 
-	stringSplit := strings.Split(string(stdout), " ")
+	output := strings.TrimSpace(string(stdout))
+
+	// stdout="titan-edge version 0.1.0"
+	stringSplit := strings.Split(output, " ")
 	if len(stringSplit) != 3 {
 		return api.Version(0), fmt.Errorf("parse cmd output error")
 	}
 
-	return newVersion(stringSplit[3])
+	stringSplit = strings.Split(stringSplit[2], "+")
+
+	return newVersion(stringSplit[0])
 }
 
 func isNeedToUpdateMySelf(cctx *cli.Context, updateInfo *api.NodeAppUpdateInfo) bool {
@@ -172,12 +179,14 @@ func isNeedToUpdateMySelf(cctx *cli.Context, updateInfo *api.NodeAppUpdateInfo) 
 
 func isNeedToUpdateEdge(cctx *cli.Context, updateInfo *api.NodeAppUpdateInfo) bool {
 	installPath := cctx.String("install-path")
-	version, err := getLocalEdgeVersion(installPath)
+	appPath := path.Join(installPath, updateInfo.AppName)
+
+	version, err := getLocalEdgeVersion(appPath)
 	if err != nil {
-		log.Errorf("getLocalEdgeVersion error:%s", err)
+		log.Errorf("isNeedToUpdateEdge error:%s", err)
 		return false
 	}
-
+	// log.Infof("isNeedToUpdateEdge,installPath:%s,appPath:%s version:%v", installPath, appPath, version)
 	if updateInfo.Version > version {
 		return true
 	}
@@ -224,6 +233,31 @@ func updateApp(cctx *cli.Context, updateInfo *api.NodeAppUpdateInfo) {
 		log.Errorf("remove old app error:%s", err)
 		return
 	}
+
+	// change permission
+	err = changePermission(filePath)
+	if err != nil {
+		log.Errorf("changePermission failed:%s", err.Error())
+		return
+	}
+
+	// pkill app will restart
+	err = killApp(updateInfo.AppName)
+	if err != nil {
+		log.Errorf("killApp failed:%s", err.Error())
+		return
+	}
+
+}
+
+func changePermission(appPath string) error {
+	cmd := exec.Command("chmod", "+x", appPath)
+	_, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func downloadApp(downloadURL string) ([]byte, error) {
@@ -257,17 +291,17 @@ func newVersion(version string) (api.Version, error) {
 	//major, minor, patch
 	major, err := strconv.Atoi(stringSplit[0])
 	if err != nil {
-		return api.Version(0), fmt.Errorf("parse version major error:%s", err)
+		return api.Version(0), fmt.Errorf("parse version major %s error:%s", stringSplit[0], err)
 	}
 
 	minor, err := strconv.Atoi(stringSplit[1])
 	if err != nil {
-		return api.Version(0), fmt.Errorf("parse version minor error:%s", err)
+		return api.Version(0), fmt.Errorf("parse version minor %s error:%s", stringSplit[1], err)
 	}
 
 	patch, err := strconv.Atoi(stringSplit[2])
 	if err != nil {
-		return api.Version(0), fmt.Errorf("parse version patch error:%s", err)
+		return api.Version(0), fmt.Errorf("parse version patch %s error:%s", stringSplit[2], err)
 	}
 
 	return api.Version(uint32(major)<<16 | uint32(minor)<<8 | uint32(patch)), nil
