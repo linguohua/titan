@@ -13,27 +13,27 @@ type Scheduler interface {
 	Web
 
 	// call by command
-	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeTypeName) ([]string, error)                     //perm:read
-	ElectionValidators(ctx context.Context) error                                                        //perm:admin                                                               //perm:admin
-	QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]CacheStat, error)                    //perm:read
-	QueryCachingCarfileWithNode(ctx context.Context, deviceID string) (CachingCarfile, error)            //perm:read
-	CacheCarfile(ctx context.Context, cid string, reliability int, expiredTime time.Time) error          //perm:admin
-	RemoveCarfile(ctx context.Context, carfileID string) error                                           //perm:admin
-	RemoveCache(ctx context.Context, carfileID, deviceID string) error                                   //perm:admin
-	GetCarfileRecord(ctx context.Context, cid string) (CarfileRecordInfo, error)                         //perm:read
-	ListCarfileRecords(ctx context.Context, page int) (*DataListInfo, error)                             //perm:read
-	ShowRunningCarfileRecords(ctx context.Context) ([]CarfileRecordInfo, error)                          //perm:read
-	RegisterNode(ctx context.Context, nodeType NodeType, count int) ([]NodeRegisterInfo, error)          //perm:admin
-	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error)   //perm:admin
-	ValidateSwitch(ctx context.Context, open bool) error                                                 //perm:admin
-	ValidateRunningState(ctx context.Context) (bool, error)                                              //perm:admin
-	ValidateStart(ctx context.Context) error                                                             //perm:admin
-	ResetCacheExpiredTime(ctx context.Context, carfileCid, deviceID string, expiredTime time.Time) error //perm:admin
-	ReplenishCacheExpiredTime(ctx context.Context, carfileCid, deviceID string, hour int) error          //perm:admin
-	NodeQuit(ctx context.Context, device string) error                                                   //perm:admin
-	StopCacheTask(ctx context.Context, carfileCid string) error                                          //perm:admin
-	RedressDeveiceInfo(ctx context.Context, deviceID string) error                                       //perm:admin
-	ResetBackupCacheCount(ctx context.Context, backupCacheCount int) error                               //perm:admin
+	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeTypeName) ([]string, error)                   //perm:read
+	ElectionValidators(ctx context.Context) error                                                      //perm:admin                                                               //perm:admin
+	QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]CacheStat, error)                  //perm:read
+	QueryCachingCarfileWithNode(ctx context.Context, deviceID string) (CachingCarfile, error)          //perm:read
+	CacheCarfile(ctx context.Context, cid string, reliability int, expiredTime time.Time) error        //perm:admin
+	RemoveCarfile(ctx context.Context, carfileID string) error                                         //perm:admin
+	RemoveCache(ctx context.Context, carfileID, deviceID string) error                                 //perm:admin
+	GetCarfileRecord(ctx context.Context, cid string) (CarfileRecordInfo, error)                       //perm:read
+	ListCarfileRecords(ctx context.Context, page int) (*DataListInfo, error)                           //perm:read
+	ShowRunningCarfileRecords(ctx context.Context) ([]CarfileRecordInfo, error)                        //perm:read
+	RegisterNode(ctx context.Context, nodeType NodeType, count int) ([]NodeRegisterInfo, error)        //perm:admin
+	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) //perm:admin
+	ValidateSwitch(ctx context.Context, open bool) error                                               //perm:admin
+	ValidateRunningState(ctx context.Context) (bool, error)                                            //perm:admin
+	ValidateStart(ctx context.Context) error                                                           //perm:admin
+	ResetCacheExpiredTime(ctx context.Context, carfileCid string, expiredTime time.Time) error         //perm:admin
+	ReplenishCacheExpiredTime(ctx context.Context, carfileCid string, hour int) error                  //perm:admin
+	NodeQuit(ctx context.Context, device string) error                                                 //perm:admin
+	StopCacheTask(ctx context.Context, carfileCid string) error                                        //perm:admin
+	RedressDeveiceInfo(ctx context.Context, deviceID string) error                                     //perm:admin
+	ResetBackupCacheCount(ctx context.Context, backupCacheCount int) error                             //perm:admin
 
 	// call by locator
 	LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID, locatorToken string) error //perm:write
