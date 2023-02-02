@@ -41,6 +41,7 @@ var SchedulerCmds = []*cli.Command{
 	nodeTokenCmd,
 	registerNodeCmd,
 	redressInfoCmd,
+	showNodeInfoCmd,
 	// other
 	cachingCarfilesCmd,
 	cacheStatCmd,
@@ -58,7 +59,7 @@ var (
 
 	deviceIDFlag = &cli.StringFlag{
 		Name:  "device-id",
-		Usage: "cache node device id",
+		Usage: "node id",
 		Value: "",
 	}
 
@@ -134,6 +135,48 @@ var (
 		Value: "",
 	}
 )
+var showNodeInfoCmd = &cli.Command{
+	Name:  "show-node-info",
+	Usage: "show node info",
+	Flags: []cli.Flag{
+		deviceIDFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		deviceID := cctx.String("device-id")
+
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		info, err := schedulerAPI.GetNodeInfoByID(ctx, deviceID)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("device id: %s \n", info.DeviceId)
+		fmt.Printf("device name: %s \n", info.DeviceName)
+		fmt.Printf("device external_ip: %s \n", info.ExternalIp)
+		fmt.Printf("device internal_ip: %s \n", info.InternalIp)
+		fmt.Printf("device systemVersion: %s \n", info.SystemVersion)
+		fmt.Printf("device DiskUsage: %f \n", info.DiskUsage)
+		fmt.Printf("device disk space: %f \n", info.DiskSpace)
+		fmt.Printf("device fstype: %s \n", info.IoSystem)
+		fmt.Printf("device mac: %s \n", info.MacLocation)
+		fmt.Printf("device download bandwidth: %f \n", info.BandwidthDown)
+		fmt.Printf("device upload bandwidth: %f \n", info.BandwidthUp)
+		fmt.Printf("device cpu percent: %f \n", info.CpuUsage)
+
+		return nil
+	},
+}
 
 var resetBackupCacheCountCmd = &cli.Command{
 	Name:  "reset-backup-count",
