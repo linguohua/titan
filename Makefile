@@ -44,6 +44,11 @@ titan-edge: $(BUILD_DEPS)
 	$(GOCC) build $(GOFLAGS) -o titan-edge ./cmd/titan-edge
 .PHONY: titan-edge
 
+titan-edge-arm: $(BUILD_DEPS)
+	rm -f titan-edge-arm
+	GOOS=linux GOARCH=arm $(GOCC) build $(GOFLAGS) -o titan-edge-arm ./cmd/titan-edge
+.PHONY: titan-edge-arm
+
 
 titan-locator: $(BUILD_DEPS)
 	rm -f titan-locator
@@ -57,7 +62,7 @@ api-gen:
 	goimports -w api
 .PHONY: api-gen
 
-build: titan-scheduler titan-candidate titan-edge titan-locator
+build: titan-scheduler titan-candidate titan-edge titan-edge-arm titan-locator
 .PHONY: build
 
 edge-image:
