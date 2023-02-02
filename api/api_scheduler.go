@@ -164,6 +164,7 @@ type NodeBlockDownloadResult struct {
 	// ClientIP      string
 	Result       bool
 	FailedReason string
+	BlockCID     string
 }
 
 type DownloadServerAccessAuth struct {

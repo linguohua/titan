@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/handler"
+	"github.com/linguohua/titan/node/helper"
 	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
@@ -16,7 +18,7 @@ import (
 
 // NodeDownloadBlockResult node result for user download block
 func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result api.NodeBlockDownloadResult) error {
-	// deviceID := handler.GetDeviceID(ctx)
+	deviceID := handler.GetDeviceID(ctx)
 
 	// if !deviceExists(deviceID, 0) {
 	// 	return xerrors.Errorf("node not Exist: %s", deviceID)
@@ -40,6 +42,31 @@ func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result a
 	// }
 
 	// s.recordDownloadBlock(record, &result, deviceID, "")
+
+	if result.Result {
+		err := incrDeviceReward(deviceID, 1)
+		if err != nil {
+			return err
+		}
+
+		blockHash, err := helper.CIDString2HashString(result.BlockCID)
+		if err != nil {
+			return err
+		}
+
+		blockDwnloadInfo := &api.BlockDownloadInfo{DeviceID: deviceID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
+
+		carfileInfo, _ := persistent.GetDB().GetCarfileInfo(blockHash)
+		if carfileInfo != nil && carfileInfo.CarfileCid != "" {
+			blockDwnloadInfo.CarfileCID = result.BlockCID
+		}
+
+		err = cache.GetDB().NodeDownloadCount(deviceID, blockDwnloadInfo)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
