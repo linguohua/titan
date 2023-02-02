@@ -51,11 +51,11 @@ func NewBlockDownload(limiter *rate.Limiter, params *helper.NodeParams, device *
 	return blockDownload
 }
 
-func (bd *BlockDownload) resultFailed(w http.ResponseWriter, r *http.Request, sn int64, sign []byte, err error) {
+func (bd *BlockDownload) resultFailed(w http.ResponseWriter, r *http.Request, sn int64, sign []byte, cidStr string, err error) {
 	log.Errorf("result failed:%s", err.Error())
 
 	if sign != nil {
-		result := api.NodeBlockDownloadResult{SN: sn, Sign: sign, DownloadSpeed: 0, BlockSize: 0, Result: false, FailedReason: err.Error()}
+		result := api.NodeBlockDownloadResult{SN: sn, Sign: sign, DownloadSpeed: 0, BlockSize: 0, Result: false, FailedReason: err.Error(), BlockCID: cidStr}
 		go bd.downloadBlockResult(result)
 	}
 
@@ -80,38 +80,38 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 
 	sn, err := strconv.ParseInt(snStr, 10, 64)
 	if err != nil {
-		bd.resultFailed(w, r, 0, nil, fmt.Errorf("Parser param sn(%s) error:%s", snStr, err.Error()))
+		bd.resultFailed(w, r, 0, nil, cidStr, fmt.Errorf("Parser param sn(%s) error:%s", snStr, err.Error()))
 		return
 	}
 
 	sign, err := hex.DecodeString(signStr)
 	if err != nil {
-		bd.resultFailed(w, r, 0, nil, fmt.Errorf("DecodeString sign(%s) error:%s", signStr, err.Error()))
+		bd.resultFailed(w, r, 0, nil, cidStr, fmt.Errorf("DecodeString sign(%s) error:%s", signStr, err.Error()))
 		return
 	}
 
 	deviceID, _ := bd.device.DeviceID(context.Background())
 	if bd.publicKey == nil {
-		bd.resultFailed(w, r, sn, sign, fmt.Errorf("node %s publicKey == nil", deviceID))
+		bd.resultFailed(w, r, sn, sign, cidStr, fmt.Errorf("node %s publicKey == nil", deviceID))
 		return
 	}
 
 	content := deviceID + snStr + signTime + timeout
 	err = titanRsa.VerifyRsaSign(bd.publicKey, sign, content)
 	if err != nil {
-		bd.resultFailed(w, r, sn, sign, fmt.Errorf("Verify sign cid:%s,sn:%s,signTime:%s, timeout:%s, error:%s,", cidStr, snStr, signTime, timeout, err.Error()))
+		bd.resultFailed(w, r, sn, sign, cidStr, fmt.Errorf("Verify sign cid:%s,sn:%s,signTime:%s, timeout:%s, error:%s,", cidStr, snStr, signTime, timeout, err.Error()))
 		return
 	}
 
 	blockHash, err := helper.CIDString2HashString(cidStr)
 	if err != nil {
-		bd.resultFailed(w, r, sn, sign, fmt.Errorf("Parser param cid(%s) error:%s", cidStr, err.Error()))
+		bd.resultFailed(w, r, sn, sign, cidStr, fmt.Errorf("Parser param cid(%s) error:%s", cidStr, err.Error()))
 		return
 	}
 
 	reader, err := bd.carfileStore.GetBlockReader(blockHash)
 	if err != nil {
-		bd.resultFailed(w, r, sn, sign, err)
+		bd.resultFailed(w, r, sn, sign, cidStr, err)
 		return
 	}
 	defer reader.Close()
@@ -137,7 +137,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		speedRate = int64(float64(n) / float64(costTime) * float64(time.Second))
 	}
 
-	result := api.NodeBlockDownloadResult{SN: sn, Sign: sign, DownloadSpeed: speedRate, BlockSize: int(n), Result: true}
+	result := api.NodeBlockDownloadResult{SN: sn, Sign: sign, DownloadSpeed: speedRate, BlockSize: int(n), Result: true, BlockCID: cidStr}
 	go bd.downloadBlockResult(result)
 
 	log.Infof("Download block %s costTime %d, size %d, speed %d", cidStr, costTime, n, speedRate)
