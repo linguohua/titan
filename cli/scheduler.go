@@ -21,16 +21,16 @@ import (
 // SchedulerCmds Scheduler Cmds
 var SchedulerCmds = []*cli.Command{
 	// cache
-	listDataCmd,
+	listCarfilesCmd,
 	cacheCarfileCmd,
-	showDataInfoCmd,
+	showCarfileInfoCmd,
 	removeCarfileCmd,
 	removeCacheCmd,
-	showDatasInfoCmd,
-	resetCacheExpiredTimeCmd,
-	replenishCacheExpiredTimeCmd,
+	showRunningCarfilesCmd,
+	resetCarfileExpiredTimeCmd,
+	replenishCarfileExpiredTimeCmd,
 	nodeQuitCmd,
-	stopCacheCmd,
+	stopCarfileCmd,
 	resetBackupCacheCountCmd,
 	// validate
 	electionCmd,
@@ -59,7 +59,7 @@ var (
 
 	deviceIDFlag = &cli.StringFlag{
 		Name:  "device-id",
-		Usage: "node id",
+		Usage: "device id",
 		Value: "",
 	}
 
@@ -258,9 +258,9 @@ var nodeQuitCmd = &cli.Command{
 	},
 }
 
-var resetCacheExpiredTimeCmd = &cli.Command{
-	Name:  "reset-cache-expired",
-	Usage: "reset cache expired time",
+var resetCarfileExpiredTimeCmd = &cli.Command{
+	Name:  "reset-carfile-expired",
+	Usage: "reset carfile expired time",
 	Flags: []cli.Flag{
 		cidFlag,
 		dateFlag,
@@ -295,9 +295,9 @@ var resetCacheExpiredTimeCmd = &cli.Command{
 	},
 }
 
-var replenishCacheExpiredTimeCmd = &cli.Command{
-	Name:  "replenish-cache-expired",
-	Usage: "replenish cache expired time",
+var replenishCarfileExpiredTimeCmd = &cli.Command{
+	Name:  "replenish-carfile-expired",
+	Usage: "replenish carfile expired time",
 	Flags: []cli.Flag{
 		cidFlag,
 		expiredTimeFlag,
@@ -331,9 +331,9 @@ var replenishCacheExpiredTimeCmd = &cli.Command{
 	},
 }
 
-var stopCacheCmd = &cli.Command{
-	Name:  "stop-cache",
-	Usage: "stop cache task",
+var stopCarfileCmd = &cli.Command{
+	Name:  "stop-carfile",
+	Usage: "stop carfile task",
 	Flags: []cli.Flag{
 		cidFlag,
 	},
@@ -540,9 +540,9 @@ var electionCmd = &cli.Command{
 	},
 }
 
-var listDataCmd = &cli.Command{
-	Name:  "list-data",
-	Usage: "list data",
+var listCarfilesCmd = &cli.Command{
+	Name:  "list-carfile",
+	Usage: "list carfile",
 	Flags: []cli.Flag{
 		pageFlag,
 	},
@@ -646,9 +646,9 @@ var validateSwitchCmd = &cli.Command{
 	},
 }
 
-var showDatasInfoCmd = &cli.Command{
-	Name:  "show-running-datas",
-	Usage: "show data",
+var showRunningCarfilesCmd = &cli.Command{
+	Name:  "show-running-carfiles",
+	Usage: "show running carfiles",
 	Flags: []cli.Flag{
 		// schedulerURLFlag,
 		// cidFlag,
@@ -696,9 +696,9 @@ var showDatasInfoCmd = &cli.Command{
 	},
 }
 
-var showDataInfoCmd = &cli.Command{
-	Name:  "show-data",
-	Usage: "show data",
+var showCarfileInfoCmd = &cli.Command{
+	Name:  "show-carfile",
+	Usage: "show carfile",
 	Flags: []cli.Flag{
 		// schedulerURLFlag,
 		cidFlag,
@@ -749,7 +749,7 @@ func statusToStr(s api.CacheStatus) string {
 }
 
 var cacheCarfileCmd = &cli.Command{
-	Name:  "cache-file",
+	Name:  "cache-carfile",
 	Usage: "specify node cache carfile",
 	Flags: []cli.Flag{
 		// schedulerURLFlag,
@@ -908,7 +908,7 @@ var showOnlineNodeCmd = &cli.Command{
 
 var cachingCarfilesCmd = &cli.Command{
 	Name:  "caching-carfiles",
-	Usage: "show caching blocks from node",
+	Usage: "show caching carfile from node",
 	Flags: []cli.Flag{
 		// schedulerURLFlag,
 		deviceIDFlag,
