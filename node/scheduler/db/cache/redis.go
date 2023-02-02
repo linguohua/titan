@@ -327,6 +327,10 @@ func (rd redisDB) updateDeviceInfos(info *api.DevicesInfo) error {
 	m := make(map[string]interface{})
 	m["DiskSpace"] = info.DiskSpace
 	m["DiskUsage"] = info.DiskUsage
+	m["ExternalIp"] = info.ExternalIp
+	m["InternalIp"] = info.InternalIp
+	m["CpuUsage"] = info.CpuUsage
+	m["SystemVersion"] = info.SystemVersion
 	m["Longitude"] = info.Longitude
 	m["Latitude"] = info.Latitude
 

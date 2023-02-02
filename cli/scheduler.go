@@ -166,15 +166,15 @@ var showNodeInfoCmd = &cli.Command{
 		fmt.Printf("device external_ip: %s \n", info.ExternalIp)
 		fmt.Printf("device internal_ip: %s \n", info.InternalIp)
 		fmt.Printf("device system version: %s \n", info.SystemVersion)
-		fmt.Printf("device disk usage: %.2f \n", info.DiskUsage)
+		fmt.Printf("device disk usage: %.2f %s\n", info.DiskUsage, "%")
 		fmt.Printf("device disk space: %.2f GB \n", info.DiskSpace/1024/1024/1024)
 		fmt.Printf("device fstype: %s \n", info.IoSystem)
 		fmt.Printf("device mac: %s \n", info.MacLocation)
 		fmt.Printf("device download bandwidth: %.2f GB \n", info.BandwidthDown/1024/1024/1024)
 		fmt.Printf("device upload bandwidth: %.2f GB \n", info.BandwidthUp/1024/1024/1024)
-		fmt.Printf("device cpu percent: %f \n", info.CpuUsage)
+		fmt.Printf("device cpu percent: %.2f %s \n", info.CpuUsage, "%")
 		//
-		// fmt.Printf("device DownloadCount: %d \n", info.DownloadCount)
+		fmt.Printf("device DownloadCount: %d \n", info.DownloadCount)
 
 		return nil
 	},
