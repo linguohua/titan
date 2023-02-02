@@ -62,7 +62,7 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.Remo
 // ResetCacheExpiredTime reset expired time with data cache
 func (s *Scheduler) ResetCacheExpiredTime(ctx context.Context, carfileCid string, expiredTime time.Time) error {
 	if time.Now().After(expiredTime) {
-		return xerrors.Errorf("now is after the expiredTime:%s", expiredTime.String())
+		return xerrors.Errorf("expiredTime:%s has passed", expiredTime.String())
 	}
 
 	return s.dataManager.ResetCacheExpiredTime(carfileCid, expiredTime)
@@ -71,7 +71,7 @@ func (s *Scheduler) ResetCacheExpiredTime(ctx context.Context, carfileCid string
 // ReplenishCacheExpiredTime replenish expired time with data cache
 func (s *Scheduler) ReplenishCacheExpiredTime(ctx context.Context, carfileCid string, hour int) error {
 	if hour <= 0 {
-		return xerrors.Errorf("hour is :%d", hour)
+		return xerrors.Errorf("hour is :%d <= 0", hour)
 	}
 
 	return s.dataManager.ReplenishCacheExpiredTime(carfileCid, hour)
@@ -82,8 +82,8 @@ func (s *Scheduler) StopCacheTask(ctx context.Context, carfileCid string) error 
 	return s.dataManager.StopCacheTask(carfileCid, "")
 }
 
-// ShowRunningCarfileRecords Show Data Tasks
-func (s *Scheduler) ShowRunningCarfileRecords(ctx context.Context) ([]api.CarfileRecordInfo, error) {
+// GetRunningCarfileRecords Show Data Tasks
+func (s *Scheduler) GetRunningCarfileRecords(ctx context.Context) ([]api.CarfileRecordInfo, error) {
 	infos := make([]api.CarfileRecordInfo, 0)
 
 	log.Debug("running count:", s.dataManager.RunningTaskCount)
