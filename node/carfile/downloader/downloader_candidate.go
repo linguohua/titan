@@ -32,12 +32,16 @@ func (candidate *candidate) DownloadBlocks(cids []string, downloadSource []*api.
 	return getBlocksFromCandidate(cids, downloadSource)
 }
 
-func getBlockFromCandidateWithApi(candidate api.Candidate, cidStr string) (blocks.Block, error) {
+func getBlockFromCandidateWithApi(candidate api.Candidate, cidStr string, retryCount int) (blocks.Block, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), helper.BlockDownloadTimeout*time.Second)
 	defer cancel()
 
 	data, err := candidate.LoadBlock(ctx, cidStr)
 	if err != nil {
+		if retryCount < helper.BlockDownloadRetryNum {
+			retryCount++
+			return getBlockFromCandidateWithApi(candidate, cidStr, retryCount)
+		}
 		return nil, err
 	}
 
@@ -68,7 +72,7 @@ func getBlocksFromCandidate(cids []string, sources []*api.DowloadSource) ([]bloc
 		go func() {
 			defer wg.Done()
 
-			b, err := getBlockFromCandidateWithApi(candidate, cidStr)
+			b, err := getBlockFromCandidateWithApi(candidate, cidStr, 0)
 			if err != nil {
 				log.Errorf("getBlocksFromCandidateWithApi error:%s", err.Error())
 				return

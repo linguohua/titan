@@ -34,7 +34,7 @@ func (ipfs *ipfs) DownloadBlocks(cids []string, sources []*api.DowloadSource) ([
 	return ipfs.getBlocksFromIPFS(cids)
 }
 
-func (ipfs *ipfs) getBlockWithIPFSApi(cidStr string) (blocks.Block, error) {
+func (ipfs *ipfs) getBlockWithIPFSApi(cidStr string, retryCount int) (blocks.Block, error) {
 	blockHash, err := helper.CIDString2HashString(cidStr)
 	if err != nil {
 		return nil, err
@@ -50,6 +50,10 @@ func (ipfs *ipfs) getBlockWithIPFSApi(cidStr string) (blocks.Block, error) {
 
 	reader, err := ipfs.ipfsApi.Block().Get(ctx, path.New(cidStr))
 	if err != nil {
+		if retryCount < helper.BlockDownloadRetryNum {
+			retryCount++
+			return ipfs.getBlockWithIPFSApi(cidStr, retryCount)
+		}
 		return nil, err
 	}
 
@@ -74,7 +78,7 @@ func (ipfs *ipfs) getBlocksFromIPFS(cids []string) ([]blocks.Block, error) {
 
 		go func() {
 			defer wg.Done()
-			b, err := ipfs.getBlockWithIPFSApi(cidStr)
+			b, err := ipfs.getBlockWithIPFSApi(cidStr, 0)
 			if err != nil {
 				log.Errorf("getBlockWithWaitGroup error:%s", err.Error())
 				return
