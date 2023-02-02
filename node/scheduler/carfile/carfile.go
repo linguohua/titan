@@ -270,22 +270,22 @@ func (d *CarfileRecord) cacheDone(endCache *CacheTask, cachesDone bool) (err err
 		return
 	}
 
+	// Carfile caches end
+	dInfo := &api.CarfileRecordInfo{
+		CarfileHash:     d.carfileHash,
+		TotalSize:       d.totalSize,
+		TotalBlocks:     d.totalBlocks,
+		Reliability:     d.reliability,
+		NeedReliability: d.needReliability,
+		ExpiredTime:     d.expiredTime,
+	}
+	err = persistent.GetDB().UpdateCarfileRecordCachesInfo(dInfo)
+	if err != nil {
+		log.Errorf("UpdateCarfileRecordCachesInfo err:%s", err.Error())
+	}
+
 	defer func() {
 		if err != nil {
-			// Carfile caches end
-			dInfo := &api.CarfileRecordInfo{
-				CarfileHash:     d.carfileHash,
-				TotalSize:       d.totalSize,
-				TotalBlocks:     d.totalBlocks,
-				Reliability:     d.reliability,
-				NeedReliability: d.needReliability,
-				ExpiredTime:     d.expiredTime,
-			}
-			err2 := persistent.GetDB().UpdateCarfileRecordCachesInfo(dInfo)
-			if err2 != nil {
-				log.Errorf("UpdateCarfileRecordCachesInfo err:%s", err2.Error())
-			}
-
 			d.carfileManager.carfileCacheEnd(d, err)
 		}
 	}()
