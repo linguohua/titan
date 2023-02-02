@@ -526,7 +526,7 @@ var listDataCmd = &cli.Command{
 		}
 
 		for _, info := range info.CarfileRecords {
-			fmt.Printf("%s ,Reliabilit: %d/%d , Blocks:%d , Expired Time:%s\n", info.CarfileCid, info.Reliability, info.NeedReliability, info.TotalBlocks, info.ExpiredTime.Format("2006-01-02 15:04:05"))
+			fmt.Printf("%s ,Reliabilit: %d/%d ,Blocks:%d ,Expired Time:%s\n", info.CarfileCid, info.Reliability, info.NeedReliability, info.TotalBlocks, info.ExpiredTime.Format("2006-01-02 15:04:05"))
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
 
@@ -624,7 +624,7 @@ var showDatasInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		infos, err := schedulerAPI.ShowRunningCarfileRecords(ctx)
+		infos, err := schedulerAPI.GetRunningCarfileRecords(ctx)
 		if err != nil {
 			return err
 		}
@@ -636,7 +636,7 @@ var showDatasInfoCmd = &cli.Command{
 		for w := 0; w < len(infos); w++ {
 			info := infos[w]
 
-			fmt.Printf("\nData CID:%s , Total Size:%f MB , Total Blocks:%d \n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks)
+			fmt.Printf("\nData CID: %s ,Total Size:%f MB ,Total Blocks:%d \n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks)
 
 			sort.Slice(info.CacheInfos, func(i, j int) bool {
 				return info.CacheInfos[i].DeviceID < info.CacheInfos[j].DeviceID
@@ -644,7 +644,7 @@ var showDatasInfoCmd = &cli.Command{
 
 			for j := 0; j < len(info.CacheInfos); j++ {
 				cache := info.CacheInfos[j]
-				fmt.Printf("DeviceID:%s ,  Status:%s , Done Size:%f MB , Done Blocks:%d , IsRootCache:%v \n",
+				fmt.Printf("DeviceID: %s , Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsRootCache:%v \n",
 					cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.CandidateCache)
 			}
 		}
@@ -680,9 +680,9 @@ var showDataInfoCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("Data CID:%s , Total Size:%f MB , Total Blocks:%d ,Expired Time:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.ExpiredTime.Format("2006-01-02 15:04:05"))
+		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,Expired Time:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.ExpiredTime.Format("2006-01-02 15:04:05"))
 		for _, cache := range info.CacheInfos {
-			fmt.Printf("DeviceID:%s ,  Status:%s , Done Size:%f MB ,Done Blocks:%d , IsRootCache:%v \n",
+			fmt.Printf("DeviceID: %s ,Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsRootCache:%v \n",
 				cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.CandidateCache)
 		}
 

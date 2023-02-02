@@ -17,6 +17,7 @@ type webDB interface {
 	SetNodeConnectionLog(deviceID string, status api.NodeConnectionStatus) error
 	GetNodeConnectionLogs(deviceID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.NodeConnectionLog, int64, error)
 	GetValidateResults(cursor int, count int) ([]api.WebValidateResult, int64, error)
+	GetCacheInfos(startTime time.Time, endTime time.Time, cursor, count int) (*api.ListCacheInfosRsp, error)
 }
 
 func (sd sqlDB) GetNodes(cursor int, count int) ([]*NodeInfo, int64, error) {
@@ -62,6 +63,30 @@ func (sd sqlDB) GetBlockDownloadInfos(deviceID string, startTime time.Time, endT
 	}
 
 	return out, total, nil
+}
+
+func (sd sqlDB) GetCacheInfos(startTime time.Time, endTime time.Time, cursor, count int) (*api.ListCacheInfosRsp, error) {
+	cacheTable := fmt.Sprintf(cacheInfoTable, sd.replaceArea())
+
+	var total int64
+	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE and end_time between ? and ?`, cacheTable)
+	if err := sd.cli.Get(&total, countSQL, startTime, endTime); err != nil {
+		return nil, err
+	}
+
+	if count > maxCount {
+		count = maxCount
+	}
+
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE end_time between ? and ? limit ?,?`,
+		cacheTable)
+
+	var out []*api.CacheTaskInfo
+	if err := sd.cli.Select(&out, query, startTime, endTime, cursor, count); err != nil {
+		return nil, err
+	}
+
+	return &api.ListCacheInfosRsp{Datas: out, Total: total}, nil
 }
 
 func (sd sqlDB) SetNodeConnectionLog(deviceID string, status api.NodeConnectionStatus) error {

@@ -22,7 +22,7 @@ type Scheduler interface {
 	RemoveCache(ctx context.Context, carfileID, deviceID string) error                                 //perm:admin
 	GetCarfileRecord(ctx context.Context, cid string) (CarfileRecordInfo, error)                       //perm:read
 	ListCarfileRecords(ctx context.Context, page int) (*DataListInfo, error)                           //perm:read
-	ShowRunningCarfileRecords(ctx context.Context) ([]CarfileRecordInfo, error)                        //perm:read
+	GetRunningCarfileRecords(ctx context.Context) ([]CarfileRecordInfo, error)                         //perm:read
 	RegisterNode(ctx context.Context, nodeType NodeType, count int) ([]NodeRegisterInfo, error)        //perm:admin
 	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) //perm:admin
 	ValidateSwitch(ctx context.Context, open bool) error                                               //perm:admin

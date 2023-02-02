@@ -67,7 +67,7 @@ func (ds *DataSync) Add2List(syncApi api.DataSync, nodeID string) {
 
 	for _, node := range ds.nodeList {
 		if node.nodeID == nodeID {
-			log.Warnf("add2List node %s aready in wait list", nodeID)
+			// log.Warnf("add2List node %s aready in wait list", nodeID)
 			return
 		}
 	}
