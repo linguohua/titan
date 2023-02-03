@@ -61,9 +61,9 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 	carfileRecord.carfileHash = dInfo.CarfileHash
 	carfileRecord.dowloadSources = make([]*api.DowloadSource, 0)
 
-	caches, err := persistent.GetDB().GetCacheTaskInfos(hash, false)
+	caches, err := persistent.GetDB().GetCacheTaskInfosWithHash(hash, false)
 	if err != nil {
-		log.Errorf("loadData hash:%s, GetCacheTaskInfos err:%s", hash, err.Error())
+		log.Errorf("loadData hash:%s, GetCacheTaskInfosWithHash err:%s", hash, err.Error())
 		return carfileRecord, err
 	}
 

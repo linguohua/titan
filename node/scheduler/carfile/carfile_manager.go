@@ -213,9 +213,9 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 		return xerrors.Errorf("carfileRecord %s is running, please wait", carfileCid)
 	}
 
-	cInfos, err := persistent.GetDB().GetCacheTaskInfos(hash, false)
+	cInfos, err := persistent.GetDB().GetCacheTaskInfosWithHash(hash, false)
 	if err != nil {
-		return xerrors.Errorf("GetCacheTaskInfos: %s,err:%s", carfileCid, err.Error())
+		return xerrors.Errorf("GetCacheTaskInfosWithHash: %s,err:%s", carfileCid, err.Error())
 	}
 
 	err = persistent.GetDB().RemoveCarfileRecord(hash)
