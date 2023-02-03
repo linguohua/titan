@@ -1124,8 +1124,8 @@ var setNodeAppUpdateInfoCmd = &cli.Command{
 			return err
 		}
 
-		updateInfo := &api.NodeAppUpdateInfo{AppName: appName, Version: version, Hash: hash, DownloadURL: downloadURL}
-		err = schedulerAPI.SetNodeAppUpdateInfo(ctx, api.NodeType(nodeType), updateInfo)
+		updateInfo := &api.NodeAppUpdateInfo{AppName: appName, NodeType: nodeType, Version: version, Hash: hash, DownloadURL: downloadURL}
+		err = schedulerAPI.SetNodeAppUpdateInfo(ctx, updateInfo)
 		if err != nil {
 			return err
 		}

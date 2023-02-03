@@ -76,6 +76,9 @@ type DB interface {
 	SetEventInfo(info *api.EventInfo) error
 	GetEventInfos(page int) (info *api.EventListInfo, err error)
 
+	SetNodeUpdateInfo(info *api.NodeAppUpdateInfo) error
+	GetNodeUpdateInfos() (map[int]*api.NodeAppUpdateInfo, error)
+
 	// web
 	webDB
 }

@@ -87,7 +87,8 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Sche
 	s.validate = validate.NewValidate(nodeManager, false)
 	s.dataManager = carfile.NewCarfileManager(nodeManager, s.authToken)
 	s.dataSync = sync.NewDataSync()
-	s.nodeAppUpdateInfos = make(map[int]*api.NodeAppUpdateInfo)
+
+	s.nodeAppUpdateInfos, _ = persistent.GetDB().GetNodeUpdateInfos()
 
 	return s
 }

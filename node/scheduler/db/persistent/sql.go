@@ -29,6 +29,7 @@ var (
 	carfileInfoTable  = "carfiles_%s"
 	cacheInfoTable    = "caches_%s"
 	blockDownloadInfo = "block_download_info_%s"
+	nodeUpdateInfo    = "node_update_info"
 )
 
 // InitSQL init sql
@@ -802,6 +803,28 @@ func (sd sqlDB) GetEventInfos(page int) (info *api.EventListInfo, err error) {
 	}
 
 	return
+}
+
+func (sd sqlDB) SetNodeUpdateInfo(info *api.NodeAppUpdateInfo) error {
+	// devInfo := &deviceInfo{DeviceID: deviceID, SchedulerURL: schedulerURL, AreaID: areaID, Online: online}
+	sqlString := fmt.Sprintf(`INSERT INTO %s (node_type, app_name, version, hash, download_url) VALUES (:node_type, :app_name, :version, :hash, :download_url) ON DUPLICATE KEY UPDATE app_name=:app_name, version=:version, hash=:hash, download_url=:download_url`, nodeUpdateInfo)
+	_, err := sd.cli.NamedExec(sqlString, info)
+	return err
+}
+
+func (sd sqlDB) GetNodeUpdateInfos() (map[int]*api.NodeAppUpdateInfo, error) {
+	query := fmt.Sprintf(`SELECT * FROM %s`, nodeUpdateInfo)
+
+	var out []*api.NodeAppUpdateInfo
+	if err := sd.cli.Select(&out, query); err != nil {
+		return nil, err
+	}
+
+	ret := make(map[int]*api.NodeAppUpdateInfo)
+	for _, info := range out {
+		ret[info.NodeType] = info
+	}
+	return ret, nil
 }
 
 // IsNilErr Is NilErr

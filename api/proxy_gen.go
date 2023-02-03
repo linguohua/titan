@@ -271,7 +271,7 @@ type SchedulerStruct struct {
 
 		ResetCacheExpiredTime func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
 
-		SetNodeAppUpdateInfo func(p0 context.Context, p1 NodeType, p2 *NodeAppUpdateInfo) error `perm:"admin"`
+		SetNodeAppUpdateInfo func(p0 context.Context, p1 *NodeAppUpdateInfo) error `perm:"admin"`
 
 		StopCacheTask func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -1142,14 +1142,14 @@ func (s *SchedulerStub) ResetCacheExpiredTime(p0 context.Context, p1 string, p2 
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) SetNodeAppUpdateInfo(p0 context.Context, p1 NodeType, p2 *NodeAppUpdateInfo) error {
+func (s *SchedulerStruct) SetNodeAppUpdateInfo(p0 context.Context, p1 *NodeAppUpdateInfo) error {
 	if s.Internal.SetNodeAppUpdateInfo == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.SetNodeAppUpdateInfo(p0, p1, p2)
+	return s.Internal.SetNodeAppUpdateInfo(p0, p1)
 }
 
-func (s *SchedulerStub) SetNodeAppUpdateInfo(p0 context.Context, p1 NodeType, p2 *NodeAppUpdateInfo) error {
+func (s *SchedulerStub) SetNodeAppUpdateInfo(p0 context.Context, p1 *NodeAppUpdateInfo) error {
 	return ErrNotSupported
 }
 
