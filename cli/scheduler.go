@@ -32,6 +32,7 @@ var SchedulerCmds = []*cli.Command{
 	nodeQuitCmd,
 	stopCarfileCmd,
 	resetBackupCacheCountCmd,
+	listUndoneCarfilesCmd,
 	// validate
 	electionCmd,
 	validateCmd,
@@ -542,6 +543,43 @@ var electionCmd = &cli.Command{
 	},
 }
 
+var listUndoneCarfilesCmd = &cli.Command{
+	Name:  "list-undone-carfiles",
+	Usage: "list undone carfiles",
+	Flags: []cli.Flag{
+		pageFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		page := cctx.Int("page")
+		if page < 1 {
+			return xerrors.New("page need greater than 1")
+		}
+
+		info, err := schedulerAPI.GetUndoneCarfileRecords(ctx, page)
+		if err != nil {
+			return err
+		}
+
+		for _, carfile := range info.CarfileRecords {
+			fmt.Printf("%s ,Reliabilit: %d/%d ,Blocks:%d ,Expired Time:%s \n", carfile.CarfileCid, carfile.Reliability, carfile.NeedReliability, carfile.TotalBlocks, carfile.ExpiredTime.Format("2006-01-02 15:04:05"))
+		}
+		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
+
+		return nil
+	},
+}
+
 var listCarfilesCmd = &cli.Command{
 	Name:  "list-carfile",
 	Usage: "list carfile",
@@ -570,8 +608,8 @@ var listCarfilesCmd = &cli.Command{
 			return err
 		}
 
-		for _, info := range info.CarfileRecords {
-			fmt.Printf("%s ,Reliabilit: %d/%d ,Blocks:%d ,Expired Time:%s\n", info.CarfileCid, info.Reliability, info.NeedReliability, info.TotalBlocks, info.ExpiredTime.Format("2006-01-02 15:04:05"))
+		for _, carfile := range info.CarfileRecords {
+			fmt.Printf("%s ,Reliabilit: %d/%d ,Blocks:%d ,Expired Time:%s \n", carfile.CarfileCid, carfile.Reliability, carfile.NeedReliability, carfile.TotalBlocks, carfile.ExpiredTime.Format("2006-01-02 15:04:05"))
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
 

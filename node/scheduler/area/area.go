@@ -43,7 +43,7 @@ func GetGeoInfoWithIP(ip string) (*region.GeoInfo, bool) {
 		return geoInfo, true
 	}
 
-	return nil, false
+	return geoInfo, false
 }
 
 func isLocalIP(ipStr string) bool {

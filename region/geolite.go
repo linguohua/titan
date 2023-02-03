@@ -35,13 +35,14 @@ type geoLite struct {
 
 func (g geoLite) DefaultGeoInfo(ip string) *GeoInfo {
 	return &GeoInfo{
-		City:      unknown,
-		Country:   unknown,
-		Province:  unknown,
+		// City:      defaultCity,
+		// Country:   defaultCountry,
+		// Province:  defaultProvince,
 		Latitude:  0,
 		Longitude: 0,
 		IP:        ip,
-		Geo:       fmt.Sprintf("%s%s%s%s%s", unknown, separate, unknown, separate, unknown),
+		Geo:       defaultArea,
+		// Geo:       fmt.Sprintf("%s%s%s%s%s", defaultCity, separate, defaultCountry, separate, defaultProvince),
 	}
 }
 
@@ -66,21 +67,23 @@ func (g geoLite) GetGeoInfo(ip string) (*GeoInfo, error) {
 	if record.Country.IsoCode == "" {
 		return geoInfo, err
 	}
-	geoInfo.Country = record.Country.IsoCode
+	country := record.Country.IsoCode
+	city := unknown
+	province := unknown
 	// geoInfo.IsoCode = record.Country.IsoCode
 
 	if record.City.Names["en"] != "" {
-		geoInfo.City = record.City.Names["en"]
+		city = record.City.Names["en"]
 	}
 
 	if len(record.Subdivisions) > 0 {
-		geoInfo.Province = record.Subdivisions[0].IsoCode
+		province = record.Subdivisions[0].IsoCode
 	}
 
 	geoInfo.Latitude = record.Location.Latitude
 	geoInfo.Longitude = record.Location.Longitude
 
-	geoInfo.Geo = fmt.Sprintf("%s%s%s%s%s", geoInfo.Country, separate, geoInfo.Province, separate, geoInfo.City)
+	geoInfo.Geo = fmt.Sprintf("%s%s%s%s%s", country, separate, province, separate, city)
 
 	return geoInfo, nil
 }
