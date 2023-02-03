@@ -230,3 +230,15 @@ type NodeAppUpdateInfo struct {
 	Hash        string  `db:"hash"`
 	DownloadURL string  `db:"download_url"`
 }
+
+// NodeCacheState node cache state
+type NodeCacheState struct {
+	CarfileHash string      `db:"carfile_hash"`
+	Status      CacheStatus `db:"status"`
+}
+
+// NodeCacheRsp node caches
+type NodeCacheRsp struct {
+	Caches     []*NodeCacheState
+	TotalCount int
+}
