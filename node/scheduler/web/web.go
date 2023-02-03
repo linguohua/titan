@@ -102,7 +102,7 @@ func (w *web) GetCacheTaskInfos(ctx context.Context, req api.ListCacheInfosReq) 
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
-	info, err := persistent.GetDB().GetCacheInfos(startTime, endTime, req.Cursor, req.Count)
+	info, err := persistent.GetDB().GetCacheTaskInfos(startTime, endTime, req.Cursor, req.Count)
 	if err != nil {
 		return api.ListCacheInfosRsp{}, err
 	}

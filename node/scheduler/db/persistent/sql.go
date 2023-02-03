@@ -363,7 +363,7 @@ func (sd sqlDB) GetCachesWithCandidate(hash string) ([]string, error) {
 	return out, nil
 }
 
-func (sd sqlDB) GetCacheTaskInfos(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error) {
+func (sd sqlDB) GetCacheTaskInfosWithHash(hash string, isSuccess bool) ([]*api.CacheTaskInfo, error) {
 	area := sd.replaceArea()
 
 	var out []*api.CacheTaskInfo

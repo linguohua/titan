@@ -881,7 +881,7 @@ func publicKey2Pem(publicKey *rsa.PublicKey) string {
 }
 
 var showOnlineNodeCmd = &cli.Command{
-	Name:  "show-nodes",
+	Name:  "show-online-nodes",
 	Usage: "show all online node",
 	Flags: []cli.Flag{
 		// schedulerURLFlag,
@@ -902,7 +902,10 @@ var showOnlineNodeCmd = &cli.Command{
 
 		nodes, err := schedulerAPI.GetOnlineDeviceIDs(ctx, api.TypeNameAll)
 
-		fmt.Printf("Online nodes:%v", nodes)
+		fmt.Println("Online nodes count:", len(nodes))
+		for _, node := range nodes {
+			fmt.Println(node)
+		}
 
 		return err
 	},
