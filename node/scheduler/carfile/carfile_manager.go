@@ -417,7 +417,7 @@ func (m *Manager) NodesQuit(deviceIDs []string) {
 		// TODO notify node remove all carfile
 		// node := m.nodeManager.GetNode(deviceID)
 		// if node != nil {
-		// 	node.BlockCount = 0
+		// 	node.api
 		// }
 	}
 

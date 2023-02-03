@@ -23,7 +23,6 @@ import (
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/handler"
 	titanRsa "github.com/linguohua/titan/node/rsa"
-	"github.com/linguohua/titan/node/scheduler/area"
 	"github.com/linguohua/titan/node/scheduler/node"
 
 	// "github.com/linguohua/titan/node/device"
@@ -61,7 +60,7 @@ const (
 )
 
 // NewLocalScheduleNode NewLocalScheduleNode
-func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Scheduler {
+func NewLocalScheduleNode(lr repo.LockedRepo, port int) api.Scheduler {
 	s := &Scheduler{}
 
 	nodeManager := node.NewNodeManager(s.nodeOfflineCallback, s.nodeExitedCallback)
@@ -74,7 +73,7 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int, areaStr string) api.Sche
 	}
 	s.APISecret = sec
 
-	area.InitServerArea(areaStr)
+	// area.InitServerArea(areaStr)
 
 	err = s.authNew()
 	if err != nil {
@@ -541,9 +540,9 @@ func (s *Scheduler) ValidateStart(ctx context.Context) error {
 
 // LocatorConnect Locator Connect
 func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locatorID string, locatorToken string) error {
-	if !area.IsExist(areaID) {
-		return xerrors.Errorf("area err:%s", areaID)
-	}
+	// if !area.IsExist(areaID) {
+	// 	return xerrors.Errorf("area err:%s", areaID)
+	// }
 
 	ip := handler.GetRequestIP(ctx)
 	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)

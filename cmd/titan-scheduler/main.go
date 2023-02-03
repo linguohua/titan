@@ -246,7 +246,7 @@ var runCmd = &cli.Command{
 		if err != nil {
 			log.Panic(err.Error())
 		}
-		schedulerAPI := scheduler.NewLocalScheduleNode(lr, port, area)
+		schedulerAPI := scheduler.NewLocalScheduleNode(lr, port)
 
 		srv := &http.Server{
 			Handler: schedulerHandler(schedulerAPI, true),

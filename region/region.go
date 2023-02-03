@@ -14,14 +14,10 @@ var defaultArea = ""
 // Region geo interface
 type Region interface {
 	GetGeoInfo(ip string) (*GeoInfo, error)
-	DefaultGeoInfo(ip string) *GeoInfo
 }
 
 // GeoInfo geo info
 type GeoInfo struct {
-	// City      string
-	// Country   string
-	// Province  string
 	Latitude  float64
 	Longitude float64
 	IP        string
@@ -44,14 +40,20 @@ func NewRegion(dbPath, geoType, area string) error {
 		err = xerrors.New("unknown Region type")
 	}
 
-	// if err != nil {
-	// 	e := fmt.Sprintf("NewRegion err:%v , path:%v", err, dbPath)
-	// 	panic(e)
-	// }
 	return err
 }
 
 // GetRegion Get Region
 func GetRegion() Region {
 	return region
+}
+
+// DefaultGeoInfo get default geo info
+func DefaultGeoInfo(ip string) *GeoInfo {
+	return &GeoInfo{
+		Latitude:  0,
+		Longitude: 0,
+		IP:        ip,
+		Geo:       defaultArea,
+	}
 }
