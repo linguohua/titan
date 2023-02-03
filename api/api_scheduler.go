@@ -52,8 +52,8 @@ type Scheduler interface {
 	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                             //perm:read
 	AuthNodeNew(ctx context.Context, perms []auth.Permission, deviceID, deviceSecret string) ([]byte, error) //perm:read
 
-	GetNodeAppUpdateInfos(ctx context.Context) (map[int]*NodeAppUpdateInfo, error)              //perm:read
-	SetNodeAppUpdateInfo(ctx context.Context, nodeType NodeType, info *NodeAppUpdateInfo) error //perm:admin                                                               //perm:write
+	GetNodeAppUpdateInfos(ctx context.Context) (map[int]*NodeAppUpdateInfo, error) //perm:read
+	SetNodeAppUpdateInfo(ctx context.Context, info *NodeAppUpdateInfo) error       //perm:admin                                                               //perm:write
 
 	// call by user
 	GetDownloadInfosWithCarfile(ctx context.Context, cid, publicKey string) ([]*DownloadInfoResult, error) //perm:read
@@ -224,8 +224,9 @@ type CacheError struct {
 }
 
 type NodeAppUpdateInfo struct {
-	AppName     string
-	Version     Version
-	Hash        string
-	DownloadURL string
+	NodeType    int     `db:"node_type"`
+	AppName     string  `db:"app_name"`
+	Version     Version `db:"version"`
+	Hash        string  `db:"hash"`
+	DownloadURL string  `db:"download_url"`
 }
