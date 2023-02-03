@@ -472,18 +472,6 @@ func (sd sqlDB) GetExpiredCarfiles() ([]*api.CarfileRecordInfo, error) {
 	return out, nil
 }
 
-// func (sd sqlDB) GetUndoneCarfiles() ([]*api.CarfileRecordInfo, error) {
-// 	query := fmt.Sprintf(`SELECT * FROM %s WHERE reliability < need_reliability`,
-// 		fmt.Sprintf(carfileInfoTable, sd.replaceArea()))
-
-// 	var out []*api.CarfileRecordInfo
-// 	if err := sd.cli.Select(&out, query); err != nil {
-// 		return nil, err
-// 	}
-
-// 	return out, nil
-// }
-
 func (sd sqlDB) GetUndoneCarfiles(page int) (info *api.DataListInfo, err error) {
 	area := sd.replaceArea()
 	num := 20
@@ -799,6 +787,25 @@ func (sd sqlDB) GetEventInfos(page int) (info *api.EventListInfo, err error) {
 
 	cmd = fmt.Sprintf("SELECT * FROM %s LIMIT %d,%d", fmt.Sprintf(eventInfoTable, area), (num * (page - 1)), num)
 	if err = sd.cli.Select(&info.EventList, cmd); err != nil {
+		return
+	}
+
+	return
+}
+
+func (sd sqlDB) GetCacheInfosWithNode(deviceID string, index, count int) (info *api.NodeCacheRsp, err error) {
+	area := sd.replaceArea()
+
+	info = &api.NodeCacheRsp{}
+
+	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE device_id=?", fmt.Sprintf(cacheInfoTable, area))
+	err = sd.cli.Get(&info.TotalCount, cmd, deviceID)
+	if err != nil {
+		return
+	}
+
+	cmd = fmt.Sprintf("SELECT carfile_hash,status FROM %s WHERE device_id=? LIMIT %d,%d", fmt.Sprintf(cacheInfoTable, area), index, count)
+	if err = sd.cli.Select(&info.Caches, cmd, deviceID); err != nil {
 		return
 	}
 
