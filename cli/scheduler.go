@@ -44,8 +44,8 @@ var SchedulerCmds = []*cli.Command{
 	redressInfoCmd,
 	showNodeInfoCmd,
 	// other
-	cachingCarfilesCmd,
-	cacheStatCmd,
+	// cachingCarfilesCmd,
+	// cacheStatCmd,
 	getDownloadInfoCmd,
 	nodeAppUpdateCmd,
 	// listEventCmd,
@@ -148,6 +148,9 @@ var showNodeInfoCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		deviceID := cctx.String("device-id")
+		if deviceID == "" {
+			return xerrors.New("device-id is nil")
+		}
 
 		ctx := ReqContext(cctx)
 
@@ -218,6 +221,9 @@ var redressInfoCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		deviceID := cctx.String("device-id")
+		if deviceID == "" {
+			return xerrors.New("device-id is nil")
+		}
 
 		ctx := ReqContext(cctx)
 
@@ -243,6 +249,9 @@ var nodeQuitCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		deviceID := cctx.String("device-id")
+		if deviceID == "" {
+			return xerrors.New("device-id is nil")
+		}
 
 		ctx := ReqContext(cctx)
 
@@ -386,6 +395,10 @@ var nodeTokenCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		secret := cctx.String("secret")
 		deviceID := cctx.String("device-id")
+		if deviceID == "" {
+			return xerrors.New("device-id is nil")
+		}
+
 		ctx := ReqContext(cctx)
 
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -478,6 +491,10 @@ var removeCacheCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		deviceID := cctx.String("device-id")
+		if deviceID == "" {
+			return xerrors.New("device-id is nil")
+		}
+
 		cid := cctx.String("cid")
 
 		ctx := ReqContext(cctx)
@@ -949,72 +966,72 @@ var showOnlineNodeCmd = &cli.Command{
 	},
 }
 
-var cachingCarfilesCmd = &cli.Command{
-	Name:  "caching-carfiles",
-	Usage: "show caching carfile from node",
-	Flags: []cli.Flag{
-		// schedulerURLFlag,
-		deviceIDFlag,
-	},
+// var cachingCarfilesCmd = &cli.Command{
+// 	Name:  "caching-carfiles",
+// 	Usage: "show caching carfile from node",
+// 	Flags: []cli.Flag{
+// 		// schedulerURLFlag,
+// 		deviceIDFlag,
+// 	},
 
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		// url := cctx.String("scheduler-url")
-		// log.Infof("scheduler url:%v", url)
-		deviceID := cctx.String("device-id")
+// 	Before: func(cctx *cli.Context) error {
+// 		return nil
+// 	},
+// 	Action: func(cctx *cli.Context) error {
+// 		// url := cctx.String("scheduler-url")
+// 		// log.Infof("scheduler url:%v", url)
+// 		deviceID := cctx.String("device-id")
 
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
+// 		ctx := ReqContext(cctx)
+// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+// 		if err != nil {
+// 			return err
+// 		}
+// 		defer closer()
 
-		body, err := schedulerAPI.QueryCachingCarfileWithNode(ctx, deviceID)
-		if err != nil {
-			return err
-		}
+// 		body, err := schedulerAPI.QueryCachingCarfileWithNode(ctx, deviceID)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		fmt.Printf("caching blocks:%v", body)
+// 		fmt.Printf("caching blocks:%v", body)
 
-		return nil
-	},
-}
+// 		return nil
+// 	},
+// }
 
-var cacheStatCmd = &cli.Command{
-	Name:  "cache-stat",
-	Usage: "show cache stat from node",
-	Flags: []cli.Flag{
-		// schedulerURLFlag,
-		deviceIDFlag,
-	},
+// var cacheStatCmd = &cli.Command{
+// 	Name:  "cache-stat",
+// 	Usage: "show cache stat from node",
+// 	Flags: []cli.Flag{
+// 		// schedulerURLFlag,
+// 		deviceIDFlag,
+// 	},
 
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		// url := cctx.String("scheduler-url")
-		deviceID := cctx.String("device-id")
+// 	Before: func(cctx *cli.Context) error {
+// 		return nil
+// 	},
+// 	Action: func(cctx *cli.Context) error {
+// 		// url := cctx.String("scheduler-url")
+// 		deviceID := cctx.String("device-id")
 
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
+// 		ctx := ReqContext(cctx)
+// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+// 		if err != nil {
+// 			return err
+// 		}
+// 		defer closer()
 
-		body, err := schedulerAPI.QueryCacheStatWithNode(ctx, deviceID)
-		if err != nil {
-			return err
-		}
+// 		body, err := schedulerAPI.QueryCacheStatWithNode(ctx, deviceID)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		fmt.Printf("cache stat:%v", body)
+// 		fmt.Printf("cache stat:%v", body)
 
-		return nil
-	},
-}
+// 		return nil
+// 	},
+// }
 
 type yconfig struct {
 	Cids []string `toml:"cids"`

@@ -33,21 +33,8 @@ type geoLite struct {
 	dbPath string
 }
 
-func (g geoLite) DefaultGeoInfo(ip string) *GeoInfo {
-	return &GeoInfo{
-		// City:      defaultCity,
-		// Country:   defaultCountry,
-		// Province:  defaultProvince,
-		Latitude:  0,
-		Longitude: 0,
-		IP:        ip,
-		Geo:       defaultArea,
-		// Geo:       fmt.Sprintf("%s%s%s%s%s", defaultCity, separate, defaultCountry, separate, defaultProvince),
-	}
-}
-
 func (g geoLite) GetGeoInfo(ip string) (*GeoInfo, error) {
-	geoInfo := g.DefaultGeoInfo(ip)
+	geoInfo := DefaultGeoInfo(ip)
 	if ip == "" {
 		return geoInfo, xerrors.New("ip is nil")
 	}
