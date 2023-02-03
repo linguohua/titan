@@ -471,6 +471,52 @@ func (sd sqlDB) GetExpiredCarfiles() ([]*api.CarfileRecordInfo, error) {
 	return out, nil
 }
 
+// func (sd sqlDB) GetUndoneCarfiles() ([]*api.CarfileRecordInfo, error) {
+// 	query := fmt.Sprintf(`SELECT * FROM %s WHERE reliability < need_reliability`,
+// 		fmt.Sprintf(carfileInfoTable, sd.replaceArea()))
+
+// 	var out []*api.CarfileRecordInfo
+// 	if err := sd.cli.Select(&out, query); err != nil {
+// 		return nil, err
+// 	}
+
+// 	return out, nil
+// }
+
+func (sd sqlDB) GetUndoneCarfiles(page int) (info *api.DataListInfo, err error) {
+	area := sd.replaceArea()
+	num := 20
+
+	info = &api.DataListInfo{}
+
+	cmd := fmt.Sprintf("SELECT count(carfile_cid) FROM %s WHERE reliability < need_reliability", fmt.Sprintf(carfileInfoTable, area))
+	err = sd.cli.Get(&info.Cids, cmd)
+	if err != nil {
+		return
+	}
+
+	info.TotalPage = info.Cids / num
+	if info.Cids%num > 0 {
+		info.TotalPage++
+	}
+
+	if info.TotalPage == 0 {
+		return
+	}
+
+	if page > info.TotalPage {
+		page = info.TotalPage
+	}
+	info.Page = page
+
+	cmd = fmt.Sprintf("SELECT * FROM %s WHERE reliability < need_reliability LIMIT %d,%d", fmt.Sprintf(carfileInfoTable, area), (num * (page - 1)), num)
+	if err = sd.cli.Select(&info.CarfileRecords, cmd); err != nil {
+		return
+	}
+
+	return
+}
+
 func (sd sqlDB) GetSuccessCachesCount() (int, error) {
 	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE status=?`,
 		fmt.Sprintf(cacheInfoTable, sd.replaceArea()))

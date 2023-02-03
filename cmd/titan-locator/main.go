@@ -162,7 +162,7 @@ var runCmd = &cli.Command{
 		}
 
 		gPath := cctx.String("geodb-path")
-		err = region.NewRegion(gPath, region.TypeGeoLite())
+		err = region.NewRegion(gPath, region.TypeGeoLite(), "")
 		if err != nil {
 			log.Panic(err.Error())
 		}

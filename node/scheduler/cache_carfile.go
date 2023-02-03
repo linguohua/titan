@@ -59,6 +59,11 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.Remo
 	})
 }
 
+//GetUndoneCarfileRecords get all undone carfile
+func (s *Scheduler) GetUndoneCarfileRecords(ctx context.Context, page int) (*api.DataListInfo, error) {
+	return persistent.GetDB().GetUndoneCarfiles(page)
+}
+
 // ResetCacheExpiredTime reset expired time with data cache
 func (s *Scheduler) ResetCacheExpiredTime(ctx context.Context, carfileCid string, expiredTime time.Time) error {
 	if time.Now().After(expiredTime) {
@@ -83,8 +88,8 @@ func (s *Scheduler) StopCacheTask(ctx context.Context, carfileCid string) error 
 }
 
 // GetRunningCarfileRecords Show Data Tasks
-func (s *Scheduler) GetRunningCarfileRecords(ctx context.Context) ([]api.CarfileRecordInfo, error) {
-	infos := make([]api.CarfileRecordInfo, 0)
+func (s *Scheduler) GetRunningCarfileRecords(ctx context.Context) ([]*api.CarfileRecordInfo, error) {
+	infos := make([]*api.CarfileRecordInfo, 0)
 
 	log.Debug("running count:", s.dataManager.RunningTaskCount)
 
@@ -103,8 +108,8 @@ func (s *Scheduler) GetRunningCarfileRecords(ctx context.Context) ([]api.Carfile
 	return infos, nil
 }
 
-func carfileRecord2Info(d *carfile.CarfileRecord) api.CarfileRecordInfo {
-	info := api.CarfileRecordInfo{}
+func carfileRecord2Info(d *carfile.CarfileRecord) *api.CarfileRecordInfo {
+	info := &api.CarfileRecordInfo{}
 	if d != nil {
 		info.CarfileCid = d.GetCarfileCid()
 		info.CarfileHash = d.GetCarfileHash()
@@ -154,7 +159,7 @@ func (s *Scheduler) GetCarfileRecord(ctx context.Context, cid string) (api.Carfi
 	if d != nil {
 		cInfo := carfileRecord2Info(d)
 
-		return cInfo, nil
+		return *cInfo, nil
 	}
 
 	return info, xerrors.Errorf("not found cid:%s", cid)

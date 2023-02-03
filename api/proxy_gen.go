@@ -239,7 +239,9 @@ type SchedulerStruct struct {
 
 		GetPublicKey func(p0 context.Context) (string, error) `perm:"write"`
 
-		GetRunningCarfileRecords func(p0 context.Context) ([]CarfileRecordInfo, error) `perm:"read"`
+		GetRunningCarfileRecords func(p0 context.Context) ([]*CarfileRecordInfo, error) `perm:"read"`
+
+		GetUndoneCarfileRecords func(p0 context.Context, p1 int) (*DataListInfo, error) `perm:"read"`
 
 		ListCarfileRecords func(p0 context.Context, p1 int) (*DataListInfo, error) `perm:"read"`
 
@@ -964,15 +966,26 @@ func (s *SchedulerStub) GetPublicKey(p0 context.Context) (string, error) {
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetRunningCarfileRecords(p0 context.Context) ([]CarfileRecordInfo, error) {
+func (s *SchedulerStruct) GetRunningCarfileRecords(p0 context.Context) ([]*CarfileRecordInfo, error) {
 	if s.Internal.GetRunningCarfileRecords == nil {
-		return *new([]CarfileRecordInfo), ErrNotSupported
+		return *new([]*CarfileRecordInfo), ErrNotSupported
 	}
 	return s.Internal.GetRunningCarfileRecords(p0)
 }
 
-func (s *SchedulerStub) GetRunningCarfileRecords(p0 context.Context) ([]CarfileRecordInfo, error) {
-	return *new([]CarfileRecordInfo), ErrNotSupported
+func (s *SchedulerStub) GetRunningCarfileRecords(p0 context.Context) ([]*CarfileRecordInfo, error) {
+	return *new([]*CarfileRecordInfo), ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetUndoneCarfileRecords(p0 context.Context, p1 int) (*DataListInfo, error) {
+	if s.Internal.GetUndoneCarfileRecords == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetUndoneCarfileRecords(p0, p1)
+}
+
+func (s *SchedulerStub) GetUndoneCarfileRecords(p0 context.Context, p1 int) (*DataListInfo, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *SchedulerStruct) ListCarfileRecords(p0 context.Context, p1 int) (*DataListInfo, error) {

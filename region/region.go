@@ -1,8 +1,6 @@
 package region
 
 import (
-	"strings"
-
 	"golang.org/x/xerrors"
 )
 
@@ -10,6 +8,8 @@ const (
 	unknown  = "unknown"
 	separate = "-"
 )
+
+var defaultArea = ""
 
 // Region geo interface
 type Region interface {
@@ -19,9 +19,9 @@ type Region interface {
 
 // GeoInfo geo info
 type GeoInfo struct {
-	City      string
-	Country   string
-	Province  string
+	// City      string
+	// Country   string
+	// Province  string
 	Latitude  float64
 	Longitude float64
 	IP        string
@@ -31,8 +31,10 @@ type GeoInfo struct {
 var region Region
 
 // NewRegion New Region
-func NewRegion(dbPath, geoType string) error {
+func NewRegion(dbPath, geoType, area string) error {
 	var err error
+
+	defaultArea = area
 
 	switch geoType {
 	case TypeGeoLite():
@@ -52,14 +54,4 @@ func NewRegion(dbPath, geoType string) error {
 // GetRegion Get Region
 func GetRegion() Region {
 	return region
-}
-
-// StringGeoToGeoInfo geo
-func StringGeoToGeoInfo(geo string) *GeoInfo {
-	geos := strings.Split(geo, separate)
-	if len(geos) != 3 {
-		return nil
-	}
-
-	return &GeoInfo{Country: geos[0], Province: geos[1], City: geos[2]}
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/linguohua/titan/node/scheduler/election"
 	"github.com/linguohua/titan/node/scheduler/validate"
 	"github.com/linguohua/titan/node/secret"
+	"github.com/linguohua/titan/region"
 
 	// "github.com/linguohua/titan/node/device"
 
@@ -220,11 +221,12 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 	deviceInfo.NodeType = api.NodeCandidate
 	deviceInfo.ExternalIp = ip
 
-	geoInfo, isOk := area.GetGeoInfoWithIP(deviceInfo.ExternalIp)
-	if !isOk {
-		log.Errorf("CandidateNodeConnect err DeviceId:%s,ip%s,geo:%s", deviceID, deviceInfo.ExternalIp, geoInfo.Geo)
-		return xerrors.New("Area not exist")
-	}
+	geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIp)
+	// geoInfo, _ := area.GetGeoInfoWithIP(deviceInfo.ExternalIp)
+	// if !isOk {
+	// 	log.Errorf("CandidateNodeConnect err DeviceId:%s,ip%s", deviceID, deviceInfo.ExternalIp)
+	// 	return xerrors.New("Area not exist")
+	// }
 	deviceInfo.IpLocation = geoInfo.Geo
 	deviceInfo.Longitude = geoInfo.Longitude
 	deviceInfo.Latitude = geoInfo.Latitude
@@ -306,11 +308,12 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 	deviceInfo.NodeType = api.NodeEdge
 	deviceInfo.ExternalIp = ip
 
-	geoInfo, isOk := area.GetGeoInfoWithIP(deviceInfo.ExternalIp)
-	if !isOk {
-		log.Errorf("edgeOnline err DeviceId:%s,ip%s,geo:%s", deviceID, deviceInfo.ExternalIp, geoInfo.Geo)
-		return xerrors.New("Area not exist")
-	}
+	geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIp)
+	// geoInfo, _ := area.GetGeoInfoWithIP(deviceInfo.ExternalIp)
+	// if !isOk {
+	// 	log.Errorf("edgeOnline err DeviceId:%s,ip%s", deviceID, deviceInfo.ExternalIp)
+	// 	return xerrors.New("Area not exist")
+	// }
 
 	deviceInfo.IpLocation = geoInfo.Geo
 	deviceInfo.Longitude = geoInfo.Longitude
