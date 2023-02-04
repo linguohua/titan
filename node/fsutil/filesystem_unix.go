@@ -6,6 +6,7 @@ package fsutil
 import (
 	"fmt"
 	"os/exec"
+	"strings"
 )
 
 func GetFilesystemType(absPath string) string {
@@ -15,5 +16,5 @@ func GetFilesystemType(absPath string) string {
 		log.Errorf("exec df cmd error:%s", err.Error())
 		return ""
 	}
-	return string(output)
+	return strings.TrimSpace(string(output))
 }
