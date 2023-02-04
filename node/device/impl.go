@@ -13,6 +13,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
+	"github.com/linguohua/titan/node/fsutil"
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
@@ -97,21 +98,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 		return api.DevicesInfo{}, err
 	}
 
-	partitionsStat, err := disk.Partitions(false)
-	if err != nil {
-		log.Errorf("get partitioin stat: %s", err)
-		return api.DevicesInfo{}, err
-	}
-
-	for _, partition := range partitionsStat {
-		if partition.Mountpoint != "/" &&
-			len(absPath) >= len(partition.Mountpoint) &&
-			absPath[0:len(partition.Mountpoint)] == partition.Mountpoint {
-			info.IoSystem = partition.Fstype
-			break
-		}
-	}
-
+	info.IoSystem = fsutil.GetFilesystemType(absPath)
 	return info, nil
 }
 

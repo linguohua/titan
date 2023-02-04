@@ -329,6 +329,8 @@ var runCmd = &cli.Command{
 			carfileStorePath = path.Join(lr.Path(), DefaultCarfileStoreDir)
 		}
 
+		log.Infof("carfilestorePath:%s", carfileStorePath)
+
 		carfileStore := carfilestore.NewCarfileStore(carfileStorePath, cctx.String("blockstore-type"))
 		device := device.NewDevice(
 			deviceID,
