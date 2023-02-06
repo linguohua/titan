@@ -74,8 +74,8 @@ type DB interface {
 	GetBlockDownloadInfoByID(id string) (*api.BlockDownloadInfo, error)
 	GetNodesByUserDownloadBlockIn(minute int) ([]string, error)
 
-	SetEventInfo(info *api.EventInfo) error
-	GetEventInfos(page int) (info *api.EventListInfo, err error)
+	SetCacheEventInfo(info *api.CacheEventInfo) error
+	ListCacheEventInfos(page int, cid string) (info *api.EventListInfo, err error)
 
 	SetNodeUpdateInfo(info *api.NodeAppUpdateInfo) error
 	GetNodeUpdateInfos() (map[int]*api.NodeAppUpdateInfo, error)

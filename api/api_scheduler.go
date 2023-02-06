@@ -35,6 +35,8 @@ type Scheduler interface {
 	RedressDeveiceInfo(ctx context.Context, deviceID string) error                                     //perm:admin
 	ResetBackupCacheCount(ctx context.Context, backupCacheCount int) error                             //perm:admin
 	GetUndoneCarfileRecords(ctx context.Context, page int) (*DataListInfo, error)                      //perm:read
+	ExecuteUndoneCarfilesTask(ctx context.Context) error                                               //perm:admin
+	ListCacheEvents(ctx context.Context, page int, cid string) (*EventListInfo, error)                 //perm:read
 
 	// call by locator
 	LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID, locatorToken string) error //perm:write
@@ -72,14 +74,12 @@ type DataListInfo struct {
 	CarfileRecords []*CarfileRecordInfo
 }
 
-// EventInfo Event Info
-type EventInfo struct {
-	ID    int
-	CID   string    `db:"cid"`
-	User  string    `db:"user"`
-	Event string    `db:"event"`
-	Msg   string    `db:"msg"`
-	Time  time.Time `db:"time"`
+// CacheEventInfo Event Info
+type CacheEventInfo struct {
+	ID   int
+	CID  string    `db:"cid"`
+	Msg  string    `db:"msg"`
+	Time time.Time `db:"time"`
 }
 
 // EventListInfo Event List Info
@@ -87,7 +87,7 @@ type EventListInfo struct {
 	Page      int
 	TotalPage int
 	Count     int
-	EventList []*EventInfo
+	EventList []*CacheEventInfo
 }
 
 // NodeRegisterInfo Node Register Info

@@ -22,7 +22,7 @@ var log = logging.Logger("carfile")
 
 const (
 	checkCacheTimeoutInterval = 60      //  set to check node cache timeout timer (Unit:Second)
-	nodeCacheTimeout          = 65      //  expiration set to redis (Unit:Second)
+	cacheTimeoutTime          = 65      //  expiration set to redis (Unit:Second)
 	startTaskInterval         = 10      //  time interval (Unit:Second)
 	checkExpiredTimerInterval = 60 * 30 //  time interval (Unit:Second)
 
@@ -33,7 +33,7 @@ const (
 	diskUsageMax = 90.0
 
 	// carfile dispatch cache count limit
-	dispatchLimit = 5
+	dispatchCacheTaskLimit = 3
 )
 
 // Manager carfile
@@ -83,16 +83,13 @@ func (m *Manager) initCarfileMap() {
 			continue
 		}
 
-		m.carfileCacheStart(cr)
+		m.carfileCacheStart(cr, false)
 
 		isRunning := false
 		// start timout check
 		cr.CacheTaskMap.Range(func(key, value interface{}) bool {
-			if value == nil {
-				return true
-			}
 			c := value.(*CacheTask)
-			if c == nil || c.status != api.CacheStatusRunning {
+			if c.status != api.CacheStatusRunning {
 				return true
 			}
 
@@ -183,7 +180,7 @@ func (m *Manager) doCarfileCacheTask(info *api.CacheCarfileInfo) error {
 		}
 	}
 
-	m.carfileCacheStart(carfileRecord)
+	m.carfileCacheStart(carfileRecord, true)
 	defer func() {
 		if err != nil {
 			m.carfileCacheEnd(carfileRecord, err)
@@ -332,12 +329,19 @@ func (m *Manager) startCarfileCacheTasks() {
 	}
 }
 
-func (m *Manager) carfileCacheStart(cr *CarfileRecord) {
+func (m *Manager) carfileCacheStart(cr *CarfileRecord, isSaveEvent bool) {
 	log.Infof("carfile event %s start -----", cr.carfileCid)
 
 	_, exist := m.CarfileRecordMap.LoadOrStore(cr.carfileHash, cr)
 	if !exist {
 		m.RunningTaskCount++
+	}
+
+	if isSaveEvent {
+		persistent.GetDB().SetCacheEventInfo(&api.CacheEventInfo{
+			CID: cr.carfileCid,
+			Msg: "start task",
+		})
 	}
 }
 
@@ -349,11 +353,18 @@ func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
 		m.RunningTaskCount--
 	}
 
-	if err != nil && err.Error() != "" {
-		log.Errorf("end carfile err:%s", err.Error())
+	msg := ""
+	if err != nil {
+		// log.Errorf("end carfile err:%s", err.Error())
+		msg = err.Error()
 	}
 
 	m.resetLatelyExpiredTime(cr.expiredTime)
+
+	persistent.GetDB().SetCacheEventInfo(&api.CacheEventInfo{
+		CID: cr.carfileCid,
+		Msg: fmt.Sprintf("end task:%s", msg),
+	})
 }
 
 // StopCacheTask stop cache task
@@ -504,7 +515,7 @@ func (m *Manager) notifyNodeRemoveCarfile(deviceID, cid string) error {
 }
 
 type findNodeResult struct {
-	list                  []*node.Node
+	list                  []string
 	allNodeCount          int
 	filterCount           int
 	insufficientDiskCount int
@@ -516,7 +527,7 @@ type findNodeResult struct {
 func (m *Manager) findAppropriateEdges(filterMap sync.Map, count int) *findNodeResult {
 	resultInfo := &findNodeResult{needCount: count}
 
-	list := make([]*node.Node, 0)
+	nodes := make([]*node.Node, 0)
 	if count <= 0 {
 		return resultInfo
 	}
@@ -538,19 +549,21 @@ func (m *Manager) findAppropriateEdges(filterMap sync.Map, count int) *findNodeR
 			return true
 		}
 
-		list = append(list, node.Node)
+		nodes = append(nodes, node.Node)
 		return true
 	})
 
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].GetCurCacheCount() < list[j].GetCurCacheCount()
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].GetCurCacheCount() < nodes[j].GetCurCacheCount()
 	})
 
-	if count > len(list) {
-		count = len(list)
+	if count > len(nodes) {
+		count = len(nodes)
 	}
 
-	resultInfo.list = list[0:count]
+	for _, node := range nodes[0:count] {
+		resultInfo.list = append(resultInfo.list, node.DeviceID)
+	}
 	return resultInfo
 }
 
@@ -558,7 +571,7 @@ func (m *Manager) findAppropriateEdges(filterMap sync.Map, count int) *findNodeR
 func (m *Manager) findAppropriateCandidates(filterMap sync.Map, count int) *findNodeResult {
 	resultInfo := &findNodeResult{needCount: count}
 
-	list := make([]*node.Node, 0)
+	nodes := make([]*node.Node, 0)
 	if count <= 0 {
 		return resultInfo
 	}
@@ -580,19 +593,21 @@ func (m *Manager) findAppropriateCandidates(filterMap sync.Map, count int) *find
 			return true
 		}
 
-		list = append(list, node.Node)
+		nodes = append(nodes, node.Node)
 		return true
 	})
 
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].GetCurCacheCount() < list[j].GetCurCacheCount()
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].GetCurCacheCount() < nodes[j].GetCurCacheCount()
 	})
 
-	if count > len(list) {
-		count = len(list)
+	if count > len(nodes) {
+		count = len(nodes)
 	}
 
-	resultInfo.list = list[0:count]
+	for _, node := range nodes[0:count] {
+		resultInfo.list = append(resultInfo.list, node.DeviceID)
+	}
 	return resultInfo
 }
 

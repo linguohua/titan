@@ -749,23 +749,28 @@ func (sd sqlDB) GetNodesByUserDownloadBlockIn(minute int) ([]string, error) {
 }
 
 // cache event info
-func (sd sqlDB) SetEventInfo(info *api.EventInfo) error {
+func (sd sqlDB) SetCacheEventInfo(info *api.CacheEventInfo) error {
 	area := sd.replaceArea()
 
 	tableName := fmt.Sprintf(eventInfoTable, area)
 
-	cmd := fmt.Sprintf("INSERT INTO %s (cid, user, event, msg) VALUES (:cid, :user, :event, :msg)", tableName)
+	cmd := fmt.Sprintf("INSERT INTO %s (cid, msg) VALUES (:cid, :msg)", tableName)
 	_, err := sd.cli.NamedExec(cmd, info)
 	return err
 }
 
-func (sd sqlDB) GetEventInfos(page int) (info *api.EventListInfo, err error) {
+func (sd sqlDB) ListCacheEventInfos(page int, cid string) (info *api.EventListInfo, err error) {
 	area := sd.replaceArea()
 	num := 20
 
 	info = &api.EventListInfo{Page: page}
 
-	cmd := fmt.Sprintf("SELECT count(id) FROM %s ;", fmt.Sprintf(eventInfoTable, area))
+	cidStr := ""
+	if cid != "" {
+		cidStr = fmt.Sprintf("WHERE cid='%s'", cid)
+	}
+
+	cmd := fmt.Sprintf("SELECT count(id) FROM %s %s", fmt.Sprintf(eventInfoTable, area), cidStr)
 	err = sd.cli.Get(&info.Count, cmd)
 	if err != nil {
 		return
@@ -785,7 +790,7 @@ func (sd sqlDB) GetEventInfos(page int) (info *api.EventListInfo, err error) {
 	}
 	info.Page = page
 
-	cmd = fmt.Sprintf("SELECT * FROM %s LIMIT %d,%d", fmt.Sprintf(eventInfoTable, area), (num * (page - 1)), num)
+	cmd = fmt.Sprintf("SELECT * FROM %s %s LIMIT %d,%d", fmt.Sprintf(eventInfoTable, area), cidStr, (num * (page - 1)), num)
 	if err = sd.cli.Select(&info.EventList, cmd); err != nil {
 		return
 	}
