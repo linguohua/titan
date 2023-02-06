@@ -338,10 +338,13 @@ func (m *Manager) carfileCacheStart(cr *CarfileRecord, isSaveEvent bool) {
 	}
 
 	if isSaveEvent {
-		persistent.GetDB().SetCacheEventInfo(&api.CacheEventInfo{
+		err := persistent.GetDB().SetCacheEventInfo(&api.CacheEventInfo{
 			CID: cr.carfileCid,
 			Msg: "start task",
 		})
+		if err != nil {
+			log.Errorf("SetCacheEventInfo err:%s", err.Error())
+		}
 	}
 }
 
@@ -361,10 +364,13 @@ func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
 
 	m.resetLatelyExpiredTime(cr.expiredTime)
 
-	persistent.GetDB().SetCacheEventInfo(&api.CacheEventInfo{
+	err = persistent.GetDB().SetCacheEventInfo(&api.CacheEventInfo{
 		CID: cr.carfileCid,
 		Msg: fmt.Sprintf("end task:%s", msg),
 	})
+	if err != nil {
+		log.Errorf("SetCacheEventInfo err:%s", err.Error())
+	}
 }
 
 // StopCacheTask stop cache task
