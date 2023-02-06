@@ -11,11 +11,6 @@ import (
 	"github.com/linguohua/titan/node/helper"
 )
 
-// type downloadSource struct {
-// 	downloadURL   string
-// 	downloadToken string
-// }
-
 type downloadResult struct {
 	netLayerCids []string
 	linksSize    uint64
@@ -51,6 +46,7 @@ func resolveLinks(blk blocks.Block) ([]*format.Link, error) {
 	return node.Links(), nil
 }
 
+// get n block from front of wait list
 func (cfCache *carfileCache) getBlocksFromWaitListFront(n int) []string {
 	if len(cfCache.blocksWaitList) < n {
 		n = len(cfCache.blocksWaitList)
