@@ -223,6 +223,8 @@ type SchedulerStruct struct {
 
 		ElectionValidators func(p0 context.Context) error `perm:"admin"`
 
+		ExecuteUndoneCarfilesTask func(p0 context.Context) error `perm:"admin"`
+
 		GetCarfileRecord func(p0 context.Context, p1 string) (CarfileRecordInfo, error) `perm:"read"`
 
 		GetDevicesInfo func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
@@ -242,6 +244,8 @@ type SchedulerStruct struct {
 		GetRunningCarfileRecords func(p0 context.Context) ([]*CarfileRecordInfo, error) `perm:"read"`
 
 		GetUndoneCarfileRecords func(p0 context.Context, p1 int) (*DataListInfo, error) `perm:"read"`
+
+		ListCacheEvents func(p0 context.Context, p1 int, p2 string) (*EventListInfo, error) `perm:"read"`
 
 		ListCarfileRecords func(p0 context.Context, p1 int) (*DataListInfo, error) `perm:"read"`
 
@@ -878,6 +882,17 @@ func (s *SchedulerStub) ElectionValidators(p0 context.Context) error {
 	return ErrNotSupported
 }
 
+func (s *SchedulerStruct) ExecuteUndoneCarfilesTask(p0 context.Context) error {
+	if s.Internal.ExecuteUndoneCarfilesTask == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ExecuteUndoneCarfilesTask(p0)
+}
+
+func (s *SchedulerStub) ExecuteUndoneCarfilesTask(p0 context.Context) error {
+	return ErrNotSupported
+}
+
 func (s *SchedulerStruct) GetCarfileRecord(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
 	if s.Internal.GetCarfileRecord == nil {
 		return *new(CarfileRecordInfo), ErrNotSupported
@@ -985,6 +1000,17 @@ func (s *SchedulerStruct) GetUndoneCarfileRecords(p0 context.Context, p1 int) (*
 }
 
 func (s *SchedulerStub) GetUndoneCarfileRecords(p0 context.Context, p1 int) (*DataListInfo, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) ListCacheEvents(p0 context.Context, p1 int, p2 string) (*EventListInfo, error) {
+	if s.Internal.ListCacheEvents == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.ListCacheEvents(p0, p1, p2)
+}
+
+func (s *SchedulerStub) ListCacheEvents(p0 context.Context, p1 int, p2 string) (*EventListInfo, error) {
 	return nil, ErrNotSupported
 }
 

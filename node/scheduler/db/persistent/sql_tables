@@ -68,8 +68,6 @@ CREATE TABLE `node_connection_log` (
 CREATE TABLE `carfile_event_cn_gd_shenzhen` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
 	`cid` varchar(128) DEFAULT '',
-    `user` varchar(20) NOT NULL ,
-    `event` varchar(20) NOT NULL ,
     `msg` varchar(1024) DEFAULT '',
     `time` datetime DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)

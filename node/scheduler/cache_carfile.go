@@ -64,6 +64,17 @@ func (s *Scheduler) GetUndoneCarfileRecords(ctx context.Context, page int) (*api
 	return persistent.GetDB().GetUndoneCarfiles(page)
 }
 
+//ExecuteUndoneCarfilesTask Execute Undone Carfiles Task
+func (s *Scheduler) ExecuteUndoneCarfilesTask(ctx context.Context) error {
+	// page := 1
+	// info, err := persistent.GetDB().GetUndoneCarfiles(page)
+	// if err != nil {
+	// 	return err
+	// }
+
+	return nil
+}
+
 // ResetCacheExpiredTime reset expired time with data cache
 func (s *Scheduler) ResetCacheExpiredTime(ctx context.Context, carfileCid string, expiredTime time.Time) error {
 	if time.Now().After(expiredTime) {
@@ -171,15 +182,10 @@ func (s *Scheduler) ResetBackupCacheCount(ctx context.Context, backupCacheCount 
 	return nil
 }
 
-// // ListEvents get data events
-// func (s *Scheduler) ListEvents(ctx context.Context, page int) (api.EventListInfo, error) {
-// 	count, totalPage, list, err := persistent.GetDB().GetEventInfos(page)
-// 	if err != nil {
-// 		return api.EventListInfo{}, err
-// 	}
-
-// 	return api.EventListInfo{Page: page, TotalPage: totalPage, Count: count, EventList: list}, nil
-// }
+// ListCacheEvents get data events
+func (s *Scheduler) ListCacheEvents(ctx context.Context, page int, cid string) (*api.EventListInfo, error) {
+	return persistent.GetDB().ListCacheEventInfos(page, cid)
+}
 
 // ListCarfileRecords List Datas
 func (s *Scheduler) ListCarfileRecords(ctx context.Context, page int) (*api.DataListInfo, error) {

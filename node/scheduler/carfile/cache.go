@@ -30,7 +30,7 @@ func newCache(carfileRecord *CarfileRecord, deviceID string, isCandidateCache bo
 	cache := &CacheTask{
 		carfileRecord:    carfileRecord,
 		reliability:      0,
-		status:           api.CacheStatusCreate,
+		status:           api.CacheStatusRunning,
 		carfileHash:      carfileRecord.carfileHash,
 		isCandidateCache: isCandidateCache,
 		deviceID:         deviceID,
@@ -80,7 +80,7 @@ func (c *CacheTask) startTimeoutTimer() {
 			break
 		}
 
-		// cache is timeout
+		// task is timeout
 		err := c.endTask(api.CacheStatusTimeout)
 		if err != nil {
 			log.Errorf("endCache err:%s", err.Error())
@@ -131,7 +131,7 @@ func (c *CacheTask) carfileCacheResult(info *api.CacheResultInfo) error {
 	}
 
 	// update cache task timeout
-	return cache.GetDB().UpdateNodeCacheingExpireTime(c.carfileHash, c.deviceID, nodeCacheTimeout)
+	return cache.GetDB().UpdateNodeCacheingExpireTime(c.carfileHash, c.deviceID, cacheTimeoutTime)
 }
 
 func (c *CacheTask) updateCacheTaskInfo() error {
@@ -178,7 +178,7 @@ func (c *CacheTask) endTask(status api.CacheStatus) (err error) {
 
 	err = c.updateCacheTaskInfo()
 	if err != nil {
-		log.Errorf("endCache %s , updateCacheTaskInfo err:%s", c.carfileHash, err.Error())
+		return xerrors.Errorf("endCache %s , updateCacheTaskInfo err:%s", c.carfileHash, err.Error())
 	}
 
 	cachesDone, err := cache.GetDB().CacheTasksEnd(c.carfileHash, []string{c.deviceID})

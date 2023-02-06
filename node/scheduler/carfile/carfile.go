@@ -11,6 +11,13 @@ import (
 	"golang.org/x/xerrors"
 )
 
+const (
+	rootCacheStep = iota
+	candidateCacheStep
+	edgeCacheStep
+	endStep
+)
+
 // CarfileRecord CarfileRecord
 type CarfileRecord struct {
 	nodeManager    *node.Manager
@@ -30,7 +37,8 @@ type CarfileRecord struct {
 	cacheLock      sync.RWMutex
 	dowloadSources []*api.DowloadSource
 
-	dispatchCount int
+	// dispatchCount int
+	step int
 }
 
 func newCarfileRecord(manager *Manager, cid, hash string) *CarfileRecord {
@@ -98,6 +106,8 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 		carfileRecord.CacheTaskMap.Store(cacheInfo.DeviceID, c)
 	}
 
+	carfileRecord.initStep()
+
 	return carfileRecord, nil
 }
 
@@ -125,59 +135,53 @@ func (d *CarfileRecord) candidateCacheExist() bool {
 	return exist
 }
 
-func (d *CarfileRecord) startCacheTasks(nodes []*node.Node, isCandidate bool) (isRunning bool) {
+func (d *CarfileRecord) startCacheTasks(nodes []string, isCandidate bool) (isRunning bool) {
 	isRunning = false
 
-	runningList := make([]string, 0)
-	errorList := make([]string, 0)
-
-	for _, node := range nodes {
-		deviceID := node.DeviceID
-		cI, exist := d.CacheTaskMap.Load(deviceID)
-		if !exist || cI == nil {
-			c, err := newCache(d, deviceID, isCandidate)
-			if err != nil {
-				log.Errorf("newCache %s , node:%s,err:%s", d.carfileCid, deviceID, err.Error())
-				continue
-			}
-			d.CacheTaskMap.Store(deviceID, c)
-		}
-		runningList = append(runningList, deviceID)
-	}
-
-	if len(runningList) < 1 {
-		return
-	}
-
-	// set cache status
-	err := persistent.GetDB().UpdateCacheTaskStatus(d.carfileHash, runningList, api.CacheStatusRunning)
+	// set caches status
+	err := persistent.GetDB().UpdateCacheTaskStatus(d.carfileHash, nodes, api.CacheStatusRunning)
 	if err != nil {
 		log.Errorf("startCacheTasks %s , UpdateCacheTaskStatus err:%s", d.carfileHash, err.Error())
 		return
 	}
 
-	err = cache.GetDB().CacheTasksStart(d.carfileHash, runningList, nodeCacheTimeout)
+	err = cache.GetDB().CacheTasksStart(d.carfileHash, nodes, cacheTimeoutTime)
 	if err != nil {
 		log.Errorf("startCacheTasks %s , CacheTasksStart err:%s", d.carfileHash, err.Error())
 		return
 	}
 
-	for _, deviceID := range runningList {
+	errorList := make([]string, 0)
+
+	for _, deviceID := range nodes {
+		// find or create cache task
+		var cacheTask *CacheTask
 		cI, exist := d.CacheTaskMap.Load(deviceID)
-		if exist && cI != nil {
-			c := cI.(*CacheTask)
-			err = c.startTask()
-			if err == nil {
-				isRunning = true
+		if !exist || cI == nil {
+			cacheTask, err = newCache(d, deviceID, isCandidate)
+			if err != nil {
+				log.Errorf("newCache %s , node:%s,err:%s", d.carfileCid, deviceID, err.Error())
+				errorList = append(errorList, deviceID)
 				continue
 			}
-			log.Errorf("startCacheTasks %s , node:%s,err:%s", c.carfileRecord.carfileCid, c.deviceID, err.Error())
+			d.CacheTaskMap.Store(deviceID, cacheTask)
+		} else {
+			cacheTask = cI.(*CacheTask)
 		}
-		errorList = append(errorList, deviceID)
+
+		// do cache
+		err = cacheTask.startTask()
+		if err != nil {
+			log.Errorf("startCacheTasks %s , node:%s,err:%s", cacheTask.carfileRecord.carfileCid, cacheTask.deviceID, err.Error())
+			errorList = append(errorList, deviceID)
+			continue
+		}
+
+		isRunning = true
 	}
 
 	if len(errorList) > 0 {
-		// set cache status
+		// set caches status
 		err := persistent.GetDB().UpdateCacheTaskStatus(d.carfileHash, errorList, api.CacheStatusFail)
 		if err != nil {
 			log.Errorf("startCacheTasks %s , UpdateCacheTaskStatus err:%s", d.carfileHash, err.Error())
@@ -186,7 +190,7 @@ func (d *CarfileRecord) startCacheTasks(nodes []*node.Node, isCandidate bool) (i
 		_, err = cache.GetDB().CacheTasksEnd(d.carfileHash, errorList)
 		if err != nil {
 			log.Errorf("startCacheTasks %s , CacheTasksEnd err:%s", d.carfileHash, err.Error())
-			return
+
 		}
 	}
 
@@ -223,30 +227,86 @@ func (d *CarfileRecord) cacheToEdges(needCount int) error {
 	return nil
 }
 
-func (d *CarfileRecord) dispatchCaches() error {
-	if d.dispatchCount >= dispatchLimit {
-		return xerrors.Errorf("dispatchCount:%d exceed the limit", d.dispatchCount)
-	}
-	d.dispatchCount++
+func (d *CarfileRecord) initStep() {
+	d.step = endStep
 
-	needCacdidateCount := d.carfileManager.rootCacheCount
-	if d.candidateCaches > 0 {
-		needCacdidateCount = (d.carfileManager.rootCacheCount + d.carfileManager.backupCacheCount) - d.candidateCaches
-	}
-	if needCacdidateCount > 0 {
-		return d.cacheToCandidates(needCacdidateCount)
+	if d.candidateCaches <= 0 {
+		d.step = rootCacheStep
+		return
 	}
 
-	needEdgeCount := d.needReliability - d.reliability
-	if needEdgeCount <= 0 {
-		// no caching required
-		return xerrors.New("")
+	if d.candidateCaches < d.carfileManager.rootCacheCount+d.carfileManager.backupCacheCount {
+		d.step = candidateCacheStep
+		return
 	}
 
-	return d.cacheToEdges(needEdgeCount)
+	if d.reliability < d.needReliability {
+		d.step = edgeCacheStep
+	}
 }
 
-func (d *CarfileRecord) cacheDone(endCache *CacheTask, cachesDone bool) (err error) {
+func (d *CarfileRecord) nextStep() {
+	d.step++
+
+	if d.step == candidateCacheStep {
+		needCacdidateCount := (d.carfileManager.rootCacheCount + d.carfileManager.backupCacheCount) - d.candidateCaches
+		if needCacdidateCount <= 0 {
+			// no need to cache to candidate , skip this step
+			d.step++
+		}
+	}
+}
+
+func (d *CarfileRecord) dispatchCaches() error {
+	switch d.step {
+	case rootCacheStep:
+		return d.cacheToCandidates(d.carfileManager.rootCacheCount)
+	case candidateCacheStep:
+		if d.candidateCaches == 0 {
+			return xerrors.New("rootcache is 0")
+		}
+		needCacdidateCount := (d.carfileManager.rootCacheCount + d.carfileManager.backupCacheCount) - d.candidateCaches
+		return d.cacheToCandidates(needCacdidateCount)
+	case edgeCacheStep:
+		needEdgeCount := d.needReliability - d.reliability
+		return d.cacheToEdges(needEdgeCount)
+	}
+
+	// no caching required
+	return xerrors.New("")
+}
+
+// func (d *CarfileRecord) dispatchCaches() error {
+// 	// if d.dispatchCount >= dispatchCacheTaskLimit {
+// 	// 	return xerrors.Errorf("dispatchCount:%d exceed the limit", d.dispatchCount)
+// 	// }
+// 	// d.dispatchCount++
+
+// 	needCacdidateCount := d.carfileManager.rootCacheCount
+// 	if d.candidateCaches > 0 {
+// 		needCacdidateCount = (d.carfileManager.rootCacheCount + d.carfileManager.backupCacheCount) - d.candidateCaches
+// 	}
+// 	if needCacdidateCount > 0 && d.dispatchCandidatCount < dispatchCacheTaskLimit {
+// 		d.dispatchCandidatCount++
+// 		return d.cacheToCandidates(needCacdidateCount)
+// 	}
+
+// 	needEdgeCount := d.needReliability - d.reliability
+// 	if needEdgeCount <= 0 {
+// 		// no caching required
+// 		return xerrors.New("")
+// 	}
+
+// 	if d.dispatchEdgeCount >= dispatchCacheTaskLimit {
+// 		return xerrors.Errorf("dispatchEdgeCount:%d exceed the limit", d.dispatchEdgeCount)
+// 	}
+
+// 	d.dispatchEdgeCount++
+
+// 	return d.cacheToEdges(needEdgeCount)
+// }
+
+func (d *CarfileRecord) cacheDone(endCache *CacheTask, cachesDone bool) {
 	if endCache.status == api.CacheStatusSuccess {
 		d.cacheLock.Lock()
 		d.reliability += endCache.reliability
@@ -279,20 +339,18 @@ func (d *CarfileRecord) cacheDone(endCache *CacheTask, cachesDone bool) (err err
 		NeedReliability: d.needReliability,
 		ExpiredTime:     d.expiredTime,
 	}
-	err = persistent.GetDB().UpdateCarfileRecordCachesInfo(dInfo)
+	err := persistent.GetDB().UpdateCarfileRecordCachesInfo(dInfo)
 	if err != nil {
 		log.Errorf("UpdateCarfileRecordCachesInfo err:%s", err.Error())
+		return
 	}
 
-	defer func() {
-		if err != nil {
-			d.carfileManager.carfileCacheEnd(d, err)
-		}
-	}()
+	d.nextStep() //next step
 
 	err = d.dispatchCaches()
-
-	return
+	if err != nil {
+		d.carfileManager.carfileCacheEnd(d, err)
+	}
 }
 
 // GetCarfileCid get carfile cid
