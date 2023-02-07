@@ -40,8 +40,7 @@ func newDownloadMgr(carfileStore *carfilestore.CarfileStore, downloadOperation D
 	return downloadMgr
 }
 func (downloadMgr *DownloadMgr) delayNotifyDownloaderOnce() {
-	time.Sleep(3 * time.Second)
-	downloadMgr.notifyCarfileDownloader()
+	time.AfterFunc(3*time.Second, downloadMgr.notifyCarfileDownloader)
 }
 
 func (downloadMgr *DownloadMgr) startTick() {
@@ -174,7 +173,7 @@ func (downloadMgr *DownloadMgr) onDownloadCarfileComplete(cf *carfileCache) {
 
 	err = downloadMgr.downloadOperation.downloadResult(cf, true)
 	if err != nil {
-		log.Errorf("onDownloadCarfileComplete, downloadResult error:%s", err)
+		log.Errorf("onDownloadCarfileComplete, downloadResult error:%s, carfileCID:%s", err, cf.carfileCID)
 	}
 }
 
