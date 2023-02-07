@@ -56,9 +56,6 @@ func NewCarfileOperation(ds datastore.Batching, carfileStore *carfilestore.Carfi
 }
 
 func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, isComplete bool) error {
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
-	defer cancel()
-
 	status := api.CacheStatusFail
 	if !isComplete {
 		status = api.CacheStatusCreate
@@ -94,6 +91,10 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, 
 		DiskUsage:         diskUsage,
 		TotalBlockCount:   carfileOperation.TotalBlockCount,
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	defer cancel()
+
 	return carfileOperation.scheduler.CacheResult(ctx, result)
 }
 

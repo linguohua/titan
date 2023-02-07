@@ -29,11 +29,6 @@ type carfileCache struct {
 	// downloader      downloader.BlockDownloader
 }
 
-type blockOperation interface {
-	downloadBlocks(cids []string, sources []*api.DowloadSource) ([]blocks.Block, error)
-	saveBlock(data []byte, blockHash, carfileHash string) error
-}
-
 func resolveLinks(blk blocks.Block) ([]*format.Link, error) {
 	ctx := context.Background()
 
