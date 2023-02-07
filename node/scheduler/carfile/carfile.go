@@ -37,8 +37,8 @@ type CarfileRecord struct {
 	cacheLock      sync.RWMutex
 	dowloadSources []*api.DowloadSource
 
-	// dispatchCount int
-	step int
+	step            int      // dispatchCount int
+	nodeCacheErrMsg sync.Map // [msg]deviceID
 }
 
 func newCarfileRecord(manager *Manager, cid, hash string) *CarfileRecord {

@@ -23,7 +23,8 @@ type CacheTask struct {
 	doneBlocks       int
 	isCandidateCache bool
 
-	timeoutTicker *time.Ticker
+	timeoutTicker  *time.Ticker
+	cacheResultMsg string
 }
 
 func newCache(carfileRecord *CarfileRecord, deviceID string, isCandidateCache bool) (*CacheTask, error) {
@@ -127,6 +128,7 @@ func (c *CacheTask) carfileCacheResult(info *api.CacheResultInfo) error {
 	c.doneSize = info.DoneSize
 
 	if info.Status == api.CacheStatusSuccess || info.Status == api.CacheStatusFail {
+		c.cacheResultMsg = info.Msg
 		return c.endTask(info.Status)
 	}
 
