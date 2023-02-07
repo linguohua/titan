@@ -474,9 +474,18 @@ func (sd sqlDB) GetExpiredCarfiles() ([]*api.CarfileRecordInfo, error) {
 
 func (sd sqlDB) GetUndoneCarfiles(page int) (info *api.DataListInfo, err error) {
 	area := sd.replaceArea()
-	num := 20
 
 	info = &api.DataListInfo{}
+	if page < 0 {
+		cmd := fmt.Sprintf("SELECT * FROM %s WHERE reliability < need_reliability ", fmt.Sprintf(carfileInfoTable, area))
+		if err = sd.cli.Select(&info.CarfileRecords, cmd); err != nil {
+			return
+		}
+
+		return
+	}
+
+	num := 20
 
 	cmd := fmt.Sprintf("SELECT count(carfile_cid) FROM %s WHERE reliability < need_reliability", fmt.Sprintf(carfileInfoTable, area))
 	err = sd.cli.Get(&info.Cids, cmd)
