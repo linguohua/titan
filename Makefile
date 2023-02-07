@@ -49,6 +49,12 @@ titan-edge-arm: $(BUILD_DEPS)
 	GOOS=linux GOARCH=arm $(GOCC) build $(GOFLAGS) -o titan-edge-arm ./cmd/titan-edge
 .PHONY: titan-edge-arm
 
+titan-candidate-arm: $(BUILD_DEPS)
+	rm -f titan-candidate-arm
+	GOOS=linux GOARCH=arm $(GOCC) build $(GOFLAGS) -o titan-candidate-arm ./cmd/titan-candidate
+.PHONY: titan-candidate-arm
+
+
 
 titan-locator: $(BUILD_DEPS)
 	rm -f titan-locator

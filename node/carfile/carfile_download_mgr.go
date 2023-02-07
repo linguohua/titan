@@ -44,19 +44,21 @@ func (downloadMgr *DownloadMgr) delayNotifyDownloaderOnce() {
 }
 
 func (downloadMgr *DownloadMgr) startTick() {
+	ticker := time.NewTicker(10 * time.Second)
 	for {
-		time.Sleep(10 * time.Second)
-
-		carfile := downloadMgr.getFirstCarfileCacheFromWaitList()
-		if carfile != nil {
-			err := downloadMgr.downloadOperation.downloadResult(carfile, false)
-			if err != nil {
-				log.Errorf("startTickForDownloadResult, downloadResult error:%s", err.Error())
+		select {
+		case <-ticker.C:
+			carfile := downloadMgr.getFirstCarfileCacheFromWaitList()
+			if carfile != nil {
+				err := downloadMgr.downloadOperation.downloadResult(carfile, false)
+				if err != nil {
+					log.Errorf("startTickForDownloadResult, downloadResult error:%s", err.Error())
+				}
 			}
-		}
 
-		if len(downloadMgr.waitList) > 0 {
-			downloadMgr.saveWaitList()
+			if len(downloadMgr.waitList) > 0 {
+				downloadMgr.saveWaitList()
+			}
 		}
 	}
 }
