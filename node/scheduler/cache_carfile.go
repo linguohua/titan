@@ -66,11 +66,19 @@ func (s *Scheduler) GetUndoneCarfileRecords(ctx context.Context, page int) (*api
 
 //ExecuteUndoneCarfilesTask Execute Undone Carfiles Task
 func (s *Scheduler) ExecuteUndoneCarfilesTask(ctx context.Context) error {
-	// page := 1
-	// info, err := persistent.GetDB().GetUndoneCarfiles(page)
-	// if err != nil {
-	// 	return err
-	// }
+	info, err := persistent.GetDB().GetUndoneCarfiles(-1)
+	if err != nil {
+		return err
+	}
+
+	if info.CarfileRecords != nil {
+		for _, carfile := range info.CarfileRecords {
+			err = s.CacheCarfile(ctx, carfile.CarfileCid, carfile.NeedReliability, carfile.ExpiredTime)
+			if err != nil {
+				log.Errorf("ExecuteUndoneCarfilesTask CacheCarfile err:%s", err.Error())
+			}
+		}
+	}
 
 	return nil
 }
