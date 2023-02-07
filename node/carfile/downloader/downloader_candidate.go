@@ -74,7 +74,7 @@ func getBlocksFromCandidate(cids []string, sources []*api.DowloadSource) ([]bloc
 
 			b, err := getBlockFromCandidateWithApi(candidate, cidStr, 0)
 			if err != nil {
-				log.Errorf("getBlocksFromCandidateWithApi error:%s", err.Error())
+				log.Errorf("getBlocksFromCandidateWithApi error:%s, cid:%s", err.Error(), cidStr)
 				return
 			}
 			blksLock.Lock()
