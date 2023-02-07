@@ -115,11 +115,11 @@ func (rd redisDB) CacheTasksEnd(hash string, deviceIDs []string) (bool, error) {
 			pipeliner.SRem(context.Background(), cacheingCarfileList, hash)
 		}
 
-		for _, deviceID := range deviceIDs {
-			nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
-			// Expire
-			pipeliner.Del(context.Background(), nodeKey)
-		}
+		// for _, deviceID := range deviceIDs {
+		// 	nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
+		// 	// Expire
+		// 	pipeliner.Del(context.Background(), nodeKey)
+		// }
 
 		// if nodeInfo != nil {
 		// 	nKey := fmt.Sprintf(redisKeyNodeInfo, nodeInfo.DeviceID)
