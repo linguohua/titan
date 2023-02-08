@@ -215,10 +215,10 @@ func (m *Manager) setCacheEvent(carfileCid, msg string) {
 
 // RemoveCarfileRecord remove a carfile
 func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
-	dI, exist := m.CarfileRecordMap.Load(hash)
-	if exist && dI != nil {
-		return xerrors.Errorf("carfileRecord %s is running, please wait", carfileCid)
-	}
+	// dI, exist := m.CarfileRecordMap.Load(hash)
+	// if exist && dI != nil {
+	// 	return xerrors.Errorf("carfileRecord %s is running, please wait", carfileCid)
+	// }
 
 	cInfos, err := persistent.GetDB().GetCacheTaskInfosWithHash(hash, false)
 	if err != nil {
