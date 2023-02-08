@@ -43,7 +43,7 @@ type DB interface {
 
 	// data info
 	UpdateCarfileRecordCachesInfo(info *api.CarfileRecordInfo) error
-	CreateCarfileRecordInfo(info *api.CarfileRecordInfo) error
+	CreateOrUpdateCarfileRecordInfo(info *api.CarfileRecordInfo, isUpdate bool) error
 	GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error)
 	GetUndoneCarfiles(page int) (*api.DataListInfo, error)
 	CarfileRecordExist(hash string) (bool, error)

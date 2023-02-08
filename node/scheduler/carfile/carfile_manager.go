@@ -168,16 +168,16 @@ func (m *Manager) doCarfileCacheTask(info *api.CacheCarfileInfo) error {
 		carfileRecord = newCarfileRecord(m, info.CarfileCid, info.CarfileHash)
 		carfileRecord.needReliability = info.NeedReliability
 		carfileRecord.expiredTime = info.ExpiredTime
+	}
 
-		err := persistent.GetDB().CreateCarfileRecordInfo(&api.CarfileRecordInfo{
-			CarfileCid:      carfileRecord.carfileCid,
-			NeedReliability: carfileRecord.needReliability,
-			ExpiredTime:     carfileRecord.expiredTime,
-			CarfileHash:     carfileRecord.carfileHash,
-		})
-		if err != nil {
-			return xerrors.Errorf("cid:%s,CreateCarfileRecordInfo err:%s", carfileRecord.carfileCid, err.Error())
-		}
+	err = persistent.GetDB().CreateOrUpdateCarfileRecordInfo(&api.CarfileRecordInfo{
+		CarfileCid:      carfileRecord.carfileCid,
+		NeedReliability: carfileRecord.needReliability,
+		ExpiredTime:     carfileRecord.expiredTime,
+		CarfileHash:     carfileRecord.carfileHash,
+	}, exist)
+	if err != nil {
+		return xerrors.Errorf("cid:%s,CreateOrUpdateCarfileRecordInfo err:%s", carfileRecord.carfileCid, err.Error())
 	}
 
 	m.carfileCacheStart(carfileRecord, true)
