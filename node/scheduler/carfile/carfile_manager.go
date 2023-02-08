@@ -525,13 +525,11 @@ type findNodeResult struct {
 	allNodeCount          int
 	filterCount           int
 	insufficientDiskCount int
-
-	needCount int
 }
 
 // find the edges
 func (m *Manager) findAppropriateEdges(filterMap sync.Map, count int) *findNodeResult {
-	resultInfo := &findNodeResult{needCount: count}
+	resultInfo := &findNodeResult{}
 
 	nodes := make([]*node.Node, 0)
 	if count <= 0 {
@@ -540,6 +538,7 @@ func (m *Manager) findAppropriateEdges(filterMap sync.Map, count int) *findNodeR
 
 	m.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
+		resultInfo.allNodeCount++
 
 		if cI, exist := filterMap.Load(deviceID); exist {
 			cache := cI.(*CacheTask)
@@ -575,7 +574,7 @@ func (m *Manager) findAppropriateEdges(filterMap sync.Map, count int) *findNodeR
 
 // find the candidates
 func (m *Manager) findAppropriateCandidates(filterMap sync.Map, count int) *findNodeResult {
-	resultInfo := &findNodeResult{needCount: count}
+	resultInfo := &findNodeResult{}
 
 	nodes := make([]*node.Node, 0)
 	if count <= 0 {
@@ -584,6 +583,7 @@ func (m *Manager) findAppropriateCandidates(filterMap sync.Map, count int) *find
 
 	m.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
+		resultInfo.allNodeCount++
 
 		if cI, exist := filterMap.Load(deviceID); exist {
 			cache := cI.(*CacheTask)
