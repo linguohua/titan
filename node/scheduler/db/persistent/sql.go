@@ -288,10 +288,16 @@ func (sd sqlDB) UpdateCarfileRecordCachesInfo(dInfo *api.CarfileRecordInfo) erro
 	return err
 }
 
-func (sd sqlDB) CreateCarfileRecordInfo(info *api.CarfileRecordInfo) error {
+func (sd sqlDB) CreateOrUpdateCarfileRecordInfo(info *api.CarfileRecordInfo, isUpdate bool) error {
 	area := sd.replaceArea()
 
 	tableName := fmt.Sprintf(carfileInfoTable, area)
+
+	if isUpdate {
+		cmd := fmt.Sprintf("UPDATE %s SET need_reliability=:need_reliability,expired_time=:expired_time WHERE carfile_hash=:carfile_hash", tableName)
+		_, err := sd.cli.NamedExec(cmd, info)
+		return err
+	}
 
 	cmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, carfile_cid, need_reliability,expired_time) VALUES (:carfile_hash, :carfile_cid, :need_reliability, :expired_time)", tableName)
 	_, err := sd.cli.NamedExec(cmd, info)
