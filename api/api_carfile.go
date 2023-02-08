@@ -9,9 +9,6 @@ type CarfileOperation interface {
 	DeleteCarfile(ctx context.Context, carfileCID string) error //perm:write
 	// delete all carfiles
 	DeleteAllCarfiles(ctx context.Context) error //perm:admin
-	// delete carfile with wait cache
-	DeleteWaitCacheCarfile(ctx context.Context, carfileCID string) (blockCount int, err error) //perm:admin
-
 	// query block cache stat
 	QueryCacheStat(ctx context.Context) (*CacheStat, error) //perm:write
 	// query block caching stat
