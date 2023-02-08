@@ -203,6 +203,16 @@ func (m *Manager) CacheCarfile(cid string, reliability int, expiredTime time.Tim
 	return cache.GetDB().PushCarfileToWaitList(info)
 }
 
+func (m *Manager) setCacheEvent(carfileCid, msg string) {
+	err := persistent.GetDB().SetCacheEventInfo(&api.CacheEventInfo{
+		CID: carfileCid,
+		Msg: msg,
+	})
+	if err != nil {
+		log.Errorf("SetCacheEventInfo cid:%s,err:%s,msg:%s", carfileCid, err.Error(), msg)
+	}
+}
+
 // RemoveCarfileRecord remove a carfile
 func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 	dI, exist := m.CarfileRecordMap.Load(hash)
@@ -219,6 +229,8 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 	if err != nil {
 		return xerrors.Errorf("RemoveCarfileRecord err:%s ", err.Error())
 	}
+
+	m.setCacheEvent(carfileCid, "remove carfile")
 
 	count := int64(0)
 	for _, cInfo := range cInfos {
@@ -338,13 +350,7 @@ func (m *Manager) carfileCacheStart(cr *CarfileRecord, isSaveEvent bool) {
 	}
 
 	if isSaveEvent {
-		err := persistent.GetDB().SetCacheEventInfo(&api.CacheEventInfo{
-			CID: cr.carfileCid,
-			Msg: "start task",
-		})
-		if err != nil {
-			log.Errorf("SetCacheEventInfo err:%s", err.Error())
-		}
+		m.setCacheEvent(cr.carfileCid, "start task")
 	}
 }
 
@@ -364,13 +370,7 @@ func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
 
 	m.resetLatelyExpiredTime(cr.expiredTime)
 
-	err = persistent.GetDB().SetCacheEventInfo(&api.CacheEventInfo{
-		CID: cr.carfileCid,
-		Msg: fmt.Sprintf("end task:%s", msg),
-	})
-	if err != nil {
-		log.Errorf("SetCacheEventInfo err:%s", err.Error())
-	}
+	m.setCacheEvent(cr.carfileCid, fmt.Sprintf("end task:%s", msg))
 }
 
 // StopCacheTask stop cache task

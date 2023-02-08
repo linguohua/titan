@@ -78,7 +78,7 @@ func (c *CacheTask) startTimeoutTimer() {
 		}
 
 		if !c.isTimeout() {
-			break
+			continue
 		}
 
 		// task is timeout
@@ -153,18 +153,15 @@ func (c *CacheTask) updateCacheTaskInfo() error {
 }
 
 func (c *CacheTask) startTask() (err error) {
-	defer func() {
-		if err != nil {
-			c.status = api.CacheStatusFail
-		}
-	}()
-
 	go c.startTimeoutTimer()
 
 	c.status = api.CacheStatusRunning
 
 	// send to node
 	err = c.cacheCarfile2Node()
+	if err != nil {
+		c.status = api.CacheStatusFail
+	}
 	return err
 }
 
