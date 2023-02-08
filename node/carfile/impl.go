@@ -2,6 +2,7 @@ package carfile
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/ipfs/go-datastore"
@@ -14,6 +15,11 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 	if err != nil {
 		log.Errorf("CacheCarfile, CIDString2HashString error:%s, carfile cid:%s", err.Error(), carfileCID)
 		return nil, err
+	}
+
+	_, ok := carfileOperation.toDeleteCarfile.Load(carfileHash)
+	if ok {
+		return nil, fmt.Errorf("Carfile %s is to delete, can not cache", carfileCID)
 	}
 
 	has, err := carfileOperation.carfileStore.HasCarfile(carfileHash)
@@ -62,7 +68,20 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 }
 
 func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, carfileCID string) error {
+	carfileHash, err := helper.CIDString2HashString(carfileCID)
+	if err != nil {
+		return err
+	}
+
+	_, ok := carfileOperation.toDeleteCarfile.Load(carfileHash)
+	if ok {
+		return nil
+	}
+
 	go func() {
+		carfileOperation.toDeleteCarfile.Store(carfileHash, struct{}{})
+		defer carfileOperation.toDeleteCarfile.Delete(carfileHash)
+
 		_, err := carfileOperation.deleteCarfile(carfileCID)
 		if err != nil {
 			log.Errorf("DeleteCarfile, delete carfile error:%s, carfileCID:%s", err.Error(), carfileCID)
@@ -94,32 +113,6 @@ func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, car
 
 func (carfileOperation *CarfileOperation) DeleteAllCarfiles(ctx context.Context) error {
 	return nil
-}
-func (carfileOperation *CarfileOperation) DeleteWaitCacheCarfile(ctx context.Context, carfileCID string) (int, error) {
-	carfile := carfileOperation.downloadMgr.removeCarfileFromWaitList(carfileCID)
-	if carfile == nil {
-		return 0, nil
-	}
-
-	if len(carfile.blocksDownloadSuccessList) == 0 {
-		return 0, nil
-	}
-
-	hashs, err := carfile.blockCidList2BlocksHashList()
-	if err != nil {
-		return 0, err
-	}
-
-	for _, hash := range hashs {
-		err = carfileOperation.carfileStore.DeleteBlock(hash)
-		if err != nil {
-			log.Errorf("delete block error:%s", err.Error())
-		}
-	}
-
-	// TODO:save wait list
-	return len(hashs), nil
-
 }
 
 func (carfileOperation *CarfileOperation) LoadBlock(ctx context.Context, cid string) ([]byte, error) {

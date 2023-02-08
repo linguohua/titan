@@ -30,6 +30,7 @@ type CarfileOperation struct {
 	ds              datastore.Batching
 	carfileLinkLock *sync.Mutex
 	TotalBlockCount int
+	toDeleteCarfile sync.Map
 }
 
 func NewCarfileOperation(ds datastore.Batching, carfileStore *carfilestore.CarfileStore, scheduler api.Scheduler, blockDownloader downloader.BlockDownloader, device *device.Device) *CarfileOperation {
@@ -95,6 +96,7 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, 
 	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
 	defer cancel()
 
+	log.Infof("downloadResult, carfile:%s", result.CarfileHash)
 	return carfileOperation.scheduler.CacheResult(ctx, result)
 }
 
@@ -164,9 +166,36 @@ func (carfileOperation *CarfileOperation) cacheResultForCarfileExist(carfileCID 
 	return carfileOperation.scheduler.CacheResult(ctx, result)
 }
 
+func (carfileOperation *CarfileOperation) deleteWaitCacheCarfile(carfileCID string) (int, error) {
+	carfile := carfileOperation.downloadMgr.removeCarfileFromWaitList(carfileCID)
+	if carfile == nil {
+		return 0, nil
+	}
+
+	if len(carfile.blocksDownloadSuccessList) == 0 {
+		return 0, nil
+	}
+
+	hashs, err := carfile.blockCidList2BlocksHashList()
+	if err != nil {
+		return 0, err
+	}
+
+	for _, hash := range hashs {
+		err = carfileOperation.carfileStore.DeleteBlock(hash)
+		if err != nil {
+			log.Errorf("delete block error:%s", err.Error())
+		}
+	}
+
+	carfileOperation.downloadMgr.saveWaitList()
+	return len(hashs), nil
+
+}
+
 func (carfileOperation *CarfileOperation) deleteCarfile(carfileCID string) (int, error) {
 	if carfileOperation.downloadMgr.isCarfileInWaitList(carfileCID) {
-		return carfileOperation.DeleteWaitCacheCarfile(context.Background(), carfileCID)
+		return carfileOperation.deleteWaitCacheCarfile(carfileCID)
 	}
 
 	carfileHash, err := helper.CIDString2HashString(carfileCID)
