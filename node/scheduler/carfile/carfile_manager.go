@@ -82,6 +82,7 @@ func (m *Manager) initCarfileMap() {
 			log.Errorf("initCacheMap loadCarfileRecord hash:%s , err:%s", hash, err.Error())
 			continue
 		}
+		cr.initStep()
 
 		m.carfileCacheStart(cr, false)
 
@@ -164,6 +165,8 @@ func (m *Manager) doCarfileCacheTask(info *api.CacheCarfileInfo) error {
 
 		carfileRecord.needReliability = info.NeedReliability
 		carfileRecord.expiredTime = info.ExpiredTime
+
+		carfileRecord.initStep()
 	} else {
 		carfileRecord = newCarfileRecord(m, info.CarfileCid, info.CarfileHash)
 		carfileRecord.needReliability = info.NeedReliability

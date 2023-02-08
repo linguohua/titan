@@ -106,8 +106,6 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 		carfileRecord.CacheTaskMap.Store(cacheInfo.DeviceID, c)
 	}
 
-	carfileRecord.initStep()
-
 	return carfileRecord, nil
 }
 
