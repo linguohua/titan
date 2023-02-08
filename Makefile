@@ -68,7 +68,7 @@ api-gen:
 	goimports -w api
 .PHONY: api-gen
 
-build: titan-scheduler titan-candidate titan-edge titan-edge-arm titan-locator
+build: titan-scheduler titan-candidate titan-candidate-arm titan-edge titan-edge-arm titan-locator
 .PHONY: build
 
 edge-image:
