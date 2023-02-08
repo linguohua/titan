@@ -804,7 +804,7 @@ var showCarfileInfoCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,Expired Time:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.ExpiredTime.Format("2006-01-02 15:04:05"))
+		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,Reliability:%d/%d ,Expired Time:%s\n ", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.Reliability, info.NeedReliability, info.ExpiredTime.Format("2006-01-02 15:04:05"))
 		for _, cache := range info.CacheInfos {
 			fmt.Printf("DeviceID: %s ,Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsRootCache:%v \n",
 				cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.CandidateCache)

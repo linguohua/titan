@@ -200,7 +200,7 @@ func (d *CarfileRecord) startCacheTasks(nodes []string, isCandidate bool) (isRun
 func (d *CarfileRecord) cacheToCandidates(needCount int) error {
 	result := d.carfileManager.findAppropriateCandidates(d.CacheTaskMap, needCount)
 	if len(result.list) <= 0 {
-		return xerrors.Errorf("allCount:%d,filterCount:%d,insufficientDiskCount:%d", result.allNodeCount, result.filterCount, result.insufficientDiskCount)
+		return xerrors.Errorf("allCandidateCount:%d,filterCount:%d,insufficientDiskCount:%d,need:%d", result.allNodeCount, result.filterCount, result.insufficientDiskCount, needCount)
 	}
 
 	if !d.startCacheTasks(result.list, true) {
@@ -217,7 +217,7 @@ func (d *CarfileRecord) cacheToEdges(needCount int) error {
 
 	result := d.carfileManager.findAppropriateEdges(d.CacheTaskMap, needCount)
 	if len(result.list) <= 0 {
-		return xerrors.Errorf("allCount:%d,filterCount:%d,insufficientDiskCount:%d", result.allNodeCount, result.filterCount, result.insufficientDiskCount)
+		return xerrors.Errorf("allEdgeCount:%d,filterCount:%d,insufficientDiskCount:%d,need:%d", result.allNodeCount, result.filterCount, result.insufficientDiskCount, needCount)
 	}
 
 	if !d.startCacheTasks(result.list, false) {
