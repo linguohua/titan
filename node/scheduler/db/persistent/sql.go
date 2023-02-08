@@ -280,10 +280,19 @@ func (sd sqlDB) UpdateCacheTaskInfo(cInfo *api.CacheTaskInfo) error {
 func (sd sqlDB) UpdateCarfileRecordCachesInfo(dInfo *api.CarfileRecordInfo) error {
 	area := sd.replaceArea()
 	dTableName := fmt.Sprintf(carfileInfoTable, area)
+	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
+	var reliability int
+	cmd := fmt.Sprintf("SELECT sum(reliability) FROM %s WHERE carfile_hash=? AND status=?", cTableName)
+	err := sd.cli.Get(&reliability, cmd, dInfo.CarfileHash, api.CacheStatusSuccess)
+	if err != nil {
+		return err
+	}
+
+	dInfo.Reliability = reliability
 	// update
-	cmd := fmt.Sprintf("UPDATE %s SET total_size=:total_size,total_blocks=:total_blocks,reliability=:reliability,end_time=NOW(),need_reliability=:need_reliability,expired_time=:expired_time WHERE carfile_hash=:carfile_hash", dTableName)
-	_, err := sd.cli.NamedExec(cmd, dInfo)
+	cmd = fmt.Sprintf("UPDATE %s SET total_size=:total_size,total_blocks=:total_blocks,reliability=:reliability,end_time=NOW(),need_reliability=:need_reliability,expired_time=:expired_time WHERE carfile_hash=:carfile_hash", dTableName)
+	_, err = sd.cli.NamedExec(cmd, dInfo)
 
 	return err
 }
@@ -598,8 +607,8 @@ func (sd sqlDB) RemoveCacheTask(deviceID, carfileHash string) error {
 	tx.MustExec(cCmd, deviceID, carfileHash)
 
 	var reliability int
-	cmd := fmt.Sprintf("SELECT sum(reliability) FROM %s WHERE carfile_hash=? ", cTableName)
-	err := tx.Get(&reliability, cmd, carfileHash)
+	cmd := fmt.Sprintf("SELECT sum(reliability) FROM %s WHERE carfile_hash=? AND status=?", cTableName)
+	err := tx.Get(&reliability, cmd, carfileHash, api.CacheStatusSuccess)
 	if err != nil {
 		return err
 	}

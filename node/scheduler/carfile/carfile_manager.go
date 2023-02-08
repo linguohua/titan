@@ -184,13 +184,12 @@ func (m *Manager) doCarfileCacheTask(info *api.CacheCarfileInfo) error {
 	}
 
 	m.carfileCacheStart(carfileRecord, true)
-	defer func() {
-		if err != nil {
-			m.carfileCacheEnd(carfileRecord, err)
-		}
-	}()
 
 	err = carfileRecord.dispatchCaches()
+	if err != nil {
+		m.carfileCacheEnd(carfileRecord, err)
+	}
+
 	return nil
 }
 
