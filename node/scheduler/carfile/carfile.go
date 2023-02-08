@@ -264,14 +264,19 @@ func (d *CarfileRecord) dispatchCaches() error {
 			return xerrors.New("rootcache is 0")
 		}
 		needCacdidateCount := (d.carfileManager.rootCacheCount + d.carfileManager.backupCacheCount) - d.candidateCaches
+		if needCacdidateCount <= 0 {
+			return xerrors.New("no caching required to candidate node")
+		}
 		return d.cacheToCandidates(needCacdidateCount)
 	case edgeCacheStep:
 		needEdgeCount := d.needReliability - d.reliability
+		if needEdgeCount <= 0 {
+			return xerrors.New("no caching required to edge node")
+		}
 		return d.cacheToEdges(needEdgeCount)
 	}
 
-	// no caching required
-	return xerrors.New("")
+	return xerrors.New("steps completed")
 }
 
 // func (d *CarfileRecord) dispatchCaches() error {
