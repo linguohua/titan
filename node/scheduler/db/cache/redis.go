@@ -109,29 +109,35 @@ func (rd redisDB) CacheTasksEnd(hash string, deviceIDs []string) (bool, error) {
 
 	cachesDone := exist == 0
 
-	ctx := context.Background()
-	_, err = rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-		if cachesDone {
-			pipeliner.SRem(context.Background(), cacheingCarfileList, hash)
-		}
+	if cachesDone {
+		_, err = rd.cli.SRem(context.Background(), cacheingCarfileList, hash).Result()
+	}
 
-		// for _, deviceID := range deviceIDs {
-		// 	nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
-		// 	// Expire
-		// 	pipeliner.Del(context.Background(), nodeKey)
-		// }
+	return cachesDone, err
 
-		// if nodeInfo != nil {
-		// 	nKey := fmt.Sprintf(redisKeyNodeInfo, nodeInfo.DeviceID)
-		// 	pipeliner.HMSet(context.Background(), nKey, diskUsageField, nodeInfo.DiskUsage, blockCountField, nodeInfo.BlockCount, totalDownloadField, nodeInfo.TotalDownload)
-		// 	if nodeInfo.IsSuccess {
-		// 		baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
-		// 		pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, 1)
-		// 	}
-		// }
+	// ctx := context.Background()
+	// _, err = rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+	// 	if cachesDone {
+	// 		pipeliner.SRem(context.Background(), cacheingCarfileList, hash)
+	// 	}
 
-		return nil
-	})
+	// for _, deviceID := range deviceIDs {
+	// 	nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
+	// 	// Expire
+	// 	pipeliner.Del(context.Background(), nodeKey)
+	// }
+
+	// if nodeInfo != nil {
+	// 	nKey := fmt.Sprintf(redisKeyNodeInfo, nodeInfo.DeviceID)
+	// 	pipeliner.HMSet(context.Background(), nKey, diskUsageField, nodeInfo.DiskUsage, blockCountField, nodeInfo.BlockCount, totalDownloadField, nodeInfo.TotalDownload)
+	// 	if nodeInfo.IsSuccess {
+	// 		baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
+	// 		pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, 1)
+	// 	}
+	// }
+
+	// 	return nil
+	// })
 
 	return cachesDone, err
 }
