@@ -656,7 +656,7 @@ var listCarfilesCmd = &cli.Command{
 }
 
 var listCacheEventCmd = &cli.Command{
-	Name:  "list-cache-events",
+	Name:  "list-cache-event",
 	Usage: "list cache events",
 	Flags: []cli.Flag{
 		pageFlag,

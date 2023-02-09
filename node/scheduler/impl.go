@@ -175,7 +175,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 	}
 
 	// url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
-	log.Infof("CandidateNodeConnect deviceID:%s, rpc url:%s", deviceID, rpcURL)
+	log.Infof("CandidateNodeConnect %s ;ip:%s", deviceID, ip)
 
 	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
