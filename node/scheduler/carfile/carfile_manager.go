@@ -84,7 +84,7 @@ func (m *Manager) initCarfileMap() {
 		}
 		cr.initStep()
 
-		m.carfileCacheStart(cr, false)
+		m.carfileCacheStart(cr)
 
 		isRunning := false
 		// start timout check
@@ -183,7 +183,7 @@ func (m *Manager) doCarfileCacheTask(info *api.CacheCarfileInfo) error {
 		return xerrors.Errorf("cid:%s,CreateOrUpdateCarfileRecordInfo err:%s", carfileRecord.carfileCid, err.Error())
 	}
 
-	m.carfileCacheStart(carfileRecord, true)
+	m.carfileCacheStart(carfileRecord)
 
 	err = carfileRecord.dispatchCaches()
 	if err != nil {
@@ -210,7 +210,7 @@ func (m *Manager) CacheCarfile(cid string, reliability int, expiredTime time.Tim
 		return xerrors.Errorf("%s cid to hash err:", cid, err.Error())
 	}
 
-	log.Infof("event add carfile:%s,reliability:%d,expiredTime:%s", cid, reliability, expiredTime.String())
+	log.Infof("carfile event %s , add carfile,reliability:%d,expiredTime:%s", cid, reliability, expiredTime.String())
 
 	info := &api.CacheCarfileInfo{CarfileHash: hash, CarfileCid: cid, NeedReliability: reliability, ExpiredTime: expiredTime}
 
@@ -234,8 +234,7 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 		return xerrors.Errorf("RemoveCarfileRecord err:%s ", err.Error())
 	}
 
-	log.Infof("event remove carfile record:%s", carfileCid)
-	// m.setCacheEvent(carfileCid, "remove carfile")
+	log.Infof("carfile event %s , remove carfile record", carfileCid)
 
 	count := int64(0)
 	for _, cInfo := range cInfos {
@@ -273,7 +272,7 @@ func (m *Manager) RemoveCache(carfileCid, deviceID string) error {
 		return err
 	}
 
-	log.Infof("event remove cache task:%s,%s", carfileCid, deviceID)
+	log.Infof("carfile event %s , remove cache task:%s", carfileCid, deviceID)
 
 	if cacheInfo.Status == api.CacheStatusSuccess {
 		err = cache.GetDB().IncrByBaseInfo(cache.CarFileCountField, -1)
@@ -344,41 +343,39 @@ func (m *Manager) startCarfileCacheTasks() {
 
 		err = m.doCarfileCacheTask(info)
 		if err != nil {
-			log.Errorf("carfile event %s do caches err:%s", info.CarfileCid, err.Error())
+			log.Errorf("carfile %s do caches err:%s", info.CarfileCid, err.Error())
 		}
 	}
 }
 
-func (m *Manager) carfileCacheStart(cr *CarfileRecord, isSaveEvent bool) {
-	log.Infof("carfile event %s start -----", cr.carfileCid)
+func (m *Manager) carfileCacheStart(cr *CarfileRecord) {
+	log.Infof("carfile %s cache task start -----", cr.carfileCid)
 
 	_, exist := m.CarfileRecordMap.LoadOrStore(cr.carfileHash, cr)
 	if !exist {
 		m.RunningTaskCount++
 	}
 
-	if isSaveEvent {
-		m.setCacheEvent(cr.carfileCid, "start task")
-	}
+	// if isSaveEvent {
+	// 	m.setCacheEvent(cr.carfileCid, "start task")
+	// }
 }
 
 func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
-	log.Infof("carfile event %s end -----", cr.carfileCid)
+	log.Infof("carfile %s cache task end -----", cr.carfileCid)
 
 	_, exist := m.CarfileRecordMap.LoadAndDelete(cr.carfileHash)
 	if exist {
 		m.RunningTaskCount--
 	}
 
-	msg := ""
 	if err != nil {
-		// log.Errorf("end carfile err:%s", err.Error())
-		msg = err.Error()
+		log.Errorf("end carfile err:%s", err.Error())
 	}
 
 	m.resetLatelyExpiredTime(cr.expiredTime)
 
-	m.setCacheEvent(cr.carfileCid, fmt.Sprintf("end task:%s", msg))
+	// m.setCacheEvent(cr.carfileCid, fmt.Sprintf("end task:%s", msg))
 }
 
 // StopCacheTask stop cache task
@@ -393,7 +390,7 @@ func (m *Manager) ReplenishCacheExpiredTime(cid string, hour int) error {
 		return err
 	}
 
-	log.Infof("event replenish carfile expired time:%s,%d", cid, hour)
+	log.Infof("carfile event %s , replenish carfile expired time:%d", cid, hour)
 
 	dI, ok := m.CarfileRecordMap.Load(hash)
 	if ok && dI != nil {
@@ -411,7 +408,7 @@ func (m *Manager) ResetCacheExpiredTime(cid string, expiredTime time.Time) error
 		return err
 	}
 
-	log.Infof("event reset carfile expired time:%s,%s", cid, expiredTime.String())
+	log.Infof("carfile event %s , reset carfile expired time:%s", cid, expiredTime.String())
 
 	dI, ok := m.CarfileRecordMap.Load(hash)
 	if ok && dI != nil {
@@ -437,7 +434,7 @@ func (m *Manager) NodesQuit(deviceIDs []string) {
 		return
 	}
 
-	log.Infof("event nodes quit:%v", deviceIDs)
+	log.Infof("node event , nodes quit:%v", deviceIDs)
 
 	m.resetBaseInfo()
 
