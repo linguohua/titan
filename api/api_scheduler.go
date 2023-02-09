@@ -188,6 +188,7 @@ type DownloadInfoResult struct {
 	SN       int64
 	SignTime int64
 	TimeOut  int
+	Weight   int
 	DeviceID string `json:"-"`
 }
 
