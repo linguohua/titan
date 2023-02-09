@@ -404,9 +404,6 @@ func (m *Manager) checkNodesQuit() {
 
 		// node quitted
 		quits = append(quits, node.DeviceID)
-
-		// clean node cache
-		// go m.NodeQuit(node.DeviceID)
 	}
 
 	if len(quits) > 0 {
