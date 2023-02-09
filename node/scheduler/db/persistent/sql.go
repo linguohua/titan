@@ -648,7 +648,6 @@ func (sd sqlDB) UpdateCacheInfoOfQuitNode(deviceIDs []string) (carfileRecords []
 		return
 	}
 
-	// var carfiles []*api.CarfileRecordInfo
 	carfilesQuery = sd.cli.Rebind(carfilesQuery)
 	tx.Select(&carfileRecords, carfilesQuery, args...)
 
