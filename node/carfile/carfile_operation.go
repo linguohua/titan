@@ -59,7 +59,7 @@ func NewCarfileOperation(ds datastore.Batching, carfileStore *carfilestore.Carfi
 func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, isComplete bool) error {
 	status := api.CacheStatusFail
 	if !isComplete {
-		status = api.CacheStatusCreate
+		status = api.CacheStatusRunning
 	} else {
 		// count total block in filesystem is cost much time
 		// only do it on carfile download complete
