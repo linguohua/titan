@@ -306,14 +306,11 @@ func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo)
 		carfileRecord.totalBlocks = info.CarfileBlockCount
 	}
 
-	cacheI, exist := carfileRecord.CacheTaskMap.Load(deviceID)
-	if !exist {
-		err = xerrors.Errorf("cacheCarfileResult not found deviceID:%s,cid:%s", deviceID, carfileRecord.carfileCid)
-		return
+	if info.Status == api.CacheStatusCreate {
+		info.Status = api.CacheStatusRunning
 	}
-	c := cacheI.(*CacheTask)
 
-	err = c.carfileCacheResult(info)
+	err = carfileRecord.carfileCacheResult(deviceID, info)
 	return
 }
 
@@ -374,6 +371,8 @@ func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
 	}
 
 	m.resetLatelyExpiredTime(cr.expiredTime)
+
+	// save cache result
 
 	// m.setCacheEvent(cr.carfileCid, fmt.Sprintf("end task:%s", msg))
 }

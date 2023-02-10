@@ -31,14 +31,14 @@ type CarfileRecord struct {
 	totalBlocks     int
 	expiredTime     time.Time
 
+	dowloadSources  []*api.DowloadSource
 	candidateCaches int
 	CacheTaskMap    sync.Map
 
-	cacheLock      sync.RWMutex
-	dowloadSources []*api.DowloadSource
+	lock sync.RWMutex
 
-	step            int      // dispatchCount int
-	nodeCacheErrMsg sync.Map // [msg]deviceID
+	step          int               // dispatchCount int
+	nodeCacheErrs map[string]string // [deviceID]msg
 }
 
 func newCarfileRecord(manager *Manager, cid, hash string) *CarfileRecord {
@@ -48,6 +48,7 @@ func newCarfileRecord(manager *Manager, cid, hash string) *CarfileRecord {
 		carfileCid:     cid,
 		carfileHash:    hash,
 		dowloadSources: make([]*api.DowloadSource, 0),
+		nodeCacheErrs:  make(map[string]string),
 	}
 }
 
@@ -68,6 +69,7 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 	carfileRecord.expiredTime = dInfo.ExpiredTime
 	carfileRecord.carfileHash = dInfo.CarfileHash
 	carfileRecord.dowloadSources = make([]*api.DowloadSource, 0)
+	carfileRecord.nodeCacheErrs = make(map[string]string)
 
 	caches, err := persistent.GetDB().GetCacheTaskInfosWithHash(hash, false)
 	if err != nil {
@@ -309,9 +311,11 @@ func (d *CarfileRecord) dispatchCaches() error {
 // 	return d.cacheToEdges(needEdgeCount)
 // }
 
-func (d *CarfileRecord) cacheDone(endCache *CacheTask, cachesDone bool) {
+func (d *CarfileRecord) updateCarfileRecordInfo(endCache *CacheTask) {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+
 	if endCache.status == api.CacheStatusSuccess {
-		d.cacheLock.Lock()
 		d.reliability += endCache.reliability
 
 		if endCache.isCandidateCache {
@@ -325,14 +329,7 @@ func (d *CarfileRecord) cacheDone(endCache *CacheTask, cachesDone bool) {
 				})
 			}
 		}
-		d.cacheLock.Unlock()
 	}
-
-	if !cachesDone {
-		// caches undone
-		return
-	}
-
 	// Carfile caches end
 	dInfo := &api.CarfileRecordInfo{
 		CarfileHash:     d.carfileHash,
@@ -346,13 +343,6 @@ func (d *CarfileRecord) cacheDone(endCache *CacheTask, cachesDone bool) {
 	if err != nil {
 		log.Errorf("UpdateCarfileRecordCachesInfo err:%s", err.Error())
 		return
-	}
-
-	d.nextStep() //next step
-
-	err = d.dispatchCaches()
-	if err != nil {
-		d.carfileManager.carfileCacheEnd(d, err)
 	}
 }
 
@@ -389,4 +379,60 @@ func (d *CarfileRecord) GetTotalBlocks() int {
 // GetExpiredTime get expired time
 func (d *CarfileRecord) GetExpiredTime() time.Time {
 	return d.expiredTime
+}
+
+func (d *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResultInfo) error {
+	cacheI, exist := d.CacheTaskMap.Load(deviceID)
+	if !exist {
+		return xerrors.Errorf("cacheCarfileResult not found deviceID:%s,cid:%s", deviceID, d.carfileCid)
+	}
+	c := cacheI.(*CacheTask)
+
+	c.status = info.Status
+	c.doneBlocks = info.DoneBlockCount
+	c.doneSize = info.DoneSize
+
+	if c.status == api.CacheStatusRunning {
+		// update cache task timeout
+		return cache.GetDB().UpdateNodeCacheingExpireTime(c.carfileHash, c.deviceID, cacheTimeoutTime)
+	}
+
+	c.reliability = c.calculateReliability()
+
+	if c.status == api.CacheStatusFail {
+		// err msg
+		d.nodeCacheErrs[c.deviceID] = info.Msg
+	}
+
+	// update node info
+	node := d.nodeManager.GetNode(c.deviceID)
+	if node != nil {
+		node.IncrCurCacheCount(-1)
+	}
+
+	err := c.updateCacheTaskInfo()
+	if err != nil {
+		return xerrors.Errorf("endCache %s , updateCacheTaskInfo err:%s", c.carfileHash, err.Error())
+	}
+
+	d.updateCarfileRecordInfo(c)
+
+	cachesDone, err := cache.GetDB().CacheTasksEnd(c.carfileHash, []string{c.deviceID})
+	if err != nil {
+		return xerrors.Errorf("endCache %s , CacheTasksEnd err:%s", c.carfileHash, err.Error())
+	}
+
+	if !cachesDone {
+		// caches undone
+		return nil
+	}
+
+	d.nextStep() //next step
+
+	err = d.dispatchCaches()
+	if err != nil {
+		d.carfileManager.carfileCacheEnd(d, err)
+	}
+
+	return nil
 }
