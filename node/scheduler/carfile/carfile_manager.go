@@ -297,7 +297,6 @@ func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo)
 		carfileRecord = dI.(*CarfileRecord)
 	} else {
 		err = xerrors.Errorf("task not running : %s,%s ,err:%v", deviceID, info.CarfileHash, err)
-		// TODO update db
 		return
 	}
 
@@ -369,6 +368,7 @@ func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
 	if err != nil {
 		log.Errorf("end carfile err:%s", err.Error())
 	}
+	log.Warnf("nodeCacheErrs:%v", cr.nodeCacheErrs)
 
 	m.resetLatelyExpiredTime(cr.expiredTime)
 
