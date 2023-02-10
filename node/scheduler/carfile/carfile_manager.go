@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"sort"
 	"sync"
 	"time"
 
@@ -25,15 +24,14 @@ const (
 	cacheTimeoutTime          = 65      //  expiration set to redis (Unit:Second)
 	startTaskInterval         = 10      //  time interval (Unit:Second)
 	checkExpiredTimerInterval = 60 * 30 //  time interval (Unit:Second)
+	runningCarfileMaxCount    = 10      // It needs to be changed to the number of caches
+	diskUsageMax              = 90.0    // If the node disk size is greater than this value, caching will not continue
+	// dispatchCacheTaskLimit    = 3       // carfile dispatch cache count limit
+	rootCacheCount = 1 //The number of caches in the first stage
+)
 
-	// It needs to be changed to the number of caches
-	runningCarfileMaxCount = 10
-
-	// If the node disk size is greater than this value, caching will not continue
-	diskUsageMax = 90.0
-
-	// carfile dispatch cache count limit
-	dispatchCacheTaskLimit = 3
+var (
+	backupCacheCount = 0 //Cache to the number of candidate nodes （does not contain 'rootCacheCount'）
 )
 
 // Manager carfile
@@ -41,14 +39,8 @@ type Manager struct {
 	nodeManager       *node.Manager
 	CarfileRecordMap  sync.Map // cacheing carfile map
 	latelyExpiredTime time.Time
-	// isLoadExpiredTime  bool
-	authToken        []byte
-	RunningTaskCount int
-
-	//The number of caches in the first stage （from ipfs to titan）
-	rootCacheCount int
-	//Cache to the number of candidate nodes （does not contain 'rootCacheCount'）
-	backupCacheCount int
+	authToken         []byte
+	RunningTaskCount  int
 }
 
 // NewCarfileManager new
@@ -57,8 +49,6 @@ func NewCarfileManager(nodeManager *node.Manager, authToken []byte) *Manager {
 		nodeManager:       nodeManager,
 		latelyExpiredTime: time.Now(),
 		authToken:         authToken,
-		rootCacheCount:    1,
-		backupCacheCount:  0,
 	}
 
 	d.resetBaseInfo()
@@ -261,7 +251,7 @@ func (m *Manager) RemoveCache(carfileCid, deviceID string) error {
 		return xerrors.Errorf("task %s is running, please wait", carfileCid)
 	}
 
-	cacheInfo, err := persistent.GetDB().GetCacheInfo(m.cacheTaskID(hash, deviceID))
+	cacheInfo, err := persistent.GetDB().GetCacheInfo(cacheTaskID(hash, deviceID))
 	if err != nil {
 		return xerrors.Errorf("GetCacheInfo: %s,err:%s", carfileCid, err.Error())
 	}
@@ -513,107 +503,17 @@ type findNodeResult struct {
 	insufficientDiskCount int
 }
 
-// find the edges
-func (m *Manager) findAppropriateEdges(filterMap sync.Map, count int) *findNodeResult {
-	resultInfo := &findNodeResult{}
-
-	nodes := make([]*node.Node, 0)
-	if count <= 0 {
-		return resultInfo
-	}
-
-	m.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
-		deviceID := key.(string)
-		resultInfo.allNodeCount++
-
-		if cI, exist := filterMap.Load(deviceID); exist {
-			cache := cI.(*CacheTask)
-			if cache.status == api.CacheStatusSuccess {
-				resultInfo.filterCount++
-				return true
-			}
-		}
-
-		node := value.(*node.EdgeNode)
-		if node.DiskUsage > diskUsageMax {
-			resultInfo.insufficientDiskCount++
-			return true
-		}
-
-		nodes = append(nodes, node.Node)
-		return true
-	})
-
-	sort.Slice(nodes, func(i, j int) bool {
-		return nodes[i].GetCurCacheCount() < nodes[j].GetCurCacheCount()
-	})
-
-	if count > len(nodes) {
-		count = len(nodes)
-	}
-
-	for _, node := range nodes[0:count] {
-		resultInfo.list = append(resultInfo.list, node.DeviceID)
-	}
-	return resultInfo
-}
-
-// find the candidates
-func (m *Manager) findAppropriateCandidates(filterMap sync.Map, count int) *findNodeResult {
-	resultInfo := &findNodeResult{}
-
-	nodes := make([]*node.Node, 0)
-	if count <= 0 {
-		return resultInfo
-	}
-
-	m.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
-		deviceID := key.(string)
-		resultInfo.allNodeCount++
-
-		if cI, exist := filterMap.Load(deviceID); exist {
-			cache := cI.(*CacheTask)
-			if cache.status == api.CacheStatusSuccess {
-				resultInfo.filterCount++
-				return true
-			}
-		}
-
-		node := value.(*node.CandidateNode)
-		if node.DiskUsage > diskUsageMax {
-			resultInfo.insufficientDiskCount++
-			return true
-		}
-
-		nodes = append(nodes, node.Node)
-		return true
-	})
-
-	sort.Slice(nodes, func(i, j int) bool {
-		return nodes[i].GetCurCacheCount() < nodes[j].GetCurCacheCount()
-	})
-
-	if count > len(nodes) {
-		count = len(nodes)
-	}
-
-	for _, node := range nodes[0:count] {
-		resultInfo.list = append(resultInfo.list, node.DeviceID)
-	}
-	return resultInfo
-}
-
 // ResetBackupCacheCount reset backupCacheCount
-func (m *Manager) ResetBackupCacheCount(backupCacheCount int) {
-	m.backupCacheCount = backupCacheCount
+func (m *Manager) ResetBackupCacheCount(count int) {
+	backupCacheCount = count
 }
 
 // GetBackupCacheCounts get backupCacheCount
 func (m *Manager) GetBackupCacheCounts() int {
-	return m.backupCacheCount
+	return backupCacheCount
 }
 
-func (m *Manager) cacheTaskID(hash, deviceID string) string {
+func cacheTaskID(hash, deviceID string) string {
 	input := fmt.Sprintf("%s%s", hash, deviceID)
 
 	c := sha1.New()

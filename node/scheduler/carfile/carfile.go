@@ -1,6 +1,7 @@
 package carfile
 
 import (
+	"sort"
 	"sync"
 	"time"
 
@@ -96,7 +97,7 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 		if c.isCandidateCache && c.status == api.CacheStatusSuccess {
 			carfileRecord.candidateCaches++
 
-			cNode := c.carfileRecord.nodeManager.GetCandidateNode(c.deviceID)
+			cNode := carfileRecord.nodeManager.GetCandidateNode(c.deviceID)
 			if cNode != nil {
 				carfileRecord.dowloadSources = append(carfileRecord.dowloadSources, &api.DowloadSource{
 					CandidateURL:   cNode.GetAddress(),
@@ -172,7 +173,7 @@ func (d *CarfileRecord) startCacheTasks(nodes []string, isCandidate bool) (isRun
 		// do cache
 		err = cacheTask.startTask()
 		if err != nil {
-			log.Errorf("startCacheTasks %s , node:%s,err:%s", cacheTask.carfileRecord.carfileCid, cacheTask.deviceID, err.Error())
+			log.Errorf("startCacheTasks %s , node:%s,err:%s", d.carfileCid, cacheTask.deviceID, err.Error())
 			errorList = append(errorList, deviceID)
 			continue
 		}
@@ -198,7 +199,7 @@ func (d *CarfileRecord) startCacheTasks(nodes []string, isCandidate bool) (isRun
 }
 
 func (d *CarfileRecord) cacheToCandidates(needCount int) error {
-	result := d.carfileManager.findAppropriateCandidates(d.CacheTaskMap, needCount)
+	result := d.findAppropriateCandidates(d.CacheTaskMap, needCount)
 	if len(result.list) <= 0 {
 		return xerrors.Errorf("allCandidateCount:%d,filterCount:%d,insufficientDiskCount:%d,need:%d", result.allNodeCount, result.filterCount, result.insufficientDiskCount, needCount)
 	}
@@ -215,7 +216,7 @@ func (d *CarfileRecord) cacheToEdges(needCount int) error {
 		return xerrors.New("not found cache sources")
 	}
 
-	result := d.carfileManager.findAppropriateEdges(d.CacheTaskMap, needCount)
+	result := d.findAppropriateEdges(d.CacheTaskMap, needCount)
 	if len(result.list) <= 0 {
 		return xerrors.Errorf("allEdgeCount:%d,filterCount:%d,insufficientDiskCount:%d,need:%d", result.allNodeCount, result.filterCount, result.insufficientDiskCount, needCount)
 	}
@@ -235,7 +236,7 @@ func (d *CarfileRecord) initStep() {
 		return
 	}
 
-	if d.candidateCaches < d.carfileManager.rootCacheCount+d.carfileManager.backupCacheCount {
+	if d.candidateCaches < rootCacheCount+backupCacheCount {
 		d.step = candidateCacheStep
 		return
 	}
@@ -249,7 +250,7 @@ func (d *CarfileRecord) nextStep() {
 	d.step++
 
 	if d.step == candidateCacheStep {
-		needCacdidateCount := (d.carfileManager.rootCacheCount + d.carfileManager.backupCacheCount) - d.candidateCaches
+		needCacdidateCount := (rootCacheCount + backupCacheCount) - d.candidateCaches
 		if needCacdidateCount <= 0 {
 			// no need to cache to candidate , skip this step
 			d.step++
@@ -260,12 +261,12 @@ func (d *CarfileRecord) nextStep() {
 func (d *CarfileRecord) dispatchCaches() error {
 	switch d.step {
 	case rootCacheStep:
-		return d.cacheToCandidates(d.carfileManager.rootCacheCount)
+		return d.cacheToCandidates(rootCacheCount)
 	case candidateCacheStep:
 		if d.candidateCaches == 0 {
 			return xerrors.New("rootcache is 0")
 		}
-		needCacdidateCount := (d.carfileManager.rootCacheCount + d.carfileManager.backupCacheCount) - d.candidateCaches
+		needCacdidateCount := (rootCacheCount + backupCacheCount) - d.candidateCaches
 		if needCacdidateCount <= 0 {
 			return xerrors.New("no caching required to candidate node")
 		}
@@ -436,4 +437,94 @@ func (d *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResul
 	}
 
 	return nil
+}
+
+// find the edges
+func (d *CarfileRecord) findAppropriateEdges(filterMap sync.Map, count int) *findNodeResult {
+	resultInfo := &findNodeResult{}
+
+	nodes := make([]*node.Node, 0)
+	if count <= 0 {
+		return resultInfo
+	}
+
+	d.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
+		deviceID := key.(string)
+		resultInfo.allNodeCount++
+
+		if cI, exist := filterMap.Load(deviceID); exist {
+			cache := cI.(*CacheTask)
+			if cache.status == api.CacheStatusSuccess {
+				resultInfo.filterCount++
+				return true
+			}
+		}
+
+		node := value.(*node.EdgeNode)
+		if node.DiskUsage > diskUsageMax {
+			resultInfo.insufficientDiskCount++
+			return true
+		}
+
+		nodes = append(nodes, node.Node)
+		return true
+	})
+
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].GetCurCacheCount() < nodes[j].GetCurCacheCount()
+	})
+
+	if count > len(nodes) {
+		count = len(nodes)
+	}
+
+	for _, node := range nodes[0:count] {
+		resultInfo.list = append(resultInfo.list, node.DeviceID)
+	}
+	return resultInfo
+}
+
+// find the candidates
+func (d *CarfileRecord) findAppropriateCandidates(filterMap sync.Map, count int) *findNodeResult {
+	resultInfo := &findNodeResult{}
+
+	nodes := make([]*node.Node, 0)
+	if count <= 0 {
+		return resultInfo
+	}
+
+	d.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
+		deviceID := key.(string)
+		resultInfo.allNodeCount++
+
+		if cI, exist := filterMap.Load(deviceID); exist {
+			cache := cI.(*CacheTask)
+			if cache.status == api.CacheStatusSuccess {
+				resultInfo.filterCount++
+				return true
+			}
+		}
+
+		node := value.(*node.CandidateNode)
+		if node.DiskUsage > diskUsageMax {
+			resultInfo.insufficientDiskCount++
+			return true
+		}
+
+		nodes = append(nodes, node.Node)
+		return true
+	})
+
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].GetCurCacheCount() < nodes[j].GetCurCacheCount()
+	})
+
+	if count > len(nodes) {
+		count = len(nodes)
+	}
+
+	for _, node := range nodes[0:count] {
+		resultInfo.list = append(resultInfo.list, node.DeviceID)
+	}
+	return resultInfo
 }
