@@ -34,7 +34,7 @@ func newCache(carfileRecord *CarfileRecord, deviceID string, isCandidateCache bo
 		carfileHash:      carfileRecord.carfileHash,
 		isCandidateCache: isCandidateCache,
 		deviceID:         deviceID,
-		id:               carfileRecord.carfileManager.cacheTaskID(carfileRecord.carfileHash, deviceID),
+		id:               cacheTaskID(carfileRecord.carfileHash, deviceID),
 	}
 
 	err := persistent.GetDB().CreateCacheTaskInfo(
@@ -96,38 +96,6 @@ func (c *CacheTask) startTimeoutTimer() {
 	}
 }
 
-// Notify node to cache blocks
-func (c *CacheTask) cacheCarfile2Node() (err error) {
-	var result *api.CacheCarfileResult
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer func() {
-		cancel()
-
-		if result != nil {
-			// update node info
-			node := c.carfileRecord.nodeManager.GetNode(c.deviceID)
-			if node != nil {
-				node.SetCurCacheCount(result.WaitCacheCarfileNum + 1)
-			}
-		}
-	}()
-
-	cNode := c.carfileRecord.nodeManager.GetCandidateNode(c.deviceID)
-	if cNode != nil {
-		result, err = cNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.dowloadSources)
-		return
-	}
-
-	eNode := c.carfileRecord.nodeManager.GetEdgeNode(c.deviceID)
-	if eNode != nil {
-		result, err = eNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.dowloadSources)
-		return
-	}
-
-	err = xerrors.Errorf("not found node:%s", c.deviceID)
-	return
-}
-
 func (c *CacheTask) startTask() (err error) {
 	go c.startTimeoutTimer()
 
@@ -164,6 +132,39 @@ func (c *CacheTask) updateCacheTaskInfo() error {
 	}
 
 	return persistent.GetDB().UpdateCacheTaskInfo(cInfo)
+}
+
+// Notify node to cache blocks
+func (c *CacheTask) cacheCarfile2Node() (err error) {
+	deviceID := c.deviceID
+	var result *api.CacheCarfileResult
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer func() {
+		cancel()
+
+		if result != nil {
+			// update node info
+			node := c.carfileRecord.nodeManager.GetNode(deviceID)
+			if node != nil {
+				node.SetCurCacheCount(result.WaitCacheCarfileNum + 1)
+			}
+		}
+	}()
+
+	cNode := c.carfileRecord.nodeManager.GetCandidateNode(deviceID)
+	if cNode != nil {
+		result, err = cNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.dowloadSources)
+		return
+	}
+
+	eNode := c.carfileRecord.nodeManager.GetEdgeNode(deviceID)
+	if eNode != nil {
+		result, err = eNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.dowloadSources)
+		return
+	}
+
+	err = xerrors.Errorf("not found node:%s", deviceID)
+	return
 }
 
 // GetDeviceID get device id
