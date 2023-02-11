@@ -277,35 +277,6 @@ func (sd sqlDB) UpdateCacheTaskInfo(cInfo *api.CacheTaskInfo) error {
 	return err
 }
 
-func (sd sqlDB) Test(hash string) error {
-	area := sd.replaceArea()
-	dTableName := fmt.Sprintf(carfileInfoTable, area)
-	cTableName := fmt.Sprintf(cacheInfoTable, area)
-
-	var sum []int
-	cmd := fmt.Sprintf("SELECT reliability FROM %s WHERE carfile_hash=? AND status=?", cTableName)
-	err := sd.cli.Select(&sum, cmd, hash, api.CacheStatusSuccess)
-	if err != nil {
-		return err
-	}
-
-	v := 0
-	for _, r := range sum {
-		v += r
-	}
-
-	dInfo := &api.CarfileRecordInfo{}
-	fmt.Println("cao :", sum)
-	dInfo.Reliability = v
-	dInfo.CarfileHash = hash
-	dInfo.ExpiredTime = time.Now()
-	// update
-	cmd = fmt.Sprintf("UPDATE %s SET total_size=:total_size,total_blocks=:total_blocks,reliability=:reliability,end_time=NOW(),need_reliability=:need_reliability,expired_time=:expired_time WHERE carfile_hash=:carfile_hash", dTableName)
-	_, err = sd.cli.NamedExec(cmd, dInfo)
-
-	return err
-}
-
 func (sd sqlDB) UpdateCarfileRecordCachesInfo(dInfo *api.CarfileRecordInfo) error {
 	area := sd.replaceArea()
 	dTableName := fmt.Sprintf(carfileInfoTable, area)

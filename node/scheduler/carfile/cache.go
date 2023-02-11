@@ -26,7 +26,7 @@ type CacheTask struct {
 	timeoutTicker *time.Ticker
 }
 
-func newCache(carfileRecord *CarfileRecord, deviceID string, isCandidateCache bool) (*CacheTask, error) {
+func cacheTaskNew(carfileRecord *CarfileRecord, deviceID string, isCandidateCache bool) (*CacheTask, error) {
 	cache := &CacheTask{
 		carfileRecord:    carfileRecord,
 		reliability:      0,

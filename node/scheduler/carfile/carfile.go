@@ -159,9 +159,9 @@ func (d *CarfileRecord) startCacheTasks(nodes []string, isCandidate bool) (isRun
 		var cacheTask *CacheTask
 		cI, exist := d.CacheTaskMap.Load(deviceID)
 		if !exist || cI == nil {
-			cacheTask, err = newCache(d, deviceID, isCandidate)
+			cacheTask, err = cacheTaskNew(d, deviceID, isCandidate)
 			if err != nil {
-				log.Errorf("newCache %s , node:%s,err:%s", d.carfileCid, deviceID, err.Error())
+				log.Errorf("cacheTaskNew %s , node:%s,err:%s", d.carfileCid, deviceID, err.Error())
 				errorList = append(errorList, deviceID)
 				continue
 			}
@@ -191,7 +191,6 @@ func (d *CarfileRecord) startCacheTasks(nodes []string, isCandidate bool) (isRun
 		_, err = cache.GetDB().CacheTasksEnd(d.carfileHash, errorList)
 		if err != nil {
 			log.Errorf("startCacheTasks %s , CacheTasksEnd err:%s", d.carfileHash, err.Error())
-
 		}
 	}
 
@@ -429,7 +428,7 @@ func (d *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResul
 		return nil
 	}
 
-	d.nextStep() //next step
+	d.nextStep() // next step
 
 	err = d.dispatchCaches()
 	if err != nil {
