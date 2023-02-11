@@ -21,12 +21,12 @@ func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) e
 		return xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
-	//update node info
+	// update node info
 	node := s.nodeManager.GetNode(deviceID)
 	if node != nil {
 		node.DiskUsage = info.DiskUsage
 	}
-	//update redis
+	// update redis
 	err := cache.GetDB().UpdateNodeCacheInfo(deviceID, &cache.NodeCacheInfo{
 		BlockCount: info.TotalBlockCount,
 		DiskUsage:  info.DiskUsage,
@@ -46,25 +46,25 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.Remo
 		return xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
-	//update node info
+	// update node info
 	node := s.nodeManager.GetNode(deviceID)
 	if node != nil {
 		node.DiskUsage = resultInfo.DiskUsage
 	}
 
-	//update redis
+	// update redis
 	return cache.GetDB().UpdateNodeCacheInfo(deviceID, &cache.NodeCacheInfo{
 		BlockCount: resultInfo.BlockCount,
 		DiskUsage:  resultInfo.DiskUsage,
 	})
 }
 
-//GetUndoneCarfileRecords get all undone carfile
+// GetUndoneCarfileRecords get all undone carfile
 func (s *Scheduler) GetUndoneCarfileRecords(ctx context.Context, page int) (*api.DataListInfo, error) {
 	return persistent.GetDB().GetUndoneCarfiles(page)
 }
 
-//ExecuteUndoneCarfilesTask Execute Undone Carfiles Task
+// ExecuteUndoneCarfilesTask Execute Undone Carfiles Task
 func (s *Scheduler) ExecuteUndoneCarfilesTask(ctx context.Context) error {
 	info, err := persistent.GetDB().GetUndoneCarfiles(-1)
 	if err != nil {
@@ -159,8 +159,8 @@ func carfileRecord2Info(d *carfile.CarfileRecord) *api.CarfileRecordInfo {
 	return info
 }
 
-// GetCarfileRecord Show Data Task
-func (s *Scheduler) GetCarfileRecord(ctx context.Context, cid string) (api.CarfileRecordInfo, error) {
+// GetCarfileRecordInfo Show Data Task
+func (s *Scheduler) GetCarfileRecordInfo(ctx context.Context, cid string) (api.CarfileRecordInfo, error) {
 	info := api.CarfileRecordInfo{}
 
 	if cid == "" {
@@ -175,6 +175,10 @@ func (s *Scheduler) GetCarfileRecord(ctx context.Context, cid string) (api.Carfi
 	d, _ := s.dataManager.GetCarfileRecord(hash)
 	if d != nil {
 		cInfo := carfileRecord2Info(d)
+		result, err := cache.GetDB().GetCarfileRecordCacheResult(hash)
+		if err == nil {
+			cInfo.Result = result
+		}
 
 		return *cInfo, nil
 	}

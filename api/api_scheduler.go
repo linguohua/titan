@@ -20,7 +20,7 @@ type Scheduler interface {
 	CacheCarfile(ctx context.Context, cid string, reliability int, expiredTime time.Time) error        //perm:admin
 	RemoveCarfile(ctx context.Context, carfileID string) error                                         //perm:admin
 	RemoveCache(ctx context.Context, carfileID, deviceID string) error                                 //perm:admin
-	GetCarfileRecord(ctx context.Context, cid string) (CarfileRecordInfo, error)                       //perm:read
+	GetCarfileRecordInfo(ctx context.Context, cid string) (CarfileRecordInfo, error)                   //perm:read
 	ListCarfileRecords(ctx context.Context, page int) (*DataListInfo, error)                           //perm:read
 	GetRunningCarfileRecords(ctx context.Context) ([]*CarfileRecordInfo, error)                        //perm:read
 	RegisterNode(ctx context.Context, nodeType NodeType, count int) ([]NodeRegisterInfo, error)        //perm:admin
@@ -130,6 +130,7 @@ type CarfileRecordInfo struct {
 	CreateTime      time.Time `db:"created_time"`
 	EndTime         time.Time `db:"end_time"`
 	CacheInfos      []CacheTaskInfo
+	Result          *CarfileRecordCacheResult
 }
 
 // CacheTaskInfo Data Cache info
@@ -242,4 +243,10 @@ type NodeCacheState struct {
 type NodeCacheRsp struct {
 	Caches     []*NodeCacheState
 	TotalCount int
+}
+
+// CarfileRecordCacheResult cache result
+type CarfileRecordCacheResult struct {
+	NodeErrs map[string]string
+	ErrMsg   string
 }

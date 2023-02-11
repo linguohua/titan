@@ -92,6 +92,7 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 			status:           cacheInfo.Status,
 			isCandidateCache: cacheInfo.CandidateCache,
 			carfileHash:      cacheInfo.CarfileHash,
+			nodeManager:      carfileRecord.nodeManager,
 		}
 
 		if c.isCandidateCache && c.status == api.CacheStatusSuccess {
@@ -159,9 +160,9 @@ func (d *CarfileRecord) startCacheTasks(nodes []string, isCandidate bool) (isRun
 		var cacheTask *CacheTask
 		cI, exist := d.CacheTaskMap.Load(deviceID)
 		if !exist || cI == nil {
-			cacheTask, err = cacheTaskNew(d, deviceID, isCandidate)
+			cacheTask, err = newCacheTask(d, deviceID, isCandidate)
 			if err != nil {
-				log.Errorf("cacheTaskNew %s , node:%s,err:%s", d.carfileCid, deviceID, err.Error())
+				log.Errorf("newCacheTask %s , node:%s,err:%s", d.carfileCid, deviceID, err.Error())
 				errorList = append(errorList, deviceID)
 				continue
 			}

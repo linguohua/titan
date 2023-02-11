@@ -42,6 +42,9 @@ const (
 
 	// redisKeyBaseInfo  server name
 	redisKeyBaseInfo = "Titan:BaseInfo:%s"
+
+	// redisKeyCarfileRecordCacheResult  hash
+	redisKeyCarfileRecordCacheResult = "Titan:CarfileRecordCacheResult:%s"
 )
 
 const cacheErrorExpiration = 72 // hour
@@ -114,32 +117,6 @@ func (rd redisDB) CacheTasksEnd(hash string, deviceIDs []string) (bool, error) {
 	}
 
 	return cachesDone, err
-
-	// ctx := context.Background()
-	// _, err = rd.cli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-	// 	if cachesDone {
-	// 		pipeliner.SRem(context.Background(), cacheingCarfileList, hash)
-	// 	}
-
-	// for _, deviceID := range deviceIDs {
-	// 	nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
-	// 	// Expire
-	// 	pipeliner.Del(context.Background(), nodeKey)
-	// }
-
-	// if nodeInfo != nil {
-	// 	nKey := fmt.Sprintf(redisKeyNodeInfo, nodeInfo.DeviceID)
-	// 	pipeliner.HMSet(context.Background(), nKey, diskUsageField, nodeInfo.DiskUsage, blockCountField, nodeInfo.BlockCount, totalDownloadField, nodeInfo.TotalDownload)
-	// 	if nodeInfo.IsSuccess {
-	// 		baseInfoKey := fmt.Sprintf(redisKeyBaseInfo, serverName)
-	// 		pipeliner.HIncrBy(context.Background(), baseInfoKey, CarFileCountField, 1)
-	// 	}
-	// }
-
-	// 	return nil
-	// })
-
-	return cachesDone, err
 }
 
 func (rd redisDB) UpdateNodeCacheingExpireTime(hash, deviceID string, timeout int64) error {
@@ -162,6 +139,39 @@ func (rd redisDB) IsNodeCaching(deviceID string) (bool, error) {
 	}
 
 	return exist == 1, nil
+}
+
+// carfile record result
+func (rd redisDB) SetCarfileRecordCacheResult(hash string, info *api.CarfileRecordCacheResult) error {
+	timeout := 7 * 24
+	key := fmt.Sprintf(redisKeyCarfileRecordCacheResult, hash)
+
+	bytes, err := json.Marshal(info)
+	if err != nil {
+		return err
+	}
+
+	// Expire
+	_, err = rd.cli.Set(context.Background(), key, bytes, time.Hour*time.Duration(timeout)).Result()
+	return err
+}
+
+func (rd redisDB) GetCarfileRecordCacheResult(hash string) (*api.CarfileRecordCacheResult, error) {
+	key := fmt.Sprintf(redisKeyCarfileRecordCacheResult, hash)
+
+	value, err := rd.cli.Get(context.Background(), key).Result()
+
+	var info api.CarfileRecordCacheResult
+	bytes, err := redigo.Bytes(value, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(bytes, &info); err != nil {
+		return nil, err
+	}
+
+	return &info, nil
 }
 
 // waiting data list
