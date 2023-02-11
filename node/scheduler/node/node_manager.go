@@ -166,8 +166,8 @@ func (m *Manager) EdgeOnline(node *EdgeNode) error {
 
 // GetEdgeNode Get EdgeNode
 func (m *Manager) GetEdgeNode(deviceID string) *EdgeNode {
-	nodeI, ok := m.EdgeNodeMap.Load(deviceID)
-	if ok && nodeI != nil {
+	nodeI, exist := m.EdgeNodeMap.Load(deviceID)
+	if exist && nodeI != nil {
 		node := nodeI.(*EdgeNode)
 
 		return node
@@ -216,8 +216,8 @@ func (m *Manager) CandidateOnline(node *CandidateNode) error {
 
 // GetCandidateNode Get Candidate Node
 func (m *Manager) GetCandidateNode(deviceID string) *CandidateNode {
-	nodeI, ok := m.CandidateNodeMap.Load(deviceID)
-	if ok && nodeI != nil {
+	nodeI, exist := m.CandidateNodeMap.Load(deviceID)
+	if exist && nodeI != nil {
 		node := nodeI.(*CandidateNode)
 
 		return node

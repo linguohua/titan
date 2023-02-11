@@ -102,8 +102,7 @@ type Scheduler struct {
 	validate       *validate.Validate
 	dataManager    *carfile.Manager
 	locatorManager *locator.Manager
-	// selector       *ValidateSelector
-	dataSync *sync.DataSync
+	dataSync       *sync.DataSync
 
 	authToken          []byte
 	nodeAppUpdateInfos map[int]*api.NodeAppUpdateInfo
@@ -521,8 +520,8 @@ func randomNum(start, end int) int {
 }
 
 // ValidateSwitch open or close validate task
-func (s *Scheduler) ValidateSwitch(ctx context.Context, open bool) error {
-	s.validate.EnableValidate(open)
+func (s *Scheduler) ValidateSwitch(ctx context.Context, enable bool) error {
+	s.validate.EnableValidate(enable)
 	return nil
 }
 

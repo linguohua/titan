@@ -702,8 +702,8 @@ var validateSwitchCmd = &cli.Command{
 	Flags: []cli.Flag{
 		// schedulerURLFlag,
 		&cli.StringFlag{
-			Name:  "open",
-			Usage: "is open",
+			Name:  "enable",
+			Usage: "is enable",
 			Value: "false",
 		},
 	},
@@ -713,7 +713,7 @@ var validateSwitchCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		// url := cctx.String("scheduler-url")
-		open := cctx.Bool("open")
+		enable := cctx.Bool("enable")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -722,7 +722,7 @@ var validateSwitchCmd = &cli.Command{
 		}
 		defer closer()
 
-		schedulerAPI.ValidateSwitch(ctx, open)
+		schedulerAPI.ValidateSwitch(ctx, enable)
 
 		return nil
 	},
