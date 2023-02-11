@@ -40,7 +40,7 @@ type Manager struct {
 	CarfileRecordMap  sync.Map // cacheing carfile map
 	latelyExpiredTime time.Time
 	authToken         []byte
-	RunningTaskCount  int
+	runningTaskCount  int
 }
 
 // NewCarfileManager new
@@ -183,15 +183,15 @@ func (m *Manager) doCarfileCacheTask(info *api.CacheCarfileInfo) error {
 	return nil
 }
 
-func (m *Manager) setCacheEvent(carfileCid, msg string) {
-	err := persistent.GetDB().SetCacheEventInfo(&api.CacheEventInfo{
-		CID: carfileCid,
-		Msg: msg,
-	})
-	if err != nil {
-		log.Errorf("SetCacheEventInfo cid:%s,err:%s,msg:%s", carfileCid, err.Error(), msg)
-	}
-}
+// func (m *Manager) setCacheEvent(carfileCid, msg string) {
+// 	err := persistent.GetDB().SetCacheEventInfo(&api.CacheEventInfo{
+// 		CID: carfileCid,
+// 		Msg: msg,
+// 	})
+// 	if err != nil {
+// 		log.Errorf("SetCacheEventInfo cid:%s,err:%s,msg:%s", carfileCid, err.Error(), msg)
+// 	}
+// }
 
 // CacheCarfile new carfile task
 func (m *Manager) CacheCarfile(cid string, reliability int, expiredTime time.Time) error {
@@ -304,7 +304,7 @@ func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo)
 }
 
 func (m *Manager) startCarfileCacheTasks() {
-	doLen := runningCarfileMaxCount - m.RunningTaskCount
+	doLen := runningCarfileMaxCount - m.runningTaskCount
 	if doLen <= 0 {
 		return
 	}
@@ -335,25 +335,21 @@ func (m *Manager) startCarfileCacheTasks() {
 }
 
 func (m *Manager) carfileCacheStart(cr *CarfileRecord) {
-	log.Infof("carfile %s cache task start -----", cr.carfileCid)
-
 	_, exist := m.CarfileRecordMap.LoadOrStore(cr.carfileHash, cr)
 	if !exist {
-		m.RunningTaskCount++
+		m.runningTaskCount++
 	}
 
-	// if isSaveEvent {
-	// 	m.setCacheEvent(cr.carfileCid, "start task")
-	// }
+	log.Infof("carfile %s cache task start ----- cur running count : %d", cr.carfileCid, m.runningTaskCount)
 }
 
 func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
-	log.Infof("carfile %s cache task end -----", cr.carfileCid)
-
 	_, exist := m.CarfileRecordMap.LoadAndDelete(cr.carfileHash)
 	if exist {
-		m.RunningTaskCount--
+		m.runningTaskCount--
 	}
+
+	log.Infof("carfile %s cache task end ----- cur running count : %d", cr.carfileCid, m.runningTaskCount)
 
 	if err != nil {
 		log.Errorf("end carfile err:%s", err.Error())
