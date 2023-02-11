@@ -7,12 +7,14 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
 
 // CacheTask CacheTask
 type CacheTask struct {
 	carfileRecord *CarfileRecord
+	nodeManager   *node.Manager
 
 	id               string
 	deviceID         string
@@ -26,9 +28,10 @@ type CacheTask struct {
 	timeoutTicker *time.Ticker
 }
 
-func cacheTaskNew(carfileRecord *CarfileRecord, deviceID string, isCandidateCache bool) (*CacheTask, error) {
+func newCacheTask(carfileRecord *CarfileRecord, deviceID string, isCandidateCache bool) (*CacheTask, error) {
 	cache := &CacheTask{
 		carfileRecord:    carfileRecord,
+		nodeManager:      carfileRecord.nodeManager,
 		reliability:      0,
 		status:           api.CacheStatusRunning,
 		carfileHash:      carfileRecord.carfileHash,
@@ -144,20 +147,20 @@ func (c *CacheTask) cacheCarfile2Node() (err error) {
 
 		if result != nil {
 			// update node info
-			node := c.carfileRecord.nodeManager.GetNode(deviceID)
+			node := c.nodeManager.GetNode(deviceID)
 			if node != nil {
 				node.SetCurCacheCount(result.WaitCacheCarfileNum + 1)
 			}
 		}
 	}()
 
-	cNode := c.carfileRecord.nodeManager.GetCandidateNode(deviceID)
+	cNode := c.nodeManager.GetCandidateNode(deviceID)
 	if cNode != nil {
 		result, err = cNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.dowloadSources)
 		return
 	}
 
-	eNode := c.carfileRecord.nodeManager.GetEdgeNode(deviceID)
+	eNode := c.nodeManager.GetEdgeNode(deviceID)
 	if eNode != nil {
 		result, err = eNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.dowloadSources)
 		return

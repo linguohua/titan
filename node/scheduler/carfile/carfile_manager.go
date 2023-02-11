@@ -27,12 +27,10 @@ const (
 	runningCarfileMaxCount    = 10      // It needs to be changed to the number of caches
 	diskUsageMax              = 90.0    // If the node disk size is greater than this value, caching will not continue
 	// dispatchCacheTaskLimit    = 3       // carfile dispatch cache count limit
-	rootCacheCount = 1 //The number of caches in the first stage
+	rootCacheCount = 1 // The number of caches in the first stage
 )
 
-var (
-	backupCacheCount = 0 //Cache to the number of candidate nodes （does not contain 'rootCacheCount'）
-)
+var backupCacheCount = 0 // Cache to the number of candidate nodes （does not contain 'rootCacheCount'）
 
 // Manager carfile
 type Manager struct {
@@ -351,16 +349,21 @@ func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
 
 	log.Infof("carfile %s cache task end ----- cur running count : %d", cr.carfileCid, m.runningTaskCount)
 
-	if err != nil {
-		log.Errorf("end carfile err:%s", err.Error())
-	}
-	log.Warnf("nodeCacheErrs:%v", cr.nodeCacheErrs)
-
 	m.resetLatelyExpiredTime(cr.expiredTime)
 
-	// save cache result
+	info := &api.CarfileRecordCacheResult{
+		NodeErrs: cr.nodeCacheErrs,
+	}
+	if err != nil {
+		// log.Errorf("end carfile err:%s", err.Error())
+		info.ErrMsg = err.Error()
+	}
 
-	// m.setCacheEvent(cr.carfileCid, fmt.Sprintf("end task:%s", msg))
+	// save result msg
+	err = cache.GetDB().SetCarfileRecordCacheResult(cr.carfileHash, info)
+	if err != nil {
+		log.Errorf("SetCarfileRecordCacheResult err:%s", err.Error())
+	}
 }
 
 // StopCacheTask stop cache task

@@ -33,6 +33,10 @@ type DB interface {
 	GetCacheingCarfiles() ([]string, error)
 	IsNodeCaching(deviceID string) (bool, error)
 
+	// carfile record cache result
+	SetCarfileRecordCacheResult(hash string, info *api.CarfileRecordCacheResult) error
+	GetCarfileRecordCacheResult(hash string) (*api.CarfileRecordCacheResult, error)
+
 	// waiting data list
 	PushCarfileToWaitList(info *api.CacheCarfileInfo) error
 	GetWaitCarfile() (*api.CacheCarfileInfo, error)

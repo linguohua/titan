@@ -138,6 +138,7 @@ var (
 		Value: "",
 	}
 )
+
 var showNodeInfoCmd = &cli.Command{
 	Name:  "show-node-info",
 	Usage: "show node info",
@@ -799,7 +800,7 @@ var showCarfileInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		info, err := schedulerAPI.GetCarfileRecord(ctx, cid)
+		info, err := schedulerAPI.GetCarfileRecordInfo(ctx, cid)
 		if err != nil {
 			return err
 		}
@@ -808,6 +809,15 @@ var showCarfileInfoCmd = &cli.Command{
 		for _, cache := range info.CacheInfos {
 			fmt.Printf("DeviceID: %s ,Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsRootCache:%v \n",
 				cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.CandidateCache)
+		}
+
+		if info.Result != nil {
+			fmt.Printf("Result Msg: %s \n", info.Result.ErrMsg)
+			if info.Result.NodeErrs != nil {
+				for nodeID, msg := range info.Result.NodeErrs {
+					fmt.Printf("%s,err:%s \n", nodeID, msg)
+				}
+			}
 		}
 
 		return nil
@@ -1180,7 +1190,7 @@ func newVersion(version string) (api.Version, error) {
 		return api.Version(0), fmt.Errorf("parse version error")
 	}
 
-	//major, minor, patch
+	// major, minor, patch
 	major, err := strconv.Atoi(stringSplit[0])
 	if err != nil {
 		return api.Version(0), fmt.Errorf("parse version major error:%s", err)
@@ -1197,5 +1207,4 @@ func newVersion(version string) (api.Version, error) {
 	}
 
 	return api.Version(uint32(major)<<16 | uint32(minor)<<8 | uint32(patch)), nil
-
 }

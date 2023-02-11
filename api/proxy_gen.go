@@ -60,8 +60,6 @@ type CarfileOperationStruct struct {
 
 		DeleteCarfile func(p0 context.Context, p1 string) error `perm:"write"`
 
-		DeleteWaitCacheCarfile func(p0 context.Context, p1 string) (int, error) `perm:"admin"`
-
 		QueryCacheStat func(p0 context.Context) (*CacheStat, error) `perm:"write"`
 
 		QueryCachingCarfile func(p0 context.Context) (*CachingCarfile, error) `perm:"write"`
@@ -225,7 +223,7 @@ type SchedulerStruct struct {
 
 		ExecuteUndoneCarfilesTask func(p0 context.Context) error `perm:"admin"`
 
-		GetCarfileRecord func(p0 context.Context, p1 string) (CarfileRecordInfo, error) `perm:"read"`
+		GetCarfileRecordInfo func(p0 context.Context, p1 string) (CarfileRecordInfo, error) `perm:"read"`
 
 		GetDevicesInfo func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
 
@@ -418,17 +416,6 @@ func (s *CarfileOperationStruct) DeleteCarfile(p0 context.Context, p1 string) er
 
 func (s *CarfileOperationStub) DeleteCarfile(p0 context.Context, p1 string) error {
 	return ErrNotSupported
-}
-
-func (s *CarfileOperationStruct) DeleteWaitCacheCarfile(p0 context.Context, p1 string) (int, error) {
-	if s.Internal.DeleteWaitCacheCarfile == nil {
-		return 0, ErrNotSupported
-	}
-	return s.Internal.DeleteWaitCacheCarfile(p0, p1)
-}
-
-func (s *CarfileOperationStub) DeleteWaitCacheCarfile(p0 context.Context, p1 string) (int, error) {
-	return 0, ErrNotSupported
 }
 
 func (s *CarfileOperationStruct) QueryCacheStat(p0 context.Context) (*CacheStat, error) {
@@ -893,14 +880,14 @@ func (s *SchedulerStub) ExecuteUndoneCarfilesTask(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetCarfileRecord(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
-	if s.Internal.GetCarfileRecord == nil {
+func (s *SchedulerStruct) GetCarfileRecordInfo(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
+	if s.Internal.GetCarfileRecordInfo == nil {
 		return *new(CarfileRecordInfo), ErrNotSupported
 	}
-	return s.Internal.GetCarfileRecord(p0, p1)
+	return s.Internal.GetCarfileRecordInfo(p0, p1)
 }
 
-func (s *SchedulerStub) GetCarfileRecord(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
+func (s *SchedulerStub) GetCarfileRecordInfo(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
 	return *new(CarfileRecordInfo), ErrNotSupported
 }
 
