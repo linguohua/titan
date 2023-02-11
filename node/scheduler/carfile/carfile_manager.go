@@ -129,8 +129,8 @@ func (m *Manager) resetBaseInfo() {
 
 // GetCarfileRecord get a carfileRecord from map or db
 func (m *Manager) GetCarfileRecord(hash string) (*CarfileRecord, error) {
-	dI, ok := m.CarfileRecordMap.Load(hash)
-	if ok && dI != nil {
+	dI, exist := m.CarfileRecordMap.Load(hash)
+	if exist && dI != nil {
 		return dI.(*CarfileRecord), nil
 	}
 
@@ -380,8 +380,8 @@ func (m *Manager) ReplenishCacheExpiredTime(cid string, hour int) error {
 
 	log.Infof("carfile event %s , replenish carfile expired time:%d", cid, hour)
 
-	dI, ok := m.CarfileRecordMap.Load(hash)
-	if ok && dI != nil {
+	dI, exist := m.CarfileRecordMap.Load(hash)
+	if exist && dI != nil {
 		carfileRecord := dI.(*CarfileRecord)
 		carfileRecord.expiredTime = carfileRecord.expiredTime.Add((time.Duration(hour) * time.Hour))
 	}
@@ -398,8 +398,8 @@ func (m *Manager) ResetCacheExpiredTime(cid string, expiredTime time.Time) error
 
 	log.Infof("carfile event %s , reset carfile expired time:%s", cid, expiredTime.String())
 
-	dI, ok := m.CarfileRecordMap.Load(hash)
-	if ok && dI != nil {
+	dI, exist := m.CarfileRecordMap.Load(hash)
+	if exist && dI != nil {
 		carfileRecord := dI.(*CarfileRecord)
 		carfileRecord.expiredTime = expiredTime
 	}

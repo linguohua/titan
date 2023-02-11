@@ -46,7 +46,8 @@ type DB interface {
 
 	// verifying node list
 	SetNodesToVerifyingList(deviceIDs []string) error
-	RemoveValidatedWithList(deviceID string) (int64, error)
+	RemoveValidatedWithList(deviceID string) error
+	CountVerifyingNode() (int64, error)
 	RemoveVerifyingList() error
 	GetNodesWithVerifyingList() ([]string, error)
 	// CountVerifyingNode(ctx context.Context) (int64, error)
