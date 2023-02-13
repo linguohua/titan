@@ -215,8 +215,6 @@ type SchedulerStruct struct {
 
 		CandidateNodeConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
-		DeleteBlockRecords func(p0 context.Context, p1 string, p2 []string) (map[string]string, error) `perm:"admin"`
-
 		EdgeNodeConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
 		ElectionValidators func(p0 context.Context) error `perm:"admin"`
@@ -252,12 +250,6 @@ type SchedulerStruct struct {
 		NodeQuit func(p0 context.Context, p1 string) error `perm:"admin"`
 
 		NodeResultForUserDownloadBlock func(p0 context.Context, p1 NodeBlockDownloadResult) error `perm:"write"`
-
-		QueryCacheStatWithNode func(p0 context.Context, p1 string) ([]CacheStat, error) `perm:"read"`
-
-		QueryCachingCarfileWithNode func(p0 context.Context, p1 string) (CachingCarfile, error) `perm:"read"`
-
-		RedressDeveiceInfo func(p0 context.Context, p1 string) error `perm:"admin"`
 
 		RegisterNode func(p0 context.Context, p1 NodeType, p2 int) ([]NodeRegisterInfo, error) `perm:"admin"`
 
@@ -836,17 +828,6 @@ func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 string, p2 s
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) DeleteBlockRecords(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
-	if s.Internal.DeleteBlockRecords == nil {
-		return *new(map[string]string), ErrNotSupported
-	}
-	return s.Internal.DeleteBlockRecords(p0, p1, p2)
-}
-
-func (s *SchedulerStub) DeleteBlockRecords(p0 context.Context, p1 string, p2 []string) (map[string]string, error) {
-	return *new(map[string]string), ErrNotSupported
-}
-
 func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context, p1 string, p2 string) error {
 	if s.Internal.EdgeNodeConnect == nil {
 		return ErrNotSupported
@@ -1042,39 +1023,6 @@ func (s *SchedulerStruct) NodeResultForUserDownloadBlock(p0 context.Context, p1 
 }
 
 func (s *SchedulerStub) NodeResultForUserDownloadBlock(p0 context.Context, p1 NodeBlockDownloadResult) error {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) QueryCacheStatWithNode(p0 context.Context, p1 string) ([]CacheStat, error) {
-	if s.Internal.QueryCacheStatWithNode == nil {
-		return *new([]CacheStat), ErrNotSupported
-	}
-	return s.Internal.QueryCacheStatWithNode(p0, p1)
-}
-
-func (s *SchedulerStub) QueryCacheStatWithNode(p0 context.Context, p1 string) ([]CacheStat, error) {
-	return *new([]CacheStat), ErrNotSupported
-}
-
-func (s *SchedulerStruct) QueryCachingCarfileWithNode(p0 context.Context, p1 string) (CachingCarfile, error) {
-	if s.Internal.QueryCachingCarfileWithNode == nil {
-		return *new(CachingCarfile), ErrNotSupported
-	}
-	return s.Internal.QueryCachingCarfileWithNode(p0, p1)
-}
-
-func (s *SchedulerStub) QueryCachingCarfileWithNode(p0 context.Context, p1 string) (CachingCarfile, error) {
-	return *new(CachingCarfile), ErrNotSupported
-}
-
-func (s *SchedulerStruct) RedressDeveiceInfo(p0 context.Context, p1 string) error {
-	if s.Internal.RedressDeveiceInfo == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.RedressDeveiceInfo(p0, p1)
-}
-
-func (s *SchedulerStub) RedressDeveiceInfo(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 

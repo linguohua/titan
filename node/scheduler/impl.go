@@ -112,10 +112,6 @@ type jwtPayload struct {
 	Allow []auth.Permission
 }
 
-// func (s *Scheduler) getAuthToken() []byte {
-// 	return s.authToken
-// }
-
 // AuthNodeVerify Verify Node Auth
 func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error) {
 	var payload jwtPayload
@@ -221,11 +217,8 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 	deviceInfo.ExternalIp = ip
 
 	geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIp)
-	// geoInfo, _ := area.GetGeoInfoWithIP(deviceInfo.ExternalIp)
-	// if !isOk {
-	// 	log.Errorf("CandidateNodeConnect err DeviceId:%s,ip%s", deviceID, deviceInfo.ExternalIp)
-	// 	return xerrors.New("Area not exist")
-	// }
+	// TODO Does the error need to be handled?
+
 	deviceInfo.IpLocation = geoInfo.Geo
 	deviceInfo.Longitude = geoInfo.Longitude
 	deviceInfo.Latitude = geoInfo.Latitude
@@ -308,11 +301,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 	deviceInfo.ExternalIp = ip
 
 	geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIp)
-	// geoInfo, _ := area.GetGeoInfoWithIP(deviceInfo.ExternalIp)
-	// if !isOk {
-	// 	log.Errorf("edgeOnline err DeviceId:%s,ip%s", deviceID, deviceInfo.ExternalIp)
-	// 	return xerrors.New("Area not exist")
-	// }
+	// TODO Does the error need to be handled?
 
 	deviceInfo.IpLocation = geoInfo.Geo
 	deviceInfo.Longitude = geoInfo.Longitude
@@ -398,78 +387,25 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeType api.NodeType, cou
 	return list, nil
 }
 
-// // GetToken get token
-// func (s *Scheduler) GetToken(ctx context.Context, deviceID, secret string) (string, error) {
-// 	return generateToken(deviceID, secret)
-// }
-
 // GetOnlineDeviceIDs Get all online node id
 func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTypeName) ([]string, error) {
 	if nodeType == api.TypeNameValidator {
-		return cache.GetDB().GetValidatorsWithList()
+		list, err := cache.GetDB().GetValidatorsWithList()
+		if err != nil {
+			return nil, err
+		}
+
+		out := make([]string, 0)
+		for _, deviceID := range list {
+			node := s.nodeManager.GetCandidateNode(deviceID)
+			if node != nil {
+				out = append(out, deviceID)
+			}
+		}
+		return out, nil
 	}
 
-	return s.nodeManager.GetNodes(nodeType)
-}
-
-// QueryCacheStatWithNode Query Cache Stat
-func (s *Scheduler) QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]api.CacheStat, error) {
-	statList := make([]api.CacheStat, 0)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	// node datas
-	candidata := s.nodeManager.GetCandidateNode(deviceID)
-	if candidata != nil {
-		// redis datas
-		body := api.CacheStat{}
-		// count, err := persistent.GetDB().CountCidOfDevice(deviceID)
-		// if err == nil {
-		// 	body.CacheBlockCount = int(count)
-		// }
-
-		statList = append(statList, body)
-
-		// nodeBody, _ := candidata.GetAPI().QueryCacheStat(ctx)
-		// statList = append(statList, nodeBody)
-		return statList, nil
-	}
-
-	edge := s.nodeManager.GetEdgeNode(deviceID)
-	if edge != nil {
-		body := api.CacheStat{}
-		// count, err := persistent.GetDB().CountCidOfDevice(deviceID)
-		// if err == nil {
-		// 	body.CacheBlockCount = int(count)
-		// }
-
-		statList = append(statList, body)
-
-		// nodeBody, _ := edge.GetAPI().QueryCacheStat(ctx)
-		// statList = append(statList, nodeBody)
-		return statList, nil
-	}
-
-	return statList, xerrors.Errorf("not found node:%s", deviceID)
-}
-
-// QueryCachingBlocksWithNode Query Caching Blocks
-func (s *Scheduler) QueryCachingCarfileWithNode(ctx context.Context, deviceID string) (api.CachingCarfile, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	// candidata := s.nodeManager.GetCandidateNode(deviceID)
-	// if candidata != nil {
-	// 	return candidata.GetAPI().QueryCachingBlocks(ctx)
-	// }
-
-	// edge := s.nodeManager.GetEdgeNode(deviceID)
-	// if edge != nil {
-	// 	return edge.GetAPI().QueryCachingBlocks(ctx)
-	// }
-
-	return api.CachingCarfile{}, xerrors.Errorf("not found node:%s", deviceID)
+	return s.nodeManager.GetOnlineNodes(nodeType)
 }
 
 // ElectionValidators Validators
@@ -533,6 +469,7 @@ func (s *Scheduler) ValidateRunningState(ctx context.Context) (bool, error) {
 	return s.validate.IsEnable(), nil
 }
 
+// ValidateStart start once validate
 func (s *Scheduler) ValidateStart(ctx context.Context) error {
 	return s.validate.StartValidateOnceTask()
 }
@@ -585,37 +522,13 @@ func incrDeviceReward(deviceID string, incrReward int64) error {
 }
 
 func (s *Scheduler) nodeOfflineCallback(deviceID string) {
-	go s.locatorManager.NotifyNodeStatusToLocator(deviceID, false)
+	s.locatorManager.NotifyNodeStatusToLocator(deviceID, false)
 }
 
 func (s *Scheduler) nodeExitedCallback(deviceIDs []string) {
 	// clean node cache
 	s.dataManager.NodesQuit(deviceIDs)
 }
-
-// RedressDeveiceInfo redress device info
-func (s *Scheduler) RedressDeveiceInfo(ctx context.Context, deviceID string) error {
-	if !deviceExists(deviceID, 0) {
-		return xerrors.Errorf("node not Exist: %s", deviceID)
-	}
-
-	// blocks, err := persistent.GetDB().GetBlocksFID(deviceID)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// err = cache.GetDB().UpdateDeviceInfo(deviceID, cache.BlockCountField, len(blocks))
-	// if err != nil {
-	// 	return err
-	// }
-
-	return nil
-}
-
-// // RedressCacheDataInfo redress the cache data
-// func (s *Scheduler) RedressCacheDataInfo(ctx context.Context, carfileCid string) error {
-// 	return s.dataManager.RedressCacheDataInfo(carfileCid)
-// }
 
 func (s *Scheduler) authNew() error {
 	tk, err := s.AuthNew(context.Background(), []auth.Permission{api.PermRead, api.PermWrite})

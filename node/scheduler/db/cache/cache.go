@@ -110,15 +110,6 @@ func GetDB() DB {
 	return db
 }
 
-// // NodeInfo base info
-// type NodeInfo struct {
-// 	OnLineTime int64
-// 	LastTime   string
-// 	Geo        string
-// 	IsOnline   bool
-// 	NodeType   api.NodeTypeName
-// }
-
 // DataTask data cache task
 type DataTask struct {
 	CarfileHash string

@@ -124,7 +124,7 @@ type Node struct {
 	// cacheTimeoutTimeStamp     int64 // TimeStamp of cache timeout
 	// cacheNextTimeoutTimeStamp int64 // TimeStamp of next cache timeout
 
-	curCacheCount int //The number of caches waiting and in progress
+	curCacheCount int // The number of caches waiting and in progress
 }
 
 // NewNode new
@@ -146,11 +146,6 @@ func NewNode(deviceInfo *api.DevicesInfo, rpcURL, downloadSrvURL string, private
 	return node
 }
 
-// // GetDeviceInfo get device info
-// func (n *Node) GetDeviceInfo() *api.DevicesInfo {
-// 	return n.deviceInfo
-// }
-
 // GetPrivateKey get private key
 func (n *Node) GetPrivateKey() *rsa.PrivateKey {
 	return n.privateKey
@@ -160,16 +155,6 @@ func (n *Node) GetPrivateKey() *rsa.PrivateKey {
 func (n *Node) GetAddress() string {
 	return n.addr
 }
-
-// // GetCacheTimeoutTimeStamp get cache timeout stamp
-// func (n *Node) GetCacheTimeoutTimeStamp() int64 {
-// 	return n.cacheTimeoutTimeStamp
-// }
-
-// // GetCacheNextTimeoutTimeStamp get cache timeout stamp with next cache
-// func (n *Node) GetCacheNextTimeoutTimeStamp() int64 {
-// 	return n.cacheNextTimeoutTimeStamp
-// }
 
 // GetLastRequestTime get node last request time
 func (n *Node) GetLastRequestTime() time.Time {

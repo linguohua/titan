@@ -232,7 +232,7 @@ func (sd sqlDB) CreateCacheTaskInfo(cInfo *api.CacheTaskInfo) error {
 	area := sd.replaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
-	cmd := fmt.Sprintf("INSERT INTO %s (id, carfile_hash, device_id, status, candidate_cache) VALUES (:id, :carfile_hash, :device_id, :status, :candidate_cache)", cTableName)
+	cmd := fmt.Sprintf("INSERT INTO %s (id, carfile_hash, device_id, status, is_candidate) VALUES (:id, :carfile_hash, :device_id, :status, :is_candidate)", cTableName)
 	_, err := sd.cli.NamedExec(cmd, cInfo)
 	return err
 }
@@ -373,7 +373,7 @@ func (sd sqlDB) GetCachesWithCandidate(hash string) ([]string, error) {
 	area := sd.replaceArea()
 
 	var out []string
-	query := fmt.Sprintf(`SELECT device_id FROM %s WHERE carfile_hash=? AND status=? AND candidate_cache=?`,
+	query := fmt.Sprintf(`SELECT device_id FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?`,
 		fmt.Sprintf(cacheInfoTable, area))
 
 	if err := sd.cli.Select(&out, query, hash, api.CacheStatusSuccess, true); err != nil {
@@ -612,7 +612,7 @@ func (sd sqlDB) RemoveCacheTask(deviceID, carfileHash string) error {
 
 	var sum []int
 	cmd := fmt.Sprintf("SELECT reliability FROM %s WHERE carfile_hash=? AND status=?", cTableName)
-	err := tx.Get(&sum, cmd, carfileHash, api.CacheStatusSuccess)
+	err := tx.Select(&sum, cmd, carfileHash, api.CacheStatusSuccess)
 	if err != nil {
 		return err
 	}
@@ -670,8 +670,9 @@ func (sd sqlDB) UpdateCacheInfoOfQuitNode(deviceIDs []string) (carfileRecords []
 	for _, carfileRecord := range carfileRecords {
 		var sum []int
 		cmd := fmt.Sprintf("SELECT reliability FROM %s WHERE carfile_hash=? ", cTableName)
-		err := tx.Get(&sum, cmd, carfileRecord.CarfileHash)
+		err := tx.Select(&sum, cmd, carfileRecord.CarfileHash)
 		if err != nil {
+			fmt.Println("------------err:", err.Error())
 			continue
 		}
 
