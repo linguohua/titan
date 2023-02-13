@@ -110,7 +110,7 @@ func (s *Scheduler) StopCacheTask(ctx context.Context, carfileCid string) error 
 func (s *Scheduler) GetRunningCarfileRecords(ctx context.Context) ([]*api.CarfileRecordInfo, error) {
 	infos := make([]*api.CarfileRecordInfo, 0)
 
-	s.dataManager.CarfileRecordMap.Range(func(key, value interface{}) bool {
+	s.dataManager.RunningCarfileRecordMap.Range(func(key, value interface{}) bool {
 		if value != nil {
 			data := value.(*carfile.CarfileRecord)
 			if data != nil {
@@ -131,17 +131,17 @@ func carfileRecord2Info(d *carfile.CarfileRecord) *api.CarfileRecordInfo {
 		info.CarfileCid = d.GetCarfileCid()
 		info.CarfileHash = d.GetCarfileHash()
 		info.TotalSize = d.GetTotalSize()
-		info.NeedReliability = d.GetNeedReliability()
-		info.Reliability = d.GetReliability()
+		info.NeedReliability = d.GetNeedReplicaCount()
+		info.CurReliability = d.GetReplicaCount()
 		info.TotalBlocks = d.GetTotalBlocks()
 		info.ExpiredTime = d.GetExpiredTime()
 
-		caches := make([]api.CacheTaskInfo, 0)
+		caches := make([]api.CarfileReplicaInfo, 0)
 
 		d.CacheTaskMap.Range(func(key, value interface{}) bool {
 			c := value.(*carfile.CacheTask)
 
-			cc := api.CacheTaskInfo{
+			cc := api.CarfileReplicaInfo{
 				Status:      c.GetStatus(),
 				DoneSize:    c.GetDoneSize(),
 				DoneBlocks:  c.GetDoneBlocks(),
@@ -153,7 +153,7 @@ func carfileRecord2Info(d *carfile.CarfileRecord) *api.CarfileRecordInfo {
 			return true
 		})
 
-		info.CacheInfos = caches
+		info.CarfileReplicaInfos = caches
 	}
 
 	return info
@@ -177,7 +177,7 @@ func (s *Scheduler) GetCarfileRecordInfo(ctx context.Context, cid string) (api.C
 		cInfo := carfileRecord2Info(d)
 		result, err := cache.GetDB().GetCarfileRecordCacheResult(hash)
 		if err == nil {
-			cInfo.Result = result
+			cInfo.ResultInfo = result
 		}
 
 		return *cInfo, nil

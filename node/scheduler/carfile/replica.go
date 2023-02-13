@@ -20,7 +20,6 @@ type CacheTask struct {
 	deviceID    string
 	carfileHash string
 	status      api.CacheStatus
-	reliability int
 	doneSize    int64
 	doneBlocks  int
 	isCandidate bool
@@ -32,7 +31,6 @@ func newCacheTask(carfileRecord *CarfileRecord, deviceID string, isCandidate boo
 	cache := &CacheTask{
 		carfileRecord: carfileRecord,
 		nodeManager:   carfileRecord.nodeManager,
-		reliability:   0,
 		status:        api.CacheStatusRunning,
 		carfileHash:   carfileRecord.carfileHash,
 		isCandidate:   isCandidate,
@@ -41,7 +39,7 @@ func newCacheTask(carfileRecord *CarfileRecord, deviceID string, isCandidate boo
 	}
 
 	err := persistent.GetDB().CreateCacheTaskInfo(
-		&api.CacheTaskInfo{
+		&api.CarfileReplicaInfo{
 			ID:          cache.id,
 			CarfileHash: cache.carfileHash,
 			DeviceID:    cache.deviceID,
@@ -84,15 +82,16 @@ func (c *CacheTask) startTimeoutTimer() {
 		}
 
 		info := &api.CacheResultInfo{
-			Status:         api.CacheStatusTimeout,
+			Status:         api.CacheStatusFailed,
 			DoneSize:       c.doneSize,
 			DoneBlockCount: c.doneBlocks,
+			Msg:            "timeout",
 		}
 
 		// task is timeout
 		err := c.carfileRecord.carfileCacheResult(c.deviceID, info)
 		if err != nil {
-			log.Errorf("endCache err:%s", err.Error())
+			log.Errorf("carfileCacheResult err:%s", err.Error())
 		}
 
 		return
@@ -107,14 +106,14 @@ func (c *CacheTask) startTask() (err error) {
 	// send to node
 	err = c.cacheCarfile2Node()
 	if err != nil {
-		c.status = api.CacheStatusFail
+		c.status = api.CacheStatusFailed
 	}
 	return err
 }
 
-func (c *CacheTask) calculateReliability() int {
+func (c *CacheTask) calculateReplicaCount() int {
 	// TODO To be perfected
-	if !c.isCandidate && c.status == api.CacheStatusSuccess {
+	if !c.isCandidate && c.status == api.CacheStatusSuccessed {
 		return 1
 	}
 
@@ -123,14 +122,13 @@ func (c *CacheTask) calculateReliability() int {
 
 func (c *CacheTask) updateCacheTaskInfo() error {
 	// update cache info to db
-	cInfo := &api.CacheTaskInfo{
+	cInfo := &api.CarfileReplicaInfo{
 		ID:          c.id,
 		CarfileHash: c.carfileHash,
 		DeviceID:    c.deviceID,
 		Status:      c.status,
 		DoneSize:    c.doneSize,
 		DoneBlocks:  c.doneBlocks,
-		Reliability: c.reliability,
 		EndTime:     time.Now(),
 	}
 

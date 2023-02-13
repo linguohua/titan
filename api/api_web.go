@@ -54,8 +54,8 @@ type ListCacheInfosReq struct {
 }
 
 type ListCacheInfosRsp struct {
-	Datas []*CacheTaskInfo `json:"data"`
-	Total int64            `json:"total"`
+	Datas []*CarfileReplicaInfo `json:"data"`
+	Total int64                 `json:"total"`
 }
 
 type WebCarfileStatus int

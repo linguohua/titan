@@ -116,26 +116,25 @@ type RemoveCarfileResultInfo struct {
 
 // CarfileRecordInfo Data info
 type CarfileRecordInfo struct {
-	CarfileCid      string    `db:"carfile_cid"`
-	CarfileHash     string    `db:"carfile_hash"`
-	Reliability     int       `db:"reliability"`
-	NeedReliability int       `db:"need_reliability"`
-	TotalSize       int64     `db:"total_size"`
-	TotalBlocks     int       `db:"total_blocks"`
-	ExpiredTime     time.Time `db:"expired_time"`
-	CreateTime      time.Time `db:"created_time"`
-	EndTime         time.Time `db:"end_time"`
-	CacheInfos      []CacheTaskInfo
-	Result          *CarfileRecordCacheResult
+	CarfileCid          string    `db:"carfile_cid"`
+	CarfileHash         string    `db:"carfile_hash"`
+	CurReliability      int       `db:"cur_reliability"`
+	NeedReliability     int       `db:"need_reliability"`
+	TotalSize           int64     `db:"total_size"`
+	TotalBlocks         int       `db:"total_blocks"`
+	ExpiredTime         time.Time `db:"expired_time"`
+	CreateTime          time.Time `db:"created_time"`
+	EndTime             time.Time `db:"end_time"`
+	CarfileReplicaInfos []CarfileReplicaInfo
+	ResultInfo          *CarfileRecordCacheResult
 }
 
-// CacheTaskInfo Data Cache info
-type CacheTaskInfo struct {
+// CarfileReplicaInfo Carfile Replica Info
+type CarfileReplicaInfo struct {
 	ID          string
 	CarfileHash string      `db:"carfile_hash"`
 	DeviceID    string      `db:"device_id"`
 	Status      CacheStatus `db:"status"`
-	Reliability int         `db:"reliability"`
 	DoneSize    int64       `db:"done_size"`
 	DoneBlocks  int         `db:"done_blocks"`
 	IsCandidate bool        `db:"is_candidate"`
@@ -147,7 +146,7 @@ type CacheTaskInfo struct {
 type CacheCarfileInfo struct {
 	CarfileCid      string    `db:"carfile_cid"`
 	CarfileHash     string    `db:"carfile_hash"`
-	Reliability     int       `db:"reliability"`
+	CurReliability  int       `db:"cur_reliability"`
 	NeedReliability int       `db:"need_reliability"`
 	ExpiredTime     time.Time `db:"expired_time"`
 }
@@ -202,12 +201,10 @@ const (
 	CacheStatusCreate CacheStatus = iota
 	// CacheStatusRunning status
 	CacheStatusRunning
-	// CacheStatusFail status
-	CacheStatusFail
-	// CacheStatusSuccess status
-	CacheStatusSuccess
-	// CacheStatusTimeout status
-	CacheStatusTimeout
+	// CacheStatusFailed status
+	CacheStatusFailed
+	// CacheStatusSuccessed status
+	CacheStatusSuccessed
 )
 
 // CacheError cache error

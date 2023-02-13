@@ -73,26 +73,25 @@ CREATE TABLE `carfile_event_cn_gd_shenzhen` (
     PRIMARY KEY (`id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='carfile event';
 
-CREATE TABLE `caches_cn_gd_shenzhen` (
+CREATE TABLE `replicas_cn_gd_shenzhen` (
     `id` varchar(128) NOT NULL UNIQUE,
 	`carfile_hash` varchar(128) NOT NULL,
     `status` TINYINT  DEFAULT '0' ,
     `device_id` varchar(128) NOT NULL ,
     `done_size` BIGINT  DEFAULT '0' ,
     `done_blocks` int  DEFAULT '0' ,
-	`reliability` TINYINT DEFAULT '0' ,
     `is_candidate` BOOLEAN,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='caches info';
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='replicas info';
 
 CREATE TABLE `carfiles_cn_gd_shenzhen` (
 	`carfile_hash` varchar(128) NOT NULL UNIQUE,
 	`carfile_cid` varchar(128) NOT NULL UNIQUE,
     `total_size` BIGINT  DEFAULT '0' ,
     `total_blocks` int  DEFAULT '0' ,
-	`reliability` TINYINT DEFAULT '0' ,
+	`cur_reliability` TINYINT DEFAULT '0' ,
 	`need_reliability` TINYINT DEFAULT '0' ,
     `expired_time` datetime NOT NULL,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
