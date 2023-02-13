@@ -5,6 +5,7 @@ import (
 	"net"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
@@ -14,6 +15,7 @@ import (
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/fsutil"
+	"github.com/linguohua/titan/node/helper"
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
@@ -28,10 +30,9 @@ type Device struct {
 	carfileStore  *carfilestore.CarfileStore
 }
 
-func NewDevice(deviceID, publicIP, internalIP string, bandwidthUp, bandwidthDown int64, carfileStore *carfilestore.CarfileStore) *Device {
+func NewDevice(deviceID, internalIP string, bandwidthUp, bandwidthDown int64, carfileStore *carfilestore.CarfileStore) *Device {
 	device := &Device{
 		deviceID:      deviceID,
-		publicIP:      publicIP,
 		internalIP:    internalIP,
 		bandwidthUp:   bandwidthUp,
 		bandwidthDown: bandwidthDown,
@@ -126,6 +127,13 @@ func getMacAddr(ip string) (string, error) {
 		}
 	}
 	return "", nil
+}
+
+func getExternalIP(api api.Scheduler) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	defer cancel()
+
+	return api.GetExternalIP(ctx)
 }
 
 func (device *Device) SetBandwidthUp(bandwidthUp int64) {

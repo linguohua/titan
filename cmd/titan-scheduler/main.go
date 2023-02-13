@@ -85,7 +85,7 @@ func main() {
 		Commands: local,
 	}
 	app.Setup()
-	app.Metadata["repoType"] = repo.FullNode
+	app.Metadata["repoType"] = repo.Scheduler
 
 	if err := app.Run(os.Args); err != nil {
 		log.Warnf("%+v", err)
@@ -288,12 +288,12 @@ func openRepo(cctx *cli.Context) (repo.LockedRepo, error) {
 		return nil, err
 	}
 	if !ok {
-		if err := r.Init(repo.StorageMiner); err != nil {
+		if err := r.Init(repo.Scheduler); err != nil {
 			return nil, err
 		}
 	}
 
-	lr, err := r.Lock(repo.StorageMiner)
+	lr, err := r.Lock(repo.Scheduler)
 	if err != nil {
 		return nil, err
 	}

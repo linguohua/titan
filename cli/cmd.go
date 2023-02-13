@@ -29,19 +29,6 @@ func NewCliError(s string) error {
 // ApiConnector returns API instance
 type ApiConnector func() api.Scheduler
 
-// func GetFullNodeServices(ctx *cli.Context) (ServicesAPI, error) {
-// 	if tn, ok := ctx.App.Metadata["test-services"]; ok {
-// 		return tn.(ServicesAPI), nil
-// 	}
-
-// 	api, c, err := GetFullNodeAPIV1(ctx)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return &ServicesImpl{api: api, closer: c}, nil
-// }
-
 var (
 	GetAPIInfo = cliutil.GetAPIInfo
 	GetRawAPI  = cliutil.GetRawAPI

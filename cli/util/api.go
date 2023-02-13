@@ -138,7 +138,7 @@ func GetCommonAPI(ctx *cli.Context) (api.Common, jsonrpc.ClientCloser, error) {
 	ti, ok := ctx.App.Metadata["repoType"]
 	if !ok {
 		log.Errorf("unknown repo type, are you sure you want to use GetCommonAPI?")
-		ti = repo.FullNode
+		ti = repo.Scheduler
 	}
 	t, ok := ti.(repo.RepoType)
 	if !ok {
@@ -154,7 +154,7 @@ func GetCommonAPI(ctx *cli.Context) (api.Common, jsonrpc.ClientCloser, error) {
 }
 
 func GetSchedulerAPI(ctx *cli.Context, deviceID string) (api.Scheduler, jsonrpc.ClientCloser, error) {
-	addr, headers, err := GetRawAPI(ctx, repo.FullNode, "v0")
+	addr, headers, err := GetRawAPI(ctx, repo.Scheduler, "v0")
 	if err != nil {
 		return nil, nil, err
 	}
