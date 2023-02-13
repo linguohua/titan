@@ -1,13 +1,9 @@
 package helper
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-datastore"
-	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/carfile/carfilestore"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -32,24 +28,14 @@ const (
 	TcpPackMaxLength = 52428800
 )
 
-type NodeParams struct {
-	DS              datastore.Batching
-	Scheduler       api.Scheduler
-	CarfileStore    *carfilestore.CarfileStore
-	DownloadSrvKey  string
-	DownloadSrvAddr string
-	IPFSAPI         string
-}
-
-func NewKeyFID(fid string) datastore.Key {
-	key := fmt.Sprintf("%s%s", KeyFidPrefix, fid)
-	return datastore.NewKey(key)
-}
-
-func NewKeyHash(cid string) datastore.Key {
-	key := fmt.Sprintf("%s%s", KeyCidPrefix, cid)
-	return datastore.NewKey(key)
-}
+// type NodeParams struct {
+// 	DS              datastore.Batching
+// 	Scheduler       api.Scheduler
+// 	CarfileStore    *carfilestore.CarfileStore
+// 	DownloadSrvKey  string
+// 	DownloadSrvAddr string
+// 	IPFSAPI         string
+// }
 
 func CIDString2HashString(cidString string) (string, error) {
 	cid, err := cid.Decode(cidString)

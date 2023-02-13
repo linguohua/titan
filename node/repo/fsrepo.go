@@ -43,10 +43,10 @@ func NewRepoTypeFromString(t string) RepoType {
 	switch t {
 	case "FullNode":
 		return FullNode
-	case "StorageMiner":
-		return StorageMiner
-	case "Worker":
-		return Worker
+	case "Edge":
+		return Edge
+	case "Candidate":
+		return Candidate
 	case "Wallet":
 		return Wallet
 	default:
@@ -158,28 +158,52 @@ func (markets) APIInfoEnvVars() (primary string, fallbacks []string, deprecated 
 	return "MARKETS_API_INFO", []string{"MINER_API_INFO"}, nil
 }
 
-type worker struct{}
+type edge struct{}
 
-var Worker worker
+var Edge edge
 
-func (worker) Type() string {
-	return "Worker"
+func (edge) Type() string {
+	return "Edge"
 }
 
-func (worker) Config() interface{} {
+func (edge) Config() interface{} {
 	return &struct{}{}
 }
 
-func (worker) APIFlags() []string {
-	return []string{"worker-api-url"}
+func (edge) APIFlags() []string {
+	return []string{"edge-api-url"}
 }
 
-func (worker) RepoFlags() []string {
-	return []string{"worker-repo"}
+func (edge) RepoFlags() []string {
+	return []string{"edge-repo"}
 }
 
-func (worker) APIInfoEnvVars() (primary string, fallbacks []string, deprecated []string) {
-	return "WORKER_API_INFO", nil, nil
+func (edge) APIInfoEnvVars() (primary string, fallbacks []string, deprecated []string) {
+	return "EDGE_API_INFO", nil, nil
+}
+
+type candidate struct{}
+
+var Candidate candidate
+
+func (candidate) Type() string {
+	return "Candidate"
+}
+
+func (candidate) Config() interface{} {
+	return &struct{}{}
+}
+
+func (candidate) APIFlags() []string {
+	return []string{"candidate-api-url"}
+}
+
+func (candidate) RepoFlags() []string {
+	return []string{"candidate-repo"}
+}
+
+func (candidate) APIInfoEnvVars() (primary string, fallbacks []string, deprecated []string) {
+	return "CANDIDATE_API_INFO", nil, nil
 }
 
 var Wallet wallet

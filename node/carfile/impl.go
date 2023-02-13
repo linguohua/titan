@@ -47,13 +47,14 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 		downloadSources:           sources,
 	}
 
-	data, err := carfileOperation.carfileStore.GetIncomleteCarfileData(carfileHash)
+	data, err := carfileOperation.carfileStore.GetIncompleteCarfileCacheData(carfileHash)
 	if err != nil && err != datastore.ErrNotFound {
 		log.Errorf("CacheCarfile load incomplete carfile error %s", err.Error())
 	}
 
+	// continue download carfile from incomplete carfileCache
 	if err == nil {
-		err = decodeCarfileFromData(data, cfCache)
+		err = decodeCarfileCacheFromData(data, cfCache)
 		if err != nil {
 			log.Errorf("CacheCarfile, decodeCarfileFromData error:%s", err.Error())
 		} else {

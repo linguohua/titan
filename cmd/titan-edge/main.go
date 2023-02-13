@@ -26,7 +26,6 @@ import (
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/repo"
-	"github.com/shirou/gopsutil/v3/cpu"
 
 	"github.com/google/uuid"
 	logging "github.com/ipfs/go-log/v2"
@@ -42,16 +41,14 @@ import (
 var log = logging.Logger("main")
 
 const (
-	FlagWorkerRepo            = "edge-repo"
-	FlagWorkerRepoDeprecation = "edgerepo"
-	DefaultCarfileStoreDir    = "carfilestore"
+	FlagEdgeRepo            = "edge-repo"
+	FlagEdgeRepoDeprecation = "edgerepo"
+	DefaultCarfileStoreDir  = "carfilestore"
 )
 
 func main() {
 	api.RunningNodeType = api.NodeEdge
-	cpu.Percent(0, false)
 	titanlog.SetupLogLevels()
-
 	local := []*cli.Command{
 		runCmd,
 	}
@@ -65,11 +62,11 @@ func main() {
 		EnableBashCompletion: true,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    FlagWorkerRepo,
-				Aliases: []string{FlagWorkerRepoDeprecation},
+				Name:    FlagEdgeRepo,
+				Aliases: []string{FlagEdgeRepoDeprecation},
 				EnvVars: []string{"TITAN_EDGE_PATH", "EDGE_PATH"},
 				Value:   "~/.titanedge", // TODO: Consider XDG_DATA_HOME
-				Usage:   fmt.Sprintf("Specify worker repo path. flag %s and env TITAN_EDGE_PATH are DEPRECATION, will REMOVE SOON", FlagWorkerRepoDeprecation),
+				Usage:   fmt.Sprintf("Specify worker repo path. flag %s and env TITAN_EDGE_PATH are DEPRECATION, will REMOVE SOON", FlagEdgeRepoDeprecation),
 			},
 			&cli.StringFlag{
 				Name:    "panic-reports",
@@ -82,7 +79,7 @@ func main() {
 		After: func(c *cli.Context) error {
 			if r := recover(); r != nil {
 				// Generate report in LOTUS_PATH and re-raise panic
-				build.GeneratePanicReport(c.String("panic-reports"), c.String(FlagWorkerRepo), c.App.Name)
+				build.GeneratePanicReport(c.String("panic-reports"), c.String(FlagEdgeRepo), c.App.Name)
 				panic(r)
 			}
 			return nil
@@ -90,7 +87,7 @@ func main() {
 		Commands: append(local, lcli.EdgeCmds...),
 	}
 	app.Setup()
-	app.Metadata["repoType"] = repo.Worker
+	app.Metadata["repoType"] = repo.Edge
 
 	if err := app.Run(os.Args); err != nil {
 		log.Errorf("%+v", err)
@@ -218,11 +215,6 @@ var runCmd = &cli.Command{
 		}
 		log.Infof("Remote version %s", v)
 
-		// tk, err := schedulerAPI.GetToken(ctx, deviceID, securityKey)
-		// if err != nil {
-		// 	return err
-		// }
-
 		// Register all metric views
 		if err := view.Register(
 			metrics.DefaultViews...,
@@ -231,7 +223,7 @@ var runCmd = &cli.Command{
 		}
 
 		// Open repo
-		repoPath := cctx.String(FlagWorkerRepo)
+		repoPath := cctx.String(FlagEdgeRepo)
 		r, err := repo.NewFS(repoPath)
 		if err != nil {
 			return err
@@ -242,11 +234,11 @@ var runCmd = &cli.Command{
 			return err
 		}
 		if !ok {
-			if err := r.Init(repo.Worker); err != nil {
+			if err := r.Init(repo.Edge); err != nil {
 				return err
 			}
 
-			lr, err := r.Lock(repo.Worker)
+			lr, err := r.Lock(repo.Edge)
 			if err != nil {
 				return err
 			}
@@ -291,7 +283,7 @@ var runCmd = &cli.Command{
 			}
 		}
 
-		lr, err := r.Lock(repo.Worker)
+		lr, err := r.Lock(repo.Edge)
 		if err != nil {
 			return err
 		}
@@ -334,7 +326,7 @@ var runCmd = &cli.Command{
 			cctx.Int64("bandwidth-down"),
 			carfileStore)
 
-		params := &helper.NodeParams{
+		params := &edge.EdgeParams{
 			DS:              ds,
 			Scheduler:       schedulerAPI,
 			CarfileStore:    carfileStore,
@@ -372,9 +364,6 @@ var runCmd = &cli.Command{
 
 		addressSlice := strings.Split(address, ":")
 		rpcURL := fmt.Sprintf("http://%s:%s/rpc/v0", externalIP, addressSlice[1])
-
-		edge := edgeApi.(*edge.Edge)
-		downloadSrvURL := edge.GetDownloadSrvURL()
 
 		minerSession, err := getSchedulerSession(schedulerAPI, deviceID)
 		if err != nil {
@@ -422,13 +411,14 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						err := edgeNodeConnect(schedulerAPI, rpcURL, downloadSrvURL)
+						err := schedulerConnect(schedulerAPI, rpcURL, "")
 						if err != nil {
 							log.Errorf("Registering edge failed: %+v", err)
 							cancel()
 							return
 						}
 
+						edge := edgeApi.(*edge.Edge)
 						edge.LoadPublicKey()
 						log.Info("Edge registered successfully, waiting for tasks")
 						errCount = 0
@@ -447,7 +437,7 @@ var runCmd = &cli.Command{
 	},
 }
 
-func edgeNodeConnect(api api.Scheduler, rpcURL string, downloadSrvURL string) error {
+func schedulerConnect(api api.Scheduler, rpcURL string, downloadSrvURL string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
 	defer cancel()
 	return api.EdgeNodeConnect(ctx, rpcURL, downloadSrvURL)

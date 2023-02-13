@@ -35,8 +35,7 @@ func NewBlockStore(path string, storeType string) BlockStore {
 func NewBlockStoreFromString(t string, path string) BlockStore {
 	switch t {
 	case "RocksDB":
-		// RocksDB.Path = path
-		// return &RocksDB
+		// TODO: need to implement
 		return nil
 	case "FileStore":
 		fs := &fileStore{Path: path}
