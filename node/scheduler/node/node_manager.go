@@ -118,8 +118,8 @@ func (m *Manager) checkNodesKeepalive() {
 	})
 }
 
-// GetNodes get nodes with type
-func (m *Manager) GetNodes(nodeType api.NodeTypeName) ([]string, error) {
+// GetOnlineNodes get nodes with type
+func (m *Manager) GetOnlineNodes(nodeType api.NodeTypeName) ([]string, error) {
 	list := make([]string, 0)
 
 	if nodeType == api.TypeNameAll || nodeType == api.TypeNameCandidate {
@@ -338,7 +338,7 @@ func (m *Manager) FindNodeDownloadInfos(cid string) ([]*api.DownloadInfoResult, 
 	}
 
 	for _, cache := range caches {
-		if cache.CandidateCache {
+		if cache.IsCandidate {
 			continue
 		}
 		deviceID := cache.DeviceID

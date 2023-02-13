@@ -43,14 +43,10 @@ var SchedulerCmds = []*cli.Command{
 	showOnlineNodeCmd,
 	nodeTokenCmd,
 	registerNodeCmd,
-	redressInfoCmd,
 	showNodeInfoCmd,
 	// other
-	// cachingCarfilesCmd,
-	// cacheStatCmd,
 	getDownloadInfoCmd,
 	nodeAppUpdateCmd,
-	// listEventCmd,
 }
 
 var (
@@ -209,34 +205,6 @@ var resetBackupCacheCountCmd = &cli.Command{
 		defer closer()
 
 		return schedulerAPI.ResetBackupCacheCount(ctx, count)
-	},
-}
-
-var redressInfoCmd = &cli.Command{
-	Name:  "redress-node-info",
-	Usage: "redress node info",
-	Flags: []cli.Flag{
-		deviceIDFlag,
-	},
-
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		deviceID := cctx.String("device-id")
-		if deviceID == "" {
-			return xerrors.New("device-id is nil")
-		}
-
-		ctx := ReqContext(cctx)
-
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		return schedulerAPI.RedressDeveiceInfo(ctx, deviceID)
 	},
 }
 
@@ -769,8 +737,8 @@ var showRunningCarfilesCmd = &cli.Command{
 
 			for j := 0; j < len(info.CacheInfos); j++ {
 				cache := info.CacheInfos[j]
-				fmt.Printf("DeviceID: %s , Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsRootCache:%v \n",
-					cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.CandidateCache)
+				fmt.Printf("DeviceID: %s , Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
+					cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
 			}
 		}
 
@@ -807,8 +775,8 @@ var showCarfileInfoCmd = &cli.Command{
 
 		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,Reliability:%d/%d ,Expired Time:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.Reliability, info.NeedReliability, info.ExpiredTime.Format("2006-01-02 15:04:05"))
 		for _, cache := range info.CacheInfos {
-			fmt.Printf("DeviceID: %s ,Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsRootCache:%v \n",
-				cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.CandidateCache)
+			fmt.Printf("DeviceID: %s ,Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
+				cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
 		}
 
 		if info.Result != nil {
@@ -999,73 +967,6 @@ var showOnlineNodeCmd = &cli.Command{
 		return err
 	},
 }
-
-// var cachingCarfilesCmd = &cli.Command{
-// 	Name:  "caching-carfiles",
-// 	Usage: "show caching carfile from node",
-// 	Flags: []cli.Flag{
-// 		// schedulerURLFlag,
-// 		deviceIDFlag,
-// 	},
-
-// 	Before: func(cctx *cli.Context) error {
-// 		return nil
-// 	},
-// 	Action: func(cctx *cli.Context) error {
-// 		// url := cctx.String("scheduler-url")
-// 		// log.Infof("scheduler url:%v", url)
-// 		deviceID := cctx.String("device-id")
-
-// 		ctx := ReqContext(cctx)
-// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-// 		if err != nil {
-// 			return err
-// 		}
-// 		defer closer()
-
-// 		body, err := schedulerAPI.QueryCachingCarfileWithNode(ctx, deviceID)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		fmt.Printf("caching blocks:%v", body)
-
-// 		return nil
-// 	},
-// }
-
-// var cacheStatCmd = &cli.Command{
-// 	Name:  "cache-stat",
-// 	Usage: "show cache stat from node",
-// 	Flags: []cli.Flag{
-// 		// schedulerURLFlag,
-// 		deviceIDFlag,
-// 	},
-
-// 	Before: func(cctx *cli.Context) error {
-// 		return nil
-// 	},
-// 	Action: func(cctx *cli.Context) error {
-// 		// url := cctx.String("scheduler-url")
-// 		deviceID := cctx.String("device-id")
-
-// 		ctx := ReqContext(cctx)
-// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-// 		if err != nil {
-// 			return err
-// 		}
-// 		defer closer()
-
-// 		body, err := schedulerAPI.QueryCacheStatWithNode(ctx, deviceID)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		fmt.Printf("cache stat:%v", body)
-
-// 		return nil
-// 	},
-// }
 
 type yconfig struct {
 	Cids []string `toml:"cids"`

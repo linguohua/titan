@@ -150,29 +150,6 @@ type ValidateResult struct {
 	EndTime     time.Time `db:"end_time"`
 }
 
-// // MessageInfo Message Info
-// type MessageInfo struct {
-// 	ID         string
-// 	CID        string    `db:"cid"`
-// 	Target     string    `db:"target"`
-// 	CacheID    string    `db:"cache_id"`
-// 	CarfileCid string    `db:"carfile_cid"`
-// 	Status     MsgStatus `db:"status"`
-// 	Size       int       `db:"size"`
-// 	Type       MsgType   `db:"msg_type"`
-// 	Source     string    `db:"source"`
-// 	CreateTime time.Time `db:"created_time"`
-// 	EndTime    time.Time `db:"end_time"`
-// }
-
-// // BlockDelete block to be delete
-// type BlockDelete struct {
-// 	CID      string `db:"cid"`
-// 	DeviceID string `db:"device_id"`
-// 	Msg      string `db:"msg"`
-// 	CacheID  string `db:"cache_id"`
-// }
-
 // ValidateStatus Validate Status
 type ValidateStatus int
 

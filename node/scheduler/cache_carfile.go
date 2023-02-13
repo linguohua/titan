@@ -142,11 +142,11 @@ func carfileRecord2Info(d *carfile.CarfileRecord) *api.CarfileRecordInfo {
 			c := value.(*carfile.CacheTask)
 
 			cc := api.CacheTaskInfo{
-				Status:         c.GetStatus(),
-				DoneSize:       c.GetDoneSize(),
-				DoneBlocks:     c.GetDoneBlocks(),
-				CandidateCache: c.IsRootCache(),
-				DeviceID:       c.GetDeviceID(),
+				Status:      c.GetStatus(),
+				DoneSize:    c.GetDoneSize(),
+				DoneBlocks:  c.GetDoneBlocks(),
+				IsCandidate: c.IsCandidateCache(),
+				DeviceID:    c.GetDeviceID(),
 			}
 
 			caches = append(caches, cc)
@@ -200,25 +200,6 @@ func (s *Scheduler) ListCacheEvents(ctx context.Context, page int, cid string) (
 // ListCarfileRecords List Datas
 func (s *Scheduler) ListCarfileRecords(ctx context.Context, page int) (*api.DataListInfo, error) {
 	return persistent.GetDB().GetCarfileCidWithPage(page)
-	// if err != nil {
-	// 	return api.DataListInfo{}, err
-	// }
-
-	// out := make([]*api.CarfileRecordInfo, 0)
-	// for _, info := range info.CarfileRecords {
-	// 	dInfo := &api.CarfileRecordInfo{
-	// 		CarfileCid:      info.CarfileCid,
-	// 		CarfileHash:     info.CarfileHash,
-	// 		NeedReliability: info.NeedReliability,
-	// 		Reliability:     info.Reliability,
-	// 		TotalSize:       info.TotalSize,
-	// 		TotalBlocks:     info.TotalBlocks,
-	// 	}
-
-	// 	out = append(out, dInfo)
-	// }
-
-	// return api.DataListInfo{Page: page, TotalPage: totalPage, Cids: count, CacheInfos: out}, nil
 }
 
 // RemoveCarfile remove all caches with carfile
@@ -265,23 +246,4 @@ func (s *Scheduler) CacheCarfile(ctx context.Context, cid string, reliability in
 	// expiredTime := time.Now().Add(time.Duration(hour) * time.Hour)
 
 	return s.dataManager.CacheCarfile(cid, reliability, expiredTime)
-}
-
-// DeleteBlockRecords  Delete Block Record
-func (s *Scheduler) DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) {
-	if len(cids) <= 0 {
-		return nil, xerrors.New("Cid is Nil")
-	}
-
-	// edge := s.nodeManager.getEdgeNode(deviceID)
-	// if edge != nil {
-	// 	return edge.deleteBlockRecords(cids)
-	// }
-
-	// candidate := s.nodeManager.getCandidateNode(deviceID)
-	// if candidate != nil {
-	// 	return candidate.deleteBlockRecords(cids)
-	// }
-
-	return nil, xerrors.Errorf("not found node:%s", deviceID)
 }

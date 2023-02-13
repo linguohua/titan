@@ -16,37 +16,37 @@ type CacheTask struct {
 	carfileRecord *CarfileRecord
 	nodeManager   *node.Manager
 
-	id               string
-	deviceID         string
-	carfileHash      string
-	status           api.CacheStatus
-	reliability      int
-	doneSize         int64
-	doneBlocks       int
-	isCandidateCache bool
+	id          string
+	deviceID    string
+	carfileHash string
+	status      api.CacheStatus
+	reliability int
+	doneSize    int64
+	doneBlocks  int
+	isCandidate bool
 
 	timeoutTicker *time.Ticker
 }
 
-func newCacheTask(carfileRecord *CarfileRecord, deviceID string, isCandidateCache bool) (*CacheTask, error) {
+func newCacheTask(carfileRecord *CarfileRecord, deviceID string, isCandidate bool) (*CacheTask, error) {
 	cache := &CacheTask{
-		carfileRecord:    carfileRecord,
-		nodeManager:      carfileRecord.nodeManager,
-		reliability:      0,
-		status:           api.CacheStatusRunning,
-		carfileHash:      carfileRecord.carfileHash,
-		isCandidateCache: isCandidateCache,
-		deviceID:         deviceID,
-		id:               cacheTaskID(carfileRecord.carfileHash, deviceID),
+		carfileRecord: carfileRecord,
+		nodeManager:   carfileRecord.nodeManager,
+		reliability:   0,
+		status:        api.CacheStatusRunning,
+		carfileHash:   carfileRecord.carfileHash,
+		isCandidate:   isCandidate,
+		deviceID:      deviceID,
+		id:            cacheTaskID(carfileRecord.carfileHash, deviceID),
 	}
 
 	err := persistent.GetDB().CreateCacheTaskInfo(
 		&api.CacheTaskInfo{
-			ID:             cache.id,
-			CarfileHash:    cache.carfileHash,
-			DeviceID:       cache.deviceID,
-			Status:         cache.status,
-			CandidateCache: cache.isCandidateCache,
+			ID:          cache.id,
+			CarfileHash: cache.carfileHash,
+			DeviceID:    cache.deviceID,
+			Status:      cache.status,
+			IsCandidate: cache.isCandidate,
 		})
 	return cache, err
 }
@@ -114,7 +114,7 @@ func (c *CacheTask) startTask() (err error) {
 
 func (c *CacheTask) calculateReliability() int {
 	// TODO To be perfected
-	if !c.isCandidateCache && c.status == api.CacheStatusSuccess {
+	if !c.isCandidate && c.status == api.CacheStatusSuccess {
 		return 1
 	}
 
@@ -190,7 +190,7 @@ func (c *CacheTask) GetDoneBlocks() int {
 	return c.doneBlocks
 }
 
-// IsRootCache get is root cache
-func (c *CacheTask) IsRootCache() bool {
-	return c.isCandidateCache
+// IsCandidateCache get is root cache
+func (c *CacheTask) IsCandidateCache() bool {
+	return c.isCandidate
 }

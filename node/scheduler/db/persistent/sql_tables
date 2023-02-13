@@ -81,7 +81,7 @@ CREATE TABLE `caches_cn_gd_shenzhen` (
     `done_size` BIGINT  DEFAULT '0' ,
     `done_blocks` int  DEFAULT '0' ,
 	`reliability` TINYINT DEFAULT '0' ,
-    `candidate_cache` BOOLEAN,
+    `is_candidate` BOOLEAN,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)

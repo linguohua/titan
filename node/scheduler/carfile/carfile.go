@@ -84,18 +84,18 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 		}
 
 		c := &CacheTask{
-			id:               cacheInfo.ID,
-			deviceID:         cacheInfo.DeviceID,
-			carfileRecord:    carfileRecord,
-			doneSize:         cacheInfo.DoneSize,
-			doneBlocks:       cacheInfo.DoneBlocks,
-			status:           cacheInfo.Status,
-			isCandidateCache: cacheInfo.CandidateCache,
-			carfileHash:      cacheInfo.CarfileHash,
-			nodeManager:      carfileRecord.nodeManager,
+			id:            cacheInfo.ID,
+			deviceID:      cacheInfo.DeviceID,
+			carfileRecord: carfileRecord,
+			doneSize:      cacheInfo.DoneSize,
+			doneBlocks:    cacheInfo.DoneBlocks,
+			status:        cacheInfo.Status,
+			isCandidate:   cacheInfo.IsCandidate,
+			carfileHash:   cacheInfo.CarfileHash,
+			nodeManager:   carfileRecord.nodeManager,
 		}
 
-		if c.isCandidateCache && c.status == api.CacheStatusSuccess {
+		if c.isCandidate && c.status == api.CacheStatusSuccess {
 			carfileRecord.candidateCaches++
 
 			cNode := carfileRecord.nodeManager.GetCandidateNode(c.deviceID)
@@ -126,7 +126,7 @@ func (d *CarfileRecord) candidateCacheExist() bool {
 			return true
 		}
 
-		exist = c.isCandidateCache && c.status == api.CacheStatusSuccess
+		exist = c.isCandidate && c.status == api.CacheStatusSuccess
 		if exist {
 			return false
 		}
@@ -282,36 +282,6 @@ func (d *CarfileRecord) dispatchCaches() error {
 	return xerrors.New("steps completed")
 }
 
-// func (d *CarfileRecord) dispatchCaches() error {
-// 	// if d.dispatchCount >= dispatchCacheTaskLimit {
-// 	// 	return xerrors.Errorf("dispatchCount:%d exceed the limit", d.dispatchCount)
-// 	// }
-// 	// d.dispatchCount++
-
-// 	needCacdidateCount := d.carfileManager.rootCacheCount
-// 	if d.candidateCaches > 0 {
-// 		needCacdidateCount = (d.carfileManager.rootCacheCount + d.carfileManager.backupCacheCount) - d.candidateCaches
-// 	}
-// 	if needCacdidateCount > 0 && d.dispatchCandidatCount < dispatchCacheTaskLimit {
-// 		d.dispatchCandidatCount++
-// 		return d.cacheToCandidates(needCacdidateCount)
-// 	}
-
-// 	needEdgeCount := d.needReliability - d.reliability
-// 	if needEdgeCount <= 0 {
-// 		// no caching required
-// 		return xerrors.New("")
-// 	}
-
-// 	if d.dispatchEdgeCount >= dispatchCacheTaskLimit {
-// 		return xerrors.Errorf("dispatchEdgeCount:%d exceed the limit", d.dispatchEdgeCount)
-// 	}
-
-// 	d.dispatchEdgeCount++
-
-// 	return d.cacheToEdges(needEdgeCount)
-// }
-
 func (d *CarfileRecord) updateCarfileRecordInfo(endCache *CacheTask, errMsg string) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
@@ -319,7 +289,7 @@ func (d *CarfileRecord) updateCarfileRecordInfo(endCache *CacheTask, errMsg stri
 	if endCache.status == api.CacheStatusSuccess {
 		d.reliability += endCache.reliability
 
-		if endCache.isCandidateCache {
+		if endCache.isCandidate {
 			d.candidateCaches++
 
 			cNode := d.nodeManager.GetCandidateNode(endCache.deviceID)

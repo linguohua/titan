@@ -28,7 +28,7 @@ type Election struct {
 	reelectEnable  bool
 }
 
-//EleOption election option
+// EleOption election option
 type EleOption struct {
 	ctx context.Context
 	// electInterval is the time electInterval for re-election
@@ -51,18 +51,6 @@ func newEleOption(opts ...Option) EleOption {
 
 // Option election option
 type Option func(opt *EleOption)
-
-// func ElectIntervalOption(interval time.Duration) Option {
-// 	return func(opt *EleOption) {
-// 		opt.interval = interval
-// 	}
-// }
-
-// func ExpirationOption(expiration time.Duration) Option {
-// 	return func(opt *EleOption) {
-// 		opt.expiration = expiration
-// 	}
-// }
 
 // NewElection new election
 func NewElection(manager *node.Manager, opts ...Option) *Election {
@@ -170,7 +158,7 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 	}
 
 	sort.Slice(candidates, func(i, j int) bool {
-		//TODO Consider node reliability
+		// TODO Consider node reliability
 		return candidates[i].BandwidthDown > candidates[j].BandwidthDown
 	})
 
@@ -279,11 +267,6 @@ func (v *Election) reelectTicker() {
 					continue
 				}
 				expire = true
-				// if lastActive.Before(time.Now().Add(-v.opts.vExpiration)) {
-				// 	expire = true
-				// 	log.Infof("validator %s offline for more than %v", deviceID, v.opts.vExpiration)
-				// 	delete(v.validators, deviceID)
-				// }
 			}
 			v.vlk.Unlock()
 			if !expire && !v.reelectEnable {

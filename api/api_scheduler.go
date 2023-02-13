@@ -13,30 +13,26 @@ type Scheduler interface {
 	Web
 
 	// call by command
-	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeTypeName) ([]string, error)                   //perm:read
-	ElectionValidators(ctx context.Context) error                                                      //perm:admin                                                               //perm:admin
-	QueryCacheStatWithNode(ctx context.Context, deviceID string) ([]CacheStat, error)                  //perm:read
-	QueryCachingCarfileWithNode(ctx context.Context, deviceID string) (CachingCarfile, error)          //perm:read
-	CacheCarfile(ctx context.Context, cid string, reliability int, expiredTime time.Time) error        //perm:admin
-	RemoveCarfile(ctx context.Context, carfileID string) error                                         //perm:admin
-	RemoveCache(ctx context.Context, carfileID, deviceID string) error                                 //perm:admin
-	GetCarfileRecordInfo(ctx context.Context, cid string) (CarfileRecordInfo, error)                   //perm:read
-	ListCarfileRecords(ctx context.Context, page int) (*DataListInfo, error)                           //perm:read
-	GetRunningCarfileRecords(ctx context.Context) ([]*CarfileRecordInfo, error)                        //perm:read
-	RegisterNode(ctx context.Context, nodeType NodeType, count int) ([]NodeRegisterInfo, error)        //perm:admin
-	DeleteBlockRecords(ctx context.Context, deviceID string, cids []string) (map[string]string, error) //perm:admin
-	ValidateSwitch(ctx context.Context, open bool) error                                               //perm:admin
-	ValidateRunningState(ctx context.Context) (bool, error)                                            //perm:admin
-	ValidateStart(ctx context.Context) error                                                           //perm:admin
-	ResetCacheExpiredTime(ctx context.Context, carfileCid string, expiredTime time.Time) error         //perm:admin
-	ReplenishCacheExpiredTime(ctx context.Context, carfileCid string, hour int) error                  //perm:admin
-	NodeQuit(ctx context.Context, device string) error                                                 //perm:admin
-	StopCacheTask(ctx context.Context, carfileCid string) error                                        //perm:admin
-	RedressDeveiceInfo(ctx context.Context, deviceID string) error                                     //perm:admin
-	ResetBackupCacheCount(ctx context.Context, backupCacheCount int) error                             //perm:admin
-	GetUndoneCarfileRecords(ctx context.Context, page int) (*DataListInfo, error)                      //perm:read
-	ExecuteUndoneCarfilesTask(ctx context.Context) error                                               //perm:admin
-	ListCacheEvents(ctx context.Context, page int, cid string) (*EventListInfo, error)                 //perm:read
+	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeTypeName) ([]string, error)            //perm:read
+	ElectionValidators(ctx context.Context) error                                               //perm:admin
+	CacheCarfile(ctx context.Context, cid string, reliability int, expiredTime time.Time) error //perm:admin
+	RemoveCarfile(ctx context.Context, carfileID string) error                                  //perm:admin
+	RemoveCache(ctx context.Context, carfileID, deviceID string) error                          //perm:admin
+	GetCarfileRecordInfo(ctx context.Context, cid string) (CarfileRecordInfo, error)            //perm:read
+	ListCarfileRecords(ctx context.Context, page int) (*DataListInfo, error)                    //perm:read
+	GetRunningCarfileRecords(ctx context.Context) ([]*CarfileRecordInfo, error)                 //perm:read
+	RegisterNode(ctx context.Context, nodeType NodeType, count int) ([]NodeRegisterInfo, error) //perm:admin
+	ValidateSwitch(ctx context.Context, open bool) error                                        //perm:admin
+	ValidateRunningState(ctx context.Context) (bool, error)                                     //perm:admin
+	ValidateStart(ctx context.Context) error                                                    //perm:admin
+	ResetCacheExpiredTime(ctx context.Context, carfileCid string, expiredTime time.Time) error  //perm:admin
+	ReplenishCacheExpiredTime(ctx context.Context, carfileCid string, hour int) error           //perm:admin
+	NodeQuit(ctx context.Context, device string) error                                          //perm:admin
+	StopCacheTask(ctx context.Context, carfileCid string) error                                 //perm:admin
+	ResetBackupCacheCount(ctx context.Context, backupCacheCount int) error                      //perm:admin
+	GetUndoneCarfileRecords(ctx context.Context, page int) (*DataListInfo, error)               //perm:read
+	ExecuteUndoneCarfilesTask(ctx context.Context) error                                        //perm:admin
+	ListCacheEvents(ctx context.Context, page int, cid string) (*EventListInfo, error)          //perm:read
 
 	// call by locator
 	LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID, locatorToken string) error //perm:write
@@ -135,16 +131,16 @@ type CarfileRecordInfo struct {
 
 // CacheTaskInfo Data Cache info
 type CacheTaskInfo struct {
-	ID             string
-	CarfileHash    string      `db:"carfile_hash"`
-	DeviceID       string      `db:"device_id"`
-	Status         CacheStatus `db:"status"`
-	Reliability    int         `db:"reliability"`
-	DoneSize       int64       `db:"done_size"`
-	DoneBlocks     int         `db:"done_blocks"`
-	CandidateCache bool        `db:"candidate_cache"`
-	CreateTime     time.Time   `db:"created_time"`
-	EndTime        time.Time   `db:"end_time"`
+	ID          string
+	CarfileHash string      `db:"carfile_hash"`
+	DeviceID    string      `db:"device_id"`
+	Status      CacheStatus `db:"status"`
+	Reliability int         `db:"reliability"`
+	DoneSize    int64       `db:"done_size"`
+	DoneBlocks  int         `db:"done_blocks"`
+	IsCandidate bool        `db:"is_candidate"`
+	CreateTime  time.Time   `db:"created_time"`
+	EndTime     time.Time   `db:"end_time"`
 }
 
 // CacheCarfileInfo Data info
