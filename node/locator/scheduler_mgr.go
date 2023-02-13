@@ -27,7 +27,6 @@ type accessPoint struct {
 
 type accessPointMgr struct {
 	// key is areaID
-	// TODO change to async
 	accessPoints sync.Map
 	locatorPort  int
 	random       *rand.Rand
