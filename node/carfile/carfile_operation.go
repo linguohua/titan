@@ -57,7 +57,7 @@ func NewCarfileOperation(ds datastore.Batching, carfileStore *carfilestore.Carfi
 }
 
 func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, isComplete bool) error {
-	status := api.CacheStatusFail
+	status := api.CacheStatusFailed
 	if !isComplete {
 		status = api.CacheStatusRunning
 	} else {
@@ -72,7 +72,7 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, 
 	}
 
 	if carfile.carfileSize != 0 && carfile.downloadSize == carfile.carfileSize {
-		status = api.CacheStatusSuccess
+		status = api.CacheStatusSuccessed
 	}
 
 	carfileHash, err := helper.CIDString2HashString(carfile.carfileCID)
@@ -150,7 +150,7 @@ func (carfileOperation *CarfileOperation) cacheResultForCarfileExist(carfileCID 
 	}
 
 	result := api.CacheResultInfo{
-		Status:            api.CacheStatusSuccess,
+		Status:            api.CacheStatusSuccessed,
 		CarfileBlockCount: blocksCount,
 		DoneBlockCount:    blocksCount,
 		CarfileSize:       int64(linksSize),
@@ -190,7 +190,6 @@ func (carfileOperation *CarfileOperation) deleteWaitCacheCarfile(carfileCID stri
 
 	carfileOperation.downloadMgr.saveWaitList()
 	return len(hashs), nil
-
 }
 
 func (carfileOperation *CarfileOperation) deleteCarfile(carfileCID string) (int, error) {

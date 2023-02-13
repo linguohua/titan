@@ -122,7 +122,7 @@ type NodeCacheInfo struct {
 	TotalDownload float64
 	TotalUpload   float64
 	BlockCount    int
-	IsSuccess     bool
+	Successed     bool
 	DeviceID      string
 }
 

@@ -85,7 +85,7 @@ func (s *Scheduler) handleUserDownloadBlockResult(ctx context.Context, result ap
 
 	record.UserStatus = int(blockDownloadStatusFailed)
 	if result.Result {
-		record.UserStatus = int(blockDownloadStatusSuccess)
+		record.UserStatus = int(blockDownloadStatusSuccessed)
 	}
 
 	s.recordDownloadBlock(record, nil, "", "")
@@ -121,7 +121,7 @@ func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string,
 
 	return infos, nil
 
-	//TODO record
+	// TODO record
 	// info := infos[randomNum(0, len(infos))]
 	// err = s.signDownloadInfos(cid, []api.DownloadInfoResult{info}, make(map[string]*rsa.PrivateKey))
 	// if err != nil {
@@ -287,10 +287,10 @@ func (s *Scheduler) recordDownloadBlock(record *cache.DownloadBlockRecord, nodeR
 		info.Status = int(blockDownloadStatusFailed)
 	}
 
-	if record.NodeStatus == int(blockDownloadStatusSuccess) && record.UserStatus == int(blockDownloadStatusSuccess) {
+	if record.NodeStatus == int(blockDownloadStatusSuccessed) && record.UserStatus == int(blockDownloadStatusSuccessed) {
 		info.CompleteTime = time.Now()
 		info.Reward = 1
-		info.Status = int(blockDownloadStatusSuccess)
+		info.Status = int(blockDownloadStatusSuccessed)
 		err = cache.GetDB().RemoveDownloadBlockRecord(record.SN)
 		if err != nil {
 			return err

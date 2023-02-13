@@ -86,9 +86,9 @@ var (
 		Value: "",
 	}
 
-	reliabilityFlag = &cli.IntFlag{
-		Name:  "reliability",
-		Usage: "cache reliability (default:2)",
+	replicaCountFlag = &cli.IntFlag{
+		Name:  "replica-count",
+		Usage: "cache replica count (default:2)",
 		Value: 2,
 	}
 
@@ -560,7 +560,7 @@ var listUndoneCarfileCmd = &cli.Command{
 		}
 
 		for _, carfile := range info.CarfileRecords {
-			fmt.Printf("%s ,Reliabilit: %d/%d ,Blocks:%d ,Expired Time:%s \n", carfile.CarfileCid, carfile.Reliability, carfile.NeedReliability, carfile.TotalBlocks, carfile.ExpiredTime.Format("2006-01-02 15:04:05"))
+			fmt.Printf("%s ,Reliabilit: %d/%d ,Blocks:%d ,Expired Time:%s \n", carfile.CarfileCid, carfile.CurReliability, carfile.NeedReliability, carfile.TotalBlocks, carfile.ExpiredTime.Format("2006-01-02 15:04:05"))
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
 
@@ -616,7 +616,7 @@ var listCarfilesCmd = &cli.Command{
 		}
 
 		for _, carfile := range info.CarfileRecords {
-			fmt.Printf("%s ,Reliabilit: %d/%d ,Blocks:%d ,Expired Time:%s \n", carfile.CarfileCid, carfile.Reliability, carfile.NeedReliability, carfile.TotalBlocks, carfile.ExpiredTime.Format("2006-01-02 15:04:05"))
+			fmt.Printf("%s ,Reliabilit: %d/%d ,Blocks:%d ,Expired Time:%s \n", carfile.CarfileCid, carfile.CurReliability, carfile.NeedReliability, carfile.TotalBlocks, carfile.ExpiredTime.Format("2006-01-02 15:04:05"))
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
 
@@ -731,12 +731,12 @@ var showRunningCarfilesCmd = &cli.Command{
 
 			fmt.Printf("\nData CID: %s ,Total Size:%f MB ,Total Blocks:%d \n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks)
 
-			sort.Slice(info.CacheInfos, func(i, j int) bool {
-				return info.CacheInfos[i].DeviceID < info.CacheInfos[j].DeviceID
+			sort.Slice(info.CarfileReplicaInfos, func(i, j int) bool {
+				return info.CarfileReplicaInfos[i].DeviceID < info.CarfileReplicaInfos[j].DeviceID
 			})
 
-			for j := 0; j < len(info.CacheInfos); j++ {
-				cache := info.CacheInfos[j]
+			for j := 0; j < len(info.CarfileReplicaInfos); j++ {
+				cache := info.CarfileReplicaInfos[j]
 				fmt.Printf("DeviceID: %s , Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
 					cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
 			}
@@ -773,16 +773,16 @@ var showCarfileInfoCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,Reliability:%d/%d ,Expired Time:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.Reliability, info.NeedReliability, info.ExpiredTime.Format("2006-01-02 15:04:05"))
-		for _, cache := range info.CacheInfos {
+		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,CurReliability:%d/%d ,Expired Time:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.CurReliability, info.NeedReliability, info.ExpiredTime.Format("2006-01-02 15:04:05"))
+		for _, cache := range info.CarfileReplicaInfos {
 			fmt.Printf("DeviceID: %s ,Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
 				cache.DeviceID, statusToStr(cache.Status), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
 		}
 
-		if info.Result != nil {
-			fmt.Printf("Result Msg: %s \n", info.Result.ErrMsg)
-			if info.Result.NodeErrs != nil {
-				for nodeID, msg := range info.Result.NodeErrs {
+		if info.ResultInfo != nil {
+			fmt.Printf("Result Msg: %s \n", info.ResultInfo.ErrMsg)
+			if info.ResultInfo.NodeErrs != nil {
+				for nodeID, msg := range info.ResultInfo.NodeErrs {
 					fmt.Printf("%s,err:%s \n", nodeID, msg)
 				}
 			}
@@ -798,10 +798,8 @@ func statusToStr(s api.CacheStatus) string {
 		return "create"
 	case api.CacheStatusRunning:
 		return "running"
-	case api.CacheStatusSuccess:
+	case api.CacheStatusSuccessed:
 		return "done"
-	case api.CacheStatusTimeout:
-		return "time out"
 	default:
 		return "failed"
 	}
@@ -813,7 +811,7 @@ var cacheCarfileCmd = &cli.Command{
 	Flags: []cli.Flag{
 		// schedulerURLFlag,
 		cidFlag,
-		reliabilityFlag,
+		replicaCountFlag,
 		expiredDateFlag,
 	},
 
@@ -823,9 +821,9 @@ var cacheCarfileCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		// url := cctx.String("scheduler-url")
 		cid := cctx.String("cid")
-		reliability := cctx.Int("reliability")
+		reliability := cctx.Int("replica-count")
 		if reliability == 0 {
-			return xerrors.New("reliability is 0")
+			return xerrors.New("replica-count is 0")
 		}
 
 		expiredDate := cctx.String("expired-date")

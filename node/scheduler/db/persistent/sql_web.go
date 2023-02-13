@@ -81,7 +81,7 @@ func (sd sqlDB) GetCacheTaskInfos(startTime time.Time, endTime time.Time, cursor
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE end_time between ? and ? limit ?,?`,
 		cacheTable)
 
-	var out []*api.CacheTaskInfo
+	var out []*api.CarfileReplicaInfo
 	if err := sd.cli.Select(&out, query, startTime, endTime, cursor, count); err != nil {
 		return nil, err
 	}
