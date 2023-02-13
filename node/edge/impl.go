@@ -5,13 +5,14 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/carfile"
+	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/carfile/downloader"
 	"github.com/linguohua/titan/node/common"
-	"github.com/linguohua/titan/node/helper"
 	datasync "github.com/linguohua/titan/node/sync"
 	"github.com/linguohua/titan/node/validate"
 	"golang.org/x/time/rate"
 
+	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/download"
@@ -19,11 +20,11 @@ import (
 
 var log = logging.Logger("edge")
 
-func NewLocalEdgeNode(ctx context.Context, device *device.Device, params *helper.NodeParams) api.Edge {
+func NewLocalEdgeNode(ctx context.Context, device *device.Device, params *EdgeParams) api.Edge {
 	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
 	validate := validate.NewValidate(params.CarfileStore, device)
 
-	blockDownload := download.NewBlockDownload(rateLimiter, params, device, validate)
+	blockDownload := download.NewBlockDownload(rateLimiter, params.Scheduler, params.CarfileStore, device, validate)
 
 	carfileOeration := carfile.NewCarfileOperation(params.DS, params.CarfileStore, params.Scheduler, downloader.NewCandidate(params.CarfileStore), device)
 
@@ -47,6 +48,15 @@ type Edge struct {
 	*download.BlockDownload
 	*validate.Validate
 	*datasync.DataSync
+}
+
+type EdgeParams struct {
+	DS              datastore.Batching
+	Scheduler       api.Scheduler
+	CarfileStore    *carfilestore.CarfileStore
+	DownloadSrvKey  string
+	DownloadSrvAddr string
+	IPFSAPI         string
 }
 
 func (edge *Edge) WaitQuiet(ctx context.Context) error {

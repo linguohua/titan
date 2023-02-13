@@ -15,6 +15,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/linguohua/titan/node/carfile"
+	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/carfile/downloader"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/device"
@@ -23,6 +24,7 @@ import (
 	datasync "github.com/linguohua/titan/node/sync"
 
 	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	vd "github.com/linguohua/titan/node/validate"
 	mh "github.com/multiformats/go-multihash"
@@ -30,11 +32,12 @@ import (
 
 var log = logging.Logger("candidate")
 
-func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *device.Device, params *helper.NodeParams) api.Candidate {
+func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *device.Device, params *CandidateParams) api.Candidate {
 	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
 
 	validate := vd.NewValidate(params.CarfileStore, device)
-	blockDownload := download.NewBlockDownload(rateLimiter, params, device, validate)
+
+	blockDownload := download.NewBlockDownload(rateLimiter, params.Scheduler, params.CarfileStore, device, validate)
 	carfileOperation := carfile.NewCarfileOperation(params.DS, params.CarfileStore, params.Scheduler, downloader.NewIPFS(params.IPFSAPI, params.CarfileStore), device)
 
 	// datasync.SyncLocalBlockstore(params.DS, params.CarfileStore)
@@ -90,6 +93,15 @@ type Candidate struct {
 	scheduler      api.Scheduler
 	tcpSrvAddr     string
 	blockWaiterMap sync.Map
+}
+
+type CandidateParams struct {
+	DS              datastore.Batching
+	Scheduler       api.Scheduler
+	CarfileStore    *carfilestore.CarfileStore
+	DownloadSrvKey  string
+	DownloadSrvAddr string
+	IPFSAPI         string
 }
 
 func (candidate *Candidate) WaitQuiet(ctx context.Context) error {

@@ -17,7 +17,7 @@ type EncodeCarfile struct {
 	DownloadSize              uint64
 }
 
-func ecodeCarfile(cfCache *carfileCache) ([]byte, error) {
+func encodeCarfileCache(cfCache *carfileCache) ([]byte, error) {
 	encodeCarfile := &EncodeCarfile{
 		CarfileCID:                cfCache.carfileCID,
 		BlocksWaitList:            cfCache.blocksWaitList,
@@ -37,7 +37,7 @@ func ecodeCarfile(cfCache *carfileCache) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func decodeCarfileFromData(carfileData []byte, cfCache *carfileCache) error {
+func decodeCarfileCacheFromData(carfileData []byte, cfCache *carfileCache) error {
 	encodeCarfile := &EncodeCarfile{}
 
 	buffer := bytes.NewBuffer(carfileData)
@@ -58,7 +58,7 @@ func decodeCarfileFromData(carfileData []byte, cfCache *carfileCache) error {
 	return nil
 }
 
-func ecodeWaitList(carfileCaches []*carfileCache) ([]byte, error) {
+func encodeWaitList(carfileCaches []*carfileCache) ([]byte, error) {
 	waitList := make([]*EncodeCarfile, 0, len(carfileCaches))
 	for _, cfCache := range carfileCaches {
 		encodeCarfile := &EncodeCarfile{

@@ -204,9 +204,9 @@ func (cfCache *carfileCache) getCarfileHashString() (string, error) {
 }
 
 func (cfCache *carfileCache) ecodeCarfile() ([]byte, error) {
-	return ecodeCarfile(cfCache)
+	return encodeCarfileCache(cfCache)
 }
 
 func (cfCache *carfileCache) decodeCarfileFromBuffer(carfileData []byte) error {
-	return decodeCarfileFromData(carfileData, cfCache)
+	return decodeCarfileCacheFromData(carfileData, cfCache)
 }

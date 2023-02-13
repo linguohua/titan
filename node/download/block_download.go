@@ -9,7 +9,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/linguohua/titan/node/carfile/carfilestore"
@@ -27,6 +26,8 @@ import (
 
 var log = logging.Logger("download")
 
+const downloadPath = "/block/get"
+
 type BlockDownload struct {
 	limiter      *rate.Limiter
 	carfileStore *carfilestore.CarfileStore
@@ -34,20 +35,17 @@ type BlockDownload struct {
 	scheduler    api.Scheduler
 	device       *device.Device
 	validate     *validate.Validate
-	srvAddr      string
 }
 
-func NewBlockDownload(limiter *rate.Limiter, params *helper.NodeParams, device *device.Device, validate *validate.Validate) *BlockDownload {
+func NewBlockDownload(limiter *rate.Limiter, scheduler api.Scheduler, carfileStore *carfilestore.CarfileStore, device *device.Device, validate *validate.Validate) *BlockDownload {
 	var blockDownload = &BlockDownload{
 		limiter:      limiter,
-		carfileStore: params.CarfileStore,
-		scheduler:    params.Scheduler,
-		srvAddr:      params.DownloadSrvAddr,
+		carfileStore: carfileStore,
+		scheduler:    scheduler,
 		validate:     validate,
 		device:       device}
 
-	go blockDownload.startDownloadServer()
-
+	http.HandleFunc(downloadPath, blockDownload.getBlock)
 	return blockDownload
 }
 
@@ -168,28 +166,6 @@ func (bd *BlockDownload) downloadBlockResult(result api.NodeBlockDownloadResult)
 	}
 }
 
-func (bd *BlockDownload) startDownloadServer() {
-	mux := http.NewServeMux()
-	mux.HandleFunc(helper.DownloadSrvPath, bd.getBlock)
-
-	srv := &http.Server{
-		Handler: mux,
-		Addr:    bd.srvAddr,
-	}
-
-	nl, err := net.Listen("tcp", bd.srvAddr)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Infof("download server listen on %s", bd.srvAddr)
-
-	err = srv.Serve(nl)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 // set download server upload speed
 func (bd *BlockDownload) SetDownloadSpeed(ctx context.Context, speedRate int64) error {
 	log.Infof("set download speed %d", speedRate)
@@ -217,12 +193,6 @@ func (bd *BlockDownload) UnlimitDownloadSpeed() error {
 func (bd *BlockDownload) GetRateLimit() int64 {
 	log.Debug("GenerateDownloadToken")
 	return int64(bd.limiter.Limit())
-}
-
-func (bd *BlockDownload) GetDownloadSrvURL() string {
-	addrSplit := strings.Split(bd.srvAddr, ":")
-	url := fmt.Sprintf("http://%s:%s%s", bd.device.GetExternaIP(), addrSplit[1], helper.DownloadSrvPath)
-	return url
 }
 
 func (bd *BlockDownload) LoadPublicKey() error {

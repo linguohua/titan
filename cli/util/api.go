@@ -181,7 +181,7 @@ func GetSchedulerAPI(ctx *cli.Context, deviceID string) (api.Scheduler, jsonrpc.
 }
 
 func GetCandidateAPI(ctx *cli.Context) (api.Candidate, jsonrpc.ClientCloser, error) {
-	addr, headers, err := GetRawAPI(ctx, repo.Worker, "v0")
+	addr, headers, err := GetRawAPI(ctx, repo.Candidate, "v0")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -204,7 +204,7 @@ func GetCandidateAPI(ctx *cli.Context) (api.Candidate, jsonrpc.ClientCloser, err
 }
 
 func GetEdgeAPI(ctx *cli.Context) (api.Edge, jsonrpc.ClientCloser, error) {
-	addr, headers, err := GetRawAPI(ctx, repo.Worker, "v0")
+	addr, headers, err := GetRawAPI(ctx, repo.Edge, "v0")
 	if err != nil {
 		return nil, nil, err
 	}

@@ -25,7 +25,6 @@ import (
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/repo"
-	"github.com/shirou/gopsutil/v3/cpu"
 
 	"github.com/google/uuid"
 	logging "github.com/ipfs/go-log/v2"
@@ -42,16 +41,15 @@ import (
 var log = logging.Logger("main")
 
 const (
-	FlagWorkerRepo = "candidate-repo"
+	FlagCandidateRepo = "candidate-repo"
 
 	// TODO remove after deprecation period
-	FlagWorkerRepoDeprecation = "candidaterepo"
-	DefaultCarfileStoreDir    = "carfilestore"
+	FlagCandidateRepoDeprecation = "candidaterepo"
+	DefaultCarfileStoreDir       = "carfilestore"
 )
 
 func main() {
 	api.RunningNodeType = api.NodeEdge
-	cpu.Percent(0, false)
 	titanlog.SetupLogLevels()
 
 	local := []*cli.Command{
@@ -67,11 +65,11 @@ func main() {
 		EnableBashCompletion: true,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    FlagWorkerRepo,
-				Aliases: []string{FlagWorkerRepoDeprecation},
+				Name:    FlagCandidateRepo,
+				Aliases: []string{FlagCandidateRepoDeprecation},
 				EnvVars: []string{"TITAN_CANDIDATE_PATH", "CANDIDATE_PATH"},
 				Value:   "~/.titancandidate", // TODO: Consider XDG_DATA_HOME
-				Usage:   fmt.Sprintf("Specify worker repo path. flag %s and env TITAN_EDGE_PATH are DEPRECATION, will REMOVE SOON", FlagWorkerRepoDeprecation),
+				Usage:   fmt.Sprintf("Specify worker repo path. flag %s and env TITAN_EDGE_PATH are DEPRECATION, will REMOVE SOON", FlagCandidateRepoDeprecation),
 			},
 			&cli.StringFlag{
 				Name:    "panic-reports",
@@ -84,7 +82,7 @@ func main() {
 		After: func(c *cli.Context) error {
 			if r := recover(); r != nil {
 				// Generate report in LOTUS_PATH and re-raise panic
-				build.GeneratePanicReport(c.String("panic-reports"), c.String(FlagWorkerRepo), c.App.Name)
+				build.GeneratePanicReport(c.String("panic-reports"), c.String(FlagCandidateRepo), c.App.Name)
 				panic(r)
 			}
 			return nil
@@ -92,7 +90,7 @@ func main() {
 		Commands: append(local, lcli.EdgeCmds...),
 	}
 	app.Setup()
-	app.Metadata["repoType"] = repo.Worker
+	app.Metadata["repoType"] = repo.Candidate
 
 	if err := app.Run(os.Args); err != nil {
 		log.Errorf("%+v", err)
@@ -238,7 +236,7 @@ var runCmd = &cli.Command{
 		}
 
 		// Open repo
-		repoPath := cctx.String(FlagWorkerRepo)
+		repoPath := cctx.String(FlagCandidateRepo)
 		r, err := repo.NewFS(repoPath)
 		if err != nil {
 			return err
@@ -249,11 +247,11 @@ var runCmd = &cli.Command{
 			return err
 		}
 		if !ok {
-			if err := r.Init(repo.Worker); err != nil {
+			if err := r.Init(repo.Candidate); err != nil {
 				return err
 			}
 
-			lr, err := r.Lock(repo.Worker)
+			lr, err := r.Lock(repo.Candidate)
 			if err != nil {
 				return err
 			}
@@ -298,7 +296,7 @@ var runCmd = &cli.Command{
 			}
 		}
 
-		lr, err := r.Lock(repo.Worker)
+		lr, err := r.Lock(repo.Candidate)
 		if err != nil {
 			return err
 		}
@@ -340,7 +338,7 @@ var runCmd = &cli.Command{
 			cctx.Int64("bandwidth-down"),
 			carfileStore)
 
-		nodeParams := &helper.NodeParams{
+		nodeParams := &candidate.CandidateParams{
 			DS:              ds,
 			Scheduler:       schedulerAPI,
 			CarfileStore:    carfileStore,
@@ -353,8 +351,6 @@ var runCmd = &cli.Command{
 		tcpSrvAddr := cctx.String("tcp-srv-addr")
 
 		candidateApi := candidate.NewLocalCandidateNode(context.Background(), tcpSrvAddr, device, nodeParams)
-
-		// log.Info("Setting up control endpoint at " + address)
 
 		srv := &http.Server{
 			Handler: WorkerHandler(schedulerAPI.AuthVerify, candidateApi, true),
@@ -383,9 +379,6 @@ var runCmd = &cli.Command{
 
 		addressSlice := strings.Split(address, ":")
 		rpcURL := fmt.Sprintf("http://%s:%s/rpc/v0", externalIP, addressSlice[1])
-
-		candidate := candidateApi.(*candidate.Candidate)
-		downloadSrvURL := candidate.GetDownloadSrvURL()
 
 		minerSession, err := getSchedulerSession(schedulerAPI, deviceID)
 		if err != nil {
@@ -434,12 +427,13 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						err := candidateNodeConnect(schedulerAPI, rpcURL, downloadSrvURL)
+						err := schedulerConnect(schedulerAPI, rpcURL, "")
 						if err != nil {
 							log.Errorf("Registering candidate failed: %+v", err)
 							cancel()
 							return
 						}
+						candidate := candidateApi.(*candidate.Candidate)
 						err = candidate.LoadPublicKey()
 						if err != nil {
 							log.Errorf("LoadPublicKey error:%s", err.Error())
@@ -462,7 +456,7 @@ var runCmd = &cli.Command{
 	},
 }
 
-func candidateNodeConnect(api api.Scheduler, rpcURL string, downloadSrvURL string) error {
+func schedulerConnect(api api.Scheduler, rpcURL string, downloadSrvURL string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
 	defer cancel()
 	return api.CandidateNodeConnect(ctx, rpcURL, downloadSrvURL)

@@ -38,6 +38,8 @@ func NewDevice(deviceID, publicIP, internalIP string, bandwidthUp, bandwidthDown
 		carfileStore:  carfileStore,
 	}
 
+	cpu.Percent(0, false)
+
 	return device
 }
 func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {

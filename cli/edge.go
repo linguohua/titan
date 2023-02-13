@@ -11,20 +11,19 @@ import (
 )
 
 var EdgeCmds = []*cli.Command{
-	DeviceInfoCmd,
-	CacheBlockCmd,
-	DeleteBlockCmd,
-	ValidateNodeCmd,
-	LimitRateCmd,
-	CacheStatCmd,
+	deviceInfoCmd,
+	cacheBlockCmd,
+	deleteBlockCmd,
+	validateNodeCmd,
+	limitRateCmd,
+	cacheStatCmd,
 	// StoreKeyCmd,
-	DeleteAllBlocksCmd,
-	testSyncCmd,
+	deleteAllBlocksCmd,
 	getBlocksOfCarfile,
 	logFileCmd,
 }
 
-var DeviceInfoCmd = &cli.Command{
+var deviceInfoCmd = &cli.Command{
 	Name:  "info",
 	Usage: "Print device info",
 	Action: func(cctx *cli.Context) error {
@@ -58,7 +57,7 @@ var DeviceInfoCmd = &cli.Command{
 	},
 }
 
-var CacheBlockCmd = &cli.Command{
+var cacheBlockCmd = &cli.Command{
 	Name:  "cache-file",
 	Usage: "cache carfile",
 	Flags: []cli.Flag{
@@ -104,7 +103,7 @@ var CacheBlockCmd = &cli.Command{
 	},
 }
 
-var DeleteBlockCmd = &cli.Command{
+var deleteBlockCmd = &cli.Command{
 	Name:  "delete",
 	Usage: "delete blocks",
 	Flags: []cli.Flag{
@@ -138,7 +137,7 @@ var DeleteBlockCmd = &cli.Command{
 	},
 }
 
-var ValidateNodeCmd = &cli.Command{
+var validateNodeCmd = &cli.Command{
 	Name:  "validate",
 	Usage: "validate data",
 	Flags: []cli.Flag{
@@ -192,7 +191,7 @@ var ValidateNodeCmd = &cli.Command{
 	},
 }
 
-var LimitRateCmd = &cli.Command{
+var limitRateCmd = &cli.Command{
 	Name:  "limit",
 	Usage: "limit rate",
 	Flags: []cli.Flag{
@@ -223,7 +222,7 @@ var LimitRateCmd = &cli.Command{
 	},
 }
 
-var CacheStatCmd = &cli.Command{
+var cacheStatCmd = &cli.Command{
 	Name:  "stat",
 	Usage: "cache stat",
 	Flags: []cli.Flag{},
@@ -246,7 +245,7 @@ var CacheStatCmd = &cli.Command{
 	},
 }
 
-var DeleteAllBlocksCmd = &cli.Command{
+var deleteAllBlocksCmd = &cli.Command{
 	Name:  "flush",
 	Usage: "delete all block",
 	Flags: []cli.Flag{},
