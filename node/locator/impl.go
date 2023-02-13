@@ -54,7 +54,6 @@ func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, uuid strin
 
 type Locator struct {
 	common.CommonAPI
-	// cfg   lconfig
 	apMgr *accessPointMgr
 	db    *db
 }
@@ -140,11 +139,6 @@ func (locator *Locator) ShowAccessPoint(ctx context.Context, areaID string) (api
 	infos := make([]api.SchedulerInfo, 0, len(ap.SchedulerCfgs))
 	for _, cfg := range ap.SchedulerCfgs {
 		schedulerInfo := api.SchedulerInfo{URL: cfg.URL, Weight: cfg.Weight}
-		// _, ok := locator.apMgr.getSchedulerAPI(cfg.URL, areaID, cfg.AccessToken)
-		// if ok {
-		// 	schedulerInfo.Online = true
-		// }
-
 		infos = append(infos, schedulerInfo)
 	}
 

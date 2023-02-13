@@ -20,22 +20,10 @@ const (
 	// seconds
 	BlockDownloadTimeout = 15
 
-	DownloadSrvPath          = "/block/get"
 	DownloadTokenExpireAfter = 24 * time.Hour
 
-	KeyFidPrefix     = "fid/"
-	KeyCidPrefix     = "hash/"
 	TcpPackMaxLength = 52428800
 )
-
-// type NodeParams struct {
-// 	DS              datastore.Batching
-// 	Scheduler       api.Scheduler
-// 	CarfileStore    *carfilestore.CarfileStore
-// 	DownloadSrvKey  string
-// 	DownloadSrvAddr string
-// 	IPFSAPI         string
-// }
 
 func CIDString2HashString(cidString string) (string, error) {
 	cid, err := cid.Decode(cidString)
