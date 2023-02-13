@@ -31,7 +31,7 @@ type DB interface {
 	CacheTasksEnd(hash string, deviceIDs []string) (bool, error)
 	UpdateNodeCacheingExpireTime(hash, deviceID string, timeout int64) error
 	GetCacheingCarfiles() ([]string, error)
-	IsNodeCaching(deviceID string) (bool, error)
+	IsNodeInRunningList(deviceID string) (bool, error)
 
 	// carfile record cache result
 	SetCarfileRecordCacheResult(hash string, info *api.CarfileRecordCacheResult) error
