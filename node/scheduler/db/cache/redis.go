@@ -131,7 +131,7 @@ func (rd redisDB) GetCacheingCarfiles() ([]string, error) {
 	return rd.cli.SMembers(context.Background(), cacheingCarfileList).Result()
 }
 
-func (rd redisDB) IsNodeCaching(deviceID string) (bool, error) {
+func (rd redisDB) IsNodeInRunningList(deviceID string) (bool, error) {
 	nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
 	exist, err := rd.cli.Exists(context.Background(), nodeKey).Result()
 	if err != nil {
