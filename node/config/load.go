@@ -38,11 +38,11 @@ func FromReader(reader io.Reader, def interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	err = envconfig.Process("LOTUS", cfg)
+	err = envconfig.Process("TITAN", cfg)
 	if err != nil {
 		return nil, fmt.Errorf("processing env vars overrides: %s", err)
 	}
-
+	fmt.Printf("FromReader:%v", cfg)
 	return cfg, nil
 }
 
@@ -126,7 +126,7 @@ func ConfigUpdate(cfgCur, cfgDef interface{}, comment bool) ([]byte, error) {
 						outLines = append(outLines, pad+"# type: "+doc.Type)
 					}
 
-					outLines = append(outLines, pad+"# env var: LOTUS_"+strings.ToUpper(strings.ReplaceAll(section, ".", "_"))+"_"+strings.ToUpper(lf[0]))
+					outLines = append(outLines, pad+"# env var: TITAN_"+strings.ToUpper(strings.ReplaceAll(section, ".", "_"))+"_"+strings.ToUpper(lf[0]))
 				}
 			}
 

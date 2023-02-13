@@ -6,7 +6,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/config"
 )
 
 type db struct {
@@ -35,6 +34,10 @@ type scheduler struct {
 	SchedulerURL string `db:"scheduler_url"`
 	AreaID       string `db:"area_id"`
 	Online       bool   `db:"online"`
+}
+
+type AccessPoint struct {
+	AreaID string
 }
 
 // `device_id` varchar(128) NOT NULL UNIQUE ,
@@ -92,18 +95,8 @@ func (db *db) loadAccessPoints() (accessPoints []api.AccessPoint, err error) {
 	return nil, nil
 }
 
-func (db *db) getAccessPoint(areaID string) (*config.AccessPoint, error) {
-	cfgs, err := db.db.getCfgs(areaID)
-	if err != nil {
-		return nil, err
-	}
-	ap := config.AccessPoint{AreaID: areaID, SchedulerCfgs: make([]config.SchedulerCfg, 0, len(cfgs))}
-	for _, cfg := range cfgs {
-		schedulerCfg := config.SchedulerCfg{URL: cfg.SchedulerURL, Weight: cfg.Weight, AccessToken: cfg.AccessToken}
-		ap.SchedulerCfgs = append(ap.SchedulerCfgs, schedulerCfg)
-	}
-
-	return &ap, nil
+func (db *db) getAccessPointCfgs(areaID string) ([]*locatorCfg, error) {
+	return db.db.getCfgs(areaID)
 }
 
 func (db *db) isAccessPointExist(areaID, schedulerURL string) (bool, error) {

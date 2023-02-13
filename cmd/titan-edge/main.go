@@ -2,14 +2,11 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -23,6 +20,7 @@ import (
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/metrics"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
+	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/repo"
@@ -100,75 +98,21 @@ var runCmd = &cli.Command{
 	Usage: "Start titan edge node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "listen",
-			Usage: "host address and port the worker api will listen on",
-			Value: "0.0.0.0:1234",
+			Required: true,
+			Name:     "device-id",
+			Usage:    "example: --device-id=b26fb231-e986-42de-a5d9-7b512a35543d",
+			Value:    "",
 		},
 		&cli.StringFlag{
-			Name:   "address",
-			Hidden: true,
-		},
-		&cli.StringFlag{
-			Name:  "timeout",
-			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
-			Value: "30m",
-		},
-		&cli.StringFlag{
-			Name:  "device-id",
-			Usage: "network external ip, example: --device-id=b26fb231-e986-42de-a5d9-7b512a35543d",
-			Value: "525e7729506711ed8c2c902e1671f843",
-		},
-		&cli.StringFlag{
-			Name:  "carfilestore-path",
-			Usage: "block store path, example: --carfilestore-path=./carfilestore",
-			Value: "",
-		},
-		&cli.StringFlag{
-			Name:  "blockstore-type",
-			Usage: "block store type is FileStore or RocksDB, example: --blockstore-type=FileStore",
-			Value: "FileStore",
-		},
-		&cli.StringFlag{
-			Name:  "download-srv-key",
-			Usage: "download server key for who download block, example: --download-srv-key=KK20FeKPsE3qwQgR",
-			Value: "KK20FeKPsE3qwQgR",
-		},
-		&cli.StringFlag{
-			Name:  "download-srv-addr",
-			Usage: "download server address for who download block, example: --download-srv-addr=192.168.0.136:3000",
-			Value: "0.0.0.0:3000",
-		},
-		&cli.StringFlag{
-			Name:  "bandwidth-up",
-			Usage: "upload file bandwidth, unit is B/s example set 100MB/s: --bandwidth-up=104857600",
-			Value: "104857600",
-		},
-		&cli.StringFlag{
-			Name:  "bandwidth-down",
-			Usage: "download file bandwidth, unit is B/s example set 100MB/s: --bandwidth-down=104857600",
-			Value: "1073741824",
-		},
-		&cli.StringFlag{
-			Name:    "secret",
-			EnvVars: []string{"TITAN_SCHEDULER_KEY", "SCHEDULER_KEY"},
-			Usage:   "connect to scheduler key",
-			Value:   "2521c39087cecd74a853850dd56e9c859b786fbc",
-		},
-		&cli.BoolFlag{
-			Name:  "locator",
-			Usage: "connect to locator get scheduler url",
-			Value: false,
+			Required: true,
+			Name:     "secret",
+			EnvVars:  []string{"TITAN_SCHEDULER_KEY", "SCHEDULER_KEY"},
+			Usage:    "used auth edge node when connect to scheduler",
+			Value:    "",
 		},
 	},
 
 	Before: func(cctx *cli.Context) error {
-		if cctx.IsSet("address") {
-			log.Warnf("The '--address' flag is deprecated, it has been replaced by '--listen'")
-			if err := cctx.Set("listen", cctx.String("address")); err != nil {
-				return err
-			}
-		}
-
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
@@ -185,36 +129,6 @@ var runCmd = &cli.Command{
 				return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.EdgeFDLimit, limit)
 			}
 		}
-		isLocator := cctx.Bool("locator")
-		deviceID := cctx.String("device-id")
-		securityKey := cctx.String("secret")
-		// Connect to scheduler
-		var schedulerAPI api.Scheduler
-		var closer func()
-		if isLocator {
-			schedulerAPI, closer, err = newSchedulerAPI(cctx, deviceID, securityKey)
-		} else {
-			schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx, deviceID)
-		}
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		ctx := lcli.ReqContext(cctx)
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
-		v, err := getSchedulerVersion(schedulerAPI)
-		if err != nil {
-			return err
-		}
-
-		if v.APIVersion != api.SchedulerAPIVersion0 {
-			return xerrors.Errorf("titan-scheduler API version doesn't match: expected: %s", api.APIVersion{APIVersion: api.SchedulerAPIVersion0})
-		}
-		log.Infof("Remote version %s", v)
-
 		// Register all metric views
 		if err := view.Register(
 			metrics.DefaultViews...,
@@ -243,40 +157,10 @@ var runCmd = &cli.Command{
 				return err
 			}
 
-			var localPaths []stores.LocalPath
-
-			if !cctx.Bool("no-local-storage") {
-				b, err := json.MarshalIndent(&stores.LocalStorageMeta{
-					ID:       uuid.New().String(),
-					Weight:   10,
-					CanSeal:  true,
-					CanStore: false,
-				}, "", "  ")
-				if err != nil {
-					return xerrors.Errorf("marshaling storage config: %w", err)
-				}
-
-				if err := ioutil.WriteFile(filepath.Join(lr.Path(), "sectorstore.json"), b, 0o644); err != nil {
-					return xerrors.Errorf("persisting storage metadata (%s): %w", filepath.Join(lr.Path(), "sectorstore.json"), err)
-				}
-
-				localPaths = append(localPaths, stores.LocalPath{
-					Path: lr.Path(),
-				})
-			}
-
-			if err := lr.SetStorage(func(sc *stores.StorageConfig) {
-				sc.StoragePaths = append(sc.StoragePaths, localPaths...)
-			}); err != nil {
-				return xerrors.Errorf("set storage config: %w", err)
-			}
-
-			{
-				// init datastore for r.Exists
-				_, err := lr.Datastore(context.Background(), "/metadata")
-				if err != nil {
-					return err
-				}
+			// init datastore for r.Exists
+			_, err = lr.Datastore(context.Background(), "/metadata")
+			if err != nil {
+				return err
 			}
 			if err := lr.Close(); err != nil {
 				return xerrors.Errorf("close repo: %w", err)
@@ -299,7 +183,44 @@ var runCmd = &cli.Command{
 
 		log.Info("Opening local storage; connecting to scheduler")
 
-		internalIP, err := extractRoutableIP(cctx)
+		cfg, err := lr.Config()
+		if err != nil {
+			return err
+		}
+
+		edgeCfg := cfg.(*config.EdgeCfg)
+
+		deviceID := cctx.String("device-id")
+		secret := cctx.String("secret")
+
+		// Connect to scheduler
+		var schedulerAPI api.Scheduler
+		var closer func()
+		if edgeCfg.Locator {
+			schedulerAPI, closer, err = newSchedulerAPI(cctx, deviceID, secret)
+		} else {
+			schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx, deviceID)
+		}
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		ctx := lcli.ReqContext(cctx)
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		v, err := getSchedulerVersion(schedulerAPI)
+		if err != nil {
+			return err
+		}
+
+		if v.APIVersion != api.SchedulerAPIVersion0 {
+			return xerrors.Errorf("titan-scheduler API version doesn't match: expected: %s", api.APIVersion{APIVersion: api.SchedulerAPIVersion0})
+		}
+		log.Infof("Remote version %s", v)
+
+		internalIP, err := extractRoutableIP(cctx, edgeCfg)
 		if err != nil {
 			return err
 		}
@@ -309,30 +230,26 @@ var runCmd = &cli.Command{
 			return err
 		}
 
-		carfileStorePath := cctx.String("carfilestore-path")
+		carfileStorePath := edgeCfg.CarfilestorePath
 		if len(carfileStorePath) == 0 {
 			carfileStorePath = path.Join(lr.Path(), DefaultCarfileStoreDir)
 		}
 
 		log.Infof("carfilestorePath:%s", carfileStorePath)
 
-		carfileStore := carfilestore.NewCarfileStore(carfileStorePath, cctx.String("blockstore-type"))
+		carfileStore := carfilestore.NewCarfileStore(carfileStorePath, edgeCfg.CarfilestoreType)
 
 		device := device.NewDevice(
 			deviceID,
-			externalIP,
 			internalIP,
-			cctx.Int64("bandwidth-up"),
-			cctx.Int64("bandwidth-down"),
+			edgeCfg.BandwidthUp,
+			edgeCfg.BandwidthDown,
 			carfileStore)
 
 		params := &edge.EdgeParams{
-			DS:              ds,
-			Scheduler:       schedulerAPI,
-			CarfileStore:    carfileStore,
-			DownloadSrvKey:  cctx.String("download-srv-key"),
-			DownloadSrvAddr: cctx.String("download-srv-addr"),
-			IPFSAPI:         cctx.String("ipfs-api"),
+			DS:           ds,
+			Scheduler:    schedulerAPI,
+			CarfileStore: carfileStore,
 		}
 
 		edgeApi := edge.NewLocalEdgeNode(context.Background(), device, params)
@@ -354,7 +271,7 @@ var runCmd = &cli.Command{
 			log.Warn("Graceful shutdown successful")
 		}()
 
-		address := cctx.String("listen")
+		address := edgeCfg.ListenAddress
 		nl, err := net.Listen("tcp", address)
 		if err != nil {
 			return err
@@ -464,15 +381,15 @@ func getSchedulerVersion(api api.Scheduler) (api.APIVersion, error) {
 	return api.Version(ctx)
 }
 
-func extractRoutableIP(cctx *cli.Context) (string, error) {
-	timeout, err := time.ParseDuration(cctx.String("timeout"))
+func extractRoutableIP(cctx *cli.Context, edgeCfg *config.EdgeCfg) (string, error) {
+	timeout, err := time.ParseDuration(edgeCfg.Timeout)
 	if err != nil {
 		return "", err
 	}
 
-	ainfo, err := lcli.GetAPIInfo(cctx, repo.FullNode)
+	ainfo, err := lcli.GetAPIInfo(cctx, repo.Scheduler)
 	if err != nil {
-		return "", xerrors.Errorf("could not get FullNode API info: %w", err)
+		return "", xerrors.Errorf("could not get scheduler API info: %w", err)
 	}
 
 	schedulerAddr := strings.Split(ainfo.Addr, "/")
@@ -541,6 +458,6 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (ap
 		return nil, nil, err
 	}
 	log.Infof("scheduler url:%s, token:%s", schedulerURL, token)
-	os.Setenv("FULLNODE_API_INFO", token+":"+schedulerURL)
+	os.Setenv("SCHEDULER_API_INFO", token+":"+schedulerURL)
 	return schedulerAPI, closer, nil
 }

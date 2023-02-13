@@ -113,7 +113,7 @@ var AuthApiInfoToken = &cli.Command{
 		ti, ok := cctx.App.Metadata["repoType"]
 		if !ok {
 			log.Errorf("unknown repo type, are you sure you want to use GetCommonAPI?")
-			ti = repo.FullNode
+			ti = repo.Scheduler
 		}
 		t, ok := ti.(repo.RepoType)
 		if !ok {

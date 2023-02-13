@@ -7,7 +7,6 @@ import (
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/common"
-	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/handler"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/secret"
@@ -86,7 +85,7 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string) ([
 		return locator.getAccessPointWithWeightCount(areaID)
 	}
 
-	cfg := locator.getCfg(device.AreaID, device.SchedulerURL)
+	cfg := locator.getAccessPointCfg(device.AreaID, device.SchedulerURL)
 	if cfg == nil {
 		return locator.getAccessPointWithWeightCount(device.AreaID)
 	}
@@ -132,17 +131,17 @@ func (locator *Locator) ListAccessPoints(ctx context.Context) (areaIDs []string,
 }
 
 func (locator *Locator) ShowAccessPoint(ctx context.Context, areaID string) (api.AccessPoint, error) {
-	ap, err := locator.db.getAccessPoint(areaID)
+	schedulerCfgs, err := locator.db.getAccessPointCfgs(areaID)
 	if err != nil {
 		return api.AccessPoint{}, err
 	}
-	infos := make([]api.SchedulerInfo, 0, len(ap.SchedulerCfgs))
-	for _, cfg := range ap.SchedulerCfgs {
-		schedulerInfo := api.SchedulerInfo{URL: cfg.URL, Weight: cfg.Weight}
+	infos := make([]api.SchedulerInfo, 0, len(schedulerCfgs))
+	for _, cfg := range schedulerCfgs {
+		schedulerInfo := api.SchedulerInfo{URL: cfg.SchedulerURL, Weight: cfg.Weight}
 		infos = append(infos, schedulerInfo)
 	}
 
-	accessPoint := api.AccessPoint{AreaID: ap.AreaID, SchedulerInfos: infos}
+	accessPoint := api.AccessPoint{AreaID: areaID, SchedulerInfos: infos}
 	return accessPoint, nil
 }
 
@@ -175,27 +174,27 @@ func (locator *Locator) DeviceOffline(ctx context.Context, deviceID string) erro
 func (locator *Locator) getAccessPointWithWeightCount(areaID string) ([]string, error) {
 	log.Infof("getAccessPointWithWeightCount, areaID:%s", areaID)
 
-	ap, err := locator.db.getAccessPoint(areaID)
+	schedulerCfgs, err := locator.db.getAccessPointCfgs(areaID)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(ap.SchedulerCfgs) == 0 {
+	if len(schedulerCfgs) == 0 {
 		return nil, nil
 	}
 
 	// filter online scheduler
 	onlineSchedulerAPIs := make(map[string]*schedulerAPI)
-	onlineSchedulerCfgs := make(map[string]*config.SchedulerCfg)
-	for _, cfg := range ap.SchedulerCfgs {
-		api, ok := locator.apMgr.getSchedulerAPI(cfg.URL, areaID, cfg.AccessToken)
+	onlineSchedulerCfgs := make(map[string]*locatorCfg)
+	for _, cfg := range schedulerCfgs {
+		api, ok := locator.apMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
 		if !ok {
 			continue
 		}
 
 		var schedulerCfg = cfg
-		onlineSchedulerCfgs[schedulerCfg.URL] = &schedulerCfg
-		onlineSchedulerAPIs[schedulerCfg.URL] = api
+		onlineSchedulerCfgs[schedulerCfg.SchedulerURL] = schedulerCfg
+		onlineSchedulerAPIs[schedulerCfg.SchedulerURL] = api
 	}
 
 	cfgWeights := countSchedulerWeightWithCfgs(onlineSchedulerCfgs)
@@ -221,7 +220,7 @@ func (locator *Locator) getAccessPointWithWeightCount(areaID string) ([]string, 
 	return schedulerURLs, nil
 }
 
-func countSchedulerWeightWithCfgs(schedulerCfgs map[string]*config.SchedulerCfg) map[string]float32 {
+func countSchedulerWeightWithCfgs(schedulerCfgs map[string]*locatorCfg) map[string]float32 {
 	totalWeight := 0
 	for _, cfg := range schedulerCfgs {
 		totalWeight += cfg.Weight
@@ -229,24 +228,24 @@ func countSchedulerWeightWithCfgs(schedulerCfgs map[string]*config.SchedulerCfg)
 
 	result := make(map[string]float32)
 	for _, cfg := range schedulerCfgs {
-		result[cfg.URL] = float32(cfg.Weight) / float32(totalWeight)
+		result[cfg.SchedulerURL] = float32(cfg.Weight) / float32(totalWeight)
 	}
 
 	return result
 }
 
-func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*config.SchedulerCfg) map[string]float32 {
+func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*locatorCfg) map[string]float32 {
 	totalWeight := 0
 
 	weightMap := make(map[string]int)
 	for _, cfg := range schedulerCfgs {
-		count, err := locator.db.countDeviceOnScheduler(cfg.URL)
+		count, err := locator.db.countDeviceOnScheduler(cfg.SchedulerURL)
 		if err != nil {
 			log.Errorf("countSchedulerWeightByDevice, error:%s", err.Error())
 			continue
 		}
 
-		weightMap[cfg.URL] = count
+		weightMap[cfg.SchedulerURL] = count
 		totalWeight += count
 	}
 
@@ -316,16 +315,16 @@ func (locator *Locator) UserDownloadBlockResults(ctx context.Context, results []
 	return nil
 }
 
-func (locator *Locator) getCfg(areaID, schedulerURL string) *config.SchedulerCfg {
-	accessPoint, err := locator.db.getAccessPoint(areaID)
+func (locator *Locator) getAccessPointCfg(areaID, schedulerURL string) *locatorCfg {
+	schedulerCfgs, err := locator.db.getAccessPointCfgs(areaID)
 	if err != nil {
 		log.Errorf("getCfg, acccess point %s not exist", areaID)
 		return nil
 	}
 
-	for _, cfg := range accessPoint.SchedulerCfgs {
-		if cfg.URL == schedulerURL {
-			return &cfg
+	for _, cfg := range schedulerCfgs {
+		if cfg.SchedulerURL == schedulerURL {
+			return cfg
 		}
 	}
 
@@ -333,14 +332,14 @@ func (locator *Locator) getCfg(areaID, schedulerURL string) *config.SchedulerCfg
 }
 
 func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerAPI, bool) {
-	accessPoint, err := locator.db.getAccessPoint(areaID)
+	schedulerCfgs, err := locator.db.getAccessPointCfgs(areaID)
 	if err != nil {
 		log.Errorf("getCfg, acccess point %s not exist", areaID)
 		return nil, false
 	}
 
-	for _, cfg := range accessPoint.SchedulerCfgs {
-		api, ok := locator.apMgr.getSchedulerAPI(cfg.URL, areaID, cfg.AccessToken)
+	for _, cfg := range schedulerCfgs {
+		api, ok := locator.apMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
 		if ok {
 			return api, true
 		}
@@ -352,27 +351,27 @@ func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerA
 func (locator *Locator) getSchedulerAPIWithWeightCount(areaID string) ([]*schedulerAPI, error) {
 	log.Infof("getSchedulerAPIWithWeightCount, areaID:%s", areaID)
 
-	ap, err := locator.db.getAccessPoint(areaID)
+	schedulerCfgs, err := locator.db.getAccessPointCfgs(areaID)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(ap.SchedulerCfgs) == 0 {
+	if len(schedulerCfgs) == 0 {
 		return nil, nil
 	}
 
 	// filter online scheduler
 	onlineSchedulerAPIs := make(map[string]*schedulerAPI)
-	onlineSchedulerCfgs := make(map[string]*config.SchedulerCfg)
-	for _, cfg := range ap.SchedulerCfgs {
-		api, ok := locator.apMgr.getSchedulerAPI(cfg.URL, areaID, cfg.AccessToken)
+	onlineSchedulerCfgs := make(map[string]*locatorCfg)
+	for _, cfg := range schedulerCfgs {
+		api, ok := locator.apMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
 		if !ok {
 			continue
 		}
 
 		var schedulerCfg = cfg
-		onlineSchedulerCfgs[schedulerCfg.URL] = &schedulerCfg
-		onlineSchedulerAPIs[schedulerCfg.URL] = api
+		onlineSchedulerCfgs[schedulerCfg.SchedulerURL] = schedulerCfg
+		onlineSchedulerAPIs[schedulerCfg.SchedulerURL] = api
 	}
 
 	cfgWeights := countSchedulerWeightWithCfgs(onlineSchedulerCfgs)
@@ -397,7 +396,7 @@ func (locator *Locator) getSchedulerAPIWithWeightCount(areaID string) ([]*schedu
 }
 
 func (locator *Locator) RegisterNode(ctx context.Context, areaID string, schedulerURL string, nodeType api.NodeType, count int) ([]api.NodeRegisterInfo, error) {
-	cfg := locator.getCfg(areaID, schedulerURL)
+	cfg := locator.getAccessPointCfg(areaID, schedulerURL)
 	if cfg == nil {
 		return nil, fmt.Errorf("Scheduler %s not exist in area %s", schedulerURL, areaID)
 	}
@@ -454,17 +453,17 @@ func (locator *Locator) LoadUserAccessPoint(ctx context.Context, userIP string) 
 		areaID = geoInfo.Geo
 	}
 
-	ap, err := locator.db.getAccessPoint(areaID)
+	schedulerCfgs, err := locator.db.getAccessPointCfgs(areaID)
 	if err != nil {
 		return api.AccessPoint{}, err
 	}
 
-	infos := make([]api.SchedulerInfo, 0, len(ap.SchedulerCfgs))
-	for _, cfg := range ap.SchedulerCfgs {
-		schedulerInfo := api.SchedulerInfo{URL: cfg.URL, Weight: cfg.Weight}
+	infos := make([]api.SchedulerInfo, 0, len(schedulerCfgs))
+	for _, cfg := range schedulerCfgs {
+		schedulerInfo := api.SchedulerInfo{URL: cfg.SchedulerURL, Weight: cfg.Weight}
 		infos = append(infos, schedulerInfo)
 	}
 
-	accessPoint := api.AccessPoint{AreaID: ap.AreaID, SchedulerInfos: infos}
+	accessPoint := api.AccessPoint{AreaID: areaID, SchedulerInfos: infos}
 	return accessPoint, nil
 }

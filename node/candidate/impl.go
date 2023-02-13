@@ -96,12 +96,10 @@ type Candidate struct {
 }
 
 type CandidateParams struct {
-	DS              datastore.Batching
-	Scheduler       api.Scheduler
-	CarfileStore    *carfilestore.CarfileStore
-	DownloadSrvKey  string
-	DownloadSrvAddr string
-	IPFSAPI         string
+	DS           datastore.Batching
+	Scheduler    api.Scheduler
+	CarfileStore *carfilestore.CarfileStore
+	IPFSAPI      string
 }
 
 func (candidate *Candidate) WaitQuiet(ctx context.Context) error {

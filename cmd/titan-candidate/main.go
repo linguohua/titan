@@ -2,14 +2,11 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -22,6 +19,7 @@ import (
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/metrics"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
+	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/repo"
@@ -103,86 +101,21 @@ var runCmd = &cli.Command{
 	Usage: "Start titan candidate node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "listen",
-			Usage: "host address and port the worker api will listen on",
-			Value: "0.0.0.0:2345",
+			Required: true,
+			Name:     "device-id",
+			Usage:    "example: --device-id=b26fb231-e986-42de-a5d9-7b512a35543d",
+			Value:    "",
 		},
 		&cli.StringFlag{
-			Name:   "address",
-			Hidden: true,
-		},
-		&cli.StringFlag{
-			Name:  "timeout",
-			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
-			Value: "30m",
-		},
-		&cli.StringFlag{
-			Name:  "device-id",
-			Usage: "network external ip, example: --device-id=b26fb231-e986-42de-a5d9-7b512a35543d",
-			Value: "123456789000000001",
-		},
-		&cli.StringFlag{
-			Name:  "carfile-store-path",
-			Usage: "block store path, example: --carfile-store-path=./blockstore",
-			Value: "",
-		},
-		&cli.StringFlag{
-			Name:  "blockstore-type",
-			Usage: "block store type is FileStore or RocksDB, example: --blockstore-type=FileStore",
-			Value: "FileStore",
-		},
-		&cli.StringFlag{
-			Name:  "download-srv-key",
-			Usage: "download server key for who download block, example: --download-srv-key=KK20FeKPsE3qwQgR",
-			Value: "KK20FeKPsE3qwQgR",
-		},
-		&cli.StringFlag{
-			Name:  "download-srv-addr",
-			Usage: "download server address for who download block, example: --download-srv-addr=192.168.0.136:3000",
-			Value: "0.0.0.0:3000",
-		},
-		&cli.Int64Flag{
-			Name:  "bandwidth-up",
-			Usage: "upload file bandwidth, unit is B/s example set 100MB/s: --bandwidth-up=104857600",
-			Value: 1073741824,
-		},
-		&cli.Int64Flag{
-			Name:  "bandwidth-down",
-			Usage: "download file bandwidth, unit is B/s example set 100MB/s: --bandwidth-down=104857600",
-			Value: 1073741824,
-		},
-		&cli.StringFlag{
-			Name:  "tcp-srv-addr",
-			Usage: "tcp server addr, use by edge node validate data: --tcp-srv-addr=0.0.0.0:9000",
-			Value: "0.0.0.0:9000",
-		},
-		&cli.StringFlag{
-			Name:    "secret",
-			EnvVars: []string{"TITAN_SCHEDULER_KEY", "SCHEDULER_KEY"},
-			Usage:   "connect to scheduler key",
-			Value:   "2521c39087cecd74a853850dd56e9c859b786fbc",
-		},
-		&cli.StringFlag{
-			Name:    "ipfs-api",
-			EnvVars: []string{"IPFS_API"},
-			Usage:   "ipfs api url",
-			Value:   "http://127.0.0.1:5001",
-		},
-		&cli.BoolFlag{
-			Name:  "locator",
-			Usage: "connect to locator get scheduler url",
-			Value: false,
+			Required: true,
+			Name:     "secret",
+			EnvVars:  []string{"TITAN_SCHEDULER_KEY", "SCHEDULER_KEY"},
+			Usage:    "connect to scheduler key, example: --secret=4d19fb2656be2de67caded36fbc3458e055d8e39",
+			Value:    "",
 		},
 	},
 
 	Before: func(cctx *cli.Context) error {
-		if cctx.IsSet("address") {
-			log.Warnf("The '--address' flag is deprecated, it has been replaced by '--listen'")
-			if err := cctx.Set("listen", cctx.String("address")); err != nil {
-				return err
-			}
-		}
-
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
@@ -199,35 +132,6 @@ var runCmd = &cli.Command{
 				return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.EdgeFDLimit, limit)
 			}
 		}
-		isLocator := cctx.Bool("locator")
-		deviceID := cctx.String("device-id")
-		securityKey := cctx.String("secret")
-		// Connect to scheduler
-		var schedulerAPI api.Scheduler
-		var closer func()
-		if isLocator {
-			schedulerAPI, closer, err = newSchedulerAPI(cctx, deviceID, securityKey)
-		} else {
-			schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx, deviceID)
-		}
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		ctx := lcli.ReqContext(cctx)
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
-		v, err := getSchedulerVersion(schedulerAPI)
-		if err != nil {
-			return err
-		}
-		if v.APIVersion != api.SchedulerAPIVersion0 {
-			return xerrors.Errorf("titan-scheduler API version doesn't match: expected: %s", api.APIVersion{APIVersion: api.SchedulerAPIVersion0})
-		}
-		log.Infof("Remote version %s", v)
-
 		// Register all metric views
 		if err := view.Register(
 			metrics.DefaultViews...,
@@ -256,40 +160,10 @@ var runCmd = &cli.Command{
 				return err
 			}
 
-			var localPaths []stores.LocalPath
-
-			if !cctx.Bool("no-local-storage") {
-				b, err := json.MarshalIndent(&stores.LocalStorageMeta{
-					ID:       uuid.New().String(),
-					Weight:   10,
-					CanSeal:  true,
-					CanStore: false,
-				}, "", "  ")
-				if err != nil {
-					return xerrors.Errorf("marshaling storage config: %w", err)
-				}
-
-				if err := ioutil.WriteFile(filepath.Join(lr.Path(), "sectorstore.json"), b, 0o644); err != nil {
-					return xerrors.Errorf("persisting storage metadata (%s): %w", filepath.Join(lr.Path(), "sectorstore.json"), err)
-				}
-
-				localPaths = append(localPaths, stores.LocalPath{
-					Path: lr.Path(),
-				})
-			}
-
-			if err := lr.SetStorage(func(sc *stores.StorageConfig) {
-				sc.StoragePaths = append(sc.StoragePaths, localPaths...)
-			}); err != nil {
-				return xerrors.Errorf("set storage config: %w", err)
-			}
-
-			{
-				// init datastore for r.Exists
-				_, err := lr.Datastore(context.Background(), "/metadata")
-				if err != nil {
-					return err
-				}
+			// init datastore for r.Exists
+			_, err = lr.Datastore(context.Background(), "/metadata")
+			if err != nil {
+				return err
 			}
 			if err := lr.Close(); err != nil {
 				return xerrors.Errorf("close repo: %w", err)
@@ -305,6 +179,7 @@ var runCmd = &cli.Command{
 				log.Error("closing repo", err)
 			}
 		}()
+
 		ds, err := lr.Datastore(context.Background(), "/metadata")
 		if err != nil {
 			return err
@@ -312,7 +187,43 @@ var runCmd = &cli.Command{
 
 		log.Info("Opening local storage; connecting to scheduler")
 
-		internalIP, err := extractRoutableIP(cctx)
+		cfg, err := lr.Config()
+		if err != nil {
+			return err
+		}
+
+		candidateCfg := cfg.(*config.CandidateCfg)
+
+		deviceID := cctx.String("device-id")
+		secret := cctx.String("secret")
+
+		// Connect to scheduler
+		var schedulerAPI api.Scheduler
+		var closer func()
+		if candidateCfg.Locator {
+			schedulerAPI, closer, err = newSchedulerAPI(cctx, deviceID, secret)
+		} else {
+			schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx, deviceID)
+		}
+		if err != nil {
+			return err
+		}
+		defer closer()
+		ctx := lcli.ReqContext(cctx)
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		v, err := getSchedulerVersion(schedulerAPI)
+		if err != nil {
+			return err
+		}
+
+		if v.APIVersion != api.SchedulerAPIVersion0 {
+			return xerrors.Errorf("titan-scheduler API version doesn't match: expected: %s", api.APIVersion{APIVersion: api.SchedulerAPIVersion0})
+		}
+		log.Infof("Remote version %s", v)
+
+		internalIP, err := extractRoutableIP(cctx, candidateCfg)
 		if err != nil {
 			return err
 		}
@@ -322,35 +233,31 @@ var runCmd = &cli.Command{
 			return err
 		}
 
-		carfileStorePath := cctx.String("carfile-store-path")
+		carfileStorePath := candidateCfg.CarfilestorePath
 		if len(carfileStorePath) == 0 {
 			carfileStorePath = path.Join(lr.Path(), DefaultCarfileStoreDir)
 		}
 
 		log.Infof("carfilestorePath:%s", carfileStorePath)
 
-		carfileStore := carfilestore.NewCarfileStore(carfileStorePath, cctx.String("blockstore-type"))
+		carfileStore := carfilestore.NewCarfileStore(carfileStorePath, candidateCfg.CarfilestoreType)
 		device := device.NewDevice(
 			deviceID,
-			externalIP,
 			internalIP,
-			cctx.Int64("bandwidth-up"),
-			cctx.Int64("bandwidth-down"),
+			candidateCfg.BandwidthUp,
+			candidateCfg.BandwidthDown,
 			carfileStore)
 
 		nodeParams := &candidate.CandidateParams{
-			DS:              ds,
-			Scheduler:       schedulerAPI,
-			CarfileStore:    carfileStore,
-			DownloadSrvKey:  cctx.String("download-srv-key"),
-			DownloadSrvAddr: cctx.String("download-srv-addr"),
-			IPFSAPI:         cctx.String("ipfs-api"),
+			DS:           ds,
+			Scheduler:    schedulerAPI,
+			CarfileStore: carfileStore,
+			IPFSAPI:      candidateCfg.IpfsApiURL,
 		}
 
 		log.Info("ipfs-api " + nodeParams.IPFSAPI)
-		tcpSrvAddr := cctx.String("tcp-srv-addr")
 
-		candidateApi := candidate.NewLocalCandidateNode(context.Background(), tcpSrvAddr, device, nodeParams)
+		candidateApi := candidate.NewLocalCandidateNode(context.Background(), candidateCfg.TcpSrvAddr, device, nodeParams)
 
 		srv := &http.Server{
 			Handler: WorkerHandler(schedulerAPI.AuthVerify, candidateApi, true),
@@ -369,7 +276,7 @@ var runCmd = &cli.Command{
 			log.Warn("Graceful shutdown successful")
 		}()
 
-		address := cctx.String("listen")
+		address := candidateCfg.ListenAddress
 		nl, err := net.Listen("tcp", address)
 		if err != nil {
 			return err
@@ -483,13 +390,13 @@ func getSchedulerVersion(api api.Scheduler) (api.APIVersion, error) {
 	return api.Version(ctx)
 }
 
-func extractRoutableIP(cctx *cli.Context) (string, error) {
-	timeout, err := time.ParseDuration(cctx.String("timeout"))
+func extractRoutableIP(cctx *cli.Context, candidateCfg *config.CandidateCfg) (string, error) {
+	timeout, err := time.ParseDuration(candidateCfg.Timeout)
 	if err != nil {
 		return "", err
 	}
 
-	ainfo, err := lcli.GetAPIInfo(cctx, repo.FullNode)
+	ainfo, err := lcli.GetAPIInfo(cctx, repo.Scheduler)
 	if err != nil {
 		return "", xerrors.Errorf("could not get miner API info: %w", err)
 	}
@@ -562,6 +469,6 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (ap
 
 	log.Infof("scheduler url:%s, token:%s", schedulerURL, token)
 
-	os.Setenv("FULLNODE_API_INFO", token+":"+schedulerURL)
+	os.Setenv("SCHEDULER_API_INFO", token+":"+schedulerURL)
 	return schedulerAPI, closer, nil
 }

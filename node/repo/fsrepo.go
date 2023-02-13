@@ -41,8 +41,8 @@ const (
 
 func NewRepoTypeFromString(t string) RepoType {
 	switch t {
-	case "FullNode":
-		return FullNode
+	case "Scheduler":
+		return Edge
 	case "Edge":
 		return Edge
 	case "Candidate":
@@ -74,88 +74,32 @@ type RepoType interface {
 }
 
 // SupportsStagingDeals is a trait for services that support staging deals
-type SupportsStagingDeals interface {
-	SupportsStagingDeals()
+// type SupportsStagingDeals interface {
+// 	SupportsStagingDeals()
+// }
+
+type scheduler struct{}
+
+var Scheduler scheduler
+
+func (scheduler) Type() string {
+	return "Scheduler"
 }
 
-var FullNode fullNode
-
-type fullNode struct{}
-
-func (fullNode) Type() string {
-	return "FullNode"
+func (scheduler) Config() interface{} {
+	return &struct{}{}
 }
 
-func (fullNode) Config() interface{} {
-	return config.DefaultFullNode()
+func (scheduler) APIFlags() []string {
+	return []string{"scheduler-api-url"}
 }
 
-func (fullNode) APIFlags() []string {
-	return []string{"api-url"}
+func (scheduler) RepoFlags() []string {
+	return []string{"scheduler-repo"}
 }
 
-func (fullNode) RepoFlags() []string {
-	return []string{"repo"}
-}
-
-func (fullNode) APIInfoEnvVars() (primary string, fallbacks []string, deprecated []string) {
-	return "FULLNODE_API_INFO", nil, nil
-}
-
-var StorageMiner storageMiner
-
-type storageMiner struct{}
-
-func (storageMiner) SupportsStagingDeals() {}
-
-func (storageMiner) Type() string {
-	return "StorageMiner"
-}
-
-func (storageMiner) Config() interface{} {
-	return config.DefaultStorageMiner()
-}
-
-func (storageMiner) APIFlags() []string {
-	return []string{"miner-api-url"}
-}
-
-func (storageMiner) RepoFlags() []string {
-	return []string{"miner-repo"}
-}
-
-func (storageMiner) APIInfoEnvVars() (primary string, fallbacks []string, deprecated []string) {
-	// TODO remove deprecated deprecation period
-	return "MINER_API_INFO", nil, []string{"STORAGE_API_INFO"}
-}
-
-var Markets markets
-
-type markets struct{}
-
-func (markets) SupportsStagingDeals() {}
-
-func (markets) Type() string {
-	return "Markets"
-}
-
-func (markets) Config() interface{} {
-	return config.DefaultStorageMiner()
-}
-
-func (markets) APIFlags() []string {
-	// support split markets-miner and monolith deployments.
-	return []string{"markets-api-url", "miner-api-url"}
-}
-
-func (markets) RepoFlags() []string {
-	// support split markets-miner and monolith deployments.
-	return []string{"markets-repo", "miner-repo"}
-}
-
-func (markets) APIInfoEnvVars() (primary string, fallbacks []string, deprecated []string) {
-	// support split markets-miner and monolith deployments.
-	return "MARKETS_API_INFO", []string{"MINER_API_INFO"}, nil
+func (scheduler) APIInfoEnvVars() (primary string, fallbacks []string, deprecated []string) {
+	return "SCHEDULER_API_INFO", nil, nil
 }
 
 type edge struct{}
@@ -167,7 +111,7 @@ func (edge) Type() string {
 }
 
 func (edge) Config() interface{} {
-	return &struct{}{}
+	return config.DefaultEdgeCfg()
 }
 
 func (edge) APIFlags() []string {
@@ -191,7 +135,7 @@ func (candidate) Type() string {
 }
 
 func (candidate) Config() interface{} {
-	return &struct{}{}
+	return config.DefaultCandidateCfg()
 }
 
 func (candidate) APIFlags() []string {
@@ -239,7 +183,7 @@ func (locator) Type() string {
 }
 
 func (locator) Config() interface{} {
-	return &config.Location{}
+	return &struct{}{}
 }
 
 func (locator) APIFlags() []string {
@@ -489,64 +433,10 @@ func (fsr *fsLockedRepo) Close() error {
 		}
 	}
 
-	// type assertion will return ok=false if fsr.bs is nil altogether.
-	// if c, ok := fsr.bs.(io.Closer); ok && c != nil {
-	// 	if err := c.Close(); err != nil {
-	// 		return xerrors.Errorf("could not close blockstore: %w", err)
-	// 	}
-	// }
-
 	err = fsr.closer.Close()
 	fsr.closer = nil
 	return err
 }
-
-// // Blockstore returns a blockstore for the provided data domain.
-// func (fsr *fsLockedRepo) Blockstore(ctx context.Context, domain BlockstoreDomain) (blockstore.Blockstore, error) {
-// 	if domain != UniversalBlockstore {
-// 		return nil, ErrInvalidBlockstoreDomain
-// 	}
-
-// 	fsr.bsOnce.Do(func() {
-// 		path := fsr.join(filepath.Join(fsDatastore, "chain"))
-// 		readonly := fsr.readonly
-
-// 		if err := os.MkdirAll(path, 0755); err != nil {
-// 			fsr.bsErr = err
-// 			return
-// 		}
-
-// 		opts, err := BadgerBlockstoreOptions(domain, path, readonly)
-// 		if err != nil {
-// 			fsr.bsErr = err
-// 			return
-// 		}
-
-// 		//
-// 		// Tri-state environment variable LOTUS_CHAIN_BADGERSTORE_DISABLE_FSYNC
-// 		// - unset == the default (currently fsync enabled)
-// 		// - set with a false-y value == fsync enabled no matter what a future default is
-// 		// - set with any other value == fsync is disabled ignored defaults (recommended for day-to-day use)
-// 		//
-// 		if nosyncBs, nosyncBsSet := os.LookupEnv("LOTUS_CHAIN_BADGERSTORE_DISABLE_FSYNC"); nosyncBsSet {
-// 			nosyncBs = strings.ToLower(nosyncBs)
-// 			if nosyncBs == "" || nosyncBs == "0" || nosyncBs == "false" || nosyncBs == "no" {
-// 				opts.SyncWrites = true
-// 			} else {
-// 				opts.SyncWrites = false
-// 			}
-// 		}
-
-// 		bs, err := badgerbs.Open(opts)
-// 		if err != nil {
-// 			fsr.bsErr = err
-// 			return
-// 		}
-// 		fsr.bs = blockstore.WrapIDStore(bs)
-// 	})
-
-// 	return fsr.bs, fsr.bsErr
-// }
 
 func (fsr *fsLockedRepo) SplitstorePath() (string, error) {
 	fsr.ssOnce.Do(func() {

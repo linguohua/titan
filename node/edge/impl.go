@@ -51,12 +51,9 @@ type Edge struct {
 }
 
 type EdgeParams struct {
-	DS              datastore.Batching
-	Scheduler       api.Scheduler
-	CarfileStore    *carfilestore.CarfileStore
-	DownloadSrvKey  string
-	DownloadSrvAddr string
-	IPFSAPI         string
+	DS           datastore.Batching
+	Scheduler    api.Scheduler
+	CarfileStore *carfilestore.CarfileStore
 }
 
 func (edge *Edge) WaitQuiet(ctx context.Context) error {
