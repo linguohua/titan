@@ -26,7 +26,6 @@ type carfileCache struct {
 	downloadSources []*api.DowloadSource
 	carfileSize     uint64
 	downloadSize    uint64
-	// downloader      downloader.BlockDownloader
 }
 
 func resolveLinks(blk blocks.Block) ([]*format.Link, error) {

@@ -9,27 +9,6 @@ import (
 )
 
 func TestCarfileOperation(t *testing.T) {
-	// path := "C:\\Users\\aaa\\.titancandidate\\carfilestore\\carfiles"
-	// carfileHash := "12205458daff09e0857796d7ed9aaa0e7f21e0d7a921e0f387cf8ecfadb1188034ac"
-	// // path = filepath.Join(path, carfileHash)
-	// carfileTable := carfileTable{path: path}
-	// blocksHash, err := carfileTable.readBlocksHashOfCarfile(carfileHash, []int{1004})
-	// if err != nil {
-	// 	t.Errorf("readAllBlocksHashOfCarfile err:%s", err.Error())
-	// 	return
-	// }
-
-	// for index, blockHash := range blocksHash {
-	// 	multihash, err := mh.FromHexString(blockHash)
-	// 	if err != nil {
-	// 		t.Errorf("FromHexString err:%s", err.Error())
-	// 		return
-	// 	}
-
-	// 	cid := cid.NewCidV0(multihash)
-
-	// 	t.Logf("%d %s", index, cid.String())
-	// }
 	test1(t)
 
 }

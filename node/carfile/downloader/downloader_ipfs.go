@@ -66,7 +66,6 @@ func (ipfs *ipfs) getBlockWithIPFSApi(cidStr string, retryCount int) (blocks.Blo
 }
 
 func (ipfs *ipfs) getBlocksFromIPFS(cids []string) ([]blocks.Block, error) {
-	// startTime := time.Now()
 	blks := make([]blocks.Block, 0, len(cids))
 	blksLock := &sync.Mutex{}
 
@@ -91,6 +90,5 @@ func (ipfs *ipfs) getBlocksFromIPFS(cids []string) ([]blocks.Block, error) {
 	}
 	wg.Wait()
 
-	// log.Infof("getBlocksWithHttp get block len:%d, cid len:%d, duration:%dms", len(blks), len(cids), time.Since(startTime)/time.Millisecond)
 	return blks, nil
 }

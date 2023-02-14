@@ -15,10 +15,8 @@ const (
 )
 
 type BlockDownloader interface {
-	// scheduler request cache carfile
+	// download blocks
 	DownloadBlocks(cids []string, sources []*api.DowloadSource) ([]blocks.Block, error)
-	// // local sync miss data
-	// syncData(block *Block, reqs map[int]string) error
 }
 
 func newBlock(cidStr string, data []byte) (blocks.Block, error) {

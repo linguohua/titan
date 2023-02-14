@@ -8,21 +8,11 @@ import (
 )
 
 func TestCarfileOperation(t *testing.T) {
-	// carfileStore := blockstore.NewBlockStore("./blockstore", "FileStore")
 	carfileStore := carfilestore.NewCarfileStore("./carfilestore", "FileStore")
 	downloader := downloader.NewIPFS("http://192.168.0.132:5001", carfileStore)
 	carfileOperation := NewCarfileOperation(carfileStore, nil, downloader, nil)
 	downloadOperation := &downloadOperation{downloader: downloader, carfileOperation: carfileOperation}
-	// go carfileOperation.startCarfileDownloader()
-	// t.Log("startCarfileDownloader")
-	// time.Sleep(1 * time.Second)
-	// _, err := carfileOperation.CacheCarfile(context.Background(), "QmPm6ZKzVAikwTnhfZCVBW91zi5FhmoH9XkQVVaqGX66nm", nil)
-	// if err != nil {
-	// 	t.Errorf("TestCarfileOperation error:%s", err.Error())
-	// 	return
-	// }
-	// t.Log("CacheCarfile")
-	// time.Sleep(2 * time.Minute)
+
 	carfileCID := "QmUuNfFwuRrxbRFt5ze3EhuQgkGnutwZtsYMbAcYbtb6j3"
 	carfile := &carfileCache{
 		carfileCID:                carfileCID,
@@ -30,7 +20,6 @@ func TestCarfileOperation(t *testing.T) {
 		blocksDownloadSuccessList: make([]string, 0),
 		nextLayerCIDs:             make([]string, 0),
 		downloadSources:           nil,
-		// waitListLock:              &sync.Mutex{},
 	}
 
 	layer := 1
@@ -60,7 +49,4 @@ func TestCarfileOperation(t *testing.T) {
 		layer++
 		t.Logf("layer %d, cids len:%d", layer, len(ret.netLayerCids))
 	}
-
-	// carfile.downloadCarfile(carfileOperation)
-
 }

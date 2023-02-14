@@ -109,5 +109,3 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 		}
 	}
 }
-
-// func (validate *Validate)
