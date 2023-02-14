@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"math/rand"
+	"net"
 	"net/http"
 	"time"
 
@@ -161,16 +162,16 @@ func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, de
 }
 
 // CandidateNodeConnect Candidate connect
-func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error {
-	ip := handler.GetRequestIP(ctx)
+func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
+	remoteAddr := handler.GetRemoteAddr(ctx)
 	deviceID := handler.GetDeviceID(ctx)
 
 	if !deviceExists(deviceID, int(api.NodeCandidate)) {
 		return xerrors.Errorf("candidate node not Exist: %s", deviceID)
 	}
 
-	// url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
-	log.Infof("CandidateNodeConnect %s ;ip:%s", deviceID, ip)
+	rpcURL := fmt.Sprintf("https://%s/rpc/v0", remoteAddr)
+	log.Infof("CandidateNodeConnect %s, address:%s", deviceID, remoteAddr)
 
 	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
@@ -214,7 +215,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 	}
 
 	deviceInfo.NodeType = api.NodeCandidate
-	deviceInfo.ExternalIp = ip
+	deviceInfo.ExternalIp, _, _ = net.SplitHostPort(remoteAddr)
 
 	geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIp)
 	// TODO Does the error need to be handled?
@@ -223,6 +224,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 	deviceInfo.Longitude = geoInfo.Longitude
 	deviceInfo.Latitude = geoInfo.Latitude
 
+	downloadSrvURL := fmt.Sprintf("https://%s/block/get", remoteAddr)
 	candidateNode := node.NewCandidateNode(candicateAPI, closer, node.NewNode(&deviceInfo, rpcURL, downloadSrvURL, privateKey, api.TypeNameCandidate, geoInfo))
 
 	err = s.nodeManager.CandidateOnline(candidateNode)
@@ -245,16 +247,16 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 }
 
 // EdgeNodeConnect edge connect
-func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error {
-	ip := handler.GetRequestIP(ctx)
+func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
+	remoteAddr := handler.GetRemoteAddr(ctx)
 	deviceID := handler.GetDeviceID(ctx)
 
 	if !deviceExists(deviceID, int(api.NodeEdge)) {
 		return xerrors.Errorf("edge node not Exist: %s", deviceID)
 	}
 
-	// url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
-	log.Infof("EdgeNodeConnect %s ;ip:%s", deviceID, ip)
+	rpcURL := fmt.Sprintf("http://%s/rpc/v0", remoteAddr)
+	log.Infof("EdgeNodeConnect %s; remoteAddr:%s", deviceID, remoteAddr)
 
 	t, err := s.AuthNew(ctx, api.AllPermissions)
 	if err != nil {
@@ -298,7 +300,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 	}
 
 	deviceInfo.NodeType = api.NodeEdge
-	deviceInfo.ExternalIp = ip
+	deviceInfo.ExternalIp, _, _ = net.SplitHostPort(remoteAddr)
 
 	geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIp)
 	// TODO Does the error need to be handled?
@@ -307,6 +309,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 	deviceInfo.Longitude = geoInfo.Longitude
 	deviceInfo.Latitude = geoInfo.Latitude
 
+	downloadSrvURL := fmt.Sprintf("https://%s/block/get", remoteAddr)
 	edgeNode := node.NewEdgeNode(edgeAPI, closer, node.NewNode(&deviceInfo, rpcURL, downloadSrvURL, privateKey, api.TypeNameEdge, geoInfo))
 
 	err = s.nodeManager.EdgeOnline(edgeNode)
@@ -348,7 +351,9 @@ func (s *Scheduler) GetPublicKey(ctx context.Context) (string, error) {
 
 // GetExternalIP get node External IP
 func (s *Scheduler) GetExternalIP(ctx context.Context) (string, error) {
-	return handler.GetRequestIP(ctx), nil
+	remoteAddr := handler.GetRemoteAddr(ctx)
+	ip, _, err := net.SplitHostPort(remoteAddr)
+	return ip, err
 }
 
 // ValidateBlockResult Validate Block Result
@@ -476,13 +481,10 @@ func (s *Scheduler) ValidateStart(ctx context.Context) error {
 
 // LocatorConnect Locator Connect
 func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locatorID string, locatorToken string) error {
-	// if !area.IsExist(areaID) {
-	// 	return xerrors.Errorf("area err:%s", areaID)
-	// }
-
-	ip := handler.GetRequestIP(ctx)
+	remoteAddr := handler.GetRemoteAddr(ctx)
+	ip, _, _ := net.SplitHostPort(remoteAddr)
 	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
-	log.Infof("LocatorConnect locatorID:%s,areaID:%s,LocatorConnect ip:%s,port:%d", locatorID, areaID, ip, port)
+	log.Infof("LocatorConnect locatorID:%s,areaID:%s,LocatorConnect addr:%s", locatorID, areaID, remoteAddr)
 
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+string(locatorToken))

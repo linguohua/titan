@@ -40,9 +40,9 @@ type Scheduler interface {
 	// call by node
 	// node send result when user download block complete
 	NodeResultForUserDownloadBlock(ctx context.Context, result NodeBlockDownloadResult) error                //perm:write
-	EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error                                //perm:write
+	EdgeNodeConnect(ctx context.Context) error                                                               //perm:write
 	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                          //perm:write
-	CandidateNodeConnect(ctx context.Context, rpcURL, downloadSrvURL string) error                           //perm:write
+	CandidateNodeConnect(ctx context.Context) error                                                          //perm:write
 	CacheResult(ctx context.Context, resultInfo CacheResultInfo) error                                       //perm:write
 	RemoveCarfileResult(ctx context.Context, resultInfo RemoveCarfileResultInfo) error                       //perm:write
 	GetExternalIP(ctx context.Context) (string, error)                                                       //perm:write

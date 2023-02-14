@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -9,11 +10,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
+	cliutil "github.com/linguohua/titan/cli/util"
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/metrics"
@@ -23,6 +26,7 @@ import (
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/secret"
 	"github.com/linguohua/titan/region"
+	"github.com/quic-go/quic-go/http3"
 	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
 
@@ -179,6 +183,24 @@ var runCmd = &cli.Command{
 			Usage: "area",
 			Value: "CN-GD-Shenzhen",
 		},
+		&cli.StringFlag{
+			Required: true,
+			Name:     "certificate-path",
+			Usage:    "cerfitifcate path, example: --certificate-path=./cert.pem",
+			Value:    "",
+		},
+		&cli.StringFlag{
+			Required: true,
+			Name:     "private-key-path",
+			Usage:    "private key path, example: --private-key-path=./priv.key",
+			Value:    "",
+		},
+		&cli.StringFlag{
+			Required: true,
+			Name:     "ca-certificate-path",
+			Usage:    "root-certificate, example: --ca-certificate-pat=./ca.pem",
+			Value:    "",
+		},
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -247,14 +269,30 @@ var runCmd = &cli.Command{
 			log.Panic(err.Error())
 		}
 		schedulerAPI := scheduler.NewLocalScheduleNode(lr, port)
+		handler := schedulerHandler(schedulerAPI, true)
 
 		srv := &http.Server{
-			Handler: schedulerHandler(schedulerAPI, true),
+			Handler: handler,
 			BaseContext: func(listener net.Listener) context.Context {
 				ctx, _ := tag.New(context.Background(), tag.Upsert(metrics.APIInterface, "titan-edge"))
 				return ctx
 			},
 		}
+
+		udpPacketConn, err := net.ListenPacket("udp", address)
+		if err != nil {
+			return err
+		}
+		defer udpPacketConn.Close()
+
+		certificatePath := cctx.String("certificate-path")
+		privateKeyPath := cctx.String("private-key-path")
+		caCertificatePath := cctx.String("ca-certificate-path")
+
+		httpClient := cliutil.NewUDPHTTPClient(udpPacketConn, caCertificatePath)
+		jsonrpc.SetUDPHTTPClient(httpClient)
+
+		go startUDPServer(udpPacketConn, handler, certificatePath, privateKeyPath)
 
 		go func() {
 			<-ctx.Done()
@@ -299,4 +337,23 @@ func openRepo(cctx *cli.Context) (repo.LockedRepo, error) {
 	}
 
 	return lr, nil
+}
+
+func startUDPServer(conn net.PacketConn, handler http.Handler, certPath, privPath string) error {
+	cert, err := tls.LoadX509KeyPair(certPath, privPath)
+	if err != nil {
+		return err
+	}
+
+	config := &tls.Config{
+		Certificates:       []tls.Certificate{cert},
+		InsecureSkipVerify: false,
+	}
+
+	srv := http3.Server{
+		TLSConfig: config,
+		Handler:   handler,
+	}
+
+	return srv.Serve(conn)
 }

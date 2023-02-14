@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"net"
 	"net/http"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
@@ -11,15 +10,15 @@ import (
 
 var log = logging.Logger("handler")
 
-type RequestIP struct{}
+type RemoteAddr struct{}
 type DeviceID struct{}
 
 type Handler struct {
 	handler *auth.Handler
 }
 
-func GetRequestIP(ctx context.Context) string {
-	v, ok := ctx.Value(RequestIP{}).(string)
+func GetRemoteAddr(ctx context.Context) string {
+	v, ok := ctx.Value(RemoteAddr{}).(string)
 	if !ok {
 		return ""
 	}
@@ -39,20 +38,16 @@ func New(ah *auth.Handler) http.Handler {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	reqIP := r.Header.Get("X-Real-IP")
-	if reqIP == "" {
-		h, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			log.Errorf("could not get ip from: %s, err: %s", r.RemoteAddr, err)
-		}
-		reqIP = h
+	remoteAddr := r.Header.Get("X-Remote-Addr")
+	if remoteAddr == "" {
+		remoteAddr = r.RemoteAddr
 	}
 
 	// fmt.Println("server http:", reqIP)
 	deviceID := r.Header.Get("Device-ID")
 
 	ctx := r.Context()
-	ctx = context.WithValue(ctx, RequestIP{}, reqIP)
+	ctx = context.WithValue(ctx, RemoteAddr{}, remoteAddr)
 	ctx = context.WithValue(ctx, DeviceID{}, deviceID)
 
 	h.handler.ServeHTTP(w, r.WithContext(ctx))
