@@ -121,9 +121,9 @@ func (m *Manager) resetBaseInfo() {
 		return
 	}
 
-	err = cache.GetDB().UpdateBaseInfo(cache.CarFileCountField, count)
+	err = cache.GetDB().UpdateSystemBaseInfo(cache.CarFileCountField, count)
 	if err != nil {
-		log.Errorf("resetBaseInfo UpdateBaseInfo err:%s", err.Error())
+		log.Errorf("resetBaseInfo UpdateSystemBaseInfo err:%s", err.Error())
 	}
 }
 
@@ -234,7 +234,7 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 	}
 
 	// update record to redis
-	return cache.GetDB().IncrByBaseInfo(cache.CarFileCountField, -count)
+	return cache.GetDB().IncrBySystemBaseInfo(cache.CarFileCountField, -count)
 }
 
 // RemoveCache remove a cache
@@ -263,9 +263,9 @@ func (m *Manager) RemoveCache(carfileCid, deviceID string) error {
 	log.Infof("carfile event %s , remove cache task:%s", carfileCid, deviceID)
 
 	if cacheInfo.Status == api.CacheStatusSuccessed {
-		err = cache.GetDB().IncrByBaseInfo(cache.CarFileCountField, -1)
+		err = cache.GetDB().IncrBySystemBaseInfo(cache.CarFileCountField, -1)
 		if err != nil {
-			log.Errorf("removeCache IncrByBaseInfo err:%s", err.Error())
+			log.Errorf("removeCache IncrBySystemBaseInfo err:%s", err.Error())
 		}
 	}
 

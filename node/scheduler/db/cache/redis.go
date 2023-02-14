@@ -40,8 +40,8 @@ const (
 	// redisKeyCacheingNode  server name:deviceID
 	redisKeyCacheingNode = "Titan:CacheingNode:%s:%s"
 
-	// redisKeyBaseInfo  server name
-	redisKeyBaseInfo = "Titan:BaseInfo:%s"
+	// redisKeySystemBaseInfo  server name
+	redisKeySystemBaseInfo = "Titan:SystemBaseInfo:%s"
 
 	// redisKeyCarfileRecordCacheResult  hash
 	redisKeyCarfileRecordCacheResult = "Titan:CarfileRecordCacheResult:%s"
@@ -466,7 +466,7 @@ func (rd redisDB) NodeDownloadCount(deviceID string, blockDownnloadInfo *api.Blo
 
 		// count carfile download
 		if blockDownnloadInfo.BlockCID == blockDownnloadInfo.CarfileCID {
-			key := fmt.Sprintf(redisKeyBaseInfo, serverName)
+			key := fmt.Sprintf(redisKeySystemBaseInfo, serverName)
 			pipeliner.HIncrBy(context.Background(), key, DownloadCountField, 1)
 		}
 
@@ -497,8 +497,8 @@ func toMap(info *api.DevicesInfo) map[string]interface{} {
 }
 
 // system base info
-func (rd redisDB) UpdateBaseInfo(field string, value interface{}) error {
-	key := fmt.Sprintf(redisKeyBaseInfo, serverName)
+func (rd redisDB) UpdateSystemBaseInfo(field string, value interface{}) error {
+	key := fmt.Sprintf(redisKeySystemBaseInfo, serverName)
 
 	_, err := rd.cli.HSet(context.Background(), key, field, value).Result()
 	if err != nil {
@@ -508,8 +508,8 @@ func (rd redisDB) UpdateBaseInfo(field string, value interface{}) error {
 	return err
 }
 
-func (rd redisDB) IncrByBaseInfo(field string, value int64) error {
-	key := fmt.Sprintf(redisKeyBaseInfo, serverName)
+func (rd redisDB) IncrBySystemBaseInfo(field string, value int64) error {
+	key := fmt.Sprintf(redisKeySystemBaseInfo, serverName)
 
 	_, err := rd.cli.HIncrBy(context.Background(), key, field, value).Result()
 	if err != nil {
@@ -519,10 +519,10 @@ func (rd redisDB) IncrByBaseInfo(field string, value int64) error {
 	return err
 }
 
-func (rd redisDB) GetBaseInfo() (*api.BaseInfo, error) {
-	key := fmt.Sprintf(redisKeyBaseInfo, serverName)
+func (rd redisDB) GetSystemBaseInfo() (*api.SystemBaseInfo, error) {
+	key := fmt.Sprintf(redisKeySystemBaseInfo, serverName)
 
-	var info api.BaseInfo
+	var info api.SystemBaseInfo
 	err := rd.cli.HGetAll(context.Background(), key).Scan(&info)
 	if err != nil {
 		return nil, err

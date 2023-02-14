@@ -157,10 +157,10 @@ func (w *web) SetupValidation(ctx context.Context, enable bool) error {
 	return nil
 }
 
-func (w *web) GetSystemInfo(ctx context.Context) (api.BaseInfo, error) {
-	info, err := cache.GetDB().GetBaseInfo()
+func (w *web) GetSystemInfo(ctx context.Context) (api.SystemBaseInfo, error) {
+	info, err := cache.GetDB().GetSystemBaseInfo()
 	if err != nil {
-		return api.BaseInfo{}, err
+		return api.SystemBaseInfo{}, err
 	}
 
 	return *info, nil
