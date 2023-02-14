@@ -68,6 +68,9 @@ api-gen:
 	goimports -w api
 .PHONY: api-gen
 
+cfgdoc-gen:
+	$(GOCC) run ./node/config/cfgdocgen > ./node/config/doc_gen.go
+
 build: titan-scheduler titan-candidate titan-candidate-arm titan-edge titan-edge-arm titan-locator
 .PHONY: build
 
