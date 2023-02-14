@@ -82,12 +82,12 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string) ([
 
 	if device == nil {
 		log.Infof("GetAccessPoints, device (%s) == nil", deviceID)
-		return locator.getAccessPointWithWeightCount(areaID)
+		return locator.getAccessPointsWithWeightCount(areaID)
 	}
 
 	cfg := locator.getAccessPointCfg(device.AreaID, device.SchedulerURL)
 	if cfg == nil {
-		return locator.getAccessPointWithWeightCount(device.AreaID)
+		return locator.getAccessPointsWithWeightCount(device.AreaID)
 	}
 
 	_, ok := locator.apMgr.getSchedulerAPI(device.SchedulerURL, device.AreaID, cfg.AccessToken)
@@ -96,7 +96,7 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string) ([
 	}
 
 	log.Infof("area %s scheduler api %s not online", device.AreaID, device.SchedulerURL)
-	return locator.getAccessPointWithWeightCount(areaID)
+	return locator.getAccessPointsWithWeightCount(areaID)
 }
 
 func (locator *Locator) AddAccessPoint(ctx context.Context, areaID string, schedulerURL string, weight int, schedulerAccessToken string) error {
@@ -171,7 +171,7 @@ func (locator *Locator) DeviceOffline(ctx context.Context, deviceID string) erro
 	return locator.SetDeviceOnlineStatus(ctx, deviceID, false)
 }
 
-func (locator *Locator) getAccessPointWithWeightCount(areaID string) ([]string, error) {
+func (locator *Locator) getAccessPointsWithWeightCount(areaID string) ([]string, error) {
 	log.Infof("getAccessPointWithWeightCount, areaID:%s", areaID)
 
 	schedulerCfgs, err := locator.db.getAccessPointCfgs(areaID)

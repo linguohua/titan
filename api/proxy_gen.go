@@ -102,11 +102,6 @@ type CommonStub struct {
 
 type DataSyncStruct struct {
 	Internal struct {
-		GetAllChecksums func(p0 context.Context, p1 int) (ChecksumRsp, error) `perm:"write"`
-
-		GetChecksumsInRange func(p0 context.Context, p1 ReqChecksumInRange) (ChecksumRsp, error) `perm:"write"`
-
-		ScrubBlocks func(p0 context.Context, p1 ScrubBlocks) error `perm:"write"`
 	}
 }
 
@@ -562,39 +557,6 @@ func (s *CommonStruct) Version(p0 context.Context) (APIVersion, error) {
 
 func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 	return *new(APIVersion), ErrNotSupported
-}
-
-func (s *DataSyncStruct) GetAllChecksums(p0 context.Context, p1 int) (ChecksumRsp, error) {
-	if s.Internal.GetAllChecksums == nil {
-		return *new(ChecksumRsp), ErrNotSupported
-	}
-	return s.Internal.GetAllChecksums(p0, p1)
-}
-
-func (s *DataSyncStub) GetAllChecksums(p0 context.Context, p1 int) (ChecksumRsp, error) {
-	return *new(ChecksumRsp), ErrNotSupported
-}
-
-func (s *DataSyncStruct) GetChecksumsInRange(p0 context.Context, p1 ReqChecksumInRange) (ChecksumRsp, error) {
-	if s.Internal.GetChecksumsInRange == nil {
-		return *new(ChecksumRsp), ErrNotSupported
-	}
-	return s.Internal.GetChecksumsInRange(p0, p1)
-}
-
-func (s *DataSyncStub) GetChecksumsInRange(p0 context.Context, p1 ReqChecksumInRange) (ChecksumRsp, error) {
-	return *new(ChecksumRsp), ErrNotSupported
-}
-
-func (s *DataSyncStruct) ScrubBlocks(p0 context.Context, p1 ScrubBlocks) error {
-	if s.Internal.ScrubBlocks == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.ScrubBlocks(p0, p1)
-}
-
-func (s *DataSyncStub) ScrubBlocks(p0 context.Context, p1 ScrubBlocks) error {
-	return ErrNotSupported
 }
 
 func (s *DeviceStruct) DeviceID(p0 context.Context) (string, error) {

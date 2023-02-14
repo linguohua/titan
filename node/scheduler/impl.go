@@ -85,7 +85,7 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int) api.Scheduler {
 	s.election = election.NewElection(nodeManager)
 	s.validate = validate.NewValidate(nodeManager, false)
 	s.dataManager = carfile.NewCarfileManager(nodeManager, s.authToken)
-	s.dataSync = sync.NewDataSync()
+	s.dataSync = sync.NewDataSync(nodeManager)
 
 	s.nodeAppUpdateInfos, _ = persistent.GetDB().GetNodeUpdateInfos()
 
@@ -239,7 +239,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, rpcURL, downloadSr
 
 	go s.locatorManager.NotifyNodeStatusToLocator(deviceID, true)
 
-	s.dataSync.Add2List(candicateAPI, deviceID)
+	s.dataSync.Add2List(deviceID)
 
 	return nil
 }
@@ -324,7 +324,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, rpcURL, downloadSrvURL 
 	// notify locator
 	go s.locatorManager.NotifyNodeStatusToLocator(deviceID, true)
 
-	s.dataSync.Add2List(edgeAPI, deviceID)
+	s.dataSync.Add2List(deviceID)
 
 	return nil
 }
