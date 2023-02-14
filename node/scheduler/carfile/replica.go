@@ -51,13 +51,13 @@ func newCacheTask(carfileRecord *CarfileRecord, deviceID string, isCandidate boo
 
 func (c *CacheTask) isTimeout() bool {
 	// check redis
-	exist, err := cache.GetDB().IsNodeInRunningList(c.deviceID)
+	expiration, err := cache.GetDB().GetNodeCacheTimeoutTime(c.deviceID)
 	if err != nil {
-		log.Errorf("NodeIsCaching err:%s", err.Error())
+		log.Errorf("GetNodeCacheTimeoutTime err:%s", err.Error())
 		return false
 	}
 
-	return !exist
+	return expiration <= 0
 }
 
 func (c *CacheTask) startTimeoutTimer() {

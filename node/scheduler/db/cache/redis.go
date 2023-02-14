@@ -131,14 +131,19 @@ func (rd redisDB) GetCacheingCarfiles() ([]string, error) {
 	return rd.cli.SMembers(context.Background(), cacheingCarfileList).Result()
 }
 
-func (rd redisDB) IsNodeInRunningList(deviceID string) (bool, error) {
-	nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
-	exist, err := rd.cli.Exists(context.Background(), nodeKey).Result()
+func (rd redisDB) GetNodeCacheTimeoutTime(deviceID string) (int, error) {
+	key := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
+	// exist, err := rd.cli.Exists(context.Background(), key).Result()
+	// if err != nil {
+	// 	return false, err
+	// }
+
+	expiration, err := rd.cli.TTL(context.Background(), key).Result()
 	if err != nil {
-		return false, err
+		return 0, err
 	}
 
-	return exist == 1, nil
+	return int(expiration.Seconds()), nil
 }
 
 // carfile record result
