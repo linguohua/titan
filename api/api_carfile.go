@@ -19,8 +19,7 @@ type CarfileOperation interface {
 type CacheCarfileResult struct {
 	CacheCarfileCount   int
 	WaitCacheCarfileNum int
-	// DoingCacheCarfileNum int
-	DiskUsage float64
+	DiskUsage           float64
 }
 
 type DowloadSource struct {

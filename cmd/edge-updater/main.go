@@ -38,31 +38,7 @@ func main() {
 		Usage:                "Titan update",
 		Version:              build.UserVersion(),
 		EnableBashCompletion: true,
-		// Flags: []cli.Flag{
-		// 	&cli.StringFlag{
-		// 		Name:    FlagWorkerRepo,
-		// 		Aliases: []string{FlagWorkerRepoDeprecation},
-		// 		EnvVars: []string{"TITAN_EDGE_PATH", "EDGE_PATH"},
-		// 		Value:   "~/.titanedge", // TODO: Consider XDG_DATA_HOME
-		// 		Usage:   fmt.Sprintf("Specify worker repo path. flag %s and env TITAN_EDGE_PATH are DEPRECATION, will REMOVE SOON", FlagWorkerRepoDeprecation),
-		// 	},
-		// 	&cli.StringFlag{
-		// 		Name:    "panic-reports",
-		// 		EnvVars: []string{"TITAN_PANIC_REPORT_PATH"},
-		// 		Hidden:  true,
-		// 		Value:   "~/.titanupdate", // should follow --repo default
-		// 	},
-		// },
-
-		// After: func(c *cli.Context) error {
-		// 	if r := recover(); r != nil {
-		// 		// Generate report in LOTUS_PATH and re-raise panic
-		// 		build.GeneratePanicReport(c.String("panic-reports"), c.String(FlagWorkerRepo), c.App.Name)
-		// 		panic(r)
-		// 	}
-		// 	return nil
-		// },
-		Commands: []*cli.Command{runCmd},
+		Commands:             []*cli.Command{runCmd},
 	}
 	app.Setup()
 
@@ -186,7 +162,7 @@ func isNeedToUpdateEdge(cctx *cli.Context, updateInfo *api.NodeAppUpdateInfo) bo
 		log.Errorf("isNeedToUpdateEdge error:%s", err)
 		return false
 	}
-	// log.Infof("isNeedToUpdateEdge,installPath:%s,appPath:%s version:%v", installPath, appPath, version)
+
 	if updateInfo.Version > version {
 		return true
 	}

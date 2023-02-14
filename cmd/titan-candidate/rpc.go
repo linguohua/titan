@@ -15,13 +15,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// func blockDownload(a api.Candidate) http.HandlerFunc {
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		api := a.(candidate.CandidateAPI)
-// 		api.GetBlock(w, r)
-// 	}
-// }
-
 func WorkerHandler(authv func(ctx context.Context, token string) ([]auth.Permission, error), a api.Candidate, permissioned bool) http.Handler {
 	mux := mux.NewRouter()
 	readerHandler, readerServerOpt := rpcenc.ReaderParamDecoder()
@@ -35,7 +28,6 @@ func WorkerHandler(authv func(ctx context.Context, token string) ([]auth.Permiss
 	rpcServer.Register("titan", wapi)
 
 	mux.Handle("/rpc/v0", rpcServer)
-	// mux.Handle("/rpc/v0/block/get", blockDownload(a))
 	mux.Handle("/rpc/streams/v0/push/{uuid}", readerHandler)
 	mux.PathPrefix("/").Handler(http.DefaultServeMux) // pprof
 

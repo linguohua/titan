@@ -99,7 +99,7 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string) ([
 	return locator.getAccessPointWithWeightCount(areaID)
 }
 
-func (locator *Locator) AddAccessPoints(ctx context.Context, areaID string, schedulerURL string, weight int, schedulerAccessToken string) error {
+func (locator *Locator) AddAccessPoint(ctx context.Context, areaID string, schedulerURL string, weight int, schedulerAccessToken string) error {
 	if weight < miniWeight || weight > maxWeight {
 		return fmt.Errorf("weith is out of range, need to set %d ~ %d", miniWeight, maxWeight)
 	}
@@ -126,8 +126,8 @@ func (locator *Locator) RemoveAccessPoints(ctx context.Context, areaID string) e
 	return locator.db.removeAccessPoints(areaID)
 }
 
-func (locator *Locator) ListAccessPoints(ctx context.Context) (areaIDs []string, err error) {
-	return locator.db.listAccessPoints()
+func (locator *Locator) ListAreaIDs(ctx context.Context) (areaIDs []string, err error) {
+	return locator.db.listAreaIDs()
 }
 
 func (locator *Locator) ShowAccessPoint(ctx context.Context, areaID string) (api.AccessPoint, error) {

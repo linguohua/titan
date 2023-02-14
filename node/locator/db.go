@@ -5,7 +5,6 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
-	"github.com/linguohua/titan/api"
 )
 
 type db struct {
@@ -62,7 +61,8 @@ func (db *db) removeAccessPoints(areaID string) error {
 	return db.db.DeleteCfgWithAreaID(areaID)
 }
 
-func (db *db) listAccessPoints() (areaIDs []string, err error) {
+func (db *db) listAreaIDs() (areaIDs []string, err error) {
+	// TODO: only get areaID from db, not all cfg
 	allCfg, err := db.db.getAllCfg()
 	if err != nil {
 		return []string{}, err
@@ -76,23 +76,6 @@ func (db *db) listAccessPoints() (areaIDs []string, err error) {
 		areaIDs = append(areaIDs, k)
 	}
 	return areaIDs, nil
-}
-
-func (db *db) loadAccessPoints() (accessPoints []api.AccessPoint, err error) {
-	// allCfg, err := db.db.getAllCfg()
-	// if err != nil {
-	// 	return []string{}, err
-	// }
-	// cfgMap := make(map[string]string)
-	// for _, cfg := range allCfg {
-	// 	cfgMap[cfg.AreaID] = cfg.SchedulerURL
-	// }
-
-	// for k := range cfgMap {
-	// 	areaIDs = append(areaIDs, k)
-	// }
-	// return areaIDs, nil
-	return nil, nil
 }
 
 func (db *db) getAccessPointCfgs(areaID string) ([]*locatorCfg, error) {

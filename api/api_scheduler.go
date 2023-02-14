@@ -153,15 +153,13 @@ type CacheCarfileInfo struct {
 
 type NodeBlockDownloadResult struct {
 	// serial number
-	SN int64
-	// scheduler signature
+	SN            int64
 	Sign          []byte
 	DownloadSpeed int64
 	BlockSize     int
-	// ClientIP      string
-	Result       bool
-	FailedReason string
-	BlockCID     string
+	Succeed       bool
+	FailedReason  string
+	BlockCID      string
 }
 
 type DownloadServerAccessAuth struct {

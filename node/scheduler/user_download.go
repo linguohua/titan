@@ -43,7 +43,7 @@ func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result a
 
 	// s.recordDownloadBlock(record, &result, deviceID, "")
 
-	if result.Result {
+	if result.Succeed {
 		err := incrDeviceReward(deviceID, 1)
 		if err != nil {
 			return err

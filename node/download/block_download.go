@@ -53,7 +53,7 @@ func (bd *BlockDownload) resultFailed(w http.ResponseWriter, r *http.Request, sn
 	log.Errorf("result failed:%s", err.Error())
 
 	if sign != nil {
-		result := api.NodeBlockDownloadResult{SN: sn, Sign: sign, DownloadSpeed: 0, BlockSize: 0, Result: false, FailedReason: err.Error(), BlockCID: cidStr}
+		result := api.NodeBlockDownloadResult{SN: sn, Sign: sign, DownloadSpeed: 0, BlockSize: 0, Succeed: false, FailedReason: err.Error(), BlockCID: cidStr}
 		go bd.downloadBlockResult(result)
 	}
 
@@ -135,7 +135,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		speedRate = int64(float64(n) / float64(costTime) * float64(time.Second))
 	}
 
-	result := api.NodeBlockDownloadResult{SN: sn, Sign: sign, DownloadSpeed: speedRate, BlockSize: int(n), Result: true, BlockCID: cidStr}
+	result := api.NodeBlockDownloadResult{SN: sn, Sign: sign, DownloadSpeed: speedRate, BlockSize: int(n), Succeed: true, BlockCID: cidStr}
 	go bd.downloadBlockResult(result)
 
 	log.Infof("Download block %s costTime %d, size %d, speed %d", cidStr, costTime, n, speedRate)

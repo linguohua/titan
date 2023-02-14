@@ -21,7 +21,6 @@ import (
 	"github.com/linguohua/titan/node/locator"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/region"
-	"github.com/shirou/gopsutil/v3/cpu"
 
 	"github.com/google/uuid"
 	logging "github.com/ipfs/go-log/v2"
@@ -42,7 +41,6 @@ const FlagLocatorRepoDeprecation = "locatorrepo"
 
 func main() {
 	api.RunningNodeType = api.NodeLocator
-	cpu.Percent(0, false)
 	titanlog.SetupLogLevels()
 
 	local := []*cli.Command{
@@ -124,11 +122,6 @@ var runCmd = &cli.Command{
 			Usage: "use mysql to save config",
 			Value: "user01:sql001@tcp(127.0.0.1:3306)/locator",
 		},
-		// &cli.StringFlag{
-		// 	Name:  "scheduler-token",
-		// 	Usage: "connect to scheduler",
-		// 	Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.Ewk-SQFNQi7ovTWfRI8ZfOnrDVNyU6iv3w40wsu-O4Y",
-		// },
 		&cli.StringFlag{
 			Name:  "uuid",
 			Usage: "locator uuid",

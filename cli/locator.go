@@ -66,7 +66,7 @@ var addCmd = &cli.Command{
 		ctx := ReqContext(cctx)
 		// TODO: print more useful things
 
-		err = api.AddAccessPoints(ctx, areaID, url, weight, token)
+		err = api.AddAccessPoint(ctx, areaID, url, weight, token)
 		if err != nil {
 			return err
 		}
@@ -107,7 +107,7 @@ var removeCmd = &cli.Command{
 
 var listCmd = &cli.Command{
 	Name:  "list",
-	Usage: "list access point",
+	Usage: "list access point areaID",
 	Flags: []cli.Flag{},
 
 	Action: func(cctx *cli.Context) error {
@@ -119,7 +119,7 @@ var listCmd = &cli.Command{
 
 		ctx := ReqContext(cctx)
 
-		areaIDs, err := api.ListAccessPoints(ctx)
+		areaIDs, err := api.ListAreaIDs(ctx)
 		if err != nil {
 			return err
 		}

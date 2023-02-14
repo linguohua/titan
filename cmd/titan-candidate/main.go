@@ -56,6 +56,9 @@ func main() {
 
 	local = append(local, lcli.CommonCommands...)
 
+	// candidate cmds include edge cmds
+	candidateCmds := append(local, lcli.EdgeCmds...)
+
 	app := &cli.App{
 		Name:                 "titan-candidate",
 		Usage:                "Titan candidate node",
@@ -67,7 +70,7 @@ func main() {
 				Aliases: []string{FlagCandidateRepoDeprecation},
 				EnvVars: []string{"TITAN_CANDIDATE_PATH", "CANDIDATE_PATH"},
 				Value:   "~/.titancandidate", // TODO: Consider XDG_DATA_HOME
-				Usage:   fmt.Sprintf("Specify worker repo path. flag %s and env TITAN_EDGE_PATH are DEPRECATION, will REMOVE SOON", FlagCandidateRepoDeprecation),
+				Usage:   fmt.Sprintf("Specify candidate repo path. flag %s and env TITAN_CANDIDATE_PATH are DEPRECATION, will REMOVE SOON", FlagCandidateRepoDeprecation),
 			},
 			&cli.StringFlag{
 				Name:    "panic-reports",
@@ -79,13 +82,13 @@ func main() {
 
 		After: func(c *cli.Context) error {
 			if r := recover(); r != nil {
-				// Generate report in LOTUS_PATH and re-raise panic
+				// Generate report in TITAN_PATH and re-raise panic
 				build.GeneratePanicReport(c.String("panic-reports"), c.String(FlagCandidateRepo), c.App.Name)
 				panic(r)
 			}
 			return nil
 		},
-		Commands: append(local, lcli.EdgeCmds...),
+		Commands: candidateCmds,
 	}
 	app.Setup()
 	app.Metadata["repoType"] = repo.Candidate
@@ -334,7 +337,7 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						err := schedulerConnect(schedulerAPI, rpcURL, "")
+						err := connectToScheduler(schedulerAPI, rpcURL, "")
 						if err != nil {
 							log.Errorf("Registering candidate failed: %+v", err)
 							cancel()
@@ -363,7 +366,7 @@ var runCmd = &cli.Command{
 	},
 }
 
-func schedulerConnect(api api.Scheduler, rpcURL string, downloadSrvURL string) error {
+func connectToScheduler(api api.Scheduler, rpcURL string, downloadSrvURL string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
 	defer cancel()
 	return api.CandidateNodeConnect(ctx, rpcURL, downloadSrvURL)
