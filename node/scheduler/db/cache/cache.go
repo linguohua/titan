@@ -8,11 +8,11 @@ import (
 )
 
 const (
-	// CarFileCountField BaseInfo Field
+	// CarFileCountField SystemBaseInfo Field
 	CarFileCountField = "CarfileCount"
-	// DownloadCountField BaseInfo Field
+	// DownloadCountField SystemBaseInfo Field
 	DownloadCountField = "DownloadCount"
-	// NextElectionTimeField BaseInfo Field
+	// NextElectionTimeField SystemBaseInfo Field
 	NextElectionTimeField = "NextElectionTime"
 
 	// blockCountField DeviceInfo Field
@@ -76,9 +76,9 @@ type DB interface {
 	NodeDownloadCount(deviceID string, blockDownnloadInfo *api.BlockDownloadInfo) error
 
 	// system base info
-	GetBaseInfo() (*api.BaseInfo, error)
-	UpdateBaseInfo(field string, value interface{}) error
-	IncrByBaseInfo(field string, value int64) error
+	GetSystemBaseInfo() (*api.SystemBaseInfo, error)
+	UpdateSystemBaseInfo(field string, value interface{}) error
+	IncrBySystemBaseInfo(field string, value int64) error
 	UpdateNodeCacheInfo(deviceID string, nodeInfo *NodeCacheInfo) error
 
 	IsNilErr(err error) bool

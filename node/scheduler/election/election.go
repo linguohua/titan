@@ -132,7 +132,7 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 
 	defer func() {
 		now := time.Now()
-		err := cache.GetDB().UpdateBaseInfo(cache.NextElectionTimeField, now.Add(v.opts.electInterval).Unix())
+		err := cache.GetDB().UpdateSystemBaseInfo(cache.NextElectionTimeField, now.Add(v.opts.electInterval).Unix())
 		if err != nil {
 			log.Error(err.Error())
 		}

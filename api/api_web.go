@@ -14,7 +14,7 @@ type Web interface {
 
 	// ListCaches cache manager
 	GetCacheTaskInfos(ctx context.Context, req ListCacheInfosReq) (ListCacheInfosRsp, error)          //perm:read
-	GetSystemInfo(ctx context.Context) (BaseInfo, error)                                              //perm:read
+	GetSystemInfo(ctx context.Context) (SystemBaseInfo, error)                                        //perm:read
 	AddCacheTask(ctx context.Context, carFileCID string, reliability int, expireTime time.Time) error //perm:read
 	ListCacheTasks(ctx context.Context, cursor int, count int) (ListCacheTasksRsp, error)             //perm:read
 	GetCacheTaskInfo(ctx context.Context, carFileCID string) (CarfileRecordInfo, error)               //perm:read
@@ -73,7 +73,8 @@ type WebCarfile struct {
 	CreatedAt time.Time        `json:"created_at"`
 }
 
-type BaseInfo struct {
+// SystemBaseInfo  system base info for titan
+type SystemBaseInfo struct {
 	CarFileCount     int   `json:"car_file_count" redis:"CarfileCount"`
 	DownloadCount    int   `json:"download_count" redis:"DownloadCount"`
 	NextElectionTime int64 `json:"next_election_time" redis:"NextElectionTime"`

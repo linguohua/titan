@@ -312,7 +312,7 @@ type WebStruct struct {
 
 		GetSummaryValidateMessage func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*SummeryValidateResult, error) `perm:"read"`
 
-		GetSystemInfo func(p0 context.Context) (BaseInfo, error) `perm:"read"`
+		GetSystemInfo func(p0 context.Context) (SystemBaseInfo, error) `perm:"read"`
 
 		ListBlockDownloadInfo func(p0 context.Context, p1 ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) `perm:"read"`
 
@@ -1268,15 +1268,15 @@ func (s *WebStub) GetSummaryValidateMessage(p0 context.Context, p1 time.Time, p2
 	return nil, ErrNotSupported
 }
 
-func (s *WebStruct) GetSystemInfo(p0 context.Context) (BaseInfo, error) {
+func (s *WebStruct) GetSystemInfo(p0 context.Context) (SystemBaseInfo, error) {
 	if s.Internal.GetSystemInfo == nil {
-		return *new(BaseInfo), ErrNotSupported
+		return *new(SystemBaseInfo), ErrNotSupported
 	}
 	return s.Internal.GetSystemInfo(p0)
 }
 
-func (s *WebStub) GetSystemInfo(p0 context.Context) (BaseInfo, error) {
-	return *new(BaseInfo), ErrNotSupported
+func (s *WebStub) GetSystemInfo(p0 context.Context) (SystemBaseInfo, error) {
+	return *new(SystemBaseInfo), ErrNotSupported
 }
 
 func (s *WebStruct) ListBlockDownloadInfo(p0 context.Context, p1 ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) {
