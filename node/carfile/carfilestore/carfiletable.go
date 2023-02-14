@@ -17,7 +17,7 @@ type carfileTable struct {
 func newCarfileTable(path string) *carfileTable {
 	err := os.MkdirAll(path, 0o755)
 	if err != nil {
-		log.Fatalf("New blocks dir, path:%s, err:%s", path, err.Error())
+		log.Panicf("New blocks dir, path:%s, err:%s", path, err.Error())
 	}
 
 	return &carfileTable{path: path}

@@ -1,6 +1,7 @@
 package carfilestore
 
 import (
+	"context"
 	"path/filepath"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -15,13 +16,16 @@ const (
 	carfileTableDir            = "carfiles"
 	incompleteCarfileCachesDir = "incomplete-carfiles"
 	waitCacheListFile          = "wait-cache"
+	linksDir                   = "links"
 )
 
 type CarfileStore struct {
 	blockStore             blockstore.BlockStore
 	carfileTable           *carfileTable
 	incompleteCarfileCache *incompleteCarfileCache
-	path                   string
+	// save relation of block belong to which carfile
+	linksStore *linksStore
+	path       string
 }
 
 func NewCarfileStore(path, blockStoreType string) *CarfileStore {
@@ -34,7 +38,15 @@ func NewCarfileStore(path, blockStoreType string) *CarfileStore {
 	incompleteCarfileCachesPath := filepath.Join(path, incompleteCarfileCachesDir)
 	incompleteCarfileCache := newIncompleteCarfileCache(incompleteCarfileCachesPath)
 
-	return &CarfileStore{blockStore: blockStore, carfileTable: carfileTable, incompleteCarfileCache: incompleteCarfileCache, path: path}
+	linksStorePath := filepath.Join(path, linksDir)
+	linksStore := newLinksStore(linksStorePath)
+
+	return &CarfileStore{
+		blockStore:             blockStore,
+		carfileTable:           carfileTable,
+		incompleteCarfileCache: incompleteCarfileCache, path: path,
+		linksStore: linksStore,
+	}
 }
 
 func (carfileStore *CarfileStore) SaveBlock(blockHash string, blockData []byte) error {
@@ -129,4 +141,17 @@ func (carfileStore *CarfileStore) HasCarfile(carfileHash string) (bool, error) {
 
 func (carfileStore *CarfileStore) BlockCountOfCarfile(carfileHash string) (int, error) {
 	return carfileStore.carfileTable.blockCountOfCarfile(carfileHash)
+}
+
+// links
+func (carfileStore *CarfileStore) SaveLinks(ctx context.Context, blockHash string, links []byte) error {
+	return carfileStore.linksStore.put(ctx, blockHash, links)
+}
+
+func (carfileStore *CarfileStore) GetLinks(ctx context.Context, blockHash string) ([]byte, error) {
+	return carfileStore.linksStore.get(ctx, blockHash)
+}
+
+func (carfileStore *CarfileStore) DeleteLinks(ctx context.Context, blockHash string) error {
+	return carfileStore.linksStore.delete(ctx, blockHash)
 }

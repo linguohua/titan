@@ -9,7 +9,6 @@ import (
 var log = logging.Logger("datasync")
 
 type DataSync struct {
-	// block *block.Block
 	carfileStore *carfilestore.CarfileStore
 	ds           datastore.Batching
 }

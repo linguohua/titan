@@ -40,11 +40,8 @@ func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *devic
 	blockDownload := download.NewBlockDownload(rateLimiter, params.Scheduler, params.CarfileStore, device, validate)
 	carfileOperation := carfile.NewCarfileOperation(params.DS, params.CarfileStore, params.Scheduler, downloader.NewIPFS(params.IPFSAPI, params.CarfileStore), device)
 
-	// datasync.SyncLocalBlockstore(params.DS, params.CarfileStore)
-
 	candidate := &Candidate{
-		Device: device,
-		// Block:            block,
+		Device:           device,
 		CarfileOperation: carfileOperation,
 		BlockDownload:    blockDownload,
 		Validate:         validate,
