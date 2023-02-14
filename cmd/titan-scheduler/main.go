@@ -33,11 +33,11 @@ import (
 var log = logging.Logger("main")
 
 const (
-	// FlagMinerRepo Flag
-	FlagMinerRepo = "scheduler-repo"
+	// FlagSchedulerRepo Flag
+	FlagSchedulerRepo = "scheduler-repo"
 
-	// FlagMinerRepoDeprecation Flag
-	FlagMinerRepoDeprecation = "schedulerrepo"
+	// FlagSchedulerRepoDeprecation Flag
+	FlagSchedulerRepoDeprecation = "schedulerrepo"
 )
 
 func main() {
@@ -60,11 +60,11 @@ func main() {
 		EnableBashCompletion: true,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    FlagMinerRepo,
-				Aliases: []string{FlagMinerRepoDeprecation},
+				Name:    FlagSchedulerRepo,
+				Aliases: []string{FlagSchedulerRepoDeprecation},
 				EnvVars: []string{"TITAN_SCHEDULER_PATH", "SCHEDULER_PATH"},
 				Value:   "~/.titanscheduler", // TODO: Consider XDG_DATA_HOME
-				Usage:   fmt.Sprintf("Specify worker repo path. flag %s and env TITAN_SCHEDULER_PATH are DEPRECATION, will REMOVE SOON", FlagMinerRepoDeprecation),
+				Usage:   fmt.Sprintf("Specify worker repo path. flag %s and env TITAN_SCHEDULER_PATH are DEPRECATION, will REMOVE SOON", FlagSchedulerRepoDeprecation),
 			},
 			&cli.StringFlag{
 				Name:    "panic-reports",
@@ -76,8 +76,8 @@ func main() {
 
 		After: func(c *cli.Context) error {
 			if r := recover(); r != nil {
-				// Generate report in LOTUS_PATH and re-raise panic
-				build.GeneratePanicReport(c.String("panic-reports"), c.String(FlagMinerRepo), c.App.Name)
+				// Generate report in TITAN_SCHEDULER_PATH and re-raise panic
+				build.GeneratePanicReport(c.String("panic-reports"), c.String(FlagSchedulerRepo), c.App.Name)
 				log.Panic(r)
 			}
 			return nil
@@ -277,7 +277,7 @@ var runCmd = &cli.Command{
 }
 
 func openRepo(cctx *cli.Context) (repo.LockedRepo, error) {
-	repoPath := cctx.String(FlagMinerRepo)
+	repoPath := cctx.String(FlagSchedulerRepo)
 	r, err := repo.NewFS(repoPath)
 	if err != nil {
 		return nil, err

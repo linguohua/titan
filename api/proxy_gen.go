@@ -169,7 +169,7 @@ type LocatorStruct struct {
 	CommonStruct
 
 	Internal struct {
-		AddAccessPoints func(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error `perm:"admin"`
+		AddAccessPoint func(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error `perm:"admin"`
 
 		DeviceOffline func(p0 context.Context, p1 string) error `perm:"write"`
 
@@ -179,7 +179,7 @@ type LocatorStruct struct {
 
 		GetDownloadInfosWithCarfile func(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) `perm:"read"`
 
-		ListAccessPoints func(p0 context.Context) ([]string, error) `perm:"admin"`
+		ListAreaIDs func(p0 context.Context) ([]string, error) `perm:"admin"`
 
 		LoadAccessPointsForWeb func(p0 context.Context) ([]AccessPoint, error) `perm:"admin"`
 
@@ -641,14 +641,14 @@ func (s *EdgeStub) WaitQuiet(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *LocatorStruct) AddAccessPoints(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error {
-	if s.Internal.AddAccessPoints == nil {
+func (s *LocatorStruct) AddAccessPoint(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error {
+	if s.Internal.AddAccessPoint == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.AddAccessPoints(p0, p1, p2, p3, p4)
+	return s.Internal.AddAccessPoint(p0, p1, p2, p3, p4)
 }
 
-func (s *LocatorStub) AddAccessPoints(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error {
+func (s *LocatorStub) AddAccessPoint(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error {
 	return ErrNotSupported
 }
 
@@ -696,14 +696,14 @@ func (s *LocatorStub) GetDownloadInfosWithCarfile(p0 context.Context, p1 string,
 	return *new([]*DownloadInfoResult), ErrNotSupported
 }
 
-func (s *LocatorStruct) ListAccessPoints(p0 context.Context) ([]string, error) {
-	if s.Internal.ListAccessPoints == nil {
+func (s *LocatorStruct) ListAreaIDs(p0 context.Context) ([]string, error) {
+	if s.Internal.ListAreaIDs == nil {
 		return *new([]string), ErrNotSupported
 	}
-	return s.Internal.ListAccessPoints(p0)
+	return s.Internal.ListAreaIDs(p0)
 }
 
-func (s *LocatorStub) ListAccessPoints(p0 context.Context) ([]string, error) {
+func (s *LocatorStub) ListAreaIDs(p0 context.Context) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 

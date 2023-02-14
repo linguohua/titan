@@ -15,13 +15,6 @@ import (
 	"github.com/linguohua/titan/node/handler"
 )
 
-// func blockDownload(a api.Edge) http.HandlerFunc {
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		api := a.(edge.EdgeAPI)
-// 		api.GetBlock(w, r)
-// 	}
-// }
-
 func WorkerHandler(a api.Locator, permissioned bool) http.Handler {
 	mux := mux.NewRouter()
 	readerHandler, readerServerOpt := rpcenc.ReaderParamDecoder()

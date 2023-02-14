@@ -328,7 +328,7 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						err := schedulerConnect(schedulerAPI, rpcURL, "")
+						err := connectToScheduler(schedulerAPI, rpcURL, "")
 						if err != nil {
 							log.Errorf("Registering edge failed: %+v", err)
 							cancel()
@@ -354,7 +354,7 @@ var runCmd = &cli.Command{
 	},
 }
 
-func schedulerConnect(api api.Scheduler, rpcURL string, downloadSrvURL string) error {
+func connectToScheduler(api api.Scheduler, rpcURL string, downloadSrvURL string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
 	defer cancel()
 	return api.EdgeNodeConnect(ctx, rpcURL, downloadSrvURL)
