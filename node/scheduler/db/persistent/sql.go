@@ -228,7 +228,7 @@ func (sd sqlDB) SummaryValidateMessage(startTime, endTime time.Time, pageNumber,
 }
 
 // cache data info
-func (sd sqlDB) CreateCacheTaskInfo(cInfo *api.CarfileReplicaInfo) error {
+func (sd sqlDB) CreateCarfileReplicaInfo(cInfo *api.CarfileReplicaInfo) error {
 	area := sd.replaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
@@ -237,7 +237,7 @@ func (sd sqlDB) CreateCacheTaskInfo(cInfo *api.CarfileReplicaInfo) error {
 	return err
 }
 
-func (sd sqlDB) UpdateCacheTaskStatus(hash string, deviceIDs []string, status api.CacheStatus) error {
+func (sd sqlDB) UpdateCarfileReplicaStatus(hash string, deviceIDs []string, status api.CacheStatus) error {
 	area := sd.replaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
@@ -266,7 +266,7 @@ func (sd sqlDB) UpdateCacheTaskStatus(hash string, deviceIDs []string, status ap
 	return nil
 }
 
-func (sd sqlDB) UpdateCacheTaskInfo(cInfo *api.CarfileReplicaInfo) error {
+func (sd sqlDB) UpdateCarfileReplicaInfo(cInfo *api.CarfileReplicaInfo) error {
 	area := sd.replaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 
@@ -379,7 +379,7 @@ func (sd sqlDB) GetCachesWithCandidate(hash string) ([]string, error) {
 	return out, nil
 }
 
-func (sd sqlDB) GetCacheTaskInfosWithHash(hash string, isSuccess bool) ([]*api.CarfileReplicaInfo, error) {
+func (sd sqlDB) GetCarfileReplicaInfosWithHash(hash string, isSuccess bool) ([]*api.CarfileReplicaInfo, error) {
 	area := sd.replaceArea()
 
 	var out []*api.CarfileReplicaInfo
@@ -579,7 +579,7 @@ func (sd sqlDB) RemoveCarfileRecord(carfileHash string) error {
 }
 
 // remove cache info and update data info
-func (sd sqlDB) RemoveCacheTask(deviceID, carfileHash string) error {
+func (sd sqlDB) RemoveCarfileReplica(deviceID, carfileHash string) error {
 	area := sd.replaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 	dTableName := fmt.Sprintf(carfileInfoTable, area)

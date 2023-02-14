@@ -72,9 +72,9 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 	carfileRecord.nodeCacheErrs = make(map[string]string)
 	carfileRecord.curReliability = dInfo.CurReliability
 
-	caches, err := persistent.GetDB().GetCacheTaskInfosWithHash(hash, false)
+	caches, err := persistent.GetDB().GetCarfileReplicaInfosWithHash(hash, false)
 	if err != nil {
-		log.Errorf("loadData hash:%s, GetCacheTaskInfosWithHash err:%s", hash, err.Error())
+		log.Errorf("loadData hash:%s, GetCarfileReplicaInfosWithHash err:%s", hash, err.Error())
 		return carfileRecord, err
 	}
 
@@ -141,9 +141,9 @@ func (d *CarfileRecord) startCacheTasks(nodes []string, isCandidate bool) (isRun
 	isRunning = false
 
 	// set caches status
-	err := persistent.GetDB().UpdateCacheTaskStatus(d.carfileHash, nodes, api.CacheStatusRunning)
+	err := persistent.GetDB().UpdateCarfileReplicaStatus(d.carfileHash, nodes, api.CacheStatusRunning)
 	if err != nil {
-		log.Errorf("startCacheTasks %s , UpdateCacheTaskStatus err:%s", d.carfileHash, err.Error())
+		log.Errorf("startCacheTasks %s , UpdateCarfileReplicaStatus err:%s", d.carfileHash, err.Error())
 		return
 	}
 
@@ -184,9 +184,9 @@ func (d *CarfileRecord) startCacheTasks(nodes []string, isCandidate bool) (isRun
 
 	if len(errorList) > 0 {
 		// set caches status
-		err := persistent.GetDB().UpdateCacheTaskStatus(d.carfileHash, errorList, api.CacheStatusFailed)
+		err := persistent.GetDB().UpdateCarfileReplicaStatus(d.carfileHash, errorList, api.CacheStatusFailed)
 		if err != nil {
-			log.Errorf("startCacheTasks %s , UpdateCacheTaskStatus err:%s", d.carfileHash, err.Error())
+			log.Errorf("startCacheTasks %s , UpdateCarfileReplicaStatus err:%s", d.carfileHash, err.Error())
 		}
 
 		_, err = cache.GetDB().CacheTasksEnd(d.carfileHash, errorList)
