@@ -3,6 +3,7 @@ package locator
 import (
 	"context"
 	"fmt"
+	"net"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/linguohua/titan/api"
@@ -58,7 +59,9 @@ type Locator struct {
 }
 
 func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string) ([]string, error) {
-	ip := handler.GetRequestIP(ctx)
+	remoteAddr := handler.GetRemoteAddr(ctx)
+	ip, _, _ := net.SplitHostPort(remoteAddr)
+
 	areaID := ""
 	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
 	if err != nil {
@@ -261,7 +264,9 @@ func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*l
 }
 
 func (locator *Locator) GetDownloadInfosWithCarfile(ctx context.Context, cid string, publicKey string) ([]*api.DownloadInfoResult, error) {
-	ip := handler.GetRequestIP(ctx)
+	remoteAddr := handler.GetRemoteAddr(ctx)
+	ip, _, _ := net.SplitHostPort(remoteAddr)
+
 	areaID := ""
 	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
 	if err != nil {
@@ -289,7 +294,9 @@ func (locator *Locator) GetDownloadInfosWithCarfile(ctx context.Context, cid str
 }
 
 func (locator *Locator) UserDownloadBlockResults(ctx context.Context, results []api.UserBlockDownloadResult) error {
-	ip := handler.GetRequestIP(ctx)
+	remoteAddr := handler.GetRemoteAddr(ctx)
+	ip, _, _ := net.SplitHostPort(remoteAddr)
+
 	areaID := ""
 	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
 	if err != nil {
