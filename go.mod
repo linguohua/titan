@@ -8,7 +8,7 @@ require (
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/fatih/color v1.13.0
 	github.com/fatih/structs v1.1.0
-	github.com/filecoin-project/go-jsonrpc v0.1.6
+	github.com/filecoin-project/go-jsonrpc v0.2.1
 	github.com/gbrlsnchs/jwt/v3 v3.0.1
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.6.0
