@@ -23,11 +23,11 @@ import (
 var log = logging.Logger("carfile")
 
 type CarfileOperation struct {
-	scheduler       api.Scheduler
-	device          *device.Device
-	downloadMgr     *DownloadMgr
-	carfileStore    *carfilestore.CarfileStore
-	ds              datastore.Batching
+	scheduler    api.Scheduler
+	device       *device.Device
+	downloadMgr  *DownloadMgr
+	carfileStore *carfilestore.CarfileStore
+	// ds              datastore.Batching
 	carfileLinkLock *sync.Mutex
 	TotalBlockCount int
 	toDeleteCarfile sync.Map
@@ -35,10 +35,10 @@ type CarfileOperation struct {
 
 func NewCarfileOperation(ds datastore.Batching, carfileStore *carfilestore.CarfileStore, scheduler api.Scheduler, blockDownloader downloader.BlockDownloader, device *device.Device) *CarfileOperation {
 	carfileOperation := &CarfileOperation{
-		scheduler:       scheduler,
-		device:          device,
-		carfileStore:    carfileStore,
-		ds:              ds,
+		scheduler:    scheduler,
+		device:       device,
+		carfileStore: carfileStore,
+		// ds:              ds,
 		carfileLinkLock: &sync.Mutex{},
 	}
 

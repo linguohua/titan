@@ -2,7 +2,6 @@ package carfile
 
 import (
 	"context"
-	"path"
 	"strings"
 
 	"github.com/ipfs/go-datastore"
@@ -57,8 +56,7 @@ func (carfileOperation *CarfileOperation) saveBlock(data []byte, blockHash, carf
 }
 
 func (carfileOperation *CarfileOperation) getCarfileLinkFromBlock(blockHash string) (string, error) {
-	linkPath := path.Join(carfileLinkPath, blockHash)
-	value, err := carfileOperation.ds.Get(context.Background(), datastore.NewKey(linkPath))
+	value, err := carfileOperation.carfileStore.GetLinks(context.Background(), blockHash)
 	if err == datastore.ErrNotFound {
 		return "", nil
 	}
@@ -85,8 +83,7 @@ func (carfileOperation *CarfileOperation) addCarfileLinkToBlock(blockHash, carfi
 
 	linkStr += carfileHash
 
-	linkPath := path.Join(carfileLinkPath, blockHash)
-	return carfileOperation.ds.Put(context.Background(), datastore.NewKey(linkPath), []byte(linkStr))
+	return carfileOperation.carfileStore.SaveLinks(context.Background(), blockHash, []byte(linkStr))
 }
 
 // return new carfile link
@@ -109,9 +106,8 @@ func (carfileOperation *CarfileOperation) removeCarfileLinkFromBlock(blockHash, 
 	}
 	linkStr = linkStr[:index] + linkStr[index+len(carfileHash):]
 
-	linkPath := path.Join(carfileLinkPath, blockHash)
 	if len(linkStr) == 0 {
-		return "", carfileOperation.ds.Delete(context.Background(), datastore.NewKey(linkPath))
+		return "", carfileOperation.carfileStore.DeleteLinks(context.Background(), blockHash)
 	}
-	return linkStr, carfileOperation.ds.Put(context.Background(), datastore.NewKey(linkPath), []byte(linkStr))
+	return linkStr, carfileOperation.carfileStore.SaveLinks(context.Background(), blockHash, []byte(linkStr))
 }
