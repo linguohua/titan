@@ -20,11 +20,9 @@ import (
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/download"
-	"github.com/linguohua/titan/node/helper"
 	datasync "github.com/linguohua/titan/node/sync"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	vd "github.com/linguohua/titan/node/validate"
 	mh "github.com/multiformats/go-multihash"
@@ -32,13 +30,19 @@ import (
 
 var log = logging.Logger("candidate")
 
+const (
+	schedulerApiTimeout = 3
+	validateTimeout     = 5
+	tcpPackMaxLength    = 52428800
+)
+
 func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *device.Device, params *CandidateParams) api.Candidate {
 	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
 
 	validate := vd.NewValidate(params.CarfileStore, device)
 
 	blockDownload := download.NewBlockDownload(rateLimiter, params.Scheduler, params.CarfileStore, device, validate)
-	carfileOperation := carfile.NewCarfileOperation(params.DS, params.CarfileStore, params.Scheduler, downloader.NewIPFS(params.IPFSAPI, params.CarfileStore), device)
+	carfileOperation := carfile.NewCarfileOperation(params.CarfileStore, params.Scheduler, downloader.NewIPFS(params.IPFSAPI, params.CarfileStore), device)
 
 	candidate := &Candidate{
 		Device:           device,
@@ -47,7 +51,7 @@ func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *devic
 		Validate:         validate,
 		scheduler:        params.Scheduler,
 		tcpSrvAddr:       tcpSrvAddr,
-		DataSync:         datasync.NewDataSync(params.DS),
+		DataSync:         datasync.NewDataSync(params.CarfileStore),
 	}
 
 	go candidate.startTcpServer()
@@ -93,7 +97,6 @@ type Candidate struct {
 }
 
 type CandidateParams struct {
-	DS           datastore.Batching
 	Scheduler    api.Scheduler
 	CarfileStore *carfilestore.CarfileStore
 	IPFSAPI      string
@@ -144,7 +147,7 @@ func (candidate *Candidate) loadBlockWaiterFromMap(key string) (*blockWaiter, bo
 }
 
 func sendValidateResult(candidate *Candidate, result *api.ValidateResults) error {
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
 
 	return candidate.scheduler.ValidateBlockResult(ctx, *result)
@@ -158,7 +161,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 	size := int64(0)
 	now := time.Now()
 	isBreak := false
-	t := time.NewTimer(time.Duration(req.Duration+helper.ValidateTimeout) * time.Second)
+	t := time.NewTimer(time.Duration(req.Duration+validateTimeout) * time.Second)
 	for {
 		select {
 		case tcpMsg, ok := <-vb.ch:
@@ -190,7 +193,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 				vb.conn.Close()
 			}
 			isBreak = true
-			log.Errorf("wait device %s timeout %ds, exit wait block", result.DeviceID, req.Duration+helper.ValidateTimeout)
+			log.Errorf("wait device %s timeout %ds, exit wait block", result.DeviceID, req.Duration+validateTimeout)
 		}
 
 		if isBreak {
@@ -225,7 +228,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	}
 	defer closer()
 
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
 
 	deviceID, err := api.DeviceID(ctx)

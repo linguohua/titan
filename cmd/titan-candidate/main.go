@@ -21,7 +21,6 @@ import (
 	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/device"
-	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/repo"
 
 	"github.com/google/uuid"
@@ -157,20 +156,6 @@ var runCmd = &cli.Command{
 			if err := r.Init(repo.Candidate); err != nil {
 				return err
 			}
-
-			lr, err := r.Lock(repo.Candidate)
-			if err != nil {
-				return err
-			}
-
-			// init datastore for r.Exists
-			_, err = lr.Datastore(context.Background(), "/metadata")
-			if err != nil {
-				return err
-			}
-			if err := lr.Close(); err != nil {
-				return xerrors.Errorf("close repo: %w", err)
-			}
 		}
 
 		lr, err := r.Lock(repo.Candidate)
@@ -183,11 +168,6 @@ var runCmd = &cli.Command{
 			}
 		}()
 
-		ds, err := lr.Datastore(context.Background(), "/metadata")
-		if err != nil {
-			return err
-		}
-
 		log.Info("Opening local storage; connecting to scheduler")
 
 		cfg, err := lr.Config()
@@ -196,6 +176,10 @@ var runCmd = &cli.Command{
 		}
 
 		candidateCfg := cfg.(*config.CandidateCfg)
+		connectTimeout, err := time.ParseDuration(candidateCfg.Timeout)
+		if err != nil {
+			return err
+		}
 
 		deviceID := cctx.String("device-id")
 		secret := cctx.String("secret")
@@ -204,7 +188,7 @@ var runCmd = &cli.Command{
 		var schedulerAPI api.Scheduler
 		var closer func()
 		if candidateCfg.Locator {
-			schedulerAPI, closer, err = newSchedulerAPI(cctx, deviceID, secret)
+			schedulerAPI, closer, err = newSchedulerAPI(cctx, deviceID, secret, connectTimeout)
 		} else {
 			schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx, deviceID)
 		}
@@ -216,7 +200,7 @@ var runCmd = &cli.Command{
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
-		v, err := getSchedulerVersion(schedulerAPI)
+		v, err := getSchedulerVersion(schedulerAPI, connectTimeout)
 		if err != nil {
 			return err
 		}
@@ -226,12 +210,12 @@ var runCmd = &cli.Command{
 		}
 		log.Infof("Remote version %s", v)
 
-		internalIP, err := extractRoutableIP(cctx, candidateCfg)
+		internalIP, err := extractRoutableIP(cctx, candidateCfg, connectTimeout)
 		if err != nil {
 			return err
 		}
 
-		externalIP, err := getExternalIP(schedulerAPI)
+		externalIP, err := getExternalIP(schedulerAPI, connectTimeout)
 		if err != nil {
 			return err
 		}
@@ -252,7 +236,6 @@ var runCmd = &cli.Command{
 			carfileStore)
 
 		nodeParams := &candidate.CandidateParams{
-			DS:           ds,
 			Scheduler:    schedulerAPI,
 			CarfileStore: carfileStore,
 			IPFSAPI:      candidateCfg.IpfsApiURL,
@@ -290,7 +273,7 @@ var runCmd = &cli.Command{
 		addressSlice := strings.Split(address, ":")
 		rpcURL := fmt.Sprintf("http://%s:%s/rpc/v0", externalIP, addressSlice[1])
 
-		minerSession, err := getSchedulerSession(schedulerAPI, deviceID)
+		minerSession, err := getSchedulerSession(schedulerAPI, deviceID, connectTimeout)
 		if err != nil {
 			return xerrors.Errorf("getting miner session: %w", err)
 		}
@@ -319,7 +302,7 @@ var runCmd = &cli.Command{
 
 				errCount := 0
 				for {
-					curSession, err := getSchedulerSession(schedulerAPI, deviceID)
+					curSession, err := getSchedulerSession(schedulerAPI, deviceID, connectTimeout)
 					if err != nil {
 						errCount++
 						log.Errorf("heartbeat: checking remote session failed: %+v", err)
@@ -337,14 +320,14 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						err := connectToScheduler(schedulerAPI, rpcURL, "")
+						err := connectToScheduler(schedulerAPI, rpcURL, connectTimeout)
 						if err != nil {
 							log.Errorf("Registering candidate failed: %+v", err)
 							cancel()
 							return
 						}
 						candidate := candidateApi.(*candidate.Candidate)
-						err = candidate.LoadPublicKey()
+						err = candidate.LoadPublicKey(connectTimeout)
 						if err != nil {
 							log.Errorf("LoadPublicKey error:%s", err.Error())
 						}
@@ -366,39 +349,34 @@ var runCmd = &cli.Command{
 	},
 }
 
-func connectToScheduler(api api.Scheduler, rpcURL string, downloadSrvURL string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+func connectToScheduler(api api.Scheduler, rpcURL string, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	return api.CandidateNodeConnect(ctx, rpcURL, downloadSrvURL)
+	return api.CandidateNodeConnect(ctx, rpcURL, "")
 }
 
-func getSchedulerSession(api api.Scheduler, deviceID string) (uuid.UUID, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+func getSchedulerSession(api api.Scheduler, deviceID string, timeout time.Duration) (uuid.UUID, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	return api.Session(ctx, deviceID)
 }
 
-func getExternalIP(api api.Scheduler) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+func getExternalIP(api api.Scheduler, timeout time.Duration) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	return api.GetExternalIP(ctx)
 }
 
-func getSchedulerVersion(api api.Scheduler) (api.APIVersion, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+func getSchedulerVersion(api api.Scheduler, timeout time.Duration) (api.APIVersion, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	return api.Version(ctx)
 }
 
-func extractRoutableIP(cctx *cli.Context, candidateCfg *config.CandidateCfg) (string, error) {
-	timeout, err := time.ParseDuration(candidateCfg.Timeout)
-	if err != nil {
-		return "", err
-	}
-
+func extractRoutableIP(cctx *cli.Context, candidateCfg *config.CandidateCfg, timeout time.Duration) (string, error) {
 	ainfo, err := lcli.GetAPIInfo(cctx, repo.Scheduler)
 	if err != nil {
 		return "", xerrors.Errorf("could not get miner API info: %w", err)
@@ -416,7 +394,7 @@ func extractRoutableIP(cctx *cli.Context, candidateCfg *config.CandidateCfg) (st
 	return strings.Split(localAddr.IP.String(), ":")[0], nil
 }
 
-func newAuthTokenFromScheduler(schedulerURL, deviceID, secret string) ([]byte, error) {
+func newAuthTokenFromScheduler(schedulerURL, deviceID, secret string, timeout time.Duration) ([]byte, error) {
 	schedulerAPI, closer, err := client.NewScheduler(context.Background(), schedulerURL, nil)
 	if err != nil {
 		return nil, err
@@ -424,7 +402,7 @@ func newAuthTokenFromScheduler(schedulerURL, deviceID, secret string) ([]byte, e
 
 	defer closer()
 
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	perms := []auth.Permission{api.PermRead, api.PermWrite}
@@ -432,7 +410,7 @@ func newAuthTokenFromScheduler(schedulerURL, deviceID, secret string) ([]byte, e
 	return schedulerAPI.AuthNodeNew(ctx, perms, deviceID, secret)
 }
 
-func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (api.Scheduler, jsonrpc.ClientCloser, error) {
+func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string, timeout time.Duration) (api.Scheduler, jsonrpc.ClientCloser, error) {
 	locator, closer, err := lcli.GetLocatorAPI(cctx)
 	if err != nil {
 		log.Errorf("%s", err.Error())
@@ -440,7 +418,7 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (ap
 	}
 	defer closer()
 
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	schedulerURLs, err := locator.GetAccessPoints(ctx, deviceID)
@@ -454,7 +432,7 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (ap
 
 	schedulerURL := schedulerURLs[0]
 
-	tokenBuf, err := newAuthTokenFromScheduler(schedulerURL, deviceID, securityKey)
+	tokenBuf, err := newAuthTokenFromScheduler(schedulerURL, deviceID, securityKey, timeout)
 	if err != nil {
 		return nil, nil, err
 	}

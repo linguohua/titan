@@ -11,10 +11,10 @@ import (
 	"golang.org/x/xerrors"
 
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/scheduler/node"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 )
@@ -292,7 +292,7 @@ func (v *Validate) getNodeReqValidate(validated *validatedDeviceInfo) (api.ReqVa
 	}
 
 	// log.Warnf("hash: %s", hash)
-	cid, err := helper.HashString2CidString(hash)
+	cid, err := cidutil.HashString2CIDString(hash)
 	if err != nil {
 		log.Warnf("HashString2CidString err: %s", err.Error())
 		return req, err
@@ -385,7 +385,7 @@ func (v *Validate) ValidateResult(validateResult *api.ValidateResults) error {
 		return nil
 	}
 
-	hash, err := helper.CIDString2HashString(validateResult.CarfileCID)
+	hash, err := cidutil.CIDString2HashString(validateResult.CarfileCID)
 	if err != nil {
 		status = persistent.ValidateStatusOther
 		log.Errorf("handleValidateResult CIDString2HashString %s, err:%s", validateResult.CarfileCID, err.Error())
@@ -452,12 +452,12 @@ func (v *Validate) ValidateResult(validateResult *api.ValidateResults) error {
 }
 
 func (v *Validate) compareCid(cidStr1, cidStr2 string) bool {
-	hash1, err := helper.CIDString2HashString(cidStr1)
+	hash1, err := cidutil.CIDString2HashString(cidStr1)
 	if err != nil {
 		return false
 	}
 
-	hash2, err := helper.CIDString2HashString(cidStr2)
+	hash2, err := cidutil.CIDString2HashString(cidStr2)
 	if err != nil {
 		return false
 	}

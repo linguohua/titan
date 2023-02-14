@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/handler"
-	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/scheduler/carfile"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
@@ -167,7 +167,7 @@ func (s *Scheduler) GetCarfileRecordInfo(ctx context.Context, cid string) (api.C
 		return info, xerrors.Errorf("not found cid:%s", cid)
 	}
 
-	hash, err := helper.CIDString2HashString(cid)
+	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return info, err
 	}
@@ -208,7 +208,7 @@ func (s *Scheduler) RemoveCarfile(ctx context.Context, carfileCid string) error 
 		return xerrors.Errorf("Cid Is Nil")
 	}
 
-	hash, err := helper.CIDString2HashString(carfileCid)
+	hash, err := cidutil.CIDString2HashString(carfileCid)
 	if err != nil {
 		return err
 	}

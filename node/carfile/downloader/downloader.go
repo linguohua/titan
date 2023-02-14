@@ -9,6 +9,11 @@ import (
 
 var log = logging.Logger("downloader")
 
+const (
+	blockDownloadTimeout  = 15
+	blockDownloadRetryNum = 1
+)
+
 type BlockDownloader interface {
 	// scheduler request cache carfile
 	DownloadBlocks(cids []string, sources []*api.DowloadSource) ([]blocks.Block, error)

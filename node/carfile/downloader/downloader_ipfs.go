@@ -12,7 +12,7 @@ import (
 	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
-	"github.com/linguohua/titan/node/helper"
+	"github.com/linguohua/titan/node/cidutil"
 )
 
 type ipfs struct {
@@ -35,7 +35,7 @@ func (ipfs *ipfs) DownloadBlocks(cids []string, sources []*api.DowloadSource) ([
 }
 
 func (ipfs *ipfs) getBlockWithIPFSApi(cidStr string, retryCount int) (blocks.Block, error) {
-	blockHash, err := helper.CIDString2HashString(cidStr)
+	blockHash, err := cidutil.CIDString2HashString(cidStr)
 	if err != nil {
 		return nil, err
 	}
@@ -45,12 +45,12 @@ func (ipfs *ipfs) getBlockWithIPFSApi(cidStr string, retryCount int) (blocks.Blo
 		return newBlock(cidStr, data)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), helper.BlockDownloadTimeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), blockDownloadTimeout*time.Second)
 	defer cancel()
 
 	reader, err := ipfs.ipfsApi.Block().Get(ctx, path.New(cidStr))
 	if err != nil {
-		if retryCount < helper.BlockDownloadRetryNum {
+		if retryCount < blockDownloadRetryNum {
 			retryCount++
 			return ipfs.getBlockWithIPFSApi(cidStr, retryCount)
 		}

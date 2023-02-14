@@ -7,11 +7,11 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/helper"
+	"github.com/linguohua/titan/node/cidutil"
 )
 
 func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carfileCID string, sources []*api.DowloadSource) (*api.CacheCarfileResult, error) {
-	carfileHash, err := helper.CIDString2HashString(carfileCID)
+	carfileHash, err := cidutil.CIDString2HashString(carfileCID)
 	if err != nil {
 		log.Errorf("CacheCarfile, CIDString2HashString error:%s, carfile cid:%s", err.Error(), carfileCID)
 		return nil, err
@@ -69,7 +69,7 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 }
 
 func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, carfileCID string) error {
-	carfileHash, err := helper.CIDString2HashString(carfileCID)
+	carfileHash, err := cidutil.CIDString2HashString(carfileCID)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, car
 		_, diskUsage := carfileOperation.device.GetDiskUsageStat()
 		info := api.RemoveCarfileResultInfo{BlockCount: carfileOperation.TotalBlockCount, DiskUsage: diskUsage}
 
-		ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 		defer cancel()
 
 		err = carfileOperation.scheduler.RemoveCarfileResult(ctx, info)
@@ -117,7 +117,7 @@ func (carfileOperation *CarfileOperation) DeleteAllCarfiles(ctx context.Context)
 }
 
 func (carfileOperation *CarfileOperation) LoadBlock(ctx context.Context, cid string) ([]byte, error) {
-	blockHash, err := helper.CIDString2HashString(cid)
+	blockHash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return nil, err
 	}

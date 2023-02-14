@@ -16,24 +16,23 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/carfile/downloader"
+	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/device"
-	"github.com/linguohua/titan/node/helper"
 )
 
 var log = logging.Logger("carfile")
 
 type CarfileOperation struct {
-	scheduler    api.Scheduler
-	device       *device.Device
-	downloadMgr  *DownloadMgr
-	carfileStore *carfilestore.CarfileStore
-	// ds              datastore.Batching
+	scheduler       api.Scheduler
+	device          *device.Device
+	downloadMgr     *DownloadMgr
+	carfileStore    *carfilestore.CarfileStore
 	carfileLinkLock *sync.Mutex
 	TotalBlockCount int
 	toDeleteCarfile sync.Map
 }
 
-func NewCarfileOperation(ds datastore.Batching, carfileStore *carfilestore.CarfileStore, scheduler api.Scheduler, blockDownloader downloader.BlockDownloader, device *device.Device) *CarfileOperation {
+func NewCarfileOperation(carfileStore *carfilestore.CarfileStore, scheduler api.Scheduler, blockDownloader downloader.BlockDownloader, device *device.Device) *CarfileOperation {
 	carfileOperation := &CarfileOperation{
 		scheduler:    scheduler,
 		device:       device,
@@ -75,7 +74,7 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, 
 		status = api.CacheStatusSuccessed
 	}
 
-	carfileHash, err := helper.CIDString2HashString(carfile.carfileCID)
+	carfileHash, err := cidutil.CIDString2HashString(carfile.carfileCID)
 	if err != nil {
 		return err
 	}
@@ -93,7 +92,7 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, 
 		TotalBlockCount:   carfileOperation.TotalBlockCount,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
 
 	log.Infof("downloadResult, carfile:%s", result.CarfileHash)
@@ -114,7 +113,7 @@ func (carfileOperation *CarfileOperation) cacheCarfileResult() (*api.CacheCarfil
 func (carfileOperation *CarfileOperation) cacheResultForCarfileExist(carfileCID string) error {
 	_, diskUsage := carfileOperation.device.GetDiskUsageStat()
 
-	carfileHash, err := helper.CIDString2HashString(carfileCID)
+	carfileHash, err := cidutil.CIDString2HashString(carfileCID)
 	if err != nil {
 		return err
 	}
@@ -160,7 +159,7 @@ func (carfileOperation *CarfileOperation) cacheResultForCarfileExist(carfileCID 
 		TotalBlockCount:   carfileOperation.TotalBlockCount,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
 
 	return carfileOperation.scheduler.CacheResult(ctx, result)
@@ -197,7 +196,7 @@ func (carfileOperation *CarfileOperation) deleteCarfile(carfileCID string) (int,
 		return carfileOperation.deleteWaitCacheCarfile(carfileCID)
 	}
 
-	carfileHash, err := helper.CIDString2HashString(carfileCID)
+	carfileHash, err := cidutil.CIDString2HashString(carfileCID)
 	if err != nil {
 		return 0, err
 	}
@@ -240,7 +239,7 @@ func (carfileOperation *CarfileOperation) deleteCarfile(carfileCID string) (int,
 }
 
 func (carfileOperation *CarfileOperation) GetBlocksOfCarfile(carfileCID string, indexs []int) (map[int]string, error) {
-	carfileHash, err := helper.CIDString2HashString(carfileCID)
+	carfileHash, err := cidutil.CIDString2HashString(carfileCID)
 	if err != nil {
 		log.Errorf("GetBlocksOfCarfile, CIDString2HashString error:%s, carfileCID:%s", err.Error(), carfileCID)
 		return nil, err
@@ -253,7 +252,7 @@ func (carfileOperation *CarfileOperation) GetBlocksOfCarfile(carfileCID string, 
 
 	ret := make(map[int]string)
 	for index, blockHash := range blocksHash {
-		cid, err := helper.HashString2CidString(blockHash)
+		cid, err := cidutil.HashString2CIDString(blockHash)
 		if err != nil {
 			log.Errorf("GetBlocksOfCarfile, can not convert hash %s to cid", blockHash)
 			continue
@@ -267,7 +266,7 @@ func (carfileOperation *CarfileOperation) GetBlocksOfCarfile(carfileCID string, 
 }
 
 func (carfileOperation *CarfileOperation) BlockCountOfCarfile(carfileCID string) (int, error) {
-	carfileHash, err := helper.CIDString2HashString(carfileCID)
+	carfileHash, err := cidutil.CIDString2HashString(carfileCID)
 	if err != nil {
 		return 0, err
 	}

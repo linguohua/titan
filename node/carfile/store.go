@@ -7,10 +7,6 @@ import (
 	"github.com/ipfs/go-datastore"
 )
 
-const (
-	carfileLinkPath = "/link/"
-)
-
 func (carfileOperation *CarfileOperation) deleteBlock(blockHash, carfileHash string) error {
 	linkStr, err := carfileOperation.removeCarfileLinkFromBlock(blockHash, carfileHash)
 	if err != nil {

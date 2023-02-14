@@ -12,7 +12,6 @@ import (
 	"github.com/linguohua/titan/node/validate"
 	"golang.org/x/time/rate"
 
-	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/download"
@@ -26,14 +25,14 @@ func NewLocalEdgeNode(ctx context.Context, device *device.Device, params *EdgePa
 
 	blockDownload := download.NewBlockDownload(rateLimiter, params.Scheduler, params.CarfileStore, device, validate)
 
-	carfileOeration := carfile.NewCarfileOperation(params.DS, params.CarfileStore, params.Scheduler, downloader.NewCandidate(params.CarfileStore), device)
+	carfileOeration := carfile.NewCarfileOperation(params.CarfileStore, params.Scheduler, downloader.NewCandidate(params.CarfileStore), device)
 
 	edge := &Edge{
 		Device:           device,
 		CarfileOperation: carfileOeration,
 		BlockDownload:    blockDownload,
 		Validate:         validate,
-		DataSync:         datasync.NewDataSync(params.DS),
+		DataSync:         datasync.NewDataSync(params.CarfileStore),
 	}
 
 	return edge
@@ -49,7 +48,6 @@ type Edge struct {
 }
 
 type EdgeParams struct {
-	DS           datastore.Batching
 	Scheduler    api.Scheduler
 	CarfileStore *carfilestore.CarfileStore
 }

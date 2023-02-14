@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/handler"
-	"github.com/linguohua/titan/node/helper"
 	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
@@ -49,7 +49,7 @@ func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result a
 			return err
 		}
 
-		blockHash, err := helper.CIDString2HashString(result.BlockCID)
+		blockHash, err := cidutil.CIDString2HashString(result.BlockCID)
 		if err != nil {
 			return err
 		}
@@ -253,12 +253,12 @@ func (s *Scheduler) recordDownloadBlock(record *cache.DownloadBlockRecord, nodeR
 		// 	return err
 		// }
 		// if blockInfo != nil {
-		// 	carfileCID, err := helper.HashString2CidString(blockInfo.CarfileHash)
+		// 	carfileCID, err := cidutil.HashString2CIDString(blockInfo.CarfileHash)
 		// 	if err != nil {
 		// 		return err
 		// 	}
 		// 	// block cid and carfile cid is convert to same version cid, so can compare later
-		// 	blockCID, err := helper.HashString2CidString(blockInfo.CIDHash)
+		// 	blockCID, err := cidutil.HashString2CIDString(blockInfo.CIDHash)
 		// 	if err != nil {
 		// 		return err
 		// 	}
@@ -315,7 +315,7 @@ func (s *Scheduler) recordDownloadBlock(record *cache.DownloadBlockRecord, nodeR
 }
 
 // func (s *Scheduler) getBlockInfoFromDB(cid string, userIP string) (*api.BlockInfo, error) {
-// 	blockHash, err := helper.CIDString2HashString(cid)
+// 	blockHash, err := cidutil.CIDString2HashString(cid)
 // 	if err != nil {
 // 		return nil, err
 // 	}

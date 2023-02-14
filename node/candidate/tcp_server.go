@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/helper"
 )
 
 type tcpMsg struct {
@@ -118,7 +117,7 @@ func readTcpMsg(conn net.Conn) (*tcpMsg, error) {
 		return nil, nil
 	}
 
-	if contentLen > helper.TcpPackMaxLength {
+	if contentLen > tcpPackMaxLength {
 		return nil, fmt.Errorf("pack len %d is invalid", contentLen)
 	}
 

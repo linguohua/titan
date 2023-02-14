@@ -10,8 +10,8 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
+	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/device"
-	"github.com/linguohua/titan/node/helper"
 	"golang.org/x/time/rate"
 )
 
@@ -59,7 +59,7 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 
 	limiter := rate.NewLimiter(rate.Limit(speedRate), int(speedRate))
 
-	carfileHash, err := helper.CIDString2HashString(reqValidate.CarfileCID)
+	carfileHash, err := cidutil.CIDString2HashString(reqValidate.CarfileCID)
 	if err != nil {
 		log.Errorf("sendBlocks, CIDString2HashString error:%s, carfileCID:%s", err.Error(), reqValidate.CarfileCID)
 		return

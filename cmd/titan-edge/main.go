@@ -22,7 +22,6 @@ import (
 	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/device"
-	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/repo"
 
 	"github.com/google/uuid"
@@ -151,20 +150,6 @@ var runCmd = &cli.Command{
 			if err := r.Init(repo.Edge); err != nil {
 				return err
 			}
-
-			lr, err := r.Lock(repo.Edge)
-			if err != nil {
-				return err
-			}
-
-			// init datastore for r.Exists
-			_, err = lr.Datastore(context.Background(), "/metadata")
-			if err != nil {
-				return err
-			}
-			if err := lr.Close(); err != nil {
-				return xerrors.Errorf("close repo: %w", err)
-			}
 		}
 
 		lr, err := r.Lock(repo.Edge)
@@ -176,12 +161,6 @@ var runCmd = &cli.Command{
 				log.Error("closing repo", err)
 			}
 		}()
-		ds, err := lr.Datastore(context.Background(), "/metadata")
-		if err != nil {
-			return err
-		}
-
-		log.Info("Opening local storage; connecting to scheduler")
 
 		cfg, err := lr.Config()
 		if err != nil {
@@ -190,6 +169,11 @@ var runCmd = &cli.Command{
 
 		edgeCfg := cfg.(*config.EdgeCfg)
 
+		timeout, err := time.ParseDuration(edgeCfg.Timeout)
+		if err != nil {
+			return err
+		}
+
 		deviceID := cctx.String("device-id")
 		secret := cctx.String("secret")
 
@@ -197,7 +181,7 @@ var runCmd = &cli.Command{
 		var schedulerAPI api.Scheduler
 		var closer func()
 		if edgeCfg.Locator {
-			schedulerAPI, closer, err = newSchedulerAPI(cctx, deviceID, secret)
+			schedulerAPI, closer, err = newSchedulerAPI(cctx, deviceID, secret, timeout)
 		} else {
 			schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx, deviceID)
 		}
@@ -210,7 +194,7 @@ var runCmd = &cli.Command{
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
-		v, err := getSchedulerVersion(schedulerAPI)
+		v, err := getSchedulerVersion(schedulerAPI, timeout)
 		if err != nil {
 			return err
 		}
@@ -220,12 +204,12 @@ var runCmd = &cli.Command{
 		}
 		log.Infof("Remote version %s", v)
 
-		internalIP, err := extractRoutableIP(cctx, edgeCfg)
+		internalIP, err := extractRoutableIP(cctx, edgeCfg, timeout)
 		if err != nil {
 			return err
 		}
 
-		externalIP, err := getExternalIP(schedulerAPI)
+		externalIP, err := getExternalIP(schedulerAPI, timeout)
 		if err != nil {
 			return err
 		}
@@ -247,7 +231,6 @@ var runCmd = &cli.Command{
 			carfileStore)
 
 		params := &edge.EdgeParams{
-			DS:           ds,
 			Scheduler:    schedulerAPI,
 			CarfileStore: carfileStore,
 		}
@@ -282,7 +265,7 @@ var runCmd = &cli.Command{
 		addressSlice := strings.Split(address, ":")
 		rpcURL := fmt.Sprintf("http://%s:%s/rpc/v0", externalIP, addressSlice[1])
 
-		minerSession, err := getSchedulerSession(schedulerAPI, deviceID)
+		minerSession, err := getSchedulerSession(schedulerAPI, deviceID, timeout)
 		if err != nil {
 			return xerrors.Errorf("getting miner session: %w", err)
 		}
@@ -311,7 +294,7 @@ var runCmd = &cli.Command{
 
 				errCount := 0
 				for {
-					curSession, err := getSchedulerSession(schedulerAPI, deviceID)
+					curSession, err := getSchedulerSession(schedulerAPI, deviceID, timeout)
 					if err != nil {
 						errCount++
 						log.Errorf("heartbeat: checking remote session failed: %+v", err)
@@ -328,7 +311,7 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						err := connectToScheduler(schedulerAPI, rpcURL, "")
+						err := connectToScheduler(schedulerAPI, rpcURL, timeout)
 						if err != nil {
 							log.Errorf("Registering edge failed: %+v", err)
 							cancel()
@@ -336,7 +319,7 @@ var runCmd = &cli.Command{
 						}
 
 						edge := edgeApi.(*edge.Edge)
-						edge.LoadPublicKey()
+						edge.LoadPublicKey(timeout)
 						log.Info("Edge registered successfully, waiting for tasks")
 						errCount = 0
 						readyCh = nil
@@ -354,39 +337,34 @@ var runCmd = &cli.Command{
 	},
 }
 
-func connectToScheduler(api api.Scheduler, rpcURL string, downloadSrvURL string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+func connectToScheduler(api api.Scheduler, rpcURL string, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	return api.EdgeNodeConnect(ctx, rpcURL, downloadSrvURL)
+	return api.EdgeNodeConnect(ctx, rpcURL, "")
 }
 
-func getSchedulerSession(api api.Scheduler, deviceID string) (uuid.UUID, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+func getSchedulerSession(api api.Scheduler, deviceID string, timeout time.Duration) (uuid.UUID, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	return api.Session(ctx, deviceID)
 }
 
-func getExternalIP(api api.Scheduler) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+func getExternalIP(api api.Scheduler, timeout time.Duration) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	return api.GetExternalIP(ctx)
 }
 
-func getSchedulerVersion(api api.Scheduler) (api.APIVersion, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+func getSchedulerVersion(api api.Scheduler, timeout time.Duration) (api.APIVersion, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	return api.Version(ctx)
 }
 
-func extractRoutableIP(cctx *cli.Context, edgeCfg *config.EdgeCfg) (string, error) {
-	timeout, err := time.ParseDuration(edgeCfg.Timeout)
-	if err != nil {
-		return "", err
-	}
-
+func extractRoutableIP(cctx *cli.Context, edgeCfg *config.EdgeCfg, timeout time.Duration) (string, error) {
 	ainfo, err := lcli.GetAPIInfo(cctx, repo.Scheduler)
 	if err != nil {
 		return "", xerrors.Errorf("could not get scheduler API info: %w", err)
@@ -397,14 +375,14 @@ func extractRoutableIP(cctx *cli.Context, edgeCfg *config.EdgeCfg) (string, erro
 	if err != nil {
 		return "", err
 	}
-	defer conn.Close() //nolint:errcheck
+	defer conn.Close()
 
 	localAddr := conn.LocalAddr().(*net.TCPAddr)
 
 	return strings.Split(localAddr.IP.String(), ":")[0], nil
 }
 
-func newAuthTokenFromScheduler(schedulerURL, deviceID, secret string) ([]byte, error) {
+func newAuthTokenFromScheduler(schedulerURL, deviceID, secret string, timeout time.Duration) ([]byte, error) {
 	schedulerAPI, closer, err := client.NewScheduler(context.Background(), schedulerURL, nil)
 	if err != nil {
 		return nil, err
@@ -412,7 +390,7 @@ func newAuthTokenFromScheduler(schedulerURL, deviceID, secret string) ([]byte, e
 
 	defer closer()
 
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	perms := []auth.Permission{api.PermRead, api.PermWrite}
@@ -421,14 +399,14 @@ func newAuthTokenFromScheduler(schedulerURL, deviceID, secret string) ([]byte, e
 
 }
 
-func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (api.Scheduler, jsonrpc.ClientCloser, error) {
+func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string, timeout time.Duration) (api.Scheduler, jsonrpc.ClientCloser, error) {
 	locator, closer, err := lcli.GetLocatorAPI(cctx)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closer()
 
-	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
 	defer cancel()
 
 	schedulerURLs, err := locator.GetAccessPoints(ctx, deviceID)
@@ -442,7 +420,7 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string) (ap
 
 	schedulerURL := schedulerURLs[0]
 
-	tokenBuf, err := newAuthTokenFromScheduler(schedulerURL, deviceID, securityKey)
+	tokenBuf, err := newAuthTokenFromScheduler(schedulerURL, deviceID, securityKey, timeout)
 	if err != nil {
 		return nil, nil, err
 	}
