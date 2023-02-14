@@ -56,7 +56,7 @@ type blockDownloadVerifyStatus int
 const (
 	blockDownloadStatusUnknow blockDownloadVerifyStatus = iota
 	blockDownloadStatusFailed
-	blockDownloadStatusSuccessed
+	blockDownloadStatusSucceeded
 )
 
 // NewLocalScheduleNode NewLocalScheduleNode

@@ -23,6 +23,7 @@ var SchedulerCmds = []*cli.Command{
 	// cache
 	listCarfilesCmd,
 	cacheCarfileCmd,
+	cacheCarfile2NodeCmd,
 	showCarfileInfoCmd,
 	removeCarfileCmd,
 	removeCacheCmd,
@@ -798,7 +799,7 @@ func statusToStr(s api.CacheStatus) string {
 		return "create"
 	case api.CacheStatusRunning:
 		return "running"
-	case api.CacheStatusSuccessed:
+	case api.CacheStatusSucceeded:
 		return "done"
 	default:
 		return "failed"
@@ -809,7 +810,6 @@ var cacheCarfileCmd = &cli.Command{
 	Name:  "cache-carfile",
 	Usage: "specify node cache carfile",
 	Flags: []cli.Flag{
-		// schedulerURLFlag,
 		cidFlag,
 		replicaCountFlag,
 		expiredDateFlag,
@@ -819,13 +819,8 @@ var cacheCarfileCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		// url := cctx.String("scheduler-url")
 		cid := cctx.String("cid")
 		reliability := cctx.Int("replica-count")
-		if reliability == 0 {
-			return xerrors.New("replica-count is 0")
-		}
-
 		expiredDate := cctx.String("expired-date")
 
 		ctx := ReqContext(cctx)
@@ -843,12 +838,62 @@ var cacheCarfileCmd = &cli.Command{
 			expiredDate = time.Now().Add(time.Duration(7*24) * time.Hour).Format("2006-1-2 15:04:05")
 		}
 
-		time, err := time.ParseInLocation("2006-1-2 15:04:05", expiredDate, time.Local)
+		eTime, err := time.ParseInLocation("2006-1-2 15:04:05", expiredDate, time.Local)
 		if err != nil {
 			return xerrors.Errorf("expired date err:%s", err.Error())
 		}
 
-		err = schedulerAPI.CacheCarfile(ctx, cid, reliability, time)
+		info := &api.CacheCarfileInfo{
+			NeedReliability: reliability,
+			ExpiredTime:     eTime,
+			CarfileCid:      cid,
+		}
+
+		err = schedulerAPI.CacheCarfile(ctx, info)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
+}
+
+var cacheCarfile2NodeCmd = &cli.Command{
+	Name:  "cache-carfile-node",
+	Usage: "cache a carfile to the node",
+	Flags: []cli.Flag{
+		cidFlag,
+		deviceIDFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		cid := cctx.String("cid")
+		deviceID := cctx.String("device-id")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		if cid == "" {
+			return xerrors.New("cid is nil")
+		}
+
+		if deviceID == "" {
+			return xerrors.New("deviceID is nil")
+		}
+
+		info := &api.CacheCarfileInfo{
+			DeviceID:   deviceID,
+			CarfileCid: cid,
+		}
+
+		err = schedulerAPI.CacheCarfile(ctx, info)
 		if err != nil {
 			return err
 		}

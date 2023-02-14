@@ -204,7 +204,7 @@ type SchedulerStruct struct {
 
 		AuthNodeVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
 
-		CacheCarfile func(p0 context.Context, p1 string, p2 int, p3 time.Time) error `perm:"admin"`
+		CacheCarfile func(p0 context.Context, p1 *CacheCarfileInfo) error `perm:"admin"`
 
 		CacheResult func(p0 context.Context, p1 CacheResultInfo) error `perm:"write"`
 
@@ -757,14 +757,14 @@ func (s *SchedulerStub) AuthNodeVerify(p0 context.Context, p1 string) ([]auth.Pe
 	return *new([]auth.Permission), ErrNotSupported
 }
 
-func (s *SchedulerStruct) CacheCarfile(p0 context.Context, p1 string, p2 int, p3 time.Time) error {
+func (s *SchedulerStruct) CacheCarfile(p0 context.Context, p1 *CacheCarfileInfo) error {
 	if s.Internal.CacheCarfile == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.CacheCarfile(p0, p1, p2, p3)
+	return s.Internal.CacheCarfile(p0, p1)
 }
 
-func (s *SchedulerStub) CacheCarfile(p0 context.Context, p1 string, p2 int, p3 time.Time) error {
+func (s *SchedulerStub) CacheCarfile(p0 context.Context, p1 *CacheCarfileInfo) error {
 	return ErrNotSupported
 }
 

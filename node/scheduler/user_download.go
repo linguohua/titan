@@ -84,8 +84,8 @@ func (s *Scheduler) handleUserDownloadBlockResult(ctx context.Context, result ap
 	}
 
 	record.UserStatus = int(blockDownloadStatusFailed)
-	if result.Result {
-		record.UserStatus = int(blockDownloadStatusSuccessed)
+	if result.Succeed {
+		record.UserStatus = int(blockDownloadStatusSucceeded)
 	}
 
 	s.recordDownloadBlock(record, nil, "", "")
@@ -287,10 +287,10 @@ func (s *Scheduler) recordDownloadBlock(record *cache.DownloadBlockRecord, nodeR
 		info.Status = int(blockDownloadStatusFailed)
 	}
 
-	if record.NodeStatus == int(blockDownloadStatusSuccessed) && record.UserStatus == int(blockDownloadStatusSuccessed) {
+	if record.NodeStatus == int(blockDownloadStatusSucceeded) && record.UserStatus == int(blockDownloadStatusSucceeded) {
 		info.CompleteTime = time.Now()
 		info.Reward = 1
-		info.Status = int(blockDownloadStatusSuccessed)
+		info.Status = int(blockDownloadStatusSucceeded)
 		err = cache.GetDB().RemoveDownloadBlockRecord(record.SN)
 		if err != nil {
 			return err

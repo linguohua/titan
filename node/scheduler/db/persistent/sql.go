@@ -283,7 +283,7 @@ func (sd sqlDB) UpdateCarfileRecordCachesInfo(dInfo *api.CarfileRecordInfo) erro
 
 	var count int
 	cmd := fmt.Sprintf("SELECT count(*) FROM %s WHERE carfile_hash=? AND status=? And is_candidate=?", cTableName)
-	err := sd.cli.Get(&count, cmd, dInfo.CarfileHash, api.CacheStatusSuccessed, false)
+	err := sd.cli.Get(&count, cmd, dInfo.CarfileHash, api.CacheStatusSucceeded, false)
 	if err != nil {
 		return err
 	}
@@ -372,7 +372,7 @@ func (sd sqlDB) GetCachesWithCandidate(hash string) ([]string, error) {
 	query := fmt.Sprintf(`SELECT device_id FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?`,
 		fmt.Sprintf(cacheInfoTable, area))
 
-	if err := sd.cli.Select(&out, query, hash, api.CacheStatusSuccessed, true); err != nil {
+	if err := sd.cli.Select(&out, query, hash, api.CacheStatusSucceeded, true); err != nil {
 		return nil, err
 	}
 
@@ -387,7 +387,7 @@ func (sd sqlDB) GetCacheTaskInfosWithHash(hash string, isSuccess bool) ([]*api.C
 		query := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash=? AND status=?`,
 			fmt.Sprintf(cacheInfoTable, area))
 
-		if err := sd.cli.Select(&out, query, hash, api.CacheStatusSuccessed); err != nil {
+		if err := sd.cli.Select(&out, query, hash, api.CacheStatusSucceeded); err != nil {
 			return nil, err
 		}
 	} else {
@@ -407,7 +407,7 @@ func (sd sqlDB) GetRandCarfileWithNode(deviceID string) (string, error) {
 		fmt.Sprintf(cacheInfoTable, sd.replaceArea()))
 
 	var count int
-	if err := sd.cli.Get(&count, query, deviceID, api.CacheStatusSuccessed); err != nil {
+	if err := sd.cli.Get(&count, query, deviceID, api.CacheStatusSucceeded); err != nil {
 		return "", err
 	}
 
@@ -420,7 +420,7 @@ func (sd sqlDB) GetRandCarfileWithNode(deviceID string) (string, error) {
 
 	var hashs []string
 	cmd := fmt.Sprintf("SELECT carfile_hash FROM %s WHERE device_id=? AND status=? LIMIT %d,%d", fmt.Sprintf(cacheInfoTable, sd.replaceArea()), index, 1)
-	if err := sd.cli.Select(&hashs, cmd, deviceID, api.CacheStatusSuccessed); err != nil {
+	if err := sd.cli.Select(&hashs, cmd, deviceID, api.CacheStatusSucceeded); err != nil {
 		return "", err
 	}
 
@@ -530,12 +530,12 @@ func (sd sqlDB) GetUndoneCarfiles(page int) (info *api.DataListInfo, err error) 
 	return
 }
 
-func (sd sqlDB) GetSuccessedCachesCount() (int, error) {
+func (sd sqlDB) GetSucceededCachesCount() (int, error) {
 	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE status=?`,
 		fmt.Sprintf(cacheInfoTable, sd.replaceArea()))
 
 	var count int
-	if err := sd.cli.Get(&count, query, api.CacheStatusSuccessed); err != nil {
+	if err := sd.cli.Get(&count, query, api.CacheStatusSucceeded); err != nil {
 		return 0, err
 	}
 
@@ -592,7 +592,7 @@ func (sd sqlDB) RemoveCacheTask(deviceID, carfileHash string) error {
 
 	var count int
 	cmd := fmt.Sprintf("SELECT count(*) FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?", cTableName)
-	err := tx.Get(&count, cmd, carfileHash, api.CacheStatusSuccessed, false)
+	err := tx.Get(&count, cmd, carfileHash, api.CacheStatusSucceeded, false)
 	if err != nil {
 		return err
 	}
@@ -645,7 +645,7 @@ func (sd sqlDB) UpdateCacheInfoOfQuitNode(deviceIDs []string) (carfileRecords []
 	for _, carfileRecord := range carfileRecords {
 		var count int
 		cmd := fmt.Sprintf("SELECT count(*) FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?", cTableName)
-		err := tx.Get(&count, cmd, carfileRecord.CarfileHash, api.CacheStatusSuccessed, false)
+		err := tx.Get(&count, cmd, carfileRecord.CarfileHash, api.CacheStatusSucceeded, false)
 		if err != nil {
 			continue
 		}
