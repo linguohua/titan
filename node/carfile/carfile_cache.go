@@ -8,7 +8,7 @@ import (
 	format "github.com/ipfs/go-ipld-format"
 	legacy "github.com/ipfs/go-ipld-legacy"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/helper"
+	"github.com/linguohua/titan/node/cidutil"
 )
 
 type downloadResult struct {
@@ -89,8 +89,8 @@ func (cfCache *carfileCache) downloadBlocksWithBreadthFirst(layerCids []string, 
 	result = &downloadResult{netLayerCids: cfCache.nextLayerCIDs}
 	for len(cfCache.blocksWaitList) > 0 {
 		doLen := len(cfCache.blocksWaitList)
-		if doLen > helper.Batch {
-			doLen = helper.Batch
+		if doLen > batch {
+			doLen = batch
 		}
 
 		blocks := cfCache.getBlocksFromWaitListFront(doLen)
@@ -172,7 +172,7 @@ func (cfCache *carfileCache) downloadBlocks(cids []string, downloadOperation Dow
 func (cfCache *carfileCache) blockList2BlocksHashString() (string, error) {
 	var blocksHashString string
 	for _, cid := range cfCache.blocksDownloadSuccessList {
-		blockHash, err := helper.CIDString2HashString(cid)
+		blockHash, err := cidutil.CIDString2HashString(cid)
 		if err != nil {
 			return "", err
 		}
@@ -185,7 +185,7 @@ func (cfCache *carfileCache) blockList2BlocksHashString() (string, error) {
 func (cfCache *carfileCache) blockCidList2BlocksHashList() ([]string, error) {
 	blocksHashList := make([]string, 0, len(cfCache.blocksDownloadSuccessList))
 	for _, cid := range cfCache.blocksDownloadSuccessList {
-		blockHash, err := helper.CIDString2HashString(cid)
+		blockHash, err := cidutil.CIDString2HashString(cid)
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +196,7 @@ func (cfCache *carfileCache) blockCidList2BlocksHashList() ([]string, error) {
 }
 
 func (cfCache *carfileCache) getCarfileHashString() (string, error) {
-	carfileHash, err := helper.CIDString2HashString(cfCache.carfileCID)
+	carfileHash, err := cidutil.CIDString2HashString(cfCache.carfileCID)
 	if err != nil {
 		return "", err
 	}

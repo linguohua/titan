@@ -10,7 +10,7 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/helper"
+	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/node"
@@ -193,7 +193,7 @@ func (m *Manager) doCarfileCacheTask(info *api.CacheCarfileInfo) error {
 
 // CacheCarfile new carfile task
 func (m *Manager) CacheCarfile(cid string, reliability int, expiredTime time.Time) error {
-	hash, err := helper.CIDString2HashString(cid)
+	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return xerrors.Errorf("%s cid to hash err:", cid, err.Error())
 	}
@@ -239,7 +239,7 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 
 // RemoveCache remove a cache
 func (m *Manager) RemoveCache(carfileCid, deviceID string) error {
-	hash, err := helper.CIDString2HashString(carfileCid)
+	hash, err := cidutil.CIDString2HashString(carfileCid)
 	if err != nil {
 		return err
 	}
@@ -371,7 +371,7 @@ func (m *Manager) StopCacheTask(cid, deviceID string) error {
 
 // ReplenishCacheExpiredTime replenish time
 func (m *Manager) ReplenishCacheExpiredTime(cid string, hour int) error {
-	hash, err := helper.CIDString2HashString(cid)
+	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return err
 	}
@@ -389,7 +389,7 @@ func (m *Manager) ReplenishCacheExpiredTime(cid string, hour int) error {
 
 // ResetCacheExpiredTime reset expired time
 func (m *Manager) ResetCacheExpiredTime(cid string, expiredTime time.Time) error {
-	hash, err := helper.CIDString2HashString(cid)
+	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return err
 	}

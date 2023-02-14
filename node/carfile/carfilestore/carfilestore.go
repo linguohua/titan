@@ -49,6 +49,7 @@ func NewCarfileStore(path, blockStoreType string) *CarfileStore {
 	}
 }
 
+// blockstore
 func (carfileStore *CarfileStore) SaveBlock(blockHash string, blockData []byte) error {
 	return carfileStore.blockStore.Put(blockHash, blockData)
 }
@@ -81,6 +82,7 @@ func (carfileStore *CarfileStore) BlockCount() (int, error) {
 	return carfileStore.blockStore.KeyCount()
 }
 
+// carfile table
 func (carfileStore *CarfileStore) CarfileCount() (int, error) {
 	count1, err := carfileStore.carfileTable.carfileCount()
 	if err != nil {
@@ -103,32 +105,12 @@ func (carfileStore *CarfileStore) SaveBlockListOfCarfile(carfileHash string, blo
 	return carfileStore.carfileTable.saveBlockListOfCarfile(carfileHash, blocksHashString)
 }
 
-func (carfileStore *CarfileStore) SaveIncompleteCarfileCache(carfileHash string, carfileCacheData []byte) error {
-	return carfileStore.incompleteCarfileCache.saveCarfile(carfileHash, carfileCacheData)
-}
-
 func (carfileStore *CarfileStore) DeleteCarfileTable(carfileHash string) error {
 	return carfileStore.carfileTable.delete(carfileHash)
 }
 
-func (carfileStore *CarfileStore) DeleteIncompleteCarfileCache(carfileHash string) error {
-	return carfileStore.incompleteCarfileCache.delete(carfileHash)
-}
-
-func (carfileStore *CarfileStore) GetIncompleteCarfileCacheData(carfileHash string) ([]byte, error) {
-	return carfileStore.incompleteCarfileCache.getCarfileCacheData(carfileHash)
-}
-
 func (carfileStore *CarfileStore) GetBlocksHashWithCarfilePositions(carfileHash string, positions []int) ([]string, error) {
 	return carfileStore.carfileTable.readBlocksHashOfCarfile(carfileHash, positions)
-}
-
-func (carfileStore *CarfileStore) SaveWaitListToFile(data []byte) error {
-	return saveWaitListToFile(data, filepath.Join(carfileStore.path, waitCacheListFile))
-}
-
-func (carfileStore *CarfileStore) GetWaitListFromFile() ([]byte, error) {
-	return getWaitListFromFile(filepath.Join(carfileStore.path, waitCacheListFile))
 }
 
 func (carfileStore *CarfileStore) GetBlocksHashOfCarfile(carfileHash string) ([]string, error) {
@@ -141,6 +123,28 @@ func (carfileStore *CarfileStore) HasCarfile(carfileHash string) (bool, error) {
 
 func (carfileStore *CarfileStore) BlockCountOfCarfile(carfileHash string) (int, error) {
 	return carfileStore.carfileTable.blockCountOfCarfile(carfileHash)
+}
+
+// incomplete carfileCache
+func (carfileStore *CarfileStore) SaveIncompleteCarfileCache(carfileHash string, carfileCacheData []byte) error {
+	return carfileStore.incompleteCarfileCache.saveCarfile(carfileHash, carfileCacheData)
+}
+
+func (carfileStore *CarfileStore) DeleteIncompleteCarfileCache(carfileHash string) error {
+	return carfileStore.incompleteCarfileCache.delete(carfileHash)
+}
+
+func (carfileStore *CarfileStore) GetIncompleteCarfileCacheData(carfileHash string) ([]byte, error) {
+	return carfileStore.incompleteCarfileCache.getCarfileCacheData(carfileHash)
+}
+
+// wait list file
+func (carfileStore *CarfileStore) SaveWaitListToFile(data []byte) error {
+	return saveWaitListToFile(data, filepath.Join(carfileStore.path, waitCacheListFile))
+}
+
+func (carfileStore *CarfileStore) GetWaitListFromFile() ([]byte, error) {
+	return getWaitListFromFile(filepath.Join(carfileStore.path, waitCacheListFile))
 }
 
 // links

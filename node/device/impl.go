@@ -15,11 +15,12 @@ import (
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/fsutil"
-	"github.com/linguohua/titan/node/helper"
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
 var log = logging.Logger("device")
+
+const schedulerApiTimeout = 3
 
 type Device struct {
 	deviceID      string
@@ -129,8 +130,8 @@ func getMacAddr(ip string) (string, error) {
 	return "", nil
 }
 
-func getExternalIP(api api.Scheduler) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+func getExternalIP(api api.Scheduler, timeout time.Duration) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	return api.GetExternalIP(ctx)

@@ -6,7 +6,7 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/helper"
+	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
@@ -323,7 +323,7 @@ func (m *Manager) UpdateLastRequestTime(deviceID string) {
 func (m *Manager) FindNodeDownloadInfos(cid string) ([]*api.DownloadInfoResult, error) {
 	infos := make([]*api.DownloadInfoResult, 0)
 
-	hash, err := helper.CIDString2HashString(cid)
+	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}

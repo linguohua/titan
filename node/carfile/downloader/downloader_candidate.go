@@ -11,7 +11,6 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
-	"github.com/linguohua/titan/node/helper"
 )
 
 // type CandidateAPI struct {
@@ -33,12 +32,12 @@ func (candidate *candidate) DownloadBlocks(cids []string, downloadSource []*api.
 }
 
 func getBlockFromCandidateWithApi(candidate api.Candidate, cidStr string, retryCount int) (blocks.Block, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), helper.BlockDownloadTimeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), blockDownloadTimeout*time.Second)
 	defer cancel()
 
 	data, err := candidate.LoadBlock(ctx, cidStr)
 	if err != nil {
-		if retryCount < helper.BlockDownloadRetryNum {
+		if retryCount < blockDownloadRetryNum {
 			retryCount++
 			return getBlockFromCandidateWithApi(candidate, cidStr, retryCount)
 		}

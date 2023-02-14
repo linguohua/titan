@@ -18,15 +18,18 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/lib/limiter"
+	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/device"
-	"github.com/linguohua/titan/node/helper"
 	"github.com/linguohua/titan/node/validate"
 	"golang.org/x/time/rate"
 )
 
 var log = logging.Logger("download")
 
-const downloadPath = "/block/get"
+const (
+	downloadPath        = "/block/get"
+	schedulerApiTimeout = 3
+)
 
 type BlockDownload struct {
 	limiter      *rate.Limiter
@@ -101,7 +104,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blockHash, err := helper.CIDString2HashString(cidStr)
+	blockHash, err := cidutil.CIDString2HashString(cidStr)
 	if err != nil {
 		bd.resultFailed(w, r, sn, sign, cidStr, fmt.Errorf("Parser param cid(%s) error:%s", cidStr, err.Error()))
 		return
@@ -157,7 +160,7 @@ func getClientIP(r *http.Request) string {
 }
 
 func (bd *BlockDownload) downloadBlockResult(result api.NodeBlockDownloadResult) {
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
 
 	err := bd.scheduler.NodeResultForUserDownloadBlock(ctx, result)
@@ -195,8 +198,8 @@ func (bd *BlockDownload) GetRateLimit() int64 {
 	return int64(bd.limiter.Limit())
 }
 
-func (bd *BlockDownload) LoadPublicKey() error {
-	ctx, cancel := context.WithTimeout(context.Background(), helper.SchedulerApiTimeout*time.Second)
+func (bd *BlockDownload) LoadPublicKey(timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
 
 	publicKeyStr, err := bd.scheduler.GetPublicKey(ctx)

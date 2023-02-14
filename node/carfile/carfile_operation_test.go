@@ -11,7 +11,7 @@ func TestCarfileOperation(t *testing.T) {
 	// carfileStore := blockstore.NewBlockStore("./blockstore", "FileStore")
 	carfileStore := carfilestore.NewCarfileStore("./carfilestore", "FileStore")
 	downloader := downloader.NewIPFS("http://192.168.0.132:5001", carfileStore)
-	carfileOperation := NewCarfileOperation(nil, carfileStore, nil, downloader, nil)
+	carfileOperation := NewCarfileOperation(carfileStore, nil, downloader, nil)
 	downloadOperation := &downloadOperation{downloader: downloader, carfileOperation: carfileOperation}
 	// go carfileOperation.startCarfileDownloader()
 	// t.Log("startCarfileDownloader")
