@@ -116,7 +116,12 @@ func (w *web) GetCacheTaskInfos(ctx context.Context, req api.ListCacheInfosReq) 
 
 // cache manager
 func (w *web) AddCacheTask(ctx context.Context, carFileCID string, reliability int, expireTime time.Time) error {
-	return w.scheduler.CacheCarfile(ctx, carFileCID, reliability, expireTime)
+	info := &api.CacheCarfileInfo{
+		NeedReliability: reliability,
+		CarfileCid:      carFileCID,
+		ExpiredTime:     expireTime,
+	}
+	return w.scheduler.CacheCarfile(ctx, info)
 }
 
 func (w *web) ListCacheTasks(ctx context.Context, cursor int, count int) (api.ListCacheTasksRsp, error) {

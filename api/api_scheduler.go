@@ -15,7 +15,7 @@ type Scheduler interface {
 	// call by command
 	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeTypeName) ([]string, error)            //perm:read
 	ElectionValidators(ctx context.Context) error                                               //perm:admin
-	CacheCarfile(ctx context.Context, cid string, reliability int, expiredTime time.Time) error //perm:admin
+	CacheCarfile(ctx context.Context, info *CacheCarfileInfo) error                             //perm:admin
 	RemoveCarfile(ctx context.Context, carfileID string) error                                  //perm:admin
 	RemoveCache(ctx context.Context, carfileID, deviceID string) error                          //perm:admin
 	GetCarfileRecordInfo(ctx context.Context, cid string) (CarfileRecordInfo, error)            //perm:read
@@ -148,6 +148,7 @@ type CacheCarfileInfo struct {
 	CarfileHash     string    `db:"carfile_hash"`
 	CurReliability  int       `db:"cur_reliability"`
 	NeedReliability int       `db:"need_reliability"`
+	DeviceID        string    `db:"device_id"`
 	ExpiredTime     time.Time `db:"expired_time"`
 }
 
@@ -172,8 +173,8 @@ type UserBlockDownloadResult struct {
 	// serial number
 	SN int64
 	// user signature
-	Sign   []byte
-	Result bool
+	Sign    []byte
+	Succeed bool
 }
 
 type DownloadInfoResult struct {
@@ -201,8 +202,8 @@ const (
 	CacheStatusRunning
 	// CacheStatusFailed status
 	CacheStatusFailed
-	// CacheStatusSuccessed status
-	CacheStatusSuccessed
+	// CacheStatusSucceeded status
+	CacheStatusSucceeded
 )
 
 // CacheError cache error

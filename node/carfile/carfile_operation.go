@@ -71,7 +71,7 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, 
 	}
 
 	if carfile.carfileSize != 0 && carfile.downloadSize == carfile.carfileSize {
-		status = api.CacheStatusSuccessed
+		status = api.CacheStatusSucceeded
 	}
 
 	carfileHash, err := cidutil.CIDString2HashString(carfile.carfileCID)
@@ -149,7 +149,7 @@ func (carfileOperation *CarfileOperation) cacheResultForCarfileExist(carfileCID 
 	}
 
 	result := api.CacheResultInfo{
-		Status:            api.CacheStatusSuccessed,
+		Status:            api.CacheStatusSucceeded,
 		CarfileBlockCount: blocksCount,
 		DoneBlockCount:    blocksCount,
 		CarfileSize:       int64(linksSize),

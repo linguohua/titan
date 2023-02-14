@@ -56,7 +56,7 @@ type DB interface {
 	GetMinExpiredTime() (time.Time, error)
 
 	// cache info
-	GetSuccessedCachesCount() (int, error)
+	GetSucceededCachesCount() (int, error)
 	GetCacheInfo(id string) (*api.CarfileReplicaInfo, error)
 	GetCacheInfosWithNode(deviceID string, index, count int) (*api.NodeCacheRsp, error)
 	// ResetCarfileRecordInfo(info *api.CacheCarfileInfo) error

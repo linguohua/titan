@@ -73,7 +73,12 @@ func (s *Scheduler) ExecuteUndoneCarfilesTask(ctx context.Context) error {
 
 	if info.CarfileRecords != nil {
 		for _, carfile := range info.CarfileRecords {
-			err = s.CacheCarfile(ctx, carfile.CarfileCid, carfile.NeedReliability, carfile.ExpiredTime)
+			info := &api.CacheCarfileInfo{
+				CarfileCid:      carfile.CarfileCid,
+				NeedReliability: carfile.NeedReliability,
+				ExpiredTime:     carfile.ExpiredTime,
+			}
+			err = s.CacheCarfile(ctx, info)
 			if err != nil {
 				log.Errorf("ExecuteUndoneCarfilesTask CacheCarfile err:%s", err.Error())
 			}
@@ -230,20 +235,27 @@ func (s *Scheduler) RemoveCache(ctx context.Context, carfileID, deviceID string)
 }
 
 // CacheCarfile Cache Carfile
-func (s *Scheduler) CacheCarfile(ctx context.Context, cid string, reliability int, expiredTime time.Time) error {
-	if cid == "" {
+func (s *Scheduler) CacheCarfile(ctx context.Context, info *api.CacheCarfileInfo) error {
+	if info.CarfileCid == "" {
 		return xerrors.New("Cid is Nil")
 	}
 
-	if reliability < 1 {
-		return xerrors.Errorf("reliability is %d < 1", reliability)
+	hash, err := cidutil.CIDString2HashString(info.CarfileCid)
+	if err != nil {
+		return xerrors.Errorf("%s cid to hash err:", info.CarfileCid, err.Error())
 	}
 
-	if time.Now().After(expiredTime) {
-		return xerrors.Errorf("now after expiredTime:%s", expiredTime.String())
+	info.CarfileHash = hash
+
+	if info.DeviceID == "" {
+		if info.NeedReliability < 1 {
+			return xerrors.Errorf("reliability is %d < 1", info.NeedReliability)
+		}
+
+		if time.Now().After(info.ExpiredTime) {
+			return xerrors.Errorf("now after expiredTime:%s", info.ExpiredTime.String())
+		}
 	}
 
-	// expiredTime := time.Now().Add(time.Duration(hour) * time.Hour)
-
-	return s.dataManager.CacheCarfile(cid, reliability, expiredTime)
+	return s.dataManager.CacheCarfile(info)
 }

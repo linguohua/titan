@@ -113,7 +113,7 @@ func (c *CacheTask) startTask() (err error) {
 
 func (c *CacheTask) calculateReplicaCount() int {
 	// TODO To be perfected
-	if !c.isCandidate && c.status == api.CacheStatusSuccessed {
+	if !c.isCandidate && c.status == api.CacheStatusSucceeded {
 		return 1
 	}
 

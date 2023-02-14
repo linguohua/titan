@@ -95,7 +95,7 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 			nodeManager:   carfileRecord.nodeManager,
 		}
 
-		if c.status == api.CacheStatusSuccessed && c.isCandidate {
+		if c.status == api.CacheStatusSucceeded && c.isCandidate {
 			carfileRecord.candidateCaches++
 
 			cNode := carfileRecord.nodeManager.GetCandidateNode(c.deviceID)
@@ -126,7 +126,7 @@ func (d *CarfileRecord) candidateCacheExisted() bool {
 			return true
 		}
 
-		exist = c.isCandidate && c.status == api.CacheStatusSuccessed
+		exist = c.isCandidate && c.status == api.CacheStatusSucceeded
 		if exist {
 			return false
 		}
@@ -258,6 +258,33 @@ func (d *CarfileRecord) nextStep() {
 	}
 }
 
+// cache a carfile to the node
+func (d *CarfileRecord) dispatchCache(deviceID string) error {
+	cNode := d.nodeManager.GetCandidateNode(deviceID)
+	if cNode != nil {
+		if !d.startCacheTasks([]string{deviceID}, true) {
+			return xerrors.New("running err")
+		}
+
+		return nil
+	}
+
+	eNode := d.nodeManager.GetEdgeNode(deviceID)
+	if eNode != nil {
+		if len(d.dowloadSources) <= 0 {
+			return xerrors.New("not found cache sources")
+		}
+
+		if !d.startCacheTasks([]string{deviceID}, false) {
+			return xerrors.New("running err")
+		}
+
+		return nil
+	}
+
+	return xerrors.Errorf("node %s not found", deviceID)
+}
+
 func (d *CarfileRecord) dispatchCaches() error {
 	switch d.step {
 	case rootCacheStep:
@@ -286,7 +313,7 @@ func (d *CarfileRecord) updateCarfileRecordInfo(endCache *CacheTask, errMsg stri
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	if endCache.status == api.CacheStatusSuccessed && endCache.isCandidate {
+	if endCache.status == api.CacheStatusSucceeded && endCache.isCandidate {
 		d.candidateCaches++
 
 		cNode := d.nodeManager.GetCandidateNode(endCache.deviceID)
@@ -416,7 +443,7 @@ func (d *CarfileRecord) findAppropriateEdges(filterMap sync.Map, count int) *fin
 
 		if cI, exist := filterMap.Load(deviceID); exist {
 			cache := cI.(*CacheTask)
-			if cache.status == api.CacheStatusSuccessed {
+			if cache.status == api.CacheStatusSucceeded {
 				resultInfo.filterCount++
 				return true
 			}
@@ -461,7 +488,7 @@ func (d *CarfileRecord) findAppropriateCandidates(filterMap sync.Map, count int)
 
 		if cI, exist := filterMap.Load(deviceID); exist {
 			cache := cI.(*CacheTask)
-			if cache.status == api.CacheStatusSuccessed {
+			if cache.status == api.CacheStatusSucceeded {
 				resultInfo.filterCount++
 				return true
 			}
