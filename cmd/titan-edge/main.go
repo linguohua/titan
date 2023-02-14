@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
+	cliutil "github.com/linguohua/titan/cli/util"
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/metrics"
@@ -23,6 +25,7 @@ import (
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/repo"
+	"github.com/quic-go/quic-go/http3"
 
 	"github.com/google/uuid"
 	logging "github.com/ipfs/go-log/v2"
@@ -169,6 +172,15 @@ var runCmd = &cli.Command{
 
 		edgeCfg := cfg.(*config.EdgeCfg)
 
+		udpPacketConn, err := net.ListenPacket("udp", edgeCfg.ListenAddress)
+		if err != nil {
+			return err
+		}
+		defer udpPacketConn.Close()
+
+		httpClient := cliutil.NewUDPHTTPClient(udpPacketConn, edgeCfg.RootCertificatePath)
+		jsonrpc.SetUDPHTTPClient(httpClient)
+
 		timeout, err := time.ParseDuration(edgeCfg.Timeout)
 		if err != nil {
 			return err
@@ -209,11 +221,6 @@ var runCmd = &cli.Command{
 			return err
 		}
 
-		externalIP, err := getExternalIP(schedulerAPI, timeout)
-		if err != nil {
-			return err
-		}
-
 		carfileStorePath := edgeCfg.CarfilestorePath
 		if len(carfileStorePath) == 0 {
 			carfileStorePath = path.Join(lr.Path(), DefaultCarfileStoreDir)
@@ -236,14 +243,17 @@ var runCmd = &cli.Command{
 		}
 
 		edgeApi := edge.NewLocalEdgeNode(context.Background(), device, params)
+		handler := WorkerHandler(schedulerAPI.AuthVerify, edgeApi, true)
 
 		srv := &http.Server{
-			Handler: WorkerHandler(schedulerAPI.AuthVerify, edgeApi, true),
+			Handler: handler,
 			BaseContext: func(listener net.Listener) context.Context {
 				ctx, _ := tag.New(context.Background(), tag.Upsert(metrics.APIInterface, "titan-edge"))
 				return ctx
 			},
 		}
+
+		go startUDPServer(udpPacketConn, handler, edgeCfg.CertificatePath, edgeCfg.PrivateKeyPath)
 
 		go func() {
 			<-ctx.Done()
@@ -261,9 +271,6 @@ var runCmd = &cli.Command{
 		}
 
 		log.Infof("Edge listen on %s", address)
-
-		addressSlice := strings.Split(address, ":")
-		rpcURL := fmt.Sprintf("http://%s:%s/rpc/v0", externalIP, addressSlice[1])
 
 		minerSession, err := getSchedulerSession(schedulerAPI, deviceID, timeout)
 		if err != nil {
@@ -311,7 +318,7 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						err := connectToScheduler(schedulerAPI, rpcURL, timeout)
+						err := connectToScheduler(schedulerAPI, timeout)
 						if err != nil {
 							log.Errorf("Registering edge failed: %+v", err)
 							cancel()
@@ -337,10 +344,10 @@ var runCmd = &cli.Command{
 	},
 }
 
-func connectToScheduler(api api.Scheduler, rpcURL string, timeout time.Duration) error {
+func connectToScheduler(api api.Scheduler, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	return api.EdgeNodeConnect(ctx, rpcURL, "")
+	return api.EdgeNodeConnect(ctx)
 }
 
 func getSchedulerSession(api api.Scheduler, deviceID string, timeout time.Duration) (uuid.UUID, error) {
@@ -438,4 +445,23 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string, tim
 	log.Infof("scheduler url:%s, token:%s", schedulerURL, token)
 	os.Setenv("SCHEDULER_API_INFO", token+":"+schedulerURL)
 	return schedulerAPI, closer, nil
+}
+
+func startUDPServer(conn net.PacketConn, handler http.Handler, certPath, privPath string) error {
+	cert, err := tls.LoadX509KeyPair(certPath, privPath)
+	if err != nil {
+		return err
+	}
+
+	config := &tls.Config{
+		Certificates:       []tls.Certificate{cert},
+		InsecureSkipVerify: false,
+	}
+
+	srv := http3.Server{
+		TLSConfig: config,
+		Handler:   handler,
+	}
+
+	return srv.Serve(conn)
 }

@@ -1,5 +1,5 @@
 create database locator;
-CREATE TABLE `config` (
+CREATE TABLE `scheduler_config` (
     `id` int(20) unsigned NOT NULL AUTO_INCREMENT,
 	  `scheduler_url` varchar(128) NOT NULL UNIQUE ,
     `area_id` varchar(64) DEFAULT NULL ,

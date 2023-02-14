@@ -183,7 +183,7 @@ func (locator) Type() string {
 }
 
 func (locator) Config() interface{} {
-	return &struct{}{}
+	return config.DefaultLocatorCfg()
 }
 
 func (locator) APIFlags() []string {

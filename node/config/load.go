@@ -42,7 +42,6 @@ func FromReader(reader io.Reader, def interface{}) (interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("processing env vars overrides: %s", err)
 	}
-	fmt.Printf("FromReader:%v", cfg)
 	return cfg, nil
 }
 

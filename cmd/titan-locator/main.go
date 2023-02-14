@@ -2,13 +2,11 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -18,18 +16,17 @@ import (
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/metrics"
+	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/locator"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/region"
+	"github.com/quic-go/quic-go/http3"
 
-	"github.com/google/uuid"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
-
-	"github.com/linguohua/titan/stores"
 )
 
 var log = logging.Logger("main")
@@ -92,51 +89,9 @@ func main() {
 var runCmd = &cli.Command{
 	Name:  "run",
 	Usage: "Start titan edge node",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "listen",
-			Usage: "host address and port the worker api will listen on",
-			Value: "0.0.0.0:5000",
-		},
-		&cli.StringFlag{
-			Name:   "address",
-			Hidden: true,
-		},
-		&cli.StringFlag{
-			Name:  "timeout",
-			Usage: "used when 'listen' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function",
-			Value: "30m",
-		},
-		&cli.StringFlag{
-			Name:  "geodb-path",
-			Usage: "ip location",
-			Value: "./city.mmdb",
-		},
-		&cli.StringFlag{
-			Name:  "accesspoint-file",
-			Usage: "accesspoint config",
-			Value: "./cfg.toml",
-		},
-		&cli.StringFlag{
-			Name:  "accesspoint-db",
-			Usage: "use mysql to save config",
-			Value: "user01:sql001@tcp(127.0.0.1:3306)/locator",
-		},
-		&cli.StringFlag{
-			Name:  "uuid",
-			Usage: "locator uuid",
-			Value: "f936b0dc-9e59-476b-a16c-36e3d2d7a752",
-		},
-	},
+	Flags: []cli.Flag{},
 
 	Before: func(cctx *cli.Context) error {
-		if cctx.IsSet("address") {
-			log.Warnf("The '--address' flag is deprecated, it has been replaced by '--listen'")
-			if err := cctx.Set("listen", cctx.String("address")); err != nil {
-				return err
-			}
-		}
-
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
@@ -153,16 +108,6 @@ var runCmd = &cli.Command{
 				return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.DefaultFDLimit, limit)
 			}
 		}
-
-		gPath := cctx.String("geodb-path")
-		err = region.NewRegion(gPath, region.TypeGeoLite(), "")
-		if err != nil {
-			log.Panic(err.Error())
-		}
-
-		ctx := lcli.ReqContext(cctx)
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
 
 		// Register all metric views
 		if err := view.Register(
@@ -186,50 +131,6 @@ var runCmd = &cli.Command{
 			if err := r.Init(repo.Locator); err != nil {
 				return err
 			}
-
-			lr, err := r.Lock(repo.Locator)
-			if err != nil {
-				return err
-			}
-
-			var localPaths []stores.LocalPath
-
-			if !cctx.Bool("no-local-storage") {
-				b, err := json.MarshalIndent(&stores.LocalStorageMeta{
-					ID:       uuid.New().String(),
-					Weight:   10,
-					CanSeal:  true,
-					CanStore: false,
-				}, "", "  ")
-				if err != nil {
-					return xerrors.Errorf("marshaling storage config: %w", err)
-				}
-
-				if err := ioutil.WriteFile(filepath.Join(lr.Path(), "sectorstore.json"), b, 0o644); err != nil {
-					return xerrors.Errorf("persisting storage metadata (%s): %w", filepath.Join(lr.Path(), "sectorstore.json"), err)
-				}
-
-				localPaths = append(localPaths, stores.LocalPath{
-					Path: lr.Path(),
-				})
-			}
-
-			if err := lr.SetStorage(func(sc *stores.StorageConfig) {
-				sc.StoragePaths = append(sc.StoragePaths, localPaths...)
-			}); err != nil {
-				return xerrors.Errorf("set storage config: %w", err)
-			}
-
-			{
-				// init datastore for r.Exists
-				_, err := lr.Datastore(context.Background(), "/metadata")
-				if err != nil {
-					return err
-				}
-			}
-			if err := lr.Close(); err != nil {
-				return xerrors.Errorf("close repo: %w", err)
-			}
 		}
 
 		lr, err := r.Lock(repo.Locator)
@@ -242,14 +143,19 @@ var runCmd = &cli.Command{
 			}
 		}()
 
+		cfg, err := lr.Config()
 		if err != nil {
-			log.Errorf("SetConfig err:%s", err.Error())
+			return err
 		}
 
-		dbAddr := cctx.String("accesspoint-db")
-		uuid := cctx.String("uuid")
+		locatorCfg := cfg.(*config.LocatorCfg)
 
-		address := cctx.String("listen")
+		err = region.NewRegion(locatorCfg.GeodbPath, region.TypeGeoLite(), "")
+		if err != nil {
+			log.Panic(err.Error())
+		}
+
+		address := locatorCfg.ListenAddress
 		addrSplit := strings.Split(address, ":")
 		if len(addrSplit) < 2 {
 			return fmt.Errorf("Listen address %s is error", address)
@@ -260,13 +166,26 @@ var runCmd = &cli.Command{
 			return err
 		}
 
+		ctx := lcli.ReqContext(cctx)
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		handler := WorkerHandler(locator.NewLocalLocator(ctx, lr, locatorCfg.DBAddrss, locatorCfg.UUID, port), true)
 		srv := &http.Server{
-			Handler: WorkerHandler(locator.NewLocalLocator(ctx, lr, dbAddr, uuid, port), true),
+			Handler: handler,
 			BaseContext: func(listener net.Listener) context.Context {
 				ctx, _ := tag.New(context.Background(), tag.Upsert(metrics.APIInterface, "titan-edge"))
 				return ctx
 			},
 		}
+
+		udpPacketConn, err := net.ListenPacket("udp", address)
+		if err != nil {
+			return err
+		}
+		defer udpPacketConn.Close()
+
+		go startUDPServer(udpPacketConn, handler, locatorCfg.CertificatePath, locatorCfg.PrivateKeyPath)
 
 		go func() {
 			<-ctx.Done()
@@ -274,6 +193,8 @@ var runCmd = &cli.Command{
 			if err := srv.Shutdown(context.TODO()); err != nil {
 				log.Errorf("shutting down RPC server failed: %s", err)
 			}
+
+			// udpPacketConn.Close()
 			log.Warn("Graceful shutdown successful")
 		}()
 
@@ -286,4 +207,23 @@ var runCmd = &cli.Command{
 
 		return srv.Serve(nl)
 	},
+}
+
+func startUDPServer(conn net.PacketConn, handler http.Handler, certPath, privPath string) error {
+	cert, err := tls.LoadX509KeyPair(certPath, privPath)
+	if err != nil {
+		return err
+	}
+
+	config := &tls.Config{
+		Certificates:       []tls.Certificate{cert},
+		InsecureSkipVerify: false,
+	}
+
+	srv := http3.Server{
+		TLSConfig: config,
+		Handler:   handler,
+	}
+
+	return srv.Serve(conn)
 }

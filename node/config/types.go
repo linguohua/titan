@@ -23,10 +23,48 @@ type EdgeCfg struct {
 	BandwidthDown int64
 	// if true, get scheduler url from locator
 	Locator bool
+
+	// used for http3 server
+	CertificatePath string
+	PrivateKeyPath  string
+
+	// used for http3 client
+	RootCertificatePath string
 }
 
 type CandidateCfg struct {
 	EdgeCfg
 	TcpSrvAddr string
 	IpfsApiURL string
+}
+
+type LocatorCfg struct {
+	// host address and port the edge node api will listen on
+	ListenAddress string
+	// used when 'ListenAddress' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function
+	Timeout string
+	// geodb path
+	GeodbPath string
+	// mysql db addrss
+	DBAddrss string
+	// uuid
+	UUID string
+	// used for http3 server
+	CertificatePath string
+	PrivateKeyPath  string
+}
+
+type SchedulerCfg struct {
+	// host address and port the edge node api will listen on
+	ListenAddress string
+	// redis server address
+	RedisAddrss string
+	// geodb path
+	GeodbPath string
+	// mysql address
+	PersistentDBURL string
+	// server name
+	ServerName string
+	// area id
+	AreaID string
 }
