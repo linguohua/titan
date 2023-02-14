@@ -37,9 +37,9 @@ type DB interface {
 	AddValidateResultInfos(infos []*ValidateResult) error
 
 	// cache data info
-	CreateCacheTaskInfo(info *api.CarfileReplicaInfo) error
-	UpdateCacheTaskInfo(info *api.CarfileReplicaInfo) error
-	UpdateCacheTaskStatus(hash string, deviceIDs []string, status api.CacheStatus) error
+	CreateCarfileReplicaInfo(info *api.CarfileReplicaInfo) error
+	UpdateCarfileReplicaInfo(info *api.CarfileReplicaInfo) error
+	UpdateCarfileReplicaStatus(hash string, deviceIDs []string, status api.CacheStatus) error
 
 	// data info
 	UpdateCarfileRecordCachesInfo(info *api.CarfileRecordInfo) error
@@ -48,7 +48,7 @@ type DB interface {
 	GetUndoneCarfiles(page int) (*api.DataListInfo, error)
 	CarfileRecordExisted(hash string) (bool, error)
 	GetCarfileCidWithPage(page int) (info *api.DataListInfo, err error)
-	GetCacheTaskInfosWithHash(hash string, isSuccess bool) ([]*api.CarfileReplicaInfo, error)
+	GetCarfileReplicaInfosWithHash(hash string, isSuccess bool) ([]*api.CarfileReplicaInfo, error)
 	GetCachesWithCandidate(hash string) ([]string, error)
 	ExtendExpiredTimeWhitCarfile(carfileHash string, hour int) error
 	ChangeExpiredTimeWhitCarfile(carfileHash string, expiredTime time.Time) error
@@ -60,7 +60,7 @@ type DB interface {
 	GetCacheInfo(id string) (*api.CarfileReplicaInfo, error)
 	GetCacheInfosWithNode(deviceID string, index, count int) (*api.NodeCacheRsp, error)
 	// ResetCarfileRecordInfo(info *api.CacheCarfileInfo) error
-	RemoveCacheTask(deviceID, carfileHash string) error
+	RemoveCarfileReplica(deviceID, carfileHash string) error
 	RemoveCarfileRecord(carfileHash string) error
 	UpdateCacheInfoOfQuitNode(deviceIDs []string) ([]*api.CarfileRecordInfo, error)
 
