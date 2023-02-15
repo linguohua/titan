@@ -142,6 +142,8 @@ type EdgeStruct struct {
 	CarfileOperationStruct
 
 	Internal struct {
+		PingUser func(p0 context.Context, p1 string) error ``
+
 		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
 }
@@ -587,6 +589,17 @@ func (s *DownloadStruct) SetDownloadSpeed(p0 context.Context, p1 int64) error {
 }
 
 func (s *DownloadStub) SetDownloadSpeed(p0 context.Context, p1 int64) error {
+	return ErrNotSupported
+}
+
+func (s *EdgeStruct) PingUser(p0 context.Context, p1 string) error {
+	if s.Internal.PingUser == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.PingUser(p0, p1)
+}
+
+func (s *EdgeStub) PingUser(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
