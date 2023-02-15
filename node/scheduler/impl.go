@@ -171,7 +171,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("candidate node not Exist: %s", deviceID)
 	}
 
-	log.Infof("CandidateNodeConnect %s, address:%s", deviceID, remoteAddr)
+	log.Infof("Candidate Connect %s, address:%s", deviceID, remoteAddr)
 	candidateNode := node.NewCandidateNode(s.adminToken)
 	candicateAPI, err := candidateNode.ConnectRPC(remoteAddr, true)
 	if err != nil {
@@ -244,7 +244,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("edge node not Exist: %s", deviceID)
 	}
 
-	log.Infof("EdgeNodeConnect %s; remoteAddr:%s", deviceID, remoteAddr)
+	log.Infof("Edge Connect %s; remoteAddr:%s", deviceID, remoteAddr)
 	edgeNode := node.NewEdgeNode(s.adminToken)
 	edgeAPI, err := edgeNode.ConnectRPC(remoteAddr, true)
 	if err != nil {

@@ -1,6 +1,7 @@
 package node
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -181,7 +182,7 @@ func (m *Manager) edgeOffline(node *EdgeNode) {
 	// close old node
 	node.ClientCloser()
 
-	log.Infof("edgeOffline :%s", deviceID)
+	log.Infof("Edge Offline :%s", deviceID)
 
 	m.EdgeNodeMap.Delete(deviceID)
 
@@ -231,7 +232,7 @@ func (m *Manager) candidateOffline(node *CandidateNode) {
 	// close old node
 	node.ClientCloser()
 
-	log.Infof("candidateOffline :%s", deviceID)
+	log.Infof("Candidate Offline :%s", deviceID)
 
 	m.CandidateNodeMap.Delete(deviceID)
 
@@ -322,7 +323,7 @@ func (m *Manager) NodeSessionCallBack(deviceID, remoteAddr string) {
 }
 
 // FindNodeDownloadInfos  find device with block cid
-func (m *Manager) FindNodeDownloadInfos(cid string) ([]*api.DownloadInfoResult, error) {
+func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*api.DownloadInfoResult, error) {
 	infos := make([]*api.DownloadInfoResult, 0)
 
 	hash, err := cidutil.CIDString2HashString(cid)
@@ -340,24 +341,22 @@ func (m *Manager) FindNodeDownloadInfos(cid string) ([]*api.DownloadInfoResult, 
 	}
 
 	for _, cache := range caches {
-		if cache.IsCandidate {
-			continue
-		}
 		deviceID := cache.DeviceID
-
-		node := m.GetNode(deviceID)
+		node := m.GetEdgeNode(deviceID)
 		if node == nil {
 			continue
 		}
 
 		url := node.GetDownloadURL()
 
+		err := node.nodeAPI.PingUser(context.Background(), userURL)
+		if err != nil {
+			log.Errorf("%s PingUser err:%s", deviceID, err.Error())
+			continue
+		}
+
 		infos = append(infos, &api.DownloadInfoResult{URL: url, DeviceID: deviceID})
 	}
-
-	// if len(infos) <= 0 {
-	// 	return nil, xerrors.Errorf("device auth err, deviceIDs:%v", deviceIDs)
-	// }
 
 	return infos, nil
 }

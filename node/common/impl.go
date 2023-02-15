@@ -84,7 +84,7 @@ func (a *CommonAPI) Discover(ctx context.Context) (api.OpenRPCDocument, error) {
 	return nil, nil
 }
 
-// trigger graceful shutdown
+// Shutdown trigger graceful shutdown
 func (a *CommonAPI) Shutdown(context.Context) error {
 	a.ShutdownChan <- struct{}{}
 	return nil

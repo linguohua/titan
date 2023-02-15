@@ -79,7 +79,11 @@ func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string,
 		return nil, xerrors.New("cids is nil")
 	}
 
-	infos, err := s.nodeManager.FindNodeDownloadInfos(cid)
+	userURL := handler.GetRemoteAddr(ctx)
+
+	log.Infof("GetDownloadInfosWithCarfile url:%s", userURL)
+
+	infos, err := s.nodeManager.FindNodeDownloadInfos(cid, userURL)
 	if err != nil {
 		return nil, err
 	}
