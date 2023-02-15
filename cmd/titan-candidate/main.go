@@ -281,7 +281,7 @@ var runCmd = &cli.Command{
 
 		log.Infof("Candidate listen on %s", candidateCfg.ListenAddress)
 
-		schedulerSession, err := getSchedulerSession(schedulerAPI, deviceID, connectTimeout)
+		schedulerSession, err := getSchedulerSession(schedulerAPI, connectTimeout)
 		if err != nil {
 			return xerrors.Errorf("getting scheduler session: %w", err)
 		}
@@ -310,7 +310,7 @@ var runCmd = &cli.Command{
 
 				errCount := 0
 				for {
-					curSession, err := getSchedulerSession(schedulerAPI, deviceID, connectTimeout)
+					curSession, err := getSchedulerSession(schedulerAPI, connectTimeout)
 					if err != nil {
 						errCount++
 						log.Errorf("heartbeat: checking remote session failed: %+v", err)
@@ -362,7 +362,7 @@ func connectToScheduler(api api.Scheduler, timeout time.Duration) error {
 	return api.CandidateNodeConnect(ctx)
 }
 
-func getSchedulerSession(api api.Scheduler, deviceID string, timeout time.Duration) (uuid.UUID, error) {
+func getSchedulerSession(api api.Scheduler, timeout time.Duration) (uuid.UUID, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 

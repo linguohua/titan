@@ -12,6 +12,6 @@ type Edge interface {
 	Validate
 	DataSync
 	CarfileOperation
-	WaitQuiet(ctx context.Context) error //perm:read
-	PingUser(ctx context.Context, userAddrss string) error
+	WaitQuiet(ctx context.Context) error                 //perm:read
+	PingUser(ctx context.Context, userAddr string) error //perm:write
 }

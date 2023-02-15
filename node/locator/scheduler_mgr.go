@@ -87,7 +87,7 @@ func (mgr *accessPointMgr) newSchedulerAPI(url string, areaID string, schedulerA
 
 	uuid, err := api.Session(ctx)
 	if err != nil {
-		log.Errorf("newSchedulerAPI connect to scheduler err:%s", err.Error())
+		log.Errorf("newSchedulerAPI Session err:%s", err.Error())
 		return nil, err
 	}
 

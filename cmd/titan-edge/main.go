@@ -240,9 +240,11 @@ var runCmd = &cli.Command{
 		params := &edge.EdgeParams{
 			Scheduler:    schedulerAPI,
 			CarfileStore: carfileStore,
+			Device:       device,
+			PConn:        udpPacketConn,
 		}
 
-		edgeApi := edge.NewLocalEdgeNode(context.Background(), device, params)
+		edgeApi := edge.NewLocalEdgeNode(context.Background(), params)
 		handler := EdgeHandler(schedulerAPI.AuthVerify, edgeApi, true)
 
 		srv := &http.Server{
@@ -271,7 +273,7 @@ var runCmd = &cli.Command{
 
 		log.Infof("Edge listen on tcp %s", edgeCfg.ListenAddress)
 
-		schedulerSession, err := getSchedulerSession(schedulerAPI, deviceID, timeout)
+		schedulerSession, err := getSchedulerSession(schedulerAPI, timeout)
 		if err != nil {
 			return xerrors.Errorf("getting scheduler session: %w", err)
 		}
@@ -300,7 +302,7 @@ var runCmd = &cli.Command{
 
 				errCount := 0
 				for {
-					curSession, err := getSchedulerSession(schedulerAPI, deviceID, timeout)
+					curSession, err := getSchedulerSession(schedulerAPI, timeout)
 					if err != nil {
 						errCount++
 						log.Errorf("heartbeat: checking remote session failed: %+v", err)
@@ -349,7 +351,7 @@ func connectToScheduler(api api.Scheduler, timeout time.Duration) error {
 	return api.EdgeNodeConnect(ctx)
 }
 
-func getSchedulerSession(api api.Scheduler, deviceID string, timeout time.Duration) (uuid.UUID, error) {
+func getSchedulerSession(api api.Scheduler, timeout time.Duration) (uuid.UUID, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
