@@ -67,13 +67,19 @@ func NewEdgeNode(adminToken []byte) *EdgeNode {
 }
 
 // ConnectRPC connect node rpc
-func (e *EdgeNode) ConnectRPC(addr string) (api.Edge, error) {
-	if addr == e.remoteAddr {
-		return nil, xerrors.New("the address has not changed")
+func (e *EdgeNode) ConnectRPC(addr string, isNodeConnect bool) (api.Edge, error) {
+	if !isNodeConnect {
+		if addr == e.remoteAddr {
+			return nil, xerrors.New("the address has not changed")
+		}
+
+		e.remoteAddr = addr
+
+		// close old
+		if e.closer != nil {
+			e.closer()
+		}
 	}
-
-	e.remoteAddr = addr
-
 	rpcURL := fmt.Sprintf("https://%s/rpc/v0", addr)
 
 	headers := http.Header{}
@@ -119,12 +125,19 @@ func NewCandidateNode(adminToken []byte) *CandidateNode {
 }
 
 // ConnectRPC connect node rpc
-func (c *CandidateNode) ConnectRPC(addr string) (api.Edge, error) {
-	if addr == c.remoteAddr {
-		return nil, xerrors.New("the address has not changed")
-	}
+func (c *CandidateNode) ConnectRPC(addr string, isNodeConnect bool) (api.Candidate, error) {
+	if !isNodeConnect {
+		if addr == c.remoteAddr {
+			return nil, xerrors.New("the address has not changed")
+		}
 
-	c.remoteAddr = addr
+		c.remoteAddr = addr
+
+		// close old
+		if c.closer != nil {
+			c.closer()
+		}
+	}
 
 	rpcURL := fmt.Sprintf("https://%s/rpc/v0", addr)
 
@@ -132,15 +145,15 @@ func (c *CandidateNode) ConnectRPC(addr string) (api.Edge, error) {
 	headers.Add("Authorization", "Bearer "+string(c.adminToken))
 
 	// Connect to node
-	edgeAPI, closer, err := client.NewCandicate(context.Background(), rpcURL, headers)
+	candidateAPI, closer, err := client.NewCandicate(context.Background(), rpcURL, headers)
 	if err != nil {
 		return nil, xerrors.Errorf("NewCandicate err:%s,url:%s", err.Error(), rpcURL)
 	}
 
-	c.nodeAPI = edgeAPI
+	c.nodeAPI = candidateAPI
 	c.closer = closer
 
-	return edgeAPI, nil
+	return candidateAPI, nil
 }
 
 // GetAPI get node api

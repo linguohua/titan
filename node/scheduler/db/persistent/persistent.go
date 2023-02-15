@@ -24,7 +24,7 @@ type DB interface {
 	// Node Info
 	SetNodeInfo(deviceID string, info *NodeInfo) error
 	SetNodeOffline(deviceID string, lastTime time.Time) error
-	GetNodeAuthInfo(deviceID string) (*api.DownloadServerAccessAuth, error)
+	GetNodePrivateKey(deviceID string) (string, error)
 	GetOfflineNodes() ([]*NodeInfo, error)
 	SetNodesQuit(deviceIDs []string) error
 

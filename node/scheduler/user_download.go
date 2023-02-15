@@ -159,12 +159,12 @@ func (s *Scheduler) verifyNodeResultForUserDownloadBlock(deviceID string, record
 		return titanRsa.VerifyRsaSign(&candidate.GetPrivateKey().PublicKey, sign, verifyContent)
 	}
 
-	authInfo, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
+	privateKeyStr, err := persistent.GetDB().GetNodePrivateKey(deviceID)
 	if err != nil {
 		return err
 	}
 
-	privateKey, err := titanRsa.Pem2PrivateKey(authInfo.PrivateKey)
+	privateKey, err := titanRsa.Pem2PrivateKey(privateKeyStr)
 	if err != nil {
 		return err
 	}
@@ -226,12 +226,12 @@ func (s *Scheduler) getDevicePrivateKey(deviceID string) (*rsa.PrivateKey, error
 		return candidate.GetPrivateKey(), nil
 	}
 
-	authInfo, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
+	privateKeyStr, err := persistent.GetDB().GetNodePrivateKey(deviceID)
 	if err != nil {
 		return nil, err
 	}
 
-	privateKey, err := titanRsa.Pem2PrivateKey(authInfo.PrivateKey)
+	privateKey, err := titanRsa.Pem2PrivateKey(privateKeyStr)
 	if err != nil {
 		return nil, err
 	}
