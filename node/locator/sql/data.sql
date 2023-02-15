@@ -1,11 +1,10 @@
-create database locator;
+-- create database locator;
 CREATE TABLE `scheduler_config` (
-    `id` int(20) unsigned NOT NULL AUTO_INCREMENT,
 	  `scheduler_url` varchar(128) NOT NULL UNIQUE ,
     `area_id` varchar(64) DEFAULT NULL ,
     `weight` int(5)  DEFAULT '0' ,
     `access_token` varchar(256) DEFAULT NULL ,
-	PRIMARY KEY (`id`)
+	PRIMARY KEY (`scheduler_url`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='locator scheduler config';
 
 CREATE TABLE `device` (

@@ -35,7 +35,7 @@ var (
 // Measures
 var (
 	// common
-	TitanInfo          = stats.Int64("info", "Arbitrary counter to tag lotus info to", stats.UnitDimensionless)
+	TitanInfo          = stats.Int64("info", "Arbitrary counter to tag titan info to", stats.UnitDimensionless)
 	APIRequestDuration = stats.Float64("api/request_duration_ms", "Duration of API requests", stats.UnitMilliseconds)
 )
 

@@ -26,7 +26,7 @@ COPY --from=0 /edge/titan-edge /usr/local/titan-edge
 
 # download server address for who download block, example: --download-srv-addr=127.0.0.1:3000
 EXPOSE 3000
-# host address and port the worker api will listen on
+# host address and port the edge api will listen on
 EXPOSE 1234
 
 ENTRYPOINT ["/usr/local/titan-edge", "run", "--locator=true"]

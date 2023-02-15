@@ -25,7 +25,7 @@ var (
 var PanicReportingPath = "panic-reports"
 
 // PanicReportJournalTail is the number of lines captured from the end of
-// the lotus journal to be included in the panic report.
+// the titan journal to be included in the panic report.
 var PanicReportJournalTail = defaultJournalTail
 
 // GeneratePanicReport produces a timestamped dump of the application state
@@ -50,7 +50,7 @@ func GeneratePanicReport(persistPath, repoPath, label string) {
 	}
 	panicLog.Warnf("generating panic report at %s", reportPath)
 
-	tl := os.Getenv("LOTUS_PANIC_JOURNAL_LOOKBACK")
+	tl := os.Getenv("TITAN_PANIC_JOURNAL_LOOKBACK")
 	if tl != "" && PanicReportJournalTail == defaultJournalTail {
 		i, err := strconv.Atoi(tl)
 		if err == nil {

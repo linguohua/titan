@@ -10,9 +10,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
+	cliutil "github.com/linguohua/titan/cli/util"
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/metrics"
@@ -69,7 +71,7 @@ func main() {
 
 		After: func(c *cli.Context) error {
 			if r := recover(); r != nil {
-				// Generate report in LOTUS_PATH and re-raise panic
+				// Generate report in TITAN_LOCATOR_PATH and re-raise panic
 				build.GeneratePanicReport(c.String("panic-reports"), c.String(FlagLocatorRepo), c.App.Name)
 				panic(r)
 			}
@@ -89,7 +91,27 @@ func main() {
 var runCmd = &cli.Command{
 	Name:  "run",
 	Usage: "Start titan edge node",
-	Flags: []cli.Flag{},
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Required: true,
+			Name:     "certificate-path",
+			EnvVars:  []string{"TITAN_LOCATOR_CERTIFICATE_PATH", "LOCATOR_CERTIFICATE_PATH"},
+			Usage:    "example: --certificate-path=./cert.pem",
+			Value:    "",
+		},
+		&cli.StringFlag{
+			Required: true,
+			Name:     "private-key-path",
+			EnvVars:  []string{"TITAN_LOCATOR_PRIVATE_KEY_PATH", "LOCATOR_PRIVATE_KEY_PATH"},
+			Usage:    "example: --private-key-path=./priv.key",
+			Value:    "",
+		},
+		&cli.StringFlag{
+			Name:  "ca-certificate-path",
+			Usage: "example: --ca-certificate-path=./ca.pem",
+			Value: "",
+		},
+	},
 
 	Before: func(cctx *cli.Context) error {
 		return nil
@@ -170,7 +192,7 @@ var runCmd = &cli.Command{
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
-		handler := WorkerHandler(locator.NewLocalLocator(ctx, lr, locatorCfg.DBAddrss, locatorCfg.UUID, port), true)
+		handler := LocatorHandler(locator.NewLocalLocator(ctx, lr, locatorCfg.DBAddrss, locatorCfg.UUID, port), true)
 		srv := &http.Server{
 			Handler: handler,
 			BaseContext: func(listener net.Listener) context.Context {
@@ -185,7 +207,14 @@ var runCmd = &cli.Command{
 		}
 		defer udpPacketConn.Close()
 
-		go startUDPServer(udpPacketConn, handler, locatorCfg.CertificatePath, locatorCfg.PrivateKeyPath)
+		certificatePath := cctx.String("certificate-path")
+		privateKeyPath := cctx.String("private-key-path")
+		caCertificatePath := cctx.String("ca-certificate-path")
+
+		httpClient := cliutil.NewUDPHTTPClient(udpPacketConn, caCertificatePath)
+		jsonrpc.SetUDPHTTPClient(httpClient)
+
+		go startUDPServer(udpPacketConn, handler, certificatePath, privateKeyPath)
 
 		go func() {
 			<-ctx.Done()

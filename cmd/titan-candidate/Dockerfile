@@ -27,7 +27,7 @@ COPY --from=0 /candidate/titan-candidate /usr/local/titan-candidate
 
 # download server address for who download block, example: --download-srv-addr=127.0.0.1:3000
 EXPOSE 3000
-# host address and port the worker api will listen on
+# host address and port the candidate api will listen on
 EXPOSE 2345
 
 ENTRYPOINT ["/usr/local/titan-candidate", "run", "--locator=true"]

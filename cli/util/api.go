@@ -187,7 +187,7 @@ func GetCandidateAPI(ctx *cli.Context) (api.Candidate, jsonrpc.ClientCloser, err
 	}
 
 	if IsVeryVerbose {
-		_, _ = fmt.Fprintln(ctx.App.Writer, "using worker node API v0 endpoint:", addr)
+		_, _ = fmt.Fprintln(ctx.App.Writer, "using candidate node API v0 endpoint:", addr)
 	}
 
 	a, c, e := client.NewCandicate(ctx.Context, addr, headers)
@@ -210,7 +210,7 @@ func GetEdgeAPI(ctx *cli.Context) (api.Edge, jsonrpc.ClientCloser, error) {
 	}
 
 	if IsVeryVerbose {
-		_, _ = fmt.Fprintln(ctx.App.Writer, "using worker node API v0 endpoint:", addr)
+		_, _ = fmt.Fprintln(ctx.App.Writer, "using edge node API v0 endpoint:", addr)
 	}
 
 	a, c, e := client.NewEdge(ctx.Context, addr, headers)

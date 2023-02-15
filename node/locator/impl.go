@@ -188,7 +188,7 @@ func (locator *Locator) getAccessPointsWithWeightCount(areaID string) ([]string,
 
 	// filter online scheduler
 	onlineSchedulerAPIs := make(map[string]*schedulerAPI)
-	onlineSchedulerCfgs := make(map[string]*locatorCfg)
+	onlineSchedulerCfgs := make(map[string]*schedulerCfg)
 	for _, cfg := range schedulerCfgs {
 		api, ok := locator.apMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
 		if !ok {
@@ -223,7 +223,7 @@ func (locator *Locator) getAccessPointsWithWeightCount(areaID string) ([]string,
 	return schedulerURLs, nil
 }
 
-func countSchedulerWeightWithCfgs(schedulerCfgs map[string]*locatorCfg) map[string]float32 {
+func countSchedulerWeightWithCfgs(schedulerCfgs map[string]*schedulerCfg) map[string]float32 {
 	totalWeight := 0
 	for _, cfg := range schedulerCfgs {
 		totalWeight += cfg.Weight
@@ -237,7 +237,7 @@ func countSchedulerWeightWithCfgs(schedulerCfgs map[string]*locatorCfg) map[stri
 	return result
 }
 
-func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*locatorCfg) map[string]float32 {
+func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*schedulerCfg) map[string]float32 {
 	totalWeight := 0
 
 	weightMap := make(map[string]int)
@@ -322,7 +322,7 @@ func (locator *Locator) UserDownloadBlockResults(ctx context.Context, results []
 	return nil
 }
 
-func (locator *Locator) getAccessPointCfg(areaID, schedulerURL string) *locatorCfg {
+func (locator *Locator) getAccessPointCfg(areaID, schedulerURL string) *schedulerCfg {
 	schedulerCfgs, err := locator.db.getAccessPointCfgs(areaID)
 	if err != nil {
 		log.Errorf("getCfg, acccess point %s not exist", areaID)
@@ -369,7 +369,7 @@ func (locator *Locator) getSchedulerAPIWithWeightCount(areaID string) ([]*schedu
 
 	// filter online scheduler
 	onlineSchedulerAPIs := make(map[string]*schedulerAPI)
-	onlineSchedulerCfgs := make(map[string]*locatorCfg)
+	onlineSchedulerCfgs := make(map[string]*schedulerCfg)
 	for _, cfg := range schedulerCfgs {
 		api, ok := locator.apMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
 		if !ok {

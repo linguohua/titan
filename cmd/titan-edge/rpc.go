@@ -16,7 +16,7 @@ import (
 	"github.com/linguohua/titan/node/handler"
 )
 
-func WorkerHandler(authv func(ctx context.Context, token string) ([]auth.Permission, error), a api.Edge, permissioned bool) http.Handler {
+func EdgeHandler(authv func(ctx context.Context, token string) ([]auth.Permission, error), a api.Edge, permissioned bool) http.Handler {
 	mux := mux.NewRouter()
 	readerHandler, readerServerOpt := rpcenc.ReaderParamDecoder()
 	rpcServer := jsonrpc.NewServer(readerServerOpt)

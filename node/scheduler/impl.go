@@ -255,7 +255,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("edge node not Exist: %s", deviceID)
 	}
 
-	rpcURL := fmt.Sprintf("http://%s/rpc/v0", remoteAddr)
+	rpcURL := fmt.Sprintf("https://%s/rpc/v0", remoteAddr)
 	log.Infof("EdgeNodeConnect %s; remoteAddr:%s", deviceID, remoteAddr)
 
 	t, err := s.AuthNew(ctx, api.AllPermissions)

@@ -49,9 +49,6 @@ type LocatorCfg struct {
 	DBAddrss string
 	// uuid
 	UUID string
-	// used for http3 server
-	CertificatePath string
-	PrivateKeyPath  string
 }
 
 type SchedulerCfg struct {
