@@ -28,15 +28,14 @@ type accessPoint struct {
 type accessPointMgr struct {
 	// key is areaID
 	accessPoints sync.Map
-	locatorPort  int
 	random       *rand.Rand
 	uuid         string
 	locatorToken string
 }
 
-func newAccessPointMgr(locatorPort int, locatorToken, uuid string) *accessPointMgr {
+func newAccessPointMgr(locatorToken, uuid string) *accessPointMgr {
 	s := rand.NewSource(time.Now().UnixNano())
-	mgr := &accessPointMgr{locatorPort: locatorPort, random: rand.New(s), uuid: uuid, locatorToken: locatorToken}
+	mgr := &accessPointMgr{random: rand.New(s), uuid: uuid, locatorToken: locatorToken}
 	return mgr
 }
 
@@ -80,7 +79,7 @@ func (mgr *accessPointMgr) newSchedulerAPI(url string, areaID string, schedulerA
 		return nil, err
 	}
 
-	err = api.LocatorConnect(ctx, mgr.locatorPort, areaID, mgr.uuid, mgr.locatorToken)
+	err = api.LocatorConnect(ctx, mgr.uuid, mgr.locatorToken)
 	if err != nil {
 		log.Errorf("newSchedulerAPI connect to scheduler err:%s", err.Error())
 		return nil, err

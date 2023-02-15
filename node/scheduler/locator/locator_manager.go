@@ -4,9 +4,11 @@ import (
 	"context"
 	"sync"
 
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/scheduler/node"
-	"github.com/linguohua/titan/region"
 )
+
+var log = logging.Logger("locator")
 
 // Manager Locator Manager
 type Manager struct {
@@ -28,17 +30,16 @@ func (m *Manager) AddLocator(location *node.Locator) {
 
 // NotifyNodeStatusToLocator Notify Node Status To Locator
 func (m *Manager) NotifyNodeStatusToLocator(deviceID string, isOnline bool) {
-	area := region.DefaultGeoInfo("").Geo
-
 	m.locatorMap.Range(func(key, value interface{}) bool {
 		locator := value.(*node.Locator)
 
 		if locator != nil && locator.GetAPI() != nil {
-			if isOnline {
-				go locator.GetAPI().DeviceOnline(context.Background(), deviceID, area, m.port)
-			} else {
-				go locator.GetAPI().DeviceOffline(context.Background(), deviceID)
-			}
+			go func() {
+				err := locator.GetAPI().SetDeviceOnlineStatus(context.Background(), deviceID, isOnline)
+				if err != nil {
+					log.Errorf("NotifyNodeStatusToLocator error:%s", err.Error())
+				}
+			}()
 		}
 		return true
 	})

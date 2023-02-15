@@ -166,10 +166,6 @@ type LocatorStruct struct {
 	Internal struct {
 		AddAccessPoint func(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error `perm:"admin"`
 
-		DeviceOffline func(p0 context.Context, p1 string) error `perm:"write"`
-
-		DeviceOnline func(p0 context.Context, p1 string, p2 string, p3 int) error `perm:"write"`
-
 		GetAccessPoints func(p0 context.Context, p1 string) ([]string, error) `perm:"read"`
 
 		GetDownloadInfosWithCarfile func(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) `perm:"read"`
@@ -183,6 +179,8 @@ type LocatorStruct struct {
 		RegisterNode func(p0 context.Context, p1 string, p2 string, p3 NodeType, p4 int) ([]NodeRegisterInfo, error) `perm:"admin"`
 
 		RemoveAccessPoints func(p0 context.Context, p1 string) error `perm:"admin"`
+
+		SetDeviceOnlineStatus func(p0 context.Context, p1 string, p2 bool) error `perm:"write"`
 
 		ShowAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
 
@@ -240,7 +238,7 @@ type SchedulerStruct struct {
 
 		ListCarfileRecords func(p0 context.Context, p1 int) (*DataListInfo, error) `perm:"read"`
 
-		LocatorConnect func(p0 context.Context, p1 int, p2 string, p3 string, p4 string) error `perm:"write"`
+		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
 		NodeQuit func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -614,28 +612,6 @@ func (s *LocatorStub) AddAccessPoint(p0 context.Context, p1 string, p2 string, p
 	return ErrNotSupported
 }
 
-func (s *LocatorStruct) DeviceOffline(p0 context.Context, p1 string) error {
-	if s.Internal.DeviceOffline == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.DeviceOffline(p0, p1)
-}
-
-func (s *LocatorStub) DeviceOffline(p0 context.Context, p1 string) error {
-	return ErrNotSupported
-}
-
-func (s *LocatorStruct) DeviceOnline(p0 context.Context, p1 string, p2 string, p3 int) error {
-	if s.Internal.DeviceOnline == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.DeviceOnline(p0, p1, p2, p3)
-}
-
-func (s *LocatorStub) DeviceOnline(p0 context.Context, p1 string, p2 string, p3 int) error {
-	return ErrNotSupported
-}
-
 func (s *LocatorStruct) GetAccessPoints(p0 context.Context, p1 string) ([]string, error) {
 	if s.Internal.GetAccessPoints == nil {
 		return *new([]string), ErrNotSupported
@@ -710,6 +686,17 @@ func (s *LocatorStruct) RemoveAccessPoints(p0 context.Context, p1 string) error 
 }
 
 func (s *LocatorStub) RemoveAccessPoints(p0 context.Context, p1 string) error {
+	return ErrNotSupported
+}
+
+func (s *LocatorStruct) SetDeviceOnlineStatus(p0 context.Context, p1 string, p2 bool) error {
+	if s.Internal.SetDeviceOnlineStatus == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.SetDeviceOnlineStatus(p0, p1, p2)
+}
+
+func (s *LocatorStub) SetDeviceOnlineStatus(p0 context.Context, p1 string, p2 bool) error {
 	return ErrNotSupported
 }
 
@@ -955,14 +942,14 @@ func (s *SchedulerStub) ListCarfileRecords(p0 context.Context, p1 int) (*DataLis
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 int, p2 string, p3 string, p4 string) error {
+func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 string, p2 string) error {
 	if s.Internal.LocatorConnect == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.LocatorConnect(p0, p1, p2, p3, p4)
+	return s.Internal.LocatorConnect(p0, p1, p2)
 }
 
-func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 int, p2 string, p3 string, p4 string) error {
+func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
 }
 
