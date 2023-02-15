@@ -111,15 +111,6 @@ func (c *CacheTask) startTask() (err error) {
 	return err
 }
 
-func (c *CacheTask) calculateReplicaCount() int {
-	// TODO To be perfected
-	if !c.isCandidate && c.status == api.CacheStatusSucceeded {
-		return 1
-	}
-
-	return 0
-}
-
 func (c *CacheTask) updateCacheTaskInfo() error {
 	// update cache info to db
 	cInfo := &api.CarfileReplicaInfo{

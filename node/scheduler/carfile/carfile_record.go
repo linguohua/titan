@@ -428,6 +428,13 @@ func (d *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResul
 	return nil
 }
 
+type findNodeResult struct {
+	list                  []string
+	allNodeCount          int
+	filterCount           int
+	insufficientDiskCount int
+}
+
 // find the edges
 func (d *CarfileRecord) findAppropriateEdges(filterMap sync.Map, count int) *findNodeResult {
 	resultInfo := &findNodeResult{}

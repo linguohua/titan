@@ -26,13 +26,11 @@ type Scheduler interface {
 	ValidateRunningState(ctx context.Context) (bool, error)                                     //perm:admin
 	ValidateStart(ctx context.Context) error                                                    //perm:admin
 	ResetCacheExpiredTime(ctx context.Context, carfileCid string, expiredTime time.Time) error  //perm:admin
-	ReplenishCacheExpiredTime(ctx context.Context, carfileCid string, hour int) error           //perm:admin
 	NodeQuit(ctx context.Context, device string) error                                          //perm:admin
 	StopCacheTask(ctx context.Context, carfileCid string) error                                 //perm:admin
 	ResetBackupCacheCount(ctx context.Context, backupCacheCount int) error                      //perm:admin
 	GetUndoneCarfileRecords(ctx context.Context, page int) (*DataListInfo, error)               //perm:read
 	ExecuteUndoneCarfilesTask(ctx context.Context) error                                        //perm:admin
-	ListCacheEvents(ctx context.Context, page int, cid string) (*EventListInfo, error)          //perm:read
 
 	// call by locator
 	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error //perm:write

@@ -133,10 +133,6 @@ func (rd redisDB) GetCacheingCarfiles() ([]string, error) {
 
 func (rd redisDB) GetNodeCacheTimeoutTime(deviceID string) (int, error) {
 	key := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
-	// exist, err := rd.cli.Exists(context.Background(), key).Result()
-	// if err != nil {
-	// 	return false, err
-	// }
 
 	expiration, err := rd.cli.TTL(context.Background(), key).Result()
 	if err != nil {
@@ -319,11 +315,6 @@ func (rd redisDB) SetDeviceInfo(info *api.DevicesInfo) error {
 		// update some value
 		return rd.updateDeviceInfos(info)
 	}
-
-	// _, err = rd.cli.HMSet(ctx, key, structs.Map(info)).Result()
-	// if err != nil {
-	// 	return err
-	// }
 
 	_, err = rd.cli.Pipelined(ctx, func(pipeline redis.Pipeliner) error {
 		for field, value := range toMap(info) {

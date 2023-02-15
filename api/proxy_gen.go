@@ -254,8 +254,6 @@ type SchedulerStruct struct {
 
 		RemoveCarfileResult func(p0 context.Context, p1 RemoveCarfileResultInfo) error `perm:"write"`
 
-		ReplenishCacheExpiredTime func(p0 context.Context, p1 string, p2 int) error `perm:"admin"`
-
 		ResetBackupCacheCount func(p0 context.Context, p1 int) error `perm:"admin"`
 
 		ResetCacheExpiredTime func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
@@ -1029,17 +1027,6 @@ func (s *SchedulerStruct) RemoveCarfileResult(p0 context.Context, p1 RemoveCarfi
 }
 
 func (s *SchedulerStub) RemoveCarfileResult(p0 context.Context, p1 RemoveCarfileResultInfo) error {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) ReplenishCacheExpiredTime(p0 context.Context, p1 string, p2 int) error {
-	if s.Internal.ReplenishCacheExpiredTime == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.ReplenishCacheExpiredTime(p0, p1, p2)
-}
-
-func (s *SchedulerStub) ReplenishCacheExpiredTime(p0 context.Context, p1 string, p2 int) error {
 	return ErrNotSupported
 }
 

@@ -50,7 +50,6 @@ type DB interface {
 	CountVerifyingNode() (int64, error)
 	RemoveVerifyingList() error
 	GetNodesWithVerifyingList() ([]string, error)
-	// CountVerifyingNode(ctx context.Context) (int64, error)
 
 	// validator list
 	SetValidatorsToList(deviceIDs []string, expiration time.Duration) error
