@@ -22,7 +22,7 @@ FROM alpine:3.17.0
 COPY --from=0 /locator/titan-locator /usr/local/titan-locator
 COPY --from=0 /usr/map/city.mmdb /usr/local/city.mmdb
 
-# host address and port the worker api will listen on
+# host address and port the locator api will listen on
 EXPOSE 5000
 
 ENTRYPOINT ["/usr/local/titan-locator", "run", "--geodb-path=/usr/local/city.mmdb"]

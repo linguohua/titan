@@ -11,8 +11,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/linguohua/titan/stores"
-
 	"github.com/BurntSushi/toml"
 
 	"github.com/ipfs/go-datastore"
@@ -24,6 +22,7 @@ import (
 	"golang.org/x/xerrors"
 
 	"github.com/linguohua/titan/node/config"
+	"github.com/linguohua/titan/stores"
 
 	"github.com/linguohua/titan/node/fsutil"
 	"github.com/linguohua/titan/node/types"
@@ -72,11 +71,6 @@ type RepoType interface {
 	// the user can log a warning when deprecated ones are found to be in use.
 	APIInfoEnvVars() (string, []string, []string)
 }
-
-// SupportsStagingDeals is a trait for services that support staging deals
-// type SupportsStagingDeals interface {
-// 	SupportsStagingDeals()
-// }
 
 type scheduler struct{}
 

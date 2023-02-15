@@ -15,7 +15,7 @@ import (
 	"github.com/linguohua/titan/node/handler"
 )
 
-func WorkerHandler(a api.Locator, permissioned bool) http.Handler {
+func LocatorHandler(a api.Locator, permissioned bool) http.Handler {
 	mux := mux.NewRouter()
 	readerHandler, readerServerOpt := rpcenc.ReaderParamDecoder()
 	rpcServer := jsonrpc.NewServer(readerServerOpt)

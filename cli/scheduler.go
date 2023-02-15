@@ -51,12 +51,6 @@ var SchedulerCmds = []*cli.Command{
 }
 
 var (
-	// schedulerURLFlag = &cli.StringFlag{
-	// 	Name:  "scheduler-url",
-	// 	Usage: "host address and port the worker api will listen on",
-	// 	Value: "http://127.0.0.1:3456/rpc/v0",
-	// }
-
 	deviceIDFlag = &cli.StringFlag{
 		Name:  "device-id",
 		Usage: "device id",

@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/linguohua/titan/node/fsutil"
-
 	"github.com/linguohua/titan/stores"
 
 	"github.com/ipfs/go-datastore"
@@ -28,7 +27,7 @@ const (
 var (
 	ErrNoAPIEndpoint     = errors.New("API not running (no endpoint)")
 	ErrNoAPIToken        = errors.New("API token not set")
-	ErrRepoAlreadyLocked = errors.New("repo is already locked (lotus daemon already running)")
+	ErrRepoAlreadyLocked = errors.New("repo is already locked (titan daemon already running)")
 	ErrClosedRepo        = errors.New("repo is no longer open")
 
 	// ErrInvalidBlockstoreDomain is returned by LockedRepo#Blockstore() when
@@ -37,7 +36,7 @@ var (
 )
 
 type Repo interface {
-	// APIEndpoint returns multiaddress for communication with Lotus API
+	// APIEndpoint returns multiaddress for communication with TITAN API
 	APIEndpoint() (multiaddr.Multiaddr, error)
 
 	// APIToken returns JWT API Token for use in operations that require auth
@@ -59,12 +58,6 @@ type LockedRepo interface {
 	// The implementation should not retain the context for usage throughout
 	// the lifecycle.
 	Datastore(ctx context.Context, namespace string) (datastore.Batching, error)
-
-	// Blockstore returns an IPLD blockstore for the requested domain.
-	// The supplied context must only be used to initialize the blockstore.
-	// The implementation should not retain the context for usage throughout
-	// the lifecycle.
-	// Blockstore(ctx context.Context, domain BlockstoreDomain) (blockstore.Blockstore, error)
 
 	// SplitstorePath returns the path for the SplitStore
 	SplitstorePath() (string, error)

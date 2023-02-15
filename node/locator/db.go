@@ -12,8 +12,7 @@ type db struct {
 }
 
 // locaton config
-type locatorCfg struct {
-	ID           int
+type schedulerCfg struct {
 	SchedulerURL string `db:"scheduler_url"`
 	AreaID       string `db:"area_id"`
 	Weight       int    `db:"weight"`
@@ -78,7 +77,7 @@ func (db *db) listAreaIDs() (areaIDs []string, err error) {
 	return areaIDs, nil
 }
 
-func (db *db) getAccessPointCfgs(areaID string) ([]*locatorCfg, error) {
+func (db *db) getAccessPointCfgs(areaID string) ([]*schedulerCfg, error) {
 	return db.db.getCfgs(areaID)
 }
 
@@ -128,17 +127,17 @@ func initSQLDB(url string) (*sqlDB, error) {
 	return db, nil
 }
 
-func (db *sqlDB) getAllCfg() ([]*locatorCfg, error) {
-	cfg := &locatorCfg{}
-	rows, err := db.cli.NamedQuery(`SELECT * FROM config`, cfg)
+func (db *sqlDB) getAllCfg() ([]*schedulerCfg, error) {
+	cfg := &schedulerCfg{}
+	rows, err := db.cli.NamedQuery(`SELECT * FROM scheduler_config`, cfg)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	cfgs := make([]*locatorCfg, 0)
+	cfgs := make([]*schedulerCfg, 0)
 	for rows.Next() {
-		var cfg locatorCfg
+		var cfg schedulerCfg
 		err = rows.StructScan(&cfg)
 		if err != nil {
 			return nil, err
@@ -149,17 +148,17 @@ func (db *sqlDB) getAllCfg() ([]*locatorCfg, error) {
 	return cfgs, nil
 }
 
-func (db *sqlDB) getCfgs(areaID string) ([]*locatorCfg, error) {
-	cfg := &locatorCfg{AreaID: areaID}
-	rows, err := db.cli.NamedQuery(`SELECT * FROM config WHERE area_id=:area_id`, cfg)
+func (db *sqlDB) getCfgs(areaID string) ([]*schedulerCfg, error) {
+	cfg := &schedulerCfg{AreaID: areaID}
+	rows, err := db.cli.NamedQuery(`SELECT * FROM scheduler_config WHERE area_id=:area_id`, cfg)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	cfgs := make([]*locatorCfg, 0)
+	cfgs := make([]*schedulerCfg, 0)
 	for rows.Next() {
-		cfg := locatorCfg{}
+		cfg := schedulerCfg{}
 		err = rows.StructScan(&cfg)
 		if err != nil {
 			return nil, err
@@ -171,20 +170,20 @@ func (db *sqlDB) getCfgs(areaID string) ([]*locatorCfg, error) {
 }
 
 func (db *sqlDB) addCfg(areaID string, schedulerURL string, weight int, accessToken string) error {
-	cfg := &locatorCfg{SchedulerURL: schedulerURL, AreaID: areaID, Weight: weight, AccessToken: accessToken}
-	_, err := db.cli.NamedExec(`INSERT INTO config (scheduler_url, area_id, weight, access_token) VALUES (:scheduler_url, :area_id, :weight, :access_token)`, cfg)
+	cfg := &schedulerCfg{SchedulerURL: schedulerURL, AreaID: areaID, Weight: weight, AccessToken: accessToken}
+	_, err := db.cli.NamedExec(`INSERT INTO scheduler_config (scheduler_url, area_id, weight, access_token) VALUES (:scheduler_url, :area_id, :weight, :access_token)`, cfg)
 	return err
 }
 
 func (db *sqlDB) DeleteCfgWithAreaID(areaID string) error {
-	cfg := &locatorCfg{AreaID: areaID}
-	_, err := db.cli.NamedExec(`DELETE FROM config WHERE area_id=:area_id`, cfg)
+	cfg := &schedulerCfg{AreaID: areaID}
+	_, err := db.cli.NamedExec(`DELETE FROM scheduler_config WHERE area_id=:area_id`, cfg)
 	return err
 }
 
 func (db *sqlDB) DeleteCfgWithURL(schedulerURL string) error {
-	cfg := &locatorCfg{SchedulerURL: schedulerURL}
-	_, err := db.cli.NamedExec(`DELETE FROM config WHERE scheduler_url=:scheduler_url`, cfg)
+	cfg := &schedulerCfg{SchedulerURL: schedulerURL}
+	_, err := db.cli.NamedExec(`DELETE FROM scheduler_config WHERE scheduler_url=:scheduler_url`, cfg)
 	return err
 }
 
@@ -241,7 +240,7 @@ func (db *sqlDB) countDeviceWithID(deviceID string) (int, error) {
 
 func (db *sqlDB) countCfgWith(areaID, schedulerURL string) (int, error) {
 	var count int
-	err := db.cli.Get(&count, `SELECT count(*) FROM config WHERE scheduler_url=? and area_id=?`, schedulerURL, areaID)
+	err := db.cli.Get(&count, `SELECT count(*) FROM scheduler_config WHERE scheduler_url=? and area_id=?`, schedulerURL, areaID)
 
 	return count, err
 }

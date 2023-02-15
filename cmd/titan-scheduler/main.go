@@ -68,7 +68,7 @@ func main() {
 				Aliases: []string{FlagSchedulerRepoDeprecation},
 				EnvVars: []string{"TITAN_SCHEDULER_PATH", "SCHEDULER_PATH"},
 				Value:   "~/.titanscheduler", // TODO: Consider XDG_DATA_HOME
-				Usage:   fmt.Sprintf("Specify worker repo path. flag %s and env TITAN_SCHEDULER_PATH are DEPRECATION, will REMOVE SOON", FlagSchedulerRepoDeprecation),
+				Usage:   fmt.Sprintf("Specify scheduler repo path. flag %s and env TITAN_SCHEDULER_PATH are DEPRECATION, will REMOVE SOON", FlagSchedulerRepoDeprecation),
 			},
 			&cli.StringFlag{
 				Name:    "panic-reports",
@@ -156,7 +156,7 @@ var runCmd = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "listen",
-			Usage: "host address and port the worker api will listen on",
+			Usage: "host address and port the scheduler api will listen on",
 			Value: "0.0.0.0:3456",
 		},
 		&cli.StringFlag{

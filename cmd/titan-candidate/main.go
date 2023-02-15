@@ -180,16 +180,14 @@ var runCmd = &cli.Command{
 
 		candidateCfg := cfg.(*config.CandidateCfg)
 
-		edgeCfg := cfg.(*config.EdgeCfg)
-
-		udpPacketConn, err := net.ListenPacket("udp", edgeCfg.ListenAddress)
+		udpPacketConn, err := net.ListenPacket("udp", candidateCfg.ListenAddress)
 		if err != nil {
 			return err
 		}
 		defer udpPacketConn.Close()
 
 		// all jsonrpc client use udp
-		httpClient := cliutil.NewUDPHTTPClient(udpPacketConn, edgeCfg.RootCertificatePath)
+		httpClient := cliutil.NewUDPHTTPClient(udpPacketConn, candidateCfg.RootCertificatePath)
 		jsonrpc.SetUDPHTTPClient(httpClient)
 
 		connectTimeout, err := time.ParseDuration(candidateCfg.Timeout)
@@ -255,7 +253,7 @@ var runCmd = &cli.Command{
 		log.Info("ipfs-api " + nodeParams.IPFSAPI)
 
 		candidateApi := candidate.NewLocalCandidateNode(context.Background(), candidateCfg.TcpSrvAddr, device, nodeParams)
-		handler := WorkerHandler(schedulerAPI.AuthVerify, candidateApi, true)
+		handler := CandidateHandler(schedulerAPI.AuthVerify, candidateApi, true)
 
 		srv := &http.Server{
 			Handler: handler,
@@ -265,7 +263,7 @@ var runCmd = &cli.Command{
 			},
 		}
 
-		go startUDPServer(udpPacketConn, handler, edgeCfg.CertificatePath, edgeCfg.PrivateKeyPath)
+		go startUDPServer(udpPacketConn, handler, candidateCfg.CertificatePath, candidateCfg.PrivateKeyPath)
 
 		go func() {
 			<-ctx.Done()
@@ -284,9 +282,9 @@ var runCmd = &cli.Command{
 
 		log.Infof("Candidate listen on %s", address)
 
-		minerSession, err := getSchedulerSession(schedulerAPI, deviceID, connectTimeout)
+		schedulerSession, err := getSchedulerSession(schedulerAPI, deviceID, connectTimeout)
 		if err != nil {
-			return xerrors.Errorf("getting miner session: %w", err)
+			return xerrors.Errorf("getting scheduler session: %w", err)
 		}
 
 		waitQuietCh := func() chan struct{} {
@@ -318,8 +316,8 @@ var runCmd = &cli.Command{
 						errCount++
 						log.Errorf("heartbeat: checking remote session failed: %+v", err)
 					} else {
-						if curSession != minerSession {
-							minerSession = curSession
+						if curSession != schedulerSession {
+							schedulerSession = curSession
 							break
 						}
 
@@ -390,7 +388,7 @@ func getSchedulerVersion(api api.Scheduler, timeout time.Duration) (api.APIVersi
 func extractRoutableIP(cctx *cli.Context, candidateCfg *config.CandidateCfg, timeout time.Duration) (string, error) {
 	ainfo, err := lcli.GetAPIInfo(cctx, repo.Scheduler)
 	if err != nil {
-		return "", xerrors.Errorf("could not get miner API info: %w", err)
+		return "", xerrors.Errorf("could not get scheduler API info: %w", err)
 	}
 
 	schedulerAddr := strings.Split(ainfo.Addr, "/")

@@ -10,12 +10,12 @@ func TestDB(t *testing.T) {
 	db := newDB(url)
 	defer db.close()
 
-	count, err := db.db.countCfgWith("CN-GD-Shenzh", "http://192.168.1.102:6789/rpc/v0")
+	cfgs, err := db.db.getCfgs("CN-GD-Shenzhen")
 	if err != nil {
 		fmt.Printf("err:%s", err.Error())
 		return
 	}
-	fmt.Printf("count:%d", count)
+	fmt.Printf("cfgs:%v", cfgs)
 	// info, err := db.getDeviceInfo("525e7729506711ed8c2c902e1671f843")
 	// if err != nil {
 	// 	fmt.Printf("err:%s", err.Error())

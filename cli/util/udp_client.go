@@ -31,11 +31,11 @@ func NewUDPHTTPClient(pconn net.PacketConn, caCertPath string) *http.Client {
 		log.Fatal(err)
 	}
 
-	addRootCA(pool, caCertPath)
+	if caCertPath != "" {
+		addRootCA(pool, caCertPath)
+	}
 
 	dail := func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
-		// fmt.Printf("addr:%s\n", addr)
-
 		remoteAddr, err := net.ResolveUDPAddr("udp", addr)
 		if err != nil {
 			return nil, err

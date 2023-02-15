@@ -30,7 +30,6 @@ type StreamType string
 const (
 	Null       StreamType = "null"
 	PushStream StreamType = "push"
-	// TODO: Data transfer handoff to workers?
 )
 
 type ReaderStream struct {

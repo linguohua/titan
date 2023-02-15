@@ -66,7 +66,7 @@ func main() {
 				Aliases: []string{FlagEdgeRepoDeprecation},
 				EnvVars: []string{"TITAN_EDGE_PATH", "EDGE_PATH"},
 				Value:   "~/.titanedge", // TODO: Consider XDG_DATA_HOME
-				Usage:   fmt.Sprintf("Specify worker repo path. flag %s and env TITAN_EDGE_PATH are DEPRECATION, will REMOVE SOON", FlagEdgeRepoDeprecation),
+				Usage:   fmt.Sprintf("Specify edge repo path. flag %s and env TITAN_EDGE_PATH are DEPRECATION, will REMOVE SOON", FlagEdgeRepoDeprecation),
 			},
 			&cli.StringFlag{
 				Name:    "panic-reports",
@@ -78,7 +78,7 @@ func main() {
 
 		After: func(c *cli.Context) error {
 			if r := recover(); r != nil {
-				// Generate report in LOTUS_PATH and re-raise panic
+				// Generate report in TITAN_EDGE_PATH and re-raise panic
 				build.GeneratePanicReport(c.String("panic-reports"), c.String(FlagEdgeRepo), c.App.Name)
 				panic(r)
 			}
@@ -243,7 +243,7 @@ var runCmd = &cli.Command{
 		}
 
 		edgeApi := edge.NewLocalEdgeNode(context.Background(), device, params)
-		handler := WorkerHandler(schedulerAPI.AuthVerify, edgeApi, true)
+		handler := EdgeHandler(schedulerAPI.AuthVerify, edgeApi, true)
 
 		srv := &http.Server{
 			Handler: handler,
@@ -272,9 +272,9 @@ var runCmd = &cli.Command{
 
 		log.Infof("Edge listen on %s", address)
 
-		minerSession, err := getSchedulerSession(schedulerAPI, deviceID, timeout)
+		schedulerSession, err := getSchedulerSession(schedulerAPI, deviceID, timeout)
 		if err != nil {
-			return xerrors.Errorf("getting miner session: %w", err)
+			return xerrors.Errorf("getting scheduler session: %w", err)
 		}
 
 		waitQuietCh := func() chan struct{} {
@@ -306,8 +306,8 @@ var runCmd = &cli.Command{
 						errCount++
 						log.Errorf("heartbeat: checking remote session failed: %+v", err)
 					} else {
-						if curSession != minerSession {
-							minerSession = curSession
+						if curSession != schedulerSession {
+							schedulerSession = curSession
 							break
 						}
 
