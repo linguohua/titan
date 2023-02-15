@@ -95,21 +95,6 @@ func (sd sqlDB) GetNodePrivateKey(deviceID string) (string, error) {
 		return "", err
 	}
 
-	// rows, err := sd.cli.NamedQuery(`SELECT private_key FROM node WHERE device_id=:device_id`, info)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// defer rows.Close()
-
-	// if rows.Next() {
-	// 	err = rows.StructScan(info)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// } else {
-	// 	return nil, xerrors.New(errNotFind)
-	// }
-
 	return privateKey, nil
 }
 
@@ -244,10 +229,6 @@ func (sd sqlDB) CreateCarfileReplicaInfo(cInfo *api.CarfileReplicaInfo) error {
 func (sd sqlDB) UpdateCarfileReplicaStatus(hash string, deviceIDs []string, status api.CacheStatus) error {
 	area := sd.replaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
-
-	// cmd := fmt.Sprintf("UPDATE %s SET status=:status WHERE carfile_hash=:carfile_hash AND device_id=:device_id", cTableName)
-	// cmd := fmt.Sprintf("UPDATE %s SET status=:status WHERE id=:id ", cTableName)
-	// _, err := sd.cli.NamedExec(cmd, cInfo)
 
 	tx := sd.cli.MustBegin()
 
@@ -437,21 +418,6 @@ func (sd sqlDB) GetRandCarfileWithNode(deviceID string) (string, error) {
 	return "", nil
 }
 
-func (sd sqlDB) ExtendExpiredTimeWhitCarfile(carfileHash string, hour int) error {
-	tx := sd.cli.MustBegin()
-
-	cmd := fmt.Sprintf(`UPDATE %s SET expired_time=DATE_ADD(expired_time,interval ? HOUR) WHERE carfile_hash=?`, fmt.Sprintf(carfileInfoTable, sd.replaceArea()))
-	tx.MustExec(cmd, hour, carfileHash)
-
-	err := tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-		return err
-	}
-
-	return nil
-}
-
 func (sd sqlDB) ChangeExpiredTimeWhitCarfile(carfileHash string, expiredTime time.Time) error {
 	tx := sd.cli.MustBegin()
 
@@ -546,7 +512,7 @@ func (sd sqlDB) GetSucceededCachesCount() (int, error) {
 	return count, nil
 }
 
-func (sd sqlDB) GetCacheInfo(id string) (*api.CarfileReplicaInfo, error) {
+func (sd sqlDB) GetReplicaInfo(id string) (*api.CarfileReplicaInfo, error) {
 	area := sd.replaceArea()
 
 	var cache api.CarfileReplicaInfo
@@ -617,9 +583,6 @@ func (sd sqlDB) UpdateCacheInfoOfQuitNode(deviceIDs []string) (carfileRecords []
 	area := sd.replaceArea()
 	cTableName := fmt.Sprintf(cacheInfoTable, area)
 	dTableName := fmt.Sprintf(carfileInfoTable, area)
-	// select * from (
-	// 	select carfile_hash from caches_cn_gd_shenzhen WHERE device_id in ('c_9e7c920e5f5a11edbdbb902e1671f843') GROUP BY carfile_hash )as a
-	// 	LEFT JOIN carfiles_cn_gd_shenzhen as b on a.carfile_hash = b.carfile_hash
 
 	tx := sd.cli.MustBegin()
 
@@ -753,56 +716,6 @@ func (sd sqlDB) GetNodesByUserDownloadBlockIn(minute int) ([]string, error) {
 	}
 
 	return out, nil
-}
-
-// cache event info
-func (sd sqlDB) SetCacheEventInfo(info *api.CacheEventInfo) error {
-	area := sd.replaceArea()
-
-	tableName := fmt.Sprintf(eventInfoTable, area)
-
-	cmd := fmt.Sprintf("INSERT INTO %s (cid, msg) VALUES (:cid, :msg)", tableName)
-	_, err := sd.cli.NamedExec(cmd, info)
-	return err
-}
-
-func (sd sqlDB) ListCacheEventInfos(page int, cid string) (info *api.EventListInfo, err error) {
-	area := sd.replaceArea()
-	num := 20
-
-	info = &api.EventListInfo{Page: page}
-
-	cidStr := ""
-	if cid != "" {
-		cidStr = fmt.Sprintf("WHERE cid='%s'", cid)
-	}
-
-	cmd := fmt.Sprintf("SELECT count(id) FROM %s %s", fmt.Sprintf(eventInfoTable, area), cidStr)
-	err = sd.cli.Get(&info.Count, cmd)
-	if err != nil {
-		return
-	}
-
-	info.TotalPage = info.Count / num
-	if info.Count%num > 0 {
-		info.TotalPage++
-	}
-
-	if info.TotalPage == 0 {
-		return
-	}
-
-	if page > info.TotalPage {
-		page = info.TotalPage
-	}
-	info.Page = page
-
-	cmd = fmt.Sprintf("SELECT * FROM %s %s LIMIT %d,%d", fmt.Sprintf(eventInfoTable, area), cidStr, (num * (page - 1)), num)
-	if err = sd.cli.Select(&info.EventList, cmd); err != nil {
-		return
-	}
-
-	return
 }
 
 func (sd sqlDB) GetCacheInfosWithNode(deviceID string, index, count int) (info *api.NodeCacheRsp, err error) {

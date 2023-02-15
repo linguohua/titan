@@ -29,13 +29,11 @@ var SchedulerCmds = []*cli.Command{
 	removeCacheCmd,
 	showRunningCarfilesCmd,
 	resetCarfileExpiredTimeCmd,
-	replenishCarfileExpiredTimeCmd,
 	nodeQuitCmd,
 	stopCarfileCmd,
 	resetBackupCacheCountCmd,
 	listUndoneCarfileCmd,
 	contiuneUndoneCarfileCmd,
-	listCacheEventCmd,
 	// validate
 	electionCmd,
 	validateCmd,
@@ -265,42 +263,6 @@ var resetCarfileExpiredTimeCmd = &cli.Command{
 		}
 
 		err = schedulerAPI.ResetCacheExpiredTime(ctx, cardileCid, time)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	},
-}
-
-var replenishCarfileExpiredTimeCmd = &cli.Command{
-	Name:  "replenish-carfile-expired",
-	Usage: "replenish carfile expired time",
-	Flags: []cli.Flag{
-		cidFlag,
-		expiredTimeFlag,
-	},
-
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		cardileCid := cctx.String("cid")
-		hour := cctx.Int("expired-time")
-
-		ctx := ReqContext(cctx)
-
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		if hour <= 0 {
-			return xerrors.Errorf("expired time err:%d", hour)
-		}
-
-		err = schedulerAPI.ReplenishCacheExpiredTime(ctx, cardileCid, hour)
 		if err != nil {
 			return err
 		}
@@ -614,46 +576,6 @@ var listCarfilesCmd = &cli.Command{
 			fmt.Printf("%s ,Reliabilit: %d/%d ,Blocks:%d ,Expired Time:%s \n", carfile.CarfileCid, carfile.CurReliability, carfile.NeedReliability, carfile.TotalBlocks, carfile.ExpiredTime.Format("2006-01-02 15:04:05"))
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
-
-		return nil
-	},
-}
-
-var listCacheEventCmd = &cli.Command{
-	Name:  "list-cache-event",
-	Usage: "list cache events",
-	Flags: []cli.Flag{
-		pageFlag,
-		cidFlag,
-	},
-
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		page := cctx.Int("page")
-		if page < 1 {
-			return xerrors.New("page need greater than 1")
-		}
-
-		cid := cctx.String("cid")
-
-		info, err := schedulerAPI.ListCacheEvents(ctx, page, cid)
-		if err != nil {
-			return err
-		}
-
-		for _, event := range info.EventList {
-			fmt.Printf("CID:%s,Msg:%s,Time:%s \n", event.CID, event.Msg, event.Time.String())
-		}
-		fmt.Printf("total:%d            %d/%d \n", info.Count, info.Page, info.TotalPage)
 
 		return nil
 	},

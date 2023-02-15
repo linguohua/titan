@@ -97,15 +97,6 @@ func (s *Scheduler) ResetCacheExpiredTime(ctx context.Context, carfileCid string
 	return s.dataManager.ResetCacheExpiredTime(carfileCid, expiredTime)
 }
 
-// ReplenishCacheExpiredTime replenish expired time with data cache
-func (s *Scheduler) ReplenishCacheExpiredTime(ctx context.Context, carfileCid string, hour int) error {
-	if hour <= 0 {
-		return xerrors.Errorf("hour is :%d <= 0", hour)
-	}
-
-	return s.dataManager.ReplenishCacheExpiredTime(carfileCid, hour)
-}
-
 // StopCacheTask stop cache
 func (s *Scheduler) StopCacheTask(ctx context.Context, carfileCid string) error {
 	return s.dataManager.StopCacheTask(carfileCid, "")
@@ -195,11 +186,6 @@ func (s *Scheduler) GetCarfileRecordInfo(ctx context.Context, cid string) (api.C
 func (s *Scheduler) ResetBackupCacheCount(ctx context.Context, backupCacheCount int) error {
 	s.dataManager.ResetBackupCacheCount(backupCacheCount)
 	return nil
-}
-
-// ListCacheEvents get data events
-func (s *Scheduler) ListCacheEvents(ctx context.Context, page int, cid string) (*api.EventListInfo, error) {
-	return persistent.GetDB().ListCacheEventInfos(page, cid)
 }
 
 // ListCarfileRecords List Datas
