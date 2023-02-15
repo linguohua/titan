@@ -178,8 +178,8 @@ var runCmd = &cli.Command{
 		}
 		defer udpPacketConn.Close()
 
-		httpClient := cliutil.NewUDPHTTPClient(udpPacketConn, edgeCfg.RootCertificatePath)
-		jsonrpc.SetUDPHTTPClient(httpClient)
+		httpClient := cliutil.NewHttp3Client(udpPacketConn, edgeCfg.RootCertificatePath)
+		jsonrpc.SetHttp3Client(httpClient)
 
 		timeout, err := time.ParseDuration(edgeCfg.Timeout)
 		if err != nil {

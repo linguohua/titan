@@ -187,8 +187,8 @@ var runCmd = &cli.Command{
 		defer udpPacketConn.Close()
 
 		// all jsonrpc client use udp
-		httpClient := cliutil.NewUDPHTTPClient(udpPacketConn, candidateCfg.RootCertificatePath)
-		jsonrpc.SetUDPHTTPClient(httpClient)
+		httpClient := cliutil.NewHttp3Client(udpPacketConn, candidateCfg.RootCertificatePath)
+		jsonrpc.SetHttp3Client(httpClient)
 
 		connectTimeout, err := time.ParseDuration(candidateCfg.Timeout)
 		if err != nil {

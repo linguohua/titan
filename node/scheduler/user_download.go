@@ -120,31 +120,6 @@ func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string,
 	}
 
 	return infos, nil
-
-	// TODO record
-	// info := infos[randomNum(0, len(infos))]
-	// err = s.signDownloadInfos(cid, []api.DownloadInfoResult{info}, make(map[string]*rsa.PrivateKey))
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// record := &cache.DownloadBlockRecord{
-	// 	SN:            info.SN,
-	// 	ID:            uuid.New().String(),
-	// 	Cid:           cid,
-	// 	SignTime:      info.SignTime,
-	// 	Timeout:       blockDonwloadTimeout,
-	// 	UserPublicKey: publicKey,
-	// 	NodeStatus:    int(blockDownloadStatusUnknow),
-	// 	UserStatus:    int(blockDownloadStatusUnknow),
-	// }
-
-	// err = s.recordDownloadBlock(record, nil, "", handler.GetRequestIP(ctx))
-	// if err != nil {
-	// 	log.Errorf("GetDownloadInfoWithBlock,recordDownloadBlock error %s", err.Error())
-	// }
-
-	// return info, nil
 }
 
 func (s *Scheduler) verifyNodeResultForUserDownloadBlock(deviceID string, record *cache.DownloadBlockRecord, sign []byte) error {

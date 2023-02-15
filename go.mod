@@ -171,4 +171,4 @@ require (
 	google.golang.org/grpc v1.49.0 // indirect
 )
 
-replace github.com/filecoin-project/go-jsonrpc v0.2.1 => github.com/zscboy/go-jsonrpc v0.2.2
+replace github.com/filecoin-project/go-jsonrpc v0.2.1 => github.com/zscboy/go-jsonrpc v0.2.3
