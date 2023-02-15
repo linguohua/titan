@@ -106,7 +106,9 @@ func (sd sqlDB) GetNodeAuthInfo(deviceID string) (*api.DownloadServerAccessAuth,
 		return nil, xerrors.New(errNotFind)
 	}
 
-	return &api.DownloadServerAccessAuth{URL: info.URL, PrivateKey: info.PrivateKey, DeviceID: deviceID}, err
+	downloadSrvURL := fmt.Sprintf("https://%s/block/get", info.Address)
+
+	return &api.DownloadServerAccessAuth{URL: downloadSrvURL, PrivateKey: info.PrivateKey, DeviceID: deviceID}, err
 }
 
 func (sd sqlDB) GetOfflineNodes() ([]*NodeInfo, error) {

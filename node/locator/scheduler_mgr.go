@@ -85,7 +85,7 @@ func (mgr *accessPointMgr) newSchedulerAPI(url string, areaID string, schedulerA
 		return nil, err
 	}
 
-	uuid, err := api.Session(ctx, "")
+	uuid, err := api.Session(ctx)
 	if err != nil {
 		log.Errorf("newSchedulerAPI connect to scheduler err:%s", err.Error())
 		return nil, err
@@ -98,7 +98,6 @@ func (mgr *accessPointMgr) newSchedulerAPI(url string, areaID string, schedulerA
 	mgr.addAccessPointToMap(areaID, ap)
 
 	return newAPI, nil
-
 }
 
 func (mgr *accessPointMgr) removeSchedulerAPI(url, areaID string) {
@@ -111,7 +110,7 @@ func (mgr *accessPointMgr) removeSchedulerAPI(url, areaID string) {
 		return
 	}
 
-	var index = 0
+	index := 0
 	for i, api := range ap.apis {
 		if api.url == url {
 			index = i
@@ -148,7 +147,7 @@ func (mgr *accessPointMgr) getSchedulerAPI(url, areaID, accessToken string) (*sc
 		for _, api := range ap.apis {
 			if api.url == url {
 				// check scheduler if online
-				uuid, err := api.Session(ctx, "")
+				uuid, err := api.Session(ctx)
 				if err != nil {
 					log.Warnf("scheduler aready %s offline", url)
 					mgr.removeSchedulerAPI(url, areaID)
@@ -164,7 +163,6 @@ func (mgr *accessPointMgr) getSchedulerAPI(url, areaID, accessToken string) (*sc
 				return api, true
 			}
 		}
-
 	}
 
 	// reconnect scheduler
@@ -174,7 +172,6 @@ func (mgr *accessPointMgr) getSchedulerAPI(url, areaID, accessToken string) (*sc
 	}
 
 	return nil, false
-
 }
 
 func (mgr *accessPointMgr) randSchedulerAPI(areaID string) (*schedulerAPI, bool) {
@@ -189,5 +186,4 @@ func (mgr *accessPointMgr) randSchedulerAPI(areaID string) (*schedulerAPI, bool)
 	}
 
 	return nil, false
-
 }

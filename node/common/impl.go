@@ -7,6 +7,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/journal/alerting"
+	"github.com/linguohua/titan/node/handler"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/gbrlsnchs/jwt/v3"
@@ -22,7 +23,7 @@ type CommonAPI struct {
 	APISecret    *jwt.HMACSHA
 	ShutdownChan chan struct{}
 
-	SessionCallBack func(string)
+	SessionCallBack func(string, string)
 }
 
 type jwtPayload struct {
@@ -32,7 +33,7 @@ type jwtPayload struct {
 // MethodGroup: Auth
 
 // NewCommonAPI New CommonAPI
-func NewCommonAPI(sessionCallBack func(string)) CommonAPI {
+func NewCommonAPI(sessionCallBack func(string, string)) CommonAPI {
 	return CommonAPI{SessionCallBack: sessionCallBack}
 }
 
@@ -90,9 +91,12 @@ func (a *CommonAPI) Shutdown(context.Context) error {
 }
 
 // Session returns a random UUID of api provider session
-func (a *CommonAPI) Session(ctx context.Context, deviceID string) (uuid.UUID, error) {
+func (a *CommonAPI) Session(ctx context.Context) (uuid.UUID, error) {
+	remoteAddr := handler.GetRemoteAddr(ctx)
+	deviceID := handler.GetDeviceID(ctx)
+
 	if a.SessionCallBack != nil {
-		a.SessionCallBack(deviceID)
+		a.SessionCallBack(deviceID, remoteAddr)
 	}
 
 	return session, nil

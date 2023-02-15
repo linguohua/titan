@@ -354,7 +354,7 @@ func getSchedulerSession(api api.Scheduler, deviceID string, timeout time.Durati
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	return api.Session(ctx, deviceID)
+	return api.Session(ctx)
 }
 
 func getExternalIP(api api.Scheduler, timeout time.Duration) (string, error) {
@@ -403,7 +403,6 @@ func newAuthTokenFromScheduler(schedulerURL, deviceID, secret string, timeout ti
 	perms := []auth.Permission{api.PermRead, api.PermWrite}
 
 	return schedulerAPI.AuthNodeNew(ctx, perms, deviceID, secret)
-
 }
 
 func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string, timeout time.Duration) (api.Scheduler, jsonrpc.ClientCloser, error) {

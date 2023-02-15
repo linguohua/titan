@@ -65,7 +65,7 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int) api.Scheduler {
 	s := &Scheduler{}
 
 	nodeManager := node.NewNodeManager(s.nodeOfflineCallback, s.nodeExitedCallback)
-	s.CommonAPI = common.NewCommonAPI(nodeManager.UpdateLastRequestTime)
+	s.CommonAPI = common.NewCommonAPI(nodeManager.NodeSessionCallBack)
 	s.Web = web.NewWeb(s)
 
 	sec, err := secret.APISecret(lr)
@@ -85,7 +85,7 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int) api.Scheduler {
 	s.nodeManager = nodeManager
 	s.election = election.NewElection(nodeManager)
 	s.validate = validate.NewValidate(nodeManager, false)
-	s.dataManager = carfile.NewCarfileManager(nodeManager, s.authToken)
+	s.dataManager = carfile.NewCarfileManager(nodeManager, s.writeToken)
 	s.dataSync = sync.NewDataSync(nodeManager)
 
 	s.nodeAppUpdateInfos, _ = persistent.GetDB().GetNodeUpdateInfos()
@@ -105,7 +105,8 @@ type Scheduler struct {
 	locatorManager *locator.Manager
 	dataSync       *sync.DataSync
 
-	authToken          []byte
+	writeToken         []byte
+	adminToken         []byte
 	nodeAppUpdateInfos map[int]*api.NodeAppUpdateInfo
 }
 
@@ -170,22 +171,11 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("candidate node not Exist: %s", deviceID)
 	}
 
-	rpcURL := fmt.Sprintf("https://%s/rpc/v0", remoteAddr)
 	log.Infof("CandidateNodeConnect %s, address:%s", deviceID, remoteAddr)
-
-	t, err := s.AuthNew(ctx, api.AllPermissions)
+	candidateNode := node.NewCandidateNode(s.adminToken)
+	candicateAPI, err := candidateNode.ConnectRPC(remoteAddr)
 	if err != nil {
-		return xerrors.Errorf("creating auth token for remote connection: %s", err.Error())
-	}
-
-	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+string(t))
-
-	// Connect to node
-	candicateAPI, closer, err := client.NewCandicate(ctx, rpcURL, headers)
-	if err != nil {
-		log.Errorf("CandidateNodeConnect NewCandicate err:%s,url:%s", err.Error(), rpcURL)
-		return err
+		return xerrors.Errorf("CandidateNodeConnect ConnectRPC err:%s", err.Error())
 	}
 
 	// load device info
@@ -224,8 +214,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 	deviceInfo.Longitude = geoInfo.Longitude
 	deviceInfo.Latitude = geoInfo.Latitude
 
-	downloadSrvURL := fmt.Sprintf("https://%s/block/get", remoteAddr)
-	candidateNode := node.NewCandidateNode(candicateAPI, closer, node.NewNode(&deviceInfo, rpcURL, downloadSrvURL, privateKey, api.TypeNameCandidate, geoInfo))
+	candidateNode.Node = node.NewNode(&deviceInfo, remoteAddr, privateKey, api.TypeNameCandidate, geoInfo)
 
 	err = s.nodeManager.CandidateOnline(candidateNode)
 	if err != nil {
@@ -255,22 +244,11 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("edge node not Exist: %s", deviceID)
 	}
 
-	rpcURL := fmt.Sprintf("https://%s/rpc/v0", remoteAddr)
 	log.Infof("EdgeNodeConnect %s; remoteAddr:%s", deviceID, remoteAddr)
-
-	t, err := s.AuthNew(ctx, api.AllPermissions)
+	edgeNode := node.NewEdgeNode(s.adminToken)
+	edgeAPI, err := edgeNode.ConnectRPC(remoteAddr)
 	if err != nil {
-		return xerrors.Errorf("creating auth token for remote connection: %s", err.Error())
-	}
-
-	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+string(t))
-
-	// Connect to node
-	edgeAPI, closer, err := client.NewEdge(ctx, rpcURL, headers)
-	if err != nil {
-		log.Errorf("EdgeNodeConnect NewEdge err:%s,url:%s", err.Error(), rpcURL)
-		return err
+		return xerrors.Errorf("EdgeNodeConnect ConnectRPC err:%s", err.Error())
 	}
 
 	// load device info
@@ -309,8 +287,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	deviceInfo.Longitude = geoInfo.Longitude
 	deviceInfo.Latitude = geoInfo.Latitude
 
-	downloadSrvURL := fmt.Sprintf("https://%s/block/get", remoteAddr)
-	edgeNode := node.NewEdgeNode(edgeAPI, closer, node.NewNode(&deviceInfo, rpcURL, downloadSrvURL, privateKey, api.TypeNameEdge, geoInfo))
+	edgeNode.Node = node.NewNode(&deviceInfo, remoteAddr, privateKey, api.TypeNameEdge, geoInfo)
 
 	err = s.nodeManager.EdgeOnline(edgeNode)
 	if err != nil {
@@ -533,13 +510,21 @@ func (s *Scheduler) nodeExitedCallback(deviceIDs []string) {
 }
 
 func (s *Scheduler) authNew() error {
-	tk, err := s.AuthNew(context.Background(), []auth.Permission{api.PermRead, api.PermWrite})
+	wtk, err := s.AuthNew(context.Background(), []auth.Permission{api.PermRead, api.PermWrite})
 	if err != nil {
-		log.Errorf("findDownloadinfoForBlocks AuthNew err:%s", err.Error())
+		log.Errorf("AuthNew err:%s", err.Error())
 		return err
 	}
 
-	s.authToken = tk
+	s.writeToken = wtk
+
+	atk, err := s.AuthNew(context.Background(), api.AllPermissions)
+	if err != nil {
+		log.Errorf("AuthNew err:%s", err.Error())
+		return err
+	}
+
+	s.adminToken = atk
 
 	return nil
 }

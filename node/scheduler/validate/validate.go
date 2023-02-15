@@ -171,7 +171,7 @@ func (v *Validate) getValidatedList(validatorMap map[string]float64) []*validate
 		info := &validatedDeviceInfo{}
 		info.nodeType = api.NodeEdge
 		info.deviceID = edgeNode.DeviceID
-		info.addr = edgeNode.Node.GetAddress()
+		info.addr = edgeNode.Node.GetRPCURL()
 		info.bandwidth = edgeNode.BandwidthUp
 		validatedList = append(validatedList, info)
 		return true
@@ -184,7 +184,7 @@ func (v *Validate) getValidatedList(validatorMap map[string]float64) []*validate
 		info := &validatedDeviceInfo{}
 		info.deviceID = candidateNode.DeviceID
 		info.nodeType = api.NodeCandidate
-		info.addr = candidateNode.Node.GetAddress()
+		info.addr = candidateNode.Node.GetRPCURL()
 		info.bandwidth = candidateNode.BandwidthUp
 		validatedList = append(validatedList, info)
 		return true
