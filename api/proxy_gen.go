@@ -142,7 +142,7 @@ type EdgeStruct struct {
 	CarfileOperationStruct
 
 	Internal struct {
-		PingUser func(p0 context.Context, p1 string) error ``
+		PingUser func(p0 context.Context, p1 string) error `perm:"write"`
 
 		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
