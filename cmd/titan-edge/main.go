@@ -264,13 +264,12 @@ var runCmd = &cli.Command{
 			log.Warn("Graceful shutdown successful")
 		}()
 
-		address := edgeCfg.ListenAddress
-		nl, err := net.Listen("tcp", address)
+		nl, err := net.Listen("tcp", edgeCfg.ListenAddress)
 		if err != nil {
 			return err
 		}
 
-		log.Infof("Edge listen on %s", address)
+		log.Infof("Edge listen on tcp %s", edgeCfg.ListenAddress)
 
 		schedulerSession, err := getSchedulerSession(schedulerAPI, deviceID, timeout)
 		if err != nil {
@@ -449,6 +448,7 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string, tim
 func startUDPServer(conn net.PacketConn, handler http.Handler, certPath, privPath string) error {
 	cert, err := tls.LoadX509KeyPair(certPath, privPath)
 	if err != nil {
+		log.Errorf("startUDPServer, LoadX509KeyPair error:%s", err.Error())
 		return err
 	}
 
