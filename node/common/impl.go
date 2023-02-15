@@ -92,10 +92,9 @@ func (a *CommonAPI) Shutdown(context.Context) error {
 
 // Session returns a random UUID of api provider session
 func (a *CommonAPI) Session(ctx context.Context) (uuid.UUID, error) {
-	remoteAddr := handler.GetRemoteAddr(ctx)
-	deviceID := handler.GetDeviceID(ctx)
-
 	if a.SessionCallBack != nil {
+		remoteAddr := handler.GetRemoteAddr(ctx)
+		deviceID := handler.GetDeviceID(ctx)
 		a.SessionCallBack(deviceID, remoteAddr)
 	}
 

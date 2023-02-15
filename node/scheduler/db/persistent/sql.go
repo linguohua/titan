@@ -66,13 +66,13 @@ func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
 	}
 
 	if count == 0 {
-		_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address, server_name,private_key, url)
-                VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address, :server_name,:private_key,:url)`, info)
+		_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address, server_name,private_key)
+                VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address, :server_name,:private_key)`, info)
 		return err
 	}
 
 	// update
-	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address,server_name=:server_name,url=:url,quitted=:quitted WHERE device_id=:device_id`, info)
+	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address,server_name=:server_name,quitted=:quitted WHERE device_id=:device_id`, info)
 	return err
 }
 
@@ -88,27 +88,29 @@ func (sd sqlDB) SetNodeOffline(deviceID string, lastTime time.Time) error {
 	return err
 }
 
-func (sd sqlDB) GetNodeAuthInfo(deviceID string) (*api.DownloadServerAccessAuth, error) {
-	info := &NodeInfo{DeviceID: deviceID}
-
-	rows, err := sd.cli.NamedQuery(`SELECT private_key,url FROM node WHERE device_id=:device_id`, info)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	if rows.Next() {
-		err = rows.StructScan(info)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		return nil, xerrors.New(errNotFind)
+func (sd sqlDB) GetNodePrivateKey(deviceID string) (string, error) {
+	var privateKey string
+	query := "SELECT private_key FROM node WHERE device_id=?"
+	if err := sd.cli.Get(&privateKey, query, deviceID); err != nil {
+		return "", err
 	}
 
-	downloadSrvURL := fmt.Sprintf("https://%s/block/get", info.Address)
+	// rows, err := sd.cli.NamedQuery(`SELECT private_key FROM node WHERE device_id=:device_id`, info)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer rows.Close()
 
-	return &api.DownloadServerAccessAuth{URL: downloadSrvURL, PrivateKey: info.PrivateKey, DeviceID: deviceID}, err
+	// if rows.Next() {
+	// 	err = rows.StructScan(info)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// } else {
+	// 	return nil, xerrors.New(errNotFind)
+	// }
+
+	return privateKey, nil
 }
 
 func (sd sqlDB) GetOfflineNodes() ([]*NodeInfo, error) {

@@ -173,7 +173,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 
 	log.Infof("CandidateNodeConnect %s, address:%s", deviceID, remoteAddr)
 	candidateNode := node.NewCandidateNode(s.adminToken)
-	candicateAPI, err := candidateNode.ConnectRPC(remoteAddr)
+	candicateAPI, err := candidateNode.ConnectRPC(remoteAddr, true)
 	if err != nil {
 		return xerrors.Errorf("CandidateNodeConnect ConnectRPC err:%s", err.Error())
 	}
@@ -189,10 +189,10 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
 
-	authInfo, _ := persistent.GetDB().GetNodeAuthInfo(deviceID)
+	privateKeyStr, _ := persistent.GetDB().GetNodePrivateKey(deviceID)
 	var privateKey *rsa.PrivateKey
-	if authInfo != nil && len(authInfo.PrivateKey) > 0 {
-		privateKey, err = titanRsa.Pem2PrivateKey(authInfo.PrivateKey)
+	if len(privateKeyStr) > 0 {
+		privateKey, err = titanRsa.Pem2PrivateKey(privateKeyStr)
 		if err != nil {
 			return err
 		}
@@ -246,7 +246,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 
 	log.Infof("EdgeNodeConnect %s; remoteAddr:%s", deviceID, remoteAddr)
 	edgeNode := node.NewEdgeNode(s.adminToken)
-	edgeAPI, err := edgeNode.ConnectRPC(remoteAddr)
+	edgeAPI, err := edgeNode.ConnectRPC(remoteAddr, true)
 	if err != nil {
 		return xerrors.Errorf("EdgeNodeConnect ConnectRPC err:%s", err.Error())
 	}
@@ -262,10 +262,10 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
 
-	authInfo, _ := persistent.GetDB().GetNodeAuthInfo(deviceID)
+	privateKeyStr, _ := persistent.GetDB().GetNodePrivateKey(deviceID)
 	var privateKey *rsa.PrivateKey
-	if authInfo != nil && len(authInfo.PrivateKey) > 0 {
-		privateKey, err = titanRsa.Pem2PrivateKey(authInfo.PrivateKey)
+	if len(privateKeyStr) > 0 {
+		privateKey, err = titanRsa.Pem2PrivateKey(privateKeyStr)
 		if err != nil {
 			return err
 		}

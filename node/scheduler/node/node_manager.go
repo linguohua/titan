@@ -309,14 +309,14 @@ func (m *Manager) NodeSessionCallBack(deviceID, remoteAddr string) {
 	edge := m.GetEdgeNode(deviceID)
 	if edge != nil {
 		edge.SetLastRequestTime(lastTime)
-		edge.ConnectRPC(remoteAddr)
+		edge.ConnectRPC(remoteAddr, false)
 		return
 	}
 
 	candidate := m.GetCandidateNode(deviceID)
 	if candidate != nil {
 		candidate.SetLastRequestTime(lastTime)
-		candidate.ConnectRPC(remoteAddr)
+		candidate.ConnectRPC(remoteAddr, false)
 		return
 	}
 }
@@ -345,12 +345,14 @@ func (m *Manager) FindNodeDownloadInfos(cid string) ([]*api.DownloadInfoResult, 
 		}
 		deviceID := cache.DeviceID
 
-		info, err := persistent.GetDB().GetNodeAuthInfo(deviceID)
-		if err != nil {
+		node := m.GetNode(deviceID)
+		if node == nil {
 			continue
 		}
 
-		infos = append(infos, &api.DownloadInfoResult{URL: info.URL, DeviceID: deviceID})
+		url := node.GetDownloadURL()
+
+		infos = append(infos, &api.DownloadInfoResult{URL: url, DeviceID: deviceID})
 	}
 
 	// if len(infos) <= 0 {
