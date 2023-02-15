@@ -47,7 +47,7 @@ func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, uuid strin
 		log.Panicf("NewLocalLocator,new token to scheduler:%s", err.Error())
 	}
 
-	locator.apMgr = newAccessPointMgr(locatorPort, string(token), uuid)
+	locator.apMgr = newAccessPointMgr(string(token), uuid)
 	return locator
 
 }
@@ -164,14 +164,6 @@ func (locator *Locator) SetDeviceOnlineStatus(ctx context.Context, deviceID stri
 
 	locator.db.db.setDeviceInfo(deviceID, info.SchedulerURL, info.AreaID, isOnline)
 	return nil
-}
-
-func (locator *Locator) DeviceOnline(ctx context.Context, deviceID string, areaID string, port int) error {
-	return locator.SetDeviceOnlineStatus(ctx, deviceID, true)
-}
-
-func (locator *Locator) DeviceOffline(ctx context.Context, deviceID string) error {
-	return locator.SetDeviceOnlineStatus(ctx, deviceID, false)
 }
 
 func (locator *Locator) getAccessPointsWithWeightCount(areaID string) ([]string, error) {

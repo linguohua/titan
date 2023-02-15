@@ -35,7 +35,7 @@ type Scheduler interface {
 	ListCacheEvents(ctx context.Context, page int, cid string) (*EventListInfo, error)          //perm:read
 
 	// call by locator
-	LocatorConnect(ctx context.Context, edgePort int, areaID, locatorID, locatorToken string) error //perm:write
+	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error //perm:write
 
 	// call by node
 	// node send result when user download block complete

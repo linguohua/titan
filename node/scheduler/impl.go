@@ -480,11 +480,11 @@ func (s *Scheduler) ValidateStart(ctx context.Context) error {
 }
 
 // LocatorConnect Locator Connect
-func (s *Scheduler) LocatorConnect(ctx context.Context, port int, areaID, locatorID string, locatorToken string) error {
+func (s *Scheduler) LocatorConnect(ctx context.Context, locatorID string, locatorToken string) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
-	ip, _, _ := net.SplitHostPort(remoteAddr)
-	url := fmt.Sprintf("http://%s:%d/rpc/v0", ip, port)
-	log.Infof("LocatorConnect locatorID:%s,areaID:%s,LocatorConnect addr:%s", locatorID, areaID, remoteAddr)
+	url := fmt.Sprintf("https://%s/rpc/v0", remoteAddr)
+
+	log.Infof("LocatorConnect locatorID:%s, addr:%s", locatorID, remoteAddr)
 
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+string(locatorToken))
