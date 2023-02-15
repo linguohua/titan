@@ -87,7 +87,7 @@ type CommonStruct struct {
 
 		LogSetLevel func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
-		Session func(p0 context.Context, p1 string) (uuid.UUID, error) `perm:"read"`
+		Session func(p0 context.Context) (uuid.UUID, error) `perm:"read"`
 
 		ShowLogFile func(p0 context.Context) (*LogFile, error) `perm:"write"`
 
@@ -513,14 +513,14 @@ func (s *CommonStub) LogSetLevel(p0 context.Context, p1 string, p2 string) error
 	return ErrNotSupported
 }
 
-func (s *CommonStruct) Session(p0 context.Context, p1 string) (uuid.UUID, error) {
+func (s *CommonStruct) Session(p0 context.Context) (uuid.UUID, error) {
 	if s.Internal.Session == nil {
 		return *new(uuid.UUID), ErrNotSupported
 	}
-	return s.Internal.Session(p0, p1)
+	return s.Internal.Session(p0)
 }
 
-func (s *CommonStub) Session(p0 context.Context, p1 string) (uuid.UUID, error) {
+func (s *CommonStub) Session(p0 context.Context) (uuid.UUID, error) {
 	return *new(uuid.UUID), ErrNotSupported
 }
 

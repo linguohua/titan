@@ -130,7 +130,6 @@ type NodeInfo struct {
 	Address    string    `db:"address"`
 	ServerName string    `db:"server_name"`
 	CreateTime time.Time `db:"create_time"`
-	URL        string    `db:"url"`
 	PrivateKey string    `db:"private_key"`
 	Quitted    bool      `db:"quitted"`
 }

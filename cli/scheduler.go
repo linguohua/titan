@@ -794,7 +794,7 @@ func statusToStr(s api.CacheStatus) string {
 	case api.CacheStatusRunning:
 		return "running"
 	case api.CacheStatusSucceeded:
-		return "done"
+		return "succeeded"
 	default:
 		return "failed"
 	}

@@ -323,7 +323,6 @@ var runCmd = &cli.Command{
 
 						if errCount > 0 {
 							break
-
 						}
 					}
 
@@ -368,7 +367,7 @@ func getSchedulerSession(api api.Scheduler, deviceID string, timeout time.Durati
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	return api.Session(ctx, deviceID)
+	return api.Session(ctx)
 }
 
 func getExternalIP(api api.Scheduler, timeout time.Duration) (string, error) {

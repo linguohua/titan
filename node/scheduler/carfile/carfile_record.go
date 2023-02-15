@@ -101,8 +101,8 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 			cNode := carfileRecord.nodeManager.GetCandidateNode(c.deviceID)
 			if cNode != nil {
 				carfileRecord.dowloadSources = append(carfileRecord.dowloadSources, &api.DowloadSource{
-					CandidateURL:   cNode.GetAddress(),
-					CandidateToken: string(carfileRecord.carfileManager.authToken),
+					CandidateURL:   cNode.GetRPCURL(),
+					CandidateToken: string(carfileRecord.carfileManager.writeToken),
 				})
 			}
 		}
@@ -319,8 +319,8 @@ func (d *CarfileRecord) updateCarfileRecordInfo(endCache *CacheTask, errMsg stri
 		cNode := d.nodeManager.GetCandidateNode(endCache.deviceID)
 		if cNode != nil {
 			d.dowloadSources = append(d.dowloadSources, &api.DowloadSource{
-				CandidateURL:   cNode.GetAddress(),
-				CandidateToken: string(d.carfileManager.authToken),
+				CandidateURL:   cNode.GetRPCURL(),
+				CandidateToken: string(d.carfileManager.writeToken),
 			})
 		}
 	}

@@ -302,19 +302,21 @@ func (m *Manager) FindCandidatesByList(list []string, filterMap map[string]strin
 	return nil
 }
 
-// UpdateLastRequestTime node pingpong
-func (m *Manager) UpdateLastRequestTime(deviceID string) {
+// NodeSessionCallBack node pingpong
+func (m *Manager) NodeSessionCallBack(deviceID, remoteAddr string) {
 	lastTime := time.Now()
 
 	edge := m.GetEdgeNode(deviceID)
 	if edge != nil {
 		edge.SetLastRequestTime(lastTime)
+		edge.ConnectRPC(remoteAddr)
 		return
 	}
 
 	candidate := m.GetCandidateNode(deviceID)
 	if candidate != nil {
 		candidate.SetLastRequestTime(lastTime)
+		candidate.ConnectRPC(remoteAddr)
 		return
 	}
 }

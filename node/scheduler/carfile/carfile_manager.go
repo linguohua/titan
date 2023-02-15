@@ -37,16 +37,16 @@ type Manager struct {
 	nodeManager             *node.Manager
 	RunningCarfileRecordMap sync.Map // cacheing carfile map
 	latelyExpiredTime       time.Time
-	authToken               []byte
+	writeToken              []byte
 	runningTaskCount        int
 }
 
 // NewCarfileManager new
-func NewCarfileManager(nodeManager *node.Manager, authToken []byte) *Manager {
+func NewCarfileManager(nodeManager *node.Manager, writeToken []byte) *Manager {
 	d := &Manager{
 		nodeManager:       nodeManager,
 		latelyExpiredTime: time.Now(),
-		authToken:         authToken,
+		writeToken:        writeToken,
 	}
 
 	d.resetBaseInfo()

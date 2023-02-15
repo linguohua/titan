@@ -2,8 +2,10 @@ package stores
 
 import "time"
 
-var HeartbeatInterval = 10 * time.Second
-var SkippedHeartbeatThresh = HeartbeatInterval * 5
+var (
+	HeartbeatInterval      = 10 * time.Second
+	SkippedHeartbeatThresh = HeartbeatInterval * 5
+)
 
 // LocalStorageMeta [path]/sectorstore.json
 type LocalStorageMeta struct {
@@ -34,7 +36,7 @@ type LocalStorageMeta struct {
 	AllowTo []string
 }
 
-// StorageConfig .lotusstorage/storage.json
+// StorageConfig .storage/storage.json
 type StorageConfig struct {
 	StoragePaths []LocalPath
 }
