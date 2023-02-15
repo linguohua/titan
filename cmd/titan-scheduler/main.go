@@ -289,8 +289,8 @@ var runCmd = &cli.Command{
 		privateKeyPath := cctx.String("private-key-path")
 		caCertificatePath := cctx.String("ca-certificate-path")
 
-		httpClient := cliutil.NewUDPHTTPClient(udpPacketConn, caCertificatePath)
-		jsonrpc.SetUDPHTTPClient(httpClient)
+		httpClient := cliutil.NewHttp3Client(udpPacketConn, caCertificatePath)
+		jsonrpc.SetHttp3Client(httpClient)
 
 		go startUDPServer(udpPacketConn, handler, certificatePath, privateKeyPath)
 
