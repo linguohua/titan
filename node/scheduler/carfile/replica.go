@@ -23,6 +23,8 @@ type CacheTask struct {
 	doneSize    int64
 	doneBlocks  int
 	isCandidate bool
+	createTime  time.Time
+	endTime     time.Time
 
 	timeoutTicker *time.Ticker
 }
@@ -36,6 +38,7 @@ func newCacheTask(carfileRecord *CarfileRecord, deviceID string, isCandidate boo
 		isCandidate:   isCandidate,
 		deviceID:      deviceID,
 		id:            cacheTaskID(carfileRecord.carfileHash, deviceID),
+		createTime:    time.Now(),
 	}
 
 	err := persistent.GetDB().CreateCarfileReplicaInfo(
@@ -157,6 +160,16 @@ func (c *CacheTask) cacheCarfile2Node() (err error) {
 
 	err = xerrors.Errorf("not found node:%s", deviceID)
 	return
+}
+
+// GetEndTime get end time
+func (c *CacheTask) GetEndTime() time.Time {
+	return c.endTime
+}
+
+// GetCreateTime get create time
+func (c *CacheTask) GetCreateTime() time.Time {
+	return c.createTime
 }
 
 // GetDeviceID get device id
