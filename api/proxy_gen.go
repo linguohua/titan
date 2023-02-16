@@ -210,6 +210,8 @@ type SchedulerStruct struct {
 
 		CandidateNodeConnect func(p0 context.Context) error `perm:"write"`
 
+		DeleteNodeAppUpdateInfos func(p0 context.Context, p1 int) error `perm:"admin"`
+
 		EdgeNodeConnect func(p0 context.Context) error `perm:"write"`
 
 		ElectionValidators func(p0 context.Context) error `perm:"admin"`
@@ -769,6 +771,17 @@ func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context) error {
 }
 
 func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) DeleteNodeAppUpdateInfos(p0 context.Context, p1 int) error {
+	if s.Internal.DeleteNodeAppUpdateInfos == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.DeleteNodeAppUpdateInfos(p0, p1)
+}
+
+func (s *SchedulerStub) DeleteNodeAppUpdateInfos(p0 context.Context, p1 int) error {
 	return ErrNotSupported
 }
 

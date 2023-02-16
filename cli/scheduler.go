@@ -948,6 +948,34 @@ var nodeAppUpdateCmd = &cli.Command{
 	Subcommands: []*cli.Command{
 		getNodeAppUpdateInfoCmd,
 		setNodeAppUpdateInfoCmd,
+		DeleteNodeAppUpdateInfoCmd,
+	},
+}
+
+var DeleteNodeAppUpdateInfoCmd = &cli.Command{
+	Name:  "delete",
+	Usage: "delete node update info",
+	Flags: []cli.Flag{
+		&cli.IntFlag{
+			Name:  "node-type",
+			Usage: "node type: edge 1, update 6",
+			Value: 1,
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		nodeType := cctx.Int("node-type")
+		err = schedulerAPI.DeleteNodeAppUpdateInfos(ctx, nodeType)
+		if err != nil {
+			return err
+		}
+		return nil
 	},
 }
 
