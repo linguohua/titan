@@ -24,12 +24,17 @@ type EdgeCfg struct {
 	// if true, get scheduler url from locator
 	Locator bool
 
+	// InsecureSkipVerify skip tls verify
+	InsecureSkipVerify bool
 	// used for http3 server
+	// be used if InsecureSkipVerify is true
 	CertificatePath string
-	PrivateKeyPath  string
+	// used for http3 server
+	// be used if InsecureSkipVerify is true
+	PrivateKeyPath string
 
-	// used for http3 client
-	RootCertificatePath string
+	// self sign certificate, use for client
+	CaCertificatePath string
 }
 
 type CandidateCfg struct {
@@ -49,6 +54,18 @@ type LocatorCfg struct {
 	DBAddrss string
 	// uuid
 	UUID string
+
+	// InsecureSkipVerify skip tls verify
+	InsecureSkipVerify bool
+	// used for http3 server
+	// be used if InsecureSkipVerify is true
+	CertificatePath string
+	// used for http3 server
+	// be used if InsecureSkipVerify is true
+	PrivateKeyPath string
+
+	// self sign certificate, use for client
+	CaCertificatePath string
 }
 
 type SchedulerCfg struct {
@@ -64,4 +81,16 @@ type SchedulerCfg struct {
 	ServerName string
 	// area id
 	AreaID string
+
+	// InsecureSkipVerify skip tls verify
+	InsecureSkipVerify bool
+	// used for http3 server
+	// be used if InsecureSkipVerify is true
+	CertificatePath string
+	// used for http3 server
+	// be used if InsecureSkipVerify is true
+	PrivateKeyPath string
+
+	// self sign certificate, use for client
+	CaCertificatePath string
 }

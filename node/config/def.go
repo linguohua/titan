@@ -31,30 +31,34 @@ func init() {
 // DefaultEdgeCfg returns the default edge config
 func DefaultEdgeCfg() *EdgeCfg {
 	return &EdgeCfg{
-		ListenAddress:       "0.0.0.0:1234",
-		Timeout:             "30s",
-		CarfilestoreType:    "FileStore",
-		BandwidthUp:         1073741824,
-		BandwidthDown:       1073741824,
-		Locator:             true,
-		CertificatePath:     "./cert.pem",
-		PrivateKeyPath:      "./priv.key",
-		RootCertificatePath: "./ca.pem",
+		ListenAddress:    "0.0.0.0:1234",
+		Timeout:          "30s",
+		CarfilestoreType: "FileStore",
+		BandwidthUp:      1073741824,
+		BandwidthDown:    1073741824,
+		Locator:          true,
+
+		CertificatePath:    "",
+		PrivateKeyPath:     "",
+		CaCertificatePath:  "",
+		InsecureSkipVerify: true,
 	}
 }
 
 // DefaultCandidateCfg returns the defualt candidate config
 func DefaultCandidateCfg() *CandidateCfg {
 	edgeCfg := EdgeCfg{
-		ListenAddress:       "0.0.0.0:2345",
-		Timeout:             "30s",
-		CarfilestoreType:    "FileStore",
-		BandwidthUp:         1073741824,
-		BandwidthDown:       1073741824,
-		Locator:             true,
-		CertificatePath:     "./cert.pem",
-		PrivateKeyPath:      "./priv.key",
-		RootCertificatePath: "./ca.pem",
+		ListenAddress:    "0.0.0.0:2345",
+		Timeout:          "30s",
+		CarfilestoreType: "FileStore",
+		BandwidthUp:      1073741824,
+		BandwidthDown:    1073741824,
+		Locator:          true,
+
+		InsecureSkipVerify: true,
+		CertificatePath:    "",
+		PrivateKeyPath:     "",
+		CaCertificatePath:  "",
 	}
 	return &CandidateCfg{
 		EdgeCfg:    edgeCfg,
@@ -70,17 +74,21 @@ func DefaultLocatorCfg() *LocatorCfg {
 		GeodbPath:     "./city.mmdb",
 		DBAddrss:      "user01:sql001@tcp(127.0.0.1:3306)/locator",
 		UUID:          uuid.NewString(),
+
+		InsecureSkipVerify: true,
+		CertificatePath:    "",
+		PrivateKeyPath:     "",
+		CaCertificatePath:  "",
 	}
 }
 
 func DefaultSchedulerCfg() *SchedulerCfg {
 	return &SchedulerCfg{
-		ListenAddress:   "0.0.0.0:3456",
-		RedisAddrss:     "127.0.0.1:6379",
-		GeodbPath:       "../../geoip/geolite2_city/city.mmdb",
-		PersistentDBURL: "user01:sql001@tcp(127.0.0.1:3306)/test",
-		ServerName:      "",
-		AreaID:          "",
+		ListenAddress:      "0.0.0.0:3456",
+		InsecureSkipVerify: true,
+		CertificatePath:    "",
+		PrivateKeyPath:     "",
+		CaCertificatePath:  "",
 	}
 }
 

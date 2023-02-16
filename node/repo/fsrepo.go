@@ -81,7 +81,7 @@ func (scheduler) Type() string {
 }
 
 func (scheduler) Config() interface{} {
-	return &struct{}{}
+	return config.DefaultSchedulerCfg()
 }
 
 func (scheduler) APIFlags() []string {

@@ -2,8 +2,13 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"math/big"
 	"net"
 	"net/http"
 	"os"
@@ -20,6 +25,7 @@ import (
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/metrics"
+	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
@@ -155,51 +161,33 @@ var runCmd = &cli.Command{
 	Usage: "Start titan scheduler node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "listen",
-			Usage: "host address and port the scheduler api will listen on",
-			Value: "0.0.0.0:3456",
-		},
-		&cli.StringFlag{
-			Name:  "cachedb-url",
-			Usage: "cachedb url",
-			Value: "127.0.0.1:6379",
-		},
-		&cli.StringFlag{
-			Name:  "geodb-path",
-			Usage: "geodb path",
-			Value: "../../geoip/geolite2_city/city.mmdb",
-		},
-		&cli.StringFlag{
-			Name:  "persistentdb-url",
-			Usage: "persistentdb url",
-			Value: "user01:sql001@tcp(127.0.0.1:3306)/test",
-		},
-		&cli.StringFlag{
-			Name:  "server-name",
-			Usage: "server uniquely identifies",
-		},
-		&cli.StringFlag{
-			Name:  "area",
-			Usage: "area",
-			Value: "CN-GD-Shenzhen",
+			Required: true,
+			Name:     "cachedb-url",
+			Usage:    "cachedb url",
+			Value:    "127.0.0.1:6379",
 		},
 		&cli.StringFlag{
 			Required: true,
-			Name:     "certificate-path",
-			Usage:    "cerfitifcate path, example: --certificate-path=./cert.pem",
-			Value:    "",
+			Name:     "geodb-path",
+			Usage:    "geodb path, example: --geodb-path=../../geoip/geolite2_city/city.mmdb",
+			Value:    "../../geoip/geolite2_city/city.mmdb",
 		},
 		&cli.StringFlag{
 			Required: true,
-			Name:     "private-key-path",
-			Usage:    "private key path, example: --private-key-path=./priv.key",
-			Value:    "",
+			Name:     "persistentdb-url",
+			Usage:    "persistentdb url",
+			Value:    "user01:sql001@tcp(127.0.0.1:3306)/test",
 		},
 		&cli.StringFlag{
 			Required: true,
-			Name:     "ca-certificate-path",
-			Usage:    "root-certificate, example: --ca-certificate-pat=./ca.pem",
-			Value:    "",
+			Name:     "server-name",
+			Usage:    "server uniquely identifies",
+		},
+		&cli.StringFlag{
+			Required: true,
+			Name:     "area",
+			Usage:    "area",
+			Value:    "CN-GD-Shenzhen",
 		},
 	},
 
@@ -221,6 +209,19 @@ var runCmd = &cli.Command{
 			}
 		}
 
+		// Open repo
+		lr, err := openRepo(cctx)
+		if err != nil {
+			return err
+		}
+
+		cfg, err := lr.Config()
+		if err != nil {
+			return err
+		}
+
+		schedulerCfg := cfg.(*config.SchedulerCfg)
+
 		// Connect to scheduler
 		ctx := lcli.ReqContext(cctx)
 
@@ -240,33 +241,27 @@ var runCmd = &cli.Command{
 
 		err = cache.NewCacheDB(cURL, cache.TypeRedis(), sName)
 		if err != nil {
-			log.Panic(err.Error())
+			log.Panic("Cache connect error: " + err.Error())
 		}
 
 		gPath := cctx.String("geodb-path")
 		err = region.NewRegion(gPath, region.TypeGeoLite(), area)
 		if err != nil {
-			log.Panic(err.Error())
+			log.Panic("Load region file error: " + err.Error())
 		}
 
 		pPath := cctx.String("persistentdb-url")
 		err = persistent.NewDB(pPath, persistent.TypeSQL(), sName, area)
 		if err != nil {
-			log.Panic(err.Error())
+			log.Panic("DB connect error: " + err.Error())
 		}
 
-		lr, err := openRepo(cctx)
-		if err != nil {
-			log.Panic(err.Error())
-		}
-
-		address := cctx.String("listen")
-
+		address := schedulerCfg.ListenAddress
 		addressList := strings.Split(address, ":")
 		portStr := addressList[1]
 		port, err := strconv.Atoi(portStr)
 		if err != nil {
-			log.Panic(err.Error())
+			log.Panic("Parse port error: " + err.Error())
 		}
 		schedulerAPI := scheduler.NewLocalScheduleNode(lr, port)
 		handler := schedulerHandler(schedulerAPI, true)
@@ -285,14 +280,10 @@ var runCmd = &cli.Command{
 		}
 		defer udpPacketConn.Close()
 
-		certificatePath := cctx.String("certificate-path")
-		privateKeyPath := cctx.String("private-key-path")
-		caCertificatePath := cctx.String("ca-certificate-path")
-
-		httpClient := cliutil.NewHttp3Client(udpPacketConn, caCertificatePath)
+		httpClient := cliutil.NewHttp3Client(udpPacketConn, schedulerCfg.InsecureSkipVerify, schedulerCfg.CaCertificatePath)
 		jsonrpc.SetHttp3Client(httpClient)
 
-		go startUDPServer(udpPacketConn, handler, certificatePath, privateKeyPath)
+		go startUDPServer(udpPacketConn, handler, schedulerCfg)
 
 		go func() {
 			<-ctx.Done()
@@ -339,21 +330,55 @@ func openRepo(cctx *cli.Context) (repo.LockedRepo, error) {
 	return lr, nil
 }
 
-func startUDPServer(conn net.PacketConn, handler http.Handler, certPath, privPath string) error {
-	cert, err := tls.LoadX509KeyPair(certPath, privPath)
-	if err != nil {
-		return err
-	}
+func startUDPServer(conn net.PacketConn, handler http.Handler, schedulerCfg *config.SchedulerCfg) error {
+	var tlsConfig *tls.Config
+	if schedulerCfg.InsecureSkipVerify {
+		config, err := generateTLSConfig()
+		if err != nil {
+			log.Errorf("startUDPServer, generateTLSConfig error:%s", err.Error())
+			return err
+		}
+		tlsConfig = config
+	} else {
+		cert, err := tls.LoadX509KeyPair(schedulerCfg.CaCertificatePath, schedulerCfg.PrivateKeyPath)
+		if err != nil {
+			log.Errorf("startUDPServer, LoadX509KeyPair error:%s", err.Error())
+			return err
+		}
 
-	config := &tls.Config{
-		Certificates:       []tls.Certificate{cert},
-		InsecureSkipVerify: false,
+		tlsConfig = &tls.Config{
+			Certificates:       []tls.Certificate{cert},
+			InsecureSkipVerify: false,
+		}
 	}
 
 	srv := http3.Server{
-		TLSConfig: config,
+		TLSConfig: tlsConfig,
 		Handler:   handler,
 	}
 
 	return srv.Serve(conn)
+}
+
+func generateTLSConfig() (*tls.Config, error) {
+	key, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		return nil, err
+	}
+	template := x509.Certificate{SerialNumber: big.NewInt(1)}
+	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
+	if err != nil {
+		return nil, err
+	}
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
+
+	tlsCert, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		return nil, err
+	}
+	return &tls.Config{
+		Certificates:       []tls.Certificate{tlsCert},
+		InsecureSkipVerify: true,
+	}, nil
 }
