@@ -354,7 +354,8 @@ func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
 	m.resetLatelyExpiredTime(cr.expiredTime)
 
 	info := &api.CarfileRecordCacheResult{
-		NodeErrs: cr.nodeCacheErrs,
+		NodeErrs:             cr.nodeCacheErrs,
+		EdgeNodeCacheSummary: cr.edgeNodeCacheSummary,
 	}
 	if err != nil {
 		// log.Errorf("end carfile err:%s", err.Error())

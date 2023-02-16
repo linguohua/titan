@@ -238,6 +238,7 @@ type NodeCacheRsp struct {
 
 // CarfileRecordCacheResult cache result
 type CarfileRecordCacheResult struct {
-	NodeErrs map[string]string
-	ErrMsg   string
+	NodeErrs             map[string]string
+	ErrMsg               string
+	EdgeNodeCacheSummary string
 }

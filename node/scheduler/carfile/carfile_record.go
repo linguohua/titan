@@ -1,6 +1,7 @@
 package carfile
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -38,8 +39,9 @@ type CarfileRecord struct {
 
 	lock sync.RWMutex
 
-	step          int               // dispatchCount int
-	nodeCacheErrs map[string]string // [deviceID]msg
+	step                 int               // dispatchCount int
+	nodeCacheErrs        map[string]string // [deviceID]msg
+	edgeNodeCacheSummary string
 }
 
 func newCarfileRecord(manager *Manager, cid, hash string) *CarfileRecord {
@@ -217,8 +219,10 @@ func (d *CarfileRecord) cacheToEdges(needCount int) error {
 	}
 
 	result := d.findAppropriateEdges(d.CacheTaskMap, needCount)
+	d.edgeNodeCacheSummary = fmt.Sprintf("allEdgeCount:%d,filterCount:%d,insufficientDiskCount:%d,need:%d", result.allNodeCount, result.filterCount, result.insufficientDiskCount, needCount)
+
 	if len(result.list) <= 0 {
-		return xerrors.Errorf("allEdgeCount:%d,filterCount:%d,insufficientDiskCount:%d,need:%d", result.allNodeCount, result.filterCount, result.insufficientDiskCount, needCount)
+		return xerrors.New("not found edge")
 	}
 
 	if !d.startCacheTasks(result.list, false) {
