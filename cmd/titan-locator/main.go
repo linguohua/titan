@@ -31,7 +31,6 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
-	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
 )
@@ -99,22 +98,15 @@ var runCmd = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Required: true,
-			Name:     "certificate-path",
-			EnvVars:  []string{"TITAN_LOCATOR_CERTIFICATE_PATH", "LOCATOR_CERTIFICATE_PATH"},
-			Usage:    "example: --certificate-path=./cert.pem",
-			Value:    "",
+			Name:     "geodb-path",
+			Usage:    "geodb path, example: --geodb-path=../../geoip/geolite2_city/city.mmdb",
+			Value:    "../../geoip/geolite2_city/city.mmdb",
 		},
 		&cli.StringFlag{
 			Required: true,
-			Name:     "private-key-path",
-			EnvVars:  []string{"TITAN_LOCATOR_PRIVATE_KEY_PATH", "LOCATOR_PRIVATE_KEY_PATH"},
-			Usage:    "example: --private-key-path=./priv.key",
-			Value:    "",
-		},
-		&cli.StringFlag{
-			Name:  "ca-certificate-path",
-			Usage: "example: --ca-certificate-path=./ca.pem",
-			Value: "",
+			Name:     "accesspoint-db",
+			Usage:    "mysql db, example: --accesspoint-db=user01:sql001@tcp(127.0.0.1:3306)/test",
+			Value:    "user01:sql001@tcp(127.0.0.1:3306)/test",
 		},
 	},
 
@@ -135,14 +127,6 @@ var runCmd = &cli.Command{
 				return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.DefaultFDLimit, limit)
 			}
 		}
-
-		// Register all metric views
-		if err := view.Register(
-			metrics.DefaultViews...,
-		); err != nil {
-			log.Fatalf("Cannot register the view: %v", err)
-		}
-
 		// Open repo
 		repoPath := cctx.String(FlagLocatorRepo)
 		r, err := repo.NewFS(repoPath)
@@ -177,7 +161,7 @@ var runCmd = &cli.Command{
 
 		locatorCfg := cfg.(*config.LocatorCfg)
 
-		err = region.NewRegion(locatorCfg.GeodbPath, region.TypeGeoLite(), "")
+		err = region.NewRegion(cctx.String("geodb-path"), region.TypeGeoLite(), "")
 		if err != nil {
 			log.Panic(err.Error())
 		}
@@ -197,7 +181,7 @@ var runCmd = &cli.Command{
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
-		handler := LocatorHandler(locator.NewLocalLocator(ctx, lr, locatorCfg.DBAddrss, locatorCfg.UUID, port), true)
+		handler := LocatorHandler(locator.NewLocalLocator(ctx, lr, cctx.String("accesspoint-db"), locatorCfg.UUID, port), true)
 		srv := &http.Server{
 			Handler: handler,
 			BaseContext: func(listener net.Listener) context.Context {
