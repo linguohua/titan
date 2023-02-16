@@ -156,20 +156,20 @@ func carfileRecord2Info(d *carfile.CarfileRecord) *api.CarfileRecordInfo {
 }
 
 // GetCarfileRecordInfo Show Data Task
-func (s *Scheduler) GetCarfileRecordInfo(ctx context.Context, cid string) (*api.CarfileRecordInfo, error) {
+func (s *Scheduler) GetCarfileRecordInfo(ctx context.Context, cid string) (api.CarfileRecordInfo, error) {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
-		return nil, err
+		return api.CarfileRecordInfo{}, err
 	}
 
 	dInfo, err := persistent.GetDB().GetCarfileInfo(hash)
 	if err != nil {
-		return dInfo, err
+		return *dInfo, err
 	}
 
 	caches, err := persistent.GetDB().GetCarfileReplicaInfosWithHash(hash, false)
 	if err != nil {
-		return dInfo, err
+		return *dInfo, err
 	}
 
 	dInfo.CarfileReplicaInfos = caches
@@ -179,7 +179,7 @@ func (s *Scheduler) GetCarfileRecordInfo(ctx context.Context, cid string) (*api.
 		dInfo.ResultInfo = result
 	}
 
-	return dInfo, nil
+	return *dInfo, nil
 }
 
 // ResetBackupCacheCount reset backupCacheCount

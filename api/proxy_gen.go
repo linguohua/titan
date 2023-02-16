@@ -216,7 +216,7 @@ type SchedulerStruct struct {
 
 		ExecuteUndoneCarfilesTask func(p0 context.Context) error `perm:"admin"`
 
-		GetCarfileRecordInfo func(p0 context.Context, p1 string) (*CarfileRecordInfo, error) `perm:"read"`
+		GetCarfileRecordInfo func(p0 context.Context, p1 string) (CarfileRecordInfo, error) `perm:"read"`
 
 		GetDevicesInfo func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
 
@@ -819,15 +819,15 @@ func (s *SchedulerStub) ExecuteUndoneCarfilesTask(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetCarfileRecordInfo(p0 context.Context, p1 string) (*CarfileRecordInfo, error) {
+func (s *SchedulerStruct) GetCarfileRecordInfo(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
 	if s.Internal.GetCarfileRecordInfo == nil {
-		return nil, ErrNotSupported
+		return *new(CarfileRecordInfo), ErrNotSupported
 	}
 	return s.Internal.GetCarfileRecordInfo(p0, p1)
 }
 
-func (s *SchedulerStub) GetCarfileRecordInfo(p0 context.Context, p1 string) (*CarfileRecordInfo, error) {
-	return nil, ErrNotSupported
+func (s *SchedulerStub) GetCarfileRecordInfo(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
+	return *new(CarfileRecordInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetDevicesInfo(p0 context.Context, p1 string) (DevicesInfo, error) {
