@@ -2,8 +2,13 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"math/big"
 	"net"
 	"net/http"
 	"os"
@@ -207,14 +212,10 @@ var runCmd = &cli.Command{
 		}
 		defer udpPacketConn.Close()
 
-		certificatePath := cctx.String("certificate-path")
-		privateKeyPath := cctx.String("private-key-path")
-		caCertificatePath := cctx.String("ca-certificate-path")
-
-		httpClient := cliutil.NewHttp3Client(udpPacketConn, caCertificatePath)
+		httpClient := cliutil.NewHttp3Client(udpPacketConn, locatorCfg.InsecureSkipVerify, locatorCfg.CaCertificatePath)
 		jsonrpc.SetHttp3Client(httpClient)
 
-		go startUDPServer(udpPacketConn, handler, certificatePath, privateKeyPath)
+		go startUDPServer(udpPacketConn, handler, locatorCfg)
 
 		go func() {
 			<-ctx.Done()
@@ -238,21 +239,55 @@ var runCmd = &cli.Command{
 	},
 }
 
-func startUDPServer(conn net.PacketConn, handler http.Handler, certPath, privPath string) error {
-	cert, err := tls.LoadX509KeyPair(certPath, privPath)
-	if err != nil {
-		return err
-	}
+func startUDPServer(conn net.PacketConn, handler http.Handler, locatorCfg *config.LocatorCfg) error {
+	var tlsConfig *tls.Config
+	if locatorCfg.InsecureSkipVerify {
+		config, err := generateTLSConfig()
+		if err != nil {
+			log.Errorf("startUDPServer, generateTLSConfig error:%s", err.Error())
+			return err
+		}
+		tlsConfig = config
+	} else {
+		cert, err := tls.LoadX509KeyPair(locatorCfg.CaCertificatePath, locatorCfg.PrivateKeyPath)
+		if err != nil {
+			log.Errorf("startUDPServer, LoadX509KeyPair error:%s", err.Error())
+			return err
+		}
 
-	config := &tls.Config{
-		Certificates:       []tls.Certificate{cert},
-		InsecureSkipVerify: false,
+		tlsConfig = &tls.Config{
+			Certificates:       []tls.Certificate{cert},
+			InsecureSkipVerify: false,
+		}
 	}
 
 	srv := http3.Server{
-		TLSConfig: config,
+		TLSConfig: tlsConfig,
 		Handler:   handler,
 	}
 
 	return srv.Serve(conn)
+}
+
+func generateTLSConfig() (*tls.Config, error) {
+	key, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		return nil, err
+	}
+	template := x509.Certificate{SerialNumber: big.NewInt(1)}
+	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
+	if err != nil {
+		return nil, err
+	}
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
+
+	tlsCert, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		return nil, err
+	}
+	return &tls.Config{
+		Certificates:       []tls.Certificate{tlsCert},
+		InsecureSkipVerify: true,
+	}, nil
 }
