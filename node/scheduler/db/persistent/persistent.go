@@ -74,6 +74,7 @@ type DB interface {
 
 	SetNodeUpdateInfo(info *api.NodeAppUpdateInfo) error
 	GetNodeUpdateInfos() (map[int]*api.NodeAppUpdateInfo, error)
+	DeleteNodeUpdateInfo(nodeType int) error
 
 	// web
 	webDB

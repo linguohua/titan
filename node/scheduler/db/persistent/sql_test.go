@@ -65,3 +65,35 @@ func TestSqlDB_SummaryValidateMessage(t *testing.T) {
 	}
 	t.Log(res)
 }
+
+func TestSqlDB_GetNodeUpdateInfos(t *testing.T) {
+	url := "root:123456@tcp(127.0.0.1:3306)/test"
+	db, err := InitSQL(url)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	infos, err := db.GetNodeUpdateInfos()
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	for _, info := range infos {
+		t.Log(*info)
+	}
+}
+
+func TestSqlDB_DeleteNodeUpdateInfos(t *testing.T) {
+	url := "root:123456@tcp(127.0.0.1:3306)/test"
+	db, err := InitSQL(url)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	err = db.DeleteNodeUpdateInfo(1)
+	if err != nil {
+		t.Error(err.Error())
+	}
+}

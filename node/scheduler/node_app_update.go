@@ -19,3 +19,8 @@ func (s *Scheduler) SetNodeAppUpdateInfo(ctx context.Context, info *api.NodeAppU
 	persistent.GetDB().SetNodeUpdateInfo(info)
 	return nil
 }
+
+func (s *Scheduler) DeleteNodeAppUpdateInfos(ctx context.Context, nodeType int) error {
+	delete(s.nodeAppUpdateInfos, nodeType)
+	return s.nodeAppUpdateInfos, nil
+}
