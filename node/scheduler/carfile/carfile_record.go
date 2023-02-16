@@ -95,6 +95,8 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 			isCandidate:   cacheInfo.IsCandidate,
 			carfileHash:   cacheInfo.CarfileHash,
 			nodeManager:   carfileRecord.nodeManager,
+			createTime:    cacheInfo.CreateTime,
+			endTime:       cacheInfo.EndTime,
 		}
 
 		if c.status == api.CacheStatusSucceeded && c.isCandidate {

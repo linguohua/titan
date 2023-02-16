@@ -143,6 +143,8 @@ func carfileRecord2Info(d *carfile.CarfileRecord) *api.CarfileRecordInfo {
 				DoneBlocks:  c.GetDoneBlocks(),
 				IsCandidate: c.IsCandidateCache(),
 				DeviceID:    c.GetDeviceID(),
+				CreateTime:  c.GetCreateTime(),
+				EndTime:     c.GetEndTime(),
 			}
 
 			caches = append(caches, cc)
@@ -162,17 +164,12 @@ func (s *Scheduler) GetCarfileRecordInfo(ctx context.Context, cid string) (api.C
 		return api.CarfileRecordInfo{}, err
 	}
 
-	dInfo, err := persistent.GetDB().GetCarfileInfo(hash)
+	cr, err := s.dataManager.GetCarfileRecord(hash)
 	if err != nil {
-		return *dInfo, err
+		return api.CarfileRecordInfo{}, err
 	}
 
-	caches, err := persistent.GetDB().GetCarfileReplicaInfosWithHash(hash, false)
-	if err != nil {
-		return *dInfo, err
-	}
-
-	dInfo.CarfileReplicaInfos = caches
+	dInfo := carfileRecord2Info(cr)
 
 	result, err := cache.GetDB().GetCarfileRecordCacheResult(hash)
 	if err == nil {
