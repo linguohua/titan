@@ -13,18 +13,10 @@ type Web interface {
 	ListBlockDownloadInfo(ctx context.Context, req ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) //perm:read
 
 	// ListCaches cache manager
-	GetCacheTaskInfos(ctx context.Context, req ListCacheInfosReq) (ListCacheInfosRsp, error)          //perm:read
-	GetSystemInfo(ctx context.Context) (SystemBaseInfo, error)                                        //perm:read
-	AddCacheTask(ctx context.Context, carFileCID string, reliability int, expireTime time.Time) error //perm:read
-	ListCacheTasks(ctx context.Context, cursor int, count int) (ListCacheTasksRsp, error)             //perm:read
-	GetCacheTaskInfo(ctx context.Context, carFileCID string) (CarfileRecordInfo, error)               //perm:read
-	CancelCacheTask(ctx context.Context, carFileCID string) error                                     //perm:read
-
-	GetCarfileByCID(ctx context.Context, carFileCID string) (WebCarfile, error) //perm:read
-	RemoveCarfile(ctx context.Context, carFileCID string) error                 //perm:read
+	GetCacheTaskInfos(ctx context.Context, req ListCacheInfosReq) (ListCacheInfosRsp, error) //perm:read
+	GetSystemInfo(ctx context.Context) (SystemBaseInfo, error)                               //perm:read
 
 	ListValidateResult(ctx context.Context, cursor int, count int) (ListValidateResultRsp, error) //perm:read
-	SetupValidation(ctx context.Context, enable bool) error                                       //perm:read
 
 	GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*SummeryValidateResult, error) //perm:read
 }
