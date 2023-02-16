@@ -697,7 +697,7 @@ var showCarfileInfoCmd = &cli.Command{
 		}
 
 		if info.ResultInfo != nil {
-			fmt.Printf("Result Msg: %s \n", info.ResultInfo.ErrMsg)
+			fmt.Printf("Result Msg: %s , edge summary: %s \n", info.ResultInfo.ErrMsg, info.ResultInfo.EdgeNodeCacheSummary)
 			if info.ResultInfo.NodeErrs != nil {
 				for nodeID, msg := range info.ResultInfo.NodeErrs {
 					fmt.Printf("%s,err:%s \n", nodeID, msg)
