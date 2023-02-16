@@ -82,15 +82,15 @@ type DB interface {
 var (
 	db DB
 
-	serverName string
+	serverID   string
 	serverArea string
 )
 
 // NewDB New  DB
-func NewDB(url, dbType, sName, sArea string) error {
+func NewDB(url, dbType, sID, sArea string) error {
 	var err error
 
-	serverName = sName
+	serverID = sID
 	serverArea = sArea
 
 	switch dbType {
@@ -123,7 +123,7 @@ type NodeInfo struct {
 	IsOnline   bool      `db:"is_online"`
 	NodeType   string    `db:"node_type"`
 	Address    string    `db:"address"`
-	ServerName string    `db:"server_name"`
+	ServerID   string    `db:"server_id"`
 	CreateTime time.Time `db:"create_time"`
 	PrivateKey string    `db:"private_key"`
 	Quitted    bool      `db:"quitted"`
@@ -135,7 +135,7 @@ type ValidateResult struct {
 	RoundID     int64     `db:"round_id"`
 	DeviceID    string    `db:"device_id"`
 	ValidatorID string    `db:"validator_id"`
-	ServerName  string    `db:"server_name"`
+	ServerID    string    `db:"server_id"`
 	BlockNumber int64     `db:"block_number"` // number of blocks verified
 	Status      int       `db:"status"`
 	Duration    int64     `db:"duration"` // validate duration, microsecond

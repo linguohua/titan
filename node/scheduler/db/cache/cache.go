@@ -84,15 +84,15 @@ type DB interface {
 }
 
 var (
-	db         DB
-	serverName string
+	db       DB
+	serverID string
 )
 
 // NewCacheDB New Cache DB
-func NewCacheDB(url, dbType, sName string) error {
+func NewCacheDB(url, dbType, sID string) error {
 	var err error
 
-	serverName = sName
+	serverID = sID
 
 	switch dbType {
 	case TypeRedis():
