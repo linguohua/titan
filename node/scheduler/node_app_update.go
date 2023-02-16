@@ -22,5 +22,5 @@ func (s *Scheduler) SetNodeAppUpdateInfo(ctx context.Context, info *api.NodeAppU
 
 func (s *Scheduler) DeleteNodeAppUpdateInfos(ctx context.Context, nodeType int) error {
 	delete(s.nodeAppUpdateInfos, nodeType)
-	return s.nodeAppUpdateInfos, nil
+	return persistent.GetDB().DeleteNodeUpdateInfo(nodeType)
 }
