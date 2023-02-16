@@ -216,11 +216,12 @@ type CacheError struct {
 }
 
 type NodeAppUpdateInfo struct {
-	NodeType    int     `db:"node_type"`
-	AppName     string  `db:"app_name"`
-	Version     Version `db:"version"`
-	Hash        string  `db:"hash"`
-	DownloadURL string  `db:"download_url"`
+	NodeType    int       `db:"node_type"`
+	AppName     string    `db:"app_name"`
+	Version     Version   `db:"version"`
+	Hash        string    `db:"hash"`
+	DownloadURL string    `db:"download_url"`
+	UpdateTime  time.Time `db:"update_time"`
 }
 
 // NodeCacheState node cache state

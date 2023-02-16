@@ -759,6 +759,12 @@ func (sd sqlDB) GetNodeUpdateInfos() (map[int]*api.NodeAppUpdateInfo, error) {
 	return ret, nil
 }
 
+func (sd sqlDB) DeleteNodeUpdateInfo(nodeType int) error {
+	deleteString := fmt.Sprintf(`DELETE FROM %s WHERE node_type=?`, nodeUpdateInfo)
+	_, err := sd.cli.Exec(deleteString, nodeType)
+	return err
+}
+
 // IsNilErr Is NilErr
 func (sd sqlDB) IsNilErr(err error) bool {
 	return err.Error() == errNotFind

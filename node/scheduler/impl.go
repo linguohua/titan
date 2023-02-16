@@ -88,7 +88,10 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int) api.Scheduler {
 	s.dataManager = carfile.NewCarfileManager(nodeManager, s.writeToken)
 	s.dataSync = sync.NewDataSync(nodeManager)
 
-	s.nodeAppUpdateInfos, _ = persistent.GetDB().GetNodeUpdateInfos()
+	s.nodeAppUpdateInfos, err = persistent.GetDB().GetNodeUpdateInfos()
+	if err != nil {
+		log.Errorf("GetNodeUpdateInfos error:%s", err)
+	}
 
 	return s
 }
