@@ -132,12 +132,12 @@ func carfileRecord2Info(d *carfile.CarfileRecord) *api.CarfileRecordInfo {
 		info.TotalBlocks = d.GetTotalBlocks()
 		info.ExpiredTime = d.GetExpiredTime()
 
-		caches := make([]api.CarfileReplicaInfo, 0)
+		caches := make([]*api.CarfileReplicaInfo, 0)
 
 		d.CacheTaskMap.Range(func(key, value interface{}) bool {
 			c := value.(*carfile.CacheTask)
 
-			cc := api.CarfileReplicaInfo{
+			cc := &api.CarfileReplicaInfo{
 				Status:      c.GetStatus(),
 				DoneSize:    c.GetDoneSize(),
 				DoneBlocks:  c.GetDoneBlocks(),
@@ -156,30 +156,30 @@ func carfileRecord2Info(d *carfile.CarfileRecord) *api.CarfileRecordInfo {
 }
 
 // GetCarfileRecordInfo Show Data Task
-func (s *Scheduler) GetCarfileRecordInfo(ctx context.Context, cid string) (api.CarfileRecordInfo, error) {
-	info := api.CarfileRecordInfo{}
-
-	if cid == "" {
-		return info, xerrors.Errorf("not found cid:%s", cid)
-	}
-
+func (s *Scheduler) GetCarfileRecordInfo(ctx context.Context, cid string) (*api.CarfileRecordInfo, error) {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
-		return info, err
+		return nil, err
 	}
 
-	d, _ := s.dataManager.GetCarfileRecord(hash)
-	if d != nil {
-		cInfo := carfileRecord2Info(d)
-		result, err := cache.GetDB().GetCarfileRecordCacheResult(hash)
-		if err == nil {
-			cInfo.ResultInfo = result
-		}
-
-		return *cInfo, nil
+	dInfo, err := persistent.GetDB().GetCarfileInfo(hash)
+	if err != nil {
+		return dInfo, err
 	}
 
-	return info, xerrors.Errorf("not found cid:%s", cid)
+	caches, err := persistent.GetDB().GetCarfileReplicaInfosWithHash(hash, false)
+	if err != nil {
+		return dInfo, err
+	}
+
+	dInfo.CarfileReplicaInfos = caches
+
+	result, err := cache.GetDB().GetCarfileRecordCacheResult(hash)
+	if err == nil {
+		dInfo.ResultInfo = result
+	}
+
+	return dInfo, nil
 }
 
 // ResetBackupCacheCount reset backupCacheCount
