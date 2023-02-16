@@ -55,7 +55,7 @@ func InitSQL(url string) (DB, error) {
 // node info
 func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
 	info.DeviceID = deviceID
-	info.ServerName = serverName
+	info.ServerID = serverID
 	// info.CreateTime = time.Now().Format("2006-01-02 15:04:05")
 
 	var count int64
@@ -66,13 +66,13 @@ func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
 	}
 
 	if count == 0 {
-		_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address, server_name,private_key)
-                VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address, :server_name,:private_key)`, info)
+		_, err = sd.cli.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address, server_id,private_key)
+                VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address, :server_id,:private_key)`, info)
 		return err
 	}
 
 	// update
-	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address,server_name=:server_name,quitted=:quitted WHERE device_id=:device_id`, info)
+	_, err = sd.cli.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address,server_id=:server_id,quitted=:quitted WHERE device_id=:device_id`, info)
 	return err
 }
 
@@ -101,8 +101,8 @@ func (sd sqlDB) GetNodePrivateKey(deviceID string) (string, error) {
 func (sd sqlDB) GetOfflineNodes() ([]*NodeInfo, error) {
 	list := make([]*NodeInfo, 0)
 
-	cmd := "SELECT device_id,last_time FROM node WHERE quitted=? AND is_online=? AND server_name=?"
-	if err := sd.cli.Select(&list, cmd, false, false, serverName); err != nil {
+	cmd := "SELECT device_id,last_time FROM node WHERE quitted=? AND is_online=? AND server_id=?"
+	if err := sd.cli.Select(&list, cmd, false, false, serverID); err != nil {
 		return nil, err
 	}
 
@@ -130,8 +130,8 @@ func (sd sqlDB) SetNodesQuit(deviceIDs []string) error {
 func (sd sqlDB) AddValidateResultInfos(infos []*ValidateResult) error {
 	tx := sd.cli.MustBegin()
 	for _, info := range infos {
-		query := fmt.Sprintf("INSERT INTO%s", " validate_result (round_id, device_id, validator_id, status, start_time, server_name) VALUES (?, ?, ?, ?, ?, ?)")
-		tx.MustExec(query, info.RoundID, info.DeviceID, info.ValidatorID, info.Status, info.StartTime, serverName)
+		query := fmt.Sprintf("INSERT INTO%s", " validate_result (round_id, device_id, validator_id, status, start_time, server_id) VALUES (?, ?, ?, ?, ?, ?)")
+		tx.MustExec(query, info.RoundID, info.DeviceID, info.ValidatorID, info.Status, info.StartTime, serverID)
 	}
 
 	err := tx.Commit()
@@ -765,8 +765,8 @@ func (sd sqlDB) IsNilErr(err error) bool {
 }
 
 func (sd sqlDB) setAllNodeOffline() error {
-	info := &NodeInfo{IsOnline: false, ServerName: serverName}
-	_, err := sd.cli.NamedExec(`UPDATE node SET is_online=:is_online WHERE server_name=:server_name`, info)
+	info := &NodeInfo{IsOnline: false, ServerID: serverID}
+	_, err := sd.cli.NamedExec(`UPDATE node SET is_online=:is_online WHERE server_id=:server_id`, info)
 
 	return err
 }

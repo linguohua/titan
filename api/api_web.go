@@ -145,7 +145,7 @@ type WebValidateResult struct {
 	Status      int    `json:"status" db:"status"`
 	StartTime   string `json:"start_time" db:"start_time"`
 	EndTime     string `json:"end_time" db:"end_time"`
-	ServerName  string `json:"server_name" db:"server_name"`
+	ServerName  string `json:"server_id" db:"server_id"`
 }
 
 type ValidateResultInfo struct {

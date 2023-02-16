@@ -26,4 +26,4 @@ COPY --from=0 /usr/map/city.mmdb /usr/local/city.mmdb
 EXPOSE 3456
 
 ENTRYPOINT ["/usr/local/titan-scheduler", "run", "--geodb-path=/usr/local/city.mmdb"]
-CMD ["--server-name=adam"]
+CMD ["--server-id=adam"]

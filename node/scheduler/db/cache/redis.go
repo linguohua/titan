@@ -76,8 +76,8 @@ func InitRedis(url string) (DB, error) {
 }
 
 func (rd redisDB) CacheTasksStart(hash string, deviceIDs []string, timeout int64) error {
-	cacheingCarfileList := fmt.Sprintf(redisKeyCacheingCarfileList, serverName)
-	carfileNodeList := fmt.Sprintf(redisKeyCarfileCacheingNodeList, serverName, hash)
+	cacheingCarfileList := fmt.Sprintf(redisKeyCacheingCarfileList, serverID)
+	carfileNodeList := fmt.Sprintf(redisKeyCarfileCacheingNodeList, serverID, hash)
 
 	ctx := context.Background()
 
@@ -86,7 +86,7 @@ func (rd redisDB) CacheTasksStart(hash string, deviceIDs []string, timeout int64
 		pipeliner.SAdd(context.Background(), carfileNodeList, deviceIDs)
 
 		for _, deviceID := range deviceIDs {
-			nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
+			nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverID, deviceID)
 			// Expire
 			pipeliner.Set(context.Background(), nodeKey, hash, time.Second*time.Duration(timeout))
 		}
@@ -97,8 +97,8 @@ func (rd redisDB) CacheTasksStart(hash string, deviceIDs []string, timeout int64
 }
 
 func (rd redisDB) CacheTasksEnd(hash string, deviceIDs []string) (bool, error) {
-	cacheingCarfileList := fmt.Sprintf(redisKeyCacheingCarfileList, serverName)
-	carfileNodeList := fmt.Sprintf(redisKeyCarfileCacheingNodeList, serverName, hash)
+	cacheingCarfileList := fmt.Sprintf(redisKeyCacheingCarfileList, serverID)
+	carfileNodeList := fmt.Sprintf(redisKeyCarfileCacheingNodeList, serverID, hash)
 
 	_, err := rd.cli.SRem(context.Background(), carfileNodeList, deviceIDs).Result()
 	if err != nil {
@@ -120,19 +120,19 @@ func (rd redisDB) CacheTasksEnd(hash string, deviceIDs []string) (bool, error) {
 }
 
 func (rd redisDB) UpdateNodeCacheingExpireTime(hash, deviceID string, timeout int64) error {
-	nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
+	nodeKey := fmt.Sprintf(redisKeyCacheingNode, serverID, deviceID)
 	// Expire
 	_, err := rd.cli.Set(context.Background(), nodeKey, hash, time.Second*time.Duration(timeout)).Result()
 	return err
 }
 
 func (rd redisDB) GetCacheingCarfiles() ([]string, error) {
-	cacheingCarfileList := fmt.Sprintf(redisKeyCacheingCarfileList, serverName)
+	cacheingCarfileList := fmt.Sprintf(redisKeyCacheingCarfileList, serverID)
 	return rd.cli.SMembers(context.Background(), cacheingCarfileList).Result()
 }
 
 func (rd redisDB) GetNodeCacheTimeoutTime(deviceID string) (int, error) {
-	key := fmt.Sprintf(redisKeyCacheingNode, serverName, deviceID)
+	key := fmt.Sprintf(redisKeyCacheingNode, serverID, deviceID)
 
 	expiration, err := rd.cli.TTL(context.Background(), key).Result()
 	if err != nil {
@@ -177,7 +177,7 @@ func (rd redisDB) GetCarfileRecordCacheResult(hash string) (*api.CarfileRecordCa
 
 // waiting data list
 func (rd redisDB) PushCarfileToWaitList(info *api.CacheCarfileInfo) error {
-	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
+	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverID)
 
 	bytes, err := json.Marshal(info)
 	if err != nil {
@@ -189,7 +189,7 @@ func (rd redisDB) PushCarfileToWaitList(info *api.CacheCarfileInfo) error {
 }
 
 func (rd redisDB) GetWaitCarfile() (*api.CacheCarfileInfo, error) {
-	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverName)
+	key := fmt.Sprintf(redisKeyWaitingDataTaskList, serverID)
 
 	value, err := rd.cli.LPop(context.Background(), key).Result()
 	if err != nil {
@@ -211,39 +211,39 @@ func (rd redisDB) GetWaitCarfile() (*api.CacheCarfileInfo, error) {
 
 // validate round id ++1
 func (rd redisDB) IncrValidateRoundID() (int64, error) {
-	key := fmt.Sprintf(redisKeyValidateRoundID, serverName)
+	key := fmt.Sprintf(redisKeyValidateRoundID, serverID)
 
 	return rd.cli.IncrBy(context.Background(), key, 1).Result()
 }
 
 // verifying node list
 func (rd redisDB) SetNodesToVerifyingList(deviceIDs []string) error {
-	key := fmt.Sprintf(redisKeyVerifyingList, serverName)
+	key := fmt.Sprintf(redisKeyVerifyingList, serverID)
 
 	_, err := rd.cli.SAdd(context.Background(), key, deviceIDs).Result()
 	return err
 }
 
 func (rd redisDB) GetNodesWithVerifyingList() ([]string, error) {
-	key := fmt.Sprintf(redisKeyVerifyingList, serverName)
+	key := fmt.Sprintf(redisKeyVerifyingList, serverID)
 
 	return rd.cli.SMembers(context.Background(), key).Result()
 }
 
 func (rd redisDB) CountVerifyingNode() (int64, error) {
-	key := fmt.Sprintf(redisKeyVerifyingList, serverName)
+	key := fmt.Sprintf(redisKeyVerifyingList, serverID)
 	return rd.cli.SCard(context.Background(), key).Result()
 }
 
 func (rd redisDB) RemoveValidatedWithList(deviceID string) error {
-	key := fmt.Sprintf(redisKeyVerifyingList, serverName)
+	key := fmt.Sprintf(redisKeyVerifyingList, serverID)
 
 	_, err := rd.cli.SRem(context.Background(), key, deviceID).Result()
 	return err
 }
 
 func (rd redisDB) RemoveVerifyingList() error {
-	key := fmt.Sprintf(redisKeyVerifyingList, serverName)
+	key := fmt.Sprintf(redisKeyVerifyingList, serverID)
 
 	_, err := rd.cli.Del(context.Background(), key).Result()
 	return err
@@ -251,7 +251,7 @@ func (rd redisDB) RemoveVerifyingList() error {
 
 // validator list
 func (rd redisDB) SetValidatorsToList(deviceIDs []string, expiration time.Duration) error {
-	key := fmt.Sprintf(redisKeyValidatorList, serverName)
+	key := fmt.Sprintf(redisKeyValidatorList, serverID)
 
 	// _, err := rd.cli.SAdd(context.Background(), key, deviceIDs).Result()
 
@@ -272,13 +272,13 @@ func (rd redisDB) SetValidatorsToList(deviceIDs []string, expiration time.Durati
 }
 
 func (rd redisDB) GetValidatorsWithList() ([]string, error) {
-	key := fmt.Sprintf(redisKeyValidatorList, serverName)
+	key := fmt.Sprintf(redisKeyValidatorList, serverID)
 
 	return rd.cli.SMembers(context.Background(), key).Result()
 }
 
 func (rd redisDB) GetValidatorsAndExpirationTime() ([]string, time.Duration, error) {
-	key := fmt.Sprintf(redisKeyValidatorList, serverName)
+	key := fmt.Sprintf(redisKeyValidatorList, serverID)
 
 	expiration, err := rd.cli.TTL(context.Background(), key).Result()
 	if err != nil {
@@ -462,7 +462,7 @@ func (rd redisDB) NodeDownloadCount(deviceID string, blockDownnloadInfo *api.Blo
 
 		// count carfile download
 		if blockDownnloadInfo.BlockCID == blockDownnloadInfo.CarfileCID {
-			key := fmt.Sprintf(redisKeySystemBaseInfo, serverName)
+			key := fmt.Sprintf(redisKeySystemBaseInfo, serverID)
 			pipeliner.HIncrBy(context.Background(), key, DownloadCountField, 1)
 		}
 
@@ -494,7 +494,7 @@ func toMap(info *api.DevicesInfo) map[string]interface{} {
 
 // system base info
 func (rd redisDB) UpdateSystemBaseInfo(field string, value interface{}) error {
-	key := fmt.Sprintf(redisKeySystemBaseInfo, serverName)
+	key := fmt.Sprintf(redisKeySystemBaseInfo, serverID)
 
 	_, err := rd.cli.HSet(context.Background(), key, field, value).Result()
 	if err != nil {
@@ -505,7 +505,7 @@ func (rd redisDB) UpdateSystemBaseInfo(field string, value interface{}) error {
 }
 
 func (rd redisDB) IncrBySystemBaseInfo(field string, value int64) error {
-	key := fmt.Sprintf(redisKeySystemBaseInfo, serverName)
+	key := fmt.Sprintf(redisKeySystemBaseInfo, serverID)
 
 	_, err := rd.cli.HIncrBy(context.Background(), key, field, value).Result()
 	if err != nil {
@@ -516,7 +516,7 @@ func (rd redisDB) IncrBySystemBaseInfo(field string, value int64) error {
 }
 
 func (rd redisDB) GetSystemBaseInfo() (*api.SystemBaseInfo, error) {
-	key := fmt.Sprintf(redisKeySystemBaseInfo, serverName)
+	key := fmt.Sprintf(redisKeySystemBaseInfo, serverID)
 
 	var info api.SystemBaseInfo
 	err := rd.cli.HGetAll(context.Background(), key).Scan(&info)

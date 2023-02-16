@@ -180,7 +180,7 @@ var runCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Required: true,
-			Name:     "server-name",
+			Name:     "server-id",
 			Usage:    "server uniquely identifies",
 		},
 		&cli.StringFlag{
@@ -229,17 +229,17 @@ var runCmd = &cli.Command{
 		defer cancel()
 
 		cURL := cctx.String("cachedb-url")
-		sName := cctx.String("server-name")
+		sID := cctx.String("server-id")
 		area := cctx.String("area")
 		if area == "" {
 			log.Panic("area is nil")
 		}
 
-		if sName == "" {
-			log.Panic("server-name is nil")
+		if sID == "" {
+			log.Panic("server-id is nil")
 		}
 
-		err = cache.NewCacheDB(cURL, cache.TypeRedis(), sName)
+		err = cache.NewCacheDB(cURL, cache.TypeRedis(), sID)
 		if err != nil {
 			log.Panic("Cache connect error: " + err.Error())
 		}
@@ -251,7 +251,7 @@ var runCmd = &cli.Command{
 		}
 
 		pPath := cctx.String("persistentdb-url")
-		err = persistent.NewDB(pPath, persistent.TypeSQL(), sName, area)
+		err = persistent.NewDB(pPath, persistent.TypeSQL(), sID, area)
 		if err != nil {
 			log.Panic("DB connect error: " + err.Error())
 		}
