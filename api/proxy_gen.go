@@ -289,15 +289,7 @@ type ValidateStub struct {
 
 type WebStruct struct {
 	Internal struct {
-		AddCacheTask func(p0 context.Context, p1 string, p2 int, p3 time.Time) error `perm:"read"`
-
-		CancelCacheTask func(p0 context.Context, p1 string) error `perm:"read"`
-
-		GetCacheTaskInfo func(p0 context.Context, p1 string) (CarfileRecordInfo, error) `perm:"read"`
-
 		GetCacheTaskInfos func(p0 context.Context, p1 ListCacheInfosReq) (ListCacheInfosRsp, error) `perm:"read"`
-
-		GetCarfileByCID func(p0 context.Context, p1 string) (WebCarfile, error) `perm:"read"`
 
 		GetNodeInfoByID func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
 
@@ -307,17 +299,11 @@ type WebStruct struct {
 
 		ListBlockDownloadInfo func(p0 context.Context, p1 ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) `perm:"read"`
 
-		ListCacheTasks func(p0 context.Context, p1 int, p2 int) (ListCacheTasksRsp, error) `perm:"read"`
-
 		ListNodeConnectionLog func(p0 context.Context, p1 ListNodeConnectionLogReq) (ListNodeConnectionLogRsp, error) `perm:"read"`
 
 		ListNodes func(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) `perm:"read"`
 
 		ListValidateResult func(p0 context.Context, p1 int, p2 int) (ListValidateResultRsp, error) `perm:"read"`
-
-		RemoveCarfile func(p0 context.Context, p1 string) error `perm:"read"`
-
-		SetupValidation func(p0 context.Context, p1 bool) error `perm:"read"`
 	}
 }
 
@@ -1127,39 +1113,6 @@ func (s *ValidateStub) BeValidate(p0 context.Context, p1 ReqValidate, p2 string)
 	return ErrNotSupported
 }
 
-func (s *WebStruct) AddCacheTask(p0 context.Context, p1 string, p2 int, p3 time.Time) error {
-	if s.Internal.AddCacheTask == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.AddCacheTask(p0, p1, p2, p3)
-}
-
-func (s *WebStub) AddCacheTask(p0 context.Context, p1 string, p2 int, p3 time.Time) error {
-	return ErrNotSupported
-}
-
-func (s *WebStruct) CancelCacheTask(p0 context.Context, p1 string) error {
-	if s.Internal.CancelCacheTask == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.CancelCacheTask(p0, p1)
-}
-
-func (s *WebStub) CancelCacheTask(p0 context.Context, p1 string) error {
-	return ErrNotSupported
-}
-
-func (s *WebStruct) GetCacheTaskInfo(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
-	if s.Internal.GetCacheTaskInfo == nil {
-		return *new(CarfileRecordInfo), ErrNotSupported
-	}
-	return s.Internal.GetCacheTaskInfo(p0, p1)
-}
-
-func (s *WebStub) GetCacheTaskInfo(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
-	return *new(CarfileRecordInfo), ErrNotSupported
-}
-
 func (s *WebStruct) GetCacheTaskInfos(p0 context.Context, p1 ListCacheInfosReq) (ListCacheInfosRsp, error) {
 	if s.Internal.GetCacheTaskInfos == nil {
 		return *new(ListCacheInfosRsp), ErrNotSupported
@@ -1169,17 +1122,6 @@ func (s *WebStruct) GetCacheTaskInfos(p0 context.Context, p1 ListCacheInfosReq) 
 
 func (s *WebStub) GetCacheTaskInfos(p0 context.Context, p1 ListCacheInfosReq) (ListCacheInfosRsp, error) {
 	return *new(ListCacheInfosRsp), ErrNotSupported
-}
-
-func (s *WebStruct) GetCarfileByCID(p0 context.Context, p1 string) (WebCarfile, error) {
-	if s.Internal.GetCarfileByCID == nil {
-		return *new(WebCarfile), ErrNotSupported
-	}
-	return s.Internal.GetCarfileByCID(p0, p1)
-}
-
-func (s *WebStub) GetCarfileByCID(p0 context.Context, p1 string) (WebCarfile, error) {
-	return *new(WebCarfile), ErrNotSupported
 }
 
 func (s *WebStruct) GetNodeInfoByID(p0 context.Context, p1 string) (DevicesInfo, error) {
@@ -1226,17 +1168,6 @@ func (s *WebStub) ListBlockDownloadInfo(p0 context.Context, p1 ListBlockDownload
 	return *new(ListBlockDownloadInfoRsp), ErrNotSupported
 }
 
-func (s *WebStruct) ListCacheTasks(p0 context.Context, p1 int, p2 int) (ListCacheTasksRsp, error) {
-	if s.Internal.ListCacheTasks == nil {
-		return *new(ListCacheTasksRsp), ErrNotSupported
-	}
-	return s.Internal.ListCacheTasks(p0, p1, p2)
-}
-
-func (s *WebStub) ListCacheTasks(p0 context.Context, p1 int, p2 int) (ListCacheTasksRsp, error) {
-	return *new(ListCacheTasksRsp), ErrNotSupported
-}
-
 func (s *WebStruct) ListNodeConnectionLog(p0 context.Context, p1 ListNodeConnectionLogReq) (ListNodeConnectionLogRsp, error) {
 	if s.Internal.ListNodeConnectionLog == nil {
 		return *new(ListNodeConnectionLogRsp), ErrNotSupported
@@ -1268,28 +1199,6 @@ func (s *WebStruct) ListValidateResult(p0 context.Context, p1 int, p2 int) (List
 
 func (s *WebStub) ListValidateResult(p0 context.Context, p1 int, p2 int) (ListValidateResultRsp, error) {
 	return *new(ListValidateResultRsp), ErrNotSupported
-}
-
-func (s *WebStruct) RemoveCarfile(p0 context.Context, p1 string) error {
-	if s.Internal.RemoveCarfile == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.RemoveCarfile(p0, p1)
-}
-
-func (s *WebStub) RemoveCarfile(p0 context.Context, p1 string) error {
-	return ErrNotSupported
-}
-
-func (s *WebStruct) SetupValidation(p0 context.Context, p1 bool) error {
-	if s.Internal.SetupValidation == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.SetupValidation(p0, p1)
-}
-
-func (s *WebStub) SetupValidation(p0 context.Context, p1 bool) error {
-	return ErrNotSupported
 }
 
 var _ Candidate = new(CandidateStruct)

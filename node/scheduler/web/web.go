@@ -110,42 +110,8 @@ func (w *web) GetCacheTaskInfos(ctx context.Context, req api.ListCacheInfosReq) 
 	return *info, nil
 }
 
-// func (w *web) StatCaches(ctx context.Context) (api.StatCachesRsp, error) {
-// 	return api.StatCachesRsp{}, nil
-// }
-
-// cache manager
-func (w *web) AddCacheTask(ctx context.Context, carFileCID string, reliability int, expireTime time.Time) error {
-	info := &api.CacheCarfileInfo{
-		NeedReliability: reliability,
-		CarfileCid:      carFileCID,
-		ExpiredTime:     expireTime,
-	}
-	return w.scheduler.CacheCarfile(ctx, info)
-}
-
-func (w *web) ListCacheTasks(ctx context.Context, cursor int, count int) (api.ListCacheTasksRsp, error) {
-	return api.ListCacheTasksRsp{}, nil
-}
-
-func (w *web) GetCacheTaskInfo(ctx context.Context, carFileCID string) (api.CarfileRecordInfo, error) {
-	return w.scheduler.GetCarfileRecordInfo(ctx, carFileCID)
-}
-
-func (w *web) CancelCacheTask(ctx context.Context, carFileCID string) error {
-	return nil
-}
-
-func (w *web) GetCarfileByCID(ctx context.Context, carFileCID string) (api.WebCarfile, error) {
-	return api.WebCarfile{}, nil
-}
-
 func (w *web) GetBlocksByCarfileCID(ctx context.Context, carFileCID string) ([]api.WebBlock, error) {
 	return []api.WebBlock{}, nil
-}
-
-func (w *web) RemoveCarfile(ctx context.Context, carFileCID string) error {
-	return w.scheduler.RemoveCarfile(ctx, carFileCID)
 }
 
 func (w *web) ListValidateResult(ctx context.Context, cursor int, count int) (api.ListValidateResultRsp, error) {
@@ -155,11 +121,6 @@ func (w *web) ListValidateResult(ctx context.Context, cursor int, count int) (ap
 	}
 
 	return api.ListValidateResultRsp{Total: total, Data: results}, nil
-}
-
-func (w *web) SetupValidation(ctx context.Context, enable bool) error {
-	w.scheduler.ValidateSwitch(ctx, enable)
-	return nil
 }
 
 func (w *web) GetSystemInfo(ctx context.Context) (api.SystemBaseInfo, error) {
