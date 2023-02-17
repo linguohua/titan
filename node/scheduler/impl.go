@@ -561,6 +561,20 @@ func (s *Scheduler) DownloadNodeLogFile(ctx context.Context, deviceID string) ([
 	return nil, xerrors.Errorf("node %s not found")
 }
 
+func (s *Scheduler) DeleteNodeLogFile(ctx context.Context, deviceID string) error {
+	cNode := s.nodeManager.GetCandidateNode(deviceID)
+	if cNode != nil {
+		return cNode.GetAPI().DeleteLogFile(ctx)
+	}
+
+	eNode := s.nodeManager.GetEdgeNode(deviceID)
+	if eNode != nil {
+		return eNode.GetAPI().DeleteLogFile(ctx)
+	}
+
+	return xerrors.Errorf("node %s not found")
+}
+
 // deviceExists Check if the id exists
 func deviceExists(deviceID string, nodeType int) bool {
 	var nType int

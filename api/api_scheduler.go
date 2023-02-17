@@ -33,6 +33,7 @@ type Scheduler interface {
 	ExecuteUndoneCarfilesTask(ctx context.Context) error                                        //perm:admin
 	ShowNodeLogFile(ctx context.Context, deviceID string) (*LogFile, error)                     //perm:admin
 	DownloadNodeLogFile(ctx context.Context, deviceID string) ([]byte, error)                   //perm:admin
+	DeleteNodeLogFile(ctx context.Context, deviceID string) error                               //perm:admin
 	// get edge external addr with multiple scheduler, can test NAT type
 	GetEdgeExternalAddr(ctx context.Context, deviceID, schedulerURL string) (string, error) //perm:admin
 

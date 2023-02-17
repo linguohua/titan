@@ -125,3 +125,13 @@ func (a *CommonAPI) DownloadLogFile(ctx context.Context) ([]byte, error) {
 	}
 	return os.ReadFile(logFilePath)
 }
+
+func (a *CommonAPI) DeleteLogFile(ctx context.Context) error {
+	logFilePath := os.Getenv("GOLOG_FILE")
+	if logFilePath == "" {
+		return nil
+	}
+
+	os.WriteFile(logFilePath, []byte(""), 0755)
+	return nil
+}
