@@ -419,6 +419,13 @@ func (d *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResul
 		return xerrors.Errorf("endCache %s , CacheTasksEnd err:%s", c.carfileHash, err.Error())
 	}
 
+	if c.status == api.CacheStatusSucceeded {
+		err = cache.GetDB().IncrBySystemBaseInfo(cache.CarFileCountField, 1)
+		if err != nil {
+			log.Errorf("endCache IncrBySystemBaseInfo err:%s", err.Error())
+		}
+	}
+
 	if !cachesDone {
 		// caches undone
 		return nil
