@@ -31,6 +31,8 @@ type Scheduler interface {
 	ResetBackupCacheCount(ctx context.Context, backupCacheCount int) error                      //perm:admin
 	GetUndoneCarfileRecords(ctx context.Context, page int) (*DataListInfo, error)               //perm:read
 	ExecuteUndoneCarfilesTask(ctx context.Context) error                                        //perm:admin
+	ShowNodeLogFile(ctx context.Context, deviceID string) (*LogFile, error)                     //perm:read
+	DownloadNodeLogFile(ctx context.Context, deviceID string) ([]byte, error)                   //perm:read
 
 	// call by locator
 	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error //perm:write

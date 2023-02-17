@@ -532,6 +532,36 @@ func (s *Scheduler) authNew() error {
 	return nil
 }
 
+// ShowNodeLogFile show node log file
+func (s *Scheduler) ShowNodeLogFile(ctx context.Context, deviceID string) (*api.LogFile, error) {
+	cNode := s.nodeManager.GetCandidateNode(deviceID)
+	if cNode != nil {
+		return cNode.GetAPI().ShowLogFile(ctx)
+	}
+
+	eNode := s.nodeManager.GetEdgeNode(deviceID)
+	if eNode != nil {
+		return eNode.GetAPI().ShowLogFile(ctx)
+	}
+
+	return nil, xerrors.Errorf("node %s not found")
+}
+
+// DownloadNodeLogFile Download Node Log File
+func (s *Scheduler) DownloadNodeLogFile(ctx context.Context, deviceID string) ([]byte, error) {
+	cNode := s.nodeManager.GetCandidateNode(deviceID)
+	if cNode != nil {
+		return cNode.GetAPI().DownloadLogFile(ctx)
+	}
+
+	eNode := s.nodeManager.GetEdgeNode(deviceID)
+	if eNode != nil {
+		return eNode.GetAPI().DownloadLogFile(ctx)
+	}
+
+	return nil, xerrors.Errorf("node %s not found")
+}
+
 // deviceExists Check if the id exists
 func deviceExists(deviceID string, nodeType int) bool {
 	var nType int

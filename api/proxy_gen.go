@@ -212,6 +212,8 @@ type SchedulerStruct struct {
 
 		DeleteNodeAppUpdateInfos func(p0 context.Context, p1 int) error `perm:"admin"`
 
+		DownloadNodeLogFile func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
+
 		EdgeNodeConnect func(p0 context.Context) error `perm:"write"`
 
 		ElectionValidators func(p0 context.Context) error `perm:"admin"`
@@ -259,6 +261,8 @@ type SchedulerStruct struct {
 		ResetCacheExpiredTime func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
 
 		SetNodeAppUpdateInfo func(p0 context.Context, p1 *NodeAppUpdateInfo) error `perm:"admin"`
+
+		ShowNodeLogFile func(p0 context.Context, p1 string) (*LogFile, error) `perm:"read"`
 
 		StopCacheTask func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -785,6 +789,17 @@ func (s *SchedulerStub) DeleteNodeAppUpdateInfos(p0 context.Context, p1 int) err
 	return ErrNotSupported
 }
 
+func (s *SchedulerStruct) DownloadNodeLogFile(p0 context.Context, p1 string) ([]byte, error) {
+	if s.Internal.DownloadNodeLogFile == nil {
+		return *new([]byte), ErrNotSupported
+	}
+	return s.Internal.DownloadNodeLogFile(p0, p1)
+}
+
+func (s *SchedulerStub) DownloadNodeLogFile(p0 context.Context, p1 string) ([]byte, error) {
+	return *new([]byte), ErrNotSupported
+}
+
 func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context) error {
 	if s.Internal.EdgeNodeConnect == nil {
 		return ErrNotSupported
@@ -1047,6 +1062,17 @@ func (s *SchedulerStruct) SetNodeAppUpdateInfo(p0 context.Context, p1 *NodeAppUp
 
 func (s *SchedulerStub) SetNodeAppUpdateInfo(p0 context.Context, p1 *NodeAppUpdateInfo) error {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) ShowNodeLogFile(p0 context.Context, p1 string) (*LogFile, error) {
+	if s.Internal.ShowNodeLogFile == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.ShowNodeLogFile(p0, p1)
+}
+
+func (s *SchedulerStub) ShowNodeLogFile(p0 context.Context, p1 string) (*LogFile, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *SchedulerStruct) StopCacheTask(p0 context.Context, p1 string) error {
