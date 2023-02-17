@@ -225,7 +225,7 @@ func (s *Scheduler) CacheCarfile(ctx context.Context, info *api.CacheCarfileInfo
 
 	hash, err := cidutil.CIDString2HashString(info.CarfileCid)
 	if err != nil {
-		return xerrors.Errorf("%s cid to hash err:", info.CarfileCid, err.Error())
+		return xerrors.Errorf("%s cid to hash err:%s", info.CarfileCid, err.Error())
 	}
 
 	info.CarfileHash = hash
