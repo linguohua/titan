@@ -49,6 +49,7 @@ var SchedulerCmds = []*cli.Command{
 	// other
 	getDownloadInfoCmd,
 	nodeAppUpdateCmd,
+	getEdgeExternalAddr,
 }
 
 var (
@@ -1164,5 +1165,37 @@ var getNodeLogFileCmd = &cli.Command{
 
 		filePath := "./" + info.Name
 		return os.WriteFile(filePath, data, 0o644)
+	},
+}
+
+var getEdgeExternalAddr = &cli.Command{
+	Name:  "edge-external-addr",
+	Usage: "get edge external addr",
+	Flags: []cli.Flag{
+		deviceIDFlag,
+		&cli.StringFlag{
+			Name:  "scheduler-url",
+			Usage: "scheduler url",
+			Value: "http://localhost:3456/rpc/v0",
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		deviceID := cctx.String("device-id")
+		schedulerURL := cctx.String("scheduler-url")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		addr, err := schedulerAPI.GetEdgeExternalAddr(ctx, deviceID, schedulerURL)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("edge external addr:%s\n", addr)
+		return nil
 	},
 }

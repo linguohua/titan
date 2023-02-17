@@ -329,11 +329,10 @@ func (s *Scheduler) GetPublicKey(ctx context.Context) (string, error) {
 	return "", fmt.Errorf("Can not get node %s publicKey", deviceID)
 }
 
-// GetExternalIP get node External IP
-func (s *Scheduler) GetExternalIP(ctx context.Context) (string, error) {
+// GetExternalAddr get node External address
+func (s *Scheduler) GetExternalAddr(ctx context.Context) (string, error) {
 	remoteAddr := handler.GetRemoteAddr(ctx)
-	ip, _, err := net.SplitHostPort(remoteAddr)
-	return ip, err
+	return remoteAddr, nil
 }
 
 // ValidateBlockResult Validate Block Result
@@ -575,4 +574,13 @@ func deviceExists(deviceID string, nodeType int) bool {
 	}
 
 	return true
+}
+
+func (s *Scheduler) GetEdgeExternalAddr(ctx context.Context, deviceID, schedulerURL string) (string, error) {
+	eNode := s.nodeManager.GetEdgeNode(deviceID)
+	if eNode != nil {
+		return eNode.GetAPI().GetMyExternalAddr(ctx, schedulerURL)
+	}
+
+	return "", fmt.Errorf("Device %s offline or not exist", deviceID)
 }

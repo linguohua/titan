@@ -142,6 +142,8 @@ type EdgeStruct struct {
 	CarfileOperationStruct
 
 	Internal struct {
+		GetMyExternalAddr func(p0 context.Context, p1 string) (string, error) `perm:"write"`
+
 		PingUser func(p0 context.Context, p1 string) error `perm:"write"`
 
 		WaitQuiet func(p0 context.Context) error `perm:"read"`
@@ -212,7 +214,7 @@ type SchedulerStruct struct {
 
 		DeleteNodeAppUpdateInfos func(p0 context.Context, p1 int) error `perm:"admin"`
 
-		DownloadNodeLogFile func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
+		DownloadNodeLogFile func(p0 context.Context, p1 string) ([]byte, error) `perm:"admin"`
 
 		EdgeNodeConnect func(p0 context.Context) error `perm:"write"`
 
@@ -228,7 +230,9 @@ type SchedulerStruct struct {
 
 		GetDownloadInfosWithCarfile func(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) `perm:"read"`
 
-		GetExternalIP func(p0 context.Context) (string, error) `perm:"write"`
+		GetEdgeExternalAddr func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"admin"`
+
+		GetExternalAddr func(p0 context.Context) (string, error) `perm:"read"`
 
 		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) `perm:"read"`
 
@@ -262,7 +266,7 @@ type SchedulerStruct struct {
 
 		SetNodeAppUpdateInfo func(p0 context.Context, p1 *NodeAppUpdateInfo) error `perm:"admin"`
 
-		ShowNodeLogFile func(p0 context.Context, p1 string) (*LogFile, error) `perm:"read"`
+		ShowNodeLogFile func(p0 context.Context, p1 string) (*LogFile, error) `perm:"admin"`
 
 		StopCacheTask func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -580,6 +584,17 @@ func (s *DownloadStub) SetDownloadSpeed(p0 context.Context, p1 int64) error {
 	return ErrNotSupported
 }
 
+func (s *EdgeStruct) GetMyExternalAddr(p0 context.Context, p1 string) (string, error) {
+	if s.Internal.GetMyExternalAddr == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.GetMyExternalAddr(p0, p1)
+}
+
+func (s *EdgeStub) GetMyExternalAddr(p0 context.Context, p1 string) (string, error) {
+	return "", ErrNotSupported
+}
+
 func (s *EdgeStruct) PingUser(p0 context.Context, p1 string) error {
 	if s.Internal.PingUser == nil {
 		return ErrNotSupported
@@ -877,14 +892,25 @@ func (s *SchedulerStub) GetDownloadInfosWithCarfile(p0 context.Context, p1 strin
 	return *new([]*DownloadInfoResult), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetExternalIP(p0 context.Context) (string, error) {
-	if s.Internal.GetExternalIP == nil {
+func (s *SchedulerStruct) GetEdgeExternalAddr(p0 context.Context, p1 string, p2 string) (string, error) {
+	if s.Internal.GetEdgeExternalAddr == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.GetExternalIP(p0)
+	return s.Internal.GetEdgeExternalAddr(p0, p1, p2)
 }
 
-func (s *SchedulerStub) GetExternalIP(p0 context.Context) (string, error) {
+func (s *SchedulerStub) GetEdgeExternalAddr(p0 context.Context, p1 string, p2 string) (string, error) {
+	return "", ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetExternalAddr(p0 context.Context) (string, error) {
+	if s.Internal.GetExternalAddr == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.GetExternalAddr(p0)
+}
+
+func (s *SchedulerStub) GetExternalAddr(p0 context.Context) (string, error) {
 	return "", ErrNotSupported
 }
 

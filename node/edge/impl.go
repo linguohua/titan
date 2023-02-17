@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/carfile"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/carfile/downloader"
@@ -72,6 +73,16 @@ func (edge *Edge) WaitQuiet(ctx context.Context) error {
 	return nil
 }
 
+func (edge *Edge) GetMyExternalAddr(ctx context.Context, schedulerURL string) (string, error) {
+	schedulerAPI, closer, err := client.NewScheduler(ctx, schedulerURL, nil)
+	if err != nil {
+		return "", err
+	}
+	defer closer()
+
+	return schedulerAPI.GetExternalAddr(ctx)
+}
+
 func (edge *Edge) PingUser(ctx context.Context, userAddr string) error {
 	_, ok := edge.userPing.Load(userAddr)
 	if ok {
@@ -109,6 +120,7 @@ func (edge *Edge) pingUsers() {
 		if err != nil {
 			log.Errorf("ping user error:%s", err)
 		}
+		log.Infof("pingUsers addr:%s", addr)
 		return true
 	})
 }

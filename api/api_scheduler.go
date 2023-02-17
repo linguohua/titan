@@ -31,8 +31,10 @@ type Scheduler interface {
 	ResetBackupCacheCount(ctx context.Context, backupCacheCount int) error                      //perm:admin
 	GetUndoneCarfileRecords(ctx context.Context, page int) (*DataListInfo, error)               //perm:read
 	ExecuteUndoneCarfilesTask(ctx context.Context) error                                        //perm:admin
-	ShowNodeLogFile(ctx context.Context, deviceID string) (*LogFile, error)                     //perm:read
-	DownloadNodeLogFile(ctx context.Context, deviceID string) ([]byte, error)                   //perm:read
+	ShowNodeLogFile(ctx context.Context, deviceID string) (*LogFile, error)                     //perm:admin
+	DownloadNodeLogFile(ctx context.Context, deviceID string) ([]byte, error)                   //perm:admin
+	// get edge external addr with multiple scheduler, can test NAT type
+	GetEdgeExternalAddr(ctx context.Context, deviceID, schedulerURL string) (string, error) //perm:admin
 
 	// call by locator
 	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error //perm:write
@@ -45,7 +47,7 @@ type Scheduler interface {
 	CandidateNodeConnect(ctx context.Context) error                                                          //perm:write
 	CacheResult(ctx context.Context, resultInfo CacheResultInfo) error                                       //perm:write
 	RemoveCarfileResult(ctx context.Context, resultInfo RemoveCarfileResultInfo) error                       //perm:write
-	GetExternalIP(ctx context.Context) (string, error)                                                       //perm:write
+	GetExternalAddr(ctx context.Context) (string, error)                                                     //perm:read
 	GetPublicKey(ctx context.Context) (string, error)                                                        //perm:write
 	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                             //perm:read
 	AuthNodeNew(ctx context.Context, perms []auth.Permission, deviceID, deviceSecret string) ([]byte, error) //perm:read

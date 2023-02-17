@@ -372,13 +372,6 @@ func getSchedulerSession(api api.Scheduler, timeout time.Duration) (uuid.UUID, e
 	return api.Session(ctx)
 }
 
-func getExternalIP(api api.Scheduler, timeout time.Duration) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	return api.GetExternalIP(ctx)
-}
-
 func getSchedulerVersion(api api.Scheduler, timeout time.Duration) (api.APIVersion, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
