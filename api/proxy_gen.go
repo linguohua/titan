@@ -77,6 +77,8 @@ type CommonStruct struct {
 
 		Closing func(p0 context.Context) (<-chan struct{}, error) `perm:"read"`
 
+		DeleteLogFile func(p0 context.Context) error `perm:"write"`
+
 		Discover func(p0 context.Context) (OpenRPCDocument, error) `perm:"read"`
 
 		DownloadLogFile func(p0 context.Context) ([]byte, error) `perm:"write"`
@@ -213,6 +215,8 @@ type SchedulerStruct struct {
 		CandidateNodeConnect func(p0 context.Context) error `perm:"write"`
 
 		DeleteNodeAppUpdateInfos func(p0 context.Context, p1 int) error `perm:"admin"`
+
+		DeleteNodeLogFile func(p0 context.Context, p1 string) error `perm:"admin"`
 
 		DownloadNodeLogFile func(p0 context.Context, p1 string) ([]byte, error) `perm:"admin"`
 
@@ -450,6 +454,17 @@ func (s *CommonStruct) Closing(p0 context.Context) (<-chan struct{}, error) {
 
 func (s *CommonStub) Closing(p0 context.Context) (<-chan struct{}, error) {
 	return nil, ErrNotSupported
+}
+
+func (s *CommonStruct) DeleteLogFile(p0 context.Context) error {
+	if s.Internal.DeleteLogFile == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.DeleteLogFile(p0)
+}
+
+func (s *CommonStub) DeleteLogFile(p0 context.Context) error {
+	return ErrNotSupported
 }
 
 func (s *CommonStruct) Discover(p0 context.Context) (OpenRPCDocument, error) {
@@ -801,6 +816,17 @@ func (s *SchedulerStruct) DeleteNodeAppUpdateInfos(p0 context.Context, p1 int) e
 }
 
 func (s *SchedulerStub) DeleteNodeAppUpdateInfos(p0 context.Context, p1 int) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) DeleteNodeLogFile(p0 context.Context, p1 string) error {
+	if s.Internal.DeleteNodeLogFile == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.DeleteNodeLogFile(p0, p1)
+}
+
+func (s *SchedulerStub) DeleteNodeLogFile(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 

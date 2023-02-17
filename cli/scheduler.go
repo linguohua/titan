@@ -46,6 +46,7 @@ var SchedulerCmds = []*cli.Command{
 	showNodeInfoCmd,
 	getNodeLogFileCmd,
 	showNodeLogFileCmd,
+	deleteNodeLogFileCmd,
 	// other
 	getDownloadInfoCmd,
 	nodeAppUpdateCmd,
@@ -1165,6 +1166,26 @@ var getNodeLogFileCmd = &cli.Command{
 
 		filePath := "./" + info.Name
 		return os.WriteFile(filePath, data, 0o644)
+	},
+}
+
+var deleteNodeLogFileCmd = &cli.Command{
+	Name:  "delete-node-log",
+	Usage: "delete node log file",
+	Flags: []cli.Flag{
+		deviceIDFlag,
+	},
+	Action: func(cctx *cli.Context) error {
+		deviceID := cctx.String("device-id")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		return schedulerAPI.DeleteNodeLogFile(ctx, deviceID)
 	},
 }
 
