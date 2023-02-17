@@ -34,7 +34,7 @@ func DefaultEdgeCfg() *EdgeCfg {
 		ListenAddress:    "0.0.0.0:1234",
 		Timeout:          "30s",
 		CarfilestoreType: "FileStore",
-		BandwidthUp:      1073741824,
+		BandwidthUp:      104857600,
 		BandwidthDown:    1073741824,
 		Locator:          true,
 
