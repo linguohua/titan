@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -43,6 +44,8 @@ var SchedulerCmds = []*cli.Command{
 	nodeTokenCmd,
 	registerNodeCmd,
 	showNodeInfoCmd,
+	getNodeLogFileCmd,
+	showNodeLogFileCmd,
 	// other
 	getDownloadInfoCmd,
 	nodeAppUpdateCmd,
@@ -1095,4 +1098,71 @@ func newVersion(version string) (api.Version, error) {
 	}
 
 	return api.Version(uint32(major)<<16 | uint32(minor)<<8 | uint32(patch)), nil
+}
+
+var showNodeLogFileCmd = &cli.Command{
+	Name:  "show-node-log",
+	Usage: "show node log file",
+	Flags: []cli.Flag{
+		deviceIDFlag,
+	},
+	Action: func(cctx *cli.Context) error {
+		deviceID := cctx.String("device-id")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		file, err := schedulerAPI.ShowNodeLogFile(ctx, deviceID)
+		if err != nil {
+			return err
+		}
+
+		if file == nil {
+			fmt.Printf("Log file not exist")
+			return nil
+		}
+
+		fmt.Printf("%s %dB", file.Name, file.Size)
+		return nil
+	},
+}
+
+var getNodeLogFileCmd = &cli.Command{
+	Name:  "get-node-log",
+	Usage: "get node log file",
+	Flags: []cli.Flag{
+		deviceIDFlag,
+	},
+	Action: func(cctx *cli.Context) error {
+		deviceID := cctx.String("device-id")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		info, err := schedulerAPI.ShowNodeLogFile(ctx, deviceID)
+		if err != nil {
+			return err
+		}
+
+		if info == nil {
+			fmt.Printf("Log file not exist")
+			return nil
+		}
+
+		data, err := schedulerAPI.DownloadNodeLogFile(ctx, deviceID)
+		if err != nil {
+			return err
+		}
+
+		filePath := "./" + info.Name
+		return os.WriteFile(filePath, data, 0o644)
+	},
 }
