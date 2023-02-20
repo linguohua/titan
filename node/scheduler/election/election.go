@@ -259,17 +259,17 @@ func (v *Election) reelectTicker() {
 		select {
 		case <-ticker.C:
 			v.vlk.Lock()
-			var expire bool
+			var validatorOffline bool
 			for deviceID := range v.validators {
 				node := v.manager.GetCandidateNode(deviceID)
 				if node != nil {
 					v.validators[deviceID] = time.Now()
 					continue
 				}
-				expire = true
+				validatorOffline = true
 			}
 			v.vlk.Unlock()
-			if !expire && !v.reelectEnable {
+			if !validatorOffline && !v.reelectEnable {
 				continue
 			}
 			v.update <- struct{}{}

@@ -120,10 +120,10 @@ func (m *Manager) checkNodesKeepalive() {
 }
 
 // GetOnlineNodes get nodes with type
-func (m *Manager) GetOnlineNodes(nodeType api.NodeTypeName) ([]string, error) {
+func (m *Manager) GetOnlineNodes(nodeType api.NodeType) ([]string, error) {
 	list := make([]string, 0)
 
-	if nodeType == api.TypeNameAll || nodeType == api.TypeNameCandidate {
+	if nodeType == api.NodeUnknown || nodeType == api.NodeCandidate {
 		m.CandidateNodeMap.Range(func(key, value interface{}) bool {
 			deviceID := key.(string)
 			list = append(list, deviceID)
@@ -132,7 +132,7 @@ func (m *Manager) GetOnlineNodes(nodeType api.NodeTypeName) ([]string, error) {
 		})
 	}
 
-	if nodeType == api.TypeNameAll || nodeType == api.TypeNameEdge {
+	if nodeType == api.NodeUnknown || nodeType == api.NodeEdge {
 		m.EdgeNodeMap.Range(func(key, value interface{}) bool {
 			deviceID := key.(string)
 			list = append(list, deviceID)

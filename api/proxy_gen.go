@@ -240,7 +240,7 @@ type SchedulerStruct struct {
 
 		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) `perm:"read"`
 
-		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeTypeName) ([]string, error) `perm:"read"`
+		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeType) ([]string, error) `perm:"read"`
 
 		GetPublicKey func(p0 context.Context) (string, error) `perm:"write"`
 
@@ -951,14 +951,14 @@ func (s *SchedulerStub) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*Node
 	return *new(map[int]*NodeAppUpdateInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetOnlineDeviceIDs(p0 context.Context, p1 NodeTypeName) ([]string, error) {
+func (s *SchedulerStruct) GetOnlineDeviceIDs(p0 context.Context, p1 NodeType) ([]string, error) {
 	if s.Internal.GetOnlineDeviceIDs == nil {
 		return *new([]string), ErrNotSupported
 	}
 	return s.Internal.GetOnlineDeviceIDs(p0, p1)
 }
 
-func (s *SchedulerStub) GetOnlineDeviceIDs(p0 context.Context, p1 NodeTypeName) ([]string, error) {
+func (s *SchedulerStub) GetOnlineDeviceIDs(p0 context.Context, p1 NodeType) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 
