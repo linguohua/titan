@@ -316,8 +316,6 @@ type WebStruct struct {
 		ListNodeConnectionLog func(p0 context.Context, p1 ListNodeConnectionLogReq) (ListNodeConnectionLogRsp, error) `perm:"read"`
 
 		ListNodes func(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) `perm:"read"`
-
-		ListValidateResult func(p0 context.Context, p1 int, p2 int) (ListValidateResultRsp, error) `perm:"read"`
 	}
 }
 
@@ -1279,17 +1277,6 @@ func (s *WebStruct) ListNodes(p0 context.Context, p1 int, p2 int) (ListNodesRsp,
 
 func (s *WebStub) ListNodes(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) {
 	return *new(ListNodesRsp), ErrNotSupported
-}
-
-func (s *WebStruct) ListValidateResult(p0 context.Context, p1 int, p2 int) (ListValidateResultRsp, error) {
-	if s.Internal.ListValidateResult == nil {
-		return *new(ListValidateResultRsp), ErrNotSupported
-	}
-	return s.Internal.ListValidateResult(p0, p1, p2)
-}
-
-func (s *WebStub) ListValidateResult(p0 context.Context, p1 int, p2 int) (ListValidateResultRsp, error) {
-	return *new(ListValidateResultRsp), ErrNotSupported
 }
 
 var _ Candidate = new(CandidateStruct)

@@ -16,7 +16,7 @@ type webDB interface {
 	GetBlockDownloadInfos(DeviceID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.BlockDownloadInfo, int64, error)
 	SetNodeConnectionLog(deviceID string, status api.NodeConnectionStatus) error
 	GetNodeConnectionLogs(deviceID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.NodeConnectionLog, int64, error)
-	GetValidateResults(cursor int, count int) ([]api.WebValidateResult, int64, error)
+	// GetValidateResults(cursor int, count int) ([]api.WebValidateResult, int64, error)
 	GetCacheTaskInfos(startTime time.Time, endTime time.Time, cursor, count int) (*api.ListCacheInfosRsp, error)
 }
 
@@ -115,17 +115,17 @@ func (sd sqlDB) GetNodeConnectionLogs(deviceID string, startTime time.Time, endT
 	return out, total, nil
 }
 
-func (sd sqlDB) GetValidateResults(cursor int, count int) ([]api.WebValidateResult, int64, error) {
-	var total int64
-	countSQL := "SELECT count(*) FROM validate_result"
-	if err := sd.cli.Get(&total, countSQL); err != nil {
-		return []api.WebValidateResult{}, 0, err
-	}
+// func (sd sqlDB) GetValidateResults(cursor int, count int) ([]api.WebValidateResult, int64, error) {
+// 	var total int64
+// 	countSQL := "SELECT count(*) FROM validate_result"
+// 	if err := sd.cli.Get(&total, countSQL); err != nil {
+// 		return []api.WebValidateResult{}, 0, err
+// 	}
 
-	query := "SELECT * FROM validate_result limit ?,?"
-	var out []api.WebValidateResult
-	if err := sd.cli.Select(&out, query, cursor, count); err != nil {
-		return nil, 0, err
-	}
-	return out, total, nil
-}
+// 	query := "SELECT * FROM validate_result limit ?,?"
+// 	var out []api.WebValidateResult
+// 	if err := sd.cli.Select(&out, query, cursor, count); err != nil {
+// 		return nil, 0, err
+// 	}
+// 	return out, total, nil
+// }

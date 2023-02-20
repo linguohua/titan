@@ -31,11 +31,11 @@ func TestWeb(t *testing.T) {
 	// 	}
 	// }
 
-	nodes, total, err := persistent.GetDB().GetValidateResults(0, 10)
-	if err != nil {
-		fmt.Println("GetNodeConnectionLogs error:", err.Error())
-		return
-	}
+	// nodes, total, err := persistent.GetDB().GetValidateResults(0, 10)
+	// if err != nil {
+	// 	fmt.Println("GetNodeConnectionLogs error:", err.Error())
+	// 	return
+	// }
 
-	fmt.Printf("total:%d, logs:%v", total, nodes)
+	// fmt.Printf("total:%d, logs:%v", total, nodes)
 }

@@ -29,12 +29,11 @@ type DB interface {
 	SetNodesQuit(deviceIDs []string) error
 
 	// Validate Result
-	UpdateFailValidateResultInfo(info *ValidateResult) error
-	SetTimeoutToValidateInfos(info *ValidateResult, deivceIDs []string) error
-	UpdateSuccessValidateResultInfo(info *ValidateResult) error
+	SetTimeoutToValidateInfos(roundID int64, deivceIDs []string) error
+	UpdateValidateResultInfo(info *api.ValidateResult) error
 	SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error)
 	GetRandCarfileWithNode(deviceID string) (string, error)
-	AddValidateResultInfos(infos []*ValidateResult) error
+	AddValidateResultInfos(infos []*api.ValidateResult) error
 
 	// cache data info
 	CreateCarfileReplicaInfo(info *api.CarfileReplicaInfo) error
@@ -130,68 +129,28 @@ type NodeInfo struct {
 	Quitted    bool      `db:"quitted"`
 }
 
-// ValidateResult validate result
-type ValidateResult struct {
-	ID          int
-	RoundID     int64     `db:"round_id"`
-	DeviceID    string    `db:"device_id"`
-	ValidatorID string    `db:"validator_id"`
-	ServerID    string    `db:"server_id"`
-	BlockNumber int64     `db:"block_number"` // number of blocks verified
-	Status      int       `db:"status"`
-	Duration    int64     `db:"duration"` // validate duration, microsecond
-	Bandwidth   float64   `db:"bandwidth"`
-	StartTime   time.Time `db:"start_time"`
-	EndTime     time.Time `db:"end_time"`
-}
+// // MsgType message type
+// type MsgType int
 
-// ValidateStatus Validate Status
-type ValidateStatus int
+// const (
+// 	// MsgTypeUnknown type
+// 	MsgTypeUnknown MsgType = iota
+// 	// MsgTypeCache type
+// 	MsgTypeCache
+// 	// MsgTypeDowload type
+// 	MsgTypeDowload
+// 	// MsgTypeValidate type
+// 	MsgTypeValidate
+// )
 
-const (
-	// ValidateStatusUnknown status
-	ValidateStatusUnknown ValidateStatus = iota
-	// ValidateStatusCreate status
-	ValidateStatusCreate
-	// ValidateStatusSuccess status
-	ValidateStatusSuccess
-	// ValidateStatusTimeOut status
-	ValidateStatusTimeOut
-	// ValidateStatusCancel status
-	ValidateStatusCancel
-	// ValidateStatusFail status
-	ValidateStatusFail
-	// ValidateStatusOther status
-	ValidateStatusOther
-)
+// // MsgStatus message Status
+// type MsgStatus int
 
-// Int to int
-func (v ValidateStatus) Int() int {
-	return int(v)
-}
-
-// MsgType message type
-type MsgType int
-
-const (
-	// MsgTypeUnknown type
-	MsgTypeUnknown MsgType = iota
-	// MsgTypeCache type
-	MsgTypeCache
-	// MsgTypeDowload type
-	MsgTypeDowload
-	// MsgTypeValidate type
-	MsgTypeValidate
-)
-
-// MsgStatus message Status
-type MsgStatus int
-
-const (
-	// MsgStatusUnknown status
-	MsgStatusUnknown MsgStatus = iota
-	// MsgStatustusFail status
-	MsgStatustusFail
-	// MsgStatusSuccess status
-	MsgStatusSuccess
-)
+// const (
+// 	// MsgStatusUnknown status
+// 	MsgStatusUnknown MsgStatus = iota
+// 	// MsgStatustusFail status
+// 	MsgStatustusFail
+// 	// MsgStatusSuccess status
+// 	MsgStatusSuccess
+// )

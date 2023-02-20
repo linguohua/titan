@@ -127,7 +127,7 @@ func (sd sqlDB) SetNodesQuit(deviceIDs []string) error {
 }
 
 // Validate Result
-func (sd sqlDB) AddValidateResultInfos(infos []*ValidateResult) error {
+func (sd sqlDB) AddValidateResultInfos(infos []*api.ValidateResult) error {
 	tx := sd.cli.MustBegin()
 	for _, info := range infos {
 		query := fmt.Sprintf("INSERT INTO%s", " validate_result (round_id, device_id, validator_id, status, start_time, server_id) VALUES (?, ?, ?, ?, ?, ?)")
@@ -143,17 +143,11 @@ func (sd sqlDB) AddValidateResultInfos(infos []*ValidateResult) error {
 	return nil
 }
 
-func (sd sqlDB) UpdateFailValidateResultInfo(info *ValidateResult) error {
-	query := fmt.Sprintf("UPDATE%s", " validate_result SET msg=:msg, status=:status, end_time=:end_time WHERE round_id=:round_id AND device_id=:device_id")
-	_, err := sd.cli.NamedExec(query, info)
-	return err
-}
-
-func (sd sqlDB) SetTimeoutToValidateInfos(info *ValidateResult, deviceIDs []string) error {
+func (sd sqlDB) SetTimeoutToValidateInfos(roundID int64, deviceIDs []string) error {
 	tx := sd.cli.MustBegin()
 
-	updateCachesCmd := `UPDATE validate_result SET status=?,end_time=? WHERE round_id=? AND device_id in (?)`
-	query, args, err := sqlx.In(updateCachesCmd, info.Status, info.EndTime, info.RoundID, deviceIDs)
+	updateCachesCmd := `UPDATE validate_result SET status=?,end_time=NOW() WHERE round_id=? AND device_id in (?)`
+	query, args, err := sqlx.In(updateCachesCmd, api.ValidateStatusTimeOut, roundID, deviceIDs)
 	if err != nil {
 		return err
 	}
@@ -171,17 +165,23 @@ func (sd sqlDB) SetTimeoutToValidateInfos(info *ValidateResult, deviceIDs []stri
 	return nil
 }
 
-func (sd sqlDB) UpdateSuccessValidateResultInfo(info *ValidateResult) error {
-	query := fmt.Sprintf("UPDATE%s", " validate_result SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=:end_time WHERE round_id=:round_id AND device_id=:device_id")
+func (sd sqlDB) UpdateValidateResultInfo(info *api.ValidateResult) error {
+	if info.Status == api.ValidateStatusSuccess {
+		query := fmt.Sprintf("UPDATE%s", " validate_result SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW() WHERE round_id=:round_id AND device_id=:device_id")
+		_, err := sd.cli.NamedExec(query, info)
+		return err
+	}
+
+	query := fmt.Sprintf("UPDATE%s", " validate_result SET status=:status, end_time=NOW() WHERE round_id=:round_id AND device_id=:device_id")
 	_, err := sd.cli.NamedExec(query, info)
 	return err
 }
 
 func (sd sqlDB) SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error) {
 	res := new(api.SummeryValidateResult)
-	var infos []api.ValidateResultInfo
+	var infos []api.ValidateResult
 	query := fmt.Sprintf("SELECT%s%s%v%s%v%s%d,%d;",
-		" `device_id`,`validator_id`,`block_number`,`status`,`start_time` AS `validate_time`, `duration`, (duration/1e3 * bandwidth) AS `upload_traffic` FROM validate_result",
+		" *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM validate_result",
 		" WHERE start_time >= '",
 		startTime,
 		"' AND end_time <= '",

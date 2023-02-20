@@ -16,7 +16,7 @@ type Web interface {
 	GetCacheTaskInfos(ctx context.Context, req ListCacheInfosReq) (ListCacheInfosRsp, error) //perm:read
 	GetSystemInfo(ctx context.Context) (SystemBaseInfo, error)                               //perm:read
 
-	ListValidateResult(ctx context.Context, cursor int, count int) (ListValidateResultRsp, error) //perm:read
+	// ListValidateResult(ctx context.Context, cursor int, count int) (ListValidateResultRsp, error) //perm:read
 
 	GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*SummeryValidateResult, error) //perm:read
 }
@@ -123,34 +123,71 @@ type ValidationInfo struct {
 	EnableValidation bool  `json:"enable_validation"`
 }
 
-type ListValidateResultRsp struct {
-	Data  []WebValidateResult `json:"data"`
-	Total int64               `json:"total"`
-}
+// type ListValidateResultRsp struct {
+// 	Data  []WebValidateResult `json:"data"`
+// 	Total int64               `json:"total"`
+// }
 
-type WebValidateResult struct {
-	ID          int    `json:"-"`
-	RoundID     string `json:"round_id" db:"round_id"`
-	DeviceID    string `json:"device_id" db:"device_id"`
-	ValidatorID string `json:"validator_id" db:"validator_id"`
-	Msg         string `json:"msg" db:"msg"`
-	Status      int    `json:"status" db:"status"`
-	StartTime   string `json:"start_time" db:"start_time"`
-	EndTime     string `json:"end_time" db:"end_time"`
-	ServerName  string `json:"server_id" db:"server_id"`
-}
+// type WebValidateResult struct {
+// 	ID          int    `json:"-"`
+// 	RoundID     string `json:"round_id" db:"round_id"`
+// 	DeviceID    string `json:"device_id" db:"device_id"`
+// 	ValidatorID string `json:"validator_id" db:"validator_id"`
+// 	// Msg         string `json:"msg" db:"msg"`
+// 	Status     int    `json:"status" db:"status"`
+// 	StartTime  string `json:"start_time" db:"start_time"`
+// 	EndTime    string `json:"end_time" db:"end_time"`
+// 	ServerName string `json:"server_id" db:"server_id"`
+// }
 
-type ValidateResultInfo struct {
-	DeviceID      string    `db:"device_id"`
-	ValidatorID   string    `db:"validator_id"`
-	BlockNumber   int64     `db:"block_number"`
-	Status        int       `db:"status"`
-	ValidateTime  time.Time `db:"validate_time"`
-	Duration      int64     `db:"duration"`
-	UploadTraffic float64   `db:"upload_traffic"`
-}
+// type ValidateResultInfo struct {
+// 	DeviceID    string `db:"device_id"`
+// 	ValidatorID string `db:"validator_id"`
+// 	BlockNumber int64  `db:"block_number"`
+// 	Status      int    `db:"status"`
+// 	// ValidateTime  time.Time `db:"validate_time"`
+// 	Duration      int64   `db:"duration"`
+// 	UploadTraffic float64 `db:"upload_traffic"`
+// }
 
 type SummeryValidateResult struct {
-	Total               int                  `json:"total"`
-	ValidateResultInfos []ValidateResultInfo `json:"validate_result_infos"`
+	Total               int              `json:"total"`
+	ValidateResultInfos []ValidateResult `json:"validate_result_infos"`
 }
+
+// ValidateResult validate result
+type ValidateResult struct {
+	ID          int
+	RoundID     int64          `db:"round_id"`
+	DeviceID    string         `db:"device_id"`
+	ValidatorID string         `db:"validator_id"`
+	ServerID    string         `db:"server_id"`
+	BlockNumber int64          `db:"block_number"` // number of blocks verified
+	Status      ValidateStatus `db:"status"`
+	Duration    int64          `db:"duration"` // validate duration, microsecond
+	Bandwidth   float64        `db:"bandwidth"`
+	StartTime   time.Time      `db:"start_time"`
+	EndTime     time.Time      `db:"end_time"`
+
+	UploadTraffic float64 `db:"upload_traffic"`
+}
+
+// ValidateStatus Validate Status
+type ValidateStatus int
+
+const (
+	// ValidateStatusUnknown status
+	ValidateStatusUnknown ValidateStatus = iota
+	// ValidateStatusCreate status
+	ValidateStatusCreate
+	// ValidateStatusSuccess status
+	ValidateStatusSuccess
+	// ValidateStatusTimeOut status
+	ValidateStatusTimeOut
+	// ValidateStatusCancel status
+	ValidateStatusCancel
+	// ValidateStatusFail status
+	ValidateStatusFail
+	// ValidateStatusOther status
+	ValidateStatusOther
+)
