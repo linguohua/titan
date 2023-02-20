@@ -13,7 +13,7 @@ type Scheduler interface {
 	Web
 
 	// call by command
-	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeTypeName) ([]string, error)            //perm:read
+	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeType) ([]string, error)                //perm:read
 	ElectionValidators(ctx context.Context) error                                               //perm:admin
 	CacheCarfile(ctx context.Context, info *CacheCarfileInfo) error                             //perm:admin
 	RemoveCarfile(ctx context.Context, carfileID string) error                                  //perm:admin

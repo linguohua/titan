@@ -30,7 +30,6 @@ var SchedulerCmds = []*cli.Command{
 	removeCacheCmd,
 	showRunningCarfilesCmd,
 	resetCarfileExpiredTimeCmd,
-	nodeQuitCmd,
 	stopCarfileCmd,
 	resetBackupCacheCountCmd,
 	listUndoneCarfileCmd,
@@ -47,6 +46,7 @@ var SchedulerCmds = []*cli.Command{
 	getNodeLogFileCmd,
 	showNodeLogFileCmd,
 	deleteNodeLogFileCmd,
+	nodeQuitCmd,
 	// other
 	getDownloadInfoCmd,
 	nodeAppUpdateCmd,
@@ -905,14 +905,14 @@ var showOnlineNodeCmd = &cli.Command{
 	Name:  "show-online-nodes",
 	Usage: "show all online node",
 	Flags: []cli.Flag{
-		// schedulerURLFlag,
+		nodeTypeFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		// url := cctx.String("scheduler-url")
+		t := cctx.Int("node-type")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -921,7 +921,7 @@ var showOnlineNodeCmd = &cli.Command{
 		}
 		defer closer()
 
-		nodes, err := schedulerAPI.GetOnlineDeviceIDs(ctx, api.TypeNameAll)
+		nodes, err := schedulerAPI.GetOnlineDeviceIDs(ctx, api.NodeType(t))
 
 		fmt.Println("Online nodes count:", len(nodes))
 		for _, node := range nodes {
