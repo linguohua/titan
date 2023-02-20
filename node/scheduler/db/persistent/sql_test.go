@@ -3,6 +3,8 @@ package persistent
 import (
 	"testing"
 	"time"
+
+	"github.com/linguohua/titan/api"
 )
 
 const url = "root:123456@tcp(127.0.0.1:3306)/titan"
@@ -34,16 +36,16 @@ func TestSqlDB_UpdateValidateResultInfo(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	info := new(ValidateResult)
+	info := new(api.ValidateResult)
 	info.DeviceID = "001"
 	info.RoundID = 100
 	info.BlockNumber = 9999
 	// info.Msg = "ok"
 	info.EndTime = time.Now()
-	info.Status = ValidateStatusSuccess.Int()
+	info.Status = api.ValidateStatusSuccess
 	info.Duration = 100000
 	info.Bandwidth = 33.9
-	err = db.UpdateSuccessValidateResultInfo(info)
+	err = db.UpdateValidateResultInfo(info)
 	if err != nil {
 		t.Error(err.Error())
 		return

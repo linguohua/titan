@@ -114,14 +114,14 @@ func (w *web) GetBlocksByCarfileCID(ctx context.Context, carFileCID string) ([]a
 	return []api.WebBlock{}, nil
 }
 
-func (w *web) ListValidateResult(ctx context.Context, cursor int, count int) (api.ListValidateResultRsp, error) {
-	results, total, err := persistent.GetDB().GetValidateResults(cursor, count)
-	if err != nil {
-		return api.ListValidateResultRsp{}, nil
-	}
+// func (w *web) ListValidateResult(ctx context.Context, cursor int, count int) (api.ListValidateResultRsp, error) {
+// 	results, total, err := persistent.GetDB().GetValidateResults(cursor, count)
+// 	if err != nil {
+// 		return api.ListValidateResultRsp{}, nil
+// 	}
 
-	return api.ListValidateResultRsp{Total: total, Data: results}, nil
-}
+// 	return api.ListValidateResultRsp{Total: total, Data: results}, nil
+// }
 
 func (w *web) GetSystemInfo(ctx context.Context) (api.SystemBaseInfo, error) {
 	info, err := cache.GetDB().GetSystemBaseInfo()

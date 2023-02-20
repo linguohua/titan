@@ -103,12 +103,7 @@ func (v *Validate) checkValidateTimeOut() error {
 	}
 
 	if deviceIDs != nil && len(deviceIDs) > 0 {
-		result := &persistent.ValidateResult{
-			RoundID: v.curRoundID - 1,
-			Status:  persistent.ValidateStatusTimeOut.Int(),
-			EndTime: time.Now(),
-		}
-		err = persistent.GetDB().SetTimeoutToValidateInfos(result, deviceIDs)
+		err = persistent.GetDB().SetTimeoutToValidateInfos(v.curRoundID-1, deviceIDs)
 		if err != nil {
 			log.Errorf(err.Error())
 		}
@@ -229,7 +224,7 @@ func (v *Validate) assignValidator(validatorList []string) map[string][]api.ReqV
 		return ""
 	}
 
-	infos := make([]*persistent.ValidateResult, 0)
+	infos := make([]*api.ValidateResult, 0)
 	validateds := make([]string, 0)
 
 	for i, validated := range validatedList {
@@ -250,12 +245,12 @@ func (v *Validate) assignValidator(validatorList []string) map[string][]api.ReqV
 
 		validateReqs[validatorID] = list
 
-		info := &persistent.ValidateResult{
+		info := &api.ValidateResult{
 			RoundID:     v.curRoundID,
 			DeviceID:    validated.deviceID,
 			ValidatorID: validatorID,
 			StartTime:   time.Now(),
-			Status:      int(persistent.ValidateStatusCreate),
+			Status:      api.ValidateStatusCreate,
 		}
 		infos = append(infos, info)
 	}
@@ -328,23 +323,22 @@ func (v *Validate) getRandNum(max int, r *rand.Rand) int {
 }
 
 // updateFailValidateResult update validate result info
-func (v *Validate) updateFailValidateResult(roundID int64, deviceID string, status persistent.ValidateStatus) error {
-	resultInfo := &persistent.ValidateResult{RoundID: roundID, DeviceID: deviceID, Status: status.Int(), EndTime: time.Now()}
-	return persistent.GetDB().UpdateFailValidateResultInfo(resultInfo)
+func (v *Validate) updateFailValidateResult(deviceID string, status api.ValidateStatus) error {
+	resultInfo := &api.ValidateResult{RoundID: v.curRoundID, DeviceID: deviceID, Status: status}
+	return persistent.GetDB().UpdateValidateResultInfo(resultInfo)
 }
 
 // updateSuccessValidateResult update validate result info
 func (v *Validate) updateSuccessValidateResult(validateResults *api.ValidateResults) error {
-	resultInfo := &persistent.ValidateResult{
+	resultInfo := &api.ValidateResult{
 		RoundID:     validateResults.RoundID,
 		DeviceID:    validateResults.DeviceID,
 		BlockNumber: int64(len(validateResults.Cids)),
-		Status:      persistent.ValidateStatusSuccess.Int(),
+		Status:      api.ValidateStatusSuccess,
 		Bandwidth:   validateResults.Bandwidth,
 		Duration:    validateResults.CostTime,
-		EndTime:     time.Now(),
 	}
-	return persistent.GetDB().UpdateSuccessValidateResultInfo(resultInfo)
+	return persistent.GetDB().UpdateValidateResultInfo(resultInfo)
 }
 
 // ValidateResult node validate result
@@ -355,14 +349,14 @@ func (v *Validate) ValidateResult(validateResult *api.ValidateResults) error {
 
 	// log.Debugf("validate result : %+v", *validateResult)
 
-	var status persistent.ValidateStatus
+	var status api.ValidateStatus
 
 	defer func() {
 		var err error
-		if status == persistent.ValidateStatusSuccess {
+		if status == api.ValidateStatusSuccess {
 			err = v.updateSuccessValidateResult(validateResult)
 		} else {
-			err = v.updateFailValidateResult(validateResult.RoundID, validateResult.DeviceID, status)
+			err = v.updateFailValidateResult(validateResult.DeviceID, status)
 		}
 		if err != nil {
 			log.Errorf("UpdateValidateResult [%s] fail : %s", validateResult.DeviceID, err.Error())
@@ -376,25 +370,25 @@ func (v *Validate) ValidateResult(validateResult *api.ValidateResults) error {
 	}()
 
 	if validateResult.IsCancel {
-		status = persistent.ValidateStatusCancel
+		status = api.ValidateStatusCancel
 		return nil
 	}
 
 	if validateResult.IsTimeout {
-		status = persistent.ValidateStatusTimeOut
+		status = api.ValidateStatusTimeOut
 		return nil
 	}
 
 	hash, err := cidutil.CIDString2HashString(validateResult.CarfileCID)
 	if err != nil {
-		status = persistent.ValidateStatusOther
+		status = api.ValidateStatusOther
 		log.Errorf("handleValidateResult CIDString2HashString %s, err:%s", validateResult.CarfileCID, err.Error())
 		return nil
 	}
 
 	candidates, err := persistent.GetDB().GetCachesWithCandidate(hash)
 	if err != nil {
-		status = persistent.ValidateStatusOther
+		status = api.ValidateStatusOther
 		log.Errorf("handleValidateResult GetCaches %s , err:%s", validateResult.CarfileCID, err.Error())
 		return nil
 	}
@@ -419,14 +413,14 @@ func (v *Validate) ValidateResult(validateResult *api.ValidateResults) error {
 	}
 
 	if len(cCidMap) <= 0 {
-		status = persistent.ValidateStatusOther
+		status = api.ValidateStatusOther
 		log.Errorf("handleValidateResult candidate map is nil , %s", validateResult.CarfileCID)
 		return nil
 	}
 
 	carfileRecord, err := persistent.GetDB().GetCarfileInfo(hash)
 	if err != nil {
-		status = persistent.ValidateStatusOther
+		status = api.ValidateStatusOther
 		log.Errorf("handleValidateResult GetCarfileInfo %s , err:%s", validateResult.CarfileCID, err.Error())
 		return nil
 	}
@@ -441,13 +435,13 @@ func (v *Validate) ValidateResult(validateResult *api.ValidateResults) error {
 		// TODO Penalize the candidate if vCid error
 
 		if !v.compareCid(resultCid, vCid) {
-			status = persistent.ValidateStatusFail
+			status = api.ValidateStatusFail
 			log.Errorf("round [%d] and deviceID [%s], validate fail resultCid:%s, vCid:%s,randNum:%d,index:%d", validateResult.RoundID, validateResult.DeviceID, resultCid, vCid, randNum, i)
 			return nil
 		}
 	}
 
-	status = persistent.ValidateStatusSuccess
+	status = api.ValidateStatusSuccess
 	return nil
 }
 
