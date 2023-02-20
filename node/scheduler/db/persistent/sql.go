@@ -130,7 +130,7 @@ func (sd sqlDB) SetNodesQuit(deviceIDs []string) error {
 func (sd sqlDB) AddValidateResultInfos(infos []*api.ValidateResult) error {
 	tx := sd.cli.MustBegin()
 	for _, info := range infos {
-		query := fmt.Sprintf("INSERT INTO%s", " validate_result (round_id, device_id, validator_id, status, start_time, server_id) VALUES (?, ?, ?, ?, ?, ?)")
+		query := "INSERT INTO validate_result (round_id, device_id, validator_id, status, start_time, server_id) VALUES (?, ?, ?, ?, ?, ?)"
 		tx.MustExec(query, info.RoundID, info.DeviceID, info.ValidatorID, info.Status, info.StartTime, serverID)
 	}
 
@@ -167,12 +167,12 @@ func (sd sqlDB) SetTimeoutToValidateInfos(roundID int64, deviceIDs []string) err
 
 func (sd sqlDB) UpdateValidateResultInfo(info *api.ValidateResult) error {
 	if info.Status == api.ValidateStatusSuccess {
-		query := fmt.Sprintf("UPDATE%s", " validate_result SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW() WHERE round_id=:round_id AND device_id=:device_id")
+		query := "UPDATE validate_result SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW() WHERE round_id=:round_id AND device_id=:device_id"
 		_, err := sd.cli.NamedExec(query, info)
 		return err
 	}
 
-	query := fmt.Sprintf("UPDATE%s", " validate_result SET status=:status, end_time=NOW() WHERE round_id=:round_id AND device_id=:device_id")
+	query := "UPDATE validate_result SET status=:status, end_time=NOW() WHERE round_id=:round_id AND device_id=:device_id"
 	_, err := sd.cli.NamedExec(query, info)
 	return err
 }
