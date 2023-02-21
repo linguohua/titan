@@ -9,25 +9,24 @@ CREATE TABLE `node` (
     `is_online` BOOLEAN DEFAULT '0' ,
 	`server_id` varchar(64) DEFAULT '' ,
 	`private_key` varchar(1024) DEFAULT '' ,
-	`url` varchar(64) DEFAULT '' ,
     `quitted` BOOLEAN DEFAULT '0' ,
 	PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node info';
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node info';
 
 CREATE TABLE `validate_result` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `round_id` bigint NOT NULL,
-  `device_id` varchar(128) NOT NULL,
-  `validator_id` varchar(128) NOT NULL,
-  `server_id` varchar(64) DEFAULT NULL,
-  `block_number` bigint DEFAULT '0' COMMENT 'number of blocks verified',
-  `status` tinyint DEFAULT '0',
-  `duration` bigint DEFAULT '0' COMMENT 'validate duration, microsecond',
-  `bandwidth` float DEFAULT '0',
-  `start_time` datetime DEFAULT NULL,
-  `end_time` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `round_device` (`round_id`,`device_id`)
+    `id` int unsigned NOT NULL AUTO_INCREMENT,
+    `round_id` bigint NOT NULL,
+    `device_id` varchar(128) NOT NULL,
+    `validator_id` varchar(128) NOT NULL,
+    `server_id` varchar(64) DEFAULT NULL,
+    `block_number` bigint DEFAULT '0' COMMENT 'number of blocks verified',
+    `status` tinyint DEFAULT '0',
+    `duration` bigint DEFAULT '0' COMMENT 'validate duration, microsecond',
+    `bandwidth` float DEFAULT '0',
+    `start_time` datetime DEFAULT NULL,
+    `end_time` datetime DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `round_device` (`round_id`,`device_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='validate result info';
 
 CREATE TABLE `block_download_info_cn_gd_shenzhen` (
@@ -44,7 +43,7 @@ CREATE TABLE `block_download_info_cn_gd_shenzhen` (
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
     `complete_time` datetime,
     PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='block download information';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='block download information';
 
 CREATE TABLE `register` (
     `id` int unsigned NOT NULL AUTO_INCREMENT,
@@ -53,7 +52,7 @@ CREATE TABLE `register` (
     `create_time` varchar(64) DEFAULT '' ,
 	`node_type` varchar(64) DEFAULT '' ,
 	PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='register';
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='register';
 
 CREATE TABLE `replicas_cn_gd_shenzhen` (
     `id` varchar(128) NOT NULL UNIQUE,
@@ -66,7 +65,7 @@ CREATE TABLE `replicas_cn_gd_shenzhen` (
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='replicas info';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='replicas info';
 
 CREATE TABLE `carfiles_cn_gd_shenzhen` (
 	`carfile_hash` varchar(128) NOT NULL UNIQUE,
@@ -79,34 +78,14 @@ CREATE TABLE `carfiles_cn_gd_shenzhen` (
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (`carfile_hash`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='carfile infos';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='carfile infos';
 
 CREATE TABLE `node_update_info` (
 	`node_type` int NOT NULL UNIQUE,
 	`app_name` varchar(64) NOT NULL,
-  `version`  varchar(32) NOT NULL,
-  `hash` varchar(128) NOT NULL,
+    `version`  varchar(32) NOT NULL,
+    `hash` varchar(128) NOT NULL,
 	`download_url` varchar(128) NOT NULL,
-  `update_time` datetime DEFAULT CURRENT_TIMESTAMP,
+    `update_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (`node_type`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='node_update_info';
-
-
-
-
-
-CREATE TABLE `carfile_event_cn_gd_shenzhen` (
-    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-	`cid` varchar(128) DEFAULT '',
-    `msg` varchar(1024) DEFAULT '',
-    `time` datetime DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='carfile event';
-
-CREATE TABLE `node_connection_log` (
-    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-    `device_id` varchar(128) NOT NULL ,
-    `status` TINYINT  DEFAULT '0' ,
-    `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='node log';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='node_update_info';
