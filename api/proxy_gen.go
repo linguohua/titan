@@ -313,8 +313,6 @@ type WebStruct struct {
 
 		ListBlockDownloadInfo func(p0 context.Context, p1 ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) `perm:"read"`
 
-		ListNodeConnectionLog func(p0 context.Context, p1 ListNodeConnectionLogReq) (ListNodeConnectionLogRsp, error) `perm:"read"`
-
 		ListNodes func(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) `perm:"read"`
 	}
 }
@@ -1255,17 +1253,6 @@ func (s *WebStruct) ListBlockDownloadInfo(p0 context.Context, p1 ListBlockDownlo
 
 func (s *WebStub) ListBlockDownloadInfo(p0 context.Context, p1 ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) {
 	return *new(ListBlockDownloadInfoRsp), ErrNotSupported
-}
-
-func (s *WebStruct) ListNodeConnectionLog(p0 context.Context, p1 ListNodeConnectionLogReq) (ListNodeConnectionLogRsp, error) {
-	if s.Internal.ListNodeConnectionLog == nil {
-		return *new(ListNodeConnectionLogRsp), ErrNotSupported
-	}
-	return s.Internal.ListNodeConnectionLog(p0, p1)
-}
-
-func (s *WebStub) ListNodeConnectionLog(p0 context.Context, p1 ListNodeConnectionLogReq) (ListNodeConnectionLogRsp, error) {
-	return *new(ListNodeConnectionLogRsp), ErrNotSupported
 }
 
 func (s *WebStruct) ListNodes(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) {

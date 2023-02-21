@@ -25,7 +25,7 @@ type sqlDB struct {
 const errNotFind = "Not Found"
 
 var (
-	eventInfoTable    = "carfile_event_%s"
+	// eventInfoTable    = "carfile_event_%s"
 	carfileInfoTable  = "carfiles_%s"
 	cacheInfoTable    = "replicas_%s"
 	blockDownloadInfo = "block_download_info_%s"

@@ -86,18 +86,6 @@ func (w *web) ListBlockDownloadInfo(ctx context.Context, req api.ListBlockDownlo
 	}, nil
 }
 
-func (w *web) ListNodeConnectionLog(ctx context.Context, req api.ListNodeConnectionLogReq) (api.ListNodeConnectionLogRsp, error) {
-	startTime := time.Unix(req.StartTime, 0)
-	endTime := time.Unix(req.EndTime, 0)
-
-	logs, total, err := persistent.GetDB().GetNodeConnectionLogs(req.NodeID, startTime, endTime, req.Cursor, req.Count)
-	if err != nil {
-		return api.ListNodeConnectionLogRsp{}, err
-	}
-
-	return api.ListNodeConnectionLogRsp{Total: total, Data: logs}, nil
-}
-
 func (w *web) GetCacheTaskInfos(ctx context.Context, req api.ListCacheInfosReq) (api.ListCacheInfosRsp, error) {
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)

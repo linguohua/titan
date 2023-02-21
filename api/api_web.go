@@ -9,7 +9,6 @@ type Web interface {
 	// ListNodes cursor: start index, count: load number of device
 	ListNodes(ctx context.Context, cursor int, count int) (ListNodesRsp, error)                                //perm:read
 	GetNodeInfoByID(ctx context.Context, nodeID string) (DevicesInfo, error)                                   //perm:read
-	ListNodeConnectionLog(ctx context.Context, req ListNodeConnectionLogReq) (ListNodeConnectionLogRsp, error) //perm:read
 	ListBlockDownloadInfo(ctx context.Context, req ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) //perm:read
 
 	// ListCaches cache manager
@@ -79,30 +78,9 @@ const (
 	NodeConnectionStatusOffline
 )
 
-type ListNodeConnectionLogReq struct {
-	NodeID string `json:"node_id"`
-	// Unix timestamp
-	StartTime int64 `json:"start_time"`
-	// Unix timestamp
-	EndTime int64 `json:"end_time"`
-	Cursor  int   `json:"cursor"`
-	Count   int   `json:"count"`
-}
-
-type ListNodeConnectionLogRsp struct {
-	Data  []NodeConnectionLog `json:"data"`
-	Total int64               `json:"total"`
-}
-
 type ListBlockDownloadInfoRsp struct {
 	Data  []BlockDownloadInfo `json:"data"`
 	Total int64               `json:"total"`
-}
-
-type NodeConnectionLog struct {
-	DeviceID  string               `json:"device_id" db:"device_id"`
-	Status    NodeConnectionStatus `json:"status" db:"status"`
-	CreatedAt time.Time            `json:"created_at" db:"created_time"`
 }
 
 type WebBlock struct {
