@@ -14,9 +14,6 @@ const (
 type webDB interface {
 	GetNodes(cursor int, count int) ([]*NodeInfo, int64, error)
 	GetBlockDownloadInfos(DeviceID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.BlockDownloadInfo, int64, error)
-	SetNodeConnectionLog(deviceID string, status api.NodeConnectionStatus) error
-	GetNodeConnectionLogs(deviceID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.NodeConnectionLog, int64, error)
-	// GetValidateResults(cursor int, count int) ([]api.WebValidateResult, int64, error)
 	GetCacheTaskInfos(startTime time.Time, endTime time.Time, cursor, count int) (*api.ListCacheInfosRsp, error)
 }
 
@@ -88,44 +85,3 @@ func (sd sqlDB) GetCacheTaskInfos(startTime time.Time, endTime time.Time, cursor
 
 	return &api.ListCacheInfosRsp{Datas: out, Total: total}, nil
 }
-
-func (sd sqlDB) SetNodeConnectionLog(deviceID string, status api.NodeConnectionStatus) error {
-	log := api.NodeConnectionLog{DeviceID: deviceID, Status: status, CreatedAt: time.Now()}
-	insertSQL := "INSERT INTO node_connection_log (device_id, status) VALUES (:device_id, :status)"
-	_, err := sd.cli.NamedExec(insertSQL, log)
-	return err
-}
-
-func (sd sqlDB) GetNodeConnectionLogs(deviceID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.NodeConnectionLog, int64, error) {
-	var total int64
-	countSQL := "SELECT count(*) FROM node_connection_log WHERE device_id = ? and created_time between ? and ?"
-	if err := sd.cli.Get(&total, countSQL, deviceID, startTime, endTime); err != nil {
-		return []api.NodeConnectionLog{}, 0, err
-	}
-
-	if count > maxCount {
-		count = maxCount
-	}
-
-	query := "SELECT device_id, status, created_time FROM node_connection_log WHERE device_id = ? and created_time between ? and ? limit ?,?"
-	var out []api.NodeConnectionLog
-	if err := sd.cli.Select(&out, query, deviceID, startTime, endTime, cursor, count); err != nil {
-		return nil, 0, err
-	}
-	return out, total, nil
-}
-
-// func (sd sqlDB) GetValidateResults(cursor int, count int) ([]api.WebValidateResult, int64, error) {
-// 	var total int64
-// 	countSQL := "SELECT count(*) FROM validate_result"
-// 	if err := sd.cli.Get(&total, countSQL); err != nil {
-// 		return []api.WebValidateResult{}, 0, err
-// 	}
-
-// 	query := "SELECT * FROM validate_result limit ?,?"
-// 	var out []api.WebValidateResult
-// 	if err := sd.cli.Select(&out, query, cursor, count); err != nil {
-// 		return nil, 0, err
-// 	}
-// 	return out, total, nil
-// }

@@ -1,3 +1,6 @@
+
+8 128 8 8 64 64 64 8 64 1024 64 8 = 1500 B = 1K = 0.001M
+
 CREATE TABLE `node` (
     `id` int unsigned NOT NULL AUTO_INCREMENT,
 	`device_id` varchar(128) NOT NULL UNIQUE ,
@@ -30,7 +33,6 @@ CREATE TABLE `validate_result` (
   KEY `round_device` (`round_id`,`device_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='validate result info';
 
-
 CREATE TABLE `block_download_info_cn_gd_shenzhen` (
     `id` varchar(64) NOT NULL UNIQUE,
     `block_cid` varchar(128) NOT NULL,
@@ -47,7 +49,6 @@ CREATE TABLE `block_download_info_cn_gd_shenzhen` (
     PRIMARY KEY (`id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='block download information';
 
-
 CREATE TABLE `register` (
     `id` int unsigned NOT NULL AUTO_INCREMENT,
 	`device_id` varchar(128) NOT NULL UNIQUE,
@@ -56,22 +57,6 @@ CREATE TABLE `register` (
 	`node_type` varchar(64) DEFAULT '' ,
 	PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='register';
-
-CREATE TABLE `node_connection_log` (
-    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-    `device_id` varchar(128) NOT NULL ,
-    `status` TINYINT  DEFAULT '0' ,
-    `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='node log';
-
-CREATE TABLE `carfile_event_cn_gd_shenzhen` (
-    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-	`cid` varchar(128) DEFAULT '',
-    `msg` varchar(1024) DEFAULT '',
-    `time` datetime DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='carfile event';
 
 CREATE TABLE `replicas_cn_gd_shenzhen` (
     `id` varchar(128) NOT NULL UNIQUE,
@@ -112,3 +97,19 @@ CREATE TABLE `node_update_info` (
 
 
 
+
+CREATE TABLE `carfile_event_cn_gd_shenzhen` (
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+	`cid` varchar(128) DEFAULT '',
+    `msg` varchar(1024) DEFAULT '',
+    `time` datetime DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='carfile event';
+
+CREATE TABLE `node_connection_log` (
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `device_id` varchar(128) NOT NULL ,
+    `status` TINYINT  DEFAULT '0' ,
+    `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='node log';
