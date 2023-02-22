@@ -7,7 +7,6 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/handler"
-	"github.com/linguohua/titan/node/scheduler/carfile"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
@@ -104,79 +103,17 @@ func (s *Scheduler) StopCacheTask(ctx context.Context, carfileCid string) error 
 
 // GetRunningCarfileRecords Show Data Tasks
 func (s *Scheduler) GetRunningCarfileRecords(ctx context.Context) ([]*api.CarfileRecordInfo, error) {
-	infos := make([]*api.CarfileRecordInfo, 0)
-
-	s.dataManager.RunningCarfileRecordMap.Range(func(key, value interface{}) bool {
-		if value != nil {
-			data := value.(*carfile.CarfileRecord)
-			if data != nil {
-				cInfo := carfileRecord2Info(data)
-				infos = append(infos, cInfo)
-			}
-		}
-
-		return true
-	})
-
-	return infos, nil
-}
-
-func carfileRecord2Info(d *carfile.CarfileRecord) *api.CarfileRecordInfo {
-	info := &api.CarfileRecordInfo{}
-	if d != nil {
-		info.CarfileCid = d.GetCarfileCid()
-		info.CarfileHash = d.GetCarfileHash()
-		info.TotalSize = d.GetTotalSize()
-		info.NeedReliability = d.GetNeedReplicaCount()
-		info.CurReliability = d.GetReplicaCount()
-		info.TotalBlocks = d.GetTotalBlocks()
-		info.ExpiredTime = d.GetExpiredTime()
-
-		caches := make([]*api.CarfileReplicaInfo, 0)
-
-		d.CacheTaskMap.Range(func(key, value interface{}) bool {
-			c := value.(*carfile.CacheTask)
-
-			cc := &api.CarfileReplicaInfo{
-				Status:      c.GetStatus(),
-				DoneSize:    c.GetDoneSize(),
-				DoneBlocks:  c.GetDoneBlocks(),
-				IsCandidate: c.IsCandidateCache(),
-				DeviceID:    c.GetDeviceID(),
-				CreateTime:  c.GetCreateTime(),
-				EndTime:     c.GetEndTime(),
-			}
-
-			caches = append(caches, cc)
-			return true
-		})
-
-		info.CarfileReplicaInfos = caches
-	}
-
-	return info
+	return s.dataManager.GetRunningCarfileInfos(), nil
 }
 
 // GetCarfileRecordInfo Show Data Task
 func (s *Scheduler) GetCarfileRecordInfo(ctx context.Context, cid string) (api.CarfileRecordInfo, error) {
-	hash, err := cidutil.CIDString2HashString(cid)
+	info, err := s.dataManager.GetCarfileRecordInfo(cid)
 	if err != nil {
 		return api.CarfileRecordInfo{}, err
 	}
 
-	cr, err := s.dataManager.GetCarfileRecord(hash)
-	if err != nil {
-		return api.CarfileRecordInfo{}, err
-	}
-
-	dInfo := carfileRecord2Info(cr)
-
-	result, err := cache.GetDB().GetCarfileRecordCacheResult(hash)
-	if err == nil {
-		dInfo.ResultInfo = result
-	}
-
-	return *dInfo, nil
+	return *info, nil
 }
 
 // ResetBackupCacheCount reset backupCacheCount

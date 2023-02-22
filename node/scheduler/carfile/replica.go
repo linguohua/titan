@@ -134,6 +134,7 @@ func (c *CacheTask) cacheCarfile2Node() (err error) {
 	deviceID := c.deviceID
 	var result *api.CacheCarfileResult
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
 	defer func() {
 		cancel()
 
@@ -160,39 +161,4 @@ func (c *CacheTask) cacheCarfile2Node() (err error) {
 
 	err = xerrors.Errorf("not found node:%s", deviceID)
 	return
-}
-
-// GetEndTime get end time
-func (c *CacheTask) GetEndTime() time.Time {
-	return c.endTime
-}
-
-// GetCreateTime get create time
-func (c *CacheTask) GetCreateTime() time.Time {
-	return c.createTime
-}
-
-// GetDeviceID get device id
-func (c *CacheTask) GetDeviceID() string {
-	return c.deviceID
-}
-
-// GetStatus get status
-func (c *CacheTask) GetStatus() api.CacheStatus {
-	return c.status
-}
-
-// GetDoneSize get done size
-func (c *CacheTask) GetDoneSize() int64 {
-	return c.doneSize
-}
-
-// GetDoneBlocks get done blocks
-func (c *CacheTask) GetDoneBlocks() int {
-	return c.doneBlocks
-}
-
-// IsCandidateCache get is root cache
-func (c *CacheTask) IsCandidateCache() bool {
-	return c.isCandidate
 }
