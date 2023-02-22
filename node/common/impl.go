@@ -95,7 +95,9 @@ func (a *CommonAPI) Session(ctx context.Context) (uuid.UUID, error) {
 	if a.SessionCallBack != nil {
 		remoteAddr := handler.GetRemoteAddr(ctx)
 		deviceID := handler.GetDeviceID(ctx)
-		a.SessionCallBack(deviceID, remoteAddr)
+		if deviceID != "" && remoteAddr != "" {
+			a.SessionCallBack(deviceID, remoteAddr)
+		}
 	}
 
 	return session, nil
@@ -132,6 +134,6 @@ func (a *CommonAPI) DeleteLogFile(ctx context.Context) error {
 		return nil
 	}
 
-	os.WriteFile(logFilePath, []byte(""), 0755)
+	os.WriteFile(logFilePath, []byte(""), 0o755)
 	return nil
 }

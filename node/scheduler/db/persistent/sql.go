@@ -180,33 +180,18 @@ func (sd sqlDB) UpdateValidateResultInfo(info *api.ValidateResult) error {
 func (sd sqlDB) SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error) {
 	res := new(api.SummeryValidateResult)
 	var infos []api.ValidateResult
-	query := fmt.Sprintf("SELECT%s%s%v%s%v%s%d,%d;",
-		" *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM validate_result",
-		" WHERE start_time >= '",
-		startTime,
-		"' AND end_time <= '",
-		endTime,
-		"' LIMIT ",
-		(pageNumber-1)*pageSize,
-		pageSize)
-	err := sd.cli.Select(&infos, query)
+	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM validate_result WHERE start_time between ? and ? LIMIT ?,? ")
+
+	err := sd.cli.Select(&infos, query, startTime, endTime, (pageNumber-1)*pageSize, pageSize)
 	if err != nil {
 		return nil, err
 	}
 
 	res.ValidateResultInfos = infos
 
-	countQuery := fmt.Sprintf("SELECT%s%s%v%s%v%s;",
-		" COUNT(*) FROM validate_result",
-		" WHERE start_time >= '",
-		startTime,
-		"' AND end_time <= '",
-		endTime,
-		"'",
-	)
-
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM validate_result WHERE start_time between ? and ? ")
 	var count int
-	err = sd.cli.Get(&count, countQuery)
+	err = sd.cli.Get(&count, countQuery, startTime, endTime)
 	if err != nil {
 		return nil, err
 	}
