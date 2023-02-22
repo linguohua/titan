@@ -347,41 +347,6 @@ func (d *CarfileRecord) updateCarfileRecordInfo(endCache *CacheTask, errMsg stri
 	return persistent.GetDB().UpdateCarfileRecordCachesInfo(dInfo)
 }
 
-// GetCarfileCid get carfile cid
-func (d *CarfileRecord) GetCarfileCid() string {
-	return d.carfileCid
-}
-
-// GetCarfileHash get carfile hash
-func (d *CarfileRecord) GetCarfileHash() string {
-	return d.carfileHash
-}
-
-// GetTotalSize get total size
-func (d *CarfileRecord) GetTotalSize() int64 {
-	return d.totalSize
-}
-
-// GetNeedReplicaCount get need reliability
-func (d *CarfileRecord) GetNeedReplicaCount() int {
-	return d.needReliability
-}
-
-// GetReplicaCount get reliability
-func (d *CarfileRecord) GetReplicaCount() int {
-	return d.curReliability
-}
-
-// GetTotalBlocks get total blocks
-func (d *CarfileRecord) GetTotalBlocks() int {
-	return d.totalBlocks
-}
-
-// GetExpiredTime get expired time
-func (d *CarfileRecord) GetExpiredTime() time.Time {
-	return d.expiredTime
-}
-
 func (d *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResultInfo) error {
 	cacheI, exist := d.CacheTaskMap.Load(deviceID)
 	if !exist {

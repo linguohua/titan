@@ -499,3 +499,80 @@ func cacheTaskID(hash, deviceID string) string {
 	bytes := c.Sum(nil)
 	return hex.EncodeToString(bytes)
 }
+
+// GetCarfileRecordInfo get carfile record info of cid
+func (m *Manager) GetCarfileRecordInfo(cid string) (*api.CarfileRecordInfo, error) {
+	hash, err := cidutil.CIDString2HashString(cid)
+	if err != nil {
+		return nil, err
+	}
+
+	cr, err := m.GetCarfileRecord(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	dInfo := carfileRecord2Info(cr)
+
+	result, err := cache.GetDB().GetCarfileRecordCacheResult(hash)
+	if err == nil {
+		dInfo.ResultInfo = result
+	}
+
+	return dInfo, nil
+}
+
+// GetRunningCarfileInfos get all running carfiles
+func (m *Manager) GetRunningCarfileInfos() []*api.CarfileRecordInfo {
+	infos := make([]*api.CarfileRecordInfo, 0)
+
+	m.RunningCarfileRecordMap.Range(func(key, value interface{}) bool {
+		if value != nil {
+			data := value.(*CarfileRecord)
+			if data != nil {
+				cInfo := carfileRecord2Info(data)
+				infos = append(infos, cInfo)
+			}
+		}
+
+		return true
+	})
+
+	return infos
+}
+
+func carfileRecord2Info(d *CarfileRecord) *api.CarfileRecordInfo {
+	info := &api.CarfileRecordInfo{}
+	if d != nil {
+		info.CarfileCid = d.carfileCid
+		info.CarfileHash = d.carfileHash
+		info.TotalSize = d.totalSize
+		info.NeedReliability = d.needReliability
+		info.CurReliability = d.curReliability
+		info.TotalBlocks = d.totalBlocks
+		info.ExpiredTime = d.expiredTime
+
+		caches := make([]*api.CarfileReplicaInfo, 0)
+
+		d.CacheTaskMap.Range(func(key, value interface{}) bool {
+			c := value.(*CacheTask)
+
+			cc := &api.CarfileReplicaInfo{
+				Status:      c.status,
+				DoneSize:    c.doneSize,
+				DoneBlocks:  c.doneBlocks,
+				IsCandidate: c.isCandidate,
+				DeviceID:    c.deviceID,
+				CreateTime:  c.createTime,
+				EndTime:     c.endTime,
+			}
+
+			caches = append(caches, cc)
+			return true
+		})
+
+		info.CarfileReplicaInfos = caches
+	}
+
+	return info
+}
