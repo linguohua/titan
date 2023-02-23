@@ -249,7 +249,7 @@ var runCmd = &cli.Command{
 			PConn:        udpPacketConn,
 		}
 
-		edgeApi := edge.NewLocalEdgeNode(context.Background(), params)
+		edgeApi := edge.NewLocalEdgeNode(ctx, params)
 		handler := EdgeHandler(schedulerAPI.AuthVerify, edgeApi, true)
 
 		srv := &http.Server{

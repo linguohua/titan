@@ -46,7 +46,7 @@ func NewLocalEdgeNode(ctx context.Context, params *EdgeParams) api.Edge {
 		schedulerAPI:     params.Scheduler,
 	}
 
-	go edge.startPingPeerTick()
+	go edge.startPingPeerTick(ctx)
 
 	return edge
 }
@@ -91,15 +91,18 @@ func (edge *Edge) PingUser(ctx context.Context, userAddr string) error {
 }
 
 // ping peer tick
-func (edge *Edge) startPingPeerTick() {
+func (edge *Edge) startPingPeerTick(ctx context.Context) {
 	pingPeers := time.Tick(10 * time.Second)
-	loadPeers := time.Tick(1 * time.Minute)
+	loadPeers := time.Tick(5 * time.Minute)
 	for {
 		select {
 		case <-pingPeers:
 			edge.pingPeers()
 		case <-loadPeers:
 			edge.loadPeers()
+		case <-ctx.Done():
+			log.Infof("Stop ping peer!")
+			return
 		}
 	}
 }

@@ -162,6 +162,11 @@ var showNodeInfoCmd = &cli.Command{
 			return err
 		}
 
+		natType, err := schedulerAPI.GetNatType(ctx, deviceID)
+		if err != nil {
+			natType = "UnkonwNAT"
+		}
+
 		fmt.Printf("device id: %s \n", info.DeviceId)
 		fmt.Printf("device name: %s \n", info.DeviceName)
 		fmt.Printf("device external_ip: %s \n", info.ExternalIp)
@@ -176,7 +181,7 @@ var showNodeInfoCmd = &cli.Command{
 		fmt.Printf("device cpu percent: %.2f %s \n", info.CpuUsage, "%")
 		//
 		fmt.Printf("device DownloadCount: %d \n", info.DownloadCount)
-		fmt.Printf("device NatType: %s \n", info.NatType)
+		fmt.Printf("device NatType: %s \n", natType)
 
 		return nil
 	},
