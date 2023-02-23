@@ -242,7 +242,7 @@ type SchedulerStruct struct {
 
 		GetExternalAddr func(p0 context.Context) (string, error) `perm:"read"`
 
-		GetNatType func(p0 context.Context, p1 string) (string, error) ``
+		GetNatType func(p0 context.Context, p1 string) (string, error) `perm:"write"`
 
 		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) `perm:"read"`
 
