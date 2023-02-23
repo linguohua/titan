@@ -214,6 +214,8 @@ type SchedulerStruct struct {
 
 		CandidateNodeConnect func(p0 context.Context) error `perm:"write"`
 
+		CheckEdgeIfBehindFullConeNAT func(p0 context.Context, p1 string) (bool, error) `perm:"read"`
+
 		DeleteNodeAppUpdateInfos func(p0 context.Context, p1 int) error `perm:"admin"`
 
 		DeleteNodeLogFile func(p0 context.Context, p1 string) error `perm:"admin"`
@@ -226,6 +228,8 @@ type SchedulerStruct struct {
 
 		ExecuteUndoneCarfilesTask func(p0 context.Context) error `perm:"admin"`
 
+		GetAllEdgeAddrs func(p0 context.Context) (map[string]string, error) `perm:"write"`
+
 		GetCarfileRecordInfo func(p0 context.Context, p1 string) (CarfileRecordInfo, error) `perm:"read"`
 
 		GetDevicesInfo func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
@@ -234,7 +238,7 @@ type SchedulerStruct struct {
 
 		GetDownloadInfosWithCarfile func(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) `perm:"read"`
 
-		GetEdgeExternalAddr func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"admin"`
+		GetEdgeExternalAddr func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
 
 		GetExternalAddr func(p0 context.Context) (string, error) `perm:"read"`
 
@@ -804,6 +808,17 @@ func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context) error {
 	return ErrNotSupported
 }
 
+func (s *SchedulerStruct) CheckEdgeIfBehindFullConeNAT(p0 context.Context, p1 string) (bool, error) {
+	if s.Internal.CheckEdgeIfBehindFullConeNAT == nil {
+		return false, ErrNotSupported
+	}
+	return s.Internal.CheckEdgeIfBehindFullConeNAT(p0, p1)
+}
+
+func (s *SchedulerStub) CheckEdgeIfBehindFullConeNAT(p0 context.Context, p1 string) (bool, error) {
+	return false, ErrNotSupported
+}
+
 func (s *SchedulerStruct) DeleteNodeAppUpdateInfos(p0 context.Context, p1 int) error {
 	if s.Internal.DeleteNodeAppUpdateInfos == nil {
 		return ErrNotSupported
@@ -868,6 +883,17 @@ func (s *SchedulerStruct) ExecuteUndoneCarfilesTask(p0 context.Context) error {
 
 func (s *SchedulerStub) ExecuteUndoneCarfilesTask(p0 context.Context) error {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetAllEdgeAddrs(p0 context.Context) (map[string]string, error) {
+	if s.Internal.GetAllEdgeAddrs == nil {
+		return *new(map[string]string), ErrNotSupported
+	}
+	return s.Internal.GetAllEdgeAddrs(p0)
+}
+
+func (s *SchedulerStub) GetAllEdgeAddrs(p0 context.Context) (map[string]string, error) {
+	return *new(map[string]string), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetCarfileRecordInfo(p0 context.Context, p1 string) (CarfileRecordInfo, error) {

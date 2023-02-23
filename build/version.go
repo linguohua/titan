@@ -22,7 +22,7 @@ func BuildTypeString() string {
 }
 
 // BuildVersion is the local build version
-const BuildVersion = "0.1.7"
+const BuildVersion = "0.1.9"
 
 func UserVersion() string {
 	if os.Getenv("TITAN_VERSION_IGNORE_COMMIT") == "1" {

@@ -341,6 +341,7 @@ func (rd redisDB) updateDeviceInfos(info *api.DevicesInfo) error {
 	m["SystemVersion"] = info.SystemVersion
 	m["Longitude"] = info.Longitude
 	m["Latitude"] = info.Latitude
+	m["NatType"] = info.NatType
 
 	_, err := rd.cli.HMSet(context.Background(), key, m).Result()
 	return err

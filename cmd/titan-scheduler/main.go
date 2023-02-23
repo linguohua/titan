@@ -12,8 +12,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
 
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/filecoin-project/go-jsonrpc/auth"
@@ -256,14 +254,7 @@ var runCmd = &cli.Command{
 			log.Panic("DB connect error: " + err.Error())
 		}
 
-		address := schedulerCfg.ListenAddress
-		addressList := strings.Split(address, ":")
-		portStr := addressList[1]
-		port, err := strconv.Atoi(portStr)
-		if err != nil {
-			log.Panic("Parse port error: " + err.Error())
-		}
-		schedulerAPI := scheduler.NewLocalScheduleNode(lr, port)
+		schedulerAPI := scheduler.NewLocalScheduleNode(lr, schedulerCfg)
 		handler := schedulerHandler(schedulerAPI, true)
 
 		srv := &http.Server{
@@ -274,6 +265,7 @@ var runCmd = &cli.Command{
 			},
 		}
 
+		address := schedulerCfg.ListenAddress
 		udpPacketConn, err := net.ListenPacket("udp", address)
 		if err != nil {
 			return err

@@ -17,10 +17,8 @@ type Manager struct {
 }
 
 // NewLoactorManager new
-func NewLoactorManager(port int) *Manager {
-	return &Manager{
-		port: port,
-	}
+func NewLoactorManager() *Manager {
+	return &Manager{}
 }
 
 // AddLocator add

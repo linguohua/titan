@@ -205,6 +205,11 @@ func (n *Node) GetPrivateKey() *rsa.PrivateKey {
 }
 
 // GetRPCURL rpc url
+func (n *Node) GetAddr() string {
+	return n.remoteAddr
+}
+
+// GetRPCURL rpc url
 func (n *Node) GetRPCURL() string {
 	return fmt.Sprintf("https://%s/rpc/v0", n.remoteAddr)
 }
