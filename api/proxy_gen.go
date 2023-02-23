@@ -242,6 +242,8 @@ type SchedulerStruct struct {
 
 		GetExternalAddr func(p0 context.Context) (string, error) `perm:"read"`
 
+		GetNatType func(p0 context.Context, p1 string) (string, error) ``
+
 		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) `perm:"read"`
 
 		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeType) ([]string, error) `perm:"read"`
@@ -959,6 +961,17 @@ func (s *SchedulerStruct) GetExternalAddr(p0 context.Context) (string, error) {
 }
 
 func (s *SchedulerStub) GetExternalAddr(p0 context.Context) (string, error) {
+	return "", ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetNatType(p0 context.Context, p1 string) (string, error) {
+	if s.Internal.GetNatType == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.GetNatType(p0, p1)
+}
+
+func (s *SchedulerStub) GetNatType(p0 context.Context, p1 string) (string, error) {
 	return "", ErrNotSupported
 }
 

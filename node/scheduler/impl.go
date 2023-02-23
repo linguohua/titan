@@ -293,8 +293,6 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	deviceInfo.Longitude = geoInfo.Longitude
 	deviceInfo.Latitude = geoInfo.Latitude
 
-	deviceInfo.NatType = s.getNatType(ctx, edgeAPI, remoteAddr)
-
 	edgeNode.Node = node.NewNode(&deviceInfo, remoteAddr, privateKey, api.TypeNameEdge, geoInfo)
 
 	err = s.nodeManager.EdgeOnline(edgeNode)

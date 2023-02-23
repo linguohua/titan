@@ -175,6 +175,14 @@ func (s *Scheduler) getNatType(ctx context.Context, edgeAPI api.Edge, edgeAddr s
 	return s.NatTypeToString(natType)
 }
 
+func (s *Scheduler) GetNatType(ctx context.Context, deviceID string) (string, error) {
+	eNode := s.nodeManager.GetEdgeNode(deviceID)
+	if eNode == nil {
+		return "", fmt.Errorf("Device %s offline or not exist", deviceID)
+	}
+	return s.getNatType(ctx, eNode.GetAPI(), eNode.GetAddr()), nil
+}
+
 func (s *Scheduler) NatTypeToString(natType api.NatType) string {
 	switch natType {
 	case api.NatTypeNo:

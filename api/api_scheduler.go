@@ -60,6 +60,7 @@ type Scheduler interface {
 	GetEdgeExternalAddr(ctx context.Context, deviceID, schedulerURL string) (string, error) //perm:write
 	// nat travel
 	CheckEdgeIfBehindFullConeNAT(ctx context.Context, edgeURL string) (bool, error) //perm:read
+	GetNatType(ctx context.Context, deviceID string) (string, error)
 
 	// call by user
 	GetDownloadInfosWithCarfile(ctx context.Context, cid, publicKey string) ([]*DownloadInfoResult, error) //perm:read
