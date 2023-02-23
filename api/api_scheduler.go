@@ -34,9 +34,6 @@ type Scheduler interface {
 	ShowNodeLogFile(ctx context.Context, deviceID string) (*LogFile, error)                     //perm:admin
 	DownloadNodeLogFile(ctx context.Context, deviceID string) ([]byte, error)                   //perm:admin
 	DeleteNodeLogFile(ctx context.Context, deviceID string) error                               //perm:admin
-	// get edge external addr with multiple scheduler, can test NAT type
-	GetEdgeExternalAddr(ctx context.Context, deviceID, schedulerURL string) (string, error) //perm:admin
-
 	// call by locator
 	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error //perm:write
 
@@ -56,6 +53,13 @@ type Scheduler interface {
 	GetNodeAppUpdateInfos(ctx context.Context) (map[int]*NodeAppUpdateInfo, error) //perm:read
 	SetNodeAppUpdateInfo(ctx context.Context, info *NodeAppUpdateInfo) error       //perm:admin                                                           //perm:write
 	DeleteNodeAppUpdateInfos(ctx context.Context, nodeType int) error              //perm:admin
+
+	// nat travel
+	GetAllEdgeAddrs(ctx context.Context) (map[string]string, error) //perm:write
+	// nat travel, can get edge external addr with different scheduler
+	GetEdgeExternalAddr(ctx context.Context, deviceID, schedulerURL string) (string, error) //perm:write
+	// nat travel
+	CheckEdgeIfBehindFullConeNAT(ctx context.Context, edgeURL string) (bool, error) //perm:read
 
 	// call by user
 	GetDownloadInfosWithCarfile(ctx context.Context, cid, publicKey string) ([]*DownloadInfoResult, error) //perm:read
@@ -248,3 +252,15 @@ type CarfileRecordCacheResult struct {
 	ErrMsg               string
 	EdgeNodeCacheSummary string
 }
+
+type NatType int
+
+const (
+	NatTypeUnknow NatType = iota
+	// not bihind nat
+	NatTypeNo
+	NatTypeSymmetric
+	NatTypeFullCone
+	NatTypeRestricted
+	NatTypePortRestricted
+)

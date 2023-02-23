@@ -93,4 +93,9 @@ type SchedulerCfg struct {
 
 	// self sign certificate, use for client
 	CaCertificatePath string
+
+	// test nat type
+	SchedulerServer1 string
+	// test nat type
+	SchedulerServer2 string
 }

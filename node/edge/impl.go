@@ -2,6 +2,7 @@ package edge
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -41,10 +42,11 @@ func NewLocalEdgeNode(ctx context.Context, params *EdgeParams) api.Edge {
 		Validate:         validate,
 		DataSync:         datasync.NewDataSync(params.CarfileStore),
 		pConn:            params.PConn,
-		userPing:         &sync.Map{},
+		peers:            &sync.Map{},
+		schedulerAPI:     params.Scheduler,
 	}
 
-	go edge.startUserPingTick()
+	go edge.startPingPeerTick()
 
 	return edge
 }
@@ -57,8 +59,9 @@ type Edge struct {
 	*validate.Validate
 	*datasync.DataSync
 
-	pConn    net.PacketConn
-	userPing *sync.Map
+	pConn        net.PacketConn
+	peers        *sync.Map
+	schedulerAPI api.Scheduler
 }
 
 type EdgeParams struct {
@@ -84,53 +87,61 @@ func (edge *Edge) GetMyExternalAddr(ctx context.Context, schedulerURL string) (s
 }
 
 func (edge *Edge) PingUser(ctx context.Context, userAddr string) error {
-	_, ok := edge.userPing.Load(userAddr)
-	if ok {
-		return nil
-	}
-
-	edge.userPing.Store(userAddr, time.Now())
-	pingUser(edge.pConn, userAddr)
-
 	return nil
 }
 
-// ping user for p2p connection
-func (edge *Edge) startUserPingTick() {
-	ticker := time.NewTicker(3 * time.Second)
+// ping peer tick
+func (edge *Edge) startPingPeerTick() {
+	pingPeers := time.Tick(10 * time.Second)
+	loadPeers := time.Tick(1 * time.Minute)
 	for {
 		select {
-		case <-ticker.C:
-			edge.pingUsers()
+		case <-pingPeers:
+			edge.pingPeers()
+		case <-loadPeers:
+			edge.loadPeers()
 		}
 	}
 }
 
-func (edge *Edge) pingUsers() {
-	edge.userPing.Range(func(k, v interface{}) bool {
-		addr := k.(string)
-		startTime := v.(time.Time)
+func (edge *Edge) pingPeers() {
+	edge.peers.Range(func(k, v interface{}) bool {
+		peerID := k.(string)
+		addr := v.(string)
 
-		duration := time.Since(startTime)
-		if duration >= pingUserDration {
-			edge.userPing.Delete(addr)
-		}
-
-		err := pingUser(edge.pConn, addr)
+		ver, err := pingPeer(addr)
 		if err != nil {
-			log.Errorf("ping user error:%s", err)
+			log.Errorf("ping peer %s error:%s, addr", peerID, err, addr)
+		} else {
+			log.Infof("ping peer %s addr:%s, ver:%s", peerID, addr, ver.String())
 		}
-		log.Infof("pingUsers addr:%s", addr)
 		return true
 	})
 }
 
-func pingUser(pConn net.PacketConn, addr string) error {
-	remoteAddr, err := net.ResolveUDPAddr("udp", addr)
+func (edge *Edge) loadPeers() {
+	edges, err := edge.schedulerAPI.GetAllEdgeAddrs(context.Background())
 	if err != nil {
-		return err
+		log.Errorf("loadPeers error:%s", err.Error())
+		return
 	}
 
-	_, err = pConn.WriteTo([]byte("hello"), remoteAddr)
-	return err
+	edge.peers.Range(func(k, v interface{}) bool {
+		edge.peers.Delete(k)
+		return true
+	})
+
+	for k, v := range edges {
+		edge.peers.Store(k, v)
+	}
+}
+
+func pingPeer(addr string) (api.APIVersion, error) {
+	edgeApi, close, err := client.NewEdge(context.Background(), fmt.Sprintf("https://%s/rpc/v0", addr), nil)
+	if err != nil {
+		return api.APIVersion{}, err
+	}
+	defer close()
+
+	return edgeApi.Version(context.Background())
 }

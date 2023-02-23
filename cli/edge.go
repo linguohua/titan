@@ -17,8 +17,6 @@ var EdgeCmds = []*cli.Command{
 	validateNodeCmd,
 	limitRateCmd,
 	cacheStatCmd,
-	// StoreKeyCmd,
-	deleteAllBlocksCmd,
 	getBlocksOfCarfile,
 	logFileCmd,
 }
@@ -241,23 +239,6 @@ var cacheStatCmd = &cli.Command{
 		}
 
 		fmt.Printf("Cache carfile count %d, block count %d, wati cache carfile count %d", stat.TotalCarfileCount, stat.TotalBlockCount, stat.WaitCacheCarfileCount)
-		return nil
-	},
-}
-
-var deleteAllBlocksCmd = &cli.Command{
-	Name:  "flush",
-	Usage: "delete all block",
-	Flags: []cli.Flag{},
-	Action: func(cctx *cli.Context) error {
-		// api, closer, err := GetEdgeAPI(cctx)
-		// if err != nil {
-		// 	return err
-		// }
-		// defer closer()
-
-		// ctx := ReqContext(cctx)
-		// err = api.DeleteAllBlocks(ctx)
 		return nil
 	},
 }

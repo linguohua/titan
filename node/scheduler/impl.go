@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gbrlsnchs/jwt/v3"
+	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/scheduler/election"
 	"github.com/linguohua/titan/node/scheduler/validate"
 	"github.com/linguohua/titan/node/secret"
@@ -61,7 +62,7 @@ const (
 )
 
 // NewLocalScheduleNode NewLocalScheduleNode
-func NewLocalScheduleNode(lr repo.LockedRepo, port int) api.Scheduler {
+func NewLocalScheduleNode(lr repo.LockedRepo, schedulerCfg *config.SchedulerCfg) api.Scheduler {
 	s := &Scheduler{}
 
 	nodeManager := node.NewNodeManager(s.nodeOfflineCallback, s.nodeExitedCallback)
@@ -81,12 +82,13 @@ func NewLocalScheduleNode(lr repo.LockedRepo, port int) api.Scheduler {
 		log.Panicf("authNew err:%s", err.Error())
 	}
 
-	s.locatorManager = locator.NewLoactorManager(port)
+	s.locatorManager = locator.NewLoactorManager()
 	s.nodeManager = nodeManager
 	s.election = election.NewElection(nodeManager)
 	s.validate = validate.NewValidate(nodeManager, false)
 	s.dataManager = carfile.NewCarfileManager(nodeManager, s.writeToken)
 	s.dataSync = sync.NewDataSync(nodeManager)
+	s.schedulerCfg = schedulerCfg
 
 	s.nodeAppUpdateInfos, err = persistent.GetDB().GetNodeUpdateInfos()
 	if err != nil {
@@ -111,6 +113,7 @@ type Scheduler struct {
 	writeToken         []byte
 	adminToken         []byte
 	nodeAppUpdateInfos map[int]*api.NodeAppUpdateInfo
+	schedulerCfg       *config.SchedulerCfg
 }
 
 type jwtPayload struct {
@@ -289,6 +292,8 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	deviceInfo.IpLocation = geoInfo.Geo
 	deviceInfo.Longitude = geoInfo.Longitude
 	deviceInfo.Latitude = geoInfo.Latitude
+
+	deviceInfo.NatType = s.getNatType(ctx, edgeAPI, remoteAddr)
 
 	edgeNode.Node = node.NewNode(&deviceInfo, remoteAddr, privateKey, api.TypeNameEdge, geoInfo)
 
@@ -588,13 +593,4 @@ func deviceExists(deviceID string, nodeType int) bool {
 	}
 
 	return true
-}
-
-func (s *Scheduler) GetEdgeExternalAddr(ctx context.Context, deviceID, schedulerURL string) (string, error) {
-	eNode := s.nodeManager.GetEdgeNode(deviceID)
-	if eNode != nil {
-		return eNode.GetAPI().GetMyExternalAddr(ctx, schedulerURL)
-	}
-
-	return "", fmt.Errorf("Device %s offline or not exist", deviceID)
 }

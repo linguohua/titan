@@ -176,6 +176,7 @@ var showNodeInfoCmd = &cli.Command{
 		fmt.Printf("device cpu percent: %.2f %s \n", info.CpuUsage, "%")
 		//
 		fmt.Printf("device DownloadCount: %d \n", info.DownloadCount)
+		fmt.Printf("device NatType: %s \n", info.NatType)
 
 		return nil
 	},
