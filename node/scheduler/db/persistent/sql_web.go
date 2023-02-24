@@ -25,7 +25,7 @@ func (sd sqlDB) GetNodes(cursor int, count int) ([]*NodeInfo, int64, error) {
 		return nil, 0, err
 	}
 
-	queryString := "SELECT device_id, is_online FROM node limit ?,?"
+	queryString := "SELECT device_id, is_online FROM node order by device_id asc limit ?,?"
 
 	if count > maxCount {
 		count = maxCount

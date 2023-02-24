@@ -178,7 +178,7 @@ func (sd sqlDB) UpdateValidateResultInfo(info *api.ValidateResult) error {
 func (sd sqlDB) SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error) {
 	res := new(api.SummeryValidateResult)
 	var infos []api.ValidateResult
-	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM validate_result WHERE start_time between ? and ? LIMIT ?,? ")
+	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM validate_result WHERE start_time between ? and ? order by id asc  LIMIT ?,? ")
 
 	err := sd.cli.Select(&infos, query, startTime, endTime, (pageNumber-1)*pageSize, pageSize)
 	if err != nil {
@@ -305,7 +305,7 @@ func (sd sqlDB) GetCarfileCidWithPage(page int) (info *api.DataListInfo, err err
 
 	info = &api.DataListInfo{}
 
-	cmd := fmt.Sprintf("SELECT count(carfile_cid) FROM %s ;", fmt.Sprintf(carfileInfoTable, area))
+	cmd := fmt.Sprintf("SELECT count(carfile_hash) FROM %s ;", fmt.Sprintf(carfileInfoTable, area))
 	err = sd.cli.Get(&info.Cids, cmd)
 	if err != nil {
 		return
@@ -325,7 +325,7 @@ func (sd sqlDB) GetCarfileCidWithPage(page int) (info *api.DataListInfo, err err
 	}
 	info.Page = page
 
-	cmd = fmt.Sprintf("SELECT * FROM %s LIMIT %d,%d", fmt.Sprintf(carfileInfoTable, area), (num * (page - 1)), num)
+	cmd = fmt.Sprintf("SELECT * FROM %s order by carfile_hash asc LIMIT %d,%d", fmt.Sprintf(carfileInfoTable, area), (num * (page - 1)), num)
 	if err = sd.cli.Select(&info.CarfileRecords, cmd); err != nil {
 		return
 	}
@@ -453,7 +453,7 @@ func (sd sqlDB) GetUndoneCarfiles(page int) (info *api.DataListInfo, err error) 
 
 	num := 20
 
-	cmd := fmt.Sprintf("SELECT count(carfile_cid) FROM %s WHERE cur_reliability < need_reliability", fmt.Sprintf(carfileInfoTable, area))
+	cmd := fmt.Sprintf("SELECT count(carfile_hash) FROM %s WHERE cur_reliability < need_reliability", fmt.Sprintf(carfileInfoTable, area))
 	err = sd.cli.Get(&info.Cids, cmd)
 	if err != nil {
 		return
@@ -473,7 +473,7 @@ func (sd sqlDB) GetUndoneCarfiles(page int) (info *api.DataListInfo, err error) 
 	}
 	info.Page = page
 
-	cmd = fmt.Sprintf("SELECT * FROM %s WHERE cur_reliability < need_reliability LIMIT %d,%d", fmt.Sprintf(carfileInfoTable, area), (num * (page - 1)), num)
+	cmd = fmt.Sprintf("SELECT * FROM %s WHERE cur_reliability < need_reliability order by carfile_hash asc LIMIT %d,%d", fmt.Sprintf(carfileInfoTable, area), (num * (page - 1)), num)
 	if err = sd.cli.Select(&info.CarfileRecords, cmd); err != nil {
 		return
 	}
@@ -708,7 +708,7 @@ func (sd sqlDB) GetCacheInfosWithNode(deviceID string, index, count int) (info *
 		return
 	}
 
-	cmd = fmt.Sprintf("SELECT carfile_hash,status FROM %s WHERE device_id=? LIMIT %d,%d", fmt.Sprintf(cacheInfoTable, area), index, count)
+	cmd = fmt.Sprintf("SELECT carfile_hash,status FROM %s WHERE device_id=? order by id asc LIMIT %d,%d", fmt.Sprintf(cacheInfoTable, area), index, count)
 	if err = sd.cli.Select(&info.Caches, cmd, deviceID); err != nil {
 		return
 	}
