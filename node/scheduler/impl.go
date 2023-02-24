@@ -125,7 +125,6 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 	var payload jwtPayload
 
 	deviceID := handler.GetDeviceID(ctx)
-	// fmt.Println("AuthNodeVerify device id :", deviceID)
 	if deviceID == "" {
 		if _, err := jwt.Verify([]byte(token), (*jwt.HMACSHA)(s.APISecret), &payload); err != nil {
 			return nil, xerrors.Errorf("JWT Verification failed: %w", err)
@@ -141,7 +140,6 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 	}
 
 	deviceSecret := secret
-	// fmt.Println("AuthNodeVerify deviceSecret:", deviceSecret)
 
 	if _, err := jwt.Verify([]byte(token), (*jwt.HMACSHA)(jwt.NewHS256([]byte(deviceSecret))), &payload); err != nil {
 		return nil, xerrors.Errorf("JWT Verification failed: %w", err)

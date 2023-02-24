@@ -60,8 +60,6 @@ type redisDB struct {
 
 // InitRedis init redis pool
 func InitRedis(url string) (DB, error) {
-	// fmt.Printf("redis init url:%v", url)
-
 	redisDB := &redisDB{redis.NewClient(&redis.Options{
 		Addr:      url,
 		Dialer:    nil,

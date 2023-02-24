@@ -72,8 +72,6 @@ func (v *Validate) initValidateTask() {
 }
 
 func (v *Validate) startValidate() error {
-	// log.Info("=======>> start validate <<=======")
-
 	roundID, err := cache.GetDB().IncrValidateRoundID()
 	if err != nil {
 		return err
@@ -282,11 +280,9 @@ func (v *Validate) getNodeReqValidate(validated *validatedDeviceInfo) (api.ReqVa
 
 	hash, err := persistent.GetDB().GetRandCarfileWithNode(validated.deviceID)
 	if err != nil {
-		// log.Warnf("GetRandCarfileWithNode err: %s", err.Error())
 		return req, err
 	}
 
-	// log.Warnf("hash: %s", hash)
 	cid, err := cidutil.HashString2CIDString(hash)
 	if err != nil {
 		log.Warnf("HashString2CidString err: %s", err.Error())
@@ -400,8 +396,6 @@ func (v *Validate) ValidateResult(validateResult *api.ValidateResults) error {
 		if node == nil {
 			continue
 		}
-
-		// log.Infof("candidate : %s , seed: %d , max:%d", node.DeviceId, v.seed, max)
 
 		cCidMap, err = node.GetAPI().GetBlocksOfCarfile(context.Background(), validateResult.CarfileCID, v.seed, max)
 		if err != nil {

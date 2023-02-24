@@ -206,7 +206,6 @@ func (m *Manager) CandidateOnline(node *CandidateNode) error {
 
 	err := node.setNodeOnline()
 	if err != nil {
-		// log.Errorf("addCandidateNode NodeOnline err:%v", err)
 		return err
 	}
 
@@ -289,7 +288,7 @@ func (m *Manager) FindCandidatesByList(list []string, filterMap map[string]strin
 		if _, exist := filterMap[dID]; exist {
 			continue
 		}
-		// node, ok := eMap[dID]
+
 		node := m.GetCandidateNode(dID)
 		if node != nil {
 			nodes = append(nodes, node)
@@ -441,23 +440,3 @@ func (m *Manager) GetNode(deviceID string) *Node {
 
 	return nil
 }
-
-// func statisticsPing(ip string) (*ping.Statistics, error) {
-// 	pinger, err := ping.NewPinger(ip)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	if runtime.GOOS == "windows" {
-// 		pinger.SetPrivileged(true)
-// 	}
-
-// 	pinger.Count = 3
-// 	pinger.Timeout = 5 * time.Second
-// 	err = pinger.Run()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return pinger.Statistics(), nil
-// }

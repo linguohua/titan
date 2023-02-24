@@ -97,14 +97,8 @@ func NewDB(url, dbType, sID, sArea string) error {
 	case TypeSQL():
 		db, err = InitSQL(url)
 	default:
-		// panic("unknown DB type")
 		err = xerrors.New("unknown DB type")
 	}
-
-	// if err != nil {
-	// 	eStr = fmt.Sprintf("NewDB err:%v , url:%v", err.Error(), url)
-	// 	// panic(e)
-	// }
 
 	return err
 }
@@ -128,29 +122,3 @@ type NodeInfo struct {
 	PrivateKey string    `db:"private_key"`
 	Quitted    bool      `db:"quitted"`
 }
-
-// // MsgType message type
-// type MsgType int
-
-// const (
-// 	// MsgTypeUnknown type
-// 	MsgTypeUnknown MsgType = iota
-// 	// MsgTypeCache type
-// 	MsgTypeCache
-// 	// MsgTypeDowload type
-// 	MsgTypeDowload
-// 	// MsgTypeValidate type
-// 	MsgTypeValidate
-// )
-
-// // MsgStatus message Status
-// type MsgStatus int
-
-// const (
-// 	// MsgStatusUnknown status
-// 	MsgStatusUnknown MsgStatus = iota
-// 	// MsgStatustusFail status
-// 	MsgStatustusFail
-// 	// MsgStatusSuccess status
-// 	MsgStatusSuccess
-// )

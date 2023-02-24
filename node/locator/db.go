@@ -38,11 +38,6 @@ type AccessPoint struct {
 	AreaID string
 }
 
-// `device_id` varchar(128) NOT NULL UNIQUE ,
-//     `scheduler_url` varchar(128) DEFAULT NULL ,
-//     `area_id` varchar(64) DEFAULT NULL ,
-//     `onlilne` TINYINT  DEFAULT '0'  ,
-
 func newDB(dbAddr string) *db {
 	cli, err := initSQLDB(dbAddr)
 	if err != nil {
@@ -56,6 +51,7 @@ func newDB(dbAddr string) *db {
 func (db *db) addAccessPoints(areaID string, schedulerURL string, weight int, accessToken string) error {
 	return db.db.addCfg(areaID, schedulerURL, weight, accessToken)
 }
+
 func (db *db) removeAccessPoints(areaID string) error {
 	return db.db.DeleteCfgWithAreaID(areaID)
 }
