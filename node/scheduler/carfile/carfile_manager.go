@@ -358,7 +358,6 @@ func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
 		EdgeNodeCacheSummary: cr.edgeNodeCacheSummary,
 	}
 	if err != nil {
-		// log.Errorf("end carfile err:%s", err.Error())
 		info.ErrMsg = err.Error()
 	}
 

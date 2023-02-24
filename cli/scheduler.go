@@ -361,7 +361,6 @@ var registerNodeCmd = &cli.Command{
 	Name:  "register-node",
 	Usage: "register deviceID and secret ",
 	Flags: []cli.Flag{
-		// schedulerURLFlag,
 		nodeTypeFlag,
 	},
 
@@ -451,16 +450,11 @@ var removeCacheCmd = &cli.Command{
 var validateCmd = &cli.Command{
 	Name:  "validate",
 	Usage: "Validate edge node",
-	Flags: []cli.Flag{
-		// schedulerURLFlag,
-	},
 
 	Before: func(cctx *cli.Context) error {
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		// url := cctx.String("scheduler-url")
-
 		ctx := ReqContext(cctx)
 
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -476,16 +470,11 @@ var validateCmd = &cli.Command{
 var electionCmd = &cli.Command{
 	Name:  "election",
 	Usage: "Start election validator",
-	Flags: []cli.Flag{
-		// schedulerURLFlag,
-	},
 
 	Before: func(cctx *cli.Context) error {
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		// url := cctx.String("scheduler-url")
-
 		ctx := ReqContext(cctx)
 
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -596,7 +585,6 @@ var validateSwitchCmd = &cli.Command{
 	Name:  "validate-switch",
 	Usage: "validate switch",
 	Flags: []cli.Flag{
-		// schedulerURLFlag,
 		&cli.StringFlag{
 			Name:  "enable",
 			Usage: "is enable",
@@ -608,7 +596,6 @@ var validateSwitchCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		// url := cctx.String("scheduler-url")
 		enable := cctx.Bool("enable")
 
 		ctx := ReqContext(cctx)
@@ -627,17 +614,11 @@ var validateSwitchCmd = &cli.Command{
 var showRunningCarfilesCmd = &cli.Command{
 	Name:  "show-running-carfiles",
 	Usage: "show running carfiles",
-	Flags: []cli.Flag{
-		// schedulerURLFlag,
-		// cidFlag,
-	},
 
 	Before: func(cctx *cli.Context) error {
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		// url := cctx.String("scheduler-url")
-
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
@@ -678,7 +659,6 @@ var showCarfileInfoCmd = &cli.Command{
 	Name:  "show-carfile",
 	Usage: "show carfile",
 	Flags: []cli.Flag{
-		// schedulerURLFlag,
 		cidFlag,
 	},
 
@@ -686,7 +666,6 @@ var showCarfileInfoCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		// url := cctx.String("scheduler-url")
 		cid := cctx.String("cid")
 
 		ctx := ReqContext(cctx)
@@ -833,20 +812,14 @@ var getDownloadInfoCmd = &cli.Command{
 	Name:  "download-infos",
 	Usage: "specify node cache blocks",
 	Flags: []cli.Flag{
-		// schedulerURLFlag,
 		cidFlag,
-		// ipFlag,
-		// cidsPathFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		// url := cctx.String("scheduler-url")
 		cid := cctx.String("cid")
-		// ip := cctx.String("ip")
-		// cidsPath := cctx.String("cids-file-path")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -854,18 +827,6 @@ var getDownloadInfoCmd = &cli.Command{
 			return err
 		}
 		defer closer()
-
-		// var cidList []string
-		// if cid != "" {
-		// 	cidList = strings.Split(cids, ",")
-		// }
-
-		// if cidsPath != "" {
-		// 	cidList, err = loadCidsFromFile(cidsPath)
-		// 	if err != nil {
-		// 		return fmt.Errorf("loadFile err:%s", err.Error())
-		// 	}
-		// }
 
 		privateKey, _ := generatePrivateKey(1024)
 		publicKey := publicKey2Pem(&privateKey.PublicKey)

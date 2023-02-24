@@ -25,7 +25,6 @@ type sqlDB struct {
 const errNotFind = "Not Found"
 
 var (
-	// eventInfoTable    = "carfile_event_%s"
 	carfileInfoTable  = "carfiles_%s"
 	cacheInfoTable    = "replicas_%s"
 	blockDownloadInfo = "block_download_info_%s"
@@ -56,7 +55,6 @@ func InitSQL(url string) (DB, error) {
 func (sd sqlDB) SetNodeInfo(deviceID string, info *NodeInfo) error {
 	info.DeviceID = deviceID
 	info.ServerID = serverID
-	// info.CreateTime = time.Now().Format("2006-01-02 15:04:05")
 
 	var count int64
 	cmd := "SELECT count(device_id) FROM node WHERE device_id=?"
@@ -394,8 +392,6 @@ func (sd sqlDB) GetRandCarfileWithNode(deviceID string) (string, error) {
 		return "", err
 	}
 
-	// fmt.Println("hashs :", hashs)
-
 	if len(hashs) > 0 {
 		return hashs[0], nil
 	}
@@ -501,7 +497,6 @@ func (sd sqlDB) GetReplicaInfo(id string) (*api.CarfileReplicaInfo, error) {
 	area := sd.replaceArea()
 
 	var cache api.CarfileReplicaInfo
-	// query := fmt.Sprintf("SELECT * FROM %s WHERE device_id=? AND carfile_hash=?", fmt.Sprintf(cacheInfoTable, area))
 	query := fmt.Sprintf("SELECT * FROM %s WHERE id=? ", fmt.Sprintf(cacheInfoTable, area))
 	if err := sd.cli.Get(&cache, query, id); err != nil {
 		return nil, err
@@ -633,7 +628,6 @@ func (sd sqlDB) BindRegisterInfo(secret, deviceID string, nodeType api.NodeType)
 func (sd sqlDB) GetRegisterInfo(deviceID, key string, out interface{}) error {
 	if key != "" {
 		query := fmt.Sprintf(`SELECT %s FROM register WHERE device_id=?`, key)
-		// query := "SELECT * FROM register WHERE device_id=?"
 		if err := sd.cli.Get(out, query, deviceID); err != nil {
 			return err
 		}
@@ -723,7 +717,6 @@ func (sd sqlDB) GetCacheInfosWithNode(deviceID string, index, count int) (info *
 }
 
 func (sd sqlDB) SetNodeUpdateInfo(info *api.NodeAppUpdateInfo) error {
-	// devInfo := &deviceInfo{DeviceID: deviceID, SchedulerURL: schedulerURL, AreaID: areaID, Online: online}
 	sqlString := fmt.Sprintf(`INSERT INTO %s (node_type, app_name, version, hash, download_url) VALUES (:node_type, :app_name, :version, :hash, :download_url) ON DUPLICATE KEY UPDATE app_name=:app_name, version=:version, hash=:hash, download_url=:download_url`, nodeUpdateInfo)
 	_, err := sd.cli.NamedExec(sqlString, info)
 	return err

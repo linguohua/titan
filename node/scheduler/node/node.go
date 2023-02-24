@@ -18,8 +18,6 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 )
 
-// var dataDefaultTag = "-1"
-
 // Locator Edge node
 type Locator struct {
 	nodeAPI api.Locator

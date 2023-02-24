@@ -396,7 +396,8 @@ func (d *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResul
 		return nil
 	}
 
-	d.nextStep() // next step
+	// next step
+	d.nextStep()
 
 	err = d.dispatchCaches()
 	if err != nil {
