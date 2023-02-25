@@ -512,6 +512,11 @@ func (s *Scheduler) nodeExitedCallback(deviceIDs []string) {
 	s.dataManager.NodesQuit(deviceIDs)
 }
 
+// SetNodePort set node port
+func (s *Scheduler) SetNodePort(ctx context.Context, deviceID, port string) error {
+	return persistent.GetDB().SetNodePort(deviceID, port)
+}
+
 func (s *Scheduler) authNew() error {
 	wtk, err := s.AuthNew(context.Background(), []auth.Permission{api.PermRead, api.PermWrite})
 	if err != nil {

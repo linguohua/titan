@@ -34,6 +34,7 @@ type Scheduler interface {
 	ShowNodeLogFile(ctx context.Context, deviceID string) (*LogFile, error)                     //perm:admin
 	DownloadNodeLogFile(ctx context.Context, deviceID string) ([]byte, error)                   //perm:admin
 	DeleteNodeLogFile(ctx context.Context, deviceID string) error                               //perm:admin
+	SetNodePort(ctx context.Context, deviceID, port string) error                               //perm:admin
 	// call by locator
 	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error //perm:write
 

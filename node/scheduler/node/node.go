@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -178,6 +179,7 @@ type Node struct {
 	lastRequestTime time.Time
 	cacheStat       *api.CacheStat
 	curCacheCount   int // The number of caches waiting and in progress
+	port            string
 }
 
 // NewNode new
@@ -202,19 +204,26 @@ func (n *Node) GetPrivateKey() *rsa.PrivateKey {
 	return n.privateKey
 }
 
-// GetRPCURL rpc url
+// GetAddr rpc url
 func (n *Node) GetAddr() string {
+	if n.port != "" {
+		index := strings.Index(n.remoteAddr, ":")
+		ip := n.remoteAddr[:index+1]
+
+		return ip + n.port
+	}
+
 	return n.remoteAddr
 }
 
 // GetRPCURL rpc url
 func (n *Node) GetRPCURL() string {
-	return fmt.Sprintf("https://%s/rpc/v0", n.remoteAddr)
+	return fmt.Sprintf("https://%s/rpc/v0", n.GetAddr())
 }
 
 // GetDownloadURL download url
 func (n *Node) GetDownloadURL() string {
-	return fmt.Sprintf("https://%s/block/get", n.remoteAddr)
+	return fmt.Sprintf("https://%s/block/get", n.GetAddr())
 }
 
 // GetLastRequestTime get node last request time
@@ -250,6 +259,11 @@ func (n *Node) IncrCurCacheCount(v int) {
 // GetCurCacheCount cache count
 func (n *Node) GetCurCacheCount() int {
 	return n.curCacheCount
+}
+
+// SetNodePort reset node port
+func (n *Node) SetNodePort(port string) {
+	n.port = port
 }
 
 // node online

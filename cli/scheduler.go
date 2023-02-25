@@ -47,6 +47,7 @@ var SchedulerCmds = []*cli.Command{
 	showNodeLogFileCmd,
 	deleteNodeLogFileCmd,
 	nodeQuitCmd,
+	setNodePortCmd,
 	// other
 	getDownloadInfoCmd,
 	nodeAppUpdateCmd,
@@ -131,6 +132,12 @@ var (
 		Usage: "date time (2006-1-2 15:04:05)",
 		Value: "",
 	}
+
+	portFlag = &cli.StringFlag{
+		Name:  "port",
+		Usage: "port",
+		Value: "",
+	}
 )
 
 var showNodeInfoCmd = &cli.Command{
@@ -209,6 +216,33 @@ var resetBackupCacheCountCmd = &cli.Command{
 		defer closer()
 
 		return schedulerAPI.ResetBackupCacheCount(ctx, count)
+	},
+}
+
+var setNodePortCmd = &cli.Command{
+	Name:  "set-node-port",
+	Usage: "set node port",
+	Flags: []cli.Flag{
+		deviceIDFlag,
+		portFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		deviceID := cctx.String("device-id")
+		port := cctx.String("port")
+
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		return schedulerAPI.SetNodePort(ctx, deviceID, port)
 	},
 }
 
