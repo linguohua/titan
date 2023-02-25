@@ -124,6 +124,17 @@ func (sd sqlDB) SetNodesQuit(deviceIDs []string) error {
 	return nil
 }
 
+// node info
+func (sd sqlDB) SetNodePort(deviceID, port string) error {
+	info := NodeInfo{
+		DeviceID: deviceID,
+		Port:     port,
+	}
+	// update
+	_, err := sd.cli.NamedExec(`UPDATE node SET port=:port WHERE device_id=:device_id`, info)
+	return err
+}
+
 // Validate Result
 func (sd sqlDB) AddValidateResultInfos(infos []*api.ValidateResult) error {
 	tx := sd.cli.MustBegin()

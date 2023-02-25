@@ -276,6 +276,8 @@ type SchedulerStruct struct {
 
 		SetNodeAppUpdateInfo func(p0 context.Context, p1 *NodeAppUpdateInfo) error `perm:"admin"`
 
+		SetNodePort func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
+
 		ShowNodeLogFile func(p0 context.Context, p1 string) (*LogFile, error) `perm:"admin"`
 
 		StopCacheTask func(p0 context.Context, p1 string) error `perm:"admin"`
@@ -1148,6 +1150,17 @@ func (s *SchedulerStruct) SetNodeAppUpdateInfo(p0 context.Context, p1 *NodeAppUp
 }
 
 func (s *SchedulerStub) SetNodeAppUpdateInfo(p0 context.Context, p1 *NodeAppUpdateInfo) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) SetNodePort(p0 context.Context, p1 string, p2 string) error {
+	if s.Internal.SetNodePort == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.SetNodePort(p0, p1, p2)
+}
+
+func (s *SchedulerStub) SetNodePort(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
 }
 

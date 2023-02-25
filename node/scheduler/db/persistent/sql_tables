@@ -6,6 +6,7 @@ CREATE TABLE `node` (
     `geo` varchar(64),
 	`node_type` varchar(64) DEFAULT '' ,
 	`address` varchar(64) DEFAULT '' ,
+	`port` varchar(8) DEFAULT '' ,
     `is_online` BOOLEAN DEFAULT '0' ,
 	`server_id` varchar(64) DEFAULT '' ,
 	`private_key` varchar(1024) DEFAULT '' ,

@@ -27,6 +27,7 @@ type DB interface {
 	GetNodePrivateKey(deviceID string) (string, error)
 	GetOfflineNodes() ([]*NodeInfo, error)
 	SetNodesQuit(deviceIDs []string) error
+	SetNodePort(deviceID, port string) error
 
 	// Validate Result
 	SetTimeoutToValidateInfos(roundID int64, deivceIDs []string) error
@@ -117,6 +118,7 @@ type NodeInfo struct {
 	IsOnline   bool      `db:"is_online"`
 	NodeType   string    `db:"node_type"`
 	Address    string    `db:"address"`
+	Port       string    `db:"port"`
 	ServerID   string    `db:"server_id"`
 	CreateTime time.Time `db:"create_time"`
 	PrivateKey string    `db:"private_key"`
