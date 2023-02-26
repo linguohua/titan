@@ -41,11 +41,10 @@ func (sd sqlDB) GetNodes(cursor int, count int) ([]*NodeInfo, int64, error) {
 }
 
 func (sd sqlDB) GetBlockDownloadInfos(deviceID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.BlockDownloadInfo, int64, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE device_id = ? and created_time between ? and ? limit ?,?`,
-		fmt.Sprintf(blockDownloadInfo, sd.replaceArea()))
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE device_id = ? and created_time between ? and ? limit ?,?`, blockDownloadInfo)
 
 	var total int64
-	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE device_id = ? and created_time between ? and ?`, fmt.Sprintf(blockDownloadInfo, sd.replaceArea()))
+	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE device_id = ? and created_time between ? and ?`, blockDownloadInfo)
 	if err := sd.cli.Get(&total, countSQL, deviceID, startTime, endTime); err != nil {
 		return nil, 0, err
 	}
@@ -63,10 +62,8 @@ func (sd sqlDB) GetBlockDownloadInfos(deviceID string, startTime time.Time, endT
 }
 
 func (sd sqlDB) GetCacheTaskInfos(startTime time.Time, endTime time.Time, cursor, count int) (*api.ListCacheInfosRsp, error) {
-	cacheTable := fmt.Sprintf(cacheInfoTable, sd.replaceArea())
-
 	var total int64
-	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE end_time between ? and ?`, cacheTable)
+	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE end_time between ? and ?`, cacheInfoTable)
 	if err := sd.cli.Get(&total, countSQL, startTime, endTime); err != nil {
 		return nil, err
 	}
@@ -75,8 +72,7 @@ func (sd sqlDB) GetCacheTaskInfos(startTime time.Time, endTime time.Time, cursor
 		count = maxCount
 	}
 
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE end_time between ? and ? limit ?,?`,
-		cacheTable)
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE end_time between ? and ? limit ?,?`, cacheInfoTable)
 
 	var out []*api.CarfileReplicaInfo
 	if err := sd.cli.Select(&out, query, startTime, endTime, cursor, count); err != nil {

@@ -83,16 +83,14 @@ type DB interface {
 var (
 	db DB
 
-	serverID   string
-	serverArea string
+	serverID string
 )
 
 // NewDB New  DB
-func NewDB(url, dbType, sID, sArea string) error {
+func NewDB(url, dbType, sID string) error {
 	var err error
 
 	serverID = sID
-	serverArea = sArea
 
 	switch dbType {
 	case TypeSQL():
