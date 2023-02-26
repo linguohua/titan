@@ -30,7 +30,7 @@ CREATE TABLE `validate_result` (
     KEY `round_device` (`round_id`,`device_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='validate result info';
 
-CREATE TABLE `block_download_info_cn_gd_shenzhen` (
+CREATE TABLE `block_download_info` (
     `id` varchar(64) NOT NULL UNIQUE,
     `block_cid` varchar(128) NOT NULL,
     `device_id` varchar(128) NOT NULL,
@@ -55,7 +55,7 @@ CREATE TABLE `register` (
 	PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='register';
 
-CREATE TABLE `replicas_cn_gd_shenzhen` (
+CREATE TABLE `replicas` (
     `id` varchar(128) NOT NULL UNIQUE,
 	`carfile_hash` varchar(128) NOT NULL,
     `status` TINYINT  DEFAULT '0' ,
@@ -68,7 +68,7 @@ CREATE TABLE `replicas_cn_gd_shenzhen` (
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='replicas info';
 
-CREATE TABLE `carfiles_cn_gd_shenzhen` (
+CREATE TABLE `carfiles` (
 	`carfile_hash` varchar(128) NOT NULL UNIQUE,
 	`carfile_cid` varchar(128) NOT NULL UNIQUE,
     `total_size` BIGINT  DEFAULT '0' ,

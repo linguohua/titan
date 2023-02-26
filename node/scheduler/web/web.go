@@ -45,13 +45,10 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 			log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), node.DeviceID)
 			continue
 		}
-		switch node.IsOnline {
-		case false:
-			deviceInfo.DeviceStatus = "offline"
-		case true:
+
+		deviceInfo.DeviceStatus = "offline"
+		if node.IsOnline {
 			deviceInfo.DeviceStatus = "online"
-		default:
-			deviceInfo.DeviceStatus = "abnormal"
 		}
 
 		_, exist := deviceInValidator[node.DeviceID]
