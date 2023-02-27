@@ -32,8 +32,12 @@ func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, uuid strin
 		log.Panic("NewLocalLocator, db addr cannot empty")
 	}
 
-	locator := &Locator{}
-	locator.db = newDB(dbAddr)
+	db, err := newSQLDB(dbAddr)
+	if err != nil {
+		log.Panicf("NewLocalLocator, newDB error:%s", err.Error())
+	}
+
+	locator := &Locator{db: db}
 
 	sec, err := secret.APISecret(lr)
 	if err != nil {
@@ -55,7 +59,7 @@ func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, uuid strin
 type Locator struct {
 	common.CommonAPI
 	apMgr *accessPointMgr
-	db    *db
+	db    *sqlDB
 }
 
 func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string) ([]string, error) {
@@ -162,7 +166,7 @@ func (locator *Locator) SetDeviceOnlineStatus(ctx context.Context, deviceID stri
 		return fmt.Errorf("device %s not exist", deviceID)
 	}
 
-	locator.db.db.setDeviceInfo(deviceID, info.SchedulerURL, info.AreaID, isOnline)
+	locator.db.setDeviceInfo(deviceID, info.SchedulerURL, info.AreaID, isOnline)
 	return nil
 }
 
@@ -411,14 +415,14 @@ func (locator *Locator) RegisterNode(ctx context.Context, areaID string, schedul
 	}
 
 	for _, registerInfo := range registerInfos {
-		locator.db.db.setDeviceInfo(registerInfo.DeviceID, schedulerURL, areaID, false)
+		locator.db.setDeviceInfo(registerInfo.DeviceID, schedulerURL, areaID, false)
 	}
 
 	return registerInfos, nil
 }
 
 func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) ([]api.AccessPoint, error) {
-	allCfg, err := locator.db.db.getAllCfg()
+	allCfg, err := locator.db.getAllCfg()
 	if err != nil {
 		return make([]api.AccessPoint, 0), err
 	}
