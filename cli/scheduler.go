@@ -23,9 +23,8 @@ var SchedulerCmds = []*cli.Command{
 	validateCmd,
 	validateSwitchCmd,
 	// other
-	getDownloadInfoCmd,
 	nodeAppUpdateCmd,
-	getEdgeExternalAddr,
+	edgeExternalAddrCmd,
 }
 
 var (
@@ -219,40 +218,6 @@ var validateSwitchCmd = &cli.Command{
 		defer closer()
 
 		schedulerAPI.ValidateSwitch(ctx, enable)
-
-		return nil
-	},
-}
-
-var getDownloadInfoCmd = &cli.Command{
-	Name:  "download-infos",
-	Usage: "specify node cache blocks",
-	Flags: []cli.Flag{
-		cidFlag,
-	},
-
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		cid := cctx.String("cid")
-
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		privateKey, _ := generatePrivateKey(1024)
-		publicKey := publicKey2Pem(&privateKey.PublicKey)
-
-		datas, err := schedulerAPI.GetDownloadInfosWithCarfile(ctx, cid, publicKey)
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("datas:%v", datas)
 
 		return nil
 	},
@@ -454,7 +419,7 @@ func newVersion(version string) (api.Version, error) {
 	return api.Version(uint32(major)<<16 | uint32(minor)<<8 | uint32(patch)), nil
 }
 
-var getEdgeExternalAddr = &cli.Command{
+var edgeExternalAddrCmd = &cli.Command{
 	Name:  "edge-external-addr",
 	Usage: "get edge external addr",
 	Flags: []cli.Flag{
