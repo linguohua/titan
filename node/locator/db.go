@@ -72,7 +72,7 @@ func (db *sqlDB) getAccessPointCfgs(areaID string) ([]*schedulerCfg, error) {
 }
 
 func (db *sqlDB) listAreaIDs() (areaIDs []string, err error) {
-	err = db.cli.Select(areaIDs, `SELECT area_id FROM scheduler_config`)
+	err = db.cli.Select(&areaIDs, `SELECT area_id FROM scheduler_config GROUP BY area_id`)
 	if err != nil {
 		return
 	}
