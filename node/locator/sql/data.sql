@@ -15,5 +15,5 @@ CREATE TABLE `device` (
 	PRIMARY KEY (`device_id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='locator device info';
 
--- CREATE USER 'new_user'@'localhost' IDENTIFIED BY 'new_password';
+-- CREATE USER 'user01'@'localhost' IDENTIFIED BY 'new_password';
 -- GRANT ALL ON locator.* TO 'user01'@'localhost';

@@ -7,10 +7,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type db struct {
-	db *sqlDB
-}
-
 // locaton config
 type schedulerCfg struct {
 	SchedulerURL string `db:"scheduler_url"`
@@ -38,75 +34,11 @@ type AccessPoint struct {
 	AreaID string
 }
 
-func newDB(dbAddr string) *db {
-	cli, err := initSQLDB(dbAddr)
-	if err != nil {
-		log.Panicf("newDB error:%s", err.Error())
-		return nil
-	}
-
-	return &db{cli}
-}
-
-func (db *db) addAccessPoints(areaID string, schedulerURL string, weight int, accessToken string) error {
-	return db.db.addCfg(areaID, schedulerURL, weight, accessToken)
-}
-
-func (db *db) removeAccessPoints(areaID string) error {
-	return db.db.DeleteCfgWithAreaID(areaID)
-}
-
-func (db *db) listAreaIDs() (areaIDs []string, err error) {
-	// TODO: only get areaID from db, not all cfg
-	allCfg, err := db.db.getAllCfg()
-	if err != nil {
-		return []string{}, err
-	}
-	cfgMap := make(map[string]string)
-	for _, cfg := range allCfg {
-		cfgMap[cfg.AreaID] = cfg.SchedulerURL
-	}
-
-	for k := range cfgMap {
-		areaIDs = append(areaIDs, k)
-	}
-	return areaIDs, nil
-}
-
-func (db *db) getAccessPointCfgs(areaID string) ([]*schedulerCfg, error) {
-	return db.db.getCfgs(areaID)
-}
-
-func (db *db) isAccessPointExist(areaID, schedulerURL string) (bool, error) {
-	count, err := db.db.countCfgWith(areaID, schedulerURL)
-	if err != nil {
-		return false, err
-	}
-
-	if count > 0 {
-		return true, nil
-	}
-
-	return false, nil
-}
-
-func (db *db) countDeviceOnScheduler(schedulerURL string) (int, error) {
-	return db.db.countDeviceOnScheduler(schedulerURL)
-}
-
-func (db *db) getDeviceInfo(deviceID string) (*deviceInfo, error) {
-	return db.db.getDeviceInfo(deviceID)
-}
-
-func (db *db) close() error {
-	return db.db.cli.Close()
-}
-
 type sqlDB struct {
 	cli *sqlx.DB
 }
 
-func initSQLDB(url string) (*sqlDB, error) {
+func newSQLDB(url string) (*sqlDB, error) {
 	url = fmt.Sprintf("%s?parseTime=true&loc=Local", url)
 	db := &sqlDB{}
 	database, err := sqlx.Open("mysql", url)
@@ -121,6 +53,44 @@ func initSQLDB(url string) (*sqlDB, error) {
 	db.cli = database
 
 	return db, nil
+}
+
+func (db *sqlDB) close() error {
+	return db.cli.Close()
+}
+
+func (db *sqlDB) addAccessPoints(areaID string, schedulerURL string, weight int, accessToken string) error {
+	return db.addCfg(areaID, schedulerURL, weight, accessToken)
+}
+
+func (db *sqlDB) removeAccessPoints(areaID string) error {
+	return db.deleteCfgWithAreaID(areaID)
+}
+
+func (db *sqlDB) getAccessPointCfgs(areaID string) ([]*schedulerCfg, error) {
+	return db.getCfgs(areaID)
+}
+
+func (db *sqlDB) listAreaIDs() (areaIDs []string, err error) {
+	err = db.cli.Select(areaIDs, `SELECT area_id FROM scheduler_config`)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (db *sqlDB) isAccessPointExist(areaID, schedulerURL string) (bool, error) {
+	count, err := db.countCfgWith(areaID, schedulerURL)
+	if err != nil {
+		return false, err
+	}
+
+	if count > 0 {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (db *sqlDB) getAllCfg() ([]*schedulerCfg, error) {
@@ -171,13 +141,13 @@ func (db *sqlDB) addCfg(areaID string, schedulerURL string, weight int, accessTo
 	return err
 }
 
-func (db *sqlDB) DeleteCfgWithAreaID(areaID string) error {
+func (db *sqlDB) deleteCfgWithAreaID(areaID string) error {
 	cfg := &schedulerCfg{AreaID: areaID}
 	_, err := db.cli.NamedExec(`DELETE FROM scheduler_config WHERE area_id=:area_id`, cfg)
 	return err
 }
 
-func (db *sqlDB) DeleteCfgWithURL(schedulerURL string) error {
+func (db *sqlDB) deleteCfgWithURL(schedulerURL string) error {
 	cfg := &schedulerCfg{SchedulerURL: schedulerURL}
 	_, err := db.cli.NamedExec(`DELETE FROM scheduler_config WHERE scheduler_url=:scheduler_url`, cfg)
 	return err
