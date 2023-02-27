@@ -7,8 +7,6 @@ CREATE TABLE `node` (
 	`node_type` varchar(64) DEFAULT '' ,
 	`address` varchar(64) DEFAULT '' ,
 	`port` varchar(8) DEFAULT '' ,
-    `is_online` BOOLEAN DEFAULT '0' ,
-	`server_id` varchar(64) DEFAULT '' ,
 	`private_key` varchar(1024) DEFAULT '' ,
     `quitted` BOOLEAN DEFAULT '0' ,
 	PRIMARY KEY (`id`)
@@ -19,7 +17,6 @@ CREATE TABLE `validate_result` (
     `round_id` bigint NOT NULL,
     `device_id` varchar(128) NOT NULL,
     `validator_id` varchar(128) NOT NULL,
-    `server_id` varchar(64) DEFAULT NULL,
     `block_number` bigint DEFAULT '0' COMMENT 'number of blocks verified',
     `status` tinyint DEFAULT '0',
     `duration` bigint DEFAULT '0' COMMENT 'validate duration, microsecond',

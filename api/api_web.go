@@ -101,33 +101,6 @@ type ValidationInfo struct {
 	EnableValidation bool  `json:"enable_validation"`
 }
 
-// type ListValidateResultRsp struct {
-// 	Data  []WebValidateResult `json:"data"`
-// 	Total int64               `json:"total"`
-// }
-
-// type WebValidateResult struct {
-// 	ID          int    `json:"-"`
-// 	RoundID     string `json:"round_id" db:"round_id"`
-// 	DeviceID    string `json:"device_id" db:"device_id"`
-// 	ValidatorID string `json:"validator_id" db:"validator_id"`
-// 	// Msg         string `json:"msg" db:"msg"`
-// 	Status     int    `json:"status" db:"status"`
-// 	StartTime  string `json:"start_time" db:"start_time"`
-// 	EndTime    string `json:"end_time" db:"end_time"`
-// 	ServerName string `json:"server_id" db:"server_id"`
-// }
-
-// type ValidateResultInfo struct {
-// 	DeviceID    string `db:"device_id"`
-// 	ValidatorID string `db:"validator_id"`
-// 	BlockNumber int64  `db:"block_number"`
-// 	Status      int    `db:"status"`
-// 	// ValidateTime  time.Time `db:"validate_time"`
-// 	Duration      int64   `db:"duration"`
-// 	UploadTraffic float64 `db:"upload_traffic"`
-// }
-
 type SummeryValidateResult struct {
 	Total               int              `json:"total"`
 	ValidateResultInfos []ValidateResult `json:"validate_result_infos"`
@@ -139,7 +112,6 @@ type ValidateResult struct {
 	RoundID     int64          `db:"round_id"`
 	DeviceID    string         `db:"device_id"`
 	ValidatorID string         `db:"validator_id"`
-	ServerID    string         `db:"server_id"`
 	BlockNumber int64          `db:"block_number"` // number of blocks verified
 	Status      ValidateStatus `db:"status"`
 	Duration    int64          `db:"duration"` // validate duration, microsecond

@@ -253,7 +253,7 @@ func (v *Validate) assignValidator(validatorList []string) map[string][]api.ReqV
 		infos = append(infos, info)
 	}
 
-	err := persistent.AddValidateResultInfos(infos)
+	err := persistent.InsertValidateResultInfos(infos)
 	if err != nil {
 		log.Errorf("AddValidateResultInfos err:%s", err.Error())
 		return nil

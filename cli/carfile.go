@@ -19,18 +19,18 @@ var carfileCmd = &cli.Command{
 		cacheCarfileCmd,
 		showCarfileInfoCmd,
 		removeCarfileCmd,
-		removeCacheCmd,
+		removeBackupCmd,
 		resetExpiredTimeCmd,
 		stopTaskCmd,
 		resetBackupCacheCountCmd,
-		listUndoneCarfileCmd,
+		listIncompleteCarfileCmd,
 		contiuneUndoneCarfileCmd,
 	},
 }
 
 var contiuneUndoneCarfileCmd = &cli.Command{
-	Name:      "do-undone-carfiles",
-	Usage:     "execute undone carfiles task",
+	Name:      "execute-incomplete",
+	Usage:     "Continue to execute the incomplete carfile task",
 	ArgsUsage: "[cid1 cid2 ...]",
 
 	Before: func(cctx *cli.Context) error {
@@ -59,9 +59,9 @@ var contiuneUndoneCarfileCmd = &cli.Command{
 	},
 }
 
-var listUndoneCarfileCmd = &cli.Command{
-	Name:  "list-undones",
-	Usage: "list undone carfiles",
+var listIncompleteCarfileCmd = &cli.Command{
+	Name:  "list-incomplete",
+	Usage: "List incomplete carfiles",
 	Flags: []cli.Flag{
 		pageFlag,
 	},
@@ -180,9 +180,9 @@ var resetExpiredTimeCmd = &cli.Command{
 	},
 }
 
-var removeCacheCmd = &cli.Command{
-	Name:  "remove-cache",
-	Usage: "Remove a cache of carfile",
+var removeBackupCmd = &cli.Command{
+	Name:  "remove-backup",
+	Usage: "Remove the carfile backup",
 	Flags: []cli.Flag{
 		deviceIDFlag,
 		cidFlag,
@@ -209,7 +209,7 @@ var removeCacheCmd = &cli.Command{
 
 var removeCarfileCmd = &cli.Command{
 	Name:  "remove",
-	Usage: "Remove a carfile record",
+	Usage: "Remove the carfile record",
 	Flags: []cli.Flag{
 		cidFlag,
 	},
@@ -230,7 +230,7 @@ var removeCarfileCmd = &cli.Command{
 
 var showCarfileInfoCmd = &cli.Command{
 	Name:  "info",
-	Usage: "Show a carfile info",
+	Usage: "Show the carfile info",
 	Flags: []cli.Flag{
 		cidFlag,
 	},
