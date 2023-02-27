@@ -236,15 +236,15 @@ type NodeAppUpdateInfo struct {
 	UpdateTime  time.Time `db:"update_time"`
 }
 
-// NodeCacheState node cache state
-type NodeCacheState struct {
+// NodeCacheStatus node cache status
+type NodeCacheStatus struct {
 	CarfileHash string      `db:"carfile_hash"`
 	Status      CacheStatus `db:"status"`
 }
 
 // NodeCacheRsp node caches
 type NodeCacheRsp struct {
-	Caches     []*NodeCacheState
+	Caches     []*NodeCacheStatus
 	TotalCount int
 }
 

@@ -1,55 +1,35 @@
 package sync
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"sort"
 	"sync"
 
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/node"
 )
 
-var log = logging.Logger("web")
+var log = logging.Logger("data-sync")
 
-const (
-	maxGroupNum        = 10
-	maxNumOfScrubBlock = 1000
-)
+const checkGroupNumber = 1000
 
 type DataSync struct {
-	maxGroupNum        int
-	maxNumOfScrubBlock int
-	nodeList           []string
-	lock               *sync.Mutex
-	waitChannel        chan bool
-	nodeManager        *node.Manager
+	nodeList    []string
+	lock        *sync.Mutex
+	waitChannel chan bool
+	nodeManager *node.Manager
 }
 
-// type node struct {
-// 	nodeID string
-// }
-
-type blockItem struct {
-	fid int
-	cid string
-}
-
-type inconformityBlocks struct {
-	blocks []*blockItem
-	// startFid is not same as block first item
-	startFid int
-	// endFid is not same as block last item
-	endFid int
-}
-
-//maxGroupNum: max group for device sync data
-//maxNumOfScrubBlock: max number of block on scrub block
 func NewDataSync(nodeManager *node.Manager) *DataSync {
 	dataSync := &DataSync{
-		maxGroupNum:        maxGroupNum,
-		maxNumOfScrubBlock: maxNumOfScrubBlock,
-		nodeList:           make([]string, 0),
-		lock:               &sync.Mutex{},
-		waitChannel:        make(chan bool),
-		nodeManager:        nodeManager,
+		nodeList:    make([]string, 0),
+		lock:        &sync.Mutex{},
+		waitChannel: make(chan bool),
+		nodeManager: nodeManager,
 	}
 
 	go dataSync.run()
@@ -107,5 +87,109 @@ func (ds *DataSync) removeFirstNode() string {
 }
 
 func (ds *DataSync) doDataSync(nodeID string) {
-	// TODO: do sync data
+	nodeCacheStatusList, err := ds.loadCarfileInfosByNode(nodeID)
+	if err != nil {
+		log.Errorf("doDataSync, loadCarfileInfosByNode error:%s", err.Error())
+		return
+	}
+
+	// sort the carfile hash, that match to the node file system
+	sort.Slice(nodeCacheStatusList, func(i, j int) bool {
+		return nodeCacheStatusList[i].CarfileHash < nodeCacheStatusList[j].CarfileHash
+	})
+
+	//split carfile to succeeded and unsucceeded
+	succeededCarfileList, unsucceededCarfileList := ds.splitCacheStatusListByStatus(nodeCacheStatusList)
+	checkSummaryResult, err := ds.checkSummary(nodeID, succeededCarfileList, unsucceededCarfileList)
+	if err != nil {
+		log.Errorf("doDataSync,checkSummary error:%s", err.Error())
+		return
+	}
+
+	if !checkSummaryResult.IsSusseedCarfilesOk {
+		err = ds.checkCarfiles(nodeID, succeededCarfileList, true)
+		if err != nil {
+			log.Errorf("check succeed carfile error:%s", err)
+		}
+	}
+
+	if !checkSummaryResult.IsUnsusseedCarfilesOk {
+		err = ds.checkCarfiles(nodeID, unsucceededCarfileList, false)
+		if err != nil {
+			log.Errorf("check unsucceed carfile error:%s", err)
+		}
+	}
+}
+
+// quickly check device's carfiles if same as scheduler
+func (ds *DataSync) checkSummary(nodeID string, succeedCarfileList, failedCarfileList []string) (*api.CheckSummaryResult, error) {
+	var mergeSucceedCarfileHash string
+	var mergeFailedCarfileHash string
+
+	for _, succeedCarfileHash := range succeedCarfileList {
+		mergeSucceedCarfileHash += succeedCarfileHash
+	}
+
+	for _, failedCarfileHash := range failedCarfileList {
+		mergeFailedCarfileHash += failedCarfileHash
+	}
+
+	hash := sha256.New()
+	hash.Write([]byte(mergeSucceedCarfileHash))
+	succeedCarfilesHash := hex.EncodeToString(hash.Sum(nil))
+
+	hash.Reset()
+	hash.Write([]byte(mergeFailedCarfileHash))
+	failedCarfilesHash := hex.EncodeToString(hash.Sum(nil))
+
+	if edgeNode := ds.nodeManager.GetEdgeNode(nodeID); edgeNode != nil {
+		return edgeNode.GetAPI().CheckSummary(succeedCarfilesHash, failedCarfilesHash)
+	}
+
+	if candidateNode := ds.nodeManager.GetCandidateNode(nodeID); candidateNode != nil {
+		return candidateNode.GetAPI().CheckSummary(succeedCarfilesHash, failedCarfilesHash)
+	}
+
+	return nil, fmt.Errorf("Node %s not online", nodeID)
+}
+
+func (ds *DataSync) checkCarfiles(nodeID string, carfileList []string, isSucceedCarfileCheck bool) error {
+	// TODO: implemnet check carfiles
+
+	return nil
+}
+
+func (ds *DataSync) splitCacheStatusListByStatus(cacheStatusList []*api.NodeCacheStatus) (succeededCarfileList, unsucceededCarfileList []string) {
+	succeededCarfileList = make([]string, 0)
+	unsucceededCarfileList = make([]string, 0)
+
+	for _, cacheStatus := range cacheStatusList {
+		if cacheStatus.Status == api.CacheStatusSucceeded {
+			succeededCarfileList = append(succeededCarfileList, cacheStatus.CarfileHash)
+		} else if cacheStatus.Status == api.CacheStatusFailed {
+			unsucceededCarfileList = append(unsucceededCarfileList, cacheStatus.CarfileHash)
+		}
+	}
+
+	return succeededCarfileList, unsucceededCarfileList
+}
+
+func (ds *DataSync) loadCarfileInfosByNode(nodeID string) ([]*api.NodeCacheStatus, error) {
+	index := 0
+	count := 500
+	cacheStates := make([]*api.NodeCacheStatus, 0)
+	for {
+		nodeCacheRsp, err := persistent.GetDB().GetCacheInfosWithNode(nodeID, index, count)
+		if err != nil {
+			log.Errorf("GetCacheInfosWithNode %s, index:%d, count:%d, error:%s", nodeID, index, count)
+			return nil, err
+		}
+
+		cacheStates = append(cacheStates, nodeCacheRsp.Caches...)
+		if len(cacheStates) == nodeCacheRsp.TotalCount {
+			return cacheStates, nil
+		}
+
+		index = len(cacheStates)
+	}
 }

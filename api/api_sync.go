@@ -1,5 +1,11 @@
 package api
 
 type DataSync interface {
-	// TODO: need to implement data sync interface
+	// simple to check carfile table
+	CheckSummary(susseedCarfilesHash, failedCarfilesHash string) (*CheckSummaryResult, error)
+}
+
+type CheckSummaryResult struct {
+	IsSusseedCarfilesOk   bool
+	IsUnsusseedCarfilesOk bool
 }
