@@ -12,7 +12,7 @@ type EncodeCarfile struct {
 	BlocksWaitList            []string
 	BlocksDownloadSuccessList []string
 	NextLayerCIDs             []string
-	DownloadSources           []*api.DowloadSource
+	DownloadSources           []*api.DownloadSource
 	CarfileSize               uint64
 	DownloadSize              uint64
 }
@@ -25,7 +25,8 @@ func encodeCarfileCache(cfCache *carfileCache) ([]byte, error) {
 		NextLayerCIDs:             cfCache.nextLayerCIDs,
 		DownloadSources:           cfCache.downloadSources,
 		CarfileSize:               cfCache.carfileSize,
-		DownloadSize:              cfCache.downloadSize}
+		DownloadSize:              cfCache.downloadSize,
+	}
 
 	var buffer bytes.Buffer
 	enc := gob.NewEncoder(&buffer)
@@ -68,7 +69,8 @@ func encodeWaitList(carfileCaches []*carfileCache) ([]byte, error) {
 			NextLayerCIDs:             cfCache.nextLayerCIDs,
 			DownloadSources:           cfCache.downloadSources,
 			CarfileSize:               cfCache.carfileSize,
-			DownloadSize:              cfCache.downloadSize}
+			DownloadSize:              cfCache.downloadSize,
+		}
 		waitList = append(waitList, encodeCarfile)
 	}
 

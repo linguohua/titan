@@ -10,7 +10,7 @@ import (
 	"github.com/linguohua/titan/node/cidutil"
 )
 
-func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carfileCID string, sources []*api.DowloadSource) (*api.CacheCarfileResult, error) {
+func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carfileCID string, sources []*api.DownloadSource) (*api.CacheCarfileResult, error) {
 	carfileHash, err := cidutil.CIDString2HashString(carfileCID)
 	if err != nil {
 		log.Errorf("CacheCarfile, CIDString2HashString error:%s, carfile cid:%s", err.Error(), carfileCID)
@@ -107,7 +107,6 @@ func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, car
 		}
 
 		log.Infof("DeleteCarfile, carfile cid:%s", carfileCID)
-
 	}()
 	return nil
 }

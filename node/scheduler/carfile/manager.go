@@ -30,7 +30,7 @@ const (
 	rootCacheCount = 1 // The number of caches in the first stage
 )
 
-var backupCacheCount = 0 // Cache to the number of candidate nodes （does not contain 'rootCacheCount'）
+var candidateReplicaCacheCount = 0 // Cache to the number of candidate nodes （does not contain 'rootCacheCount'）
 
 // Manager carfile
 type Manager struct {
@@ -41,8 +41,8 @@ type Manager struct {
 	runningTaskCount        int
 }
 
-// NewCarfileManager new
-func NewCarfileManager(nodeManager *node.Manager, writeToken []byte) *Manager {
+// NewManager new
+func NewManager(nodeManager *node.Manager, writeToken []byte) *Manager {
 	d := &Manager{
 		nodeManager:       nodeManager,
 		latelyExpiredTime: time.Now(),
@@ -170,21 +170,21 @@ func (m *Manager) doCarfileCacheTask(info *api.CacheCarfileInfo) error {
 			return err
 		}
 
-		carfileRecord.needReliability = info.NeedReliability
+		carfileRecord.replica = info.Replica
 		carfileRecord.expiredTime = info.ExpiredTime
 
 		carfileRecord.initStep()
 	} else {
 		carfileRecord = newCarfileRecord(m, info.CarfileCid, info.CarfileHash)
-		carfileRecord.needReliability = info.NeedReliability
+		carfileRecord.replica = info.Replica
 		carfileRecord.expiredTime = info.ExpiredTime
 	}
 
 	err = persistent.CreateOrUpdateCarfileRecordInfo(&api.CarfileRecordInfo{
-		CarfileCid:      carfileRecord.carfileCid,
-		NeedReliability: carfileRecord.needReliability,
-		ExpiredTime:     carfileRecord.expiredTime,
-		CarfileHash:     carfileRecord.carfileHash,
+		CarfileCid:  carfileRecord.carfileCid,
+		Replica:     carfileRecord.replica,
+		ExpiredTime: carfileRecord.expiredTime,
+		CarfileHash: carfileRecord.carfileHash,
 	}, exist)
 	if err != nil {
 		return xerrors.Errorf("cid:%s,CreateOrUpdateCarfileRecordInfo err:%s", carfileRecord.carfileCid, err.Error())
@@ -203,7 +203,7 @@ func (m *Manager) doCarfileCacheTask(info *api.CacheCarfileInfo) error {
 // CacheCarfile new carfile task
 func (m *Manager) CacheCarfile(info *api.CacheCarfileInfo) error {
 	if info.DeviceID == "" {
-		log.Infof("carfile event %s , add carfile,reliability:%d,expiredTime:%s", info.CarfileCid, info.NeedReliability, info.ExpiredTime.String())
+		log.Infof("carfile event %s , add carfile,reliability:%d,expiredTime:%s", info.CarfileCid, info.Replica, info.ExpiredTime.String())
 	} else {
 		log.Infof("carfile event %s , add carfile,deviceID:%s", info.CarfileCid, info.DeviceID)
 	}
@@ -480,14 +480,14 @@ func (m *Manager) notifyNodeRemoveCarfile(deviceID, cid string) error {
 	return nil
 }
 
-// ResetBackupCacheCount reset backupCacheCount
-func (m *Manager) ResetBackupCacheCount(count int) {
-	backupCacheCount = count
+// ResetReplicaCount reset candidate replica count
+func (m *Manager) ResetReplicaCount(count int) {
+	candidateReplicaCacheCount = count
 }
 
-// GetBackupCacheCounts get backupCacheCount
-func (m *Manager) GetBackupCacheCounts() int {
-	return backupCacheCount
+// GetCandidateReplicaCount get candidta replica count
+func (m *Manager) GetCandidateReplicaCount() int {
+	return candidateReplicaCacheCount
 }
 
 func cacheTaskID(hash, deviceID string) string {
@@ -546,8 +546,8 @@ func carfileRecord2Info(d *CarfileRecord) *api.CarfileRecordInfo {
 		info.CarfileCid = d.carfileCid
 		info.CarfileHash = d.carfileHash
 		info.TotalSize = d.totalSize
-		info.NeedReliability = d.needReliability
-		info.CurReliability = d.curReliability
+		info.Replica = d.replica
+		info.EdgeReplica = d.edgeReplica
 		info.TotalBlocks = d.totalBlocks
 		info.ExpiredTime = d.expiredTime
 

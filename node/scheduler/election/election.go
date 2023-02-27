@@ -52,8 +52,8 @@ func newEleOption(opts ...Option) EleOption {
 // Option election option
 type Option func(opt *EleOption)
 
-// NewElection new election
-func NewElection(manager *node.Manager, opts ...Option) *Election {
+// New new election
+func New(manager *node.Manager, opts ...Option) *Election {
 	ele := &Election{
 		manager:        manager,
 		opts:           newEleOption(opts...),

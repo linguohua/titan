@@ -58,11 +58,6 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.Remo
 	})
 }
 
-// GetUndoneCarfileRecords get all undone carfile
-func (s *Scheduler) GetUndoneCarfileRecords(ctx context.Context, page int) (*api.DataListInfo, error) {
-	return persistent.GetUndoneCarfiles(page)
-}
-
 // ExecuteUndoneCarfilesTask Execute Undone Carfiles Task
 func (s *Scheduler) ExecuteUndoneCarfilesTask(ctx context.Context, hashs []string) error {
 	list, err := persistent.GetCarfileInfos(hashs)
@@ -73,9 +68,9 @@ func (s *Scheduler) ExecuteUndoneCarfilesTask(ctx context.Context, hashs []strin
 	if list != nil {
 		for _, carfile := range list {
 			info := &api.CacheCarfileInfo{
-				CarfileCid:      carfile.CarfileCid,
-				NeedReliability: carfile.NeedReliability,
-				ExpiredTime:     carfile.ExpiredTime,
+				CarfileCid:  carfile.CarfileCid,
+				Replica:     carfile.Replica,
+				ExpiredTime: carfile.ExpiredTime,
 			}
 			err = s.CacheCarfile(ctx, info)
 			if err != nil {
@@ -116,9 +111,9 @@ func (s *Scheduler) GetCarfileRecordInfo(ctx context.Context, cid string) (api.C
 	return *info, nil
 }
 
-// ResetBackupCacheCount reset backupCacheCount
-func (s *Scheduler) ResetBackupCacheCount(ctx context.Context, backupCacheCount int) error {
-	s.dataManager.ResetBackupCacheCount(backupCacheCount)
+// ResetReplicaCacheCount Reset candidate replica count
+func (s *Scheduler) ResetReplicaCacheCount(ctx context.Context, count int) error {
+	s.dataManager.ResetReplicaCount(count)
 	return nil
 }
 
@@ -168,8 +163,8 @@ func (s *Scheduler) CacheCarfile(ctx context.Context, info *api.CacheCarfileInfo
 	info.CarfileHash = hash
 
 	if info.DeviceID == "" {
-		if info.NeedReliability < 1 {
-			return xerrors.Errorf("reliability is %d < 1", info.NeedReliability)
+		if info.Replica < 1 {
+			return xerrors.Errorf("replica is %d < 1", info.Replica)
 		}
 
 		if time.Now().After(info.ExpiredTime) {

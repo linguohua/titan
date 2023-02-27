@@ -4,7 +4,7 @@ import "context"
 
 type CarfileOperation interface {
 	// cache carfile
-	CacheCarfile(ctx context.Context, carfileCID string, sources []*DowloadSource) (*CacheCarfileResult, error) //perm:write
+	CacheCarfile(ctx context.Context, carfileCID string, sources []*DownloadSource) (*CacheCarfileResult, error) //perm:write
 	// delete carfile
 	DeleteCarfile(ctx context.Context, carfileCID string) error //perm:write
 	// delete all carfiles
@@ -13,7 +13,6 @@ type CarfileOperation interface {
 	QueryCacheStat(ctx context.Context) (*CacheStat, error) //perm:write
 	// query block caching stat
 	QueryCachingCarfile(ctx context.Context) (*CachingCarfile, error) //perm:write
-
 }
 
 type CacheCarfileResult struct {
@@ -22,7 +21,7 @@ type CacheCarfileResult struct {
 	DiskUsage           float64
 }
 
-type DowloadSource struct {
+type DownloadSource struct {
 	CandidateURL   string
 	CandidateToken string
 }

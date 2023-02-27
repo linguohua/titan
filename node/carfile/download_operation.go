@@ -16,7 +16,7 @@ func (dOperation *downloadOperation) downloadResult(carfile *carfileCache, isCom
 	return dOperation.carfileOperation.downloadResult(carfile, isComplete)
 }
 
-func (dOperation *downloadOperation) downloadBlocks(cids []string, sources []*api.DowloadSource) ([]blocks.Block, error) {
+func (dOperation *downloadOperation) downloadBlocks(cids []string, sources []*api.DownloadSource) ([]blocks.Block, error) {
 	return dOperation.downloader.DownloadBlocks(cids, sources)
 }
 

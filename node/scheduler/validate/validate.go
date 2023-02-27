@@ -37,8 +37,8 @@ type Validate struct {
 	enable      bool       // validate switch
 }
 
-// NewValidate new validate
-func NewValidate(manager *node.Manager, enable bool) *Validate {
+// New new validate
+func New(manager *node.Manager, enable bool) *Validate {
 	e := &Validate{
 		ctx:         context.Background(),
 		nodeManager: manager,
@@ -101,7 +101,7 @@ func (v *Validate) checkValidateTimeOut() error {
 	}
 
 	if deviceIDs != nil && len(deviceIDs) > 0 {
-		err = persistent.SetTimeoutToValidateInfos(v.curRoundID-1, deviceIDs)
+		err = persistent.SetValidateTimeoutOfNodes(v.curRoundID-1, deviceIDs)
 		if err != nil {
 			log.Errorf(err.Error())
 		}
@@ -253,7 +253,7 @@ func (v *Validate) assignValidator(validatorList []string) map[string][]api.ReqV
 		infos = append(infos, info)
 	}
 
-	err := persistent.InsertValidateResultInfos(infos)
+	err := persistent.InitValidateResultInfos(infos)
 	if err != nil {
 		log.Errorf("AddValidateResultInfos err:%s", err.Error())
 		return nil

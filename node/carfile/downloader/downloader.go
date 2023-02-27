@@ -15,5 +15,5 @@ const (
 
 type BlockDownloader interface {
 	// download blocks
-	DownloadBlocks(cids []string, sources []*api.DowloadSource) ([]blocks.Block, error)
+	DownloadBlocks(cids []string, sources []*api.DownloadSource) ([]blocks.Block, error)
 }

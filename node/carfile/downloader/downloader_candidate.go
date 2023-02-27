@@ -22,7 +22,7 @@ func NewCandidate(carfileStore *carfilestore.CarfileStore) *candidate {
 	return &candidate{carfileStore: carfileStore}
 }
 
-func (candidate *candidate) DownloadBlocks(cids []string, downloadSource []*api.DowloadSource) ([]blocks.Block, error) {
+func (candidate *candidate) DownloadBlocks(cids []string, downloadSource []*api.DownloadSource) ([]blocks.Block, error) {
 	return getBlocksFromCandidate(cids, downloadSource)
 }
 
@@ -52,7 +52,7 @@ func getBlockFromCandidateWithApi(candidate api.Candidate, cidStr string, retryC
 	return basicBlock, nil
 }
 
-func getBlocksFromCandidate(cids []string, sources []*api.DowloadSource) ([]blocks.Block, error) {
+func getBlocksFromCandidate(cids []string, sources []*api.DownloadSource) ([]blocks.Block, error) {
 	blks := make([]blocks.Block, 0, len(cids))
 	candidates := make(map[string]api.Candidate)
 	blksLock := &sync.Mutex{}

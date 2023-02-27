@@ -25,20 +25,20 @@ type CarfileRecord struct {
 	nodeManager    *node.Manager
 	carfileManager *Manager
 
-	carfileCid      string
-	carfileHash     string
-	curReliability  int // An edge node represents a reliability
-	needReliability int
-	totalSize       int64
-	totalBlocks     int
-	expiredTime     time.Time
+	carfileCid  string
+	carfileHash string
+	replica     int
+	totalSize   int64
+	totalBlocks int
+	expiredTime time.Time
 
-	dowloadSources  []*api.DowloadSource
-	candidateCaches int
-	CacheTaskMap    sync.Map
+	downloadSources  []*api.DownloadSource
+	candidateReploca int
+	CacheTaskMap     sync.Map
 
 	lock sync.RWMutex
 
+	edgeReplica          int               // An edge node represents a reliability
 	step                 int               // dispatchCount int
 	nodeCacheErrs        map[string]string // [deviceID]msg
 	edgeNodeCacheSummary string
@@ -46,12 +46,12 @@ type CarfileRecord struct {
 
 func newCarfileRecord(manager *Manager, cid, hash string) *CarfileRecord {
 	return &CarfileRecord{
-		nodeManager:    manager.nodeManager,
-		carfileManager: manager,
-		carfileCid:     cid,
-		carfileHash:    hash,
-		dowloadSources: make([]*api.DowloadSource, 0),
-		nodeCacheErrs:  make(map[string]string),
+		nodeManager:     manager.nodeManager,
+		carfileManager:  manager,
+		carfileCid:      cid,
+		carfileHash:     hash,
+		downloadSources: make([]*api.DownloadSource, 0),
+		nodeCacheErrs:   make(map[string]string),
 	}
 }
 
@@ -66,13 +66,12 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 	carfileRecord.nodeManager = manager.nodeManager
 	carfileRecord.carfileManager = manager
 	carfileRecord.totalSize = dInfo.TotalSize
-	carfileRecord.needReliability = dInfo.NeedReliability
+	carfileRecord.replica = dInfo.Replica
 	carfileRecord.totalBlocks = dInfo.TotalBlocks
 	carfileRecord.expiredTime = dInfo.ExpiredTime
 	carfileRecord.carfileHash = dInfo.CarfileHash
-	carfileRecord.dowloadSources = make([]*api.DowloadSource, 0)
+	carfileRecord.downloadSources = make([]*api.DownloadSource, 0)
 	carfileRecord.nodeCacheErrs = make(map[string]string)
-	carfileRecord.curReliability = dInfo.CurReliability
 
 	caches, err := persistent.GetCarfileReplicaInfosWithHash(hash, false)
 	if err != nil {
@@ -99,15 +98,19 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 			endTime:       cacheInfo.EndTime,
 		}
 
-		if c.status == api.CacheStatusSucceeded && c.isCandidate {
-			carfileRecord.candidateCaches++
+		if c.status == api.CacheStatusSucceeded {
+			if c.isCandidate {
+				carfileRecord.candidateReploca++
 
-			cNode := carfileRecord.nodeManager.GetCandidateNode(c.deviceID)
-			if cNode != nil {
-				carfileRecord.dowloadSources = append(carfileRecord.dowloadSources, &api.DowloadSource{
-					CandidateURL:   cNode.GetRPCURL(),
-					CandidateToken: string(carfileRecord.carfileManager.writeToken),
-				})
+				cNode := carfileRecord.nodeManager.GetCandidateNode(c.deviceID)
+				if cNode != nil {
+					carfileRecord.downloadSources = append(carfileRecord.downloadSources, &api.DownloadSource{
+						CandidateURL:   cNode.GetRPCURL(),
+						CandidateToken: string(carfileRecord.carfileManager.writeToken),
+					})
+				}
+			} else {
+				carfileRecord.edgeReplica++
 			}
 		}
 
@@ -216,7 +219,7 @@ func (d *CarfileRecord) cacheToCandidates(needCount int) error {
 }
 
 func (d *CarfileRecord) cacheToEdges(needCount int) error {
-	if len(d.dowloadSources) <= 0 {
+	if len(d.downloadSources) <= 0 {
 		return xerrors.New("not found cache sources")
 	}
 
@@ -237,17 +240,17 @@ func (d *CarfileRecord) cacheToEdges(needCount int) error {
 func (d *CarfileRecord) initStep() {
 	d.step = endStep
 
-	if d.candidateCaches <= 0 {
+	if d.candidateReploca <= 0 {
 		d.step = rootCacheStep
 		return
 	}
 
-	if d.candidateCaches < rootCacheCount+backupCacheCount {
+	if d.candidateReploca < rootCacheCount+candidateReplicaCacheCount {
 		d.step = candidateCacheStep
 		return
 	}
 
-	if d.curReliability < d.needReliability {
+	if d.edgeReplica < d.replica {
 		d.step = edgeCacheStep
 	}
 }
@@ -256,7 +259,7 @@ func (d *CarfileRecord) nextStep() {
 	d.step++
 
 	if d.step == candidateCacheStep {
-		needCacdidateCount := (rootCacheCount + backupCacheCount) - d.candidateCaches
+		needCacdidateCount := (rootCacheCount + candidateReplicaCacheCount) - d.candidateReploca
 		if needCacdidateCount <= 0 {
 			// no need to cache to candidate , skip this step
 			d.step++
@@ -277,7 +280,7 @@ func (d *CarfileRecord) dispatchCache(deviceID string) error {
 
 	eNode := d.nodeManager.GetEdgeNode(deviceID)
 	if eNode != nil {
-		if len(d.dowloadSources) <= 0 {
+		if len(d.downloadSources) <= 0 {
 			return xerrors.New("not found cache sources")
 		}
 
@@ -296,16 +299,16 @@ func (d *CarfileRecord) dispatchCaches() error {
 	case rootCacheStep:
 		return d.cacheToCandidates(rootCacheCount)
 	case candidateCacheStep:
-		if d.candidateCaches == 0 {
+		if d.candidateReploca == 0 {
 			return xerrors.New("rootcache is 0")
 		}
-		needCacdidateCount := (rootCacheCount + backupCacheCount) - d.candidateCaches
+		needCacdidateCount := (rootCacheCount + candidateReplicaCacheCount) - d.candidateReploca
 		if needCacdidateCount <= 0 {
 			return xerrors.New("no caching required to candidate node")
 		}
 		return d.cacheToCandidates(needCacdidateCount)
 	case edgeCacheStep:
-		needEdgeCount := d.needReliability - d.curReliability
+		needEdgeCount := d.replica - d.edgeReplica
 		if needEdgeCount <= 0 {
 			return xerrors.New("no caching required to edge node")
 		}
@@ -319,15 +322,19 @@ func (d *CarfileRecord) updateCarfileRecordInfo(endCache *CacheTask, errMsg stri
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	if endCache.status == api.CacheStatusSucceeded && endCache.isCandidate {
-		d.candidateCaches++
+	if endCache.status == api.CacheStatusSucceeded {
+		if endCache.isCandidate {
+			d.candidateReploca++
 
-		cNode := d.nodeManager.GetCandidateNode(endCache.deviceID)
-		if cNode != nil {
-			d.dowloadSources = append(d.dowloadSources, &api.DowloadSource{
-				CandidateURL:   cNode.GetRPCURL(),
-				CandidateToken: string(d.carfileManager.writeToken),
-			})
+			cNode := d.nodeManager.GetCandidateNode(endCache.deviceID)
+			if cNode != nil {
+				d.downloadSources = append(d.downloadSources, &api.DownloadSource{
+					CandidateURL:   cNode.GetRPCURL(),
+					CandidateToken: string(d.carfileManager.writeToken),
+				})
+			}
+		} else {
+			d.edgeReplica++
 		}
 	}
 
@@ -338,11 +345,11 @@ func (d *CarfileRecord) updateCarfileRecordInfo(endCache *CacheTask, errMsg stri
 
 	// Carfile caches end
 	dInfo := &api.CarfileRecordInfo{
-		CarfileHash:     d.carfileHash,
-		TotalSize:       d.totalSize,
-		TotalBlocks:     d.totalBlocks,
-		NeedReliability: d.needReliability,
-		ExpiredTime:     d.expiredTime,
+		CarfileHash: d.carfileHash,
+		TotalSize:   d.totalSize,
+		TotalBlocks: d.totalBlocks,
+		Replica:     d.replica,
+		ExpiredTime: d.expiredTime,
 	}
 	return persistent.UpdateCarfileRecordCachesInfo(dInfo)
 }

@@ -30,8 +30,8 @@ type Manager struct {
 	nodeExitedCallBack  func([]string)
 }
 
-// NewNodeManager New
-func NewNodeManager(nodeOfflineCallBack func(string), nodeExitedCallBack func([]string)) *Manager {
+// NewManager New
+func NewManager(nodeOfflineCallBack func(string), nodeExitedCallBack func([]string)) *Manager {
 	nodeManager := &Manager{
 		nodeOfflineCallBack: nodeOfflineCallBack,
 		nodeExitedCallBack:  nodeExitedCallBack,

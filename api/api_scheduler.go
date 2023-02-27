@@ -28,8 +28,7 @@ type Scheduler interface {
 	ResetCacheExpiredTime(ctx context.Context, carfileCid string, expiredTime time.Time) error  //perm:admin
 	NodeQuit(ctx context.Context, device, secret string) error                                  //perm:admin
 	StopCacheTask(ctx context.Context, carfileCid string) error                                 //perm:admin
-	ResetBackupCacheCount(ctx context.Context, backupCacheCount int) error                      //perm:admin
-	GetUndoneCarfileRecords(ctx context.Context, page int) (*DataListInfo, error)               //perm:read
+	ResetReplicaCacheCount(ctx context.Context, count int) error                                //perm:admin
 	ExecuteUndoneCarfilesTask(ctx context.Context, hashs []string) error                        //perm:admin
 	ShowNodeLogFile(ctx context.Context, deviceID string) (*LogFile, error)                     //perm:admin
 	DownloadNodeLogFile(ctx context.Context, deviceID string) ([]byte, error)                   //perm:admin
@@ -126,8 +125,7 @@ type RemoveCarfileResultInfo struct {
 type CarfileRecordInfo struct {
 	CarfileCid          string    `db:"carfile_cid"`
 	CarfileHash         string    `db:"carfile_hash"`
-	CurReliability      int       `db:"cur_reliability"`
-	NeedReliability     int       `db:"need_reliability"`
+	Replica             int       `db:"replica"`
 	TotalSize           int64     `db:"total_size"`
 	TotalBlocks         int       `db:"total_blocks"`
 	ExpiredTime         time.Time `db:"expired_time"`
@@ -135,6 +133,7 @@ type CarfileRecordInfo struct {
 	EndTime             time.Time `db:"end_time"`
 	CarfileReplicaInfos []*CarfileReplicaInfo
 	ResultInfo          *CarfileRecordCacheResult
+	EdgeReplica         int
 }
 
 // CarfileReplicaInfo Carfile Replica Info
@@ -152,12 +151,11 @@ type CarfileReplicaInfo struct {
 
 // CacheCarfileInfo Data info
 type CacheCarfileInfo struct {
-	CarfileCid      string    `db:"carfile_cid"`
-	CarfileHash     string    `db:"carfile_hash"`
-	CurReliability  int       `db:"cur_reliability"`
-	NeedReliability int       `db:"need_reliability"`
-	DeviceID        string    `db:"device_id"`
-	ExpiredTime     time.Time `db:"expired_time"`
+	CarfileCid  string    `db:"carfile_cid"`
+	CarfileHash string    `db:"carfile_hash"`
+	Replica     int       `db:"replica"`
+	DeviceID    string    `db:"device_id"`
+	ExpiredTime time.Time `db:"expired_time"`
 }
 
 type NodeBlockDownloadResult struct {

@@ -12,7 +12,7 @@ import (
 
 type DownloadOperation interface {
 	downloadResult(carfile *carfileCache, isComplete bool) error
-	downloadBlocks(cids []string, sources []*api.DowloadSource) ([]blocks.Block, error)
+	downloadBlocks(cids []string, sources []*api.DownloadSource) ([]blocks.Block, error)
 	saveBlock(data []byte, blockHash, carfileHash string) error
 }
 type DownloadMgr struct {
@@ -39,6 +39,7 @@ func newDownloadMgr(carfileStore *carfilestore.CarfileStore, downloadOperation D
 
 	return downloadMgr
 }
+
 func (downloadMgr *DownloadMgr) delayNotifyDownloaderOnce() {
 	time.AfterFunc(3*time.Second, downloadMgr.notifyCarfileDownloader)
 }
@@ -118,6 +119,7 @@ func (downloadMgr *DownloadMgr) getFirstCarfileCacheFromWaitList() *carfileCache
 
 	return downloadMgr.waitList[0]
 }
+
 func (downloadMgr *DownloadMgr) addCarfileCacheToWaitList(cfCache *carfileCache) {
 	downloadMgr.waitListLock.Lock()
 	defer downloadMgr.waitListLock.Unlock()

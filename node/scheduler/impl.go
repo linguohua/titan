@@ -65,7 +65,7 @@ const (
 func NewLocalScheduleNode(lr repo.LockedRepo, schedulerCfg *config.SchedulerCfg) api.Scheduler {
 	s := &Scheduler{}
 
-	nodeManager := node.NewNodeManager(s.nodeOfflineCallback, s.nodeExitedCallback)
+	nodeManager := node.NewManager(s.nodeOfflineCallback, s.nodeExitedCallback)
 	s.CommonAPI = common.NewCommonAPI(nodeManager.NodeSessionCallBack)
 	s.Web = web.NewWeb(s)
 
@@ -82,11 +82,11 @@ func NewLocalScheduleNode(lr repo.LockedRepo, schedulerCfg *config.SchedulerCfg)
 		log.Panicf("authNew err:%s", err.Error())
 	}
 
-	s.locatorManager = locator.NewLoactorManager()
+	s.locatorManager = locator.NewManager()
 	s.nodeManager = nodeManager
-	s.election = election.NewElection(nodeManager)
-	s.validate = validate.NewValidate(nodeManager, false)
-	s.dataManager = carfile.NewCarfileManager(nodeManager, s.writeToken)
+	s.election = election.New(nodeManager)
+	s.validate = validate.New(nodeManager, false)
+	s.dataManager = carfile.NewManager(nodeManager, s.writeToken)
 	s.dataSync = sync.NewDataSync(nodeManager)
 	s.schedulerCfg = schedulerCfg
 
