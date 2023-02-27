@@ -178,11 +178,6 @@ var runCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Required: true,
-			Name:     "server-id",
-			Usage:    "server uniquely identifies",
-		},
-		&cli.StringFlag{
-			Required: true,
 			Name:     "area",
 			Usage:    "area",
 			Value:    "CN-GD-Shenzhen",
@@ -227,17 +222,12 @@ var runCmd = &cli.Command{
 		defer cancel()
 
 		cURL := cctx.String("cachedb-url")
-		sID := cctx.String("server-id")
 		area := cctx.String("area")
 		if area == "" {
 			log.Panic("area is nil")
 		}
 
-		if sID == "" {
-			log.Panic("server-id is nil")
-		}
-
-		err = cache.NewCacheDB(cURL, cache.TypeRedis(), sID)
+		err = cache.NewCacheDB(cURL, cache.TypeRedis())
 		if err != nil {
 			log.Panic("Cache connect error: " + err.Error())
 		}

@@ -98,7 +98,7 @@ func (ds *DataSync) doDataSync(nodeID string) {
 		return nodeCacheStatusList[i].CarfileHash < nodeCacheStatusList[j].CarfileHash
 	})
 
-	//split carfile to succeeded and unsucceeded
+	// split carfile to succeeded and unsucceeded
 	succeededCarfileList, unsucceededCarfileList := ds.splitCacheStatusListByStatus(nodeCacheStatusList)
 	checkSummaryResult, err := ds.checkSummary(nodeID, succeededCarfileList, unsucceededCarfileList)
 	if err != nil {

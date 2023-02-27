@@ -151,7 +151,7 @@ func (d *CarfileRecord) startCacheTasks(nodes []string, isCandidate bool) (isRun
 		return
 	}
 
-	err = cache.GetDB().CacheTasksStart(d.carfileHash, nodes, cacheTimeoutTime)
+	err = cache.CacheTasksStart(d.carfileHash, nodes, cacheTimeoutTime)
 	if err != nil {
 		log.Errorf("startCacheTasks %s , CacheTasksStart err:%s", d.carfileHash, err.Error())
 		return
@@ -193,7 +193,7 @@ func (d *CarfileRecord) startCacheTasks(nodes []string, isCandidate bool) (isRun
 			log.Errorf("startCacheTasks %s , UpdateCarfileReplicaStatus err:%s", d.carfileHash, err.Error())
 		}
 
-		_, err = cache.GetDB().CacheTasksEnd(d.carfileHash, errorList)
+		_, err = cache.CacheTasksEnd(d.carfileHash, errorList)
 		if err != nil {
 			log.Errorf("startCacheTasks %s , CacheTasksEnd err:%s", d.carfileHash, err.Error())
 		}
@@ -360,7 +360,7 @@ func (d *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResul
 
 	if c.status == api.CacheStatusRunning {
 		// update cache task timeout
-		return cache.GetDB().UpdateNodeCacheingExpireTime(c.carfileHash, c.deviceID, cacheTimeoutTime)
+		return cache.UpdateNodeCacheingExpireTime(c.carfileHash, c.deviceID, cacheTimeoutTime)
 	}
 
 	// update node info
@@ -379,13 +379,13 @@ func (d *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResul
 		return xerrors.Errorf("endCache %s , updateCarfileRecordInfo err:%s", c.carfileHash, err.Error())
 	}
 
-	cachesDone, err := cache.GetDB().CacheTasksEnd(c.carfileHash, []string{c.deviceID})
+	cachesDone, err := cache.CacheTasksEnd(c.carfileHash, []string{c.deviceID})
 	if err != nil {
 		return xerrors.Errorf("endCache %s , CacheTasksEnd err:%s", c.carfileHash, err.Error())
 	}
 
 	if c.status == api.CacheStatusSucceeded {
-		err = cache.GetDB().IncrBySystemBaseInfo(cache.CarFileCountField, 1)
+		err = cache.IncrBySystemBaseInfo(cache.CarFileCountField, 1)
 		if err != nil {
 			log.Errorf("endCache IncrBySystemBaseInfo err:%s", err.Error())
 		}

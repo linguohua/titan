@@ -37,7 +37,7 @@ func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result a
 			blockDwnloadInfo.CarfileCID = result.BlockCID
 		}
 
-		err = cache.GetDB().NodeDownloadCount(deviceID, blockDwnloadInfo)
+		err = cache.NodeDownloadCount(deviceID, blockDwnloadInfo)
 		if err != nil {
 			return err
 		}
@@ -47,7 +47,7 @@ func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result a
 }
 
 func (s *Scheduler) handleUserDownloadBlockResult(ctx context.Context, result api.UserBlockDownloadResult) error {
-	record, err := cache.GetDB().GetDownloadBlockRecord(result.SN)
+	record, err := cache.GetDownloadBlockRecord(result.SN)
 	if err != nil {
 		log.Errorf("handleUserDownloadBlockResult, GetBlockDownloadRecord error:%s", err.Error())
 		return err
@@ -129,7 +129,7 @@ func (s *Scheduler) verifyUserDownloadBlockSign(publicPem, cid string, sign []by
 }
 
 func (s *Scheduler) signDownloadInfos(cid string, results []*api.DownloadInfoResult, devicePrivateKeys map[string]*rsa.PrivateKey) error {
-	sn, err := cache.GetDB().IncrBlockDownloadSN()
+	sn, err := cache.IncrBlockDownloadSN()
 	if err != nil {
 		log.Errorf("signDownloadInfos incr block download sn error:%s", err.Error())
 		return err
@@ -197,7 +197,7 @@ func (s *Scheduler) recordDownloadBlock(record *cache.DownloadBlockRecord, nodeR
 	if info == nil {
 		info = &api.BlockDownloadInfo{ID: record.ID, CreatedTime: time.Unix(record.SignTime, 0)}
 		if info.BlockCID == info.CarfileCID {
-			cache.GetDB().AddLatestDownloadCarfile(info.CarfileCID, clientIP)
+			cache.AddLatestDownloadCarfile(info.CarfileCID, clientIP)
 		}
 	}
 
@@ -218,7 +218,7 @@ func (s *Scheduler) recordDownloadBlock(record *cache.DownloadBlockRecord, nodeR
 		info.CompleteTime = time.Now()
 		info.Reward = 1
 		info.Status = int(blockDownloadStatusSucceeded)
-		err = cache.GetDB().RemoveDownloadBlockRecord(record.SN)
+		err = cache.RemoveDownloadBlockRecord(record.SN)
 		if err != nil {
 			return err
 		}
@@ -227,12 +227,12 @@ func (s *Scheduler) recordDownloadBlock(record *cache.DownloadBlockRecord, nodeR
 		if err != nil {
 			return err
 		}
-		err = cache.GetDB().NodeDownloadCount(deviceID, info)
+		err = cache.NodeDownloadCount(deviceID, info)
 		if err != nil {
 			return err
 		}
 	} else {
-		err = cache.GetDB().SetDownloadBlockRecord(record)
+		err = cache.SetDownloadBlockRecord(record)
 		if err != nil {
 			return err
 		}

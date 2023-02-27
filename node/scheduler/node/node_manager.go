@@ -67,7 +67,7 @@ func (m *Manager) edgeKeepalive(node *EdgeNode, nowTime time.Time) {
 		return
 	}
 
-	_, err := cache.GetDB().IncrNodeOnlineTime(node.DeviceID, keepaliveTime)
+	_, err := cache.IncrNodeOnlineTime(node.DeviceID, keepaliveTime)
 	if err != nil {
 		log.Errorf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceID)
 	}
@@ -83,7 +83,7 @@ func (m *Manager) candidateKeepalive(node *CandidateNode, nowTime time.Time) {
 		return
 	}
 
-	_, err := cache.GetDB().IncrNodeOnlineTime(node.DeviceID, keepaliveTime)
+	_, err := cache.IncrNodeOnlineTime(node.DeviceID, keepaliveTime)
 	if err != nil {
 		log.Errorf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceID)
 	}

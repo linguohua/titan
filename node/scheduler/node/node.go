@@ -300,7 +300,7 @@ func (n *Node) setNodeOffline() {
 
 // SaveInfo Save Device Info
 func (n *Node) SaveInfo(info *api.DevicesInfo) error {
-	err := cache.GetDB().SetDeviceInfo(info)
+	err := cache.SetDeviceInfo(info)
 	if err != nil {
 		log.Errorf("set device info: %s", err.Error())
 		return err

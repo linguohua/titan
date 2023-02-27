@@ -72,7 +72,7 @@ func (v *Validate) initValidateTask() {
 }
 
 func (v *Validate) startValidate() error {
-	roundID, err := cache.GetDB().IncrValidateRoundID()
+	roundID, err := cache.IncrValidateRoundID()
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (v *Validate) startValidate() error {
 }
 
 func (v *Validate) checkValidateTimeOut() error {
-	deviceIDs, err := cache.GetDB().GetNodesWithVerifyingList()
+	deviceIDs, err := cache.GetNodesWithVerifyingList()
 	if err != nil {
 		return err
 	}
@@ -111,12 +111,12 @@ func (v *Validate) checkValidateTimeOut() error {
 }
 
 func (v *Validate) execute() error {
-	err := cache.GetDB().RemoveVerifyingList()
+	err := cache.RemoveVerifyingList()
 	if err != nil {
 		return err
 	}
 
-	validatorList, err := cache.GetDB().GetValidatorsWithList()
+	validatorList, err := cache.GetValidatorsWithList()
 	if err != nil {
 		return err
 	}
@@ -260,7 +260,7 @@ func (v *Validate) assignValidator(validatorList []string) map[string][]api.ReqV
 	}
 
 	if len(validateds) > 0 {
-		err = cache.GetDB().SetNodesToVerifyingList(validateds)
+		err = cache.SetNodesToVerifyingList(validateds)
 		if err != nil {
 			log.Errorf("SetNodesToVerifyingList err:%s", err.Error())
 		}
@@ -358,7 +358,7 @@ func (v *Validate) ValidateResult(validateResult *api.ValidateResults) error {
 			log.Errorf("UpdateValidateResult [%s] fail : %s", validateResult.DeviceID, err.Error())
 		}
 
-		err = cache.GetDB().RemoveValidatedWithList(validateResult.DeviceID)
+		err = cache.RemoveValidatedWithList(validateResult.DeviceID)
 		if err != nil {
 			log.Errorf("RemoveValidatedWithList [%s] fail : %s", validateResult.DeviceID, err.Error())
 			return
@@ -465,7 +465,7 @@ func (v *Validate) IsEnable() bool {
 
 // StartValidateOnceTask start validate task
 func (v *Validate) StartValidateOnceTask() error {
-	count, err := cache.GetDB().CountVerifyingNode()
+	count, err := cache.CountVerifyingNode()
 	if err != nil {
 		return err
 	}
