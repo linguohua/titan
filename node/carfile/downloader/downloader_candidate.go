@@ -8,6 +8,7 @@ import (
 	"time"
 
 	blocks "github.com/ipfs/go-block-format"
+	"github.com/ipfs/go-cid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
@@ -38,7 +39,17 @@ func getBlockFromCandidateWithApi(candidate api.Candidate, cidStr string, retryC
 		return nil, err
 	}
 
-	return newBlock(cidStr, data)
+	cid, err := cid.Decode(cidStr)
+	if err != nil {
+		return nil, err
+	}
+
+	basicBlock, err := blocks.NewBlockWithCid(data, cid)
+	if err != nil {
+		return nil, err
+	}
+
+	return basicBlock, nil
 }
 
 func getBlocksFromCandidate(cids []string, sources []*api.DowloadSource) ([]blocks.Block, error) {

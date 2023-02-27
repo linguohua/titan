@@ -8,7 +8,8 @@ import (
 	"time"
 
 	blocks "github.com/ipfs/go-block-format" // v0.1.0
-	ipfsApi "github.com/ipfs/go-ipfs-http-client"
+	"github.com/ipfs/go-cid"
+	httpapi "github.com/ipfs/go-ipfs-http-client"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
@@ -16,18 +17,18 @@ import (
 )
 
 type ipfs struct {
-	ipfsApi      *ipfsApi.HttpApi
+	httpAPI      *httpapi.HttpApi
 	carfileStore *carfilestore.CarfileStore
 }
 
 func NewIPFS(ipfsApiURL string, carfileStore *carfilestore.CarfileStore) *ipfs {
 	httpClient := &http.Client{}
-	httpApi, err := ipfsApi.NewURLApiWithClient(ipfsApiURL, httpClient)
+	httpAPI, err := httpapi.NewURLApiWithClient(ipfsApiURL, httpClient)
 	if err != nil {
 		log.Panicf("NewBlock,NewURLApiWithClient error:%s, url:%s", err.Error(), ipfsApiURL)
 	}
 
-	return &ipfs{ipfsApi: httpApi, carfileStore: carfileStore}
+	return &ipfs{httpAPI: httpAPI, carfileStore: carfileStore}
 }
 
 func (ipfs *ipfs) DownloadBlocks(cids []string, sources []*api.DowloadSource) ([]blocks.Block, error) {
@@ -42,13 +43,14 @@ func (ipfs *ipfs) getBlockWithIPFSApi(cidStr string, retryCount int) (blocks.Blo
 
 	data, err := ipfs.carfileStore.GetBlock(blockHash)
 	if err == nil {
+
 		return newBlock(cidStr, data)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), blockDownloadTimeout*time.Second)
 	defer cancel()
 
-	reader, err := ipfs.ipfsApi.Block().Get(ctx, path.New(cidStr))
+	reader, err := ipfs.httpAPI.Block().Get(ctx, path.New(cidStr))
 	if err != nil {
 		if retryCount < blockDownloadRetryNum {
 			retryCount++
@@ -91,4 +93,18 @@ func (ipfs *ipfs) getBlocksFromIPFS(cids []string) ([]blocks.Block, error) {
 	wg.Wait()
 
 	return blks, nil
+}
+
+func newBlock(cidStr string, data []byte) (blocks.Block, error) {
+	cid, err := cid.Decode(cidStr)
+	if err != nil {
+		return nil, err
+	}
+
+	basicBlock, err := blocks.NewBlockWithCid(data, cid)
+	if err != nil {
+		return nil, err
+	}
+
+	return basicBlock, nil
 }
