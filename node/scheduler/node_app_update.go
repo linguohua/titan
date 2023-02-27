@@ -16,11 +16,11 @@ func (s *Scheduler) SetNodeAppUpdateInfo(ctx context.Context, info *api.NodeAppU
 		s.nodeAppUpdateInfos = make(map[int]*api.NodeAppUpdateInfo)
 	}
 	s.nodeAppUpdateInfos[int(info.NodeType)] = info
-	persistent.GetDB().SetNodeUpdateInfo(info)
+	persistent.SetNodeUpdateInfo(info)
 	return nil
 }
 
 func (s *Scheduler) DeleteNodeAppUpdateInfos(ctx context.Context, nodeType int) error {
 	delete(s.nodeAppUpdateInfos, nodeType)
-	return persistent.GetDB().DeleteNodeUpdateInfo(nodeType)
+	return persistent.DeleteNodeUpdateInfo(nodeType)
 }

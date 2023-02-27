@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/node/scheduler/db/cache"
+	"github.com/linguohua/titan/node/scheduler/db/persistent"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
 )
 
 var log = logging.Logger("web")
@@ -24,7 +24,7 @@ func NewWeb(scheduler api.Scheduler) api.Web {
 func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNodesRsp, error) {
 	rsp := api.ListNodesRsp{Data: make([]api.DevicesInfo, 0)}
 
-	nodes, total, err := persistent.GetDB().GetNodes(cursor, count)
+	nodes, total, err := persistent.GetNodes(cursor, count)
 	if err != nil {
 		return rsp, err
 	}
@@ -73,7 +73,7 @@ func (w *web) ListBlockDownloadInfo(ctx context.Context, req api.ListBlockDownlo
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
-	downloadInfos, total, err := persistent.GetDB().GetBlockDownloadInfos(req.DeviceID, startTime, endTime, req.Cursor, req.Count)
+	downloadInfos, total, err := persistent.GetBlockDownloadInfos(req.DeviceID, startTime, endTime, req.Cursor, req.Count)
 	if err != nil {
 		return api.ListBlockDownloadInfoRsp{}, nil
 	}
@@ -87,7 +87,7 @@ func (w *web) GetCacheTaskInfos(ctx context.Context, req api.ListCacheInfosReq) 
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
-	info, err := persistent.GetDB().GetCacheTaskInfos(startTime, endTime, req.Cursor, req.Count)
+	info, err := persistent.GetCacheTaskInfos(startTime, endTime, req.Cursor, req.Count)
 	if err != nil {
 		return api.ListCacheInfosRsp{}, err
 	}
@@ -100,7 +100,7 @@ func (w *web) GetBlocksByCarfileCID(ctx context.Context, carFileCID string) ([]a
 }
 
 // func (w *web) ListValidateResult(ctx context.Context, cursor int, count int) (api.ListValidateResultRsp, error) {
-// 	results, total, err := persistent.GetDB().GetValidateResults(cursor, count)
+// 	results, total, err := GetValidateResults(cursor, count)
 // 	if err != nil {
 // 		return api.ListValidateResultRsp{}, nil
 // 	}
@@ -118,13 +118,7 @@ func (w *web) GetSystemInfo(ctx context.Context) (api.SystemBaseInfo, error) {
 }
 
 func (w *web) GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error) {
-	if pageNumber <= 0 {
-		pageNumber = 1
-	}
-	if pageSize > 500 {
-		pageSize = 500
-	}
-	svm, err := persistent.GetDB().SummaryValidateMessage(startTime, endTime, pageNumber, pageSize)
+	svm, err := persistent.SummaryValidateMessage(startTime, endTime, pageNumber, pageSize)
 	if err != nil {
 		return nil, err
 	}

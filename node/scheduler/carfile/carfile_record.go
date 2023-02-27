@@ -56,7 +56,7 @@ func newCarfileRecord(manager *Manager, cid, hash string) *CarfileRecord {
 }
 
 func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
-	dInfo, err := persistent.GetDB().GetCarfileInfo(hash)
+	dInfo, err := persistent.GetCarfileInfo(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 	carfileRecord.nodeCacheErrs = make(map[string]string)
 	carfileRecord.curReliability = dInfo.CurReliability
 
-	caches, err := persistent.GetDB().GetCarfileReplicaInfosWithHash(hash, false)
+	caches, err := persistent.GetCarfileReplicaInfosWithHash(hash, false)
 	if err != nil {
 		log.Errorf("loadData hash:%s, GetCarfileReplicaInfosWithHash err:%s", hash, err.Error())
 		return carfileRecord, err
@@ -145,7 +145,7 @@ func (d *CarfileRecord) startCacheTasks(nodes []string, isCandidate bool) (isRun
 	isRunning = false
 
 	// set caches status
-	err := persistent.GetDB().UpdateCarfileReplicaStatus(d.carfileHash, nodes, api.CacheStatusRunning)
+	err := persistent.UpdateCarfileReplicaStatus(d.carfileHash, nodes, api.CacheStatusRunning)
 	if err != nil {
 		log.Errorf("startCacheTasks %s , UpdateCarfileReplicaStatus err:%s", d.carfileHash, err.Error())
 		return
@@ -188,7 +188,7 @@ func (d *CarfileRecord) startCacheTasks(nodes []string, isCandidate bool) (isRun
 
 	if len(errorList) > 0 {
 		// set caches status
-		err := persistent.GetDB().UpdateCarfileReplicaStatus(d.carfileHash, errorList, api.CacheStatusFailed)
+		err := persistent.UpdateCarfileReplicaStatus(d.carfileHash, errorList, api.CacheStatusFailed)
 		if err != nil {
 			log.Errorf("startCacheTasks %s , UpdateCarfileReplicaStatus err:%s", d.carfileHash, err.Error())
 		}
@@ -344,7 +344,7 @@ func (d *CarfileRecord) updateCarfileRecordInfo(endCache *CacheTask, errMsg stri
 		NeedReliability: d.needReliability,
 		ExpiredTime:     d.expiredTime,
 	}
-	return persistent.GetDB().UpdateCarfileRecordCachesInfo(dInfo)
+	return persistent.UpdateCarfileRecordCachesInfo(dInfo)
 }
 
 func (d *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResultInfo) error {

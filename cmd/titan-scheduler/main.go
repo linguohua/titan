@@ -249,7 +249,7 @@ var runCmd = &cli.Command{
 		}
 
 		pPath := cctx.String("persistentdb-url")
-		_, err = persistent.NewDB(pPath, persistent.TypeMySQL(), sID)
+		err = persistent.InitDB(pPath, persistent.TypeMySQL(), sID)
 		if err != nil {
 			log.Panic("DB connect error: " + err.Error())
 		}

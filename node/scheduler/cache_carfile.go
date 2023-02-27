@@ -60,18 +60,18 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.Remo
 
 // GetUndoneCarfileRecords get all undone carfile
 func (s *Scheduler) GetUndoneCarfileRecords(ctx context.Context, page int) (*api.DataListInfo, error) {
-	return persistent.GetDB().GetUndoneCarfiles(page)
+	return persistent.GetUndoneCarfiles(page)
 }
 
 // ExecuteUndoneCarfilesTask Execute Undone Carfiles Task
-func (s *Scheduler) ExecuteUndoneCarfilesTask(ctx context.Context) error {
-	info, err := persistent.GetDB().GetUndoneCarfiles(-1)
+func (s *Scheduler) ExecuteUndoneCarfilesTask(ctx context.Context, hashs []string) error {
+	list, err := persistent.GetCarfileInfos(hashs)
 	if err != nil {
 		return err
 	}
 
-	if info.CarfileRecords != nil {
-		for _, carfile := range info.CarfileRecords {
+	if list != nil {
+		for _, carfile := range list {
 			info := &api.CacheCarfileInfo{
 				CarfileCid:      carfile.CarfileCid,
 				NeedReliability: carfile.NeedReliability,
@@ -124,7 +124,7 @@ func (s *Scheduler) ResetBackupCacheCount(ctx context.Context, backupCacheCount 
 
 // ListCarfileRecords List Datas
 func (s *Scheduler) ListCarfileRecords(ctx context.Context, page int) (*api.DataListInfo, error) {
-	return persistent.GetDB().GetCarfileCidWithPage(page)
+	return persistent.GetCarfileCidWithPage(page)
 }
 
 // RemoveCarfile remove all caches with carfile

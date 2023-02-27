@@ -90,7 +90,7 @@ func NewLocalScheduleNode(lr repo.LockedRepo, schedulerCfg *config.SchedulerCfg)
 	s.dataSync = sync.NewDataSync(nodeManager)
 	s.schedulerCfg = schedulerCfg
 
-	s.nodeAppUpdateInfos, err = persistent.GetDB().GetNodeUpdateInfos()
+	s.nodeAppUpdateInfos, err = persistent.GetNodeUpdateInfos()
 	if err != nil {
 		log.Errorf("GetNodeUpdateInfos error:%s", err)
 	}
@@ -134,7 +134,7 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 	}
 
 	var secret string
-	err := persistent.GetDB().GetRegisterInfo(deviceID, persistent.SecretKey, &secret)
+	err := persistent.GetRegisterInfo(deviceID, persistent.SecretKey, &secret)
 	if err != nil {
 		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", deviceID, err)
 	}
@@ -154,7 +154,7 @@ func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, de
 	}
 
 	var secret string
-	err := persistent.GetDB().GetRegisterInfo(deviceID, persistent.SecretKey, &secret)
+	err := persistent.GetRegisterInfo(deviceID, persistent.SecretKey, &secret)
 	if err != nil {
 		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", deviceID, err)
 	}
@@ -193,7 +193,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
 
-	privateKeyStr, _ := persistent.GetDB().GetNodePrivateKey(deviceID)
+	privateKeyStr, _ := persistent.GetNodePrivateKey(deviceID)
 	var privateKey *rsa.PrivateKey
 	if len(privateKeyStr) > 0 {
 		privateKey, err = titanRsa.Pem2PrivateKey(privateKeyStr)
@@ -266,7 +266,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
 
-	privateKeyStr, _ := persistent.GetDB().GetNodePrivateKey(deviceID)
+	privateKeyStr, _ := persistent.GetNodePrivateKey(deviceID)
 	var privateKey *rsa.PrivateKey
 	if len(privateKeyStr) > 0 {
 		privateKey, err = titanRsa.Pem2PrivateKey(privateKeyStr)
@@ -483,11 +483,12 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, locatorID string, locato
 
 // GetDownloadInfo get node download info
 func (s *Scheduler) GetDownloadInfo(ctx context.Context, deviceID string) ([]*api.BlockDownloadInfo, error) {
-	return persistent.GetDB().GetBlockDownloadInfoByDeviceID(deviceID)
+	return persistent.GetBlockDownloadInfoByDeviceID(deviceID)
 }
 
 // NodeQuit node want to quit titan
-func (s *Scheduler) NodeQuit(ctx context.Context, deviceID string) error {
+func (s *Scheduler) NodeQuit(ctx context.Context, deviceID, secret string) error {
+	// TODO secret
 	s.nodeManager.NodesQuit([]string{deviceID})
 
 	return nil
@@ -514,7 +515,7 @@ func (s *Scheduler) nodeExitedCallback(deviceIDs []string) {
 
 // SetNodePort set node port
 func (s *Scheduler) SetNodePort(ctx context.Context, deviceID, port string) error {
-	return persistent.GetDB().SetNodePort(deviceID, port)
+	return persistent.SetNodePort(deviceID, port)
 }
 
 func (s *Scheduler) authNew() error {
@@ -584,7 +585,7 @@ func (s *Scheduler) DeleteNodeLogFile(ctx context.Context, deviceID string) erro
 // deviceExists Check if the id exists
 func deviceExists(deviceID string, nodeType int) bool {
 	var nType int
-	err := persistent.GetDB().GetRegisterInfo(deviceID, persistent.NodeTypeKey, &nType)
+	err := persistent.GetRegisterInfo(deviceID, persistent.NodeTypeKey, &nType)
 	if err != nil {
 		return false
 	}

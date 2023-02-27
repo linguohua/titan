@@ -330,7 +330,7 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*api.DownloadInf
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}
 
-	caches, err := persistent.GetDB().GetCarfileReplicaInfosWithHash(hash, true)
+	caches, err := persistent.GetCarfileReplicaInfosWithHash(hash, true)
 	if err != nil {
 		return nil, err
 	}
@@ -362,7 +362,7 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*api.DownloadInf
 
 // GetCandidatesWithBlockHash find candidates with block hash
 func (m *Manager) GetCandidatesWithBlockHash(hash, filterDevice string) ([]*CandidateNode, error) {
-	caches, err := persistent.GetDB().GetCarfileReplicaInfosWithHash(hash, true)
+	caches, err := persistent.GetCarfileReplicaInfosWithHash(hash, true)
 	if err != nil {
 		return nil, err
 	}
@@ -389,7 +389,7 @@ func (m *Manager) GetCandidatesWithBlockHash(hash, filterDevice string) ([]*Cand
 }
 
 func (m *Manager) checkNodesQuit() {
-	nodes, err := persistent.GetDB().GetOfflineNodes()
+	nodes, err := persistent.GetOfflineNodes()
 	if err != nil {
 		log.Errorf("checkNodesQuit GetOfflineNodes err:%s", err.Error())
 		return
@@ -415,7 +415,7 @@ func (m *Manager) checkNodesQuit() {
 
 // NodesQuit Nodes quit
 func (m *Manager) NodesQuit(deviceIDs []string) {
-	err := persistent.GetDB().SetNodesQuit(deviceIDs)
+	err := persistent.SetNodesQuit(deviceIDs)
 	if err != nil {
 		log.Errorf("NodeExited SetNodesQuit err:%s", err.Error())
 		return

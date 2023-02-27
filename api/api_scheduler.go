@@ -26,11 +26,11 @@ type Scheduler interface {
 	ValidateRunningState(ctx context.Context) (bool, error)                                     //perm:admin
 	ValidateStart(ctx context.Context) error                                                    //perm:admin
 	ResetCacheExpiredTime(ctx context.Context, carfileCid string, expiredTime time.Time) error  //perm:admin
-	NodeQuit(ctx context.Context, device string) error                                          //perm:admin
+	NodeQuit(ctx context.Context, device, secret string) error                                  //perm:admin
 	StopCacheTask(ctx context.Context, carfileCid string) error                                 //perm:admin
 	ResetBackupCacheCount(ctx context.Context, backupCacheCount int) error                      //perm:admin
 	GetUndoneCarfileRecords(ctx context.Context, page int) (*DataListInfo, error)               //perm:read
-	ExecuteUndoneCarfilesTask(ctx context.Context) error                                        //perm:admin
+	ExecuteUndoneCarfilesTask(ctx context.Context, hashs []string) error                        //perm:admin
 	ShowNodeLogFile(ctx context.Context, deviceID string) (*LogFile, error)                     //perm:admin
 	DownloadNodeLogFile(ctx context.Context, deviceID string) ([]byte, error)                   //perm:admin
 	DeleteNodeLogFile(ctx context.Context, deviceID string) error                               //perm:admin
@@ -213,6 +213,20 @@ const (
 	// CacheStatusSucceeded status
 	CacheStatusSucceeded
 )
+
+// ToString status to string
+func (c CacheStatus) ToString() string {
+	switch c {
+	case CacheStatusCreate:
+		return "create"
+	case CacheStatusRunning:
+		return "running"
+	case CacheStatusSucceeded:
+		return "succeeded"
+	default:
+		return "failed"
+	}
+}
 
 // CacheError cache error
 type CacheError struct {

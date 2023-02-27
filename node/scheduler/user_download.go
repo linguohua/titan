@@ -32,7 +32,7 @@ func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result a
 
 		blockDwnloadInfo := &api.BlockDownloadInfo{DeviceID: deviceID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
 
-		carfileInfo, _ := persistent.GetDB().GetCarfileInfo(blockHash)
+		carfileInfo, _ := persistent.GetCarfileInfo(blockHash)
 		if carfileInfo != nil && carfileInfo.CarfileCid != "" {
 			blockDwnloadInfo.CarfileCID = result.BlockCID
 		}
@@ -108,7 +108,7 @@ func (s *Scheduler) verifyNodeResultForUserDownloadBlock(deviceID string, record
 		return titanRsa.VerifyRsaSign(&candidate.GetPrivateKey().PublicKey, sign, verifyContent)
 	}
 
-	privateKeyStr, err := persistent.GetDB().GetNodePrivateKey(deviceID)
+	privateKeyStr, err := persistent.GetNodePrivateKey(deviceID)
 	if err != nil {
 		return err
 	}
@@ -175,7 +175,7 @@ func (s *Scheduler) getDevicePrivateKey(deviceID string) (*rsa.PrivateKey, error
 		return candidate.GetPrivateKey(), nil
 	}
 
-	privateKeyStr, err := persistent.GetDB().GetNodePrivateKey(deviceID)
+	privateKeyStr, err := persistent.GetNodePrivateKey(deviceID)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +189,7 @@ func (s *Scheduler) getDevicePrivateKey(deviceID string) (*rsa.PrivateKey, error
 }
 
 func (s *Scheduler) recordDownloadBlock(record *cache.DownloadBlockRecord, nodeResult *api.NodeBlockDownloadResult, deviceID string, clientIP string) error {
-	info, err := persistent.GetDB().GetBlockDownloadInfoByID(record.ID)
+	info, err := persistent.GetBlockDownloadInfoByID(record.ID)
 	if err != nil {
 		return err
 	}
@@ -238,9 +238,9 @@ func (s *Scheduler) recordDownloadBlock(record *cache.DownloadBlockRecord, nodeR
 		}
 	}
 
-	return persistent.GetDB().SetBlockDownloadInfo(info)
+	return persistent.SetBlockDownloadInfo(info)
 }
 
 func (s *Scheduler) getNodesUnValidate(minute int) ([]string, error) {
-	return persistent.GetDB().GetNodesByUserDownloadBlockIn(minute)
+	return persistent.GetNodesByUserDownloadBlockIn(minute)
 }
