@@ -61,7 +61,6 @@ func InitSQL(url string) (err error) {
 // SetNodeInfo  node info
 func SetNodeInfo(deviceID string, info *NodeInfo) error {
 	info.DeviceID = deviceID
-	// info.ServerID = sd.serverID
 
 	var count int64
 	cmd := "SELECT count(device_id) FROM node WHERE device_id=?"
@@ -71,29 +70,30 @@ func SetNodeInfo(deviceID string, info *NodeInfo) error {
 	}
 
 	if count == 0 {
-		_, err = mysqlCil.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type, is_online, address, server_id,private_key)
-                VALUES (:device_id, :last_time, :geo, :node_type, :is_online, :address, :server_id,:private_key)`, info)
+		_, err = mysqlCil.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type,  address, private_key)
+                VALUES (:device_id, :last_time, :geo, :node_type,  :address, :private_key)`, info)
 		return err
 	}
 
 	// update
-	_, err = mysqlCil.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,is_online=:is_online,address=:address,server_id=:server_id,quitted=:quitted WHERE device_id=:device_id`, info)
+	_, err = mysqlCil.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,address=:address,quitted=:quitted WHERE device_id=:device_id`, info)
 	return err
 }
 
-func SetNodeOffline(deviceID string, lastTime time.Time) error {
+// NodeOffline Set the last online time of the node
+func NodeOffline(deviceID string, lastTime time.Time) error {
 	info := &NodeInfo{
 		DeviceID: deviceID,
 		LastTime: lastTime,
-		IsOnline: false,
 	}
 
-	_, err := mysqlCil.NamedExec(`UPDATE node SET last_time=:last_time,is_online=:is_online WHERE device_id=:device_id`, info)
+	_, err := mysqlCil.NamedExec(`UPDATE node SET last_time=:last_time WHERE device_id=:device_id`, info)
 
 	return err
 }
 
-func GetNodePrivateKey(deviceID string) (string, error) {
+// NodePrivateKey get node privateKey
+func NodePrivateKey(deviceID string) (string, error) {
 	var privateKey string
 	query := "SELECT private_key FROM node WHERE device_id=?"
 	if err := mysqlCil.Get(&privateKey, query, deviceID); err != nil {
@@ -103,17 +103,21 @@ func GetNodePrivateKey(deviceID string) (string, error) {
 	return privateKey, nil
 }
 
-func GetOfflineNodes() ([]*NodeInfo, error) {
+// LongTimeOfflineNodes get nodes that are offline for a long time
+func LongTimeOfflineNodes(hour int) ([]*NodeInfo, error) {
 	list := make([]*NodeInfo, 0)
 
-	cmd := "SELECT device_id,last_time FROM node WHERE quitted=? AND is_online=?"
-	if err := mysqlCil.Select(&list, cmd, false, false); err != nil {
+	time := time.Now().Add(-time.Duration(hour) * time.Hour)
+
+	cmd := "SELECT device_id FROM node WHERE quitted=? AND last_time <= ?"
+	if err := mysqlCil.Select(&list, cmd, false, time); err != nil {
 		return nil, err
 	}
 
 	return list, nil
 }
 
+// SetNodesQuit Node quit the titan
 func SetNodesQuit(deviceIDs []string) error {
 	tx := mysqlCil.MustBegin()
 
@@ -131,7 +135,7 @@ func SetNodesQuit(deviceIDs []string) error {
 	return nil
 }
 
-// SetNodePort info
+// SetNodePort set node port
 func SetNodePort(deviceID, port string) error {
 	info := NodeInfo{
 		DeviceID: deviceID,
@@ -142,8 +146,8 @@ func SetNodePort(deviceID, port string) error {
 	return err
 }
 
-// AddValidateResultInfos Result
-func AddValidateResultInfos(infos []*api.ValidateResult) error {
+// InsertValidateResultInfos Insert validate result infos
+func InsertValidateResultInfos(infos []*api.ValidateResult) error {
 	tx := mysqlCil.MustBegin()
 	for _, info := range infos {
 		query := "INSERT INTO validate_result (round_id, device_id, validator_id, status, start_time) VALUES (?, ?, ?, ?, ?, ?)"

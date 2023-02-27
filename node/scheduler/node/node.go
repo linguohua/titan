@@ -292,9 +292,9 @@ func (n *Node) setNodeOnline() error {
 func (n *Node) setNodeOffline() {
 	deviceID := n.DeviceID
 
-	err := persistent.SetNodeOffline(deviceID, n.lastRequestTime)
+	err := persistent.NodeOffline(deviceID, n.lastRequestTime)
 	if err != nil {
-		log.Errorf("node offline SetNodeOffline err : %s ,deviceID : %s", err.Error(), deviceID)
+		log.Errorf("node offline NodeOffline err : %s ,deviceID : %s", err.Error(), deviceID)
 	}
 }
 

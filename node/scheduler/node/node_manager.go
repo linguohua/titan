@@ -389,7 +389,7 @@ func (m *Manager) GetCandidatesWithBlockHash(hash, filterDevice string) ([]*Cand
 }
 
 func (m *Manager) checkNodesQuit() {
-	nodes, err := persistent.GetOfflineNodes()
+	nodes, err := persistent.LongTimeOfflineNodes(nodeExitTime)
 	if err != nil {
 		log.Errorf("checkNodesQuit GetOfflineNodes err:%s", err.Error())
 		return

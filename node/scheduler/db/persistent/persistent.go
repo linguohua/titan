@@ -3,74 +3,8 @@ package persistent
 import (
 	"time"
 
-	"github.com/linguohua/titan/api"
 	"golang.org/x/xerrors"
 )
-
-// DB Persistent db
-type DB interface {
-	IsNilErr(err error) bool
-
-	// Node Info
-	SetNodeInfo(deviceID string, info *NodeInfo) error
-	SetNodeOffline(deviceID string, lastTime time.Time) error
-	GetNodePrivateKey(deviceID string) (string, error)
-	GetOfflineNodes() ([]*NodeInfo, error)
-	SetNodesQuit(deviceIDs []string) error
-	SetNodePort(deviceID, port string) error
-
-	// Validate Result
-	SetTimeoutToValidateInfos(roundID int64, deivceIDs []string) error
-	UpdateValidateResultInfo(info *api.ValidateResult) error
-	SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error)
-	GetRandCarfileWithNode(deviceID string) (string, error)
-	AddValidateResultInfos(infos []*api.ValidateResult) error
-
-	// cache data info
-	CreateCarfileReplicaInfo(info *api.CarfileReplicaInfo) error
-	UpdateCarfileReplicaInfo(info *api.CarfileReplicaInfo) error
-	UpdateCarfileReplicaStatus(hash string, deviceIDs []string, status api.CacheStatus) error
-
-	// data info
-	UpdateCarfileRecordCachesInfo(info *api.CarfileRecordInfo) error
-	CreateOrUpdateCarfileRecordInfo(info *api.CarfileRecordInfo, isUpdate bool) error
-	GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error)
-	GetUndoneCarfiles(page int) (*api.DataListInfo, error)
-	CarfileRecordExisted(hash string) (bool, error)
-	GetCarfileCidWithPage(page int) (info *api.DataListInfo, err error)
-	GetCarfileReplicaInfosWithHash(hash string, isSuccess bool) ([]*api.CarfileReplicaInfo, error)
-	GetCachesWithCandidate(hash string) ([]string, error)
-	ChangeExpiredTimeWhitCarfile(carfileHash string, expiredTime time.Time) error
-	GetExpiredCarfiles() ([]*api.CarfileRecordInfo, error)
-	GetMinExpiredTime() (time.Time, error)
-
-	// cache info
-	GetSucceededCachesCount() (int, error)
-	GetReplicaInfo(id string) (*api.CarfileReplicaInfo, error)
-	GetCacheInfosWithNode(deviceID string, index, count int) (*api.NodeCacheRsp, error)
-	RemoveCarfileReplica(deviceID, carfileHash string) error
-	RemoveCarfileRecord(carfileHash string) error
-	UpdateCacheInfoOfQuitNode(deviceIDs []string) ([]*api.CarfileRecordInfo, error)
-
-	// temporary node register
-	BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error
-	GetRegisterInfo(deviceID, key string, out interface{}) error
-
-	// download info
-	SetBlockDownloadInfo(info *api.BlockDownloadInfo) error
-	GetBlockDownloadInfoByDeviceID(deviceID string) ([]*api.BlockDownloadInfo, error)
-	GetBlockDownloadInfoByID(id string) (*api.BlockDownloadInfo, error)
-	GetNodesByUserDownloadBlockIn(minute int) ([]string, error)
-
-	SetNodeUpdateInfo(info *api.NodeAppUpdateInfo) error
-	GetNodeUpdateInfos() (map[int]*api.NodeAppUpdateInfo, error)
-	DeleteNodeUpdateInfo(nodeType int) error
-
-	// web
-	GetNodes(cursor int, count int) ([]*NodeInfo, int64, error)
-	GetBlockDownloadInfos(DeviceID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.BlockDownloadInfo, int64, error)
-	GetCacheTaskInfos(startTime time.Time, endTime time.Time, cursor, count int) (*api.ListCacheInfosRsp, error)
-}
 
 // InitDB New  DB
 func InitDB(url, dbType string) (err error) {
@@ -94,7 +28,6 @@ type NodeInfo struct {
 	NodeType   string    `db:"node_type"`
 	Address    string    `db:"address"`
 	Port       string    `db:"port"`
-	ServerID   string    `db:"server_id"`
 	CreateTime time.Time `db:"create_time"`
 	PrivateKey string    `db:"private_key"`
 	Quitted    bool      `db:"quitted"`

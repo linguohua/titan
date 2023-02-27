@@ -193,7 +193,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
 
-	privateKeyStr, _ := persistent.GetNodePrivateKey(deviceID)
+	privateKeyStr, _ := persistent.NodePrivateKey(deviceID)
 	var privateKey *rsa.PrivateKey
 	if len(privateKeyStr) > 0 {
 		privateKey, err = titanRsa.Pem2PrivateKey(privateKeyStr)
@@ -266,7 +266,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
 	}
 
-	privateKeyStr, _ := persistent.GetNodePrivateKey(deviceID)
+	privateKeyStr, _ := persistent.NodePrivateKey(deviceID)
 	var privateKey *rsa.PrivateKey
 	if len(privateKeyStr) > 0 {
 		privateKey, err = titanRsa.Pem2PrivateKey(privateKeyStr)

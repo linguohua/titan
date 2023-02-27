@@ -24,7 +24,6 @@ var SchedulerCmds = []*cli.Command{
 	validateSwitchCmd,
 	// other
 	nodeAppUpdateCmd,
-	edgeExternalAddrCmd,
 }
 
 var (
@@ -417,36 +416,4 @@ func newVersion(version string) (api.Version, error) {
 	}
 
 	return api.Version(uint32(major)<<16 | uint32(minor)<<8 | uint32(patch)), nil
-}
-
-var edgeExternalAddrCmd = &cli.Command{
-	Name:  "edge-external-addr",
-	Usage: "get edge external addr",
-	Flags: []cli.Flag{
-		deviceIDFlag,
-		&cli.StringFlag{
-			Name:  "scheduler-url",
-			Usage: "scheduler url",
-			Value: "http://localhost:3456/rpc/v0",
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-		deviceID := cctx.String("device-id")
-		schedulerURL := cctx.String("scheduler-url")
-
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		addr, err := schedulerAPI.GetEdgeExternalAddr(ctx, deviceID, schedulerURL)
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("edge external addr:%s\n", addr)
-		return nil
-	},
 }
