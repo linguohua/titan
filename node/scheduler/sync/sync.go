@@ -179,7 +179,7 @@ func (ds *DataSync) loadCarfileInfosByNode(nodeID string) ([]*api.NodeCacheStatu
 	count := 500
 	cacheStates := make([]*api.NodeCacheStatus, 0)
 	for {
-		nodeCacheRsp, err := persistent.GetDB().GetCacheInfosWithNode(nodeID, index, count)
+		nodeCacheRsp, err := persistent.GetCacheInfosWithNode(nodeID, index, count)
 		if err != nil {
 			log.Errorf("GetCacheInfosWithNode %s, index:%d, count:%d, error:%s", nodeID, index, count)
 			return nil, err
