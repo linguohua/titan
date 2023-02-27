@@ -13,7 +13,7 @@ import (
 
 // Replica Replica
 type Replica struct {
-	carfileRecord *Record
+	carfileRecord *CarfileRecord
 	nodeManager   *node.Manager
 
 	id          string
@@ -29,7 +29,7 @@ type Replica struct {
 	timeoutTicker *time.Ticker
 }
 
-func newReplica(carfileRecord *Record, deviceID string, isCandidate bool) (*Replica, error) {
+func newReplica(carfileRecord *CarfileRecord, deviceID string, isCandidate bool) (*Replica, error) {
 	cache := &Replica{
 		carfileRecord: carfileRecord,
 		nodeManager:   carfileRecord.nodeManager,
