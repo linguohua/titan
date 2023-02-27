@@ -3,21 +3,14 @@ package cli
 import (
 	"fmt"
 	"os"
-	"time"
 
-	"github.com/linguohua/titan/api"
-	API "github.com/linguohua/titan/api"
 	"github.com/urfave/cli/v2"
 )
 
 var EdgeCmds = []*cli.Command{
 	deviceInfoCmd,
-	cacheBlockCmd,
-	deleteBlockCmd,
-	validateNodeCmd,
 	limitRateCmd,
 	cacheStatCmd,
-	getBlocksOfCarfile,
 	logFileCmd,
 }
 
@@ -50,140 +43,6 @@ var deviceInfoCmd = &cli.Command{
 		fmt.Printf("device download bandwidth: %v \n", v.BandwidthDown)
 		fmt.Printf("device upload bandwidth: %v \n", v.BandwidthUp)
 		fmt.Printf("device cpu percent: %v \n", v.CpuUsage)
-
-		return nil
-	},
-}
-
-var cacheBlockCmd = &cli.Command{
-	Name:  "cache-file",
-	Usage: "cache carfile",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "cid",
-			Usage: "carfile cid",
-			Value: "",
-		},
-		&cli.StringFlag{
-			Name:  "source",
-			Usage: "download source",
-			Value: "",
-		},
-
-		&cli.StringFlag{
-			Name:  "token",
-			Usage: "download token",
-			Value: "",
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-		fmt.Println("start cache data...")
-		adgeAPI, closer, err := GetEdgeAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		carfileCID := cctx.String("cid")
-		candidateURL := cctx.String("source")
-		candidateToken := cctx.String("token")
-		ctx := ReqContext(cctx)
-
-		source := api.DowloadSource{CandidateURL: candidateURL, CandidateToken: candidateToken}
-
-		_, err = adgeAPI.CacheCarfile(ctx, carfileCID, []*api.DowloadSource{&source})
-		if err != nil {
-			return err
-		}
-
-		fmt.Println("cache data success")
-		return nil
-	},
-}
-
-var deleteBlockCmd = &cli.Command{
-	Name:  "delete",
-	Usage: "delete blocks",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "cid",
-			Usage: "block cid",
-			Value: "",
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-		// api, closer, err := GetEdgeAPI(cctx)
-		// if err != nil {
-		// 	return err
-		// }
-		// defer closer()
-
-		// cid := cctx.String("cid")
-
-		// results, err := api.AnnounceBlocksWasDelete(context.Background(), []string{cid})
-		// if err != nil {
-		// 	return err
-		// }
-
-		// if len(results) > 0 {
-		// 	log.Infof("delete block %s failed %v", cid, results[0].ErrMsg)
-		// 	return nil
-		// }
-
-		// log.Infof("delete block %s success", cid)
-		return nil
-	},
-}
-
-var validateNodeCmd = &cli.Command{
-	Name:  "validate",
-	Usage: "validate data",
-	Flags: []cli.Flag{
-		&cli.IntFlag{
-			Name:  "max-fid",
-			Usage: "max fid",
-			Value: 0,
-		},
-		&cli.IntFlag{
-			Name:  "node-type",
-			Usage: "edge=1,candidate=2",
-			Value: 1,
-		},
-		&cli.Int64Flag{
-			Name:  "round-id",
-			Usage: "round id",
-			Value: 1,
-		},
-		&cli.StringFlag{
-			Name:  "edge-url",
-			Usage: "edge url",
-			Value: "",
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetCandidateAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		maxFid := cctx.Int("max-fid")
-		nodeType := cctx.Int("node-type")
-		url := cctx.String("edge-url")
-		roundID := cctx.Int64("round-id")
-		fmt.Printf("maxFid:%d,url:%s", maxFid, url)
-		ctx := ReqContext(cctx)
-		// TODO: print more useful things
-		req := make([]API.ReqValidate, 0)
-		seed := time.Now().UnixNano()
-		varify := API.ReqValidate{NodeURL: url, RandomSeed: seed, Duration: 10, RoundID: roundID, NodeType: nodeType}
-		req = append(req, varify)
-
-		err = api.ValidateNodes(ctx, req)
-		if err != nil {
-			fmt.Println("err", err)
-			return err
-		}
 
 		return nil
 	},
@@ -239,43 +98,6 @@ var cacheStatCmd = &cli.Command{
 		}
 
 		fmt.Printf("Cache carfile count %d, block count %d, wati cache carfile count %d", stat.TotalCarfileCount, stat.TotalBlockCount, stat.WaitCacheCarfileCount)
-		return nil
-	},
-}
-
-var getBlocksOfCarfile = &cli.Command{
-	Name:  "get-blocks",
-	Usage: "get blocks of carfile",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "cid",
-			Usage: "carfile cid",
-			Value: "",
-		},
-		&cli.IntSliceFlag{
-			Name:  "indexs",
-			Usage: "index of block in carfile",
-			Value: cli.NewIntSlice(0),
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-		candidateAPI, closer, err := GetCandidateAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		ctx := ReqContext(cctx)
-		cid := cctx.String("cid")
-		// indexs := cctx.IntSlice("indexs")
-
-		blockCIDs, err := candidateAPI.GetBlocksOfCarfile(ctx, cid, 0, 100)
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("blocks:%v", blockCIDs)
-
 		return nil
 	},
 }
