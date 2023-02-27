@@ -58,7 +58,7 @@ func NewCarfileManager(nodeManager *node.Manager, writeToken []byte) *Manager {
 }
 
 func (m *Manager) initCarfileMap() {
-	carfileHashs, err := cache.GetDB().GetCacheingCarfiles()
+	carfileHashs, err := cache.GetCacheingCarfiles()
 	if err != nil {
 		log.Errorf("initCacheMap GetCacheingCarfiles err:%s", err.Error())
 		return
@@ -121,7 +121,7 @@ func (m *Manager) resetSystemBaseInfo() {
 		return
 	}
 
-	err = cache.GetDB().UpdateSystemBaseInfo(cache.CarFileCountField, count)
+	err = cache.UpdateSystemBaseInfo(cache.CarFileCountField, count)
 	if err != nil {
 		log.Errorf("resetSystemBaseInfo UpdateSystemBaseInfo err:%s", err.Error())
 	}
@@ -208,7 +208,7 @@ func (m *Manager) CacheCarfile(info *api.CacheCarfileInfo) error {
 		log.Infof("carfile event %s , add carfile,deviceID:%s", info.CarfileCid, info.DeviceID)
 	}
 
-	return cache.GetDB().PushCarfileToWaitList(info)
+	return cache.PushCarfileToWaitList(info)
 }
 
 // RemoveCarfileRecord remove a carfile
@@ -235,7 +235,7 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 	}
 
 	// update record to redis
-	return cache.GetDB().IncrBySystemBaseInfo(cache.CarFileCountField, -count)
+	return cache.IncrBySystemBaseInfo(cache.CarFileCountField, -count)
 }
 
 // RemoveCache remove a cache
@@ -264,7 +264,7 @@ func (m *Manager) RemoveCache(carfileCid, deviceID string) error {
 	log.Infof("carfile event %s , remove cache task:%s", carfileCid, deviceID)
 
 	if cacheInfo.Status == api.CacheStatusSucceeded {
-		err = cache.GetDB().IncrBySystemBaseInfo(cache.CarFileCountField, -1)
+		err = cache.IncrBySystemBaseInfo(cache.CarFileCountField, -1)
 		if err != nil {
 			log.Errorf("removeCache IncrBySystemBaseInfo err:%s", err.Error())
 		}
@@ -309,9 +309,9 @@ func (m *Manager) startCarfileCacheTasks() {
 	}
 
 	for i := 0; i < doLen; i++ {
-		info, err := cache.GetDB().GetWaitCarfile()
+		info, err := cache.GetWaitCarfile()
 		if err != nil {
-			if cache.GetDB().IsNilErr(err) {
+			if cache.IsNilErr(err) {
 				return
 			}
 			log.Errorf("GetWaitCarfile err:%s", err.Error())
@@ -362,7 +362,7 @@ func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
 	}
 
 	// save result msg
-	err = cache.GetDB().SetCarfileRecordCacheResult(cr.carfileHash, info)
+	err = cache.SetCarfileRecordCacheResult(cr.carfileHash, info)
 	if err != nil {
 		log.Errorf("SetCarfileRecordCacheResult err:%s", err.Error())
 	}
@@ -513,7 +513,7 @@ func (m *Manager) GetCarfileRecordInfo(cid string) (*api.CarfileRecordInfo, erro
 
 	dInfo := carfileRecord2Info(cr)
 
-	result, err := cache.GetDB().GetCarfileRecordCacheResult(hash)
+	result, err := cache.GetCarfileRecordCacheResult(hash)
 	if err == nil {
 		dInfo.ResultInfo = result
 	}

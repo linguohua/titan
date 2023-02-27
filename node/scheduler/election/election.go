@@ -132,7 +132,7 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 
 	defer func() {
 		now := time.Now()
-		err := cache.GetDB().UpdateSystemBaseInfo(cache.NextElectionTimeField, now.Add(v.opts.electInterval).Unix())
+		err := cache.UpdateSystemBaseInfo(cache.NextElectionTimeField, now.Add(v.opts.electInterval).Unix())
 		if err != nil {
 			log.Error(err.Error())
 		}
@@ -196,7 +196,7 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 }
 
 func (v *Election) saveValidators(validators []string) error {
-	err := cache.GetDB().SetValidatorsToList(validators, v.opts.electInterval)
+	err := cache.SetValidatorsToList(validators, v.opts.electInterval)
 	if err != nil {
 		return err
 	}
@@ -212,7 +212,7 @@ func (v *Election) saveValidators(validators []string) error {
 }
 
 func (v *Election) fetchCurrentValidators() (time.Duration, error) {
-	list, expiration, err := cache.GetDB().GetValidatorsAndExpirationTime()
+	list, expiration, err := cache.GetValidatorsAndExpirationTime()
 	if err != nil {
 		return expiration, err
 	}

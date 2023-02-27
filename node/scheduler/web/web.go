@@ -30,7 +30,7 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 	}
 
 	deviceInValidator := make(map[string]struct{})
-	validatorList, err := cache.GetDB().GetValidatorsWithList()
+	validatorList, err := cache.GetValidatorsWithList()
 	if err != nil {
 		log.Errorf("get validator list: %v", err)
 	}
@@ -40,7 +40,7 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 
 	deviceInfos := make([]api.DevicesInfo, 0)
 	for _, node := range nodes {
-		deviceInfo, err := cache.GetDB().GetDeviceInfo(node.DeviceID)
+		deviceInfo, err := cache.GetDeviceInfo(node.DeviceID)
 		if err != nil {
 			log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), node.DeviceID)
 			continue
@@ -109,7 +109,7 @@ func (w *web) GetBlocksByCarfileCID(ctx context.Context, carFileCID string) ([]a
 // }
 
 func (w *web) GetSystemInfo(ctx context.Context) (api.SystemBaseInfo, error) {
-	info, err := cache.GetDB().GetSystemBaseInfo()
+	info, err := cache.GetSystemBaseInfo()
 	if err != nil {
 		return api.SystemBaseInfo{}, err
 	}

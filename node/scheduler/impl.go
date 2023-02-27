@@ -375,7 +375,7 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeType api.NodeType, cou
 // GetOnlineDeviceIDs Get all online node id
 func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeType) ([]string, error) {
 	if nodeType == api.NodeValidate {
-		list, err := cache.GetDB().GetValidatorsWithList()
+		list, err := cache.GetValidatorsWithList()
 		if err != nil {
 			return nil, err
 		}
@@ -402,7 +402,7 @@ func (s *Scheduler) ElectionValidators(ctx context.Context) error {
 // GetDevicesInfo return the devices information
 func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.DevicesInfo, error) {
 	// node datas
-	deviceInfo, err := cache.GetDB().GetDeviceInfo(deviceID)
+	deviceInfo, err := cache.GetDeviceInfo(deviceID)
 	if err != nil {
 		log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
 		return api.DevicesInfo{}, err
@@ -495,7 +495,7 @@ func (s *Scheduler) NodeQuit(ctx context.Context, deviceID, secret string) error
 }
 
 func incrDeviceReward(deviceID string, incrReward int64) error {
-	err := cache.GetDB().IncrByDeviceInfo(deviceID, "CumulativeProfit", incrReward)
+	err := cache.IncrByDeviceInfo(deviceID, "CumulativeProfit", incrReward)
 	if err != nil {
 		log.Errorf("IncrByDeviceInfo err:%s ", err.Error())
 		return err

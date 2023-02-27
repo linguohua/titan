@@ -26,7 +26,7 @@ func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) e
 		node.DiskUsage = info.DiskUsage
 	}
 	// update redis
-	err := cache.GetDB().UpdateNodeCacheInfo(deviceID, &cache.NodeCacheInfo{
+	err := cache.UpdateNodeCacheInfo(deviceID, &cache.NodeCacheInfo{
 		BlockCount: info.TotalBlockCount,
 		DiskUsage:  info.DiskUsage,
 	})
@@ -52,7 +52,7 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.Remo
 	}
 
 	// update redis
-	return cache.GetDB().UpdateNodeCacheInfo(deviceID, &cache.NodeCacheInfo{
+	return cache.UpdateNodeCacheInfo(deviceID, &cache.NodeCacheInfo{
 		BlockCount: resultInfo.BlockCount,
 		DiskUsage:  resultInfo.DiskUsage,
 	})

@@ -83,30 +83,18 @@ type DB interface {
 	IsNilErr(err error) bool
 }
 
-var (
-	db       DB
-	serverID string
-)
-
 // NewCacheDB New Cache DB
-func NewCacheDB(url, dbType, sID string) error {
+func NewCacheDB(url, dbType string) error {
 	var err error
-
-	serverID = sID
 
 	switch dbType {
 	case TypeRedis():
-		db, err = InitRedis(url)
+		err = InitRedis(url)
 	default:
 		err = xerrors.New("unknown CacheDB type")
 	}
 
 	return err
-}
-
-// GetDB Get CacheDB
-func GetDB() DB {
-	return db
 }
 
 // DataTask data cache task
