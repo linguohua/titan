@@ -31,7 +31,7 @@ func NewIPFS(ipfsApiURL string, carfileStore *carfilestore.CarfileStore) *ipfs {
 	return &ipfs{httpAPI: httpAPI, carfileStore: carfileStore}
 }
 
-func (ipfs *ipfs) DownloadBlocks(cids []string, sources []*api.DowloadSource) ([]blocks.Block, error) {
+func (ipfs *ipfs) DownloadBlocks(cids []string, sources []*api.DownloadSource) ([]blocks.Block, error) {
 	return ipfs.getBlocksFromIPFS(cids)
 }
 
@@ -43,7 +43,6 @@ func (ipfs *ipfs) getBlockWithIPFSApi(cidStr string, retryCount int) (blocks.Blo
 
 	data, err := ipfs.carfileStore.GetBlock(blockHash)
 	if err == nil {
-
 		return newBlock(cidStr, data)
 	}
 

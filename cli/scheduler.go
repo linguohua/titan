@@ -65,7 +65,7 @@ var (
 
 	replicaCountFlag = &cli.IntFlag{
 		Name:  "replica-count",
-		Usage: "cache replica count (default:2)",
+		Usage: "Number of replica cached to nodes (default:2)",
 		Value: 2,
 	}
 
@@ -73,12 +73,6 @@ var (
 		Name:  "node-type",
 		Usage: "node type 0:ALL 1:Edge 2:Candidate 3:Scheduler 4:Scheduler (default: 0)",
 		Value: 0,
-	}
-
-	areaFlag = &cli.StringFlag{
-		Name:  "area",
-		Usage: "area",
-		Value: "CN-GD-Shenzhen",
 	}
 
 	countFlag = &cli.IntFlag{

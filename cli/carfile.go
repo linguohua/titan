@@ -19,11 +19,10 @@ var carfileCmd = &cli.Command{
 		cacheCarfileCmd,
 		showCarfileInfoCmd,
 		removeCarfileCmd,
-		removeBackupCmd,
+		removeReplicaCmd,
 		resetExpiredTimeCmd,
 		stopTaskCmd,
-		resetBackupCacheCountCmd,
-		listIncompleteCarfileCmd,
+		resetReplicaCacheCountCmd,
 		contiuneUndoneCarfileCmd,
 	},
 }
@@ -59,42 +58,9 @@ var contiuneUndoneCarfileCmd = &cli.Command{
 	},
 }
 
-var listIncompleteCarfileCmd = &cli.Command{
-	Name:  "list-incomplete",
-	Usage: "List incomplete carfiles",
-	Flags: []cli.Flag{
-		pageFlag,
-	},
-	Action: func(cctx *cli.Context) error {
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		page := cctx.Int("page")
-		if page < 1 {
-			return xerrors.New("page need greater than 1")
-		}
-
-		info, err := schedulerAPI.GetUndoneCarfileRecords(ctx, page)
-		if err != nil {
-			return err
-		}
-
-		for _, carfile := range info.CarfileRecords {
-			fmt.Printf("%s ,Reliabilit: %d/%d ,Blocks:%d ,Expired Time:%s \n", carfile.CarfileCid, carfile.CurReliability, carfile.NeedReliability, carfile.TotalBlocks, carfile.ExpiredTime.Format("2006-01-02 15:04:05"))
-		}
-		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
-
-		return nil
-	},
-}
-
-var resetBackupCacheCountCmd = &cli.Command{
-	Name:  "reset-backup-count",
-	Usage: "Reset Number of candidate node backups per carfile",
+var resetReplicaCacheCountCmd = &cli.Command{
+	Name:  "reset-candidate-replica-count",
+	Usage: "Reset Number of candidate node replica per carfile",
 	Flags: []cli.Flag{
 		countFlag,
 	},
@@ -113,7 +79,7 @@ var resetBackupCacheCountCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.ResetBackupCacheCount(ctx, count)
+		return schedulerAPI.ResetReplicaCacheCount(ctx, count)
 	},
 }
 
@@ -180,9 +146,9 @@ var resetExpiredTimeCmd = &cli.Command{
 	},
 }
 
-var removeBackupCmd = &cli.Command{
-	Name:  "remove-backup",
-	Usage: "Remove the carfile backup",
+var removeReplicaCmd = &cli.Command{
+	Name:  "remove-replica",
+	Usage: "Remove the carfile replica",
 	Flags: []cli.Flag{
 		deviceIDFlag,
 		cidFlag,
@@ -249,7 +215,7 @@ var showCarfileInfoCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,CurReliability:%d/%d ,Expired Time:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.CurReliability, info.NeedReliability, info.ExpiredTime.Format("2006-01-02 15:04:05"))
+		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,EdgeReplica:%d/%d ,Expired Time:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.EdgeReplica, info.Replica, info.ExpiredTime.Format("2006-01-02 15:04:05"))
 		for _, cache := range info.CarfileReplicaInfos {
 			fmt.Printf("DeviceID: %s ,Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
 				cache.DeviceID, cache.Status.ToString(), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
@@ -279,7 +245,7 @@ var cacheCarfileCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		cid := cctx.String("cid")
-		reliability := cctx.Int("replica-count")
+		replicaCount := cctx.Int("replica-count")
 		deviceID := cctx.String("device-id")
 		expiredDate := cctx.String("expired-date")
 
@@ -308,7 +274,7 @@ var cacheCarfileCmd = &cli.Command{
 			}
 
 			info.ExpiredTime = eTime
-			info.NeedReliability = reliability
+			info.Replica = replicaCount
 		}
 
 		err = schedulerAPI.CacheCarfile(ctx, info)
@@ -322,7 +288,7 @@ var cacheCarfileCmd = &cli.Command{
 
 var listCarfilesCmd = &cli.Command{
 	Name:  "list",
-	Usage: "List all carfile",
+	Usage: "List carfiles",
 	Flags: []cli.Flag{
 		pageFlag,
 		downloadingFlag,
@@ -376,7 +342,7 @@ var listCarfilesCmd = &cli.Command{
 		}
 
 		for _, carfile := range info.CarfileRecords {
-			fmt.Printf("%s ,Reliabilit: %d/%d ,Blocks:%d ,Expired Time:%s \n", carfile.CarfileCid, carfile.CurReliability, carfile.NeedReliability, carfile.TotalBlocks, carfile.ExpiredTime.Format("2006-01-02 15:04:05"))
+			fmt.Printf("%s ,EdgeReplica: %d/%d ,Blocks:%d ,Expired Time:%s \n", carfile.CarfileCid, carfile.EdgeReplica, carfile.Replica, carfile.TotalBlocks, carfile.ExpiredTime.Format("2006-01-02 15:04:05"))
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
 

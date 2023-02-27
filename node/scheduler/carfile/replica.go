@@ -149,13 +149,13 @@ func (c *CacheTask) cacheCarfile2Node() (err error) {
 
 	cNode := c.nodeManager.GetCandidateNode(deviceID)
 	if cNode != nil {
-		result, err = cNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.dowloadSources)
+		result, err = cNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.downloadSources)
 		return
 	}
 
 	eNode := c.nodeManager.GetEdgeNode(deviceID)
 	if eNode != nil {
-		result, err = eNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.dowloadSources)
+		result, err = eNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.downloadSources)
 		return
 	}
 

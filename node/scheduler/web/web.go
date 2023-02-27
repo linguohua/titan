@@ -118,7 +118,7 @@ func (w *web) GetSystemInfo(ctx context.Context) (api.SystemBaseInfo, error) {
 }
 
 func (w *web) GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error) {
-	svm, err := persistent.SummaryValidateMessage(startTime, endTime, pageNumber, pageSize)
+	svm, err := persistent.ValidateResultInfos(startTime, endTime, pageNumber, pageSize)
 	if err != nil {
 		return nil, err
 	}

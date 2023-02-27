@@ -54,7 +54,7 @@ type CandidateStub struct {
 
 type CarfileOperationStruct struct {
 	Internal struct {
-		CacheCarfile func(p0 context.Context, p1 string, p2 []*DowloadSource) (*CacheCarfileResult, error) `perm:"write"`
+		CacheCarfile func(p0 context.Context, p1 string, p2 []*DownloadSource) (*CacheCarfileResult, error) `perm:"write"`
 
 		DeleteAllCarfiles func(p0 context.Context) error `perm:"admin"`
 
@@ -104,8 +104,6 @@ type CommonStub struct {
 
 type DataSyncStruct struct {
 	Internal struct {
-		CheckCarfilesWithRange func(p0 []string, p1 int, p2 int, p3 bool) error ``
-
 		CheckSummary func(p0 string, p1 string) (*CheckSummaryResult, error) ``
 	}
 }
@@ -231,8 +229,6 @@ type SchedulerStruct struct {
 
 		ExecuteUndoneCarfilesTask func(p0 context.Context, p1 []string) error `perm:"admin"`
 
-		GetAllEdgeAddrs func(p0 context.Context) (map[string]string, error) `perm:"write"`
-
 		GetCarfileRecordInfo func(p0 context.Context, p1 string) (CarfileRecordInfo, error) `perm:"read"`
 
 		GetDevicesInfo func(p0 context.Context, p1 string) (DevicesInfo, error) `perm:"read"`
@@ -255,8 +251,6 @@ type SchedulerStruct struct {
 
 		GetRunningCarfileRecords func(p0 context.Context) ([]*CarfileRecordInfo, error) `perm:"read"`
 
-		GetUndoneCarfileRecords func(p0 context.Context, p1 int) (*DataListInfo, error) `perm:"read"`
-
 		ListCarfileRecords func(p0 context.Context, p1 int) (*DataListInfo, error) `perm:"read"`
 
 		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
@@ -273,9 +267,9 @@ type SchedulerStruct struct {
 
 		RemoveCarfileResult func(p0 context.Context, p1 RemoveCarfileResultInfo) error `perm:"write"`
 
-		ResetBackupCacheCount func(p0 context.Context, p1 int) error `perm:"admin"`
-
 		ResetCacheExpiredTime func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
+
+		ResetReplicaCacheCount func(p0 context.Context, p1 int) error `perm:"admin"`
 
 		SetNodeAppUpdateInfo func(p0 context.Context, p1 *NodeAppUpdateInfo) error `perm:"admin"`
 
@@ -375,14 +369,14 @@ func (s *CandidateStub) WaitQuiet(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *CarfileOperationStruct) CacheCarfile(p0 context.Context, p1 string, p2 []*DowloadSource) (*CacheCarfileResult, error) {
+func (s *CarfileOperationStruct) CacheCarfile(p0 context.Context, p1 string, p2 []*DownloadSource) (*CacheCarfileResult, error) {
 	if s.Internal.CacheCarfile == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.CacheCarfile(p0, p1, p2)
 }
 
-func (s *CarfileOperationStub) CacheCarfile(p0 context.Context, p1 string, p2 []*DowloadSource) (*CacheCarfileResult, error) {
+func (s *CarfileOperationStub) CacheCarfile(p0 context.Context, p1 string, p2 []*DownloadSource) (*CacheCarfileResult, error) {
 	return nil, ErrNotSupported
 }
 
@@ -571,17 +565,6 @@ func (s *CommonStruct) Version(p0 context.Context) (APIVersion, error) {
 
 func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 	return *new(APIVersion), ErrNotSupported
-}
-
-func (s *DataSyncStruct) CheckCarfilesWithRange(p0 []string, p1 int, p2 int, p3 bool) error {
-	if s.Internal.CheckCarfilesWithRange == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.CheckCarfilesWithRange(p0, p1, p2, p3)
-}
-
-func (s *DataSyncStub) CheckCarfilesWithRange(p0 []string, p1 int, p2 int, p3 bool) error {
-	return ErrNotSupported
 }
 
 func (s *DataSyncStruct) CheckSummary(p0 string, p1 string) (*CheckSummaryResult, error) {
@@ -914,17 +897,6 @@ func (s *SchedulerStub) ExecuteUndoneCarfilesTask(p0 context.Context, p1 []strin
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetAllEdgeAddrs(p0 context.Context) (map[string]string, error) {
-	if s.Internal.GetAllEdgeAddrs == nil {
-		return *new(map[string]string), ErrNotSupported
-	}
-	return s.Internal.GetAllEdgeAddrs(p0)
-}
-
-func (s *SchedulerStub) GetAllEdgeAddrs(p0 context.Context) (map[string]string, error) {
-	return *new(map[string]string), ErrNotSupported
-}
-
 func (s *SchedulerStruct) GetCarfileRecordInfo(p0 context.Context, p1 string) (CarfileRecordInfo, error) {
 	if s.Internal.GetCarfileRecordInfo == nil {
 		return *new(CarfileRecordInfo), ErrNotSupported
@@ -1046,17 +1018,6 @@ func (s *SchedulerStub) GetRunningCarfileRecords(p0 context.Context) ([]*Carfile
 	return *new([]*CarfileRecordInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetUndoneCarfileRecords(p0 context.Context, p1 int) (*DataListInfo, error) {
-	if s.Internal.GetUndoneCarfileRecords == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.GetUndoneCarfileRecords(p0, p1)
-}
-
-func (s *SchedulerStub) GetUndoneCarfileRecords(p0 context.Context, p1 int) (*DataListInfo, error) {
-	return nil, ErrNotSupported
-}
-
 func (s *SchedulerStruct) ListCarfileRecords(p0 context.Context, p1 int) (*DataListInfo, error) {
 	if s.Internal.ListCarfileRecords == nil {
 		return nil, ErrNotSupported
@@ -1145,17 +1106,6 @@ func (s *SchedulerStub) RemoveCarfileResult(p0 context.Context, p1 RemoveCarfile
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ResetBackupCacheCount(p0 context.Context, p1 int) error {
-	if s.Internal.ResetBackupCacheCount == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.ResetBackupCacheCount(p0, p1)
-}
-
-func (s *SchedulerStub) ResetBackupCacheCount(p0 context.Context, p1 int) error {
-	return ErrNotSupported
-}
-
 func (s *SchedulerStruct) ResetCacheExpiredTime(p0 context.Context, p1 string, p2 time.Time) error {
 	if s.Internal.ResetCacheExpiredTime == nil {
 		return ErrNotSupported
@@ -1164,6 +1114,17 @@ func (s *SchedulerStruct) ResetCacheExpiredTime(p0 context.Context, p1 string, p
 }
 
 func (s *SchedulerStub) ResetCacheExpiredTime(p0 context.Context, p1 string, p2 time.Time) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) ResetReplicaCacheCount(p0 context.Context, p1 int) error {
+	if s.Internal.ResetReplicaCacheCount == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ResetReplicaCacheCount(p0, p1)
+}
+
+func (s *SchedulerStub) ResetReplicaCacheCount(p0 context.Context, p1 int) error {
 	return ErrNotSupported
 }
 

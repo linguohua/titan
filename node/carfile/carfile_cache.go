@@ -23,7 +23,7 @@ type carfileCache struct {
 	blocksDownloadSuccessList []string
 	// netLayerCIDs just for restore download task
 	nextLayerCIDs   []string
-	downloadSources []*api.DowloadSource
+	downloadSources []*api.DownloadSource
 	carfileSize     uint64
 	downloadSize    uint64
 }

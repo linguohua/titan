@@ -58,7 +58,7 @@ func InitSQL(url string) (err error) {
 	return nil
 }
 
-// SetNodeInfo  node info
+// SetNodeInfo  Set node info
 func SetNodeInfo(deviceID string, info *NodeInfo) error {
 	info.DeviceID = deviceID
 
@@ -92,7 +92,7 @@ func NodeOffline(deviceID string, lastTime time.Time) error {
 	return err
 }
 
-// NodePrivateKey get node privateKey
+// NodePrivateKey Get node privateKey
 func NodePrivateKey(deviceID string) (string, error) {
 	var privateKey string
 	query := "SELECT private_key FROM node WHERE device_id=?"
@@ -135,7 +135,7 @@ func SetNodesQuit(deviceIDs []string) error {
 	return nil
 }
 
-// SetNodePort set node port
+// SetNodePort Set node port
 func SetNodePort(deviceID, port string) error {
 	info := NodeInfo{
 		DeviceID: deviceID,
@@ -146,8 +146,8 @@ func SetNodePort(deviceID, port string) error {
 	return err
 }
 
-// InsertValidateResultInfos Insert validate result infos
-func InsertValidateResultInfos(infos []*api.ValidateResult) error {
+// InitValidateResultInfos init validate result infos
+func InitValidateResultInfos(infos []*api.ValidateResult) error {
 	tx := mysqlCil.MustBegin()
 	for _, info := range infos {
 		query := "INSERT INTO validate_result (round_id, device_id, validator_id, status, start_time) VALUES (?, ?, ?, ?, ?, ?)"
@@ -163,7 +163,8 @@ func InsertValidateResultInfos(infos []*api.ValidateResult) error {
 	return nil
 }
 
-func SetTimeoutToValidateInfos(roundID int64, deviceIDs []string) error {
+// SetValidateTimeoutOfNodes Set validate timeout of nodes
+func SetValidateTimeoutOfNodes(roundID int64, deviceIDs []string) error {
 	tx := mysqlCil.MustBegin()
 
 	updateCachesCmd := `UPDATE validate_result SET status=?,end_time=NOW() WHERE round_id=? AND device_id in (?)`
@@ -185,6 +186,7 @@ func SetTimeoutToValidateInfos(roundID int64, deviceIDs []string) error {
 	return nil
 }
 
+// UpdateValidateResultInfo Update validate info
 func UpdateValidateResultInfo(info *api.ValidateResult) error {
 	if info.Status == api.ValidateStatusSuccess {
 		query := "UPDATE validate_result SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW() WHERE round_id=:round_id AND device_id=:device_id"
@@ -197,7 +199,8 @@ func UpdateValidateResultInfo(info *api.ValidateResult) error {
 	return err
 }
 
-func SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error) {
+// ValidateResultInfos Get validate result infos
+func ValidateResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error) {
 	res := new(api.SummeryValidateResult)
 	var infos []api.ValidateResult
 	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM validate_result WHERE start_time between ? and ? order by id asc  LIMIT ?,? ")
@@ -225,13 +228,14 @@ func SummaryValidateMessage(startTime, endTime time.Time, pageNumber, pageSize i
 	return res, nil
 }
 
-// cache data info
+// CreateCarfileReplicaInfo Create replica info
 func CreateCarfileReplicaInfo(cInfo *api.CarfileReplicaInfo) error {
 	cmd := fmt.Sprintf("INSERT INTO %s (id, carfile_hash, device_id, status, is_candidate) VALUES (:id, :carfile_hash, :device_id, :status, :is_candidate)", cacheInfoTable)
 	_, err := mysqlCil.NamedExec(cmd, cInfo)
 	return err
 }
 
+// UpdateCarfileReplicaStatus Update
 func UpdateCarfileReplicaStatus(hash string, deviceIDs []string, status api.CacheStatus) error {
 	tx := mysqlCil.MustBegin()
 
@@ -262,30 +266,30 @@ func UpdateCarfileReplicaInfo(cInfo *api.CarfileReplicaInfo) error {
 }
 
 func UpdateCarfileRecordCachesInfo(dInfo *api.CarfileRecordInfo) error {
-	var count int
-	cmd := fmt.Sprintf("SELECT count(*) FROM %s WHERE carfile_hash=? AND status=? And is_candidate=?", cacheInfoTable)
-	err := mysqlCil.Get(&count, cmd, dInfo.CarfileHash, api.CacheStatusSucceeded, false)
-	if err != nil {
-		return err
-	}
+	// var count int
+	// cmd := fmt.Sprintf("SELECT count(*) FROM %s WHERE carfile_hash=? AND status=? And is_candidate=?", cacheInfoTable)
+	// err := mysqlCil.Get(&count, cmd, dInfo.CarfileHash, api.CacheStatusSucceeded, false)
+	// if err != nil {
+	// 	return err
+	// }
 
-	dInfo.CurReliability = count
+	// dInfo.CurReliability = count
 
 	// update
-	cmd = fmt.Sprintf("UPDATE %s SET total_size=:total_size,total_blocks=:total_blocks,cur_reliability=:cur_reliability,end_time=NOW(),need_reliability=:need_reliability,expired_time=:expired_time WHERE carfile_hash=:carfile_hash", carfileInfoTable)
-	_, err = mysqlCil.NamedExec(cmd, dInfo)
+	cmd := fmt.Sprintf("UPDATE %s SET total_size=:total_size,total_blocks=:total_blocks,end_time=NOW(),replica=:replica,expired_time=:expired_time WHERE carfile_hash=:carfile_hash", carfileInfoTable)
+	_, err := mysqlCil.NamedExec(cmd, dInfo)
 
 	return err
 }
 
 func CreateOrUpdateCarfileRecordInfo(info *api.CarfileRecordInfo, isUpdate bool) error {
 	if isUpdate {
-		cmd := fmt.Sprintf("UPDATE %s SET need_reliability=:need_reliability,expired_time=:expired_time WHERE carfile_hash=:carfile_hash", carfileInfoTable)
+		cmd := fmt.Sprintf("UPDATE %s SET replica=:replica,expired_time=:expired_time WHERE carfile_hash=:carfile_hash", carfileInfoTable)
 		_, err := mysqlCil.NamedExec(cmd, info)
 		return err
 	}
 
-	cmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, carfile_cid, need_reliability,expired_time) VALUES (:carfile_hash, :carfile_cid, :need_reliability, :expired_time)", carfileInfoTable)
+	cmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, carfile_cid, replica,expired_time) VALUES (:carfile_hash, :carfile_cid, :replica, :expired_time)", carfileInfoTable)
 	_, err := mysqlCil.NamedExec(cmd, info)
 	return err
 }
@@ -458,38 +462,6 @@ func GetExpiredCarfiles() ([]*api.CarfileRecordInfo, error) {
 	return out, nil
 }
 
-func GetUndoneCarfiles(page int) (info *api.DataListInfo, err error) {
-	info = &api.DataListInfo{}
-	num := 20
-
-	cmd := fmt.Sprintf("SELECT count(carfile_hash) FROM %s WHERE cur_reliability < need_reliability", carfileInfoTable)
-	err = mysqlCil.Get(&info.Cids, cmd)
-	if err != nil {
-		return
-	}
-
-	info.TotalPage = info.Cids / num
-	if info.Cids%num > 0 {
-		info.TotalPage++
-	}
-
-	if info.TotalPage == 0 {
-		return
-	}
-
-	if page > info.TotalPage {
-		page = info.TotalPage
-	}
-	info.Page = page
-
-	cmd = fmt.Sprintf("SELECT * FROM %s WHERE cur_reliability < need_reliability order by carfile_hash asc LIMIT %d,%d", carfileInfoTable, (num * (page - 1)), num)
-	if err = mysqlCil.Select(&info.CarfileRecords, cmd); err != nil {
-		return
-	}
-
-	return
-}
-
 func GetSucceededCachesCount() (int, error) {
 	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE status=?`, cacheInfoTable)
 
@@ -545,9 +517,6 @@ func RemoveCarfileReplica(deviceID, carfileHash string) error {
 		return err
 	}
 
-	dCmd := fmt.Sprintf("UPDATE %s SET cur_reliability=? WHERE carfile_hash=?", carfileInfoTable)
-	tx.MustExec(dCmd, count, carfileHash)
-
 	err = tx.Commit()
 	if err != nil {
 		err = tx.Rollback()
@@ -581,19 +550,6 @@ func UpdateCacheInfoOfQuitNode(deviceIDs []string) (carfileRecords []*api.Carfil
 
 	removeCacheQuery = mysqlCil.Rebind(removeCacheQuery)
 	tx.MustExec(removeCacheQuery, args...)
-
-	// update carfiles record
-	for _, carfileRecord := range carfileRecords {
-		var count int
-		cmd := fmt.Sprintf("SELECT count(*) FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?", cacheInfoTable)
-		err := tx.Get(&count, cmd, carfileRecord.CarfileHash, api.CacheStatusSucceeded, false)
-		if err != nil {
-			continue
-		}
-
-		cmdD := fmt.Sprintf(`UPDATE %s SET cur_reliability=? WHERE carfile_hash=?`, carfileInfoTable)
-		tx.MustExec(cmdD, count, carfileRecord.CarfileHash)
-	}
 
 	err = tx.Commit()
 	if err != nil {
