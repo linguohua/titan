@@ -2,7 +2,6 @@ package edge
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -46,8 +45,6 @@ func NewLocalEdgeNode(ctx context.Context, params *EdgeParams) api.Edge {
 		schedulerAPI:     params.Scheduler,
 	}
 
-	go edge.startPingPeerTick(ctx)
-
 	return edge
 }
 
@@ -88,63 +85,4 @@ func (edge *Edge) GetMyExternalAddr(ctx context.Context, schedulerURL string) (s
 
 func (edge *Edge) PingUser(ctx context.Context, userAddr string) error {
 	return nil
-}
-
-// ping peer tick
-func (edge *Edge) startPingPeerTick(ctx context.Context) {
-	pingPeers := time.Tick(10 * time.Second)
-	loadPeers := time.Tick(5 * time.Minute)
-	for {
-		select {
-		case <-pingPeers:
-			edge.pingPeers()
-		case <-loadPeers:
-			edge.loadPeers()
-		case <-ctx.Done():
-			log.Infof("Stop ping peer!")
-			return
-		}
-	}
-}
-
-func (edge *Edge) pingPeers() {
-	edge.peers.Range(func(k, v interface{}) bool {
-		peerID := k.(string)
-		addr := v.(string)
-
-		ver, err := pingPeer(addr)
-		if err != nil {
-			log.Errorf("ping peer %s error:%s, addr", peerID, err, addr)
-		} else {
-			log.Infof("ping peer %s addr:%s, ver:%s", peerID, addr, ver.String())
-		}
-		return true
-	})
-}
-
-func (edge *Edge) loadPeers() {
-	edges, err := edge.schedulerAPI.GetAllEdgeAddrs(context.Background())
-	if err != nil {
-		log.Errorf("loadPeers error:%s", err.Error())
-		return
-	}
-
-	edge.peers.Range(func(k, v interface{}) bool {
-		edge.peers.Delete(k)
-		return true
-	})
-
-	for k, v := range edges {
-		edge.peers.Store(k, v)
-	}
-}
-
-func pingPeer(addr string) (api.APIVersion, error) {
-	edgeApi, close, err := client.NewEdge(context.Background(), fmt.Sprintf("https://%s/rpc/v0", addr), nil)
-	if err != nil {
-		return api.APIVersion{}, err
-	}
-	defer close()
-
-	return edgeApi.Version(context.Background())
 }

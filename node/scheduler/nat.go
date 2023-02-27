@@ -10,8 +10,6 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	cliutil "github.com/linguohua/titan/cli/util"
-	"github.com/linguohua/titan/node/handler"
-	"github.com/linguohua/titan/node/scheduler/node"
 )
 
 func (s *Scheduler) GetEdgeExternalAddr(ctx context.Context, deviceID, schedulerURL string) (string, error) {
@@ -21,22 +19,6 @@ func (s *Scheduler) GetEdgeExternalAddr(ctx context.Context, deviceID, scheduler
 	}
 
 	return "", fmt.Errorf("Device %s offline or not exist", deviceID)
-}
-
-func (s *Scheduler) GetAllEdgeAddrs(ctx context.Context) (map[string]string, error) {
-	myID := handler.GetDeviceID(ctx)
-	edges := make(map[string]string)
-	s.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
-		deviceID := key.(string)
-		if myID != deviceID {
-			edgeNode := value.(*node.EdgeNode)
-			addr := edgeNode.Node.GetAddr()
-			edges[deviceID] = addr
-		}
-		return true
-	})
-
-	return edges, nil
 }
 
 func (s *Scheduler) CheckEdgeIfBehindFullConeNAT(ctx context.Context, edgeURL string) (bool, error) {

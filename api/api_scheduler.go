@@ -55,8 +55,6 @@ type Scheduler interface {
 	SetNodeAppUpdateInfo(ctx context.Context, info *NodeAppUpdateInfo) error       //perm:admin                                                           //perm:write
 	DeleteNodeAppUpdateInfos(ctx context.Context, nodeType int) error              //perm:admin
 
-	// nat travel
-	GetAllEdgeAddrs(ctx context.Context) (map[string]string, error) //perm:write
 	// nat travel, can get edge external addr with different scheduler
 	GetEdgeExternalAddr(ctx context.Context, deviceID, schedulerURL string) (string, error) //perm:write
 	// nat travel
