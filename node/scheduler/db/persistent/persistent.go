@@ -13,6 +13,8 @@ const (
 	NodeTypeKey = "node_type"
 	// SecretKey node info key
 	SecretKey = "secret"
+
+	maxDataCount = 100
 )
 
 var myRand = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -77,34 +79,32 @@ type DB interface {
 	DeleteNodeUpdateInfo(nodeType int) error
 
 	// web
-	webDB
+	GetNodes(cursor int, count int) ([]*NodeInfo, int64, error)
+	GetBlockDownloadInfos(DeviceID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.BlockDownloadInfo, int64, error)
+	GetCacheTaskInfos(startTime time.Time, endTime time.Time, cursor, count int) (*api.ListCacheInfosRsp, error)
 }
 
-var (
-	db DB
+// var (
+// 	db DB
 
-	serverID string
-)
+// 	serverID string
+// )
 
 // NewDB New  DB
-func NewDB(url, dbType, sID string) error {
-	var err error
-
-	serverID = sID
-
+func NewDB(url, dbType, sID string) (db DB, err error) {
 	switch dbType {
-	case TypeSQL():
-		db, err = InitSQL(url)
+	case TypeMySQL():
+		db, err = InitSQL(url, sID)
 	default:
 		err = xerrors.New("unknown DB type")
 	}
 
-	return err
+	return db, err
 }
 
 // GetDB Get DB
 func GetDB() DB {
-	return db
+	return nil
 }
 
 // NodeInfo base info
