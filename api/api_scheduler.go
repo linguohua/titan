@@ -19,15 +19,14 @@ type Scheduler interface {
 	RemoveCarfile(ctx context.Context, carfileID string) error                                  //perm:admin
 	RemoveCache(ctx context.Context, carfileID, deviceID string) error                          //perm:admin
 	GetCarfileRecordInfo(ctx context.Context, cid string) (CarfileRecordInfo, error)            //perm:read
-	ListCarfileRecords(ctx context.Context, page int) (*DataListInfo, error)                    //perm:read
-	GetRunningCarfileRecords(ctx context.Context) ([]*CarfileRecordInfo, error)                 //perm:read
+	ListCarfileRecords(ctx context.Context, page int) (*CarfileRecordsInfo, error)              //perm:read
+	GetDownloadingCarfileRecords(ctx context.Context) ([]*CarfileRecordInfo, error)             //perm:read
 	RegisterNode(ctx context.Context, nodeType NodeType, count int) ([]NodeRegisterInfo, error) //perm:admin
 	ValidateSwitch(ctx context.Context, open bool) error                                        //perm:admin
 	ValidateRunningState(ctx context.Context) (bool, error)                                     //perm:admin
 	ValidateStart(ctx context.Context) error                                                    //perm:admin
-	ResetCacheExpiredTime(ctx context.Context, carfileCid string, expiredTime time.Time) error  //perm:admin
+	ResetCacheExpirationTime(ctx context.Context, carfileCid string, time time.Time) error      //perm:admin
 	NodeQuit(ctx context.Context, device, secret string) error                                  //perm:admin
-	StopCacheTask(ctx context.Context, carfileCid string) error                                 //perm:admin
 	ResetReplicaCacheCount(ctx context.Context, count int) error                                //perm:admin
 	ExecuteUndoneCarfilesTask(ctx context.Context, hashs []string) error                        //perm:admin
 	ShowNodeLogFile(ctx context.Context, deviceID string) (*LogFile, error)                     //perm:admin
@@ -69,8 +68,8 @@ type Scheduler interface {
 	UserDownloadBlockResults(ctx context.Context, results []UserBlockDownloadResult) error //perm:read
 }
 
-// DataListInfo Data List Info
-type DataListInfo struct {
+// CarfileRecordsInfo Data List Info
+type CarfileRecordsInfo struct {
 	Page           int
 	TotalPage      int
 	Cids           int
@@ -83,14 +82,6 @@ type CacheEventInfo struct {
 	CID  string    `db:"cid"`
 	Msg  string    `db:"msg"`
 	Time time.Time `db:"time"`
-}
-
-// EventListInfo Event List Info
-type EventListInfo struct {
-	Page      int
-	TotalPage int
-	Count     int
-	EventList []*CacheEventInfo
 }
 
 // NodeRegisterInfo Node Register Info
@@ -123,21 +114,21 @@ type RemoveCarfileResultInfo struct {
 
 // CarfileRecordInfo Data info
 type CarfileRecordInfo struct {
-	CarfileCid          string    `db:"carfile_cid"`
-	CarfileHash         string    `db:"carfile_hash"`
-	Replica             int       `db:"replica"`
-	TotalSize           int64     `db:"total_size"`
-	TotalBlocks         int       `db:"total_blocks"`
-	ExpiredTime         time.Time `db:"expired_time"`
-	CreateTime          time.Time `db:"created_time"`
-	EndTime             time.Time `db:"end_time"`
-	CarfileReplicaInfos []*CarfileReplicaInfo
-	ResultInfo          *CarfileRecordCacheResult
-	EdgeReplica         int
+	CarfileCid     string    `db:"carfile_cid"`
+	CarfileHash    string    `db:"carfile_hash"`
+	Replica        int       `db:"replica"`
+	TotalSize      int64     `db:"total_size"`
+	TotalBlocks    int       `db:"total_blocks"`
+	ExpirationTime time.Time `db:"expiration_time"`
+	CreateTime     time.Time `db:"created_time"`
+	EndTime        time.Time `db:"end_time"`
+	ReplicaInfos   []*ReplicaInfo
+	ResultInfo     *CarfileRecordCacheResult
+	EdgeReplica    int
 }
 
-// CarfileReplicaInfo Carfile Replica Info
-type CarfileReplicaInfo struct {
+// ReplicaInfo Carfile Replica Info
+type ReplicaInfo struct {
 	ID          string
 	CarfileHash string      `db:"carfile_hash"`
 	DeviceID    string      `db:"device_id"`
@@ -151,11 +142,11 @@ type CarfileReplicaInfo struct {
 
 // CacheCarfileInfo Data info
 type CacheCarfileInfo struct {
-	CarfileCid  string    `db:"carfile_cid"`
-	CarfileHash string    `db:"carfile_hash"`
-	Replica     int       `db:"replica"`
-	DeviceID    string    `db:"device_id"`
-	ExpiredTime time.Time `db:"expired_time"`
+	CarfileCid     string    `db:"carfile_cid"`
+	CarfileHash    string    `db:"carfile_hash"`
+	Replica        int       `db:"replica"`
+	DeviceID       string    `db:"device_id"`
+	ExpirationTime time.Time `db:"expiration_time"`
 }
 
 type NodeBlockDownloadResult struct {
@@ -204,8 +195,8 @@ type CacheStatus int
 const (
 	// CacheStatusCreate status
 	CacheStatusCreate CacheStatus = iota
-	// CacheStatusRunning status
-	CacheStatusRunning
+	// CacheStatusDownloading status
+	CacheStatusDownloading
 	// CacheStatusFailed status
 	CacheStatusFailed
 	// CacheStatusSucceeded status
@@ -217,8 +208,8 @@ func (c CacheStatus) ToString() string {
 	switch c {
 	case CacheStatusCreate:
 		return "create"
-	case CacheStatusRunning:
-		return "running"
+	case CacheStatusDownloading:
+		return "download"
 	case CacheStatusSucceeded:
 		return "succeeded"
 	default:

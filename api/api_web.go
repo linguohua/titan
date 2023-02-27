@@ -12,8 +12,8 @@ type Web interface {
 	ListBlockDownloadInfo(ctx context.Context, req ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) //perm:read
 
 	// ListCaches cache manager
-	GetCacheTaskInfos(ctx context.Context, req ListCacheInfosReq) (ListCacheInfosRsp, error) //perm:read
-	GetSystemInfo(ctx context.Context) (SystemBaseInfo, error)                               //perm:read
+	GetReplicaInfos(ctx context.Context, req ListCacheInfosReq) (ListCacheInfosRsp, error) //perm:read
+	GetSystemInfo(ctx context.Context) (SystemBaseInfo, error)                             //perm:read
 
 	// ListValidateResult(ctx context.Context, cursor int, count int) (ListValidateResultRsp, error) //perm:read
 
@@ -45,8 +45,8 @@ type ListCacheInfosReq struct {
 }
 
 type ListCacheInfosRsp struct {
-	Datas []*CarfileReplicaInfo `json:"data"`
-	Total int64                 `json:"total"`
+	Datas []*ReplicaInfo `json:"data"`
+	Total int64          `json:"total"`
 }
 
 type WebCarfileStatus int
@@ -89,7 +89,7 @@ type WebBlock struct {
 	BlockSize int    `json:"block_size"`
 }
 
-type ListCacheTasksRsp struct {
+type ListReplicasRsp struct {
 	Data  []CarfileRecordInfo `json:"data"`
 	Total int64               `json:"total"`
 }

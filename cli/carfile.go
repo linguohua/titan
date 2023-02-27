@@ -20,8 +20,7 @@ var carfileCmd = &cli.Command{
 		showCarfileInfoCmd,
 		removeCarfileCmd,
 		removeReplicaCmd,
-		resetExpiredTimeCmd,
-		stopTaskCmd,
+		resetExpirationTimeCmd,
 		resetReplicaCacheCountCmd,
 		contiuneUndoneCarfileCmd,
 	},
@@ -83,39 +82,9 @@ var resetReplicaCacheCountCmd = &cli.Command{
 	},
 }
 
-var stopTaskCmd = &cli.Command{
-	Name:  "stop-task",
-	Usage: "Stop carfile task",
-	Flags: []cli.Flag{
-		cidFlag,
-	},
-
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		cardileCid := cctx.String("cid")
-
-		ctx := ReqContext(cctx)
-
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		err = schedulerAPI.StopCacheTask(ctx, cardileCid)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	},
-}
-
-var resetExpiredTimeCmd = &cli.Command{
-	Name:  "reset-expired-time",
-	Usage: "Reset carfile expired time",
+var resetExpirationTimeCmd = &cli.Command{
+	Name:  "reset-expiration-time",
+	Usage: "Reset carfile expiration time",
 	Flags: []cli.Flag{
 		cidFlag,
 		dateFlag,
@@ -137,7 +106,7 @@ var resetExpiredTimeCmd = &cli.Command{
 			return xerrors.Errorf("date time err:%s", err.Error())
 		}
 
-		err = schedulerAPI.ResetCacheExpiredTime(ctx, cardileCid, time)
+		err = schedulerAPI.ResetCacheExpirationTime(ctx, cardileCid, time)
 		if err != nil {
 			return err
 		}
@@ -215,8 +184,8 @@ var showCarfileInfoCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,EdgeReplica:%d/%d ,Expired Time:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.EdgeReplica, info.Replica, info.ExpiredTime.Format("2006-01-02 15:04:05"))
-		for _, cache := range info.CarfileReplicaInfos {
+		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,EdgeReplica:%d/%d ,Expiration Time:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.EdgeReplica, info.Replica, info.ExpirationTime.Format("2006-01-02 15:04:05"))
+		for _, cache := range info.ReplicaInfos {
 			fmt.Printf("DeviceID: %s ,Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
 				cache.DeviceID, cache.Status.ToString(), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
 		}
@@ -240,14 +209,14 @@ var cacheCarfileCmd = &cli.Command{
 	Flags: []cli.Flag{
 		cidFlag,
 		replicaCountFlag,
-		expiredDateFlag,
+		expirationDateFlag,
 		deviceIDFlag,
 	},
 	Action: func(cctx *cli.Context) error {
 		cid := cctx.String("cid")
 		replicaCount := cctx.Int("replica-count")
 		deviceID := cctx.String("device-id")
-		expiredDate := cctx.String("expired-date")
+		date := cctx.String("expiration-date")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -264,16 +233,16 @@ var cacheCarfileCmd = &cli.Command{
 		if deviceID != "" {
 			info.DeviceID = deviceID
 		} else {
-			if expiredDate == "" {
-				expiredDate = time.Now().Add(time.Duration(7*24) * time.Hour).Format("2006-1-2 15:04:05")
+			if date == "" {
+				date = time.Now().Add(time.Duration(7*24) * time.Hour).Format("2006-1-2 15:04:05")
 			}
 
-			eTime, err := time.ParseInLocation("2006-1-2 15:04:05", expiredDate, time.Local)
+			eTime, err := time.ParseInLocation("2006-1-2 15:04:05", date, time.Local)
 			if err != nil {
-				return xerrors.Errorf("expired date err:%s", err.Error())
+				return xerrors.Errorf("expiration date err:%s", err.Error())
 			}
 
-			info.ExpiredTime = eTime
+			info.ExpirationTime = eTime
 			info.Replica = replicaCount
 		}
 
@@ -308,7 +277,7 @@ var listCarfilesCmd = &cli.Command{
 
 		isDownloading := cctx.Bool("downloading")
 		if isDownloading {
-			infos, err := schedulerAPI.GetRunningCarfileRecords(ctx)
+			infos, err := schedulerAPI.GetDownloadingCarfileRecords(ctx)
 			if err != nil {
 				return err
 			}
@@ -322,12 +291,12 @@ var listCarfilesCmd = &cli.Command{
 
 				fmt.Printf("\nData CID: %s ,Total Size:%f MB ,Total Blocks:%d \n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks)
 
-				sort.Slice(info.CarfileReplicaInfos, func(i, j int) bool {
-					return info.CarfileReplicaInfos[i].DeviceID < info.CarfileReplicaInfos[j].DeviceID
+				sort.Slice(info.ReplicaInfos, func(i, j int) bool {
+					return info.ReplicaInfos[i].DeviceID < info.ReplicaInfos[j].DeviceID
 				})
 
-				for j := 0; j < len(info.CarfileReplicaInfos); j++ {
-					cache := info.CarfileReplicaInfos[j]
+				for j := 0; j < len(info.ReplicaInfos); j++ {
+					cache := info.ReplicaInfos[j]
 					fmt.Printf("DeviceID: %s , Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
 						cache.DeviceID, cache.Status.ToString(), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
 				}
@@ -342,7 +311,7 @@ var listCarfilesCmd = &cli.Command{
 		}
 
 		for _, carfile := range info.CarfileRecords {
-			fmt.Printf("%s ,EdgeReplica: %d/%d ,Blocks:%d ,Expired Time:%s \n", carfile.CarfileCid, carfile.EdgeReplica, carfile.Replica, carfile.TotalBlocks, carfile.ExpiredTime.Format("2006-01-02 15:04:05"))
+			fmt.Printf("%s ,EdgeReplica: %d/%d ,Blocks:%d ,Expiration Time:%s \n", carfile.CarfileCid, carfile.EdgeReplica, carfile.Replica, carfile.TotalBlocks, carfile.ExpirationTime.Format("2006-01-02 15:04:05"))
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
 

@@ -20,47 +20,46 @@ import (
 var log = logging.Logger("carfile")
 
 const (
-	checkCacheTimeoutInterval = 60      //  set to check node cache timeout timer (Unit:Second)
-	cacheTimeoutTime          = 65      //  expiration set to redis (Unit:Second)
-	startTaskInterval         = 10      //  time interval (Unit:Second)
-	checkExpiredTimerInterval = 60 * 30 //  time interval (Unit:Second)
-	runningCarfileMaxCount    = 10      // It needs to be changed to the number of caches
-	diskUsageMax              = 90.0    // If the node disk size is greater than this value, caching will not continue
-	// dispatchCacheTaskLimit    = 3       // carfile dispatch cache count limit
-	rootCacheCount = 1 // The number of caches in the first stage
+	checkCacheTimeoutInterval    = 60      //  set to check node cache timeout timer (Unit:Second)
+	cacheTimeoutTime             = 65      //  expiration set to redis (Unit:Second)
+	startTaskInterval            = 10      //  time interval (Unit:Second)
+	checkExpirationTimerInterval = 60 * 30 //  time interval (Unit:Second)
+	downloadingCarfileMaxCount   = 10      // It needs to be changed to the number of caches
+	diskUsageMax                 = 90.0    // If the node disk size is greater than this value, caching will not continue
+	rootCacheCount               = 1       // The number of caches in the first stage
 )
 
 var candidateReplicaCacheCount = 0 // Cache to the number of candidate nodes （does not contain 'rootCacheCount'）
 
 // Manager carfile
 type Manager struct {
-	nodeManager             *node.Manager
-	RunningCarfileRecordMap sync.Map // cacheing carfile map
-	latelyExpiredTime       time.Time
-	writeToken              []byte
-	runningTaskCount        int
+	nodeManager                 *node.Manager
+	DownloadingCarfileRecordMap sync.Map // caching carfile map
+	latelyExpirationTime        time.Time
+	writeToken                  []byte
+	downloadingTaskCount        int
 }
 
 // NewManager new
 func NewManager(nodeManager *node.Manager, writeToken []byte) *Manager {
 	d := &Manager{
-		nodeManager:       nodeManager,
-		latelyExpiredTime: time.Now(),
-		writeToken:        writeToken,
+		nodeManager:          nodeManager,
+		latelyExpirationTime: time.Now(),
+		writeToken:           writeToken,
 	}
 
 	d.resetSystemBaseInfo()
 	d.initCarfileMap()
-	go d.cacheTaskTicker()
-	go d.checkExpiredTicker()
+	go d.carfileTaskTicker()
+	go d.checkExpirationTicker()
 
 	return d
 }
 
 func (m *Manager) initCarfileMap() {
-	carfileHashs, err := cache.GetCacheingCarfiles()
+	carfileHashs, err := cache.GetCachingCarfiles()
 	if err != nil {
-		log.Errorf("initCacheMap GetCacheingCarfiles err:%s", err.Error())
+		log.Errorf("initCacheMap GetCachingCarfiles err:%s", err.Error())
 		return
 	}
 
@@ -74,43 +73,43 @@ func (m *Manager) initCarfileMap() {
 
 		m.carfileCacheStart(cr)
 
-		isRunning := false
+		isDownloading := false
 		// start timout check
-		cr.CacheTaskMap.Range(func(key, value interface{}) bool {
-			c := value.(*CacheTask)
-			if c.status != api.CacheStatusRunning {
+		cr.ReplicaMap.Range(func(key, value interface{}) bool {
+			c := value.(*Replica)
+			if c.status != api.CacheStatusDownloading {
 				return true
 			}
 
-			isRunning = true
+			isDownloading = true
 			go c.startTimeoutTimer()
 
 			return true
 		})
 
-		if !isRunning {
+		if !isDownloading {
 			m.carfileCacheEnd(cr, nil)
 		}
 	}
 }
 
-func (m *Manager) cacheTaskTicker() {
+func (m *Manager) carfileTaskTicker() {
 	ticker := time.NewTicker(time.Duration(startTaskInterval) * time.Second)
 	defer ticker.Stop()
 
 	for {
 		<-ticker.C
-		m.startCarfileCacheTasks()
+		m.startCarfileReplicaTasks()
 	}
 }
 
-func (m *Manager) checkExpiredTicker() {
-	ticker := time.NewTicker(time.Duration(checkExpiredTimerInterval) * time.Second)
+func (m *Manager) checkExpirationTicker() {
+	ticker := time.NewTicker(time.Duration(checkExpirationTimerInterval) * time.Second)
 	defer ticker.Stop()
 
 	for {
 		<-ticker.C
-		m.checkCachesExpired()
+		m.checkCachesExpiration()
 	}
 }
 
@@ -128,10 +127,10 @@ func (m *Manager) resetSystemBaseInfo() {
 }
 
 // GetCarfileRecord get a carfileRecord from map or db
-func (m *Manager) GetCarfileRecord(hash string) (*CarfileRecord, error) {
-	dI, exist := m.RunningCarfileRecordMap.Load(hash)
+func (m *Manager) GetCarfileRecord(hash string) (*Record, error) {
+	dI, exist := m.DownloadingCarfileRecordMap.Load(hash)
 	if exist && dI != nil {
-		return dI.(*CarfileRecord), nil
+		return dI.(*Record), nil
 	}
 
 	return loadCarfileRecord(hash, m)
@@ -144,7 +143,7 @@ func (m *Manager) cacheCarfileToNode(info *api.CacheCarfileInfo) error {
 	}
 
 	// only execute once
-	carfileRecord.step = endStep
+	carfileRecord.step = cachedStep
 
 	m.carfileCacheStart(carfileRecord)
 
@@ -156,14 +155,14 @@ func (m *Manager) cacheCarfileToNode(info *api.CacheCarfileInfo) error {
 	return nil
 }
 
-func (m *Manager) doCarfileCacheTask(info *api.CacheCarfileInfo) error {
+func (m *Manager) doCarfileReplicaTask(info *api.CacheCarfileInfo) error {
 	exist, err := persistent.CarfileRecordExisted(info.CarfileHash)
 	if err != nil {
 		log.Errorf("%s CarfileRecordExist err:%s", info.CarfileCid, err.Error())
 		return err
 	}
 
-	var carfileRecord *CarfileRecord
+	var carfileRecord *Record
 	if exist {
 		carfileRecord, err = loadCarfileRecord(info.CarfileHash, m)
 		if err != nil {
@@ -171,21 +170,21 @@ func (m *Manager) doCarfileCacheTask(info *api.CacheCarfileInfo) error {
 		}
 
 		carfileRecord.replica = info.Replica
-		carfileRecord.expiredTime = info.ExpiredTime
+		carfileRecord.expirationTime = info.ExpirationTime
 
 		carfileRecord.initStep()
 	} else {
 		carfileRecord = newCarfileRecord(m, info.CarfileCid, info.CarfileHash)
 		carfileRecord.replica = info.Replica
-		carfileRecord.expiredTime = info.ExpiredTime
+		carfileRecord.expirationTime = info.ExpirationTime
 	}
 
 	err = persistent.CreateOrUpdateCarfileRecordInfo(&api.CarfileRecordInfo{
-		CarfileCid:  carfileRecord.carfileCid,
-		Replica:     carfileRecord.replica,
-		ExpiredTime: carfileRecord.expiredTime,
-		CarfileHash: carfileRecord.carfileHash,
-	}, exist)
+		CarfileCid:     carfileRecord.carfileCid,
+		Replica:        carfileRecord.replica,
+		ExpirationTime: carfileRecord.expirationTime,
+		CarfileHash:    carfileRecord.carfileHash,
+	})
 	if err != nil {
 		return xerrors.Errorf("cid:%s,CreateOrUpdateCarfileRecordInfo err:%s", carfileRecord.carfileCid, err.Error())
 	}
@@ -203,7 +202,7 @@ func (m *Manager) doCarfileCacheTask(info *api.CacheCarfileInfo) error {
 // CacheCarfile new carfile task
 func (m *Manager) CacheCarfile(info *api.CacheCarfileInfo) error {
 	if info.DeviceID == "" {
-		log.Infof("carfile event %s , add carfile,reliability:%d,expiredTime:%s", info.CarfileCid, info.Replica, info.ExpiredTime.String())
+		log.Infof("carfile event %s , add carfile,replica:%d,expiration:%s", info.CarfileCid, info.Replica, info.ExpirationTime.String())
 	} else {
 		log.Infof("carfile event %s , add carfile,deviceID:%s", info.CarfileCid, info.DeviceID)
 	}
@@ -213,7 +212,7 @@ func (m *Manager) CacheCarfile(info *api.CacheCarfileInfo) error {
 
 // RemoveCarfileRecord remove a carfile
 func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
-	cInfos, err := persistent.GetCarfileReplicaInfosWithHash(hash, false)
+	cInfos, err := persistent.CarfileReplicaInfosWithHash(hash, false)
 	if err != nil {
 		return xerrors.Errorf("GetCarfileReplicaInfosWithHash: %s,err:%s", carfileCid, err.Error())
 	}
@@ -245,12 +244,12 @@ func (m *Manager) RemoveCache(carfileCid, deviceID string) error {
 		return err
 	}
 
-	dI, exist := m.RunningCarfileRecordMap.Load(hash)
+	dI, exist := m.DownloadingCarfileRecordMap.Load(hash)
 	if exist && dI != nil {
-		return xerrors.Errorf("task %s is running, please wait", carfileCid)
+		return xerrors.Errorf("task %s is downloading, please wait", carfileCid)
 	}
 
-	cacheInfo, err := persistent.GetReplicaInfo(cacheTaskID(hash, deviceID))
+	cacheInfo, err := persistent.GetReplicaInfo(replicaID(hash, deviceID))
 	if err != nil {
 		return xerrors.Errorf("GetReplicaInfo: %s,err:%s", carfileCid, err.Error())
 	}
@@ -280,12 +279,12 @@ func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo)
 	log.Debugf("carfileCacheResult :%s , %d , %s", deviceID, info.Status, info.CarfileHash)
 	// log.Debugf("carfileCacheResult :%v", info)
 
-	var carfileRecord *CarfileRecord
-	dI, exist := m.RunningCarfileRecordMap.Load(info.CarfileHash)
+	var carfileRecord *Record
+	dI, exist := m.DownloadingCarfileRecordMap.Load(info.CarfileHash)
 	if exist && dI != nil {
-		carfileRecord = dI.(*CarfileRecord)
+		carfileRecord = dI.(*Record)
 	} else {
-		err = xerrors.Errorf("task not running : %s,%s ,err:%v", deviceID, info.CarfileHash, err)
+		err = xerrors.Errorf("task not downloading : %s,%s ,err:%v", deviceID, info.CarfileHash, err)
 		return
 	}
 
@@ -295,15 +294,15 @@ func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo)
 	}
 
 	if info.Status == api.CacheStatusCreate {
-		info.Status = api.CacheStatusRunning
+		info.Status = api.CacheStatusDownloading
 	}
 
 	err = carfileRecord.carfileCacheResult(deviceID, info)
 	return
 }
 
-func (m *Manager) startCarfileCacheTasks() {
-	doLen := runningCarfileMaxCount - m.runningTaskCount
+func (m *Manager) startCarfileReplicaTasks() {
+	doLen := downloadingCarfileMaxCount - m.downloadingTaskCount
 	if doLen <= 0 {
 		return
 	}
@@ -318,15 +317,15 @@ func (m *Manager) startCarfileCacheTasks() {
 			continue
 		}
 
-		if _, exist := m.RunningCarfileRecordMap.Load(info.CarfileHash); exist {
-			log.Errorf("carfileRecord %s is running, please wait", info.CarfileCid)
+		if _, exist := m.DownloadingCarfileRecordMap.Load(info.CarfileHash); exist {
+			log.Errorf("carfileRecord %s is downloading, please wait", info.CarfileCid)
 			continue
 		}
 
 		if info.DeviceID != "" {
 			err = m.cacheCarfileToNode(info)
 		} else {
-			err = m.doCarfileCacheTask(info)
+			err = m.doCarfileReplicaTask(info)
 		}
 		if err != nil {
 			log.Errorf("carfile %s do caches err:%s", info.CarfileCid, err.Error())
@@ -334,24 +333,24 @@ func (m *Manager) startCarfileCacheTasks() {
 	}
 }
 
-func (m *Manager) carfileCacheStart(cr *CarfileRecord) {
-	_, exist := m.RunningCarfileRecordMap.LoadOrStore(cr.carfileHash, cr)
+func (m *Manager) carfileCacheStart(cr *Record) {
+	_, exist := m.DownloadingCarfileRecordMap.LoadOrStore(cr.carfileHash, cr)
 	if !exist {
-		m.runningTaskCount++
+		m.downloadingTaskCount++
 	}
 
-	log.Infof("carfile %s cache task start ----- cur running count : %d", cr.carfileCid, m.runningTaskCount)
+	log.Infof("carfile %s cache task start ----- cur downloading count : %d", cr.carfileCid, m.downloadingTaskCount)
 }
 
-func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
-	_, exist := m.RunningCarfileRecordMap.LoadAndDelete(cr.carfileHash)
+func (m *Manager) carfileCacheEnd(cr *Record, err error) {
+	_, exist := m.DownloadingCarfileRecordMap.LoadAndDelete(cr.carfileHash)
 	if exist {
-		m.runningTaskCount--
+		m.downloadingTaskCount--
 	}
 
-	log.Infof("carfile %s cache task end ----- cur running count : %d", cr.carfileCid, m.runningTaskCount)
+	log.Infof("carfile %s cache task end ----- cur downloading count : %d", cr.carfileCid, m.downloadingTaskCount)
 
-	m.resetLatelyExpiredTime(cr.expiredTime)
+	m.resetLatelyExpirationTime(cr.expirationTime)
 
 	info := &api.CarfileRecordCacheResult{
 		NodeErrs:             cr.nodeCacheErrs,
@@ -368,33 +367,27 @@ func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
 	}
 }
 
-// StopCacheTask stop cache task
-func (m *Manager) StopCacheTask(cid, deviceID string) error {
-	// TODO
-	return xerrors.New("unrealized")
-}
-
-// ResetCacheExpiredTime reset expired time
-func (m *Manager) ResetCacheExpiredTime(cid string, expiredTime time.Time) error {
+// ResetCacheExpirationTime reset expiration time
+func (m *Manager) ResetCacheExpirationTime(cid string, t time.Time) error {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return err
 	}
 
-	log.Infof("carfile event %s , reset carfile expired time:%s", cid, expiredTime.String())
+	log.Infof("carfile event %s , reset carfile expiration time:%s", cid, t.String())
 
-	dI, exist := m.RunningCarfileRecordMap.Load(hash)
+	dI, exist := m.DownloadingCarfileRecordMap.Load(hash)
 	if exist && dI != nil {
-		carfileRecord := dI.(*CarfileRecord)
-		carfileRecord.expiredTime = expiredTime
+		carfileRecord := dI.(*Record)
+		carfileRecord.expirationTime = t
 	}
 
-	err = persistent.ChangeExpiredTimeWhitCarfile(hash, expiredTime)
+	err = persistent.ResetCarfileExpirationTime(hash, t)
 	if err != nil {
 		return err
 	}
 
-	m.resetLatelyExpiredTime(expiredTime)
+	m.resetLatelyExpirationTime(t)
 
 	return nil
 }
@@ -417,15 +410,15 @@ func (m *Manager) NodesQuit(deviceIDs []string) {
 	}
 }
 
-// check expired caches
-func (m *Manager) checkCachesExpired() {
-	if m.latelyExpiredTime.After(time.Now()) {
+// check expiration caches
+func (m *Manager) checkCachesExpiration() {
+	if m.latelyExpirationTime.After(time.Now()) {
 		return
 	}
 
-	carfileRecords, err := persistent.GetExpiredCarfiles()
+	carfileRecords, err := persistent.ExpiredCarfiles()
 	if err != nil {
-		log.Errorf("GetExpiredCarfiles err:%s", err.Error())
+		log.Errorf("ExpiredCarfiles err:%s", err.Error())
 		return
 	}
 
@@ -435,18 +428,18 @@ func (m *Manager) checkCachesExpired() {
 		log.Infof("cid:%s, expired,remove it ; %v", carfileRecord.CarfileCid, err)
 	}
 
-	// reset latelyExpiredTime
-	latelyExpiredTime, err := persistent.GetMinExpiredTime()
+	// reset expiration time
+	latelyExpirationTime, err := persistent.MinExpirationTime()
 	if err != nil {
 		return
 	}
 
-	m.resetLatelyExpiredTime(latelyExpiredTime)
+	m.resetLatelyExpirationTime(latelyExpirationTime)
 }
 
-func (m *Manager) resetLatelyExpiredTime(t time.Time) {
-	if m.latelyExpiredTime.After(t) {
-		m.latelyExpiredTime = t
+func (m *Manager) resetLatelyExpirationTime(t time.Time) {
+	if m.latelyExpirationTime.After(t) {
+		m.latelyExpirationTime = t
 	}
 }
 
@@ -490,7 +483,7 @@ func (m *Manager) GetCandidateReplicaCount() int {
 	return candidateReplicaCacheCount
 }
 
-func cacheTaskID(hash, deviceID string) string {
+func replicaID(hash, deviceID string) string {
 	input := fmt.Sprintf("%s%s", hash, deviceID)
 
 	c := sha1.New()
@@ -521,13 +514,13 @@ func (m *Manager) GetCarfileRecordInfo(cid string) (*api.CarfileRecordInfo, erro
 	return dInfo, nil
 }
 
-// GetRunningCarfileInfos get all running carfiles
-func (m *Manager) GetRunningCarfileInfos() []*api.CarfileRecordInfo {
+// GetDownloadingCarfileInfos get all downloading carfiles
+func (m *Manager) GetDownloadingCarfileInfos() []*api.CarfileRecordInfo {
 	infos := make([]*api.CarfileRecordInfo, 0)
 
-	m.RunningCarfileRecordMap.Range(func(key, value interface{}) bool {
+	m.DownloadingCarfileRecordMap.Range(func(key, value interface{}) bool {
 		if value != nil {
-			data := value.(*CarfileRecord)
+			data := value.(*Record)
 			if data != nil {
 				cInfo := carfileRecord2Info(data)
 				infos = append(infos, cInfo)
@@ -540,7 +533,7 @@ func (m *Manager) GetRunningCarfileInfos() []*api.CarfileRecordInfo {
 	return infos
 }
 
-func carfileRecord2Info(d *CarfileRecord) *api.CarfileRecordInfo {
+func carfileRecord2Info(d *Record) *api.CarfileRecordInfo {
 	info := &api.CarfileRecordInfo{}
 	if d != nil {
 		info.CarfileCid = d.carfileCid
@@ -549,14 +542,14 @@ func carfileRecord2Info(d *CarfileRecord) *api.CarfileRecordInfo {
 		info.Replica = d.replica
 		info.EdgeReplica = d.edgeReplica
 		info.TotalBlocks = d.totalBlocks
-		info.ExpiredTime = d.expiredTime
+		info.ExpirationTime = d.expirationTime
 
-		caches := make([]*api.CarfileReplicaInfo, 0)
+		caches := make([]*api.ReplicaInfo, 0)
 
-		d.CacheTaskMap.Range(func(key, value interface{}) bool {
-			c := value.(*CacheTask)
+		d.ReplicaMap.Range(func(key, value interface{}) bool {
+			c := value.(*Replica)
 
-			cc := &api.CarfileReplicaInfo{
+			cc := &api.ReplicaInfo{
 				Status:      c.status,
 				DoneSize:    c.doneSize,
 				DoneBlocks:  c.doneBlocks,
@@ -570,7 +563,7 @@ func carfileRecord2Info(d *CarfileRecord) *api.CarfileRecordInfo {
 			return true
 		})
 
-		info.CarfileReplicaInfos = caches
+		info.ReplicaInfos = caches
 	}
 
 	return info

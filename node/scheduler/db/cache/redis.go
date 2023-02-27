@@ -32,12 +32,12 @@ const (
 	// redisKeyBlockDownloadSN
 	redisKeyBlockDownloadSN       = "Titan:BlockDownloadRecordSN"
 	redisKeyCarfileLatestDownload = "Titan:LatestDownload:%s"
-	// redisKeyCacheingCarfileList
-	redisKeyCacheingCarfileList = "Titan:CacheingCarfileList"
-	// redisKeyCarfileCacheingNodeList hash
-	redisKeyCarfileCacheingNodeList = "Titan:CarfileCacheingNodeList:%s"
-	// redisKeyCacheingNode  deviceID
-	redisKeyCacheingNode = "Titan:CacheingNode:%s"
+	// redisKeyCachingCarfileList
+	redisKeyCachingCarfileList = "Titan:CachingCarfileList"
+	// redisKeyCarfileCachingNodeList hash
+	redisKeyCarfileCachingNodeList = "Titan:CarfileCachingNodeList:%s"
+	// redisKeyCachingNode  deviceID
+	redisKeyCachingNode = "Titan:CachingNode:%s"
 	// redisKeySystemBaseInfo
 	redisKeySystemBaseInfo = "Titan:SystemBaseInfo"
 
@@ -74,15 +74,15 @@ func InitRedis(url string) error {
 	return err
 }
 
-func CacheTasksStart(hash string, deviceIDs []string, timeout int64) error {
+func ReplicaTasksStart(hash string, deviceIDs []string, timeout int64) error {
 	ctx := context.Background()
 
 	_, err := redisCli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-		pipeliner.SAdd(context.Background(), redisKeyCacheingCarfileList, hash)
-		pipeliner.SAdd(context.Background(), redisKeyCarfileCacheingNodeList, deviceIDs)
+		pipeliner.SAdd(context.Background(), redisKeyCachingCarfileList, hash)
+		pipeliner.SAdd(context.Background(), redisKeyCarfileCachingNodeList, deviceIDs)
 
 		for _, deviceID := range deviceIDs {
-			nodeKey := fmt.Sprintf(redisKeyCacheingNode, deviceID)
+			nodeKey := fmt.Sprintf(redisKeyCachingNode, deviceID)
 			// Expire
 			pipeliner.Set(context.Background(), nodeKey, hash, time.Second*time.Duration(timeout))
 		}
@@ -92,13 +92,13 @@ func CacheTasksStart(hash string, deviceIDs []string, timeout int64) error {
 	return err
 }
 
-func CacheTasksEnd(hash string, deviceIDs []string) (bool, error) {
-	_, err := redisCli.SRem(context.Background(), redisKeyCarfileCacheingNodeList, deviceIDs).Result()
+func ReplicaTasksEnd(hash string, deviceIDs []string) (bool, error) {
+	_, err := redisCli.SRem(context.Background(), redisKeyCarfileCachingNodeList, deviceIDs).Result()
 	if err != nil {
 		return false, err
 	}
 
-	exist, err := redisCli.Exists(context.Background(), redisKeyCarfileCacheingNodeList).Result()
+	exist, err := redisCli.Exists(context.Background(), redisKeyCarfileCachingNodeList).Result()
 	if err != nil {
 		return false, err
 	}
@@ -106,25 +106,25 @@ func CacheTasksEnd(hash string, deviceIDs []string) (bool, error) {
 	cachesDone := exist == 0
 
 	if cachesDone {
-		_, err = redisCli.SRem(context.Background(), redisKeyCacheingCarfileList, hash).Result()
+		_, err = redisCli.SRem(context.Background(), redisKeyCachingCarfileList, hash).Result()
 	}
 
 	return cachesDone, err
 }
 
-func UpdateNodeCacheingExpireTime(hash, deviceID string, timeout int64) error {
-	nodeKey := fmt.Sprintf(redisKeyCacheingNode, deviceID)
+func UpdateNodeCachingExpireTime(hash, deviceID string, timeout int64) error {
+	nodeKey := fmt.Sprintf(redisKeyCachingNode, deviceID)
 	// Expire
 	_, err := redisCli.Set(context.Background(), nodeKey, hash, time.Second*time.Duration(timeout)).Result()
 	return err
 }
 
-func GetCacheingCarfiles() ([]string, error) {
-	return redisCli.SMembers(context.Background(), redisKeyCacheingCarfileList).Result()
+func GetCachingCarfiles() ([]string, error) {
+	return redisCli.SMembers(context.Background(), redisKeyCachingCarfileList).Result()
 }
 
 func GetNodeCacheTimeoutTime(deviceID string) (int, error) {
-	key := fmt.Sprintf(redisKeyCacheingNode, deviceID)
+	key := fmt.Sprintf(redisKeyCachingNode, deviceID)
 
 	expiration, err := redisCli.TTL(context.Background(), key).Result()
 	if err != nil {

@@ -83,11 +83,11 @@ func (w *web) ListBlockDownloadInfo(ctx context.Context, req api.ListBlockDownlo
 	}, nil
 }
 
-func (w *web) GetCacheTaskInfos(ctx context.Context, req api.ListCacheInfosReq) (api.ListCacheInfosRsp, error) {
+func (w *web) GetReplicaInfos(ctx context.Context, req api.ListCacheInfosReq) (api.ListCacheInfosRsp, error) {
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
-	info, err := persistent.GetCacheTaskInfos(startTime, endTime, req.Cursor, req.Count)
+	info, err := persistent.GetReplicaInfos(startTime, endTime, req.Cursor, req.Count)
 	if err != nil {
 		return api.ListCacheInfosRsp{}, err
 	}
