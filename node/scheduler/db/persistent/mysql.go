@@ -43,7 +43,7 @@ var (
 )
 
 // InitSQL init sql
-func InitSQL(url, serverID string) (err error) {
+func InitSQL(url string) (err error) {
 	url = fmt.Sprintf("%s?parseTime=true&loc=Local", url)
 
 	database, err = sqlx.Open("mysql", url)

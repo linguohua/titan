@@ -72,17 +72,11 @@ type DB interface {
 	GetCacheTaskInfos(startTime time.Time, endTime time.Time, cursor, count int) (*api.ListCacheInfosRsp, error)
 }
 
-// var (
-// 	db DB
-
-// 	serverID string
-// )
-
 // InitDB New  DB
-func InitDB(url, dbType, sID string) (err error) {
+func InitDB(url, dbType string) (err error) {
 	switch dbType {
 	case TypeMySQL():
-		err = InitSQL(url, sID)
+		err = InitSQL(url)
 	default:
 		err = xerrors.New("unknown DB type")
 	}
