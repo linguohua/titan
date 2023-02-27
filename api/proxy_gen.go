@@ -229,7 +229,7 @@ type SchedulerStruct struct {
 
 		ElectionValidators func(p0 context.Context) error `perm:"admin"`
 
-		ExecuteUndoneCarfilesTask func(p0 context.Context) error `perm:"admin"`
+		ExecuteUndoneCarfilesTask func(p0 context.Context, p1 []string) error `perm:"admin"`
 
 		GetAllEdgeAddrs func(p0 context.Context) (map[string]string, error) `perm:"write"`
 
@@ -261,7 +261,7 @@ type SchedulerStruct struct {
 
 		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
-		NodeQuit func(p0 context.Context, p1 string) error `perm:"admin"`
+		NodeQuit func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
 		NodeResultForUserDownloadBlock func(p0 context.Context, p1 NodeBlockDownloadResult) error `perm:"write"`
 
@@ -903,14 +903,14 @@ func (s *SchedulerStub) ElectionValidators(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ExecuteUndoneCarfilesTask(p0 context.Context) error {
+func (s *SchedulerStruct) ExecuteUndoneCarfilesTask(p0 context.Context, p1 []string) error {
 	if s.Internal.ExecuteUndoneCarfilesTask == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.ExecuteUndoneCarfilesTask(p0)
+	return s.Internal.ExecuteUndoneCarfilesTask(p0, p1)
 }
 
-func (s *SchedulerStub) ExecuteUndoneCarfilesTask(p0 context.Context) error {
+func (s *SchedulerStub) ExecuteUndoneCarfilesTask(p0 context.Context, p1 []string) error {
 	return ErrNotSupported
 }
 
@@ -1079,14 +1079,14 @@ func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 string, p2 string)
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) NodeQuit(p0 context.Context, p1 string) error {
+func (s *SchedulerStruct) NodeQuit(p0 context.Context, p1 string, p2 string) error {
 	if s.Internal.NodeQuit == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.NodeQuit(p0, p1)
+	return s.Internal.NodeQuit(p0, p1, p2)
 }
 
-func (s *SchedulerStub) NodeQuit(p0 context.Context, p1 string) error {
+func (s *SchedulerStub) NodeQuit(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
 }
 

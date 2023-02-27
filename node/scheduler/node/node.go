@@ -272,7 +272,7 @@ func (n *Node) setNodeOnline() error {
 	geoInfo := n.geoInfo
 	typeName := string(n.nodeType)
 
-	err := persistent.GetDB().SetNodeInfo(deviceID, &persistent.NodeInfo{
+	err := persistent.SetNodeInfo(deviceID, &persistent.NodeInfo{
 		Geo:        geoInfo.Geo,
 		LastTime:   time.Now(),
 		IsOnline:   true,
@@ -292,7 +292,7 @@ func (n *Node) setNodeOnline() error {
 func (n *Node) setNodeOffline() {
 	deviceID := n.DeviceID
 
-	err := persistent.GetDB().SetNodeOffline(deviceID, n.lastRequestTime)
+	err := persistent.SetNodeOffline(deviceID, n.lastRequestTime)
 	if err != nil {
 		log.Errorf("node offline SetNodeOffline err : %s ,deviceID : %s", err.Error(), deviceID)
 	}

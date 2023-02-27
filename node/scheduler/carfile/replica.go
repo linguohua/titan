@@ -41,7 +41,7 @@ func newCacheTask(carfileRecord *CarfileRecord, deviceID string, isCandidate boo
 		createTime:    time.Now(),
 	}
 
-	err := persistent.GetDB().CreateCarfileReplicaInfo(
+	err := persistent.CreateCarfileReplicaInfo(
 		&api.CarfileReplicaInfo{
 			ID:          cache.id,
 			CarfileHash: cache.carfileHash,
@@ -126,7 +126,7 @@ func (c *CacheTask) updateCacheTaskInfo() error {
 		EndTime:     time.Now(),
 	}
 
-	return persistent.GetDB().UpdateCarfileReplicaInfo(cInfo)
+	return persistent.UpdateCarfileReplicaInfo(cInfo)
 }
 
 // Notify node to cache blocks

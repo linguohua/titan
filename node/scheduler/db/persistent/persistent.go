@@ -1,23 +1,11 @@
 package persistent
 
 import (
-	"math/rand"
 	"time"
 
 	"github.com/linguohua/titan/api"
 	"golang.org/x/xerrors"
 )
-
-const (
-	// NodeTypeKey node info key
-	NodeTypeKey = "node_type"
-	// SecretKey node info key
-	SecretKey = "secret"
-
-	maxDataCount = 100
-)
-
-var myRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // DB Persistent db
 type DB interface {
@@ -90,21 +78,16 @@ type DB interface {
 // 	serverID string
 // )
 
-// NewDB New  DB
-func NewDB(url, dbType, sID string) (db DB, err error) {
+// InitDB New  DB
+func InitDB(url, dbType, sID string) (err error) {
 	switch dbType {
 	case TypeMySQL():
-		db, err = InitSQL(url, sID)
+		err = InitSQL(url, sID)
 	default:
 		err = xerrors.New("unknown DB type")
 	}
 
-	return db, err
-}
-
-// GetDB Get DB
-func GetDB() DB {
-	return nil
+	return err
 }
 
 // NodeInfo base info
