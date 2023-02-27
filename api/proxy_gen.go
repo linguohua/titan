@@ -104,6 +104,9 @@ type CommonStub struct {
 
 type DataSyncStruct struct {
 	Internal struct {
+		CheckCarfilesWithRange func(p0 []string, p1 int, p2 int, p3 bool) error ``
+
+		CheckSummary func(p0 string, p1 string) (*CheckSummaryResult, error) ``
 	}
 }
 
@@ -568,6 +571,28 @@ func (s *CommonStruct) Version(p0 context.Context) (APIVersion, error) {
 
 func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 	return *new(APIVersion), ErrNotSupported
+}
+
+func (s *DataSyncStruct) CheckCarfilesWithRange(p0 []string, p1 int, p2 int, p3 bool) error {
+	if s.Internal.CheckCarfilesWithRange == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.CheckCarfilesWithRange(p0, p1, p2, p3)
+}
+
+func (s *DataSyncStub) CheckCarfilesWithRange(p0 []string, p1 int, p2 int, p3 bool) error {
+	return ErrNotSupported
+}
+
+func (s *DataSyncStruct) CheckSummary(p0 string, p1 string) (*CheckSummaryResult, error) {
+	if s.Internal.CheckSummary == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.CheckSummary(p0, p1)
+}
+
+func (s *DataSyncStub) CheckSummary(p0 string, p1 string) (*CheckSummaryResult, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *DeviceStruct) DeviceID(p0 context.Context) (string, error) {
