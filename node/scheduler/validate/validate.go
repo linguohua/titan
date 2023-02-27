@@ -278,7 +278,7 @@ func (v *Validate) getNodeReqValidate(validated *validatedDeviceInfo) (api.ReqVa
 		NodeType:   int(validated.nodeType),
 	}
 
-	hash, err := persistent.GetRandCarfileWithNode(validated.deviceID)
+	hash, err := persistent.RandomCarfileFromNode(validated.deviceID)
 	if err != nil {
 		return req, err
 	}
@@ -382,7 +382,7 @@ func (v *Validate) ValidateResult(validateResult *api.ValidateResults) error {
 		return nil
 	}
 
-	candidates, err := persistent.GetCachesWithCandidate(hash)
+	candidates, err := persistent.CandidatesWithHash(hash)
 	if err != nil {
 		status = api.ValidateStatusOther
 		log.Errorf("handleValidateResult GetCaches %s , err:%s", validateResult.CarfileCID, err.Error())

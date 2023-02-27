@@ -11,9 +11,9 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// CacheTask CacheTask
-type CacheTask struct {
-	carfileRecord *CarfileRecord
+// Replica Replica
+type Replica struct {
+	carfileRecord *Record
 	nodeManager   *node.Manager
 
 	id          string
@@ -29,20 +29,20 @@ type CacheTask struct {
 	timeoutTicker *time.Ticker
 }
 
-func newCacheTask(carfileRecord *CarfileRecord, deviceID string, isCandidate bool) (*CacheTask, error) {
-	cache := &CacheTask{
+func newReplica(carfileRecord *Record, deviceID string, isCandidate bool) (*Replica, error) {
+	cache := &Replica{
 		carfileRecord: carfileRecord,
 		nodeManager:   carfileRecord.nodeManager,
-		status:        api.CacheStatusRunning,
+		status:        api.CacheStatusDownloading,
 		carfileHash:   carfileRecord.carfileHash,
 		isCandidate:   isCandidate,
 		deviceID:      deviceID,
-		id:            cacheTaskID(carfileRecord.carfileHash, deviceID),
+		id:            replicaID(carfileRecord.carfileHash, deviceID),
 		createTime:    time.Now(),
 	}
 
 	err := persistent.CreateCarfileReplicaInfo(
-		&api.CarfileReplicaInfo{
+		&api.ReplicaInfo{
 			ID:          cache.id,
 			CarfileHash: cache.carfileHash,
 			DeviceID:    cache.deviceID,
@@ -52,7 +52,7 @@ func newCacheTask(carfileRecord *CarfileRecord, deviceID string, isCandidate boo
 	return cache, err
 }
 
-func (c *CacheTask) isTimeout() bool {
+func (c *Replica) isTimeout() bool {
 	// check redis
 	expiration, err := cache.GetNodeCacheTimeoutTime(c.deviceID)
 	if err != nil {
@@ -63,7 +63,7 @@ func (c *CacheTask) isTimeout() bool {
 	return expiration <= 0
 }
 
-func (c *CacheTask) startTimeoutTimer() {
+func (c *Replica) startTimeoutTimer() {
 	if c.timeoutTicker != nil {
 		return
 	}
@@ -76,7 +76,7 @@ func (c *CacheTask) startTimeoutTimer() {
 
 	for {
 		<-c.timeoutTicker.C
-		if c.status != api.CacheStatusRunning {
+		if c.status != api.CacheStatusDownloading {
 			return
 		}
 
@@ -101,10 +101,10 @@ func (c *CacheTask) startTimeoutTimer() {
 	}
 }
 
-func (c *CacheTask) startTask() (err error) {
+func (c *Replica) startTask() (err error) {
 	go c.startTimeoutTimer()
 
-	c.status = api.CacheStatusRunning
+	c.status = api.CacheStatusDownloading
 
 	// send to node
 	err = c.cacheCarfile2Node()
@@ -114,9 +114,9 @@ func (c *CacheTask) startTask() (err error) {
 	return err
 }
 
-func (c *CacheTask) updateCacheTaskInfo() error {
+func (c *Replica) updateReplicaInfo() error {
 	// update cache info to db
-	cInfo := &api.CarfileReplicaInfo{
+	cInfo := &api.ReplicaInfo{
 		ID:          c.id,
 		CarfileHash: c.carfileHash,
 		DeviceID:    c.deviceID,
@@ -130,7 +130,7 @@ func (c *CacheTask) updateCacheTaskInfo() error {
 }
 
 // Notify node to cache blocks
-func (c *CacheTask) cacheCarfile2Node() (err error) {
+func (c *Replica) cacheCarfile2Node() (err error) {
 	deviceID := c.deviceID
 	var result *api.CacheCarfileResult
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

@@ -71,7 +71,7 @@ CREATE TABLE `carfiles` (
     `total_size` BIGINT  DEFAULT '0' ,
     `total_blocks` int  DEFAULT '0' ,
 	`replica` TINYINT DEFAULT '0' ,
-    `expired_time` datetime NOT NULL,
+    `expiration_time` datetime NOT NULL,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (`carfile_hash`)

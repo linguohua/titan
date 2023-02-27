@@ -87,14 +87,8 @@ var (
 		Value: 0,
 	}
 
-	expiredTimeFlag = &cli.IntFlag{
-		Name:  "expired-time",
-		Usage: "the cache expired time (unit:hour)",
-		Value: 0,
-	}
-
-	expiredDateFlag = &cli.StringFlag{
-		Name:  "expired-date",
+	expirationDateFlag = &cli.StringFlag{
+		Name:  "expiration-date",
 		Usage: "date time ('2006-1-2 15:04:05') (default:7 day later)",
 		Value: "",
 	}

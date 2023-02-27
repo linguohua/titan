@@ -58,7 +58,7 @@ func NewCarfileOperation(carfileStore *carfilestore.CarfileStore, scheduler api.
 func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, isComplete bool) error {
 	status := api.CacheStatusFailed
 	if !isComplete {
-		status = api.CacheStatusRunning
+		status = api.CacheStatusDownloading
 	} else {
 		// count total block in filesystem is cost much time
 		// only do it on carfile download complete

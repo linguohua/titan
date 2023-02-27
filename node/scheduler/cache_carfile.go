@@ -68,9 +68,9 @@ func (s *Scheduler) ExecuteUndoneCarfilesTask(ctx context.Context, hashs []strin
 	if list != nil {
 		for _, carfile := range list {
 			info := &api.CacheCarfileInfo{
-				CarfileCid:  carfile.CarfileCid,
-				Replica:     carfile.Replica,
-				ExpiredTime: carfile.ExpiredTime,
+				CarfileCid:     carfile.CarfileCid,
+				Replica:        carfile.Replica,
+				ExpirationTime: carfile.ExpirationTime,
 			}
 			err = s.CacheCarfile(ctx, info)
 			if err != nil {
@@ -82,23 +82,18 @@ func (s *Scheduler) ExecuteUndoneCarfilesTask(ctx context.Context, hashs []strin
 	return nil
 }
 
-// ResetCacheExpiredTime reset expired time with data cache
-func (s *Scheduler) ResetCacheExpiredTime(ctx context.Context, carfileCid string, expiredTime time.Time) error {
-	if time.Now().After(expiredTime) {
-		return xerrors.Errorf("expiredTime:%s has passed", expiredTime.String())
+// ResetCacheExpirationTime reset expiration time with data cache
+func (s *Scheduler) ResetCacheExpirationTime(ctx context.Context, carfileCid string, t time.Time) error {
+	if time.Now().After(t) {
+		return xerrors.Errorf("expirationTime:%s has passed", t.String())
 	}
 
-	return s.dataManager.ResetCacheExpiredTime(carfileCid, expiredTime)
+	return s.dataManager.ResetCacheExpirationTime(carfileCid, t)
 }
 
-// StopCacheTask stop cache
-func (s *Scheduler) StopCacheTask(ctx context.Context, carfileCid string) error {
-	return s.dataManager.StopCacheTask(carfileCid, "")
-}
-
-// GetRunningCarfileRecords Show Data Tasks
-func (s *Scheduler) GetRunningCarfileRecords(ctx context.Context) ([]*api.CarfileRecordInfo, error) {
-	return s.dataManager.GetRunningCarfileInfos(), nil
+// GetDownloadingCarfileRecords Show downloading carfiles
+func (s *Scheduler) GetDownloadingCarfileRecords(ctx context.Context) ([]*api.CarfileRecordInfo, error) {
+	return s.dataManager.GetDownloadingCarfileInfos(), nil
 }
 
 // GetCarfileRecordInfo Show Data Task
@@ -118,8 +113,8 @@ func (s *Scheduler) ResetReplicaCacheCount(ctx context.Context, count int) error
 }
 
 // ListCarfileRecords List Datas
-func (s *Scheduler) ListCarfileRecords(ctx context.Context, page int) (*api.DataListInfo, error) {
-	return persistent.GetCarfileCidWithPage(page)
+func (s *Scheduler) ListCarfileRecords(ctx context.Context, page int) (*api.CarfileRecordsInfo, error) {
+	return persistent.CarfileRecordInfos(page)
 }
 
 // RemoveCarfile remove all caches with carfile
@@ -167,8 +162,8 @@ func (s *Scheduler) CacheCarfile(ctx context.Context, info *api.CacheCarfileInfo
 			return xerrors.Errorf("replica is %d < 1", info.Replica)
 		}
 
-		if time.Now().After(info.ExpiredTime) {
-			return xerrors.Errorf("now after expiredTime:%s", info.ExpiredTime.String())
+		if time.Now().After(info.ExpirationTime) {
+			return xerrors.Errorf("now after expirationTime:%s", info.ExpirationTime.String())
 		}
 	}
 
