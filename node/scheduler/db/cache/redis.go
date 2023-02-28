@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/fatih/structs"
 	"github.com/linguohua/titan/api"
 
 	"github.com/go-redis/redis/v8"
@@ -27,8 +26,6 @@ const (
 	redisKeyVerifyingList = "Titan:VerifyingList"
 	// redisKeyNodeInfo  deviceID
 	redisKeyNodeInfo = "Titan:NodeInfo:%s"
-	// redisKeyBlockDownloadRecord serial number
-	redisKeyBlockDownloadRecord = "Titan:BlockDownloadRecord:%d"
 	// redisKeyBlockDownloadSN
 	redisKeyBlockDownloadSN       = "Titan:BlockDownloadRecordSN"
 	redisKeyCarfileLatestDownload = "Titan:LatestDownload:%s"
@@ -338,41 +335,6 @@ func IncrByDeviceInfo(deviceID, field string, value int64) error {
 		return err
 	}
 
-	return err
-}
-
-// download info
-func SetDownloadBlockRecord(record *DownloadBlockRecord) error {
-	ctx := context.Background()
-	key := fmt.Sprintf(redisKeyBlockDownloadRecord, record.SN)
-	_, err := redisCli.HMSet(ctx, key, structs.Map(record)).Result()
-	if err != nil {
-		return err
-	}
-	_, err = redisCli.Expire(ctx, key, time.Duration(record.Timeout)*time.Second).Result()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func GetDownloadBlockRecord(sn int64) (*DownloadBlockRecord, error) {
-	key := fmt.Sprintf(redisKeyBlockDownloadRecord, sn)
-
-	var record DownloadBlockRecord
-
-	err := redisCli.HGetAll(context.Background(), key).Scan(&record)
-	if err != nil {
-		return nil, err
-	}
-
-	return &record, nil
-}
-
-func RemoveDownloadBlockRecord(sn int64) error {
-	key := fmt.Sprintf(redisKeyBlockDownloadRecord, sn)
-	_, err := redisCli.Del(context.Background(), key).Result()
 	return err
 }
 
