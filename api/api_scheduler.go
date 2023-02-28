@@ -13,26 +13,26 @@ type Scheduler interface {
 	Web
 
 	// call by command
-	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeType) ([]string, error)                //perm:read
-	ElectionValidators(ctx context.Context) error                                               //perm:admin
-	CacheCarfile(ctx context.Context, info *CacheCarfileInfo) error                             //perm:admin
-	RemoveCarfile(ctx context.Context, carfileID string) error                                  //perm:admin
-	RemoveCache(ctx context.Context, carfileID, deviceID string) error                          //perm:admin
-	GetCarfileRecordInfo(ctx context.Context, cid string) (CarfileRecordInfo, error)            //perm:read
-	ListCarfileRecords(ctx context.Context, page int) (*CarfileRecordsInfo, error)              //perm:read
-	GetDownloadingCarfileRecords(ctx context.Context) ([]*CarfileRecordInfo, error)             //perm:read
-	RegisterNode(ctx context.Context, nodeType NodeType, count int) ([]NodeRegisterInfo, error) //perm:admin
-	ValidateSwitch(ctx context.Context, open bool) error                                        //perm:admin
-	ValidateRunningState(ctx context.Context) (bool, error)                                     //perm:admin
-	ValidateStart(ctx context.Context) error                                                    //perm:admin
-	ResetCacheExpirationTime(ctx context.Context, carfileCid string, time time.Time) error      //perm:admin
-	NodeQuit(ctx context.Context, device, secret string) error                                  //perm:admin
-	ResetReplicaCacheCount(ctx context.Context, count int) error                                //perm:admin
-	ExecuteUndoneCarfilesTask(ctx context.Context, hashs []string) error                        //perm:admin
-	ShowNodeLogFile(ctx context.Context, deviceID string) (*LogFile, error)                     //perm:admin
-	DownloadNodeLogFile(ctx context.Context, deviceID string) ([]byte, error)                   //perm:admin
-	DeleteNodeLogFile(ctx context.Context, deviceID string) error                               //perm:admin
-	SetNodePort(ctx context.Context, deviceID, port string) error                               //perm:admin
+	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeType) ([]string, error)           //perm:read
+	ElectionValidators(ctx context.Context) error                                          //perm:admin
+	CacheCarfile(ctx context.Context, info *CacheCarfileInfo) error                        //perm:admin
+	RemoveCarfile(ctx context.Context, carfileID string) error                             //perm:admin
+	RemoveCache(ctx context.Context, carfileID, deviceID string) error                     //perm:admin
+	GetCarfileRecordInfo(ctx context.Context, cid string) (CarfileRecordInfo, error)       //perm:read
+	ListCarfileRecords(ctx context.Context, page int) (*CarfileRecordsInfo, error)         //perm:read
+	GetDownloadingCarfileRecords(ctx context.Context) ([]*CarfileRecordInfo, error)        //perm:read
+	ApplyNodes(ctx context.Context, nodeType NodeType, count int) ([]NodeApplyInfo, error) //perm:admin
+	ValidateSwitch(ctx context.Context, open bool) error                                   //perm:admin
+	ValidateRunningState(ctx context.Context) (bool, error)                                //perm:admin
+	ValidateStart(ctx context.Context) error                                               //perm:admin
+	ResetCacheExpirationTime(ctx context.Context, carfileCid string, time time.Time) error //perm:admin
+	NodeQuit(ctx context.Context, device, secret string) error                             //perm:admin
+	ResetReplicaCacheCount(ctx context.Context, count int) error                           //perm:admin
+	ExecuteUndoneCarfilesTask(ctx context.Context, hashs []string) error                   //perm:admin
+	ShowNodeLogFile(ctx context.Context, deviceID string) (*LogFile, error)                //perm:admin
+	DownloadNodeLogFile(ctx context.Context, deviceID string) ([]byte, error)              //perm:admin
+	DeleteNodeLogFile(ctx context.Context, deviceID string) error                          //perm:admin
+	SetNodePort(ctx context.Context, deviceID, port string) error                          //perm:admin
 	// call by locator
 	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error //perm:write
 
@@ -85,7 +85,7 @@ type CacheEventInfo struct {
 }
 
 // NodeRegisterInfo Node Register Info
-type NodeRegisterInfo struct {
+type NodeApplyInfo struct {
 	ID         int
 	DeviceID   string `db:"device_id"`
 	Secret     string `db:"secret"`

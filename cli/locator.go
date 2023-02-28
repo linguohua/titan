@@ -239,14 +239,13 @@ var registerCmd = &cli.Command{
 		}
 		defer closer()
 
-		areaID := cctx.String("area-id")
 		schedulerURL := cctx.String("scheduler-url")
 		nodeType := cctx.Int("node-type")
 		count := cctx.Int("count")
 
 		ctx := ReqContext(cctx)
 
-		registerInfos, err := locatorAPI.RegisterNode(ctx, areaID, schedulerURL, api.NodeType(nodeType), count)
+		registerInfos, err := locatorAPI.ApplyNodes(ctx, schedulerURL, api.NodeType(nodeType), count)
 		if err != nil {
 			return err
 		}

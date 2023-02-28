@@ -127,7 +127,7 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 	}
 
 	var secret string
-	err := persistent.GetRegisterInfo(deviceID, persistent.SecretKey, &secret)
+	err := persistent.GetApplyInfo(deviceID, persistent.SecretKey, &secret)
 	if err != nil {
 		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", deviceID, err)
 	}
@@ -147,7 +147,7 @@ func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, de
 	}
 
 	var secret string
-	err := persistent.GetRegisterInfo(deviceID, persistent.SecretKey, &secret)
+	err := persistent.GetApplyInfo(deviceID, persistent.SecretKey, &secret)
 	if err != nil {
 		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", deviceID, err)
 	}
@@ -346,15 +346,15 @@ func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api
 	return nil
 }
 
-// RegisterNode Register Node
-func (s *Scheduler) RegisterNode(ctx context.Context, nodeType api.NodeType, count int) ([]api.NodeRegisterInfo, error) {
-	list := make([]api.NodeRegisterInfo, 0)
+// apply Nodes
+func (s *Scheduler) ApplyNodes(ctx context.Context, nodeType api.NodeType, count int) ([]api.NodeApplyInfo, error) {
+	list := make([]api.NodeApplyInfo, 0)
 	if count <= 0 || count > 10 {
 		return list, nil
 	}
 
 	for i := 0; i < count; i++ {
-		info, err := node.RegisterNode(nodeType)
+		info, err := node.Apply(nodeType)
 		if err != nil {
 			log.Errorf("RegisterNode err:%s", err.Error())
 			continue
@@ -580,7 +580,7 @@ func (s *Scheduler) DeleteNodeLogFile(ctx context.Context, deviceID string) erro
 // deviceExists Check if the id exists
 func deviceExists(deviceID string, nodeType int) bool {
 	var nType int
-	err := persistent.GetRegisterInfo(deviceID, persistent.NodeTypeKey, &nType)
+	err := persistent.GetApplyInfo(deviceID, persistent.NodeTypeKey, &nType)
 	if err != nil {
 		return false
 	}

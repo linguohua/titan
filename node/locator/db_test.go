@@ -14,10 +14,10 @@ func TestDB(t *testing.T) {
 	}
 	defer db.close()
 
-	cfgs, err := db.getCfgs("CN-GD-Shenzhen")
+	cfg, err := db.getSchedulerCfg("https://192.168.0.138:67890/rpc/v0")
 	if err != nil {
 		fmt.Printf("err:%s", err.Error())
 		return
 	}
-	fmt.Printf("cfgs:%v", cfgs)
+	fmt.Printf("cfg:%v", cfg)
 }

@@ -52,6 +52,15 @@ CREATE TABLE `block_download_info` (
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='block download information';
 
+CREATE TABLE `apply` (
+    `id` int unsigned NOT NULL AUTO_INCREMENT,
+	`device_id` varchar(128) NOT NULL UNIQUE,
+    `secret` varchar(64) NOT NULL ,
+    `create_time` varchar(64) DEFAULT '' ,
+	`node_type` varchar(64) DEFAULT '' ,
+	PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='register';
+
 CREATE TABLE `replicas` (
     `id` varchar(128) NOT NULL UNIQUE,
 	`carfile_hash` varchar(128) NOT NULL,

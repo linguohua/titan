@@ -135,6 +135,19 @@ func (db *sqlDB) getCfgs(areaID string) ([]*schedulerCfg, error) {
 	return cfgs, nil
 }
 
+func (db *sqlDB) getSchedulerCfg(schedulerURL string) (*schedulerCfg, error) {
+	var cfgs []*schedulerCfg
+	err := db.cli.Select(&cfgs, `SELECT * FROM scheduler_config WHERE scheduler_url=?`, schedulerURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(cfgs) > 0 {
+		return cfgs[0], nil
+	}
+	return nil, nil
+}
+
 func (db *sqlDB) addCfg(areaID string, schedulerURL string, weight int, accessToken string) error {
 	cfg := &schedulerCfg{SchedulerURL: schedulerURL, AreaID: areaID, Weight: weight, AccessToken: accessToken}
 	_, err := db.cli.NamedExec(`INSERT INTO scheduler_config (scheduler_url, area_id, weight, access_token) VALUES (:scheduler_url, :area_id, :weight, :access_token)`, cfg)

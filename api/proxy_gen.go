@@ -173,6 +173,8 @@ type LocatorStruct struct {
 	Internal struct {
 		AddAccessPoint func(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error `perm:"admin"`
 
+		ApplyNodes func(p0 context.Context, p1 string, p2 NodeType, p3 int) ([]NodeApplyInfo, error) `perm:"admin"`
+
 		GetAccessPoints func(p0 context.Context, p1 string) ([]string, error) `perm:"read"`
 
 		GetDownloadInfosWithCarfile func(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) `perm:"read"`
@@ -182,8 +184,6 @@ type LocatorStruct struct {
 		LoadAccessPointsForWeb func(p0 context.Context) ([]AccessPoint, error) `perm:"admin"`
 
 		LoadUserAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
-
-		RegisterNode func(p0 context.Context, p1 string, p2 string, p3 NodeType, p4 int) ([]NodeRegisterInfo, error) `perm:"admin"`
 
 		RemoveAccessPoints func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -205,6 +205,8 @@ type SchedulerStruct struct {
 	WebStruct
 
 	Internal struct {
+		ApplyNodes func(p0 context.Context, p1 NodeType, p2 int) ([]NodeApplyInfo, error) `perm:"admin"`
+
 		AuthNodeNew func(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) `perm:"read"`
 
 		AuthNodeVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
@@ -258,8 +260,6 @@ type SchedulerStruct struct {
 		NodeQuit func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
 		NodeResultForUserDownloadBlock func(p0 context.Context, p1 NodeBlockDownloadResult) error `perm:"write"`
-
-		RegisterNode func(p0 context.Context, p1 NodeType, p2 int) ([]NodeRegisterInfo, error) `perm:"admin"`
 
 		RemoveCache func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
@@ -653,6 +653,17 @@ func (s *LocatorStub) AddAccessPoint(p0 context.Context, p1 string, p2 string, p
 	return ErrNotSupported
 }
 
+func (s *LocatorStruct) ApplyNodes(p0 context.Context, p1 string, p2 NodeType, p3 int) ([]NodeApplyInfo, error) {
+	if s.Internal.ApplyNodes == nil {
+		return *new([]NodeApplyInfo), ErrNotSupported
+	}
+	return s.Internal.ApplyNodes(p0, p1, p2, p3)
+}
+
+func (s *LocatorStub) ApplyNodes(p0 context.Context, p1 string, p2 NodeType, p3 int) ([]NodeApplyInfo, error) {
+	return *new([]NodeApplyInfo), ErrNotSupported
+}
+
 func (s *LocatorStruct) GetAccessPoints(p0 context.Context, p1 string) ([]string, error) {
 	if s.Internal.GetAccessPoints == nil {
 		return *new([]string), ErrNotSupported
@@ -708,17 +719,6 @@ func (s *LocatorStub) LoadUserAccessPoint(p0 context.Context, p1 string) (Access
 	return *new(AccessPoint), ErrNotSupported
 }
 
-func (s *LocatorStruct) RegisterNode(p0 context.Context, p1 string, p2 string, p3 NodeType, p4 int) ([]NodeRegisterInfo, error) {
-	if s.Internal.RegisterNode == nil {
-		return *new([]NodeRegisterInfo), ErrNotSupported
-	}
-	return s.Internal.RegisterNode(p0, p1, p2, p3, p4)
-}
-
-func (s *LocatorStub) RegisterNode(p0 context.Context, p1 string, p2 string, p3 NodeType, p4 int) ([]NodeRegisterInfo, error) {
-	return *new([]NodeRegisterInfo), ErrNotSupported
-}
-
 func (s *LocatorStruct) RemoveAccessPoints(p0 context.Context, p1 string) error {
 	if s.Internal.RemoveAccessPoints == nil {
 		return ErrNotSupported
@@ -761,6 +761,17 @@ func (s *LocatorStruct) UserDownloadBlockResults(p0 context.Context, p1 []UserBl
 
 func (s *LocatorStub) UserDownloadBlockResults(p0 context.Context, p1 []UserBlockDownloadResult) error {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) ApplyNodes(p0 context.Context, p1 NodeType, p2 int) ([]NodeApplyInfo, error) {
+	if s.Internal.ApplyNodes == nil {
+		return *new([]NodeApplyInfo), ErrNotSupported
+	}
+	return s.Internal.ApplyNodes(p0, p1, p2)
+}
+
+func (s *SchedulerStub) ApplyNodes(p0 context.Context, p1 NodeType, p2 int) ([]NodeApplyInfo, error) {
+	return *new([]NodeApplyInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) {
@@ -1058,17 +1069,6 @@ func (s *SchedulerStruct) NodeResultForUserDownloadBlock(p0 context.Context, p1 
 
 func (s *SchedulerStub) NodeResultForUserDownloadBlock(p0 context.Context, p1 NodeBlockDownloadResult) error {
 	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) RegisterNode(p0 context.Context, p1 NodeType, p2 int) ([]NodeRegisterInfo, error) {
-	if s.Internal.RegisterNode == nil {
-		return *new([]NodeRegisterInfo), ErrNotSupported
-	}
-	return s.Internal.RegisterNode(p0, p1, p2)
-}
-
-func (s *SchedulerStub) RegisterNode(p0 context.Context, p1 NodeType, p2 int) ([]NodeRegisterInfo, error) {
-	return *new([]NodeRegisterInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) RemoveCache(p0 context.Context, p1 string, p2 string) error {
