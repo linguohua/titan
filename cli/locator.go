@@ -245,7 +245,7 @@ var registerCmd = &cli.Command{
 
 		ctx := ReqContext(cctx)
 
-		registerInfos, err := locatorAPI.ApplyNodes(ctx, schedulerURL, api.NodeType(nodeType), count)
+		registerInfos, err := locatorAPI.AllocateNodes(ctx, schedulerURL, api.NodeType(nodeType), count)
 		if err != nil {
 			return err
 		}

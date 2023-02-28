@@ -173,7 +173,7 @@ type LocatorStruct struct {
 	Internal struct {
 		AddAccessPoint func(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error `perm:"admin"`
 
-		ApplyNodes func(p0 context.Context, p1 string, p2 NodeType, p3 int) ([]NodeApplyInfo, error) `perm:"admin"`
+		AllocateNodes func(p0 context.Context, p1 string, p2 NodeType, p3 int) ([]NodeAllocateInfo, error) `perm:"admin"`
 
 		GetAccessPoints func(p0 context.Context, p1 string) ([]string, error) `perm:"read"`
 
@@ -205,7 +205,7 @@ type SchedulerStruct struct {
 	WebStruct
 
 	Internal struct {
-		ApplyNodes func(p0 context.Context, p1 NodeType, p2 int) ([]NodeApplyInfo, error) `perm:"admin"`
+		AllocateNodes func(p0 context.Context, p1 NodeType, p2 int) ([]NodeAllocateInfo, error) `perm:"admin"`
 
 		AuthNodeNew func(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) `perm:"read"`
 
@@ -653,15 +653,15 @@ func (s *LocatorStub) AddAccessPoint(p0 context.Context, p1 string, p2 string, p
 	return ErrNotSupported
 }
 
-func (s *LocatorStruct) ApplyNodes(p0 context.Context, p1 string, p2 NodeType, p3 int) ([]NodeApplyInfo, error) {
-	if s.Internal.ApplyNodes == nil {
-		return *new([]NodeApplyInfo), ErrNotSupported
+func (s *LocatorStruct) AllocateNodes(p0 context.Context, p1 string, p2 NodeType, p3 int) ([]NodeAllocateInfo, error) {
+	if s.Internal.AllocateNodes == nil {
+		return *new([]NodeAllocateInfo), ErrNotSupported
 	}
-	return s.Internal.ApplyNodes(p0, p1, p2, p3)
+	return s.Internal.AllocateNodes(p0, p1, p2, p3)
 }
 
-func (s *LocatorStub) ApplyNodes(p0 context.Context, p1 string, p2 NodeType, p3 int) ([]NodeApplyInfo, error) {
-	return *new([]NodeApplyInfo), ErrNotSupported
+func (s *LocatorStub) AllocateNodes(p0 context.Context, p1 string, p2 NodeType, p3 int) ([]NodeAllocateInfo, error) {
+	return *new([]NodeAllocateInfo), ErrNotSupported
 }
 
 func (s *LocatorStruct) GetAccessPoints(p0 context.Context, p1 string) ([]string, error) {
@@ -763,15 +763,15 @@ func (s *LocatorStub) UserDownloadBlockResults(p0 context.Context, p1 []UserBloc
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ApplyNodes(p0 context.Context, p1 NodeType, p2 int) ([]NodeApplyInfo, error) {
-	if s.Internal.ApplyNodes == nil {
-		return *new([]NodeApplyInfo), ErrNotSupported
+func (s *SchedulerStruct) AllocateNodes(p0 context.Context, p1 NodeType, p2 int) ([]NodeAllocateInfo, error) {
+	if s.Internal.AllocateNodes == nil {
+		return *new([]NodeAllocateInfo), ErrNotSupported
 	}
-	return s.Internal.ApplyNodes(p0, p1, p2)
+	return s.Internal.AllocateNodes(p0, p1, p2)
 }
 
-func (s *SchedulerStub) ApplyNodes(p0 context.Context, p1 NodeType, p2 int) ([]NodeApplyInfo, error) {
-	return *new([]NodeApplyInfo), ErrNotSupported
+func (s *SchedulerStub) AllocateNodes(p0 context.Context, p1 NodeType, p2 int) ([]NodeAllocateInfo, error) {
+	return *new([]NodeAllocateInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) {
