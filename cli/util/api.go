@@ -159,7 +159,7 @@ func GetSchedulerAPI(ctx *cli.Context, deviceID string) (api.Scheduler, jsonrpc.
 		return nil, nil, err
 	}
 
-	if len(deviceID) > 0 {
+	if headers != nil && len(deviceID) > 0 {
 		headers.Add("Device-ID", deviceID)
 	}
 

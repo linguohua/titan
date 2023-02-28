@@ -104,7 +104,7 @@ type CommonStub struct {
 
 type DataSyncStruct struct {
 	Internal struct {
-		CheckSummary func(p0 string, p1 string) (*CheckSummaryResult, error) `perm:"write"`
+		CheckSummary func(p0 context.Context, p1 string, p2 string) (*CheckSummaryResult, error) `perm:"write"`
 	}
 }
 
@@ -565,14 +565,14 @@ func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 	return *new(APIVersion), ErrNotSupported
 }
 
-func (s *DataSyncStruct) CheckSummary(p0 string, p1 string) (*CheckSummaryResult, error) {
+func (s *DataSyncStruct) CheckSummary(p0 context.Context, p1 string, p2 string) (*CheckSummaryResult, error) {
 	if s.Internal.CheckSummary == nil {
 		return nil, ErrNotSupported
 	}
-	return s.Internal.CheckSummary(p0, p1)
+	return s.Internal.CheckSummary(p0, p1, p2)
 }
 
-func (s *DataSyncStub) CheckSummary(p0 string, p1 string) (*CheckSummaryResult, error) {
+func (s *DataSyncStub) CheckSummary(p0 context.Context, p1 string, p2 string) (*CheckSummaryResult, error) {
 	return nil, ErrNotSupported
 }
 

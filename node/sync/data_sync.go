@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -24,7 +25,7 @@ func NewDataSync(carfileStore *carfilestore.CarfileStore) *DataSync {
 	return &DataSync{carfileStore: carfileStore}
 }
 
-func (ds *DataSync) CheckSummary(susseedCarfilesHash, unsusseedCarfilesHash string) (*api.CheckSummaryResult, error) {
+func (ds *DataSync) CheckSummary(ctx context.Context, susseedCarfilesHash, unsusseedCarfilesHash string) (*api.CheckSummaryResult, error) {
 	completeCarfileHashList, err := ds.carfileStore.GetCompleteCarfileHashList()
 	if err != nil {
 		return nil, err
