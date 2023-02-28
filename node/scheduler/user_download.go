@@ -32,7 +32,7 @@ func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result a
 
 		blockDwnloadInfo := &api.BlockDownloadInfo{DeviceID: deviceID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
 
-		carfileInfo, _ := persistent.GetCarfileInfo(blockHash)
+		carfileInfo, _ := persistent.LoadCarfileInfo(blockHash)
 		if carfileInfo != nil && carfileInfo.CarfileCid != "" {
 			blockDwnloadInfo.CarfileCID = result.BlockCID
 		}
@@ -100,12 +100,12 @@ func (s *Scheduler) verifyNodeResultForUserDownloadBlock(deviceID string, record
 	verifyContent := fmt.Sprintf("%s%d%d%d", record.Cid, record.SN, record.SignTime, record.Timeout)
 	edgeNode := s.nodeManager.GetEdgeNode(deviceID)
 	if edgeNode != nil {
-		return titanRsa.VerifyRsaSign(&edgeNode.GetPrivateKey().PublicKey, sign, verifyContent)
+		return titanRsa.VerifyRsaSign(&edgeNode.PrivateKey().PublicKey, sign, verifyContent)
 	}
 
 	candidate := s.nodeManager.GetCandidateNode(deviceID)
 	if candidate != nil {
-		return titanRsa.VerifyRsaSign(&candidate.GetPrivateKey().PublicKey, sign, verifyContent)
+		return titanRsa.VerifyRsaSign(&candidate.PrivateKey().PublicKey, sign, verifyContent)
 	}
 
 	privateKeyStr, err := persistent.NodePrivateKey(deviceID)
@@ -167,12 +167,12 @@ func (s *Scheduler) signDownloadInfos(cid string, results []*api.DownloadInfoRes
 func (s *Scheduler) getDevicePrivateKey(deviceID string) (*rsa.PrivateKey, error) {
 	edge := s.nodeManager.GetEdgeNode(deviceID)
 	if edge != nil {
-		return edge.GetPrivateKey(), nil
+		return edge.PrivateKey(), nil
 	}
 
 	candidate := s.nodeManager.GetCandidateNode(deviceID)
 	if candidate != nil {
-		return candidate.GetPrivateKey(), nil
+		return candidate.PrivateKey(), nil
 	}
 
 	privateKeyStr, err := persistent.NodePrivateKey(deviceID)

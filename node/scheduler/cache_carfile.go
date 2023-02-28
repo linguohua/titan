@@ -60,7 +60,7 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.Remo
 
 // ExecuteUndoneCarfilesTask Execute Undone Carfiles Task
 func (s *Scheduler) ExecuteUndoneCarfilesTask(ctx context.Context, hashs []string) error {
-	list, err := persistent.GetCarfileInfos(hashs)
+	list, err := persistent.LoadCarfileInfos(hashs)
 	if err != nil {
 		return err
 	}

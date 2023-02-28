@@ -236,11 +236,11 @@ func (v *Election) replenishElect() error {
 	return v.saveValidators(validators)
 }
 
-func (v *Election) getAllCandidates() []*node.CandidateNode {
-	candidates := make([]*node.CandidateNode, 0)
+func (v *Election) getAllCandidates() []*node.Candidate {
+	candidates := make([]*node.Candidate, 0)
 
-	v.manager.CandidateNodeMap.Range(func(key, value interface{}) bool {
-		node := value.(*node.CandidateNode)
+	v.manager.CandidateNodes.Range(func(key, value interface{}) bool {
+		node := value.(*node.Candidate)
 		candidates = append(candidates, node)
 
 		return true

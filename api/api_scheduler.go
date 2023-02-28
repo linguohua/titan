@@ -133,11 +133,11 @@ type ReplicaInfo struct {
 	CarfileHash string      `db:"carfile_hash"`
 	DeviceID    string      `db:"device_id"`
 	Status      CacheStatus `db:"status"`
-	DoneSize    int64       `db:"done_size"`
-	DoneBlocks  int         `db:"done_blocks"`
 	IsCandidate bool        `db:"is_candidate"`
 	CreateTime  time.Time   `db:"created_time"`
 	EndTime     time.Time   `db:"end_time"`
+	DoneSize    int64
+	DoneBlocks  int
 }
 
 // CacheCarfileInfo Data info

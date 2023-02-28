@@ -168,13 +168,13 @@ var runCmd = &cli.Command{
 			Required: true,
 			Name:     "geodb-path",
 			Usage:    "geodb path, example: --geodb-path=../../geoip/geolite2_city/city.mmdb",
-			Value:    "../../geoip/geolite2_city/city.mmdb",
+			Value:    "",
 		},
 		&cli.StringFlag{
 			Required: true,
 			Name:     "persistentdb-url",
 			Usage:    "persistentdb url",
-			Value:    "user01:sql001@tcp(127.0.0.1:3306)/test",
+			Value:    "",
 		},
 		&cli.StringFlag{
 			Required: true,

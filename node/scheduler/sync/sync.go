@@ -143,11 +143,11 @@ func (ds *DataSync) checkSummary(nodeID string, succeedCarfileList, failedCarfil
 	failedCarfilesHash := hex.EncodeToString(hash.Sum(nil))
 
 	if edgeNode := ds.nodeManager.GetEdgeNode(nodeID); edgeNode != nil {
-		return edgeNode.GetAPI().CheckSummary(succeedCarfilesHash, failedCarfilesHash)
+		return edgeNode.API().CheckSummary(succeedCarfilesHash, failedCarfilesHash)
 	}
 
 	if candidateNode := ds.nodeManager.GetCandidateNode(nodeID); candidateNode != nil {
-		return candidateNode.GetAPI().CheckSummary(succeedCarfilesHash, failedCarfilesHash)
+		return candidateNode.API().CheckSummary(succeedCarfilesHash, failedCarfilesHash)
 	}
 
 	return nil, fmt.Errorf("Node %s not online", nodeID)
