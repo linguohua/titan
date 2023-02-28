@@ -27,6 +27,12 @@ const (
 	unknownAreaID  = "unknown-unknown-unknown"
 )
 
+type Locator struct {
+	common.CommonAPI
+	apMgr *accessPointMgr
+	db    *sqlDB
+}
+
 func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, uuid string, locatorPort int) api.Locator {
 	if len(dbAddr) == 0 {
 		log.Panic("NewLocalLocator, db addr cannot empty")
@@ -56,53 +62,29 @@ func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, uuid strin
 
 }
 
-type Locator struct {
-	common.CommonAPI
-	apMgr *accessPointMgr
-	db    *sqlDB
-}
-
 func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string) ([]string, error) {
-	remoteAddr := handler.GetRemoteAddr(ctx)
-	ip, _, _ := net.SplitHostPort(remoteAddr)
-
-	areaID := ""
-	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
+	schedulerAPI, err := locator.getSchedulerAPIWith(deviceID)
 	if err != nil {
-		log.Errorf("GetAccessPoints get geo from ip error %s", err.Error())
-	} else {
-		areaID = geoInfo.Geo
-	}
-
-	log.Infof("device %s ip %s get Area areaID %s", deviceID, ip, areaID)
-
-	if areaID == "" || areaID == unknownAreaID {
-		log.Warnf("GetAccessPoints device %s can not get areaID, use default areaID:%s", deviceID, defaultAreaID)
-		areaID = defaultAreaID
-	}
-
-	device, err := locator.db.getDeviceInfo(deviceID)
-	if err != nil {
-		log.Errorf("GetAccessPoints, getDeviceInfo error:%s", err.Error())
 		return nil, err
 	}
 
-	if device == nil {
-		log.Infof("GetAccessPoints, device (%s) == nil", deviceID)
-		return locator.getAccessPointsWithWeightCount(areaID)
+	if schedulerAPI != nil {
+		return []string{schedulerAPI.url}, nil
 	}
 
-	cfg := locator.getAccessPointCfg(device.AreaID, device.SchedulerURL)
-	if cfg == nil {
-		return locator.getAccessPointsWithWeightCount(device.AreaID)
+	remoteAddr := handler.GetRemoteAddr(ctx)
+	ip, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		return nil, err
 	}
 
-	_, ok := locator.apMgr.getSchedulerAPI(device.SchedulerURL, device.AreaID, cfg.AccessToken)
-	if ok {
-		return []string{device.SchedulerURL}, nil
+	areaID := defaultAreaID
+	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
+	if err != nil {
+		log.Errorf("GetAccessPoints get geo from ip error %s", err.Error())
+	} else if geoInfo != nil && geoInfo.Geo != unknownAreaID {
+		areaID = geoInfo.Geo
 	}
-
-	log.Infof("area %s scheduler api %s not online", device.AreaID, device.SchedulerURL)
 	return locator.getAccessPointsWithWeightCount(areaID)
 }
 
@@ -186,8 +168,9 @@ func (locator *Locator) getAccessPointsWithWeightCount(areaID string) ([]string,
 	onlineSchedulerAPIs := make(map[string]*schedulerAPI)
 	onlineSchedulerCfgs := make(map[string]*schedulerCfg)
 	for _, cfg := range schedulerCfgs {
-		api, ok := locator.apMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
-		if !ok {
+		api, err := locator.apMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
+		if err != nil {
+			log.Warnf("getAccessPointsWithWeightCount, getSchedulerAPI error:%s", err.Error())
 			continue
 		}
 
@@ -259,30 +242,48 @@ func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*s
 	return result
 }
 
+func (locator *Locator) getSchedulerAPIWith(deviceID string) (*schedulerAPI, error) {
+	device, err := locator.db.getDeviceInfo(deviceID)
+	if err != nil {
+		log.Errorf("GetAccessPoints, getDeviceInfo error:%s", err.Error())
+		return nil, err
+	}
+
+	if device == nil {
+		return nil, nil
+	}
+
+	cfg := locator.getAccessPointCfg(device.AreaID, device.SchedulerURL)
+	if cfg == nil {
+		return nil, nil
+	}
+
+	return locator.apMgr.getSchedulerAPI(device.SchedulerURL, device.AreaID, cfg.AccessToken)
+}
+
 func (locator *Locator) GetDownloadInfosWithCarfile(ctx context.Context, cid string, publicKey string) ([]*api.DownloadInfoResult, error) {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	ip, _, _ := net.SplitHostPort(remoteAddr)
 
-	areaID := ""
+	areaID := defaultAreaID
 	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
 	if err != nil {
 		log.Errorf("GetAccessPoints get geo from ip error %s", err.Error())
-	} else {
+	} else if geoInfo != nil && geoInfo.Geo != unknownAreaID {
 		areaID = geoInfo.Geo
 	}
 
 	log.Infof("user %s get Area areaID %s", ip, areaID)
 
-	if areaID == "" || areaID == "unknown-unknown-unknown" {
-		log.Errorf("user %s can not get areaID", ip)
-		areaID = defaultAreaID
+	schedulerAPI := locator.apMgr.randSchedulerAPI(areaID)
+	if schedulerAPI == nil {
+		schedulerAPI, err = locator.getFirstOnlineSchedulerAPIAt(areaID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	schedulerAPI, ok := locator.apMgr.randSchedulerAPI(areaID)
-	if !ok {
-		schedulerAPI, ok = locator.getFirstOnlineSchedulerAPIAt(areaID)
-	}
-	if ok {
+	if schedulerAPI != nil {
 		return schedulerAPI.GetDownloadInfosWithCarfile(ctx, cid, publicKey)
 	}
 
@@ -293,26 +294,25 @@ func (locator *Locator) UserDownloadBlockResults(ctx context.Context, results []
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	ip, _, _ := net.SplitHostPort(remoteAddr)
 
-	areaID := ""
+	areaID := defaultAreaID
 	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
 	if err != nil {
 		log.Errorf("GetAccessPoints get geo from ip error %s", err.Error())
-	} else {
+	} else if geoInfo != nil && geoInfo.Geo != unknownAreaID {
 		areaID = geoInfo.Geo
 	}
 
 	log.Infof("user %s get Area areaID %s", ip, areaID)
 
-	if areaID == "" || areaID == "unknown-unknown-unknown" {
-		log.Errorf("user %s can not get areaID", ip)
-		areaID = defaultAreaID
+	schedulerAPI := locator.apMgr.randSchedulerAPI(areaID)
+	if schedulerAPI == nil {
+		schedulerAPI, err = locator.getFirstOnlineSchedulerAPIAt(areaID)
+		if err != nil {
+			return err
+		}
 	}
 
-	schedulerAPI, ok := locator.apMgr.randSchedulerAPI(areaID)
-	if !ok {
-		schedulerAPI, ok = locator.getFirstOnlineSchedulerAPIAt(areaID)
-	}
-	if ok {
+	if schedulerAPI != nil {
 		return schedulerAPI.UserDownloadBlockResults(ctx, results)
 	}
 	return nil
@@ -334,21 +334,24 @@ func (locator *Locator) getAccessPointCfg(areaID, schedulerURL string) *schedule
 	return nil
 }
 
-func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerAPI, bool) {
+func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerAPI, error) {
 	schedulerCfgs, err := locator.db.getAccessPointCfgs(areaID)
 	if err != nil {
 		log.Errorf("getCfg, acccess point %s not exist", areaID)
-		return nil, false
+		return nil, err
 	}
 
 	for _, cfg := range schedulerCfgs {
-		api, ok := locator.apMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
-		if ok {
-			return api, true
+		api, err := locator.apMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
+		if err != nil {
+			log.Warnf("getFirstOnlineSchedulerAPIAt, areaID:%s, scheduler %s offline", areaID, cfg.SchedulerURL)
+			continue
 		}
+
+		return api, nil
 	}
 
-	return nil, false
+	return nil, nil
 }
 
 func (locator *Locator) getSchedulerAPIWithWeightCount(areaID string) ([]*schedulerAPI, error) {
@@ -367,8 +370,9 @@ func (locator *Locator) getSchedulerAPIWithWeightCount(areaID string) ([]*schedu
 	onlineSchedulerAPIs := make(map[string]*schedulerAPI)
 	onlineSchedulerCfgs := make(map[string]*schedulerCfg)
 	for _, cfg := range schedulerCfgs {
-		api, ok := locator.apMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
-		if !ok {
+		api, err := locator.apMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
+		if err != nil {
+			log.Warnf("getSchedulerAPIWithWeightCount, getSchedulerAPI error:%s", err.Error())
 			continue
 		}
 
@@ -404,9 +408,9 @@ func (locator *Locator) RegisterNode(ctx context.Context, areaID string, schedul
 		return nil, fmt.Errorf("Scheduler %s not exist in area %s", schedulerURL, areaID)
 	}
 
-	schedulerAPI, ok := locator.apMgr.getSchedulerAPI(schedulerURL, areaID, cfg.AccessToken)
-	if !ok {
-		return nil, fmt.Errorf("Scheduler %s not online", schedulerURL)
+	schedulerAPI, err := locator.apMgr.getSchedulerAPI(schedulerURL, areaID, cfg.AccessToken)
+	if err != nil {
+		return nil, err
 	}
 
 	registerInfos, err := schedulerAPI.RegisterNode(ctx, nodeType, count)

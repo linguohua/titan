@@ -32,7 +32,7 @@ type CarfileOperation struct {
 	toDeleteCarfile sync.Map
 }
 
-func NewCarfileOperation(carfileStore *carfilestore.CarfileStore, scheduler api.Scheduler, blockDownloader downloader.BlockDownloader, device *device.Device) *CarfileOperation {
+func NewCarfileOperation(carfileStore *carfilestore.CarfileStore, scheduler api.Scheduler, blockDownloader downloader.DownloadBlockser, device *device.Device) *CarfileOperation {
 	carfileOperation := &CarfileOperation{
 		scheduler:    scheduler,
 		device:       device,
