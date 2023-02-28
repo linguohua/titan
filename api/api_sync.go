@@ -1,8 +1,10 @@
 package api
 
+import "context"
+
 type DataSync interface {
 	// simple to check carfile table
-	CheckSummary(susseedCarfilesHash, failedCarfilesHash string) (*CheckSummaryResult, error) //perm:write
+	CheckSummary(ctx context.Context, susseedCarfilesHash, failedCarfilesHash string) (*CheckSummaryResult, error) //perm:write
 }
 
 type CheckSummaryResult struct {

@@ -213,6 +213,7 @@ var runCmd = &cli.Command{
 
 		v, err := getSchedulerVersion(schedulerAPI, timeout)
 		if err != nil {
+			log.Infof("getSchedulerVersion error:%s", err.Error())
 			return err
 		}
 
