@@ -577,7 +577,7 @@ func BindNodeAllocateInfo(secret, deviceID string, nodeType api.NodeType) error 
 		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
 	}
 
-	_, err := mysqlCil.NamedExec(`INSERT INTO allocate_info (device_id, secret, create_time, node_type)
+	_, err := mysqlCil.NamedExec(`INSERT INTO node_allocate_info (device_id, secret, create_time, node_type)
 	VALUES (:device_id, :secret, :create_time, :node_type)`, info)
 
 	return err
@@ -585,7 +585,7 @@ func BindNodeAllocateInfo(secret, deviceID string, nodeType api.NodeType) error 
 
 func GetNodeAllocateInfo(deviceID, key string, out interface{}) error {
 	if key != "" {
-		query := fmt.Sprintf(`SELECT %s FROM allocate_info WHERE device_id=?`, key)
+		query := fmt.Sprintf(`SELECT %s FROM node_allocate_info WHERE device_id=?`, key)
 		if err := mysqlCil.Get(out, query, deviceID); err != nil {
 			return err
 		}
@@ -593,7 +593,7 @@ func GetNodeAllocateInfo(deviceID, key string, out interface{}) error {
 		return nil
 	}
 
-	query := "SELECT * FROM allocate_info WHERE device_id=?"
+	query := "SELECT * FROM node_allocate_info WHERE device_id=?"
 	if err := mysqlCil.Get(out, query, deviceID); err != nil {
 		return err
 	}

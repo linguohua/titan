@@ -346,7 +346,6 @@ func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api
 	return nil
 }
 
-// apply Nodes
 func (s *Scheduler) AllocateNodes(ctx context.Context, nodeType api.NodeType, count int) ([]api.NodeAllocateInfo, error) {
 	list := make([]api.NodeAllocateInfo, 0)
 	if count <= 0 || count > 10 {
