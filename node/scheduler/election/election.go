@@ -131,11 +131,7 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 	out = make([]string, 0)
 
 	defer func() {
-		now := time.Now()
-		err := cache.UpdateSystemBaseInfo(cache.NextElectionTimeField, now.Add(v.opts.electInterval).Unix())
-		if err != nil {
-			log.Error(err.Error())
-		}
+		// TODO save NextElectionTime
 
 		log.Infof("elect validators count: %d", len(out))
 
