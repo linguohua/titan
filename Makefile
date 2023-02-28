@@ -65,7 +65,6 @@ titan-locator: $(BUILD_DEPS)
 api-gen:
 	$(GOCC) run ./gen/api
 	goimports -w api
-	goimports -w api
 .PHONY: api-gen
 
 cfgdoc-gen:
