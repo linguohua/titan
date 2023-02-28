@@ -210,17 +210,11 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 
 	log.Infof("carfile event %s , remove carfile record", carfileCid)
 
-	count := int64(0)
 	for _, cInfo := range cInfos {
 		go m.notifyNodeRemoveCarfile(cInfo.DeviceID, carfileCid)
-
-		if cInfo.Status == api.CacheStatusSucceeded {
-			count++
-		}
 	}
 
-	// update record to redis
-	return cache.IncrBySystemBaseInfo(cache.CarFileCountField, -count)
+	return nil
 }
 
 // RemoveCache remove a cache
@@ -247,13 +241,6 @@ func (m *Manager) RemoveCache(carfileCid, deviceID string) error {
 	}
 
 	log.Infof("carfile event %s , remove cache task:%s", carfileCid, deviceID)
-
-	if cacheInfo.Status == api.CacheStatusSucceeded {
-		err = cache.IncrBySystemBaseInfo(cache.CarFileCountField, -1)
-		if err != nil {
-			log.Errorf("removeCache IncrBySystemBaseInfo err:%s", err.Error())
-		}
-	}
 
 	go m.notifyNodeRemoveCarfile(cacheInfo.DeviceID, carfileCid)
 

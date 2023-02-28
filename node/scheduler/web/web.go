@@ -109,12 +109,9 @@ func (w *web) GetBlocksByCarfileCID(ctx context.Context, carFileCID string) ([]a
 // }
 
 func (w *web) GetSystemInfo(ctx context.Context) (api.SystemBaseInfo, error) {
-	info, err := cache.GetSystemBaseInfo()
-	if err != nil {
-		return api.SystemBaseInfo{}, err
-	}
+	// TODO get info from db
 
-	return *info, nil
+	return api.SystemBaseInfo{}, nil
 }
 
 func (w *web) GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error) {
