@@ -17,8 +17,8 @@ import (
 var secretRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // RegisterNode Register a Node
-func Apply(nodeType api.NodeType) (api.NodeApplyInfo, error) {
-	info := api.NodeApplyInfo{}
+func Allocate(nodeType api.NodeType) (api.NodeAllocateInfo, error) {
+	info := api.NodeAllocateInfo{}
 
 	deviceID, err := newDeviceID(nodeType)
 	if err != nil {
@@ -27,7 +27,7 @@ func Apply(nodeType api.NodeType) (api.NodeApplyInfo, error) {
 
 	secret := newSecret(deviceID)
 
-	err = persistent.BindApplyInfo(secret, deviceID, nodeType)
+	err = persistent.BindNodeAllocateInfo(secret, deviceID, nodeType)
 	if err != nil {
 		return info, err
 	}

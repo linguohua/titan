@@ -345,7 +345,7 @@ func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerA
 	return nil, fmt.Errorf("area %s no online scheduler exist", areaID)
 }
 
-func (locator *Locator) ApplyNodes(ctx context.Context, schedulerURL string, nodeType api.NodeType, count int) ([]api.NodeApplyInfo, error) {
+func (locator *Locator) AllocateNodes(ctx context.Context, schedulerURL string, nodeType api.NodeType, count int) ([]api.NodeAllocateInfo, error) {
 	cfg, err := locator.db.getSchedulerCfg(schedulerURL)
 	if cfg != nil {
 		return nil, err
@@ -356,7 +356,7 @@ func (locator *Locator) ApplyNodes(ctx context.Context, schedulerURL string, nod
 		return nil, err
 	}
 
-	registerInfos, err := schedulerAPI.ApplyNodes(ctx, nodeType, count)
+	registerInfos, err := schedulerAPI.AllocateNodes(ctx, nodeType, count)
 	if err != nil {
 		return nil, err
 	}
