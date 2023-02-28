@@ -47,29 +47,15 @@ func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result a
 }
 
 func (s *Scheduler) handleUserDownloadBlockResult(ctx context.Context, result api.UserBlockDownloadResult) error {
-	record, err := cache.GetDownloadBlockRecord(result.SN)
-	if err != nil {
-		log.Errorf("handleUserDownloadBlockResult, GetBlockDownloadRecord error:%s", err.Error())
-		return err
-	}
-
-	err = s.verifyUserDownloadBlockSign(record.UserPublicKey, record.Cid, result.Sign)
-	if err != nil {
-		log.Errorf("handleUserDownloadBlockResult, verifyNodeDownloadBlockSign error:%s", err.Error())
-		return err
-	}
-
-	record.UserStatus = int(blockDownloadStatusFailed)
-	if result.Succeed {
-		record.UserStatus = int(blockDownloadStatusSucceeded)
-	}
-
-	s.recordDownloadBlock(record, nil, "", "")
+	// TODO: implement user download count
 	return nil
 }
 
 // UserDownloadBlockResults node result for user download block
 func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []api.UserBlockDownloadResult) error {
+	for _, result := range results {
+		s.handleUserDownloadBlockResult(ctx, result)
+	}
 	return nil
 }
 
@@ -186,59 +172,6 @@ func (s *Scheduler) getDevicePrivateKey(deviceID string) (*rsa.PrivateKey, error
 	}
 
 	return privateKey, nil
-}
-
-func (s *Scheduler) recordDownloadBlock(record *cache.DownloadBlockRecord, nodeResult *api.NodeBlockDownloadResult, deviceID string, clientIP string) error {
-	info, err := persistent.GetBlockDownloadInfoByID(record.ID)
-	if err != nil {
-		return err
-	}
-
-	if info == nil {
-		info = &api.BlockDownloadInfo{ID: record.ID, CreatedTime: time.Unix(record.SignTime, 0)}
-		if info.BlockCID == info.CarfileCID {
-			cache.AddLatestDownloadCarfile(info.CarfileCID, clientIP)
-		}
-	}
-
-	if nodeResult != nil {
-		info.Speed = int64(nodeResult.DownloadSpeed)
-		info.FailedReason = nodeResult.FailedReason
-	}
-
-	if len(deviceID) > 0 {
-		info.DeviceID = deviceID
-	}
-
-	if record.NodeStatus == int(blockDownloadStatusFailed) || record.UserStatus == int(blockDownloadStatusFailed) {
-		info.Status = int(blockDownloadStatusFailed)
-	}
-
-	if record.NodeStatus == int(blockDownloadStatusSucceeded) && record.UserStatus == int(blockDownloadStatusSucceeded) {
-		info.CompleteTime = time.Now()
-		info.Reward = 1
-		info.Status = int(blockDownloadStatusSucceeded)
-		err = cache.RemoveDownloadBlockRecord(record.SN)
-		if err != nil {
-			return err
-		}
-		// add reward
-		err = incrDeviceReward(info.DeviceID, info.Reward)
-		if err != nil {
-			return err
-		}
-		err = cache.NodeDownloadCount(deviceID, info)
-		if err != nil {
-			return err
-		}
-	} else {
-		err = cache.SetDownloadBlockRecord(record)
-		if err != nil {
-			return err
-		}
-	}
-
-	return persistent.SetBlockDownloadInfo(info)
 }
 
 func (s *Scheduler) getNodesUnValidate(minute int) ([]string, error) {
