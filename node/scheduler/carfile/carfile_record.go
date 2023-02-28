@@ -297,15 +297,15 @@ func (cr *CarfileRecord) dispatchCaches() error {
 	return xerrors.New("steps completed")
 }
 
-func (cr *CarfileRecord) updateCarfileRecordInfo(endCache *Replica, errMsg string) error {
+func (cr *CarfileRecord) replicaCacheEnd(ra *Replica, errMsg string) error {
 	cr.lock.Lock()
 	defer cr.lock.Unlock()
 
-	if endCache.status == api.CacheStatusSucceeded {
-		if endCache.isCandidate {
+	if ra.status == api.CacheStatusSucceeded {
+		if ra.isCandidate {
 			cr.candidateReploca++
 
-			cNode := cr.nodeManager.GetCandidateNode(endCache.deviceID)
+			cNode := cr.nodeManager.GetCandidateNode(ra.deviceID)
 			if cNode != nil {
 				cr.downloadSources = append(cr.downloadSources, &api.DownloadSource{
 					CandidateURL:   cNode.RPCURL(),
@@ -315,20 +315,20 @@ func (cr *CarfileRecord) updateCarfileRecordInfo(endCache *Replica, errMsg strin
 		} else {
 			cr.edgeReplica++
 		}
-	} else if endCache.status == api.CacheStatusFailed {
+	} else if ra.status == api.CacheStatusFailed {
 		// node err msg
-		cr.nodeCacheErrs[endCache.deviceID] = errMsg
+		cr.nodeCacheErrs[ra.deviceID] = errMsg
 	}
 
 	// Carfile caches end
-	dInfo := &api.CarfileRecordInfo{
+	info := &api.CarfileRecordInfo{
 		CarfileHash:    cr.carfileHash,
 		TotalSize:      cr.totalSize,
 		TotalBlocks:    cr.totalBlocks,
 		Replica:        cr.replica,
 		ExpirationTime: cr.expirationTime,
 	}
-	return persistent.UpdateCarfileRecordCachesInfo(dInfo)
+	return persistent.UpdateCarfileRecordCachesInfo(info)
 }
 
 func (cr *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResultInfo) error {
@@ -358,7 +358,7 @@ func (cr *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResu
 		return xerrors.Errorf("endCache %s , updateReplicaInfo err:%s", ra.carfileHash, err.Error())
 	}
 
-	err = cr.updateCarfileRecordInfo(ra, info.Msg)
+	err = cr.replicaCacheEnd(ra, info.Msg)
 	if err != nil {
 		return xerrors.Errorf("endCache %s , updateCarfileRecordInfo err:%s", ra.carfileHash, err.Error())
 	}

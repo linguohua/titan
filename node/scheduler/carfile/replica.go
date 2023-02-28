@@ -104,11 +104,9 @@ func (ra *Replica) startTimeoutTimer() {
 func (ra *Replica) updateInfo() error {
 	// update cache info to db
 	cInfo := &api.ReplicaInfo{
-		ID:          ra.id,
-		CarfileHash: ra.carfileHash,
-		DeviceID:    ra.deviceID,
-		Status:      ra.status,
-		EndTime:     time.Now(),
+		ID:      ra.id,
+		Status:  ra.status,
+		EndTime: time.Now(),
 	}
 
 	return persistent.UpdateCarfileReplicaInfo(cInfo)
