@@ -451,13 +451,13 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, id string, token string)
 	headers.Add("Authorization", "Bearer "+string(token))
 	// Connect to scheduler
 	// log.Infof("EdgeNodeConnect edge url:%v", url)
-	locationAPI, closer, err := client.NewLocator(ctx, url, headers)
+	locatorAPI, closer, err := client.NewLocator(ctx, url, headers)
 	if err != nil {
 		log.Errorf("LocatorConnect err:%s,url:%s", err.Error(), url)
 		return err
 	}
 
-	locator.StoreLocator(locator.New(locationAPI, closer, id))
+	locator.StoreLocator(locator.New(locatorAPI, closer, id))
 
 	return nil
 }

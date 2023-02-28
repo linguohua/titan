@@ -22,15 +22,14 @@ type Locator struct {
 	locatorID string
 }
 
-// New new location
 func New(api api.Locator, closer jsonrpc.ClientCloser, locatorID string) *Locator {
-	location := &Locator{
+	locator := &Locator{
 		nodeAPI:   api,
 		closer:    closer,
 		locatorID: locatorID,
 	}
 
-	return location
+	return locator
 }
 
 // GetAPI get node api
@@ -44,8 +43,8 @@ func (l *Locator) GetLocatorID() string {
 }
 
 // StoreLocator add
-func StoreLocator(location *Locator) {
-	locators.Store(location.GetLocatorID(), location)
+func StoreLocator(locator *Locator) {
+	locators.Store(locator.GetLocatorID(), locator)
 }
 
 // ChangeNodeOnlineStatus Notify Node Status To Locator
