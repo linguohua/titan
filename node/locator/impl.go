@@ -86,7 +86,7 @@ func (locator *Locator) AddAccessPoint(ctx context.Context, areaID string, sched
 		return fmt.Errorf("weith is out of range, need to set %d ~ %d", miniWeight, maxWeight)
 	}
 
-	exist, err := locator.db.isAccessPointExist(areaID, schedulerURL)
+	exist, err := locator.db.isAccessPointExist(schedulerURL)
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func (locator *Locator) AddAccessPoint(ctx context.Context, areaID string, sched
 		return err
 	}
 
-	return locator.db.addAccessPoints(areaID, schedulerURL, weight, schedulerAccessToken)
+	return locator.db.addAccessPoint(areaID, schedulerURL, weight, schedulerAccessToken)
 }
 
 func (locator *Locator) RemoveAccessPoints(ctx context.Context, areaID string) error {

@@ -30,10 +30,6 @@ type scheduler struct {
 	Online       bool   `db:"online"`
 }
 
-type AccessPoint struct {
-	AreaID string
-}
-
 type sqlDB struct {
 	cli *sqlx.DB
 }
@@ -59,8 +55,8 @@ func (db *sqlDB) close() error {
 	return db.cli.Close()
 }
 
-func (db *sqlDB) addAccessPoints(areaID string, schedulerURL string, weight int, accessToken string) error {
-	return db.addCfg(areaID, schedulerURL, weight, accessToken)
+func (db *sqlDB) addAccessPoint(areaID string, schedulerURL string, weight int, accessToken string) error {
+	return db.addSchedulerCfg(areaID, schedulerURL, weight, accessToken)
 }
 
 func (db *sqlDB) removeAccessPoints(areaID string) error {
@@ -80,8 +76,8 @@ func (db *sqlDB) listAreaIDs() (areaIDs []string, err error) {
 	return
 }
 
-func (db *sqlDB) isAccessPointExist(areaID, schedulerURL string) (bool, error) {
-	count, err := db.countCfgWith(areaID, schedulerURL)
+func (db *sqlDB) isAccessPointExist(schedulerURL string) (bool, error) {
+	count, err := db.countSchedulerCfg(schedulerURL)
 	if err != nil {
 		return false, err
 	}
@@ -148,7 +144,7 @@ func (db *sqlDB) getSchedulerCfg(schedulerURL string) (*schedulerCfg, error) {
 	return nil, nil
 }
 
-func (db *sqlDB) addCfg(areaID string, schedulerURL string, weight int, accessToken string) error {
+func (db *sqlDB) addSchedulerCfg(areaID string, schedulerURL string, weight int, accessToken string) error {
 	cfg := &schedulerCfg{SchedulerURL: schedulerURL, AreaID: areaID, Weight: weight, AccessToken: accessToken}
 	_, err := db.cli.NamedExec(`INSERT INTO scheduler_config (scheduler_url, area_id, weight, access_token) VALUES (:scheduler_url, :area_id, :weight, :access_token)`, cfg)
 	return err
@@ -160,7 +156,7 @@ func (db *sqlDB) deleteCfgWithAreaID(areaID string) error {
 	return err
 }
 
-func (db *sqlDB) deleteCfgWithURL(schedulerURL string) error {
+func (db *sqlDB) deleteSchedulerCfg(schedulerURL string) error {
 	cfg := &schedulerCfg{SchedulerURL: schedulerURL}
 	_, err := db.cli.NamedExec(`DELETE FROM scheduler_config WHERE scheduler_url=:scheduler_url`, cfg)
 	return err
@@ -217,9 +213,9 @@ func (db *sqlDB) countDeviceWithID(deviceID string) (int, error) {
 	return count, err
 }
 
-func (db *sqlDB) countCfgWith(areaID, schedulerURL string) (int, error) {
+func (db *sqlDB) countSchedulerCfg(schedulerURL string) (int, error) {
 	var count int
-	err := db.cli.Get(&count, `SELECT count(*) FROM scheduler_config WHERE scheduler_url=? and area_id=?`, schedulerURL, areaID)
+	err := db.cli.Get(&count, `SELECT count(*) FROM scheduler_config WHERE scheduler_url=?`, schedulerURL)
 
 	return count, err
 }

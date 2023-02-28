@@ -52,7 +52,7 @@ CREATE TABLE `block_download_info` (
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='block download information';
 
-CREATE TABLE `apply` (
+CREATE TABLE `node_allocate_info` (
     `id` int unsigned NOT NULL AUTO_INCREMENT,
 	`device_id` varchar(128) NOT NULL UNIQUE,
     `secret` varchar(64) NOT NULL ,
