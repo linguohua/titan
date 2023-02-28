@@ -173,7 +173,7 @@ var Locator locator
 type locator struct{}
 
 func (locator) Type() string {
-	return "Location"
+	return "Locator"
 }
 
 func (locator) Config() interface{} {

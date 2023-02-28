@@ -50,7 +50,7 @@ CREATE TABLE `node_allocate_info` (
     `create_time` varchar(64) DEFAULT '' ,
 	`node_type` varchar(64) DEFAULT '' ,
 	PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='register';
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node allocate info;
 
 CREATE TABLE `replicas` (
     `id` varchar(128) NOT NULL UNIQUE,

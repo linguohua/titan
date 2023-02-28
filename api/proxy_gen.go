@@ -104,7 +104,7 @@ type CommonStub struct {
 
 type DataSyncStruct struct {
 	Internal struct {
-		CheckSummary func(p0 string, p1 string) (*CheckSummaryResult, error) ``
+		CheckSummary func(p0 string, p1 string) (*CheckSummaryResult, error) `perm:"write"`
 	}
 }
 
