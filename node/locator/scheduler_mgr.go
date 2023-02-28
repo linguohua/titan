@@ -39,12 +39,12 @@ func newAccessPointMgr(locatorToken, uuid string) *accessPointMgr {
 	return mgr
 }
 
-func (mgr *accessPointMgr) loadAccessPointFromMap(key string) (*accessPoint, bool) {
-	vb, exist := mgr.accessPoints.Load(key)
-	if exist {
-		return vb.(*accessPoint), true
+func (mgr *accessPointMgr) loadAccessPointFromMap(key string) *accessPoint {
+	vb, ok := mgr.accessPoints.Load(key)
+	if ok {
+		return vb.(*accessPoint)
 	}
-	return nil, false
+	return nil
 }
 
 func (mgr *accessPointMgr) deleteAccessPointFromMap(key string) {
@@ -56,8 +56,8 @@ func (mgr *accessPointMgr) addAccessPointToMap(areaID string, ap *accessPoint) {
 }
 
 func (mgr *accessPointMgr) newSchedulerAPI(url string, areaID string, schedulerAccessToken string) (*schedulerAPI, error) {
-	ap, exist := mgr.loadAccessPointFromMap(areaID)
-	if !exist {
+	ap := mgr.loadAccessPointFromMap(areaID)
+	if ap == nil {
 		ap = &accessPoint{apis: make([]*schedulerAPI, 0)}
 	}
 
@@ -101,8 +101,8 @@ func (mgr *accessPointMgr) newSchedulerAPI(url string, areaID string, schedulerA
 }
 
 func (mgr *accessPointMgr) removeSchedulerAPI(url, areaID string) {
-	ap, exist := mgr.loadAccessPointFromMap(areaID)
-	if !exist {
+	ap := mgr.loadAccessPointFromMap(areaID)
+	if ap == nil {
 		return
 	}
 
@@ -126,8 +126,8 @@ func (mgr *accessPointMgr) removeSchedulerAPI(url, areaID string) {
 }
 
 func (mgr *accessPointMgr) removeAccessPoint(areaID string) {
-	ap, exist := mgr.loadAccessPointFromMap(areaID)
-	if !exist {
+	ap := mgr.loadAccessPointFromMap(areaID)
+	if ap == nil {
 		return
 	}
 
@@ -138,12 +138,12 @@ func (mgr *accessPointMgr) removeAccessPoint(areaID string) {
 	mgr.deleteAccessPointFromMap(areaID)
 }
 
-func (mgr *accessPointMgr) getSchedulerAPI(url, areaID, accessToken string) (*schedulerAPI, bool) {
+func (mgr *accessPointMgr) getSchedulerAPI(url, areaID, accessToken string) (*schedulerAPI, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
 	defer cancel()
 
-	ap, exist := mgr.loadAccessPointFromMap(areaID)
-	if exist {
+	ap := mgr.loadAccessPointFromMap(areaID)
+	if ap != nil {
 		for _, api := range ap.apis {
 			if api.url == url {
 				// check scheduler if online
@@ -151,7 +151,7 @@ func (mgr *accessPointMgr) getSchedulerAPI(url, areaID, accessToken string) (*sc
 				if err != nil {
 					log.Warnf("scheduler aready %s offline", url)
 					mgr.removeSchedulerAPI(url, areaID)
-					return nil, false
+					return nil, err
 				}
 
 				if api.uuid != uuid {
@@ -160,30 +160,30 @@ func (mgr *accessPointMgr) getSchedulerAPI(url, areaID, accessToken string) (*sc
 					mgr.removeSchedulerAPI(url, areaID)
 					break
 				}
-				return api, true
+				return api, nil
 			}
 		}
 	}
 
 	// reconnect scheduler
 	api, err := mgr.newSchedulerAPI(url, areaID, accessToken)
-	if err == nil {
-		return api, true
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, false
+	return api, nil
 }
 
-func (mgr *accessPointMgr) randSchedulerAPI(areaID string) (*schedulerAPI, bool) {
-	ap, exist := mgr.loadAccessPointFromMap(areaID)
-	if !exist {
-		return nil, false
+func (mgr *accessPointMgr) randSchedulerAPI(areaID string) *schedulerAPI {
+	ap := mgr.loadAccessPointFromMap(areaID)
+	if ap == nil {
+		return nil
 	}
 
 	if len(ap.apis) > 0 {
 		index := mgr.random.Intn(len(ap.apis))
-		return ap.apis[index], true
+		return ap.apis[index]
 	}
 
-	return nil, false
+	return nil
 }

@@ -9,7 +9,7 @@ import (
 // implement DownloadOperation interface in carfile_download_mgr.go
 type downloadOperation struct {
 	carfileOperation *CarfileOperation
-	downloader       downloader.BlockDownloader
+	downloader       downloader.DownloadBlockser
 }
 
 func (dOperation *downloadOperation) downloadResult(carfile *carfileCache, isComplete bool) error {

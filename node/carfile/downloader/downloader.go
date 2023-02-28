@@ -13,7 +13,7 @@ const (
 	blockDownloadRetryNum = 1
 )
 
-type BlockDownloader interface {
+type DownloadBlockser interface {
 	// download blocks
 	DownloadBlocks(cids []string, sources []*api.DownloadSource) ([]blocks.Block, error)
 }
