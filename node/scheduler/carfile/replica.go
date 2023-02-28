@@ -52,9 +52,9 @@ func newReplica(carfileRecord *CarfileRecord, deviceID string, isCandidate bool)
 	return cache, err
 }
 
-func (c *Replica) isTimeout() bool {
+func (ra *Replica) isTimeout() bool {
 	// check redis
-	expiration, err := cache.GetNodeCacheTimeoutTime(c.deviceID)
+	expiration, err := cache.GetNodeCacheTimeoutTime(ra.deviceID)
 	if err != nil {
 		log.Errorf("GetNodeCacheTimeoutTime err:%s", err.Error())
 		return false
@@ -63,36 +63,36 @@ func (c *Replica) isTimeout() bool {
 	return expiration <= 0
 }
 
-func (c *Replica) startTimeoutTimer() {
-	if c.timeoutTicker != nil {
+func (ra *Replica) startTimeoutTimer() {
+	if ra.timeoutTicker != nil {
 		return
 	}
 
-	c.timeoutTicker = time.NewTicker(time.Duration(checkCacheTimeoutInterval) * time.Second)
+	ra.timeoutTicker = time.NewTicker(time.Duration(checkCacheTimeoutInterval) * time.Second)
 	defer func() {
-		c.timeoutTicker.Stop()
-		c.timeoutTicker = nil
+		ra.timeoutTicker.Stop()
+		ra.timeoutTicker = nil
 	}()
 
 	for {
-		<-c.timeoutTicker.C
-		if c.status != api.CacheStatusDownloading {
+		<-ra.timeoutTicker.C
+		if ra.status != api.CacheStatusDownloading {
 			return
 		}
 
-		if !c.isTimeout() {
+		if !ra.isTimeout() {
 			continue
 		}
 
 		info := &api.CacheResultInfo{
 			Status:         api.CacheStatusFailed,
-			DoneSize:       c.doneSize,
-			DoneBlockCount: c.doneBlocks,
+			DoneSize:       ra.doneSize,
+			DoneBlockCount: ra.doneBlocks,
 			Msg:            "timeout",
 		}
 
 		// task is timeout
-		err := c.carfileRecord.carfileCacheResult(c.deviceID, info)
+		err := ra.carfileRecord.carfileCacheResult(ra.deviceID, info)
 		if err != nil {
 			log.Errorf("carfileCacheResult err:%s", err.Error())
 		}
@@ -101,37 +101,24 @@ func (c *Replica) startTimeoutTimer() {
 	}
 }
 
-func (c *Replica) startTask() (err error) {
-	go c.startTimeoutTimer()
-
-	c.status = api.CacheStatusDownloading
-
-	// send to node
-	err = c.cacheCarfile2Node()
-	if err != nil {
-		c.status = api.CacheStatusFailed
-	}
-	return err
-}
-
-func (c *Replica) updateReplicaInfo() error {
+func (ra *Replica) updateInfo() error {
 	// update cache info to db
 	cInfo := &api.ReplicaInfo{
-		ID:          c.id,
-		CarfileHash: c.carfileHash,
-		DeviceID:    c.deviceID,
-		Status:      c.status,
-		DoneSize:    c.doneSize,
-		DoneBlocks:  c.doneBlocks,
+		ID:          ra.id,
+		CarfileHash: ra.carfileHash,
+		DeviceID:    ra.deviceID,
+		Status:      ra.status,
 		EndTime:     time.Now(),
 	}
 
 	return persistent.UpdateCarfileReplicaInfo(cInfo)
 }
 
-// Notify node to cache blocks
-func (c *Replica) cacheCarfile2Node() (err error) {
-	deviceID := c.deviceID
+// Notify node to cache carfile
+func (ra *Replica) cacheCarfile() (err error) {
+	ra.status = api.CacheStatusDownloading
+
+	deviceID := ra.deviceID
 	var result *api.CacheCarfileResult
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
@@ -139,23 +126,27 @@ func (c *Replica) cacheCarfile2Node() (err error) {
 		cancel()
 
 		if result != nil {
+			go ra.startTimeoutTimer()
+
 			// update node info
-			node := c.nodeManager.GetNode(deviceID)
+			node := ra.nodeManager.GetNode(deviceID)
 			if node != nil {
 				node.SetCurCacheCount(result.WaitCacheCarfileNum + 1)
 			}
+		} else {
+			ra.status = api.CacheStatusFailed
 		}
 	}()
 
-	cNode := c.nodeManager.GetCandidateNode(deviceID)
+	cNode := ra.nodeManager.GetCandidateNode(deviceID)
 	if cNode != nil {
-		result, err = cNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.downloadSources)
+		result, err = cNode.API().CacheCarfile(ctx, ra.carfileRecord.carfileCid, ra.carfileRecord.downloadSources)
 		return
 	}
 
-	eNode := c.nodeManager.GetEdgeNode(deviceID)
+	eNode := ra.nodeManager.GetEdgeNode(deviceID)
 	if eNode != nil {
-		result, err = eNode.GetAPI().CacheCarfile(ctx, c.carfileRecord.carfileCid, c.carfileRecord.downloadSources)
+		result, err = eNode.API().CacheCarfile(ctx, ra.carfileRecord.carfileCid, ra.carfileRecord.downloadSources)
 		return
 	}
 

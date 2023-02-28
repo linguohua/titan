@@ -14,7 +14,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-var myRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+var secretRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // RegisterNode Register a Node
 func RegisterNode(nodeType api.NodeType) (api.NodeRegisterInfo, error) {
@@ -27,7 +27,7 @@ func RegisterNode(nodeType api.NodeType) (api.NodeRegisterInfo, error) {
 
 	secret := newSecret(deviceID)
 
-	err = persistent.BindRegisterInfo(secret, deviceID, nodeType)
+	err = persistent.BindNodeInfo(secret, deviceID, nodeType)
 	if err != nil {
 		return info, err
 	}
@@ -58,7 +58,7 @@ func newDeviceID(nodeType api.NodeType) (string, error) {
 }
 
 func newSecret(input string) string {
-	v := myRand.Intn(100000000)
+	v := secretRand.Intn(100000000)
 	input = fmt.Sprintf("%s%d", input, v)
 
 	c := sha1.New()

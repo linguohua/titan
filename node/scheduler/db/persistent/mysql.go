@@ -22,7 +22,7 @@ const (
 
 	// tables
 	carfileInfoTable  = "carfiles"
-	cacheInfoTable    = "replicas"
+	replicaInfoTable  = "replicas"
 	blockDownloadInfo = "block_download_info"
 	nodeUpdateInfo    = "node_update_info"
 
@@ -230,7 +230,7 @@ func ValidateResultInfos(startTime, endTime time.Time, pageNumber, pageSize int)
 
 // CreateCarfileReplicaInfo Create replica info
 func CreateCarfileReplicaInfo(cInfo *api.ReplicaInfo) error {
-	cmd := fmt.Sprintf("INSERT INTO %s (id, carfile_hash, device_id, status, is_candidate) VALUES (:id, :carfile_hash, :device_id, :status, :is_candidate)", cacheInfoTable)
+	cmd := fmt.Sprintf("INSERT INTO %s (id, carfile_hash, device_id, status, is_candidate) VALUES (:id, :carfile_hash, :device_id, :status, :is_candidate)", replicaInfoTable)
 	_, err := mysqlCil.NamedExec(cmd, cInfo)
 	return err
 }
@@ -239,7 +239,7 @@ func CreateCarfileReplicaInfo(cInfo *api.ReplicaInfo) error {
 func UpdateCarfileReplicaStatus(hash string, deviceIDs []string, status api.CacheStatus) error {
 	tx := mysqlCil.MustBegin()
 
-	cmd := fmt.Sprintf("UPDATE %s SET status=? WHERE carfile_hash=? AND device_id in (?) ", cacheInfoTable)
+	cmd := fmt.Sprintf("UPDATE %s SET status=? WHERE carfile_hash=? AND device_id in (?) ", replicaInfoTable)
 	query, args, err := sqlx.In(cmd, status, hash, deviceIDs)
 	if err != nil {
 		return err
@@ -260,7 +260,7 @@ func UpdateCarfileReplicaStatus(hash string, deviceIDs []string, status api.Cach
 
 // UpdateCarfileReplicaInfo update replica info
 func UpdateCarfileReplicaInfo(cInfo *api.ReplicaInfo) error {
-	cmd := fmt.Sprintf("UPDATE %s SET done_size=:done_size,done_blocks=:done_blocks,status=:status,end_time=:end_time WHERE id=:id", cacheInfoTable)
+	cmd := fmt.Sprintf("UPDATE %s SET status=:status,end_time=:end_time WHERE id=:id", replicaInfoTable)
 	_, err := mysqlCil.NamedExec(cmd, cInfo)
 
 	return err
@@ -290,16 +290,16 @@ func CarfileRecordExisted(hash string) (bool, error) {
 	return count > 0, err
 }
 
-// GetCarfileInfo get carfile info with hash
-func GetCarfileInfo(hash string) (*api.CarfileRecordInfo, error) {
+// LoadCarfileInfo get carfile info with hash
+func LoadCarfileInfo(hash string) (*api.CarfileRecordInfo, error) {
 	var info api.CarfileRecordInfo
 	cmd := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=?", carfileInfoTable)
 	err := mysqlCil.Get(&info, cmd, hash)
 	return &info, err
 }
 
-// GetCarfileInfos get carfile infos with hashs
-func GetCarfileInfos(hashs []string) ([]*api.CarfileRecordInfo, error) {
+// LoadCarfileInfos get carfile infos with hashs
+func LoadCarfileInfos(hashs []string) ([]*api.CarfileRecordInfo, error) {
 	getCarfilesCmd := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash in (?)`, carfileInfoTable)
 	carfilesQuery, args, err := sqlx.In(getCarfilesCmd, hashs)
 	if err != nil {
@@ -359,7 +359,7 @@ func CarfileRecordInfos(page int) (info *api.CarfileRecordsInfo, err error) {
 func CandidatesWithHash(hash string) ([]string, error) {
 	var out []string
 	query := fmt.Sprintf(`SELECT device_id FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?`,
-		cacheInfoTable)
+		replicaInfoTable)
 
 	if err := mysqlCil.Select(&out, query, hash, api.CacheStatusSucceeded, true); err != nil {
 		return nil, err
@@ -372,13 +372,13 @@ func CandidatesWithHash(hash string) ([]string, error) {
 func CarfileReplicaInfosWithHash(hash string, isSuccess bool) ([]*api.ReplicaInfo, error) {
 	var out []*api.ReplicaInfo
 	if isSuccess {
-		query := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash=? AND status=?`, cacheInfoTable)
+		query := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash=? AND status=?`, replicaInfoTable)
 
 		if err := mysqlCil.Select(&out, query, hash, api.CacheStatusSucceeded); err != nil {
 			return nil, err
 		}
 	} else {
-		query := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash=? `, cacheInfoTable)
+		query := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash=? `, replicaInfoTable)
 
 		if err := mysqlCil.Select(&out, query, hash); err != nil {
 			return nil, err
@@ -390,7 +390,7 @@ func CarfileReplicaInfosWithHash(hash string, isSuccess bool) ([]*api.ReplicaInf
 
 // RandomCarfileFromNode Get a random carfile from the node
 func RandomCarfileFromNode(deviceID string) (string, error) {
-	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE device_id=? AND status=?`, cacheInfoTable)
+	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE device_id=? AND status=?`, replicaInfoTable)
 
 	var count int
 	if err := mysqlCil.Get(&count, query, deviceID, api.CacheStatusSucceeded); err != nil {
@@ -406,7 +406,7 @@ func RandomCarfileFromNode(deviceID string) (string, error) {
 	index := rand.Intn(count)
 
 	var hashs []string
-	cmd := fmt.Sprintf("SELECT carfile_hash FROM %s WHERE device_id=? AND status=? LIMIT %d,%d", cacheInfoTable, index, 1)
+	cmd := fmt.Sprintf("SELECT carfile_hash FROM %s WHERE device_id=? AND status=? LIMIT %d,%d", replicaInfoTable, index, 1)
 	if err := mysqlCil.Select(&hashs, cmd, deviceID, api.CacheStatusSucceeded); err != nil {
 		return "", err
 	}
@@ -456,8 +456,9 @@ func ExpiredCarfiles() ([]*api.CarfileRecordInfo, error) {
 	return out, nil
 }
 
-func GetSucceededCachesCount() (int, error) {
-	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE status=?`, cacheInfoTable)
+// SucceededCachesCount get succeeded caches count
+func SucceededCachesCount() (int, error) {
+	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE status=?`, replicaInfoTable)
 
 	var count int
 	if err := mysqlCil.Get(&count, query, api.CacheStatusSucceeded); err != nil {
@@ -467,9 +468,10 @@ func GetSucceededCachesCount() (int, error) {
 	return count, nil
 }
 
-func GetReplicaInfo(id string) (*api.ReplicaInfo, error) {
+// LoadReplicaInfo load replica info with id
+func LoadReplicaInfo(id string) (*api.ReplicaInfo, error) {
 	var cache api.ReplicaInfo
-	query := fmt.Sprintf("SELECT * FROM %s WHERE id=? ", cacheInfoTable)
+	query := fmt.Sprintf("SELECT * FROM %s WHERE id=? ", replicaInfoTable)
 	if err := mysqlCil.Get(&cache, query, id); err != nil {
 		return nil, err
 	}
@@ -477,10 +479,11 @@ func GetReplicaInfo(id string) (*api.ReplicaInfo, error) {
 	return &cache, nil
 }
 
+// RemoveCarfileRecord remove carfile
 func RemoveCarfileRecord(carfileHash string) error {
 	tx := mysqlCil.MustBegin()
 	// cache info
-	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=? `, cacheInfoTable)
+	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=? `, replicaInfoTable)
 	tx.MustExec(cCmd, carfileHash)
 
 	// data info
@@ -496,16 +499,16 @@ func RemoveCarfileRecord(carfileHash string) error {
 	return nil
 }
 
-// remove cache info and update data info
+// RemoveCarfileReplica remove replica info
 func RemoveCarfileReplica(deviceID, carfileHash string) error {
 	tx := mysqlCil.MustBegin()
 
 	// cache info
-	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE device_id=? AND carfile_hash=?`, cacheInfoTable)
+	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE device_id=? AND carfile_hash=?`, replicaInfoTable)
 	tx.MustExec(cCmd, deviceID, carfileHash)
 
 	var count int
-	cmd := fmt.Sprintf("SELECT count(*) FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?", cacheInfoTable)
+	cmd := fmt.Sprintf("SELECT count(*) FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?", replicaInfoTable)
 	err := tx.Get(&count, cmd, carfileHash, api.CacheStatusSucceeded, false)
 	if err != nil {
 		return err
@@ -520,30 +523,19 @@ func RemoveCarfileReplica(deviceID, carfileHash string) error {
 	return nil
 }
 
-func UpdateCacheInfoOfQuitNode(deviceIDs []string) (carfileRecords []*api.CarfileRecordInfo, err error) {
+// LoadCarfileRecordsWithNodes load carfile record hashs with nodes
+func LoadCarfileRecordsWithNodes(deviceIDs []string) (hashs []string, err error) {
 	tx := mysqlCil.MustBegin()
 
 	// get carfiles
-	getCarfilesCmd := fmt.Sprintf(`select * from (
-		select carfile_hash from %s WHERE device_id in (?) GROUP BY carfile_hash )as a 
-		LEFT JOIN %s as b on a.carfile_hash = b.carfile_hash`, cacheInfoTable, carfileInfoTable)
+	getCarfilesCmd := fmt.Sprintf(`select carfile_hash from %s WHERE device_id in (?) GROUP BY carfile_hash`, replicaInfoTable)
 	carfilesQuery, args, err := sqlx.In(getCarfilesCmd, deviceIDs)
 	if err != nil {
 		return
 	}
 
 	carfilesQuery = mysqlCil.Rebind(carfilesQuery)
-	tx.Select(&carfileRecords, carfilesQuery, args...)
-
-	// remove cache
-	removeCachesCmd := fmt.Sprintf(`DELETE FROM %s WHERE device_id in (?)`, cacheInfoTable)
-	removeCacheQuery, args, err := sqlx.In(removeCachesCmd, deviceIDs)
-	if err != nil {
-		return
-	}
-
-	removeCacheQuery = mysqlCil.Rebind(removeCacheQuery)
-	tx.MustExec(removeCacheQuery, args...)
+	tx.Select(&hashs, carfilesQuery, args...)
 
 	err = tx.Commit()
 	if err != nil {
@@ -554,8 +546,31 @@ func UpdateCacheInfoOfQuitNode(deviceIDs []string) (carfileRecords []*api.Carfil
 	return
 }
 
-// temporary node register
-func BindRegisterInfo(secret, deviceID string, nodeType api.NodeType) error {
+// RemoveReplicaInfoWithNodes remove replica info with nodes
+func RemoveReplicaInfoWithNodes(deviceIDs []string) error {
+	tx := mysqlCil.MustBegin()
+
+	// remove cache
+	cmd := fmt.Sprintf(`DELETE FROM %s WHERE device_id in (?)`, replicaInfoTable)
+	query, args, err := sqlx.In(cmd, deviceIDs)
+	if err != nil {
+		return err
+	}
+
+	query = mysqlCil.Rebind(query)
+	tx.MustExec(query, args...)
+
+	err = tx.Commit()
+	if err != nil {
+		err = tx.Rollback()
+		return err
+	}
+
+	return nil
+}
+
+// BindNodeInfo temporary node register
+func BindNodeInfo(secret, deviceID string, nodeType api.NodeType) error {
 	info := api.NodeRegisterInfo{
 		Secret:     secret,
 		DeviceID:   deviceID,
@@ -642,13 +657,13 @@ func GetNodesByUserDownloadBlockIn(minute int) ([]string, error) {
 func GetCacheInfosWithNode(deviceID string, index, count int) (info *api.NodeCacheRsp, err error) {
 	info = &api.NodeCacheRsp{}
 
-	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE device_id=?", cacheInfoTable)
+	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE device_id=?", replicaInfoTable)
 	err = mysqlCil.Get(&info.TotalCount, cmd, deviceID)
 	if err != nil {
 		return
 	}
 
-	cmd = fmt.Sprintf("SELECT carfile_hash,status FROM %s WHERE device_id=? order by id asc LIMIT %d,%d", cacheInfoTable, index, count)
+	cmd = fmt.Sprintf("SELECT carfile_hash,status FROM %s WHERE device_id=? order by id asc LIMIT %d,%d", replicaInfoTable, index, count)
 	if err = mysqlCil.Select(&info.Caches, cmd, deviceID); err != nil {
 		return
 	}
@@ -734,7 +749,7 @@ func GetBlockDownloadInfos(deviceID string, startTime time.Time, endTime time.Ti
 
 func GetReplicaInfos(startTime time.Time, endTime time.Time, cursor, count int) (*api.ListCacheInfosRsp, error) {
 	var total int64
-	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE end_time between ? and ?`, cacheInfoTable)
+	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE end_time between ? and ?`, replicaInfoTable)
 	if err := mysqlCil.Get(&total, countSQL, startTime, endTime); err != nil {
 		return nil, err
 	}
@@ -743,7 +758,7 @@ func GetReplicaInfos(startTime time.Time, endTime time.Time, cursor, count int) 
 		count = loadReplicaInfoMaxCount
 	}
 
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE end_time between ? and ? limit ?,?`, cacheInfoTable)
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE end_time between ? and ? limit ?,?`, replicaInfoTable)
 
 	var out []*api.ReplicaInfo
 	if err := mysqlCil.Select(&out, query, startTime, endTime, cursor, count); err != nil {

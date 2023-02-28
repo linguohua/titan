@@ -34,14 +34,14 @@ type CarfileRecord struct {
 
 	downloadSources  []*api.DownloadSource
 	candidateReploca int
-	ReplicaMap       sync.Map
+	Replicas         sync.Map
 
 	lock sync.RWMutex
 
-	edgeReplica          int               // An edge node represents a reliability
-	step                 int               // dispatchCount int
-	nodeCacheErrs        map[string]string // [deviceID]msg
-	edgeNodeCacheSummary string
+	edgeReplica      int // An edge node represents a reliability
+	step             int
+	nodeCacheErrs    map[string]string // Node cache error info
+	findNodesDetails string            // Find the details of nodes that meet the cache conditions
 }
 
 func newCarfileRecord(manager *Manager, cid, hash string) *CarfileRecord {
@@ -56,107 +56,84 @@ func newCarfileRecord(manager *Manager, cid, hash string) *CarfileRecord {
 }
 
 func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
-	dInfo, err := persistent.GetCarfileInfo(hash)
+	dInfo, err := persistent.LoadCarfileInfo(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	carfileRecord := &CarfileRecord{}
-	carfileRecord.carfileCid = dInfo.CarfileCid
-	carfileRecord.nodeManager = manager.nodeManager
-	carfileRecord.carfileManager = manager
-	carfileRecord.totalSize = dInfo.TotalSize
-	carfileRecord.replica = dInfo.Replica
-	carfileRecord.totalBlocks = dInfo.TotalBlocks
-	carfileRecord.expirationTime = dInfo.ExpirationTime
-	carfileRecord.carfileHash = dInfo.CarfileHash
-	carfileRecord.downloadSources = make([]*api.DownloadSource, 0)
-	carfileRecord.nodeCacheErrs = make(map[string]string)
+	cr := &CarfileRecord{}
+	cr.carfileCid = dInfo.CarfileCid
+	cr.nodeManager = manager.nodeManager
+	cr.carfileManager = manager
+	cr.totalSize = dInfo.TotalSize
+	cr.replica = dInfo.Replica
+	cr.totalBlocks = dInfo.TotalBlocks
+	cr.expirationTime = dInfo.ExpirationTime
+	cr.carfileHash = dInfo.CarfileHash
+	cr.downloadSources = make([]*api.DownloadSource, 0)
+	cr.nodeCacheErrs = make(map[string]string)
 
-	caches, err := persistent.CarfileReplicaInfosWithHash(hash, false)
+	raInfos, err := persistent.CarfileReplicaInfosWithHash(hash, false)
 	if err != nil {
 		log.Errorf("loadData hash:%s, GetCarfileReplicaInfosWithHash err:%s", hash, err.Error())
-		return carfileRecord, err
+		return cr, err
 	}
 
-	for _, cacheInfo := range caches {
-		if cacheInfo == nil {
+	for _, raInfo := range raInfos {
+		if raInfo == nil {
 			continue
 		}
 
-		c := &Replica{
-			id:            cacheInfo.ID,
-			deviceID:      cacheInfo.DeviceID,
-			carfileRecord: carfileRecord,
-			doneSize:      cacheInfo.DoneSize,
-			doneBlocks:    cacheInfo.DoneBlocks,
-			status:        cacheInfo.Status,
-			isCandidate:   cacheInfo.IsCandidate,
-			carfileHash:   cacheInfo.CarfileHash,
-			nodeManager:   carfileRecord.nodeManager,
-			createTime:    cacheInfo.CreateTime,
-			endTime:       cacheInfo.EndTime,
+		ra := &Replica{
+			id:            raInfo.ID,
+			deviceID:      raInfo.DeviceID,
+			carfileRecord: cr,
+			status:        raInfo.Status,
+			isCandidate:   raInfo.IsCandidate,
+			carfileHash:   raInfo.CarfileHash,
+			nodeManager:   cr.nodeManager,
+			createTime:    raInfo.CreateTime,
+			endTime:       raInfo.EndTime,
 		}
 
-		if c.status == api.CacheStatusSucceeded {
-			if c.isCandidate {
-				carfileRecord.candidateReploca++
+		if ra.status == api.CacheStatusSucceeded {
+			ra.doneBlocks = cr.totalBlocks
+			ra.doneSize = cr.totalSize
 
-				cNode := carfileRecord.nodeManager.GetCandidateNode(c.deviceID)
+			if ra.isCandidate {
+				cr.candidateReploca++
+
+				cNode := cr.nodeManager.GetCandidateNode(ra.deviceID)
 				if cNode != nil {
-					carfileRecord.downloadSources = append(carfileRecord.downloadSources, &api.DownloadSource{
-						CandidateURL:   cNode.GetRPCURL(),
-						CandidateToken: string(carfileRecord.carfileManager.writeToken),
+					cr.downloadSources = append(cr.downloadSources, &api.DownloadSource{
+						CandidateURL:   cNode.RPCURL(),
+						CandidateToken: string(cr.carfileManager.writeToken),
 					})
 				}
 			} else {
-				carfileRecord.edgeReplica++
+				cr.edgeReplica++
 			}
 		}
 
-		carfileRecord.ReplicaMap.Store(cacheInfo.DeviceID, c)
+		cr.Replicas.Store(raInfo.DeviceID, ra)
 	}
 
-	return carfileRecord, nil
+	return cr, nil
 }
 
-func (d *CarfileRecord) candidateCacheExisted() bool {
-	exist := false
-
-	d.ReplicaMap.Range(func(key, value interface{}) bool {
-		if value == nil {
-			return true
-		}
-
-		c := value.(*Replica)
-		if c == nil {
-			return true
-		}
-
-		exist = c.isCandidate && c.status == api.CacheStatusSucceeded
-		if exist {
-			return false
-		}
-
-		return true
-	})
-
-	return exist
-}
-
-func (d *CarfileRecord) startReplicaTasks(nodes []string, isCandidate bool) (downloading bool) {
+func (cr *CarfileRecord) startCacheReplicas(nodes []string, isCandidate bool) (downloading bool) {
 	downloading = false
 
-	// set caches status
-	err := persistent.UpdateCarfileReplicaStatus(d.carfileHash, nodes, api.CacheStatusDownloading)
+	// init replicas status
+	err := persistent.UpdateCarfileReplicaStatus(cr.carfileHash, nodes, api.CacheStatusDownloading)
 	if err != nil {
-		log.Errorf("startReplicaTasks %s , UpdateCarfileReplicaStatus err:%s", d.carfileHash, err.Error())
+		log.Errorf("startCacheReplicas %s , UpdateCarfileReplicaStatus err:%s", cr.carfileHash, err.Error())
 		return
 	}
 
-	err = cache.ReplicaTasksStart(d.carfileHash, nodes, cacheTimeoutTime)
+	err = cache.ReplicaTasksStart(cr.carfileHash, nodes, cacheTimeoutTime)
 	if err != nil {
-		log.Errorf("startReplicaTasks %s , ReplicaTasksStart err:%s", d.carfileHash, err.Error())
+		log.Errorf("startCacheReplicas %s , ReplicaTasksStart err:%s", cr.carfileHash, err.Error())
 		return
 	}
 
@@ -165,23 +142,23 @@ func (d *CarfileRecord) startReplicaTasks(nodes []string, isCandidate bool) (dow
 	for _, deviceID := range nodes {
 		// find or create cache task
 		var ra *Replica
-		cI, exist := d.ReplicaMap.Load(deviceID)
+		cI, exist := cr.Replicas.Load(deviceID)
 		if !exist || cI == nil {
-			ra, err = newReplica(d, deviceID, isCandidate)
+			ra, err = newReplica(cr, deviceID, isCandidate)
 			if err != nil {
-				log.Errorf("newReplica %s , node:%s,err:%s", d.carfileCid, deviceID, err.Error())
+				log.Errorf("newReplica %s , node:%s,err:%s", cr.carfileCid, deviceID, err.Error())
 				errorList = append(errorList, deviceID)
 				continue
 			}
-			d.ReplicaMap.Store(deviceID, ra)
+			cr.Replicas.Store(deviceID, ra)
 		} else {
 			ra = cI.(*Replica)
 		}
 
 		// do cache
-		err = ra.startTask()
+		err = ra.cacheCarfile()
 		if err != nil {
-			log.Errorf("startTask %s , node:%s,err:%s", d.carfileCid, ra.deviceID, err.Error())
+			log.Errorf("cacheCarfile %s , node:%s,err:%s", cr.carfileCid, ra.deviceID, err.Error())
 			errorList = append(errorList, deviceID)
 			continue
 		}
@@ -191,100 +168,102 @@ func (d *CarfileRecord) startReplicaTasks(nodes []string, isCandidate bool) (dow
 
 	if len(errorList) > 0 {
 		// set caches status
-		err := persistent.UpdateCarfileReplicaStatus(d.carfileHash, errorList, api.CacheStatusFailed)
+		err := persistent.UpdateCarfileReplicaStatus(cr.carfileHash, errorList, api.CacheStatusFailed)
 		if err != nil {
-			log.Errorf("startReplicaTasks %s , UpdateCarfileReplicaStatus err:%s", d.carfileHash, err.Error())
+			log.Errorf("startReplicaTasks %s , UpdateCarfileReplicaStatus err:%s", cr.carfileHash, err.Error())
 		}
 
-		_, err = cache.ReplicaTasksEnd(d.carfileHash, errorList)
+		_, err = cache.ReplicaTasksEnd(cr.carfileHash, errorList)
 		if err != nil {
-			log.Errorf("startReplicaTasks %s , ReplicaTasksEnd err:%s", d.carfileHash, err.Error())
+			log.Errorf("startReplicaTasks %s , ReplicaTasksEnd err:%s", cr.carfileHash, err.Error())
 		}
 	}
 
 	return
 }
 
-func (d *CarfileRecord) cacheToCandidates(needCount int) error {
-	result := d.findAppropriateCandidates(d.ReplicaMap, needCount)
+func (cr *CarfileRecord) cacheToCandidates(needCount int) error {
+	result := cr.findCandidates(needCount)
+	cr.findNodesDetails = fmt.Sprintf("totalCandidates:%d,cachedCount:%d,insufficientDiskCount:%d,need:%d",
+		result.totalCount, result.cachedCount, result.insufficientDiskCount, needCount)
 	if len(result.list) <= 0 {
-		return xerrors.Errorf("allCandidateCount:%d,filterCount:%d,insufficientDiskCount:%d,need:%d", result.allNodeCount, result.filterCount, result.insufficientDiskCount, needCount)
+		return xerrors.New("not found candidate")
 	}
 
-	if !d.startReplicaTasks(result.list, true) {
+	if !cr.startCacheReplicas(result.list, true) {
 		return xerrors.New("running err")
 	}
 
 	return nil
 }
 
-func (d *CarfileRecord) cacheToEdges(needCount int) error {
-	if len(d.downloadSources) <= 0 {
+func (cr *CarfileRecord) cacheToEdges(needCount int) error {
+	if len(cr.downloadSources) <= 0 {
 		return xerrors.New("not found cache sources")
 	}
 
-	result := d.findAppropriateEdges(d.ReplicaMap, needCount)
-	d.edgeNodeCacheSummary = fmt.Sprintf("allEdgeCount:%d,filterCount:%d,insufficientDiskCount:%d,need:%d", result.allNodeCount, result.filterCount, result.insufficientDiskCount, needCount)
-
+	result := cr.findEdges(needCount)
+	cr.findNodesDetails = fmt.Sprintf("totalEdges:%d,cachedCount:%d,insufficientDiskCount:%d,need:%d",
+		result.totalCount, result.cachedCount, result.insufficientDiskCount, needCount)
 	if len(result.list) <= 0 {
 		return xerrors.New("not found edge")
 	}
 
-	if !d.startReplicaTasks(result.list, false) {
+	if !cr.startCacheReplicas(result.list, false) {
 		return xerrors.New("running err")
 	}
 
 	return nil
 }
 
-func (d *CarfileRecord) initStep() {
-	d.step = cachedStep
+func (cr *CarfileRecord) initStep() {
+	cr.step = cachedStep
 
-	if d.candidateReploca <= 0 {
-		d.step = rootCandidateCacheStep
+	if cr.candidateReploca <= 0 {
+		cr.step = rootCandidateCacheStep
 		return
 	}
 
-	if d.candidateReploca < rootCacheCount+candidateReplicaCacheCount {
-		d.step = candidateReplicaCacheStep
+	if cr.candidateReploca < rootCacheCount+candidateReplicaCacheCount {
+		cr.step = candidateReplicaCacheStep
 		return
 	}
 
-	if d.edgeReplica < d.replica {
-		d.step = edgeReplicaCacheStep
+	if cr.edgeReplica < cr.replica {
+		cr.step = edgeReplicaCacheStep
 	}
 }
 
-func (d *CarfileRecord) nextStep() {
-	d.step++
+func (cr *CarfileRecord) nextStep() {
+	cr.step++
 
-	if d.step == candidateReplicaCacheStep {
-		needCacdidateCount := (rootCacheCount + candidateReplicaCacheCount) - d.candidateReploca
+	if cr.step == candidateReplicaCacheStep {
+		needCacdidateCount := (rootCacheCount + candidateReplicaCacheCount) - cr.candidateReploca
 		if needCacdidateCount <= 0 {
 			// no need to cache to candidate , skip this step
-			d.step++
+			cr.step++
 		}
 	}
 }
 
 // cache a carfile to the node
-func (d *CarfileRecord) dispatchCache(deviceID string) error {
-	cNode := d.nodeManager.GetCandidateNode(deviceID)
+func (cr *CarfileRecord) dispatchCache(deviceID string) error {
+	cNode := cr.nodeManager.GetCandidateNode(deviceID)
 	if cNode != nil {
-		if !d.startReplicaTasks([]string{deviceID}, true) {
+		if !cr.startCacheReplicas([]string{deviceID}, true) {
 			return xerrors.New("running err")
 		}
 
 		return nil
 	}
 
-	eNode := d.nodeManager.GetEdgeNode(deviceID)
+	eNode := cr.nodeManager.GetEdgeNode(deviceID)
 	if eNode != nil {
-		if len(d.downloadSources) <= 0 {
+		if len(cr.downloadSources) <= 0 {
 			return xerrors.New("not found cache sources")
 		}
 
-		if !d.startReplicaTasks([]string{deviceID}, false) {
+		if !cr.startCacheReplicas([]string{deviceID}, false) {
 			return xerrors.New("running err")
 		}
 
@@ -294,104 +273,102 @@ func (d *CarfileRecord) dispatchCache(deviceID string) error {
 	return xerrors.Errorf("node %s not found", deviceID)
 }
 
-func (d *CarfileRecord) dispatchCaches() error {
-	switch d.step {
+func (cr *CarfileRecord) dispatchCaches() error {
+	switch cr.step {
 	case rootCandidateCacheStep:
-		return d.cacheToCandidates(rootCacheCount)
+		return cr.cacheToCandidates(rootCacheCount)
 	case candidateReplicaCacheStep:
-		if d.candidateReploca == 0 {
-			return xerrors.New("rootcache is 0")
+		if cr.candidateReploca == 0 {
+			return xerrors.New("no root reploca")
 		}
-		needCacdidateCount := (rootCacheCount + candidateReplicaCacheCount) - d.candidateReploca
+		needCacdidateCount := (rootCacheCount + candidateReplicaCacheCount) - cr.candidateReploca
 		if needCacdidateCount <= 0 {
 			return xerrors.New("no caching required to candidate node")
 		}
-		return d.cacheToCandidates(needCacdidateCount)
+		return cr.cacheToCandidates(needCacdidateCount)
 	case edgeReplicaCacheStep:
-		needEdgeCount := d.replica - d.edgeReplica
+		needEdgeCount := cr.replica - cr.edgeReplica
 		if needEdgeCount <= 0 {
 			return xerrors.New("no caching required to edge node")
 		}
-		return d.cacheToEdges(needEdgeCount)
+		return cr.cacheToEdges(needEdgeCount)
 	}
 
 	return xerrors.New("steps completed")
 }
 
-func (d *CarfileRecord) updateCarfileRecordInfo(endCache *Replica, errMsg string) error {
-	d.lock.Lock()
-	defer d.lock.Unlock()
+func (cr *CarfileRecord) updateCarfileRecordInfo(endCache *Replica, errMsg string) error {
+	cr.lock.Lock()
+	defer cr.lock.Unlock()
 
 	if endCache.status == api.CacheStatusSucceeded {
 		if endCache.isCandidate {
-			d.candidateReploca++
+			cr.candidateReploca++
 
-			cNode := d.nodeManager.GetCandidateNode(endCache.deviceID)
+			cNode := cr.nodeManager.GetCandidateNode(endCache.deviceID)
 			if cNode != nil {
-				d.downloadSources = append(d.downloadSources, &api.DownloadSource{
-					CandidateURL:   cNode.GetRPCURL(),
-					CandidateToken: string(d.carfileManager.writeToken),
+				cr.downloadSources = append(cr.downloadSources, &api.DownloadSource{
+					CandidateURL:   cNode.RPCURL(),
+					CandidateToken: string(cr.carfileManager.writeToken),
 				})
 			}
 		} else {
-			d.edgeReplica++
+			cr.edgeReplica++
 		}
-	}
-
-	if endCache.status == api.CacheStatusFailed {
-		// err msg
-		d.nodeCacheErrs[endCache.deviceID] = errMsg
+	} else if endCache.status == api.CacheStatusFailed {
+		// node err msg
+		cr.nodeCacheErrs[endCache.deviceID] = errMsg
 	}
 
 	// Carfile caches end
 	dInfo := &api.CarfileRecordInfo{
-		CarfileHash:    d.carfileHash,
-		TotalSize:      d.totalSize,
-		TotalBlocks:    d.totalBlocks,
-		Replica:        d.replica,
-		ExpirationTime: d.expirationTime,
+		CarfileHash:    cr.carfileHash,
+		TotalSize:      cr.totalSize,
+		TotalBlocks:    cr.totalBlocks,
+		Replica:        cr.replica,
+		ExpirationTime: cr.expirationTime,
 	}
 	return persistent.UpdateCarfileRecordCachesInfo(dInfo)
 }
 
-func (d *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResultInfo) error {
-	cacheI, exist := d.ReplicaMap.Load(deviceID)
+func (cr *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResultInfo) error {
+	rI, exist := cr.Replicas.Load(deviceID)
 	if !exist {
-		return xerrors.Errorf("cacheCarfileResult not found deviceID:%s,cid:%s", deviceID, d.carfileCid)
+		return xerrors.Errorf("cacheCarfileResult not found deviceID:%s,cid:%s", deviceID, cr.carfileCid)
 	}
-	c := cacheI.(*Replica)
+	ra := rI.(*Replica)
 
-	c.status = info.Status
-	c.doneBlocks = info.DoneBlockCount
-	c.doneSize = info.DoneSize
+	ra.status = info.Status
+	ra.doneBlocks = info.DoneBlockCount
+	ra.doneSize = info.DoneSize
 
-	if c.status == api.CacheStatusDownloading {
+	if ra.status == api.CacheStatusDownloading {
 		// update cache task timeout
-		return cache.UpdateNodeCachingExpireTime(c.carfileHash, c.deviceID, cacheTimeoutTime)
+		return cache.UpdateNodeCachingExpireTime(ra.carfileHash, ra.deviceID, cacheTimeoutTime)
 	}
 
 	// update node info
-	node := d.nodeManager.GetNode(c.deviceID)
+	node := cr.nodeManager.GetNode(ra.deviceID)
 	if node != nil {
 		node.IncrCurCacheCount(-1)
 	}
 
-	err := c.updateReplicaInfo()
+	err := ra.updateInfo()
 	if err != nil {
-		return xerrors.Errorf("endCache %s , updateReplicaInfo err:%s", c.carfileHash, err.Error())
+		return xerrors.Errorf("endCache %s , updateReplicaInfo err:%s", ra.carfileHash, err.Error())
 	}
 
-	err = d.updateCarfileRecordInfo(c, info.Msg)
+	err = cr.updateCarfileRecordInfo(ra, info.Msg)
 	if err != nil {
-		return xerrors.Errorf("endCache %s , updateCarfileRecordInfo err:%s", c.carfileHash, err.Error())
+		return xerrors.Errorf("endCache %s , updateCarfileRecordInfo err:%s", ra.carfileHash, err.Error())
 	}
 
-	cachesDone, err := cache.ReplicaTasksEnd(c.carfileHash, []string{c.deviceID})
+	cachesDone, err := cache.ReplicaTasksEnd(ra.carfileHash, []string{ra.deviceID})
 	if err != nil {
-		return xerrors.Errorf("endCache %s , ReplicaTasksEnd err:%s", c.carfileHash, err.Error())
+		return xerrors.Errorf("endCache %s , ReplicaTasksEnd err:%s", ra.carfileHash, err.Error())
 	}
 
-	if c.status == api.CacheStatusSucceeded {
+	if ra.status == api.CacheStatusSucceeded {
 		err = cache.IncrBySystemBaseInfo(cache.CarFileCountField, 1)
 		if err != nil {
 			log.Errorf("endCache IncrBySystemBaseInfo err:%s", err.Error())
@@ -404,11 +381,11 @@ func (d *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResul
 	}
 
 	// next step
-	d.nextStep()
+	cr.nextStep()
 
-	err = d.dispatchCaches()
+	err = cr.dispatchCaches()
 	if err != nil {
-		d.carfileManager.carfileCacheEnd(d, err)
+		cr.carfileManager.carfileCacheEnd(cr, err)
 	}
 
 	return nil
@@ -416,96 +393,96 @@ func (d *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResul
 
 type findNodeResult struct {
 	list                  []string
-	allNodeCount          int
-	filterCount           int
+	totalCount            int
+	cachedCount           int
 	insufficientDiskCount int
 }
 
-// find the edges
-func (d *CarfileRecord) findAppropriateEdges(filterMap sync.Map, count int) *findNodeResult {
+// Find edges that meet the cache criteria
+func (cr *CarfileRecord) findEdges(count int) *findNodeResult {
 	resultInfo := &findNodeResult{}
 
-	nodes := make([]*node.Node, 0)
 	if count <= 0 {
 		return resultInfo
 	}
 
-	d.nodeManager.EdgeNodeMap.Range(func(key, value interface{}) bool {
+	nodes := make([]*node.BaseInfo, 0)
+	cr.nodeManager.EdgeNodes.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
-		resultInfo.allNodeCount++
+		resultInfo.totalCount++
 
-		if cI, exist := filterMap.Load(deviceID); exist {
+		if cI, exist := cr.Replicas.Load(deviceID); exist {
 			cache := cI.(*Replica)
 			if cache.status == api.CacheStatusSucceeded {
-				resultInfo.filterCount++
+				resultInfo.cachedCount++
 				return true
 			}
 		}
 
-		node := value.(*node.EdgeNode)
+		node := value.(*node.Edge)
 		if node.DiskUsage > diskUsageMax {
 			resultInfo.insufficientDiskCount++
 			return true
 		}
 
-		nodes = append(nodes, node.Node)
+		nodes = append(nodes, node.BaseInfo)
 		return true
 	})
 
 	sort.Slice(nodes, func(i, j int) bool {
-		return nodes[i].GetCurCacheCount() < nodes[j].GetCurCacheCount()
+		return nodes[i].CurCacheCount() < nodes[j].CurCacheCount()
 	})
 
 	if count > len(nodes) {
 		count = len(nodes)
 	}
 
-	for _, node := range nodes[0:count] {
+	for _, node := range nodes[:count] {
 		resultInfo.list = append(resultInfo.list, node.DeviceID)
 	}
 	return resultInfo
 }
 
-// find the candidates
-func (d *CarfileRecord) findAppropriateCandidates(filterMap sync.Map, count int) *findNodeResult {
+// Find candidates that meet the cache criteria
+func (cr *CarfileRecord) findCandidates(count int) *findNodeResult {
 	resultInfo := &findNodeResult{}
 
-	nodes := make([]*node.Node, 0)
 	if count <= 0 {
 		return resultInfo
 	}
 
-	d.nodeManager.CandidateNodeMap.Range(func(key, value interface{}) bool {
+	nodes := make([]*node.BaseInfo, 0)
+	cr.nodeManager.CandidateNodes.Range(func(key, value interface{}) bool {
 		deviceID := key.(string)
-		resultInfo.allNodeCount++
+		resultInfo.totalCount++
 
-		if cI, exist := filterMap.Load(deviceID); exist {
+		if cI, exist := cr.Replicas.Load(deviceID); exist {
 			cache := cI.(*Replica)
 			if cache.status == api.CacheStatusSucceeded {
-				resultInfo.filterCount++
+				resultInfo.cachedCount++
 				return true
 			}
 		}
 
-		node := value.(*node.CandidateNode)
+		node := value.(*node.Candidate)
 		if node.DiskUsage > diskUsageMax {
 			resultInfo.insufficientDiskCount++
 			return true
 		}
 
-		nodes = append(nodes, node.Node)
+		nodes = append(nodes, node.BaseInfo)
 		return true
 	})
 
 	sort.Slice(nodes, func(i, j int) bool {
-		return nodes[i].GetCurCacheCount() < nodes[j].GetCurCacheCount()
+		return nodes[i].CurCacheCount() < nodes[j].CurCacheCount()
 	})
 
 	if count > len(nodes) {
 		count = len(nodes)
 	}
 
-	for _, node := range nodes[0:count] {
+	for _, node := range nodes[:count] {
 		resultInfo.list = append(resultInfo.list, node.DeviceID)
 	}
 	return resultInfo

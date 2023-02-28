@@ -4,14 +4,13 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
-	"math/rand"
 	"net"
 	"net/http"
-	"time"
 
 	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/scheduler/election"
+	"github.com/linguohua/titan/node/scheduler/locator"
 	"github.com/linguohua/titan/node/scheduler/validate"
 	"github.com/linguohua/titan/node/secret"
 	"github.com/linguohua/titan/region"
@@ -32,17 +31,13 @@ import (
 	"github.com/linguohua/titan/node/scheduler/carfile"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
-	"github.com/linguohua/titan/node/scheduler/locator"
 	"github.com/linguohua/titan/node/scheduler/sync"
 	"github.com/linguohua/titan/node/scheduler/web"
 
 	"golang.org/x/xerrors"
 )
 
-var (
-	log    = logging.Logger("scheduler")
-	myRand = rand.New(rand.NewSource(time.Now().UnixNano()))
-)
+var log = logging.Logger("scheduler")
 
 const (
 	// StatusOffline node offline
@@ -65,7 +60,7 @@ const (
 func NewLocalScheduleNode(lr repo.LockedRepo, schedulerCfg *config.SchedulerCfg) api.Scheduler {
 	s := &Scheduler{}
 
-	nodeManager := node.NewManager(s.nodeOfflineCallback, s.nodeExitedCallback)
+	nodeManager := node.NewManager(s.nodeExitedCallback)
 	s.CommonAPI = common.NewCommonAPI(nodeManager.NodeSessionCallBack)
 	s.Web = web.NewWeb(s)
 
@@ -82,7 +77,6 @@ func NewLocalScheduleNode(lr repo.LockedRepo, schedulerCfg *config.SchedulerCfg)
 		log.Panicf("authNew err:%s", err.Error())
 	}
 
-	s.locatorManager = locator.NewManager()
 	s.nodeManager = nodeManager
 	s.election = election.New(nodeManager)
 	s.validate = validate.New(nodeManager, false)
@@ -103,12 +97,11 @@ type Scheduler struct {
 	common.CommonAPI
 	api.Web
 
-	nodeManager    *node.Manager
-	election       *election.Election
-	validate       *validate.Validate
-	dataManager    *carfile.Manager
-	locatorManager *locator.Manager
-	dataSync       *sync.DataSync
+	nodeManager *node.Manager
+	election    *election.Election
+	validate    *validate.Validate
+	dataManager *carfile.Manager
+	dataSync    *sync.DataSync
 
 	writeToken         []byte
 	adminToken         []byte
@@ -176,7 +169,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 	}
 
 	log.Infof("Candidate Connect %s, address:%s", deviceID, remoteAddr)
-	candidateNode := node.NewCandidateNode(s.adminToken)
+	candidateNode := node.NewCandidate(s.adminToken)
 	candicateAPI, err := candidateNode.ConnectRPC(remoteAddr, true)
 	if err != nil {
 		return xerrors.Errorf("CandidateNodeConnect ConnectRPC err:%s", err.Error())
@@ -218,7 +211,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 	deviceInfo.Longitude = geoInfo.Longitude
 	deviceInfo.Latitude = geoInfo.Latitude
 
-	candidateNode.Node = node.NewNode(&deviceInfo, remoteAddr, privateKey, api.TypeNameCandidate, geoInfo)
+	candidateNode.BaseInfo = node.NewBaseInfo(&deviceInfo, remoteAddr, privateKey, api.TypeNameCandidate, geoInfo)
 
 	err = s.nodeManager.CandidateOnline(candidateNode)
 	if err != nil {
@@ -232,7 +225,8 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		return err
 	}
 
-	go s.locatorManager.NotifyNodeStatusToLocator(deviceID, true)
+	// notify locator
+	locator.ChangeNodeOnlineStatus(deviceID, true)
 
 	s.dataSync.Add2List(deviceID)
 
@@ -249,7 +243,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	}
 
 	log.Infof("Edge Connect %s; remoteAddr:%s", deviceID, remoteAddr)
-	edgeNode := node.NewEdgeNode(s.adminToken)
+	edgeNode := node.NewEdge(s.adminToken)
 	edgeAPI, err := edgeNode.ConnectRPC(remoteAddr, true)
 	if err != nil {
 		return xerrors.Errorf("EdgeNodeConnect ConnectRPC err:%s", err.Error())
@@ -291,7 +285,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	deviceInfo.Longitude = geoInfo.Longitude
 	deviceInfo.Latitude = geoInfo.Latitude
 
-	edgeNode.Node = node.NewNode(&deviceInfo, remoteAddr, privateKey, api.TypeNameEdge, geoInfo)
+	edgeNode.BaseInfo = node.NewBaseInfo(&deviceInfo, remoteAddr, privateKey, api.TypeNameEdge, geoInfo)
 
 	err = s.nodeManager.EdgeOnline(edgeNode)
 	if err != nil {
@@ -306,7 +300,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	}
 
 	// notify locator
-	go s.locatorManager.NotifyNodeStatusToLocator(deviceID, true)
+	locator.ChangeNodeOnlineStatus(deviceID, true)
 
 	s.dataSync.Add2List(deviceID)
 
@@ -319,12 +313,12 @@ func (s *Scheduler) GetPublicKey(ctx context.Context) (string, error) {
 
 	edgeNode := s.nodeManager.GetEdgeNode(deviceID)
 	if edgeNode != nil {
-		return titanRsa.PublicKey2Pem(&edgeNode.GetPrivateKey().PublicKey), nil
+		return titanRsa.PublicKey2Pem(&edgeNode.PrivateKey().PublicKey), nil
 	}
 
 	candidateNode := s.nodeManager.GetCandidateNode(deviceID)
 	if candidateNode != nil {
-		return titanRsa.PublicKey2Pem(&candidateNode.GetPrivateKey().PublicKey), nil
+		return titanRsa.PublicKey2Pem(&candidateNode.PrivateKey().PublicKey), nil
 	}
 
 	return "", fmt.Errorf("Can not get node %s publicKey", deviceID)
@@ -428,18 +422,6 @@ func getDeviceStatus(isOnline bool) string {
 	}
 }
 
-func randomNum(start, end int) int {
-	max := end - start
-	if max <= 0 {
-		return start
-	}
-
-	x := myRand.Intn(10000)
-	y := x % end
-
-	return y + start
-}
-
 // ValidateSwitch open or close validate task
 func (s *Scheduler) ValidateSwitch(ctx context.Context, enable bool) error {
 	s.validate.EnableValidate(enable)
@@ -460,14 +442,14 @@ func (s *Scheduler) ValidateStart(ctx context.Context) error {
 }
 
 // LocatorConnect Locator Connect
-func (s *Scheduler) LocatorConnect(ctx context.Context, locatorID string, locatorToken string) error {
+func (s *Scheduler) LocatorConnect(ctx context.Context, id string, token string) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	url := fmt.Sprintf("https://%s/rpc/v0", remoteAddr)
 
-	log.Infof("LocatorConnect locatorID:%s, addr:%s", locatorID, remoteAddr)
+	log.Infof("LocatorConnect locatorID:%s, addr:%s", id, remoteAddr)
 
 	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+string(locatorToken))
+	headers.Add("Authorization", "Bearer "+string(token))
 	// Connect to scheduler
 	// log.Infof("EdgeNodeConnect edge url:%v", url)
 	locationAPI, closer, err := client.NewLocator(ctx, url, headers)
@@ -476,7 +458,7 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, locatorID string, locato
 		return err
 	}
 
-	s.locatorManager.AddLocator(node.NewLocation(locationAPI, closer, locatorID))
+	locator.StoreLocator(locator.New(locationAPI, closer, id))
 
 	return nil
 }
@@ -488,7 +470,7 @@ func (s *Scheduler) GetDownloadInfo(ctx context.Context, deviceID string) ([]*ap
 
 // NodeQuit node want to quit titan
 func (s *Scheduler) NodeQuit(ctx context.Context, deviceID, secret string) error {
-	// TODO secret
+	// TODO Check secret
 	s.nodeManager.NodesQuit([]string{deviceID})
 
 	return nil
@@ -504,13 +486,26 @@ func incrDeviceReward(deviceID string, incrReward int64) error {
 	return nil
 }
 
-func (s *Scheduler) nodeOfflineCallback(deviceID string) {
-	s.locatorManager.NotifyNodeStatusToLocator(deviceID, false)
-}
-
 func (s *Scheduler) nodeExitedCallback(deviceIDs []string) {
 	// clean node cache
-	s.dataManager.NodesQuit(deviceIDs)
+	log.Infof("node event , nodes quit:%v", deviceIDs)
+
+	hashs, err := persistent.LoadCarfileRecordsWithNodes(deviceIDs)
+	if err != nil {
+		log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
+		return
+	}
+
+	err = persistent.RemoveReplicaInfoWithNodes(deviceIDs)
+	if err != nil {
+		log.Errorf("RemoveReplicaInfoWithNodes err:%s", err.Error())
+		return
+	}
+
+	// recache
+	for _, hash := range hashs {
+		log.Infof("need restore carfile :%s", hash)
+	}
 }
 
 // SetNodePort set node port
@@ -542,12 +537,12 @@ func (s *Scheduler) authNew() error {
 func (s *Scheduler) ShowNodeLogFile(ctx context.Context, deviceID string) (*api.LogFile, error) {
 	cNode := s.nodeManager.GetCandidateNode(deviceID)
 	if cNode != nil {
-		return cNode.GetAPI().ShowLogFile(ctx)
+		return cNode.API().ShowLogFile(ctx)
 	}
 
 	eNode := s.nodeManager.GetEdgeNode(deviceID)
 	if eNode != nil {
-		return eNode.GetAPI().ShowLogFile(ctx)
+		return eNode.API().ShowLogFile(ctx)
 	}
 
 	return nil, xerrors.Errorf("node %s not found")
@@ -557,12 +552,12 @@ func (s *Scheduler) ShowNodeLogFile(ctx context.Context, deviceID string) (*api.
 func (s *Scheduler) DownloadNodeLogFile(ctx context.Context, deviceID string) ([]byte, error) {
 	cNode := s.nodeManager.GetCandidateNode(deviceID)
 	if cNode != nil {
-		return cNode.GetAPI().DownloadLogFile(ctx)
+		return cNode.API().DownloadLogFile(ctx)
 	}
 
 	eNode := s.nodeManager.GetEdgeNode(deviceID)
 	if eNode != nil {
-		return eNode.GetAPI().DownloadLogFile(ctx)
+		return eNode.API().DownloadLogFile(ctx)
 	}
 
 	return nil, xerrors.Errorf("node %s not found")
@@ -571,12 +566,12 @@ func (s *Scheduler) DownloadNodeLogFile(ctx context.Context, deviceID string) ([
 func (s *Scheduler) DeleteNodeLogFile(ctx context.Context, deviceID string) error {
 	cNode := s.nodeManager.GetCandidateNode(deviceID)
 	if cNode != nil {
-		return cNode.GetAPI().DeleteLogFile(ctx)
+		return cNode.API().DeleteLogFile(ctx)
 	}
 
 	eNode := s.nodeManager.GetEdgeNode(deviceID)
 	if eNode != nil {
-		return eNode.GetAPI().DeleteLogFile(ctx)
+		return eNode.API().DeleteLogFile(ctx)
 	}
 
 	return xerrors.Errorf("node %s not found")

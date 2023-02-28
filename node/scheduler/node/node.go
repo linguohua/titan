@@ -19,46 +19,17 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 )
 
-// Locator Edge node
-type Locator struct {
-	nodeAPI api.Locator
-	closer  jsonrpc.ClientCloser
-
-	locatorID string
-}
-
-// NewLocation new location
-func NewLocation(api api.Locator, closer jsonrpc.ClientCloser, locatorID string) *Locator {
-	location := &Locator{
-		nodeAPI:   api,
-		closer:    closer,
-		locatorID: locatorID,
-	}
-
-	return location
-}
-
-// GetAPI get node api
-func (l *Locator) GetAPI() api.Locator {
-	return l.nodeAPI
-}
-
-// GetLocatorID get id
-func (l *Locator) GetLocatorID() string {
-	return l.locatorID
-}
-
-// EdgeNode Edge node
-type EdgeNode struct {
+// Edge Edge node
+type Edge struct {
 	nodeAPI    api.Edge
 	closer     jsonrpc.ClientCloser
 	adminToken []byte
-	*Node
+	*BaseInfo
 }
 
-// NewEdgeNode new edge
-func NewEdgeNode(adminToken []byte) *EdgeNode {
-	edgeNode := &EdgeNode{
+// NewEdge new edge
+func NewEdge(adminToken []byte) *Edge {
+	edgeNode := &Edge{
 		adminToken: adminToken,
 	}
 
@@ -66,7 +37,7 @@ func NewEdgeNode(adminToken []byte) *EdgeNode {
 }
 
 // ConnectRPC connect node rpc
-func (e *EdgeNode) ConnectRPC(addr string, isNodeConnect bool) (api.Edge, error) {
+func (e *Edge) ConnectRPC(addr string, isNodeConnect bool) (api.Edge, error) {
 	if !isNodeConnect {
 		if addr == e.remoteAddr {
 			return nil, xerrors.New("the address has not changed")
@@ -96,27 +67,27 @@ func (e *EdgeNode) ConnectRPC(addr string, isNodeConnect bool) (api.Edge, error)
 	return edgeAPI, nil
 }
 
-// GetAPI get node api
-func (e *EdgeNode) GetAPI() api.Edge {
+// API get node api
+func (e *Edge) API() api.Edge {
 	return e.nodeAPI
 }
 
 // ClientCloser get node client closer
-func (e *EdgeNode) ClientCloser() {
+func (e *Edge) ClientCloser() {
 	e.closer()
 }
 
-// CandidateNode Candidate node
-type CandidateNode struct {
+// Candidate Candidate node
+type Candidate struct {
 	nodeAPI    api.Candidate
 	closer     jsonrpc.ClientCloser
 	adminToken []byte
-	*Node
+	*BaseInfo
 }
 
-// NewCandidateNode new candidate
-func NewCandidateNode(adminToken []byte) *CandidateNode {
-	candidateNode := &CandidateNode{
+// NewCandidate new candidate
+func NewCandidate(adminToken []byte) *Candidate {
+	candidateNode := &Candidate{
 		adminToken: adminToken,
 	}
 
@@ -124,7 +95,7 @@ func NewCandidateNode(adminToken []byte) *CandidateNode {
 }
 
 // ConnectRPC connect node rpc
-func (c *CandidateNode) ConnectRPC(addr string, isNodeConnect bool) (api.Candidate, error) {
+func (c *Candidate) ConnectRPC(addr string, isNodeConnect bool) (api.Candidate, error) {
 	if !isNodeConnect {
 		if addr == c.remoteAddr {
 			return nil, xerrors.New("the address has not changed")
@@ -155,18 +126,18 @@ func (c *CandidateNode) ConnectRPC(addr string, isNodeConnect bool) (api.Candida
 	return candidateAPI, nil
 }
 
-// GetAPI get node api
-func (c *CandidateNode) GetAPI() api.Candidate {
+// API get node api
+func (c *Candidate) API() api.Candidate {
 	return c.nodeAPI
 }
 
 // ClientCloser get node client closer
-func (c *CandidateNode) ClientCloser() {
+func (c *Candidate) ClientCloser() {
 	c.closer()
 }
 
-// Node Common
-type Node struct {
+// BaseInfo Common
+type BaseInfo struct {
 	DeviceID      string
 	DiskUsage     float64
 	BandwidthDown float64
@@ -178,13 +149,13 @@ type Node struct {
 	geoInfo         *region.GeoInfo
 	lastRequestTime time.Time
 	cacheStat       *api.CacheStat
-	curCacheCount   int // The number of caches waiting and in progress
+	cacheCount      int // The number of caches waiting and in progress
 	port            string
 }
 
-// NewNode new
-func NewNode(deviceInfo *api.DevicesInfo, remoteAddr string, privateKey *rsa.PrivateKey, nodeType api.NodeTypeName, geoInfo *region.GeoInfo) *Node {
-	node := &Node{
+// NewBaseInfo new
+func NewBaseInfo(deviceInfo *api.DevicesInfo, remoteAddr string, privateKey *rsa.PrivateKey, nodeType api.NodeTypeName, geoInfo *region.GeoInfo) *BaseInfo {
+	bi := &BaseInfo{
 		remoteAddr: remoteAddr,
 		privateKey: privateKey,
 		nodeType:   nodeType,
@@ -196,16 +167,16 @@ func NewNode(deviceInfo *api.DevicesInfo, remoteAddr string, privateKey *rsa.Pri
 		BandwidthUp:   deviceInfo.BandwidthUp,
 	}
 
-	return node
+	return bi
 }
 
-// GetPrivateKey get private key
-func (n *Node) GetPrivateKey() *rsa.PrivateKey {
+// PrivateKey get private key
+func (n *BaseInfo) PrivateKey() *rsa.PrivateKey {
 	return n.privateKey
 }
 
-// GetAddr rpc url
-func (n *Node) GetAddr() string {
+// Addr rpc url
+func (n *BaseInfo) Addr() string {
 	if n.port != "" {
 		index := strings.Index(n.remoteAddr, ":")
 		ip := n.remoteAddr[:index+1]
@@ -216,58 +187,58 @@ func (n *Node) GetAddr() string {
 	return n.remoteAddr
 }
 
-// GetRPCURL rpc url
-func (n *Node) GetRPCURL() string {
-	return fmt.Sprintf("https://%s/rpc/v0", n.GetAddr())
+// RPCURL rpc url
+func (n *BaseInfo) RPCURL() string {
+	return fmt.Sprintf("https://%s/rpc/v0", n.Addr())
 }
 
-// GetDownloadURL download url
-func (n *Node) GetDownloadURL() string {
-	return fmt.Sprintf("https://%s/block/get", n.GetAddr())
+// DownloadURL download url
+func (n *BaseInfo) DownloadURL() string {
+	return fmt.Sprintf("https://%s/block/get", n.Addr())
 }
 
-// GetLastRequestTime get node last request time
-func (n *Node) GetLastRequestTime() time.Time {
+// LastRequestTime get node last request time
+func (n *BaseInfo) LastRequestTime() time.Time {
 	return n.lastRequestTime
 }
 
 // SetLastRequestTime set node last request time
-func (n *Node) SetLastRequestTime(t time.Time) {
+func (n *BaseInfo) SetLastRequestTime(t time.Time) {
 	n.lastRequestTime = t
 }
 
-// GetGeoInfo get geo info
-func (n *Node) GetGeoInfo() *region.GeoInfo {
+// GeoInfo get geo info
+func (n *BaseInfo) GeoInfo() *region.GeoInfo {
 	return n.geoInfo
 }
 
 // SetGeoInfo set geo info
-func (n *Node) SetGeoInfo(info *region.GeoInfo) {
+func (n *BaseInfo) SetGeoInfo(info *region.GeoInfo) {
 	n.geoInfo = info
 }
 
 // SetCurCacheCount set cache count
-func (n *Node) SetCurCacheCount(t int) {
-	n.curCacheCount = t
+func (n *BaseInfo) SetCurCacheCount(t int) {
+	n.cacheCount = t
 }
 
 // IncrCurCacheCount Incr cache count
-func (n *Node) IncrCurCacheCount(v int) {
-	n.curCacheCount += v
+func (n *BaseInfo) IncrCurCacheCount(v int) {
+	n.cacheCount += v
 }
 
-// GetCurCacheCount cache count
-func (n *Node) GetCurCacheCount() int {
-	return n.curCacheCount
+// CurCacheCount cache count
+func (n *BaseInfo) CurCacheCount() int {
+	return n.cacheCount
 }
 
 // SetNodePort reset node port
-func (n *Node) SetNodePort(port string) {
+func (n *BaseInfo) SetNodePort(port string) {
 	n.port = port
 }
 
 // node online
-func (n *Node) setNodeOnline() error {
+func (n *BaseInfo) setNodeOnline() error {
 	deviceID := n.DeviceID
 	geoInfo := n.geoInfo
 	typeName := string(n.nodeType)
@@ -288,18 +259,8 @@ func (n *Node) setNodeOnline() error {
 	return nil
 }
 
-// node offline
-func (n *Node) setNodeOffline() {
-	deviceID := n.DeviceID
-
-	err := persistent.NodeOffline(deviceID, n.lastRequestTime)
-	if err != nil {
-		log.Errorf("node offline NodeOffline err : %s ,deviceID : %s", err.Error(), deviceID)
-	}
-}
-
 // SaveInfo Save Device Info
-func (n *Node) SaveInfo(info *api.DevicesInfo) error {
+func (n *BaseInfo) SaveInfo(info *api.DevicesInfo) error {
 	err := cache.SetDeviceInfo(info)
 	if err != nil {
 		log.Errorf("set device info: %s", err.Error())
