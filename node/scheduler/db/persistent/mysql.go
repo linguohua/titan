@@ -570,23 +570,23 @@ func RemoveReplicaInfoWithNodes(deviceIDs []string) error {
 }
 
 // BindNodeInfo temporary node register
-func BindNodeInfo(secret, deviceID string, nodeType api.NodeType) error {
-	info := api.NodeRegisterInfo{
+func BindApplyInfo(secret, deviceID string, nodeType api.NodeType) error {
+	info := api.NodeApplyInfo{
 		Secret:     secret,
 		DeviceID:   deviceID,
 		NodeType:   int(nodeType),
 		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
 	}
 
-	_, err := mysqlCil.NamedExec(`INSERT INTO register (device_id, secret, create_time, node_type)
+	_, err := mysqlCil.NamedExec(`INSERT INTO apply (device_id, secret, create_time, node_type)
 	VALUES (:device_id, :secret, :create_time, :node_type)`, info)
 
 	return err
 }
 
-func GetRegisterInfo(deviceID, key string, out interface{}) error {
+func GetApplyInfo(deviceID, key string, out interface{}) error {
 	if key != "" {
-		query := fmt.Sprintf(`SELECT %s FROM register WHERE device_id=?`, key)
+		query := fmt.Sprintf(`SELECT %s FROM apply WHERE device_id=?`, key)
 		if err := mysqlCil.Get(out, query, deviceID); err != nil {
 			return err
 		}
@@ -594,7 +594,7 @@ func GetRegisterInfo(deviceID, key string, out interface{}) error {
 		return nil
 	}
 
-	query := "SELECT * FROM register WHERE device_id=?"
+	query := "SELECT * FROM apply WHERE device_id=?"
 	if err := mysqlCil.Get(out, query, deviceID); err != nil {
 		return err
 	}

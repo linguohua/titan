@@ -107,7 +107,7 @@ var registerNodeCmd = &cli.Command{
 			return xerrors.Errorf("node-type err:%d", t)
 		}
 
-		infos, err := schedulerAPI.RegisterNode(ctx, api.NodeType(t), 1)
+		infos, err := schedulerAPI.ApplyNodes(ctx, api.NodeType(t), 1)
 		if err != nil {
 			return err
 		}
