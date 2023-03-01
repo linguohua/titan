@@ -34,10 +34,9 @@ type CarfileOperation struct {
 
 func NewCarfileOperation(carfileStore *carfilestore.CarfileStore, scheduler api.Scheduler, blockDownloader downloader.DownloadBlockser, device *device.Device) *CarfileOperation {
 	carfileOperation := &CarfileOperation{
-		scheduler:    scheduler,
-		device:       device,
-		carfileStore: carfileStore,
-		// ds:              ds,
+		scheduler:       scheduler,
+		device:          device,
+		carfileStore:    carfileStore,
 		carfileLinkLock: &sync.Mutex{},
 	}
 
@@ -245,13 +244,13 @@ func (carfileOperation *CarfileOperation) GetBlocksOfCarfile(carfileCID string, 
 		return nil, err
 	}
 
-	blocksHash, err := carfileOperation.carfileStore.GetBlocksHashWithCarfilePositions(carfileHash, indexs)
+	blockHashes, err := carfileOperation.carfileStore.GetBlocksHashWithCarfilePositions(carfileHash, indexs)
 	if err != nil {
 		return nil, err
 	}
 
 	ret := make(map[int]string)
-	for index, blockHash := range blocksHash {
+	for index, blockHash := range blockHashes {
 		cid, err := cidutil.HashString2CIDString(blockHash)
 		if err != nil {
 			log.Errorf("GetBlocksOfCarfile, can not convert hash %s to cid", blockHash)

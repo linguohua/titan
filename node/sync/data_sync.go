@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"sort"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
@@ -13,103 +14,157 @@ import (
 
 var log = logging.Logger("datasync")
 
+const maxCarfileCount = 2000000
+
 type DataSync struct {
-	carfileStore                *carfilestore.CarfileStore
-	carfileMap                  map[string]struct{}
-	checkID                     string
-	isCheckingCompleteCarfile   bool
-	isCheckingIncompleteCarfile bool
+	carfileStore *carfilestore.CarfileStore
+	carfileMap   map[string]struct{}
+	isChecking   bool
 }
 
 func NewDataSync(carfileStore *carfilestore.CarfileStore) *DataSync {
 	return &DataSync{carfileStore: carfileStore}
 }
 
-func (ds *DataSync) CheckSummary(ctx context.Context, susseedCarfilesHash, unsusseedCarfilesHash string) (*api.CheckSummaryResult, error) {
-	completeCarfileHashList, err := ds.carfileStore.GetCompleteCarfileHashList()
+func (ds *DataSync) CompareChecksum(ctx context.Context, succeededCarfilesChecksum, unsucceededCarfilesChecksum string) (*api.CompareResult, error) {
+	completeCarfileHashes, err := ds.carfileStore.GetCompleteCarfileHashList()
 	if err != nil {
 		return nil, err
 	}
 
-	incompleteCarfileHashList, err := ds.carfileStore.GetIncompleteCarfileHashList()
+	incompleteCarfileHashes, err := ds.carfileStore.GetIncompleteCarfileHashList()
 	if err != nil {
 		return nil, err
 	}
 
-	var mergeCompleteCarfileHash string
-	for _, completeCarfileHash := range completeCarfileHashList {
-		mergeCompleteCarfileHash += completeCarfileHash
+	completeCarfilesChecksum, err := ds.caculateChecksum(completeCarfileHashes)
+	if err != nil {
+		return nil, err
 	}
 
-	var mergeIncompleteCarfilesHash string
-	for _, incompleteCarfileHash := range incompleteCarfileHashList {
-		mergeIncompleteCarfilesHash += incompleteCarfileHash
+	incompleteCarfilesChecksum, err := ds.caculateChecksum(incompleteCarfileHashes)
+	if err != nil {
+		return nil, err
 	}
 
+	return &api.CompareResult{IsSusseedCarfilesOk: completeCarfilesChecksum == succeededCarfilesChecksum, IsUnsusseedCarfilesOk: incompleteCarfilesChecksum == unsucceededCarfilesChecksum}, nil
+}
+
+func (ds *DataSync) BeginCheckCarfiles(ctx context.Context) error {
+	if ds.isChecking {
+		return fmt.Errorf("checking carfile now, can not do again")
+	}
+	// clean
+	ds.carfileMap = make(map[string]struct{}, 0)
+	return nil
+}
+
+func (ds *DataSync) PrepareCarfiles(ctx context.Context, carfileHashes []string) error {
+	if ds.isChecking {
+		return fmt.Errorf("checking carfile now, can not do again")
+	}
+
+	total := len(ds.carfileMap) + len(carfileHashes)
+	if total > maxCarfileCount {
+		return fmt.Errorf("total carfile is out of %d", maxCarfileCount)
+	}
+
+	for _, hash := range carfileHashes {
+		ds.carfileMap[hash] = struct{}{}
+	}
+
+	return nil
+}
+
+func (ds *DataSync) DoCheckCarfiles(ctx context.Context, carfilesChecksum string, isSusseededCarfiles bool) error {
+	ok, err := ds.isPrepare(carfilesChecksum)
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return fmt.Errorf("checksum not match prepare carfiles")
+	}
+
+	ds.isChecking = true
+	defer func() {
+		ds.isChecking = false
+		ds.carfileMap = make(map[string]struct{}, 0)
+	}()
+
+	localCarfileMap, err := ds.localCarfilesToMap(isSusseededCarfiles)
+	if err != nil {
+		return err
+	}
+	return ds.checkCarfiles(localCarfileMap, isSusseededCarfiles)
+}
+
+func (ds *DataSync) isPrepare(carfilesChecksum string) (bool, error) {
+	carfileHashes := make([]string, 0, len(ds.carfileMap))
+	for hash := range ds.carfileMap {
+		carfileHashes = append(carfileHashes, hash)
+	}
+
+	sort.Strings(carfileHashes)
+
+	checksum, err := ds.caculateChecksum(carfileHashes)
+	if err != nil {
+		return false, err
+	}
+
+	return carfilesChecksum == checksum, nil
+}
+
+func (ds *DataSync) caculateChecksum(carfileHashes []string) (string, error) {
 	hash := sha256.New()
-	hash.Write([]byte(mergeCompleteCarfileHash))
-	completeCarfilesHash := hex.EncodeToString(hash.Sum(nil))
 
-	hash.Reset()
-	hash.Write([]byte(mergeIncompleteCarfilesHash))
-	incompleteCarfilesHash := hex.EncodeToString(hash.Sum(nil))
-
-	return &api.CheckSummaryResult{IsSusseedCarfilesOk: completeCarfilesHash == susseedCarfilesHash, IsUnsusseedCarfilesOk: incompleteCarfilesHash == unsusseedCarfilesHash}, nil
+	for _, ch := range carfileHashes {
+		data := []byte(ch)
+		_, err := hash.Write(data)
+		if err != nil {
+			return "", err
+		}
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func (ds *DataSync) PrepareCheckCarfiles(carfileHashList []string, isSucceededCarfileList bool, checkID string) error {
-	if ds.isCheckingCompleteCarfile && isSucceededCarfileList {
-		return fmt.Errorf("It is checking complete carfile")
-	}
-
-	if ds.isCheckingIncompleteCarfile && !isSucceededCarfileList {
-		return fmt.Errorf("It is checking incomplete carfile")
-	}
-	// clean carfielMap if checkID not match
-	if ds.checkID != checkID {
-		ds.checkID = checkID
-		ds.carfileMap = make(map[string]struct{})
-	}
-
-	for _, carfileHash := range carfileHashList {
-		ds.carfileMap[carfileHash] = struct{}{}
-	}
-	return nil
-}
-
-func (ds *DataSync) CheckCarfiles(isSucceededCarfileList bool, checkID string) error {
-	if ds.checkID != checkID {
-		ds.carfileMap = make(map[string]struct{})
-		return fmt.Errorf("prepare checkID is %s, but now checkID == %s", ds.checkID, checkID)
-	}
-
-	carfileMap := ds.carfileMap
-	ds.carfileMap = make(map[string]struct{})
-
-	if isSucceededCarfileList {
-		go ds.checkCompleteCarfiles(carfileMap)
+func (ds *DataSync) localCarfilesToMap(isSusseededCarfiles bool) (map[string]struct{}, error) {
+	var err error
+	var carfileHashes []string
+	if isSusseededCarfiles {
+		carfileHashes, err = ds.carfileStore.GetCompleteCarfileHashList()
 	} else {
-		go ds.checkIncompleteCarfiles(carfileMap)
+		carfileHashes, err = ds.carfileStore.GetIncompleteCarfileHashList()
 	}
-	return nil
+
+	if err != nil {
+		return nil, err
+	}
+
+	carfileMap := make(map[string]struct{})
+	for _, hash := range carfileHashes {
+		carfileMap[hash] = struct{}{}
+	}
+
+	return carfileMap, nil
 }
 
-func (ds *DataSync) checkCompleteCarfiles(carfileMap map[string]struct{}) error {
-	ds.isCheckingCompleteCarfile = true
-	defer func() {
-		ds.isCheckingCompleteCarfile = false
-	}()
+func (ds *DataSync) checkCarfiles(localCarfile map[string]struct{}, isSucceededCarfiles bool) error {
+	for hash := range ds.carfileMap {
+		_, ok := localCarfile[hash]
+		if ok {
+			delete(localCarfile, hash)
+			delete(ds.carfileMap, hash)
+		}
+	}
 
-	// TODO: implement check
-	return nil
-}
+	needToDownloadCarfiles := ds.carfileMap
+	needToDeleteCarfiles := localCarfile
 
-func (ds *DataSync) checkIncompleteCarfiles(carfileMap map[string]struct{}) error {
-	ds.isCheckingIncompleteCarfile = true
-	defer func() {
-		ds.isCheckingIncompleteCarfile = false
-	}()
+	_ = needToDownloadCarfiles
+	_ = needToDeleteCarfiles
 
-	// TODO: implement check
+	// 如果是失败的carfile, 不用下载，只要删除多余的就可以
+
 	return nil
 }
