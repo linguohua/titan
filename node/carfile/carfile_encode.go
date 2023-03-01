@@ -7,7 +7,7 @@ import (
 	"github.com/linguohua/titan/api"
 )
 
-type EncodeCarfile struct {
+type EncodeCarfileCache struct {
 	CarfileCID                string
 	BlocksWaitList            []string
 	BlocksDownloadSuccessList []string
@@ -17,8 +17,8 @@ type EncodeCarfile struct {
 	DownloadSize              uint64
 }
 
-func encodeCarfileCache(cfCache *carfileCache) ([]byte, error) {
-	encodeCarfile := &EncodeCarfile{
+func encode(cfCache *carfileCache) ([]byte, error) {
+	encodeCarfile := &EncodeCarfileCache{
 		CarfileCID:                cfCache.carfileCID,
 		BlocksWaitList:            cfCache.blocksWaitList,
 		BlocksDownloadSuccessList: cfCache.blocksDownloadSuccessList,
@@ -38,16 +38,16 @@ func encodeCarfileCache(cfCache *carfileCache) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func decodeCarfileCacheFromData(carfileData []byte, cfCache *carfileCache) error {
-	encodeCarfile := &EncodeCarfile{}
+func decode(carfileData []byte) (*carfileCache, error) {
+	encodeCarfile := &EncodeCarfileCache{}
 
 	buffer := bytes.NewBuffer(carfileData)
 	enc := gob.NewDecoder(buffer)
 	err := enc.Decode(encodeCarfile)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
+	cfCache := &carfileCache{}
 	cfCache.carfileCID = encodeCarfile.CarfileCID
 	cfCache.blocksWaitList = encodeCarfile.BlocksWaitList
 	cfCache.blocksDownloadSuccessList = encodeCarfile.BlocksDownloadSuccessList
@@ -56,13 +56,13 @@ func decodeCarfileCacheFromData(carfileData []byte, cfCache *carfileCache) error
 	cfCache.carfileSize = encodeCarfile.CarfileSize
 	cfCache.downloadSize = encodeCarfile.DownloadSize
 
-	return nil
+	return cfCache, nil
 }
 
-func encodeWaitList(carfileCaches []*carfileCache) ([]byte, error) {
-	waitList := make([]*EncodeCarfile, 0, len(carfileCaches))
-	for _, cfCache := range carfileCaches {
-		encodeCarfile := &EncodeCarfile{
+func encodeWaitList(wl []*carfileCache) ([]byte, error) {
+	waitList := make([]*EncodeCarfileCache, 0, len(wl))
+	for _, cfCache := range wl {
+		encodeCarfile := &EncodeCarfileCache{
 			CarfileCID:                cfCache.carfileCID,
 			BlocksWaitList:            cfCache.blocksWaitList,
 			BlocksDownloadSuccessList: cfCache.blocksDownloadSuccessList,
@@ -84,8 +84,8 @@ func encodeWaitList(carfileCaches []*carfileCache) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func decodeWaitListFromData(carfileData []byte) ([]*carfileCache, error) {
-	var encodeCarfiles []*EncodeCarfile
+func decodeWaitList(carfileData []byte) ([]*carfileCache, error) {
+	var encodeCarfiles []*EncodeCarfileCache
 
 	buffer := bytes.NewBuffer(carfileData)
 	enc := gob.NewDecoder(buffer)

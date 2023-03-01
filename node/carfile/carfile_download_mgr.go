@@ -197,7 +197,7 @@ func (downloadMgr *DownloadMgr) saveCarfileTable(cf *carfileCache) error {
 		downloadMgr.carfileStore.DeleteIncompleteCarfileCache(carfileHash)
 		return downloadMgr.carfileStore.SaveBlockListOfCarfile(carfileHash, blocksHashString)
 	} else {
-		buf, err := cf.ecodeCarfile()
+		buf, err := encode(cf)
 		if err != nil {
 			return err
 		}
@@ -225,7 +225,7 @@ func (downloadMgr *DownloadMgr) restoreWaitListFromFile() {
 		return
 	}
 
-	downloadMgr.waitList, err = decodeWaitListFromData(data)
+	downloadMgr.waitList, err = decodeWaitList(data)
 	if err != nil {
 		log.Errorf("getWaitListFromFile error:%s", err)
 		return

@@ -21,7 +21,7 @@ type carfileCache struct {
 	carfileCID                string
 	blocksWaitList            []string
 	blocksDownloadSuccessList []string
-	// netLayerCIDs just for restore download task
+	// nextLayerCIDs just for restore download task
 	nextLayerCIDs   []string
 	downloadSources []*api.DownloadSource
 	carfileSize     uint64
@@ -200,12 +200,4 @@ func (cfCache *carfileCache) getCarfileHashString() (string, error) {
 		return "", err
 	}
 	return carfileHash, nil
-}
-
-func (cfCache *carfileCache) ecodeCarfile() ([]byte, error) {
-	return encodeCarfileCache(cfCache)
-}
-
-func (cfCache *carfileCache) decodeCarfileFromBuffer(carfileData []byte) error {
-	return decodeCarfileCacheFromData(carfileData, cfCache)
 }

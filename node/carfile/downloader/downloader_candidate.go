@@ -18,24 +18,20 @@ type candidate struct {
 	carfileStore *carfilestore.CarfileStore
 }
 
-func NewCandidate(carfileStore *carfilestore.CarfileStore) *candidate {
-	return &candidate{carfileStore: carfileStore}
+func NewCandidate(cs *carfilestore.CarfileStore) *candidate {
+	return &candidate{carfileStore: cs}
 }
 
-func (candidate *candidate) DownloadBlocks(cids []string, downloadSource []*api.DownloadSource) ([]blocks.Block, error) {
-	return getBlocksFromCandidate(cids, downloadSource)
+func (candidate *candidate) DownloadBlocks(cids []string, dss []*api.DownloadSource) ([]blocks.Block, error) {
+	return candidate.getBlocks(cids, dss)
 }
 
-func getBlockFromCandidateWithApi(candidate api.Candidate, cidStr string, retryCount int) (blocks.Block, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), blockDownloadTimeout*time.Second)
+func (candidate *candidate) getBlock(candidateAPI api.Candidate, cidStr string) (blocks.Block, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
 	defer cancel()
 
-	data, err := candidate.LoadBlock(ctx, cidStr)
+	data, err := candidateAPI.LoadBlock(ctx, cidStr)
 	if err != nil {
-		if retryCount < blockDownloadRetryNum {
-			retryCount++
-			return getBlockFromCandidateWithApi(candidate, cidStr, retryCount)
-		}
 		return nil, err
 	}
 
@@ -52,7 +48,7 @@ func getBlockFromCandidateWithApi(candidate api.Candidate, cidStr string, retryC
 	return basicBlock, nil
 }
 
-func getBlocksFromCandidate(cids []string, sources []*api.DownloadSource) ([]blocks.Block, error) {
+func (candidate *candidate) getBlocks(cids []string, dss []*api.DownloadSource) ([]blocks.Block, error) {
 	blks := make([]blocks.Block, 0, len(cids))
 	candidates := make(map[string]api.Candidate)
 	blksLock := &sync.Mutex{}
@@ -61,10 +57,10 @@ func getBlocksFromCandidate(cids []string, sources []*api.DownloadSource) ([]blo
 
 	for index, cid := range cids {
 		cidStr := cid
-		i := index % len(sources)
-		downloadSource := sources[i]
+		i := index % len(dss)
+		ds := dss[i]
 
-		candidate, err := getCandidateAPI(downloadSource.CandidateURL, downloadSource.CandidateToken, candidates)
+		candidateAPI, err := getCandidateAPI(ds.CandidateURL, ds.CandidateToken, candidates)
 		if err != nil {
 			log.Errorf("loadBlocksFromCandidate getCandidateAPI error:%s", err.Error())
 			continue
@@ -75,14 +71,17 @@ func getBlocksFromCandidate(cids []string, sources []*api.DownloadSource) ([]blo
 		go func() {
 			defer wg.Done()
 
-			b, err := getBlockFromCandidateWithApi(candidate, cidStr, 0)
-			if err != nil {
-				log.Errorf("getBlocksFromCandidateWithApi error:%s, cid:%s", err.Error(), cidStr)
+			for i := 0; i < retryCount; i++ {
+				b, err := candidate.getBlock(candidateAPI, cidStr)
+				if err != nil {
+					log.Errorf("getBlock error:%s, cid:%s", err.Error(), cidStr)
+					continue
+				}
+				blksLock.Lock()
+				blks = append(blks, b)
+				blksLock.Unlock()
 				return
 			}
-			blksLock.Lock()
-			blks = append(blks, b)
-			blksLock.Unlock()
 		}()
 	}
 	wg.Wait()

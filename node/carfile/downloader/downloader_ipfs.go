@@ -21,40 +21,35 @@ type ipfs struct {
 	carfileStore *carfilestore.CarfileStore
 }
 
-func NewIPFS(ipfsApiURL string, carfileStore *carfilestore.CarfileStore) *ipfs {
-	httpClient := &http.Client{}
-	httpAPI, err := httpapi.NewURLApiWithClient(ipfsApiURL, httpClient)
+func NewIPFS(ipfsApiURL string, cs *carfilestore.CarfileStore) *ipfs {
+	httpAPI, err := httpapi.NewURLApiWithClient(ipfsApiURL, &http.Client{})
 	if err != nil {
 		log.Panicf("NewBlock,NewURLApiWithClient error:%s, url:%s", err.Error(), ipfsApiURL)
 	}
 
-	return &ipfs{httpAPI: httpAPI, carfileStore: carfileStore}
+	return &ipfs{httpAPI: httpAPI, carfileStore: cs}
 }
 
-func (ipfs *ipfs) DownloadBlocks(cids []string, sources []*api.DownloadSource) ([]blocks.Block, error) {
-	return ipfs.getBlocksFromIPFS(cids)
+func (ipfs *ipfs) DownloadBlocks(cids []string, dss []*api.DownloadSource) ([]blocks.Block, error) {
+	return ipfs.getBlocks(cids)
 }
 
-func (ipfs *ipfs) getBlockWithIPFSApi(cidStr string, retryCount int) (blocks.Block, error) {
+func (ipfs *ipfs) getBlock(cidStr string) (blocks.Block, error) {
 	blockHash, err := cidutil.CIDString2HashString(cidStr)
 	if err != nil {
 		return nil, err
 	}
 
 	data, err := ipfs.carfileStore.Block(blockHash)
-	if err == nil {
+	if err == nil { // continue download block if err not nil
 		return newBlock(cidStr, data)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), blockDownloadTimeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
 	defer cancel()
 
 	reader, err := ipfs.httpAPI.Block().Get(ctx, path.New(cidStr))
 	if err != nil {
-		if retryCount < blockDownloadRetryNum {
-			retryCount++
-			return ipfs.getBlockWithIPFSApi(cidStr, retryCount)
-		}
 		return nil, err
 	}
 
@@ -64,9 +59,10 @@ func (ipfs *ipfs) getBlockWithIPFSApi(cidStr string, retryCount int) (blocks.Blo
 	}
 
 	return newBlock(cidStr, data)
+
 }
 
-func (ipfs *ipfs) getBlocksFromIPFS(cids []string) ([]blocks.Block, error) {
+func (ipfs *ipfs) getBlocks(cids []string) ([]blocks.Block, error) {
 	blks := make([]blocks.Block, 0, len(cids))
 	blksLock := &sync.Mutex{}
 
@@ -78,15 +74,19 @@ func (ipfs *ipfs) getBlocksFromIPFS(cids []string) ([]blocks.Block, error) {
 
 		go func() {
 			defer wg.Done()
-			b, err := ipfs.getBlockWithIPFSApi(cidStr, 0)
-			if err != nil {
-				log.Errorf("getBlockWithWaitGroup error:%s", err.Error())
+
+			for i := 0; i < retryCount; i++ {
+				b, err := ipfs.getBlock(cidStr)
+				if err != nil {
+					log.Errorf("getBlock error:%s, cid:%s", err.Error(), cidStr)
+					continue
+				}
+
+				blksLock.Lock()
+				blks = append(blks, b)
+				blksLock.Unlock()
 				return
 			}
-
-			blksLock.Lock()
-			blks = append(blks, b)
-			blksLock.Unlock()
 		}()
 	}
 	wg.Wait()

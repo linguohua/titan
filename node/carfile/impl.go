@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/cidutil"
 )
 
-func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carfileCID string, sources []*api.DownloadSource) (*api.CacheCarfileResult, error) {
+func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carfileCID string, dss []*api.DownloadSource) (*api.CacheCarfileResult, error) {
 	carfileHash, err := cidutil.CIDString2HashString(carfileCID)
 	if err != nil {
 		log.Errorf("CacheCarfile, CIDString2HashString error:%s, carfile cid:%s", err.Error(), carfileCID)
@@ -39,29 +38,17 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 		return carfileOperation.cacheCarfileResult()
 	}
 
-	cfCache := &carfileCache{
-		carfileCID:                carfileCID,
-		blocksWaitList:            make([]string, 0),
-		blocksDownloadSuccessList: make([]string, 0),
-		nextLayerCIDs:             make([]string, 0),
-		downloadSources:           sources,
+	cfCache, err := carfileOperation.restoreIncompleteCarfileCacheIfExist(carfileHash)
+	if err != nil {
+		return nil, err
 	}
 
-	data, err := carfileOperation.carfileStore.IncompleteCarfileCacheData(carfileHash)
-	if err != nil && err != datastore.ErrNotFound {
-		log.Errorf("CacheCarfile load incomplete carfile error %s", err.Error())
+	if cfCache == nil {
+		cfCache = &carfileCache{carfileCID: carfileCID}
 	}
 
-	// continue download carfile from incomplete carfileCache
-	if err == nil {
-		err = decodeCarfileCacheFromData(data, cfCache)
-		if err != nil {
-			log.Errorf("CacheCarfile, decodeCarfileFromData error:%s", err.Error())
-		} else {
-			// reassigned downloadSources to new
-			cfCache.downloadSources = sources
-		}
-	}
+	// update source
+	cfCache.downloadSources = dss
 
 	carfileOperation.downloadMgr.addCarfileCacheToWaitList(cfCache)
 	log.Infof("CacheCarfile carfile cid:%s", carfileCID)

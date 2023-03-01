@@ -207,13 +207,12 @@ func (carfileOperation *CarfileOperation) deleteCarfile(carfileCID string) (int,
 			return 0, err
 		}
 
-		carfile := &carfileCache{}
-		err = carfile.decodeCarfileFromBuffer(data)
+		cfCache, err := decode(data)
 		if err != nil {
 			return 0, err
 		}
 
-		hashs, err = carfile.blockCidList2BlocksHashList()
+		hashs, err = cfCache.blockCidList2BlocksHashList()
 		if err != nil {
 			return 0, err
 		}
@@ -270,4 +269,23 @@ func (carfileOperation *CarfileOperation) BlockCountOfCarfile(carfileCID string)
 		return 0, err
 	}
 	return carfileOperation.carfileStore.BlockCountOfCarfile(carfileHash)
+}
+
+func (carfileOperation *CarfileOperation) restoreIncompleteCarfileCacheIfExist(carfileHash string) (*carfileCache, error) {
+	data, err := carfileOperation.carfileStore.IncompleteCarfileCacheData(carfileHash)
+	if err != nil && err != datastore.ErrNotFound {
+		log.Errorf("CacheCarfile load incomplete carfile error %s", err.Error())
+		return nil, err
+	}
+
+	if len(data) > 0 {
+		cfCache, err := decode(data)
+		if err != nil {
+			return nil, err
+		}
+
+		return cfCache, nil
+	}
+
+	return nil, nil
 }
