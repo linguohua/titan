@@ -23,12 +23,12 @@ func newCarfileTable(path string) *carfileTable {
 	return &carfileTable{path: path}
 }
 
-func (cfTable *carfileTable) saveBlockListOfCarfile(carfileHash string, blocksHashString string) error {
+func (cfTable *carfileTable) saveBlocksHashes(carfileHash string, blocksHashesString string) error {
 	filePath := filepath.Join(cfTable.path, carfileHash)
-	return os.WriteFile(filePath, []byte(blocksHashString), 0644)
+	return os.WriteFile(filePath, []byte(blocksHashesString), 0644)
 }
 
-func (cfTable *carfileTable) readBlocksHashWithCarfilePosition(carfileHash string, positions []int) ([]string, error) {
+func (cfTable *carfileTable) readBlocksHashesWith(carfileHash string, positions []int) ([]string, error) {
 	filePath := filepath.Join(cfTable.path, carfileHash)
 	tableFile, err := os.Open(filePath)
 	if os.IsNotExist(err) {
@@ -62,7 +62,7 @@ func (cfTable *carfileTable) readBlocksHashWithCarfilePosition(carfileHash strin
 	return cids, nil
 }
 
-func (cfTable *carfileTable) readAllBlocksHashOfCarfile(carfileHash string) ([]string, error) {
+func (cfTable *carfileTable) readBlocksHashesOfCarfile(carfileHash string) ([]string, error) {
 	filePath := filepath.Join(cfTable.path, carfileHash)
 	data, err := os.ReadFile(filePath)
 	if err != nil && os.IsNotExist(err) {

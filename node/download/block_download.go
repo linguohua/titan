@@ -70,7 +70,6 @@ func (bd *BlockDownload) resultFailed(w http.ResponseWriter, r *http.Request, sn
 
 func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 	appName := r.Header.Get("App-Name")
-	// sign := r.Header.Get("Sign")
 	cidStr := r.URL.Query().Get("cid")
 	signStr := r.URL.Query().Get("sign")
 	snStr := r.URL.Query().Get("sn")
@@ -110,7 +109,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reader, err := bd.carfileStore.GetBlockReader(blockHash)
+	reader, err := bd.carfileStore.BlockReader(blockHash)
 	if err != nil {
 		bd.resultFailed(w, r, sn, sign, cidStr, err)
 		return

@@ -27,12 +27,12 @@ func NewDataSync(carfileStore *carfilestore.CarfileStore) *DataSync {
 }
 
 func (ds *DataSync) CompareChecksum(ctx context.Context, succeededCarfilesChecksum, unsucceededCarfilesChecksum string) (*api.CompareResult, error) {
-	completeCarfileHashes, err := ds.carfileStore.GetCompleteCarfileHashList()
+	completeCarfileHashes, err := ds.carfileStore.CompleteCarfileHashList()
 	if err != nil {
 		return nil, err
 	}
 
-	incompleteCarfileHashes, err := ds.carfileStore.GetIncompleteCarfileHashList()
+	incompleteCarfileHashes, err := ds.carfileStore.IncompleteCarfileHashList()
 	if err != nil {
 		return nil, err
 	}
@@ -132,9 +132,9 @@ func (ds *DataSync) localCarfilesToMap(isSusseededCarfiles bool) (map[string]str
 	var err error
 	var carfileHashes []string
 	if isSusseededCarfiles {
-		carfileHashes, err = ds.carfileStore.GetCompleteCarfileHashList()
+		carfileHashes, err = ds.carfileStore.CompleteCarfileHashList()
 	} else {
-		carfileHashes, err = ds.carfileStore.GetIncompleteCarfileHashList()
+		carfileHashes, err = ds.carfileStore.IncompleteCarfileHashList()
 	}
 
 	if err != nil {

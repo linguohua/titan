@@ -98,7 +98,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DeviceInfo, error) {
 	info.CPUCores, _ = cpu.Counts(false)
 	info.DiskSpace, info.DiskUsage = device.GetDiskUsageStat()
 
-	absPath, err := filepath.Abs(device.carfileStore.GetPath())
+	absPath, err := filepath.Abs(device.carfileStore.Path())
 	if err != nil {
 		return api.DeviceInfo{}, err
 	}
@@ -172,7 +172,7 @@ func (device *Device) DeviceID(ctx context.Context) (string, error) {
 }
 
 func (device *Device) GetDiskUsageStat() (totalSpace, usage float64) {
-	carfileStorePath := device.carfileStore.GetPath()
+	carfileStorePath := device.carfileStore.Path()
 	usageStat, err := disk.Usage(carfileStorePath)
 	if err != nil {
 		log.Errorf("get disk usage stat error: %s", err)

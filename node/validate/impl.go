@@ -86,8 +86,8 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 		default:
 		}
 
-		fid := r.Intn(blockCount)
-		blockHashs, err := validate.carfileStore.GetBlocksHashWithCarfilePositions(carfileHash, []int{fid})
+		index := r.Intn(blockCount)
+		blockHashs, err := validate.carfileStore.BlocksHashesWith(carfileHash, []int{index})
 		if err != nil && err != datastore.ErrNotFound {
 			log.Errorf("sendBlocks, get blockHashs error:%v", err)
 			return
@@ -95,7 +95,7 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 
 		var block []byte
 		if len(blockHashs) > 0 {
-			block, err = validate.carfileStore.GetBlock(blockHashs[0])
+			block, err = validate.carfileStore.Block(blockHashs[0])
 			if err != nil && err != datastore.ErrNotFound {
 				log.Errorf("sendBlocks, get block error:%v", err)
 				return

@@ -213,11 +213,11 @@ func (downloadMgr *DownloadMgr) saveWaitList() error {
 		return err
 	}
 
-	return downloadMgr.carfileStore.SaveWaitListToFile(data)
+	return downloadMgr.carfileStore.SaveWaitList(data)
 }
 
 func (downloadMgr *DownloadMgr) restoreWaitListFromFile() {
-	data, err := downloadMgr.carfileStore.GetWaitListFromFile()
+	data, err := downloadMgr.carfileStore.WaitList()
 	if err != nil {
 		if err != datastore.ErrNotFound {
 			log.Errorf("getWaitListFromFile error:%s", err)

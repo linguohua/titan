@@ -47,7 +47,7 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 		downloadSources:           sources,
 	}
 
-	data, err := carfileOperation.carfileStore.GetIncompleteCarfileCacheData(carfileHash)
+	data, err := carfileOperation.carfileStore.IncompleteCarfileCacheData(carfileHash)
 	if err != nil && err != datastore.ErrNotFound {
 		log.Errorf("CacheCarfile load incomplete carfile error %s", err.Error())
 	}
@@ -120,7 +120,7 @@ func (carfileOperation *CarfileOperation) LoadBlock(ctx context.Context, cid str
 	if err != nil {
 		return nil, err
 	}
-	return carfileOperation.carfileStore.GetBlock(blockHash)
+	return carfileOperation.carfileStore.Block(blockHash)
 }
 
 func (carfileOperation *CarfileOperation) QueryCacheStat(ctx context.Context) (*api.CacheStat, error) {

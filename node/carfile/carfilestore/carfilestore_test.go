@@ -41,7 +41,7 @@ func test1(t *testing.T) {
 
 	t.Logf("index:%v", indexs)
 
-	blocksHash, err := carfileTable.readBlocksHashWithCarfilePosition(carfileHash, indexs)
+	blocksHash, err := carfileTable.readBlocksHashesWith(carfileHash, indexs)
 	if err != nil {
 		t.Errorf("readBlocksHashOfCarfile error:%s, carfileHash:%s", err.Error(), carfileHash)
 	}
