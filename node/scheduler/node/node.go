@@ -11,7 +11,6 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	titanRsa "github.com/linguohua/titan/node/rsa"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/region"
 	"golang.org/x/xerrors"
@@ -138,33 +137,22 @@ func (c *Candidate) ClientCloser() {
 
 // BaseInfo Common
 type BaseInfo struct {
-	DeviceID      string
-	DiskUsage     float64
-	BandwidthDown float64
-	BandwidthUp   float64
-	privateKey    *rsa.PrivateKey
-	nodeType      api.NodeTypeName
-	remoteAddr    string
+	*api.DeviceInfo
+	privateKey *rsa.PrivateKey
+	remoteAddr string
 
 	geoInfo         *region.GeoInfo
 	lastRequestTime time.Time
 	cacheStat       *api.CacheStat
 	cacheCount      int // The number of caches waiting and in progress
-	port            string
 }
 
 // NewBaseInfo new
-func NewBaseInfo(deviceInfo *api.DevicesInfo, remoteAddr string, privateKey *rsa.PrivateKey, nodeType api.NodeTypeName, geoInfo *region.GeoInfo) *BaseInfo {
+func NewBaseInfo(deviceInfo *api.DeviceInfo, privateKey *rsa.PrivateKey, addr string) *BaseInfo {
 	bi := &BaseInfo{
-		remoteAddr: remoteAddr,
+		DeviceInfo: deviceInfo,
 		privateKey: privateKey,
-		nodeType:   nodeType,
-		geoInfo:    geoInfo,
-
-		DeviceID:      deviceInfo.DeviceId,
-		DiskUsage:     deviceInfo.DiskUsage,
-		BandwidthDown: deviceInfo.BandwidthDown,
-		BandwidthUp:   deviceInfo.BandwidthUp,
+		remoteAddr: addr,
 	}
 
 	return bi
@@ -177,24 +165,24 @@ func (n *BaseInfo) PrivateKey() *rsa.PrivateKey {
 
 // Addr rpc url
 func (n *BaseInfo) Addr() string {
-	if n.port != "" {
-		index := strings.Index(n.remoteAddr, ":")
-		ip := n.remoteAddr[:index+1]
-
-		return ip + n.port
-	}
-
 	return n.remoteAddr
 }
 
 // RPCURL rpc url
 func (n *BaseInfo) RPCURL() string {
-	return fmt.Sprintf("https://%s/rpc/v0", n.Addr())
+	return fmt.Sprintf("https://%s/rpc/v0", n.remoteAddr)
 }
 
 // DownloadURL download url
 func (n *BaseInfo) DownloadURL() string {
-	return fmt.Sprintf("https://%s/block/get", n.Addr())
+	addr := n.remoteAddr
+	if n.Port != "" {
+		index := strings.Index(n.remoteAddr, ":")
+		ip := n.remoteAddr[:index+1]
+		addr = ip + n.Port
+	}
+
+	return fmt.Sprintf("https://%s/block/get", addr)
 }
 
 // LastRequestTime get node last request time
@@ -234,36 +222,19 @@ func (n *BaseInfo) CurCacheCount() int {
 
 // SetNodePort reset node port
 func (n *BaseInfo) SetNodePort(port string) {
-	n.port = port
+	n.Port = port
+
+	// TODO save to db
 }
 
 // node online
-func (n *BaseInfo) setNodeOnline() error {
-	deviceID := n.DeviceID
-	geoInfo := n.geoInfo
-	typeName := string(n.nodeType)
+func (n *BaseInfo) saveInfo() error {
+	n.PrivateKeyStr = titanRsa.PrivateKey2Pem(n.privateKey)
+	n.Quitted = false
+	n.LastTime = time.Now()
 
-	err := persistent.SetNodeInfo(deviceID, &api.NodeInfo{
-		Geo:        geoInfo.Geo,
-		LastTime:   time.Now(),
-		IsOnline:   true,
-		NodeType:   typeName,
-		Address:    n.remoteAddr,
-		PrivateKey: titanRsa.PrivateKey2Pem(n.privateKey),
-		Quitted:    false,
-	})
+	err := persistent.UpdateNodeInfo(n.DeviceInfo)
 	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// SaveInfo Save Device Info
-func (n *BaseInfo) SaveInfo(info *api.DevicesInfo) error {
-	err := cache.SetDeviceInfo(info)
-	if err != nil {
-		log.Errorf("set device info: %s", err.Error())
 		return err
 	}
 

@@ -41,6 +41,23 @@ const (
 	NodeUpdate
 )
 
+func (n NodeType) ToString() string {
+	switch n {
+	case NodeEdge:
+		return "edge"
+	case NodeCandidate:
+		return "candidate"
+	case NodeScheduler:
+		return "scheduler"
+	case NodeValidate:
+		return "validator"
+	case NodeLocator:
+		return "locator"
+	}
+
+	return ""
+}
+
 func (n NodeType) MarshalBinary() ([]byte, error) {
 	return json.Marshal(n)
 }

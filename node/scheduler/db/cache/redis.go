@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"reflect"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -16,6 +15,7 @@ import (
 )
 
 const (
+
 	// redisKeyWaitingDataTaskList
 	redisKeyWaitingDataTaskList = "Titan:WaitingDataTaskList"
 	// redisKeyValidatorList
@@ -24,8 +24,6 @@ const (
 	redisKeyValidateRoundID = "Titan:ValidateRoundID"
 	// redisKeyVerifyingList
 	redisKeyVerifyingList = "Titan:VerifyingList"
-	// redisKeyNodeInfo  deviceID
-	redisKeyNodeInfo = "Titan:NodeInfo:%s"
 	// redisKeyBlockDownloadSN
 	redisKeyBlockDownloadSN       = "Titan:BlockDownloadRecordSN"
 	redisKeyCarfileLatestDownload = "Titan:LatestDownload:%s"
@@ -35,11 +33,6 @@ const (
 	redisKeyCarfileCachingNodeList = "Titan:CarfileCachingNodeList:%s"
 	// redisKeyCachingNode  deviceID
 	redisKeyCachingNode = "Titan:CachingNode:%s"
-	// redisKeySystemBaseInfo
-	redisKeySystemBaseInfo = "Titan:SystemBaseInfo"
-
-	// redisKeyCarfileRecordCacheResult  hash
-	redisKeyCarfileRecordCacheResult = "Titan:CarfileRecordCacheResult:%s"
 )
 
 const cacheErrorExpiration = 72 // hour
@@ -56,8 +49,6 @@ var (
 
 // InitRedis init redis pool
 func InitRedis(url string) error {
-	url = url
-
 	redisCli = redis.NewClient(&redis.Options{
 		Addr:      url,
 		Dialer:    nil,
@@ -129,39 +120,6 @@ func GetNodeCacheTimeoutTime(deviceID string) (int, error) {
 	}
 
 	return int(expiration.Seconds()), nil
-}
-
-// carfile record result
-func SetCarfileRecordCacheResult(hash string, info *api.CarfileRecordCacheResult) error {
-	timeout := 7 * 24
-	key := fmt.Sprintf(redisKeyCarfileRecordCacheResult, hash)
-
-	bytes, err := json.Marshal(info)
-	if err != nil {
-		return err
-	}
-
-	// Expire
-	_, err = redisCli.Set(context.Background(), key, bytes, time.Hour*time.Duration(timeout)).Result()
-	return err
-}
-
-func GetCarfileRecordCacheResult(hash string) (*api.CarfileRecordCacheResult, error) {
-	key := fmt.Sprintf(redisKeyCarfileRecordCacheResult, hash)
-
-	value, err := redisCli.Get(context.Background(), key).Result()
-
-	var info api.CarfileRecordCacheResult
-	bytes, err := redigo.Bytes(value, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.Unmarshal(bytes, &info); err != nil {
-		return nil, err
-	}
-
-	return &info, nil
 }
 
 // waiting data list
@@ -261,82 +219,16 @@ func GetValidatorsAndExpirationTime() ([]string, time.Duration, error) {
 	return list, expiration, nil
 }
 
-// device info
-func IncrNodeOnlineTime(deviceID string, onlineTime int64) (float64, error) {
-	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+// func IncrByDeviceInfo(deviceID, field string, value int64) error {
+// 	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	mTime := float64(onlineTime) / 60 // second to minute
+// 	_, err := redisCli.HIncrBy(context.Background(), key, field, value).Result()
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return redisCli.HIncrByFloat(context.Background(), key, "OnlineTime", mTime).Result()
-}
-
-func SetDeviceInfo(info *api.DevicesInfo) error {
-	key := fmt.Sprintf(redisKeyNodeInfo, info.DeviceId)
-
-	ctx := context.Background()
-	exist, err := redisCli.Exists(ctx, key).Result()
-	if err != nil {
-		return err
-	}
-
-	if exist == 1 {
-		// update some value
-		return updateDeviceInfos(info)
-	}
-
-	_, err = redisCli.Pipelined(ctx, func(pipeline redis.Pipeliner) error {
-		for field, value := range toMap(info) {
-			pipeline.HSet(ctx, key, field, value)
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func updateDeviceInfos(info *api.DevicesInfo) error {
-	key := fmt.Sprintf(redisKeyNodeInfo, info.DeviceId)
-
-	m := make(map[string]interface{})
-	m["DiskSpace"] = info.DiskSpace
-	m["DiskUsage"] = info.DiskUsage
-	m["ExternalIp"] = info.ExternalIp
-	m["InternalIp"] = info.InternalIp
-	m["CpuUsage"] = info.CpuUsage
-	m["SystemVersion"] = info.SystemVersion
-	m["Longitude"] = info.Longitude
-	m["Latitude"] = info.Latitude
-	m["NatType"] = info.NatType
-
-	_, err := redisCli.HMSet(context.Background(), key, m).Result()
-	return err
-}
-
-func GetDeviceInfo(deviceID string) (*api.DevicesInfo, error) {
-	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
-
-	var info api.DevicesInfo
-	err := redisCli.HGetAll(context.Background(), key).Scan(&info)
-	if err != nil {
-		return nil, err
-	}
-
-	return &info, nil
-}
-
-func IncrByDeviceInfo(deviceID, field string, value int64) error {
-	key := fmt.Sprintf(redisKeyNodeInfo, deviceID)
-
-	_, err := redisCli.HIncrBy(context.Background(), key, field, value).Result()
-	if err != nil {
-		return err
-	}
-
-	return err
-}
+// 	return err
+// }
 
 func IncrBlockDownloadSN() (int64, error) {
 	// node cache tag ++1
@@ -386,87 +278,43 @@ func GetLatestDownloadCarfiles(userIP string) ([]string, error) {
 	return members, nil
 }
 
-func NodeDownloadCount(deviceID string, blockDownnloadInfo *api.BlockDownloadInfo) error {
-	nodeKey := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+// func NodeDownloadCount(deviceID string, blockDownnloadInfo *api.BlockDownloadInfo) error {
+// 	nodeKey := fmt.Sprintf(redisKeyNodeInfo, deviceID)
 
-	ctx := context.Background()
-	_, err := redisCli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-		pipeliner.HIncrBy(context.Background(), nodeKey, DownloadCountField, 1)
-		pipeliner.HIncrBy(context.Background(), nodeKey, totalUploadField, int64(blockDownnloadInfo.BlockSize))
+// 	ctx := context.Background()
+// 	_, err := redisCli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+// 		pipeliner.HIncrBy(context.Background(), nodeKey, DownloadCountField, 1)
+// 		pipeliner.HIncrBy(context.Background(), nodeKey, totalUploadField, int64(blockDownnloadInfo.BlockSize))
 
-		// count carfile download
-		if blockDownnloadInfo.BlockCID == blockDownnloadInfo.CarfileCID {
-			pipeliner.HIncrBy(context.Background(), redisKeySystemBaseInfo, DownloadCountField, 1)
-		}
+// 		// count carfile download
+// 		if blockDownnloadInfo.BlockCID == blockDownnloadInfo.CarfileCID {
+// 			pipeliner.HIncrBy(context.Background(), redisKeySystemBaseInfo, DownloadCountField, 1)
+// 		}
 
-		return nil
-	})
+// 		return nil
+// 	})
 
-	return err
-}
+// 	return err
+// }
 
 // IsNilErr Is NilErr
 func IsNilErr(err error) bool {
 	return errors.Is(err, redis.Nil)
 }
 
-func toMap(info *api.DevicesInfo) map[string]interface{} {
-	out := make(map[string]interface{})
-	t := reflect.TypeOf(*info)
-	v := reflect.ValueOf(*info)
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		redisTag := field.Tag.Get("redis")
-		if redisTag == "" {
-			continue
-		}
-		out[redisTag] = v.Field(i).Interface()
-	}
-	return out
-}
+// func UpdateNodeCacheInfo(deviceID string, nodeInfo *NodeCacheInfo) error {
+// 	if nodeInfo == nil {
+// 		return nil
+// 	}
 
-// system base info
-func UpdateSystemBaseInfo(field string, value interface{}) error {
-	_, err := redisCli.HSet(context.Background(), redisKeySystemBaseInfo, field, value).Result()
-	if err != nil {
-		return err
-	}
+// 	ctx := context.Background()
+// 	_, err := redisCli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
+// 		nKey := fmt.Sprintf(redisKeyNodeInfo, deviceID)
+// 		pipeliner.HSet(context.Background(), nKey, diskUsageField, nodeInfo.DiskUsage)
+// 		pipeliner.HSet(context.Background(), nKey, blockCountField, nodeInfo.BlockCount)
 
-	return err
-}
+// 		return nil
+// 	})
 
-func IncrBySystemBaseInfo(field string, value int64) error {
-	_, err := redisCli.HIncrBy(context.Background(), redisKeySystemBaseInfo, field, value).Result()
-	if err != nil {
-		return err
-	}
-
-	return err
-}
-
-func GetSystemBaseInfo() (*api.SystemBaseInfo, error) {
-	var info api.SystemBaseInfo
-	err := redisCli.HGetAll(context.Background(), redisKeySystemBaseInfo).Scan(&info)
-	if err != nil {
-		return nil, err
-	}
-
-	return &info, nil
-}
-
-func UpdateNodeCacheInfo(deviceID string, nodeInfo *NodeCacheInfo) error {
-	if nodeInfo == nil {
-		return nil
-	}
-
-	ctx := context.Background()
-	_, err := redisCli.Pipelined(ctx, func(pipeliner redis.Pipeliner) error {
-		nKey := fmt.Sprintf(redisKeyNodeInfo, deviceID)
-		pipeliner.HSet(context.Background(), nKey, diskUsageField, nodeInfo.DiskUsage)
-		pipeliner.HSet(context.Background(), nKey, blockCountField, nodeInfo.BlockCount)
-
-		return nil
-	})
-
-	return err
-}
+// 	return err
+// }

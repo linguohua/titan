@@ -1,15 +1,44 @@
 CREATE TABLE `node` (
-    `id` int unsigned NOT NULL AUTO_INCREMENT,
 	`device_id` varchar(128) NOT NULL UNIQUE ,
-    `last_time` datetime DEFAULT CURRENT_TIMESTAMP ,
-    `create_time` datetime DEFAULT CURRENT_TIMESTAMP ,
-    `geo` varchar(64),
-	`node_type` varchar(64) DEFAULT '' ,
-	`address` varchar(64) DEFAULT '' ,
-	`port` varchar(8) DEFAULT '' ,
+	`device_name` varchar(64) DEFAULT '' ,
+    `operator` varchar(32) DEFAULT '',
+    `network_type` varchar(32) DEFAULT '',
+    `system_version` varchar(32) DEFAULT '',
+    `product_ype` varchar(32) DEFAULT '',
+    `network_info` varchar(32) DEFAULT '',
+    `external_ip` varchar(16) DEFAULT '',
+    `internal_ip` varchar(16) DEFAULT '',
+    `ip_location` varchar(32) DEFAULT '',
+    `mac_location` varchar(32) DEFAULT '',
+    `nat_type` varchar(32) DEFAULT '',
+    `upnp` varchar(32) DEFAULT '',
+    `pkg_loss_ratio` float DEFAULT '0',
+    `latency` float DEFAULT '0',
+    `cpu_usage` float DEFAULT '0',
+    `cpu_cores` int DEFAULT '0',
+    `memory_usage` float DEFAULT '0',
+    `memory` float DEFAULT '0',
+    `disk_usage` float DEFAULT '0',
+    `disk_space` float DEFAULT '0',
+    `disk_type` varchar(64) DEFAULT '',
+    `work_status` varchar(64) DEFAULT '',
+    `io_system` varchar(64) DEFAULT '',
+    `nat_ratio` float DEFAULT '0',
+    `online_time` int DEFAULT '0',
+    `cumulative_profit` float DEFAULT '0',
+    `bandwidth_up` float DEFAULT '0',
+    `bandwidth_down` float DEFAULT '0',
+    `total_townload` float DEFAULT '0',
+    `total_upload` float DEFAULT '0',
+    `download_count` bigint DEFAULT '0' ,
+    `block_count` bigint DEFAULT '0' ,
+    `latitude` float DEFAULT '0',
+    `longitude` float DEFAULT '0',
 	`private_key` varchar(1024) DEFAULT '' ,
+    `last_time` datetime DEFAULT CURRENT_TIMESTAMP ,
+	`port` varchar(8) DEFAULT '' ,
     `quitted` BOOLEAN DEFAULT '0' ,
-	PRIMARY KEY (`id`)
+	PRIMARY KEY (`device_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node info';
 
 CREATE TABLE `validate_result` (
@@ -50,7 +79,7 @@ CREATE TABLE `node_allocate_info` (
     `create_time` varchar(64) DEFAULT '' ,
 	`node_type` varchar(64) DEFAULT '' ,
 	PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node allocate info;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node allocate info';
 
 CREATE TABLE `replicas` (
     `id` varchar(128) NOT NULL UNIQUE,

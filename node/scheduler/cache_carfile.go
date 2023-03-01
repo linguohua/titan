@@ -7,7 +7,6 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/handler"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
 )
@@ -24,12 +23,10 @@ func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) e
 	node := s.nodeManager.GetNode(deviceID)
 	if node != nil {
 		node.DiskUsage = info.DiskUsage
+		node.BlockCount = info.TotalBlockCount
 	}
 	// update redis
-	err := cache.UpdateNodeCacheInfo(deviceID, &cache.NodeCacheInfo{
-		BlockCount: info.TotalBlockCount,
-		DiskUsage:  info.DiskUsage,
-	})
+	err := persistent.UpdateNodeCacheInfo(deviceID, info.DiskUsage, info.TotalBlockCount)
 	if err != nil {
 		log.Errorf("UpdateNodeCacheInfo err:%s", err.Error())
 	}
@@ -49,13 +46,11 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.Remo
 	node := s.nodeManager.GetNode(deviceID)
 	if node != nil {
 		node.DiskUsage = resultInfo.DiskUsage
+		node.BlockCount = resultInfo.BlockCount
 	}
 
 	// update redis
-	return cache.UpdateNodeCacheInfo(deviceID, &cache.NodeCacheInfo{
-		BlockCount: resultInfo.BlockCount,
-		DiskUsage:  resultInfo.DiskUsage,
-	})
+	return persistent.UpdateNodeCacheInfo(deviceID, resultInfo.DiskUsage, resultInfo.BlockCount)
 }
 
 // ExecuteUndoneCarfilesTask Execute Undone Carfiles Task

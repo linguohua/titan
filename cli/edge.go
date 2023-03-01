@@ -31,10 +31,10 @@ var deviceInfoCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Printf("device id: %v \n", v.DeviceId)
+		fmt.Printf("device id: %v \n", v.DeviceID)
 		fmt.Printf("device name: %v \n", v.DeviceName)
-		fmt.Printf("device external_ip: %v \n", v.ExternalIp)
-		fmt.Printf("device internal_ip: %v \n", v.InternalIp)
+		fmt.Printf("device external_ip: %v \n", v.ExternalIP)
+		fmt.Printf("device internal_ip: %v \n", v.InternalIP)
 		fmt.Printf("device systemVersion: %s \n", v.SystemVersion)
 		fmt.Printf("device DiskUsage: %f \n", v.DiskUsage)
 		fmt.Printf("device disk space: %f \n", v.DiskSpace)
@@ -42,7 +42,7 @@ var deviceInfoCmd = &cli.Command{
 		fmt.Printf("device mac: %v \n", v.MacLocation)
 		fmt.Printf("device download bandwidth: %v \n", v.BandwidthDown)
 		fmt.Printf("device upload bandwidth: %v \n", v.BandwidthUp)
-		fmt.Printf("device cpu percent: %v \n", v.CpuUsage)
+		fmt.Printf("device cpu percent: %v \n", v.CPUUsage)
 
 		return nil
 	},
@@ -164,6 +164,6 @@ var getLogFileCmd = &cli.Command{
 		}
 
 		filePath := "./" + info.Name
-		return os.WriteFile(filePath, data, 0644)
+		return os.WriteFile(filePath, data, 0o644)
 	},
 }
