@@ -1,12 +1,8 @@
 package node
 
 import (
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/api"
@@ -14,9 +10,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-var secretRand = rand.New(rand.NewSource(time.Now().UnixNano()))
-
-// RegisterNode Register a Node
+// Allocate allocate a Node
 func Allocate(nodeType api.NodeType) (api.NodeAllocateInfo, error) {
 	info := api.NodeAllocateInfo{}
 
@@ -25,7 +19,7 @@ func Allocate(nodeType api.NodeType) (api.NodeAllocateInfo, error) {
 		return info, err
 	}
 
-	secret := newSecret(deviceID)
+	secret := newSecret()
 
 	err = persistent.BindNodeAllocateInfo(secret, deviceID, nodeType)
 	if err != nil {
@@ -49,20 +43,13 @@ func newDeviceID(nodeType api.NodeType) (string, error) {
 	case api.NodeCandidate:
 		s = fmt.Sprintf("c_%s", s)
 		return s, nil
-	case api.NodeScheduler:
-		s = fmt.Sprintf("s_%s", s)
-		return s, nil
 	}
 
 	return "", xerrors.Errorf("nodetype err:%d", nodeType)
 }
 
-func newSecret(input string) string {
-	v := secretRand.Intn(100000000)
-	input = fmt.Sprintf("%s%d", input, v)
+func newSecret() string {
+	uStr := uuid.NewString()
 
-	c := sha1.New()
-	c.Write([]byte(input))
-	bytes := c.Sum(nil)
-	return hex.EncodeToString(bytes)
+	return strings.Replace(uStr, "-", "", -1)
 }
