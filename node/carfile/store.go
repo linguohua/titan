@@ -52,7 +52,7 @@ func (carfileOperation *CarfileOperation) saveBlock(data []byte, blockHash, carf
 }
 
 func (carfileOperation *CarfileOperation) getCarfileLinkFromBlock(blockHash string) (string, error) {
-	value, err := carfileOperation.carfileStore.GetLinks(context.Background(), blockHash)
+	value, err := carfileOperation.carfileStore.Links(context.Background(), blockHash)
 	if err == datastore.ErrNotFound {
 		return "", nil
 	}

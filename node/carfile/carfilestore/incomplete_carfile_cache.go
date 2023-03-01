@@ -21,12 +21,12 @@ func newIncompleteCarfileCache(path string) *incompleteCarfileCache {
 	return &incompleteCarfileCache{path: path}
 }
 
-func (incompCarfileCache *incompleteCarfileCache) saveCarfile(carfileHash string, carfileData []byte) error {
+func (incompCarfileCache *incompleteCarfileCache) save(carfileHash string, carfileData []byte) error {
 	filePath := filepath.Join(incompCarfileCache.path, carfileHash)
 	return os.WriteFile(filePath, carfileData, 0644)
 }
 
-func (incompCarfileCache *incompleteCarfileCache) getCarfileCacheData(carfileHash string) ([]byte, error) {
+func (incompCarfileCache *incompleteCarfileCache) data(carfileHash string) ([]byte, error) {
 	filePath := filepath.Join(incompCarfileCache.path, carfileHash)
 
 	data, err := os.ReadFile(filePath)

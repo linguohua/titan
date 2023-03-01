@@ -122,7 +122,7 @@ func (carfileOperation *CarfileOperation) cacheResultForCarfileExist(carfileCID 
 		return err
 	}
 
-	data, err := carfileOperation.carfileStore.GetBlock(carfileHash)
+	data, err := carfileOperation.carfileStore.Block(carfileHash)
 	if err != nil {
 		return err
 	}
@@ -200,9 +200,9 @@ func (carfileOperation *CarfileOperation) deleteCarfile(carfileCID string) (int,
 		return 0, err
 	}
 
-	hashs, err := carfileOperation.carfileStore.GetBlocksHashOfCarfile(carfileHash)
+	hashs, err := carfileOperation.carfileStore.BlocksHashesOfCarfile(carfileHash)
 	if err == datastore.ErrNotFound {
-		data, err := carfileOperation.carfileStore.GetIncompleteCarfileCacheData(carfileHash)
+		data, err := carfileOperation.carfileStore.IncompleteCarfileCacheData(carfileHash)
 		if err != nil {
 			return 0, err
 		}
@@ -244,7 +244,7 @@ func (carfileOperation *CarfileOperation) GetBlocksOfCarfile(carfileCID string, 
 		return nil, err
 	}
 
-	blockHashes, err := carfileOperation.carfileStore.GetBlocksHashWithCarfilePositions(carfileHash, indexs)
+	blockHashes, err := carfileOperation.carfileStore.BlocksHashesWith(carfileHash, indexs)
 	if err != nil {
 		return nil, err
 	}

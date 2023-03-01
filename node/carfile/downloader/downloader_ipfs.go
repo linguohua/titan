@@ -41,7 +41,7 @@ func (ipfs *ipfs) getBlockWithIPFSApi(cidStr string, retryCount int) (blocks.Blo
 		return nil, err
 	}
 
-	data, err := ipfs.carfileStore.GetBlock(blockHash)
+	data, err := ipfs.carfileStore.Block(blockHash)
 	if err == nil {
 		return newBlock(cidStr, data)
 	}
