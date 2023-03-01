@@ -243,7 +243,7 @@ func (n *BaseInfo) setNodeOnline() error {
 	geoInfo := n.geoInfo
 	typeName := string(n.nodeType)
 
-	err := persistent.SetNodeInfo(deviceID, &persistent.NodeInfo{
+	err := persistent.SetNodeInfo(deviceID, &api.NodeInfo{
 		Geo:        geoInfo.Geo,
 		LastTime:   time.Now(),
 		IsOnline:   true,
