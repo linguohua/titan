@@ -9,11 +9,11 @@ import (
 var log = logging.Logger("downloader")
 
 const (
-	blockDownloadTimeout  = 15
-	blockDownloadRetryNum = 1
+	timeout    = 15
+	retryCount = 1
 )
 
 type DownloadBlockser interface {
 	// download blocks
-	DownloadBlocks(cids []string, sources []*api.DownloadSource) ([]blocks.Block, error)
+	DownloadBlocks(cids []string, dss []*api.DownloadSource) ([]blocks.Block, error)
 }
