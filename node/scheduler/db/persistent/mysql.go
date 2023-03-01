@@ -59,7 +59,7 @@ func InitSQL(url string) (err error) {
 }
 
 // SetNodeInfo  Set node info
-func SetNodeInfo(deviceID string, info *api.NodeInfo) error {
+func SetNodeInfo(deviceID string, info *api.DeviceInfo) error {
 	info.DeviceID = deviceID
 
 	var count int64
@@ -82,7 +82,7 @@ func SetNodeInfo(deviceID string, info *api.NodeInfo) error {
 
 // NodeOffline Set the last online time of the node
 func NodeOffline(deviceID string, lastTime time.Time) error {
-	info := &api.NodeInfo{
+	info := &api.DeviceInfo{
 		DeviceID: deviceID,
 		LastTime: lastTime,
 	}
@@ -104,8 +104,8 @@ func NodePrivateKey(deviceID string) (string, error) {
 }
 
 // LongTimeOfflineNodes get nodes that are offline for a long time
-func LongTimeOfflineNodes(hour int) ([]*api.NodeInfo, error) {
-	list := make([]*api.NodeInfo, 0)
+func LongTimeOfflineNodes(hour int) ([]*api.DeviceInfo, error) {
+	list := make([]*api.DeviceInfo, 0)
 
 	time := time.Now().Add(-time.Duration(hour) * time.Hour)
 
@@ -137,7 +137,7 @@ func SetNodesQuit(deviceIDs []string) error {
 
 // SetNodePort Set node port
 func SetNodePort(deviceID, port string) error {
-	info := api.NodeInfo{
+	info := api.DeviceInfo{
 		DeviceID: deviceID,
 		Port:     port,
 	}
@@ -702,7 +702,7 @@ func IsNilErr(err error) bool {
 	return err.Error() == errNotFind
 }
 
-func GetNodes(cursor int, count int) ([]*api.NodeInfo, int64, error) {
+func GetNodes(cursor int, count int) ([]*api.DeviceInfo, int64, error) {
 	var total int64
 	countSQL := "SELECT count(*) FROM node"
 	err := mysqlCli.Get(&total, countSQL)
@@ -716,7 +716,7 @@ func GetNodes(cursor int, count int) ([]*api.NodeInfo, int64, error) {
 		count = loadNodeInfoMaxCount
 	}
 
-	var out []*api.NodeInfo
+	var out []*api.DeviceInfo
 	err = mysqlCli.Select(&out, queryString, cursor, count)
 	if err != nil {
 		return nil, 0, err

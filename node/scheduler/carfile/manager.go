@@ -334,10 +334,10 @@ func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
 		info.ErrMsg = err.Error()
 	}
 
-	err = cache.SetCarfileRecordCacheResult(cr.carfileHash, info)
-	if err != nil {
-		log.Errorf("SetCarfileRecordCacheResult err:%s", err.Error())
-	}
+	// err = cache.SetCarfileRecordCacheResult(cr.carfileHash, info)
+	// if err != nil {
+	// 	log.Errorf("SetCarfileRecordCacheResult err:%s", err.Error())
+	// }
 }
 
 // ResetCacheExpirationTime reset expiration time
@@ -461,10 +461,10 @@ func (m *Manager) GetCarfileRecordInfo(cid string) (*api.CarfileRecordInfo, erro
 
 	dInfo := carfileRecord2Info(cr)
 
-	result, err := cache.GetCarfileRecordCacheResult(hash)
-	if err == nil {
-		dInfo.ResultInfo = result
-	}
+	// result, err := cache.GetCarfileRecordCacheResult(hash)
+	// if err == nil {
+	// 	dInfo.ResultInfo = result
+	// }
 
 	return dInfo, nil
 }

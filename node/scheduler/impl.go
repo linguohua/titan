@@ -182,8 +182,8 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		return err
 	}
 
-	if deviceID != deviceInfo.DeviceId {
-		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
+	if deviceID != deviceInfo.DeviceID {
+		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceID)
 	}
 
 	privateKeyStr, _ := persistent.NodePrivateKey(deviceID)
@@ -202,26 +202,20 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 	}
 
 	deviceInfo.NodeType = api.NodeCandidate
-	deviceInfo.ExternalIp, _, _ = net.SplitHostPort(remoteAddr)
+	deviceInfo.ExternalIP, _, _ = net.SplitHostPort(remoteAddr)
 
-	geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIp)
+	geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIP)
 	// TODO Does the error need to be handled?
 
-	deviceInfo.IpLocation = geoInfo.Geo
+	deviceInfo.IPLocation = geoInfo.Geo
 	deviceInfo.Longitude = geoInfo.Longitude
 	deviceInfo.Latitude = geoInfo.Latitude
 
-	candidateNode.BaseInfo = node.NewBaseInfo(&deviceInfo, remoteAddr, privateKey, api.TypeNameCandidate, geoInfo)
+	candidateNode.BaseInfo = node.NewBaseInfo(&deviceInfo, privateKey, remoteAddr)
 
 	err = s.nodeManager.CandidateOnline(candidateNode)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect addEdgeNode err:%s,deviceID:%s", err.Error(), deviceID)
-		return err
-	}
-
-	err = candidateNode.SaveInfo(&deviceInfo)
-	if err != nil {
-		log.Errorf("CandidateNodeConnect SaveInfo err:%s,deviceID:%s", err.Error(), deviceID)
 		return err
 	}
 
@@ -256,8 +250,8 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		return err
 	}
 
-	if deviceID != deviceInfo.DeviceId {
-		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceId)
+	if deviceID != deviceInfo.DeviceID {
+		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceID)
 	}
 
 	privateKeyStr, _ := persistent.NodePrivateKey(deviceID)
@@ -276,26 +270,20 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	}
 
 	deviceInfo.NodeType = api.NodeEdge
-	deviceInfo.ExternalIp, _, _ = net.SplitHostPort(remoteAddr)
+	deviceInfo.ExternalIP, _, _ = net.SplitHostPort(remoteAddr)
 
-	geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIp)
+	geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIP)
 	// TODO Does the error need to be handled?
 
-	deviceInfo.IpLocation = geoInfo.Geo
+	deviceInfo.IPLocation = geoInfo.Geo
 	deviceInfo.Longitude = geoInfo.Longitude
 	deviceInfo.Latitude = geoInfo.Latitude
 
-	edgeNode.BaseInfo = node.NewBaseInfo(&deviceInfo, remoteAddr, privateKey, api.TypeNameEdge, geoInfo)
+	edgeNode.BaseInfo = node.NewBaseInfo(&deviceInfo, privateKey, remoteAddr)
 
 	err = s.nodeManager.EdgeOnline(edgeNode)
 	if err != nil {
-		log.Errorf("EdgeNodeConnect addEdgeNode err:%s,deviceID:%s", err.Error(), deviceInfo.DeviceId)
-		return err
-	}
-
-	err = edgeNode.SaveInfo(&deviceInfo)
-	if err != nil {
-		log.Errorf("EdgeNodeConnect set device info: %s", err.Error())
+		log.Errorf("EdgeNodeConnect addEdgeNode err:%s,deviceID:%s", err.Error(), deviceInfo.DeviceID)
 		return err
 	}
 
@@ -393,12 +381,12 @@ func (s *Scheduler) ElectionValidators(ctx context.Context) error {
 }
 
 // GetDevicesInfo return the devices information
-func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.DevicesInfo, error) {
+func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.DeviceInfo, error) {
 	// node datas
-	deviceInfo, err := cache.GetDeviceInfo(deviceID)
+	deviceInfo, err := persistent.GetDeviceInfo(deviceID)
 	if err != nil {
 		log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
-		return api.DevicesInfo{}, err
+		return api.DeviceInfo{}, err
 	}
 
 	isOnline := s.nodeManager.GetCandidateNode(deviceID) != nil
@@ -471,16 +459,6 @@ func (s *Scheduler) GetDownloadInfo(ctx context.Context, deviceID string) ([]*ap
 func (s *Scheduler) NodeQuit(ctx context.Context, deviceID, secret string) error {
 	// TODO Check secret
 	s.nodeManager.NodesQuit([]string{deviceID})
-
-	return nil
-}
-
-func incrDeviceReward(deviceID string, incrReward int64) error {
-	err := cache.IncrByDeviceInfo(deviceID, "CumulativeProfit", incrReward)
-	if err != nil {
-		log.Errorf("IncrByDeviceInfo err:%s ", err.Error())
-		return err
-	}
 
 	return nil
 }

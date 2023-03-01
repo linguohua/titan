@@ -44,8 +44,9 @@ func NewDevice(deviceID, internalIP string, bandwidthUp, bandwidthDown int64, ca
 
 	return device
 }
-func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
-	info := api.DevicesInfo{}
+
+func (device *Device) DeviceInfo(ctx context.Context) (api.DeviceInfo, error) {
+	info := api.DeviceInfo{}
 
 	v, err := api.VersionForType(api.RunningNodeType)
 	if err != nil {
@@ -57,23 +58,23 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 		APIVersion: v,
 	}
 
-	info.DeviceId = device.deviceID
+	info.DeviceID = device.deviceID
 
 	name := device.deviceID
 	if len(name) > 10 {
 		info.DeviceName = name[0:10]
 	}
-	info.ExternalIp = device.publicIP
+	info.ExternalIP = device.publicIP
 	info.SystemVersion = version.String()
-	info.InternalIp = device.internalIP
+	info.InternalIP = device.internalIP
 	info.BandwidthDown = float64(device.bandwidthDown)
 	info.BandwidthUp = float64(device.bandwidthUp)
 	info.BlockCount, _ = device.carfileStore.BlockCount()
 
-	mac, err := getMacAddr(info.InternalIp)
+	mac, err := getMacAddr(info.InternalIP)
 	if err != nil {
 		log.Errorf("DeviceInfo getMacAddr err:%s", err.Error())
-		return api.DevicesInfo{}, err
+		return api.DeviceInfo{}, err
 	}
 
 	info.MacLocation = mac
@@ -93,13 +94,13 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DevicesInfo, error) {
 		log.Errorf("getCpuInfo: %s", err.Error())
 	}
 
-	info.CpuUsage = cpuPercent[0]
+	info.CPUUsage = cpuPercent[0]
 	info.CPUCores, _ = cpu.Counts(false)
 	info.DiskSpace, info.DiskUsage = device.GetDiskUsageStat()
 
 	absPath, err := filepath.Abs(device.carfileStore.GetPath())
 	if err != nil {
-		return api.DevicesInfo{}, err
+		return api.DeviceInfo{}, err
 	}
 
 	info.IoSystem = fsutil.GetFilesystemType(absPath)

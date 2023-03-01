@@ -61,7 +61,7 @@ type Scheduler interface {
 
 	// call by user
 	GetDownloadInfosWithCarfile(ctx context.Context, cid, publicKey string) ([]*DownloadInfoResult, error) //perm:read
-	GetDevicesInfo(ctx context.Context, deviceID string) (DevicesInfo, error)                              //perm:read
+	GetDevicesInfo(ctx context.Context, deviceID string) (DeviceInfo, error)                               //perm:read
 	GetDownloadInfo(ctx context.Context, deviceID string) ([]*BlockDownloadInfo, error)                    //perm:read
 
 	// user send result when user download block complete or failed
@@ -267,18 +267,3 @@ const (
 	NatTypeRestricted
 	NatTypePortRestricted
 )
-
-// NodeInfo base info
-type NodeInfo struct {
-	ID         int
-	DeviceID   string    `db:"device_id"`
-	LastTime   time.Time `db:"last_time"`
-	Geo        string    `db:"geo"`
-	IsOnline   bool      `db:"is_online"`
-	NodeType   string    `db:"node_type"`
-	Address    string    `db:"address"`
-	Port       string    `db:"port"`
-	CreateTime time.Time `db:"create_time"`
-	PrivateKey string    `db:"private_key"`
-	Quitted    bool      `db:"quitted"`
-}

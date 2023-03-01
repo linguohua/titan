@@ -22,9 +22,9 @@ func NewWeb(scheduler api.Scheduler) api.Web {
 }
 
 func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNodesRsp, error) {
-	rsp := api.ListNodesRsp{Data: make([]api.DevicesInfo, 0)}
+	rsp := api.ListNodesRsp{Data: make([]api.DeviceInfo, 0)}
 
-	nodes, total, err := persistent.GetNodes(cursor, count)
+	nodes, total, err := persistent.GetDeviceIDs(cursor, count)
 	if err != nil {
 		return rsp, err
 	}
@@ -38,20 +38,20 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 		deviceInValidator[id] = struct{}{}
 	}
 
-	deviceInfos := make([]api.DevicesInfo, 0)
-	for _, node := range nodes {
-		deviceInfo, err := cache.GetDeviceInfo(node.DeviceID)
+	deviceInfos := make([]api.DeviceInfo, 0)
+	for _, deviceID := range nodes {
+		deviceInfo, err := persistent.GetDeviceInfo(deviceID)
 		if err != nil {
-			log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), node.DeviceID)
+			log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
 			continue
 		}
 
-		deviceInfo.DeviceStatus = "offline"
-		if node.IsOnline {
-			deviceInfo.DeviceStatus = "online"
-		}
+		// deviceInfo.DeviceStatus = "offline"
+		// if node.IsOnline {
+		// 	deviceInfo.DeviceStatus = "online"
+		// }
 
-		_, exist := deviceInValidator[node.DeviceID]
+		_, exist := deviceInValidator[deviceID]
 		if exist {
 			deviceInfo.NodeType = api.NodeValidate
 		}
@@ -65,7 +65,7 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 	return rsp, nil
 }
 
-func (w *web) GetNodeInfoByID(ctx context.Context, deviceID string) (api.DevicesInfo, error) {
+func (w *web) GetNodeInfoByID(ctx context.Context, deviceID string) (api.DeviceInfo, error) {
 	return w.scheduler.GetDevicesInfo(ctx, deviceID)
 }
 

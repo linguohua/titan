@@ -8,7 +8,6 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/cidutil"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/locator"
 	"golang.org/x/xerrors"
@@ -19,7 +18,8 @@ var log = logging.Logger("node")
 const (
 	nodeOfflineTime = 24 // If it is not online after this time, it is determined that the node has quit the system (unit: hour)
 
-	keepaliveTime = 30 // keepalive time interval (unit: second)
+	keepaliveTime    = 30 // keepalive time interval (unit: second)
+	saveInfoInterval = 10 // keepalive saves information every 10 times
 )
 
 // Manager Node Manager
@@ -45,10 +45,15 @@ func (m *Manager) run() {
 	ticker := time.NewTicker(time.Duration(keepaliveTime) * time.Second)
 	defer ticker.Stop()
 
+	count := 0
+
 	for {
 		select {
 		case <-ticker.C:
-			m.checkNodesKeepalive()
+			count++
+			isSave := count%saveInfoInterval == 0
+
+			m.checkNodesKeepalive(isSave)
 
 			// check node offline how time
 			m.checkWhetherNodeQuits()
@@ -56,7 +61,7 @@ func (m *Manager) run() {
 	}
 }
 
-func (m *Manager) edgeKeepalive(node *Edge, nowTime time.Time) {
+func (m *Manager) edgeKeepalive(node *Edge, nowTime time.Time, isSave bool) {
 	lastTime := node.LastRequestTime()
 
 	if !lastTime.After(nowTime) {
@@ -66,20 +71,15 @@ func (m *Manager) edgeKeepalive(node *Edge, nowTime time.Time) {
 		return
 	}
 
-	// TODO Do not call frequently
-
-	err := persistent.NodeOffline(node.DeviceID, node.lastRequestTime)
-	if err != nil {
-		log.Errorf("node offline NodeOffline err : %s ,deviceID : %s", err.Error(), node.DeviceID)
-	}
-
-	_, err = cache.IncrNodeOnlineTime(node.DeviceID, keepaliveTime)
-	if err != nil {
-		log.Errorf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceID)
+	if isSave {
+		err := persistent.UpdateNodeOnlineTime(node.DeviceID, saveInfoInterval*keepaliveTime)
+		if err != nil {
+			log.Errorf("UpdateNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceID)
+		}
 	}
 }
 
-func (m *Manager) candidateKeepalive(node *Candidate, nowTime time.Time) {
+func (m *Manager) candidateKeepalive(node *Candidate, nowTime time.Time, isSave bool) {
 	lastTime := node.LastRequestTime()
 
 	if !lastTime.After(nowTime) {
@@ -89,20 +89,15 @@ func (m *Manager) candidateKeepalive(node *Candidate, nowTime time.Time) {
 		return
 	}
 
-	// TODO Do not call frequently
-
-	err := persistent.NodeOffline(node.DeviceID, node.lastRequestTime)
-	if err != nil {
-		log.Errorf("node offline NodeOffline err : %s ,deviceID : %s", err.Error(), node.DeviceID)
-	}
-
-	_, err = cache.IncrNodeOnlineTime(node.DeviceID, keepaliveTime)
-	if err != nil {
-		log.Errorf("IncrNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceID)
+	if isSave {
+		err := persistent.UpdateNodeOnlineTime(node.DeviceID, saveInfoInterval*keepaliveTime)
+		if err != nil {
+			log.Errorf("UpdateNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceID)
+		}
 	}
 }
 
-func (m *Manager) checkNodesKeepalive() {
+func (m *Manager) checkNodesKeepalive(isSave bool) {
 	nowTime := time.Now().Add(-time.Duration(keepaliveTime) * time.Second)
 
 	m.EdgeNodes.Range(func(key, value interface{}) bool {
@@ -113,7 +108,7 @@ func (m *Manager) checkNodesKeepalive() {
 			return true
 		}
 
-		go m.edgeKeepalive(node, nowTime)
+		go m.edgeKeepalive(node, nowTime, isSave)
 
 		return true
 	})
@@ -126,7 +121,7 @@ func (m *Manager) checkNodesKeepalive() {
 			return true
 		}
 
-		go m.candidateKeepalive(node, nowTime)
+		go m.candidateKeepalive(node, nowTime, isSave)
 
 		return true
 	})
@@ -168,7 +163,7 @@ func (m *Manager) EdgeOnline(node *Edge) error {
 		nodeOld = nil
 	}
 
-	err := node.setNodeOnline()
+	err := node.saveInfo()
 	if err != nil {
 		return err
 	}
@@ -214,7 +209,7 @@ func (m *Manager) CandidateOnline(node *Candidate) error {
 		nodeOld = nil
 	}
 
-	err := node.setNodeOnline()
+	err := node.saveInfo()
 	if err != nil {
 		return err
 	}

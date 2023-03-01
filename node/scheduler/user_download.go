@@ -20,10 +20,10 @@ import (
 func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result api.NodeBlockDownloadResult) error {
 	deviceID := handler.GetDeviceID(ctx)
 	if result.Succeed {
-		err := incrDeviceReward(deviceID, 1)
-		if err != nil {
-			return err
-		}
+		// err := incrDeviceReward(deviceID, 1)
+		// if err != nil {
+		// 	return err
+		// }
 
 		blockHash, err := cidutil.CIDString2HashString(result.BlockCID)
 		if err != nil {
@@ -37,10 +37,10 @@ func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result a
 			blockDwnloadInfo.CarfileCID = result.BlockCID
 		}
 
-		err = cache.NodeDownloadCount(deviceID, blockDwnloadInfo)
-		if err != nil {
-			return err
-		}
+		// err = cache.NodeDownloadCount(deviceID, blockDwnloadInfo)
+		// if err != nil {
+		// 	return err
+		// }
 	}
 
 	return nil
