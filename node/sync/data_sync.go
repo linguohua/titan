@@ -164,7 +164,7 @@ func (ds *DataSync) checkCarfiles(localCarfile map[string]struct{}, isSucceededC
 	_ = needToDownloadCarfiles
 	_ = needToDeleteCarfiles
 
-	// 如果是失败的carfile, 不用下载，只要删除多余的就可以
+	// TODO: download or delete carfiles
 
 	return nil
 }
