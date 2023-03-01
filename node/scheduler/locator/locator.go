@@ -3,6 +3,7 @@ package locator
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/filecoin-project/go-jsonrpc"
 	logging "github.com/ipfs/go-log/v2"
@@ -54,7 +55,10 @@ func ChangeNodeOnlineStatus(deviceID string, isOnline bool) {
 
 		if locator != nil && locator.GetAPI() != nil {
 			go func() {
-				err := locator.GetAPI().SetDeviceOnlineStatus(context.Background(), deviceID, isOnline)
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				cancel()
+
+				err := locator.GetAPI().SetDeviceOnlineStatus(ctx, deviceID, isOnline)
 				if err != nil {
 					log.Errorf("SetDeviceOnlineStatus error:%s", err.Error())
 				}
