@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"sort"
 	"sync"
 
@@ -16,7 +15,10 @@ import (
 
 var log = logging.Logger("data-sync")
 
-const checkGroupNumber = 1000
+const (
+	groupCheckCount = 1000
+	dbLoadCount     = 500
+)
 
 type DataSync struct {
 	nodeList    []string
@@ -87,8 +89,23 @@ func (ds *DataSync) removeFirstNode() string {
 	return nodeID
 }
 
+func (ds *DataSync) getNodeDataSyncAPI(nodeID string) api.DataSync {
+	if edgeNode := ds.nodeManager.GetEdgeNode(nodeID); edgeNode != nil {
+		return edgeNode.API()
+	}
+	if candidateNode := ds.nodeManager.GetCandidateNode(nodeID); candidateNode != nil {
+		return candidateNode.API()
+	}
+	return nil
+}
+
 func (ds *DataSync) doDataSync(nodeID string) {
-	nodeCacheStatusList, err := ds.loadCarfileInfosByNode(nodeID)
+	dataSyncAPI := ds.getNodeDataSyncAPI(nodeID)
+	if dataSyncAPI == nil {
+		return
+	}
+
+	nodeCacheStatusList, err := ds.loadCarfileInfosBy(nodeID)
 	if err != nil {
 		log.Errorf("doDataSync, loadCarfileInfosByNode error:%s", err.Error())
 		return
@@ -100,89 +117,100 @@ func (ds *DataSync) doDataSync(nodeID string) {
 	})
 
 	// split carfile to succeeded and unsucceeded
-	succeededCarfileList, unsucceededCarfileList := ds.splitCacheStatusListByStatus(nodeCacheStatusList)
-	checkSummaryResult, err := ds.checkSummary(nodeID, succeededCarfileList, unsucceededCarfileList)
+	succeededCarfiles, unsucceededCarfiles := ds.splitCacheStatusListByStatus(nodeCacheStatusList)
+
+	succeededChecksum, err := ds.caculateChecksum(succeededCarfiles)
+	if err != nil {
+		log.Errorf("doDataSync, caculate succeededCarfiles checksum error:%s", err.Error())
+		return
+	}
+
+	unsucceededChecksum, err := ds.caculateChecksum(unsucceededCarfiles)
+	if err != nil {
+		log.Errorf("doDataSync, caculate unsucceededCarfiles checksum error:%s", err.Error())
+		return
+	}
+
+	checkSummaryResult, err := dataSyncAPI.CompareChecksum(context.Background(), succeededChecksum, unsucceededChecksum)
 	if err != nil {
 		log.Errorf("doDataSync,checkSummary error:%s", err.Error())
 		return
 	}
 
 	if !checkSummaryResult.IsSusseedCarfilesOk {
-		err = ds.checkCarfiles(nodeID, succeededCarfileList, true)
+		err = ds.checkCarfiles(dataSyncAPI, succeededCarfiles, succeededChecksum, true)
 		if err != nil {
 			log.Errorf("check succeed carfile error:%s", err)
 		}
 	}
 
 	if !checkSummaryResult.IsUnsusseedCarfilesOk {
-		err = ds.checkCarfiles(nodeID, unsucceededCarfileList, false)
+		err = ds.checkCarfiles(dataSyncAPI, unsucceededCarfiles, unsucceededChecksum, false)
 		if err != nil {
 			log.Errorf("check unsucceed carfile error:%s", err)
 		}
 	}
 }
 
-// quickly check device's carfiles if same as scheduler
-func (ds *DataSync) checkSummary(nodeID string, succeedCarfileList, failedCarfileList []string) (*api.CheckSummaryResult, error) {
-	var mergeSucceedCarfileHash string
-	var mergeFailedCarfileHash string
-
-	for _, succeedCarfileHash := range succeedCarfileList {
-		mergeSucceedCarfileHash += succeedCarfileHash
-	}
-
-	for _, failedCarfileHash := range failedCarfileList {
-		mergeFailedCarfileHash += failedCarfileHash
-	}
-
+func (ds *DataSync) caculateChecksum(carfileHashes []string) (string, error) {
 	hash := sha256.New()
-	hash.Write([]byte(mergeSucceedCarfileHash))
-	succeedCarfilesHash := hex.EncodeToString(hash.Sum(nil))
 
-	hash.Reset()
-	hash.Write([]byte(mergeFailedCarfileHash))
-	failedCarfilesHash := hex.EncodeToString(hash.Sum(nil))
-
-	if edgeNode := ds.nodeManager.GetEdgeNode(nodeID); edgeNode != nil {
-		return edgeNode.API().CheckSummary(context.Background(), succeedCarfilesHash, failedCarfilesHash)
+	for _, h := range carfileHashes {
+		data := []byte(h)
+		_, err := hash.Write(data)
+		if err != nil {
+			return "", err
+		}
 	}
-
-	if candidateNode := ds.nodeManager.GetCandidateNode(nodeID); candidateNode != nil {
-		return candidateNode.API().CheckSummary(context.Background(), succeedCarfilesHash, failedCarfilesHash)
-	}
-
-	return nil, fmt.Errorf("Node %s not online", nodeID)
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func (ds *DataSync) checkCarfiles(nodeID string, carfileList []string, isSucceedCarfileCheck bool) error {
-	// TODO: implemnet check carfiles
+func (ds *DataSync) checkCarfiles(dataSyncAPI api.DataSync, carfileHashes []string, checksum string, isSucceedCarfileCheck bool) error {
+	err := dataSyncAPI.BeginCheckCarfiles(context.Background())
+	if err != nil {
+		return err
+	}
 
-	return nil
-}
+	for i := 0; i < len(carfileHashes); {
+		start := i
+		i = i + groupCheckCount
+		end := i
 
-func (ds *DataSync) splitCacheStatusListByStatus(cacheStatusList []*api.NodeCacheStatus) (succeededCarfileList, unsucceededCarfileList []string) {
-	succeededCarfileList = make([]string, 0)
-	unsucceededCarfileList = make([]string, 0)
+		if end > len(carfileHashes) {
+			end = len(carfileHashes)
+		}
 
-	for _, cacheStatus := range cacheStatusList {
-		if cacheStatus.Status == api.CacheStatusSucceeded {
-			succeededCarfileList = append(succeededCarfileList, cacheStatus.CarfileHash)
-		} else if cacheStatus.Status == api.CacheStatusFailed {
-			unsucceededCarfileList = append(unsucceededCarfileList, cacheStatus.CarfileHash)
+		err = dataSyncAPI.PrepareCarfiles(context.Background(), carfileHashes[start:end])
+		if err != nil {
+			return err
 		}
 	}
 
-	return succeededCarfileList, unsucceededCarfileList
+	return dataSyncAPI.DoCheckCarfiles(context.Background(), checksum, isSucceedCarfileCheck)
 }
 
-func (ds *DataSync) loadCarfileInfosByNode(nodeID string) ([]*api.NodeCacheStatus, error) {
+func (ds *DataSync) splitCacheStatusListByStatus(cacheStatusList []*api.NodeCacheStatus) (succeededCarfiles, unsucceededCarfiles []string) {
+	succeededCarfiles = make([]string, 0)
+	unsucceededCarfiles = make([]string, 0)
+
+	for _, cacheStatus := range cacheStatusList {
+		if cacheStatus.Status == api.CacheStatusSucceeded {
+			succeededCarfiles = append(succeededCarfiles, cacheStatus.CarfileHash)
+		} else if cacheStatus.Status == api.CacheStatusFailed {
+			unsucceededCarfiles = append(unsucceededCarfiles, cacheStatus.CarfileHash)
+		}
+	}
+
+	return succeededCarfiles, unsucceededCarfiles
+}
+
+func (ds *DataSync) loadCarfileInfosBy(nodeID string) ([]*api.NodeCacheStatus, error) {
 	index := 0
-	count := 500
 	cacheStates := make([]*api.NodeCacheStatus, 0)
 	for {
-		nodeCacheRsp, err := persistent.GetCacheInfosWithNode(nodeID, index, count)
+		nodeCacheRsp, err := persistent.GetCacheInfosWithNode(nodeID, index, dbLoadCount)
 		if err != nil {
-			log.Errorf("GetCacheInfosWithNode %s, index:%d, count:%d, error:%s", nodeID, index, count)
+			log.Errorf("GetCacheInfosWithNode %s, index:%d, count:%d, error:%s", nodeID, index, dbLoadCount)
 			return nil, err
 		}
 

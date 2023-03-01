@@ -104,7 +104,13 @@ type CommonStub struct {
 
 type DataSyncStruct struct {
 	Internal struct {
-		CheckSummary func(p0 context.Context, p1 string, p2 string) (*CheckSummaryResult, error) `perm:"write"`
+		BeginCheckCarfiles func(p0 context.Context) error ``
+
+		CompareChecksum func(p0 context.Context, p1 string, p2 string) (*CompareResult, error) `perm:"write"`
+
+		DoCheckCarfiles func(p0 context.Context, p1 string, p2 bool) error `perm:"write"`
+
+		PrepareCarfiles func(p0 context.Context, p1 []string) error `perm:"write"`
 	}
 }
 
@@ -565,15 +571,48 @@ func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 	return *new(APIVersion), ErrNotSupported
 }
 
-func (s *DataSyncStruct) CheckSummary(p0 context.Context, p1 string, p2 string) (*CheckSummaryResult, error) {
-	if s.Internal.CheckSummary == nil {
-		return nil, ErrNotSupported
+func (s *DataSyncStruct) BeginCheckCarfiles(p0 context.Context) error {
+	if s.Internal.BeginCheckCarfiles == nil {
+		return ErrNotSupported
 	}
-	return s.Internal.CheckSummary(p0, p1, p2)
+	return s.Internal.BeginCheckCarfiles(p0)
 }
 
-func (s *DataSyncStub) CheckSummary(p0 context.Context, p1 string, p2 string) (*CheckSummaryResult, error) {
+func (s *DataSyncStub) BeginCheckCarfiles(p0 context.Context) error {
+	return ErrNotSupported
+}
+
+func (s *DataSyncStruct) CompareChecksum(p0 context.Context, p1 string, p2 string) (*CompareResult, error) {
+	if s.Internal.CompareChecksum == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.CompareChecksum(p0, p1, p2)
+}
+
+func (s *DataSyncStub) CompareChecksum(p0 context.Context, p1 string, p2 string) (*CompareResult, error) {
 	return nil, ErrNotSupported
+}
+
+func (s *DataSyncStruct) DoCheckCarfiles(p0 context.Context, p1 string, p2 bool) error {
+	if s.Internal.DoCheckCarfiles == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.DoCheckCarfiles(p0, p1, p2)
+}
+
+func (s *DataSyncStub) DoCheckCarfiles(p0 context.Context, p1 string, p2 bool) error {
+	return ErrNotSupported
+}
+
+func (s *DataSyncStruct) PrepareCarfiles(p0 context.Context, p1 []string) error {
+	if s.Internal.PrepareCarfiles == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.PrepareCarfiles(p0, p1)
+}
+
+func (s *DataSyncStub) PrepareCarfiles(p0 context.Context, p1 []string) error {
+	return ErrNotSupported
 }
 
 func (s *DeviceStruct) DeviceID(p0 context.Context) (string, error) {
