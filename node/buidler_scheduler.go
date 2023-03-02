@@ -2,6 +2,7 @@ package node
 
 import (
 	"errors"
+	"github.com/filecoin-project/go-jsonrpc/auth"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/api"
@@ -57,8 +58,10 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(node.ExitCallbackFunc), node.NewExitCallbackFunc),
 		Override(new(*common.CommonAPI), common.NewCommonAPI),
 		Override(new(common.SessionCallbackFunc), modules.NewSessionCallbackFunc),
-		Override(new(common.PermissionWriteToken), modules.NewPermissionWriteToken),
-		Override(new(common.PermissionAdminToken), modules.NewPermissionAdminToken),
+		Override(new(common.PermissionWriteToken), modules.GenerateTokenWithPermission(
+			[]auth.Permission{api.PermRead, api.PermWrite})),
+		Override(new(common.PermissionAdminToken), modules.GenerateTokenWithPermission(
+			api.AllPermissions)),
 		Override(new(*carfile.Manager), carfile.NewManager),
 		Override(new(*sync.DataSync), sync.NewDataSync),
 		If(cfg.EnableValidate,

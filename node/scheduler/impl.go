@@ -101,7 +101,7 @@ type Scheduler struct {
 	DataManager  *carfile.Manager
 	DataSync     *sync.DataSync
 	WriteToken   common.PermissionWriteToken
-	AdminToken   common.PermissionWriteToken
+	AdminToken   common.PermissionAdminToken
 	SchedulerCfg *config.SchedulerCfg
 }
 

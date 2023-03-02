@@ -46,7 +46,7 @@ func NewCommonAPI(lr repo.LockedRepo, callback SessionCallbackFunc) (CommonAPI, 
 	commApi := CommonAPI{
 		SessionCallBack: callback,
 	}
-	
+
 	sec, err := secret.APISecret(lr)
 	if err != nil {
 		return commApi, fmt.Errorf("NewLocalScheduleNode failed:%s", err.Error())
