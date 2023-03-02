@@ -187,7 +187,7 @@ var showCarfileInfoCmd = &cli.Command{
 		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,EdgeReplica:%d/%d ,Expiration Time:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.EdgeReplica, info.Replica, info.ExpirationTime.Format("2006-01-02 15:04:05"))
 		for _, cache := range info.ReplicaInfos {
 			fmt.Printf("DeviceID: %s ,Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
-				cache.DeviceID, cache.Status.ToString(), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
+				cache.DeviceID, cache.Status.String(), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
 		}
 
 		if info.ResultInfo != nil {
@@ -243,7 +243,7 @@ var cacheCarfileCmd = &cli.Command{
 			}
 
 			info.ExpirationTime = eTime
-			info.Replica = replicaCount
+			info.Replicas = replicaCount
 		}
 
 		err = schedulerAPI.CacheCarfile(ctx, info)
@@ -298,7 +298,7 @@ var listCarfilesCmd = &cli.Command{
 				for j := 0; j < len(info.ReplicaInfos); j++ {
 					cache := info.ReplicaInfos[j]
 					fmt.Printf("DeviceID: %s , Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
-						cache.DeviceID, cache.Status.ToString(), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
+						cache.DeviceID, cache.Status.String(), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
 				}
 			}
 

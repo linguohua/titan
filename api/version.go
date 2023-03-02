@@ -41,7 +41,7 @@ const (
 	NodeUpdate
 )
 
-func (n NodeType) ToString() string {
+func (n NodeType) String() string {
 	switch n {
 	case NodeEdge:
 		return "edge"

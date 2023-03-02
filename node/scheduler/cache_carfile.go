@@ -63,7 +63,7 @@ func (s *Scheduler) ExecuteUndoneCarfilesTask(ctx context.Context, hashs []strin
 		for _, carfile := range list {
 			info := &api.CacheCarfileInfo{
 				CarfileCid:     carfile.CarfileCid,
-				Replica:        carfile.Replica,
+				Replicas:       carfile.Replica,
 				ExpirationTime: carfile.ExpirationTime,
 			}
 			err = s.CacheCarfile(ctx, info)
@@ -152,8 +152,8 @@ func (s *Scheduler) CacheCarfile(ctx context.Context, info *api.CacheCarfileInfo
 	info.CarfileHash = hash
 
 	if info.DeviceID == "" {
-		if info.Replica < 1 {
-			return xerrors.Errorf("replica is %d < 1", info.Replica)
+		if info.Replicas < 1 {
+			return xerrors.Errorf("replica is %d < 1", info.Replicas)
 		}
 
 		if time.Now().After(info.ExpirationTime) {
