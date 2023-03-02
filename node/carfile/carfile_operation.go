@@ -94,7 +94,7 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, 
 	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
 
-	log.Infof("downloadResult, carfile:%s", result.CarfileHash)
+	log.Debugf("downloadResult, carfile:%s", result.CarfileHash)
 	return carfileOperation.scheduler.CacheResult(ctx, result)
 }
 
