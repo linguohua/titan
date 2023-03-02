@@ -142,10 +142,12 @@ type ReplicaInfo struct {
 
 // CacheCarfileInfo Data info
 type CacheCarfileInfo struct {
+	ID             string
 	CarfileCid     string    `db:"carfile_cid"`
 	CarfileHash    string    `db:"carfile_hash"`
-	Replica        int       `db:"replica"`
+	Replicas       int       `db:"replicas"`
 	DeviceID       string    `db:"device_id"`
+	ServerID       string    `db:"server_id"`
 	ExpirationTime time.Time `db:"expiration_time"`
 }
 
@@ -203,8 +205,8 @@ const (
 	CacheStatusSucceeded
 )
 
-// ToString status to string
-func (c CacheStatus) ToString() string {
+// String status to string
+func (c CacheStatus) String() string {
 	switch c {
 	case CacheStatusCreate:
 		return "create"

@@ -23,7 +23,7 @@ type DeviceInfo struct {
 	Operator         string    `json:"operator" form:"operator" gorm:"column:operator;comment:;" db:"operator"`
 	NetworkType      string    `json:"network_type" form:"networkType" gorm:"column:network_type;comment:;" db:"network_type"`
 	SystemVersion    string    `json:"system_version" form:"systemVersion" gorm:"column:system_version;comment:;" db:"system_version"`
-	ProductType      string    `json:"product_type" form:"productType" gorm:"column:product_type;comment:;" db:"product_ype"`
+	ProductType      string    `json:"product_type" form:"productType" gorm:"column:product_type;comment:;" db:"product_type"`
 	NetworkInfo      string    `json:"network_info" form:"networkInfo" gorm:"column:network_info;comment:;" db:"network_info"`
 	ExternalIP       string    `json:"external_ip" form:"externalIp" gorm:"column:external_ip;comment:;" db:"external_ip"`
 	InternalIP       string    `json:"internal_ip" form:"internalIp" gorm:"column:internal_ip;comment:;" db:"internal_ip"`

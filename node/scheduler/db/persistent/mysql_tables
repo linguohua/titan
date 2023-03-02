@@ -4,7 +4,7 @@ CREATE TABLE `node` (
     `operator` varchar(32) DEFAULT '',
     `network_type` varchar(32) DEFAULT '',
     `system_version` varchar(32) DEFAULT '',
-    `product_ype` varchar(32) DEFAULT '',
+    `product_type` varchar(32) DEFAULT '',
     `network_info` varchar(32) DEFAULT '',
     `external_ip` varchar(16) DEFAULT '',
     `internal_ip` varchar(16) DEFAULT '',
@@ -113,3 +113,30 @@ CREATE TABLE `node_update_info` (
     `update_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (`node_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='node_update_info';
+
+CREATE TABLE `carfile_downloading` (
+	`carfile_hash` varchar(128) NOT NULL,
+    `device_id` varchar(128) NOT NULL,
+    `server_id` varchar(128) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='downloading carfiles table';
+
+CREATE TABLE `carfile_waiting` (
+    `id` int unsigned NOT NULL AUTO_INCREMENT,
+	`carfile_hash` varchar(128) NOT NULL UNIQUE,
+	`carfile_cid` varchar(128) NOT NULL,
+    `replicas` int DEFAULT '0' ,
+    `device_id` varchar(128) ,
+    `expiration_time` datetime DEFAULT CURRENT_TIMESTAMP,
+    `server_id` varchar(128) NOT NULL,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='waiting carfiles table';
+
+CREATE TABLE `validators` (
+    `device_id` varchar(128) NOT NULL,
+    `server_id` varchar(128) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='validators table';
+
+CREATE TABLE `node_verifying` (
+    `device_id` varchar(128) NOT NULL,
+    `server_id` varchar(128) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='verifying ndoes table';

@@ -155,13 +155,13 @@ func (m *Manager) doCarfileReplicaTask(info *api.CacheCarfileInfo) error {
 			return err
 		}
 
-		carfileRecord.replica = info.Replica
+		carfileRecord.replica = info.Replicas
 		carfileRecord.expirationTime = info.ExpirationTime
 
 		carfileRecord.initStep()
 	} else {
 		carfileRecord = newCarfileRecord(m, info.CarfileCid, info.CarfileHash)
-		carfileRecord.replica = info.Replica
+		carfileRecord.replica = info.Replicas
 		carfileRecord.expirationTime = info.ExpirationTime
 	}
 
@@ -188,7 +188,7 @@ func (m *Manager) doCarfileReplicaTask(info *api.CacheCarfileInfo) error {
 // CacheCarfile new carfile task
 func (m *Manager) CacheCarfile(info *api.CacheCarfileInfo) error {
 	if info.DeviceID == "" {
-		log.Infof("carfile event %s , add carfile,replica:%d,expiration:%s", info.CarfileCid, info.Replica, info.ExpirationTime.String())
+		log.Infof("carfile event %s , add carfile,replica:%d,expiration:%s", info.CarfileCid, info.Replicas, info.ExpirationTime.String())
 	} else {
 		log.Infof("carfile event %s , add carfile,deviceID:%s", info.CarfileCid, info.DeviceID)
 	}
