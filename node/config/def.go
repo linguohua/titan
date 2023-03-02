@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding"
-
 	"os"
 	"strconv"
 	"time"
@@ -91,14 +90,15 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		CaCertificatePath:  "",
 		AreaID:             "CN-GD-Shenzhen",
 		GeodbPath:          "~/.titangeodb",
-		RedisAddress:       "127.0.0.1:6379",
 		PersistentDBURL:    "user:passwd@tcp(127.0.0.1:3306)/titan",
 		EnableValidate:     true,
 	}
 }
 
-var _ encoding.TextMarshaler = (*Duration)(nil)
-var _ encoding.TextUnmarshaler = (*Duration)(nil)
+var (
+	_ encoding.TextMarshaler   = (*Duration)(nil)
+	_ encoding.TextUnmarshaler = (*Duration)(nil)
+)
 
 // Duration is a wrapper type for time.Duration
 // for decoding and encoding from/to TOML
