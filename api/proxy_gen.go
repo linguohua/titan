@@ -104,7 +104,7 @@ type CommonStub struct {
 
 type DataSyncStruct struct {
 	Internal struct {
-		BeginCheckCarfiles func(p0 context.Context) error ``
+		BeginCheckCarfiles func(p0 context.Context) error `perm:"write"`
 
 		CompareChecksum func(p0 context.Context, p1 string, p2 string) (*CompareResult, error) `perm:"write"`
 
