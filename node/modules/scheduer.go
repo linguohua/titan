@@ -5,7 +5,6 @@ import (
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/jmoiron/sqlx"
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
@@ -18,21 +17,14 @@ func NewDB(cfg *config.SchedulerCfg) func() (*sqlx.DB, error) {
 	}
 }
 
-func NewPermissionWriteToken(ca *common.CommonAPI) (common.PermissionWriteToken, error) {
-	token, err := ca.AuthNew(context.Background(), []auth.Permission{api.PermRead, api.PermWrite})
-	if err != nil {
-		return nil, err
+func GenerateTokenWithPermission(permission []auth.Permission) func(ca *common.CommonAPI) ([]byte, error) {
+	return func(ca *common.CommonAPI) ([]byte, error) {
+		token, err := ca.AuthNew(context.Background(), permission)
+		if err != nil {
+			return nil, err
+		}
+		return token, nil
 	}
-	return token, nil
-}
-
-func NewPermissionAdminToken(ca *common.CommonAPI) (common.PermissionAdminToken, error) {
-	token, err := ca.AuthNew(context.Background(), api.AllPermissions)
-	if err != nil {
-		return nil, err
-	}
-
-	return token, nil
 }
 
 func NewSessionCallbackFunc(nodeMgr *node.Manager) (common.SessionCallbackFunc, error) {
