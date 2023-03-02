@@ -4,9 +4,10 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
-	"go.uber.org/fx"
 	"net"
 	"net/http"
+
+	"go.uber.org/fx"
 
 	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/linguohua/titan/node/config"
@@ -381,7 +382,7 @@ func (s *Scheduler) ElectionValidators(ctx context.Context) error {
 // GetDevicesInfo return the devices information
 func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.DeviceInfo, error) {
 	// node datas
-	deviceInfo, err := s.NodeManager.NodeMgrDB.GetDeviceInfo(deviceID)
+	deviceInfo, err := s.NodeManager.NodeMgrDB.LoadDeviceInfo(deviceID)
 	if err != nil {
 		log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
 		return api.DeviceInfo{}, err
