@@ -2,8 +2,9 @@ package web
 
 import (
 	"context"
-	"github.com/linguohua/titan/node/scheduler/node"
 	"time"
+
+	"github.com/linguohua/titan/node/scheduler/node"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
@@ -24,7 +25,7 @@ func NewWeb(nodeMgr *node.Manager) api.Web {
 func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNodesRsp, error) {
 	rsp := api.ListNodesRsp{Data: make([]api.DeviceInfo, 0)}
 
-	nodes, total, err := w.NodeMgr.NodeMgrDB.GetDeviceIDs(cursor, count)
+	nodes, total, err := w.NodeMgr.NodeMgrDB.ListDeviceIDs(cursor, count)
 	if err != nil {
 		return rsp, err
 	}
@@ -67,7 +68,7 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 
 func (w *web) GetNodeInfoByID(ctx context.Context, deviceID string) (api.DeviceInfo, error) {
 	// node datas
-	deviceInfo, err := w.NodeMgr.NodeMgrDB.GetDeviceInfo(deviceID)
+	deviceInfo, err := w.NodeMgr.NodeMgrDB.LoadDeviceInfo(deviceID)
 	if err != nil {
 		log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
 		return api.DeviceInfo{}, err
