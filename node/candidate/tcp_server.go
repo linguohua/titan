@@ -114,7 +114,7 @@ func readTcpMsg(conn net.Conn) (*tcpMsg, error) {
 	}
 
 	if contentLen <= 0 {
-		return nil, nil
+		return nil, fmt.Errorf("pack len %d is invalid", contentLen)
 	}
 
 	if contentLen > tcpPackMaxLength {

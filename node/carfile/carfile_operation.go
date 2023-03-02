@@ -271,21 +271,18 @@ func (carfileOperation *CarfileOperation) BlockCountOfCarfile(carfileCID string)
 	return carfileOperation.carfileStore.BlockCountOfCarfile(carfileHash)
 }
 
+// return datastore.ErrNotFound if cachefile cache not exit
 func (carfileOperation *CarfileOperation) restoreIncompleteCarfileCacheIfExist(carfileHash string) (*carfileCache, error) {
 	data, err := carfileOperation.carfileStore.IncompleteCarfileCacheData(carfileHash)
-	if err != nil && err != datastore.ErrNotFound {
+	if err != nil {
 		log.Errorf("CacheCarfile load incomplete carfile error %s", err.Error())
 		return nil, err
 	}
 
-	if len(data) > 0 {
-		cfCache, err := decode(data)
-		if err != nil {
-			return nil, err
-		}
-
-		return cfCache, nil
+	cfCache, err := decode(data)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, nil
+	return cfCache, nil
 }

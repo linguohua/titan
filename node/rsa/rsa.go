@@ -42,7 +42,7 @@ func RsaSign(privateKey *rsa.PrivateKey, content string) ([]byte, error) {
 	msgHash := sha256.New()
 	_, err := msgHash.Write([]byte(content))
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	msgHashSum := msgHash.Sum(nil)
 

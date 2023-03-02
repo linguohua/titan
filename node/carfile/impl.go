@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ipfs/go-datastore"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/cidutil"
 )
@@ -40,10 +41,11 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 
 	cfCache, err := carfileOperation.restoreIncompleteCarfileCacheIfExist(carfileHash)
 	if err != nil {
-		return nil, err
-	}
+		if err != datastore.ErrNotFound {
+			return nil, err
+		}
 
-	if cfCache == nil {
+		// incomplete carfile cache not exsit
 		cfCache = &carfileCache{carfileCID: carfileCID}
 	}
 
@@ -114,13 +116,13 @@ func (carfileOperation *CarfileOperation) QueryCacheStat(ctx context.Context) (*
 	blockCount, err := carfileOperation.carfileStore.BlockCount()
 	if err != nil {
 		log.Errorf("QueryCacheStat, block count error:%v", err)
-		return nil, nil
+		return nil, err
 	}
 
 	carfileCount, err := carfileOperation.carfileStore.CarfileCount()
 	if err != nil {
 		log.Errorf("QueryCacheStat, block count error:%v", err)
-		return nil, nil
+		return nil, err
 	}
 
 	cacheStat := &api.CacheStat{}
@@ -142,7 +144,7 @@ func (carfileOperation *CarfileOperation) QueryCacheStat(ctx context.Context) (*
 func (carfileOperation *CarfileOperation) QueryCachingCarfile(ctx context.Context) (*api.CachingCarfile, error) {
 	carfileCache := carfileOperation.downloadMgr.getFirstCarfileCacheFromWaitList()
 	if carfileCache == nil {
-		return nil, nil
+		return nil, fmt.Errorf("caching carfile not exist")
 	}
 
 	ret := &api.CachingCarfile{}
