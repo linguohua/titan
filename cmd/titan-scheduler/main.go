@@ -51,6 +51,7 @@ func main() {
 	titanlog.SetupLogLevels()
 
 	local := []*cli.Command{
+		initCmd,
 		runCmd,
 		getAPIKeyCmd,
 	}
@@ -100,6 +101,35 @@ func main() {
 
 type jwtPayload struct {
 	Allow []auth.Permission
+}
+
+var initCmd = &cli.Command{
+	Name:  "init",
+	Usage: "Initialize a titan scheduler repo",
+	Action: func(cctx *cli.Context) error {
+		log.Info("Initializing titan scheduler")
+		repoPath := cctx.String(FlagSchedulerRepo)
+		r, err := repo.NewFS(repoPath)
+		if err != nil {
+			return err
+		}
+
+		ok, err := r.Exists()
+		if err != nil {
+			return err
+		}
+		if ok {
+			return xerrors.Errorf("repo at '%s' is already initialized", cctx.String(FlagSchedulerRepo))
+		}
+
+		log.Info("Initializing repo")
+
+		if err := r.Init(repo.Scheduler); err != nil {
+			return err
+		}
+		
+		return nil
+	},
 }
 
 var getAPIKeyCmd = &cli.Command{
