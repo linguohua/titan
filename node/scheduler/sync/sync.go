@@ -9,7 +9,6 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/node"
 )
 
@@ -208,7 +207,7 @@ func (ds *DataSync) loadCarfileInfosBy(nodeID string) ([]*api.NodeCacheStatus, e
 	index := 0
 	cacheStates := make([]*api.NodeCacheStatus, 0)
 	for {
-		nodeCacheRsp, err := persistent.GetCacheInfosWithNode(nodeID, index, dbLoadCount)
+		nodeCacheRsp, err := ds.nodeManager.CarfileDB.GetCacheInfosWithNode(nodeID, index, dbLoadCount)
 		if err != nil {
 			log.Errorf("GetCacheInfosWithNode %s, index:%d, count:%d, error:%s", nodeID, index, dbLoadCount)
 			return nil, err

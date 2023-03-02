@@ -1,7 +1,9 @@
 package cache
 
 import (
-	"golang.org/x/xerrors"
+	"context"
+	"github.com/go-redis/redis/v8"
+	"time"
 )
 
 const (
@@ -22,18 +24,34 @@ const (
 	diskUsageField = "DiskUsage"
 )
 
-// NewCacheDB New Cache DB
-func NewCacheDB(url, dbType string) error {
-	var err error
+// NewCacheDB New nodeMgrCache DB
+//func NewCacheDB(url, dbType string) error {
+//	var err error
+//
+//	switch dbType {
+//	case TypeRedis():
+//		err = InitRedis(url)
+//	default:
+//		err = xerrors.New("unknown CacheDB type")
+//	}
+//
+//	return err
+//}
 
-	switch dbType {
-	case TypeRedis():
-		err = InitRedis(url)
-	default:
-		err = xerrors.New("unknown CacheDB type")
-	}
+const connectionTimeout = 5 * time.Second
 
-	return err
+func NewRedis(url string) (*redis.Client, error) {
+	client := redis.NewClient(&redis.Options{
+		Addr:      url,
+		Dialer:    nil,
+		OnConnect: nil,
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), connectionTimeout)
+	defer cancel()
+	_, err := client.Ping(ctx).Result()
+
+	return client, err
 }
 
 // DataTask data cache task

@@ -42,7 +42,7 @@ type ValidateResults struct {
 	// key is random index
 	// values is cid
 	Cids []string
-	// The number of random for validate
+	// The number of random for validator
 	RandomCount int
 
 	RoundID int64

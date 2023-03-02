@@ -7,55 +7,54 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/handler"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
 )
 
-// CacheResult Cache Data Result
+// CacheResult nodeMgrCache Data Result
 func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) error {
 	deviceID := handler.GetDeviceID(ctx)
 
-	if !deviceExists(deviceID, 0) {
+	if !s.deviceExists(deviceID, 0) {
 		return xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
 	// update node info
-	node := s.nodeManager.GetNode(deviceID)
+	node := s.NodeManager.GetNode(deviceID)
 	if node != nil {
 		node.DiskUsage = info.DiskUsage
 		node.BlockCount = info.TotalBlockCount
 	}
-	// update redis
-	err := persistent.UpdateNodeCacheInfo(deviceID, info.DiskUsage, info.TotalBlockCount)
+	// update
+	err := s.NodeManager.NodeMgrDB.UpdateNodeCacheInfo(deviceID, info.DiskUsage, info.TotalBlockCount)
 	if err != nil {
 		log.Errorf("UpdateNodeCacheInfo err:%s", err.Error())
 	}
 
-	return s.dataManager.CacheCarfileResult(deviceID, &info)
+	return s.DataManager.CacheCarfileResult(deviceID, &info)
 }
 
 // RemoveCarfileResult remove carfile result
 func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.RemoveCarfileResultInfo) error {
 	deviceID := handler.GetDeviceID(ctx)
 
-	if !deviceExists(deviceID, 0) {
+	if !s.deviceExists(deviceID, 0) {
 		return xerrors.Errorf("node not Exist: %s", deviceID)
 	}
 
 	// update node info
-	node := s.nodeManager.GetNode(deviceID)
+	node := s.NodeManager.GetNode(deviceID)
 	if node != nil {
 		node.DiskUsage = resultInfo.DiskUsage
 		node.BlockCount = resultInfo.BlockCount
 	}
 
-	// update redis
-	return persistent.UpdateNodeCacheInfo(deviceID, resultInfo.DiskUsage, resultInfo.BlockCount)
+	// update
+	return s.NodeManager.NodeMgrDB.UpdateNodeCacheInfo(deviceID, resultInfo.DiskUsage, resultInfo.BlockCount)
 }
 
 // ExecuteUndoneCarfilesTask Execute Undone Carfiles Task
 func (s *Scheduler) ExecuteUndoneCarfilesTask(ctx context.Context, hashs []string) error {
-	list, err := persistent.LoadCarfileInfos(hashs)
+	list, err := s.NodeManager.CarfileDB.LoadCarfileInfos(hashs)
 	if err != nil {
 		return err
 	}
@@ -83,17 +82,17 @@ func (s *Scheduler) ResetCacheExpirationTime(ctx context.Context, carfileCid str
 		return xerrors.Errorf("expirationTime:%s has passed", t.String())
 	}
 
-	return s.dataManager.ResetCacheExpirationTime(carfileCid, t)
+	return s.DataManager.ResetCacheExpirationTime(carfileCid, t)
 }
 
 // GetDownloadingCarfileRecords Show downloading carfiles
 func (s *Scheduler) GetDownloadingCarfileRecords(ctx context.Context) ([]*api.CarfileRecordInfo, error) {
-	return s.dataManager.GetDownloadingCarfileInfos(), nil
+	return s.DataManager.GetDownloadingCarfileInfos(), nil
 }
 
 // GetCarfileRecordInfo Show Data Task
 func (s *Scheduler) GetCarfileRecordInfo(ctx context.Context, cid string) (api.CarfileRecordInfo, error) {
-	info, err := s.dataManager.GetCarfileRecordInfo(cid)
+	info, err := s.DataManager.GetCarfileRecordInfo(cid)
 	if err != nil {
 		return api.CarfileRecordInfo{}, err
 	}
@@ -103,13 +102,13 @@ func (s *Scheduler) GetCarfileRecordInfo(ctx context.Context, cid string) (api.C
 
 // ResetReplicaCacheCount Reset candidate replica count
 func (s *Scheduler) ResetReplicaCacheCount(ctx context.Context, count int) error {
-	s.dataManager.ResetReplicaCount(count)
+	s.DataManager.ResetReplicaCount(count)
 	return nil
 }
 
 // ListCarfileRecords List Datas
 func (s *Scheduler) ListCarfileRecords(ctx context.Context, page int) (*api.CarfileRecordsInfo, error) {
-	return persistent.CarfileRecordInfos(page)
+	return s.NodeManager.CarfileDB.CarfileRecordInfos(page)
 }
 
 // RemoveCarfile remove all caches with carfile
@@ -123,7 +122,7 @@ func (s *Scheduler) RemoveCarfile(ctx context.Context, carfileCid string) error 
 		return err
 	}
 
-	return s.dataManager.RemoveCarfileRecord(carfileCid, hash)
+	return s.DataManager.RemoveCarfileRecord(carfileCid, hash)
 }
 
 // RemoveCache remove a caches with carfile
@@ -136,10 +135,10 @@ func (s *Scheduler) RemoveCache(ctx context.Context, carfileID, deviceID string)
 		return xerrors.Errorf("DeviceID Is Nil")
 	}
 
-	return s.dataManager.RemoveCache(carfileID, deviceID)
+	return s.DataManager.RemoveCache(carfileID, deviceID)
 }
 
-// CacheCarfile Cache Carfile
+// CacheCarfile nodeMgrCache Carfile
 func (s *Scheduler) CacheCarfile(ctx context.Context, info *api.CacheCarfileInfo) error {
 	if info.CarfileCid == "" {
 		return xerrors.New("Cid is Nil")
@@ -162,5 +161,5 @@ func (s *Scheduler) CacheCarfile(ctx context.Context, info *api.CacheCarfileInfo
 		}
 	}
 
-	return s.dataManager.CacheCarfile(info)
+	return s.DataManager.CacheCarfile(info)
 }

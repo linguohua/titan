@@ -89,6 +89,11 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		CertificatePath:    "",
 		PrivateKeyPath:     "",
 		CaCertificatePath:  "",
+		AreaID:             "CN-GD-Shenzhen",
+		GeodbPath:          "~/.titangeodb",
+		RedisAddress:       "127.0.0.1:6379",
+		PersistentDBURL:    "user:passwd@tcp(127.0.0.1:3306)/titan",
+		EnableValidate:     true,
 	}
 }
 

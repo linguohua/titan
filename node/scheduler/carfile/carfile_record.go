@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
@@ -55,8 +53,8 @@ func newCarfileRecord(manager *Manager, cid, hash string) *CarfileRecord {
 	}
 }
 
-func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
-	dInfo, err := persistent.LoadCarfileInfo(hash)
+func (m *Manager) loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
+	dInfo, err := m.nodeManager.CarfileDB.LoadCarfileInfo(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +71,7 @@ func loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 	cr.downloadSources = make([]*api.DownloadSource, 0)
 	cr.nodeCacheErrs = make(map[string]string)
 
-	raInfos, err := persistent.CarfileReplicaInfosWithHash(hash, false)
+	raInfos, err := m.nodeManager.CarfileDB.CarfileReplicaInfosWithHash(hash, false)
 	if err != nil {
 		log.Errorf("loadData hash:%s, GetCarfileReplicaInfosWithHash err:%s", hash, err.Error())
 		return cr, err
@@ -125,13 +123,13 @@ func (cr *CarfileRecord) startCacheReplicas(nodes []string, isCandidate bool) (d
 	downloading = false
 
 	// init replicas status
-	err := persistent.UpdateCarfileReplicaStatus(cr.carfileHash, nodes, api.CacheStatusDownloading)
+	err := cr.nodeManager.CarfileDB.UpdateCarfileReplicaStatus(cr.carfileHash, nodes, api.CacheStatusDownloading)
 	if err != nil {
 		log.Errorf("startCacheReplicas %s , UpdateCarfileReplicaStatus err:%s", cr.carfileHash, err.Error())
 		return
 	}
 
-	err = cache.ReplicaTasksStart(cr.carfileHash, nodes, cacheTimeoutTime)
+	err = cr.nodeManager.CarfileCache.ReplicaTasksStart(cr.carfileHash, nodes, cacheTimeoutTime)
 	if err != nil {
 		log.Errorf("startCacheReplicas %s , ReplicaTasksStart err:%s", cr.carfileHash, err.Error())
 		return
@@ -144,7 +142,7 @@ func (cr *CarfileRecord) startCacheReplicas(nodes []string, isCandidate bool) (d
 		var ra *Replica
 		cI, exist := cr.Replicas.Load(deviceID)
 		if !exist || cI == nil {
-			ra, err = newReplica(cr, deviceID, isCandidate)
+			ra, err = cr.newReplica(cr, deviceID, isCandidate)
 			if err != nil {
 				log.Errorf("newReplica %s , node:%s,err:%s", cr.carfileCid, deviceID, err.Error())
 				errorList = append(errorList, deviceID)
@@ -168,12 +166,12 @@ func (cr *CarfileRecord) startCacheReplicas(nodes []string, isCandidate bool) (d
 
 	if len(errorList) > 0 {
 		// set caches status
-		err := persistent.UpdateCarfileReplicaStatus(cr.carfileHash, errorList, api.CacheStatusFailed)
+		err := cr.nodeManager.CarfileDB.UpdateCarfileReplicaStatus(cr.carfileHash, errorList, api.CacheStatusFailed)
 		if err != nil {
 			log.Errorf("startReplicaTasks %s , UpdateCarfileReplicaStatus err:%s", cr.carfileHash, err.Error())
 		}
 
-		_, err = cache.ReplicaTasksEnd(cr.carfileHash, errorList)
+		_, err = cr.nodeManager.CarfileCache.ReplicaTasksEnd(cr.carfileHash, errorList)
 		if err != nil {
 			log.Errorf("startReplicaTasks %s , ReplicaTasksEnd err:%s", cr.carfileHash, err.Error())
 		}
@@ -328,7 +326,7 @@ func (cr *CarfileRecord) replicaCacheEnd(ra *Replica, errMsg string) error {
 		Replica:        cr.replica,
 		ExpirationTime: cr.expirationTime,
 	}
-	return persistent.UpdateCarfileRecordCachesInfo(info)
+	return cr.nodeManager.CarfileDB.UpdateCarfileRecordCachesInfo(info)
 }
 
 func (cr *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResultInfo) error {
@@ -344,7 +342,7 @@ func (cr *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResu
 
 	if ra.status == api.CacheStatusDownloading {
 		// update cache task timeout
-		return cache.UpdateNodeCachingExpireTime(ra.carfileHash, ra.deviceID, cacheTimeoutTime)
+		return cr.nodeManager.CarfileCache.UpdateNodeCachingExpireTime(ra.carfileHash, ra.deviceID, cacheTimeoutTime)
 	}
 
 	// update node info
@@ -363,7 +361,7 @@ func (cr *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResu
 		return xerrors.Errorf("endCache %s , updateCarfileRecordInfo err:%s", ra.carfileHash, err.Error())
 	}
 
-	cachesDone, err := cache.ReplicaTasksEnd(ra.carfileHash, []string{ra.deviceID})
+	cachesDone, err := cr.nodeManager.CarfileCache.ReplicaTasksEnd(ra.carfileHash, []string{ra.deviceID})
 	if err != nil {
 		return xerrors.Errorf("endCache %s , ReplicaTasksEnd err:%s", ra.carfileHash, err.Error())
 	}

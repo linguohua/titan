@@ -2,16 +2,19 @@ package node
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
 )
 
-// Allocate allocate a Node
-func Allocate(nodeType api.NodeType) (api.NodeAllocateInfo, error) {
+var secretRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+// RegisterNode Register a Node
+func (m *Manager) Allocate(nodeType api.NodeType) (api.NodeAllocateInfo, error) {
 	info := api.NodeAllocateInfo{}
 
 	deviceID, err := newDeviceID(nodeType)
@@ -21,7 +24,7 @@ func Allocate(nodeType api.NodeType) (api.NodeAllocateInfo, error) {
 
 	secret := newSecret()
 
-	err = persistent.BindNodeAllocateInfo(secret, deviceID, nodeType)
+	err = m.CarfileDB.BindNodeAllocateInfo(secret, deviceID, nodeType)
 	if err != nil {
 		return info, err
 	}

@@ -175,7 +175,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 			if tcpMsg.msgType == api.ValidateTcpMsgTypeCancelValidate {
 				result.IsCancel = true
 				sendValidateResult(candidate, result)
-				log.Infof("device %s cancel validate", result.DeviceID)
+				log.Infof("device %s cancel validator", result.DeviceID)
 				return
 			}
 
@@ -210,7 +210,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 	}
 	result.Bandwidth = float64(size) / float64(duration) * float64(time.Second)
 
-	log.Infof("validate %s %d block, bandwidth:%f, cost time:%d, IsTimeout:%v, duration:%d, size:%d, randCount:%d",
+	log.Infof("validator %s %d block, bandwidth:%f, cost time:%d, IsTimeout:%v, duration:%d, size:%d, randCount:%d",
 		result.DeviceID, len(result.Cids), result.Bandwidth, result.CostTime, result.IsTimeout, req.Duration, size, result.RandomCount)
 
 	sendValidateResult(candidate, result)
@@ -223,7 +223,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(candidate, result)
-		log.Errorf("validate get node api err: %v", err)
+		log.Errorf("validator get node api err: %v", err)
 		return
 	}
 	defer closer()
@@ -235,7 +235,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(candidate, result)
-		log.Errorf("validate get device info err: %v", err)
+		log.Errorf("validator get device info err: %v", err)
 		return
 	}
 
@@ -243,7 +243,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 
 	bw, exist := candidate.loadBlockWaiterFromMap(deviceID)
 	if exist {
-		log.Errorf("Aready doing validate node, deviceID:%s, not need to repeat to do", deviceID)
+		log.Errorf("Aready doing validator node, deviceID:%s, not need to repeat to do", deviceID)
 		return
 	}
 
@@ -261,7 +261,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(candidate, result)
-		log.Errorf("validate, edge DoValidate err: %v", err)
+		log.Errorf("validator, edge DoValidate err: %v", err)
 		return
 	}
 }

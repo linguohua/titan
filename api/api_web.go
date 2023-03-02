@@ -106,7 +106,7 @@ type SummeryValidateResult struct {
 	ValidateResultInfos []ValidateResult `json:"validate_result_infos"`
 }
 
-// ValidateResult validate result
+// ValidateResult validator result
 type ValidateResult struct {
 	ID          int
 	RoundID     int64          `db:"round_id"`
@@ -114,7 +114,7 @@ type ValidateResult struct {
 	ValidatorID string         `db:"validator_id"`
 	BlockNumber int64          `db:"block_number"` // number of blocks verified
 	Status      ValidateStatus `db:"status"`
-	Duration    int64          `db:"duration"` // validate duration, microsecond
+	Duration    int64          `db:"duration"` // validator duration, microsecond
 	Bandwidth   float64        `db:"bandwidth"`
 	StartTime   time.Time      `db:"start_time"`
 	EndTime     time.Time      `db:"end_time"`

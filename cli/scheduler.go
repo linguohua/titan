@@ -18,7 +18,7 @@ import (
 var SchedulerCmds = []*cli.Command{
 	WithCategory("node", nodeCmd),
 	WithCategory("carfile", carfileCmd),
-	// validate
+	// validator
 	electionCmd,
 	validateCmd,
 	validateSwitchCmd,
@@ -140,7 +140,7 @@ var setNodePortCmd = &cli.Command{
 }
 
 var validateCmd = &cli.Command{
-	Name:  "start-validate",
+	Name:  "start-validator",
 	Usage: "Validate edge node",
 
 	Before: func(cctx *cli.Context) error {
@@ -181,8 +181,8 @@ var electionCmd = &cli.Command{
 }
 
 var validateSwitchCmd = &cli.Command{
-	Name:  "validate-switch",
-	Usage: "validate switch",
+	Name:  "validator-switch",
+	Usage: "validator switch",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
 			Name:  "enable",
