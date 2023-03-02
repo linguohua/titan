@@ -288,7 +288,7 @@ func (m *Manager) startCarfileReplicaTasks() {
 			// if cache.IsNilErr(err) {
 			// 	return
 			// }
-			log.Errorf("GetWaitCarfile err:%s", err.Error())
+			// log.Errorf("GetWaitCarfile err:%s", err.Error())
 			continue
 		}
 

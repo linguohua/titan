@@ -52,9 +52,9 @@ func NewValidator(manager *node.Manager) *Validator {
 func (v *Validator) initValidateTask() {
 	spec := fmt.Sprintf("0 */%d * * * *", interval)
 	err := v.crontab.AddFunc(spec, func() {
-		err := v.startValidate()
-		if err != nil {
-			log.Errorf("verification failed to open")
+		e := v.startValidate()
+		if e != nil {
+			log.Errorf("verification failed to open %s", e.Error())
 		}
 	})
 	if err != nil {
@@ -77,11 +77,7 @@ func (v *Validator) startValidate() error {
 	// 	return err
 	// }
 
-	err := v.execute()
-	if err != nil {
-		log.Errorf(err.Error())
-	}
-	return err
+	return v.execute()
 }
 
 // func (v *Validator) checkValidateTimeOut() error {

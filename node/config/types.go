@@ -71,8 +71,6 @@ type LocatorCfg struct {
 type SchedulerCfg struct {
 	// host address and port the edge node api will listen on
 	ListenAddress string
-	// redis server address
-	RedisAddress string
 	// geodb path
 	GeodbPath string
 	// mysql address

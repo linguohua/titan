@@ -14,7 +14,6 @@ import (
 	"github.com/linguohua/titan/node/scheduler/election"
 	"github.com/linguohua/titan/node/scheduler/locator"
 	"github.com/linguohua/titan/node/scheduler/validator"
-	"github.com/linguohua/titan/region"
 
 	// "github.com/linguohua/titan/node/device"
 
@@ -203,12 +202,12 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 	deviceInfo.NodeType = api.NodeCandidate
 	deviceInfo.ExternalIP, _, _ = net.SplitHostPort(remoteAddr)
 
-	geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIP)
-	// TODO Does the error need to be handled?
+	// geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIP)
+	// // TODO Does the error need to be handled?
 
-	deviceInfo.IPLocation = geoInfo.Geo
-	deviceInfo.Longitude = geoInfo.Longitude
-	deviceInfo.Latitude = geoInfo.Latitude
+	// deviceInfo.IPLocation = geoInfo.Geo
+	// deviceInfo.Longitude = geoInfo.Longitude
+	// deviceInfo.Latitude = geoInfo.Latitude
 
 	candidateNode.BaseInfo = node.NewBaseInfo(&deviceInfo, privateKey, remoteAddr)
 
@@ -271,12 +270,12 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	deviceInfo.NodeType = api.NodeEdge
 	deviceInfo.ExternalIP, _, _ = net.SplitHostPort(remoteAddr)
 
-	geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIP)
-	// TODO Does the error need to be handled?
+	// geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIP)
+	// // TODO Does the error need to be handled?
 
-	deviceInfo.IPLocation = geoInfo.Geo
-	deviceInfo.Longitude = geoInfo.Longitude
-	deviceInfo.Latitude = geoInfo.Latitude
+	// deviceInfo.IPLocation = geoInfo.Geo
+	// deviceInfo.Longitude = geoInfo.Longitude
+	// deviceInfo.Latitude = geoInfo.Latitude
 
 	edgeNode.BaseInfo = node.NewBaseInfo(&deviceInfo, privateKey, remoteAddr)
 
