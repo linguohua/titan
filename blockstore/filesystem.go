@@ -102,7 +102,7 @@ func (fs *fileStore) KeyCount() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer dir.Close() //nolint:errcheck
+	defer dir.Close()
 
 	files, err := dir.Readdir(-1)
 	if err != nil {

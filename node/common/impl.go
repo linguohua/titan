@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/linguohua/titan/api"
@@ -81,7 +82,7 @@ func (a *CommonAPI) Version(context.Context) (api.APIVersion, error) {
 
 // Discover returns an OpenRPC document describing an RPC API.
 func (a *CommonAPI) Discover(ctx context.Context) (api.OpenRPCDocument, error) {
-	return nil, nil
+	return nil, fmt.Errorf("not implement")
 }
 
 // Shutdown trigger graceful shutdown
@@ -110,7 +111,7 @@ func (a *CommonAPI) Closing(context.Context) (<-chan struct{}, error) {
 func (a *CommonAPI) ShowLogFile(ctx context.Context) (*api.LogFile, error) {
 	logFilePath := os.Getenv("GOLOG_FILE")
 	if logFilePath == "" {
-		return nil, nil
+		return nil, fmt.Errorf("GOLOG_FILE not config, example: export GOLOG_FILE=/path/log")
 	}
 	info, err := os.Stat(logFilePath)
 	if err != nil {
@@ -123,7 +124,7 @@ func (a *CommonAPI) ShowLogFile(ctx context.Context) (*api.LogFile, error) {
 func (a *CommonAPI) DownloadLogFile(ctx context.Context) ([]byte, error) {
 	logFilePath := os.Getenv("GOLOG_FILE")
 	if logFilePath == "" {
-		return nil, nil
+		return nil, fmt.Errorf("GOLOG_FILE not config, example: export GOLOG_FILE=/path/log")
 	}
 	return os.ReadFile(logFilePath)
 }

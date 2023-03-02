@@ -2,6 +2,7 @@ package locator
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net"
 
@@ -64,14 +65,15 @@ func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, uuid strin
 
 func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string) ([]string, error) {
 	schedulerAPI, err := locator.getSchedulerAPIWith(deviceID)
-	if err != nil {
-		return nil, err
-	}
-
-	if schedulerAPI != nil {
+	if err == nil { // device may be not exit if err != nil
 		return []string{schedulerAPI.url}, nil
 	}
 
+	if err != sql.ErrNoRows {
+		return nil, err
+	}
+
+	// if device not exist, get scheduler by ip location
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	areaID, err := locator.getAreaIDWith(remoteAddr)
 	if err != nil {
@@ -136,11 +138,6 @@ func (locator *Locator) SetDeviceOnlineStatus(ctx context.Context, deviceID stri
 		return err
 	}
 
-	if info == nil {
-		log.Errorf("SetDeviceStatus, device %s not in locator", deviceID)
-		return fmt.Errorf("device %s not exist", deviceID)
-	}
-
 	locator.db.setDeviceInfo(deviceID, info.SchedulerURL, info.AreaID, isOnline)
 	return nil
 }
@@ -154,7 +151,7 @@ func (locator *Locator) getAccessPointsWithWeightCount(areaID string) ([]string,
 	}
 
 	if len(schedulerCfgs) == 0 {
-		return nil, nil
+		return make([]string, 0), nil
 	}
 
 	// filter online scheduler
@@ -234,7 +231,7 @@ func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*s
 	return result
 }
 
-// return nil,nil is not idiomatic golang
+// if device not exist return sql.ErrNoRows
 func (locator *Locator) getSchedulerAPIWith(deviceID string) (*schedulerAPI, error) {
 	device, err := locator.db.getDeviceInfo(deviceID)
 	if err != nil {
@@ -242,17 +239,9 @@ func (locator *Locator) getSchedulerAPIWith(deviceID string) (*schedulerAPI, err
 		return nil, err
 	}
 
-	if device == nil {
-		return nil, nil
-	}
-
 	cfg, err := locator.db.getSchedulerCfg(device.SchedulerURL)
 	if err != nil {
 		return nil, err
-	}
-
-	if cfg == nil {
-		return nil, nil
 	}
 
 	return locator.apMgr.getSchedulerAPI(device.SchedulerURL, device.AreaID, cfg.AccessToken)
@@ -277,7 +266,7 @@ func (locator *Locator) GetDownloadInfosWithCarfile(ctx context.Context, cid str
 		return schedulerAPI.GetDownloadInfosWithCarfile(ctx, cid, publicKey)
 	}
 
-	return nil, nil
+	return make([]*api.DownloadInfoResult, 0), nil
 }
 
 func (locator *Locator) UserDownloadBlockResults(ctx context.Context, results []api.UserBlockDownloadResult) error {
@@ -321,10 +310,6 @@ func (locator *Locator) getAreaIDWith(remoteAddr string) (string, error) {
 	return defaultAreaID, nil
 }
 
-// func (locator *Locator) getAccessPointCfg(schedulerURL string) (*schedulerCfg, error) {
-// 	return locator.db.getCfg(schedulerURL)
-// }
-
 func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerAPI, error) {
 	schedulerCfgs, err := locator.db.getAccessPointCfgs(areaID)
 	if err != nil {
@@ -347,7 +332,10 @@ func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerA
 
 func (locator *Locator) AllocateNodes(ctx context.Context, schedulerURL string, nodeType api.NodeType, count int) ([]api.NodeAllocateInfo, error) {
 	cfg, err := locator.db.getSchedulerCfg(schedulerURL)
-	if cfg != nil {
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("scheduler %s not exist", schedulerURL)
+		}
 		return nil, err
 	}
 

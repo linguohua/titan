@@ -60,20 +60,11 @@ func (db *sqlDB) addAccessPoint(areaID string, schedulerURL string, weight int, 
 }
 
 func (db *sqlDB) removeAccessPoints(areaID string) error {
-	return db.deleteCfgWithAreaID(areaID)
+	return db.deleteSchedulerCfgs(areaID)
 }
 
 func (db *sqlDB) getAccessPointCfgs(areaID string) ([]*schedulerCfg, error) {
 	return db.getCfgs(areaID)
-}
-
-func (db *sqlDB) listAreaIDs() (areaIDs []string, err error) {
-	err = db.cli.Select(&areaIDs, `SELECT area_id FROM scheduler_config GROUP BY area_id`)
-	if err != nil {
-		return
-	}
-
-	return
 }
 
 func (db *sqlDB) isAccessPointExist(schedulerURL string) (bool, error) {
@@ -89,59 +80,41 @@ func (db *sqlDB) isAccessPointExist(schedulerURL string) (bool, error) {
 	return false, nil
 }
 
+func (db *sqlDB) listAreaIDs() (areaIDs []string, err error) {
+	err = db.cli.Select(&areaIDs, `SELECT area_id FROM scheduler_config GROUP BY area_id`)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 func (db *sqlDB) getAllCfg() ([]*schedulerCfg, error) {
-	cfg := &schedulerCfg{}
-	rows, err := db.cli.NamedQuery(`SELECT * FROM scheduler_config`, cfg)
+	var cfgs []*schedulerCfg
+	err := db.cli.Select(&cfgs, `SELECT * FROM scheduler_config`)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	cfgs := make([]*schedulerCfg, 0)
-	for rows.Next() {
-		var cfg schedulerCfg
-		err = rows.StructScan(&cfg)
-		if err != nil {
-			return nil, err
-		}
-		cfgs = append(cfgs, &cfg)
-	}
-
 	return cfgs, nil
 }
 
 func (db *sqlDB) getCfgs(areaID string) ([]*schedulerCfg, error) {
-	cfg := &schedulerCfg{AreaID: areaID}
-	rows, err := db.cli.NamedQuery(`SELECT * FROM scheduler_config WHERE area_id=:area_id`, cfg)
+	var cfgs []*schedulerCfg
+	err := db.cli.Select(&cfgs, `SELECT * FROM scheduler_config WHERE area_id=?`, areaID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	cfgs := make([]*schedulerCfg, 0)
-	for rows.Next() {
-		cfg := schedulerCfg{}
-		err = rows.StructScan(&cfg)
-		if err != nil {
-			return nil, err
-		}
-		cfgs = append(cfgs, &cfg)
-	}
-
 	return cfgs, nil
 }
 
 func (db *sqlDB) getSchedulerCfg(schedulerURL string) (*schedulerCfg, error) {
-	var cfgs []*schedulerCfg
-	err := db.cli.Select(&cfgs, `SELECT * FROM scheduler_config WHERE scheduler_url=?`, schedulerURL)
+	cfg := &schedulerCfg{}
+	err := db.cli.Get(cfg, `SELECT * FROM scheduler_config WHERE scheduler_url=?`, schedulerURL)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(cfgs) > 0 {
-		return cfgs[0], nil
-	}
-	return nil, nil
+	return cfg, nil
 }
 
 func (db *sqlDB) addSchedulerCfg(areaID string, schedulerURL string, weight int, accessToken string) error {
@@ -150,7 +123,7 @@ func (db *sqlDB) addSchedulerCfg(areaID string, schedulerURL string, weight int,
 	return err
 }
 
-func (db *sqlDB) deleteCfgWithAreaID(areaID string) error {
+func (db *sqlDB) deleteSchedulerCfgs(areaID string) error {
 	cfg := &schedulerCfg{AreaID: areaID}
 	_, err := db.cli.NamedExec(`DELETE FROM scheduler_config WHERE area_id=:area_id`, cfg)
 	return err
@@ -163,28 +136,13 @@ func (db *sqlDB) deleteSchedulerCfg(schedulerURL string) error {
 }
 
 func (db *sqlDB) getDeviceInfo(deviceID string) (*deviceInfo, error) {
-	devInfo := &deviceInfo{DeviceID: deviceID}
-	rows, err := db.cli.NamedQuery(`SELECT * FROM device WHERE device_id=:device_id`, devInfo)
+	devInfo := &deviceInfo{}
+	err := db.cli.Get(devInfo, `SELECT * FROM device WHERE device_id=?`, deviceID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	devInfos := make([]*deviceInfo, 0)
-	for rows.Next() {
-		info := deviceInfo{}
-		err = rows.StructScan(&info)
-		if err != nil {
-			return nil, err
-		}
-		devInfos = append(devInfos, &info)
-	}
-
-	if len(devInfos) > 0 {
-		return devInfos[0], nil
-	}
-
-	return nil, nil
+	return devInfo, nil
 }
 
 func (db *sqlDB) setDeviceInfo(deviceID string, schedulerURL string, areaID string, online bool) error {
@@ -202,20 +160,26 @@ func (db *sqlDB) deleteDeviceInfo(deviceID string) error {
 func (db *sqlDB) countDeviceOnScheduler(schedulerURL string) (int, error) {
 	var count int
 	err := db.cli.Get(&count, `select count(*) from device WHERE scheduler_url=?`, schedulerURL)
-
+	if err != nil {
+		return 0, err
+	}
 	return count, err
 }
 
 func (db *sqlDB) countDeviceWithID(deviceID string) (int, error) {
 	var count int
 	err := db.cli.Get(&count, `select count(*) from device WHERE device_id=?`, deviceID)
-
+	if err != nil {
+		return 0, err
+	}
 	return count, err
 }
 
 func (db *sqlDB) countSchedulerCfg(schedulerURL string) (int, error) {
 	var count int
 	err := db.cli.Get(&count, `SELECT count(*) FROM scheduler_config WHERE scheduler_url=?`, schedulerURL)
-
+	if err != nil {
+		return 0, err
+	}
 	return count, err
 }

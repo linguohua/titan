@@ -627,17 +627,11 @@ func GetBlockDownloadInfoByDeviceID(deviceID string) ([]*api.BlockDownloadInfo, 
 }
 
 func GetBlockDownloadInfoByID(id string) (*api.BlockDownloadInfo, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE id = ?`, blockDownloadInfo)
-
-	var out []*api.BlockDownloadInfo
-	if err := mysqlCli.Select(&out, query, id); err != nil {
+	out := &api.BlockDownloadInfo{}
+	if err := mysqlCli.Get(&out, `SELECT * FROM %s WHERE id = ?`, id); err != nil {
 		return nil, err
 	}
-
-	if len(out) > 0 {
-		return out[0], nil
-	}
-	return nil, nil
+	return out, nil
 }
 
 func GetNodesByUserDownloadBlockIn(minute int) ([]string, error) {
