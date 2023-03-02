@@ -6,7 +6,7 @@ type DataSync interface {
 	CompareChecksum(ctx context.Context, succeededCarfilesChecksum, unsucceededCarfilesChecksum string) (*CompareResult, error) //perm:write
 
 	// BeginCheckCarfiles, PrepareCarfiles and DoCheckCarfiles is transaction
-	BeginCheckCarfiles(ctx context.Context) error
+	BeginCheckCarfiles(ctx context.Context) error //perm:write
 	// send carfile list to node in multiple times
 	PrepareCarfiles(ctx context.Context, carfileHashes []string) error //perm:write
 	// DoCheckCarfiles, carfilesHash is checksum of carfiles
