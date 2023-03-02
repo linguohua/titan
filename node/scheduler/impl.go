@@ -355,7 +355,7 @@ func (s *Scheduler) AllocateNodes(ctx context.Context, nodeType api.NodeType, co
 // GetOnlineDeviceIDs Get all online node id
 func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeType) ([]string, error) {
 	if nodeType == api.NodeValidate {
-		list, err := s.NodeManager.NodeMgrCache.GetValidatorsWithList()
+		list, err := s.NodeManager.NodeMgrDB.GetValidatorsWithList("Server_ID")
 		if err != nil {
 			return nil, err
 		}
@@ -382,7 +382,7 @@ func (s *Scheduler) ElectionValidators(ctx context.Context) error {
 // GetDevicesInfo return the devices information
 func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.DeviceInfo, error) {
 	// node datas
-	deviceInfo, err := s.NodeManager.NodeMgrDB.LoadDeviceInfo(deviceID)
+	deviceInfo, err := s.NodeManager.NodeMgrDB.LoadNodeInfo(deviceID)
 	if err != nil {
 		log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
 		return api.DeviceInfo{}, err

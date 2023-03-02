@@ -129,7 +129,7 @@ func (cr *CarfileRecord) startCacheReplicas(nodes []string, isCandidate bool) (d
 		return
 	}
 
-	err = cr.nodeManager.CarfileCache.ReplicaTasksStart(cr.carfileHash, nodes, cacheTimeoutTime)
+	err = cr.nodeManager.CarfileDB.ReplicaTasksStart("Server_ID", cr.carfileHash, nodes)
 	if err != nil {
 		log.Errorf("startCacheReplicas %s , ReplicaTasksStart err:%s", cr.carfileHash, err.Error())
 		return
@@ -154,7 +154,7 @@ func (cr *CarfileRecord) startCacheReplicas(nodes []string, isCandidate bool) (d
 		}
 
 		// do cache
-		err = ra.cacheCarfile()
+		err = ra.cacheCarfile(cacheTimeoutTime)
 		if err != nil {
 			log.Errorf("cacheCarfile %s , node:%s,err:%s", cr.carfileCid, ra.deviceID, err.Error())
 			errorList = append(errorList, deviceID)
@@ -171,7 +171,7 @@ func (cr *CarfileRecord) startCacheReplicas(nodes []string, isCandidate bool) (d
 			log.Errorf("startReplicaTasks %s , UpdateCarfileReplicaStatus err:%s", cr.carfileHash, err.Error())
 		}
 
-		_, err = cr.nodeManager.CarfileCache.ReplicaTasksEnd(cr.carfileHash, errorList)
+		_, err = cr.nodeManager.CarfileDB.ReplicaTasksEnd("Server_ID", cr.carfileHash, errorList)
 		if err != nil {
 			log.Errorf("startReplicaTasks %s , ReplicaTasksEnd err:%s", cr.carfileHash, err.Error())
 		}
@@ -342,7 +342,8 @@ func (cr *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResu
 
 	if ra.status == api.CacheStatusDownloading {
 		// update cache task timeout
-		return cr.nodeManager.CarfileCache.UpdateNodeCachingExpireTime(ra.carfileHash, ra.deviceID, cacheTimeoutTime)
+		ra.countDown = cacheTimeoutTime
+		return nil
 	}
 
 	// update node info
@@ -361,7 +362,7 @@ func (cr *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResu
 		return xerrors.Errorf("endCache %s , updateCarfileRecordInfo err:%s", ra.carfileHash, err.Error())
 	}
 
-	cachesDone, err := cr.nodeManager.CarfileCache.ReplicaTasksEnd(ra.carfileHash, []string{ra.deviceID})
+	cachesDone, err := cr.nodeManager.CarfileDB.ReplicaTasksEnd("Server_ID", ra.carfileHash, []string{ra.deviceID})
 	if err != nil {
 		return xerrors.Errorf("endCache %s , ReplicaTasksEnd err:%s", ra.carfileHash, err.Error())
 	}

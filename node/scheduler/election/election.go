@@ -69,12 +69,13 @@ func NewElection(manager *node.Manager) *Election {
 }
 
 func (v *Election) ElectTicker() {
-	expiration, err := v.fetchCurrentValidators()
+	err := v.fetchCurrentValidators()
 	if err != nil {
 		log.Errorf("fetch current validators: %v", err)
 		return
 	}
 
+	expiration := v.opts.electInterval
 	if len(v.validators) <= 0 {
 		expiration = 10 * time.Minute
 	}
@@ -191,7 +192,7 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 }
 
 func (v *Election) saveValidators(validators []string) error {
-	err := v.manager.NodeMgrCache.SetValidatorsToList(validators, v.opts.electInterval)
+	err := v.manager.NodeMgrDB.ResetValidators(validators, "Server_ID")
 	if err != nil {
 		return err
 	}
@@ -206,10 +207,10 @@ func (v *Election) saveValidators(validators []string) error {
 	return nil
 }
 
-func (v *Election) fetchCurrentValidators() (time.Duration, error) {
-	list, expiration, err := v.manager.NodeMgrCache.GetValidatorsAndExpirationTime()
+func (v *Election) fetchCurrentValidators() error {
+	list, err := v.manager.NodeMgrDB.GetValidatorsWithList("Server_ID")
 	if err != nil {
-		return expiration, err
+		return err
 	}
 	v.vlk.Lock()
 	for _, item := range list {
@@ -217,11 +218,7 @@ func (v *Election) fetchCurrentValidators() (time.Duration, error) {
 	}
 	v.vlk.Unlock()
 
-	if expiration < 0 {
-		expiration = v.opts.electInterval
-	}
-
-	return expiration, nil
+	return nil
 }
 
 func (v *Election) replenishElect() error {

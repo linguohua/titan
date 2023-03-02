@@ -2,10 +2,10 @@ package node
 
 import (
 	"context"
-	"github.com/linguohua/titan/node/common"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"sync"
 	"time"
+
+	"github.com/linguohua/titan/node/common"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
@@ -56,8 +56,6 @@ func NewExitCallbackFunc(cdb *persistent.CarfileDB) (ExitCallbackFunc, error) {
 type Manager struct {
 	EdgeNodes      sync.Map
 	CandidateNodes sync.Map
-	CarfileCache   *cache.CarfileCache
-	NodeMgrCache   *cache.NodeMgrCache
 	CarfileDB      *persistent.CarfileDB
 	NodeMgrDB      *persistent.NodeMgrDB
 
@@ -65,13 +63,11 @@ type Manager struct {
 }
 
 // NewManager return new node manager instance
-func NewManager(callBack ExitCallbackFunc, carfileCache *cache.CarfileCache, nodeMgrCache *cache.NodeMgrCache, cdb *persistent.CarfileDB, ndb *persistent.NodeMgrDB) *Manager {
+func NewManager(callBack ExitCallbackFunc, cdb *persistent.CarfileDB, ndb *persistent.NodeMgrDB) *Manager {
 	nodeManager := &Manager{
 		nodeQuitCallBack: callBack,
 		CarfileDB:        cdb,
 		NodeMgrDB:        ndb,
-		CarfileCache:     carfileCache,
-		NodeMgrCache:     nodeMgrCache,
 	}
 
 	go nodeManager.run()

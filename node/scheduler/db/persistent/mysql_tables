@@ -43,7 +43,7 @@ CREATE TABLE `node` (
 
 CREATE TABLE `validate_result` (
     `id` int unsigned NOT NULL AUTO_INCREMENT,
-    `round_id` bigint NOT NULL,
+    `round_id` varchar(128) NOT NULL,
     `device_id` varchar(128) NOT NULL,
     `validator_id` varchar(128) NOT NULL,
     `block_number` bigint DEFAULT '0' COMMENT 'number of blocks verified',
