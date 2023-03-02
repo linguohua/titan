@@ -7,12 +7,9 @@ require (
 	github.com/BurntSushi/toml v1.2.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/fatih/color v1.13.0
-	github.com/fatih/structs v1.1.0
 	github.com/filecoin-project/go-jsonrpc v0.2.1
 	github.com/gbrlsnchs/jwt/v3 v3.0.1
-	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.6.0
-	github.com/gomodule/redigo v1.8.9
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/icza/backscanner v0.0.0-20210726202459-ac2ffc679f94
@@ -46,13 +43,13 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/urfave/cli/v2 v2.11.1
 	go.opencensus.io v0.23.0
+	go.uber.org/fx v1.19.2
 	golang.org/x/sys v0.3.0
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f
 )
 
 require (
-	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.22.1 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // indirect
@@ -63,7 +60,6 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
-	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/go-kit/log v0.2.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
@@ -156,6 +152,7 @@ require (
 	github.com/libp2p/go-libp2p-testing v0.9.2 // indirect
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/multiformats/go-multibase v0.1.1 // indirect
+	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/ginkgo/v2 v2.2.0 // indirect
 	github.com/prometheus/common v0.35.0 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
@@ -163,7 +160,6 @@ require (
 	github.com/quic-go/qtls-go1-19 v0.2.0 // indirect
 	github.com/quic-go/qtls-go1-20 v0.1.0 // indirect
 	go.uber.org/dig v1.16.1 // indirect
-	go.uber.org/fx v1.19.2 // indirect
 	go.uber.org/goleak v1.1.12 // indirect
 	golang.org/x/exp v0.0.0-20221205204356-47842c84f3db // indirect
 	golang.org/x/mod v0.7.0 // indirect

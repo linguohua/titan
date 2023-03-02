@@ -23,7 +23,7 @@ type ReqValidate struct {
 	RandomSeed int64
 	// seconds
 	Duration int
-	RoundID  int64
+	RoundID  string
 	// node type, for example, edge or candidate
 	NodeType int
 }
@@ -45,5 +45,5 @@ type ValidateResults struct {
 	// The number of random for validator
 	RandomCount int
 
-	RoundID int64
+	RoundID string
 }

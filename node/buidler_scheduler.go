@@ -2,7 +2,7 @@ package node
 
 import (
 	"errors"
-	"github.com/go-redis/redis/v8"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/common"
@@ -11,7 +11,6 @@ import (
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler"
 	"github.com/linguohua/titan/node/scheduler/carfile"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/election"
 	"github.com/linguohua/titan/node/scheduler/node"
@@ -54,9 +53,6 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(*sqlx.DB), modules.NewDB(cfg)),
 		Override(new(*persistent.CarfileDB), persistent.NewCarfileDB),
 		Override(new(*persistent.NodeMgrDB), persistent.NewNodeMgrDB),
-		Override(new(*redis.Client), modules.NewRedis(cfg)),
-		Override(new(*cache.CarfileCache), cache.NewCarfileCache),
-		Override(new(*cache.NodeMgrCache), cache.NewNodeManagerCache),
 		Override(new(*node.Manager), node.NewManager),
 		Override(new(node.ExitCallbackFunc), node.NewExitCallbackFunc),
 		Override(new(*common.CommonAPI), common.NewCommonAPI),

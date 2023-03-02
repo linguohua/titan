@@ -109,7 +109,7 @@ type SummeryValidateResult struct {
 // ValidateResult validator result
 type ValidateResult struct {
 	ID          int
-	RoundID     int64          `db:"round_id"`
+	RoundID     string         `db:"round_id"`
 	DeviceID    string         `db:"device_id"`
 	ValidatorID string         `db:"validator_id"`
 	BlockNumber int64          `db:"block_number"` // number of blocks verified

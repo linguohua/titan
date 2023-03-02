@@ -31,7 +31,7 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 	}
 
 	deviceInValidator := make(map[string]struct{})
-	validatorList, err := w.NodeMgr.NodeMgrCache.GetValidatorsWithList()
+	validatorList, err := w.NodeMgr.NodeMgrDB.GetValidatorsWithList("Server_ID")
 	if err != nil {
 		log.Errorf("get validator list: %v", err)
 	}
@@ -41,7 +41,7 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 
 	deviceInfos := make([]api.DeviceInfo, 0)
 	for _, deviceID := range nodes {
-		deviceInfo, err := w.NodeMgr.NodeMgrCache.GetDeviceInfo(deviceID)
+		deviceInfo, err := w.NodeMgr.NodeMgrDB.LoadNodeInfo(deviceID)
 		if err != nil {
 			log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
 			continue
@@ -68,7 +68,7 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 
 func (w *web) GetNodeInfoByID(ctx context.Context, deviceID string) (api.DeviceInfo, error) {
 	// node datas
-	deviceInfo, err := w.NodeMgr.NodeMgrDB.LoadDeviceInfo(deviceID)
+	deviceInfo, err := w.NodeMgr.NodeMgrDB.LoadNodeInfo(deviceID)
 	if err != nil {
 		log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
 		return api.DeviceInfo{}, err

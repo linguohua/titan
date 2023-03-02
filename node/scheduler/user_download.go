@@ -11,7 +11,6 @@ import (
 	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/handler"
 	titanRsa "github.com/linguohua/titan/node/rsa"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"golang.org/x/xerrors"
 )
 
@@ -81,44 +80,8 @@ func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string,
 	return infos, nil
 }
 
-func (s *Scheduler) verifyNodeResultForUserDownloadBlock(deviceID string, record *cache.DownloadBlockRecord, sign []byte) error {
-	verifyContent := fmt.Sprintf("%s%d%d%d", record.Cid, record.SN, record.SignTime, record.Timeout)
-	edgeNode := s.NodeManager.GetEdgeNode(deviceID)
-	if edgeNode != nil {
-		return titanRsa.VerifyRsaSign(&edgeNode.PrivateKey().PublicKey, sign, verifyContent)
-	}
-
-	candidate := s.NodeManager.GetCandidateNode(deviceID)
-	if candidate != nil {
-		return titanRsa.VerifyRsaSign(&candidate.PrivateKey().PublicKey, sign, verifyContent)
-	}
-
-	privateKeyStr, err := s.NodeManager.NodeMgrDB.NodePrivateKey(deviceID)
-	if err != nil {
-		return err
-	}
-
-	privateKey, err := titanRsa.Pem2PrivateKey(privateKeyStr)
-	if err != nil {
-		return err
-	}
-	return titanRsa.VerifyRsaSign(&privateKey.PublicKey, sign, verifyContent)
-}
-
-func (s *Scheduler) verifyUserDownloadBlockSign(publicPem, cid string, sign []byte) error {
-	publicKey, err := titanRsa.Pem2PublicKey(publicPem)
-	if err != nil {
-		return err
-	}
-	return titanRsa.VerifyRsaSign(publicKey, sign, cid)
-}
-
 func (s *Scheduler) signDownloadInfos(cid string, results []*api.DownloadInfoResult, devicePrivateKeys map[string]*rsa.PrivateKey) error {
-	sn, err := s.NodeManager.NodeMgrCache.IncrBlockDownloadSN()
-	if err != nil {
-		log.Errorf("signDownloadInfos incr block download sn error:%s", err.Error())
-		return err
-	}
+	sn := int64(0)
 
 	signTime := time.Now().Unix()
 

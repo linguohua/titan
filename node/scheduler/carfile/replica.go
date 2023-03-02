@@ -25,6 +25,7 @@ type Replica struct {
 	endTime     time.Time
 
 	timeoutTicker *time.Ticker
+	countDown     int
 }
 
 func (cr *CarfileRecord) newReplica(carfileRecord *CarfileRecord, deviceID string, isCandidate bool) (*Replica, error) {
@@ -50,17 +51,6 @@ func (cr *CarfileRecord) newReplica(carfileRecord *CarfileRecord, deviceID strin
 	return cache, err
 }
 
-func (ra *Replica) isTimeout() bool {
-	// check redis
-	expiration, err := ra.nodeManager.CarfileCache.GetNodeCacheTimeoutTime(ra.deviceID)
-	if err != nil {
-		log.Errorf("GetNodeCacheTimeoutTime err:%s", err.Error())
-		return false
-	}
-
-	return expiration <= 0
-}
-
 func (ra *Replica) startTimeoutTimer() {
 	if ra.timeoutTicker != nil {
 		return
@@ -78,9 +68,10 @@ func (ra *Replica) startTimeoutTimer() {
 			return
 		}
 
-		if !ra.isTimeout() {
+		if ra.countDown > 0 {
 			continue
 		}
+		ra.countDown -= checkCacheTimeoutInterval
 
 		info := &api.CacheResultInfo{
 			Status:         api.CacheStatusFailed,
@@ -111,7 +102,7 @@ func (ra *Replica) updateInfo() error {
 }
 
 // Notify node to cache carfile
-func (ra *Replica) cacheCarfile() (err error) {
+func (ra *Replica) cacheCarfile(cDown int) (err error) {
 	ra.status = api.CacheStatusDownloading
 
 	deviceID := ra.deviceID
@@ -122,6 +113,7 @@ func (ra *Replica) cacheCarfile() (err error) {
 		cancel()
 
 		if result != nil {
+			ra.countDown = cDown
 			go ra.startTimeoutTimer()
 
 			// update node info

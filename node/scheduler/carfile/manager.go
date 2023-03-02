@@ -5,14 +5,14 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"github.com/linguohua/titan/node/common"
 	"sync"
 	"time"
+
+	"github.com/linguohua/titan/node/common"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/cidutil"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
@@ -56,7 +56,7 @@ func NewManager(nodeManager *node.Manager, writeToken common.PermissionWriteToke
 }
 
 func (m *Manager) initCarfileMap() {
-	hashs, err := m.nodeManager.CarfileCache.GetCachingCarfiles()
+	hashs, err := m.nodeManager.CarfileDB.GetCachingCarfiles("Server_ID")
 	if err != nil {
 		log.Errorf("initCacheMap GetCachingCarfiles err:%s", err.Error())
 		return
@@ -75,13 +75,14 @@ func (m *Manager) initCarfileMap() {
 		isDownloading := false
 		// start timout check
 		cr.Replicas.Range(func(key, value interface{}) bool {
-			c := value.(*Replica)
-			if c.status != api.CacheStatusDownloading {
+			ra := value.(*Replica)
+			if ra.status != api.CacheStatusDownloading {
 				return true
 			}
 
+			ra.countDown = cacheTimeoutTime
 			isDownloading = true
-			go c.startTimeoutTimer()
+			go ra.startTimeoutTimer()
 
 			return true
 		})
@@ -192,8 +193,9 @@ func (m *Manager) CacheCarfile(info *api.CacheCarfileInfo) error {
 	} else {
 		log.Infof("carfile event %s , add carfile,deviceID:%s", info.CarfileCid, info.DeviceID)
 	}
+	info.ServerID = "Server_ID"
 
-	return m.nodeManager.CarfileCache.PushCarfileToWaitList(info)
+	return m.nodeManager.CarfileDB.PushCarfileToWaitList(info)
 }
 
 // RemoveCarfileRecord remove a carfile
@@ -281,11 +283,11 @@ func (m *Manager) startCarfileReplicaTasks() {
 	}
 
 	for i := 0; i < doLen; i++ {
-		info, err := m.nodeManager.CarfileCache.GetWaitCarfile()
+		info, err := m.nodeManager.CarfileDB.LoadWaitCarfiles("Server_ID")
 		if err != nil {
-			if cache.IsNilErr(err) {
-				return
-			}
+			// if cache.IsNilErr(err) {
+			// 	return
+			// }
 			log.Errorf("GetWaitCarfile err:%s", err.Error())
 			continue
 		}

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/robfig/cron"
 	"golang.org/x/xerrors"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/linguohua/titan/node/scheduler/node"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 )
 
 var log = logging.Logger("scheduler/validator")
@@ -31,9 +31,8 @@ type Validator struct {
 	ctx         context.Context
 	lock        sync.Mutex
 	seed        int64
-	curRoundID  int64
+	curRoundID  string
 	crontab     *cron.Cron // timer
-	cache       *cache.NodeMgrCache
 }
 
 // NewValidator return new validator instance
@@ -66,51 +65,48 @@ func (v *Validator) initValidateTask() {
 }
 
 func (v *Validator) startValidate() error {
-	roundID, err := v.cache.IncrValidateRoundID()
-	if err != nil {
-		return err
-	}
+	roundID := uuid.NewString()
 	v.curRoundID = roundID
 	v.seed = time.Now().UnixNano()
 
 	// before opening validation
 	// check the last round of verification
-	err = v.checkValidateTimeOut()
-	if err != nil {
-		log.Errorf(err.Error())
-		return err
-	}
+	// err = v.checkValidateTimeOut()
+	// if err != nil {
+	// 	log.Errorf(err.Error())
+	// 	return err
+	// }
 
-	err = v.execute()
+	err := v.execute()
 	if err != nil {
 		log.Errorf(err.Error())
 	}
 	return err
 }
 
-func (v *Validator) checkValidateTimeOut() error {
-	deviceIDs, err := v.cache.GetNodesWithVerifyingList()
-	if err != nil {
-		return err
-	}
+// func (v *Validator) checkValidateTimeOut() error {
+// 	deviceIDs, err := v.nodeManager.NodeMgrDB.GetNodesWithVerifyingList("Server_ID")
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if deviceIDs != nil && len(deviceIDs) > 0 {
-		err = v.nodeManager.NodeMgrDB.SetValidateTimeoutOfNodes(v.curRoundID-1, deviceIDs)
-		if err != nil {
-			log.Errorf(err.Error())
-		}
-	}
+// 	if deviceIDs != nil && len(deviceIDs) > 0 {
+// 		err = v.nodeManager.NodeMgrDB.SetValidateTimeoutOfNodes(v.curRoundID-1, deviceIDs)
+// 		if err != nil {
+// 			log.Errorf(err.Error())
+// 		}
+// 	}
 
-	return err
-}
+// 	return err
+// }
 
 func (v *Validator) execute() error {
-	err := v.cache.RemoveVerifyingList()
+	err := v.nodeManager.NodeMgrDB.RemoveVerifyingList("Server_ID")
 	if err != nil {
 		return err
 	}
 
-	validatorList, err := v.cache.GetValidatorsWithList()
+	validatorList, err := v.nodeManager.NodeMgrDB.GetValidatorsWithList("Server_ID")
 	if err != nil {
 		return err
 	}
@@ -254,7 +250,7 @@ func (v *Validator) assignValidator(validatorList []string) map[string][]api.Req
 	}
 
 	if len(validateds) > 0 {
-		err = v.cache.SetNodesToVerifyingList(validateds)
+		err = v.nodeManager.NodeMgrDB.SetNodesToVerifyingList(validateds, "Server_ID")
 		if err != nil {
 			log.Errorf("SetNodesToVerifyingList err:%s", err.Error())
 		}
@@ -352,7 +348,7 @@ func (v *Validator) ValidateResult(validateResult *api.ValidateResults) error {
 			log.Errorf("UpdateValidateResult [%s] fail : %s", validateResult.DeviceID, err.Error())
 		}
 
-		err = v.cache.RemoveValidatedWithList(validateResult.DeviceID)
+		err = v.nodeManager.NodeMgrDB.RemoveValidatedWithList(validateResult.DeviceID, "Server_ID")
 		if err != nil {
 			log.Errorf("RemoveValidatedWithList [%s] fail : %s", validateResult.DeviceID, err.Error())
 			return
@@ -449,7 +445,7 @@ func (v *Validator) compareCid(cidStr1, cidStr2 string) bool {
 
 // StartValidateOnceTask start validator task
 func (v *Validator) StartValidateOnceTask() error {
-	count, err := v.cache.CountVerifyingNode()
+	count, err := v.nodeManager.NodeMgrDB.CountVerifyingNode("Server_ID")
 	if err != nil {
 		return err
 	}

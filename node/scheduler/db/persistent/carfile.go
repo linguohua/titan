@@ -2,11 +2,12 @@ package persistent
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/api"
 	"golang.org/x/xerrors"
-	"math/rand"
-	"time"
 )
 
 type CarfileDB struct {
@@ -499,4 +500,89 @@ func (c *CarfileDB) GetReplicaInfos(startTime time.Time, endTime time.Time, curs
 	}
 
 	return &api.ListCacheInfosRsp{Datas: out, Total: total}, nil
+}
+
+// PushCarfileToWaitList waiting data list
+func (c *CarfileDB) PushCarfileToWaitList(info *api.CacheCarfileInfo) error {
+	query := fmt.Sprintf(
+		`INSERT INTO %s (carfile_hash, carfile_cid, replicas, device_id, expiration_time, server_id) 
+				VALUES (:carfile_hash, :carfile_cid, :replicas, :device_id, :expiration_time, :server_id) 
+				ON DUPLICATE KEY UPDATE carfile_hash=:carfile_hash, carfile_cid=:carfile_cid, replicas=:replicas, device_id=:device_id, 
+				expiration_time=:expiration_time, server_id=:server_id`, waitingCarfileTable)
+
+	_, err := c.db.NamedExec(query, info)
+	return err
+}
+
+// LoadWaitCarfiles load
+func (c *CarfileDB) LoadWaitCarfiles(serverID string) (*api.CacheCarfileInfo, error) {
+	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE server_id=? order by id asc limit ?,?`, waitingCarfileTable)
+
+	info := &api.CacheCarfileInfo{}
+	err := c.db.Get(&info, sQuery, serverID, 0, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	return info, nil
+}
+
+// RemoveWaitCarfile remove
+func (c *CarfileDB) RemoveWaitCarfile(id string) error {
+	query := fmt.Sprintf(`DELETE FROM %s WHERE id=?`, waitingCarfileTable)
+	_, err := c.db.Exec(query, id)
+	return err
+}
+
+// GetCachingCarfiles ...
+func (c *CarfileDB) GetCachingCarfiles(serverID string) ([]string, error) {
+	sQuery := fmt.Sprintf(`SELECT carfile_hash FROM %s WHERE server_id=? GROUP BY carfile_hash`, downloadingTable)
+
+	var out []string
+	if err := c.db.Select(&out, sQuery, serverID); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ReplicaTasksStart ...
+func (c *CarfileDB) ReplicaTasksStart(serverID, hash string, deviceIDs []string) error {
+	tx := c.db.MustBegin()
+
+	for _, deviceID := range deviceIDs {
+		sQuery := fmt.Sprintf(`INSERT INTO %s (carfile_hash, device_id, server_id) VALUES (?, ?, ?)`, downloadingTable)
+		tx.MustExec(sQuery, hash, deviceID, serverID)
+	}
+
+	err := tx.Commit()
+	if err != nil {
+		err = tx.Rollback()
+	}
+
+	return err
+}
+
+// ReplicaTasksEnd ...
+func (c *CarfileDB) ReplicaTasksEnd(serverID, hash string, deviceIDs []string) (bool, error) {
+	dQuery := fmt.Sprintf("DELETE FROM %s WHERE server_id=? AND carfile_hash=? AND device_id in (?) ", downloadingTable)
+	query, args, err := sqlx.In(dQuery, serverID, hash, deviceIDs)
+	if err != nil {
+		return false, err
+	}
+
+	// cache info
+	query = c.db.Rebind(query)
+	_, err = c.db.Exec(query, args...)
+	if err != nil {
+		return false, err
+	}
+
+	var count int
+	sQuery := fmt.Sprintf("SELECT count(*) FROM %s WHERE carfile_hash=? AND server_id=?", downloadingTable)
+	err = c.db.Get(&count, sQuery, hash, serverID)
+	if err != nil {
+		return false, err
+	}
+
+	return count == 0, nil
 }
