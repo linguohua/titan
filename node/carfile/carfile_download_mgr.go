@@ -31,17 +31,12 @@ func newDownloadMgr(carfileStore *carfilestore.CarfileStore, downloadOperation D
 		carfileStore:      carfileStore,
 		downloadOperation: downloadOperation,
 	}
-	downloadMgr.restoreWaitListFromFile()
+	downloadMgr.restoreWaitListFromStore()
 
 	go downloadMgr.startCarfileDownloader()
 	go downloadMgr.startTick()
-	go downloadMgr.delayNotifyDownloaderOnce()
 
 	return downloadMgr
-}
-
-func (downloadMgr *DownloadMgr) delayNotifyDownloaderOnce() {
-	time.AfterFunc(3*time.Second, downloadMgr.notifyCarfileDownloader)
 }
 
 func (downloadMgr *DownloadMgr) startTick() {
@@ -77,8 +72,8 @@ func (downloadMgr *DownloadMgr) startCarfileDownloader() {
 	}
 
 	for {
-		<-downloadMgr.carfileCacheCh
 		downloadMgr.doDownloadCarfile()
+		<-downloadMgr.carfileCacheCh
 	}
 }
 
@@ -164,7 +159,7 @@ func (downloadMgr *DownloadMgr) removeCarfileFromWaitList(carfileCID string) *ca
 }
 
 func (downloadMgr *DownloadMgr) onDownloadCarfileComplete(cf *carfileCache) {
-	log.Infof("onDownloadCarfileComplete, carfile %s", cf.carfileCID)
+	log.Debugf("onDownloadCarfileComplete, carfile %s", cf.carfileCID)
 	err := downloadMgr.saveCarfileTable(cf)
 	if err != nil {
 		log.Errorf("onDownloadCarfileComplete, saveCarfileTable error:%s", err)
@@ -182,7 +177,7 @@ func (downloadMgr *DownloadMgr) onDownloadCarfileComplete(cf *carfileCache) {
 }
 
 func (downloadMgr *DownloadMgr) saveCarfileTable(cf *carfileCache) error {
-	log.Infof("saveCarfileTable, carfile cid:%s, download size:%d,carfileSize:%d", cf.carfileCID, cf.downloadSize, cf.carfileSize)
+	log.Debugf("saveCarfileTable, carfile cid:%s, download size:%d,carfileSize:%d", cf.carfileCID, cf.downloadSize, cf.carfileSize)
 	carfileHash, err := cf.getCarfileHashString()
 	if err != nil {
 		return err
@@ -216,7 +211,7 @@ func (downloadMgr *DownloadMgr) saveWaitList() error {
 	return downloadMgr.carfileStore.SaveWaitList(data)
 }
 
-func (downloadMgr *DownloadMgr) restoreWaitListFromFile() {
+func (downloadMgr *DownloadMgr) restoreWaitListFromStore() {
 	data, err := downloadMgr.carfileStore.WaitList()
 	if err != nil {
 		if err != datastore.ErrNotFound {
@@ -231,7 +226,7 @@ func (downloadMgr *DownloadMgr) restoreWaitListFromFile() {
 		return
 	}
 
-	log.Infof("restoreWaitListFromFile:%v", downloadMgr.waitList)
+	log.Debugf("restoreWaitList:%v", downloadMgr.waitList)
 }
 
 func (downloadMgr *DownloadMgr) waitListLen() int {

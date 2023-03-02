@@ -113,7 +113,6 @@ func (cfCache *carfileCache) downloadBlocksWithBreadthFirst(layerCids []string, 
 }
 
 func (cfCache *carfileCache) downloadBlocks(cids []string, downloadOperation DownloadOperation) (*downloadResult, error) {
-	// log.Infof("downloadBlocks cids:%v", cids)
 	blks, err := downloadOperation.downloadBlocks(cids, cfCache.downloadSources)
 	if err != nil {
 		log.Errorf("loadBlocksAsync loadBlocks err %s", err.Error())

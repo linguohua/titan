@@ -22,7 +22,7 @@ func (carfileOperation *CarfileOperation) deleteBlock(blockHash, carfileHash str
 		return err
 	}
 
-	log.Infof("Delete block %s", blockHash)
+	log.Debugf("Delete block %s", blockHash)
 	return nil
 }
 
@@ -47,7 +47,7 @@ func (carfileOperation *CarfileOperation) saveBlock(data []byte, blockHash, carf
 		log.Errorf("saveBlock, addCarfileLinkToBlock error:%s", err)
 	}
 
-	log.Infof("saveBlock blockHash:%s", blockHash)
+	log.Debugf("saveBlock blockHash:%s", blockHash)
 	return nil
 }
 

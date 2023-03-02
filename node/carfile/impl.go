@@ -34,7 +34,7 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 			log.Errorf("CacheCarfile, cacheResultForCarfileExist error:%s", err.Error())
 		}
 
-		log.Infof("carfile %s carfileCID aready exist, not need to cache", carfileCID)
+		log.Debugf("carfile %s carfileCID aready exist, not need to cache", carfileCID)
 
 		return carfileOperation.cacheCarfileResult()
 	}
@@ -53,7 +53,8 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 	cfCache.downloadSources = dss
 
 	carfileOperation.downloadMgr.addCarfileCacheToWaitList(cfCache)
-	log.Infof("CacheCarfile carfile cid:%s", carfileCID)
+
+	log.Debugf("CacheCarfile carfile cid:%s", carfileCID)
 	return carfileOperation.cacheCarfileResult()
 }
 
@@ -95,7 +96,7 @@ func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, car
 			log.Errorf("DeleteCarfile, RemoveCarfileResult error:%s, carfileCID:%s", err.Error(), carfileCID)
 		}
 
-		log.Infof("DeleteCarfile, carfile cid:%s", carfileCID)
+		log.Debugf("DeleteCarfile, carfile cid:%s", carfileCID)
 	}()
 	return nil
 }
@@ -136,7 +137,7 @@ func (carfileOperation *CarfileOperation) QueryCacheStat(ctx context.Context) (*
 		cacheStat.CachingCarfileCID = carfileCache.carfileCID
 	}
 
-	log.Infof("QueryCacheStat, TotalCarfileCount:%d,TotalBlockCount:%d,WaitCacheCarfileCount:%d,DiskUsage:%f,CachingCarfileCID:%s",
+	log.Debugf("QueryCacheStat, TotalCarfileCount:%d,TotalBlockCount:%d,WaitCacheCarfileCount:%d,DiskUsage:%f,CachingCarfileCID:%s",
 		cacheStat.TotalCarfileCount, cacheStat.TotalBlockCount, cacheStat.WaitCacheCarfileCount, cacheStat.DiskUsage, cacheStat.CachingCarfileCID)
 	return cacheStat, nil
 }
