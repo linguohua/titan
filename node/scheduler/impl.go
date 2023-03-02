@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
+	"go.uber.org/fx"
 	"net"
 	"net/http"
 
@@ -11,8 +12,7 @@ import (
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/scheduler/election"
 	"github.com/linguohua/titan/node/scheduler/locator"
-	"github.com/linguohua/titan/node/scheduler/validate"
-	"github.com/linguohua/titan/node/secret"
+	"github.com/linguohua/titan/node/scheduler/validator"
 	"github.com/linguohua/titan/region"
 
 	// "github.com/linguohua/titan/node/device"
@@ -26,14 +26,9 @@ import (
 	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/node"
 
-	// "github.com/linguohua/titan/node/device"
-	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler/carfile"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/sync"
-	"github.com/linguohua/titan/node/scheduler/web"
-
 	"golang.org/x/xerrors"
 )
 
@@ -56,58 +51,61 @@ const (
 	blockDownloadStatusSucceeded
 )
 
-// NewLocalScheduleNode NewLocalScheduleNode
-func NewLocalScheduleNode(lr repo.LockedRepo, schedulerCfg *config.SchedulerCfg) api.Scheduler {
-	s := &Scheduler{}
-
-	nodeManager := node.NewManager(s.nodeExitedCallback)
-	s.CommonAPI = common.NewCommonAPI(nodeManager.NodeSessionCallBack)
-	s.Web = web.NewWeb(s)
-
-	sec, err := secret.APISecret(lr)
-	if err != nil {
-		log.Panicf("NewLocalScheduleNode failed:%s", err.Error())
-	}
-	s.APISecret = sec
-
-	// area.InitServerArea(areaStr)
-
-	err = s.authNew()
-	if err != nil {
-		log.Panicf("authNew err:%s", err.Error())
-	}
-
-	s.nodeManager = nodeManager
-	s.election = election.New(nodeManager)
-	s.validate = validate.New(nodeManager, false)
-	s.dataManager = carfile.NewManager(nodeManager, s.writeToken)
-	s.dataSync = sync.NewDataSync(nodeManager)
-	s.schedulerCfg = schedulerCfg
-
-	s.nodeAppUpdateInfos, err = persistent.GetNodeUpdateInfos()
-	if err != nil {
-		log.Errorf("GetNodeUpdateInfos error:%s", err)
-	}
-
-	return s
-}
+// NewLocalScheduleNode ...
+//func NewLocalScheduleNode(lr repo.LockedRepo, SchedulerCfg *config.SchedulerCfg) api.Scheduler {
+//	s := &Scheduler{}
+//
+//	NodeManager := node.NewManager(s.nodeExitedCallback)
+//	s.CommonAPI = common.NewCommonAPI(NodeManager.NodeSessionCallBack)
+//	s.Web = web.NewWeb(s)
+//
+//	sec, err := secret.APISecret(lr)
+//	if err != nil {
+//		log.Panicf("NewLocalScheduleNode failed:%s", err.Error())
+//	}
+//	s.APISecret = sec
+//
+//	// area.InitServerArea(areaStr)
+//
+//	err = s.authNew()
+//	if err != nil {
+//		log.Panicf("authNew err:%s", err.Error())
+//	}
+//
+//	s.NodeManager = NodeManager
+//	s.Election = Election.NewElection(NodeManager)
+//	s.Validator = Validator.NewElection(NodeManager, false)
+//	s.DataManager = carfile.NewManager(NodeManager, s.WriteToken)
+//	s.DataSync = sync.NewDataSync(NodeManager)
+//	s.SchedulerCfg = SchedulerCfg
+//
+//	s.AppUpdater, err = persistent.GetNodeUpdateInfos()
+//	if err != nil {
+//		log.Errorf("GetNodeUpdateInfos error:%s", err)
+//	}
+//
+//	return s
+//}
 
 // Scheduler node
 type Scheduler struct {
-	common.CommonAPI
+	fx.In
+
 	api.Web
+	*common.CommonAPI
+	*AppUpdater
 
-	nodeManager *node.Manager
-	election    *election.Election
-	validate    *validate.Validate
-	dataManager *carfile.Manager
-	dataSync    *sync.DataSync
-
-	writeToken         []byte
-	adminToken         []byte
-	nodeAppUpdateInfos map[int]*api.NodeAppUpdateInfo
-	schedulerCfg       *config.SchedulerCfg
+	NodeManager  *node.Manager
+	Election     *election.Election
+	Validator    *validator.Validator
+	DataManager  *carfile.Manager
+	DataSync     *sync.DataSync
+	WriteToken   common.PermissionWriteToken
+	AdminToken   common.PermissionWriteToken
+	SchedulerCfg *config.SchedulerCfg
 }
+
+var _ api.Scheduler = &Scheduler{}
 
 type jwtPayload struct {
 	Allow []auth.Permission
@@ -127,7 +125,7 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 	}
 
 	var secret string
-	err := persistent.GetNodeAllocateInfo(deviceID, persistent.SecretKey, &secret)
+	err := s.NodeManager.CarfileDB.GetNodeAllocateInfo(deviceID, persistent.SecretKey, &secret)
 	if err != nil {
 		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", deviceID, err)
 	}
@@ -147,7 +145,7 @@ func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, de
 	}
 
 	var secret string
-	err := persistent.GetNodeAllocateInfo(deviceID, persistent.SecretKey, &secret)
+	err := s.NodeManager.CarfileDB.GetNodeAllocateInfo(deviceID, persistent.SecretKey, &secret)
 	if err != nil {
 		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", deviceID, err)
 	}
@@ -164,12 +162,12 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	deviceID := handler.GetDeviceID(ctx)
 
-	if !deviceExists(deviceID, int(api.NodeCandidate)) {
+	if !s.deviceExists(deviceID, int(api.NodeCandidate)) {
 		return xerrors.Errorf("candidate node not Exist: %s", deviceID)
 	}
 
 	log.Infof("Candidate Connect %s, address:%s", deviceID, remoteAddr)
-	candidateNode := node.NewCandidate(s.adminToken)
+	candidateNode := node.NewCandidate(s.AdminToken)
 	candicateAPI, err := candidateNode.ConnectRPC(remoteAddr, true)
 	if err != nil {
 		return xerrors.Errorf("CandidateNodeConnect ConnectRPC err:%s", err.Error())
@@ -186,7 +184,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceID)
 	}
 
-	privateKeyStr, _ := persistent.NodePrivateKey(deviceID)
+	privateKeyStr, _ := s.NodeManager.NodeMgrDB.NodePrivateKey(deviceID)
 	var privateKey *rsa.PrivateKey
 	if len(privateKeyStr) > 0 {
 		privateKey, err = titanRsa.Pem2PrivateKey(privateKeyStr)
@@ -213,7 +211,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 
 	candidateNode.BaseInfo = node.NewBaseInfo(&deviceInfo, privateKey, remoteAddr)
 
-	err = s.nodeManager.CandidateOnline(candidateNode)
+	err = s.NodeManager.CandidateOnline(candidateNode)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect addEdgeNode err:%s,deviceID:%s", err.Error(), deviceID)
 		return err
@@ -222,7 +220,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 	// notify locator
 	locator.ChangeNodeOnlineStatus(deviceID, true)
 
-	s.dataSync.Add2List(deviceID)
+	s.DataSync.Add2List(deviceID)
 
 	return nil
 }
@@ -232,12 +230,12 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	deviceID := handler.GetDeviceID(ctx)
 
-	if !deviceExists(deviceID, int(api.NodeEdge)) {
+	if !s.deviceExists(deviceID, int(api.NodeEdge)) {
 		return xerrors.Errorf("edge node not Exist: %s", deviceID)
 	}
 
 	log.Infof("Edge Connect %s; remoteAddr:%s", deviceID, remoteAddr)
-	edgeNode := node.NewEdge(s.adminToken)
+	edgeNode := node.NewEdge(s.AdminToken)
 	edgeAPI, err := edgeNode.ConnectRPC(remoteAddr, true)
 	if err != nil {
 		return xerrors.Errorf("EdgeNodeConnect ConnectRPC err:%s", err.Error())
@@ -254,7 +252,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceID)
 	}
 
-	privateKeyStr, _ := persistent.NodePrivateKey(deviceID)
+	privateKeyStr, _ := s.NodeManager.NodeMgrDB.NodePrivateKey(deviceID)
 	var privateKey *rsa.PrivateKey
 	if len(privateKeyStr) > 0 {
 		privateKey, err = titanRsa.Pem2PrivateKey(privateKeyStr)
@@ -281,7 +279,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 
 	edgeNode.BaseInfo = node.NewBaseInfo(&deviceInfo, privateKey, remoteAddr)
 
-	err = s.nodeManager.EdgeOnline(edgeNode)
+	err = s.NodeManager.EdgeOnline(edgeNode)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect addEdgeNode err:%s,deviceID:%s", err.Error(), deviceInfo.DeviceID)
 		return err
@@ -290,7 +288,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	// notify locator
 	locator.ChangeNodeOnlineStatus(deviceID, true)
 
-	s.dataSync.Add2List(deviceID)
+	s.DataSync.Add2List(deviceID)
 
 	return nil
 }
@@ -299,12 +297,12 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 func (s *Scheduler) GetPublicKey(ctx context.Context) (string, error) {
 	deviceID := handler.GetDeviceID(ctx)
 
-	edgeNode := s.nodeManager.GetEdgeNode(deviceID)
+	edgeNode := s.NodeManager.GetEdgeNode(deviceID)
 	if edgeNode != nil {
 		return titanRsa.PublicKey2Pem(&edgeNode.PrivateKey().PublicKey), nil
 	}
 
-	candidateNode := s.nodeManager.GetCandidateNode(deviceID)
+	candidateNode := s.NodeManager.GetCandidateNode(deviceID)
 	if candidateNode != nil {
 		return titanRsa.PublicKey2Pem(&candidateNode.PrivateKey().PublicKey), nil
 	}
@@ -318,19 +316,19 @@ func (s *Scheduler) GetExternalAddr(ctx context.Context) (string, error) {
 	return remoteAddr, nil
 }
 
-// ValidateBlockResult Validate Block Result
+// ValidateBlockResult Validator Block Result
 func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.ValidateResults) error {
 	validator := handler.GetDeviceID(ctx)
-	log.Debug("call back validate block result, validator is", validator)
-	if !deviceExists(validator, 0) {
+	log.Debug("call back Validator block result, Validator is", validator)
+	if !s.deviceExists(validator, 0) {
 		return xerrors.Errorf("node not Exist: %s", validator)
 	}
 
 	vs := &validateResults
 	vs.Validator = validator
 
-	// s.validate.PushResultToQueue(vs)
-	s.validate.ValidateResult(vs)
+	// s.Validator.PushResultToQueue(vs)
+	s.Validator.ValidateResult(vs)
 	return nil
 }
 
@@ -341,7 +339,7 @@ func (s *Scheduler) AllocateNodes(ctx context.Context, nodeType api.NodeType, co
 	}
 
 	for i := 0; i < count; i++ {
-		info, err := node.Allocate(nodeType)
+		info, err := s.NodeManager.Allocate(nodeType)
 		if err != nil {
 			log.Errorf("RegisterNode err:%s", err.Error())
 			continue
@@ -356,14 +354,14 @@ func (s *Scheduler) AllocateNodes(ctx context.Context, nodeType api.NodeType, co
 // GetOnlineDeviceIDs Get all online node id
 func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeType) ([]string, error) {
 	if nodeType == api.NodeValidate {
-		list, err := cache.GetValidatorsWithList()
+		list, err := s.NodeManager.NodeMgrCache.GetValidatorsWithList()
 		if err != nil {
 			return nil, err
 		}
 
 		out := make([]string, 0)
 		for _, deviceID := range list {
-			node := s.nodeManager.GetCandidateNode(deviceID)
+			node := s.NodeManager.GetCandidateNode(deviceID)
 			if node != nil {
 				out = append(out, deviceID)
 			}
@@ -371,27 +369,27 @@ func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeTyp
 		return out, nil
 	}
 
-	return s.nodeManager.GetOnlineNodes(nodeType)
+	return s.NodeManager.GetOnlineNodes(nodeType)
 }
 
 // ElectionValidators Validators
 func (s *Scheduler) ElectionValidators(ctx context.Context) error {
-	s.election.StartElect()
+	s.Election.StartElect()
 	return nil
 }
 
 // GetDevicesInfo return the devices information
 func (s *Scheduler) GetDevicesInfo(ctx context.Context, deviceID string) (api.DeviceInfo, error) {
 	// node datas
-	deviceInfo, err := persistent.GetDeviceInfo(deviceID)
+	deviceInfo, err := s.NodeManager.NodeMgrDB.GetDeviceInfo(deviceID)
 	if err != nil {
 		log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
 		return api.DeviceInfo{}, err
 	}
 
-	isOnline := s.nodeManager.GetCandidateNode(deviceID) != nil
+	isOnline := s.NodeManager.GetCandidateNode(deviceID) != nil
 	if !isOnline {
-		isOnline = s.nodeManager.GetEdgeNode(deviceID) != nil
+		isOnline = s.NodeManager.GetEdgeNode(deviceID) != nil
 	}
 
 	deviceInfo.DeviceStatus = getDeviceStatus(isOnline)
@@ -409,23 +407,22 @@ func getDeviceStatus(isOnline bool) string {
 	}
 }
 
-// ValidateSwitch open or close validate task
+// ValidateSwitch  open or close Validator task
 func (s *Scheduler) ValidateSwitch(ctx context.Context, enable bool) error {
-	s.validate.EnableValidate(enable)
 	return nil
 }
 
-// ValidateRunningState get validate running state,
+// ValidateRunningState get Validator running state,
 // false is close
 // true is open
 func (s *Scheduler) ValidateRunningState(ctx context.Context) (bool, error) {
 	// the framework requires that the method must return error
-	return s.validate.IsEnable(), nil
+	return s.SchedulerCfg.EnableValidate, nil
 }
 
-// ValidateStart start once validate
+// ValidateStart start once Validator
 func (s *Scheduler) ValidateStart(ctx context.Context) error {
-	return s.validate.StartValidateOnceTask()
+	return s.Validator.StartValidateOnceTask()
 }
 
 // LocatorConnect Locator Connect
@@ -452,13 +449,13 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, id string, token string)
 
 // GetDownloadInfo get node download info
 func (s *Scheduler) GetDownloadInfo(ctx context.Context, deviceID string) ([]*api.BlockDownloadInfo, error) {
-	return persistent.GetBlockDownloadInfoByDeviceID(deviceID)
+	return s.NodeManager.CarfileDB.GetBlockDownloadInfoByDeviceID(deviceID)
 }
 
 // NodeQuit node want to quit titan
 func (s *Scheduler) NodeQuit(ctx context.Context, deviceID, secret string) error {
 	// TODO Check secret
-	s.nodeManager.NodesQuit([]string{deviceID})
+	s.NodeManager.NodesQuit([]string{deviceID})
 
 	return nil
 }
@@ -467,13 +464,13 @@ func (s *Scheduler) nodeExitedCallback(deviceIDs []string) {
 	// clean node cache
 	log.Infof("node event , nodes quit:%v", deviceIDs)
 
-	hashs, err := persistent.LoadCarfileRecordsWithNodes(deviceIDs)
+	hashs, err := s.NodeManager.CarfileDB.LoadCarfileRecordsWithNodes(deviceIDs)
 	if err != nil {
 		log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
 		return
 	}
 
-	err = persistent.RemoveReplicaInfoWithNodes(deviceIDs)
+	err = s.NodeManager.CarfileDB.RemoveReplicaInfoWithNodes(deviceIDs)
 	if err != nil {
 		log.Errorf("RemoveReplicaInfoWithNodes err:%s", err.Error())
 		return
@@ -487,7 +484,7 @@ func (s *Scheduler) nodeExitedCallback(deviceIDs []string) {
 
 // SetNodePort set node port
 func (s *Scheduler) SetNodePort(ctx context.Context, deviceID, port string) error {
-	return persistent.SetNodePort(deviceID, port)
+	return s.NodeManager.NodeMgrDB.SetNodePort(deviceID, port)
 }
 
 func (s *Scheduler) authNew() error {
@@ -497,7 +494,7 @@ func (s *Scheduler) authNew() error {
 		return err
 	}
 
-	s.writeToken = wtk
+	s.WriteToken = wtk
 
 	atk, err := s.AuthNew(context.Background(), api.AllPermissions)
 	if err != nil {
@@ -505,19 +502,19 @@ func (s *Scheduler) authNew() error {
 		return err
 	}
 
-	s.adminToken = atk
+	s.AdminToken = atk
 
 	return nil
 }
 
 // ShowNodeLogFile show node log file
 func (s *Scheduler) ShowNodeLogFile(ctx context.Context, deviceID string) (*api.LogFile, error) {
-	cNode := s.nodeManager.GetCandidateNode(deviceID)
+	cNode := s.NodeManager.GetCandidateNode(deviceID)
 	if cNode != nil {
 		return cNode.API().ShowLogFile(ctx)
 	}
 
-	eNode := s.nodeManager.GetEdgeNode(deviceID)
+	eNode := s.NodeManager.GetEdgeNode(deviceID)
 	if eNode != nil {
 		return eNode.API().ShowLogFile(ctx)
 	}
@@ -527,12 +524,12 @@ func (s *Scheduler) ShowNodeLogFile(ctx context.Context, deviceID string) (*api.
 
 // DownloadNodeLogFile Download Node Log File
 func (s *Scheduler) DownloadNodeLogFile(ctx context.Context, deviceID string) ([]byte, error) {
-	cNode := s.nodeManager.GetCandidateNode(deviceID)
+	cNode := s.NodeManager.GetCandidateNode(deviceID)
 	if cNode != nil {
 		return cNode.API().DownloadLogFile(ctx)
 	}
 
-	eNode := s.nodeManager.GetEdgeNode(deviceID)
+	eNode := s.NodeManager.GetEdgeNode(deviceID)
 	if eNode != nil {
 		return eNode.API().DownloadLogFile(ctx)
 	}
@@ -541,12 +538,12 @@ func (s *Scheduler) DownloadNodeLogFile(ctx context.Context, deviceID string) ([
 }
 
 func (s *Scheduler) DeleteNodeLogFile(ctx context.Context, deviceID string) error {
-	cNode := s.nodeManager.GetCandidateNode(deviceID)
+	cNode := s.NodeManager.GetCandidateNode(deviceID)
 	if cNode != nil {
 		return cNode.API().DeleteLogFile(ctx)
 	}
 
-	eNode := s.nodeManager.GetEdgeNode(deviceID)
+	eNode := s.NodeManager.GetEdgeNode(deviceID)
 	if eNode != nil {
 		return eNode.API().DeleteLogFile(ctx)
 	}
@@ -555,9 +552,9 @@ func (s *Scheduler) DeleteNodeLogFile(ctx context.Context, deviceID string) erro
 }
 
 // deviceExists Check if the id exists
-func deviceExists(deviceID string, nodeType int) bool {
+func (s *Scheduler) deviceExists(deviceID string, nodeType int) bool {
 	var nType int
-	err := persistent.GetNodeAllocateInfo(deviceID, persistent.NodeTypeKey, &nType)
+	err := s.NodeManager.CarfileDB.GetNodeAllocateInfo(deviceID, persistent.NodeTypeKey, &nType)
 	if err != nil {
 		return false
 	}

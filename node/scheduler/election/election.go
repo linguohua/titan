@@ -8,7 +8,6 @@ import (
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"github.com/linguohua/titan/node/scheduler/node"
 )
 
@@ -52,24 +51,24 @@ func newEleOption(opts ...Option) EleOption {
 // Option election option
 type Option func(opt *EleOption)
 
-// New new election
-func New(manager *node.Manager, opts ...Option) *Election {
+// NewElection return new election instance
+func NewElection(manager *node.Manager) *Election {
 	ele := &Election{
 		manager:        manager,
-		opts:           newEleOption(opts...),
+		opts:           newEleOption(),
 		validators:     make(map[string]time.Time),
 		update:         make(chan struct{}, 1),
 		validatorRatio: 1,
 	}
 
 	// open election
-	go ele.electTicker()
-	go ele.reelectTicker()
+	go ele.ElectTicker()
+	go ele.ReelectTicker()
 
 	return ele
 }
 
-func (v *Election) electTicker() {
+func (v *Election) ElectTicker() {
 	expiration, err := v.fetchCurrentValidators()
 	if err != nil {
 		log.Errorf("fetch current validators: %v", err)
@@ -192,7 +191,7 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 }
 
 func (v *Election) saveValidators(validators []string) error {
-	err := cache.SetValidatorsToList(validators, v.opts.electInterval)
+	err := v.manager.NodeMgrCache.SetValidatorsToList(validators, v.opts.electInterval)
 	if err != nil {
 		return err
 	}
@@ -208,7 +207,7 @@ func (v *Election) saveValidators(validators []string) error {
 }
 
 func (v *Election) fetchCurrentValidators() (time.Duration, error) {
-	list, expiration, err := cache.GetValidatorsAndExpirationTime()
+	list, expiration, err := v.manager.NodeMgrCache.GetValidatorsAndExpirationTime()
 	if err != nil {
 		return expiration, err
 	}
@@ -247,7 +246,7 @@ func (v *Election) getAllCandidates() []*node.Candidate {
 
 // if the validator node goes offline (for a long time), it is necessary to re-elect a new validator.
 // if the number of validators required changes,it is necessary to re-elect a new validator.
-func (v *Election) reelectTicker() {
+func (v *Election) ReelectTicker() {
 	ticker := time.NewTicker(reelectInterval)
 	defer ticker.Stop()
 

@@ -12,7 +12,6 @@ import (
 	"github.com/linguohua/titan/node/handler"
 	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/db/cache"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"golang.org/x/xerrors"
 )
 
@@ -32,7 +31,7 @@ func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result a
 
 		blockDwnloadInfo := &api.BlockDownloadInfo{DeviceID: deviceID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
 
-		carfileInfo, _ := persistent.LoadCarfileInfo(blockHash)
+		carfileInfo, _ := s.NodeManager.CarfileDB.LoadCarfileInfo(blockHash)
 		if carfileInfo != nil && carfileInfo.CarfileCid != "" {
 			blockDwnloadInfo.CarfileCID = result.BlockCID
 		}
@@ -69,7 +68,7 @@ func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string,
 
 	log.Infof("GetDownloadInfosWithCarfile url:%s", userURL)
 
-	infos, err := s.nodeManager.FindNodeDownloadInfos(cid, userURL)
+	infos, err := s.NodeManager.FindNodeDownloadInfos(cid, userURL)
 	if err != nil {
 		return nil, err
 	}
@@ -84,17 +83,17 @@ func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string,
 
 func (s *Scheduler) verifyNodeResultForUserDownloadBlock(deviceID string, record *cache.DownloadBlockRecord, sign []byte) error {
 	verifyContent := fmt.Sprintf("%s%d%d%d", record.Cid, record.SN, record.SignTime, record.Timeout)
-	edgeNode := s.nodeManager.GetEdgeNode(deviceID)
+	edgeNode := s.NodeManager.GetEdgeNode(deviceID)
 	if edgeNode != nil {
 		return titanRsa.VerifyRsaSign(&edgeNode.PrivateKey().PublicKey, sign, verifyContent)
 	}
 
-	candidate := s.nodeManager.GetCandidateNode(deviceID)
+	candidate := s.NodeManager.GetCandidateNode(deviceID)
 	if candidate != nil {
 		return titanRsa.VerifyRsaSign(&candidate.PrivateKey().PublicKey, sign, verifyContent)
 	}
 
-	privateKeyStr, err := persistent.NodePrivateKey(deviceID)
+	privateKeyStr, err := s.NodeManager.NodeMgrDB.NodePrivateKey(deviceID)
 	if err != nil {
 		return err
 	}
@@ -115,7 +114,7 @@ func (s *Scheduler) verifyUserDownloadBlockSign(publicPem, cid string, sign []by
 }
 
 func (s *Scheduler) signDownloadInfos(cid string, results []*api.DownloadInfoResult, devicePrivateKeys map[string]*rsa.PrivateKey) error {
-	sn, err := cache.IncrBlockDownloadSN()
+	sn, err := s.NodeManager.NodeMgrCache.IncrBlockDownloadSN()
 	if err != nil {
 		log.Errorf("signDownloadInfos incr block download sn error:%s", err.Error())
 		return err
@@ -151,17 +150,17 @@ func (s *Scheduler) signDownloadInfos(cid string, results []*api.DownloadInfoRes
 }
 
 func (s *Scheduler) getDevicePrivateKey(deviceID string) (*rsa.PrivateKey, error) {
-	edge := s.nodeManager.GetEdgeNode(deviceID)
+	edge := s.NodeManager.GetEdgeNode(deviceID)
 	if edge != nil {
 		return edge.PrivateKey(), nil
 	}
 
-	candidate := s.nodeManager.GetCandidateNode(deviceID)
+	candidate := s.NodeManager.GetCandidateNode(deviceID)
 	if candidate != nil {
 		return candidate.PrivateKey(), nil
 	}
 
-	privateKeyStr, err := persistent.NodePrivateKey(deviceID)
+	privateKeyStr, err := s.NodeManager.NodeMgrDB.NodePrivateKey(deviceID)
 	if err != nil {
 		return nil, err
 	}
@@ -175,5 +174,5 @@ func (s *Scheduler) getDevicePrivateKey(deviceID string) (*rsa.PrivateKey, error
 }
 
 func (s *Scheduler) getNodesUnValidate(minute int) ([]string, error) {
-	return persistent.GetNodesByUserDownloadBlockIn(minute)
+	return s.NodeManager.CarfileDB.GetNodesByUserDownloadBlockIn(minute)
 }

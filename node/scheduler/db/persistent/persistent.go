@@ -1,19 +1,23 @@
 package persistent
 
 import (
-	"golang.org/x/xerrors"
+	"fmt"
+	"github.com/jmoiron/sqlx"
 )
 
-// InitDB New  DB
-func InitDB(url, dbType string) (err error) {
-	switch dbType {
-	case TypeMySQL():
-		err = InitSQL(url)
-	default:
-		err = xerrors.New("unknown DB type")
+func NewDB(dns string) (*sqlx.DB, error) {
+	dns = fmt.Sprintf("%s?parseTime=true&loc=Local", dns)
+
+	client, err := sqlx.Open("mysql", dns)
+	if err != nil {
+		return nil, err
 	}
 
-	return err
+	if err = client.Ping(); err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
 
 // NodeCacheInfo node cache info

@@ -16,13 +16,14 @@ import (
 	_ "net/http/pprof"
 )
 
-func schedulerHandler(a api.Scheduler, permissioned bool) http.Handler {
+func schedulerHandler(a api.Scheduler, permission bool) http.Handler {
 	mux := mux.NewRouter()
 	readerHandler, readerServerOpt := rpcenc.ReaderParamDecoder()
 	rpcServer := jsonrpc.NewServer(readerServerOpt)
 
+	log.Info("MetricedSchedulerAPI: ", a == nil, a)
 	wapi := proxy.MetricedSchedulerAPI(a)
-	if permissioned {
+	if permission {
 		wapi = api.PermissionedSchedulerAPI(wapi)
 	}
 
@@ -32,7 +33,7 @@ func schedulerHandler(a api.Scheduler, permissioned bool) http.Handler {
 	mux.Handle("/rpc/streams/v0/push/{uuid}", readerHandler)
 	mux.PathPrefix("/").Handler(http.DefaultServeMux) // pprof
 
-	if !permissioned {
+	if !permission {
 		return mux
 	}
 

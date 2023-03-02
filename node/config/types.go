@@ -72,7 +72,7 @@ type SchedulerCfg struct {
 	// host address and port the edge node api will listen on
 	ListenAddress string
 	// redis server address
-	RedisAddrss string
+	RedisAddress string
 	// geodb path
 	GeodbPath string
 	// mysql address
@@ -98,4 +98,6 @@ type SchedulerCfg struct {
 	SchedulerServer1 string
 	// test nat type
 	SchedulerServer2 string
+	// config to enabled node validation, default: true
+	EnableValidate bool
 }

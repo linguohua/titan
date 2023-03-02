@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/linguohua/titan/node"
 	"math/big"
 	"net"
 	"net/http"
@@ -25,11 +26,7 @@ import (
 	"github.com/linguohua/titan/metrics"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/repo"
-	"github.com/linguohua/titan/node/scheduler"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/secret"
-	"github.com/linguohua/titan/region"
 	"github.com/quic-go/quic-go/http3"
 	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
@@ -157,32 +154,7 @@ var getAPIKeyCmd = &cli.Command{
 var runCmd = &cli.Command{
 	Name:  "run",
 	Usage: "Start titan scheduler node",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Required: true,
-			Name:     "cachedb-url",
-			Usage:    "cachedb url",
-			Value:    "127.0.0.1:6379",
-		},
-		&cli.StringFlag{
-			Required: true,
-			Name:     "geodb-path",
-			Usage:    "geodb path, example: --geodb-path=../../geoip/geolite2_city/city.mmdb",
-			Value:    "",
-		},
-		&cli.StringFlag{
-			Required: true,
-			Name:     "persistentdb-url",
-			Usage:    "persistentdb url",
-			Value:    "",
-		},
-		&cli.StringFlag{
-			Required: true,
-			Name:     "area",
-			Usage:    "area",
-			Value:    "CN-GD-Shenzhen",
-		},
-	},
+	Flags: []cli.Flag{},
 
 	Before: func(cctx *cli.Context) error {
 		return nil
@@ -202,8 +174,23 @@ var runCmd = &cli.Command{
 			}
 		}
 
-		// Open repo
-		lr, err := openRepo(cctx)
+		repoPath := cctx.String(FlagSchedulerRepo)
+		r, err := repo.NewFS(repoPath)
+		if err != nil {
+			return err
+		}
+
+		ok, err := r.Exists()
+		if err != nil {
+			return err
+		}
+		if !ok {
+			if err := r.Init(repo.Scheduler); err != nil {
+				return err
+			}
+		}
+
+		lr, err := r.Lock(repo.Scheduler)
 		if err != nil {
 			return err
 		}
@@ -215,38 +202,25 @@ var runCmd = &cli.Command{
 
 		schedulerCfg := cfg.(*config.SchedulerCfg)
 
-		// Connect to scheduler
-		ctx := lcli.ReqContext(cctx)
+		err = lr.Close()
+		if err != nil {
+			return err
+		}
 
+		var schedulerAPI api.Scheduler
+		stop, err := node.New(cctx.Context,
+			node.Scheduler(&schedulerAPI),
+			node.Base(),
+			node.Repo(r),
+		)
+		if err != nil {
+			return xerrors.Errorf("creating node: %w", err)
+		}
+
+		ctx := lcli.ReqContext(cctx)
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
-
-		cURL := cctx.String("cachedb-url")
-		area := cctx.String("area")
-		if area == "" {
-			log.Panic("area is nil")
-		}
-
-		err = cache.NewCacheDB(cURL, cache.TypeRedis())
-		if err != nil {
-			log.Panic("Cache connect error: " + err.Error())
-		}
-
-		gPath := cctx.String("geodb-path")
-		err = region.NewRegion(gPath, region.TypeGeoLite(), area)
-		if err != nil {
-			log.Panic("Load region file error: " + err.Error())
-		}
-
-		pPath := cctx.String("persistentdb-url")
-		err = persistent.InitDB(pPath, persistent.TypeMySQL())
-		if err != nil {
-			log.Panic("DB connect error: " + err.Error())
-		}
-
-		schedulerAPI := scheduler.NewLocalScheduleNode(lr, schedulerCfg)
 		handler := schedulerHandler(schedulerAPI, true)
-
 		srv := &http.Server{
 			Handler: handler,
 			BaseContext: func(listener net.Listener) context.Context {
@@ -273,6 +247,8 @@ var runCmd = &cli.Command{
 			if err := srv.Shutdown(context.TODO()); err != nil {
 				log.Errorf("shutting down RPC server failed: %s", err)
 			}
+
+			stop(ctx)
 			log.Warn("Graceful shutdown successful")
 		}()
 

@@ -189,7 +189,7 @@ type CandidateDownloadInfo struct {
 	Token string
 }
 
-// CacheStatus Cache Status
+// CacheStatus nodeMgrCache Status
 type CacheStatus int
 
 const (

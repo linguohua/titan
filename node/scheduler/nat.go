@@ -13,7 +13,7 @@ import (
 )
 
 func (s *Scheduler) GetEdgeExternalAddr(ctx context.Context, deviceID, schedulerURL string) (string, error) {
-	eNode := s.nodeManager.GetEdgeNode(deviceID)
+	eNode := s.NodeManager.GetEdgeNode(deviceID)
 	if eNode != nil {
 		return eNode.API().GetMyExternalAddr(ctx, schedulerURL)
 	}
@@ -104,11 +104,11 @@ func (s *Scheduler) checkEdgeIfBehindRestrictedNAT(ctx context.Context, edgeURL 
 }
 
 func (s *Scheduler) checkEdgeNatType(ctx context.Context, edgeAPI api.Edge, edgeAddr string) (api.NatType, error) {
-	if len(s.schedulerCfg.SchedulerServer1) == 0 {
+	if len(s.SchedulerCfg.SchedulerServer1) == 0 {
 		return api.NatTypeUnknow, nil
 	}
 
-	externalAddr, err := edgeAPI.GetMyExternalAddr(ctx, s.schedulerCfg.SchedulerServer1)
+	externalAddr, err := edgeAPI.GetMyExternalAddr(ctx, s.SchedulerCfg.SchedulerServer1)
 	if err != nil {
 		return api.NatTypeUnknow, err
 	}
@@ -126,12 +126,12 @@ func (s *Scheduler) checkEdgeNatType(ctx context.Context, edgeAPI api.Edge, edge
 		return api.NatTypeNo, nil
 	}
 
-	if len(s.schedulerCfg.SchedulerServer2) == 0 {
+	if len(s.SchedulerCfg.SchedulerServer2) == 0 {
 		return api.NatTypeUnknow, nil
 	}
 
 	edgeURL := fmt.Sprintf("https://%s/rpc/v0", edgeAddr)
-	isBehindFullConeNAT, err := s.checkEdgeIfBehindFullConeNAT(ctx, s.schedulerCfg.SchedulerServer2, edgeURL)
+	isBehindFullConeNAT, err := s.checkEdgeIfBehindFullConeNAT(ctx, s.SchedulerCfg.SchedulerServer2, edgeURL)
 	if err != nil {
 		return api.NatTypeUnknow, err
 	}
@@ -158,7 +158,7 @@ func (s *Scheduler) getNatType(ctx context.Context, edgeAPI api.Edge, edgeAddr s
 }
 
 func (s *Scheduler) GetNatType(ctx context.Context, deviceID string) (string, error) {
-	eNode := s.nodeManager.GetEdgeNode(deviceID)
+	eNode := s.NodeManager.GetEdgeNode(deviceID)
 	if eNode == nil {
 		return "", fmt.Errorf("Device %s offline or not exist", deviceID)
 	}

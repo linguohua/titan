@@ -2,12 +2,15 @@ package node
 
 import (
 	"context"
+	"github.com/linguohua/titan/node/common"
+	"github.com/linguohua/titan/node/scheduler/db/cache"
 	"sync"
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/cidutil"
+	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/locator"
 	"golang.org/x/xerrors"
@@ -22,18 +25,53 @@ const (
 	saveInfoInterval = 10 // keepalive saves information every 10 times
 )
 
+// ExitCallbackFunc will be invoked when a node exit
+type ExitCallbackFunc func([]string)
+
+// NewExitCallbackFunc ...
+func NewExitCallbackFunc(cdb *persistent.CarfileDB) (ExitCallbackFunc, error) {
+	return func(deviceIDs []string) {
+		log.Infof("node event , nodes quit:%v", deviceIDs)
+
+		hashs, err := cdb.LoadCarfileRecordsWithNodes(deviceIDs)
+		if err != nil {
+			log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
+			return
+		}
+
+		err = cdb.RemoveReplicaInfoWithNodes(deviceIDs)
+		if err != nil {
+			log.Errorf("RemoveReplicaInfoWithNodes err:%s", err.Error())
+			return
+		}
+
+		// recache
+		for _, hash := range hashs {
+			log.Infof("need restore carfile :%s", hash)
+		}
+	}, nil
+}
+
 // Manager Node Manager
 type Manager struct {
 	EdgeNodes      sync.Map
 	CandidateNodes sync.Map
+	CarfileCache   *cache.CarfileCache
+	NodeMgrCache   *cache.NodeMgrCache
+	CarfileDB      *persistent.CarfileDB
+	NodeMgrDB      *persistent.NodeMgrDB
 
 	nodeQuitCallBack func([]string)
 }
 
-// NewManager New
-func NewManager(callBack func([]string)) *Manager {
+// NewManager return new node manager instance
+func NewManager(callBack ExitCallbackFunc, carfileCache *cache.CarfileCache, nodeMgrCache *cache.NodeMgrCache, cdb *persistent.CarfileDB, ndb *persistent.NodeMgrDB) *Manager {
 	nodeManager := &Manager{
 		nodeQuitCallBack: callBack,
+		CarfileDB:        cdb,
+		NodeMgrDB:        ndb,
+		CarfileCache:     carfileCache,
+		NodeMgrCache:     nodeMgrCache,
 	}
 
 	go nodeManager.run()
@@ -72,7 +110,7 @@ func (m *Manager) edgeKeepalive(node *Edge, nowTime time.Time, isSave bool) {
 	}
 
 	if isSave {
-		err := persistent.UpdateNodeOnlineTime(node.DeviceID, saveInfoInterval*keepaliveTime)
+		err := m.NodeMgrDB.UpdateNodeOnlineTime(node.DeviceID, saveInfoInterval*keepaliveTime)
 		if err != nil {
 			log.Errorf("UpdateNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceID)
 		}
@@ -90,7 +128,7 @@ func (m *Manager) candidateKeepalive(node *Candidate, nowTime time.Time, isSave 
 	}
 
 	if isSave {
-		err := persistent.UpdateNodeOnlineTime(node.DeviceID, saveInfoInterval*keepaliveTime)
+		err := m.NodeMgrDB.UpdateNodeOnlineTime(node.DeviceID, saveInfoInterval*keepaliveTime)
 		if err != nil {
 			log.Errorf("UpdateNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceID)
 		}
@@ -163,7 +201,7 @@ func (m *Manager) EdgeOnline(node *Edge) error {
 		nodeOld = nil
 	}
 
-	err := node.saveInfo()
+	err := m.saveInfo(node.BaseInfo)
 	if err != nil {
 		return err
 	}
@@ -209,7 +247,7 @@ func (m *Manager) CandidateOnline(node *Candidate) error {
 		nodeOld = nil
 	}
 
-	err := node.saveInfo()
+	err := m.saveInfo(node.BaseInfo)
 	if err != nil {
 		return err
 	}
@@ -323,6 +361,26 @@ func (m *Manager) NodeSessionCallBack(deviceID, remoteAddr string) {
 	}
 }
 
+func NewSessionCallBackFunc(nodeMgr *Manager) (common.SessionCallbackFunc, error) {
+	return func(deviceID, remoteAddr string) {
+		lastTime := time.Now()
+
+		edge := nodeMgr.GetEdgeNode(deviceID)
+		if edge != nil {
+			edge.SetLastRequestTime(lastTime)
+			edge.ConnectRPC(remoteAddr, false)
+			return
+		}
+
+		candidate := nodeMgr.GetCandidateNode(deviceID)
+		if candidate != nil {
+			candidate.SetLastRequestTime(lastTime)
+			candidate.ConnectRPC(remoteAddr, false)
+			return
+		}
+	}, nil
+}
+
 // FindNodeDownloadInfos  find device with block cid
 func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*api.DownloadInfoResult, error) {
 	infos := make([]*api.DownloadInfoResult, 0)
@@ -332,7 +390,7 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*api.DownloadInf
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}
 
-	caches, err := persistent.CarfileReplicaInfosWithHash(hash, true)
+	caches, err := m.CarfileDB.CarfileReplicaInfosWithHash(hash, true)
 	if err != nil {
 		return nil, err
 	}
@@ -364,7 +422,7 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*api.DownloadInf
 
 // GetCandidatesWithBlockHash find candidates with block hash
 func (m *Manager) GetCandidatesWithBlockHash(hash, filterDevice string) ([]*Candidate, error) {
-	caches, err := persistent.CarfileReplicaInfosWithHash(hash, true)
+	caches, err := m.CarfileDB.CarfileReplicaInfosWithHash(hash, true)
 	if err != nil {
 		return nil, err
 	}
@@ -391,7 +449,7 @@ func (m *Manager) GetCandidatesWithBlockHash(hash, filterDevice string) ([]*Cand
 }
 
 func (m *Manager) checkWhetherNodeQuits() {
-	nodes, err := persistent.LongTimeOfflineNodes(nodeOfflineTime)
+	nodes, err := m.NodeMgrDB.LongTimeOfflineNodes(nodeOfflineTime)
 	if err != nil {
 		log.Errorf("checkWhetherNodeQuits GetOfflineNodes err:%s", err.Error())
 		return
@@ -417,7 +475,7 @@ func (m *Manager) checkWhetherNodeQuits() {
 
 // NodesQuit Nodes quit
 func (m *Manager) NodesQuit(deviceIDs []string) {
-	err := persistent.SetNodesQuit(deviceIDs)
+	err := m.NodeMgrDB.SetNodesQuit(deviceIDs)
 	if err != nil {
 		log.Errorf("NodeExited SetNodesQuit err:%s", err.Error())
 		return
@@ -438,6 +496,20 @@ func (m *Manager) GetNode(deviceID string) *BaseInfo {
 	candidate := m.GetCandidateNode(deviceID)
 	if candidate != nil {
 		return candidate.BaseInfo
+	}
+
+	return nil
+}
+
+// node online
+func (m *Manager) saveInfo(n *BaseInfo) error {
+	n.PrivateKeyStr = titanRsa.PrivateKey2Pem(n.privateKey)
+	n.Quitted = false
+	n.LastTime = time.Now()
+
+	err := m.NodeMgrDB.UpdateNodeInfo(n.DeviceInfo)
+	if err != nil {
+		return err
 	}
 
 	return nil

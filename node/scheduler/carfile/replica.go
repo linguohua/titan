@@ -5,8 +5,6 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/scheduler/db/cache"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
@@ -29,7 +27,7 @@ type Replica struct {
 	timeoutTicker *time.Ticker
 }
 
-func newReplica(carfileRecord *CarfileRecord, deviceID string, isCandidate bool) (*Replica, error) {
+func (cr *CarfileRecord) newReplica(carfileRecord *CarfileRecord, deviceID string, isCandidate bool) (*Replica, error) {
 	cache := &Replica{
 		carfileRecord: carfileRecord,
 		nodeManager:   carfileRecord.nodeManager,
@@ -41,7 +39,7 @@ func newReplica(carfileRecord *CarfileRecord, deviceID string, isCandidate bool)
 		createTime:    time.Now(),
 	}
 
-	err := persistent.CreateCarfileReplicaInfo(
+	err := cr.nodeManager.CarfileDB.CreateCarfileReplicaInfo(
 		&api.ReplicaInfo{
 			ID:          cache.id,
 			CarfileHash: cache.carfileHash,
@@ -54,7 +52,7 @@ func newReplica(carfileRecord *CarfileRecord, deviceID string, isCandidate bool)
 
 func (ra *Replica) isTimeout() bool {
 	// check redis
-	expiration, err := cache.GetNodeCacheTimeoutTime(ra.deviceID)
+	expiration, err := ra.nodeManager.CarfileCache.GetNodeCacheTimeoutTime(ra.deviceID)
 	if err != nil {
 		log.Errorf("GetNodeCacheTimeoutTime err:%s", err.Error())
 		return false
@@ -109,7 +107,7 @@ func (ra *Replica) updateInfo() error {
 		EndTime: time.Now(),
 	}
 
-	return persistent.UpdateCarfileReplicaInfo(cInfo)
+	return ra.nodeManager.CarfileDB.UpdateCarfileReplicaInfo(cInfo)
 }
 
 // Notify node to cache carfile

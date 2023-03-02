@@ -10,8 +10,6 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
-	titanRsa "github.com/linguohua/titan/node/rsa"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/region"
 	"golang.org/x/xerrors"
 
@@ -205,17 +203,17 @@ func (n *BaseInfo) SetGeoInfo(info *region.GeoInfo) {
 	n.geoInfo = info
 }
 
-// SetCurCacheCount set cache count
+// SetCurCacheCount set NodeMgrCache count
 func (n *BaseInfo) SetCurCacheCount(t int) {
 	n.cacheCount = t
 }
 
-// IncrCurCacheCount Incr cache count
+// IncrCurCacheCount Incr NodeMgrCache count
 func (n *BaseInfo) IncrCurCacheCount(v int) {
 	n.cacheCount += v
 }
 
-// CurCacheCount cache count
+// CurCacheCount NodeMgrCache count
 func (n *BaseInfo) CurCacheCount() int {
 	return n.cacheCount
 }
@@ -225,18 +223,4 @@ func (n *BaseInfo) SetNodePort(port string) {
 	n.Port = port
 
 	// TODO save to db
-}
-
-// node online
-func (n *BaseInfo) saveInfo() error {
-	n.PrivateKeyStr = titanRsa.PrivateKey2Pem(n.privateKey)
-	n.Quitted = false
-	n.LastTime = time.Now()
-
-	err := persistent.UpdateNodeInfo(n.DeviceInfo)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
