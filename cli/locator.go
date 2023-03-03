@@ -204,8 +204,8 @@ var getCmd = &cli.Command{
 }
 
 var registerCmd = &cli.Command{
-	Name:  "register",
-	Usage: "register node",
+	Name:  "allocate",
+	Usage: "allocate node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "area-id",

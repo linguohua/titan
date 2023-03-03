@@ -4,8 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"go.uber.org/fx"
 	"net"
+
+	"go.uber.org/fx"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/common"
@@ -32,6 +33,10 @@ type Locator struct {
 	*common.CommonAPI
 	ApMgr *AccessPointMgr
 	DB    *SqlDB
+}
+
+func isValid(geo string) bool {
+	return len(geo) > 0 && geo != unknownAreaID
 }
 
 func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string) ([]string, error) {
@@ -274,7 +279,7 @@ func (locator *Locator) getAreaIDWith(remoteAddr string) (string, error) {
 		return "", err
 	}
 
-	if geoInfo != nil && geoInfo.Geo != unknownAreaID {
+	if geoInfo != nil && isValid(geoInfo.Geo) {
 		return geoInfo.Geo, nil
 	}
 
@@ -358,7 +363,7 @@ func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) ([]api.Acces
 func (locator *Locator) LoadUserAccessPoint(ctx context.Context, userIP string) (api.AccessPoint, error) {
 	areaID := defaultAreaID
 	geoInfo, _ := region.GetRegion().GetGeoInfo(userIP)
-	if geoInfo != nil && geoInfo.Geo != unknownAreaID {
+	if geoInfo != nil && isValid(geoInfo.Geo) {
 		areaID = geoInfo.Geo
 	}
 
