@@ -14,16 +14,15 @@ type EdgeCfg struct {
 	// used auth when connect to scheduler
 	Secret string
 	// carfilestore path
-	CarfilestorePath string
+	CarfileStorePath string
 	// blockstore type
-	CarfilestoreType string
+	CarfileStoreType string
 	// upload file bandwidth, unit is B/s
 	BandwidthUp int64
 	// download file bandwidth, unit is B/s
 	BandwidthDown int64
 	// if true, get scheduler url from locator
 	Locator bool
-
 	// InsecureSkipVerify skip tls verify
 	InsecureSkipVerify bool
 	// used for http3 server
@@ -32,7 +31,6 @@ type EdgeCfg struct {
 	// used for http3 server
 	// be used if InsecureSkipVerify is true
 	PrivateKeyPath string
-
 	// self sign certificate, use for client
 	CaCertificatePath string
 }
@@ -49,12 +47,11 @@ type LocatorCfg struct {
 	// used when 'ListenAddress' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function
 	Timeout string
 	// geodb path
-	GeodbPath string
-	// mysql db addrss
-	DBAddrss string
+	GeoDBPath string
+	// mysql db address
+	DatabaseAddress string
 	// uuid
 	UUID string
-
 	// InsecureSkipVerify skip tls verify
 	InsecureSkipVerify bool
 	// used for http3 server
@@ -63,7 +60,6 @@ type LocatorCfg struct {
 	// used for http3 server
 	// be used if InsecureSkipVerify is true
 	PrivateKeyPath string
-
 	// self sign certificate, use for client
 	CaCertificatePath string
 }
@@ -72,14 +68,13 @@ type SchedulerCfg struct {
 	// host address and port the edge node api will listen on
 	ListenAddress string
 	// geodb path
-	GeodbPath string
-	// mysql address
-	PersistentDBURL string
+	GeoDBPath string
+	// database address
+	DatabaseAddress string
 	// server name
 	ServerName string
 	// area id
 	AreaID string
-
 	// InsecureSkipVerify skip tls verify
 	InsecureSkipVerify bool
 	// used for http3 server
@@ -88,10 +83,8 @@ type SchedulerCfg struct {
 	// used for http3 server
 	// be used if InsecureSkipVerify is true
 	PrivateKeyPath string
-
 	// self sign certificate, use for client
 	CaCertificatePath string
-
 	// test nat type
 	SchedulerServer1 string
 	// test nat type

@@ -8,11 +8,12 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/linguohua/titan/node"
+	"github.com/linguohua/titan/node/modules/dtypes"
 	"math/big"
 	"net"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/filecoin-project/go-jsonrpc"
@@ -24,9 +25,7 @@ import (
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/metrics"
 	"github.com/linguohua/titan/node/config"
-	"github.com/linguohua/titan/node/locator"
 	"github.com/linguohua/titan/node/repo"
-	"github.com/linguohua/titan/region"
 	"github.com/quic-go/quic-go/http3"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -94,19 +93,17 @@ func main() {
 
 var runCmd = &cli.Command{
 	Name:  "run",
-	Usage: "Start titan edge node",
+	Usage: "Start titan locator node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Required: true,
-			Name:     "geodb-path",
-			Usage:    "geodb path, example: --geodb-path=../../geoip/geolite2_city/city.mmdb",
-			Value:    "../../geoip/geolite2_city/city.mmdb",
+			Name:  "geodb-path",
+			Usage: "geodb path, example: --geodb-path=../../geoip/geolite2_city/city.mmdb",
+			Value: "../../geoip/geolite2_city/city.mmdb",
 		},
 		&cli.StringFlag{
-			Required: true,
-			Name:     "accesspoint-db",
-			Usage:    "mysql db, example: --accesspoint-db=user01:sql001@tcp(127.0.0.1:3306)/test",
-			Value:    "user01:sql001@tcp(127.0.0.1:3306)/test",
+			Name:  "accesspoint-db",
+			Usage: "mysql db, example: --accesspoint-db=user01:sql001@tcp(127.0.0.1:3306)/test",
+			Value: "user01:sql001@tcp(127.0.0.1:3306)/test",
 		},
 	},
 
@@ -127,7 +124,7 @@ var runCmd = &cli.Command{
 				return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.DefaultFDLimit, limit)
 			}
 		}
-		// Open repo
+
 		repoPath := cctx.String(FlagLocatorRepo)
 		r, err := repo.NewFS(repoPath)
 		if err != nil {
@@ -148,11 +145,6 @@ var runCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		defer func() {
-			if err := lr.Close(); err != nil {
-				log.Error("closing repo", err)
-			}
-		}()
 
 		cfg, err := lr.Config()
 		if err != nil {
@@ -161,27 +153,40 @@ var runCmd = &cli.Command{
 
 		locatorCfg := cfg.(*config.LocatorCfg)
 
-		err = region.NewRegion(cctx.String("geodb-path"), region.TypeGeoLite(), "")
+		err = lr.Close()
 		if err != nil {
-			log.Panic(err.Error())
+			return err
+		}
+
+		var locatorAPI api.Locator
+		stop, err := node.New(cctx.Context,
+			node.Locator(&locatorAPI),
+			node.Base(),
+			node.Repo(r),
+			node.ApplyIf(func(s *node.Settings) bool { return cctx.IsSet("accesspoint-db") },
+				node.Override(new(dtypes.DatabaseAddress), func() dtypes.DatabaseAddress {
+					return dtypes.DatabaseAddress(cctx.String("accesspoint-db"))
+				})),
+			node.ApplyIf(func(s *node.Settings) bool { return cctx.IsSet("geodb-path") },
+				node.Override(new(dtypes.GeoDBPath), func() dtypes.GeoDBPath {
+					return dtypes.GeoDBPath(cctx.String("geodb-path"))
+				})),
+		)
+		if err != nil {
+			return xerrors.Errorf("creating node: %w", err)
 		}
 
 		address := locatorCfg.ListenAddress
 		addrSplit := strings.Split(address, ":")
 		if len(addrSplit) < 2 {
-			return fmt.Errorf("Listen address %s is error", address)
-		}
-
-		port, err := strconv.Atoi(addrSplit[1])
-		if err != nil {
-			return err
+			return fmt.Errorf("listen address %s is error", address)
 		}
 
 		ctx := lcli.ReqContext(cctx)
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
-		handler := LocatorHandler(locator.NewLocalLocator(ctx, lr, cctx.String("accesspoint-db"), locatorCfg.UUID, port), true)
+		handler := LocatorHandler(locatorAPI, true)
 		srv := &http.Server{
 			Handler: handler,
 			BaseContext: func(listener net.Listener) context.Context {
@@ -207,7 +212,7 @@ var runCmd = &cli.Command{
 			if err := srv.Shutdown(context.TODO()); err != nil {
 				log.Errorf("shutting down RPC server failed: %s", err)
 			}
-
+			stop(ctx)
 			// udpPacketConn.Close()
 			log.Warn("Graceful shutdown successful")
 		}()

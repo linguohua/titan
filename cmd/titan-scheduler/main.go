@@ -127,7 +127,7 @@ var initCmd = &cli.Command{
 		if err := r.Init(repo.Scheduler); err != nil {
 			return err
 		}
-		
+
 		return nil
 	},
 }

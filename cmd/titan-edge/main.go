@@ -8,6 +8,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/linguohua/titan/node"
+	"github.com/linguohua/titan/node/modules/dtypes"
 	"math/big"
 	"net"
 	"net/http"
@@ -26,9 +28,7 @@ import (
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/metrics"
-	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/config"
-	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/quic-go/quic-go/http3"
 
@@ -105,17 +105,15 @@ var runCmd = &cli.Command{
 	Usage: "Start titan edge node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Required: true,
-			Name:     "device-id",
-			Usage:    "example: --device-id=b26fb231-e986-42de-a5d9-7b512a35543d",
-			Value:    "",
+			Name:  "device-id",
+			Usage: "example: --device-id=b26fb231-e986-42de-a5d9-7b512a35543d",
+			Value: "",
 		},
 		&cli.StringFlag{
-			Required: true,
-			Name:     "secret",
-			EnvVars:  []string{"TITAN_SCHEDULER_KEY", "SCHEDULER_KEY"},
-			Usage:    "used auth edge node when connect to scheduler",
-			Value:    "",
+			Name:    "secret",
+			EnvVars: []string{"TITAN_SCHEDULER_KEY", "SCHEDULER_KEY"},
+			Usage:   "used auth edge node when connect to scheduler",
+			Value:   "",
 		},
 	},
 
@@ -143,7 +141,6 @@ var runCmd = &cli.Command{
 			log.Fatalf("Cannot register the view: %v", err)
 		}
 
-		// Open repo
 		repoPath := cctx.String(FlagEdgeRepo)
 		r, err := repo.NewFS(repoPath)
 		if err != nil {
@@ -164,11 +161,6 @@ var runCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		defer func() {
-			if err := lr.Close(); err != nil {
-				log.Error("closing repo", err)
-			}
-		}()
 
 		cfg, err := lr.Config()
 		if err != nil {
@@ -177,28 +169,34 @@ var runCmd = &cli.Command{
 
 		edgeCfg := cfg.(*config.EdgeCfg)
 
+		err = lr.Close()
+		if err != nil {
+			return err
+		}
+
+		// Connect to scheduler
+		deviceID := cctx.String("device-id")
+		secret := cctx.String("secret")
+
+		connectTimeout, err := time.ParseDuration(edgeCfg.Timeout)
+		if err != nil {
+			return err
+		}
+
 		udpPacketConn, err := net.ListenPacket("udp", edgeCfg.ListenAddress)
 		if err != nil {
 			return err
 		}
 		defer udpPacketConn.Close()
 
+		// all jsonrpc client use udp
 		httpClient := cliutil.NewHttp3Client(udpPacketConn, edgeCfg.InsecureSkipVerify, edgeCfg.CaCertificatePath)
 		jsonrpc.SetHttp3Client(httpClient)
 
-		timeout, err := time.ParseDuration(edgeCfg.Timeout)
-		if err != nil {
-			return err
-		}
-
-		deviceID := cctx.String("device-id")
-		secret := cctx.String("secret")
-
-		// Connect to scheduler
 		var schedulerAPI api.Scheduler
 		var closer func()
 		if edgeCfg.Locator {
-			schedulerAPI, closer, err = newSchedulerAPI(cctx, deviceID, secret, timeout)
+			schedulerAPI, closer, err = newSchedulerAPI(cctx, deviceID, secret, connectTimeout)
 		} else {
 			schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx, deviceID)
 		}
@@ -211,9 +209,8 @@ var runCmd = &cli.Command{
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
-		v, err := getSchedulerVersion(schedulerAPI, timeout)
+		v, err := getSchedulerVersion(schedulerAPI, connectTimeout)
 		if err != nil {
-			log.Infof("getSchedulerVersion error:%s", err.Error())
 			return err
 		}
 
@@ -222,37 +219,47 @@ var runCmd = &cli.Command{
 		}
 		log.Infof("Remote version %s", v)
 
-		internalIP, err := extractRoutableIP(cctx, edgeCfg, timeout)
+		var edgeAPI api.Edge
+		stop, err := node.New(cctx.Context,
+			node.Edge(&edgeAPI),
+			node.Base(),
+			node.Repo(r),
+			node.Override(new(dtypes.DeviceID), dtypes.DeviceID(deviceID)),
+			node.Override(new(dtypes.ScheduleSecretKey), dtypes.ScheduleSecretKey(secret)),
+			node.Override(new(api.Scheduler), schedulerAPI),
+			node.Override(new(net.PacketConn), udpPacketConn),
+			node.Override(new(dtypes.CarfileStorePath), func() dtypes.CarfileStorePath {
+				carfileStorePath := edgeCfg.CarfileStorePath
+				if len(carfileStorePath) == 0 {
+					carfileStorePath = path.Join(lr.Path(), DefaultCarfileStoreDir)
+				}
+
+				log.Infof("carfilestorePath:%s", carfileStorePath)
+				return dtypes.CarfileStorePath(carfileStorePath)
+			}),
+			node.Override(new(dtypes.InternalIP), func() (dtypes.InternalIP, error) {
+				ainfo, err := lcli.GetAPIInfo(cctx, repo.Scheduler)
+				if err != nil {
+					return "", xerrors.Errorf("could not get scheduler API info: %w", err)
+				}
+
+				schedulerAddr := strings.Split(ainfo.Addr, "/")
+				conn, err := net.DialTimeout("tcp", schedulerAddr[2], connectTimeout)
+				if err != nil {
+					return "", err
+				}
+
+				defer conn.Close() //nolint:errcheck
+				localAddr := conn.LocalAddr().(*net.TCPAddr)
+
+				return dtypes.InternalIP(strings.Split(localAddr.IP.String(), ":")[0]), nil
+			}),
+		)
 		if err != nil {
-			return err
+			return xerrors.Errorf("creating node: %w", err)
 		}
 
-		carfileStorePath := edgeCfg.CarfilestorePath
-		if len(carfileStorePath) == 0 {
-			carfileStorePath = path.Join(lr.Path(), DefaultCarfileStoreDir)
-		}
-
-		log.Infof("carfilestorePath:%s", carfileStorePath)
-
-		carfileStore := carfilestore.NewCarfileStore(carfileStorePath, edgeCfg.CarfilestoreType)
-
-		device := device.NewDevice(
-			deviceID,
-			internalIP,
-			edgeCfg.BandwidthUp,
-			edgeCfg.BandwidthDown,
-			carfileStore)
-
-		params := &edge.EdgeParams{
-			Scheduler:    schedulerAPI,
-			CarfileStore: carfileStore,
-			Device:       device,
-			PConn:        udpPacketConn,
-		}
-
-		edgeApi := edge.NewLocalEdgeNode(ctx, params)
-		handler := EdgeHandler(schedulerAPI.AuthVerify, edgeApi, true)
-
+		handler := EdgeHandler(schedulerAPI.AuthVerify, edgeAPI, true)
 		srv := &http.Server{
 			Handler: handler,
 			BaseContext: func(listener net.Listener) context.Context {
@@ -269,6 +276,7 @@ var runCmd = &cli.Command{
 			if err := srv.Shutdown(context.TODO()); err != nil {
 				log.Errorf("shutting down RPC server failed: %s", err)
 			}
+			stop(ctx)
 			log.Warn("Graceful shutdown successful")
 		}()
 
@@ -279,7 +287,7 @@ var runCmd = &cli.Command{
 
 		log.Infof("Edge listen on tcp %s", edgeCfg.ListenAddress)
 
-		schedulerSession, err := getSchedulerSession(schedulerAPI, timeout)
+		schedulerSession, err := getSchedulerSession(schedulerAPI, connectTimeout)
 		if err != nil {
 			return xerrors.Errorf("getting scheduler session: %w", err)
 		}
@@ -288,7 +296,7 @@ var runCmd = &cli.Command{
 			out := make(chan struct{})
 			go func() {
 				ctx2 := context.Background()
-				edgeApi.WaitQuiet(ctx2)
+				edgeAPI.WaitQuiet(ctx2)
 				close(out)
 			}()
 			return out
@@ -308,7 +316,7 @@ var runCmd = &cli.Command{
 
 				errCount := 0
 				for {
-					curSession, err := getSchedulerSession(schedulerAPI, timeout)
+					curSession, err := getSchedulerSession(schedulerAPI, connectTimeout)
 					if err != nil {
 						errCount++
 						log.Errorf("heartbeat: checking remote session failed: %+v", err)
@@ -325,15 +333,15 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						err := connectToScheduler(schedulerAPI, timeout)
+						err := connectToScheduler(schedulerAPI, connectTimeout)
 						if err != nil {
 							log.Errorf("Registering edge failed: %+v", err)
 							cancel()
 							return
 						}
 
-						edge := edgeApi.(*edge.Edge)
-						edge.LoadPublicKey(timeout)
+						edge := edgeAPI.(*edge.Edge)
+						edge.LoadPublicKey(connectTimeout)
 						log.Info("Edge registered successfully, waiting for tasks")
 						errCount = 0
 						readyCh = nil

@@ -15,6 +15,7 @@ const (
 
 var AllPermissions = []auth.Permission{PermRead, PermWrite, PermSign, PermAdmin}
 var DefaultPerms = []auth.Permission{PermRead}
+var ReadWritePerms = []auth.Permission{PermRead, PermWrite}
 
 func permissionedProxies(in, out interface{}) {
 	outs := GetInternalStructs(out)

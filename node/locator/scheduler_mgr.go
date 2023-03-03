@@ -25,7 +25,7 @@ type accessPoint struct {
 	apis []*schedulerAPI
 }
 
-type accessPointMgr struct {
+type AccessPointMgr struct {
 	// key is areaID
 	accessPoints sync.Map
 	random       *rand.Rand
@@ -33,13 +33,13 @@ type accessPointMgr struct {
 	locatorToken string
 }
 
-func newAccessPointMgr(locatorToken, uuid string) *accessPointMgr {
+func NewAccessPointMgr(locatorToken, uuid string) *AccessPointMgr {
 	s := rand.NewSource(time.Now().UnixNano())
-	mgr := &accessPointMgr{random: rand.New(s), uuid: uuid, locatorToken: locatorToken}
+	mgr := &AccessPointMgr{random: rand.New(s), uuid: uuid, locatorToken: locatorToken}
 	return mgr
 }
 
-func (mgr *accessPointMgr) loadAccessPointFromMap(key string) *accessPoint {
+func (mgr *AccessPointMgr) loadAccessPointFromMap(key string) *accessPoint {
 	vb, ok := mgr.accessPoints.Load(key)
 	if ok {
 		return vb.(*accessPoint)
@@ -47,15 +47,15 @@ func (mgr *accessPointMgr) loadAccessPointFromMap(key string) *accessPoint {
 	return nil
 }
 
-func (mgr *accessPointMgr) deleteAccessPointFromMap(key string) {
+func (mgr *AccessPointMgr) deleteAccessPointFromMap(key string) {
 	mgr.accessPoints.Delete(key)
 }
 
-func (mgr *accessPointMgr) addAccessPointToMap(areaID string, ap *accessPoint) {
+func (mgr *AccessPointMgr) addAccessPointToMap(areaID string, ap *accessPoint) {
 	mgr.accessPoints.Store(areaID, ap)
 }
 
-func (mgr *accessPointMgr) newSchedulerAPI(url string, areaID string, schedulerAccessToken string) (*schedulerAPI, error) {
+func (mgr *AccessPointMgr) newSchedulerAPI(url string, areaID string, schedulerAccessToken string) (*schedulerAPI, error) {
 	ap := mgr.loadAccessPointFromMap(areaID)
 	if ap == nil {
 		ap = &accessPoint{apis: make([]*schedulerAPI, 0)}
@@ -100,7 +100,7 @@ func (mgr *accessPointMgr) newSchedulerAPI(url string, areaID string, schedulerA
 	return newAPI, nil
 }
 
-func (mgr *accessPointMgr) removeSchedulerAPI(url, areaID string) {
+func (mgr *AccessPointMgr) removeSchedulerAPI(url, areaID string) {
 	ap := mgr.loadAccessPointFromMap(areaID)
 	if ap == nil {
 		return
@@ -125,7 +125,7 @@ func (mgr *accessPointMgr) removeSchedulerAPI(url, areaID string) {
 	mgr.addAccessPointToMap(areaID, ap)
 }
 
-func (mgr *accessPointMgr) removeAccessPoint(areaID string) {
+func (mgr *AccessPointMgr) removeAccessPoint(areaID string) {
 	ap := mgr.loadAccessPointFromMap(areaID)
 	if ap == nil {
 		return
@@ -138,7 +138,7 @@ func (mgr *accessPointMgr) removeAccessPoint(areaID string) {
 	mgr.deleteAccessPointFromMap(areaID)
 }
 
-func (mgr *accessPointMgr) getSchedulerAPI(url, areaID, accessToken string) (*schedulerAPI, error) {
+func (mgr *AccessPointMgr) getSchedulerAPI(url, areaID, accessToken string) (*schedulerAPI, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
 	defer cancel()
 
@@ -174,7 +174,7 @@ func (mgr *accessPointMgr) getSchedulerAPI(url, areaID, accessToken string) (*sc
 	return api, nil
 }
 
-func (mgr *accessPointMgr) randSchedulerAPI(areaID string) *schedulerAPI {
+func (mgr *AccessPointMgr) randSchedulerAPI(areaID string) *schedulerAPI {
 	ap := mgr.loadAccessPointFromMap(areaID)
 	if ap == nil {
 		return nil

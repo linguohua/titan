@@ -8,6 +8,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	cliutil "github.com/linguohua/titan/cli/util"
+	"github.com/linguohua/titan/node"
+	"github.com/linguohua/titan/node/modules/dtypes"
 	"math/big"
 	"net"
 	"net/http"
@@ -21,13 +24,10 @@ import (
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
-	cliutil "github.com/linguohua/titan/cli/util"
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/metrics"
-	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/config"
-	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/quic-go/quic-go/http3"
 
@@ -149,7 +149,6 @@ var runCmd = &cli.Command{
 			log.Fatalf("Cannot register the view: %v", err)
 		}
 
-		// Open repo
 		repoPath := cctx.String(FlagCandidateRepo)
 		r, err := repo.NewFS(repoPath)
 		if err != nil {
@@ -170,11 +169,6 @@ var runCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		defer func() {
-			if err := lr.Close(); err != nil {
-				log.Error("closing repo", err)
-			}
-		}()
 
 		cfg, err := lr.Config()
 		if err != nil {
@@ -182,6 +176,20 @@ var runCmd = &cli.Command{
 		}
 
 		candidateCfg := cfg.(*config.CandidateCfg)
+
+		err = lr.Close()
+		if err != nil {
+			return err
+		}
+
+		// Connect to scheduler
+		deviceID := cctx.String("device-id")
+		secret := cctx.String("secret")
+
+		connectTimeout, err := time.ParseDuration(candidateCfg.Timeout)
+		if err != nil {
+			return err
+		}
 
 		udpPacketConn, err := net.ListenPacket("udp", candidateCfg.ListenAddress)
 		if err != nil {
@@ -193,15 +201,6 @@ var runCmd = &cli.Command{
 		httpClient := cliutil.NewHttp3Client(udpPacketConn, candidateCfg.InsecureSkipVerify, candidateCfg.CaCertificatePath)
 		jsonrpc.SetHttp3Client(httpClient)
 
-		connectTimeout, err := time.ParseDuration(candidateCfg.Timeout)
-		if err != nil {
-			return err
-		}
-
-		deviceID := cctx.String("device-id")
-		secret := cctx.String("secret")
-
-		// Connect to scheduler
 		var schedulerAPI api.Scheduler
 		var closer func()
 		if candidateCfg.Locator {
@@ -213,6 +212,7 @@ var runCmd = &cli.Command{
 			return err
 		}
 		defer closer()
+
 		ctx := lcli.ReqContext(cctx)
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
@@ -227,37 +227,46 @@ var runCmd = &cli.Command{
 		}
 		log.Infof("Remote version %s", v)
 
-		internalIP, err := extractRoutableIP(cctx, candidateCfg, connectTimeout)
+		var candidateAPI api.Candidate
+		stop, err := node.New(cctx.Context,
+			node.Candidate(&candidateAPI),
+			node.Base(),
+			node.Repo(r),
+			node.Override(new(dtypes.DeviceID), dtypes.DeviceID(deviceID)),
+			node.Override(new(dtypes.ScheduleSecretKey), dtypes.ScheduleSecretKey(secret)),
+			node.Override(new(api.Scheduler), schedulerAPI),
+			node.Override(new(dtypes.CarfileStorePath), func() dtypes.CarfileStorePath {
+				carfileStorePath := candidateCfg.CarfileStorePath
+				if len(carfileStorePath) == 0 {
+					carfileStorePath = path.Join(lr.Path(), DefaultCarfileStoreDir)
+				}
+
+				log.Infof("carfilestorePath:%s", carfileStorePath)
+				return dtypes.CarfileStorePath(carfileStorePath)
+			}),
+			node.Override(new(dtypes.InternalIP), func() (dtypes.InternalIP, error) {
+				ainfo, err := lcli.GetAPIInfo(cctx, repo.Scheduler)
+				if err != nil {
+					return "", xerrors.Errorf("could not get scheduler API info: %w", err)
+				}
+
+				schedulerAddr := strings.Split(ainfo.Addr, "/")
+				conn, err := net.DialTimeout("tcp", schedulerAddr[2], connectTimeout)
+				if err != nil {
+					return "", err
+				}
+
+				defer conn.Close() //nolint:errcheck
+				localAddr := conn.LocalAddr().(*net.TCPAddr)
+
+				return dtypes.InternalIP(strings.Split(localAddr.IP.String(), ":")[0]), nil
+			}),
+		)
 		if err != nil {
-			return err
+			return xerrors.Errorf("creating node: %w", err)
 		}
 
-		carfileStorePath := candidateCfg.CarfilestorePath
-		if len(carfileStorePath) == 0 {
-			carfileStorePath = path.Join(lr.Path(), DefaultCarfileStoreDir)
-		}
-
-		log.Infof("carfilestorePath:%s", carfileStorePath)
-
-		carfileStore := carfilestore.NewCarfileStore(carfileStorePath, candidateCfg.CarfilestoreType)
-		device := device.NewDevice(
-			deviceID,
-			internalIP,
-			candidateCfg.BandwidthUp,
-			candidateCfg.BandwidthDown,
-			carfileStore)
-
-		nodeParams := &candidate.CandidateParams{
-			Scheduler:    schedulerAPI,
-			CarfileStore: carfileStore,
-			IPFSAPI:      candidateCfg.IpfsApiURL,
-		}
-
-		log.Info("ipfs-api " + nodeParams.IPFSAPI)
-
-		candidateApi := candidate.NewLocalCandidateNode(context.Background(), candidateCfg.TcpSrvAddr, device, nodeParams)
-		handler := CandidateHandler(schedulerAPI.AuthVerify, candidateApi, true)
-
+		handler := CandidateHandler(schedulerAPI.AuthVerify, candidateAPI, true)
 		srv := &http.Server{
 			Handler: handler,
 			BaseContext: func(listener net.Listener) context.Context {
@@ -274,6 +283,7 @@ var runCmd = &cli.Command{
 			if err := srv.Shutdown(context.TODO()); err != nil {
 				log.Errorf("shutting down RPC server failed: %s", err)
 			}
+			stop(ctx)
 			log.Warn("Graceful shutdown successful")
 		}()
 
@@ -293,7 +303,7 @@ var runCmd = &cli.Command{
 			out := make(chan struct{})
 			go func() {
 				ctx2 := context.Background()
-				candidateApi.WaitQuiet(ctx2)
+				candidateAPI.WaitQuiet(ctx2)
 				close(out)
 			}()
 			return out
@@ -336,7 +346,7 @@ var runCmd = &cli.Command{
 							cancel()
 							return
 						}
-						candidate := candidateApi.(*candidate.Candidate)
+						candidate := candidateAPI.(*candidate.Candidate)
 						err = candidate.LoadPublicKey(connectTimeout)
 						if err != nil {
 							log.Errorf("LoadPublicKey error:%s", err.Error())
@@ -379,7 +389,7 @@ func getSchedulerVersion(api api.Scheduler, timeout time.Duration) (api.APIVersi
 	return api.Version(ctx)
 }
 
-func extractRoutableIP(cctx *cli.Context, candidateCfg *config.CandidateCfg, timeout time.Duration) (string, error) {
+func extractRoutableIP(cctx *cli.Context, timeout time.Duration) (string, error) {
 	ainfo, err := lcli.GetAPIInfo(cctx, repo.Scheduler)
 	if err != nil {
 		return "", xerrors.Errorf("could not get scheduler API info: %w", err)

@@ -3,6 +3,8 @@ package candidate
 import (
 	"context"
 	"fmt"
+	"github.com/linguohua/titan/node/config"
+	"go.uber.org/fx"
 	"math/rand"
 	"net"
 	"strings"
@@ -12,11 +14,7 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
-	"golang.org/x/time/rate"
-
 	"github.com/linguohua/titan/node/carfile"
-	"github.com/linguohua/titan/node/carfile/carfilestore"
-	"github.com/linguohua/titan/node/carfile/downloader"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/download"
@@ -35,28 +33,6 @@ const (
 	validateTimeout     = 5
 	tcpPackMaxLength    = 52428800
 )
-
-func NewLocalCandidateNode(ctx context.Context, tcpSrvAddr string, device *device.Device, params *CandidateParams) api.Candidate {
-	rateLimiter := rate.NewLimiter(rate.Limit(device.GetBandwidthUp()), int(device.GetBandwidthUp()))
-
-	validate := vd.NewValidate(params.CarfileStore, device)
-
-	blockDownload := download.NewBlockDownload(rateLimiter, params.Scheduler, params.CarfileStore, device, validate)
-	carfileOperation := carfile.NewCarfileOperation(params.CarfileStore, params.Scheduler, downloader.NewIPFS(params.IPFSAPI, params.CarfileStore), device)
-
-	candidate := &Candidate{
-		Device:           device,
-		CarfileOperation: carfileOperation,
-		BlockDownload:    blockDownload,
-		Validate:         validate,
-		scheduler:        params.Scheduler,
-		tcpSrvAddr:       tcpSrvAddr,
-		DataSync:         datasync.NewDataSync(params.CarfileStore),
-	}
-
-	go candidate.startTcpServer()
-	return candidate
-}
 
 func cidFromData(data []byte) (string, error) {
 	if len(data) == 0 {
@@ -84,6 +60,8 @@ type blockWaiter struct {
 }
 
 type Candidate struct {
+	fx.In
+
 	*common.CommonAPI
 	*carfile.CarfileOperation
 	*download.BlockDownload
@@ -91,15 +69,17 @@ type Candidate struct {
 	*vd.Validate
 	*datasync.DataSync
 
-	scheduler      api.Scheduler
-	tcpSrvAddr     string
-	blockWaiterMap sync.Map
+	Scheduler      api.Scheduler
+	Config         *config.CandidateCfg
+	BlockWaiterMap *BlockWaiter
 }
 
-type CandidateParams struct {
-	Scheduler    api.Scheduler
-	CarfileStore *carfilestore.CarfileStore
-	IPFSAPI      string
+type BlockWaiter struct {
+	sync.Map
+}
+
+func NewBlockWaiter() *BlockWaiter {
+	return &BlockWaiter{}
 }
 
 func (candidate *Candidate) WaitQuiet(ctx context.Context) error {
@@ -139,7 +119,7 @@ func (candidate *Candidate) ValidateNodes(ctx context.Context, req []api.ReqVali
 }
 
 func (candidate *Candidate) loadBlockWaiterFromMap(key string) (*blockWaiter, bool) {
-	vb, exist := candidate.blockWaiterMap.Load(key)
+	vb, exist := candidate.BlockWaiterMap.Load(key)
 	if exist {
 		return vb.(*blockWaiter), exist
 	}
@@ -150,12 +130,12 @@ func sendValidateResult(candidate *Candidate, result *api.ValidateResults) error
 	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
 
-	return candidate.scheduler.ValidateBlockResult(ctx, *result)
+	return candidate.Scheduler.ValidateBlockResult(ctx, *result)
 }
 
 func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, result *api.ValidateResults) {
 	defer func() {
-		candidate.blockWaiterMap.Delete(result.DeviceID)
+		candidate.BlockWaiterMap.Delete(result.DeviceID)
 	}()
 
 	size := int64(0)
@@ -248,14 +228,14 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	}
 
 	bw = &blockWaiter{conn: nil, ch: make(chan tcpMsg, 1)}
-	candidate.blockWaiterMap.Store(deviceID, bw)
+	candidate.BlockWaiterMap.Store(deviceID, bw)
 
 	go waitBlock(bw, req, candidate, result)
 
 	wctx, cancel := context.WithTimeout(context.Background(), (time.Duration(req.Duration))*time.Second)
 	defer cancel()
 
-	addrSplit := strings.Split(candidate.tcpSrvAddr, ":")
+	addrSplit := strings.Split(candidate.Config.TcpSrvAddr, ":")
 	candidateTcpSrvAddr := fmt.Sprintf("%s:%s", candidate.GetExternaIP(), addrSplit[1])
 	err = api.BeValidate(wctx, *req, candidateTcpSrvAddr)
 	if err != nil {

@@ -4,14 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"go.uber.org/fx"
 	"net"
 
-	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/handler"
-	"github.com/linguohua/titan/node/repo"
-	"github.com/linguohua/titan/node/secret"
 	"github.com/linguohua/titan/region"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -29,38 +27,11 @@ const (
 )
 
 type Locator struct {
-	common.CommonAPI
-	apMgr *accessPointMgr
-	db    *sqlDB
-}
+	fx.In
 
-func NewLocalLocator(ctx context.Context, lr repo.LockedRepo, dbAddr, uuid string, locatorPort int) api.Locator {
-	if len(dbAddr) == 0 {
-		log.Panic("NewLocalLocator, db addr cannot empty")
-	}
-
-	db, err := newSQLDB(dbAddr)
-	if err != nil {
-		log.Panicf("NewLocalLocator, newDB error:%s", err.Error())
-	}
-
-	locator := &Locator{db: db}
-
-	sec, err := secret.APISecret(lr)
-	if err != nil {
-		log.Panicf("NewLocalLocator, new APISecret failed:%s", err.Error())
-	}
-	locator.APISecret = sec
-
-	// auth new token to scheduler connect locator
-	token, err := locator.AuthNew(ctx, []auth.Permission{api.PermRead, api.PermWrite})
-	if err != nil {
-		log.Panicf("NewLocalLocator,new token to scheduler:%s", err.Error())
-	}
-
-	locator.apMgr = newAccessPointMgr(string(token), uuid)
-	return locator
-
+	*common.CommonAPI
+	ApMgr *AccessPointMgr
+	DB    *SqlDB
 }
 
 func (locator *Locator) GetAccessPoints(ctx context.Context, deviceID string) ([]string, error) {
@@ -88,7 +59,7 @@ func (locator *Locator) AddAccessPoint(ctx context.Context, areaID string, sched
 		return fmt.Errorf("weith is out of range, need to set %d ~ %d", miniWeight, maxWeight)
 	}
 
-	exist, err := locator.db.isAccessPointExist(schedulerURL)
+	exist, err := locator.DB.isAccessPointExist(schedulerURL)
 	if err != nil {
 		return err
 	}
@@ -97,25 +68,25 @@ func (locator *Locator) AddAccessPoint(ctx context.Context, areaID string, sched
 		return fmt.Errorf("access point aready exist")
 	}
 
-	_, err = locator.apMgr.newSchedulerAPI(schedulerURL, areaID, schedulerAccessToken)
+	_, err = locator.ApMgr.newSchedulerAPI(schedulerURL, areaID, schedulerAccessToken)
 	if err != nil {
 		return err
 	}
 
-	return locator.db.addAccessPoint(areaID, schedulerURL, weight, schedulerAccessToken)
+	return locator.DB.addAccessPoint(areaID, schedulerURL, weight, schedulerAccessToken)
 }
 
 func (locator *Locator) RemoveAccessPoints(ctx context.Context, areaID string) error {
-	locator.apMgr.removeAccessPoint(areaID)
-	return locator.db.removeAccessPoints(areaID)
+	locator.ApMgr.removeAccessPoint(areaID)
+	return locator.DB.removeAccessPoints(areaID)
 }
 
 func (locator *Locator) ListAreaIDs(ctx context.Context) (areaIDs []string, err error) {
-	return locator.db.listAreaIDs()
+	return locator.DB.listAreaIDs()
 }
 
 func (locator *Locator) ShowAccessPoint(ctx context.Context, areaID string) (api.AccessPoint, error) {
-	schedulerCfgs, err := locator.db.getAccessPointCfgs(areaID)
+	schedulerCfgs, err := locator.DB.getAccessPointCfgs(areaID)
 	if err != nil {
 		return api.AccessPoint{}, err
 	}
@@ -132,20 +103,20 @@ func (locator *Locator) ShowAccessPoint(ctx context.Context, areaID string) (api
 func (locator *Locator) SetDeviceOnlineStatus(ctx context.Context, deviceID string, isOnline bool) error {
 	log.Debugf("SetDeviceStatus device %s online status %t", deviceID, isOnline)
 
-	info, err := locator.db.getDeviceInfo(deviceID)
+	info, err := locator.DB.getDeviceInfo(deviceID)
 	if err != nil {
 		log.Errorf("SetDeviceStatus, get device %s error:%s", deviceID, err.Error())
 		return err
 	}
 
-	locator.db.setDeviceInfo(deviceID, info.SchedulerURL, info.AreaID, isOnline)
+	locator.DB.setDeviceInfo(deviceID, info.SchedulerURL, info.AreaID, isOnline)
 	return nil
 }
 
 func (locator *Locator) getAccessPointsWithWeightCount(areaID string) ([]string, error) {
 	log.Debugf("getAccessPointWithWeightCount, areaID:%s", areaID)
 
-	schedulerCfgs, err := locator.db.getAccessPointCfgs(areaID)
+	schedulerCfgs, err := locator.DB.getAccessPointCfgs(areaID)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +129,7 @@ func (locator *Locator) getAccessPointsWithWeightCount(areaID string) ([]string,
 	onlineSchedulerAPIs := make(map[string]*schedulerAPI)
 	onlineSchedulerCfgs := make(map[string]*schedulerCfg)
 	for _, cfg := range schedulerCfgs {
-		api, err := locator.apMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
+		api, err := locator.ApMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
 		if err != nil {
 			log.Warnf("getAccessPointsWithWeightCount, getSchedulerAPI error:%s", err.Error())
 			continue
@@ -210,7 +181,7 @@ func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*s
 
 	weightMap := make(map[string]int)
 	for _, cfg := range schedulerCfgs {
-		count, err := locator.db.countDeviceOnScheduler(cfg.SchedulerURL)
+		count, err := locator.DB.countDeviceOnScheduler(cfg.SchedulerURL)
 		if err != nil {
 			log.Errorf("countSchedulerWeightByDevice, error:%s", err.Error())
 			continue
@@ -233,18 +204,18 @@ func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*s
 
 // if device not exist return sql.ErrNoRows
 func (locator *Locator) getSchedulerAPIWith(deviceID string) (*schedulerAPI, error) {
-	device, err := locator.db.getDeviceInfo(deviceID)
+	device, err := locator.DB.getDeviceInfo(deviceID)
 	if err != nil {
 		log.Errorf("GetAccessPoints, getDeviceInfo error:%s", err.Error())
 		return nil, err
 	}
 
-	cfg, err := locator.db.getSchedulerCfg(device.SchedulerURL)
+	cfg, err := locator.DB.getSchedulerCfg(device.SchedulerURL)
 	if err != nil {
 		return nil, err
 	}
 
-	return locator.apMgr.getSchedulerAPI(device.SchedulerURL, device.AreaID, cfg.AccessToken)
+	return locator.ApMgr.getSchedulerAPI(device.SchedulerURL, device.AreaID, cfg.AccessToken)
 }
 
 func (locator *Locator) GetDownloadInfosWithCarfile(ctx context.Context, cid string, publicKey string) ([]*api.DownloadInfoResult, error) {
@@ -254,7 +225,7 @@ func (locator *Locator) GetDownloadInfosWithCarfile(ctx context.Context, cid str
 		return nil, err
 	}
 
-	schedulerAPI := locator.apMgr.randSchedulerAPI(areaID)
+	schedulerAPI := locator.ApMgr.randSchedulerAPI(areaID)
 	if schedulerAPI == nil {
 		schedulerAPI, err = locator.getFirstOnlineSchedulerAPIAt(areaID)
 		if err != nil {
@@ -276,7 +247,7 @@ func (locator *Locator) UserDownloadBlockResults(ctx context.Context, results []
 		return err
 	}
 
-	schedulerAPI := locator.apMgr.randSchedulerAPI(areaID)
+	schedulerAPI := locator.ApMgr.randSchedulerAPI(areaID)
 	if schedulerAPI == nil {
 		schedulerAPI, err = locator.getFirstOnlineSchedulerAPIAt(areaID)
 		if err != nil {
@@ -311,14 +282,14 @@ func (locator *Locator) getAreaIDWith(remoteAddr string) (string, error) {
 }
 
 func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerAPI, error) {
-	schedulerCfgs, err := locator.db.getAccessPointCfgs(areaID)
+	schedulerCfgs, err := locator.DB.getAccessPointCfgs(areaID)
 	if err != nil {
 		log.Errorf("getCfg, acccess point %s not exist", areaID)
 		return nil, err
 	}
 
 	for _, cfg := range schedulerCfgs {
-		api, err := locator.apMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
+		api, err := locator.ApMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
 		if err != nil {
 			log.Warnf("getFirstOnlineSchedulerAPIAt, areaID:%s, scheduler %s offline", areaID, cfg.SchedulerURL)
 			continue
@@ -331,7 +302,7 @@ func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerA
 }
 
 func (locator *Locator) AllocateNodes(ctx context.Context, schedulerURL string, nodeType api.NodeType, count int) ([]api.NodeAllocateInfo, error) {
-	cfg, err := locator.db.getSchedulerCfg(schedulerURL)
+	cfg, err := locator.DB.getSchedulerCfg(schedulerURL)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("scheduler %s not exist", schedulerURL)
@@ -339,7 +310,7 @@ func (locator *Locator) AllocateNodes(ctx context.Context, schedulerURL string, 
 		return nil, err
 	}
 
-	schedulerAPI, err := locator.apMgr.getSchedulerAPI(schedulerURL, cfg.AreaID, cfg.AccessToken)
+	schedulerAPI, err := locator.ApMgr.getSchedulerAPI(schedulerURL, cfg.AreaID, cfg.AccessToken)
 	if err != nil {
 		return nil, err
 	}
@@ -350,14 +321,14 @@ func (locator *Locator) AllocateNodes(ctx context.Context, schedulerURL string, 
 	}
 
 	for _, registerInfo := range registerInfos {
-		locator.db.setDeviceInfo(registerInfo.DeviceID, schedulerURL, cfg.AreaID, false)
+		locator.DB.setDeviceInfo(registerInfo.DeviceID, schedulerURL, cfg.AreaID, false)
 	}
 
 	return registerInfos, nil
 }
 
 func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) ([]api.AccessPoint, error) {
-	allCfg, err := locator.db.getAllCfg()
+	allCfg, err := locator.DB.getAllCfg()
 	if err != nil {
 		return make([]api.AccessPoint, 0), err
 	}
@@ -391,7 +362,7 @@ func (locator *Locator) LoadUserAccessPoint(ctx context.Context, userIP string) 
 		areaID = geoInfo.Geo
 	}
 
-	schedulerCfgs, err := locator.db.getAccessPointCfgs(areaID)
+	schedulerCfgs, err := locator.DB.getAccessPointCfgs(areaID)
 	if err != nil {
 		return api.AccessPoint{}, err
 	}

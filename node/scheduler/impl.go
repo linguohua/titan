@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
+	"github.com/linguohua/titan/node/modules/dtypes"
 	"net"
 	"net/http"
 
@@ -100,8 +101,8 @@ type Scheduler struct {
 	Validator    *validator.Validator
 	DataManager  *carfile.Manager
 	DataSync     *sync.DataSync
-	WriteToken   common.PermissionWriteToken
-	AdminToken   common.PermissionAdminToken
+	WriteToken   dtypes.PermissionWriteToken
+	AdminToken   dtypes.PermissionAdminToken
 	SchedulerCfg *config.SchedulerCfg
 }
 
@@ -208,7 +209,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("SplitHostPort err:%s", err.Error())
 	}
 
-	// geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIP)
+	// geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.InternalIP)
 	// // TODO Does the error need to be handled?
 
 	// deviceInfo.IPLocation = geoInfo.Geo
@@ -282,7 +283,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("SplitHostPort err:%s", err.Error())
 	}
 
-	// geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIP)
+	// geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.InternalIP)
 	// // TODO Does the error need to be handled?
 
 	// deviceInfo.IPLocation = geoInfo.Geo

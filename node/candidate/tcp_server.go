@@ -18,7 +18,7 @@ type tcpMsg struct {
 }
 
 func (candidate *Candidate) startTcpServer() {
-	tcpAddr, err := net.ResolveTCPAddr("tcp", candidate.tcpSrvAddr)
+	tcpAddr, err := net.ResolveTCPAddr("tcp", candidate.Config.TcpSrvAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func (candidate *Candidate) startTcpServer() {
 	// close listener
 	defer listen.Close()
 
-	log.Infof("tcp_server listen on %s", candidate.tcpSrvAddr)
+	log.Infof("tcp_server listen on %s", candidate.Config.TcpSrvAddr)
 	for {
 		conn, err := listen.AcceptTCP()
 		if err != nil {
