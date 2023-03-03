@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/journal"
 	"github.com/linguohua/titan/journal/alerting"
+	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/modules"
+	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
@@ -73,7 +76,14 @@ func Repo(r repo.Repo) Option {
 		}
 		return Options(
 			Override(new(repo.LockedRepo), modules.LockedRepo(lr)), // module handles closing
+			Override(new(*common.CommonAPI), common.NewCommonAPI),
+			Override(new(dtypes.SessionCallbackFunc), modules.DefaultSessionCallback),
+			Override(new(dtypes.PermissionWriteToken), modules.GenerateTokenWithPermission(api.ReadWritePerms)),
+			Override(new(dtypes.PermissionAdminToken), modules.GenerateTokenWithPermission(api.AllPermissions)),
 			ApplyIf(IsType(repo.Scheduler), ConfigScheduler(c)),
+			ApplyIf(IsType(repo.Locator), ConfigLocator(c)),
+			ApplyIf(IsType(repo.Edge), ConfigEdge(c)),
+			ApplyIf(IsType(repo.Candidate), ConfigCandidate(c)),
 		)(settings)
 	}
 }

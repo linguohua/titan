@@ -1,73 +1,77 @@
 package locator
 
 import (
-	"fmt"
-
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 )
 
 // locaton config
 type schedulerCfg struct {
-	SchedulerURL string `db:"scheduler_url"`
-	AreaID       string `db:"area_id"`
-	Weight       int    `db:"weight"`
-	AccessToken  string `db:"access_token"`
+	SchedulerURL string `DB:"scheduler_url"`
+	AreaID       string `DB:"area_id"`
+	Weight       int    `DB:"weight"`
+	AccessToken  string `DB:"access_token"`
 }
 
 type deviceInfo struct {
 	ID           int
-	DeviceID     string `db:"device_id"`
-	SchedulerURL string `db:"scheduler_url"`
-	AreaID       string `db:"area_id"`
-	Online       bool   `db:"online"`
+	DeviceID     string `DB:"device_id"`
+	SchedulerURL string `DB:"scheduler_url"`
+	AreaID       string `DB:"area_id"`
+	Online       bool   `DB:"online"`
 }
 
 type scheduler struct {
 	ID           int
-	SchedulerURL string `db:"scheduler_url"`
-	AreaID       string `db:"area_id"`
-	Online       bool   `db:"online"`
+	SchedulerURL string `DB:"scheduler_url"`
+	AreaID       string `DB:"area_id"`
+	Online       bool   `DB:"online"`
 }
 
-type sqlDB struct {
+type SqlDB struct {
 	cli *sqlx.DB
 }
 
-func newSQLDB(url string) (*sqlDB, error) {
-	url = fmt.Sprintf("%s?parseTime=true&loc=Local", url)
-	db := &sqlDB{}
-	database, err := sqlx.Open("mysql", url)
-	if err != nil {
-		return nil, err
+func NewSQLDB(db *sqlx.DB) *SqlDB {
+	return &SqlDB{
+		cli: db,
 	}
-
-	if err := database.Ping(); err != nil {
-		return nil, err
-	}
-
-	db.cli = database
-
-	return db, nil
 }
 
-func (db *sqlDB) close() error {
+//func NewSQLDB(url string) (*SqlDB, error) {
+//	url = fmt.Sprintf("%s?parseTime=true&loc=Local", url)
+//	db := &SqlDB{}
+//	database, err := sqlx.Open("mysql", url)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	if err := database.Ping(); err != nil {
+//		return nil, err
+//	}
+//
+//	db.cli = database
+//
+//	return db, nil
+//}
+
+func (db *SqlDB) close() error {
 	return db.cli.Close()
 }
 
-func (db *sqlDB) addAccessPoint(areaID string, schedulerURL string, weight int, accessToken string) error {
+func (db *SqlDB) addAccessPoint(areaID string, schedulerURL string, weight int, accessToken string) error {
 	return db.addSchedulerCfg(areaID, schedulerURL, weight, accessToken)
 }
 
-func (db *sqlDB) removeAccessPoints(areaID string) error {
+func (db *SqlDB) removeAccessPoints(areaID string) error {
 	return db.deleteSchedulerCfgs(areaID)
 }
 
-func (db *sqlDB) getAccessPointCfgs(areaID string) ([]*schedulerCfg, error) {
+func (db *SqlDB) getAccessPointCfgs(areaID string) ([]*schedulerCfg, error) {
 	return db.getCfgs(areaID)
 }
 
-func (db *sqlDB) isAccessPointExist(schedulerURL string) (bool, error) {
+func (db *SqlDB) isAccessPointExist(schedulerURL string) (bool, error) {
 	count, err := db.countSchedulerCfg(schedulerURL)
 	if err != nil {
 		return false, err
@@ -80,7 +84,7 @@ func (db *sqlDB) isAccessPointExist(schedulerURL string) (bool, error) {
 	return false, nil
 }
 
-func (db *sqlDB) listAreaIDs() (areaIDs []string, err error) {
+func (db *SqlDB) listAreaIDs() (areaIDs []string, err error) {
 	err = db.cli.Select(&areaIDs, `SELECT area_id FROM scheduler_config GROUP BY area_id`)
 	if err != nil {
 		return
@@ -89,7 +93,7 @@ func (db *sqlDB) listAreaIDs() (areaIDs []string, err error) {
 	return
 }
 
-func (db *sqlDB) getAllCfg() ([]*schedulerCfg, error) {
+func (db *SqlDB) getAllCfg() ([]*schedulerCfg, error) {
 	var cfgs []*schedulerCfg
 	err := db.cli.Select(&cfgs, `SELECT * FROM scheduler_config`)
 	if err != nil {
@@ -98,7 +102,7 @@ func (db *sqlDB) getAllCfg() ([]*schedulerCfg, error) {
 	return cfgs, nil
 }
 
-func (db *sqlDB) getCfgs(areaID string) ([]*schedulerCfg, error) {
+func (db *SqlDB) getCfgs(areaID string) ([]*schedulerCfg, error) {
 	var cfgs []*schedulerCfg
 	err := db.cli.Select(&cfgs, `SELECT * FROM scheduler_config WHERE area_id=?`, areaID)
 	if err != nil {
@@ -107,7 +111,7 @@ func (db *sqlDB) getCfgs(areaID string) ([]*schedulerCfg, error) {
 	return cfgs, nil
 }
 
-func (db *sqlDB) getSchedulerCfg(schedulerURL string) (*schedulerCfg, error) {
+func (db *SqlDB) getSchedulerCfg(schedulerURL string) (*schedulerCfg, error) {
 	cfg := &schedulerCfg{}
 	err := db.cli.Get(cfg, `SELECT * FROM scheduler_config WHERE scheduler_url=?`, schedulerURL)
 	if err != nil {
@@ -117,25 +121,25 @@ func (db *sqlDB) getSchedulerCfg(schedulerURL string) (*schedulerCfg, error) {
 	return cfg, nil
 }
 
-func (db *sqlDB) addSchedulerCfg(areaID string, schedulerURL string, weight int, accessToken string) error {
+func (db *SqlDB) addSchedulerCfg(areaID string, schedulerURL string, weight int, accessToken string) error {
 	cfg := &schedulerCfg{SchedulerURL: schedulerURL, AreaID: areaID, Weight: weight, AccessToken: accessToken}
 	_, err := db.cli.NamedExec(`INSERT INTO scheduler_config (scheduler_url, area_id, weight, access_token) VALUES (:scheduler_url, :area_id, :weight, :access_token)`, cfg)
 	return err
 }
 
-func (db *sqlDB) deleteSchedulerCfgs(areaID string) error {
+func (db *SqlDB) deleteSchedulerCfgs(areaID string) error {
 	cfg := &schedulerCfg{AreaID: areaID}
 	_, err := db.cli.NamedExec(`DELETE FROM scheduler_config WHERE area_id=:area_id`, cfg)
 	return err
 }
 
-func (db *sqlDB) deleteSchedulerCfg(schedulerURL string) error {
+func (db *SqlDB) deleteSchedulerCfg(schedulerURL string) error {
 	cfg := &schedulerCfg{SchedulerURL: schedulerURL}
 	_, err := db.cli.NamedExec(`DELETE FROM scheduler_config WHERE scheduler_url=:scheduler_url`, cfg)
 	return err
 }
 
-func (db *sqlDB) getDeviceInfo(deviceID string) (*deviceInfo, error) {
+func (db *SqlDB) getDeviceInfo(deviceID string) (*deviceInfo, error) {
 	devInfo := &deviceInfo{}
 	err := db.cli.Get(devInfo, `SELECT * FROM device WHERE device_id=?`, deviceID)
 	if err != nil {
@@ -145,19 +149,19 @@ func (db *sqlDB) getDeviceInfo(deviceID string) (*deviceInfo, error) {
 	return devInfo, nil
 }
 
-func (db *sqlDB) setDeviceInfo(deviceID string, schedulerURL string, areaID string, online bool) error {
+func (db *SqlDB) setDeviceInfo(deviceID string, schedulerURL string, areaID string, online bool) error {
 	devInfo := &deviceInfo{DeviceID: deviceID, SchedulerURL: schedulerURL, AreaID: areaID, Online: online}
 	_, err := db.cli.NamedExec(`INSERT INTO device (device_id,scheduler_url, area_id, online) VALUES (:device_id, :scheduler_url, :area_id, :online) ON DUPLICATE KEY UPDATE scheduler_url=:scheduler_url,area_id=:area_id,online=:online`, devInfo)
 	return err
 }
 
-func (db *sqlDB) deleteDeviceInfo(deviceID string) error {
+func (db *SqlDB) deleteDeviceInfo(deviceID string) error {
 	devInfo := &deviceInfo{DeviceID: deviceID}
 	_, err := db.cli.NamedExec(`DELETE FROM device WHERE device_id=:device_id`, devInfo)
 	return err
 }
 
-func (db *sqlDB) countDeviceOnScheduler(schedulerURL string) (int, error) {
+func (db *SqlDB) countDeviceOnScheduler(schedulerURL string) (int, error) {
 	var count int
 	err := db.cli.Get(&count, `select count(*) from device WHERE scheduler_url=?`, schedulerURL)
 	if err != nil {
@@ -166,7 +170,7 @@ func (db *sqlDB) countDeviceOnScheduler(schedulerURL string) (int, error) {
 	return count, err
 }
 
-func (db *sqlDB) countDeviceWithID(deviceID string) (int, error) {
+func (db *SqlDB) countDeviceWithID(deviceID string) (int, error) {
 	var count int
 	err := db.cli.Get(&count, `select count(*) from device WHERE device_id=?`, deviceID)
 	if err != nil {
@@ -175,7 +179,7 @@ func (db *sqlDB) countDeviceWithID(deviceID string) (int, error) {
 	return count, err
 }
 
-func (db *sqlDB) countSchedulerCfg(schedulerURL string) (int, error) {
+func (db *SqlDB) countSchedulerCfg(schedulerURL string) (int, error) {
 	var count int
 	err := db.cli.Get(&count, `SELECT count(*) FROM scheduler_config WHERE scheduler_url=?`, schedulerURL)
 	if err != nil {

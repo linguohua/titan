@@ -2,13 +2,11 @@ package node
 
 import (
 	"errors"
-	"github.com/filecoin-project/go-jsonrpc/auth"
-
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/modules"
+	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler"
 	"github.com/linguohua/titan/node/scheduler/carfile"
@@ -51,17 +49,12 @@ func ConfigScheduler(c interface{}) Option {
 
 	return Options(
 		Override(new(*config.SchedulerCfg), cfg),
-		Override(new(*sqlx.DB), modules.NewDB(cfg)),
+		Override(new(*sqlx.DB), modules.NewDB),
 		Override(new(*persistent.CarfileDB), persistent.NewCarfileDB),
 		Override(new(*persistent.NodeMgrDB), persistent.NewNodeMgrDB),
 		Override(new(*node.Manager), node.NewManager),
-		Override(new(node.ExitCallbackFunc), node.NewExitCallbackFunc),
-		Override(new(*common.CommonAPI), common.NewCommonAPI),
-		Override(new(common.SessionCallbackFunc), modules.NewSessionCallbackFunc),
-		Override(new(common.PermissionWriteToken), modules.GenerateTokenWithPermission(
-			[]auth.Permission{api.PermRead, api.PermWrite})),
-		Override(new(common.PermissionAdminToken), modules.GenerateTokenWithPermission(
-			api.AllPermissions)),
+		Override(new(dtypes.SessionCallbackFunc), modules.NewSessionCallbackFunc),
+		Override(new(dtypes.ExitCallbackFunc), modules.NewExitCallbackFunc),
 		Override(new(*carfile.Manager), carfile.NewManager),
 		Override(new(*sync.DataSync), sync.NewDataSync),
 		If(cfg.EnableValidate,
@@ -70,5 +63,8 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(api.Web), web.NewWeb),
 		Override(new(*election.Election), election.NewElection),
 		Override(new(*scheduler.AppUpdater), scheduler.NewAppUpdater),
+		Override(new(dtypes.DatabaseAddress), func() dtypes.DatabaseAddress {
+			return dtypes.DatabaseAddress(cfg.DatabaseAddress)
+		}),
 	)
 }

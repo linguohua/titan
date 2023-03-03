@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"fmt"
+	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/secret"
 	"os"
@@ -26,23 +27,17 @@ type CommonAPI struct {
 	APISecret    *jwt.HMACSHA
 	ShutdownChan chan struct{}
 
-	SessionCallBack SessionCallbackFunc
+	SessionCallBack dtypes.SessionCallbackFunc
 }
 
 type jwtPayload struct {
 	Allow []auth.Permission
 }
 
-type PermissionWriteToken []byte
-type PermissionAdminToken []byte
-
-// SessionCallbackFunc will be called after node connection
-type SessionCallbackFunc func(string, string)
-
 // MethodGroup: Auth
 
 // NewCommonAPI New CommonAPI
-func NewCommonAPI(lr repo.LockedRepo, callback SessionCallbackFunc) (CommonAPI, error) {
+func NewCommonAPI(lr repo.LockedRepo, callback dtypes.SessionCallbackFunc) (CommonAPI, error) {
 	commApi := CommonAPI{
 		SessionCallBack: callback,
 	}

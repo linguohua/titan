@@ -5,10 +5,9 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"github.com/linguohua/titan/node/modules/dtypes"
 	"sync"
 	"time"
-
-	"github.com/linguohua/titan/node/common"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
@@ -41,7 +40,7 @@ type Manager struct {
 }
 
 // NewManager return new carfile manager instance
-func NewManager(nodeManager *node.Manager, writeToken common.PermissionWriteToken) *Manager {
+func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToken) *Manager {
 	m := &Manager{
 		nodeManager:          nodeManager,
 		latelyExpirationTime: time.Now(),

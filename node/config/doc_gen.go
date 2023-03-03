@@ -49,13 +49,13 @@ var Doc = map[string][]DocField{
 			Comment: `used auth when connect to scheduler`,
 		},
 		{
-			Name: "CarfilestorePath",
+			Name: "CarfileStorePath",
 			Type: "string",
 
 			Comment: `carfilestore path`,
 		},
 		{
-			Name: "CarfilestoreType",
+			Name: "CarfileStoreType",
 			Type: "string",
 
 			Comment: `blockstore type`,
@@ -119,7 +119,7 @@ be used if InsecureSkipVerify is true`,
 			Comment: `used when 'ListenAddress' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function`,
 		},
 		{
-			Name: "GeodbPath",
+			Name: "GeoDBPath",
 			Type: "string",
 
 			Comment: `geodb path`,
@@ -177,13 +177,13 @@ be used if InsecureSkipVerify is true`,
 			Comment: `redis server address`,
 		},
 		{
-			Name: "GeodbPath",
+			Name: "GeoDBPath",
 			Type: "string",
 
 			Comment: `geodb path`,
 		},
 		{
-			Name: "PersistentDBURL",
+			Name: "DatabaseAddress",
 			Type: "string",
 
 			Comment: `mysql address`,

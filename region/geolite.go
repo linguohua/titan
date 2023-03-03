@@ -15,6 +15,19 @@ func TypeGeoLite() string {
 	return "GeoLite"
 }
 
+func NewGeoLiteRegion(dbPath string) (Region, error) {
+	gl := &geoLite{dbPath}
+
+	db, err := geoip2.Open(gl.dbPath)
+	if err != nil {
+		return gl, err
+	}
+	defer db.Close()
+	// reader = db
+
+	return gl, nil
+}
+
 // InitGeoLite init
 func InitGeoLite(dbPath string) (Region, error) {
 	gl := &geoLite{dbPath}

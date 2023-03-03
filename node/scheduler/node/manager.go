@@ -2,10 +2,9 @@ package node
 
 import (
 	"context"
+	"github.com/linguohua/titan/node/modules/dtypes"
 	"sync"
 	"time"
-
-	"github.com/linguohua/titan/node/common"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
@@ -25,33 +24,6 @@ const (
 	saveInfoInterval = 10 // keepalive saves information every 10 times
 )
 
-// ExitCallbackFunc will be invoked when a node exit
-type ExitCallbackFunc func([]string)
-
-// NewExitCallbackFunc ...
-func NewExitCallbackFunc(cdb *persistent.CarfileDB) (ExitCallbackFunc, error) {
-	return func(deviceIDs []string) {
-		log.Infof("node event , nodes quit:%v", deviceIDs)
-
-		hashs, err := cdb.LoadCarfileRecordsWithNodes(deviceIDs)
-		if err != nil {
-			log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
-			return
-		}
-
-		err = cdb.RemoveReplicaInfoWithNodes(deviceIDs)
-		if err != nil {
-			log.Errorf("RemoveReplicaInfoWithNodes err:%s", err.Error())
-			return
-		}
-
-		// recache
-		for _, hash := range hashs {
-			log.Infof("need restore carfile :%s", hash)
-		}
-	}, nil
-}
-
 // Manager Node Manager
 type Manager struct {
 	EdgeNodes      sync.Map
@@ -63,7 +35,7 @@ type Manager struct {
 }
 
 // NewManager return new node manager instance
-func NewManager(callBack ExitCallbackFunc, cdb *persistent.CarfileDB, ndb *persistent.NodeMgrDB) *Manager {
+func NewManager(callBack dtypes.ExitCallbackFunc, cdb *persistent.CarfileDB, ndb *persistent.NodeMgrDB) *Manager {
 	nodeManager := &Manager{
 		nodeQuitCallBack: callBack,
 		CarfileDB:        cdb,
@@ -357,7 +329,7 @@ func (m *Manager) NodeSessionCallBack(deviceID, remoteAddr string) {
 	}
 }
 
-func NewSessionCallBackFunc(nodeMgr *Manager) (common.SessionCallbackFunc, error) {
+func NewSessionCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error) {
 	return func(deviceID, remoteAddr string) {
 		lastTime := time.Now()
 
