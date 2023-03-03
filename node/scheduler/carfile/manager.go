@@ -20,8 +20,8 @@ import (
 var log = logging.Logger("carfile")
 
 const (
-	checkCacheTimeoutInterval    = 60      //  set to check node cache timeout timer (Unit:Second)
-	cacheTimeoutTime             = 65      //  expiration set to redis (Unit:Second)
+	nodoCachingKeepalive         = 60      // node caching keepalive (Unit:Second)
+	nodeCacheTimeoutTime         = 65      // expiration set to redis (Unit:Second)
 	startTaskInterval            = 10      //  time interval (Unit:Second)
 	checkExpirationTimerInterval = 60 * 30 //  time interval (Unit:Second)
 	downloadingCarfileMaxCount   = 10      // It needs to be changed to the number of caches
@@ -80,7 +80,7 @@ func (m *Manager) initCarfileMap() {
 				return true
 			}
 
-			ra.countDown = cacheTimeoutTime
+			ra.countDown = nodeCacheTimeoutTime
 			isDownloading = true
 			go ra.startTimeoutTimer()
 

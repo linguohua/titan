@@ -184,7 +184,10 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceID)
 	}
 
-	privateKeyStr, _ := s.NodeManager.NodeMgrDB.NodePrivateKey(deviceID)
+	privateKeyStr, err := s.NodeManager.NodeMgrDB.NodePrivateKey(deviceID)
+	if err != nil {
+		return xerrors.Errorf("NodePrivateKey %s,%s", deviceID, err.Error())
+	}
 	var privateKey *rsa.PrivateKey
 	if len(privateKeyStr) > 0 {
 		privateKey, err = titanRsa.Pem2PrivateKey(privateKeyStr)
@@ -200,7 +203,10 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 	}
 
 	deviceInfo.NodeType = api.NodeCandidate
-	deviceInfo.ExternalIP, _, _ = net.SplitHostPort(remoteAddr)
+	deviceInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
+	if err != nil {
+		return xerrors.Errorf("SplitHostPort err:%s", err.Error())
+	}
 
 	// geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIP)
 	// // TODO Does the error need to be handled?
@@ -252,7 +258,10 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("deviceID mismatch %s,%s", deviceID, deviceInfo.DeviceID)
 	}
 
-	privateKeyStr, _ := s.NodeManager.NodeMgrDB.NodePrivateKey(deviceID)
+	privateKeyStr, err := s.NodeManager.NodeMgrDB.NodePrivateKey(deviceID)
+	if err != nil {
+		return xerrors.Errorf("NodePrivateKey %s,%s", deviceID, err.Error())
+	}
 	var privateKey *rsa.PrivateKey
 	if len(privateKeyStr) > 0 {
 		privateKey, err = titanRsa.Pem2PrivateKey(privateKeyStr)
@@ -268,7 +277,10 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	}
 
 	deviceInfo.NodeType = api.NodeEdge
-	deviceInfo.ExternalIP, _, _ = net.SplitHostPort(remoteAddr)
+	deviceInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
+	if err != nil {
+		return xerrors.Errorf("SplitHostPort err:%s", err.Error())
+	}
 
 	// geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.ExternalIP)
 	// // TODO Does the error need to be handled?
