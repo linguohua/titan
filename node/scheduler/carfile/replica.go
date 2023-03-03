@@ -56,7 +56,7 @@ func (ra *Replica) startTimeoutTimer() {
 		return
 	}
 
-	ra.timeoutTicker = time.NewTicker(time.Duration(checkCacheTimeoutInterval) * time.Second)
+	ra.timeoutTicker = time.NewTicker(time.Duration(nodoCachingKeepalive) * time.Second)
 	defer func() {
 		ra.timeoutTicker.Stop()
 		ra.timeoutTicker = nil
@@ -71,7 +71,7 @@ func (ra *Replica) startTimeoutTimer() {
 		if ra.countDown > 0 {
 			continue
 		}
-		ra.countDown -= checkCacheTimeoutInterval
+		ra.countDown -= nodoCachingKeepalive
 
 		info := &api.CacheResultInfo{
 			Status:         api.CacheStatusFailed,

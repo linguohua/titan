@@ -154,7 +154,7 @@ func (cr *CarfileRecord) startCacheReplicas(nodes []string, isCandidate bool) (d
 		}
 
 		// do cache
-		err = ra.cacheCarfile(cacheTimeoutTime)
+		err = ra.cacheCarfile(nodeCacheTimeoutTime)
 		if err != nil {
 			log.Errorf("cacheCarfile %s , node:%s,err:%s", cr.carfileCid, ra.deviceID, err.Error())
 			errorList = append(errorList, deviceID)
@@ -342,7 +342,7 @@ func (cr *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResu
 
 	if ra.status == api.CacheStatusDownloading {
 		// update cache task timeout
-		ra.countDown = cacheTimeoutTime
+		ra.countDown = nodeCacheTimeoutTime
 		return nil
 	}
 
