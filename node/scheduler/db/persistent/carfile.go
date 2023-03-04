@@ -516,10 +516,10 @@ func (c *CarfileDB) PushCarfileToWaitList(info *api.CacheCarfileInfo) error {
 
 // LoadWaitCarfiles load
 func (c *CarfileDB) LoadWaitCarfiles(serverID string) (*api.CacheCarfileInfo, error) {
-	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE server_id=? order by id asc limit ?,?`, waitingCarfileTable)
+	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE server_id=? order by id asc limit ?`, waitingCarfileTable)
 
 	info := &api.CacheCarfileInfo{}
-	err := c.db.Get(&info, sQuery, serverID, 0, 1)
+	err := c.db.Get(info, sQuery, serverID, 1)
 	if err != nil {
 		return nil, err
 	}

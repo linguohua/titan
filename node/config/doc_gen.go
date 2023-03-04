@@ -189,12 +189,6 @@ be used if InsecureSkipVerify is true`,
 			Comment: `mysql address`,
 		},
 		{
-			Name: "ServerName",
-			Type: "string",
-
-			Comment: `server name`,
-		},
-		{
 			Name: "AreaID",
 			Type: "string",
 

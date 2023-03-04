@@ -10,7 +10,6 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
-	"github.com/linguohua/titan/region"
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/go-jsonrpc"
@@ -139,7 +138,6 @@ type BaseInfo struct {
 	privateKey *rsa.PrivateKey
 	remoteAddr string
 
-	geoInfo         *region.GeoInfo
 	lastRequestTime time.Time
 	cacheStat       *api.CacheStat
 	cacheCount      int // The number of caches waiting and in progress
@@ -191,16 +189,6 @@ func (n *BaseInfo) LastRequestTime() time.Time {
 // SetLastRequestTime set node last request time
 func (n *BaseInfo) SetLastRequestTime(t time.Time) {
 	n.lastRequestTime = t
-}
-
-// GeoInfo get geo info
-func (n *BaseInfo) GeoInfo() *region.GeoInfo {
-	return n.geoInfo
-}
-
-// SetGeoInfo set geo info
-func (n *BaseInfo) SetGeoInfo(info *region.GeoInfo) {
-	n.geoInfo = info
 }
 
 // SetCurCacheCount set NodeMgrCache count

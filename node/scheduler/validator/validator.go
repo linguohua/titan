@@ -214,7 +214,7 @@ func (v *Validator) assignValidator(validatorList []string) map[string][]api.Req
 	for i, validated := range validatedList {
 		reqValidate, err := v.getNodeReqValidate(validated)
 		if err != nil {
-			log.Errorf("node:%s , getNodeReqValidate err:%s", validated.deviceID, err.Error())
+			// log.Errorf("node:%s , getNodeReqValidate err:%s", validated.deviceID, err.Error())
 			continue
 		}
 

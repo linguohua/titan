@@ -67,12 +67,8 @@ type LocatorCfg struct {
 type SchedulerCfg struct {
 	// host address and port the edge node api will listen on
 	ListenAddress string
-	// geodb path
-	GeoDBPath string
 	// database address
 	DatabaseAddress string
-	// server name
-	ServerName string
 	// area id
 	AreaID string
 	// InsecureSkipVerify skip tls verify

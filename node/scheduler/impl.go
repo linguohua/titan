@@ -8,6 +8,8 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/linguohua/titan/node/modules/dtypes"
+
 	"go.uber.org/fx"
 
 	"github.com/gbrlsnchs/jwt/v3"
