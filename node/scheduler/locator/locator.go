@@ -56,7 +56,7 @@ func ChangeNodeOnlineStatus(deviceID string, isOnline bool) {
 		if locator != nil && locator.GetAPI() != nil {
 			go func() {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				cancel()
+				defer cancel()
 
 				err := locator.GetAPI().SetDeviceOnlineStatus(ctx, deviceID, isOnline)
 				if err != nil {

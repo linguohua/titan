@@ -42,6 +42,9 @@ type Repo interface {
 	// APIToken returns JWT API Token for use in operations that require auth
 	APIToken() ([]byte, error)
 
+	// ServerID returns server id
+	ServerID() ([]byte, error)
+
 	// Lock locks the repo for exclusive use.
 	Lock(RepoType) (LockedRepo, error)
 }
@@ -77,6 +80,9 @@ type LockedRepo interface {
 
 	// SetAPIToken sets JWT API Token for CLI
 	SetAPIToken([]byte) error
+
+	// SetServerID sets server id for CLI
+	SetServerID([]byte) error
 
 	// KeyStore returns store of private keys for Filecoin transactions
 	KeyStore() (types.KeyStore, error)

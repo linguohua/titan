@@ -36,6 +36,7 @@ const (
 	fsDatastore     = "datastore"
 	fsLock          = "repo.lock"
 	fsKeystore      = "keystore"
+	fsServerID      = "sid"
 )
 
 func NewRepoTypeFromString(t string) RepoType {
@@ -346,6 +347,25 @@ func (fsr *FsRepo) APIToken() ([]byte, error) {
 	return bytes.TrimSpace(tb), nil
 }
 
+func (fsr *FsRepo) ServerID() ([]byte, error) {
+	p := filepath.Join(fsr.path, fsServerID)
+	f, err := os.Open(p)
+
+	if os.IsNotExist(err) {
+		return nil, ErrNoAPIEndpoint
+	} else if err != nil {
+		return nil, err
+	}
+	defer f.Close() //nolint: errcheck // Read only op
+
+	tb, err := ioutil.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes.TrimSpace(tb), nil
+}
+
 // Lock acquires exclusive lock on this repo
 func (fsr *FsRepo) Lock(repoType RepoType) (LockedRepo, error) {
 	locked, err := fslock.Locked(fsr.path, fsLock)
@@ -555,6 +575,13 @@ func (fsr *fsLockedRepo) SetAPIToken(token []byte) error {
 		return err
 	}
 	return ioutil.WriteFile(fsr.join(fsAPIToken), token, 0o600)
+}
+
+func (fsr *fsLockedRepo) SetServerID(id []byte) error {
+	if err := fsr.stillValid(); err != nil {
+		return err
+	}
+	return ioutil.WriteFile(fsr.join(fsServerID), id, 0o600)
 }
 
 func (fsr *fsLockedRepo) KeyStore() (types.KeyStore, error) {

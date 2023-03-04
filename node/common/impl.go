@@ -3,10 +3,11 @@ package common
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/secret"
-	"os"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
@@ -27,12 +28,22 @@ type CommonAPI struct {
 	APISecret    *jwt.HMACSHA
 	ShutdownChan chan struct{}
 
+	ServerID string
+
 	SessionCallBack dtypes.SessionCallbackFunc
 }
 
 type jwtPayload struct {
 	Allow []auth.Permission
 }
+
+type (
+	PermissionWriteToken []byte
+	PermissionAdminToken []byte
+)
+
+// SessionCallbackFunc will be called after node connection
+type SessionCallbackFunc func(string, string)
 
 // MethodGroup: Auth
 
@@ -44,10 +55,18 @@ func NewCommonAPI(lr repo.LockedRepo, callback dtypes.SessionCallbackFunc) (Comm
 
 	sec, err := secret.APISecret(lr)
 	if err != nil {
-		return commApi, fmt.Errorf("NewLocalScheduleNode failed:%s", err.Error())
+		return commApi, fmt.Errorf("APISecret failed:%s", err.Error())
 	}
 
 	commApi.APISecret = sec
+
+	serverID, err := secret.ServerID(lr)
+	if err != nil {
+		return commApi, fmt.Errorf("ServerID failed:%s", err.Error())
+	}
+
+	commApi.ServerID = serverID
+
 	return commApi, nil
 }
 
