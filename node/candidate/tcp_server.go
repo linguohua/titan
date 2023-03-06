@@ -2,6 +2,7 @@ package candidate
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"github.com/linguohua/titan/node/config"
@@ -24,15 +25,13 @@ type TCPServer struct {
 }
 
 func NewTCPServer(cfg *config.CandidateCfg, blockWaiterMap *BlockWaiter) *TCPServer {
-	tcpSrv := &TCPServer{
+	return &TCPServer{
 		Config:         cfg,
 		BlockWaiterMap: blockWaiterMap,
 	}
-	go tcpSrv.startTcpServer()
-	return tcpSrv
 }
 
-func (t *TCPServer) startTcpServer() {
+func (t *TCPServer) StartTcpServer() {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", t.Config.TcpSrvAddr)
 	if err != nil {
 		log.Fatal(err)
@@ -57,6 +56,10 @@ func (t *TCPServer) startTcpServer() {
 		// conn.SetReadBuffer(104857600)
 		go t.handleMessage(conn)
 	}
+}
+
+func (t *TCPServer) Stop(ctx context.Context) error {
+	return nil
 }
 
 func (t *TCPServer) handleMessage(conn *net.TCPConn) {

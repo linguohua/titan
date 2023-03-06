@@ -1,6 +1,8 @@
 package modules
 
 import (
+	"context"
+	"github.com/linguohua/titan/node/candidate"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/carfile/downloader"
 	"github.com/linguohua/titan/node/config"
@@ -41,4 +43,18 @@ func NewCarfileStore(storeType dtypes.CarfileStoreType, path dtypes.CarfileStore
 
 func NewCandidateDownloadBlocker(carfileStore *carfilestore.CarfileStore) downloader.DownloadBlockser {
 	return downloader.NewCandidate(carfileStore)
+}
+
+func NewTcpServer(lc fx.Lifecycle, cfg *config.CandidateCfg, blockWait *candidate.BlockWaiter) *candidate.TCPServer {
+	srv := candidate.NewTCPServer(cfg, blockWait)
+
+	lc.Append(fx.Hook{
+		OnStart: func(context.Context) error {
+			go srv.StartTcpServer()
+			return nil
+		},
+		OnStop: srv.Stop,
+	})
+
+	return srv
 }
