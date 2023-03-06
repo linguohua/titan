@@ -129,7 +129,7 @@ func (cr *CarfileRecord) startCacheReplicas(nodes []string, isCandidate bool) (d
 		return
 	}
 
-	err = cr.nodeManager.CarfileDB.ReplicaTasksStart("Server_ID", cr.carfileHash, nodes)
+	err = cr.nodeManager.CarfileDB.ReplicaTasksStart(cr.nodeManager.ServerID, cr.carfileHash, nodes)
 	if err != nil {
 		log.Errorf("startCacheReplicas %s , ReplicaTasksStart err:%s", cr.carfileHash, err.Error())
 		return
@@ -171,7 +171,7 @@ func (cr *CarfileRecord) startCacheReplicas(nodes []string, isCandidate bool) (d
 			log.Errorf("startReplicaTasks %s , UpdateCarfileReplicaStatus err:%s", cr.carfileHash, err.Error())
 		}
 
-		_, err = cr.nodeManager.CarfileDB.ReplicaTasksEnd("Server_ID", cr.carfileHash, errorList)
+		_, err = cr.nodeManager.CarfileDB.ReplicaTasksEnd(cr.nodeManager.ServerID, cr.carfileHash, errorList)
 		if err != nil {
 			log.Errorf("startReplicaTasks %s , ReplicaTasksEnd err:%s", cr.carfileHash, err.Error())
 		}
@@ -362,7 +362,7 @@ func (cr *CarfileRecord) carfileCacheResult(deviceID string, info *api.CacheResu
 		return xerrors.Errorf("endCache %s , updateCarfileRecordInfo err:%s", ra.carfileHash, err.Error())
 	}
 
-	cachesDone, err := cr.nodeManager.CarfileDB.ReplicaTasksEnd("Server_ID", ra.carfileHash, []string{ra.deviceID})
+	cachesDone, err := cr.nodeManager.CarfileDB.ReplicaTasksEnd(cr.nodeManager.ServerID, ra.carfileHash, []string{ra.deviceID})
 	if err != nil {
 		return xerrors.Errorf("endCache %s , ReplicaTasksEnd err:%s", ra.carfileHash, err.Error())
 	}

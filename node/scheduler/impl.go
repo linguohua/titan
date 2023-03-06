@@ -105,6 +105,8 @@ type Scheduler struct {
 	WriteToken   dtypes.PermissionWriteToken
 	AdminToken   dtypes.PermissionAdminToken
 	SchedulerCfg *config.SchedulerCfg
+
+	dtypes.ServerID
 }
 
 var _ api.Scheduler = &Scheduler{}
@@ -368,7 +370,7 @@ func (s *Scheduler) AllocateNodes(ctx context.Context, nodeType api.NodeType, co
 // GetOnlineDeviceIDs Get all online node id
 func (s *Scheduler) GetOnlineDeviceIDs(ctx context.Context, nodeType api.NodeType) ([]string, error) {
 	if nodeType == api.NodeValidate {
-		list, err := s.NodeManager.NodeMgrDB.GetValidatorsWithList("Server_ID")
+		list, err := s.NodeManager.NodeMgrDB.GetValidatorsWithList(s.ServerID)
 		if err != nil {
 			return nil, err
 		}

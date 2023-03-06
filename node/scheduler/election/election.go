@@ -192,7 +192,7 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 }
 
 func (v *Election) saveValidators(validators []string) error {
-	err := v.manager.NodeMgrDB.ResetValidators(validators, "Server_ID")
+	err := v.manager.NodeMgrDB.ResetValidators(validators, v.manager.ServerID)
 	if err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ func (v *Election) saveValidators(validators []string) error {
 }
 
 func (v *Election) fetchCurrentValidators() error {
-	list, err := v.manager.NodeMgrDB.GetValidatorsWithList("Server_ID")
+	list, err := v.manager.NodeMgrDB.GetValidatorsWithList(v.manager.ServerID)
 	if err != nil {
 		return err
 	}

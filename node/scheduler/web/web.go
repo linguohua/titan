@@ -31,7 +31,7 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 	}
 
 	deviceInValidator := make(map[string]struct{})
-	validatorList, err := w.NodeMgr.NodeMgrDB.GetValidatorsWithList("Server_ID")
+	validatorList, err := w.NodeMgr.NodeMgrDB.GetValidatorsWithList(w.NodeMgr.ServerID)
 	if err != nil {
 		log.Errorf("get validator list: %v", err)
 	}

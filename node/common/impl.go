@@ -24,12 +24,9 @@ import (
 var session = uuid.New()
 
 type CommonAPI struct {
-	Alerting     *alerting.Alerting
-	APISecret    *jwt.HMACSHA
-	ShutdownChan chan struct{}
-
-	ServerID string
-
+	Alerting        *alerting.Alerting
+	APISecret       *jwt.HMACSHA
+	ShutdownChan    chan struct{}
 	SessionCallBack dtypes.SessionCallbackFunc
 }
 
@@ -59,13 +56,6 @@ func NewCommonAPI(lr repo.LockedRepo, callback dtypes.SessionCallbackFunc) (Comm
 	}
 
 	commApi.APISecret = sec
-
-	serverID, err := secret.ServerID(lr)
-	if err != nil {
-		return commApi, fmt.Errorf("ServerID failed:%s", err.Error())
-	}
-
-	commApi.ServerID = serverID
 
 	return commApi, nil
 }

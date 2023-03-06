@@ -2,9 +2,10 @@ package node
 
 import (
 	"context"
-	"github.com/linguohua/titan/node/modules/dtypes"
 	"sync"
 	"time"
+
+	"github.com/linguohua/titan/node/modules/dtypes"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
@@ -31,15 +32,17 @@ type Manager struct {
 	CarfileDB      *persistent.CarfileDB
 	NodeMgrDB      *persistent.NodeMgrDB
 
+	dtypes.ServerID
 	nodeQuitCallBack func([]string)
 }
 
 // NewManager return new node manager instance
-func NewManager(callBack dtypes.ExitCallbackFunc, cdb *persistent.CarfileDB, ndb *persistent.NodeMgrDB) *Manager {
+func NewManager(callBack dtypes.ExitCallbackFunc, cdb *persistent.CarfileDB, ndb *persistent.NodeMgrDB, serverID dtypes.ServerID) *Manager {
 	nodeManager := &Manager{
 		nodeQuitCallBack: callBack,
 		CarfileDB:        cdb,
 		NodeMgrDB:        ndb,
+		ServerID:         serverID,
 	}
 
 	go nodeManager.run()
