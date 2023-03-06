@@ -160,7 +160,7 @@ var showNodeInfoCmd = &cli.Command{
 		fmt.Printf("device upload bandwidth: %.2f GB \n", info.BandwidthUp/1024/1024/1024)
 		fmt.Printf("device cpu percent: %.2f %s \n", info.CPUUsage, "%")
 		//
-		fmt.Printf("device DownloadCount: %d \n", info.DownloadCount)
+		fmt.Printf("device DownloadCount: %d \n", info.DownloadBlocks)
 		fmt.Printf("device NatType: %s \n", natType)
 
 		return nil

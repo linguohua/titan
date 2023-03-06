@@ -22,14 +22,8 @@ func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) e
 	node := s.NodeManager.GetNode(deviceID)
 	if node != nil {
 		node.DiskUsage = info.DiskUsage
-		node.BlockCount = info.TotalBlockCount
+		node.Blocks = info.TotalBlockCount
 	}
-	// update
-	err := s.NodeManager.NodeMgrDB.UpdateNodeCacheInfo(deviceID, info.DiskUsage, info.TotalBlockCount)
-	if err != nil {
-		log.Errorf("UpdateNodeCacheInfo err:%s", err.Error())
-	}
-
 	return s.DataManager.CacheCarfileResult(deviceID, &info)
 }
 
@@ -45,11 +39,10 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.Remo
 	node := s.NodeManager.GetNode(deviceID)
 	if node != nil {
 		node.DiskUsage = resultInfo.DiskUsage
-		node.BlockCount = resultInfo.BlockCount
+		node.Blocks = resultInfo.BlockCount
 	}
 
-	// update
-	return s.NodeManager.NodeMgrDB.UpdateNodeCacheInfo(deviceID, resultInfo.DiskUsage, resultInfo.BlockCount)
+	return nil
 }
 
 // ExecuteUndoneCarfilesTask Execute Undone Carfiles Task

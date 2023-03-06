@@ -172,10 +172,10 @@ func (n *BaseInfo) RPCURL() string {
 // DownloadURL download url
 func (n *BaseInfo) DownloadURL() string {
 	addr := n.remoteAddr
-	if n.Port != "" {
+	if n.PortMapping != "" {
 		index := strings.Index(n.remoteAddr, ":")
 		ip := n.remoteAddr[:index+1]
-		addr = ip + n.Port
+		addr = ip + n.PortMapping
 	}
 
 	return fmt.Sprintf("https://%s/block/get", addr)
@@ -208,7 +208,5 @@ func (n *BaseInfo) CurCacheCount() int {
 
 // SetNodePort reset node port
 func (n *BaseInfo) SetNodePort(port string) {
-	n.Port = port
-
-	// TODO save to db
+	n.PortMapping = port
 }

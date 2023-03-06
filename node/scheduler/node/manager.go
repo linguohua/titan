@@ -10,7 +10,6 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/cidutil"
-	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/locator"
 	"golang.org/x/xerrors"
@@ -474,7 +473,6 @@ func (m *Manager) GetNode(deviceID string) *BaseInfo {
 
 // node online
 func (m *Manager) saveInfo(n *BaseInfo) error {
-	n.PrivateKeyStr = titanRsa.PrivateKey2Pem(n.privateKey)
 	n.Quitted = false
 	n.LastTime = time.Now()
 

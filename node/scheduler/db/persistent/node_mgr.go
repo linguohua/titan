@@ -17,28 +17,6 @@ func NewNodeMgrDB(db *sqlx.DB) *NodeMgrDB {
 	return &NodeMgrDB{db}
 }
 
-// SetNodeInfo Set node info
-func (n *NodeMgrDB) SetNodeInfo(deviceID string, info *api.DeviceInfo) error {
-	info.DeviceID = deviceID
-
-	var count int64
-	cmd := "SELECT count(device_id) FROM node WHERE device_id=?"
-	err := n.db.Get(&count, cmd, deviceID)
-	if err != nil {
-		return err
-	}
-
-	if count == 0 {
-		_, err = n.db.NamedExec(`INSERT INTO node (device_id, last_time, geo, node_type,  address, private_key)
-                VALUES (:device_id, :last_time, :geo, :node_type,  :address, :private_key)`, info)
-		return err
-	}
-
-	// update
-	_, err = n.db.NamedExec(`UPDATE node SET last_time=:last_time,geo=:geo,address=:address,quitted=:quitted WHERE device_id=:device_id`, info)
-	return err
-}
-
 // NodeOffline Set the last online time of the node
 func (n *NodeMgrDB) NodeOffline(deviceID string, lastTime time.Time) error {
 	info := &api.DeviceInfo{
@@ -46,7 +24,8 @@ func (n *NodeMgrDB) NodeOffline(deviceID string, lastTime time.Time) error {
 		LastTime: lastTime,
 	}
 
-	_, err := n.db.NamedExec(`UPDATE node SET last_time=:last_time WHERE device_id=:device_id`, info)
+	query := fmt.Sprintf("UPDATE %s WHERE SET last_time=:last_time WHERE device_id=:device_id", nodeInfoTable)
+	_, err := n.db.NamedExec(query, info)
 
 	return err
 }
@@ -54,7 +33,7 @@ func (n *NodeMgrDB) NodeOffline(deviceID string, lastTime time.Time) error {
 // NodePrivateKey Get node privateKey
 func (n *NodeMgrDB) NodePrivateKey(deviceID string) (string, error) {
 	var privateKey string
-	query := "SELECT private_key FROM node WHERE device_id=?"
+	query := fmt.Sprintf("SELECT private_key FROM %s WHERE device_id=?", nodeInfoTable)
 	if err := n.db.Get(&privateKey, query, deviceID); err != nil {
 		return "", err
 	}
@@ -68,7 +47,7 @@ func (n *NodeMgrDB) LongTimeOfflineNodes(hour int) ([]*api.DeviceInfo, error) {
 
 	time := time.Now().Add(-time.Duration(hour) * time.Hour)
 
-	cmd := "SELECT device_id FROM node WHERE quitted=? AND last_time <= ?"
+	cmd := fmt.Sprintf("SELECT device_id FROM %s WHERE quitted=? AND last_time <= ?", nodeInfoTable)
 	if err := n.db.Select(&list, cmd, false, time); err != nil {
 		return nil, err
 	}
@@ -81,7 +60,7 @@ func (n *NodeMgrDB) SetNodesQuit(deviceIDs []string) error {
 	tx := n.db.MustBegin()
 
 	for _, deviceID := range deviceIDs {
-		dCmd := `UPDATE node SET quitted=? WHERE device_id=?`
+		dCmd := fmt.Sprintf(`UPDATE %s SET quitted=? WHERE device_id=?`, nodeInfoTable)
 		tx.MustExec(dCmd, true, deviceID)
 	}
 
@@ -94,14 +73,26 @@ func (n *NodeMgrDB) SetNodesQuit(deviceIDs []string) error {
 	return nil
 }
 
-// SetNodePort Set node port
-func (n *NodeMgrDB) SetNodePort(deviceID, port string) error {
+// NodePortMapping load node mapping port
+func (n *NodeMgrDB) NodePortMapping(deviceID string) (string, error) {
+	var privateKey string
+	query := fmt.Sprintf("SELECT port_mapping FROM %s WHERE device_id=?", nodeInfoTable)
+	if err := n.db.Get(&privateKey, query, deviceID); err != nil {
+		return "", err
+	}
+
+	return privateKey, nil
+}
+
+// SetNodePortMapping Set node mapping port
+func (n *NodeMgrDB) SetNodePortMapping(deviceID, port string) error {
 	info := api.DeviceInfo{
-		DeviceID: deviceID,
-		Port:     port,
+		DeviceID:    deviceID,
+		PortMapping: port,
 	}
 	// update
-	_, err := n.db.NamedExec(`UPDATE node SET port=:port WHERE device_id=:device_id`, info)
+	dCmd := fmt.Sprintf(`UPDATE %s SET port_mapping=:port_mapping WHERE device_id=:device_id`, nodeInfoTable)
+	_, err := n.db.NamedExec(dCmd, info)
 	return err
 }
 
@@ -221,13 +212,13 @@ func IsNilErr(err error) bool {
 
 func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*api.DeviceInfo, int64, error) {
 	var total int64
-	countSQL := "SELECT count(*) FROM node"
+	countSQL := fmt.Sprintf("SELECT count(*) FROM %s", nodeInfoTable)
 	err := n.db.Get(&total, countSQL)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	queryString := "SELECT device_id, is_online FROM node order by device_id asc limit ?,?"
+	queryString := fmt.Sprintf(`SELECT device_id, is_online FROM %s order by device_id asc limit ?,?`, nodeInfoTable)
 
 	if count > loadNodeInfoMaxCount {
 		count = loadNodeInfoMaxCount
@@ -278,14 +269,11 @@ func (n *NodeMgrDB) GetValidatorsWithList(serverID dtypes.ServerID) ([]string, e
 // UpdateNodeInfo update node info
 func (n *NodeMgrDB) UpdateNodeInfo(info *api.DeviceInfo) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (device_id, device_name, operator, network_type, system_version, product_type, network_info, external_ip, internal_ip, ip_location, mac_location, nat_type,
-			    upnp, pkg_loss_ratio, latency, cpu_usage, cpu_cores, memory_usage, memory, disk_usage, disk_space, disk_type, work_status, io_system, nat_ratio, cumulative_profit,
-				bandwidth_up, bandwidth_down, latitude, longitude, private_key, last_time, quitted) 
-				VALUES (:device_id, :device_name, :operator, :network_type, :system_version, :product_type, :network_info, :external_ip, :internal_ip, :ip_location, :mac_location, :nat_type,
-				:upnp, :pkg_loss_ratio, :latency, :cpu_usage, :cpu_cores, :memory_usage, :memory, :disk_usage, :disk_space, :disk_type, :work_status, :io_system, :nat_ratio, :cumulative_profit,
-				:bandwidth_up, :bandwidth_down, :latitude, :longitude, :private_key, :last_time, :quitted) 
-				ON DUPLICATE KEY UPDATE device_id=:device_id, last_time=:last_time, quitted=:quitted, disk_usage=:disk_usage, memory_usage=:memory_usage, cpu_usage=:cpu_usage, 
-				cpu_usage=:cpu_usage, nat_type=:nat_type, external_ip=:external_ip, system_version:=system_version`, nodeTable)
+		`INSERT INTO %s (device_id, profit,
+				private_key, last_time, quitted) 
+				VALUES (:device_id, :profit,
+				:private_key, :last_time, :quitted) 
+				ON DUPLICATE KEY UPDATE device_id=:device_id, last_time=:last_time, quitted=:quitted`, nodeInfoTable)
 
 	_, err := n.db.NamedExec(query, info)
 	return err
@@ -298,7 +286,7 @@ func (n *NodeMgrDB) UpdateNodeOnlineTime(deviceID string, onlineTime int) error 
 		OnlineTime: onlineTime,
 	}
 
-	query := fmt.Sprintf(`UPDATE %s SET last_time=NOW(),online_time=:online_time WHERE device_id=:device_id`, nodeTable)
+	query := fmt.Sprintf(`UPDATE %s SET last_time=NOW(),online_time=:online_time WHERE device_id=:device_id`, nodeInfoTable)
 	// update
 	_, err := n.db.NamedExec(query, info)
 	return err
@@ -308,13 +296,13 @@ func (n *NodeMgrDB) UpdateNodeOnlineTime(deviceID string, onlineTime int) error 
 func (n *NodeMgrDB) ListDeviceIDs(cursor int, count int) ([]string, int64, error) {
 	var total int64
 
-	cQuery := fmt.Sprintf(`SELECT count(*) FROM %s`, nodeTable)
+	cQuery := fmt.Sprintf(`SELECT count(*) FROM %s`, nodeInfoTable)
 	err := n.db.Get(&total, cQuery)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	sQuery := fmt.Sprintf(`SELECT device_id FROM %s order by device_id asc limit ?,?`, nodeTable)
+	sQuery := fmt.Sprintf(`SELECT device_id FROM %s order by device_id asc limit ?,?`, nodeInfoTable)
 
 	if count > loadNodeInfoMaxCount {
 		count = loadNodeInfoMaxCount
@@ -331,7 +319,7 @@ func (n *NodeMgrDB) ListDeviceIDs(cursor int, count int) ([]string, int64, error
 
 // LoadNodeInfo load node info
 func (n *NodeMgrDB) LoadNodeInfo(deviceID string) (*api.DeviceInfo, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE device_id=?`, nodeTable)
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE device_id=?`, nodeInfoTable)
 
 	var out api.DeviceInfo
 	err := n.db.Select(&out, query, deviceID)
@@ -340,19 +328,6 @@ func (n *NodeMgrDB) LoadNodeInfo(deviceID string) (*api.DeviceInfo, error) {
 	}
 
 	return &out, nil
-}
-
-// UpdateNodeCacheInfo update node info if cache
-func (n *NodeMgrDB) UpdateNodeCacheInfo(deviceID string, diskUsage float64, blockCount int) error {
-	info := &api.DeviceInfo{
-		DeviceID:   deviceID,
-		DiskUsage:  diskUsage,
-		BlockCount: blockCount,
-	}
-	query := fmt.Sprintf(`UPDATE %s SET disk_usage=:disk_usage, block_count=:block_count WHERE device_id=:device_id`, nodeTable)
-	// update
-	_, err := n.db.NamedExec(query, info)
-	return err
 }
 
 // SetNodesToVerifyingList validator list
