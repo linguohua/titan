@@ -59,6 +59,6 @@ func ConfigEdge(c interface{}) Option {
 		Override(new(*download.BlockDownload), download.NewBlockDownload),
 		Override(new(*carfile.CarfileOperation), carfile.NewCarfileOperation),
 		Override(new(*datasync.DataSync), datasync.NewDataSync),
-		Override(new(downloader.DownloadBlockser), modules.NewCandidateDownloadBlocker),
+		Override(new(downloader.DownloadBlockser), modules.NewDownloadBlockerFromCandidate),
 	)
 }
