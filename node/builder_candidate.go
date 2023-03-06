@@ -60,5 +60,6 @@ func ConfigCandidate(c interface{}) Option {
 		Override(new(downloader.DownloadBlockser), modules.NewIPFSDownloadBlocker),
 		Override(new(*datasync.DataSync), datasync.NewDataSync),
 		Override(new(*candidate.BlockWaiter), candidate.NewBlockWaiter),
+		Override(new(*candidate.TCPServer), candidate.NewTCPServer),
 	)
 }
