@@ -2,7 +2,6 @@ package secret
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/node/repo"
@@ -27,8 +26,7 @@ func ServerID(lr repo.LockedRepo) (string, error) {
 	if errors.Is(err, types.ErrKeyInfoNotFound) {
 		log.Warn("Generating new server id")
 
-		prefix := lr.RepoType().Type()
-		uid := []byte(fmt.Sprintf("%s_%s", prefix, uuid.NewString()))
+		uid := []byte(uuid.NewString())
 
 		key = types.KeyInfo{
 			Type:       KTServerIDSecret,
