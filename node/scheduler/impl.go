@@ -206,18 +206,18 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		privateKey = key
 	}
 
+	port, err := s.NodeManager.NodeMgrDB.NodePortMapping(deviceID)
+	if err != nil {
+		return err
+	}
+
+	deviceInfo.PortMapping = port
+
 	deviceInfo.NodeType = api.NodeCandidate
 	deviceInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
 	if err != nil {
 		return xerrors.Errorf("SplitHostPort err:%s", err.Error())
 	}
-
-	// geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.InternalIP)
-	// // TODO Does the error need to be handled?
-
-	// deviceInfo.IPLocation = geoInfo.Geo
-	// deviceInfo.Longitude = geoInfo.Longitude
-	// deviceInfo.Latitude = geoInfo.Latitude
 
 	candidateNode.BaseInfo = node.NewBaseInfo(&deviceInfo, privateKey, remoteAddr)
 
@@ -280,18 +280,18 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		privateKey = key
 	}
 
+	port, err := s.NodeManager.NodeMgrDB.NodePortMapping(deviceID)
+	if err != nil {
+		return err
+	}
+
+	deviceInfo.PortMapping = port
+
 	deviceInfo.NodeType = api.NodeEdge
 	deviceInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
 	if err != nil {
 		return xerrors.Errorf("SplitHostPort err:%s", err.Error())
 	}
-
-	// geoInfo, _ := region.GetRegion().GetGeoInfo(deviceInfo.InternalIP)
-	// // TODO Does the error need to be handled?
-
-	// deviceInfo.IPLocation = geoInfo.Geo
-	// deviceInfo.Longitude = geoInfo.Longitude
-	// deviceInfo.Latitude = geoInfo.Latitude
 
 	edgeNode.BaseInfo = node.NewBaseInfo(&deviceInfo, privateKey, remoteAddr)
 
@@ -500,7 +500,12 @@ func (s *Scheduler) nodeExitedCallback(deviceIDs []string) {
 
 // SetNodePort set node port
 func (s *Scheduler) SetNodePort(ctx context.Context, deviceID, port string) error {
-	return s.NodeManager.NodeMgrDB.SetNodePort(deviceID, port)
+	baseInfo := s.NodeManager.GetNode(deviceID)
+	if baseInfo != nil {
+		baseInfo.SetNodePort(port)
+	}
+
+	return s.NodeManager.NodeMgrDB.SetNodePortMapping(deviceID, port)
 }
 
 func (s *Scheduler) authNew() error {

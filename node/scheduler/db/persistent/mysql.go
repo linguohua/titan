@@ -19,7 +19,7 @@ const (
 	blockDownloadInfo   = "block_download_info"
 	nodeUpdateInfo      = "node_update_info"
 	waitingCarfileTable = "carfile_waiting"
-	nodeTable           = "node"
+	nodeInfoTable       = "node_info"
 	validatorsTable     = "validators"
 	nodeVerifyingTable  = "node_verifying"
 	downloadingTable    = "carfile_downloading"

@@ -67,7 +67,7 @@ type WebCarfile struct {
 // SystemBaseInfo  system base info for titan
 type SystemBaseInfo struct {
 	CarFileCount     int   `json:"car_file_count" redis:"CarfileCount"`
-	DownloadCount    int   `json:"download_count" redis:"DownloadCount"`
+	DownloadCount    int   `json:"download_blocks" redis:"DownloadCount"`
 	NextElectionTime int64 `json:"next_election_time" redis:"NextElectionTime"`
 }
 

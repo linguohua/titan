@@ -15,46 +15,47 @@ type Base struct {
 // DeviceInfo Info
 type DeviceInfo struct {
 	Base
-	UserID           string    `json:"user_id" form:"userId" gorm:"column:user_id;comment:;"`
-	SnCode           string    `json:"sn_code" form:"snCode" gorm:"column:sn_code;comment:;"`
-	NodeType         NodeType  `json:"node_type" db:"node_type"`
-	DeviceID         string    `json:"device_id" form:"deviceId" gorm:"column:device_id;comment:;" db:"device_id"`
-	DeviceName       string    `json:"device_name" form:"deviceName" gorm:"column:device_name;comment:;" db:"device_name"`
-	Operator         string    `json:"operator" form:"operator" gorm:"column:operator;comment:;" db:"operator"`
-	NetworkType      string    `json:"network_type" form:"networkType" gorm:"column:network_type;comment:;" db:"network_type"`
-	SystemVersion    string    `json:"system_version" form:"systemVersion" gorm:"column:system_version;comment:;" db:"system_version"`
-	ProductType      string    `json:"product_type" form:"productType" gorm:"column:product_type;comment:;" db:"product_type"`
-	NetworkInfo      string    `json:"network_info" form:"networkInfo" gorm:"column:network_info;comment:;" db:"network_info"`
-	ExternalIP       string    `json:"external_ip" form:"externalIp" gorm:"column:external_ip;comment:;" db:"external_ip"`
-	InternalIP       string    `json:"internal_ip" form:"internalIp" gorm:"column:internal_ip;comment:;" db:"internal_ip"`
-	IPLocation       string    `json:"ip_location" form:"ipLocation" gorm:"column:ip_location;comment:;" db:"ip_location"`
-	MacLocation      string    `json:"mac_location" form:"macLocation" gorm:"column:mac_location;comment:;" db:"mac_location"`
-	NatType          string    `json:"nat_type" form:"natType" gorm:"column:nat_type;comment:;" db:"nat_type"`
-	Upnp             string    `json:"upnp" form:"upnp" gorm:"column:upnp;comment:;" db:"upnp"`
-	PkgLossRatio     float64   `json:"pkg_loss_ratio" form:"pkgLossRatio" gorm:"column:pkg_loss_ratio;comment:;" db:"pkg_loss_ratio"`
-	Latency          float64   `json:"latency" form:"latency" gorm:"column:latency;comment:;" db:"latency"`
-	CPUUsage         float64   `json:"cpu_usage" form:"cpuUsage" gorm:"column:cpu_usage;comment:;" db:"cpu_usage"`
-	CPUCores         int       `json:"cpu_cores" form:"cpuCores" gorm:"column:cpu_cores;comment:;" db:"cpu_cores"`
-	MemoryUsage      float64   `json:"memory_usage" form:"memoryUsage" gorm:"column:memory_usage;comment:;" db:"memory_usage"`
-	Memory           float64   `json:"memory" form:"memory" gorm:"column:memory;comment:;" db:"memory"`
-	DiskUsage        float64   `json:"disk_usage" form:"diskUsage" gorm:"column:disk_usage;comment:;" db:"disk_usage"`
-	DiskSpace        float64   `json:"disk_space" form:"diskSpace" gorm:"column:disk_space;comment:;" db:"disk_space"`
-	DiskType         string    `json:"disk_type" form:"diskType" gorm:"column:disk_type;comment:;" db:"disk_type"`
+	DeviceID      string   `json:"device_id" form:"deviceId" gorm:"column:device_id;comment:;" db:"device_id"`
+	UserID        string   `json:"user_id" form:"userId" gorm:"column:user_id;comment:;"`
+	SnCode        string   `json:"sn_code" form:"snCode" gorm:"column:sn_code;comment:;"`
+	NodeType      NodeType `json:"node_type"`
+	DeviceName    string   `json:"device_name" form:"deviceName" gorm:"column:device_name;comment:;"`
+	Operator      string   `json:"operator" form:"operator" gorm:"column:operator;comment:;"`
+	NetworkType   string   `json:"network_type" form:"networkType" gorm:"column:network_type;comment:;"`
+	SystemVersion string   `json:"system_version" form:"systemVersion" gorm:"column:system_version;comment:;"`
+	ProductType   string   `json:"product_type" form:"productType" gorm:"column:product_type;comment:;"`
+	NetworkInfo   string   `json:"network_info" form:"networkInfo" gorm:"column:network_info;comment:;"`
+	ExternalIP    string   `json:"external_ip" form:"externalIp" gorm:"column:external_ip;comment:;"`
+	InternalIP    string   `json:"internal_ip" form:"internalIp" gorm:"column:internal_ip;comment:;"`
+	IPLocation    string   `json:"ip_location" form:"ipLocation" gorm:"column:ip_location;comment:;"`
+	MacLocation   string   `json:"mac_location" form:"macLocation" gorm:"column:mac_location;comment:;"`
+	NatType       string   `json:"nat_type" form:"natType" gorm:"column:nat_type;comment:;"`
+	Upnp          string   `json:"upnp" form:"upnp" gorm:"column:upnp;comment:;"`
+	PkgLossRatio  float64  `json:"pkg_loss_ratio" form:"pkgLossRatio" gorm:"column:pkg_loss_ratio;comment:;"`
+	Latency       float64  `json:"latency" form:"latency" gorm:"column:latency;comment:;"`
+	CPUUsage      float64  `json:"cpu_usage" form:"cpuUsage" gorm:"column:cpu_usage;comment:;"`
+	CPUCores      int      `json:"cpu_cores" form:"cpuCores" gorm:"column:cpu_cores;comment:;"`
+	MemoryUsage   float64  `json:"memory_usage" form:"memoryUsage" gorm:"column:memory_usage;comment:;"`
+	Memory        float64  `json:"memory" form:"memory" gorm:"column:memory;comment:;"`
+	DiskUsage     float64  `json:"disk_usage" form:"diskUsage" gorm:"column:disk_usage;comment:;"`
+	DiskSpace     float64  `json:"disk_space" form:"diskSpace" gorm:"column:disk_space;comment:;"`
+	DiskType      string   `json:"disk_type" form:"diskType" gorm:"column:disk_type;comment:;"`
+	WorkStatus    string   `json:"work_status" form:"workStatus" gorm:"column:work_status;comment:;"`
+	IoSystem      string   `json:"io_system" form:"ioSystem" gorm:"column:io_system;comment:;"`
+	NatRatio      float64  `json:"nat_ratio" form:"nat_ratio" gorm:"column:nat_ratio;comment:;"`
+	BandwidthUp   float64  `json:"bandwidth_up"`
+	BandwidthDown float64  `json:"bandwidth_down"`
+	Blocks        int      `json:"blocks" form:"blockCount" gorm:"column:blocks;comment:;"`
+	Latitude      float64  `json:"latitude"`
+	Longitude     float64  `json:"longitude"`
+
 	DeviceStatus     string    `json:"device_status" form:"deviceStatus" gorm:"column:device_status;comment:;" db:"device_status"`
-	WorkStatus       string    `json:"work_status" form:"workStatus" gorm:"column:work_status;comment:;" db:"work_status"`
-	IoSystem         string    `json:"io_system" form:"ioSystem" gorm:"column:io_system;comment:;" db:"io_system"`
-	NatRatio         float64   `json:"nat_ratio" form:"nat_ratio" gorm:"column:nat_ratio;comment:;" db:"nat_ratio"`
 	OnlineTime       int       `json:"online_time" form:"OnlineTime" db:"online_time"`
-	CumulativeProfit float64   `json:"cumulative_profit" db:"cumulative_profit"`
-	BandwidthUp      float64   `json:"bandwidth_up" db:"bandwidth_up"`
-	BandwidthDown    float64   `json:"bandwidth_down" db:"bandwidth_down"`
-	TotalDownload    float64   `json:"total_download" db:"total_townload"`
-	TotalUpload      float64   `json:"total_upload" db:"total_upload"`
-	DownloadCount    int       `json:"download_count" form:"downloadCount" gorm:"column:download_count;comment:;" db:"download_count"`
-	BlockCount       int       `json:"block_count" form:"blockCount" gorm:"column:block_count;comment:;" db:"block_count"`
-	Latitude         float64   `json:"latitude" db:"latitude"`
-	Longitude        float64   `json:"longitude" db:"longitude"`
-	Port             string    `db:"port"`
+	CumulativeProfit float64   `json:"profit" db:"profit"`
+	DownloadTraffic  float64   `json:"download_traffic" db:"download_traffic"`
+	UploadTraffic    float64   `json:"upload_traffic" db:"upload_traffic"`
+	DownloadBlocks   int       `json:"download_blocks" form:"downloadCount" gorm:"column:download_blocks;comment:;" db:"download_blocks"`
+	PortMapping      string    `db:"port_mapping"`
 	LastTime         time.Time `db:"last_time"`
 	PrivateKeyStr    string    `db:"private_key"`
 	Quitted          bool      `db:"quitted"`
