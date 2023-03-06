@@ -114,17 +114,17 @@ type RemoveCarfileResultInfo struct {
 
 // CarfileRecordInfo Data info
 type CarfileRecordInfo struct {
-	CarfileCid     string    `db:"carfile_cid"`
-	CarfileHash    string    `db:"carfile_hash"`
-	Replica        int       `db:"replica"`
-	TotalSize      int64     `db:"total_size"`
-	TotalBlocks    int       `db:"total_blocks"`
-	ExpirationTime time.Time `db:"expiration_time"`
-	CreateTime     time.Time `db:"created_time"`
-	EndTime        time.Time `db:"end_time"`
-	ReplicaInfos   []*ReplicaInfo
-	ResultInfo     *CarfileRecordCacheResult
-	EdgeReplica    int
+	CarfileCid   string    `db:"carfile_cid"`
+	CarfileHash  string    `db:"carfile_hash"`
+	Replica      int       `db:"replica"`
+	TotalSize    int64     `db:"total_size"`
+	TotalBlocks  int       `db:"total_blocks"`
+	Expiration   time.Time `db:"expiration"`
+	CreateTime   time.Time `db:"created_time"`
+	EndTime      time.Time `db:"end_time"`
+	ReplicaInfos []*ReplicaInfo
+	ResultInfo   *CarfileRecordCacheResult
+	EdgeReplica  int
 }
 
 // ReplicaInfo Carfile Replica Info
@@ -148,7 +148,7 @@ type CacheCarfileInfo struct {
 	Replicas       int       `db:"replicas"`
 	DeviceID       string    `db:"device_id"`
 	ServerID       string    `db:"server_id"`
-	ExpirationTime time.Time `db:"expiration_time"`
+	ExpirationTime time.Time `db:"expiration"`
 }
 
 type NodeBlockDownloadResult struct {

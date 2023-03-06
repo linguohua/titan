@@ -64,7 +64,7 @@ func (s *Scheduler) ExecuteUndoneCarfilesTask(ctx context.Context, hashs []strin
 			info := &api.CacheCarfileInfo{
 				CarfileCid:     carfile.CarfileCid,
 				Replicas:       carfile.Replica,
-				ExpirationTime: carfile.ExpirationTime,
+				ExpirationTime: carfile.Expiration,
 			}
 			err = s.CacheCarfile(ctx, info)
 			if err != nil {
