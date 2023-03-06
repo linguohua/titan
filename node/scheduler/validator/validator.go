@@ -97,12 +97,12 @@ func (v *Validator) startValidate() error {
 // }
 
 func (v *Validator) execute() error {
-	err := v.nodeManager.NodeMgrDB.RemoveVerifyingList("Server_ID")
+	err := v.nodeManager.NodeMgrDB.RemoveVerifyingList(v.nodeManager.ServerID)
 	if err != nil {
 		return err
 	}
 
-	validatorList, err := v.nodeManager.NodeMgrDB.GetValidatorsWithList("Server_ID")
+	validatorList, err := v.nodeManager.NodeMgrDB.GetValidatorsWithList(v.nodeManager.ServerID)
 	if err != nil {
 		return err
 	}
@@ -246,7 +246,7 @@ func (v *Validator) assignValidator(validatorList []string) map[string][]api.Req
 	}
 
 	if len(validateds) > 0 {
-		err = v.nodeManager.NodeMgrDB.SetNodesToVerifyingList(validateds, "Server_ID")
+		err = v.nodeManager.NodeMgrDB.SetNodesToVerifyingList(validateds, v.nodeManager.ServerID)
 		if err != nil {
 			log.Errorf("SetNodesToVerifyingList err:%s", err.Error())
 		}
@@ -344,7 +344,7 @@ func (v *Validator) ValidateResult(validateResult *api.ValidateResults) error {
 			log.Errorf("UpdateValidateResult [%s] fail : %s", validateResult.DeviceID, err.Error())
 		}
 
-		err = v.nodeManager.NodeMgrDB.RemoveValidatedWithList(validateResult.DeviceID, "Server_ID")
+		err = v.nodeManager.NodeMgrDB.RemoveValidatedWithList(validateResult.DeviceID, v.nodeManager.ServerID)
 		if err != nil {
 			log.Errorf("RemoveValidatedWithList [%s] fail : %s", validateResult.DeviceID, err.Error())
 			return
@@ -441,7 +441,7 @@ func (v *Validator) compareCid(cidStr1, cidStr2 string) bool {
 
 // StartValidateOnceTask start validator task
 func (v *Validator) StartValidateOnceTask() error {
-	count, err := v.nodeManager.NodeMgrDB.CountVerifyingNode("Server_ID")
+	count, err := v.nodeManager.NodeMgrDB.CountVerifyingNode(v.nodeManager.ServerID)
 	if err != nil {
 		return err
 	}

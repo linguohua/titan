@@ -6,6 +6,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/modules/dtypes"
 )
 
 type NodeMgrDB struct {
@@ -242,7 +243,7 @@ func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*api.DeviceInfo, int64, e
 }
 
 // ResetValidators validator list
-func (n *NodeMgrDB) ResetValidators(deviceIDs []string, serverID string) error {
+func (n *NodeMgrDB) ResetValidators(deviceIDs []string, serverID dtypes.ServerID) error {
 	tx := n.db.MustBegin()
 	// clean old validators
 	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE server_id=? `, validatorsTable)
@@ -262,7 +263,7 @@ func (n *NodeMgrDB) ResetValidators(deviceIDs []string, serverID string) error {
 }
 
 // GetValidatorsWithList load validators
-func (n *NodeMgrDB) GetValidatorsWithList(serverID string) ([]string, error) {
+func (n *NodeMgrDB) GetValidatorsWithList(serverID dtypes.ServerID) ([]string, error) {
 	sQuery := fmt.Sprintf(`SELECT device_id FROM %s WHERE server_id=?`, validatorsTable)
 
 	var out []string
@@ -355,7 +356,7 @@ func (n *NodeMgrDB) UpdateNodeCacheInfo(deviceID string, diskUsage float64, bloc
 }
 
 // SetNodesToVerifyingList validator list
-func (n *NodeMgrDB) SetNodesToVerifyingList(deviceIDs []string, serverID string) error {
+func (n *NodeMgrDB) SetNodesToVerifyingList(deviceIDs []string, serverID dtypes.ServerID) error {
 	tx := n.db.MustBegin()
 	// clean old validators
 	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE server_id=? `, nodeVerifyingTable)
@@ -375,7 +376,7 @@ func (n *NodeMgrDB) SetNodesToVerifyingList(deviceIDs []string, serverID string)
 }
 
 // GetNodesWithVerifyingList load validators
-func (n *NodeMgrDB) GetNodesWithVerifyingList(serverID string) ([]string, error) {
+func (n *NodeMgrDB) GetNodesWithVerifyingList(serverID dtypes.ServerID) ([]string, error) {
 	sQuery := fmt.Sprintf(`SELECT device_id FROM %s WHERE server_id=?`, nodeVerifyingTable)
 
 	var out []string
@@ -388,7 +389,7 @@ func (n *NodeMgrDB) GetNodesWithVerifyingList(serverID string) ([]string, error)
 }
 
 // CountVerifyingNode ...
-func (n *NodeMgrDB) CountVerifyingNode(serverID string) (int64, error) {
+func (n *NodeMgrDB) CountVerifyingNode(serverID dtypes.ServerID) (int64, error) {
 	var count int64
 	cmd := fmt.Sprintf("SELECT count(device_id) FROM %s WHERE server_id=?", nodeVerifyingTable)
 	err := n.db.Get(&count, cmd, serverID)
@@ -396,14 +397,14 @@ func (n *NodeMgrDB) CountVerifyingNode(serverID string) (int64, error) {
 }
 
 // RemoveValidatedWithList ...
-func (n *NodeMgrDB) RemoveValidatedWithList(deviceID, serverID string) error {
+func (n *NodeMgrDB) RemoveValidatedWithList(deviceID string, serverID dtypes.ServerID) error {
 	query := fmt.Sprintf(`DELETE FROM %s WHERE server_id=? AND device_id=?`, nodeVerifyingTable)
 	_, err := n.db.Exec(query, serverID, deviceID)
 	return err
 }
 
 // RemoveVerifyingList ...
-func (n *NodeMgrDB) RemoveVerifyingList(serverID string) error {
+func (n *NodeMgrDB) RemoveVerifyingList(serverID dtypes.ServerID) error {
 	query := fmt.Sprintf(`DELETE FROM %s WHERE server_id=?`, nodeVerifyingTable)
 	_, err := n.db.Exec(query, serverID)
 	return err

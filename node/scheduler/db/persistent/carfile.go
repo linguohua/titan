@@ -7,6 +7,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/modules/dtypes"
 	"golang.org/x/xerrors"
 )
 
@@ -515,7 +516,7 @@ func (c *CarfileDB) PushCarfileToWaitList(info *api.CacheCarfileInfo) error {
 }
 
 // LoadWaitCarfiles load
-func (c *CarfileDB) LoadWaitCarfiles(serverID string) (*api.CacheCarfileInfo, error) {
+func (c *CarfileDB) LoadWaitCarfiles(serverID dtypes.ServerID) (*api.CacheCarfileInfo, error) {
 	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE server_id=? order by id asc limit ?`, waitingCarfileTable)
 
 	info := &api.CacheCarfileInfo{}
@@ -535,7 +536,7 @@ func (c *CarfileDB) RemoveWaitCarfile(id string) error {
 }
 
 // GetCachingCarfiles ...
-func (c *CarfileDB) GetCachingCarfiles(serverID string) ([]string, error) {
+func (c *CarfileDB) GetCachingCarfiles(serverID dtypes.ServerID) ([]string, error) {
 	sQuery := fmt.Sprintf(`SELECT carfile_hash FROM %s WHERE server_id=? GROUP BY carfile_hash`, downloadingTable)
 
 	var out []string
@@ -546,7 +547,7 @@ func (c *CarfileDB) GetCachingCarfiles(serverID string) ([]string, error) {
 }
 
 // ReplicaTasksStart ...
-func (c *CarfileDB) ReplicaTasksStart(serverID, hash string, deviceIDs []string) error {
+func (c *CarfileDB) ReplicaTasksStart(serverID dtypes.ServerID, hash string, deviceIDs []string) error {
 	tx := c.db.MustBegin()
 
 	for _, deviceID := range deviceIDs {
@@ -563,7 +564,7 @@ func (c *CarfileDB) ReplicaTasksStart(serverID, hash string, deviceIDs []string)
 }
 
 // ReplicaTasksEnd ...
-func (c *CarfileDB) ReplicaTasksEnd(serverID, hash string, deviceIDs []string) (bool, error) {
+func (c *CarfileDB) ReplicaTasksEnd(serverID dtypes.ServerID, hash string, deviceIDs []string) (bool, error) {
 	dQuery := fmt.Sprintf("DELETE FROM %s WHERE server_id=? AND carfile_hash=? AND device_id in (?) ", downloadingTable)
 	query, args, err := sqlx.In(dQuery, serverID, hash, deviceIDs)
 	if err != nil {

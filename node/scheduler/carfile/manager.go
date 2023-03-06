@@ -5,9 +5,10 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"github.com/linguohua/titan/node/modules/dtypes"
 	"sync"
 	"time"
+
+	"github.com/linguohua/titan/node/modules/dtypes"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
@@ -55,7 +56,7 @@ func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToke
 }
 
 func (m *Manager) initCarfileMap() {
-	hashs, err := m.nodeManager.CarfileDB.GetCachingCarfiles("Server_ID")
+	hashs, err := m.nodeManager.CarfileDB.GetCachingCarfiles(m.nodeManager.ServerID)
 	if err != nil {
 		log.Errorf("initCacheMap GetCachingCarfiles err:%s", err.Error())
 		return
@@ -192,7 +193,7 @@ func (m *Manager) CacheCarfile(info *api.CacheCarfileInfo) error {
 	} else {
 		log.Infof("carfile event %s , add carfile,deviceID:%s", info.CarfileCid, info.DeviceID)
 	}
-	info.ServerID = "Server_ID"
+	info.ServerID = string(m.nodeManager.ServerID)
 
 	return m.nodeManager.CarfileDB.PushCarfileToWaitList(info)
 }
@@ -282,7 +283,7 @@ func (m *Manager) startCarfileReplicaTasks() {
 	}
 
 	for i := 0; i < doLen; i++ {
-		info, err := m.nodeManager.CarfileDB.LoadWaitCarfiles("Server_ID")
+		info, err := m.nodeManager.CarfileDB.LoadWaitCarfiles(m.nodeManager.ServerID)
 		if err != nil {
 			// if cache.IsNilErr(err) {
 			// 	return

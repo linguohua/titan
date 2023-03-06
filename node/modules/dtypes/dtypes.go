@@ -33,3 +33,6 @@ type ScheduleSecretKey string
 type CarfileStoreType string
 
 type CarfileStorePath string
+
+// ServerID server id
+type ServerID string
