@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/linguohua/titan/node/config"
 	"net"
 	"os"
 	"time"
@@ -17,8 +18,22 @@ type tcpMsg struct {
 	length  int
 }
 
-func (candidate *Candidate) startTcpServer() {
-	tcpAddr, err := net.ResolveTCPAddr("tcp", candidate.Config.TcpSrvAddr)
+type TCPServer struct {
+	Config         *config.CandidateCfg
+	BlockWaiterMap *BlockWaiter
+}
+
+func NewTCPServer(cfg *config.CandidateCfg, blockWaiterMap *BlockWaiter) *TCPServer {
+	tcpSrv := &TCPServer{
+		Config:         cfg,
+		BlockWaiterMap: blockWaiterMap,
+	}
+	go tcpSrv.startTcpServer()
+	return tcpSrv
+}
+
+func (t *TCPServer) startTcpServer() {
+	tcpAddr, err := net.ResolveTCPAddr("tcp", t.Config.TcpSrvAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,7 +45,8 @@ func (candidate *Candidate) startTcpServer() {
 	// close listener
 	defer listen.Close()
 
-	log.Infof("tcp_server listen on %s", candidate.Config.TcpSrvAddr)
+	log.Infof("tcp_server listen on %s", t.Config.TcpSrvAddr)
+
 	for {
 		conn, err := listen.AcceptTCP()
 		if err != nil {
@@ -39,11 +55,11 @@ func (candidate *Candidate) startTcpServer() {
 		}
 
 		// conn.SetReadBuffer(104857600)
-		go handleMessage(conn, candidate)
+		go t.handleMessage(conn)
 	}
 }
 
-func handleMessage(conn *net.TCPConn, candidate *Candidate) {
+func (t *TCPServer) handleMessage(conn *net.TCPConn) {
 	var now = time.Now()
 	var size = int64(0)
 	var deviceID = ""
@@ -77,7 +93,7 @@ func handleMessage(conn *net.TCPConn, candidate *Candidate) {
 		return
 	}
 
-	bw, exist := candidate.loadBlockWaiterFromMap(deviceID)
+	bw, exist := t.loadBlockWaiterFromMap(deviceID)
 	if !exist {
 		log.Errorf("Candidate no wait for device %s", deviceID)
 		return
@@ -105,6 +121,14 @@ func handleMessage(conn *net.TCPConn, candidate *Candidate) {
 
 		bw.ch <- *tcpMsg
 	}
+}
+
+func (t *TCPServer) loadBlockWaiterFromMap(key string) (*blockWaiter, bool) {
+	vb, exist := t.BlockWaiterMap.Load(key)
+	if exist {
+		return vb.(*blockWaiter), exist
+	}
+	return nil, exist
 }
 
 func readTcpMsg(conn net.Conn) (*tcpMsg, error) {

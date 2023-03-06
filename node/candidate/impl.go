@@ -72,6 +72,7 @@ type Candidate struct {
 	Scheduler      api.Scheduler
 	Config         *config.CandidateCfg
 	BlockWaiterMap *BlockWaiter
+	TCPSrv         *TCPServer
 }
 
 type BlockWaiter struct {
