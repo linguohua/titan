@@ -3,6 +3,7 @@ package node
 import (
 	"context"
 	"errors"
+	"github.com/gbrlsnchs/jwt/v3"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/journal"
@@ -11,6 +12,7 @@ import (
 	"github.com/linguohua/titan/node/modules"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
+	"github.com/linguohua/titan/node/secret"
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
 )
@@ -76,6 +78,8 @@ func Repo(r repo.Repo) Option {
 		}
 		return Options(
 			Override(new(repo.LockedRepo), modules.LockedRepo(lr)), // module handles closing
+			Override(new(*jwt.HMACSHA), secret.APISecret),
+			Override(new(dtypes.ServerID), modules.NewServerID),
 			Override(new(*common.CommonAPI), common.NewCommonAPI),
 			Override(new(dtypes.SessionCallbackFunc), modules.DefaultSessionCallback),
 			Override(new(dtypes.PermissionWriteToken), modules.GenerateTokenWithPermission(api.ReadWritePerms)),

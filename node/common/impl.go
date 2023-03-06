@@ -5,14 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/linguohua/titan/node/modules/dtypes"
-	"github.com/linguohua/titan/node/repo"
-	"github.com/linguohua/titan/node/secret"
-
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/journal/alerting"
 	"github.com/linguohua/titan/node/handler"
+	"github.com/linguohua/titan/node/modules/dtypes"
+	"github.com/linguohua/titan/node/repo"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/gbrlsnchs/jwt/v3"
@@ -45,17 +43,11 @@ type SessionCallbackFunc func(string, string)
 // MethodGroup: Auth
 
 // NewCommonAPI New CommonAPI
-func NewCommonAPI(lr repo.LockedRepo, callback dtypes.SessionCallbackFunc) (CommonAPI, error) {
+func NewCommonAPI(lr repo.LockedRepo, secret *jwt.HMACSHA, callback dtypes.SessionCallbackFunc) (CommonAPI, error) {
 	commApi := CommonAPI{
+		APISecret:       secret,
 		SessionCallBack: callback,
 	}
-
-	sec, err := secret.APISecret(lr)
-	if err != nil {
-		return commApi, fmt.Errorf("APISecret failed:%s", err.Error())
-	}
-
-	commApi.APISecret = sec
 
 	return commApi, nil
 }
