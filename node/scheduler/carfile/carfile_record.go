@@ -66,7 +66,7 @@ func (m *Manager) loadCarfileRecord(hash string, manager *Manager) (*CarfileReco
 	cr.totalSize = dInfo.TotalSize
 	cr.replica = dInfo.Replica
 	cr.totalBlocks = dInfo.TotalBlocks
-	cr.expirationTime = dInfo.ExpirationTime
+	cr.expirationTime = dInfo.Expiration
 	cr.carfileHash = dInfo.CarfileHash
 	cr.downloadSources = make([]*api.DownloadSource, 0)
 	cr.nodeCacheErrs = make(map[string]string)
@@ -320,11 +320,11 @@ func (cr *CarfileRecord) replicaCacheEnd(ra *Replica, errMsg string) error {
 
 	// Carfile caches end
 	info := &api.CarfileRecordInfo{
-		CarfileHash:    cr.carfileHash,
-		TotalSize:      cr.totalSize,
-		TotalBlocks:    cr.totalBlocks,
-		Replica:        cr.replica,
-		ExpirationTime: cr.expirationTime,
+		CarfileHash: cr.carfileHash,
+		TotalSize:   cr.totalSize,
+		TotalBlocks: cr.totalBlocks,
+		Replica:     cr.replica,
+		Expiration:  cr.expirationTime,
 	}
 	return cr.nodeManager.CarfileDB.UpdateCarfileRecordCachesInfo(info)
 }

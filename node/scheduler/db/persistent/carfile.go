@@ -67,7 +67,7 @@ func (c *CarfileDB) UpdateCarfileRecordCachesInfo(dInfo *api.CarfileRecordInfo) 
 
 // CreateOrUpdateCarfileRecordInfo create or update carfile record info
 func (c *CarfileDB) CreateOrUpdateCarfileRecordInfo(info *api.CarfileRecordInfo) error {
-	cmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, carfile_cid, replica,expired_time) VALUES (:carfile_hash, :carfile_cid, :replica, :expired_time) ON DUPLICATE KEY UPDATE replica=:replica,expired_time=:expired_time", carfileInfoTable)
+	cmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, carfile_cid, replica, expiration) VALUES (:carfile_hash, :carfile_cid, :replica, :expiration) ON DUPLICATE KEY UPDATE replica=:replica,expiration=:expiration", carfileInfoTable)
 	_, err := c.db.NamedExec(cmd, info)
 	return err
 }
@@ -212,7 +212,7 @@ func (c *CarfileDB) RandomCarfileFromNode(deviceID string) (string, error) {
 func (c *CarfileDB) ResetCarfileExpirationTime(carfileHash string, expirationTime time.Time) error {
 	tx := c.db.MustBegin()
 
-	cmd := fmt.Sprintf(`UPDATE %s SET expiration_time=? WHERE carfile_hash=?`, carfileInfoTable)
+	cmd := fmt.Sprintf(`UPDATE %s SET expiration=? WHERE carfile_hash=?`, carfileInfoTable)
 	tx.MustExec(cmd, expirationTime, carfileHash)
 
 	err := tx.Commit()
@@ -225,7 +225,7 @@ func (c *CarfileDB) ResetCarfileExpirationTime(carfileHash string, expirationTim
 }
 
 func (c *CarfileDB) MinExpirationTime() (time.Time, error) {
-	query := fmt.Sprintf(`SELECT MIN(expiration_time) FROM %s`, carfileInfoTable)
+	query := fmt.Sprintf(`SELECT MIN(expiration) FROM %s`, carfileInfoTable)
 
 	var out time.Time
 	if err := c.db.Get(&out, query); err != nil {
@@ -236,7 +236,7 @@ func (c *CarfileDB) MinExpirationTime() (time.Time, error) {
 }
 
 func (c *CarfileDB) ExpiredCarfiles() ([]*api.CarfileRecordInfo, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE expiration_time <= NOW()`, carfileInfoTable)
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE expiration <= NOW()`, carfileInfoTable)
 
 	var out []*api.CarfileRecordInfo
 	if err := c.db.Select(&out, query); err != nil {
@@ -505,10 +505,10 @@ func (c *CarfileDB) GetReplicaInfos(startTime time.Time, endTime time.Time, curs
 // PushCarfileToWaitList waiting data list
 func (c *CarfileDB) PushCarfileToWaitList(info *api.CacheCarfileInfo) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (carfile_hash, carfile_cid, replicas, device_id, expiration_time, server_id) 
-				VALUES (:carfile_hash, :carfile_cid, :replicas, :device_id, :expiration_time, :server_id) 
+		`INSERT INTO %s (carfile_hash, carfile_cid, replicas, device_id, expiration, server_id) 
+				VALUES (:carfile_hash, :carfile_cid, :replicas, :device_id, :expiration, :server_id) 
 				ON DUPLICATE KEY UPDATE carfile_hash=:carfile_hash, carfile_cid=:carfile_cid, replicas=:replicas, device_id=:device_id, 
-				expiration_time=:expiration_time, server_id=:server_id`, waitingCarfileTable)
+				expiration=:expiration, server_id=:server_id`, waitingCarfileTable)
 
 	_, err := c.db.NamedExec(query, info)
 	return err

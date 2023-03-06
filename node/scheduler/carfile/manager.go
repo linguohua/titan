@@ -166,10 +166,10 @@ func (m *Manager) doCarfileReplicaTask(info *api.CacheCarfileInfo) error {
 	}
 
 	err = m.nodeManager.CarfileDB.CreateOrUpdateCarfileRecordInfo(&api.CarfileRecordInfo{
-		CarfileCid:     carfileRecord.carfileCid,
-		Replica:        carfileRecord.replica,
-		ExpirationTime: carfileRecord.expirationTime,
-		CarfileHash:    carfileRecord.carfileHash,
+		CarfileCid:  carfileRecord.carfileCid,
+		Replica:     carfileRecord.replica,
+		Expiration:  carfileRecord.expirationTime,
+		CarfileHash: carfileRecord.carfileHash,
 	})
 	if err != nil {
 		return xerrors.Errorf("cid:%s,CreateOrUpdateCarfileRecordInfo err:%s", carfileRecord.carfileCid, err.Error())
@@ -498,7 +498,7 @@ func carfileRecord2Info(cr *CarfileRecord) *api.CarfileRecordInfo {
 		info.Replica = cr.replica
 		info.EdgeReplica = cr.edgeReplica
 		info.TotalBlocks = cr.totalBlocks
-		info.ExpirationTime = cr.expirationTime
+		info.Expiration = cr.expirationTime
 
 		raInfos := make([]*api.ReplicaInfo, 0)
 

@@ -98,7 +98,7 @@ CREATE TABLE `carfiles` (
     `total_size` BIGINT  DEFAULT '0' ,
     `total_blocks` int  DEFAULT '0' ,
 	`replica` TINYINT DEFAULT '0' ,
-    `expiration_time` datetime NOT NULL,
+    `expiration` datetime NOT NULL,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (`carfile_hash`)
@@ -126,7 +126,7 @@ CREATE TABLE `carfile_waiting` (
 	`carfile_cid` varchar(128) NOT NULL,
     `replicas` int DEFAULT '0' ,
     `device_id` varchar(128) ,
-    `expiration_time` datetime DEFAULT CURRENT_TIMESTAMP,
+    `expiration` datetime DEFAULT CURRENT_TIMESTAMP,
     `server_id` varchar(128) NOT NULL,
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='waiting carfiles table';
