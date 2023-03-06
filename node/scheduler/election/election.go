@@ -148,7 +148,7 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 
 	if needValidatorCount >= candidateCount {
 		for _, candidate := range candidates {
-			out = append(out, candidate.DeviceID)
+			out = append(out, candidate.NodeID)
 		}
 		return
 	}
@@ -161,7 +161,7 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 	if !isAppend {
 		for i := 0; i < needValidatorCount; i++ {
 			candidate := candidates[i]
-			out = append(out, candidate.DeviceID)
+			out = append(out, candidate.NodeID)
 		}
 
 		return out
@@ -176,12 +176,12 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 		// need to add
 		for i := 0; i < needValidatorCount; i++ {
 			candidate := candidates[i]
-			deviceID := candidate.DeviceID
-			if _, exist := v.validators[deviceID]; exist {
+			nodeID := candidate.NodeID
+			if _, exist := v.validators[nodeID]; exist {
 				continue
 			}
 
-			out = append(out, candidate.DeviceID)
+			out = append(out, candidate.NodeID)
 		}
 	} else if difference < 0 {
 		// need to reduce
@@ -252,10 +252,10 @@ func (v *Election) ReelectTicker() {
 		case <-ticker.C:
 			v.vlk.Lock()
 			var validatorOffline bool
-			for deviceID := range v.validators {
-				node := v.manager.GetCandidateNode(deviceID)
+			for nodeID := range v.validators {
+				node := v.manager.GetCandidateNode(nodeID)
 				if node != nil {
-					v.validators[deviceID] = time.Now()
+					v.validators[nodeID] = time.Now()
 					continue
 				}
 				validatorOffline = true

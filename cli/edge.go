@@ -31,7 +31,7 @@ var deviceInfoCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Printf("device id: %v \n", v.DeviceID)
+		fmt.Printf("device id: %v \n", v.NodeID)
 		fmt.Printf("device name: %v \n", v.DeviceName)
 		fmt.Printf("device external_ip: %v \n", v.ExternalIP)
 		fmt.Printf("device internal_ip: %v \n", v.InternalIP)

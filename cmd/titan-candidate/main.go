@@ -8,9 +8,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	cliutil "github.com/linguohua/titan/cli/util"
-	"github.com/linguohua/titan/node"
-	"github.com/linguohua/titan/node/modules/dtypes"
 	"math/big"
 	"net"
 	"net/http"
@@ -18,6 +15,10 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	cliutil "github.com/linguohua/titan/cli/util"
+	"github.com/linguohua/titan/node"
+	"github.com/linguohua/titan/node/modules/dtypes"
 
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
@@ -183,7 +184,7 @@ var runCmd = &cli.Command{
 		}
 
 		// Connect to scheduler
-		deviceID := cctx.String("device-id")
+		nodeID := cctx.String("device-id")
 		secret := cctx.String("secret")
 
 		connectTimeout, err := time.ParseDuration(candidateCfg.Timeout)
@@ -204,9 +205,9 @@ var runCmd = &cli.Command{
 		var schedulerAPI api.Scheduler
 		var closer func()
 		if candidateCfg.Locator {
-			schedulerAPI, closer, err = newSchedulerAPI(cctx, deviceID, secret, connectTimeout)
+			schedulerAPI, closer, err = newSchedulerAPI(cctx, nodeID, secret, connectTimeout)
 		} else {
-			schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx, deviceID)
+			schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx, nodeID)
 		}
 		if err != nil {
 			return err
@@ -232,7 +233,7 @@ var runCmd = &cli.Command{
 			node.Candidate(&candidateAPI),
 			node.Base(),
 			node.Repo(r),
-			node.Override(new(dtypes.DeviceID), dtypes.DeviceID(deviceID)),
+			node.Override(new(dtypes.NodeID), dtypes.NodeID(nodeID)),
 			node.Override(new(dtypes.ScheduleSecretKey), dtypes.ScheduleSecretKey(secret)),
 			node.Override(new(api.Scheduler), schedulerAPI),
 			node.Override(new(dtypes.CarfileStorePath), func() dtypes.CarfileStorePath {
@@ -407,7 +408,7 @@ func extractRoutableIP(cctx *cli.Context, timeout time.Duration) (string, error)
 	return strings.Split(localAddr.IP.String(), ":")[0], nil
 }
 
-func newAuthTokenFromScheduler(schedulerURL, deviceID, secret string, timeout time.Duration) ([]byte, error) {
+func newAuthTokenFromScheduler(schedulerURL, nodeID, secret string, timeout time.Duration) ([]byte, error) {
 	schedulerAPI, closer, err := client.NewScheduler(context.Background(), schedulerURL, nil)
 	if err != nil {
 		return nil, err
@@ -420,10 +421,10 @@ func newAuthTokenFromScheduler(schedulerURL, deviceID, secret string, timeout ti
 
 	perms := []auth.Permission{api.PermRead, api.PermWrite}
 
-	return schedulerAPI.AuthNodeNew(ctx, perms, deviceID, secret)
+	return schedulerAPI.AuthNodeNew(ctx, perms, nodeID, secret)
 }
 
-func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string, timeout time.Duration) (api.Scheduler, jsonrpc.ClientCloser, error) {
+func newSchedulerAPI(cctx *cli.Context, nodeID string, securityKey string, timeout time.Duration) (api.Scheduler, jsonrpc.ClientCloser, error) {
 	locator, closer, err := lcli.GetLocatorAPI(cctx)
 	if err != nil {
 		log.Errorf("%s", err.Error())
@@ -434,18 +435,18 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string, tim
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	schedulerURLs, err := locator.GetAccessPoints(ctx, deviceID)
+	schedulerURLs, err := locator.GetAccessPoints(ctx, nodeID)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if len(schedulerURLs) <= 0 {
-		return nil, nil, fmt.Errorf("candidate %s can not get access point", deviceID)
+		return nil, nil, fmt.Errorf("candidate %s can not get access point", nodeID)
 	}
 
 	schedulerURL := schedulerURLs[0]
 
-	tokenBuf, err := newAuthTokenFromScheduler(schedulerURL, deviceID, securityKey, timeout)
+	tokenBuf, err := newAuthTokenFromScheduler(schedulerURL, nodeID, securityKey, timeout)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -454,7 +455,7 @@ func newSchedulerAPI(cctx *cli.Context, deviceID string, securityKey string, tim
 
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+token)
-	headers.Add("Device-ID", deviceID)
+	headers.Add("Device-ID", nodeID)
 
 	schedulerAPI, closer, err := client.NewScheduler(context.Background(), schedulerURL, headers)
 	if err != nil {

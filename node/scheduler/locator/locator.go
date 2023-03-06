@@ -49,7 +49,7 @@ func StoreLocator(locator *Locator) {
 }
 
 // ChangeNodeOnlineStatus Notify Node Status To Locator
-func ChangeNodeOnlineStatus(deviceID string, isOnline bool) {
+func ChangeNodeOnlineStatus(nodeID string, isOnline bool) {
 	locators.Range(func(key, value interface{}) bool {
 		locator := value.(*Locator)
 
@@ -58,7 +58,7 @@ func ChangeNodeOnlineStatus(deviceID string, isOnline bool) {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 
-				err := locator.GetAPI().SetDeviceOnlineStatus(ctx, deviceID, isOnline)
+				err := locator.GetAPI().SetDeviceOnlineStatus(ctx, nodeID, isOnline)
 				if err != nil {
 					log.Errorf("SetDeviceOnlineStatus error:%s", err.Error())
 				}

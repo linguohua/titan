@@ -37,7 +37,7 @@ var Doc = map[string][]DocField{
 			Comment: `used when 'ListenAddress' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function`,
 		},
 		{
-			Name: "DeviceID",
+			Name: "NodeID",
 			Type: "string",
 
 			Comment: `deivce id`,

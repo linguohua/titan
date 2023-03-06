@@ -68,10 +68,10 @@ func sendData(conn *net.TCPConn, data []byte, msgType api.ValidateTcpMsgType, ra
 	return nil
 }
 
-func sendDeviceID(conn *net.TCPConn, deviceID string, limiter *rate.Limiter) error {
-	if len(deviceID) == 0 {
-		return fmt.Errorf("deviceID can not empty")
+func sendNodeID(conn *net.TCPConn, nodeID string, limiter *rate.Limiter) error {
+	if len(nodeID) == 0 {
+		return fmt.Errorf("nodeID can not empty")
 	}
 
-	return sendData(conn, []byte(deviceID), api.ValidateTcpMsgTypeDeviceID, limiter)
+	return sendData(conn, []byte(nodeID), api.ValidateTcpMsgTypeNodeID, limiter)
 }

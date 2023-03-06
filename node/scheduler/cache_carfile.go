@@ -12,31 +12,31 @@ import (
 
 // CacheResult nodeMgrCache Data Result
 func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) error {
-	deviceID := handler.GetDeviceID(ctx)
+	nodeID := handler.GetNodeID(ctx)
 
-	if !s.deviceExists(deviceID, 0) {
-		return xerrors.Errorf("node not Exist: %s", deviceID)
+	if !s.deviceExists(nodeID, 0) {
+		return xerrors.Errorf("node not Exist: %s", nodeID)
 	}
 
 	// update node info
-	node := s.NodeManager.GetNode(deviceID)
+	node := s.NodeManager.GetNode(nodeID)
 	if node != nil {
 		node.DiskUsage = info.DiskUsage
 		node.Blocks = info.TotalBlockCount
 	}
-	return s.DataManager.CacheCarfileResult(deviceID, &info)
+	return s.DataManager.CacheCarfileResult(nodeID, &info)
 }
 
 // RemoveCarfileResult remove carfile result
 func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.RemoveCarfileResultInfo) error {
-	deviceID := handler.GetDeviceID(ctx)
+	nodeID := handler.GetNodeID(ctx)
 
-	if !s.deviceExists(deviceID, 0) {
-		return xerrors.Errorf("node not Exist: %s", deviceID)
+	if !s.deviceExists(nodeID, 0) {
+		return xerrors.Errorf("node not Exist: %s", nodeID)
 	}
 
 	// update node info
-	node := s.NodeManager.GetNode(deviceID)
+	node := s.NodeManager.GetNode(nodeID)
 	if node != nil {
 		node.DiskUsage = resultInfo.DiskUsage
 		node.Blocks = resultInfo.BlockCount
@@ -119,16 +119,16 @@ func (s *Scheduler) RemoveCarfile(ctx context.Context, carfileCid string) error 
 }
 
 // RemoveCache remove a caches with carfile
-func (s *Scheduler) RemoveCache(ctx context.Context, carfileID, deviceID string) error {
+func (s *Scheduler) RemoveCache(ctx context.Context, carfileID, nodeID string) error {
 	if carfileID == "" {
 		return xerrors.Errorf("Cid Is Nil")
 	}
 
-	if deviceID == "" {
-		return xerrors.Errorf("DeviceID Is Nil")
+	if nodeID == "" {
+		return xerrors.Errorf("NodeID Is Nil")
 	}
 
-	return s.DataManager.RemoveCache(carfileID, deviceID)
+	return s.DataManager.RemoveCache(carfileID, nodeID)
 }
 
 // CacheCarfile nodeMgrCache Carfile
@@ -144,7 +144,7 @@ func (s *Scheduler) CacheCarfile(ctx context.Context, info *api.CacheCarfileInfo
 
 	info.CarfileHash = hash
 
-	if info.DeviceID == "" {
+	if info.NodeID == "" {
 		if info.Replicas < 1 {
 			return xerrors.Errorf("replica is %d < 1", info.Replicas)
 		}

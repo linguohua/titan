@@ -10,7 +10,7 @@ type EdgeCfg struct {
 	// used when 'ListenAddress' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function
 	Timeout string
 	// deivce id
-	DeviceID string
+	NodeID string
 	// used auth when connect to scheduler
 	Secret string
 	// carfilestore path

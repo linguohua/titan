@@ -46,6 +46,7 @@ func (validate *Validate) CancelValidate() {
 		validate.cancelValidateChannel <- true
 	}
 }
+
 func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqValidate, speedRate int64) {
 	defer func() {
 		validate.cancelValidateChannel = nil
@@ -70,9 +71,9 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 		return
 	}
 
-	deviceID, _ := validate.device.DeviceID(context.Background())
+	nodeID, _ := validate.device.NodeID(context.Background())
 
-	sendDeviceID(conn, deviceID, limiter)
+	sendNodeID(conn, nodeID, limiter)
 	for {
 		select {
 		case <-t.C:

@@ -186,11 +186,11 @@ var getCmd = &cli.Command{
 		}
 		defer closer()
 
-		deviceID := cctx.String("device-id")
+		nodeID := cctx.String("device-id")
 		// securityKey := cctx.String("security-key")
 		ctx := ReqContext(cctx)
 
-		urls, err := api.GetAccessPoints(ctx, deviceID)
+		urls, err := api.GetAccessPoints(ctx, nodeID)
 		if err != nil {
 			return err
 		}

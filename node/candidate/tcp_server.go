@@ -5,10 +5,11 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"github.com/linguohua/titan/node/config"
 	"net"
 	"os"
 	"time"
+
+	"github.com/linguohua/titan/node/config"
 
 	"github.com/linguohua/titan/api"
 )
@@ -63,9 +64,9 @@ func (t *TCPServer) Stop(ctx context.Context) error {
 }
 
 func (t *TCPServer) handleMessage(conn *net.TCPConn) {
-	var now = time.Now()
-	var size = int64(0)
-	var deviceID = ""
+	now := time.Now()
+	size := int64(0)
+	nodeID := ""
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -76,45 +77,45 @@ func (t *TCPServer) handleMessage(conn *net.TCPConn) {
 		conn.Close()
 		duration := time.Now().Sub(now)
 		bandwidth := float64(size) / float64(duration) * float64(time.Second)
-		log.Infof("size:%d, duration:%d, bandwidth:%f, deviceID:%s", size, duration, bandwidth, deviceID)
+		log.Infof("size:%d, duration:%d, bandwidth:%f, nodeID:%s", size, duration, bandwidth, nodeID)
 	}()
 
 	// first item is device id
 	tcpMsg, err := readTcpMsg(conn)
 	if err != nil {
-		log.Errorf("read deviceID error:%v", err)
+		log.Errorf("read nodeID error:%v", err)
 		return
 	}
 
-	if tcpMsg.msgType != api.ValidateTcpMsgTypeDeviceID {
-		log.Errorf("read tcp msg error, msg type not ValidateTcpMsgTypeDeviceID")
+	if tcpMsg.msgType != api.ValidateTcpMsgTypeNodeID {
+		log.Errorf("read tcp msg error, msg type not ValidateTcpMsgTypeNodeID")
 		return
 	}
-	deviceID = string(tcpMsg.msg)
-	if len(deviceID) == 0 {
-		log.Errorf("deviceID is empty")
+	nodeID = string(tcpMsg.msg)
+	if len(nodeID) == 0 {
+		log.Errorf("nodeID is empty")
 		return
 	}
 
-	bw, exist := t.loadBlockWaiterFromMap(deviceID)
+	bw, exist := t.loadBlockWaiterFromMap(nodeID)
 	if !exist {
-		log.Errorf("Candidate no wait for device %s", deviceID)
+		log.Errorf("Candidate no wait for device %s", nodeID)
 		return
 	}
 
 	if bw.conn != nil {
-		log.Errorf("device %s aready connect", deviceID)
+		log.Errorf("device %s aready connect", nodeID)
 		return
 	}
 	bw.conn = conn
 
-	log.Infof("edge node %s connect to candidate, testing bandwidth", deviceID)
+	log.Infof("edge node %s connect to candidate, testing bandwidth", nodeID)
 
 	for {
 		// next item is file content
 		tcpMsg, err = readTcpMsg(conn)
 		if err != nil {
-			log.Infof("read item error:%v, deviceID:%s", err, deviceID)
+			log.Infof("read item error:%v, nodeID:%s", err, nodeID)
 			close(bw.ch)
 			bw.conn = nil
 			return
@@ -194,7 +195,7 @@ func readContentLen(conn net.Conn) (int, error) {
 
 func readBuffer(conn net.Conn, bufferLen int) ([]byte, error) {
 	buffer := make([]byte, bufferLen)
-	var readLen = 0
+	readLen := 0
 	for {
 		n, err := conn.Read(buffer[readLen:])
 		if err != nil {
@@ -214,5 +215,4 @@ func readBuffer(conn net.Conn, bufferLen int) ([]byte, error) {
 			return buffer, nil
 		}
 	}
-
 }

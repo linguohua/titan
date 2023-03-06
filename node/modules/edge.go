@@ -8,9 +8,9 @@ import (
 	"golang.org/x/time/rate"
 )
 
-func NewDevice(bandwidthUP, bandwidthDown int64) func(deviceID dtypes.DeviceID, internalIP dtypes.InternalIP, carfileStore *carfilestore.CarfileStore) *device.Device {
-	return func(deviceID dtypes.DeviceID, internalIP dtypes.InternalIP, carfileStore *carfilestore.CarfileStore) *device.Device {
-		return device.NewDevice(string(deviceID), string(internalIP), bandwidthUP, bandwidthDown, carfileStore)
+func NewDevice(bandwidthUP, bandwidthDown int64) func(nodeID dtypes.NodeID, internalIP dtypes.InternalIP, carfileStore *carfilestore.CarfileStore) *device.Device {
+	return func(nodeID dtypes.NodeID, internalIP dtypes.InternalIP, carfileStore *carfilestore.CarfileStore) *device.Device {
+		return device.NewDevice(string(nodeID), string(internalIP), bandwidthUP, bandwidthDown, carfileStore)
 	}
 }
 

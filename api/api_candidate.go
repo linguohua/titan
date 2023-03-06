@@ -33,7 +33,7 @@ type ValidateResults struct {
 	CarfileCID string
 	// verification canceled due to download
 	IsCancel  bool
-	DeviceID  string
+	NodeID    string
 	Bandwidth float64
 	// millisecond duration
 	CostTime  int64

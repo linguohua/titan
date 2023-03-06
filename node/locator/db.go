@@ -15,7 +15,7 @@ type schedulerCfg struct {
 
 type deviceInfo struct {
 	ID           int
-	DeviceID     string `DB:"device_id"`
+	NodeID       string `DB:"node_id"`
 	SchedulerURL string `DB:"scheduler_url"`
 	AreaID       string `DB:"area_id"`
 	Online       bool   `DB:"online"`
@@ -139,9 +139,9 @@ func (db *SqlDB) deleteSchedulerCfg(schedulerURL string) error {
 	return err
 }
 
-func (db *SqlDB) getDeviceInfo(deviceID string) (*deviceInfo, error) {
+func (db *SqlDB) getDeviceInfo(nodeID string) (*deviceInfo, error) {
 	devInfo := &deviceInfo{}
-	err := db.cli.Get(devInfo, `SELECT * FROM device WHERE device_id=?`, deviceID)
+	err := db.cli.Get(devInfo, `SELECT * FROM device WHERE node_id=?`, nodeID)
 	if err != nil {
 		return nil, err
 	}
@@ -149,15 +149,15 @@ func (db *SqlDB) getDeviceInfo(deviceID string) (*deviceInfo, error) {
 	return devInfo, nil
 }
 
-func (db *SqlDB) setDeviceInfo(deviceID string, schedulerURL string, areaID string, online bool) error {
-	devInfo := &deviceInfo{DeviceID: deviceID, SchedulerURL: schedulerURL, AreaID: areaID, Online: online}
-	_, err := db.cli.NamedExec(`INSERT INTO device (device_id,scheduler_url, area_id, online) VALUES (:device_id, :scheduler_url, :area_id, :online) ON DUPLICATE KEY UPDATE scheduler_url=:scheduler_url,area_id=:area_id,online=:online`, devInfo)
+func (db *SqlDB) setDeviceInfo(nodeID string, schedulerURL string, areaID string, online bool) error {
+	devInfo := &deviceInfo{NodeID: nodeID, SchedulerURL: schedulerURL, AreaID: areaID, Online: online}
+	_, err := db.cli.NamedExec(`INSERT INTO device (node_id,scheduler_url, area_id, online) VALUES (:node_id, :scheduler_url, :area_id, :online) ON DUPLICATE KEY UPDATE scheduler_url=:scheduler_url,area_id=:area_id,online=:online`, devInfo)
 	return err
 }
 
-func (db *SqlDB) deleteDeviceInfo(deviceID string) error {
-	devInfo := &deviceInfo{DeviceID: deviceID}
-	_, err := db.cli.NamedExec(`DELETE FROM device WHERE device_id=:device_id`, devInfo)
+func (db *SqlDB) deleteDeviceInfo(nodeID string) error {
+	devInfo := &deviceInfo{NodeID: nodeID}
+	_, err := db.cli.NamedExec(`DELETE FROM device WHERE node_id=:node_id`, devInfo)
 	return err
 }
 
@@ -170,9 +170,9 @@ func (db *SqlDB) countDeviceOnScheduler(schedulerURL string) (int, error) {
 	return count, err
 }
 
-func (db *SqlDB) countDeviceWithID(deviceID string) (int, error) {
+func (db *SqlDB) countDeviceWithID(nodeID string) (int, error) {
 	var count int
-	err := db.cli.Get(&count, `select count(*) from device WHERE device_id=?`, deviceID)
+	err := db.cli.Get(&count, `select count(*) from device WHERE node_id=?`, nodeID)
 	if err != nil {
 		return 0, err
 	}

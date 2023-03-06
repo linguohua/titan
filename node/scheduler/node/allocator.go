@@ -17,25 +17,25 @@ var secretRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 func (m *Manager) Allocate(nodeType api.NodeType) (api.NodeAllocateInfo, error) {
 	info := api.NodeAllocateInfo{}
 
-	deviceID, err := newDeviceID(nodeType)
+	nodeID, err := newNodeID(nodeType)
 	if err != nil {
 		return info, err
 	}
 
 	secret := newSecret()
 
-	err = m.CarfileDB.BindNodeAllocateInfo(secret, deviceID, nodeType)
+	err = m.CarfileDB.BindNodeAllocateInfo(secret, nodeID, nodeType)
 	if err != nil {
 		return info, err
 	}
 
-	info.DeviceID = deviceID
+	info.NodeID = nodeID
 	info.Secret = secret
 
 	return info, nil
 }
 
-func newDeviceID(nodeType api.NodeType) (string, error) {
+func newNodeID(nodeType api.NodeType) (string, error) {
 	u2 := uuid.New()
 
 	s := strings.Replace(u2.String(), "-", "", -1)

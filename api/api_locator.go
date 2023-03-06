@@ -6,13 +6,13 @@ import (
 
 type Locator interface {
 	Common
-	GetAccessPoints(ctx context.Context, deviceID string) ([]string, error)                                                //perm:read
+	GetAccessPoints(ctx context.Context, nodeID string) ([]string, error)                                                  //perm:read
 	AddAccessPoint(ctx context.Context, areaID string, schedulerURL string, weight int, schedulerAccessToken string) error //perm:admin
 	RemoveAccessPoints(ctx context.Context, areaID string) error                                                           //perm:admin                                  //perm:admin
 	ListAreaIDs(ctx context.Context) (areaIDs []string, err error)                                                         //perm:admin
 	ShowAccessPoint(ctx context.Context, areaID string) (AccessPoint, error)                                               //perm:admin
 
-	SetDeviceOnlineStatus(ctx context.Context, deviceID string, isOnline bool) error //perm:write
+	SetDeviceOnlineStatus(ctx context.Context, nodeID string, isOnline bool) error //perm:write
 
 	// user api
 	GetDownloadInfosWithCarfile(ctx context.Context, cid, publicKey string) ([]*DownloadInfoResult, error) //perm:read

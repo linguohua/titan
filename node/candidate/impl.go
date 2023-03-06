@@ -3,13 +3,14 @@ package candidate
 import (
 	"context"
 	"fmt"
-	"github.com/linguohua/titan/node/config"
-	"go.uber.org/fx"
 	"math/rand"
 	"net"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/linguohua/titan/node/config"
+	"go.uber.org/fx"
 
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
@@ -136,7 +137,7 @@ func sendValidateResult(candidate *Candidate, result *api.ValidateResults) error
 
 func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, result *api.ValidateResults) {
 	defer func() {
-		candidate.BlockWaiterMap.Delete(result.DeviceID)
+		candidate.BlockWaiterMap.Delete(result.NodeID)
 	}()
 
 	size := int64(0)
@@ -147,7 +148,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 		select {
 		case tcpMsg, ok := <-vb.ch:
 			if !ok {
-				// log.Infof("waitblock close channel %s", result.DeviceID)
+				// log.Infof("waitblock close channel %s", result.NodeID)
 				isBreak = true
 				vb.ch = nil
 				break
@@ -156,7 +157,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 			if tcpMsg.msgType == api.ValidateTcpMsgTypeCancelValidate {
 				result.IsCancel = true
 				sendValidateResult(candidate, result)
-				log.Infof("device %s cancel validator", result.DeviceID)
+				log.Infof("device %s cancel validator", result.NodeID)
 				return
 			}
 
@@ -174,7 +175,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 				vb.conn.Close()
 			}
 			isBreak = true
-			log.Errorf("wait device %s timeout %ds, exit wait block", result.DeviceID, req.Duration+validateTimeout)
+			log.Errorf("wait device %s timeout %ds, exit wait block", result.NodeID, req.Duration+validateTimeout)
 		}
 
 		if isBreak {
@@ -192,7 +193,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 	result.Bandwidth = float64(size) / float64(duration) * float64(time.Second)
 
 	log.Infof("validator %s %d block, bandwidth:%f, cost time:%d, IsTimeout:%v, duration:%d, size:%d, randCount:%d",
-		result.DeviceID, len(result.Cids), result.Bandwidth, result.CostTime, result.IsTimeout, req.Duration, size, result.RandomCount)
+		result.NodeID, len(result.Cids), result.Bandwidth, result.CostTime, result.IsTimeout, req.Duration, size, result.RandomCount)
 
 	sendValidateResult(candidate, result)
 }
@@ -212,7 +213,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
 
-	deviceID, err := api.DeviceID(ctx)
+	nodeID, err := api.NodeID(ctx)
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(candidate, result)
@@ -220,16 +221,16 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 		return
 	}
 
-	result.DeviceID = deviceID
+	result.NodeID = nodeID
 
-	bw, exist := candidate.loadBlockWaiterFromMap(deviceID)
+	bw, exist := candidate.loadBlockWaiterFromMap(nodeID)
 	if exist {
-		log.Errorf("Aready doing validator node, deviceID:%s, not need to repeat to do", deviceID)
+		log.Errorf("Aready doing validator node, nodeID:%s, not need to repeat to do", nodeID)
 		return
 	}
 
 	bw = &blockWaiter{conn: nil, ch: make(chan tcpMsg, 1)}
-	candidate.BlockWaiterMap.Store(deviceID, bw)
+	candidate.BlockWaiterMap.Store(nodeID, bw)
 
 	go waitBlock(bw, req, candidate, result)
 
@@ -248,7 +249,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 }
 
 type nodeAPI interface {
-	DeviceID(ctx context.Context) (string, error)
+	NodeID(ctx context.Context) (string, error)
 	BeValidate(ctx context.Context, reqValidate api.ReqValidate, candidateTcpSrvAddr string) error
 }
 

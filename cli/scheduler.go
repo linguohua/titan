@@ -33,7 +33,7 @@ var (
 		Value: "",
 	}
 
-	deviceIDFlag = &cli.StringFlag{
+	nodeIDFlag = &cli.StringFlag{
 		Name:  "device-id",
 		Usage: "device id",
 		Value: "",
@@ -116,7 +116,7 @@ var setNodePortCmd = &cli.Command{
 	Name:  "set-node-port",
 	Usage: "set node port",
 	Flags: []cli.Flag{
-		deviceIDFlag,
+		nodeIDFlag,
 		portFlag,
 	},
 
@@ -124,7 +124,7 @@ var setNodePortCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		deviceID := cctx.String("device-id")
+		nodeID := cctx.String("device-id")
 		port := cctx.String("port")
 
 		ctx := ReqContext(cctx)
@@ -135,7 +135,7 @@ var setNodePortCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.SetNodePort(ctx, deviceID, port)
+		return schedulerAPI.SetNodePort(ctx, nodeID, port)
 	},
 }
 

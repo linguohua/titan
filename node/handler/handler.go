@@ -10,8 +10,10 @@ import (
 
 var log = logging.Logger("handler")
 
-type RemoteAddr struct{}
-type DeviceID struct{}
+type (
+	RemoteAddr struct{}
+	NodeID     struct{}
+)
 
 type Handler struct {
 	handler *auth.Handler
@@ -25,8 +27,8 @@ func GetRemoteAddr(ctx context.Context) string {
 	return v
 }
 
-func GetDeviceID(ctx context.Context) string {
-	v, ok := ctx.Value(DeviceID{}).(string)
+func GetNodeID(ctx context.Context) string {
+	v, ok := ctx.Value(NodeID{}).(string)
 	if !ok {
 		return ""
 	}
@@ -44,11 +46,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// fmt.Println("server http:", reqIP)
-	deviceID := r.Header.Get("Device-ID")
+	nodeID := r.Header.Get("Device-ID")
 
 	ctx := r.Context()
 	ctx = context.WithValue(ctx, RemoteAddr{}, remoteAddr)
-	ctx = context.WithValue(ctx, DeviceID{}, deviceID)
+	ctx = context.WithValue(ctx, NodeID{}, nodeID)
 
 	h.handler.ServeHTTP(w, r.WithContext(ctx))
 }

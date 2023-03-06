@@ -81,13 +81,13 @@ func (v *Validator) startValidate() error {
 }
 
 // func (v *Validator) checkValidateTimeOut() error {
-// 	deviceIDs, err := v.nodeManager.NodeMgrDB.GetNodesWithVerifyingList("Server_ID")
+// 	nodeIDs, err := v.nodeManager.NodeMgrDB.GetNodesWithVerifyingList("Server_ID")
 // 	if err != nil {
 // 		return err
 // 	}
 
-// 	if deviceIDs != nil && len(deviceIDs) > 0 {
-// 		err = v.nodeManager.NodeMgrDB.SetValidateTimeoutOfNodes(v.curRoundID-1, deviceIDs)
+// 	if nodeIDs != nil && len(nodeIDs) > 0 {
+// 		err = v.nodeManager.NodeMgrDB.SetValidateTimeoutOfNodes(v.curRoundID-1, nodeIDs)
 // 		if err != nil {
 // 			log.Errorf(err.Error())
 // 		}
@@ -149,7 +149,7 @@ func (v *Validator) getValidatedList(validatorMap map[string]float64) []*validat
 		edgeNode := value.(*node.Edge)
 		info := &validatedDeviceInfo{}
 		info.nodeType = api.NodeEdge
-		info.deviceID = edgeNode.DeviceID
+		info.nodeID = edgeNode.NodeID
 		info.addr = edgeNode.BaseInfo.RPCURL()
 		info.bandwidth = edgeNode.BandwidthUp
 		validatedList = append(validatedList, info)
@@ -157,11 +157,11 @@ func (v *Validator) getValidatedList(validatorMap map[string]float64) []*validat
 	})
 	v.nodeManager.CandidateNodes.Range(func(key, value interface{}) bool {
 		candidateNode := value.(*node.Candidate)
-		if _, exist := validatorMap[candidateNode.DeviceID]; exist {
+		if _, exist := validatorMap[candidateNode.NodeID]; exist {
 			return true
 		}
 		info := &validatedDeviceInfo{}
-		info.deviceID = candidateNode.DeviceID
+		info.nodeID = candidateNode.NodeID
 		info.nodeType = api.NodeCandidate
 		info.addr = candidateNode.BaseInfo.RPCURL()
 		info.bandwidth = candidateNode.BandwidthUp
@@ -193,15 +193,15 @@ func (v *Validator) assignValidator(validatorList []string) map[string][]api.Req
 		vLen := len(validatorList)
 		for i := offset; i < offset+vLen; i++ {
 			index := i % vLen
-			deviceID := validatorList[index]
-			bandwidthDown, exist := validatorMap[deviceID]
+			nodeID := validatorList[index]
+			bandwidthDown, exist := validatorMap[nodeID]
 			if !exist {
 				continue
 			}
 
 			if bandwidthDown >= bandwidthUp {
-				validatorMap[deviceID] -= bandwidthUp
-				return deviceID
+				validatorMap[nodeID] -= bandwidthUp
+				return nodeID
 			}
 		}
 
@@ -214,11 +214,11 @@ func (v *Validator) assignValidator(validatorList []string) map[string][]api.Req
 	for i, validated := range validatedList {
 		reqValidate, err := v.getNodeReqValidate(validated)
 		if err != nil {
-			// log.Errorf("node:%s , getNodeReqValidate err:%s", validated.deviceID, err.Error())
+			// log.Errorf("node:%s , getNodeReqValidate err:%s", validated.nodeID, err.Error())
 			continue
 		}
 
-		validateds = append(validateds, validated.deviceID)
+		validateds = append(validateds, validated.nodeID)
 
 		validatorID := findValidator(i, validated.bandwidth)
 		list, exist := validateReqs[validatorID]
@@ -231,7 +231,7 @@ func (v *Validator) assignValidator(validatorList []string) map[string][]api.Req
 
 		info := &api.ValidateResult{
 			RoundID:     v.curRoundID,
-			DeviceID:    validated.deviceID,
+			NodeID:      validated.nodeID,
 			ValidatorID: validatorID,
 			StartTime:   time.Now(),
 			Status:      api.ValidateStatusCreate,
@@ -264,7 +264,7 @@ func (v *Validator) getNodeReqValidate(validated *validatedDeviceInfo) (api.ReqV
 		NodeType:   int(validated.nodeType),
 	}
 
-	hash, err := v.nodeManager.CarfileDB.RandomCarfileFromNode(validated.deviceID)
+	hash, err := v.nodeManager.CarfileDB.RandomCarfileFromNode(validated.nodeID)
 	if err != nil {
 		return req, err
 	}
@@ -280,7 +280,7 @@ func (v *Validator) getNodeReqValidate(validated *validatedDeviceInfo) (api.ReqV
 }
 
 type validatedDeviceInfo struct {
-	deviceID  string
+	nodeID    string
 	nodeType  api.NodeType
 	addr      string
 	bandwidth float64
@@ -305,8 +305,8 @@ func (v *Validator) getRandNum(max int, r *rand.Rand) int {
 }
 
 // updateFailValidateResult update validator result info
-func (v *Validator) updateFailValidateResult(deviceID string, status api.ValidateStatus) error {
-	resultInfo := &api.ValidateResult{RoundID: v.curRoundID, DeviceID: deviceID, Status: status}
+func (v *Validator) updateFailValidateResult(nodeID string, status api.ValidateStatus) error {
+	resultInfo := &api.ValidateResult{RoundID: v.curRoundID, NodeID: nodeID, Status: status}
 	return v.nodeManager.NodeMgrDB.UpdateValidateResultInfo(resultInfo)
 }
 
@@ -314,7 +314,7 @@ func (v *Validator) updateFailValidateResult(deviceID string, status api.Validat
 func (v *Validator) updateSuccessValidateResult(validateResults *api.ValidateResults) error {
 	resultInfo := &api.ValidateResult{
 		RoundID:     validateResults.RoundID,
-		DeviceID:    validateResults.DeviceID,
+		NodeID:      validateResults.NodeID,
 		BlockNumber: int64(len(validateResults.Cids)),
 		Status:      api.ValidateStatusSuccess,
 		Bandwidth:   validateResults.Bandwidth,
@@ -338,15 +338,15 @@ func (v *Validator) ValidateResult(validateResult *api.ValidateResults) error {
 		if status == api.ValidateStatusSuccess {
 			err = v.updateSuccessValidateResult(validateResult)
 		} else {
-			err = v.updateFailValidateResult(validateResult.DeviceID, status)
+			err = v.updateFailValidateResult(validateResult.NodeID, status)
 		}
 		if err != nil {
-			log.Errorf("UpdateValidateResult [%s] fail : %s", validateResult.DeviceID, err.Error())
+			log.Errorf("UpdateValidateResult [%s] fail : %s", validateResult.NodeID, err.Error())
 		}
 
-		err = v.nodeManager.NodeMgrDB.RemoveValidatedWithList(validateResult.DeviceID, v.nodeManager.ServerID)
+		err = v.nodeManager.NodeMgrDB.RemoveValidatedWithList(validateResult.NodeID, v.nodeManager.ServerID)
 		if err != nil {
-			log.Errorf("RemoveValidatedWithList [%s] fail : %s", validateResult.DeviceID, err.Error())
+			log.Errorf("RemoveValidatedWithList [%s] fail : %s", validateResult.NodeID, err.Error())
 			return
 		}
 	}()
@@ -377,15 +377,15 @@ func (v *Validator) ValidateResult(validateResult *api.ValidateResults) error {
 
 	max := len(validateResult.Cids)
 	var cCidMap map[int]string
-	for _, deviceID := range candidates {
-		node := v.nodeManager.GetCandidateNode(deviceID)
+	for _, nodeID := range candidates {
+		node := v.nodeManager.GetCandidateNode(nodeID)
 		if node == nil {
 			continue
 		}
 
 		cCidMap, err = node.API().GetBlocksOfCarfile(context.Background(), validateResult.CarfileCID, v.seed, max)
 		if err != nil {
-			log.Errorf("candidate %s GetBlocksOfCarfile err:%s", deviceID, err.Error())
+			log.Errorf("candidate %s GetBlocksOfCarfile err:%s", nodeID, err.Error())
 			continue
 		}
 
@@ -416,7 +416,7 @@ func (v *Validator) ValidateResult(validateResult *api.ValidateResults) error {
 
 		if !v.compareCid(resultCid, vCid) {
 			status = api.ValidateStatusFail
-			log.Errorf("round [%d] and deviceID [%s], validator fail resultCid:%s, vCid:%s,randNum:%d,index:%d", validateResult.RoundID, validateResult.DeviceID, resultCid, vCid, randNum, i)
+			log.Errorf("round [%d] and nodeID [%s], validator fail resultCid:%s, vCid:%s,randNum:%d,index:%d", validateResult.RoundID, validateResult.NodeID, resultCid, vCid, randNum, i)
 			return nil
 		}
 	}
