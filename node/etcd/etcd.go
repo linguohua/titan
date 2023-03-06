@@ -8,6 +8,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/mvcc/mvccpb"
 	"golang.org/x/xerrors"
 )
 
@@ -38,41 +39,58 @@ func New(addrs []string) (*Client, error) {
 	return &Client{cli: cli}, nil
 }
 
-// NodeLogin login to etcd , If already logged in, return an error
-func (c *Client) NodeLogin(serverID, serverAddr string, nodeType api.NodeType) error {
+// ServerLogin login to etcd , If already logged in, return an error
+func (c *Client) ServerLogin(serverID, serverAddr string, nodeType api.NodeType) error {
 	ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
 	defer cancel()
 
-	nodeKey := fmt.Sprintf("/%s/%s", nodeType.String(), serverID)
+	serverKey := fmt.Sprintf("/%s/%s", nodeType.String(), serverID)
 
-	rsp, err := c.cli.Get(ctx, nodeKey) // TODO have lock?
+	// get a leaseRsp
+	leaseRsp, err := c.cli.Grant(ctx, nodeExpirationDuration)
+	if err != nil {
+		return xerrors.Errorf("Grant lease err:%s", err.Error())
+	}
+
+	leaseID := leaseRsp.ID
+
+	kv := clientv3.NewKV(c.cli)
+	// Create transaction
+	txn := kv.Txn(ctx)
+
+	// If the revision of key is equal to 0
+	txn.If(clientv3.Compare(clientv3.CreateRevision(serverKey), "=", 0)).
+		Then(clientv3.OpPut(serverKey, serverAddr, clientv3.WithLease(leaseID))).
+		Else(clientv3.OpGet(serverKey))
+
+	// Commit transaction
+	txnResp, err := txn.Commit()
 	if err != nil {
 		return err
 	}
 
-	if rsp.Count > 0 {
-		return xerrors.New("Server already exist")
+	// already exists
+	if !txnResp.Succeeded {
+		return xerrors.Errorf("Server key already exists")
 	}
 
-	lease, err := c.cli.Grant(ctx, nodeExpirationDuration)
+	// KeepAlive
+	keepRespChan, err := c.cli.KeepAlive(ctx, leaseID)
 	if err != nil {
-		return xerrors.Errorf("Grant lease err:%s", err.Error())
+		return err
 	}
-	_, err = c.cli.Put(ctx, nodeKey, serverAddr, clientv3.WithLease(lease.ID))
-	if err != nil {
-		return xerrors.Errorf("Put err:%s", err.Error())
-	}
-
-	_, err = c.cli.KeepAlive(ctx, lease.ID) // TODO keepalive time
-	if err != nil {
-		return xerrors.Errorf("KeepAlive err:%s", err.Error())
-	}
+	// lease keepalive response queue capacity only 16 , so need to read it
+	go func() {
+		for {
+			_ = <-keepRespChan
+		}
+	}()
 
 	return nil
 }
 
-// WatchNodes watch node login and logout
-func (c *Client) WatchNodes(nodeType api.NodeType) clientv3.WatchChan {
+// WatchServers watch server login and logout
+func (c *Client) WatchServers(nodeType api.NodeType) {
 	ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
 	defer cancel()
 
@@ -81,5 +99,17 @@ func (c *Client) WatchNodes(nodeType api.NodeType) clientv3.WatchChan {
 	watcher := clientv3.NewWatcher(c.cli)
 	watchRespChan := watcher.Watch(ctx, prefix, clientv3.WithPrefix())
 
-	return watchRespChan
+	for watchResp := range watchRespChan {
+		for _, event := range watchResp.Events {
+			switch event.Type {
+			case mvccpb.PUT:
+				fmt.Println("Update:", string(event.Kv.Key), " ,Value:", string(event.Kv.Value), " ,Revision:",
+					event.Kv.CreateRevision, event.Kv.ModRevision)
+			case mvccpb.DELETE:
+				fmt.Println("Delete:", string(event.Kv.Key), " ,Revision:", event.Kv.ModRevision)
+			}
+		}
+	}
+
+	return
 }
