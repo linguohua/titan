@@ -1,13 +1,13 @@
 package main
 
 import (
-	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	cliutil "github.com/linguohua/titan/cli/util"
 	"github.com/linguohua/titan/node"
 	"math/big"
 	"net"
@@ -20,15 +20,12 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
-	cliutil "github.com/linguohua/titan/cli/util"
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/linguohua/titan/lib/ulimit"
-	"github.com/linguohua/titan/metrics"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/secret"
 	"github.com/quic-go/quic-go/http3"
-	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -237,6 +234,8 @@ var runCmd = &cli.Command{
 			return err
 		}
 
+		shutdownChan := make(chan struct{})
+
 		var schedulerAPI api.Scheduler
 		stop, err := node.New(cctx.Context,
 			node.Scheduler(&schedulerAPI),
@@ -247,20 +246,19 @@ var runCmd = &cli.Command{
 			return xerrors.Errorf("creating node: %w", err)
 		}
 
-		ctx := lcli.ReqContext(cctx)
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-		handler := schedulerHandler(schedulerAPI, true)
-		srv := &http.Server{
-			Handler: handler,
-			BaseContext: func(listener net.Listener) context.Context {
-				ctx, _ := tag.New(context.Background(), tag.Upsert(metrics.APIInterface, "titan-edge"))
-				return ctx
-			},
+		// Populate JSON-RPC options.
+		serverOptions := []jsonrpc.ServerOption{jsonrpc.WithServerErrors(api.RPCErrors)}
+		if maxRequestSize := cctx.Int("api-max-req-size"); maxRequestSize != 0 {
+			serverOptions = append(serverOptions, jsonrpc.WithMaxRequestSize(int64(maxRequestSize)))
 		}
 
-		address := schedulerCfg.ListenAddress
-		udpPacketConn, err := net.ListenPacket("udp", address)
+		// Instantiate the scheduler handler.
+		h, err := node.SchedulerHandler(schedulerAPI, true, serverOptions...)
+		if err != nil {
+			return fmt.Errorf("failed to instantiate rpc handler: %s", err)
+		}
+
+		udpPacketConn, err := net.ListenPacket("udp", schedulerCfg.ListenAddress)
 		if err != nil {
 			return err
 		}
@@ -269,27 +267,23 @@ var runCmd = &cli.Command{
 		httpClient := cliutil.NewHttp3Client(udpPacketConn, schedulerCfg.InsecureSkipVerify, schedulerCfg.CaCertificatePath)
 		jsonrpc.SetHttp3Client(httpClient)
 
-		go startUDPServer(udpPacketConn, handler, schedulerCfg)
+		go startUDPServer(udpPacketConn, h, schedulerCfg)
 
-		go func() {
-			<-ctx.Done()
-			log.Warn("Shutting down...")
-			if err := srv.Shutdown(context.TODO()); err != nil {
-				log.Errorf("shutting down RPC server failed: %s", err)
-			}
-
-			stop(ctx)
-			log.Warn("Graceful shutdown successful")
-		}()
-
-		nl, err := net.Listen("tcp", address)
+		// Serve the RPC.
+		rpcStopper, err := node.ServeRPC(h, "scheduler", schedulerCfg.ListenAddress)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to start json-rpc endpoint: %s", err)
 		}
 
-		log.Info("titan scheduler listen with:", address)
+		log.Info("titan scheduler listen with:", schedulerCfg.ListenAddress)
 
-		return srv.Serve(nl)
+		// Monitor for shutdown.
+		finishCh := node.MonitorShutdown(shutdownChan,
+			node.ShutdownHandler{Component: "rpc server", StopFunc: rpcStopper},
+			node.ShutdownHandler{Component: "node", StopFunc: stop},
+		)
+		<-finishCh // fires when shutdown is complete.
+		return nil
 	},
 }
 

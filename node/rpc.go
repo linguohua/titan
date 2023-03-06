@@ -2,14 +2,21 @@ package node
 
 import (
 	"context"
+	"github.com/filecoin-project/go-jsonrpc"
+	"github.com/filecoin-project/go-jsonrpc/auth"
+	"github.com/gorilla/mux"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/lib/rpcenc"
 	"github.com/linguohua/titan/metrics"
-	"github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr/net"
+	"github.com/linguohua/titan/metrics/proxy"
+	mhandler "github.com/linguohua/titan/node/handler"
 	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
 	"net"
 	"net/http"
+	"runtime"
+	"strconv"
 	"time"
 )
 
@@ -21,9 +28,9 @@ var rpclog = logging.Logger("rpc")
 // It returns the stop function to be called to terminate the endpoint.
 //
 // The supplied ID is used in tracing, by inserting a tag in the context.
-func ServeRPC(h http.Handler, id string, addr multiaddr.Multiaddr) (StopFunc, error) {
+func ServeRPC(h http.Handler, id string, addr string) (StopFunc, error) {
 	// Start listening to the addr; if invalid or occupied, we will fail early.
-	lst, err := manet.Listen(addr)
+	lst, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, xerrors.Errorf("could not listen: %w", err)
 	}
@@ -39,11 +46,108 @@ func ServeRPC(h http.Handler, id string, addr multiaddr.Multiaddr) (StopFunc, er
 	}
 
 	go func() {
-		err = srv.Serve(manet.NetListener(lst))
+		err = srv.Serve(lst)
 		if err != http.ErrServerClosed {
 			rpclog.Warnf("rpc server failed: %s", err)
 		}
 	}()
 
 	return srv.Shutdown, err
+}
+
+// SchedulerHandler returns a scheduler handler, to be mounted as-is on the server.
+func SchedulerHandler(a api.Scheduler, permission bool, opts ...jsonrpc.ServerOption) (http.Handler, error) {
+	m := mux.NewRouter()
+
+	serveRpc := func(path string, hnd interface{}) {
+		rpcServer := jsonrpc.NewServer(append(opts, jsonrpc.WithServerErrors(api.RPCErrors))...)
+		rpcServer.Register("titan", hnd)
+
+		var handler http.Handler = rpcServer
+		if permission {
+			handler = mhandler.New(&auth.Handler{Verify: a.AuthNodeVerify, Next: rpcServer.ServeHTTP})
+		}
+
+		m.Handle(path, handler)
+	}
+
+	fnapi := proxy.MetricedSchedulerAPI(a)
+	if permission {
+		fnapi = api.PermissionedSchedulerAPI(fnapi)
+	}
+
+	serveRpc("/rpc/v0", fnapi)
+
+	// debugging
+	m.Handle("/debug/metrics", metrics.Exporter())
+	m.Handle("/debug/pprof-set/mutex", handleFractionOpt("MutexProfileFraction", func(x int) {
+		runtime.SetMutexProfileFraction(x)
+	}))
+
+	m.PathPrefix("/").Handler(http.DefaultServeMux) // pprof
+
+	return m, nil
+}
+
+// LocatorHandler returns a locator handler, to be mounted as-is on the server.
+func LocatorHandler(a api.Locator, permission bool) (http.Handler, error) {
+	mapi := proxy.MetricedLocatorAPI(a)
+	if permission {
+		mapi = api.PermissionedLocationAPI(mapi)
+	}
+
+	readerHandler, readerServerOpt := rpcenc.ReaderParamDecoder()
+	rpcServer := jsonrpc.NewServer(jsonrpc.WithServerErrors(api.RPCErrors), readerServerOpt)
+	rpcServer.Register("titan", mapi)
+
+	rootMux := mux.NewRouter()
+
+	// local APIs
+	{
+		m := mux.NewRouter()
+		m.Handle("/rpc/v0", rpcServer)
+		m.Handle("/rpc/streams/v0/push/{uuid}", readerHandler)
+		// debugging
+		m.Handle("/debug/metrics", metrics.Exporter())
+		m.PathPrefix("/").Handler(http.DefaultServeMux) // pprof
+
+		var hnd http.Handler = m
+		if permission {
+			hnd = mhandler.New(&auth.Handler{
+				Verify: a.AuthVerify,
+				Next:   m.ServeHTTP,
+			})
+		}
+
+		rootMux.PathPrefix("/").Handler(hnd)
+	}
+
+	return rootMux, nil
+}
+
+func handleFractionOpt(name string, setter func(int)) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(rw, "only POST allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		if err := r.ParseForm(); err != nil {
+			http.Error(rw, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		asfr := r.Form.Get("x")
+		if len(asfr) == 0 {
+			http.Error(rw, "parameter 'x' must be set", http.StatusBadRequest)
+			return
+		}
+
+		fr, err := strconv.Atoi(asfr)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusBadRequest)
+			return
+		}
+		rpclog.Infof("setting %s to %d", name, fr)
+		setter(fr)
+	}
 }
