@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/types"
 	"go.uber.org/fx"
@@ -29,7 +30,7 @@ func LockedRepo(lr repo.LockedRepo) func(lc fx.Lifecycle) repo.LockedRepo {
 }
 
 // NewServerID create server id
-func NewServerID(lr repo.LockedRepo) (string, error) {
+func NewServerID(lr repo.LockedRepo) (dtypes.ServerID, error) {
 	keystore, err := lr.KeyStore()
 	if err != nil {
 		return "", err
@@ -58,5 +59,5 @@ func NewServerID(lr repo.LockedRepo) (string, error) {
 		return "", xerrors.Errorf("could not get server id: %w", err)
 	}
 
-	return string(key.PrivateKey), nil
+	return dtypes.ServerID(key.PrivateKey), nil
 }
