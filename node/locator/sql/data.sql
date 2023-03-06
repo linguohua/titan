@@ -8,11 +8,11 @@ CREATE TABLE `scheduler_config` (
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='locator scheduler config';
 
 CREATE TABLE `device` (
-	  `device_id` varchar(128) NOT NULL UNIQUE ,
+	  `node_id` varchar(128) NOT NULL UNIQUE ,
     `scheduler_url` varchar(128) DEFAULT NULL ,
     `area_id` varchar(64) DEFAULT NULL ,
     `online` TINYINT  DEFAULT '0'  ,
-	PRIMARY KEY (`device_id`)
+	PRIMARY KEY (`node_id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='locator device info';
 
 -- CREATE USER 'user01'@'localhost' IDENTIFIED BY 'new_password';

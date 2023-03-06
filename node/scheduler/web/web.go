@@ -25,7 +25,7 @@ func NewWeb(nodeMgr *node.Manager) api.Web {
 func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNodesRsp, error) {
 	rsp := api.ListNodesRsp{Data: make([]api.DeviceInfo, 0)}
 
-	nodes, total, err := w.NodeMgr.NodeMgrDB.ListDeviceIDs(cursor, count)
+	nodes, total, err := w.NodeMgr.NodeMgrDB.ListNodeIDs(cursor, count)
 	if err != nil {
 		return rsp, err
 	}
@@ -40,10 +40,10 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 	}
 
 	deviceInfos := make([]api.DeviceInfo, 0)
-	for _, deviceID := range nodes {
-		deviceInfo, err := w.NodeMgr.NodeMgrDB.LoadNodeInfo(deviceID)
+	for _, nodeID := range nodes {
+		deviceInfo, err := w.NodeMgr.NodeMgrDB.LoadNodeInfo(nodeID)
 		if err != nil {
-			log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
+			log.Errorf("getNodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
 			continue
 		}
 
@@ -52,7 +52,7 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 		// 	deviceInfo.DeviceStatus = "online"
 		// }
 
-		_, exist := deviceInValidator[deviceID]
+		_, exist := deviceInValidator[nodeID]
 		if exist {
 			deviceInfo.NodeType = api.NodeValidate
 		}
@@ -66,17 +66,17 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 	return rsp, nil
 }
 
-func (w *web) GetNodeInfoByID(ctx context.Context, deviceID string) (api.DeviceInfo, error) {
+func (w *web) GetNodeInfoByID(ctx context.Context, nodeID string) (api.DeviceInfo, error) {
 	// node datas
-	deviceInfo, err := w.NodeMgr.NodeMgrDB.LoadNodeInfo(deviceID)
+	deviceInfo, err := w.NodeMgr.NodeMgrDB.LoadNodeInfo(nodeID)
 	if err != nil {
-		log.Errorf("getNodeInfo: %s ,deviceID : %s", err.Error(), deviceID)
+		log.Errorf("getNodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
 		return api.DeviceInfo{}, err
 	}
 
-	isOnline := w.NodeMgr.GetCandidateNode(deviceID) != nil
+	isOnline := w.NodeMgr.GetCandidateNode(nodeID) != nil
 	if !isOnline {
-		isOnline = w.NodeMgr.GetEdgeNode(deviceID) != nil
+		isOnline = w.NodeMgr.GetEdgeNode(nodeID) != nil
 	}
 
 	deviceInfo.DeviceStatus = getDeviceStatus(isOnline)
@@ -104,7 +104,7 @@ func (w *web) ListBlockDownloadInfo(ctx context.Context, req api.ListBlockDownlo
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
-	downloadInfos, total, err := w.NodeMgr.CarfileDB.GetBlockDownloadInfos(req.DeviceID, startTime, endTime, req.Cursor, req.Count)
+	downloadInfos, total, err := w.NodeMgr.CarfileDB.GetBlockDownloadInfos(req.NodeID, startTime, endTime, req.Cursor, req.Count)
 	if err != nil {
 		return api.ListBlockDownloadInfoRsp{}, nil
 	}

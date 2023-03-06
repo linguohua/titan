@@ -13,11 +13,11 @@ type Scheduler interface {
 	Web
 
 	// call by command
-	GetOnlineDeviceIDs(ctx context.Context, nodeType NodeType) ([]string, error)                 //perm:read
+	GetOnlineNodeIDs(ctx context.Context, nodeType NodeType) ([]string, error)                   //perm:read
 	ElectionValidators(ctx context.Context) error                                                //perm:admin
 	CacheCarfile(ctx context.Context, info *CacheCarfileInfo) error                              //perm:admin
 	RemoveCarfile(ctx context.Context, carfileID string) error                                   //perm:admin
-	RemoveCache(ctx context.Context, carfileID, deviceID string) error                           //perm:admin
+	RemoveCache(ctx context.Context, carfileID, nodeID string) error                             //perm:admin
 	GetCarfileRecordInfo(ctx context.Context, cid string) (CarfileRecordInfo, error)             //perm:read
 	ListCarfileRecords(ctx context.Context, page int) (*CarfileRecordsInfo, error)               //perm:read
 	GetDownloadingCarfileRecords(ctx context.Context) ([]*CarfileRecordInfo, error)              //perm:read
@@ -29,40 +29,40 @@ type Scheduler interface {
 	NodeQuit(ctx context.Context, device, secret string) error                                   //perm:admin
 	ResetReplicaCacheCount(ctx context.Context, count int) error                                 //perm:admin
 	ExecuteUndoneCarfilesTask(ctx context.Context, hashs []string) error                         //perm:admin
-	ShowNodeLogFile(ctx context.Context, deviceID string) (*LogFile, error)                      //perm:admin
-	DownloadNodeLogFile(ctx context.Context, deviceID string) ([]byte, error)                    //perm:admin
-	DeleteNodeLogFile(ctx context.Context, deviceID string) error                                //perm:admin
-	SetNodePort(ctx context.Context, deviceID, port string) error                                //perm:admin
+	ShowNodeLogFile(ctx context.Context, nodeID string) (*LogFile, error)                        //perm:admin
+	DownloadNodeLogFile(ctx context.Context, nodeID string) ([]byte, error)                      //perm:admin
+	DeleteNodeLogFile(ctx context.Context, nodeID string) error                                  //perm:admin
+	SetNodePort(ctx context.Context, nodeID, port string) error                                  //perm:admin
 	// call by locator
 	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error //perm:write
 
 	// call by node
 	// node send result when user download block complete
-	NodeResultForUserDownloadBlock(ctx context.Context, result NodeBlockDownloadResult) error                //perm:write
-	EdgeNodeConnect(ctx context.Context) error                                                               //perm:write
-	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                          //perm:write
-	CandidateNodeConnect(ctx context.Context) error                                                          //perm:write
-	CacheResult(ctx context.Context, resultInfo CacheResultInfo) error                                       //perm:write
-	RemoveCarfileResult(ctx context.Context, resultInfo RemoveCarfileResultInfo) error                       //perm:write
-	GetExternalAddr(ctx context.Context) (string, error)                                                     //perm:read
-	GetPublicKey(ctx context.Context) (string, error)                                                        //perm:write
-	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                             //perm:read
-	AuthNodeNew(ctx context.Context, perms []auth.Permission, deviceID, deviceSecret string) ([]byte, error) //perm:read
+	NodeResultForUserDownloadBlock(ctx context.Context, result NodeBlockDownloadResult) error              //perm:write
+	EdgeNodeConnect(ctx context.Context) error                                                             //perm:write
+	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                        //perm:write
+	CandidateNodeConnect(ctx context.Context) error                                                        //perm:write
+	CacheResult(ctx context.Context, resultInfo CacheResultInfo) error                                     //perm:write
+	RemoveCarfileResult(ctx context.Context, resultInfo RemoveCarfileResultInfo) error                     //perm:write
+	GetExternalAddr(ctx context.Context) (string, error)                                                   //perm:read
+	GetPublicKey(ctx context.Context) (string, error)                                                      //perm:write
+	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                           //perm:read
+	AuthNodeNew(ctx context.Context, perms []auth.Permission, nodeID, deviceSecret string) ([]byte, error) //perm:read
 
 	GetNodeAppUpdateInfos(ctx context.Context) (map[int]*NodeAppUpdateInfo, error) //perm:read
 	SetNodeAppUpdateInfo(ctx context.Context, info *NodeAppUpdateInfo) error       //perm:admin                                                           //perm:write
 	DeleteNodeAppUpdateInfos(ctx context.Context, nodeType int) error              //perm:admin
 
 	// nat travel, can get edge external addr with different scheduler
-	GetEdgeExternalAddr(ctx context.Context, deviceID, schedulerURL string) (string, error) //perm:write
+	GetEdgeExternalAddr(ctx context.Context, nodeID, schedulerURL string) (string, error) //perm:write
 	// nat travel
 	CheckEdgeIfBehindFullConeNAT(ctx context.Context, edgeURL string) (bool, error) //perm:read
-	GetNatType(ctx context.Context, deviceID string) (string, error)                //perm:write
+	GetNatType(ctx context.Context, nodeID string) (string, error)                  //perm:write
 
 	// call by user
 	GetDownloadInfosWithCarfile(ctx context.Context, cid, publicKey string) ([]*DownloadInfoResult, error) //perm:read
-	GetDevicesInfo(ctx context.Context, deviceID string) (DeviceInfo, error)                               //perm:read
-	GetDownloadInfo(ctx context.Context, deviceID string) ([]*BlockDownloadInfo, error)                    //perm:read
+	GetDevicesInfo(ctx context.Context, nodeID string) (DeviceInfo, error)                                 //perm:read
+	GetDownloadInfo(ctx context.Context, nodeID string) ([]*BlockDownloadInfo, error)                      //perm:read
 
 	// user send result when user download block complete or failed
 	UserDownloadBlockResults(ctx context.Context, results []UserBlockDownloadResult) error //perm:read
@@ -87,7 +87,7 @@ type CacheEventInfo struct {
 // NodeRegisterInfo Node Register Info
 type NodeAllocateInfo struct {
 	ID         int
-	DeviceID   string `db:"device_id"`
+	NodeID     string `db:"node_id"`
 	Secret     string `db:"secret"`
 	CreateTime string `db:"create_time"`
 	NodeType   int    `db:"node_type"`
@@ -131,7 +131,7 @@ type CarfileRecordInfo struct {
 type ReplicaInfo struct {
 	ID          string
 	CarfileHash string      `db:"carfile_hash"`
-	DeviceID    string      `db:"device_id"`
+	NodeID      string      `db:"node_id"`
 	Status      CacheStatus `db:"status"`
 	IsCandidate bool        `db:"is_candidate"`
 	CreateTime  time.Time   `db:"created_time"`
@@ -146,7 +146,7 @@ type CacheCarfileInfo struct {
 	CarfileCid     string    `db:"carfile_cid"`
 	CarfileHash    string    `db:"carfile_hash"`
 	Replicas       int       `db:"replicas"`
-	DeviceID       string    `db:"device_id"`
+	NodeID         string    `db:"node_id"`
 	ServerID       string    `db:"server_id"`
 	ExpirationTime time.Time `db:"expiration"`
 }
@@ -163,7 +163,7 @@ type NodeBlockDownloadResult struct {
 }
 
 type DownloadServerAccessAuth struct {
-	DeviceID   string
+	NodeID     string
 	URL        string
 	PrivateKey string
 }
@@ -183,7 +183,7 @@ type DownloadInfoResult struct {
 	SignTime int64
 	TimeOut  int
 	Weight   int
-	DeviceID string `json:"-"`
+	NodeID   string `json:"-"`
 }
 
 type CandidateDownloadInfo struct {
@@ -227,7 +227,7 @@ type CacheError struct {
 	DiskCount int
 	Msg       string
 	Time      time.Time
-	DeviceID  string
+	NodeID    string
 }
 
 type NodeAppUpdateInfo struct {

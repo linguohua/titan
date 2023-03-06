@@ -21,8 +21,8 @@ type ExitCallbackFunc func([]string)
 // LocatorUUID the locator unique identifier
 type LocatorUUID string
 
-// DeviceID candidate or edge unique identifier
-type DeviceID string
+// NodeID candidate or edge unique identifier
+type NodeID string
 
 // InternalIP local network address
 type InternalIP string

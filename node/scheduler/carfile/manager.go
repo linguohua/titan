@@ -134,7 +134,7 @@ func (m *Manager) cacheCarfileToNode(info *api.CacheCarfileInfo) error {
 
 	m.carfileCacheStart(carfileRecord)
 
-	err = carfileRecord.dispatchCache(info.DeviceID)
+	err = carfileRecord.dispatchCache(info.NodeID)
 	if err != nil {
 		m.carfileCacheEnd(carfileRecord, err)
 	}
@@ -188,10 +188,10 @@ func (m *Manager) doCarfileReplicaTask(info *api.CacheCarfileInfo) error {
 
 // CacheCarfile new carfile task
 func (m *Manager) CacheCarfile(info *api.CacheCarfileInfo) error {
-	if info.DeviceID == "" {
+	if info.NodeID == "" {
 		log.Infof("carfile event %s , add carfile,replica:%d,expiration:%s", info.CarfileCid, info.Replicas, info.ExpirationTime.String())
 	} else {
-		log.Infof("carfile event %s , add carfile,deviceID:%s", info.CarfileCid, info.DeviceID)
+		log.Infof("carfile event %s , add carfile,nodeID:%s", info.CarfileCid, info.NodeID)
 	}
 	info.ServerID = string(m.nodeManager.ServerID)
 
@@ -213,14 +213,14 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 	log.Infof("carfile event %s , remove carfile record", carfileCid)
 
 	for _, cInfo := range cInfos {
-		go m.notifyNodeRemoveCarfile(cInfo.DeviceID, carfileCid)
+		go m.notifyNodeRemoveCarfile(cInfo.NodeID, carfileCid)
 	}
 
 	return nil
 }
 
 // RemoveCache remove a cache
-func (m *Manager) RemoveCache(carfileCid, deviceID string) error {
+func (m *Manager) RemoveCache(carfileCid, nodeID string) error {
 	hash, err := cidutil.CIDString2HashString(carfileCid)
 	if err != nil {
 		return err
@@ -231,27 +231,27 @@ func (m *Manager) RemoveCache(carfileCid, deviceID string) error {
 		return xerrors.Errorf("task %s is downloading, please wait", carfileCid)
 	}
 
-	cacheInfo, err := m.nodeManager.CarfileDB.LoadReplicaInfo(replicaID(hash, deviceID))
+	cacheInfo, err := m.nodeManager.CarfileDB.LoadReplicaInfo(replicaID(hash, nodeID))
 	if err != nil {
 		return xerrors.Errorf("GetReplicaInfo: %s,err:%s", carfileCid, err.Error())
 	}
 
 	// delete cache and update carfile info
-	err = m.nodeManager.CarfileDB.RemoveCarfileReplica(cacheInfo.DeviceID, cacheInfo.CarfileHash)
+	err = m.nodeManager.CarfileDB.RemoveCarfileReplica(cacheInfo.NodeID, cacheInfo.CarfileHash)
 	if err != nil {
 		return err
 	}
 
-	log.Infof("carfile event %s , remove cache task:%s", carfileCid, deviceID)
+	log.Infof("carfile event %s , remove cache task:%s", carfileCid, nodeID)
 
-	go m.notifyNodeRemoveCarfile(cacheInfo.DeviceID, carfileCid)
+	go m.notifyNodeRemoveCarfile(cacheInfo.NodeID, carfileCid)
 
 	return nil
 }
 
 // CacheCarfileResult block cache result
-func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo) (err error) {
-	log.Debugf("carfileCacheResult :%s , %d , %s", deviceID, info.Status, info.CarfileHash)
+func (m *Manager) CacheCarfileResult(nodeID string, info *api.CacheResultInfo) (err error) {
+	log.Debugf("carfileCacheResult :%s , %d , %s", nodeID, info.Status, info.CarfileHash)
 	// log.Debugf("carfileCacheResult :%v", info)
 
 	var carfileRecord *CarfileRecord
@@ -259,7 +259,7 @@ func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo)
 	if exist && dI != nil {
 		carfileRecord = dI.(*CarfileRecord)
 	} else {
-		err = xerrors.Errorf("task not downloading : %s,%s ,err:%v", deviceID, info.CarfileHash, err)
+		err = xerrors.Errorf("task not downloading : %s,%s ,err:%v", nodeID, info.CarfileHash, err)
 		return
 	}
 
@@ -272,7 +272,7 @@ func (m *Manager) CacheCarfileResult(deviceID string, info *api.CacheResultInfo)
 		info.Status = api.CacheStatusDownloading
 	}
 
-	err = carfileRecord.carfileCacheResult(deviceID, info)
+	err = carfileRecord.carfileCacheResult(nodeID, info)
 	return
 }
 
@@ -297,7 +297,7 @@ func (m *Manager) startCarfileReplicaTasks() {
 			continue
 		}
 
-		if info.DeviceID != "" {
+		if info.NodeID != "" {
 			err = m.cacheCarfileToNode(info)
 		} else {
 			err = m.doCarfileReplicaTask(info)
@@ -401,13 +401,13 @@ func (m *Manager) resetLatelyExpirationTime(t time.Time) {
 }
 
 // Notify node to delete all carfile
-func (m *Manager) notifyNodeRemoveCarfiles(deviceID string) error {
-	edge := m.nodeManager.GetEdgeNode(deviceID)
+func (m *Manager) notifyNodeRemoveCarfiles(nodeID string) error {
+	edge := m.nodeManager.GetEdgeNode(nodeID)
 	if edge != nil {
 		return edge.API().DeleteAllCarfiles(context.Background())
 	}
 
-	candidate := m.nodeManager.GetCandidateNode(deviceID)
+	candidate := m.nodeManager.GetCandidateNode(nodeID)
 	if candidate != nil {
 		return candidate.API().DeleteAllCarfiles(context.Background())
 	}
@@ -416,13 +416,13 @@ func (m *Manager) notifyNodeRemoveCarfiles(deviceID string) error {
 }
 
 // Notify node to delete carfile
-func (m *Manager) notifyNodeRemoveCarfile(deviceID, cid string) error {
-	edge := m.nodeManager.GetEdgeNode(deviceID)
+func (m *Manager) notifyNodeRemoveCarfile(nodeID, cid string) error {
+	edge := m.nodeManager.GetEdgeNode(nodeID)
 	if edge != nil {
 		return edge.API().DeleteCarfile(context.Background(), cid)
 	}
 
-	candidate := m.nodeManager.GetCandidateNode(deviceID)
+	candidate := m.nodeManager.GetCandidateNode(nodeID)
 	if candidate != nil {
 		return candidate.API().DeleteCarfile(context.Background(), cid)
 	}
@@ -440,8 +440,8 @@ func (m *Manager) GetCandidateReplicaCount() int {
 	return candidateReplicaCacheCount
 }
 
-func replicaID(hash, deviceID string) string {
-	input := fmt.Sprintf("%s%s", hash, deviceID)
+func replicaID(hash, nodeID string) string {
+	input := fmt.Sprintf("%s%s", hash, nodeID)
 
 	c := sha1.New()
 	c.Write([]byte(input))
@@ -511,7 +511,7 @@ func carfileRecord2Info(cr *CarfileRecord) *api.CarfileRecordInfo {
 				DoneSize:    ra.doneSize,
 				DoneBlocks:  ra.doneBlocks,
 				IsCandidate: ra.isCandidate,
-				DeviceID:    ra.deviceID,
+				NodeID:      ra.nodeID,
 				CreateTime:  ra.createTime,
 				EndTime:     ra.endTime,
 			}

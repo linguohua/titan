@@ -109,9 +109,9 @@ func (a *CommonAPI) Shutdown(context.Context) error {
 func (a *CommonAPI) Session(ctx context.Context) (uuid.UUID, error) {
 	if a.SessionCallBack != nil {
 		remoteAddr := handler.GetRemoteAddr(ctx)
-		deviceID := handler.GetDeviceID(ctx)
-		if deviceID != "" && remoteAddr != "" {
-			a.SessionCallBack(deviceID, remoteAddr)
+		nodeID := handler.GetNodeID(ctx)
+		if nodeID != "" && remoteAddr != "" {
+			a.SessionCallBack(nodeID, remoteAddr)
 		}
 	}
 

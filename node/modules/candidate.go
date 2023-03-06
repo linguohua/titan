@@ -2,6 +2,7 @@ package modules
 
 import (
 	"context"
+
 	"github.com/linguohua/titan/node/candidate"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/carfile/downloader"
@@ -13,7 +14,7 @@ import (
 type DeviceParams struct {
 	fx.In
 
-	DeviceID      dtypes.DeviceID
+	NodeID        dtypes.NodeID
 	InternalIP    dtypes.InternalIP
 	CarfileStore  *carfilestore.CarfileStore
 	BandwidthUP   int64

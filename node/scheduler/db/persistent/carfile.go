@@ -21,17 +21,17 @@ func NewCarfileDB(db *sqlx.DB) *CarfileDB {
 
 // CreateCarfileReplicaInfo Create replica info
 func (c *CarfileDB) CreateCarfileReplicaInfo(cInfo *api.ReplicaInfo) error {
-	cmd := fmt.Sprintf("INSERT INTO %s (id, carfile_hash, device_id, status, is_candidate) VALUES (:id, :carfile_hash, :device_id, :status, :is_candidate)", replicaInfoTable)
+	cmd := fmt.Sprintf("INSERT INTO %s (id, carfile_hash, node_id, status, is_candidate) VALUES (:id, :carfile_hash, :node_id, :status, :is_candidate)", replicaInfoTable)
 	_, err := c.db.NamedExec(cmd, cInfo)
 	return err
 }
 
 // UpdateCarfileReplicaStatus Update
-func (c *CarfileDB) UpdateCarfileReplicaStatus(hash string, deviceIDs []string, status api.CacheStatus) error {
+func (c *CarfileDB) UpdateCarfileReplicaStatus(hash string, nodeIDs []string, status api.CacheStatus) error {
 	tx := c.db.MustBegin()
 
-	cmd := fmt.Sprintf("UPDATE %s SET status=? WHERE carfile_hash=? AND device_id in (?) ", replicaInfoTable)
-	query, args, err := sqlx.In(cmd, status, hash, deviceIDs)
+	cmd := fmt.Sprintf("UPDATE %s SET status=? WHERE carfile_hash=? AND node_id in (?) ", replicaInfoTable)
+	query, args, err := sqlx.In(cmd, status, hash, nodeIDs)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func (c *CarfileDB) CarfileRecordInfos(page int) (info *api.CarfileRecordsInfo, 
 // CandidatesWithHash get candidates with hash
 func (c *CarfileDB) CandidatesWithHash(hash string) ([]string, error) {
 	var out []string
-	query := fmt.Sprintf(`SELECT device_id FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?`,
+	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?`,
 		replicaInfoTable)
 
 	if err := c.db.Select(&out, query, hash, api.CacheStatusSucceeded, true); err != nil {
@@ -180,16 +180,16 @@ func (c *CarfileDB) CarfileReplicaInfosWithHash(hash string, isSuccess bool) ([]
 }
 
 // RandomCarfileFromNode Get a random carfile from the node
-func (c *CarfileDB) RandomCarfileFromNode(deviceID string) (string, error) {
-	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE device_id=? AND status=?`, replicaInfoTable)
+func (c *CarfileDB) RandomCarfileFromNode(nodeID string) (string, error) {
+	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE node_id=? AND status=?`, replicaInfoTable)
 
 	var count int
-	if err := c.db.Get(&count, query, deviceID, api.CacheStatusSucceeded); err != nil {
+	if err := c.db.Get(&count, query, nodeID, api.CacheStatusSucceeded); err != nil {
 		return "", err
 	}
 
 	if count < 1 {
-		return "", xerrors.Errorf("node %s no cache", deviceID)
+		return "", xerrors.Errorf("node %s no cache", nodeID)
 	}
 
 	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -197,8 +197,8 @@ func (c *CarfileDB) RandomCarfileFromNode(deviceID string) (string, error) {
 	index := rand.Intn(count)
 
 	var hashs []string
-	cmd := fmt.Sprintf("SELECT carfile_hash FROM %s WHERE device_id=? AND status=? LIMIT %d,%d", replicaInfoTable, index, 1)
-	if err := c.db.Select(&hashs, cmd, deviceID, api.CacheStatusSucceeded); err != nil {
+	cmd := fmt.Sprintf("SELECT carfile_hash FROM %s WHERE node_id=? AND status=? LIMIT %d,%d", replicaInfoTable, index, 1)
+	if err := c.db.Select(&hashs, cmd, nodeID, api.CacheStatusSucceeded); err != nil {
 		return "", err
 	}
 
@@ -291,12 +291,12 @@ func (c *CarfileDB) RemoveCarfileRecord(carfileHash string) error {
 }
 
 // RemoveCarfileReplica remove replica info
-func (c *CarfileDB) RemoveCarfileReplica(deviceID, carfileHash string) error {
+func (c *CarfileDB) RemoveCarfileReplica(nodeID, carfileHash string) error {
 	tx := c.db.MustBegin()
 
 	// cache info
-	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE device_id=? AND carfile_hash=?`, replicaInfoTable)
-	tx.MustExec(cCmd, deviceID, carfileHash)
+	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE node_id=? AND carfile_hash=?`, replicaInfoTable)
+	tx.MustExec(cCmd, nodeID, carfileHash)
 
 	var count int
 	cmd := fmt.Sprintf("SELECT count(*) FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?", replicaInfoTable)
@@ -315,12 +315,12 @@ func (c *CarfileDB) RemoveCarfileReplica(deviceID, carfileHash string) error {
 }
 
 // LoadCarfileRecordsWithNodes load carfile record hashs with nodes
-func (c *CarfileDB) LoadCarfileRecordsWithNodes(deviceIDs []string) (hashs []string, err error) {
+func (c *CarfileDB) LoadCarfileRecordsWithNodes(nodeIDs []string) (hashs []string, err error) {
 	tx := c.db.MustBegin()
 
 	// get carfiles
-	getCarfilesCmd := fmt.Sprintf(`select carfile_hash from %s WHERE device_id in (?) GROUP BY carfile_hash`, replicaInfoTable)
-	carfilesQuery, args, err := sqlx.In(getCarfilesCmd, deviceIDs)
+	getCarfilesCmd := fmt.Sprintf(`select carfile_hash from %s WHERE node_id in (?) GROUP BY carfile_hash`, replicaInfoTable)
+	carfilesQuery, args, err := sqlx.In(getCarfilesCmd, nodeIDs)
 	if err != nil {
 		return
 	}
@@ -338,12 +338,12 @@ func (c *CarfileDB) LoadCarfileRecordsWithNodes(deviceIDs []string) (hashs []str
 }
 
 // RemoveReplicaInfoWithNodes remove replica info with nodes
-func (c *CarfileDB) RemoveReplicaInfoWithNodes(deviceIDs []string) error {
+func (c *CarfileDB) RemoveReplicaInfoWithNodes(nodeIDs []string) error {
 	tx := c.db.MustBegin()
 
 	// remove cache
-	cmd := fmt.Sprintf(`DELETE FROM %s WHERE device_id in (?)`, replicaInfoTable)
-	query, args, err := sqlx.In(cmd, deviceIDs)
+	cmd := fmt.Sprintf(`DELETE FROM %s WHERE node_id in (?)`, replicaInfoTable)
+	query, args, err := sqlx.In(cmd, nodeIDs)
 	if err != nil {
 		return err
 	}
@@ -360,32 +360,32 @@ func (c *CarfileDB) RemoveReplicaInfoWithNodes(deviceIDs []string) error {
 	return nil
 }
 
-func (c *CarfileDB) BindNodeAllocateInfo(secret, deviceID string, nodeType api.NodeType) error {
+func (c *CarfileDB) BindNodeAllocateInfo(secret, nodeID string, nodeType api.NodeType) error {
 	info := api.NodeAllocateInfo{
 		Secret:     secret,
-		DeviceID:   deviceID,
+		NodeID:     nodeID,
 		NodeType:   int(nodeType),
 		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
 	}
 
-	_, err := c.db.NamedExec(`INSERT INTO node_allocate_info (device_id, secret, create_time, node_type)
-	VALUES (:device_id, :secret, :create_time, :node_type)`, info)
+	_, err := c.db.NamedExec(`INSERT INTO node_allocate_info (node_id, secret, create_time, node_type)
+	VALUES (:node_id, :secret, :create_time, :node_type)`, info)
 
 	return err
 }
 
-func (c *CarfileDB) GetNodeAllocateInfo(deviceID, key string, out interface{}) error {
+func (c *CarfileDB) GetNodeAllocateInfo(nodeID, key string, out interface{}) error {
 	if key != "" {
-		query := fmt.Sprintf(`SELECT %s FROM node_allocate_info WHERE device_id=?`, key)
-		if err := c.db.Get(out, query, deviceID); err != nil {
+		query := fmt.Sprintf(`SELECT %s FROM node_allocate_info WHERE node_id=?`, key)
+		if err := c.db.Get(out, query, nodeID); err != nil {
 			return err
 		}
 
 		return nil
 	}
 
-	query := "SELECT * FROM node_allocate_info WHERE device_id=?"
-	if err := c.db.Get(out, query, deviceID); err != nil {
+	query := "SELECT * FROM node_allocate_info WHERE node_id=?"
+	if err := c.db.Get(out, query, nodeID); err != nil {
 		return err
 	}
 
@@ -395,8 +395,8 @@ func (c *CarfileDB) GetNodeAllocateInfo(deviceID, key string, out interface{}) e
 // download info
 func (c *CarfileDB) SetBlockDownloadInfo(info *api.BlockDownloadInfo) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (id, device_id, block_cid, carfile_cid, block_size, speed, reward, status, failed_reason, client_ip, created_time, complete_time) 
-				VALUES (:id, :device_id, :block_cid, :carfile_cid, :block_size, :speed, :reward, :status, :failed_reason, :client_ip, :created_time, :complete_time) ON DUPLICATE KEY UPDATE device_id=:device_id, speed=:speed, reward=:reward, status=:status, failed_reason=:failed_reason, complete_time=:complete_time`, blockDownloadInfo)
+		`INSERT INTO %s (id, node_id, block_cid, carfile_cid, block_size, speed, reward, status, failed_reason, client_ip, created_time, complete_time) 
+				VALUES (:id, :node_id, :block_cid, :carfile_cid, :block_size, :speed, :reward, :status, :failed_reason, :client_ip, :created_time, :complete_time) ON DUPLICATE KEY UPDATE node_id=:node_id, speed=:speed, reward=:reward, status=:status, failed_reason=:failed_reason, complete_time=:complete_time`, blockDownloadInfo)
 
 	_, err := c.db.NamedExec(query, info)
 	if err != nil {
@@ -406,11 +406,11 @@ func (c *CarfileDB) SetBlockDownloadInfo(info *api.BlockDownloadInfo) error {
 	return nil
 }
 
-func (c *CarfileDB) GetBlockDownloadInfoByDeviceID(deviceID string) ([]*api.BlockDownloadInfo, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE device_id = ? and TO_DAYS(created_time) >= TO_DAYS(NOW()) ORDER BY created_time DESC`, blockDownloadInfo)
+func (c *CarfileDB) GetBlockDownloadInfoByNodeID(nodeID string) ([]*api.BlockDownloadInfo, error) {
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id = ? and TO_DAYS(created_time) >= TO_DAYS(NOW()) ORDER BY created_time DESC`, blockDownloadInfo)
 
 	var out []*api.BlockDownloadInfo
-	if err := c.db.Select(&out, query, deviceID); err != nil {
+	if err := c.db.Select(&out, query, nodeID); err != nil {
 		return nil, err
 	}
 
@@ -434,7 +434,7 @@ func (c *CarfileDB) GetBlockDownloadInfoByID(id string) (*api.BlockDownloadInfo,
 func (c *CarfileDB) GetNodesByUserDownloadBlockIn(minute int) ([]string, error) {
 	starTime := time.Now().Add(time.Duration(minute) * time.Minute * -1)
 
-	query := fmt.Sprintf(`SELECT device_id FROM %s WHERE complete_time > ? group by device_id`, blockDownloadInfo)
+	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE complete_time > ? group by node_id`, blockDownloadInfo)
 
 	var out []string
 	if err := c.db.Select(&out, query, starTime); err != nil {
@@ -444,29 +444,29 @@ func (c *CarfileDB) GetNodesByUserDownloadBlockIn(minute int) ([]string, error) 
 	return out, nil
 }
 
-func (c *CarfileDB) GetCacheInfosWithNode(deviceID string, index, count int) (info *api.NodeCacheRsp, err error) {
+func (c *CarfileDB) GetCacheInfosWithNode(nodeID string, index, count int) (info *api.NodeCacheRsp, err error) {
 	info = &api.NodeCacheRsp{}
 
-	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE device_id=?", replicaInfoTable)
-	err = c.db.Get(&info.TotalCount, cmd, deviceID)
+	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE node_id=?", replicaInfoTable)
+	err = c.db.Get(&info.TotalCount, cmd, nodeID)
 	if err != nil {
 		return
 	}
 
-	cmd = fmt.Sprintf("SELECT carfile_hash,status FROM %s WHERE device_id=? order by id asc LIMIT %d,%d", replicaInfoTable, index, count)
-	if err = c.db.Select(&info.Caches, cmd, deviceID); err != nil {
+	cmd = fmt.Sprintf("SELECT carfile_hash,status FROM %s WHERE node_id=? order by id asc LIMIT %d,%d", replicaInfoTable, index, count)
+	if err = c.db.Select(&info.Caches, cmd, nodeID); err != nil {
 		return
 	}
 
 	return
 }
 
-func (c *CarfileDB) GetBlockDownloadInfos(deviceID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.BlockDownloadInfo, int64, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE device_id = ? and created_time between ? and ? limit ?,?`, blockDownloadInfo)
+func (c *CarfileDB) GetBlockDownloadInfos(nodeID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.BlockDownloadInfo, int64, error) {
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id = ? and created_time between ? and ? limit ?,?`, blockDownloadInfo)
 
 	var total int64
-	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE device_id = ? and created_time between ? and ?`, blockDownloadInfo)
-	if err := c.db.Get(&total, countSQL, deviceID, startTime, endTime); err != nil {
+	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE node_id = ? and created_time between ? and ?`, blockDownloadInfo)
+	if err := c.db.Get(&total, countSQL, nodeID, startTime, endTime); err != nil {
 		return nil, 0, err
 	}
 
@@ -475,7 +475,7 @@ func (c *CarfileDB) GetBlockDownloadInfos(deviceID string, startTime time.Time, 
 	}
 
 	var out []api.BlockDownloadInfo
-	if err := c.db.Select(&out, query, deviceID, startTime, endTime, cursor, count); err != nil {
+	if err := c.db.Select(&out, query, nodeID, startTime, endTime, cursor, count); err != nil {
 		return nil, 0, err
 	}
 
@@ -506,9 +506,9 @@ func (c *CarfileDB) GetReplicaInfos(startTime time.Time, endTime time.Time, curs
 // PushCarfileToWaitList waiting data list
 func (c *CarfileDB) PushCarfileToWaitList(info *api.CacheCarfileInfo) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (carfile_hash, carfile_cid, replicas, device_id, expiration, server_id) 
-				VALUES (:carfile_hash, :carfile_cid, :replicas, :device_id, :expiration, :server_id) 
-				ON DUPLICATE KEY UPDATE carfile_hash=:carfile_hash, carfile_cid=:carfile_cid, replicas=:replicas, device_id=:device_id, 
+		`INSERT INTO %s (carfile_hash, carfile_cid, replicas, node_id, expiration, server_id) 
+				VALUES (:carfile_hash, :carfile_cid, :replicas, :node_id, :expiration, :server_id) 
+				ON DUPLICATE KEY UPDATE carfile_hash=:carfile_hash, carfile_cid=:carfile_cid, replicas=:replicas, node_id=:node_id, 
 				expiration=:expiration, server_id=:server_id`, waitingCarfileTable)
 
 	_, err := c.db.NamedExec(query, info)
@@ -547,12 +547,12 @@ func (c *CarfileDB) GetCachingCarfiles(serverID dtypes.ServerID) ([]string, erro
 }
 
 // ReplicaTasksStart ...
-func (c *CarfileDB) ReplicaTasksStart(serverID dtypes.ServerID, hash string, deviceIDs []string) error {
+func (c *CarfileDB) ReplicaTasksStart(serverID dtypes.ServerID, hash string, nodeIDs []string) error {
 	tx := c.db.MustBegin()
 
-	for _, deviceID := range deviceIDs {
-		sQuery := fmt.Sprintf(`INSERT INTO %s (carfile_hash, device_id, server_id) VALUES (?, ?, ?)`, downloadingTable)
-		tx.MustExec(sQuery, hash, deviceID, serverID)
+	for _, nodeID := range nodeIDs {
+		sQuery := fmt.Sprintf(`INSERT INTO %s (carfile_hash, node_id, server_id) VALUES (?, ?, ?)`, downloadingTable)
+		tx.MustExec(sQuery, hash, nodeID, serverID)
 	}
 
 	err := tx.Commit()
@@ -564,9 +564,9 @@ func (c *CarfileDB) ReplicaTasksStart(serverID dtypes.ServerID, hash string, dev
 }
 
 // ReplicaTasksEnd ...
-func (c *CarfileDB) ReplicaTasksEnd(serverID dtypes.ServerID, hash string, deviceIDs []string) (bool, error) {
-	dQuery := fmt.Sprintf("DELETE FROM %s WHERE server_id=? AND carfile_hash=? AND device_id in (?) ", downloadingTable)
-	query, args, err := sqlx.In(dQuery, serverID, hash, deviceIDs)
+func (c *CarfileDB) ReplicaTasksEnd(serverID dtypes.ServerID, hash string, nodeIDs []string) (bool, error) {
+	dQuery := fmt.Sprintf("DELETE FROM %s WHERE server_id=? AND carfile_hash=? AND node_id in (?) ", downloadingTable)
+	query, args, err := sqlx.In(dQuery, serverID, hash, nodeIDs)
 	if err != nil {
 		return false, err
 	}

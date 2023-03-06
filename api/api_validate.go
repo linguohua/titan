@@ -9,7 +9,7 @@ type Validate interface {
 type ValidateTcpMsgType int
 
 const (
-	ValidateTcpMsgTypeDeviceID ValidateTcpMsgType = iota + 1
+	ValidateTcpMsgTypeNodeID ValidateTcpMsgType = iota + 1
 	ValidateTcpMsgTypeBlockContent
 	ValidateTcpMsgTypeCancelValidate
 )

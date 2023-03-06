@@ -43,7 +43,7 @@ var showOnlineNodeCmd = &cli.Command{
 		}
 		defer closer()
 
-		nodes, err := schedulerAPI.GetOnlineDeviceIDs(ctx, api.NodeType(t))
+		nodes, err := schedulerAPI.GetOnlineNodeIDs(ctx, api.NodeType(t))
 
 		fmt.Println("Online nodes count:", len(nodes))
 		for _, node := range nodes {
@@ -58,13 +58,13 @@ var nodeTokenCmd = &cli.Command{
 	Name:  "token",
 	Usage: "Get node token with secret ",
 	Flags: []cli.Flag{
-		deviceIDFlag,
+		nodeIDFlag,
 		secretFlag,
 	},
 	Action: func(cctx *cli.Context) error {
 		secret := cctx.String("secret")
-		deviceID := cctx.String("device-id")
-		if deviceID == "" {
+		nodeID := cctx.String("device-id")
+		if nodeID == "" {
 			return xerrors.New("device-id is nil")
 		}
 
@@ -77,7 +77,7 @@ var nodeTokenCmd = &cli.Command{
 		defer closer()
 
 		perms := []auth.Permission{api.PermRead, api.PermWrite}
-		info, err := schedulerAPI.AuthNodeNew(ctx, perms, deviceID, secret)
+		info, err := schedulerAPI.AuthNodeNew(ctx, perms, nodeID, secret)
 		if err != nil {
 			return err
 		}
@@ -89,7 +89,7 @@ var nodeTokenCmd = &cli.Command{
 
 var registerNodeCmd = &cli.Command{
 	Name:  "register",
-	Usage: "Register deviceID and secret ",
+	Usage: "Register nodeID and secret ",
 	Flags: []cli.Flag{
 		nodeTypeFlag,
 	},
@@ -112,7 +112,7 @@ var registerNodeCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("\nDeviceID:%s\nSecret:%s", infos[0].DeviceID, infos[0].Secret)
+		fmt.Printf("\nNodeID:%s\nSecret:%s", infos[0].NodeID, infos[0].Secret)
 		return nil
 	},
 }
@@ -121,11 +121,11 @@ var showNodeInfoCmd = &cli.Command{
 	Name:  "info",
 	Usage: "Show node info",
 	Flags: []cli.Flag{
-		deviceIDFlag,
+		nodeIDFlag,
 	},
 	Action: func(cctx *cli.Context) error {
-		deviceID := cctx.String("device-id")
-		if deviceID == "" {
+		nodeID := cctx.String("device-id")
+		if nodeID == "" {
 			return xerrors.New("device-id is nil")
 		}
 
@@ -137,17 +137,17 @@ var showNodeInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		info, err := schedulerAPI.GetNodeInfoByID(ctx, deviceID)
+		info, err := schedulerAPI.GetNodeInfoByID(ctx, nodeID)
 		if err != nil {
 			return err
 		}
 
-		natType, err := schedulerAPI.GetNatType(ctx, deviceID)
+		natType, err := schedulerAPI.GetNatType(ctx, nodeID)
 		if err != nil {
 			natType = "UnkonwNAT"
 		}
 
-		fmt.Printf("device id: %s \n", info.DeviceID)
+		fmt.Printf("device id: %s \n", info.NodeID)
 		fmt.Printf("device name: %s \n", info.DeviceName)
 		fmt.Printf("device external_ip: %s \n", info.ExternalIP)
 		fmt.Printf("device internal_ip: %s \n", info.InternalIP)
@@ -171,10 +171,10 @@ var downloadNodeLogFileCmd = &cli.Command{
 	Name:  "download-log",
 	Usage: "Download node log file",
 	Flags: []cli.Flag{
-		deviceIDFlag,
+		nodeIDFlag,
 	},
 	Action: func(cctx *cli.Context) error {
-		deviceID := cctx.String("device-id")
+		nodeID := cctx.String("device-id")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -183,7 +183,7 @@ var downloadNodeLogFileCmd = &cli.Command{
 		}
 		defer closer()
 
-		info, err := schedulerAPI.ShowNodeLogFile(ctx, deviceID)
+		info, err := schedulerAPI.ShowNodeLogFile(ctx, nodeID)
 		if err != nil {
 			return err
 		}
@@ -193,7 +193,7 @@ var downloadNodeLogFileCmd = &cli.Command{
 			return nil
 		}
 
-		data, err := schedulerAPI.DownloadNodeLogFile(ctx, deviceID)
+		data, err := schedulerAPI.DownloadNodeLogFile(ctx, nodeID)
 		if err != nil {
 			return err
 		}
@@ -207,10 +207,10 @@ var showNodeLogInfoCmd = &cli.Command{
 	Name:  "log-info",
 	Usage: "Show node log info",
 	Flags: []cli.Flag{
-		deviceIDFlag,
+		nodeIDFlag,
 	},
 	Action: func(cctx *cli.Context) error {
-		deviceID := cctx.String("device-id")
+		nodeID := cctx.String("device-id")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -219,7 +219,7 @@ var showNodeLogInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		file, err := schedulerAPI.ShowNodeLogFile(ctx, deviceID)
+		file, err := schedulerAPI.ShowNodeLogFile(ctx, nodeID)
 		if err != nil {
 			return err
 		}
@@ -238,10 +238,10 @@ var deleteNodeLogFileCmd = &cli.Command{
 	Name:  "delete-log",
 	Usage: "Delete log file with node",
 	Flags: []cli.Flag{
-		deviceIDFlag,
+		nodeIDFlag,
 	},
 	Action: func(cctx *cli.Context) error {
-		deviceID := cctx.String("device-id")
+		nodeID := cctx.String("device-id")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -250,7 +250,7 @@ var deleteNodeLogFileCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.DeleteNodeLogFile(ctx, deviceID)
+		return schedulerAPI.DeleteNodeLogFile(ctx, nodeID)
 	},
 }
 
@@ -258,7 +258,7 @@ var nodeQuitCmd = &cli.Command{
 	Name:  "quit",
 	Usage: "Node quit the titan",
 	Flags: []cli.Flag{
-		deviceIDFlag,
+		nodeIDFlag,
 		secretFlag,
 	},
 
@@ -266,8 +266,8 @@ var nodeQuitCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		deviceID := cctx.String("device-id")
-		if deviceID == "" {
+		nodeID := cctx.String("device-id")
+		if nodeID == "" {
 			return xerrors.New("device-id is nil")
 		}
 
@@ -281,7 +281,7 @@ var nodeQuitCmd = &cli.Command{
 		}
 		defer closer()
 
-		err = schedulerAPI.NodeQuit(ctx, deviceID, secret)
+		err = schedulerAPI.NodeQuit(ctx, nodeID, secret)
 		if err != nil {
 			return err
 		}
@@ -294,7 +294,7 @@ var edgeExternalAddrCmd = &cli.Command{
 	Name:  "external-addr",
 	Usage: "get edge external addr",
 	Flags: []cli.Flag{
-		deviceIDFlag,
+		nodeIDFlag,
 		&cli.StringFlag{
 			Name:  "scheduler-url",
 			Usage: "scheduler url",
@@ -302,7 +302,7 @@ var edgeExternalAddrCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		deviceID := cctx.String("device-id")
+		nodeID := cctx.String("device-id")
 		schedulerURL := cctx.String("scheduler-url")
 
 		ctx := ReqContext(cctx)
@@ -312,7 +312,7 @@ var edgeExternalAddrCmd = &cli.Command{
 		}
 		defer closer()
 
-		addr, err := schedulerAPI.GetEdgeExternalAddr(ctx, deviceID, schedulerURL)
+		addr, err := schedulerAPI.GetEdgeExternalAddr(ctx, nodeID, schedulerURL)
 		if err != nil {
 			return err
 		}

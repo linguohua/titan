@@ -23,7 +23,7 @@ var log = logging.Logger("device")
 const schedulerApiTimeout = 3
 
 type Device struct {
-	deviceID      string
+	nodeID        string
 	publicIP      string
 	internalIP    string
 	bandwidthUp   int64
@@ -31,9 +31,9 @@ type Device struct {
 	carfileStore  *carfilestore.CarfileStore
 }
 
-func NewDevice(deviceID, internalIP string, bandwidthUp, bandwidthDown int64, carfileStore *carfilestore.CarfileStore) *Device {
+func NewDevice(nodeID, internalIP string, bandwidthUp, bandwidthDown int64, carfileStore *carfilestore.CarfileStore) *Device {
 	device := &Device{
-		deviceID:      deviceID,
+		nodeID:        nodeID,
 		internalIP:    internalIP,
 		bandwidthUp:   bandwidthUp,
 		bandwidthDown: bandwidthDown,
@@ -58,9 +58,9 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DeviceInfo, error) {
 		APIVersion: v,
 	}
 
-	info.DeviceID = device.deviceID
+	info.NodeID = device.nodeID
 
-	name := device.deviceID
+	name := device.nodeID
 	if len(name) > 10 {
 		info.DeviceName = name[0:10]
 	}
@@ -167,8 +167,8 @@ func (device *Device) GetInternalIP() string {
 	return device.internalIP
 }
 
-func (device *Device) DeviceID(ctx context.Context) (string, error) {
-	return device.deviceID, nil
+func (device *Device) NodeID(ctx context.Context) (string, error) {
+	return device.nodeID, nil
 }
 
 func (device *Device) GetDiskUsageStat() (totalSpace, usage float64) {

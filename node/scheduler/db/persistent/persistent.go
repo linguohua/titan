@@ -27,5 +27,5 @@ type NodeCacheInfo struct {
 	TotalDownload float64
 	TotalUpload   float64
 	BlockCount    int
-	DeviceID      string
+	NodeID        string
 }

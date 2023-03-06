@@ -18,23 +18,23 @@ func NewNodeMgrDB(db *sqlx.DB) *NodeMgrDB {
 }
 
 // NodeOffline Set the last online time of the node
-func (n *NodeMgrDB) NodeOffline(deviceID string, lastTime time.Time) error {
+func (n *NodeMgrDB) NodeOffline(nodeID string, lastTime time.Time) error {
 	info := &api.DeviceInfo{
-		DeviceID: deviceID,
+		NodeID:   nodeID,
 		LastTime: lastTime,
 	}
 
-	query := fmt.Sprintf("UPDATE %s WHERE SET last_time=:last_time WHERE device_id=:device_id", nodeInfoTable)
+	query := fmt.Sprintf("UPDATE %s WHERE SET last_time=:last_time WHERE node_id=:node_id", nodeInfoTable)
 	_, err := n.db.NamedExec(query, info)
 
 	return err
 }
 
 // NodePrivateKey Get node privateKey
-func (n *NodeMgrDB) NodePrivateKey(deviceID string) (string, error) {
+func (n *NodeMgrDB) NodePrivateKey(nodeID string) (string, error) {
 	var privateKey string
-	query := fmt.Sprintf("SELECT private_key FROM %s WHERE device_id=?", nodeInfoTable)
-	if err := n.db.Get(&privateKey, query, deviceID); err != nil {
+	query := fmt.Sprintf("SELECT private_key FROM %s WHERE node_id=?", nodeInfoTable)
+	if err := n.db.Get(&privateKey, query, nodeID); err != nil {
 		return "", err
 	}
 
@@ -47,7 +47,7 @@ func (n *NodeMgrDB) LongTimeOfflineNodes(hour int) ([]*api.DeviceInfo, error) {
 
 	time := time.Now().Add(-time.Duration(hour) * time.Hour)
 
-	cmd := fmt.Sprintf("SELECT device_id FROM %s WHERE quitted=? AND last_time <= ?", nodeInfoTable)
+	cmd := fmt.Sprintf("SELECT node_id FROM %s WHERE quitted=? AND last_time <= ?", nodeInfoTable)
 	if err := n.db.Select(&list, cmd, false, time); err != nil {
 		return nil, err
 	}
@@ -56,12 +56,12 @@ func (n *NodeMgrDB) LongTimeOfflineNodes(hour int) ([]*api.DeviceInfo, error) {
 }
 
 // SetNodesQuit Node quit the titan
-func (n *NodeMgrDB) SetNodesQuit(deviceIDs []string) error {
+func (n *NodeMgrDB) SetNodesQuit(nodeIDs []string) error {
 	tx := n.db.MustBegin()
 
-	for _, deviceID := range deviceIDs {
-		dCmd := fmt.Sprintf(`UPDATE %s SET quitted=? WHERE device_id=?`, nodeInfoTable)
-		tx.MustExec(dCmd, true, deviceID)
+	for _, nodeID := range nodeIDs {
+		dCmd := fmt.Sprintf(`UPDATE %s SET quitted=? WHERE node_id=?`, nodeInfoTable)
+		tx.MustExec(dCmd, true, nodeID)
 	}
 
 	err := tx.Commit()
@@ -74,10 +74,10 @@ func (n *NodeMgrDB) SetNodesQuit(deviceIDs []string) error {
 }
 
 // NodePortMapping load node mapping port
-func (n *NodeMgrDB) NodePortMapping(deviceID string) (string, error) {
+func (n *NodeMgrDB) NodePortMapping(nodeID string) (string, error) {
 	var privateKey string
-	query := fmt.Sprintf("SELECT port_mapping FROM %s WHERE device_id=?", nodeInfoTable)
-	if err := n.db.Get(&privateKey, query, deviceID); err != nil {
+	query := fmt.Sprintf("SELECT port_mapping FROM %s WHERE node_id=?", nodeInfoTable)
+	if err := n.db.Get(&privateKey, query, nodeID); err != nil {
 		return "", err
 	}
 
@@ -85,13 +85,13 @@ func (n *NodeMgrDB) NodePortMapping(deviceID string) (string, error) {
 }
 
 // SetNodePortMapping Set node mapping port
-func (n *NodeMgrDB) SetNodePortMapping(deviceID, port string) error {
+func (n *NodeMgrDB) SetNodePortMapping(nodeID, port string) error {
 	info := api.DeviceInfo{
-		DeviceID:    deviceID,
+		NodeID:      nodeID,
 		PortMapping: port,
 	}
 	// update
-	dCmd := fmt.Sprintf(`UPDATE %s SET port_mapping=:port_mapping WHERE device_id=:device_id`, nodeInfoTable)
+	dCmd := fmt.Sprintf(`UPDATE %s SET port_mapping=:port_mapping WHERE node_id=:node_id`, nodeInfoTable)
 	_, err := n.db.NamedExec(dCmd, info)
 	return err
 }
@@ -100,8 +100,8 @@ func (n *NodeMgrDB) SetNodePortMapping(deviceID, port string) error {
 func (n *NodeMgrDB) InitValidateResultInfos(infos []*api.ValidateResult) error {
 	tx := n.db.MustBegin()
 	for _, info := range infos {
-		query := "INSERT INTO validate_result (round_id, device_id, validator_id, status, start_time) VALUES (?, ?, ?, ?, ?)"
-		tx.MustExec(query, info.RoundID, info.DeviceID, info.ValidatorID, info.Status, info.StartTime)
+		query := "INSERT INTO validate_result (round_id, node_id, validator_id, status, start_time) VALUES (?, ?, ?, ?, ?)"
+		tx.MustExec(query, info.RoundID, info.NodeID, info.ValidatorID, info.Status, info.StartTime)
 	}
 
 	err := tx.Commit()
@@ -114,11 +114,11 @@ func (n *NodeMgrDB) InitValidateResultInfos(infos []*api.ValidateResult) error {
 }
 
 // SetValidateTimeoutOfNodes Set validator timeout of nodes
-func (n *NodeMgrDB) SetValidateTimeoutOfNodes(roundID int64, deviceIDs []string) error {
+func (n *NodeMgrDB) SetValidateTimeoutOfNodes(roundID int64, nodeIDs []string) error {
 	tx := n.db.MustBegin()
 
-	updateCachesCmd := `UPDATE validate_result SET status=?,end_time=NOW() WHERE round_id=? AND device_id in (?)`
-	query, args, err := sqlx.In(updateCachesCmd, api.ValidateStatusTimeOut, roundID, deviceIDs)
+	updateCachesCmd := `UPDATE validate_result SET status=?,end_time=NOW() WHERE round_id=? AND node_id in (?)`
+	query, args, err := sqlx.In(updateCachesCmd, api.ValidateStatusTimeOut, roundID, nodeIDs)
 	if err != nil {
 		return err
 	}
@@ -139,12 +139,12 @@ func (n *NodeMgrDB) SetValidateTimeoutOfNodes(roundID int64, deviceIDs []string)
 // UpdateValidateResultInfo Update validator info
 func (n *NodeMgrDB) UpdateValidateResultInfo(info *api.ValidateResult) error {
 	if info.Status == api.ValidateStatusSuccess {
-		query := "UPDATE validate_result SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW() WHERE round_id=:round_id AND device_id=:device_id"
+		query := "UPDATE validate_result SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW() WHERE round_id=:round_id AND node_id=:node_id"
 		_, err := n.db.NamedExec(query, info)
 		return err
 	}
 
-	query := "UPDATE validate_result SET status=:status, end_time=NOW() WHERE round_id=:round_id AND device_id=:device_id"
+	query := "UPDATE validate_result SET status=:status, end_time=NOW() WHERE round_id=:round_id AND node_id=:node_id"
 	_, err := n.db.NamedExec(query, info)
 	return err
 }
@@ -218,7 +218,7 @@ func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*api.DeviceInfo, int64, e
 		return nil, 0, err
 	}
 
-	queryString := fmt.Sprintf(`SELECT device_id, is_online FROM %s order by device_id asc limit ?,?`, nodeInfoTable)
+	queryString := fmt.Sprintf(`SELECT node_id, is_online FROM %s order by node_id asc limit ?,?`, nodeInfoTable)
 
 	if count > loadNodeInfoMaxCount {
 		count = loadNodeInfoMaxCount
@@ -234,15 +234,15 @@ func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*api.DeviceInfo, int64, e
 }
 
 // ResetValidators validator list
-func (n *NodeMgrDB) ResetValidators(deviceIDs []string, serverID dtypes.ServerID) error {
+func (n *NodeMgrDB) ResetValidators(nodeIDs []string, serverID dtypes.ServerID) error {
 	tx := n.db.MustBegin()
 	// clean old validators
 	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE server_id=? `, validatorsTable)
 	tx.MustExec(dQuery, serverID)
 
-	for _, deviceID := range deviceIDs {
-		iQuery := fmt.Sprintf(`INSERT INTO %s (device_id, server_id) VALUES (?, ?)`, validatorsTable)
-		tx.MustExec(iQuery, deviceID, serverID)
+	for _, nodeID := range nodeIDs {
+		iQuery := fmt.Sprintf(`INSERT INTO %s (node_id, server_id) VALUES (?, ?)`, validatorsTable)
+		tx.MustExec(iQuery, nodeID, serverID)
 	}
 
 	err := tx.Commit()
@@ -255,7 +255,7 @@ func (n *NodeMgrDB) ResetValidators(deviceIDs []string, serverID dtypes.ServerID
 
 // GetValidatorsWithList load validators
 func (n *NodeMgrDB) GetValidatorsWithList(serverID dtypes.ServerID) ([]string, error) {
-	sQuery := fmt.Sprintf(`SELECT device_id FROM %s WHERE server_id=?`, validatorsTable)
+	sQuery := fmt.Sprintf(`SELECT node_id FROM %s WHERE server_id=?`, validatorsTable)
 
 	var out []string
 	err := n.db.Select(&out, sQuery, serverID)
@@ -269,31 +269,31 @@ func (n *NodeMgrDB) GetValidatorsWithList(serverID dtypes.ServerID) ([]string, e
 // UpdateNodeInfo update node info
 func (n *NodeMgrDB) UpdateNodeInfo(info *api.DeviceInfo) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (device_id, profit,
+		`INSERT INTO %s (node_id, profit,
 				private_key, last_time, quitted) 
-				VALUES (:device_id, :profit,
+				VALUES (:node_id, :profit,
 				:private_key, :last_time, :quitted) 
-				ON DUPLICATE KEY UPDATE device_id=:device_id, last_time=:last_time, quitted=:quitted`, nodeInfoTable)
+				ON DUPLICATE KEY UPDATE node_id=:node_id, last_time=:last_time, quitted=:quitted`, nodeInfoTable)
 
 	_, err := n.db.NamedExec(query, info)
 	return err
 }
 
 // UpdateNodeOnlineTime update node online time and last time
-func (n *NodeMgrDB) UpdateNodeOnlineTime(deviceID string, onlineTime int) error {
+func (n *NodeMgrDB) UpdateNodeOnlineTime(nodeID string, onlineTime int) error {
 	info := &api.DeviceInfo{
-		DeviceID:   deviceID,
+		NodeID:     nodeID,
 		OnlineTime: onlineTime,
 	}
 
-	query := fmt.Sprintf(`UPDATE %s SET last_time=NOW(),online_time=:online_time WHERE device_id=:device_id`, nodeInfoTable)
+	query := fmt.Sprintf(`UPDATE %s SET last_time=NOW(),online_time=:online_time WHERE node_id=:node_id`, nodeInfoTable)
 	// update
 	_, err := n.db.NamedExec(query, info)
 	return err
 }
 
-// ListDeviceIDs list devices
-func (n *NodeMgrDB) ListDeviceIDs(cursor int, count int) ([]string, int64, error) {
+// ListNodeIDs list devices
+func (n *NodeMgrDB) ListNodeIDs(cursor int, count int) ([]string, int64, error) {
 	var total int64
 
 	cQuery := fmt.Sprintf(`SELECT count(*) FROM %s`, nodeInfoTable)
@@ -302,7 +302,7 @@ func (n *NodeMgrDB) ListDeviceIDs(cursor int, count int) ([]string, int64, error
 		return nil, 0, err
 	}
 
-	sQuery := fmt.Sprintf(`SELECT device_id FROM %s order by device_id asc limit ?,?`, nodeInfoTable)
+	sQuery := fmt.Sprintf(`SELECT node_id FROM %s order by node_id asc limit ?,?`, nodeInfoTable)
 
 	if count > loadNodeInfoMaxCount {
 		count = loadNodeInfoMaxCount
@@ -318,11 +318,11 @@ func (n *NodeMgrDB) ListDeviceIDs(cursor int, count int) ([]string, int64, error
 }
 
 // LoadNodeInfo load node info
-func (n *NodeMgrDB) LoadNodeInfo(deviceID string) (*api.DeviceInfo, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE device_id=?`, nodeInfoTable)
+func (n *NodeMgrDB) LoadNodeInfo(nodeID string) (*api.DeviceInfo, error) {
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id=?`, nodeInfoTable)
 
 	var out api.DeviceInfo
-	err := n.db.Select(&out, query, deviceID)
+	err := n.db.Select(&out, query, nodeID)
 	if err != nil {
 		return nil, err
 	}
@@ -331,15 +331,15 @@ func (n *NodeMgrDB) LoadNodeInfo(deviceID string) (*api.DeviceInfo, error) {
 }
 
 // SetNodesToVerifyingList validator list
-func (n *NodeMgrDB) SetNodesToVerifyingList(deviceIDs []string, serverID dtypes.ServerID) error {
+func (n *NodeMgrDB) SetNodesToVerifyingList(nodeIDs []string, serverID dtypes.ServerID) error {
 	tx := n.db.MustBegin()
 	// clean old validators
 	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE server_id=? `, nodeVerifyingTable)
 	tx.MustExec(dQuery, serverID)
 
-	for _, deviceID := range deviceIDs {
-		iQuery := fmt.Sprintf(`INSERT INTO %s (device_id, server_id) VALUES (?, ?)`, nodeVerifyingTable)
-		tx.MustExec(iQuery, deviceID, serverID)
+	for _, nodeID := range nodeIDs {
+		iQuery := fmt.Sprintf(`INSERT INTO %s (node_id, server_id) VALUES (?, ?)`, nodeVerifyingTable)
+		tx.MustExec(iQuery, nodeID, serverID)
 	}
 
 	err := tx.Commit()
@@ -352,7 +352,7 @@ func (n *NodeMgrDB) SetNodesToVerifyingList(deviceIDs []string, serverID dtypes.
 
 // GetNodesWithVerifyingList load validators
 func (n *NodeMgrDB) GetNodesWithVerifyingList(serverID dtypes.ServerID) ([]string, error) {
-	sQuery := fmt.Sprintf(`SELECT device_id FROM %s WHERE server_id=?`, nodeVerifyingTable)
+	sQuery := fmt.Sprintf(`SELECT node_id FROM %s WHERE server_id=?`, nodeVerifyingTable)
 
 	var out []string
 	err := n.db.Select(&out, sQuery, serverID)
@@ -366,15 +366,15 @@ func (n *NodeMgrDB) GetNodesWithVerifyingList(serverID dtypes.ServerID) ([]strin
 // CountVerifyingNode ...
 func (n *NodeMgrDB) CountVerifyingNode(serverID dtypes.ServerID) (int64, error) {
 	var count int64
-	cmd := fmt.Sprintf("SELECT count(device_id) FROM %s WHERE server_id=?", nodeVerifyingTable)
+	cmd := fmt.Sprintf("SELECT count(node_id) FROM %s WHERE server_id=?", nodeVerifyingTable)
 	err := n.db.Get(&count, cmd, serverID)
 	return count, err
 }
 
 // RemoveValidatedWithList ...
-func (n *NodeMgrDB) RemoveValidatedWithList(deviceID string, serverID dtypes.ServerID) error {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE server_id=? AND device_id=?`, nodeVerifyingTable)
-	_, err := n.db.Exec(query, serverID, deviceID)
+func (n *NodeMgrDB) RemoveValidatedWithList(nodeID string, serverID dtypes.ServerID) error {
+	query := fmt.Sprintf(`DELETE FROM %s WHERE server_id=? AND node_id=?`, nodeVerifyingTable)
+	_, err := n.db.Exec(query, serverID, nodeID)
 	return err
 }
 

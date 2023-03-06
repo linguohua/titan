@@ -119,7 +119,7 @@ type DataSyncStub struct {
 
 type DeviceStruct struct {
 	Internal struct {
-		DeviceID func(p0 context.Context) (string, error) `perm:"read"`
+		NodeID func(p0 context.Context) (string, error) `perm:"read"`
 
 		DeviceInfo func(p0 context.Context) (DeviceInfo, error) `perm:"read"`
 	}
@@ -255,7 +255,7 @@ type SchedulerStruct struct {
 
 		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) `perm:"read"`
 
-		GetOnlineDeviceIDs func(p0 context.Context, p1 NodeType) ([]string, error) `perm:"read"`
+		GetOnlineNodeIDs func(p0 context.Context, p1 NodeType) ([]string, error) `perm:"read"`
 
 		GetPublicKey func(p0 context.Context) (string, error) `perm:"write"`
 
@@ -615,14 +615,14 @@ func (s *DataSyncStub) PrepareCarfiles(p0 context.Context, p1 []string) error {
 	return ErrNotSupported
 }
 
-func (s *DeviceStruct) DeviceID(p0 context.Context) (string, error) {
-	if s.Internal.DeviceID == nil {
+func (s *DeviceStruct) NodeID(p0 context.Context) (string, error) {
+	if s.Internal.NodeID == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.DeviceID(p0)
+	return s.Internal.NodeID(p0)
 }
 
-func (s *DeviceStub) DeviceID(p0 context.Context) (string, error) {
+func (s *DeviceStub) NodeID(p0 context.Context) (string, error) {
 	return "", ErrNotSupported
 }
 
@@ -1044,14 +1044,14 @@ func (s *SchedulerStub) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*Node
 	return *new(map[int]*NodeAppUpdateInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetOnlineDeviceIDs(p0 context.Context, p1 NodeType) ([]string, error) {
-	if s.Internal.GetOnlineDeviceIDs == nil {
+func (s *SchedulerStruct) GetOnlineNodeIDs(p0 context.Context, p1 NodeType) ([]string, error) {
+	if s.Internal.GetOnlineNodeIDs == nil {
 		return *new([]string), ErrNotSupported
 	}
-	return s.Internal.GetOnlineDeviceIDs(p0, p1)
+	return s.Internal.GetOnlineNodeIDs(p0, p1)
 }
 
-func (s *SchedulerStub) GetOnlineDeviceIDs(p0 context.Context, p1 NodeType) ([]string, error) {
+func (s *SchedulerStub) GetOnlineNodeIDs(p0 context.Context, p1 NodeType) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 

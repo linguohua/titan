@@ -41,12 +41,13 @@ type BlockDownload struct {
 }
 
 func NewBlockDownload(limiter *rate.Limiter, scheduler api.Scheduler, carfileStore *carfilestore.CarfileStore, device *device.Device, validate *validate.Validate) *BlockDownload {
-	var blockDownload = &BlockDownload{
+	blockDownload := &BlockDownload{
 		limiter:      limiter,
 		carfileStore: carfileStore,
 		scheduler:    scheduler,
 		validate:     validate,
-		device:       device}
+		device:       device,
+	}
 
 	http.HandleFunc(downloadPath, blockDownload.getBlock)
 	return blockDownload
@@ -90,13 +91,13 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deviceID, _ := bd.device.DeviceID(context.Background())
+	nodeID, _ := bd.device.NodeID(context.Background())
 	if bd.publicKey == nil {
-		bd.resultFailed(w, r, sn, sign, cidStr, fmt.Errorf("node %s publicKey == nil", deviceID))
+		bd.resultFailed(w, r, sn, sign, cidStr, fmt.Errorf("node %s publicKey == nil", nodeID))
 		return
 	}
 
-	content := deviceID + snStr + signTime + timeout
+	content := nodeID + snStr + signTime + timeout
 	err = titanRsa.VerifyRsaSign(bd.publicKey, sign, content)
 	if err != nil {
 		bd.resultFailed(w, r, sn, sign, cidStr, fmt.Errorf("Verify sign cid:%s,sn:%s,signTime:%s, timeout:%s, error:%s,", cidStr, snStr, signTime, timeout, err.Error()))
@@ -132,7 +133,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 
 	costTime := time.Now().Sub(now)
 
-	var speedRate = int64(0)
+	speedRate := int64(0)
 	if costTime != 0 {
 		speedRate = int64(float64(n) / float64(costTime) * float64(time.Second))
 	}

@@ -119,12 +119,12 @@ var removeReplicaCmd = &cli.Command{
 	Name:  "remove-replica",
 	Usage: "Remove the carfile replica",
 	Flags: []cli.Flag{
-		deviceIDFlag,
+		nodeIDFlag,
 		cidFlag,
 	},
 	Action: func(cctx *cli.Context) error {
-		deviceID := cctx.String("device-id")
-		if deviceID == "" {
+		nodeID := cctx.String("device-id")
+		if nodeID == "" {
 			return xerrors.New("device-id is nil")
 		}
 
@@ -138,7 +138,7 @@ var removeReplicaCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.RemoveCache(ctx, cid, deviceID)
+		return schedulerAPI.RemoveCache(ctx, cid, nodeID)
 	},
 }
 
@@ -186,8 +186,8 @@ var showCarfileInfoCmd = &cli.Command{
 
 		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,EdgeReplica:%d/%d ,Expiration Time:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.EdgeReplica, info.Replica, info.Expiration.Format("2006-01-02 15:04:05"))
 		for _, cache := range info.ReplicaInfos {
-			fmt.Printf("DeviceID: %s ,Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
-				cache.DeviceID, cache.Status.String(), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
+			fmt.Printf("NodeID: %s ,Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
+				cache.NodeID, cache.Status.String(), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
 		}
 
 		if info.ResultInfo != nil {
@@ -210,12 +210,12 @@ var cacheCarfileCmd = &cli.Command{
 		cidFlag,
 		replicaCountFlag,
 		expirationDateFlag,
-		deviceIDFlag,
+		nodeIDFlag,
 	},
 	Action: func(cctx *cli.Context) error {
 		cid := cctx.String("cid")
 		replicaCount := cctx.Int("replica-count")
-		deviceID := cctx.String("device-id")
+		nodeID := cctx.String("device-id")
 		date := cctx.String("expiration-date")
 
 		ctx := ReqContext(cctx)
@@ -230,8 +230,8 @@ var cacheCarfileCmd = &cli.Command{
 		}
 
 		info := &api.CacheCarfileInfo{CarfileCid: cid}
-		if deviceID != "" {
-			info.DeviceID = deviceID
+		if nodeID != "" {
+			info.NodeID = nodeID
 		} else {
 			if date == "" {
 				date = time.Now().Add(time.Duration(7*24) * time.Hour).Format("2006-1-2 15:04:05")
@@ -292,13 +292,13 @@ var listCarfilesCmd = &cli.Command{
 				fmt.Printf("\nData CID: %s ,Total Size:%f MB ,Total Blocks:%d \n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks)
 
 				sort.Slice(info.ReplicaInfos, func(i, j int) bool {
-					return info.ReplicaInfos[i].DeviceID < info.ReplicaInfos[j].DeviceID
+					return info.ReplicaInfos[i].NodeID < info.ReplicaInfos[j].NodeID
 				})
 
 				for j := 0; j < len(info.ReplicaInfos); j++ {
 					cache := info.ReplicaInfos[j]
-					fmt.Printf("DeviceID: %s , Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
-						cache.DeviceID, cache.Status.String(), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
+					fmt.Printf("NodeID: %s , Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
+						cache.NodeID, cache.Status.String(), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
 				}
 			}
 

@@ -26,7 +26,7 @@ type ListNodesRsp struct {
 }
 
 type ListBlockDownloadInfoReq struct {
-	DeviceID string `json:"device_id"`
+	NodeID string `json:"node_id"`
 	// Unix timestamp
 	StartTime int64 `json:"start_time"`
 	// Unix timestamp
@@ -85,7 +85,7 @@ type ListBlockDownloadInfoRsp struct {
 
 type WebBlock struct {
 	Cid       string `json:"cid"`
-	DeviceID  string `json:"device_id"`
+	NodeID    string `json:"node_id"`
 	BlockSize int    `json:"block_size"`
 }
 
@@ -110,7 +110,7 @@ type SummeryValidateResult struct {
 type ValidateResult struct {
 	ID          int
 	RoundID     string         `db:"round_id"`
-	DeviceID    string         `db:"device_id"`
+	NodeID      string         `db:"node_id"`
 	ValidatorID string         `db:"validator_id"`
 	BlockNumber int64          `db:"block_number"` // number of blocks verified
 	Status      ValidateStatus `db:"status"`

@@ -12,13 +12,13 @@ import (
 	cliutil "github.com/linguohua/titan/cli/util"
 )
 
-func (s *Scheduler) GetEdgeExternalAddr(ctx context.Context, deviceID, schedulerURL string) (string, error) {
-	eNode := s.NodeManager.GetEdgeNode(deviceID)
+func (s *Scheduler) GetEdgeExternalAddr(ctx context.Context, nodeID, schedulerURL string) (string, error) {
+	eNode := s.NodeManager.GetEdgeNode(nodeID)
 	if eNode != nil {
 		return eNode.API().GetMyExternalAddr(ctx, schedulerURL)
 	}
 
-	return "", fmt.Errorf("Device %s offline or not exist", deviceID)
+	return "", fmt.Errorf("Device %s offline or not exist", nodeID)
 }
 
 func (s *Scheduler) CheckEdgeIfBehindFullConeNAT(ctx context.Context, edgeURL string) (bool, error) {
@@ -157,10 +157,10 @@ func (s *Scheduler) getNatType(ctx context.Context, edgeAPI api.Edge, edgeAddr s
 	return s.NatTypeToString(natType)
 }
 
-func (s *Scheduler) GetNatType(ctx context.Context, deviceID string) (string, error) {
-	eNode := s.NodeManager.GetEdgeNode(deviceID)
+func (s *Scheduler) GetNatType(ctx context.Context, nodeID string) (string, error) {
+	eNode := s.NodeManager.GetEdgeNode(nodeID)
 	if eNode == nil {
-		return "", fmt.Errorf("Device %s offline or not exist", deviceID)
+		return "", fmt.Errorf("Device %s offline or not exist", nodeID)
 	}
 	return s.getNatType(ctx, eNode.API(), eNode.Addr()), nil
 }

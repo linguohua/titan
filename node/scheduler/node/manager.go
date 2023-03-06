@@ -80,9 +80,9 @@ func (m *Manager) edgeKeepalive(node *Edge, nowTime time.Time, isSave bool) {
 	}
 
 	if isSave {
-		err := m.NodeMgrDB.UpdateNodeOnlineTime(node.DeviceID, saveInfoInterval*keepaliveTime)
+		err := m.NodeMgrDB.UpdateNodeOnlineTime(node.NodeID, saveInfoInterval*keepaliveTime)
 		if err != nil {
-			log.Errorf("UpdateNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceID)
+			log.Errorf("UpdateNodeOnlineTime err:%s,nodeID:%s", err.Error(), node.NodeID)
 		}
 	}
 }
@@ -98,9 +98,9 @@ func (m *Manager) candidateKeepalive(node *Candidate, nowTime time.Time, isSave 
 	}
 
 	if isSave {
-		err := m.NodeMgrDB.UpdateNodeOnlineTime(node.DeviceID, saveInfoInterval*keepaliveTime)
+		err := m.NodeMgrDB.UpdateNodeOnlineTime(node.NodeID, saveInfoInterval*keepaliveTime)
 		if err != nil {
-			log.Errorf("UpdateNodeOnlineTime err:%s,deviceID:%s", err.Error(), node.DeviceID)
+			log.Errorf("UpdateNodeOnlineTime err:%s,nodeID:%s", err.Error(), node.NodeID)
 		}
 	}
 }
@@ -109,7 +109,7 @@ func (m *Manager) checkNodesKeepalive(isSave bool) {
 	nowTime := time.Now().Add(-time.Duration(keepaliveTime) * time.Second)
 
 	m.EdgeNodes.Range(func(key, value interface{}) bool {
-		// deviceID := key.(string)
+		// nodeID := key.(string)
 		node := value.(*Edge)
 
 		if node == nil {
@@ -122,7 +122,7 @@ func (m *Manager) checkNodesKeepalive(isSave bool) {
 	})
 
 	m.CandidateNodes.Range(func(key, value interface{}) bool {
-		// deviceID := key.(string)
+		// nodeID := key.(string)
 		node := value.(*Candidate)
 
 		if node == nil {
@@ -141,8 +141,8 @@ func (m *Manager) GetOnlineNodes(nodeType api.NodeType) ([]string, error) {
 
 	if nodeType == api.NodeUnknown || nodeType == api.NodeCandidate {
 		m.CandidateNodes.Range(func(key, value interface{}) bool {
-			deviceID := key.(string)
-			list = append(list, deviceID)
+			nodeID := key.(string)
+			list = append(list, nodeID)
 
 			return true
 		})
@@ -150,8 +150,8 @@ func (m *Manager) GetOnlineNodes(nodeType api.NodeType) ([]string, error) {
 
 	if nodeType == api.NodeUnknown || nodeType == api.NodeEdge {
 		m.EdgeNodes.Range(func(key, value interface{}) bool {
-			deviceID := key.(string)
-			list = append(list, deviceID)
+			nodeID := key.(string)
+			list = append(list, nodeID)
 
 			return true
 		})
@@ -162,9 +162,9 @@ func (m *Manager) GetOnlineNodes(nodeType api.NodeType) ([]string, error) {
 
 // EdgeOnline Edge Online
 func (m *Manager) EdgeOnline(node *Edge) error {
-	deviceID := node.DeviceID
+	nodeID := node.NodeID
 
-	nodeOld := m.GetEdgeNode(deviceID)
+	nodeOld := m.GetEdgeNode(nodeID)
 	if nodeOld != nil {
 		nodeOld.ClientCloser()
 
@@ -176,14 +176,14 @@ func (m *Manager) EdgeOnline(node *Edge) error {
 		return err
 	}
 
-	m.EdgeNodes.Store(deviceID, node)
+	m.EdgeNodes.Store(nodeID, node)
 
 	return nil
 }
 
 // GetEdgeNode Get EdgeNode
-func (m *Manager) GetEdgeNode(deviceID string) *Edge {
-	nodeI, exist := m.EdgeNodes.Load(deviceID)
+func (m *Manager) GetEdgeNode(nodeID string) *Edge {
+	nodeI, exist := m.EdgeNodes.Load(nodeID)
 	if exist && nodeI != nil {
 		node := nodeI.(*Edge)
 
@@ -194,23 +194,23 @@ func (m *Manager) GetEdgeNode(deviceID string) *Edge {
 }
 
 func (m *Manager) edgeOffline(node *Edge) {
-	deviceID := node.DeviceID
+	nodeID := node.NodeID
 	// close old node
 	node.ClientCloser()
 
-	log.Infof("Edge Offline :%s", deviceID)
+	log.Infof("Edge Offline :%s", nodeID)
 
-	m.EdgeNodes.Delete(deviceID)
+	m.EdgeNodes.Delete(nodeID)
 
 	// notify locator
-	locator.ChangeNodeOnlineStatus(deviceID, false)
+	locator.ChangeNodeOnlineStatus(nodeID, false)
 }
 
 // CandidateOnline Candidate Online
 func (m *Manager) CandidateOnline(node *Candidate) error {
-	deviceID := node.DeviceID
+	nodeID := node.NodeID
 
-	nodeOld := m.GetCandidateNode(deviceID)
+	nodeOld := m.GetCandidateNode(nodeID)
 	if nodeOld != nil {
 		nodeOld.ClientCloser()
 
@@ -222,14 +222,14 @@ func (m *Manager) CandidateOnline(node *Candidate) error {
 		return err
 	}
 
-	m.CandidateNodes.Store(deviceID, node)
+	m.CandidateNodes.Store(nodeID, node)
 
 	return nil
 }
 
 // GetCandidateNode Get Candidate Node
-func (m *Manager) GetCandidateNode(deviceID string) *Candidate {
-	nodeI, exist := m.CandidateNodes.Load(deviceID)
+func (m *Manager) GetCandidateNode(nodeID string) *Candidate {
+	nodeI, exist := m.CandidateNodes.Load(nodeID)
 	if exist && nodeI != nil {
 		node := nodeI.(*Candidate)
 
@@ -240,16 +240,16 @@ func (m *Manager) GetCandidateNode(deviceID string) *Candidate {
 }
 
 func (m *Manager) candidateOffline(node *Candidate) {
-	deviceID := node.DeviceID
+	nodeID := node.NodeID
 	// close old node
 	node.ClientCloser()
 
-	log.Infof("Candidate Offline :%s", deviceID)
+	log.Infof("Candidate Offline :%s", nodeID)
 
-	m.CandidateNodes.Delete(deviceID)
+	m.CandidateNodes.Delete(nodeID)
 
 	// notify locator
-	locator.ChangeNodeOnlineStatus(deviceID, false)
+	locator.ChangeNodeOnlineStatus(nodeID, false)
 }
 
 // FindCandidates Find CandidateNodes from all Candidate and filter filterMap
@@ -261,10 +261,10 @@ func (m *Manager) FindCandidates(filterMap map[string]string) []*Candidate {
 	nodes := make([]*Candidate, 0)
 
 	m.CandidateNodes.Range(func(key, value interface{}) bool {
-		deviceID := key.(string)
+		nodeID := key.(string)
 		node := value.(*Candidate)
 
-		if _, exist := filterMap[deviceID]; exist {
+		if _, exist := filterMap[nodeID]; exist {
 			return true
 		}
 
@@ -313,17 +313,17 @@ func (m *Manager) FindCandidatesByList(list []string, filterMap map[string]strin
 }
 
 // NodeSessionCallBack node pingpong
-func (m *Manager) NodeSessionCallBack(deviceID, remoteAddr string) {
+func (m *Manager) NodeSessionCallBack(nodeID, remoteAddr string) {
 	lastTime := time.Now()
 
-	edge := m.GetEdgeNode(deviceID)
+	edge := m.GetEdgeNode(nodeID)
 	if edge != nil {
 		edge.SetLastRequestTime(lastTime)
 		edge.ConnectRPC(remoteAddr, false)
 		return
 	}
 
-	candidate := m.GetCandidateNode(deviceID)
+	candidate := m.GetCandidateNode(nodeID)
 	if candidate != nil {
 		candidate.SetLastRequestTime(lastTime)
 		candidate.ConnectRPC(remoteAddr, false)
@@ -332,17 +332,17 @@ func (m *Manager) NodeSessionCallBack(deviceID, remoteAddr string) {
 }
 
 func NewSessionCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error) {
-	return func(deviceID, remoteAddr string) {
+	return func(nodeID, remoteAddr string) {
 		lastTime := time.Now()
 
-		edge := nodeMgr.GetEdgeNode(deviceID)
+		edge := nodeMgr.GetEdgeNode(nodeID)
 		if edge != nil {
 			edge.SetLastRequestTime(lastTime)
 			edge.ConnectRPC(remoteAddr, false)
 			return
 		}
 
-		candidate := nodeMgr.GetCandidateNode(deviceID)
+		candidate := nodeMgr.GetCandidateNode(nodeID)
 		if candidate != nil {
 			candidate.SetLastRequestTime(lastTime)
 			candidate.ConnectRPC(remoteAddr, false)
@@ -370,8 +370,8 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*api.DownloadInf
 	}
 
 	for _, cache := range caches {
-		deviceID := cache.DeviceID
-		node := m.GetEdgeNode(deviceID)
+		nodeID := cache.NodeID
+		node := m.GetEdgeNode(nodeID)
 		if node == nil {
 			continue
 		}
@@ -380,11 +380,11 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*api.DownloadInf
 
 		err := node.nodeAPI.PingUser(context.Background(), userURL)
 		if err != nil {
-			log.Errorf("%s PingUser err:%s", deviceID, err.Error())
+			log.Errorf("%s PingUser err:%s", nodeID, err.Error())
 			continue
 		}
 
-		infos = append(infos, &api.DownloadInfoResult{URL: url, DeviceID: deviceID})
+		infos = append(infos, &api.DownloadInfoResult{URL: url, NodeID: nodeID})
 	}
 
 	return infos, nil
@@ -404,7 +404,7 @@ func (m *Manager) GetCandidatesWithBlockHash(hash, filterDevice string) ([]*Cand
 	nodes := make([]*Candidate, 0)
 
 	for _, cache := range caches {
-		dID := cache.DeviceID
+		dID := cache.NodeID
 		if dID == filterDevice {
 			continue
 		}
@@ -435,7 +435,7 @@ func (m *Manager) checkWhetherNodeQuits() {
 		}
 
 		// node quitted
-		quits = append(quits, node.DeviceID)
+		quits = append(quits, node.NodeID)
 	}
 
 	if len(quits) > 0 {
@@ -444,26 +444,26 @@ func (m *Manager) checkWhetherNodeQuits() {
 }
 
 // NodesQuit Nodes quit
-func (m *Manager) NodesQuit(deviceIDs []string) {
-	err := m.NodeMgrDB.SetNodesQuit(deviceIDs)
+func (m *Manager) NodesQuit(nodeIDs []string) {
+	err := m.NodeMgrDB.SetNodesQuit(nodeIDs)
 	if err != nil {
 		log.Errorf("NodeExited SetNodesQuit err:%s", err.Error())
 		return
 	}
 
 	if m.nodeQuitCallBack != nil {
-		m.nodeQuitCallBack(deviceIDs)
+		m.nodeQuitCallBack(nodeIDs)
 	}
 }
 
 // GetNode get node
-func (m *Manager) GetNode(deviceID string) *BaseInfo {
-	edge := m.GetEdgeNode(deviceID)
+func (m *Manager) GetNode(nodeID string) *BaseInfo {
+	edge := m.GetEdgeNode(nodeID)
 	if edge != nil {
 		return edge.BaseInfo
 	}
 
-	candidate := m.GetCandidateNode(deviceID)
+	candidate := m.GetCandidateNode(nodeID)
 	if candidate != nil {
 		return candidate.BaseInfo
 	}

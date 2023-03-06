@@ -15,7 +15,7 @@ type Base struct {
 // DeviceInfo Info
 type DeviceInfo struct {
 	Base
-	DeviceID      string   `json:"device_id" form:"deviceId" gorm:"column:device_id;comment:;" db:"device_id"`
+	NodeID        string   `json:"node_id" form:"nodeId" gorm:"column:node_id;comment:;" db:"node_id"`
 	UserID        string   `json:"user_id" form:"userId" gorm:"column:user_id;comment:;"`
 	SnCode        string   `json:"sn_code" form:"snCode" gorm:"column:sn_code;comment:;"`
 	NodeType      NodeType `json:"node_type"`
@@ -63,7 +63,7 @@ type DeviceInfo struct {
 
 type BlockDownloadInfo struct {
 	ID           string    `json:"-"`
-	DeviceID     string    `json:"device_id" db:"device_id"`
+	NodeID       string    `json:"node_id" db:"node_id"`
 	BlockCID     string    `json:"block_cid" db:"block_cid"`
 	CarfileCID   string    `json:"carfile_cid" db:"carfile_cid"`
 	BlockSize    int       `json:"block_size" db:"block_size"`

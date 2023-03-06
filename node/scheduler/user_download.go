@@ -16,9 +16,9 @@ import (
 
 // NodeDownloadBlockResult node result for user download block
 func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result api.NodeBlockDownloadResult) error {
-	deviceID := handler.GetDeviceID(ctx)
+	nodeID := handler.GetNodeID(ctx)
 	if result.Succeed {
-		// err := incrDeviceReward(deviceID, 1)
+		// err := incrDeviceReward(nodeID, 1)
 		// if err != nil {
 		// 	return err
 		// }
@@ -28,14 +28,14 @@ func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result a
 			return err
 		}
 
-		blockDwnloadInfo := &api.BlockDownloadInfo{DeviceID: deviceID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
+		blockDwnloadInfo := &api.BlockDownloadInfo{NodeID: nodeID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
 
 		carfileInfo, _ := s.NodeManager.CarfileDB.LoadCarfileInfo(blockHash)
 		if carfileInfo != nil && carfileInfo.CarfileCid != "" {
 			blockDwnloadInfo.CarfileCID = result.BlockCID
 		}
 
-		// err = cache.NodeDownloadCount(deviceID, blockDwnloadInfo)
+		// err = cache.NodeDownloadCount(nodeID, blockDwnloadInfo)
 		// if err != nil {
 		// 	return err
 		// }
@@ -86,20 +86,20 @@ func (s *Scheduler) signDownloadInfos(cid string, results []*api.DownloadInfoRes
 	signTime := time.Now().Unix()
 
 	for index := range results {
-		deviceID := results[index].DeviceID
+		nodeID := results[index].NodeID
 
-		privateKey, exist := devicePrivateKeys[deviceID]
+		privateKey, exist := devicePrivateKeys[nodeID]
 		if !exist {
 			var err error
-			privateKey, err = s.getDevicePrivateKey(deviceID)
+			privateKey, err = s.getDevicePrivateKey(nodeID)
 			if err != nil {
 				log.Errorf("signDownloadInfos get private key error:%s", err.Error())
 				return err
 			}
-			devicePrivateKeys[deviceID] = privateKey
+			devicePrivateKeys[nodeID] = privateKey
 		}
 
-		sign, err := titanRsa.RsaSign(privateKey, fmt.Sprintf("%s%d%d%d", deviceID, sn, signTime, blockDonwloadTimeout))
+		sign, err := titanRsa.RsaSign(privateKey, fmt.Sprintf("%s%d%d%d", nodeID, sn, signTime, blockDonwloadTimeout))
 		if err != nil {
 			log.Errorf("signDownloadInfos rsa sign error:%s", err.Error())
 			return err
@@ -112,18 +112,18 @@ func (s *Scheduler) signDownloadInfos(cid string, results []*api.DownloadInfoRes
 	return nil
 }
 
-func (s *Scheduler) getDevicePrivateKey(deviceID string) (*rsa.PrivateKey, error) {
-	edge := s.NodeManager.GetEdgeNode(deviceID)
+func (s *Scheduler) getDevicePrivateKey(nodeID string) (*rsa.PrivateKey, error) {
+	edge := s.NodeManager.GetEdgeNode(nodeID)
 	if edge != nil {
 		return edge.PrivateKey(), nil
 	}
 
-	candidate := s.NodeManager.GetCandidateNode(deviceID)
+	candidate := s.NodeManager.GetCandidateNode(nodeID)
 	if candidate != nil {
 		return candidate.PrivateKey(), nil
 	}
 
-	privateKeyStr, err := s.NodeManager.NodeMgrDB.NodePrivateKey(deviceID)
+	privateKeyStr, err := s.NodeManager.NodeMgrDB.NodePrivateKey(nodeID)
 	if err != nil {
 		return nil, err
 	}

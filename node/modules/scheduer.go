@@ -2,6 +2,7 @@ package modules
 
 import (
 	"context"
+
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/modules/dtypes"
 
@@ -42,16 +43,16 @@ func NewSessionCallbackFunc(nodeMgr *node.Manager) (dtypes.SessionCallbackFunc, 
 
 // NewExitCallbackFunc callback function when the node exits
 func NewExitCallbackFunc(cdb *persistent.CarfileDB) (dtypes.ExitCallbackFunc, error) {
-	return func(deviceIDs []string) {
-		log.Infof("node event , nodes quit:%v", deviceIDs)
+	return func(nodeIDs []string) {
+		log.Infof("node event , nodes quit:%v", nodeIDs)
 
-		hashes, err := cdb.LoadCarfileRecordsWithNodes(deviceIDs)
+		hashes, err := cdb.LoadCarfileRecordsWithNodes(nodeIDs)
 		if err != nil {
 			log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
 			return
 		}
 
-		err = cdb.RemoveReplicaInfoWithNodes(deviceIDs)
+		err = cdb.RemoveReplicaInfoWithNodes(nodeIDs)
 		if err != nil {
 			log.Errorf("RemoveReplicaInfoWithNodes err:%s", err.Error())
 			return

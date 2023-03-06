@@ -15,7 +15,7 @@ type Replica struct {
 	nodeManager   *node.Manager
 
 	id          string
-	deviceID    string
+	nodeID      string
 	carfileHash string
 	status      api.CacheStatus
 	doneSize    int64
@@ -28,15 +28,15 @@ type Replica struct {
 	countDown     int
 }
 
-func (cr *CarfileRecord) newReplica(carfileRecord *CarfileRecord, deviceID string, isCandidate bool) (*Replica, error) {
+func (cr *CarfileRecord) newReplica(carfileRecord *CarfileRecord, nodeID string, isCandidate bool) (*Replica, error) {
 	cache := &Replica{
 		carfileRecord: carfileRecord,
 		nodeManager:   carfileRecord.nodeManager,
 		status:        api.CacheStatusDownloading,
 		carfileHash:   carfileRecord.carfileHash,
 		isCandidate:   isCandidate,
-		deviceID:      deviceID,
-		id:            replicaID(carfileRecord.carfileHash, deviceID),
+		nodeID:        nodeID,
+		id:            replicaID(carfileRecord.carfileHash, nodeID),
 		createTime:    time.Now(),
 	}
 
@@ -44,7 +44,7 @@ func (cr *CarfileRecord) newReplica(carfileRecord *CarfileRecord, deviceID strin
 		&api.ReplicaInfo{
 			ID:          cache.id,
 			CarfileHash: cache.carfileHash,
-			DeviceID:    cache.deviceID,
+			NodeID:      cache.nodeID,
 			Status:      cache.status,
 			IsCandidate: cache.isCandidate,
 		})
@@ -81,7 +81,7 @@ func (ra *Replica) startTimeoutTimer() {
 		}
 
 		// task is timeout
-		err := ra.carfileRecord.carfileCacheResult(ra.deviceID, info)
+		err := ra.carfileRecord.carfileCacheResult(ra.nodeID, info)
 		if err != nil {
 			log.Errorf("carfileCacheResult err:%s", err.Error())
 		}
@@ -105,7 +105,7 @@ func (ra *Replica) updateInfo() error {
 func (ra *Replica) cacheCarfile(cDown int) (err error) {
 	ra.status = api.CacheStatusDownloading
 
-	deviceID := ra.deviceID
+	nodeID := ra.nodeID
 	var result *api.CacheCarfileResult
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
@@ -117,7 +117,7 @@ func (ra *Replica) cacheCarfile(cDown int) (err error) {
 			go ra.startTimeoutTimer()
 
 			// update node info
-			node := ra.nodeManager.GetNode(deviceID)
+			node := ra.nodeManager.GetNode(nodeID)
 			if node != nil {
 				node.SetCurCacheCount(result.WaitCacheCarfileNum + 1)
 			}
@@ -126,18 +126,18 @@ func (ra *Replica) cacheCarfile(cDown int) (err error) {
 		}
 	}()
 
-	cNode := ra.nodeManager.GetCandidateNode(deviceID)
+	cNode := ra.nodeManager.GetCandidateNode(nodeID)
 	if cNode != nil {
 		result, err = cNode.API().CacheCarfile(ctx, ra.carfileRecord.carfileCid, ra.carfileRecord.downloadSources)
 		return
 	}
 
-	eNode := ra.nodeManager.GetEdgeNode(deviceID)
+	eNode := ra.nodeManager.GetEdgeNode(nodeID)
 	if eNode != nil {
 		result, err = eNode.API().CacheCarfile(ctx, ra.carfileRecord.carfileCid, ra.carfileRecord.downloadSources)
 		return
 	}
 
-	err = xerrors.Errorf("not found node:%s", deviceID)
+	err = xerrors.Errorf("not found node:%s", nodeID)
 	return
 }

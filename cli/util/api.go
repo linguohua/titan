@@ -153,14 +153,14 @@ func GetCommonAPI(ctx *cli.Context) (api.Common, jsonrpc.ClientCloser, error) {
 	return client.NewCommonRPCV0(ctx.Context, addr, headers)
 }
 
-func GetSchedulerAPI(ctx *cli.Context, deviceID string) (api.Scheduler, jsonrpc.ClientCloser, error) {
+func GetSchedulerAPI(ctx *cli.Context, nodeID string) (api.Scheduler, jsonrpc.ClientCloser, error) {
 	addr, headers, err := GetRawAPI(ctx, repo.Scheduler, "v0")
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if headers != nil && len(deviceID) > 0 {
-		headers.Add("Device-ID", deviceID)
+	if headers != nil && len(nodeID) > 0 {
+		headers.Add("Device-ID", nodeID)
 	}
 
 	if IsVeryVerbose {
