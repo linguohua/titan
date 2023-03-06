@@ -49,7 +49,6 @@ func ConfigScheduler(c interface{}) Option {
 	log.Info("start to config scheduler")
 
 	return Options(
-		Override(new(dtypes.ServerID), modules.NewServerID),
 		Override(new(*config.SchedulerCfg), cfg),
 		Override(new(*sqlx.DB), modules.NewDB),
 		Override(new(*persistent.CarfileDB), persistent.NewCarfileDB),
