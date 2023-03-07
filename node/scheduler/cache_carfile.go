@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"github.com/linguohua/titan/node/scheduler/storage"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -27,7 +28,7 @@ func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) e
 	return s.DataManager.CacheCarfileResult(nodeID, &info)
 }
 
-// RemoveCarfileResult remove carfile result
+// RemoveCarfileResult remove storage result
 func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.RemoveCarfileResultInfo) error {
 	nodeID := handler.GetNodeID(ctx)
 
@@ -104,7 +105,7 @@ func (s *Scheduler) ListCarfileRecords(ctx context.Context, page int) (*api.Carf
 	return s.NodeManager.CarfileDB.CarfileRecordInfos(page)
 }
 
-// RemoveCarfile remove all caches with carfile
+// RemoveCarfile remove all caches with storage
 func (s *Scheduler) RemoveCarfile(ctx context.Context, carfileCid string) error {
 	if carfileCid == "" {
 		return xerrors.Errorf("Cid Is Nil")
@@ -155,4 +156,9 @@ func (s *Scheduler) CacheCarfile(ctx context.Context, info *api.CacheCarfileInfo
 	}
 
 	return s.DataManager.CacheCarfile(info)
+}
+
+// CarfilesStatus return the carfile caches state
+func (s *Scheduler) CarfilesStatus(ctx context.Context, cid storage.CarfileID) (storage.CarfileInfo, error) {
+	return s.CarfilesStatus(ctx, cid)
 }

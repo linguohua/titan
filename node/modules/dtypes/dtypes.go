@@ -1,5 +1,10 @@
 package dtypes
 
+import "github.com/ipfs/go-datastore"
+
+// MetadataDS stores metadata.
+type MetadataDS datastore.Batching
+
 // GeoDBPath the location of a geo database
 type GeoDBPath string
 

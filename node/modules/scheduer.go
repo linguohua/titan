@@ -2,9 +2,11 @@ package modules
 
 import (
 	"context"
-
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/modules/dtypes"
+	"github.com/linguohua/titan/node/modules/helpers"
+	"github.com/linguohua/titan/node/scheduler/storage"
+	"go.uber.org/fx"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/jmoiron/sqlx"
@@ -59,7 +61,42 @@ func NewExitCallbackFunc(cdb *persistent.CarfileDB) (dtypes.ExitCallbackFunc, er
 		}
 
 		for _, hash := range hashes {
-			log.Infof("need restore carfile :%s", hash)
+			log.Infof("need restore storage :%s", hash)
 		}
 	}, nil
 }
+
+type StorageManagerParams struct {
+	fx.In
+
+	Lifecycle  fx.Lifecycle
+	MetricsCtx helpers.MetricsCtx
+	//API        v1api.FullNode
+	Token      dtypes.PermissionWriteToken
+	MetadataDS dtypes.MetadataDS
+	NodeManger *node.Manager
+}
+
+func NewStorageManager(params StorageManagerParams) *storage.Manager {
+	var (
+		mctx    = params.MetricsCtx
+		lc      = params.Lifecycle
+		nodeMgr = params.NodeManger
+		token   = params.Token
+		ds      = params.MetadataDS
+	)
+
+	ctx := helpers.LifecycleCtx(mctx, lc)
+	m := storage.NewManager(nodeMgr, token, ds)
+
+	lc.Append(fx.Hook{
+		OnStart: func(context.Context) error {
+			go m.Run(ctx)
+			return nil
+		},
+		OnStop: m.Stop,
+	})
+
+	return m
+}
+

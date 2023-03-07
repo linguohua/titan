@@ -1,23 +1,28 @@
-package carfile
+package storage
 
 import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"github.com/filecoin-project/go-statemachine"
+	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/namespace"
+	"github.com/linguohua/titan/api"
 	"sync"
 	"time"
 
 	"github.com/linguohua/titan/node/modules/dtypes"
 
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
 
-var log = logging.Logger("carfile")
+const CarfileStorePrefix = "/carfile"
+
+var log = logging.Logger("storage")
 
 const (
 	nodoCachingKeepalive         = 60      // node caching keepalive (Unit:Second)
@@ -31,22 +36,28 @@ const (
 
 var candidateReplicaCacheCount = 0 // nodeMgrCache to the number of candidate nodes （does not contain 'rootCacheCount'）
 
-// Manager carfile
+// Manager storage
 type Manager struct {
 	nodeManager               *node.Manager
-	DownloadingCarfileRecords sync.Map // caching carfile map
+	DownloadingCarfileRecords sync.Map // caching storage map
 	latelyExpirationTime      time.Time
 	writeToken                []byte
 	downloadingTaskCount      int
+
+	startupWait sync.WaitGroup
+	carfiles    *statemachine.StateGroup
 }
 
-// NewManager return new carfile manager instance
-func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToken) *Manager {
+// NewManager return new storage manager instance
+func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToken, ds datastore.Batching) *Manager {
 	m := &Manager{
 		nodeManager:          nodeManager,
 		latelyExpirationTime: time.Now(),
 		writeToken:           writeToken,
 	}
+
+	m.startupWait.Add(1)
+	m.carfiles = statemachine.New(namespace.Wrap(ds, datastore.NewKey(CarfileStorePrefix)), m, CarfileInfo{})
 
 	m.initCarfileMap()
 	go m.carfileTaskTicker()
@@ -55,14 +66,27 @@ func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToke
 	return m
 }
 
+func (m *Manager) Run(ctx context.Context) {
+	if err := m.restartCarfiles(ctx); err != nil {
+		log.Errorf("failed load sector states: %+v", err)
+	}
+}
+
+func (m *Manager) Stop(ctx context.Context) error {
+	if err := m.carfiles.Stop(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (m *Manager) initCarfileMap() {
-	hashs, err := m.nodeManager.CarfileDB.GetCachingCarfiles(m.nodeManager.ServerID)
+	hashes, err := m.nodeManager.CarfileDB.GetCachingCarfiles(m.nodeManager.ServerID)
 	if err != nil {
 		log.Errorf("initCacheMap GetCachingCarfiles err:%s", err.Error())
 		return
 	}
 
-	for _, hash := range hashs {
+	for _, hash := range hashes {
 		cr, err := m.loadCarfileRecord(hash, m)
 		if err != nil {
 			log.Errorf("initCacheMap loadCarfileRecord hash:%s , err:%s", hash, err.Error())
@@ -186,7 +210,7 @@ func (m *Manager) doCarfileReplicaTask(info *api.CacheCarfileInfo) error {
 	return nil
 }
 
-// CacheCarfile new carfile task
+// CacheCarfile new storage task
 func (m *Manager) CacheCarfile(info *api.CacheCarfileInfo) error {
 	if info.NodeID == "" {
 		log.Infof("carfile event %s , add carfile,replica:%d,expiration:%s", info.CarfileCid, info.Replicas, info.ExpirationTime.String())
@@ -194,11 +218,13 @@ func (m *Manager) CacheCarfile(info *api.CacheCarfileInfo) error {
 		log.Infof("carfile event %s , add carfile,nodeID:%s", info.CarfileCid, info.NodeID)
 	}
 	info.ServerID = string(m.nodeManager.ServerID)
-
+	// test
+	log.Info("start to send carfile to state machine")
+	m.carfiles.Send(CarfileID(info.CarfileCid), PreParing{ID: CarfileID(info.CarfileCid)})
 	return m.nodeManager.CarfileDB.PushCarfileToWaitList(info)
 }
 
-// RemoveCarfileRecord remove a carfile
+// RemoveCarfileRecord remove a storage
 func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 	cInfos, err := m.nodeManager.CarfileDB.CarfileReplicaInfosWithHash(hash, false)
 	if err != nil {
@@ -210,7 +236,7 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 		return xerrors.Errorf("RemoveCarfileRecord err:%s ", err.Error())
 	}
 
-	log.Infof("carfile event %s , remove carfile record", carfileCid)
+	log.Infof("storage event %s , remove storage record", carfileCid)
 
 	for _, cInfo := range cInfos {
 		go m.notifyNodeRemoveCarfile(cInfo.NodeID, carfileCid)
@@ -303,7 +329,7 @@ func (m *Manager) startCarfileReplicaTasks() {
 			err = m.doCarfileReplicaTask(info)
 		}
 		if err != nil {
-			log.Errorf("carfile %s do caches err:%s", info.CarfileCid, err.Error())
+			log.Errorf("storage %s do caches err:%s", info.CarfileCid, err.Error())
 		}
 	}
 }
@@ -314,7 +340,7 @@ func (m *Manager) carfileCacheStart(cr *CarfileRecord) {
 		m.downloadingTaskCount++
 	}
 
-	log.Infof("carfile %s cache task start ----- cur downloading count : %d", cr.carfileCid, m.downloadingTaskCount)
+	log.Infof("storage %s cache task start ----- cur downloading count : %d", cr.carfileCid, m.downloadingTaskCount)
 }
 
 func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
@@ -323,7 +349,7 @@ func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
 		m.downloadingTaskCount--
 	}
 
-	log.Infof("carfile %s cache task end ----- cur downloading count : %d", cr.carfileCid, m.downloadingTaskCount)
+	log.Infof("storage %s cache task end ----- cur downloading count : %d", cr.carfileCid, m.downloadingTaskCount)
 
 	m.resetLatelyExpirationTime(cr.expirationTime)
 
@@ -349,7 +375,7 @@ func (m *Manager) ResetCacheExpirationTime(cid string, t time.Time) error {
 		return err
 	}
 
-	log.Infof("carfile event %s , reset carfile expiration time:%s", cid, t.String())
+	log.Infof("storage event %s , reset storage expiration time:%s", cid, t.String())
 
 	dI, exist := m.DownloadingCarfileRecords.Load(hash)
 	if exist && dI != nil {
@@ -449,7 +475,7 @@ func replicaID(hash, nodeID string) string {
 	return hex.EncodeToString(bytes)
 }
 
-// GetCarfileRecordInfo get carfile record info of cid
+// GetCarfileRecordInfo get storage record info of cid
 func (m *Manager) GetCarfileRecordInfo(cid string) (*api.CarfileRecordInfo, error) {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
@@ -524,4 +550,29 @@ func carfileRecord2Info(cr *CarfileRecord) *api.CarfileRecordInfo {
 	}
 
 	return info
+}
+
+func (m *Manager) CarfilesStatus(ctx context.Context, cid CarfileID) (CarfileInfo, error) {
+	info, err := m.GetCarfileInfo(cid)
+	if err != nil {
+		return CarfileInfo{}, err
+	}
+
+	cLog := make([]Log, len(info.Log))
+	for i, l := range info.Log {
+		cLog[i] = Log{
+			Kind:      l.Kind,
+			Timestamp: l.Timestamp,
+			Trace:     l.Trace,
+			Message:   l.Message,
+		}
+	}
+
+	cInfo := CarfileInfo{
+		CarfileCID: cid,
+		State:      info.State,
+		Log:        cLog,
+	}
+
+	return cInfo, nil
 }

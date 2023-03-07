@@ -19,12 +19,14 @@ require (
 	github.com/ipfs/go-ds-badger2 v0.1.3
 	github.com/ipfs/go-ds-leveldb v0.5.0
 	github.com/ipfs/go-ds-measure v0.2.0
+	github.com/ipfs/go-ds-sql v0.3.0
 	github.com/ipfs/go-fs-lock v0.0.7
 	github.com/ipfs/go-ipfs-http-client v0.4.0
 	github.com/ipfs/go-ipld-format v0.4.0
 	github.com/ipfs/go-ipld-legacy v0.1.1
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/ipfs/go-merkledag v0.7.0
+	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.7.0
 	github.com/ipld/go-codec-dagpb v1.5.0
 	github.com/ipld/go-ipld-prime v0.18.0
@@ -86,7 +88,6 @@ require (
 	github.com/ipfs/go-ipfs-files v0.1.1 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.2 // indirect
 	github.com/ipfs/go-log v1.0.5 // indirect
-	github.com/ipfs/go-metrics-interface v0.0.1 // indirect
 	github.com/ipfs/go-path v0.3.0 // indirect
 	github.com/ipfs/go-unixfs v0.3.1 // indirect
 	github.com/ipfs/go-verifcid v0.0.1 // indirect
@@ -183,3 +184,5 @@ replace github.com/filecoin-project/go-jsonrpc v0.2.1 => github.com/zscboy/go-js
 replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
 
 replace github.com/coreos/bbolt v1.3.4 => go.etcd.io/bbolt v1.3.4
+
+replace github.com/ipfs/go-ds-sql v0.3.0 => ../go-ds-sql@v0.3.0

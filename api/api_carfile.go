@@ -3,9 +3,9 @@ package api
 import "context"
 
 type CarfileOperation interface {
-	// cache carfile
+	// cache storage
 	CacheCarfile(ctx context.Context, carfileCID string, sources []*DownloadSource) (*CacheCarfileResult, error) //perm:write
-	// delete carfile
+	// delete storage
 	DeleteCarfile(ctx context.Context, carfileCID string) error //perm:write
 	// delete all carfiles
 	DeleteAllCarfiles(ctx context.Context) error //perm:admin

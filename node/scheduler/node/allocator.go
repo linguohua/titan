@@ -2,12 +2,12 @@ package node
 
 import (
 	"fmt"
+	"github.com/linguohua/titan/api"
 	"math/rand"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/linguohua/titan/api"
 	"golang.org/x/xerrors"
 )
 

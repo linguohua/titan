@@ -1,20 +1,20 @@
-package carfile
+package storage
 
 import (
 	"fmt"
+	"github.com/linguohua/titan/api"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
 
 const (
-	rootCandidateCacheStep    = iota // step 1: Pull carfile from ipfs to titan
-	candidateReplicaCacheStep        // step 2: Pull carfile from root candidate to othe candidates
-	edgeReplicaCacheStep             // step 3: Pull carfile from candidates to edges
+	rootCandidateCacheStep    = iota // step 1: Pull storage from ipfs to titan
+	candidateReplicaCacheStep        // step 2: Pull storage from root candidate to othe candidates
+	edgeReplicaCacheStep             // step 3: Pull storage from candidates to edges
 	cachedStep                       // step 4: Caches end
 )
 

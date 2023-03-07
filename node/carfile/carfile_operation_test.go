@@ -31,7 +31,7 @@ func TestCarfileOperation(t *testing.T) {
 	}
 
 	carfile.carfileSize = ret.linksSize + ret.downloadSize
-	t.Logf("carfile size:%d", carfile.carfileSize)
+	t.Logf("storage size:%d", carfile.carfileSize)
 
 	t.Logf("layer %d, cids:%v", layer, []string{carfile.carfileCID})
 

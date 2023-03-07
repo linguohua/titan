@@ -82,7 +82,7 @@ func (carfileOperation *CarfileOperation) addCarfileLinkToBlock(blockHash, carfi
 	return carfileOperation.carfileStore.SaveLinks(context.Background(), blockHash, []byte(linkStr))
 }
 
-// return new carfile link
+// return new storage link
 func (carfileOperation *CarfileOperation) removeCarfileLinkFromBlock(blockHash, carfileHash string) (string, error) {
 	carfileOperation.carfileLinkLock.Lock()
 	defer carfileOperation.carfileLinkLock.Unlock()

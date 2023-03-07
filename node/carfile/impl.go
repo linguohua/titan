@@ -13,7 +13,7 @@ import (
 func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carfileCID string, dss []*api.DownloadSource) (*api.CacheCarfileResult, error) {
 	carfileHash, err := cidutil.CIDString2HashString(carfileCID)
 	if err != nil {
-		log.Errorf("CacheCarfile, CIDString2HashString error:%s, carfile cid:%s", err.Error(), carfileCID)
+		log.Errorf("CacheCarfile, CIDString2HashString error:%s, storage cid:%s", err.Error(), carfileCID)
 		return nil, err
 	}
 
@@ -24,7 +24,7 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 
 	has, err := carfileOperation.carfileStore.HasCarfile(carfileHash)
 	if err != nil {
-		log.Errorf("CacheCarfile, HasCarfile error:%s, carfile hash :%s", err.Error(), carfileHash)
+		log.Errorf("CacheCarfile, HasCarfile error:%s, storage hash :%s", err.Error(), carfileHash)
 		return nil, err
 	}
 
@@ -34,7 +34,7 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 			log.Errorf("CacheCarfile, cacheResultForCarfileExist error:%s", err.Error())
 		}
 
-		log.Debugf("carfile %s carfileCID aready exist, not need to cache", carfileCID)
+		log.Debugf("storage %s carfileCID aready exist, not need to cache", carfileCID)
 
 		return carfileOperation.cacheCarfileResult()
 	}
@@ -45,7 +45,7 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 			return nil, err
 		}
 
-		// incomplete carfile cache not exsit
+		// incomplete storage cache not exsit
 		cfCache = &carfileCache{carfileCID: carfileCID}
 	}
 
@@ -54,7 +54,7 @@ func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carf
 
 	carfileOperation.downloadMgr.addCarfileCacheToWaitList(cfCache)
 
-	log.Debugf("CacheCarfile carfile cid:%s", carfileCID)
+	log.Debugf("CacheCarfile storage cid:%s", carfileCID)
 	return carfileOperation.cacheCarfileResult()
 }
 
@@ -75,7 +75,7 @@ func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, car
 
 		_, err := carfileOperation.deleteCarfile(carfileCID)
 		if err != nil {
-			log.Errorf("DeleteCarfile, delete carfile error:%s, carfileCID:%s", err.Error(), carfileCID)
+			log.Errorf("DeleteCarfile, delete storage error:%s, carfileCID:%s", err.Error(), carfileCID)
 		}
 
 		blockCount, err := carfileOperation.carfileStore.BlockCount()
@@ -96,7 +96,7 @@ func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, car
 			log.Errorf("DeleteCarfile, RemoveCarfileResult error:%s, carfileCID:%s", err.Error(), carfileCID)
 		}
 
-		log.Debugf("DeleteCarfile, carfile cid:%s", carfileCID)
+		log.Debugf("DeleteCarfile, storage cid:%s", carfileCID)
 	}()
 	return nil
 }
@@ -145,7 +145,7 @@ func (carfileOperation *CarfileOperation) QueryCacheStat(ctx context.Context) (*
 func (carfileOperation *CarfileOperation) QueryCachingCarfile(ctx context.Context) (*api.CachingCarfile, error) {
 	carfileCache := carfileOperation.downloadMgr.getFirstCarfileCacheFromWaitList()
 	if carfileCache == nil {
-		return nil, fmt.Errorf("caching carfile not exist")
+		return nil, fmt.Errorf("caching storage not exist")
 	}
 
 	ret := &api.CachingCarfile{}

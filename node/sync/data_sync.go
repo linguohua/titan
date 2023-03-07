@@ -52,7 +52,7 @@ func (ds *DataSync) CompareChecksum(ctx context.Context, succeededCarfilesChecks
 
 func (ds *DataSync) BeginCheckCarfiles(ctx context.Context) error {
 	if ds.isChecking {
-		return fmt.Errorf("checking carfile now, can not do again")
+		return fmt.Errorf("checking storage now, can not do again")
 	}
 	// clean
 	ds.carfileMap = make(map[string]struct{}, 0)
@@ -61,12 +61,12 @@ func (ds *DataSync) BeginCheckCarfiles(ctx context.Context) error {
 
 func (ds *DataSync) PrepareCarfiles(ctx context.Context, carfileHashes []string) error {
 	if ds.isChecking {
-		return fmt.Errorf("checking carfile now, can not do again")
+		return fmt.Errorf("checking storage now, can not do again")
 	}
 
 	total := len(ds.carfileMap) + len(carfileHashes)
 	if total > maxCarfileCount {
-		return fmt.Errorf("total carfile is out of %d", maxCarfileCount)
+		return fmt.Errorf("total storage is out of %d", maxCarfileCount)
 	}
 
 	for _, hash := range carfileHashes {

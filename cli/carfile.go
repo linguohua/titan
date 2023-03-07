@@ -18,6 +18,7 @@ var carfileCmd = &cli.Command{
 		listCarfilesCmd,
 		cacheCarfileCmd,
 		showCarfileInfoCmd,
+		carfilesStatusCmd,
 		removeCarfileCmd,
 		removeReplicaCmd,
 		resetExpirationTimeCmd,
@@ -28,7 +29,7 @@ var carfileCmd = &cli.Command{
 
 var contiuneUndoneCarfileCmd = &cli.Command{
 	Name:      "execute-incomplete",
-	Usage:     "Continue to execute the incomplete carfile task",
+	Usage:     "Continue to execute the incomplete storage task",
 	ArgsUsage: "[cid1 cid2 ...]",
 
 	Before: func(cctx *cli.Context) error {
@@ -59,7 +60,7 @@ var contiuneUndoneCarfileCmd = &cli.Command{
 
 var resetReplicaCacheCountCmd = &cli.Command{
 	Name:  "reset-candidate-replica-count",
-	Usage: "Reset Number of candidate node replica per carfile",
+	Usage: "Reset Number of candidate node replica per storage",
 	Flags: []cli.Flag{
 		countFlag,
 	},
@@ -84,7 +85,7 @@ var resetReplicaCacheCountCmd = &cli.Command{
 
 var resetExpirationTimeCmd = &cli.Command{
 	Name:  "reset-expiration-time",
-	Usage: "Reset carfile expiration time",
+	Usage: "Reset storage expiration time",
 	Flags: []cli.Flag{
 		cidFlag,
 		dateFlag,
@@ -117,7 +118,7 @@ var resetExpirationTimeCmd = &cli.Command{
 
 var removeReplicaCmd = &cli.Command{
 	Name:  "remove-replica",
-	Usage: "Remove the carfile replica",
+	Usage: "Remove the storage replica",
 	Flags: []cli.Flag{
 		nodeIDFlag,
 		cidFlag,
@@ -144,7 +145,7 @@ var removeReplicaCmd = &cli.Command{
 
 var removeCarfileCmd = &cli.Command{
 	Name:  "remove",
-	Usage: "Remove the carfile record",
+	Usage: "Remove the storage record",
 	Flags: []cli.Flag{
 		cidFlag,
 	},
@@ -165,7 +166,7 @@ var removeCarfileCmd = &cli.Command{
 
 var showCarfileInfoCmd = &cli.Command{
 	Name:  "info",
-	Usage: "Show the carfile info",
+	Usage: "Show the storage info",
 	Flags: []cli.Flag{
 		cidFlag,
 	},
@@ -205,7 +206,7 @@ var showCarfileInfoCmd = &cli.Command{
 
 var cacheCarfileCmd = &cli.Command{
 	Name:  "cache",
-	Usage: "Scheduling nodes cache carfile",
+	Usage: "Scheduling nodes cache storage",
 	Flags: []cli.Flag{
 		cidFlag,
 		replicaCountFlag,
@@ -315,6 +316,47 @@ var listCarfilesCmd = &cli.Command{
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
 
+		return nil
+	},
+}
+
+var carfilesStatusCmd = &cli.Command{
+	Name:      "status",
+	Usage:     "Get the cache status of a carfiles by its id",
+	ArgsUsage: "<carfileCID>",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{
+			Name:    "log",
+			Usage:   "display event log",
+			Aliases: []string{"l"},
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		//ctx := ReqContext(cctx)
+		//schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		//if err != nil {
+		//	return err
+		//}
+		//defer closer()
+		//
+		//cid := cctx.Args().First()
+		//status, err := schedulerAPI.CarfilesStatus(ctx, api.CarfileID(cid))
+		//if err != nil {
+		//	return err
+		//}
+		//
+		//fmt.Printf("CarfileCID:\t%d\n", status.CarfileCID)
+		//fmt.Printf("Status:\t\t%s\n", status.State)
+		//if cctx.Bool("log") {
+		//	fmt.Printf("--------\nEvent Log:\n")
+		//
+		//	for i, l := range status.Log {
+		//		fmt.Printf("%d.\t%s:\t[%s]\t%s\n", i, time.Unix(int64(l.Timestamp), 0), l.Kind, l.Message)
+		//		if l.Trace != "" {
+		//			fmt.Printf("\t%s\n", l.Trace)
+		//		}
+		//	}
+		//}
 		return nil
 	},
 }
