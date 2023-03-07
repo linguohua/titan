@@ -208,8 +208,6 @@ type LocatorStub struct {
 type SchedulerStruct struct {
 	CommonStruct
 
-	WebStruct
-
 	Internal struct {
 		AllocateNodes func(p0 context.Context, p1 NodeType, p2 int) ([]NodeAllocateInfo, error) `perm:"admin"`
 
@@ -239,8 +237,6 @@ type SchedulerStruct struct {
 
 		GetCarfileRecordInfo func(p0 context.Context, p1 string) (CarfileRecordInfo, error) `perm:"read"`
 
-		GetDevicesInfo func(p0 context.Context, p1 string) (NodeInfo, error) `perm:"read"`
-
 		GetDownloadInfo func(p0 context.Context, p1 string) ([]*BlockDownloadInfo, error) `perm:"read"`
 
 		GetDownloadInfosWithCarfile func(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) `perm:"read"`
@@ -255,11 +251,23 @@ type SchedulerStruct struct {
 
 		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) `perm:"read"`
 
+		GetNodeInfo func(p0 context.Context, p1 string) (NodeInfo, error) `perm:"read"`
+
 		GetOnlineNodeIDs func(p0 context.Context, p1 NodeType) ([]string, error) `perm:"read"`
 
 		GetPublicKey func(p0 context.Context) (string, error) `perm:"write"`
 
+		GetReplicaInfos func(p0 context.Context, p1 ListCacheInfosReq) (ListCacheInfosRsp, error) `perm:"read"`
+
+		GetSummaryValidateMessage func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*SummeryValidateResult, error) `perm:"read"`
+
+		GetSystemInfo func(p0 context.Context) (SystemBaseInfo, error) `perm:"read"`
+
+		ListBlockDownloadInfo func(p0 context.Context, p1 ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) `perm:"read"`
+
 		ListCarfileRecords func(p0 context.Context, p1 int) (*CarfileRecordsInfo, error) `perm:"read"`
+
+		ListNodes func(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) `perm:"read"`
 
 		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
@@ -297,8 +305,6 @@ type SchedulerStruct struct {
 
 type SchedulerStub struct {
 	CommonStub
-
-	WebStub
 }
 
 type ValidateStruct struct {
@@ -308,25 +314,6 @@ type ValidateStruct struct {
 }
 
 type ValidateStub struct {
-}
-
-type WebStruct struct {
-	Internal struct {
-		GetNodeInfoByID func(p0 context.Context, p1 string) (NodeInfo, error) `perm:"read"`
-
-		GetReplicaInfos func(p0 context.Context, p1 ListCacheInfosReq) (ListCacheInfosRsp, error) `perm:"read"`
-
-		GetSummaryValidateMessage func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*SummeryValidateResult, error) `perm:"read"`
-
-		GetSystemInfo func(p0 context.Context) (SystemBaseInfo, error) `perm:"read"`
-
-		ListBlockDownloadInfo func(p0 context.Context, p1 ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) `perm:"read"`
-
-		ListNodes func(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) `perm:"read"`
-	}
-}
-
-type WebStub struct {
 }
 
 func (s *CandidateStruct) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
@@ -956,17 +943,6 @@ func (s *SchedulerStub) GetCarfileRecordInfo(p0 context.Context, p1 string) (Car
 	return *new(CarfileRecordInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetDevicesInfo(p0 context.Context, p1 string) (NodeInfo, error) {
-	if s.Internal.GetDevicesInfo == nil {
-		return *new(NodeInfo), ErrNotSupported
-	}
-	return s.Internal.GetDevicesInfo(p0, p1)
-}
-
-func (s *SchedulerStub) GetDevicesInfo(p0 context.Context, p1 string) (NodeInfo, error) {
-	return *new(NodeInfo), ErrNotSupported
-}
-
 func (s *SchedulerStruct) GetDownloadInfo(p0 context.Context, p1 string) ([]*BlockDownloadInfo, error) {
 	if s.Internal.GetDownloadInfo == nil {
 		return *new([]*BlockDownloadInfo), ErrNotSupported
@@ -1044,6 +1020,17 @@ func (s *SchedulerStub) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*Node
 	return *new(map[int]*NodeAppUpdateInfo), ErrNotSupported
 }
 
+func (s *SchedulerStruct) GetNodeInfo(p0 context.Context, p1 string) (NodeInfo, error) {
+	if s.Internal.GetNodeInfo == nil {
+		return *new(NodeInfo), ErrNotSupported
+	}
+	return s.Internal.GetNodeInfo(p0, p1)
+}
+
+func (s *SchedulerStub) GetNodeInfo(p0 context.Context, p1 string) (NodeInfo, error) {
+	return *new(NodeInfo), ErrNotSupported
+}
+
 func (s *SchedulerStruct) GetOnlineNodeIDs(p0 context.Context, p1 NodeType) ([]string, error) {
 	if s.Internal.GetOnlineNodeIDs == nil {
 		return *new([]string), ErrNotSupported
@@ -1066,6 +1053,50 @@ func (s *SchedulerStub) GetPublicKey(p0 context.Context) (string, error) {
 	return "", ErrNotSupported
 }
 
+func (s *SchedulerStruct) GetReplicaInfos(p0 context.Context, p1 ListCacheInfosReq) (ListCacheInfosRsp, error) {
+	if s.Internal.GetReplicaInfos == nil {
+		return *new(ListCacheInfosRsp), ErrNotSupported
+	}
+	return s.Internal.GetReplicaInfos(p0, p1)
+}
+
+func (s *SchedulerStub) GetReplicaInfos(p0 context.Context, p1 ListCacheInfosReq) (ListCacheInfosRsp, error) {
+	return *new(ListCacheInfosRsp), ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetSummaryValidateMessage(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*SummeryValidateResult, error) {
+	if s.Internal.GetSummaryValidateMessage == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetSummaryValidateMessage(p0, p1, p2, p3, p4)
+}
+
+func (s *SchedulerStub) GetSummaryValidateMessage(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*SummeryValidateResult, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetSystemInfo(p0 context.Context) (SystemBaseInfo, error) {
+	if s.Internal.GetSystemInfo == nil {
+		return *new(SystemBaseInfo), ErrNotSupported
+	}
+	return s.Internal.GetSystemInfo(p0)
+}
+
+func (s *SchedulerStub) GetSystemInfo(p0 context.Context) (SystemBaseInfo, error) {
+	return *new(SystemBaseInfo), ErrNotSupported
+}
+
+func (s *SchedulerStruct) ListBlockDownloadInfo(p0 context.Context, p1 ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) {
+	if s.Internal.ListBlockDownloadInfo == nil {
+		return *new(ListBlockDownloadInfoRsp), ErrNotSupported
+	}
+	return s.Internal.ListBlockDownloadInfo(p0, p1)
+}
+
+func (s *SchedulerStub) ListBlockDownloadInfo(p0 context.Context, p1 ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) {
+	return *new(ListBlockDownloadInfoRsp), ErrNotSupported
+}
+
 func (s *SchedulerStruct) ListCarfileRecords(p0 context.Context, p1 int) (*CarfileRecordsInfo, error) {
 	if s.Internal.ListCarfileRecords == nil {
 		return nil, ErrNotSupported
@@ -1075,6 +1106,17 @@ func (s *SchedulerStruct) ListCarfileRecords(p0 context.Context, p1 int) (*Carfi
 
 func (s *SchedulerStub) ListCarfileRecords(p0 context.Context, p1 int) (*CarfileRecordsInfo, error) {
 	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) ListNodes(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) {
+	if s.Internal.ListNodes == nil {
+		return *new(ListNodesRsp), ErrNotSupported
+	}
+	return s.Internal.ListNodes(p0, p1, p2)
+}
+
+func (s *SchedulerStub) ListNodes(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) {
+	return *new(ListNodesRsp), ErrNotSupported
 }
 
 func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 string, p2 string) error {
@@ -1264,72 +1306,6 @@ func (s *ValidateStub) BeValidate(p0 context.Context, p1 ReqValidate, p2 string)
 	return ErrNotSupported
 }
 
-func (s *WebStruct) GetNodeInfoByID(p0 context.Context, p1 string) (NodeInfo, error) {
-	if s.Internal.GetNodeInfoByID == nil {
-		return *new(NodeInfo), ErrNotSupported
-	}
-	return s.Internal.GetNodeInfoByID(p0, p1)
-}
-
-func (s *WebStub) GetNodeInfoByID(p0 context.Context, p1 string) (NodeInfo, error) {
-	return *new(NodeInfo), ErrNotSupported
-}
-
-func (s *WebStruct) GetReplicaInfos(p0 context.Context, p1 ListCacheInfosReq) (ListCacheInfosRsp, error) {
-	if s.Internal.GetReplicaInfos == nil {
-		return *new(ListCacheInfosRsp), ErrNotSupported
-	}
-	return s.Internal.GetReplicaInfos(p0, p1)
-}
-
-func (s *WebStub) GetReplicaInfos(p0 context.Context, p1 ListCacheInfosReq) (ListCacheInfosRsp, error) {
-	return *new(ListCacheInfosRsp), ErrNotSupported
-}
-
-func (s *WebStruct) GetSummaryValidateMessage(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*SummeryValidateResult, error) {
-	if s.Internal.GetSummaryValidateMessage == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.GetSummaryValidateMessage(p0, p1, p2, p3, p4)
-}
-
-func (s *WebStub) GetSummaryValidateMessage(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*SummeryValidateResult, error) {
-	return nil, ErrNotSupported
-}
-
-func (s *WebStruct) GetSystemInfo(p0 context.Context) (SystemBaseInfo, error) {
-	if s.Internal.GetSystemInfo == nil {
-		return *new(SystemBaseInfo), ErrNotSupported
-	}
-	return s.Internal.GetSystemInfo(p0)
-}
-
-func (s *WebStub) GetSystemInfo(p0 context.Context) (SystemBaseInfo, error) {
-	return *new(SystemBaseInfo), ErrNotSupported
-}
-
-func (s *WebStruct) ListBlockDownloadInfo(p0 context.Context, p1 ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) {
-	if s.Internal.ListBlockDownloadInfo == nil {
-		return *new(ListBlockDownloadInfoRsp), ErrNotSupported
-	}
-	return s.Internal.ListBlockDownloadInfo(p0, p1)
-}
-
-func (s *WebStub) ListBlockDownloadInfo(p0 context.Context, p1 ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) {
-	return *new(ListBlockDownloadInfoRsp), ErrNotSupported
-}
-
-func (s *WebStruct) ListNodes(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) {
-	if s.Internal.ListNodes == nil {
-		return *new(ListNodesRsp), ErrNotSupported
-	}
-	return s.Internal.ListNodes(p0, p1, p2)
-}
-
-func (s *WebStub) ListNodes(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) {
-	return *new(ListNodesRsp), ErrNotSupported
-}
-
 var _ Candidate = new(CandidateStruct)
 var _ CarfileOperation = new(CarfileOperationStruct)
 var _ Common = new(CommonStruct)
@@ -1340,4 +1316,3 @@ var _ Edge = new(EdgeStruct)
 var _ Locator = new(LocatorStruct)
 var _ Scheduler = new(SchedulerStruct)
 var _ Validate = new(ValidateStruct)
-var _ Web = new(WebStruct)

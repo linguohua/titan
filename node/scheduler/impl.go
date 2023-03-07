@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/linguohua/titan/node/modules/dtypes"
 
@@ -37,10 +38,6 @@ import (
 var log = logging.Logger("scheduler")
 
 const (
-	// StatusOffline node offline
-	StatusOffline = "offline"
-	// StatusOnline node online
-	StatusOnline = "online"
 	// seconds
 	blockDonwloadTimeout = 30 * 60
 )
@@ -53,47 +50,10 @@ const (
 	blockDownloadStatusSucceeded
 )
 
-// NewLocalScheduleNode ...
-//func NewLocalScheduleNode(lr repo.LockedRepo, SchedulerCfg *config.SchedulerCfg) api.Scheduler {
-//	s := &Scheduler{}
-//
-//	NodeManager := node.NewManager(s.nodeExitedCallback)
-//	s.CommonAPI = common.NewCommonAPI(NodeManager.NodeSessionCallBack)
-//	s.Web = web.NewWeb(s)
-//
-//	sec, err := secret.APISecret(lr)
-//	if err != nil {
-//		log.Panicf("NewLocalScheduleNode failed:%s", err.Error())
-//	}
-//	s.APISecret = sec
-//
-//	// area.InitServerArea(areaStr)
-//
-//	err = s.authNew()
-//	if err != nil {
-//		log.Panicf("authNew err:%s", err.Error())
-//	}
-//
-//	s.NodeManager = NodeManager
-//	s.Election = Election.NewElection(NodeManager)
-//	s.Validator = Validator.NewElection(NodeManager, false)
-//	s.DataManager = carfile.NewManager(NodeManager, s.WriteToken)
-//	s.DataSync = sync.NewDataSync(NodeManager)
-//	s.SchedulerCfg = SchedulerCfg
-//
-//	s.AppUpdater, err = persistent.GetNodeUpdateInfos()
-//	if err != nil {
-//		log.Errorf("GetNodeUpdateInfos error:%s", err)
-//	}
-//
-//	return s
-//}
-
 // Scheduler node
 type Scheduler struct {
 	fx.In
 
-	api.Web
 	*common.CommonAPI
 	*AppUpdater
 
@@ -394,33 +354,27 @@ func (s *Scheduler) ElectionValidators(ctx context.Context) error {
 	return nil
 }
 
-// GetDevicesInfo return the devices information
-func (s *Scheduler) GetDevicesInfo(ctx context.Context, nodeID string) (api.NodeInfo, error) {
-	// node datas
-	nodeInfo, err := s.NodeManager.NodeMgrDB.LoadNodeInfo(nodeID)
-	if err != nil {
-		log.Errorf("getNodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
-		return api.NodeInfo{}, err
-	}
+// GetNodeInfo return the devices information
+func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (api.NodeInfo, error) {
+	nodeInfo := &api.NodeInfo{}
+	nodeInfo.NodeStatus = api.NodeOffline
 
-	isOnline := s.NodeManager.GetCandidateNode(nodeID) != nil
-	if !isOnline {
-		isOnline = s.NodeManager.GetEdgeNode(nodeID) != nil
-	}
+	info := s.NodeManager.GetNode(nodeID)
+	if info != nil {
+		nodeInfo = info.NodeInfo
+		nodeInfo.NodeStatus = api.NodeOnline
+	} else {
+		// node datas
+		dbInfo, err := s.NodeManager.NodeMgrDB.LoadNodeInfo(nodeID)
+		if err != nil {
+			log.Errorf("getNodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
+			return api.NodeInfo{}, err
+		}
 
-	nodeInfo.DeviceStatus = getDeviceStatus(isOnline)
+		nodeInfo = dbInfo
+	}
 
 	return *nodeInfo, nil
-}
-
-// GetDeviceStatus return the status of the device
-func getDeviceStatus(isOnline bool) string {
-	switch isOnline {
-	case true:
-		return StatusOnline
-	default:
-		return StatusOffline
-	}
 }
 
 // ValidateSwitch  open or close Validator task
@@ -585,4 +539,88 @@ func (s *Scheduler) deviceExists(nodeID string, nodeType int) bool {
 	}
 
 	return true
+}
+
+func (s *Scheduler) ListNodes(ctx context.Context, cursor int, count int) (api.ListNodesRsp, error) {
+	rsp := api.ListNodesRsp{Data: make([]api.NodeInfo, 0)}
+
+	nodes, total, err := s.NodeManager.NodeMgrDB.ListNodeIDs(cursor, count)
+	if err != nil {
+		return rsp, err
+	}
+
+	deviceInValidator := make(map[string]struct{})
+	validatorList, err := s.NodeManager.NodeMgrDB.GetValidatorsWithList(s.NodeManager.ServerID)
+	if err != nil {
+		log.Errorf("get validator list: %v", err)
+	}
+	for _, id := range validatorList {
+		deviceInValidator[id] = struct{}{}
+	}
+
+	nodeInfos := make([]api.NodeInfo, 0)
+	for _, nodeID := range nodes {
+		nodeInfo, err := s.GetNodeInfo(ctx, nodeID)
+		if err != nil {
+			log.Errorf("GetNodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
+			continue
+		}
+
+		_, exist := deviceInValidator[nodeID]
+		if exist {
+			nodeInfo.NodeType = api.NodeValidate
+		}
+
+		nodeInfos = append(nodeInfos, nodeInfo)
+	}
+
+	rsp.Data = nodeInfos
+	rsp.Total = total
+
+	return rsp, nil
+}
+
+func (s *Scheduler) ListBlockDownloadInfo(ctx context.Context, req api.ListBlockDownloadInfoReq) (api.ListBlockDownloadInfoRsp, error) {
+	startTime := time.Unix(req.StartTime, 0)
+	endTime := time.Unix(req.EndTime, 0)
+
+	downloadInfos, total, err := s.NodeManager.CarfileDB.GetBlockDownloadInfos(req.NodeID, startTime, endTime, req.Cursor, req.Count)
+	if err != nil {
+		return api.ListBlockDownloadInfoRsp{}, nil
+	}
+	return api.ListBlockDownloadInfoRsp{
+		Data:  downloadInfos,
+		Total: total,
+	}, nil
+}
+
+func (s *Scheduler) GetReplicaInfos(ctx context.Context, req api.ListCacheInfosReq) (api.ListCacheInfosRsp, error) {
+	startTime := time.Unix(req.StartTime, 0)
+	endTime := time.Unix(req.EndTime, 0)
+
+	info, err := s.NodeManager.CarfileDB.GetReplicaInfos(startTime, endTime, req.Cursor, req.Count)
+	if err != nil {
+		return api.ListCacheInfosRsp{}, err
+	}
+
+	return *info, nil
+}
+
+func (s *Scheduler) GetBlocksByCarfileCID(ctx context.Context, carFileCID string) ([]api.WebBlock, error) {
+	return []api.WebBlock{}, nil
+}
+
+func (s *Scheduler) GetSystemInfo(ctx context.Context) (api.SystemBaseInfo, error) {
+	// TODO get info from db
+
+	return api.SystemBaseInfo{}, nil
+}
+
+func (s *Scheduler) GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error) {
+	svm, err := s.NodeManager.NodeMgrDB.ValidateResultInfos(startTime, endTime, pageNumber, pageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	return svm, nil
 }

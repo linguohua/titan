@@ -137,7 +137,7 @@ var showNodeInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		info, err := schedulerAPI.GetNodeInfoByID(ctx, nodeID)
+		info, err := schedulerAPI.GetNodeInfo(ctx, nodeID)
 		if err != nil {
 			return err
 		}

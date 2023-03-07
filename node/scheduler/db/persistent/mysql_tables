@@ -10,7 +10,7 @@ CREATE TABLE `node_info` (
     `quitted` BOOLEAN DEFAULT '0' ,
 	`port_mapping` varchar(8) DEFAULT '' ,
 	PRIMARY KEY (`node_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node info';
+) ENGINE=InnoDB COMMENT='node info';
 
 CREATE TABLE `validate_result` (
     `id` int unsigned NOT NULL AUTO_INCREMENT,
@@ -25,7 +25,7 @@ CREATE TABLE `validate_result` (
     `end_time` datetime DEFAULT NULL,
     PRIMARY KEY (`id`),
     KEY `round_device` (`round_id`,`node_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='validate result info';
+) ENGINE=InnoDB COMMENT='validate result info';
 
 CREATE TABLE `block_download_info` (
     `id` varchar(64) NOT NULL UNIQUE,
@@ -41,7 +41,7 @@ CREATE TABLE `block_download_info` (
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
     `complete_time` datetime,
     PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='block download information';
+) ENGINE=InnoDB COMMENT='block download information';
 
 CREATE TABLE `node_allocate_info` (
     `id` int unsigned NOT NULL AUTO_INCREMENT,
@@ -50,7 +50,7 @@ CREATE TABLE `node_allocate_info` (
     `create_time` varchar(64) DEFAULT '' ,
 	`node_type` varchar(64) DEFAULT '' ,
 	PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='node allocate info';
+) ENGINE=InnoDB COMMENT='node allocate info';
 
 CREATE TABLE `replicas` (
     `id` varchar(128) NOT NULL UNIQUE,
@@ -61,7 +61,7 @@ CREATE TABLE `replicas` (
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='replicas info';
+) ENGINE=InnoDB COMMENT='replicas info';
 
 CREATE TABLE `carfiles` (
 	`carfile_hash` varchar(128) NOT NULL UNIQUE,
@@ -73,7 +73,7 @@ CREATE TABLE `carfiles` (
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (`carfile_hash`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='carfile infos';
+) ENGINE=InnoDB COMMENT='carfile infos';
 
 CREATE TABLE `node_update_info` (
 	`node_type` int NOT NULL UNIQUE,
@@ -83,13 +83,13 @@ CREATE TABLE `node_update_info` (
 	`download_url` varchar(128) NOT NULL,
     `update_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (`node_type`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='node_update_info';
+) ENGINE=InnoDB COMMENT='node_update_info';
 
 CREATE TABLE `carfile_downloading` (
 	`carfile_hash` varchar(128) NOT NULL,
     `node_id` varchar(128) NOT NULL,
     `server_id` varchar(128) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='downloading carfiles table';
+) ENGINE=InnoDB COMMENT='downloading carfiles table';
 
 CREATE TABLE `carfile_waiting` (
     `id` int unsigned NOT NULL AUTO_INCREMENT,
@@ -100,14 +100,14 @@ CREATE TABLE `carfile_waiting` (
     `expiration` datetime DEFAULT CURRENT_TIMESTAMP,
     `server_id` varchar(128) NOT NULL,
     PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='waiting carfiles table';
+) ENGINE=InnoDB COMMENT='waiting carfiles table';
 
 CREATE TABLE `validators` (
     `node_id` varchar(128) NOT NULL,
     `server_id` varchar(128) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='validators table';
+) ENGINE=InnoDB COMMENT='validators table';
 
 CREATE TABLE `node_verifying` (
     `node_id` varchar(128) NOT NULL,
     `server_id` varchar(128) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='verifying ndoes table';
+) ENGINE=InnoDB COMMENT='verifying ndoes table';
