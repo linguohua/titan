@@ -13,7 +13,7 @@ type schedulerCfg struct {
 	AccessToken  string `DB:"access_token"`
 }
 
-type deviceInfo struct {
+type nodeInfo struct {
 	ID           int
 	NodeID       string `DB:"node_id"`
 	SchedulerURL string `DB:"scheduler_url"`
@@ -139,8 +139,8 @@ func (db *SqlDB) deleteSchedulerCfg(schedulerURL string) error {
 	return err
 }
 
-func (db *SqlDB) getDeviceInfo(nodeID string) (*deviceInfo, error) {
-	devInfo := &deviceInfo{}
+func (db *SqlDB) getNodeInfo(nodeID string) (*nodeInfo, error) {
+	devInfo := &nodeInfo{}
 	err := db.cli.Get(devInfo, `SELECT * FROM device WHERE node_id=?`, nodeID)
 	if err != nil {
 		return nil, err
@@ -149,14 +149,14 @@ func (db *SqlDB) getDeviceInfo(nodeID string) (*deviceInfo, error) {
 	return devInfo, nil
 }
 
-func (db *SqlDB) setDeviceInfo(nodeID string, schedulerURL string, areaID string, online bool) error {
-	devInfo := &deviceInfo{NodeID: nodeID, SchedulerURL: schedulerURL, AreaID: areaID, Online: online}
+func (db *SqlDB) setNodeInfo(nodeID string, schedulerURL string, areaID string, online bool) error {
+	devInfo := &nodeInfo{NodeID: nodeID, SchedulerURL: schedulerURL, AreaID: areaID, Online: online}
 	_, err := db.cli.NamedExec(`INSERT INTO device (node_id,scheduler_url, area_id, online) VALUES (:node_id, :scheduler_url, :area_id, :online) ON DUPLICATE KEY UPDATE scheduler_url=:scheduler_url,area_id=:area_id,online=:online`, devInfo)
 	return err
 }
 
-func (db *SqlDB) deleteDeviceInfo(nodeID string) error {
-	devInfo := &deviceInfo{NodeID: nodeID}
+func (db *SqlDB) deleteNodeInfo(nodeID string) error {
+	devInfo := &nodeInfo{NodeID: nodeID}
 	_, err := db.cli.NamedExec(`DELETE FROM device WHERE node_id=:node_id`, devInfo)
 	return err
 }

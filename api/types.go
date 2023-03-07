@@ -12,8 +12,8 @@ type Base struct {
 	UpdatedAt time.Time `json:"updated_at" gorm:"comment:'更新时间';type:timestamp;"`
 }
 
-// DeviceInfo Info
-type DeviceInfo struct {
+// NodeInfo Info
+type NodeInfo struct {
 	Base
 	NodeID        string   `json:"node_id" form:"nodeId" gorm:"column:node_id;comment:;" db:"node_id"`
 	UserID        string   `json:"user_id" form:"userId" gorm:"column:user_id;comment:;"`

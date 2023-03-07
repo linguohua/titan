@@ -108,13 +108,13 @@ func (locator *Locator) ShowAccessPoint(ctx context.Context, areaID string) (api
 func (locator *Locator) SetDeviceOnlineStatus(ctx context.Context, nodeID string, isOnline bool) error {
 	log.Debugf("SetDeviceStatus device %s online status %t", nodeID, isOnline)
 
-	info, err := locator.DB.getDeviceInfo(nodeID)
+	info, err := locator.DB.getNodeInfo(nodeID)
 	if err != nil {
 		log.Errorf("SetDeviceStatus, get device %s error:%s", nodeID, err.Error())
 		return err
 	}
 
-	locator.DB.setDeviceInfo(nodeID, info.SchedulerURL, info.AreaID, isOnline)
+	locator.DB.setNodeInfo(nodeID, info.SchedulerURL, info.AreaID, isOnline)
 	return nil
 }
 
@@ -209,9 +209,9 @@ func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*s
 
 // if device not exist return sql.ErrNoRows
 func (locator *Locator) getSchedulerAPIWith(nodeID string) (*schedulerAPI, error) {
-	device, err := locator.DB.getDeviceInfo(nodeID)
+	device, err := locator.DB.getNodeInfo(nodeID)
 	if err != nil {
-		log.Errorf("GetAccessPoints, getDeviceInfo error:%s", err.Error())
+		log.Errorf("GetAccessPoints, getNodeInfo error:%s", err.Error())
 		return nil, err
 	}
 
@@ -326,7 +326,7 @@ func (locator *Locator) AllocateNodes(ctx context.Context, schedulerURL string, 
 	}
 
 	for _, registerInfo := range registerInfos {
-		locator.DB.setDeviceInfo(registerInfo.NodeID, schedulerURL, cfg.AreaID, false)
+		locator.DB.setNodeInfo(registerInfo.NodeID, schedulerURL, cfg.AreaID, false)
 	}
 
 	return registerInfos, nil

@@ -143,11 +143,11 @@ func (v *Validator) sendValidateInfoToValidator(validatorID string, reqList []ap
 	}
 }
 
-func (v *Validator) getValidatedList(validatorMap map[string]float64) []*validatedDeviceInfo {
-	validatedList := make([]*validatedDeviceInfo, 0)
+func (v *Validator) getValidatedList(validatorMap map[string]float64) []*validatedNodeInfo {
+	validatedList := make([]*validatedNodeInfo, 0)
 	v.nodeManager.EdgeNodes.Range(func(key, value interface{}) bool {
 		edgeNode := value.(*node.Edge)
-		info := &validatedDeviceInfo{}
+		info := &validatedNodeInfo{}
 		info.nodeType = api.NodeEdge
 		info.nodeID = edgeNode.NodeID
 		info.addr = edgeNode.BaseInfo.RPCURL()
@@ -160,7 +160,7 @@ func (v *Validator) getValidatedList(validatorMap map[string]float64) []*validat
 		if _, exist := validatorMap[candidateNode.NodeID]; exist {
 			return true
 		}
-		info := &validatedDeviceInfo{}
+		info := &validatedNodeInfo{}
 		info.nodeID = candidateNode.NodeID
 		info.nodeType = api.NodeCandidate
 		info.addr = candidateNode.BaseInfo.RPCURL()
@@ -255,7 +255,7 @@ func (v *Validator) assignValidator(validatorList []string) map[string][]api.Req
 	return validateReqs
 }
 
-func (v *Validator) getNodeReqValidate(validated *validatedDeviceInfo) (api.ReqValidate, error) {
+func (v *Validator) getNodeReqValidate(validated *validatedNodeInfo) (api.ReqValidate, error) {
 	req := api.ReqValidate{
 		RandomSeed: v.seed,
 		NodeURL:    validated.addr,
@@ -279,7 +279,7 @@ func (v *Validator) getNodeReqValidate(validated *validatedDeviceInfo) (api.ReqV
 	return req, nil
 }
 
-type validatedDeviceInfo struct {
+type validatedNodeInfo struct {
 	nodeID    string
 	nodeType  api.NodeType
 	addr      string

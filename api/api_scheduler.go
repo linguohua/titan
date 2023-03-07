@@ -61,7 +61,7 @@ type Scheduler interface {
 
 	// call by user
 	GetDownloadInfosWithCarfile(ctx context.Context, cid, publicKey string) ([]*DownloadInfoResult, error) //perm:read
-	GetDevicesInfo(ctx context.Context, nodeID string) (DeviceInfo, error)                                 //perm:read
+	GetDevicesInfo(ctx context.Context, nodeID string) (NodeInfo, error)                                   //perm:read
 	GetDownloadInfo(ctx context.Context, nodeID string) ([]*BlockDownloadInfo, error)                      //perm:read
 
 	// user send result when user download block complete or failed

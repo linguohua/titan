@@ -476,7 +476,7 @@ func (m *Manager) saveInfo(n *BaseInfo) error {
 	n.Quitted = false
 	n.LastTime = time.Now()
 
-	err := m.NodeMgrDB.UpdateNodeInfo(n.DeviceInfo)
+	err := m.NodeMgrDB.UpdateNodeInfo(n.NodeInfo)
 	if err != nil {
 		return err
 	}

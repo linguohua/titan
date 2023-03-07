@@ -134,7 +134,7 @@ func (c *Candidate) ClientCloser() {
 
 // BaseInfo Common
 type BaseInfo struct {
-	*api.DeviceInfo
+	*api.NodeInfo
 	privateKey *rsa.PrivateKey
 	remoteAddr string
 
@@ -144,9 +144,9 @@ type BaseInfo struct {
 }
 
 // NewBaseInfo new
-func NewBaseInfo(deviceInfo *api.DeviceInfo, privateKey *rsa.PrivateKey, addr string) *BaseInfo {
+func NewBaseInfo(nodeInfo *api.NodeInfo, privateKey *rsa.PrivateKey, addr string) *BaseInfo {
 	bi := &BaseInfo{
-		DeviceInfo: deviceInfo,
+		NodeInfo:   nodeInfo,
 		privateKey: privateKey,
 		remoteAddr: addr,
 	}

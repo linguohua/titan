@@ -8,7 +8,7 @@ import (
 type Web interface {
 	// ListNodes cursor: start index, count: load number of device
 	ListNodes(ctx context.Context, cursor int, count int) (ListNodesRsp, error)                                //perm:read
-	GetNodeInfoByID(ctx context.Context, nodeID string) (DeviceInfo, error)                                    //perm:read
+	GetNodeInfoByID(ctx context.Context, nodeID string) (NodeInfo, error)                                      //perm:read
 	ListBlockDownloadInfo(ctx context.Context, req ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) //perm:read
 
 	// ListCaches cache manager
@@ -21,8 +21,8 @@ type Web interface {
 }
 
 type ListNodesRsp struct {
-	Data  []DeviceInfo `json:"data"`
-	Total int64        `json:"total"`
+	Data  []NodeInfo `json:"data"`
+	Total int64      `json:"total"`
 }
 
 type ListBlockDownloadInfoReq struct {
