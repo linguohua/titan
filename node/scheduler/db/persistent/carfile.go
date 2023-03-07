@@ -114,10 +114,10 @@ func (c *CarfileDB) LoadCarfileInfos(hashs []string) ([]*api.CarfileRecordInfo, 
 }
 
 // CarfileRecordInfos get storage record infos
-func (c *CarfileDB) CarfileRecordInfos(page int) (info *api.CarfileRecordsInfo, err error) {
+func (c *CarfileDB) CarfileRecordInfos(page int) (info *api.ListCarfileRecordRsp, err error) {
 	num := 20
 
-	info = &api.CarfileRecordsInfo{}
+	info = &api.ListCarfileRecordRsp{}
 
 	cmd := fmt.Sprintf("SELECT count(carfile_hash) FROM %s ;", carfileInfoTable)
 	err = c.db.Get(&info.Cids, cmd)
@@ -483,7 +483,7 @@ func (c *CarfileDB) GetBlockDownloadInfos(nodeID string, startTime time.Time, en
 	return out, total, nil
 }
 
-func (c *CarfileDB) GetReplicaInfos(startTime time.Time, endTime time.Time, cursor, count int) (*api.ListCacheInfosRsp, error) {
+func (c *CarfileDB) CarfileReplicaList(startTime time.Time, endTime time.Time, cursor, count int) (*api.ListCarfileReplicaRsp, error) {
 	var total int64
 	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE end_time between ? and ?`, replicaInfoTable)
 	if err := c.db.Get(&total, countSQL, startTime, endTime); err != nil {
@@ -501,7 +501,7 @@ func (c *CarfileDB) GetReplicaInfos(startTime time.Time, endTime time.Time, curs
 		return nil, err
 	}
 
-	return &api.ListCacheInfosRsp{Datas: out, Total: total}, nil
+	return &api.ListCarfileReplicaRsp{Datas: out, Total: total}, nil
 }
 
 // PushCarfileToWaitList waiting data list

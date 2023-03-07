@@ -54,7 +54,7 @@ var contiuneUndoneCarfileCmd = &cli.Command{
 			hashs = append(hashs, hash)
 		}
 
-		return schedulerAPI.ExecuteUndoneCarfilesTask(ctx, hashs)
+		return schedulerAPI.ReCacheCarfiles(ctx, hashs)
 	},
 }
 
@@ -79,7 +79,7 @@ var resetReplicaCacheCountCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.ResetReplicaCacheCount(ctx, count)
+		return schedulerAPI.ResetCandidateReplicaCount(ctx, count)
 	},
 }
 
@@ -107,7 +107,7 @@ var resetExpirationTimeCmd = &cli.Command{
 			return xerrors.Errorf("date time err:%s", err.Error())
 		}
 
-		err = schedulerAPI.ResetCacheExpirationTime(ctx, cardileCid, time)
+		err = schedulerAPI.ResetCarfileExpirationTime(ctx, cardileCid, time)
 		if err != nil {
 			return err
 		}
@@ -139,7 +139,7 @@ var removeReplicaCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.RemoveCache(ctx, cid, nodeID)
+		return schedulerAPI.RemoveReplica(ctx, cid, nodeID)
 	},
 }
 
@@ -180,7 +180,7 @@ var showCarfileInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		info, err := schedulerAPI.GetCarfileRecordInfo(ctx, cid)
+		info, err := schedulerAPI.CarfileRecord(ctx, cid)
 		if err != nil {
 			return err
 		}
@@ -247,7 +247,7 @@ var cacheCarfileCmd = &cli.Command{
 			info.Replicas = replicaCount
 		}
 
-		err = schedulerAPI.CacheCarfile(ctx, info)
+		err = schedulerAPI.CacheCarfiles(ctx, info)
 		if err != nil {
 			return err
 		}
@@ -278,7 +278,7 @@ var listCarfilesCmd = &cli.Command{
 
 		isDownloading := cctx.Bool("downloading")
 		if isDownloading {
-			infos, err := schedulerAPI.GetDownloadingCarfileRecords(ctx)
+			infos, err := schedulerAPI.DownloadingCarfileRecords(ctx)
 			if err != nil {
 				return err
 			}
@@ -306,7 +306,7 @@ var listCarfilesCmd = &cli.Command{
 			return nil
 		}
 
-		info, err := schedulerAPI.ListCarfileRecords(ctx, page)
+		info, err := schedulerAPI.CarfileRecordList(ctx, page)
 		if err != nil {
 			return err
 		}

@@ -35,7 +35,7 @@ const (
 
 	NodeEdge
 	NodeCandidate
-	NodeValidate
+	NodeValidator
 	NodeScheduler
 	NodeLocator
 	NodeUpdate
@@ -49,7 +49,7 @@ func (n NodeType) String() string {
 		return "candidate"
 	case NodeScheduler:
 		return "scheduler"
-	case NodeValidate:
+	case NodeValidator:
 		return "validator"
 	case NodeLocator:
 		return "locator"

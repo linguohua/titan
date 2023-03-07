@@ -367,8 +367,8 @@ func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
 	// }
 }
 
-// ResetCacheExpirationTime reset expiration time
-func (m *Manager) ResetCacheExpirationTime(cid string, t time.Time) error {
+// ResetCarfileExpirationTime reset expiration time
+func (m *Manager) ResetCarfileExpirationTime(cid string, t time.Time) error {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return err

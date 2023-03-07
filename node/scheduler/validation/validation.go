@@ -1,4 +1,4 @@
-package validator
+package validation
 
 import (
 	"context"
@@ -18,15 +18,15 @@ import (
 	"github.com/linguohua/titan/api"
 )
 
-var log = logging.Logger("scheduler/validator")
+var log = logging.Logger("scheduler/validation")
 
 const (
 	duration = 10 // Verification time (Unit:Second)
 	interval = 5  // validator start-up time interval (Unit:minute)
 )
 
-// Validator Validator
-type Validator struct {
+// Validation Validation
+type Validation struct {
 	nodeManager *node.Manager
 	ctx         context.Context
 	lock        sync.Mutex
@@ -35,9 +35,9 @@ type Validator struct {
 	crontab     *cron.Cron // timer
 }
 
-// NewValidator return new validator instance
-func NewValidator(manager *node.Manager) *Validator {
-	e := &Validator{
+// New return new validator instance
+func New(manager *node.Manager) *Validation {
+	e := &Validation{
 		ctx:         context.Background(),
 		nodeManager: manager,
 		crontab:     cron.New(),
@@ -49,7 +49,7 @@ func NewValidator(manager *node.Manager) *Validator {
 }
 
 // validation task scheduled initialization
-func (v *Validator) initValidateTask() {
+func (v *Validation) initValidateTask() {
 	spec := fmt.Sprintf("0 */%d * * * *", interval)
 	err := v.crontab.AddFunc(spec, func() {
 		e := v.startValidate()
@@ -64,7 +64,7 @@ func (v *Validator) initValidateTask() {
 	v.crontab.Start()
 }
 
-func (v *Validator) startValidate() error {
+func (v *Validation) startValidate() error {
 	roundID := uuid.NewString()
 	v.curRoundID = roundID
 	v.seed = time.Now().UnixNano()
@@ -96,7 +96,7 @@ func (v *Validator) startValidate() error {
 // 	return err
 // }
 
-func (v *Validator) execute() error {
+func (v *Validation) execute() error {
 	err := v.nodeManager.NodeMgrDB.RemoveVerifyingList(v.nodeManager.ServerID)
 	if err != nil {
 		return err
@@ -126,7 +126,7 @@ func (v *Validator) execute() error {
 	return nil
 }
 
-func (v *Validator) sendValidateInfoToValidator(validatorID string, reqList []api.ReqValidate) {
+func (v *Validation) sendValidateInfoToValidator(validatorID string, reqList []api.ReqValidate) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -143,16 +143,16 @@ func (v *Validator) sendValidateInfoToValidator(validatorID string, reqList []ap
 	}
 }
 
-func (v *Validator) getValidatedList(validatorMap map[string]float64) []*validatedNodeInfo {
-	validatedList := make([]*validatedNodeInfo, 0)
+func (v *Validation) getValidateList(validatorMap map[string]float64) []*validateNodeInfo {
+	validateList := make([]*validateNodeInfo, 0)
 	v.nodeManager.EdgeNodes.Range(func(key, value interface{}) bool {
 		edgeNode := value.(*node.Edge)
-		info := &validatedNodeInfo{}
+		info := &validateNodeInfo{}
 		info.nodeType = api.NodeEdge
 		info.nodeID = edgeNode.NodeID
 		info.addr = edgeNode.BaseInfo.RPCURL()
 		info.bandwidth = edgeNode.BandwidthUp
-		validatedList = append(validatedList, info)
+		validateList = append(validateList, info)
 		return true
 	})
 	v.nodeManager.CandidateNodes.Range(func(key, value interface{}) bool {
@@ -160,19 +160,19 @@ func (v *Validator) getValidatedList(validatorMap map[string]float64) []*validat
 		if _, exist := validatorMap[candidateNode.NodeID]; exist {
 			return true
 		}
-		info := &validatedNodeInfo{}
+		info := &validateNodeInfo{}
 		info.nodeID = candidateNode.NodeID
 		info.nodeType = api.NodeCandidate
 		info.addr = candidateNode.BaseInfo.RPCURL()
 		info.bandwidth = candidateNode.BandwidthUp
-		validatedList = append(validatedList, info)
+		validateList = append(validateList, info)
 		return true
 	})
 
-	return validatedList
+	return validateList
 }
 
-func (v *Validator) assignValidator(validatorList []string) map[string][]api.ReqValidate {
+func (v *Validation) assignValidator(validatorList []string) map[string][]api.ReqValidate {
 	validateReqs := make(map[string][]api.ReqValidate)
 
 	validatorMap := make(map[string]float64)
@@ -184,8 +184,8 @@ func (v *Validator) assignValidator(validatorList []string) map[string][]api.Req
 		}
 	}
 
-	validatedList := v.getValidatedList(validatorMap)
-	if len(validatedList) <= 0 {
+	validateList := v.getValidateList(validatorMap)
+	if len(validateList) <= 0 {
 		return nil
 	}
 
@@ -208,19 +208,19 @@ func (v *Validator) assignValidator(validatorList []string) map[string][]api.Req
 		return ""
 	}
 
-	infos := make([]*api.ValidateResultInfo, 0)
-	validateds := make([]string, 0)
+	infos := make([]*api.ValidatedResultInfo, 0)
+	vs := make([]string, 0)
 
-	for i, validated := range validatedList {
-		reqValidate, err := v.getNodeReqValidate(validated)
+	for i, vInfo := range validateList {
+		reqValidate, err := v.getNodeReqValidate(vInfo)
 		if err != nil {
 			// log.Errorf("node:%s , getNodeReqValidate err:%s", validated.nodeID, err.Error())
 			continue
 		}
 
-		validateds = append(validateds, validated.nodeID)
+		vs = append(vs, vInfo.nodeID)
 
-		validatorID := findValidator(i, validated.bandwidth)
+		validatorID := findValidator(i, vInfo.bandwidth)
 		list, exist := validateReqs[validatorID]
 		if !exist {
 			list = make([]api.ReqValidate, 0)
@@ -229,9 +229,9 @@ func (v *Validator) assignValidator(validatorList []string) map[string][]api.Req
 
 		validateReqs[validatorID] = list
 
-		info := &api.ValidateResultInfo{
+		info := &api.ValidatedResultInfo{
 			RoundID:     v.curRoundID,
-			NodeID:      validated.nodeID,
+			NodeID:      vInfo.nodeID,
 			ValidatorID: validatorID,
 			StartTime:   time.Now(),
 			Status:      api.ValidateStatusCreate,
@@ -239,14 +239,14 @@ func (v *Validator) assignValidator(validatorList []string) map[string][]api.Req
 		infos = append(infos, info)
 	}
 
-	err := v.nodeManager.NodeMgrDB.InitValidateResultInfos(infos)
+	err := v.nodeManager.NodeMgrDB.InitValidatedResultInfos(infos)
 	if err != nil {
 		log.Errorf("AddValidateResultInfos err:%s", err.Error())
 		return nil
 	}
 
-	if len(validateds) > 0 {
-		err = v.nodeManager.NodeMgrDB.SetNodesToVerifyingList(validateds, v.nodeManager.ServerID)
+	if len(vs) > 0 {
+		err = v.nodeManager.NodeMgrDB.SetNodesToVerifyingList(vs, v.nodeManager.ServerID)
 		if err != nil {
 			log.Errorf("SetNodesToVerifyingList err:%s", err.Error())
 		}
@@ -255,7 +255,7 @@ func (v *Validator) assignValidator(validatorList []string) map[string][]api.Req
 	return validateReqs
 }
 
-func (v *Validator) getNodeReqValidate(validated *validatedNodeInfo) (api.ReqValidate, error) {
+func (v *Validation) getNodeReqValidate(validated *validateNodeInfo) (api.ReqValidate, error) {
 	req := api.ReqValidate{
 		RandomSeed: v.seed,
 		NodeURL:    validated.addr,
@@ -279,14 +279,14 @@ func (v *Validator) getNodeReqValidate(validated *validatedNodeInfo) (api.ReqVal
 	return req, nil
 }
 
-type validatedNodeInfo struct {
+type validateNodeInfo struct {
 	nodeID    string
 	nodeType  api.NodeType
 	addr      string
 	bandwidth float64
 }
 
-func (v *Validator) generatorForRandomNumber(start, end int) int {
+func (v *Validation) generatorForRandomNumber(start, end int) int {
 	max := end - start
 	if max <= 0 {
 		return start
@@ -296,7 +296,7 @@ func (v *Validator) generatorForRandomNumber(start, end int) int {
 	return start + y
 }
 
-func (v *Validator) getRandNum(max int, r *rand.Rand) int {
+func (v *Validation) getRandNum(max int, r *rand.Rand) int {
 	if max > 0 {
 		return r.Intn(max)
 	}
@@ -304,15 +304,15 @@ func (v *Validator) getRandNum(max int, r *rand.Rand) int {
 	return max
 }
 
-// updateFailValidateResult update validator result info
-func (v *Validator) updateFailValidateResult(nodeID string, status api.ValidateStatus) error {
-	resultInfo := &api.ValidateResultInfo{RoundID: v.curRoundID, NodeID: nodeID, Status: status}
-	return v.nodeManager.NodeMgrDB.UpdateValidateResultInfo(resultInfo)
+// updateFailValidatedResult update validator result info
+func (v *Validation) updateFailValidatedResult(nodeID string, status api.ValidateStatus) error {
+	resultInfo := &api.ValidatedResultInfo{RoundID: v.curRoundID, NodeID: nodeID, Status: status}
+	return v.nodeManager.NodeMgrDB.UpdateValidatedResultInfo(resultInfo)
 }
 
-// updateSuccessValidateResult update validator result info
-func (v *Validator) updateSuccessValidateResult(validateResult *api.ValidatedResult) error {
-	resultInfo := &api.ValidateResultInfo{
+// updateSuccessValidatedResult update validator result info
+func (v *Validation) updateSuccessValidatedResult(validateResult *api.ValidatedResult) error {
+	resultInfo := &api.ValidatedResultInfo{
 		RoundID:     validateResult.RoundID,
 		NodeID:      validateResult.NodeID,
 		BlockNumber: int64(len(validateResult.Cids)),
@@ -320,12 +320,12 @@ func (v *Validator) updateSuccessValidateResult(validateResult *api.ValidatedRes
 		Bandwidth:   validateResult.Bandwidth,
 		Duration:    validateResult.CostTime,
 	}
-	return v.nodeManager.NodeMgrDB.UpdateValidateResultInfo(resultInfo)
+	return v.nodeManager.NodeMgrDB.UpdateValidatedResultInfo(resultInfo)
 }
 
 // Result node validator result
-func (v *Validator) Result(validateResult *api.ValidatedResult) error {
-	if validateResult.RoundID != v.curRoundID {
+func (v *Validation) Result(validatedResult *api.ValidatedResult) error {
+	if validatedResult.RoundID != v.curRoundID {
 		return xerrors.Errorf("round id does not match")
 	}
 
@@ -336,46 +336,46 @@ func (v *Validator) Result(validateResult *api.ValidatedResult) error {
 	defer func() {
 		var err error
 		if status == api.ValidateStatusSuccess {
-			err = v.updateSuccessValidateResult(validateResult)
+			err = v.updateSuccessValidatedResult(validatedResult)
 		} else {
-			err = v.updateFailValidateResult(validateResult.NodeID, status)
+			err = v.updateFailValidatedResult(validatedResult.NodeID, status)
 		}
 		if err != nil {
-			log.Errorf("UpdateValidateResult [%s] fail : %s", validateResult.NodeID, err.Error())
+			log.Errorf("updateSuccessValidatedResult [%s] fail : %s", validatedResult.NodeID, err.Error())
 		}
 
-		err = v.nodeManager.NodeMgrDB.RemoveValidatedWithList(validateResult.NodeID, v.nodeManager.ServerID)
+		err = v.nodeManager.NodeMgrDB.RemoveValidatedWithList(validatedResult.NodeID, v.nodeManager.ServerID)
 		if err != nil {
-			log.Errorf("RemoveValidatedWithList [%s] fail : %s", validateResult.NodeID, err.Error())
+			log.Errorf("RemoveValidatedWithList [%s] fail : %s", validatedResult.NodeID, err.Error())
 			return
 		}
 	}()
 
-	if validateResult.IsCancel {
+	if validatedResult.IsCancel {
 		status = api.ValidateStatusCancel
 		return nil
 	}
 
-	if validateResult.IsTimeout {
+	if validatedResult.IsTimeout {
 		status = api.ValidateStatusTimeOut
 		return nil
 	}
 
-	hash, err := cidutil.CIDString2HashString(validateResult.CarfileCID)
+	hash, err := cidutil.CIDString2HashString(validatedResult.CarfileCID)
 	if err != nil {
 		status = api.ValidateStatusOther
-		log.Errorf("handleValidateResult CIDString2HashString %s, err:%s", validateResult.CarfileCID, err.Error())
+		log.Errorf("CIDString2HashString %s, err:%s", validatedResult.CarfileCID, err.Error())
 		return nil
 	}
 
 	candidates, err := v.nodeManager.CarfileDB.CandidatesWithHash(hash)
 	if err != nil {
 		status = api.ValidateStatusOther
-		log.Errorf("handleValidateResult GetCaches %s , err:%s", validateResult.CarfileCID, err.Error())
+		log.Errorf("Get candidates %s , err:%s", validatedResult.CarfileCID, err.Error())
 		return nil
 	}
 
-	max := len(validateResult.Cids)
+	max := len(validatedResult.Cids)
 	var cCidMap map[int]string
 	for _, nodeID := range candidates {
 		node := v.nodeManager.GetCandidateNode(nodeID)
@@ -383,7 +383,7 @@ func (v *Validator) Result(validateResult *api.ValidatedResult) error {
 			continue
 		}
 
-		cCidMap, err = node.API().GetBlocksOfCarfile(context.Background(), validateResult.CarfileCID, v.seed, max)
+		cCidMap, err = node.API().GetBlocksOfCarfile(context.Background(), validatedResult.CarfileCID, v.seed, max)
 		if err != nil {
 			log.Errorf("candidate %s GetBlocksOfCarfile err:%s", nodeID, err.Error())
 			continue
@@ -394,29 +394,29 @@ func (v *Validator) Result(validateResult *api.ValidatedResult) error {
 
 	if len(cCidMap) <= 0 {
 		status = api.ValidateStatusOther
-		log.Errorf("handleValidateResult candidate map is nil , %s", validateResult.CarfileCID)
+		log.Errorf("handleValidateResult candidate map is nil , %s", validatedResult.CarfileCID)
 		return nil
 	}
 
 	carfileRecord, err := v.nodeManager.CarfileDB.LoadCarfileInfo(hash)
 	if err != nil {
 		status = api.ValidateStatusOther
-		log.Errorf("handleValidateResult GetCarfileInfo %s , err:%s", validateResult.CarfileCID, err.Error())
+		log.Errorf("handleValidateResult GetCarfileInfo %s , err:%s", validatedResult.CarfileCID, err.Error())
 		return nil
 	}
 
 	r := rand.New(rand.NewSource(v.seed))
 	// do validator
 	for i := 0; i < max; i++ {
-		resultCid := validateResult.Cids[i]
+		resultCid := validatedResult.Cids[i]
 		randNum := v.getRandNum(carfileRecord.TotalBlocks, r)
 		vCid := cCidMap[randNum]
 
 		// TODO Penalize the candidate if vCid error
 
 		if !v.compareCid(resultCid, vCid) {
-			status = api.ValidateStatusFail
-			log.Errorf("round [%d] and nodeID [%s], validator fail resultCid:%s, vCid:%s,randNum:%d,index:%d", validateResult.RoundID, validateResult.NodeID, resultCid, vCid, randNum, i)
+			status = api.ValidateStatusBlockFail
+			log.Errorf("round [%d] and nodeID [%s], validator fail resultCid:%s, vCid:%s,randNum:%d,index:%d", validatedResult.RoundID, validatedResult.NodeID, resultCid, vCid, randNum, i)
 			return nil
 		}
 	}
@@ -425,7 +425,7 @@ func (v *Validator) Result(validateResult *api.ValidatedResult) error {
 	return nil
 }
 
-func (v *Validator) compareCid(cidStr1, cidStr2 string) bool {
+func (v *Validation) compareCid(cidStr1, cidStr2 string) bool {
 	hash1, err := cidutil.CIDString2HashString(cidStr1)
 	if err != nil {
 		return false
@@ -440,7 +440,7 @@ func (v *Validator) compareCid(cidStr1, cidStr2 string) bool {
 }
 
 // StartValidateOnceTask start validator task
-func (v *Validator) StartValidateOnceTask() error {
+func (v *Validation) StartValidateOnceTask() error {
 	count, err := v.nodeManager.NodeMgrDB.CountVerifyingNode(v.nodeManager.ServerID)
 	if err != nil {
 		return err

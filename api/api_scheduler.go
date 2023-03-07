@@ -12,14 +12,14 @@ type Scheduler interface {
 	Common
 
 	// node
-	OnlineNodeList(ctx context.Context, nodeType NodeType) ([]string, error)                     //perm:read
-	AllocateNodes(ctx context.Context, nodeType NodeType, count int) ([]NodeAllocateInfo, error) //perm:admin
-	NodeQuit(ctx context.Context, nodeID, secret string) error                                   //perm:admin
-	NodeLogFileInfo(ctx context.Context, nodeID string) (*LogFile, error)                        //perm:admin
-	NodeLogFile(ctx context.Context, nodeID string) ([]byte, error)                              //perm:admin
-	DeleteNodeLogFile(ctx context.Context, nodeID string) error                                  //perm:admin
-	SetNodePort(ctx context.Context, nodeID, port string) error                                  //perm:admin
-	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error                    //perm:write
+	OnlineNodeList(ctx context.Context, nodeType NodeType) ([]string, error)                      //perm:read
+	AllocateNodes(ctx context.Context, nodeType NodeType, count int) ([]*NodeAllocateInfo, error) //perm:admin
+	NodeQuit(ctx context.Context, nodeID, secret string) error                                    //perm:admin
+	NodeLogFileInfo(ctx context.Context, nodeID string) (*LogFile, error)                         //perm:admin
+	NodeLogFile(ctx context.Context, nodeID string) ([]byte, error)                               //perm:admin
+	DeleteNodeLogFile(ctx context.Context, nodeID string) error                                   //perm:admin
+	SetNodePort(ctx context.Context, nodeID, port string) error                                   //perm:admin
+	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error                     //perm:write
 	// node send result when user download block complete
 	UserDownloadResult(ctx context.Context, result UserDownloadResult) error                             //perm:write
 	EdgeNodeConnect(ctx context.Context) error                                                           //perm:write
@@ -31,9 +31,9 @@ type Scheduler interface {
 	NodePublicKey(ctx context.Context) (string, error)                                                   //perm:write
 	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                         //perm:read
 	AuthNodeNew(ctx context.Context, perms []auth.Permission, nodeID, nodeSecret string) ([]byte, error) //perm:read
-	NodeInfo(ctx context.Context, nodeID string) (NodeInfo, error)                                       //perm:read
+	NodeInfo(ctx context.Context, nodeID string) (*NodeInfo, error)                                      //perm:read
 	NodeDownloadRecord(ctx context.Context, nodeID string) ([]*DownloadRecordInfo, error)                //perm:read
-	NodeList(ctx context.Context, cursor int, count int) (ListNodesRsp, error)                           //perm:read
+	NodeList(ctx context.Context, cursor int, count int) (*ListNodesRsp, error)                          //perm:read
 	// nat travel, can get edge external addr with different scheduler
 	EdgeExternalAddr(ctx context.Context, nodeID, schedulerURL string) (string, error) //perm:write
 	// nat travel
@@ -43,21 +43,20 @@ type Scheduler interface {
 	GetDownloadInfosWithCarfile(ctx context.Context, cid string) ([]*DownloadInfoResult, error) //perm:read
 
 	// carfile
-	CacheCarfile(ctx context.Context, info *CacheCarfileInfo) error                        //perm:admin
-	RemoveCarfile(ctx context.Context, carfileID string) error                             //perm:admin
-	RemoveCache(ctx context.Context, carfileID, nodeID string) error                       //perm:admin
-	GetCarfileRecordInfo(ctx context.Context, cid string) (CarfileRecordInfo, error)       //perm:read
-	ListCarfileRecords(ctx context.Context, page int) (*CarfileRecordsInfo, error)         //perm:read
-	GetDownloadingCarfileRecords(ctx context.Context) ([]*CarfileRecordInfo, error)        //perm:read
-	ResetCacheExpirationTime(ctx context.Context, carfileCid string, time time.Time) error //perm:admin
-	ResetReplicaCacheCount(ctx context.Context, count int) error                           //perm:admin
-	ExecuteUndoneCarfilesTask(ctx context.Context, hashs []string) error                   //perm:admin
+	CacheCarfiles(ctx context.Context, info *CacheCarfileInfo) error                         //perm:admin
+	RemoveCarfile(ctx context.Context, carfileID string) error                               //perm:admin
+	RemoveReplica(ctx context.Context, carfileID, nodeID string) error                       //perm:admin
+	CarfileRecord(ctx context.Context, cid string) (*CarfileRecordInfo, error)               //perm:read
+	CarfileRecordList(ctx context.Context, page int) (*ListCarfileRecordRsp, error)          //perm:read
+	DownloadingCarfileRecords(ctx context.Context) ([]*CarfileRecordInfo, error)             //perm:read
+	ResetCarfileExpirationTime(ctx context.Context, carfileCid string, time time.Time) error //perm:admin
+	ResetCandidateReplicaCount(ctx context.Context, count int) error                         //perm:admin
+	ReCacheCarfiles(ctx context.Context, hashs []string) error                               //perm:admin
 
 	// server
-	ElectionValidators(ctx context.Context) error                                  //perm:admin
-	ValidateSwitch(ctx context.Context, open bool) error                           //perm:admin
-	ValidateRunningState(ctx context.Context) (bool, error)                        //perm:admin
-	ValidateStart(ctx context.Context) error                                       //perm:admin
+	StartOnceElection(ctx context.Context) error                                   //perm:admin
+	ValidationEnable(ctx context.Context) (bool, error)                            //perm:admin
+	StartOnceValidate(ctx context.Context) error                                   //perm:admin
 	GetNodeAppUpdateInfos(ctx context.Context) (map[int]*NodeAppUpdateInfo, error) //perm:read
 	SetNodeAppUpdateInfo(ctx context.Context, info *NodeAppUpdateInfo) error       //perm:admin
 	DeleteNodeAppUpdateInfos(ctx context.Context, nodeType int) error              //perm:admin
@@ -65,30 +64,22 @@ type Scheduler interface {
 	// user send result when user download block complete or failed
 	UserDownloadBlockResults(ctx context.Context, results []UserBlockDownloadResult) error //perm:read
 	// NodeList cursor: start index, count: load number of node
-	ListBlockDownloadInfo(ctx context.Context, req ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) //perm:read
+	DownloadRecordList(ctx context.Context, req ListBlockDownloadInfoReq) (*ListDownloadRecordRsp, error) //perm:read
 	// ListCaches cache manager
-	GetReplicaInfos(ctx context.Context, req ListCacheInfosReq) (ListCacheInfosRsp, error)                                                 //perm:read
-	GetSystemInfo(ctx context.Context) (SystemBaseInfo, error)                                                                             //perm:read
-	GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*SummeryValidateResult, error) //perm:read
+	CarfileReplicaList(ctx context.Context, req ListCacheInfosReq) (*ListCarfileReplicaRsp, error)                                    //perm:read
+	SystemInfo(ctx context.Context) (SystemBaseInfo, error)                                                                           //perm:read
+	ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*ListValidatedResultRsp, error) //perm:read
 }
 
-// CarfileRecordsInfo Data List Info
-type CarfileRecordsInfo struct {
+// ListCarfileRecordRsp Data List Info
+type ListCarfileRecordRsp struct {
 	Page           int
 	TotalPage      int
 	Cids           int
 	CarfileRecords []*CarfileRecordInfo
 }
 
-// CacheEventInfo Event Info
-type CacheEventInfo struct {
-	ID   int
-	CID  string    `db:"cid"`
-	Msg  string    `db:"msg"`
-	Time time.Time `db:"time"`
-}
-
-// NodeRegisterInfo Node Register Info
+// NodeAllocateInfo Node Allocate Info
 type NodeAllocateInfo struct {
 	ID         int
 	NodeID     string `db:"node_id"`
@@ -292,9 +283,10 @@ func (n NatType) String() string {
 	return "UnknowNAT"
 }
 
+// ListNodesRsp list node
 type ListNodesRsp struct {
-	Data  []NodeInfo `json:"data"`
-	Total int64      `json:"total"`
+	Data  []*NodeInfo `json:"data"`
+	Total int64       `json:"total"`
 }
 
 type ListBlockDownloadInfoReq struct {
@@ -316,7 +308,8 @@ type ListCacheInfosReq struct {
 	Count   int   `json:"count"`
 }
 
-type ListCacheInfosRsp struct {
+// ListCarfileReplicaRsp list carfile replica
+type ListCarfileReplicaRsp struct {
 	Datas []*ReplicaInfo `json:"data"`
 	Total int64          `json:"total"`
 }
@@ -350,7 +343,8 @@ const (
 	NodeConnectionStatusOffline
 )
 
-type ListBlockDownloadInfoRsp struct {
+// ListDownloadRecordRsp download record rsp
+type ListDownloadRecordRsp struct {
 	Data  []DownloadRecordInfo `json:"data"`
 	Total int64                `json:"total"`
 }
@@ -366,6 +360,7 @@ type ListReplicasRsp struct {
 	Total int64               `json:"total"`
 }
 
+// ValidationInfo validation Info
 type ValidationInfo struct {
 	Validators []string `json:"validators"`
 	// Unix timestamp
@@ -373,13 +368,14 @@ type ValidationInfo struct {
 	EnableValidation bool  `json:"enable_validation"`
 }
 
-type SummeryValidateResult struct {
-	Total               int                  `json:"total"`
-	ValidateResultInfos []ValidateResultInfo `json:"validate_result_infos"`
+// ListValidatedResultRsp list validated result
+type ListValidatedResultRsp struct {
+	Total                int                   `json:"total"`
+	ValidatedResultInfos []ValidatedResultInfo `json:"validate_result_infos"`
 }
 
-// ValidateResultInfo validator result
-type ValidateResultInfo struct {
+// ValidatedResultInfo validator result
+type ValidatedResultInfo struct {
 	ID          int
 	RoundID     string         `db:"round_id"`
 	NodeID      string         `db:"node_id"`
@@ -408,8 +404,8 @@ const (
 	ValidateStatusTimeOut
 	// ValidateStatusCancel status
 	ValidateStatusCancel
-	// ValidateStatusFail status
-	ValidateStatusFail
+	// ValidateStatusBlockFail status
+	ValidateStatusBlockFail
 	// ValidateStatusOther status
 	ValidateStatusOther
 )

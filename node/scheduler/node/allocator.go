@@ -2,10 +2,11 @@ package node
 
 import (
 	"fmt"
-	"github.com/linguohua/titan/api"
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/linguohua/titan/api"
 
 	"github.com/google/uuid"
 	"golang.org/x/xerrors"
@@ -13,9 +14,9 @@ import (
 
 var secretRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
-// RegisterNode Register a Node
-func (m *Manager) Allocate(nodeType api.NodeType) (api.NodeAllocateInfo, error) {
-	info := api.NodeAllocateInfo{}
+// Allocate Allocate a Node
+func (m *Manager) Allocate(nodeType api.NodeType) (*api.NodeAllocateInfo, error) {
+	info := &api.NodeAllocateInfo{}
 
 	nodeID, err := newNodeID(nodeType)
 	if err != nil {
