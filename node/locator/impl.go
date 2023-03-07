@@ -9,6 +9,7 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/handler"
 	"github.com/linguohua/titan/region"
@@ -223,7 +224,7 @@ func (locator *Locator) getSchedulerAPIWith(nodeID string) (*schedulerAPI, error
 	return locator.ApMgr.getSchedulerAPI(node.SchedulerURL, node.AreaID, cfg.AccessToken)
 }
 
-func (locator *Locator) GetDownloadInfosWithCarfile(ctx context.Context, cid string) ([]*api.DownloadInfoResult, error) {
+func (locator *Locator) GetDownloadInfosWithCarfile(ctx context.Context, cid string) ([]*types.DownloadInfoResult, error) {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	areaID, err := locator.getAreaIDWith(remoteAddr)
 	if err != nil {
@@ -242,10 +243,10 @@ func (locator *Locator) GetDownloadInfosWithCarfile(ctx context.Context, cid str
 		return schedulerAPI.GetDownloadInfosWithCarfile(ctx, cid)
 	}
 
-	return make([]*api.DownloadInfoResult, 0), nil
+	return make([]*types.DownloadInfoResult, 0), nil
 }
 
-func (locator *Locator) UserDownloadBlockResults(ctx context.Context, results []api.UserBlockDownloadResult) error {
+func (locator *Locator) UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	areaID, err := locator.getAreaIDWith(remoteAddr)
 	if err != nil {
@@ -307,7 +308,7 @@ func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerA
 }
 
 // AllocateNodes allocate nodes
-func (locator *Locator) AllocateNodes(ctx context.Context, schedulerURL string, nodeType api.NodeType, count int) ([]*api.NodeAllocateInfo, error) {
+func (locator *Locator) AllocateNodes(ctx context.Context, schedulerURL string, nodeType types.NodeType, count int) ([]*types.NodeAllocateInfo, error) {
 	cfg, err := locator.DB.getSchedulerCfg(schedulerURL)
 	if err != nil {
 		if err == sql.ErrNoRows {

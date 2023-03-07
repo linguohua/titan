@@ -7,8 +7,14 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"math/big"
+	"net"
+	"net/http"
+	"os"
+
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
 	cliutil "github.com/linguohua/titan/cli/util"
@@ -19,10 +25,6 @@ import (
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/quic-go/quic-go/http3"
-	"math/big"
-	"net"
-	"net/http"
-	"os"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
@@ -37,7 +39,7 @@ const FlagLocatorRepo = "locator-repo"
 const FlagLocatorRepoDeprecation = "locatorrepo"
 
 func main() {
-	api.RunningNodeType = api.NodeLocator
+	types.RunningNodeType = types.NodeLocator
 	titanlog.SetupLogLevels()
 
 	local := []*cli.Command{

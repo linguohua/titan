@@ -1,8 +1,10 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
+	"time"
+
+	"github.com/linguohua/titan/api/types"
 
 	xerrors "golang.org/x/xerrors"
 )
@@ -28,57 +30,6 @@ func (ve Version) EqMajorMinor(v2 Version) bool {
 	return ve&minorMask == v2&minorMask
 }
 
-type NodeType int
-
-const (
-	NodeUnknown NodeType = iota
-
-	NodeEdge
-	NodeCandidate
-	NodeValidator
-	NodeScheduler
-	NodeLocator
-	NodeUpdate
-)
-
-func (n NodeType) String() string {
-	switch n {
-	case NodeEdge:
-		return "edge"
-	case NodeCandidate:
-		return "candidate"
-	case NodeScheduler:
-		return "scheduler"
-	case NodeValidator:
-		return "validator"
-	case NodeLocator:
-		return "locator"
-	}
-
-	return ""
-}
-
-func (n NodeType) MarshalBinary() ([]byte, error) {
-	return json.Marshal(n)
-}
-
-var RunningNodeType NodeType
-
-func VersionForType(nodeType NodeType) (Version, error) {
-	switch nodeType {
-	case NodeScheduler:
-		return SchedulerAPIVersion0, nil
-	case NodeCandidate:
-		return CandidateAPIVersion0, nil
-	case NodeEdge:
-		return EdgeAPIVersion0, nil
-	case NodeLocator:
-		return LocationAPIVersion0, nil
-	default:
-		return Version(0), xerrors.Errorf("unknown node type %d", nodeType)
-	}
-}
-
 // semver versions of the rpc api exposed
 var (
 	SchedulerAPIVersion0 = newVer(1, 0, 0)
@@ -98,3 +49,27 @@ const (
 	minorOnlyMask = 0x00ff00
 	patchOnlyMask = 0x0000ff
 )
+
+func VersionForType(nodeType types.NodeType) (Version, error) {
+	switch nodeType {
+	case types.NodeScheduler:
+		return SchedulerAPIVersion0, nil
+	case types.NodeCandidate:
+		return CandidateAPIVersion0, nil
+	case types.NodeEdge:
+		return EdgeAPIVersion0, nil
+	case types.NodeLocator:
+		return LocationAPIVersion0, nil
+	default:
+		return Version(0), xerrors.Errorf("unknown node type %d", nodeType)
+	}
+}
+
+type NodeAppUpdateInfo struct {
+	NodeType    int       `db:"node_type"`
+	AppName     string    `db:"app_name"`
+	Version     Version   `db:"version"`
+	Hash        string    `db:"hash"`
+	DownloadURL string    `db:"download_url"`
+	UpdateTime  time.Time `db:"update_time"`
+}

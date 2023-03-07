@@ -1,8 +1,9 @@
 package storage
 
 import (
-	"github.com/linguohua/titan/api"
 	"time"
+
+	"github.com/linguohua/titan/api/types"
 )
 
 // CarfileID is an identifier for a carfile.
@@ -40,8 +41,8 @@ type CarfileInfo struct {
 	EdgeStoreFails      int
 }
 
-func (state *CarfileInfo) toCacheCarfileInfo() *api.CacheCarfileInfo {
-	return &api.CacheCarfileInfo{
+func (state *CarfileInfo) toCacheCarfileInfo() *types.CacheCarfileInfo {
+	return &types.CacheCarfileInfo{
 		CarfileCid:     string(state.CarfileCID),
 		CarfileHash:    state.CarfileHash,
 		Replicas:       state.Replicas,
@@ -50,7 +51,8 @@ func (state *CarfileInfo) toCacheCarfileInfo() *api.CacheCarfileInfo {
 		ExpirationTime: state.Expiration,
 	}
 }
-func fromCarfileInfo(info *api.CacheCarfileInfo) *CarfileInfo {
+
+func fromCarfileInfo(info *types.CacheCarfileInfo) *CarfileInfo {
 	return &CarfileInfo{
 		CarfileCID:  CarfileID(info.CarfileCid),
 		CarfileHash: info.CarfileHash,

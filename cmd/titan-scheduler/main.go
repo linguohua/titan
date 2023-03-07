@@ -7,12 +7,14 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	cliutil "github.com/linguohua/titan/cli/util"
-	"github.com/linguohua/titan/node"
 	"math/big"
 	"net"
 	"net/http"
 	"os"
+
+	"github.com/linguohua/titan/api/types"
+	cliutil "github.com/linguohua/titan/cli/util"
+	"github.com/linguohua/titan/node"
 
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/filecoin-project/go-jsonrpc/auth"
@@ -43,7 +45,7 @@ const (
 )
 
 func main() {
-	api.RunningNodeType = api.NodeScheduler
+	types.RunningNodeType = types.NodeScheduler
 
 	titanlog.SetupLogLevels()
 

@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+
+	"github.com/linguohua/titan/api/types"
 )
 
 type Locator interface {
@@ -15,14 +17,14 @@ type Locator interface {
 	SetNodeOnlineStatus(ctx context.Context, nodeID string, isOnline bool) error //perm:write
 
 	// user api
-	GetDownloadInfosWithCarfile(ctx context.Context, cid string) ([]*DownloadInfoResult, error) //perm:read
+	GetDownloadInfosWithCarfile(ctx context.Context, cid string) ([]*types.DownloadInfoResult, error) //perm:read
 	// user send result when user download block complete
-	UserDownloadBlockResults(ctx context.Context, results []UserBlockDownloadResult) error //perm:read
+	UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error //perm:read
 
 	// api for web
-	AllocateNodes(ctx context.Context, schedulerURL string, nt NodeType, count int) ([]*NodeAllocateInfo, error) // perm:admin
-	LoadAccessPointsForWeb(ctx context.Context) ([]AccessPoint, error)                                           // perm:admin
-	LoadUserAccessPoint(ctx context.Context, userIP string) (AccessPoint, error)                                 // perm:admin
+	AllocateNodes(ctx context.Context, schedulerURL string, nt types.NodeType, count int) ([]*types.NodeAllocateInfo, error) // perm:admin
+	LoadAccessPointsForWeb(ctx context.Context) ([]AccessPoint, error)                                                       // perm:admin
+	LoadUserAccessPoint(ctx context.Context, userIP string) (AccessPoint, error)                                             // perm:admin
 }
 
 type SchedulerInfo struct {

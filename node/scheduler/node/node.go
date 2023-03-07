@@ -10,6 +10,7 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
+	"github.com/linguohua/titan/api/types"
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/go-jsonrpc"
@@ -134,7 +135,7 @@ func (c *Candidate) ClientCloser() {
 
 // BaseInfo Common
 type BaseInfo struct {
-	*api.NodeInfo
+	*types.NodeInfo
 	privateKey *rsa.PrivateKey
 	remoteAddr string
 
@@ -144,7 +145,7 @@ type BaseInfo struct {
 }
 
 // NewBaseInfo new
-func NewBaseInfo(nodeInfo *api.NodeInfo, privateKey *rsa.PrivateKey, addr string) *BaseInfo {
+func NewBaseInfo(nodeInfo *types.NodeInfo, privateKey *rsa.PrivateKey, addr string) *BaseInfo {
 	bi := &BaseInfo{
 		NodeInfo:   nodeInfo,
 		privateKey: privateKey,

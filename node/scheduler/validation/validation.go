@@ -12,6 +12,7 @@ import (
 	"golang.org/x/xerrors"
 
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/scheduler/node"
 
@@ -148,7 +149,7 @@ func (v *Validation) getValidateList(validatorMap map[string]float64) []*validat
 	v.nodeManager.EdgeNodes.Range(func(key, value interface{}) bool {
 		edgeNode := value.(*node.Edge)
 		info := &validateNodeInfo{}
-		info.nodeType = api.NodeEdge
+		info.nodeType = types.NodeEdge
 		info.nodeID = edgeNode.NodeID
 		info.addr = edgeNode.BaseInfo.RPCURL()
 		info.bandwidth = edgeNode.BandwidthUp
@@ -162,7 +163,7 @@ func (v *Validation) getValidateList(validatorMap map[string]float64) []*validat
 		}
 		info := &validateNodeInfo{}
 		info.nodeID = candidateNode.NodeID
-		info.nodeType = api.NodeCandidate
+		info.nodeType = types.NodeCandidate
 		info.addr = candidateNode.BaseInfo.RPCURL()
 		info.bandwidth = candidateNode.BandwidthUp
 		validateList = append(validateList, info)
@@ -208,7 +209,7 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Re
 		return ""
 	}
 
-	infos := make([]*api.ValidatedResultInfo, 0)
+	infos := make([]*types.ValidatedResultInfo, 0)
 	vs := make([]string, 0)
 
 	for i, vInfo := range validateList {
@@ -229,12 +230,12 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Re
 
 		validateReqs[validatorID] = list
 
-		info := &api.ValidatedResultInfo{
+		info := &types.ValidatedResultInfo{
 			RoundID:     v.curRoundID,
 			NodeID:      vInfo.nodeID,
 			ValidatorID: validatorID,
 			StartTime:   time.Now(),
-			Status:      api.ValidateStatusCreate,
+			Status:      types.ValidateStatusCreate,
 		}
 		infos = append(infos, info)
 	}
@@ -281,7 +282,7 @@ func (v *Validation) getNodeReqValidate(validated *validateNodeInfo) (api.ReqVal
 
 type validateNodeInfo struct {
 	nodeID    string
-	nodeType  api.NodeType
+	nodeType  types.NodeType
 	addr      string
 	bandwidth float64
 }
@@ -305,18 +306,18 @@ func (v *Validation) getRandNum(max int, r *rand.Rand) int {
 }
 
 // updateFailValidatedResult update validator result info
-func (v *Validation) updateFailValidatedResult(nodeID string, status api.ValidateStatus) error {
-	resultInfo := &api.ValidatedResultInfo{RoundID: v.curRoundID, NodeID: nodeID, Status: status}
+func (v *Validation) updateFailValidatedResult(nodeID string, status types.ValidateStatus) error {
+	resultInfo := &types.ValidatedResultInfo{RoundID: v.curRoundID, NodeID: nodeID, Status: status}
 	return v.nodeManager.NodeMgrDB.UpdateValidatedResultInfo(resultInfo)
 }
 
 // updateSuccessValidatedResult update validator result info
 func (v *Validation) updateSuccessValidatedResult(validateResult *api.ValidatedResult) error {
-	resultInfo := &api.ValidatedResultInfo{
+	resultInfo := &types.ValidatedResultInfo{
 		RoundID:     validateResult.RoundID,
 		NodeID:      validateResult.NodeID,
 		BlockNumber: int64(len(validateResult.Cids)),
-		Status:      api.ValidateStatusSuccess,
+		Status:      types.ValidateStatusSuccess,
 		Bandwidth:   validateResult.Bandwidth,
 		Duration:    validateResult.CostTime,
 	}
@@ -331,11 +332,11 @@ func (v *Validation) Result(validatedResult *api.ValidatedResult) error {
 
 	// log.Debugf("validator result : %+v", *validateResult)
 
-	var status api.ValidateStatus
+	var status types.ValidateStatus
 
 	defer func() {
 		var err error
-		if status == api.ValidateStatusSuccess {
+		if status == types.ValidateStatusSuccess {
 			err = v.updateSuccessValidatedResult(validatedResult)
 		} else {
 			err = v.updateFailValidatedResult(validatedResult.NodeID, status)
@@ -352,25 +353,25 @@ func (v *Validation) Result(validatedResult *api.ValidatedResult) error {
 	}()
 
 	if validatedResult.IsCancel {
-		status = api.ValidateStatusCancel
+		status = types.ValidateStatusCancel
 		return nil
 	}
 
 	if validatedResult.IsTimeout {
-		status = api.ValidateStatusTimeOut
+		status = types.ValidateStatusTimeOut
 		return nil
 	}
 
 	hash, err := cidutil.CIDString2HashString(validatedResult.CarfileCID)
 	if err != nil {
-		status = api.ValidateStatusOther
+		status = types.ValidateStatusOther
 		log.Errorf("CIDString2HashString %s, err:%s", validatedResult.CarfileCID, err.Error())
 		return nil
 	}
 
 	candidates, err := v.nodeManager.CarfileDB.CandidatesWithHash(hash)
 	if err != nil {
-		status = api.ValidateStatusOther
+		status = types.ValidateStatusOther
 		log.Errorf("Get candidates %s , err:%s", validatedResult.CarfileCID, err.Error())
 		return nil
 	}
@@ -393,14 +394,14 @@ func (v *Validation) Result(validatedResult *api.ValidatedResult) error {
 	}
 
 	if len(cCidMap) <= 0 {
-		status = api.ValidateStatusOther
+		status = types.ValidateStatusOther
 		log.Errorf("handleValidateResult candidate map is nil , %s", validatedResult.CarfileCID)
 		return nil
 	}
 
 	carfileRecord, err := v.nodeManager.CarfileDB.LoadCarfileInfo(hash)
 	if err != nil {
-		status = api.ValidateStatusOther
+		status = types.ValidateStatusOther
 		log.Errorf("handleValidateResult GetCarfileInfo %s , err:%s", validatedResult.CarfileCID, err.Error())
 		return nil
 	}
@@ -415,13 +416,13 @@ func (v *Validation) Result(validatedResult *api.ValidatedResult) error {
 		// TODO Penalize the candidate if vCid error
 
 		if !v.compareCid(resultCid, vCid) {
-			status = api.ValidateStatusBlockFail
+			status = types.ValidateStatusBlockFail
 			log.Errorf("round [%d] and nodeID [%s], validator fail resultCid:%s, vCid:%s,randNum:%d,index:%d", validatedResult.RoundID, validatedResult.NodeID, resultCid, vCid, randNum, i)
 			return nil
 		}
 	}
 
-	status = api.ValidateStatusSuccess
+	status = types.ValidateStatusSuccess
 	return nil
 }
 

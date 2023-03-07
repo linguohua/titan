@@ -9,6 +9,7 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/scheduler/node"
 )
 
@@ -188,14 +189,14 @@ func (ds *DataSync) checkCarfiles(dataSyncAPI api.DataSync, carfileHashes []stri
 	return dataSyncAPI.DoCheckCarfiles(context.Background(), checksum, isSucceedCarfileCheck)
 }
 
-func (ds *DataSync) splitCacheStatusListByStatus(cacheStatusList []*api.NodeCacheStatus) (succeededCarfiles, unsucceededCarfiles []string) {
+func (ds *DataSync) splitCacheStatusListByStatus(cacheStatusList []*types.NodeCacheStatus) (succeededCarfiles, unsucceededCarfiles []string) {
 	succeededCarfiles = make([]string, 0)
 	unsucceededCarfiles = make([]string, 0)
 
 	for _, cacheStatus := range cacheStatusList {
-		if cacheStatus.Status == api.CacheStatusSucceeded {
+		if cacheStatus.Status == types.CacheStatusSucceeded {
 			succeededCarfiles = append(succeededCarfiles, cacheStatus.CarfileHash)
-		} else if cacheStatus.Status == api.CacheStatusFailed {
+		} else if cacheStatus.Status == types.CacheStatusFailed {
 			unsucceededCarfiles = append(unsucceededCarfiles, cacheStatus.CarfileHash)
 		}
 	}
@@ -203,9 +204,9 @@ func (ds *DataSync) splitCacheStatusListByStatus(cacheStatusList []*api.NodeCach
 	return succeededCarfiles, unsucceededCarfiles
 }
 
-func (ds *DataSync) loadCarfileInfosBy(nodeID string) ([]*api.NodeCacheStatus, error) {
+func (ds *DataSync) loadCarfileInfosBy(nodeID string) ([]*types.NodeCacheStatus, error) {
 	index := 0
-	cacheStates := make([]*api.NodeCacheStatus, 0)
+	cacheStates := make([]*types.NodeCacheStatus, 0)
 	for {
 		nodeCacheRsp, err := ds.nodeManager.CarfileDB.GetCacheInfosWithNode(nodeID, index, dbLoadCount)
 		if err != nil {

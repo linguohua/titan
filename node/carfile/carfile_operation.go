@@ -14,6 +14,7 @@ import (
 	dagpb "github.com/ipld/go-codec-dagpb"
 	"github.com/ipld/go-ipld-prime/node/basicnode"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/carfile/downloader"
 	"github.com/linguohua/titan/node/cidutil"
@@ -55,9 +56,9 @@ func NewCarfileOperation(carfileStore *carfilestore.CarfileStore, scheduler api.
 }
 
 func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, isComplete bool) error {
-	status := api.CacheStatusFailed
+	status := types.CacheStatusFailed
 	if !isComplete {
-		status = api.CacheStatusDownloading
+		status = types.CacheStatusDownloading
 	} else {
 		// count total block in filesystem is cost much time
 		// only do it on storage download complete
@@ -70,7 +71,7 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, 
 	}
 
 	if carfile.carfileSize != 0 && carfile.downloadSize == carfile.carfileSize {
-		status = api.CacheStatusSucceeded
+		status = types.CacheStatusSucceeded
 	}
 
 	carfileHash, err := cidutil.CIDString2HashString(carfile.carfileCID)
@@ -80,7 +81,7 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, 
 
 	_, diskUsage := carfileOperation.device.GetDiskUsageStat()
 
-	result := api.CacheResult{
+	result := types.CacheResult{
 		Status:            status,
 		CarfileBlockCount: len(carfile.blocksDownloadSuccessList) + len(carfile.blocksWaitList),
 		DoneBlockCount:    len(carfile.blocksDownloadSuccessList),
@@ -147,8 +148,8 @@ func (carfileOperation *CarfileOperation) cacheResultForCarfileExist(carfileCID 
 		linksSize += link.Size
 	}
 
-	result := api.CacheResult{
-		Status:            api.CacheStatusSucceeded,
+	result := types.CacheResult{
+		Status:            types.CacheStatusSucceeded,
 		CarfileBlockCount: blocksCount,
 		DoneBlockCount:    blocksCount,
 		CarfileSize:       int64(linksSize),

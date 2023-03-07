@@ -6,6 +6,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/modules/dtypes"
 )
 
@@ -19,7 +20,7 @@ func NewNodeMgrDB(db *sqlx.DB) *NodeMgrDB {
 
 // NodeOffline Set the last online time of the node
 func (n *NodeMgrDB) NodeOffline(nodeID string, lastTime time.Time) error {
-	info := &api.NodeInfo{
+	info := &types.NodeInfo{
 		NodeID:   nodeID,
 		LastTime: lastTime,
 	}
@@ -42,8 +43,8 @@ func (n *NodeMgrDB) NodePrivateKey(nodeID string) (string, error) {
 }
 
 // LongTimeOfflineNodes get nodes that are offline for a long time
-func (n *NodeMgrDB) LongTimeOfflineNodes(hour int) ([]*api.NodeInfo, error) {
-	list := make([]*api.NodeInfo, 0)
+func (n *NodeMgrDB) LongTimeOfflineNodes(hour int) ([]*types.NodeInfo, error) {
+	list := make([]*types.NodeInfo, 0)
 
 	time := time.Now().Add(-time.Duration(hour) * time.Hour)
 
@@ -86,7 +87,7 @@ func (n *NodeMgrDB) NodePortMapping(nodeID string) (string, error) {
 
 // SetNodePortMapping Set node mapping port
 func (n *NodeMgrDB) SetNodePortMapping(nodeID, port string) error {
-	info := api.NodeInfo{
+	info := types.NodeInfo{
 		NodeID:      nodeID,
 		PortMapping: port,
 	}
@@ -97,7 +98,7 @@ func (n *NodeMgrDB) SetNodePortMapping(nodeID, port string) error {
 }
 
 // InitValidatedResultInfos init validator result infos
-func (n *NodeMgrDB) InitValidatedResultInfos(infos []*api.ValidatedResultInfo) error {
+func (n *NodeMgrDB) InitValidatedResultInfos(infos []*types.ValidatedResultInfo) error {
 	tx := n.db.MustBegin()
 	for _, info := range infos {
 		query := "INSERT INTO validate_result (round_id, node_id, validator_id, status, start_time) VALUES (?, ?, ?, ?, ?)"
@@ -118,7 +119,7 @@ func (n *NodeMgrDB) SetValidateTimeoutOfNodes(roundID int64, nodeIDs []string) e
 	tx := n.db.MustBegin()
 
 	updateCachesCmd := `UPDATE validate_result SET status=?,end_time=NOW() WHERE round_id=? AND node_id in (?)`
-	query, args, err := sqlx.In(updateCachesCmd, api.ValidateStatusTimeOut, roundID, nodeIDs)
+	query, args, err := sqlx.In(updateCachesCmd, types.ValidateStatusTimeOut, roundID, nodeIDs)
 	if err != nil {
 		return err
 	}
@@ -137,8 +138,8 @@ func (n *NodeMgrDB) SetValidateTimeoutOfNodes(roundID int64, nodeIDs []string) e
 }
 
 // UpdateValidatedResultInfo Update validator info
-func (n *NodeMgrDB) UpdateValidatedResultInfo(info *api.ValidatedResultInfo) error {
-	if info.Status == api.ValidateStatusSuccess {
+func (n *NodeMgrDB) UpdateValidatedResultInfo(info *types.ValidatedResultInfo) error {
+	if info.Status == types.ValidateStatusSuccess {
 		query := "UPDATE validate_result SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW() WHERE round_id=:round_id AND node_id=:node_id"
 		_, err := n.db.NamedExec(query, info)
 		return err
@@ -150,9 +151,9 @@ func (n *NodeMgrDB) UpdateValidatedResultInfo(info *api.ValidatedResultInfo) err
 }
 
 // ValidatedResultInfos Get validator result infos
-func (n *NodeMgrDB) ValidatedResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*api.ListValidatedResultRsp, error) {
-	res := new(api.ListValidatedResultRsp)
-	var infos []api.ValidatedResultInfo
+func (n *NodeMgrDB) ValidatedResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidatedResultRsp, error) {
+	res := new(types.ListValidatedResultRsp)
+	var infos []types.ValidatedResultInfo
 	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM validate_result WHERE start_time between ? and ? order by id asc  LIMIT ?,? ")
 
 	if pageSize > loadValidateInfoMaxCount {
@@ -210,7 +211,7 @@ func IsNilErr(err error) bool {
 	return err.Error() == errNotFind
 }
 
-func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*api.NodeInfo, int64, error) {
+func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*types.NodeInfo, int64, error) {
 	var total int64
 	countSQL := fmt.Sprintf("SELECT count(*) FROM %s", nodeInfoTable)
 	err := n.db.Get(&total, countSQL)
@@ -224,7 +225,7 @@ func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*api.NodeInfo, int64, err
 		count = loadNodeInfoMaxCount
 	}
 
-	var out []*api.NodeInfo
+	var out []*types.NodeInfo
 	err = n.db.Select(&out, queryString, cursor, count)
 	if err != nil {
 		return nil, 0, err
@@ -267,7 +268,7 @@ func (n *NodeMgrDB) GetValidatorsWithList(serverID dtypes.ServerID) ([]string, e
 }
 
 // UpdateNodeOnlineInfo update node info
-func (n *NodeMgrDB) UpdateNodeOnlineInfo(info *api.NodeInfo) error {
+func (n *NodeMgrDB) UpdateNodeOnlineInfo(info *types.NodeInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (node_id, private_key, mac_location, product_type, cpu_cores, memory, node_name, latitude, disk_usage,
 			    longitude, disk_type, io_system, system_version, nat_type, disk_space, bandwidth_up, bandwidth_down, blocks) 
@@ -281,7 +282,7 @@ func (n *NodeMgrDB) UpdateNodeOnlineInfo(info *api.NodeInfo) error {
 
 // UpdateNodeOnlineTime update node online time and last time
 func (n *NodeMgrDB) UpdateNodeOnlineTime(nodeID string, onlineTime int) error {
-	info := &api.NodeInfo{
+	info := &types.NodeInfo{
 		NodeID:     nodeID,
 		OnlineTime: onlineTime,
 	}
@@ -318,10 +319,10 @@ func (n *NodeMgrDB) ListNodeIDs(cursor int, count int) ([]string, int64, error) 
 }
 
 // LoadNodeInfo load node info
-func (n *NodeMgrDB) LoadNodeInfo(nodeID string) (*api.NodeInfo, error) {
+func (n *NodeMgrDB) LoadNodeInfo(nodeID string) (*types.NodeInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id=?`, nodeInfoTable)
 
-	var out api.NodeInfo
+	var out types.NodeInfo
 	err := n.db.Select(&out, query, nodeID)
 	if err != nil {
 		return nil, err

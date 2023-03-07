@@ -4,16 +4,16 @@ import (
 	"context"
 	"time"
 
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/scheduler/storage"
 
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/handler"
 	"golang.org/x/xerrors"
 )
 
 // CacheResult nodeMgrCache Data Result
-func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResult) error {
+func (s *Scheduler) CacheResult(ctx context.Context, info types.CacheResult) error {
 	nodeID := handler.GetNodeID(ctx)
 
 	if !s.nodeExists(nodeID, 0) {
@@ -30,7 +30,7 @@ func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResult) error
 }
 
 // RemoveCarfileResult remove storage result
-func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.RemoveCarfileResult) error {
+func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo types.RemoveCarfileResult) error {
 	nodeID := handler.GetNodeID(ctx)
 
 	if !s.nodeExists(nodeID, 0) {
@@ -56,7 +56,7 @@ func (s *Scheduler) ReCacheCarfiles(ctx context.Context, hashs []string) error {
 
 	if list != nil {
 		for _, carfile := range list {
-			info := &api.CacheCarfileInfo{
+			info := &types.CacheCarfileInfo{
 				CarfileCid:     carfile.CarfileCid,
 				Replicas:       carfile.Replica,
 				ExpirationTime: carfile.Expiration,
@@ -81,12 +81,12 @@ func (s *Scheduler) ResetCarfileExpirationTime(ctx context.Context, carfileCid s
 }
 
 // DownloadingCarfileRecords Show downloading carfiles
-func (s *Scheduler) DownloadingCarfileRecords(ctx context.Context) ([]*api.CarfileRecordInfo, error) {
+func (s *Scheduler) DownloadingCarfileRecords(ctx context.Context) ([]*types.CarfileRecordInfo, error) {
 	return s.DataManager.GetDownloadingCarfileInfos(), nil
 }
 
 // CarfileRecord Show Data Task
-func (s *Scheduler) CarfileRecord(ctx context.Context, cid string) (*api.CarfileRecordInfo, error) {
+func (s *Scheduler) CarfileRecord(ctx context.Context, cid string) (*types.CarfileRecordInfo, error) {
 	info, err := s.DataManager.GetCarfileRecordInfo(cid)
 	if err != nil {
 		return nil, err
@@ -102,7 +102,7 @@ func (s *Scheduler) ResetCandidateReplicaCount(ctx context.Context, count int) e
 }
 
 // CarfileRecordList List Datas
-func (s *Scheduler) CarfileRecordList(ctx context.Context, page int) (*api.ListCarfileRecordRsp, error) {
+func (s *Scheduler) CarfileRecordList(ctx context.Context, page int) (*types.ListCarfileRecordRsp, error) {
 	return s.NodeManager.CarfileDB.CarfileRecordInfos(page)
 }
 
@@ -134,7 +134,7 @@ func (s *Scheduler) RemoveReplica(ctx context.Context, carfileID, nodeID string)
 }
 
 // CacheCarfiles nodeMgrCache Carfile
-func (s *Scheduler) CacheCarfiles(ctx context.Context, info *api.CacheCarfileInfo) error {
+func (s *Scheduler) CacheCarfiles(ctx context.Context, info *types.CacheCarfileInfo) error {
 	if info.CarfileCid == "" {
 		return xerrors.New("Cid is Nil")
 	}

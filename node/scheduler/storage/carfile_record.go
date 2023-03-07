@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
@@ -95,7 +96,7 @@ func (m *Manager) loadCarfileRecord(hash string, manager *Manager) (*CarfileReco
 			endTime:       raInfo.EndTime,
 		}
 
-		if ra.status == api.CacheStatusSucceeded {
+		if ra.status == types.CacheStatusSucceeded {
 			ra.doneBlocks = cr.totalBlocks
 			ra.doneSize = cr.totalSize
 
@@ -124,7 +125,7 @@ func (cr *CarfileRecord) startCacheReplicas(nodes []string, isCandidate bool) (d
 	downloading = false
 
 	// init replicas status
-	err := cr.nodeManager.CarfileDB.UpdateCarfileReplicaStatus(cr.carfileHash, nodes, api.CacheStatusDownloading)
+	err := cr.nodeManager.CarfileDB.UpdateCarfileReplicaStatus(cr.carfileHash, nodes, types.CacheStatusDownloading)
 	if err != nil {
 		log.Errorf("startCacheReplicas %s , UpdateCarfileReplicaStatus err:%s", cr.carfileHash, err.Error())
 		return
@@ -167,7 +168,7 @@ func (cr *CarfileRecord) startCacheReplicas(nodes []string, isCandidate bool) (d
 
 	if len(errorList) > 0 {
 		// set caches status
-		err := cr.nodeManager.CarfileDB.UpdateCarfileReplicaStatus(cr.carfileHash, errorList, api.CacheStatusFailed)
+		err := cr.nodeManager.CarfileDB.UpdateCarfileReplicaStatus(cr.carfileHash, errorList, types.CacheStatusFailed)
 		if err != nil {
 			log.Errorf("startReplicaTasks %s , UpdateCarfileReplicaStatus err:%s", cr.carfileHash, err.Error())
 		}
@@ -300,7 +301,7 @@ func (cr *CarfileRecord) replicaCacheEnd(ra *Replica, errMsg string) error {
 	cr.lock.Lock()
 	defer cr.lock.Unlock()
 
-	if ra.status == api.CacheStatusSucceeded {
+	if ra.status == types.CacheStatusSucceeded {
 		if ra.isCandidate {
 			cr.candidateReploca++
 
@@ -314,13 +315,13 @@ func (cr *CarfileRecord) replicaCacheEnd(ra *Replica, errMsg string) error {
 		} else {
 			cr.edgeReplica++
 		}
-	} else if ra.status == api.CacheStatusFailed {
+	} else if ra.status == types.CacheStatusFailed {
 		// node err msg
 		cr.nodeCacheErrs[ra.nodeID] = errMsg
 	}
 
 	// Carfile caches end
-	info := &api.CarfileRecordInfo{
+	info := &types.CarfileRecordInfo{
 		CarfileHash: cr.carfileHash,
 		TotalSize:   cr.totalSize,
 		TotalBlocks: cr.totalBlocks,
@@ -330,7 +331,7 @@ func (cr *CarfileRecord) replicaCacheEnd(ra *Replica, errMsg string) error {
 	return cr.nodeManager.CarfileDB.UpdateCarfileRecordCachesInfo(info)
 }
 
-func (cr *CarfileRecord) carfileCacheResult(nodeID string, info *api.CacheResult) error {
+func (cr *CarfileRecord) carfileCacheResult(nodeID string, info *types.CacheResult) error {
 	rI, exist := cr.Replicas.Load(nodeID)
 	if !exist {
 		return xerrors.Errorf("cacheCarfileResult not found nodeID:%s,cid:%s", nodeID, cr.carfileCid)
@@ -341,7 +342,7 @@ func (cr *CarfileRecord) carfileCacheResult(nodeID string, info *api.CacheResult
 	ra.doneBlocks = info.DoneBlockCount
 	ra.doneSize = info.DoneSize
 
-	if ra.status == api.CacheStatusDownloading {
+	if ra.status == types.CacheStatusDownloading {
 		// update cache task timeout
 		ra.countDown = nodeCacheTimeoutTime
 		return nil
@@ -406,7 +407,7 @@ func (cr *CarfileRecord) findEdges(count int) *findNodeResult {
 
 		if cI, exist := cr.Replicas.Load(nodeID); exist {
 			cache := cI.(*Replica)
-			if cache.status == api.CacheStatusSucceeded {
+			if cache.status == types.CacheStatusSucceeded {
 				resultInfo.cachedCount++
 				return true
 			}
@@ -451,7 +452,7 @@ func (cr *CarfileRecord) findCandidates(count int) *findNodeResult {
 
 		if cI, exist := cr.Replicas.Load(nodeID); exist {
 			cache := cI.(*Replica)
-			if cache.status == api.CacheStatusSucceeded {
+			if cache.status == types.CacheStatusSucceeded {
 				resultInfo.cachedCount++
 				return true
 			}
