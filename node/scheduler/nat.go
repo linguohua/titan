@@ -12,7 +12,7 @@ import (
 	cliutil "github.com/linguohua/titan/cli/util"
 )
 
-func (s *Scheduler) GetEdgeExternalAddr(ctx context.Context, nodeID, schedulerURL string) (string, error) {
+func (s *Scheduler) EdgeExternalAddr(ctx context.Context, nodeID, schedulerURL string) (string, error) {
 	eNode := s.NodeManager.GetEdgeNode(nodeID)
 	if eNode != nil {
 		return eNode.API().GetMyExternalAddr(ctx, schedulerURL)
@@ -21,7 +21,7 @@ func (s *Scheduler) GetEdgeExternalAddr(ctx context.Context, nodeID, schedulerUR
 	return "", fmt.Errorf("Node %s offline or not exist", nodeID)
 }
 
-func (s *Scheduler) CheckEdgeIfBehindFullConeNAT(ctx context.Context, edgeURL string) (bool, error) {
+func (s *Scheduler) IsBehindFullConeNAT(ctx context.Context, edgeURL string) (bool, error) {
 	udpPacketConn, err := net.ListenPacket("udp", ":0")
 	if err != nil {
 		return false, err
@@ -36,7 +36,7 @@ func (s *Scheduler) CheckEdgeIfBehindFullConeNAT(ctx context.Context, edgeURL st
 	defer close()
 
 	if _, err := edgeAPI.Version(context.Background()); err != nil {
-		log.Warnf("CheckEdgeIfBehindFullConeNAT,edge %s may be RestrictedNAT or PortRestrictedNAT", edgeURL)
+		log.Warnf("IsBehindFullConeNAT,edge %s may be RestrictedNAT or PortRestrictedNAT", edgeURL)
 		return false, nil
 	}
 	return true, nil
@@ -70,7 +70,7 @@ func (s *Scheduler) checkEdgeIfBehindFullConeNAT(ctx context.Context, schedulerU
 	}
 	defer close()
 
-	isBehindFullConeNAT, err := schedulerAPI.CheckEdgeIfBehindFullConeNAT(context.Background(), edgeURL)
+	isBehindFullConeNAT, err := schedulerAPI.IsBehindFullConeNAT(context.Background(), edgeURL)
 	if err != nil {
 		return false, err
 	}
@@ -148,36 +148,21 @@ func (s *Scheduler) checkEdgeNatType(ctx context.Context, edgeAPI api.Edge, edge
 	return api.NatTypePortRestricted, nil
 }
 
-func (s *Scheduler) getNatType(ctx context.Context, edgeAPI api.Edge, edgeAddr string) string {
+func (s *Scheduler) getNatType(ctx context.Context, edgeAPI api.Edge, edgeAddr string) api.NatType {
 	natType, err := s.checkEdgeNatType(context.Background(), edgeAPI, edgeAddr)
 	if err != nil {
 		log.Errorf("getNatType, error:%s", err.Error())
 		natType = api.NatTypeUnknow
 	}
-	return s.NatTypeToString(natType)
+	return natType
 }
 
-func (s *Scheduler) GetNatType(ctx context.Context, nodeID string) (string, error) {
+// NodeNatType get node nat type
+func (s *Scheduler) NodeNatType(ctx context.Context, nodeID string) (api.NatType, error) {
 	eNode := s.NodeManager.GetEdgeNode(nodeID)
 	if eNode == nil {
-		return "", fmt.Errorf("Node %s offline or not exist", nodeID)
+		return api.NatTypeUnknow, fmt.Errorf("Node %s offline or not exist", nodeID)
 	}
+
 	return s.getNatType(ctx, eNode.API(), eNode.Addr()), nil
-}
-
-func (s *Scheduler) NatTypeToString(natType api.NatType) string {
-	switch natType {
-	case api.NatTypeNo:
-		return "NoNAT"
-	case api.NatTypeSymmetric:
-		return "SymmetricNAT"
-	case api.NatTypeFullCone:
-		return "FullConeNAT"
-	case api.NatTypeRestricted:
-		return "RestrictedNAT"
-	case api.NatTypePortRestricted:
-		return "PortRestrictedNAT"
-	}
-
-	return "UnknowNAT"
 }

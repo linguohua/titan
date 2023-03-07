@@ -55,7 +55,8 @@ type NodeInfo struct {
 	Quitted         bool      `db:"quitted"`
 }
 
-type BlockDownloadInfo struct {
+// DownloadRecordInfo node download record
+type DownloadRecordInfo struct {
 	ID           string    `json:"-"`
 	NodeID       string    `json:"node_id" db:"node_id"`
 	BlockCID     string    `json:"block_cid" db:"block_cid"`

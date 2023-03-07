@@ -2,9 +2,10 @@ package persistent
 
 import (
 	"fmt"
-	"github.com/linguohua/titan/api"
 	"math/rand"
 	"time"
+
+	"github.com/linguohua/titan/api"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/node/modules/dtypes"
@@ -393,7 +394,7 @@ func (c *CarfileDB) GetNodeAllocateInfo(nodeID, key string, out interface{}) err
 }
 
 // download info
-func (c *CarfileDB) SetBlockDownloadInfo(info *api.BlockDownloadInfo) error {
+func (c *CarfileDB) SetBlockDownloadInfo(info *api.DownloadRecordInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (id, node_id, block_cid, carfile_cid, block_size, speed, reward, status, failed_reason, client_ip, created_time, complete_time) 
 				VALUES (:id, :node_id, :block_cid, :carfile_cid, :block_size, :speed, :reward, :status, :failed_reason, :client_ip, :created_time, :complete_time) ON DUPLICATE KEY UPDATE node_id=:node_id, speed=:speed, reward=:reward, status=:status, failed_reason=:failed_reason, complete_time=:complete_time`, blockDownloadInfo)
@@ -406,10 +407,10 @@ func (c *CarfileDB) SetBlockDownloadInfo(info *api.BlockDownloadInfo) error {
 	return nil
 }
 
-func (c *CarfileDB) GetBlockDownloadInfoByNodeID(nodeID string) ([]*api.BlockDownloadInfo, error) {
+func (c *CarfileDB) GetBlockDownloadInfoByNodeID(nodeID string) ([]*api.DownloadRecordInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id = ? and TO_DAYS(created_time) >= TO_DAYS(NOW()) ORDER BY created_time DESC`, blockDownloadInfo)
 
-	var out []*api.BlockDownloadInfo
+	var out []*api.DownloadRecordInfo
 	if err := c.db.Select(&out, query, nodeID); err != nil {
 		return nil, err
 	}
@@ -417,10 +418,10 @@ func (c *CarfileDB) GetBlockDownloadInfoByNodeID(nodeID string) ([]*api.BlockDow
 	return out, nil
 }
 
-func (c *CarfileDB) GetBlockDownloadInfoByID(id string) (*api.BlockDownloadInfo, error) {
+func (c *CarfileDB) GetBlockDownloadInfoByID(id string) (*api.DownloadRecordInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE id = ?`, blockDownloadInfo)
 
-	var out []*api.BlockDownloadInfo
+	var out []*api.DownloadRecordInfo
 	if err := c.db.Select(&out, query, id); err != nil {
 		return nil, err
 	}
@@ -461,7 +462,7 @@ func (c *CarfileDB) GetCacheInfosWithNode(nodeID string, index, count int) (info
 	return
 }
 
-func (c *CarfileDB) GetBlockDownloadInfos(nodeID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.BlockDownloadInfo, int64, error) {
+func (c *CarfileDB) GetBlockDownloadInfos(nodeID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.DownloadRecordInfo, int64, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id = ? and created_time between ? and ? limit ?,?`, blockDownloadInfo)
 
 	var total int64
@@ -474,7 +475,7 @@ func (c *CarfileDB) GetBlockDownloadInfos(nodeID string, startTime time.Time, en
 		count = loadBlockDownloadMaxCount
 	}
 
-	var out []api.BlockDownloadInfo
+	var out []api.DownloadRecordInfo
 	if err := c.db.Select(&out, query, nodeID, startTime, endTime, cursor, count); err != nil {
 		return nil, 0, err
 	}

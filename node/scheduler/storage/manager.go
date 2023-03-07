@@ -5,12 +5,13 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/filecoin-project/go-statemachine"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
 	"github.com/linguohua/titan/api"
-	"sync"
-	"time"
 
 	"github.com/linguohua/titan/node/modules/dtypes"
 
@@ -276,7 +277,7 @@ func (m *Manager) RemoveCache(carfileCid, nodeID string) error {
 }
 
 // CacheCarfileResult block cache result
-func (m *Manager) CacheCarfileResult(nodeID string, info *api.CacheResultInfo) (err error) {
+func (m *Manager) CacheCarfileResult(nodeID string, info *api.CacheResult) (err error) {
 	log.Debugf("carfileCacheResult :%s , %d , %s", nodeID, info.Status, info.CarfileHash)
 	// log.Debugf("carfileCacheResult :%v", info)
 

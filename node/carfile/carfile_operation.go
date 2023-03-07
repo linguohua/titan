@@ -80,7 +80,7 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, 
 
 	_, diskUsage := carfileOperation.device.GetDiskUsageStat()
 
-	result := api.CacheResultInfo{
+	result := api.CacheResult{
 		Status:            status,
 		CarfileBlockCount: len(carfile.blocksDownloadSuccessList) + len(carfile.blocksWaitList),
 		DoneBlockCount:    len(carfile.blocksDownloadSuccessList),
@@ -147,7 +147,7 @@ func (carfileOperation *CarfileOperation) cacheResultForCarfileExist(carfileCID 
 		linksSize += link.Size
 	}
 
-	result := api.CacheResultInfo{
+	result := api.CacheResult{
 		Status:            api.CacheStatusSucceeded,
 		CarfileBlockCount: blocksCount,
 		DoneBlockCount:    blocksCount,

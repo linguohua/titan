@@ -2,10 +2,11 @@ package storage
 
 import (
 	"fmt"
-	"github.com/linguohua/titan/api"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/linguohua/titan/api"
 
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
@@ -329,7 +330,7 @@ func (cr *CarfileRecord) replicaCacheEnd(ra *Replica, errMsg string) error {
 	return cr.nodeManager.CarfileDB.UpdateCarfileRecordCachesInfo(info)
 }
 
-func (cr *CarfileRecord) carfileCacheResult(nodeID string, info *api.CacheResultInfo) error {
+func (cr *CarfileRecord) carfileCacheResult(nodeID string, info *api.CacheResult) error {
 	rI, exist := cr.Replicas.Load(nodeID)
 	if !exist {
 		return xerrors.Errorf("cacheCarfileResult not found nodeID:%s,cid:%s", nodeID, cr.carfileCid)

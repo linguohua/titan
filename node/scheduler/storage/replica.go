@@ -73,7 +73,7 @@ func (ra *Replica) startTimeoutTimer() {
 		}
 		ra.countDown -= nodoCachingKeepalive
 
-		info := &api.CacheResultInfo{
+		info := &api.CacheResult{
 			Status:         api.CacheStatusFailed,
 			DoneSize:       ra.doneSize,
 			DoneBlockCount: ra.doneBlocks,

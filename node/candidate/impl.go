@@ -128,14 +128,14 @@ func (candidate *Candidate) loadBlockWaiterFromMap(key string) (*blockWaiter, bo
 	return nil, exist
 }
 
-func sendValidateResult(candidate *Candidate, result *api.ValidateResults) error {
+func sendValidateResult(candidate *Candidate, result *api.ValidatedResult) error {
 	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
 
-	return candidate.Scheduler.ValidateBlockResult(ctx, *result)
+	return candidate.Scheduler.NodeValidatedResult(ctx, *result)
 }
 
-func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, result *api.ValidateResults) {
+func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, result *api.ValidatedResult) {
 	defer func() {
 		candidate.BlockWaiterMap.Delete(result.NodeID)
 	}()
@@ -199,7 +199,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 }
 
 func validate(req *api.ReqValidate, candidate *Candidate) {
-	result := &api.ValidateResults{CarfileCID: req.CarfileCID, RoundID: req.RoundID, RandomCount: 0, Cids: make([]string, 0)}
+	result := &api.ValidatedResult{CarfileCID: req.CarfileCID, RoundID: req.RoundID, RandomCount: 0, Cids: make([]string, 0)}
 
 	api, closer, err := getNodeApi(req.NodeType, req.NodeURL)
 	if err != nil {

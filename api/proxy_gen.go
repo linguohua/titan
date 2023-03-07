@@ -183,7 +183,7 @@ type LocatorStruct struct {
 
 		GetAccessPoints func(p0 context.Context, p1 string) ([]string, error) `perm:"read"`
 
-		GetDownloadInfosWithCarfile func(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) `perm:"read"`
+		GetDownloadInfosWithCarfile func(p0 context.Context, p1 string) ([]*DownloadInfoResult, error) `perm:"read"`
 
 		ListAreaIDs func(p0 context.Context) ([]string, error) `perm:"admin"`
 
@@ -217,17 +217,15 @@ type SchedulerStruct struct {
 
 		CacheCarfile func(p0 context.Context, p1 *CacheCarfileInfo) error `perm:"admin"`
 
-		CacheResult func(p0 context.Context, p1 CacheResultInfo) error `perm:"write"`
+		CacheResult func(p0 context.Context, p1 CacheResult) error `perm:"write"`
 
 		CandidateNodeConnect func(p0 context.Context) error `perm:"write"`
-
-		CheckEdgeIfBehindFullConeNAT func(p0 context.Context, p1 string) (bool, error) `perm:"read"`
 
 		DeleteNodeAppUpdateInfos func(p0 context.Context, p1 int) error `perm:"admin"`
 
 		DeleteNodeLogFile func(p0 context.Context, p1 string) error `perm:"admin"`
 
-		DownloadNodeLogFile func(p0 context.Context, p1 string) ([]byte, error) `perm:"admin"`
+		EdgeExternalAddr func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
 
 		EdgeNodeConnect func(p0 context.Context) error `perm:"write"`
 
@@ -237,25 +235,11 @@ type SchedulerStruct struct {
 
 		GetCarfileRecordInfo func(p0 context.Context, p1 string) (CarfileRecordInfo, error) `perm:"read"`
 
-		GetDownloadInfo func(p0 context.Context, p1 string) ([]*BlockDownloadInfo, error) `perm:"read"`
-
-		GetDownloadInfosWithCarfile func(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) `perm:"read"`
+		GetDownloadInfosWithCarfile func(p0 context.Context, p1 string) ([]*DownloadInfoResult, error) `perm:"read"`
 
 		GetDownloadingCarfileRecords func(p0 context.Context) ([]*CarfileRecordInfo, error) `perm:"read"`
 
-		GetEdgeExternalAddr func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
-
-		GetExternalAddr func(p0 context.Context) (string, error) `perm:"read"`
-
-		GetNatType func(p0 context.Context, p1 string) (string, error) `perm:"write"`
-
 		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) `perm:"read"`
-
-		GetNodeInfo func(p0 context.Context, p1 string) (NodeInfo, error) `perm:"read"`
-
-		GetOnlineNodeIDs func(p0 context.Context, p1 NodeType) ([]string, error) `perm:"read"`
-
-		GetPublicKey func(p0 context.Context) (string, error) `perm:"write"`
 
 		GetReplicaInfos func(p0 context.Context, p1 ListCacheInfosReq) (ListCacheInfosRsp, error) `perm:"read"`
 
@@ -263,23 +247,41 @@ type SchedulerStruct struct {
 
 		GetSystemInfo func(p0 context.Context) (SystemBaseInfo, error) `perm:"read"`
 
+		IsBehindFullConeNAT func(p0 context.Context, p1 string) (bool, error) `perm:"read"`
+
 		ListBlockDownloadInfo func(p0 context.Context, p1 ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) `perm:"read"`
 
 		ListCarfileRecords func(p0 context.Context, p1 int) (*CarfileRecordsInfo, error) `perm:"read"`
 
-		ListNodes func(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) `perm:"read"`
-
 		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
+
+		NodeDownloadRecord func(p0 context.Context, p1 string) ([]*DownloadRecordInfo, error) `perm:"read"`
+
+		NodeExternalAddr func(p0 context.Context) (string, error) `perm:"read"`
+
+		NodeInfo func(p0 context.Context, p1 string) (NodeInfo, error) `perm:"read"`
+
+		NodeList func(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) `perm:"read"`
+
+		NodeLogFile func(p0 context.Context, p1 string) ([]byte, error) `perm:"admin"`
+
+		NodeLogFileInfo func(p0 context.Context, p1 string) (*LogFile, error) `perm:"admin"`
+
+		NodeNatType func(p0 context.Context, p1 string) (NatType, error) `perm:"write"`
+
+		NodePublicKey func(p0 context.Context) (string, error) `perm:"write"`
 
 		NodeQuit func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
-		NodeResultForUserDownloadBlock func(p0 context.Context, p1 NodeBlockDownloadResult) error `perm:"write"`
+		NodeValidatedResult func(p0 context.Context, p1 ValidatedResult) error `perm:"write"`
+
+		OnlineNodeList func(p0 context.Context, p1 NodeType) ([]string, error) `perm:"read"`
 
 		RemoveCache func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
 		RemoveCarfile func(p0 context.Context, p1 string) error `perm:"admin"`
 
-		RemoveCarfileResult func(p0 context.Context, p1 RemoveCarfileResultInfo) error `perm:"write"`
+		RemoveCarfileResult func(p0 context.Context, p1 RemoveCarfileResult) error `perm:"write"`
 
 		ResetCacheExpirationTime func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
 
@@ -289,11 +291,9 @@ type SchedulerStruct struct {
 
 		SetNodePort func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
-		ShowNodeLogFile func(p0 context.Context, p1 string) (*LogFile, error) `perm:"admin"`
-
 		UserDownloadBlockResults func(p0 context.Context, p1 []UserBlockDownloadResult) error `perm:"read"`
 
-		ValidateBlockResult func(p0 context.Context, p1 ValidateResults) error `perm:"write"`
+		UserDownloadResult func(p0 context.Context, p1 UserDownloadResult) error `perm:"write"`
 
 		ValidateRunningState func(p0 context.Context) (bool, error) `perm:"admin"`
 
@@ -701,14 +701,14 @@ func (s *LocatorStub) GetAccessPoints(p0 context.Context, p1 string) ([]string, 
 	return *new([]string), ErrNotSupported
 }
 
-func (s *LocatorStruct) GetDownloadInfosWithCarfile(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) {
+func (s *LocatorStruct) GetDownloadInfosWithCarfile(p0 context.Context, p1 string) ([]*DownloadInfoResult, error) {
 	if s.Internal.GetDownloadInfosWithCarfile == nil {
 		return *new([]*DownloadInfoResult), ErrNotSupported
 	}
-	return s.Internal.GetDownloadInfosWithCarfile(p0, p1, p2)
+	return s.Internal.GetDownloadInfosWithCarfile(p0, p1)
 }
 
-func (s *LocatorStub) GetDownloadInfosWithCarfile(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) {
+func (s *LocatorStub) GetDownloadInfosWithCarfile(p0 context.Context, p1 string) ([]*DownloadInfoResult, error) {
 	return *new([]*DownloadInfoResult), ErrNotSupported
 }
 
@@ -833,14 +833,14 @@ func (s *SchedulerStub) CacheCarfile(p0 context.Context, p1 *CacheCarfileInfo) e
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 CacheResultInfo) error {
+func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 CacheResult) error {
 	if s.Internal.CacheResult == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheResult(p0, p1)
 }
 
-func (s *SchedulerStub) CacheResult(p0 context.Context, p1 CacheResultInfo) error {
+func (s *SchedulerStub) CacheResult(p0 context.Context, p1 CacheResult) error {
 	return ErrNotSupported
 }
 
@@ -853,17 +853,6 @@ func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context) error {
 
 func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context) error {
 	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) CheckEdgeIfBehindFullConeNAT(p0 context.Context, p1 string) (bool, error) {
-	if s.Internal.CheckEdgeIfBehindFullConeNAT == nil {
-		return false, ErrNotSupported
-	}
-	return s.Internal.CheckEdgeIfBehindFullConeNAT(p0, p1)
-}
-
-func (s *SchedulerStub) CheckEdgeIfBehindFullConeNAT(p0 context.Context, p1 string) (bool, error) {
-	return false, ErrNotSupported
 }
 
 func (s *SchedulerStruct) DeleteNodeAppUpdateInfos(p0 context.Context, p1 int) error {
@@ -888,15 +877,15 @@ func (s *SchedulerStub) DeleteNodeLogFile(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) DownloadNodeLogFile(p0 context.Context, p1 string) ([]byte, error) {
-	if s.Internal.DownloadNodeLogFile == nil {
-		return *new([]byte), ErrNotSupported
+func (s *SchedulerStruct) EdgeExternalAddr(p0 context.Context, p1 string, p2 string) (string, error) {
+	if s.Internal.EdgeExternalAddr == nil {
+		return "", ErrNotSupported
 	}
-	return s.Internal.DownloadNodeLogFile(p0, p1)
+	return s.Internal.EdgeExternalAddr(p0, p1, p2)
 }
 
-func (s *SchedulerStub) DownloadNodeLogFile(p0 context.Context, p1 string) ([]byte, error) {
-	return *new([]byte), ErrNotSupported
+func (s *SchedulerStub) EdgeExternalAddr(p0 context.Context, p1 string, p2 string) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context) error {
@@ -943,25 +932,14 @@ func (s *SchedulerStub) GetCarfileRecordInfo(p0 context.Context, p1 string) (Car
 	return *new(CarfileRecordInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetDownloadInfo(p0 context.Context, p1 string) ([]*BlockDownloadInfo, error) {
-	if s.Internal.GetDownloadInfo == nil {
-		return *new([]*BlockDownloadInfo), ErrNotSupported
-	}
-	return s.Internal.GetDownloadInfo(p0, p1)
-}
-
-func (s *SchedulerStub) GetDownloadInfo(p0 context.Context, p1 string) ([]*BlockDownloadInfo, error) {
-	return *new([]*BlockDownloadInfo), ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetDownloadInfosWithCarfile(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) {
+func (s *SchedulerStruct) GetDownloadInfosWithCarfile(p0 context.Context, p1 string) ([]*DownloadInfoResult, error) {
 	if s.Internal.GetDownloadInfosWithCarfile == nil {
 		return *new([]*DownloadInfoResult), ErrNotSupported
 	}
-	return s.Internal.GetDownloadInfosWithCarfile(p0, p1, p2)
+	return s.Internal.GetDownloadInfosWithCarfile(p0, p1)
 }
 
-func (s *SchedulerStub) GetDownloadInfosWithCarfile(p0 context.Context, p1 string, p2 string) ([]*DownloadInfoResult, error) {
+func (s *SchedulerStub) GetDownloadInfosWithCarfile(p0 context.Context, p1 string) ([]*DownloadInfoResult, error) {
 	return *new([]*DownloadInfoResult), ErrNotSupported
 }
 
@@ -976,39 +954,6 @@ func (s *SchedulerStub) GetDownloadingCarfileRecords(p0 context.Context) ([]*Car
 	return *new([]*CarfileRecordInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetEdgeExternalAddr(p0 context.Context, p1 string, p2 string) (string, error) {
-	if s.Internal.GetEdgeExternalAddr == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.GetEdgeExternalAddr(p0, p1, p2)
-}
-
-func (s *SchedulerStub) GetEdgeExternalAddr(p0 context.Context, p1 string, p2 string) (string, error) {
-	return "", ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetExternalAddr(p0 context.Context) (string, error) {
-	if s.Internal.GetExternalAddr == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.GetExternalAddr(p0)
-}
-
-func (s *SchedulerStub) GetExternalAddr(p0 context.Context) (string, error) {
-	return "", ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetNatType(p0 context.Context, p1 string) (string, error) {
-	if s.Internal.GetNatType == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.GetNatType(p0, p1)
-}
-
-func (s *SchedulerStub) GetNatType(p0 context.Context, p1 string) (string, error) {
-	return "", ErrNotSupported
-}
-
 func (s *SchedulerStruct) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) {
 	if s.Internal.GetNodeAppUpdateInfos == nil {
 		return *new(map[int]*NodeAppUpdateInfo), ErrNotSupported
@@ -1018,39 +963,6 @@ func (s *SchedulerStruct) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*No
 
 func (s *SchedulerStub) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) {
 	return *new(map[int]*NodeAppUpdateInfo), ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetNodeInfo(p0 context.Context, p1 string) (NodeInfo, error) {
-	if s.Internal.GetNodeInfo == nil {
-		return *new(NodeInfo), ErrNotSupported
-	}
-	return s.Internal.GetNodeInfo(p0, p1)
-}
-
-func (s *SchedulerStub) GetNodeInfo(p0 context.Context, p1 string) (NodeInfo, error) {
-	return *new(NodeInfo), ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetOnlineNodeIDs(p0 context.Context, p1 NodeType) ([]string, error) {
-	if s.Internal.GetOnlineNodeIDs == nil {
-		return *new([]string), ErrNotSupported
-	}
-	return s.Internal.GetOnlineNodeIDs(p0, p1)
-}
-
-func (s *SchedulerStub) GetOnlineNodeIDs(p0 context.Context, p1 NodeType) ([]string, error) {
-	return *new([]string), ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetPublicKey(p0 context.Context) (string, error) {
-	if s.Internal.GetPublicKey == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.GetPublicKey(p0)
-}
-
-func (s *SchedulerStub) GetPublicKey(p0 context.Context) (string, error) {
-	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetReplicaInfos(p0 context.Context, p1 ListCacheInfosReq) (ListCacheInfosRsp, error) {
@@ -1086,6 +998,17 @@ func (s *SchedulerStub) GetSystemInfo(p0 context.Context) (SystemBaseInfo, error
 	return *new(SystemBaseInfo), ErrNotSupported
 }
 
+func (s *SchedulerStruct) IsBehindFullConeNAT(p0 context.Context, p1 string) (bool, error) {
+	if s.Internal.IsBehindFullConeNAT == nil {
+		return false, ErrNotSupported
+	}
+	return s.Internal.IsBehindFullConeNAT(p0, p1)
+}
+
+func (s *SchedulerStub) IsBehindFullConeNAT(p0 context.Context, p1 string) (bool, error) {
+	return false, ErrNotSupported
+}
+
 func (s *SchedulerStruct) ListBlockDownloadInfo(p0 context.Context, p1 ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) {
 	if s.Internal.ListBlockDownloadInfo == nil {
 		return *new(ListBlockDownloadInfoRsp), ErrNotSupported
@@ -1108,17 +1031,6 @@ func (s *SchedulerStub) ListCarfileRecords(p0 context.Context, p1 int) (*Carfile
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) ListNodes(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) {
-	if s.Internal.ListNodes == nil {
-		return *new(ListNodesRsp), ErrNotSupported
-	}
-	return s.Internal.ListNodes(p0, p1, p2)
-}
-
-func (s *SchedulerStub) ListNodes(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) {
-	return *new(ListNodesRsp), ErrNotSupported
-}
-
 func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 string, p2 string) error {
 	if s.Internal.LocatorConnect == nil {
 		return ErrNotSupported
@@ -1128,6 +1040,94 @@ func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 string, p2 strin
 
 func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) NodeDownloadRecord(p0 context.Context, p1 string) ([]*DownloadRecordInfo, error) {
+	if s.Internal.NodeDownloadRecord == nil {
+		return *new([]*DownloadRecordInfo), ErrNotSupported
+	}
+	return s.Internal.NodeDownloadRecord(p0, p1)
+}
+
+func (s *SchedulerStub) NodeDownloadRecord(p0 context.Context, p1 string) ([]*DownloadRecordInfo, error) {
+	return *new([]*DownloadRecordInfo), ErrNotSupported
+}
+
+func (s *SchedulerStruct) NodeExternalAddr(p0 context.Context) (string, error) {
+	if s.Internal.NodeExternalAddr == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.NodeExternalAddr(p0)
+}
+
+func (s *SchedulerStub) NodeExternalAddr(p0 context.Context) (string, error) {
+	return "", ErrNotSupported
+}
+
+func (s *SchedulerStruct) NodeInfo(p0 context.Context, p1 string) (NodeInfo, error) {
+	if s.Internal.NodeInfo == nil {
+		return *new(NodeInfo), ErrNotSupported
+	}
+	return s.Internal.NodeInfo(p0, p1)
+}
+
+func (s *SchedulerStub) NodeInfo(p0 context.Context, p1 string) (NodeInfo, error) {
+	return *new(NodeInfo), ErrNotSupported
+}
+
+func (s *SchedulerStruct) NodeList(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) {
+	if s.Internal.NodeList == nil {
+		return *new(ListNodesRsp), ErrNotSupported
+	}
+	return s.Internal.NodeList(p0, p1, p2)
+}
+
+func (s *SchedulerStub) NodeList(p0 context.Context, p1 int, p2 int) (ListNodesRsp, error) {
+	return *new(ListNodesRsp), ErrNotSupported
+}
+
+func (s *SchedulerStruct) NodeLogFile(p0 context.Context, p1 string) ([]byte, error) {
+	if s.Internal.NodeLogFile == nil {
+		return *new([]byte), ErrNotSupported
+	}
+	return s.Internal.NodeLogFile(p0, p1)
+}
+
+func (s *SchedulerStub) NodeLogFile(p0 context.Context, p1 string) ([]byte, error) {
+	return *new([]byte), ErrNotSupported
+}
+
+func (s *SchedulerStruct) NodeLogFileInfo(p0 context.Context, p1 string) (*LogFile, error) {
+	if s.Internal.NodeLogFileInfo == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.NodeLogFileInfo(p0, p1)
+}
+
+func (s *SchedulerStub) NodeLogFileInfo(p0 context.Context, p1 string) (*LogFile, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) NodeNatType(p0 context.Context, p1 string) (NatType, error) {
+	if s.Internal.NodeNatType == nil {
+		return *new(NatType), ErrNotSupported
+	}
+	return s.Internal.NodeNatType(p0, p1)
+}
+
+func (s *SchedulerStub) NodeNatType(p0 context.Context, p1 string) (NatType, error) {
+	return *new(NatType), ErrNotSupported
+}
+
+func (s *SchedulerStruct) NodePublicKey(p0 context.Context) (string, error) {
+	if s.Internal.NodePublicKey == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.NodePublicKey(p0)
+}
+
+func (s *SchedulerStub) NodePublicKey(p0 context.Context) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) NodeQuit(p0 context.Context, p1 string, p2 string) error {
@@ -1141,15 +1141,26 @@ func (s *SchedulerStub) NodeQuit(p0 context.Context, p1 string, p2 string) error
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) NodeResultForUserDownloadBlock(p0 context.Context, p1 NodeBlockDownloadResult) error {
-	if s.Internal.NodeResultForUserDownloadBlock == nil {
+func (s *SchedulerStruct) NodeValidatedResult(p0 context.Context, p1 ValidatedResult) error {
+	if s.Internal.NodeValidatedResult == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.NodeResultForUserDownloadBlock(p0, p1)
+	return s.Internal.NodeValidatedResult(p0, p1)
 }
 
-func (s *SchedulerStub) NodeResultForUserDownloadBlock(p0 context.Context, p1 NodeBlockDownloadResult) error {
+func (s *SchedulerStub) NodeValidatedResult(p0 context.Context, p1 ValidatedResult) error {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) OnlineNodeList(p0 context.Context, p1 NodeType) ([]string, error) {
+	if s.Internal.OnlineNodeList == nil {
+		return *new([]string), ErrNotSupported
+	}
+	return s.Internal.OnlineNodeList(p0, p1)
+}
+
+func (s *SchedulerStub) OnlineNodeList(p0 context.Context, p1 NodeType) ([]string, error) {
+	return *new([]string), ErrNotSupported
 }
 
 func (s *SchedulerStruct) RemoveCache(p0 context.Context, p1 string, p2 string) error {
@@ -1174,14 +1185,14 @@ func (s *SchedulerStub) RemoveCarfile(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) RemoveCarfileResult(p0 context.Context, p1 RemoveCarfileResultInfo) error {
+func (s *SchedulerStruct) RemoveCarfileResult(p0 context.Context, p1 RemoveCarfileResult) error {
 	if s.Internal.RemoveCarfileResult == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.RemoveCarfileResult(p0, p1)
 }
 
-func (s *SchedulerStub) RemoveCarfileResult(p0 context.Context, p1 RemoveCarfileResultInfo) error {
+func (s *SchedulerStub) RemoveCarfileResult(p0 context.Context, p1 RemoveCarfileResult) error {
 	return ErrNotSupported
 }
 
@@ -1229,17 +1240,6 @@ func (s *SchedulerStub) SetNodePort(p0 context.Context, p1 string, p2 string) er
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ShowNodeLogFile(p0 context.Context, p1 string) (*LogFile, error) {
-	if s.Internal.ShowNodeLogFile == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.ShowNodeLogFile(p0, p1)
-}
-
-func (s *SchedulerStub) ShowNodeLogFile(p0 context.Context, p1 string) (*LogFile, error) {
-	return nil, ErrNotSupported
-}
-
 func (s *SchedulerStruct) UserDownloadBlockResults(p0 context.Context, p1 []UserBlockDownloadResult) error {
 	if s.Internal.UserDownloadBlockResults == nil {
 		return ErrNotSupported
@@ -1251,14 +1251,14 @@ func (s *SchedulerStub) UserDownloadBlockResults(p0 context.Context, p1 []UserBl
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ValidateBlockResult(p0 context.Context, p1 ValidateResults) error {
-	if s.Internal.ValidateBlockResult == nil {
+func (s *SchedulerStruct) UserDownloadResult(p0 context.Context, p1 UserDownloadResult) error {
+	if s.Internal.UserDownloadResult == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.ValidateBlockResult(p0, p1)
+	return s.Internal.UserDownloadResult(p0, p1)
 }
 
-func (s *SchedulerStub) ValidateBlockResult(p0 context.Context, p1 ValidateResults) error {
+func (s *SchedulerStub) UserDownloadResult(p0 context.Context, p1 UserDownloadResult) error {
 	return ErrNotSupported
 }
 

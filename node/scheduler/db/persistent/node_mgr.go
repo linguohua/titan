@@ -75,13 +75,13 @@ func (n *NodeMgrDB) SetNodesQuit(nodeIDs []string) error {
 
 // NodePortMapping load node mapping port
 func (n *NodeMgrDB) NodePortMapping(nodeID string) (string, error) {
-	var privateKey string
+	var port string
 	query := fmt.Sprintf("SELECT port_mapping FROM %s WHERE node_id=?", nodeInfoTable)
-	if err := n.db.Get(&privateKey, query, nodeID); err != nil {
+	if err := n.db.Get(&port, query, nodeID); err != nil {
 		return "", err
 	}
 
-	return privateKey, nil
+	return port, nil
 }
 
 // SetNodePortMapping Set node mapping port
@@ -97,7 +97,7 @@ func (n *NodeMgrDB) SetNodePortMapping(nodeID, port string) error {
 }
 
 // InitValidateResultInfos init validator result infos
-func (n *NodeMgrDB) InitValidateResultInfos(infos []*api.ValidateResult) error {
+func (n *NodeMgrDB) InitValidateResultInfos(infos []*api.ValidateResultInfo) error {
 	tx := n.db.MustBegin()
 	for _, info := range infos {
 		query := "INSERT INTO validate_result (round_id, node_id, validator_id, status, start_time) VALUES (?, ?, ?, ?, ?)"
@@ -137,7 +137,7 @@ func (n *NodeMgrDB) SetValidateTimeoutOfNodes(roundID int64, nodeIDs []string) e
 }
 
 // UpdateValidateResultInfo Update validator info
-func (n *NodeMgrDB) UpdateValidateResultInfo(info *api.ValidateResult) error {
+func (n *NodeMgrDB) UpdateValidateResultInfo(info *api.ValidateResultInfo) error {
 	if info.Status == api.ValidateStatusSuccess {
 		query := "UPDATE validate_result SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW() WHERE round_id=:round_id AND node_id=:node_id"
 		_, err := n.db.NamedExec(query, info)
@@ -152,7 +152,7 @@ func (n *NodeMgrDB) UpdateValidateResultInfo(info *api.ValidateResult) error {
 // ValidateResultInfos Get validator result infos
 func (n *NodeMgrDB) ValidateResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error) {
 	res := new(api.SummeryValidateResult)
-	var infos []api.ValidateResult
+	var infos []api.ValidateResultInfo
 	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM validate_result WHERE start_time between ? and ? order by id asc  LIMIT ?,? ")
 
 	if pageSize > loadValidateInfoMaxCount {

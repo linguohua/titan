@@ -19,7 +19,6 @@ require (
 	github.com/ipfs/go-ds-badger2 v0.1.3
 	github.com/ipfs/go-ds-leveldb v0.5.0
 	github.com/ipfs/go-ds-measure v0.2.0
-	github.com/ipfs/go-ds-sql v0.3.0
 	github.com/ipfs/go-fs-lock v0.0.7
 	github.com/ipfs/go-ipfs-http-client v0.4.0
 	github.com/ipfs/go-ipld-format v0.4.0
@@ -184,5 +183,3 @@ replace github.com/filecoin-project/go-jsonrpc v0.2.1 => github.com/zscboy/go-js
 replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
 
 replace github.com/coreos/bbolt v1.3.4 => go.etcd.io/bbolt v1.3.4
-
-replace github.com/ipfs/go-ds-sql v0.3.0 => ../go-ds-sql@v0.3.0

@@ -32,16 +32,14 @@ type Manager struct {
 	NodeMgrDB      *persistent.NodeMgrDB
 
 	dtypes.ServerID
-	nodeQuitCallBack func([]string)
 }
 
 // NewManager return new node manager instance
-func NewManager(callBack dtypes.ExitCallbackFunc, cdb *persistent.CarfileDB, ndb *persistent.NodeMgrDB, serverID dtypes.ServerID) *Manager {
+func NewManager(cdb *persistent.CarfileDB, ndb *persistent.NodeMgrDB, serverID dtypes.ServerID) *Manager {
 	nodeManager := &Manager{
-		nodeQuitCallBack: callBack,
-		CarfileDB:        cdb,
-		NodeMgrDB:        ndb,
-		ServerID:         serverID,
+		CarfileDB: cdb,
+		NodeMgrDB: ndb,
+		ServerID:  serverID,
 	}
 
 	go nodeManager.run()
@@ -135,8 +133,8 @@ func (m *Manager) checkNodesKeepalive(isSave bool) {
 	})
 }
 
-// GetOnlineNodes get nodes with type
-func (m *Manager) GetOnlineNodes(nodeType api.NodeType) ([]string, error) {
+// OnlineNodeList get nodes with type
+func (m *Manager) OnlineNodeList(nodeType api.NodeType) ([]string, error) {
 	list := make([]string, 0)
 
 	if nodeType == api.NodeUnknown || nodeType == api.NodeCandidate {
@@ -451,8 +449,22 @@ func (m *Manager) NodesQuit(nodeIDs []string) {
 		return
 	}
 
-	if m.nodeQuitCallBack != nil {
-		m.nodeQuitCallBack(nodeIDs)
+	log.Infof("node event , nodes quit:%v", nodeIDs)
+
+	hashes, err := m.CarfileDB.LoadCarfileRecordsWithNodes(nodeIDs)
+	if err != nil {
+		log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
+		return
+	}
+
+	err = m.CarfileDB.RemoveReplicaInfoWithNodes(nodeIDs)
+	if err != nil {
+		log.Errorf("RemoveReplicaInfoWithNodes err:%s", err.Error())
+		return
+	}
+
+	for _, hash := range hashes {
+		log.Infof("need restore storage :%s", hash)
 	}
 }
 

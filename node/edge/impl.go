@@ -2,6 +2,9 @@ package edge
 
 import (
 	"context"
+	"net"
+	"sync"
+
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
@@ -12,8 +15,6 @@ import (
 	datasync "github.com/linguohua/titan/node/sync"
 	"github.com/linguohua/titan/node/validate"
 	"go.uber.org/fx"
-	"net"
-	"sync"
 )
 
 var log = logging.Logger("edge")
@@ -53,7 +54,7 @@ func (edge *Edge) GetMyExternalAddr(ctx context.Context, schedulerURL string) (s
 	}
 	defer closer()
 
-	return schedulerAPI.GetExternalAddr(ctx)
+	return schedulerAPI.NodeExternalAddr(ctx)
 }
 
 func (edge *Edge) PingUser(ctx context.Context, userAddr string) error {

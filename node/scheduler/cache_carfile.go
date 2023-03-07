@@ -2,8 +2,9 @@ package scheduler
 
 import (
 	"context"
-	"github.com/linguohua/titan/node/scheduler/storage"
 	"time"
+
+	"github.com/linguohua/titan/node/scheduler/storage"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/cidutil"
@@ -12,7 +13,7 @@ import (
 )
 
 // CacheResult nodeMgrCache Data Result
-func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) error {
+func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResult) error {
 	nodeID := handler.GetNodeID(ctx)
 
 	if !s.nodeExists(nodeID, 0) {
@@ -29,7 +30,7 @@ func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) e
 }
 
 // RemoveCarfileResult remove storage result
-func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.RemoveCarfileResultInfo) error {
+func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.RemoveCarfileResult) error {
 	nodeID := handler.GetNodeID(ctx)
 
 	if !s.nodeExists(nodeID, 0) {

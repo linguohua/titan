@@ -135,7 +135,7 @@ func getExternalIP(api api.Scheduler, timeout time.Duration) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	addr, err := api.GetExternalAddr(ctx)
+	addr, err := api.NodeExternalAddr(ctx)
 	if err != nil {
 		return "", err
 	}

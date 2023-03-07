@@ -57,7 +57,7 @@ func (bd *BlockDownload) resultFailed(w http.ResponseWriter, r *http.Request, sn
 	log.Errorf("result failed:%s", err.Error())
 
 	if sign != nil {
-		result := api.NodeBlockDownloadResult{SN: sn, Sign: sign, DownloadSpeed: 0, BlockSize: 0, Succeed: false, FailedReason: err.Error(), BlockCID: cidStr}
+		result := api.UserDownloadResult{SN: sn, Sign: sign, DownloadSpeed: 0, BlockSize: 0, Succeed: false, FailedReason: err.Error(), BlockCID: cidStr}
 		go bd.downloadBlockResult(result)
 	}
 
@@ -138,7 +138,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		speedRate = int64(float64(n) / float64(costTime) * float64(time.Second))
 	}
 
-	result := api.NodeBlockDownloadResult{SN: sn, Sign: sign, DownloadSpeed: speedRate, BlockSize: int(n), Succeed: true, BlockCID: cidStr}
+	result := api.UserDownloadResult{SN: sn, Sign: sign, DownloadSpeed: speedRate, BlockSize: int(n), Succeed: true, BlockCID: cidStr}
 	go bd.downloadBlockResult(result)
 
 	log.Infof("Download block %s costTime %d, size %d, speed %d", cidStr, costTime, n, speedRate)
@@ -159,11 +159,11 @@ func getClientIP(r *http.Request) string {
 	return reqIP
 }
 
-func (bd *BlockDownload) downloadBlockResult(result api.NodeBlockDownloadResult) {
+func (bd *BlockDownload) downloadBlockResult(result api.UserDownloadResult) {
 	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
 
-	err := bd.scheduler.NodeResultForUserDownloadBlock(ctx, result)
+	err := bd.scheduler.UserDownloadResult(ctx, result)
 	if err != nil {
 		log.Errorf("downloadBlockResult error:%s", err.Error())
 	}
@@ -202,7 +202,7 @@ func (bd *BlockDownload) LoadPublicKey(timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
 
-	publicKeyStr, err := bd.scheduler.GetPublicKey(ctx)
+	publicKeyStr, err := bd.scheduler.NodePublicKey(ctx)
 	if err != nil {
 		return err
 	}
