@@ -34,8 +34,8 @@ var (
 	}
 
 	nodeIDFlag = &cli.StringFlag{
-		Name:  "device-id",
-		Usage: "device id",
+		Name:  "node-id",
+		Usage: "node id",
 		Value: "",
 	}
 
@@ -124,7 +124,7 @@ var setNodePortCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		nodeID := cctx.String("device-id")
+		nodeID := cctx.String("node-id")
 		port := cctx.String("port")
 
 		ctx := ReqContext(cctx)

@@ -62,7 +62,7 @@ func (device *Device) NodeInfo(ctx context.Context) (api.NodeInfo, error) {
 
 	name := device.nodeID
 	if len(name) > 10 {
-		info.DeviceName = name[0:10]
+		info.NodeName = name[0:10]
 	}
 	info.ExternalIP = device.publicIP
 	info.SystemVersion = version.String()

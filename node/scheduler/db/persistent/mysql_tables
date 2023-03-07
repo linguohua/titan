@@ -9,6 +9,22 @@ CREATE TABLE `node_info` (
     `last_time` datetime DEFAULT CURRENT_TIMESTAMP ,
     `quitted` BOOLEAN DEFAULT '0' ,
 	`port_mapping` varchar(8) DEFAULT '' ,
+    `mac_location` varchar(32) DEFAULT '',
+    `product_type` varchar(32) DEFAULT '',
+    `cpu_cores` int DEFAULT '0',
+    `memory` float DEFAULT '0',
+    `node_name` varchar(64) DEFAULT '' ,
+    `latitude` float DEFAULT '0',
+    `longitude` float DEFAULT '0',
+    `disk_type` varchar(64) DEFAULT '',
+    `io_system` varchar(64) DEFAULT '',
+    `system_version` varchar(32) DEFAULT '',
+    `nat_type` varchar(32) DEFAULT '',  
+    `disk_space` float DEFAULT '0',
+    `bandwidth_up` float DEFAULT '0',
+    `bandwidth_down` float DEFAULT '0',
+    `blocks` bigint DEFAULT '0' ,
+    `disk_usage` float DEFAULT '0', 
 	PRIMARY KEY (`node_id`)
 ) ENGINE=InnoDB COMMENT='node info';
 
@@ -24,7 +40,7 @@ CREATE TABLE `validate_result` (
     `start_time` datetime DEFAULT NULL,
     `end_time` datetime DEFAULT NULL,
     PRIMARY KEY (`id`),
-    KEY `round_device` (`round_id`,`node_id`)
+    KEY `round_node` (`round_id`,`node_id`)
 ) ENGINE=InnoDB COMMENT='validate result info';
 
 CREATE TABLE `block_download_info` (

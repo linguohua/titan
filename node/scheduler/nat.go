@@ -18,7 +18,7 @@ func (s *Scheduler) GetEdgeExternalAddr(ctx context.Context, nodeID, schedulerUR
 		return eNode.API().GetMyExternalAddr(ctx, schedulerURL)
 	}
 
-	return "", fmt.Errorf("Device %s offline or not exist", nodeID)
+	return "", fmt.Errorf("Node %s offline or not exist", nodeID)
 }
 
 func (s *Scheduler) CheckEdgeIfBehindFullConeNAT(ctx context.Context, edgeURL string) (bool, error) {
@@ -160,7 +160,7 @@ func (s *Scheduler) getNatType(ctx context.Context, edgeAPI api.Edge, edgeAddr s
 func (s *Scheduler) GetNatType(ctx context.Context, nodeID string) (string, error) {
 	eNode := s.NodeManager.GetEdgeNode(nodeID)
 	if eNode == nil {
-		return "", fmt.Errorf("Device %s offline or not exist", nodeID)
+		return "", fmt.Errorf("Node %s offline or not exist", nodeID)
 	}
 	return s.getNatType(ctx, eNode.API(), eNode.Addr()), nil
 }

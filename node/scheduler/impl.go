@@ -94,16 +94,14 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", nodeID, err)
 	}
 
-	deviceSecret := secret
-
-	if _, err := jwt.Verify([]byte(token), (*jwt.HMACSHA)(jwt.NewHS256([]byte(deviceSecret))), &payload); err != nil {
+	if _, err := jwt.Verify([]byte(token), (*jwt.HMACSHA)(jwt.NewHS256([]byte(secret))), &payload); err != nil {
 		return nil, xerrors.Errorf("JWT Verification failed: %w", err)
 	}
 	return payload.Allow, nil
 }
 
 // AuthNodeNew  Get Node Auth
-func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, nodeID, deviceSecret string) ([]byte, error) {
+func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, nodeID, nodeSecret string) ([]byte, error) {
 	p := jwtPayload{
 		Allow: perms,
 	}
@@ -114,11 +112,11 @@ func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, no
 		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", nodeID, err)
 	}
 
-	if secret != deviceSecret {
-		return nil, xerrors.Errorf("device %s secret not match", nodeID)
+	if secret != nodeSecret {
+		return nil, xerrors.Errorf("node %s secret not match", nodeID)
 	}
 
-	return jwt.Sign(&p, (*jwt.HMACSHA)(jwt.NewHS256([]byte(deviceSecret))))
+	return jwt.Sign(&p, (*jwt.HMACSHA)(jwt.NewHS256([]byte(nodeSecret))))
 }
 
 // CandidateNodeConnect Candidate connect
@@ -126,7 +124,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
-	if !s.deviceExists(nodeID, int(api.NodeCandidate)) {
+	if !s.nodeExists(nodeID, int(api.NodeCandidate)) {
 		return xerrors.Errorf("candidate node not Exist: %s", nodeID)
 	}
 
@@ -137,7 +135,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("CandidateNodeConnect ConnectRPC err:%s", err.Error())
 	}
 
-	// load device info
+	// load node info
 	nodeInfo, err := candicateAPI.NodeInfo(ctx)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect NodeInfo err:%s", err.Error())
@@ -200,7 +198,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
-	if !s.deviceExists(nodeID, int(api.NodeEdge)) {
+	if !s.nodeExists(nodeID, int(api.NodeEdge)) {
 		return xerrors.Errorf("edge node not Exist: %s", nodeID)
 	}
 
@@ -211,7 +209,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("EdgeNodeConnect ConnectRPC err:%s", err.Error())
 	}
 
-	// load device info
+	// load node info
 	nodeInfo, err := edgeAPI.NodeInfo(ctx)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect NodeInfo err:%s", err.Error())
@@ -296,7 +294,7 @@ func (s *Scheduler) GetExternalAddr(ctx context.Context) (string, error) {
 func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.ValidateResults) error {
 	validator := handler.GetNodeID(ctx)
 	log.Debug("call back Validator block result, Validator is", validator)
-	if !s.deviceExists(validator, 0) {
+	if !s.nodeExists(validator, 0) {
 		return xerrors.Errorf("node not Exist: %s", validator)
 	}
 
@@ -354,15 +352,15 @@ func (s *Scheduler) ElectionValidators(ctx context.Context) error {
 	return nil
 }
 
-// GetNodeInfo return the devices information
+// GetNodeInfo return the node information
 func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (api.NodeInfo, error) {
 	nodeInfo := &api.NodeInfo{}
-	nodeInfo.NodeStatus = api.NodeOffline
+	nodeInfo.Online = false
 
 	info := s.NodeManager.GetNode(nodeID)
 	if info != nil {
 		nodeInfo = info.NodeInfo
-		nodeInfo.NodeStatus = api.NodeOnline
+		nodeInfo.Online = true
 	} else {
 		// node datas
 		dbInfo, err := s.NodeManager.NodeMgrDB.LoadNodeInfo(nodeID)
@@ -526,8 +524,8 @@ func (s *Scheduler) DeleteNodeLogFile(ctx context.Context, nodeID string) error 
 	return xerrors.Errorf("node %s not found")
 }
 
-// deviceExists Check if the id exists
-func (s *Scheduler) deviceExists(nodeID string, nodeType int) bool {
+// nodeExists Check if the id exists
+func (s *Scheduler) nodeExists(nodeID string, nodeType int) bool {
 	var nType int
 	err := s.NodeManager.CarfileDB.GetNodeAllocateInfo(nodeID, persistent.NodeTypeKey, &nType)
 	if err != nil {
@@ -549,13 +547,13 @@ func (s *Scheduler) ListNodes(ctx context.Context, cursor int, count int) (api.L
 		return rsp, err
 	}
 
-	deviceInValidator := make(map[string]struct{})
+	validator := make(map[string]struct{})
 	validatorList, err := s.NodeManager.NodeMgrDB.GetValidatorsWithList(s.NodeManager.ServerID)
 	if err != nil {
 		log.Errorf("get validator list: %v", err)
 	}
 	for _, id := range validatorList {
-		deviceInValidator[id] = struct{}{}
+		validator[id] = struct{}{}
 	}
 
 	nodeInfos := make([]api.NodeInfo, 0)
@@ -566,7 +564,7 @@ func (s *Scheduler) ListNodes(ctx context.Context, cursor int, count int) (api.L
 			continue
 		}
 
-		_, exist := deviceInValidator[nodeID]
+		_, exist := validator[nodeID]
 		if exist {
 			nodeInfo.NodeType = api.NodeValidate
 		}

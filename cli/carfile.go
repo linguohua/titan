@@ -123,9 +123,9 @@ var removeReplicaCmd = &cli.Command{
 		cidFlag,
 	},
 	Action: func(cctx *cli.Context) error {
-		nodeID := cctx.String("device-id")
+		nodeID := cctx.String("node-id")
 		if nodeID == "" {
-			return xerrors.New("device-id is nil")
+			return xerrors.New("node-id is nil")
 		}
 
 		cid := cctx.String("cid")
@@ -215,7 +215,7 @@ var cacheCarfileCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		cid := cctx.String("cid")
 		replicaCount := cctx.Int("replica-count")
-		nodeID := cctx.String("device-id")
+		nodeID := cctx.String("node-id")
 		date := cctx.String("expiration-date")
 
 		ctx := ReqContext(cctx)

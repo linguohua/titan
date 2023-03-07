@@ -14,7 +14,7 @@ import (
 func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) error {
 	nodeID := handler.GetNodeID(ctx)
 
-	if !s.deviceExists(nodeID, 0) {
+	if !s.nodeExists(nodeID, 0) {
 		return xerrors.Errorf("node not Exist: %s", nodeID)
 	}
 
@@ -31,7 +31,7 @@ func (s *Scheduler) CacheResult(ctx context.Context, info api.CacheResultInfo) e
 func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo api.RemoveCarfileResultInfo) error {
 	nodeID := handler.GetNodeID(ctx)
 
-	if !s.deviceExists(nodeID, 0) {
+	if !s.nodeExists(nodeID, 0) {
 		return xerrors.Errorf("node not Exist: %s", nodeID)
 	}
 

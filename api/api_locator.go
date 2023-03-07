@@ -12,7 +12,7 @@ type Locator interface {
 	ListAreaIDs(ctx context.Context) (areaIDs []string, err error)                                                         //perm:admin
 	ShowAccessPoint(ctx context.Context, areaID string) (AccessPoint, error)                                               //perm:admin
 
-	SetDeviceOnlineStatus(ctx context.Context, nodeID string, isOnline bool) error //perm:write
+	SetNodeOnlineStatus(ctx context.Context, nodeID string, isOnline bool) error //perm:write
 
 	// user api
 	GetDownloadInfosWithCarfile(ctx context.Context, cid, publicKey string) ([]*DownloadInfoResult, error) //perm:read
