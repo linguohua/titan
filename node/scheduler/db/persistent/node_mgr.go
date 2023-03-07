@@ -96,8 +96,8 @@ func (n *NodeMgrDB) SetNodePortMapping(nodeID, port string) error {
 	return err
 }
 
-// InitValidateResultInfos init validator result infos
-func (n *NodeMgrDB) InitValidateResultInfos(infos []*api.ValidateResultInfo) error {
+// InitValidatedResultInfos init validator result infos
+func (n *NodeMgrDB) InitValidatedResultInfos(infos []*api.ValidatedResultInfo) error {
 	tx := n.db.MustBegin()
 	for _, info := range infos {
 		query := "INSERT INTO validate_result (round_id, node_id, validator_id, status, start_time) VALUES (?, ?, ?, ?, ?)"
@@ -136,8 +136,8 @@ func (n *NodeMgrDB) SetValidateTimeoutOfNodes(roundID int64, nodeIDs []string) e
 	return nil
 }
 
-// UpdateValidateResultInfo Update validator info
-func (n *NodeMgrDB) UpdateValidateResultInfo(info *api.ValidateResultInfo) error {
+// UpdateValidatedResultInfo Update validator info
+func (n *NodeMgrDB) UpdateValidatedResultInfo(info *api.ValidatedResultInfo) error {
 	if info.Status == api.ValidateStatusSuccess {
 		query := "UPDATE validate_result SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW() WHERE round_id=:round_id AND node_id=:node_id"
 		_, err := n.db.NamedExec(query, info)
@@ -149,10 +149,10 @@ func (n *NodeMgrDB) UpdateValidateResultInfo(info *api.ValidateResultInfo) error
 	return err
 }
 
-// ValidateResultInfos Get validator result infos
-func (n *NodeMgrDB) ValidateResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*api.SummeryValidateResult, error) {
-	res := new(api.SummeryValidateResult)
-	var infos []api.ValidateResultInfo
+// ValidatedResultInfos Get validator result infos
+func (n *NodeMgrDB) ValidatedResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*api.ListValidatedResultRsp, error) {
+	res := new(api.ListValidatedResultRsp)
+	var infos []api.ValidatedResultInfo
 	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM validate_result WHERE start_time between ? and ? order by id asc  LIMIT ?,? ")
 
 	if pageSize > loadValidateInfoMaxCount {
@@ -164,7 +164,7 @@ func (n *NodeMgrDB) ValidateResultInfos(startTime, endTime time.Time, pageNumber
 		return nil, err
 	}
 
-	res.ValidateResultInfos = infos
+	res.ValidatedResultInfos = infos
 
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM validate_result WHERE start_time between ? and ? ")
 	var count int

@@ -15,7 +15,7 @@ import (
 	"github.com/linguohua/titan/node/scheduler/node"
 	"github.com/linguohua/titan/node/scheduler/storage"
 	"github.com/linguohua/titan/node/scheduler/sync"
-	"github.com/linguohua/titan/node/scheduler/validator"
+	"github.com/linguohua/titan/node/scheduler/validation"
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
 )
@@ -58,7 +58,7 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(*storage.Manager), modules.NewStorageManager),
 		Override(new(*sync.DataSync), sync.NewDataSync),
 		If(cfg.EnableValidate,
-			Override(new(*validator.Validator), validator.NewValidator),
+			Override(new(*validation.Validation), validation.New),
 		),
 		Override(new(*election.Election), election.NewElection),
 		Override(new(*scheduler.AppUpdater), scheduler.NewAppUpdater),

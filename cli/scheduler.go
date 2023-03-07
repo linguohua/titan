@@ -19,9 +19,8 @@ var SchedulerCmds = []*cli.Command{
 	WithCategory("node", nodeCmd),
 	WithCategory("carfile", carfileCmd),
 	// validator
-	electionCmd,
-	validateCmd,
-	validateSwitchCmd,
+	startElectionCmd,
+	startValidateCmd,
 	// other
 	nodeAppUpdateCmd,
 }
@@ -139,9 +138,9 @@ var setNodePortCmd = &cli.Command{
 	},
 }
 
-var validateCmd = &cli.Command{
-	Name:  "start-validator",
-	Usage: "Validate edge node",
+var startValidateCmd = &cli.Command{
+	Name:  "start-validate",
+	Usage: "validate edges node",
 
 	Before: func(cctx *cli.Context) error {
 		return nil
@@ -155,11 +154,11 @@ var validateCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.ValidateStart(ctx)
+		return schedulerAPI.StartOnceValidate(ctx)
 	},
 }
 
-var electionCmd = &cli.Command{
+var startElectionCmd = &cli.Command{
 	Name:  "start-election",
 	Usage: "Start election validator",
 
@@ -176,37 +175,7 @@ var electionCmd = &cli.Command{
 
 		defer closer()
 
-		return schedulerAPI.ElectionValidators(ctx)
-	},
-}
-
-var validateSwitchCmd = &cli.Command{
-	Name:  "validator-switch",
-	Usage: "validator switch",
-	Flags: []cli.Flag{
-		&cli.BoolFlag{
-			Name:  "enable",
-			Usage: "is enable",
-			Value: false,
-		},
-	},
-
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		enable := cctx.Bool("enable")
-
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		schedulerAPI.ValidateSwitch(ctx, enable)
-
-		return nil
+		return schedulerAPI.StartOnceElection(ctx)
 	},
 }
 
