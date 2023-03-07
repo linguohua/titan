@@ -86,7 +86,7 @@ func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, car
 		}
 
 		_, diskUsage := carfileOperation.device.GetDiskUsageStat()
-		info := api.RemoveCarfileResultInfo{BlockCount: carfileOperation.TotalBlockCount, DiskUsage: diskUsage}
+		info := api.RemoveCarfileResult{BlockCount: carfileOperation.TotalBlockCount, DiskUsage: diskUsage}
 
 		ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 		defer cancel()

@@ -20,9 +20,6 @@ type PermissionAdminToken []byte
 // SessionCallbackFunc callback function when the node connects
 type SessionCallbackFunc func(string, string)
 
-// ExitCallbackFunc callback function when the node exits
-type ExitCallbackFunc func([]string)
-
 // LocatorUUID the locator unique identifier
 type LocatorUUID string
 

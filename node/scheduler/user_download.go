@@ -15,7 +15,7 @@ import (
 )
 
 // NodeDownloadBlockResult node result for user download block
-func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result api.NodeBlockDownloadResult) error {
+func (s *Scheduler) UserDownloadResult(ctx context.Context, result api.UserDownloadResult) error {
 	nodeID := handler.GetNodeID(ctx)
 	if result.Succeed {
 		blockHash, err := cidutil.CIDString2HashString(result.BlockCID)
@@ -23,7 +23,7 @@ func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result a
 			return err
 		}
 
-		blockDwnloadInfo := &api.BlockDownloadInfo{NodeID: nodeID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
+		blockDwnloadInfo := &api.DownloadRecordInfo{NodeID: nodeID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
 
 		carfileInfo, _ := s.NodeManager.CarfileDB.LoadCarfileInfo(blockHash)
 		if carfileInfo != nil && carfileInfo.CarfileCid != "" {
@@ -53,7 +53,7 @@ func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []api.
 }
 
 // GetDownloadInfosWithCarfile find node
-func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string, publicKey string) ([]*api.DownloadInfoResult, error) {
+func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string) ([]*api.DownloadInfoResult, error) {
 	if cid == "" {
 		return nil, xerrors.New("cids is nil")
 	}

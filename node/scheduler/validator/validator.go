@@ -208,7 +208,7 @@ func (v *Validator) assignValidator(validatorList []string) map[string][]api.Req
 		return ""
 	}
 
-	infos := make([]*api.ValidateResult, 0)
+	infos := make([]*api.ValidateResultInfo, 0)
 	validateds := make([]string, 0)
 
 	for i, validated := range validatedList {
@@ -229,7 +229,7 @@ func (v *Validator) assignValidator(validatorList []string) map[string][]api.Req
 
 		validateReqs[validatorID] = list
 
-		info := &api.ValidateResult{
+		info := &api.ValidateResultInfo{
 			RoundID:     v.curRoundID,
 			NodeID:      validated.nodeID,
 			ValidatorID: validatorID,
@@ -306,25 +306,25 @@ func (v *Validator) getRandNum(max int, r *rand.Rand) int {
 
 // updateFailValidateResult update validator result info
 func (v *Validator) updateFailValidateResult(nodeID string, status api.ValidateStatus) error {
-	resultInfo := &api.ValidateResult{RoundID: v.curRoundID, NodeID: nodeID, Status: status}
+	resultInfo := &api.ValidateResultInfo{RoundID: v.curRoundID, NodeID: nodeID, Status: status}
 	return v.nodeManager.NodeMgrDB.UpdateValidateResultInfo(resultInfo)
 }
 
 // updateSuccessValidateResult update validator result info
-func (v *Validator) updateSuccessValidateResult(validateResults *api.ValidateResults) error {
-	resultInfo := &api.ValidateResult{
-		RoundID:     validateResults.RoundID,
-		NodeID:      validateResults.NodeID,
-		BlockNumber: int64(len(validateResults.Cids)),
+func (v *Validator) updateSuccessValidateResult(validateResult *api.ValidatedResult) error {
+	resultInfo := &api.ValidateResultInfo{
+		RoundID:     validateResult.RoundID,
+		NodeID:      validateResult.NodeID,
+		BlockNumber: int64(len(validateResult.Cids)),
 		Status:      api.ValidateStatusSuccess,
-		Bandwidth:   validateResults.Bandwidth,
-		Duration:    validateResults.CostTime,
+		Bandwidth:   validateResult.Bandwidth,
+		Duration:    validateResult.CostTime,
 	}
 	return v.nodeManager.NodeMgrDB.UpdateValidateResultInfo(resultInfo)
 }
 
-// ValidateResult node validator result
-func (v *Validator) ValidateResult(validateResult *api.ValidateResults) error {
+// Result node validator result
+func (v *Validator) Result(validateResult *api.ValidatedResult) error {
 	if validateResult.RoundID != v.curRoundID {
 		return xerrors.Errorf("round id does not match")
 	}

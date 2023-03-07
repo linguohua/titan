@@ -11,69 +11,64 @@ import (
 type Scheduler interface {
 	Common
 
-	// call by command
-	GetOnlineNodeIDs(ctx context.Context, nodeType NodeType) ([]string, error)                   //perm:read
-	ElectionValidators(ctx context.Context) error                                                //perm:admin
-	CacheCarfile(ctx context.Context, info *CacheCarfileInfo) error                              //perm:admin
-	RemoveCarfile(ctx context.Context, carfileID string) error                                   //perm:admin
-	RemoveCache(ctx context.Context, carfileID, nodeID string) error                             //perm:admin
-	GetCarfileRecordInfo(ctx context.Context, cid string) (CarfileRecordInfo, error)             //perm:read
-	ListCarfileRecords(ctx context.Context, page int) (*CarfileRecordsInfo, error)               //perm:read
-	GetDownloadingCarfileRecords(ctx context.Context) ([]*CarfileRecordInfo, error)              //perm:read
+	// node
+	OnlineNodeList(ctx context.Context, nodeType NodeType) ([]string, error)                     //perm:read
 	AllocateNodes(ctx context.Context, nodeType NodeType, count int) ([]NodeAllocateInfo, error) //perm:admin
-	ValidateSwitch(ctx context.Context, open bool) error                                         //perm:admin
-	ValidateRunningState(ctx context.Context) (bool, error)                                      //perm:admin
-	ValidateStart(ctx context.Context) error                                                     //perm:admin
-	ResetCacheExpirationTime(ctx context.Context, carfileCid string, time time.Time) error       //perm:admin
 	NodeQuit(ctx context.Context, nodeID, secret string) error                                   //perm:admin
-	ResetReplicaCacheCount(ctx context.Context, count int) error                                 //perm:admin
-	ExecuteUndoneCarfilesTask(ctx context.Context, hashs []string) error                         //perm:admin
-	ShowNodeLogFile(ctx context.Context, nodeID string) (*LogFile, error)                        //perm:admin
-	DownloadNodeLogFile(ctx context.Context, nodeID string) ([]byte, error)                      //perm:admin
+	NodeLogFileInfo(ctx context.Context, nodeID string) (*LogFile, error)                        //perm:admin
+	NodeLogFile(ctx context.Context, nodeID string) ([]byte, error)                              //perm:admin
 	DeleteNodeLogFile(ctx context.Context, nodeID string) error                                  //perm:admin
 	SetNodePort(ctx context.Context, nodeID, port string) error                                  //perm:admin
-	// call by locator
-	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error //perm:write
-
-	// call by node
+	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error                    //perm:write
 	// node send result when user download block complete
-	NodeResultForUserDownloadBlock(ctx context.Context, result NodeBlockDownloadResult) error            //perm:write
+	UserDownloadResult(ctx context.Context, result UserDownloadResult) error                             //perm:write
 	EdgeNodeConnect(ctx context.Context) error                                                           //perm:write
-	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                      //perm:write
+	NodeValidatedResult(ctx context.Context, validateResult ValidatedResult) error                       //perm:write
 	CandidateNodeConnect(ctx context.Context) error                                                      //perm:write
-	CacheResult(ctx context.Context, resultInfo CacheResultInfo) error                                   //perm:write
-	RemoveCarfileResult(ctx context.Context, resultInfo RemoveCarfileResultInfo) error                   //perm:write
-	GetExternalAddr(ctx context.Context) (string, error)                                                 //perm:read
-	GetPublicKey(ctx context.Context) (string, error)                                                    //perm:write
+	CacheResult(ctx context.Context, resultInfo CacheResult) error                                       //perm:write
+	RemoveCarfileResult(ctx context.Context, resultInfo RemoveCarfileResult) error                       //perm:write
+	NodeExternalAddr(ctx context.Context) (string, error)                                                //perm:read
+	NodePublicKey(ctx context.Context) (string, error)                                                   //perm:write
 	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                         //perm:read
 	AuthNodeNew(ctx context.Context, perms []auth.Permission, nodeID, nodeSecret string) ([]byte, error) //perm:read
-
-	GetNodeAppUpdateInfos(ctx context.Context) (map[int]*NodeAppUpdateInfo, error) //perm:read
-	SetNodeAppUpdateInfo(ctx context.Context, info *NodeAppUpdateInfo) error       //perm:admin                                                           //perm:write
-	DeleteNodeAppUpdateInfos(ctx context.Context, nodeType int) error              //perm:admin
-
+	NodeInfo(ctx context.Context, nodeID string) (NodeInfo, error)                                       //perm:read
+	NodeDownloadRecord(ctx context.Context, nodeID string) ([]*DownloadRecordInfo, error)                //perm:read
+	NodeList(ctx context.Context, cursor int, count int) (ListNodesRsp, error)                           //perm:read
 	// nat travel, can get edge external addr with different scheduler
-	GetEdgeExternalAddr(ctx context.Context, nodeID, schedulerURL string) (string, error) //perm:write
+	EdgeExternalAddr(ctx context.Context, nodeID, schedulerURL string) (string, error) //perm:write
 	// nat travel
-	CheckEdgeIfBehindFullConeNAT(ctx context.Context, edgeURL string) (bool, error) //perm:read
-	GetNatType(ctx context.Context, nodeID string) (string, error)                  //perm:write
+	IsBehindFullConeNAT(ctx context.Context, edgeURL string) (bool, error) //perm:read
+	NodeNatType(ctx context.Context, nodeID string) (NatType, error)       //perm:write
+	// user
+	GetDownloadInfosWithCarfile(ctx context.Context, cid string) ([]*DownloadInfoResult, error) //perm:read
 
-	// call by user
-	GetDownloadInfosWithCarfile(ctx context.Context, cid, publicKey string) ([]*DownloadInfoResult, error) //perm:read
-	GetNodeInfo(ctx context.Context, nodeID string) (NodeInfo, error)                                      //perm:read
-	GetDownloadInfo(ctx context.Context, nodeID string) ([]*BlockDownloadInfo, error)                      //perm:read
+	// carfile
+	CacheCarfile(ctx context.Context, info *CacheCarfileInfo) error                        //perm:admin
+	RemoveCarfile(ctx context.Context, carfileID string) error                             //perm:admin
+	RemoveCache(ctx context.Context, carfileID, nodeID string) error                       //perm:admin
+	GetCarfileRecordInfo(ctx context.Context, cid string) (CarfileRecordInfo, error)       //perm:read
+	ListCarfileRecords(ctx context.Context, page int) (*CarfileRecordsInfo, error)         //perm:read
+	GetDownloadingCarfileRecords(ctx context.Context) ([]*CarfileRecordInfo, error)        //perm:read
+	ResetCacheExpirationTime(ctx context.Context, carfileCid string, time time.Time) error //perm:admin
+	ResetReplicaCacheCount(ctx context.Context, count int) error                           //perm:admin
+	ExecuteUndoneCarfilesTask(ctx context.Context, hashs []string) error                   //perm:admin
+
+	// server
+	ElectionValidators(ctx context.Context) error                                  //perm:admin
+	ValidateSwitch(ctx context.Context, open bool) error                           //perm:admin
+	ValidateRunningState(ctx context.Context) (bool, error)                        //perm:admin
+	ValidateStart(ctx context.Context) error                                       //perm:admin
+	GetNodeAppUpdateInfos(ctx context.Context) (map[int]*NodeAppUpdateInfo, error) //perm:read
+	SetNodeAppUpdateInfo(ctx context.Context, info *NodeAppUpdateInfo) error       //perm:admin
+	DeleteNodeAppUpdateInfos(ctx context.Context, nodeType int) error              //perm:admin
 
 	// user send result when user download block complete or failed
 	UserDownloadBlockResults(ctx context.Context, results []UserBlockDownloadResult) error //perm:read
-
-	// ListNodes cursor: start index, count: load number of node
-	ListNodes(ctx context.Context, cursor int, count int) (ListNodesRsp, error)                                //perm:read
+	// NodeList cursor: start index, count: load number of node
 	ListBlockDownloadInfo(ctx context.Context, req ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) //perm:read
-
 	// ListCaches cache manager
-	GetReplicaInfos(ctx context.Context, req ListCacheInfosReq) (ListCacheInfosRsp, error) //perm:read
-	GetSystemInfo(ctx context.Context) (SystemBaseInfo, error)                             //perm:read
-
+	GetReplicaInfos(ctx context.Context, req ListCacheInfosReq) (ListCacheInfosRsp, error)                                                 //perm:read
+	GetSystemInfo(ctx context.Context) (SystemBaseInfo, error)                                                                             //perm:read
 	GetSummaryValidateMessage(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*SummeryValidateResult, error) //perm:read
 }
 
@@ -102,8 +97,8 @@ type NodeAllocateInfo struct {
 	NodeType   int    `db:"node_type"`
 }
 
-// CacheResultInfo cache data result info
-type CacheResultInfo struct {
+// CacheResult cache data result info
+type CacheResult struct {
 	Status            CacheStatus
 	Msg               string
 	CarfileBlockCount int
@@ -115,8 +110,8 @@ type CacheResultInfo struct {
 	TotalBlockCount   int
 }
 
-// RemoveCarfileResultInfo remove carfile result
-type RemoveCarfileResultInfo struct {
+// RemoveCarfileResult remove carfile result
+type RemoveCarfileResult struct {
 	BlockCount int
 	DiskUsage  float64
 }
@@ -160,7 +155,8 @@ type CacheCarfileInfo struct {
 	ExpirationTime time.Time `db:"expiration"`
 }
 
-type NodeBlockDownloadResult struct {
+// UserDownloadResult user download carfile result
+type UserDownloadResult struct {
 	// serial number
 	SN            int64
 	Sign          []byte
@@ -279,6 +275,23 @@ const (
 	NatTypePortRestricted
 )
 
+func (n NatType) String() string {
+	switch n {
+	case NatTypeNo:
+		return "NoNAT"
+	case NatTypeSymmetric:
+		return "SymmetricNAT"
+	case NatTypeFullCone:
+		return "FullConeNAT"
+	case NatTypeRestricted:
+		return "RestrictedNAT"
+	case NatTypePortRestricted:
+		return "PortRestrictedNAT"
+	}
+
+	return "UnknowNAT"
+}
+
 type ListNodesRsp struct {
 	Data  []NodeInfo `json:"data"`
 	Total int64      `json:"total"`
@@ -338,8 +351,8 @@ const (
 )
 
 type ListBlockDownloadInfoRsp struct {
-	Data  []BlockDownloadInfo `json:"data"`
-	Total int64               `json:"total"`
+	Data  []DownloadRecordInfo `json:"data"`
+	Total int64                `json:"total"`
 }
 
 type WebBlock struct {
@@ -361,12 +374,12 @@ type ValidationInfo struct {
 }
 
 type SummeryValidateResult struct {
-	Total               int              `json:"total"`
-	ValidateResultInfos []ValidateResult `json:"validate_result_infos"`
+	Total               int                  `json:"total"`
+	ValidateResultInfos []ValidateResultInfo `json:"validate_result_infos"`
 }
 
-// ValidateResult validator result
-type ValidateResult struct {
+// ValidateResultInfo validator result
+type ValidateResultInfo struct {
 	ID          int
 	RoundID     string         `db:"round_id"`
 	NodeID      string         `db:"node_id"`

@@ -2,6 +2,7 @@ package modules
 
 import (
 	"context"
+
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/modules/helpers"
@@ -43,35 +44,12 @@ func NewSessionCallbackFunc(nodeMgr *node.Manager) (dtypes.SessionCallbackFunc, 
 	return node.NewSessionCallBackFunc(nodeMgr)
 }
 
-// NewExitCallbackFunc callback function when the node exits
-func NewExitCallbackFunc(cdb *persistent.CarfileDB) (dtypes.ExitCallbackFunc, error) {
-	return func(nodeIDs []string) {
-		log.Infof("node event , nodes quit:%v", nodeIDs)
-
-		hashes, err := cdb.LoadCarfileRecordsWithNodes(nodeIDs)
-		if err != nil {
-			log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
-			return
-		}
-
-		err = cdb.RemoveReplicaInfoWithNodes(nodeIDs)
-		if err != nil {
-			log.Errorf("RemoveReplicaInfoWithNodes err:%s", err.Error())
-			return
-		}
-
-		for _, hash := range hashes {
-			log.Infof("need restore storage :%s", hash)
-		}
-	}, nil
-}
-
 type StorageManagerParams struct {
 	fx.In
 
 	Lifecycle  fx.Lifecycle
 	MetricsCtx helpers.MetricsCtx
-	//API        v1api.FullNode
+	// API        v1api.FullNode
 	Token      dtypes.PermissionWriteToken
 	MetadataDS dtypes.MetadataDS
 	NodeManger *node.Manager
@@ -99,4 +77,3 @@ func NewStorageManager(params StorageManagerParams) *storage.Manager {
 
 	return m
 }
-

@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"crypto/rsa"
+	"database/sql"
 	"fmt"
 	"net"
 	"net/http"
@@ -128,6 +129,14 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("candidate node not Exist: %s", nodeID)
 	}
 
+	oldInfo := s.NodeManager.GetNode(nodeID)
+	if oldInfo != nil {
+		oAddr := oldInfo.Addr()
+		if oAddr != remoteAddr {
+			return xerrors.Errorf("node already login, addr : %s", oAddr)
+		}
+	}
+
 	log.Infof("Candidate Connect %s, address:%s", nodeID, remoteAddr)
 	candidateNode := node.NewCandidate(s.AdminToken)
 	candicateAPI, err := candidateNode.ConnectRPC(remoteAddr, true)
@@ -142,42 +151,10 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		return err
 	}
 
-	if nodeID != nodeInfo.NodeID {
-		return xerrors.Errorf("nodeID mismatch %s,%s", nodeID, nodeInfo.NodeID)
-	}
-
-	privateKeyStr, err := s.NodeManager.NodeMgrDB.NodePrivateKey(nodeID)
-	if err != nil {
-		return xerrors.Errorf("NodePrivateKey %s,%s", nodeID, err.Error())
-	}
-	var privateKey *rsa.PrivateKey
-	if len(privateKeyStr) > 0 {
-		privateKey, err = titanRsa.Pem2PrivateKey(privateKeyStr)
-		if err != nil {
-			return err
-		}
-	} else {
-		key, err := titanRsa.GeneratePrivateKey(1024)
-		if err != nil {
-			return err
-		}
-		privateKey = key
-	}
-
-	port, err := s.NodeManager.NodeMgrDB.NodePortMapping(nodeID)
+	candidateNode.BaseInfo, err = s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
 	if err != nil {
 		return err
 	}
-
-	nodeInfo.PortMapping = port
-
-	nodeInfo.NodeType = api.NodeCandidate
-	nodeInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
-	if err != nil {
-		return xerrors.Errorf("SplitHostPort err:%s", err.Error())
-	}
-
-	candidateNode.BaseInfo = node.NewBaseInfo(&nodeInfo, privateKey, remoteAddr)
 
 	err = s.NodeManager.CandidateOnline(candidateNode)
 	if err != nil {
@@ -202,6 +179,14 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("edge node not Exist: %s", nodeID)
 	}
 
+	oldInfo := s.NodeManager.GetNode(nodeID)
+	if oldInfo != nil {
+		oAddr := oldInfo.Addr()
+		if oAddr != remoteAddr {
+			return xerrors.Errorf("node already login, addr : %s", oAddr)
+		}
+	}
+
 	log.Infof("Edge Connect %s; remoteAddr:%s", nodeID, remoteAddr)
 	edgeNode := node.NewEdge(s.AdminToken)
 	edgeAPI, err := edgeNode.ConnectRPC(remoteAddr, true)
@@ -216,42 +201,10 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		return err
 	}
 
-	if nodeID != nodeInfo.NodeID {
-		return xerrors.Errorf("nodeID mismatch %s,%s", nodeID, nodeInfo.NodeID)
-	}
-
-	privateKeyStr, err := s.NodeManager.NodeMgrDB.NodePrivateKey(nodeID)
-	if err != nil {
-		return xerrors.Errorf("NodePrivateKey %s,%s", nodeID, err.Error())
-	}
-	var privateKey *rsa.PrivateKey
-	if len(privateKeyStr) > 0 {
-		privateKey, err = titanRsa.Pem2PrivateKey(privateKeyStr)
-		if err != nil {
-			return err
-		}
-	} else {
-		key, err := titanRsa.GeneratePrivateKey(1024)
-		if err != nil {
-			return err
-		}
-		privateKey = key
-	}
-
-	port, err := s.NodeManager.NodeMgrDB.NodePortMapping(nodeID)
+	edgeNode.BaseInfo, err = s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
 	if err != nil {
 		return err
 	}
-
-	nodeInfo.PortMapping = port
-
-	nodeInfo.NodeType = api.NodeEdge
-	nodeInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
-	if err != nil {
-		return xerrors.Errorf("SplitHostPort err:%s", err.Error())
-	}
-
-	edgeNode.BaseInfo = node.NewBaseInfo(&nodeInfo, privateKey, remoteAddr)
 
 	err = s.NodeManager.EdgeOnline(edgeNode)
 	if err != nil {
@@ -267,8 +220,57 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	return nil
 }
 
-// GetPublicKey get node Public Key
-func (s *Scheduler) GetPublicKey(ctx context.Context) (string, error) {
+func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *api.NodeInfo) (*node.BaseInfo, error) {
+	if nodeID != nodeInfo.NodeID {
+		return nil, xerrors.Errorf("nodeID mismatch %s,%s", nodeID, nodeInfo.NodeID)
+	}
+
+	privateKey, err := s.loadOrNewPrivateKey(nodeID)
+	if err != nil {
+		return nil, xerrors.Errorf("loadOrNewPrivateKey %s err : %s", nodeID, err.Error())
+	}
+
+	port, err := s.NodeManager.NodeMgrDB.NodePortMapping(nodeID)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
+	}
+
+	nodeInfo.PortMapping = port
+
+	nodeInfo.NodeType = api.NodeCandidate
+	nodeInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
+	if err != nil {
+		return nil, xerrors.Errorf("SplitHostPort err:%s", err.Error())
+	}
+
+	return node.NewBaseInfo(nodeInfo, privateKey, remoteAddr), nil
+}
+
+func (s *Scheduler) loadOrNewPrivateKey(nodeID string) (*rsa.PrivateKey, error) {
+	privateKeyStr, err := s.NodeManager.NodeMgrDB.NodePrivateKey(nodeID)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+
+	var privateKey *rsa.PrivateKey
+	if len(privateKeyStr) > 0 {
+		privateKey, err = titanRsa.Pem2PrivateKey(privateKeyStr)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		key, err := titanRsa.GeneratePrivateKey(1024)
+		if err != nil {
+			return nil, err
+		}
+		privateKey = key
+	}
+
+	return privateKey, nil
+}
+
+// NodePublicKey get node Public Key
+func (s *Scheduler) NodePublicKey(ctx context.Context) (string, error) {
 	nodeID := handler.GetNodeID(ctx)
 
 	edgeNode := s.NodeManager.GetEdgeNode(nodeID)
@@ -284,25 +286,25 @@ func (s *Scheduler) GetPublicKey(ctx context.Context) (string, error) {
 	return "", fmt.Errorf("Can not get node %s publicKey", nodeID)
 }
 
-// GetExternalAddr get node External address
-func (s *Scheduler) GetExternalAddr(ctx context.Context) (string, error) {
+// NodeExternalAddr get node External address
+func (s *Scheduler) NodeExternalAddr(ctx context.Context) (string, error) {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	return remoteAddr, nil
 }
 
-// ValidateBlockResult Validator Block Result
-func (s *Scheduler) ValidateBlockResult(ctx context.Context, validateResults api.ValidateResults) error {
+// NodeValidatedResult Validator Block Result
+func (s *Scheduler) NodeValidatedResult(ctx context.Context, validateResult api.ValidatedResult) error {
 	validator := handler.GetNodeID(ctx)
 	log.Debug("call back Validator block result, Validator is", validator)
 	if !s.nodeExists(validator, 0) {
 		return xerrors.Errorf("node not Exist: %s", validator)
 	}
 
-	vs := &validateResults
+	vs := &validateResult
 	vs.Validator = validator
 
 	// s.Validator.PushResultToQueue(vs)
-	s.Validator.ValidateResult(vs)
+	s.Validator.Result(vs)
 	return nil
 }
 
@@ -325,8 +327,8 @@ func (s *Scheduler) AllocateNodes(ctx context.Context, nodeType api.NodeType, co
 	return list, nil
 }
 
-// GetOnlineNodeIDs Get all online node id
-func (s *Scheduler) GetOnlineNodeIDs(ctx context.Context, nodeType api.NodeType) ([]string, error) {
+// OnlineNodeList Get all online node id
+func (s *Scheduler) OnlineNodeList(ctx context.Context, nodeType api.NodeType) ([]string, error) {
 	if nodeType == api.NodeValidate {
 		list, err := s.NodeManager.NodeMgrDB.GetValidatorsWithList(s.ServerID)
 		if err != nil {
@@ -343,7 +345,7 @@ func (s *Scheduler) GetOnlineNodeIDs(ctx context.Context, nodeType api.NodeType)
 		return out, nil
 	}
 
-	return s.NodeManager.GetOnlineNodes(nodeType)
+	return s.NodeManager.OnlineNodeList(nodeType)
 }
 
 // ElectionValidators Validators
@@ -352,8 +354,8 @@ func (s *Scheduler) ElectionValidators(ctx context.Context) error {
 	return nil
 }
 
-// GetNodeInfo return the node information
-func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (api.NodeInfo, error) {
+// NodeInfo return the node information
+func (s *Scheduler) NodeInfo(ctx context.Context, nodeID string) (api.NodeInfo, error) {
 	nodeInfo := &api.NodeInfo{}
 	nodeInfo.Online = false
 
@@ -415,8 +417,8 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, id string, token string)
 	return nil
 }
 
-// GetDownloadInfo get node download info
-func (s *Scheduler) GetDownloadInfo(ctx context.Context, nodeID string) ([]*api.BlockDownloadInfo, error) {
+// NodeDownloadRecord get node download info
+func (s *Scheduler) NodeDownloadRecord(ctx context.Context, nodeID string) ([]*api.DownloadRecordInfo, error) {
 	return s.NodeManager.CarfileDB.GetBlockDownloadInfoByNodeID(nodeID)
 }
 
@@ -480,8 +482,8 @@ func (s *Scheduler) authNew() error {
 	return nil
 }
 
-// ShowNodeLogFile show node log file
-func (s *Scheduler) ShowNodeLogFile(ctx context.Context, nodeID string) (*api.LogFile, error) {
+// NodeLogFileInfo show node log file
+func (s *Scheduler) NodeLogFileInfo(ctx context.Context, nodeID string) (*api.LogFile, error) {
 	cNode := s.NodeManager.GetCandidateNode(nodeID)
 	if cNode != nil {
 		return cNode.API().ShowLogFile(ctx)
@@ -495,8 +497,8 @@ func (s *Scheduler) ShowNodeLogFile(ctx context.Context, nodeID string) (*api.Lo
 	return nil, xerrors.Errorf("node %s not found")
 }
 
-// DownloadNodeLogFile Download Node Log File
-func (s *Scheduler) DownloadNodeLogFile(ctx context.Context, nodeID string) ([]byte, error) {
+// NodeLogFile Download Node Log File
+func (s *Scheduler) NodeLogFile(ctx context.Context, nodeID string) ([]byte, error) {
 	cNode := s.NodeManager.GetCandidateNode(nodeID)
 	if cNode != nil {
 		return cNode.API().DownloadLogFile(ctx)
@@ -539,7 +541,7 @@ func (s *Scheduler) nodeExists(nodeID string, nodeType int) bool {
 	return true
 }
 
-func (s *Scheduler) ListNodes(ctx context.Context, cursor int, count int) (api.ListNodesRsp, error) {
+func (s *Scheduler) NodeList(ctx context.Context, cursor int, count int) (api.ListNodesRsp, error) {
 	rsp := api.ListNodesRsp{Data: make([]api.NodeInfo, 0)}
 
 	nodes, total, err := s.NodeManager.NodeMgrDB.ListNodeIDs(cursor, count)
@@ -558,9 +560,9 @@ func (s *Scheduler) ListNodes(ctx context.Context, cursor int, count int) (api.L
 
 	nodeInfos := make([]api.NodeInfo, 0)
 	for _, nodeID := range nodes {
-		nodeInfo, err := s.GetNodeInfo(ctx, nodeID)
+		nodeInfo, err := s.NodeInfo(ctx, nodeID)
 		if err != nil {
-			log.Errorf("GetNodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
+			log.Errorf("NodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
 			continue
 		}
 

@@ -43,7 +43,7 @@ var showOnlineNodeCmd = &cli.Command{
 		}
 		defer closer()
 
-		nodes, err := schedulerAPI.GetOnlineNodeIDs(ctx, api.NodeType(t))
+		nodes, err := schedulerAPI.OnlineNodeList(ctx, api.NodeType(t))
 
 		fmt.Println("Online nodes count:", len(nodes))
 		for _, node := range nodes {
@@ -137,15 +137,12 @@ var showNodeInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		info, err := schedulerAPI.GetNodeInfo(ctx, nodeID)
+		info, err := schedulerAPI.NodeInfo(ctx, nodeID)
 		if err != nil {
 			return err
 		}
 
-		natType, err := schedulerAPI.GetNatType(ctx, nodeID)
-		if err != nil {
-			natType = "UnkonwNAT"
-		}
+		natType, _ := schedulerAPI.NodeNatType(ctx, nodeID)
 
 		fmt.Printf("node id: %s \n", info.NodeID)
 		fmt.Printf("node name: %s \n", info.NodeName)
@@ -161,7 +158,7 @@ var showNodeInfoCmd = &cli.Command{
 		fmt.Printf("node cpu percent: %.2f %s \n", info.CPUUsage, "%")
 		//
 		fmt.Printf("node DownloadCount: %d \n", info.DownloadBlocks)
-		fmt.Printf("node NatType: %s \n", natType)
+		fmt.Printf("node NatType: %s \n", natType.String())
 
 		return nil
 	},
@@ -183,7 +180,7 @@ var downloadNodeLogFileCmd = &cli.Command{
 		}
 		defer closer()
 
-		info, err := schedulerAPI.ShowNodeLogFile(ctx, nodeID)
+		info, err := schedulerAPI.NodeLogFileInfo(ctx, nodeID)
 		if err != nil {
 			return err
 		}
@@ -193,7 +190,7 @@ var downloadNodeLogFileCmd = &cli.Command{
 			return nil
 		}
 
-		data, err := schedulerAPI.DownloadNodeLogFile(ctx, nodeID)
+		data, err := schedulerAPI.NodeLogFile(ctx, nodeID)
 		if err != nil {
 			return err
 		}
@@ -219,7 +216,7 @@ var showNodeLogInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		file, err := schedulerAPI.ShowNodeLogFile(ctx, nodeID)
+		file, err := schedulerAPI.NodeLogFileInfo(ctx, nodeID)
 		if err != nil {
 			return err
 		}
@@ -312,7 +309,7 @@ var edgeExternalAddrCmd = &cli.Command{
 		}
 		defer closer()
 
-		addr, err := schedulerAPI.GetEdgeExternalAddr(ctx, nodeID, schedulerURL)
+		addr, err := schedulerAPI.EdgeExternalAddr(ctx, nodeID, schedulerURL)
 		if err != nil {
 			return err
 		}
