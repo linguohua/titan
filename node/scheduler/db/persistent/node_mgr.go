@@ -19,7 +19,7 @@ func NewNodeMgrDB(db *sqlx.DB) *NodeMgrDB {
 
 // NodeOffline Set the last online time of the node
 func (n *NodeMgrDB) NodeOffline(nodeID string, lastTime time.Time) error {
-	info := &api.DeviceInfo{
+	info := &api.NodeInfo{
 		NodeID:   nodeID,
 		LastTime: lastTime,
 	}
@@ -42,8 +42,8 @@ func (n *NodeMgrDB) NodePrivateKey(nodeID string) (string, error) {
 }
 
 // LongTimeOfflineNodes get nodes that are offline for a long time
-func (n *NodeMgrDB) LongTimeOfflineNodes(hour int) ([]*api.DeviceInfo, error) {
-	list := make([]*api.DeviceInfo, 0)
+func (n *NodeMgrDB) LongTimeOfflineNodes(hour int) ([]*api.NodeInfo, error) {
+	list := make([]*api.NodeInfo, 0)
 
 	time := time.Now().Add(-time.Duration(hour) * time.Hour)
 
@@ -86,7 +86,7 @@ func (n *NodeMgrDB) NodePortMapping(nodeID string) (string, error) {
 
 // SetNodePortMapping Set node mapping port
 func (n *NodeMgrDB) SetNodePortMapping(nodeID, port string) error {
-	info := api.DeviceInfo{
+	info := api.NodeInfo{
 		NodeID:      nodeID,
 		PortMapping: port,
 	}
@@ -210,7 +210,7 @@ func IsNilErr(err error) bool {
 	return err.Error() == errNotFind
 }
 
-func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*api.DeviceInfo, int64, error) {
+func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*api.NodeInfo, int64, error) {
 	var total int64
 	countSQL := fmt.Sprintf("SELECT count(*) FROM %s", nodeInfoTable)
 	err := n.db.Get(&total, countSQL)
@@ -224,7 +224,7 @@ func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*api.DeviceInfo, int64, e
 		count = loadNodeInfoMaxCount
 	}
 
-	var out []*api.DeviceInfo
+	var out []*api.NodeInfo
 	err = n.db.Select(&out, queryString, cursor, count)
 	if err != nil {
 		return nil, 0, err
@@ -267,7 +267,7 @@ func (n *NodeMgrDB) GetValidatorsWithList(serverID dtypes.ServerID) ([]string, e
 }
 
 // UpdateNodeInfo update node info
-func (n *NodeMgrDB) UpdateNodeInfo(info *api.DeviceInfo) error {
+func (n *NodeMgrDB) UpdateNodeInfo(info *api.NodeInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (node_id, profit,
 				private_key, last_time, quitted) 
@@ -281,7 +281,7 @@ func (n *NodeMgrDB) UpdateNodeInfo(info *api.DeviceInfo) error {
 
 // UpdateNodeOnlineTime update node online time and last time
 func (n *NodeMgrDB) UpdateNodeOnlineTime(nodeID string, onlineTime int) error {
-	info := &api.DeviceInfo{
+	info := &api.NodeInfo{
 		NodeID:     nodeID,
 		OnlineTime: onlineTime,
 	}
@@ -318,10 +318,10 @@ func (n *NodeMgrDB) ListNodeIDs(cursor int, count int) ([]string, int64, error) 
 }
 
 // LoadNodeInfo load node info
-func (n *NodeMgrDB) LoadNodeInfo(nodeID string) (*api.DeviceInfo, error) {
+func (n *NodeMgrDB) LoadNodeInfo(nodeID string) (*api.NodeInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id=?`, nodeInfoTable)
 
-	var out api.DeviceInfo
+	var out api.NodeInfo
 	err := n.db.Select(&out, query, nodeID)
 	if err != nil {
 		return nil, err

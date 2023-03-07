@@ -178,14 +178,14 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 	}
 
 	// load device info
-	deviceInfo, err := candicateAPI.DeviceInfo(ctx)
+	nodeInfo, err := candicateAPI.NodeInfo(ctx)
 	if err != nil {
-		log.Errorf("CandidateNodeConnect DeviceInfo err:%s", err.Error())
+		log.Errorf("CandidateNodeConnect NodeInfo err:%s", err.Error())
 		return err
 	}
 
-	if nodeID != deviceInfo.NodeID {
-		return xerrors.Errorf("nodeID mismatch %s,%s", nodeID, deviceInfo.NodeID)
+	if nodeID != nodeInfo.NodeID {
+		return xerrors.Errorf("nodeID mismatch %s,%s", nodeID, nodeInfo.NodeID)
 	}
 
 	privateKeyStr, err := s.NodeManager.NodeMgrDB.NodePrivateKey(nodeID)
@@ -211,15 +211,15 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		return err
 	}
 
-	deviceInfo.PortMapping = port
+	nodeInfo.PortMapping = port
 
-	deviceInfo.NodeType = api.NodeCandidate
-	deviceInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
+	nodeInfo.NodeType = api.NodeCandidate
+	nodeInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
 	if err != nil {
 		return xerrors.Errorf("SplitHostPort err:%s", err.Error())
 	}
 
-	candidateNode.BaseInfo = node.NewBaseInfo(&deviceInfo, privateKey, remoteAddr)
+	candidateNode.BaseInfo = node.NewBaseInfo(&nodeInfo, privateKey, remoteAddr)
 
 	err = s.NodeManager.CandidateOnline(candidateNode)
 	if err != nil {
@@ -252,14 +252,14 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	}
 
 	// load device info
-	deviceInfo, err := edgeAPI.DeviceInfo(ctx)
+	nodeInfo, err := edgeAPI.NodeInfo(ctx)
 	if err != nil {
-		log.Errorf("EdgeNodeConnect DeviceInfo err:%s", err.Error())
+		log.Errorf("EdgeNodeConnect NodeInfo err:%s", err.Error())
 		return err
 	}
 
-	if nodeID != deviceInfo.NodeID {
-		return xerrors.Errorf("nodeID mismatch %s,%s", nodeID, deviceInfo.NodeID)
+	if nodeID != nodeInfo.NodeID {
+		return xerrors.Errorf("nodeID mismatch %s,%s", nodeID, nodeInfo.NodeID)
 	}
 
 	privateKeyStr, err := s.NodeManager.NodeMgrDB.NodePrivateKey(nodeID)
@@ -285,19 +285,19 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		return err
 	}
 
-	deviceInfo.PortMapping = port
+	nodeInfo.PortMapping = port
 
-	deviceInfo.NodeType = api.NodeEdge
-	deviceInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
+	nodeInfo.NodeType = api.NodeEdge
+	nodeInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
 	if err != nil {
 		return xerrors.Errorf("SplitHostPort err:%s", err.Error())
 	}
 
-	edgeNode.BaseInfo = node.NewBaseInfo(&deviceInfo, privateKey, remoteAddr)
+	edgeNode.BaseInfo = node.NewBaseInfo(&nodeInfo, privateKey, remoteAddr)
 
 	err = s.NodeManager.EdgeOnline(edgeNode)
 	if err != nil {
-		log.Errorf("EdgeNodeConnect addEdgeNode err:%s,nodeID:%s", err.Error(), deviceInfo.NodeID)
+		log.Errorf("EdgeNodeConnect addEdgeNode err:%s,nodeID:%s", err.Error(), nodeInfo.NodeID)
 		return err
 	}
 
@@ -395,12 +395,12 @@ func (s *Scheduler) ElectionValidators(ctx context.Context) error {
 }
 
 // GetDevicesInfo return the devices information
-func (s *Scheduler) GetDevicesInfo(ctx context.Context, nodeID string) (api.DeviceInfo, error) {
+func (s *Scheduler) GetDevicesInfo(ctx context.Context, nodeID string) (api.NodeInfo, error) {
 	// node datas
-	deviceInfo, err := s.NodeManager.NodeMgrDB.LoadNodeInfo(nodeID)
+	nodeInfo, err := s.NodeManager.NodeMgrDB.LoadNodeInfo(nodeID)
 	if err != nil {
 		log.Errorf("getNodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
-		return api.DeviceInfo{}, err
+		return api.NodeInfo{}, err
 	}
 
 	isOnline := s.NodeManager.GetCandidateNode(nodeID) != nil
@@ -408,9 +408,9 @@ func (s *Scheduler) GetDevicesInfo(ctx context.Context, nodeID string) (api.Devi
 		isOnline = s.NodeManager.GetEdgeNode(nodeID) != nil
 	}
 
-	deviceInfo.DeviceStatus = getDeviceStatus(isOnline)
+	nodeInfo.DeviceStatus = getDeviceStatus(isOnline)
 
-	return *deviceInfo, nil
+	return *nodeInfo, nil
 }
 
 // GetDeviceStatus return the status of the device

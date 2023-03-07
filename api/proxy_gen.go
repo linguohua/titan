@@ -121,7 +121,7 @@ type DeviceStruct struct {
 	Internal struct {
 		NodeID func(p0 context.Context) (string, error) `perm:"read"`
 
-		DeviceInfo func(p0 context.Context) (DeviceInfo, error) `perm:"read"`
+		NodeInfo func(p0 context.Context) (NodeInfo, error) `perm:"read"`
 	}
 }
 
@@ -239,7 +239,7 @@ type SchedulerStruct struct {
 
 		GetCarfileRecordInfo func(p0 context.Context, p1 string) (CarfileRecordInfo, error) `perm:"read"`
 
-		GetDevicesInfo func(p0 context.Context, p1 string) (DeviceInfo, error) `perm:"read"`
+		GetDevicesInfo func(p0 context.Context, p1 string) (NodeInfo, error) `perm:"read"`
 
 		GetDownloadInfo func(p0 context.Context, p1 string) ([]*BlockDownloadInfo, error) `perm:"read"`
 
@@ -312,7 +312,7 @@ type ValidateStub struct {
 
 type WebStruct struct {
 	Internal struct {
-		GetNodeInfoByID func(p0 context.Context, p1 string) (DeviceInfo, error) `perm:"read"`
+		GetNodeInfoByID func(p0 context.Context, p1 string) (NodeInfo, error) `perm:"read"`
 
 		GetReplicaInfos func(p0 context.Context, p1 ListCacheInfosReq) (ListCacheInfosRsp, error) `perm:"read"`
 
@@ -626,15 +626,15 @@ func (s *DeviceStub) NodeID(p0 context.Context) (string, error) {
 	return "", ErrNotSupported
 }
 
-func (s *DeviceStruct) DeviceInfo(p0 context.Context) (DeviceInfo, error) {
-	if s.Internal.DeviceInfo == nil {
-		return *new(DeviceInfo), ErrNotSupported
+func (s *DeviceStruct) NodeInfo(p0 context.Context) (NodeInfo, error) {
+	if s.Internal.NodeInfo == nil {
+		return *new(NodeInfo), ErrNotSupported
 	}
-	return s.Internal.DeviceInfo(p0)
+	return s.Internal.NodeInfo(p0)
 }
 
-func (s *DeviceStub) DeviceInfo(p0 context.Context) (DeviceInfo, error) {
-	return *new(DeviceInfo), ErrNotSupported
+func (s *DeviceStub) NodeInfo(p0 context.Context) (NodeInfo, error) {
+	return *new(NodeInfo), ErrNotSupported
 }
 
 func (s *DownloadStruct) SetDownloadSpeed(p0 context.Context, p1 int64) error {
@@ -956,15 +956,15 @@ func (s *SchedulerStub) GetCarfileRecordInfo(p0 context.Context, p1 string) (Car
 	return *new(CarfileRecordInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetDevicesInfo(p0 context.Context, p1 string) (DeviceInfo, error) {
+func (s *SchedulerStruct) GetDevicesInfo(p0 context.Context, p1 string) (NodeInfo, error) {
 	if s.Internal.GetDevicesInfo == nil {
-		return *new(DeviceInfo), ErrNotSupported
+		return *new(NodeInfo), ErrNotSupported
 	}
 	return s.Internal.GetDevicesInfo(p0, p1)
 }
 
-func (s *SchedulerStub) GetDevicesInfo(p0 context.Context, p1 string) (DeviceInfo, error) {
-	return *new(DeviceInfo), ErrNotSupported
+func (s *SchedulerStub) GetDevicesInfo(p0 context.Context, p1 string) (NodeInfo, error) {
+	return *new(NodeInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetDownloadInfo(p0 context.Context, p1 string) ([]*BlockDownloadInfo, error) {
@@ -1264,15 +1264,15 @@ func (s *ValidateStub) BeValidate(p0 context.Context, p1 ReqValidate, p2 string)
 	return ErrNotSupported
 }
 
-func (s *WebStruct) GetNodeInfoByID(p0 context.Context, p1 string) (DeviceInfo, error) {
+func (s *WebStruct) GetNodeInfoByID(p0 context.Context, p1 string) (NodeInfo, error) {
 	if s.Internal.GetNodeInfoByID == nil {
-		return *new(DeviceInfo), ErrNotSupported
+		return *new(NodeInfo), ErrNotSupported
 	}
 	return s.Internal.GetNodeInfoByID(p0, p1)
 }
 
-func (s *WebStub) GetNodeInfoByID(p0 context.Context, p1 string) (DeviceInfo, error) {
-	return *new(DeviceInfo), ErrNotSupported
+func (s *WebStub) GetNodeInfoByID(p0 context.Context, p1 string) (NodeInfo, error) {
+	return *new(NodeInfo), ErrNotSupported
 }
 
 func (s *WebStruct) GetReplicaInfos(p0 context.Context, p1 ListCacheInfosReq) (ListCacheInfosRsp, error) {

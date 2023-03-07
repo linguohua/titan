@@ -45,8 +45,8 @@ func NewDevice(nodeID, internalIP string, bandwidthUp, bandwidthDown int64, carf
 	return device
 }
 
-func (device *Device) DeviceInfo(ctx context.Context) (api.DeviceInfo, error) {
-	info := api.DeviceInfo{}
+func (device *Device) NodeInfo(ctx context.Context) (api.NodeInfo, error) {
+	info := api.NodeInfo{}
 
 	v, err := api.VersionForType(api.RunningNodeType)
 	if err != nil {
@@ -73,8 +73,8 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DeviceInfo, error) {
 
 	mac, err := getMacAddr(info.InternalIP)
 	if err != nil {
-		log.Errorf("DeviceInfo getMacAddr err:%s", err.Error())
-		return api.DeviceInfo{}, err
+		log.Errorf("NodeInfo getMacAddr err:%s", err.Error())
+		return api.NodeInfo{}, err
 	}
 
 	info.MacLocation = mac
@@ -100,7 +100,7 @@ func (device *Device) DeviceInfo(ctx context.Context) (api.DeviceInfo, error) {
 
 	absPath, err := filepath.Abs(device.carfileStore.Path())
 	if err != nil {
-		return api.DeviceInfo{}, err
+		return api.NodeInfo{}, err
 	}
 
 	info.IoSystem = fsutil.GetFilesystemType(absPath)

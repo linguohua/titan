@@ -8,13 +8,13 @@ import (
 )
 
 var EdgeCmds = []*cli.Command{
-	deviceInfoCmd,
+	nodeInfoCmd,
 	limitRateCmd,
 	cacheStatCmd,
 	logFileCmd,
 }
 
-var deviceInfoCmd = &cli.Command{
+var nodeInfoCmd = &cli.Command{
 	Name:  "info",
 	Usage: "Print device info",
 	Action: func(cctx *cli.Context) error {
@@ -27,7 +27,7 @@ var deviceInfoCmd = &cli.Command{
 		ctx := ReqContext(cctx)
 		// TODO: print more useful things
 
-		v, err := api.DeviceInfo(ctx)
+		v, err := api.NodeInfo(ctx)
 		if err != nil {
 			return err
 		}

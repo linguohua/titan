@@ -23,7 +23,7 @@ func NewWeb(nodeMgr *node.Manager) api.Web {
 }
 
 func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNodesRsp, error) {
-	rsp := api.ListNodesRsp{Data: make([]api.DeviceInfo, 0)}
+	rsp := api.ListNodesRsp{Data: make([]api.NodeInfo, 0)}
 
 	nodes, total, err := w.NodeMgr.NodeMgrDB.ListNodeIDs(cursor, count)
 	if err != nil {
@@ -39,39 +39,39 @@ func (w *web) ListNodes(ctx context.Context, cursor int, count int) (api.ListNod
 		deviceInValidator[id] = struct{}{}
 	}
 
-	deviceInfos := make([]api.DeviceInfo, 0)
+	nodeInfos := make([]api.NodeInfo, 0)
 	for _, nodeID := range nodes {
-		deviceInfo, err := w.NodeMgr.NodeMgrDB.LoadNodeInfo(nodeID)
+		nodeInfo, err := w.NodeMgr.NodeMgrDB.LoadNodeInfo(nodeID)
 		if err != nil {
 			log.Errorf("getNodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
 			continue
 		}
 
-		// deviceInfo.DeviceStatus = "offline"
+		// nodeInfo.DeviceStatus = "offline"
 		// if node.IsOnline {
-		// 	deviceInfo.DeviceStatus = "online"
+		// 	nodeInfo.DeviceStatus = "online"
 		// }
 
 		_, exist := deviceInValidator[nodeID]
 		if exist {
-			deviceInfo.NodeType = api.NodeValidate
+			nodeInfo.NodeType = api.NodeValidate
 		}
 
-		deviceInfos = append(deviceInfos, *deviceInfo)
+		nodeInfos = append(nodeInfos, *nodeInfo)
 	}
 
-	rsp.Data = deviceInfos
+	rsp.Data = nodeInfos
 	rsp.Total = total
 
 	return rsp, nil
 }
 
-func (w *web) GetNodeInfoByID(ctx context.Context, nodeID string) (api.DeviceInfo, error) {
+func (w *web) GetNodeInfoByID(ctx context.Context, nodeID string) (api.NodeInfo, error) {
 	// node datas
-	deviceInfo, err := w.NodeMgr.NodeMgrDB.LoadNodeInfo(nodeID)
+	nodeInfo, err := w.NodeMgr.NodeMgrDB.LoadNodeInfo(nodeID)
 	if err != nil {
 		log.Errorf("getNodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
-		return api.DeviceInfo{}, err
+		return api.NodeInfo{}, err
 	}
 
 	isOnline := w.NodeMgr.GetCandidateNode(nodeID) != nil
@@ -79,9 +79,9 @@ func (w *web) GetNodeInfoByID(ctx context.Context, nodeID string) (api.DeviceInf
 		isOnline = w.NodeMgr.GetEdgeNode(nodeID) != nil
 	}
 
-	deviceInfo.DeviceStatus = getDeviceStatus(isOnline)
+	nodeInfo.DeviceStatus = getDeviceStatus(isOnline)
 
-	return *deviceInfo, nil
+	return *nodeInfo, nil
 }
 
 const (
