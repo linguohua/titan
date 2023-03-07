@@ -2,6 +2,7 @@ package storage
 
 import (
 	"golang.org/x/xerrors"
+	"time"
 )
 
 type mutator interface {
@@ -45,26 +46,67 @@ func (evt CarfileForceState) applyGlobal(state *CarfileInfo) bool {
 
 // Normal path
 
-type CarfileStart struct {
-	ID CarfileID
+type CarfileGetCarfile struct {
+	ID             CarfileID
+	CarfileHash    string    `db:"carfile_hash"`
+	Replicas       int       `db:"s"`
+	NodeID         string    `db:"node_id"`
+	ServerID       string    `db:"server_id"`
+	ExpirationTime time.Time `db:"expiration"`
 }
 
-func (evt CarfileStart) apply(state *CarfileInfo) {
+func (evt CarfileGetCarfile) apply(state *CarfileInfo) {
 	state.CarfileCID = evt.ID
+	state.CarfileHash = evt.CarfileHash
+	state.Replicas = evt.Replicas
+	state.NodeID = evt.NodeID
+	state.ServerID = evt.ServerID
+	state.Expiration = evt.ExpirationTime
 }
 
-type CarfileFinished struct {
-	ID CarfileID
+type CarfileCreateCompleted struct{}
+
+func (evt CarfileCreateCompleted) apply(state *CarfileInfo) {}
+
+type CarfileCandidateCaching struct{}
+
+func (evt CarfileCandidateCaching) apply(state *CarfileInfo) {}
+
+type CarfileCandidateCompleted struct{}
+
+func (evt CarfileCandidateCompleted) apply(state *CarfileInfo) {}
+
+type CarfileEdgeCaching struct{}
+
+func (evt CarfileEdgeCaching) apply(state *CarfileInfo) {}
+
+type CarfileEdgeCompleted struct{}
+
+func (evt CarfileEdgeCompleted) apply(state *CarfileInfo) {}
+
+type CarfileFinalize struct{}
+
+func (evt CarfileFinalize) apply(state *CarfileInfo) {}
+
+type CarfileCreateFailed struct{ error }
+
+func (evt CarfileCreateFailed) FormatError(xerrors.Printer) (next error) { return evt.error }
+func (evt CarfileCreateFailed) apply(ci *CarfileInfo)                    {}
+
+type CarfileCandidateCachingFailed struct{ error }
+
+func (evt CarfileCandidateCachingFailed) FormatError(xerrors.Printer) (next error) {
+	return evt.error
+}
+func (evt CarfileCandidateCachingFailed) apply(ci *CarfileInfo) {
+	ci.CandidateStoreFails++
 }
 
-func (evt CarfileFinished) apply(state *CarfileInfo) {
-	state.CarfileCID = evt.ID
-}
+type CarfileEdgeCachingFailed struct{ error }
 
-type PreParing struct {
-	ID CarfileID
+func (evt CarfileEdgeCachingFailed) FormatError(xerrors.Printer) (next error) {
+	return evt.error
 }
-
-func (evt PreParing) apply(state *CarfileInfo) {
-	state.CarfileCID = evt.ID
+func (evt CarfileEdgeCachingFailed) apply(ci *CarfileInfo) {
+	ci.EdgeStoreFails++
 }

@@ -5,20 +5,38 @@ import (
 	"github.com/filecoin-project/go-statemachine"
 )
 
-func (m *Manager) handlePreparing(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Info("handler preparing, %s", carfile.CarfileCID)
-	fmt.Println("handlePreparing")
-	return ctx.Send(CarfileStart{})
+func (m *Manager) handleGetCarfile(ctx statemachine.Context, carfile CarfileInfo) error {
+	log.Info("handler get carfile, %s", carfile.CarfileCID)
+	return ctx.Send(CarfileGetCarfile{})
 }
 
-func (m *Manager) handleCarfileStart(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Info("handler carfile start, %s", carfile.CarfileCID)
-	fmt.Println("handleCarfileStart")
-	return ctx.Send(CarfileFinished{})
+func (m *Manager) handleCandidateCaching(ctx statemachine.Context, carfile CarfileInfo) error {
+	log.Info("handler candidate  Caching, %s", carfile.CarfileCID)
+	fmt.Println("handleCandidateCaching")
+	return ctx.Send(CarfileCandidateCaching{})
 }
 
-func (m *Manager) handlerCarfileFinished(ctx statemachine.Context, carfile CarfileInfo) error {
-	fmt.Println("handlerCarfileFinished")
-	log.Info("handler carfile finished, %s", carfile.CarfileCID)
-	return nil
+func (m *Manager) handleEdgeCaching(ctx statemachine.Context, carfile CarfileInfo) error {
+	log.Info("handler carfile , %s", carfile.CarfileCID)
+	return ctx.Send(CarfileEdgeCaching{})
+}
+
+func (m *Manager) handleFinalize(ctx statemachine.Context, carfile CarfileInfo) error {
+	log.Info("handler carfile finalize, %s", carfile.CarfileCID)
+	return ctx.Send(CarfileFinalize{})
+}
+
+func (m *Manager) handleGetCarfileFailed(ctx statemachine.Context, carfile CarfileInfo) error {
+	log.Info("handler get carfile failed, %s", carfile.CarfileCID)
+	return ctx.Send(CarfileGetCarfile{})
+}
+
+func (m *Manager) handleCandidateCachingFailed(ctx statemachine.Context, carfile CarfileInfo) error {
+	log.Info("handler candidate  Caching failed, %s", carfile.CarfileCID)
+	return ctx.Send(CarfileCandidateCaching{})
+}
+
+func (m *Manager) handlerEdgeCachingFailed(ctx statemachine.Context, carfile CarfileInfo) error {
+	log.Info("handler edge  Caching failed, %s", carfile.CarfileCID)
+	return ctx.Send(CarfileEdgeCaching{})
 }

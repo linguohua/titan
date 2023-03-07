@@ -60,9 +60,9 @@ func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToke
 	m.startupWait.Add(1)
 	m.carfiles = statemachine.New(namespace.Wrap(ds, datastore.NewKey(CarfileStorePrefix)), m, CarfileInfo{})
 
-	m.initCarfileMap()
-	go m.carfileTaskTicker()
-	go m.checkExpirationTicker()
+	//m.initCarfileMap()
+	//go m.carfileTaskTicker()
+	//go m.checkExpirationTicker()
 
 	return m
 }
@@ -218,11 +218,9 @@ func (m *Manager) CacheCarfile(info *api.CacheCarfileInfo) error {
 	} else {
 		log.Infof("carfile event %s , add carfile,nodeID:%s", info.CarfileCid, info.NodeID)
 	}
+
 	info.ServerID = string(m.nodeManager.ServerID)
-	// test
-	log.Info("start to send carfile to state machine")
-	m.carfiles.Send(CarfileID(info.CarfileCid), PreParing{ID: CarfileID(info.CarfileCid)})
-	return m.nodeManager.CarfileDB.PushCarfileToWaitList(info)
+	return m.carfiles.Send(CarfileID(info.CarfileCid), fromCarfileInfo(info))
 }
 
 // RemoveCarfileRecord remove a storage
