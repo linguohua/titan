@@ -1,4 +1,4 @@
-package carfile
+package storage
 
 import (
 	"context"
@@ -101,7 +101,7 @@ func (ra *Replica) updateInfo() error {
 	return ra.nodeManager.CarfileDB.UpdateCarfileReplicaInfo(cInfo)
 }
 
-// Notify node to cache carfile
+// Notify node to cache storage
 func (ra *Replica) cacheCarfile(cDown int) (err error) {
 	ra.status = api.CacheStatusDownloading
 

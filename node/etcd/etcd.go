@@ -3,10 +3,10 @@ package etcd
 import (
 	"context"
 	"fmt"
+	"github.com/linguohua/titan/api"
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/linguohua/titan/api"
 	"go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/mvcc/mvccpb"
 	"golang.org/x/xerrors"

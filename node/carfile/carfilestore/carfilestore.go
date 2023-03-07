@@ -23,7 +23,7 @@ type CarfileStore struct {
 	blockStore             blockstore.BlockStore
 	carfileTable           *carfileTable
 	incompleteCarfileCache *incompleteCarfileCache
-	// save relation of block belong to which carfile
+	// save relation of block belong to which storage
 	linksStore *linksStore
 	path       string
 }
@@ -82,7 +82,7 @@ func (carfileStore *CarfileStore) BlockCount() (int, error) {
 	return carfileStore.blockStore.KeyCount()
 }
 
-// carfile table
+// storage table
 func (carfileStore *CarfileStore) CarfileCount() (int, error) {
 	count1, err := carfileStore.carfileTable.carfileCount()
 	if err != nil {

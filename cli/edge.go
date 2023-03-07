@@ -97,7 +97,7 @@ var cacheStatCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("nodeMgrCache carfile count %d, block count %d, wati cache carfile count %d", stat.TotalCarfileCount, stat.TotalBlockCount, stat.WaitCacheCarfileCount)
+		fmt.Printf("nodeMgrCache storage count %d, block count %d, wati cache storage count %d", stat.TotalCarfileCount, stat.TotalBlockCount, stat.WaitCacheCarfileCount)
 		return nil
 	},
 }

@@ -159,7 +159,7 @@ func (downloadMgr *DownloadMgr) removeCarfileFromWaitList(carfileCID string) *ca
 }
 
 func (downloadMgr *DownloadMgr) onDownloadCarfileComplete(cf *carfileCache) {
-	log.Debugf("onDownloadCarfileComplete, carfile %s", cf.carfileCID)
+	log.Debugf("onDownloadCarfileComplete, storage %s", cf.carfileCID)
 	err := downloadMgr.saveCarfileTable(cf)
 	if err != nil {
 		log.Errorf("onDownloadCarfileComplete, saveCarfileTable error:%s", err)
@@ -177,7 +177,7 @@ func (downloadMgr *DownloadMgr) onDownloadCarfileComplete(cf *carfileCache) {
 }
 
 func (downloadMgr *DownloadMgr) saveCarfileTable(cf *carfileCache) error {
-	log.Debugf("saveCarfileTable, carfile cid:%s, download size:%d,carfileSize:%d", cf.carfileCID, cf.downloadSize, cf.carfileSize)
+	log.Debugf("saveCarfileTable, storage cid:%s, download size:%d,carfileSize:%d", cf.carfileCID, cf.downloadSize, cf.carfileSize)
 	carfileHash, err := cf.getCarfileHashString()
 	if err != nil {
 		return err

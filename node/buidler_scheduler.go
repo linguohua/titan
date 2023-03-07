@@ -10,10 +10,10 @@ import (
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler"
-	"github.com/linguohua/titan/node/scheduler/carfile"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/election"
 	"github.com/linguohua/titan/node/scheduler/node"
+	"github.com/linguohua/titan/node/scheduler/storage"
 	"github.com/linguohua/titan/node/scheduler/sync"
 	"github.com/linguohua/titan/node/scheduler/validator"
 	"go.uber.org/fx"
@@ -55,7 +55,8 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(*node.Manager), node.NewManager),
 		Override(new(dtypes.SessionCallbackFunc), modules.NewSessionCallbackFunc),
 		Override(new(dtypes.ExitCallbackFunc), modules.NewExitCallbackFunc),
-		Override(new(*carfile.Manager), carfile.NewManager),
+		Override(new(dtypes.MetadataDS), modules.Datastore),
+		Override(new(*storage.Manager), modules.NewStorageManager),
 		Override(new(*sync.DataSync), sync.NewDataSync),
 		If(cfg.EnableValidate,
 			Override(new(*validator.Validator), validator.NewValidator),

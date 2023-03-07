@@ -107,7 +107,7 @@ var (
 
 	downloadingFlag = &cli.BoolFlag{
 		Name:  "downloading",
-		Usage: "carfile is downloading",
+		Usage: "storage is downloading",
 		Value: false,
 	}
 )

@@ -2,11 +2,11 @@ package persistent
 
 import (
 	"fmt"
+	"github.com/linguohua/titan/api"
 	"math/rand"
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"golang.org/x/xerrors"
 )
@@ -57,7 +57,7 @@ func (c *CarfileDB) UpdateCarfileReplicaInfo(cInfo *api.ReplicaInfo) error {
 	return err
 }
 
-// UpdateCarfileRecordCachesInfo update carfile info
+// UpdateCarfileRecordCachesInfo update storage info
 func (c *CarfileDB) UpdateCarfileRecordCachesInfo(dInfo *api.CarfileRecordInfo) error {
 	// update
 	cmd := fmt.Sprintf("UPDATE %s SET total_size=:total_size,total_blocks=:total_blocks,end_time=NOW(),replica=:replica,expired_time=:expired_time WHERE carfile_hash=:carfile_hash", carfileInfoTable)
@@ -66,7 +66,7 @@ func (c *CarfileDB) UpdateCarfileRecordCachesInfo(dInfo *api.CarfileRecordInfo) 
 	return err
 }
 
-// CreateOrUpdateCarfileRecordInfo create or update carfile record info
+// CreateOrUpdateCarfileRecordInfo create or update storage record info
 func (c *CarfileDB) CreateOrUpdateCarfileRecordInfo(info *api.CarfileRecordInfo) error {
 	cmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, carfile_cid, replica, expiration) VALUES (:carfile_hash, :carfile_cid, :replica, :expiration) ON DUPLICATE KEY UPDATE replica=:replica,expiration=:expiration", carfileInfoTable)
 	_, err := c.db.NamedExec(cmd, info)
@@ -81,7 +81,7 @@ func (c *CarfileDB) CarfileRecordExisted(hash string) (bool, error) {
 	return count > 0, err
 }
 
-// LoadCarfileInfo get carfile info with hash
+// LoadCarfileInfo get storage info with hash
 func (c *CarfileDB) LoadCarfileInfo(hash string) (*api.CarfileRecordInfo, error) {
 	var info api.CarfileRecordInfo
 	cmd := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=?", carfileInfoTable)
@@ -89,7 +89,7 @@ func (c *CarfileDB) LoadCarfileInfo(hash string) (*api.CarfileRecordInfo, error)
 	return &info, err
 }
 
-// LoadCarfileInfos get carfile infos with hashs
+// LoadCarfileInfos get storage infos with hashs
 func (c *CarfileDB) LoadCarfileInfos(hashs []string) ([]*api.CarfileRecordInfo, error) {
 	getCarfilesCmd := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash in (?)`, carfileInfoTable)
 	carfilesQuery, args, err := sqlx.In(getCarfilesCmd, hashs)
@@ -112,7 +112,7 @@ func (c *CarfileDB) LoadCarfileInfos(hashs []string) ([]*api.CarfileRecordInfo, 
 	return carfileRecords, nil
 }
 
-// CarfileRecordInfos get carfile record infos
+// CarfileRecordInfos get storage record infos
 func (c *CarfileDB) CarfileRecordInfos(page int) (info *api.CarfileRecordsInfo, err error) {
 	num := 20
 
@@ -159,7 +159,7 @@ func (c *CarfileDB) CandidatesWithHash(hash string) ([]string, error) {
 	return out, nil
 }
 
-// CarfileReplicaInfosWithHash get carfile replica infos with hash
+// CarfileReplicaInfosWithHash get storage replica infos with hash
 func (c *CarfileDB) CarfileReplicaInfosWithHash(hash string, isSuccess bool) ([]*api.ReplicaInfo, error) {
 	var out []*api.ReplicaInfo
 	if isSuccess {
@@ -209,7 +209,7 @@ func (c *CarfileDB) RandomCarfileFromNode(nodeID string) (string, error) {
 	return "", nil
 }
 
-// ResetCarfileExpirationTime reset expiration time with carfile record
+// ResetCarfileExpirationTime reset expiration time with storage record
 func (c *CarfileDB) ResetCarfileExpirationTime(carfileHash string, expirationTime time.Time) error {
 	tx := c.db.MustBegin()
 
@@ -270,7 +270,7 @@ func (c *CarfileDB) LoadReplicaInfo(id string) (*api.ReplicaInfo, error) {
 	return &cache, nil
 }
 
-// RemoveCarfileRecord remove carfile
+// RemoveCarfileRecord remove storage
 func (c *CarfileDB) RemoveCarfileRecord(carfileHash string) error {
 	tx := c.db.MustBegin()
 	// cache info

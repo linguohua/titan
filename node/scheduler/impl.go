@@ -29,8 +29,8 @@ import (
 	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/node"
 
-	"github.com/linguohua/titan/node/scheduler/carfile"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/linguohua/titan/node/scheduler/storage"
 	"github.com/linguohua/titan/node/scheduler/sync"
 	"golang.org/x/xerrors"
 )
@@ -60,7 +60,7 @@ type Scheduler struct {
 	NodeManager  *node.Manager
 	Election     *election.Election
 	Validator    *validator.Validator
-	DataManager  *carfile.Manager
+	DataManager  *storage.Manager
 	DataSync     *sync.DataSync
 	WriteToken   dtypes.PermissionWriteToken
 	AdminToken   dtypes.PermissionAdminToken
@@ -446,7 +446,7 @@ func (s *Scheduler) nodeExitedCallback(nodeIDs []string) {
 
 	// recache
 	for _, hash := range hashs {
-		log.Infof("need restore carfile :%s", hash)
+		log.Infof("need restore storage :%s", hash)
 	}
 }
 

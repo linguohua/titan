@@ -110,12 +110,12 @@ func (ds *DataSync) doDataSync(nodeID string) {
 		return
 	}
 
-	// sort the carfile hash, that match to the node file system
+	// sort the storage hash, that match to the node file system
 	sort.Slice(nodeCacheStatusList, func(i, j int) bool {
 		return nodeCacheStatusList[i].CarfileHash < nodeCacheStatusList[j].CarfileHash
 	})
 
-	// split carfile to succeeded and unsucceeded
+	// split storage to succeeded and unsucceeded
 	succeededCarfiles, unsucceededCarfiles := ds.splitCacheStatusListByStatus(nodeCacheStatusList)
 
 	succeededChecksum, err := ds.caculateChecksum(succeededCarfiles)
@@ -139,14 +139,14 @@ func (ds *DataSync) doDataSync(nodeID string) {
 	if !checkSummaryResult.IsSusseedCarfilesOk {
 		err = ds.checkCarfiles(dataSyncAPI, succeededCarfiles, succeededChecksum, true)
 		if err != nil {
-			log.Errorf("check succeed carfile error:%s", err)
+			log.Errorf("check succeed storage error:%s", err)
 		}
 	}
 
 	if !checkSummaryResult.IsUnsusseedCarfilesOk {
 		err = ds.checkCarfiles(dataSyncAPI, unsucceededCarfiles, unsucceededChecksum, false)
 		if err != nil {
-			log.Errorf("check unsucceed carfile error:%s", err)
+			log.Errorf("check unsucceed storage error:%s", err)
 		}
 	}
 }

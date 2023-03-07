@@ -7,7 +7,7 @@ type DataSync interface {
 
 	// BeginCheckCarfiles, PrepareCarfiles and DoCheckCarfiles is transaction
 	BeginCheckCarfiles(ctx context.Context) error //perm:write
-	// send carfile list to node in multiple times
+	// send storage list to node in multiple times
 	PrepareCarfiles(ctx context.Context, carfileHashes []string) error //perm:write
 	// DoCheckCarfiles, carfilesHash is checksum of carfiles
 	DoCheckCarfiles(ctx context.Context, carfilesChecksum string, isSusseedCarfiles bool) error //perm:write

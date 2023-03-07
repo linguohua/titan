@@ -5,12 +5,14 @@ import (
 	"errors"
 	"github.com/gbrlsnchs/jwt/v3"
 	logging "github.com/ipfs/go-log/v2"
+	metricsi "github.com/ipfs/go-metrics-interface"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/journal"
 	"github.com/linguohua/titan/journal/alerting"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/modules"
 	"github.com/linguohua/titan/node/modules/dtypes"
+	"github.com/linguohua/titan/node/modules/helpers"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/secret"
 	"go.uber.org/fx"
@@ -81,6 +83,9 @@ func Repo(r repo.Repo) Option {
 			Override(new(*jwt.HMACSHA), secret.APISecret),
 			Override(new(dtypes.ServerID), modules.NewServerID),
 			Override(new(*common.CommonAPI), common.NewCommonAPI),
+			Override(new(helpers.MetricsCtx), func() context.Context {
+				return metricsi.CtxScope(context.Background(), "titan")
+			}),
 			Override(new(dtypes.SessionCallbackFunc), modules.DefaultSessionCallback),
 			Override(new(dtypes.PermissionWriteToken), modules.GenerateTokenWithPermission(api.ReadWritePerms)),
 			Override(new(dtypes.PermissionAdminToken), modules.GenerateTokenWithPermission(api.AllPermissions)),

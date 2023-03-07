@@ -9,7 +9,7 @@ import (
 	"github.com/ipfs/go-datastore"
 )
 
-// save block list of carfile
+// save block list of storage
 type carfileTable struct {
 	path string
 }

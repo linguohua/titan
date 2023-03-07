@@ -20,7 +20,7 @@ import (
 	"github.com/linguohua/titan/node/device"
 )
 
-var log = logging.Logger("carfile")
+var log = logging.Logger("storage")
 
 type CarfileOperation struct {
 	scheduler       api.Scheduler
@@ -60,7 +60,7 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, 
 		status = api.CacheStatusDownloading
 	} else {
 		// count total block in filesystem is cost much time
-		// only do it on carfile download complete
+		// only do it on storage download complete
 		totalBlockCount, err := carfileOperation.carfileStore.BlockCount()
 		if err == nil {
 			carfileOperation.TotalBlockCount = totalBlockCount
@@ -94,7 +94,7 @@ func (carfileOperation *CarfileOperation) downloadResult(carfile *carfileCache, 
 	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
 
-	log.Debugf("downloadResult, carfile:%s", result.CarfileHash)
+	log.Debugf("downloadResult, storage:%s", result.CarfileHash)
 	return carfileOperation.scheduler.CacheResult(ctx, result)
 }
 
@@ -223,7 +223,7 @@ func (carfileOperation *CarfileOperation) deleteCarfile(carfileCID string) (int,
 		err = carfileOperation.deleteBlock(hash, carfileHash)
 		if err != nil {
 			if err == datastore.ErrNotFound {
-				log.Warnf("deleteCarfile, multiple block %s in carfile %s", hash, carfileHash)
+				log.Warnf("deleteCarfile, multiple block %s in storage %s", hash, carfileHash)
 			} else {
 				log.Errorf("deleteCarfile deleteBlock %s error:%s", hash, err.Error())
 			}
@@ -275,7 +275,7 @@ func (carfileOperation *CarfileOperation) BlockCountOfCarfile(carfileCID string)
 func (carfileOperation *CarfileOperation) restoreIncompleteCarfileCacheIfExist(carfileHash string) (*carfileCache, error) {
 	data, err := carfileOperation.carfileStore.IncompleteCarfileCacheData(carfileHash)
 	if err != nil {
-		log.Errorf("CacheCarfile load incomplete carfile error %s", err.Error())
+		log.Errorf("CacheCarfile load incomplete storage error %s", err.Error())
 		return nil, err
 	}
 
