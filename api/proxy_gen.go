@@ -193,7 +193,7 @@ type LocatorStruct struct {
 
 		RemoveAccessPoints func(p0 context.Context, p1 string) error `perm:"admin"`
 
-		SetDeviceOnlineStatus func(p0 context.Context, p1 string, p2 bool) error `perm:"write"`
+		SetNodeOnlineStatus func(p0 context.Context, p1 string, p2 bool) error `perm:"write"`
 
 		ShowAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
 
@@ -756,14 +756,14 @@ func (s *LocatorStub) RemoveAccessPoints(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
-func (s *LocatorStruct) SetDeviceOnlineStatus(p0 context.Context, p1 string, p2 bool) error {
-	if s.Internal.SetDeviceOnlineStatus == nil {
+func (s *LocatorStruct) SetNodeOnlineStatus(p0 context.Context, p1 string, p2 bool) error {
+	if s.Internal.SetNodeOnlineStatus == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.SetDeviceOnlineStatus(p0, p1, p2)
+	return s.Internal.SetNodeOnlineStatus(p0, p1, p2)
 }
 
-func (s *LocatorStub) SetDeviceOnlineStatus(p0 context.Context, p1 string, p2 bool) error {
+func (s *LocatorStub) SetNodeOnlineStatus(p0 context.Context, p1 string, p2 bool) error {
 	return ErrNotSupported
 }
 

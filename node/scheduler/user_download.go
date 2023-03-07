@@ -18,11 +18,6 @@ import (
 func (s *Scheduler) NodeResultForUserDownloadBlock(ctx context.Context, result api.NodeBlockDownloadResult) error {
 	nodeID := handler.GetNodeID(ctx)
 	if result.Succeed {
-		// err := incrDeviceReward(nodeID, 1)
-		// if err != nil {
-		// 	return err
-		// }
-
 		blockHash, err := cidutil.CIDString2HashString(result.BlockCID)
 		if err != nil {
 			return err
@@ -80,7 +75,7 @@ func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string,
 	return infos, nil
 }
 
-func (s *Scheduler) signDownloadInfos(cid string, results []*api.DownloadInfoResult, devicePrivateKeys map[string]*rsa.PrivateKey) error {
+func (s *Scheduler) signDownloadInfos(cid string, results []*api.DownloadInfoResult, privateKeys map[string]*rsa.PrivateKey) error {
 	sn := int64(0)
 
 	signTime := time.Now().Unix()
@@ -88,15 +83,15 @@ func (s *Scheduler) signDownloadInfos(cid string, results []*api.DownloadInfoRes
 	for index := range results {
 		nodeID := results[index].NodeID
 
-		privateKey, exist := devicePrivateKeys[nodeID]
+		privateKey, exist := privateKeys[nodeID]
 		if !exist {
 			var err error
-			privateKey, err = s.getDevicePrivateKey(nodeID)
+			privateKey, err = s.getNodePrivateKey(nodeID)
 			if err != nil {
 				log.Errorf("signDownloadInfos get private key error:%s", err.Error())
 				return err
 			}
-			devicePrivateKeys[nodeID] = privateKey
+			privateKeys[nodeID] = privateKey
 		}
 
 		sign, err := titanRsa.RsaSign(privateKey, fmt.Sprintf("%s%d%d%d", nodeID, sn, signTime, blockDonwloadTimeout))
@@ -112,7 +107,7 @@ func (s *Scheduler) signDownloadInfos(cid string, results []*api.DownloadInfoRes
 	return nil
 }
 
-func (s *Scheduler) getDevicePrivateKey(nodeID string) (*rsa.PrivateKey, error) {
+func (s *Scheduler) getNodePrivateKey(nodeID string) (*rsa.PrivateKey, error) {
 	edge := s.NodeManager.GetEdgeNode(nodeID)
 	if edge != nil {
 		return edge.PrivateKey(), nil

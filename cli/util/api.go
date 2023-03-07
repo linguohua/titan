@@ -160,7 +160,7 @@ func GetSchedulerAPI(ctx *cli.Context, nodeID string) (api.Scheduler, jsonrpc.Cl
 	}
 
 	if headers != nil && len(nodeID) > 0 {
-		headers.Add("Device-ID", nodeID)
+		headers.Add("Node-ID", nodeID)
 	}
 
 	if IsVeryVerbose {

@@ -16,7 +16,7 @@ var EdgeCmds = []*cli.Command{
 
 var nodeInfoCmd = &cli.Command{
 	Name:  "info",
-	Usage: "Print device info",
+	Usage: "Print node info",
 	Action: func(cctx *cli.Context) error {
 		api, closer, err := GetEdgeAPI(cctx)
 		if err != nil {
@@ -31,18 +31,18 @@ var nodeInfoCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Printf("device id: %v \n", v.NodeID)
-		fmt.Printf("device name: %v \n", v.DeviceName)
-		fmt.Printf("device external_ip: %v \n", v.ExternalIP)
-		fmt.Printf("device internal_ip: %v \n", v.InternalIP)
-		fmt.Printf("device systemVersion: %s \n", v.SystemVersion)
-		fmt.Printf("device DiskUsage: %f \n", v.DiskUsage)
-		fmt.Printf("device disk space: %f \n", v.DiskSpace)
-		fmt.Printf("device fstype: %s \n", v.IoSystem)
-		fmt.Printf("device mac: %v \n", v.MacLocation)
-		fmt.Printf("device download bandwidth: %v \n", v.BandwidthDown)
-		fmt.Printf("device upload bandwidth: %v \n", v.BandwidthUp)
-		fmt.Printf("device cpu percent: %v \n", v.CPUUsage)
+		fmt.Printf("node id: %v \n", v.NodeID)
+		fmt.Printf("node name: %v \n", v.NodeName)
+		fmt.Printf("node external_ip: %v \n", v.ExternalIP)
+		fmt.Printf("node internal_ip: %v \n", v.InternalIP)
+		fmt.Printf("node systemVersion: %s \n", v.SystemVersion)
+		fmt.Printf("node DiskUsage: %f \n", v.DiskUsage)
+		fmt.Printf("node disk space: %f \n", v.DiskSpace)
+		fmt.Printf("node fstype: %s \n", v.IoSystem)
+		fmt.Printf("node mac: %v \n", v.MacLocation)
+		fmt.Printf("node download bandwidth: %v \n", v.BandwidthDown)
+		fmt.Printf("node upload bandwidth: %v \n", v.BandwidthUp)
+		fmt.Printf("node cpu percent: %v \n", v.CPUUsage)
 
 		return nil
 	},

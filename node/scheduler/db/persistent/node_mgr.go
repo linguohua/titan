@@ -266,14 +266,14 @@ func (n *NodeMgrDB) GetValidatorsWithList(serverID dtypes.ServerID) ([]string, e
 	return out, nil
 }
 
-// UpdateNodeInfo update node info
-func (n *NodeMgrDB) UpdateNodeInfo(info *api.NodeInfo) error {
+// UpdateNodeOnlineInfo update node info
+func (n *NodeMgrDB) UpdateNodeOnlineInfo(info *api.NodeInfo) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (node_id, profit,
-				private_key, last_time, quitted) 
-				VALUES (:node_id, :profit,
-				:private_key, :last_time, :quitted) 
-				ON DUPLICATE KEY UPDATE node_id=:node_id, last_time=:last_time, quitted=:quitted`, nodeInfoTable)
+		`INSERT INTO %s (node_id, private_key, mac_location, product_type, cpu_cores, memory, node_name, latitude, disk_usage,
+			    longitude, disk_type, io_system, system_version, nat_type, disk_space, bandwidth_up, bandwidth_down, blocks) 
+				VALUES (:node_id, :private_key, :mac_location, :product_type, :cpu_cores, :memory, :node_name, :latitude, :disk_usage,
+				:longitude, :disk_type, :io_system, :system_version, :nat_type, :disk_space, :bandwidth_up, :bandwidth_down, :blocks) 
+				ON DUPLICATE KEY UPDATE node_id=:node_id, last_time=NOW(), quitted=0, disk_usage=:disk_usage, blocks=:blocks`, nodeInfoTable)
 
 	_, err := n.db.NamedExec(query, info)
 	return err
@@ -292,7 +292,7 @@ func (n *NodeMgrDB) UpdateNodeOnlineTime(nodeID string, onlineTime int) error {
 	return err
 }
 
-// ListNodeIDs list devices
+// ListNodeIDs list nodes
 func (n *NodeMgrDB) ListNodeIDs(cursor int, count int) ([]string, int64, error) {
 	var total int64
 

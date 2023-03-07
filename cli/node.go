@@ -63,9 +63,9 @@ var nodeTokenCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		secret := cctx.String("secret")
-		nodeID := cctx.String("device-id")
+		nodeID := cctx.String("node-id")
 		if nodeID == "" {
-			return xerrors.New("device-id is nil")
+			return xerrors.New("node-id is nil")
 		}
 
 		ctx := ReqContext(cctx)
@@ -124,9 +124,9 @@ var showNodeInfoCmd = &cli.Command{
 		nodeIDFlag,
 	},
 	Action: func(cctx *cli.Context) error {
-		nodeID := cctx.String("device-id")
+		nodeID := cctx.String("node-id")
 		if nodeID == "" {
-			return xerrors.New("device-id is nil")
+			return xerrors.New("node-id is nil")
 		}
 
 		ctx := ReqContext(cctx)
@@ -147,21 +147,21 @@ var showNodeInfoCmd = &cli.Command{
 			natType = "UnkonwNAT"
 		}
 
-		fmt.Printf("device id: %s \n", info.NodeID)
-		fmt.Printf("device name: %s \n", info.DeviceName)
-		fmt.Printf("device external_ip: %s \n", info.ExternalIP)
-		fmt.Printf("device internal_ip: %s \n", info.InternalIP)
-		fmt.Printf("device system version: %s \n", info.SystemVersion)
-		fmt.Printf("device disk usage: %.2f %s\n", info.DiskUsage, "%")
-		fmt.Printf("device disk space: %.2f GB \n", info.DiskSpace/1024/1024/1024)
-		fmt.Printf("device fstype: %s \n", info.IoSystem)
-		fmt.Printf("device mac: %s \n", info.MacLocation)
-		fmt.Printf("device download bandwidth: %.2f GB \n", info.BandwidthDown/1024/1024/1024)
-		fmt.Printf("device upload bandwidth: %.2f GB \n", info.BandwidthUp/1024/1024/1024)
-		fmt.Printf("device cpu percent: %.2f %s \n", info.CPUUsage, "%")
+		fmt.Printf("node id: %s \n", info.NodeID)
+		fmt.Printf("node name: %s \n", info.NodeName)
+		fmt.Printf("node external_ip: %s \n", info.ExternalIP)
+		fmt.Printf("node internal_ip: %s \n", info.InternalIP)
+		fmt.Printf("node system version: %s \n", info.SystemVersion)
+		fmt.Printf("node disk usage: %.2f %s\n", info.DiskUsage, "%")
+		fmt.Printf("node disk space: %.2f GB \n", info.DiskSpace/1024/1024/1024)
+		fmt.Printf("node fstype: %s \n", info.IoSystem)
+		fmt.Printf("node mac: %s \n", info.MacLocation)
+		fmt.Printf("node download bandwidth: %.2f GB \n", info.BandwidthDown/1024/1024/1024)
+		fmt.Printf("node upload bandwidth: %.2f GB \n", info.BandwidthUp/1024/1024/1024)
+		fmt.Printf("node cpu percent: %.2f %s \n", info.CPUUsage, "%")
 		//
-		fmt.Printf("device DownloadCount: %d \n", info.DownloadBlocks)
-		fmt.Printf("device NatType: %s \n", natType)
+		fmt.Printf("node DownloadCount: %d \n", info.DownloadBlocks)
+		fmt.Printf("node NatType: %s \n", natType)
 
 		return nil
 	},
@@ -174,7 +174,7 @@ var downloadNodeLogFileCmd = &cli.Command{
 		nodeIDFlag,
 	},
 	Action: func(cctx *cli.Context) error {
-		nodeID := cctx.String("device-id")
+		nodeID := cctx.String("node-id")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -210,7 +210,7 @@ var showNodeLogInfoCmd = &cli.Command{
 		nodeIDFlag,
 	},
 	Action: func(cctx *cli.Context) error {
-		nodeID := cctx.String("device-id")
+		nodeID := cctx.String("node-id")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -241,7 +241,7 @@ var deleteNodeLogFileCmd = &cli.Command{
 		nodeIDFlag,
 	},
 	Action: func(cctx *cli.Context) error {
-		nodeID := cctx.String("device-id")
+		nodeID := cctx.String("node-id")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -266,9 +266,9 @@ var nodeQuitCmd = &cli.Command{
 		return nil
 	},
 	Action: func(cctx *cli.Context) error {
-		nodeID := cctx.String("device-id")
+		nodeID := cctx.String("node-id")
 		if nodeID == "" {
-			return xerrors.New("device-id is nil")
+			return xerrors.New("node-id is nil")
 		}
 
 		secret := cctx.String("secret")
@@ -302,7 +302,7 @@ var edgeExternalAddrCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		nodeID := cctx.String("device-id")
+		nodeID := cctx.String("node-id")
 		schedulerURL := cctx.String("scheduler-url")
 
 		ctx := ReqContext(cctx)

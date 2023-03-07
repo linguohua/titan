@@ -173,8 +173,8 @@ var getCmd = &cli.Command{
 	Usage: "get scheduler url",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "device-id",
-			Usage: "device id",
+			Name:  "node-id",
+			Usage: "node id",
 			Value: "2521c39087cecd74a853850dd56e9c859b786fbc",
 		},
 	},
@@ -186,7 +186,7 @@ var getCmd = &cli.Command{
 		}
 		defer closer()
 
-		nodeID := cctx.String("device-id")
+		nodeID := cctx.String("node-id")
 		// securityKey := cctx.String("security-key")
 		ctx := ReqContext(cctx)
 

@@ -1,6 +1,8 @@
 package locator
 
 import (
+	"fmt"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 )
@@ -38,22 +40,7 @@ func NewSQLDB(db *sqlx.DB) *SqlDB {
 	}
 }
 
-//func NewSQLDB(url string) (*SqlDB, error) {
-//	url = fmt.Sprintf("%s?parseTime=true&loc=Local", url)
-//	db := &SqlDB{}
-//	database, err := sqlx.Open("mysql", url)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	if err := database.Ping(); err != nil {
-//		return nil, err
-//	}
-//
-//	db.cli = database
-//
-//	return db, nil
-//}
+const nodeInfoTable = "node_info"
 
 func (db *SqlDB) close() error {
 	return db.cli.Close()
@@ -141,7 +128,8 @@ func (db *SqlDB) deleteSchedulerCfg(schedulerURL string) error {
 
 func (db *SqlDB) getNodeInfo(nodeID string) (*nodeInfo, error) {
 	devInfo := &nodeInfo{}
-	err := db.cli.Get(devInfo, `SELECT * FROM device WHERE node_id=?`, nodeID)
+	cmd := fmt.Sprintf("SELECT * FROM %s WHERE node_id=?", nodeInfoTable)
+	err := db.cli.Get(devInfo, cmd, nodeID)
 	if err != nil {
 		return nil, err
 	}
@@ -151,28 +139,34 @@ func (db *SqlDB) getNodeInfo(nodeID string) (*nodeInfo, error) {
 
 func (db *SqlDB) setNodeInfo(nodeID string, schedulerURL string, areaID string, online bool) error {
 	devInfo := &nodeInfo{NodeID: nodeID, SchedulerURL: schedulerURL, AreaID: areaID, Online: online}
-	_, err := db.cli.NamedExec(`INSERT INTO device (node_id,scheduler_url, area_id, online) VALUES (:node_id, :scheduler_url, :area_id, :online) ON DUPLICATE KEY UPDATE scheduler_url=:scheduler_url,area_id=:area_id,online=:online`, devInfo)
+
+	cmd := fmt.Sprintf(`INSERT INTO %s (node_id,scheduler_url, area_id, online) VALUES (:node_id, :scheduler_url, :area_id, :online) ON DUPLICATE KEY UPDATE scheduler_url=:scheduler_url,area_id=:area_id,online=:online`, nodeInfoTable)
+	_, err := db.cli.NamedExec(cmd, devInfo)
 	return err
 }
 
 func (db *SqlDB) deleteNodeInfo(nodeID string) error {
 	devInfo := &nodeInfo{NodeID: nodeID}
-	_, err := db.cli.NamedExec(`DELETE FROM device WHERE node_id=:node_id`, devInfo)
+	cmd := fmt.Sprintf(`DELETE FROM %s WHERE node_id=:node_id`, nodeInfoTable)
+	_, err := db.cli.NamedExec(cmd, devInfo)
 	return err
 }
 
-func (db *SqlDB) countDeviceOnScheduler(schedulerURL string) (int, error) {
+func (db *SqlDB) countNodeOnScheduler(schedulerURL string) (int, error) {
 	var count int
-	err := db.cli.Get(&count, `select count(*) from device WHERE scheduler_url=?`, schedulerURL)
+
+	cmd := fmt.Sprintf(`select count(*) from %s WHERE scheduler_url=?`, nodeInfoTable)
+	err := db.cli.Get(&count, cmd, schedulerURL)
 	if err != nil {
 		return 0, err
 	}
 	return count, err
 }
 
-func (db *SqlDB) countDeviceWithID(nodeID string) (int, error) {
+func (db *SqlDB) countNodeWithID(nodeID string) (int, error) {
 	var count int
-	err := db.cli.Get(&count, `select count(*) from device WHERE node_id=?`, nodeID)
+	cmd := fmt.Sprintf(`select count(*) from %s WHERE node_id=?`, nodeInfoTable)
+	err := db.cli.Get(&count, cmd, nodeID)
 	if err != nil {
 		return 0, err
 	}

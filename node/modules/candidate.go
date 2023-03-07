@@ -11,7 +11,7 @@ import (
 	"go.uber.org/fx"
 )
 
-type DeviceParams struct {
+type NodeParams struct {
 	fx.In
 
 	NodeID        dtypes.NodeID

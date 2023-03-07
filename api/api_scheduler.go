@@ -25,7 +25,7 @@ type Scheduler interface {
 	ValidateRunningState(ctx context.Context) (bool, error)                                      //perm:admin
 	ValidateStart(ctx context.Context) error                                                     //perm:admin
 	ResetCacheExpirationTime(ctx context.Context, carfileCid string, time time.Time) error       //perm:admin
-	NodeQuit(ctx context.Context, device, secret string) error                                   //perm:admin
+	NodeQuit(ctx context.Context, nodeID, secret string) error                                   //perm:admin
 	ResetReplicaCacheCount(ctx context.Context, count int) error                                 //perm:admin
 	ExecuteUndoneCarfilesTask(ctx context.Context, hashs []string) error                         //perm:admin
 	ShowNodeLogFile(ctx context.Context, nodeID string) (*LogFile, error)                        //perm:admin
@@ -37,16 +37,16 @@ type Scheduler interface {
 
 	// call by node
 	// node send result when user download block complete
-	NodeResultForUserDownloadBlock(ctx context.Context, result NodeBlockDownloadResult) error              //perm:write
-	EdgeNodeConnect(ctx context.Context) error                                                             //perm:write
-	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                        //perm:write
-	CandidateNodeConnect(ctx context.Context) error                                                        //perm:write
-	CacheResult(ctx context.Context, resultInfo CacheResultInfo) error                                     //perm:write
-	RemoveCarfileResult(ctx context.Context, resultInfo RemoveCarfileResultInfo) error                     //perm:write
-	GetExternalAddr(ctx context.Context) (string, error)                                                   //perm:read
-	GetPublicKey(ctx context.Context) (string, error)                                                      //perm:write
-	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                           //perm:read
-	AuthNodeNew(ctx context.Context, perms []auth.Permission, nodeID, deviceSecret string) ([]byte, error) //perm:read
+	NodeResultForUserDownloadBlock(ctx context.Context, result NodeBlockDownloadResult) error            //perm:write
+	EdgeNodeConnect(ctx context.Context) error                                                           //perm:write
+	ValidateBlockResult(ctx context.Context, validateResults ValidateResults) error                      //perm:write
+	CandidateNodeConnect(ctx context.Context) error                                                      //perm:write
+	CacheResult(ctx context.Context, resultInfo CacheResultInfo) error                                   //perm:write
+	RemoveCarfileResult(ctx context.Context, resultInfo RemoveCarfileResultInfo) error                   //perm:write
+	GetExternalAddr(ctx context.Context) (string, error)                                                 //perm:read
+	GetPublicKey(ctx context.Context) (string, error)                                                    //perm:write
+	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                         //perm:read
+	AuthNodeNew(ctx context.Context, perms []auth.Permission, nodeID, nodeSecret string) ([]byte, error) //perm:read
 
 	GetNodeAppUpdateInfos(ctx context.Context) (map[int]*NodeAppUpdateInfo, error) //perm:read
 	SetNodeAppUpdateInfo(ctx context.Context, info *NodeAppUpdateInfo) error       //perm:admin                                                           //perm:write
@@ -66,7 +66,7 @@ type Scheduler interface {
 	// user send result when user download block complete or failed
 	UserDownloadBlockResults(ctx context.Context, results []UserBlockDownloadResult) error //perm:read
 
-	// ListNodes cursor: start index, count: load number of device
+	// ListNodes cursor: start index, count: load number of node
 	ListNodes(ctx context.Context, cursor int, count int) (ListNodesRsp, error)                                //perm:read
 	ListBlockDownloadInfo(ctx context.Context, req ListBlockDownloadInfoReq) (ListBlockDownloadInfoRsp, error) //perm:read
 

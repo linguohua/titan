@@ -41,7 +41,7 @@ func isValid(geo string) bool {
 
 func (locator *Locator) GetAccessPoints(ctx context.Context, nodeID string) ([]string, error) {
 	schedulerAPI, err := locator.getSchedulerAPIWith(nodeID)
-	if err == nil { // device may be not exit if err != nil
+	if err == nil { // node may be not exit if err != nil
 		return []string{schedulerAPI.url}, nil
 	}
 
@@ -49,7 +49,7 @@ func (locator *Locator) GetAccessPoints(ctx context.Context, nodeID string) ([]s
 		return nil, err
 	}
 
-	// if device not exist, get scheduler by ip location
+	// if node not exist, get scheduler by ip location
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	areaID, err := locator.getAreaIDWith(remoteAddr)
 	if err != nil {
@@ -105,12 +105,12 @@ func (locator *Locator) ShowAccessPoint(ctx context.Context, areaID string) (api
 	return accessPoint, nil
 }
 
-func (locator *Locator) SetDeviceOnlineStatus(ctx context.Context, nodeID string, isOnline bool) error {
-	log.Debugf("SetDeviceStatus device %s online status %t", nodeID, isOnline)
+func (locator *Locator) SetNodeOnlineStatus(ctx context.Context, nodeID string, isOnline bool) error {
+	log.Debugf("SetNodeOnlineStatus node %s online status %t", nodeID, isOnline)
 
 	info, err := locator.DB.getNodeInfo(nodeID)
 	if err != nil {
-		log.Errorf("SetDeviceStatus, get device %s error:%s", nodeID, err.Error())
+		log.Errorf("SetNodeOnlineStatus, get node %s error:%s", nodeID, err.Error())
 		return err
 	}
 
@@ -146,7 +146,7 @@ func (locator *Locator) getAccessPointsWithWeightCount(areaID string) ([]string,
 	}
 
 	cfgWeights := countSchedulerWeightWithCfgs(onlineSchedulerCfgs)
-	currentWeights := locator.countSchedulerWeightByDevice(onlineSchedulerCfgs)
+	currentWeights := locator.countSchedulerWeightByNode(onlineSchedulerCfgs)
 
 	urls := make([]string, 0)
 	for url, weight := range cfgWeights {
@@ -181,14 +181,14 @@ func countSchedulerWeightWithCfgs(schedulerCfgs map[string]*schedulerCfg) map[st
 	return result
 }
 
-func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*schedulerCfg) map[string]float32 {
+func (locator *Locator) countSchedulerWeightByNode(schedulerCfgs map[string]*schedulerCfg) map[string]float32 {
 	totalWeight := 0
 
 	weightMap := make(map[string]int)
 	for _, cfg := range schedulerCfgs {
-		count, err := locator.DB.countDeviceOnScheduler(cfg.SchedulerURL)
+		count, err := locator.DB.countNodeOnScheduler(cfg.SchedulerURL)
 		if err != nil {
-			log.Errorf("countSchedulerWeightByDevice, error:%s", err.Error())
+			log.Errorf("countSchedulerWeightByNode, error:%s", err.Error())
 			continue
 		}
 
@@ -207,20 +207,20 @@ func (locator *Locator) countSchedulerWeightByDevice(schedulerCfgs map[string]*s
 	return result
 }
 
-// if device not exist return sql.ErrNoRows
+// if node not exist return sql.ErrNoRows
 func (locator *Locator) getSchedulerAPIWith(nodeID string) (*schedulerAPI, error) {
-	device, err := locator.DB.getNodeInfo(nodeID)
+	node, err := locator.DB.getNodeInfo(nodeID)
 	if err != nil {
 		log.Errorf("GetAccessPoints, getNodeInfo error:%s", err.Error())
 		return nil, err
 	}
 
-	cfg, err := locator.DB.getSchedulerCfg(device.SchedulerURL)
+	cfg, err := locator.DB.getSchedulerCfg(node.SchedulerURL)
 	if err != nil {
 		return nil, err
 	}
 
-	return locator.ApMgr.getSchedulerAPI(device.SchedulerURL, device.AreaID, cfg.AccessToken)
+	return locator.ApMgr.getSchedulerAPI(node.SchedulerURL, node.AreaID, cfg.AccessToken)
 }
 
 func (locator *Locator) GetDownloadInfosWithCarfile(ctx context.Context, cid string, publicKey string) ([]*api.DownloadInfoResult, error) {

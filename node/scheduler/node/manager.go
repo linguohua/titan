@@ -351,7 +351,7 @@ func NewSessionCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error
 	}, nil
 }
 
-// FindNodeDownloadInfos  find device with block cid
+// FindNodeDownloadInfos  find node with block cid
 func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*api.DownloadInfoResult, error) {
 	infos := make([]*api.DownloadInfoResult, 0)
 
@@ -391,7 +391,7 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*api.DownloadInf
 }
 
 // GetCandidatesWithBlockHash find candidates with block hash
-func (m *Manager) GetCandidatesWithBlockHash(hash, filterDevice string) ([]*Candidate, error) {
+func (m *Manager) GetCandidatesWithBlockHash(hash, filterNode string) ([]*Candidate, error) {
 	caches, err := m.CarfileDB.CarfileReplicaInfosWithHash(hash, true)
 	if err != nil {
 		return nil, err
@@ -405,7 +405,7 @@ func (m *Manager) GetCandidatesWithBlockHash(hash, filterDevice string) ([]*Cand
 
 	for _, cache := range caches {
 		dID := cache.NodeID
-		if dID == filterDevice {
+		if dID == filterNode {
 			continue
 		}
 
@@ -476,7 +476,7 @@ func (m *Manager) saveInfo(n *BaseInfo) error {
 	n.Quitted = false
 	n.LastTime = time.Now()
 
-	err := m.NodeMgrDB.UpdateNodeInfo(n.NodeInfo)
+	err := m.NodeMgrDB.UpdateNodeOnlineInfo(n.NodeInfo)
 	if err != nil {
 		return err
 	}

@@ -157,7 +157,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 			if tcpMsg.msgType == api.ValidateTcpMsgTypeCancelValidate {
 				result.IsCancel = true
 				sendValidateResult(candidate, result)
-				log.Infof("device %s cancel validator", result.NodeID)
+				log.Infof("node %s cancel validator", result.NodeID)
 				return
 			}
 
@@ -175,7 +175,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 				vb.conn.Close()
 			}
 			isBreak = true
-			log.Errorf("wait device %s timeout %ds, exit wait block", result.NodeID, req.Duration+validateTimeout)
+			log.Errorf("wait node %s timeout %ds, exit wait block", result.NodeID, req.Duration+validateTimeout)
 		}
 
 		if isBreak {
@@ -217,7 +217,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(candidate, result)
-		log.Errorf("validator get device info err: %v", err)
+		log.Errorf("validator get node info err: %v", err)
 		return
 	}
 
