@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/cidutil"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
@@ -230,7 +230,7 @@ var cacheCarfileCmd = &cli.Command{
 			return xerrors.New("cid is nil")
 		}
 
-		info := &api.CacheCarfileInfo{CarfileCid: cid}
+		info := &types.CacheCarfileInfo{CarfileCid: cid}
 		if nodeID != "" {
 			info.NodeID = nodeID
 		} else {

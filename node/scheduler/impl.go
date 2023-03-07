@@ -25,6 +25,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/handler"
 	titanRsa "github.com/linguohua/titan/node/rsa"
@@ -125,7 +126,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
-	if !s.nodeExists(nodeID, int(api.NodeCandidate)) {
+	if !s.nodeExists(nodeID, int(types.NodeCandidate)) {
 		return xerrors.Errorf("candidate node not Exist: %s", nodeID)
 	}
 
@@ -175,7 +176,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
-	if !s.nodeExists(nodeID, int(api.NodeEdge)) {
+	if !s.nodeExists(nodeID, int(types.NodeEdge)) {
 		return xerrors.Errorf("edge node not Exist: %s", nodeID)
 	}
 
@@ -220,7 +221,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	return nil
 }
 
-func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *api.NodeInfo) (*node.BaseInfo, error) {
+func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.NodeInfo) (*node.BaseInfo, error) {
 	if nodeID != nodeInfo.NodeID {
 		return nil, xerrors.Errorf("nodeID mismatch %s,%s", nodeID, nodeInfo.NodeID)
 	}
@@ -237,7 +238,7 @@ func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *api.Nod
 
 	nodeInfo.PortMapping = port
 
-	nodeInfo.NodeType = api.NodeCandidate
+	nodeInfo.NodeType = types.NodeCandidate
 	nodeInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
 	if err != nil {
 		return nil, xerrors.Errorf("SplitHostPort err:%s", err.Error())
@@ -308,8 +309,8 @@ func (s *Scheduler) NodeValidatedResult(ctx context.Context, result api.Validate
 	return nil
 }
 
-func (s *Scheduler) AllocateNodes(ctx context.Context, nodeType api.NodeType, count int) ([]*api.NodeAllocateInfo, error) {
-	list := make([]*api.NodeAllocateInfo, 0)
+func (s *Scheduler) AllocateNodes(ctx context.Context, nodeType types.NodeType, count int) ([]*types.NodeAllocateInfo, error) {
+	list := make([]*types.NodeAllocateInfo, 0)
 	if count <= 0 || count > 10 {
 		return list, nil
 	}
@@ -328,8 +329,8 @@ func (s *Scheduler) AllocateNodes(ctx context.Context, nodeType api.NodeType, co
 }
 
 // OnlineNodeList Get all online node id
-func (s *Scheduler) OnlineNodeList(ctx context.Context, nodeType api.NodeType) ([]string, error) {
-	if nodeType == api.NodeValidator {
+func (s *Scheduler) OnlineNodeList(ctx context.Context, nodeType types.NodeType) ([]string, error) {
+	if nodeType == types.NodeValidator {
 		list, err := s.NodeManager.NodeMgrDB.GetValidatorsWithList(s.ServerID)
 		if err != nil {
 			return nil, err
@@ -355,8 +356,8 @@ func (s *Scheduler) StartOnceElection(ctx context.Context) error {
 }
 
 // NodeInfo return the node information
-func (s *Scheduler) NodeInfo(ctx context.Context, nodeID string) (*api.NodeInfo, error) {
-	nodeInfo := &api.NodeInfo{}
+func (s *Scheduler) NodeInfo(ctx context.Context, nodeID string) (*types.NodeInfo, error) {
+	nodeInfo := &types.NodeInfo{}
 	nodeInfo.Online = false
 
 	info := s.NodeManager.GetNode(nodeID)
@@ -413,7 +414,7 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, id string, token string)
 }
 
 // NodeDownloadRecord get node download info
-func (s *Scheduler) NodeDownloadRecord(ctx context.Context, nodeID string) ([]*api.DownloadRecordInfo, error) {
+func (s *Scheduler) NodeDownloadRecord(ctx context.Context, nodeID string) ([]*types.DownloadRecordInfo, error) {
 	return s.NodeManager.CarfileDB.GetBlockDownloadInfoByNodeID(nodeID)
 }
 
@@ -537,8 +538,8 @@ func (s *Scheduler) nodeExists(nodeID string, nodeType int) bool {
 }
 
 // NodeList list nodes
-func (s *Scheduler) NodeList(ctx context.Context, cursor int, count int) (*api.ListNodesRsp, error) {
-	rsp := &api.ListNodesRsp{Data: make([]*api.NodeInfo, 0)}
+func (s *Scheduler) NodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error) {
+	rsp := &types.ListNodesRsp{Data: make([]*types.NodeInfo, 0)}
 
 	nodes, total, err := s.NodeManager.NodeMgrDB.ListNodeIDs(cursor, count)
 	if err != nil {
@@ -554,7 +555,7 @@ func (s *Scheduler) NodeList(ctx context.Context, cursor int, count int) (*api.L
 		validator[id] = struct{}{}
 	}
 
-	nodeInfos := make([]*api.NodeInfo, 0)
+	nodeInfos := make([]*types.NodeInfo, 0)
 	for _, nodeID := range nodes {
 		nodeInfo, err := s.NodeInfo(ctx, nodeID)
 		if err != nil {
@@ -564,7 +565,7 @@ func (s *Scheduler) NodeList(ctx context.Context, cursor int, count int) (*api.L
 
 		_, exist := validator[nodeID]
 		if exist {
-			nodeInfo.NodeType = api.NodeValidator
+			nodeInfo.NodeType = types.NodeValidator
 		}
 
 		nodeInfos = append(nodeInfos, nodeInfo)
@@ -577,7 +578,7 @@ func (s *Scheduler) NodeList(ctx context.Context, cursor int, count int) (*api.L
 }
 
 // DownloadRecordList lost download record
-func (s *Scheduler) DownloadRecordList(ctx context.Context, req api.ListBlockDownloadInfoReq) (*api.ListDownloadRecordRsp, error) {
+func (s *Scheduler) DownloadRecordList(ctx context.Context, req types.ListBlockDownloadInfoReq) (*types.ListDownloadRecordRsp, error) {
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
@@ -585,14 +586,14 @@ func (s *Scheduler) DownloadRecordList(ctx context.Context, req api.ListBlockDow
 	if err != nil {
 		return nil, err
 	}
-	return &api.ListDownloadRecordRsp{
+	return &types.ListDownloadRecordRsp{
 		Data:  downloadInfos,
 		Total: total,
 	}, nil
 }
 
 // CarfileReplicaList list carfile replicas
-func (s *Scheduler) CarfileReplicaList(ctx context.Context, req api.ListCacheInfosReq) (*api.ListCarfileReplicaRsp, error) {
+func (s *Scheduler) CarfileReplicaList(ctx context.Context, req types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error) {
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
@@ -604,17 +605,13 @@ func (s *Scheduler) CarfileReplicaList(ctx context.Context, req api.ListCacheInf
 	return info, nil
 }
 
-func (s *Scheduler) GetBlocksByCarfileCID(ctx context.Context, carFileCID string) ([]api.WebBlock, error) {
-	return []api.WebBlock{}, nil
-}
-
-func (s *Scheduler) SystemInfo(ctx context.Context) (api.SystemBaseInfo, error) {
+func (s *Scheduler) SystemInfo(ctx context.Context) (types.SystemBaseInfo, error) {
 	// TODO get info from db
 
-	return api.SystemBaseInfo{}, nil
+	return types.SystemBaseInfo{}, nil
 }
 
-func (s *Scheduler) ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*api.ListValidatedResultRsp, error) {
+func (s *Scheduler) ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidatedResultRsp, error) {
 	svm, err := s.NodeManager.NodeMgrDB.ValidatedResultInfos(startTime, endTime, pageNumber, pageSize)
 	if err != nil {
 		return nil, err

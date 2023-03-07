@@ -18,6 +18,7 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -29,7 +30,7 @@ import (
 var log = logging.Logger("main")
 
 func main() {
-	api.RunningNodeType = api.NodeUpdate
+	types.RunningNodeType = types.NodeUpdate
 	cpu.Percent(0, false)
 	titanlog.SetupLogLevels()
 
@@ -80,7 +81,6 @@ var runCmd = &cli.Command{
 
 			time.Sleep(60 * time.Second)
 		}
-
 	},
 }
 
@@ -102,12 +102,12 @@ func checkUpdate(cctx *cli.Context, schedulerAPI api.Scheduler) {
 	}
 
 	// log.Infof("checkUpdate, updateInfos:%v", updateInfos)
-	mySelfUpdateInfo, ok := updateInfos[int(api.NodeUpdate)]
+	mySelfUpdateInfo, ok := updateInfos[int(types.NodeUpdate)]
 	if ok && isNeedToUpdateMySelf(cctx, mySelfUpdateInfo) {
 		updateApp(cctx, mySelfUpdateInfo)
 	}
 
-	edgeUpdateInfo, ok := updateInfos[int(api.NodeEdge)]
+	edgeUpdateInfo, ok := updateInfos[int(types.NodeEdge)]
 	if ok && isNeedToUpdateEdge(cctx, edgeUpdateInfo) {
 		updateApp(cctx, edgeUpdateInfo)
 	}
@@ -191,7 +191,7 @@ func updateApp(cctx *cli.Context, updateInfo *api.NodeAppUpdateInfo) {
 	fileName := updateInfo.AppName + "_tmp"
 	tmpFilePath := filepath.Join(installPath, fileName)
 
-	err = os.WriteFile(tmpFilePath, data, 0644)
+	err = os.WriteFile(tmpFilePath, data, 0o644)
 	if err != nil {
 		log.Errorf("save app error:%s", err)
 		return
@@ -223,7 +223,6 @@ func updateApp(cctx *cli.Context, updateInfo *api.NodeAppUpdateInfo) {
 		log.Errorf("killApp failed:%s", err.Error())
 		return
 	}
-
 }
 
 func changePermission(appPath string) error {
@@ -264,7 +263,7 @@ func newVersion(version string) (api.Version, error) {
 		return api.Version(0), fmt.Errorf("parse version error")
 	}
 
-	//major, minor, patch
+	// major, minor, patch
 	major, err := strconv.Atoi(stringSplit[0])
 	if err != nil {
 		return api.Version(0), fmt.Errorf("parse version major %s error:%s", stringSplit[0], err)
@@ -281,5 +280,4 @@ func newVersion(version string) (api.Version, error) {
 	}
 
 	return api.Version(uint32(major)<<16 | uint32(minor)<<8 | uint32(patch)), nil
-
 }

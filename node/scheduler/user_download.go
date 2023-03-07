@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/handler"
 	titanRsa "github.com/linguohua/titan/node/rsa"
@@ -15,7 +15,7 @@ import (
 )
 
 // NodeDownloadBlockResult node result for user download block
-func (s *Scheduler) UserDownloadResult(ctx context.Context, result api.UserDownloadResult) error {
+func (s *Scheduler) UserDownloadResult(ctx context.Context, result types.UserDownloadResult) error {
 	nodeID := handler.GetNodeID(ctx)
 	if result.Succeed {
 		blockHash, err := cidutil.CIDString2HashString(result.BlockCID)
@@ -23,7 +23,7 @@ func (s *Scheduler) UserDownloadResult(ctx context.Context, result api.UserDownl
 			return err
 		}
 
-		blockDwnloadInfo := &api.DownloadRecordInfo{NodeID: nodeID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
+		blockDwnloadInfo := &types.DownloadRecordInfo{NodeID: nodeID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
 
 		carfileInfo, _ := s.NodeManager.CarfileDB.LoadCarfileInfo(blockHash)
 		if carfileInfo != nil && carfileInfo.CarfileCid != "" {
@@ -39,13 +39,13 @@ func (s *Scheduler) UserDownloadResult(ctx context.Context, result api.UserDownl
 	return nil
 }
 
-func (s *Scheduler) handleUserDownloadBlockResult(ctx context.Context, result api.UserBlockDownloadResult) error {
+func (s *Scheduler) handleUserDownloadBlockResult(ctx context.Context, result types.UserBlockDownloadResult) error {
 	// TODO: implement user download count
 	return nil
 }
 
 // UserDownloadBlockResults node result for user download block
-func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []api.UserBlockDownloadResult) error {
+func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error {
 	for _, result := range results {
 		s.handleUserDownloadBlockResult(ctx, result)
 	}
@@ -53,7 +53,7 @@ func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []api.
 }
 
 // GetDownloadInfosWithCarfile find node
-func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string) ([]*api.DownloadInfoResult, error) {
+func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string) ([]*types.DownloadInfoResult, error) {
 	if cid == "" {
 		return nil, xerrors.New("cids is nil")
 	}
@@ -75,7 +75,7 @@ func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string)
 	return infos, nil
 }
 
-func (s *Scheduler) signDownloadInfos(cid string, results []*api.DownloadInfoResult, privateKeys map[string]*rsa.PrivateKey) error {
+func (s *Scheduler) signDownloadInfos(cid string, results []*types.DownloadInfoResult, privateKeys map[string]*rsa.PrivateKey) error {
 	sn := int64(0)
 
 	signTime := time.Now().Unix()

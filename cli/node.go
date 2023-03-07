@@ -6,6 +6,7 @@ import (
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
 )
@@ -43,7 +44,7 @@ var showOnlineNodeCmd = &cli.Command{
 		}
 		defer closer()
 
-		nodes, err := schedulerAPI.OnlineNodeList(ctx, api.NodeType(t))
+		nodes, err := schedulerAPI.OnlineNodeList(ctx, types.NodeType(t))
 
 		fmt.Println("Online nodes count:", len(nodes))
 		for _, node := range nodes {
@@ -103,11 +104,11 @@ var registerNodeCmd = &cli.Command{
 		}
 		defer closer()
 
-		if t != int(api.NodeEdge) && t != int(api.NodeCandidate) && t != int(api.NodeScheduler) {
+		if t != int(types.NodeEdge) && t != int(types.NodeCandidate) && t != int(types.NodeScheduler) {
 			return xerrors.Errorf("node-type err:%d", t)
 		}
 
-		infos, err := schedulerAPI.AllocateNodes(ctx, api.NodeType(t), 1)
+		infos, err := schedulerAPI.AllocateNodes(ctx, types.NodeType(t), 1)
 		if err != nil {
 			return err
 		}

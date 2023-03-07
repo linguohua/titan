@@ -1,6 +1,7 @@
-package api
+package types
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -55,18 +56,39 @@ type NodeInfo struct {
 	Quitted         bool      `db:"quitted"`
 }
 
-// DownloadRecordInfo node download record
-type DownloadRecordInfo struct {
-	ID           string    `json:"-"`
-	NodeID       string    `json:"node_id" db:"node_id"`
-	BlockCID     string    `json:"block_cid" db:"block_cid"`
-	CarfileCID   string    `json:"carfile_cid" db:"carfile_cid"`
-	BlockSize    int       `json:"block_size" db:"block_size"`
-	Speed        int64     `json:"speed" db:"speed"`
-	Reward       int64     `json:"reward" db:"reward"`
-	Status       int       `json:"status" db:"status"`
-	FailedReason string    `json:"failed_reason" db:"failed_reason"`
-	ClientIP     string    `json:"client_ip" db:"client_ip"`
-	CreatedTime  time.Time `json:"created_time" db:"created_time"`
-	CompleteTime time.Time `json:"complete_time" db:"complete_time"`
+// NodeType node type
+type NodeType int
+
+const (
+	NodeUnknown NodeType = iota
+
+	NodeEdge
+	NodeCandidate
+	NodeValidator
+	NodeScheduler
+	NodeLocator
+	NodeUpdate
+)
+
+func (n NodeType) String() string {
+	switch n {
+	case NodeEdge:
+		return "edge"
+	case NodeCandidate:
+		return "candidate"
+	case NodeScheduler:
+		return "scheduler"
+	case NodeValidator:
+		return "validator"
+	case NodeLocator:
+		return "locator"
+	}
+
+	return ""
 }
+
+func (n NodeType) MarshalBinary() ([]byte, error) {
+	return json.Marshal(n)
+}
+
+var RunningNodeType NodeType

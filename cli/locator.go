@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 	"github.com/urfave/cli/v2"
 )
 
@@ -245,7 +245,7 @@ var registerCmd = &cli.Command{
 
 		ctx := ReqContext(cctx)
 
-		registerInfos, err := locatorAPI.AllocateNodes(ctx, schedulerURL, api.NodeType(nodeType), count)
+		registerInfos, err := locatorAPI.AllocateNodes(ctx, schedulerURL, types.NodeType(nodeType), count)
 		if err != nil {
 			return err
 		}

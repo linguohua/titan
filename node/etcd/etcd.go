@@ -3,8 +3,9 @@ package etcd
 import (
 	"context"
 	"fmt"
-	"github.com/linguohua/titan/api"
 	"time"
+
+	"github.com/linguohua/titan/api/types"
 
 	logging "github.com/ipfs/go-log/v2"
 	"go.etcd.io/etcd/clientv3"
@@ -40,7 +41,7 @@ func New(addrs []string) (*Client, error) {
 }
 
 // ServerLogin login to etcd , If already logged in, return an error
-func (c *Client) ServerLogin(serverID, serverAddr string, nodeType api.NodeType) error {
+func (c *Client) ServerLogin(serverID, serverAddr string, nodeType types.NodeType) error {
 	ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
 	defer cancel()
 
@@ -90,7 +91,7 @@ func (c *Client) ServerLogin(serverID, serverAddr string, nodeType api.NodeType)
 }
 
 // WatchServers watch server login and logout
-func (c *Client) WatchServers(nodeType api.NodeType) {
+func (c *Client) WatchServers(nodeType types.NodeType) {
 	ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
 	defer cancel()
 

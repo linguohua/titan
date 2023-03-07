@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/journal/alerting"
 
 	"github.com/google/uuid"
@@ -43,7 +44,7 @@ type Common interface {
 	Version(context.Context) (APIVersion, error) //perm:read
 
 	// Discover returns an OpenRPC document describing an RPC API.
-	Discover(ctx context.Context) (OpenRPCDocument, error) //perm:read
+	Discover(ctx context.Context) (types.OpenRPCDocument, error) //perm:read
 
 	// trigger graceful shutdown
 	Shutdown(context.Context) error //perm:admin

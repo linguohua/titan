@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
@@ -17,7 +18,7 @@ type Replica struct {
 	id          string
 	nodeID      string
 	carfileHash string
-	status      api.CacheStatus
+	status      types.CacheStatus
 	doneSize    int64
 	doneBlocks  int
 	isCandidate bool
@@ -32,7 +33,7 @@ func (cr *CarfileRecord) newReplica(carfileRecord *CarfileRecord, nodeID string,
 	cache := &Replica{
 		carfileRecord: carfileRecord,
 		nodeManager:   carfileRecord.nodeManager,
-		status:        api.CacheStatusDownloading,
+		status:        types.CacheStatusDownloading,
 		carfileHash:   carfileRecord.carfileHash,
 		isCandidate:   isCandidate,
 		nodeID:        nodeID,
@@ -41,7 +42,7 @@ func (cr *CarfileRecord) newReplica(carfileRecord *CarfileRecord, nodeID string,
 	}
 
 	err := cr.nodeManager.CarfileDB.CreateCarfileReplicaInfo(
-		&api.ReplicaInfo{
+		&types.ReplicaInfo{
 			ID:          cache.id,
 			CarfileHash: cache.carfileHash,
 			NodeID:      cache.nodeID,
@@ -64,7 +65,7 @@ func (ra *Replica) startTimeoutTimer() {
 
 	for {
 		<-ra.timeoutTicker.C
-		if ra.status != api.CacheStatusDownloading {
+		if ra.status != types.CacheStatusDownloading {
 			return
 		}
 
@@ -73,8 +74,8 @@ func (ra *Replica) startTimeoutTimer() {
 		}
 		ra.countDown -= nodoCachingKeepalive
 
-		info := &api.CacheResult{
-			Status:         api.CacheStatusFailed,
+		info := &types.CacheResult{
+			Status:         types.CacheStatusFailed,
 			DoneSize:       ra.doneSize,
 			DoneBlockCount: ra.doneBlocks,
 			Msg:            "timeout",
@@ -92,7 +93,7 @@ func (ra *Replica) startTimeoutTimer() {
 
 func (ra *Replica) updateInfo() error {
 	// update cache info to db
-	cInfo := &api.ReplicaInfo{
+	cInfo := &types.ReplicaInfo{
 		ID:      ra.id,
 		Status:  ra.status,
 		EndTime: time.Now(),
@@ -103,7 +104,7 @@ func (ra *Replica) updateInfo() error {
 
 // Notify node to cache storage
 func (ra *Replica) cacheCarfile(cDown int) (err error) {
-	ra.status = api.CacheStatusDownloading
+	ra.status = types.CacheStatusDownloading
 
 	nodeID := ra.nodeID
 	var result *api.CacheCarfileResult
@@ -122,7 +123,7 @@ func (ra *Replica) cacheCarfile(cDown int) (err error) {
 				node.SetCurCacheCount(result.WaitCacheCarfileNum + 1)
 			}
 		} else {
-			ra.status = api.CacheStatusFailed
+			ra.status = types.CacheStatusFailed
 		}
 	}()
 

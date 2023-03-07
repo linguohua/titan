@@ -23,6 +23,7 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
 	"github.com/linguohua/titan/lib/titanlog"
@@ -55,7 +56,7 @@ const (
 )
 
 func main() {
-	api.RunningNodeType = api.NodeEdge
+	types.RunningNodeType = types.NodeEdge
 	titanlog.SetupLogLevels()
 
 	local := []*cli.Command{

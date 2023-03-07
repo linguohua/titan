@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/modules/dtypes"
 
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/locator"
@@ -134,10 +134,10 @@ func (m *Manager) checkNodesKeepalive(isSave bool) {
 }
 
 // OnlineNodeList get nodes with type
-func (m *Manager) OnlineNodeList(nodeType api.NodeType) ([]string, error) {
+func (m *Manager) OnlineNodeList(nodeType types.NodeType) ([]string, error) {
 	list := make([]string, 0)
 
-	if nodeType == api.NodeUnknown || nodeType == api.NodeCandidate {
+	if nodeType == types.NodeUnknown || nodeType == types.NodeCandidate {
 		m.CandidateNodes.Range(func(key, value interface{}) bool {
 			nodeID := key.(string)
 			list = append(list, nodeID)
@@ -146,7 +146,7 @@ func (m *Manager) OnlineNodeList(nodeType api.NodeType) ([]string, error) {
 		})
 	}
 
-	if nodeType == api.NodeUnknown || nodeType == api.NodeEdge {
+	if nodeType == types.NodeUnknown || nodeType == types.NodeEdge {
 		m.EdgeNodes.Range(func(key, value interface{}) bool {
 			nodeID := key.(string)
 			list = append(list, nodeID)
@@ -350,8 +350,8 @@ func NewSessionCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error
 }
 
 // FindNodeDownloadInfos  find node with block cid
-func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*api.DownloadInfoResult, error) {
-	infos := make([]*api.DownloadInfoResult, 0)
+func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadInfoResult, error) {
+	infos := make([]*types.DownloadInfoResult, 0)
 
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
@@ -382,7 +382,7 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*api.DownloadInf
 			continue
 		}
 
-		infos = append(infos, &api.DownloadInfoResult{URL: url, NodeID: nodeID})
+		infos = append(infos, &types.DownloadInfoResult{URL: url, NodeID: nodeID})
 	}
 
 	return infos, nil

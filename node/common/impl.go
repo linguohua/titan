@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/journal/alerting"
 	"github.com/linguohua/titan/node/handler"
@@ -83,7 +84,7 @@ func (a *CommonAPI) LogAlerts(ctx context.Context) ([]alerting.Alert, error) {
 
 // Version provides information about API provider
 func (a *CommonAPI) Version(context.Context) (api.APIVersion, error) {
-	v, err := api.VersionForType(api.RunningNodeType)
+	v, err := api.VersionForType(types.RunningNodeType)
 	if err != nil {
 		return api.APIVersion{}, err
 	}
@@ -95,7 +96,7 @@ func (a *CommonAPI) Version(context.Context) (api.APIVersion, error) {
 }
 
 // Discover returns an OpenRPC document describing an RPC API.
-func (a *CommonAPI) Discover(ctx context.Context) (api.OpenRPCDocument, error) {
+func (a *CommonAPI) Discover(ctx context.Context) (types.OpenRPCDocument, error) {
 	return nil, fmt.Errorf("not implement")
 }
 

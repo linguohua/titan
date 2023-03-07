@@ -15,6 +15,7 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/carfile"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/device"
@@ -257,9 +258,9 @@ func getNodeApi(nodeType int, nodeURL string) (nodeAPI, jsonrpc.ClientCloser, er
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if nodeType == int(api.NodeEdge) {
+	if nodeType == int(types.NodeEdge) {
 		return client.NewEdge(ctx, nodeURL, nil)
-	} else if nodeType == int(api.NodeCandidate) {
+	} else if nodeType == int(types.NodeCandidate) {
 		return client.NewCandicate(ctx, nodeURL, nil)
 	}
 

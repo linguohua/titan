@@ -12,6 +12,7 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/fsutil"
@@ -45,10 +46,10 @@ func NewDevice(nodeID, internalIP string, bandwidthUp, bandwidthDown int64, carf
 	return device
 }
 
-func (device *Device) NodeInfo(ctx context.Context) (api.NodeInfo, error) {
-	info := api.NodeInfo{}
+func (device *Device) NodeInfo(ctx context.Context) (types.NodeInfo, error) {
+	info := types.NodeInfo{}
 
-	v, err := api.VersionForType(api.RunningNodeType)
+	v, err := api.VersionForType(types.RunningNodeType)
 	if err != nil {
 		return info, err
 	}
@@ -74,7 +75,7 @@ func (device *Device) NodeInfo(ctx context.Context) (api.NodeInfo, error) {
 	mac, err := getMacAddr(info.InternalIP)
 	if err != nil {
 		log.Errorf("NodeInfo getMacAddr err:%s", err.Error())
-		return api.NodeInfo{}, err
+		return types.NodeInfo{}, err
 	}
 
 	info.MacLocation = mac
@@ -100,7 +101,7 @@ func (device *Device) NodeInfo(ctx context.Context) (api.NodeInfo, error) {
 
 	absPath, err := filepath.Abs(device.carfileStore.Path())
 	if err != nil {
-		return api.NodeInfo{}, err
+		return types.NodeInfo{}, err
 	}
 
 	info.IoSystem = fsutil.GetFilesystemType(absPath)

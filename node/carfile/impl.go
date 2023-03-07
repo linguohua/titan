@@ -7,6 +7,7 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/cidutil"
 )
 
@@ -86,7 +87,7 @@ func (carfileOperation *CarfileOperation) DeleteCarfile(ctx context.Context, car
 		}
 
 		_, diskUsage := carfileOperation.device.GetDiskUsageStat()
-		info := api.RemoveCarfileResult{BlockCount: carfileOperation.TotalBlockCount, DiskUsage: diskUsage}
+		info := types.RemoveCarfileResult{BlockCount: carfileOperation.TotalBlockCount, DiskUsage: diskUsage}
 
 		ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 		defer cancel()

@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/node/modules/dtypes"
@@ -21,14 +21,14 @@ func NewCarfileDB(db *sqlx.DB) *CarfileDB {
 }
 
 // CreateCarfileReplicaInfo Create replica info
-func (c *CarfileDB) CreateCarfileReplicaInfo(cInfo *api.ReplicaInfo) error {
+func (c *CarfileDB) CreateCarfileReplicaInfo(cInfo *types.ReplicaInfo) error {
 	cmd := fmt.Sprintf("INSERT INTO %s (id, carfile_hash, node_id, status, is_candidate) VALUES (:id, :carfile_hash, :node_id, :status, :is_candidate)", replicaInfoTable)
 	_, err := c.db.NamedExec(cmd, cInfo)
 	return err
 }
 
 // UpdateCarfileReplicaStatus Update
-func (c *CarfileDB) UpdateCarfileReplicaStatus(hash string, nodeIDs []string, status api.CacheStatus) error {
+func (c *CarfileDB) UpdateCarfileReplicaStatus(hash string, nodeIDs []string, status types.CacheStatus) error {
 	tx := c.db.MustBegin()
 
 	cmd := fmt.Sprintf("UPDATE %s SET status=? WHERE carfile_hash=? AND node_id in (?) ", replicaInfoTable)
@@ -51,7 +51,7 @@ func (c *CarfileDB) UpdateCarfileReplicaStatus(hash string, nodeIDs []string, st
 }
 
 // UpdateCarfileReplicaInfo update replica info
-func (c *CarfileDB) UpdateCarfileReplicaInfo(cInfo *api.ReplicaInfo) error {
+func (c *CarfileDB) UpdateCarfileReplicaInfo(cInfo *types.ReplicaInfo) error {
 	cmd := fmt.Sprintf("UPDATE %s SET status=:status,end_time=:end_time WHERE id=:id", replicaInfoTable)
 	_, err := c.db.NamedExec(cmd, cInfo)
 
@@ -59,7 +59,7 @@ func (c *CarfileDB) UpdateCarfileReplicaInfo(cInfo *api.ReplicaInfo) error {
 }
 
 // UpdateCarfileRecordCachesInfo update storage info
-func (c *CarfileDB) UpdateCarfileRecordCachesInfo(dInfo *api.CarfileRecordInfo) error {
+func (c *CarfileDB) UpdateCarfileRecordCachesInfo(dInfo *types.CarfileRecordInfo) error {
 	// update
 	cmd := fmt.Sprintf("UPDATE %s SET total_size=:total_size,total_blocks=:total_blocks,end_time=NOW(),replica=:replica,expired_time=:expired_time WHERE carfile_hash=:carfile_hash", carfileInfoTable)
 	_, err := c.db.NamedExec(cmd, dInfo)
@@ -68,7 +68,7 @@ func (c *CarfileDB) UpdateCarfileRecordCachesInfo(dInfo *api.CarfileRecordInfo) 
 }
 
 // CreateOrUpdateCarfileRecordInfo create or update storage record info
-func (c *CarfileDB) CreateOrUpdateCarfileRecordInfo(info *api.CarfileRecordInfo) error {
+func (c *CarfileDB) CreateOrUpdateCarfileRecordInfo(info *types.CarfileRecordInfo) error {
 	cmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, carfile_cid, replica, expiration) VALUES (:carfile_hash, :carfile_cid, :replica, :expiration) ON DUPLICATE KEY UPDATE replica=:replica,expiration=:expiration", carfileInfoTable)
 	_, err := c.db.NamedExec(cmd, info)
 	return err
@@ -83,15 +83,15 @@ func (c *CarfileDB) CarfileRecordExisted(hash string) (bool, error) {
 }
 
 // LoadCarfileInfo get storage info with hash
-func (c *CarfileDB) LoadCarfileInfo(hash string) (*api.CarfileRecordInfo, error) {
-	var info api.CarfileRecordInfo
+func (c *CarfileDB) LoadCarfileInfo(hash string) (*types.CarfileRecordInfo, error) {
+	var info types.CarfileRecordInfo
 	cmd := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=?", carfileInfoTable)
 	err := c.db.Get(&info, cmd, hash)
 	return &info, err
 }
 
 // LoadCarfileInfos get storage infos with hashs
-func (c *CarfileDB) LoadCarfileInfos(hashs []string) ([]*api.CarfileRecordInfo, error) {
+func (c *CarfileDB) LoadCarfileInfos(hashs []string) ([]*types.CarfileRecordInfo, error) {
 	getCarfilesCmd := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash in (?)`, carfileInfoTable)
 	carfilesQuery, args, err := sqlx.In(getCarfilesCmd, hashs)
 	if err != nil {
@@ -99,7 +99,7 @@ func (c *CarfileDB) LoadCarfileInfos(hashs []string) ([]*api.CarfileRecordInfo, 
 	}
 	tx := c.db.MustBegin()
 
-	carfileRecords := make([]*api.CarfileRecordInfo, 0)
+	carfileRecords := make([]*types.CarfileRecordInfo, 0)
 
 	carfilesQuery = c.db.Rebind(carfilesQuery)
 	tx.Select(&carfileRecords, carfilesQuery, args...)
@@ -114,10 +114,10 @@ func (c *CarfileDB) LoadCarfileInfos(hashs []string) ([]*api.CarfileRecordInfo, 
 }
 
 // CarfileRecordInfos get storage record infos
-func (c *CarfileDB) CarfileRecordInfos(page int) (info *api.ListCarfileRecordRsp, err error) {
+func (c *CarfileDB) CarfileRecordInfos(page int) (info *types.ListCarfileRecordRsp, err error) {
 	num := 20
 
-	info = &api.ListCarfileRecordRsp{}
+	info = &types.ListCarfileRecordRsp{}
 
 	cmd := fmt.Sprintf("SELECT count(carfile_hash) FROM %s ;", carfileInfoTable)
 	err = c.db.Get(&info.Cids, cmd)
@@ -153,7 +153,7 @@ func (c *CarfileDB) CandidatesWithHash(hash string) ([]string, error) {
 	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?`,
 		replicaInfoTable)
 
-	if err := c.db.Select(&out, query, hash, api.CacheStatusSucceeded, true); err != nil {
+	if err := c.db.Select(&out, query, hash, types.CacheStatusSucceeded, true); err != nil {
 		return nil, err
 	}
 
@@ -161,12 +161,12 @@ func (c *CarfileDB) CandidatesWithHash(hash string) ([]string, error) {
 }
 
 // CarfileReplicaInfosWithHash get storage replica infos with hash
-func (c *CarfileDB) CarfileReplicaInfosWithHash(hash string, isSuccess bool) ([]*api.ReplicaInfo, error) {
-	var out []*api.ReplicaInfo
+func (c *CarfileDB) CarfileReplicaInfosWithHash(hash string, isSuccess bool) ([]*types.ReplicaInfo, error) {
+	var out []*types.ReplicaInfo
 	if isSuccess {
 		query := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash=? AND status=?`, replicaInfoTable)
 
-		if err := c.db.Select(&out, query, hash, api.CacheStatusSucceeded); err != nil {
+		if err := c.db.Select(&out, query, hash, types.CacheStatusSucceeded); err != nil {
 			return nil, err
 		}
 	} else {
@@ -185,7 +185,7 @@ func (c *CarfileDB) RandomCarfileFromNode(nodeID string) (string, error) {
 	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE node_id=? AND status=?`, replicaInfoTable)
 
 	var count int
-	if err := c.db.Get(&count, query, nodeID, api.CacheStatusSucceeded); err != nil {
+	if err := c.db.Get(&count, query, nodeID, types.CacheStatusSucceeded); err != nil {
 		return "", err
 	}
 
@@ -199,7 +199,7 @@ func (c *CarfileDB) RandomCarfileFromNode(nodeID string) (string, error) {
 
 	var hashs []string
 	cmd := fmt.Sprintf("SELECT carfile_hash FROM %s WHERE node_id=? AND status=? LIMIT %d,%d", replicaInfoTable, index, 1)
-	if err := c.db.Select(&hashs, cmd, nodeID, api.CacheStatusSucceeded); err != nil {
+	if err := c.db.Select(&hashs, cmd, nodeID, types.CacheStatusSucceeded); err != nil {
 		return "", err
 	}
 
@@ -237,10 +237,10 @@ func (c *CarfileDB) MinExpirationTime() (time.Time, error) {
 	return out, nil
 }
 
-func (c *CarfileDB) ExpiredCarfiles() ([]*api.CarfileRecordInfo, error) {
+func (c *CarfileDB) ExpiredCarfiles() ([]*types.CarfileRecordInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE expiration <= NOW()`, carfileInfoTable)
 
-	var out []*api.CarfileRecordInfo
+	var out []*types.CarfileRecordInfo
 	if err := c.db.Select(&out, query); err != nil {
 		return nil, err
 	}
@@ -253,7 +253,7 @@ func (c *CarfileDB) SucceededCachesCount() (int, error) {
 	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE status=?`, replicaInfoTable)
 
 	var count int
-	if err := c.db.Get(&count, query, api.CacheStatusSucceeded); err != nil {
+	if err := c.db.Get(&count, query, types.CacheStatusSucceeded); err != nil {
 		return 0, err
 	}
 
@@ -261,8 +261,8 @@ func (c *CarfileDB) SucceededCachesCount() (int, error) {
 }
 
 // LoadReplicaInfo load replica info with id
-func (c *CarfileDB) LoadReplicaInfo(id string) (*api.ReplicaInfo, error) {
-	var cache api.ReplicaInfo
+func (c *CarfileDB) LoadReplicaInfo(id string) (*types.ReplicaInfo, error) {
+	var cache types.ReplicaInfo
 	query := fmt.Sprintf("SELECT * FROM %s WHERE id=? ", replicaInfoTable)
 	if err := c.db.Get(&cache, query, id); err != nil {
 		return nil, err
@@ -301,7 +301,7 @@ func (c *CarfileDB) RemoveCarfileReplica(nodeID, carfileHash string) error {
 
 	var count int
 	cmd := fmt.Sprintf("SELECT count(*) FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?", replicaInfoTable)
-	err := tx.Get(&count, cmd, carfileHash, api.CacheStatusSucceeded, false)
+	err := tx.Get(&count, cmd, carfileHash, types.CacheStatusSucceeded, false)
 	if err != nil {
 		return err
 	}
@@ -361,8 +361,8 @@ func (c *CarfileDB) RemoveReplicaInfoWithNodes(nodeIDs []string) error {
 	return nil
 }
 
-func (c *CarfileDB) BindNodeAllocateInfo(secret, nodeID string, nodeType api.NodeType) error {
-	info := api.NodeAllocateInfo{
+func (c *CarfileDB) BindNodeAllocateInfo(secret, nodeID string, nodeType types.NodeType) error {
+	info := types.NodeAllocateInfo{
 		Secret:     secret,
 		NodeID:     nodeID,
 		NodeType:   int(nodeType),
@@ -394,7 +394,7 @@ func (c *CarfileDB) GetNodeAllocateInfo(nodeID, key string, out interface{}) err
 }
 
 // download info
-func (c *CarfileDB) SetBlockDownloadInfo(info *api.DownloadRecordInfo) error {
+func (c *CarfileDB) SetBlockDownloadInfo(info *types.DownloadRecordInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (id, node_id, block_cid, carfile_cid, block_size, speed, reward, status, failed_reason, client_ip, created_time, complete_time) 
 				VALUES (:id, :node_id, :block_cid, :carfile_cid, :block_size, :speed, :reward, :status, :failed_reason, :client_ip, :created_time, :complete_time) ON DUPLICATE KEY UPDATE node_id=:node_id, speed=:speed, reward=:reward, status=:status, failed_reason=:failed_reason, complete_time=:complete_time`, blockDownloadInfo)
@@ -407,10 +407,10 @@ func (c *CarfileDB) SetBlockDownloadInfo(info *api.DownloadRecordInfo) error {
 	return nil
 }
 
-func (c *CarfileDB) GetBlockDownloadInfoByNodeID(nodeID string) ([]*api.DownloadRecordInfo, error) {
+func (c *CarfileDB) GetBlockDownloadInfoByNodeID(nodeID string) ([]*types.DownloadRecordInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id = ? and TO_DAYS(created_time) >= TO_DAYS(NOW()) ORDER BY created_time DESC`, blockDownloadInfo)
 
-	var out []*api.DownloadRecordInfo
+	var out []*types.DownloadRecordInfo
 	if err := c.db.Select(&out, query, nodeID); err != nil {
 		return nil, err
 	}
@@ -418,10 +418,10 @@ func (c *CarfileDB) GetBlockDownloadInfoByNodeID(nodeID string) ([]*api.Download
 	return out, nil
 }
 
-func (c *CarfileDB) GetBlockDownloadInfoByID(id string) (*api.DownloadRecordInfo, error) {
+func (c *CarfileDB) GetBlockDownloadInfoByID(id string) (*types.DownloadRecordInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE id = ?`, blockDownloadInfo)
 
-	var out []*api.DownloadRecordInfo
+	var out []*types.DownloadRecordInfo
 	if err := c.db.Select(&out, query, id); err != nil {
 		return nil, err
 	}
@@ -445,8 +445,8 @@ func (c *CarfileDB) GetNodesByUserDownloadBlockIn(minute int) ([]string, error) 
 	return out, nil
 }
 
-func (c *CarfileDB) GetCacheInfosWithNode(nodeID string, index, count int) (info *api.NodeCacheRsp, err error) {
-	info = &api.NodeCacheRsp{}
+func (c *CarfileDB) GetCacheInfosWithNode(nodeID string, index, count int) (info *types.NodeCacheRsp, err error) {
+	info = &types.NodeCacheRsp{}
 
 	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE node_id=?", replicaInfoTable)
 	err = c.db.Get(&info.TotalCount, cmd, nodeID)
@@ -462,7 +462,7 @@ func (c *CarfileDB) GetCacheInfosWithNode(nodeID string, index, count int) (info
 	return
 }
 
-func (c *CarfileDB) GetBlockDownloadInfos(nodeID string, startTime time.Time, endTime time.Time, cursor, count int) ([]api.DownloadRecordInfo, int64, error) {
+func (c *CarfileDB) GetBlockDownloadInfos(nodeID string, startTime time.Time, endTime time.Time, cursor, count int) ([]types.DownloadRecordInfo, int64, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id = ? and created_time between ? and ? limit ?,?`, blockDownloadInfo)
 
 	var total int64
@@ -475,7 +475,7 @@ func (c *CarfileDB) GetBlockDownloadInfos(nodeID string, startTime time.Time, en
 		count = loadBlockDownloadMaxCount
 	}
 
-	var out []api.DownloadRecordInfo
+	var out []types.DownloadRecordInfo
 	if err := c.db.Select(&out, query, nodeID, startTime, endTime, cursor, count); err != nil {
 		return nil, 0, err
 	}
@@ -483,7 +483,7 @@ func (c *CarfileDB) GetBlockDownloadInfos(nodeID string, startTime time.Time, en
 	return out, total, nil
 }
 
-func (c *CarfileDB) CarfileReplicaList(startTime time.Time, endTime time.Time, cursor, count int) (*api.ListCarfileReplicaRsp, error) {
+func (c *CarfileDB) CarfileReplicaList(startTime time.Time, endTime time.Time, cursor, count int) (*types.ListCarfileReplicaRsp, error) {
 	var total int64
 	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE end_time between ? and ?`, replicaInfoTable)
 	if err := c.db.Get(&total, countSQL, startTime, endTime); err != nil {
@@ -496,16 +496,16 @@ func (c *CarfileDB) CarfileReplicaList(startTime time.Time, endTime time.Time, c
 
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE end_time between ? and ? limit ?,?`, replicaInfoTable)
 
-	var out []*api.ReplicaInfo
+	var out []*types.ReplicaInfo
 	if err := c.db.Select(&out, query, startTime, endTime, cursor, count); err != nil {
 		return nil, err
 	}
 
-	return &api.ListCarfileReplicaRsp{Datas: out, Total: total}, nil
+	return &types.ListCarfileReplicaRsp{Datas: out, Total: total}, nil
 }
 
 // PushCarfileToWaitList waiting data list
-func (c *CarfileDB) PushCarfileToWaitList(info *api.CacheCarfileInfo) error {
+func (c *CarfileDB) PushCarfileToWaitList(info *types.CacheCarfileInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (carfile_hash, carfile_cid, replicas, node_id, expiration, server_id) 
 				VALUES (:carfile_hash, :carfile_cid, :replicas, :node_id, :expiration, :server_id) 
@@ -517,10 +517,10 @@ func (c *CarfileDB) PushCarfileToWaitList(info *api.CacheCarfileInfo) error {
 }
 
 // LoadWaitCarfiles load
-func (c *CarfileDB) LoadWaitCarfiles(serverID dtypes.ServerID) (*api.CacheCarfileInfo, error) {
+func (c *CarfileDB) LoadWaitCarfiles(serverID dtypes.ServerID) (*types.CacheCarfileInfo, error) {
 	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE server_id=? order by id asc limit ?`, waitingCarfileTable)
 
-	info := &api.CacheCarfileInfo{}
+	info := &types.CacheCarfileInfo{}
 	err := c.db.Get(info, sQuery, serverID, 1)
 	if err != nil {
 		return nil, err

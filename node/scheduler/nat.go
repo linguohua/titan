@@ -9,6 +9,7 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
+	"github.com/linguohua/titan/api/types"
 	cliutil "github.com/linguohua/titan/cli/util"
 )
 
@@ -103,65 +104,65 @@ func (s *Scheduler) checkEdgeIfBehindRestrictedNAT(ctx context.Context, edgeURL 
 	return true, nil
 }
 
-func (s *Scheduler) checkEdgeNatType(ctx context.Context, edgeAPI api.Edge, edgeAddr string) (api.NatType, error) {
+func (s *Scheduler) checkEdgeNatType(ctx context.Context, edgeAPI api.Edge, edgeAddr string) (types.NatType, error) {
 	if len(s.SchedulerCfg.SchedulerServer1) == 0 {
-		return api.NatTypeUnknow, nil
+		return types.NatTypeUnknow, nil
 	}
 
 	externalAddr, err := edgeAPI.GetMyExternalAddr(ctx, s.SchedulerCfg.SchedulerServer1)
 	if err != nil {
-		return api.NatTypeUnknow, err
+		return types.NatTypeUnknow, err
 	}
 
 	if externalAddr != edgeAddr {
-		return api.NatTypeSymmetric, nil
+		return types.NatTypeSymmetric, nil
 	}
 
 	isBindNAT, err := s.checkEdgeIfBehindNAT(ctx, edgeAddr)
 	if err != nil {
-		return api.NatTypeUnknow, err
+		return types.NatTypeUnknow, err
 	}
 
 	if !isBindNAT {
-		return api.NatTypeNo, nil
+		return types.NatTypeNo, nil
 	}
 
 	if len(s.SchedulerCfg.SchedulerServer2) == 0 {
-		return api.NatTypeUnknow, nil
+		return types.NatTypeUnknow, nil
 	}
 
 	edgeURL := fmt.Sprintf("https://%s/rpc/v0", edgeAddr)
 	isBehindFullConeNAT, err := s.checkEdgeIfBehindFullConeNAT(ctx, s.SchedulerCfg.SchedulerServer2, edgeURL)
 	if err != nil {
-		return api.NatTypeUnknow, err
+		return types.NatTypeUnknow, err
 	}
 
 	if isBehindFullConeNAT {
-		return api.NatTypeFullCone, nil
+		return types.NatTypeFullCone, nil
 	}
 
 	isBehindRestrictedNAT, err := s.checkEdgeIfBehindRestrictedNAT(ctx, edgeURL)
 	if isBehindRestrictedNAT {
-		return api.NatTypeRestricted, nil
+		return types.NatTypeRestricted, nil
 	}
 
-	return api.NatTypePortRestricted, nil
+	return types.NatTypePortRestricted, nil
 }
 
-func (s *Scheduler) getNatType(ctx context.Context, edgeAPI api.Edge, edgeAddr string) api.NatType {
+func (s *Scheduler) getNatType(ctx context.Context, edgeAPI api.Edge, edgeAddr string) types.NatType {
 	natType, err := s.checkEdgeNatType(context.Background(), edgeAPI, edgeAddr)
 	if err != nil {
 		log.Errorf("getNatType, error:%s", err.Error())
-		natType = api.NatTypeUnknow
+		natType = types.NatTypeUnknow
 	}
 	return natType
 }
 
 // NodeNatType get node nat type
-func (s *Scheduler) NodeNatType(ctx context.Context, nodeID string) (api.NatType, error) {
+func (s *Scheduler) NodeNatType(ctx context.Context, nodeID string) (types.NatType, error) {
 	eNode := s.NodeManager.GetEdgeNode(nodeID)
 	if eNode == nil {
-		return api.NatTypeUnknow, fmt.Errorf("Node %s offline or not exist", nodeID)
+		return types.NatTypeUnknow, fmt.Errorf("Node %s offline or not exist", nodeID)
 	}
 
 	return s.getNatType(ctx, eNode.API(), eNode.Addr()), nil
