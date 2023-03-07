@@ -1,5 +1,10 @@
 package storage
 
+import (
+	"github.com/linguohua/titan/api"
+	"time"
+)
+
 // CarfileID is an identifier for a carfile.
 type CarfileID string
 
@@ -18,8 +23,40 @@ type Log struct {
 }
 
 type CarfileInfo struct {
-	State      CarfileState
-	CarfileCID CarfileID
+	ID          string
+	State       CarfileState `db:"state"`
+	CarfileCID  CarfileID    `db:"carfile_cid"`
+	CarfileHash string       `db:"carfile_hash"`
+	Replicas    int          `db:"replicas"`
+	NodeID      string       `db:"node_id"`
+	ServerID    string       `db:"server_id"`
+	Size        int64        `db:"size"`
+	Blocks      int64        `db:"blocks"`
+	CreatedAt   time.Time    `db:"created_at"`
+	Expiration  time.Time    `db:"expiration"`
 
-	Log []Log
+	Log                 []Log
+	CandidateStoreFails int
+	EdgeStoreFails      int
+}
+
+func (state *CarfileInfo) toCacheCarfileInfo() *api.CacheCarfileInfo {
+	return &api.CacheCarfileInfo{
+		CarfileCid:     string(state.CarfileCID),
+		CarfileHash:    state.CarfileHash,
+		Replicas:       state.Replicas,
+		NodeID:         state.NodeID,
+		ServerID:       state.ServerID,
+		ExpirationTime: state.Expiration,
+	}
+}
+func fromCarfileInfo(info *api.CacheCarfileInfo) *CarfileInfo {
+	return &CarfileInfo{
+		CarfileCID:  CarfileID(info.CarfileCid),
+		CarfileHash: info.CarfileHash,
+		Replicas:    info.Replicas,
+		NodeID:      info.NodeID,
+		ServerID:    info.ServerID,
+		Expiration:  info.ExpirationTime,
+	}
 }

@@ -37,12 +37,37 @@ func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface
 var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *CarfileInfo) (uint64, error){
 	// external import
 	UndefinedCarfileState: planOne(
-		on(PreParing{}, PreparingState),
+		on(CarfileGetCarfile{}, GetCarfile),
 	),
-	PreparingState: planOne(
-		on(CarfileStart{}, CarfileStartState)),
-	CarfileStartState: planOne(
-		on(CarfileFinished{}, CarfileFinishedState)),
+	GetCarfile: planOne(
+		on(CarfileCreateCompleted{}, GetCarfileCompleted),
+	),
+	GetCarfileCompleted: planOne(
+		on(CarfileCandidateCaching{}, CandidateCaching),
+	),
+	CandidateCaching: planOne(
+		on(CarfileCandidateCachingFailed{}, CandidateCachingFailed),
+		on(CarfileCandidateCompleted{}, CandidateCompleted),
+	),
+	CandidateCompleted: planOne(
+		on(CarfileEdgeCaching{}, EdgeCaching),
+	),
+	EdgeCaching: planOne(
+		on(CarfileEdgeCachingFailed{}, EdgeCachingFailed),
+		on(CarfileEdgeCompleted{}, EdgeCompleted),
+	),
+	EdgeCompleted: planOne(
+		on(CarfileFinalize{}, Finalize),
+	),
+	GetCarfileFailed: planOne(
+		on(CarfileGetCarfile{}, GetCarfile),
+	),
+	CandidateCachingFailed: planOne(
+		on(CarfileCandidateCaching{}, CandidateCaching),
+	),
+	EdgeCachingFailed: planOne(
+		on(CarfileEdgeCaching{}, EdgeCaching),
+	),
 }
 
 func (state *CarfileInfo) logAppend(l Log) {
@@ -71,7 +96,7 @@ func (m *Manager) logEvents(events []statemachine.Event, state *CarfileInfo) {
 		}
 
 		if event.User == (CarfileRestart{}) {
-			continue // don't log on every fsm restart
+			continue // don't log on every state machine restart
 		}
 
 		if len(e) > 8000 {
@@ -118,19 +143,29 @@ func (m *Manager) plan(events []statemachine.Event, state *CarfileInfo) (func(st
 	//}
 
 	switch state.State {
-
 	// Happy path
-	case PreparingState:
-		return m.handlePreparing, processed, nil
-	case CarfileStartState:
-		return m.handleCarfileStart, processed, nil
-	case CarfileFinishedState:
-		return m.handlerCarfileFinished, processed, nil
+	case GetCarfile:
+		return m.handleGetCarfile, processed, nil
+	case CandidateCaching:
+		return m.handleCandidateCachingFailed, processed, nil
+	case EdgeCaching:
+		return m.handleEdgeCaching, processed, nil
+	case Finalize:
+		return m.handleFinalize, processed, nil
+	case GetCarfileFailed:
+		return m.handleGetCarfileFailed, processed, nil
+	case CandidateCachingFailed:
+		return m.handleCandidateCachingFailed, processed, nil
+	case EdgeCachingFailed:
+		return m.handlerEdgeCachingFailed, processed, nil
+		// Fatal errors
+	case UndefinedCarfileState:
+		log.Error("carfile update with undefined state!")
 	default:
 		log.Errorf("unexpected carfile update state: %s", state.State)
 	}
 
-	return nil, 0, err
+	return nil, processed, nil
 }
 
 func planOne(ts ...func() (mut mutator, next func(info *CarfileInfo) (more bool, err error))) func(events []statemachine.Event, state *CarfileInfo) (uint64, error) {
@@ -200,17 +235,17 @@ func (m *Manager) restartCarfiles(ctx context.Context) error {
 	log.Infof("restart carfiles")
 	defer log.Info("restart carfiles done")
 	defer m.startupWait.Done()
-	//
-	//trackedSectors, err := m.ListSectors()
-	//if err != nil {
-	//	log.Errorf("loading sector list: %+v", err)
-	//}
-	//
-	//for _, sector := range trackedSectors {
-	//	if err := m.carfiles.Send(uint64(sector.SectorNumber), SectorRestart{}); err != nil {
-	//		log.Errorf("restarting sector %d: %+v", sector.SectorNumber, err)
-	//	}
-	//}
+
+	trackedCarfiles, err := m.ListCarfiles()
+	if err != nil {
+		log.Errorf("loading carfiles list: %+v", err)
+	}
+
+	for _, carfile := range trackedCarfiles {
+		if err := m.carfiles.Send(carfile.CarfileCID, CarfileRestart{}); err != nil {
+			log.Errorf("restarting carfile %s: %+v", carfile.CarfileCID, err)
+		}
+	}
 
 	return nil
 }
