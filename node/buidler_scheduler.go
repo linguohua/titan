@@ -16,7 +16,6 @@ import (
 	"github.com/linguohua/titan/node/scheduler/node"
 	"github.com/linguohua/titan/node/scheduler/sync"
 	"github.com/linguohua/titan/node/scheduler/validator"
-	"github.com/linguohua/titan/node/scheduler/web"
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
 )
@@ -61,7 +60,6 @@ func ConfigScheduler(c interface{}) Option {
 		If(cfg.EnableValidate,
 			Override(new(*validator.Validator), validator.NewValidator),
 		),
-		Override(new(api.Web), web.NewWeb),
 		Override(new(*election.Election), election.NewElection),
 		Override(new(*scheduler.AppUpdater), scheduler.NewAppUpdater),
 		Override(new(dtypes.DatabaseAddress), func() dtypes.DatabaseAddress {

@@ -58,6 +58,28 @@ func (n NodeType) String() string {
 	return ""
 }
 
+type NodeStatus int
+
+const (
+	NodeOffline NodeStatus = iota
+
+	NodeOnline
+	NodeMalfunction
+)
+
+func (n NodeStatus) String() string {
+	switch n {
+	case NodeOffline:
+		return "offline"
+	case NodeOnline:
+		return "online"
+	case NodeMalfunction:
+		return "malfunction"
+	}
+
+	return ""
+}
+
 func (n NodeType) MarshalBinary() ([]byte, error) {
 	return json.Marshal(n)
 }
