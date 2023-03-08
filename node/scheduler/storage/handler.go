@@ -37,7 +37,7 @@ func (m *Manager) handleGetSeed(ctx statemachine.Context, carfile CarfileInfo) e
 	// find nodes
 	nodes := m.findCandidates(rootCacheCount, carfile.CompletedCandidateReplicas)
 	if len(nodes) < 1 {
-		return ctx.Send(CarfileCacheFailed{error: xerrors.New("node found node")})
+		return ctx.Send(CarfileCacheFailed{error: xerrors.New("not found node")})
 	}
 
 	// save to db
@@ -110,19 +110,21 @@ func (m *Manager) handleCandidateCaching(ctx statemachine.Context, carfile Carfi
 func (m *Manager) handleCandidatesCacheCompleted(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handler candidates cache completed, %s", carfile.CarfileCID)
 
-	// save to db
-	cInfo := &types.ReplicaInfo{
-		ID:     replicaID(carfile.CarfileHash.String(), carfile.LastResultInfo.NodeID),
-		NodeID: carfile.LastResultInfo.NodeID,
-		Status: types.CacheStatus(carfile.LastResultInfo.Status),
-	}
-	err := m.nodeManager.CarfileDB.UpdateCarfileReplicaInfo([]*types.ReplicaInfo{cInfo})
-	if err != nil {
-		return err
+	if carfile.LastResultInfo != nil {
+		// save to db
+		cInfo := &types.ReplicaInfo{
+			ID:     replicaID(carfile.CarfileHash.String(), carfile.LastResultInfo.NodeID),
+			NodeID: carfile.LastResultInfo.NodeID,
+			Status: types.CacheStatus(carfile.LastResultInfo.Status),
+		}
+		err := m.nodeManager.CarfileDB.UpdateCarfileReplicaInfo([]*types.ReplicaInfo{cInfo})
+		if err != nil {
+			return err
+		}
 	}
 
 	// all candidate cache completed
-	if int64(len(carfile.CompletedCandidateReplicas)) == carfile.candidateReplicas {
+	if int64(len(carfile.CompletedCandidateReplicas)) == carfile.CandidateReplicas {
 		return ctx.Send(CarfileEdgeCaching{})
 	}
 
@@ -133,9 +135,9 @@ func (m *Manager) handleEdgeCaching(ctx statemachine.Context, carfile CarfileInf
 	log.Infof("handler carfile , %s", carfile.CarfileCID)
 
 	// find nodes
-	nodes := m.findEdges(candidateReplicaCacheCount, carfile.CompletedCandidateReplicas)
+	nodes := m.findEdges(int(carfile.Replicas), carfile.CompletedCandidateReplicas)
 	if len(nodes) < 1 {
-		return ctx.Send(CarfileCacheFailed{error: xerrors.New("node found node")})
+		return ctx.Send(CarfileCacheFailed{error: xerrors.New("not found node")})
 	}
 
 	// save to db
@@ -144,6 +146,7 @@ func (m *Manager) handleEdgeCaching(ctx statemachine.Context, carfile CarfileInf
 		return ctx.Send(CarfileCacheFailed{error: err})
 	}
 
+	log.Warnf("-----DownloadSources:%v", carfile.DownloadSources)
 	// send to nodes
 	for _, node := range nodes {
 		_, err := node.API().CacheCarfile(ctx.Context(), carfile.CarfileCID, carfile.DownloadSources)

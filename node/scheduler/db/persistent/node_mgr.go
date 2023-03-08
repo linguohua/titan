@@ -297,8 +297,8 @@ func (n *NodeMgrDB) UpdateNodeOnlineTime(nodeID string, onlineTime int) error {
 func (n *NodeMgrDB) NodeType(nodeID string) (types.NodeType, error) {
 	var nodeType int
 
-	cQuery := fmt.Sprintf(`SELECT node_type FROM %s`, nodeAllocateTable)
-	err := n.db.Get(&nodeType, cQuery)
+	cQuery := fmt.Sprintf(`SELECT node_type FROM %s WHERE node_id=?`, nodeAllocateTable)
+	err := n.db.Get(&nodeType, cQuery, nodeID)
 	if err != nil {
 		return types.NodeUnknown, err
 	}
