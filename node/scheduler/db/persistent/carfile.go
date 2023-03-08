@@ -51,24 +51,24 @@ func (c *CarfileDB) UpdateCarfileReplicaStatus(hash string, nodeIDs []string, st
 }
 
 // UpdateCarfileReplicaInfo update replica info
-func (c *CarfileDB) UpdateCarfileReplicaInfo(cInfo *types.ReplicaInfo) error {
+func (c *CarfileDB) UpdateCarfileReplicaInfo(cInfo []*types.ReplicaInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (id, carfile_hash, node_id, status, is_candidate) 
 				VALUES (:id, :carfile_hash, :node_id, :status, :is_candidate) 
-				ON DUPLICATE KEY UPDATE id=:id, end_time=NOW(), status=:status`, replicaInfoTable)
+				ON DUPLICATE KEY UPDATE id=VALUES(id), end_time=NOW(), status=VALUES(status)`, replicaInfoTable)
 
 	_, err := c.db.NamedExec(query, cInfo)
 
 	return err
 }
 
-// CreateCarfileReplicaInfos Create replica infos
-func (c *CarfileDB) CreateCarfileReplicaInfos(cInfos []*types.ReplicaInfo) error {
-	cmd := fmt.Sprintf(`INSERT INTO %s (id, carfile_hash, node_id, status, is_candidate) 
-	        VALUES (:id, :carfile_hash, :node_id, :status, :is_candidate)`, replicaInfoTable)
-	_, err := c.db.NamedExec(cmd, cInfos)
-	return err
-}
+// // CreateCarfileReplicaInfos Create replica infos
+// func (c *CarfileDB) CreateCarfileReplicaInfos(cInfos []*types.ReplicaInfo) error {
+// 	cmd := fmt.Sprintf(`INSERT INTO %s (id, carfile_hash, node_id, status, is_candidate)
+// 	        VALUES (:id, :carfile_hash, :node_id, :status, :is_candidate)`, replicaInfoTable)
+// 	_, err := c.db.NamedExec(cmd, cInfos)
+// 	return err
+// }
 
 // UpdateCarfileRecordCachesInfo update storage info
 func (c *CarfileDB) UpdateCarfileRecordCachesInfo(dInfo *types.CarfileRecordInfo) error {

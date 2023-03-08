@@ -9,7 +9,8 @@ func (m *Manager) ListCarfiles() ([]CarfileInfo, error) {
 }
 
 func (m *Manager) GetCarfileInfo(cid CarfileID) (CarfileInfo, error) {
-	var out CarfileInfo
-	err := m.carfiles.Get(cid).Get(&out)
-	return out, err
+	// var out CarfileInfo
+	// err := m.carfiles.Get(cid).Get(&out)
+	// return out, err
+	return CarfileInfo{}, nil
 }

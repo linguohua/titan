@@ -298,7 +298,7 @@ func (m *Manager) RemoveCache(carfileCid, nodeID string) error {
 
 // CacheCarfileResult block cache result
 func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (err error) {
-	log.Info("carfileCacheResult :%s , %d , %s", nodeID, info.Status, info.CarfileHash)
+	log.Infof("carfileCacheResult :%s , %d , %s", nodeID, info.Status, info.CarfileHash)
 	// log.Debugf("carfileCacheResult :%v", info)
 
 	// var carfileRecord *CarfileRecord
@@ -632,7 +632,7 @@ func (m *Manager) CarfilesStatus(ctx context.Context, cid types.CarfileID) (type
 }
 
 // Find edges that meet the cache criteria
-func (m *Manager) findEdges(count int, filterNodes map[string]struct{}) []*node.Edge {
+func (m *Manager) findEdges(count int, filterNodes map[string]string) []*node.Edge {
 	list := make([]*node.Edge, 0)
 
 	if count <= 0 {
@@ -667,7 +667,7 @@ func (m *Manager) findEdges(count int, filterNodes map[string]struct{}) []*node.
 }
 
 // Find candidates that meet the cache criteria
-func (m *Manager) findCandidates(count int, filterNodes map[string]struct{}) []*node.Candidate {
+func (m *Manager) findCandidates(count int, filterNodes map[string]string) []*node.Candidate {
 	list := make([]*node.Candidate, 0)
 
 	if count <= 0 {
@@ -714,7 +714,7 @@ func (m *Manager) saveCandidateReplicaInfos(nodes []*node.Candidate, hash string
 		})
 	}
 
-	return m.nodeManager.CarfileDB.CreateCarfileReplicaInfos(replicaInfos)
+	return m.nodeManager.CarfileDB.UpdateCarfileReplicaInfo(replicaInfos)
 }
 
 func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
@@ -730,5 +730,5 @@ func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
 		})
 	}
 
-	return m.nodeManager.CarfileDB.CreateCarfileReplicaInfos(replicaInfos)
+	return m.nodeManager.CarfileDB.UpdateCarfileReplicaInfo(replicaInfos)
 }

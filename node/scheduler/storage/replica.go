@@ -92,13 +92,14 @@ func (ra *Replica) startTimeoutTimer() {
 
 func (ra *Replica) updateInfo() error {
 	// update cache info to db
-	cInfo := &types.ReplicaInfo{
-		ID:      ra.id,
-		Status:  ra.status,
-		EndTime: time.Now(),
-	}
+	// cInfo := &types.ReplicaInfo{
+	// 	ID:      ra.id,
+	// 	Status:  ra.status,
+	// 	EndTime: time.Now(),
+	// }
 
-	return ra.nodeManager.CarfileDB.UpdateCarfileReplicaInfo(cInfo)
+	// return ra.nodeManager.CarfileDB.UpdateCarfileReplicaInfo(cInfo)
+	return nil
 }
 
 // Notify node to cache storage
