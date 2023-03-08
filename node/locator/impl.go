@@ -224,7 +224,7 @@ func (locator *Locator) getSchedulerAPIWith(nodeID string) (*schedulerAPI, error
 	return locator.ApMgr.getSchedulerAPI(node.SchedulerURL, node.AreaID, cfg.AccessToken)
 }
 
-func (locator *Locator) GetDownloadInfosWithCarfile(ctx context.Context, cid string) ([]*types.DownloadInfoResult, error) {
+func (locator *Locator) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error) {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	areaID, err := locator.getAreaIDWith(remoteAddr)
 	if err != nil {
@@ -240,10 +240,10 @@ func (locator *Locator) GetDownloadInfosWithCarfile(ctx context.Context, cid str
 	}
 
 	if schedulerAPI != nil {
-		return schedulerAPI.GetDownloadInfosWithCarfile(ctx, cid)
+		return schedulerAPI.EdgeDownloadInfos(ctx, cid)
 	}
 
-	return make([]*types.DownloadInfoResult, 0), nil
+	return make([]*types.DownloadInfo, 0), nil
 }
 
 func (locator *Locator) UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error {

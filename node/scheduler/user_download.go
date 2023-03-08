@@ -52,15 +52,15 @@ func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []type
 	return nil
 }
 
-// GetDownloadInfosWithCarfile find node
-func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string) ([]*types.DownloadInfoResult, error) {
+// EdgeDownloadInfos find node
+func (s *Scheduler) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error) {
 	if cid == "" {
 		return nil, xerrors.New("cids is nil")
 	}
 
 	userURL := handler.GetRemoteAddr(ctx)
 
-	log.Infof("GetDownloadInfosWithCarfile url:%s", userURL)
+	log.Infof("EdgeDownloadInfos url:%s", userURL)
 
 	infos, err := s.NodeManager.FindNodeDownloadInfos(cid, userURL)
 	if err != nil {
@@ -75,7 +75,7 @@ func (s *Scheduler) GetDownloadInfosWithCarfile(ctx context.Context, cid string)
 	return infos, nil
 }
 
-func (s *Scheduler) signDownloadInfos(cid string, results []*types.DownloadInfoResult, privateKeys map[string]*rsa.PrivateKey) error {
+func (s *Scheduler) signDownloadInfos(cid string, results []*types.DownloadInfo, privateKeys map[string]*rsa.PrivateKey) error {
 	sn := int64(0)
 
 	signTime := time.Now().Unix()

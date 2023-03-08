@@ -21,7 +21,7 @@ var carfileCmd = &cli.Command{
 		carfilesStatusCmd,
 		removeCarfileCmd,
 		removeReplicaCmd,
-		resetExpirationTimeCmd,
+		resetExpirationCmd,
 		resetReplicaCacheCountCmd,
 		contiuneUndoneCarfileCmd,
 	},
@@ -83,9 +83,9 @@ var resetReplicaCacheCountCmd = &cli.Command{
 	},
 }
 
-var resetExpirationTimeCmd = &cli.Command{
-	Name:  "reset-expiration-time",
-	Usage: "Reset storage expiration time",
+var resetExpirationCmd = &cli.Command{
+	Name:  "reset-expiration",
+	Usage: "Reset storage expiration",
 	Flags: []cli.Flag{
 		cidFlag,
 		dateFlag,
@@ -107,7 +107,7 @@ var resetExpirationTimeCmd = &cli.Command{
 			return xerrors.Errorf("date time err:%s", err.Error())
 		}
 
-		err = schedulerAPI.ResetCarfileExpirationTime(ctx, cardileCid, time)
+		err = schedulerAPI.ResetCarfileRecordExpiration(ctx, cardileCid, time)
 		if err != nil {
 			return err
 		}
@@ -243,7 +243,7 @@ var cacheCarfileCmd = &cli.Command{
 				return xerrors.Errorf("expiration date err:%s", err.Error())
 			}
 
-			info.ExpirationTime = eTime
+			info.Expiration = eTime
 			info.Replicas = replicaCount
 		}
 

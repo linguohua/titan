@@ -55,9 +55,9 @@ func (s *Scheduler) ReCacheCarfiles(ctx context.Context, hashs []string) error {
 	if list != nil {
 		for _, carfile := range list {
 			info := &types.CacheCarfileInfo{
-				CarfileCid:     carfile.CarfileCid,
-				Replicas:       carfile.Replica,
-				ExpirationTime: carfile.Expiration,
+				CarfileCid: carfile.CarfileCid,
+				Replicas:   carfile.Replica,
+				Expiration: carfile.Expiration,
 			}
 			err = s.CacheCarfiles(ctx, info)
 			if err != nil {
@@ -69,13 +69,13 @@ func (s *Scheduler) ReCacheCarfiles(ctx context.Context, hashs []string) error {
 	return nil
 }
 
-// ResetCarfileExpirationTime reset expiration time with data cache
-func (s *Scheduler) ResetCarfileExpirationTime(ctx context.Context, carfileCid string, t time.Time) error {
+// ResetCarfileRecordExpiration reset expiration time with data cache
+func (s *Scheduler) ResetCarfileRecordExpiration(ctx context.Context, carfileCid string, t time.Time) error {
 	if time.Now().After(t) {
-		return xerrors.Errorf("expirationTime:%s has passed", t.String())
+		return xerrors.Errorf("expiration:%s has passed", t.String())
 	}
 
-	return s.DataManager.ResetCarfileExpirationTime(carfileCid, t)
+	return s.DataManager.ResetCarfileRecordExpiration(carfileCid, t)
 }
 
 // DownloadingCarfileRecords Show downloading carfiles
@@ -149,8 +149,8 @@ func (s *Scheduler) CacheCarfiles(ctx context.Context, info *types.CacheCarfileI
 			return xerrors.Errorf("replica is %d < 1", info.Replicas)
 		}
 
-		if time.Now().After(info.ExpirationTime) {
-			return xerrors.Errorf("now after expirationTime:%s", info.ExpirationTime.String())
+		if time.Now().After(info.Expiration) {
+			return xerrors.Errorf("now after expiration:%s", info.Expiration.String())
 		}
 	}
 
