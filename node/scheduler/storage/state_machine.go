@@ -37,12 +37,16 @@ func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface
 var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *CarfileInfo) (uint64, error){
 	// external import
 	UndefinedCarfileState: planOne(
-		on(CarfileGetCarfile{}, GetCarfile),
+		on(CarfileStartCache{}, StartCache),
 	),
-	GetCarfile: planOne(
-		on(CarfileCreateCompleted{}, GetCarfileCompleted),
+	StartCache: planOne(
+		on(CarfileGetSeed{}, GetSeed),
 	),
-	GetCarfileCompleted: planOne(
+	GetSeed: planOne(
+		on(CarfileGetSeedCompleted{}, GetSeedCompleted),
+		on(CarfileGetSeedFailed{}, GetSeedFailed),
+	),
+	GetSeedCompleted: planOne(
 		on(CarfileCandidateCaching{}, CandidateCaching),
 	),
 	CandidateCaching: planOne(
@@ -59,8 +63,8 @@ var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *Carf
 	EdgeCompleted: planOne(
 		on(CarfileFinalize{}, Finalize),
 	),
-	GetCarfileFailed: planOne(
-		on(CarfileGetCarfile{}, GetCarfile),
+	GetSeedFailed: planOne(
+		on(CarfileGetSeed{}, GetSeed),
 	),
 	CandidateCachingFailed: planOne(
 		on(CarfileCandidateCaching{}, CandidateCaching),
@@ -144,16 +148,18 @@ func (m *Manager) plan(events []statemachine.Event, state *CarfileInfo) (func(st
 
 	switch state.State {
 	// Happy path
-	case GetCarfile:
-		return m.handleGetCarfile, processed, nil
+	case StartCache:
+		return m.handleStartCache, processed, nil
+	case GetSeed:
+		return m.handleGetSeed, processed, nil
 	case CandidateCaching:
-		return m.handleCandidateCachingFailed, processed, nil
+		return m.handleCandidateCaching, processed, nil
 	case EdgeCaching:
 		return m.handleEdgeCaching, processed, nil
 	case Finalize:
 		return m.handleFinalize, processed, nil
-	case GetCarfileFailed:
-		return m.handleGetCarfileFailed, processed, nil
+	case GetSeedFailed:
+		return m.handleGetSeedFailed, processed, nil
 	case CandidateCachingFailed:
 		return m.handleCandidateCachingFailed, processed, nil
 	case EdgeCachingFailed:
