@@ -5,8 +5,6 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api/types"
-	"github.com/linguohua/titan/node/scheduler/storage"
-
 	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/handler"
 	"golang.org/x/xerrors"
@@ -160,6 +158,6 @@ func (s *Scheduler) CacheCarfiles(ctx context.Context, info *types.CacheCarfileI
 }
 
 // CarfilesStatus return the carfile caches state
-func (s *Scheduler) CarfilesStatus(ctx context.Context, cid storage.CarfileID) (storage.CarfileInfo, error) {
-	return s.CarfilesStatus(ctx, cid)
+func (s *Scheduler) CarfilesStatus(ctx context.Context, cid types.CarfileID) (types.CarfileInfo, error) {
+	return s.DataManager.CarfilesStatus(ctx, cid)
 }

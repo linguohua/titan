@@ -159,3 +159,37 @@ type CachingCarfile struct {
 	CarfileCID string
 	BlockList  []string
 }
+
+// CarfileID is an identifier for a carfile.
+type CarfileID string
+
+func (c CarfileID) String() string {
+	return string(c)
+}
+
+type CarfileState string
+
+type CarfileInfo struct {
+	ID          string
+	State       CarfileState
+	CarfileCID  CarfileID
+	CarfileHash string
+	Replicas    int
+	NodeID      string
+	ServerID    string
+	Size        int64
+	Blocks      int64
+	CreatedAt   time.Time
+	Expiration  time.Time
+
+	Log                 []Log
+	CandidateStoreFails int
+	EdgeStoreFails      int
+}
+
+type Log struct {
+	Timestamp uint64
+	Trace     string
+	Message   string
+	Kind      string
+}

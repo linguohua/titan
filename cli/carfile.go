@@ -332,31 +332,43 @@ var carfilesStatusCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		//ctx := ReqContext(cctx)
-		//schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		//if err != nil {
-		//	return err
-		//}
-		//defer closer()
-		//
-		//cid := cctx.Args().First()
-		//status, err := schedulerAPI.CarfilesStatus(ctx, api.CarfileID(cid))
-		//if err != nil {
-		//	return err
-		//}
-		//
-		//fmt.Printf("CarfileCID:\t%d\n", status.CarfileCID)
-		//fmt.Printf("Status:\t\t%s\n", status.State)
-		//if cctx.Bool("log") {
-		//	fmt.Printf("--------\nEvent Log:\n")
-		//
-		//	for i, l := range status.Log {
-		//		fmt.Printf("%d.\t%s:\t[%s]\t%s\n", i, time.Unix(int64(l.Timestamp), 0), l.Kind, l.Message)
-		//		if l.Trace != "" {
-		//			fmt.Printf("\t%s\n", l.Trace)
-		//		}
-		//	}
-		//}
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		if cctx.NArg() != 1 {
+			return IncorrectNumArgs(cctx)
+		}
+
+		cid := cctx.Args().First()
+		status, err := schedulerAPI.CarfilesStatus(ctx, types.CarfileID(cid))
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("CarfileCID:\t%s\n", status.CarfileCID)
+		fmt.Printf("Status:\t\t%s\n", status.State)
+		fmt.Printf("CarfileHash:\t%s\n", status.CarfileHash)
+		fmt.Printf("Replicas:\t%d\n", status.Replicas)
+		fmt.Printf("ServerID:\t%s\n", status.ServerID)
+		fmt.Printf("Size:\t%d\n", status.Size)
+		fmt.Printf("Blocks:\t%d\n", status.Blocks)
+		fmt.Printf("CreatedAt:\t%v\n", status.CreatedAt)
+		fmt.Printf("CreatedAt:\t%v\n", status.CreatedAt)
+		fmt.Printf("Expiration:\t\t%s\n", status.Expiration)
+		if cctx.Bool("log") {
+			fmt.Printf("--------\nEvent Log:\n")
+
+			for i, l := range status.Log {
+				fmt.Printf("%d.\t%s:\t[%s]\t%s\n", i, time.Unix(int64(l.Timestamp), 0), l.Kind, l.Message)
+				if l.Trace != "" {
+					fmt.Printf("\t%s\n", l.Trace)
+				}
+			}
+		}
 		return nil
 	},
 }
