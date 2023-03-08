@@ -344,7 +344,7 @@ var carfilesStatusCmd = &cli.Command{
 		}
 
 		cid := cctx.Args().First()
-		status, err := schedulerAPI.CarfilesStatus(ctx, types.CarfileID(cid))
+		status, err := schedulerAPI.CarfileStatus(ctx, types.CarfileID(cid))
 		if err != nil {
 			return err
 		}

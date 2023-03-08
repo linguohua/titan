@@ -38,7 +38,7 @@ func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface
 var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *CarfileInfo) (uint64, error){
 	// external import
 	UndefinedCarfileState: planOne(
-		on(CarfileStartCache{}, StartCache),
+		on(CarfileStartCaches{}, StartCache),
 	),
 	StartCache: planOne(
 		on(CarfileGetSeed{}, GetSeed),
