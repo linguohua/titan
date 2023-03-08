@@ -47,11 +47,11 @@ func (evt CarfileForceState) applyGlobal(state *CarfileInfo) bool {
 
 type CarfileStartCache struct {
 	ID          string
-	CarfileHash CarfileID `db:"carfile_hash"`
-	Replicas    int64     `db:"s"`
-	ServerID    string    `db:"server_id"`
-	CreatedAt   int64     `db:"created_at"`
-	Expiration  int64     `db:"expiration"`
+	CarfileHash CarfileID
+	Replicas    int64
+	ServerID    string
+	CreatedAt   int64
+	Expiration  int64
 }
 
 func (evt CarfileStartCache) apply(state *CarfileInfo) {
@@ -72,13 +72,16 @@ type CarfileCacheCompleted struct {
 }
 
 func (evt CarfileCacheCompleted) apply(state *CarfileInfo) {
-	state.lastResultInfo = evt.ResultInfo
+	state.CompletedCandidateReplicas = make(map[string]string)
+	state.CompletedEdgeReplicas = make(map[string]string)
+
+	state.LastResultInfo = evt.ResultInfo
 
 	if evt.ResultInfo.IsCandidate {
-		state.downloadSources = append(state.downloadSources, evt.ResultInfo.Source)
-		state.completedCandidateReplicas[evt.ResultInfo.NodeID] = struct{}{}
+		state.DownloadSources = append(state.DownloadSources, evt.ResultInfo.Source)
+		state.CompletedCandidateReplicas[evt.ResultInfo.NodeID] = ""
 	} else {
-		state.completedEdgeReplicas[evt.ResultInfo.NodeID] = struct{}{}
+		state.CompletedEdgeReplicas[evt.ResultInfo.NodeID] = ""
 	}
 }
 
