@@ -3,6 +3,7 @@ package node
 import (
 	"context"
 	"errors"
+
 	"github.com/gbrlsnchs/jwt/v3"
 	logging "github.com/ipfs/go-log/v2"
 	metricsi "github.com/ipfs/go-metrics-interface"
@@ -81,7 +82,6 @@ func Repo(r repo.Repo) Option {
 		return Options(
 			Override(new(repo.LockedRepo), modules.LockedRepo(lr)), // module handles closing
 			Override(new(*jwt.HMACSHA), secret.APISecret),
-			Override(new(dtypes.ServerID), modules.NewServerID),
 			Override(new(*common.CommonAPI), common.NewCommonAPI),
 			Override(new(helpers.MetricsCtx), func() context.Context {
 				return metricsi.CtxScope(context.Background(), "titan")
