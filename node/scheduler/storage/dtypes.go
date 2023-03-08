@@ -1,8 +1,6 @@
 package storage
 
 import (
-	"time"
-
 	"github.com/linguohua/titan/api/types"
 )
 
@@ -24,8 +22,8 @@ type Log struct {
 }
 
 type NodeCacheResult struct {
-	Status            types.CacheStatus
-	CarfileBlockCount int
+	Status            int64
+	CarfileBlockCount int64
 	CarfileSize       int64
 	NodeID            string
 	IsCandidate       bool
@@ -35,43 +33,23 @@ type NodeCacheResult struct {
 type CarfileInfo struct {
 	ID                string
 	State             CarfileState `db:"state"`
-	CarfileCID        CarfileID    `db:"carfile_cid"`
-	CarfileHash       string       `db:"carfile_hash"`
-	Replicas          int          `db:"replicas"` // edge replica
+	CarfileHash       CarfileID    `db:"carfile_hash"`
+	CarfileCID        string       `db:"carfile_cid"`
+	Replicas          int64        `db:"replicas"` // edge replica
 	ServerID          string       `db:"server_id"`
 	Size              int64        `db:"size"`
 	Blocks            int64        `db:"blocks"`
-	CreatedAt         time.Time    `db:"created_at"`
-	Expiration        time.Time    `db:"expiration"`
-	candidateReplicas int          // seed + other candidate replica
+	CreatedAt         int64        `db:"created_at"`
+	Expiration        int64        `db:"expiration"`
+	candidateReplicas int64        // seed + other candidate replica
 
 	Log                 []Log
-	CandidateStoreFails int
-	EdgeStoreFails      int
+	CandidateStoreFails int64
+	EdgeStoreFails      int64
 
 	completedEdgeReplicas      map[string]struct{}
 	completedCandidateReplicas map[string]struct{}
 	downloadSources            []*types.DownloadSource
 
 	lastResultInfo *NodeCacheResult
-}
-
-func (state *CarfileInfo) toCacheCarfileInfo() *types.CacheCarfileInfo {
-	return &types.CacheCarfileInfo{
-		CarfileCid:  string(state.CarfileCID),
-		CarfileHash: state.CarfileHash,
-		Replicas:    state.Replicas,
-		ServerID:    state.ServerID,
-		Expiration:  state.Expiration,
-	}
-}
-
-func fromCarfileInfo(info *types.CacheCarfileInfo) *CarfileInfo {
-	return &CarfileInfo{
-		CarfileCID:  CarfileID(info.CarfileCid),
-		CarfileHash: info.CarfileHash,
-		Replicas:    info.Replicas,
-		ServerID:    info.ServerID,
-		Expiration:  info.Expiration,
-	}
 }

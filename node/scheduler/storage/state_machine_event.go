@@ -1,8 +1,6 @@
 package storage
 
 import (
-	"time"
-
 	"golang.org/x/xerrors"
 )
 
@@ -48,12 +46,12 @@ func (evt CarfileForceState) applyGlobal(state *CarfileInfo) bool {
 // Normal path
 
 type CarfileStartCache struct {
-	ID          CarfileID
-	CarfileHash string    `db:"carfile_hash"`
-	Replicas    int       `db:"s"`
+	ID          string
+	CarfileHash CarfileID `db:"carfile_hash"`
+	Replicas    int64     `db:"s"`
 	ServerID    string    `db:"server_id"`
-	CreatedAt   time.Time `db:"created_at"`
-	Expiration  time.Time `db:"expiration"`
+	CreatedAt   int64     `db:"created_at"`
+	Expiration  int64     `db:"expiration"`
 }
 
 func (evt CarfileStartCache) apply(state *CarfileInfo) {
