@@ -289,26 +289,55 @@ func (m *Manager) RemoveCache(carfileCid, nodeID string) error {
 
 // CacheCarfileResult block cache result
 func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (err error) {
-	log.Debugf("carfileCacheResult :%s , %d , %s", nodeID, info.Status, info.CarfileHash)
+	log.Info("carfileCacheResult :%s , %d , %s", nodeID, info.Status, info.CarfileHash)
 	// log.Debugf("carfileCacheResult :%v", info)
 
-	var carfileRecord *CarfileRecord
-	dI, exist := m.DownloadingCarfileRecords.Load(info.CarfileHash)
-	if exist && dI != nil {
-		carfileRecord = dI.(*CarfileRecord)
-	} else {
-		err = xerrors.Errorf("task not downloading : %s,%s ,err:%v", nodeID, info.CarfileHash, err)
-		return
+	// var carfileRecord *CarfileRecord
+	// dI, exist := m.DownloadingCarfileRecords.Load(info.CarfileHash)
+	// if exist && dI != nil {
+	// 	carfileRecord = dI.(*CarfileRecord)
+	// } else {
+	// 	err = xerrors.Errorf("task not downloading : %s,%s ,err:%v", nodeID, info.CarfileHash, err)
+	// 	return
+	// }
+
+	// if carfileRecord.step == rootCandidateCacheStep {
+	// 	carfileRecord.totalSize = info.CarfileSize
+	// 	carfileRecord.totalBlocks = info.CarfileBlockCount
+	// }
+
+	// err = carfileRecord.carfileCacheResult(nodeID, info)
+
+	if info.Status == types.CacheStatusSucceeded {
+		t, err := m.nodeManager.NodeMgrDB.NodeType(nodeID)
+		if err != nil {
+			return err
+		}
+
+		var source *types.DownloadSource
+		if t == types.NodeCandidate {
+			// TODO if node offline
+			cNode := m.nodeManager.GetCandidateNode(nodeID)
+			if cNode != nil {
+				source = &types.DownloadSource{
+					CandidateURL:   cNode.RPCURL(),
+					CandidateToken: string(m.writeToken),
+				}
+			}
+		}
+
+		err = m.carfiles.Send(CarfileID(info.CarfileHash), CarfileCacheCompleted{
+			ResultInfo: &NodeCacheResult{
+				NodeID:            nodeID,
+				IsCandidate:       t == types.NodeCandidate,
+				Status:            info.Status,
+				CarfileBlockCount: info.CarfileBlockCount,
+				CarfileSize:       info.CarfileSize,
+				Source:            source,
+			},
+		})
 	}
 
-	if carfileRecord.step == rootCandidateCacheStep {
-		carfileRecord.totalSize = info.CarfileSize
-		carfileRecord.totalBlocks = info.CarfileBlockCount
-	}
-
-	err = carfileRecord.carfileCacheResult(nodeID, info)
-	// if
-	m.carfiles.Send(CarfileID(info.CarfileHash), CarfileCacheCompleted{})
 	return
 }
 
@@ -548,7 +577,6 @@ func carfileRecord2Info(cr *CarfileRecord) *types.CarfileRecordInfo {
 				DoneBlocks:  ra.doneBlocks,
 				IsCandidate: ra.isCandidate,
 				NodeID:      ra.nodeID,
-				CreateTime:  ra.createTime,
 				EndTime:     ra.endTime,
 			}
 
@@ -583,7 +611,6 @@ func (m *Manager) CarfilesStatus(ctx context.Context, cid types.CarfileID) (type
 		State:       types.CarfileState(info.State),
 		CarfileHash: info.CarfileHash,
 		Replicas:    info.Replicas,
-		NodeID:      info.NodeID,
 		ServerID:    info.ServerID,
 		Size:        info.Size,
 		Blocks:      info.Blocks,
@@ -663,4 +690,36 @@ func (m *Manager) findCandidates(count int, filterNodes map[string]struct{}) []*
 	}
 
 	return list[:count]
+}
+
+func (m *Manager) saveCandidateReplicaInfos(nodes []*node.Candidate, hash string) error {
+	// save replica info
+	replicaInfos := make([]*types.ReplicaInfo, 0)
+
+	for _, node := range nodes {
+		replicaInfos = append(replicaInfos, &types.ReplicaInfo{
+			ID:          replicaID(hash, node.NodeID),
+			NodeID:      node.NodeID,
+			Status:      types.CacheStatusDownloading,
+			IsCandidate: true,
+		})
+	}
+
+	return m.nodeManager.CarfileDB.CreateCarfileReplicaInfos(replicaInfos)
+}
+
+func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
+	// save replica info
+	replicaInfos := make([]*types.ReplicaInfo, 0)
+
+	for _, node := range nodes {
+		replicaInfos = append(replicaInfos, &types.ReplicaInfo{
+			ID:          replicaID(hash, node.NodeID),
+			NodeID:      node.NodeID,
+			Status:      types.CacheStatusDownloading,
+			IsCandidate: false,
+		})
+	}
+
+	return m.nodeManager.CarfileDB.CreateCarfileReplicaInfos(replicaInfos)
 }

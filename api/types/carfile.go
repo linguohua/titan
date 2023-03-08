@@ -51,7 +51,6 @@ type ReplicaInfo struct {
 	NodeID      string      `db:"node_id"`
 	Status      CacheStatus `db:"status"`
 	IsCandidate bool        `db:"is_candidate"`
-	CreateTime  time.Time   `db:"created_time"`
 	EndTime     time.Time   `db:"end_time"`
 	DoneSize    int64
 	DoneBlocks  int

@@ -91,7 +91,7 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 	}
 
 	var secret string
-	err := s.NodeManager.CarfileDB.GetNodeAllocateInfo(nodeID, persistent.SecretKey, &secret)
+	err := s.NodeManager.NodeMgrDB.GetNodeAllocateInfo(nodeID, persistent.SecretKey, &secret)
 	if err != nil {
 		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", nodeID, err)
 	}
@@ -109,7 +109,7 @@ func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, no
 	}
 
 	var secret string
-	err := s.NodeManager.CarfileDB.GetNodeAllocateInfo(nodeID, persistent.SecretKey, &secret)
+	err := s.NodeManager.NodeMgrDB.GetNodeAllocateInfo(nodeID, persistent.SecretKey, &secret)
 	if err != nil {
 		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", nodeID, err)
 	}
@@ -297,9 +297,9 @@ func (s *Scheduler) NodeExternalAddr(ctx context.Context) (string, error) {
 func (s *Scheduler) NodeValidatedResult(ctx context.Context, result api.ValidatedResult) error {
 	validator := handler.GetNodeID(ctx)
 	log.Debug("call back Validator block result, Validator is", validator)
-	if !s.nodeExists(validator, 0) {
-		return xerrors.Errorf("node not Exist: %s", validator)
-	}
+	// if !s.nodeExists(validator, 0) {
+	// 	return xerrors.Errorf("node not Exist: %s", validator)
+	// }
 
 	vs := &result
 	vs.Validator = validator
@@ -525,7 +525,7 @@ func (s *Scheduler) DeleteNodeLogFile(ctx context.Context, nodeID string) error 
 // nodeExists Check if the id exists
 func (s *Scheduler) nodeExists(nodeID string, nodeType int) bool {
 	var nType int
-	err := s.NodeManager.CarfileDB.GetNodeAllocateInfo(nodeID, persistent.NodeTypeKey, &nType)
+	err := s.NodeManager.NodeMgrDB.GetNodeAllocateInfo(nodeID, persistent.NodeTypeKey, &nType)
 	if err != nil {
 		return false
 	}

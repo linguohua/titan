@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/filecoin-project/go-statemachine"
-	"golang.org/x/xerrors"
 	"reflect"
 	"time"
+
+	"github.com/filecoin-project/go-statemachine"
+	"golang.org/x/xerrors"
 )
 
 func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface{}, uint64, error) {
@@ -43,22 +44,22 @@ var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *Carf
 		on(CarfileGetSeed{}, GetSeed),
 	),
 	GetSeed: planOne(
-		on(CarfileGetSeedCompleted{}, GetSeedCompleted),
-		on(CarfileGetSeedFailed{}, GetSeedFailed),
+		on(CarfileCacheCompleted{}, GetSeedCompleted),
+		on(CarfileCacheFailed{}, GetSeedFailed),
 	),
 	GetSeedCompleted: planOne(
 		on(CarfileCandidateCaching{}, CandidateCaching),
 	),
 	CandidateCaching: planOne(
-		on(CarfileCandidateCachingFailed{}, CandidateCachingFailed),
-		on(CarfileCandidateCompleted{}, CandidateCompleted),
+		on(CarfileCacheFailed{}, CandidateCachingFailed),
+		on(CarfileCacheCompleted{}, CandidateCompleted),
 	),
 	CandidateCompleted: planOne(
 		on(CarfileEdgeCaching{}, EdgeCaching),
 	),
 	EdgeCaching: planOne(
-		on(CarfileEdgeCachingFailed{}, EdgeCachingFailed),
-		on(CarfileEdgeCompleted{}, EdgeCompleted),
+		on(CarfileCacheFailed{}, EdgeCachingFailed),
+		on(CarfileCacheCompleted{}, EdgeCompleted),
 	),
 	EdgeCompleted: planOne(
 		on(CarfileFinalize{}, Finalize),
@@ -156,6 +157,12 @@ func (m *Manager) plan(events []statemachine.Event, state *CarfileInfo) (func(st
 		return m.handleCandidateCaching, processed, nil
 	case EdgeCaching:
 		return m.handleEdgeCaching, processed, nil
+	case GetSeedCompleted:
+		return m.handleGetSeedCompleted, processed, nil
+	case CandidateCompleted:
+		return m.handleCandidatesCacheCompleted, processed, nil
+	case EdgeCompleted:
+		return m.handleEdgeCacheCompleted, processed, nil
 	case Finalize:
 		return m.handleFinalize, processed, nil
 	case GetSeedFailed:
@@ -248,7 +255,7 @@ func (m *Manager) restartCarfiles(ctx context.Context) error {
 	}
 
 	for _, carfile := range trackedCarfiles {
-		if err := m.carfiles.Send(carfile.CarfileCID, CarfileRestart{}); err != nil {
+		if err := m.carfiles.Send(carfile.CarfileHash, CarfileRestart{}); err != nil {
 			log.Errorf("restarting carfile %s: %+v", carfile.CarfileCID, err)
 		}
 	}

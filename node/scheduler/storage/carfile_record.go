@@ -91,7 +91,6 @@ func (m *Manager) loadCarfileRecord(hash string, manager *Manager) (*CarfileReco
 			isCandidate:   raInfo.IsCandidate,
 			carfileHash:   raInfo.CarfileHash,
 			nodeManager:   cr.nodeManager,
-			createTime:    raInfo.CreateTime,
 			endTime:       raInfo.EndTime,
 		}
 
