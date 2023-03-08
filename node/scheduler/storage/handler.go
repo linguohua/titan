@@ -5,9 +5,14 @@ import (
 	"github.com/filecoin-project/go-statemachine"
 )
 
-func (m *Manager) handleGetCarfile(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Info("handler get carfile, %s", carfile.CarfileCID)
-	return ctx.Send(CarfileGetCarfile{})
+func (m *Manager) handleStartCache(ctx statemachine.Context, carfile CarfileInfo) error {
+	log.Info("handler statr cache, %s", carfile.CarfileCID)
+	return ctx.Send(CarfileGetSeed{})
+}
+
+func (m *Manager) handleGetSeed(ctx statemachine.Context, carfile CarfileInfo) error {
+	log.Info("handler get seed file, %s", carfile.CarfileCID)
+	return nil
 }
 
 func (m *Manager) handleCandidateCaching(ctx statemachine.Context, carfile CarfileInfo) error {
@@ -26,9 +31,9 @@ func (m *Manager) handleFinalize(ctx statemachine.Context, carfile CarfileInfo) 
 	return ctx.Send(CarfileFinalize{})
 }
 
-func (m *Manager) handleGetCarfileFailed(ctx statemachine.Context, carfile CarfileInfo) error {
+func (m *Manager) handleGetSeedFailed(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Info("handler get carfile failed, %s", carfile.CarfileCID)
-	return ctx.Send(CarfileGetCarfile{})
+	return ctx.Send(CarfileGetSeed{})
 }
 
 func (m *Manager) handleCandidateCachingFailed(ctx statemachine.Context, carfile CarfileInfo) error {

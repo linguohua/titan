@@ -46,27 +46,33 @@ func (evt CarfileForceState) applyGlobal(state *CarfileInfo) bool {
 
 // Normal path
 
-type CarfileGetCarfile struct {
-	ID             CarfileID
-	CarfileHash    string    `db:"carfile_hash"`
-	Replicas       int       `db:"s"`
-	NodeID         string    `db:"node_id"`
-	ServerID       string    `db:"server_id"`
-	ExpirationTime time.Time `db:"expiration"`
+type CarfileStartCache struct {
+	ID          CarfileID
+	CarfileHash string    `db:"carfile_hash"`
+	Replicas    int       `db:"s"`
+	NodeID      string    `db:"node_id"`
+	ServerID    string    `db:"server_id"`
+	CreatedAt   time.Time `db:"created_at"`
+	Expiration  time.Time `db:"expiration"`
 }
 
-func (evt CarfileGetCarfile) apply(state *CarfileInfo) {
+func (evt CarfileStartCache) apply(state *CarfileInfo) {
 	state.CarfileCID = evt.ID
 	state.CarfileHash = evt.CarfileHash
 	state.Replicas = evt.Replicas
 	state.NodeID = evt.NodeID
 	state.ServerID = evt.ServerID
-	state.Expiration = evt.ExpirationTime
+	state.CreatedAt = evt.CreatedAt
+	state.Expiration = evt.Expiration
 }
 
-type CarfileCreateCompleted struct{}
+type CarfileGetSeed struct{}
 
-func (evt CarfileCreateCompleted) apply(state *CarfileInfo) {}
+func (evt CarfileGetSeed) apply(state *CarfileInfo) {}
+
+type CarfileGetSeedCompleted struct{}
+
+func (evt CarfileGetSeedCompleted) apply(state *CarfileInfo) {}
 
 type CarfileCandidateCaching struct{}
 
@@ -88,10 +94,10 @@ type CarfileFinalize struct{}
 
 func (evt CarfileFinalize) apply(state *CarfileInfo) {}
 
-type CarfileCreateFailed struct{ error }
+type CarfileGetSeedFailed struct{ error }
 
-func (evt CarfileCreateFailed) FormatError(xerrors.Printer) (next error) { return evt.error }
-func (evt CarfileCreateFailed) apply(ci *CarfileInfo)                    {}
+func (evt CarfileGetSeedFailed) FormatError(xerrors.Printer) (next error) { return evt.error }
+func (evt CarfileGetSeedFailed) apply(ci *CarfileInfo)                    {}
 
 type CarfileCandidateCachingFailed struct{ error }
 

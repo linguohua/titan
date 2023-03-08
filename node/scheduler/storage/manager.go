@@ -60,9 +60,9 @@ func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToke
 	m.startupWait.Add(1)
 	m.carfiles = statemachine.New(namespace.Wrap(ds, datastore.NewKey(CarfileStorePrefix)), m, CarfileInfo{})
 
-	// m.initCarfileMap()
-	// go m.carfileTaskTicker()
-	// go m.checkExpirationTicker()
+	m.initCarfileMap()
+	go m.carfileTaskTicker()
+	go m.checkExpirationTicker()
 
 	return m
 }
@@ -220,7 +220,19 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 	}
 
 	info.ServerID = string(m.nodeManager.ServerID)
-	return m.carfiles.Send(CarfileID(info.CarfileCid), fromCarfileInfo(info))
+	err := m.nodeManager.CarfileDB.PushCarfileToWaitList(info)
+	if err != nil {
+		log.Errorf("push carfile to wait list: %v", err)
+	}
+
+	return m.carfiles.Send(CarfileID(info.CarfileCid), CarfileStartCache{
+		ID:          CarfileID(info.CarfileCid),
+		CarfileHash: info.CarfileHash,
+		Replicas:    info.Replicas,
+		ServerID:    info.ServerID,
+		CreatedAt:   time.Now(),
+		Expiration:  info.ExpirationTime,
+	})
 }
 
 // RemoveCarfileRecord remove a storage

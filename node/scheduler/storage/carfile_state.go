@@ -6,14 +6,15 @@ var ExistSectorStateList = map[CarfileState]struct{}{}
 
 const (
 	UndefinedCarfileState  CarfileState = ""
-	GetCarfile             CarfileState = "GetCarfile"
-	GetCarfileCompleted    CarfileState = "GetCarfileCompleted"
+	StartCache             CarfileState = "StartCache"
+	GetSeed                CarfileState = "GetSeed"
+	GetSeedCompleted       CarfileState = "GetSeedCompleted"
 	CandidateCaching       CarfileState = "CandidateCaching"
 	CandidateCompleted     CarfileState = "CandidateCompleted"
 	EdgeCaching            CarfileState = "EdgeCaching"
 	EdgeCompleted          CarfileState = "EdgeCompleted"
 	Finalize               CarfileState = "Finalize"
-	GetCarfileFailed       CarfileState = "GetCarfileFailed"
+	GetSeedFailed          CarfileState = "GetSeedFailed"
 	CandidateCachingFailed CarfileState = "CandidateCachingFailed"
 	EdgeCachingFailed      CarfileState = "EdgeCachingFailed"
 )
