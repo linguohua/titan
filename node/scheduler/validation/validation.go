@@ -272,7 +272,7 @@ func (v *Validation) getNodeReqValidate(validated *validateNodeInfo) (api.ReqVal
 
 	cid, err := cidutil.HashString2CIDString(hash)
 	if err != nil {
-		log.Warnf("HashString2CidString err: %s", err.Error())
+		log.Warnf("HashString2CidString %s err: %s ", hash, err.Error())
 		return req, err
 	}
 	req.CarfileCID = cid

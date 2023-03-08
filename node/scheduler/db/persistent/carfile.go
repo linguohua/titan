@@ -73,7 +73,7 @@ func (c *CarfileDB) UpdateCarfileReplicaInfo(cInfo []*types.ReplicaInfo) error {
 // UpdateCarfileRecordCachesInfo update storage info
 func (c *CarfileDB) UpdateCarfileRecordCachesInfo(dInfo *types.CarfileRecordInfo) error {
 	// update
-	cmd := fmt.Sprintf("UPDATE %s SET total_size=:total_size,total_blocks=:total_blocks,end_time=NOW(),replica=:replica,expired_time=:expired_time WHERE carfile_hash=:carfile_hash", carfileInfoTable)
+	cmd := fmt.Sprintf("UPDATE %s SET total_size=:total_size,total_blocks=:total_blocks,end_time=NOW() WHERE carfile_hash=:carfile_hash", carfileInfoTable)
 	_, err := c.db.NamedExec(cmd, dInfo)
 
 	return err
@@ -81,7 +81,9 @@ func (c *CarfileDB) UpdateCarfileRecordCachesInfo(dInfo *types.CarfileRecordInfo
 
 // CreateOrUpdateCarfileRecordInfo create or update storage record info
 func (c *CarfileDB) CreateOrUpdateCarfileRecordInfo(info *types.CarfileRecordInfo) error {
-	cmd := fmt.Sprintf("INSERT INTO %s (carfile_hash, carfile_cid, replica, expiration) VALUES (:carfile_hash, :carfile_cid, :replica, :expiration) ON DUPLICATE KEY UPDATE replica=:replica,expiration=:expiration", carfileInfoTable)
+	cmd := fmt.Sprintf(`INSERT INTO %s (carfile_hash, carfile_cid, replica, expiration)
+	        VALUES (:carfile_hash, :carfile_cid, :replica, :expiration) 
+	        ON DUPLICATE KEY UPDATE replica=:replica,expiration=:expiration,total_size=:total_size,total_blocks=:total_blocks`, carfileInfoTable)
 	_, err := c.db.NamedExec(cmd, info)
 	return err
 }
