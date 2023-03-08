@@ -3,7 +3,7 @@ package downloader
 import (
 	blocks "github.com/ipfs/go-block-format"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 )
 
 var log = logging.Logger("downloader")
@@ -15,5 +15,5 @@ const (
 
 type DownloadBlockser interface {
 	// download blocks
-	DownloadBlocks(cids []string, dss []*api.DownloadSource) ([]blocks.Block, error)
+	DownloadBlocks(cids []string, dss []*types.DownloadSource) ([]blocks.Block, error)
 }

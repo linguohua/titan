@@ -3,11 +3,11 @@ package carfile
 import (
 	"context"
 	"fmt"
+	"github.com/linguohua/titan/api/types"
 
 	blocks "github.com/ipfs/go-block-format"
 	format "github.com/ipfs/go-ipld-format"
 	legacy "github.com/ipfs/go-ipld-legacy"
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/cidutil"
 )
 
@@ -23,7 +23,7 @@ type carfileCache struct {
 	blocksDownloadSuccessList []string
 	// nextLayerCIDs just for restore download task
 	nextLayerCIDs   []string
-	downloadSources []*api.DownloadSource
+	downloadSources []*types.DownloadSource
 	carfileSize     uint64
 	downloadSize    uint64
 }

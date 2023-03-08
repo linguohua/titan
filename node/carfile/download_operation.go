@@ -2,7 +2,7 @@ package carfile
 
 import (
 	blocks "github.com/ipfs/go-block-format"
-	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/carfile/downloader"
 )
 
@@ -16,7 +16,7 @@ func (dOperation *downloadOperation) downloadResult(carfile *carfileCache, isCom
 	return dOperation.carfileOperation.downloadResult(carfile, isComplete)
 }
 
-func (dOperation *downloadOperation) downloadBlocks(cids []string, sources []*api.DownloadSource) ([]blocks.Block, error) {
+func (dOperation *downloadOperation) downloadBlocks(cids []string, sources []*types.DownloadSource) ([]blocks.Block, error) {
 	return dOperation.downloader.DownloadBlocks(cids, sources)
 }
 

@@ -3,6 +3,7 @@ package downloader
 import (
 	"context"
 	"fmt"
+	"github.com/linguohua/titan/api/types"
 	"net/http"
 	"sync"
 	"time"
@@ -22,7 +23,7 @@ func NewCandidate(cs *carfilestore.CarfileStore) *candidate {
 	return &candidate{carfileStore: cs}
 }
 
-func (candidate *candidate) DownloadBlocks(cids []string, dss []*api.DownloadSource) ([]blocks.Block, error) {
+func (candidate *candidate) DownloadBlocks(cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
 	return candidate.getBlocks(cids, dss)
 }
 
@@ -48,7 +49,7 @@ func (candidate *candidate) getBlock(candidateAPI api.Candidate, cidStr string) 
 	return basicBlock, nil
 }
 
-func (candidate *candidate) getBlocks(cids []string, dss []*api.DownloadSource) ([]blocks.Block, error) {
+func (candidate *candidate) getBlocks(cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
 	blks := make([]blocks.Block, 0, len(cids))
 	candidates := make(map[string]api.Candidate)
 	blksLock := &sync.Mutex{}

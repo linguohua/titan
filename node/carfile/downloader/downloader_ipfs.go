@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"context"
+	"github.com/linguohua/titan/api/types"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -11,7 +12,6 @@ import (
 	"github.com/ipfs/go-cid"
 	httpapi "github.com/ipfs/go-ipfs-http-client"
 	"github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
 	"github.com/linguohua/titan/node/cidutil"
 )
@@ -30,7 +30,7 @@ func NewIPFS(ipfsApiURL string, cs *carfilestore.CarfileStore) *ipfs {
 	return &ipfs{httpAPI: httpAPI, carfileStore: cs}
 }
 
-func (ipfs *ipfs) DownloadBlocks(cids []string, dss []*api.DownloadSource) ([]blocks.Block, error) {
+func (ipfs *ipfs) DownloadBlocks(cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
 	return ipfs.getBlocks(cids)
 }
 
