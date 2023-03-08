@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -225,13 +226,13 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 		log.Errorf("push carfile to wait list: %v", err)
 	}
 
-	return m.carfiles.Send(CarfileID(info.CarfileCid), CarfileStartCache{
+	return m.carfiles.Send(CarfileID(info.CarfileHash), CarfileStartCache{
 		ID:          CarfileID(info.CarfileCid),
 		CarfileHash: info.CarfileHash,
 		Replicas:    info.Replicas,
 		ServerID:    info.ServerID,
 		CreatedAt:   time.Now(),
-		Expiration:  info.ExpirationTime,
+		Expiration:  info.Expiration,
 	})
 }
 
@@ -305,11 +306,9 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 		carfileRecord.totalBlocks = info.CarfileBlockCount
 	}
 
-	if info.Status == types.CacheStatusCreate {
-		info.Status = types.CacheStatusDownloading
-	}
-
 	err = carfileRecord.carfileCacheResult(nodeID, info)
+	// if
+	m.carfiles.Send(CarfileID(info.CarfileHash), CarfileCacheCompleted{})
 	return
 }
 
@@ -594,4 +593,74 @@ func (m *Manager) CarfilesStatus(ctx context.Context, cid types.CarfileID) (type
 	}
 
 	return cInfo, nil
+}
+
+// Find edges that meet the cache criteria
+func (m *Manager) findEdges(count int, filterNodes map[string]struct{}) []*node.Edge {
+	list := make([]*node.Edge, 0)
+
+	if count <= 0 {
+		return list
+	}
+
+	m.nodeManager.EdgeNodes.Range(func(key, value interface{}) bool {
+		edgeNode := value.(*node.Edge)
+
+		if _, exist := filterNodes[edgeNode.NodeID]; exist {
+			return true
+		}
+
+		node := value.(*node.Edge)
+		if node.DiskUsage > diskUsageMax {
+			return true
+		}
+
+		list = append(list, edgeNode)
+		return true
+	})
+
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].CurCacheCount() < list[j].CurCacheCount()
+	})
+
+	if count > len(list) {
+		count = len(list)
+	}
+
+	return list[:count]
+}
+
+// Find candidates that meet the cache criteria
+func (m *Manager) findCandidates(count int, filterNodes map[string]struct{}) []*node.Candidate {
+	list := make([]*node.Candidate, 0)
+
+	if count <= 0 {
+		return list
+	}
+
+	m.nodeManager.CandidateNodes.Range(func(key, value interface{}) bool {
+		candidateNode := value.(*node.Candidate)
+
+		if _, exist := filterNodes[candidateNode.NodeID]; exist {
+			return true
+		}
+
+		node := value.(*node.Candidate)
+		if node.DiskUsage > diskUsageMax {
+			return true
+		}
+
+		list = append(list, candidateNode)
+		return true
+	})
+
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].CurCacheCount() < list[j].CurCacheCount()
+	})
+
+	if count > len(list) {
+		count = len(list)
+	}
+
+	return list[:count]
 }
