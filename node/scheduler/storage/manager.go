@@ -236,12 +236,12 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 	}
 
 	return m.carfiles.Send(CarfileID(info.CarfileHash), CarfileStartCache{
-		ID:          CarfileID(info.CarfileCid),
-		CarfileHash: info.CarfileHash,
-		Replicas:    info.Replicas,
+		ID:          info.CarfileCid,
+		CarfileHash: CarfileID(info.CarfileHash),
+		Replicas:    int64(info.Replicas),
 		ServerID:    info.ServerID,
-		CreatedAt:   time.Now(),
-		Expiration:  info.Expiration,
+		CreatedAt:   time.Now().Unix(),
+		Expiration:  info.Expiration.Unix(),
 	})
 }
 
@@ -339,8 +339,8 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 			ResultInfo: &NodeCacheResult{
 				NodeID:            nodeID,
 				IsCandidate:       t == types.NodeCandidate,
-				Status:            info.Status,
-				CarfileBlockCount: info.CarfileBlockCount,
+				Status:            int64(info.Status),
+				CarfileBlockCount: int64(info.CarfileBlockCount),
 				CarfileSize:       info.CarfileSize,
 				Source:            source,
 			},
@@ -616,15 +616,15 @@ func (m *Manager) CarfilesStatus(ctx context.Context, cid types.CarfileID) (type
 	}
 
 	cInfo := types.CarfileInfo{
-		CarfileCID:  cid,
+		CarfileCID:  cid.String(),
 		State:       types.CarfileState(info.State),
-		CarfileHash: info.CarfileHash,
+		CarfileHash: types.CarfileID(info.CarfileHash),
 		Replicas:    info.Replicas,
 		ServerID:    info.ServerID,
 		Size:        info.Size,
 		Blocks:      info.Blocks,
-		CreatedAt:   info.CreatedAt,
-		Expiration:  info.Expiration,
+		CreatedAt:   time.Unix(info.CreatedAt, 0),
+		Expiration:  time.Unix(info.Expiration, 0),
 		Log:         cLog,
 	}
 

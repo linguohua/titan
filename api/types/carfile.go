@@ -171,9 +171,9 @@ type CarfileState string
 type CarfileInfo struct {
 	ID          string
 	State       CarfileState
-	CarfileCID  CarfileID
-	CarfileHash string
-	Replicas    int
+	CarfileCID  string
+	CarfileHash CarfileID
+	Replicas    int64
 	NodeID      string
 	ServerID    string
 	Size        int64
@@ -182,8 +182,8 @@ type CarfileInfo struct {
 	Expiration  time.Time
 
 	Log                 []Log
-	CandidateStoreFails int
-	EdgeStoreFails      int
+	CandidateStoreFails int64
+	EdgeStoreFails      int64
 }
 
 type Log struct {

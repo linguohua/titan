@@ -26,11 +26,34 @@ func (t *CarfileInfo) MarshalCBOR(w io.Writer) error {
 
 	cw := cbg.NewCborWriter(w)
 
-	if _, err := cw.Write([]byte{163}); err != nil {
+	if _, err := cw.Write([]byte{173}); err != nil {
 		return err
 	}
 
-	// t.State (main.CarfileState) (string)
+	// t.ID (string) (string)
+	if len("ID") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"ID\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("ID"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("ID")); err != nil {
+		return err
+	}
+
+	if len(t.ID) > cbg.MaxLength {
+		return xerrors.Errorf("Value in field t.ID was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.ID))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string(t.ID)); err != nil {
+		return err
+	}
+
+	// t.State (storage.CarfileState) (string)
 	if len("State") > cbg.MaxLength {
 		return xerrors.Errorf("Value in field \"State\" was too long")
 	}
@@ -53,7 +76,30 @@ func (t *CarfileInfo) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	// t.CarfileCID (main.CarfileID) (string)
+	// t.CarfileHash (storage.CarfileID) (string)
+	if len("CarfileHash") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"CarfileHash\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("CarfileHash"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("CarfileHash")); err != nil {
+		return err
+	}
+
+	if len(t.CarfileHash) > cbg.MaxLength {
+		return xerrors.Errorf("Value in field t.CarfileHash was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.CarfileHash))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string(t.CarfileHash)); err != nil {
+		return err
+	}
+
+	// t.CarfileCID (string) (string)
 	if len("CarfileCID") > cbg.MaxLength {
 		return xerrors.Errorf("Value in field \"CarfileCID\" was too long")
 	}
@@ -76,7 +122,140 @@ func (t *CarfileInfo) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	// t.Log ([]main.Log) (slice)
+	// t.Replicas (int64) (int64)
+	if len("Replicas") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"Replicas\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("Replicas"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("Replicas")); err != nil {
+		return err
+	}
+
+	if t.Replicas >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.Replicas)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.Replicas-1)); err != nil {
+			return err
+		}
+	}
+
+	// t.ServerID (string) (string)
+	if len("ServerID") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"ServerID\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("ServerID"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("ServerID")); err != nil {
+		return err
+	}
+
+	if len(t.ServerID) > cbg.MaxLength {
+		return xerrors.Errorf("Value in field t.ServerID was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.ServerID))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string(t.ServerID)); err != nil {
+		return err
+	}
+
+	// t.Size (int64) (int64)
+	if len("Size") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"Size\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("Size"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("Size")); err != nil {
+		return err
+	}
+
+	if t.Size >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.Size)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.Size-1)); err != nil {
+			return err
+		}
+	}
+
+	// t.Blocks (int64) (int64)
+	if len("Blocks") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"Blocks\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("Blocks"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("Blocks")); err != nil {
+		return err
+	}
+
+	if t.Blocks >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.Blocks)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.Blocks-1)); err != nil {
+			return err
+		}
+	}
+
+	// t.CreatedAt (int64) (int64)
+	if len("CreatedAt") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"CreatedAt\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("CreatedAt"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("CreatedAt")); err != nil {
+		return err
+	}
+
+	if t.CreatedAt >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.CreatedAt)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.CreatedAt-1)); err != nil {
+			return err
+		}
+	}
+
+	// t.Expiration (int64) (int64)
+	if len("Expiration") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"Expiration\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("Expiration"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("Expiration")); err != nil {
+		return err
+	}
+
+	if t.Expiration >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.Expiration)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.Expiration-1)); err != nil {
+			return err
+		}
+	}
+
+	// t.Log ([]storage.Log) (slice)
 	if len("Log") > cbg.MaxLength {
 		return xerrors.Errorf("Value in field \"Log\" was too long")
 	}
@@ -97,6 +276,50 @@ func (t *CarfileInfo) MarshalCBOR(w io.Writer) error {
 	}
 	for _, v := range t.Log {
 		if err := v.MarshalCBOR(cw); err != nil {
+			return err
+		}
+	}
+
+	// t.CandidateStoreFails (int64) (int64)
+	if len("CandidateStoreFails") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"CandidateStoreFails\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("CandidateStoreFails"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("CandidateStoreFails")); err != nil {
+		return err
+	}
+
+	if t.CandidateStoreFails >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.CandidateStoreFails)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.CandidateStoreFails-1)); err != nil {
+			return err
+		}
+	}
+
+	// t.EdgeStoreFails (int64) (int64)
+	if len("EdgeStoreFails") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"EdgeStoreFails\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("EdgeStoreFails"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("EdgeStoreFails")); err != nil {
+		return err
+	}
+
+	if t.EdgeStoreFails >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.EdgeStoreFails)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.EdgeStoreFails-1)); err != nil {
 			return err
 		}
 	}
@@ -141,7 +364,18 @@ func (t *CarfileInfo) UnmarshalCBOR(r io.Reader) (err error) {
 		}
 
 		switch name {
-		// t.State (main.CarfileState) (string)
+		// t.ID (string) (string)
+		case "ID":
+
+			{
+				sval, err := cbg.ReadString(cr)
+				if err != nil {
+					return err
+				}
+
+				t.ID = string(sval)
+			}
+			// t.State (storage.CarfileState) (string)
 		case "State":
 
 			{
@@ -152,7 +386,18 @@ func (t *CarfileInfo) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.State = CarfileState(sval)
 			}
-			// t.CarfileCID (main.CarfileID) (string)
+			// t.CarfileHash (storage.CarfileID) (string)
+		case "CarfileHash":
+
+			{
+				sval, err := cbg.ReadString(cr)
+				if err != nil {
+					return err
+				}
+
+				t.CarfileHash = CarfileID(sval)
+			}
+			// t.CarfileCID (string) (string)
 		case "CarfileCID":
 
 			{
@@ -161,9 +406,150 @@ func (t *CarfileInfo) UnmarshalCBOR(r io.Reader) (err error) {
 					return err
 				}
 
-				t.CarfileCID = CarfileID(sval)
+				t.CarfileCID = string(sval)
 			}
-			// t.Log ([]main.Log) (slice)
+			// t.Replicas (int64) (int64)
+		case "Replicas":
+			{
+				maj, extra, err := cr.ReadHeader()
+				var extraI int64
+				if err != nil {
+					return err
+				}
+				switch maj {
+				case cbg.MajUnsignedInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 positive overflow")
+					}
+				case cbg.MajNegativeInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 negative oveflow")
+					}
+					extraI = -1 - extraI
+				default:
+					return fmt.Errorf("wrong type for int64 field: %d", maj)
+				}
+
+				t.Replicas = int64(extraI)
+			}
+			// t.ServerID (string) (string)
+		case "ServerID":
+
+			{
+				sval, err := cbg.ReadString(cr)
+				if err != nil {
+					return err
+				}
+
+				t.ServerID = string(sval)
+			}
+			// t.Size (int64) (int64)
+		case "Size":
+			{
+				maj, extra, err := cr.ReadHeader()
+				var extraI int64
+				if err != nil {
+					return err
+				}
+				switch maj {
+				case cbg.MajUnsignedInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 positive overflow")
+					}
+				case cbg.MajNegativeInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 negative oveflow")
+					}
+					extraI = -1 - extraI
+				default:
+					return fmt.Errorf("wrong type for int64 field: %d", maj)
+				}
+
+				t.Size = int64(extraI)
+			}
+			// t.Blocks (int64) (int64)
+		case "Blocks":
+			{
+				maj, extra, err := cr.ReadHeader()
+				var extraI int64
+				if err != nil {
+					return err
+				}
+				switch maj {
+				case cbg.MajUnsignedInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 positive overflow")
+					}
+				case cbg.MajNegativeInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 negative oveflow")
+					}
+					extraI = -1 - extraI
+				default:
+					return fmt.Errorf("wrong type for int64 field: %d", maj)
+				}
+
+				t.Blocks = int64(extraI)
+			}
+			// t.CreatedAt (int64) (int64)
+		case "CreatedAt":
+			{
+				maj, extra, err := cr.ReadHeader()
+				var extraI int64
+				if err != nil {
+					return err
+				}
+				switch maj {
+				case cbg.MajUnsignedInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 positive overflow")
+					}
+				case cbg.MajNegativeInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 negative oveflow")
+					}
+					extraI = -1 - extraI
+				default:
+					return fmt.Errorf("wrong type for int64 field: %d", maj)
+				}
+
+				t.CreatedAt = int64(extraI)
+			}
+			// t.Expiration (int64) (int64)
+		case "Expiration":
+			{
+				maj, extra, err := cr.ReadHeader()
+				var extraI int64
+				if err != nil {
+					return err
+				}
+				switch maj {
+				case cbg.MajUnsignedInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 positive overflow")
+					}
+				case cbg.MajNegativeInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 negative oveflow")
+					}
+					extraI = -1 - extraI
+				default:
+					return fmt.Errorf("wrong type for int64 field: %d", maj)
+				}
+
+				t.Expiration = int64(extraI)
+			}
+			// t.Log ([]storage.Log) (slice)
 		case "Log":
 
 			maj, extra, err = cr.ReadHeader()
@@ -191,6 +577,59 @@ func (t *CarfileInfo) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.Log[i] = v
+			}
+
+			// t.CandidateStoreFails (int64) (int64)
+		case "CandidateStoreFails":
+			{
+				maj, extra, err := cr.ReadHeader()
+				var extraI int64
+				if err != nil {
+					return err
+				}
+				switch maj {
+				case cbg.MajUnsignedInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 positive overflow")
+					}
+				case cbg.MajNegativeInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 negative oveflow")
+					}
+					extraI = -1 - extraI
+				default:
+					return fmt.Errorf("wrong type for int64 field: %d", maj)
+				}
+
+				t.CandidateStoreFails = int64(extraI)
+			}
+			// t.EdgeStoreFails (int64) (int64)
+		case "EdgeStoreFails":
+			{
+				maj, extra, err := cr.ReadHeader()
+				var extraI int64
+				if err != nil {
+					return err
+				}
+				switch maj {
+				case cbg.MajUnsignedInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 positive overflow")
+					}
+				case cbg.MajNegativeInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 negative oveflow")
+					}
+					extraI = -1 - extraI
+				default:
+					return fmt.Errorf("wrong type for int64 field: %d", maj)
+				}
+
+				t.EdgeStoreFails = int64(extraI)
 			}
 
 		default:
@@ -395,3 +834,135 @@ func (t *Log) UnmarshalCBOR(r io.Reader) (err error) {
 
 	return nil
 }
+func (t *NodeCacheResult) MarshalCBOR(w io.Writer) error {
+	if t == nil {
+		_, err := w.Write(cbg.CborNull)
+		return err
+	}
+
+	cw := cbg.NewCborWriter(w)
+
+	if _, err := cw.Write([]byte{166}); err != nil {
+		return err
+	}
+
+	// t.Status (int64) (int64)
+	if len("Status") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"Status\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("Status"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("Status")); err != nil {
+		return err
+	}
+
+	if t.Status >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.Status)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.Status-1)); err != nil {
+			return err
+		}
+	}
+
+	// t.CarfileBlockCount (int64) (int64)
+	if len("CarfileBlockCount") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"CarfileBlockCount\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("CarfileBlockCount"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("CarfileBlockCount")); err != nil {
+		return err
+	}
+
+	if t.CarfileBlockCount >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.CarfileBlockCount)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.CarfileBlockCount-1)); err != nil {
+			return err
+		}
+	}
+
+	// t.CarfileSize (int64) (int64)
+	if len("CarfileSize") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"CarfileSize\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("CarfileSize"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("CarfileSize")); err != nil {
+		return err
+	}
+
+	if t.CarfileSize >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.CarfileSize)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.CarfileSize-1)); err != nil {
+			return err
+		}
+	}
+
+	// t.NodeID (string) (string)
+	if len("NodeID") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"NodeID\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("NodeID"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("NodeID")); err != nil {
+		return err
+	}
+
+	if len(t.NodeID) > cbg.MaxLength {
+		return xerrors.Errorf("Value in field t.NodeID was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.NodeID))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string(t.NodeID)); err != nil {
+		return err
+	}
+
+	// t.IsCandidate (bool) (bool)
+	if len("IsCandidate") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"IsCandidate\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("IsCandidate"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("IsCandidate")); err != nil {
+		return err
+	}
+
+	if err := cbg.WriteBool(w, t.IsCandidate); err != nil {
+		return err
+	}
+
+	// t.Source (types.DownloadSource) (struct)
+	if len("Source") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"Source\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("Source"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("Source")); err != nil {
+		return err
+	}
+
+	return nil
+}
+
