@@ -220,10 +220,19 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 		log.Infof("carfile event %s , add carfile,nodeID:%s", info.CarfileCid, info.NodeID)
 	}
 
-	info.ServerID = string(m.nodeManager.ServerID)
-	err := m.nodeManager.CarfileDB.PushCarfileToWaitList(info)
+	// info.ServerID = string(m.nodeManager.ServerID)
+	// err := m.nodeManager.CarfileDB.PushCarfileToWaitList(info)
+	// if err != nil {
+	// 	log.Errorf("push carfile to wait list: %v", err)
+	// }
+	err := m.nodeManager.CarfileDB.CreateOrUpdateCarfileRecordInfo(&types.CarfileRecordInfo{
+		CarfileCid:  info.CarfileCid,
+		Replica:     info.Replicas,
+		Expiration:  info.Expiration,
+		CarfileHash: info.CarfileHash,
+	})
 	if err != nil {
-		log.Errorf("push carfile to wait list: %v", err)
+		return xerrors.Errorf("cid:%s,CreateOrUpdateCarfileRecordInfo err:%s", info.CarfileCid, err.Error())
 	}
 
 	return m.carfiles.Send(CarfileID(info.CarfileHash), CarfileStartCache{
