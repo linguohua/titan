@@ -39,12 +39,6 @@ type UserDownloadResult struct {
 	BlockCID      string
 }
 
-type DownloadServerAccessAuth struct {
-	NodeID     string
-	URL        string
-	PrivateKey string
-}
-
 type UserBlockDownloadResult struct {
 	// serial number
 	SN int64
@@ -53,7 +47,8 @@ type UserBlockDownloadResult struct {
 	Succeed bool
 }
 
-type DownloadInfoResult struct {
+// DownloadInfo download info of edge
+type DownloadInfo struct {
 	URL      string
 	Sign     string
 	SN       int64
@@ -61,11 +56,6 @@ type DownloadInfoResult struct {
 	TimeOut  int
 	Weight   int
 	NodeID   string `json:"-"`
-}
-
-type CandidateDownloadInfo struct {
-	URL   string
-	Token string
 }
 
 // NodeCacheStatus node cache status
@@ -129,14 +119,6 @@ type ListBlockDownloadInfoReq struct {
 type ListDownloadRecordRsp struct {
 	Data  []DownloadRecordInfo `json:"data"`
 	Total int64                `json:"total"`
-}
-
-// ValidationInfo validation Info
-type ValidationInfo struct {
-	Validators []string `json:"validators"`
-	// Unix timestamp
-	NextElectionTime int64 `json:"next_election_time"`
-	EnableValidation bool  `json:"enable_validation"`
 }
 
 // ListValidatedResultRsp list validated result

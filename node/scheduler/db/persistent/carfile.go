@@ -210,12 +210,12 @@ func (c *CarfileDB) RandomCarfileFromNode(nodeID string) (string, error) {
 	return "", nil
 }
 
-// ResetCarfileExpirationTime reset expiration time with storage record
-func (c *CarfileDB) ResetCarfileExpirationTime(carfileHash string, expirationTime time.Time) error {
+// ResetCarfileRecordExpiration reset expiration time with storage record
+func (c *CarfileDB) ResetCarfileRecordExpiration(carfileHash string, eTime time.Time) error {
 	tx := c.db.MustBegin()
 
 	cmd := fmt.Sprintf(`UPDATE %s SET expiration=? WHERE carfile_hash=?`, carfileInfoTable)
-	tx.MustExec(cmd, expirationTime, carfileHash)
+	tx.MustExec(cmd, eTime, carfileHash)
 
 	err := tx.Commit()
 	if err != nil {
@@ -226,7 +226,8 @@ func (c *CarfileDB) ResetCarfileExpirationTime(carfileHash string, expirationTim
 	return nil
 }
 
-func (c *CarfileDB) MinExpirationTime() (time.Time, error) {
+// MinExpiration Get the minimum expiration time
+func (c *CarfileDB) MinExpiration() (time.Time, error) {
 	query := fmt.Sprintf(`SELECT MIN(expiration) FROM %s`, carfileInfoTable)
 
 	var out time.Time

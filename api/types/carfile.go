@@ -59,13 +59,13 @@ type ReplicaInfo struct {
 
 // CacheCarfileInfo Data info
 type CacheCarfileInfo struct {
-	ID             string
-	CarfileCid     string    `db:"carfile_cid"`
-	CarfileHash    string    `db:"carfile_hash"`
-	Replicas       int       `db:"replicas"`
-	NodeID         string    `db:"node_id"`
-	ServerID       string    `db:"server_id"`
-	ExpirationTime time.Time `db:"expiration"`
+	ID          string
+	CarfileCid  string    `db:"carfile_cid"`
+	CarfileHash string    `db:"carfile_hash"`
+	Replicas    int       `db:"replicas"`
+	NodeID      string    `db:"node_id"`
+	ServerID    string    `db:"server_id"`
+	Expiration  time.Time `db:"expiration"`
 }
 
 // CacheStatus nodeMgrCache Status

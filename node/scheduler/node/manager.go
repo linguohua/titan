@@ -350,8 +350,8 @@ func NewSessionCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error
 }
 
 // FindNodeDownloadInfos  find node with block cid
-func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadInfoResult, error) {
-	infos := make([]*types.DownloadInfoResult, 0)
+func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadInfo, error) {
+	infos := make([]*types.DownloadInfo, 0)
 
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
@@ -382,7 +382,7 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadI
 			continue
 		}
 
-		infos = append(infos, &types.DownloadInfoResult{URL: url, NodeID: nodeID})
+		infos = append(infos, &types.DownloadInfo{URL: url, NodeID: nodeID})
 	}
 
 	return infos, nil

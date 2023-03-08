@@ -47,7 +47,7 @@ func (c *Client) ServerLogin(serverID, serverAddr string, nodeType types.NodeTyp
 
 	serverKey := fmt.Sprintf("/%s/%s", nodeType.String(), serverID)
 
-	// get a leaseRsp
+	// get a lease
 	leaseRsp, err := c.cli.Grant(ctx, nodeExpirationDuration)
 	if err != nil {
 		return xerrors.Errorf("Grant lease err:%s", err.Error())

@@ -17,7 +17,7 @@ type Locator interface {
 	SetNodeOnlineStatus(ctx context.Context, nodeID string, isOnline bool) error //perm:write
 
 	// user api
-	GetDownloadInfosWithCarfile(ctx context.Context, cid string) ([]*types.DownloadInfoResult, error) //perm:read
+	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error) //perm:read
 	// user send result when user download block complete
 	UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error //perm:read
 

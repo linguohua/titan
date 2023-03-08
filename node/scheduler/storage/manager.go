@@ -182,13 +182,13 @@ func (m *Manager) doCarfileReplicaTask(info *types.CacheCarfileInfo) error {
 		}
 
 		carfileRecord.replica = info.Replicas
-		carfileRecord.expirationTime = info.ExpirationTime
+		carfileRecord.expirationTime = info.Expiration
 
 		carfileRecord.initStep()
 	} else {
 		carfileRecord = newCarfileRecord(m, info.CarfileCid, info.CarfileHash)
 		carfileRecord.replica = info.Replicas
-		carfileRecord.expirationTime = info.ExpirationTime
+		carfileRecord.expirationTime = info.Expiration
 	}
 
 	err = m.nodeManager.CarfileDB.CreateOrUpdateCarfileRecordInfo(&types.CarfileRecordInfo{
@@ -214,7 +214,7 @@ func (m *Manager) doCarfileReplicaTask(info *types.CacheCarfileInfo) error {
 // CacheCarfile new storage task
 func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 	if info.NodeID == "" {
-		log.Infof("carfile event %s , add carfile,replica:%d,expiration:%s", info.CarfileCid, info.Replicas, info.ExpirationTime.String())
+		log.Infof("carfile event %s , add carfile,replica:%d,expiration:%s", info.CarfileCid, info.Replicas, info.Expiration.String())
 	} else {
 		log.Infof("carfile event %s , add carfile,nodeID:%s", info.CarfileCid, info.NodeID)
 	}
@@ -379,8 +379,8 @@ func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
 	// }
 }
 
-// ResetCarfileExpirationTime reset expiration time
-func (m *Manager) ResetCarfileExpirationTime(cid string, t time.Time) error {
+// ResetCarfileRecordExpiration reset expiration time
+func (m *Manager) ResetCarfileRecordExpiration(cid string, t time.Time) error {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return err
@@ -394,7 +394,7 @@ func (m *Manager) ResetCarfileExpirationTime(cid string, t time.Time) error {
 		carfileRecord.expirationTime = t
 	}
 
-	err = m.nodeManager.CarfileDB.ResetCarfileExpirationTime(hash, t)
+	err = m.nodeManager.CarfileDB.ResetCarfileRecordExpiration(hash, t)
 	if err != nil {
 		return err
 	}
@@ -423,7 +423,7 @@ func (m *Manager) checkCachesExpiration() {
 	}
 
 	// reset expiration time
-	latelyExpirationTime, err := m.nodeManager.CarfileDB.MinExpirationTime()
+	latelyExpirationTime, err := m.nodeManager.CarfileDB.MinExpiration()
 	if err != nil {
 		return
 	}

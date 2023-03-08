@@ -41,19 +41,19 @@ type Scheduler interface {
 	IsBehindFullConeNAT(ctx context.Context, edgeURL string) (bool, error) //perm:read
 	NodeNatType(ctx context.Context, nodeID string) (types.NatType, error) //perm:write
 	// user
-	GetDownloadInfosWithCarfile(ctx context.Context, cid string) ([]*types.DownloadInfoResult, error) //perm:read
+	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error) //perm:read
 
 	// carfile
-	CacheCarfiles(ctx context.Context, info *types.CacheCarfileInfo) error                   //perm:admin
-	CarfilesStatus(ctx context.Context, cid types.CarfileID) (types.CarfileInfo, error)      // perm:read
-	RemoveCarfile(ctx context.Context, carfileID string) error                               //perm:admin
-	RemoveReplica(ctx context.Context, carfileID, nodeID string) error                       //perm:admin
-	CarfileRecord(ctx context.Context, cid string) (*types.CarfileRecordInfo, error)         //perm:read
-	CarfileRecordList(ctx context.Context, page int) (*types.ListCarfileRecordRsp, error)    //perm:read
-	DownloadingCarfileRecords(ctx context.Context) ([]*types.CarfileRecordInfo, error)       //perm:read
-	ResetCarfileExpirationTime(ctx context.Context, carfileCid string, time time.Time) error //perm:admin
-	ResetCandidateReplicaCount(ctx context.Context, count int) error                         //perm:admin
-	ReCacheCarfiles(ctx context.Context, hashs []string) error                               //perm:admin
+	CacheCarfiles(ctx context.Context, info *types.CacheCarfileInfo) error                     //perm:admin
+	CarfilesStatus(ctx context.Context, cid types.CarfileID) (types.CarfileInfo, error)        // perm:read
+	RemoveCarfile(ctx context.Context, carfileID string) error                                 //perm:admin
+	RemoveReplica(ctx context.Context, carfileID, nodeID string) error                         //perm:admin
+	CarfileRecord(ctx context.Context, cid string) (*types.CarfileRecordInfo, error)           //perm:read
+	CarfileRecordList(ctx context.Context, page int) (*types.ListCarfileRecordRsp, error)      //perm:read
+	DownloadingCarfileRecords(ctx context.Context) ([]*types.CarfileRecordInfo, error)         //perm:read
+	ResetCarfileRecordExpiration(ctx context.Context, carfileCid string, time time.Time) error //perm:admin
+	ResetCandidateReplicaCount(ctx context.Context, count int) error                           //perm:admin
+	ReCacheCarfiles(ctx context.Context, hashs []string) error                                 //perm:admin
 
 	// server
 	StartOnceElection(ctx context.Context) error                                   //perm:admin

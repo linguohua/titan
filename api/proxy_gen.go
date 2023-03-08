@@ -182,9 +182,9 @@ type LocatorStruct struct {
 
 		AllocateNodes func(p0 context.Context, p1 string, p2 types.NodeType, p3 int) ([]*types.NodeAllocateInfo, error) `perm:"admin"`
 
-		GetAccessPoints func(p0 context.Context, p1 string) ([]string, error) `perm:"read"`
+		EdgeDownloadInfos func(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) `perm:"read"`
 
-		GetDownloadInfosWithCarfile func(p0 context.Context, p1 string) ([]*types.DownloadInfoResult, error) `perm:"read"`
+		GetAccessPoints func(p0 context.Context, p1 string) ([]string, error) `perm:"read"`
 
 		ListAreaIDs func(p0 context.Context) ([]string, error) `perm:"admin"`
 
@@ -238,11 +238,11 @@ type SchedulerStruct struct {
 
 		DownloadingCarfileRecords func(p0 context.Context) ([]*types.CarfileRecordInfo, error) `perm:"read"`
 
+		EdgeDownloadInfos func(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) `perm:"read"`
+
 		EdgeExternalAddr func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
 
 		EdgeNodeConnect func(p0 context.Context) error `perm:"write"`
-
-		GetDownloadInfosWithCarfile func(p0 context.Context, p1 string) ([]*types.DownloadInfoResult, error) `perm:"read"`
 
 		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) `perm:"read"`
 
@@ -282,7 +282,7 @@ type SchedulerStruct struct {
 
 		ResetCandidateReplicaCount func(p0 context.Context, p1 int) error `perm:"admin"`
 
-		ResetCarfileExpirationTime func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
+		ResetCarfileRecordExpiration func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
 
 		SetNodeAppUpdateInfo func(p0 context.Context, p1 *NodeAppUpdateInfo) error `perm:"admin"`
 
@@ -691,6 +691,17 @@ func (s *LocatorStub) AllocateNodes(p0 context.Context, p1 string, p2 types.Node
 	return *new([]*types.NodeAllocateInfo), ErrNotSupported
 }
 
+func (s *LocatorStruct) EdgeDownloadInfos(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) {
+	if s.Internal.EdgeDownloadInfos == nil {
+		return *new([]*types.DownloadInfo), ErrNotSupported
+	}
+	return s.Internal.EdgeDownloadInfos(p0, p1)
+}
+
+func (s *LocatorStub) EdgeDownloadInfos(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) {
+	return *new([]*types.DownloadInfo), ErrNotSupported
+}
+
 func (s *LocatorStruct) GetAccessPoints(p0 context.Context, p1 string) ([]string, error) {
 	if s.Internal.GetAccessPoints == nil {
 		return *new([]string), ErrNotSupported
@@ -700,17 +711,6 @@ func (s *LocatorStruct) GetAccessPoints(p0 context.Context, p1 string) ([]string
 
 func (s *LocatorStub) GetAccessPoints(p0 context.Context, p1 string) ([]string, error) {
 	return *new([]string), ErrNotSupported
-}
-
-func (s *LocatorStruct) GetDownloadInfosWithCarfile(p0 context.Context, p1 string) ([]*types.DownloadInfoResult, error) {
-	if s.Internal.GetDownloadInfosWithCarfile == nil {
-		return *new([]*types.DownloadInfoResult), ErrNotSupported
-	}
-	return s.Internal.GetDownloadInfosWithCarfile(p0, p1)
-}
-
-func (s *LocatorStub) GetDownloadInfosWithCarfile(p0 context.Context, p1 string) ([]*types.DownloadInfoResult, error) {
-	return *new([]*types.DownloadInfoResult), ErrNotSupported
 }
 
 func (s *LocatorStruct) ListAreaIDs(p0 context.Context) ([]string, error) {
@@ -944,6 +944,17 @@ func (s *SchedulerStub) DownloadingCarfileRecords(p0 context.Context) ([]*types.
 	return *new([]*types.CarfileRecordInfo), ErrNotSupported
 }
 
+func (s *SchedulerStruct) EdgeDownloadInfos(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) {
+	if s.Internal.EdgeDownloadInfos == nil {
+		return *new([]*types.DownloadInfo), ErrNotSupported
+	}
+	return s.Internal.EdgeDownloadInfos(p0, p1)
+}
+
+func (s *SchedulerStub) EdgeDownloadInfos(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) {
+	return *new([]*types.DownloadInfo), ErrNotSupported
+}
+
 func (s *SchedulerStruct) EdgeExternalAddr(p0 context.Context, p1 string, p2 string) (string, error) {
 	if s.Internal.EdgeExternalAddr == nil {
 		return "", ErrNotSupported
@@ -964,17 +975,6 @@ func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context) error {
 
 func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context) error {
 	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetDownloadInfosWithCarfile(p0 context.Context, p1 string) ([]*types.DownloadInfoResult, error) {
-	if s.Internal.GetDownloadInfosWithCarfile == nil {
-		return *new([]*types.DownloadInfoResult), ErrNotSupported
-	}
-	return s.Internal.GetDownloadInfosWithCarfile(p0, p1)
-}
-
-func (s *SchedulerStub) GetDownloadInfosWithCarfile(p0 context.Context, p1 string) ([]*types.DownloadInfoResult, error) {
-	return *new([]*types.DownloadInfoResult), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) {
@@ -1186,14 +1186,14 @@ func (s *SchedulerStub) ResetCandidateReplicaCount(p0 context.Context, p1 int) e
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ResetCarfileExpirationTime(p0 context.Context, p1 string, p2 time.Time) error {
-	if s.Internal.ResetCarfileExpirationTime == nil {
+func (s *SchedulerStruct) ResetCarfileRecordExpiration(p0 context.Context, p1 string, p2 time.Time) error {
+	if s.Internal.ResetCarfileRecordExpiration == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.ResetCarfileExpirationTime(p0, p1, p2)
+	return s.Internal.ResetCarfileRecordExpiration(p0, p1, p2)
 }
 
-func (s *SchedulerStub) ResetCarfileExpirationTime(p0 context.Context, p1 string, p2 time.Time) error {
+func (s *SchedulerStub) ResetCarfileRecordExpiration(p0 context.Context, p1 string, p2 time.Time) error {
 	return ErrNotSupported
 }
 

@@ -43,12 +43,12 @@ type CarfileInfo struct {
 
 func (state *CarfileInfo) toCacheCarfileInfo() *types.CacheCarfileInfo {
 	return &types.CacheCarfileInfo{
-		CarfileCid:     string(state.CarfileCID),
-		CarfileHash:    state.CarfileHash,
-		Replicas:       state.Replicas,
-		NodeID:         state.NodeID,
-		ServerID:       state.ServerID,
-		ExpirationTime: state.Expiration,
+		CarfileCid:  string(state.CarfileCID),
+		CarfileHash: state.CarfileHash,
+		Replicas:    state.Replicas,
+		NodeID:      state.NodeID,
+		ServerID:    state.ServerID,
+		Expiration:  state.Expiration,
 	}
 }
 
@@ -59,6 +59,6 @@ func fromCarfileInfo(info *types.CacheCarfileInfo) *CarfileInfo {
 		Replicas:    info.Replicas,
 		NodeID:      info.NodeID,
 		ServerID:    info.ServerID,
-		Expiration:  info.ExpirationTime,
+		Expiration:  info.Expiration,
 	}
 }
