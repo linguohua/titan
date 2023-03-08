@@ -2,6 +2,7 @@ package node
 
 import (
 	"errors"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/config"
@@ -42,6 +43,7 @@ func ConfigLocator(c interface{}) Option {
 	log.Info("start to config locator")
 
 	return Options(
+		Override(new(dtypes.ServerID), modules.NewServerID),
 		Override(new(*sqlx.DB), modules.NewDB),
 		Override(new(*locator.SqlDB), locator.NewSQLDB),
 		Override(new(region.Region), modules.NewRegion(cfg.GeoDBPath)),
