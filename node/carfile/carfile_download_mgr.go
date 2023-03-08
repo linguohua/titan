@@ -1,18 +1,18 @@
 package carfile
 
 import (
+	"github.com/linguohua/titan/api/types"
 	"sync"
 	"time"
 
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-datastore"
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/carfile/carfilestore"
 )
 
 type DownloadOperation interface {
 	downloadResult(carfile *carfileCache, isComplete bool) error
-	downloadBlocks(cids []string, sources []*api.DownloadSource) ([]blocks.Block, error)
+	downloadBlocks(cids []string, sources []*types.DownloadSource) ([]blocks.Block, error)
 	saveBlock(data []byte, blockHash, carfileHash string) error
 }
 type DownloadMgr struct {

@@ -135,3 +135,27 @@ type SystemBaseInfo struct {
 	DownloadCount    int   `json:"download_blocks" redis:"DownloadCount"`
 	NextElectionTime int64 `json:"next_election_time" redis:"NextElectionTime"`
 }
+
+type CacheCarfileResult struct {
+	CacheCarfileCount   int
+	WaitCacheCarfileNum int
+	DiskUsage           float64
+}
+
+type DownloadSource struct {
+	CandidateURL   string
+	CandidateToken string
+}
+
+type CacheStat struct {
+	TotalCarfileCount     int
+	TotalBlockCount       int
+	WaitCacheCarfileCount int
+	CachingCarfileCID     string
+	DiskUsage             float64
+}
+
+type CachingCarfile struct {
+	CarfileCID string
+	BlockList  []string
+}

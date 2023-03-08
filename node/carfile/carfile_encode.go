@@ -3,8 +3,7 @@ package carfile
 import (
 	"bytes"
 	"encoding/gob"
-
-	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 )
 
 type EncodeCarfileCache struct {
@@ -12,7 +11,7 @@ type EncodeCarfileCache struct {
 	BlocksWaitList            []string
 	BlocksDownloadSuccessList []string
 	NextLayerCIDs             []string
-	DownloadSources           []*api.DownloadSource
+	DownloadSources           []*types.DownloadSource
 	CarfileSize               uint64
 	DownloadSize              uint64
 }

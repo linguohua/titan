@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
@@ -107,7 +106,7 @@ func (ra *Replica) cacheCarfile(cDown int) (err error) {
 	ra.status = types.CacheStatusDownloading
 
 	nodeID := ra.nodeID
-	var result *api.CacheCarfileResult
+	var result *types.CacheCarfileResult
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 	defer func() {

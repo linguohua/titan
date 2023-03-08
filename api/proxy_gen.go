@@ -55,15 +55,15 @@ type CandidateStub struct {
 
 type CarfileOperationStruct struct {
 	Internal struct {
-		CacheCarfile func(p0 context.Context, p1 string, p2 []*DownloadSource) (*CacheCarfileResult, error) `perm:"write"`
+		CacheCarfile func(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheCarfileResult, error) `perm:"write"`
 
 		DeleteAllCarfiles func(p0 context.Context) error `perm:"admin"`
 
 		DeleteCarfile func(p0 context.Context, p1 string) error `perm:"write"`
 
-		QueryCacheStat func(p0 context.Context) (*CacheStat, error) `perm:"write"`
+		QueryCacheStat func(p0 context.Context) (*types.CacheStat, error) `perm:"write"`
 
-		QueryCachingCarfile func(p0 context.Context) (*CachingCarfile, error) `perm:"write"`
+		QueryCachingCarfile func(p0 context.Context) (*types.CachingCarfile, error) `perm:"write"`
 	}
 }
 
@@ -359,14 +359,14 @@ func (s *CandidateStub) WaitQuiet(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *CarfileOperationStruct) CacheCarfile(p0 context.Context, p1 string, p2 []*DownloadSource) (*CacheCarfileResult, error) {
+func (s *CarfileOperationStruct) CacheCarfile(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheCarfileResult, error) {
 	if s.Internal.CacheCarfile == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.CacheCarfile(p0, p1, p2)
 }
 
-func (s *CarfileOperationStub) CacheCarfile(p0 context.Context, p1 string, p2 []*DownloadSource) (*CacheCarfileResult, error) {
+func (s *CarfileOperationStub) CacheCarfile(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheCarfileResult, error) {
 	return nil, ErrNotSupported
 }
 
@@ -392,25 +392,25 @@ func (s *CarfileOperationStub) DeleteCarfile(p0 context.Context, p1 string) erro
 	return ErrNotSupported
 }
 
-func (s *CarfileOperationStruct) QueryCacheStat(p0 context.Context) (*CacheStat, error) {
+func (s *CarfileOperationStruct) QueryCacheStat(p0 context.Context) (*types.CacheStat, error) {
 	if s.Internal.QueryCacheStat == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.QueryCacheStat(p0)
 }
 
-func (s *CarfileOperationStub) QueryCacheStat(p0 context.Context) (*CacheStat, error) {
+func (s *CarfileOperationStub) QueryCacheStat(p0 context.Context) (*types.CacheStat, error) {
 	return nil, ErrNotSupported
 }
 
-func (s *CarfileOperationStruct) QueryCachingCarfile(p0 context.Context) (*CachingCarfile, error) {
+func (s *CarfileOperationStruct) QueryCachingCarfile(p0 context.Context) (*types.CachingCarfile, error) {
 	if s.Internal.QueryCachingCarfile == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.QueryCachingCarfile(p0)
 }
 
-func (s *CarfileOperationStub) QueryCachingCarfile(p0 context.Context) (*CachingCarfile, error) {
+func (s *CarfileOperationStub) QueryCachingCarfile(p0 context.Context) (*types.CachingCarfile, error) {
 	return nil, ErrNotSupported
 }
 

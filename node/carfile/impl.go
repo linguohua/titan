@@ -6,12 +6,11 @@ import (
 	"time"
 
 	"github.com/ipfs/go-datastore"
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/cidutil"
 )
 
-func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carfileCID string, dss []*api.DownloadSource) (*api.CacheCarfileResult, error) {
+func (carfileOperation *CarfileOperation) CacheCarfile(ctx context.Context, carfileCID string, dss []*types.DownloadSource) (*types.CacheCarfileResult, error) {
 	carfileHash, err := cidutil.CIDString2HashString(carfileCID)
 	if err != nil {
 		log.Errorf("CacheCarfile, CIDString2HashString error:%s, storage cid:%s", err.Error(), carfileCID)
@@ -114,7 +113,7 @@ func (carfileOperation *CarfileOperation) LoadBlock(ctx context.Context, cid str
 	return carfileOperation.carfileStore.Block(blockHash)
 }
 
-func (carfileOperation *CarfileOperation) QueryCacheStat(ctx context.Context) (*api.CacheStat, error) {
+func (carfileOperation *CarfileOperation) QueryCacheStat(ctx context.Context) (*types.CacheStat, error) {
 	blockCount, err := carfileOperation.carfileStore.BlockCount()
 	if err != nil {
 		log.Errorf("QueryCacheStat, block count error:%v", err)
@@ -127,7 +126,7 @@ func (carfileOperation *CarfileOperation) QueryCacheStat(ctx context.Context) (*
 		return nil, err
 	}
 
-	cacheStat := &api.CacheStat{}
+	cacheStat := &types.CacheStat{}
 	cacheStat.TotalCarfileCount = carfileCount
 	cacheStat.TotalBlockCount = blockCount
 	cacheStat.WaitCacheCarfileCount = carfileOperation.downloadMgr.waitListLen()
@@ -143,13 +142,13 @@ func (carfileOperation *CarfileOperation) QueryCacheStat(ctx context.Context) (*
 	return cacheStat, nil
 }
 
-func (carfileOperation *CarfileOperation) QueryCachingCarfile(ctx context.Context) (*api.CachingCarfile, error) {
+func (carfileOperation *CarfileOperation) QueryCachingCarfile(ctx context.Context) (*types.CachingCarfile, error) {
 	carfileCache := carfileOperation.downloadMgr.getFirstCarfileCacheFromWaitList()
 	if carfileCache == nil {
 		return nil, fmt.Errorf("caching storage not exist")
 	}
 
-	ret := &api.CachingCarfile{}
+	ret := &types.CachingCarfile{}
 	ret.CarfileCID = carfileCache.carfileCID
 	ret.BlockList = carfileCache.blocksWaitList
 

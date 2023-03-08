@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/types"
 
 	"github.com/linguohua/titan/node/scheduler/node"
@@ -32,7 +31,7 @@ type CarfileRecord struct {
 	totalBlocks    int
 	expirationTime time.Time
 
-	downloadSources  []*api.DownloadSource
+	downloadSources  []*types.DownloadSource
 	candidateReploca int
 	Replicas         sync.Map
 
@@ -50,7 +49,7 @@ func newCarfileRecord(manager *Manager, cid, hash string) *CarfileRecord {
 		carfileManager:  manager,
 		carfileCid:      cid,
 		carfileHash:     hash,
-		downloadSources: make([]*api.DownloadSource, 0),
+		downloadSources: make([]*types.DownloadSource, 0),
 		nodeCacheErrs:   make(map[string]string),
 	}
 }
@@ -70,7 +69,7 @@ func (m *Manager) loadCarfileRecord(hash string, manager *Manager) (*CarfileReco
 	cr.totalBlocks = dInfo.TotalBlocks
 	cr.expirationTime = dInfo.Expiration
 	cr.carfileHash = dInfo.CarfileHash
-	cr.downloadSources = make([]*api.DownloadSource, 0)
+	cr.downloadSources = make([]*types.DownloadSource, 0)
 	cr.nodeCacheErrs = make(map[string]string)
 
 	raInfos, err := m.nodeManager.CarfileDB.CarfileReplicaInfosWithHash(hash, false)
@@ -105,7 +104,7 @@ func (m *Manager) loadCarfileRecord(hash string, manager *Manager) (*CarfileReco
 
 				cNode := cr.nodeManager.GetCandidateNode(ra.nodeID)
 				if cNode != nil {
-					cr.downloadSources = append(cr.downloadSources, &api.DownloadSource{
+					cr.downloadSources = append(cr.downloadSources, &types.DownloadSource{
 						CandidateURL:   cNode.RPCURL(),
 						CandidateToken: string(cr.carfileManager.writeToken),
 					})
@@ -307,7 +306,7 @@ func (cr *CarfileRecord) replicaCacheEnd(ra *Replica, errMsg string) error {
 
 			cNode := cr.nodeManager.GetCandidateNode(ra.nodeID)
 			if cNode != nil {
-				cr.downloadSources = append(cr.downloadSources, &api.DownloadSource{
+				cr.downloadSources = append(cr.downloadSources, &types.DownloadSource{
 					CandidateURL:   cNode.RPCURL(),
 					CandidateToken: string(cr.carfileManager.writeToken),
 				})
