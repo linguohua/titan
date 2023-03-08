@@ -30,25 +30,28 @@ type NodeCacheResult struct {
 	Source            *types.DownloadSource
 }
 
+type CompletedValue struct{}
+
 type CarfileInfo struct {
-	ID                string
-	State             CarfileState `db:"state"`
-	CarfileHash       CarfileID    `db:"carfile_hash"`
-	CarfileCID        string       `db:"carfile_cid"`
-	Replicas          int64        `db:"replicas"` // edge replica
-	ServerID          string       `db:"server_id"`
-	Size              int64        `db:"size"`
-	Blocks            int64        `db:"blocks"`
-	CreatedAt         int64        `db:"created_at"`
-	Expiration        int64        `db:"expiration"`
-	candidateReplicas int64        // seed + other candidate replica
+	ID          string
+	State       CarfileState `db:"state"`
+	CarfileHash CarfileID    `db:"carfile_hash"`
+	CarfileCID  string       `db:"carfile_cid"`
+	Replicas    int64        `db:"replicas"` // edge replica
+	ServerID    string       `db:"server_id"`
+	Size        int64        `db:"size"`
+	Blocks      int64        `db:"blocks"`
+	CreatedAt   int64        `db:"created_at"`
+	Expiration  int64        `db:"expiration"`
+
+	CandidateReplicas int64 // seed + other candidate replica
 
 	Log                 []Log
 	CandidateStoreFails int64
 	EdgeStoreFails      int64
 
-	CompletedEdgeReplicas      map[string]string
-	CompletedCandidateReplicas map[string]string
+	CompletedEdgeReplicas      map[string]*CompletedValue
+	CompletedCandidateReplicas map[string]*CompletedValue
 	DownloadSources            []*types.DownloadSource
 
 	LastResultInfo *NodeCacheResult

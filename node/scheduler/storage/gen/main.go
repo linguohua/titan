@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/scheduler/storage"
 	gen "github.com/whyrusleeping/cbor-gen"
-	"os"
 )
 
 func main() {
@@ -13,6 +14,7 @@ func main() {
 		storage.CarfileInfo{},
 		storage.Log{},
 		storage.NodeCacheResult{},
+		storage.CompletedValue{},
 	)
 
 	err = gen.WriteMapEncodersToFile("../../../../api/types/cbor_gen.go", "types",

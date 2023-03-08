@@ -632,7 +632,7 @@ func (m *Manager) CarfilesStatus(ctx context.Context, cid types.CarfileID) (type
 }
 
 // Find edges that meet the cache criteria
-func (m *Manager) findEdges(count int, filterNodes map[string]string) []*node.Edge {
+func (m *Manager) findEdges(count int, filterNodes map[string]*CompletedValue) []*node.Edge {
 	list := make([]*node.Edge, 0)
 
 	if count <= 0 {
@@ -667,7 +667,7 @@ func (m *Manager) findEdges(count int, filterNodes map[string]string) []*node.Ed
 }
 
 // Find candidates that meet the cache criteria
-func (m *Manager) findCandidates(count int, filterNodes map[string]string) []*node.Candidate {
+func (m *Manager) findCandidates(count int, filterNodes map[string]*CompletedValue) []*node.Candidate {
 	list := make([]*node.Candidate, 0)
 
 	if count <= 0 {

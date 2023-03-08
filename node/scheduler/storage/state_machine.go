@@ -12,7 +12,7 @@ import (
 )
 
 func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface{}, uint64, error) {
-	log.Infof("state machine plan")
+	// log.Infof("state machine plan")
 	next, processed, err := m.plan(events, user.(*CarfileInfo))
 	if err != nil || next == nil {
 		l := Log{

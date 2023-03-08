@@ -61,6 +61,7 @@ func (evt CarfileStartCache) apply(state *CarfileInfo) {
 	state.ServerID = evt.ServerID
 	state.CreatedAt = evt.CreatedAt
 	state.Expiration = evt.Expiration
+	state.CandidateReplicas = int64(rootCacheCount + candidateReplicaCacheCount)
 }
 
 type CarfileGetSeed struct{}
@@ -72,16 +73,16 @@ type CarfileCacheCompleted struct {
 }
 
 func (evt CarfileCacheCompleted) apply(state *CarfileInfo) {
-	state.CompletedCandidateReplicas = make(map[string]string)
-	state.CompletedEdgeReplicas = make(map[string]string)
-
 	state.LastResultInfo = evt.ResultInfo
+	if evt.ResultInfo == nil {
+		return
+	}
 
 	if evt.ResultInfo.IsCandidate {
 		state.DownloadSources = append(state.DownloadSources, evt.ResultInfo.Source)
-		state.CompletedCandidateReplicas[evt.ResultInfo.NodeID] = ""
+		state.CompletedCandidateReplicas[evt.ResultInfo.NodeID] = nil
 	} else {
-		state.CompletedEdgeReplicas[evt.ResultInfo.NodeID] = ""
+		state.CompletedEdgeReplicas[evt.ResultInfo.NodeID] = nil
 	}
 }
 
