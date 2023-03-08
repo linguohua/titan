@@ -72,6 +72,14 @@ func (m *Manager) handleGetSeedCompleted(ctx statemachine.Context, carfile Carfi
 		return err
 	}
 
+	err = m.nodeManager.CarfileDB.UpdateCarfileRecordCachesInfo(&types.CarfileRecordInfo{
+		CarfileHash: carfile.CarfileHash.String(),
+		TotalBlocks: int(carfile.Blocks),
+		TotalSize:   carfile.Size,
+	})
+	if err != nil {
+		return err
+	}
 	// send next status
 	return ctx.Send(CarfileCandidateCaching{})
 }
@@ -146,7 +154,6 @@ func (m *Manager) handleEdgeCaching(ctx statemachine.Context, carfile CarfileInf
 		return ctx.Send(CarfileCacheFailed{error: err})
 	}
 
-	log.Warnf("-----DownloadSources:%v", carfile.DownloadSources)
 	// send to nodes
 	for _, node := range nodes {
 		_, err := node.API().CacheCarfile(ctx.Context(), carfile.CarfileCID, carfile.DownloadSources)
@@ -164,10 +171,9 @@ func (m *Manager) handleEdgeCacheCompleted(ctx statemachine.Context, carfile Car
 
 	// save to db
 	cInfo := &types.ReplicaInfo{
-		ID:          replicaID(carfile.CarfileHash.String(), carfile.LastResultInfo.NodeID),
-		NodeID:      carfile.LastResultInfo.NodeID,
-		Status:      types.CacheStatus(carfile.LastResultInfo.Status),
-		IsCandidate: false,
+		ID:     replicaID(carfile.CarfileHash.String(), carfile.LastResultInfo.NodeID),
+		NodeID: carfile.LastResultInfo.NodeID,
+		Status: types.CacheStatus(carfile.LastResultInfo.Status),
 	}
 	err := m.nodeManager.CarfileDB.UpdateCarfileReplicaInfo([]*types.ReplicaInfo{cInfo})
 	if err != nil {

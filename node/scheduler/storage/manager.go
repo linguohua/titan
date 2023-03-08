@@ -710,6 +710,7 @@ func (m *Manager) saveCandidateReplicaInfos(nodes []*node.Candidate, hash string
 			ID:          replicaID(hash, node.NodeID),
 			NodeID:      node.NodeID,
 			Status:      types.CacheStatusDownloading,
+			CarfileHash: hash,
 			IsCandidate: true,
 		})
 	}
@@ -726,6 +727,7 @@ func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
 			ID:          replicaID(hash, node.NodeID),
 			NodeID:      node.NodeID,
 			Status:      types.CacheStatusDownloading,
+			CarfileHash: hash,
 			IsCandidate: false,
 		})
 	}

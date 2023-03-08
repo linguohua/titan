@@ -82,6 +82,9 @@ func (evt CarfileCacheCompleted) apply(state *CarfileInfo) {
 	}
 
 	if evt.ResultInfo.IsCandidate {
+		state.Size = evt.ResultInfo.CarfileSize
+		state.Blocks = evt.ResultInfo.CarfileBlockCount
+
 		state.DownloadSources = append(state.DownloadSources, evt.ResultInfo.Source)
 		state.CompletedCandidateReplicas[evt.ResultInfo.NodeID] = nil
 	} else {
