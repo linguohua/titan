@@ -1,8 +1,9 @@
 package storage
 
 import (
-	"golang.org/x/xerrors"
 	"time"
+
+	"golang.org/x/xerrors"
 )
 
 type mutator interface {
@@ -50,7 +51,6 @@ type CarfileStartCache struct {
 	ID          CarfileID
 	CarfileHash string    `db:"carfile_hash"`
 	Replicas    int       `db:"s"`
-	NodeID      string    `db:"node_id"`
 	ServerID    string    `db:"server_id"`
 	CreatedAt   time.Time `db:"created_at"`
 	Expiration  time.Time `db:"expiration"`
@@ -60,7 +60,6 @@ func (evt CarfileStartCache) apply(state *CarfileInfo) {
 	state.CarfileCID = evt.ID
 	state.CarfileHash = evt.CarfileHash
 	state.Replicas = evt.Replicas
-	state.NodeID = evt.NodeID
 	state.ServerID = evt.ServerID
 	state.CreatedAt = evt.CreatedAt
 	state.Expiration = evt.Expiration
@@ -70,9 +69,20 @@ type CarfileGetSeed struct{}
 
 func (evt CarfileGetSeed) apply(state *CarfileInfo) {}
 
-type CarfileGetSeedCompleted struct{}
+type CarfileCacheCompleted struct {
+	ResultInfo *NodeCacheResult
+}
 
-func (evt CarfileGetSeedCompleted) apply(state *CarfileInfo) {}
+func (evt CarfileCacheCompleted) apply(state *CarfileInfo) {
+	state.lastResultInfo = evt.ResultInfo
+
+	if evt.ResultInfo.IsCandidate {
+		state.downloadSources = append(state.downloadSources, evt.ResultInfo.Source)
+		state.completedCandidateReplicas[evt.ResultInfo.NodeID] = struct{}{}
+	} else {
+		state.completedEdgeReplicas[evt.ResultInfo.NodeID] = struct{}{}
+	}
+}
 
 type CarfileCandidateCaching struct{}
 
@@ -94,16 +104,17 @@ type CarfileFinalize struct{}
 
 func (evt CarfileFinalize) apply(state *CarfileInfo) {}
 
-type CarfileGetSeedFailed struct{ error }
+type CarfileCacheFailed struct{ error }
 
-func (evt CarfileGetSeedFailed) FormatError(xerrors.Printer) (next error) { return evt.error }
-func (evt CarfileGetSeedFailed) apply(ci *CarfileInfo)                    {}
+func (evt CarfileCacheFailed) FormatError(xerrors.Printer) (next error) { return evt.error }
+func (evt CarfileCacheFailed) apply(ci *CarfileInfo)                    {}
 
 type CarfileCandidateCachingFailed struct{ error }
 
 func (evt CarfileCandidateCachingFailed) FormatError(xerrors.Printer) (next error) {
 	return evt.error
 }
+
 func (evt CarfileCandidateCachingFailed) apply(ci *CarfileInfo) {
 	ci.CandidateStoreFails++
 }
@@ -113,6 +124,7 @@ type CarfileEdgeCachingFailed struct{ error }
 func (evt CarfileEdgeCachingFailed) FormatError(xerrors.Printer) (next error) {
 	return evt.error
 }
+
 func (evt CarfileEdgeCachingFailed) apply(ci *CarfileInfo) {
 	ci.EdgeStoreFails++
 }

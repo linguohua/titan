@@ -25,7 +25,7 @@ func (m *Manager) Allocate(nodeType types.NodeType) (*types.NodeAllocateInfo, er
 
 	secret := newSecret()
 
-	err = m.CarfileDB.BindNodeAllocateInfo(secret, nodeID, nodeType)
+	err = m.NodeMgrDB.BindNodeAllocateInfo(secret, nodeID, nodeType)
 	if err != nil {
 		return info, err
 	}

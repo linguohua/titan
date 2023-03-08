@@ -23,6 +23,7 @@ const (
 	validatorsTable     = "validators"
 	nodeVerifyingTable  = "node_verifying"
 	downloadingTable    = "carfile_downloading"
+	nodeAllocateTable   = "node_allocate_info"
 
 	// NodeTypeKey node info key
 	NodeTypeKey = "node_type"

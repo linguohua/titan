@@ -52,9 +52,21 @@ func (c *CarfileDB) UpdateCarfileReplicaStatus(hash string, nodeIDs []string, st
 
 // UpdateCarfileReplicaInfo update replica info
 func (c *CarfileDB) UpdateCarfileReplicaInfo(cInfo *types.ReplicaInfo) error {
-	cmd := fmt.Sprintf("UPDATE %s SET status=:status,end_time=:end_time WHERE id=:id", replicaInfoTable)
-	_, err := c.db.NamedExec(cmd, cInfo)
+	query := fmt.Sprintf(
+		`INSERT INTO %s (id, carfile_hash, node_id, status, is_candidate) 
+				VALUES (:id, :carfile_hash, :node_id, :status, :is_candidate) 
+				ON DUPLICATE KEY UPDATE id=:id, end_time=NOW(), status=:status`, replicaInfoTable)
 
+	_, err := c.db.NamedExec(query, cInfo)
+
+	return err
+}
+
+// CreateCarfileReplicaInfos Create replica infos
+func (c *CarfileDB) CreateCarfileReplicaInfos(cInfos []*types.ReplicaInfo) error {
+	cmd := fmt.Sprintf(`INSERT INTO %s (id, carfile_hash, node_id, status, is_candidate) 
+	        VALUES (:id, :carfile_hash, :node_id, :status, :is_candidate)`, replicaInfoTable)
+	_, err := c.db.NamedExec(cmd, cInfos)
 	return err
 }
 
@@ -356,38 +368,6 @@ func (c *CarfileDB) RemoveReplicaInfoWithNodes(nodeIDs []string) error {
 	err = tx.Commit()
 	if err != nil {
 		err = tx.Rollback()
-		return err
-	}
-
-	return nil
-}
-
-func (c *CarfileDB) BindNodeAllocateInfo(secret, nodeID string, nodeType types.NodeType) error {
-	info := types.NodeAllocateInfo{
-		Secret:     secret,
-		NodeID:     nodeID,
-		NodeType:   int(nodeType),
-		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
-	}
-
-	_, err := c.db.NamedExec(`INSERT INTO node_allocate_info (node_id, secret, create_time, node_type)
-	VALUES (:node_id, :secret, :create_time, :node_type)`, info)
-
-	return err
-}
-
-func (c *CarfileDB) GetNodeAllocateInfo(nodeID, key string, out interface{}) error {
-	if key != "" {
-		query := fmt.Sprintf(`SELECT %s FROM node_allocate_info WHERE node_id=?`, key)
-		if err := c.db.Get(out, query, nodeID); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	query := "SELECT * FROM node_allocate_info WHERE node_id=?"
-	if err := c.db.Get(out, query, nodeID); err != nil {
 		return err
 	}
 

@@ -293,6 +293,53 @@ func (n *NodeMgrDB) UpdateNodeOnlineTime(nodeID string, onlineTime int) error {
 	return err
 }
 
+// NodeType load node type
+func (n *NodeMgrDB) NodeType(nodeID string) (types.NodeType, error) {
+	var nodeType int
+
+	cQuery := fmt.Sprintf(`SELECT node_type FROM %s`, nodeAllocateTable)
+	err := n.db.Get(&nodeType, cQuery)
+	if err != nil {
+		return types.NodeUnknown, err
+	}
+
+	return types.NodeType(nodeType), nil
+}
+
+func (n *NodeMgrDB) BindNodeAllocateInfo(secret, nodeID string, nodeType types.NodeType) error {
+	info := types.NodeAllocateInfo{
+		Secret:     secret,
+		NodeID:     nodeID,
+		NodeType:   int(nodeType),
+		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
+	}
+
+	query := fmt.Sprintf(`INSERT INTO %s (node_id, secret, create_time, node_type)
+	VALUES (:node_id, :secret, :create_time, :node_type)`, nodeAllocateTable)
+
+	_, err := n.db.NamedExec(query, info)
+
+	return err
+}
+
+func (n *NodeMgrDB) GetNodeAllocateInfo(nodeID, key string, out interface{}) error {
+	if key != "" {
+		query := fmt.Sprintf(`SELECT %s FROM %s WHERE node_id=?`, key, nodeAllocateTable)
+		if err := n.db.Get(out, query, nodeID); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id=?`, nodeAllocateTable)
+	if err := n.db.Get(out, query, nodeID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // ListNodeIDs list nodes
 func (n *NodeMgrDB) ListNodeIDs(cursor int, count int) ([]string, int64, error) {
 	var total int64

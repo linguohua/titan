@@ -74,7 +74,6 @@ CREATE TABLE `replicas` (
     `status` TINYINT  DEFAULT '0' ,
     `node_id` varchar(128) NOT NULL ,
     `is_candidate` BOOLEAN,
-    `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB COMMENT='replicas info';
