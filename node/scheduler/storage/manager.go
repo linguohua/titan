@@ -551,15 +551,15 @@ func carfileRecord2Info(cr *CarfileRecord) *types.CarfileRecordInfo {
 	return info
 }
 
-func (m *Manager) CarfilesStatus(ctx context.Context, cid CarfileID) (CarfileInfo, error) {
-	info, err := m.GetCarfileInfo(cid)
+func (m *Manager) CarfilesStatus(ctx context.Context, cid types.CarfileID) (types.CarfileInfo, error) {
+	info, err := m.GetCarfileInfo(CarfileID(cid))
 	if err != nil {
-		return CarfileInfo{}, err
+		return types.CarfileInfo{}, err
 	}
 
-	cLog := make([]Log, len(info.Log))
+	cLog := make([]types.Log, len(info.Log))
 	for i, l := range info.Log {
-		cLog[i] = Log{
+		cLog[i] = types.Log{
 			Kind:      l.Kind,
 			Timestamp: l.Timestamp,
 			Trace:     l.Trace,
@@ -567,10 +567,18 @@ func (m *Manager) CarfilesStatus(ctx context.Context, cid CarfileID) (CarfileInf
 		}
 	}
 
-	cInfo := CarfileInfo{
-		CarfileCID: cid,
-		State:      info.State,
-		Log:        cLog,
+	cInfo := types.CarfileInfo{
+		CarfileCID:  cid,
+		State:       types.CarfileState(info.State),
+		CarfileHash: info.CarfileHash,
+		Replicas:    info.Replicas,
+		NodeID:      info.NodeID,
+		ServerID:    info.ServerID,
+		Size:        info.Size,
+		Blocks:      info.Blocks,
+		CreatedAt:   info.CreatedAt,
+		Expiration:  info.Expiration,
+		Log:         cLog,
 	}
 
 	return cInfo, nil

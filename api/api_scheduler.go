@@ -45,6 +45,7 @@ type Scheduler interface {
 
 	// carfile
 	CacheCarfiles(ctx context.Context, info *types.CacheCarfileInfo) error                   //perm:admin
+	CarfilesStatus(ctx context.Context, cid types.CarfileID) (types.CarfileInfo, error)      // perm:read
 	RemoveCarfile(ctx context.Context, carfileID string) error                               //perm:admin
 	RemoveReplica(ctx context.Context, carfileID, nodeID string) error                       //perm:admin
 	CarfileRecord(ctx context.Context, cid string) (*types.CarfileRecordInfo, error)         //perm:read
