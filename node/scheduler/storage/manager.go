@@ -235,7 +235,7 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 		return xerrors.Errorf("cid:%s,CreateOrUpdateCarfileRecordInfo err:%s", info.CarfileCid, err.Error())
 	}
 
-	return m.carfiles.Send(CarfileID(info.CarfileHash), CarfileStartCache{
+	return m.carfiles.Send(CarfileID(info.CarfileHash), CarfileStartCaches{
 		ID:          info.CarfileCid,
 		CarfileHash: CarfileID(info.CarfileHash),
 		Replicas:    int64(info.Replicas),
@@ -599,7 +599,7 @@ func carfileRecord2Info(cr *CarfileRecord) *types.CarfileRecordInfo {
 	return info
 }
 
-func (m *Manager) CarfilesStatus(ctx context.Context, cid types.CarfileID) (types.CarfileInfo, error) {
+func (m *Manager) CarfileStatus(ctx context.Context, cid types.CarfileID) (types.CarfileInfo, error) {
 	info, err := m.GetCarfileInfo(CarfileID(cid))
 	if err != nil {
 		return types.CarfileInfo{}, err

@@ -45,7 +45,8 @@ func (evt CarfileForceState) applyGlobal(state *CarfileInfo) bool {
 
 // Normal path
 
-type CarfileStartCache struct {
+// CarfileStartCaches start caches
+type CarfileStartCaches struct {
 	ID          string
 	CarfileHash CarfileID
 	Replicas    int64
@@ -54,7 +55,7 @@ type CarfileStartCache struct {
 	Expiration  int64
 }
 
-func (evt CarfileStartCache) apply(state *CarfileInfo) {
+func (evt CarfileStartCaches) apply(state *CarfileInfo) {
 	state.CarfileCID = evt.ID
 	state.CarfileHash = evt.CarfileHash
 	state.Replicas = evt.Replicas
@@ -64,10 +65,12 @@ func (evt CarfileStartCache) apply(state *CarfileInfo) {
 	state.CandidateReplicas = int64(rootCacheCount + candidateReplicaCacheCount)
 }
 
+// CarfileGetSeed get frist carfile to candidate
 type CarfileGetSeed struct{}
 
 func (evt CarfileGetSeed) apply(state *CarfileInfo) {}
 
+// CarfileCacheCompleted nodes cache carfile completed
 type CarfileCacheCompleted struct {
 	ResultInfo *NodeCacheResult
 }

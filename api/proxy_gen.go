@@ -228,7 +228,7 @@ type SchedulerStruct struct {
 
 		CarfileReplicaList func(p0 context.Context, p1 types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error) `perm:"read"`
 
-		CarfilesStatus func(p0 context.Context, p1 types.CarfileID) (types.CarfileInfo, error) `perm:"read"`
+		CarfileStatus func(p0 context.Context, p1 types.CarfileID) (types.CarfileInfo, error) `perm:"read"`
 
 		DeleteNodeAppUpdateInfos func(p0 context.Context, p1 int) error `perm:"admin"`
 
@@ -889,14 +889,14 @@ func (s *SchedulerStub) CarfileReplicaList(p0 context.Context, p1 types.ListCach
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) CarfilesStatus(p0 context.Context, p1 types.CarfileID) (types.CarfileInfo, error) {
-	if s.Internal.CarfilesStatus == nil {
+func (s *SchedulerStruct) CarfileStatus(p0 context.Context, p1 types.CarfileID) (types.CarfileInfo, error) {
+	if s.Internal.CarfileStatus == nil {
 		return *new(types.CarfileInfo), ErrNotSupported
 	}
-	return s.Internal.CarfilesStatus(p0, p1)
+	return s.Internal.CarfileStatus(p0, p1)
 }
 
-func (s *SchedulerStub) CarfilesStatus(p0 context.Context, p1 types.CarfileID) (types.CarfileInfo, error) {
+func (s *SchedulerStub) CarfileStatus(p0 context.Context, p1 types.CarfileID) (types.CarfileInfo, error) {
 	return *new(types.CarfileInfo), ErrNotSupported
 }
 
