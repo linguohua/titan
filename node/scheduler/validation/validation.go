@@ -121,7 +121,7 @@ func (v *Validation) execute() error {
 	}
 
 	for validatorID, reqList := range validatorMap {
-		v.sendValidateInfoToValidator(validatorID, reqList)
+		go v.sendValidateInfoToValidator(validatorID, reqList)
 	}
 
 	return nil

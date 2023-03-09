@@ -212,11 +212,13 @@ func (v *Election) fetchCurrentValidators() error {
 	if err != nil {
 		return err
 	}
+
 	v.vlk.Lock()
+	defer v.vlk.Unlock()
+
 	for _, item := range list {
 		v.validators[item] = time.Now()
 	}
-	v.vlk.Unlock()
 
 	return nil
 }

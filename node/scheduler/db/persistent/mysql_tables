@@ -121,7 +121,8 @@ CREATE TABLE `carfile_waiting` (
 
 CREATE TABLE `validators` (
     `node_id` varchar(128) NOT NULL,
-    `server_id` varchar(128) NOT NULL
+    `owner` varchar(128) NOT NULL,
+    PRIMARY KEY (`node_id`)
 ) ENGINE=InnoDB COMMENT='validators table';
 
 CREATE TABLE `node_verifying` (
