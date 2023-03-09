@@ -222,7 +222,8 @@ func (m *Manager) CandidateOnline(node *Candidate) error {
 
 	m.CandidateNodes.Store(nodeID, node)
 
-	return nil
+	// update validator owner
+	return m.NodeMgrDB.ResetOwnerForValidator(m.ServerID, nodeID)
 }
 
 // GetCandidateNode Get Candidate Node

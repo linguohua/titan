@@ -238,11 +238,11 @@ func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*types.NodeInfo, int64, e
 func (n *NodeMgrDB) ResetValidators(nodeIDs []string, serverID dtypes.ServerID) error {
 	tx := n.db.MustBegin()
 	// clean old validators
-	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE server_id=? `, validatorsTable)
+	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE owner=? `, validatorsTable)
 	tx.MustExec(dQuery, serverID)
 
 	for _, nodeID := range nodeIDs {
-		iQuery := fmt.Sprintf(`INSERT INTO %s (node_id, server_id) VALUES (?, ?)`, validatorsTable)
+		iQuery := fmt.Sprintf(`INSERT INTO %s (node_id, owner) VALUES (?, ?)`, validatorsTable)
 		tx.MustExec(iQuery, nodeID, serverID)
 	}
 
@@ -256,7 +256,7 @@ func (n *NodeMgrDB) ResetValidators(nodeIDs []string, serverID dtypes.ServerID) 
 
 // GetValidatorsWithList load validators
 func (n *NodeMgrDB) GetValidatorsWithList(serverID dtypes.ServerID) ([]string, error) {
-	sQuery := fmt.Sprintf(`SELECT node_id FROM %s WHERE server_id=?`, validatorsTable)
+	sQuery := fmt.Sprintf(`SELECT node_id FROM %s WHERE owner=?`, validatorsTable)
 
 	var out []string
 	err := n.db.Select(&out, sQuery, serverID)
@@ -267,6 +267,25 @@ func (n *NodeMgrDB) GetValidatorsWithList(serverID dtypes.ServerID) ([]string, e
 	return out, nil
 }
 
+// ResetOwnerForValidator reset scheduler server id for validator
+func (n *NodeMgrDB) ResetOwnerForValidator(serverID dtypes.ServerID, nodeID string) error {
+	var count int64
+	sQuery := fmt.Sprintf("SELECT count(node_id) FROM %s WHERE node_id=?", validatorsTable)
+	err := n.db.Get(&count, sQuery, nodeID)
+	if err != nil {
+		return err
+	}
+
+	if count < 1 {
+		return nil
+	}
+
+	uQuery := fmt.Sprintf(`UPDATE %s SET owner=? WHERE node_id=?`, validatorsTable)
+	_, err = n.db.Exec(uQuery, serverID, nodeID)
+
+	return err
+}
+
 // UpdateNodeOnlineInfo update node info
 func (n *NodeMgrDB) UpdateNodeOnlineInfo(info *types.NodeInfo) error {
 	query := fmt.Sprintf(
@@ -274,7 +293,7 @@ func (n *NodeMgrDB) UpdateNodeOnlineInfo(info *types.NodeInfo) error {
 			    longitude, disk_type, io_system, system_version, nat_type, disk_space, bandwidth_up, bandwidth_down, blocks) 
 				VALUES (:node_id, :private_key, :mac_location, :product_type, :cpu_cores, :memory, :node_name, :latitude, :disk_usage,
 				:longitude, :disk_type, :io_system, :system_version, :nat_type, :disk_space, :bandwidth_up, :bandwidth_down, :blocks) 
-				ON DUPLICATE KEY UPDATE node_id=:node_id, last_time=NOW(), quitted=0, disk_usage=:disk_usage, blocks=:blocks`, nodeInfoTable)
+				ON DUPLICATE KEY UPDATE node_id=:node_id, last_time=:last_time, quitted=:quitted, disk_usage=:disk_usage, blocks=:blocks`, nodeInfoTable)
 
 	_, err := n.db.NamedExec(query, info)
 	return err
