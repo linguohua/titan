@@ -27,7 +27,7 @@ func (t *CarfileInfo) MarshalCBOR(w io.Writer) error {
 
 	cw := cbg.NewCborWriter(w)
 
-	if _, err := cw.Write([]byte{178}); err != nil {
+	if _, err := cw.Write([]byte{177}); err != nil {
 		return err
 	}
 
@@ -347,6 +347,31 @@ func (t *CarfileInfo) MarshalCBOR(w io.Writer) error {
 		}
 	}
 
+	// t.DownloadSources ([]*types.DownloadSource) (slice)
+	if len("DownloadSources") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"DownloadSources\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("DownloadSources"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("DownloadSources")); err != nil {
+		return err
+	}
+
+	if len(t.DownloadSources) > cbg.MaxLength {
+		return xerrors.Errorf("Slice value in field t.DownloadSources was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.DownloadSources))); err != nil {
+		return err
+	}
+	for _, v := range t.DownloadSources {
+		if err := v.MarshalCBOR(cw); err != nil {
+			return err
+		}
+	}
+
 	// t.CompletedEdgeReplicas (map[string]*storage.CompletedValue) (map)
 	if len("CompletedEdgeReplicas") > cbg.MaxLength {
 		return xerrors.Errorf("Value in field \"CompletedEdgeReplicas\" was too long")
@@ -439,47 +464,6 @@ func (t *CarfileInfo) MarshalCBOR(w io.Writer) error {
 			}
 
 		}
-	}
-
-	// t.DownloadSources ([]*types.DownloadSource) (slice)
-	if len("DownloadSources") > cbg.MaxLength {
-		return xerrors.Errorf("Value in field \"DownloadSources\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("DownloadSources"))); err != nil {
-		return err
-	}
-	if _, err := io.WriteString(w, string("DownloadSources")); err != nil {
-		return err
-	}
-
-	if len(t.DownloadSources) > cbg.MaxLength {
-		return xerrors.Errorf("Slice value in field t.DownloadSources was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.DownloadSources))); err != nil {
-		return err
-	}
-	for _, v := range t.DownloadSources {
-		if err := v.MarshalCBOR(cw); err != nil {
-			return err
-		}
-	}
-
-	// t.LastResultInfo (storage.NodeCacheResult) (struct)
-	if len("LastResultInfo") > cbg.MaxLength {
-		return xerrors.Errorf("Value in field \"LastResultInfo\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("LastResultInfo"))); err != nil {
-		return err
-	}
-	if _, err := io.WriteString(w, string("LastResultInfo")); err != nil {
-		return err
-	}
-
-	if err := t.LastResultInfo.MarshalCBOR(cw); err != nil {
-		return err
 	}
 	return nil
 }
@@ -815,6 +799,36 @@ func (t *CarfileInfo) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.EdgeStoreFails = int64(extraI)
 			}
+			// t.DownloadSources ([]*types.DownloadSource) (slice)
+		case "DownloadSources":
+
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+
+			if extra > cbg.MaxLength {
+				return fmt.Errorf("t.DownloadSources: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.DownloadSources = make([]*types.DownloadSource, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+
+				var v types.DownloadSource
+				if err := v.UnmarshalCBOR(cr); err != nil {
+					return err
+				}
+
+				t.DownloadSources[i] = &v
+			}
+
 			// t.CompletedEdgeReplicas (map[string]*storage.CompletedValue) (map)
 		case "CompletedEdgeReplicas":
 
@@ -917,56 +931,6 @@ func (t *CarfileInfo) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.CompletedCandidateReplicas[k] = v
-
-			}
-			// t.DownloadSources ([]*types.DownloadSource) (slice)
-		case "DownloadSources":
-
-			maj, extra, err = cr.ReadHeader()
-			if err != nil {
-				return err
-			}
-
-			if extra > cbg.MaxLength {
-				return fmt.Errorf("t.DownloadSources: array too large (%d)", extra)
-			}
-
-			if maj != cbg.MajArray {
-				return fmt.Errorf("expected cbor array")
-			}
-
-			if extra > 0 {
-				t.DownloadSources = make([]*types.DownloadSource, extra)
-			}
-
-			for i := 0; i < int(extra); i++ {
-
-				var v types.DownloadSource
-				if err := v.UnmarshalCBOR(cr); err != nil {
-					return err
-				}
-
-				t.DownloadSources[i] = &v
-			}
-
-			// t.LastResultInfo (storage.NodeCacheResult) (struct)
-		case "LastResultInfo":
-
-			{
-
-				b, err := cr.ReadByte()
-				if err != nil {
-					return err
-				}
-				if b != cbg.CborNull[0] {
-					if err := cr.UnreadByte(); err != nil {
-						return err
-					}
-					t.LastResultInfo = new(NodeCacheResult)
-					if err := t.LastResultInfo.UnmarshalCBOR(cr); err != nil {
-						return xerrors.Errorf("unmarshaling t.LastResultInfo pointer: %w", err)
-					}
-				}
 
 			}
 

@@ -317,6 +317,21 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 
 	// err = carfileRecord.carfileCacheResult(nodeID, info)
 
+	if info.Status == types.CacheStatusDownloading {
+		return
+	}
+
+	// save to db
+	cInfo := &types.ReplicaInfo{
+		ID:     replicaID(info.CarfileHash, nodeID),
+		NodeID: nodeID,
+		Status: types.CacheStatus(info.Status),
+	}
+	err = m.nodeManager.CarfileDB.UpdateCarfileReplicaInfo([]*types.ReplicaInfo{cInfo})
+	if err != nil {
+		return err
+	}
+
 	if info.Status == types.CacheStatusSucceeded {
 		t, err := m.nodeManager.NodeMgrDB.NodeType(nodeID)
 		if err != nil {

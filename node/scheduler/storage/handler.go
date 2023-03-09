@@ -61,18 +61,7 @@ func (m *Manager) handleGetSeed(ctx statemachine.Context, carfile CarfileInfo) e
 func (m *Manager) handleGetSeedCompleted(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handler get seed completed, %s", carfile.CarfileCID)
 
-	// save to db
-	cInfo := &types.ReplicaInfo{
-		ID:     replicaID(carfile.CarfileHash.String(), carfile.LastResultInfo.NodeID),
-		NodeID: carfile.LastResultInfo.NodeID,
-		Status: types.CacheStatus(carfile.LastResultInfo.Status),
-	}
-	err := m.nodeManager.CarfileDB.UpdateCarfileReplicaInfo([]*types.ReplicaInfo{cInfo})
-	if err != nil {
-		return err
-	}
-
-	err = m.nodeManager.CarfileDB.UpdateCarfileRecordCachesInfo(&types.CarfileRecordInfo{
+	err := m.nodeManager.CarfileDB.UpdateCarfileRecordCachesInfo(&types.CarfileRecordInfo{
 		CarfileHash: carfile.CarfileHash.String(),
 		TotalBlocks: int(carfile.Blocks),
 		TotalSize:   carfile.Size,
@@ -118,19 +107,6 @@ func (m *Manager) handleCandidateCaching(ctx statemachine.Context, carfile Carfi
 func (m *Manager) handleCandidatesCacheCompleted(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handler candidates cache completed, %s", carfile.CarfileCID)
 
-	if carfile.LastResultInfo != nil {
-		// save to db
-		cInfo := &types.ReplicaInfo{
-			ID:     replicaID(carfile.CarfileHash.String(), carfile.LastResultInfo.NodeID),
-			NodeID: carfile.LastResultInfo.NodeID,
-			Status: types.CacheStatus(carfile.LastResultInfo.Status),
-		}
-		err := m.nodeManager.CarfileDB.UpdateCarfileReplicaInfo([]*types.ReplicaInfo{cInfo})
-		if err != nil {
-			return err
-		}
-	}
-
 	// all candidate cache completed
 	if int64(len(carfile.CompletedCandidateReplicas)) == carfile.CandidateReplicas {
 		return ctx.Send(CarfileEdgeCaching{})
@@ -168,17 +144,6 @@ func (m *Manager) handleEdgeCaching(ctx statemachine.Context, carfile CarfileInf
 
 func (m *Manager) handleEdgeCacheCompleted(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handler edge cache completed, %s", carfile.CarfileCID)
-
-	// save to db
-	cInfo := &types.ReplicaInfo{
-		ID:     replicaID(carfile.CarfileHash.String(), carfile.LastResultInfo.NodeID),
-		NodeID: carfile.LastResultInfo.NodeID,
-		Status: types.CacheStatus(carfile.LastResultInfo.Status),
-	}
-	err := m.nodeManager.CarfileDB.UpdateCarfileReplicaInfo([]*types.ReplicaInfo{cInfo})
-	if err != nil {
-		return err
-	}
 
 	// all candidate cache completed
 	if int64(len(carfile.CompletedEdgeReplicas)) == carfile.Replicas {
