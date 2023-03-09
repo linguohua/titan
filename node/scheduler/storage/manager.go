@@ -337,12 +337,12 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 			return err
 		}
 
-		var source *types.DownloadSource
+		var source *DownloadSource
 		if t == types.NodeCandidate {
 			// TODO if node offline
 			cNode := m.nodeManager.GetCandidateNode(nodeID)
 			if cNode != nil {
-				source = &types.DownloadSource{
+				source = &DownloadSource{
 					CandidateURL:   cNode.RPCURL(),
 					CandidateToken: string(m.writeToken),
 				}
