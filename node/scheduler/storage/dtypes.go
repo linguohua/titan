@@ -50,9 +50,7 @@ type CarfileInfo struct {
 	CandidateStoreFails int64
 	EdgeStoreFails      int64
 
+	DownloadSources            []*types.DownloadSource
 	CompletedEdgeReplicas      map[string]*CompletedValue
 	CompletedCandidateReplicas map[string]*CompletedValue
-	DownloadSources            []*types.DownloadSource
-
-	LastResultInfo *NodeCacheResult
 }

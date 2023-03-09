@@ -76,7 +76,6 @@ type CarfileCacheCompleted struct {
 }
 
 func (evt CarfileCacheCompleted) apply(state *CarfileInfo) {
-	state.LastResultInfo = evt.ResultInfo
 	if evt.ResultInfo == nil {
 		return
 	}
