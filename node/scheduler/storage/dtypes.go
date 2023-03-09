@@ -23,13 +23,18 @@ type Log struct {
 	Kind string
 }
 
+type DownloadSource struct {
+	CandidateURL   string
+	CandidateToken string
+}
+
 type NodeCacheResult struct {
 	Status            int64
 	CarfileBlockCount int64
 	CarfileSize       int64
 	NodeID            string
 	IsCandidate       bool
-	Source            *types.DownloadSource
+	Source            *DownloadSource
 }
 
 type CompletedValue struct{}

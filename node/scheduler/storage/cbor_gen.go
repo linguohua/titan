@@ -9,7 +9,6 @@ import (
 	"sort"
 
 	cid "github.com/ipfs/go-cid"
-	types "github.com/linguohua/titan/api/types"
 	cbg "github.com/whyrusleeping/cbor-gen"
 	xerrors "golang.org/x/xerrors"
 )
@@ -849,7 +848,7 @@ func (t *NodeCacheResult) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	// t.Source (types.DownloadSource) (struct)
+	// t.Source (storage.DownloadSource) (struct)
 	if len("Source") > cbg.MaxLength {
 		return xerrors.Errorf("Value in field \"Source\" was too long")
 	}
@@ -1012,7 +1011,7 @@ func (t *NodeCacheResult) UnmarshalCBOR(r io.Reader) (err error) {
 			default:
 				return fmt.Errorf("booleans are either major type 7, value 20 or 21 (got %d)", extra)
 			}
-			// t.Source (types.DownloadSource) (struct)
+			// t.Source (storage.DownloadSource) (struct)
 		case "Source":
 
 			{
@@ -1025,7 +1024,7 @@ func (t *NodeCacheResult) UnmarshalCBOR(r io.Reader) (err error) {
 					if err := cr.UnreadByte(); err != nil {
 						return err
 					}
-					t.Source = new(types.DownloadSource)
+					t.Source = new(DownloadSource)
 					if err := t.Source.UnmarshalCBOR(cr); err != nil {
 						return xerrors.Errorf("unmarshaling t.Source pointer: %w", err)
 					}
@@ -1093,6 +1092,135 @@ func (t *CompletedValue) UnmarshalCBOR(r io.Reader) (err error) {
 		}
 
 		switch name {
+
+		default:
+			// Field doesn't exist on this type, so ignore it
+			cbg.ScanForLinks(r, func(cid.Cid) {})
+		}
+	}
+
+	return nil
+}
+func (t *DownloadSource) MarshalCBOR(w io.Writer) error {
+	if t == nil {
+		_, err := w.Write(cbg.CborNull)
+		return err
+	}
+
+	cw := cbg.NewCborWriter(w)
+
+	if _, err := cw.Write([]byte{162}); err != nil {
+		return err
+	}
+
+	// t.CandidateURL (string) (string)
+	if len("CandidateURL") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"CandidateURL\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("CandidateURL"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("CandidateURL")); err != nil {
+		return err
+	}
+
+	if len(t.CandidateURL) > cbg.MaxLength {
+		return xerrors.Errorf("Value in field t.CandidateURL was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.CandidateURL))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string(t.CandidateURL)); err != nil {
+		return err
+	}
+
+	// t.CandidateToken (string) (string)
+	if len("CandidateToken") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"CandidateToken\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("CandidateToken"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("CandidateToken")); err != nil {
+		return err
+	}
+
+	if len(t.CandidateToken) > cbg.MaxLength {
+		return xerrors.Errorf("Value in field t.CandidateToken was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.CandidateToken))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string(t.CandidateToken)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *DownloadSource) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = DownloadSource{}
+
+	cr := cbg.NewCborReader(r)
+
+	maj, extra, err := cr.ReadHeader()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
+	}()
+
+	if maj != cbg.MajMap {
+		return fmt.Errorf("cbor input should be of type map")
+	}
+
+	if extra > cbg.MaxLength {
+		return fmt.Errorf("DownloadSource: map struct too large (%d)", extra)
+	}
+
+	var name string
+	n := extra
+
+	for i := uint64(0); i < n; i++ {
+
+		{
+			sval, err := cbg.ReadString(cr)
+			if err != nil {
+				return err
+			}
+
+			name = string(sval)
+		}
+
+		switch name {
+		// t.CandidateURL (string) (string)
+		case "CandidateURL":
+
+			{
+				sval, err := cbg.ReadString(cr)
+				if err != nil {
+					return err
+				}
+
+				t.CandidateURL = string(sval)
+			}
+			// t.CandidateToken (string) (string)
+		case "CandidateToken":
+
+			{
+				sval, err := cbg.ReadString(cr)
+				if err != nil {
+					return err
+				}
+
+				t.CandidateToken = string(sval)
+			}
 
 		default:
 			// Field doesn't exist on this type, so ignore it
