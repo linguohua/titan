@@ -11,7 +11,6 @@ import (
 
 	"github.com/filecoin-project/go-statemachine"
 	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/namespace"
 	"github.com/linguohua/titan/api/types"
 
 	"github.com/linguohua/titan/node/modules/dtypes"
@@ -59,7 +58,7 @@ func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToke
 	}
 
 	m.startupWait.Add(1)
-	m.carfiles = statemachine.New(namespace.Wrap(ds, datastore.NewKey(CarfileStorePrefix)), m, CarfileInfo{})
+	m.carfiles = statemachine.New(ds, m, CarfileInfo{})
 
 	m.initCarfileMap()
 	go m.carfileTaskTicker()
@@ -620,15 +619,15 @@ func (m *Manager) CarfileStatus(ctx context.Context, cid types.CarfileID) (types
 		return types.CarfileInfo{}, err
 	}
 
-	cLog := make([]types.Log, len(info.Log))
-	for i, l := range info.Log {
-		cLog[i] = types.Log{
-			Kind:      l.Kind,
-			Timestamp: l.Timestamp,
-			Trace:     l.Trace,
-			Message:   l.Message,
-		}
-	}
+	//cLog := make([]types.Log, len(info.Log))
+	//for i, l := range info.Log {
+	//	cLog[i] = types.Log{
+	//		Kind:      l.Kind,
+	//		Timestamp: l.Timestamp,
+	//		Trace:     l.Trace,
+	//		Message:   l.Message,
+	//	}
+	//}
 
 	cInfo := types.CarfileInfo{
 		CarfileCID:  cid.String(),
@@ -640,7 +639,6 @@ func (m *Manager) CarfileStatus(ctx context.Context, cid types.CarfileID) (types
 		Blocks:      info.Blocks,
 		CreatedAt:   time.Unix(info.CreatedAt, 0),
 		Expiration:  time.Unix(info.Expiration, 0),
-		Log:         cLog,
 	}
 
 	return cInfo, nil

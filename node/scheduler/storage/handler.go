@@ -13,9 +13,9 @@ var MinRetryTime = 1 * time.Minute
 func failedCooldown(ctx statemachine.Context, carfile CarfileInfo) error {
 	// TODO: Exponential backoff when we see consecutive failures
 
-	retryStart := time.Unix(int64(carfile.Log[len(carfile.Log)-1].Timestamp), 0).Add(MinRetryTime)
-	if len(carfile.Log) > 0 && !time.Now().After(retryStart) {
-		log.Infof("%s(%d), waiting %s before retrying", carfile.State, carfile.CarfileHash, time.Until(retryStart))
+	retryStart := time.Now().Add(MinRetryTime)
+	if time.Now().Before(retryStart) {
+		log.Infof("%s(%s), waiting %s before retrying", carfile.State, carfile.CarfileHash, time.Until(retryStart))
 		select {
 		case <-time.After(time.Until(retryStart)):
 		case <-ctx.Context().Done():
