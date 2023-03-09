@@ -27,12 +27,12 @@ func failedCooldown(ctx statemachine.Context, carfile CarfileInfo) error {
 }
 
 func (m *Manager) handleStartCache(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Infof("handler statr cache, %s", carfile.CarfileCID)
+	log.Infof("handle start cache: %s", carfile.CarfileCID)
 	return ctx.Send(CarfileGetSeed{})
 }
 
 func (m *Manager) handleGetSeed(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Infof("handler get seed file, %s", carfile.CarfileCID)
+	log.Infof("handle get seed: %s", carfile.CarfileCID)
 
 	// find nodes
 	nodes := m.findCandidates(rootCacheCount, nil)
@@ -59,7 +59,7 @@ func (m *Manager) handleGetSeed(ctx statemachine.Context, carfile CarfileInfo) e
 }
 
 func (m *Manager) handleGetSeedCompleted(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Infof("handler get seed completed, %s", carfile.CarfileCID)
+	log.Infof("handle get seed completed: %s", carfile.CarfileCID)
 
 	err := m.nodeManager.CarfileDB.UpdateCarfileRecordCachesInfo(&types.CarfileRecordInfo{
 		CarfileHash: carfile.CarfileHash.String(),
@@ -74,7 +74,7 @@ func (m *Manager) handleGetSeedCompleted(ctx statemachine.Context, carfile Carfi
 }
 
 func (m *Manager) handleCandidateCaching(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Infof("handler candidate  Caching, %s", carfile.CarfileCID)
+	log.Infof("handle candidate caching: %s", carfile.CarfileCID)
 	if candidateReplicaCacheCount < 1 {
 		// cache to edges
 		return ctx.Send(CarfileCacheCompleted{})
@@ -88,7 +88,7 @@ func (m *Manager) handleCandidateCaching(ctx statemachine.Context, carfile Carfi
 	// find nodes
 	nodes := m.findCandidates(candidateReplicaCacheCount, filterNodes)
 	if len(nodes) < 1 {
-		return ctx.Send(CarfileCacheFailed{error: xerrors.New("node found node")})
+		return ctx.Send(CarfileCacheFailed{error: xerrors.New("not found node")})
 	}
 
 	// save to db
@@ -111,8 +111,8 @@ func (m *Manager) handleCandidateCaching(ctx statemachine.Context, carfile Carfi
 	return nil
 }
 
-func (m *Manager) handleCandidatesCacheCompleted(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Infof("handler candidates cache completed, %s", carfile.CarfileCID)
+func (m *Manager) handleCandidateCacheCompleted(ctx statemachine.Context, carfile CarfileInfo) error {
+	log.Infof("handle candidate cache completed: %s", carfile.CarfileCID)
 
 	// all candidate cache completed
 	nodes, err := m.nodeManager.CarfileDB.CandidatesWithHash(carfile.CarfileHash.String())
@@ -128,7 +128,7 @@ func (m *Manager) handleCandidatesCacheCompleted(ctx statemachine.Context, carfi
 }
 
 func (m *Manager) handleEdgeCaching(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Infof("handler carfile , %s", carfile.CarfileCID)
+	log.Infof("handle edge caching: %s", carfile.CarfileCID)
 
 	filterNodes, err := m.nodeManager.CarfileDB.EdgesWithHash(carfile.CarfileHash.String())
 	if err != nil {
@@ -167,7 +167,7 @@ func (m *Manager) handleEdgeCaching(ctx statemachine.Context, carfile CarfileInf
 }
 
 func (m *Manager) handleEdgeCacheCompleted(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Infof("handler edge cache completed, %s", carfile.CarfileCID)
+	log.Infof("handle edge cache completed: %s", carfile.CarfileCID)
 
 	// all edges cache completed
 	nodes, err := m.nodeManager.CarfileDB.EdgesWithHash(carfile.CarfileHash.String())
@@ -183,12 +183,12 @@ func (m *Manager) handleEdgeCacheCompleted(ctx statemachine.Context, carfile Car
 }
 
 func (m *Manager) handleFinalize(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Infof("handler carfile finalize, %s", carfile.CarfileCID)
+	log.Infof("handle carfile finalize: %s", carfile.CarfileCID)
 	return nil
 }
 
 func (m *Manager) handleGetSeedFailed(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Infof("handler get carfile failed, %s", carfile.CarfileCID)
+	log.Infof("handle get seed failed: %s", carfile.CarfileCID)
 	if err := failedCooldown(ctx, carfile); err != nil {
 		return err
 	}
@@ -196,15 +196,15 @@ func (m *Manager) handleGetSeedFailed(ctx statemachine.Context, carfile CarfileI
 }
 
 func (m *Manager) handleCandidateCachingFailed(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Infof("handler candidate  Caching failed, %s", carfile.CarfileCID)
+	log.Infof("handle candidate cache failed: %s", carfile.CarfileCID)
 	if err := failedCooldown(ctx, carfile); err != nil {
 		return err
 	}
 	return ctx.Send(CarfileCandidateCaching{})
 }
 
-func (m *Manager) handlerEdgeCachingFailed(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Infof("handler edge  Caching failed, %s", carfile.CarfileCID)
+func (m *Manager) handleEdgeCachingFailed(ctx statemachine.Context, carfile CarfileInfo) error {
+	log.Infof("handle edge cache failed: %s", carfile.CarfileCID)
 	if err := failedCooldown(ctx, carfile); err != nil {
 		return err
 	}

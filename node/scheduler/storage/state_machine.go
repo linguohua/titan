@@ -10,15 +10,8 @@ import (
 )
 
 func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface{}, uint64, error) {
-	// log.Infof("state machine plan")
 	next, processed, err := m.plan(events, user.(*CarfileInfo))
 	if err != nil || next == nil {
-		//l := Log{
-		//	Timestamp: uint64(time.Now().Unix()),
-		//	Message:   fmt.Sprintf("state machine error: %s", err),
-		//	Kind:      fmt.Sprintf("error;%T", err),
-		//}
-		//user.(*CarfileInfo).logAppend(l)
 		return nil, processed, nil
 	}
 
@@ -74,8 +67,6 @@ var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *Carf
 }
 
 func (m *Manager) plan(events []statemachine.Event, state *CarfileInfo) (func(statemachine.Context, CarfileInfo) error, uint64, error) {
-	// m.logEvents(events, state)
-
 	p := fsmPlanners[state.State]
 	if p == nil {
 		if len(events) == 1 {
@@ -94,10 +85,6 @@ func (m *Manager) plan(events []statemachine.Event, state *CarfileInfo) (func(st
 		return nil, processed, xerrors.Errorf("running planner for state %s failed: %w", state.State, err)
 	}
 
-	//if err := m.onUpdateSector(context.TODO(), state); err != nil {
-	//	log.Errorw("update sector stats", "error", err)
-	//}
-
 	switch state.State {
 	// Happy path
 	case StartCache:
@@ -111,7 +98,7 @@ func (m *Manager) plan(events []statemachine.Event, state *CarfileInfo) (func(st
 	case GetSeedCompleted:
 		return m.handleGetSeedCompleted, processed, nil
 	case CandidateCompleted:
-		return m.handleCandidatesCacheCompleted, processed, nil
+		return m.handleCandidateCacheCompleted, processed, nil
 	case EdgeCompleted:
 		return m.handleEdgeCacheCompleted, processed, nil
 	case Finalize:
@@ -121,7 +108,7 @@ func (m *Manager) plan(events []statemachine.Event, state *CarfileInfo) (func(st
 	case CandidateCachingFailed:
 		return m.handleCandidateCachingFailed, processed, nil
 	case EdgeCachingFailed:
-		return m.handlerEdgeCachingFailed, processed, nil
+		return m.handleEdgeCachingFailed, processed, nil
 		// Fatal errors
 	case UndefinedCarfileState:
 		log.Error("carfile update with undefined state!")
@@ -196,8 +183,6 @@ func on(mut mutator, next CarfileState) func() (mutator, func(*CarfileInfo) (boo
 }
 
 func (m *Manager) restartCarfiles(ctx context.Context) error {
-	log.Infof("restart carfiles")
-	defer log.Info("restart carfiles done")
 	defer m.startupWait.Done()
 
 	trackedCarfiles, err := m.ListCarfiles()
