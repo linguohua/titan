@@ -8,8 +8,9 @@ func (m *Manager) ListCarfiles() ([]CarfileInfo, error) {
 	return carfiles, nil
 }
 
-func (m *Manager) GetCarfileInfo(cid CarfileID) (CarfileInfo, error) {
+func (m *Manager) GetCarfileInfo(cid CarfileHash) (CarfileInfo, error) {
 	var out CarfileInfo
 	err := m.carfiles.Get(cid).Get(&out)
 	return out, err
+	// return CarfileInfo{}, nil
 }

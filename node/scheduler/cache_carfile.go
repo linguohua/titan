@@ -56,7 +56,7 @@ func (s *Scheduler) ReCacheCarfiles(ctx context.Context, hashs []string) error {
 		for _, carfile := range list {
 			info := &types.CacheCarfileInfo{
 				CarfileCid: carfile.CarfileCid,
-				Replicas:   carfile.Replica,
+				Replicas:   carfile.NeedEdgeReplica,
 				Expiration: carfile.Expiration,
 			}
 			err = s.CacheCarfiles(ctx, info)

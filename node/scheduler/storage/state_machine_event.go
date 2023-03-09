@@ -48,7 +48,7 @@ func (evt CarfileForceState) applyGlobal(state *CarfileInfo) bool {
 // CarfileStartCaches start caches
 type CarfileStartCaches struct {
 	ID          string
-	CarfileHash CarfileID
+	CarfileHash CarfileHash
 	Replicas    int64
 	ServerID    string
 	CreatedAt   int64
@@ -58,7 +58,7 @@ type CarfileStartCaches struct {
 func (evt CarfileStartCaches) apply(state *CarfileInfo) {
 	state.CarfileCID = evt.ID
 	state.CarfileHash = evt.CarfileHash
-	state.Replicas = evt.Replicas
+	state.EdgeReplicas = evt.Replicas
 	state.ServerID = evt.ServerID
 	state.CreatedAt = evt.CreatedAt
 	state.Expiration = evt.Expiration
@@ -84,10 +84,10 @@ func (evt CarfileCacheCompleted) apply(state *CarfileInfo) {
 		state.Size = evt.ResultInfo.CarfileSize
 		state.Blocks = evt.ResultInfo.CarfileBlockCount
 
-		state.DownloadSources = append(state.DownloadSources, evt.ResultInfo.Source)
-		state.CompletedCandidateReplicas[evt.ResultInfo.NodeID] = nil
-	} else {
-		state.CompletedEdgeReplicas[evt.ResultInfo.NodeID] = nil
+		// 	state.DownloadSources = append(state.DownloadSources, evt.ResultInfo.Source)
+		// 	state.CompletedCandidateReplicas[evt.ResultInfo.NodeID] = nil
+		// } else {
+		// 	state.CompletedEdgeReplicas[evt.ResultInfo.NodeID] = nil
 	}
 }
 
@@ -123,7 +123,6 @@ func (evt CarfileCandidateCachingFailed) FormatError(xerrors.Printer) (next erro
 }
 
 func (evt CarfileCandidateCachingFailed) apply(ci *CarfileInfo) {
-	ci.CandidateStoreFails++
 }
 
 type CarfileEdgeCachingFailed struct{ error }
@@ -133,5 +132,4 @@ func (evt CarfileEdgeCachingFailed) FormatError(xerrors.Printer) (next error) {
 }
 
 func (evt CarfileEdgeCachingFailed) apply(ci *CarfileInfo) {
-	ci.EdgeStoreFails++
 }

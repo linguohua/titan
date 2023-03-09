@@ -31,15 +31,17 @@ type RemoveCarfileResult struct {
 
 // CarfileRecordInfo Data info
 type CarfileRecordInfo struct {
-	CarfileCid   string    `db:"carfile_cid"`
-	CarfileHash  string    `db:"carfile_hash"`
-	Replica      int       `db:"replica"`
-	TotalSize    int64     `db:"total_size"`
-	TotalBlocks  int       `db:"total_blocks"`
-	Expiration   time.Time `db:"expiration"`
-	CreateTime   time.Time `db:"created_time"`
-	EndTime      time.Time `db:"end_time"`
-	State        string    `db:"state"`
+	CarfileCid            string    `db:"carfile_cid"`
+	CarfileHash           string    `db:"carfile_hash"`
+	NeedEdgeReplica       int       `db:"edge_replica"`
+	TotalSize             int64     `db:"total_size"`
+	TotalBlocks           int       `db:"total_blocks"`
+	Expiration            time.Time `db:"expiration"`
+	CreateTime            time.Time `db:"created_time"`
+	EndTime               time.Time `db:"end_time"`
+	State                 string    `db:"state"`
+	NeedCandidateReplicas int       `db:"candidate_replica"`
+
 	ReplicaInfos []*ReplicaInfo
 	ResultInfo   *CarfileRecordCacheResult
 	EdgeReplica  int
