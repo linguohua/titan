@@ -90,9 +90,9 @@ func (c *CarfileDB) UpdateCarfileRecordCachesInfo(dInfo *types.CarfileRecordInfo
 
 // CreateOrUpdateCarfileRecordInfo create or update storage record info
 func (c *CarfileDB) CreateOrUpdateCarfileRecordInfo(info *types.CarfileRecordInfo) error {
-	cmd := fmt.Sprintf(`INSERT INTO %s (carfile_hash, carfile_cid, state, replica, expiration)
-	        VALUES (:carfile_hash, :carfile_cid, :state, :replica, :expiration) 
-	        ON DUPLICATE KEY UPDATE replica=VALUES(replica),expiration=VALUES(expiration),total_size=VALUES(total_size),total_blocks=VALUES(total_blocks), state=VALUES(state)`, carfileInfoTable)
+	cmd := fmt.Sprintf(`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration)
+	        VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica, :expiration) 
+	        ON DUPLICATE KEY UPDATE edge_replica=VALUES(edge_replica),candidate_replica=VALUES(candidate_replica),expiration=VALUES(expiration),total_size=VALUES(total_size),total_blocks=VALUES(total_blocks), state=VALUES(state)`, carfileInfoTable)
 	_, err := c.DB.NamedExec(cmd, info)
 	return err
 }
@@ -149,10 +149,14 @@ func (c *CarfileDB) CountCarfiles() (int, error) {
 
 // QueryCarfilesRows ...
 func (c *CarfileDB) QueryCarfilesRows(ctx context.Context, limit, offset int) (rows *sqlx.Rows, err error) {
+	maxCount := 100
 	if limit == 0 {
-		limit = 500
+		limit = maxCount
 	}
-	cmd := fmt.Sprintf("SELECT * FROM %s order by carfile_hash asc LIMIT ? OFFSET ?", carfileInfoTable)
+	if limit > maxCount {
+		limit = maxCount
+	}
+	cmd := fmt.Sprintf("SELECT * FROM %s order by carfile_hash asc LIMIT ? OFFSET ? ", carfileInfoTable)
 	return c.DB.QueryxContext(ctx, cmd, limit, offset)
 }
 
@@ -197,6 +201,19 @@ func (c *CarfileDB) CandidatesWithHash(hash string) ([]string, error) {
 		replicaInfoTable)
 
 	if err := c.DB.Select(&out, query, hash, types.CacheStatusSucceeded, true); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+// EdgesWithHash get edges with hash
+func (c *CarfileDB) EdgesWithHash(hash string) ([]string, error) {
+	var out []string
+	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?`,
+		replicaInfoTable)
+
+	if err := c.DB.Select(&out, query, hash, types.CacheStatusSucceeded, false); err != nil {
 		return nil, err
 	}
 

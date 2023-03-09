@@ -1,13 +1,15 @@
 package storage
 
 import (
+	"time"
+
 	"github.com/linguohua/titan/api/types"
 )
 
-// CarfileID is an identifier for a carfile.
-type CarfileID string
+// CarfileHash is an identifier for a carfile.
+type CarfileHash string
 
-func (c CarfileID) String() string {
+func (c CarfileHash) String() string {
 	return string(c)
 }
 
@@ -33,44 +35,44 @@ type NodeCacheResult struct {
 type CompletedValue struct{}
 
 type CarfileInfo struct {
-	ID          string
-	State       CarfileState `db:"state"`
-	CarfileHash CarfileID    `db:"carfile_hash"`
-	CarfileCID  string       `db:"carfile_cid"`
-	Replicas    int64        `db:"replicas"` // edge replica
-	ServerID    string       `db:"server_id"`
-	Size        int64        `db:"size"`
-	Blocks      int64        `db:"blocks"`
-	CreatedAt   int64        `db:"created_at"`
-	Expiration  int64        `db:"expiration"`
+	ID                string
+	State             CarfileState
+	CarfileHash       CarfileHash
+	CarfileCID        string
+	EdgeReplicas      int64
+	ServerID          string
+	Size              int64
+	Blocks            int64
+	CandidateReplicas int64
+	CreatedAt         int64
+	Expiration        int64
 
-	CandidateReplicas int64 // seed + other candidate replica
-
-	CandidateStoreFails int64
-	EdgeStoreFails      int64
-
-	DownloadSources            []*types.DownloadSource
-	CompletedEdgeReplicas      map[string]*CompletedValue
-	CompletedCandidateReplicas map[string]*CompletedValue
+	// DownloadSources            []*types.DownloadSource
+	// CompletedEdgeReplicas      map[string]*CompletedValue
+	// CompletedCandidateReplicas map[string]*CompletedValue
 }
 
 func (state *CarfileInfo) toCarfileRecordInfo() *types.CarfileRecordInfo {
 	return &types.CarfileRecordInfo{
-		CarfileCid:  state.CarfileCID,
-		CarfileHash: state.CarfileHash.String(),
-		Replica:     int(state.Replicas),
-		TotalSize:   state.Size,
-		TotalBlocks: int(state.Blocks),
-		State:       string(state.State),
+		CarfileCid:            state.CarfileCID,
+		CarfileHash:           state.CarfileHash.String(),
+		NeedEdgeReplica:       int(state.EdgeReplicas),
+		TotalSize:             state.Size,
+		TotalBlocks:           int(state.Blocks),
+		State:                 string(state.State),
+		NeedCandidateReplicas: int(state.CandidateReplicas),
+		Expiration:            time.Unix(state.Expiration, 0),
 	}
 }
 
 func From(info *types.CarfileRecordInfo) *CarfileInfo {
 	return &CarfileInfo{
-		CarfileCID:  info.CarfileCid,
-		State:       CarfileState(info.State),
-		CarfileHash: CarfileID(info.CarfileHash),
-		Replicas:    int64(info.Replica),
-		Size:        info.TotalSize,
+		CarfileCID:        info.CarfileCid,
+		State:             CarfileState(info.State),
+		CarfileHash:       CarfileHash(info.CarfileHash),
+		EdgeReplicas:      int64(info.NeedEdgeReplica),
+		Size:              info.TotalSize,
+		CandidateReplicas: int64(info.NeedCandidateReplicas),
+		Expiration:        info.Expiration.Unix(),
 	}
 }

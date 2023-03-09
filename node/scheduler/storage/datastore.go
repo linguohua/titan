@@ -3,12 +3,13 @@ package storage
 import (
 	"bytes"
 	"context"
+	"strings"
+
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
-	"strings"
 )
 
 type Datastore struct {
@@ -18,6 +19,7 @@ type Datastore struct {
 func NewDatastore(db *persistent.CarfileDB) *Datastore {
 	return &Datastore{CarfileDB: db}
 }
+
 func (d *Datastore) Close() error {
 	return d.Close()
 }
@@ -72,7 +74,6 @@ func (d *Datastore) Query(ctx context.Context, q query.Query) (query.Results, er
 	}
 
 	return raw, nil
-
 }
 
 func (d *Datastore) rawQuery(ctx context.Context, q query.Query) (query.Results, error) {

@@ -192,10 +192,10 @@ func (m *Manager) doCarfileReplicaTask(info *types.CacheCarfileInfo) error {
 	}
 
 	err = m.nodeManager.CarfileDB.CreateOrUpdateCarfileRecordInfo(&types.CarfileRecordInfo{
-		CarfileCid:  carfileRecord.carfileCid,
-		Replica:     carfileRecord.replica,
-		Expiration:  carfileRecord.expirationTime,
-		CarfileHash: carfileRecord.carfileHash,
+		CarfileCid:      carfileRecord.carfileCid,
+		NeedEdgeReplica: carfileRecord.replica,
+		Expiration:      carfileRecord.expirationTime,
+		CarfileHash:     carfileRecord.carfileHash,
 	})
 	if err != nil {
 		return xerrors.Errorf("cid:%s,CreateOrUpdateCarfileRecordInfo err:%s", carfileRecord.carfileCid, err.Error())
@@ -225,18 +225,18 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 	// 	log.Errorf("push carfile to wait list: %v", err)
 	// }
 	err := m.nodeManager.CarfileDB.CreateOrUpdateCarfileRecordInfo(&types.CarfileRecordInfo{
-		CarfileCid:  info.CarfileCid,
-		Replica:     info.Replicas,
-		Expiration:  info.Expiration,
-		CarfileHash: info.CarfileHash,
+		CarfileCid:      info.CarfileCid,
+		NeedEdgeReplica: info.Replicas,
+		Expiration:      info.Expiration,
+		CarfileHash:     info.CarfileHash,
 	})
 	if err != nil {
 		return xerrors.Errorf("cid:%s,CreateOrUpdateCarfileRecordInfo err:%s", info.CarfileCid, err.Error())
 	}
 
-	return m.carfiles.Send(CarfileID(info.CarfileHash), CarfileStartCaches{
+	return m.carfiles.Send(CarfileHash(info.CarfileHash), CarfileStartCaches{
 		ID:          info.CarfileCid,
-		CarfileHash: CarfileID(info.CarfileHash),
+		CarfileHash: CarfileHash(info.CarfileHash),
 		Replicas:    int64(info.Replicas),
 		ServerID:    info.ServerID,
 		CreatedAt:   time.Now().Unix(),
@@ -349,7 +349,7 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 			}
 		}
 
-		err = m.carfiles.Send(CarfileID(info.CarfileHash), CarfileCacheCompleted{
+		err = m.carfiles.Send(CarfileHash(info.CarfileHash), CarfileCacheCompleted{
 			ResultInfo: &NodeCacheResult{
 				NodeID:            nodeID,
 				IsCandidate:       t == types.NodeCandidate,
@@ -584,7 +584,7 @@ func carfileRecord2Info(cr *CarfileRecord) *types.CarfileRecordInfo {
 		info.CarfileCid = cr.carfileCid
 		info.CarfileHash = cr.carfileHash
 		info.TotalSize = cr.totalSize
-		info.Replica = cr.replica
+		info.NeedEdgeReplica = cr.replica
 		info.EdgeReplica = cr.edgeReplica
 		info.TotalBlocks = cr.totalBlocks
 		info.Expiration = cr.expirationTime
@@ -614,7 +614,7 @@ func carfileRecord2Info(cr *CarfileRecord) *types.CarfileRecordInfo {
 }
 
 func (m *Manager) CarfileStatus(ctx context.Context, cid types.CarfileID) (types.CarfileInfo, error) {
-	info, err := m.GetCarfileInfo(CarfileID(cid))
+	info, err := m.GetCarfileInfo(CarfileHash(cid))
 	if err != nil {
 		return types.CarfileInfo{}, err
 	}
@@ -633,7 +633,7 @@ func (m *Manager) CarfileStatus(ctx context.Context, cid types.CarfileID) (types
 		CarfileCID:  cid.String(),
 		State:       types.CarfileState(info.State),
 		CarfileHash: types.CarfileID(info.CarfileHash),
-		Replicas:    info.Replicas,
+		Replicas:    info.EdgeReplicas,
 		ServerID:    info.ServerID,
 		Size:        info.Size,
 		Blocks:      info.Blocks,
@@ -645,7 +645,7 @@ func (m *Manager) CarfileStatus(ctx context.Context, cid types.CarfileID) (types
 }
 
 // Find edges that meet the cache criteria
-func (m *Manager) findEdges(count int, filterNodes map[string]*CompletedValue) []*node.Edge {
+func (m *Manager) findEdges(count int, filterNodes []string) []*node.Edge {
 	list := make([]*node.Edge, 0)
 
 	if count <= 0 {
@@ -655,12 +655,15 @@ func (m *Manager) findEdges(count int, filterNodes map[string]*CompletedValue) [
 	m.nodeManager.EdgeNodes.Range(func(key, value interface{}) bool {
 		edgeNode := value.(*node.Edge)
 
-		if _, exist := filterNodes[edgeNode.NodeID]; exist {
-			return true
+		if filterNodes != nil {
+			for _, nodeID := range filterNodes {
+				if nodeID == edgeNode.NodeID {
+					return true
+				}
+			}
 		}
 
-		node := value.(*node.Edge)
-		if node.DiskUsage > diskUsageMax {
+		if edgeNode.DiskUsage > diskUsageMax {
 			return true
 		}
 
@@ -680,7 +683,7 @@ func (m *Manager) findEdges(count int, filterNodes map[string]*CompletedValue) [
 }
 
 // Find candidates that meet the cache criteria
-func (m *Manager) findCandidates(count int, filterNodes map[string]*CompletedValue) []*node.Candidate {
+func (m *Manager) findCandidates(count int, filterNodes []string) []*node.Candidate {
 	list := make([]*node.Candidate, 0)
 
 	if count <= 0 {
@@ -690,12 +693,15 @@ func (m *Manager) findCandidates(count int, filterNodes map[string]*CompletedVal
 	m.nodeManager.CandidateNodes.Range(func(key, value interface{}) bool {
 		candidateNode := value.(*node.Candidate)
 
-		if _, exist := filterNodes[candidateNode.NodeID]; exist {
-			return true
+		if filterNodes != nil {
+			for _, nodeID := range filterNodes {
+				if nodeID == candidateNode.NodeID {
+					return true
+				}
+			}
 		}
 
-		node := value.(*node.Candidate)
-		if node.DiskUsage > diskUsageMax {
+		if candidateNode.DiskUsage > diskUsageMax {
 			return true
 		}
 
@@ -746,4 +752,23 @@ func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
 	}
 
 	return m.nodeManager.CarfileDB.UpdateCarfileReplicaInfo(replicaInfos)
+}
+
+// Sources get download sources
+func (m *Manager) Sources(hash string, ndoes []string) []*types.DownloadSource {
+	sources := make([]*types.DownloadSource, 0)
+
+	for _, nodeID := range ndoes {
+		cNode := m.nodeManager.GetCandidateNode(nodeID)
+		if cNode != nil {
+			source := &types.DownloadSource{
+				CandidateURL:   cNode.RPCURL(),
+				CandidateToken: string(m.writeToken),
+			}
+
+			sources = append(sources, source)
+		}
+	}
+
+	return sources
 }

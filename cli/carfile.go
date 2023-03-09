@@ -185,7 +185,7 @@ var showCarfileInfoCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,EdgeReplica:%d/%d ,Expiration Time:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.EdgeReplica, info.Replica, info.Expiration.Format("2006-01-02 15:04:05"))
+		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,EdgeReplica:%d/%d ,Expiration Time:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.EdgeReplica, info.NeedEdgeReplica, info.Expiration.Format("2006-01-02 15:04:05"))
 		for _, cache := range info.ReplicaInfos {
 			fmt.Printf("NodeID: %s ,Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
 				cache.NodeID, cache.Status.String(), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
@@ -312,7 +312,7 @@ var listCarfilesCmd = &cli.Command{
 		}
 
 		for _, carfile := range info.CarfileRecords {
-			fmt.Printf("%s ,EdgeReplica: %d/%d ,Blocks:%d ,Expiration Time:%s \n", carfile.CarfileCid, carfile.EdgeReplica, carfile.Replica, carfile.TotalBlocks, carfile.Expiration.Format("2006-01-02 15:04:05"))
+			fmt.Printf("%s ,EdgeReplica: %d/%d ,Blocks:%d ,Expiration Time:%s \n", carfile.CarfileCid, carfile.EdgeReplica, carfile.NeedEdgeReplica, carfile.TotalBlocks, carfile.Expiration.Format("2006-01-02 15:04:05"))
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
 
@@ -324,7 +324,7 @@ var carfilesStatusCmd = &cli.Command{
 	Name:      "status",
 	Usage:     "Get the cache status of a carfiles by its id",
 	ArgsUsage: "<carfileCID>",
-	Flags: []cli.Flag{},
+	Flags:     []cli.Flag{},
 	Action: func(cctx *cli.Context) error {
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
