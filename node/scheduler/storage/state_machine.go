@@ -2,25 +2,21 @@ package storage
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"reflect"
-	"time"
-
 	"github.com/filecoin-project/go-statemachine"
 	"golang.org/x/xerrors"
+	"reflect"
 )
 
 func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface{}, uint64, error) {
 	// log.Infof("state machine plan")
 	next, processed, err := m.plan(events, user.(*CarfileInfo))
 	if err != nil || next == nil {
-		l := Log{
-			Timestamp: uint64(time.Now().Unix()),
-			Message:   fmt.Sprintf("state machine error: %s", err),
-			Kind:      fmt.Sprintf("error;%T", err),
-		}
-		user.(*CarfileInfo).logAppend(l)
+		//l := Log{
+		//	Timestamp: uint64(time.Now().Unix()),
+		//	Message:   fmt.Sprintf("state machine error: %s", err),
+		//	Kind:      fmt.Sprintf("error;%T", err),
+		//}
+		//user.(*CarfileInfo).logAppend(l)
 		return nil, processed, nil
 	}
 
@@ -75,55 +71,55 @@ var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *Carf
 	),
 }
 
-func (state *CarfileInfo) logAppend(l Log) {
-	if len(state.Log) > 8000 {
-		log.Warnw("truncating sector log", "carfile", state.CarfileCID)
-		state.Log[2000] = Log{
-			Timestamp: uint64(time.Now().Unix()),
-			Message:   "truncating log (above 8000 entries)",
-			Kind:      fmt.Sprintf("truncate"),
-		}
+//func (state *CarfileInfo) logAppend(l Log) {
+//	if len(state.Log) > 8000 {
+//		log.Warnw("truncating sector log", "carfile", state.CarfileCID)
+//		state.Log[2000] = Log{
+//			Timestamp: uint64(time.Now().Unix()),
+//			Message:   "truncating log (above 8000 entries)",
+//			Kind:      fmt.Sprintf("truncate"),
+//		}
+//
+//		state.Log = append(state.Log[:2000], state.Log[6000:]...)
+//	}
+//
+//	state.Log = append(state.Log, l)
+//}
 
-		state.Log = append(state.Log[:2000], state.Log[6000:]...)
-	}
-
-	state.Log = append(state.Log, l)
-}
-
-func (m *Manager) logEvents(events []statemachine.Event, state *CarfileInfo) {
-	for _, event := range events {
-		log.Debugw("carfile event", "carfile", state.CarfileCID, "type", fmt.Sprintf("%T", event.User), "event", event.User)
-
-		e, err := json.Marshal(event)
-		if err != nil {
-			log.Errorf("marshaling event for logging: %+v", err)
-			continue
-		}
-
-		if event.User == (CarfileRestart{}) {
-			continue // don't log on every state machine restart
-		}
-
-		if len(e) > 8000 {
-			e = []byte(string(e[:8000]) + "... truncated")
-		}
-
-		l := Log{
-			Timestamp: uint64(time.Now().Unix()),
-			Message:   string(e),
-			Kind:      fmt.Sprintf("event;%T", event.User),
-		}
-
-		if err, iserr := event.User.(xerrors.Formatter); iserr {
-			l.Trace = fmt.Sprintf("%+v", err)
-		}
-
-		state.logAppend(l)
-	}
-}
+//func (m *Manager) logEvents(events []statemachine.Event, state *CarfileInfo) {
+//	for _, event := range events {
+//		log.Debugw("carfile event", "carfile", state.CarfileCID, "type", fmt.Sprintf("%T", event.User), "event", event.User)
+//
+//		e, err := json.Marshal(event)
+//		if err != nil {
+//			log.Errorf("marshaling event for logging: %+v", err)
+//			continue
+//		}
+//
+//		if event.User == (CarfileRestart{}) {
+//			continue // don't log on every state machine restart
+//		}
+//
+//		if len(e) > 8000 {
+//			e = []byte(string(e[:8000]) + "... truncated")
+//		}
+//
+//		l := Log{
+//			Timestamp: uint64(time.Now().Unix()),
+//			Message:   string(e),
+//			Kind:      fmt.Sprintf("event;%T", event.User),
+//		}
+//
+//		if err, iserr := event.User.(xerrors.Formatter); iserr {
+//			l.Trace = fmt.Sprintf("%+v", err)
+//		}
+//
+//		state.logAppend(l)
+//	}
+//}
 
 func (m *Manager) plan(events []statemachine.Event, state *CarfileInfo) (func(statemachine.Context, CarfileInfo) error, uint64, error) {
-	m.logEvents(events, state)
+	//m.logEvents(events, state)
 
 	p := fsmPlanners[state.State]
 	if p == nil {
@@ -255,6 +251,7 @@ func (m *Manager) restartCarfiles(ctx context.Context) error {
 	}
 
 	for _, carfile := range trackedCarfiles {
+		log.Infof("===========%s", carfile.CarfileHash)
 		if err := m.carfiles.Send(carfile.CarfileHash, CarfileRestart{}); err != nil {
 			log.Errorf("restarting carfile %s: %+v", carfile.CarfileCID, err)
 		}

@@ -39,6 +39,7 @@ type CarfileRecordInfo struct {
 	Expiration   time.Time `db:"expiration"`
 	CreateTime   time.Time `db:"created_time"`
 	EndTime      time.Time `db:"end_time"`
+	State        string    `db:"state"`
 	ReplicaInfos []*ReplicaInfo
 	ResultInfo   *CarfileRecordCacheResult
 	EdgeReplica  int
@@ -181,14 +182,13 @@ type CarfileInfo struct {
 	CreatedAt   time.Time
 	Expiration  time.Time
 
-	Log                 []Log
 	CandidateStoreFails int64
 	EdgeStoreFails      int64
 }
 
-type Log struct {
-	Timestamp uint64
-	Trace     string
-	Message   string
-	Kind      string
-}
+//type Log struct {
+//	Timestamp uint64
+//	Trace     string
+//	Message   string
+//	Kind      string
+//}

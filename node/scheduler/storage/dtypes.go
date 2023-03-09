@@ -46,11 +46,31 @@ type CarfileInfo struct {
 
 	CandidateReplicas int64 // seed + other candidate replica
 
-	Log                 []Log
 	CandidateStoreFails int64
 	EdgeStoreFails      int64
 
 	DownloadSources            []*types.DownloadSource
 	CompletedEdgeReplicas      map[string]*CompletedValue
 	CompletedCandidateReplicas map[string]*CompletedValue
+}
+
+func (state *CarfileInfo) toCarfileRecordInfo() *types.CarfileRecordInfo {
+	return &types.CarfileRecordInfo{
+		CarfileCid:  state.CarfileCID,
+		CarfileHash: state.CarfileHash.String(),
+		Replica:     int(state.Replicas),
+		TotalSize:   state.Size,
+		TotalBlocks: int(state.Blocks),
+		State:       string(state.State),
+	}
+}
+
+func From(info *types.CarfileRecordInfo) *CarfileInfo {
+	return &CarfileInfo{
+		CarfileCID:  info.CarfileCid,
+		State:       CarfileState(info.State),
+		CarfileHash: CarfileID(info.CarfileHash),
+		Replicas:    int64(info.Replica),
+		Size:        info.TotalSize,
+	}
 }

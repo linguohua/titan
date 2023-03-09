@@ -324,13 +324,7 @@ var carfilesStatusCmd = &cli.Command{
 	Name:      "status",
 	Usage:     "Get the cache status of a carfiles by its id",
 	ArgsUsage: "<carfileCID>",
-	Flags: []cli.Flag{
-		&cli.BoolFlag{
-			Name:    "log",
-			Usage:   "display event log",
-			Aliases: []string{"l"},
-		},
-	},
+	Flags: []cli.Flag{},
 	Action: func(cctx *cli.Context) error {
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -359,16 +353,7 @@ var carfilesStatusCmd = &cli.Command{
 		fmt.Printf("CreatedAt:\t%v\n", status.CreatedAt)
 		fmt.Printf("CreatedAt:\t%v\n", status.CreatedAt)
 		fmt.Printf("Expiration:\t\t%s\n", status.Expiration)
-		if cctx.Bool("log") {
-			fmt.Printf("--------\nEvent Log:\n")
 
-			for i, l := range status.Log {
-				fmt.Printf("%d.\t%s:\t[%s]\t%s\n", i, time.Unix(int64(l.Timestamp), 0), l.Kind, l.Message)
-				if l.Trace != "" {
-					fmt.Printf("\t%s\n", l.Trace)
-				}
-			}
-		}
 		return nil
 	},
 }

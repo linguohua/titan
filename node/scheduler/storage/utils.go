@@ -1,11 +1,11 @@
 package storage
 
 func (m *Manager) ListCarfiles() ([]CarfileInfo, error) {
-	var sectors []CarfileInfo
-	if err := m.carfiles.List(&sectors); err != nil {
+	var carfiles []CarfileInfo
+	if err := m.carfiles.List(&carfiles); err != nil {
 		return nil, err
 	}
-	return sectors, nil
+	return carfiles, nil
 }
 
 func (m *Manager) GetCarfileInfo(cid CarfileID) (CarfileInfo, error) {

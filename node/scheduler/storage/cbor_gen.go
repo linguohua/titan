@@ -27,7 +27,7 @@ func (t *CarfileInfo) MarshalCBOR(w io.Writer) error {
 
 	cw := cbg.NewCborWriter(w)
 
-	if _, err := cw.Write([]byte{177}); err != nil {
+	if _, err := cw.Write([]byte{176}); err != nil {
 		return err
 	}
 
@@ -274,31 +274,6 @@ func (t *CarfileInfo) MarshalCBOR(w io.Writer) error {
 		}
 	} else {
 		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.CandidateReplicas-1)); err != nil {
-			return err
-		}
-	}
-
-	// t.Log ([]storage.Log) (slice)
-	if len("Log") > cbg.MaxLength {
-		return xerrors.Errorf("Value in field \"Log\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("Log"))); err != nil {
-		return err
-	}
-	if _, err := io.WriteString(w, string("Log")); err != nil {
-		return err
-	}
-
-	if len(t.Log) > cbg.MaxLength {
-		return xerrors.Errorf("Slice value in field t.Log was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.Log))); err != nil {
-		return err
-	}
-	for _, v := range t.Log {
-		if err := v.MarshalCBOR(cw); err != nil {
 			return err
 		}
 	}
@@ -717,36 +692,6 @@ func (t *CarfileInfo) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.CandidateReplicas = int64(extraI)
 			}
-			// t.Log ([]storage.Log) (slice)
-		case "Log":
-
-			maj, extra, err = cr.ReadHeader()
-			if err != nil {
-				return err
-			}
-
-			if extra > cbg.MaxLength {
-				return fmt.Errorf("t.Log: array too large (%d)", extra)
-			}
-
-			if maj != cbg.MajArray {
-				return fmt.Errorf("expected cbor array")
-			}
-
-			if extra > 0 {
-				t.Log = make([]Log, extra)
-			}
-
-			for i := 0; i < int(extra); i++ {
-
-				var v Log
-				if err := v.UnmarshalCBOR(cr); err != nil {
-					return err
-				}
-
-				t.Log[i] = v
-			}
-
 			// t.CandidateStoreFails (int64) (int64)
 		case "CandidateStoreFails":
 			{
