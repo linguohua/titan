@@ -26,29 +26,7 @@ func (b *batch) Delete(ctx context.Context, key datastore.Key) error {
 }
 
 func (b *batch) Commit(ctx context.Context) error {
-	return b.CommitContext(ctx)
-}
-
-func (b *batch) CommitContext(ctx context.Context) error {
-	conn, err := b.ds.DB.Conn(ctx)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	for k, op := range b.ops {
-		_ = k
-		if op.delete {
-			//_, err = conn.ExecContext(ctx, b.ds.DeleteCarfileSql(), k.String())
-		} else {
-			//_, err = conn.ExecContext(ctx, b.ds.UpdateOrCreateCarfileSql(), k.String(), op.value)
-		}
-		if err != nil {
-			break
-		}
-	}
-
-	return err
+	return nil
 }
 
 var _ datastore.Batch = (*batch)(nil)
