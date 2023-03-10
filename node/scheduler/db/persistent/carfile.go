@@ -91,9 +91,9 @@ func (c *CarfileDB) UpdateCarfileRecordCachesInfo(dInfo *types.CarfileRecordInfo
 
 // CreateOrUpdateCarfileRecordInfo create or update storage record info
 func (c *CarfileDB) CreateOrUpdateCarfileRecordInfo(info *types.CarfileRecordInfo) error {
-	cmd := fmt.Sprintf(`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration, total_blocks, total_size, successed_edges, successed_candidates, failed_candidates, failed_edges)
-	        VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica, :expiration, :total_blocks, :total_size, :successed_edges, :successed_candidates, :failed_candidates, :failed_edges) 
-	        ON DUPLICATE KEY UPDATE successed_edges=VALUES(successed_edges),successed_candidates=VALUES(successed_candidates),failed_edges=VALUES(failed_edges),failed_candidates=VALUES(failed_candidates),
+	cmd := fmt.Sprintf(`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration, total_blocks, total_size, succeed_edges, succeed_candidates, failed_candidates, failed_edges)
+	        VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica, :expiration, :total_blocks, :total_size, :succeed_edges, :succeed_candidates, :failed_candidates, :failed_edges) 
+	        ON DUPLICATE KEY UPDATE succeed_edges=VALUES(succeed_edges),succeed_candidates=VALUES(succeed_candidates),failed_edges=VALUES(failed_edges),failed_candidates=VALUES(failed_candidates),
 			total_size=VALUES(total_size),total_blocks=VALUES(total_blocks),edge_replica=VALUES(edge_replica),candidate_replica=VALUES(candidate_replica),expiration=VALUES(expiration),state=VALUES(state)`, carfileInfoTable)
 	_, err := c.DB.NamedExec(cmd, info)
 	return err

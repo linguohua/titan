@@ -37,9 +37,9 @@ func trimPrefix(key datastore.Key) string {
 // 	for _, r := range rs {
 // 		if r.Status == types.CacheStatusSucceeded {
 // 			if r.IsCandidate {
-// 				out.SuccessedCandidateReplicas++
+// 				out.SucceedCandidateReplicas++
 // 			} else {
-// 				out.SuccessedEdgeReplicas++
+// 				out.SucceedEdgeReplicas++
 // 			}
 
 // 			continue

@@ -33,31 +33,31 @@ var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *Carf
 		on(CarfileStartCaches{}, CacheCarfileSeed),
 	),
 	CacheCarfileSeed: planOne(
-		on(RequestNodes{}, CarfileSeedCaching),
+		on(CacheRequestSent{}, CarfileSeedCaching),
 		on(CacheFailed{}, CacheSeedFailed),
 	),
 	CarfileSeedCaching: planOne(
-		on(CacheSuccessed{}, CacheToCandidates),
+		on(CacheSucceed{}, CacheToCandidates),
 		on(CacheFailed{}, CacheSeedFailed),
 		apply(CacheResult{}),
 	),
 	CacheToCandidates: planOne(
-		on(RequestNodes{}, CandidatesCaching),
-		on(CacheSuccessed{}, CacteToEdges),
+		on(CacheRequestSent{}, CandidatesCaching),
+		on(CacheSucceed{}, CacteToEdges),
 		on(CacheFailed{}, CacheCandidatesFailed),
 	),
 	CandidatesCaching: planOne(
 		on(CacheFailed{}, CacheCandidatesFailed),
-		on(CacheSuccessed{}, CacteToEdges),
+		on(CacheSucceed{}, CacteToEdges),
 		apply(CacheResult{}),
 	),
 	CacteToEdges: planOne(
-		on(RequestNodes{}, EdgesCaching),
+		on(CacheRequestSent{}, EdgesCaching),
 		on(CacheFailed{}, CacheEdgesFailed),
 	),
 	EdgesCaching: planOne(
 		on(CacheFailed{}, CacheEdgesFailed),
-		on(CacheSuccessed{}, Finalize),
+		on(CacheSucceed{}, Finalize),
 		apply(CacheResult{}),
 	),
 	CacheSeedFailed: planOne(
