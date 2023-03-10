@@ -26,8 +26,8 @@ func failedCooldown(ctx statemachine.Context, carfile CarfileInfo) error {
 	return nil
 }
 
-func (m *Manager) handleGetSeed(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Infof("handle get seed: %s", carfile.CarfileCID)
+func (m *Manager) handleCacheSeed(ctx statemachine.Context, carfile CarfileInfo) error {
+	log.Infof("handle cache seed: %s", carfile.CarfileCID)
 
 	// find nodes
 	nodes := m.findCandidates(rootCacheCount, nil)
@@ -40,6 +40,8 @@ func (m *Manager) handleGetSeed(ctx statemachine.Context, carfile CarfileInfo) e
 	if err != nil {
 		return ctx.Send(CacheFailed{error: err})
 	}
+
+	m.resetTimeoutTimer(carfile.CarfileHash.String())
 
 	// send to nodes
 	go func() {
@@ -55,7 +57,7 @@ func (m *Manager) handleGetSeed(ctx statemachine.Context, carfile CarfileInfo) e
 	return ctx.Send(RequestNodes{})
 }
 
-func (m *Manager) handleGetSeedCaching(ctx statemachine.Context, carfile CarfileInfo) error {
+func (m *Manager) handleSeedCaching(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handler get seed caching, %s", carfile.CarfileCID)
 
 	if carfile.SuccessedCandidateReplicas >= rootCacheCount {
@@ -69,8 +71,8 @@ func (m *Manager) handleGetSeedCaching(ctx statemachine.Context, carfile Carfile
 	return nil
 }
 
-func (m *Manager) handleStartCandidatesCache(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Infof("handler start candidates cache, %s", carfile.CarfileCID)
+func (m *Manager) handleCacheToCandidates(ctx statemachine.Context, carfile CarfileInfo) error {
+	log.Infof("handler cache to candidates, %s", carfile.CarfileCID)
 
 	needCount := carfile.CandidateReplicas - carfile.SuccessedCandidateReplicas
 	if needCount < 1 {
@@ -96,6 +98,8 @@ func (m *Manager) handleStartCandidatesCache(ctx statemachine.Context, carfile C
 	}
 
 	sources := m.Sources(carfile.CarfileHash.String(), filterNodes)
+
+	m.resetTimeoutTimer(carfile.CarfileHash.String())
 
 	// send to nodes
 	go func() {
@@ -125,8 +129,8 @@ func (m *Manager) handleCandidatesCaching(ctx statemachine.Context, carfile Carf
 	return nil
 }
 
-func (m *Manager) handleStartEdgesCache(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Infof("handler start edges cache , %s", carfile.CarfileCID)
+func (m *Manager) handleCacheToEdges(ctx statemachine.Context, carfile CarfileInfo) error {
+	log.Infof("handler cache to edges , %s", carfile.CarfileCID)
 
 	needCount := carfile.EdgeReplicas - carfile.SuccessedEdgeReplicas
 
@@ -156,6 +160,8 @@ func (m *Manager) handleStartEdgesCache(ctx statemachine.Context, carfile Carfil
 	if err != nil {
 		return ctx.Send(CacheFailed{error: err})
 	}
+
+	m.resetTimeoutTimer(carfile.CarfileHash.String())
 
 	// send to nodes
 	go func() {
@@ -196,19 +202,3 @@ func (m *Manager) handleCachesFailed(ctx statemachine.Context, carfile CarfileIn
 	}
 	return ctx.Send(CarfileRecache{})
 }
-
-// func (m *Manager) handleCandidateCachingFailed(ctx statemachine.Context, carfile CarfileInfo) error {
-// 	log.Infof("handle candidate cache failed: %s", carfile.CarfileCID)
-// 	if err := failedCooldown(ctx, carfile); err != nil {
-// 		return err
-// 	}
-// 	return ctx.Send(CarfileRecache{})
-// }
-
-// func (m *Manager) handleEdgeCachingFailed(ctx statemachine.Context, carfile CarfileInfo) error {
-// 	log.Infof("handle edge cache failed: %s", carfile.CarfileCID)
-// 	if err := failedCooldown(ctx, carfile); err != nil {
-// 		return err
-// 	}
-// 	return ctx.Send(CarfileRecache{})
-// }
