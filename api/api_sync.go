@@ -1,19 +1,15 @@
 package api
 
-import "context"
+import (
+	"context"
+)
 
 type DataSync interface {
-	CompareChecksum(ctx context.Context, succeededCarfilesChecksum, unsucceededCarfilesChecksum string) (*CompareResult, error) //perm:write
-
-	// BeginCheckCarfiles, PrepareCarfiles and DoCheckCarfiles is transaction
-	BeginCheckCarfiles(ctx context.Context) error //perm:write
-	// send storage list to node in multiple times
-	PrepareCarfiles(ctx context.Context, carfileHashes []string) error //perm:write
-	// DoCheckCarfiles, carfilesHash is checksum of carfiles
-	DoCheckCarfiles(ctx context.Context, carfilesChecksum string, isSusseedCarfiles bool) error //perm:write
-}
-
-type CompareResult struct {
-	IsSusseedCarfilesOk   bool
-	IsUnsusseedCarfilesOk bool
+	// sort multiHashes by bucketCount
+	// checksums's key is hash code, within 0 ~ bucketCount
+	// return key of mismatch checksum
+	CompareChecksums(ctx context.Context, bucketCount uint32, checksums map[uint32]string) (mismatchKeys []uint32, err error) //perm:write
+	// compare carfile one by one
+	// multiHashes's key is hash code, within 0 ~ bucketCount
+	CompareCarfiles(ctx context.Context, bucketCount uint32, multiHashes map[uint32][]string) error //perm:write
 }

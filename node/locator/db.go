@@ -9,25 +9,23 @@ import (
 
 // locaton config
 type schedulerCfg struct {
-	SchedulerURL string `DB:"scheduler_url"`
-	AreaID       string `DB:"area_id"`
-	Weight       int    `DB:"weight"`
-	AccessToken  string `DB:"access_token"`
+	SchedulerURL string `db:"scheduler_url"`
+	AreaID       string `db:"area_id"`
+	Weight       int    `db:"weight"`
+	AccessToken  string `db:"access_token"`
 }
 
 type nodeInfo struct {
-	ID           int
-	NodeID       string `DB:"node_id"`
-	SchedulerURL string `DB:"scheduler_url"`
-	AreaID       string `DB:"area_id"`
-	Online       bool   `DB:"online"`
+	NodeID       string `db:"node_id"`
+	SchedulerURL string `db:"scheduler_url"`
+	AreaID       string `db:"area_id"`
+	Online       bool   `db:"online"`
 }
 
 type scheduler struct {
-	ID           int
-	SchedulerURL string `DB:"scheduler_url"`
-	AreaID       string `DB:"area_id"`
-	Online       bool   `DB:"online"`
+	SchedulerURL string `db:"scheduler_url"`
+	AreaID       string `db:"area_id"`
+	Online       bool   `db:"online"`
 }
 
 type SqlDB struct {

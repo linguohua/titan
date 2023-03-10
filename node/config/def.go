@@ -32,7 +32,6 @@ func DefaultEdgeCfg() *EdgeCfg {
 	return &EdgeCfg{
 		ListenAddress:    "0.0.0.0:1234",
 		Timeout:          "30s",
-		CarfileStoreType: "FileStore",
 		CarfileStorePath: "",
 		BandwidthUp:      104857600,
 		BandwidthDown:    1073741824,
@@ -42,6 +41,9 @@ func DefaultEdgeCfg() *EdgeCfg {
 		PrivateKeyPath:     "",
 		CaCertificatePath:  "",
 		InsecureSkipVerify: true,
+
+		FetchBlockTimeout:     15,
+		FetchBlockFailedRetry: 1,
 	}
 }
 
@@ -50,7 +52,6 @@ func DefaultCandidateCfg() *CandidateCfg {
 	edgeCfg := EdgeCfg{
 		ListenAddress:    "0.0.0.0:2345",
 		Timeout:          "30s",
-		CarfileStoreType: "FileStore",
 		CarfileStorePath: "",
 		BandwidthUp:      1073741824,
 		BandwidthDown:    1073741824,
@@ -60,6 +61,9 @@ func DefaultCandidateCfg() *CandidateCfg {
 		CertificatePath:    "",
 		PrivateKeyPath:     "",
 		CaCertificatePath:  "",
+
+		FetchBlockTimeout:     15,
+		FetchBlockFailedRetry: 1,
 	}
 	return &CandidateCfg{
 		EdgeCfg:    edgeCfg,

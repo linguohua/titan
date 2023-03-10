@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/linguohua/titan/node/candidate"
-	"github.com/linguohua/titan/node/carfile/carfilestore"
-	"github.com/linguohua/titan/node/carfile/downloader"
+	"github.com/linguohua/titan/node/carfile/fetcher"
+	"github.com/linguohua/titan/node/carfile/store"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"go.uber.org/fx"
@@ -16,14 +16,14 @@ type NodeParams struct {
 
 	NodeID        dtypes.NodeID
 	InternalIP    dtypes.InternalIP
-	CarfileStore  *carfilestore.CarfileStore
+	CarfileStore  *store.CarfileStore
 	BandwidthUP   int64
 	BandwidthDown int64
 }
 
-func NewDownloadBlockerFromIPFS(cfg *config.CandidateCfg, carfileStore *carfilestore.CarfileStore) downloader.DownloadBlockser {
+func NewBlockFetcherFromIPFS(cfg *config.CandidateCfg) fetcher.BlockFetcher {
 	log.Info("ipfs-api " + cfg.IpfsApiURL)
-	return downloader.NewIPFS(cfg.IpfsApiURL, carfileStore)
+	return fetcher.NewIPFS(cfg.IpfsApiURL, cfg.FetchBlockTimeout, cfg.FetchBlockFailedRetry)
 }
 
 func NewTcpServer(lc fx.Lifecycle, cfg *config.CandidateCfg, blockWait *candidate.BlockWaiter) *candidate.TCPServer {

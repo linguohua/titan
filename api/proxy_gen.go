@@ -29,9 +29,9 @@ type CandidateStruct struct {
 	CarfileOperationStruct
 
 	Internal struct {
-		GetBlocksOfCarfile func(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) `perm:"read"`
+		GetBlock func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
 
-		LoadBlock func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
+		GetBlocksOfCarfile func(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) `perm:"read"`
 
 		ValidateNodes func(p0 context.Context, p1 []ReqValidate) error `perm:"read"`
 
@@ -105,13 +105,9 @@ type CommonStub struct {
 
 type DataSyncStruct struct {
 	Internal struct {
-		BeginCheckCarfiles func(p0 context.Context) error `perm:"write"`
+		CompareCarfiles func(p0 context.Context, p1 uint32, p2 map[uint32][]string) error `perm:"write"`
 
-		CompareChecksum func(p0 context.Context, p1 string, p2 string) (*CompareResult, error) `perm:"write"`
-
-		DoCheckCarfiles func(p0 context.Context, p1 string, p2 bool) error `perm:"write"`
-
-		PrepareCarfiles func(p0 context.Context, p1 []string) error `perm:"write"`
+		CompareChecksums func(p0 context.Context, p1 uint32, p2 map[uint32]string) ([]uint32, error) `perm:"write"`
 	}
 }
 
@@ -315,6 +311,17 @@ type ValidateStruct struct {
 type ValidateStub struct {
 }
 
+func (s *CandidateStruct) GetBlock(p0 context.Context, p1 string) ([]byte, error) {
+	if s.Internal.GetBlock == nil {
+		return *new([]byte), ErrNotSupported
+	}
+	return s.Internal.GetBlock(p0, p1)
+}
+
+func (s *CandidateStub) GetBlock(p0 context.Context, p1 string) ([]byte, error) {
+	return *new([]byte), ErrNotSupported
+}
+
 func (s *CandidateStruct) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
 	if s.Internal.GetBlocksOfCarfile == nil {
 		return *new(map[int]string), ErrNotSupported
@@ -324,17 +331,6 @@ func (s *CandidateStruct) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 i
 
 func (s *CandidateStub) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
 	return *new(map[int]string), ErrNotSupported
-}
-
-func (s *CandidateStruct) LoadBlock(p0 context.Context, p1 string) ([]byte, error) {
-	if s.Internal.LoadBlock == nil {
-		return *new([]byte), ErrNotSupported
-	}
-	return s.Internal.LoadBlock(p0, p1)
-}
-
-func (s *CandidateStub) LoadBlock(p0 context.Context, p1 string) ([]byte, error) {
-	return *new([]byte), ErrNotSupported
 }
 
 func (s *CandidateStruct) ValidateNodes(p0 context.Context, p1 []ReqValidate) error {
@@ -557,48 +553,26 @@ func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 	return *new(APIVersion), ErrNotSupported
 }
 
-func (s *DataSyncStruct) BeginCheckCarfiles(p0 context.Context) error {
-	if s.Internal.BeginCheckCarfiles == nil {
+func (s *DataSyncStruct) CompareCarfiles(p0 context.Context, p1 uint32, p2 map[uint32][]string) error {
+	if s.Internal.CompareCarfiles == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.BeginCheckCarfiles(p0)
+	return s.Internal.CompareCarfiles(p0, p1, p2)
 }
 
-func (s *DataSyncStub) BeginCheckCarfiles(p0 context.Context) error {
+func (s *DataSyncStub) CompareCarfiles(p0 context.Context, p1 uint32, p2 map[uint32][]string) error {
 	return ErrNotSupported
 }
 
-func (s *DataSyncStruct) CompareChecksum(p0 context.Context, p1 string, p2 string) (*CompareResult, error) {
-	if s.Internal.CompareChecksum == nil {
-		return nil, ErrNotSupported
+func (s *DataSyncStruct) CompareChecksums(p0 context.Context, p1 uint32, p2 map[uint32]string) ([]uint32, error) {
+	if s.Internal.CompareChecksums == nil {
+		return *new([]uint32), ErrNotSupported
 	}
-	return s.Internal.CompareChecksum(p0, p1, p2)
+	return s.Internal.CompareChecksums(p0, p1, p2)
 }
 
-func (s *DataSyncStub) CompareChecksum(p0 context.Context, p1 string, p2 string) (*CompareResult, error) {
-	return nil, ErrNotSupported
-}
-
-func (s *DataSyncStruct) DoCheckCarfiles(p0 context.Context, p1 string, p2 bool) error {
-	if s.Internal.DoCheckCarfiles == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.DoCheckCarfiles(p0, p1, p2)
-}
-
-func (s *DataSyncStub) DoCheckCarfiles(p0 context.Context, p1 string, p2 bool) error {
-	return ErrNotSupported
-}
-
-func (s *DataSyncStruct) PrepareCarfiles(p0 context.Context, p1 []string) error {
-	if s.Internal.PrepareCarfiles == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.PrepareCarfiles(p0, p1)
-}
-
-func (s *DataSyncStub) PrepareCarfiles(p0 context.Context, p1 []string) error {
-	return ErrNotSupported
+func (s *DataSyncStub) CompareChecksums(p0 context.Context, p1 uint32, p2 map[uint32]string) ([]uint32, error) {
+	return *new([]uint32), ErrNotSupported
 }
 
 func (s *DeviceStruct) NodeID(p0 context.Context) (string, error) {

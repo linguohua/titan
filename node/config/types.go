@@ -15,8 +15,6 @@ type EdgeCfg struct {
 	Secret string
 	// carfilestore path
 	CarfileStorePath string
-	// blockstore type
-	CarfileStoreType string
 	// upload file bandwidth, unit is B/s
 	BandwidthUp int64
 	// download file bandwidth, unit is B/s
@@ -33,6 +31,10 @@ type EdgeCfg struct {
 	PrivateKeyPath string
 	// self sign certificate, use for client
 	CaCertificatePath string
+	// FetchTimeout get block timeout
+	FetchBlockTimeout int
+	// FetchBlockFailedRetry retry when get block failed
+	FetchBlockFailedRetry int
 }
 
 type CandidateCfg struct {

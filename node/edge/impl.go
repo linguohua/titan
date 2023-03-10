@@ -24,7 +24,7 @@ type Edge struct {
 
 	*common.CommonAPI
 	*device.Device
-	*carfile.CarfileOperation
+	*carfile.CarfileImpl
 	*download.BlockDownload
 	*validate.Validate
 	*datasync.DataSync

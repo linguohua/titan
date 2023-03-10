@@ -1,6 +1,7 @@
 package download
 
 import (
+	"bytes"
 	"context"
 	"crypto/rsa"
 	"encoding/hex"
@@ -9,17 +10,18 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/linguohua/titan/api/types"
-	"github.com/linguohua/titan/node/carfile/carfilestore"
+	"github.com/linguohua/titan/node/carfile/store"
 	titanRsa "github.com/linguohua/titan/node/rsa"
 
+	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/lib/limiter"
-	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/validate"
 	"golang.org/x/time/rate"
@@ -34,14 +36,14 @@ const (
 
 type BlockDownload struct {
 	limiter      *rate.Limiter
-	carfileStore *carfilestore.CarfileStore
+	carfileStore *store.CarfileStore
 	publicKey    *rsa.PublicKey
 	scheduler    api.Scheduler
 	device       *device.Device
 	validate     *validate.Validate
 }
 
-func NewBlockDownload(limiter *rate.Limiter, scheduler api.Scheduler, carfileStore *carfilestore.CarfileStore, device *device.Device, validate *validate.Validate) *BlockDownload {
+func NewBlockDownload(limiter *rate.Limiter, scheduler api.Scheduler, carfileStore *store.CarfileStore, device *device.Device, validate *validate.Validate) *BlockDownload {
 	blockDownload := &BlockDownload{
 		limiter:      limiter,
 		carfileStore: carfileStore,
@@ -72,11 +74,19 @@ func (bd *BlockDownload) resultFailed(w http.ResponseWriter, r *http.Request, sn
 
 func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 	appName := r.Header.Get("App-Name")
-	cidStr := r.URL.Query().Get("cid")
+	// cidStr := r.URL.Query().Get("cid")
 	signStr := r.URL.Query().Get("sign")
 	snStr := r.URL.Query().Get("sn")
 	signTime := r.URL.Query().Get("signTime")
 	timeout := r.URL.Query().Get("timeout")
+
+	paths := strings.Split(r.URL.Path, "/")
+	if len(paths) < 2 {
+		bd.resultFailed(w, r, 0, nil, "", fmt.Errorf("path %s error", r.URL.Path))
+		return
+	}
+
+	cidStr := paths[1]
 
 	log.Infof("GetBlock, App-Name:%s, sign:%s, sn:%s, signTime:%s, timeout:%s,  cid:%s", appName, signStr, snStr, signTime, timeout, cidStr)
 
@@ -105,28 +115,27 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blockHash, err := cidutil.CIDString2HashString(cidStr)
+	c, err := cid.Decode(cidStr)
 	if err != nil {
-		bd.resultFailed(w, r, sn, sign, cidStr, fmt.Errorf("Parser param cid(%s) error:%s", cidStr, err.Error()))
+		bd.resultFailed(w, r, 0, nil, "", err)
 		return
 	}
 
-	reader, err := bd.carfileStore.BlockReader(blockHash)
+	blk, err := bd.carfileStore.Block(c)
 	if err != nil {
 		bd.resultFailed(w, r, sn, sign, cidStr, err)
 		return
 	}
-	defer reader.Close()
 
 	bd.validate.CancelValidate()
 
 	contentDisposition := fmt.Sprintf("attachment; filename=%s", cidStr)
 	w.Header().Set("Content-Disposition", contentDisposition)
-	w.Header().Set("Content-Length", strconv.FormatInt(reader.Size(), 10))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(blk.RawData())))
 
 	now := time.Now()
 
-	n, err := io.Copy(w, limiter.NewReader(reader, bd.limiter))
+	n, err := io.Copy(w, limiter.NewReader(bytes.NewReader(blk.RawData()), bd.limiter))
 	if err != nil {
 		log.Errorf("GetBlock, io.Copy error:%v", err)
 		return

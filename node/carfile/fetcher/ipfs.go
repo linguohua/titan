@@ -1,8 +1,7 @@
-package downloader
+package fetcher
 
 import (
 	"context"
-	"github.com/linguohua/titan/api/types"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -11,41 +10,35 @@ import (
 	blocks "github.com/ipfs/go-block-format" // v0.1.0
 	"github.com/ipfs/go-cid"
 	httpapi "github.com/ipfs/go-ipfs-http-client"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/linguohua/titan/node/carfile/carfilestore"
-	"github.com/linguohua/titan/node/cidutil"
+	"github.com/linguohua/titan/api/types"
 )
 
+var log = logging.Logger("carfile/fetcher")
+
 type ipfs struct {
-	httpAPI      *httpapi.HttpApi
-	carfileStore *carfilestore.CarfileStore
+	httpAPI    *httpapi.HttpApi
+	timeout    int
+	retryCount int
+	// carfileStore *carfilestore.CarfileStore
 }
 
-func NewIPFS(ipfsApiURL string, cs *carfilestore.CarfileStore) *ipfs {
+func NewIPFS(ipfsApiURL string, timeout, retryCount int) *ipfs {
 	httpAPI, err := httpapi.NewURLApiWithClient(ipfsApiURL, &http.Client{})
 	if err != nil {
 		log.Panicf("NewBlock,NewURLApiWithClient error:%s, url:%s", err.Error(), ipfsApiURL)
 	}
 
-	return &ipfs{httpAPI: httpAPI, carfileStore: cs}
+	return &ipfs{httpAPI: httpAPI, timeout: timeout, retryCount: retryCount}
 }
 
-func (ipfs *ipfs) DownloadBlocks(cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
+func (ipfs *ipfs) Fetch(ctx context.Context, cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
 	return ipfs.getBlocks(cids)
 }
 
 func (ipfs *ipfs) getBlock(cidStr string) (blocks.Block, error) {
-	blockHash, err := cidutil.CIDString2HashString(cidStr)
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := ipfs.carfileStore.Block(blockHash)
-	if err == nil { // continue download block if err not nil
-		return newBlock(cidStr, data)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ipfs.timeout)*time.Second)
 	defer cancel()
 
 	reader, err := ipfs.httpAPI.Block().Get(ctx, path.New(cidStr))
@@ -53,13 +46,12 @@ func (ipfs *ipfs) getBlock(cidStr string) (blocks.Block, error) {
 		return nil, err
 	}
 
-	data, err = ioutil.ReadAll(reader)
+	data, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
 
 	return newBlock(cidStr, data)
-
 }
 
 func (ipfs *ipfs) getBlocks(cids []string) ([]blocks.Block, error) {
@@ -75,7 +67,7 @@ func (ipfs *ipfs) getBlocks(cids []string) ([]blocks.Block, error) {
 		go func() {
 			defer wg.Done()
 
-			for i := 0; i < retryCount; i++ {
+			for i := 0; i < ipfs.retryCount; i++ {
 				b, err := ipfs.getBlock(cidStr)
 				if err != nil {
 					log.Errorf("getBlock error:%s, cid:%s", err.Error(), cidStr)

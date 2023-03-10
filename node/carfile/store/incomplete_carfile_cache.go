@@ -1,4 +1,4 @@
-package carfilestore
+package store
 
 import (
 	"os"

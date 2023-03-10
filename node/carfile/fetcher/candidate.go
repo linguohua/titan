@@ -1,47 +1,48 @@
-package downloader
+package fetcher
 
 import (
 	"context"
 	"fmt"
-	"github.com/linguohua/titan/api/types"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/linguohua/titan/api/types"
 
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
-	"github.com/linguohua/titan/node/carfile/carfilestore"
 )
 
 type candidate struct {
-	carfileStore *carfilestore.CarfileStore
+	timeout    int
+	retryCount int
 }
 
-func NewCandidate(cs *carfilestore.CarfileStore) *candidate {
-	return &candidate{carfileStore: cs}
+func NewCandidate(timeout, retryCount int) *candidate {
+	return &candidate{timeout: timeout, retryCount: retryCount}
 }
 
-func (candidate *candidate) DownloadBlocks(cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
+func (candidate *candidate) Fetch(ctx context.Context, cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
 	return candidate.getBlocks(cids, dss)
 }
 
 func (candidate *candidate) getBlock(candidateAPI api.Candidate, cidStr string) (blocks.Block, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(candidate.timeout)*time.Second)
 	defer cancel()
 
-	data, err := candidateAPI.LoadBlock(ctx, cidStr)
+	data, err := candidateAPI.GetBlock(ctx, cidStr)
 	if err != nil {
 		return nil, err
 	}
 
-	cid, err := cid.Decode(cidStr)
+	c, err := cid.Decode(cidStr)
 	if err != nil {
 		return nil, err
 	}
 
-	basicBlock, err := blocks.NewBlockWithCid(data, cid)
+	basicBlock, err := blocks.NewBlockWithCid(data, c)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +73,7 @@ func (candidate *candidate) getBlocks(cids []string, dss []*types.DownloadSource
 		go func() {
 			defer wg.Done()
 
-			for i := 0; i < retryCount; i++ {
+			for i := 0; i < candidate.retryCount; i++ {
 				b, err := candidate.getBlock(candidateAPI, cidStr)
 				if err != nil {
 					log.Errorf("getBlock error:%s, cid:%s", err.Error(), cidStr)

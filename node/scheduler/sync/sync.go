@@ -4,20 +4,21 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"sort"
+	"hash/fnv"
 	"sync"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/scheduler/node"
+	mh "github.com/multiformats/go-multihash"
 )
 
 var log = logging.Logger("data-sync")
 
 const (
-	groupCheckCount = 1000
-	dbLoadCount     = 500
+	bucketCount = 100
+	dbLoadCount = 500
 )
 
 type DataSync struct {
@@ -107,49 +108,66 @@ func (ds *DataSync) doDataSync(nodeID string) {
 
 	nodeCacheStatusList, err := ds.loadCarfileInfosBy(nodeID)
 	if err != nil {
-		log.Errorf("doDataSync, loadCarfileInfosByNode error:%s", err.Error())
+		log.Errorf("load carfile infos error:%s", err.Error())
 		return
 	}
 
-	// sort the storage hash, that match to the node file system
-	sort.Slice(nodeCacheStatusList, func(i, j int) bool {
-		return nodeCacheStatusList[i].CarfileHash < nodeCacheStatusList[j].CarfileHash
-	})
+	multihashes := ds.multihashSort(nodeCacheStatusList)
 
-	// split storage to succeeded and unsucceeded
-	succeededCarfiles, unsucceededCarfiles := ds.splitCacheStatusListByStatus(nodeCacheStatusList)
-
-	succeededChecksum, err := ds.caculateChecksum(succeededCarfiles)
+	checksums, err := ds.caculateChecksums(multihashes)
 	if err != nil {
-		log.Errorf("doDataSync, caculate succeededCarfiles checksum error:%s", err.Error())
+		log.Errorf("caculate checksums error:%s", err.Error())
 		return
 	}
 
-	unsucceededChecksum, err := ds.caculateChecksum(unsucceededCarfiles)
+	keys, err := dataSyncAPI.CompareChecksums(context.Background(), bucketCount, checksums)
 	if err != nil {
-		log.Errorf("doDataSync, caculate unsucceededCarfiles checksum error:%s", err.Error())
+		log.Errorf("compare checksums error:%s", err.Error())
 		return
 	}
 
-	checkSummaryResult, err := dataSyncAPI.CompareChecksum(context.Background(), succeededChecksum, unsucceededChecksum)
-	if err != nil {
-		log.Errorf("doDataSync,checkSummary error:%s", err.Error())
-		return
-	}
-
-	if !checkSummaryResult.IsSusseedCarfilesOk {
-		err = ds.checkCarfiles(dataSyncAPI, succeededCarfiles, succeededChecksum, true)
+	// TODO: merge multi key to compare together
+	for _, key := range keys {
+		err := dataSyncAPI.CompareCarfiles(context.Background(), bucketCount, map[uint32][]string{key: multihashes[key]})
 		if err != nil {
-			log.Errorf("check succeed storage error:%s", err)
+			log.Errorf("compare carfiles error:%s", err.Error())
 		}
 	}
 
-	if !checkSummaryResult.IsUnsusseedCarfilesOk {
-		err = ds.checkCarfiles(dataSyncAPI, unsucceededCarfiles, unsucceededChecksum, false)
+}
+
+func (ds *DataSync) multihashSort(statuses []*types.NodeCacheStatus) map[uint32][]string {
+	multihashes := make(map[uint32][]string)
+	// appen carfilehash by hash code
+	for _, status := range statuses {
+		multihash, err := mh.FromHexString(status.CarfileHash)
 		if err != nil {
-			log.Errorf("check unsucceed storage error:%s", err)
+			log.Errorf("decode multihash error:%s", err.Error())
+			continue
 		}
+
+		h := fnv.New32a()
+		h.Write(multihash)
+		k := h.Sum32() % bucketCount
+
+		multihashes[k] = append(multihashes[k], status.CarfileHash)
+
 	}
+
+	return multihashes
+}
+
+func (ds *DataSync) caculateChecksums(multihashes map[uint32][]string) (map[uint32]string, error) {
+	checksums := make(map[uint32]string)
+	for k, v := range multihashes {
+		checksum, err := ds.caculateChecksum(v)
+		if err != nil {
+			return nil, err
+		}
+
+		checksums[k] = checksum
+	}
+	return checksums, nil
 }
 
 func (ds *DataSync) caculateChecksum(carfileHashes []string) (string, error) {
@@ -163,45 +181,6 @@ func (ds *DataSync) caculateChecksum(carfileHashes []string) (string, error) {
 		}
 	}
 	return hex.EncodeToString(hash.Sum(nil)), nil
-}
-
-func (ds *DataSync) checkCarfiles(dataSyncAPI api.DataSync, carfileHashes []string, checksum string, isSucceedCarfileCheck bool) error {
-	err := dataSyncAPI.BeginCheckCarfiles(context.Background())
-	if err != nil {
-		return err
-	}
-
-	for i := 0; i < len(carfileHashes); {
-		start := i
-		i = i + groupCheckCount
-		end := i
-
-		if end > len(carfileHashes) {
-			end = len(carfileHashes)
-		}
-
-		err = dataSyncAPI.PrepareCarfiles(context.Background(), carfileHashes[start:end])
-		if err != nil {
-			return err
-		}
-	}
-
-	return dataSyncAPI.DoCheckCarfiles(context.Background(), checksum, isSucceedCarfileCheck)
-}
-
-func (ds *DataSync) splitCacheStatusListByStatus(cacheStatusList []*types.NodeCacheStatus) (succeededCarfiles, unsucceededCarfiles []string) {
-	succeededCarfiles = make([]string, 0)
-	unsucceededCarfiles = make([]string, 0)
-
-	for _, cacheStatus := range cacheStatusList {
-		if cacheStatus.Status == types.CacheStatusSucceeded {
-			succeededCarfiles = append(succeededCarfiles, cacheStatus.CarfileHash)
-		} else if cacheStatus.Status == types.CacheStatusFailed {
-			unsucceededCarfiles = append(unsucceededCarfiles, cacheStatus.CarfileHash)
-		}
-	}
-
-	return succeededCarfiles, unsucceededCarfiles
 }
 
 func (ds *DataSync) loadCarfileInfosBy(nodeID string) ([]*types.NodeCacheStatus, error) {
