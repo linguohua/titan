@@ -1,5 +1,6 @@
 package storage
 
+// CarfileState
 type CarfileState string
 
 var ExistSectorStateList = map[CarfileState]struct{}{}
@@ -18,3 +19,7 @@ const (
 	CandidatesCacheFailed CarfileState = "CandidatesCacheFailed"
 	EdgesCacheFailed      CarfileState = "EdgesCacheFailed"
 )
+
+func (s CarfileState) String() string {
+	return string(s)
+}

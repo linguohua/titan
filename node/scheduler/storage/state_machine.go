@@ -9,6 +9,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
+// Plan Plan
 func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface{}, uint64, error) {
 	next, processed, err := m.plan(events, user.(*CarfileInfo))
 	if err != nil || next == nil {
@@ -35,7 +36,7 @@ var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *Carf
 	// 	on(CarfileGetSeed{}, GetSeed),
 	// ),
 	GetSeed: planOne(
-		on(CarfileSent{}, GetSeedCaching),
+		on(RequestNodes{}, GetSeedCaching),
 		on(CacheFailed{}, GetSeedFailed),
 	),
 	GetSeedCaching: planOne(
@@ -44,7 +45,7 @@ var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *Carf
 		apply(CacheResult{}),
 	),
 	StartCandidatesCache: planOne(
-		on(CarfileSent{}, CandidatesCaching),
+		on(RequestNodes{}, CandidatesCaching),
 		on(CacheSuccessed{}, StartEdgesCache),
 		on(CacheFailed{}, CandidatesCacheFailed),
 	),
@@ -54,7 +55,7 @@ var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *Carf
 		apply(CacheResult{}),
 	),
 	StartEdgesCache: planOne(
-		on(CarfileSent{}, EdgesCaching),
+		on(RequestNodes{}, EdgesCaching),
 		on(CacheFailed{}, EdgesCacheFailed),
 	),
 	EdgesCaching: planOne(

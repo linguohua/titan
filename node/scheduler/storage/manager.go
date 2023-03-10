@@ -37,6 +37,16 @@ const (
 
 var candidateReplicaCacheCount = 0 // nodeMgrCache to the number of candidate nodes （does not contain 'rootCacheCount'）
 
+// CacheEvent carfile cache event
+type CacheEvent int
+
+const (
+	// EventStop stop
+	EventStop CacheEvent = iota
+	// EventReset status
+	EventReset
+)
+
 // Manager storage
 type Manager struct {
 	nodeManager               *node.Manager
@@ -48,7 +58,7 @@ type Manager struct {
 	startupWait sync.WaitGroup
 	carfiles    *statemachine.StateGroup
 
-	carfileTickers map[string]*time.Ticker
+	carfileTickers map[string]chan CacheEvent
 	lock           sync.Locker
 }
 
@@ -195,7 +205,7 @@ func (m *Manager) doCarfileReplicaTask(info *types.CacheCarfileInfo) error {
 	}
 
 	err = m.nodeManager.CarfileDB.CreateOrUpdateCarfileRecordInfo(&types.CarfileRecordInfo{
-		CarfileCid:      carfileRecord.carfileCid,
+		CarfileCID:      carfileRecord.carfileCid,
 		NeedEdgeReplica: carfileRecord.replica,
 		Expiration:      carfileRecord.expirationTime,
 		CarfileHash:     carfileRecord.carfileHash,
@@ -227,8 +237,18 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 	// if err != nil {
 	// 	log.Errorf("push carfile to wait list: %v", err)
 	// }
-	err := m.nodeManager.CarfileDB.CreateOrUpdateCarfileRecordInfo(&types.CarfileRecordInfo{
-		CarfileCid:      info.CarfileCid,
+	cInfo, err := m.nodeManager.CarfileDB.LoadCarfileInfo(info.CarfileHash)
+	if err != nil {
+		return err
+	}
+
+	if cInfo.State == Finalize.String() {
+		log.Infof("carfile %s is finalize ", info.CarfileCid)
+		return nil
+	}
+
+	err = m.nodeManager.CarfileDB.CreateOrUpdateCarfileRecordInfo(&types.CarfileRecordInfo{
+		CarfileCID:      info.CarfileCid,
 		NeedEdgeReplica: info.Replicas,
 		Expiration:      info.Expiration,
 		CarfileHash:     info.CarfileHash,
@@ -323,9 +343,9 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 		m.lock.Lock()
 		defer m.lock.Unlock()
 
-		ticker := m.carfileTickers[info.CarfileHash]
-		if ticker != nil {
-			ticker.Reset(time.Duration(nodoCachingKeepalive) * time.Second)
+		tickerC := m.carfileTickers[info.CarfileHash]
+		if tickerC != nil {
+			tickerC <- EventReset
 		}
 
 		return
@@ -362,37 +382,52 @@ func (m *Manager) resetTimeoutTimer(carfileHash string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	ticker := m.carfileTickers[carfileHash]
-	if ticker != nil {
-		ticker.Reset(time.Duration(nodoCachingKeepalive) * time.Second)
+	tickerC := m.carfileTickers[carfileHash]
+	if tickerC != nil {
+		tickerC <- EventReset
 	} else {
-		ticker = time.NewTicker(time.Duration(nodoCachingKeepalive) * time.Second)
-		m.carfileTickers[carfileHash] = ticker
-
-		go m.startTicker(ticker, carfileHash)
+		m.carfileTickers[carfileHash] = m.startTicker(carfileHash)
 	}
 }
 
-func (m *Manager) startTicker(ticker *time.Ticker, carfileHash string) {
-	defer ticker.Stop()
+func (m *Manager) startTicker(carfileHash string) chan CacheEvent {
+	ticker := time.NewTicker(time.Duration(nodoCachingKeepalive) * time.Second)
 
-	for {
-		<-ticker.C
-		// task is timeout
-		err := m.carfiles.Send(CarfileHash(carfileHash), CacheFailed{error: xerrors.New("time out")})
-		if err != nil {
-			log.Errorf("check timeout err:%s", err.Error())
+	tChan := make(chan CacheEvent)
+	go func(ticker *time.Ticker) {
+		defer func() {
+			close(tChan)
+			ticker.Stop()
+		}()
+
+		for {
+			select {
+			case <-ticker.C:
+				err := m.carfiles.Send(CarfileHash(carfileHash), CacheFailed{error: xerrors.New("time out")})
+				if err != nil {
+					log.Errorf("carfileHash %s Send time out err:%s", carfileHash, err.Error())
+				}
+			case event := <-tChan:
+				if event == EventStop {
+					return
+				}
+				if event == EventReset {
+					ticker.Reset(time.Duration(nodoCachingKeepalive) * time.Second)
+				}
+			}
 		}
-	}
+	}(ticker)
+
+	return tChan
 }
 
 func (m *Manager) stopTimeoutTimer(carfileHash string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	ticker := m.carfileTickers[carfileHash]
-	if ticker != nil {
-		ticker.Stop()
+	tickerC := m.carfileTickers[carfileHash]
+	if tickerC != nil {
+		tickerC <- EventStop
 		delete(m.carfileTickers, carfileHash)
 	}
 }
@@ -502,8 +537,8 @@ func (m *Manager) checkCachesExpiration() {
 
 	for _, carfileRecord := range carfileRecords {
 		// do remove
-		err = m.RemoveCarfileRecord(carfileRecord.CarfileCid, carfileRecord.CarfileHash)
-		log.Infof("cid:%s, expired,remove it ; %v", carfileRecord.CarfileCid, err)
+		err = m.RemoveCarfileRecord(carfileRecord.CarfileCID, carfileRecord.CarfileHash)
+		log.Infof("cid:%s, expired,remove it ; %v", carfileRecord.CarfileCID, err)
 	}
 
 	// reset expiration time
@@ -614,7 +649,7 @@ func (m *Manager) GetDownloadingCarfileInfos() []*types.CarfileRecordInfo {
 func carfileRecord2Info(cr *CarfileRecord) *types.CarfileRecordInfo {
 	info := &types.CarfileRecordInfo{}
 	if cr != nil {
-		info.CarfileCid = cr.carfileCid
+		info.CarfileCID = cr.carfileCid
 		info.CarfileHash = cr.carfileHash
 		info.TotalSize = cr.totalSize
 		info.NeedEdgeReplica = cr.replica
@@ -646,32 +681,21 @@ func carfileRecord2Info(cr *CarfileRecord) *types.CarfileRecordInfo {
 	return info
 }
 
-func (m *Manager) CarfileStatus(ctx context.Context, cid types.CarfileID) (types.CarfileInfo, error) {
+func (m *Manager) CarfileStatus(ctx context.Context, cid types.CarfileID) (types.CarfileRecordInfo, error) {
 	info, err := m.GetCarfileInfo(CarfileHash(cid))
 	if err != nil {
-		return types.CarfileInfo{}, err
+		return types.CarfileRecordInfo{}, err
 	}
 
-	//cLog := make([]types.Log, len(info.Log))
-	//for i, l := range info.Log {
-	//	cLog[i] = types.Log{
-	//		Kind:      l.Kind,
-	//		Timestamp: l.Timestamp,
-	//		Trace:     l.Trace,
-	//		Message:   l.Message,
-	//	}
-	//}
-
-	cInfo := types.CarfileInfo{
-		CarfileCID:  cid.String(),
-		State:       types.CarfileState(info.State),
-		CarfileHash: types.CarfileID(info.CarfileHash),
-		Replicas:    info.EdgeReplicas,
-		ServerID:    info.ServerID,
-		Size:        info.Size,
-		Blocks:      info.Blocks,
-		CreatedAt:   time.Unix(info.CreatedAt, 0),
-		Expiration:  time.Unix(info.Expiration, 0),
+	cInfo := types.CarfileRecordInfo{
+		CarfileCID:            cid.String(),
+		State:                 info.State.String(),
+		CarfileHash:           info.CarfileHash.String(),
+		NeedEdgeReplica:       int(info.EdgeReplicas),
+		NeedCandidateReplicas: int(info.CandidateReplicas),
+		TotalSize:             info.Size,
+		TotalBlocks:           int(info.Blocks),
+		Expiration:            time.Unix(info.Expiration, 0),
 	}
 
 	return cInfo, nil

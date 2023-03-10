@@ -7,6 +7,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
+// MinRetryTime retry time
 var MinRetryTime = 1 * time.Minute
 
 func failedCooldown(ctx statemachine.Context, carfile CarfileInfo) error {
@@ -51,7 +52,7 @@ func (m *Manager) handleGetSeed(ctx statemachine.Context, carfile CarfileInfo) e
 		}
 	}()
 
-	return ctx.Send(CarfileSent{})
+	return ctx.Send(RequestNodes{})
 }
 
 func (m *Manager) handleGetSeedCaching(ctx statemachine.Context, carfile CarfileInfo) error {
@@ -108,7 +109,7 @@ func (m *Manager) handleStartCandidatesCache(ctx statemachine.Context, carfile C
 		}
 	}()
 
-	return ctx.Send(CarfileSent{})
+	return ctx.Send(RequestNodes{})
 }
 
 func (m *Manager) handleCandidatesCaching(ctx statemachine.Context, carfile CarfileInfo) error {
@@ -168,7 +169,7 @@ func (m *Manager) handleStartEdgesCache(ctx statemachine.Context, carfile Carfil
 		}
 	}()
 
-	return ctx.Send(CarfileSent{})
+	return ctx.Send(RequestNodes{})
 }
 
 func (m *Manager) handleEdgesCaching(ctx statemachine.Context, carfile CarfileInfo) error {

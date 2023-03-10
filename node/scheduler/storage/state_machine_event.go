@@ -16,18 +16,22 @@ type globalMutator interface {
 	applyGlobal(state *CarfileInfo) bool
 }
 
+// Ignorable Ignorable
 type Ignorable interface {
 	Ignore()
 }
 
 // Global events
 
+// CarfileRestart restart
 type CarfileRestart struct{}
 
 func (evt CarfileRestart) applyGlobal(*CarfileInfo) bool { return false }
 
+// CarfileFatalError Carfile fatal error
 type CarfileFatalError struct{ error }
 
+// FormatError Format error
 func (evt CarfileFatalError) FormatError(xerrors.Printer) (next error) { return evt.error }
 
 func (evt CarfileFatalError) applyGlobal(state *CarfileInfo) bool {
@@ -35,6 +39,7 @@ func (evt CarfileFatalError) applyGlobal(state *CarfileInfo) bool {
 	return true
 }
 
+// CarfileForceState carfile force
 type CarfileForceState struct {
 	State CarfileState
 }
@@ -44,6 +49,7 @@ func (evt CarfileForceState) applyGlobal(state *CarfileInfo) bool {
 	return true
 }
 
+// CacheResult nodes cache result
 type CacheResult struct {
 	ResultInfo *CacheResultInfo
 }
@@ -71,9 +77,10 @@ func (evt CacheResult) apply(state *CarfileInfo) {
 	}
 }
 
-type CarfileSent struct{}
+// RequestNodes request nodes cache carfile
+type RequestNodes struct{}
 
-func (evt CarfileSent) apply(state *CarfileInfo) {
+func (evt RequestNodes) apply(state *CarfileInfo) {
 }
 
 // Normal path
@@ -109,13 +116,12 @@ type CacheSuccessed struct{}
 func (evt CacheSuccessed) apply(state *CarfileInfo) {
 }
 
-type CarfileFinalize struct{}
-
-func (evt CarfileFinalize) apply(state *CarfileInfo) {}
-
+// CacheFailed nodes cache carfile failed
 type CacheFailed struct{ error }
 
+// FormatError Format error
 func (evt CacheFailed) FormatError(xerrors.Printer) (next error) { return evt.error }
+
 func (evt CacheFailed) apply(ci *CarfileInfo) {
 	ci.retries++
 }
