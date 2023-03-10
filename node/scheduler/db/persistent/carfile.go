@@ -160,7 +160,8 @@ func (c *CarfileDB) QueryCarfilesRows(ctx context.Context, limit, offset int) (r
 	if limit > maxCount {
 		limit = maxCount
 	}
-	cmd := fmt.Sprintf("SELECT * FROM %s order by carfile_hash asc LIMIT ? OFFSET ? ", carfileInfoTable)
+
+	cmd := fmt.Sprintf("SELECT * FROM %s WHERE state!='Finalize' order by carfile_hash asc LIMIT ? OFFSET ? ", carfileInfoTable)
 	return c.DB.QueryxContext(ctx, cmd, limit, offset)
 }
 
