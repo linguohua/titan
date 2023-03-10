@@ -36,6 +36,7 @@ var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *Carf
 	// ),
 	GetSeed: planOne(
 		on(CarfileSent{}, GetSeedCaching),
+		on(CacheFailed{}, GetSeedFailed),
 	),
 	GetSeedCaching: planOne(
 		on(CacheSuccessed{}, StartCandidatesCache),
@@ -45,6 +46,7 @@ var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *Carf
 	StartCandidatesCache: planOne(
 		on(CarfileSent{}, CandidatesCaching),
 		on(CacheSuccessed{}, StartEdgesCache),
+		on(CacheFailed{}, CandidatesCacheFailed),
 	),
 	CandidatesCaching: planOne(
 		on(CacheFailed{}, CandidatesCacheFailed),
@@ -53,6 +55,7 @@ var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *Carf
 	),
 	StartEdgesCache: planOne(
 		on(CarfileSent{}, EdgesCaching),
+		on(CacheFailed{}, EdgesCacheFailed),
 	),
 	EdgesCaching: planOne(
 		on(CacheFailed{}, EdgesCacheFailed),
@@ -101,8 +104,6 @@ func (m *Manager) plan(events []statemachine.Event, state *CarfileInfo) (func(st
 		return m.handleStartCandidatesCache, processed, nil
 	case StartEdgesCache:
 		return m.handleStartEdgesCache, processed, nil
-	// case GetSeedCompleted:
-	// 	return m.handleGetSeedCompleted, processed, nil
 	case CandidatesCaching:
 		return m.handleCandidatesCaching, processed, nil
 	case EdgesCaching:
