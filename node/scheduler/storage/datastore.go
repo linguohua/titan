@@ -34,7 +34,7 @@ func (d *Datastore) Get(ctx context.Context, key datastore.Key) (value []byte, e
 		return nil, err
 	}
 
-	carfile := From(out)
+	carfile := carfileInfoFrom(out)
 	valueBuf := new(bytes.Buffer)
 	if err := carfile.MarshalCBOR(valueBuf); err != nil {
 		return nil, err
@@ -97,9 +97,8 @@ func (d *Datastore) rawQuery(ctx context.Context, q query.Query) (query.Results,
 				return query.Result{Error: err}, false
 			}
 
+			carfile := carfileInfoFrom(value)
 			entry := query.Entry{Key: value.CarfileHash}
-
-			carfile := From(value)
 			valueBuf := new(bytes.Buffer)
 			if err := carfile.MarshalCBOR(valueBuf); err != nil {
 				return query.Result{Entry: entry}, false

@@ -60,7 +60,7 @@ func (state *CarfileInfo) toCarfileRecordInfo() *types.CarfileRecordInfo {
 	}
 }
 
-func From(info *types.CarfileRecordInfo) *CarfileInfo {
+func carfileInfoFrom(info *types.CarfileRecordInfo) *CarfileInfo {
 	return &CarfileInfo{
 		CarfileCID:                 info.CarfileCID,
 		State:                      CarfileState(info.State),
