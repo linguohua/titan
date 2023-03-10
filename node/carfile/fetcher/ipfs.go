@@ -34,7 +34,7 @@ func NewIPFS(ipfsApiURL string, timeout, retryCount int) *ipfs {
 }
 
 func (ipfs *ipfs) Fetch(ctx context.Context, cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
-	return ipfs.getBlocks(cids)
+	return ipfs.getBlocks(ctx, cids)
 }
 
 func (ipfs *ipfs) getBlock(cidStr string) (blocks.Block, error) {
@@ -54,7 +54,7 @@ func (ipfs *ipfs) getBlock(cidStr string) (blocks.Block, error) {
 	return newBlock(cidStr, data)
 }
 
-func (ipfs *ipfs) getBlocks(cids []string) ([]blocks.Block, error) {
+func (ipfs *ipfs) getBlocks(ctx context.Context, cids []string) ([]blocks.Block, error) {
 	blks := make([]blocks.Block, 0, len(cids))
 	blksLock := &sync.Mutex{}
 
