@@ -61,9 +61,9 @@ func (evt CacheResult) apply(state *CarfileInfo) {
 
 	if evt.ResultInfo.Status == int64(types.CacheStatusSucceeded) {
 		if evt.ResultInfo.IsCandidate {
-			state.SuccessedCandidateReplicas++
+			state.SucceedCandidateReplicas++
 		} else {
-			state.SuccessedEdgeReplicas++
+			state.SucceedEdgeReplicas++
 		}
 		state.Size = evt.ResultInfo.CarfileSize
 		state.Blocks = evt.ResultInfo.CarfileBlockCount
@@ -76,10 +76,10 @@ func (evt CacheResult) apply(state *CarfileInfo) {
 	}
 }
 
-// RequestNodes request nodes cache carfile
-type RequestNodes struct{}
+// CacheRequestSent request nodes cache carfile
+type CacheRequestSent struct{}
 
-func (evt RequestNodes) apply(state *CarfileInfo) {
+func (evt CacheRequestSent) apply(state *CarfileInfo) {
 }
 
 // Normal path
@@ -109,10 +109,10 @@ type CarfileRecache struct{}
 
 func (evt CarfileRecache) apply(state *CarfileInfo) {}
 
-// CacheSuccessed nodes cache carfile completed
-type CacheSuccessed struct{}
+// CacheSucceed nodes cache carfile completed
+type CacheSucceed struct{}
 
-func (evt CacheSuccessed) apply(state *CarfileInfo) {
+func (evt CacheSucceed) apply(state *CarfileInfo) {
 }
 
 // CacheFailed nodes cache carfile failed

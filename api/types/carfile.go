@@ -42,10 +42,10 @@ type CarfileRecordInfo struct {
 	State                 string    `db:"state"`
 	NeedCandidateReplicas int64     `db:"candidate_replica"`
 
-	SuccessedEdgeReplicas      int64 `db:"successed_edges"`
-	SuccessedCandidateReplicas int64 `db:"successed_candidates"`
-	FailedEdgeReplicas         int64 `db:"failed_edges"`
-	FailedCandidateReplicas    int64 `db:"failed_candidates"`
+	SucceedEdgeReplicas      int64 `db:"succeed_edges"`
+	SucceedCandidateReplicas int64 `db:"succeed_candidates"`
+	FailedEdgeReplicas       int64 `db:"failed_edges"`
+	FailedCandidateReplicas  int64 `db:"failed_candidates"`
 
 	ReplicaInfos []*ReplicaInfo
 	ResultInfo   *CarfileRecordCacheResult

@@ -54,17 +54,17 @@ func (m *Manager) handleCacheSeed(ctx statemachine.Context, carfile CarfileInfo)
 		}
 	}()
 
-	return ctx.Send(RequestNodes{})
+	return ctx.Send(CacheRequestSent{})
 }
 
 func (m *Manager) handleSeedCaching(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handler get seed caching, %s", carfile.CarfileCID)
 
-	if carfile.SuccessedCandidateReplicas >= rootCacheCount {
-		return ctx.Send(CacheSuccessed{})
+	if carfile.SucceedCandidateReplicas >= rootCacheCount {
+		return ctx.Send(CacheSucceed{})
 	}
 
-	if carfile.SuccessedCandidateReplicas+carfile.FailedCandidateReplicas >= rootCacheCount {
+	if carfile.SucceedCandidateReplicas+carfile.FailedCandidateReplicas >= rootCacheCount {
 		return ctx.Send(CacheFailed{error: xerrors.New("node cache fail")})
 	}
 
@@ -74,10 +74,10 @@ func (m *Manager) handleSeedCaching(ctx statemachine.Context, carfile CarfileInf
 func (m *Manager) handleCacheToCandidates(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handler cache to candidates, %s", carfile.CarfileCID)
 
-	needCount := carfile.CandidateReplicas - carfile.SuccessedCandidateReplicas
+	needCount := carfile.CandidateReplicas - carfile.SucceedCandidateReplicas
 	if needCount < 1 {
 		// cache to edges
-		return ctx.Send(CacheSuccessed{})
+		return ctx.Send(CacheSucceed{})
 	}
 
 	filterNodes, err := m.nodeManager.CarfileDB.CandidatesWithHash(carfile.CarfileHash.String())
@@ -112,17 +112,17 @@ func (m *Manager) handleCacheToCandidates(ctx statemachine.Context, carfile Carf
 		}
 	}()
 
-	return ctx.Send(RequestNodes{})
+	return ctx.Send(CacheRequestSent{})
 }
 
 func (m *Manager) handleCandidatesCaching(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handler candidates caching, %s", carfile.CarfileCID)
 
-	if carfile.SuccessedCandidateReplicas >= carfile.CandidateReplicas {
-		return ctx.Send(CacheSuccessed{})
+	if carfile.SucceedCandidateReplicas >= carfile.CandidateReplicas {
+		return ctx.Send(CacheSucceed{})
 	}
 
-	if carfile.SuccessedCandidateReplicas+carfile.FailedCandidateReplicas >= carfile.CandidateReplicas {
+	if carfile.SucceedCandidateReplicas+carfile.FailedCandidateReplicas >= carfile.CandidateReplicas {
 		return ctx.Send(CacheFailed{error: xerrors.New("node cache fail")})
 	}
 
@@ -132,7 +132,7 @@ func (m *Manager) handleCandidatesCaching(ctx statemachine.Context, carfile Carf
 func (m *Manager) handleCacheToEdges(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handler cache to edges , %s", carfile.CarfileCID)
 
-	needCount := carfile.EdgeReplicas - carfile.SuccessedEdgeReplicas
+	needCount := carfile.EdgeReplicas - carfile.SucceedEdgeReplicas
 
 	cNdoes, err := m.nodeManager.CarfileDB.CandidatesWithHash(carfile.CarfileHash.String())
 	if err != nil {
@@ -174,16 +174,16 @@ func (m *Manager) handleCacheToEdges(ctx statemachine.Context, carfile CarfileIn
 		}
 	}()
 
-	return ctx.Send(RequestNodes{})
+	return ctx.Send(CacheRequestSent{})
 }
 
 func (m *Manager) handleEdgesCaching(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handler edge caching, %s", carfile.CarfileCID)
-	if carfile.SuccessedEdgeReplicas >= carfile.EdgeReplicas {
-		return ctx.Send(CacheSuccessed{})
+	if carfile.SucceedEdgeReplicas >= carfile.EdgeReplicas {
+		return ctx.Send(CacheSucceed{})
 	}
 
-	if carfile.SuccessedEdgeReplicas+carfile.FailedEdgeReplicas >= carfile.EdgeReplicas {
+	if carfile.SucceedEdgeReplicas+carfile.FailedEdgeReplicas >= carfile.EdgeReplicas {
 		return ctx.Send(CacheFailed{error: xerrors.New("node cache fail")})
 	}
 
