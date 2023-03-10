@@ -7,8 +7,13 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// MinRetryTime retry time
-var MinRetryTime = 1 * time.Minute
+var (
+	// MinRetryTime retry time
+	MinRetryTime = 1 * time.Minute
+
+	// MaxRetryCount retry count
+	MaxRetryCount = 3
+)
 
 func failedCooldown(ctx statemachine.Context, carfile CarfileInfo) error {
 	// TODO: Exponential backoff when we see consecutive failures
@@ -197,6 +202,7 @@ func (m *Manager) handleFinalize(ctx statemachine.Context, carfile CarfileInfo) 
 
 func (m *Manager) handleCachesFailed(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handle caches failed: %s", carfile.CarfileCID)
+
 	if err := failedCooldown(ctx, carfile); err != nil {
 		return err
 	}
