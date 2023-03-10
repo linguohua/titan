@@ -224,7 +224,7 @@ type SchedulerStruct struct {
 
 		CarfileRecord func(p0 context.Context, p1 string) (*types.CarfileRecordInfo, error) `perm:"read"`
 
-		CarfileRecordList func(p0 context.Context, p1 int) (*types.ListCarfileRecordRsp, error) `perm:"read"`
+		CarfileRecords func(p0 context.Context, p1 int) (*types.ListCarfileRecordRsp, error) `perm:"read"`
 
 		CarfileReplicaList func(p0 context.Context, p1 types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error) `perm:"read"`
 
@@ -250,8 +250,6 @@ type SchedulerStruct struct {
 
 		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
-		NodeDownloadRecord func(p0 context.Context, p1 string) ([]*types.DownloadRecordInfo, error) `perm:"read"`
-
 		NodeExternalAddr func(p0 context.Context) (string, error) `perm:"read"`
 
 		NodeInfo func(p0 context.Context, p1 string) (*types.NodeInfo, error) `perm:"read"`
@@ -272,7 +270,7 @@ type SchedulerStruct struct {
 
 		OnlineNodeList func(p0 context.Context, p1 types.NodeType) ([]string, error) `perm:"read"`
 
-		ReCacheCarfiles func(p0 context.Context, p1 []string) error `perm:"admin"`
+		RecacheCarfiles func(p0 context.Context, p1 []string) error `perm:"admin"`
 
 		RemoveCarfile func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -282,7 +280,7 @@ type SchedulerStruct struct {
 
 		ResetCandidateReplicaCount func(p0 context.Context, p1 int) error `perm:"admin"`
 
-		ResetCarfileRecordExpiration func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
+		ResetCarfileExpiration func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
 
 		SetNodeAppUpdateInfo func(p0 context.Context, p1 *NodeAppUpdateInfo) error `perm:"admin"`
 
@@ -867,14 +865,14 @@ func (s *SchedulerStub) CarfileRecord(p0 context.Context, p1 string) (*types.Car
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) CarfileRecordList(p0 context.Context, p1 int) (*types.ListCarfileRecordRsp, error) {
-	if s.Internal.CarfileRecordList == nil {
+func (s *SchedulerStruct) CarfileRecords(p0 context.Context, p1 int) (*types.ListCarfileRecordRsp, error) {
+	if s.Internal.CarfileRecords == nil {
 		return nil, ErrNotSupported
 	}
-	return s.Internal.CarfileRecordList(p0, p1)
+	return s.Internal.CarfileRecords(p0, p1)
 }
 
-func (s *SchedulerStub) CarfileRecordList(p0 context.Context, p1 int) (*types.ListCarfileRecordRsp, error) {
+func (s *SchedulerStub) CarfileRecords(p0 context.Context, p1 int) (*types.ListCarfileRecordRsp, error) {
 	return nil, ErrNotSupported
 }
 
@@ -1010,17 +1008,6 @@ func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 string, p2 string)
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) NodeDownloadRecord(p0 context.Context, p1 string) ([]*types.DownloadRecordInfo, error) {
-	if s.Internal.NodeDownloadRecord == nil {
-		return *new([]*types.DownloadRecordInfo), ErrNotSupported
-	}
-	return s.Internal.NodeDownloadRecord(p0, p1)
-}
-
-func (s *SchedulerStub) NodeDownloadRecord(p0 context.Context, p1 string) ([]*types.DownloadRecordInfo, error) {
-	return *new([]*types.DownloadRecordInfo), ErrNotSupported
-}
-
 func (s *SchedulerStruct) NodeExternalAddr(p0 context.Context) (string, error) {
 	if s.Internal.NodeExternalAddr == nil {
 		return "", ErrNotSupported
@@ -1131,14 +1118,14 @@ func (s *SchedulerStub) OnlineNodeList(p0 context.Context, p1 types.NodeType) ([
 	return *new([]string), ErrNotSupported
 }
 
-func (s *SchedulerStruct) ReCacheCarfiles(p0 context.Context, p1 []string) error {
-	if s.Internal.ReCacheCarfiles == nil {
+func (s *SchedulerStruct) RecacheCarfiles(p0 context.Context, p1 []string) error {
+	if s.Internal.RecacheCarfiles == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.ReCacheCarfiles(p0, p1)
+	return s.Internal.RecacheCarfiles(p0, p1)
 }
 
-func (s *SchedulerStub) ReCacheCarfiles(p0 context.Context, p1 []string) error {
+func (s *SchedulerStub) RecacheCarfiles(p0 context.Context, p1 []string) error {
 	return ErrNotSupported
 }
 
@@ -1186,14 +1173,14 @@ func (s *SchedulerStub) ResetCandidateReplicaCount(p0 context.Context, p1 int) e
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ResetCarfileRecordExpiration(p0 context.Context, p1 string, p2 time.Time) error {
-	if s.Internal.ResetCarfileRecordExpiration == nil {
+func (s *SchedulerStruct) ResetCarfileExpiration(p0 context.Context, p1 string, p2 time.Time) error {
+	if s.Internal.ResetCarfileExpiration == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.ResetCarfileRecordExpiration(p0, p1, p2)
+	return s.Internal.ResetCarfileExpiration(p0, p1, p2)
 }
 
-func (s *SchedulerStub) ResetCarfileRecordExpiration(p0 context.Context, p1 string, p2 time.Time) error {
+func (s *SchedulerStub) ResetCarfileExpiration(p0 context.Context, p1 string, p2 time.Time) error {
 	return ErrNotSupported
 }
 

@@ -45,8 +45,8 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo types.Re
 	return nil
 }
 
-// ReCacheCarfiles Execute Undone Carfiles Task
-func (s *Scheduler) ReCacheCarfiles(ctx context.Context, hashs []string) error {
+// RecacheCarfiles Execute Undone Carfiles Task
+func (s *Scheduler) RecacheCarfiles(ctx context.Context, hashs []string) error {
 	list, err := s.NodeManager.CarfileDB.LoadCarfileInfos(hashs)
 	if err != nil {
 		return err
@@ -61,7 +61,7 @@ func (s *Scheduler) ReCacheCarfiles(ctx context.Context, hashs []string) error {
 			}
 			err = s.CacheCarfiles(ctx, info)
 			if err != nil {
-				log.Errorf("ReCacheCarfiles CacheCarfiles err:%s", err.Error())
+				log.Errorf("RecacheCarfiles CacheCarfiles err:%s", err.Error())
 			}
 		}
 	}
@@ -69,13 +69,13 @@ func (s *Scheduler) ReCacheCarfiles(ctx context.Context, hashs []string) error {
 	return nil
 }
 
-// ResetCarfileRecordExpiration reset expiration time with data cache
-func (s *Scheduler) ResetCarfileRecordExpiration(ctx context.Context, carfileCid string, t time.Time) error {
+// ResetCarfileExpiration reset expiration time with data cache
+func (s *Scheduler) ResetCarfileExpiration(ctx context.Context, carfileCid string, t time.Time) error {
 	if time.Now().After(t) {
 		return xerrors.Errorf("expiration:%s has passed", t.String())
 	}
 
-	return s.DataManager.ResetCarfileRecordExpiration(carfileCid, t)
+	return s.DataManager.ResetCarfileExpiration(carfileCid, t)
 }
 
 // DownloadingCarfileRecords Show downloading carfiles
@@ -99,8 +99,8 @@ func (s *Scheduler) ResetCandidateReplicaCount(ctx context.Context, count int) e
 	return nil
 }
 
-// CarfileRecordList List Datas
-func (s *Scheduler) CarfileRecordList(ctx context.Context, page int) (*types.ListCarfileRecordRsp, error) {
+// CarfileRecords List Datas
+func (s *Scheduler) CarfileRecords(ctx context.Context, page int) (*types.ListCarfileRecordRsp, error) {
 	return s.NodeManager.CarfileDB.CarfileRecordInfos(page)
 }
 

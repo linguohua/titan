@@ -71,9 +71,9 @@ func (evt CacheResult) apply(state *CarfileInfo) {
 	}
 }
 
-type RequestNodes struct{}
+type CarfileSent struct{}
 
-func (evt RequestNodes) apply(state *CarfileInfo) {
+func (evt CarfileSent) apply(state *CarfileInfo) {
 }
 
 // Normal path
@@ -98,24 +98,16 @@ func (evt CarfileStartCaches) apply(state *CarfileInfo) {
 	state.CandidateReplicas = int64(rootCacheCount + candidateReplicaCacheCount)
 }
 
-// CarfileGetSeed get frist carfile to candidate
-type CarfileGetSeed struct{}
+// CarfileRecache get frist carfile to candidate
+type CarfileRecache struct{}
 
-func (evt CarfileGetSeed) apply(state *CarfileInfo) {}
+func (evt CarfileRecache) apply(state *CarfileInfo) {}
 
 // CacheSuccessed nodes cache carfile completed
 type CacheSuccessed struct{}
 
 func (evt CacheSuccessed) apply(state *CarfileInfo) {
 }
-
-type CarfileCandidateCaching struct{}
-
-func (evt CarfileCandidateCaching) apply(state *CarfileInfo) {}
-
-type CarfileEdgeCaching struct{}
-
-func (evt CarfileEdgeCaching) apply(state *CarfileInfo) {}
 
 type CarfileFinalize struct{}
 

@@ -274,8 +274,8 @@ func (c *CarfileDB) RandomCarfileFromNode(nodeID string) (string, error) {
 	return "", nil
 }
 
-// ResetCarfileRecordExpiration reset expiration time with storage record
-func (c *CarfileDB) ResetCarfileRecordExpiration(carfileHash string, eTime time.Time) error {
+// ResetCarfileExpiration reset expiration time with storage record
+func (c *CarfileDB) ResetCarfileExpiration(carfileHash string, eTime time.Time) error {
 	tx := c.DB.MustBegin()
 
 	cmd := fmt.Sprintf(`UPDATE %s SET expiration=? WHERE carfile_hash=?`, carfileInfoTable)
@@ -440,16 +440,16 @@ func (c *CarfileDB) SetBlockDownloadInfo(info *types.DownloadRecordInfo) error {
 	return nil
 }
 
-func (c *CarfileDB) GetBlockDownloadInfoByNodeID(nodeID string) ([]*types.DownloadRecordInfo, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id = ? and TO_DAYS(created_time) >= TO_DAYS(NOW()) ORDER BY created_time DESC`, blockDownloadInfo)
+// func (c *CarfileDB) GetBlockDownloadInfoByNodeID(nodeID string) ([]*types.DownloadRecordInfo, error) {
+// 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id = ? and TO_DAYS(created_time) >= TO_DAYS(NOW()) ORDER BY created_time DESC`, blockDownloadInfo)
 
-	var out []*types.DownloadRecordInfo
-	if err := c.DB.Select(&out, query, nodeID); err != nil {
-		return nil, err
-	}
+// 	var out []*types.DownloadRecordInfo
+// 	if err := c.DB.Select(&out, query, nodeID); err != nil {
+// 		return nil, err
+// 	}
 
-	return out, nil
-}
+// 	return out, nil
+// }
 
 func (c *CarfileDB) GetBlockDownloadInfoByID(id string) (*types.DownloadRecordInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE id = ?`, blockDownloadInfo)
