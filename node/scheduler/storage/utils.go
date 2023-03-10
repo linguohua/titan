@@ -14,5 +14,4 @@ func (m *Manager) GetCarfileInfo(cid CarfileHash) (CarfileInfo, error) {
 	var out CarfileInfo
 	err := m.carfiles.Get(cid).Get(&out)
 	return out, err
-	// return CarfileInfo{}, nil
 }
