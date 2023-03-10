@@ -58,7 +58,6 @@ func (m *Manager) handleGetSeed(ctx statemachine.Context, carfile CarfileInfo) e
 func (m *Manager) handleGetSeedCaching(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handler get seed caching, %s", carfile.CarfileCID)
 
-	log.Warnf("carfile.SuccessedCandidateReplicas : %d", carfile.SuccessedCandidateReplicas)
 	if carfile.SuccessedCandidateReplicas >= rootCacheCount {
 		return ctx.Send(CacheSuccessed{})
 	}
@@ -174,7 +173,6 @@ func (m *Manager) handleStartEdgesCache(ctx statemachine.Context, carfile Carfil
 
 func (m *Manager) handleEdgesCaching(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handler edge caching, %s", carfile.CarfileCID)
-
 	if carfile.SuccessedEdgeReplicas >= carfile.EdgeReplicas {
 		return ctx.Send(CacheSuccessed{})
 	}

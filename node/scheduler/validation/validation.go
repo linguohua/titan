@@ -410,7 +410,7 @@ func (v *Validation) Result(validatedResult *api.ValidatedResult) error {
 	// do validator
 	for i := 0; i < max; i++ {
 		resultCid := validatedResult.Cids[i]
-		randNum := v.getRandNum(carfileRecord.TotalBlocks, r)
+		randNum := v.getRandNum(int(carfileRecord.TotalBlocks), r)
 		vCid := cCidMap[randNum]
 
 		// TODO Penalize the candidate if vCid error
