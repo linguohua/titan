@@ -54,7 +54,7 @@ func (m *Manager) handleGetSeed(ctx statemachine.Context, carfile CarfileInfo) e
 		}
 	}
 
-	return ctx.Send(RequestNodes{})
+	return ctx.Send(CarfileSent{})
 }
 
 func (m *Manager) handleGetSeedCaching(ctx statemachine.Context, carfile CarfileInfo) error {
@@ -123,7 +123,7 @@ func (m *Manager) handleStartCandidatesCache(ctx statemachine.Context, carfile C
 		}
 	}
 
-	return ctx.Send(RequestNodes{})
+	return ctx.Send(CarfileSent{})
 }
 
 func (m *Manager) handleCandidatesCaching(ctx statemachine.Context, carfile CarfileInfo) error {
@@ -176,7 +176,7 @@ func (m *Manager) handleStartEdgesCache(ctx statemachine.Context, carfile Carfil
 		}
 	}
 
-	return ctx.Send(RequestNodes{})
+	return ctx.Send(CarfileSent{})
 }
 
 func (m *Manager) handleEdgesCaching(ctx statemachine.Context, carfile CarfileInfo) error {
@@ -203,7 +203,7 @@ func (m *Manager) handleGetSeedFailed(ctx statemachine.Context, carfile CarfileI
 	if err := failedCooldown(ctx, carfile); err != nil {
 		return err
 	}
-	return ctx.Send(CarfileGetSeed{})
+	return ctx.Send(CarfileRecache{})
 }
 
 func (m *Manager) handleCandidateCachingFailed(ctx statemachine.Context, carfile CarfileInfo) error {
@@ -211,7 +211,7 @@ func (m *Manager) handleCandidateCachingFailed(ctx statemachine.Context, carfile
 	if err := failedCooldown(ctx, carfile); err != nil {
 		return err
 	}
-	return ctx.Send(CarfileCandidateCaching{})
+	return ctx.Send(CarfileRecache{})
 }
 
 func (m *Manager) handleEdgeCachingFailed(ctx statemachine.Context, carfile CarfileInfo) error {
@@ -219,5 +219,5 @@ func (m *Manager) handleEdgeCachingFailed(ctx statemachine.Context, carfile Carf
 	if err := failedCooldown(ctx, carfile); err != nil {
 		return err
 	}
-	return ctx.Send(CarfileEdgeCaching{})
+	return ctx.Send(CarfileRecache{})
 }

@@ -54,7 +54,7 @@ var contiuneUndoneCarfileCmd = &cli.Command{
 			hashs = append(hashs, hash)
 		}
 
-		return schedulerAPI.ReCacheCarfiles(ctx, hashs)
+		return schedulerAPI.RecacheCarfiles(ctx, hashs)
 	},
 }
 
@@ -107,7 +107,7 @@ var resetExpirationCmd = &cli.Command{
 			return xerrors.Errorf("date time err:%s", err.Error())
 		}
 
-		err = schedulerAPI.ResetCarfileRecordExpiration(ctx, cardileCid, time)
+		err = schedulerAPI.ResetCarfileExpiration(ctx, cardileCid, time)
 		if err != nil {
 			return err
 		}
@@ -306,7 +306,7 @@ var listCarfilesCmd = &cli.Command{
 			return nil
 		}
 
-		info, err := schedulerAPI.CarfileRecordList(ctx, page)
+		info, err := schedulerAPI.CarfileRecords(ctx, page)
 		if err != nil {
 			return err
 		}

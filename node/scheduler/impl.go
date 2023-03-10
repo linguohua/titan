@@ -413,11 +413,6 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, id string, token string)
 	return nil
 }
 
-// NodeDownloadRecord get node download info
-func (s *Scheduler) NodeDownloadRecord(ctx context.Context, nodeID string) ([]*types.DownloadRecordInfo, error) {
-	return s.NodeManager.CarfileDB.GetBlockDownloadInfoByNodeID(nodeID)
-}
-
 // NodeQuit node want to quit titan
 func (s *Scheduler) NodeQuit(ctx context.Context, nodeID, secret string) error {
 	// TODO Check secret

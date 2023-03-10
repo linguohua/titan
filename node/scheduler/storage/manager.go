@@ -413,8 +413,8 @@ func (m *Manager) carfileCacheEnd(cr *CarfileRecord, err error) {
 	// }
 }
 
-// ResetCarfileRecordExpiration reset expiration time
-func (m *Manager) ResetCarfileRecordExpiration(cid string, t time.Time) error {
+// ResetCarfileExpiration reset expiration time
+func (m *Manager) ResetCarfileExpiration(cid string, t time.Time) error {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return err
@@ -428,7 +428,7 @@ func (m *Manager) ResetCarfileRecordExpiration(cid string, t time.Time) error {
 		carfileRecord.expirationTime = t
 	}
 
-	err = m.nodeManager.CarfileDB.ResetCarfileRecordExpiration(hash, t)
+	err = m.nodeManager.CarfileDB.ResetCarfileExpiration(hash, t)
 	if err != nil {
 		return err
 	}
