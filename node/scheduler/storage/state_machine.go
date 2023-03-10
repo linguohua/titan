@@ -29,40 +29,44 @@ func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface
 var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *CarfileInfo) (uint64, error){
 	// external import
 	UndefinedCarfileState: planOne(
-		on(CarfileStartCaches{}, StartCache),
+		on(CarfileStartCaches{}, GetSeed),
 	),
-	StartCache: planOne(
-		on(CarfileGetSeed{}, GetSeed),
-	),
+	// StartCache: planOne(
+	// 	on(CarfileGetSeed{}, GetSeed),
+	// ),
 	GetSeed: planOne(
-		on(CarfileCacheCompleted{}, GetSeedCompleted),
-		on(CarfileCacheFailed{}, GetSeedFailed),
+		on(RequestNodes{}, GetSeedCaching),
 	),
-	GetSeedCompleted: planOne(
-		on(CarfileCandidateCaching{}, CandidateCaching),
+	GetSeedCaching: planOne(
+		on(CacheSuccessed{}, StartCandidatesCache),
+		on(CacheFailed{}, GetSeedFailed),
+		apply(CacheResult{}),
 	),
-	CandidateCaching: planOne(
-		on(CarfileCacheFailed{}, CandidateCachingFailed),
-		on(CarfileCacheCompleted{}, CandidateCompleted),
+	StartCandidatesCache: planOne(
+		on(RequestNodes{}, CandidatesCaching),
+		on(CacheSuccessed{}, StartEdgesCache),
 	),
-	CandidateCompleted: planOne(
-		on(CarfileEdgeCaching{}, EdgeCaching),
+	CandidatesCaching: planOne(
+		on(CacheFailed{}, CandidatesCacheFailed),
+		on(CacheSuccessed{}, StartEdgesCache),
+		apply(CacheResult{}),
 	),
-	EdgeCaching: planOne(
-		on(CarfileCacheFailed{}, EdgeCachingFailed),
-		on(CarfileCacheCompleted{}, EdgeCompleted),
+	StartEdgesCache: planOne(
+		on(RequestNodes{}, EdgesCaching),
 	),
-	EdgeCompleted: planOne(
-		on(CarfileFinalize{}, Finalize),
+	EdgesCaching: planOne(
+		on(CacheFailed{}, EdgesCacheFailed),
+		on(CacheSuccessed{}, Finalize),
+		apply(CacheResult{}),
 	),
 	GetSeedFailed: planOne(
 		on(CarfileGetSeed{}, GetSeed),
 	),
-	CandidateCachingFailed: planOne(
-		on(CarfileCandidateCaching{}, CandidateCaching),
+	CandidatesCacheFailed: planOne(
+		on(CarfileCandidateCaching{}, StartCandidatesCache),
 	),
-	EdgeCachingFailed: planOne(
-		on(CarfileEdgeCaching{}, EdgeCaching),
+	EdgesCacheFailed: planOne(
+		on(CarfileEdgeCaching{}, StartEdgesCache),
 	),
 }
 
@@ -87,27 +91,29 @@ func (m *Manager) plan(events []statemachine.Event, state *CarfileInfo) (func(st
 
 	switch state.State {
 	// Happy path
-	case StartCache:
-		return m.handleStartCache, processed, nil
+	// case StartCache:
+	// 	return m.handleStartCache, processed, nil
 	case GetSeed:
 		return m.handleGetSeed, processed, nil
-	case CandidateCaching:
-		return m.handleCandidateCaching, processed, nil
-	case EdgeCaching:
-		return m.handleEdgeCaching, processed, nil
-	case GetSeedCompleted:
-		return m.handleGetSeedCompleted, processed, nil
-	case CandidateCompleted:
-		return m.handleCandidateCacheCompleted, processed, nil
-	case EdgeCompleted:
-		return m.handleEdgeCacheCompleted, processed, nil
+	case GetSeedCaching:
+		return m.handleGetSeedCaching, processed, nil
+	case StartCandidatesCache:
+		return m.handleStartCandidatesCache, processed, nil
+	case StartEdgesCache:
+		return m.handleStartEdgesCache, processed, nil
+	// case GetSeedCompleted:
+	// 	return m.handleGetSeedCompleted, processed, nil
+	case CandidatesCaching:
+		return m.handleCandidatesCaching, processed, nil
+	case EdgesCaching:
+		return m.handleEdgesCaching, processed, nil
 	case Finalize:
 		return m.handleFinalize, processed, nil
 	case GetSeedFailed:
 		return m.handleGetSeedFailed, processed, nil
-	case CandidateCachingFailed:
+	case CandidatesCacheFailed:
 		return m.handleCandidateCachingFailed, processed, nil
-	case EdgeCachingFailed:
+	case EdgesCacheFailed:
 		return m.handleEdgeCachingFailed, processed, nil
 		// Fatal errors
 	case UndefinedCarfileState:
@@ -178,6 +184,15 @@ func on(mut mutator, next CarfileState) func() (mutator, func(*CarfileInfo) (boo
 		return mut, func(state *CarfileInfo) (bool, error) {
 			state.State = next
 			return false, nil
+		}
+	}
+}
+
+// like `on`, but doesn't change state
+func apply(mut mutator) func() (mutator, func(*CarfileInfo) (bool, error)) {
+	return func() (mutator, func(*CarfileInfo) (bool, error)) {
+		return mut, func(state *CarfileInfo) (bool, error) {
+			return true, nil
 		}
 	}
 }

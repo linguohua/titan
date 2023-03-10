@@ -5,16 +5,16 @@ type CarfileState string
 var ExistSectorStateList = map[CarfileState]struct{}{}
 
 const (
-	UndefinedCarfileState  CarfileState = ""
-	StartCache             CarfileState = "StartCache"
-	GetSeed                CarfileState = "GetSeed"
-	GetSeedCompleted       CarfileState = "GetSeedCompleted"
-	CandidateCaching       CarfileState = "CandidateCaching"
-	CandidateCompleted     CarfileState = "CandidateCompleted"
-	EdgeCaching            CarfileState = "EdgeCaching"
-	EdgeCompleted          CarfileState = "EdgeCompleted"
-	Finalize               CarfileState = "Finalize"
-	GetSeedFailed          CarfileState = "GetSeedFailed"
-	CandidateCachingFailed CarfileState = "CandidateCachingFailed"
-	EdgeCachingFailed      CarfileState = "EdgeCachingFailed"
+	UndefinedCarfileState CarfileState = ""
+	// StartCache            CarfileState = "StartCache"
+	GetSeed               CarfileState = "GetSeed"
+	GetSeedCaching        CarfileState = "GetSeedCaching "
+	StartCandidatesCache  CarfileState = "StartCandidatesCache"
+	CandidatesCaching     CarfileState = "CandidatesCaching"
+	StartEdgesCache       CarfileState = "StartEdgesCache"
+	EdgesCaching          CarfileState = "EdgesCaching"
+	Finalize              CarfileState = "Finalize"
+	GetSeedFailed         CarfileState = "GetSeedFailed"
+	CandidatesCacheFailed CarfileState = "CandidatesCacheFailed"
+	EdgesCacheFailed      CarfileState = "EdgesCacheFailed"
 )

@@ -26,7 +26,7 @@ func (t *CarfileInfo) MarshalCBOR(w io.Writer) error {
 
 	cw := cbg.NewCborWriter(w)
 
-	if _, err := cw.Write([]byte{171}); err != nil {
+	if _, err := cw.Write([]byte{175}); err != nil {
 		return err
 	}
 
@@ -273,6 +273,94 @@ func (t *CarfileInfo) MarshalCBOR(w io.Writer) error {
 		}
 	} else {
 		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.Expiration-1)); err != nil {
+			return err
+		}
+	}
+
+	// t.SuccessedEdgeReplicas (int64) (int64)
+	if len("SuccessedEdgeReplicas") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"SuccessedEdgeReplicas\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("SuccessedEdgeReplicas"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("SuccessedEdgeReplicas")); err != nil {
+		return err
+	}
+
+	if t.SuccessedEdgeReplicas >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.SuccessedEdgeReplicas)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.SuccessedEdgeReplicas-1)); err != nil {
+			return err
+		}
+	}
+
+	// t.SuccessedCandidateReplicas (int64) (int64)
+	if len("SuccessedCandidateReplicas") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"SuccessedCandidateReplicas\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("SuccessedCandidateReplicas"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("SuccessedCandidateReplicas")); err != nil {
+		return err
+	}
+
+	if t.SuccessedCandidateReplicas >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.SuccessedCandidateReplicas)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.SuccessedCandidateReplicas-1)); err != nil {
+			return err
+		}
+	}
+
+	// t.FailedEdgeReplicas (int64) (int64)
+	if len("FailedEdgeReplicas") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"FailedEdgeReplicas\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("FailedEdgeReplicas"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("FailedEdgeReplicas")); err != nil {
+		return err
+	}
+
+	if t.FailedEdgeReplicas >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.FailedEdgeReplicas)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.FailedEdgeReplicas-1)); err != nil {
+			return err
+		}
+	}
+
+	// t.FailedCandidateReplicas (int64) (int64)
+	if len("FailedCandidateReplicas") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"FailedCandidateReplicas\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("FailedCandidateReplicas"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("FailedCandidateReplicas")); err != nil {
+		return err
+	}
+
+	if t.FailedCandidateReplicas >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.FailedCandidateReplicas)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.FailedCandidateReplicas-1)); err != nil {
 			return err
 		}
 	}
@@ -528,6 +616,110 @@ func (t *CarfileInfo) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.Expiration = int64(extraI)
 			}
+			// t.SuccessedEdgeReplicas (int64) (int64)
+		case "SuccessedEdgeReplicas":
+			{
+				maj, extra, err := cr.ReadHeader()
+				var extraI int64
+				if err != nil {
+					return err
+				}
+				switch maj {
+				case cbg.MajUnsignedInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 positive overflow")
+					}
+				case cbg.MajNegativeInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 negative oveflow")
+					}
+					extraI = -1 - extraI
+				default:
+					return fmt.Errorf("wrong type for int64 field: %d", maj)
+				}
+
+				t.SuccessedEdgeReplicas = int64(extraI)
+			}
+			// t.SuccessedCandidateReplicas (int64) (int64)
+		case "SuccessedCandidateReplicas":
+			{
+				maj, extra, err := cr.ReadHeader()
+				var extraI int64
+				if err != nil {
+					return err
+				}
+				switch maj {
+				case cbg.MajUnsignedInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 positive overflow")
+					}
+				case cbg.MajNegativeInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 negative oveflow")
+					}
+					extraI = -1 - extraI
+				default:
+					return fmt.Errorf("wrong type for int64 field: %d", maj)
+				}
+
+				t.SuccessedCandidateReplicas = int64(extraI)
+			}
+			// t.FailedEdgeReplicas (int64) (int64)
+		case "FailedEdgeReplicas":
+			{
+				maj, extra, err := cr.ReadHeader()
+				var extraI int64
+				if err != nil {
+					return err
+				}
+				switch maj {
+				case cbg.MajUnsignedInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 positive overflow")
+					}
+				case cbg.MajNegativeInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 negative oveflow")
+					}
+					extraI = -1 - extraI
+				default:
+					return fmt.Errorf("wrong type for int64 field: %d", maj)
+				}
+
+				t.FailedEdgeReplicas = int64(extraI)
+			}
+			// t.FailedCandidateReplicas (int64) (int64)
+		case "FailedCandidateReplicas":
+			{
+				maj, extra, err := cr.ReadHeader()
+				var extraI int64
+				if err != nil {
+					return err
+				}
+				switch maj {
+				case cbg.MajUnsignedInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 positive overflow")
+					}
+				case cbg.MajNegativeInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 negative oveflow")
+					}
+					extraI = -1 - extraI
+				default:
+					return fmt.Errorf("wrong type for int64 field: %d", maj)
+				}
+
+				t.FailedCandidateReplicas = int64(extraI)
+			}
 
 		default:
 			// Field doesn't exist on this type, so ignore it
@@ -731,7 +923,7 @@ func (t *Log) UnmarshalCBOR(r io.Reader) (err error) {
 
 	return nil
 }
-func (t *NodeCacheResult) MarshalCBOR(w io.Writer) error {
+func (t *CacheResultInfo) MarshalCBOR(w io.Writer) error {
 	if t == nil {
 		_, err := w.Write(cbg.CborNull)
 		return err
@@ -739,7 +931,7 @@ func (t *NodeCacheResult) MarshalCBOR(w io.Writer) error {
 
 	cw := cbg.NewCborWriter(w)
 
-	if _, err := cw.Write([]byte{166}); err != nil {
+	if _, err := cw.Write([]byte{165}); err != nil {
 		return err
 	}
 
@@ -847,27 +1039,11 @@ func (t *NodeCacheResult) MarshalCBOR(w io.Writer) error {
 	if err := cbg.WriteBool(w, t.IsCandidate); err != nil {
 		return err
 	}
-
-	// t.Source (storage.DownloadSource) (struct)
-	if len("Source") > cbg.MaxLength {
-		return xerrors.Errorf("Value in field \"Source\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("Source"))); err != nil {
-		return err
-	}
-	if _, err := io.WriteString(w, string("Source")); err != nil {
-		return err
-	}
-
-	if err := t.Source.MarshalCBOR(cw); err != nil {
-		return err
-	}
 	return nil
 }
 
-func (t *NodeCacheResult) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = NodeCacheResult{}
+func (t *CacheResultInfo) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = CacheResultInfo{}
 
 	cr := cbg.NewCborReader(r)
 
@@ -886,7 +1062,7 @@ func (t *NodeCacheResult) UnmarshalCBOR(r io.Reader) (err error) {
 	}
 
 	if extra > cbg.MaxLength {
-		return fmt.Errorf("NodeCacheResult: map struct too large (%d)", extra)
+		return fmt.Errorf("CacheResultInfo: map struct too large (%d)", extra)
 	}
 
 	var name string
@@ -1011,26 +1187,6 @@ func (t *NodeCacheResult) UnmarshalCBOR(r io.Reader) (err error) {
 			default:
 				return fmt.Errorf("booleans are either major type 7, value 20 or 21 (got %d)", extra)
 			}
-			// t.Source (storage.DownloadSource) (struct)
-		case "Source":
-
-			{
-
-				b, err := cr.ReadByte()
-				if err != nil {
-					return err
-				}
-				if b != cbg.CborNull[0] {
-					if err := cr.UnreadByte(); err != nil {
-						return err
-					}
-					t.Source = new(DownloadSource)
-					if err := t.Source.UnmarshalCBOR(cr); err != nil {
-						return xerrors.Errorf("unmarshaling t.Source pointer: %w", err)
-					}
-				}
-
-			}
 
 		default:
 			// Field doesn't exist on this type, so ignore it
@@ -1092,135 +1248,6 @@ func (t *CompletedValue) UnmarshalCBOR(r io.Reader) (err error) {
 		}
 
 		switch name {
-
-		default:
-			// Field doesn't exist on this type, so ignore it
-			cbg.ScanForLinks(r, func(cid.Cid) {})
-		}
-	}
-
-	return nil
-}
-func (t *DownloadSource) MarshalCBOR(w io.Writer) error {
-	if t == nil {
-		_, err := w.Write(cbg.CborNull)
-		return err
-	}
-
-	cw := cbg.NewCborWriter(w)
-
-	if _, err := cw.Write([]byte{162}); err != nil {
-		return err
-	}
-
-	// t.CandidateURL (string) (string)
-	if len("CandidateURL") > cbg.MaxLength {
-		return xerrors.Errorf("Value in field \"CandidateURL\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("CandidateURL"))); err != nil {
-		return err
-	}
-	if _, err := io.WriteString(w, string("CandidateURL")); err != nil {
-		return err
-	}
-
-	if len(t.CandidateURL) > cbg.MaxLength {
-		return xerrors.Errorf("Value in field t.CandidateURL was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.CandidateURL))); err != nil {
-		return err
-	}
-	if _, err := io.WriteString(w, string(t.CandidateURL)); err != nil {
-		return err
-	}
-
-	// t.CandidateToken (string) (string)
-	if len("CandidateToken") > cbg.MaxLength {
-		return xerrors.Errorf("Value in field \"CandidateToken\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("CandidateToken"))); err != nil {
-		return err
-	}
-	if _, err := io.WriteString(w, string("CandidateToken")); err != nil {
-		return err
-	}
-
-	if len(t.CandidateToken) > cbg.MaxLength {
-		return xerrors.Errorf("Value in field t.CandidateToken was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.CandidateToken))); err != nil {
-		return err
-	}
-	if _, err := io.WriteString(w, string(t.CandidateToken)); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (t *DownloadSource) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = DownloadSource{}
-
-	cr := cbg.NewCborReader(r)
-
-	maj, extra, err := cr.ReadHeader()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err == io.EOF {
-			err = io.ErrUnexpectedEOF
-		}
-	}()
-
-	if maj != cbg.MajMap {
-		return fmt.Errorf("cbor input should be of type map")
-	}
-
-	if extra > cbg.MaxLength {
-		return fmt.Errorf("DownloadSource: map struct too large (%d)", extra)
-	}
-
-	var name string
-	n := extra
-
-	for i := uint64(0); i < n; i++ {
-
-		{
-			sval, err := cbg.ReadString(cr)
-			if err != nil {
-				return err
-			}
-
-			name = string(sval)
-		}
-
-		switch name {
-		// t.CandidateURL (string) (string)
-		case "CandidateURL":
-
-			{
-				sval, err := cbg.ReadString(cr)
-				if err != nil {
-					return err
-				}
-
-				t.CandidateURL = string(sval)
-			}
-			// t.CandidateToken (string) (string)
-		case "CandidateToken":
-
-			{
-				sval, err := cbg.ReadString(cr)
-				if err != nil {
-					return err
-				}
-
-				t.CandidateToken = string(sval)
-			}
 
 		default:
 			// Field doesn't exist on this type, so ignore it

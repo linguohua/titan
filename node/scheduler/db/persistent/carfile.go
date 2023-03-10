@@ -81,8 +81,9 @@ func (c *CarfileDB) UpdateCarfileReplicaInfo(cInfo []*types.ReplicaInfo) error {
 
 // UpdateCarfileRecordCachesInfo update storage info
 func (c *CarfileDB) UpdateCarfileRecordCachesInfo(dInfo *types.CarfileRecordInfo) error {
+	fmt.Println("info:", dInfo)
 	// update
-	cmd := fmt.Sprintf("UPDATE %s SET total_size=:total_size,total_blocks=:total_blocks,end_time=NOW() WHERE carfile_hash=:carfile_hash", carfileInfoTable)
+	cmd := fmt.Sprintf("UPDATE %s SET total_size=:total_size,total_blocks=:total_blocks WHERE carfile_hash=:carfile_hash", carfileInfoTable)
 	_, err := c.DB.NamedExec(cmd, dInfo)
 
 	return err
@@ -90,9 +91,12 @@ func (c *CarfileDB) UpdateCarfileRecordCachesInfo(dInfo *types.CarfileRecordInfo
 
 // CreateOrUpdateCarfileRecordInfo create or update storage record info
 func (c *CarfileDB) CreateOrUpdateCarfileRecordInfo(info *types.CarfileRecordInfo) error {
+	fmt.Println("info : ", info.TotalBlocks)
+
 	cmd := fmt.Sprintf(`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration)
 	        VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica, :expiration) 
-	        ON DUPLICATE KEY UPDATE edge_replica=VALUES(edge_replica),candidate_replica=VALUES(candidate_replica),expiration=VALUES(expiration),total_size=VALUES(total_size),total_blocks=VALUES(total_blocks), state=VALUES(state)`, carfileInfoTable)
+	        ON DUPLICATE KEY UPDATE 
+			total_size=VALUES(total_size),total_blocks=VALUES(total_blocks),edge_replica=VALUES(edge_replica),candidate_replica=VALUES(candidate_replica),expiration=VALUES(expiration),state=VALUES(state)`, carfileInfoTable)
 	_, err := c.DB.NamedExec(cmd, info)
 	return err
 }

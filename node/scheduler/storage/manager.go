@@ -331,37 +331,20 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 		return err
 	}
 
-	if info.Status == types.CacheStatusSucceeded {
-		t, err := m.nodeManager.NodeMgrDB.NodeType(nodeID)
-		if err != nil {
-			return err
-		}
-
-		var source *DownloadSource
-		if t == types.NodeCandidate {
-			// TODO if node offline
-			cNode := m.nodeManager.GetCandidateNode(nodeID)
-			if cNode != nil {
-				source = &DownloadSource{
-					CandidateURL:   cNode.RPCURL(),
-					CandidateToken: string(m.writeToken),
-				}
-			}
-		}
-
-		err = m.carfiles.Send(CarfileHash(info.CarfileHash), CarfileCacheCompleted{
-			ResultInfo: &NodeCacheResult{
-				NodeID:            nodeID,
-				IsCandidate:       t == types.NodeCandidate,
-				Status:            int64(info.Status),
-				CarfileBlockCount: int64(info.CarfileBlockCount),
-				CarfileSize:       info.CarfileSize,
-				Source:            source,
-			},
-		})
+	t, err := m.nodeManager.NodeMgrDB.NodeType(nodeID)
+	if err != nil {
+		return err
 	}
 
-	return
+	return m.carfiles.Send(CarfileHash(info.CarfileHash), CacheResult{
+		ResultInfo: &CacheResultInfo{
+			NodeID:            nodeID,
+			Status:            int64(info.Status),
+			CarfileBlockCount: int64(info.CarfileBlockCount),
+			CarfileSize:       info.CarfileSize,
+			IsCandidate:       t == types.NodeCandidate,
+		},
+	})
 }
 
 func (m *Manager) startCarfileReplicaTasks() {
