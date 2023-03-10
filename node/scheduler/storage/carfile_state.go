@@ -12,7 +12,7 @@ const (
 	CarfileSeedCaching    CarfileState = "CarfileSeedCaching "
 	CacheToCandidates     CarfileState = "CacheToCandidates"
 	CandidatesCaching     CarfileState = "CandidatesCaching"
-	CacteToEdges          CarfileState = "CacteToEdges"
+	CacheToEdges          CarfileState = "CacheToEdges"
 	EdgesCaching          CarfileState = "EdgesCaching"
 	Finalize              CarfileState = "Finalize"
 	CacheSeedFailed       CarfileState = "CacheSeedFailed"
