@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"github.com/linguohua/titan/api/types"
 	"golang.org/x/xerrors"
 )
 
@@ -43,6 +44,38 @@ func (evt CarfileForceState) applyGlobal(state *CarfileInfo) bool {
 	return true
 }
 
+type CacheResult struct {
+	ResultInfo *CacheResultInfo
+}
+
+func (evt CacheResult) apply(state *CarfileInfo) {
+	log.Infof("evt:%v", evt.ResultInfo)
+	if evt.ResultInfo == nil {
+		return
+	}
+
+	if evt.ResultInfo.Status == int64(types.CacheStatusSucceeded) {
+		if evt.ResultInfo.IsCandidate {
+			state.SuccessedCandidateReplicas++
+		} else {
+			state.SuccessedEdgeReplicas++
+		}
+		state.Size = evt.ResultInfo.CarfileSize
+		state.Blocks = evt.ResultInfo.CarfileBlockCount
+	} else {
+		if evt.ResultInfo.IsCandidate {
+			state.FailedCandidateReplicas++
+		} else {
+			state.FailedEdgeReplicas++
+		}
+	}
+}
+
+type RequestNodes struct{}
+
+func (evt RequestNodes) apply(state *CarfileInfo) {
+}
+
 // Normal path
 
 // CarfileStartCaches start caches
@@ -70,66 +103,27 @@ type CarfileGetSeed struct{}
 
 func (evt CarfileGetSeed) apply(state *CarfileInfo) {}
 
-// CarfileCacheCompleted nodes cache carfile completed
-type CarfileCacheCompleted struct {
-	ResultInfo *NodeCacheResult
-}
+// CacheSuccessed nodes cache carfile completed
+type CacheSuccessed struct{}
 
-func (evt CarfileCacheCompleted) apply(state *CarfileInfo) {
-	if evt.ResultInfo == nil {
-		return
-	}
-
-	if evt.ResultInfo.IsCandidate {
-		state.Size = evt.ResultInfo.CarfileSize
-		state.Blocks = evt.ResultInfo.CarfileBlockCount
-
-		// 	state.DownloadSources = append(state.DownloadSources, evt.ResultInfo.Source)
-		// 	state.CompletedCandidateReplicas[evt.ResultInfo.NodeID] = nil
-		// } else {
-		// 	state.CompletedEdgeReplicas[evt.ResultInfo.NodeID] = nil
-	}
+func (evt CacheSuccessed) apply(state *CarfileInfo) {
 }
 
 type CarfileCandidateCaching struct{}
 
 func (evt CarfileCandidateCaching) apply(state *CarfileInfo) {}
 
-type CarfileCandidateCompleted struct{}
-
-func (evt CarfileCandidateCompleted) apply(state *CarfileInfo) {}
-
 type CarfileEdgeCaching struct{}
 
 func (evt CarfileEdgeCaching) apply(state *CarfileInfo) {}
-
-type CarfileEdgeCompleted struct{}
-
-func (evt CarfileEdgeCompleted) apply(state *CarfileInfo) {}
 
 type CarfileFinalize struct{}
 
 func (evt CarfileFinalize) apply(state *CarfileInfo) {}
 
-type CarfileCacheFailed struct{ error }
+type CacheFailed struct{ error }
 
-func (evt CarfileCacheFailed) FormatError(xerrors.Printer) (next error) { return evt.error }
-func (evt CarfileCacheFailed) apply(ci *CarfileInfo)                    {}
-
-type CarfileCandidateCachingFailed struct{ error }
-
-func (evt CarfileCandidateCachingFailed) FormatError(xerrors.Printer) (next error) {
-	return evt.error
-}
-
-func (evt CarfileCandidateCachingFailed) apply(ci *CarfileInfo) {
-}
-
-type CarfileEdgeCachingFailed struct{ error }
-
-func (evt CarfileEdgeCachingFailed) FormatError(xerrors.Printer) (next error) {
-	return evt.error
-}
-
-func (evt CarfileEdgeCachingFailed) apply(ci *CarfileInfo) {
+func (evt CacheFailed) FormatError(xerrors.Printer) (next error) { return evt.error }
+func (evt CacheFailed) apply(ci *CarfileInfo) {
+	ci.retries++
 }

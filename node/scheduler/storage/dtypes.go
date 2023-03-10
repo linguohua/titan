@@ -23,18 +23,12 @@ type Log struct {
 	Kind string
 }
 
-type DownloadSource struct {
-	CandidateURL   string
-	CandidateToken string
-}
-
-type NodeCacheResult struct {
+type CacheResultInfo struct {
 	Status            int64
 	CarfileBlockCount int64
 	CarfileSize       int64
 	NodeID            string
 	IsCandidate       bool
-	Source            *DownloadSource
 }
 
 type CompletedValue struct{}
@@ -51,6 +45,14 @@ type CarfileInfo struct {
 	CandidateReplicas int64
 	CreatedAt         int64
 	Expiration        int64
+
+	SuccessedEdgeReplicas      int64
+	SuccessedCandidateReplicas int64
+
+	FailedEdgeReplicas      int64
+	FailedCandidateReplicas int64
+
+	retries int64
 
 	// DownloadSources            []*types.DownloadSource
 	// CompletedEdgeReplicas      map[string]*CompletedValue
