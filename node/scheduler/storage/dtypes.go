@@ -53,10 +53,6 @@ type CarfileInfo struct {
 	FailedCandidateReplicas int64
 
 	retries int64
-
-	// DownloadSources            []*types.DownloadSource
-	// CompletedEdgeReplicas      map[string]*CompletedValue
-	// CompletedCandidateReplicas map[string]*CompletedValue
 }
 
 func (state *CarfileInfo) toCarfileRecordInfo() *types.CarfileRecordInfo {

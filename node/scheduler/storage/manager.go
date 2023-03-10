@@ -47,6 +47,9 @@ type Manager struct {
 
 	startupWait sync.WaitGroup
 	carfiles    *statemachine.StateGroup
+
+	carfileTickers map[string]*time.Ticker
+	lock           sync.Locker
 }
 
 // NewManager return new storage manager instance
@@ -317,6 +320,14 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 	// err = carfileRecord.carfileCacheResult(nodeID, info)
 
 	if info.Status == types.CacheStatusDownloading {
+		m.lock.Lock()
+		defer m.lock.Unlock()
+
+		ticker := m.carfileTickers[info.CarfileHash]
+		if ticker != nil {
+			ticker.Reset(time.Duration(nodoCachingKeepalive) * time.Second)
+		}
+
 		return
 	}
 
@@ -345,6 +356,45 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 			IsCandidate:       t == types.NodeCandidate,
 		},
 	})
+}
+
+func (m *Manager) resetTimeoutTimer(carfileHash string) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	ticker := m.carfileTickers[carfileHash]
+	if ticker != nil {
+		ticker.Reset(time.Duration(nodoCachingKeepalive) * time.Second)
+	} else {
+		ticker = time.NewTicker(time.Duration(nodoCachingKeepalive) * time.Second)
+		m.carfileTickers[carfileHash] = ticker
+
+		go m.startTicker(ticker, carfileHash)
+	}
+}
+
+func (m *Manager) startTicker(ticker *time.Ticker, carfileHash string) {
+	defer ticker.Stop()
+
+	for {
+		<-ticker.C
+		// task is timeout
+		err := m.carfiles.Send(CarfileHash(carfileHash), CacheFailed{error: xerrors.New("time out")})
+		if err != nil {
+			log.Errorf("check timeout err:%s", err.Error())
+		}
+	}
+}
+
+func (m *Manager) stopTimeoutTimer(carfileHash string) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	ticker := m.carfileTickers[carfileHash]
+	if ticker != nil {
+		ticker.Stop()
+		delete(m.carfileTickers, carfileHash)
+	}
 }
 
 func (m *Manager) startCarfileReplicaTasks() {

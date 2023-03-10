@@ -69,9 +69,9 @@ func (ra *Replica) startTimeoutTimer() {
 		}
 
 		if ra.countDown > 0 {
+			ra.countDown -= nodoCachingKeepalive
 			continue
 		}
-		ra.countDown -= nodoCachingKeepalive
 
 		info := &types.CacheResult{
 			Status:         types.CacheStatusFailed,

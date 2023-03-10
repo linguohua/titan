@@ -110,13 +110,13 @@ func (m *Manager) plan(events []statemachine.Event, state *CarfileInfo) (func(st
 		return m.handleEdgesCaching, processed, nil
 	case Finalize:
 		return m.handleFinalize, processed, nil
-	case GetSeedFailed:
-		return m.handleGetSeedFailed, processed, nil
-	case CandidatesCacheFailed:
-		return m.handleCandidateCachingFailed, processed, nil
-	case EdgesCacheFailed:
-		return m.handleEdgeCachingFailed, processed, nil
-		// Fatal errors
+	case GetSeedFailed, CandidatesCacheFailed, EdgesCacheFailed:
+		return m.handleCachesFailed, processed, nil
+	// case CandidatesCacheFailed:
+	// 	return m.handleCandidateCachingFailed, processed, nil
+	// case EdgesCacheFailed:
+	// 	return m.handleEdgeCachingFailed, processed, nil
+	// Fatal errors
 	case UndefinedCarfileState:
 		log.Error("carfile update with undefined state!")
 	default:
