@@ -55,7 +55,6 @@ type CacheResult struct {
 }
 
 func (evt CacheResult) apply(state *CarfileInfo) {
-	log.Infof("evt:%v", evt.ResultInfo)
 	if evt.ResultInfo == nil {
 		return
 	}
@@ -123,5 +122,4 @@ type CacheFailed struct{ error }
 func (evt CacheFailed) FormatError(xerrors.Printer) (next error) { return evt.error }
 
 func (evt CacheFailed) apply(ci *CarfileInfo) {
-	ci.retries++
 }

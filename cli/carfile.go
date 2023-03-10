@@ -59,7 +59,7 @@ var contiuneUndoneCarfileCmd = &cli.Command{
 }
 
 var resetReplicaCacheCountCmd = &cli.Command{
-	Name:  "reset-candidate-replica-count",
+	Name:  "reset-candidate-replica",
 	Usage: "Reset Number of candidate node replica per storage",
 	Flags: []cli.Flag{
 		countFlag,
@@ -215,7 +215,7 @@ var cacheCarfileCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		cid := cctx.String("cid")
-		replicaCount := cctx.Int("replica-count")
+		replicaCount := cctx.Int64("replica-count")
 		nodeID := cctx.String("node-id")
 		date := cctx.String("expiration-date")
 

@@ -33,18 +33,23 @@ type RemoveCarfileResult struct {
 type CarfileRecordInfo struct {
 	CarfileCID            string    `db:"carfile_cid"`
 	CarfileHash           string    `db:"carfile_hash"`
-	NeedEdgeReplica       int       `db:"edge_replica"`
+	NeedEdgeReplica       int64     `db:"edge_replica"`
 	TotalSize             int64     `db:"total_size"`
-	TotalBlocks           int       `db:"total_blocks"`
+	TotalBlocks           int64     `db:"total_blocks"`
 	Expiration            time.Time `db:"expiration"`
 	CreateTime            time.Time `db:"created_time"`
 	EndTime               time.Time `db:"end_time"`
 	State                 string    `db:"state"`
-	NeedCandidateReplicas int       `db:"candidate_replica"`
+	NeedCandidateReplicas int64     `db:"candidate_replica"`
+
+	SuccessedEdgeReplicas      int64 `db:"successed_edges"`
+	SuccessedCandidateReplicas int64 `db:"successed_candidates"`
+	FailedEdgeReplicas         int64 `db:"failed_edges"`
+	FailedCandidateReplicas    int64 `db:"failed_candidates"`
 
 	ReplicaInfos []*ReplicaInfo
 	ResultInfo   *CarfileRecordCacheResult
-	EdgeReplica  int
+	EdgeReplica  int64
 }
 
 // ReplicaInfo Carfile Replica Info
@@ -56,7 +61,7 @@ type ReplicaInfo struct {
 	IsCandidate bool        `db:"is_candidate"`
 	EndTime     time.Time   `db:"end_time"`
 	DoneSize    int64
-	DoneBlocks  int
+	DoneBlocks  int64
 }
 
 // CacheCarfileInfo Data info
@@ -64,7 +69,7 @@ type CacheCarfileInfo struct {
 	ID          string
 	CarfileCid  string    `db:"carfile_cid"`
 	CarfileHash string    `db:"carfile_hash"`
-	Replicas    int       `db:"replicas"`
+	Replicas    int64     `db:"replicas"`
 	NodeID      string    `db:"node_id"`
 	ServerID    string    `db:"server_id"`
 	Expiration  time.Time `db:"expiration"`
