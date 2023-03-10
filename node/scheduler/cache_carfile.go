@@ -55,7 +55,7 @@ func (s *Scheduler) RecacheCarfiles(ctx context.Context, hashs []string) error {
 	if list != nil {
 		for _, carfile := range list {
 			info := &types.CacheCarfileInfo{
-				CarfileCid: carfile.CarfileCid,
+				CarfileCid: carfile.CarfileCID,
 				Replicas:   carfile.NeedEdgeReplica,
 				Expiration: carfile.Expiration,
 			}
@@ -158,6 +158,6 @@ func (s *Scheduler) CacheCarfiles(ctx context.Context, info *types.CacheCarfileI
 }
 
 // CarfileStatus return the carfile caches state
-func (s *Scheduler) CarfileStatus(ctx context.Context, cid types.CarfileID) (types.CarfileInfo, error) {
+func (s *Scheduler) CarfileStatus(ctx context.Context, cid types.CarfileID) (types.CarfileRecordInfo, error) {
 	return s.DataManager.CarfileStatus(ctx, cid)
 }

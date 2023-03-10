@@ -11,7 +11,6 @@ import (
 func main() {
 	err := gen.WriteMapEncodersToFile("../cbor_gen.go", "storage",
 		storage.CarfileInfo{},
-		storage.Log{},
 		storage.CacheResultInfo{},
 		storage.CompletedValue{},
 	)

@@ -61,7 +61,7 @@ func (m *Manager) loadCarfileRecord(hash string, manager *Manager) (*CarfileReco
 	}
 
 	cr := &CarfileRecord{}
-	cr.carfileCid = dInfo.CarfileCid
+	cr.carfileCid = dInfo.CarfileCID
 	cr.nodeManager = manager.nodeManager
 	cr.carfileManager = manager
 	cr.totalSize = dInfo.TotalSize

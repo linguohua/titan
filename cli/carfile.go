@@ -185,7 +185,7 @@ var showCarfileInfoCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,EdgeReplica:%d/%d ,Expiration Time:%s\n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.EdgeReplica, info.NeedEdgeReplica, info.Expiration.Format("2006-01-02 15:04:05"))
+		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,EdgeReplica:%d/%d ,Expiration Time:%s\n", info.CarfileCID, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.EdgeReplica, info.NeedEdgeReplica, info.Expiration.Format("2006-01-02 15:04:05"))
 		for _, cache := range info.ReplicaInfos {
 			fmt.Printf("NodeID: %s ,Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
 				cache.NodeID, cache.Status.String(), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
@@ -284,13 +284,13 @@ var listCarfilesCmd = &cli.Command{
 			}
 
 			sort.Slice(infos, func(i, j int) bool {
-				return infos[i].CarfileCid < infos[j].CarfileCid
+				return infos[i].CarfileCID < infos[j].CarfileCID
 			})
 
 			for w := 0; w < len(infos); w++ {
 				info := infos[w]
 
-				fmt.Printf("\nData CID: %s ,Total Size:%f MB ,Total Blocks:%d \n", info.CarfileCid, float64(info.TotalSize)/(1024*1024), info.TotalBlocks)
+				fmt.Printf("\nData CID: %s ,Total Size:%f MB ,Total Blocks:%d \n", info.CarfileCID, float64(info.TotalSize)/(1024*1024), info.TotalBlocks)
 
 				sort.Slice(info.ReplicaInfos, func(i, j int) bool {
 					return info.ReplicaInfos[i].NodeID < info.ReplicaInfos[j].NodeID
@@ -312,7 +312,7 @@ var listCarfilesCmd = &cli.Command{
 		}
 
 		for _, carfile := range info.CarfileRecords {
-			fmt.Printf("%s ,EdgeReplica: %d/%d ,Blocks:%d ,Expiration Time:%s \n", carfile.CarfileCid, carfile.EdgeReplica, carfile.NeedEdgeReplica, carfile.TotalBlocks, carfile.Expiration.Format("2006-01-02 15:04:05"))
+			fmt.Printf("%s ,EdgeReplica: %d/%d ,Blocks:%d ,Expiration Time:%s \n", carfile.CarfileCID, carfile.EdgeReplica, carfile.NeedEdgeReplica, carfile.TotalBlocks, carfile.Expiration.Format("2006-01-02 15:04:05"))
 		}
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
 
@@ -346,12 +346,9 @@ var carfilesStatusCmd = &cli.Command{
 		fmt.Printf("CarfileCID:\t%s\n", status.CarfileCID)
 		fmt.Printf("Status:\t\t%s\n", status.State)
 		fmt.Printf("CarfileHash:\t%s\n", status.CarfileHash)
-		fmt.Printf("Replicas:\t%d\n", status.Replicas)
-		fmt.Printf("ServerID:\t%s\n", status.ServerID)
-		fmt.Printf("Size:\t%d\n", status.Size)
-		fmt.Printf("Blocks:\t%d\n", status.Blocks)
-		fmt.Printf("CreatedAt:\t%v\n", status.CreatedAt)
-		fmt.Printf("CreatedAt:\t%v\n", status.CreatedAt)
+		fmt.Printf("Replicas:\t%d\n", status.NeedEdgeReplica)
+		fmt.Printf("Size:\t%d\n", status.TotalSize)
+		fmt.Printf("Blocks:\t%d\n", status.TotalBlocks)
 		fmt.Printf("Expiration:\t\t%s\n", status.Expiration)
 
 		return nil

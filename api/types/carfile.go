@@ -31,7 +31,7 @@ type RemoveCarfileResult struct {
 
 // CarfileRecordInfo Data info
 type CarfileRecordInfo struct {
-	CarfileCid            string    `db:"carfile_cid"`
+	CarfileCID            string    `db:"carfile_cid"`
 	CarfileHash           string    `db:"carfile_hash"`
 	NeedEdgeReplica       int       `db:"edge_replica"`
 	TotalSize             int64     `db:"total_size"`
@@ -167,25 +167,6 @@ type CarfileID string
 
 func (c CarfileID) String() string {
 	return string(c)
-}
-
-type CarfileState string
-
-type CarfileInfo struct {
-	ID          string
-	State       CarfileState
-	CarfileCID  string
-	CarfileHash CarfileID
-	Replicas    int64
-	NodeID      string
-	ServerID    string
-	Size        int64
-	Blocks      int64
-	CreatedAt   time.Time
-	Expiration  time.Time
-
-	CandidateStoreFails int64
-	EdgeStoreFails      int64
 }
 
 //type Log struct {

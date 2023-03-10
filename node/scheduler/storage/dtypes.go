@@ -13,16 +13,6 @@ func (c CarfileHash) String() string {
 	return string(c)
 }
 
-type Log struct {
-	Timestamp uint64
-	Trace     string // for errors
-
-	Message string
-
-	// additional data (Event info)
-	Kind string
-}
-
 type CacheResultInfo struct {
 	Status            int64
 	CarfileBlockCount int64
@@ -57,12 +47,12 @@ type CarfileInfo struct {
 
 func (state *CarfileInfo) toCarfileRecordInfo() *types.CarfileRecordInfo {
 	return &types.CarfileRecordInfo{
-		CarfileCid:            state.CarfileCID,
+		CarfileCID:            state.CarfileCID,
 		CarfileHash:           state.CarfileHash.String(),
 		NeedEdgeReplica:       int(state.EdgeReplicas),
 		TotalSize:             state.Size,
 		TotalBlocks:           int(state.Blocks),
-		State:                 string(state.State),
+		State:                 state.State.String(),
 		NeedCandidateReplicas: int(state.CandidateReplicas),
 		Expiration:            time.Unix(state.Expiration, 0),
 	}
@@ -70,7 +60,7 @@ func (state *CarfileInfo) toCarfileRecordInfo() *types.CarfileRecordInfo {
 
 func From(info *types.CarfileRecordInfo) *CarfileInfo {
 	return &CarfileInfo{
-		CarfileCID:        info.CarfileCid,
+		CarfileCID:        info.CarfileCID,
 		State:             CarfileState(info.State),
 		CarfileHash:       CarfileHash(info.CarfileHash),
 		EdgeReplicas:      int64(info.NeedEdgeReplica),
