@@ -17,6 +17,7 @@ import (
 	"github.com/linguohua/titan/node/carfile/fetcher"
 	"github.com/linguohua/titan/node/carfile/store"
 	"github.com/linguohua/titan/node/device"
+	mh "github.com/multiformats/go-multihash"
 )
 
 var log = logging.Logger("carfile")
@@ -57,6 +58,10 @@ func NewCarfileImpl(carfileStore *store.CarfileStore, scheduler api.Scheduler, b
 }
 
 func (cfImpl *CarfileImpl) CacheCarfile(ctx context.Context, rootCID string, dss []*types.DownloadSource) (*types.CacheCarfileResult, error) {
+	if types.RunningNodeType == types.NodeEdge && len(dss) == 0 {
+		return nil, fmt.Errorf("download source can not empty")
+	}
+
 	root, err := cid.Decode(rootCID)
 	if err != nil {
 		return nil, err
@@ -274,6 +279,22 @@ func (cfImpl *CarfileImpl) cacheResultForCarfileExist(carfileCID string) error {
 }
 
 func (cfImpl *CarfileImpl) Cache(carfiles []string) error {
-	log.Debugf("unimplement")
+	switch types.RunningNodeType {
+	case types.NodeCandidate:
+		for _, hash := range carfiles {
+			multihash, err := mh.FromHexString(hash)
+			if err != nil {
+				return err
+			}
+
+			cid := cid.NewCidV1(cid.Raw, multihash)
+			cfImpl.CacheCarfile(context.Background(), cid.String(), nil)
+		}
+	case types.NodeEdge:
+		return fmt.Errorf("unimplement")
+	default:
+		return fmt.Errorf("unsupport node type:%s", types.RunningNodeType)
+	}
+
 	return nil
 }

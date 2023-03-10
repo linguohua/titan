@@ -51,6 +51,10 @@ func (candidate *candidate) getBlock(candidateAPI api.Candidate, cidStr string) 
 }
 
 func (candidate *candidate) getBlocks(cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
+	if len(dss) == 0 {
+		return nil, fmt.Errorf("download srouce can not empty")
+	}
+
 	blks := make([]blocks.Block, 0, len(cids))
 	candidates := make(map[string]api.Candidate)
 	blksLock := &sync.Mutex{}
