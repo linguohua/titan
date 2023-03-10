@@ -72,7 +72,8 @@ func (m *Manager) handleGetSeedCaching(ctx statemachine.Context, carfile Carfile
 func (m *Manager) handleStartCandidatesCache(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handler start candidates cache, %s", carfile.CarfileCID)
 
-	if candidateReplicaCacheCount < 1 {
+	needCount := carfile.CandidateReplicas - carfile.SuccessedCandidateReplicas
+	if needCount < 1 {
 		// cache to edges
 		return ctx.Send(CacheSuccessed{})
 	}
@@ -83,7 +84,7 @@ func (m *Manager) handleStartCandidatesCache(ctx statemachine.Context, carfile C
 	}
 
 	// find nodes
-	nodes := m.findCandidates(candidateReplicaCacheCount, filterNodes)
+	nodes := m.findCandidates(int(needCount), filterNodes)
 	if len(nodes) < 1 {
 		return ctx.Send(CacheFailed{error: xerrors.New("not found node")})
 	}
@@ -127,13 +128,25 @@ func (m *Manager) handleCandidatesCaching(ctx statemachine.Context, carfile Carf
 func (m *Manager) handleStartEdgesCache(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handler start edges cache , %s", carfile.CarfileCID)
 
+	needCount := carfile.EdgeReplicas - carfile.SuccessedEdgeReplicas
+
+	cNdoes, err := m.nodeManager.CarfileDB.CandidatesWithHash(carfile.CarfileHash.String())
+	if err != nil {
+		return ctx.Send(CacheFailed{error: err})
+	}
+
+	sources := m.Sources(carfile.CarfileHash.String(), cNdoes)
+	if len(sources) < 1 {
+		return ctx.Send(CacheFailed{error: xerrors.New("not found source nodes")})
+	}
+
 	filterNodes, err := m.nodeManager.CarfileDB.EdgesWithHash(carfile.CarfileHash.String())
 	if err != nil {
 		return ctx.Send(CacheFailed{error: err})
 	}
 
 	// find nodes
-	nodes := m.findEdges(int(carfile.EdgeReplicas), filterNodes)
+	nodes := m.findEdges(int(needCount), filterNodes)
 	if len(nodes) < 1 {
 		return ctx.Send(CacheFailed{error: xerrors.New("not found node")})
 	}
@@ -143,13 +156,6 @@ func (m *Manager) handleStartEdgesCache(ctx statemachine.Context, carfile Carfil
 	if err != nil {
 		return ctx.Send(CacheFailed{error: err})
 	}
-
-	cNdoes, err := m.nodeManager.CarfileDB.CandidatesWithHash(carfile.CarfileHash.String())
-	if err != nil {
-		return ctx.Send(CacheFailed{error: err})
-	}
-
-	sources := m.Sources(carfile.CarfileHash.String(), cNdoes)
 
 	// send to nodes
 	go func() {
