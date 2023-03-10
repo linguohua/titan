@@ -28,12 +28,37 @@ func trimPrefix(key datastore.Key) string {
 	return strings.Trim(key.String(), "/")
 }
 
+// func (d *Datastore) initReplicaInfo(out *types.CarfileRecordInfo) {
+// 	rs, err := d.CarfileReplicaInfosWithHash(out.CarfileHash, false)
+// 	if err != nil && err != sql.ErrNoRows {
+// 		return
+// 	}
+
+// 	for _, r := range rs {
+// 		if r.Status == types.CacheStatusSucceeded {
+// 			if r.IsCandidate {
+// 				out.SuccessedCandidateReplicas++
+// 			} else {
+// 				out.SuccessedEdgeReplicas++
+// 			}
+
+// 			continue
+// 		}
+
+// 		if r.IsCandidate {
+// 			out.FailedCandidateReplicas++
+// 		} else {
+// 			out.FailedEdgeReplicas++
+// 		}
+// 	}
+// }
+
 func (d *Datastore) Get(ctx context.Context, key datastore.Key) (value []byte, err error) {
 	out, err := d.LoadCarfileInfo(trimPrefix(key))
 	if err != nil {
 		return nil, err
 	}
-
+	// d.initReplicaInfo(out)
 	carfile := carfileInfoFrom(out)
 	valueBuf := new(bytes.Buffer)
 	if err := carfile.MarshalCBOR(valueBuf); err != nil {
@@ -96,7 +121,7 @@ func (d *Datastore) rawQuery(ctx context.Context, q query.Query) (query.Results,
 			if err != nil {
 				return query.Result{Error: err}, false
 			}
-
+			// d.initReplicaInfo(value)
 			carfile := carfileInfoFrom(value)
 			entry := query.Entry{Key: value.CarfileHash}
 			valueBuf := new(bytes.Buffer)

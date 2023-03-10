@@ -30,47 +30,44 @@ func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface
 var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *CarfileInfo) (uint64, error){
 	// external import
 	UndefinedCarfileState: planOne(
-		on(CarfileStartCaches{}, GetSeed),
+		on(CarfileStartCaches{}, CacheCarfileSeed),
 	),
-	// StartCache: planOne(
-	// 	on(CarfileGetSeed{}, GetSeed),
-	// ),
-	GetSeed: planOne(
-		on(RequestNodes{}, GetSeedCaching),
-		on(CacheFailed{}, GetSeedFailed),
+	CacheCarfileSeed: planOne(
+		on(RequestNodes{}, CarfileSeedCaching),
+		on(CacheFailed{}, CacheSeedFailed),
 	),
-	GetSeedCaching: planOne(
-		on(CacheSuccessed{}, StartCandidatesCache),
-		on(CacheFailed{}, GetSeedFailed),
+	CarfileSeedCaching: planOne(
+		on(CacheSuccessed{}, CacheToCandidates),
+		on(CacheFailed{}, CacheSeedFailed),
 		apply(CacheResult{}),
 	),
-	StartCandidatesCache: planOne(
+	CacheToCandidates: planOne(
 		on(RequestNodes{}, CandidatesCaching),
-		on(CacheSuccessed{}, StartEdgesCache),
-		on(CacheFailed{}, CandidatesCacheFailed),
+		on(CacheSuccessed{}, CacteToEdges),
+		on(CacheFailed{}, CacheCandidatesFailed),
 	),
 	CandidatesCaching: planOne(
-		on(CacheFailed{}, CandidatesCacheFailed),
-		on(CacheSuccessed{}, StartEdgesCache),
+		on(CacheFailed{}, CacheCandidatesFailed),
+		on(CacheSuccessed{}, CacteToEdges),
 		apply(CacheResult{}),
 	),
-	StartEdgesCache: planOne(
+	CacteToEdges: planOne(
 		on(RequestNodes{}, EdgesCaching),
-		on(CacheFailed{}, EdgesCacheFailed),
+		on(CacheFailed{}, CacheEdgesFailed),
 	),
 	EdgesCaching: planOne(
-		on(CacheFailed{}, EdgesCacheFailed),
+		on(CacheFailed{}, CacheEdgesFailed),
 		on(CacheSuccessed{}, Finalize),
 		apply(CacheResult{}),
 	),
-	GetSeedFailed: planOne(
-		on(CarfileRecache{}, GetSeed),
+	CacheSeedFailed: planOne(
+		on(CarfileRecache{}, CacheCarfileSeed),
 	),
-	CandidatesCacheFailed: planOne(
-		on(CarfileRecache{}, StartCandidatesCache),
+	CacheCandidatesFailed: planOne(
+		on(CarfileRecache{}, CacheToCandidates),
 	),
-	EdgesCacheFailed: planOne(
-		on(CarfileRecache{}, StartEdgesCache),
+	CacheEdgesFailed: planOne(
+		on(CarfileRecache{}, CacteToEdges),
 	),
 }
 
@@ -97,26 +94,22 @@ func (m *Manager) plan(events []statemachine.Event, state *CarfileInfo) (func(st
 	// Happy path
 	// case StartCache:
 	// 	return m.handleStartCache, processed, nil
-	case GetSeed:
-		return m.handleGetSeed, processed, nil
-	case GetSeedCaching:
-		return m.handleGetSeedCaching, processed, nil
-	case StartCandidatesCache:
-		return m.handleStartCandidatesCache, processed, nil
-	case StartEdgesCache:
-		return m.handleStartEdgesCache, processed, nil
+	case CacheCarfileSeed:
+		return m.handleCacheSeed, processed, nil
+	case CarfileSeedCaching:
+		return m.handleSeedCaching, processed, nil
+	case CacheToCandidates:
+		return m.handleCacheToCandidates, processed, nil
+	case CacteToEdges:
+		return m.handleCacheToEdges, processed, nil
 	case CandidatesCaching:
 		return m.handleCandidatesCaching, processed, nil
 	case EdgesCaching:
 		return m.handleEdgesCaching, processed, nil
 	case Finalize:
 		return m.handleFinalize, processed, nil
-	case GetSeedFailed, CandidatesCacheFailed, EdgesCacheFailed:
+	case CacheSeedFailed, CacheCandidatesFailed, CacheEdgesFailed:
 		return m.handleCachesFailed, processed, nil
-	// case CandidatesCacheFailed:
-	// 	return m.handleCandidateCachingFailed, processed, nil
-	// case EdgesCacheFailed:
-	// 	return m.handleEdgeCachingFailed, processed, nil
 	// Fatal errors
 	case UndefinedCarfileState:
 		log.Error("carfile update with undefined state!")
