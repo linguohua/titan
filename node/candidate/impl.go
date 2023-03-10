@@ -34,6 +34,8 @@ const (
 	schedulerApiTimeout = 3
 	validateTimeout     = 5
 	tcpPackMaxLength    = 52428800
+	fetchTimeout        = 15
+	fetchRetry          = 1
 )
 
 func cidFromData(data []byte) (string, error) {
@@ -65,7 +67,7 @@ type Candidate struct {
 	fx.In
 
 	*common.CommonAPI
-	*carfile.CarfileOperation
+	*carfile.CarfileImpl
 	*download.BlockDownload
 	*device.Device
 	*vd.Validate
@@ -91,7 +93,7 @@ func (candidate *Candidate) WaitQuiet(ctx context.Context) error {
 }
 
 func (candidate *Candidate) GetBlocksOfCarfile(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error) {
-	blockCount, err := candidate.CarfileOperation.BlockCountOfCarfile(carfileCID)
+	blockCount, err := candidate.CarfileImpl.BlockCountOfCarfile(carfileCID)
 	if err != nil {
 		log.Errorf("GetBlocksOfCarfile, BlockCountOfCarfile error:%s, carfileCID:%s", err.Error(), carfileCID)
 		return nil, err
@@ -110,7 +112,7 @@ func (candidate *Candidate) GetBlocksOfCarfile(ctx context.Context, carfileCID s
 		}
 	}
 
-	return candidate.CarfileOperation.GetBlocksOfCarfile(carfileCID, indexs)
+	return candidate.CarfileImpl.GetBlocksOfCarfile(carfileCID, indexs)
 }
 
 func (candidate *Candidate) ValidateNodes(ctx context.Context, req []api.ReqValidate) error {

@@ -164,7 +164,8 @@ type CacheStat struct {
 
 type CachingCarfile struct {
 	CarfileCID string
-	BlockList  []string
+	TotalSize  int64
+	DoneSize   int64
 }
 
 // CarfileID is an identifier for a carfile.

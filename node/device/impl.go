@@ -14,7 +14,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/build"
-	"github.com/linguohua/titan/node/carfile/carfilestore"
+	"github.com/linguohua/titan/node/carfile/store"
 	"github.com/linguohua/titan/node/fsutil"
 	"github.com/shirou/gopsutil/v3/mem"
 )
@@ -29,10 +29,10 @@ type Device struct {
 	internalIP    string
 	bandwidthUp   int64
 	bandwidthDown int64
-	carfileStore  *carfilestore.CarfileStore
+	carfileStore  *store.CarfileStore
 }
 
-func NewDevice(nodeID, internalIP string, bandwidthUp, bandwidthDown int64, carfileStore *carfilestore.CarfileStore) *Device {
+func NewDevice(nodeID, internalIP string, bandwidthUp, bandwidthDown int64, carfileStore *store.CarfileStore) *Device {
 	device := &Device{
 		nodeID:        nodeID,
 		internalIP:    internalIP,
@@ -99,7 +99,7 @@ func (device *Device) NodeInfo(ctx context.Context) (types.NodeInfo, error) {
 	info.CPUCores, _ = cpu.Counts(false)
 	info.DiskSpace, info.DiskUsage = device.GetDiskUsageStat()
 
-	absPath, err := filepath.Abs(device.carfileStore.Path())
+	absPath, err := filepath.Abs(device.carfileStore.BaseDir())
 	if err != nil {
 		return types.NodeInfo{}, err
 	}
@@ -173,7 +173,7 @@ func (device *Device) NodeID(ctx context.Context) (string, error) {
 }
 
 func (device *Device) GetDiskUsageStat() (totalSpace, usage float64) {
-	carfileStorePath := device.carfileStore.Path()
+	carfileStorePath := device.carfileStore.BaseDir()
 	usageStat, err := disk.Usage(carfileStorePath)
 	if err != nil {
 		log.Errorf("get disk usage stat error: %s", err)

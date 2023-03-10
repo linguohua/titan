@@ -391,24 +391,6 @@ func getSchedulerVersion(api api.Scheduler, timeout time.Duration) (api.APIVersi
 	return api.Version(ctx)
 }
 
-func extractRoutableIP(cctx *cli.Context, timeout time.Duration) (string, error) {
-	ainfo, err := lcli.GetAPIInfo(cctx, repo.Scheduler)
-	if err != nil {
-		return "", xerrors.Errorf("could not get scheduler API info: %w", err)
-	}
-
-	schedulerAddr := strings.Split(ainfo.Addr, "/")
-	conn, err := net.DialTimeout("tcp", schedulerAddr[2], timeout)
-	if err != nil {
-		return "", err
-	}
-	defer conn.Close() //nolint:errcheck
-
-	localAddr := conn.LocalAddr().(*net.TCPAddr)
-
-	return strings.Split(localAddr.IP.String(), ":")[0], nil
-}
-
 func newAuthTokenFromScheduler(schedulerURL, nodeID, secret string, timeout time.Duration) ([]byte, error) {
 	schedulerAPI, closer, err := client.NewScheduler(context.Background(), schedulerURL, nil)
 	if err != nil {

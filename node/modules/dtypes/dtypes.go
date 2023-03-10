@@ -32,8 +32,6 @@ type InternalIP string
 // ScheduleSecretKey used for connecting to the scheduler
 type ScheduleSecretKey string
 
-type CarfileStoreType string
-
 type CarfileStorePath string
 
 // ServerID server id

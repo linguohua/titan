@@ -6,11 +6,11 @@ import (
 	"net"
 	"time"
 
+	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/carfile/carfilestore"
-	"github.com/linguohua/titan/node/cidutil"
+	"github.com/linguohua/titan/node/carfile/store"
 	"github.com/linguohua/titan/node/device"
 	"golang.org/x/time/rate"
 )
@@ -18,12 +18,12 @@ import (
 var log = logging.Logger("validate")
 
 type Validate struct {
-	carfileStore          *carfilestore.CarfileStore
+	carfileStore          *store.CarfileStore
 	device                *device.Device
 	cancelValidateChannel chan bool
 }
 
-func NewValidate(carfileStore *carfilestore.CarfileStore, device *device.Device) *Validate {
+func NewValidate(carfileStore *store.CarfileStore, device *device.Device) *Validate {
 	return &Validate{carfileStore: carfileStore, device: device}
 }
 
@@ -60,14 +60,20 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 
 	limiter := rate.NewLimiter(rate.Limit(speedRate), int(speedRate))
 
-	carfileHash, err := cidutil.CIDString2HashString(reqValidate.CarfileCID)
+	c, err := cid.Decode(reqValidate.CarfileCID)
 	if err != nil {
-		log.Errorf("sendBlocks, CIDString2HashString error:%s, carfileCID:%s", err.Error(), reqValidate.CarfileCID)
+		log.Errorf("sendBlocks, decode cid %s error %s", reqValidate.CarfileCID, err.Error())
 		return
 	}
-	blockCount, err := validate.carfileStore.BlockCountOfCarfile(carfileHash)
+
+	cids, err := validate.carfileStore.BlocksOfCarfile(c)
 	if err != nil {
-		log.Errorf("sendBlocks, BlocksCountOfCarfile error:%s, carfileCID:%s", err.Error(), carfileHash)
+		log.Errorf("sendBlocks, BlocksCountOfCarfile error:%s, carfileCID:%s", err.Error(), reqValidate.CarfileCID)
+		return
+	}
+
+	if len(cids) == 0 {
+		log.Errorf("sendBlocks, carfile %s no block exist", reqValidate.CarfileCID)
 		return
 	}
 
@@ -87,20 +93,16 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 		default:
 		}
 
-		index := r.Intn(blockCount)
-		blockHashs, err := validate.carfileStore.BlocksHashesWith(carfileHash, []int{index})
+		var block []byte
+		index := r.Intn(len(cids))
+		blk, err := validate.carfileStore.Block(cids[index])
 		if err != nil && err != datastore.ErrNotFound {
-			log.Errorf("sendBlocks, get blockHashs error:%v", err)
+			log.Errorf("sendBlocks, get block error:%v", err)
 			return
 		}
 
-		var block []byte
-		if len(blockHashs) > 0 {
-			block, err = validate.carfileStore.Block(blockHashs[0])
-			if err != nil && err != datastore.ErrNotFound {
-				log.Errorf("sendBlocks, get block error:%v", err)
-				return
-			}
+		if blk != nil {
+			block = blk.RawData()
 		}
 
 		err = sendData(conn, block, api.ValidateTcpMsgTypeBlockContent, limiter)

@@ -2,21 +2,25 @@ package locator
 
 import (
 	"testing"
+
+	"github.com/linguohua/titan/node/scheduler/db/persistent"
 )
 
 func TestDB(t *testing.T) {
-	// url := "user01:sql001@tcp(127.0.0.1:3306)/locator"
-	// db, err := newSQLDB(url)
-	// if err != nil {
-	// 	t.Errorf("newSQLDB error:%s", err.Error())
-	// 	return
-	// }
-	// defer db.close()
+	t.Logf("TestDB")
+	db, err := persistent.NewDB("user01:sql001@tcp(127.0.0.1:3306)/locator")
+	if err != nil {
+		t.Errorf("new db error:%s", err.Error())
+		return
+	}
 
-	// cfg, err := db.getSchedulerCfg("https://192.168.0.138:67890/rpc/v0")
-	// if err != nil {
-	// 	fmt.Printf("err:%s", err.Error())
-	// 	return
-	// }
-	// fmt.Printf("cfg:%v", cfg)
+	sqldb := NewSQLDB(db)
+
+	nodeInfo, err := sqldb.getNodeInfo("e_a5a475d02480488e97ecc8e878c93caa")
+	if err != nil {
+		t.Errorf("get node info error:%s", err.Error())
+		return
+	}
+
+	t.Logf("nodeInfo:%v", nodeInfo)
 }

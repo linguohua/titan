@@ -4,12 +4,12 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
-	"sort"
+	"hash/fnv"
 
+	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/carfile/carfilestore"
+	"github.com/linguohua/titan/node/carfile/store"
+	mh "github.com/multiformats/go-multihash"
 )
 
 var log = logging.Logger("datasync")
@@ -17,109 +17,85 @@ var log = logging.Logger("datasync")
 const maxCarfileCount = 2000000
 
 type DataSync struct {
-	carfileStore *carfilestore.CarfileStore
-	carfileMap   map[string]struct{}
-	isChecking   bool
+	carfileStore *store.CarfileStore
+	cacher       Cacher
 }
 
-func NewDataSync(carfileStore *carfilestore.CarfileStore) *DataSync {
-	return &DataSync{carfileStore: carfileStore}
+type Cacher interface {
+	Cache(carfileHash []string) error
 }
 
-func (ds *DataSync) CompareChecksum(ctx context.Context, succeededCarfilesChecksum, unsucceededCarfilesChecksum string) (*api.CompareResult, error) {
-	completeCarfileHashes, err := ds.carfileStore.CompleteCarfileHashList()
+func NewDataSync(carfileStore *store.CarfileStore, cacher Cacher) *DataSync {
+	return &DataSync{carfileStore: carfileStore, cacher: cacher}
+}
+
+func (ds *DataSync) CompareChecksums(ctx context.Context, bucketCount uint32, checksums map[uint32]string) (mismatchKey []uint32, err error) {
+	hashes, err := ds.carfileStore.CarfileHashes()
 	if err != nil {
 		return nil, err
 	}
 
-	incompleteCarfileHashes, err := ds.carfileStore.IncompleteCarfileHashList()
+	multihashes := ds.multihashSort(hashes, bucketCount)
+	css, err := ds.caculateChecksums(multihashes)
 	if err != nil {
 		return nil, err
 	}
 
-	completeCarfilesChecksum, err := ds.caculateChecksum(completeCarfileHashes)
-	if err != nil {
-		return nil, err
+	for k, v := range checksums {
+		cs := css[k]
+		if cs != v {
+			mismatchKey = append(mismatchKey, k)
+		}
+		delete(multihashes, k)
 	}
 
-	incompleteCarfilesChecksum, err := ds.caculateChecksum(incompleteCarfileHashes)
-	if err != nil {
-		return nil, err
+	// Remove the redundant carfile
+	for _, v := range multihashes {
+		ds.removeCarfiles(v)
 	}
 
-	return &api.CompareResult{IsSusseedCarfilesOk: completeCarfilesChecksum == succeededCarfilesChecksum, IsUnsusseedCarfilesOk: incompleteCarfilesChecksum == unsucceededCarfilesChecksum}, nil
+	return mismatchKey, nil
 }
 
-func (ds *DataSync) BeginCheckCarfiles(ctx context.Context) error {
-	if ds.isChecking {
-		return fmt.Errorf("checking storage now, can not do again")
+func (ds *DataSync) multihashSort(hashes []string, bucketCount uint32) map[uint32][]string {
+	multihashes := make(map[uint32][]string)
+	// appen carfilehash by hash code
+	for _, hash := range hashes {
+		multihash, err := mh.FromHexString(hash)
+		if err != nil {
+			log.Errorf("decode multihash error:%s", err.Error())
+			continue
+		}
+
+		h := fnv.New32a()
+		h.Write(multihash)
+		k := h.Sum32() % bucketCount
+
+		multihashes[k] = append(multihashes[k], hash)
+
 	}
-	// clean
-	ds.carfileMap = make(map[string]struct{}, 0)
-	return nil
+
+	return multihashes
 }
 
-func (ds *DataSync) PrepareCarfiles(ctx context.Context, carfileHashes []string) error {
-	if ds.isChecking {
-		return fmt.Errorf("checking storage now, can not do again")
+func (ds *DataSync) caculateChecksums(multihashes map[uint32][]string) (map[uint32]string, error) {
+	checksums := make(map[uint32]string)
+	for k, v := range multihashes {
+		checksum, err := ds.caculateChecksum(v)
+		if err != nil {
+			return nil, err
+		}
+
+		checksums[k] = checksum
 	}
-
-	total := len(ds.carfileMap) + len(carfileHashes)
-	if total > maxCarfileCount {
-		return fmt.Errorf("total storage is out of %d", maxCarfileCount)
-	}
-
-	for _, hash := range carfileHashes {
-		ds.carfileMap[hash] = struct{}{}
-	}
-
-	return nil
-}
-
-func (ds *DataSync) DoCheckCarfiles(ctx context.Context, carfilesChecksum string, isSusseededCarfiles bool) error {
-	ok, err := ds.isPrepare(carfilesChecksum)
-	if err != nil {
-		return err
-	}
-
-	if !ok {
-		return fmt.Errorf("checksum not match prepare carfiles")
-	}
-
-	ds.isChecking = true
-	defer func() {
-		ds.isChecking = false
-		ds.carfileMap = make(map[string]struct{}, 0)
-	}()
-
-	localCarfileMap, err := ds.localCarfilesToMap(isSusseededCarfiles)
-	if err != nil {
-		return err
-	}
-	return ds.checkCarfiles(localCarfileMap, isSusseededCarfiles)
-}
-
-func (ds *DataSync) isPrepare(carfilesChecksum string) (bool, error) {
-	carfileHashes := make([]string, 0, len(ds.carfileMap))
-	for hash := range ds.carfileMap {
-		carfileHashes = append(carfileHashes, hash)
-	}
-
-	sort.Strings(carfileHashes)
-
-	checksum, err := ds.caculateChecksum(carfileHashes)
-	if err != nil {
-		return false, err
-	}
-
-	return carfilesChecksum == checksum, nil
+	return checksums, nil
 }
 
 func (ds *DataSync) caculateChecksum(carfileHashes []string) (string, error) {
 	hash := sha256.New()
 
-	for _, ch := range carfileHashes {
-		data := []byte(ch)
+	for _, h := range carfileHashes {
+		data := []byte(h)
 		_, err := hash.Write(data)
 		if err != nil {
 			return "", err
@@ -128,43 +104,73 @@ func (ds *DataSync) caculateChecksum(carfileHashes []string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func (ds *DataSync) localCarfilesToMap(isSusseededCarfiles bool) (map[string]struct{}, error) {
-	var err error
-	var carfileHashes []string
-	if isSusseededCarfiles {
-		carfileHashes, err = ds.carfileStore.CompleteCarfileHashList()
-	} else {
-		carfileHashes, err = ds.carfileStore.IncompleteCarfileHashList()
-	}
+func (ds *DataSync) removeCarfiles(carfiles []string) error {
+	for _, hash := range carfiles {
+		multihash, err := mh.FromHexString(hash)
+		if err != nil {
+			return err
+		}
 
-	if err != nil {
-		return nil, err
-	}
-
-	carfileMap := make(map[string]struct{})
-	for _, hash := range carfileHashes {
-		carfileMap[hash] = struct{}{}
-	}
-
-	return carfileMap, nil
-}
-
-func (ds *DataSync) checkCarfiles(localCarfile map[string]struct{}, isSucceededCarfiles bool) error {
-	for hash := range ds.carfileMap {
-		_, ok := localCarfile[hash]
-		if ok {
-			delete(localCarfile, hash)
-			delete(ds.carfileMap, hash)
+		cid := cid.NewCidV1(cid.Raw, multihash)
+		err = ds.carfileStore.DeleteCarfile(cid)
+		if err != nil {
+			return err
 		}
 	}
 
-	needToDownloadCarfiles := ds.carfileMap
-	needToDeleteCarfiles := localCarfile
-
-	_ = needToDownloadCarfiles
-	_ = needToDeleteCarfiles
-
-	// TODO: download or delete carfiles
-
 	return nil
+}
+
+func (ds *DataSync) CompareCarfiles(ctx context.Context, bucketCount uint32, multiHashes map[uint32][]string) error {
+	hashes, err := ds.carfileStore.CarfileHashes()
+	if err != nil {
+		return err
+	}
+
+	needToDownloadCarfiles := make([]string, 0)
+	needToDeleteCarfiles := make([]string, 0)
+	mhs := ds.multihashSort(hashes, bucketCount)
+
+	for k, v := range multiHashes {
+		mh, ok := mhs[k]
+		if !ok {
+			needToDownloadCarfiles = append(needToDownloadCarfiles, v...)
+			continue
+		}
+
+		r, l := ds.compareCarfiles(v, mh)
+		if len(r) > 0 {
+			needToDeleteCarfiles = append(needToDeleteCarfiles, r...)
+		}
+		if len(l) > 0 {
+			needToDownloadCarfiles = append(needToDownloadCarfiles, l...)
+		}
+	}
+
+	go ds.cacher.Cache(needToDownloadCarfiles)
+
+	return ds.removeCarfiles(needToDeleteCarfiles)
+}
+
+func (ds *DataSync) compareCarfiles(dest []string, src []string) (redundant, lack []string) {
+	destMap := make(map[string]struct{})
+
+	for _, v := range dest {
+		destMap[v] = struct{}{}
+	}
+
+	for _, v := range src {
+		if _, ok := destMap[v]; !ok {
+			redundant = append(redundant, v)
+			continue
+		}
+
+		delete(destMap, v)
+	}
+
+	for k := range destMap {
+		lack = append(lack, k)
+	}
+
+	return
 }

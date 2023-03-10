@@ -2,11 +2,12 @@ package node
 
 import (
 	"errors"
+
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/candidate"
 	"github.com/linguohua/titan/node/carfile"
-	"github.com/linguohua/titan/node/carfile/carfilestore"
-	"github.com/linguohua/titan/node/carfile/downloader"
+	"github.com/linguohua/titan/node/carfile/fetcher"
+	"github.com/linguohua/titan/node/carfile/store"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/download"
@@ -50,14 +51,14 @@ func ConfigCandidate(c interface{}) Option {
 	return Options(
 		Override(new(*config.CandidateCfg), cfg),
 		Override(new(*device.Device), modules.NewDevice(cfg.BandwidthUp, cfg.BandwidthDown)),
-		Override(new(dtypes.CarfileStoreType), dtypes.CarfileStoreType(cfg.CarfileStoreType)),
 		Override(new(dtypes.CarfileStorePath), dtypes.CarfileStorePath(cfg.CarfileStorePath)),
-		Override(new(*carfilestore.CarfileStore), modules.NewCarfileStore),
+		Override(new(*store.CarfileStore), modules.NewCarfileStore),
 		Override(new(*validate.Validate), validate.NewValidate),
 		Override(new(*rate.Limiter), modules.NewRateLimiter),
 		Override(new(*download.BlockDownload), download.NewBlockDownload),
-		Override(new(*carfile.CarfileOperation), carfile.NewCarfileOperation),
-		Override(new(downloader.DownloadBlockser), modules.NewDownloadBlockerFromIPFS),
+		Override(new(*carfile.CarfileImpl), carfile.NewCarfileImpl),
+		Override(new(fetcher.BlockFetcher), modules.NewBlockFetcherFromIPFS),
+		Override(new(datasync.Cacher), modules.NewCacherForDataSync),
 		Override(new(*datasync.DataSync), datasync.NewDataSync),
 		Override(new(*candidate.BlockWaiter), candidate.NewBlockWaiter),
 		Override(new(*candidate.TCPServer), modules.NewTcpServer),

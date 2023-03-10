@@ -107,15 +107,17 @@ var runCmd = &cli.Command{
 	Usage: "Start titan edge node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "device-id",
-			Usage: "example: --device-id=b26fb231-e986-42de-a5d9-7b512a35543d",
-			Value: "",
+			Required: true,
+			Name:     "device-id",
+			Usage:    "example: --device-id=b26fb231-e986-42de-a5d9-7b512a35543d",
+			Value:    "",
 		},
 		&cli.StringFlag{
-			Name:    "secret",
-			EnvVars: []string{"TITAN_SCHEDULER_KEY", "SCHEDULER_KEY"},
-			Usage:   "used auth edge node when connect to scheduler",
-			Value:   "",
+			Required: true,
+			Name:     "secret",
+			EnvVars:  []string{"TITAN_SCHEDULER_KEY", "SCHEDULER_KEY"},
+			Usage:    "used auth edge node when connect to scheduler",
+			Value:    "",
 		},
 	},
 
@@ -381,24 +383,6 @@ func getSchedulerVersion(api api.Scheduler, timeout time.Duration) (api.APIVersi
 	return api.Version(ctx)
 }
 
-func extractRoutableIP(cctx *cli.Context, edgeCfg *config.EdgeCfg, timeout time.Duration) (string, error) {
-	ainfo, err := lcli.GetAPIInfo(cctx, repo.Scheduler)
-	if err != nil {
-		return "", xerrors.Errorf("could not get scheduler API info: %w", err)
-	}
-
-	schedulerAddr := strings.Split(ainfo.Addr, "/")
-	conn, err := net.DialTimeout("tcp", schedulerAddr[2], timeout)
-	if err != nil {
-		return "", err
-	}
-	defer conn.Close()
-
-	localAddr := conn.LocalAddr().(*net.TCPAddr)
-
-	return strings.Split(localAddr.IP.String(), ":")[0], nil
-}
-
 func newAuthTokenFromScheduler(schedulerURL, nodeID, secret string, timeout time.Duration) ([]byte, error) {
 	schedulerAPI, closer, err := client.NewScheduler(context.Background(), schedulerURL, nil)
 	if err != nil {
@@ -445,7 +429,7 @@ func newSchedulerAPI(cctx *cli.Context, nodeID string, securityKey string, timeo
 
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+token)
-	headers.Add("Device-ID", nodeID)
+	headers.Add("Node-ID", nodeID)
 
 	schedulerAPI, closer, err := client.NewScheduler(ctx, schedulerURL, headers)
 	if err != nil {
