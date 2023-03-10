@@ -41,6 +41,8 @@ type CarfileInfo struct {
 
 	FailedEdgeReplicas      int64
 	FailedCandidateReplicas int64
+
+	retryCount int64
 }
 
 func (state *CarfileInfo) toCarfileRecordInfo() *types.CarfileRecordInfo {

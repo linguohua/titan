@@ -36,7 +36,7 @@ const (
 	rootCacheCount               = 1       // The number of caches in the first stage
 )
 
-var candidateReplicaCacheCount = 1 // nodeMgrCache to the number of candidate nodes （does not contain 'rootCacheCount'）
+var candidateReplicaCacheCount = 0 // nodeMgrCache to the number of candidate nodes （does not contain 'rootCacheCount'）
 
 // CacheEvent carfile cache event
 type CacheEvent int
@@ -69,6 +69,7 @@ func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToke
 		nodeManager:          nodeManager,
 		latelyExpirationTime: time.Now(),
 		writeToken:           writeToken,
+		carfileTickers:       map[string]chan CacheEvent{},
 	}
 
 	m.startupWait.Add(1)
@@ -243,10 +244,15 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 		return err
 	}
 
-	if cInfo.State == Finalize.String() {
-		log.Infof("carfile %s is finalize ", info.CarfileCid)
-		return nil
+	if cInfo != nil {
+		// TODO need retry
+		return xerrors.Errorf("carfile %s is exist ", info.CarfileCid)
 	}
+
+	// if cInfo.State == Finalize.String() {
+	// 	log.Infof("carfile %s is finalize ", info.CarfileCid)
+	// 	return nil
+	// }
 
 	err = m.nodeManager.CarfileDB.CreateOrUpdateCarfileRecordInfo(&types.CarfileRecordInfo{
 		CarfileCID:      info.CarfileCid,
