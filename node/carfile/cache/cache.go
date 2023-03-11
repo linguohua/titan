@@ -12,7 +12,7 @@ import (
 	"github.com/linguohua/titan/node/carfile/fetcher"
 )
 
-var log = logging.Logger("/carfile/cache")
+var log = logging.Logger("carfile/cache")
 
 type downloadResult struct {
 	netLayerCids []string
@@ -67,6 +67,7 @@ func (cfCache *carfileCache) removeBlocksFromWaitList(n int) {
 
 func (cfCache *carfileCache) downloadCar() error {
 	defer cfCache.bsrw.Finalize()
+
 	netLayerCIDs := cfCache.blocksWaitList
 	if len(netLayerCIDs) == 0 {
 		netLayerCIDs = append(netLayerCIDs, cfCache.root.String())

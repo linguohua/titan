@@ -63,7 +63,7 @@ func (m *Manager) startTick() {
 		if m.cachingCar != nil {
 			err := m.CachedResult(m.cachingCar)
 			if err != nil {
-				log.Errorf("startTickForDownloadResult, downloadResult error:%s", err.Error())
+				log.Errorf("startTick, downloadResult error:%s", err.Error())
 			}
 
 			m.saveIncompleteCarfileCache(m.cachingCar)
@@ -106,33 +106,31 @@ func (m *Manager) doDownloadCars() {
 			return
 		}
 
-		m.downloadCar(cw)
+		bsrw, err := m.carfileStore.NewCarfileWriter(cw.Root)
+		if err != nil {
+			m.removeCarFromWaitList(cw.Root)
+			log.Errorf("doDownloadCar, new car error:%s", err)
+			return
+		}
+
+		carfileCache, err := m.restoreCarfileCacheOrNew(&options{cw.Root, cw.Dss, bsrw, m.bFetcher, m.downloadBatch})
+		if err != nil {
+			m.removeCarFromWaitList(cw.Root)
+			log.Errorf("restore carfile cache error:%s", err)
+			return
+		}
+
+		m.cachingCar = carfileCache
+		err = carfileCache.downloadCar()
+		if err != nil {
+			log.Errorf("doDownloadCarfile, downloadCarfile error:%s", err)
+		}
+
+		m.cachingCar = nil
+		m.removeCarFromWaitList(cw.Root)
+		m.onDownloadCarComplete(carfileCache)
 	}
-}
 
-func (m *Manager) downloadCar(cw *carWaiter) {
-	defer m.removeCarFromWaitList(cw.Root)
-
-	bsrw, err := m.carfileStore.NewCarfileWriter(cw.Root)
-	if err != nil {
-		log.Errorf("doDownloadCar, new car error:%s", err)
-		return
-	}
-
-	carfileCache, err := m.restoreCarfileCacheOrNew(&options{cw.Root, cw.Dss, bsrw, m.bFetcher, m.downloadBatch})
-	if err != nil {
-		log.Errorf("restore carfile cache error:%s", err)
-		return
-	}
-
-	m.cachingCar = carfileCache
-	err = carfileCache.downloadCar()
-	if err != nil {
-		log.Errorf("doDownloadCarfile, downloadCarfile error:%s", err)
-	}
-
-	m.cachingCar = nil
-	m.onDownloadCarComplete(carfileCache)
 }
 
 func (m *Manager) headFromWaitList() *carWaiter {
@@ -185,7 +183,7 @@ func (m *Manager) AddToWaitList(root cid.Cid, dss []*types.DownloadSource) {
 }
 
 func (m *Manager) saveIncompleteCarfileCache(cf *carfileCache) error {
-	buf, err := encode(cf)
+	buf, err := cf.encode()
 	if err != nil {
 		return err
 	}
@@ -241,7 +239,7 @@ func (m *Manager) restoreWaitListFromStore() {
 		return
 	}
 
-	log.Debugf("restoreWaitListFromStore:%v", m.waitList)
+	log.Debugf("restoreWaitListFromStore:%#v", m.waitList)
 }
 
 func (m *Manager) WaitListLen() int {
