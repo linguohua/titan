@@ -287,7 +287,7 @@ func (s *Scheduler) NodePublicKey(ctx context.Context) (string, error) {
 	return "", fmt.Errorf("Can not get node %s publicKey", nodeID)
 }
 
-//NodeExternalServiceAddress get node External address
+// NodeExternalServiceAddress get node External address
 func (s *Scheduler) NodeExternalServiceAddress(ctx context.Context) (string, error) {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	return remoteAddr, nil
@@ -366,7 +366,7 @@ func (s *Scheduler) NodeInfo(ctx context.Context, nodeID string) (*types.NodeInf
 		nodeInfo.Online = true
 	} else {
 		// node datas
-		dbInfo, err := s.NodeManager.NodeMgrDB.LoadNodeInfo(nodeID)
+		dbInfo, err := s.NodeManager.NodeMgrDB.NodeInfo(nodeID)
 		if err != nil {
 			log.Errorf("getNodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
 			return nil, err

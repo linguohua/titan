@@ -45,7 +45,7 @@ func newCarfileRecord(manager *Manager, cid, hash string) *CarfileRecord {
 }
 
 func (m *Manager) loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
-	dInfo, err := m.nodeManager.CarfileDB.LoadCarfileInfo(hash)
+	dInfo, err := m.nodeManager.CarfileDB.CarfileInfo(hash)
 	if err != nil {
 		return nil, err
 	}
