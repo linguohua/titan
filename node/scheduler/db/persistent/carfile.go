@@ -21,14 +21,6 @@ func NewCarfileDB(db *sqlx.DB) *CarfileDB {
 	return &CarfileDB{db}
 }
 
-func (c *CarfileDB) DeleteCarfileSql() string {
-	return fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=?`, carfileInfoTable)
-}
-
-func (c *CarfileDB) UpdateOrCreateCarfileSql() string {
-	return fmt.Sprintf("UPDATE %s SET total_size=:total_size,total_blocks=:total_blocks,end_time=NOW() WHERE carfile_hash=:carfile_hash", carfileInfoTable)
-}
-
 // CreateCarfileReplicaInfo Create replica info
 func (c *CarfileDB) CreateCarfileReplicaInfo(cInfo *types.ReplicaInfo) error {
 	cmd := fmt.Sprintf("INSERT INTO %s (id, carfile_hash, node_id, status, is_candidate) VALUES (:id, :carfile_hash, :node_id, :status, :is_candidate)", replicaInfoTable)
@@ -89,12 +81,18 @@ func (c *CarfileDB) UpdateCarfileRecordCachesInfo(dInfo *types.CarfileRecordInfo
 	return err
 }
 
-// CreateOrUpdateCarfileRecordInfo create or update storage record info
-func (c *CarfileDB) CreateOrUpdateCarfileRecordInfo(info *types.CarfileRecordInfo) error {
-	cmd := fmt.Sprintf(`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration, total_blocks, total_size, succeed_edges, succeed_candidates, failed_candidates, failed_edges)
-	        VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica, :expiration, :total_blocks, :total_size, :succeed_edges, :succeed_candidates, :failed_candidates, :failed_edges) 
-	        ON DUPLICATE KEY UPDATE succeed_edges=VALUES(succeed_edges),succeed_candidates=VALUES(succeed_candidates),failed_edges=VALUES(failed_edges),failed_candidates=VALUES(failed_candidates),
-			total_size=VALUES(total_size),total_blocks=VALUES(total_blocks),edge_replica=VALUES(edge_replica),candidate_replica=VALUES(candidate_replica),expiration=VALUES(expiration),state=VALUES(state)`, carfileInfoTable)
+// CreateCarfileRecord create carfiler record info
+func (c *CarfileDB) CreateCarfileRecord(info *types.CarfileRecordInfo) error {
+	cmd := fmt.Sprintf(`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration)
+	        VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica, :expiration) `, carfileInfoTable)
+	_, err := c.DB.NamedExec(cmd, info)
+	return err
+}
+
+// UpdateCarfileRecordInfo update storage record info
+func (c *CarfileDB) UpdateCarfileRecordInfo(info *types.CarfileRecordInfo) error {
+	cmd := fmt.Sprintf(`UPDATE %s SET succeed_edges=:succeed_edges,succeed_candidates=:succeed_candidates,failed_edges=:failed_edges,failed_candidates=:failed_candidates,
+			total_size=:total_size,total_blocks=:total_blocks,state=:state WHERE carfile_hash=:carfile_hash`, carfileInfoTable)
 	_, err := c.DB.NamedExec(cmd, info)
 	return err
 }

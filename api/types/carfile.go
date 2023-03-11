@@ -70,7 +70,6 @@ type CacheCarfileInfo struct {
 	CarfileCid  string    `db:"carfile_cid"`
 	CarfileHash string    `db:"carfile_hash"`
 	Replicas    int64     `db:"replicas"`
-	NodeID      string    `db:"node_id"`
 	ServerID    string    `db:"server_id"`
 	Expiration  time.Time `db:"expiration"`
 }

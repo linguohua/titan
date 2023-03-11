@@ -211,12 +211,10 @@ var cacheCarfileCmd = &cli.Command{
 		cidFlag,
 		replicaCountFlag,
 		expirationDateFlag,
-		nodeIDFlag,
 	},
 	Action: func(cctx *cli.Context) error {
 		cid := cctx.String("cid")
 		replicaCount := cctx.Int64("replica-count")
-		nodeID := cctx.String("node-id")
 		date := cctx.String("expiration-date")
 
 		ctx := ReqContext(cctx)
@@ -231,21 +229,18 @@ var cacheCarfileCmd = &cli.Command{
 		}
 
 		info := &types.CacheCarfileInfo{CarfileCid: cid}
-		if nodeID != "" {
-			info.NodeID = nodeID
-		} else {
-			if date == "" {
-				date = time.Now().Add(time.Duration(7*24) * time.Hour).Format("2006-1-2 15:04:05")
-			}
 
-			eTime, err := time.ParseInLocation("2006-1-2 15:04:05", date, time.Local)
-			if err != nil {
-				return xerrors.Errorf("expiration date err:%s", err.Error())
-			}
-
-			info.Expiration = eTime
-			info.Replicas = replicaCount
+		if date == "" {
+			date = time.Now().Add(time.Duration(7*24) * time.Hour).Format("2006-1-2 15:04:05")
 		}
+
+		eTime, err := time.ParseInLocation("2006-1-2 15:04:05", date, time.Local)
+		if err != nil {
+			return xerrors.Errorf("expiration date err:%s", err.Error())
+		}
+
+		info.Expiration = eTime
+		info.Replicas = replicaCount
 
 		err = schedulerAPI.CacheCarfiles(ctx, info)
 		if err != nil {

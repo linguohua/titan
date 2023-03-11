@@ -113,11 +113,7 @@ func (m *Manager) GetCarfileRecord(hash string) (*CarfileRecord, error) {
 
 // CacheCarfile new storage task
 func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
-	if info.NodeID == "" {
-		log.Infof("carfile event %s , add carfile,replica:%d,expiration:%s", info.CarfileCid, info.Replicas, info.Expiration.String())
-	} else {
-		log.Infof("carfile event %s , add carfile,nodeID:%s", info.CarfileCid, info.NodeID)
-	}
+	log.Infof("carfile event %s , add carfile,replica:%d,expiration:%s", info.CarfileCid, info.Replicas, info.Expiration.String())
 
 	// info.ServerID = string(m.nodeManager.ServerID)
 	// err := m.nodeManager.CarfileDB.PushCarfileToWaitList(info)
@@ -139,11 +135,13 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 	// 	return nil
 	// }
 
-	err = m.nodeManager.CarfileDB.CreateOrUpdateCarfileRecordInfo(&types.CarfileRecordInfo{
-		CarfileCID:      info.CarfileCid,
-		NeedEdgeReplica: info.Replicas,
-		Expiration:      info.Expiration,
-		CarfileHash:     info.CarfileHash,
+	err = m.nodeManager.CarfileDB.CreateCarfileRecord(&types.CarfileRecordInfo{
+		CarfileCID:            info.CarfileCid,
+		NeedEdgeReplica:       info.Replicas,
+		Expiration:            info.Expiration,
+		CarfileHash:           info.CarfileHash,
+		NeedCandidateReplicas: int64(rootCachesCount + candidateReplicaCachesCount),
+		State:                 UndefinedCarfileState.String(),
 	})
 	if err != nil {
 		return xerrors.Errorf("cid:%s,CreateOrUpdateCarfileRecordInfo err:%s", info.CarfileCid, err.Error())
