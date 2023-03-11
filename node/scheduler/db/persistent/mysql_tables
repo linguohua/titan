@@ -97,7 +97,7 @@ CREATE TABLE `carfiles` (
 	PRIMARY KEY (`carfile_hash`)
 ) ENGINE=InnoDB COMMENT='carfile infos';
 
-CREATE TABLE `node_update_info` (
+CREATE TABLE `edge_update_info` (
 	`node_type` int NOT NULL UNIQUE,
 	`app_name` varchar(64) NOT NULL,
     `version`  varchar(32) NOT NULL,
@@ -105,7 +105,7 @@ CREATE TABLE `node_update_info` (
 	`download_url` varchar(128) NOT NULL,
     `update_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (`node_type`)
-) ENGINE=InnoDB COMMENT='node_update_info';
+) ENGINE=InnoDB COMMENT='edge update info';
 
 CREATE TABLE `carfile_downloading` (
 	`carfile_hash` varchar(128) NOT NULL,
