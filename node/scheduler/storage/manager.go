@@ -25,7 +25,7 @@ import (
 var log = logging.Logger("storage")
 
 const (
-	nodeCachingKeepalive         = 20      // node caching keepalive (Unit:Second)
+	nodeCachingKeepalive         = 30      // node caching keepalive (Unit:Second)
 	checkExpirationTimerInterval = 60 * 30 // time interval (Unit:Second)
 	downloadingCarfileMaxCount   = 10      // It needs to be changed to the number of caches
 	maxDiskUsage                 = 90.0    // If the node disk size is greater than this value, caching will not continue
@@ -201,15 +201,15 @@ func (m *Manager) RemoveCache(carfileCid, nodeID string) error {
 func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (err error) {
 	log.Infof("carfileCacheResult :%s , %d , %s", nodeID, info.Status, info.CarfileHash)
 
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	tickerC := m.carfileTickers[info.CarfileHash]
+	if tickerC != nil {
+		tickerC <- EventReset
+	}
+
 	if info.Status == types.CacheStatusDownloading {
-		m.lock.Lock()
-		defer m.lock.Unlock()
-
-		tickerC := m.carfileTickers[info.CarfileHash]
-		if tickerC != nil {
-			tickerC <- EventReset
-		}
-
 		return nil
 	}
 

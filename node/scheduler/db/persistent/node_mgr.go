@@ -101,7 +101,7 @@ func (n *NodeMgrDB) SetNodePortMapping(nodeID, port string) error {
 func (n *NodeMgrDB) InitValidatedResultInfos(infos []*types.ValidatedResultInfo) error {
 	tx := n.db.MustBegin()
 	for _, info := range infos {
-		query := "INSERT INTO validate_result (round_id, node_id, validator_id, status, start_time) VALUES (?, ?, ?, ?, ?)"
+		query := fmt.Sprintf(`INSERT INTO %s (round_id, node_id, validator_id, status, start_time) VALUES (?, ?, ?, ?, ?)`, validateResultTable)
 		tx.MustExec(query, info.RoundID, info.NodeID, info.ValidatorID, info.Status, info.StartTime)
 	}
 
@@ -118,7 +118,7 @@ func (n *NodeMgrDB) InitValidatedResultInfos(infos []*types.ValidatedResultInfo)
 func (n *NodeMgrDB) SetValidateTimeoutOfNodes(roundID int64, nodeIDs []string) error {
 	tx := n.db.MustBegin()
 
-	updateCachesCmd := `UPDATE validate_result SET status=?,end_time=NOW() WHERE round_id=? AND node_id in (?)`
+	updateCachesCmd := fmt.Sprintf(`UPDATE %s SET status=?,end_time=NOW() WHERE round_id=? AND node_id in (?)`, validateResultTable)
 	query, args, err := sqlx.In(updateCachesCmd, types.ValidateStatusTimeOut, roundID, nodeIDs)
 	if err != nil {
 		return err
@@ -140,12 +140,12 @@ func (n *NodeMgrDB) SetValidateTimeoutOfNodes(roundID int64, nodeIDs []string) e
 // UpdateValidatedResultInfo Update validator info
 func (n *NodeMgrDB) UpdateValidatedResultInfo(info *types.ValidatedResultInfo) error {
 	if info.Status == types.ValidateStatusSuccess {
-		query := "UPDATE validate_result SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW() WHERE round_id=:round_id AND node_id=:node_id"
+		query := fmt.Sprintf(`UPDATE %s SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW() WHERE round_id=:round_id AND node_id=:node_id`, validateResultTable)
 		_, err := n.db.NamedExec(query, info)
 		return err
 	}
 
-	query := "UPDATE validate_result SET status=:status, end_time=NOW() WHERE round_id=:round_id AND node_id=:node_id"
+	query := fmt.Sprintf(`UPDATE %s SET status=:status, end_time=NOW() WHERE round_id=:round_id AND node_id=:node_id`, validateResultTable)
 	_, err := n.db.NamedExec(query, info)
 	return err
 }
@@ -154,7 +154,7 @@ func (n *NodeMgrDB) UpdateValidatedResultInfo(info *types.ValidatedResultInfo) e
 func (n *NodeMgrDB) ValidatedResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidatedResultRsp, error) {
 	res := new(types.ListValidatedResultRsp)
 	var infos []types.ValidatedResultInfo
-	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM validate_result WHERE start_time between ? and ? order by id asc  LIMIT ?,? ")
+	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM %s WHERE start_time between ? and ? order by id asc  LIMIT ?,? ", validateResultTable)
 
 	if pageSize > loadValidateInfoMaxCount {
 		pageSize = loadValidateInfoMaxCount
@@ -167,7 +167,7 @@ func (n *NodeMgrDB) ValidatedResultInfos(startTime, endTime time.Time, pageNumbe
 
 	res.ValidatedResultInfos = infos
 
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM validate_result WHERE start_time between ? and ? ")
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE start_time between ? and ?", validateResultTable)
 	var count int
 	err = n.db.Get(&count, countQuery, startTime, endTime)
 	if err != nil {

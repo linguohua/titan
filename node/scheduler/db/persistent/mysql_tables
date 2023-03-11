@@ -35,7 +35,6 @@ CREATE TABLE `validate_result` (
     `validator_id` varchar(128) NOT NULL,
     `block_number` bigint DEFAULT '0' COMMENT 'number of blocks verified',
     `status` tinyint DEFAULT '0',
-    `status` tinyint DEFAULT '0',
     `duration` bigint DEFAULT '0' COMMENT 'validate duration, microsecond',
     `bandwidth` float DEFAULT '0',
     `start_time` datetime DEFAULT NULL,

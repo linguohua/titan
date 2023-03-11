@@ -33,7 +33,7 @@ func (c *CarfileDB) InsertOrUpdateReplicaInfo(infos []*types.ReplicaInfo) error 
 	query := fmt.Sprintf(
 		`INSERT INTO %s (id, carfile_hash, node_id, status, is_candidate) 
 				VALUES (:id, :carfile_hash, :node_id, :status, :is_candidate) 
-				ON DUPLICATE KEY UPDATE id=VALUES(id), end_time=NOW(), status=VALUES(status)`, replicaInfoTable)
+				ON DUPLICATE KEY UPDATE end_time=NOW(), status=VALUES(status)`, replicaInfoTable)
 
 	_, err := c.DB.NamedExec(query, infos)
 
