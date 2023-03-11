@@ -210,8 +210,9 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 			tickerC <- EventReset
 		}
 
-		return
+		return nil
 	}
+
 	t, err := m.nodeManager.NodeMgrDB.NodeType(nodeID)
 	if err != nil {
 		return err
@@ -219,13 +220,11 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 
 	// save to db
 	cInfo := &types.ReplicaInfo{
-		ID:          replicaID(info.CarfileHash, nodeID),
-		NodeID:      nodeID,
-		Status:      info.Status,
-		CarfileHash: info.CarfileHash,
-		IsCandidate: t == types.NodeCandidate,
+		ID:     replicaID(info.CarfileHash, nodeID),
+		Status: info.Status,
 	}
-	err = m.nodeManager.CarfileDB.UpdateCarfileReplicaInfo([]*types.ReplicaInfo{cInfo})
+
+	err = m.nodeManager.CarfileDB.UpdateReplicaInfo(cInfo)
 	if err != nil {
 		return err
 	}
@@ -587,7 +586,7 @@ func (m *Manager) saveCandidateReplicaInfos(nodes []*node.Candidate, hash string
 		})
 	}
 
-	return m.nodeManager.CarfileDB.UpdateCarfileReplicaInfo(replicaInfos)
+	return m.nodeManager.CarfileDB.InsertOrUpdateReplicaInfo(replicaInfos)
 }
 
 func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
@@ -604,7 +603,7 @@ func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
 		})
 	}
 
-	return m.nodeManager.CarfileDB.UpdateCarfileReplicaInfo(replicaInfos)
+	return m.nodeManager.CarfileDB.InsertOrUpdateReplicaInfo(replicaInfos)
 }
 
 // Sources get download sources
