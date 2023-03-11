@@ -197,8 +197,8 @@ func (c *CarfileDB) CarfileRecordInfos(page int) (info *types.ListCarfileRecordR
 	return
 }
 
-// CandidatesWithHash get candidates with hash
-func (c *CarfileDB) CandidatesWithHash(hash string) ([]string, error) {
+// CandidatesByHash get candidates by hash
+func (c *CarfileDB) CandidatesByHash(hash string) ([]string, error) {
 	var out []string
 	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?`,
 		replicaInfoTable)
@@ -210,8 +210,8 @@ func (c *CarfileDB) CandidatesWithHash(hash string) ([]string, error) {
 	return out, nil
 }
 
-// EdgesWithHash get edges with hash
-func (c *CarfileDB) EdgesWithHash(hash string) ([]string, error) {
+// EdgesByHash get edges by hash
+func (c *CarfileDB) EdgesByHash(hash string) ([]string, error) {
 	var out []string
 	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?`,
 		replicaInfoTable)
@@ -223,8 +223,8 @@ func (c *CarfileDB) EdgesWithHash(hash string) ([]string, error) {
 	return out, nil
 }
 
-// CarfileReplicaInfosWithHash get storage replica infos with hash
-func (c *CarfileDB) CarfileReplicaInfosWithHash(hash string, isSuccess bool) ([]*types.ReplicaInfo, error) {
+// CarfileReplicaInfosByHash get storage replica infos by hash
+func (c *CarfileDB) CarfileReplicaInfosByHash(hash string, isSuccess bool) ([]*types.ReplicaInfo, error) {
 	var out []*types.ReplicaInfo
 	if isSuccess {
 		query := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash=? AND status=?`, replicaInfoTable)

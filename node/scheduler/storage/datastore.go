@@ -29,7 +29,7 @@ func trimPrefix(key datastore.Key) string {
 }
 
 // func (d *Datastore) initReplicaInfo(out *types.CarfileRecordInfo) {
-// 	rs, err := d.CarfileReplicaInfosWithHash(out.CarfileHash, false)
+// 	rs, err := d.CarfileReplicaInfosByHash(out.CarfileHash, false)
 // 	if err != nil && err != sql.ErrNoRows {
 // 		return
 // 	}

@@ -25,14 +25,14 @@ import (
 var log = logging.Logger("storage")
 
 const (
-	nodoCachingKeepalive         = 60      // node caching keepalive (Unit:Second)
+	nodeCachingKeepalive         = 60      // node caching keepalive (Unit:Second)
 	checkExpirationTimerInterval = 60 * 30 // time interval (Unit:Second)
 	downloadingCarfileMaxCount   = 10      // It needs to be changed to the number of caches
-	diskUsageMax                 = 90.0    // If the node disk size is greater than this value, caching will not continue
-	rootCacheCount               = 1       // The number of caches in the first stage
+	maxDiskUsage                 = 90.0    // If the node disk size is greater than this value, caching will not continue
+	rootCachesCount              = 1       // The number of caches in the first stage
 )
 
-var candidateReplicaCacheCount = 0 // nodeMgrCache to the number of candidate nodes （does not contain 'rootCacheCount'）
+var candidateReplicaCachesCount = 0 // nodeMgrCache to the number of candidate nodes （does not contain 'rootCachesCount'）
 
 // CacheEvent carfile cache event
 type CacheEvent int
@@ -131,7 +131,7 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 
 	if cInfo != nil {
 		// TODO need retry
-		return xerrors.Errorf("carfile %s is exist ", info.CarfileCid)
+		return xerrors.Errorf("carfile %s exists", info.CarfileCid)
 	}
 
 	// if cInfo.State == Finalize.String() {
@@ -161,7 +161,7 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 
 // RemoveCarfileRecord remove a storage
 func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
-	cInfos, err := m.nodeManager.CarfileDB.CarfileReplicaInfosWithHash(hash, false)
+	cInfos, err := m.nodeManager.CarfileDB.CarfileReplicaInfosByHash(hash, false)
 	if err != nil {
 		return xerrors.Errorf("GetCarfileReplicaInfosWithHash: %s,err:%s", carfileCid, err.Error())
 	}
@@ -266,7 +266,7 @@ func (m *Manager) resetTimeoutTimer(carfileHash string) {
 }
 
 func (m *Manager) startTicker(carfileHash string) chan CacheEvent {
-	ticker := time.NewTicker(time.Duration(nodoCachingKeepalive) * time.Second)
+	ticker := time.NewTicker(time.Duration(nodeCachingKeepalive) * time.Second)
 
 	tChan := make(chan CacheEvent)
 	go func(ticker *time.Ticker) {
@@ -278,16 +278,16 @@ func (m *Manager) startTicker(carfileHash string) chan CacheEvent {
 		for {
 			select {
 			case <-ticker.C:
-				err := m.carfiles.Send(CarfileHash(carfileHash), CacheFailed{error: xerrors.New("time out")})
+				err := m.carfiles.Send(CarfileHash(carfileHash), CacheFailed{error: xerrors.New("waiting cache response timeout")})
 				if err != nil {
-					log.Errorf("carfileHash %s Send time out err:%s", carfileHash, err.Error())
+					log.Errorf("carfileHash %s send time out err:%s", carfileHash, err.Error())
 				}
 			case event := <-tChan:
 				if event == EventStop {
 					return
 				}
 				if event == EventReset {
-					ticker.Reset(time.Duration(nodoCachingKeepalive) * time.Second)
+					ticker.Reset(time.Duration(nodeCachingKeepalive) * time.Second)
 				}
 			}
 		}
@@ -397,12 +397,12 @@ func (m *Manager) notifyNodeRemoveCarfile(nodeID, cid string) error {
 
 // ResetReplicaCount reset candidate replica count
 func (m *Manager) ResetReplicaCount(count int) {
-	candidateReplicaCacheCount = count
+	candidateReplicaCachesCount = count
 }
 
-// GetCandidateReplicaCount get candidta replica count
+// GetCandidateReplicaCount get candidate replica count
 func (m *Manager) GetCandidateReplicaCount() int {
-	return candidateReplicaCacheCount
+	return candidateReplicaCachesCount
 }
 
 func replicaID(hash, nodeID string) string {
@@ -529,7 +529,7 @@ func (m *Manager) findEdges(count int, filterNodes []string) []*node.Edge {
 			}
 		}
 
-		if edgeNode.DiskUsage > diskUsageMax {
+		if edgeNode.DiskUsage > maxDiskUsage {
 			return true
 		}
 
@@ -567,7 +567,7 @@ func (m *Manager) findCandidates(count int, filterNodes []string) []*node.Candid
 			}
 		}
 
-		if candidateNode.DiskUsage > diskUsageMax {
+		if candidateNode.DiskUsage > maxDiskUsage {
 			return true
 		}
 
@@ -621,10 +621,10 @@ func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
 }
 
 // Sources get download sources
-func (m *Manager) Sources(hash string, ndoes []string) []*types.DownloadSource {
+func (m *Manager) Sources(hash string, nodes []string) []*types.DownloadSource {
 	sources := make([]*types.DownloadSource, 0)
 
-	for _, nodeID := range ndoes {
+	for _, nodeID := range nodes {
 		cNode := m.nodeManager.GetCandidateNode(nodeID)
 		if cNode != nil {
 			source := &types.DownloadSource{
