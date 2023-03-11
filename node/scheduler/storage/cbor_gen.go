@@ -26,7 +26,7 @@ func (t *CarfileInfo) MarshalCBOR(w io.Writer) error {
 
 	cw := cbg.NewCborWriter(w)
 
-	if _, err := cw.Write([]byte{175}); err != nil {
+	if _, err := cw.Write([]byte{176}); err != nil {
 		return err
 	}
 
@@ -206,6 +206,28 @@ func (t *CarfileInfo) MarshalCBOR(w io.Writer) error {
 		}
 	} else {
 		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.Expiration-1)); err != nil {
+			return err
+		}
+	}
+
+	// t.RetryCount (int64) (int64)
+	if len("RetryCount") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"RetryCount\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("RetryCount"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("RetryCount")); err != nil {
+		return err
+	}
+
+	if t.RetryCount >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.RetryCount)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.RetryCount-1)); err != nil {
 			return err
 		}
 	}
@@ -552,6 +574,32 @@ func (t *CarfileInfo) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.Expiration = int64(extraI)
+			}
+			// t.RetryCount (int64) (int64)
+		case "RetryCount":
+			{
+				maj, extra, err := cr.ReadHeader()
+				var extraI int64
+				if err != nil {
+					return err
+				}
+				switch maj {
+				case cbg.MajUnsignedInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 positive overflow")
+					}
+				case cbg.MajNegativeInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 negative overflow")
+					}
+					extraI = -1 - extraI
+				default:
+					return fmt.Errorf("wrong type for int64 field: %d", maj)
+				}
+
+				t.RetryCount = int64(extraI)
 			}
 			// t.CarfileHash (storage.CarfileHash) (string)
 		case "CarfileHash":
