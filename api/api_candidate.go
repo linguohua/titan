@@ -5,13 +5,11 @@ import "context"
 type Candidate interface {
 	Common
 	Device
-	// Block
 	Download
 	Validate
 	DataSync
 	CarfileOperation
-	WaitQuiet(ctx context.Context) error //perm:read
-	// get block
+	WaitQuiet(ctx context.Context) error                                                                                   //perm:read
 	GetBlock(ctx context.Context, cid string) ([]byte, error)                                                              //perm:read
 	GetBlocksOfCarfile(ctx context.Context, carfileCID string, randomSeed int64, randmonCount int) (map[int]string, error) //perm:read
 	ValidateNodes(ctx context.Context, req []ReqValidate) error                                                            //perm:read

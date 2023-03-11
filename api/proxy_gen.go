@@ -148,9 +148,9 @@ type EdgeStruct struct {
 	CarfileOperationStruct
 
 	Internal struct {
-		GetMyExternalAddr func(p0 context.Context, p1 string) (string, error) `perm:"write"`
+		ExternalServiceAddrss func(p0 context.Context, p1 string) (string, error) `perm:"write"`
 
-		PingUser func(p0 context.Context, p1 string) error `perm:"write"`
+		UserNATTravel func(p0 context.Context, p1 string) error `perm:"write"`
 
 		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
@@ -236,7 +236,7 @@ type SchedulerStruct struct {
 
 		EdgeDownloadInfos func(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) `perm:"read"`
 
-		EdgeExternalAddr func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
+		EdgeExternalServiceAddress func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
 
 		EdgeNodeConnect func(p0 context.Context) error `perm:"write"`
 
@@ -246,7 +246,7 @@ type SchedulerStruct struct {
 
 		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
-		NodeExternalAddr func(p0 context.Context) (string, error) `perm:"read"`
+		NodeExternalServiceAddress func(p0 context.Context) (string, error) `perm:"read"`
 
 		NodeInfo func(p0 context.Context, p1 string) (*types.NodeInfo, error) `perm:"read"`
 
@@ -608,25 +608,25 @@ func (s *DownloadStub) SetDownloadSpeed(p0 context.Context, p1 int64) error {
 	return ErrNotSupported
 }
 
-func (s *EdgeStruct) GetMyExternalAddr(p0 context.Context, p1 string) (string, error) {
-	if s.Internal.GetMyExternalAddr == nil {
+func (s *EdgeStruct) ExternalServiceAddrss(p0 context.Context, p1 string) (string, error) {
+	if s.Internal.ExternalServiceAddrss == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.GetMyExternalAddr(p0, p1)
+	return s.Internal.ExternalServiceAddrss(p0, p1)
 }
 
-func (s *EdgeStub) GetMyExternalAddr(p0 context.Context, p1 string) (string, error) {
+func (s *EdgeStub) ExternalServiceAddrss(p0 context.Context, p1 string) (string, error) {
 	return "", ErrNotSupported
 }
 
-func (s *EdgeStruct) PingUser(p0 context.Context, p1 string) error {
-	if s.Internal.PingUser == nil {
+func (s *EdgeStruct) UserNATTravel(p0 context.Context, p1 string) error {
+	if s.Internal.UserNATTravel == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.PingUser(p0, p1)
+	return s.Internal.UserNATTravel(p0, p1)
 }
 
-func (s *EdgeStub) PingUser(p0 context.Context, p1 string) error {
+func (s *EdgeStub) UserNATTravel(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
@@ -927,14 +927,14 @@ func (s *SchedulerStub) EdgeDownloadInfos(p0 context.Context, p1 string) ([]*typ
 	return *new([]*types.DownloadInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) EdgeExternalAddr(p0 context.Context, p1 string, p2 string) (string, error) {
-	if s.Internal.EdgeExternalAddr == nil {
+func (s *SchedulerStruct) EdgeExternalServiceAddress(p0 context.Context, p1 string, p2 string) (string, error) {
+	if s.Internal.EdgeExternalServiceAddress == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.EdgeExternalAddr(p0, p1, p2)
+	return s.Internal.EdgeExternalServiceAddress(p0, p1, p2)
 }
 
-func (s *SchedulerStub) EdgeExternalAddr(p0 context.Context, p1 string, p2 string) (string, error) {
+func (s *SchedulerStub) EdgeExternalServiceAddress(p0 context.Context, p1 string, p2 string) (string, error) {
 	return "", ErrNotSupported
 }
 
@@ -982,14 +982,14 @@ func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 string, p2 string)
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) NodeExternalAddr(p0 context.Context) (string, error) {
-	if s.Internal.NodeExternalAddr == nil {
+func (s *SchedulerStruct) NodeExternalServiceAddress(p0 context.Context) (string, error) {
+	if s.Internal.NodeExternalServiceAddress == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.NodeExternalAddr(p0)
+	return s.Internal.NodeExternalServiceAddress(p0)
 }
 
-func (s *SchedulerStub) NodeExternalAddr(p0 context.Context) (string, error) {
+func (s *SchedulerStub) NodeExternalServiceAddress(p0 context.Context) (string, error) {
 	return "", ErrNotSupported
 }
 

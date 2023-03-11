@@ -56,7 +56,8 @@ type Common interface {
 
 	ShowLogFile(ctx context.Context) (*LogFile, error)   //perm:write
 	DownloadLogFile(ctx context.Context) ([]byte, error) //perm:write
-	DeleteLogFile(ctx context.Context) error             //perm:write
+	// TODO: test for edge, will remove later
+	DeleteLogFile(ctx context.Context) error //perm:write
 }
 
 // APIVersion provides various build-time information

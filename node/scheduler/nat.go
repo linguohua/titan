@@ -13,10 +13,10 @@ import (
 	cliutil "github.com/linguohua/titan/cli/util"
 )
 
-func (s *Scheduler) EdgeExternalAddr(ctx context.Context, nodeID, schedulerURL string) (string, error) {
+func (s *Scheduler) EdgeExternalServiceAddress(ctx context.Context, nodeID, schedulerURL string) (string, error) {
 	eNode := s.NodeManager.GetEdgeNode(nodeID)
 	if eNode != nil {
-		return eNode.API().GetMyExternalAddr(ctx, schedulerURL)
+		return eNode.API().ExternalServiceAddrss(ctx, schedulerURL)
 	}
 
 	return "", fmt.Errorf("Node %s offline or not exist", nodeID)
@@ -109,7 +109,7 @@ func (s *Scheduler) checkEdgeNatType(ctx context.Context, edgeAPI api.Edge, edge
 		return types.NatTypeUnknow, nil
 	}
 
-	externalAddr, err := edgeAPI.GetMyExternalAddr(ctx, s.SchedulerCfg.SchedulerServer1)
+	externalAddr, err := edgeAPI.ExternalServiceAddrss(ctx, s.SchedulerCfg.SchedulerServer1)
 	if err != nil {
 		return types.NatTypeUnknow, err
 	}
