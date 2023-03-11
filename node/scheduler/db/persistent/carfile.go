@@ -63,18 +63,14 @@ func (c *CarfileDB) UpdateCarfileReplicaInfo(cInfo []*types.ReplicaInfo) error {
 	return err
 }
 
-// CreateCarfileRecord create carfiler record info
-func (c *CarfileDB) CreateCarfileRecord(info *types.CarfileRecordInfo) error {
-	cmd := fmt.Sprintf(`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration)
-	        VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica, :expiration) `, carfileInfoTable)
-	_, err := c.DB.NamedExec(cmd, info)
-	return err
-}
+// UpdateOrCreateCarfileRecord update storage record info
+func (c *CarfileDB) UpdateOrCreateCarfileRecord(info *types.CarfileRecordInfo) error {
+	cmd := fmt.Sprintf(
+		`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration) 
+				VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica. :expiration) 
+				ON DUPLICATE KEY UPDATE total_size=VALUES(total_size), total_blocks=VALUES(total_blocks), state=VALUES(state), succeed_edges=VALUES(succeed_edges)
+				, succeed_candidates=VALUES(succeed_candidates), failed_edges=VALUES(failed_edges), failed_candidates=VALUES(failed_candidates)`, carfileInfoTable)
 
-// UpdateCarfileRecordInfo update storage record info
-func (c *CarfileDB) UpdateCarfileRecordInfo(info *types.CarfileRecordInfo) error {
-	cmd := fmt.Sprintf(`UPDATE %s SET succeed_edges=:succeed_edges,succeed_candidates=:succeed_candidates,failed_edges=:failed_edges,failed_candidates=:failed_candidates,
-			total_size=:total_size,total_blocks=:total_blocks,state=:state WHERE carfile_hash=:carfile_hash`, carfileInfoTable)
 	_, err := c.DB.NamedExec(cmd, info)
 	return err
 }

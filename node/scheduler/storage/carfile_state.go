@@ -18,6 +18,8 @@ const (
 	CacheSeedFailed       CarfileState = "CacheSeedFailed"
 	CacheCandidatesFailed CarfileState = "CacheCandidatesFailed"
 	CacheEdgesFailed      CarfileState = "CacheEdgesFailed"
+
+	Remove CarfileState = "Remove"
 )
 
 func (s CarfileState) String() string {
