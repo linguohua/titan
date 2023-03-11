@@ -53,6 +53,23 @@ type CandidateStub struct {
 	CarfileOperationStub
 }
 
+type CarCacheStruct struct {
+	Internal struct {
+		CacheCarfile func(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheCarfileResult, error) `perm:"write"`
+
+		DeleteAllCarfiles func(p0 context.Context) error `perm:"admin"`
+
+		DeleteCarfile func(p0 context.Context, p1 string) error `perm:"write"`
+
+		QueryCacheStat func(p0 context.Context) (*types.CacheStat, error) `perm:"write"`
+
+		QueryCachingCarfile func(p0 context.Context) (*types.CachingCarfile, error) `perm:"write"`
+	}
+}
+
+type CarCacheStub struct {
+}
+
 type CarfileOperationStruct struct {
 	Internal struct {
 		CacheCarfile func(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheCarfileResult, error) `perm:"write"`
@@ -353,6 +370,61 @@ func (s *CandidateStruct) WaitQuiet(p0 context.Context) error {
 
 func (s *CandidateStub) WaitQuiet(p0 context.Context) error {
 	return ErrNotSupported
+}
+
+func (s *CarCacheStruct) CacheCarfile(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheCarfileResult, error) {
+	if s.Internal.CacheCarfile == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.CacheCarfile(p0, p1, p2)
+}
+
+func (s *CarCacheStub) CacheCarfile(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheCarfileResult, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *CarCacheStruct) DeleteAllCarfiles(p0 context.Context) error {
+	if s.Internal.DeleteAllCarfiles == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.DeleteAllCarfiles(p0)
+}
+
+func (s *CarCacheStub) DeleteAllCarfiles(p0 context.Context) error {
+	return ErrNotSupported
+}
+
+func (s *CarCacheStruct) DeleteCarfile(p0 context.Context, p1 string) error {
+	if s.Internal.DeleteCarfile == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.DeleteCarfile(p0, p1)
+}
+
+func (s *CarCacheStub) DeleteCarfile(p0 context.Context, p1 string) error {
+	return ErrNotSupported
+}
+
+func (s *CarCacheStruct) QueryCacheStat(p0 context.Context) (*types.CacheStat, error) {
+	if s.Internal.QueryCacheStat == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.QueryCacheStat(p0)
+}
+
+func (s *CarCacheStub) QueryCacheStat(p0 context.Context) (*types.CacheStat, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *CarCacheStruct) QueryCachingCarfile(p0 context.Context) (*types.CachingCarfile, error) {
+	if s.Internal.QueryCachingCarfile == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.QueryCachingCarfile(p0)
+}
+
+func (s *CarCacheStub) QueryCachingCarfile(p0 context.Context) (*types.CachingCarfile, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *CarfileOperationStruct) CacheCarfile(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheCarfileResult, error) {
@@ -1269,6 +1341,7 @@ func (s *ValidateStub) BeValidate(p0 context.Context, p1 ReqValidate, p2 string)
 }
 
 var _ Candidate = new(CandidateStruct)
+var _ CarCache = new(CarCacheStruct)
 var _ CarfileOperation = new(CarfileOperationStruct)
 var _ Common = new(CommonStruct)
 var _ DataSync = new(DataSyncStruct)
