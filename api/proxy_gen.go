@@ -226,7 +226,7 @@ type SchedulerStruct struct {
 
 		CarfileStatus func(p0 context.Context, p1 types.CarfileID) (types.CarfileRecordInfo, error) `perm:"read"`
 
-		DeleteNodeAppUpdateInfos func(p0 context.Context, p1 int) error `perm:"admin"`
+		DeleteEdgeUpdateInfo func(p0 context.Context, p1 int) error `perm:"admin"`
 
 		DeleteNodeLogFile func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -240,7 +240,7 @@ type SchedulerStruct struct {
 
 		EdgeNodeConnect func(p0 context.Context) error `perm:"write"`
 
-		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) `perm:"read"`
+		EdgeUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
 		IsBehindFullConeNAT func(p0 context.Context, p1 string) (bool, error) `perm:"read"`
 
@@ -278,7 +278,7 @@ type SchedulerStruct struct {
 
 		ResetCarfileExpiration func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
 
-		SetNodeAppUpdateInfo func(p0 context.Context, p1 *NodeAppUpdateInfo) error `perm:"admin"`
+		SetEdgeUpdateInfo func(p0 context.Context, p1 *EdgeUpdateInfo) error `perm:"admin"`
 
 		SetNodePort func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
@@ -872,14 +872,14 @@ func (s *SchedulerStub) CarfileStatus(p0 context.Context, p1 types.CarfileID) (t
 	return *new(types.CarfileRecordInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) DeleteNodeAppUpdateInfos(p0 context.Context, p1 int) error {
-	if s.Internal.DeleteNodeAppUpdateInfos == nil {
+func (s *SchedulerStruct) DeleteEdgeUpdateInfo(p0 context.Context, p1 int) error {
+	if s.Internal.DeleteEdgeUpdateInfo == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.DeleteNodeAppUpdateInfos(p0, p1)
+	return s.Internal.DeleteEdgeUpdateInfo(p0, p1)
 }
 
-func (s *SchedulerStub) DeleteNodeAppUpdateInfos(p0 context.Context, p1 int) error {
+func (s *SchedulerStub) DeleteEdgeUpdateInfo(p0 context.Context, p1 int) error {
 	return ErrNotSupported
 }
 
@@ -949,15 +949,15 @@ func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) {
-	if s.Internal.GetNodeAppUpdateInfos == nil {
-		return *new(map[int]*NodeAppUpdateInfo), ErrNotSupported
+func (s *SchedulerStruct) EdgeUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
+	if s.Internal.EdgeUpdateInfos == nil {
+		return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
 	}
-	return s.Internal.GetNodeAppUpdateInfos(p0)
+	return s.Internal.EdgeUpdateInfos(p0)
 }
 
-func (s *SchedulerStub) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*NodeAppUpdateInfo, error) {
-	return *new(map[int]*NodeAppUpdateInfo), ErrNotSupported
+func (s *SchedulerStub) EdgeUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
+	return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) IsBehindFullConeNAT(p0 context.Context, p1 string) (bool, error) {
@@ -1158,14 +1158,14 @@ func (s *SchedulerStub) ResetCarfileExpiration(p0 context.Context, p1 string, p2
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) SetNodeAppUpdateInfo(p0 context.Context, p1 *NodeAppUpdateInfo) error {
-	if s.Internal.SetNodeAppUpdateInfo == nil {
+func (s *SchedulerStruct) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateInfo) error {
+	if s.Internal.SetEdgeUpdateInfo == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.SetNodeAppUpdateInfo(p0, p1)
+	return s.Internal.SetEdgeUpdateInfo(p0, p1)
 }
 
-func (s *SchedulerStub) SetNodeAppUpdateInfo(p0 context.Context, p1 *NodeAppUpdateInfo) error {
+func (s *SchedulerStub) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateInfo) error {
 	return ErrNotSupported
 }
 
