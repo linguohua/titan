@@ -22,7 +22,7 @@ var SchedulerCmds = []*cli.Command{
 	startElectionCmd,
 	startValidateCmd,
 	// other
-	nodeAppUpdateCmd,
+	edgeUpdaterCmd,
 }
 
 var (
@@ -220,19 +220,19 @@ func loadCidsFromFile(configPath string) ([]string, error) {
 	return c.Cids, nil
 }
 
-var nodeAppUpdateCmd = &cli.Command{
-	Name:  "node-update",
-	Usage: "get node update info or set node update info",
+var edgeUpdaterCmd = &cli.Command{
+	Name:  "edge-updater",
+	Usage: "get edge update info or set edge update info",
 	Subcommands: []*cli.Command{
-		nodeUpdateInfoCmd,
-		setNodeUpdateInfoCmd,
-		DeleteNodeUpdateInfoCmd,
+		edgeUpdateInfoCmd,
+		setEdgeUpdateInfoCmd,
+		DeleteEdgeUpdateInfoCmd,
 	},
 }
 
-var DeleteNodeUpdateInfoCmd = &cli.Command{
+var DeleteEdgeUpdateInfoCmd = &cli.Command{
 	Name:  "delete",
-	Usage: "delete node update info",
+	Usage: "delete edge update info",
 	Flags: []cli.Flag{
 		&cli.IntFlag{
 			Name:  "node-type",
@@ -257,9 +257,9 @@ var DeleteNodeUpdateInfoCmd = &cli.Command{
 	},
 }
 
-var nodeUpdateInfoCmd = &cli.Command{
+var edgeUpdateInfoCmd = &cli.Command{
 	Name:  "get",
-	Usage: "get node update info",
+	Usage: "get edge update info",
 	Action: func(cctx *cli.Context) error {
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -291,9 +291,9 @@ var nodeUpdateInfoCmd = &cli.Command{
 	},
 }
 
-var setNodeUpdateInfoCmd = &cli.Command{
+var setEdgeUpdateInfoCmd = &cli.Command{
 	Name:  "set",
-	Usage: "set node update info",
+	Usage: "set edge update info",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "version",
