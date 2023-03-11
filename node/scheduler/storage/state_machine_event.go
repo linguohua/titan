@@ -88,6 +88,8 @@ func (evt CacheResult) apply(state *CarfileInfo) {
 type CacheRequestSent struct{}
 
 func (evt CacheRequestSent) apply(state *CarfileInfo) {
+	// reset retry count
+	state.retryCount = 0
 }
 
 // Normal path
@@ -129,5 +131,6 @@ type CacheFailed struct{ error }
 // FormatError Format error
 func (evt CacheFailed) FormatError(xerrors.Printer) (next error) { return evt.error }
 
-func (evt CacheFailed) apply(ci *CarfileInfo) {
+func (evt CacheFailed) apply(state *CarfileInfo) {
+	state.retryCount++
 }
