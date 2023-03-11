@@ -56,7 +56,7 @@ const (
 )
 
 func main() {
-	types.RunningNodeType = types.NodeEdge
+	types.RunningNodeType = types.NodeCandidate
 	titanlog.SetupLogLevels()
 
 	local := []*cli.Command{
