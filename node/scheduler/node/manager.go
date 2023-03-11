@@ -359,7 +359,7 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadI
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}
 
-	caches, err := m.CarfileDB.CarfileReplicaInfosByHash(hash, true)
+	caches, err := m.CarfileDB.ReplicaInfosByCarfile(hash, true)
 	if err != nil {
 		return nil, err
 	}
@@ -391,7 +391,7 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadI
 
 // GetCandidatesWithBlockHash find candidates with block hash
 func (m *Manager) GetCandidatesWithBlockHash(hash, filterNode string) ([]*Candidate, error) {
-	caches, err := m.CarfileDB.CarfileReplicaInfosByHash(hash, true)
+	caches, err := m.CarfileDB.ReplicaInfosByCarfile(hash, true)
 	if err != nil {
 		return nil, err
 	}
