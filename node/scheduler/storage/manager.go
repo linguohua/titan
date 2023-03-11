@@ -174,7 +174,7 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 	log.Infof("storage event %s , remove storage record", carfileCid)
 
 	for _, cInfo := range cInfos {
-		go m.notifyNodeRemoveCarfile(cInfo.NodeID, carfileCid)
+		go m.sendCacheRequest(cInfo.NodeID, carfileCid)
 	}
 
 	return nil
@@ -205,7 +205,7 @@ func (m *Manager) RemoveCache(carfileCid, nodeID string) error {
 
 	log.Infof("carfile event %s , remove cache task:%s", carfileCid, nodeID)
 
-	go m.notifyNodeRemoveCarfile(cacheInfo.NodeID, carfileCid)
+	go m.sendCacheRequest(cacheInfo.NodeID, carfileCid)
 
 	return nil
 }
@@ -366,7 +366,7 @@ func (m *Manager) resetLatelyExpirationTime(t time.Time) {
 }
 
 // Notify node to delete all carfile
-func (m *Manager) notifyNodeRemoveCarfiles(nodeID string) error {
+func (m *Manager) sendRemoveRequest(nodeID string) error {
 	edge := m.nodeManager.GetEdgeNode(nodeID)
 	if edge != nil {
 		return edge.API().DeleteAllCarfiles(context.Background())
@@ -381,7 +381,7 @@ func (m *Manager) notifyNodeRemoveCarfiles(nodeID string) error {
 }
 
 // Notify node to delete carfile
-func (m *Manager) notifyNodeRemoveCarfile(nodeID, cid string) error {
+func (m *Manager) sendCacheRequest(nodeID, cid string) error {
 	edge := m.nodeManager.GetEdgeNode(nodeID)
 	if edge != nil {
 		return edge.API().DeleteCarfile(context.Background(), cid)
@@ -427,11 +427,6 @@ func (m *Manager) GetCarfileRecordInfo(cid string) (*types.CarfileRecordInfo, er
 	}
 
 	dInfo := carfileRecord2Info(cr)
-
-	// result, err := cache.GetCarfileRecordCacheResult(hash)
-	// if err == nil {
-	// 	dInfo.ResultInfo = result
-	// }
 
 	return dInfo, nil
 }
