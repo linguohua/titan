@@ -64,7 +64,7 @@ func (m *Manager) loadCarfileRecord(hash string, manager *Manager) (*CarfileReco
 
 	raInfos, err := m.nodeManager.CarfileDB.ReplicaInfosByCarfile(hash, false)
 	if err != nil {
-		log.Errorf("loadData hash:%s, GetCarfileReplicaInfosWithHash err:%s", hash, err.Error())
+		log.Errorf("loadData hash:%s, GetCarfileReplicaInfosByHash err:%s", hash, err.Error())
 		return cr, err
 	}
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"strings"
+	"sync"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
@@ -13,11 +14,16 @@ import (
 )
 
 type Datastore struct {
-	*persistent.CarfileDB
+	sync.RWMutex
+	db    *persistent.CarfileDB
+	local *datastore.MapDatastore
 }
 
 func NewDatastore(db *persistent.CarfileDB) *Datastore {
-	return &Datastore{CarfileDB: db}
+	return &Datastore{
+		db:    db,
+		local: datastore.NewMapDatastore(),
+	}
 }
 
 func (d *Datastore) Close() error {
@@ -28,52 +34,23 @@ func trimPrefix(key datastore.Key) string {
 	return strings.Trim(key.String(), "/")
 }
 
-// func (d *Datastore) initReplicaInfo(out *types.CarfileRecordInfo) {
-// 	rs, err := d.CarfileReplicaInfosByHash(out.CarfileHash, false)
-// 	if err != nil && err != sql.ErrNoRows {
-// 		return
-// 	}
-
-// 	for _, r := range rs {
-// 		if r.Status == types.CacheStatusSucceeded {
-// 			if r.IsCandidate {
-// 				out.SucceedCandidateReplicas++
-// 			} else {
-// 				out.SucceedEdgeReplicas++
-// 			}
-
-// 			continue
-// 		}
-
-// 		if r.IsCandidate {
-// 			out.FailedCandidateReplicas++
-// 		} else {
-// 			out.FailedEdgeReplicas++
-// 		}
-// 	}
-// }
-
 func (d *Datastore) Get(ctx context.Context, key datastore.Key) (value []byte, err error) {
-	out, err := d.CarfileInfo(trimPrefix(key))
-	if err != nil {
-		return nil, err
-	}
-	// d.initReplicaInfo(out)
-	carfile := carfileInfoFrom(out)
-	valueBuf := new(bytes.Buffer)
-	if err := carfile.MarshalCBOR(valueBuf); err != nil {
-		return nil, err
-	}
-
-	return valueBuf.Bytes(), nil
+	d.RLock()
+	defer d.RUnlock()
+	return d.local.Get(ctx, key)
 }
 
 func (d *Datastore) Has(ctx context.Context, key datastore.Key) (exists bool, err error) {
-	return d.CarfileRecordExisted(trimPrefix(key))
+	d.RLock()
+	defer d.RUnlock()
+	return d.local.Has(ctx, key)
 }
 
 func (d *Datastore) GetSize(ctx context.Context, key datastore.Key) (size int, err error) {
-	return d.CountCarfiles()
+	d.RLock()
+	defer d.RUnlock()
+	key.Clean()
+	return d.local.GetSize(ctx, key)
 }
 
 func (d *Datastore) Query(ctx context.Context, q query.Query) (query.Results, error) {
@@ -105,57 +82,70 @@ func (d *Datastore) rawQuery(ctx context.Context, q query.Query) (query.Results,
 	var rows *sqlx.Rows
 	var err error
 
-	rows, err = d.QueryCarfilesRows(ctx, q.Limit, q.Offset)
+	rows, err = d.db.QueryCarfilesRows(ctx, q.Limit, q.Offset)
 	if err != nil {
 		return nil, err
 	}
 
-	it := query.Iterator{
-		Next: func() (query.Result, bool) {
-			if !rows.Next() {
-				return query.Result{}, false
-			}
+	d.RLock()
+	defer d.RUnlock()
 
-			value := &types.CarfileRecordInfo{}
-			err := rows.StructScan(value)
-			if err != nil {
-				return query.Result{Error: err}, false
-			}
-			// d.initReplicaInfo(value)
-			carfile := carfileInfoFrom(value)
-			entry := query.Entry{Key: value.CarfileHash}
-			valueBuf := new(bytes.Buffer)
-			if err := carfile.MarshalCBOR(valueBuf); err != nil {
-				return query.Result{Entry: entry}, false
-			}
+	re := make([]query.Entry, 0)
+	// loading carfiles to local
+	for rows.Next() {
+		in := &types.CarfileRecordInfo{}
+		err = rows.StructScan(in)
+		if err != nil {
+			continue
+		}
 
-			if !q.KeysOnly {
-				entry.Value = valueBuf.Bytes()
-			}
-			if q.ReturnsSizes {
-				entry.Size = len(valueBuf.Bytes())
-			}
+		carfile := carfileInfoFrom(in)
+		valueBuf := new(bytes.Buffer)
+		if err = carfile.MarshalCBOR(valueBuf); err != nil {
+			log.Errorf("carfile marshal cbor: %v", err)
+			continue
+		}
 
-			return query.Result{Entry: entry}, true
-		},
-		Close: func() error {
-			return rows.Close()
-		},
+		key := datastore.NewKey(carfile.CarfileHash.String())
+		if err := d.local.Put(ctx, key, valueBuf.Bytes()); err != nil {
+			log.Errorf("datastore loading carfiles: %v", err)
+		}
+
+		prefix := "/"
+		entry := query.Entry{
+			Key: prefix + carfile.CarfileHash.String(), Size: len(valueBuf.Bytes()),
+		}
+		if !q.KeysOnly {
+			entry.Value = valueBuf.Bytes()
+		}
+		re = append(re, entry)
 	}
 
-	return query.ResultsFromIterator(q, it), nil
+	r := query.ResultsWithEntries(q, re)
+	r = query.NaiveQueryApply(q, r)
+
+	return r, nil
 }
 
 func (d *Datastore) Put(ctx context.Context, key datastore.Key, value []byte) error {
+	if err := d.local.Put(ctx, key, value); err != nil {
+		log.Errorf("datastore local put: %v", err)
+	}
 	carfile := &CarfileInfo{}
 	if err := carfile.UnmarshalCBOR(bytes.NewReader(value)); err != nil {
 		return err
 	}
-	return d.UpdateOrCreateCarfileRecord(carfile.toCarfileRecordInfo())
+	if carfile.CarfileHash == "" {
+		return nil
+	}
+	return d.db.UpdateOrCreateCarfileRecord(carfile.toCarfileRecordInfo())
 }
 
 func (d *Datastore) Delete(ctx context.Context, key datastore.Key) error {
-	return d.RemoveCarfileRecord(trimPrefix(key))
+	if err := d.local.Delete(ctx, key); err != nil {
+		log.Errorf("datastore local delete: %v", err)
+	}
+	return d.db.RemoveCarfileRecord(trimPrefix(key))
 }
 
 func (d *Datastore) Sync(ctx context.Context, prefix datastore.Key) error {

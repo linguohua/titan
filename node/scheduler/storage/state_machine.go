@@ -201,7 +201,9 @@ func (m *Manager) restartCarfiles(ctx context.Context) error {
 		return err
 	}
 
-	// wait ondes connect
+	log.Infof("get carfiles: %d", len(trackedCarfiles))
+
+	// wait node connect
 	time.Sleep(1 * time.Minute)
 
 	for _, carfile := range trackedCarfiles {

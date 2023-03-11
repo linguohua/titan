@@ -96,9 +96,9 @@ func (c *CarfileDB) CarfileInfo(hash string) (*types.CarfileRecordInfo, error) {
 }
 
 // CarfileInfos get storage infos with hashs
-func (c *CarfileDB) CarfileInfos(hashs []string) ([]*types.CarfileRecordInfo, error) {
+func (c *CarfileDB) CarfileInfos(hashes []string) ([]*types.CarfileRecordInfo, error) {
 	getCarfilesCmd := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash in (?)`, carfileInfoTable)
-	carfilesQuery, args, err := sqlx.In(getCarfilesCmd, hashs)
+	carfilesQuery, args, err := sqlx.In(getCarfilesCmd, hashes)
 	if err != nil {
 		return nil, err
 	}
