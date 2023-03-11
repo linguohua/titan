@@ -159,7 +159,7 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 
 // RemoveCarfileRecord remove a storage
 func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
-	cInfos, err := m.nodeManager.CarfileDB.CarfileReplicaInfosByHash(hash, false)
+	cInfos, err := m.nodeManager.CarfileDB.ReplicaInfosByCarfile(hash, false)
 	if err != nil {
 		return xerrors.Errorf("GetCarfileReplicaInfosWithHash: %s,err:%s", carfileCid, err.Error())
 	}

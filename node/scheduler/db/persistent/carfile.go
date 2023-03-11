@@ -63,24 +63,6 @@ func (c *CarfileDB) UpdateCarfileReplicaInfo(cInfo []*types.ReplicaInfo) error {
 	return err
 }
 
-// // CreateCarfileReplicaInfos Create replica infos
-// func (c *CarfileDB) CreateCarfileReplicaInfos(cInfos []*types.ReplicaInfo) error {
-// 	cmd := fmt.Sprintf(`INSERT INTO %s (id, carfile_hash, node_id, status, is_candidate)
-// 	        VALUES (:id, :carfile_hash, :node_id, :status, :is_candidate)`, replicaInfoTable)
-// 	_, err := c.DB.NamedExec(cmd, cInfos)
-// 	return err
-// }
-
-// UpdateCarfileRecordCachesInfo update storage info
-func (c *CarfileDB) UpdateCarfileRecordCachesInfo(dInfo *types.CarfileRecordInfo) error {
-	fmt.Println("info:", dInfo)
-	// update
-	cmd := fmt.Sprintf("UPDATE %s SET total_size=:total_size,total_blocks=:total_blocks WHERE carfile_hash=:carfile_hash", carfileInfoTable)
-	_, err := c.DB.NamedExec(cmd, dInfo)
-
-	return err
-}
-
 // CreateCarfileRecord create carfiler record info
 func (c *CarfileDB) CreateCarfileRecord(info *types.CarfileRecordInfo) error {
 	cmd := fmt.Sprintf(`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration)
@@ -199,8 +181,8 @@ func (c *CarfileDB) CarfileRecordInfos(page int) (info *types.ListCarfileRecordR
 	return
 }
 
-// CandidatesByHash get candidates by hash
-func (c *CarfileDB) CandidatesByHash(hash string) ([]string, error) {
+// CandidatesByCarfile get candidates by hash
+func (c *CarfileDB) CandidatesByCarfile(hash string) ([]string, error) {
 	var out []string
 	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?`,
 		replicaInfoTable)
@@ -212,8 +194,8 @@ func (c *CarfileDB) CandidatesByHash(hash string) ([]string, error) {
 	return out, nil
 }
 
-// EdgesByHash get edges by hash
-func (c *CarfileDB) EdgesByHash(hash string) ([]string, error) {
+// EdgesByCarfile get edges by hash
+func (c *CarfileDB) EdgesByCarfile(hash string) ([]string, error) {
 	var out []string
 	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?`,
 		replicaInfoTable)
@@ -225,10 +207,10 @@ func (c *CarfileDB) EdgesByHash(hash string) ([]string, error) {
 	return out, nil
 }
 
-// CarfileReplicaInfosByHash get storage replica infos by hash
-func (c *CarfileDB) CarfileReplicaInfosByHash(hash string, isSuccess bool) ([]*types.ReplicaInfo, error) {
+// ReplicaInfosByCarfile get storage replica infos by hash
+func (c *CarfileDB) ReplicaInfosByCarfile(hash string, needSucceed bool) ([]*types.ReplicaInfo, error) {
 	var out []*types.ReplicaInfo
-	if isSuccess {
+	if needSucceed {
 		query := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash=? AND status=?`, replicaInfoTable)
 
 		if err := c.DB.Select(&out, query, hash, types.CacheStatusSucceeded); err != nil {
@@ -303,6 +285,7 @@ func (c *CarfileDB) MinExpiration() (time.Time, error) {
 	return out, nil
 }
 
+// ExpiredCarfiles load all expired carfiles
 func (c *CarfileDB) ExpiredCarfiles() ([]*types.CarfileRecordInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE expiration <= NOW()`, carfileInfoTable)
 
@@ -314,8 +297,8 @@ func (c *CarfileDB) ExpiredCarfiles() ([]*types.CarfileRecordInfo, error) {
 	return out, nil
 }
 
-// SucceededCachesCount get succeeded caches count
-func (c *CarfileDB) SucceededCachesCount() (int, error) {
+// SucceedCachesCount get succeed caches count
+func (c *CarfileDB) SucceedCachesCount() (int, error) {
 	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE status=?`, replicaInfoTable)
 
 	var count int
