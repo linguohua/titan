@@ -282,6 +282,7 @@ func (m *Manager) startTicker(carfileHash string) chan CacheEvent {
 				if err != nil {
 					log.Errorf("carfileHash %s send time out err:%s", carfileHash, err.Error())
 				}
+				return
 			case event := <-tChan:
 				if event == EventStop {
 					return
