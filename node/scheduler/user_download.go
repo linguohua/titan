@@ -14,7 +14,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// NodeDownloadBlockResult node result for user download block
+// UserDownloadResult result for user download
 func (s *Scheduler) UserDownloadResult(ctx context.Context, result types.UserDownloadResult) error {
 	nodeID := handler.GetNodeID(ctx)
 	if result.Succeed {
@@ -23,14 +23,14 @@ func (s *Scheduler) UserDownloadResult(ctx context.Context, result types.UserDow
 			return err
 		}
 
-		blockDwnloadInfo := &types.DownloadRecordInfo{NodeID: nodeID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
+		blockDownloadInfo := &types.DownloadRecordInfo{NodeID: nodeID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
 
 		carfileInfo, _ := s.NodeManager.CarfileDB.CarfileInfo(blockHash)
 		if carfileInfo != nil && carfileInfo.CarfileCID != "" {
-			blockDwnloadInfo.CarfileCID = result.BlockCID
+			blockDownloadInfo.CarfileCID = result.BlockCID
 		}
 
-		// err = cache.NodeDownloadCount(nodeID, blockDwnloadInfo)
+		// err = cache.NodeDownloadCount(nodeID, blockDownloadInfo)
 		// if err != nil {
 		// 	return err
 		// }

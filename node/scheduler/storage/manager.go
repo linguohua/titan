@@ -111,7 +111,7 @@ func (m *Manager) GetCarfileRecord(hash string) (*CarfileRecord, error) {
 	return m.loadCarfileRecord(hash, m)
 }
 
-// CacheCarfile new storage task
+// CacheCarfile create a new carfile storing task
 func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 	log.Infof("carfile event %s , add carfile,replica:%d,expiration:%s", info.CarfileCid, info.Replicas, info.Expiration.String())
 
@@ -138,7 +138,7 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 	return m.carfiles.Send(CarfileHash(info.CarfileHash), CarfileStartCaches{
 		ID:          info.CarfileCid,
 		CarfileHash: CarfileHash(info.CarfileHash),
-		Replicas:    int64(info.Replicas),
+		Replicas:    info.Replicas,
 		ServerID:    info.ServerID,
 		CreatedAt:   time.Now().Unix(),
 		Expiration:  info.Expiration.Unix(),
@@ -149,7 +149,7 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 	cInfos, err := m.nodeManager.CarfileDB.ReplicaInfosByCarfile(hash, false)
 	if err != nil {
-		return xerrors.Errorf("GetCarfileReplicaInfosWithHash: %s,err:%s", carfileCid, err.Error())
+		return xerrors.Errorf("GetCarfileReplicaInfosByHash: %s,err:%s", carfileCid, err.Error())
 	}
 
 	// TODO remove carfile
@@ -217,7 +217,7 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 	cInfo := &types.ReplicaInfo{
 		ID:     replicaID(info.CarfileHash, nodeID),
 		NodeID: nodeID,
-		Status: types.CacheStatus(info.Status),
+		Status: info.Status,
 	}
 	err = m.nodeManager.CarfileDB.UpdateCarfileReplicaInfo([]*types.ReplicaInfo{cInfo})
 	if err != nil {
@@ -298,7 +298,7 @@ func (m *Manager) stopTimeoutTimer(carfileHash string) {
 	}
 }
 
-// ResetCarfileExpiration reset expiration time
+// ResetCarfileExpiration reset the carfile expiration
 func (m *Manager) ResetCarfileExpiration(cid string, t time.Time) error {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
@@ -323,7 +323,7 @@ func (m *Manager) ResetCarfileExpiration(cid string, t time.Time) error {
 	return nil
 }
 
-// check expiration caches
+// check caches expiration
 func (m *Manager) checkCachesExpiration() {
 	if m.latelyExpirationTime.After(time.Now()) {
 		return
@@ -356,7 +356,7 @@ func (m *Manager) resetLatelyExpirationTime(t time.Time) {
 	}
 }
 
-// Notify node to delete all carfile
+// Notify node to delete all carfiles
 func (m *Manager) sendRemoveRequest(nodeID string) error {
 	edge := m.nodeManager.GetEdgeNode(nodeID)
 	if edge != nil {
