@@ -48,50 +48,54 @@ func NewManager(opts *ManagerOptions) *Manager {
 		cResulter:     opts.CResulter,
 		downloadBatch: opts.DownloadBatch,
 	}
+
 	m.restoreWaitListFromStore()
 
-	go m.startCarfileDownloader()
-	go m.startTick()
+	go m.start()
 
 	return m
 }
 
 func (m *Manager) startTick() {
-	ticker := time.NewTicker(10 * time.Second)
 	for {
-		select {
-		case <-ticker.C:
-			if m.cachingCar != nil {
-				err := m.CachedResult(m.cachingCar)
-				if err != nil {
-					log.Errorf("startTickForDownloadResult, downloadResult error:%s", err.Error())
-				}
+		time.Sleep(10 * time.Second)
 
-				m.saveIncompleteCarfileCache(m.cachingCar)
+		if m.cachingCar != nil {
+			err := m.CachedResult(m.cachingCar)
+			if err != nil {
+				log.Errorf("startTickForDownloadResult, downloadResult error:%s", err.Error())
 			}
 
-			if len(m.waitList) > 0 {
-				m.saveWaitList()
-			}
+			m.saveIncompleteCarfileCache(m.cachingCar)
 		}
+
+		if len(m.waitList) > 0 {
+			m.saveWaitList()
+		}
+
 	}
 }
 
-func (m *Manager) notifyCarfileDownloader() {
+func (m *Manager) triggerDownload() {
 	select {
 	case m.downloadCh <- true:
 	default:
 	}
 }
 
-func (m *Manager) startCarfileDownloader() {
+func (m *Manager) start() {
 	if m.bFetcher == nil {
 		log.Panic("m.dBlockser == nil")
 	}
 
+	go m.startTick()
+
+	// delay 3 second to do download cars if exist waitList
+	time.AfterFunc(3*time.Second, m.triggerDownload)
+
 	for {
-		m.doDownloadCars()
 		<-m.downloadCh
+		m.doDownloadCars()
 	}
 }
 
@@ -177,7 +181,7 @@ func (m *Manager) AddToWaitList(root cid.Cid, dss []*types.DownloadSource) {
 	m.waitList = append(m.waitList, cw)
 
 	m.saveWaitList()
-	m.notifyCarfileDownloader()
+	m.triggerDownload()
 }
 
 func (m *Manager) saveIncompleteCarfileCache(cf *carfileCache) error {
