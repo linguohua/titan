@@ -152,7 +152,7 @@ func (m *Manager) removeCarFromWaitList(root cid.Cid) *carWaiter {
 	for i, cw := range m.waitList {
 		if cw.root.Hash().String() == root.Hash().String() {
 			if i == 0 {
-				m.waitList = append(m.waitList[1:])
+				m.waitList = m.waitList[1:]
 			} else {
 				m.waitList = append(m.waitList[:i], m.waitList[i+1:]...)
 			}
@@ -210,7 +210,7 @@ func (m *Manager) onDownloadCarComplete(cf *carfileCache) {
 }
 
 func (m *Manager) saveWaitList() error {
-	data, err := encode(m.waitList)
+	data, err := encode(&m.waitList)
 	if err != nil {
 		return err
 	}
@@ -283,7 +283,7 @@ func (m *Manager) CachedResult(cachingCar *carfileCache) error {
 
 // return true if exist in waitList
 func (m *Manager) DeleteCarFromWaitList(root cid.Cid) (bool, error) {
-	if root.Hash().String() == string(m.cachingCar.Root().Hash()) {
+	if m.cachingCar != nil && root.Hash().String() == string(m.cachingCar.Root().Hash()) {
 		m.cachingCar.CancelDownload()
 	}
 	if c := m.removeCarFromWaitList(root); c != nil {

@@ -69,7 +69,7 @@ func (cfCache *carfileCache) downloadCar() error {
 	defer cfCache.bsrw.Finalize()
 	netLayerCIDs := cfCache.blocksWaitList
 	if len(netLayerCIDs) == 0 {
-		netLayerCIDs = append(netLayerCIDs, cfCache.root.Hash().String())
+		netLayerCIDs = append(netLayerCIDs, cfCache.root.String())
 	}
 
 	for len(netLayerCIDs) > 0 {
