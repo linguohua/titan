@@ -100,37 +100,39 @@ func (m *Manager) start() {
 }
 
 func (m *Manager) doDownloadCars() {
-	for {
-		cw := m.headFromWaitList()
-		if cw == nil {
-			return
-		}
-
-		bsrw, err := m.carfileStore.NewCarfileWriter(cw.Root)
-		if err != nil {
-			m.removeCarFromWaitList(cw.Root)
-			log.Errorf("doDownloadCar, new car error:%s", err)
-			return
-		}
-
-		carfileCache, err := m.restoreCarfileCacheOrNew(&options{cw.Root, cw.Dss, bsrw, m.bFetcher, m.downloadBatch})
-		if err != nil {
-			m.removeCarFromWaitList(cw.Root)
-			log.Errorf("restore carfile cache error:%s", err)
-			return
-		}
-
-		m.cachingCar = carfileCache
-		err = carfileCache.downloadCar()
-		if err != nil {
-			log.Errorf("doDownloadCarfile, downloadCarfile error:%s", err)
-		}
-
-		m.cachingCar = nil
-		m.removeCarFromWaitList(cw.Root)
-		m.onDownloadCarComplete(carfileCache)
+	for len(m.waitList) > 0 {
+		m.doDownloadCar()
 	}
 
+}
+
+func (m *Manager) doDownloadCar() {
+	cw := m.headFromWaitList()
+	if cw == nil {
+		return
+	}
+	defer m.removeCarFromWaitList(cw.Root)
+
+	bsrw, err := m.carfileStore.NewCarfileWriter(cw.Root)
+	if err != nil {
+		log.Errorf("doDownloadCar, new car error:%s", err)
+		return
+	}
+
+	carfileCache, err := m.restoreCarfileCacheOrNew(&options{cw.Root, cw.Dss, bsrw, m.bFetcher, m.downloadBatch})
+	if err != nil {
+		log.Errorf("restore carfile cache error:%s", err)
+		return
+	}
+
+	m.cachingCar = carfileCache
+	err = carfileCache.downloadCar()
+	if err != nil {
+		log.Errorf("doDownloadCarfile, downloadCarfile error:%s", err)
+	}
+
+	m.cachingCar = nil
+	m.onDownloadCarComplete(carfileCache)
 }
 
 func (m *Manager) headFromWaitList() *carWaiter {
@@ -158,6 +160,8 @@ func (m *Manager) removeCarFromWaitList(root cid.Cid) *carWaiter {
 			} else {
 				m.waitList = append(m.waitList[:i], m.waitList[i+1:]...)
 			}
+
+			m.saveWaitList()
 			return cw
 		}
 	}
@@ -200,12 +204,7 @@ func (m *Manager) onDownloadCarComplete(cf *carfileCache) {
 		m.carfileStore.DeleteIncompleteCarfileCache(cf.root.Hash().String())
 	}
 
-	err := m.saveWaitList()
-	if err != nil {
-		log.Errorf("onDownloadCarfileComplete, saveCarfileTable error:%s", err)
-	}
-
-	err = m.CachedResult(cf)
+	err := m.CachedResult(cf)
 	if err != nil {
 		log.Errorf("onDownloadCarfileComplete, downloadResult error:%s, carfileCID:%s", err, cf.root.Hash().String())
 	}
