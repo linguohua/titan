@@ -399,7 +399,7 @@ func (v *Validation) Result(validatedResult *api.ValidatedResult) error {
 		return nil
 	}
 
-	carfileRecord, err := v.nodeManager.CarfileDB.LoadCarfileInfo(hash)
+	carfileRecord, err := v.nodeManager.CarfileDB.CarfileInfo(hash)
 	if err != nil {
 		status = types.ValidateStatusOther
 		log.Errorf("handleValidateResult GetCarfileInfo %s , err:%s", validatedResult.CarfileCID, err.Error())

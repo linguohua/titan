@@ -107,16 +107,20 @@ func (c *CarfileDB) CarfileRecordExisted(hash string) (bool, error) {
 	return count > 0, err
 }
 
-// LoadCarfileInfo get storage info with hash
-func (c *CarfileDB) LoadCarfileInfo(hash string) (*types.CarfileRecordInfo, error) {
+// CarfileInfo get storage info with hash
+func (c *CarfileDB) CarfileInfo(hash string) (*types.CarfileRecordInfo, error) {
 	var info types.CarfileRecordInfo
 	cmd := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=?", carfileInfoTable)
 	err := c.DB.Get(&info, cmd, hash)
-	return &info, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &info, nil
 }
 
-// LoadCarfileInfos get storage infos with hashs
-func (c *CarfileDB) LoadCarfileInfos(hashs []string) ([]*types.CarfileRecordInfo, error) {
+// CarfileInfos get storage infos with hashs
+func (c *CarfileDB) CarfileInfos(hashs []string) ([]*types.CarfileRecordInfo, error) {
 	getCarfilesCmd := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash in (?)`, carfileInfoTable)
 	carfilesQuery, args, err := sqlx.In(getCarfilesCmd, hashs)
 	if err != nil {

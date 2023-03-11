@@ -54,7 +54,7 @@ func trimPrefix(key datastore.Key) string {
 // }
 
 func (d *Datastore) Get(ctx context.Context, key datastore.Key) (value []byte, err error) {
-	out, err := d.LoadCarfileInfo(trimPrefix(key))
+	out, err := d.CarfileInfo(trimPrefix(key))
 	if err != nil {
 		return nil, err
 	}

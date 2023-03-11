@@ -25,7 +25,7 @@ import (
 var log = logging.Logger("storage")
 
 const (
-	nodeCachingKeepalive         = 60      // node caching keepalive (Unit:Second)
+	nodeCachingKeepalive         = 20      // node caching keepalive (Unit:Second)
 	checkExpirationTimerInterval = 60 * 30 // time interval (Unit:Second)
 	downloadingCarfileMaxCount   = 10      // It needs to be changed to the number of caches
 	maxDiskUsage                 = 90.0    // If the node disk size is greater than this value, caching will not continue
@@ -124,7 +124,7 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 	// if err != nil {
 	// 	log.Errorf("push carfile to wait list: %v", err)
 	// }
-	cInfo, err := m.nodeManager.CarfileDB.LoadCarfileInfo(info.CarfileHash)
+	cInfo, err := m.nodeManager.CarfileDB.CarfileInfo(info.CarfileHash)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
@@ -271,8 +271,12 @@ func (m *Manager) startTicker(carfileHash string) chan CacheEvent {
 	tChan := make(chan CacheEvent)
 	go func(ticker *time.Ticker) {
 		defer func() {
-			close(tChan)
 			ticker.Stop()
+			close(tChan)
+
+			m.lock.Lock()
+			defer m.lock.Unlock()
+			delete(m.carfileTickers, carfileHash)
 		}()
 
 		for {
@@ -304,7 +308,6 @@ func (m *Manager) stopTimeoutTimer(carfileHash string) {
 	tickerC := m.carfileTickers[carfileHash]
 	if tickerC != nil {
 		tickerC <- EventStop
-		delete(m.carfileTickers, carfileHash)
 	}
 }
 

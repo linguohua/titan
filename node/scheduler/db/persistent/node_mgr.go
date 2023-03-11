@@ -384,8 +384,8 @@ func (n *NodeMgrDB) ListNodeIDs(cursor int, count int) ([]string, int64, error) 
 	return out, total, nil
 }
 
-// LoadNodeInfo load node info
-func (n *NodeMgrDB) LoadNodeInfo(nodeID string) (*types.NodeInfo, error) {
+// NodeInfo load node info
+func (n *NodeMgrDB) NodeInfo(nodeID string) (*types.NodeInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id=?`, nodeInfoTable)
 
 	var out types.NodeInfo

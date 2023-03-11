@@ -47,7 +47,7 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo types.Re
 
 // RecacheCarfiles Execute Undone Carfiles Task
 func (s *Scheduler) RecacheCarfiles(ctx context.Context, hashs []string) error {
-	list, err := s.NodeManager.CarfileDB.LoadCarfileInfos(hashs)
+	list, err := s.NodeManager.CarfileDB.CarfileInfos(hashs)
 	if err != nil {
 		return err
 	}
