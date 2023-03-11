@@ -135,18 +135,6 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 	// 	return nil
 	// }
 
-	err = m.nodeManager.CarfileDB.CreateCarfileRecord(&types.CarfileRecordInfo{
-		CarfileCID:            info.CarfileCid,
-		NeedEdgeReplica:       info.Replicas,
-		Expiration:            info.Expiration,
-		CarfileHash:           info.CarfileHash,
-		NeedCandidateReplicas: int64(rootCachesCount + candidateReplicaCachesCount),
-		State:                 UndefinedCarfileState.String(),
-	})
-	if err != nil {
-		return xerrors.Errorf("cid:%s,CreateOrUpdateCarfileRecordInfo err:%s", info.CarfileCid, err.Error())
-	}
-
 	return m.carfiles.Send(CarfileHash(info.CarfileHash), CarfileStartCaches{
 		ID:          info.CarfileCid,
 		CarfileHash: CarfileHash(info.CarfileHash),
@@ -164,10 +152,11 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 		return xerrors.Errorf("GetCarfileReplicaInfosWithHash: %s,err:%s", carfileCid, err.Error())
 	}
 
-	err = m.nodeManager.CarfileDB.RemoveCarfileRecord(hash)
-	if err != nil {
-		return xerrors.Errorf("RemoveCarfileRecord err:%s ", err.Error())
-	}
+	// TODO remove carfile
+	// err = m.carfiles.Send(CarfileHash(hash), CarfileRemove{})
+	// if err != nil {
+	// 	return xerrors.Errorf("RemoveCarfileRecord err:%s ", err.Error())
+	// }
 
 	log.Infof("storage event %s , remove storage record", carfileCid)
 

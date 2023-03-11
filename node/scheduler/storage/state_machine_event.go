@@ -49,6 +49,14 @@ func (evt CarfileForceState) applyGlobal(state *CarfileInfo) bool {
 	return true
 }
 
+// CarfileRemove remove
+type CarfileRemove struct{}
+
+func (evt CarfileRemove) applyGlobal(state *CarfileInfo) bool {
+	state.State = Remove
+	return true
+}
+
 // CacheResult nodes cache result
 type CacheResult struct {
 	ResultInfo *CacheResultInfo
