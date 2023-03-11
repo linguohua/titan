@@ -128,6 +128,9 @@ func (d *Datastore) Put(ctx context.Context, key datastore.Key, value []byte) er
 }
 
 func (d *Datastore) Delete(ctx context.Context, key datastore.Key) error {
+	d.Lock()
+	defer d.Unlock()
+	
 	if err := d.local.Delete(ctx, key); err != nil {
 		log.Errorf("datastore local delete: %v", err)
 	}
