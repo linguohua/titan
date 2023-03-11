@@ -155,14 +155,8 @@ func (c *CarfileDB) CarfileRecordInfos(page int) (info *types.ListCarfileRecordR
 
 // SucceedCountByCarfile get edge and candidate succeed replicas
 func (c *CarfileDB) SucceedCountByCarfile(hash string) (edgeReplicas, candidateReplicas int64, err error) {
-	cmd := fmt.Sprintf("SELECT count(node_id) FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?", replicaInfoTable)
-	err = c.DB.Get(&edgeReplicas, cmd, hash, types.CacheStatusSucceeded, false)
-	if err != nil {
-		return
-	}
-
-	cmd = fmt.Sprintf("SELECT count(node_id) FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?", replicaInfoTable)
-	err = c.DB.Get(&candidateReplicas, cmd, hash, types.CacheStatusSucceeded, true)
+	cmd := fmt.Sprintf("SELECT count(if(is_candidate, true, null)) as candidateReplicas, count(if(is_candidate, false, null)) as edgeReplicas FROM %s WHERE carfile_hash=? AND status=? ", replicaInfoTable)
+	err = c.DB.QueryRowx(cmd, hash, types.CacheStatusSucceeded).Scan(&candidateReplicas, &edgeReplicas)
 	return
 }
 
