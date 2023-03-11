@@ -49,7 +49,6 @@ func (d *Datastore) Has(ctx context.Context, key datastore.Key) (exists bool, er
 func (d *Datastore) GetSize(ctx context.Context, key datastore.Key) (size int, err error) {
 	d.RLock()
 	defer d.RUnlock()
-	key.Clean()
 	return d.local.GetSize(ctx, key)
 }
 
@@ -87,8 +86,8 @@ func (d *Datastore) rawQuery(ctx context.Context, q query.Query) (query.Results,
 		return nil, err
 	}
 
-	d.RLock()
-	defer d.RUnlock()
+	d.Lock()
+	defer d.Unlock()
 
 	re := make([]query.Entry, 0)
 	// loading carfiles to local
@@ -106,18 +105,19 @@ func (d *Datastore) rawQuery(ctx context.Context, q query.Query) (query.Results,
 			continue
 		}
 
-		key := datastore.NewKey(carfile.CarfileHash.String())
-		if err := d.local.Put(ctx, key, valueBuf.Bytes()); err != nil {
-			log.Errorf("datastore loading carfiles: %v", err)
-		}
-
 		prefix := "/"
 		entry := query.Entry{
 			Key: prefix + carfile.CarfileHash.String(), Size: len(valueBuf.Bytes()),
 		}
+
+		if err = d.local.Put(ctx, datastore.NewKey(entry.Key), valueBuf.Bytes()); err != nil {
+			log.Errorf("datastore loading carfiles: %v", err)
+		}
+
 		if !q.KeysOnly {
 			entry.Value = valueBuf.Bytes()
 		}
+
 		re = append(re, entry)
 	}
 
@@ -128,6 +128,9 @@ func (d *Datastore) rawQuery(ctx context.Context, q query.Query) (query.Results,
 }
 
 func (d *Datastore) Put(ctx context.Context, key datastore.Key, value []byte) error {
+	d.Lock()
+	defer d.Unlock()
+
 	if err := d.local.Put(ctx, key, value); err != nil {
 		log.Errorf("datastore local put: %v", err)
 	}

@@ -224,6 +224,8 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 		return err
 	}
 
+	log.Debug("count and size: ", info.CarfileBlockCount, info.CarfileSize)
+
 	t, err := m.nodeManager.NodeMgrDB.NodeType(nodeID)
 	if err != nil {
 		return err
