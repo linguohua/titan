@@ -203,9 +203,14 @@ func (m *Manager) handleFinalize(ctx statemachine.Context, carfile CarfileInfo) 
 }
 
 func (m *Manager) handleCachesFailed(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Debugf("handle caches failed: %s", carfile.CarfileCID)
+	log.Debugf("handle caches failed: %s , retry count : %d", carfile.CarfileCID, carfile.retryCount)
 
 	m.stopTimeoutTimer(carfile.CarfileHash.String())
+
+	if carfile.retryCount >= int64(MaxRetryCount) {
+		log.Debugf("the number of retries has reached the limit, stop retrying", carfile.retryCount)
+		return nil
+	}
 
 	if err := failedCooldown(ctx, carfile); err != nil {
 		return err
