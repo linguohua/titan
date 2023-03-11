@@ -137,16 +137,13 @@ func (cfImpl *CarfileImpl) GetBlock(ctx context.Context, cidStr string) ([]byte,
 }
 
 func (cfImpl *CarfileImpl) QueryCacheStat(ctx context.Context) (*types.CacheStat, error) {
-	blockCount, err := cfImpl.carfileStore.BlockCount()
+	carfileCount, err := cfImpl.carfileStore.CarfileCount()
 	if err != nil {
-		log.Errorf("QueryCacheStat, block count error:%v", err)
 		return nil, err
 	}
 
-	carfileCount, err := cfImpl.carfileStore.CarfileCount()
-
 	cacheStat := &types.CacheStat{}
-	cacheStat.TotalBlockCount = blockCount
+	cacheStat.TotalBlockCount = cfImpl.TotalBlockCount
 	cacheStat.TotalCarfileCount = carfileCount
 	cacheStat.WaitCacheCarfileCount = cfImpl.cm.WaitListLen()
 	_, cacheStat.DiskUsage = cfImpl.device.GetDiskUsageStat()
@@ -156,8 +153,8 @@ func (cfImpl *CarfileImpl) QueryCacheStat(ctx context.Context) (*types.CacheStat
 		cacheStat.CachingCarfileCID = carfileCache.Root().String()
 	}
 
-	log.Debugf("QueryCacheStat, TotalCarfileCount:%d,TotalBlockCount:%d,WaitCacheCarfileCount:%d,DiskUsage:%f,CachingCarfileCID:%s",
-		cacheStat.TotalCarfileCount, cacheStat.TotalBlockCount, cacheStat.WaitCacheCarfileCount, cacheStat.DiskUsage, cacheStat.CachingCarfileCID)
+	log.Debugf("cacheStat:%#v", *cacheStat)
+
 	return cacheStat, nil
 }
 

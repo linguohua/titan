@@ -42,18 +42,4 @@ func TestCache(t *testing.T) {
 		t.Errorf("downloadCar, error:%s", err)
 		return
 	}
-
-	err = carfileStore.RegisterShared(c)
-	if err != nil {
-		t.Errorf("RegisterShared, error:%s", err)
-	}
-
-	cout, err := carfileStore.BlockCount()
-	if err != nil {
-		t.Errorf("BlockCount, error:%s", err)
-		return
-	}
-
-	t.Logf("ccout:%d", cout)
-
 }
