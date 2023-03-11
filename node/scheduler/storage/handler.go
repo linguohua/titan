@@ -205,6 +205,8 @@ func (m *Manager) handleFinalize(ctx statemachine.Context, carfile CarfileInfo) 
 func (m *Manager) handleCachesFailed(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handle caches failed: %s", carfile.CarfileCID)
 
+	m.stopTimeoutTimer(carfile.CarfileHash.String())
+
 	if err := failedCooldown(ctx, carfile); err != nil {
 		return err
 	}
