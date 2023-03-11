@@ -67,7 +67,7 @@ func (c *CarfileDB) UpdateCarfileReplicaInfo(cInfo []*types.ReplicaInfo) error {
 func (c *CarfileDB) UpdateOrCreateCarfileRecord(info *types.CarfileRecordInfo) error {
 	cmd := fmt.Sprintf(
 		`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration) 
-				VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica. :expiration) 
+				VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica, :expiration) 
 				ON DUPLICATE KEY UPDATE total_size=VALUES(total_size), total_blocks=VALUES(total_blocks), state=VALUES(state), succeed_edges=VALUES(succeed_edges)
 				, succeed_candidates=VALUES(succeed_candidates), failed_edges=VALUES(failed_edges), failed_candidates=VALUES(failed_candidates)`, carfileInfoTable)
 
