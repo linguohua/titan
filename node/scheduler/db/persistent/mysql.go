@@ -24,6 +24,7 @@ const (
 	nodeVerifyingTable  = "node_verifying"
 	downloadingTable    = "carfile_downloading"
 	nodeAllocateTable   = "node_allocate_info"
+	validateResultTable = "validate_result"
 
 	// NodeTypeKey node info key
 	NodeTypeKey = "node_type"
