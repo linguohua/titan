@@ -212,21 +212,20 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 
 		return
 	}
-
-	// save to db
-	cInfo := &types.ReplicaInfo{
-		ID:     replicaID(info.CarfileHash, nodeID),
-		NodeID: nodeID,
-		Status: info.Status,
-	}
-	err = m.nodeManager.CarfileDB.UpdateCarfileReplicaInfo([]*types.ReplicaInfo{cInfo})
+	t, err := m.nodeManager.NodeMgrDB.NodeType(nodeID)
 	if err != nil {
 		return err
 	}
 
-	log.Debug("count and size: ", info.CarfileBlockCount, info.CarfileSize)
-
-	t, err := m.nodeManager.NodeMgrDB.NodeType(nodeID)
+	// save to db
+	cInfo := &types.ReplicaInfo{
+		ID:          replicaID(info.CarfileHash, nodeID),
+		NodeID:      nodeID,
+		Status:      info.Status,
+		CarfileHash: info.CarfileHash,
+		IsCandidate: t == types.NodeCandidate,
+	}
+	err = m.nodeManager.CarfileDB.UpdateCarfileReplicaInfo([]*types.ReplicaInfo{cInfo})
 	if err != nil {
 		return err
 	}

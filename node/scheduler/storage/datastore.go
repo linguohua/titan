@@ -98,6 +98,14 @@ func (d *Datastore) rawQuery(ctx context.Context, q query.Query) (query.Results,
 			continue
 		}
 
+		edgeReplicas, candidateReplicas, err := d.db.SucceedCountByCarfile(in.CarfileHash)
+		if err != nil {
+			continue
+		}
+
+		in.SucceedEdgeReplicas = edgeReplicas
+		in.SucceedCandidateReplicas = candidateReplicas
+
 		carfile := carfileInfoFrom(in)
 		valueBuf := new(bytes.Buffer)
 		if err = carfile.MarshalCBOR(valueBuf); err != nil {

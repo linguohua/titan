@@ -47,18 +47,14 @@ type CarfileInfo struct {
 
 func (state *CarfileInfo) toCarfileRecordInfo() *types.CarfileRecordInfo {
 	return &types.CarfileRecordInfo{
-		CarfileCID:               state.CarfileCID,
-		CarfileHash:              state.CarfileHash.String(),
-		NeedEdgeReplica:          state.EdgeReplicas,
-		TotalSize:                state.Size,
-		TotalBlocks:              state.Blocks,
-		State:                    state.State.String(),
-		NeedCandidateReplicas:    state.CandidateReplicas,
-		Expiration:               time.Unix(state.Expiration, 0),
-		SucceedEdgeReplicas:      state.SucceedEdgeReplicas,
-		SucceedCandidateReplicas: state.SucceedCandidateReplicas,
-		FailedEdgeReplicas:       state.FailedEdgeReplicas,
-		FailedCandidateReplicas:  state.FailedCandidateReplicas,
+		CarfileCID:            state.CarfileCID,
+		CarfileHash:           state.CarfileHash.String(),
+		NeedEdgeReplica:       state.EdgeReplicas,
+		TotalSize:             state.Size,
+		TotalBlocks:           state.Blocks,
+		State:                 state.State.String(),
+		NeedCandidateReplicas: state.CandidateReplicas,
+		Expiration:            time.Unix(state.Expiration, 0),
 	}
 }
 
@@ -74,7 +70,5 @@ func carfileInfoFrom(info *types.CarfileRecordInfo) *CarfileInfo {
 		Expiration:               info.Expiration.Unix(),
 		SucceedEdgeReplicas:      info.SucceedEdgeReplicas,
 		SucceedCandidateReplicas: info.SucceedCandidateReplicas,
-		FailedEdgeReplicas:       info.FailedEdgeReplicas,
-		FailedCandidateReplicas:  info.FailedCandidateReplicas,
 	}
 }
