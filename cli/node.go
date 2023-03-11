@@ -310,7 +310,7 @@ var edgeExternalAddrCmd = &cli.Command{
 		}
 		defer closer()
 
-		addr, err := schedulerAPI.EdgeExternalAddr(ctx, nodeID, schedulerURL)
+		addr, err := schedulerAPI.EdgeExternalServiceAddress(ctx, nodeID, schedulerURL)
 		if err != nil {
 			return err
 		}

@@ -3,7 +3,6 @@ package edge
 import (
 	"context"
 	"net"
-	"sync"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
@@ -30,16 +29,7 @@ type Edge struct {
 	*datasync.DataSync
 
 	PConn        net.PacketConn
-	Peers        *Peers
 	SchedulerAPI api.Scheduler
-}
-
-type Peers struct {
-	sync.Map
-}
-
-func NewPeers() *Peers {
-	return &Peers{}
 }
 
 func (edge *Edge) WaitQuiet(ctx context.Context) error {
@@ -47,16 +37,17 @@ func (edge *Edge) WaitQuiet(ctx context.Context) error {
 	return nil
 }
 
-func (edge *Edge) GetMyExternalAddr(ctx context.Context, schedulerURL string) (string, error) {
+func (edge *Edge) ExternalServiceAddrss(ctx context.Context, schedulerURL string) (string, error) {
 	schedulerAPI, closer, err := client.NewScheduler(ctx, schedulerURL, nil)
 	if err != nil {
 		return "", err
 	}
 	defer closer()
 
-	return schedulerAPI.NodeExternalAddr(ctx)
+	return schedulerAPI.NodeExternalServiceAddress(ctx)
 }
 
-func (edge *Edge) PingUser(ctx context.Context, userAddr string) error {
+func (edge *Edge) UserNATTravel(ctx context.Context, userServiceAddress string) error {
+	// TODO: implemnet nat travel for user download carfile
 	return nil
 }

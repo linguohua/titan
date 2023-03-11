@@ -5,7 +5,6 @@ import (
 	"net"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
@@ -130,22 +129,6 @@ func getMacAddr(ip string) (string, error) {
 		}
 	}
 	return "", nil
-}
-
-func getExternalIP(api api.Scheduler, timeout time.Duration) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	addr, err := api.NodeExternalAddr(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	ip, _, err := net.SplitHostPort(addr)
-	if err != nil {
-		return "", err
-	}
-	return ip, nil
 }
 
 func (device *Device) SetBandwidthUp(bandwidthUp int64) {

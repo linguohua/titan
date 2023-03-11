@@ -55,7 +55,6 @@ func ConfigEdge(c interface{}) Option {
 		Override(new(*store.CarfileStore), modules.NewCarfileStore),
 		Override(new(*validate.Validate), validate.NewValidate),
 		Override(new(*rate.Limiter), modules.NewRateLimiter),
-		Override(new(*edge.Peers), edge.NewPeers),
 		Override(new(*download.BlockDownload), download.NewBlockDownload),
 		Override(new(*carfile.CarfileImpl), carfile.NewCarfileImpl),
 		Override(new(datasync.Cacher), modules.NewCacherForDataSync),

@@ -287,8 +287,8 @@ func (s *Scheduler) NodePublicKey(ctx context.Context) (string, error) {
 	return "", fmt.Errorf("Can not get node %s publicKey", nodeID)
 }
 
-// NodeExternalAddr get node External address
-func (s *Scheduler) NodeExternalAddr(ctx context.Context) (string, error) {
+//NodeExternalServiceAddress get node External address
+func (s *Scheduler) NodeExternalServiceAddress(ctx context.Context) (string, error) {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	return remoteAddr, nil
 }

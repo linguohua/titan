@@ -377,7 +377,7 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadI
 
 		url := node.DownloadURL()
 
-		err := node.nodeAPI.PingUser(context.Background(), userURL)
+		err := node.nodeAPI.UserNATTravel(context.Background(), userURL)
 		if err != nil {
 			log.Errorf("%s PingUser err:%s", nodeID, err.Error())
 			continue

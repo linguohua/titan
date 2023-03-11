@@ -28,14 +28,14 @@ type Scheduler interface {
 	CandidateNodeConnect(ctx context.Context) error                                                      //perm:write
 	CacheResult(ctx context.Context, resultInfo types.CacheResult) error                                 //perm:write
 	RemoveCarfileResult(ctx context.Context, resultInfo types.RemoveCarfileResult) error                 //perm:write
-	NodeExternalAddr(ctx context.Context) (string, error)                                                //perm:read
+	NodeExternalServiceAddress(ctx context.Context) (string, error)                                      //perm:read
 	NodePublicKey(ctx context.Context) (string, error)                                                   //perm:write
 	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                         //perm:read
 	AuthNodeNew(ctx context.Context, perms []auth.Permission, nodeID, nodeSecret string) ([]byte, error) //perm:read
 	NodeInfo(ctx context.Context, nodeID string) (*types.NodeInfo, error)                                //perm:read
 	NodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error)                    //perm:read
 	// nat travel, can get edge external addr with different scheduler
-	EdgeExternalAddr(ctx context.Context, nodeID, schedulerURL string) (string, error) //perm:write
+	EdgeExternalServiceAddress(ctx context.Context, nodeID, schedulerURL string) (string, error) //perm:write
 	// nat travel
 	IsBehindFullConeNAT(ctx context.Context, edgeURL string) (bool, error) //perm:read
 	NodeNatType(ctx context.Context, nodeID string) (types.NatType, error) //perm:write
