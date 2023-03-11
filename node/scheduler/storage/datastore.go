@@ -53,31 +53,6 @@ func (d *Datastore) GetSize(ctx context.Context, key datastore.Key) (size int, e
 }
 
 func (d *Datastore) Query(ctx context.Context, q query.Query) (query.Results, error) {
-	raw, err := d.rawQuery(ctx, q)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, f := range q.Filters {
-		raw = query.NaiveFilter(raw, f)
-	}
-
-	raw = query.NaiveOrder(raw, q.Orders...)
-
-	// if we have filters or orders, offset and limit won't have been applied in the query
-	if len(q.Filters) > 0 || len(q.Orders) > 0 {
-		if q.Offset != 0 {
-			raw = query.NaiveOffset(raw, q.Offset)
-		}
-		if q.Limit != 0 {
-			raw = query.NaiveLimit(raw, q.Limit)
-		}
-	}
-
-	return raw, nil
-}
-
-func (d *Datastore) rawQuery(ctx context.Context, q query.Query) (query.Results, error) {
 	var rows *sqlx.Rows
 	var err error
 
