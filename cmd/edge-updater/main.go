@@ -96,9 +96,9 @@ func newSchedulerAPI(cctx *cli.Context, schedulerURL string) (api.Scheduler, jso
 }
 
 func checkUpdate(cctx *cli.Context, schedulerAPI api.Scheduler) {
-	updateInfos, err := getNodeAppUpdateInfos(schedulerAPI)
+	updateInfos, err := edgeUpdateInfos(schedulerAPI)
 	if err != nil {
-		log.Errorf("getNodeAppUpdateInfo error:%s", err.Error())
+		log.Errorf("EdgeUpdateInfo error:%s", err.Error())
 	}
 
 	// log.Infof("checkUpdate, updateInfos:%v", updateInfos)
@@ -113,11 +113,11 @@ func checkUpdate(cctx *cli.Context, schedulerAPI api.Scheduler) {
 	}
 }
 
-func getNodeAppUpdateInfos(schedulerAPI api.Scheduler) (map[int]*api.NodeAppUpdateInfo, error) {
+func edgeUpdateInfos(schedulerAPI api.Scheduler) (map[int]*api.EdgeUpdateInfo, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Second)
 	defer cancel()
 
-	return schedulerAPI.GetNodeAppUpdateInfos(ctx)
+	return schedulerAPI.EdgeUpdateInfos(ctx)
 }
 
 func getLocalEdgeVersion(appPath string) (api.Version, error) {
@@ -140,7 +140,7 @@ func getLocalEdgeVersion(appPath string) (api.Version, error) {
 	return newVersion(stringSplit[0])
 }
 
-func isNeedToUpdateMySelf(cctx *cli.Context, updateInfo *api.NodeAppUpdateInfo) bool {
+func isNeedToUpdateMySelf(cctx *cli.Context, updateInfo *api.EdgeUpdateInfo) bool {
 	version, err := newVersion(cctx.App.Version)
 	if err != nil {
 		log.Errorf("newVersion error:%s", err.Error())
@@ -153,7 +153,7 @@ func isNeedToUpdateMySelf(cctx *cli.Context, updateInfo *api.NodeAppUpdateInfo) 
 	return false
 }
 
-func isNeedToUpdateEdge(cctx *cli.Context, updateInfo *api.NodeAppUpdateInfo) bool {
+func isNeedToUpdateEdge(cctx *cli.Context, updateInfo *api.EdgeUpdateInfo) bool {
 	installPath := cctx.String("install-path")
 	appPath := path.Join(installPath, updateInfo.AppName)
 
@@ -169,7 +169,7 @@ func isNeedToUpdateEdge(cctx *cli.Context, updateInfo *api.NodeAppUpdateInfo) bo
 	return false
 }
 
-func updateApp(cctx *cli.Context, updateInfo *api.NodeAppUpdateInfo) {
+func updateApp(cctx *cli.Context, updateInfo *api.EdgeUpdateInfo) {
 	log.Infof("updateApp, AppName:%s, Hash:%s, newVersion:%s, downloadURL:%s", updateInfo.AppName, updateInfo.Hash, updateInfo.Version.String(), updateInfo.DownloadURL)
 	installPath := cctx.String("install-path")
 	data, err := downloadApp(updateInfo.DownloadURL)

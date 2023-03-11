@@ -65,11 +65,13 @@ func VersionForType(nodeType types.NodeType) (Version, error) {
 	}
 }
 
-type NodeAppUpdateInfo struct {
+// EdgeUpdateInfo just update edge node
+// NodeType include edge-updater and titan-edge
+type EdgeUpdateInfo struct {
 	NodeType    int       `db:"node_type"`
 	AppName     string    `db:"app_name"`
 	Version     Version   `db:"version"`
-	Hash        string    `db:"hash"`
 	DownloadURL string    `db:"download_url"`
+	Hash        string    `db:"hash"`
 	UpdateTime  time.Time `db:"update_time"`
 }

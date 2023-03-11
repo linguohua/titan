@@ -224,13 +224,13 @@ var nodeAppUpdateCmd = &cli.Command{
 	Name:  "node-update",
 	Usage: "get node update info or set node update info",
 	Subcommands: []*cli.Command{
-		getNodeAppUpdateInfoCmd,
-		setNodeAppUpdateInfoCmd,
-		DeleteNodeAppUpdateInfoCmd,
+		nodeUpdateInfoCmd,
+		setNodeUpdateInfoCmd,
+		DeleteNodeUpdateInfoCmd,
 	},
 }
 
-var DeleteNodeAppUpdateInfoCmd = &cli.Command{
+var DeleteNodeUpdateInfoCmd = &cli.Command{
 	Name:  "delete",
 	Usage: "delete node update info",
 	Flags: []cli.Flag{
@@ -249,7 +249,7 @@ var DeleteNodeAppUpdateInfoCmd = &cli.Command{
 		defer closer()
 
 		nodeType := cctx.Int("node-type")
-		err = schedulerAPI.DeleteNodeAppUpdateInfos(ctx, nodeType)
+		err = schedulerAPI.DeleteEdgeUpdateInfo(ctx, nodeType)
 		if err != nil {
 			return err
 		}
@@ -257,7 +257,7 @@ var DeleteNodeAppUpdateInfoCmd = &cli.Command{
 	},
 }
 
-var getNodeAppUpdateInfoCmd = &cli.Command{
+var nodeUpdateInfoCmd = &cli.Command{
 	Name:  "get",
 	Usage: "get node update info",
 	Action: func(cctx *cli.Context) error {
@@ -268,7 +268,7 @@ var getNodeAppUpdateInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		updateInfos, err := schedulerAPI.GetNodeAppUpdateInfos(ctx)
+		updateInfos, err := schedulerAPI.EdgeUpdateInfos(ctx)
 		if err != nil {
 			return err
 		}
@@ -291,7 +291,7 @@ var getNodeAppUpdateInfoCmd = &cli.Command{
 	},
 }
 
-var setNodeAppUpdateInfoCmd = &cli.Command{
+var setNodeUpdateInfoCmd = &cli.Command{
 	Name:  "set",
 	Usage: "set node update info",
 	Flags: []cli.Flag{
@@ -341,8 +341,8 @@ var setNodeAppUpdateInfoCmd = &cli.Command{
 			return err
 		}
 
-		updateInfo := &api.NodeAppUpdateInfo{AppName: appName, NodeType: nodeType, Version: version, Hash: hash, DownloadURL: downloadURL}
-		err = schedulerAPI.SetNodeAppUpdateInfo(ctx, updateInfo)
+		updateInfo := &api.EdgeUpdateInfo{AppName: appName, NodeType: nodeType, Version: version, Hash: hash, DownloadURL: downloadURL}
+		err = schedulerAPI.SetEdgeUpdateInfo(ctx, updateInfo)
 		if err != nil {
 			return err
 		}

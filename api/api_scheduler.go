@@ -55,12 +55,12 @@ type Scheduler interface {
 	RecacheCarfiles(ctx context.Context, hashs []string) error                               //perm:admin
 
 	// server
-	StartOnceElection(ctx context.Context) error                                   //perm:admin
-	ValidationEnable(ctx context.Context) (bool, error)                            //perm:admin
-	StartOnceValidate(ctx context.Context) error                                   //perm:admin
-	GetNodeAppUpdateInfos(ctx context.Context) (map[int]*NodeAppUpdateInfo, error) //perm:read
-	SetNodeAppUpdateInfo(ctx context.Context, info *NodeAppUpdateInfo) error       //perm:admin
-	DeleteNodeAppUpdateInfos(ctx context.Context, nodeType int) error              //perm:admin
+	StartOnceElection(ctx context.Context) error                          //perm:admin
+	ValidationEnable(ctx context.Context) (bool, error)                   //perm:admin
+	StartOnceValidate(ctx context.Context) error                          //perm:admin
+	EdgeUpdateInfos(ctx context.Context) (map[int]*EdgeUpdateInfo, error) //perm:read
+	SetEdgeUpdateInfo(ctx context.Context, info *EdgeUpdateInfo) error    //perm:admin
+	DeleteEdgeUpdateInfo(ctx context.Context, nodeType int) error         //perm:admin
 
 	// user send result when user download block complete or failed
 	UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error //perm:read

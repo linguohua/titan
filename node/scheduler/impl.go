@@ -57,7 +57,7 @@ type Scheduler struct {
 	fx.In
 
 	*common.CommonAPI
-	*AppUpdater
+	*EdgeUpdater
 
 	NodeManager  *node.Manager
 	Election     *election.Election
