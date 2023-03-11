@@ -100,10 +100,14 @@ func (cs *CarfileStore) HasCarfile(root cid.Cid) (bool, error) {
 
 func (cs *CarfileStore) RegisterShared(root cid.Cid) error {
 	name := newCarfileName(root)
-	ch := make(chan dagstore.ShardResult, 0)
+	ch := make(chan dagstore.ShardResult)
 	k := shard.KeyFromString(root.Hash().String())
 
-	err := cs.dagst.RegisterShard(context.Background(), k, &mount.FSMount{FS: os.DirFS(cs.carsDir()), Path: name}, ch, dagstore.RegisterOpts{})
+	opts := dagstore.RegisterOpts{
+		ExistingTransient: filepath.Join(cs.carsDir(), name),
+	}
+
+	err := cs.dagst.RegisterShard(context.Background(), k, &mount.FSMount{FS: os.DirFS(cs.carsDir()), Path: name}, ch, opts)
 	if err != nil {
 		return err
 	}
