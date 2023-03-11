@@ -101,7 +101,7 @@ func (evt CarfileStartCaches) apply(state *CarfileInfo) {
 	state.ServerID = evt.ServerID
 	state.CreatedAt = evt.CreatedAt
 	state.Expiration = evt.Expiration
-	state.CandidateReplicas = int64(rootCacheCount + candidateReplicaCacheCount)
+	state.CandidateReplicas = int64(rootCachesCount + candidateReplicaCachesCount)
 }
 
 // CarfileRecache get frist carfile to candidate

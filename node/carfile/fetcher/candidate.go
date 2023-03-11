@@ -106,13 +106,13 @@ func newCandidateAPI(url string, tk string) (api.Candidate, error) {
 	headers.Add("Authorization", "Bearer "+string(tk))
 
 	// Connect to node
-	candicateAPI, _, err := client.NewCandicate(ctx, url, headers)
+	candidateAPI, _, err := client.NewCandicate(ctx, url, headers)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect NewCandicate err:%s,url:%s", err.Error(), url)
 		return nil, err
 	}
 
-	return candicateAPI, nil
+	return candidateAPI, nil
 }
 
 func getCandidateAPI(url string, tk string, candidates map[string]api.Candidate) (api.Candidate, error) {
