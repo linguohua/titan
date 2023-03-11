@@ -218,7 +218,7 @@ func (cfImpl *CarfileImpl) CacheResult(ret *types.CacheResult) error {
 	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
 
-	log.Debugf("downloadResult, carfile:%s", ret.CarfileHash)
+	log.Debugf("downloadResult, carfile:%#v", *ret)
 	return cfImpl.scheduler.CacheResult(ctx, *ret)
 }
 

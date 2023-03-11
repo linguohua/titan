@@ -16,8 +16,8 @@ type CachedResulter interface {
 }
 
 type carWaiter struct {
-	root cid.Cid
-	dss  []*types.DownloadSource
+	Root cid.Cid
+	Dss  []*types.DownloadSource
 }
 type Manager struct {
 	// root cid of car
@@ -107,15 +107,15 @@ func (m *Manager) doDownloadCars() {
 }
 
 func (m *Manager) downloadCar(cw *carWaiter) {
-	defer m.removeCarFromWaitList(cw.root)
+	defer m.removeCarFromWaitList(cw.Root)
 
-	bsrw, err := m.carfileStore.NewCarfileWriter(cw.root)
+	bsrw, err := m.carfileStore.NewCarfileWriter(cw.Root)
 	if err != nil {
 		log.Errorf("doDownloadCar, new car error:%s", err)
 		return
 	}
 
-	carfileCache, err := m.restoreCarfileCacheOrNew(&options{cw.root, cw.dss, bsrw, m.bFetcher, m.downloadBatch})
+	carfileCache, err := m.restoreCarfileCacheOrNew(&options{cw.Root, cw.Dss, bsrw, m.bFetcher, m.downloadBatch})
 	if err != nil {
 		log.Errorf("restore carfile cache error:%s", err)
 		return
@@ -150,7 +150,7 @@ func (m *Manager) removeCarFromWaitList(root cid.Cid) *carWaiter {
 	}
 
 	for i, cw := range m.waitList {
-		if cw.root.Hash().String() == root.Hash().String() {
+		if cw.Root.Hash().String() == root.Hash().String() {
 			if i == 0 {
 				m.waitList = m.waitList[1:]
 			} else {
@@ -168,12 +168,12 @@ func (m *Manager) AddToWaitList(root cid.Cid, dss []*types.DownloadSource) {
 	defer m.waitListLock.Unlock()
 
 	for _, waiter := range m.waitList {
-		if waiter.root.Hash().String() == root.Hash().String() {
+		if waiter.Root.Hash().String() == root.Hash().String() {
 			return
 		}
 	}
 
-	cw := &carWaiter{root: root, dss: dss}
+	cw := &carWaiter{Root: root, Dss: dss}
 	m.waitList = append(m.waitList, cw)
 
 	m.saveWaitList()
@@ -270,7 +270,19 @@ func (m *Manager) CachedResult(cachingCar *carfileCache) error {
 		log.Panicf("cResulter == nil")
 	}
 
+	var status types.CacheStatus
+	if cachingCar.doneSize == cachingCar.totalSize {
+		status = types.CacheStatusSucceeded
+	} else {
+		if m.cachingCar == cachingCar {
+			status = types.CacheStatusDownloading
+		} else {
+			status = types.CacheStatusFailed
+		}
+	}
+
 	ret := &types.CacheResult{
+		Status:            status,
 		CarfileBlockCount: len(cachingCar.blocksDownloadSuccessList) + len(cachingCar.blocksWaitList),
 		DoneBlockCount:    len(cachingCar.blocksDownloadSuccessList),
 		CarfileSize:       int64(cachingCar.TotalSize()),

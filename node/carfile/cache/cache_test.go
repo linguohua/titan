@@ -11,7 +11,11 @@ import (
 
 func TestCache(t *testing.T) {
 	t.Log("TestCache")
+
 	logging.SetLogLevel("/carfile/cache", "DEBUG")
+	logging.SetLogLevel("datstore", "DEBUG")
+	logging.SetLogLevel("dagstore/upgrader", "DEBUG")
+
 	cidStr := "QmTcAg1KeDYJFpTJh3rkZGLhnnVKeXWNtjwPufjVvwPTpG"
 	c, err := cid.Decode(cidStr)
 	if err != nil {
@@ -27,7 +31,7 @@ func TestCache(t *testing.T) {
 
 	bsrw, err := carfileStore.NewCarfileWriter(c)
 	if err != nil {
-		log.Errorf("NewCarfileWriter error:%s", err)
+		t.Errorf("NewCarfileWriter error:%s", err)
 		return
 	}
 
@@ -35,7 +39,21 @@ func TestCache(t *testing.T) {
 
 	err = carCache.downloadCar()
 	if err != nil {
-		log.Errorf("downloadCar, error:%s", err)
+		t.Errorf("downloadCar, error:%s", err)
 		return
 	}
+
+	err = carfileStore.RegisterShared(c)
+	if err != nil {
+		t.Errorf("RegisterShared, error:%s", err)
+	}
+
+	cout, err := carfileStore.BlockCount()
+	if err != nil {
+		t.Errorf("BlockCount, error:%s", err)
+		return
+	}
+
+	t.Logf("ccout:%d", cout)
+
 }
