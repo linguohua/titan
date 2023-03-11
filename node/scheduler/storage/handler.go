@@ -196,6 +196,9 @@ func (m *Manager) handleEdgesCaching(ctx statemachine.Context, carfile CarfileIn
 
 func (m *Manager) handleFinalize(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Infof("handle carfile finalize: %s", carfile.CarfileCID)
+
+	m.stopTimeoutTimer(carfile.CarfileHash.String())
+
 	return nil
 }
 
