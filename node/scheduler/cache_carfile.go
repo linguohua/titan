@@ -144,14 +144,12 @@ func (s *Scheduler) CacheCarfiles(ctx context.Context, info *types.CacheCarfileI
 
 	info.CarfileHash = hash
 
-	if info.NodeID == "" {
-		if info.Replicas < 1 {
-			return xerrors.Errorf("replica is %d < 1", info.Replicas)
-		}
+	if info.Replicas < 1 {
+		return xerrors.Errorf("replica is %d < 1", info.Replicas)
+	}
 
-		if time.Now().After(info.Expiration) {
-			return xerrors.Errorf("now after expiration:%s", info.Expiration.String())
-		}
+	if time.Now().After(info.Expiration) {
+		return xerrors.Errorf("now after expiration:%s", info.Expiration.String())
 	}
 
 	return s.DataManager.CacheCarfile(info)

@@ -151,7 +151,7 @@ func (d *Datastore) Put(ctx context.Context, key datastore.Key, value []byte) er
 	if err := carfile.UnmarshalCBOR(bytes.NewReader(value)); err != nil {
 		return err
 	}
-	return d.CreateOrUpdateCarfileRecordInfo(carfile.toCarfileRecordInfo())
+	return d.UpdateCarfileRecordInfo(carfile.toCarfileRecordInfo())
 }
 
 func (d *Datastore) Delete(ctx context.Context, key datastore.Key) error {
