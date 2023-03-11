@@ -21,36 +21,6 @@ func NewCarfileDB(db *sqlx.DB) *CarfileDB {
 	return &CarfileDB{db}
 }
 
-// CreateCarfileReplicaInfo Create replica info
-func (c *CarfileDB) CreateCarfileReplicaInfo(cInfo *types.ReplicaInfo) error {
-	cmd := fmt.Sprintf("INSERT INTO %s (id, carfile_hash, node_id, status, is_candidate) VALUES (:id, :carfile_hash, :node_id, :status, :is_candidate)", replicaInfoTable)
-	_, err := c.DB.NamedExec(cmd, cInfo)
-	return err
-}
-
-// UpdateCarfileReplicaStatus Update
-func (c *CarfileDB) UpdateCarfileReplicaStatus(hash string, nodeIDs []string, status types.CacheStatus) error {
-	tx := c.DB.MustBegin()
-
-	cmd := fmt.Sprintf("UPDATE %s SET status=? WHERE carfile_hash=? AND node_id in (?) ", replicaInfoTable)
-	query, args, err := sqlx.In(cmd, status, hash, nodeIDs)
-	if err != nil {
-		return err
-	}
-
-	// cache info
-	query = c.DB.Rebind(query)
-	tx.MustExec(query, args...)
-
-	err = tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-		return err
-	}
-
-	return nil
-}
-
 // UpdateCarfileReplicaInfo update replica info
 func (c *CarfileDB) UpdateCarfileReplicaInfo(cInfo []*types.ReplicaInfo) error {
 	query := fmt.Sprintf(
@@ -66,10 +36,9 @@ func (c *CarfileDB) UpdateCarfileReplicaInfo(cInfo []*types.ReplicaInfo) error {
 // UpdateOrCreateCarfileRecord update storage record info
 func (c *CarfileDB) UpdateOrCreateCarfileRecord(info *types.CarfileRecordInfo) error {
 	cmd := fmt.Sprintf(
-		`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration) 
-				VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica, :expiration) 
-				ON DUPLICATE KEY UPDATE total_size=VALUES(total_size), total_blocks=VALUES(total_blocks), state=VALUES(state), succeed_edges=VALUES(succeed_edges)
-				, succeed_candidates=VALUES(succeed_candidates), failed_edges=VALUES(failed_edges), failed_candidates=VALUES(failed_candidates)`, carfileInfoTable)
+		`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration, total_size, total_blocks) 
+				VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica, :expiration, :total_size, :total_blocks) 
+				ON DUPLICATE KEY UPDATE total_size=VALUES(total_size), total_blocks=VALUES(total_blocks), state=VALUES(state)`, carfileInfoTable)
 
 	_, err := c.DB.NamedExec(cmd, info)
 	return err
@@ -139,7 +108,7 @@ func (c *CarfileDB) QueryCarfilesRows(ctx context.Context, limit, offset int) (r
 		limit = maxCount
 	}
 
-	cmd := fmt.Sprintf("SELECT * FROM %s WHERE state!='Finalize' order by carfile_hash asc LIMIT ? OFFSET ? ", carfileInfoTable)
+	cmd := fmt.Sprintf("SELECT * FROM %s WHERE state<>'Finalize' order by carfile_hash asc LIMIT ? OFFSET ? ", carfileInfoTable)
 	return c.DB.QueryxContext(ctx, cmd, limit, offset)
 }
 
@@ -174,6 +143,19 @@ func (c *CarfileDB) CarfileRecordInfos(page int) (info *types.ListCarfileRecordR
 		return
 	}
 
+	return
+}
+
+// SucceedCountByCarfile get edge and candidate succeed replicas
+func (c *CarfileDB) SucceedCountByCarfile(hash string) (edgeReplicas, candidateReplicas int64, err error) {
+	cmd := fmt.Sprintf("SELECT count(node_id) FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?", replicaInfoTable)
+	err = c.DB.Get(&edgeReplicas, cmd, hash, types.CacheStatusSucceeded, false)
+	if err != nil {
+		return
+	}
+
+	cmd = fmt.Sprintf("SELECT count(node_id) FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?", replicaInfoTable)
+	err = c.DB.Get(&candidateReplicas, cmd, hash, types.CacheStatusSucceeded, true)
 	return
 }
 
@@ -410,7 +392,8 @@ func (c *CarfileDB) RemoveReplicaInfoWithNodes(nodeIDs []string) error {
 func (c *CarfileDB) SetBlockDownloadInfo(info *types.DownloadRecordInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (id, node_id, block_cid, carfile_cid, block_size, speed, reward, status, failed_reason, client_ip, created_time, complete_time) 
-				VALUES (:id, :node_id, :block_cid, :carfile_cid, :block_size, :speed, :reward, :status, :failed_reason, :client_ip, :created_time, :complete_time) ON DUPLICATE KEY UPDATE node_id=:node_id, speed=:speed, reward=:reward, status=:status, failed_reason=:failed_reason, complete_time=:complete_time`, blockDownloadInfo)
+				VALUES (:id, :node_id, :block_cid, :carfile_cid, :block_size, :speed, :reward, :status, :failed_reason, :client_ip, :created_time, :complete_time) 
+				ON DUPLICATE KEY UPDATE node_id=:node_id, speed=:speed, reward=:reward, status=:status, failed_reason=:failed_reason, complete_time=:complete_time`, blockDownloadInfo)
 
 	_, err := c.DB.NamedExec(query, info)
 	if err != nil {

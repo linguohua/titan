@@ -90,10 +90,6 @@ CREATE TABLE `carfiles` (
     `expiration` datetime NOT NULL,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
-    `succeed_edges` int  DEFAULT '0' ,
-    `succeed_candidates` int  DEFAULT '0' ,
-    `failed_candidates` int  DEFAULT '0' ,
-    `failed_edges` int  DEFAULT '0' ,
 	PRIMARY KEY (`carfile_hash`)
 ) ENGINE=InnoDB COMMENT='carfile infos';
 
