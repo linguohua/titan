@@ -127,19 +127,6 @@ func (s *Scheduler) RemoveCarfile(ctx context.Context, carfileCid string) error 
 	return s.DataManager.RemoveCarfileRecord(carfileCid, hash)
 }
 
-// RemoveReplica remove a caches with carfile
-func (s *Scheduler) RemoveReplica(ctx context.Context, carfileID, nodeID string) error {
-	if carfileID == "" {
-		return xerrors.Errorf("Cid Is Nil")
-	}
-
-	if nodeID == "" {
-		return xerrors.Errorf("NodeID Is Nil")
-	}
-
-	return s.DataManager.RemoveCache(carfileID, nodeID)
-}
-
 // CacheCarfiles nodeMgrCache Carfile
 func (s *Scheduler) CacheCarfiles(ctx context.Context, info *types.CacheCarfileInfo) error {
 	if info.CarfileCid == "" {

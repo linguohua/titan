@@ -270,8 +270,6 @@ type SchedulerStruct struct {
 
 		RemoveCarfileResult func(p0 context.Context, p1 types.RemoveCarfileResult) error `perm:"write"`
 
-		RemoveReplica func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
-
 		ResetCandidateReplicaCount func(p0 context.Context, p1 int) error `perm:"admin"`
 
 		ResetCarfileExpiration func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
@@ -1109,17 +1107,6 @@ func (s *SchedulerStruct) RemoveCarfileResult(p0 context.Context, p1 types.Remov
 }
 
 func (s *SchedulerStub) RemoveCarfileResult(p0 context.Context, p1 types.RemoveCarfileResult) error {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) RemoveReplica(p0 context.Context, p1 string, p2 string) error {
-	if s.Internal.RemoveReplica == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.RemoveReplica(p0, p1, p2)
-}
-
-func (s *SchedulerStub) RemoveReplica(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
 }
 
