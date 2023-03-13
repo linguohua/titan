@@ -30,7 +30,7 @@ func NewDatastore(db *persistent.CarfileDB, serverID dtypes.ServerID) *Datastore
 }
 
 func (d *Datastore) Close() error {
-	return d.Close()
+	return d.local.Close()
 }
 
 func trimPrefix(key datastore.Key) string {
