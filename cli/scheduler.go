@@ -103,12 +103,6 @@ var (
 		Usage: "port",
 		Value: "",
 	}
-
-	downloadingFlag = &cli.BoolFlag{
-		Name:  "downloading",
-		Usage: "storage is downloading",
-		Value: false,
-	}
 )
 
 var setNodePortCmd = &cli.Command{

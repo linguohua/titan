@@ -33,17 +33,6 @@ type CarfileRecord struct {
 	findNodesDetails string            // Find the details of nodes that meet the cache conditions
 }
 
-func newCarfileRecord(manager *Manager, cid, hash string) *CarfileRecord {
-	return &CarfileRecord{
-		nodeManager:     manager.nodeManager,
-		carfileManager:  manager,
-		carfileCid:      cid,
-		carfileHash:     hash,
-		downloadSources: make([]*types.DownloadSource, 0),
-		nodeCacheErrs:   make(map[string]string),
-	}
-}
-
 func (m *Manager) loadCarfileRecord(hash string, manager *Manager) (*CarfileRecord, error) {
 	dInfo, err := m.nodeManager.CarfileDB.CarfileInfo(hash)
 	if err != nil {
