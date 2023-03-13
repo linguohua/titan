@@ -74,7 +74,7 @@ func (evt CacheResult) apply(state *CarfileInfo) {
 			state.EdgeReplicaSuccesses++
 		}
 		state.Size = evt.ResultInfo.CarfileSize
-		state.Blocks = evt.ResultInfo.CarfileBlockCount
+		state.Blocks = evt.ResultInfo.CarfileBlocksCount
 	} else {
 		if evt.ResultInfo.IsCandidate {
 			state.CandidateReplicaFailures++

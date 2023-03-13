@@ -223,7 +223,7 @@ func (cfImpl *CarfileImpl) BlockCountOfCarfile(carfileCID string) (int, error) {
 func (cfImpl *CarfileImpl) CacheResult(ret *types.CacheResult) error {
 	_, diskUsage := cfImpl.device.GetDiskUsageStat()
 	ret.DiskUsage = diskUsage
-	ret.TotalBlockCount = cfImpl.TotalBlockCount
+	ret.TotalBlocksCount = cfImpl.TotalBlockCount
 
 	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
@@ -272,14 +272,14 @@ func (cfImpl *CarfileImpl) cacheResultForCarfileExist(carfileCID string) error {
 	}
 
 	result := types.CacheResult{
-		Status:            types.CacheStatusSucceeded,
-		CarfileBlockCount: blocksCount,
-		DoneBlockCount:    blocksCount,
-		CarfileSize:       int64(linksSize),
-		DoneSize:          int64(linksSize),
-		CarfileHash:       c.Hash().String(),
-		DiskUsage:         diskUsage,
-		TotalBlockCount:   cfImpl.TotalBlockCount,
+		Status:             types.CacheStatusSucceeded,
+		CarfileBlocksCount: blocksCount,
+		DoneBlocksCount:    blocksCount,
+		CarfileSize:        int64(linksSize),
+		DoneSize:           int64(linksSize),
+		CarfileHash:        c.Hash().String(),
+		DiskUsage:          diskUsage,
+		TotalBlocksCount:   cfImpl.TotalBlockCount,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)

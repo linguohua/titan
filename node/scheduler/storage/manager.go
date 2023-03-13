@@ -231,11 +231,11 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 
 	return m.carfiles.Send(CarfileHash(info.CarfileHash), CacheResult{
 		ResultInfo: &CacheResultInfo{
-			NodeID:            nodeID,
-			Status:            int64(info.Status),
-			CarfileBlockCount: int64(info.CarfileBlockCount),
-			CarfileSize:       info.CarfileSize,
-			IsCandidate:       t == types.NodeCandidate,
+			NodeID:             nodeID,
+			Status:             int64(info.Status),
+			CarfileBlocksCount: int64(info.CarfileBlocksCount),
+			CarfileSize:        info.CarfileSize,
+			IsCandidate:        t == types.NodeCandidate,
 		},
 	})
 }

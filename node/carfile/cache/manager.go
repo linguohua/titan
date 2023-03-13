@@ -283,12 +283,12 @@ func (m *Manager) CachedResult(cachingCar *carfileCache) error {
 	}
 
 	ret := &types.CacheResult{
-		Status:            status,
-		CarfileBlockCount: len(cachingCar.blocksDownloadSuccessList) + len(cachingCar.blocksWaitList),
-		DoneBlockCount:    len(cachingCar.blocksDownloadSuccessList),
-		CarfileSize:       int64(cachingCar.TotalSize()),
-		DoneSize:          int64(cachingCar.DoneSize()),
-		CarfileHash:       cachingCar.Root().Hash().String(),
+		Status:             status,
+		CarfileBlocksCount: len(cachingCar.blocksDownloadSuccessList) + len(cachingCar.blocksWaitList),
+		DoneBlocksCount:    len(cachingCar.blocksDownloadSuccessList),
+		CarfileSize:        int64(cachingCar.TotalSize()),
+		DoneSize:           int64(cachingCar.DoneSize()),
+		CarfileHash:        cachingCar.Root().Hash().String(),
 	}
 
 	return m.cResulter.CacheResult(ret)

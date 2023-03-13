@@ -16,21 +16,21 @@ type ListCarfileRecordRsp struct {
 
 // CacheResult cache data result info
 type CacheResult struct {
-	Status            CacheStatus
-	Msg               string
-	CarfileBlockCount int
-	DoneBlockCount    int
-	CarfileSize       int64
-	DoneSize          int64
-	CarfileHash       string
-	DiskUsage         float64
-	TotalBlockCount   int
+	Status             CacheStatus
+	Msg                string
+	CarfileBlocksCount int
+	DoneBlocksCount    int
+	CarfileSize        int64
+	DoneSize           int64
+	CarfileHash        string
+	DiskUsage          float64
+	TotalBlocksCount   int
 }
 
 // RemoveCarfileResult remove carfile result
 type RemoveCarfileResult struct {
-	BlockCount int
-	DiskUsage  float64
+	BlocksCount int
+	DiskUsage   float64
 }
 
 // CarfileRecordInfo Data info
