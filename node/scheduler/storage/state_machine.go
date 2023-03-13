@@ -27,7 +27,7 @@ func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface
 	}, processed, nil // TODO: This processed event count is not very correct
 }
 
-var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *CarfileInfo) (uint64, error){
+var planners = map[CarfileState]func(events []statemachine.Event, state *CarfileInfo) (uint64, error){
 	// external import
 	UndefinedCarfileState: planOne(
 		on(CarfileStartCaches{}, CacheCarfileSeed),
@@ -72,7 +72,7 @@ var fsmPlanners = map[CarfileState]func(events []statemachine.Event, state *Carf
 }
 
 func (m *Manager) plan(events []statemachine.Event, state *CarfileInfo) (func(statemachine.Context, CarfileInfo) error, uint64, error) {
-	p := fsmPlanners[state.State]
+	p := planners[state.State]
 	if p == nil {
 		if len(events) == 1 {
 			if _, ok := events[0].User.(globalMutator); ok {
@@ -201,9 +201,9 @@ func (m *Manager) restartCarfiles(ctx context.Context) error {
 		return err
 	}
 
-	log.Infof("get carfiles: %d", len(trackedCarfiles))
+	log.Debugf("get carfiles: %d", len(trackedCarfiles))
 
-	// wait node connect
+	// wait nodes connect
 	time.Sleep(1 * time.Minute)
 
 	for _, carfile := range trackedCarfiles {
