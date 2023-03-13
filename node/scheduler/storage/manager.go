@@ -440,14 +440,14 @@ func carfileRecord2Info(cr *CarfileRecord) *types.CarfileRecordInfo {
 	return info
 }
 
-func (m *Manager) CarfileStatus(ctx context.Context, cid types.CarfileHash) (types.CarfileRecordInfo, error) {
-	info, err := m.GetCarfileInfo(CarfileHash(cid))
+func (m *Manager) CarfileStatus(ctx context.Context, hash types.CarfileHash) (types.CarfileRecordInfo, error) {
+	info, err := m.GetCarfileInfo(CarfileHash(hash))
 	if err != nil {
 		return types.CarfileRecordInfo{}, err
 	}
 
 	cInfo := types.CarfileRecordInfo{
-		CarfileCID:            cid.String(),
+		CarfileCID:            hash.String(),
 		State:                 info.State.String(),
 		CarfileHash:           info.CarfileHash.String(),
 		NeedEdgeReplica:       info.EdgeReplicas,
