@@ -121,12 +121,23 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 		})
 	}
 
-	if cInfo.State == Finalize.String() {
-		return xerrors.New("carfile is finalize ")
+	return xerrors.New("carfile is exist")
+}
+
+// FailedCarfilesRestart restart failed carfiles
+func (m *Manager) FailedCarfilesRestart() error {
+	list, err := m.ListCarfiles()
+	if err != nil {
+		return err
 	}
 
-	// retry
-	return m.carfiles.Send(CarfileHash(info.CarfileHash), CarfileRestart{})
+	for _, c := range list {
+		if c.State == CacheSeedFailed || c.State == CacheCandidatesFailed || c.State == CacheEdgesFailed {
+			return m.carfiles.Send(c.CarfileHash, CarfileRestart{})
+		}
+	}
+
+	return nil
 }
 
 // RemoveCarfileRecord remove a storage
@@ -386,7 +397,7 @@ func (m *Manager) GetCarfileRecordInfo(cid string) (*types.CarfileRecordInfo, er
 }
 
 func (m *Manager) CarfileStatus(ctx context.Context, hash types.CarfileHash) (types.CarfileRecordInfo, error) {
-	info, err := m.GetCarfileInfo(CarfileHash(hash))
+	info, err := m.GetCarfileFromStatemachine(CarfileHash(hash))
 	if err != nil {
 		return types.CarfileRecordInfo{}, err
 	}
