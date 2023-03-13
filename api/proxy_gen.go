@@ -274,6 +274,8 @@ type SchedulerStruct struct {
 
 		ResetCarfileExpiration func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
 
+		RestartFailedCarfiles func(p0 context.Context) error `perm:"admin"`
+
 		SetEdgeUpdateInfo func(p0 context.Context, p1 *EdgeUpdateInfo) error `perm:"admin"`
 
 		SetNodePort func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
@@ -1129,6 +1131,17 @@ func (s *SchedulerStruct) ResetCarfileExpiration(p0 context.Context, p1 string, 
 }
 
 func (s *SchedulerStub) ResetCarfileExpiration(p0 context.Context, p1 string, p2 time.Time) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) RestartFailedCarfiles(p0 context.Context) error {
+	if s.Internal.RestartFailedCarfiles == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.RestartFailedCarfiles(p0)
+}
+
+func (s *SchedulerStub) RestartFailedCarfiles(p0 context.Context) error {
 	return ErrNotSupported
 }
 

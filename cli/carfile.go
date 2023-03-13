@@ -23,6 +23,7 @@ var carfileCmd = &cli.Command{
 		resetExpirationCmd,
 		resetReplicaCacheCountCmd,
 		contiuneUndoneCarfileCmd,
+		restartCarfilesCmd,
 	},
 }
 
@@ -164,6 +165,21 @@ var showCarfileInfoCmd = &cli.Command{
 		}
 
 		return nil
+	},
+}
+
+var restartCarfilesCmd = &cli.Command{
+	Name:  "restart-faileds",
+	Usage: "restart failed carfiles",
+	Action: func(cctx *cli.Context) error {
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		return schedulerAPI.RestartFailedCarfiles(ctx)
 	},
 }
 

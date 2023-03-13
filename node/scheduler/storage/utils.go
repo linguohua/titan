@@ -9,8 +9,8 @@ func (m *Manager) ListCarfiles() ([]CarfileInfo, error) {
 	return carfiles, nil
 }
 
-// GetCarfileInfo load a carfile from db
-func (m *Manager) GetCarfileInfo(cid CarfileHash) (CarfileInfo, error) {
+// GetCarfileFromStatemachine load a carfile from statemachine
+func (m *Manager) GetCarfileFromStatemachine(cid CarfileHash) (CarfileInfo, error) {
 	var out CarfileInfo
 	err := m.carfiles.Get(cid).Get(&out)
 	return out, err
