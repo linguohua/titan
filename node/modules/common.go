@@ -3,6 +3,7 @@ package modules
 import (
 	"context"
 	"errors"
+
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
@@ -63,6 +64,6 @@ func NewServerID(lr repo.LockedRepo) (dtypes.ServerID, error) {
 	return dtypes.ServerID(key.PrivateKey), nil
 }
 
-func Datastore(db *persistent.CarfileDB) (dtypes.MetadataDS, error) {
-	return storage.NewDatastore(db), nil
+func Datastore(db *persistent.CarfileDB, serverID dtypes.ServerID) (dtypes.MetadataDS, error) {
+	return storage.NewDatastore(db, serverID), nil
 }

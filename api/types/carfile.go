@@ -1,6 +1,10 @@
 package types
 
-import "time"
+import (
+	"time"
+
+	"github.com/linguohua/titan/node/modules/dtypes"
+)
 
 // ListCarfileRecordRsp Data List Info
 type ListCarfileRecordRsp struct {
@@ -31,16 +35,17 @@ type RemoveCarfileResult struct {
 
 // CarfileRecordInfo Data info
 type CarfileRecordInfo struct {
-	CarfileCID            string    `db:"carfile_cid"`
-	CarfileHash           string    `db:"carfile_hash"`
-	NeedEdgeReplica       int64     `db:"edge_replica"`
-	TotalSize             int64     `db:"total_size"`
-	TotalBlocks           int64     `db:"total_blocks"`
-	Expiration            time.Time `db:"expiration"`
-	CreateTime            time.Time `db:"created_time"`
-	EndTime               time.Time `db:"end_time"`
-	State                 string    `db:"state"`
-	NeedCandidateReplicas int64     `db:"candidate_replica"`
+	CarfileCID            string          `db:"carfile_cid"`
+	CarfileHash           string          `db:"carfile_hash"`
+	NeedEdgeReplica       int64           `db:"edge_replica"`
+	TotalSize             int64           `db:"total_size"`
+	TotalBlocks           int64           `db:"total_blocks"`
+	Expiration            time.Time       `db:"expiration"`
+	CreateTime            time.Time       `db:"created_time"`
+	EndTime               time.Time       `db:"end_time"`
+	State                 string          `db:"state"`
+	NeedCandidateReplicas int64           `db:"candidate_replica"`
+	ServerID              dtypes.ServerID `db:"server_id"`
 
 	SucceedEdgeReplicas      int64
 	SucceedCandidateReplicas int64

@@ -43,8 +43,8 @@ func (c *CarfileDB) InsertOrUpdateReplicaInfo(infos []*types.ReplicaInfo) error 
 // UpdateOrCreateCarfileRecord update storage record info
 func (c *CarfileDB) UpdateOrCreateCarfileRecord(info *types.CarfileRecordInfo) error {
 	cmd := fmt.Sprintf(
-		`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration, total_size, total_blocks) 
-				VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica, :expiration, :total_size, :total_blocks) 
+		`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration, total_size, total_blocks, server_id) 
+				VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica, :expiration, :total_size, :total_blocks, :server_id) 
 				ON DUPLICATE KEY UPDATE total_size=VALUES(total_size), total_blocks=VALUES(total_blocks), state=VALUES(state)`, carfileInfoTable)
 
 	_, err := c.DB.NamedExec(cmd, info)
@@ -106,7 +106,7 @@ func (c *CarfileDB) CountCarfiles() (int, error) {
 }
 
 // QueryCarfilesRows ...
-func (c *CarfileDB) QueryCarfilesRows(ctx context.Context, limit, offset int) (rows *sqlx.Rows, err error) {
+func (c *CarfileDB) QueryCarfilesRows(ctx context.Context, limit, offset int, serverID dtypes.ServerID) (rows *sqlx.Rows, err error) {
 	maxCount := 100
 	if limit == 0 {
 		limit = maxCount
@@ -115,8 +115,8 @@ func (c *CarfileDB) QueryCarfilesRows(ctx context.Context, limit, offset int) (r
 		limit = maxCount
 	}
 
-	cmd := fmt.Sprintf("SELECT * FROM %s WHERE state<>'Finalize' order by carfile_hash asc LIMIT ? OFFSET ? ", carfileInfoTable)
-	return c.DB.QueryxContext(ctx, cmd, limit, offset)
+	cmd := fmt.Sprintf("SELECT * FROM %s WHERE state<>'Finalize' AND server_id=? order by carfile_hash asc LIMIT ? OFFSET ? ", carfileInfoTable)
+	return c.DB.QueryxContext(ctx, cmd, serverID, limit, offset)
 }
 
 // CarfileRecordInfos get storage record infos

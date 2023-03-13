@@ -10,6 +10,7 @@ import (
 	"github.com/ipfs/go-datastore/query"
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/api/types"
+	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 )
 
@@ -17,12 +18,14 @@ type Datastore struct {
 	sync.RWMutex
 	db    *persistent.CarfileDB
 	local *datastore.MapDatastore
+	dtypes.ServerID
 }
 
-func NewDatastore(db *persistent.CarfileDB) *Datastore {
+func NewDatastore(db *persistent.CarfileDB, serverID dtypes.ServerID) *Datastore {
 	return &Datastore{
-		db:    db,
-		local: datastore.NewMapDatastore(),
+		db:       db,
+		local:    datastore.NewMapDatastore(),
+		ServerID: serverID,
 	}
 }
 
@@ -56,7 +59,7 @@ func (d *Datastore) Query(ctx context.Context, q query.Query) (query.Results, er
 	var rows *sqlx.Rows
 	var err error
 
-	rows, err = d.db.QueryCarfilesRows(ctx, q.Limit, q.Offset)
+	rows, err = d.db.QueryCarfilesRows(ctx, q.Limit, q.Offset, d.ServerID)
 	if err != nil {
 		return nil, err
 	}
@@ -124,13 +127,17 @@ func (d *Datastore) Put(ctx context.Context, key datastore.Key, value []byte) er
 	if carfile.CarfileHash == "" {
 		return nil
 	}
-	return d.db.UpdateOrCreateCarfileRecord(carfile.toCarfileRecordInfo())
+
+	info := carfile.toCarfileRecordInfo()
+	info.ServerID = d.ServerID
+
+	return d.db.UpdateOrCreateCarfileRecord(info)
 }
 
 func (d *Datastore) Delete(ctx context.Context, key datastore.Key) error {
 	d.Lock()
 	defer d.Unlock()
-	
+
 	if err := d.local.Delete(ctx, key); err != nil {
 		log.Errorf("datastore local delete: %v", err)
 	}

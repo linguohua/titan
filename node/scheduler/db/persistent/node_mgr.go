@@ -238,11 +238,11 @@ func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*types.NodeInfo, int64, e
 func (n *NodeMgrDB) ResetValidators(nodeIDs []string, serverID dtypes.ServerID) error {
 	tx := n.db.MustBegin()
 	// clean old validators
-	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE owner=? `, validatorsTable)
+	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE server_id=? `, validatorsTable)
 	tx.MustExec(dQuery, serverID)
 
 	for _, nodeID := range nodeIDs {
-		iQuery := fmt.Sprintf(`INSERT INTO %s (node_id, owner) VALUES (?, ?)`, validatorsTable)
+		iQuery := fmt.Sprintf(`INSERT INTO %s (node_id, server_id) VALUES (?, ?)`, validatorsTable)
 		tx.MustExec(iQuery, nodeID, serverID)
 	}
 
@@ -256,7 +256,7 @@ func (n *NodeMgrDB) ResetValidators(nodeIDs []string, serverID dtypes.ServerID) 
 
 // GetValidatorsWithList load validators
 func (n *NodeMgrDB) GetValidatorsWithList(serverID dtypes.ServerID) ([]string, error) {
-	sQuery := fmt.Sprintf(`SELECT node_id FROM %s WHERE owner=?`, validatorsTable)
+	sQuery := fmt.Sprintf(`SELECT node_id FROM %s WHERE server_id=?`, validatorsTable)
 
 	var out []string
 	err := n.db.Select(&out, sQuery, serverID)
@@ -280,7 +280,7 @@ func (n *NodeMgrDB) ResetOwnerForValidator(serverID dtypes.ServerID, nodeID stri
 		return nil
 	}
 
-	uQuery := fmt.Sprintf(`UPDATE %s SET owner=? WHERE node_id=?`, validatorsTable)
+	uQuery := fmt.Sprintf(`UPDATE %s SET server_id=? WHERE node_id=?`, validatorsTable)
 	_, err = n.db.Exec(uQuery, serverID, nodeID)
 
 	return err
