@@ -180,13 +180,13 @@ func (n *NodeMgrDB) ValidatedResultInfos(startTime, endTime time.Time, pageNumbe
 }
 
 func (n *NodeMgrDB) SetEdgeUpdateInfo(info *api.EdgeUpdateInfo) error {
-	sqlString := fmt.Sprintf(`INSERT INTO %s (node_type, app_name, version, hash, download_url) VALUES (:node_type, :app_name, :version, :hash, :download_url) ON DUPLICATE KEY UPDATE app_name=:app_name, version=:version, hash=:hash, download_url=:download_url`, nodeUpdateInfo)
+	sqlString := fmt.Sprintf(`INSERT INTO %s (node_type, app_name, version, hash, download_url) VALUES (:node_type, :app_name, :version, :hash, :download_url) ON DUPLICATE KEY UPDATE app_name=:app_name, version=:version, hash=:hash, download_url=:download_url`, edgeUpdateInfo)
 	_, err := n.db.NamedExec(sqlString, info)
 	return err
 }
 
 func (n *NodeMgrDB) EdgeUpdateInfos() (map[int]*api.EdgeUpdateInfo, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s`, nodeUpdateInfo)
+	query := fmt.Sprintf(`SELECT * FROM %s`, edgeUpdateInfo)
 
 	var out []*api.EdgeUpdateInfo
 	if err := n.db.Select(&out, query); err != nil {
@@ -201,7 +201,7 @@ func (n *NodeMgrDB) EdgeUpdateInfos() (map[int]*api.EdgeUpdateInfo, error) {
 }
 
 func (n *NodeMgrDB) DeleteEdgeUpdateInfo(nodeType int) error {
-	deleteString := fmt.Sprintf(`DELETE FROM %s WHERE node_type=?`, nodeUpdateInfo)
+	deleteString := fmt.Sprintf(`DELETE FROM %s WHERE node_type=?`, edgeUpdateInfo)
 	_, err := n.db.Exec(deleteString, nodeType)
 	return err
 }

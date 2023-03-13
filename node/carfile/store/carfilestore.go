@@ -82,7 +82,7 @@ func (cs *CarfileStore) NewCarfileWriter(root cid.Cid) (*blockstore.ReadWrite, e
 	return blockstore.OpenReadWrite(path, []cid.Cid{root})
 }
 
-func (cs *CarfileStore) HasCarfile(root cid.Cid) (bool, error) {
+func (cs *CarfileStore) HashCarfile(root cid.Cid) (bool, error) {
 	name := newCarfileName(root)
 	path := filepath.Join(cs.carsDir(), name)
 
@@ -190,7 +190,7 @@ func (cs *CarfileStore) Block(c cid.Cid) (blocks.Block, error) {
 		return nil, fmt.Errorf("could not find a valid shard for block %s", c.String())
 	}
 
-	ch := make(chan dagstore.ShardResult, 0)
+	ch := make(chan dagstore.ShardResult)
 	err = cs.dagst.AcquireShard(context.Background(), key, ch, dagstore.AcquireOpts{})
 	if err != nil {
 		return nil, err
@@ -303,17 +303,22 @@ func (cs *CarfileStore) SaveIncompleteCarfileCache(carfileHash string, carfileCa
 	return cs.incompleteCarfileCache.save(carfileHash, carfileCacheData)
 }
 
-func (cs *CarfileStore) DeleteIncompleteCarfileCache(carfileHash string) error {
-	return cs.incompleteCarfileCache.delete(carfileHash)
+func (cs *CarfileStore) DeleteIncompleteCarfileCache(c cid.Cid) error {
+	return cs.incompleteCarfileCache.delete(c.Hash().String())
 }
 
 // return datastore.ErrNotFound if car not exist
-func (cs *CarfileStore) IncompleteCarfileCacheData(carfileHash string) ([]byte, error) {
-	return cs.incompleteCarfileCache.data(carfileHash)
+func (cs *CarfileStore) IncompleteCarfileCacheData(c cid.Cid) ([]byte, error) {
+	return cs.incompleteCarfileCache.data(c.Hash().String())
 }
 
 func (cs *CarfileStore) IncompleteCarfileHashList() ([]string, error) {
 	return cs.incompleteCarfileCache.carfileHashList()
+}
+
+// incomplete carfileCache
+func (cs *CarfileStore) HasIncompleteCarfile(c cid.Cid) (bool, error) {
+	return cs.incompleteCarfileCache.has(c.Hash().String())
 }
 
 // wait list file

@@ -166,6 +166,18 @@ func (cfCache *carfileCache) downloadBlocks(cids []string) (*downloadResult, err
 	return ret, nil
 }
 
+func (cfCache *carfileCache) isDownloadComplete() bool {
+	if cfCache.totalSize == 0 {
+		return false
+	}
+
+	if cfCache.doneSize != cfCache.totalSize {
+		return false
+	}
+
+	return true
+}
+
 func (cfCache *carfileCache) Root() cid.Cid {
 	return cfCache.root
 }

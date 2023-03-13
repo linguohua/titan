@@ -132,7 +132,7 @@ func (m *Manager) doDownloadCar() {
 	}
 
 	m.cachingCar = nil
-	m.onDownloadCarComplete(carfileCache)
+	m.onDownloadCarFinish(carfileCache)
 }
 
 func (m *Manager) headFromWaitList() *carWaiter {
@@ -194,19 +194,19 @@ func (m *Manager) saveIncompleteCarfileCache(cf *carfileCache) error {
 	return m.carfileStore.SaveIncompleteCarfileCache(cf.root.Hash().String(), buf)
 }
 
-func (m *Manager) onDownloadCarComplete(cf *carfileCache) {
-	log.Debugf("onDownloadCarfileComplete, carfile %s", cf.root.Hash().String())
+func (m *Manager) onDownloadCarFinish(cf *carfileCache) {
+	log.Debugf("onDownloadCarFinish, carfile %s", cf.root.Hash().String())
 	m.carfileStore.RegisterShared(cf.root)
 
-	if cf.doneSize != cf.totalSize {
-		m.saveIncompleteCarfileCache(cf)
+	if cf.isDownloadComplete() {
+		m.carfileStore.DeleteIncompleteCarfileCache(cf.root)
 	} else {
-		m.carfileStore.DeleteIncompleteCarfileCache(cf.root.Hash().String())
+		m.saveIncompleteCarfileCache(cf)
 	}
 
 	err := m.CachedResult(cf)
 	if err != nil {
-		log.Errorf("onDownloadCarfileComplete, downloadResult error:%s, carfileCID:%s", err, cf.root.Hash().String())
+		log.Errorf("onDownloadCarFinish, downloadResult error:%s, carfileCID:%s", err, cf.root.Hash().String())
 	}
 }
 
@@ -250,7 +250,7 @@ func (m *Manager) CachingCar() *carfileCache {
 }
 
 func (m *Manager) restoreCarfileCacheOrNew(opts *options) (*carfileCache, error) {
-	data, err := m.carfileStore.IncompleteCarfileCacheData(opts.root.Hash().String())
+	data, err := m.carfileStore.IncompleteCarfileCacheData(opts.root)
 	if err != nil && err != datastore.ErrNotFound {
 		log.Errorf("CacheCarfile load incomplete carfile error %s", err.Error())
 		return nil, err
@@ -272,7 +272,7 @@ func (m *Manager) CachedResult(cachingCar *carfileCache) error {
 	}
 
 	var status types.CacheStatus
-	if cachingCar.doneSize == cachingCar.totalSize {
+	if cachingCar.totalSize != 0 && cachingCar.totalSize == cachingCar.doneSize {
 		status = types.CacheStatusSucceeded
 	} else {
 		if m.cachingCar == cachingCar {

@@ -60,7 +60,7 @@ func TestWriteBlock(t *testing.T) {
 		return
 	}
 
-	exist, err := cs.HasCarfile(bk.Cid())
+	exist, err := cs.HashCarfile(bk.Cid())
 	if err != nil {
 		t.Errorf("check carfile exist error:%s", err.Error())
 		return

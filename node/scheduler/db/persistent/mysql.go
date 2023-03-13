@@ -17,7 +17,7 @@ const (
 	carfileInfoTable    = "carfiles"
 	replicaInfoTable    = "replicas"
 	blockDownloadInfo   = "block_download_info"
-	nodeUpdateInfo      = "node_update_info"
+	edgeUpdateInfo      = "edge_update_info"
 	waitingCarfileTable = "carfile_waiting"
 	nodeInfoTable       = "node_info"
 	validatorsTable     = "validators"
