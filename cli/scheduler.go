@@ -83,7 +83,7 @@ var (
 	pageFlag = &cli.IntFlag{
 		Name:  "page",
 		Usage: "page",
-		Value: 0,
+		Value: 1,
 	}
 
 	expirationDateFlag = &cli.StringFlag{

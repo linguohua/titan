@@ -47,8 +47,8 @@ type CarfileRecordInfo struct {
 	NeedCandidateReplicas int64           `db:"candidate_replica"`
 	ServerID              dtypes.ServerID `db:"server_id"`
 
-	SucceedEdgeReplicas      int64
-	SucceedCandidateReplicas int64
+	EdgeReplicaSuccesses      int64
+	CandidateReplicaSuccesses int64
 
 	ReplicaInfos []*ReplicaInfo
 	EdgeReplica  int64

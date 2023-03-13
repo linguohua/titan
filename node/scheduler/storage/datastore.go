@@ -76,13 +76,13 @@ func (d *Datastore) Query(ctx context.Context, q query.Query) (query.Results, er
 			continue
 		}
 
-		edgeReplicas, candidateReplicas, err := d.db.SucceedCountByCarfile(in.CarfileHash)
+		edgeReplicas, candidateReplicas, err := d.db.ReplicasSucceedCountByCarfile(in.CarfileHash)
 		if err != nil {
 			continue
 		}
 
-		in.SucceedEdgeReplicas = edgeReplicas
-		in.SucceedCandidateReplicas = candidateReplicas
+		in.EdgeReplicaSuccesses = edgeReplicas
+		in.CandidateReplicaSuccesses = candidateReplicas
 
 		carfile := carfileInfoFrom(in)
 		valueBuf := new(bytes.Buffer)
