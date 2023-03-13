@@ -54,6 +54,7 @@ var planners = map[CarfileState]func(events []statemachine.Event, state *Carfile
 	CacheToEdges: planOne(
 		on(CacheRequestSent{}, EdgesCaching),
 		on(CacheFailed{}, CacheEdgesFailed),
+		on(CacheSucceed{}, Finalize),
 	),
 	EdgesCaching: planOne(
 		on(CacheFailed{}, CacheEdgesFailed),
@@ -68,6 +69,9 @@ var planners = map[CarfileState]func(events []statemachine.Event, state *Carfile
 	),
 	CacheEdgesFailed: planOne(
 		on(CarfileRecache{}, CacheToEdges),
+	),
+	Finalize: planOne(
+		on(CarfileRecache{}, CacheToCandidates),
 	),
 }
 

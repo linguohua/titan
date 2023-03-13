@@ -138,6 +138,10 @@ func (m *Manager) handleCacheToEdges(ctx statemachine.Context, carfile CarfileIn
 	log.Debugf("handle cache to edges , %s", carfile.CarfileCID)
 
 	needCount := carfile.EdgeReplicas - carfile.SucceedEdgeReplicas
+	if needCount < 1 {
+		return ctx.Send(CacheSucceed{})
+	}
+
 	cNodes, err := m.nodeManager.CarfileDB.CandidatesByCarfile(carfile.CarfileHash.String())
 	if err != nil {
 		return ctx.Send(CacheFailed{error: err})

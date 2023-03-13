@@ -89,6 +89,7 @@ CREATE TABLE `carfiles` (
     `expiration` datetime NOT NULL,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
+    `server_id` varchar(128) NOT NULL,
 	PRIMARY KEY (`carfile_hash`)
 ) ENGINE=InnoDB COMMENT='carfile infos';
 
@@ -121,7 +122,7 @@ CREATE TABLE `carfile_waiting` (
 
 CREATE TABLE `validators` (
     `node_id` varchar(128) NOT NULL,
-    `owner` varchar(128) NOT NULL,
+    `server_id` varchar(128) NOT NULL,
     PRIMARY KEY (`node_id`)
 ) ENGINE=InnoDB COMMENT='validators table';
 
