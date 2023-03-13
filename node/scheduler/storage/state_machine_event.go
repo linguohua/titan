@@ -88,8 +88,8 @@ func (evt CacheResult) apply(state *CarfileInfo) {
 type CacheRequestSent struct{}
 
 func (evt CacheRequestSent) apply(state *CarfileInfo) {
-	// reset retry count
-	state.RetryCount = 0
+	state.FailedCandidateReplicas = 0
+	state.FailedEdgeReplicas = 0
 }
 
 // Normal path
@@ -123,6 +123,7 @@ func (evt CarfileRecache) apply(state *CarfileInfo) {}
 type CacheSucceed struct{}
 
 func (evt CacheSucceed) apply(state *CarfileInfo) {
+	state.RetryCount = 0
 }
 
 // CacheFailed nodes cache carfile failed

@@ -199,7 +199,7 @@ func (m *Manager) RemoveCache(carfileCid, nodeID string) error {
 
 // CacheCarfileResult block cache result
 func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (err error) {
-	log.Infof("carfileCacheResult :%s , %d , %s", nodeID, info.Status, info.CarfileHash)
+	log.Debugf("carfileCacheResult :%s , %d , %s", nodeID, info.Status, info.CarfileHash)
 
 	m.lock.Lock()
 	defer m.lock.Unlock()
