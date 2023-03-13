@@ -23,8 +23,15 @@ func NewCarfileDB(db *sqlx.DB) *CarfileDB {
 
 // UpdateReplicaInfo update replica info
 func (c *CarfileDB) UpdateReplicaInfo(cInfo *types.ReplicaInfo) error {
-	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=:status WHERE id=:id`, replicaInfoTable)
+	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=:status WHERE id=:id `, replicaInfoTable)
 	_, err := c.DB.NamedExec(query, cInfo)
+	return err
+}
+
+// SetReplicasFailed Set the status of replicas to failed
+func (c *CarfileDB) SetReplicasFailed(hash string) error {
+	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=? WHERE carfile_hash=? AND status=?`, replicaInfoTable)
+	_, err := c.DB.Exec(query, types.CacheStatusFailed, hash, types.CacheStatusDownloading)
 	return err
 }
 

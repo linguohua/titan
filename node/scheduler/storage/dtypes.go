@@ -36,10 +36,10 @@ type CarfileInfo struct {
 	CreatedAt         int64
 	Expiration        int64
 
-	EdgeReplicaSuccesses      int64
-	EdgeReplicaFailures       int64
-	CandidateReplicaSuccesses int64
-	CandidateReplicaFailures  int64
+	EdgeReplicaSucceeds      []string
+	EdgeReplicaFailures      []string
+	CandidateReplicaSucceeds []string
+	CandidateReplicaFailures []string
 
 	RetryCount int64
 }
@@ -58,16 +58,24 @@ func (state *CarfileInfo) toCarfileRecordInfo() *types.CarfileRecordInfo {
 }
 
 func carfileInfoFrom(info *types.CarfileRecordInfo) *CarfileInfo {
-	return &CarfileInfo{
-		CarfileCID:                info.CarfileCID,
-		State:                     CarfileState(info.State),
-		CarfileHash:               CarfileHash(info.CarfileHash),
-		EdgeReplicas:              info.NeedEdgeReplica,
-		Size:                      info.TotalSize,
-		Blocks:                    info.TotalBlocks,
-		CandidateReplicas:         info.NeedCandidateReplicas,
-		Expiration:                info.Expiration.Unix(),
-		EdgeReplicaSuccesses:      info.EdgeReplicaSuccesses,
-		CandidateReplicaSuccesses: info.CandidateReplicaSuccesses,
+	cInfo := &CarfileInfo{
+		CarfileCID:        info.CarfileCID,
+		State:             CarfileState(info.State),
+		CarfileHash:       CarfileHash(info.CarfileHash),
+		EdgeReplicas:      info.NeedEdgeReplica,
+		Size:              info.TotalSize,
+		Blocks:            info.TotalBlocks,
+		CandidateReplicas: info.NeedCandidateReplicas,
+		Expiration:        info.Expiration.Unix(),
 	}
+
+	for _, r := range info.ReplicaInfos {
+		if r.IsCandidate {
+			cInfo.CandidateReplicaSucceeds = append(cInfo.CandidateReplicaSucceeds, r.NodeID)
+		} else {
+			cInfo.EdgeReplicaSucceeds = append(cInfo.EdgeReplicaSucceeds, r.NodeID)
+		}
+	}
+
+	return cInfo
 }

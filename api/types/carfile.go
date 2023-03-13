@@ -47,9 +47,6 @@ type CarfileRecordInfo struct {
 	NeedCandidateReplicas int64           `db:"candidate_replica"`
 	ServerID              dtypes.ServerID `db:"server_id"`
 
-	EdgeReplicaSuccesses      int64
-	CandidateReplicaSuccesses int64
-
 	ReplicaInfos []*ReplicaInfo
 	EdgeReplica  int64
 }
@@ -96,7 +93,7 @@ func (c CacheStatus) String() string {
 	case CacheStatusCreate:
 		return "create"
 	case CacheStatusDownloading:
-		return "download"
+		return "downloading"
 	case CacheStatusSucceeded:
 		return "succeeded"
 	default:

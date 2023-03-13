@@ -100,11 +100,6 @@ func (m *Manager) checkExpirationTicker() {
 	}
 }
 
-// GetCarfileRecord get a carfileRecord from map or db
-func (m *Manager) GetCarfileRecord(hash string) (*CarfileRecord, error) {
-	return m.loadCarfileRecord(hash, m)
-}
-
 // CacheCarfile create a new carfile storing task
 func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 	log.Infof("carfile event %s , add carfile,replica:%d,expiration:%s", info.CarfileCid, info.Replicas, info.Expiration.String())
@@ -157,31 +152,6 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 	for _, cInfo := range cInfos {
 		go m.sendCacheRequest(cInfo.NodeID, carfileCid)
 	}
-
-	return nil
-}
-
-// RemoveCache remove a cache
-func (m *Manager) RemoveCache(carfileCid, nodeID string) error {
-	hash, err := cidutil.CIDString2HashString(carfileCid)
-	if err != nil {
-		return err
-	}
-
-	cacheInfo, err := m.nodeManager.CarfileDB.LoadReplicaInfo(replicaID(hash, nodeID))
-	if err != nil {
-		return xerrors.Errorf("GetReplicaInfo: %s,err:%s", carfileCid, err.Error())
-	}
-
-	// delete cache and update carfile info
-	err = m.nodeManager.CarfileDB.RemoveCarfileReplica(cacheInfo.NodeID, cacheInfo.CarfileHash)
-	if err != nil {
-		return err
-	}
-
-	log.Infof("carfile event %s , remove cache task:%s", carfileCid, nodeID)
-
-	go m.sendCacheRequest(cacheInfo.NodeID, carfileCid)
 
 	return nil
 }
@@ -252,13 +222,20 @@ func (m *Manager) startTicker(carfileHash string) chan CacheEvent {
 
 			m.lock.Lock()
 			defer m.lock.Unlock()
+
 			delete(m.carfileTickers, carfileHash)
 		}()
 
 		for {
 			select {
 			case <-ticker.C:
-				err := m.carfiles.Send(CarfileHash(carfileHash), CacheFailed{error: xerrors.New("waiting cache response timeout")})
+				err := m.nodeManager.CarfileDB.SetReplicasFailed(carfileHash)
+				if err != nil {
+					log.Errorf("carfileHash %s SetReplicasFailed err:%s", carfileHash, err.Error())
+					break
+				}
+
+				err = m.carfiles.Send(CarfileHash(carfileHash), CacheFailed{error: xerrors.New("waiting cache response timeout")})
 				if err != nil {
 					log.Errorf("carfileHash %s send time out err:%s", carfileHash, err.Error())
 				}
@@ -395,49 +372,17 @@ func (m *Manager) GetCarfileRecordInfo(cid string) (*types.CarfileRecordInfo, er
 		return nil, err
 	}
 
-	cr, err := m.GetCarfileRecord(hash)
+	dInfo, err := m.nodeManager.CarfileDB.CarfileInfo(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	dInfo := carfileRecord2Info(cr)
-
-	return dInfo, nil
-}
-
-func carfileRecord2Info(cr *CarfileRecord) *types.CarfileRecordInfo {
-	info := &types.CarfileRecordInfo{}
-	if cr != nil {
-		info.CarfileCID = cr.carfileCid
-		info.CarfileHash = cr.carfileHash
-		info.TotalSize = cr.totalSize
-		info.NeedEdgeReplica = cr.replica
-		info.EdgeReplica = cr.edgeReplica
-		info.TotalBlocks = cr.totalBlocks
-		info.Expiration = cr.expirationTime
-
-		raInfos := make([]*types.ReplicaInfo, 0)
-
-		cr.Replicas.Range(func(key, value interface{}) bool {
-			ra := value.(*Replica)
-
-			raInfo := &types.ReplicaInfo{
-				Status:      ra.status,
-				DoneSize:    ra.doneSize,
-				DoneBlocks:  ra.doneBlocks,
-				IsCandidate: ra.isCandidate,
-				NodeID:      ra.nodeID,
-				EndTime:     ra.endTime,
-			}
-
-			raInfos = append(raInfos, raInfo)
-			return true
-		})
-
-		info.ReplicaInfos = raInfos
+	dInfo.ReplicaInfos, err = m.nodeManager.CarfileDB.ReplicaInfosByCarfile(hash, false)
+	if err != nil {
+		log.Errorf("loadData hash:%s, GetCarfileReplicaInfosByHash err:%s", hash, err.Error())
 	}
 
-	return info
+	return dInfo, err
 }
 
 func (m *Manager) CarfileStatus(ctx context.Context, hash types.CarfileHash) (types.CarfileRecordInfo, error) {

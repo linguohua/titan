@@ -20,7 +20,6 @@ var carfileCmd = &cli.Command{
 		showCarfileInfoCmd,
 		carfilesStatusCmd,
 		removeCarfileCmd,
-		removeReplicaCmd,
 		resetExpirationCmd,
 		resetReplicaCacheCountCmd,
 		contiuneUndoneCarfileCmd,
@@ -113,33 +112,6 @@ var resetExpirationCmd = &cli.Command{
 		}
 
 		return nil
-	},
-}
-
-var removeReplicaCmd = &cli.Command{
-	Name:  "remove-replica",
-	Usage: "Remove the storage replica",
-	Flags: []cli.Flag{
-		nodeIDFlag,
-		cidFlag,
-	},
-	Action: func(cctx *cli.Context) error {
-		nodeID := cctx.String("node-id")
-		if nodeID == "" {
-			return xerrors.New("node-id is nil")
-		}
-
-		cid := cctx.String("cid")
-
-		ctx := ReqContext(cctx)
-
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		return schedulerAPI.RemoveReplica(ctx, cid, nodeID)
 	},
 }
 

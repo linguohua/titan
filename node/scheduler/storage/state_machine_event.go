@@ -63,33 +63,54 @@ type CacheResult struct {
 }
 
 func (evt CacheResult) apply(state *CarfileInfo) {
-	if evt.ResultInfo == nil {
+	rInfo := evt.ResultInfo
+	if rInfo == nil {
 		return
 	}
 
-	if evt.ResultInfo.Status == int64(types.CacheStatusSucceeded) {
-		if evt.ResultInfo.IsCandidate {
-			state.CandidateReplicaSuccesses++
+	nodeID := rInfo.NodeID
+	if rInfo.Status == int64(types.CacheStatusSucceeded) {
+		// TODO Check for duplicates
+		if rInfo.IsCandidate {
+			if !exist(state.CandidateReplicaSucceeds, nodeID) {
+				state.CandidateReplicaSucceeds = append(state.CandidateReplicaSucceeds, nodeID)
+			}
 		} else {
-			state.EdgeReplicaSuccesses++
+			if !exist(state.EdgeReplicaSucceeds, nodeID) {
+				state.EdgeReplicaSucceeds = append(state.EdgeReplicaSucceeds, nodeID)
+			}
 		}
-		state.Size = evt.ResultInfo.CarfileSize
-		state.Blocks = evt.ResultInfo.CarfileBlocksCount
+		state.Size = rInfo.CarfileSize
+		state.Blocks = rInfo.CarfileBlocksCount
 	} else {
-		if evt.ResultInfo.IsCandidate {
-			state.CandidateReplicaFailures++
+		if rInfo.IsCandidate {
+			if !exist(state.CandidateReplicaFailures, nodeID) {
+				state.CandidateReplicaFailures = append(state.CandidateReplicaFailures, nodeID)
+			}
 		} else {
-			state.EdgeReplicaFailures++
+			if !exist(state.EdgeReplicaFailures, nodeID) {
+				state.EdgeReplicaFailures = append(state.EdgeReplicaFailures, nodeID)
+			}
 		}
 	}
+}
+
+func exist(list []string, c string) bool {
+	for _, str := range list {
+		if str == c {
+			return true
+		}
+	}
+
+	return false
 }
 
 // CacheRequestSent request nodes cache carfile
 type CacheRequestSent struct{}
 
 func (evt CacheRequestSent) apply(state *CarfileInfo) {
-	state.CandidateReplicaFailures = 0
-	state.EdgeReplicaFailures = 0
+	state.CandidateReplicaFailures = make([]string, 0)
+	state.EdgeReplicaFailures = make([]string, 0)
 }
 
 // Normal path
