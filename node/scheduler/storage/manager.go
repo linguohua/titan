@@ -104,34 +104,29 @@ func (m *Manager) checkExpirationTicker() {
 func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 	log.Infof("carfile event %s , add carfile,replica:%d,expiration:%s", info.CarfileCid, info.Replicas, info.Expiration.String())
 
-	// info.ServerID = string(m.nodeManager.ServerID)
-	// err := m.nodeManager.CarfileDB.PushCarfileToWaitList(info)
-	// if err != nil {
-	// 	log.Errorf("push carfile to wait list: %v", err)
-	// }
 	cInfo, err := m.nodeManager.CarfileDB.CarfileInfo(info.CarfileHash)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
 
-	if cInfo != nil {
-		// TODO need retry
-		return xerrors.Errorf("carfile %s exists", info.CarfileCid)
+	if cInfo == nil {
+		// create carfile task
+		return m.carfiles.Send(CarfileHash(info.CarfileHash), CarfileStartCaches{
+			ID:          info.CarfileCid,
+			CarfileHash: CarfileHash(info.CarfileHash),
+			Replicas:    info.Replicas,
+			ServerID:    info.ServerID,
+			CreatedAt:   time.Now().Unix(),
+			Expiration:  info.Expiration.Unix(),
+		})
 	}
 
-	// if cInfo.State == Finalize.String() {
-	// 	log.Infof("carfile %s is finalize ", info.CarfileCid)
-	// 	return nil
-	// }
+	if cInfo.State == Finalize.String() {
+		return xerrors.New("carfile is finalize ")
+	}
 
-	return m.carfiles.Send(CarfileHash(info.CarfileHash), CarfileStartCaches{
-		ID:          info.CarfileCid,
-		CarfileHash: CarfileHash(info.CarfileHash),
-		Replicas:    info.Replicas,
-		ServerID:    info.ServerID,
-		CreatedAt:   time.Now().Unix(),
-		Expiration:  info.Expiration.Unix(),
-	})
+	// retry
+	return m.carfiles.Send(CarfileHash(info.CarfileHash), CarfileRestart{})
 }
 
 // RemoveCarfileRecord remove a storage
@@ -141,11 +136,16 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 		return xerrors.Errorf("GetCarfileReplicaInfosByHash: %s,err:%s", carfileCid, err.Error())
 	}
 
-	// TODO remove carfile
-	// err = m.carfiles.Send(CarfileHash(hash), CarfileRemove{})
-	// if err != nil {
-	// 	return xerrors.Errorf("RemoveCarfileRecord err:%s ", err.Error())
-	// }
+	// remove carfile
+	err = m.carfiles.Send(CarfileHash(hash), CarfileRemove{})
+	if err != nil {
+		return xerrors.Errorf("RemoveCarfileRecord send to statemachine err:%s ", err.Error())
+	}
+
+	err = m.nodeManager.CarfileDB.RemoveCarfileRecord(hash)
+	if err != nil {
+		return xerrors.Errorf("RemoveCarfileRecord db err:%s ", err.Error())
+	}
 
 	log.Infof("storage event %s , remove storage record", carfileCid)
 
