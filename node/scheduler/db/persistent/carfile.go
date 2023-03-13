@@ -120,12 +120,15 @@ func (c *CarfileDB) QueryCarfilesRows(ctx context.Context, limit, offset int, se
 }
 
 // CarfileRecordInfos get storage record infos
-func (c *CarfileDB) CarfileRecordInfos(page int) (info *types.ListCarfileRecordRsp, err error) {
+func (c *CarfileDB) CarfileRecordInfos(page int, all bool) (info *types.ListCarfileRecordRsp, err error) {
 	num := 20
 
 	info = &types.ListCarfileRecordRsp{}
 
-	cmd := fmt.Sprintf("SELECT count(carfile_hash) FROM %s ;", carfileInfoTable)
+	cmd := fmt.Sprintf("SELECT count(carfile_hash) FROM %s WHERE state<>'Finalize';", carfileInfoTable)
+	if all {
+		cmd = fmt.Sprintf("SELECT count(carfile_hash) FROM %s ;", carfileInfoTable)
+	}
 	err = c.DB.Get(&info.Cids, cmd)
 	if err != nil {
 		return
@@ -145,7 +148,10 @@ func (c *CarfileDB) CarfileRecordInfos(page int) (info *types.ListCarfileRecordR
 	}
 	info.Page = page
 
-	cmd = fmt.Sprintf("SELECT * FROM %s order by carfile_hash asc LIMIT %d,%d", carfileInfoTable, (num * (page - 1)), num)
+	cmd = fmt.Sprintf("SELECT * FROM %s  WHERE state<>'Finalize' order by carfile_hash asc LIMIT %d,%d", carfileInfoTable, (num * (page - 1)), num)
+	if all {
+		cmd = fmt.Sprintf("SELECT * FROM %s order by carfile_hash asc LIMIT %d,%d", carfileInfoTable, (num * (page - 1)), num)
+	}
 	if err = c.DB.Select(&info.CarfileRecords, cmd); err != nil {
 		return
 	}

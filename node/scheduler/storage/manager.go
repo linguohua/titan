@@ -46,11 +46,10 @@ const (
 
 // Manager storage
 type Manager struct {
-	nodeManager               *node.Manager
-	DownloadingCarfileRecords sync.Map // caching storage map
-	latelyExpirationTime      time.Time
-	writeToken                []byte
-	downloadingTaskCount      int
+	nodeManager          *node.Manager
+	latelyExpirationTime time.Time
+	writeToken           []byte
+	downloadingTaskCount int
 
 	startupWait sync.WaitGroup
 	carfiles    *statemachine.StateGroup
@@ -103,11 +102,6 @@ func (m *Manager) checkExpirationTicker() {
 
 // GetCarfileRecord get a carfileRecord from map or db
 func (m *Manager) GetCarfileRecord(hash string) (*CarfileRecord, error) {
-	dI, exist := m.DownloadingCarfileRecords.Load(hash)
-	if exist && dI != nil {
-		return dI.(*CarfileRecord), nil
-	}
-
 	return m.loadCarfileRecord(hash, m)
 }
 
@@ -172,11 +166,6 @@ func (m *Manager) RemoveCache(carfileCid, nodeID string) error {
 	hash, err := cidutil.CIDString2HashString(carfileCid)
 	if err != nil {
 		return err
-	}
-
-	dI, exist := m.DownloadingCarfileRecords.Load(hash)
-	if exist && dI != nil {
-		return xerrors.Errorf("task %s is downloading, please wait", carfileCid)
 	}
 
 	cacheInfo, err := m.nodeManager.CarfileDB.LoadReplicaInfo(replicaID(hash, nodeID))
@@ -307,12 +296,6 @@ func (m *Manager) ResetCarfileExpiration(cid string, t time.Time) error {
 
 	log.Infof("storage event %s , reset storage expiration time:%s", cid, t.String())
 
-	dI, exist := m.DownloadingCarfileRecords.Load(hash)
-	if exist && dI != nil {
-		carfileRecord := dI.(*CarfileRecord)
-		carfileRecord.expirationTime = t
-	}
-
 	err = m.nodeManager.CarfileDB.ResetCarfileExpiration(hash, t)
 	if err != nil {
 		return err
@@ -420,25 +403,6 @@ func (m *Manager) GetCarfileRecordInfo(cid string) (*types.CarfileRecordInfo, er
 	dInfo := carfileRecord2Info(cr)
 
 	return dInfo, nil
-}
-
-// GetDownloadingCarfileInfos get all downloading carfiles
-func (m *Manager) GetDownloadingCarfileInfos() []*types.CarfileRecordInfo {
-	infos := make([]*types.CarfileRecordInfo, 0)
-
-	m.DownloadingCarfileRecords.Range(func(key, value interface{}) bool {
-		if value != nil {
-			data := value.(*CarfileRecord)
-			if data != nil {
-				cInfo := carfileRecord2Info(data)
-				infos = append(infos, cInfo)
-			}
-		}
-
-		return true
-	})
-
-	return infos
 }
 
 func carfileRecord2Info(cr *CarfileRecord) *types.CarfileRecordInfo {

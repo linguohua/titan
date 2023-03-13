@@ -220,7 +220,7 @@ type SchedulerStruct struct {
 
 		CarfileRecord func(p0 context.Context, p1 string) (*types.CarfileRecordInfo, error) `perm:"read"`
 
-		CarfileRecords func(p0 context.Context, p1 int) (*types.ListCarfileRecordRsp, error) `perm:"read"`
+		CarfileRecords func(p0 context.Context, p1 int, p2 bool) (*types.ListCarfileRecordRsp, error) `perm:"read"`
 
 		CarfileReplicaList func(p0 context.Context, p1 types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error) `perm:"read"`
 
@@ -231,8 +231,6 @@ type SchedulerStruct struct {
 		DeleteNodeLogFile func(p0 context.Context, p1 string) error `perm:"admin"`
 
 		DownloadRecordList func(p0 context.Context, p1 types.ListBlockDownloadInfoReq) (*types.ListDownloadRecordRsp, error) `perm:"read"`
-
-		DownloadingCarfileRecords func(p0 context.Context) ([]*types.CarfileRecordInfo, error) `perm:"read"`
 
 		EdgeDownloadInfos func(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) `perm:"read"`
 
@@ -839,14 +837,14 @@ func (s *SchedulerStub) CarfileRecord(p0 context.Context, p1 string) (*types.Car
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) CarfileRecords(p0 context.Context, p1 int) (*types.ListCarfileRecordRsp, error) {
+func (s *SchedulerStruct) CarfileRecords(p0 context.Context, p1 int, p2 bool) (*types.ListCarfileRecordRsp, error) {
 	if s.Internal.CarfileRecords == nil {
 		return nil, ErrNotSupported
 	}
-	return s.Internal.CarfileRecords(p0, p1)
+	return s.Internal.CarfileRecords(p0, p1, p2)
 }
 
-func (s *SchedulerStub) CarfileRecords(p0 context.Context, p1 int) (*types.ListCarfileRecordRsp, error) {
+func (s *SchedulerStub) CarfileRecords(p0 context.Context, p1 int, p2 bool) (*types.ListCarfileRecordRsp, error) {
 	return nil, ErrNotSupported
 }
 
@@ -903,17 +901,6 @@ func (s *SchedulerStruct) DownloadRecordList(p0 context.Context, p1 types.ListBl
 
 func (s *SchedulerStub) DownloadRecordList(p0 context.Context, p1 types.ListBlockDownloadInfoReq) (*types.ListDownloadRecordRsp, error) {
 	return nil, ErrNotSupported
-}
-
-func (s *SchedulerStruct) DownloadingCarfileRecords(p0 context.Context) ([]*types.CarfileRecordInfo, error) {
-	if s.Internal.DownloadingCarfileRecords == nil {
-		return *new([]*types.CarfileRecordInfo), ErrNotSupported
-	}
-	return s.Internal.DownloadingCarfileRecords(p0)
-}
-
-func (s *SchedulerStub) DownloadingCarfileRecords(p0 context.Context) ([]*types.CarfileRecordInfo, error) {
-	return *new([]*types.CarfileRecordInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) EdgeDownloadInfos(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) {

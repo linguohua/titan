@@ -78,11 +78,6 @@ func (s *Scheduler) ResetCarfileExpiration(ctx context.Context, carfileCid strin
 	return s.DataManager.ResetCarfileExpiration(carfileCid, t)
 }
 
-// DownloadingCarfileRecords Show downloading carfiles
-func (s *Scheduler) DownloadingCarfileRecords(ctx context.Context) ([]*types.CarfileRecordInfo, error) {
-	return s.DataManager.GetDownloadingCarfileInfos(), nil
-}
-
 // CarfileRecord Show Data Task
 func (s *Scheduler) CarfileRecord(ctx context.Context, cid string) (*types.CarfileRecordInfo, error) {
 	info, err := s.DataManager.GetCarfileRecordInfo(cid)
@@ -100,8 +95,22 @@ func (s *Scheduler) ResetCandidateReplicaCount(ctx context.Context, count int) e
 }
 
 // CarfileRecords List Datas
-func (s *Scheduler) CarfileRecords(ctx context.Context, page int) (*types.ListCarfileRecordRsp, error) {
-	return s.NodeManager.CarfileDB.CarfileRecordInfos(page)
+func (s *Scheduler) CarfileRecords(ctx context.Context, page int, all bool) (*types.ListCarfileRecordRsp, error) {
+	info, err := s.NodeManager.CarfileDB.CarfileRecordInfos(page, all)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, c := range info.CarfileRecords {
+		rs, err := s.NodeManager.CarfileDB.ReplicaInfosByCarfile(c.CarfileHash, false)
+		if err != nil {
+			continue
+		}
+
+		c.ReplicaInfos = rs
+	}
+
+	return info, nil
 }
 
 // RemoveCarfile remove all caches with storage

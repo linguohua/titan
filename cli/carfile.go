@@ -247,7 +247,11 @@ var listCarfilesCmd = &cli.Command{
 	Usage: "List carfiles",
 	Flags: []cli.Flag{
 		pageFlag,
-		downloadingFlag,
+		&cli.BoolFlag{
+			Name:  "all",
+			Usage: "carfiles in all states",
+			Value: false,
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		ctx := ReqContext(cctx)
@@ -262,44 +266,32 @@ var listCarfilesCmd = &cli.Command{
 			return xerrors.New("page need greater than 1")
 		}
 
-		isDownloading := cctx.Bool("downloading")
-		if isDownloading {
-			infos, err := schedulerAPI.DownloadingCarfileRecords(ctx)
-			if err != nil {
-				return err
-			}
-
-			sort.Slice(infos, func(i, j int) bool {
-				return infos[i].CarfileCID < infos[j].CarfileCID
-			})
-
-			for w := 0; w < len(infos); w++ {
-				info := infos[w]
-
-				fmt.Printf("\nData CID: %s ,Total Size:%f MB ,Total Blocks:%d \n", info.CarfileCID, float64(info.TotalSize)/(1024*1024), info.TotalBlocks)
-
-				sort.Slice(info.ReplicaInfos, func(i, j int) bool {
-					return info.ReplicaInfos[i].NodeID < info.ReplicaInfos[j].NodeID
-				})
-
-				for j := 0; j < len(info.ReplicaInfos); j++ {
-					cache := info.ReplicaInfos[j]
-					fmt.Printf("NodeID: %s , Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
-						cache.NodeID, cache.Status.String(), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
-				}
-			}
-
-			return nil
-		}
-
-		info, err := schedulerAPI.CarfileRecords(ctx, page)
+		all := cctx.Bool("all")
+		info, err := schedulerAPI.CarfileRecords(ctx, page, all)
 		if err != nil {
 			return err
 		}
 
-		for _, carfile := range info.CarfileRecords {
-			fmt.Printf("%s ,EdgeReplica: %d/%d ,Blocks:%d ,Expiration Time:%s \n", carfile.CarfileCID, carfile.EdgeReplica, carfile.NeedEdgeReplica, carfile.TotalBlocks, carfile.Expiration.Format("2006-01-02 15:04:05"))
+		for w := 0; w < len(info.CarfileRecords); w++ {
+			carfile := info.CarfileRecords[w]
+
+			fmt.Printf("\n%s ,State: %s ,Blocks:%d ,Size:%f MB ,Expiration Time:%s \n", carfile.CarfileCID, carfile.State, carfile.TotalBlocks, float64(carfile.TotalSize)/(1024*1024), carfile.Expiration.Format("2006-01-02 15:04:05"))
+			// fmt.Printf("\nData CID: %s ,Total Size:%f MB ,Total Blocks:%d \n", info.CarfileCID, float64(info.TotalSize)/(1024*1024), info.TotalBlocks)
+
+			sort.Slice(carfile.ReplicaInfos, func(i, j int) bool {
+				return carfile.ReplicaInfos[i].NodeID < carfile.ReplicaInfos[j].NodeID
+			})
+
+			for j := 0; j < len(carfile.ReplicaInfos); j++ {
+				cache := carfile.ReplicaInfos[j]
+				fmt.Printf("NodeID: %s , Status:%s ,IsCandidateCache:%v \n",
+					cache.NodeID, cache.Status.String(), cache.IsCandidate)
+			}
 		}
+
+		// for _, carfile := range info.CarfileRecords {
+		// 	fmt.Printf("%s ,EdgeReplica: %d/%d ,Blocks:%d ,Expiration Time:%s \n", carfile.CarfileCID, carfile.EdgeReplica, carfile.NeedEdgeReplica, carfile.TotalBlocks, carfile.Expiration.Format("2006-01-02 15:04:05"))
+		// }
 		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
 
 		return nil
