@@ -324,12 +324,18 @@ var carfilesStatusCmd = &cli.Command{
 		}
 
 		cid := cctx.Args().First()
-		status, err := schedulerAPI.CarfileStatus(ctx, types.CarfileID(cid))
+
+		hash, err := cidutil.CIDString2HashString(cid)
+		if err != nil {
+			return xerrors.Errorf("%s cid to hash err:%v", cid, err)
+		}
+
+		status, err := schedulerAPI.CarfileStatus(ctx, types.CarfileHash(hash))
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("CarfileCID:\t%s\n", status.CarfileCID)
+		fmt.Printf("CarfileCID:\t%s\n", cid)
 		fmt.Printf("Status:\t\t%s\n", status.State)
 		fmt.Printf("CarfileHash:\t%s\n", status.CarfileHash)
 		fmt.Printf("Replicas:\t%d\n", status.NeedEdgeReplica)

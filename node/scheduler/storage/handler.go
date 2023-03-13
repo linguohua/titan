@@ -63,7 +63,7 @@ func (m *Manager) handleCacheSeed(ctx statemachine.Context, carfile CarfileInfo)
 }
 
 func (m *Manager) handleSeedCaching(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Debugf("handle get seed caching, %s", carfile.CarfileCID)
+	log.Debugf("handle seed caching, %s", carfile.CarfileCID)
 
 	if carfile.SucceedCandidateReplicas >= rootCachesCount {
 		return ctx.Send(CacheSucceed{})

@@ -476,7 +476,7 @@ func carfileRecord2Info(cr *CarfileRecord) *types.CarfileRecordInfo {
 	return info
 }
 
-func (m *Manager) CarfileStatus(ctx context.Context, cid types.CarfileID) (types.CarfileRecordInfo, error) {
+func (m *Manager) CarfileStatus(ctx context.Context, cid types.CarfileHash) (types.CarfileRecordInfo, error) {
 	info, err := m.GetCarfileInfo(CarfileHash(cid))
 	if err != nil {
 		return types.CarfileRecordInfo{}, err

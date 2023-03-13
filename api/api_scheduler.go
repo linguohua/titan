@@ -43,16 +43,16 @@ type Scheduler interface {
 	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error) //perm:read
 
 	// carfile
-	CacheCarfiles(ctx context.Context, info *types.CacheCarfileInfo) error                   //perm:admin
-	CarfileStatus(ctx context.Context, cid types.CarfileID) (types.CarfileRecordInfo, error) // perm:read
-	RemoveCarfile(ctx context.Context, carfileID string) error                               //perm:admin
-	RemoveReplica(ctx context.Context, carfileID, nodeID string) error                       //perm:admin
-	CarfileRecord(ctx context.Context, cid string) (*types.CarfileRecordInfo, error)         //perm:read
-	CarfileRecords(ctx context.Context, page int) (*types.ListCarfileRecordRsp, error)       //perm:read
-	DownloadingCarfileRecords(ctx context.Context) ([]*types.CarfileRecordInfo, error)       //perm:read
-	ResetCarfileExpiration(ctx context.Context, carfileCid string, time time.Time) error     //perm:admin
-	ResetCandidateReplicaCount(ctx context.Context, count int) error                         //perm:admin
-	RecacheCarfiles(ctx context.Context, hashs []string) error                               //perm:admin
+	CacheCarfiles(ctx context.Context, info *types.CacheCarfileInfo) error                     //perm:admin
+	CarfileStatus(ctx context.Context, cid types.CarfileHash) (types.CarfileRecordInfo, error) // perm:read
+	RemoveCarfile(ctx context.Context, carfileID string) error                                 //perm:admin
+	RemoveReplica(ctx context.Context, carfileID, nodeID string) error                         //perm:admin
+	CarfileRecord(ctx context.Context, cid string) (*types.CarfileRecordInfo, error)           //perm:read
+	CarfileRecords(ctx context.Context, page int) (*types.ListCarfileRecordRsp, error)         //perm:read
+	DownloadingCarfileRecords(ctx context.Context) ([]*types.CarfileRecordInfo, error)         //perm:read
+	ResetCarfileExpiration(ctx context.Context, carfileCid string, time time.Time) error       //perm:admin
+	ResetCandidateReplicaCount(ctx context.Context, count int) error                           //perm:admin
+	RecacheCarfiles(ctx context.Context, hashs []string) error                                 //perm:admin
 
 	// server
 	StartOnceElection(ctx context.Context) error                          //perm:admin

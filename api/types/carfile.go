@@ -169,16 +169,9 @@ type CachingCarfile struct {
 	DoneSize   int64
 }
 
-// CarfileID is an identifier for a carfile.
-type CarfileID string
+// CarfileHash is an identifier for a carfile.
+type CarfileHash string
 
-func (c CarfileID) String() string {
+func (c CarfileHash) String() string {
 	return string(c)
 }
-
-//type Log struct {
-//	Timestamp uint64
-//	Trace     string
-//	Message   string
-//	Kind      string
-//}
