@@ -1,13 +1,9 @@
 package storage
 
-// CarfileState
 type CarfileState string
-
-var ExistSectorStateList = map[CarfileState]struct{}{}
 
 const (
 	UndefinedCarfileState CarfileState = ""
-	// StartCache            CarfileState = "StartCache"
 	CacheCarfileSeed      CarfileState = "CacheCarfileSeed"
 	CarfileSeedCaching    CarfileState = "CarfileSeedCaching "
 	CacheToCandidates     CarfileState = "CacheToCandidates"
@@ -18,8 +14,7 @@ const (
 	CacheSeedFailed       CarfileState = "CacheSeedFailed"
 	CacheCandidatesFailed CarfileState = "CacheCandidatesFailed"
 	CacheEdgesFailed      CarfileState = "CacheEdgesFailed"
-
-	Remove CarfileState = "Remove"
+	Remove                CarfileState = "Remove"
 )
 
 func (s CarfileState) String() string {
