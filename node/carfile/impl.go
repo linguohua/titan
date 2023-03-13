@@ -67,7 +67,20 @@ func (cfImpl *CarfileImpl) CacheCarfile(ctx context.Context, rootCID string, dss
 		return nil, err
 	}
 
-	has, err := cfImpl.carfileStore.HasCarfile(root)
+	has, err := cfImpl.carfileStore.HasIncompleteCarfile(root)
+	if err != nil {
+		log.Errorf("CacheCarfile, HasCarfile error:%s, carfile hash :%s", err.Error(), root.Hash().String())
+		return nil, err
+	}
+
+	if has {
+		log.Debugf("cache incomplete carfile %s", root.Hash().String())
+
+		cfImpl.cm.AddToWaitList(root, dss)
+		return cfImpl.cacheCarfileResult()
+	}
+
+	has, err = cfImpl.carfileStore.HashCarfile(root)
 	if err != nil {
 		log.Errorf("CacheCarfile, HasCarfile error:%s, carfile hash :%s", err.Error(), root.Hash().String())
 		return nil, err
@@ -105,7 +118,7 @@ func (cfImpl *CarfileImpl) DeleteCarfile(ctx context.Context, carfileCID string)
 		return nil
 	}
 
-	has, err := cfImpl.carfileStore.HasCarfile(c)
+	has, err := cfImpl.carfileStore.HashCarfile(c)
 	if err != nil {
 		log.Errorf("CacheCarfile, HasCarfile error:%s, carfile hash :%s", err.Error(), c.Hash().String())
 		return err

@@ -36,19 +36,18 @@ func (incompCarfileCache *incompleteCarfileCache) data(carfileHash string) ([]by
 	return data, err
 }
 
-func (incompCarfileCache *incompleteCarfileCache) carfileCount() (int, error) {
-	dir, err := os.Open(incompCarfileCache.path)
-	if err != nil {
-		return 0, err
-	}
-	defer dir.Close()
-
-	files, err := dir.Readdir(-1)
-	if err != nil {
-		return 0, err
+func (incompCarfileCache *incompleteCarfileCache) has(carfileHash string) (bool, error) {
+	filePath := filepath.Join(incompCarfileCache.path, carfileHash)
+	_, err := os.Stat(filePath)
+	if err == nil {
+		return true, nil
 	}
 
-	return len(files), nil
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return false, err
 }
 
 func (incompCarfileCache *incompleteCarfileCache) carfileHashList() ([]string, error) {

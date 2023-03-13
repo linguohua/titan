@@ -20,7 +20,7 @@ func NewEdgeUpdater(db *persistent.NodeMgrDB) (*EdgeUpdater, error) {
 	}
 	appUpdateInfo, err := db.EdgeUpdateInfos()
 	if err != nil {
-		log.Errorf("GetNodeUpdateInfos error:%s", err)
+		log.Errorf("GetEdgeUpdateInfos error:%s", err)
 		return nil, err
 	}
 	updater.updateInfos = appUpdateInfo
