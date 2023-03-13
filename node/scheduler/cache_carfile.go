@@ -22,7 +22,7 @@ func (s *Scheduler) CacheResult(ctx context.Context, info types.CacheResult) err
 	node := s.NodeManager.GetNode(nodeID)
 	if node != nil {
 		node.DiskUsage = info.DiskUsage
-		node.Blocks = info.TotalBlockCount
+		node.Blocks = info.TotalBlocksCount
 	}
 	return s.DataManager.CacheCarfileResult(nodeID, &info)
 }
@@ -39,7 +39,7 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo types.Re
 	node := s.NodeManager.GetNode(nodeID)
 	if node != nil {
 		node.DiskUsage = resultInfo.DiskUsage
-		node.Blocks = resultInfo.BlockCount
+		node.Blocks = resultInfo.BlocksCount
 	}
 
 	return nil

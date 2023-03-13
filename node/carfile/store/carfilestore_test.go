@@ -232,7 +232,7 @@ func TestBlocksOfCarfile(t *testing.T) {
 
 	count, err := cs.BlockCount()
 	if err != nil {
-		t.Errorf("BlockCount error:%s", err.Error())
+		t.Errorf("BlocksCount error:%s", err.Error())
 		return
 	}
 

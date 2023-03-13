@@ -872,24 +872,24 @@ func (t *CacheResultInfo) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	// t.CarfileBlockCount (int64) (int64)
-	if len("CarfileBlockCount") > cbg.MaxLength {
-		return xerrors.Errorf("Value in field \"CarfileBlockCount\" was too long")
+	// t.CarfileBlocksCount (int64) (int64)
+	if len("CarfileBlocksCount") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"CarfileBlocksCount\" was too long")
 	}
 
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("CarfileBlockCount"))); err != nil {
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("CarfileBlocksCount"))); err != nil {
 		return err
 	}
-	if _, err := io.WriteString(w, string("CarfileBlockCount")); err != nil {
+	if _, err := io.WriteString(w, string("CarfileBlocksCount")); err != nil {
 		return err
 	}
 
-	if t.CarfileBlockCount >= 0 {
-		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.CarfileBlockCount)); err != nil {
+	if t.CarfileBlocksCount >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.CarfileBlocksCount)); err != nil {
 			return err
 		}
 	} else {
-		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.CarfileBlockCount-1)); err != nil {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.CarfileBlocksCount-1)); err != nil {
 			return err
 		}
 	}
@@ -1015,8 +1015,8 @@ func (t *CacheResultInfo) UnmarshalCBOR(r io.Reader) (err error) {
 			default:
 				return fmt.Errorf("booleans are either major type 7, value 20 or 21 (got %d)", extra)
 			}
-			// t.CarfileBlockCount (int64) (int64)
-		case "CarfileBlockCount":
+			// t.CarfileBlocksCount (int64) (int64)
+		case "CarfileBlocksCount":
 			{
 				maj, extra, err := cr.ReadHeader()
 				var extraI int64
@@ -1039,7 +1039,7 @@ func (t *CacheResultInfo) UnmarshalCBOR(r io.Reader) (err error) {
 					return fmt.Errorf("wrong type for int64 field: %d", maj)
 				}
 
-				t.CarfileBlockCount = int64(extraI)
+				t.CarfileBlocksCount = int64(extraI)
 			}
 
 		default:

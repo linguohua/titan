@@ -14,11 +14,11 @@ func (c CarfileHash) String() string {
 }
 
 type CacheResultInfo struct {
-	Status            int64
-	CarfileBlockCount int64
-	CarfileSize       int64
-	NodeID            string
-	IsCandidate       bool
+	Status             int64
+	CarfileBlocksCount int64
+	CarfileSize        int64
+	NodeID             string
+	IsCandidate        bool
 }
 
 type CompletedValue struct{}
