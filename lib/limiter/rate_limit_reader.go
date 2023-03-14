@@ -1,6 +1,7 @@
 package limiter
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"time"
@@ -9,22 +10,29 @@ import (
 )
 
 type reader struct {
-	r       io.Reader
+	rs      io.ReadSeeker
 	limiter *rate.Limiter
 }
 
 // NewReader returns a reader that is rate limited by
 // the given token bucket. Each token in the bucket
 // represents one byte.
-func NewReader(r io.Reader, l *rate.Limiter) io.Reader {
+func NewReader(rs io.ReadSeeker, l *rate.Limiter) io.ReadSeeker {
 	return &reader{
-		r:       r,
+		rs:      rs,
+		limiter: l,
+	}
+}
+
+func ReaderFromBytes(data []byte, l *rate.Limiter) io.ReadSeeker {
+	return &reader{
+		rs:      bytes.NewReader(data),
 		limiter: l,
 	}
 }
 
 func (r *reader) Read(buf []byte) (int, error) {
-	n, err := r.r.Read(buf)
+	n, err := r.rs.Read(buf)
 	if n <= 0 {
 		return n, err
 	}
@@ -32,10 +40,14 @@ func (r *reader) Read(buf []byte) (int, error) {
 	now := time.Now()
 	rv := r.limiter.ReserveN(now, n)
 	if !rv.OK() {
-		return 0, fmt.Errorf("Exceeds limiter's burst")
+		return 0, fmt.Errorf("exceeds limiter's burst")
 	}
 
 	delay := rv.DelayFrom(now)
 	time.Sleep(delay)
 	return n, err
+}
+
+func (r *reader) Seek(offset int64, whence int) (int64, error) {
+	return r.rs.Seek(offset, whence)
 }

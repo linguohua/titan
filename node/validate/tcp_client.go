@@ -55,14 +55,14 @@ func sendData(conn *net.TCPConn, data []byte, msgType api.ValidateTcpMsgType, ra
 		return err
 	}
 
-	n, err := io.Copy(conn, limiter.NewReader(bytes.NewBuffer(buf), rateLimiter))
+	n, err := io.Copy(conn, limiter.ReaderFromBytes(buf, rateLimiter))
 	if err != nil {
 		log.Errorf("sendData, io.Copy error:%s", err.Error())
 		return err
 	}
 
 	if int(n) != len(buf) {
-		return fmt.Errorf("Send data len is %d, but buf len is %d", n, len(buf))
+		return fmt.Errorf("send data len is %d, but buf len is %d", n, len(buf))
 	}
 
 	return nil

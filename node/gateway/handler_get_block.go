@@ -1,9 +1,7 @@
 package gateway
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
@@ -32,23 +30,21 @@ func (gw *Gateway) blockHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contentDisposition := fmt.Sprintf("attachment; filename=%s", c.String())
-	w.Header().Set("Content-Disposition", contentDisposition)
-	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(blk.RawData())))
+	// contentDisposition := fmt.Sprintf("attachment; filename=%s", c.String())
+	// w.Header().Set("Content-Disposition", contentDisposition)
+	// w.Header().Set("Content-Length", fmt.Sprintf("%d", len(blk.RawData())))
 
+	fileName := c.String()
 	now := time.Now()
 
-	n, err := io.Copy(w, limiter.NewReader(bytes.NewReader(blk.RawData()), rate.NewLimiter(rate.Inf, 0)))
-	if err != nil {
-		log.Errorf("GetBlock, io.Copy error:%v", err)
-		return
-	}
+	reader := limiter.ReaderFromBytes(blk.RawData(), rate.NewLimiter(rate.Inf, 0))
+	http.ServeContent(w, r, fileName, time.Now(), reader)
 
 	costTime := time.Since(now)
 	speedRate := int64(0)
 	if costTime != 0 {
-		speedRate = int64(float64(n) / float64(costTime) * float64(time.Second))
+		speedRate = int64(float64(len(blk.RawData())) / float64(costTime) * float64(time.Second))
 	}
 
-	log.Debugf("Download block %s costTime %d, size %d, speed %d", c.String(), costTime, n, speedRate)
+	log.Debugf("Download block %s costTime %d, size %d, speed %d", c.String(), costTime, len(blk.RawData()), speedRate)
 }
