@@ -77,8 +77,8 @@ type CacheCarfileInfo struct {
 type CacheStatus int
 
 const (
-	// CacheStatusUnknow status
-	CacheStatusUnknow CacheStatus = iota
+	// CacheStatusUnknown status
+	CacheStatusUnknown CacheStatus = iota
 	// CacheStatusDownloading status
 	CacheStatusDownloading
 	// CacheStatusFailed status
@@ -97,7 +97,7 @@ func (c CacheStatus) String() string {
 	case CacheStatusSucceeded:
 		return "succeeded"
 	default:
-		return "unknow"
+		return "unknown"
 	}
 }
 
