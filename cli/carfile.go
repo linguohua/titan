@@ -320,21 +320,18 @@ var listCarfilesCmd = &cli.Command{
 			tw.Write(m)
 		}
 
-		if err := tw.Flush(os.Stdout); err != nil {
-			return err
+		if !restart {
+			fmt.Printf("\nTotal:%d\t\t%d/%d \n", info.Cids, info.Page, info.TotalPage)
+			return tw.Flush(os.Stdout)
 		}
 
-		fmt.Printf("\nTotal:%d\t\t%d/%d \n", info.Cids, info.Page, info.TotalPage)
-
-		if restart {
-			if info.CarfileRecords == nil || len(info.CarfileRecords) < 1 {
-				return nil
+		var hashes []types.CarfileHash
+		for _, carfile := range info.CarfileRecords {
+			if !strings.Contains(carfile.State, "Failed") {
+				hashes = append(hashes, types.CarfileHash(carfile.CarfileHash))
 			}
-
-			return schedulerAPI.RestartFailedCarfiles(ctx, info.CarfileRecords)
 		}
-
-		return nil
+		return schedulerAPI.RestartFailedCarfiles(ctx, hashes)
 	},
 }
 

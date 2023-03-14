@@ -70,8 +70,8 @@ func (s *Scheduler) RecacheCarfiles(ctx context.Context, hashs []string) error {
 }
 
 // RestartFailedCarfiles restart failed carfiles
-func (s *Scheduler) RestartFailedCarfiles(ctx context.Context, sc []*types.CarfileRecordInfo) error {
-	return s.DataManager.FailedCarfilesRestart(sc)
+func (s *Scheduler) RestartFailedCarfiles(ctx context.Context, hashes []types.CarfileHash) error {
+	return s.DataManager.FailedCarfilesRestart(hashes)
 }
 
 // ResetCarfileExpiration reset expiration time with data cache

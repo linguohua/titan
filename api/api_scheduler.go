@@ -48,7 +48,7 @@ type Scheduler interface {
 	RemoveCarfile(ctx context.Context, carfileID string) error                                                   //perm:admin
 	CarfileRecord(ctx context.Context, cid string) (*types.CarfileRecordInfo, error)                             //perm:read
 	CarfileRecords(ctx context.Context, page int, status types.CacheStatus) (*types.ListCarfileRecordRsp, error) //perm:read
-	RestartFailedCarfiles(ctx context.Context, cs []*types.CarfileRecordInfo) error                              //perm:admin
+	RestartFailedCarfiles(ctx context.Context, hashes []types.CarfileHash) error                                 //perm:admin
 	ResetCarfileExpiration(ctx context.Context, carfileCid string, time time.Time) error                         //perm:admin
 	ResetCandidateReplicaCount(ctx context.Context, count int) error                                             //perm:admin
 	RecacheCarfiles(ctx context.Context, hashs []string) error                                                   //perm:admin
