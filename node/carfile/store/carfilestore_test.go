@@ -42,25 +42,12 @@ func TestWriteBlock(t *testing.T) {
 		return
 	}
 
-	bk := newBlock()
-	w, err := cs.NewCarfileWriter(bk.Cid())
-	if err != nil {
-		t.Errorf("rew carfile writer error:%s", err.Error())
-		return
-	}
-
+	blk := newBlock()
 	for i := 0; i < 100; i++ {
-		w.Put(context.Background(), bk)
+		cs.PutBlocks(context.Background(), blk.Cid(), []blocks.Block{blk})
 	}
 
-	w.Finalize()
-	err = cs.closeDagstore()
-	if err != nil {
-		t.Errorf("closeDagstore error:%s", err.Error())
-		return
-	}
-
-	exist, err := cs.HashCarfile(bk.Cid())
+	exist, err := cs.HashCarfile(blk.Cid())
 	if err != nil {
 		t.Errorf("check carfile exist error:%s", err.Error())
 		return
@@ -89,17 +76,10 @@ func TestRegisterShard(t *testing.T) {
 	}
 
 	bk := newBlock()
-	w, err := cs.NewCarfileWriter(bk.Cid())
-	if err != nil {
-		t.Errorf("rew carfile writer error:%s", err.Error())
-		return
-	}
 
 	for i := 0; i < 100; i++ {
-		w.Put(context.Background(), bk)
+		cs.PutBlocks(context.Background(), bk.Cid(), []blocks.Block{bk})
 	}
-
-	w.Finalize()
 
 	cs.RegisterShared(bk.Cid())
 	if err != nil {
