@@ -216,7 +216,7 @@ func (cfCache *carfileCache) decode(data []byte) error {
 
 	c, err := cid.Decode(encodeCarfile.root)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	cfCache.root = c

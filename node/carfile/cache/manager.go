@@ -122,7 +122,7 @@ func (m *Manager) doDownloadCar() {
 	m.cachingCar = carfileCache
 	err = carfileCache.downloadCar()
 	if err != nil {
-		log.Errorf("doDownloadCarfile, downloadCarfile error:%s", err)
+		log.Errorf("doDownloadCar, download car error:%s", err)
 	}
 
 	m.cachingCar = nil
@@ -181,6 +181,10 @@ func (m *Manager) AddToWaitList(root cid.Cid, dss []*types.DownloadSource) {
 }
 
 func (m *Manager) saveIncompleteCarfileCache(cf *carfileCache) error {
+	if cf == nil || cf.isDownloadComplete() {
+		return nil
+	}
+
 	buf, err := cf.encode()
 	if err != nil {
 		return err
