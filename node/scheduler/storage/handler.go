@@ -46,7 +46,7 @@ func (m *Manager) handleCacheSeed(ctx statemachine.Context, carfile CarfileInfo)
 		return ctx.Send(CacheFailed{error: err})
 	}
 
-	m.resetTimeoutTimer(carfile.CarfileHash.String())
+	m.addOrResetCarfileTicker(carfile.CarfileHash.String())
 
 	// send to nodes
 	go func() {
@@ -99,7 +99,7 @@ func (m *Manager) handleCacheToCandidates(ctx statemachine.Context, carfile Carf
 
 	sources := m.Sources(carfile.CarfileHash.String(), carfile.CandidateReplicaSucceeds)
 
-	m.resetTimeoutTimer(carfile.CarfileHash.String())
+	m.addOrResetCarfileTicker(carfile.CarfileHash.String())
 
 	// send to nodes
 	go func() {
@@ -154,7 +154,7 @@ func (m *Manager) handleCacheToEdges(ctx statemachine.Context, carfile CarfileIn
 		return ctx.Send(CacheFailed{error: err})
 	}
 
-	m.resetTimeoutTimer(carfile.CarfileHash.String())
+	m.addOrResetCarfileTicker(carfile.CarfileHash.String())
 
 	// send to nodes
 	go func() {
@@ -185,8 +185,7 @@ func (m *Manager) handleEdgesCaching(ctx statemachine.Context, carfile CarfileIn
 
 func (m *Manager) handleFinalize(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Debugf("handle carfile finalize: %s", carfile.CarfileCID)
-
-	m.stopTimeoutTimer(carfile.CarfileHash.String())
+	defer m.removeCarfileTicker(carfile.CarfileHash.String())
 
 	return nil
 }
@@ -194,7 +193,7 @@ func (m *Manager) handleFinalize(ctx statemachine.Context, carfile CarfileInfo) 
 func (m *Manager) handleCachesFailed(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Debugf("handle caches failed: %s , retry count : %d", carfile.CarfileCID, carfile.RetryCount)
 
-	m.stopTimeoutTimer(carfile.CarfileHash.String())
+	defer m.removeCarfileTicker(carfile.CarfileHash.String())
 
 	if carfile.RetryCount >= int64(MaxRetryCount) {
 		log.Debugf("the number [%d] of retries has reached the limit, stop retrying", carfile.RetryCount)

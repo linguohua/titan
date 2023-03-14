@@ -34,15 +34,7 @@ const (
 
 var candidateReplicaCachesCount = 0 // nodeMgrCache to the number of candidate nodes （does not contain 'rootCachesCount'）
 
-// CacheEvent carfile cache event
-type CacheEvent int
-
-const (
-	// EventStop stop
-	EventStop CacheEvent = iota
-	// EventReset status
-	EventReset
-)
+var cachingTimeout = time.Duration(nodeCachingKeepalive) * time.Second
 
 // Manager storage
 type Manager struct {
@@ -54,8 +46,25 @@ type Manager struct {
 	startupWait sync.WaitGroup
 	carfiles    *statemachine.StateGroup
 
-	carfileTickers map[string]chan CacheEvent
 	lock           sync.Mutex
+	carfileTickers map[string]*carfileTicker
+}
+
+type carfileTicker struct {
+	ticker *time.Ticker
+	close  chan struct{}
+}
+
+func (t *carfileTicker) run(job func()) {
+	for {
+		select {
+		case <-t.ticker.C:
+			job()
+			return
+		case <-t.close:
+			return
+		}
+	}
 }
 
 // NewManager return new storage manager instance
@@ -64,14 +73,12 @@ func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToke
 		nodeManager:          nodeManager,
 		latelyExpirationTime: time.Now(),
 		writeToken:           writeToken,
-		carfileTickers:       map[string]chan CacheEvent{},
+		carfileTickers:       make(map[string]*carfileTicker),
 	}
 
 	m.startupWait.Add(1)
 	m.carfiles = statemachine.New(ds, m, CarfileInfo{})
 
-	// m.initCarfileMap()
-	// go m.carfileTaskTicker()
 	go m.checkExpirationTicker()
 
 	return m
@@ -102,7 +109,7 @@ func (m *Manager) checkExpirationTicker() {
 
 // CacheCarfile create a new carfile storing task
 func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
-	log.Infof("carfile event %s , add carfile,replica:%d,expiration:%s", info.CarfileCid, info.Replicas, info.Expiration.String())
+	log.Infof("carfile event: %s, add carfile replica: %d,expiration: %s", info.CarfileCid, info.Replicas, info.Expiration.String())
 
 	cInfo, err := m.nodeManager.CarfileDB.CarfileInfo(info.CarfileHash)
 	if err != nil && err != sql.ErrNoRows {
@@ -121,7 +128,7 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 		})
 	}
 
-	return xerrors.New("carfile is exist")
+	return xerrors.New("carfile exists")
 }
 
 // FailedCarfilesRestart restart failed carfiles
@@ -150,12 +157,12 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 	// remove carfile
 	err = m.carfiles.Send(CarfileHash(hash), CarfileRemove{})
 	if err != nil {
-		return xerrors.Errorf("RemoveCarfileRecord send to statemachine err:%s ", err.Error())
+		return xerrors.Errorf("RemoveCarfileRecord send to state machine err: %s ", err.Error())
 	}
 
 	err = m.nodeManager.CarfileDB.RemoveCarfileRecord(hash)
 	if err != nil {
-		return xerrors.Errorf("RemoveCarfileRecord db err:%s ", err.Error())
+		return xerrors.Errorf("RemoveCarfileRecord db err: %s", err.Error())
 	}
 
 	log.Infof("storage event %s , remove storage record", carfileCid)
@@ -174,9 +181,9 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	tickerC := m.carfileTickers[info.CarfileHash]
-	if tickerC != nil {
-		tickerC <- EventReset
+	tickerC, ok := m.carfileTickers[info.CarfileHash]
+	if ok {
+		tickerC.ticker.Reset(cachingTimeout)
 	}
 
 	if info.Status == types.CacheStatusDownloading {
@@ -210,69 +217,43 @@ func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (er
 	})
 }
 
-func (m *Manager) resetTimeoutTimer(carfileHash string) {
+func (m *Manager) addOrResetCarfileTicker(key string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	tickerC := m.carfileTickers[carfileHash]
-	if tickerC != nil {
-		tickerC <- EventReset
-	} else {
-		m.carfileTickers[carfileHash] = m.startTicker(carfileHash)
-	}
-}
-
-func (m *Manager) startTicker(carfileHash string) chan CacheEvent {
-	ticker := time.NewTicker(time.Duration(nodeCachingKeepalive) * time.Second)
-
-	tChan := make(chan CacheEvent)
-	go func(ticker *time.Ticker) {
-		defer func() {
-			ticker.Stop()
-			close(tChan)
-
-			m.lock.Lock()
-			defer m.lock.Unlock()
-
-			delete(m.carfileTickers, carfileHash)
-		}()
-
-		for {
-			select {
-			case <-ticker.C:
-				err := m.nodeManager.CarfileDB.SetReplicasFailed(carfileHash)
-				if err != nil {
-					log.Errorf("carfileHash %s SetReplicasFailed err:%s", carfileHash, err.Error())
-					break
-				}
-
-				err = m.carfiles.Send(CarfileHash(carfileHash), CacheFailed{error: xerrors.New("waiting cache response timeout")})
-				if err != nil {
-					log.Errorf("carfileHash %s send time out err:%s", carfileHash, err.Error())
-				}
-				return
-			case event := <-tChan:
-				if event == EventStop {
-					return
-				}
-				if event == EventReset {
-					ticker.Reset(time.Duration(nodeCachingKeepalive) * time.Second)
-				}
-			}
+	fn := func() {
+		err := m.carfiles.Send(CarfileHash(key), CacheFailed{error: xerrors.New("waiting cache response timeout")})
+		if err != nil {
+			log.Errorf("carfileHash %s send time out err:%s", key, err.Error())
 		}
-	}(ticker)
+	}
 
-	return tChan
+	t, ok := m.carfileTickers[key]
+	if ok {
+		t.ticker.Reset(cachingTimeout)
+		return
+	}
+
+	m.carfileTickers[key] = &carfileTicker{
+		ticker: time.NewTicker(cachingTimeout),
+		close:  make(chan struct{}),
+	}
+
+	go m.carfileTickers[key].run(fn)
 }
 
-func (m *Manager) stopTimeoutTimer(carfileHash string) {
+func (m *Manager) removeCarfileTicker(key string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	tickerC := m.carfileTickers[carfileHash]
-	if tickerC != nil {
-		tickerC <- EventStop
+	t, ok := m.carfileTickers[key]
+	if !ok {
+		return
 	}
+
+	t.ticker.Stop()
+	close(t.close)
+	delete(m.carfileTickers, key)
 }
 
 // ResetCarfileExpiration reset the carfile expiration
@@ -282,14 +263,14 @@ func (m *Manager) ResetCarfileExpiration(cid string, t time.Time) error {
 		return err
 	}
 
-	log.Infof("storage event %s , reset storage expiration time:%s", cid, t.String())
+	log.Infof("storage event %s , reset storage expiration:%s", cid, t.String())
 
 	err = m.nodeManager.CarfileDB.ResetCarfileExpiration(hash, t)
 	if err != nil {
 		return err
 	}
 
-	m.resetLatelyExpirationTime(t)
+	m.resetLatelyExpiration(t)
 
 	return nil
 }
@@ -312,16 +293,16 @@ func (m *Manager) checkCachesExpiration() {
 		log.Infof("cid:%s, expired,remove it ; %v", carfileRecord.CarfileCID, err)
 	}
 
-	// reset expiration time
+	// reset expiration
 	latelyExpirationTime, err := m.nodeManager.CarfileDB.MinExpiration()
 	if err != nil {
 		return
 	}
 
-	m.resetLatelyExpirationTime(latelyExpirationTime)
+	m.resetLatelyExpiration(latelyExpirationTime)
 }
 
-func (m *Manager) resetLatelyExpirationTime(t time.Time) {
+func (m *Manager) resetLatelyExpiration(t time.Time) {
 	if m.latelyExpirationTime.After(t) {
 		m.latelyExpirationTime = t
 	}
