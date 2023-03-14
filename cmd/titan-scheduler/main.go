@@ -7,10 +7,12 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"net"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/linguohua/titan/api/types"
 	cliutil "github.com/linguohua/titan/cli/util"
@@ -22,9 +24,11 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
+	"github.com/linguohua/titan/etcdcli"
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/node/config"
+	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/secret"
 	"github.com/quic-go/quic-go/http3"
@@ -248,6 +252,11 @@ var runCmd = &cli.Command{
 			return xerrors.Errorf("creating node: %w", err)
 		}
 
+		err = loginToEtcd(schedulerCfg, r)
+		if err != nil {
+			return xerrors.Errorf("loginToEtcd err: %w", err)
+		}
+
 		// Populate JSON-RPC options.
 		serverOptions := []jsonrpc.ServerOption{jsonrpc.WithServerErrors(api.RPCErrors)}
 		if maxRequestSize := cctx.Int("api-max-req-size"); maxRequestSize != 0 {
@@ -287,6 +296,52 @@ var runCmd = &cli.Command{
 		<-finishCh // fires when shutdown is complete.
 		return nil
 	},
+}
+
+func loginToEtcd(cfg *config.SchedulerCfg, r *repo.FsRepo) error {
+	sb, err := r.ServerID()
+	if err != nil {
+		return xerrors.Errorf("get serverID err: %w", err)
+	}
+	tb, err := r.APIToken()
+	if err != nil {
+		return xerrors.Errorf("get token err: %w", err)
+	}
+
+	cli, err := etcdcli.New(cfg.EtcdAddresss, dtypes.ServerID(string(sb)))
+	if err != nil {
+		return err
+	}
+
+	index := strings.Index(cfg.ListenAddress, ":")
+	port := cfg.ListenAddress[index:]
+
+	ip, err := externalIP()
+	if err != nil {
+		return err
+	}
+
+	sCfg := &types.SchedulerCfg{
+		AreaID:       cfg.AreaID,
+		SchedulerURL: ip + port,
+		AccessToken:  string(tb),
+	}
+
+	return cli.ServerLogin(sCfg, types.NodeScheduler)
+}
+
+func externalIP() (string, error) {
+	resp, err := http.Get("http://myexternalip.com/raw")
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	content, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(content), nil
 }
 
 func openRepo(cctx *cli.Context) (repo.LockedRepo, error) {

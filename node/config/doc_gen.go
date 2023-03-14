@@ -55,12 +55,6 @@ var Doc = map[string][]DocField{
 			Comment: `carfilestore path`,
 		},
 		{
-			Name: "CarfileStoreType",
-			Type: "string",
-
-			Comment: `blockstore type`,
-		},
-		{
 			Name: "BandwidthUp",
 			Type: "int64",
 
@@ -104,6 +98,18 @@ be used if InsecureSkipVerify is true`,
 
 			Comment: `self sign certificate, use for client`,
 		},
+		{
+			Name: "FetchBlockTimeout",
+			Type: "int",
+
+			Comment: `FetchTimeout get block timeout`,
+		},
+		{
+			Name: "FetchBlockRetry",
+			Type: "int",
+
+			Comment: `FetchBlockFailedRetry retry when get block failed`,
+		},
 	},
 	"LocatorCfg": []DocField{
 		{
@@ -125,10 +131,10 @@ be used if InsecureSkipVerify is true`,
 			Comment: `geodb path`,
 		},
 		{
-			Name: "DBAddrss",
+			Name: "DatabaseAddress",
 			Type: "string",
 
-			Comment: `mysql db addrss`,
+			Comment: `mysql db address`,
 		},
 		{
 			Name: "UUID",
@@ -171,22 +177,10 @@ be used if InsecureSkipVerify is true`,
 			Comment: `host address and port the edge node api will listen on`,
 		},
 		{
-			Name: "RedisAddrss",
-			Type: "string",
-
-			Comment: `redis server address`,
-		},
-		{
-			Name: "GeoDBPath",
-			Type: "string",
-
-			Comment: `geodb path`,
-		},
-		{
 			Name: "DatabaseAddress",
 			Type: "string",
 
-			Comment: `mysql address`,
+			Comment: `database address`,
 		},
 		{
 			Name: "AreaID",
@@ -219,6 +213,30 @@ be used if InsecureSkipVerify is true`,
 			Type: "string",
 
 			Comment: `self sign certificate, use for client`,
+		},
+		{
+			Name: "SchedulerServer1",
+			Type: "string",
+
+			Comment: `test nat type`,
+		},
+		{
+			Name: "SchedulerServer2",
+			Type: "string",
+
+			Comment: `test nat type`,
+		},
+		{
+			Name: "EnableValidate",
+			Type: "bool",
+
+			Comment: `config to enabled node validation, default: true`,
+		},
+		{
+			Name: "EtcdAddresss",
+			Type: "[]string",
+
+			Comment: `etcd server addresss`,
 		},
 	},
 }
