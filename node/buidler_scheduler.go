@@ -16,6 +16,7 @@ import (
 	"github.com/linguohua/titan/node/scheduler/storage"
 	"github.com/linguohua/titan/node/scheduler/sync"
 	"github.com/linguohua/titan/node/scheduler/validation"
+
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
 )

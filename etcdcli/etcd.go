@@ -1,4 +1,4 @@
-package etcd
+package etcdcli
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/api/types"
+	"github.com/linguohua/titan/node/modules/dtypes"
 
 	logging "github.com/ipfs/go-log/v2"
 	"go.etcd.io/etcd/clientv3"
@@ -24,10 +25,11 @@ const (
 // Client ...
 type Client struct {
 	cli *clientv3.Client
+	dtypes.ServerID
 }
 
 // New new a etcd client
-func New(addrs []string) (*Client, error) {
+func New(addrs []string, serverID dtypes.ServerID) (*Client, error) {
 	config := clientv3.Config{
 		Endpoints:   addrs,
 		DialTimeout: connectServerTimeoutTime * time.Second,
@@ -38,18 +40,22 @@ func New(addrs []string) (*Client, error) {
 		return nil, err
 	}
 
-	return &Client{cli: cli}, nil
+	return &Client{
+		cli:      cli,
+		ServerID: serverID,
+	}, nil
 }
 
 // ServerLogin login to etcd , If already logged in, return an error
-func (c *Client) ServerLogin(serverID string, cfg *types.SchedulerCfg, nodeType types.NodeType) error {
+func (c *Client) ServerLogin(cfg *types.SchedulerCfg, nodeType types.NodeType) error {
 	ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
 	defer cancel()
 
-	serverKey := fmt.Sprintf("/%s/%s", nodeType.String(), serverID)
+	serverKey := fmt.Sprintf("/%s/%s", nodeType.String(), c.ServerID)
 
 	// get a lease
-	leaseRsp, err := c.cli.Grant(ctx, nodeExpirationDuration)
+	lease := clientv3.NewLease(c.cli)
+	leaseRsp, err := lease.Grant(ctx, nodeExpirationDuration)
 	if err != nil {
 		return xerrors.Errorf("Grant lease err:%s", err.Error())
 	}
@@ -60,14 +66,14 @@ func (c *Client) ServerLogin(serverID string, cfg *types.SchedulerCfg, nodeType 
 	// Create transaction
 	txn := kv.Txn(ctx)
 
-	// value, err := SCMarshal(cfg)
-	// if err != nil {
-	// 	return xerrors.Errorf("cfg SCMarshal err:%s", err.Error())
-	// }
+	value, err := SCMarshal(cfg)
+	if err != nil {
+		return xerrors.Errorf("cfg SCMarshal err:%s", err.Error())
+	}
 
 	// If the revision of key is equal to 0
 	txn.If(clientv3.Compare(clientv3.CreateRevision(serverKey), "=", 0)).
-		Then(clientv3.OpPut(serverKey, cfg.SchedulerURL, clientv3.WithLease(leaseID))).
+		Then(clientv3.OpPut(serverKey, string(value), clientv3.WithLease(leaseID))).
 		Else(clientv3.OpGet(serverKey))
 
 	// Commit transaction
@@ -82,7 +88,7 @@ func (c *Client) ServerLogin(serverID string, cfg *types.SchedulerCfg, nodeType 
 	}
 
 	// KeepAlive
-	keepRespChan, err := c.cli.KeepAlive(ctx, leaseID)
+	keepRespChan, err := lease.KeepAlive(context.TODO(), leaseID)
 	if err != nil {
 		return err
 	}
@@ -98,27 +104,26 @@ func (c *Client) ServerLogin(serverID string, cfg *types.SchedulerCfg, nodeType 
 
 // WatchServers watch server login and logout
 func (c *Client) WatchServers(nodeType types.NodeType) {
-	ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
-	defer cancel()
-
 	prefix := fmt.Sprintf("/%s/", nodeType.String())
 
 	watcher := clientv3.NewWatcher(c.cli)
-	watchRespChan := watcher.Watch(ctx, prefix, clientv3.WithPrefix())
+	watchRespChan := watcher.Watch(context.TODO(), prefix, clientv3.WithPrefix())
 
 	for watchResp := range watchRespChan {
 		for _, event := range watchResp.Events {
 			switch event.Type {
 			case mvccpb.PUT:
-				// s, err := SCUnmarshal(event.Kv.Value)
-				// if err != nil {
-				// 	log.Errorf("SCUnmarshal err:%s", err.Error())
-				// } else {
-				log.Infof("Update:", string(event.Kv.Key), " ,Value:", string(event.Kv.Value), " ,Revision:",
-					event.Kv.CreateRevision, event.Kv.ModRevision)
-				// }
+				s, err := SCUnmarshal(event.Kv.Value)
+				if err != nil {
+					log.Errorf("SCUnmarshal err:%s", err.Error())
+				} else {
+					fmt.Println("Update:", string(event.Kv.Key), " ,Value:", s.SchedulerURL, " ,Revision:",
+						event.Kv.CreateRevision, event.Kv.ModRevision)
+				}
 			case mvccpb.DELETE:
-				log.Infof("Delete:", string(event.Kv.Key), " ,Revision:", event.Kv.ModRevision)
+				fmt.Println("Delete:", string(event.Kv.Key), " ,Revision:", event.Kv.ModRevision)
+			default:
+				fmt.Println("default:", string(event.Kv.Key), " ,event.Type:", event.Type)
 			}
 		}
 	}
@@ -144,7 +149,7 @@ func (c *Client) ListServers(nodeType types.NodeType) error {
 		// if err != nil {
 		// 	log.Errorf("SCUnmarshal err:%s", err.Error())
 		// } else {
-		log.Infof("--------Update:", string(info.Key), " ,Value:", string(info.Value), " ,Revision:",
+		fmt.Println("--------Update:", string(info.Key), " ,Value:", string(info.Value), " ,Revision:",
 			info.CreateRevision, info.ModRevision)
 		// }
 	}
@@ -152,6 +157,7 @@ func (c *Client) ListServers(nodeType types.NodeType) error {
 	return nil
 }
 
+// SCUnmarshal  Unmarshal SchedulerCfg
 func SCUnmarshal(v []byte) (*types.SchedulerCfg, error) {
 	s := &types.SchedulerCfg{}
 	err := json.Unmarshal(v, s)
@@ -162,11 +168,12 @@ func SCUnmarshal(v []byte) (*types.SchedulerCfg, error) {
 	return s, nil
 }
 
-func SCMarshal(s *types.SchedulerCfg) (string, error) {
+// SCMarshal  Marshal SchedulerCfg
+func SCMarshal(s *types.SchedulerCfg) ([]byte, error) {
 	v, err := json.Marshal(s)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return string(v), nil
+	return v, nil
 }
