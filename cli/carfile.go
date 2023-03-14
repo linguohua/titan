@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"github.com/docker/go-units"
 	"github.com/fatih/color"
 	"github.com/linguohua/titan/lib/tablewriter"
 	"os"
@@ -289,7 +290,7 @@ var listCarfilesCmd = &cli.Command{
 				"CID":        carfile.CarfileCID,
 				"State":      colorState(carfile.State),
 				"Blocks":     carfile.TotalBlocks,
-				"Size":       carfile.TotalSize,
+				"Size":       units.BytesSize(float64(carfile.TotalSize)),
 				"CreateTime": carfile.CreateTime,
 				"Expiration": carfile.Expiration,
 			}
