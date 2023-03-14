@@ -11,7 +11,6 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/mvcc/mvccpb"
 	"golang.org/x/xerrors"
 )
 
@@ -103,58 +102,24 @@ func (c *Client) ServerLogin(cfg *types.SchedulerCfg, nodeType types.NodeType) e
 }
 
 // WatchServers watch server login and logout
-func (c *Client) WatchServers(nodeType types.NodeType) {
+func (c *Client) WatchServers(nodeType types.NodeType) clientv3.WatchChan {
 	prefix := fmt.Sprintf("/%s/", nodeType.String())
 
 	watcher := clientv3.NewWatcher(c.cli)
 	watchRespChan := watcher.Watch(context.TODO(), prefix, clientv3.WithPrefix())
 
-	for watchResp := range watchRespChan {
-		for _, event := range watchResp.Events {
-			switch event.Type {
-			case mvccpb.PUT:
-				s, err := SCUnmarshal(event.Kv.Value)
-				if err != nil {
-					log.Errorf("SCUnmarshal err:%s", err.Error())
-				} else {
-					fmt.Println("Update:", string(event.Kv.Key), " ,Value:", s.SchedulerURL, " ,Revision:",
-						event.Kv.CreateRevision, event.Kv.ModRevision)
-				}
-			case mvccpb.DELETE:
-				fmt.Println("Delete:", string(event.Kv.Key), " ,Revision:", event.Kv.ModRevision)
-			default:
-				fmt.Println("default:", string(event.Kv.Key), " ,event.Type:", event.Type)
-			}
-		}
-	}
-
-	return
+	return watchRespChan
 }
 
 // ListServers list server
-func (c *Client) ListServers(nodeType types.NodeType) error {
+func (c *Client) ListServers(nodeType types.NodeType) (*clientv3.GetResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
 	defer cancel()
 
 	serverKeyPrefix := fmt.Sprintf("/%s/", nodeType.String())
 	kv := clientv3.NewKV(c.cli)
 
-	resp, err := kv.Get(ctx, serverKeyPrefix, clientv3.WithPrefix())
-	if err != nil {
-		return err
-	}
-
-	for _, info := range resp.Kvs {
-		// s, err := SCUnmarshal(info.Value)
-		// if err != nil {
-		// 	log.Errorf("SCUnmarshal err:%s", err.Error())
-		// } else {
-		fmt.Println("--------Update:", string(info.Key), " ,Value:", string(info.Value), " ,Revision:",
-			info.CreateRevision, info.ModRevision)
-		// }
-	}
-
-	return nil
+	return kv.Get(ctx, serverKeyPrefix, clientv3.WithPrefix())
 }
 
 // SCUnmarshal  Unmarshal SchedulerCfg
