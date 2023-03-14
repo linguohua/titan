@@ -26,7 +26,7 @@ func NewCarfileStore(path dtypes.CarfileStorePath) (*store.CarfileStore, error) 
 }
 
 func NewBlockFetcherFromCandidate(cfg *config.EdgeCfg) fetcher.BlockFetcher {
-	return fetcher.NewCandidate(cfg.FetchBlockTimeout, cfg.FetchBlockFailedRetry)
+	return fetcher.NewCandidate(cfg.FetchBlockTimeout, cfg.FetchBlockRetry)
 }
 
 func NewCacherForDataSync(carfileImpl *carfile.CarfileImpl) datasync.Cacher {

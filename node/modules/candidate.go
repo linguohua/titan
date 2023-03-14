@@ -23,7 +23,7 @@ type NodeParams struct {
 
 func NewBlockFetcherFromIPFS(cfg *config.CandidateCfg) fetcher.BlockFetcher {
 	log.Info("ipfs-api " + cfg.IpfsApiURL)
-	return fetcher.NewIPFS(cfg.IpfsApiURL, cfg.FetchBlockTimeout, cfg.FetchBlockFailedRetry)
+	return fetcher.NewIPFS(cfg.IpfsApiURL, cfg.FetchBlockTimeout, cfg.FetchBlockRetry)
 }
 
 func NewTcpServer(lc fx.Lifecycle, cfg *config.CandidateCfg, blockWait *candidate.BlockWaiter) *candidate.TCPServer {

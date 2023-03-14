@@ -10,7 +10,7 @@ import (
 	"github.com/linguohua/titan/node/carfile/store"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/device"
-	"github.com/linguohua/titan/node/download"
+	"github.com/linguohua/titan/node/gateway"
 	"github.com/linguohua/titan/node/modules"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
@@ -55,7 +55,7 @@ func ConfigCandidate(c interface{}) Option {
 		Override(new(*store.CarfileStore), modules.NewCarfileStore),
 		Override(new(*validate.Validate), validate.NewValidate),
 		Override(new(*rate.Limiter), modules.NewRateLimiter),
-		Override(new(*download.BlockDownload), download.NewBlockDownload),
+		Override(new(*gateway.BlockDownload), gateway.NewBlockDownload),
 		Override(new(*carfile.CarfileImpl), carfile.NewCarfileImpl),
 		Override(new(fetcher.BlockFetcher), modules.NewBlockFetcherFromIPFS),
 		Override(new(datasync.Cacher), modules.NewCacherForDataSync),

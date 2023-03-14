@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"encoding/gob"
 
-	"github.com/ipfs/go-cid"
 	"github.com/linguohua/titan/api/types"
 )
 
 type EncodeCarfileCache struct {
-	root                      cid.Cid
+	root                      string
 	BlocksWaitList            []string
 	BlocksDownloadSuccessList []string
 	NextLayerCIDs             []string

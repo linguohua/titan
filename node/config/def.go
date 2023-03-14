@@ -42,8 +42,8 @@ func DefaultEdgeCfg() *EdgeCfg {
 		CaCertificatePath:  "",
 		InsecureSkipVerify: true,
 
-		FetchBlockTimeout:     15,
-		FetchBlockFailedRetry: 1,
+		FetchBlockTimeout: 15,
+		FetchBlockRetry:   1,
 	}
 }
 
@@ -62,8 +62,8 @@ func DefaultCandidateCfg() *CandidateCfg {
 		PrivateKeyPath:     "",
 		CaCertificatePath:  "",
 
-		FetchBlockTimeout:     15,
-		FetchBlockFailedRetry: 1,
+		FetchBlockTimeout: 15,
+		FetchBlockRetry:   1,
 	}
 	return &CandidateCfg{
 		EdgeCfg:    edgeCfg,
