@@ -23,7 +23,6 @@ var carfileCmd = &cli.Command{
 		resetExpirationCmd,
 		resetReplicaCacheCountCmd,
 		contiuneUndoneCarfileCmd,
-		restartCarfilesCmd,
 	},
 }
 
@@ -168,21 +167,6 @@ var showCarfileInfoCmd = &cli.Command{
 	},
 }
 
-var restartCarfilesCmd = &cli.Command{
-	Name:  "restart-faileds",
-	Usage: "restart failed carfiles",
-	Action: func(cctx *cli.Context) error {
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		return schedulerAPI.RestartFailedCarfiles(ctx)
-	},
-}
-
 var cacheCarfileCmd = &cli.Command{
 	Name:  "cache",
 	Usage: "Scheduling nodes cache storage",
@@ -236,8 +220,18 @@ var listCarfilesCmd = &cli.Command{
 	Flags: []cli.Flag{
 		pageFlag,
 		&cli.BoolFlag{
-			Name:  "all",
-			Usage: "carfiles in all states",
+			Name:  "downloading",
+			Usage: "carfiles in downloading states",
+			Value: false,
+		},
+		&cli.BoolFlag{
+			Name:  "failed",
+			Usage: "carfiles in failed states",
+			Value: false,
+		},
+		&cli.BoolFlag{
+			Name:  "restart",
+			Usage: "restart failed carfiles",
 			Value: false,
 		},
 	},
@@ -254,8 +248,18 @@ var listCarfilesCmd = &cli.Command{
 			return xerrors.New("page need greater than 1")
 		}
 
-		all := cctx.Bool("all")
-		info, err := schedulerAPI.CarfileRecords(ctx, page, all)
+		restart := false
+
+		status := types.CacheStatusUnknow
+		if cctx.Bool("downloading") {
+			status = types.CacheStatusDownloading
+		}
+		if cctx.Bool("failed") {
+			status = types.CacheStatusFailed
+			restart = cctx.Bool("restart")
+		}
+
+		info, err := schedulerAPI.CarfileRecords(ctx, page, status)
 		if err != nil {
 			return err
 		}
@@ -280,7 +284,15 @@ var listCarfilesCmd = &cli.Command{
 		// for _, carfile := range info.CarfileRecords {
 		// 	fmt.Printf("%s ,EdgeReplica: %d/%d ,Blocks:%d ,Expiration Time:%s \n", carfile.CarfileCID, carfile.EdgeReplica, carfile.NeedEdgeReplica, carfile.TotalBlocks, carfile.Expiration.Format("2006-01-02 15:04:05"))
 		// }
-		fmt.Printf("total:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
+		fmt.Printf("\ntotal:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
+
+		if restart {
+			if info.CarfileRecords == nil || len(info.CarfileRecords) < 1 {
+				return nil
+			}
+
+			return schedulerAPI.RestartFailedCarfiles(ctx, info.CarfileRecords)
+		}
 
 		return nil
 	},

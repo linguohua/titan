@@ -220,7 +220,7 @@ type SchedulerStruct struct {
 
 		CarfileRecord func(p0 context.Context, p1 string) (*types.CarfileRecordInfo, error) `perm:"read"`
 
-		CarfileRecords func(p0 context.Context, p1 int, p2 bool) (*types.ListCarfileRecordRsp, error) `perm:"read"`
+		CarfileRecords func(p0 context.Context, p1 int, p2 types.CacheStatus) (*types.ListCarfileRecordRsp, error) `perm:"read"`
 
 		CarfileReplicaList func(p0 context.Context, p1 types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error) `perm:"read"`
 
@@ -274,7 +274,7 @@ type SchedulerStruct struct {
 
 		ResetCarfileExpiration func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
 
-		RestartFailedCarfiles func(p0 context.Context) error `perm:"admin"`
+		RestartFailedCarfiles func(p0 context.Context, p1 []*types.CarfileRecordInfo) error `perm:"admin"`
 
 		SetEdgeUpdateInfo func(p0 context.Context, p1 *EdgeUpdateInfo) error `perm:"admin"`
 
@@ -837,14 +837,14 @@ func (s *SchedulerStub) CarfileRecord(p0 context.Context, p1 string) (*types.Car
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) CarfileRecords(p0 context.Context, p1 int, p2 bool) (*types.ListCarfileRecordRsp, error) {
+func (s *SchedulerStruct) CarfileRecords(p0 context.Context, p1 int, p2 types.CacheStatus) (*types.ListCarfileRecordRsp, error) {
 	if s.Internal.CarfileRecords == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.CarfileRecords(p0, p1, p2)
 }
 
-func (s *SchedulerStub) CarfileRecords(p0 context.Context, p1 int, p2 bool) (*types.ListCarfileRecordRsp, error) {
+func (s *SchedulerStub) CarfileRecords(p0 context.Context, p1 int, p2 types.CacheStatus) (*types.ListCarfileRecordRsp, error) {
 	return nil, ErrNotSupported
 }
 
@@ -1134,14 +1134,14 @@ func (s *SchedulerStub) ResetCarfileExpiration(p0 context.Context, p1 string, p2
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) RestartFailedCarfiles(p0 context.Context) error {
+func (s *SchedulerStruct) RestartFailedCarfiles(p0 context.Context, p1 []*types.CarfileRecordInfo) error {
 	if s.Internal.RestartFailedCarfiles == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.RestartFailedCarfiles(p0)
+	return s.Internal.RestartFailedCarfiles(p0, p1)
 }
 
-func (s *SchedulerStub) RestartFailedCarfiles(p0 context.Context) error {
+func (s *SchedulerStub) RestartFailedCarfiles(p0 context.Context, p1 []*types.CarfileRecordInfo) error {
 	return ErrNotSupported
 }
 

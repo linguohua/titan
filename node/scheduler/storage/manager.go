@@ -132,14 +132,9 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 }
 
 // FailedCarfilesRestart restart failed carfiles
-func (m *Manager) FailedCarfilesRestart() error {
-	list, err := m.ListCarfiles()
-	if err != nil {
-		return err
-	}
-
-	for _, c := range list {
-		if c.State == CacheSeedFailed || c.State == CacheCandidatesFailed || c.State == CacheEdgesFailed {
+func (m *Manager) FailedCarfilesRestart(sc []*types.CarfileRecordInfo) error {
+	for _, c := range sc {
+		if c.State == CacheSeedFailed.String() || c.State == CacheCandidatesFailed.String() || c.State == CacheEdgesFailed.String() {
 			return m.carfiles.Send(c.CarfileHash, CarfileRestart{})
 		}
 	}

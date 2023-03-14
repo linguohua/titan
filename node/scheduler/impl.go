@@ -296,7 +296,7 @@ func (s *Scheduler) NodeExternalServiceAddress(ctx context.Context) (string, err
 // NodeValidatedResult Validator Block Result
 func (s *Scheduler) NodeValidatedResult(ctx context.Context, result api.ValidatedResult) error {
 	validator := handler.GetNodeID(ctx)
-	log.Debug("call back Validator block result, Validator is", validator)
+	log.Debug("call back Validator block result, Validator is ", validator)
 	// if !s.nodeExists(validator, 0) {
 	// 	return xerrors.Errorf("node not Exist: %s", validator)
 	// }
