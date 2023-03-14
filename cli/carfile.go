@@ -2,7 +2,11 @@ package cli
 
 import (
 	"fmt"
+	"github.com/fatih/color"
+	"github.com/linguohua/titan/lib/tablewriter"
+	"os"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/linguohua/titan/api/types"
@@ -225,6 +229,11 @@ var listCarfilesCmd = &cli.Command{
 			Value: false,
 		},
 		&cli.BoolFlag{
+			Name:  "processes",
+			Usage: "carfiles in process",
+			Value: false,
+		},
+		&cli.BoolFlag{
 			Name:  "failed",
 			Usage: "carfiles in failed states",
 			Value: false,
@@ -250,7 +259,7 @@ var listCarfilesCmd = &cli.Command{
 
 		restart := false
 
-		status := types.CacheStatusUnknow
+		status := types.CacheStatusUnknown
 		if cctx.Bool("downloading") {
 			status = types.CacheStatusDownloading
 		}
@@ -259,6 +268,16 @@ var listCarfilesCmd = &cli.Command{
 			restart = cctx.Bool("restart")
 		}
 
+		tw := tablewriter.New(
+			tablewriter.Col("CID"),
+			tablewriter.Col("State"),
+			tablewriter.Col("Blocks"),
+			tablewriter.Col("Size"),
+			tablewriter.Col("CreateTime"),
+			tablewriter.Col("Expiration"),
+			tablewriter.NewLineCol("Processes"),
+		)
+
 		info, err := schedulerAPI.CarfileRecords(ctx, page, status)
 		if err != nil {
 			return err
@@ -266,25 +285,45 @@ var listCarfilesCmd = &cli.Command{
 
 		for w := 0; w < len(info.CarfileRecords); w++ {
 			carfile := info.CarfileRecords[w]
-
-			fmt.Printf("\n%s ,State: %s ,Blocks:%d ,Size:%f MB ,Expiration Time:%s \n", carfile.CarfileCID, carfile.State, carfile.TotalBlocks, float64(carfile.TotalSize)/(1024*1024), carfile.Expiration.Format("2006-01-02 15:04:05"))
-			// fmt.Printf("\nData CID: %s ,Total Size:%f MB ,Total Blocks:%d \n", info.CarfileCID, float64(info.TotalSize)/(1024*1024), info.TotalBlocks)
+			m := map[string]interface{}{
+				"CID":        carfile.CarfileCID,
+				"State":      colorState(carfile.State),
+				"Blocks":     carfile.TotalBlocks,
+				"Size":       carfile.TotalSize,
+				"CreateTime": carfile.CreateTime,
+				"Expiration": carfile.Expiration,
+			}
 
 			sort.Slice(carfile.ReplicaInfos, func(i, j int) bool {
 				return carfile.ReplicaInfos[i].NodeID < carfile.ReplicaInfos[j].NodeID
 			})
 
-			for j := 0; j < len(carfile.ReplicaInfos); j++ {
-				cache := carfile.ReplicaInfos[j]
-				fmt.Printf("NodeID: %s , Status:%s ,IsCandidateCache:%v \n",
-					cache.NodeID, cache.Status.String(), cache.IsCandidate)
+			if cctx.Bool("processes") {
+				var processes = "\n"
+				for j := 0; j < len(carfile.ReplicaInfos); j++ {
+					cache := carfile.ReplicaInfos[j]
+					status := cache.Status.String()
+					switch cache.Status {
+					case types.CacheStatusSucceeded:
+						status = color.GreenString(status)
+					case types.CacheStatusDownloading:
+						status = color.YellowString(status)
+					case types.CacheStatusFailed:
+						status = color.RedString(status)
+					}
+					processes += fmt.Sprintf("\t%s(%s): %s\n", cache.NodeID, edgeOrCandidate(cache.IsCandidate), status)
+				}
+				m["Processes"] = processes
 			}
+
+			tw.Write(m)
 		}
 
-		// for _, carfile := range info.CarfileRecords {
-		// 	fmt.Printf("%s ,EdgeReplica: %d/%d ,Blocks:%d ,Expiration Time:%s \n", carfile.CarfileCID, carfile.EdgeReplica, carfile.NeedEdgeReplica, carfile.TotalBlocks, carfile.Expiration.Format("2006-01-02 15:04:05"))
-		// }
-		fmt.Printf("\ntotal:%d            %d/%d \n", info.Cids, info.Page, info.TotalPage)
+		if err := tw.Flush(os.Stdout); err != nil {
+			return err
+		}
+
+		fmt.Printf("\nTotal:%d\t\t%d/%d \n", info.Cids, info.Page, info.TotalPage)
 
 		if restart {
 			if info.CarfileRecords == nil || len(info.CarfileRecords) < 1 {
@@ -296,6 +335,23 @@ var listCarfilesCmd = &cli.Command{
 
 		return nil
 	},
+}
+
+func edgeOrCandidate(isCandidate bool) string {
+	if isCandidate {
+		return "candidate"
+	}
+	return "edge"
+}
+
+func colorState(state string) string {
+	if strings.Contains(state, "Failed") {
+		return color.RedString(state)
+	} else if strings.Contains(state, "Finalize") {
+		return color.GreenString(state)
+	} else {
+		return color.YellowString(state)
+	}
 }
 
 var carfilesStatusCmd = &cli.Command{

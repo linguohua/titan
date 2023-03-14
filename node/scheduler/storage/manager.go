@@ -38,10 +38,9 @@ var cachingTimeout = time.Duration(nodeCachingKeepalive) * time.Second
 
 // Manager storage
 type Manager struct {
-	nodeManager          *node.Manager
-	latelyExpirationTime time.Time
-	writeToken           []byte
-	downloadingTaskCount int
+	nodeManager      *node.Manager
+	latelyExpiration time.Time
+	writeToken       []byte
 
 	startupWait sync.WaitGroup
 	carfiles    *statemachine.StateGroup
@@ -70,10 +69,10 @@ func (t *carfileTicker) run(job func()) {
 // NewManager return new storage manager instance
 func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToken, ds datastore.Batching) *Manager {
 	m := &Manager{
-		nodeManager:          nodeManager,
-		latelyExpirationTime: time.Now(),
-		writeToken:           writeToken,
-		carfileTickers:       make(map[string]*carfileTicker),
+		nodeManager:      nodeManager,
+		latelyExpiration: time.Now(),
+		writeToken:       writeToken,
+		carfileTickers:   make(map[string]*carfileTicker),
 	}
 
 	m.startupWait.Add(1)
@@ -171,7 +170,7 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 
 // CacheCarfileResult block cache result
 func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (err error) {
-	log.Debugf("carfileCacheResult :%s , %d , %s", nodeID, info.Status, info.CarfileHash)
+	log.Debugf("carfileCacheResult node_id: %s, status: %d, hash: %s", nodeID, info.Status, info.CarfileHash)
 
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -258,7 +257,7 @@ func (m *Manager) ResetCarfileExpiration(cid string, t time.Time) error {
 		return err
 	}
 
-	log.Infof("storage event %s , reset storage expiration:%s", cid, t.String())
+	log.Infof("storage event %s, reset storage expiration:%s", cid, t.String())
 
 	err = m.nodeManager.CarfileDB.ResetCarfileExpiration(hash, t)
 	if err != nil {
@@ -272,7 +271,7 @@ func (m *Manager) ResetCarfileExpiration(cid string, t time.Time) error {
 
 // check caches expiration
 func (m *Manager) checkCachesExpiration() {
-	if m.latelyExpirationTime.After(time.Now()) {
+	if m.latelyExpiration.After(time.Now()) {
 		return
 	}
 
@@ -285,7 +284,7 @@ func (m *Manager) checkCachesExpiration() {
 	for _, carfileRecord := range carfileRecords {
 		// do remove
 		err = m.RemoveCarfileRecord(carfileRecord.CarfileCID, carfileRecord.CarfileHash)
-		log.Infof("cid:%s, expired,remove it ; %v", carfileRecord.CarfileCID, err)
+		log.Infof("the carfile cid(%s) has expired, being removed, err: %v", carfileRecord.CarfileCID, err)
 	}
 
 	// reset expiration
@@ -298,8 +297,8 @@ func (m *Manager) checkCachesExpiration() {
 }
 
 func (m *Manager) resetLatelyExpiration(t time.Time) {
-	if m.latelyExpirationTime.After(t) {
-		m.latelyExpirationTime = t
+	if m.latelyExpiration.After(t) {
+		m.latelyExpiration = t
 	}
 }
 
