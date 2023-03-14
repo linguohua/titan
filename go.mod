@@ -7,6 +7,7 @@ require (
 	github.com/BurntSushi/toml v1.2.0
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/dgraph-io/badger/v2 v2.2007.4
+	github.com/docker/go-units v0.5.0
 	github.com/fatih/color v1.13.0
 	github.com/filecoin-project/dagstore v0.6.0
 	github.com/filecoin-project/go-jsonrpc v0.2.1
