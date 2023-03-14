@@ -7,9 +7,9 @@ import (
 	"github.com/ipfs/go-cid"
 	legacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/ipld/go-car/v2/blockstore"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/carfile/fetcher"
+	"github.com/linguohua/titan/node/carfile/store"
 )
 
 var log = logging.Logger("carfile/cache")
@@ -22,7 +22,7 @@ type downloadResult struct {
 
 type carfileCache struct {
 	root            cid.Cid
-	bsrw            *blockstore.ReadWrite
+	cs              *store.CarfileStore
 	bFetcher        fetcher.BlockFetcher
 	downloadSources []*types.DownloadSource
 
@@ -39,13 +39,13 @@ type carfileCache struct {
 type options struct {
 	root     cid.Cid
 	dss      []*types.DownloadSource
-	bsrw     *blockstore.ReadWrite
+	cs       *store.CarfileStore
 	bFetcher fetcher.BlockFetcher
 	batch    int
 }
 
 func newCarfileCache(opts *options) *carfileCache {
-	return &carfileCache{root: opts.root, bsrw: opts.bsrw, downloadSources: opts.dss, bFetcher: opts.bFetcher, batch: opts.batch}
+	return &carfileCache{root: opts.root, cs: opts.cs, downloadSources: opts.dss, bFetcher: opts.bFetcher, batch: opts.batch}
 }
 
 // get n block from front of wait list
@@ -154,7 +154,7 @@ func (cfCache *carfileCache) downloadBlocks(cids []string) (*downloadResult, err
 		nexLayerCids = append(nexLayerCids, links...)
 	}
 
-	err = cfCache.bsrw.PutMany(context.Background(), blks)
+	err = cfCache.cs.PutBlocks(context.Background(), cfCache.root, blks)
 	if err != nil {
 		return nil, err
 	}

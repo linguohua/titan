@@ -29,13 +29,7 @@ func TestCache(t *testing.T) {
 		return
 	}
 
-	bsrw, err := carfileStore.NewCarfileWriter(c)
-	if err != nil {
-		t.Errorf("NewCarfileWriter error:%s", err)
-		return
-	}
-
-	carCache := newCarfileCache(&options{root: c, dss: nil, bsrw: bsrw, bFetcher: fetcher.NewIPFS("http://192.168.0.132:5001", 15, 1), batch: 5})
+	carCache := newCarfileCache(&options{root: c, dss: nil, cs: carfileStore, bFetcher: fetcher.NewIPFS("http://192.168.0.132:5001", 15, 1), batch: 5})
 
 	err = carCache.downloadCar()
 	if err != nil {

@@ -19,7 +19,7 @@ import (
 	"github.com/multiformats/go-multihash"
 )
 
-var log = logging.Logger("/carfile/store")
+var log = logging.Logger("carfile/store")
 
 const (
 	// dir of file name
@@ -68,18 +68,27 @@ func NewCarfileStore(path string) (*CarfileStore, error) {
 
 	dagstWrapper.dagst.Start(context.Background())
 
-	return &CarfileStore{incompleteCarfileCache: incompleteCarfileCache, baseDir: path, dagst: dagstWrapper.dagst, indexRepo: dagstWrapper.indexRepo}, nil
+	cs := &CarfileStore{incompleteCarfileCache: incompleteCarfileCache, baseDir: path, dagst: dagstWrapper.dagst, indexRepo: dagstWrapper.indexRepo}
+	err = cs.recory()
+	if err != nil {
+		log.Panicf("recory error:%s", err.Error())
+	}
+
+	return cs, nil
 }
 
-func (cs *CarfileStore) closeDagstore() error {
-	return cs.dagst.Close()
-}
-
-func (cs *CarfileStore) NewCarfileWriter(root cid.Cid) (*blockstore.ReadWrite, error) {
+func (cs *CarfileStore) PutBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) error {
 	name := newCarfileName(root)
 	path := filepath.Join(cs.carsDir(), name)
 
-	return blockstore.OpenReadWrite(path, []cid.Cid{root})
+	rw, err := blockstore.OpenReadWrite(path, []cid.Cid{root})
+	if err != nil {
+		return err
+	}
+
+	defer rw.Finalize()
+
+	return rw.PutMany(ctx, blks)
 }
 
 func (cs *CarfileStore) HashCarfile(root cid.Cid) (bool, error) {
@@ -308,6 +317,33 @@ func (cs *CarfileStore) indexCount(k shard.Key) (int, error) {
 	}
 
 	return count, nil
+}
+
+func (cs *CarfileStore) recory() error {
+	infos := cs.dagst.AllShardsInfo()
+	for k := range infos {
+		_, err := cs.dagst.GetIterableIndex(k)
+		if err != nil {
+			mh, err := multihash.FromHexString(k.String())
+			if err != nil {
+				return err
+			}
+
+			c := cid.NewCidV1(cid.Raw, mh)
+
+			cs.destroyShared(c)
+
+			err = cs.RegisterShared(c)
+			if err != nil {
+				return err
+			}
+
+			log.Debugf("register shard %s success", k.String())
+
+		}
+	}
+
+	return nil
 }
 
 // count all block is cost much performance
