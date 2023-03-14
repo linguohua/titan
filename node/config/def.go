@@ -97,7 +97,7 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		AreaID:             "CN-GD-Shenzhen",
 		DatabaseAddress:    "user01:sql001@tcp(127.0.0.1:3306)/titan",
 		EnableValidate:     true,
-		EtcdAddresss:       []string{"127.0.0.1:2379"},
+		EtcdAddresss:       []string{"192.168.0.160:2379"},
 	}
 }
 

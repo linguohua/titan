@@ -4,25 +4,18 @@ package api
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"github.com/filecoin-project/go-jsonrpc"
+	"time"
+
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/journal/alerting"
 	xerrors "golang.org/x/xerrors"
-	"reflect"
-	"time"
-
 )
-
 
 var ErrNotSupported = xerrors.New("method not supported")
 
-
 type CandidateStruct struct {
-
 	CommonStruct
 
 	DeviceStruct
@@ -36,20 +29,17 @@ type CandidateStruct struct {
 	CarfileOperationStruct
 
 	Internal struct {
-
 		GetBlock func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
 
 		GetBlocksOfCarfile func(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) `perm:"read"`
 
-		ValidateNodes func(p0 context.Context, p1 []ReqValidate) (error) `perm:"read"`
+		ValidateNodes func(p0 context.Context, p1 []ReqValidate) error `perm:"read"`
 
-		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
-
+		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
 }
 
 type CandidateStub struct {
-
 	CommonStub
 
 	DeviceStub
@@ -61,41 +51,34 @@ type CandidateStub struct {
 	DataSyncStub
 
 	CarfileOperationStub
-
 }
 
 type CarfileOperationStruct struct {
-
 	Internal struct {
-
 		CacheCarfile func(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheCarfileResult, error) `perm:"write"`
 
-		DeleteAllCarfiles func(p0 context.Context) (error) `perm:"admin"`
+		DeleteAllCarfiles func(p0 context.Context) error `perm:"admin"`
 
-		DeleteCarfile func(p0 context.Context, p1 string) (error) `perm:"write"`
+		DeleteCarfile func(p0 context.Context, p1 string) error `perm:"write"`
 
 		QueryCacheStat func(p0 context.Context) (*types.CacheStat, error) `perm:"write"`
 
 		QueryCachingCarfile func(p0 context.Context) (*types.CachingCarfile, error) `perm:"write"`
-
 	}
 }
 
 type CarfileOperationStub struct {
-
 }
 
 type CommonStruct struct {
-
 	Internal struct {
-
 		AuthNew func(p0 context.Context, p1 []auth.Permission) ([]byte, error) `perm:"admin"`
 
 		AuthVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
 
 		Closing func(p0 context.Context) (<-chan struct{}, error) `perm:"read"`
 
-		DeleteLogFile func(p0 context.Context) (error) `perm:"write"`
+		DeleteLogFile func(p0 context.Context) error `perm:"write"`
 
 		Discover func(p0 context.Context) (types.OpenRPCDocument, error) `perm:"read"`
 
@@ -105,68 +88,53 @@ type CommonStruct struct {
 
 		LogList func(p0 context.Context) ([]string, error) `perm:"write"`
 
-		LogSetLevel func(p0 context.Context, p1 string, p2 string) (error) `perm:"write"`
+		LogSetLevel func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
 		Session func(p0 context.Context) (uuid.UUID, error) `perm:"read"`
 
 		ShowLogFile func(p0 context.Context) (*LogFile, error) `perm:"write"`
 
-		Shutdown func(p0 context.Context) (error) `perm:"admin"`
+		Shutdown func(p0 context.Context) error `perm:"admin"`
 
 		Version func(p0 context.Context) (APIVersion, error) `perm:"read"`
-
 	}
 }
 
 type CommonStub struct {
-
 }
 
 type DataSyncStruct struct {
-
 	Internal struct {
-
-		CompareCarfiles func(p0 context.Context, p1 uint32, p2 map[uint32][]string) (error) `perm:"write"`
+		CompareCarfiles func(p0 context.Context, p1 uint32, p2 map[uint32][]string) error `perm:"write"`
 
 		CompareChecksums func(p0 context.Context, p1 uint32, p2 map[uint32]string) ([]uint32, error) `perm:"write"`
-
 	}
 }
 
 type DataSyncStub struct {
-
 }
 
 type DeviceStruct struct {
-
 	Internal struct {
-
 		NodeID func(p0 context.Context) (string, error) `perm:"read"`
 
 		NodeInfo func(p0 context.Context) (types.NodeInfo, error) `perm:"read"`
-
 	}
 }
 
 type DeviceStub struct {
-
 }
 
 type DownloadStruct struct {
-
 	Internal struct {
-
-		SetDownloadSpeed func(p0 context.Context, p1 int64) (error) `perm:"write"`
-
+		SetDownloadSpeed func(p0 context.Context, p1 int64) error `perm:"write"`
 	}
 }
 
 type DownloadStub struct {
-
 }
 
 type EdgeStruct struct {
-
 	CommonStruct
 
 	DeviceStruct
@@ -180,18 +148,15 @@ type EdgeStruct struct {
 	CarfileOperationStruct
 
 	Internal struct {
-
 		ExternalServiceAddrss func(p0 context.Context, p1 string) (string, error) `perm:"write"`
 
-		UserNATTravel func(p0 context.Context, p1 string) (error) `perm:"write"`
+		UserNATTravel func(p0 context.Context, p1 string) error `perm:"write"`
 
-		WaitQuiet func(p0 context.Context) (error) `perm:"read"`
-
+		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
 }
 
 type EdgeStub struct {
-
 	CommonStub
 
 	DeviceStub
@@ -203,16 +168,13 @@ type EdgeStub struct {
 	DataSyncStub
 
 	CarfileOperationStub
-
 }
 
 type LocatorStruct struct {
-
 	CommonStruct
 
 	Internal struct {
-
-		AddAccessPoint func(p0 context.Context, p1 string, p2 string, p3 int, p4 string) (error) `perm:"admin"`
+		AddAccessPoint func(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error `perm:"admin"`
 
 		AllocateNodes func(p0 context.Context, p1 string, p2 types.NodeType, p3 int) ([]*types.NodeAllocateInfo, error) `perm:"admin"`
 
@@ -226,40 +188,35 @@ type LocatorStruct struct {
 
 		LoadUserAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
 
-		RemoveAccessPoints func(p0 context.Context, p1 string) (error) `perm:"admin"`
+		RemoveAccessPoints func(p0 context.Context, p1 string) error `perm:"admin"`
 
-		SetNodeOnlineStatus func(p0 context.Context, p1 string, p2 bool) (error) `perm:"write"`
+		SetNodeOnlineStatus func(p0 context.Context, p1 string, p2 bool) error `perm:"write"`
 
 		ShowAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
 
-		UserDownloadBlockResults func(p0 context.Context, p1 []types.UserBlockDownloadResult) (error) `perm:"read"`
-
+		UserDownloadBlockResults func(p0 context.Context, p1 []types.UserBlockDownloadResult) error `perm:"read"`
 	}
 }
 
 type LocatorStub struct {
-
 	CommonStub
-
 }
 
 type SchedulerStruct struct {
-
 	CommonStruct
 
 	Internal struct {
-
 		AllocateNodes func(p0 context.Context, p1 types.NodeType, p2 int) ([]*types.NodeAllocateInfo, error) `perm:"admin"`
 
 		AuthNodeNew func(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) `perm:"read"`
 
 		AuthNodeVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
 
-		CacheCarfiles func(p0 context.Context, p1 *types.CacheCarfileInfo) (error) `perm:"admin"`
+		CacheCarfiles func(p0 context.Context, p1 *types.CacheCarfileInfo) error `perm:"admin"`
 
-		CacheResult func(p0 context.Context, p1 types.CacheResult) (error) `perm:"write"`
+		CacheResult func(p0 context.Context, p1 types.CacheResult) error `perm:"write"`
 
-		CandidateNodeConnect func(p0 context.Context) (error) `perm:"write"`
+		CandidateNodeConnect func(p0 context.Context) error `perm:"write"`
 
 		CarfileRecord func(p0 context.Context, p1 string) (*types.CarfileRecordInfo, error) `perm:"read"`
 
@@ -269,9 +226,9 @@ type SchedulerStruct struct {
 
 		CarfileStatus func(p0 context.Context, p1 types.CarfileHash) (types.CarfileRecordInfo, error) `perm:"read"`
 
-		DeleteEdgeUpdateInfo func(p0 context.Context, p1 int) (error) `perm:"admin"`
+		DeleteEdgeUpdateInfo func(p0 context.Context, p1 int) error `perm:"admin"`
 
-		DeleteNodeLogFile func(p0 context.Context, p1 string) (error) `perm:"admin"`
+		DeleteNodeLogFile func(p0 context.Context, p1 string) error `perm:"admin"`
 
 		DownloadRecordList func(p0 context.Context, p1 types.ListBlockDownloadInfoReq) (*types.ListDownloadRecordRsp, error) `perm:"read"`
 
@@ -279,13 +236,13 @@ type SchedulerStruct struct {
 
 		EdgeExternalServiceAddress func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
 
-		EdgeNodeConnect func(p0 context.Context) (error) `perm:"write"`
+		EdgeNodeConnect func(p0 context.Context) error `perm:"write"`
 
 		EdgeUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
 		IsBehindFullConeNAT func(p0 context.Context, p1 string) (bool, error) `perm:"read"`
 
-		LocatorConnect func(p0 context.Context, p1 string, p2 string) (error) `perm:"write"`
+		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
 		NodeExternalServiceAddress func(p0 context.Context) (string, error) `perm:"read"`
 
@@ -301,67 +258,56 @@ type SchedulerStruct struct {
 
 		NodePublicKey func(p0 context.Context) (string, error) `perm:"write"`
 
-		NodeQuit func(p0 context.Context, p1 string, p2 string) (error) `perm:"admin"`
+		NodeQuit func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
-		NodeValidatedResult func(p0 context.Context, p1 ValidatedResult) (error) `perm:"write"`
+		NodeValidatedResult func(p0 context.Context, p1 ValidatedResult) error `perm:"write"`
 
 		OnlineNodeList func(p0 context.Context, p1 types.NodeType) ([]string, error) `perm:"read"`
 
-		RecacheCarfiles func(p0 context.Context, p1 []string) (error) `perm:"admin"`
+		RecacheCarfiles func(p0 context.Context, p1 []string) error `perm:"admin"`
 
-		RemoveCarfile func(p0 context.Context, p1 string) (error) `perm:"admin"`
+		RemoveCarfile func(p0 context.Context, p1 string) error `perm:"admin"`
 
-		RemoveCarfileResult func(p0 context.Context, p1 types.RemoveCarfileResult) (error) `perm:"write"`
+		RemoveCarfileResult func(p0 context.Context, p1 types.RemoveCarfileResult) error `perm:"write"`
 
-		ResetCandidateReplicaCount func(p0 context.Context, p1 int) (error) `perm:"admin"`
+		ResetCandidateReplicaCount func(p0 context.Context, p1 int) error `perm:"admin"`
 
-		ResetCarfileExpiration func(p0 context.Context, p1 string, p2 time.Time) (error) `perm:"admin"`
+		ResetCarfileExpiration func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
 
-		RestartFailedCarfiles func(p0 context.Context, p1 []*types.CarfileRecordInfo) (error) `perm:"admin"`
+		RestartFailedCarfiles func(p0 context.Context, p1 []*types.CarfileRecordInfo) error `perm:"admin"`
 
-		SetEdgeUpdateInfo func(p0 context.Context, p1 *EdgeUpdateInfo) (error) `perm:"admin"`
+		SetEdgeUpdateInfo func(p0 context.Context, p1 *EdgeUpdateInfo) error `perm:"admin"`
 
-		SetNodePort func(p0 context.Context, p1 string, p2 string) (error) `perm:"admin"`
+		SetNodePort func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
-		StartOnceElection func(p0 context.Context) (error) `perm:"admin"`
+		StartOnceElection func(p0 context.Context) error `perm:"admin"`
 
-		StartOnceValidate func(p0 context.Context) (error) `perm:"admin"`
+		StartOnceValidate func(p0 context.Context) error `perm:"admin"`
 
 		SystemInfo func(p0 context.Context) (types.SystemBaseInfo, error) `perm:"read"`
 
-		UserDownloadBlockResults func(p0 context.Context, p1 []types.UserBlockDownloadResult) (error) `perm:"read"`
+		UserDownloadBlockResults func(p0 context.Context, p1 []types.UserBlockDownloadResult) error `perm:"read"`
 
-		UserDownloadResult func(p0 context.Context, p1 types.UserDownloadResult) (error) `perm:"write"`
+		UserDownloadResult func(p0 context.Context, p1 types.UserDownloadResult) error `perm:"write"`
 
 		ValidatedResultList func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidatedResultRsp, error) `perm:"read"`
 
 		ValidationEnable func(p0 context.Context) (bool, error) `perm:"admin"`
-
 	}
 }
 
 type SchedulerStub struct {
-
 	CommonStub
-
 }
 
 type ValidateStruct struct {
-
 	Internal struct {
-
-		BeValidate func(p0 context.Context, p1 ReqValidate, p2 string) (error) `perm:"read"`
-
+		BeValidate func(p0 context.Context, p1 ReqValidate, p2 string) error `perm:"read"`
 	}
 }
 
 type ValidateStub struct {
-
 }
-
-
-
-
 
 func (s *CandidateStruct) GetBlock(p0 context.Context, p1 string) ([]byte, error) {
 	if s.Internal.GetBlock == nil {
@@ -385,30 +331,27 @@ func (s *CandidateStub) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 int
 	return *new(map[int]string), ErrNotSupported
 }
 
-func (s *CandidateStruct) ValidateNodes(p0 context.Context, p1 []ReqValidate) (error) {
+func (s *CandidateStruct) ValidateNodes(p0 context.Context, p1 []ReqValidate) error {
 	if s.Internal.ValidateNodes == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.ValidateNodes(p0, p1)
 }
 
-func (s *CandidateStub) ValidateNodes(p0 context.Context, p1 []ReqValidate) (error) {
+func (s *CandidateStub) ValidateNodes(p0 context.Context, p1 []ReqValidate) error {
 	return ErrNotSupported
 }
 
-func (s *CandidateStruct) WaitQuiet(p0 context.Context) (error) {
+func (s *CandidateStruct) WaitQuiet(p0 context.Context) error {
 	if s.Internal.WaitQuiet == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.WaitQuiet(p0)
 }
 
-func (s *CandidateStub) WaitQuiet(p0 context.Context) (error) {
+func (s *CandidateStub) WaitQuiet(p0 context.Context) error {
 	return ErrNotSupported
 }
-
-
-
 
 func (s *CarfileOperationStruct) CacheCarfile(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheCarfileResult, error) {
 	if s.Internal.CacheCarfile == nil {
@@ -421,25 +364,25 @@ func (s *CarfileOperationStub) CacheCarfile(p0 context.Context, p1 string, p2 []
 	return nil, ErrNotSupported
 }
 
-func (s *CarfileOperationStruct) DeleteAllCarfiles(p0 context.Context) (error) {
+func (s *CarfileOperationStruct) DeleteAllCarfiles(p0 context.Context) error {
 	if s.Internal.DeleteAllCarfiles == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.DeleteAllCarfiles(p0)
 }
 
-func (s *CarfileOperationStub) DeleteAllCarfiles(p0 context.Context) (error) {
+func (s *CarfileOperationStub) DeleteAllCarfiles(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *CarfileOperationStruct) DeleteCarfile(p0 context.Context, p1 string) (error) {
+func (s *CarfileOperationStruct) DeleteCarfile(p0 context.Context, p1 string) error {
 	if s.Internal.DeleteCarfile == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.DeleteCarfile(p0, p1)
 }
 
-func (s *CarfileOperationStub) DeleteCarfile(p0 context.Context, p1 string) (error) {
+func (s *CarfileOperationStub) DeleteCarfile(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
@@ -464,9 +407,6 @@ func (s *CarfileOperationStruct) QueryCachingCarfile(p0 context.Context) (*types
 func (s *CarfileOperationStub) QueryCachingCarfile(p0 context.Context) (*types.CachingCarfile, error) {
 	return nil, ErrNotSupported
 }
-
-
-
 
 func (s *CommonStruct) AuthNew(p0 context.Context, p1 []auth.Permission) ([]byte, error) {
 	if s.Internal.AuthNew == nil {
@@ -501,14 +441,14 @@ func (s *CommonStub) Closing(p0 context.Context) (<-chan struct{}, error) {
 	return nil, ErrNotSupported
 }
 
-func (s *CommonStruct) DeleteLogFile(p0 context.Context) (error) {
+func (s *CommonStruct) DeleteLogFile(p0 context.Context) error {
 	if s.Internal.DeleteLogFile == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.DeleteLogFile(p0)
 }
 
-func (s *CommonStub) DeleteLogFile(p0 context.Context) (error) {
+func (s *CommonStub) DeleteLogFile(p0 context.Context) error {
 	return ErrNotSupported
 }
 
@@ -556,14 +496,14 @@ func (s *CommonStub) LogList(p0 context.Context) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 
-func (s *CommonStruct) LogSetLevel(p0 context.Context, p1 string, p2 string) (error) {
+func (s *CommonStruct) LogSetLevel(p0 context.Context, p1 string, p2 string) error {
 	if s.Internal.LogSetLevel == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.LogSetLevel(p0, p1, p2)
 }
 
-func (s *CommonStub) LogSetLevel(p0 context.Context, p1 string, p2 string) (error) {
+func (s *CommonStub) LogSetLevel(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
 }
 
@@ -589,14 +529,14 @@ func (s *CommonStub) ShowLogFile(p0 context.Context) (*LogFile, error) {
 	return nil, ErrNotSupported
 }
 
-func (s *CommonStruct) Shutdown(p0 context.Context) (error) {
+func (s *CommonStruct) Shutdown(p0 context.Context) error {
 	if s.Internal.Shutdown == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.Shutdown(p0)
 }
 
-func (s *CommonStub) Shutdown(p0 context.Context) (error) {
+func (s *CommonStub) Shutdown(p0 context.Context) error {
 	return ErrNotSupported
 }
 
@@ -611,17 +551,14 @@ func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 	return *new(APIVersion), ErrNotSupported
 }
 
-
-
-
-func (s *DataSyncStruct) CompareCarfiles(p0 context.Context, p1 uint32, p2 map[uint32][]string) (error) {
+func (s *DataSyncStruct) CompareCarfiles(p0 context.Context, p1 uint32, p2 map[uint32][]string) error {
 	if s.Internal.CompareCarfiles == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CompareCarfiles(p0, p1, p2)
 }
 
-func (s *DataSyncStub) CompareCarfiles(p0 context.Context, p1 uint32, p2 map[uint32][]string) (error) {
+func (s *DataSyncStub) CompareCarfiles(p0 context.Context, p1 uint32, p2 map[uint32][]string) error {
 	return ErrNotSupported
 }
 
@@ -635,9 +572,6 @@ func (s *DataSyncStruct) CompareChecksums(p0 context.Context, p1 uint32, p2 map[
 func (s *DataSyncStub) CompareChecksums(p0 context.Context, p1 uint32, p2 map[uint32]string) ([]uint32, error) {
 	return *new([]uint32), ErrNotSupported
 }
-
-
-
 
 func (s *DeviceStruct) NodeID(p0 context.Context) (string, error) {
 	if s.Internal.NodeID == nil {
@@ -661,22 +595,16 @@ func (s *DeviceStub) NodeInfo(p0 context.Context) (types.NodeInfo, error) {
 	return *new(types.NodeInfo), ErrNotSupported
 }
 
-
-
-
-func (s *DownloadStruct) SetDownloadSpeed(p0 context.Context, p1 int64) (error) {
+func (s *DownloadStruct) SetDownloadSpeed(p0 context.Context, p1 int64) error {
 	if s.Internal.SetDownloadSpeed == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.SetDownloadSpeed(p0, p1)
 }
 
-func (s *DownloadStub) SetDownloadSpeed(p0 context.Context, p1 int64) (error) {
+func (s *DownloadStub) SetDownloadSpeed(p0 context.Context, p1 int64) error {
 	return ErrNotSupported
 }
-
-
-
 
 func (s *EdgeStruct) ExternalServiceAddrss(p0 context.Context, p1 string) (string, error) {
 	if s.Internal.ExternalServiceAddrss == nil {
@@ -689,39 +617,36 @@ func (s *EdgeStub) ExternalServiceAddrss(p0 context.Context, p1 string) (string,
 	return "", ErrNotSupported
 }
 
-func (s *EdgeStruct) UserNATTravel(p0 context.Context, p1 string) (error) {
+func (s *EdgeStruct) UserNATTravel(p0 context.Context, p1 string) error {
 	if s.Internal.UserNATTravel == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.UserNATTravel(p0, p1)
 }
 
-func (s *EdgeStub) UserNATTravel(p0 context.Context, p1 string) (error) {
+func (s *EdgeStub) UserNATTravel(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
-func (s *EdgeStruct) WaitQuiet(p0 context.Context) (error) {
+func (s *EdgeStruct) WaitQuiet(p0 context.Context) error {
 	if s.Internal.WaitQuiet == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.WaitQuiet(p0)
 }
 
-func (s *EdgeStub) WaitQuiet(p0 context.Context) (error) {
+func (s *EdgeStub) WaitQuiet(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-
-
-
-func (s *LocatorStruct) AddAccessPoint(p0 context.Context, p1 string, p2 string, p3 int, p4 string) (error) {
+func (s *LocatorStruct) AddAccessPoint(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error {
 	if s.Internal.AddAccessPoint == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.AddAccessPoint(p0, p1, p2, p3, p4)
 }
 
-func (s *LocatorStub) AddAccessPoint(p0 context.Context, p1 string, p2 string, p3 int, p4 string) (error) {
+func (s *LocatorStub) AddAccessPoint(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error {
 	return ErrNotSupported
 }
 
@@ -791,25 +716,25 @@ func (s *LocatorStub) LoadUserAccessPoint(p0 context.Context, p1 string) (Access
 	return *new(AccessPoint), ErrNotSupported
 }
 
-func (s *LocatorStruct) RemoveAccessPoints(p0 context.Context, p1 string) (error) {
+func (s *LocatorStruct) RemoveAccessPoints(p0 context.Context, p1 string) error {
 	if s.Internal.RemoveAccessPoints == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.RemoveAccessPoints(p0, p1)
 }
 
-func (s *LocatorStub) RemoveAccessPoints(p0 context.Context, p1 string) (error) {
+func (s *LocatorStub) RemoveAccessPoints(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
-func (s *LocatorStruct) SetNodeOnlineStatus(p0 context.Context, p1 string, p2 bool) (error) {
+func (s *LocatorStruct) SetNodeOnlineStatus(p0 context.Context, p1 string, p2 bool) error {
 	if s.Internal.SetNodeOnlineStatus == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.SetNodeOnlineStatus(p0, p1, p2)
 }
 
-func (s *LocatorStub) SetNodeOnlineStatus(p0 context.Context, p1 string, p2 bool) (error) {
+func (s *LocatorStub) SetNodeOnlineStatus(p0 context.Context, p1 string, p2 bool) error {
 	return ErrNotSupported
 }
 
@@ -824,19 +749,16 @@ func (s *LocatorStub) ShowAccessPoint(p0 context.Context, p1 string) (AccessPoin
 	return *new(AccessPoint), ErrNotSupported
 }
 
-func (s *LocatorStruct) UserDownloadBlockResults(p0 context.Context, p1 []types.UserBlockDownloadResult) (error) {
+func (s *LocatorStruct) UserDownloadBlockResults(p0 context.Context, p1 []types.UserBlockDownloadResult) error {
 	if s.Internal.UserDownloadBlockResults == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.UserDownloadBlockResults(p0, p1)
 }
 
-func (s *LocatorStub) UserDownloadBlockResults(p0 context.Context, p1 []types.UserBlockDownloadResult) (error) {
+func (s *LocatorStub) UserDownloadBlockResults(p0 context.Context, p1 []types.UserBlockDownloadResult) error {
 	return ErrNotSupported
 }
-
-
-
 
 func (s *SchedulerStruct) AllocateNodes(p0 context.Context, p1 types.NodeType, p2 int) ([]*types.NodeAllocateInfo, error) {
 	if s.Internal.AllocateNodes == nil {
@@ -871,36 +793,36 @@ func (s *SchedulerStub) AuthNodeVerify(p0 context.Context, p1 string) ([]auth.Pe
 	return *new([]auth.Permission), ErrNotSupported
 }
 
-func (s *SchedulerStruct) CacheCarfiles(p0 context.Context, p1 *types.CacheCarfileInfo) (error) {
+func (s *SchedulerStruct) CacheCarfiles(p0 context.Context, p1 *types.CacheCarfileInfo) error {
 	if s.Internal.CacheCarfiles == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheCarfiles(p0, p1)
 }
 
-func (s *SchedulerStub) CacheCarfiles(p0 context.Context, p1 *types.CacheCarfileInfo) (error) {
+func (s *SchedulerStub) CacheCarfiles(p0 context.Context, p1 *types.CacheCarfileInfo) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 types.CacheResult) (error) {
+func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 types.CacheResult) error {
 	if s.Internal.CacheResult == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheResult(p0, p1)
 }
 
-func (s *SchedulerStub) CacheResult(p0 context.Context, p1 types.CacheResult) (error) {
+func (s *SchedulerStub) CacheResult(p0 context.Context, p1 types.CacheResult) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context) (error) {
+func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context) error {
 	if s.Internal.CandidateNodeConnect == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CandidateNodeConnect(p0)
 }
 
-func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context) (error) {
+func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context) error {
 	return ErrNotSupported
 }
 
@@ -948,25 +870,25 @@ func (s *SchedulerStub) CarfileStatus(p0 context.Context, p1 types.CarfileHash) 
 	return *new(types.CarfileRecordInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) DeleteEdgeUpdateInfo(p0 context.Context, p1 int) (error) {
+func (s *SchedulerStruct) DeleteEdgeUpdateInfo(p0 context.Context, p1 int) error {
 	if s.Internal.DeleteEdgeUpdateInfo == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.DeleteEdgeUpdateInfo(p0, p1)
 }
 
-func (s *SchedulerStub) DeleteEdgeUpdateInfo(p0 context.Context, p1 int) (error) {
+func (s *SchedulerStub) DeleteEdgeUpdateInfo(p0 context.Context, p1 int) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) DeleteNodeLogFile(p0 context.Context, p1 string) (error) {
+func (s *SchedulerStruct) DeleteNodeLogFile(p0 context.Context, p1 string) error {
 	if s.Internal.DeleteNodeLogFile == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.DeleteNodeLogFile(p0, p1)
 }
 
-func (s *SchedulerStub) DeleteNodeLogFile(p0 context.Context, p1 string) (error) {
+func (s *SchedulerStub) DeleteNodeLogFile(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
@@ -1003,14 +925,14 @@ func (s *SchedulerStub) EdgeExternalServiceAddress(p0 context.Context, p1 string
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context) (error) {
+func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context) error {
 	if s.Internal.EdgeNodeConnect == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.EdgeNodeConnect(p0)
 }
 
-func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context) (error) {
+func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context) error {
 	return ErrNotSupported
 }
 
@@ -1036,14 +958,14 @@ func (s *SchedulerStub) IsBehindFullConeNAT(p0 context.Context, p1 string) (bool
 	return false, ErrNotSupported
 }
 
-func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 string, p2 string) error {
 	if s.Internal.LocatorConnect == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.LocatorConnect(p0, p1, p2)
 }
 
-func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
 }
 
@@ -1124,25 +1046,25 @@ func (s *SchedulerStub) NodePublicKey(p0 context.Context) (string, error) {
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) NodeQuit(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStruct) NodeQuit(p0 context.Context, p1 string, p2 string) error {
 	if s.Internal.NodeQuit == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.NodeQuit(p0, p1, p2)
 }
 
-func (s *SchedulerStub) NodeQuit(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStub) NodeQuit(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) NodeValidatedResult(p0 context.Context, p1 ValidatedResult) (error) {
+func (s *SchedulerStruct) NodeValidatedResult(p0 context.Context, p1 ValidatedResult) error {
 	if s.Internal.NodeValidatedResult == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.NodeValidatedResult(p0, p1)
 }
 
-func (s *SchedulerStub) NodeValidatedResult(p0 context.Context, p1 ValidatedResult) (error) {
+func (s *SchedulerStub) NodeValidatedResult(p0 context.Context, p1 ValidatedResult) error {
 	return ErrNotSupported
 }
 
@@ -1157,113 +1079,113 @@ func (s *SchedulerStub) OnlineNodeList(p0 context.Context, p1 types.NodeType) ([
 	return *new([]string), ErrNotSupported
 }
 
-func (s *SchedulerStruct) RecacheCarfiles(p0 context.Context, p1 []string) (error) {
+func (s *SchedulerStruct) RecacheCarfiles(p0 context.Context, p1 []string) error {
 	if s.Internal.RecacheCarfiles == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.RecacheCarfiles(p0, p1)
 }
 
-func (s *SchedulerStub) RecacheCarfiles(p0 context.Context, p1 []string) (error) {
+func (s *SchedulerStub) RecacheCarfiles(p0 context.Context, p1 []string) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) RemoveCarfile(p0 context.Context, p1 string) (error) {
+func (s *SchedulerStruct) RemoveCarfile(p0 context.Context, p1 string) error {
 	if s.Internal.RemoveCarfile == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.RemoveCarfile(p0, p1)
 }
 
-func (s *SchedulerStub) RemoveCarfile(p0 context.Context, p1 string) (error) {
+func (s *SchedulerStub) RemoveCarfile(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) RemoveCarfileResult(p0 context.Context, p1 types.RemoveCarfileResult) (error) {
+func (s *SchedulerStruct) RemoveCarfileResult(p0 context.Context, p1 types.RemoveCarfileResult) error {
 	if s.Internal.RemoveCarfileResult == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.RemoveCarfileResult(p0, p1)
 }
 
-func (s *SchedulerStub) RemoveCarfileResult(p0 context.Context, p1 types.RemoveCarfileResult) (error) {
+func (s *SchedulerStub) RemoveCarfileResult(p0 context.Context, p1 types.RemoveCarfileResult) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ResetCandidateReplicaCount(p0 context.Context, p1 int) (error) {
+func (s *SchedulerStruct) ResetCandidateReplicaCount(p0 context.Context, p1 int) error {
 	if s.Internal.ResetCandidateReplicaCount == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.ResetCandidateReplicaCount(p0, p1)
 }
 
-func (s *SchedulerStub) ResetCandidateReplicaCount(p0 context.Context, p1 int) (error) {
+func (s *SchedulerStub) ResetCandidateReplicaCount(p0 context.Context, p1 int) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ResetCarfileExpiration(p0 context.Context, p1 string, p2 time.Time) (error) {
+func (s *SchedulerStruct) ResetCarfileExpiration(p0 context.Context, p1 string, p2 time.Time) error {
 	if s.Internal.ResetCarfileExpiration == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.ResetCarfileExpiration(p0, p1, p2)
 }
 
-func (s *SchedulerStub) ResetCarfileExpiration(p0 context.Context, p1 string, p2 time.Time) (error) {
+func (s *SchedulerStub) ResetCarfileExpiration(p0 context.Context, p1 string, p2 time.Time) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) RestartFailedCarfiles(p0 context.Context, p1 []*types.CarfileRecordInfo) (error) {
+func (s *SchedulerStruct) RestartFailedCarfiles(p0 context.Context, p1 []*types.CarfileRecordInfo) error {
 	if s.Internal.RestartFailedCarfiles == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.RestartFailedCarfiles(p0, p1)
 }
 
-func (s *SchedulerStub) RestartFailedCarfiles(p0 context.Context, p1 []*types.CarfileRecordInfo) (error) {
+func (s *SchedulerStub) RestartFailedCarfiles(p0 context.Context, p1 []*types.CarfileRecordInfo) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateInfo) (error) {
+func (s *SchedulerStruct) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateInfo) error {
 	if s.Internal.SetEdgeUpdateInfo == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.SetEdgeUpdateInfo(p0, p1)
 }
 
-func (s *SchedulerStub) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateInfo) (error) {
+func (s *SchedulerStub) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateInfo) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) SetNodePort(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStruct) SetNodePort(p0 context.Context, p1 string, p2 string) error {
 	if s.Internal.SetNodePort == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.SetNodePort(p0, p1, p2)
 }
 
-func (s *SchedulerStub) SetNodePort(p0 context.Context, p1 string, p2 string) (error) {
+func (s *SchedulerStub) SetNodePort(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) StartOnceElection(p0 context.Context) (error) {
+func (s *SchedulerStruct) StartOnceElection(p0 context.Context) error {
 	if s.Internal.StartOnceElection == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.StartOnceElection(p0)
 }
 
-func (s *SchedulerStub) StartOnceElection(p0 context.Context) (error) {
+func (s *SchedulerStub) StartOnceElection(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) StartOnceValidate(p0 context.Context) (error) {
+func (s *SchedulerStruct) StartOnceValidate(p0 context.Context) error {
 	if s.Internal.StartOnceValidate == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.StartOnceValidate(p0)
 }
 
-func (s *SchedulerStub) StartOnceValidate(p0 context.Context) (error) {
+func (s *SchedulerStub) StartOnceValidate(p0 context.Context) error {
 	return ErrNotSupported
 }
 
@@ -1278,25 +1200,25 @@ func (s *SchedulerStub) SystemInfo(p0 context.Context) (types.SystemBaseInfo, er
 	return *new(types.SystemBaseInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) UserDownloadBlockResults(p0 context.Context, p1 []types.UserBlockDownloadResult) (error) {
+func (s *SchedulerStruct) UserDownloadBlockResults(p0 context.Context, p1 []types.UserBlockDownloadResult) error {
 	if s.Internal.UserDownloadBlockResults == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.UserDownloadBlockResults(p0, p1)
 }
 
-func (s *SchedulerStub) UserDownloadBlockResults(p0 context.Context, p1 []types.UserBlockDownloadResult) (error) {
+func (s *SchedulerStub) UserDownloadBlockResults(p0 context.Context, p1 []types.UserBlockDownloadResult) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) UserDownloadResult(p0 context.Context, p1 types.UserDownloadResult) (error) {
+func (s *SchedulerStruct) UserDownloadResult(p0 context.Context, p1 types.UserDownloadResult) error {
 	if s.Internal.UserDownloadResult == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.UserDownloadResult(p0, p1)
 }
 
-func (s *SchedulerStub) UserDownloadResult(p0 context.Context, p1 types.UserDownloadResult) (error) {
+func (s *SchedulerStub) UserDownloadResult(p0 context.Context, p1 types.UserDownloadResult) error {
 	return ErrNotSupported
 }
 
@@ -1322,21 +1244,16 @@ func (s *SchedulerStub) ValidationEnable(p0 context.Context) (bool, error) {
 	return false, ErrNotSupported
 }
 
-
-
-
-func (s *ValidateStruct) BeValidate(p0 context.Context, p1 ReqValidate, p2 string) (error) {
+func (s *ValidateStruct) BeValidate(p0 context.Context, p1 ReqValidate, p2 string) error {
 	if s.Internal.BeValidate == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.BeValidate(p0, p1, p2)
 }
 
-func (s *ValidateStub) BeValidate(p0 context.Context, p1 ReqValidate, p2 string) (error) {
+func (s *ValidateStub) BeValidate(p0 context.Context, p1 ReqValidate, p2 string) error {
 	return ErrNotSupported
 }
-
-
 
 var _ Candidate = new(CandidateStruct)
 var _ CarfileOperation = new(CarfileOperationStruct)
@@ -1348,5 +1265,3 @@ var _ Edge = new(EdgeStruct)
 var _ Locator = new(LocatorStruct)
 var _ Scheduler = new(SchedulerStruct)
 var _ Validate = new(ValidateStruct)
-
-
