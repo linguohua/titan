@@ -1,4 +1,4 @@
-package download
+package gateway
 
 import (
 	"bytes"
@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -19,15 +18,12 @@ import (
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/lib/limiter"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/validate"
 	"golang.org/x/time/rate"
 )
-
-var log = logging.Logger("download")
 
 const (
 	downloadPath        = "/block/get"
@@ -92,7 +88,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 
 	sn, err := strconv.ParseInt(snStr, 10, 64)
 	if err != nil {
-		bd.resultFailed(w, r, 0, nil, cidStr, fmt.Errorf("Parser param sn(%s) error:%s", snStr, err.Error()))
+		bd.resultFailed(w, r, 0, nil, cidStr, fmt.Errorf("parser param sn(%s) error:%s", snStr, err.Error()))
 		return
 	}
 
@@ -111,7 +107,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 	content := nodeID + snStr + signTime + timeout
 	err = titanRsa.VerifyRsaSign(bd.publicKey, sign, content)
 	if err != nil {
-		bd.resultFailed(w, r, sn, sign, cidStr, fmt.Errorf("Verify sign cid:%s,sn:%s,signTime:%s, timeout:%s, error:%s,", cidStr, snStr, signTime, timeout, err.Error()))
+		bd.resultFailed(w, r, sn, sign, cidStr, fmt.Errorf("verify sign cid:%s,sn:%s,signTime:%s, timeout:%s, error:%s,", cidStr, snStr, signTime, timeout, err.Error()))
 		return
 	}
 
@@ -141,7 +137,7 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	costTime := time.Now().Sub(now)
+	costTime := time.Since(now)
 
 	speedRate := int64(0)
 	if costTime != 0 {
@@ -153,20 +149,6 @@ func (bd *BlockDownload) getBlock(w http.ResponseWriter, r *http.Request) {
 
 	log.Infof("Download block %s costTime %d, size %d, speed %d", cidStr, costTime, n, speedRate)
 
-	return
-}
-
-func getClientIP(r *http.Request) string {
-	reqIP := r.Header.Get("X-Real-IP")
-	if reqIP == "" {
-		h, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			log.Errorf("could not get ip from: %s, err: %s", r.RemoteAddr, err)
-		}
-		reqIP = h
-	}
-
-	return reqIP
 }
 
 func (bd *BlockDownload) downloadBlockResult(result types.UserDownloadResult) {

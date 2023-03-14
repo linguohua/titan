@@ -66,8 +66,6 @@ func (cfCache *carfileCache) removeBlocksFromWaitList(n int) {
 }
 
 func (cfCache *carfileCache) downloadCar() error {
-	defer cfCache.bsrw.Finalize()
-
 	netLayerCIDs := cfCache.blocksWaitList
 	if len(netLayerCIDs) == 0 {
 		netLayerCIDs = append(netLayerCIDs, cfCache.root.String())
@@ -197,7 +195,7 @@ func (cfCache *carfileCache) CancelDownload() error {
 
 func (cfCache *carfileCache) encode() ([]byte, error) {
 	encodeCarfile := &EncodeCarfileCache{
-		root:                      cfCache.root,
+		root:                      cfCache.root.String(),
 		BlocksWaitList:            cfCache.blocksWaitList,
 		BlocksDownloadSuccessList: cfCache.blocksDownloadSuccessList,
 		NextLayerCIDs:             cfCache.nextLayerCIDs,
@@ -216,7 +214,12 @@ func (cfCache *carfileCache) decode(data []byte) error {
 		return err
 	}
 
-	cfCache.root = encodeCarfile.root
+	c, err := cid.Decode(encodeCarfile.root)
+	if err != nil {
+		return nil
+	}
+
+	cfCache.root = c
 	cfCache.blocksWaitList = encodeCarfile.BlocksWaitList
 	cfCache.blocksDownloadSuccessList = encodeCarfile.BlocksDownloadSuccessList
 	cfCache.nextLayerCIDs = encodeCarfile.NextLayerCIDs

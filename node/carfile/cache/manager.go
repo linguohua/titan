@@ -90,8 +90,8 @@ func (m *Manager) start() {
 
 	go m.startTick()
 
-	// delay 3 second to do download cars if exist waitList
-	time.AfterFunc(3*time.Second, m.triggerDownload)
+	// delay 15 second to do download cars if exist waitList
+	time.AfterFunc(15*time.Second, m.triggerDownload)
 
 	for {
 		<-m.downloadCh
@@ -118,6 +118,7 @@ func (m *Manager) doDownloadCar() {
 		log.Errorf("doDownloadCar, new car error:%s", err)
 		return
 	}
+	defer bsrw.Finalize()
 
 	carfileCache, err := m.restoreCarfileCacheOrNew(&options{cw.Root, cw.Dss, bsrw, m.bFetcher, m.downloadBatch})
 	if err != nil {
@@ -191,7 +192,7 @@ func (m *Manager) saveIncompleteCarfileCache(cf *carfileCache) error {
 	if err != nil {
 		return err
 	}
-	return m.carfileStore.SaveIncompleteCarfileCache(cf.root.Hash().String(), buf)
+	return m.carfileStore.SaveIncompleteCarfileCache(cf.Root(), buf)
 }
 
 func (m *Manager) onDownloadCarFinish(cf *carfileCache) {
@@ -283,12 +284,12 @@ func (m *Manager) CachedResult(cachingCar *carfileCache) error {
 	}
 
 	ret := &types.CacheResult{
-		Status:             status,
-		CarfileBlocksCount: len(cachingCar.blocksDownloadSuccessList) + len(cachingCar.blocksWaitList),
-		DoneBlocksCount:    len(cachingCar.blocksDownloadSuccessList),
-		CarfileSize:        int64(cachingCar.TotalSize()),
-		DoneSize:           int64(cachingCar.DoneSize()),
-		CarfileHash:        cachingCar.Root().Hash().String(),
+		Status:            status,
+		CarfileBlockCount: len(cachingCar.blocksDownloadSuccessList) + len(cachingCar.blocksWaitList),
+		DoneBlockCount:    len(cachingCar.blocksDownloadSuccessList),
+		CarfileSize:       int64(cachingCar.TotalSize()),
+		DoneSize:          int64(cachingCar.DoneSize()),
+		CarfileHash:       cachingCar.Root().Hash().String(),
 	}
 
 	return m.cResulter.CacheResult(ret)

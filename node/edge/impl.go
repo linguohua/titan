@@ -10,7 +10,7 @@ import (
 	"github.com/linguohua/titan/node/carfile"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/device"
-	"github.com/linguohua/titan/node/download"
+	"github.com/linguohua/titan/node/gateway"
 	datasync "github.com/linguohua/titan/node/sync"
 	"github.com/linguohua/titan/node/validate"
 	"go.uber.org/fx"
@@ -24,7 +24,7 @@ type Edge struct {
 	*common.CommonAPI
 	*device.Device
 	*carfile.CarfileImpl
-	*download.BlockDownload
+	*gateway.BlockDownload
 	*validate.Validate
 	*datasync.DataSync
 

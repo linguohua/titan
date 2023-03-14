@@ -34,7 +34,7 @@ type EdgeCfg struct {
 	// FetchTimeout get block timeout
 	FetchBlockTimeout int
 	// FetchBlockFailedRetry retry when get block failed
-	FetchBlockFailedRetry int
+	FetchBlockRetry int
 }
 
 type CandidateCfg struct {

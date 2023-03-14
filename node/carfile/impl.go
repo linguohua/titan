@@ -196,8 +196,6 @@ func (cfImpl *CarfileImpl) GetBlocksOfCarfile(carfileCID string, indexs []int) (
 		return nil, err
 	}
 
-	// TODO: need to sort cids, if not sort by dagstore indexs
-
 	ret := make(map[int]string, len(indexs))
 	for _, index := range indexs {
 		if index >= len(cids) {

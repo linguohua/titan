@@ -163,6 +163,57 @@ func (cs *CarfileStore) carsDir() string {
 	return filepath.Join(cs.baseDir, carsDir)
 }
 
+func (cs *CarfileStore) HashBlock(c cid.Cid) (bool, error) {
+	// shard in TopLevelIndex may be invalid, need to check it on dagstore
+	ks, err := cs.dagst.TopLevelIndex.GetShardsForMultihash(context.Background(), c.Hash())
+	if err != nil {
+		return false, err
+	}
+
+	if len(ks) == 0 {
+		return false, nil
+	}
+
+	var key shard.Key
+	// find first valid shard
+	for _, k := range ks {
+		_, err := cs.dagst.GetShardInfo(k)
+		if err == nil {
+			key = k
+			break
+		}
+
+		// ignore err
+	}
+
+	if len(key.String()) == 0 {
+		return false, nil
+	}
+
+	ch := make(chan dagstore.ShardResult)
+	err = cs.dagst.AcquireShard(context.Background(), key, ch, dagstore.AcquireOpts{})
+	if err != nil {
+		return false, err
+	}
+
+	res := <-ch
+	if res.Error != nil {
+		return false, res.Error
+	}
+
+	if res.Accessor == nil {
+		return false, fmt.Errorf("can not get shard %s accessor", ks[0].String())
+	}
+	defer res.Accessor.Close()
+
+	bs, err := res.Accessor.Blockstore()
+	if err != nil {
+		return false, err
+	}
+
+	return bs.Has(context.Background(), c)
+}
+
 func (cs *CarfileStore) Block(c cid.Cid) (blocks.Block, error) {
 	// shard in TopLevelIndex may be invalid, need to check it on dagstore
 	ks, err := cs.dagst.TopLevelIndex.GetShardsForMultihash(context.Background(), c.Hash())
@@ -171,7 +222,7 @@ func (cs *CarfileStore) Block(c cid.Cid) (blocks.Block, error) {
 	}
 
 	if len(ks) == 0 {
-		return nil, fmt.Errorf("block %s not exist", c.String())
+		return nil, datastore.ErrNotFound
 	}
 
 	var key shard.Key
@@ -288,6 +339,7 @@ func (cs *CarfileStore) BaseDir() string {
 	return cs.baseDir
 }
 
+// return all carfiles multihashes
 func (cs *CarfileStore) CarfileHashes() ([]string, error) {
 	infos := cs.dagst.AllShardsInfo()
 	multihashes := make([]string, 0, len(infos))
@@ -299,8 +351,8 @@ func (cs *CarfileStore) CarfileHashes() ([]string, error) {
 }
 
 // incomplete carfileCache
-func (cs *CarfileStore) SaveIncompleteCarfileCache(carfileHash string, carfileCacheData []byte) error {
-	return cs.incompleteCarfileCache.save(carfileHash, carfileCacheData)
+func (cs *CarfileStore) SaveIncompleteCarfileCache(c cid.Cid, carfileCacheData []byte) error {
+	return cs.incompleteCarfileCache.save(c.Hash().String(), carfileCacheData)
 }
 
 func (cs *CarfileStore) DeleteIncompleteCarfileCache(c cid.Cid) error {

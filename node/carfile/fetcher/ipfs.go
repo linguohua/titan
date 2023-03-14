@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	blocks "github.com/ipfs/go-block-format" // v0.1.0
 	"github.com/ipfs/go-cid"
 	httpapi "github.com/ipfs/go-ipfs-http-client"
+	"github.com/ipfs/go-libipfs/blocks"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/linguohua/titan/api/types"
