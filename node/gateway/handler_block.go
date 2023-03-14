@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	"github.com/linguohua/titan/lib/limiter"
 	"golang.org/x/time/rate"
@@ -30,15 +31,14 @@ func (gw *Gateway) blockHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// contentDisposition := fmt.Sprintf("attachment; filename=%s", c.String())
-	// w.Header().Set("Content-Disposition", contentDisposition)
-	// w.Header().Set("Content-Length", fmt.Sprintf("%d", len(blk.RawData())))
+	filename := getFilename(r, c)
+	setHeaderForBlockHandler(w, r, filename)
 
-	fileName := c.String()
 	now := time.Now()
 
 	reader := limiter.ReaderFromBytes(blk.RawData(), rate.NewLimiter(rate.Inf, 0))
-	http.ServeContent(w, r, fileName, time.Now(), reader)
+
+	http.ServeContent(w, r, filename, time.Now(), reader)
 
 	costTime := time.Since(now)
 	speedRate := int64(0)
@@ -47,4 +47,18 @@ func (gw *Gateway) blockHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Debugf("Download block %s costTime %d, size %d, speed %d", c.String(), costTime, len(blk.RawData()), speedRate)
+}
+
+func getFilename(r *http.Request, c cid.Cid) string {
+	filename := r.URL.Query().Get("filename")
+	if filename == "" {
+		filename = c.String() + ".bin"
+	}
+
+	return filename
+}
+
+func setHeaderForBlockHandler(w http.ResponseWriter, r *http.Request, filename string) {
+	contentDisposition := fmt.Sprintf("attachment; filename=\"%s\";", filename)
+	w.Header().Set("Content-Disposition", contentDisposition)
 }
