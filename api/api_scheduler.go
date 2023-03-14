@@ -43,15 +43,15 @@ type Scheduler interface {
 	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error) //perm:read
 
 	// carfile
-	CacheCarfiles(ctx context.Context, info *types.CacheCarfileInfo) error                       //perm:admin
-	CarfileStatus(ctx context.Context, hash types.CarfileHash) (types.CarfileRecordInfo, error)  // perm:read
-	RemoveCarfile(ctx context.Context, carfileID string) error                                   //perm:admin
-	CarfileRecord(ctx context.Context, cid string) (*types.CarfileRecordInfo, error)             //perm:read
-	CarfileRecords(ctx context.Context, page int, all bool) (*types.ListCarfileRecordRsp, error) //perm:read
-	RestartFailedCarfiles(ctx context.Context) error                                             //perm:admin
-	ResetCarfileExpiration(ctx context.Context, carfileCid string, time time.Time) error         //perm:admin
-	ResetCandidateReplicaCount(ctx context.Context, count int) error                             //perm:admin
-	RecacheCarfiles(ctx context.Context, hashs []string) error                                   //perm:admin
+	CacheCarfiles(ctx context.Context, info *types.CacheCarfileInfo) error                                       //perm:admin
+	CarfileStatus(ctx context.Context, hash types.CarfileHash) (types.CarfileRecordInfo, error)                  // perm:read
+	RemoveCarfile(ctx context.Context, carfileID string) error                                                   //perm:admin
+	CarfileRecord(ctx context.Context, cid string) (*types.CarfileRecordInfo, error)                             //perm:read
+	CarfileRecords(ctx context.Context, page int, status types.CacheStatus) (*types.ListCarfileRecordRsp, error) //perm:read
+	RestartFailedCarfiles(ctx context.Context, cs []*types.CarfileRecordInfo) error                              //perm:admin
+	ResetCarfileExpiration(ctx context.Context, carfileCid string, time time.Time) error                         //perm:admin
+	ResetCandidateReplicaCount(ctx context.Context, count int) error                                             //perm:admin
+	RecacheCarfiles(ctx context.Context, hashs []string) error                                                   //perm:admin
 
 	// server
 	StartOnceElection(ctx context.Context) error                          //perm:admin

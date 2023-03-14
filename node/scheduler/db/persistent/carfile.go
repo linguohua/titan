@@ -127,16 +127,33 @@ func (c *CarfileDB) QueryCarfilesRows(ctx context.Context, limit, offset int, se
 }
 
 // CarfileRecordInfos get storage record infos
-func (c *CarfileDB) CarfileRecordInfos(page int, all bool) (info *types.ListCarfileRecordRsp, err error) {
+func (c *CarfileDB) CarfileRecordInfos(page int, status types.CacheStatus) (info *types.ListCarfileRecordRsp, err error) {
 	num := 20
 
 	info = &types.ListCarfileRecordRsp{}
 
-	cmd := fmt.Sprintf("SELECT count(carfile_hash) FROM %s WHERE state<>'Finalize';", carfileInfoTable)
-	if all {
-		cmd = fmt.Sprintf("SELECT count(carfile_hash) FROM %s ;", carfileInfoTable)
+	countCmd := fmt.Sprintf("SELECT count(carfile_hash) FROM %s ;", carfileInfoTable)
+	selectCmd := fmt.Sprintf("SELECT * FROM %s ", carfileInfoTable)
+	likeCondition := ""
+	switch status {
+	case types.CacheStatusFailed:
+		likeCondition = "%" + "Failed"
+		countCmd = fmt.Sprintf("SELECT count(carfile_hash) FROM %s WHERE state LIKE ?", carfileInfoTable)
+		selectCmd = fmt.Sprintf("SELECT * FROM %s  WHERE state LIKE ?", carfileInfoTable)
+	case types.CacheStatusDownloading:
+		countCmd = fmt.Sprintf("SELECT count(carfile_hash) FROM %s WHERE state<>'Finalize';", carfileInfoTable)
+		selectCmd = fmt.Sprintf("SELECT * FROM %s  WHERE state<>'Finalize' ", carfileInfoTable)
+	case types.CacheStatusSucceeded:
+		countCmd = fmt.Sprintf("SELECT count(carfile_hash) FROM %s WHERE state='Finalize';", carfileInfoTable)
+		selectCmd = fmt.Sprintf("SELECT * FROM %s  WHERE state='Finalize' ", carfileInfoTable)
 	}
-	err = c.DB.Get(&info.Cids, cmd)
+
+	fmt.Printf("countCmd %s \n", countCmd)
+	if likeCondition == "" {
+		err = c.DB.Get(&info.Cids, countCmd)
+	} else {
+		err = c.DB.Get(&info.Cids, countCmd, likeCondition)
+	}
 	if err != nil {
 		return
 	}
@@ -155,12 +172,13 @@ func (c *CarfileDB) CarfileRecordInfos(page int, all bool) (info *types.ListCarf
 	}
 	info.Page = page
 
-	cmd = fmt.Sprintf("SELECT * FROM %s  WHERE state<>'Finalize' order by carfile_hash asc LIMIT %d,%d", carfileInfoTable, (num * (page - 1)), num)
-	if all {
-		cmd = fmt.Sprintf("SELECT * FROM %s order by carfile_hash asc LIMIT %d,%d", carfileInfoTable, (num * (page - 1)), num)
-	}
-	if err = c.DB.Select(&info.CarfileRecords, cmd); err != nil {
-		return
+	selectCmd += " order by carfile_hash asc LIMIT ?,?"
+	// cmd := fmt.Sprintf(fmt.Sprintf("%s order by carfile_hash asc LIMIT %d,%d", selectCmd, (num * (page - 1)), num))
+	fmt.Printf("selectCmd %s \n", selectCmd)
+	if likeCondition == "" {
+		err = c.DB.Select(&info.CarfileRecords, selectCmd, (num * (page - 1)), num)
+	} else {
+		err = c.DB.Select(&info.CarfileRecords, selectCmd, likeCondition, (num * (page - 1)), num)
 	}
 
 	return

@@ -70,8 +70,8 @@ func (s *Scheduler) RecacheCarfiles(ctx context.Context, hashs []string) error {
 }
 
 // RestartFailedCarfiles restart failed carfiles
-func (s *Scheduler) RestartFailedCarfiles(ctx context.Context) error {
-	return s.DataManager.FailedCarfilesRestart()
+func (s *Scheduler) RestartFailedCarfiles(ctx context.Context, sc []*types.CarfileRecordInfo) error {
+	return s.DataManager.FailedCarfilesRestart(sc)
 }
 
 // ResetCarfileExpiration reset expiration time with data cache
@@ -100,8 +100,8 @@ func (s *Scheduler) ResetCandidateReplicaCount(ctx context.Context, count int) e
 }
 
 // CarfileRecords List Datas
-func (s *Scheduler) CarfileRecords(ctx context.Context, page int, all bool) (*types.ListCarfileRecordRsp, error) {
-	info, err := s.NodeManager.CarfileDB.CarfileRecordInfos(page, all)
+func (s *Scheduler) CarfileRecords(ctx context.Context, page int, status types.CacheStatus) (*types.ListCarfileRecordRsp, error) {
+	info, err := s.NodeManager.CarfileDB.CarfileRecordInfos(page, status)
 	if err != nil {
 		return nil, err
 	}
