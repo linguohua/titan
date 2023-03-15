@@ -51,7 +51,7 @@ type CandidateStub struct {
 
 type CarfileOperationStruct struct {
 	Internal struct {
-		CacheCarfile func(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheCarfileResult, error) `perm:"write"`
+		CacheCarfile func(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheResult, error) `perm:"write"`
 
 		DeleteAllCarfiles func(p0 context.Context) error `perm:"admin"`
 
@@ -221,6 +221,8 @@ type SchedulerStruct struct {
 
 		EdgeUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
+		ExchangePublicKey func(p0 context.Context, p1 []byte) ([]byte, error) `perm:"write"`
+
 		IsBehindFullConeNAT func(p0 context.Context, p1 string) (bool, error) `perm:"read"`
 
 		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
@@ -332,14 +334,14 @@ func (s *CandidateStub) WaitQuiet(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *CarfileOperationStruct) CacheCarfile(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheCarfileResult, error) {
+func (s *CarfileOperationStruct) CacheCarfile(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheResult, error) {
 	if s.Internal.CacheCarfile == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.CacheCarfile(p0, p1, p2)
 }
 
-func (s *CarfileOperationStub) CacheCarfile(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheCarfileResult, error) {
+func (s *CarfileOperationStub) CacheCarfile(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheResult, error) {
 	return nil, ErrNotSupported
 }
 
@@ -902,6 +904,17 @@ func (s *SchedulerStruct) EdgeUpdateInfos(p0 context.Context) (map[int]*EdgeUpda
 
 func (s *SchedulerStub) EdgeUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
 	return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
+}
+
+func (s *SchedulerStruct) ExchangePublicKey(p0 context.Context, p1 []byte) ([]byte, error) {
+	if s.Internal.ExchangePublicKey == nil {
+		return *new([]byte), ErrNotSupported
+	}
+	return s.Internal.ExchangePublicKey(p0, p1)
+}
+
+func (s *SchedulerStub) ExchangePublicKey(p0 context.Context, p1 []byte) ([]byte, error) {
+	return *new([]byte), ErrNotSupported
 }
 
 func (s *SchedulerStruct) IsBehindFullConeNAT(p0 context.Context, p1 string) (bool, error) {

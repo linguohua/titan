@@ -255,7 +255,7 @@ func (s *Scheduler) loadOrNewPrivateKey(nodeID string) (*rsa.PrivateKey, error) 
 
 	var privateKey *rsa.PrivateKey
 	if len(privateKeyStr) > 0 {
-		privateKey, err = titanRsa.Pem2PrivateKey(privateKeyStr)
+		privateKey, err = titanRsa.Pem2PrivateKey([]byte(privateKeyStr))
 		if err != nil {
 			return nil, err
 		}
@@ -276,12 +276,12 @@ func (s *Scheduler) NodePublicKey(ctx context.Context) (string, error) {
 
 	edgeNode := s.NodeManager.GetEdgeNode(nodeID)
 	if edgeNode != nil {
-		return titanRsa.PublicKey2Pem(&edgeNode.PrivateKey().PublicKey), nil
+		return string(titanRsa.PublicKey2Pem(&edgeNode.PrivateKey().PublicKey)), nil
 	}
 
 	candidateNode := s.NodeManager.GetCandidateNode(nodeID)
 	if candidateNode != nil {
-		return titanRsa.PublicKey2Pem(&candidateNode.PrivateKey().PublicKey), nil
+		return string(titanRsa.PublicKey2Pem(&candidateNode.PrivateKey().PublicKey)), nil
 	}
 
 	return "", fmt.Errorf("Can not get node %s publicKey", nodeID)
@@ -613,4 +613,9 @@ func (s *Scheduler) ValidatedResultList(ctx context.Context, startTime, endTime 
 	}
 
 	return svm, nil
+}
+
+func (s *Scheduler) ExchangePublicKey(ctx context.Context, nodePublicKey []byte) ([]byte, error) {
+	// TODO: generate public key
+	return nil, fmt.Errorf("not implement")
 }

@@ -1,6 +1,10 @@
 package gateway
 
-import "net/http"
+import (
+	"net/http"
 
-func (gw *Gateway) carHandler(w http.ResponseWriter, r *http.Request, version string) {
+	"github.com/linguohua/titan/api/types"
+)
+
+func (gw *Gateway) carHandler(w http.ResponseWriter, r *http.Request, ticket *types.AccessTicket, version string) {
 }

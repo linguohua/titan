@@ -7,11 +7,12 @@ import (
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/lib/limiter"
 	"golang.org/x/time/rate"
 )
 
-func (gw *Gateway) blockHandler(w http.ResponseWriter, r *http.Request) {
+func (gw *Gateway) blockHandler(w http.ResponseWriter, r *http.Request, ticket *types.AccessTicket) {
 	c, err := getCID(r.URL.Path)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("can not get cid from path: %s", err.Error()), http.StatusBadRequest)

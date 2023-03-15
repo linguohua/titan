@@ -123,7 +123,7 @@ func (s *Scheduler) getNodePrivateKey(nodeID string) (*rsa.PrivateKey, error) {
 		return nil, err
 	}
 
-	privateKey, err := titanRsa.Pem2PrivateKey(privateKeyStr)
+	privateKey, err := titanRsa.Pem2PrivateKey([]byte(privateKeyStr))
 	if err != nil {
 		return nil, err
 	}

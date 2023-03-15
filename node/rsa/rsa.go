@@ -54,8 +54,8 @@ func RsaSign(privateKey *rsa.PrivateKey, content string) ([]byte, error) {
 }
 
 // Pem2PublicKey  Pem to PublicKey
-func Pem2PublicKey(publicPem string) (*rsa.PublicKey, error) {
-	block, _ := pem.Decode([]byte(publicPem))
+func Pem2PublicKey(publicPem []byte) (*rsa.PublicKey, error) {
+	block, _ := pem.Decode(publicPem)
 	if block == nil {
 		return nil, fmt.Errorf("failed to decode public key")
 	}
@@ -69,8 +69,8 @@ func Pem2PublicKey(publicPem string) (*rsa.PublicKey, error) {
 }
 
 // Pem2PrivateKey Pem to PrivateKey
-func Pem2PrivateKey(privateKeyStr string) (*rsa.PrivateKey, error) {
-	block, _ := pem.Decode([]byte(privateKeyStr))
+func Pem2PrivateKey(privateKeyStr []byte) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode(privateKeyStr)
 	if block == nil {
 		return nil, fmt.Errorf("failed to decode private key")
 	}
@@ -84,9 +84,9 @@ func Pem2PrivateKey(privateKeyStr string) (*rsa.PrivateKey, error) {
 }
 
 // PrivateKey2Pem PrivateKey to Pem
-func PrivateKey2Pem(privateKey *rsa.PrivateKey) string {
+func PrivateKey2Pem(privateKey *rsa.PrivateKey) []byte {
 	if privateKey == nil {
-		return ""
+		return nil
 	}
 
 	private := x509.MarshalPKCS1PrivateKey(privateKey)
@@ -98,13 +98,13 @@ func PrivateKey2Pem(privateKey *rsa.PrivateKey) string {
 		},
 	)
 
-	return string(privateKeyBytes)
+	return privateKeyBytes
 }
 
 // PublicKey2Pem PublicKey to Pem
-func PublicKey2Pem(publicKey *rsa.PublicKey) string {
+func PublicKey2Pem(publicKey *rsa.PublicKey) []byte {
 	if publicKey == nil {
-		return ""
+		return nil
 	}
 
 	public := x509.MarshalPKCS1PublicKey(publicKey)
@@ -116,5 +116,5 @@ func PublicKey2Pem(publicKey *rsa.PublicKey) string {
 		},
 	)
 
-	return string(publicKeyBytes)
+	return publicKeyBytes
 }

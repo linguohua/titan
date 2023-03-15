@@ -41,7 +41,6 @@ import (
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
-	"github.com/linguohua/titan/node/candidate"
 	"github.com/linguohua/titan/stores"
 )
 
@@ -347,11 +346,6 @@ var runCmd = &cli.Command{
 							log.Errorf("Registering candidate failed: %+v", err)
 							cancel()
 							return
-						}
-						candidate := candidateAPI.(*candidate.Candidate)
-						err = candidate.LoadPublicKey(connectTimeout)
-						if err != nil {
-							log.Errorf("LoadPublicKey error:%s", err.Error())
 						}
 
 						log.Info("Candidate registered successfully, waiting for tasks")

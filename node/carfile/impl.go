@@ -57,7 +57,7 @@ func NewCarfileImpl(carfileStore *store.CarfileStore, scheduler api.Scheduler, b
 	return cfImpl
 }
 
-func (cfImpl *CarfileImpl) CacheCarfile(ctx context.Context, rootCID string, dss []*types.DownloadSource) (*types.CacheCarfileResult, error) {
+func (cfImpl *CarfileImpl) CacheCarfile(ctx context.Context, rootCID string, dss []*types.DownloadSource) (*types.CacheResult, error) {
 	if types.RunningNodeType == types.NodeEdge && len(dss) == 0 {
 		return nil, fmt.Errorf("download source can not empty")
 	}
@@ -77,7 +77,7 @@ func (cfImpl *CarfileImpl) CacheCarfile(ctx context.Context, rootCID string, dss
 		log.Debugf("cache incomplete carfile %s", root.Hash().String())
 
 		cfImpl.cm.AddToWaitList(root, dss)
-		return cfImpl.cacheCarfileResult()
+		return cfImpl.cacheResult(root)
 	}
 
 	has, err = cfImpl.carfileStore.HashCarfile(root)
@@ -88,19 +88,13 @@ func (cfImpl *CarfileImpl) CacheCarfile(ctx context.Context, rootCID string, dss
 
 	if has {
 		log.Debugf("carfile %s carfileCID aready exist, not need to cache", rootCID)
-
-		err = cfImpl.cacheResultForCarfileExist(rootCID)
-		if err != nil {
-			log.Errorf("CacheCarfile, cacheResultForCarfileExist error:%s", err.Error())
-		}
-
-		return cfImpl.cacheCarfileResult()
+		return cfImpl.cacheResult(root)
 	}
 
 	cfImpl.cm.AddToWaitList(root, dss)
 
 	log.Debugf("CacheCarfile carfile cid:%s", rootCID)
-	return cfImpl.cacheCarfileResult()
+	return cfImpl.cacheResult(root)
 }
 
 func (cfImpl *CarfileImpl) deleteCarfile(ctx context.Context, c cid.Cid) error {
@@ -238,6 +232,10 @@ func (cfImpl *CarfileImpl) CacheResult(ret *types.CacheResult) error {
 	ret.DiskUsage = diskUsage
 	ret.TotalBlocksCount = cfImpl.TotalBlockCount
 
+	if count, err := cfImpl.carfileStore.CarfileCount(); err == nil {
+		ret.CarfileCount = count
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
 
@@ -245,60 +243,8 @@ func (cfImpl *CarfileImpl) CacheResult(ret *types.CacheResult) error {
 	return cfImpl.scheduler.CacheResult(ctx, *ret)
 }
 
-func (cfImpl *CarfileImpl) cacheCarfileResult() (*types.CacheCarfileResult, error) {
-	_, diskUsage := cfImpl.device.GetDiskUsageStat()
-
-	carfileCount, err := cfImpl.carfileStore.CarfileCount()
-	if err != nil {
-		return nil, err
-	}
-
-	return &types.CacheCarfileResult{CacheCarfileCount: carfileCount, WaitCacheCarfileNum: cfImpl.cm.WaitListLen(), DiskUsage: diskUsage}, nil
-}
-
-func (cfImpl *CarfileImpl) cacheResultForCarfileExist(carfileCID string) error {
-	_, diskUsage := cfImpl.device.GetDiskUsageStat()
-
-	c, err := cid.Decode(carfileCID)
-	if err != nil {
-		return err
-	}
-
-	blocksCount, err := cfImpl.carfileStore.BlockCountOfCarfile(c)
-	if err != nil {
-		return err
-	}
-
-	blk, err := cfImpl.carfileStore.Block(c)
-	if err != nil {
-		return err
-	}
-
-	node, err := legacy.DecodeNode(context.Background(), blk)
-	if err != nil {
-		return err
-	}
-
-	linksSize := uint64(len(blk.RawData()))
-	for _, link := range node.Links() {
-		linksSize += link.Size
-	}
-
-	result := types.CacheResult{
-		Status:             types.CacheStatusSucceeded,
-		CarfileBlocksCount: blocksCount,
-		DoneBlocksCount:    blocksCount,
-		CarfileSize:        int64(linksSize),
-		DoneSize:           int64(linksSize),
-		CarfileHash:        c.Hash().String(),
-		DiskUsage:          diskUsage,
-		TotalBlocksCount:   cfImpl.TotalBlockCount,
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
-	defer cancel()
-
-	return cfImpl.scheduler.CacheResult(ctx, result)
+func (cfImpl *CarfileImpl) cacheResult(root cid.Cid) (*types.CacheResult, error) {
+	return nil, nil
 }
 
 func (cfImpl *CarfileImpl) Cache(carfiles []string) error {
