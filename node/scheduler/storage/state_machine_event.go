@@ -26,7 +26,10 @@ type Ignorable interface {
 // CarfileRestart restart
 type CarfileRestart struct{}
 
-func (evt CarfileRestart) applyGlobal(*CarfileInfo) bool { return false }
+func (evt CarfileRestart) applyGlobal(state *CarfileInfo) bool {
+	state.RetryCount = 0
+	return false
+}
 
 // CarfileFatalError Carfile fatal error
 type CarfileFatalError struct{ error }

@@ -258,15 +258,18 @@ var listCarfilesCmd = &cli.Command{
 			return xerrors.New("page need greater than 1")
 		}
 
-		restart := false
-
 		status := types.CacheStatusUnknown
 		if cctx.Bool("downloading") {
 			status = types.CacheStatusDownloading
 		}
 		if cctx.Bool("failed") {
 			status = types.CacheStatusFailed
-			restart = cctx.Bool("restart")
+		}
+
+		restart := cctx.Bool("restart")
+		if restart && !cctx.Bool("failed") {
+			log.Error("only --failed can be restarted")
+			return nil
 		}
 
 		tw := tablewriter.New(
@@ -327,7 +330,7 @@ var listCarfilesCmd = &cli.Command{
 
 		var hashes []types.CarfileHash
 		for _, carfile := range info.CarfileRecords {
-			if !strings.Contains(carfile.State, "Failed") {
+			if strings.Contains(carfile.State, "Failed") {
 				hashes = append(hashes, types.CarfileHash(carfile.CarfileHash))
 			}
 		}
