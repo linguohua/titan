@@ -85,7 +85,12 @@ func (c *CarfileDB) CarfileInfos(hashes []string) ([]*types.CarfileRecordInfo, e
 	if err != nil {
 		return nil, err
 	}
-	tx := c.DB.MustBegin()
+
+	tx, err := c.DB.Beginx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
 
 	carfileRecords := make([]*types.CarfileRecordInfo, 0)
 
@@ -93,12 +98,8 @@ func (c *CarfileDB) CarfileInfos(hashes []string) ([]*types.CarfileRecordInfo, e
 	tx.Select(&carfileRecords, carfilesQuery, args...)
 
 	err = tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-		return nil, err
-	}
 
-	return carfileRecords, nil
+	return carfileRecords, err
 }
 
 // CountCarfiles count carfiles size
@@ -266,18 +267,10 @@ func (c *CarfileDB) RandomCarfileFromNode(nodeID string) (string, error) {
 
 // ResetCarfileExpiration reset expiration time with storage record
 func (c *CarfileDB) ResetCarfileExpiration(carfileHash string, eTime time.Time) error {
-	tx := c.DB.MustBegin()
-
 	cmd := fmt.Sprintf(`UPDATE %s SET expiration=? WHERE carfile_hash=?`, carfileInfoTable)
-	tx.MustExec(cmd, eTime, carfileHash)
+	_, err := c.DB.Exec(cmd, eTime, carfileHash)
 
-	err := tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // MinExpiration Get the minimum expiration time
@@ -329,51 +322,29 @@ func (c *CarfileDB) LoadReplicaInfo(id string) (*types.ReplicaInfo, error) {
 
 // RemoveCarfileRecord remove storage
 func (c *CarfileDB) RemoveCarfileRecord(carfileHash string) error {
-	tx := c.DB.MustBegin()
+	tx, err := c.DB.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 	// cache info
 	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=? `, replicaInfoTable)
-	tx.MustExec(cCmd, carfileHash)
+	tx.Exec(cCmd, carfileHash)
 
 	// data info
 	dCmd := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=?`, carfileInfoTable)
-	tx.MustExec(dCmd, carfileHash)
+	tx.Exec(dCmd, carfileHash)
 
-	err := tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-		return err
-	}
-
-	return nil
-}
-
-// RemoveCarfileReplica remove replica info
-func (c *CarfileDB) RemoveCarfileReplica(nodeID, carfileHash string) error {
-	tx := c.DB.MustBegin()
-
-	// cache info
-	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE node_id=? AND carfile_hash=?`, replicaInfoTable)
-	tx.MustExec(cCmd, nodeID, carfileHash)
-
-	var count int
-	cmd := fmt.Sprintf("SELECT count(*) FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?", replicaInfoTable)
-	err := tx.Get(&count, cmd, carfileHash, types.CacheStatusSucceeded, false)
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-		return err
-	}
-
-	return nil
+	return tx.Commit()
 }
 
 // LoadCarfileRecordsWithNodes load carfile record hashs with nodes
 func (c *CarfileDB) LoadCarfileRecordsWithNodes(nodeIDs []string) (hashs []string, err error) {
-	tx := c.DB.MustBegin()
+	tx, err := c.DB.Beginx()
+	if err != nil {
+		return
+	}
+	defer tx.Rollback()
 
 	// get carfiles
 	getCarfilesCmd := fmt.Sprintf(`select carfile_hash from %s WHERE node_id in (?) GROUP BY carfile_hash`, replicaInfoTable)
@@ -386,17 +357,16 @@ func (c *CarfileDB) LoadCarfileRecordsWithNodes(nodeIDs []string) (hashs []strin
 	tx.Select(&hashs, carfilesQuery, args...)
 
 	err = tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-		return
-	}
-
 	return
 }
 
 // RemoveReplicaInfoWithNodes remove replica info with nodes
 func (c *CarfileDB) RemoveReplicaInfoWithNodes(nodeIDs []string) error {
-	tx := c.DB.MustBegin()
+	tx, err := c.DB.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 
 	// remove cache
 	cmd := fmt.Sprintf(`DELETE FROM %s WHERE node_id in (?)`, replicaInfoTable)
@@ -406,18 +376,12 @@ func (c *CarfileDB) RemoveReplicaInfoWithNodes(nodeIDs []string) error {
 	}
 
 	query = c.DB.Rebind(query)
-	tx.MustExec(query, args...)
+	tx.Exec(query, args...)
 
-	err = tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-		return err
-	}
-
-	return nil
+	return tx.Commit()
 }
 
-// download info
+// SetBlockDownloadInfo  download info
 func (c *CarfileDB) SetBlockDownloadInfo(info *types.DownloadRecordInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (id, node_id, block_cid, carfile_cid, block_size, speed, reward, status, failed_reason, client_ip, created_time, complete_time) 
@@ -574,19 +538,18 @@ func (c *CarfileDB) GetCachingCarfiles(serverID dtypes.ServerID) ([]string, erro
 
 // ReplicaTasksStart ...
 func (c *CarfileDB) ReplicaTasksStart(serverID dtypes.ServerID, hash string, nodeIDs []string) error {
-	tx := c.DB.MustBegin()
+	tx, err := c.DB.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 
 	for _, nodeID := range nodeIDs {
 		sQuery := fmt.Sprintf(`INSERT INTO %s (carfile_hash, node_id, server_id) VALUES (?, ?, ?)`, downloadingTable)
-		tx.MustExec(sQuery, hash, nodeID, serverID)
+		tx.Exec(sQuery, hash, nodeID, serverID)
 	}
 
-	err := tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-	}
-
-	return err
+	return tx.Commit()
 }
 
 // ReplicaTasksEnd ...
