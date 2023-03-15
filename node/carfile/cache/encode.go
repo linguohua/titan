@@ -8,7 +8,7 @@ import (
 )
 
 type EncodeCarfileCache struct {
-	root                      string
+	Root                      string
 	BlocksWaitList            []string
 	BlocksDownloadSuccessList []string
 	NextLayerCIDs             []string

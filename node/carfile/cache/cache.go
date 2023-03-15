@@ -195,7 +195,7 @@ func (cfCache *carfileCache) CancelDownload() error {
 
 func (cfCache *carfileCache) encode() ([]byte, error) {
 	encodeCarfile := &EncodeCarfileCache{
-		root:                      cfCache.root.String(),
+		Root:                      cfCache.root.String(),
 		BlocksWaitList:            cfCache.blocksWaitList,
 		BlocksDownloadSuccessList: cfCache.blocksDownloadSuccessList,
 		NextLayerCIDs:             cfCache.nextLayerCIDs,
@@ -214,7 +214,7 @@ func (cfCache *carfileCache) decode(data []byte) error {
 		return err
 	}
 
-	c, err := cid.Decode(encodeCarfile.root)
+	c, err := cid.Decode(encodeCarfile.Root)
 	if err != nil {
 		return err
 	}

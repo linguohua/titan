@@ -7,8 +7,6 @@ import (
 type Edge interface {
 	Common
 	Device
-	// Block
-	Download
 	Validate
 	DataSync
 	CarfileOperation

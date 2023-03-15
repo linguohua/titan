@@ -12,7 +12,6 @@ import (
 	"github.com/linguohua/titan/lib/tablewriter"
 
 	"github.com/linguohua/titan/api/types"
-	"github.com/linguohua/titan/node/cidutil"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
 )
