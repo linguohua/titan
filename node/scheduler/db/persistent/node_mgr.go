@@ -58,20 +58,23 @@ func (n *NodeMgrDB) LongTimeOfflineNodes(hour int) ([]*types.NodeInfo, error) {
 
 // SetNodesQuit Node quit the titan
 func (n *NodeMgrDB) SetNodesQuit(nodeIDs []string) error {
-	tx := n.db.MustBegin()
-
-	for _, nodeID := range nodeIDs {
-		dCmd := fmt.Sprintf(`UPDATE %s SET quitted=? WHERE node_id=?`, nodeInfoTable)
-		tx.MustExec(dCmd, true, nodeID)
-	}
-
-	err := tx.Commit()
+	tx, err := n.db.Beginx()
 	if err != nil {
-		err = tx.Rollback()
+		return err
+	}
+	defer tx.Rollback()
+
+	updateCachesCmd := fmt.Sprintf(`UPDATE %s SET quitted=? WHERE node_id in (?)`, nodeInfoTable)
+	query, args, err := sqlx.In(updateCachesCmd, true, nodeIDs)
+	if err != nil {
 		return err
 	}
 
-	return nil
+	// cache info
+	query = n.db.Rebind(query)
+	tx.Exec(query, args...)
+
+	return tx.Commit()
 }
 
 // NodePortMapping load node mapping port
@@ -99,24 +102,27 @@ func (n *NodeMgrDB) SetNodePortMapping(nodeID, port string) error {
 
 // InitValidatedResultInfos init validator result infos
 func (n *NodeMgrDB) InitValidatedResultInfos(infos []*types.ValidatedResultInfo) error {
-	tx := n.db.MustBegin()
-	for _, info := range infos {
-		query := fmt.Sprintf(`INSERT INTO %s (round_id, node_id, validator_id, status, start_time) VALUES (?, ?, ?, ?, ?)`, validateResultTable)
-		tx.MustExec(query, info.RoundID, info.NodeID, info.ValidatorID, info.Status, info.StartTime)
-	}
-
-	err := tx.Commit()
+	tx, err := n.db.Beginx()
 	if err != nil {
-		err = tx.Rollback()
 		return err
 	}
+	defer tx.Rollback()
 
-	return nil
+	for _, info := range infos {
+		query := fmt.Sprintf(`INSERT INTO %s (round_id, node_id, validator_id, status, start_time) VALUES (?, ?, ?, ?, ?)`, validateResultTable)
+		tx.Exec(query, info.RoundID, info.NodeID, info.ValidatorID, info.Status, info.StartTime)
+	}
+
+	return tx.Commit()
 }
 
 // SetValidateTimeoutOfNodes Set validator timeout of nodes
 func (n *NodeMgrDB) SetValidateTimeoutOfNodes(roundID int64, nodeIDs []string) error {
-	tx := n.db.MustBegin()
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 
 	updateCachesCmd := fmt.Sprintf(`UPDATE %s SET status=?,end_time=NOW() WHERE round_id=? AND node_id in (?)`, validateResultTable)
 	query, args, err := sqlx.In(updateCachesCmd, types.ValidateStatusTimeOut, roundID, nodeIDs)
@@ -126,15 +132,9 @@ func (n *NodeMgrDB) SetValidateTimeoutOfNodes(roundID int64, nodeIDs []string) e
 
 	// cache info
 	query = n.db.Rebind(query)
-	tx.MustExec(query, args...)
+	tx.Exec(query, args...)
 
-	err = tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-		return err
-	}
-
-	return nil
+	return tx.Commit()
 }
 
 // UpdateValidatedResultInfo Update validator info
@@ -231,22 +231,22 @@ func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*types.NodeInfo, int64, e
 
 // ResetValidators validator list
 func (n *NodeMgrDB) ResetValidators(nodeIDs []string, serverID dtypes.ServerID) error {
-	tx := n.db.MustBegin()
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
 	// clean old validators
 	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE server_id=? `, validatorsTable)
-	tx.MustExec(dQuery, serverID)
+	tx.Exec(dQuery, serverID)
 
 	for _, nodeID := range nodeIDs {
 		iQuery := fmt.Sprintf(`INSERT INTO %s (node_id, server_id) VALUES (?, ?)`, validatorsTable)
-		tx.MustExec(iQuery, nodeID, serverID)
+		tx.Exec(iQuery, nodeID, serverID)
 	}
 
-	err := tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-	}
-
-	return err
+	return tx.Commit()
 }
 
 // GetValidatorsWithList load validators
@@ -394,22 +394,22 @@ func (n *NodeMgrDB) NodeInfo(nodeID string) (*types.NodeInfo, error) {
 
 // SetNodesToVerifyingList validator list
 func (n *NodeMgrDB) SetNodesToVerifyingList(nodeIDs []string, serverID dtypes.ServerID) error {
-	tx := n.db.MustBegin()
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
 	// clean old validators
 	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE server_id=? `, nodeVerifyingTable)
-	tx.MustExec(dQuery, serverID)
+	tx.Exec(dQuery, serverID)
 
 	for _, nodeID := range nodeIDs {
 		iQuery := fmt.Sprintf(`INSERT INTO %s (node_id, server_id) VALUES (?, ?)`, nodeVerifyingTable)
-		tx.MustExec(iQuery, nodeID, serverID)
+		tx.Exec(iQuery, nodeID, serverID)
 	}
 
-	err := tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-	}
-
-	return err
+	return tx.Commit()
 }
 
 // GetNodesWithVerifyingList load validators
