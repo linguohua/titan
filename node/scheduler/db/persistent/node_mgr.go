@@ -206,11 +206,6 @@ func (n *NodeMgrDB) DeleteEdgeUpdateInfo(nodeType int) error {
 	return err
 }
 
-// IsNilErr Is NilErr
-func IsNilErr(err error) bool {
-	return err.Error() == errNotFind
-}
-
 func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*types.NodeInfo, int64, error) {
 	var total int64
 	countSQL := fmt.Sprintf("SELECT count(*) FROM %s", nodeInfoTable)
