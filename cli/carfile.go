@@ -16,6 +16,12 @@ import (
 	"golang.org/x/xerrors"
 )
 
+var (
+	defaultExpireDays     = 7
+	defaultExpiration     = time.Duration(defaultExpireDays) * time.Hour * 24
+	defaultDatetimeLayout = "2006-01-02 15:04:05"
+)
+
 var carfileCmd = &cli.Command{
 	Name:  "carfile",
 	Usage: "Manage carfile",
@@ -129,10 +135,18 @@ var showCarfileInfoCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("Data CID: %s ,Total Size:%f MB ,Total Blocks:%d ,EdgeReplica:%d/%d ,Expiration Time:%s\n", info.CarfileCID, float64(info.TotalSize)/(1024*1024), info.TotalBlocks, info.EdgeReplica, info.NeedEdgeReplica, info.Expiration.Format("2006-01-02 15:04:05"))
+		fmt.Printf("CID:\t%s\n", info.CarfileCID)
+		fmt.Printf("Hash:\t%s\n", info.CarfileHash)
+		fmt.Printf("State:\t%s\n", info.State)
+		fmt.Printf("Blocks:\t%d\n", info.TotalBlocks)
+		fmt.Printf("Size:\t%s\n", units.BytesSize(float64(info.TotalSize)))
+		fmt.Printf("EdgeReplica:\t%d\n", info.EdgeReplica)
+		fmt.Printf("Expiration:\t%v\n", info.Expiration.Format(defaultDatetimeLayout))
+
+		fmt.Printf("--------\nProcesses:\n")
 		for _, cache := range info.ReplicaInfos {
-			fmt.Printf("NodeID: %s ,Status:%s ,Done Size:%f MB ,Done Blocks:%d ,IsCandidateCache:%v \n",
-				cache.NodeID, cache.Status.String(), float64(cache.DoneSize)/(1024*1024), cache.DoneBlocks, cache.IsCandidate)
+			fmt.Printf("%s(%s): %s\t%d/%d\t%s/%s\n", cache.NodeID, edgeOrCandidate(cache.IsCandidate), cache.Status.String(),
+				cache.DoneBlocks, info.TotalBlocks, units.BytesSize(float64(cache.DoneSize)), units.BytesSize(float64(info.TotalSize)))
 		}
 
 		return nil
@@ -145,12 +159,12 @@ var cacheCarfileCmd = &cli.Command{
 	Flags: []cli.Flag{
 		cidFlag,
 		replicaCountFlag,
-		expiredDateFlag,
+		expirationDateFlag,
 	},
 	Action: func(cctx *cli.Context) error {
 		cid := cctx.String("cid")
 		replicaCount := cctx.Int64("replica-count")
-		date := cctx.String("expired-date")
+		date := cctx.String("expiration-date")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -166,10 +180,10 @@ var cacheCarfileCmd = &cli.Command{
 		info := &types.CacheCarfileInfo{CarfileCid: cid}
 
 		if date == "" {
-			date = time.Now().Add(time.Duration(7*24) * time.Hour).Format("2006-1-2 15:04:05")
+			date = time.Now().Add(defaultExpiration).Format(defaultDatetimeLayout)
 		}
 
-		eTime, err := time.ParseInLocation("2006-1-2 15:04:05", date, time.Local)
+		eTime, err := time.ParseInLocation(defaultDatetimeLayout, date, time.Local)
 		if err != nil {
 			return xerrors.Errorf("parse expiration err:%s", err.Error())
 		}
@@ -261,8 +275,8 @@ var listCarfilesCmd = &cli.Command{
 				"State":      colorState(carfile.State),
 				"Blocks":     carfile.TotalBlocks,
 				"Size":       units.BytesSize(float64(carfile.TotalSize)),
-				"CreateTime": carfile.CreateTime,
-				"Expiration": carfile.Expiration,
+				"CreateTime": carfile.CreateTime.Format(defaultDatetimeLayout),
+				"Expiration": carfile.Expiration.Format(defaultDatetimeLayout),
 			}
 
 			sort.Slice(carfile.ReplicaInfos, func(i, j int) bool {

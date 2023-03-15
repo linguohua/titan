@@ -52,7 +52,7 @@ var (
 
 	cidFlag = &cli.StringFlag{
 		Name:  "cid",
-		Usage: "cid",
+		Usage: "specify the cid of a carfile",
 		Value: "",
 	}
 
@@ -88,8 +88,8 @@ var (
 		DefaultText: "1",
 	}
 
-	expiredDateFlag = &cli.StringFlag{
-		Name:        "expired-date",
+	expirationDateFlag = &cli.StringFlag{
+		Name:        "expiration-date",
 		Usage:       "Set the carfile expiration, format with '2006-1-2 15:04:05' layout.",
 		Value:       "",
 		DefaultText: "7 day later for now",
