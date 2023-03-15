@@ -78,8 +78,6 @@ func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToke
 	m.startupWait.Add(1)
 	m.carfiles = statemachine.New(ds, m, CarfileInfo{})
 
-	go m.checkExpirationTicker()
-
 	return m
 }
 
@@ -87,6 +85,7 @@ func (m *Manager) Run(ctx context.Context) {
 	if err := m.restartCarfiles(ctx); err != nil {
 		log.Errorf("failed load sector states: %+v", err)
 	}
+	m.checkExpirationTicker(ctx)
 }
 
 func (m *Manager) Stop(ctx context.Context) error {
@@ -96,13 +95,17 @@ func (m *Manager) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (m *Manager) checkExpirationTicker() {
+func (m *Manager) checkExpirationTicker(ctx context.Context) {
 	ticker := time.NewTicker(time.Duration(checkExpirationTimerInterval) * time.Second)
 	defer ticker.Stop()
 
 	for {
-		<-ticker.C
-		m.checkCachesExpiration()
+		select {
+		case <-ticker.C:
+			m.checkCachesExpiration()
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 
