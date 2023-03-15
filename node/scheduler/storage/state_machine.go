@@ -19,7 +19,7 @@ func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface
 	return func(ctx statemachine.Context, si CarfileInfo) error {
 		err := next(ctx, si)
 		if err != nil {
-			log.Errorf("unhandled carfile error (%s): %+v", si.CarfileCID, err)
+			log.Errorf("unhandled carfile error (%s): %+v", si.CarfileHash, err)
 			return nil
 		}
 
@@ -144,7 +144,7 @@ func planOne(ts ...func() (mut mutator, next func(info *CarfileInfo) (more bool,
 				}
 
 				if err, iserr := event.User.(error); iserr {
-					log.Warnf("carfile %s got error event %T: %+v", state.CarfileCID, event.User, err)
+					log.Warnf("carfile %s got error event %T: %+v", state.CarfileHash, event.User, err)
 				}
 
 				event.User.(mutator).apply(state)
@@ -215,7 +215,7 @@ func (m *Manager) restartCarfiles(ctx context.Context) error {
 
 	for _, carfile := range trackedCarfiles {
 		if err := m.carfiles.Send(carfile.CarfileHash, CarfileRestart{}); err != nil {
-			log.Errorf("restarting carfile %s: %+v", carfile.CarfileCID, err)
+			log.Errorf("restarting carfile %s: %+v", carfile.CarfileHash, err)
 		}
 	}
 

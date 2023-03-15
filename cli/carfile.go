@@ -137,10 +137,10 @@ var showCarfileInfoCmd = &cli.Command{
 
 		fmt.Printf("CID:\t%s\n", info.CarfileCID)
 		fmt.Printf("Hash:\t%s\n", info.CarfileHash)
-		fmt.Printf("State:\t%s\n", info.State)
+		fmt.Printf("State:\t%s\n", colorState(info.State))
 		fmt.Printf("Blocks:\t%d\n", info.TotalBlocks)
 		fmt.Printf("Size:\t%s\n", units.BytesSize(float64(info.TotalSize)))
-		fmt.Printf("EdgeReplica:\t%d\n", info.EdgeReplica)
+		fmt.Printf("NeedEdgeReplica:\t%d\n", info.NeedEdgeReplica)
 		fmt.Printf("Expiration:\t%v\n", info.Expiration.Format(defaultDatetimeLayout))
 
 		fmt.Printf("--------\nProcesses:\n")

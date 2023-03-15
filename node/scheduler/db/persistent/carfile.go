@@ -147,7 +147,6 @@ func (c *CarfileDB) CarfileRecordInfos(page int, status types.CacheStatus) (info
 		selectCmd = fmt.Sprintf("SELECT * FROM %s  WHERE state='Finalize' ", carfileInfoTable)
 	}
 
-	fmt.Printf("countCmd %s \n", countCmd)
 	if likeCondition == "" {
 		err = c.DB.Get(&info.Cids, countCmd)
 	} else {
@@ -173,7 +172,6 @@ func (c *CarfileDB) CarfileRecordInfos(page int, status types.CacheStatus) (info
 
 	selectCmd += " order by carfile_hash asc LIMIT ?,?"
 	// cmd := fmt.Sprintf(fmt.Sprintf("%s order by carfile_hash asc LIMIT %d,%d", selectCmd, (num * (page - 1)), num))
-	fmt.Printf("selectCmd %s \n", selectCmd)
 	if likeCondition == "" {
 		err = c.DB.Select(&info.CarfileRecords, selectCmd, (num * (page - 1)), num)
 	} else {
