@@ -103,33 +103,48 @@ func (cfImpl *CarfileImpl) CacheCarfile(ctx context.Context, rootCID string, dss
 	return cfImpl.cacheCarfileResult()
 }
 
-func (cfImpl *CarfileImpl) DeleteCarfile(ctx context.Context, carfileCID string) error {
-	c, err := cid.Decode(carfileCID)
-	if err != nil {
-		return err
-	}
+func (cfImpl *CarfileImpl) deleteCarfile(ctx context.Context, c cid.Cid) error {
+	defer func() {
+		if count, err := cfImpl.carfileStore.BlockCount(); err == nil {
+			cfImpl.TotalBlockCount = count
+		}
+
+		_, diskUsage := cfImpl.device.GetDiskUsageStat()
+		ret := types.RemoveCarfileResult{BlocksCount: cfImpl.TotalBlockCount, DiskUsage: diskUsage}
+
+		cfImpl.scheduler.RemoveCarfileResult(context.Background(), ret)
+	}()
 
 	ok, err := cfImpl.cm.DeleteCarFromWaitList(c)
 	if err != nil {
+		log.Errorf("DeleteCarfile, delete car %s from wait list error:%s", c.String(), err.Error())
 		return err
 	}
 
 	if ok {
+		log.Debugf("delete carfile %s from wait list", c.String())
 		return nil
 	}
 
-	has, err := cfImpl.carfileStore.HashCarfile(c)
+	log.Debugf("delete carfile %s", c.String())
+
+	err = cfImpl.carfileStore.DeleteCarfile(c)
 	if err != nil {
-		log.Errorf("CacheCarfile, HasCarfile error:%s, carfile hash :%s", err.Error(), c.Hash().String())
+		log.Errorf("delete carfile error: %s", err.Error())
+	}
+	return err
+}
+
+func (cfImpl *CarfileImpl) DeleteCarfile(ctx context.Context, carfileCID string) error {
+	c, err := cid.Decode(carfileCID)
+	if err != nil {
+		log.Errorf("DeleteCarfile, decode carfile cid %s error :%s", carfileCID, err.Error())
 		return err
 	}
 
-	if !has {
-		log.Warnf("carfile % not exist", carfileCID)
-		return nil
-	}
+	go cfImpl.deleteCarfile(ctx, c)
 
-	return cfImpl.carfileStore.DeleteCarfile(c)
+	return nil
 }
 
 func (cfImpl *CarfileImpl) DeleteAllCarfiles(ctx context.Context) error {

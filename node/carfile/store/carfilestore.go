@@ -126,19 +126,28 @@ func (cs *CarfileStore) RegisterShared(root cid.Cid) error {
 }
 
 func (cs *CarfileStore) DeleteCarfile(root cid.Cid) error {
-	err := cs.destroyShared(root)
-	if err != nil {
+	err := cs.DeleteIncompleteCarfileCache(root)
+	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 
+	err = cs.removeCar(root)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	if err == nil {
+		return cs.destroyShared(root)
+	}
+
+	return nil
+}
+
+func (cs *CarfileStore) removeCar(root cid.Cid) error {
 	name := newCarfileName(root)
 	path := filepath.Join(cs.carsDir(), name)
 
-	err = os.Remove(path)
-	if err != nil && os.IsNotExist(err) {
-		return datastore.ErrNotFound
-	}
-	return err
+	return os.Remove(path)
 }
 
 func (cs *CarfileStore) destroyShared(root cid.Cid) error {
@@ -398,10 +407,6 @@ func (cs *CarfileStore) DeleteIncompleteCarfileCache(c cid.Cid) error {
 // return datastore.ErrNotFound if car not exist
 func (cs *CarfileStore) IncompleteCarfileCacheData(c cid.Cid) ([]byte, error) {
 	return cs.incompleteCarfileCache.data(c.Hash().String())
-}
-
-func (cs *CarfileStore) IncompleteCarfileHashList() ([]string, error) {
-	return cs.incompleteCarfileCache.carfileHashList()
 }
 
 // incomplete carfileCache
