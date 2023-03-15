@@ -127,7 +127,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 	nodeID := handler.GetNodeID(ctx)
 
 	if !s.nodeExists(nodeID, int(types.NodeCandidate)) {
-		return xerrors.Errorf("candidate node not Exist: %s", nodeID)
+		return xerrors.Errorf("candidate node not exists: %s", nodeID)
 	}
 
 	oldInfo := s.NodeManager.GetNode(nodeID)
@@ -138,15 +138,15 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		}
 	}
 
-	log.Infof("Candidate Connect %s, address:%s", nodeID, remoteAddr)
+	log.Infof("candidate connected %s, address:%s", nodeID, remoteAddr)
 	candidateNode := node.NewCandidate(s.AdminToken)
-	candicateAPI, err := candidateNode.ConnectRPC(remoteAddr, true)
+	candidateAPI, err := candidateNode.ConnectRPC(remoteAddr, true)
 	if err != nil {
 		return xerrors.Errorf("CandidateNodeConnect ConnectRPC err:%s", err.Error())
 	}
 
 	// load node info
-	nodeInfo, err := candicateAPI.NodeInfo(ctx)
+	nodeInfo, err := candidateAPI.NodeInfo(ctx)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect NodeInfo err:%s", err.Error())
 		return err
@@ -159,7 +159,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 
 	err = s.NodeManager.CandidateOnline(candidateNode)
 	if err != nil {
-		log.Errorf("CandidateNodeConnect addEdgeNode err:%s,nodeID:%s", err.Error(), nodeID)
+		log.Errorf("CandidateNodeConnect CandidateOnline err:%s,nodeID:%s", err.Error(), nodeID)
 		return err
 	}
 
@@ -177,7 +177,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	nodeID := handler.GetNodeID(ctx)
 
 	if !s.nodeExists(nodeID, int(types.NodeEdge)) {
-		return xerrors.Errorf("edge node not Exist: %s", nodeID)
+		return xerrors.Errorf("edge node not exists: %s", nodeID)
 	}
 
 	oldInfo := s.NodeManager.GetNode(nodeID)
@@ -188,7 +188,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		}
 	}
 
-	log.Infof("Edge Connect %s; remoteAddr:%s", nodeID, remoteAddr)
+	log.Infof("edge connected %s; remoteAddr:%s", nodeID, remoteAddr)
 	edgeNode := node.NewEdge(s.AdminToken)
 	edgeAPI, err := edgeNode.ConnectRPC(remoteAddr, true)
 	if err != nil {
@@ -209,7 +209,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 
 	err = s.NodeManager.EdgeOnline(edgeNode)
 	if err != nil {
-		log.Errorf("EdgeNodeConnect addEdgeNode err:%s,nodeID:%s", err.Error(), nodeInfo.NodeID)
+		log.Errorf("EdgeNodeConnect EdgeOnline err:%s,nodeID:%s", err.Error(), nodeInfo.NodeID)
 		return err
 	}
 
@@ -223,7 +223,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 
 func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.NodeInfo) (*node.BaseInfo, error) {
 	if nodeID != nodeInfo.NodeID {
-		return nil, xerrors.Errorf("nodeID mismatch %s,%s", nodeID, nodeInfo.NodeID)
+		return nil, xerrors.Errorf("nodeID mismatch %s, %s", nodeID, nodeInfo.NodeID)
 	}
 
 	privateKey, err := s.loadOrNewPrivateKey(nodeID)
@@ -284,7 +284,7 @@ func (s *Scheduler) NodePublicKey(ctx context.Context) (string, error) {
 		return string(titanRsa.PublicKey2Pem(&candidateNode.PrivateKey().PublicKey)), nil
 	}
 
-	return "", fmt.Errorf("Can not get node %s publicKey", nodeID)
+	return "", fmt.Errorf("can not get node %s publicKey", nodeID)
 }
 
 // NodeExternalServiceAddress get node External address
@@ -365,7 +365,6 @@ func (s *Scheduler) NodeInfo(ctx context.Context, nodeID string) (*types.NodeInf
 		nodeInfo = info.NodeInfo
 		nodeInfo.Online = true
 	} else {
-		// node datas
 		dbInfo, err := s.NodeManager.NodeMgrDB.NodeInfo(nodeID)
 		if err != nil {
 			log.Errorf("getNodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
@@ -425,7 +424,7 @@ func (s *Scheduler) nodeExitedCallback(nodeIDs []string) {
 	// clean node cache
 	log.Infof("node event , nodes quit:%v", nodeIDs)
 
-	hashs, err := s.NodeManager.CarfileDB.LoadCarfileRecordsWithNodes(nodeIDs)
+	hashes, err := s.NodeManager.CarfileDB.LoadCarfileRecordsWithNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
 		return
@@ -437,8 +436,7 @@ func (s *Scheduler) nodeExitedCallback(nodeIDs []string) {
 		return
 	}
 
-	// recache
-	for _, hash := range hashs {
+	for _, hash := range hashes {
 		log.Infof("need restore storage :%s", hash)
 	}
 }
