@@ -224,8 +224,6 @@ type SchedulerStruct struct {
 
 		CarfileReplicaList func(p0 context.Context, p1 types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error) `perm:"read"`
 
-		CarfileStatus func(p0 context.Context, p1 types.CarfileHash) (types.CarfileRecordInfo, error) `perm:"read"`
-
 		DeleteEdgeUpdateInfo func(p0 context.Context, p1 int) error `perm:"admin"`
 
 		DeleteNodeLogFile func(p0 context.Context, p1 string) error `perm:"admin"`
@@ -857,17 +855,6 @@ func (s *SchedulerStruct) CarfileReplicaList(p0 context.Context, p1 types.ListCa
 
 func (s *SchedulerStub) CarfileReplicaList(p0 context.Context, p1 types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error) {
 	return nil, ErrNotSupported
-}
-
-func (s *SchedulerStruct) CarfileStatus(p0 context.Context, p1 types.CarfileHash) (types.CarfileRecordInfo, error) {
-	if s.Internal.CarfileStatus == nil {
-		return *new(types.CarfileRecordInfo), ErrNotSupported
-	}
-	return s.Internal.CarfileStatus(p0, p1)
-}
-
-func (s *SchedulerStub) CarfileStatus(p0 context.Context, p1 types.CarfileHash) (types.CarfileRecordInfo, error) {
-	return *new(types.CarfileRecordInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) DeleteEdgeUpdateInfo(p0 context.Context, p1 int) error {

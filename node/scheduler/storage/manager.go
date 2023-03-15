@@ -369,26 +369,6 @@ func (m *Manager) GetCarfileRecordInfo(cid string) (*types.CarfileRecordInfo, er
 	return dInfo, err
 }
 
-func (m *Manager) CarfileStatus(ctx context.Context, hash types.CarfileHash) (types.CarfileRecordInfo, error) {
-	info, err := m.GetCarfileFromStatemachine(CarfileHash(hash))
-	if err != nil {
-		return types.CarfileRecordInfo{}, err
-	}
-
-	cInfo := types.CarfileRecordInfo{
-		CarfileCID:            hash.String(),
-		State:                 info.State.String(),
-		CarfileHash:           info.CarfileHash.String(),
-		NeedEdgeReplica:       info.EdgeReplicas,
-		NeedCandidateReplicas: info.CandidateReplicas,
-		TotalSize:             info.Size,
-		TotalBlocks:           info.Blocks,
-		Expiration:            time.Unix(info.Expiration, 0),
-	}
-
-	return cInfo, nil
-}
-
 // Find edges that meet the cache criteria
 func (m *Manager) findEdges(count int, filterNodes []string) []*node.Edge {
 	list := make([]*node.Edge, 0)

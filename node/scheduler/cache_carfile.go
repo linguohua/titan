@@ -155,8 +155,3 @@ func (s *Scheduler) CacheCarfiles(ctx context.Context, info *types.CacheCarfileI
 
 	return s.DataManager.CacheCarfile(info)
 }
-
-// CarfileStatus return the carfile caches state
-func (s *Scheduler) CarfileStatus(ctx context.Context, hash types.CarfileHash) (types.CarfileRecordInfo, error) {
-	return s.DataManager.CarfileStatus(ctx, hash)
-}
