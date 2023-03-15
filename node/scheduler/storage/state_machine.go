@@ -221,3 +221,12 @@ func (m *Manager) restartCarfiles(ctx context.Context) error {
 
 	return nil
 }
+
+// ListCarfiles load carfiles from db
+func (m *Manager) ListCarfiles() ([]CarfileInfo, error) {
+	var carfiles []CarfileInfo
+	if err := m.carfiles.List(&carfiles); err != nil {
+		return nil, err
+	}
+	return carfiles, nil
+}
