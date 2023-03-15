@@ -162,3 +162,22 @@ const (
 	// ValidateStatusOther status
 	ValidateStatusOther
 )
+
+//DownloadTicket be use for download car
+type DownloadTicket struct {
+	ID        string
+	NodeID    string
+	CarCID    string
+	ClientID  string
+	LimitRate int64
+	ValidTime int64
+}
+
+type ReturnTicket struct {
+	ID       string
+	NodeID   string
+	CarCID   string
+	ClientID string
+	Rate     int64
+	Size     int64
+}

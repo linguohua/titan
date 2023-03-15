@@ -20,8 +20,6 @@ type CandidateStruct struct {
 
 	DeviceStruct
 
-	DownloadStruct
-
 	ValidateStruct
 
 	DataSyncStruct
@@ -43,8 +41,6 @@ type CandidateStub struct {
 	CommonStub
 
 	DeviceStub
-
-	DownloadStub
 
 	ValidateStub
 
@@ -125,21 +121,10 @@ type DeviceStruct struct {
 type DeviceStub struct {
 }
 
-type DownloadStruct struct {
-	Internal struct {
-		SetDownloadSpeed func(p0 context.Context, p1 int64) error `perm:"write"`
-	}
-}
-
-type DownloadStub struct {
-}
-
 type EdgeStruct struct {
 	CommonStruct
 
 	DeviceStruct
-
-	DownloadStruct
 
 	ValidateStruct
 
@@ -160,8 +145,6 @@ type EdgeStub struct {
 	CommonStub
 
 	DeviceStub
-
-	DownloadStub
 
 	ValidateStub
 
@@ -589,17 +572,6 @@ func (s *DeviceStruct) NodeInfo(p0 context.Context) (types.NodeInfo, error) {
 
 func (s *DeviceStub) NodeInfo(p0 context.Context) (types.NodeInfo, error) {
 	return *new(types.NodeInfo), ErrNotSupported
-}
-
-func (s *DownloadStruct) SetDownloadSpeed(p0 context.Context, p1 int64) error {
-	if s.Internal.SetDownloadSpeed == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.SetDownloadSpeed(p0, p1)
-}
-
-func (s *DownloadStub) SetDownloadSpeed(p0 context.Context, p1 int64) error {
-	return ErrNotSupported
 }
 
 func (s *EdgeStruct) ExternalServiceAddrss(p0 context.Context, p1 string) (string, error) {
@@ -1234,7 +1206,6 @@ var _ CarfileOperation = new(CarfileOperationStruct)
 var _ Common = new(CommonStruct)
 var _ DataSync = new(DataSyncStruct)
 var _ Device = new(DeviceStruct)
-var _ Download = new(DownloadStruct)
 var _ Edge = new(EdgeStruct)
 var _ Locator = new(LocatorStruct)
 var _ Scheduler = new(SchedulerStruct)

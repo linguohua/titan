@@ -9,7 +9,6 @@ import (
 
 var EdgeCmds = []*cli.Command{
 	nodeInfoCmd,
-	limitRateCmd,
 	cacheStatCmd,
 	logFileCmd,
 }
@@ -44,37 +43,6 @@ var nodeInfoCmd = &cli.Command{
 		fmt.Printf("node upload bandwidth: %v \n", v.BandwidthUp)
 		fmt.Printf("node cpu percent: %v \n", v.CPUUsage)
 
-		return nil
-	},
-}
-
-var limitRateCmd = &cli.Command{
-	Name:  "limit",
-	Usage: "limit rate",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "rate",
-			Usage: "speed rate",
-			Value: "",
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetEdgeAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		speed := cctx.Int64("rate")
-
-		ctx := ReqContext(cctx)
-
-		err = api.SetDownloadSpeed(ctx, speed)
-		if err != nil {
-			fmt.Printf("Set Download speed failed:%v", err)
-			return err
-		}
-		fmt.Printf("Set download speed %d success", speed)
 		return nil
 	},
 }

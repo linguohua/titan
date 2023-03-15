@@ -5,7 +5,6 @@ import "context"
 type Candidate interface {
 	Common
 	Device
-	Download
 	Validate
 	DataSync
 	CarfileOperation
