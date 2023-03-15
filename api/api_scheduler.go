@@ -50,7 +50,6 @@ type Scheduler interface {
 	RestartFailedCarfiles(ctx context.Context, hashes []types.CarfileHash) error                                 //perm:admin
 	ResetCarfileExpiration(ctx context.Context, carfileCid string, time time.Time) error                         //perm:admin
 	ResetCandidateReplicaCount(ctx context.Context, count int) error                                             //perm:admin
-	RecacheCarfiles(ctx context.Context, hashs []string) error                                                   //perm:admin
 
 	// server
 	StartOnceElection(ctx context.Context) error                          //perm:admin

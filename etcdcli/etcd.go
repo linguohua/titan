@@ -18,7 +18,7 @@ var log = logging.Logger("etcd")
 
 const (
 	connectServerTimeoutTime = 5  // Second
-	nodeExpirationDuration   = 10 // Second
+	serverKeepAliveDuration  = 10 // Second
 )
 
 // Client ...
@@ -54,7 +54,7 @@ func (c *Client) ServerLogin(cfg *types.SchedulerCfg, nodeType types.NodeType) e
 
 	// get a lease
 	lease := clientv3.NewLease(c.cli)
-	leaseRsp, err := lease.Grant(ctx, nodeExpirationDuration)
+	leaseRsp, err := lease.Grant(ctx, serverKeepAliveDuration)
 	if err != nil {
 		return xerrors.Errorf("Grant lease err:%s", err.Error())
 	}

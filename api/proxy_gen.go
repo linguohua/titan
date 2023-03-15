@@ -262,8 +262,6 @@ type SchedulerStruct struct {
 
 		OnlineNodeList func(p0 context.Context, p1 types.NodeType) ([]string, error) `perm:"read"`
 
-		RecacheCarfiles func(p0 context.Context, p1 []string) error `perm:"admin"`
-
 		RemoveCarfile func(p0 context.Context, p1 string) error `perm:"admin"`
 
 		RemoveCarfileResult func(p0 context.Context, p1 types.RemoveCarfileResult) error `perm:"write"`
@@ -1064,17 +1062,6 @@ func (s *SchedulerStruct) OnlineNodeList(p0 context.Context, p1 types.NodeType) 
 
 func (s *SchedulerStub) OnlineNodeList(p0 context.Context, p1 types.NodeType) ([]string, error) {
 	return *new([]string), ErrNotSupported
-}
-
-func (s *SchedulerStruct) RecacheCarfiles(p0 context.Context, p1 []string) error {
-	if s.Internal.RecacheCarfiles == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.RecacheCarfiles(p0, p1)
-}
-
-func (s *SchedulerStub) RecacheCarfiles(p0 context.Context, p1 []string) error {
-	return ErrNotSupported
 }
 
 func (s *SchedulerStruct) RemoveCarfile(p0 context.Context, p1 string) error {

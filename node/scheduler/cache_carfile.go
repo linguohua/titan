@@ -45,30 +45,6 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo types.Re
 	return nil
 }
 
-// RecacheCarfiles Execute Undone Carfiles Task
-func (s *Scheduler) RecacheCarfiles(ctx context.Context, hashs []string) error {
-	list, err := s.NodeManager.CarfileDB.CarfileInfos(hashs)
-	if err != nil {
-		return err
-	}
-
-	if list != nil {
-		for _, carfile := range list {
-			info := &types.CacheCarfileInfo{
-				CarfileCid: carfile.CarfileCID,
-				Replicas:   carfile.NeedEdgeReplica,
-				Expiration: carfile.Expiration,
-			}
-			err = s.CacheCarfiles(ctx, info)
-			if err != nil {
-				log.Errorf("RecacheCarfiles CacheCarfiles err:%s", err.Error())
-			}
-		}
-	}
-
-	return nil
-}
-
 // RestartFailedCarfiles restart failed carfiles
 func (s *Scheduler) RestartFailedCarfiles(ctx context.Context, hashes []types.CarfileHash) error {
 	return s.DataManager.FailedCarfilesRestart(hashes)
