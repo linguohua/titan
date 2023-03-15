@@ -96,13 +96,13 @@ const (
 func (c CacheStatus) String() string {
 	switch c {
 	case CacheStatusFailed:
-		return "failed"
+		return "Failed"
 	case CacheStatusDownloading:
-		return "downloading"
+		return "Downloading"
 	case CacheStatusSucceeded:
-		return "succeeded"
+		return "Succeeded"
 	default:
-		return "unknown"
+		return "Unknown"
 	}
 }
 

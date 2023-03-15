@@ -145,7 +145,7 @@ var showCarfileInfoCmd = &cli.Command{
 
 		fmt.Printf("--------\nProcesses:\n")
 		for _, cache := range info.ReplicaInfos {
-			fmt.Printf("%s(%s): %s\t%d/%d\t%s/%s\n", cache.NodeID, edgeOrCandidate(cache.IsCandidate), cache.Status.String(),
+			fmt.Printf("%s(%s): %s\t%d/%d\t%s/%s\n", cache.NodeID, edgeOrCandidate(cache.IsCandidate), colorState(cache.Status.String()),
 				cache.DoneBlocks, info.TotalBlocks, units.BytesSize(float64(cache.DoneSize)), units.BytesSize(float64(info.TotalSize)))
 		}
 
@@ -329,7 +329,7 @@ func edgeOrCandidate(isCandidate bool) string {
 func colorState(state string) string {
 	if strings.Contains(state, "Failed") {
 		return color.RedString(state)
-	} else if strings.Contains(state, "Finalize") {
+	} else if strings.Contains(state, "Finalize") || strings.Contains(state, "Succeeded") {
 		return color.GreenString(state)
 	} else {
 		return color.YellowString(state)
