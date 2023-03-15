@@ -287,15 +287,7 @@ var listCarfilesCmd = &cli.Command{
 				processes := "\n"
 				for j := 0; j < len(carfile.ReplicaInfos); j++ {
 					cache := carfile.ReplicaInfos[j]
-					status := cache.Status.String()
-					switch cache.Status {
-					case types.CacheStatusSucceeded:
-						status = color.GreenString(status)
-					case types.CacheStatusDownloading:
-						status = color.YellowString(status)
-					case types.CacheStatusFailed:
-						status = color.RedString(status)
-					}
+					status := colorState(cache.Status.String())
 					processes += fmt.Sprintf("\t%s(%s): %s\n", cache.NodeID, edgeOrCandidate(cache.IsCandidate), status)
 				}
 				m["Processes"] = processes
