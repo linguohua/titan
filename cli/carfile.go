@@ -37,7 +37,7 @@ var carfileCmd = &cli.Command{
 
 var resetReplicaCacheCountCmd = &cli.Command{
 	Name:  "reset-candidate-replica",
-	Usage: "Reset Number of candidate node replica per storage",
+	Usage: "Reset the number of candidate node replica per storage",
 	Flags: []cli.Flag{
 		countFlag,
 	},
@@ -62,13 +62,13 @@ var resetReplicaCacheCountCmd = &cli.Command{
 
 var resetExpirationCmd = &cli.Command{
 	Name:  "reset-expiration",
-	Usage: "Reset storage expiration",
+	Usage: "Reset the storage expiration",
 	Flags: []cli.Flag{
 		cidFlag,
 		dateFlag,
 	},
 	Action: func(cctx *cli.Context) error {
-		cardileCid := cctx.String("cid")
+		carfileCid := cctx.String("cid")
 		dateTime := cctx.String("date-time")
 
 		ctx := ReqContext(cctx)
@@ -84,7 +84,7 @@ var resetExpirationCmd = &cli.Command{
 			return xerrors.Errorf("date time err:%s", err.Error())
 		}
 
-		err = schedulerAPI.ResetCarfileExpiration(ctx, cardileCid, time)
+		err = schedulerAPI.ResetCarfileExpiration(ctx, carfileCid, time)
 		if err != nil {
 			return err
 		}

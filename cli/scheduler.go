@@ -1,15 +1,10 @@
 package cli
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"strconv"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/linguohua/titan/api"
 	"github.com/urfave/cli/v2"
 )
@@ -110,7 +105,7 @@ var (
 
 var setNodePortCmd = &cli.Command{
 	Name:  "set-node-port",
-	Usage: "set node port",
+	Usage: "set the node port",
 	Flags: []cli.Flag{
 		nodeIDFlag,
 		portFlag,
@@ -174,47 +169,6 @@ var startElectionCmd = &cli.Command{
 
 		return schedulerAPI.StartOnceElection(ctx)
 	},
-}
-
-func generatePrivateKey(bits int) (*rsa.PrivateKey, error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, bits)
-	if err != nil {
-		return nil, err
-	}
-
-	return privateKey, nil
-}
-
-func publicKey2Pem(publicKey *rsa.PublicKey) string {
-	if publicKey == nil {
-		return ""
-	}
-
-	public := x509.MarshalPKCS1PublicKey(publicKey)
-
-	publicKeyBytes := pem.EncodeToMemory(
-		&pem.Block{
-			Type:  "RSA PUBLIC KEY",
-			Bytes: public,
-		},
-	)
-
-	return string(publicKeyBytes)
-}
-
-type yconfig struct {
-	Cids []string `toml:"cids"`
-}
-
-// loadFile
-func loadCidsFromFile(configPath string) ([]string, error) {
-	var config yconfig
-	if _, err := toml.DecodeFile(configPath, &config); err != nil {
-		return nil, err
-	}
-
-	c := &config
-	return c.Cids, nil
 }
 
 var edgeUpdaterCmd = &cli.Command{
