@@ -308,7 +308,7 @@ func loginToEtcd(cfg *config.SchedulerCfg, r *repo.FsRepo) error {
 		return xerrors.Errorf("get token err: %w", err)
 	}
 
-	cli, err := etcdcli.New(cfg.EtcdAddresss, dtypes.ServerID(string(sb)))
+	cli, err := etcdcli.New(cfg.EtcdAddresses, dtypes.ServerID(string(sb)))
 	if err != nil {
 		return err
 	}

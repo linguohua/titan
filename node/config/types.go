@@ -89,6 +89,6 @@ type SchedulerCfg struct {
 	SchedulerServer2 string
 	// config to enabled node validation, default: true
 	EnableValidate bool
-	// etcd server addresss
-	EtcdAddresss []string
+	// etcd server addresses
+	EtcdAddresses []string
 }
