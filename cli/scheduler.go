@@ -63,9 +63,10 @@ var (
 	}
 
 	replicaCountFlag = &cli.IntFlag{
-		Name:  "replica-count",
-		Usage: "Number of replica cached to nodes (default:2)",
-		Value: 2,
+		Name:        "replica-count",
+		Usage:       "Number of replica cached to nodes",
+		Value:       2,
+		DefaultText: "2",
 	}
 
 	nodeTypeFlag = &cli.IntFlag{
@@ -81,15 +82,17 @@ var (
 	}
 
 	pageFlag = &cli.IntFlag{
-		Name:  "page",
-		Usage: "page",
-		Value: 1,
+		Name:        "page",
+		Usage:       "the numbering of pages",
+		Value:       1,
+		DefaultText: "1",
 	}
 
-	expirationDateFlag = &cli.StringFlag{
-		Name:  "expiration-date",
-		Usage: "date time ('2006-1-2 15:04:05') (default:7 day later)",
-		Value: "",
+	expiredDateFlag = &cli.StringFlag{
+		Name:        "expired-date",
+		Usage:       "Set the carfile expiration, format with '2006-1-2 15:04:05' layout.",
+		Value:       "",
+		DefaultText: "7 day later for now",
 	}
 
 	dateFlag = &cli.StringFlag{
