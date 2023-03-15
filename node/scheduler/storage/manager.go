@@ -173,15 +173,16 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 
 // CacheCarfileResult block cache result
 func (m *Manager) CacheCarfileResult(nodeID string, resylt *types.CacheResult) (err error) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
 	for _, info := range resylt.Progresses {
 		log.Debugf("CacheCarfileResult node_id: %s, status: %d, hash: %s", nodeID, info.Status, info.CarfileHash)
 
-		tickerC, ok := m.carfileTickers[info.CarfileHash]
-		if ok {
-			tickerC.ticker.Reset(cachingTimeout)
+		{
+			m.lock.Lock()
+			tickerC, ok := m.carfileTickers[info.CarfileHash]
+			if ok {
+				tickerC.ticker.Reset(cachingTimeout)
+			}
+			m.lock.Unlock()
 		}
 
 		if info.Status == types.CacheStatusDownloading {

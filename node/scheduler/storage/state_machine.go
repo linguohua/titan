@@ -216,7 +216,10 @@ func (m *Manager) restartCarfiles(ctx context.Context) error {
 	for _, carfile := range trackedCarfiles {
 		if err := m.carfiles.Send(carfile.CarfileHash, CarfileRestart{}); err != nil {
 			log.Errorf("restarting carfile %s: %+v", carfile.CarfileHash, err)
+			continue
 		}
+
+		m.addOrResetCarfileTicker(carfile.CarfileHash.String())
 	}
 
 	return nil
