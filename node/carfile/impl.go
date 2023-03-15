@@ -27,6 +27,19 @@ const (
 	schedulerApiTimeout = 3
 )
 
+type cacheResult types.CacheResult
+
+func (cr *cacheResult) String() string {
+	s := "{["
+	for i, progress := range cr.Progresses {
+		if i > 0 {
+			s += ", "
+		}
+		s += fmt.Sprintf("%#v", progress)
+	}
+	return fmt.Sprintf("%s], DiskUsage:%f, TotalBlocksCount:%d, CarfileCount:%d}", s, cr.DiskUsage, cr.TotalBlocksCount, cr.CarfileCount)
+}
+
 type CarfileImpl struct {
 	scheduler       api.Scheduler
 	device          *device.Device
@@ -207,7 +220,6 @@ func (cfImpl *CarfileImpl) BlockCountOfCarfile(carfileCID string) (int, error) {
 	return cfImpl.carfileStore.BlockCountOfCarfile(c)
 }
 
-// TODO: return all waitList car to scheduler
 func (cfImpl *CarfileImpl) CacheResult(ret *types.CacheResult) error {
 	_, diskUsage := cfImpl.device.GetDiskUsageStat()
 	ret.DiskUsage = diskUsage
@@ -220,7 +232,8 @@ func (cfImpl *CarfileImpl) CacheResult(ret *types.CacheResult) error {
 	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
 	defer cancel()
 
-	log.Debugf("downloadResult, carfile:%#v", *ret)
+	cr := cacheResult(*ret)
+	log.Debugf("downloadResult, carfile:%s", cr.String())
 	return cfImpl.scheduler.CacheResult(ctx, *ret)
 }
 

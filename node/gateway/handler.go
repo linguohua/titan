@@ -63,7 +63,6 @@ func NewGateway(cs *store.CarfileStore, scheduler api.Scheduler) *Gateway {
 	}
 
 	gw := &Gateway{cs: cs, scheduler: scheduler, privateKey: privateKey, schedulerPublicKey: schedulerPublicKey}
-	gw.exchangePublicKey()
 
 	return gw
 }
@@ -81,8 +80,4 @@ func (gw *Gateway) handler(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, fmt.Sprintf("method %s not allowed", r.Method), http.StatusBadRequest)
 	}
-}
-
-func (gw *Gateway) exchangePublicKey() error {
-	return nil
 }
