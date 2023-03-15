@@ -132,7 +132,6 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 
 	defer func() {
 		// TODO save NextElectionTime
-
 		log.Infof("elect validators count: %d", len(out))
 
 		v.reelectEnable = false
