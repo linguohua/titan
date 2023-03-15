@@ -91,20 +91,14 @@ func (cs *CarfileStore) PutBlocks(ctx context.Context, root cid.Cid, blks []bloc
 	return rw.PutMany(ctx, blks)
 }
 
-func (cs *CarfileStore) HashCarfile(root cid.Cid) (bool, error) {
-	name := newCarfileName(root)
-	path := filepath.Join(cs.carsDir(), name)
-
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
+func (cs *CarfileStore) HasCarfile(root cid.Cid) bool {
+	infos := cs.dagst.AllShardsInfo()
+	for k := range infos {
+		if k.String() == root.Hash().String() {
+			return true
+		}
 	}
-
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-
-	return false, err
+	return false
 }
 
 func (cs *CarfileStore) RegisterShared(root cid.Cid) error {

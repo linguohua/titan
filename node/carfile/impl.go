@@ -67,34 +67,15 @@ func (cfImpl *CarfileImpl) CacheCarfile(ctx context.Context, rootCID string, dss
 		return nil, err
 	}
 
-	has, err := cfImpl.carfileStore.HasIncompleteCarfile(root)
-	if err != nil {
-		log.Errorf("CacheCarfile, HasCarfile error:%s, carfile hash :%s", err.Error(), root.Hash().String())
-		return nil, err
+	if has := cfImpl.carfileStore.HasCarfile(root); has {
+		log.Debugf("CacheCarfile %s aready exist", root.String())
+		return cfImpl.cacheResult(&root)
 	}
 
-	if has {
-		log.Debugf("cache incomplete carfile %s", root.Hash().String())
-
-		cfImpl.cm.AddToWaitList(root, dss)
-		return cfImpl.cacheResult(root)
-	}
-
-	has, err = cfImpl.carfileStore.HashCarfile(root)
-	if err != nil {
-		log.Errorf("CacheCarfile, HasCarfile error:%s, carfile hash :%s", err.Error(), root.Hash().String())
-		return nil, err
-	}
-
-	if has {
-		log.Debugf("carfile %s carfileCID aready exist, not need to cache", rootCID)
-		return cfImpl.cacheResult(root)
-	}
+	log.Debugf("CacheCarfile cid:%s", rootCID)
 
 	cfImpl.cm.AddToWaitList(root, dss)
-
-	log.Debugf("CacheCarfile carfile cid:%s", rootCID)
-	return cfImpl.cacheResult(root)
+	return cfImpl.cacheResult(nil)
 }
 
 func (cfImpl *CarfileImpl) deleteCarfile(ctx context.Context, c cid.Cid) error {
@@ -243,8 +224,30 @@ func (cfImpl *CarfileImpl) CacheResult(ret *types.CacheResult) error {
 	return cfImpl.scheduler.CacheResult(ctx, *ret)
 }
 
-func (cfImpl *CarfileImpl) cacheResult(root cid.Cid) (*types.CacheResult, error) {
-	return nil, nil
+// car is aready save local, if not exist car == nil
+func (cfImpl *CarfileImpl) cacheResult(car *cid.Cid) (*types.CacheResult, error) {
+	_, diskUsage := cfImpl.device.GetDiskUsageStat()
+
+	ret := &types.CacheResult{}
+	ret.DiskUsage = diskUsage
+	ret.TotalBlocksCount = cfImpl.TotalBlockCount
+
+	if count, err := cfImpl.carfileStore.CarfileCount(); err == nil {
+		ret.CarfileCount = count
+	}
+
+	ret.Progresses = cfImpl.cm.Progresses()
+
+	if car != nil {
+		carProgress, err := cfImpl.existCarProgress(*car)
+		if err != nil {
+			return nil, err
+		}
+
+		ret.Progresses = append(ret.Progresses, carProgress)
+	}
+
+	return ret, nil
 }
 
 func (cfImpl *CarfileImpl) Cache(carfiles []string) error {
@@ -266,4 +269,36 @@ func (cfImpl *CarfileImpl) Cache(carfiles []string) error {
 	}
 
 	return nil
+}
+
+func (cfImpl *CarfileImpl) existCarProgress(root cid.Cid) (*types.CarfileProgress, error) {
+	progress := &types.CarfileProgress{
+		CarfileHash: root.Hash().String(),
+		Status:      types.CacheStatusSucceeded,
+	}
+
+	if count, err := cfImpl.carfileStore.BlockCountOfCarfile(root); err != nil {
+		progress.CarfileBlocksCount = count
+		progress.DoneBlocksCount = count
+	}
+
+	blk, err := cfImpl.carfileStore.Block(root)
+	if err != nil {
+		return nil, err
+	}
+
+	node, err := legacy.DecodeNode(context.Background(), blk)
+	if err != nil {
+		return nil, err
+	}
+
+	linksSize := uint64(len(blk.RawData()))
+	for _, link := range node.Links() {
+		linksSize += link.Size
+	}
+
+	progress.CarfileSize = int64(linksSize)
+	progress.DoneSize = int64(linksSize)
+
+	return progress, nil
 }

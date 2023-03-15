@@ -33,7 +33,8 @@ type carfileCache struct {
 	totalSize     uint64
 	doneSize      uint64
 	// download block async
-	batch int
+	batch    int
+	isFinish bool
 }
 
 type options struct {
@@ -66,6 +67,10 @@ func (cfCache *carfileCache) removeBlocksFromWaitList(n int) {
 }
 
 func (cfCache *carfileCache) downloadCar() error {
+	defer func() {
+		cfCache.isFinish = true
+	}()
+
 	netLayerCIDs := cfCache.blocksWaitList
 	if len(netLayerCIDs) == 0 {
 		netLayerCIDs = append(netLayerCIDs, cfCache.root.String())
@@ -228,4 +233,26 @@ func (cfCache *carfileCache) decode(data []byte) error {
 	cfCache.doneSize = encodeCarfile.DoneSize
 
 	return nil
+}
+
+func (cfCache *carfileCache) cacheStatus() types.CacheStatus {
+	if cfCache.isDownloadComplete() {
+		return types.CacheStatusSucceeded
+	}
+
+	if cfCache.isFinish {
+		return types.CacheStatusFailed
+	}
+	return types.CacheStatusDownloading
+}
+
+func (cfCache *carfileCache) Progress() *types.CarfileProgress {
+	return &types.CarfileProgress{
+		CarfileHash:        cfCache.root.Hash().String(),
+		Status:             cfCache.cacheStatus(),
+		CarfileBlocksCount: len(cfCache.blocksDownloadSuccessList) + len(cfCache.blocksWaitList),
+		DoneBlocksCount:    len(cfCache.blocksDownloadSuccessList),
+		CarfileSize:        cfCache.TotalSize(),
+		DoneSize:           cfCache.DoneSize(),
+	}
 }
