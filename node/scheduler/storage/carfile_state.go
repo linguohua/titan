@@ -14,7 +14,7 @@ const (
 	CacheSeedFailed       CarfileState = "CacheSeedFailed"
 	CacheCandidatesFailed CarfileState = "CacheCandidatesFailed"
 	CacheEdgesFailed      CarfileState = "CacheEdgesFailed"
-	Remove                CarfileState = "Remove"
+	Removing              CarfileState = "Removing"
 )
 
 func (s CarfileState) String() string {
