@@ -11,8 +11,6 @@ func TypeMySQL() string {
 }
 
 const (
-	errNotFind = "Not Found"
-
 	// tables
 	carfileInfoTable    = "carfiles"
 	replicaInfoTable    = "replicas"
@@ -35,4 +33,5 @@ const (
 	loadBlockDownloadMaxCount = 100
 	loadReplicaInfoMaxCount   = 100
 	loadValidateInfoMaxCount  = 100
+	loadCarfileInfoMaxCount   = 100
 )

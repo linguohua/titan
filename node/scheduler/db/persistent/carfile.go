@@ -114,12 +114,11 @@ func (c *CarfileDB) CountCarfiles() (int, error) {
 
 // QueryCarfilesRows ...
 func (c *CarfileDB) QueryCarfilesRows(ctx context.Context, limit, offset int, serverID dtypes.ServerID) (rows *sqlx.Rows, err error) {
-	maxCount := 100
 	if limit == 0 {
-		limit = maxCount
+		limit = loadCarfileInfoMaxCount
 	}
-	if limit > maxCount {
-		limit = maxCount
+	if limit > loadCarfileInfoMaxCount {
+		limit = loadCarfileInfoMaxCount
 	}
 
 	cmd := fmt.Sprintf("SELECT * FROM %s WHERE state<>'Finalize' AND server_id=? order by carfile_hash asc LIMIT ? OFFSET ? ", carfileInfoTable)
@@ -128,7 +127,7 @@ func (c *CarfileDB) QueryCarfilesRows(ctx context.Context, limit, offset int, se
 
 // CarfileRecordInfos get storage record infos
 func (c *CarfileDB) CarfileRecordInfos(page int, status types.CacheStatus) (info *types.ListCarfileRecordRsp, err error) {
-	num := 20
+	num := loadCarfileInfoMaxCount
 
 	info = &types.ListCarfileRecordRsp{}
 
