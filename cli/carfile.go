@@ -23,7 +23,6 @@ var carfileCmd = &cli.Command{
 		listCarfilesCmd,
 		cacheCarfileCmd,
 		showCarfileInfoCmd,
-		carfilesStatusCmd,
 		removeCarfileCmd,
 		resetExpirationCmd,
 		resetReplicaCacheCountCmd,
@@ -353,45 +352,4 @@ func colorState(state string) string {
 	} else {
 		return color.YellowString(state)
 	}
-}
-
-var carfilesStatusCmd = &cli.Command{
-	Name:      "status",
-	Usage:     "Get the cache status of a carfiles by its id",
-	ArgsUsage: "<carfileCID>",
-	Flags:     []cli.Flag{},
-	Action: func(cctx *cli.Context) error {
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		if cctx.NArg() != 1 {
-			return IncorrectNumArgs(cctx)
-		}
-
-		cid := cctx.Args().First()
-
-		hash, err := cidutil.CIDString2HashString(cid)
-		if err != nil {
-			return xerrors.Errorf("%s cid to hash err:%v", cid, err)
-		}
-
-		status, err := schedulerAPI.CarfileStatus(ctx, types.CarfileHash(hash))
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("CarfileCID:\t%s\n", cid)
-		fmt.Printf("Status:\t\t%s\n", status.State)
-		fmt.Printf("CarfileHash:\t%s\n", status.CarfileHash)
-		fmt.Printf("Replicas:\t%d\n", status.NeedEdgeReplica)
-		fmt.Printf("Size:\t%d\n", status.TotalSize)
-		fmt.Printf("Blocks:\t%d\n", status.TotalBlocks)
-		fmt.Printf("Expiration:\t\t%s\n", status.Expiration)
-
-		return nil
-	},
 }
