@@ -305,8 +305,9 @@ var listCarfilesCmd = &cli.Command{
 		}
 
 		if !restart {
+			tw.Flush(os.Stdout)
 			fmt.Printf("\nTotal:%d\t\t%d/%d \n", info.Cids, info.Page, info.TotalPage)
-			return tw.Flush(os.Stdout)
+			return nil
 		}
 
 		var hashes []types.CarfileHash
