@@ -166,9 +166,9 @@ func (c *CarfileDB) CarfileRecordInfos(page int, status types.CacheStatus) (info
 	selectCmd += " order by carfile_hash asc LIMIT ?,?"
 	// cmd := fmt.Sprintf(fmt.Sprintf("%s order by carfile_hash asc LIMIT %d,%d", selectCmd, (num * (page - 1)), num))
 	if likeCondition == "" {
-		err = c.DB.Select(&info.CarfileRecords, selectCmd, (num * (page - 1)), num)
+		err = c.DB.Select(&info.CarfileRecords, selectCmd, num*(page-1), num)
 	} else {
-		err = c.DB.Select(&info.CarfileRecords, selectCmd, likeCondition, (num * (page - 1)), num)
+		err = c.DB.Select(&info.CarfileRecords, selectCmd, likeCondition, num*(page-1), num)
 	}
 
 	return
