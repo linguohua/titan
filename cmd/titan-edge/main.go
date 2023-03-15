@@ -42,7 +42,6 @@ import (
 	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
 
-	"github.com/linguohua/titan/node/edge"
 	"github.com/linguohua/titan/stores"
 )
 
@@ -349,8 +348,6 @@ var runCmd = &cli.Command{
 							return
 						}
 
-						edge := edgeAPI.(*edge.Edge)
-						edge.LoadPublicKey(connectTimeout)
 						log.Info("Edge registered successfully, waiting for tasks")
 						errCount = 0
 						readyCh = nil

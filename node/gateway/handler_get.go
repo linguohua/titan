@@ -5,6 +5,8 @@ import (
 	"mime"
 	"net/http"
 	"strings"
+
+	"github.com/linguohua/titan/api/types"
 )
 
 const (
@@ -18,6 +20,12 @@ const (
 )
 
 func (gw *Gateway) getHandler(w http.ResponseWriter, r *http.Request) {
+	ticket, err := verifyTicket(w, r)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("verify ticket error : %s", err.Error()), http.StatusUnauthorized)
+		return
+	}
+
 	respFormat, formatParams, err := responseFormat(r)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("processing the Accept header error: %s", err.Error()), http.StatusBadRequest)
@@ -28,15 +36,15 @@ func (gw *Gateway) getHandler(w http.ResponseWriter, r *http.Request) {
 	case "": // The implicit response format is UnixFS
 
 	case formatRaw:
-		gw.blockHandler(w, r)
+		gw.blockHandler(w, r, ticket)
 	case formatCar:
-		gw.carHandler(w, r, formatParams["version"])
+		gw.carHandler(w, r, ticket, formatParams["version"])
 	case formatTar:
-		gw.tarHandler(w, r)
+		gw.tarHandler(w, r, ticket)
 	case formatJson:
-		gw.jsonHandler(w, r)
+		gw.jsonHandler(w, r, ticket)
 	case formatCbor:
-		gw.cborHandler(w, r)
+		gw.cborHandler(w, r, ticket)
 	case formatDagJson:
 	case formatDagCbor:
 	default: // catch-all for unsuported application/vnd.*
@@ -79,4 +87,8 @@ func responseFormat(r *http.Request) (mediaType string, params map[string]string
 		}
 	}
 	return "", nil, nil
+}
+
+func verifyTicket(w http.ResponseWriter, r *http.Request) (*types.AccessTicket, error) {
+	return nil, nil
 }

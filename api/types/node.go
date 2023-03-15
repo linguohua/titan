@@ -163,21 +163,19 @@ const (
 	ValidateStatusOther
 )
 
-//DownloadTicket be use for download car
+//DownloadTicket be use for verify download
 type DownloadTicket struct {
+	AccessTicket
+	Rate int64
+	Size int64
+}
+
+//AccessTicket be use for access gateway
+type AccessTicket struct {
 	ID        string
 	NodeID    string
 	CarCID    string
 	ClientID  string
 	LimitRate int64
 	ValidTime int64
-}
-
-type ReturnTicket struct {
-	ID       string
-	NodeID   string
-	CarCID   string
-	ClientID string
-	Rate     int64
-	Size     int64
 }

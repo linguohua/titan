@@ -270,6 +270,21 @@ func (m *Manager) CachedResult(cachingCar *carfileCache) error {
 		log.Panicf("cResulter == nil")
 	}
 
+	progresses := make([]*types.CarfileProgress, 0, len(m.waitList))
+	for _, cw := range m.waitList {
+		if cw.Root.Hash().String() != cachingCar.root.Hash().String() {
+			progress := types.CarfileProgress{
+				CarfileHash:        cw.Root.Hash().String(),
+				Status:             types.CacheStatusDownloading,
+				CarfileBlocksCount: 0,
+				DoneBlocksCount:    0,
+				CarfileSize:        0,
+				DoneSize:           0,
+			}
+			progresses = append(progresses, &progress)
+		}
+	}
+
 	var status types.CacheStatus
 	if cachingCar.totalSize != 0 && cachingCar.totalSize == cachingCar.doneSize {
 		status = types.CacheStatusSucceeded
@@ -281,13 +296,18 @@ func (m *Manager) CachedResult(cachingCar *carfileCache) error {
 		}
 	}
 
-	ret := &types.CacheResult{
+	progress := &types.CarfileProgress{
+		CarfileHash:        cachingCar.root.Hash().String(),
 		Status:             status,
 		CarfileBlocksCount: len(cachingCar.blocksDownloadSuccessList) + len(cachingCar.blocksWaitList),
 		DoneBlocksCount:    len(cachingCar.blocksDownloadSuccessList),
-		CarfileSize:        int64(cachingCar.TotalSize()),
-		DoneSize:           int64(cachingCar.DoneSize()),
-		CarfileHash:        cachingCar.Root().Hash().String(),
+		CarfileSize:        cachingCar.TotalSize(),
+		DoneSize:           cachingCar.DoneSize(),
+	}
+
+	progresses = append(progresses, progress)
+	ret := &types.CacheResult{
+		Progresses: progresses,
 	}
 
 	return m.cResulter.CacheResult(ret)

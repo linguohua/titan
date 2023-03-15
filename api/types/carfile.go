@@ -14,17 +14,22 @@ type ListCarfileRecordRsp struct {
 	CarfileRecords []*CarfileRecordInfo
 }
 
-// CacheResult cache data result info
-type CacheResult struct {
+type CarfileProgress struct {
+	CarfileHash        string
 	Status             CacheStatus
 	Msg                string
 	CarfileBlocksCount int
 	DoneBlocksCount    int
 	CarfileSize        int64
 	DoneSize           int64
-	CarfileHash        string
-	DiskUsage          float64
-	TotalBlocksCount   int
+}
+
+// CacheResult cache data result info
+type CacheResult struct {
+	Progresses       []*CarfileProgress
+	DiskUsage        float64
+	TotalBlocksCount int
+	CarfileCount     int
 }
 
 // RemoveCarfileResult remove carfile result
@@ -139,12 +144,6 @@ type SystemBaseInfo struct {
 	CarFileCount     int   `json:"car_file_count" redis:"CarfileCount"`
 	DownloadCount    int   `json:"download_blocks" redis:"DownloadCount"`
 	NextElectionTime int64 `json:"next_election_time" redis:"NextElectionTime"`
-}
-
-type CacheCarfileResult struct {
-	CacheCarfileCount   int
-	WaitCacheCarfileNum int
-	DiskUsage           float64
 }
 
 type DownloadSource struct {

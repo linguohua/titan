@@ -1,6 +1,10 @@
 package gateway
 
-import "net/http"
+import (
+	"net/http"
 
-func (gw *Gateway) tarHandler(w http.ResponseWriter, r *http.Request) {
+	"github.com/linguohua/titan/api/types"
+)
+
+func (gw *Gateway) tarHandler(w http.ResponseWriter, r *http.Request, ticket *types.AccessTicket) {
 }

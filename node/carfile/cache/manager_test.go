@@ -9,7 +9,6 @@ import (
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/carfile/fetcher"
 	"github.com/linguohua/titan/node/carfile/store"
-	mh "github.com/multiformats/go-multihash"
 )
 
 type TestCachedResulterImpl struct {
@@ -27,20 +26,6 @@ func (t *TestCachedResulterImpl) CacheResult(result *types.CacheResult) error {
 	}
 
 	t.t.Logf("total block %d in store", count)
-
-	multihash, err := mh.FromHexString(result.CarfileHash)
-	if err != nil {
-		t.t.Errorf("FromHexString error:%s", err.Error())
-		return err
-	}
-
-	c := cid.NewCidV1(cid.Raw, multihash)
-	count, err = t.carStore.BlockCountOfCarfile(c)
-	if err != nil {
-		t.t.Errorf("get block count error:%s", err.Error())
-		return err
-	}
-	t.t.Logf("total block %d in car %s", count, c.String())
 
 	return nil
 }

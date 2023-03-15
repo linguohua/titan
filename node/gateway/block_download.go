@@ -189,19 +189,3 @@ func (bd *BlockDownload) GetRateLimit() int64 {
 	log.Debug("GenerateDownloadToken")
 	return int64(bd.limiter.Limit())
 }
-
-func (bd *BlockDownload) LoadPublicKey(timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
-	defer cancel()
-
-	publicKeyStr, err := bd.scheduler.NodePublicKey(ctx)
-	if err != nil {
-		return err
-	}
-
-	bd.publicKey, err = titanRsa.Pem2PublicKey(publicKeyStr)
-	if err != nil {
-		return err
-	}
-	return nil
-}
