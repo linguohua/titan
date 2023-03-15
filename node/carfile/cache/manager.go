@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"os"
 	"sync"
 	"time"
 
@@ -249,7 +250,7 @@ func (m *Manager) CachingCar() *carfileCache {
 
 func (m *Manager) restoreCarfileCacheOrNew(opts *options) (*carfileCache, error) {
 	data, err := m.carfileStore.IncompleteCarfileCacheData(opts.root)
-	if err != nil && err != datastore.ErrNotFound {
+	if err != nil && !os.IsNotExist(err) {
 		log.Errorf("CacheCarfile load incomplete carfile error %s", err.Error())
 		return nil, err
 	}

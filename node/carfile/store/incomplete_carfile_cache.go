@@ -3,8 +3,6 @@ package store
 import (
 	"os"
 	"path/filepath"
-
-	"github.com/ipfs/go-datastore"
 )
 
 // save block list of carfileCache
@@ -28,12 +26,7 @@ func (incompCarfileCache *incompleteCarfileCache) save(carfileHash string, carfi
 
 func (incompCarfileCache *incompleteCarfileCache) data(carfileHash string) ([]byte, error) {
 	filePath := filepath.Join(incompCarfileCache.path, carfileHash)
-
-	data, err := os.ReadFile(filePath)
-	if err != nil && os.IsNotExist(err) {
-		return nil, datastore.ErrNotFound
-	}
-	return data, err
+	return os.ReadFile(filePath)
 }
 
 func (incompCarfileCache *incompleteCarfileCache) has(carfileHash string) (bool, error) {
@@ -62,11 +55,5 @@ func (incompCarfileCache *incompleteCarfileCache) carfileHashList() ([]string, e
 
 func (incompCarfileCache *incompleteCarfileCache) delete(carfileHash string) error {
 	filePath := filepath.Join(incompCarfileCache.path, carfileHash)
-
-	err := os.Remove(filePath)
-	if err != nil && os.IsNotExist(err) {
-		return datastore.ErrNotFound
-	}
-
-	return err
+	return os.Remove(filePath)
 }
