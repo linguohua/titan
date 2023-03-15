@@ -146,15 +146,17 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 		return xerrors.Errorf("GetCarfileReplicaInfosByHash: %s,err:%s", carfileCid, err.Error())
 	}
 
+	defer func() {
+		err = m.nodeManager.CarfileDB.RemoveCarfileRecord(hash)
+		if err != nil {
+			log.Errorf("%s RemoveCarfileRecord db err: %s", hash, err.Error())
+		}
+	}()
+
 	// remove carfile
 	err = m.carfiles.Send(CarfileHash(hash), CarfileRemove{})
 	if err != nil {
 		return xerrors.Errorf("RemoveCarfileRecord send to state machine err: %s ", err.Error())
-	}
-
-	err = m.nodeManager.CarfileDB.RemoveCarfileRecord(hash)
-	if err != nil {
-		return xerrors.Errorf("RemoveCarfileRecord db err: %s", err.Error())
 	}
 
 	log.Infof("storage event %s , remove storage record", carfileCid)
