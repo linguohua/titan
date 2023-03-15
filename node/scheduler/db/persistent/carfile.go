@@ -86,18 +86,10 @@ func (c *CarfileDB) CarfileInfos(hashes []string) ([]*types.CarfileRecordInfo, e
 		return nil, err
 	}
 
-	tx, err := c.DB.Beginx()
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-
 	carfileRecords := make([]*types.CarfileRecordInfo, 0)
 
 	carfilesQuery = c.DB.Rebind(carfilesQuery)
-	tx.Select(&carfileRecords, carfilesQuery, args...)
-
-	err = tx.Commit()
+	err = c.DB.Select(&carfileRecords, carfilesQuery, args...)
 
 	return carfileRecords, err
 }
@@ -329,23 +321,23 @@ func (c *CarfileDB) RemoveCarfileRecord(carfileHash string) error {
 	defer tx.Rollback()
 	// cache info
 	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=? `, replicaInfoTable)
-	tx.Exec(cCmd, carfileHash)
+	_, err = tx.Exec(cCmd, carfileHash)
+	if err != nil {
+		return err
+	}
 
 	// data info
 	dCmd := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=?`, carfileInfoTable)
-	tx.Exec(dCmd, carfileHash)
+	_, err = tx.Exec(dCmd, carfileHash)
+	if err != nil {
+		return err
+	}
 
 	return tx.Commit()
 }
 
 // LoadCarfileRecordsWithNodes load carfile record hashs with nodes
 func (c *CarfileDB) LoadCarfileRecordsWithNodes(nodeIDs []string) (hashs []string, err error) {
-	tx, err := c.DB.Beginx()
-	if err != nil {
-		return
-	}
-	defer tx.Rollback()
-
 	// get carfiles
 	getCarfilesCmd := fmt.Sprintf(`select carfile_hash from %s WHERE node_id in (?) GROUP BY carfile_hash`, replicaInfoTable)
 	carfilesQuery, args, err := sqlx.In(getCarfilesCmd, nodeIDs)
@@ -354,20 +346,13 @@ func (c *CarfileDB) LoadCarfileRecordsWithNodes(nodeIDs []string) (hashs []strin
 	}
 
 	carfilesQuery = c.DB.Rebind(carfilesQuery)
-	tx.Select(&hashs, carfilesQuery, args...)
+	err = c.DB.Select(&hashs, carfilesQuery, args...)
 
-	err = tx.Commit()
 	return
 }
 
 // RemoveReplicaInfoWithNodes remove replica info with nodes
 func (c *CarfileDB) RemoveReplicaInfoWithNodes(nodeIDs []string) error {
-	tx, err := c.DB.Beginx()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
 	// remove cache
 	cmd := fmt.Sprintf(`DELETE FROM %s WHERE node_id in (?)`, replicaInfoTable)
 	query, args, err := sqlx.In(cmd, nodeIDs)
@@ -376,9 +361,9 @@ func (c *CarfileDB) RemoveReplicaInfoWithNodes(nodeIDs []string) error {
 	}
 
 	query = c.DB.Rebind(query)
-	tx.Exec(query, args...)
+	_, err = c.DB.Exec(query, args...)
 
-	return tx.Commit()
+	return err
 }
 
 // SetBlockDownloadInfo  download info
@@ -546,7 +531,10 @@ func (c *CarfileDB) ReplicaTasksStart(serverID dtypes.ServerID, hash string, nod
 
 	for _, nodeID := range nodeIDs {
 		sQuery := fmt.Sprintf(`INSERT INTO %s (carfile_hash, node_id, server_id) VALUES (?, ?, ?)`, downloadingTable)
-		tx.Exec(sQuery, hash, nodeID, serverID)
+		_, err = tx.Exec(sQuery, hash, nodeID, serverID)
+		if err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit()
