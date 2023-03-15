@@ -2,13 +2,14 @@ package cli
 
 import (
 	"fmt"
-	"github.com/docker/go-units"
-	"github.com/fatih/color"
-	"github.com/linguohua/titan/lib/tablewriter"
 	"os"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/docker/go-units"
+	"github.com/fatih/color"
+	"github.com/linguohua/titan/lib/tablewriter"
 
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/cidutil"
@@ -26,38 +27,6 @@ var carfileCmd = &cli.Command{
 		removeCarfileCmd,
 		resetExpirationCmd,
 		resetReplicaCacheCountCmd,
-		contiuneUndoneCarfileCmd,
-	},
-}
-
-var contiuneUndoneCarfileCmd = &cli.Command{
-	Name:      "execute-incomplete",
-	Usage:     "Continue to execute the incomplete storage task",
-	ArgsUsage: "[cid1 cid2 ...]",
-
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		var hashs []string
-		for _, cid := range cctx.Args().Slice() {
-			hash, err := cidutil.CIDString2HashString(cid)
-			if err != nil {
-				log.Errorf("%s CIDString2HashString err:%s", cid, err.Error())
-				continue
-			}
-
-			hashs = append(hashs, hash)
-		}
-
-		return schedulerAPI.RecacheCarfiles(ctx, hashs)
 	},
 }
 
@@ -302,7 +271,7 @@ var listCarfilesCmd = &cli.Command{
 			})
 
 			if cctx.Bool("processes") {
-				var processes = "\n"
+				processes := "\n"
 				for j := 0; j < len(carfile.ReplicaInfos); j++ {
 					cache := carfile.ReplicaInfos[j]
 					status := cache.Status.String()
