@@ -39,7 +39,7 @@ var cachingTimeout = time.Duration(nodeCachingKeepalive) * time.Second
 // Manager storage
 type Manager struct {
 	nodeManager      *node.Manager
-	latelyExpiration time.Time
+	latestExpiration time.Time
 	writeToken       []byte
 
 	startupWait sync.WaitGroup
@@ -70,7 +70,7 @@ func (t *carfileTicker) run(job func()) {
 func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToken, ds datastore.Batching) *Manager {
 	m := &Manager{
 		nodeManager:      nodeManager,
-		latelyExpiration: time.Now(),
+		latestExpiration: time.Now(),
 		writeToken:       writeToken,
 		carfileTickers:   make(map[string]*carfileTicker),
 	}
@@ -278,14 +278,14 @@ func (m *Manager) ResetCarfileExpiration(cid string, t time.Time) error {
 		return err
 	}
 
-	m.resetLatelyExpiration(t)
+	m.resetLatestExpiration(t)
 
 	return nil
 }
 
 // check caches expiration
 func (m *Manager) checkCachesExpiration() {
-	if m.latelyExpiration.After(time.Now()) {
+	if m.latestExpiration.After(time.Now()) {
 		return
 	}
 
@@ -302,17 +302,17 @@ func (m *Manager) checkCachesExpiration() {
 	}
 
 	// reset expiration
-	latelyExpirationTime, err := m.nodeManager.CarfileDB.MinExpiration()
+	latestExpiration, err := m.nodeManager.CarfileDB.MinExpiration()
 	if err != nil {
 		return
 	}
 
-	m.resetLatelyExpiration(latelyExpirationTime)
+	m.resetLatestExpiration(latestExpiration)
 }
 
-func (m *Manager) resetLatelyExpiration(t time.Time) {
-	if m.latelyExpiration.After(t) {
-		m.latelyExpiration = t
+func (m *Manager) resetLatestExpiration(t time.Time) {
+	if m.latestExpiration.After(t) {
+		m.latestExpiration = t
 	}
 }
 

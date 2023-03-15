@@ -78,7 +78,7 @@ func (c *CarfileDB) CarfileInfo(hash string) (*types.CarfileRecordInfo, error) {
 	return &info, nil
 }
 
-// CarfileInfos get storage infos with hashs
+// CarfileInfos get storage infos with hashes
 func (c *CarfileDB) CarfileInfos(hashes []string) ([]*types.CarfileRecordInfo, error) {
 	getCarfilesCmd := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash in (?)`, carfileInfoTable)
 	carfilesQuery, args, err := sqlx.In(getCarfilesCmd, hashes)
@@ -244,14 +244,14 @@ func (c *CarfileDB) RandomCarfileFromNode(nodeID string) (string, error) {
 	// rand count
 	index := rand.Intn(count)
 
-	var hashs []string
+	var hashes []string
 	cmd := fmt.Sprintf("SELECT carfile_hash FROM %s WHERE node_id=? AND status=? LIMIT %d,%d", replicaInfoTable, index, 1)
-	if err := c.DB.Select(&hashs, cmd, nodeID, types.CacheStatusSucceeded); err != nil {
+	if err := c.DB.Select(&hashes, cmd, nodeID, types.CacheStatusSucceeded); err != nil {
 		return "", err
 	}
 
-	if len(hashs) > 0 {
-		return hashs[0], nil
+	if len(hashes) > 0 {
+		return hashes[0], nil
 	}
 
 	return "", nil
