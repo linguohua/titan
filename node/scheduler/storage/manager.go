@@ -169,46 +169,57 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 }
 
 // CacheCarfileResult block cache result
-func (m *Manager) CacheCarfileResult(nodeID string, info *types.CacheResult) (err error) {
-	log.Debugf("carfileCacheResult node_id: %s, status: %d, hash: %s", nodeID, info.Status, info.CarfileHash)
-
+func (m *Manager) CacheCarfileResult(nodeID string, resylt *types.CacheResult) (err error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	tickerC, ok := m.carfileTickers[info.CarfileHash]
-	if ok {
-		tickerC.ticker.Reset(cachingTimeout)
+	for _, info := range resylt.Progresses {
+		log.Debugf("CacheCarfileResult node_id: %s, status: %d, hash: %s", nodeID, info.Status, info.CarfileHash)
+
+		tickerC, ok := m.carfileTickers[info.CarfileHash]
+		if ok {
+			tickerC.ticker.Reset(cachingTimeout)
+		}
+
+		if info.Status == types.CacheStatusDownloading {
+			// Update done size , done blocks
+			continue
+		}
+
+		t, err := m.nodeManager.NodeMgrDB.NodeType(nodeID)
+		if err != nil {
+			log.Errorf("CacheCarfileResult %s NodeType err:%s", nodeID, err.Error())
+			continue
+		}
+
+		// save to db
+		cInfo := &types.ReplicaInfo{
+			ID:     replicaID(info.CarfileHash, nodeID),
+			Status: info.Status,
+		}
+
+		err = m.nodeManager.CarfileDB.UpdateReplicaInfo(cInfo)
+		if err != nil {
+			log.Errorf("CacheCarfileResult %s UpdateReplicaInfo err:%s", nodeID, err.Error())
+			continue
+		}
+
+		err = m.carfiles.Send(CarfileHash(info.CarfileHash), CacheResult{
+			ResultInfo: &CacheResultInfo{
+				NodeID:             nodeID,
+				Status:             int64(info.Status),
+				CarfileBlocksCount: int64(info.CarfileBlocksCount),
+				CarfileSize:        info.CarfileSize,
+				IsCandidate:        t == types.NodeCandidate,
+			},
+		})
+		if err != nil {
+			log.Errorf("CacheCarfileResult %s statemachine send err:%s", nodeID, err.Error())
+			continue
+		}
 	}
 
-	if info.Status == types.CacheStatusDownloading {
-		return nil
-	}
-
-	t, err := m.nodeManager.NodeMgrDB.NodeType(nodeID)
-	if err != nil {
-		return err
-	}
-
-	// save to db
-	cInfo := &types.ReplicaInfo{
-		ID:     replicaID(info.CarfileHash, nodeID),
-		Status: info.Status,
-	}
-
-	err = m.nodeManager.CarfileDB.UpdateReplicaInfo(cInfo)
-	if err != nil {
-		return err
-	}
-
-	return m.carfiles.Send(CarfileHash(info.CarfileHash), CacheResult{
-		ResultInfo: &CacheResultInfo{
-			NodeID:             nodeID,
-			Status:             int64(info.Status),
-			CarfileBlocksCount: int64(info.CarfileBlocksCount),
-			CarfileSize:        info.CarfileSize,
-			IsCandidate:        t == types.NodeCandidate,
-		},
-	})
+	return nil
 }
 
 func (m *Manager) addOrResetCarfileTicker(key string) {
