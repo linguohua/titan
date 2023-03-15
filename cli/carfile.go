@@ -141,16 +141,16 @@ var showCarfileInfoCmd = &cli.Command{
 
 var cacheCarfileCmd = &cli.Command{
 	Name:  "cache",
-	Usage: "Scheduling nodes cache storage",
+	Usage: "publish cache tasks to nodes",
 	Flags: []cli.Flag{
 		cidFlag,
 		replicaCountFlag,
-		expirationDateFlag,
+		expiredDateFlag,
 	},
 	Action: func(cctx *cli.Context) error {
 		cid := cctx.String("cid")
 		replicaCount := cctx.Int64("replica-count")
-		date := cctx.String("expiration-date")
+		date := cctx.String("expired-date")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -171,7 +171,7 @@ var cacheCarfileCmd = &cli.Command{
 
 		eTime, err := time.ParseInLocation("2006-1-2 15:04:05", date, time.Local)
 		if err != nil {
-			return xerrors.Errorf("expiration date err:%s", err.Error())
+			return xerrors.Errorf("parse expiration err:%s", err.Error())
 		}
 
 		info.Expiration = eTime
@@ -193,22 +193,22 @@ var listCarfilesCmd = &cli.Command{
 		pageFlag,
 		&cli.BoolFlag{
 			Name:  "downloading",
-			Usage: "carfiles in downloading states",
+			Usage: "only show the downloading carfiles",
 			Value: false,
 		},
 		&cli.BoolFlag{
 			Name:  "processes",
-			Usage: "carfiles in process",
+			Usage: "show the carfiles processes",
 			Value: false,
 		},
 		&cli.BoolFlag{
 			Name:  "failed",
-			Usage: "carfiles in failed states",
+			Usage: "only show the failed state carfiles",
 			Value: false,
 		},
 		&cli.BoolFlag{
 			Name:  "restart",
-			Usage: "restart failed carfiles",
+			Usage: "restart the failed carfiles, only apply for failed carfile state",
 			Value: false,
 		},
 	},
@@ -222,7 +222,7 @@ var listCarfilesCmd = &cli.Command{
 
 		page := cctx.Int("page")
 		if page < 1 {
-			return xerrors.New("page need greater than 1")
+			return xerrors.New("the page must greater than 1")
 		}
 
 		status := types.CacheStatusUnknown
