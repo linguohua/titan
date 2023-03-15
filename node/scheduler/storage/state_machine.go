@@ -73,7 +73,7 @@ var planners = map[CarfileState]func(events []statemachine.Event, state *Carfile
 	Finalize: planOne(
 		on(CarfileRecache{}, CacheToCandidates),
 	),
-	Remove: planOne(
+	Removing: planOne(
 		on(CarfileStartCaches{}, CacheCarfileSeed),
 	),
 }
@@ -115,7 +115,7 @@ func (m *Manager) plan(events []statemachine.Event, state *CarfileInfo) (func(st
 		return m.handleFinalize, processed, nil
 	case CacheSeedFailed, CacheCandidatesFailed, CacheEdgesFailed:
 		return m.handleCachesFailed, processed, nil
-	case Remove:
+	case Removing:
 		return nil, processed, nil
 	// Fatal errors
 	case UndefinedCarfileState:
