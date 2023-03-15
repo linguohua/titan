@@ -47,11 +47,7 @@ func TestWriteBlock(t *testing.T) {
 		cs.PutBlocks(context.Background(), blk.Cid(), []blocks.Block{blk})
 	}
 
-	exist, err := cs.HashCarfile(blk.Cid())
-	if err != nil {
-		t.Errorf("check carfile exist error:%s", err.Error())
-		return
-	}
+	exist := cs.HasCarfile(blk.Cid())
 
 	t.Logf("exist:%v", exist)
 }
