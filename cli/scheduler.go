@@ -87,7 +87,7 @@ var (
 		Name:        "expiration-date",
 		Usage:       "Set the carfile expiration, format with '2006-1-2 15:04:05' layout.",
 		Value:       "",
-		DefaultText: "7 day later for now",
+		DefaultText: "now + 7 days",
 	}
 
 	dateFlag = &cli.StringFlag{
