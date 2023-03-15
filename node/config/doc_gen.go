@@ -233,10 +233,10 @@ be used if InsecureSkipVerify is true`,
 			Comment: `config to enabled node validation, default: true`,
 		},
 		{
-			Name: "EtcdAddresss",
+			Name: "EtcdAddresses",
 			Type: "[]string",
 
-			Comment: `etcd server addresss`,
+			Comment: `etcd server addresses`,
 		},
 	},
 }
