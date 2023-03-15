@@ -56,7 +56,7 @@ func (evt CarfileForceState) applyGlobal(state *CarfileInfo) bool {
 type CarfileRemove struct{}
 
 func (evt CarfileRemove) applyGlobal(state *CarfileInfo) bool {
-	state.State = Removing
+	state = &CarfileInfo{State: Removing}
 	return true
 }
 
