@@ -34,7 +34,7 @@ func (gw *Gateway) getHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch respFormat {
 	case "": // The implicit response format is UnixFS
-
+		gw.unixfsHandler(w, r, ticket)
 	case formatRaw:
 		gw.blockHandler(w, r, ticket)
 	case formatCar:
