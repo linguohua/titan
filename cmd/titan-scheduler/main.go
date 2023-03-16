@@ -7,7 +7,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"net"
 	"net/http"
@@ -21,6 +20,7 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/gbrlsnchs/jwt/v3"
+	externalip "github.com/glendc/go-external-ip"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
@@ -331,17 +331,16 @@ func loginToEtcd(cfg *config.SchedulerCfg, r *repo.FsRepo) error {
 }
 
 func externalIP() (string, error) {
-	resp, err := http.Get("http://myexternalip.com/raw")
+	consensus := externalip.DefaultConsensus(nil, nil)
+	// Get your IP,
+	// which is never <nil> when err is <nil>.
+	ip, err := consensus.ExternalIP()
 	if err != nil {
 		return "", err
-	}
-	defer resp.Body.Close()
-	content, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
+		fmt.Println(ip.String()) // print IPv4/IPv6 in string format
 	}
 
-	return string(content), nil
+	return ip.String(), nil
 }
 
 func openRepo(cctx *cli.Context) (repo.LockedRepo, error) {

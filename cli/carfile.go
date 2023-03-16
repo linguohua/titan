@@ -145,8 +145,8 @@ var showCarfileInfoCmd = &cli.Command{
 
 		fmt.Printf("--------\nProcesses:\n")
 		for _, cache := range info.ReplicaInfos {
-			fmt.Printf("%s(%s): %s\t%d/%d\t%s/%s\n", cache.NodeID, edgeOrCandidate(cache.IsCandidate), colorState(cache.Status.String()),
-				cache.DoneBlocks, info.TotalBlocks, units.BytesSize(float64(cache.DoneSize)), units.BytesSize(float64(info.TotalSize)))
+			fmt.Printf("%s(%s): %s\t%d/%d\n", cache.NodeID, edgeOrCandidate(cache.IsCandidate), colorState(cache.Status.String()),
+				cache.DoneBlocks, info.TotalBlocks)
 		}
 
 		return nil
