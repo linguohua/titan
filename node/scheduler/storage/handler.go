@@ -35,7 +35,7 @@ func (m *Manager) handleCacheSeed(ctx statemachine.Context, carfile CarfileInfo)
 	log.Debugf("handle cache seed: %s", carfile.CarfileCID)
 
 	// find nodes
-	nodes := m.findCandidates(rootCachesCount, carfile.CandidateReplicaSucceeds)
+	nodes := m.findCandidates(seedCacheCount, carfile.CandidateReplicaSucceeds)
 	if len(nodes) < 1 {
 		return ctx.Send(CacheFailed{error: xerrors.New("node not found")})
 	}
@@ -65,11 +65,11 @@ func (m *Manager) handleCacheSeed(ctx statemachine.Context, carfile CarfileInfo)
 func (m *Manager) handleSeedCaching(ctx statemachine.Context, carfile CarfileInfo) error {
 	log.Debugf("handle seed caching, %s", carfile.CarfileCID)
 
-	if len(carfile.CandidateReplicaSucceeds) >= rootCachesCount {
+	if len(carfile.CandidateReplicaSucceeds) >= seedCacheCount {
 		return ctx.Send(CacheSucceed{})
 	}
 
-	if len(carfile.CandidateReplicaSucceeds)+len(carfile.CandidateReplicaFailures) >= rootCachesCount {
+	if len(carfile.CandidateReplicaSucceeds)+len(carfile.CandidateReplicaFailures) >= seedCacheCount {
 		return ctx.Send(CacheFailed{error: xerrors.New("node cache failed")})
 	}
 

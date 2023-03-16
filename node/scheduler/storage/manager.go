@@ -29,10 +29,8 @@ const (
 	checkExpirationTimerInterval = 60 * 30 // time interval (Unit:Second)
 	downloadingCarfileMaxCount   = 10      // It needs to be changed to the number of caches
 	maxDiskUsage                 = 90.0    // If the node disk size is greater than this value, caching will not continue
-	rootCachesCount              = 1       // The number of caches in the first stage
+	seedCacheCount               = 1       // The number of caches in the first stage
 )
-
-var candidateReplicaCachesCount = 0 // nodeMgrCache to the number of candidate nodes （does not contain 'rootCachesCount'）
 
 var cachingTimeout = time.Duration(nodeCachingKeepalive) * time.Second
 
@@ -47,6 +45,8 @@ type Manager struct {
 
 	lock           sync.Mutex
 	carfileTickers map[string]*carfileTicker
+
+	getSchedulerConfigFunc dtypes.GetSchedulerConfigFunc
 }
 
 type carfileTicker struct {
@@ -67,12 +67,13 @@ func (t *carfileTicker) run(job func()) {
 }
 
 // NewManager return new storage manager instance
-func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToken, ds datastore.Batching) *Manager {
+func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToken, ds datastore.Batching, configFunc dtypes.GetSchedulerConfigFunc) *Manager {
 	m := &Manager{
-		nodeManager:      nodeManager,
-		latestExpiration: time.Now(),
-		writeToken:       writeToken,
-		carfileTickers:   make(map[string]*carfileTicker),
+		nodeManager:            nodeManager,
+		latestExpiration:       time.Now(),
+		writeToken:             writeToken,
+		carfileTickers:         make(map[string]*carfileTicker),
+		getSchedulerConfigFunc: configFunc,
 	}
 
 	m.startupWait.Add(1)
@@ -121,12 +122,13 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 	if cInfo == nil {
 		// create carfile task
 		return m.carfiles.Send(CarfileHash(info.CarfileHash), CarfileStartCaches{
-			ID:          info.CarfileCid,
-			CarfileHash: CarfileHash(info.CarfileHash),
-			Replicas:    info.Replicas,
-			ServerID:    info.ServerID,
-			CreatedAt:   time.Now().Unix(),
-			Expiration:  info.Expiration.Unix(),
+			ID:                          info.CarfileCid,
+			CarfileHash:                 CarfileHash(info.CarfileHash),
+			Replicas:                    info.Replicas,
+			ServerID:                    info.ServerID,
+			CreatedAt:                   time.Now().Unix(),
+			Expiration:                  info.Expiration.Unix(),
+			CandidateReplicaCachesCount: m.GetCandidateReplicaCount(),
 		})
 	}
 
@@ -367,14 +369,15 @@ func (m *Manager) sendCacheRequest(nodeID, cid string) error {
 	return nil
 }
 
-// ResetReplicaCount reset candidate replica count
-func (m *Manager) ResetReplicaCount(count int) {
-	candidateReplicaCachesCount = count
-}
-
 // GetCandidateReplicaCount get candidate replica count
 func (m *Manager) GetCandidateReplicaCount() int {
-	return candidateReplicaCachesCount
+	cfg, err := m.getSchedulerConfigFunc()
+	if err != nil {
+		log.Errorf("getSchedulerConfigFunc err:%s", err.Error())
+		return 0
+	}
+
+	return cfg.CandidateReplicaCachesCount
 }
 
 func replicaID(hash, nodeID string) string {

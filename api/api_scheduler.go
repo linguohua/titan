@@ -51,7 +51,6 @@ type Scheduler interface {
 	CarfileRecords(ctx context.Context, page int, states []string) (*types.ListCarfileRecordRsp, error) //perm:read
 	RestartFailedCarfiles(ctx context.Context, hashes []types.CarfileHash) error                        //perm:admin
 	ResetCarfileExpiration(ctx context.Context, carfileCid string, time time.Time) error                //perm:admin
-	ResetCandidateReplicaCount(ctx context.Context, count int) error                                    //perm:admin
 
 	// server
 	StartOnceElection(ctx context.Context) error                          //perm:admin

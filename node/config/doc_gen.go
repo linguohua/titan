@@ -238,5 +238,11 @@ be used if InsecureSkipVerify is true`,
 
 			Comment: `etcd server addresses`,
 		},
+		{
+			Name: "CandidateReplicaCachesCount",
+			Type: "int",
+
+			Comment: `Cache to the number of candidate nodes (does not contain 'seedCacheCount')`,
+		},
 	},
 }

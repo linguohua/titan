@@ -2,6 +2,7 @@ package modules
 
 import (
 	"context"
+
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/modules/dtypes"
@@ -55,6 +56,7 @@ type StorageManagerParams struct {
 	Token      dtypes.PermissionWriteToken
 	MetadataDS dtypes.MetadataDS
 	NodeManger *node.Manager
+	dtypes.GetSchedulerConfigFunc
 }
 
 func NewStorageManager(params StorageManagerParams) *storage.Manager {
@@ -64,10 +66,11 @@ func NewStorageManager(params StorageManagerParams) *storage.Manager {
 		nodeMgr = params.NodeManger
 		token   = params.Token
 		ds      = params.MetadataDS
+		cfgFunc = params.GetSchedulerConfigFunc
 	)
 
 	ctx := helpers.LifecycleCtx(mctx, lc)
-	m := storage.NewManager(nodeMgr, token, ds)
+	m := storage.NewManager(nodeMgr, token, ds, cfgFunc)
 
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
@@ -106,7 +109,6 @@ func NewSetSchedulerConfigFunc(r repo.LockedRepo) func(config.SchedulerCfg) erro
 			scfg.SchedulerServer2 = cfg.SchedulerServer2
 			scfg.EnableValidate = cfg.EnableValidate
 		})
-
 	}
 }
 
