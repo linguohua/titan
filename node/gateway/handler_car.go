@@ -6,5 +6,6 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-func (gw *Gateway) carHandler(w http.ResponseWriter, r *http.Request, ticket *types.AccessTicket, version string) {
+func (gw *Gateway) serveCar(w http.ResponseWriter, r *http.Request, ticket *types.AccessTicket, carVersion string) {
+
 }

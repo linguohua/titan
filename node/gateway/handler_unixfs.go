@@ -6,7 +6,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-func (gw *Gateway) unixfsHandler(w http.ResponseWriter, r *http.Request, ticket *types.AccessTicket) {
+func (gw *Gateway) serveUnixFS(w http.ResponseWriter, r *http.Request, ticket *types.AccessTicket) {
 }
 
 func (gw *Gateway) fileHandler(w http.ResponseWriter, r *http.Request, ticket *types.AccessTicket) {

@@ -51,7 +51,7 @@ type CandidateStub struct {
 
 type CarfileOperationStruct struct {
 	Internal struct {
-		CacheCarfile func(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheResult, error) `perm:"write"`
+		CacheCarfile func(p0 context.Context, p1 string, p2 []*types.DownloadSource) error `perm:"write"`
 
 		DeleteAllCarfiles func(p0 context.Context) error `perm:"admin"`
 
@@ -334,15 +334,15 @@ func (s *CandidateStub) WaitQuiet(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *CarfileOperationStruct) CacheCarfile(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheResult, error) {
+func (s *CarfileOperationStruct) CacheCarfile(p0 context.Context, p1 string, p2 []*types.DownloadSource) error {
 	if s.Internal.CacheCarfile == nil {
-		return nil, ErrNotSupported
+		return ErrNotSupported
 	}
 	return s.Internal.CacheCarfile(p0, p1, p2)
 }
 
-func (s *CarfileOperationStub) CacheCarfile(p0 context.Context, p1 string, p2 []*types.DownloadSource) (*types.CacheResult, error) {
-	return nil, ErrNotSupported
+func (s *CarfileOperationStub) CacheCarfile(p0 context.Context, p1 string, p2 []*types.DownloadSource) error {
+	return ErrNotSupported
 }
 
 func (s *CarfileOperationStruct) DeleteAllCarfiles(p0 context.Context) error {

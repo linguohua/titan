@@ -6,5 +6,5 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-func (gw *Gateway) tarHandler(w http.ResponseWriter, r *http.Request, ticket *types.AccessTicket) {
+func (gw *Gateway) serveTAR(w http.ResponseWriter, r *http.Request, ticket *types.AccessTicket) {
 }

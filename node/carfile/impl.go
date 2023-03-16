@@ -70,25 +70,30 @@ func NewCarfileImpl(carfileStore *store.CarfileStore, scheduler api.Scheduler, b
 	return cfImpl
 }
 
-func (cfImpl *CarfileImpl) CacheCarfile(ctx context.Context, rootCID string, dss []*types.DownloadSource) (*types.CacheResult, error) {
+func (cfImpl *CarfileImpl) CacheCarfile(ctx context.Context, rootCID string, dss []*types.DownloadSource) error {
 	if types.RunningNodeType == types.NodeEdge && len(dss) == 0 {
-		return nil, fmt.Errorf("download source can not empty")
+		return fmt.Errorf("download source can not empty")
 	}
 
 	root, err := cid.Decode(rootCID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if has := cfImpl.carfileStore.HasCarfile(root); has {
 		log.Debugf("CacheCarfile %s aready exist", root.String())
-		return cfImpl.cacheResult(&root)
+		ret, err := cfImpl.cacheResult(&root)
+		if err != nil {
+			return err
+		}
+
+		return cfImpl.CacheResult(ret)
 	}
 
 	log.Debugf("CacheCarfile cid:%s", rootCID)
 
 	cfImpl.cm.AddToWaitList(root, dss)
-	return cfImpl.cacheResult(nil)
+	return nil
 }
 
 func (cfImpl *CarfileImpl) deleteCarfile(ctx context.Context, c cid.Cid) error {
