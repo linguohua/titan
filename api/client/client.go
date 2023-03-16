@@ -41,8 +41,8 @@ func getPushUrl(addr string) (string, error) {
 	return pushUrl.String(), nil
 }
 
-// NewCandicate creates a new http jsonrpc client for candidate
-func NewCandicate(ctx context.Context, addr string, requestHeader http.Header, opts ...jsonrpc.Option) (api.Candidate, jsonrpc.ClientCloser, error) {
+// NewCandidate creates a new http jsonrpc client for candidate
+func NewCandidate(ctx context.Context, addr string, requestHeader http.Header, opts ...jsonrpc.Option) (api.Candidate, jsonrpc.ClientCloser, error) {
 	pushUrl, err := getPushUrl(addr)
 	if err != nil {
 		return nil, nil, err

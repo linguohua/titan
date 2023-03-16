@@ -112,9 +112,9 @@ func (c *Candidate) ConnectRPC(addr string, isNodeConnect bool) (api.Candidate, 
 	headers.Add("Authorization", "Bearer "+string(c.adminToken))
 
 	// Connect to node
-	candidateAPI, closer, err := client.NewCandicate(context.Background(), rpcURL, headers)
+	candidateAPI, closer, err := client.NewCandidate(context.Background(), rpcURL, headers)
 	if err != nil {
-		return nil, xerrors.Errorf("NewCandicate err:%s,url:%s", err.Error(), rpcURL)
+		return nil, xerrors.Errorf("NewCandidate err:%s,url:%s", err.Error(), rpcURL)
 	}
 
 	c.nodeAPI = candidateAPI

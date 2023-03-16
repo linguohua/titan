@@ -190,7 +190,7 @@ func GetCandidateAPI(ctx *cli.Context) (api.Candidate, jsonrpc.ClientCloser, err
 		_, _ = fmt.Fprintln(ctx.App.Writer, "using candidate node API v0 endpoint:", addr)
 	}
 
-	a, c, e := client.NewCandicate(ctx.Context, addr, headers)
+	a, c, e := client.NewCandidate(ctx.Context, addr, headers)
 	v, err := a.Version(ctx.Context)
 	if err != nil {
 		return nil, nil, err
