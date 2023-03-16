@@ -56,16 +56,16 @@ func (evt CarfileForceState) applyGlobal(state *CarfileInfo) bool {
 type CarfileRemove struct{}
 
 func (evt CarfileRemove) applyGlobal(state *CarfileInfo) bool {
-	state = &CarfileInfo{State: Removing}
+	*state = CarfileInfo{State: Removing}
 	return true
 }
 
-// UpdateInfo remove
-type UpdateInfo struct {
+// CarfileInfoUpdate update carfile info
+type CarfileInfoUpdate struct {
 	ResultInfo *CacheResultInfo
 }
 
-func (evt UpdateInfo) applyGlobal(state *CarfileInfo) bool {
+func (evt CarfileInfoUpdate) applyGlobal(state *CarfileInfo) bool {
 	rInfo := evt.ResultInfo
 	if rInfo == nil {
 		return true
@@ -154,7 +154,7 @@ func (evt CarfileStartCaches) apply(state *CarfileInfo) {
 	state.CandidateReplicas = int64(rootCachesCount + candidateReplicaCachesCount)
 }
 
-// CarfileRecache get frist carfile to candidate
+// CarfileRecache get first carfile to candidate
 type CarfileRecache struct{}
 
 func (evt CarfileRecache) apply(state *CarfileInfo) {}
