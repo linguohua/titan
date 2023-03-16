@@ -51,7 +51,7 @@ func (m *Manager) handleCacheSeed(ctx statemachine.Context, carfile CarfileInfo)
 	// send to nodes
 	go func() {
 		for _, node := range nodes {
-			_, err := node.API().CacheCarfile(ctx.Context(), carfile.CarfileCID, nil)
+			err := node.API().CacheCarfile(ctx.Context(), carfile.CarfileCID, nil)
 			if err != nil {
 				log.Errorf("%s CacheCarfile err:%s", node.NodeID, err.Error())
 				continue
@@ -104,7 +104,7 @@ func (m *Manager) handleCacheToCandidates(ctx statemachine.Context, carfile Carf
 	// send to nodes
 	go func() {
 		for _, node := range nodes {
-			_, err := node.API().CacheCarfile(ctx.Context(), carfile.CarfileCID, sources)
+			err := node.API().CacheCarfile(ctx.Context(), carfile.CarfileCID, sources)
 			if err != nil {
 				log.Errorf("%s CacheCarfile err:%s", node.NodeID, err.Error())
 				continue
@@ -159,7 +159,7 @@ func (m *Manager) handleCacheToEdges(ctx statemachine.Context, carfile CarfileIn
 	// send to nodes
 	go func() {
 		for _, node := range nodes {
-			_, err := node.API().CacheCarfile(ctx.Context(), carfile.CarfileCID, sources)
+			err := node.API().CacheCarfile(ctx.Context(), carfile.CarfileCID, sources)
 			if err != nil {
 				log.Errorf("%s CacheCarfile err:%s", node.NodeID, err.Error())
 				continue

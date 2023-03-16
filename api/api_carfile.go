@@ -8,7 +8,7 @@ import (
 
 type CarfileOperation interface {
 	// cache storage
-	CacheCarfile(ctx context.Context, carfileCID string, sources []*types.DownloadSource) (*types.CacheResult, error) //perm:write
+	CacheCarfile(ctx context.Context, carfileCID string, sources []*types.DownloadSource) error //perm:write
 	// delete storage
 	DeleteCarfile(ctx context.Context, carfileCID string) error //perm:write
 	// delete all carfiles

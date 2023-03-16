@@ -26,34 +26,30 @@ func (gw *Gateway) getHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respFormat, formatParams, err := responseFormat(r)
+	respFormat, formatParams, err := customResponseFormat(r)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("processing the Accept header error: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	switch respFormat {
-	case "": // The implicit response format is UnixFS
-		gw.unixfsHandler(w, r, ticket)
+	case "", formatJson, formatCbor: // The implicit response format is UnixFS
+		gw.serveUnixFS(w, r, ticket)
 	case formatRaw:
-		gw.blockHandler(w, r, ticket)
+		gw.serveRawBlock(w, r, ticket)
 	case formatCar:
-		gw.carHandler(w, r, ticket, formatParams["version"])
+		gw.serveCar(w, r, ticket, formatParams["version"])
 	case formatTar:
-		gw.tarHandler(w, r, ticket)
-	case formatJson:
-		gw.jsonHandler(w, r, ticket)
-	case formatCbor:
-		gw.cborHandler(w, r, ticket)
-	case formatDagJson:
-	case formatDagCbor:
+		gw.serveTAR(w, r, ticket)
+	case formatDagJson, formatDagCbor:
+		gw.serveCodec(w, r, ticket)
 	default: // catch-all for unsuported application/vnd.*
 		http.Error(w, fmt.Sprintf("unsupported format %s", respFormat), http.StatusBadRequest)
 		return
 	}
 }
 
-func responseFormat(r *http.Request) (mediaType string, params map[string]string, err error) {
+func customResponseFormat(r *http.Request) (mediaType string, params map[string]string, err error) {
 	if formatParam := r.URL.Query().Get("format"); formatParam != "" {
 		// translate query param to a content type
 		switch formatParam {
@@ -78,7 +74,11 @@ func responseFormat(r *http.Request) (mediaType string, params map[string]string
 	// We only care about explciit, vendor-specific content-types.
 	for _, accept := range r.Header.Values("Accept") {
 		// respond to the very first ipld content type
-		if strings.HasPrefix(accept, "application/vnd.ipld") {
+		if strings.HasPrefix(accept, "application/vnd.ipld") ||
+			strings.HasPrefix(accept, "application/x-tar") ||
+			strings.HasPrefix(accept, "application/json") ||
+			strings.HasPrefix(accept, "application/cbor") ||
+			strings.HasPrefix(accept, "application/vnd.ipfs") {
 			mediatype, params, err := mime.ParseMediaType(accept)
 			if err != nil {
 				return "", nil, err
