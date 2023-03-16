@@ -44,7 +44,8 @@ type CarfileInfo struct {
 	RetryCount int64
 }
 
-func (state *CarfileInfo) toCarfileRecordInfo() *types.CarfileRecordInfo {
+// ToCarfileRecordInfo types.CarfileRecordInfo
+func (state *CarfileInfo) ToCarfileRecordInfo() *types.CarfileRecordInfo {
 	return &types.CarfileRecordInfo{
 		CarfileCID:            state.CarfileCID,
 		CarfileHash:           state.CarfileHash.String(),

@@ -15,7 +15,7 @@ type ListCarfileRecordRsp struct {
 }
 
 type CarfileProgress struct {
-	CarfileHash        string
+	CarfileCid         string
 	Status             CacheStatus
 	Msg                string
 	CarfileBlocksCount int
@@ -81,8 +81,8 @@ type CacheCarfileInfo struct {
 type CacheStatus int
 
 const (
-	// CacheStatusUnknown status
-	CacheStatusUnknown CacheStatus = iota
+	// CacheStatusWaiting status
+	CacheStatusWaiting CacheStatus = iota
 	// CacheStatusDownloading status
 	CacheStatusDownloading
 	// CacheStatusFailed status
@@ -94,6 +94,8 @@ const (
 // String status to string
 func (c CacheStatus) String() string {
 	switch c {
+	case CacheStatusWaiting:
+		return "Waiting"
 	case CacheStatusFailed:
 		return "Failed"
 	case CacheStatusDownloading:

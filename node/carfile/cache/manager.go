@@ -105,7 +105,6 @@ func (m *Manager) doDownloadCars() {
 	for len(m.waitList) > 0 {
 		m.doDownloadCar()
 	}
-
 }
 
 func (m *Manager) doDownloadCar() {
@@ -297,7 +296,7 @@ func (m *Manager) Progresses() []*types.CarfileProgress {
 	progresses := make([]*types.CarfileProgress, 0, len(m.waitList))
 
 	for _, cw := range m.waitList {
-		progress := &types.CarfileProgress{CarfileHash: cw.Root.Hash().String(), Status: types.CacheStatusDownloading}
+		progress := &types.CarfileProgress{CarfileCid: cw.Root.Hash().String(), Status: types.CacheStatusDownloading}
 		if cw.cc != nil {
 			progress = cw.cc.Progress()
 		}

@@ -125,7 +125,7 @@ func (d *Datastore) Put(ctx context.Context, key datastore.Key, value []byte) er
 		return nil
 	}
 
-	info := carfile.toCarfileRecordInfo()
+	info := carfile.ToCarfileRecordInfo()
 	info.ServerID = d.ServerID
 
 	return d.db.UpdateOrCreateCarfileRecord(info)

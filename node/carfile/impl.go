@@ -273,8 +273,8 @@ func (cfImpl *CarfileImpl) Cache(carfiles []string) error {
 
 func (cfImpl *CarfileImpl) existCarProgress(root cid.Cid) (*types.CarfileProgress, error) {
 	progress := &types.CarfileProgress{
-		CarfileHash: root.Hash().String(),
-		Status:      types.CacheStatusSucceeded,
+		CarfileCid: root.Hash().String(),
+		Status:     types.CacheStatusSucceeded,
 	}
 
 	if count, err := cfImpl.carfileStore.BlockCountOfCarfile(root); err != nil {

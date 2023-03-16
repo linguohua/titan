@@ -10,6 +10,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/fatih/color"
 	"github.com/linguohua/titan/lib/tablewriter"
+	"github.com/linguohua/titan/node/scheduler/storage"
 
 	"github.com/linguohua/titan/api/types"
 	"github.com/urfave/cli/v2"
@@ -239,12 +240,23 @@ var listCarfilesCmd = &cli.Command{
 			return xerrors.New("the page must greater than 1")
 		}
 
-		status := types.CacheStatusUnknown
+		states := []string{
+			storage.CacheCarfileSeed.String(),
+			storage.CarfileSeedCaching.String(),
+			storage.CacheToCandidates.String(),
+			storage.CandidatesCaching.String(),
+			storage.CacheToEdges.String(),
+			storage.EdgesCaching.String(),
+			storage.Finalize.String(),        // 6
+			storage.CacheSeedFailed.String(), // 7
+			storage.CacheCandidatesFailed.String(),
+			storage.CacheEdgesFailed.String(),
+		}
 		if cctx.Bool("downloading") {
-			status = types.CacheStatusDownloading
+			states = states[:6]
 		}
 		if cctx.Bool("failed") {
-			status = types.CacheStatusFailed
+			states = states[7:]
 		}
 
 		restart := cctx.Bool("restart")
@@ -263,7 +275,7 @@ var listCarfilesCmd = &cli.Command{
 			tablewriter.NewLineCol("Processes"),
 		)
 
-		info, err := schedulerAPI.CarfileRecords(ctx, page, status)
+		info, err := schedulerAPI.CarfileRecords(ctx, page, states)
 		if err != nil {
 			return err
 		}
@@ -288,7 +300,7 @@ var listCarfilesCmd = &cli.Command{
 				for j := 0; j < len(carfile.ReplicaInfos); j++ {
 					cache := carfile.ReplicaInfos[j]
 					status := colorState(cache.Status.String())
-					processes += fmt.Sprintf("\t%s(%s): %s\n", cache.NodeID, edgeOrCandidate(cache.IsCandidate), status)
+					processes += fmt.Sprintf("\t%s(%s): %s\t%d/%d\n", cache.NodeID, edgeOrCandidate(cache.IsCandidate), status, cache.DoneBlocks, carfile.TotalBlocks)
 				}
 				m["Processes"] = processes
 			}
