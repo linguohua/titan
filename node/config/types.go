@@ -91,4 +91,6 @@ type SchedulerCfg struct {
 	EnableValidate bool
 	// etcd server addresses
 	EtcdAddresses []string
+	// Cache to the number of candidate nodes (does not contain 'seedCacheCount')
+	CandidateReplicaCachesCount int
 }

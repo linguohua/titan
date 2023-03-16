@@ -69,12 +69,6 @@ func (s *Scheduler) CarfileRecord(ctx context.Context, cid string) (*types.Carfi
 	return info, nil
 }
 
-// ResetCandidateReplicaCount Reset candidate replica count
-func (s *Scheduler) ResetCandidateReplicaCount(ctx context.Context, count int) error {
-	s.DataManager.ResetReplicaCount(count)
-	return nil
-}
-
 // CarfileRecords List Datas
 func (s *Scheduler) CarfileRecords(ctx context.Context, page int, states []string) (*types.ListCarfileRecordRsp, error) {
 	info, err := s.NodeManager.CarfileDB.CarfileRecordInfos(page, states)

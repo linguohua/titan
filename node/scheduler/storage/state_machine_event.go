@@ -136,12 +136,13 @@ func (evt CacheRequestSent) apply(state *CarfileInfo) {
 
 // CarfileStartCaches start caches
 type CarfileStartCaches struct {
-	ID          string
-	CarfileHash CarfileHash
-	Replicas    int64
-	ServerID    string
-	CreatedAt   int64
-	Expiration  int64
+	ID                          string
+	CarfileHash                 CarfileHash
+	Replicas                    int64
+	ServerID                    string
+	CreatedAt                   int64
+	Expiration                  int64
+	CandidateReplicaCachesCount int
 }
 
 func (evt CarfileStartCaches) apply(state *CarfileInfo) {
@@ -151,7 +152,7 @@ func (evt CarfileStartCaches) apply(state *CarfileInfo) {
 	state.ServerID = evt.ServerID
 	state.CreatedAt = evt.CreatedAt
 	state.Expiration = evt.Expiration
-	state.CandidateReplicas = int64(rootCachesCount + candidateReplicaCachesCount)
+	state.CandidateReplicas = int64(seedCacheCount + evt.CandidateReplicaCachesCount)
 }
 
 // CarfileReCache get first carfile to candidate

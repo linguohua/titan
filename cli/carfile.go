@@ -32,32 +32,6 @@ var carfileCmd = &cli.Command{
 		showCarfileInfoCmd,
 		removeCarfileCmd,
 		resetExpirationCmd,
-		resetReplicaCacheCountCmd,
-	},
-}
-
-var resetReplicaCacheCountCmd = &cli.Command{
-	Name:  "reset-candidate-replica",
-	Usage: "Reset the number of candidate node replica per storage",
-	Flags: []cli.Flag{
-		countFlag,
-	},
-
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		count := cctx.Int("count")
-
-		ctx := ReqContext(cctx)
-
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		return schedulerAPI.ResetCandidateReplicaCount(ctx, count)
 	},
 }
 
