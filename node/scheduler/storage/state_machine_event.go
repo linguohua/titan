@@ -60,6 +60,25 @@ func (evt CarfileRemove) applyGlobal(state *CarfileInfo) bool {
 	return true
 }
 
+// UpdateInfo remove
+type UpdateInfo struct {
+	ResultInfo *CacheResultInfo
+}
+
+func (evt UpdateInfo) applyGlobal(state *CarfileInfo) bool {
+	rInfo := evt.ResultInfo
+	if rInfo == nil {
+		return true
+	}
+
+	if state.State == CarfileSeedCaching {
+		state.Size = rInfo.CarfileSize
+		state.Blocks = rInfo.CarfileBlocksCount
+	}
+
+	return true
+}
+
 // CacheResult nodes cache result
 type CacheResult struct {
 	ResultInfo *CacheResultInfo
@@ -73,7 +92,6 @@ func (evt CacheResult) apply(state *CarfileInfo) {
 
 	nodeID := rInfo.NodeID
 	if rInfo.Status == int64(types.CacheStatusSucceeded) {
-		// TODO Check for duplicates
 		if rInfo.IsCandidate {
 			if !exist(state.CandidateReplicaSucceeds, nodeID) {
 				state.CandidateReplicaSucceeds = append(state.CandidateReplicaSucceeds, nodeID)
@@ -83,9 +101,7 @@ func (evt CacheResult) apply(state *CarfileInfo) {
 				state.EdgeReplicaSucceeds = append(state.EdgeReplicaSucceeds, nodeID)
 			}
 		}
-		state.Size = rInfo.CarfileSize
-		state.Blocks = rInfo.CarfileBlocksCount
-	} else {
+	} else if rInfo.Status == int64(types.CacheStatusFailed) {
 		if rInfo.IsCandidate {
 			if !exist(state.CandidateReplicaFailures, nodeID) {
 				state.CandidateReplicaFailures = append(state.CandidateReplicaFailures, nodeID)

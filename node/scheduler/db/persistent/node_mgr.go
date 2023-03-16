@@ -205,7 +205,7 @@ func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*types.NodeInfo, int64, e
 		return nil, 0, err
 	}
 
-	queryString := fmt.Sprintf(`SELECT node_id, is_online FROM %s order by node_id asc limit ?,?`, nodeInfoTable)
+	queryString := fmt.Sprintf(`SELECT node_id FROM %s order by node_id asc limit ?,?`, nodeInfoTable)
 
 	if count > loadNodeInfoMaxCount {
 		count = loadNodeInfoMaxCount
