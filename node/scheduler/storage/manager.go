@@ -172,8 +172,8 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 }
 
 // CacheCarfileResult block cache result
-func (m *Manager) CacheCarfileResult(nodeID string, resylt *types.CacheResult) (err error) {
-	for _, info := range resylt.Progresses {
+func (m *Manager) CacheCarfileResult(nodeID string, result *types.CacheResult) (err error) {
+	for _, info := range result.Progresses {
 		log.Debugf("CacheCarfileResult node_id: %s, status: %d, hash: %s", nodeID, info.Status, info.CarfileHash)
 
 		{
@@ -205,7 +205,7 @@ func (m *Manager) CacheCarfileResult(nodeID string, resylt *types.CacheResult) (
 				continue
 			}
 
-			err = m.carfiles.Send(CarfileHash(info.CarfileHash), UpdateInfo{
+			err = m.carfiles.Send(CarfileHash(info.CarfileHash), CarfileInfoUpdate{
 				ResultInfo: &CacheResultInfo{
 					CarfileBlocksCount: int64(info.CarfileBlocksCount),
 					CarfileSize:        info.CarfileSize,
