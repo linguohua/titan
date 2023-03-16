@@ -80,13 +80,13 @@ func NewStorageManager(params StorageManagerParams) *storage.Manager {
 	return m
 }
 
-func NewValidation(mctx helpers.MetricsCtx, lc fx.Lifecycle, m *node.Manager, cfg *config.SchedulerCfg) *validation.Validation {
-	v := validation.New(m)
+func NewValidation(mctx helpers.MetricsCtx, lc fx.Lifecycle, m *node.Manager, cfg *config.SchedulerCfg, configFunc dtypes.GetSchedulerConfigFunc) *validation.Validation {
+	v := validation.New(m, configFunc)
 
 	ctx := helpers.LifecycleCtx(mctx, lc)
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
-			v.Start(ctx)
+			go v.Start(ctx)
 			return nil
 		},
 		OnStop: v.Stop,

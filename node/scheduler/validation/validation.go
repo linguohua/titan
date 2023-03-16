@@ -3,13 +3,12 @@ package validation
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"math/rand"
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/robfig/cron"
 	"golang.org/x/xerrors"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -23,8 +22,9 @@ import (
 var log = logging.Logger("scheduler/validation")
 
 const (
-	duration = 10 // Verification time (Unit:Second)
-	interval = 5  // validator start-up time interval (Unit:minute)
+	duration         = 10 // Verification time (Unit:Second)
+	validateInterval = 5  // validator start-up time interval (Unit:minute)
+	validateDuration = time.Duration(validateInterval) * time.Minute
 )
 
 // Validation Validation
@@ -34,81 +34,62 @@ type Validation struct {
 	lock                   sync.Mutex
 	seed                   int64
 	curRoundID             string
-	crontab                *cron.Cron // timer
-	GetSchedulerConfigFunc dtypes.GetSchedulerConfigFunc
+	close                  chan struct{}
+	getSchedulerConfigFunc dtypes.GetSchedulerConfigFunc
 }
 
 // New return new validator instance
-func New(manager *node.Manager) *Validation {
+func New(manager *node.Manager, configFunc dtypes.GetSchedulerConfigFunc) *Validation {
 	e := &Validation{
-		ctx:         context.Background(),
-		nodeManager: manager,
-		crontab:     cron.New(),
+		ctx:                    context.Background(),
+		nodeManager:            manager,
+		getSchedulerConfigFunc: configFunc,
+		close:                  make(chan struct{}),
 	}
-
-	spec := fmt.Sprintf("0 */%d * * * *", interval)
-	e.crontab.AddFunc(spec, func() {
-		e := e.startValidate()
-		if e != nil {
-			log.Errorf("verification failed to open %s", e.Error())
-		}
-	})
 
 	return e
 }
 
 // Start start validation task scheduled
 func (v *Validation) Start(ctx context.Context) {
-	v.crontab.Start()
+	ticker := time.NewTicker(validateDuration)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if enable, _ := v.enable(); !enable {
+				continue
+			}
+
+			if err := v.start(); err != nil {
+				log.Errorf("start new round: %v", err)
+			}
+		case <-v.close:
+			return
+		}
+	}
 }
 
 func (v *Validation) Stop(ctx context.Context) error {
-	v.crontab.Stop()
+	close(v.close)
 	return nil
 }
 
-func (v *Validation) startValidate() error {
-	cfg, err := v.GetSchedulerConfigFunc()
+func (v *Validation) enable() (bool, error) {
+	cfg, err := v.getSchedulerConfigFunc()
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	if !cfg.EnableValidate {
-		return nil
-	}
+	return cfg.EnableValidate, nil
+}
 
+func (v *Validation) start() error {
 	roundID := uuid.NewString()
 	v.curRoundID = roundID
 	v.seed = time.Now().UnixNano()
 
-	// before opening validation
-	// check the last round of verification
-	// err = v.checkValidateTimeOut()
-	// if err != nil {
-	// 	log.Errorf(err.Error())
-	// 	return err
-	// }
-
-	return v.execute()
-}
-
-// func (v *Validator) checkValidateTimeOut() error {
-// 	nodeIDs, err := v.nodeManager.NodeMgrDB.GetNodesWithVerifyingList("Server_ID")
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	if nodeIDs != nil && len(nodeIDs) > 0 {
-// 		err = v.nodeManager.NodeMgrDB.SetValidateTimeoutOfNodes(v.curRoundID-1, nodeIDs)
-// 		if err != nil {
-// 			log.Errorf(err.Error())
-// 		}
-// 	}
-
-// 	return err
-// }
-
-func (v *Validation) execute() error {
 	err := v.nodeManager.NodeMgrDB.RemoveVerifyingList(v.nodeManager.ServerID)
 	if err != nil {
 		return err
@@ -124,7 +105,7 @@ func (v *Validation) execute() error {
 		return xerrors.New("validator list is null")
 	}
 
-	log.Debug("validator is", validatorList)
+	log.Debug("validator list: ", validatorList)
 
 	validatorMap := v.assignValidator(validatorList)
 	if validatorMap == nil {
@@ -462,13 +443,5 @@ func (v *Validation) StartValidateOnceTask() error {
 		return fmt.Errorf("validation in progress, cannot start again")
 	}
 
-	go func() {
-		time.Sleep(time.Duration(interval) * time.Minute)
-		v.crontab.Start()
-	}()
-
-	// v.enable = true
-	v.crontab.Stop()
-
-	return v.startValidate()
+	return v.start()
 }
