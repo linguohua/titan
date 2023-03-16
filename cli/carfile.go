@@ -240,23 +240,28 @@ var listCarfilesCmd = &cli.Command{
 			return xerrors.New("the page must greater than 1")
 		}
 
-		states := []string{
+		failedStates := []string{
+			storage.CacheSeedFailed.String(),
+			storage.CacheCandidatesFailed.String(),
+			storage.CacheEdgesFailed.String(),
+		}
+
+		downloadingStates := []string{
 			storage.CacheCarfileSeed.String(),
 			storage.CarfileSeedCaching.String(),
 			storage.CacheToCandidates.String(),
 			storage.CandidatesCaching.String(),
 			storage.CacheToEdges.String(),
 			storage.EdgesCaching.String(),
-			storage.Finalize.String(),        // 6
-			storage.CacheSeedFailed.String(), // 7
-			storage.CacheCandidatesFailed.String(),
-			storage.CacheEdgesFailed.String(),
 		}
+
+		states := append([]string{storage.Finalize.String()}, append(failedStates, downloadingStates...)...)
+
 		if cctx.Bool("downloading") {
-			states = states[:6]
+			states = downloadingStates
 		}
 		if cctx.Bool("failed") {
-			states = states[7:]
+			states = failedStates
 		}
 
 		restart := cctx.Bool("restart")
