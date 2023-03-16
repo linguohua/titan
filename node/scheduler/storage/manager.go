@@ -172,13 +172,19 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 }
 
 // CacheCarfileResult block cache result
-func (m *Manager) CacheCarfileResult(nodeID string, result *types.CacheResult) (err error) {
-	for _, info := range result.Progresses {
-		log.Debugf("CacheCarfileResult node_id: %s, status: %d, hash: %s", nodeID, info.Status, info.CarfileHash)
+func (m *Manager) CacheCarfileResult(nodeID string, resylt *types.CacheResult) (err error) {
+	for _, info := range resylt.Progresses {
+		log.Debugf("CacheCarfileResult node_id: %s, status: %d, hash: %s", nodeID, info.Status, info.CarfileCid)
+
+		hash, err := cidutil.CIDString2HashString(info.CarfileCid)
+		if err != nil {
+			log.Errorf("%s cid to hash err:%s", info.CarfileCid, err.Error())
+			continue
+		}
 
 		{
 			m.lock.Lock()
-			tickerC, ok := m.carfileTickers[info.CarfileHash]
+			tickerC, ok := m.carfileTickers[hash]
 			if ok {
 				tickerC.ticker.Reset(cachingTimeout)
 			}
@@ -194,7 +200,7 @@ func (m *Manager) CacheCarfileResult(nodeID string, result *types.CacheResult) (
 		if info.DoneBlocksCount > 0 {
 			// save to db
 			cInfo := &types.ReplicaInfo{
-				ID:         replicaID(info.CarfileHash, nodeID),
+				ID:         replicaID(hash, nodeID),
 				Status:     info.Status,
 				DoneBlocks: int64(info.DoneBlocksCount),
 			}
@@ -205,7 +211,7 @@ func (m *Manager) CacheCarfileResult(nodeID string, result *types.CacheResult) (
 				continue
 			}
 
-			err = m.carfiles.Send(CarfileHash(info.CarfileHash), CarfileInfoUpdate{
+			err = m.carfiles.Send(CarfileHash(hash), CarfileInfoUpdate{
 				ResultInfo: &CacheResultInfo{
 					CarfileBlocksCount: int64(info.CarfileBlocksCount),
 					CarfileSize:        info.CarfileSize,
@@ -221,7 +227,7 @@ func (m *Manager) CacheCarfileResult(nodeID string, result *types.CacheResult) (
 			continue
 		}
 
-		err = m.carfiles.Send(CarfileHash(info.CarfileHash), CacheResult{
+		err = m.carfiles.Send(CarfileHash(hash), CacheResult{
 			ResultInfo: &CacheResultInfo{
 				NodeID:             nodeID,
 				Status:             int64(info.Status),

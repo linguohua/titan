@@ -248,7 +248,7 @@ func (cfCache *carfileCache) cacheStatus() types.CacheStatus {
 
 func (cfCache *carfileCache) Progress() *types.CarfileProgress {
 	return &types.CarfileProgress{
-		CarfileHash:        cfCache.root.Hash().String(),
+		CarfileCid:         cfCache.root.Hash().String(),
 		Status:             cfCache.cacheStatus(),
 		CarfileBlocksCount: len(cfCache.blocksDownloadSuccessList) + len(cfCache.blocksWaitList),
 		DoneBlocksCount:    len(cfCache.blocksDownloadSuccessList),
