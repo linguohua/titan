@@ -32,7 +32,7 @@ func failedCooldown(ctx statemachine.Context, carfile CarfileInfo) error {
 }
 
 func (m *Manager) handleCacheSeed(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Debugf("handle cache seed: %s", carfile.CarfileHash)
+	log.Debugf("handle cache seed: %s", carfile.CarfileCID)
 
 	// find nodes
 	nodes := m.findCandidates(rootCachesCount, carfile.CandidateReplicaSucceeds)
@@ -63,7 +63,7 @@ func (m *Manager) handleCacheSeed(ctx statemachine.Context, carfile CarfileInfo)
 }
 
 func (m *Manager) handleSeedCaching(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Debugf("handle seed caching, %s", carfile.CarfileHash)
+	log.Debugf("handle seed caching, %s", carfile.CarfileCID)
 
 	if len(carfile.CandidateReplicaSucceeds) >= rootCachesCount {
 		return ctx.Send(CacheSucceed{})
@@ -77,7 +77,7 @@ func (m *Manager) handleSeedCaching(ctx statemachine.Context, carfile CarfileInf
 }
 
 func (m *Manager) handleCacheToCandidates(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Debugf("handle cache to candidates, %s", carfile.CarfileHash)
+	log.Debugf("handle cache to candidates, %s", carfile.CarfileCID)
 
 	needCount := carfile.CandidateReplicas - int64(len(carfile.CandidateReplicaSucceeds))
 	if needCount < 1 {
@@ -116,7 +116,7 @@ func (m *Manager) handleCacheToCandidates(ctx statemachine.Context, carfile Carf
 }
 
 func (m *Manager) handleCandidatesCaching(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Debugf("handle candidates caching, %s", carfile.CarfileHash)
+	log.Debugf("handle candidates caching, %s", carfile.CarfileCID)
 
 	if int64(len(carfile.CandidateReplicaSucceeds)) >= carfile.CandidateReplicas {
 		return ctx.Send(CacheSucceed{})
@@ -130,7 +130,7 @@ func (m *Manager) handleCandidatesCaching(ctx statemachine.Context, carfile Carf
 }
 
 func (m *Manager) handleCacheToEdges(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Debugf("handle cache to edges , %s", carfile.CarfileHash)
+	log.Debugf("handle cache to edges , %s", carfile.CarfileCID)
 
 	needCount := carfile.EdgeReplicas - int64(len(carfile.EdgeReplicaSucceeds))
 	if needCount < 1 {
@@ -171,7 +171,7 @@ func (m *Manager) handleCacheToEdges(ctx statemachine.Context, carfile CarfileIn
 }
 
 func (m *Manager) handleEdgesCaching(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Debugf("handle edge caching, %s", carfile.CarfileHash)
+	log.Debugf("handle edge caching, %s", carfile.CarfileCID)
 	if int64(len(carfile.EdgeReplicaSucceeds)) >= carfile.EdgeReplicas {
 		return ctx.Send(CacheSucceed{})
 	}
@@ -184,7 +184,7 @@ func (m *Manager) handleEdgesCaching(ctx statemachine.Context, carfile CarfileIn
 }
 
 func (m *Manager) handleFinalize(ctx statemachine.Context, carfile CarfileInfo) error {
-	log.Debugf("handle carfile finalize: %s", carfile.CarfileHash)
+	log.Debugf("handle carfile finalize: %s", carfile.CarfileCID)
 	defer m.removeCarfileTicker(carfile.CarfileHash.String())
 
 	return nil
