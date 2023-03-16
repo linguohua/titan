@@ -41,13 +41,13 @@ var log = logging.Logger("scheduler")
 
 const (
 	// seconds
-	blockDonwloadTimeout = 30 * 60
+	blockDownloadTimeout = 30 * 60
 )
 
 type blockDownloadVerifyStatus int
 
 const (
-	blockDownloadStatusUnknow blockDownloadVerifyStatus = iota
+	blockDownloadStatusUnKnow blockDownloadVerifyStatus = iota
 	blockDownloadStatusFailed
 	blockDownloadStatusSucceeded
 )

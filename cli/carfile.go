@@ -20,7 +20,7 @@ import (
 var (
 	defaultExpireDays     = 7
 	defaultExpiration     = time.Duration(defaultExpireDays) * time.Hour * 24
-	defaultDatetimeLayout = "2006-01-02 15:04:05"
+	defaultDateTimeLayout = "2006-01-02 15:04:05"
 )
 
 var carfileCmd = &cli.Command{
@@ -142,7 +142,7 @@ var showCarfileInfoCmd = &cli.Command{
 		fmt.Printf("Blocks:\t%d\n", info.TotalBlocks)
 		fmt.Printf("Size:\t%s\n", units.BytesSize(float64(info.TotalSize)))
 		fmt.Printf("NeedEdgeReplica:\t%d\n", info.NeedEdgeReplica)
-		fmt.Printf("Expiration:\t%v\n", info.Expiration.Format(defaultDatetimeLayout))
+		fmt.Printf("Expiration:\t%v\n", info.Expiration.Format(defaultDateTimeLayout))
 
 		fmt.Printf("--------\nProcesses:\n")
 		for _, cache := range info.ReplicaInfos {
@@ -181,10 +181,10 @@ var cacheCarfileCmd = &cli.Command{
 		info := &types.CacheCarfileInfo{CarfileCid: cid}
 
 		if date == "" {
-			date = time.Now().Add(defaultExpiration).Format(defaultDatetimeLayout)
+			date = time.Now().Add(defaultExpiration).Format(defaultDateTimeLayout)
 		}
 
-		eTime, err := time.ParseInLocation(defaultDatetimeLayout, date, time.Local)
+		eTime, err := time.ParseInLocation(defaultDateTimeLayout, date, time.Local)
 		if err != nil {
 			return xerrors.Errorf("parse expiration err:%s", err.Error())
 		}
@@ -292,8 +292,8 @@ var listCarfilesCmd = &cli.Command{
 				"State":      colorState(carfile.State),
 				"Blocks":     carfile.TotalBlocks,
 				"Size":       units.BytesSize(float64(carfile.TotalSize)),
-				"CreateTime": carfile.CreateTime.Format(defaultDatetimeLayout),
-				"Expiration": carfile.Expiration.Format(defaultDatetimeLayout),
+				"CreateTime": carfile.CreateTime.Format(defaultDateTimeLayout),
+				"Expiration": carfile.Expiration.Format(defaultDateTimeLayout),
 			}
 
 			sort.Slice(carfile.ReplicaInfos, func(i, j int) bool {

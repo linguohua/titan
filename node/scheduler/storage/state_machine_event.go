@@ -154,10 +154,10 @@ func (evt CarfileStartCaches) apply(state *CarfileInfo) {
 	state.CandidateReplicas = int64(rootCachesCount + candidateReplicaCachesCount)
 }
 
-// CarfileRecache get first carfile to candidate
-type CarfileRecache struct{}
+// CarfileReCache get first carfile to candidate
+type CarfileReCache struct{}
 
-func (evt CarfileRecache) apply(state *CarfileInfo) {}
+func (evt CarfileReCache) apply(state *CarfileInfo) {}
 
 // CacheSucceed nodes cache carfile completed
 type CacheSucceed struct{}
