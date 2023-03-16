@@ -94,7 +94,7 @@ func (s *Scheduler) signDownloadInfos(cid string, results []*types.DownloadInfo,
 			privateKeys[nodeID] = privateKey
 		}
 
-		sign, err := titanRsa.RsaSign(privateKey, fmt.Sprintf("%s%d%d%d", nodeID, sn, signTime, blockDonwloadTimeout))
+		sign, err := titanRsa.RsaSign(privateKey, fmt.Sprintf("%s%d%d%d", nodeID, sn, signTime, blockDownloadTimeout))
 		if err != nil {
 			log.Errorf("signDownloadInfos rsa sign error:%s", err.Error())
 			return err
@@ -102,7 +102,7 @@ func (s *Scheduler) signDownloadInfos(cid string, results []*types.DownloadInfo,
 		results[index].Sign = hex.EncodeToString(sign)
 		results[index].SN = sn
 		results[index].SignTime = signTime
-		results[index].TimeOut = blockDonwloadTimeout
+		results[index].TimeOut = blockDownloadTimeout
 	}
 	return nil
 }

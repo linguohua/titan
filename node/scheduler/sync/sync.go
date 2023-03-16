@@ -114,9 +114,9 @@ func (ds *DataSync) doDataSync(nodeID string) {
 
 	multihashes := ds.multihashSort(nodeCacheStatusList)
 
-	checksums, err := ds.caculateChecksums(multihashes)
+	checksums, err := ds.calculateChecksums(multihashes)
 	if err != nil {
-		log.Errorf("caculate checksums error:%s", err.Error())
+		log.Errorf("calculate checksums error:%s", err.Error())
 		return
 	}
 
@@ -133,12 +133,11 @@ func (ds *DataSync) doDataSync(nodeID string) {
 			log.Errorf("compare carfiles error:%s", err.Error())
 		}
 	}
-
 }
 
 func (ds *DataSync) multihashSort(statuses []*types.NodeCacheStatus) map[uint32][]string {
 	multihashes := make(map[uint32][]string)
-	// appen carfilehash by hash code
+	// append carfile hash by hash code
 	for _, status := range statuses {
 		multihash, err := mh.FromHexString(status.CarfileHash)
 		if err != nil {
@@ -157,10 +156,10 @@ func (ds *DataSync) multihashSort(statuses []*types.NodeCacheStatus) map[uint32]
 	return multihashes
 }
 
-func (ds *DataSync) caculateChecksums(multihashes map[uint32][]string) (map[uint32]string, error) {
+func (ds *DataSync) calculateChecksums(multihashes map[uint32][]string) (map[uint32]string, error) {
 	checksums := make(map[uint32]string)
 	for k, v := range multihashes {
-		checksum, err := ds.caculateChecksum(v)
+		checksum, err := ds.calculateChecksum(v)
 		if err != nil {
 			return nil, err
 		}
@@ -170,7 +169,7 @@ func (ds *DataSync) caculateChecksums(multihashes map[uint32][]string) (map[uint
 	return checksums, nil
 }
 
-func (ds *DataSync) caculateChecksum(carfileHashes []string) (string, error) {
+func (ds *DataSync) calculateChecksum(carfileHashes []string) (string, error) {
 	hash := sha256.New()
 
 	for _, h := range carfileHashes {

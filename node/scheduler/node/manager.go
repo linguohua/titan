@@ -311,7 +311,7 @@ func (m *Manager) FindCandidatesByList(list []string, filterMap map[string]strin
 	return nil
 }
 
-// NodeSessionCallBack node pingpong
+// NodeSessionCallBack node ping pong
 func (m *Manager) NodeSessionCallBack(nodeID, remoteAddr string) {
 	lastTime := time.Now()
 

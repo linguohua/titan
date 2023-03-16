@@ -62,16 +62,16 @@ var planners = map[CarfileState]func(events []statemachine.Event, state *Carfile
 		apply(CacheResult{}),
 	),
 	CacheSeedFailed: planOne(
-		on(CarfileRecache{}, CacheCarfileSeed),
+		on(CarfileReCache{}, CacheCarfileSeed),
 	),
 	CacheCandidatesFailed: planOne(
-		on(CarfileRecache{}, CacheToCandidates),
+		on(CarfileReCache{}, CacheToCandidates),
 	),
 	CacheEdgesFailed: planOne(
-		on(CarfileRecache{}, CacheToEdges),
+		on(CarfileReCache{}, CacheToEdges),
 	),
 	Finalize: planOne(
-		on(CarfileRecache{}, CacheToCandidates),
+		on(CarfileReCache{}, CacheToCandidates),
 	),
 	Removing: planOne(
 		on(CarfileStartCaches{}, CacheCarfileSeed),
@@ -145,7 +145,7 @@ func planOne(ts ...func() (mut mutator, next func(info *CarfileInfo) (more bool,
 					continue
 				}
 
-				if err, iserr := event.User.(error); iserr {
+				if err, isErr := event.User.(error); isErr {
 					log.Warnf("carfile %s got error event %T: %+v", state.CarfileHash, event.User, err)
 				}
 
