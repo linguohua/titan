@@ -296,7 +296,7 @@ func (m *Manager) Progresses() []*types.CarfileProgress {
 	progresses := make([]*types.CarfileProgress, 0, len(m.waitList))
 
 	for _, cw := range m.waitList {
-		progress := &types.CarfileProgress{CarfileCid: cw.Root.String(), Status: types.CacheStatusDownloading}
+		progress := &types.CarfileProgress{CarfileCid: cw.Root.String(), Status: types.CacheStatusWaiting}
 		if cw.cc != nil {
 			progress = cw.cc.Progress()
 		}
