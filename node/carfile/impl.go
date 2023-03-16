@@ -291,7 +291,7 @@ func (cfImpl *CarfileImpl) Cache(carfiles []string) error {
 
 func (cfImpl *CarfileImpl) existCarProgress(root cid.Cid) (*types.CarfileProgress, error) {
 	progress := &types.CarfileProgress{
-		CarfileCid: root.Hash().String(),
+		CarfileCid: root.String(),
 		Status:     types.CacheStatusSucceeded,
 	}
 
