@@ -172,8 +172,8 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 }
 
 // CacheCarfileResult block cache result
-func (m *Manager) CacheCarfileResult(nodeID string, resylt *types.CacheResult) (err error) {
-	for _, info := range resylt.Progresses {
+func (m *Manager) CacheCarfileResult(nodeID string, result *types.CacheResult) (err error) {
+	for _, info := range result.Progresses {
 		log.Debugf("CacheCarfileResult node_id: %s, status: %d, hash: %s", nodeID, info.Status, info.CarfileCid)
 
 		hash, err := cidutil.CIDString2HashString(info.CarfileCid)
@@ -191,26 +191,30 @@ func (m *Manager) CacheCarfileResult(nodeID string, resylt *types.CacheResult) (
 			m.lock.Unlock()
 		}
 
-		t, err := m.nodeManager.NodeMgrDB.NodeType(nodeID)
+		if info.Status == types.CacheStatusWaiting {
+			continue
+		}
+
+		nType, err := m.nodeManager.NodeMgrDB.NodeType(nodeID)
 		if err != nil {
 			log.Errorf("CacheCarfileResult %s NodeType err:%s", nodeID, err.Error())
 			continue
 		}
 
-		if info.DoneBlocksCount > 0 {
-			// save to db
-			cInfo := &types.ReplicaInfo{
-				ID:         replicaID(hash, nodeID),
-				Status:     info.Status,
-				DoneBlocks: int64(info.DoneBlocksCount),
-			}
+		// save to db
+		cInfo := &types.ReplicaInfo{
+			ID:         replicaID(hash, nodeID),
+			Status:     info.Status,
+			DoneBlocks: int64(info.DoneBlocksCount),
+		}
 
-			err = m.nodeManager.CarfileDB.UpdateReplicaInfo(cInfo)
-			if err != nil {
-				log.Errorf("CacheCarfileResult %s UpdateReplicaInfo err:%s", nodeID, err.Error())
-				continue
-			}
+		err = m.nodeManager.CarfileDB.UpdateReplicaInfo(cInfo)
+		if err != nil {
+			log.Errorf("CacheCarfileResult %s UpdateReplicaInfo err:%s", nodeID, err.Error())
+			continue
+		}
 
+		if info.Status == types.CacheStatusDownloading {
 			err = m.carfiles.Send(CarfileHash(hash), CarfileInfoUpdate{
 				ResultInfo: &CacheResultInfo{
 					CarfileBlocksCount: int64(info.CarfileBlocksCount),
@@ -219,11 +223,8 @@ func (m *Manager) CacheCarfileResult(nodeID string, resylt *types.CacheResult) (
 			})
 			if err != nil {
 				log.Errorf("CacheCarfileResult %s statemachine send err:%s", nodeID, err.Error())
-				continue
 			}
-		}
 
-		if info.Status == types.CacheStatusDownloading || info.Status == types.CacheStatusWaiting {
 			continue
 		}
 
@@ -233,7 +234,7 @@ func (m *Manager) CacheCarfileResult(nodeID string, resylt *types.CacheResult) (
 				Status:             int64(info.Status),
 				CarfileBlocksCount: int64(info.CarfileBlocksCount),
 				CarfileSize:        info.CarfileSize,
-				IsCandidate:        t == types.NodeCandidate,
+				IsCandidate:        nType == types.NodeCandidate,
 			},
 		})
 		if err != nil {
