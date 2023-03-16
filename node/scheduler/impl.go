@@ -58,17 +58,18 @@ type Scheduler struct {
 
 	*common.CommonAPI
 	*EdgeUpdater
-
-	NodeManager  *node.Manager
-	Election     *election.Election
-	Validation   *validation.Validation
-	DataManager  *storage.Manager
-	DataSync     *sync.DataSync
-	WriteToken   dtypes.PermissionWriteToken
-	AdminToken   dtypes.PermissionAdminToken
-	SchedulerCfg *config.SchedulerCfg
-
 	dtypes.ServerID
+
+	NodeManager            *node.Manager
+	Election               *election.Election
+	Validation             *validation.Validation
+	DataManager            *storage.Manager
+	DataSync               *sync.DataSync
+	WriteToken             dtypes.PermissionWriteToken
+	AdminToken             dtypes.PermissionAdminToken
+	SchedulerCfg           *config.SchedulerCfg
+	SetSchedulerConfigFunc dtypes.SetSchedulerConfigFunc
+	GetSchedulerConfigFunc dtypes.GetSchedulerConfigFunc
 }
 
 var _ api.Scheduler = &Scheduler{}
@@ -377,12 +378,16 @@ func (s *Scheduler) NodeInfo(ctx context.Context, nodeID string) (*types.NodeInf
 	return nodeInfo, nil
 }
 
-// ValidationEnable get Validator running state,
-// false is close
-// true is open
-func (s *Scheduler) ValidationEnable(ctx context.Context) (bool, error) {
+// SetEnableValidation set validation state
+func (s *Scheduler) SetEnableValidation(ctx context.Context, enable bool) error {
 	// the framework requires that the method must return error
-	return s.SchedulerCfg.EnableValidate, nil
+	cfg, err := s.GetSchedulerConfigFunc()
+	if err != nil {
+		return err
+	}
+	cfg.EnableValidate = enable
+
+	return s.SetSchedulerConfigFunc(cfg)
 }
 
 // StartOnceValidate start once Validator

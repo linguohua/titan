@@ -59,13 +59,13 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(dtypes.MetadataDS), modules.Datastore),
 		Override(new(*storage.Manager), modules.NewStorageManager),
 		Override(new(*sync.DataSync), sync.NewDataSync),
-		If(cfg.EnableValidate,
-			Override(new(*validation.Validation), validation.New),
-		),
+		Override(new(*validation.Validation), modules.NewValidation),
 		Override(new(*election.Election), election.NewElection),
 		Override(new(*scheduler.EdgeUpdater), scheduler.NewEdgeUpdater),
 		Override(new(dtypes.DatabaseAddress), func() dtypes.DatabaseAddress {
 			return dtypes.DatabaseAddress(cfg.DatabaseAddress)
 		}),
+		Override(new(dtypes.SetSchedulerConfigFunc), modules.NewSetSchedulerConfigFunc),
+		Override(new(dtypes.GetSchedulerConfigFunc), modules.NewGetSchedulerConfigFunc),
 	)
 }

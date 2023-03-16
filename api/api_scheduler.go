@@ -55,7 +55,7 @@ type Scheduler interface {
 
 	// server
 	StartOnceElection(ctx context.Context) error                          //perm:admin
-	ValidationEnable(ctx context.Context) (bool, error)                   //perm:admin
+	SetEnableValidation(ctx context.Context, enable bool) error           //perm:admin
 	StartOnceValidate(ctx context.Context) error                          //perm:admin
 	EdgeUpdateInfos(ctx context.Context) (map[int]*EdgeUpdateInfo, error) //perm:read
 	SetEdgeUpdateInfo(ctx context.Context, info *EdgeUpdateInfo) error    //perm:admin
