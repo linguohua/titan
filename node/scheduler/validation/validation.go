@@ -3,6 +3,7 @@ package validation
 import (
 	"context"
 	"fmt"
+	"github.com/linguohua/titan/node/modules/dtypes"
 	"math/rand"
 	"sync"
 	"time"
@@ -28,12 +29,13 @@ const (
 
 // Validation Validation
 type Validation struct {
-	nodeManager *node.Manager
-	ctx         context.Context
-	lock        sync.Mutex
-	seed        int64
-	curRoundID  string
-	crontab     *cron.Cron // timer
+	nodeManager            *node.Manager
+	ctx                    context.Context
+	lock                   sync.Mutex
+	seed                   int64
+	curRoundID             string
+	crontab                *cron.Cron // timer
+	GetSchedulerConfigFunc dtypes.GetSchedulerConfigFunc
 }
 
 // New return new validator instance
@@ -44,28 +46,37 @@ func New(manager *node.Manager) *Validation {
 		crontab:     cron.New(),
 	}
 
-	e.initValidateTask()
-
-	return e
-}
-
-// validation task scheduled initialization
-func (v *Validation) initValidateTask() {
 	spec := fmt.Sprintf("0 */%d * * * *", interval)
-	err := v.crontab.AddFunc(spec, func() {
-		e := v.startValidate()
+	e.crontab.AddFunc(spec, func() {
+		e := e.startValidate()
 		if e != nil {
 			log.Errorf("verification failed to open %s", e.Error())
 		}
 	})
-	if err != nil {
-		log.Panicf(err.Error())
-	}
 
+	return e
+}
+
+// Start start validation task scheduled
+func (v *Validation) Start(ctx context.Context) {
 	v.crontab.Start()
 }
 
+func (v *Validation) Stop(ctx context.Context) error {
+	v.crontab.Stop()
+	return nil
+}
+
 func (v *Validation) startValidate() error {
+	cfg, err := v.GetSchedulerConfigFunc()
+	if err != nil {
+		return err
+	}
+
+	if !cfg.EnableValidate {
+		return nil
+	}
+
 	roundID := uuid.NewString()
 	v.curRoundID = roundID
 	v.seed = time.Now().UnixNano()

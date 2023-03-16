@@ -97,6 +97,8 @@ func (m *Manager) plan(events []statemachine.Event, state *CarfileInfo) (func(st
 		return nil, processed, xerrors.Errorf("running planner for state %s failed: %w", state.State, err)
 	}
 
+	log.Debugf("%s: %s", state.CarfileHash, state.State)
+
 	switch state.State {
 	// Happy path
 	case CacheCarfileSeed:

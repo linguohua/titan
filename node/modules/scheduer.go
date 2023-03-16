@@ -2,11 +2,13 @@ package modules
 
 import (
 	"context"
-
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/modules/helpers"
+	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler/storage"
+	"github.com/linguohua/titan/node/scheduler/validation"
 	"go.uber.org/fx"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
@@ -76,4 +78,51 @@ func NewStorageManager(params StorageManagerParams) *storage.Manager {
 	})
 
 	return m
+}
+
+func NewValidation(mctx helpers.MetricsCtx, lc fx.Lifecycle, m *node.Manager, cfg *config.SchedulerCfg) *validation.Validation {
+	v := validation.New(m)
+
+	ctx := helpers.LifecycleCtx(mctx, lc)
+	lc.Append(fx.Hook{
+		OnStart: func(context.Context) error {
+			v.Start(ctx)
+			return nil
+		},
+		OnStop: v.Stop,
+	})
+
+	return v
+}
+
+func NewSetSchedulerConfigFunc(r repo.LockedRepo) func(config.SchedulerCfg) error {
+	return func(cfg config.SchedulerCfg) (err error) {
+		return r.SetConfig(func(raw interface{}) {
+			scfg, ok := raw.(*config.SchedulerCfg)
+			if !ok {
+				return
+			}
+			scfg.SchedulerServer1 = cfg.SchedulerServer1
+			scfg.SchedulerServer2 = cfg.SchedulerServer2
+			scfg.EnableValidate = cfg.EnableValidate
+		})
+
+	}
+}
+
+func NewGetSchedulerConfigFunc(r repo.LockedRepo) func() (config.SchedulerCfg, error) {
+	return func() (out config.SchedulerCfg, err error) {
+		raw, err := r.Config()
+		if err != nil {
+			return
+		}
+
+		scfg, ok := raw.(*config.SchedulerCfg)
+		if !ok {
+			return
+		}
+
+		out = *scfg
+		return
+	}
 }

@@ -1,6 +1,9 @@
 package dtypes
 
-import "github.com/ipfs/go-datastore"
+import (
+	"github.com/ipfs/go-datastore"
+	"github.com/linguohua/titan/node/config"
+)
 
 // MetadataDS stores metadata.
 type MetadataDS datastore.Batching
@@ -36,3 +39,11 @@ type CarfileStorePath string
 
 // ServerID server id
 type ServerID string
+
+// SetSchedulerConfigFunc is a function which is used to
+// sets the scheduler config.
+type SetSchedulerConfigFunc func(cfg config.SchedulerCfg) error
+
+// GetSchedulerConfigFunc is a function which is used to
+// get the sealing config.
+type GetSchedulerConfigFunc func() (config.SchedulerCfg, error)
