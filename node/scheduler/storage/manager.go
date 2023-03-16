@@ -223,7 +223,7 @@ func (m *Manager) CacheCarfileResult(nodeID string, resylt *types.CacheResult) (
 			}
 		}
 
-		if info.Status == types.CacheStatusDownloading {
+		if info.Status == types.CacheStatusDownloading || info.Status == types.CacheStatusWaiting {
 			continue
 		}
 
@@ -489,7 +489,7 @@ func (m *Manager) saveCandidateReplicaInfos(nodes []*node.Candidate, hash string
 		replicaInfos = append(replicaInfos, &types.ReplicaInfo{
 			ID:          replicaID(hash, node.NodeID),
 			NodeID:      node.NodeID,
-			Status:      types.CacheStatusDownloading,
+			Status:      types.CacheStatusWaiting,
 			CarfileHash: hash,
 			IsCandidate: true,
 		})
@@ -506,7 +506,7 @@ func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
 		replicaInfos = append(replicaInfos, &types.ReplicaInfo{
 			ID:          replicaID(hash, node.NodeID),
 			NodeID:      node.NodeID,
-			Status:      types.CacheStatusDownloading,
+			Status:      types.CacheStatusWaiting,
 			CarfileHash: hash,
 			IsCandidate: false,
 		})
