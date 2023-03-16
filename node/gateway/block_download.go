@@ -160,32 +160,3 @@ func (bd *BlockDownload) downloadBlockResult(result types.UserDownloadResult) {
 		log.Errorf("downloadBlockResult error:%s", err.Error())
 	}
 }
-
-// set download server upload speed
-func (bd *BlockDownload) SetDownloadSpeed(ctx context.Context, speedRate int64) error {
-	log.Infof("set download speed %d", speedRate)
-	if bd.limiter == nil {
-		return fmt.Errorf("edge.limiter == nil")
-	}
-	bd.limiter.SetLimit(rate.Limit(speedRate))
-	bd.limiter.SetBurst(int(speedRate))
-	bd.device.SetBandwidthUp(speedRate)
-	return nil
-}
-
-func (bd *BlockDownload) UnlimitDownloadSpeed() error {
-	log.Debug("UnlimitDownloadSpeed")
-	if bd.limiter == nil {
-		return fmt.Errorf("edge.limiter == nil")
-	}
-
-	bd.limiter.SetLimit(rate.Inf)
-	bd.limiter.SetBurst(0)
-	bd.device.SetBandwidthUp(int64(bd.limiter.Limit()))
-	return nil
-}
-
-func (bd *BlockDownload) GetRateLimit() int64 {
-	log.Debug("GenerateDownloadToken")
-	return int64(bd.limiter.Limit())
-}

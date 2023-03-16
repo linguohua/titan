@@ -3,6 +3,8 @@ package gateway
 import (
 	"fmt"
 	"net/http"
+	"net/url"
+	"regexp"
 	"time"
 
 	"github.com/ipfs/go-cid"
@@ -10,6 +12,10 @@ import (
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/lib/limiter"
 	"golang.org/x/time/rate"
+)
+
+var (
+	onlyAscii = regexp.MustCompile("[[:^ascii:]]")
 )
 
 func (gw *Gateway) blockHandler(w http.ResponseWriter, r *http.Request, ticket *types.AccessTicket) {
@@ -60,6 +66,8 @@ func getFilename(r *http.Request, c cid.Cid) string {
 }
 
 func setHeaderForBlockHandler(w http.ResponseWriter, r *http.Request, filename string) {
-	contentDisposition := fmt.Sprintf("attachment; filename=\"%s\";", filename)
-	w.Header().Set("Content-Disposition", contentDisposition)
+	utf8Name := url.PathEscape(filename)
+	asciiName := url.PathEscape(onlyAscii.ReplaceAllLiteralString(filename, "_"))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"; filename*=UTF-8''%s", asciiName, utf8Name))
+	w.Header().Set("Content-Type", "application/vnd.ipld.raw")
 }
