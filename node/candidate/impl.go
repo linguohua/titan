@@ -263,7 +263,7 @@ func getNodeApi(nodeType int, nodeURL string) (nodeAPI, jsonrpc.ClientCloser, er
 	if nodeType == int(types.NodeEdge) {
 		return client.NewEdge(ctx, nodeURL, nil)
 	} else if nodeType == int(types.NodeCandidate) {
-		return client.NewCandicate(ctx, nodeURL, nil)
+		return client.NewCandidate(ctx, nodeURL, nil)
 	}
 
 	return nil, nil, fmt.Errorf("NodeType %d not NodeEdge or NodeCandidate", nodeType)
