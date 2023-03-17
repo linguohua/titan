@@ -176,7 +176,7 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 // CacheCarfileResult block cache result
 func (m *Manager) CacheCarfileResult(nodeID string, result *types.CacheResult) (err error) {
 	for _, info := range result.Progresses {
-		log.Debugf("CacheCarfileResult node_id: %s, status: %d, hash: %s", nodeID, info.Status, info.CarfileCid)
+		log.Debugf("CacheCarfileResult node_id: %s, status: %d, size: %d, hash: %s", nodeID, info.Status, info.CarfileSize, info.CarfileCid)
 
 		hash, err := cidutil.CIDString2HashString(info.CarfileCid)
 		if err != nil {
@@ -194,12 +194,6 @@ func (m *Manager) CacheCarfileResult(nodeID string, result *types.CacheResult) (
 		}
 
 		if info.Status == types.CacheStatusWaiting {
-			continue
-		}
-
-		nType, err := m.nodeManager.NodeMgrDB.NodeType(nodeID)
-		if err != nil {
-			log.Errorf("CacheCarfileResult %s NodeType err:%s", nodeID, err.Error())
 			continue
 		}
 
@@ -230,13 +224,19 @@ func (m *Manager) CacheCarfileResult(nodeID string, result *types.CacheResult) (
 			continue
 		}
 
+		isCandidate := false
+		node := m.nodeManager.GetCandidateNode(nodeID)
+		if node != nil {
+			isCandidate = true
+		}
+
 		err = m.carfiles.Send(CarfileHash(hash), CacheResult{
 			ResultInfo: &CacheResultInfo{
 				NodeID:             nodeID,
 				Status:             int64(info.Status),
 				CarfileBlocksCount: int64(info.CarfileBlocksCount),
 				CarfileSize:        info.CarfileSize,
-				IsCandidate:        nType == types.NodeCandidate,
+				IsCandidate:        isCandidate,
 			},
 		})
 		if err != nil {

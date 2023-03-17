@@ -210,8 +210,6 @@ func (m *Manager) restartCarfiles(ctx context.Context) error {
 		return err
 	}
 
-	log.Debugf("get carfiles: %d", len(trackedCarfiles))
-
 	// wait nodes connect
 	time.Sleep(1 * time.Minute)
 

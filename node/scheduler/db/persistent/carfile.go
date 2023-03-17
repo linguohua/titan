@@ -46,7 +46,7 @@ func (c *CarfileDB) InsertOrUpdateReplicaInfo(infos []*types.ReplicaInfo) error 
 	query := fmt.Sprintf(
 		`INSERT INTO %s (id, carfile_hash, node_id, status, is_candidate) 
 				VALUES (:id, :carfile_hash, :node_id, :status, :is_candidate) 
-				ON DUPLICATE KEY UPDATE end_time=NOW(), status=VALUES(status)`, replicaInfoTable)
+				ON DUPLICATE KEY UPDATE status=VALUES(status)`, replicaInfoTable)
 
 	_, err := c.DB.NamedExec(query, infos)
 
@@ -56,9 +56,9 @@ func (c *CarfileDB) InsertOrUpdateReplicaInfo(infos []*types.ReplicaInfo) error 
 // UpdateOrCreateCarfileRecord update storage record info
 func (c *CarfileDB) UpdateOrCreateCarfileRecord(info *types.CarfileRecordInfo) error {
 	cmd := fmt.Sprintf(
-		`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration, total_size, total_blocks, server_id) 
-				VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica, :expiration, :total_size, :total_blocks, :server_id) 
-				ON DUPLICATE KEY UPDATE total_size=VALUES(total_size), total_blocks=VALUES(total_blocks), state=VALUES(state)`, carfileInfoTable)
+		`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration, total_size, total_blocks, server_id, end_time) 
+				VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica, :expiration, :total_size, :total_blocks, :server_id, NOW()) 
+				ON DUPLICATE KEY UPDATE total_size=VALUES(total_size), total_blocks=VALUES(total_blocks), state=VALUES(state), end_time=NOW()`, carfileInfoTable)
 
 	_, err := c.DB.NamedExec(cmd, info)
 	return err
