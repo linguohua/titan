@@ -8,6 +8,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/modules/dtypes"
+	"golang.org/x/xerrors"
 )
 
 type NodeMgrDB struct {
@@ -333,19 +334,29 @@ func (n *NodeMgrDB) BindNodeAllocateInfo(secret, nodeID string, nodeType types.N
 	return err
 }
 
-func (n *NodeMgrDB) GetNodeAllocateInfo(nodeID, key string, out interface{}) error {
-	if key != "" {
-		query := fmt.Sprintf(`SELECT %s FROM %s WHERE node_id=?`, key, nodeAllocateTable)
-		if err := n.db.Get(out, query, nodeID); err != nil {
-			return err
-		}
+// NodeSecret load node secret
+func (n *NodeMgrDB) NodeSecret(nodeID string) (string, error) {
+	var secret string
 
-		return nil
+	query := fmt.Sprintf(`SELECT secret FROM %s WHERE node_id=?`, nodeAllocateTable)
+	if err := n.db.Get(&secret, query, nodeID); err != nil {
+		return secret, err
 	}
 
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id=?`, nodeAllocateTable)
-	if err := n.db.Get(out, query, nodeID); err != nil {
+	return secret, nil
+}
+
+// NodeExists is node exists
+func (n *NodeMgrDB) NodeExists(nodeID string, nodeType types.NodeType) error {
+	var count int
+	cQuery := fmt.Sprintf(`SELECT count(*) FROM %s WHERE node_id=? AND node_type=?`, nodeAllocateTable)
+	err := n.db.Get(&count, cQuery, count, nodeType)
+	if err != nil {
 		return err
+	}
+
+	if count < 1 {
+		return xerrors.New("node not exists")
 	}
 
 	return nil
