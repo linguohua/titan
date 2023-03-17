@@ -45,7 +45,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		remoteAddr = r.RemoteAddr
 	}
 
-	// fmt.Println("server http:", reqIP)
 	nodeID := r.Header.Get("Node-ID")
 
 	ctx := r.Context()
