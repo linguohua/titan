@@ -3,6 +3,8 @@ package modules
 import (
 	"context"
 	"errors"
+	"github.com/linguohua/titan/build"
+	"github.com/linguohua/titan/lib/ulimit"
 
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/node/modules/dtypes"
@@ -66,4 +68,19 @@ func NewServerID(lr repo.LockedRepo) (dtypes.ServerID, error) {
 
 func Datastore(db *persistent.CarfileDB, serverID dtypes.ServerID) (dtypes.MetadataDS, error) {
 	return storage.NewDatastore(db, serverID), nil
+}
+
+func CheckFdLimit() error {
+	limit, _, err := ulimit.GetLimit()
+	switch {
+	case err == ulimit.ErrUnsupported:
+		log.Errorw("checking file descriptor limit failed", "error", err)
+	case err != nil:
+		return xerrors.Errorf("checking fd limit: %w", err)
+	default:
+		if limit < build.EdgeFDLimit {
+			return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.EdgeFDLimit, limit)
+		}
+	}
+	return nil
 }

@@ -23,7 +23,6 @@ import (
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
 	"github.com/linguohua/titan/lib/titanlog"
-	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/secret"
@@ -191,18 +190,6 @@ var runCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		log.Info("Starting titan scheduler node")
 
-		limit, _, err := ulimit.GetLimit()
-		switch {
-		case err == ulimit.ErrUnsupported:
-			log.Errorw("checking file descriptor limit failed", "error", err)
-		case err != nil:
-			return xerrors.Errorf("checking fd limit: %w", err)
-		default:
-			if limit < build.EdgeFDLimit {
-				return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.EdgeFDLimit, limit)
-			}
-		}
-
 		repoPath := cctx.String(FlagSchedulerRepo)
 		r, err := repo.NewFS(repoPath)
 		if err != nil {
@@ -247,13 +234,6 @@ var runCmd = &cli.Command{
 		if err != nil {
 			return xerrors.Errorf("creating node: %w", err)
 		}
-
-		// log.Debugln("login to etcd...")
-		// err = loginToEtcd(schedulerCfg, r)
-		// if err != nil {
-		// 	return xerrors.Errorf("loginToEtcd err: %w", err)
-		// }
-		// log.Debugln("etcd logined...")
 
 		// Populate JSON-RPC options.
 		serverOptions := []jsonrpc.ServerOption{jsonrpc.WithServerErrors(api.RPCErrors)}
