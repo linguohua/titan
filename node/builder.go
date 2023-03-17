@@ -7,7 +7,6 @@ import (
 	"github.com/gbrlsnchs/jwt/v3"
 	logging "github.com/ipfs/go-log/v2"
 	metricsi "github.com/ipfs/go-metrics-interface"
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/journal"
 	"github.com/linguohua/titan/journal/alerting"
 	"github.com/linguohua/titan/node/common"
@@ -87,8 +86,8 @@ func Repo(r repo.Repo) Option {
 				return metricsi.CtxScope(context.Background(), "titan")
 			}),
 			Override(new(dtypes.SessionCallbackFunc), modules.DefaultSessionCallback),
-			Override(new(dtypes.PermissionWriteToken), modules.GenerateTokenWithPermission(api.ReadWritePerms)),
-			Override(new(dtypes.PermissionAdminToken), modules.GenerateTokenWithPermission(api.AllPermissions)),
+			Override(new(dtypes.PermissionWriteToken), modules.GenerateTokenWithWritePermission),
+			Override(new(dtypes.PermissionAdminToken), modules.GenerateTokenWithAdminPermission),
 			ApplyIf(IsType(repo.Scheduler), ConfigScheduler(c)),
 			ApplyIf(IsType(repo.Locator), ConfigLocator(c)),
 			ApplyIf(IsType(repo.Edge), ConfigEdge(c)),

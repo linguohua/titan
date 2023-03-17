@@ -24,7 +24,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
-	"github.com/linguohua/titan/etcdcli"
+	"github.com/linguohua/titan/lib/etcdcli"
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/node/config"
@@ -331,7 +331,7 @@ func loginToEtcd(cfg *config.SchedulerCfg, r *repo.FsRepo) error {
 		AccessToken:  string(tb),
 	}
 
-	return cli.ServerLogin(sCfg, types.NodeScheduler)
+	return cli.ServerRegister(sCfg, types.NodeScheduler)
 }
 
 func externalIP() (string, error) {

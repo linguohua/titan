@@ -385,10 +385,10 @@ func getSchedulerVersion(api api.Scheduler, timeout time.Duration) (api.APIVersi
 	return api.Version(ctx)
 }
 
-func newAuthTokenFromScheduler(schedulerURL, nodeID, secret string, timeout time.Duration) ([]byte, error) {
+func newAuthTokenFromScheduler(schedulerURL, nodeID, secret string, timeout time.Duration) (string, error) {
 	schedulerAPI, closer, err := client.NewScheduler(context.Background(), schedulerURL, nil)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	defer closer()

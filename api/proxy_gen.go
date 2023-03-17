@@ -68,7 +68,7 @@ type CarfileOperationStub struct {
 
 type CommonStruct struct {
 	Internal struct {
-		AuthNew func(p0 context.Context, p1 []auth.Permission) ([]byte, error) `perm:"admin"`
+		AuthNew func(p0 context.Context, p1 []auth.Permission) (string, error) `perm:"admin"`
 
 		AuthVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
 
@@ -191,7 +191,7 @@ type SchedulerStruct struct {
 	Internal struct {
 		AllocateNodes func(p0 context.Context, p1 types.NodeType, p2 int) ([]*types.NodeAllocateInfo, error) `perm:"admin"`
 
-		AuthNodeNew func(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) `perm:"read"`
+		AuthNodeNew func(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) (string, error) `perm:"read"`
 
 		AuthNodeVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
 
@@ -387,15 +387,15 @@ func (s *CarfileOperationStub) QueryCachingCarfile(p0 context.Context) (*types.C
 	return nil, ErrNotSupported
 }
 
-func (s *CommonStruct) AuthNew(p0 context.Context, p1 []auth.Permission) ([]byte, error) {
+func (s *CommonStruct) AuthNew(p0 context.Context, p1 []auth.Permission) (string, error) {
 	if s.Internal.AuthNew == nil {
-		return *new([]byte), ErrNotSupported
+		return "", ErrNotSupported
 	}
 	return s.Internal.AuthNew(p0, p1)
 }
 
-func (s *CommonStub) AuthNew(p0 context.Context, p1 []auth.Permission) ([]byte, error) {
-	return *new([]byte), ErrNotSupported
+func (s *CommonStub) AuthNew(p0 context.Context, p1 []auth.Permission) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *CommonStruct) AuthVerify(p0 context.Context, p1 string) ([]auth.Permission, error) {
@@ -739,15 +739,15 @@ func (s *SchedulerStub) AllocateNodes(p0 context.Context, p1 types.NodeType, p2 
 	return *new([]*types.NodeAllocateInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) {
+func (s *SchedulerStruct) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) (string, error) {
 	if s.Internal.AuthNodeNew == nil {
-		return *new([]byte), ErrNotSupported
+		return "", ErrNotSupported
 	}
 	return s.Internal.AuthNodeNew(p0, p1, p2, p3)
 }
 
-func (s *SchedulerStub) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) ([]byte, error) {
-	return *new([]byte), ErrNotSupported
+func (s *SchedulerStub) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) AuthNodeVerify(p0 context.Context, p1 string) ([]auth.Permission, error) {

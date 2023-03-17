@@ -4,6 +4,7 @@ import (
 	"context"
 
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/modules/helpers"
@@ -12,7 +13,6 @@ import (
 	"github.com/linguohua/titan/node/scheduler/validation"
 	"go.uber.org/fx"
 
-	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
@@ -26,15 +26,22 @@ func NewDB(dbPath dtypes.DatabaseAddress) (*sqlx.DB, error) {
 	return persistent.NewDB(string(dbPath))
 }
 
-// GenerateTokenWithPermission create a new token based on the given permissions
-func GenerateTokenWithPermission(permission []auth.Permission) func(ca *common.CommonAPI) ([]byte, error) {
-	return func(ca *common.CommonAPI) ([]byte, error) {
-		token, err := ca.AuthNew(context.Background(), permission)
-		if err != nil {
-			return nil, err
-		}
-		return token, nil
+// GenerateTokenWithWritePermission create a new token based on the given permissions
+func GenerateTokenWithWritePermission(ca *common.CommonAPI) (dtypes.PermissionWriteToken, error) {
+	token, err := ca.AuthNew(context.Background(), api.ReadWritePerms)
+	if err != nil {
+		return "", err
 	}
+	return dtypes.PermissionWriteToken(token), nil
+}
+
+// GenerateTokenWithAdminPermission create a new token based on the given permissions
+func GenerateTokenWithAdminPermission(ca *common.CommonAPI) (dtypes.PermissionAdminToken, error) {
+	token, err := ca.AuthNew(context.Background(), api.AllPermissions)
+	if err != nil {
+		return "", err
+	}
+	return dtypes.PermissionAdminToken(token), nil
 }
 
 // DefaultSessionCallback ...

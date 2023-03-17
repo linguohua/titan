@@ -15,10 +15,10 @@ type GeoDBPath string
 type DatabaseAddress string
 
 // PermissionWriteToken token with write permission
-type PermissionWriteToken []byte
+type PermissionWriteToken string
 
 // PermissionAdminToken token with admin permission
-type PermissionAdminToken []byte
+type PermissionAdminToken string
 
 // SessionCallbackFunc callback function when the node connects
 type SessionCallbackFunc func(string, string)

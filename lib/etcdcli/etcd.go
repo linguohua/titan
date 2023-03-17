@@ -45,8 +45,8 @@ func New(addrs []string, serverID dtypes.ServerID) (*Client, error) {
 	}, nil
 }
 
-// ServerLogin login to etcd , If already logged in, return an error
-func (c *Client) ServerLogin(cfg *types.SchedulerCfg, nodeType types.NodeType) error {
+// ServerRegister register to etcd , If already register in, return an error
+func (c *Client) ServerRegister(cfg *types.SchedulerCfg, nodeType types.NodeType) error {
 	ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
 	defer cancel()
 
@@ -121,6 +121,10 @@ func (c *Client) ListServers(nodeType types.NodeType) (*clientv3.GetResponse, er
 
 	return kv.Get(ctx, serverKeyPrefix, clientv3.WithPrefix())
 }
+
+// Delete Delete to etcd
+// func (c *Client) Delete() error {
+// }
 
 // SCUnmarshal  Unmarshal SchedulerCfg
 func SCUnmarshal(v []byte) (*types.SchedulerCfg, error) {
