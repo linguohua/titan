@@ -31,7 +31,6 @@ import (
 	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/node"
 
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/storage"
 	"github.com/linguohua/titan/node/scheduler/sync"
 	"golang.org/x/xerrors"
@@ -83,8 +82,7 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 		return payload.Allow, nil
 	}
 
-	var secret string
-	err := s.NodeManager.NodeMgrDB.GetNodeAllocateInfo(nodeID, persistent.SecretKey, &secret)
+	secret, err := s.NodeManager.NodeMgrDB.NodeSecret(nodeID)
 	if err != nil {
 		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", nodeID, err)
 	}
@@ -101,8 +99,7 @@ func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, no
 		Allow: perms,
 	}
 
-	var secret string
-	err := s.NodeManager.NodeMgrDB.GetNodeAllocateInfo(nodeID, persistent.SecretKey, &secret)
+	secret, err := s.NodeManager.NodeMgrDB.NodeSecret(nodeID)
 	if err != nil {
 		return "", xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", nodeID, err)
 	}
@@ -149,6 +146,8 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		log.Errorf("CandidateNodeConnect NodeInfo err:%s", err.Error())
 		return err
 	}
+
+	nodeInfo.NodeType = types.NodeCandidate
 
 	candidateNode.BaseInfo, err = s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
 	if err != nil {
@@ -200,6 +199,8 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		return err
 	}
 
+	nodeInfo.NodeType = types.NodeEdge
+
 	edgeNode.BaseInfo, err = s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
 	if err != nil {
 		return err
@@ -236,7 +237,6 @@ func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.N
 
 	nodeInfo.PortMapping = port
 
-	nodeInfo.NodeType = types.NodeCandidate
 	nodeInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
 	if err != nil {
 		return nil, xerrors.Errorf("SplitHostPort err:%s", err.Error())
@@ -519,17 +519,13 @@ func (s *Scheduler) DeleteNodeLogFile(ctx context.Context, nodeID string) error 
 
 // nodeExists Check if the id exists
 func (s *Scheduler) nodeExists(nodeID string, nodeType types.NodeType) bool {
-	if nodeType == types.NodeUnknown {
-		return true
-	}
-
-	var nType types.NodeType
-	err := s.NodeManager.NodeMgrDB.GetNodeAllocateInfo(nodeID, persistent.NodeTypeKey, &nType)
+	err := s.NodeManager.NodeMgrDB.NodeExists(nodeID, nodeType)
 	if err != nil {
+		log.Errorf("node exists %s", err.Error())
 		return false
 	}
 
-	return nType == nodeType
+	return true
 }
 
 // NodeList list nodes

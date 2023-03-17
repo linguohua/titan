@@ -24,11 +24,6 @@ const (
 	nodeAllocateTable   = "node_allocate_info"
 	validateResultTable = "validate_result"
 
-	// NodeTypeKey node info key
-	NodeTypeKey = "node_type"
-	// SecretKey node info key
-	SecretKey = "secret"
-
 	loadNodeInfoMaxCount      = 100
 	loadBlockDownloadMaxCount = 100
 	loadReplicaInfoMaxCount   = 100

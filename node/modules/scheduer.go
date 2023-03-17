@@ -2,9 +2,12 @@ package modules
 
 import (
 	"context"
+	"strings"
 
+	externalip "github.com/glendc/go-external-ip"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/lib/etcdcli"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/modules/dtypes"
@@ -13,6 +16,7 @@ import (
 	"github.com/linguohua/titan/node/scheduler/storage"
 	"github.com/linguohua/titan/node/scheduler/validation"
 	"go.uber.org/fx"
+	"golang.org/x/xerrors"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/node/common"
@@ -139,18 +143,58 @@ func NewGetSchedulerConfigFunc(r repo.LockedRepo) func() (config.SchedulerCfg, e
 
 // RegisterToEtcd Register server to etcd
 func RegisterToEtcd(mctx helpers.MetricsCtx, lc fx.Lifecycle, configFunc dtypes.GetSchedulerConfigFunc, serverID dtypes.ServerID, token dtypes.PermissionAdminToken) error {
-	eCli, err := etcdcli.New(configFunc, serverID, token)
+	cfg, err := configFunc()
 	if err != nil {
 		return err
+	}
+
+	eCli, err := etcdcli.New(cfg.EtcdAddresses)
+	if err != nil {
+		return err
+	}
+
+	index := strings.Index(cfg.ListenAddress, ":")
+	port := cfg.ListenAddress[index:]
+
+	log.Debugln("get externalIP...")
+	ip, err := externalIP()
+	if err != nil {
+		return err
+	}
+	log.Debugf("ip:%s", ip)
+
+	sCfg := &types.SchedulerCfg{
+		AreaID:       cfg.AreaID,
+		SchedulerURL: ip + port,
+		AccessToken:  string(token),
+	}
+
+	value, err := etcdcli.SCMarshal(sCfg)
+	if err != nil {
+		return xerrors.Errorf("cfg SCMarshal err:%s", err.Error())
 	}
 
 	ctx := helpers.LifecycleCtx(mctx, lc)
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
-			return eCli.ServerRegister(ctx)
+			return eCli.ServerRegister(ctx, serverID, string(value))
 		},
-		OnStop: eCli.ServerUnRegister,
+		OnStop: func(context.Context) error {
+			return eCli.ServerUnRegister(ctx, serverID)
+		},
 	})
 
 	return nil
+}
+
+func externalIP() (string, error) {
+	consensus := externalip.DefaultConsensus(nil, nil)
+	// Get your IP,
+	// which is never <nil> when err is <nil>.
+	ip, err := consensus.ExternalIP()
+	if err != nil {
+		return "", err
+	}
+
+	return ip.String(), nil
 }

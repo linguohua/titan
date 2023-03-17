@@ -19,12 +19,15 @@ func (s *Scheduler) CacheResult(ctx context.Context, info types.CacheResult) err
 	// }
 
 	// update node info
+	isCandidate := false
 	node := s.NodeManager.GetNode(nodeID)
 	if node != nil {
 		node.DiskUsage = info.DiskUsage
 		node.Blocks = info.TotalBlocksCount
+		isCandidate = node.NodeType == types.NodeCandidate
 	}
-	return s.DataManager.CacheCarfileResult(nodeID, &info)
+
+	return s.DataManager.CacheCarfileResult(nodeID, &info, isCandidate)
 }
 
 // RemoveCarfileResult remove storage result

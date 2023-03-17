@@ -4,10 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
-	externalip "github.com/glendc/go-external-ip"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/modules/dtypes"
 
@@ -26,20 +24,12 @@ const (
 // Client ...
 type Client struct {
 	cli *clientv3.Client
-	dtypes.ServerID
-	dtypes.GetSchedulerConfigFunc
-	dtypes.PermissionAdminToken
 }
 
 // New new a etcd client
-func New(configFunc dtypes.GetSchedulerConfigFunc, serverID dtypes.ServerID, token dtypes.PermissionAdminToken) (*Client, error) {
-	cfg, err := configFunc()
-	if err != nil {
-		return nil, err
-	}
-
+func New(addrs []string) (*Client, error) {
 	config := clientv3.Config{
-		Endpoints:   cfg.EtcdAddresses,
+		Endpoints:   addrs,
 		DialTimeout: connectServerTimeoutTime * time.Second,
 	}
 	// connect
@@ -49,39 +39,15 @@ func New(configFunc dtypes.GetSchedulerConfigFunc, serverID dtypes.ServerID, tok
 	}
 
 	client := &Client{
-		cli:                    cli,
-		ServerID:               serverID,
-		GetSchedulerConfigFunc: configFunc,
-		PermissionAdminToken:   token,
+		cli: cli,
 	}
 
 	return client, nil
 }
 
 // ServerRegister register to etcd , If already register in, return an error
-func (c *Client) ServerRegister(ctx context.Context) error {
-	cfg, err := c.GetSchedulerConfigFunc()
-	if err != nil {
-		return err
-	}
-
-	index := strings.Index(cfg.ListenAddress, ":")
-	port := cfg.ListenAddress[index:]
-
-	log.Debugln("get externalIP...")
-	ip, err := externalIP()
-	if err != nil {
-		return err
-	}
-	log.Debugf("ip:%s", ip)
-
-	sCfg := &types.SchedulerCfg{
-		AreaID:       cfg.AreaID,
-		SchedulerURL: ip + port,
-		AccessToken:  string(c.PermissionAdminToken),
-	}
-
-	serverKey := fmt.Sprintf("/%s/%s", types.RunningNodeType.String(), c.ServerID)
+func (c *Client) ServerRegister(ctx context.Context, serverID dtypes.ServerID, value string) error {
+	serverKey := fmt.Sprintf("/%s/%s", types.RunningNodeType.String(), serverID)
 
 	// get a lease
 	lease := clientv3.NewLease(c.cli)
@@ -95,11 +61,6 @@ func (c *Client) ServerRegister(ctx context.Context) error {
 	kv := clientv3.NewKV(c.cli)
 	// Create transaction
 	txn := kv.Txn(ctx)
-
-	value, err := SCMarshal(sCfg)
-	if err != nil {
-		return xerrors.Errorf("cfg SCMarshal err:%s", err.Error())
-	}
 
 	// If the revision of key is equal to 0
 	txn.If(clientv3.Compare(clientv3.CreateRevision(serverKey), "=", 0)).
@@ -154,13 +115,13 @@ func (c *Client) ListServers(nodeType types.NodeType) (*clientv3.GetResponse, er
 }
 
 // ServerUnRegister UnRegister to etcd
-func (c *Client) ServerUnRegister(ctx context.Context) error {
+func (c *Client) ServerUnRegister(ctx context.Context, serverID dtypes.ServerID) error {
 	// ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
 	// defer cancel()
 
 	kv := clientv3.NewKV(c.cli)
 
-	serverKey := fmt.Sprintf("/%s/%s", types.RunningNodeType.String(), c.ServerID)
+	serverKey := fmt.Sprintf("/%s/%s", types.RunningNodeType.String(), serverID)
 
 	_, err := kv.Delete(ctx, serverKey)
 	return err
@@ -185,16 +146,4 @@ func SCMarshal(s *types.SchedulerCfg) ([]byte, error) {
 	}
 
 	return v, nil
-}
-
-func externalIP() (string, error) {
-	consensus := externalip.DefaultConsensus(nil, nil)
-	// Get your IP,
-	// which is never <nil> when err is <nil>.
-	ip, err := consensus.ExternalIP()
-	if err != nil {
-		return "", err
-	}
-
-	return ip.String(), nil
 }
