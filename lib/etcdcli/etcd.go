@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
+	externalip "github.com/glendc/go-external-ip"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/modules/dtypes"
 
@@ -25,12 +27,19 @@ const (
 type Client struct {
 	cli *clientv3.Client
 	dtypes.ServerID
+	dtypes.GetSchedulerConfigFunc
+	dtypes.PermissionAdminToken
 }
 
 // New new a etcd client
-func New(addrs []string, serverID dtypes.ServerID) (*Client, error) {
+func New(configFunc dtypes.GetSchedulerConfigFunc, serverID dtypes.ServerID, token dtypes.PermissionAdminToken) (*Client, error) {
+	cfg, err := configFunc()
+	if err != nil {
+		return nil, err
+	}
+
 	config := clientv3.Config{
-		Endpoints:   addrs,
+		Endpoints:   cfg.EtcdAddresses,
 		DialTimeout: connectServerTimeoutTime * time.Second,
 	}
 	// connect
@@ -39,18 +48,40 @@ func New(addrs []string, serverID dtypes.ServerID) (*Client, error) {
 		return nil, err
 	}
 
-	return &Client{
-		cli:      cli,
-		ServerID: serverID,
-	}, nil
+	client := &Client{
+		cli:                    cli,
+		ServerID:               serverID,
+		GetSchedulerConfigFunc: configFunc,
+		PermissionAdminToken:   token,
+	}
+
+	return client, nil
 }
 
 // ServerRegister register to etcd , If already register in, return an error
-func (c *Client) ServerRegister(cfg *types.SchedulerCfg, nodeType types.NodeType) error {
-	ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
-	defer cancel()
+func (c *Client) ServerRegister(ctx context.Context) error {
+	cfg, err := c.GetSchedulerConfigFunc()
+	if err != nil {
+		return err
+	}
 
-	serverKey := fmt.Sprintf("/%s/%s", nodeType.String(), c.ServerID)
+	index := strings.Index(cfg.ListenAddress, ":")
+	port := cfg.ListenAddress[index:]
+
+	log.Debugln("get externalIP...")
+	ip, err := externalIP()
+	if err != nil {
+		return err
+	}
+	log.Debugf("ip:%s", ip)
+
+	sCfg := &types.SchedulerCfg{
+		AreaID:       cfg.AreaID,
+		SchedulerURL: ip + port,
+		AccessToken:  string(c.PermissionAdminToken),
+	}
+
+	serverKey := fmt.Sprintf("/%s/%s", types.RunningNodeType.String(), c.ServerID)
 
 	// get a lease
 	lease := clientv3.NewLease(c.cli)
@@ -65,7 +96,7 @@ func (c *Client) ServerRegister(cfg *types.SchedulerCfg, nodeType types.NodeType
 	// Create transaction
 	txn := kv.Txn(ctx)
 
-	value, err := SCMarshal(cfg)
+	value, err := SCMarshal(sCfg)
 	if err != nil {
 		return xerrors.Errorf("cfg SCMarshal err:%s", err.Error())
 	}
@@ -122,9 +153,18 @@ func (c *Client) ListServers(nodeType types.NodeType) (*clientv3.GetResponse, er
 	return kv.Get(ctx, serverKeyPrefix, clientv3.WithPrefix())
 }
 
-// Delete Delete to etcd
-// func (c *Client) Delete() error {
-// }
+// ServerUnRegister UnRegister to etcd
+func (c *Client) ServerUnRegister(ctx context.Context) error {
+	// ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
+	// defer cancel()
+
+	kv := clientv3.NewKV(c.cli)
+
+	serverKey := fmt.Sprintf("/%s/%s", types.RunningNodeType.String(), c.ServerID)
+
+	_, err := kv.Delete(ctx, serverKey)
+	return err
+}
 
 // SCUnmarshal  Unmarshal SchedulerCfg
 func SCUnmarshal(v []byte) (*types.SchedulerCfg, error) {
@@ -145,4 +185,16 @@ func SCMarshal(s *types.SchedulerCfg) ([]byte, error) {
 	}
 
 	return v, nil
+}
+
+func externalIP() (string, error) {
+	consensus := externalip.DefaultConsensus(nil, nil)
+	// Get your IP,
+	// which is never <nil> when err is <nil>.
+	ip, err := consensus.ExternalIP()
+	if err != nil {
+		return "", err
+	}
+
+	return ip.String(), nil
 }

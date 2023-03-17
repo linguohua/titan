@@ -51,6 +51,7 @@ func ConfigScheduler(c interface{}) Option {
 	return Options(
 		Override(new(dtypes.ServerID), modules.NewServerID),
 		Override(new(*config.SchedulerCfg), cfg),
+		Override(RegisterEtcd, modules.RegisterToEtcd),
 		Override(new(*sqlx.DB), modules.NewDB),
 		Override(new(*persistent.CarfileDB), persistent.NewCarfileDB),
 		Override(new(*persistent.NodeMgrDB), persistent.NewNodeMgrDB),

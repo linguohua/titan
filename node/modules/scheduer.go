@@ -5,6 +5,7 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/lib/etcdcli"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/modules/helpers"
@@ -134,4 +135,22 @@ func NewGetSchedulerConfigFunc(r repo.LockedRepo) func() (config.SchedulerCfg, e
 		out = *scfg
 		return
 	}
+}
+
+// RegisterToEtcd Register server to etcd
+func RegisterToEtcd(mctx helpers.MetricsCtx, lc fx.Lifecycle, configFunc dtypes.GetSchedulerConfigFunc, serverID dtypes.ServerID, token dtypes.PermissionAdminToken) error {
+	eCli, err := etcdcli.New(configFunc, serverID, token)
+	if err != nil {
+		return err
+	}
+
+	ctx := helpers.LifecycleCtx(mctx, lc)
+	lc.Append(fx.Hook{
+		OnStart: func(context.Context) error {
+			return eCli.ServerRegister(ctx)
+		},
+		OnStop: eCli.ServerUnRegister,
+	})
+
+	return nil
 }

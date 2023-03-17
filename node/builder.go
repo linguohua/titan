@@ -38,6 +38,8 @@ const (
 
 	ExtractApiKey
 
+	RegisterEtcd
+
 	_nInvokes // keep this last
 )
 

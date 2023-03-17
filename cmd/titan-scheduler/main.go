@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/linguohua/titan/api/types"
 	cliutil "github.com/linguohua/titan/cli/util"
@@ -20,15 +19,12 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/gbrlsnchs/jwt/v3"
-	externalip "github.com/glendc/go-external-ip"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/build"
 	lcli "github.com/linguohua/titan/cli"
-	"github.com/linguohua/titan/lib/etcdcli"
 	"github.com/linguohua/titan/lib/titanlog"
 	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/node/config"
-	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/secret"
 	"github.com/quic-go/quic-go/http3"
@@ -252,12 +248,12 @@ var runCmd = &cli.Command{
 			return xerrors.Errorf("creating node: %w", err)
 		}
 
-		log.Debugln("login to etcd...")
-		err = loginToEtcd(schedulerCfg, r)
-		if err != nil {
-			return xerrors.Errorf("loginToEtcd err: %w", err)
-		}
-		log.Debugln("etcd logined...")
+		// log.Debugln("login to etcd...")
+		// err = loginToEtcd(schedulerCfg, r)
+		// if err != nil {
+		// 	return xerrors.Errorf("loginToEtcd err: %w", err)
+		// }
+		// log.Debugln("etcd logined...")
 
 		// Populate JSON-RPC options.
 		serverOptions := []jsonrpc.ServerOption{jsonrpc.WithServerErrors(api.RPCErrors)}
@@ -298,52 +294,6 @@ var runCmd = &cli.Command{
 		<-finishCh // fires when shutdown is complete.
 		return nil
 	},
-}
-
-func loginToEtcd(cfg *config.SchedulerCfg, r *repo.FsRepo) error {
-	sb, err := r.ServerID()
-	if err != nil {
-		return xerrors.Errorf("get serverID err: %w", err)
-	}
-	tb, err := r.APIToken()
-	if err != nil {
-		return xerrors.Errorf("get token err: %w", err)
-	}
-
-	cli, err := etcdcli.New(cfg.EtcdAddresses, dtypes.ServerID(string(sb)))
-	if err != nil {
-		return err
-	}
-
-	index := strings.Index(cfg.ListenAddress, ":")
-	port := cfg.ListenAddress[index:]
-
-	log.Debugln("get externalIP...")
-	ip, err := externalIP()
-	if err != nil {
-		return err
-	}
-	log.Debugf("ip:%s", ip)
-
-	sCfg := &types.SchedulerCfg{
-		AreaID:       cfg.AreaID,
-		SchedulerURL: ip + port,
-		AccessToken:  string(tb),
-	}
-
-	return cli.ServerRegister(sCfg, types.NodeScheduler)
-}
-
-func externalIP() (string, error) {
-	consensus := externalip.DefaultConsensus(nil, nil)
-	// Get your IP,
-	// which is never <nil> when err is <nil>.
-	ip, err := consensus.ExternalIP()
-	if err != nil {
-		return "", err
-	}
-
-	return ip.String(), nil
 }
 
 func openRepo(cctx *cli.Context) (repo.LockedRepo, error) {
