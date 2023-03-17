@@ -38,6 +38,7 @@ const (
 
 	ExtractApiKey
 
+	CheckFDLimit
 	RegisterEtcd
 
 	_nInvokes // keep this last
@@ -81,6 +82,7 @@ func Repo(r repo.Repo) Option {
 			return err
 		}
 		return Options(
+			Override(CheckFDLimit, modules.CheckFdLimit),
 			Override(new(repo.LockedRepo), modules.LockedRepo(lr)), // module handles closing
 			Override(new(*jwt.HMACSHA), secret.APISecret),
 			Override(new(*common.CommonAPI), common.NewCommonAPI),

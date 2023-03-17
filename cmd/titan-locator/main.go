@@ -19,7 +19,6 @@ import (
 	lcli "github.com/linguohua/titan/cli"
 	cliutil "github.com/linguohua/titan/cli/util"
 	"github.com/linguohua/titan/lib/titanlog"
-	"github.com/linguohua/titan/lib/ulimit"
 	"github.com/linguohua/titan/node"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/modules/dtypes"
@@ -109,18 +108,6 @@ var runCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		log.Info("Starting titan locator node")
-
-		limit, _, err := ulimit.GetLimit()
-		switch {
-		case err == ulimit.ErrUnsupported:
-			log.Errorw("checking file descriptor limit failed", "error", err)
-		case err != nil:
-			return xerrors.Errorf("checking fd limit: %w", err)
-		default:
-			if limit < build.DefaultFDLimit {
-				return xerrors.Errorf("soft file descriptor limit (ulimit -n) too low, want %d, current %d", build.DefaultFDLimit, limit)
-			}
-		}
 
 		repoPath := cctx.String(FlagLocatorRepo)
 		r, err := repo.NewFS(repoPath)
