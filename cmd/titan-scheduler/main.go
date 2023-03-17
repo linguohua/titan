@@ -252,10 +252,12 @@ var runCmd = &cli.Command{
 			return xerrors.Errorf("creating node: %w", err)
 		}
 
+		log.Debugln("login to etcd...")
 		err = loginToEtcd(schedulerCfg, r)
 		if err != nil {
 			return xerrors.Errorf("loginToEtcd err: %w", err)
 		}
+		log.Debugln("etcd logined...")
 
 		// Populate JSON-RPC options.
 		serverOptions := []jsonrpc.ServerOption{jsonrpc.WithServerErrors(api.RPCErrors)}
@@ -316,10 +318,12 @@ func loginToEtcd(cfg *config.SchedulerCfg, r *repo.FsRepo) error {
 	index := strings.Index(cfg.ListenAddress, ":")
 	port := cfg.ListenAddress[index:]
 
+	log.Debugln("get externalIP...")
 	ip, err := externalIP()
 	if err != nil {
 		return err
 	}
+	log.Debugf("ip:%s", ip)
 
 	sCfg := &types.SchedulerCfg{
 		AreaID:       cfg.AreaID,
@@ -337,7 +341,6 @@ func externalIP() (string, error) {
 	ip, err := consensus.ExternalIP()
 	if err != nil {
 		return "", err
-		fmt.Println(ip.String()) // print IPv4/IPv6 in string format
 	}
 
 	return ip.String(), nil
