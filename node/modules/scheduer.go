@@ -3,6 +3,7 @@ package modules
 import (
 	"context"
 	"strings"
+	"time"
 
 	externalip "github.com/glendc/go-external-ip"
 	logging "github.com/ipfs/go-log/v2"
@@ -156,12 +157,10 @@ func RegisterToEtcd(mctx helpers.MetricsCtx, lc fx.Lifecycle, configFunc dtypes.
 	index := strings.Index(cfg.ListenAddress, ":")
 	port := cfg.ListenAddress[index:]
 
-	log.Debugln("get externalIP...")
 	ip, err := externalIP()
 	if err != nil {
 		return err
 	}
-	log.Debugf("ip:%s", ip)
 
 	sCfg := &types.SchedulerCfg{
 		AreaID:       cfg.AreaID,
@@ -188,7 +187,7 @@ func RegisterToEtcd(mctx helpers.MetricsCtx, lc fx.Lifecycle, configFunc dtypes.
 }
 
 func externalIP() (string, error) {
-	consensus := externalip.DefaultConsensus(nil, nil)
+	consensus := externalip.DefaultConsensus(&externalip.ConsensusConfig{Timeout: 2 * time.Second}, nil)
 	// Get your IP,
 	// which is never <nil> when err is <nil>.
 	ip, err := consensus.ExternalIP()
