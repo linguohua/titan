@@ -44,14 +44,6 @@ const (
 	blockDownloadTimeout = 30 * 60
 )
 
-type blockDownloadVerifyStatus int
-
-const (
-	blockDownloadStatusUnKnow blockDownloadVerifyStatus = iota
-	blockDownloadStatusFailed
-	blockDownloadStatusSucceeded
-)
-
 // Scheduler node
 type Scheduler struct {
 	fx.In
@@ -84,7 +76,7 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 
 	nodeID := handler.GetNodeID(ctx)
 	if nodeID == "" {
-		if _, err := jwt.Verify([]byte(token), (*jwt.HMACSHA)(s.APISecret), &payload); err != nil {
+		if _, err := jwt.Verify([]byte(token), s.APISecret, &payload); err != nil {
 			return nil, xerrors.Errorf("JWT Verification failed: %w", err)
 		}
 
@@ -97,7 +89,7 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", nodeID, err)
 	}
 
-	if _, err := jwt.Verify([]byte(token), (*jwt.HMACSHA)(jwt.NewHS256([]byte(secret))), &payload); err != nil {
+	if _, err := jwt.Verify([]byte(token), jwt.NewHS256([]byte(secret)), &payload); err != nil {
 		return nil, xerrors.Errorf("JWT Verification failed: %w", err)
 	}
 	return payload.Allow, nil
@@ -119,7 +111,7 @@ func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, no
 		return "", xerrors.Errorf("node %s secret not match", nodeID)
 	}
 
-	tk, err := jwt.Sign(&p, (*jwt.HMACSHA)(jwt.NewHS256([]byte(nodeSecret))))
+	tk, err := jwt.Sign(&p, jwt.NewHS256([]byte(nodeSecret)))
 	if err != nil {
 		return "", err
 	}
@@ -132,7 +124,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
-	if !s.nodeExists(nodeID, int(types.NodeCandidate)) {
+	if !s.nodeExists(nodeID, types.NodeCandidate) {
 		return xerrors.Errorf("candidate node not exists: %s", nodeID)
 	}
 
@@ -182,7 +174,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
-	if !s.nodeExists(nodeID, int(types.NodeEdge)) {
+	if !s.nodeExists(nodeID, types.NodeEdge) {
 		return xerrors.Errorf("edge node not exists: %s", nodeID)
 	}
 
@@ -526,18 +518,18 @@ func (s *Scheduler) DeleteNodeLogFile(ctx context.Context, nodeID string) error 
 }
 
 // nodeExists Check if the id exists
-func (s *Scheduler) nodeExists(nodeID string, nodeType int) bool {
-	var nType int
+func (s *Scheduler) nodeExists(nodeID string, nodeType types.NodeType) bool {
+	if nodeType == types.NodeUnknown {
+		return true
+	}
+
+	var nType types.NodeType
 	err := s.NodeManager.NodeMgrDB.GetNodeAllocateInfo(nodeID, persistent.NodeTypeKey, &nType)
 	if err != nil {
 		return false
 	}
 
-	if nodeType != 0 {
-		return nType == nodeType
-	}
-
-	return true
+	return nType == nodeType
 }
 
 // NodeList list nodes
