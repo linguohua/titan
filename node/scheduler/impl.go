@@ -104,7 +104,7 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 }
 
 // AuthNodeNew  Get Node Auth
-func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, nodeID, nodeSecret string) ([]byte, error) {
+func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, nodeID, nodeSecret string) (string, error) {
 	p := jwtPayload{
 		Allow: perms,
 	}
@@ -112,14 +112,19 @@ func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, no
 	var secret string
 	err := s.NodeManager.NodeMgrDB.GetNodeAllocateInfo(nodeID, persistent.SecretKey, &secret)
 	if err != nil {
-		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", nodeID, err)
+		return "", xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", nodeID, err)
 	}
 
 	if secret != nodeSecret {
-		return nil, xerrors.Errorf("node %s secret not match", nodeID)
+		return "", xerrors.Errorf("node %s secret not match", nodeID)
 	}
 
-	return jwt.Sign(&p, (*jwt.HMACSHA)(jwt.NewHS256([]byte(nodeSecret))))
+	tk, err := jwt.Sign(&p, (*jwt.HMACSHA)(jwt.NewHS256([]byte(nodeSecret))))
+	if err != nil {
+		return "", err
+	}
+
+	return string(tk), nil
 }
 
 // CandidateNodeConnect Candidate connect
@@ -140,7 +145,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 	}
 
 	log.Infof("candidate connected %s, address:%s", nodeID, remoteAddr)
-	candidateNode := node.NewCandidate(s.AdminToken)
+	candidateNode := node.NewCandidate(string(s.AdminToken))
 	candidateAPI, err := candidateNode.ConnectRPC(remoteAddr, true)
 	if err != nil {
 		return xerrors.Errorf("CandidateNodeConnect ConnectRPC err:%s", err.Error())
@@ -190,7 +195,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	}
 
 	log.Infof("edge connected %s; remoteAddr:%s", nodeID, remoteAddr)
-	edgeNode := node.NewEdge(s.AdminToken)
+	edgeNode := node.NewEdge(string(s.AdminToken))
 	edgeAPI, err := edgeNode.ConnectRPC(remoteAddr, true)
 	if err != nil {
 		return xerrors.Errorf("EdgeNodeConnect ConnectRPC err:%s", err.Error())
@@ -463,7 +468,7 @@ func (s *Scheduler) authNew() error {
 		return err
 	}
 
-	s.WriteToken = wtk
+	s.WriteToken = dtypes.PermissionWriteToken(wtk)
 
 	atk, err := s.AuthNew(context.Background(), api.AllPermissions)
 	if err != nil {
@@ -471,7 +476,7 @@ func (s *Scheduler) authNew() error {
 		return err
 	}
 
-	s.AdminToken = atk
+	s.AdminToken = dtypes.PermissionAdminToken(atk)
 
 	return nil
 }

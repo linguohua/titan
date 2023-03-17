@@ -64,7 +64,7 @@ var AuthCreateAdminToken = &cli.Command{
 
 		// TODO: Log in audit log when it is implemented
 
-		fmt.Println(string(token))
+		fmt.Println(token)
 		return nil
 	},
 }
@@ -128,7 +128,7 @@ var AuthApiInfoToken = &cli.Command{
 		// TODO: Log in audit log when it is implemented
 
 		currentEnv, _, _ := t.APIInfoEnvVars()
-		fmt.Printf("%s=%s:%s\n", currentEnv, string(token), ainfo.Addr)
+		fmt.Printf("%s=%s:%s\n", currentEnv, token, ainfo.Addr)
 		return nil
 	},
 }

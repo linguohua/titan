@@ -78,12 +78,12 @@ var nodeTokenCmd = &cli.Command{
 		defer closer()
 
 		perms := []auth.Permission{api.PermRead, api.PermWrite}
-		info, err := schedulerAPI.AuthNodeNew(ctx, perms, nodeID, secret)
+		tk, err := schedulerAPI.AuthNodeNew(ctx, perms, nodeID, secret)
 		if err != nil {
 			return err
 		}
 
-		fmt.Println(string(info))
+		fmt.Println(tk)
 		return nil
 	},
 }

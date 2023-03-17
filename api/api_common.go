@@ -27,7 +27,7 @@ type Common interface {
 	// MethodGroup: Auth
 
 	AuthVerify(ctx context.Context, token string) ([]auth.Permission, error) //perm:read
-	AuthNew(ctx context.Context, perms []auth.Permission) ([]byte, error)    //perm:admin
+	AuthNew(ctx context.Context, perms []auth.Permission) (string, error)    //perm:admin
 
 	// MethodGroup: Log
 

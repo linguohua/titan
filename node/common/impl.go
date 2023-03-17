@@ -62,12 +62,17 @@ func (a *CommonAPI) AuthVerify(ctx context.Context, token string) ([]auth.Permis
 	return payload.Allow, nil
 }
 
-func (a *CommonAPI) AuthNew(ctx context.Context, perms []auth.Permission) ([]byte, error) {
+func (a *CommonAPI) AuthNew(ctx context.Context, perms []auth.Permission) (string, error) {
 	p := jwtPayload{
 		Allow: perms, // TODO: consider checking validity
 	}
 
-	return jwt.Sign(&p, (*jwt.HMACSHA)(a.APISecret))
+	tk, err := jwt.Sign(&p, (*jwt.HMACSHA)(a.APISecret))
+	if err != nil {
+		return "", err
+	}
+
+	return string(tk), nil
 }
 
 func (a *CommonAPI) LogList(context.Context) ([]string, error) {

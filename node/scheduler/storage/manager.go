@@ -38,7 +38,7 @@ var cachingTimeout = time.Duration(nodeCachingKeepalive) * time.Second
 type Manager struct {
 	nodeManager      *node.Manager
 	latestExpiration time.Time
-	writeToken       []byte
+	writeToken       string
 
 	startupWait sync.WaitGroup
 	carfiles    *statemachine.StateGroup
@@ -71,7 +71,7 @@ func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToke
 	m := &Manager{
 		nodeManager:            nodeManager,
 		latestExpiration:       time.Now(),
-		writeToken:             writeToken,
+		writeToken:             string(writeToken),
 		carfileTickers:         make(map[string]*carfileTicker),
 		getSchedulerConfigFunc: configFunc,
 	}
@@ -528,7 +528,7 @@ func (m *Manager) Sources(hash string, nodes []string) []*types.DownloadSource {
 		if cNode != nil {
 			source := &types.DownloadSource{
 				CandidateURL:   cNode.RPCURL(),
-				CandidateToken: string(m.writeToken),
+				CandidateToken: m.writeToken,
 			}
 
 			sources = append(sources, source)

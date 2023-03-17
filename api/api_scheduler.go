@@ -31,7 +31,7 @@ type Scheduler interface {
 	NodeExternalServiceAddress(ctx context.Context) (string, error)                                      //perm:read
 	NodePublicKey(ctx context.Context) (string, error)                                                   //perm:write
 	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                         //perm:read
-	AuthNodeNew(ctx context.Context, perms []auth.Permission, nodeID, nodeSecret string) ([]byte, error) //perm:read
+	AuthNodeNew(ctx context.Context, perms []auth.Permission, nodeID, nodeSecret string) (string, error) //perm:read
 	NodeInfo(ctx context.Context, nodeID string) (*types.NodeInfo, error)                                //perm:read
 	NodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error)                    //perm:read
 	// node and scheduler exchange public key
