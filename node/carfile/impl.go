@@ -264,7 +264,7 @@ func (cfImpl *CarfileImpl) downloadedCompleteCarProgress(root cid.Cid) (*types.C
 		Status:     types.CacheStatusSucceeded,
 	}
 
-	if count, err := cfImpl.carfileStore.BlockCountOfCarfile(root); err != nil {
+	if count, err := cfImpl.carfileStore.BlockCountOfCarfile(root); err == nil {
 		progress.CarfileBlocksCount = count
 		progress.DoneBlocksCount = count
 	}

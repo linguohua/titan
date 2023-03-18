@@ -148,6 +148,7 @@ func (ng *nodeGetter) GetMany(ctx context.Context, cids []cid.Cid) <-chan *ipldf
 
 			atomic.AddUint64(&count, 1)
 
+			// TODO: will be ch = nil ?
 			if int(count) == len(cids) {
 				close(ch)
 			}
