@@ -1,8 +1,6 @@
 package gateway
 
 import (
-	"context"
-	"crypto/rsa"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -13,9 +11,6 @@ import (
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/carfile/store"
-	titanrsa "github.com/linguohua/titan/node/rsa"
 )
 
 var log = logging.Logger("gateway")
@@ -44,44 +39,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
-type Gateway struct {
-	cs                 *store.CarfileStore
-	scheduler          api.Scheduler
-	privateKey         *rsa.PrivateKey
-	schedulerPublicKey *rsa.PublicKey
-}
-
-func NewGateway(cs *store.CarfileStore, scheduler api.Scheduler) *Gateway {
-	privateKey, err := titanrsa.GeneratePrivateKey(1024)
-	if err != nil {
-		log.Panicf("generate private key error:%s", err.Error())
-	}
-
-	publicKey := titanrsa.PublicKey2Pem(&privateKey.PublicKey)
-	if publicKey == nil {
-		log.Panicf("can not convert public key to pem")
-	}
-
-	publicPem, err := scheduler.ExchangePublicKey(context.Background(), publicKey)
-	if err != nil {
-		log.Errorf("exchange public key from scheduler error %s", err.Error())
-	}
-
-	schedulerPublicKey, err := titanrsa.Pem2PublicKey(publicPem)
-	if err != nil {
-		log.Errorf("can not convert pem to public key %s", err.Error())
-	}
-
-	gw := &Gateway{cs: cs, scheduler: scheduler, privateKey: privateKey, schedulerPublicKey: schedulerPublicKey}
-
-	return gw
-}
-
-func (gw *Gateway) AppendHandler(handler http.Handler) http.Handler {
+func (gw *Gateway) NewHandler(handler http.Handler) http.Handler {
 	return &Handler{handler, gw}
 }
 
 func (gw *Gateway) handler(w http.ResponseWriter, r *http.Request) {
+	log.Debugf("handler path: %s", r.URL.Path)
+
 	switch r.Method {
 	case http.MethodHead:
 		gw.headHandler(w, r)
@@ -141,4 +105,38 @@ func addCacheControlHeaders(w http.ResponseWriter, r *http.Request, contentPath 
 	}
 
 	return modtime
+}
+
+func getFilename(contentPath path.Path) string {
+	s := contentPath.String()
+	if strings.HasPrefix(s, ipfsPathPrefix) {
+		// Don't want to treat ipfs.io in /ipns/ipfs.io as a filename.
+		return ""
+	}
+	return s
+}
+
+// Set Content-Disposition if filename URL query param is present, return preferred filename
+func addContentDispositionHeader(w http.ResponseWriter, r *http.Request, contentPath path.Path) string {
+	/* This logic enables:
+	 * - creation of HTML links that trigger "Save As.." dialog instead of being rendered by the browser
+	 * - overriding the filename used when saving subresource assets on HTML page
+	 * - providing a default filename for HTTP clients when downloading direct /ipfs/CID without any subpath
+	 */
+
+	// URL param ?filename=cat.jpg triggers Content-Disposition: [..] filename
+	// which impacts default name used in "Save As.." dialog
+	name := getFilename(contentPath)
+	urlFilename := r.URL.Query().Get("filename")
+	if urlFilename != "" {
+		disposition := "inline"
+		// URL param ?download=true triggers Content-Disposition: [..] attachment
+		// which skips rendering and forces "Save As.." dialog in browsers
+		if r.URL.Query().Get("download") == "true" {
+			disposition = "attachment"
+		}
+		setContentDispositionHeader(w, urlFilename, disposition)
+		name = urlFilename
+	}
+	return name
 }

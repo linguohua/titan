@@ -12,7 +12,9 @@ require (
 	github.com/filecoin-project/dagstore v0.6.0
 	github.com/filecoin-project/go-jsonrpc v0.2.1
 	github.com/filecoin-project/go-statemachine v1.0.3
+	github.com/gabriel-vasile/mimetype v1.4.2
 	github.com/gbrlsnchs/jwt/v3 v3.0.1
+	github.com/glendc/go-external-ip v0.1.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
@@ -23,13 +25,16 @@ require (
 	github.com/ipfs/go-ds-badger2 v0.1.3
 	github.com/ipfs/go-ds-leveldb v0.5.0
 	github.com/ipfs/go-ds-measure v0.2.0
+	github.com/ipfs/go-fetcher v1.6.1
 	github.com/ipfs/go-fs-lock v0.0.7
 	github.com/ipfs/go-ipfs-http-client v0.4.0
+	github.com/ipfs/go-ipld-format v0.4.0
 	github.com/ipfs/go-ipld-legacy v0.1.1
 	github.com/ipfs/go-libipfs v0.4.1
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/ipfs/go-merkledag v0.9.0
 	github.com/ipfs/go-metrics-interface v0.0.1
+	github.com/ipfs/go-unixfsnode v1.5.1
 	github.com/ipfs/interface-go-ipfs-core v0.7.0
 	github.com/ipld/go-codec-dagpb v1.5.0
 	github.com/ipld/go-ipld-prime v0.20.0
@@ -43,14 +48,13 @@ require (
 	github.com/oschwald/geoip2-golang v1.7.0
 	github.com/prometheus/client_golang v1.13.0
 	github.com/quic-go/quic-go v0.32.0
-	github.com/robfig/cron v1.2.0
 	github.com/shirou/gopsutil/v3 v3.22.9
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/urfave/cli/v2 v2.16.3
 	github.com/whyrusleeping/cbor-gen v0.0.0-20230126041949-52956bd4c9aa
 	go.opencensus.io v0.23.0
 	go.uber.org/fx v1.19.2
-	golang.org/x/sys v0.4.0
+	golang.org/x/sys v0.6.0
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
 )
@@ -91,11 +95,11 @@ require (
 	github.com/ipfs/go-ipfs-cmds v0.7.0 // indirect
 	github.com/ipfs/go-ipfs-ds-help v1.1.0 // indirect
 	github.com/ipfs/go-ipfs-exchange-interface v0.2.0 // indirect
-	github.com/ipfs/go-ipfs-files v0.1.1 // indirect
+	github.com/ipfs/go-ipfs-files v0.1.1
 	github.com/ipfs/go-ipfs-util v0.0.2 // indirect
 	github.com/ipfs/go-log v1.0.5 // indirect
-	github.com/ipfs/go-path v0.3.0 // indirect
-	github.com/ipfs/go-unixfs v0.4.0 // indirect
+	github.com/ipfs/go-path v0.3.0
+	github.com/ipfs/go-unixfs v0.4.0
 	github.com/ipfs/go-verifcid v0.0.2 // indirect
 	github.com/jbenet/goprocess v0.1.4 // indirect
 	github.com/klauspost/compress v1.15.10 // indirect
@@ -143,9 +147,9 @@ require (
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
 	golang.org/x/crypto v0.5.0 // indirect
 	golang.org/x/exp v0.0.0-20230129154200-a960b3787bd2 // indirect
-	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/net v0.5.0 // indirect
-	golang.org/x/text v0.6.0 // indirect
+	golang.org/x/mod v0.8.0 // indirect
+	golang.org/x/net v0.8.0 // indirect
+	golang.org/x/text v0.8.0 // indirect
 	google.golang.org/genproto v0.0.0-20210917145530-b395a37504d4 // indirect
 	google.golang.org/grpc v1.45.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
@@ -153,28 +157,29 @@ require (
 )
 
 require (
+	github.com/alecthomas/units v0.0.0-20210927113745-59d0afb8317a // indirect
 	github.com/filecoin-project/go-cbor-util v0.0.1 // indirect
 	github.com/filecoin-project/go-statestore v0.2.0 // indirect
-	github.com/glendc/go-external-ip v0.1.0 // indirect
+	github.com/ipfs/go-bitfield v1.0.0 // indirect
 	github.com/ipfs/go-ipfs-chunker v0.0.5 // indirect
 	github.com/ipfs/go-ipfs-config v0.18.0 // indirect
 	github.com/ipfs/go-ipld-cbor v0.0.6 // indirect
-	github.com/ipfs/go-ipld-format v0.4.0 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/libp2p/go-libp2p v0.23.4 // indirect
 	github.com/mattn/go-sqlite3 v1.14.16 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
+	golang.org/x/sync v0.1.0 // indirect
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
 
 require (
-	github.com/ipfs/go-blockservice v0.5.0 // indirect
+	github.com/ipfs/go-blockservice v0.5.0
 	github.com/klauspost/cpuid/v2 v2.2.3 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/multiformats/go-multibase v0.1.1 // indirect
 	go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738
-	golang.org/x/tools v0.4.0 // indirect
+	golang.org/x/tools v0.6.0 // indirect
 )
 
 replace github.com/filecoin-project/go-jsonrpc v0.2.1 => github.com/zscboy/go-jsonrpc v0.2.3

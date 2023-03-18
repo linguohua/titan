@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/node"
-	"github.com/linguohua/titan/node/gateway"
 	"github.com/linguohua/titan/node/modules/dtypes"
 
 	"github.com/filecoin-project/go-jsonrpc"
@@ -252,9 +251,6 @@ var runCmd = &cli.Command{
 		}
 
 		handler := EdgeHandler(schedulerAPI.AuthVerify, edgeAPI, true)
-
-		gw := &gateway.Gateway{}
-		handler = gw.AppendHandler(handler)
 
 		srv := &http.Server{
 			Handler: handler,
