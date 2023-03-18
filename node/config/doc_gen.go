@@ -171,6 +171,12 @@ be used if InsecureSkipVerify is true`,
 	},
 	"SchedulerCfg": []DocField{
 		{
+			Name: "ExternalAddress",
+			Type: "string",
+
+			Comment: `host external address and port`,
+		},
+		{
 			Name: "ListenAddress",
 			Type: "string",
 

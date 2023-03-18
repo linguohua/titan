@@ -2,10 +2,7 @@ package modules
 
 import (
 	"context"
-	"strings"
-	"time"
 
-	externalip "github.com/glendc/go-external-ip"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/types"
@@ -149,28 +146,20 @@ func RegisterToEtcd(mctx helpers.MetricsCtx, lc fx.Lifecycle, configFunc dtypes.
 		return err
 	}
 
-	eCli, err := etcdcli.New(cfg.EtcdAddresses)
-	if err != nil {
-		return err
-	}
-
-	index := strings.Index(cfg.ListenAddress, ":")
-	port := cfg.ListenAddress[index:]
-
-	ip, err := externalIP()
-	if err != nil {
-		return err
-	}
-
 	sCfg := &types.SchedulerCfg{
 		AreaID:       cfg.AreaID,
-		SchedulerURL: ip + port,
+		SchedulerURL: cfg.ExternalAddress,
 		AccessToken:  string(token),
 	}
 
 	value, err := etcdcli.SCMarshal(sCfg)
 	if err != nil {
 		return xerrors.Errorf("cfg SCMarshal err:%s", err.Error())
+	}
+
+	eCli, err := etcdcli.New(cfg.EtcdAddresses)
+	if err != nil {
+		return err
 	}
 
 	ctx := helpers.LifecycleCtx(mctx, lc)
@@ -184,16 +173,4 @@ func RegisterToEtcd(mctx helpers.MetricsCtx, lc fx.Lifecycle, configFunc dtypes.
 	})
 
 	return nil
-}
-
-func externalIP() (string, error) {
-	consensus := externalip.DefaultConsensus(&externalip.ConsensusConfig{Timeout: 2 * time.Second}, nil)
-	// Get your IP,
-	// which is never <nil> when err is <nil>.
-	ip, err := consensus.ExternalIP()
-	if err != nil {
-		return "", err
-	}
-
-	return ip.String(), nil
 }

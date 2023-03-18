@@ -89,6 +89,7 @@ func DefaultLocatorCfg() *LocatorCfg {
 
 func DefaultSchedulerCfg() *SchedulerCfg {
 	return &SchedulerCfg{
+		ExternalAddress:             "localhost:3456",
 		ListenAddress:               "0.0.0.0:3456",
 		InsecureSkipVerify:          true,
 		CertificatePath:             "",
