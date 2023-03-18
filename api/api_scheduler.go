@@ -26,7 +26,6 @@ type Scheduler interface {
 	EdgeNodeConnect(ctx context.Context) error                                                           //perm:write
 	NodeValidatedResult(ctx context.Context, validateResult ValidatedResult) error                       //perm:write
 	CandidateNodeConnect(ctx context.Context) error                                                      //perm:write
-	CacheResult(ctx context.Context, resultInfo types.CacheResult) error                                 //perm:write
 	RemoveCarfileResult(ctx context.Context, resultInfo types.RemoveCarfileResult) error                 //perm:write
 	NodeExternalServiceAddress(ctx context.Context) (string, error)                                      //perm:read
 	NodePublicKey(ctx context.Context) (string, error)                                                   //perm:write

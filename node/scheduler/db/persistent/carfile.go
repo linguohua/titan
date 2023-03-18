@@ -41,6 +41,14 @@ func (c *CarfileDB) UpdateReplicaInfo(cInfo *types.ReplicaInfo) error {
 	return nil
 }
 
+// SetCarfileReplicasTimeout set timeout status of replicas
+func (c *CarfileDB) SetCarfileReplicasTimeout(hash string) error {
+	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=? WHERE carfile_hash=? AND (status=? or status=?)`, replicaInfoTable)
+	_, err := c.DB.Exec(query, types.CacheStatusFailed, hash, types.CacheStatusDownloading, types.CacheStatusWaiting)
+
+	return err
+}
+
 // InsertOrUpdateReplicaInfo Insert or update replica info
 func (c *CarfileDB) InsertOrUpdateReplicaInfo(infos []*types.ReplicaInfo) error {
 	query := fmt.Sprintf(
@@ -297,6 +305,14 @@ func (c *CarfileDB) SucceedCachesCount() (int, error) {
 	return count, nil
 }
 
+// UnDoneNodes load undone nodes for carfile
+func (c *CarfileDB) UnDoneNodes(hash string) ([]string, error) {
+	var nodes []string
+	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE carfile_hash=? AND (status=? or status=?)`, replicaInfoTable)
+	err := c.DB.Select(&nodes, query, hash, types.CacheStatusDownloading, types.CacheStatusWaiting)
+	return nodes, err
+}
+
 // LoadReplicaInfo load replica info with id
 func (c *CarfileDB) LoadReplicaInfo(id string) (*types.ReplicaInfo, error) {
 	var cache types.ReplicaInfo
@@ -332,8 +348,8 @@ func (c *CarfileDB) RemoveCarfileRecord(carfileHash string) error {
 	return tx.Commit()
 }
 
-// LoadCarfileRecordsWithNodes load carfile record hashs with nodes
-func (c *CarfileDB) LoadCarfileRecordsWithNodes(nodeIDs []string) (hashs []string, err error) {
+// LoadCarfileRecordsWithNodes load carfile record hashes with nodes
+func (c *CarfileDB) LoadCarfileRecordsWithNodes(nodeIDs []string) (hashes []string, err error) {
 	// get carfiles
 	getCarfilesCmd := fmt.Sprintf(`select carfile_hash from %s WHERE node_id in (?) GROUP BY carfile_hash`, replicaInfoTable)
 	carfilesQuery, args, err := sqlx.In(getCarfilesCmd, nodeIDs)
@@ -342,7 +358,7 @@ func (c *CarfileDB) LoadCarfileRecordsWithNodes(nodeIDs []string) (hashs []strin
 	}
 
 	carfilesQuery = c.DB.Rebind(carfilesQuery)
-	err = c.DB.Select(&hashs, carfilesQuery, args...)
+	err = c.DB.Select(&hashes, carfilesQuery, args...)
 
 	return
 }
@@ -415,8 +431,8 @@ func (c *CarfileDB) GetNodesByUserDownloadBlockIn(minute int) ([]string, error) 
 	return out, nil
 }
 
-func (c *CarfileDB) GetCacheInfosWithNode(nodeID string, index, count int) (info *types.NodeCacheRsp, err error) {
-	info = &types.NodeCacheRsp{}
+func (c *CarfileDB) GetReplicaInfosWithNode(nodeID string, index, count int) (info *types.NodeReplicaRsp, err error) {
+	info = &types.NodeReplicaRsp{}
 
 	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE node_id=?", replicaInfoTable)
 	err = c.DB.Get(&info.TotalCount, cmd, nodeID)
@@ -425,7 +441,7 @@ func (c *CarfileDB) GetCacheInfosWithNode(nodeID string, index, count int) (info
 	}
 
 	cmd = fmt.Sprintf("SELECT carfile_hash,status FROM %s WHERE node_id=? order by id asc LIMIT %d,%d", replicaInfoTable, index, count)
-	if err = c.DB.Select(&info.Caches, cmd, nodeID); err != nil {
+	if err = c.DB.Select(&info.Replica, cmd, nodeID); err != nil {
 		return
 	}
 
