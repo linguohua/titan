@@ -211,7 +211,7 @@ func (m *Manager) restartCarfiles(ctx context.Context) error {
 	}
 
 	// wait nodes connect
-	time.Sleep(1 * time.Minute)
+	time.Sleep(10 * time.Second)
 
 	for _, carfile := range trackedCarfiles {
 		if err := m.carfiles.Send(carfile.CarfileHash, CarfileRestart{}); err != nil {

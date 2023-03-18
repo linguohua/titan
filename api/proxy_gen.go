@@ -199,8 +199,6 @@ type SchedulerStruct struct {
 
 		CacheCarfiles func(p0 context.Context, p1 *types.CacheCarfileInfo) error `perm:"admin"`
 
-		CacheResult func(p0 context.Context, p1 types.CacheResult) error `perm:"write"`
-
 		CandidateNodeConnect func(p0 context.Context) error `perm:"write"`
 
 		CarfileRecord func(p0 context.Context, p1 string) (*types.CarfileRecordInfo, error) `perm:"read"`
@@ -782,17 +780,6 @@ func (s *SchedulerStruct) CacheCarfiles(p0 context.Context, p1 *types.CacheCarfi
 }
 
 func (s *SchedulerStub) CacheCarfiles(p0 context.Context, p1 *types.CacheCarfileInfo) error {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) CacheResult(p0 context.Context, p1 types.CacheResult) error {
-	if s.Internal.CacheResult == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.CacheResult(p0, p1)
-}
-
-func (s *SchedulerStub) CacheResult(p0 context.Context, p1 types.CacheResult) error {
 	return ErrNotSupported
 }
 

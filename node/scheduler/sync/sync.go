@@ -135,7 +135,7 @@ func (ds *DataSync) doDataSync(nodeID string) {
 	}
 }
 
-func (ds *DataSync) multihashSort(statuses []*types.NodeCacheStatus) map[uint32][]string {
+func (ds *DataSync) multihashSort(statuses []*types.NodeReplicaStatus) map[uint32][]string {
 	multihashes := make(map[uint32][]string)
 	// append carfile hash by hash code
 	for _, status := range statuses {
@@ -182,17 +182,17 @@ func (ds *DataSync) calculateChecksum(carfileHashes []string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func (ds *DataSync) loadCarfileInfosBy(nodeID string) ([]*types.NodeCacheStatus, error) {
+func (ds *DataSync) loadCarfileInfosBy(nodeID string) ([]*types.NodeReplicaStatus, error) {
 	index := 0
-	cacheStates := make([]*types.NodeCacheStatus, 0)
+	cacheStates := make([]*types.NodeReplicaStatus, 0)
 	for {
-		nodeCacheRsp, err := ds.nodeManager.CarfileDB.GetCacheInfosWithNode(nodeID, index, dbLoadCount)
+		nodeCacheRsp, err := ds.nodeManager.CarfileDB.GetReplicaInfosWithNode(nodeID, index, dbLoadCount)
 		if err != nil {
 			log.Errorf("GetCacheInfosWithNode %s, index:%d, count:%d, error:%s", nodeID, index, dbLoadCount)
 			return nil, err
 		}
 
-		cacheStates = append(cacheStates, nodeCacheRsp.Caches...)
+		cacheStates = append(cacheStates, nodeCacheRsp.Replica...)
 		if len(cacheStates) == nodeCacheRsp.TotalCount {
 			return cacheStates, nil
 		}

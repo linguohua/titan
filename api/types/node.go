@@ -58,15 +58,15 @@ type DownloadInfo struct {
 	NodeID   string `json:"-"`
 }
 
-// NodeCacheStatus node cache status
-type NodeCacheStatus struct {
+// NodeReplicaStatus node cache status
+type NodeReplicaStatus struct {
 	CarfileHash string      `db:"carfile_hash"`
 	Status      CacheStatus `db:"status"`
 }
 
-// NodeCacheRsp node caches
-type NodeCacheRsp struct {
-	Caches     []*NodeCacheStatus
+// NodeReplicaRsp node caches
+type NodeReplicaRsp struct {
+	Replica    []*NodeReplicaStatus
 	TotalCount int
 }
 
@@ -163,14 +163,14 @@ const (
 	ValidateStatusOther
 )
 
-//DownloadTicket be use for verify download
+// DownloadTicket be use for verify download
 type DownloadTicket struct {
 	AccessTicket
 	Rate int64
 	Size int64
 }
 
-//AccessTicket be use for access gateway
+// AccessTicket be use for access gateway
 type AccessTicket struct {
 	ID        string
 	NodeID    string
