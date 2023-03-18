@@ -175,7 +175,7 @@ func (cs *CarfileStore) carsDir() string {
 	return filepath.Join(cs.baseDir, carsDir)
 }
 
-func (cs *CarfileStore) HashBlock(c cid.Cid) (bool, error) {
+func (cs *CarfileStore) HasBlock(c cid.Cid) (bool, error) {
 	// shard in TopLevelIndex may be invalid, need to check it on dagstore
 	ks, err := cs.dagst.TopLevelIndex.GetShardsForMultihash(context.Background(), c.Hash())
 	if err != nil {

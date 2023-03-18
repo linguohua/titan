@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 
@@ -10,7 +11,9 @@ import (
 )
 
 func (gw *Gateway) serveRawBlock(w http.ResponseWriter, r *http.Request, ticket *types.AccessTicket) {
-	ctx := r.Context()
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+
 	contentPath := path.New(r.URL.Path)
 	resolvedPath, err := gw.resolvePath(ctx, contentPath)
 	if err != nil {
@@ -19,7 +22,7 @@ func (gw *Gateway) serveRawBlock(w http.ResponseWriter, r *http.Request, ticket 
 	}
 
 	c := resolvedPath.Cid()
-	block, err := gw.getBlock(ctx, c)
+	block, err := gw.block(ctx, c)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("can not resolved path: %s", err.Error()), http.StatusBadRequest)
 		return
@@ -36,10 +39,10 @@ func (gw *Gateway) serveRawBlock(w http.ResponseWriter, r *http.Request, ticket 
 	setContentDispositionHeader(w, name, "attachment")
 
 	// Set remaining headers
-	modtime := addCacheControlHeaders(w, r, contentPath, c)
 	w.Header().Set("Content-Type", "application/vnd.ipld.raw")
 	w.Header().Set("X-Content-Type-Options", "nosniff") // no funny business in the browsers :^)
 
+	modtime := addCacheControlHeaders(w, r, contentPath, c)
 	// ServeContent will take care of
 	// If-None-Match+Etag, Content-Length and range requests
 	http.ServeContent(w, r, name, modtime, content)
