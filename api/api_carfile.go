@@ -17,4 +17,6 @@ type CarfileOperation interface {
 	QueryCacheStat(ctx context.Context) (*types.CacheStat, error) //perm:write
 	// query block caching stat
 	QueryCachingCarfile(ctx context.Context) (*types.CachingCarfile, error) //perm:write
+	// query cache progress
+	CachedProgresses(ctx context.Context, carfileCIDs []string) ([]*types.CarfileProgress, error) //perm:write
 }

@@ -14,15 +14,13 @@ import (
 
 var log = logging.Logger("datasync")
 
-const maxCarfileCount = 2000000
-
 type DataSync struct {
 	carfileStore *store.CarfileStore
 	cacher       Cacher
 }
 
 type Cacher interface {
-	Cache(carfileHash []string) error
+	CacheCarForSyncData(carfileHash []string) error
 }
 
 func NewDataSync(carfileStore *store.CarfileStore, cacher Cacher) *DataSync {
@@ -147,7 +145,7 @@ func (ds *DataSync) CompareCarfiles(ctx context.Context, bucketCount uint32, mul
 		}
 	}
 
-	go ds.cacher.Cache(needToDownloadCarfiles)
+	go ds.cacher.CacheCarForSyncData(needToDownloadCarfiles)
 
 	return ds.removeCarfiles(needToDeleteCarfiles)
 }

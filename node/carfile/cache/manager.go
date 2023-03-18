@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -17,9 +18,9 @@ type CachedResulter interface {
 }
 
 type carWaiter struct {
-	Root cid.Cid
-	Dss  []*types.DownloadSource
-	cc   *carfileCache
+	Root  cid.Cid
+	Dss   []*types.DownloadSource
+	cache *carfileCache
 }
 type Manager struct {
 	// root cid of car
@@ -35,7 +36,6 @@ type Manager struct {
 type ManagerOptions struct {
 	CarfileStore  *carfilestore.CarfileStore
 	BFetcher      fetcher.BlockFetcher
-	CResulter     CachedResulter
 	DownloadBatch int
 }
 
@@ -46,7 +46,6 @@ func NewManager(opts *ManagerOptions) *Manager {
 		downloadCh:    make(chan bool),
 		carfileStore:  opts.CarfileStore,
 		bFetcher:      opts.BFetcher,
-		cResulter:     opts.CResulter,
 		downloadBatch: opts.DownloadBatch,
 	}
 
@@ -62,11 +61,6 @@ func (m *Manager) startTick() {
 		time.Sleep(10 * time.Second)
 
 		if len(m.waitList) > 0 {
-			err := m.CachedResult()
-			if err != nil {
-				log.Errorf("startTick, downloadResult error:%s", err.Error())
-			}
-
 			cache := m.CachingCar()
 			if cache != nil {
 				m.saveIncompleteCarfileCache(cache)
@@ -120,7 +114,7 @@ func (m *Manager) doDownloadCar() {
 		return
 	}
 
-	cw.cc = carfileCache
+	cw.cache = carfileCache
 	err = carfileCache.downloadCar()
 	if err != nil {
 		log.Errorf("doDownloadCar, download car error:%s", err)
@@ -200,11 +194,6 @@ func (m *Manager) onDownloadCarFinish(cf *carfileCache) {
 	} else {
 		m.saveIncompleteCarfileCache(cf)
 	}
-
-	err := m.CachedResult()
-	if err != nil {
-		log.Errorf("onDownloadCarFinish, downloadResult error:%s, carfileCID:%s", err, cf.root.Hash().String())
-	}
 }
 
 func (m *Manager) saveWaitList() error {
@@ -244,8 +233,8 @@ func (m *Manager) WaitListLen() int {
 
 func (m *Manager) CachingCar() *carfileCache {
 	for _, cw := range m.waitList {
-		if cw.cc != nil {
-			return cw.cc
+		if cw.cache != nil {
+			return cw.cache
 		}
 	}
 	return nil
@@ -280,8 +269,8 @@ func (m *Manager) CachedResult() error {
 // return true if exist in waitList
 func (m *Manager) DeleteCarFromWaitList(root cid.Cid) (bool, error) {
 	if c := m.removeCarFromWaitList(root); c != nil {
-		if c.cc != nil {
-			err := c.cc.CancelDownload()
+		if c.cache != nil {
+			err := c.cache.CancelDownload()
 			if err != nil {
 				return false, err
 			}
@@ -297,12 +286,39 @@ func (m *Manager) Progresses() []*types.CarfileProgress {
 
 	for _, cw := range m.waitList {
 		progress := &types.CarfileProgress{CarfileCid: cw.Root.String(), Status: types.CacheStatusWaiting}
-		if cw.cc != nil {
-			progress = cw.cc.Progress()
+		if cw.cache != nil {
+			progress = cw.cache.Progress()
 		}
 
 		progresses = append(progresses, progress)
 	}
 
 	return progresses
+}
+
+func (m *Manager) CachedStatus(root cid.Cid) (types.CacheStatus, error) {
+	if m.carfileStore.HasCarfile(root) {
+		return types.CacheStatusSucceeded, nil
+	}
+
+	for _, cw := range m.waitList {
+		if cw.Root.Hash().String() == root.Hash().String() {
+			if cw.cache != nil {
+				return types.CacheStatusDownloading, nil
+			}
+			return types.CacheStatusWaiting, nil
+		}
+
+	}
+
+	has, err := m.carfileStore.HasIncompleteCarfile(root)
+	if err != nil {
+		return types.CacheStatusFailed, err
+	}
+
+	if has {
+		return types.CacheStatusFailed, nil
+	}
+
+	return types.CacheStatusFailed, fmt.Errorf("carfile %s not exist", root.String())
 }
