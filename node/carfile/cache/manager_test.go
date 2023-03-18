@@ -48,7 +48,7 @@ func TestManager(t *testing.T) {
 	}
 
 	bFetcher := fetcher.NewIPFS("http://192.168.0.132:5001", 15, 1)
-	opts := &ManagerOptions{CarfileStore: carfileStore, BFetcher: bFetcher, CResulter: &TestCachedResulterImpl{t, carfileStore}, DownloadBatch: 5}
+	opts := &ManagerOptions{CarfileStore: carfileStore, BFetcher: bFetcher, DownloadBatch: 5}
 
 	mgr := NewManager(opts)
 	mgr.AddToWaitList(c, nil)
