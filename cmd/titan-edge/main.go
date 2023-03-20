@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/node"
+	"github.com/linguohua/titan/node/carfile/store"
+	"github.com/linguohua/titan/node/gateway"
 	"github.com/linguohua/titan/node/modules/dtypes"
 
 	"github.com/filecoin-project/go-jsonrpc"
@@ -210,6 +212,7 @@ var runCmd = &cli.Command{
 		}
 		log.Infof("Remote version %s", v)
 
+		var gw *gateway.Gateway
 		var edgeAPI api.Edge
 		stop, err := node.New(cctx.Context,
 			node.Edge(&edgeAPI),
@@ -245,12 +248,17 @@ var runCmd = &cli.Command{
 
 				return dtypes.InternalIP(strings.Split(localAddr.IP.String(), ":")[0]), nil
 			}),
+
+			node.Override(node.RunGateway, func(cs *store.CarfileStore) {
+				gw = gateway.NewGateway(cs, schedulerAPI)
+			}),
 		)
 		if err != nil {
 			return xerrors.Errorf("creating node: %w", err)
 		}
 
 		handler := EdgeHandler(schedulerAPI.AuthVerify, edgeAPI, true)
+		handler = gw.NewHandler(handler)
 
 		srv := &http.Server{
 			Handler: handler,
