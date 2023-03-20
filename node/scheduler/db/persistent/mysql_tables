@@ -73,7 +73,7 @@ CREATE TABLE `replicas` (
 	`carfile_hash` varchar(128) NOT NULL,
     `status` TINYINT  DEFAULT '0' ,
     `node_id` varchar(128) NOT NULL ,
-    `done_blocks` int  DEFAULT '0' ,
+    `done_size` BIGINT DEFAULT '0' ,
     `is_candidate` BOOLEAN,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)

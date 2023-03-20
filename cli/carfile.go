@@ -120,8 +120,8 @@ var showCarfileInfoCmd = &cli.Command{
 
 		fmt.Printf("--------\nProcesses:\n")
 		for _, cache := range info.ReplicaInfos {
-			fmt.Printf("%s(%s): %s\t%d/%d\n", cache.NodeID, edgeOrCandidate(cache.IsCandidate), colorState(cache.Status.String()),
-				cache.DoneBlocks, info.TotalBlocks)
+			fmt.Printf("%s(%s): %s\t%s/%s\n", cache.NodeID, edgeOrCandidate(cache.IsCandidate), colorState(cache.Status.String()),
+				units.BytesSize(float64(cache.DoneSize)), units.BytesSize(float64(info.TotalSize)))
 		}
 
 		return nil
@@ -279,7 +279,7 @@ var listCarfilesCmd = &cli.Command{
 				for j := 0; j < len(carfile.ReplicaInfos); j++ {
 					cache := carfile.ReplicaInfos[j]
 					status := colorState(cache.Status.String())
-					processes += fmt.Sprintf("\t%s(%s): %s\t%d/%d\n", cache.NodeID, edgeOrCandidate(cache.IsCandidate), status, cache.DoneBlocks, carfile.TotalBlocks)
+					processes += fmt.Sprintf("\t%s(%s): %s\t%s/%s\n", cache.NodeID, edgeOrCandidate(cache.IsCandidate), status, units.BytesSize(float64(cache.DoneSize)), units.BytesSize(float64(carfile.TotalSize)))
 				}
 				m["Processes"] = processes
 			}

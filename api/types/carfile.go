@@ -64,7 +64,7 @@ type ReplicaInfo struct {
 	Status      CacheStatus `db:"status"`
 	IsCandidate bool        `db:"is_candidate"`
 	EndTime     time.Time   `db:"end_time"`
-	DoneBlocks  int64       `db:"done_blocks"`
+	DoneSize    int64       `db:"done_size"`
 }
 
 // CacheCarfileInfo Data info
