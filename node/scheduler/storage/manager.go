@@ -130,18 +130,18 @@ func (m *Manager) cachedProgressTicker(ctx context.Context) {
 }
 
 func (m *Manager) nodeCacheProgresses() {
-	// caching carfiles
 	nodeCaches := make(map[string][]string)
-	for hash := range m.carfileTickers {
-		nodes, err := m.nodeManager.CarfileDB.UnDoneNodes(hash)
-		if err != nil {
-			log.Errorf("UnDoneNodes err:%s", err.Error())
-			continue
-		}
 
+	for hash := range m.carfileTickers {
 		cid, err := cidutil.HashString2CIDString(hash)
 		if err != nil {
 			log.Errorf("HashString2CIDString err:%s", err.Error())
+			continue
+		}
+
+		nodes, err := m.nodeManager.CarfileDB.UnDoneNodes(hash)
+		if err != nil {
+			log.Errorf("UnDoneNodes err:%s", err.Error())
 			continue
 		}
 
@@ -157,14 +157,14 @@ func (m *Manager) nodeCacheProgresses() {
 
 	// request node
 	for node, cids := range nodeCaches {
-		err := m.cachedProgresses(node, cids)
+		err := m.nodeCachedProgresses(node, cids)
 		if err != nil {
 			log.Errorf("cachedProgresses err:%s", err.Error())
 		}
 	}
 }
 
-func (m *Manager) cachedProgresses(nodeID string, carfileCIDs []string) error {
+func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) error {
 	log.Warnf("nodeID:%s, %v", nodeID, carfileCIDs)
 	var progresses []*types.CarfileProgress
 	var err error
@@ -187,7 +187,7 @@ func (m *Manager) cachedProgresses(nodeID string, carfileCIDs []string) error {
 		return err
 	}
 
-	return m.CacheCarfileResult(nodeID, progresses, isCandidate)
+	return m.cacheCarfileResult(nodeID, progresses, isCandidate)
 }
 
 // CacheCarfile create a new carfile storing task
@@ -253,14 +253,14 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 	return nil
 }
 
-// CacheCarfileResult block cache result
-func (m *Manager) CacheCarfileResult(nodeID string, progresses []*types.CarfileProgress, isCandidate bool) (err error) {
-	for _, info := range progresses {
-		log.Debugf("CacheCarfileResult node_id: %s, status: %d, block: %d, cid: %s ", nodeID, info.Status, info.CarfileBlocksCount, info.CarfileCid)
+// cacheCarfileResult block cache result
+func (m *Manager) cacheCarfileResult(nodeID string, progresses []*types.CarfileProgress, isCandidate bool) (err error) {
+	for _, progress := range progresses {
+		log.Warnf("CacheCarfileResult node_id: %s, status: %d, size: %d/%d, cid: %s ", nodeID, progress.Status, progress.DoneSize, progress.CarfileSize, progress.CarfileCid)
 
-		hash, err := cidutil.CIDString2HashString(info.CarfileCid)
+		hash, err := cidutil.CIDString2HashString(progress.CarfileCid)
 		if err != nil {
-			log.Errorf("%s cid to hash err:%s", info.CarfileCid, err.Error())
+			log.Errorf("%s cid to hash err:%s", progress.CarfileCid, err.Error())
 			continue
 		}
 
@@ -273,15 +273,15 @@ func (m *Manager) CacheCarfileResult(nodeID string, progresses []*types.CarfileP
 			m.lock.Unlock()
 		}
 
-		if info.Status == types.CacheStatusWaiting {
+		if progress.Status == types.CacheStatusWaiting {
 			continue
 		}
 
 		// save to db
 		cInfo := &types.ReplicaInfo{
-			ID:         replicaID(hash, nodeID),
-			Status:     info.Status,
-			DoneBlocks: int64(info.DoneBlocksCount),
+			ID:       replicaID(hash, nodeID),
+			Status:   progress.Status,
+			DoneSize: int64(progress.DoneSize),
 		}
 
 		err = m.nodeManager.CarfileDB.UpdateReplicaInfo(cInfo)
@@ -290,11 +290,11 @@ func (m *Manager) CacheCarfileResult(nodeID string, progresses []*types.CarfileP
 			continue
 		}
 
-		if info.Status == types.CacheStatusDownloading {
+		if progress.Status == types.CacheStatusDownloading {
 			err = m.carfiles.Send(CarfileHash(hash), CarfileInfoUpdate{
 				ResultInfo: &CacheResultInfo{
-					CarfileBlocksCount: int64(info.CarfileBlocksCount),
-					CarfileSize:        info.CarfileSize,
+					CarfileBlocksCount: int64(progress.CarfileBlocksCount),
+					CarfileSize:        progress.CarfileSize,
 				},
 			})
 			if err != nil {
@@ -307,9 +307,9 @@ func (m *Manager) CacheCarfileResult(nodeID string, progresses []*types.CarfileP
 		err = m.carfiles.Send(CarfileHash(hash), CacheResult{
 			ResultInfo: &CacheResultInfo{
 				NodeID:             nodeID,
-				Status:             int64(info.Status),
-				CarfileBlocksCount: int64(info.CarfileBlocksCount),
-				CarfileSize:        info.CarfileSize,
+				Status:             int64(progress.Status),
+				CarfileBlocksCount: int64(progress.CarfileBlocksCount),
+				CarfileSize:        progress.CarfileSize,
 				IsCandidate:        isCandidate,
 			},
 		})

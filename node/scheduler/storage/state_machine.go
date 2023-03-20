@@ -225,7 +225,7 @@ func (m *Manager) restartCarfiles(ctx context.Context) error {
 	return nil
 }
 
-// ListCarfiles load carfiles from db
+// ListCarfiles load carfiles from statemachine
 func (m *Manager) ListCarfiles() ([]CarfileInfo, error) {
 	var carfiles []CarfileInfo
 	if err := m.carfiles.List(&carfiles); err != nil {
