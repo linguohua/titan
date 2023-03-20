@@ -256,7 +256,7 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 // cacheCarfileResult block cache result
 func (m *Manager) cacheCarfileResult(nodeID string, progresses []*types.CarfileProgress, isCandidate bool) (err error) {
 	for _, progress := range progresses {
-		log.Warnf("CacheCarfileResult node_id: %s, status: %d, size: %d/%d, cid: %s ", nodeID, progress.Status, progress.DoneSize, progress.CarfileSize, progress.CarfileCid)
+		log.Debugf("CacheCarfileResult node_id: %s, status: %d, size: %d/%d, cid: %s ", nodeID, progress.Status, progress.DoneSize, progress.CarfileSize, progress.CarfileCid)
 
 		hash, err := cidutil.CIDString2HashString(progress.CarfileCid)
 		if err != nil {
