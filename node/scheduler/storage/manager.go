@@ -164,7 +164,7 @@ func (m *Manager) nodeCacheProgresses() {
 
 func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) {
 	log.Debugf("nodeID:%s, %v", nodeID, carfileCIDs)
-	var progresses []*types.CarfileProgress
+	var result *types.CacheResult
 	var err error
 	isCandidate := false
 
@@ -174,14 +174,18 @@ func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) {
 		}
 	}()
 
+	var nodeInfo *types.NodeInfo
+
 	cNode := m.nodeManager.GetCandidateNode(nodeID)
 	if cNode != nil {
-		progresses, err = cNode.API().CachedProgresses(context.Background(), carfileCIDs)
+		result, err = cNode.API().CachedProgresses(context.Background(), carfileCIDs)
 		isCandidate = true
+		nodeInfo = cNode.NodeInfo
 	} else {
 		eNode := m.nodeManager.GetEdgeNode(nodeID)
 		if eNode != nil {
-			progresses, err = eNode.API().CachedProgresses(context.Background(), carfileCIDs)
+			result, err = eNode.API().CachedProgresses(context.Background(), carfileCIDs)
+			nodeInfo = eNode.NodeInfo
 		} else {
 			err = xerrors.Errorf("node %s offline", nodeID)
 		}
@@ -191,7 +195,9 @@ func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) {
 		return
 	}
 
-	m.cacheCarfileResult(nodeID, progresses, isCandidate)
+	nodeInfo.DiskUsage = result.DiskUsage
+
+	m.cacheCarfileResult(nodeID, result.Progresses, isCandidate)
 }
 
 // CacheCarfile create a new carfile storing task
