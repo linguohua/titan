@@ -10,26 +10,6 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// CacheResult nodeMgrCache Data Result
-// func (s *Scheduler) CacheResult(ctx context.Context, info types.CacheResult) error {
-// 	nodeID := handler.GetNodeID(ctx)
-
-// 	// if !s.nodeExists(nodeID, 0) {
-// 	// 	return xerrors.Errorf("node not Exist: %s", nodeID)
-// 	// }
-
-// 	// update node info
-// 	isCandidate := false
-// 	node := s.NodeManager.GetNode(nodeID)
-// 	if node != nil {
-// 		node.DiskUsage = info.DiskUsage
-// 		node.Blocks = info.TotalBlocksCount
-// 		isCandidate = node.NodeType == types.NodeCandidate
-// 	}
-
-// 	return s.DataManager.CacheCarfileResult(nodeID, &info, isCandidate)
-// }
-
 // RemoveCarfileResult remove storage result
 func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo types.RemoveCarfileResult) error {
 	nodeID := handler.GetNodeID(ctx)

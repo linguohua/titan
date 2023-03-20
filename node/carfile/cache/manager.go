@@ -12,9 +12,9 @@ import (
 	carfilestore "github.com/linguohua/titan/node/carfile/store"
 )
 
-type CachedResulter interface {
-	CacheResult(result *types.CacheResult) error
-}
+// type CachedResulter interface {
+// 	CacheResult(result *types.CacheResult) error
+// }
 
 type carWaiter struct {
 	Root  cid.Cid
