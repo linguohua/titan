@@ -191,14 +191,14 @@ func (m *Manager) handleFinalize(ctx statemachine.Context, carfile CarfileInfo) 
 }
 
 func (m *Manager) handleCachesFailed(ctx statemachine.Context, carfile CarfileInfo) error {
+	defer m.removeCarfileTicker(carfile.CarfileHash.String())
+
 	if carfile.RetryCount >= int64(MaxRetryCount) {
 		log.Debugf("handle caches failed: %s reached the max retry count(%d), stop retrying", carfile.CarfileHash, carfile.RetryCount)
 		return nil
 	}
 
 	log.Debugf("handle caches failed: %s, retries: %d", carfile.CarfileHash, carfile.RetryCount+1)
-
-	defer m.removeCarfileTicker(carfile.CarfileHash.String())
 
 	if err := failedCooldown(ctx, carfile); err != nil {
 		return err

@@ -27,18 +27,18 @@ const (
 	schedulerApiTimeout = 3
 )
 
-type cacheResult types.CacheResult
+// type cacheResult types.CacheResult
 
-func (cr *cacheResult) String() string {
-	s := "{["
-	for i, progress := range cr.Progresses {
-		if i > 0 {
-			s += ", "
-		}
-		s += fmt.Sprintf("%#v", progress)
-	}
-	return fmt.Sprintf("%s], DiskUsage:%f, TotalBlocksCount:%d, CarfileCount:%d}", s, cr.DiskUsage, cr.TotalBlocksCount, cr.CarfileCount)
-}
+// func (cr *cacheResult) String() string {
+// 	s := "{["
+// 	for i, progress := range cr.Progresses {
+// 		if i > 0 {
+// 			s += ", "
+// 		}
+// 		s += fmt.Sprintf("%#v", progress)
+// 	}
+// 	return fmt.Sprintf("%s], DiskUsage:%f, TotalBlocksCount:%d, CarfileCount:%d}", s, cr.DiskUsage, cr.TotalBlocksCount, cr.CarfileCount)
+// }
 
 type CarfileImpl struct {
 	scheduler       api.Scheduler

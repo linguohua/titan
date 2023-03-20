@@ -132,43 +132,47 @@ func (m *Manager) cachedProgressTicker(ctx context.Context) {
 func (m *Manager) nodeCacheProgresses() {
 	nodeCaches := make(map[string][]string)
 
+	// caching carfiles
 	for hash := range m.carfileTickers {
 		cid, err := cidutil.HashString2CIDString(hash)
 		if err != nil {
-			log.Errorf("HashString2CIDString err:%s", err.Error())
+			log.Errorf("%s HashString2CIDString err:%s", hash, err.Error())
 			continue
 		}
 
 		nodes, err := m.nodeManager.CarfileDB.UnDoneNodes(hash)
 		if err != nil {
-			log.Errorf("UnDoneNodes err:%s", err.Error())
+			log.Errorf("%s UnDoneNodes err:%s", hash, err.Error())
 			continue
 		}
 
-		for _, node := range nodes {
-			list := nodeCaches[node]
+		for _, nodeID := range nodes {
+			list := nodeCaches[nodeID]
 			if list == nil {
 				list = make([]string, 0)
 			}
 
-			nodeCaches[node] = append(list, cid)
+			nodeCaches[nodeID] = append(list, cid)
 		}
 	}
 
 	// request node
-	for node, cids := range nodeCaches {
-		err := m.nodeCachedProgresses(node, cids)
-		if err != nil {
-			log.Errorf("cachedProgresses err:%s", err.Error())
-		}
+	for nodeID, cids := range nodeCaches {
+		go m.nodeCachedProgresses(nodeID, cids)
 	}
 }
 
-func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) error {
+func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) {
 	log.Debugf("nodeID:%s, %v", nodeID, carfileCIDs)
 	var progresses []*types.CarfileProgress
 	var err error
 	isCandidate := false
+
+	defer func() {
+		if err != nil {
+			log.Errorf("%s nodeCachedProgresses err:%s", nodeID, err.Error())
+		}
+	}()
 
 	cNode := m.nodeManager.GetCandidateNode(nodeID)
 	if cNode != nil {
@@ -184,10 +188,10 @@ func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) erro
 	}
 
 	if err != nil {
-		return err
+		return
 	}
 
-	return m.cacheCarfileResult(nodeID, progresses, isCandidate)
+	m.cacheCarfileResult(nodeID, progresses, isCandidate)
 }
 
 // CacheCarfile create a new carfile storing task
@@ -254,7 +258,7 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 }
 
 // cacheCarfileResult block cache result
-func (m *Manager) cacheCarfileResult(nodeID string, progresses []*types.CarfileProgress, isCandidate bool) (err error) {
+func (m *Manager) cacheCarfileResult(nodeID string, progresses []*types.CarfileProgress, isCandidate bool) {
 	for _, progress := range progresses {
 		log.Debugf("CacheCarfileResult node_id: %s, status: %d, size: %d/%d, cid: %s ", nodeID, progress.Status, progress.DoneSize, progress.CarfileSize, progress.CarfileCid)
 
@@ -318,8 +322,6 @@ func (m *Manager) cacheCarfileResult(nodeID string, progresses []*types.CarfileP
 			continue
 		}
 	}
-
-	return nil
 }
 
 func (m *Manager) addOrResetCarfileTicker(hash string) {
