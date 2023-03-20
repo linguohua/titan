@@ -32,8 +32,9 @@ type Locator struct {
 	fx.In
 
 	*common.CommonAPI
-	ApMgr *AccessPointMgr
-	DB    *SqlDB
+	ApMgr  *AccessPointMgr
+	DB     *SqlDB
+	Region region.Region
 }
 
 func isValid(geo string) bool {
@@ -274,7 +275,7 @@ func (locator *Locator) getAreaIDWith(remoteAddr string) (string, error) {
 		return "", err
 	}
 
-	geoInfo, err := region.GetRegion().GetGeoInfo(ip)
+	geoInfo, err := locator.Region.GetGeoInfo(ip)
 	if err != nil {
 		log.Errorf("getAreaID error %s", err.Error())
 		return "", err
@@ -364,7 +365,7 @@ func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) ([]api.Acces
 // load user access point for special user ip
 func (locator *Locator) LoadUserAccessPoint(ctx context.Context, userIP string) (api.AccessPoint, error) {
 	areaID := defaultAreaID
-	geoInfo, _ := region.GetRegion().GetGeoInfo(userIP)
+	geoInfo, _ := locator.Region.GetGeoInfo(userIP)
 	if geoInfo != nil && isValid(geoInfo.Geo) {
 		areaID = geoInfo.Geo
 	}
