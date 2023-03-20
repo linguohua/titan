@@ -46,7 +46,10 @@ func New(addrs []string) (*Client, error) {
 }
 
 // ServerRegister register to etcd , If already register in, return an error
-func (c *Client) ServerRegister(ctx context.Context, serverID dtypes.ServerID, value string) error {
+func (c *Client) ServerRegister(t context.Context, serverID dtypes.ServerID, value string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
+	defer cancel()
+
 	serverKey := fmt.Sprintf("/%s/%s", types.RunningNodeType.String(), serverID)
 
 	// get a lease
@@ -95,10 +98,13 @@ func (c *Client) ServerRegister(ctx context.Context, serverID dtypes.ServerID, v
 
 // WatchServers watch server login and logout
 func (c *Client) WatchServers(nodeType types.NodeType) clientv3.WatchChan {
+	ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
+	defer cancel()
+
 	prefix := fmt.Sprintf("/%s/", nodeType.String())
 
 	watcher := clientv3.NewWatcher(c.cli)
-	watchRespChan := watcher.Watch(context.TODO(), prefix, clientv3.WithPrefix())
+	watchRespChan := watcher.Watch(ctx, prefix, clientv3.WithPrefix())
 
 	return watchRespChan
 }
@@ -115,9 +121,9 @@ func (c *Client) ListServers(nodeType types.NodeType) (*clientv3.GetResponse, er
 }
 
 // ServerUnRegister UnRegister to etcd
-func (c *Client) ServerUnRegister(ctx context.Context, serverID dtypes.ServerID) error {
-	// ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
-	// defer cancel()
+func (c *Client) ServerUnRegister(t context.Context, serverID dtypes.ServerID) error {
+	ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
+	defer cancel()
 
 	kv := clientv3.NewKV(c.cli)
 
