@@ -165,7 +165,7 @@ func (m *Manager) nodeCacheProgresses() {
 }
 
 func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) error {
-	log.Warnf("nodeID:%s, %v", nodeID, carfileCIDs)
+	log.Debugf("nodeID:%s, %v", nodeID, carfileCIDs)
 	var progresses []*types.CarfileProgress
 	var err error
 	isCandidate := false
