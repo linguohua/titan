@@ -6,6 +6,7 @@ import (
 
 	"github.com/ipfs/go-cid"
 	legacy "github.com/ipfs/go-ipld-legacy"
+	"github.com/ipfs/go-libipfs/blocks"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
 	dagpb "github.com/ipld/go-codec-dagpb"
@@ -258,7 +259,7 @@ func (cfImpl *CarfileImpl) CachedProgresses(ctx context.Context, carfileCIDs []s
 	return pregresses, nil
 }
 
-func (cfImpl *CarfileImpl) downloadedCompleteCarProgress(root cid.Cid) (*types.CarfileProgress, error) {
+func (cfImpl *CarfileImpl) ProgressForSucceededCar(root cid.Cid) (*types.CarfileProgress, error) {
 	progress := &types.CarfileProgress{
 		CarfileCid: root.String(),
 		Status:     types.CacheStatusSucceeded,
@@ -290,7 +291,7 @@ func (cfImpl *CarfileImpl) downloadedCompleteCarProgress(root cid.Cid) (*types.C
 	return progress, nil
 }
 
-func (cfImpl *CarfileImpl) inCompleteCarProgress(root cid.Cid) (*types.CarfileProgress, error) {
+func (cfImpl *CarfileImpl) ProgressForFailedCar(root cid.Cid) (*types.CarfileProgress, error) {
 	progress := &types.CarfileProgress{
 		CarfileCid: root.String(),
 		Status:     types.CacheStatusSucceeded,
@@ -306,6 +307,8 @@ func (cfImpl *CarfileImpl) inCompleteCarProgress(root cid.Cid) (*types.CarfilePr
 		return nil, err
 	}
 
+	// convert to v0
+	blk = blocks.NewBlock(blk.RawData())
 	node, err := legacy.DecodeNode(context.Background(), blk)
 	if err != nil {
 		return nil, err
@@ -334,9 +337,9 @@ func (cfImpl *CarfileImpl) carProgress(root cid.Cid) (*types.CarfileProgress, er
 	case types.CacheStatusDownloading:
 		return cfImpl.cacheMgr.CachingCar().Progress(), nil
 	case types.CacheStatusFailed:
-		return cfImpl.inCompleteCarProgress(root)
+		return cfImpl.ProgressForFailedCar(root)
 	case types.CacheStatusSucceeded:
-		return cfImpl.downloadedCompleteCarProgress(root)
+		return cfImpl.ProgressForSucceededCar(root)
 	}
 	return nil, nil
 }
