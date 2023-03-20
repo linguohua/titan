@@ -156,12 +156,12 @@ var progressCmd = &cli.Command{
 
 		cid := cctx.String("cid")
 		ctx := ReqContext(cctx)
-		progresses, err := edgeAPI.CachedProgresses(ctx, []string{cid})
+		ret, err := edgeAPI.CachedProgresses(ctx, []string{cid})
 		if err != nil {
 			return err
 		}
 
-		for _, progress := range progresses {
+		for _, progress := range ret.Progresses {
 			fmt.Printf("Cache carfile %s %v\n", progress.CarfileCid, progress.Status)
 			fmt.Printf("Total block count %d, done block count %d  \n", progress.CarfileBlocksCount, progress.DoneBlocksCount)
 			fmt.Printf("Total block size %d, done block siez %d  \n", progress.CarfileSize, progress.DoneSize)

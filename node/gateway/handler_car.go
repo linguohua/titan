@@ -30,6 +30,11 @@ func (gw *Gateway) serveCar(w http.ResponseWriter, r *http.Request, ticket *type
 	}
 	rootCID := resolvedPath.Cid()
 
+	if !gw.carStore.HasCarfile(rootCID) {
+		http.Error(w, fmt.Sprintf("can not found car %s", contentPath.String()), http.StatusNotFound)
+		return
+	}
+
 	// Set Content-Disposition
 	var name string
 	if urlFilename := r.URL.Query().Get("filename"); urlFilename != "" {
@@ -66,6 +71,8 @@ func (gw *Gateway) serveCar(w http.ResponseWriter, r *http.Request, ticket *type
 		http.Error(w, fmt.Sprintf("not support car version %s", carVersion), http.StatusInternalServerError)
 		return
 	}
+	defer reader.Close()
+
 	// If-None-Match+Etag, Content-Length and range requests
 	http.ServeContent(w, r, name, modtime, reader)
 

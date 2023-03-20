@@ -53,7 +53,7 @@ type CarfileOperationStruct struct {
 	Internal struct {
 		CacheCarfile func(p0 context.Context, p1 string, p2 []*types.DownloadSource) error `perm:"write"`
 
-		CachedProgresses func(p0 context.Context, p1 []string) ([]*types.CarfileProgress, error) `perm:"write"`
+		CachedProgresses func(p0 context.Context, p1 []string) (*types.CacheResult, error) `perm:"write"`
 
 		DeleteAllCarfiles func(p0 context.Context) error `perm:"admin"`
 
@@ -343,15 +343,15 @@ func (s *CarfileOperationStub) CacheCarfile(p0 context.Context, p1 string, p2 []
 	return ErrNotSupported
 }
 
-func (s *CarfileOperationStruct) CachedProgresses(p0 context.Context, p1 []string) ([]*types.CarfileProgress, error) {
+func (s *CarfileOperationStruct) CachedProgresses(p0 context.Context, p1 []string) (*types.CacheResult, error) {
 	if s.Internal.CachedProgresses == nil {
-		return *new([]*types.CarfileProgress), ErrNotSupported
+		return nil, ErrNotSupported
 	}
 	return s.Internal.CachedProgresses(p0, p1)
 }
 
-func (s *CarfileOperationStub) CachedProgresses(p0 context.Context, p1 []string) ([]*types.CarfileProgress, error) {
-	return *new([]*types.CarfileProgress), ErrNotSupported
+func (s *CarfileOperationStub) CachedProgresses(p0 context.Context, p1 []string) (*types.CacheResult, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *CarfileOperationStruct) DeleteAllCarfiles(p0 context.Context) error {
