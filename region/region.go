@@ -1,9 +1,6 @@
 package region
 
 import (
-	"io/ioutil"
-	"net/http"
-
 	"golang.org/x/xerrors"
 )
 
@@ -59,29 +56,4 @@ func DefaultGeoInfo(ip string) *GeoInfo {
 		IP:        ip,
 		Geo:       defaultArea,
 	}
-}
-
-func getServerArea() string {
-	ip := getExternalIP()
-	if ip == "" {
-		return ""
-	}
-
-	info, err := region.GetGeoInfo(ip)
-	if err != nil {
-		return ""
-	}
-
-	return info.Geo
-}
-
-func getExternalIP() string {
-	resp, err := http.Get("http://myexternalip.com/raw")
-	if err != nil {
-		return ""
-	}
-	defer resp.Body.Close()
-	content, _ := ioutil.ReadAll(resp.Body)
-
-	return string(content)
 }
