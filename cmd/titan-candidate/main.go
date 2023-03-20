@@ -18,6 +18,8 @@ import (
 
 	cliutil "github.com/linguohua/titan/cli/util"
 	"github.com/linguohua/titan/node"
+	"github.com/linguohua/titan/node/carfile/store"
+	"github.com/linguohua/titan/node/gateway"
 	"github.com/linguohua/titan/node/modules/dtypes"
 
 	"github.com/filecoin-project/go-jsonrpc"
@@ -216,6 +218,7 @@ var runCmd = &cli.Command{
 		}
 		log.Infof("Remote version %s", v)
 
+		var gw *gateway.Gateway
 		var candidateAPI api.Candidate
 		stop, err := node.New(cctx.Context,
 			node.Candidate(&candidateAPI),
@@ -250,12 +253,17 @@ var runCmd = &cli.Command{
 
 				return dtypes.InternalIP(strings.Split(localAddr.IP.String(), ":")[0]), nil
 			}),
+			node.Override(node.RunGateway, func(cs *store.CarfileStore) {
+				gw = gateway.NewGateway(cs, schedulerAPI)
+			}),
 		)
 		if err != nil {
 			return xerrors.Errorf("creating node: %w", err)
 		}
 
 		handler := CandidateHandler(schedulerAPI.AuthVerify, candidateAPI, true)
+		handler = gw.NewHandler(handler)
+
 		srv := &http.Server{
 			Handler: handler,
 			BaseContext: func(listener net.Listener) context.Context {

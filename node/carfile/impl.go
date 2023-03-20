@@ -259,7 +259,7 @@ func (cfImpl *CarfileImpl) CachedProgresses(ctx context.Context, carfileCIDs []s
 	return pregresses, nil
 }
 
-func (cfImpl *CarfileImpl) ProgressForSucceededCar(root cid.Cid) (*types.CarfileProgress, error) {
+func (cfImpl *CarfileImpl) progressForSucceededCar(root cid.Cid) (*types.CarfileProgress, error) {
 	progress := &types.CarfileProgress{
 		CarfileCid: root.String(),
 		Status:     types.CacheStatusSucceeded,
@@ -275,39 +275,6 @@ func (cfImpl *CarfileImpl) ProgressForSucceededCar(root cid.Cid) (*types.Carfile
 		return nil, err
 	}
 
-	node, err := legacy.DecodeNode(context.Background(), blk)
-	if err != nil {
-		return nil, err
-	}
-
-	linksSize := uint64(len(blk.RawData()))
-	for _, link := range node.Links() {
-		linksSize += link.Size
-	}
-
-	progress.CarfileSize = int64(linksSize)
-	progress.DoneSize = int64(linksSize)
-
-	return progress, nil
-}
-
-func (cfImpl *CarfileImpl) ProgressForFailedCar(root cid.Cid) (*types.CarfileProgress, error) {
-	progress := &types.CarfileProgress{
-		CarfileCid: root.String(),
-		Status:     types.CacheStatusSucceeded,
-	}
-
-	if count, err := cfImpl.carfileStore.BlockCountOfCarfile(root); err != nil {
-		progress.CarfileBlocksCount = count
-		progress.DoneBlocksCount = count
-	}
-
-	blk, err := cfImpl.carfileStore.Block(root)
-	if err != nil {
-		return nil, err
-	}
-
-	// convert to v0
 	blk = blocks.NewBlock(blk.RawData())
 	node, err := legacy.DecodeNode(context.Background(), blk)
 	if err != nil {
@@ -337,9 +304,9 @@ func (cfImpl *CarfileImpl) carProgress(root cid.Cid) (*types.CarfileProgress, er
 	case types.CacheStatusDownloading:
 		return cfImpl.cacheMgr.CachingCar().Progress(), nil
 	case types.CacheStatusFailed:
-		return cfImpl.ProgressForFailedCar(root)
+		return cfImpl.cacheMgr.ProgressForFailedCar(root)
 	case types.CacheStatusSucceeded:
-		return cfImpl.ProgressForSucceededCar(root)
+		return cfImpl.progressForSucceededCar(root)
 	}
 	return nil, nil
 }

@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -308,17 +307,36 @@ func (m *Manager) CachedStatus(root cid.Cid) (types.CacheStatus, error) {
 			}
 			return types.CacheStatusWaiting, nil
 		}
-
 	}
 
-	has, err := m.carfileStore.HasIncompleteCarfile(root)
+	return types.CacheStatusFailed, nil
+}
+
+func (m *Manager) ProgressForFailedCar(root cid.Cid) (*types.CarfileProgress, error) {
+	progress := &types.CarfileProgress{
+		CarfileCid: root.String(),
+		Status:     types.CacheStatusFailed,
+	}
+
+	data, err := m.carfileStore.IncompleteCarfileCacheData(root)
+	if os.IsNotExist(err) {
+		return progress, nil
+	}
+
 	if err != nil {
-		return types.CacheStatusFailed, err
+		return nil, err
 	}
 
-	if has {
-		return types.CacheStatusFailed, nil
+	cc := &carfileCache{}
+	err = cc.decode(data)
+	if err != nil {
+		return nil, err
 	}
 
-	return types.CacheStatusFailed, fmt.Errorf("carfile %s not exist", root.String())
+	progress.CarfileBlocksCount = len(cc.blocksDownloadSuccessList) + len(cc.blocksWaitList)
+	progress.DoneBlocksCount = len(cc.blocksDownloadSuccessList)
+	progress.CarfileSize = cc.TotalSize()
+	progress.DoneSize = cc.DoneSize()
+
+	return progress, nil
 }

@@ -41,6 +41,8 @@ const (
 	CheckFDLimit
 	RegisterEtcd
 
+	RunGateway
+
 	_nInvokes // keep this last
 )
 
