@@ -88,8 +88,9 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 	}
 
 	if _, err := jwt.Verify([]byte(token), jwt.NewHS256([]byte(secret)), &payload); err != nil {
-		return nil, xerrors.Errorf("JWT Verification failed: %w", err)
+		return nil, xerrors.Errorf("%s JWT Verification failed: %w", nodeID, err)
 	}
+
 	return payload.Allow, nil
 }
 
@@ -101,7 +102,7 @@ func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, no
 
 	secret, err := s.NodeManager.NodeMgrDB.NodeSecret(nodeID)
 	if err != nil {
-		return "", xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", nodeID, err)
+		return "", xerrors.Errorf("JWT Verification %s NodeSecret failed: %w", nodeID, err)
 	}
 
 	if secret != nodeSecret {

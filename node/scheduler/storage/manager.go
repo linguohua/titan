@@ -122,14 +122,14 @@ func (m *Manager) cachedProgressTicker(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			m.nodeCacheProgresses()
+			m.nodesCacheProgresses()
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (m *Manager) nodeCacheProgresses() {
+func (m *Manager) nodesCacheProgresses() {
 	nodeCaches := make(map[string][]string)
 
 	// caching carfiles
@@ -156,24 +156,26 @@ func (m *Manager) nodeCacheProgresses() {
 		}
 	}
 
-	// request node
+	f := func(nodeID string, cids []string) {
+		// request node
+		ps, isCandidate, err := m.nodeCachedProgresses(nodeID, cids)
+		if err != nil {
+			log.Errorf("%s nodeCachedProgresses err:%s", nodeID, err.Error())
+			return
+		}
+
+		// update carfile info
+		m.cacheCarfileResult(nodeID, ps, isCandidate)
+	}
+
 	for nodeID, cids := range nodeCaches {
-		go m.nodeCachedProgresses(nodeID, cids)
+		go f(nodeID, cids)
 	}
 }
 
-func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) {
+func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) (ps []*types.CarfileProgress, isCandidate bool, err error) {
 	log.Debugf("nodeID:%s, %v", nodeID, carfileCIDs)
 	var result *types.CacheResult
-	var err error
-	isCandidate := false
-
-	defer func() {
-		if err != nil {
-			log.Errorf("%s nodeCachedProgresses err:%s", nodeID, err.Error())
-		}
-	}()
-
 	var nodeInfo *types.NodeInfo
 
 	cNode := m.nodeManager.GetCandidateNode(nodeID)
@@ -195,9 +197,11 @@ func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) {
 		return
 	}
 
+	// update node info
 	nodeInfo.DiskUsage = result.DiskUsage
 
-	m.cacheCarfileResult(nodeID, result.Progresses, isCandidate)
+	ps = result.Progresses
+	return
 }
 
 // CacheCarfile create a new carfile storing task
