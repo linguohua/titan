@@ -6,13 +6,10 @@ import (
 	"fmt"
 	"io"
 	gopath "path"
-	"sync/atomic"
 
 	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
 	bsfetcher "github.com/ipfs/go-fetcher/impl/blockservice"
-	ipldformat "github.com/ipfs/go-ipld-format"
-	legacy "github.com/ipfs/go-ipld-legacy"
 	"github.com/ipfs/go-libipfs/blocks"
 	"github.com/ipfs/go-libipfs/files"
 	dag "github.com/ipfs/go-merkledag"
@@ -31,7 +28,7 @@ import (
 )
 
 type Gateway struct {
-	cs                 *store.CarfileStore
+	carStore           *store.CarfileStore
 	scheduler          api.Scheduler
 	privateKey         *rsa.PrivateKey
 	schedulerPublicKey *rsa.PublicKey
@@ -58,7 +55,7 @@ func NewGateway(cs *store.CarfileStore, scheduler api.Scheduler) *Gateway {
 		log.Errorf("can not convert pem to public key %s", err.Error())
 	}
 
-	gw := &Gateway{cs: cs, scheduler: scheduler, privateKey: privateKey, schedulerPublicKey: schedulerPublicKey}
+	gw := &Gateway{carStore: cs, scheduler: scheduler, privateKey: privateKey, schedulerPublicKey: schedulerPublicKey}
 
 	return gw
 }
@@ -113,89 +110,9 @@ func (gw *Gateway) getUnixFsNode(ctx context.Context, p path.Resolved) (files.No
 }
 
 func (gw *Gateway) block(ctx context.Context, c cid.Cid) (blocks.Block, error) {
-	return gw.cs.Block(c)
+	return gw.carStore.Block(c)
 }
 
-func (gw *Gateway) carReader(ctx context.Context, c cid.Cid) (io.ReadSeeker, error) {
-	return nil, nil
-}
-
-type nodeGetter struct {
-	gw *Gateway
-}
-
-// Get retrieves nodes by CID. Depending on the NodeGetter
-// implementation, this may involve fetching the Node from a remote
-// machine; consider setting a deadline in the context.
-func (ng *nodeGetter) Get(ctx context.Context, c cid.Cid) (ipldformat.Node, error) {
-	blk, err := ng.gw.block(ctx, c)
-	if err != nil {
-		return nil, err
-	}
-
-	return legacy.DecodeNode(context.Background(), blk)
-}
-
-// GetMany returns a channel of NodeOptions given a set of CIDs.
-func (ng *nodeGetter) GetMany(ctx context.Context, cids []cid.Cid) <-chan *ipldformat.NodeOption {
-	var count uint64
-	ch := make(chan *ipldformat.NodeOption, len(cids))
-	for _, cid := range cids {
-		c := cid
-		go func() {
-			node, err := ng.Get(ctx, c)
-			ch <- &ipldformat.NodeOption{Node: node, Err: err}
-
-			atomic.AddUint64(&count, 1)
-
-			// TODO: will be ch = nil ?
-			if int(count) == len(cids) {
-				close(ch)
-			}
-		}()
-	}
-	return ch
-}
-
-type readOnlyBlockStore struct {
-	gw *Gateway
-}
-
-func (robs *readOnlyBlockStore) DeleteBlock(context.Context, cid.Cid) error {
-	log.Errorf("read only block store, can not delete block")
-	return nil
-}
-
-func (robs *readOnlyBlockStore) Has(ctx context.Context, c cid.Cid) (bool, error) {
-	return robs.gw.cs.HasBlock(c)
-}
-
-func (robs *readOnlyBlockStore) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
-	return robs.gw.block(ctx, c)
-}
-
-// GetSize returns the CIDs mapped BlockSize
-func (robs *readOnlyBlockStore) GetSize(ctx context.Context, c cid.Cid) (int, error) {
-	log.Errorf("read only block store, can not get size %s", c.String())
-	return 0, nil
-}
-
-// Put puts a given block to the underlying datastore
-func (robs *readOnlyBlockStore) Put(context.Context, blocks.Block) error {
-	log.Errorf("read only block store, can not put")
-	return nil
-}
-
-func (robs *readOnlyBlockStore) PutMany(context.Context, []blocks.Block) error {
-	log.Errorf("read only block store, can not put many")
-	return nil
-}
-
-func (robs *readOnlyBlockStore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
-	log.Errorf("read only block store, not support allkeys ")
-	return nil, nil
-}
-
-func (robs *readOnlyBlockStore) HashOnRead(enabled bool) {
-
+func (gw *Gateway) carReader(ctx context.Context, c cid.Cid) (io.ReadSeekCloser, error) {
+	return gw.carStore.CarReader(c)
 }

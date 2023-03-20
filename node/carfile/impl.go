@@ -241,7 +241,7 @@ func (cfImpl *CarfileImpl) CacheCarForSyncData(carfiles []string) error {
 	return nil
 }
 
-func (cfImpl *CarfileImpl) CachedProgresses(ctx context.Context, carfileCIDs []string) ([]*types.CarfileProgress, error) {
+func (cfImpl *CarfileImpl) CachedProgresses(ctx context.Context, carfileCIDs []string) (*types.CacheResult, error) {
 	pregresses := make([]*types.CarfileProgress, 0, len(carfileCIDs))
 	for _, carfileCID := range carfileCIDs {
 		root, err := cid.Decode(carfileCID)
@@ -256,7 +256,18 @@ func (cfImpl *CarfileImpl) CachedProgresses(ctx context.Context, carfileCIDs []s
 
 		pregresses = append(pregresses, progress)
 	}
-	return pregresses, nil
+
+	result := &types.CacheResult{
+		Progresses:       pregresses,
+		TotalBlocksCount: cfImpl.TotalBlockCount,
+	}
+
+	if count, err := cfImpl.carfileStore.CarfileCount(); err == nil {
+		result.CarfileCount = count
+	}
+	_, result.DiskUsage = cfImpl.device.GetDiskUsageStat()
+
+	return result, nil
 }
 
 func (cfImpl *CarfileImpl) progressForSucceededCar(root cid.Cid) (*types.CarfileProgress, error) {

@@ -101,6 +101,14 @@ func (cs *CarfileStore) HasCarfile(root cid.Cid) bool {
 	return false
 }
 
+// must close reader
+func (cs *CarfileStore) CarReader(root cid.Cid) (io.ReadSeekCloser, error) {
+	name := newCarfileName(root)
+	path := filepath.Join(cs.carsDir(), name)
+
+	return os.Open(path)
+}
+
 func (cs *CarfileStore) RegisterShared(root cid.Cid) error {
 	name := newCarfileName(root)
 	ch := make(chan dagstore.ShardResult)

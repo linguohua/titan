@@ -15,7 +15,7 @@ func (gw *Gateway) headHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ok, err := gw.cs.HasBlock(c); err != nil || !ok {
+	if ok, err := gw.carStore.HasBlock(c); err != nil || !ok {
 		w.WriteHeader(http.StatusPreconditionFailed)
 		return
 	}
