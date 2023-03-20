@@ -11,6 +11,7 @@ var EdgeCmds = []*cli.Command{
 	nodeInfoCmd,
 	cacheStatCmd,
 	logFileCmd,
+	progressCmd,
 }
 
 var nodeInfoCmd = &cli.Command{
@@ -133,5 +134,39 @@ var getLogFileCmd = &cli.Command{
 
 		filePath := "./" + info.Name
 		return os.WriteFile(filePath, data, 0o644)
+	},
+}
+
+var progressCmd = &cli.Command{
+	Name:  "progress",
+	Usage: "get cache progress",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "cid",
+			Usage: "carfile cid",
+			Value: "",
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		edgeAPI, closer, err := GetEdgeAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		cid := cctx.String("cid")
+		ctx := ReqContext(cctx)
+		progresses, err := edgeAPI.CachedProgresses(ctx, []string{cid})
+		if err != nil {
+			return err
+		}
+
+		for _, progress := range progresses {
+			fmt.Printf("Cache carfile %s %v\n", progress.CarfileCid, progress.Status)
+			fmt.Printf("Total block count %d, done block count %d  \n", progress.CarfileBlocksCount, progress.DoneBlocksCount)
+			fmt.Printf("Total block size %d, done block siez %d  \n", progress.CarfileSize, progress.DoneSize)
+			fmt.Println()
+		}
+		return nil
 	},
 }
