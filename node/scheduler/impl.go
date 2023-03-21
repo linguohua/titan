@@ -51,12 +51,12 @@ type Scheduler struct {
 	*EdgeUpdater
 	dtypes.ServerID
 
-	NodeManager            *node.Manager
-	Election               *election.Election
-	Validation             *validation.Validation
-	DataManager            *storage.Manager
-	DataSync               *sync.DataSync
-	WriteToken             dtypes.PermissionWriteToken
+	NodeManager *node.Manager
+	Election    *election.Election
+	Validation  *validation.Validation
+	DataManager *storage.Manager
+	DataSync    *sync.DataSync
+	// WriteToken             dtypes.PermissionWriteToken
 	AdminToken             dtypes.PermissionAdminToken
 	SchedulerCfg           *config.SchedulerCfg
 	SetSchedulerConfigFunc dtypes.SetSchedulerConfigFunc
@@ -84,11 +84,11 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 
 	secret, err := s.NodeManager.NodeMgrDB.NodeSecret(nodeID)
 	if err != nil {
-		return nil, xerrors.Errorf("JWT Verification %s GetRegisterInfo failed: %w", nodeID, err)
+		return nil, xerrors.Errorf("%s load node secret failed: %w", nodeID, err)
 	}
 
 	if _, err := jwt.Verify([]byte(token), jwt.NewHS256([]byte(secret)), &payload); err != nil {
-		return nil, xerrors.Errorf("%s JWT Verification failed: %w", nodeID, err)
+		return nil, xerrors.Errorf("node:%s JWT Verify failed: %w", nodeID, err)
 	}
 
 	return payload.Allow, nil
@@ -97,12 +97,12 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 // AuthNodeNew  Get Node Auth
 func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, nodeID, nodeSecret string) (string, error) {
 	p := jwtPayload{
-		Allow: perms,
+		Allow: api.ReadWritePerms,
 	}
 
 	secret, err := s.NodeManager.NodeMgrDB.NodeSecret(nodeID)
 	if err != nil {
-		return "", xerrors.Errorf("JWT Verification %s NodeSecret failed: %w", nodeID, err)
+		return "", xerrors.Errorf("%s load node secret failed: %w", nodeID, err)
 	}
 
 	if secret != nodeSecret {
@@ -111,7 +111,7 @@ func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, no
 
 	tk, err := jwt.Sign(&p, jwt.NewHS256([]byte(nodeSecret)))
 	if err != nil {
-		return "", err
+		return "", xerrors.Errorf("node %s sign err:%s", nodeID, err.Error())
 	}
 
 	return string(tk), nil
@@ -455,13 +455,13 @@ func (s *Scheduler) SetNodePort(ctx context.Context, nodeID, port string) error 
 }
 
 func (s *Scheduler) authNew() error {
-	wtk, err := s.AuthNew(context.Background(), []auth.Permission{api.PermRead, api.PermWrite})
-	if err != nil {
-		log.Errorf("AuthNew err:%s", err.Error())
-		return err
-	}
+	// wtk, err := s.AuthNew(context.Background(), []auth.Permission{api.PermRead, api.PermWrite})
+	// if err != nil {
+	// 	log.Errorf("AuthNew err:%s", err.Error())
+	// 	return err
+	// }
 
-	s.WriteToken = dtypes.PermissionWriteToken(wtk)
+	// s.WriteToken = dtypes.PermissionWriteToken(wtk)
 
 	atk, err := s.AuthNew(context.Background(), api.AllPermissions)
 	if err != nil {
