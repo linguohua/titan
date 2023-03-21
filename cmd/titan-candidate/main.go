@@ -428,7 +428,7 @@ func newSchedulerAPI(cctx *cli.Context, nodeID string, securityKey string, timeo
 
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+token)
-	headers.Add("Device-ID", nodeID)
+	headers.Add("Node-ID", nodeID)
 
 	schedulerAPI, closer, err := client.NewScheduler(context.Background(), schedulerURL, headers)
 	if err != nil {
