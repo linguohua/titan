@@ -90,6 +90,11 @@ func (evt CacheResult) apply(state *CarfileInfo) {
 		return
 	}
 
+	if state.State == CarfileSeedCaching {
+		state.Size = rInfo.CarfileSize
+		state.Blocks = rInfo.CarfileBlocksCount
+	}
+
 	nodeID := rInfo.NodeID
 	if rInfo.Status == int64(types.CacheStatusSucceeded) {
 		if rInfo.IsCandidate {
