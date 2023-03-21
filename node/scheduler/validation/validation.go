@@ -330,7 +330,7 @@ func (v *Validation) Result(validatedResult *api.ValidatedResult) error {
 		return nil
 	}
 
-	candidates, err := v.nodeManager.CarfileDB.CandidatesByCarfile(hash)
+	candidates, err := v.nodeManager.CarfileDB.SucceedReplicasByCarfile(hash, types.NodeCandidate)
 	if err != nil {
 		status = types.ValidateStatusOther
 		log.Errorf("Get candidates %s , err:%s", validatedResult.CarfileCID, err.Error())

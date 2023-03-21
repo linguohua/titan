@@ -123,9 +123,9 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("candidate node not exists: %s", nodeID)
 	}
 
-	oldInfo := s.NodeManager.GetNode(nodeID)
-	if oldInfo != nil {
-		oAddr := oldInfo.Addr()
+	baseInfo := s.NodeManager.GetNode(nodeID)
+	if baseInfo != nil {
+		oAddr := baseInfo.Addr()
 		if oAddr != remoteAddr {
 			return xerrors.Errorf("node already login, addr : %s", oAddr)
 		}
@@ -147,10 +147,14 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 
 	nodeInfo.NodeType = types.NodeCandidate
 
-	candidateNode.BaseInfo, err = s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
-	if err != nil {
-		return err
+	if baseInfo == nil {
+		baseInfo, err = s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
+		if err != nil {
+			return err
+		}
 	}
+
+	candidateNode.BaseInfo = baseInfo
 
 	err = s.NodeManager.CandidateOnline(candidateNode)
 	if err != nil {
@@ -175,9 +179,9 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 		return xerrors.Errorf("edge node not exists: %s", nodeID)
 	}
 
-	oldInfo := s.NodeManager.GetNode(nodeID)
-	if oldInfo != nil {
-		oAddr := oldInfo.Addr()
+	baseInfo := s.NodeManager.GetNode(nodeID)
+	if baseInfo != nil {
+		oAddr := baseInfo.Addr()
 		if oAddr != remoteAddr {
 			return xerrors.Errorf("node already login, addr : %s", oAddr)
 		}
@@ -199,10 +203,14 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 
 	nodeInfo.NodeType = types.NodeEdge
 
-	edgeNode.BaseInfo, err = s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
-	if err != nil {
-		return err
+	if baseInfo == nil {
+		baseInfo, err = s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
+		if err != nil {
+			return err
+		}
 	}
+
+	edgeNode.BaseInfo = baseInfo
 
 	err = s.NodeManager.EdgeOnline(edgeNode)
 	if err != nil {
@@ -228,6 +236,16 @@ func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.N
 		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 	}
 
+	pStr, err := s.NodeManager.NodeMgrDB.NodePublicKey(nodeID)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
+	}
+
+	publicKey, err := titanrsa.Pem2PublicKey([]byte(pStr))
+	if err != nil {
+		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
+	}
+
 	nodeInfo.PortMapping = port
 
 	nodeInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
@@ -235,7 +253,7 @@ func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.N
 		return nil, xerrors.Errorf("SplitHostPort err:%s", err.Error())
 	}
 
-	return node.NewBaseInfo(nodeInfo, remoteAddr), nil
+	return node.NewBaseInfo(nodeInfo, publicKey, remoteAddr), nil
 }
 
 // NodeExternalServiceAddress get node External address

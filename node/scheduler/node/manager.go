@@ -1,7 +1,11 @@
 package node
 
 import (
+	"bytes"
 	"context"
+	"crypto"
+	"crypto/rsa"
+	"encoding/gob"
 	"sync"
 	"time"
 
@@ -10,6 +14,7 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/cidutil"
+	titanrsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/db/persistent"
 	"github.com/linguohua/titan/node/scheduler/locator"
 	"golang.org/x/xerrors"
@@ -31,15 +36,17 @@ type Manager struct {
 	CarfileDB      *persistent.CarfileDB
 	NodeMgrDB      *persistent.NodeMgrDB
 
+	*rsa.PrivateKey
 	dtypes.ServerID
 }
 
 // NewManager return new node manager instance
-func NewManager(cdb *persistent.CarfileDB, ndb *persistent.NodeMgrDB, serverID dtypes.ServerID) *Manager {
+func NewManager(cdb *persistent.CarfileDB, ndb *persistent.NodeMgrDB, serverID dtypes.ServerID, k *rsa.PrivateKey) *Manager {
 	nodeManager := &Manager{
-		CarfileDB: cdb,
-		NodeMgrDB: ndb,
-		ServerID:  serverID,
+		CarfileDB:  cdb,
+		NodeMgrDB:  ndb,
+		ServerID:   serverID,
+		PrivateKey: k,
 	}
 
 	go nodeManager.run()
@@ -350,43 +357,56 @@ func NewSessionCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error
 	}, nil
 }
 
-// FindNodeDownloadInfos  find node with block cid
+// FindNodeDownloadInfos  find edges with block cid
 func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadInfo, error) {
-	infos := make([]*types.DownloadInfo, 0)
-
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}
 
-	caches, err := m.CarfileDB.ReplicaInfosByCarfile(hash, true)
+	replicas, err := m.CarfileDB.SucceedReplicasByCarfile(hash, types.NodeEdge)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(caches) <= 0 {
-		return nil, xerrors.Errorf("not found node , with hash:%s", hash)
+	if len(replicas) <= 0 {
+		return nil, xerrors.Errorf("not found node , with :%s", cid)
 	}
 
-	for _, cache := range caches {
-		nodeID := cache.NodeID
-		node := m.GetEdgeNode(nodeID)
-		if node == nil {
+	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
+	infos := make([]*types.DownloadInfo, 0)
+
+	for _, nodeID := range replicas {
+		eNode := m.GetEdgeNode(nodeID)
+		if eNode == nil {
 			continue
 		}
 
-		url := node.DownloadURL()
-
-		err := node.nodeAPI.UserNATTravel(context.Background(), userURL)
+		err := eNode.nodeAPI.UserNATTravel(context.Background(), userURL)
 		if err != nil {
-			log.Errorf("%s PingUser err:%s", nodeID, err.Error())
 			continue
 		}
 
-		infos = append(infos, &types.DownloadInfo{URL: url, NodeID: nodeID})
+		credentials, err := eNode.Credentials(cid, titanRsa, m.PrivateKey)
+		if err != nil {
+			continue
+		}
+
+		infos = append(infos, &types.DownloadInfo{URL: eNode.DownloadURL(), NodeID: nodeID, Credentials: credentials})
 	}
 
 	return infos, nil
+}
+
+func (m *Manager) encryptCredentials(at *types.Credentials, publicKey *rsa.PublicKey, rsa *titanrsa.Rsa) ([]byte, error) {
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	err := enc.Encode(at)
+	if err != nil {
+		return nil, err
+	}
+
+	return rsa.Encrypt(buffer.Bytes(), publicKey)
 }
 
 // GetCandidatesWithBlockHash find candidates with block hash

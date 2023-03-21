@@ -1,15 +1,20 @@
 package node
 
 import (
+	"bytes"
 	"context"
+	"crypto/rsa"
+	"encoding/gob"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/api/types"
+	titanrsa "github.com/linguohua/titan/node/rsa"
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/go-jsonrpc"
@@ -135,6 +140,7 @@ func (c *Candidate) ClientCloser() {
 // BaseInfo Common
 type BaseInfo struct {
 	*types.NodeInfo
+	publicKey  *rsa.PublicKey
 	remoteAddr string
 
 	lastRequestTime time.Time
@@ -143,13 +149,19 @@ type BaseInfo struct {
 }
 
 // NewBaseInfo new
-func NewBaseInfo(nodeInfo *types.NodeInfo, addr string) *BaseInfo {
+func NewBaseInfo(nodeInfo *types.NodeInfo, pKey *rsa.PublicKey, addr string) *BaseInfo {
 	bi := &BaseInfo{
 		NodeInfo:   nodeInfo,
+		publicKey:  pKey,
 		remoteAddr: addr,
 	}
 
 	return bi
+}
+
+// PublicKey get publicKey key
+func (n *BaseInfo) PublicKey() *rsa.PublicKey {
+	return n.publicKey
 }
 
 // Addr rpc url
@@ -202,4 +214,37 @@ func (n *BaseInfo) CurCacheCount() int {
 // SetNodePort reset node port
 func (n *BaseInfo) SetNodePort(port string) {
 	n.PortMapping = port
+}
+
+// Credentials get Credentials
+func (n *BaseInfo) Credentials(cid string, titanRsa *titanrsa.Rsa, privateKey *rsa.PrivateKey) (*types.GatewayCredentials, error) {
+	svc := &types.Credentials{
+		ID:        uuid.NewString(),
+		NodeID:    n.NodeID,
+		CarCID:    cid,
+		ValidTime: time.Now().Add(10 * time.Hour).Unix(),
+	}
+
+	b, err := n.encryptCredentials(svc, n.publicKey, titanRsa)
+	if err != nil {
+		return nil, xerrors.Errorf("%s encryptCredentials err:%s", n.NodeID, err.Error())
+	}
+
+	sign, err := titanRsa.Sign(privateKey, b)
+	if err != nil {
+		return nil, xerrors.Errorf("%s Sign err:%s", n.NodeID, err.Error())
+	}
+
+	return &types.GatewayCredentials{Ciphertext: string(b), Sign: string(sign)}, nil
+}
+
+func (n *BaseInfo) encryptCredentials(at *types.Credentials, publicKey *rsa.PublicKey, rsa *titanrsa.Rsa) ([]byte, error) {
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	err := enc.Encode(at)
+	if err != nil {
+		return nil, err
+	}
+
+	return rsa.Encrypt(buffer.Bytes(), publicKey)
 }
