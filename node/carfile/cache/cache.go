@@ -243,7 +243,7 @@ func (cfCache *carfileCache) cacheStatus() types.CacheStatus {
 	if cfCache.isFinish {
 		return types.CacheStatusFailed
 	}
-	return types.CacheStatusDownloading
+	return types.CacheStatusCaching
 }
 
 func (cfCache *carfileCache) Progress() *types.CarfileProgress {

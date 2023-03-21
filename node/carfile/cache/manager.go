@@ -303,7 +303,7 @@ func (m *Manager) CachedStatus(root cid.Cid) (types.CacheStatus, error) {
 	for _, cw := range m.waitList {
 		if cw.Root.Hash().String() == root.Hash().String() {
 			if cw.cache != nil {
-				return types.CacheStatusDownloading, nil
+				return types.CacheStatusCaching, nil
 			}
 			return types.CacheStatusWaiting, nil
 		}

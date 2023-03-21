@@ -158,14 +158,14 @@ func (m *Manager) nodesCacheProgresses() {
 
 	f := func(nodeID string, cids []string) {
 		// request node
-		ps, isCandidate, err := m.nodeCachedProgresses(nodeID, cids)
+		result, err := m.nodeCachedProgresses(nodeID, cids)
 		if err != nil {
 			log.Errorf("%s nodeCachedProgresses err:%s", nodeID, err.Error())
 			return
 		}
 
 		// update carfile info
-		m.cacheCarfileResult(nodeID, ps, isCandidate)
+		m.cacheCarfileResult(nodeID, result)
 	}
 
 	for nodeID, cids := range nodeCaches {
@@ -173,21 +173,16 @@ func (m *Manager) nodesCacheProgresses() {
 	}
 }
 
-func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) (ps []*types.CarfileProgress, isCandidate bool, err error) {
+func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) (result *types.CacheResult, err error) {
 	log.Debugf("nodeID:%s, %v", nodeID, carfileCIDs)
-	var result *types.CacheResult
-	var nodeInfo *types.NodeInfo
 
 	cNode := m.nodeManager.GetCandidateNode(nodeID)
 	if cNode != nil {
 		result, err = cNode.API().CachedProgresses(context.Background(), carfileCIDs)
-		isCandidate = true
-		nodeInfo = cNode.NodeInfo
 	} else {
 		eNode := m.nodeManager.GetEdgeNode(nodeID)
 		if eNode != nil {
 			result, err = eNode.API().CachedProgresses(context.Background(), carfileCIDs)
-			nodeInfo = eNode.NodeInfo
 		} else {
 			err = xerrors.Errorf("node %s offline", nodeID)
 		}
@@ -197,10 +192,6 @@ func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) (ps 
 		return
 	}
 
-	// update node info
-	nodeInfo.DiskUsage = result.DiskUsage
-
-	ps = result.Progresses
 	return
 }
 
@@ -272,8 +263,19 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 }
 
 // cacheCarfileResult block cache result
-func (m *Manager) cacheCarfileResult(nodeID string, progresses []*types.CarfileProgress, isCandidate bool) {
-	for _, progress := range progresses {
+func (m *Manager) cacheCarfileResult(nodeID string, result *types.CacheResult) {
+	isCandidate := false
+	cacheCount := 0
+
+	nodeInfo := m.nodeManager.GetNode(nodeID)
+	if nodeInfo != nil {
+		isCandidate = nodeInfo.NodeType == types.NodeCandidate
+		// update node info
+		nodeInfo.DiskUsage = result.DiskUsage
+		defer nodeInfo.SetCurCacheCount(cacheCount)
+	}
+
+	for _, progress := range result.Progresses {
 		log.Debugf("CacheCarfileResult node_id: %s, status: %d, size: %d/%d, cid: %s ", nodeID, progress.Status, progress.DoneSize, progress.CarfileSize, progress.CarfileCid)
 
 		hash, err := cidutil.CIDString2HashString(progress.CarfileCid)
@@ -292,6 +294,7 @@ func (m *Manager) cacheCarfileResult(nodeID string, progresses []*types.CarfileP
 		}
 
 		if progress.Status == types.CacheStatusWaiting {
+			cacheCount++
 			continue
 		}
 
@@ -308,7 +311,9 @@ func (m *Manager) cacheCarfileResult(nodeID string, progresses []*types.CarfileP
 			continue
 		}
 
-		if progress.Status == types.CacheStatusDownloading {
+		if progress.Status == types.CacheStatusCaching {
+			cacheCount++
+
 			err = m.carfiles.Send(CarfileHash(hash), CarfileInfoUpdate{
 				ResultInfo: &CacheResultInfo{
 					CarfileBlocksCount: int64(progress.CarfileBlocksCount),

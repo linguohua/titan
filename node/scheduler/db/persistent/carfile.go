@@ -24,7 +24,7 @@ func NewCarfileDB(db *sqlx.DB) *CarfileDB {
 // UpdateReplicaInfo update replica info
 func (c *CarfileDB) UpdateReplicaInfo(cInfo *types.ReplicaInfo) error {
 	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=?, done_size=? WHERE id=? AND (status=? or status=?)`, replicaInfoTable)
-	result, err := c.DB.Exec(query, cInfo.Status, cInfo.DoneSize, cInfo.ID, types.CacheStatusDownloading, types.CacheStatusWaiting)
+	result, err := c.DB.Exec(query, cInfo.Status, cInfo.DoneSize, cInfo.ID, types.CacheStatusCaching, types.CacheStatusWaiting)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func (c *CarfileDB) UpdateReplicaInfo(cInfo *types.ReplicaInfo) error {
 // SetCarfileReplicasTimeout set timeout status of replicas
 func (c *CarfileDB) SetCarfileReplicasTimeout(hash string) error {
 	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=? WHERE carfile_hash=? AND (status=? or status=?)`, replicaInfoTable)
-	_, err := c.DB.Exec(query, types.CacheStatusFailed, hash, types.CacheStatusDownloading, types.CacheStatusWaiting)
+	_, err := c.DB.Exec(query, types.CacheStatusFailed, hash, types.CacheStatusCaching, types.CacheStatusWaiting)
 
 	return err
 }
@@ -309,7 +309,7 @@ func (c *CarfileDB) SucceedCachesCount() (int, error) {
 func (c *CarfileDB) UnDoneNodes(hash string) ([]string, error) {
 	var nodes []string
 	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE carfile_hash=? AND (status=? or status=?)`, replicaInfoTable)
-	err := c.DB.Select(&nodes, query, hash, types.CacheStatusDownloading, types.CacheStatusWaiting)
+	err := c.DB.Select(&nodes, query, hash, types.CacheStatusCaching, types.CacheStatusWaiting)
 	return nodes, err
 }
 

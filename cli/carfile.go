@@ -181,8 +181,8 @@ var listCarfilesCmd = &cli.Command{
 	Flags: []cli.Flag{
 		pageFlag,
 		&cli.BoolFlag{
-			Name:  "downloading",
-			Usage: "only show the downloading carfiles",
+			Name:  "caching",
+			Usage: "only show the caching carfiles",
 			Value: false,
 		},
 		&cli.BoolFlag{
@@ -220,7 +220,7 @@ var listCarfilesCmd = &cli.Command{
 			storage.CacheEdgesFailed.String(),
 		}
 
-		downloadingStates := []string{
+		cachingStates := []string{
 			storage.CacheCarfileSeed.String(),
 			storage.CarfileSeedCaching.String(),
 			storage.CacheToCandidates.String(),
@@ -229,10 +229,10 @@ var listCarfilesCmd = &cli.Command{
 			storage.EdgesCaching.String(),
 		}
 
-		states := append([]string{storage.Finalize.String()}, append(failedStates, downloadingStates...)...)
+		states := append([]string{storage.Finalize.String()}, append(failedStates, cachingStates...)...)
 
-		if cctx.Bool("downloading") {
-			states = downloadingStates
+		if cctx.Bool("caching") {
+			states = cachingStates
 		}
 		if cctx.Bool("failed") {
 			states = failedStates

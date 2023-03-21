@@ -312,7 +312,7 @@ func (cfImpl *CarfileImpl) carProgress(root cid.Cid) (*types.CarfileProgress, er
 	switch status {
 	case types.CacheStatusWaiting:
 		return &types.CarfileProgress{CarfileCid: root.String(), Status: types.CacheStatusWaiting}, nil
-	case types.CacheStatusDownloading:
+	case types.CacheStatusCaching:
 		return cfImpl.cacheMgr.CachingCar().Progress(), nil
 	case types.CacheStatusFailed:
 		return cfImpl.cacheMgr.ProgressForFailedCar(root)
