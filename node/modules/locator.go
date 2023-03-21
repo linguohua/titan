@@ -20,8 +20,6 @@ func NewAccessPointManager(params AccessPointManagerParams) *locator.AccessPoint
 	return locator.NewAccessPointMgr(string(token), string(uuid))
 }
 
-func NewRegion(dbPath string) func() (region.Region, error) {
-	return func() (region.Region, error) {
-		return region.NewGeoLiteRegion(dbPath)
-	}
+func NewRegion(dbPath dtypes.GeoDBPath) (region.Region, error) {
+	return region.NewGeoLiteRegion(string(dbPath))
 }
