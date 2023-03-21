@@ -97,8 +97,8 @@ func (n NatType) String() string {
 
 // ListNodesRsp list node
 type ListNodesRsp struct {
-	Data  []*NodeInfo `json:"data"`
-	Total int64       `json:"total"`
+	Data  []NodeInfo `json:"data"`
+	Total int64      `json:"total"`
 }
 
 type ListBlockDownloadInfoReq struct {

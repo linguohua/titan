@@ -227,7 +227,7 @@ type SchedulerStruct struct {
 
 		NodeExternalServiceAddress func(p0 context.Context) (string, error) `perm:"read"`
 
-		NodeInfo func(p0 context.Context, p1 string) (*types.NodeInfo, error) `perm:"read"`
+		NodeInfo func(p0 context.Context, p1 string) (types.NodeInfo, error) `perm:"read"`
 
 		NodeList func(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) `perm:"read"`
 
@@ -937,15 +937,15 @@ func (s *SchedulerStub) NodeExternalServiceAddress(p0 context.Context) (string, 
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) NodeInfo(p0 context.Context, p1 string) (*types.NodeInfo, error) {
+func (s *SchedulerStruct) NodeInfo(p0 context.Context, p1 string) (types.NodeInfo, error) {
 	if s.Internal.NodeInfo == nil {
-		return nil, ErrNotSupported
+		return *new(types.NodeInfo), ErrNotSupported
 	}
 	return s.Internal.NodeInfo(p0, p1)
 }
 
-func (s *SchedulerStub) NodeInfo(p0 context.Context, p1 string) (*types.NodeInfo, error) {
-	return nil, ErrNotSupported
+func (s *SchedulerStub) NodeInfo(p0 context.Context, p1 string) (types.NodeInfo, error) {
+	return *new(types.NodeInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) NodeList(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) {

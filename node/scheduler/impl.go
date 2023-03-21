@@ -312,22 +312,22 @@ func (s *Scheduler) StartOnceElection(ctx context.Context) error {
 }
 
 // NodeInfo return the node information
-func (s *Scheduler) NodeInfo(ctx context.Context, nodeID string) (*types.NodeInfo, error) {
-	nodeInfo := &types.NodeInfo{}
+func (s *Scheduler) NodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error) {
+	nodeInfo := types.NodeInfo{}
 	nodeInfo.Online = false
 
 	info := s.NodeManager.GetNode(nodeID)
 	if info != nil {
-		nodeInfo = info.NodeInfo
+		nodeInfo = *info.NodeInfo
 		nodeInfo.Online = true
 	} else {
 		dbInfo, err := s.NodeManager.NodeMgrDB.NodeInfo(nodeID)
 		if err != nil {
 			log.Errorf("getNodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
-			return nil, err
+			return types.NodeInfo{}, err
 		}
 
-		nodeInfo = dbInfo
+		nodeInfo = *dbInfo
 	}
 
 	return nodeInfo, nil
@@ -488,7 +488,7 @@ func (s *Scheduler) nodeExists(nodeID string, nodeType types.NodeType) bool {
 
 // NodeList list nodes
 func (s *Scheduler) NodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error) {
-	rsp := &types.ListNodesRsp{Data: make([]*types.NodeInfo, 0)}
+	rsp := &types.ListNodesRsp{Data: make([]types.NodeInfo, 0)}
 
 	nodes, total, err := s.NodeManager.NodeMgrDB.ListNodeIDs(cursor, count)
 	if err != nil {
@@ -504,7 +504,7 @@ func (s *Scheduler) NodeList(ctx context.Context, cursor int, count int) (*types
 		validator[id] = struct{}{}
 	}
 
-	nodeInfos := make([]*types.NodeInfo, 0)
+	nodeInfos := make([]types.NodeInfo, 0)
 	for _, nodeID := range nodes {
 		nodeInfo, err := s.NodeInfo(ctx, nodeID)
 		if err != nil {
