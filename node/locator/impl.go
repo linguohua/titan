@@ -310,29 +310,29 @@ func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerA
 
 // AllocateNodes allocate nodes
 func (locator *Locator) AllocateNodes(ctx context.Context, schedulerURL string, nodeType types.NodeType, count int) ([]*types.NodeAllocateInfo, error) {
-	cfg, err := locator.DB.getSchedulerCfg(schedulerURL)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("scheduler %s not exist", schedulerURL)
-		}
-		return nil, err
-	}
+	// cfg, err := locator.DB.getSchedulerCfg(schedulerURL)
+	// if err != nil {
+	// 	if err == sql.ErrNoRows {
+	// 		return nil, fmt.Errorf("scheduler %s not exist", schedulerURL)
+	// 	}
+	// 	return nil, err
+	// }
 
-	schedulerAPI, err := locator.ApMgr.getSchedulerAPI(schedulerURL, cfg.AreaID, cfg.AccessToken)
-	if err != nil {
-		return nil, err
-	}
+	// schedulerAPI, err := locator.ApMgr.getSchedulerAPI(schedulerURL, cfg.AreaID, cfg.AccessToken)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	registerInfos, err := schedulerAPI.AllocateNodes(ctx, nodeType, count)
-	if err != nil {
-		return nil, err
-	}
+	// registerInfos, err := schedulerAPI.AllocateNodes(ctx, nodeType, count)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	for _, registerInfo := range registerInfos {
-		locator.DB.setNodeInfo(registerInfo.NodeID, schedulerURL, cfg.AreaID, false)
-	}
+	// for _, registerInfo := range registerInfos {
+	// 	locator.DB.setNodeInfo(registerInfo.NodeID, schedulerURL, cfg.AreaID, false)
+	// }
 
-	return registerInfos, nil
+	return nil, nil
 }
 
 func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) ([]api.AccessPoint, error) {
