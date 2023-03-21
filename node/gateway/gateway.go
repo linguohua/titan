@@ -93,7 +93,7 @@ func (gw *Gateway) resolvePath(ctx context.Context, p path.Path) (path.Resolved,
 		return nil, err
 	}
 
-	log.Debugf("node:%s root:%s, rest:%v", node.String(), root.String(), rest)
+	log.Debugf("resolve path node:%s root:%s, rest:%v", node.String(), root.String(), rest)
 	return path.NewResolvedPath(ipath, node, root, gopath.Join(rest...)), nil
 }
 
