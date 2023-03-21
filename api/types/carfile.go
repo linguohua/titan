@@ -42,14 +42,14 @@ type RemoveCarfileResult struct {
 type CarfileRecordInfo struct {
 	CarfileCID            string          `db:"carfile_cid"`
 	CarfileHash           string          `db:"carfile_hash"`
-	NeedEdgeReplica       int64           `db:"edge_replica"`
+	NeedEdgeReplica       int64           `db:"edge_replicas"`
 	TotalSize             int64           `db:"total_size"`
 	TotalBlocks           int64           `db:"total_blocks"`
 	Expiration            time.Time       `db:"expiration"`
 	CreateTime            time.Time       `db:"created_time"`
 	EndTime               time.Time       `db:"end_time"`
 	State                 string          `db:"state"`
-	NeedCandidateReplicas int64           `db:"candidate_replica"`
+	NeedCandidateReplicas int64           `db:"candidate_replicas"`
 	ServerID              dtypes.ServerID `db:"server_id"`
 
 	ReplicaInfos []*ReplicaInfo

@@ -27,7 +27,7 @@ var log = logging.Logger("storage")
 const (
 	cachingTimeout               = 30 * time.Second // node caching keepalive (Unit:Second)
 	checkExpirationTimerInterval = 60 * 30          // time interval (Unit:Second)
-	downloadingCarfileMaxCount   = 10               // It needs to be changed to the number of caches
+	cachingCarfileMaxCount       = 10               // It needs to be changed to the number of caches
 	maxDiskUsage                 = 90.0             // If the node disk size is greater than this value, caching will not continue
 	seedCacheCount               = 1                // The number of caches in the first stage
 
@@ -206,6 +206,10 @@ func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) (ps 
 
 // CacheCarfile create a new carfile storing task
 func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
+	if len(m.carfileTickers) >= cachingCarfileMaxCount {
+		return xerrors.Errorf("The carfile in the cache exceeds the limit %d, please wait", cachingCarfileMaxCount)
+	}
+
 	log.Debugf("carfile event: %s, add carfile replica: %d,expiration: %s", info.CarfileCid, info.Replicas, info.Expiration.String())
 
 	cInfo, err := m.nodeManager.CarfileDB.CarfileInfo(info.CarfileHash)
