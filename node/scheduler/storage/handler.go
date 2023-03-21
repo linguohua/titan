@@ -56,6 +56,8 @@ func (m *Manager) handleCacheSeed(ctx statemachine.Context, carfile CarfileInfo)
 				log.Errorf("%s CacheCarfile err:%s", node.NodeID, err.Error())
 				continue
 			}
+
+			node.IncrCurCacheCount(1)
 		}
 	}()
 
@@ -109,6 +111,8 @@ func (m *Manager) handleCacheToCandidates(ctx statemachine.Context, carfile Carf
 				log.Errorf("%s CacheCarfile err:%s", node.NodeID, err.Error())
 				continue
 			}
+
+			node.IncrCurCacheCount(1)
 		}
 	}()
 
@@ -164,6 +168,8 @@ func (m *Manager) handleCacheToEdges(ctx statemachine.Context, carfile CarfileIn
 				log.Errorf("%s CacheCarfile err:%s", node.NodeID, err.Error())
 				continue
 			}
+
+			node.IncrCurCacheCount(1)
 		}
 	}()
 

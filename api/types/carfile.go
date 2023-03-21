@@ -83,8 +83,8 @@ type CacheStatus int
 const (
 	// CacheStatusWaiting status
 	CacheStatusWaiting CacheStatus = iota
-	// CacheStatusDownloading status
-	CacheStatusDownloading
+	// CacheStatusCaching status
+	CacheStatusCaching
 	// CacheStatusFailed status
 	CacheStatusFailed
 	// CacheStatusSucceeded status
@@ -98,8 +98,8 @@ func (c CacheStatus) String() string {
 		return "Waiting"
 	case CacheStatusFailed:
 		return "Failed"
-	case CacheStatusDownloading:
-		return "Downloading"
+	case CacheStatusCaching:
+		return "Caching"
 	case CacheStatusSucceeded:
 		return "Succeeded"
 	default:
