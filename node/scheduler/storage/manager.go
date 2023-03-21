@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"context"
+	"crypto"
 	"crypto/rsa"
 	"crypto/sha1"
 	"database/sql"
@@ -627,18 +628,26 @@ func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
 }
 
 // Sources get download sources
-func (m *Manager) Sources(hash string, nodes []string) []*types.DownloadSource {
+func (m *Manager) Sources(cid string, nodes []string) []*types.DownloadSource {
+	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	sources := make([]*types.DownloadSource, 0)
 	for _, nodeID := range nodes {
 		cNode := m.nodeManager.GetCandidateNode(nodeID)
 		if cNode != nil {
-
-			source := &types.DownloadSource{
-				CandidateURL: cNode.RPCURL(),
-			}
-
-			sources = append(sources, source)
+			continue
 		}
+
+		credentials, err := cNode.Credentials(cid, titanRsa, m.nodeManager.PrivateKey)
+		if err != nil {
+			continue
+		}
+		source := &types.DownloadSource{
+			CandidateURL: cNode.RPCURL(),
+			Credentials:  credentials,
+		}
+
+		sources = append(sources, source)
+
 	}
 
 	return sources

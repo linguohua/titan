@@ -185,26 +185,24 @@ func (c *CarfileDB) ReplicasSucceedCountByCarfile(hash string) (edgeCount, candi
 	return
 }
 
-// CandidatesByCarfile get candidates by hash
-func (c *CarfileDB) CandidatesByCarfile(hash string) ([]string, error) {
-	var out []string
-	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?`,
-		replicaInfoTable)
+// SucceedReplicasByCarfile get succeed replica nodeID by hash
+func (c *CarfileDB) SucceedReplicasByCarfile(hash string, nType types.NodeType) ([]string, error) {
+	isC := false
 
-	if err := c.DB.Select(&out, query, hash, types.CacheStatusSucceeded, true); err != nil {
-		return nil, err
+	switch nType {
+	case types.NodeCandidate:
+		isC = true
+	case types.NodeEdge:
+		isC = false
+	default:
+		return nil, xerrors.Errorf("node type is err:%d", nType)
 	}
 
-	return out, nil
-}
-
-// EdgesByCarfile get edges by hash
-func (c *CarfileDB) EdgesByCarfile(hash string) ([]string, error) {
 	var out []string
 	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?`,
 		replicaInfoTable)
 
-	if err := c.DB.Select(&out, query, hash, types.CacheStatusSucceeded, false); err != nil {
+	if err := c.DB.Select(&out, query, hash, types.CacheStatusSucceeded, isC); err != nil {
 		return nil, err
 	}
 
