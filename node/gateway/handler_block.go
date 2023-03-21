@@ -24,9 +24,10 @@ func (gw *Gateway) serveRawBlock(w http.ResponseWriter, r *http.Request, ticket 
 	c := resolvedPath.Cid()
 	block, err := gw.block(ctx, c)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("can not resolved path: %s", err.Error()), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("can not get block %s, %s", c.String(), err.Error()), http.StatusInternalServerError)
 		return
 	}
+
 	content := bytes.NewReader(block.RawData())
 
 	// Set Content-Disposition
