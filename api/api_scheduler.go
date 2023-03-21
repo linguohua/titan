@@ -52,12 +52,14 @@ type Scheduler interface {
 	ResetCarfileExpiration(ctx context.Context, carfileCid string, time time.Time) error                //perm:admin
 
 	// server
-	StartOnceElection(ctx context.Context) error                          //perm:admin
-	SetEnableValidation(ctx context.Context, enable bool) error           //perm:admin
-	StartOnceValidate(ctx context.Context) error                          //perm:admin
-	EdgeUpdateInfos(ctx context.Context) (map[int]*EdgeUpdateInfo, error) //perm:read
-	SetEdgeUpdateInfo(ctx context.Context, info *EdgeUpdateInfo) error    //perm:admin
-	DeleteEdgeUpdateInfo(ctx context.Context, nodeType int) error         //perm:admin
+	StartOnceElection(ctx context.Context) error                //perm:admin
+	SetEnableValidation(ctx context.Context, enable bool) error //perm:admin
+	StartOnceValidate(ctx context.Context) error                //perm:admin
+	// same as EdgeUpdateInfos, support to update old version edge
+	GetNodeAppUpdateInfos(ctx context.Context) (map[int]*EdgeUpdateInfo, error) //perm:read
+	EdgeUpdateInfos(ctx context.Context) (map[int]*EdgeUpdateInfo, error)       //perm:read
+	SetEdgeUpdateInfo(ctx context.Context, info *EdgeUpdateInfo) error          //perm:admin
+	DeleteEdgeUpdateInfo(ctx context.Context, nodeType int) error               //perm:admin
 
 	// user send result when user download block complete or failed
 	UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error //perm:read

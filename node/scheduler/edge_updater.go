@@ -44,3 +44,7 @@ func (eu *EdgeUpdater) DeleteEdgeUpdateInfo(ctx context.Context, nodeType int) e
 	delete(eu.updateInfos, nodeType)
 	return eu.db.DeleteEdgeUpdateInfo(nodeType)
 }
+
+func (eu *EdgeUpdater) GetNodeAppUpdateInfos(ctx context.Context) (map[int]*api.EdgeUpdateInfo, error) {
+	return eu.updateInfos, nil
+}

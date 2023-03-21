@@ -223,6 +223,8 @@ type SchedulerStruct struct {
 
 		ExchangePublicKey func(p0 context.Context, p1 []byte) ([]byte, error) `perm:"write"`
 
+		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
+
 		IsBehindFullConeNAT func(p0 context.Context, p1 string) (bool, error) `perm:"read"`
 
 		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
@@ -913,6 +915,17 @@ func (s *SchedulerStruct) ExchangePublicKey(p0 context.Context, p1 []byte) ([]by
 
 func (s *SchedulerStub) ExchangePublicKey(p0 context.Context, p1 []byte) ([]byte, error) {
 	return *new([]byte), ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
+	if s.Internal.GetNodeAppUpdateInfos == nil {
+		return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
+	}
+	return s.Internal.GetNodeAppUpdateInfos(p0)
+}
+
+func (s *SchedulerStub) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
+	return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) IsBehindFullConeNAT(p0 context.Context, p1 string) (bool, error) {
