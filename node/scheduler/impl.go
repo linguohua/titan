@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"context"
-	"crypto/rsa"
 	"database/sql"
 	"fmt"
 	"net"
@@ -28,7 +27,6 @@ import (
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/handler"
-	titanRsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/node"
 
 	"github.com/linguohua/titan/node/scheduler/storage"
@@ -82,7 +80,7 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 		return payload.Allow, nil
 	}
 
-	secret, err := s.NodeManager.NodeMgrDB.NodeSecret(nodeID)
+	secret, err := s.NodeManager.NodeMgrDB.NodePublicKey(nodeID)
 	if err != nil {
 		return nil, xerrors.Errorf("%s load node secret failed: %w", nodeID, err)
 	}
@@ -100,7 +98,7 @@ func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, no
 		Allow: api.ReadWritePerms,
 	}
 
-	secret, err := s.NodeManager.NodeMgrDB.NodeSecret(nodeID)
+	secret, err := s.NodeManager.NodeMgrDB.NodePublicKey(nodeID)
 	if err != nil {
 		return "", xerrors.Errorf("%s load node secret failed: %w", nodeID, err)
 	}
@@ -226,11 +224,6 @@ func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.N
 		return nil, xerrors.Errorf("nodeID mismatch %s, %s", nodeID, nodeInfo.NodeID)
 	}
 
-	privateKey, err := s.loadOrNewPrivateKey(nodeID)
-	if err != nil {
-		return nil, xerrors.Errorf("loadOrNewPrivateKey %s err : %s", nodeID, err.Error())
-	}
-
 	port, err := s.NodeManager.NodeMgrDB.NodePortMapping(nodeID)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
@@ -243,47 +236,7 @@ func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.N
 		return nil, xerrors.Errorf("SplitHostPort err:%s", err.Error())
 	}
 
-	return node.NewBaseInfo(nodeInfo, privateKey, remoteAddr), nil
-}
-
-func (s *Scheduler) loadOrNewPrivateKey(nodeID string) (*rsa.PrivateKey, error) {
-	privateKeyStr, err := s.NodeManager.NodeMgrDB.NodePrivateKey(nodeID)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, err
-	}
-
-	var privateKey *rsa.PrivateKey
-	if len(privateKeyStr) > 0 {
-		privateKey, err = titanRsa.Pem2PrivateKey([]byte(privateKeyStr))
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		key, err := titanRsa.GeneratePrivateKey(1024)
-		if err != nil {
-			return nil, err
-		}
-		privateKey = key
-	}
-
-	return privateKey, nil
-}
-
-// NodePublicKey get node Public Key
-func (s *Scheduler) NodePublicKey(ctx context.Context) (string, error) {
-	nodeID := handler.GetNodeID(ctx)
-
-	edgeNode := s.NodeManager.GetEdgeNode(nodeID)
-	if edgeNode != nil {
-		return string(titanRsa.PublicKey2Pem(&edgeNode.PrivateKey().PublicKey)), nil
-	}
-
-	candidateNode := s.NodeManager.GetCandidateNode(nodeID)
-	if candidateNode != nil {
-		return string(titanRsa.PublicKey2Pem(&candidateNode.PrivateKey().PublicKey)), nil
-	}
-
-	return "", fmt.Errorf("can not get node %s publicKey", nodeID)
+	return node.NewBaseInfo(nodeInfo, remoteAddr), nil
 }
 
 // NodeExternalServiceAddress get node External address
@@ -308,28 +261,29 @@ func (s *Scheduler) NodeValidatedResult(ctx context.Context, result api.Validate
 	return nil
 }
 
-func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, pub string, nodeType types.NodeType) error {
-	return nil
+// RegisterNode Register Node , Returns an error if the node is already registered
+func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, pKey string, nodeType types.NodeType) error {
+	return s.NodeManager.NodeMgrDB.InsertNode(pKey, nodeID, nodeType)
 }
 
-func (s *Scheduler) AllocateNodes(ctx context.Context, nodeType types.NodeType, count int) ([]*types.NodeAllocateInfo, error) {
-	list := make([]*types.NodeAllocateInfo, 0)
-	if count <= 0 || count > 10 {
-		return list, nil
-	}
+// func (s *Scheduler) AllocateNodes(ctx context.Context, nodeType types.NodeType, count int) ([]*types.NodeAllocateInfo, error) {
+// 	list := make([]*types.NodeAllocateInfo, 0)
+// 	if count <= 0 || count > 10 {
+// 		return list, nil
+// 	}
 
-	for i := 0; i < count; i++ {
-		info, err := s.NodeManager.Allocate(nodeType)
-		if err != nil {
-			log.Errorf("RegisterNode err:%s", err.Error())
-			continue
-		}
+// 	for i := 0; i < count; i++ {
+// 		info, err := s.NodeManager.Allocate(nodeType)
+// 		if err != nil {
+// 			log.Errorf("RegisterNode err:%s", err.Error())
+// 			continue
+// 		}
 
-		list = append(list, info)
-	}
+// 		list = append(list, info)
+// 	}
 
-	return list, nil
-}
+// 	return list, nil
+// }
 
 // OnlineNodeList Get all online node id
 func (s *Scheduler) OnlineNodeList(ctx context.Context, nodeType types.NodeType) ([]string, error) {

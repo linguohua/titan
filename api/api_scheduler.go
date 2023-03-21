@@ -28,7 +28,6 @@ type Scheduler interface {
 	CandidateNodeConnect(ctx context.Context) error                                                      //perm:write
 	RemoveCarfileResult(ctx context.Context, resultInfo types.RemoveCarfileResult) error                 //perm:write
 	NodeExternalServiceAddress(ctx context.Context) (string, error)                                      //perm:read
-	NodePublicKey(ctx context.Context) (string, error)                                                   //perm:write
 	AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error)                         //perm:read
 	AuthNodeNew(ctx context.Context, perms []auth.Permission, nodeID, nodeSecret string) (string, error) //perm:read
 	NodeInfo(ctx context.Context, nodeID string) (*types.NodeInfo, error)                                //perm:read

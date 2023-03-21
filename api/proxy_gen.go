@@ -239,8 +239,6 @@ type SchedulerStruct struct {
 
 		NodeNatType func(p0 context.Context, p1 string) (types.NatType, error) `perm:"write"`
 
-		NodePublicKey func(p0 context.Context) (string, error) `perm:"write"`
-
 		NodeQuit func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
 		NodeValidatedResult func(p0 context.Context, p1 ValidatedResult) error `perm:"write"`
@@ -1003,17 +1001,6 @@ func (s *SchedulerStruct) NodeNatType(p0 context.Context, p1 string) (types.NatT
 
 func (s *SchedulerStub) NodeNatType(p0 context.Context, p1 string) (types.NatType, error) {
 	return *new(types.NatType), ErrNotSupported
-}
-
-func (s *SchedulerStruct) NodePublicKey(p0 context.Context) (string, error) {
-	if s.Internal.NodePublicKey == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.NodePublicKey(p0)
-}
-
-func (s *SchedulerStub) NodePublicKey(p0 context.Context) (string, error) {
-	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) NodeQuit(p0 context.Context, p1 string, p2 string) error {

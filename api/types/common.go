@@ -52,7 +52,6 @@ type NodeInfo struct {
 	DownloadBlocks  int       `json:"download_blocks" form:"downloadCount" gorm:"column:download_blocks;comment:;" db:"download_blocks"`
 	PortMapping     string    `db:"port_mapping"`
 	LastTime        time.Time `db:"last_time"`
-	PrivateKeyStr   string    `db:"private_key"`
 	Quitted         bool      `db:"quitted"`
 }
 

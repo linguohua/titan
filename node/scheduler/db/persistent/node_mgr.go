@@ -32,17 +32,6 @@ func (n *NodeMgrDB) NodeOffline(nodeID string, lastTime time.Time) error {
 	return err
 }
 
-// NodePrivateKey Get node privateKey
-func (n *NodeMgrDB) NodePrivateKey(nodeID string) (string, error) {
-	var privateKey string
-	query := fmt.Sprintf("SELECT private_key FROM %s WHERE node_id=?", nodeInfoTable)
-	if err := n.db.Get(&privateKey, query, nodeID); err != nil {
-		return "", err
-	}
-
-	return privateKey, nil
-}
-
 // LongTimeOfflineNodes get nodes that are offline for a long time
 func (n *NodeMgrDB) LongTimeOfflineNodes(hour int) ([]*types.NodeInfo, error) {
 	list := make([]*types.NodeInfo, 0)
@@ -282,9 +271,9 @@ func (n *NodeMgrDB) ResetOwnerForValidator(serverID dtypes.ServerID, nodeID stri
 // UpdateNodeOnlineInfo update node info
 func (n *NodeMgrDB) UpdateNodeOnlineInfo(info *types.NodeInfo) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (node_id, private_key, mac_location, product_type, cpu_cores, memory, node_name, latitude, disk_usage,
+		`INSERT INTO %s (node_id, mac_location, product_type, cpu_cores, memory, node_name, latitude, disk_usage,
 			    longitude, disk_type, io_system, system_version, nat_type, disk_space, bandwidth_up, bandwidth_down, blocks) 
-				VALUES (:node_id, :private_key, :mac_location, :product_type, :cpu_cores, :memory, :node_name, :latitude, :disk_usage,
+				VALUES (:node_id, :mac_location, :product_type, :cpu_cores, :memory, :node_name, :latitude, :disk_usage,
 				:longitude, :disk_type, :io_system, :system_version, :nat_type, :disk_space, :bandwidth_up, :bandwidth_down, :blocks) 
 				ON DUPLICATE KEY UPDATE node_id=:node_id, last_time=:last_time, quitted=:quitted, disk_usage=:disk_usage, blocks=:blocks`, nodeInfoTable)
 
@@ -318,32 +307,33 @@ func (n *NodeMgrDB) NodeType(nodeID string) (types.NodeType, error) {
 	return types.NodeType(nodeType), nil
 }
 
-func (n *NodeMgrDB) BindNodeAllocateInfo(secret, nodeID string, nodeType types.NodeType) error {
+// InsertNode Insert Node
+func (n *NodeMgrDB) InsertNode(pKey, nodeID string, nodeType types.NodeType) error {
 	info := types.NodeAllocateInfo{
-		Secret:     secret,
+		PublicKey:  pKey,
 		NodeID:     nodeID,
 		NodeType:   int(nodeType),
 		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
 	}
 
-	query := fmt.Sprintf(`INSERT INTO %s (node_id, secret, create_time, node_type)
-	VALUES (:node_id, :secret, :create_time, :node_type)`, nodeAllocateTable)
+	query := fmt.Sprintf(`INSERT INTO %s (node_id, public_key, create_time, node_type)
+	VALUES (:node_id, :public_key, :create_time, :node_type)`, nodeAllocateTable)
 
 	_, err := n.db.NamedExec(query, info)
 
 	return err
 }
 
-// NodeSecret load node secret
-func (n *NodeMgrDB) NodeSecret(nodeID string) (string, error) {
-	var secret string
+// NodePublicKey load node public key
+func (n *NodeMgrDB) NodePublicKey(nodeID string) (string, error) {
+	var pKey string
 
-	query := fmt.Sprintf(`SELECT secret FROM %s WHERE node_id=?`, nodeAllocateTable)
-	if err := n.db.Get(&secret, query, nodeID); err != nil {
-		return secret, err
+	query := fmt.Sprintf(`SELECT public_key FROM %s WHERE node_id=?`, nodeAllocateTable)
+	if err := n.db.Get(&pKey, query, nodeID); err != nil {
+		return pKey, err
 	}
 
-	return secret, nil
+	return pKey, nil
 }
 
 // NodeExists is node exists
