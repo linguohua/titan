@@ -15,26 +15,26 @@ import (
 var secretRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // Allocate Allocate a Node
-func (m *Manager) Allocate(nodeType types.NodeType) (*types.NodeAllocateInfo, error) {
-	info := &types.NodeAllocateInfo{}
+// func (m *Manager) Allocate(nodeType types.NodeType) (*types.NodeAllocateInfo, error) {
+// 	info := &types.NodeAllocateInfo{}
 
-	nodeID, err := newNodeID(nodeType)
-	if err != nil {
-		return info, err
-	}
+// 	nodeID, err := newNodeID(nodeType)
+// 	if err != nil {
+// 		return info, err
+// 	}
 
-	secret := newSecret()
+// 	secret := newSecret()
 
-	err = m.NodeMgrDB.BindNodeAllocateInfo(secret, nodeID, nodeType)
-	if err != nil {
-		return info, err
-	}
+// 	err = m.NodeMgrDB.BindNodeAllocateInfo(secret, nodeID, nodeType)
+// 	if err != nil {
+// 		return info, err
+// 	}
 
-	info.NodeID = nodeID
-	info.Secret = secret
+// 	info.NodeID = nodeID
+// 	info.PublicKey = secret
 
-	return info, nil
-}
+// 	return info, nil
+// }
 
 func newNodeID(nodeType types.NodeType) (string, error) {
 	u2 := uuid.New()

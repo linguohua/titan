@@ -22,7 +22,7 @@ type DownloadRecordInfo struct {
 type NodeAllocateInfo struct {
 	ID         int
 	NodeID     string `db:"node_id"`
-	Secret     string `db:"secret"`
+	PublicKey  string `db:"public_key"`
 	CreateTime string `db:"create_time"`
 	NodeType   int    `db:"node_type"`
 }

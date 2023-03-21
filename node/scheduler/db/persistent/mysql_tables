@@ -5,7 +5,6 @@ CREATE TABLE `node_info` (
     `download_traffic` float DEFAULT '0',
     `upload_traffic` float DEFAULT '0',
     `download_blocks` bigint DEFAULT '0' ,
-	`private_key` varchar(1024) DEFAULT '' ,
     `last_time` datetime DEFAULT CURRENT_TIMESTAMP ,
     `quitted` BOOLEAN DEFAULT '0' ,
 	`port_mapping` varchar(8) DEFAULT '' ,
@@ -60,12 +59,11 @@ CREATE TABLE `block_download_info` (
 ) ENGINE=InnoDB COMMENT='block download information';
 
 CREATE TABLE `node_allocate_info` (
-    `id` int unsigned NOT NULL AUTO_INCREMENT,
 	`node_id` varchar(128) NOT NULL UNIQUE,
-    `secret` varchar(64) NOT NULL ,
+	`public_key` varchar(1024) DEFAULT '' ,
     `create_time` varchar(64) DEFAULT '' ,
 	`node_type` varchar(64) DEFAULT '' ,
-	PRIMARY KEY (`id`)
+	PRIMARY KEY (`node_id`)
 ) ENGINE=InnoDB COMMENT='node allocate info';
 
 CREATE TABLE `replicas` (

@@ -85,13 +85,13 @@ func (s *Scheduler) signDownloadInfos(cid string, results []*types.DownloadInfo,
 
 		privateKey, exist := privateKeys[nodeID]
 		if !exist {
-			var err error
-			privateKey, err = s.getNodePrivateKey(nodeID)
-			if err != nil {
-				log.Errorf("signDownloadInfos get private key error:%s", err.Error())
-				return err
-			}
-			privateKeys[nodeID] = privateKey
+			// var err error
+			// privateKey, err = s.getNodePrivateKey(nodeID)
+			// if err != nil {
+			// 	log.Errorf("signDownloadInfos get private key error:%s", err.Error())
+			// 	return err
+			// }
+			// privateKeys[nodeID] = privateKey
 		}
 
 		sign, err := titanRsa.RsaSign(privateKey, fmt.Sprintf("%s%d%d%d", nodeID, sn, signTime, blockDownloadTimeout))
@@ -105,30 +105,6 @@ func (s *Scheduler) signDownloadInfos(cid string, results []*types.DownloadInfo,
 		results[index].TimeOut = blockDownloadTimeout
 	}
 	return nil
-}
-
-func (s *Scheduler) getNodePrivateKey(nodeID string) (*rsa.PrivateKey, error) {
-	edge := s.NodeManager.GetEdgeNode(nodeID)
-	if edge != nil {
-		return edge.PrivateKey(), nil
-	}
-
-	candidate := s.NodeManager.GetCandidateNode(nodeID)
-	if candidate != nil {
-		return candidate.PrivateKey(), nil
-	}
-
-	privateKeyStr, err := s.NodeManager.NodeMgrDB.NodePrivateKey(nodeID)
-	if err != nil {
-		return nil, err
-	}
-
-	privateKey, err := titanRsa.Pem2PrivateKey([]byte(privateKeyStr))
-	if err != nil {
-		return nil, err
-	}
-
-	return privateKey, nil
 }
 
 func (s *Scheduler) getNodesUnValidate(minute int) ([]string, error) {

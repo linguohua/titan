@@ -2,7 +2,6 @@ package node
 
 import (
 	"context"
-	"crypto/rsa"
 	"fmt"
 	"net/http"
 	"strings"
@@ -136,7 +135,6 @@ func (c *Candidate) ClientCloser() {
 // BaseInfo Common
 type BaseInfo struct {
 	*types.NodeInfo
-	privateKey *rsa.PrivateKey
 	remoteAddr string
 
 	lastRequestTime time.Time
@@ -145,19 +143,13 @@ type BaseInfo struct {
 }
 
 // NewBaseInfo new
-func NewBaseInfo(nodeInfo *types.NodeInfo, privateKey *rsa.PrivateKey, addr string) *BaseInfo {
+func NewBaseInfo(nodeInfo *types.NodeInfo, addr string) *BaseInfo {
 	bi := &BaseInfo{
 		NodeInfo:   nodeInfo,
-		privateKey: privateKey,
 		remoteAddr: addr,
 	}
 
 	return bi
-}
-
-// PrivateKey get private key
-func (n *BaseInfo) PrivateKey() *rsa.PrivateKey {
-	return n.privateKey
 }
 
 // Addr rpc url
