@@ -30,8 +30,8 @@ func encode(input interface{}) ([]byte, error) {
 
 func decode(data []byte, out interface{}) error {
 	buffer := bytes.NewBuffer(data)
-	enc := gob.NewDecoder(buffer)
-	err := enc.Decode(out)
+	dec := gob.NewDecoder(buffer)
+	err := dec.Decode(out)
 	if err != nil {
 		return err
 	}

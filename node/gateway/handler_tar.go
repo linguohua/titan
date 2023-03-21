@@ -12,7 +12,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-func (gw *Gateway) serveTAR(w http.ResponseWriter, r *http.Request, ticket *types.AccessTicket) {
+func (gw *Gateway) serveTAR(w http.ResponseWriter, r *http.Request, ticket *types.Credentials) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 

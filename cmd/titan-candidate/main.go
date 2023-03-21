@@ -32,6 +32,7 @@ import (
 	"github.com/linguohua/titan/metrics"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/repo"
+	titanrsa "github.com/linguohua/titan/node/rsa"
 	"github.com/quic-go/quic-go/http3"
 
 	"github.com/google/uuid"
@@ -253,8 +254,15 @@ var runCmd = &cli.Command{
 
 				return dtypes.InternalIP(strings.Split(localAddr.IP.String(), ":")[0]), nil
 			}),
-			node.Override(node.RunGateway, func(cs *store.CarfileStore) {
-				gw = gateway.NewGateway(cs, schedulerAPI)
+			node.Override(node.RunGateway, func(cs *store.CarfileStore) error {
+				privateKey, err := titanrsa.Pem2PrivateKey([]byte(secret))
+				if err != nil {
+					return xerrors.Errorf("could not parse private key: %w", err)
+				}
+
+				gw = gateway.NewGateway(cs, schedulerAPI, privateKey)
+
+				return nil
 			}),
 		)
 		if err != nil {

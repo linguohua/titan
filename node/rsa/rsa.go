@@ -4,14 +4,20 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
-	"crypto/sha512"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-
-	"github.com/opentracing/opentracing-go/log"
+	"hash"
 )
+
+type Rsa struct {
+	code crypto.Hash
+	hash hash.Hash
+}
+
+func New(code crypto.Hash, hash hash.Hash) *Rsa {
+	return &Rsa{code, hash}
+}
 
 // GeneratePrivateKey Generate PrivateKey
 func GeneratePrivateKey(bits int) (*rsa.PrivateKey, error) {
@@ -24,16 +30,12 @@ func GeneratePrivateKey(bits int) (*rsa.PrivateKey, error) {
 }
 
 // VerifyRsaSign Verify Rsa Sign
-func VerifyRsaSign(publicKey *rsa.PublicKey, sign []byte, content string) error {
-	hash := sha256.New()
-	_, err := hash.Write([]byte(content))
-	if err != nil {
-		return err
-	}
+func (r *Rsa) VerifySign(publicKey *rsa.PublicKey, sign []byte, content []byte) error {
+	r.hash.Write(content)
+	hashSum := r.hash.Sum(nil)
+	r.hash.Reset()
 
-	hashSum := hash.Sum(nil)
-
-	err = rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, hashSum, sign)
+	err := rsa.VerifyPKCS1v15(publicKey, r.code, hashSum, sign)
 	if err != nil {
 		return err
 	}
@@ -41,15 +43,12 @@ func VerifyRsaSign(publicKey *rsa.PublicKey, sign []byte, content string) error 
 }
 
 // RsaSign Rsa Sign
-func RsaSign(privateKey *rsa.PrivateKey, content string) ([]byte, error) {
-	msgHash := sha256.New()
-	_, err := msgHash.Write([]byte(content))
-	if err != nil {
-		return nil, err
-	}
-	msgHashSum := msgHash.Sum(nil)
+func (r *Rsa) Sign(privateKey *rsa.PrivateKey, content []byte) ([]byte, error) {
+	r.hash.Write(content)
+	sum := r.hash.Sum(nil)
+	r.hash.Reset()
 
-	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, msgHashSum)
+	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, r.code, sum)
 	if err != nil {
 		return nil, err
 	}
@@ -122,22 +121,20 @@ func PublicKey2Pem(publicKey *rsa.PublicKey) []byte {
 	return publicKeyBytes
 }
 
-// EncryptWithPublicKey encrypts data with public key
-func EncryptWithPublicKey(msg []byte, pub *rsa.PublicKey) []byte {
-	hash := sha512.New()
-	ciphertext, err := rsa.EncryptOAEP(hash, rand.Reader, pub, msg, nil)
+// Encrypt encrypts data with public key
+func (r *Rsa) Encrypt(msg []byte, pub *rsa.PublicKey) ([]byte, error) {
+	ciphertext, err := rsa.EncryptOAEP(r.hash, rand.Reader, pub, msg, nil)
 	if err != nil {
-		log.Error(err)
+		return nil, err
 	}
-	return ciphertext
+	return ciphertext, nil
 }
 
-// DecryptWithPrivateKey decrypts data with private key
-func DecryptWithPrivateKey(ciphertext []byte, priv *rsa.PrivateKey) []byte {
-	hash := sha512.New()
-	plaintext, err := rsa.DecryptOAEP(hash, rand.Reader, priv, ciphertext, nil)
+// Decrypt decrypts data with private key
+func (r *Rsa) Decrypt(ciphertext []byte, priv *rsa.PrivateKey) ([]byte, error) {
+	plaintext, err := rsa.DecryptOAEP(r.hash, rand.Reader, priv, ciphertext, nil)
 	if err != nil {
-		log.Error(err)
+		return nil, err
 	}
-	return plaintext
+	return plaintext, nil
 }

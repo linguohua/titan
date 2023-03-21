@@ -15,7 +15,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-func (gw *Gateway) serveFile(w http.ResponseWriter, r *http.Request, ticket *types.AccessTicket, file files.File) {
+func (gw *Gateway) serveFile(w http.ResponseWriter, r *http.Request, ticket *types.Credentials, file files.File) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 

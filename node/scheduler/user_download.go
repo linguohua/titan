@@ -1,16 +1,18 @@
 package scheduler
 
 import (
+	"bytes"
 	"context"
+	"crypto"
 	"crypto/rsa"
-	"encoding/hex"
-	"fmt"
+	"encoding/gob"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/handler"
-	titanRsa "github.com/linguohua/titan/node/rsa"
+	titanrsa "github.com/linguohua/titan/node/rsa"
 	"golang.org/x/xerrors"
 )
 
@@ -29,11 +31,6 @@ func (s *Scheduler) UserDownloadResult(ctx context.Context, result types.UserDow
 		if carfileInfo != nil && carfileInfo.CarfileCID != "" {
 			blockDownloadInfo.CarfileCID = result.BlockCID
 		}
-
-		// err = cache.NodeDownloadCount(nodeID, blockDownloadInfo)
-		// if err != nil {
-		// 	return err
-		// }
 	}
 
 	return nil
@@ -67,7 +64,7 @@ func (s *Scheduler) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types
 		return nil, err
 	}
 
-	err = s.signDownloadInfos(cid, infos, make(map[string]*rsa.PrivateKey))
+	err = s.signDownloadInfos(cid, infos, make(map[string]*rsa.PublicKey))
 	if err != nil {
 		return nil, err
 	}
@@ -75,38 +72,63 @@ func (s *Scheduler) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types
 	return infos, nil
 }
 
-func (s *Scheduler) signDownloadInfos(cid string, results []*types.DownloadInfo, privateKeys map[string]*rsa.PrivateKey) error {
-	sn := int64(0)
-
-	signTime := time.Now().Unix()
+func (s *Scheduler) signDownloadInfos(cid string, results []*types.DownloadInfo, publicKeys map[string]*rsa.PublicKey) error {
+	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 
 	for index := range results {
 		nodeID := results[index].NodeID
 
-		privateKey, exist := privateKeys[nodeID]
+		publicKey, exist := publicKeys[nodeID]
 		if !exist {
-			// var err error
-			// privateKey, err = s.getNodePrivateKey(nodeID)
-			// if err != nil {
-			// 	log.Errorf("signDownloadInfos get private key error:%s", err.Error())
-			// 	return err
-			// }
-			// privateKeys[nodeID] = privateKey
+			var err error
+			publicKey, err = s.getNodePublicKey(nodeID)
+			if err != nil {
+				log.Errorf("signDownloadInfos get private key error:%s", err.Error())
+				return err
+			}
+			publicKeys[nodeID] = publicKey
 		}
 
-		sign, err := titanRsa.RsaSign(privateKey, fmt.Sprintf("%s%d%d%d", nodeID, sn, signTime, blockDownloadTimeout))
+		credentials := &types.Credentials{
+			ID:        uuid.NewString(),
+			NodeID:    nodeID,
+			CarCID:    cid,
+			ValidTime: time.Now().Add(10 * time.Hour).Unix(),
+		}
+		ciphertext, err := s.encryptCredentials(credentials, publicKey, titanRsa)
 		if err != nil {
-			log.Errorf("signDownloadInfos rsa sign error:%s", err.Error())
 			return err
 		}
-		results[index].Sign = hex.EncodeToString(sign)
-		results[index].SN = sn
-		results[index].SignTime = signTime
-		results[index].TimeOut = blockDownloadTimeout
+
+		sign, err := titanRsa.Sign(s.PrivateKey, ciphertext)
+		if err != nil {
+			return err
+		}
+		results[index].Credentials = &types.GatewayCredentials{Ciphertext: string(ciphertext), Sign: string(sign)}
 	}
 	return nil
 }
 
 func (s *Scheduler) getNodesUnValidate(minute int) ([]string, error) {
 	return s.NodeManager.CarfileDB.GetNodesByUserDownloadBlockIn(minute)
+}
+
+func (s *Scheduler) getNodePublicKey(nodeID string) (*rsa.PublicKey, error) {
+	pem, err := s.NodeManager.NodeMgrDB.NodePublicKey(nodeID)
+	if err != nil {
+		return nil, err
+	}
+
+	return titanrsa.Pem2PublicKey([]byte(pem))
+}
+
+func (s *Scheduler) encryptCredentials(at *types.Credentials, publicKey *rsa.PublicKey, rsa *titanrsa.Rsa) ([]byte, error) {
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	err := enc.Encode(at)
+	if err != nil {
+		return nil, err
+	}
+
+	return rsa.Encrypt(buffer.Bytes(), publicKey)
 }

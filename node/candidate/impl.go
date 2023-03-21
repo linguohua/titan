@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/node/config"
-	"github.com/linguohua/titan/node/gateway"
 	"go.uber.org/fx"
 
 	"github.com/filecoin-project/go-jsonrpc"
@@ -68,7 +67,6 @@ type Candidate struct {
 
 	*common.CommonAPI
 	*carfile.CarfileImpl
-	*gateway.BlockDownload
 	*device.Device
 	*vd.Validate
 	*datasync.DataSync

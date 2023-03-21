@@ -34,23 +34,13 @@ type Gateway struct {
 	schedulerPublicKey *rsa.PublicKey
 }
 
-func NewGateway(cs *store.CarfileStore, scheduler api.Scheduler) *Gateway {
-	privateKey, err := titanrsa.GeneratePrivateKey(1024)
-	if err != nil {
-		log.Panicf("generate private key error:%s", err.Error())
-	}
-
-	publicKey := titanrsa.PublicKey2Pem(&privateKey.PublicKey)
-	if publicKey == nil {
-		log.Panicf("can not convert public key to pem")
-	}
-
-	publicPem, err := scheduler.ExchangePublicKey(context.Background(), publicKey)
+func NewGateway(cs *store.CarfileStore, scheduler api.Scheduler, privateKey *rsa.PrivateKey) *Gateway {
+	pem, err := scheduler.PublicKey(context.Background())
 	if err != nil {
 		log.Errorf("exchange public key from scheduler error %s", err.Error())
 	}
 
-	schedulerPublicKey, err := titanrsa.Pem2PublicKey(publicPem)
+	schedulerPublicKey, err := titanrsa.Pem2PublicKey([]byte(pem))
 	if err != nil {
 		log.Errorf("can not convert pem to public key %s", err.Error())
 	}

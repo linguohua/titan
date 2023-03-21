@@ -1,12 +1,17 @@
 package gateway
 
 import (
+	"bytes"
+	"crypto"
+	"encoding/gob"
 	"fmt"
+	"io/ioutil"
 	"mime"
 	"net/http"
 	"strings"
 
 	"github.com/linguohua/titan/api/types"
+	titanrsa "github.com/linguohua/titan/node/rsa"
 )
 
 const (
@@ -20,7 +25,7 @@ const (
 )
 
 func (gw *Gateway) getHandler(w http.ResponseWriter, r *http.Request) {
-	ticket, err := verifyTicket(w, r)
+	ticket, err := gw.verifyCredentials(w, r)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("verify ticket error : %s", err.Error()), http.StatusUnauthorized)
 		return
@@ -47,6 +52,43 @@ func (gw *Gateway) getHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("unsupported format %s", respFormat), http.StatusBadRequest)
 		return
 	}
+}
+
+func (gw *Gateway) verifyCredentials(w http.ResponseWriter, r *http.Request) (*types.Credentials, error) {
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	buffer := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(buffer)
+
+	gwCredentials := &types.GatewayCredentials{}
+	err = dec.Decode(gwCredentials)
+	if err != nil {
+		return nil, err
+	}
+
+	rsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
+	err = rsa.VerifySign(gw.schedulerPublicKey, []byte(gwCredentials.Sign), []byte(gwCredentials.Ciphertext))
+	if err != nil {
+		return nil, err
+	}
+
+	mgs, err := rsa.Decrypt([]byte(gwCredentials.Ciphertext), gw.privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	buffer = bytes.NewBuffer(mgs)
+	dec = gob.NewDecoder(buffer)
+
+	credentials := &types.Credentials{}
+	err = dec.Decode(credentials)
+	if err != nil {
+		return nil, err
+	}
+	return credentials, nil
 }
 
 func customResponseFormat(r *http.Request) (mediaType string, params map[string]string, err error) {
@@ -87,8 +129,4 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 		}
 	}
 	return "", nil, nil
-}
-
-func verifyTicket(w http.ResponseWriter, r *http.Request) (*types.AccessTicket, error) {
-	return nil, nil
 }

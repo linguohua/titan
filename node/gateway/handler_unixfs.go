@@ -10,7 +10,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-func (gw *Gateway) serveUnixFS(w http.ResponseWriter, r *http.Request, ticket *types.AccessTicket) {
+func (gw *Gateway) serveUnixFS(w http.ResponseWriter, r *http.Request, ticket *types.Credentials) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 
@@ -46,6 +46,6 @@ func (gw *Gateway) serveUnixFS(w http.ResponseWriter, r *http.Request, ticket *t
 	gw.serveDirectory(w, r, ticket, dir)
 }
 
-func (gw *Gateway) serveDirectory(w http.ResponseWriter, r *http.Request, ticket *types.AccessTicket, dir files.Directory) {
+func (gw *Gateway) serveDirectory(w http.ResponseWriter, r *http.Request, ticket *types.Credentials, dir files.Directory) {
 	http.Error(w, "dir list unsupport now", http.StatusBadRequest)
 }
