@@ -46,7 +46,7 @@ func ConfigLocator(c interface{}) Option {
 		Override(new(dtypes.ServerID), modules.NewServerID),
 		Override(new(*sqlx.DB), modules.NewDB),
 		Override(new(*locator.SqlDB), locator.NewSQLDB),
-		Override(new(region.Region), modules.NewRegion(cfg.GeoDBPath)),
+		Override(new(region.Region), modules.NewRegion),
 		Override(new(*locator.AccessPointMgr), modules.NewAccessPointManager),
 		Override(new(dtypes.SessionCallbackFunc), func() dtypes.SessionCallbackFunc {
 			return func(s string, s2 string) {}
