@@ -3,11 +3,12 @@ package validation
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/linguohua/titan/node/modules/dtypes"
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/linguohua/titan/node/modules/dtypes"
 
 	"golang.org/x/xerrors"
 
@@ -136,7 +137,7 @@ func (v *Validation) sendValidateInfoToValidator(validatorID string, reqList []a
 	}
 }
 
-func (v *Validation) getValidateList(validatorMap map[string]float64) []*validateNodeInfo {
+func (v *Validation) getValidateList() []*validateNodeInfo {
 	validateList := make([]*validateNodeInfo, 0)
 	v.nodeManager.EdgeNodes.Range(func(key, value interface{}) bool {
 		edgeNode := value.(*node.Edge)
@@ -145,19 +146,6 @@ func (v *Validation) getValidateList(validatorMap map[string]float64) []*validat
 		info.nodeID = edgeNode.NodeID
 		info.addr = edgeNode.BaseInfo.RPCURL()
 		info.bandwidth = edgeNode.BandwidthUp
-		validateList = append(validateList, info)
-		return true
-	})
-	v.nodeManager.CandidateNodes.Range(func(key, value interface{}) bool {
-		candidateNode := value.(*node.Candidate)
-		if _, exist := validatorMap[candidateNode.NodeID]; exist {
-			return true
-		}
-		info := &validateNodeInfo{}
-		info.nodeID = candidateNode.NodeID
-		info.nodeType = types.NodeCandidate
-		info.addr = candidateNode.BaseInfo.RPCURL()
-		info.bandwidth = candidateNode.BandwidthUp
 		validateList = append(validateList, info)
 		return true
 	})
@@ -170,35 +158,16 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Re
 
 	validatorMap := make(map[string]float64)
 	for _, id := range validatorList {
-		value, exist := v.nodeManager.CandidateNodes.Load(id)
-		if exist {
-			candidateNode := value.(*node.Candidate)
+		candidateNode := v.nodeManager.GetCandidateNode(id)
+		if candidateNode != nil {
 			validatorMap[id] = candidateNode.BandwidthDown
 		}
 	}
 
-	validateList := v.getValidateList(validatorMap)
+	// load all validate (all edges)
+	validateList := v.getValidateList()
 	if len(validateList) <= 0 {
 		return nil
-	}
-
-	findValidator := func(offset int, bandwidthUp float64) string {
-		vLen := len(validatorList)
-		for i := offset; i < offset+vLen; i++ {
-			index := i % vLen
-			nodeID := validatorList[index]
-			bandwidthDown, exist := validatorMap[nodeID]
-			if !exist {
-				continue
-			}
-
-			if bandwidthDown >= bandwidthUp {
-				validatorMap[nodeID] -= bandwidthUp
-				return nodeID
-			}
-		}
-
-		return ""
 	}
 
 	infos := make([]*types.ValidatedResultInfo, 0)
@@ -213,7 +182,7 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Re
 
 		vs = append(vs, vInfo.nodeID)
 
-		validatorID := findValidator(i, vInfo.bandwidth)
+		validatorID := validatorList[i%len(validatorList)]
 		list, exist := validateReqs[validatorID]
 		if !exist {
 			list = make([]api.ReqValidate, 0)
