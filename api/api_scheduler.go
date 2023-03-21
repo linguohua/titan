@@ -13,14 +13,14 @@ type Scheduler interface {
 	Common
 
 	// node
-	OnlineNodeList(ctx context.Context, nodeType types.NodeType) ([]string, error)                            //perm:read
-	AllocateNodes(ctx context.Context, nodeType types.NodeType, count int) ([]*types.NodeAllocateInfo, error) //perm:admin
-	NodeQuit(ctx context.Context, nodeID, secret string) error                                                //perm:admin
-	NodeLogFileInfo(ctx context.Context, nodeID string) (*LogFile, error)                                     //perm:admin
-	NodeLogFile(ctx context.Context, nodeID string) ([]byte, error)                                           //perm:admin
-	DeleteNodeLogFile(ctx context.Context, nodeID string) error                                               //perm:admin
-	SetNodePort(ctx context.Context, nodeID, port string) error                                               //perm:admin
-	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error                                 //perm:write
+	OnlineNodeList(ctx context.Context, nodeType types.NodeType) ([]string, error)             //perm:read
+	RegisterNode(ctx context.Context, nodeID, publicKey string, nodeType types.NodeType) error //perm:admin
+	NodeQuit(ctx context.Context, nodeID, secret string) error                                 //perm:admin
+	NodeLogFileInfo(ctx context.Context, nodeID string) (*LogFile, error)                      //perm:admin
+	NodeLogFile(ctx context.Context, nodeID string) ([]byte, error)                            //perm:admin
+	DeleteNodeLogFile(ctx context.Context, nodeID string) error                                //perm:admin
+	SetNodePort(ctx context.Context, nodeID, port string) error                                //perm:admin
+	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error                  //perm:write
 	// node send result when user download block complete
 	UserDownloadResult(ctx context.Context, result types.UserDownloadResult) error                       //perm:write
 	EdgeNodeConnect(ctx context.Context) error                                                           //perm:write

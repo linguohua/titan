@@ -93,28 +93,38 @@ var registerNodeCmd = &cli.Command{
 	Usage: "Register nodeID and secret ",
 	Flags: []cli.Flag{
 		nodeTypeFlag,
+		nodeIDFlag,
+		&cli.StringFlag{
+			Name:  "public-key",
+			Usage: "node public key",
+			Value: "",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		t := cctx.Int("node-type")
-		ctx := ReqContext(cctx)
+		nID := cctx.String("node-id")
+		pKey := cctx.String("public-key")
 
+		if t != int(types.NodeEdge) && t != int(types.NodeCandidate) {
+			return xerrors.Errorf("node-type err:%d", t)
+		}
+
+		if nID == "" {
+			return xerrors.New("node-id is nil")
+		}
+
+		if pKey == "" {
+			return xerrors.New("public-key is nil")
+		}
+
+		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
 			return err
 		}
 		defer closer()
 
-		if t != int(types.NodeEdge) && t != int(types.NodeCandidate) && t != int(types.NodeScheduler) {
-			return xerrors.Errorf("node-type err:%d", t)
-		}
-
-		infos, err := schedulerAPI.AllocateNodes(ctx, types.NodeType(t), 1)
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("\nNodeID:%s\nSecret:%s", infos[0].NodeID, infos[0].Secret)
-		return nil
+		return schedulerAPI.RegisterNode(ctx, nID, pKey, types.NodeType(t))
 	},
 }
 

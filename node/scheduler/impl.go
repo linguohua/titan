@@ -308,6 +308,10 @@ func (s *Scheduler) NodeValidatedResult(ctx context.Context, result api.Validate
 	return nil
 }
 
+func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, pub string, nodeType types.NodeType) error {
+	return nil
+}
+
 func (s *Scheduler) AllocateNodes(ctx context.Context, nodeType types.NodeType, count int) ([]*types.NodeAllocateInfo, error) {
 	list := make([]*types.NodeAllocateInfo, 0)
 	if count <= 0 || count > 10 {

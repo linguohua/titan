@@ -191,8 +191,6 @@ type SchedulerStruct struct {
 	CommonStruct
 
 	Internal struct {
-		AllocateNodes func(p0 context.Context, p1 types.NodeType, p2 int) ([]*types.NodeAllocateInfo, error) `perm:"admin"`
-
 		AuthNodeNew func(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) (string, error) `perm:"read"`
 
 		AuthNodeVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
@@ -248,6 +246,8 @@ type SchedulerStruct struct {
 		NodeValidatedResult func(p0 context.Context, p1 ValidatedResult) error `perm:"write"`
 
 		OnlineNodeList func(p0 context.Context, p1 types.NodeType) ([]string, error) `perm:"read"`
+
+		RegisterNode func(p0 context.Context, p1 string, p2 string, p3 types.NodeType) error `perm:"admin"`
 
 		RemoveCarfile func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -741,17 +741,6 @@ func (s *LocatorStub) UserDownloadBlockResults(p0 context.Context, p1 []types.Us
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) AllocateNodes(p0 context.Context, p1 types.NodeType, p2 int) ([]*types.NodeAllocateInfo, error) {
-	if s.Internal.AllocateNodes == nil {
-		return *new([]*types.NodeAllocateInfo), ErrNotSupported
-	}
-	return s.Internal.AllocateNodes(p0, p1, p2)
-}
-
-func (s *SchedulerStub) AllocateNodes(p0 context.Context, p1 types.NodeType, p2 int) ([]*types.NodeAllocateInfo, error) {
-	return *new([]*types.NodeAllocateInfo), ErrNotSupported
-}
-
 func (s *SchedulerStruct) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) (string, error) {
 	if s.Internal.AuthNodeNew == nil {
 		return "", ErrNotSupported
@@ -1058,6 +1047,17 @@ func (s *SchedulerStruct) OnlineNodeList(p0 context.Context, p1 types.NodeType) 
 
 func (s *SchedulerStub) OnlineNodeList(p0 context.Context, p1 types.NodeType) ([]string, error) {
 	return *new([]string), ErrNotSupported
+}
+
+func (s *SchedulerStruct) RegisterNode(p0 context.Context, p1 string, p2 string, p3 types.NodeType) error {
+	if s.Internal.RegisterNode == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.RegisterNode(p0, p1, p2, p3)
+}
+
+func (s *SchedulerStub) RegisterNode(p0 context.Context, p1 string, p2 string, p3 types.NodeType) error {
+	return ErrNotSupported
 }
 
 func (s *SchedulerStruct) RemoveCarfile(p0 context.Context, p1 string) error {
