@@ -1,9 +1,12 @@
 package storage
 
 import (
+	"bytes"
 	"context"
+	"crypto/rsa"
 	"crypto/sha1"
 	"database/sql"
+	"encoding/gob"
 	"encoding/hex"
 	"fmt"
 	"sort"
@@ -18,6 +21,7 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/cidutil"
+	titanrsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
@@ -625,13 +629,12 @@ func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
 // Sources get download sources
 func (m *Manager) Sources(hash string, nodes []string) []*types.DownloadSource {
 	sources := make([]*types.DownloadSource, 0)
-
 	for _, nodeID := range nodes {
 		cNode := m.nodeManager.GetCandidateNode(nodeID)
 		if cNode != nil {
+
 			source := &types.DownloadSource{
-				CandidateURL:   cNode.RPCURL(),
-				CandidateToken: m.writeToken,
+				CandidateURL: cNode.RPCURL(),
 			}
 
 			sources = append(sources, source)
@@ -639,4 +642,15 @@ func (m *Manager) Sources(hash string, nodes []string) []*types.DownloadSource {
 	}
 
 	return sources
+}
+
+func (m *Manager) EncryptCredentials(at *types.Credentials, publicKey *rsa.PublicKey, rsa *titanrsa.Rsa) ([]byte, error) {
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	err := enc.Encode(at)
+	if err != nil {
+		return nil, err
+	}
+
+	return rsa.Encrypt(buffer.Bytes(), publicKey)
 }

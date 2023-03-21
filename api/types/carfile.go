@@ -148,8 +148,8 @@ type SystemBaseInfo struct {
 }
 
 type DownloadSource struct {
-	CandidateURL   string
-	CandidateToken string
+	CandidateURL string
+	Credentials  GatewayCredentials
 }
 
 type CacheStat struct {

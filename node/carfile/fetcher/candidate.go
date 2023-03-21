@@ -9,8 +9,8 @@ import (
 
 	"github.com/linguohua/titan/api/types"
 
-	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-libipfs/blocks"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 )
@@ -66,7 +66,7 @@ func (candidate *candidate) getBlocks(cids []string, dss []*types.DownloadSource
 		i := index % len(dss)
 		ds := dss[i]
 
-		candidateAPI, err := getCandidateAPI(ds.CandidateURL, ds.CandidateToken, candidates)
+		candidateAPI, err := getCandidateAPI(ds.CandidateURL, "", candidates)
 		if err != nil {
 			log.Errorf("loadBlocksFromCandidate getCandidateAPI error:%s", err.Error())
 			continue

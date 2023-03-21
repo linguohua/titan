@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"crypto/rsa"
 	"database/sql"
 	"fmt"
 	"net"
@@ -29,17 +30,13 @@ import (
 	"github.com/linguohua/titan/node/handler"
 	"github.com/linguohua/titan/node/scheduler/node"
 
+	titanrsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/storage"
 	"github.com/linguohua/titan/node/scheduler/sync"
 	"golang.org/x/xerrors"
 )
 
 var log = logging.Logger("scheduler")
-
-const (
-	// seconds
-	blockDownloadTimeout = 30 * 60
-)
 
 // Scheduler node
 type Scheduler struct {
@@ -59,6 +56,8 @@ type Scheduler struct {
 	SchedulerCfg           *config.SchedulerCfg
 	SetSchedulerConfigFunc dtypes.SetSchedulerConfigFunc
 	GetSchedulerConfigFunc dtypes.GetSchedulerConfigFunc
+
+	PrivateKey *rsa.PrivateKey
 }
 
 var _ api.Scheduler = &Scheduler{}
@@ -444,7 +443,7 @@ func (s *Scheduler) NodeLogFileInfo(ctx context.Context, nodeID string) (*api.Lo
 		return eNode.API().ShowLogFile(ctx)
 	}
 
-	return nil, xerrors.Errorf("node %s not found")
+	return nil, xerrors.Errorf("node %s not found", nodeID)
 }
 
 // NodeLogFile Download Node Log File
@@ -459,7 +458,7 @@ func (s *Scheduler) NodeLogFile(ctx context.Context, nodeID string) ([]byte, err
 		return eNode.API().DownloadLogFile(ctx)
 	}
 
-	return nil, xerrors.Errorf("node %s not found")
+	return nil, xerrors.Errorf("node %s not found", nodeID)
 }
 
 func (s *Scheduler) DeleteNodeLogFile(ctx context.Context, nodeID string) error {
@@ -473,7 +472,7 @@ func (s *Scheduler) DeleteNodeLogFile(ctx context.Context, nodeID string) error 
 		return eNode.API().DeleteLogFile(ctx)
 	}
 
-	return xerrors.Errorf("node %s not found")
+	return xerrors.Errorf("node %s not found", nodeID)
 }
 
 // nodeExists Check if the id exists
@@ -570,7 +569,12 @@ func (s *Scheduler) ValidatedResultList(ctx context.Context, startTime, endTime 
 	return svm, nil
 }
 
-func (s *Scheduler) ExchangePublicKey(ctx context.Context, nodePublicKey []byte) ([]byte, error) {
-	// TODO: generate public key
-	return nil, fmt.Errorf("not implement")
+func (s *Scheduler) PublicKey(ctx context.Context) (string, error) {
+	if s.PrivateKey == nil {
+		return "", fmt.Errorf("scheduler private key not exist")
+	}
+
+	publicKey := s.PrivateKey.PublicKey
+	pem := titanrsa.PublicKey2Pem(&publicKey)
+	return string(pem), nil
 }

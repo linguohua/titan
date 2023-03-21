@@ -49,13 +49,9 @@ type UserBlockDownloadResult struct {
 
 // DownloadInfo download info of edge
 type DownloadInfo struct {
-	URL      string
-	Sign     string
-	SN       int64
-	SignTime int64
-	TimeOut  int
-	Weight   int
-	NodeID   string `json:"-"`
+	URL         string
+	Credentials *GatewayCredentials
+	NodeID      string `json:"-"`
 }
 
 // NodeReplicaStatus node cache status
@@ -163,19 +159,28 @@ const (
 	ValidateStatusOther
 )
 
-// DownloadTicket be use for verify download
-type DownloadTicket struct {
-	AccessTicket
-	Rate int64
-	Size int64
-}
-
-// AccessTicket be use for access gateway
-type AccessTicket struct {
+// AccessToken gateway access token
+type Credentials struct {
 	ID        string
 	NodeID    string
 	CarCID    string
 	ClientID  string
 	LimitRate int64
 	ValidTime int64
+}
+
+// GatewayAccessToken be use for access gateway
+type GatewayCredentials struct {
+	// encrypted AccessToken
+	Ciphertext string
+	Sign       string
+}
+
+type NodeWorkloadProof struct {
+	TicketID      string
+	ClientID      string
+	DownloadSpeed int64
+	DownloadSize  int64
+	StartTime     int64
+	EndTime       int64
 }

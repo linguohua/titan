@@ -219,8 +219,6 @@ type SchedulerStruct struct {
 
 		EdgeUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
-		ExchangePublicKey func(p0 context.Context, p1 []byte) ([]byte, error) `perm:"write"`
-
 		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
 		IsBehindFullConeNAT func(p0 context.Context, p1 string) (bool, error) `perm:"read"`
@@ -244,6 +242,8 @@ type SchedulerStruct struct {
 		NodeValidatedResult func(p0 context.Context, p1 ValidatedResult) error `perm:"write"`
 
 		OnlineNodeList func(p0 context.Context, p1 types.NodeType) ([]string, error) `perm:"read"`
+
+		PublicKey func(p0 context.Context) (string, error) `perm:"write"`
 
 		RegisterNode func(p0 context.Context, p1 string, p2 string, p3 types.NodeType) error `perm:"admin"`
 
@@ -893,17 +893,6 @@ func (s *SchedulerStub) EdgeUpdateInfos(p0 context.Context) (map[int]*EdgeUpdate
 	return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) ExchangePublicKey(p0 context.Context, p1 []byte) ([]byte, error) {
-	if s.Internal.ExchangePublicKey == nil {
-		return *new([]byte), ErrNotSupported
-	}
-	return s.Internal.ExchangePublicKey(p0, p1)
-}
-
-func (s *SchedulerStub) ExchangePublicKey(p0 context.Context, p1 []byte) ([]byte, error) {
-	return *new([]byte), ErrNotSupported
-}
-
 func (s *SchedulerStruct) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
 	if s.Internal.GetNodeAppUpdateInfos == nil {
 		return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
@@ -1034,6 +1023,17 @@ func (s *SchedulerStruct) OnlineNodeList(p0 context.Context, p1 types.NodeType) 
 
 func (s *SchedulerStub) OnlineNodeList(p0 context.Context, p1 types.NodeType) ([]string, error) {
 	return *new([]string), ErrNotSupported
+}
+
+func (s *SchedulerStruct) PublicKey(p0 context.Context) (string, error) {
+	if s.Internal.PublicKey == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.PublicKey(p0)
+}
+
+func (s *SchedulerStub) PublicKey(p0 context.Context) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) RegisterNode(p0 context.Context, p1 string, p2 string, p3 types.NodeType) error {
