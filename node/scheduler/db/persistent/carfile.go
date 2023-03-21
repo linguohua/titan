@@ -64,8 +64,8 @@ func (c *CarfileDB) InsertOrUpdateReplicaInfo(infos []*types.ReplicaInfo) error 
 // UpdateOrCreateCarfileRecord update storage record info
 func (c *CarfileDB) UpdateOrCreateCarfileRecord(info *types.CarfileRecordInfo) error {
 	cmd := fmt.Sprintf(
-		`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replica, candidate_replica, expiration, total_size, total_blocks, server_id, end_time) 
-				VALUES (:carfile_hash, :carfile_cid, :state, :edge_replica, :candidate_replica, :expiration, :total_size, :total_blocks, :server_id, NOW()) 
+		`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replicas, candidate_replicas, expiration, total_size, total_blocks, server_id, end_time) 
+				VALUES (:carfile_hash, :carfile_cid, :state, :edge_replicas, :candidate_replicas, :expiration, :total_size, :total_blocks, :server_id, NOW()) 
 				ON DUPLICATE KEY UPDATE total_size=VALUES(total_size), total_blocks=VALUES(total_blocks), state=VALUES(state), end_time=NOW()`, carfileInfoTable)
 
 	_, err := c.DB.NamedExec(cmd, info)
@@ -488,91 +488,4 @@ func (c *CarfileDB) CarfileReplicaList(startTime time.Time, endTime time.Time, c
 	}
 
 	return &types.ListCarfileReplicaRsp{Datas: out, Total: total}, nil
-}
-
-// PushCarfileToWaitList waiting data list
-func (c *CarfileDB) PushCarfileToWaitList(info *types.CacheCarfileInfo) error {
-	query := fmt.Sprintf(
-		`INSERT INTO %s (carfile_hash, carfile_cid, replicas, node_id, expiration, server_id) 
-				VALUES (:carfile_hash, :carfile_cid, :replicas, :node_id, :expiration, :server_id) 
-				ON DUPLICATE KEY UPDATE carfile_hash=:carfile_hash, carfile_cid=:carfile_cid, replicas=:replicas, node_id=:node_id, 
-				expiration=:expiration, server_id=:server_id`, waitingCarfileTable)
-
-	_, err := c.DB.NamedExec(query, info)
-	return err
-}
-
-// LoadWaitCarfiles load
-func (c *CarfileDB) LoadWaitCarfiles(serverID dtypes.ServerID) (*types.CacheCarfileInfo, error) {
-	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE server_id=? order by id asc limit ?`, waitingCarfileTable)
-
-	info := &types.CacheCarfileInfo{}
-	err := c.DB.Get(info, sQuery, serverID, 1)
-	if err != nil {
-		return nil, err
-	}
-
-	return info, nil
-}
-
-// RemoveWaitCarfile remove
-func (c *CarfileDB) RemoveWaitCarfile(id string) error {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE id=?`, waitingCarfileTable)
-	_, err := c.DB.Exec(query, id)
-	return err
-}
-
-// GetCachingCarfiles ...
-func (c *CarfileDB) GetCachingCarfiles(serverID dtypes.ServerID) ([]string, error) {
-	sQuery := fmt.Sprintf(`SELECT carfile_hash FROM %s WHERE server_id=? GROUP BY carfile_hash`, downloadingTable)
-
-	var out []string
-	if err := c.DB.Select(&out, sQuery, serverID); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// ReplicaTasksStart ...
-func (c *CarfileDB) ReplicaTasksStart(serverID dtypes.ServerID, hash string, nodeIDs []string) error {
-	tx, err := c.DB.Beginx()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	for _, nodeID := range nodeIDs {
-		sQuery := fmt.Sprintf(`INSERT INTO %s (carfile_hash, node_id, server_id) VALUES (?, ?, ?)`, downloadingTable)
-		_, err = tx.Exec(sQuery, hash, nodeID, serverID)
-		if err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit()
-}
-
-// ReplicaTasksEnd ...
-func (c *CarfileDB) ReplicaTasksEnd(serverID dtypes.ServerID, hash string, nodeIDs []string) (bool, error) {
-	dQuery := fmt.Sprintf("DELETE FROM %s WHERE server_id=? AND carfile_hash=? AND node_id in (?) ", downloadingTable)
-	query, args, err := sqlx.In(dQuery, serverID, hash, nodeIDs)
-	if err != nil {
-		return false, err
-	}
-
-	// cache info
-	query = c.DB.Rebind(query)
-	_, err = c.DB.Exec(query, args...)
-	if err != nil {
-		return false, err
-	}
-
-	var count int
-	sQuery := fmt.Sprintf("SELECT count(*) FROM %s WHERE carfile_hash=? AND server_id=?", downloadingTable)
-	err = c.DB.Get(&count, sQuery, hash, serverID)
-	if err != nil {
-		return false, err
-	}
-
-	return count == 0, nil
 }
