@@ -633,7 +633,7 @@ func (m *Manager) Sources(cid string, nodes []string) []*types.DownloadSource {
 	sources := make([]*types.DownloadSource, 0)
 	for _, nodeID := range nodes {
 		cNode := m.nodeManager.GetCandidateNode(nodeID)
-		if cNode != nil {
+		if cNode == nil {
 			continue
 		}
 
