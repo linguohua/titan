@@ -123,18 +123,46 @@ func PublicKey2Pem(publicKey *rsa.PublicKey) []byte {
 
 // Encrypt encrypts data with public key
 func (r *Rsa) Encrypt(msg []byte, pub *rsa.PublicKey) ([]byte, error) {
-	ciphertext, err := rsa.EncryptOAEP(r.hash, rand.Reader, pub, msg, nil)
-	if err != nil {
-		return nil, err
+	msgLen := len(msg)
+	step := pub.Size() - 2*r.hash.Size() - 2
+	var encryptedBytes []byte
+
+	for start := 0; start < msgLen; start += step {
+		finish := start + step
+		if finish > msgLen {
+			finish = msgLen
+		}
+
+		encryptedBlockBytes, err := rsa.EncryptOAEP(r.hash, rand.Reader, pub, msg[start:finish], nil)
+		if err != nil {
+			return nil, err
+		}
+
+		encryptedBytes = append(encryptedBytes, encryptedBlockBytes...)
 	}
-	return ciphertext, nil
+
+	return encryptedBytes, nil
 }
 
 // Decrypt decrypts data with private key
 func (r *Rsa) Decrypt(ciphertext []byte, priv *rsa.PrivateKey) ([]byte, error) {
-	plaintext, err := rsa.DecryptOAEP(r.hash, rand.Reader, priv, ciphertext, nil)
-	if err != nil {
-		return nil, err
+	msgLen := len(ciphertext)
+	step := priv.PublicKey.Size()
+	var decryptedBytes []byte
+
+	for start := 0; start < msgLen; start += step {
+		finish := start + step
+		if finish > msgLen {
+			finish = msgLen
+		}
+
+		decryptedBlockBytes, err := rsa.DecryptOAEP(r.hash, rand.Reader, priv, ciphertext[start:finish], nil)
+		if err != nil {
+			return nil, err
+		}
+
+		decryptedBytes = append(decryptedBytes, decryptedBlockBytes...)
 	}
-	return plaintext, nil
+
+	return decryptedBytes, nil
 }
