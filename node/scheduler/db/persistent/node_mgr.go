@@ -19,19 +19,6 @@ func NewNodeMgrDB(db *sqlx.DB) *NodeMgrDB {
 	return &NodeMgrDB{db}
 }
 
-// NodeOffline Set the last online time of the node
-func (n *NodeMgrDB) NodeOffline(nodeID string, lastTime time.Time) error {
-	info := &types.NodeInfo{
-		NodeID:   nodeID,
-		LastTime: lastTime,
-	}
-
-	query := fmt.Sprintf("UPDATE %s WHERE SET last_time=:last_time WHERE node_id=:node_id", nodeInfoTable)
-	_, err := n.db.NamedExec(query, info)
-
-	return err
-}
-
 // LongTimeOfflineNodes get nodes that are offline for a long time
 func (n *NodeMgrDB) LongTimeOfflineNodes(hour int) ([]*types.NodeInfo, error) {
 	list := make([]*types.NodeInfo, 0)
@@ -103,21 +90,6 @@ func (n *NodeMgrDB) InitValidatedResultInfos(infos []*types.ValidatedResultInfo)
 	return tx.Commit()
 }
 
-// SetValidateTimeoutOfNodes Set validator timeout of nodes
-func (n *NodeMgrDB) SetValidateTimeoutOfNodes(roundID int64, nodeIDs []string) error {
-	updateCachesCmd := fmt.Sprintf(`UPDATE %s SET status=?,end_time=NOW() WHERE round_id=? AND node_id in (?)`, validateResultTable)
-	query, args, err := sqlx.In(updateCachesCmd, types.ValidateStatusTimeOut, roundID, nodeIDs)
-	if err != nil {
-		return err
-	}
-
-	// cache info
-	query = n.db.Rebind(query)
-	_, err = n.db.Exec(query, args...)
-
-	return err
-}
-
 // UpdateValidatedResultInfo Update validator info
 func (n *NodeMgrDB) UpdateValidatedResultInfo(info *types.ValidatedResultInfo) error {
 	if info.Status == types.ValidateStatusSuccess {
@@ -128,6 +100,13 @@ func (n *NodeMgrDB) UpdateValidatedResultInfo(info *types.ValidatedResultInfo) e
 
 	query := fmt.Sprintf(`UPDATE %s SET status=:status, end_time=NOW() WHERE round_id=:round_id AND node_id=:node_id`, validateResultTable)
 	_, err := n.db.NamedExec(query, info)
+	return err
+}
+
+// ValidatedTimeout set timeout status to validate result
+func (n *NodeMgrDB) ValidatedTimeout(roundID string) error {
+	query := fmt.Sprintf(`UPDATE %s SET status=?, end_time=NOW() WHERE round_id=:round_id AND status=?`, validateResultTable)
+	_, err := n.db.Exec(query, types.ValidateStatusTimeOut, roundID, types.ValidateStatusCreate)
 	return err
 }
 
@@ -294,19 +273,6 @@ func (n *NodeMgrDB) UpdateNodeOnlineTime(nodeID string, onlineTime int) error {
 	return err
 }
 
-// NodeType load node type
-func (n *NodeMgrDB) NodeType(nodeID string) (types.NodeType, error) {
-	var nodeType int
-
-	cQuery := fmt.Sprintf(`SELECT node_type FROM %s WHERE node_id=?`, nodeAllocateTable)
-	err := n.db.Get(&nodeType, cQuery, nodeID)
-	if err != nil {
-		return types.NodeUnknown, err
-	}
-
-	return types.NodeType(nodeType), nil
-}
-
 // InsertNode Insert Node
 func (n *NodeMgrDB) InsertNode(pKey, nodeID string, nodeType types.NodeType) error {
 	info := types.NodeAllocateInfo{
@@ -388,65 +354,4 @@ func (n *NodeMgrDB) NodeInfo(nodeID string) (*types.NodeInfo, error) {
 	}
 
 	return &out, nil
-}
-
-// SetNodesToVerifyingList validator list
-func (n *NodeMgrDB) SetNodesToVerifyingList(nodeIDs []string, serverID dtypes.ServerID) error {
-	tx, err := n.db.Beginx()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	// clean old validators
-	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE server_id=? `, nodeVerifyingTable)
-	_, err = tx.Exec(dQuery, serverID)
-	if err != nil {
-		return err
-	}
-
-	for _, nodeID := range nodeIDs {
-		iQuery := fmt.Sprintf(`INSERT INTO %s (node_id, server_id) VALUES (?, ?)`, nodeVerifyingTable)
-		_, err = tx.Exec(iQuery, nodeID, serverID)
-		if err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit()
-}
-
-// GetNodesWithVerifyingList load validators
-func (n *NodeMgrDB) GetNodesWithVerifyingList(serverID dtypes.ServerID) ([]string, error) {
-	sQuery := fmt.Sprintf(`SELECT node_id FROM %s WHERE server_id=?`, nodeVerifyingTable)
-
-	var out []string
-	err := n.db.Select(&out, sQuery, serverID)
-	if err != nil {
-		return nil, err
-	}
-
-	return out, nil
-}
-
-// CountVerifyingNode ...
-func (n *NodeMgrDB) CountVerifyingNode(serverID dtypes.ServerID) (int64, error) {
-	var count int64
-	cmd := fmt.Sprintf("SELECT count(node_id) FROM %s WHERE server_id=?", nodeVerifyingTable)
-	err := n.db.Get(&count, cmd, serverID)
-	return count, err
-}
-
-// RemoveValidatedWithList ...
-func (n *NodeMgrDB) RemoveValidatedWithList(nodeID string, serverID dtypes.ServerID) error {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE server_id=? AND node_id=?`, nodeVerifyingTable)
-	_, err := n.db.Exec(query, serverID, nodeID)
-	return err
-}
-
-// RemoveVerifyingList ...
-func (n *NodeMgrDB) RemoveVerifyingList(serverID dtypes.ServerID) error {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE server_id=?`, nodeVerifyingTable)
-	_, err := n.db.Exec(query, serverID)
-	return err
 }

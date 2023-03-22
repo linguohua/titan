@@ -18,7 +18,6 @@ const (
 	edgeUpdateInfo      = "edge_update_info"
 	nodeInfoTable       = "node_info"
 	validatorsTable     = "validators"
-	nodeVerifyingTable  = "node_verifying"
 	nodeAllocateTable   = "node_allocate_info"
 	validateResultTable = "validate_result"
 

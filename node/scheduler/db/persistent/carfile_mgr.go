@@ -72,14 +72,6 @@ func (c *CarfileDB) UpdateOrCreateCarfileRecord(info *types.CarfileRecordInfo) e
 	return err
 }
 
-// CarfileRecordExisted Carfile record existed
-func (c *CarfileDB) CarfileRecordExisted(hash string) (bool, error) {
-	var count int
-	cmd := fmt.Sprintf("SELECT count(carfile_hash) FROM %s WHERE carfile_hash=?", carfileInfoTable)
-	err := c.DB.Get(&count, cmd, hash)
-	return count > 0, err
-}
-
 // CarfileInfo get storage info with hash
 func (c *CarfileDB) CarfileInfo(hash string) (*types.CarfileRecordInfo, error) {
 	var info types.CarfileRecordInfo
@@ -90,33 +82,6 @@ func (c *CarfileDB) CarfileInfo(hash string) (*types.CarfileRecordInfo, error) {
 	}
 
 	return &info, nil
-}
-
-// CarfileInfos get storage infos with hashes
-func (c *CarfileDB) CarfileInfos(hashes []string) ([]*types.CarfileRecordInfo, error) {
-	getCarfilesCmd := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash in (?)`, carfileInfoTable)
-	carfilesQuery, args, err := sqlx.In(getCarfilesCmd, hashes)
-	if err != nil {
-		return nil, err
-	}
-
-	carfileRecords := make([]*types.CarfileRecordInfo, 0)
-
-	carfilesQuery = c.DB.Rebind(carfilesQuery)
-	err = c.DB.Select(&carfileRecords, carfilesQuery, args...)
-
-	return carfileRecords, err
-}
-
-// CountCarfiles count carfiles size
-func (c *CarfileDB) CountCarfiles() (int, error) {
-	var size int
-	cmd := fmt.Sprintf("SELECT count(carfile_hash) FROM %s ;", carfileInfoTable)
-	err := c.DB.Get(&size, cmd)
-	if err != nil {
-		return 0, err
-	}
-	return size, nil
 }
 
 // QueryCarfilesRows ...
@@ -175,13 +140,6 @@ func (c *CarfileDB) CarfileRecordInfos(page int, states []string) (info *types.L
 		return
 	}
 
-	return
-}
-
-// ReplicasSucceedCountByCarfile get edge and candidate succeed replicas
-func (c *CarfileDB) ReplicasSucceedCountByCarfile(hash string) (edgeCount, candidateCont int64, err error) {
-	cmd := fmt.Sprintf("SELECT count(if(is_candidate, true, null)) as candidateCont, count(if(is_candidate, false, null)) as edgeCount FROM %s WHERE carfile_hash=? AND status=? ", replicaInfoTable)
-	err = c.DB.QueryRowx(cmd, hash, types.CacheStatusSucceeded).Scan(&candidateCont, &edgeCount)
 	return
 }
 
@@ -291,35 +249,12 @@ func (c *CarfileDB) ExpiredCarfiles() ([]*types.CarfileRecordInfo, error) {
 	return out, nil
 }
 
-// SucceedCachesCount get succeed caches count
-func (c *CarfileDB) SucceedCachesCount() (int, error) {
-	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE status=?`, replicaInfoTable)
-
-	var count int
-	if err := c.DB.Get(&count, query, types.CacheStatusSucceeded); err != nil {
-		return 0, err
-	}
-
-	return count, nil
-}
-
 // UnDoneNodes load undone nodes for carfile
 func (c *CarfileDB) UnDoneNodes(hash string) ([]string, error) {
 	var nodes []string
 	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE carfile_hash=? AND (status=? or status=?)`, replicaInfoTable)
 	err := c.DB.Select(&nodes, query, hash, types.CacheStatusCaching, types.CacheStatusWaiting)
 	return nodes, err
-}
-
-// LoadReplicaInfo load replica info with id
-func (c *CarfileDB) LoadReplicaInfo(id string) (*types.ReplicaInfo, error) {
-	var cache types.ReplicaInfo
-	query := fmt.Sprintf("SELECT * FROM %s WHERE id=? ", replicaInfoTable)
-	if err := c.DB.Get(&cache, query, id); err != nil {
-		return nil, err
-	}
-
-	return &cache, nil
 }
 
 // RemoveCarfileRecord remove storage
@@ -375,32 +310,6 @@ func (c *CarfileDB) RemoveReplicaInfoWithNodes(nodeIDs []string) error {
 
 	return err
 }
-
-// SetBlockDownloadInfo  download info
-func (c *CarfileDB) SetBlockDownloadInfo(info *types.DownloadRecordInfo) error {
-	query := fmt.Sprintf(
-		`INSERT INTO %s (id, node_id, block_cid, carfile_cid, block_size, speed, reward, status, failed_reason, client_ip, created_time, complete_time) 
-				VALUES (:id, :node_id, :block_cid, :carfile_cid, :block_size, :speed, :reward, :status, :failed_reason, :client_ip, :created_time, :complete_time) 
-				ON DUPLICATE KEY UPDATE node_id=:node_id, speed=:speed, reward=:reward, status=:status, failed_reason=:failed_reason, complete_time=:complete_time`, blockDownloadInfo)
-
-	_, err := c.DB.NamedExec(query, info)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// func (c *CarfileDB) GetBlockDownloadInfoByNodeID(nodeID string) ([]*types.DownloadRecordInfo, error) {
-// 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id = ? and TO_DAYS(created_time) >= TO_DAYS(NOW()) ORDER BY created_time DESC`, blockDownloadInfo)
-
-// 	var out []*types.DownloadRecordInfo
-// 	if err := c.DB.Select(&out, query, nodeID); err != nil {
-// 		return nil, err
-// 	}
-
-// 	return out, nil
-// }
 
 func (c *CarfileDB) GetBlockDownloadInfoByID(id string) (*types.DownloadRecordInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE id = ?`, blockDownloadInfo)

@@ -2,6 +2,12 @@ package node
 
 import (
 	"context"
+	"net"
+	"net/http"
+	"runtime"
+	"strconv"
+	"time"
+
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/gorilla/mux"
@@ -13,11 +19,6 @@ import (
 	mhandler "github.com/linguohua/titan/node/handler"
 	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
-	"net"
-	"net/http"
-	"runtime"
-	"strconv"
-	"time"
 )
 
 var rpclog = logging.Logger("rpc")
@@ -65,7 +66,7 @@ func SchedulerHandler(a api.Scheduler, permission bool, opts ...jsonrpc.ServerOp
 
 		var handler http.Handler = rpcServer
 		if permission {
-			handler = mhandler.New(&auth.Handler{Verify: a.AuthNodeVerify, Next: rpcServer.ServeHTTP})
+			handler = mhandler.New(&auth.Handler{Verify: a.NodeAuthVerify, Next: rpcServer.ServeHTTP})
 		}
 
 		m.Handle(path, handler)

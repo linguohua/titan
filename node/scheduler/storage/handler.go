@@ -15,7 +15,7 @@ var (
 	MaxRetryCount = 3
 )
 
-func failedCooldown(ctx statemachine.Context, carfile CarfileInfo) error {
+func failedCoolDown(ctx statemachine.Context, carfile CarfileInfo) error {
 	// TODO: Exponential back off when we see consecutive failures
 
 	retryStart := time.Now().Add(MinRetryTime)
@@ -206,7 +206,7 @@ func (m *Manager) handleCachesFailed(ctx statemachine.Context, carfile CarfileIn
 
 	log.Debugf("handle caches failed: %s, retries: %d", carfile.CarfileHash, carfile.RetryCount+1)
 
-	if err := failedCooldown(ctx, carfile); err != nil {
+	if err := failedCoolDown(ctx, carfile); err != nil {
 		return err
 	}
 

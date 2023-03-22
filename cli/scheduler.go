@@ -15,7 +15,6 @@ var SchedulerCmds = []*cli.Command{
 	WithCategory("carfile", carfileCmd),
 	// validator
 	startElectionCmd,
-	startValidateCmd,
 	// other
 	edgeUpdaterCmd,
 }
@@ -127,26 +126,6 @@ var setNodePortCmd = &cli.Command{
 		defer closer()
 
 		return schedulerAPI.SetNodePort(ctx, nodeID, port)
-	},
-}
-
-var startValidateCmd = &cli.Command{
-	Name:  "start-validate",
-	Usage: "validate edges node",
-
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		ctx := ReqContext(cctx)
-
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		return schedulerAPI.StartOnceValidate(ctx)
 	},
 }
 

@@ -52,7 +52,7 @@ func (s *Scheduler) CarfileRecord(ctx context.Context, cid string) (*types.Carfi
 	return info, nil
 }
 
-// CarfileRecords List Datas
+// CarfileRecords List carfiles
 func (s *Scheduler) CarfileRecords(ctx context.Context, page int, states []string) (*types.ListCarfileRecordRsp, error) {
 	info, err := s.NodeManager.CarfileDB.CarfileRecordInfos(page, states)
 	if err != nil {

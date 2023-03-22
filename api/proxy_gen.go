@@ -191,10 +191,6 @@ type SchedulerStruct struct {
 	CommonStruct
 
 	Internal struct {
-		AuthNodeNew func(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) (string, error) `perm:"read"`
-
-		AuthNodeVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
-
 		CacheCarfiles func(p0 context.Context, p1 *types.CacheCarfileInfo) error `perm:"admin"`
 
 		CandidateNodeConnect func(p0 context.Context) error `perm:"write"`
@@ -224,6 +220,10 @@ type SchedulerStruct struct {
 		IsBehindFullConeNAT func(p0 context.Context, p1 string) (bool, error) `perm:"read"`
 
 		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
+
+		NodeAuthNew func(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) (string, error) `perm:"read"`
+
+		NodeAuthVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
 
 		NodeExternalServiceAddress func(p0 context.Context) (string, error) `perm:"read"`
 
@@ -262,8 +262,6 @@ type SchedulerStruct struct {
 		SetNodePort func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
 		StartOnceElection func(p0 context.Context) error `perm:"admin"`
-
-		StartOnceValidate func(p0 context.Context) error `perm:"admin"`
 
 		SystemInfo func(p0 context.Context) (types.SystemBaseInfo, error) `perm:"read"`
 
@@ -739,28 +737,6 @@ func (s *LocatorStub) UserDownloadBlockResults(p0 context.Context, p1 []types.Us
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) (string, error) {
-	if s.Internal.AuthNodeNew == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.AuthNodeNew(p0, p1, p2, p3)
-}
-
-func (s *SchedulerStub) AuthNodeNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) (string, error) {
-	return "", ErrNotSupported
-}
-
-func (s *SchedulerStruct) AuthNodeVerify(p0 context.Context, p1 string) ([]auth.Permission, error) {
-	if s.Internal.AuthNodeVerify == nil {
-		return *new([]auth.Permission), ErrNotSupported
-	}
-	return s.Internal.AuthNodeVerify(p0, p1)
-}
-
-func (s *SchedulerStub) AuthNodeVerify(p0 context.Context, p1 string) ([]auth.Permission, error) {
-	return *new([]auth.Permission), ErrNotSupported
-}
-
 func (s *SchedulerStruct) CacheCarfiles(p0 context.Context, p1 *types.CacheCarfileInfo) error {
 	if s.Internal.CacheCarfiles == nil {
 		return ErrNotSupported
@@ -924,6 +900,28 @@ func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 string, p2 strin
 
 func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) NodeAuthNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) (string, error) {
+	if s.Internal.NodeAuthNew == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.NodeAuthNew(p0, p1, p2, p3)
+}
+
+func (s *SchedulerStub) NodeAuthNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) (string, error) {
+	return "", ErrNotSupported
+}
+
+func (s *SchedulerStruct) NodeAuthVerify(p0 context.Context, p1 string) ([]auth.Permission, error) {
+	if s.Internal.NodeAuthVerify == nil {
+		return *new([]auth.Permission), ErrNotSupported
+	}
+	return s.Internal.NodeAuthVerify(p0, p1)
+}
+
+func (s *SchedulerStub) NodeAuthVerify(p0 context.Context, p1 string) ([]auth.Permission, error) {
+	return *new([]auth.Permission), ErrNotSupported
 }
 
 func (s *SchedulerStruct) NodeExternalServiceAddress(p0 context.Context) (string, error) {
@@ -1132,17 +1130,6 @@ func (s *SchedulerStruct) StartOnceElection(p0 context.Context) error {
 }
 
 func (s *SchedulerStub) StartOnceElection(p0 context.Context) error {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) StartOnceValidate(p0 context.Context) error {
-	if s.Internal.StartOnceValidate == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.StartOnceValidate(p0)
-}
-
-func (s *SchedulerStub) StartOnceValidate(p0 context.Context) error {
 	return ErrNotSupported
 }
 

@@ -2,7 +2,6 @@ package validation
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -87,14 +86,17 @@ func (v *Validation) enable() (bool, error) {
 }
 
 func (v *Validation) start() error {
+	if v.curRoundID != "" {
+		// Set the timeout status of the previous verification
+		err := v.nodeManager.NodeMgrDB.ValidatedTimeout(v.curRoundID)
+		if err != nil {
+			log.Errorf("round:%s ValidatedTimeout err:%s", v.curRoundID, err.Error())
+		}
+	}
+
 	roundID := uuid.NewString()
 	v.curRoundID = roundID
 	v.seed = time.Now().UnixNano()
-
-	err := v.nodeManager.NodeMgrDB.RemoveVerifyingList(v.nodeManager.ServerID)
-	if err != nil {
-		return err
-	}
 
 	validatorList, err := v.nodeManager.NodeMgrDB.GetValidatorsWithList(v.nodeManager.ServerID)
 	if err != nil {
@@ -156,14 +158,6 @@ func (v *Validation) getValidateList() []*validateNodeInfo {
 func (v *Validation) assignValidator(validatorList []string) map[string][]api.ReqValidate {
 	validateReqs := make(map[string][]api.ReqValidate)
 
-	validatorMap := make(map[string]float64)
-	for _, id := range validatorList {
-		candidateNode := v.nodeManager.GetCandidateNode(id)
-		if candidateNode != nil {
-			validatorMap[id] = candidateNode.BandwidthDown
-		}
-	}
-
 	// load all validate (all edges)
 	validateList := v.getValidateList()
 	if len(validateList) <= 0 {
@@ -171,7 +165,6 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Re
 	}
 
 	infos := make([]*types.ValidatedResultInfo, 0)
-	vs := make([]string, 0)
 
 	for i, vInfo := range validateList {
 		reqValidate, err := v.getNodeReqValidate(vInfo)
@@ -179,8 +172,6 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Re
 			// log.Errorf("node:%s , getNodeReqValidate err:%s", validated.nodeID, err.Error())
 			continue
 		}
-
-		vs = append(vs, vInfo.nodeID)
 
 		validatorID := validatorList[i%len(validatorList)]
 		list, exist := validateReqs[validatorID]
@@ -205,13 +196,6 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Re
 	if err != nil {
 		log.Errorf("AddValidateResultInfos err:%s", err.Error())
 		return nil
-	}
-
-	if len(vs) > 0 {
-		err = v.nodeManager.NodeMgrDB.SetNodesToVerifyingList(vs, v.nodeManager.ServerID)
-		if err != nil {
-			log.Errorf("SetNodesToVerifyingList err:%s", err.Error())
-		}
 	}
 
 	return validateReqs
@@ -282,6 +266,7 @@ func (v *Validation) updateSuccessValidatedResult(validateResult *api.ValidatedR
 		Bandwidth:   validateResult.Bandwidth,
 		Duration:    validateResult.CostTime,
 	}
+
 	return v.nodeManager.NodeMgrDB.UpdateValidatedResultInfo(resultInfo)
 }
 
@@ -304,12 +289,6 @@ func (v *Validation) Result(validatedResult *api.ValidatedResult) error {
 		}
 		if err != nil {
 			log.Errorf("updateSuccessValidatedResult [%s] fail : %s", validatedResult.NodeID, err.Error())
-		}
-
-		err = v.nodeManager.NodeMgrDB.RemoveValidatedWithList(validatedResult.NodeID, v.nodeManager.ServerID)
-		if err != nil {
-			log.Errorf("RemoveValidatedWithList [%s] fail : %s", validatedResult.NodeID, err.Error())
-			return
 		}
 	}()
 
@@ -401,16 +380,16 @@ func (v *Validation) compareCid(cidStr1, cidStr2 string) bool {
 	return hash1 == hash2
 }
 
-// StartValidateOnceTask start validator task
-func (v *Validation) StartValidateOnceTask() error {
-	count, err := v.nodeManager.NodeMgrDB.CountVerifyingNode(v.nodeManager.ServerID)
-	if err != nil {
-		return err
-	}
+// // StartValidateOnceTask start validator task
+// func (v *Validation) StartValidateOnceTask() error {
+// 	count, err := v.nodeManager.NodeMgrDB.CountVerifyingNode(v.nodeManager.ServerID)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if count > 0 {
-		return fmt.Errorf("validation in progress, cannot start again")
-	}
+// 	if count > 0 {
+// 		return fmt.Errorf("validation in progress, cannot start again")
+// 	}
 
-	return v.start()
-}
+// 	return v.start()
+// }
