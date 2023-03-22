@@ -15,7 +15,7 @@ type Scheduler interface {
 	// node
 	OnlineNodeList(ctx context.Context, nodeType types.NodeType) ([]string, error)             //perm:read
 	RegisterNode(ctx context.Context, nodeID, publicKey string, nodeType types.NodeType) error //perm:admin
-	NodeQuit(ctx context.Context, nodeID, secret string) error                                 //perm:admin
+	NodeQuit(ctx context.Context, nodeID string) error                                         //perm:admin
 	NodeLogFileInfo(ctx context.Context, nodeID string) (*LogFile, error)                      //perm:admin
 	NodeLogFile(ctx context.Context, nodeID string) ([]byte, error)                            //perm:admin
 	DeleteNodeLogFile(ctx context.Context, nodeID string) error                                //perm:admin

@@ -20,12 +20,6 @@ var SchedulerCmds = []*cli.Command{
 }
 
 var (
-	secretFlag = &cli.StringFlag{
-		Name:  "secret",
-		Usage: "node secret",
-		Value: "",
-	}
-
 	nodeIDFlag = &cli.StringFlag{
 		Name:  "node-id",
 		Usage: "node id",
