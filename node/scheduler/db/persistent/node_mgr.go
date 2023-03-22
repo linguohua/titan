@@ -105,7 +105,7 @@ func (n *NodeMgrDB) UpdateValidatedResultInfo(info *types.ValidatedResultInfo) e
 
 // ValidatedTimeout set timeout status to validate result
 func (n *NodeMgrDB) ValidatedTimeout(roundID string) error {
-	query := fmt.Sprintf(`UPDATE %s SET status=?, end_time=NOW() WHERE round_id=:round_id AND status=?`, validateResultTable)
+	query := fmt.Sprintf(`UPDATE %s SET status=?, end_time=NOW() WHERE round_id=? AND status=?`, validateResultTable)
 	_, err := n.db.Exec(query, types.ValidateStatusTimeOut, roundID, types.ValidateStatusCreate)
 	return err
 }
