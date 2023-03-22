@@ -8,10 +8,18 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func NewDB(dns string) (*sqlx.DB, error) {
-	dns = fmt.Sprintf("%s?parseTime=true&loc=Local", dns)
+type SqlDB struct {
+	db *sqlx.DB
+}
 
-	client, err := sqlx.Open("mysql", dns)
+func NewSqlDB(db *sqlx.DB) *SqlDB {
+	return &SqlDB{db}
+}
+
+func NewDB(path string) (*sqlx.DB, error) {
+	path = fmt.Sprintf("%s?parseTime=true&loc=Local", path)
+
+	client, err := sqlx.Open("mysql", path)
 	if err != nil {
 		return nil, err
 	}
