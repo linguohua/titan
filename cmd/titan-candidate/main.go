@@ -197,13 +197,12 @@ var runCmd = &cli.Command{
 		httpClient := cliutil.NewHttp3Client(udpPacketConn, candidateCfg.InsecureSkipVerify, candidateCfg.CaCertificatePath)
 		jsonrpc.SetHttp3Client(httpClient)
 
-		var schedulerAPI api.Scheduler
-		var closer func()
-		if candidateCfg.Locator {
-			schedulerAPI, closer, err = newSchedulerAPI(cctx, nodeID, privateKey, connectTimeout)
-		} else {
-			schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx, nodeID)
+		url, err := schedulerURL(cctx, nodeID, candidateCfg.Locator)
+		if err != nil {
+			return err
 		}
+
+		schedulerAPI, closer, err := newSchedulerAPI(cctx, url, nodeID, privateKey)
 		if err != nil {
 			return err
 		}
@@ -387,7 +386,7 @@ func getSchedulerVersion(api api.Scheduler, timeout time.Duration) (api.APIVersi
 	return api.Version(ctx)
 }
 
-func newAuthTokenFromScheduler(schedulerURL, nodeID string, privateKey *rsa.PrivateKey, timeout time.Duration) (string, error) {
+func newAuthTokenFromScheduler(schedulerURL, nodeID string, privateKey *rsa.PrivateKey) (string, error) {
 	schedulerAPI, closer, err := client.NewScheduler(context.Background(), schedulerURL, nil)
 	if err != nil {
 		return "", err
@@ -395,41 +394,54 @@ func newAuthTokenFromScheduler(schedulerURL, nodeID string, privateKey *rsa.Priv
 
 	defer closer()
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
 	rsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	sign, err := rsa.Sign(privateKey, []byte(nodeID))
 	if err != nil {
 		return "", err
 	}
 
-	return schedulerAPI.NodeAuthNew(ctx, nodeID, hex.EncodeToString(sign))
+	return schedulerAPI.NodeAuthNew(context.Background(), nodeID, hex.EncodeToString(sign))
 }
 
-func newSchedulerAPI(cctx *cli.Context, nodeID string, privateKey *rsa.PrivateKey, timeout time.Duration) (api.Scheduler, jsonrpc.ClientCloser, error) {
+func getAccessPoint(cctx *cli.Context, nodeID string) (string, error) {
 	locator, closer, err := lcli.GetLocatorAPI(cctx)
 	if err != nil {
-		log.Errorf("%s", err.Error())
-		return nil, nil, err
+		return "", err
 	}
 	defer closer()
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	schedulerURLs, err := locator.GetAccessPoints(ctx, nodeID)
+	schedulerURLs, err := locator.GetAccessPoints(context.Background(), nodeID)
 	if err != nil {
-		return nil, nil, err
+		return "", err
 	}
 
 	if len(schedulerURLs) <= 0 {
-		return nil, nil, fmt.Errorf("candidate %s can not get access point", nodeID)
+		return "", fmt.Errorf("edge %s can not get access point", nodeID)
 	}
 
-	schedulerURL := schedulerURLs[0]
+	return schedulerURLs[0], nil
+}
 
-	tokenBuf, err := newAuthTokenFromScheduler(schedulerURL, nodeID, privateKey, timeout)
+func schedulerURL(cctx *cli.Context, nodeID string, isPassLocator bool) (string, error) {
+	if isPassLocator {
+		schedulerURL, err := getAccessPoint(cctx, nodeID)
+		if err != nil {
+			return "", err
+		}
+
+		return schedulerURL, nil
+	}
+
+	schedulerURL, _, err := lcli.GetRawAPI(cctx, repo.Scheduler, "v0")
+	if err != nil {
+		return "", err
+	}
+
+	return schedulerURL, nil
+}
+
+func newSchedulerAPI(cctx *cli.Context, schedulerURL, nodeID string, privateKey *rsa.PrivateKey) (api.Scheduler, jsonrpc.ClientCloser, error) {
+	tokenBuf, err := newAuthTokenFromScheduler(schedulerURL, nodeID, privateKey)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -444,9 +456,7 @@ func newSchedulerAPI(cctx *cli.Context, nodeID string, privateKey *rsa.PrivateKe
 	if err != nil {
 		return nil, nil, err
 	}
-
 	log.Infof("scheduler url:%s, token:%s", schedulerURL, token)
-
 	os.Setenv("SCHEDULER_API_INFO", token+":"+schedulerURL)
 	return schedulerAPI, closer, nil
 }
