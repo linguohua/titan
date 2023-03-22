@@ -77,7 +77,11 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 		return
 	}
 
-	nodeID, _ := validate.device.NodeID(context.Background())
+	nodeID, err := validate.device.NodeID(context.Background())
+	if err != nil {
+		log.Errorf("sendBlocks, get nodeID error:%s", err.Error())
+		return
+	}
 
 	sendNodeID(conn, nodeID, limiter)
 	for {

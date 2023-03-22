@@ -365,7 +365,11 @@ func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) ([]api.Acces
 // load user access point for special user ip
 func (locator *Locator) LoadUserAccessPoint(ctx context.Context, userIP string) (api.AccessPoint, error) {
 	areaID := defaultAreaID
-	geoInfo, _ := locator.GetGeoInfo(userIP)
+	geoInfo, err := locator.GetGeoInfo(userIP)
+	if err != nil {
+		return api.AccessPoint{}, err
+	}
+
 	if geoInfo != nil && isValid(geoInfo.Geo) {
 		areaID = geoInfo.Geo
 	}
