@@ -193,12 +193,16 @@ var generateRsaKey = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.IntFlag{
 			Name:  "bits",
-			Usage: "rsa bit: 512,1024,2048",
+			Usage: "rsa bit: 1024,2048,4096",
 			Value: 1024,
 		},
 	},
 	Action: func(cctx *cli.Context) error {
 		bits := cctx.Int("bits")
+
+		if bits < 1024 {
+			return fmt.Errorf("rsa bits is 1024,2048,4096")
+		}
 
 		lr, err := openRepo(cctx)
 		if err != nil {
