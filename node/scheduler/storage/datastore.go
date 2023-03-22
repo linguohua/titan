@@ -76,7 +76,7 @@ func (d *Datastore) Query(ctx context.Context, q query.Query) (query.Results, er
 			continue
 		}
 
-		in.ReplicaInfos, err = d.db.LoadReplicaInfos(in.CarfileHash, true)
+		in.ReplicaInfos, err = d.db.GetReplicaInfos(in.CarfileHash, true)
 		if err != nil {
 			continue
 		}

@@ -403,7 +403,7 @@ func (s *Scheduler) nodeExitedCallback(nodeIDs []string) {
 	// clean node cache
 	log.Infof("node event , nodes quit:%v", nodeIDs)
 
-	hashes, err := s.NodeManager.NodeMgrDB.LoadCarfileRecordsOfNodes(nodeIDs)
+	hashes, err := s.NodeManager.NodeMgrDB.GetCarfileRecordsOfNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
 		return

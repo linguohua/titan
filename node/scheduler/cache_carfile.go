@@ -56,7 +56,7 @@ func (s *Scheduler) CarfileRecords(ctx context.Context, page int, states []strin
 	}
 
 	for _, c := range info.CarfileRecords {
-		rs, err := s.NodeManager.NodeMgrDB.LoadReplicaInfos(c.CarfileHash, false)
+		rs, err := s.NodeManager.NodeMgrDB.GetReplicaInfos(c.CarfileHash, false)
 		if err != nil {
 			continue
 		}
