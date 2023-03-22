@@ -400,11 +400,7 @@ func newAuthTokenFromScheduler(schedulerURL, nodeID string, privateKey *rsa.Priv
 		return "", err
 	}
 
-<<<<<<< HEAD
-	return schedulerAPI.NodeAuthNew(ctx, perms, nodeID, secret)
-=======
-	return schedulerAPI.AuthNodeNew(ctx, nodeID, hex.EncodeToString(sign))
->>>>>>> 89dec02b (node generate key)
+	return schedulerAPI.NodeAuthNew(ctx, nodeID, hex.EncodeToString(sign))
 }
 
 func newSchedulerAPI(cctx *cli.Context, nodeID string, privateKey *rsa.PrivateKey, timeout time.Duration) (api.Scheduler, jsonrpc.ClientCloser, error) {
