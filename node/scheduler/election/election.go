@@ -207,7 +207,7 @@ func (v *Election) saveValidators(validators []string) error {
 }
 
 func (v *Election) fetchCurrentValidators() error {
-	list, err := v.manager.NodeMgrDB.GetValidatorsWithList(v.manager.ServerID)
+	list, err := v.manager.NodeMgrDB.ListValidators(v.manager.ServerID)
 	if err != nil {
 		return err
 	}

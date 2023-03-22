@@ -88,7 +88,7 @@ func (v *Validation) enable() (bool, error) {
 func (v *Validation) start() error {
 	if v.curRoundID != "" {
 		// Set the timeout status of the previous verification
-		err := v.nodeManager.NodeMgrDB.ValidatedTimeout(v.curRoundID)
+		err := v.nodeManager.NodeMgrDB.SetValidatedResultTimeout(v.curRoundID)
 		if err != nil {
 			log.Errorf("round:%s ValidatedTimeout err:%s", v.curRoundID, err.Error())
 		}
@@ -98,7 +98,7 @@ func (v *Validation) start() error {
 	v.curRoundID = roundID
 	v.seed = time.Now().UnixNano()
 
-	validatorList, err := v.nodeManager.NodeMgrDB.GetValidatorsWithList(v.nodeManager.ServerID)
+	validatorList, err := v.nodeManager.NodeMgrDB.ListValidators(v.nodeManager.ServerID)
 	if err != nil {
 		return err
 	}
@@ -192,7 +192,7 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Re
 		infos = append(infos, info)
 	}
 
-	err := v.nodeManager.NodeMgrDB.InitValidatedResultInfos(infos)
+	err := v.nodeManager.NodeMgrDB.InsertValidatedResultInfos(infos)
 	if err != nil {
 		log.Errorf("AddValidateResultInfos err:%s", err.Error())
 		return nil
