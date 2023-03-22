@@ -88,7 +88,7 @@ func (v *Validation) enable() (bool, error) {
 func (v *Validation) start() error {
 	if v.curRoundID != "" {
 		// Set the timeout status of the previous verification
-		err := v.nodeManager.NodeMgrDB.SetValidatedResultTimeout(v.curRoundID)
+		err := v.nodeManager.SetValidatedResultTimeout(v.curRoundID)
 		if err != nil {
 			log.Errorf("round:%s ValidatedTimeout err:%s", v.curRoundID, err.Error())
 		}
@@ -98,7 +98,7 @@ func (v *Validation) start() error {
 	v.curRoundID = roundID
 	v.seed = time.Now().UnixNano()
 
-	validatorList, err := v.nodeManager.NodeMgrDB.ListValidators(v.nodeManager.ServerID)
+	validatorList, err := v.nodeManager.ListValidators(v.nodeManager.ServerID)
 	if err != nil {
 		return err
 	}
@@ -192,7 +192,7 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Re
 		infos = append(infos, info)
 	}
 
-	err := v.nodeManager.NodeMgrDB.InsertValidatedResultInfos(infos)
+	err := v.nodeManager.InsertValidatedResultInfos(infos)
 	if err != nil {
 		log.Errorf("AddValidateResultInfos err:%s", err.Error())
 		return nil
@@ -210,7 +210,7 @@ func (v *Validation) getNodeReqValidate(validated *validateNodeInfo) (api.ReqVal
 		NodeType:   int(validated.nodeType),
 	}
 
-	hash, err := v.nodeManager.NodeMgrDB.GetRandomCarfileForNode(validated.nodeID)
+	hash, err := v.nodeManager.LoadRandomCarfileForNode(validated.nodeID)
 	if err != nil {
 		return req, err
 	}
@@ -253,7 +253,7 @@ func (v *Validation) getRandNum(max int, r *rand.Rand) int {
 // updateFailValidatedResult update validator result info
 func (v *Validation) updateFailValidatedResult(nodeID string, status types.ValidateStatus) error {
 	resultInfo := &types.ValidatedResultInfo{RoundID: v.curRoundID, NodeID: nodeID, Status: status}
-	return v.nodeManager.NodeMgrDB.UpdateValidatedResultInfo(resultInfo)
+	return v.nodeManager.UpdateValidatedResultInfo(resultInfo)
 }
 
 // updateSuccessValidatedResult update validator result info
@@ -267,7 +267,7 @@ func (v *Validation) updateSuccessValidatedResult(validateResult *api.ValidatedR
 		Duration:    validateResult.CostTime,
 	}
 
-	return v.nodeManager.NodeMgrDB.UpdateValidatedResultInfo(resultInfo)
+	return v.nodeManager.UpdateValidatedResultInfo(resultInfo)
 }
 
 // Result node validator result
@@ -309,7 +309,7 @@ func (v *Validation) Result(validatedResult *api.ValidatedResult) error {
 		return nil
 	}
 
-	candidates, err := v.nodeManager.NodeMgrDB.GetSucceededReplicas(hash, types.NodeCandidate)
+	candidates, err := v.nodeManager.LoadSucceededReplicas(hash, types.NodeCandidate)
 	if err != nil {
 		status = types.ValidateStatusOther
 		log.Errorf("Get candidates %s , err:%s", validatedResult.CarfileCID, err.Error())
@@ -339,7 +339,7 @@ func (v *Validation) Result(validatedResult *api.ValidatedResult) error {
 		return nil
 	}
 
-	carfileRecord, err := v.nodeManager.NodeMgrDB.GetCarfileRecordInfo(hash)
+	carfileRecord, err := v.nodeManager.LoadCarfileRecordInfo(hash)
 	if err != nil {
 		status = types.ValidateStatusOther
 		log.Errorf("handleValidateResult GetCarfileInfo %s , err:%s", validatedResult.CarfileCID, err.Error())

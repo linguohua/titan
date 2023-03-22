@@ -59,7 +59,7 @@ func (d *Datastore) Query(ctx context.Context, q query.Query) (query.Results, er
 	var rows *sqlx.Rows
 	var err error
 
-	rows, err = d.db.QueryUnfinishedCarfiles(ctx, q.Limit, q.Offset, d.ServerID)
+	rows, err = d.db.LoadUnfinishedCarfiles(ctx, q.Limit, q.Offset, d.ServerID)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (d *Datastore) Query(ctx context.Context, q query.Query) (query.Results, er
 			continue
 		}
 
-		in.ReplicaInfos, err = d.db.GetReplicaInfos(in.CarfileHash, true)
+		in.ReplicaInfos, err = d.db.LoadReplicaInfos(in.CarfileHash, true)
 		if err != nil {
 			continue
 		}

@@ -145,7 +145,7 @@ func (m *Manager) nodesCacheProgresses() {
 			continue
 		}
 
-		nodes, err := m.nodeManager.NodeMgrDB.GetCachingNodes(hash)
+		nodes, err := m.nodeManager.LoadCachingNodes(hash)
 		if err != nil {
 			log.Errorf("%s UnDoneNodes err:%s", hash, err.Error())
 			continue
@@ -208,7 +208,7 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 
 	log.Debugf("carfile event: %s, add carfile replica: %d,expiration: %s", info.CarfileCid, info.Replicas, info.Expiration.String())
 
-	cInfo, err := m.nodeManager.NodeMgrDB.GetCarfileRecordInfo(info.CarfileHash)
+	cInfo, err := m.nodeManager.LoadCarfileRecordInfo(info.CarfileHash)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
@@ -240,13 +240,13 @@ func (m *Manager) FailedCarfilesRestart(hashes []types.CarfileHash) error {
 
 // RemoveCarfileRecord remove a storage
 func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
-	cInfos, err := m.nodeManager.NodeMgrDB.GetReplicaInfos(hash, false)
+	cInfos, err := m.nodeManager.LoadReplicaInfos(hash, false)
 	if err != nil {
 		return xerrors.Errorf("GetCarfileReplicaInfosByHash: %s,err:%s", carfileCid, err.Error())
 	}
 
 	defer func() {
-		err = m.nodeManager.NodeMgrDB.RemoveCarfileRecord(hash)
+		err = m.nodeManager.RemoveCarfileRecord(hash)
 		if err != nil {
 			log.Errorf("%s RemoveCarfileRecord db err: %s", hash, err.Error())
 		}
@@ -310,7 +310,7 @@ func (m *Manager) cacheCarfileResult(nodeID string, result *types.CacheResult) {
 			DoneSize: int64(progress.DoneSize),
 		}
 
-		err = m.nodeManager.NodeMgrDB.UpdateReplicaInfo(cInfo)
+		err = m.nodeManager.UpdateReplicaInfo(cInfo)
 		if err != nil {
 			log.Errorf("CacheCarfileResult %s UpdateReplicaInfo err:%s", nodeID, err.Error())
 			continue
@@ -354,7 +354,7 @@ func (m *Manager) addOrResetCarfileTicker(hash string) {
 
 	fn := func() error {
 		// update replicas status
-		err := m.nodeManager.NodeMgrDB.SetTimeoutOfCarfileReplicas(hash)
+		err := m.nodeManager.UpdateTimeoutOfCarfileReplicas(hash)
 		if err != nil {
 			return xerrors.Errorf("carfileHash %s SetCarfileReplicasTimeout err:%s", hash, err.Error())
 		}
@@ -404,7 +404,7 @@ func (m *Manager) ResetCarfileExpiration(cid string, t time.Time) error {
 
 	log.Infof("storage event %s, reset storage expiration:%s", cid, t.String())
 
-	err = m.nodeManager.NodeMgrDB.ResetCarfileRecordExpiration(hash, t)
+	err = m.nodeManager.UpdateCarfileRecordExpiration(hash, t)
 	if err != nil {
 		return err
 	}
@@ -420,7 +420,7 @@ func (m *Manager) checkCachesExpiration() {
 		return
 	}
 
-	carfileRecords, err := m.nodeManager.NodeMgrDB.ListExpiredCarfileCarfiles()
+	carfileRecords, err := m.nodeManager.LoadExpiredCarfileCarfiles()
 	if err != nil {
 		log.Errorf("ExpiredCarfiles err:%s", err.Error())
 		return
@@ -433,7 +433,7 @@ func (m *Manager) checkCachesExpiration() {
 	}
 
 	// reset expiration
-	latestExpiration, err := m.nodeManager.NodeMgrDB.GetMinExpirationOfCarfiles()
+	latestExpiration, err := m.nodeManager.GetMinExpirationOfCarfiles()
 	if err != nil {
 		return
 	}
@@ -504,12 +504,12 @@ func (m *Manager) GetCarfileRecordInfo(cid string) (*types.CarfileRecordInfo, er
 		return nil, err
 	}
 
-	dInfo, err := m.nodeManager.NodeMgrDB.GetCarfileRecordInfo(hash)
+	dInfo, err := m.nodeManager.LoadCarfileRecordInfo(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	dInfo.ReplicaInfos, err = m.nodeManager.NodeMgrDB.GetReplicaInfos(hash, false)
+	dInfo.ReplicaInfos, err = m.nodeManager.LoadReplicaInfos(hash, false)
 	if err != nil {
 		log.Errorf("loadData hash:%s, GetCarfileReplicaInfosByHash err:%s", hash, err.Error())
 	}
@@ -607,7 +607,7 @@ func (m *Manager) saveCandidateReplicaInfos(nodes []*node.Candidate, hash string
 		})
 	}
 
-	return m.nodeManager.NodeMgrDB.UpsertReplicasInfo(replicaInfos)
+	return m.nodeManager.UpsertReplicasInfo(replicaInfos)
 }
 
 func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
@@ -624,7 +624,7 @@ func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
 		})
 	}
 
-	return m.nodeManager.NodeMgrDB.UpsertReplicasInfo(replicaInfos)
+	return m.nodeManager.UpsertReplicasInfo(replicaInfos)
 }
 
 // Sources get download sources

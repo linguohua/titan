@@ -18,9 +18,9 @@ var reelectInterval = 30 * time.Minute // Check if the validator needs to be sup
 // Election election
 type Election struct {
 	opts       EleOption
-	update     chan struct{}
+	updateCh   chan struct{}
 	manager    *node.Manager
-	vlk        sync.RWMutex
+	lock       sync.RWMutex
 	validators map[string]time.Time
 
 	validatorRatio float64 // Ratio of validators elected 0~1
@@ -32,15 +32,12 @@ type EleOption struct {
 	ctx context.Context
 	// electInterval is the time electInterval for re-election
 	electInterval time.Duration
-	// vExpiration is the maximum interval when the validator is offline
-	vExpiration time.Duration
 }
 
 func newEleOption(opts ...Option) EleOption {
 	opt := EleOption{
 		ctx:           context.Background(),
 		electInterval: 2 * 24 * time.Hour,
-		vExpiration:   30 * time.Minute,
 	}
 	for _, o := range opts {
 		o(&opt)
@@ -57,7 +54,7 @@ func NewElection(manager *node.Manager) *Election {
 		manager:        manager,
 		opts:           newEleOption(),
 		validators:     make(map[string]time.Time),
-		update:         make(chan struct{}, 1),
+		updateCh:       make(chan struct{}, 1),
 		validatorRatio: 1,
 	}
 
@@ -91,7 +88,7 @@ func (v *Election) ElectTicker() {
 			if err != nil {
 				log.Errorf("elect err:%s", err.Error())
 			}
-		case <-v.update:
+		case <-v.updateCh:
 			electTicker.Reset(v.opts.electInterval)
 			err := v.replenishElect()
 			if err != nil {
@@ -112,11 +109,11 @@ func (v *Election) elect() error {
 
 // StartElect elect
 func (v *Election) StartElect() {
-	v.update <- struct{}{}
+	v.updateCh <- struct{}{}
 }
 
-// ChangeValidatorRatio change validator ratio
-func (v *Election) ChangeValidatorRatio(f float64) {
+// UpdateValidatorRatio update validator ratio
+func (v *Election) UpdateValidatorRatio(f float64) {
 	if f < 0 {
 		return
 	}
@@ -191,29 +188,29 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 }
 
 func (v *Election) saveValidators(validators []string) error {
-	err := v.manager.NodeMgrDB.ResetValidators(validators, v.manager.ServerID)
+	err := v.manager.ResetValidators(validators, v.manager.ServerID)
 	if err != nil {
 		return err
 	}
 
-	v.vlk.Lock()
+	v.lock.Lock()
 	v.validators = make(map[string]time.Time)
 	for _, validator := range validators {
 		v.validators[validator] = time.Now()
 	}
-	v.vlk.Unlock()
+	v.lock.Unlock()
 
 	return nil
 }
 
 func (v *Election) fetchCurrentValidators() error {
-	list, err := v.manager.NodeMgrDB.ListValidators(v.manager.ServerID)
+	list, err := v.manager.ListValidators(v.manager.ServerID)
 	if err != nil {
 		return err
 	}
 
-	v.vlk.Lock()
-	defer v.vlk.Unlock()
+	v.lock.Lock()
+	defer v.lock.Unlock()
 
 	for _, item := range list {
 		v.validators[item] = time.Now()
@@ -251,7 +248,7 @@ func (v *Election) ReelectTicker() {
 	for {
 		select {
 		case <-ticker.C:
-			v.vlk.Lock()
+			v.lock.Lock()
 			var validatorOffline bool
 			for nodeID := range v.validators {
 				node := v.manager.GetCandidateNode(nodeID)
@@ -261,11 +258,11 @@ func (v *Election) ReelectTicker() {
 				}
 				validatorOffline = true
 			}
-			v.vlk.Unlock()
+			v.lock.Unlock()
 			if !validatorOffline && !v.reelectEnable {
 				continue
 			}
-			v.update <- struct{}{}
+			v.updateCh <- struct{}{}
 		}
 	}
 }
