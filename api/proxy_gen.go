@@ -237,7 +237,7 @@ type SchedulerStruct struct {
 
 		NodeNatType func(p0 context.Context, p1 string) (types.NatType, error) `perm:"write"`
 
-		NodeQuit func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
+		NodeQuit func(p0 context.Context, p1 string) error `perm:"admin"`
 
 		NodeValidatedResult func(p0 context.Context, p1 ValidatedResult) error `perm:"write"`
 
@@ -990,14 +990,14 @@ func (s *SchedulerStub) NodeNatType(p0 context.Context, p1 string) (types.NatTyp
 	return *new(types.NatType), ErrNotSupported
 }
 
-func (s *SchedulerStruct) NodeQuit(p0 context.Context, p1 string, p2 string) error {
+func (s *SchedulerStruct) NodeQuit(p0 context.Context, p1 string) error {
 	if s.Internal.NodeQuit == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.NodeQuit(p0, p1, p2)
+	return s.Internal.NodeQuit(p0, p1)
 }
 
-func (s *SchedulerStub) NodeQuit(p0 context.Context, p1 string, p2 string) error {
+func (s *SchedulerStub) NodeQuit(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
