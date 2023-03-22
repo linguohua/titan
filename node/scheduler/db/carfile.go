@@ -302,8 +302,8 @@ func (n *SqlDB) RemoveReplicaInfoOfNodes(nodeIDs []string) error {
 	return err
 }
 
-// ListReplicaInfosOfNode list node replica infos
-func (n *SqlDB) ListReplicaInfosOfNode(nodeID string, index, count int) (info *types.NodeReplicaRsp, err error) {
+// LoadReplicaInfosOfNode load node replica infos
+func (n *SqlDB) LoadReplicaInfosOfNode(nodeID string, index, count int) (info *types.NodeReplicaRsp, err error) {
 	info = &types.NodeReplicaRsp{}
 
 	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE node_id=?", replicaInfoTable)
@@ -320,7 +320,7 @@ func (n *SqlDB) ListReplicaInfosOfNode(nodeID string, index, count int) (info *t
 	return
 }
 
-func (n *SqlDB) GetBlockDownloadInfos(nodeID string, startTime time.Time, endTime time.Time, cursor, count int) ([]types.DownloadRecordInfo, int64, error) {
+func (n *SqlDB) LoadBlockDownloadInfos(nodeID string, startTime time.Time, endTime time.Time, cursor, count int) ([]types.DownloadRecordInfo, int64, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id = ? and created_time between ? and ? limit ?,?`, blockDownloadTable)
 
 	var total int64
@@ -341,7 +341,7 @@ func (n *SqlDB) GetBlockDownloadInfos(nodeID string, startTime time.Time, endTim
 	return out, total, nil
 }
 
-func (n *SqlDB) ListCarfileReplicas(startTime time.Time, endTime time.Time, cursor, count int) (*types.ListCarfileReplicaRsp, error) {
+func (n *SqlDB) LoadCarfileReplicas(startTime time.Time, endTime time.Time, cursor, count int) (*types.ListCarfileReplicaRsp, error) {
 	var total int64
 	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE end_time between ? and ?`, replicaInfoTable)
 	if err := n.db.Get(&total, countSQL, startTime, endTime); err != nil {

@@ -98,7 +98,7 @@ func (v *Validation) start() error {
 	v.curRoundID = roundID
 	v.seed = time.Now().UnixNano()
 
-	validatorList, err := v.nodeManager.ListValidators(v.nodeManager.ServerID)
+	validatorList, err := v.nodeManager.LoadValidators(v.nodeManager.ServerID)
 	if err != nil {
 		return err
 	}

@@ -92,7 +92,7 @@ func (s *Scheduler) NodeAuthNew(ctx context.Context, nodeID, sign string) (strin
 		NodeID: nodeID,
 	}
 
-	pem, err := s.NodeManager.GetNodePublicKey(nodeID)
+	pem, err := s.NodeManager.LoadNodePublicKey(nodeID)
 	if err != nil {
 		return "", xerrors.Errorf("%s load node public key failed: %w", nodeID, err)
 	}
@@ -238,12 +238,12 @@ func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.N
 		return nil, xerrors.Errorf("nodeID mismatch %s, %s", nodeID, nodeInfo.NodeID)
 	}
 
-	port, err := s.NodeManager.GetPortMappingOfNode(nodeID)
+	port, err := s.NodeManager.LoadPortMappingOfNode(nodeID)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 	}
 
-	pStr, err := s.NodeManager.GetNodePublicKey(nodeID)
+	pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 	}
@@ -312,7 +312,7 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, pKey string, nodeT
 // OnlineNodeList Get all online node id
 func (s *Scheduler) OnlineNodeList(ctx context.Context, nodeType types.NodeType) ([]string, error) {
 	if nodeType == types.NodeValidator {
-		list, err := s.NodeManager.ListValidators(s.ServerID)
+		list, err := s.NodeManager.LoadValidators(s.ServerID)
 		if err != nil {
 			return nil, err
 		}
@@ -346,7 +346,7 @@ func (s *Scheduler) NodeInfo(ctx context.Context, nodeID string) (types.NodeInfo
 		nodeInfo = *info.NodeInfo
 		nodeInfo.Online = true
 	} else {
-		dbInfo, err := s.NodeManager.GetNodeInfo(nodeID)
+		dbInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
 		if err != nil {
 			log.Errorf("getNodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
 			return types.NodeInfo{}, err
@@ -509,13 +509,13 @@ func (s *Scheduler) nodeExists(nodeID string, nodeType types.NodeType) bool {
 func (s *Scheduler) NodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error) {
 	rsp := &types.ListNodesRsp{Data: make([]types.NodeInfo, 0)}
 
-	nodes, total, err := s.NodeManager.ListNodeIDs(cursor, count)
+	nodes, total, err := s.NodeManager.LoadNodeIDs(cursor, count)
 	if err != nil {
 		return rsp, err
 	}
 
 	validator := make(map[string]struct{})
-	validatorList, err := s.NodeManager.ListValidators(s.NodeManager.ServerID)
+	validatorList, err := s.NodeManager.LoadValidators(s.NodeManager.ServerID)
 	if err != nil {
 		log.Errorf("get validator list: %v", err)
 	}
@@ -550,7 +550,7 @@ func (s *Scheduler) DownloadRecordList(ctx context.Context, req types.ListBlockD
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
-	downloadInfos, total, err := s.NodeManager.GetBlockDownloadInfos(req.NodeID, startTime, endTime, req.Cursor, req.Count)
+	downloadInfos, total, err := s.NodeManager.LoadBlockDownloadInfos(req.NodeID, startTime, endTime, req.Cursor, req.Count)
 	if err != nil {
 		return nil, err
 	}
@@ -565,7 +565,7 @@ func (s *Scheduler) CarfileReplicaList(ctx context.Context, req types.ListCacheI
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
-	info, err := s.NodeManager.ListCarfileReplicas(startTime, endTime, req.Cursor, req.Count)
+	info, err := s.NodeManager.LoadCarfileReplicas(startTime, endTime, req.Cursor, req.Count)
 	if err != nil {
 		return nil, err
 	}
@@ -580,7 +580,7 @@ func (s *Scheduler) SystemInfo(ctx context.Context) (types.SystemBaseInfo, error
 }
 
 func (s *Scheduler) ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidatedResultRsp, error) {
-	svm, err := s.NodeManager.ListValidatedResultInfos(startTime, endTime, pageNumber, pageSize)
+	svm, err := s.NodeManager.LoadValidatedResultInfos(startTime, endTime, pageNumber, pageSize)
 	if err != nil {
 		return nil, err
 	}
