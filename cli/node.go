@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/filecoin-project/go-jsonrpc/auth"
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/types"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
@@ -77,8 +75,7 @@ var nodeTokenCmd = &cli.Command{
 		}
 		defer closer()
 
-		perms := []auth.Permission{api.PermRead, api.PermWrite}
-		tk, err := schedulerAPI.NodeAuthNew(ctx, perms, nodeID, secret)
+		tk, err := schedulerAPI.NodeAuthNew(ctx, nodeID, secret)
 		if err != nil {
 			return err
 		}
@@ -95,15 +92,15 @@ var registerNodeCmd = &cli.Command{
 		nodeTypeFlag,
 		nodeIDFlag,
 		&cli.StringFlag{
-			Name:  "public-key",
-			Usage: "node public key",
+			Name:  "public-key-path",
+			Usage: "node public key path",
 			Value: "",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
 		t := cctx.Int("node-type")
 		nID := cctx.String("node-id")
-		pKey := cctx.String("public-key")
+		publicKeyPath := cctx.String("public-key-path")
 
 		if t != int(types.NodeEdge) && t != int(types.NodeCandidate) {
 			return xerrors.Errorf("node-type err:%d", t)
@@ -113,8 +110,13 @@ var registerNodeCmd = &cli.Command{
 			return xerrors.New("node-id is nil")
 		}
 
-		if pKey == "" {
-			return xerrors.New("public-key is nil")
+		if publicKeyPath == "" {
+			return xerrors.New("public-key-path is nil")
+		}
+
+		pem, err := os.ReadFile(publicKeyPath)
+		if err != nil {
+			return err
 		}
 
 		ctx := ReqContext(cctx)
@@ -124,7 +126,7 @@ var registerNodeCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.RegisterNode(ctx, nID, pKey, types.NodeType(t))
+		return schedulerAPI.RegisterNode(ctx, nID, string(pem), types.NodeType(t))
 	},
 }
 

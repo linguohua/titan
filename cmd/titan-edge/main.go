@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"math/big"
@@ -22,7 +24,6 @@ import (
 	"github.com/linguohua/titan/node/modules/dtypes"
 
 	"github.com/filecoin-project/go-jsonrpc"
-	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/api/types"
@@ -114,11 +115,10 @@ var runCmd = &cli.Command{
 			Value:    "",
 		},
 		&cli.StringFlag{
-			Required: true,
-			Name:     "secret",
-			EnvVars:  []string{"TITAN_SCHEDULER_KEY", "SCHEDULER_KEY"},
-			Usage:    "used auth edge node when connect to scheduler",
-			Value:    "",
+			Name:    "key-path",
+			EnvVars: []string{"TITAN_SCHEDULER_KEY", "SCHEDULER_KEY"},
+			Usage:   "private key path",
+			Value:   "",
 		},
 	},
 
@@ -170,7 +170,11 @@ var runCmd = &cli.Command{
 
 		// Connect to scheduler
 		nodeID := cctx.String("device-id")
-		secret := cctx.String("secret")
+
+		privateKey, err := loadPrivateKey(cctx.String("key-path"), r)
+		if err != nil {
+			return err
+		}
 
 		connectTimeout, err := time.ParseDuration(edgeCfg.Timeout)
 		if err != nil {
@@ -190,7 +194,7 @@ var runCmd = &cli.Command{
 		var schedulerAPI api.Scheduler
 		var closer func()
 		if edgeCfg.Locator {
-			schedulerAPI, closer, err = newSchedulerAPI(cctx, nodeID, secret, connectTimeout)
+			schedulerAPI, closer, err = newSchedulerAPI(cctx, nodeID, privateKey, connectTimeout)
 		} else {
 			schedulerAPI, closer, err = lcli.GetSchedulerAPI(cctx, nodeID)
 		}
@@ -220,7 +224,6 @@ var runCmd = &cli.Command{
 			node.Base(),
 			node.Repo(r),
 			node.Override(new(dtypes.NodeID), dtypes.NodeID(nodeID)),
-			node.Override(new(dtypes.ScheduleSecretKey), dtypes.ScheduleSecretKey(secret)),
 			node.Override(new(api.Scheduler), schedulerAPI),
 			node.Override(new(net.PacketConn), udpPacketConn),
 			node.Override(new(dtypes.CarfileStorePath), func() dtypes.CarfileStorePath {
@@ -251,11 +254,6 @@ var runCmd = &cli.Command{
 			}),
 
 			node.Override(node.RunGateway, func(cs *store.CarfileStore) error {
-				privateKey, err := titanrsa.Pem2PrivateKey([]byte(secret))
-				if err != nil {
-					return xerrors.Errorf("could not parse private key: %w", err)
-				}
-
 				gw = gateway.NewGateway(cs, schedulerAPI, privateKey)
 
 				return nil
@@ -385,7 +383,7 @@ func getSchedulerVersion(api api.Scheduler, timeout time.Duration) (api.APIVersi
 	return api.Version(ctx)
 }
 
-func newAuthTokenFromScheduler(schedulerURL, nodeID, secret string, timeout time.Duration) (string, error) {
+func newAuthTokenFromScheduler(schedulerURL, nodeID string, privateKey *rsa.PrivateKey, timeout time.Duration) (string, error) {
 	schedulerAPI, closer, err := client.NewScheduler(context.Background(), schedulerURL, nil)
 	if err != nil {
 		return "", err
@@ -396,12 +394,20 @@ func newAuthTokenFromScheduler(schedulerURL, nodeID, secret string, timeout time
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	perms := []auth.Permission{api.PermRead, api.PermWrite}
+	rsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
+	sign, err := rsa.Sign(privateKey, []byte(nodeID))
+	if err != nil {
+		return "", err
+	}
 
+<<<<<<< HEAD
 	return schedulerAPI.NodeAuthNew(ctx, perms, nodeID, secret)
+=======
+	return schedulerAPI.AuthNodeNew(ctx, nodeID, hex.EncodeToString(sign))
+>>>>>>> 89dec02b (node generate key)
 }
 
-func newSchedulerAPI(cctx *cli.Context, nodeID string, securityKey string, timeout time.Duration) (api.Scheduler, jsonrpc.ClientCloser, error) {
+func newSchedulerAPI(cctx *cli.Context, nodeID string, privateKey *rsa.PrivateKey, timeout time.Duration) (api.Scheduler, jsonrpc.ClientCloser, error) {
 	locator, closer, err := lcli.GetLocatorAPI(cctx)
 	if err != nil {
 		return nil, nil, err
@@ -422,7 +428,7 @@ func newSchedulerAPI(cctx *cli.Context, nodeID string, securityKey string, timeo
 
 	schedulerURL := schedulerURLs[0]
 
-	tokenBuf, err := newAuthTokenFromScheduler(schedulerURL, nodeID, securityKey, timeout)
+	tokenBuf, err := newAuthTokenFromScheduler(schedulerURL, nodeID, privateKey, timeout)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -493,4 +499,21 @@ func generateTLSConfig() (*tls.Config, error) {
 		Certificates:       []tls.Certificate{tlsCert},
 		InsecureSkipVerify: true,
 	}, nil
+}
+
+func loadPrivateKey(path string, r *repo.FsRepo) (*rsa.PrivateKey, error) {
+	if len(path) > 0 {
+		pem, err := os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		return titanrsa.Pem2PrivateKey(pem)
+	}
+
+	pem, err := r.PrivateKey()
+	if err != nil {
+		return nil, err
+	}
+	return titanrsa.Pem2PrivateKey(pem)
+
 }

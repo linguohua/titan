@@ -22,16 +22,16 @@ type Scheduler interface {
 	SetNodePort(ctx context.Context, nodeID, port string) error                                //perm:admin
 	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error                  //perm:write
 	// node send result when user download block complete
-	UserDownloadResult(ctx context.Context, result types.UserDownloadResult) error                       //perm:write
-	EdgeNodeConnect(ctx context.Context) error                                                           //perm:write
-	NodeValidatedResult(ctx context.Context, validateResult ValidatedResult) error                       //perm:write
-	CandidateNodeConnect(ctx context.Context) error                                                      //perm:write
-	RemoveCarfileResult(ctx context.Context, resultInfo types.RemoveCarfileResult) error                 //perm:write
-	NodeExternalServiceAddress(ctx context.Context) (string, error)                                      //perm:read
-	NodeAuthVerify(ctx context.Context, token string) ([]auth.Permission, error)                         //perm:read
-	NodeAuthNew(ctx context.Context, perms []auth.Permission, nodeID, nodeSecret string) (string, error) //perm:read
-	NodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error)                                 //perm:read
-	NodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error)                    //perm:read
+	UserDownloadResult(ctx context.Context, result types.UserDownloadResult) error       //perm:write
+	EdgeNodeConnect(ctx context.Context) error                                           //perm:write
+	NodeValidatedResult(ctx context.Context, validateResult ValidatedResult) error       //perm:write
+	CandidateNodeConnect(ctx context.Context) error                                      //perm:write
+	RemoveCarfileResult(ctx context.Context, resultInfo types.RemoveCarfileResult) error //perm:write
+	NodeExternalServiceAddress(ctx context.Context) (string, error)                      //perm:read
+	NodeAuthVerify(ctx context.Context, token string) ([]auth.Permission, error)         //perm:read
+	NodeAuthNew(ctx context.Context, nodeID, sign string) (string, error)                //perm:read
+	NodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error)                 //perm:read
+	NodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error)    //perm:read
 	// get scheduler public key, format is pem
 	PublicKey(ctx context.Context) (string, error) //perm:write
 	// nat travel, can get edge external addr with different scheduler
