@@ -145,7 +145,7 @@ func (m *Manager) nodesCacheProgresses() {
 			continue
 		}
 
-		nodes, err := m.nodeManager.NodeMgrDB.LoadCachingNodes(hash)
+		nodes, err := m.nodeManager.NodeMgrDB.GetCachingNodes(hash)
 		if err != nil {
 			log.Errorf("%s UnDoneNodes err:%s", hash, err.Error())
 			continue
@@ -208,7 +208,7 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 
 	log.Debugf("carfile event: %s, add carfile replica: %d,expiration: %s", info.CarfileCid, info.Replicas, info.Expiration.String())
 
-	cInfo, err := m.nodeManager.NodeMgrDB.LoadCarfileRecordInfo(info.CarfileHash)
+	cInfo, err := m.nodeManager.NodeMgrDB.GetCarfileRecordInfo(info.CarfileHash)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
@@ -240,7 +240,7 @@ func (m *Manager) FailedCarfilesRestart(hashes []types.CarfileHash) error {
 
 // RemoveCarfileRecord remove a storage
 func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
-	cInfos, err := m.nodeManager.NodeMgrDB.LoadReplicaInfos(hash, false)
+	cInfos, err := m.nodeManager.NodeMgrDB.GetReplicaInfos(hash, false)
 	if err != nil {
 		return xerrors.Errorf("GetCarfileReplicaInfosByHash: %s,err:%s", carfileCid, err.Error())
 	}
@@ -504,12 +504,12 @@ func (m *Manager) GetCarfileRecordInfo(cid string) (*types.CarfileRecordInfo, er
 		return nil, err
 	}
 
-	dInfo, err := m.nodeManager.NodeMgrDB.LoadCarfileRecordInfo(hash)
+	dInfo, err := m.nodeManager.NodeMgrDB.GetCarfileRecordInfo(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	dInfo.ReplicaInfos, err = m.nodeManager.NodeMgrDB.LoadReplicaInfos(hash, false)
+	dInfo.ReplicaInfos, err = m.nodeManager.NodeMgrDB.GetReplicaInfos(hash, false)
 	if err != nil {
 		log.Errorf("loadData hash:%s, GetCarfileReplicaInfosByHash err:%s", hash, err.Error())
 	}
