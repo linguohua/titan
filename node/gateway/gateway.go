@@ -37,12 +37,12 @@ type Gateway struct {
 func NewGateway(cs *store.CarfileStore, scheduler api.Scheduler, privateKey *rsa.PrivateKey) *Gateway {
 	pem, err := scheduler.PublicKey(context.Background())
 	if err != nil {
-		log.Errorf("exchange public key from scheduler error %s", err.Error())
+		log.Panicf("get public key from scheduler error %s", err.Error())
 	}
 
 	schedulerPublicKey, err := titanrsa.Pem2PublicKey([]byte(pem))
 	if err != nil {
-		log.Errorf("can not convert pem to public key %s", err.Error())
+		log.Panicf("can not convert pem to public key %s", err.Error())
 	}
 
 	gw := &Gateway{carStore: cs, scheduler: scheduler, privateKey: privateKey, schedulerPublicKey: schedulerPublicKey}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto"
 	"encoding/gob"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"mime"
@@ -27,6 +28,7 @@ const (
 func (gw *Gateway) getHandler(w http.ResponseWriter, r *http.Request) {
 	ticket, err := gw.verifyCredentials(w, r)
 	if err != nil {
+		log.Warnf("verfiy credential error:%s", err.Error())
 		http.Error(w, fmt.Sprintf("verify ticket error : %s", err.Error()), http.StatusUnauthorized)
 		return
 	}
@@ -69,8 +71,18 @@ func (gw *Gateway) verifyCredentials(w http.ResponseWriter, r *http.Request) (*t
 		return nil, err
 	}
 
+	sign, err := hex.DecodeString(gwCredentials.Sign)
+	if err != nil {
+		return nil, err
+	}
+
+	ciphertext, err := hex.DecodeString(gwCredentials.Ciphertext)
+	if err != nil {
+		return nil, err
+	}
+
 	rsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	err = rsa.VerifySign(gw.schedulerPublicKey, []byte(gwCredentials.Sign), []byte(gwCredentials.Ciphertext))
+	err = rsa.VerifySign(gw.schedulerPublicKey, sign, ciphertext)
 	if err != nil {
 		return nil, err
 	}

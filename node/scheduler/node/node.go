@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"encoding/gob"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strings"
@@ -182,7 +183,7 @@ func (n *BaseInfo) DownloadURL() string {
 		addr = ip + n.PortMapping
 	}
 
-	return fmt.Sprintf("https://%s/block/get", addr)
+	return fmt.Sprintf("https://%s", addr)
 }
 
 // LastRequestTime get node last request time
@@ -234,7 +235,7 @@ func (n *BaseInfo) Credentials(cid string, titanRsa *titanrsa.Rsa, privateKey *r
 		return nil, xerrors.Errorf("%s Sign err:%s", n.NodeID, err.Error())
 	}
 
-	return &types.GatewayCredentials{Ciphertext: string(b), Sign: string(sign)}, nil
+	return &types.GatewayCredentials{Ciphertext: hex.EncodeToString(b), Sign: hex.EncodeToString(sign)}, nil
 }
 
 func (n *BaseInfo) encryptCredentials(at *types.Credentials, publicKey *rsa.PublicKey, rsa *titanrsa.Rsa) ([]byte, error) {

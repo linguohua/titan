@@ -1,9 +1,13 @@
 package fetcher
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,28 +15,55 @@ import (
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-libipfs/blocks"
-	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/api/client"
 )
 
 type candidate struct {
-	timeout    int
 	retryCount int
+	httpClient *http.Client
 }
 
 func NewCandidate(timeout, retryCount int) *candidate {
-	return &candidate{timeout: timeout, retryCount: retryCount}
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.MaxIdleConns = 10
+	t.IdleConnTimeout = 120 * time.Second
+
+	httpClient := &http.Client{
+		Timeout:   time.Duration(timeout) * time.Second,
+		Transport: t,
+	}
+
+	return &candidate{retryCount: retryCount, httpClient: httpClient}
 }
 
 func (candidate *candidate) Fetch(ctx context.Context, cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
 	return candidate.getBlocks(cids, dss)
 }
 
-func (candidate *candidate) getBlock(candidateAPI api.Candidate, cidStr string) (blocks.Block, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(candidate.timeout)*time.Second)
-	defer cancel()
+func (candidate *candidate) getBlock(ds *types.DownloadSource, cidStr string) (blocks.Block, error) {
+	buf, err := encode(ds.Credentials)
+	if err != nil {
+		return nil, err
+	}
+	url := fmt.Sprintf("%s/ipfs/%s?format=raw", ds.CandidateURL, cidStr)
+	url = strings.Replace(url, "https", "http", 1)
+	log.Debugf("url:%s", url)
+	log.Debugf("Credentials:%#v", ds.Credentials)
 
-	data, err := candidateAPI.GetBlock(ctx, cidStr)
+	req, err := http.NewRequest(http.MethodGet, url, buf)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := candidate.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("status code %d", resp.StatusCode)
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +87,7 @@ func (candidate *candidate) getBlocks(cids []string, dss []*types.DownloadSource
 	}
 
 	blks := make([]blocks.Block, 0, len(cids))
-	candidates := make(map[string]api.Candidate)
+	// candidates := make(map[string]api.Candidate)
 	blksLock := &sync.Mutex{}
 
 	var wg sync.WaitGroup
@@ -66,19 +97,13 @@ func (candidate *candidate) getBlocks(cids []string, dss []*types.DownloadSource
 		i := index % len(dss)
 		ds := dss[i]
 
-		candidateAPI, err := getCandidateAPI(ds.CandidateURL, "", candidates)
-		if err != nil {
-			log.Errorf("loadBlocksFromCandidate getCandidateAPI error:%s", err.Error())
-			continue
-		}
-
 		wg.Add(1)
 
 		go func() {
 			defer wg.Done()
 
 			for i := 0; i < candidate.retryCount; i++ {
-				b, err := candidate.getBlock(candidateAPI, cidStr)
+				b, err := candidate.getBlock(ds, cidStr)
 				if err != nil {
 					log.Errorf("getBlock error:%s, cid:%s", err.Error(), cidStr)
 					continue
@@ -95,52 +120,13 @@ func (candidate *candidate) getBlocks(cids []string, dss []*types.DownloadSource
 	return blks, nil
 }
 
-func newCandidateAPI(url string, tk string) (api.Candidate, error) {
-	if len(url) == 0 || len(tk) == 0 {
-		return nil, fmt.Errorf("newCandidateAPI failed, url:%s, token:%s", url, tk)
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+string(tk))
-
-	// Connect to node
-	candidateAPI, _, err := client.NewCandidate(ctx, url, headers)
+func encode(gwCredentials *types.GatewayCredentials) (*bytes.Buffer, error) {
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	err := enc.Encode(gwCredentials)
 	if err != nil {
-		log.Errorf("CandidateNodeConnect NewCandicate err:%s,url:%s", err.Error(), url)
 		return nil, err
 	}
 
-	return candidateAPI, nil
-}
-
-func getCandidateAPI(url string, tk string, candidates map[string]api.Candidate) (api.Candidate, error) {
-	candidate, exist := candidates[url]
-	if !exist {
-		var err error
-		candidate, err = newCandidateAPI(url, tk)
-		if err != nil {
-			return nil, err
-		}
-		candidates[url] = candidate
-	}
-	return candidate, nil
-}
-
-// do in batch
-func groupCids(cids []string) [][]string {
-	sizeOfGroup := 1000
-	groups := make([][]string, 0)
-	for i := 0; i < len(cids); i += sizeOfGroup {
-		j := i + sizeOfGroup
-		if j > len(cids) {
-			j = len(cids)
-		}
-
-		group := cids[i:j]
-		groups = append(groups, group)
-	}
-
-	return groups
+	return &buffer, nil
 }

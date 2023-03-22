@@ -255,7 +255,7 @@ var runCmd = &cli.Command{
 			node.Override(node.RunGateway, func(cs *store.CarfileStore) error {
 				gw = gateway.NewGateway(cs, schedulerAPI, privateKey)
 
-				return nil
+				return err
 			}),
 		)
 		if err != nil {
