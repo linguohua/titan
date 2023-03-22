@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/cidutil"
@@ -21,11 +20,7 @@ func (s *Scheduler) UserDownloadResult(ctx context.Context, result types.UserDow
 
 		blockDownloadInfo := &types.DownloadRecordInfo{NodeID: nodeID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
 
-		carfileInfo, err := s.NodeManager.NodeMgrDB.GetCarfileRecordInfo(blockHash)
-		if err != nil && err != sql.ErrNoRows {
-			return err
-		}
-
+		carfileInfo, _ := s.NodeManager.NodeMgrDB.GetCarfileRecordInfo(blockHash)
 		if carfileInfo != nil && carfileInfo.CarfileCID != "" {
 			blockDownloadInfo.CarfileCID = result.BlockCID
 		}
