@@ -224,7 +224,7 @@ func (m *Manager) CandidateOnline(node *Candidate) error {
 	m.CandidateNodes.Store(nodeID, node)
 
 	// update validator owner
-	return m.NodeMgrDB.ResetOwnerForValidator(m.ServerID, nodeID)
+	return m.NodeMgrDB.UpdateValidatorInfo(m.ServerID, nodeID)
 }
 
 // GetCandidateNode Get Candidate Node
@@ -420,7 +420,7 @@ func (m *Manager) GetCandidatesWithBlockHash(hash, filterNode string) ([]*Candid
 }
 
 func (m *Manager) checkWhetherNodeQuits() {
-	nodes, err := m.NodeMgrDB.LongTimeOfflineNodes(nodeOfflineTime)
+	nodes, err := m.NodeMgrDB.ListTimeoutNodes(nodeOfflineTime)
 	if err != nil {
 		log.Errorf("checkWhetherNodeQuits GetOfflineNodes err:%s", err.Error())
 		return
@@ -491,7 +491,7 @@ func (m *Manager) saveInfo(n *BaseInfo) error {
 	n.Quitted = false
 	n.LastTime = time.Now()
 
-	err := m.NodeMgrDB.UpdateNodeOnlineInfo(n.NodeInfo)
+	err := m.NodeMgrDB.UpdateNodeInfo(n.NodeInfo)
 	if err != nil {
 		return err
 	}

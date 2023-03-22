@@ -92,7 +92,7 @@ func (s *Scheduler) NodeAuthNew(ctx context.Context, nodeID, sign string) (strin
 		NodeID: nodeID,
 	}
 
-	pem, err := s.NodeManager.NodeMgrDB.NodePublicKey(nodeID)
+	pem, err := s.NodeManager.NodeMgrDB.GetNodePublicKey(nodeID)
 	if err != nil {
 		return "", xerrors.Errorf("%s load node public key failed: %w", nodeID, err)
 	}
@@ -126,15 +126,15 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
-	if !s.nodeExists(nodeID, types.NodeCandidate) {
-		return xerrors.Errorf("candidate node not exists: %s", nodeID)
-	}
-
 	baseInfo := s.NodeManager.GetNode(nodeID)
 	if baseInfo != nil {
 		oAddr := baseInfo.Addr()
 		if oAddr != remoteAddr {
 			return xerrors.Errorf("node already login, addr : %s", oAddr)
+		}
+	} else {
+		if !s.nodeExists(nodeID, types.NodeCandidate) {
+			return xerrors.Errorf("candidate node not exists: %s", nodeID)
 		}
 	}
 
@@ -182,15 +182,15 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
-	if !s.nodeExists(nodeID, types.NodeEdge) {
-		return xerrors.Errorf("edge node not exists: %s", nodeID)
-	}
-
 	baseInfo := s.NodeManager.GetNode(nodeID)
 	if baseInfo != nil {
 		oAddr := baseInfo.Addr()
 		if oAddr != remoteAddr {
 			return xerrors.Errorf("node already login, addr : %s", oAddr)
+		}
+	} else {
+		if !s.nodeExists(nodeID, types.NodeEdge) {
+			return xerrors.Errorf("edge node not exists: %s", nodeID)
 		}
 	}
 
@@ -238,12 +238,12 @@ func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.N
 		return nil, xerrors.Errorf("nodeID mismatch %s, %s", nodeID, nodeInfo.NodeID)
 	}
 
-	port, err := s.NodeManager.NodeMgrDB.NodePortMapping(nodeID)
+	port, err := s.NodeManager.NodeMgrDB.GetPortMappingOfNode(nodeID)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 	}
 
-	pStr, err := s.NodeManager.NodeMgrDB.NodePublicKey(nodeID)
+	pStr, err := s.NodeManager.NodeMgrDB.GetNodePublicKey(nodeID)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 	}
@@ -312,7 +312,7 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, pKey string, nodeT
 // OnlineNodeList Get all online node id
 func (s *Scheduler) OnlineNodeList(ctx context.Context, nodeType types.NodeType) ([]string, error) {
 	if nodeType == types.NodeValidator {
-		list, err := s.NodeManager.NodeMgrDB.GetValidatorsWithList(s.ServerID)
+		list, err := s.NodeManager.NodeMgrDB.ListValidators(s.ServerID)
 		if err != nil {
 			return nil, err
 		}
@@ -346,7 +346,7 @@ func (s *Scheduler) NodeInfo(ctx context.Context, nodeID string) (types.NodeInfo
 		nodeInfo = *info.NodeInfo
 		nodeInfo.Online = true
 	} else {
-		dbInfo, err := s.NodeManager.NodeMgrDB.NodeInfo(nodeID)
+		dbInfo, err := s.NodeManager.NodeMgrDB.GetNodeInfo(nodeID)
 		if err != nil {
 			log.Errorf("getNodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
 			return types.NodeInfo{}, err
@@ -427,7 +427,7 @@ func (s *Scheduler) SetNodePort(ctx context.Context, nodeID, port string) error 
 		baseInfo.SetNodePort(port)
 	}
 
-	return s.NodeManager.NodeMgrDB.SetNodePortMapping(nodeID, port)
+	return s.NodeManager.NodeMgrDB.SetPortMappingOfNode(nodeID, port)
 }
 
 func (s *Scheduler) authNew() error {
@@ -515,7 +515,7 @@ func (s *Scheduler) NodeList(ctx context.Context, cursor int, count int) (*types
 	}
 
 	validator := make(map[string]struct{})
-	validatorList, err := s.NodeManager.NodeMgrDB.GetValidatorsWithList(s.NodeManager.ServerID)
+	validatorList, err := s.NodeManager.NodeMgrDB.ListValidators(s.NodeManager.ServerID)
 	if err != nil {
 		log.Errorf("get validator list: %v", err)
 	}
@@ -580,7 +580,7 @@ func (s *Scheduler) SystemInfo(ctx context.Context) (types.SystemBaseInfo, error
 }
 
 func (s *Scheduler) ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidatedResultRsp, error) {
-	svm, err := s.NodeManager.NodeMgrDB.ValidatedResultInfos(startTime, endTime, pageNumber, pageSize)
+	svm, err := s.NodeManager.NodeMgrDB.ListValidatedResultInfos(startTime, endTime, pageNumber, pageSize)
 	if err != nil {
 		return nil, err
 	}
