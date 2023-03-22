@@ -31,7 +31,7 @@ const (
 type Manager struct {
 	EdgeNodes      sync.Map
 	CandidateNodes sync.Map
-	NodeMgrDB      *db.SqlDB
+	*db.SqlDB
 
 	*rsa.PrivateKey
 	dtypes.ServerID
@@ -40,7 +40,7 @@ type Manager struct {
 // NewManager return new node manager instance
 func NewManager(ndb *db.SqlDB, serverID dtypes.ServerID, k *rsa.PrivateKey) *Manager {
 	nodeManager := &Manager{
-		NodeMgrDB:  ndb,
+		SqlDB:      ndb,
 		ServerID:   serverID,
 		PrivateKey: k,
 	}
@@ -79,7 +79,7 @@ func (m *Manager) edgeKeepalive(node *Edge, nowTime time.Time, isSave bool) {
 	}
 
 	if isSave {
-		err := m.NodeMgrDB.UpdateNodeOnlineTime(node.NodeID, saveInfoInterval*keepaliveTime)
+		err := m.UpdateNodeOnlineTime(node.NodeID, saveInfoInterval*keepaliveTime)
 		if err != nil {
 			log.Errorf("UpdateNodeOnlineTime err:%s,nodeID:%s", err.Error(), node.NodeID)
 		}
@@ -97,7 +97,7 @@ func (m *Manager) candidateKeepalive(node *Candidate, nowTime time.Time, isSave 
 	}
 
 	if isSave {
-		err := m.NodeMgrDB.UpdateNodeOnlineTime(node.NodeID, saveInfoInterval*keepaliveTime)
+		err := m.UpdateNodeOnlineTime(node.NodeID, saveInfoInterval*keepaliveTime)
 		if err != nil {
 			log.Errorf("UpdateNodeOnlineTime err:%s,nodeID:%s", err.Error(), node.NodeID)
 		}
@@ -224,7 +224,7 @@ func (m *Manager) CandidateOnline(node *Candidate) error {
 	m.CandidateNodes.Store(nodeID, node)
 
 	// update validator owner
-	return m.NodeMgrDB.UpdateValidatorInfo(m.ServerID, nodeID)
+	return m.UpdateValidatorInfo(m.ServerID, nodeID)
 }
 
 // GetCandidateNode Get Candidate Node
@@ -358,7 +358,7 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadI
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}
 
-	replicas, err := m.NodeMgrDB.GetSucceededReplicas(hash, types.NodeEdge)
+	replicas, err := m.LoadSucceededReplicas(hash, types.NodeEdge)
 	if err != nil {
 		return nil, err
 	}
@@ -394,7 +394,7 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadI
 
 // GetCandidatesWithBlockHash find candidates with block hash
 func (m *Manager) GetCandidatesWithBlockHash(hash, filterNode string) ([]*Candidate, error) {
-	replicas, err := m.NodeMgrDB.GetSucceededReplicas(hash, types.NodeCandidate)
+	replicas, err := m.LoadSucceededReplicas(hash, types.NodeCandidate)
 	if err != nil {
 		return nil, err
 	}
@@ -420,7 +420,7 @@ func (m *Manager) GetCandidatesWithBlockHash(hash, filterNode string) ([]*Candid
 }
 
 func (m *Manager) checkWhetherNodeQuits() {
-	nodes, err := m.NodeMgrDB.ListTimeoutNodes(nodeOfflineTime)
+	nodes, err := m.ListTimeoutNodes(nodeOfflineTime)
 	if err != nil {
 		log.Errorf("checkWhetherNodeQuits GetOfflineNodes err:%s", err.Error())
 		return
@@ -446,7 +446,7 @@ func (m *Manager) checkWhetherNodeQuits() {
 
 // NodesQuit Nodes quit
 func (m *Manager) NodesQuit(nodeIDs []string) {
-	err := m.NodeMgrDB.SetNodesQuit(nodeIDs)
+	err := m.SetNodesQuit(nodeIDs)
 	if err != nil {
 		log.Errorf("NodeExited SetNodesQuit err:%s", err.Error())
 		return
@@ -454,13 +454,13 @@ func (m *Manager) NodesQuit(nodeIDs []string) {
 
 	log.Infof("node event , nodes quit:%v", nodeIDs)
 
-	hashes, err := m.NodeMgrDB.GetCarfileRecordsOfNodes(nodeIDs)
+	hashes, err := m.LoadCarfileRecordsOfNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
 		return
 	}
 
-	err = m.NodeMgrDB.RemoveReplicaInfoOfNodes(nodeIDs)
+	err = m.RemoveReplicaInfoOfNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("RemoveReplicaInfoWithNodes err:%s", err.Error())
 		return
@@ -491,7 +491,7 @@ func (m *Manager) saveInfo(n *BaseInfo) error {
 	n.Quitted = false
 	n.LastTime = time.Now()
 
-	err := m.NodeMgrDB.UpdateNodeInfo(n.NodeInfo)
+	err := m.UpdateNodeInfo(n.NodeInfo)
 	if err != nil {
 		return err
 	}
