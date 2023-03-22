@@ -59,7 +59,7 @@ var showOnlineNodeCmd = &cli.Command{
 
 var nodeTokenCmd = &cli.Command{
 	Name:  "token",
-	Usage: "Get node token with secret",
+	Usage: "Get node token with public key",
 	Flags: []cli.Flag{
 		nodeIDFlag,
 		&cli.StringFlag{
@@ -111,7 +111,7 @@ var nodeTokenCmd = &cli.Command{
 
 var registerNodeCmd = &cli.Command{
 	Name:  "register",
-	Usage: "Register nodeID and secret ",
+	Usage: "Register nodeID and public key ",
 	Flags: []cli.Flag{
 		nodeTypeFlag,
 		nodeIDFlag,
@@ -293,7 +293,6 @@ var nodeQuitCmd = &cli.Command{
 	Usage: "Node quit the titan",
 	Flags: []cli.Flag{
 		nodeIDFlag,
-		secretFlag,
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -305,8 +304,6 @@ var nodeQuitCmd = &cli.Command{
 			return xerrors.New("node-id is nil")
 		}
 
-		secret := cctx.String("secret")
-
 		ctx := ReqContext(cctx)
 
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -315,7 +312,7 @@ var nodeQuitCmd = &cli.Command{
 		}
 		defer closer()
 
-		err = schedulerAPI.NodeQuit(ctx, nodeID, secret)
+		err = schedulerAPI.NodeQuit(ctx, nodeID)
 		if err != nil {
 			return err
 		}

@@ -393,8 +393,7 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, id string, token string)
 }
 
 // NodeQuit node want to quit titan
-func (s *Scheduler) NodeQuit(ctx context.Context, nodeID, secret string) error {
-	// TODO Check secret
+func (s *Scheduler) NodeQuit(ctx context.Context, nodeID string) error {
 	s.NodeManager.NodesQuit([]string{nodeID})
 
 	return nil
