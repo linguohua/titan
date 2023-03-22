@@ -402,7 +402,7 @@ func newAuthTokenFromScheduler(schedulerURL, nodeID, secret string, timeout time
 
 	perms := []auth.Permission{api.PermRead, api.PermWrite}
 
-	return schedulerAPI.AuthNodeNew(ctx, perms, nodeID, secret)
+	return schedulerAPI.NodeAuthNew(ctx, perms, nodeID, secret)
 }
 
 func newSchedulerAPI(cctx *cli.Context, nodeID string, securityKey string, timeout time.Duration) (api.Scheduler, jsonrpc.ClientCloser, error) {

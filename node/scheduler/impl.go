@@ -66,8 +66,8 @@ type jwtPayload struct {
 	Allow []auth.Permission
 }
 
-// AuthNodeVerify Verify Node Auth
-func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Permission, error) {
+// NodeAuthVerify Verify Node Auth
+func (s *Scheduler) NodeAuthVerify(ctx context.Context, token string) ([]auth.Permission, error) {
 	var payload jwtPayload
 
 	nodeID := handler.GetNodeID(ctx)
@@ -91,8 +91,8 @@ func (s *Scheduler) AuthNodeVerify(ctx context.Context, token string) ([]auth.Pe
 	return payload.Allow, nil
 }
 
-// AuthNodeNew  Get Node Auth
-func (s *Scheduler) AuthNodeNew(ctx context.Context, perms []auth.Permission, nodeID, nodeSecret string) (string, error) {
+// NodeAuthNew  Get Node Auth
+func (s *Scheduler) NodeAuthNew(ctx context.Context, perms []auth.Permission, nodeID, nodeSecret string) (string, error) {
 	p := jwtPayload{
 		Allow: api.ReadWritePerms,
 	}
@@ -361,11 +361,6 @@ func (s *Scheduler) SetEnableValidation(ctx context.Context, enable bool) error 
 	cfg.EnableValidate = enable
 
 	return s.SetSchedulerConfigFunc(cfg)
-}
-
-// StartOnceValidate start once Validator
-func (s *Scheduler) StartOnceValidate(ctx context.Context) error {
-	return s.Validation.StartValidateOnceTask()
 }
 
 // LocatorConnect Locator Connect

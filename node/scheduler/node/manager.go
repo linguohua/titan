@@ -411,19 +411,18 @@ func (m *Manager) encryptCredentials(at *types.Credentials, publicKey *rsa.Publi
 
 // GetCandidatesWithBlockHash find candidates with block hash
 func (m *Manager) GetCandidatesWithBlockHash(hash, filterNode string) ([]*Candidate, error) {
-	caches, err := m.CarfileDB.ReplicaInfosByCarfile(hash, true)
+	replicas, err := m.CarfileDB.SucceedReplicasByCarfile(hash, types.NodeCandidate)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(caches) <= 0 {
+	if len(replicas) <= 0 {
 		return nil, xerrors.Errorf("not found node, with hash:%s", hash)
 	}
 
 	nodes := make([]*Candidate, 0)
 
-	for _, cache := range caches {
-		dID := cache.NodeID
+	for _, dID := range replicas {
 		if dID == filterNode {
 			continue
 		}

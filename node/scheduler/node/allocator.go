@@ -49,7 +49,7 @@ func newNodeID(nodeType types.NodeType) (string, error) {
 		return s, nil
 	}
 
-	return "", xerrors.Errorf("nodetype err:%d", nodeType)
+	return "", xerrors.Errorf("node type err:%d", nodeType)
 }
 
 func newSecret() string {

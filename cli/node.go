@@ -78,7 +78,7 @@ var nodeTokenCmd = &cli.Command{
 		defer closer()
 
 		perms := []auth.Permission{api.PermRead, api.PermWrite}
-		tk, err := schedulerAPI.AuthNodeNew(ctx, perms, nodeID, secret)
+		tk, err := schedulerAPI.NodeAuthNew(ctx, perms, nodeID, secret)
 		if err != nil {
 			return err
 		}
