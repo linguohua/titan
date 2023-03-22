@@ -19,7 +19,7 @@ func addRootCA(certPool *x509.CertPool, caCertPath string) error {
 		return err
 	}
 	if ok := certPool.AppendCertsFromPEM(caCertRaw); !ok {
-		return fmt.Errorf("Could not add root ceritificate to pool.")
+		return fmt.Errorf("could not add root ceritificate to pool, path %s", caCertPath)
 	}
 
 	return nil
