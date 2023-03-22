@@ -145,7 +145,7 @@ func (m *Manager) nodesCacheProgresses() {
 			continue
 		}
 
-		nodes, err := m.nodeManager.NodeMgrDB.UnDoneNodes(hash)
+		nodes, err := m.nodeManager.NodeMgrDB.LoadCachingNodes(hash)
 		if err != nil {
 			log.Errorf("%s UnDoneNodes err:%s", hash, err.Error())
 			continue
@@ -208,7 +208,7 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 
 	log.Debugf("carfile event: %s, add carfile replica: %d,expiration: %s", info.CarfileCid, info.Replicas, info.Expiration.String())
 
-	cInfo, err := m.nodeManager.NodeMgrDB.CarfileInfo(info.CarfileHash)
+	cInfo, err := m.nodeManager.NodeMgrDB.LoadCarfileRecordInfo(info.CarfileHash)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
@@ -240,7 +240,7 @@ func (m *Manager) FailedCarfilesRestart(hashes []types.CarfileHash) error {
 
 // RemoveCarfileRecord remove a storage
 func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
-	cInfos, err := m.nodeManager.NodeMgrDB.ReplicaInfosByCarfile(hash, false)
+	cInfos, err := m.nodeManager.NodeMgrDB.LoadReplicaInfos(hash, false)
 	if err != nil {
 		return xerrors.Errorf("GetCarfileReplicaInfosByHash: %s,err:%s", carfileCid, err.Error())
 	}
@@ -354,7 +354,7 @@ func (m *Manager) addOrResetCarfileTicker(hash string) {
 
 	fn := func() error {
 		// update replicas status
-		err := m.nodeManager.NodeMgrDB.SetCarfileReplicasTimeout(hash)
+		err := m.nodeManager.NodeMgrDB.SetTimeoutOfCarfileReplicas(hash)
 		if err != nil {
 			return xerrors.Errorf("carfileHash %s SetCarfileReplicasTimeout err:%s", hash, err.Error())
 		}
@@ -404,7 +404,7 @@ func (m *Manager) ResetCarfileExpiration(cid string, t time.Time) error {
 
 	log.Infof("storage event %s, reset storage expiration:%s", cid, t.String())
 
-	err = m.nodeManager.NodeMgrDB.ResetCarfileExpiration(hash, t)
+	err = m.nodeManager.NodeMgrDB.ResetCarfileRecordExpiration(hash, t)
 	if err != nil {
 		return err
 	}
@@ -420,7 +420,7 @@ func (m *Manager) checkCachesExpiration() {
 		return
 	}
 
-	carfileRecords, err := m.nodeManager.NodeMgrDB.ExpiredCarfiles()
+	carfileRecords, err := m.nodeManager.NodeMgrDB.ListExpiredCarfileCarfiles()
 	if err != nil {
 		log.Errorf("ExpiredCarfiles err:%s", err.Error())
 		return
@@ -433,7 +433,7 @@ func (m *Manager) checkCachesExpiration() {
 	}
 
 	// reset expiration
-	latestExpiration, err := m.nodeManager.NodeMgrDB.MinExpiration()
+	latestExpiration, err := m.nodeManager.NodeMgrDB.GetMinExpirationOfCarfiles()
 	if err != nil {
 		return
 	}
@@ -504,12 +504,12 @@ func (m *Manager) GetCarfileRecordInfo(cid string) (*types.CarfileRecordInfo, er
 		return nil, err
 	}
 
-	dInfo, err := m.nodeManager.NodeMgrDB.CarfileInfo(hash)
+	dInfo, err := m.nodeManager.NodeMgrDB.LoadCarfileRecordInfo(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	dInfo.ReplicaInfos, err = m.nodeManager.NodeMgrDB.ReplicaInfosByCarfile(hash, false)
+	dInfo.ReplicaInfos, err = m.nodeManager.NodeMgrDB.LoadReplicaInfos(hash, false)
 	if err != nil {
 		log.Errorf("loadData hash:%s, GetCarfileReplicaInfosByHash err:%s", hash, err.Error())
 	}

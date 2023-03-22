@@ -10,7 +10,7 @@ const (
 	CandidatesCaching     CarfileState = "CandidatesCaching"
 	CacheToEdges          CarfileState = "CacheToEdges"
 	EdgesCaching          CarfileState = "EdgesCaching"
-	Finalize              CarfileState = "Finalize"
+	Finished              CarfileState = "Finished"
 	CacheSeedFailed       CarfileState = "CacheSeedFailed"
 	CacheCandidatesFailed CarfileState = "CacheCandidatesFailed"
 	CacheEdgesFailed      CarfileState = "CacheEdgesFailed"

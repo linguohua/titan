@@ -50,13 +50,13 @@ func (s *Scheduler) CarfileRecord(ctx context.Context, cid string) (*types.Carfi
 
 // CarfileRecords List carfiles
 func (s *Scheduler) CarfileRecords(ctx context.Context, page int, states []string) (*types.ListCarfileRecordRsp, error) {
-	info, err := s.NodeManager.NodeMgrDB.CarfileRecordInfos(page, states)
+	info, err := s.NodeManager.NodeMgrDB.ListCarfileRecord(page, states)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, c := range info.CarfileRecords {
-		rs, err := s.NodeManager.NodeMgrDB.ReplicaInfosByCarfile(c.CarfileHash, false)
+		rs, err := s.NodeManager.NodeMgrDB.LoadReplicaInfos(c.CarfileHash, false)
 		if err != nil {
 			continue
 		}
