@@ -642,7 +642,7 @@ func (m *Manager) Sources(cid string, nodes []string) []*types.DownloadSource {
 			continue
 		}
 		source := &types.DownloadSource{
-			CandidateURL: cNode.RPCURL(),
+			CandidateURL: cNode.DownloadURL(),
 			Credentials:  credentials,
 		}
 

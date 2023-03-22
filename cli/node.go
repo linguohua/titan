@@ -1,14 +1,10 @@
 package cli
 
 import (
-	"crypto"
-	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/linguohua/titan/api/types"
-	titanrsa "github.com/linguohua/titan/node/rsa"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
 )
@@ -18,7 +14,6 @@ var nodeCmd = &cli.Command{
 	Usage: "Manage node",
 	Subcommands: []*cli.Command{
 		showOnlineNodeCmd,
-		nodeTokenCmd,
 		registerNodeCmd,
 		showNodeInfoCmd,
 		downloadNodeLogFileCmd,
@@ -54,58 +49,6 @@ var showOnlineNodeCmd = &cli.Command{
 		}
 
 		return err
-	},
-}
-
-var nodeTokenCmd = &cli.Command{
-	Name:  "token",
-	Usage: "Get node token with public key",
-	Flags: []cli.Flag{
-		nodeIDFlag,
-		&cli.StringFlag{
-			Name:  "key-path",
-			Usage: "node private key path",
-			Value: "",
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-		keyPath := cctx.String("key-path")
-		nodeID := cctx.String("node-id")
-		if nodeID == "" {
-			return xerrors.New("node-id is nil")
-		}
-
-		pem, err := ioutil.ReadFile(keyPath)
-		if err != nil {
-			return err
-		}
-
-		privateKey, err := titanrsa.Pem2PrivateKey(pem)
-		if err != nil {
-			return err
-		}
-
-		ctx := ReqContext(cctx)
-
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		rsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-		sign, err := rsa.Sign(privateKey, []byte(nodeID))
-		if err != nil {
-			return err
-		}
-
-		tk, err := schedulerAPI.NodeAuthNew(ctx, nodeID, hex.EncodeToString(sign))
-		if err != nil {
-			return err
-		}
-
-		fmt.Println(tk)
-		return nil
 	},
 }
 
