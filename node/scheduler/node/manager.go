@@ -358,7 +358,7 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadI
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}
 
-	replicas, err := m.NodeMgrDB.SucceedReplicasByCarfile(hash, types.NodeEdge)
+	replicas, err := m.NodeMgrDB.LoadSucceededReplicas(hash, types.NodeEdge)
 	if err != nil {
 		return nil, err
 	}
@@ -394,7 +394,7 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadI
 
 // GetCandidatesWithBlockHash find candidates with block hash
 func (m *Manager) GetCandidatesWithBlockHash(hash, filterNode string) ([]*Candidate, error) {
-	replicas, err := m.NodeMgrDB.SucceedReplicasByCarfile(hash, types.NodeCandidate)
+	replicas, err := m.NodeMgrDB.LoadSucceededReplicas(hash, types.NodeCandidate)
 	if err != nil {
 		return nil, err
 	}
@@ -454,13 +454,13 @@ func (m *Manager) NodesQuit(nodeIDs []string) {
 
 	log.Infof("node event , nodes quit:%v", nodeIDs)
 
-	hashes, err := m.NodeMgrDB.LoadCarfileRecordsWithNodes(nodeIDs)
+	hashes, err := m.NodeMgrDB.LoadCarfileRecordsOfNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
 		return
 	}
 
-	err = m.NodeMgrDB.RemoveReplicaInfoWithNodes(nodeIDs)
+	err = m.NodeMgrDB.RemoveReplicaInfoOfNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("RemoveReplicaInfoWithNodes err:%s", err.Error())
 		return

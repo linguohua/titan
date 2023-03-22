@@ -20,7 +20,7 @@ func (s *Scheduler) UserDownloadResult(ctx context.Context, result types.UserDow
 
 		blockDownloadInfo := &types.DownloadRecordInfo{NodeID: nodeID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
 
-		carfileInfo, _ := s.NodeManager.NodeMgrDB.CarfileInfo(blockHash)
+		carfileInfo, _ := s.NodeManager.NodeMgrDB.LoadCarfileRecordInfo(blockHash)
 		if carfileInfo != nil && carfileInfo.CarfileCID != "" {
 			blockDownloadInfo.CarfileCID = result.BlockCID
 		}
