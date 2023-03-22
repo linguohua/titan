@@ -7,6 +7,7 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"math/big"
@@ -403,7 +404,7 @@ func newAuthTokenFromScheduler(schedulerURL, nodeID string, privateKey *rsa.Priv
 		return "", err
 	}
 
-	return schedulerAPI.NodeAuthNew(ctx, perms, nodeID, secret)
+	return schedulerAPI.NodeAuthNew(ctx, nodeID, hex.EncodeToString(sign))
 }
 
 func newSchedulerAPI(cctx *cli.Context, nodeID string, privateKey *rsa.PrivateKey, timeout time.Duration) (api.Scheduler, jsonrpc.ClientCloser, error) {
