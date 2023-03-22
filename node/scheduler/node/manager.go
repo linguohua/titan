@@ -420,7 +420,7 @@ func (m *Manager) GetCandidatesWithBlockHash(hash, filterNode string) ([]*Candid
 }
 
 func (m *Manager) checkWhetherNodeQuits() {
-	nodes, err := m.ListTimeoutNodes(nodeOfflineTime)
+	nodes, err := m.LoadTimeoutNodes(nodeOfflineTime)
 	if err != nil {
 		log.Errorf("checkWhetherNodeQuits GetOfflineNodes err:%s", err.Error())
 		return

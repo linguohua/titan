@@ -188,7 +188,7 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 }
 
 func (v *Election) saveValidators(validators []string) error {
-	err := v.manager.ResetValidators(validators, v.manager.ServerID)
+	err := v.manager.UpdateValidators(validators, v.manager.ServerID)
 	if err != nil {
 		return err
 	}
@@ -204,7 +204,7 @@ func (v *Election) saveValidators(validators []string) error {
 }
 
 func (v *Election) fetchCurrentValidators() error {
-	list, err := v.manager.ListValidators(v.manager.ServerID)
+	list, err := v.manager.LoadValidators(v.manager.ServerID)
 	if err != nil {
 		return err
 	}

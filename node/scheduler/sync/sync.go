@@ -186,7 +186,7 @@ func (ds *DataSync) loadCarfileInfosBy(nodeID string) ([]*types.NodeReplicaStatu
 	index := 0
 	cacheStates := make([]*types.NodeReplicaStatus, 0)
 	for {
-		nodeCacheRsp, err := ds.nodeManager.ListReplicaInfosOfNode(nodeID, index, dbLoadCount)
+		nodeCacheRsp, err := ds.nodeManager.LoadReplicaInfosOfNode(nodeID, index, dbLoadCount)
 		if err != nil {
 			log.Errorf("GetCacheInfosWithNode %s, index:%d, count:%d, error:%s", nodeID, index, dbLoadCount)
 			return nil, err

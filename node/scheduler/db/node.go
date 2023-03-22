@@ -11,8 +11,8 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// ListTimeoutNodes get nodes that are offline for a long time
-func (n *SqlDB) ListTimeoutNodes(timeoutHour int) ([]*types.NodeInfo, error) {
+// LoadTimeoutNodes load nodes that are offline for a long time
+func (n *SqlDB) LoadTimeoutNodes(timeoutHour int) ([]*types.NodeInfo, error) {
 	list := make([]*types.NodeInfo, 0)
 
 	time := time.Now().Add(-time.Duration(timeoutHour) * time.Hour)
@@ -40,8 +40,8 @@ func (n *SqlDB) SetNodesQuit(nodeIDs []string) error {
 	return err
 }
 
-// GetPortMappingOfNode get mapping port of node
-func (n *SqlDB) GetPortMappingOfNode(nodeID string) (string, error) {
+// LoadPortMappingOfNode load mapping port of node
+func (n *SqlDB) LoadPortMappingOfNode(nodeID string) (string, error) {
 	var port string
 	query := fmt.Sprintf("SELECT port_mapping FROM %s WHERE node_id=?", nodeInfoTable)
 	if err := n.db.Get(&port, query, nodeID); err != nil {
@@ -102,8 +102,8 @@ func (n *SqlDB) SetValidatedResultTimeout(roundID string) error {
 	return err
 }
 
-// ListValidatedResultInfos Get validator result infos
-func (n *SqlDB) ListValidatedResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidatedResultRsp, error) {
+// LoadValidatedResultInfos load validator result infos
+func (n *SqlDB) LoadValidatedResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidatedResultRsp, error) {
 	res := new(types.ListValidatedResultRsp)
 	var infos []types.ValidatedResultInfo
 	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM %s WHERE start_time between ? and ? order by id asc  LIMIT ?,? ", validateResultTable)
@@ -158,7 +158,7 @@ func (n *SqlDB) DeleteEdgeUpdateInfo(nodeType int) error {
 	return err
 }
 
-func (n *SqlDB) ListNodes(cursor int, count int) ([]*types.NodeInfo, int64, error) {
+func (n *SqlDB) LoadNodes(cursor int, count int) ([]*types.NodeInfo, int64, error) {
 	var total int64
 	countSQL := fmt.Sprintf("SELECT count(*) FROM %s", nodeInfoTable)
 	err := n.db.Get(&total, countSQL)
@@ -181,8 +181,8 @@ func (n *SqlDB) ListNodes(cursor int, count int) ([]*types.NodeInfo, int64, erro
 	return out, total, nil
 }
 
-// ResetValidators validator list
-func (n *SqlDB) ResetValidators(nodeIDs []string, serverID dtypes.ServerID) error {
+// UpdateValidators validator list
+func (n *SqlDB) UpdateValidators(nodeIDs []string, serverID dtypes.ServerID) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -207,8 +207,8 @@ func (n *SqlDB) ResetValidators(nodeIDs []string, serverID dtypes.ServerID) erro
 	return tx.Commit()
 }
 
-// ListValidators load validators
-func (n *SqlDB) ListValidators(serverID dtypes.ServerID) ([]string, error) {
+// LoadValidators load validators
+func (n *SqlDB) LoadValidators(serverID dtypes.ServerID) ([]string, error) {
 	sQuery := fmt.Sprintf(`SELECT node_id FROM %s WHERE server_id=?`, validatorsTable)
 
 	var out []string
@@ -282,8 +282,8 @@ func (n *SqlDB) InsertNode(pKey, nodeID string, nodeType types.NodeType) error {
 	return err
 }
 
-// GetNodePublicKey get node public key
-func (n *SqlDB) GetNodePublicKey(nodeID string) (string, error) {
+// LoadNodePublicKey get node public key
+func (n *SqlDB) LoadNodePublicKey(nodeID string) (string, error) {
 	var pKey string
 
 	query := fmt.Sprintf(`SELECT public_key FROM %s WHERE node_id=?`, nodeAllocateTable)
@@ -310,8 +310,8 @@ func (n *SqlDB) NodeExists(nodeID string, nodeType types.NodeType) error {
 	return nil
 }
 
-// ListNodeIDs list nodes
-func (n *SqlDB) ListNodeIDs(cursor int, count int) ([]string, int64, error) {
+// LoadNodeIDs list nodes
+func (n *SqlDB) LoadNodeIDs(cursor int, count int) ([]string, int64, error) {
 	var total int64
 
 	cQuery := fmt.Sprintf(`SELECT count(*) FROM %s`, nodeInfoTable)
@@ -335,8 +335,8 @@ func (n *SqlDB) ListNodeIDs(cursor int, count int) ([]string, int64, error) {
 	return out, total, nil
 }
 
-// GetNodeInfo get node info
-func (n *SqlDB) GetNodeInfo(nodeID string) (*types.NodeInfo, error) {
+// LoadNodeInfo load node info
+func (n *SqlDB) LoadNodeInfo(nodeID string) (*types.NodeInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id=?`, nodeInfoTable)
 
 	var out types.NodeInfo
