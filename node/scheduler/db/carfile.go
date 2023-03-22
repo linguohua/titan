@@ -302,33 +302,6 @@ func (n *SqlDB) RemoveReplicaInfoOfNodes(nodeIDs []string) error {
 	return err
 }
 
-func (n *SqlDB) GetBlockDownloadInfoByID(id string) (*types.DownloadRecordInfo, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE id = ?`, blockDownloadTable)
-
-	var out []*types.DownloadRecordInfo
-	if err := n.db.Select(&out, query, id); err != nil {
-		return nil, err
-	}
-
-	if len(out) > 0 {
-		return out[0], nil
-	}
-	return nil, nil
-}
-
-func (n *SqlDB) GetNodesByUserDownloadBlockIn(minute int) ([]string, error) {
-	starTime := time.Now().Add(time.Duration(minute) * time.Minute * -1)
-
-	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE complete_time > ? group by node_id`, blockDownloadTable)
-
-	var out []string
-	if err := n.db.Select(&out, query, starTime); err != nil {
-		return nil, err
-	}
-
-	return out, nil
-}
-
 // ListReplicaInfosOfNode list node replica infos
 func (n *SqlDB) ListReplicaInfosOfNode(nodeID string, index, count int) (info *types.NodeReplicaRsp, err error) {
 	info = &types.NodeReplicaRsp{}

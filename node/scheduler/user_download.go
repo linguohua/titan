@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/cidutil"
@@ -20,7 +21,11 @@ func (s *Scheduler) UserDownloadResult(ctx context.Context, result types.UserDow
 
 		blockDownloadInfo := &types.DownloadRecordInfo{NodeID: nodeID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
 
-		carfileInfo, _ := s.NodeManager.NodeMgrDB.GetCarfileRecordInfo(blockHash)
+		carfileInfo, err := s.NodeManager.NodeMgrDB.GetCarfileRecordInfo(blockHash)
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+
 		if carfileInfo != nil && carfileInfo.CarfileCID != "" {
 			blockDownloadInfo.CarfileCID = result.BlockCID
 		}
@@ -59,16 +64,3 @@ func (s *Scheduler) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types
 
 	return infos, nil
 }
-
-func (s *Scheduler) getNodesUnValidate(minute int) ([]string, error) {
-	return s.NodeManager.NodeMgrDB.GetNodesByUserDownloadBlockIn(minute)
-}
-
-// func (s *Scheduler) getNodePublicKey(nodeID string) (*rsa.PublicKey, error) {
-// 	pem, err := s.NodeManager.NodeMgrDB.NodePublicKey(nodeID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return titanrsa.Pem2PublicKey([]byte(pem))
-// }
