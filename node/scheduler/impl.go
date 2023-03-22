@@ -403,13 +403,13 @@ func (s *Scheduler) nodeExitedCallback(nodeIDs []string) {
 	// clean node cache
 	log.Infof("node event , nodes quit:%v", nodeIDs)
 
-	hashes, err := s.NodeManager.CarfileDB.LoadCarfileRecordsWithNodes(nodeIDs)
+	hashes, err := s.NodeManager.NodeMgrDB.LoadCarfileRecordsWithNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
 		return
 	}
 
-	err = s.NodeManager.CarfileDB.RemoveReplicaInfoWithNodes(nodeIDs)
+	err = s.NodeManager.NodeMgrDB.RemoveReplicaInfoWithNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("RemoveReplicaInfoWithNodes err:%s", err.Error())
 		return
@@ -550,7 +550,7 @@ func (s *Scheduler) DownloadRecordList(ctx context.Context, req types.ListBlockD
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
-	downloadInfos, total, err := s.NodeManager.CarfileDB.GetBlockDownloadInfos(req.NodeID, startTime, endTime, req.Cursor, req.Count)
+	downloadInfos, total, err := s.NodeManager.NodeMgrDB.GetBlockDownloadInfos(req.NodeID, startTime, endTime, req.Cursor, req.Count)
 	if err != nil {
 		return nil, err
 	}
@@ -565,7 +565,7 @@ func (s *Scheduler) CarfileReplicaList(ctx context.Context, req types.ListCacheI
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
-	info, err := s.NodeManager.CarfileDB.CarfileReplicaList(startTime, endTime, req.Cursor, req.Count)
+	info, err := s.NodeManager.NodeMgrDB.CarfileReplicaList(startTime, endTime, req.Cursor, req.Count)
 	if err != nil {
 		return nil, err
 	}

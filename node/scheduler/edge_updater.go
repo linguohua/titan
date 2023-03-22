@@ -3,17 +3,17 @@ package scheduler
 import (
 	"context"
 
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/linguohua/titan/node/scheduler/db"
 
 	"github.com/linguohua/titan/api"
 )
 
 type EdgeUpdater struct {
-	db          *persistent.NodeMgrDB
+	db          *db.SqlDB
 	updateInfos map[int]*api.EdgeUpdateInfo
 }
 
-func NewEdgeUpdater(db *persistent.NodeMgrDB) (*EdgeUpdater, error) {
+func NewEdgeUpdater(db *db.SqlDB) (*EdgeUpdater, error) {
 	updater := &EdgeUpdater{
 		db:          db,
 		updateInfos: make(map[int]*api.EdgeUpdateInfo),

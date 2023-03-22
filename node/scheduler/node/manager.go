@@ -1,11 +1,9 @@
 package node
 
 import (
-	"bytes"
 	"context"
 	"crypto"
 	"crypto/rsa"
-	"encoding/gob"
 	"sync"
 	"time"
 
@@ -15,7 +13,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/cidutil"
 	titanrsa "github.com/linguohua/titan/node/rsa"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/linguohua/titan/node/scheduler/locator"
 	"golang.org/x/xerrors"
 )
@@ -33,17 +31,15 @@ const (
 type Manager struct {
 	EdgeNodes      sync.Map
 	CandidateNodes sync.Map
-	CarfileDB      *persistent.CarfileDB
-	NodeMgrDB      *persistent.NodeMgrDB
+	NodeMgrDB      *db.SqlDB
 
 	*rsa.PrivateKey
 	dtypes.ServerID
 }
 
 // NewManager return new node manager instance
-func NewManager(cdb *persistent.CarfileDB, ndb *persistent.NodeMgrDB, serverID dtypes.ServerID, k *rsa.PrivateKey) *Manager {
+func NewManager(ndb *db.SqlDB, serverID dtypes.ServerID, k *rsa.PrivateKey) *Manager {
 	nodeManager := &Manager{
-		CarfileDB:  cdb,
 		NodeMgrDB:  ndb,
 		ServerID:   serverID,
 		PrivateKey: k,
@@ -61,16 +57,14 @@ func (m *Manager) run() {
 	count := 0
 
 	for {
-		select {
-		case <-ticker.C:
-			count++
-			isSave := count%saveInfoInterval == 0
+		<-ticker.C
+		count++
+		isSave := count%saveInfoInterval == 0
 
-			m.checkNodesKeepalive(isSave)
+		m.checkNodesKeepalive(isSave)
 
-			// check node offline how time
-			m.checkWhetherNodeQuits()
-		}
+		// check node offline how time
+		m.checkWhetherNodeQuits()
 	}
 }
 
@@ -364,7 +358,7 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadI
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}
 
-	replicas, err := m.CarfileDB.SucceedReplicasByCarfile(hash, types.NodeEdge)
+	replicas, err := m.NodeMgrDB.SucceedReplicasByCarfile(hash, types.NodeEdge)
 	if err != nil {
 		return nil, err
 	}
@@ -398,20 +392,9 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadI
 	return infos, nil
 }
 
-func (m *Manager) encryptCredentials(at *types.Credentials, publicKey *rsa.PublicKey, rsa *titanrsa.Rsa) ([]byte, error) {
-	var buffer bytes.Buffer
-	enc := gob.NewEncoder(&buffer)
-	err := enc.Encode(at)
-	if err != nil {
-		return nil, err
-	}
-
-	return rsa.Encrypt(buffer.Bytes(), publicKey)
-}
-
 // GetCandidatesWithBlockHash find candidates with block hash
 func (m *Manager) GetCandidatesWithBlockHash(hash, filterNode string) ([]*Candidate, error) {
-	replicas, err := m.CarfileDB.SucceedReplicasByCarfile(hash, types.NodeCandidate)
+	replicas, err := m.NodeMgrDB.SucceedReplicasByCarfile(hash, types.NodeCandidate)
 	if err != nil {
 		return nil, err
 	}
@@ -471,13 +454,13 @@ func (m *Manager) NodesQuit(nodeIDs []string) {
 
 	log.Infof("node event , nodes quit:%v", nodeIDs)
 
-	hashes, err := m.CarfileDB.LoadCarfileRecordsWithNodes(nodeIDs)
+	hashes, err := m.NodeMgrDB.LoadCarfileRecordsWithNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
 		return
 	}
 
-	err = m.CarfileDB.RemoveReplicaInfoWithNodes(nodeIDs)
+	err = m.NodeMgrDB.RemoveReplicaInfoWithNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("RemoveReplicaInfoWithNodes err:%s", err.Error())
 		return

@@ -12,7 +12,7 @@ import (
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/linguohua/titan/node/scheduler/election"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"github.com/linguohua/titan/node/scheduler/storage"
@@ -55,8 +55,7 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(*config.SchedulerCfg), cfg),
 		Override(RegisterEtcd, modules.RegisterToEtcd),
 		Override(new(*sqlx.DB), modules.NewDB),
-		Override(new(*persistent.CarfileDB), persistent.NewCarfileDB),
-		Override(new(*persistent.NodeMgrDB), persistent.NewNodeMgrDB),
+		Override(new(*db.SqlDB), db.NewSqlDB),
 		Override(new(*node.Manager), node.NewManager),
 		Override(new(dtypes.SessionCallbackFunc), modules.NewSessionCallbackFunc),
 		Override(new(dtypes.MetadataDS), modules.Datastore),

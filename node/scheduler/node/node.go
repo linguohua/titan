@@ -144,7 +144,6 @@ type BaseInfo struct {
 	remoteAddr string
 
 	lastRequestTime time.Time
-	cacheStat       *types.CacheStat
 	cacheCount      int // The number of caches waiting and in progress
 }
 

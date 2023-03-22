@@ -210,7 +210,7 @@ func (v *Validation) getNodeReqValidate(validated *validateNodeInfo) (api.ReqVal
 		NodeType:   int(validated.nodeType),
 	}
 
-	hash, err := v.nodeManager.CarfileDB.RandomCarfileFromNode(validated.nodeID)
+	hash, err := v.nodeManager.NodeMgrDB.RandomCarfileFromNode(validated.nodeID)
 	if err != nil {
 		return req, err
 	}
@@ -309,7 +309,7 @@ func (v *Validation) Result(validatedResult *api.ValidatedResult) error {
 		return nil
 	}
 
-	candidates, err := v.nodeManager.CarfileDB.SucceedReplicasByCarfile(hash, types.NodeCandidate)
+	candidates, err := v.nodeManager.NodeMgrDB.SucceedReplicasByCarfile(hash, types.NodeCandidate)
 	if err != nil {
 		status = types.ValidateStatusOther
 		log.Errorf("Get candidates %s , err:%s", validatedResult.CarfileCID, err.Error())
@@ -339,7 +339,7 @@ func (v *Validation) Result(validatedResult *api.ValidatedResult) error {
 		return nil
 	}
 
-	carfileRecord, err := v.nodeManager.CarfileDB.CarfileInfo(hash)
+	carfileRecord, err := v.nodeManager.NodeMgrDB.CarfileInfo(hash)
 	if err != nil {
 		status = types.ValidateStatusOther
 		log.Errorf("handleValidateResult GetCarfileInfo %s , err:%s", validatedResult.CarfileCID, err.Error())

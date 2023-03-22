@@ -14,10 +14,6 @@ import (
 func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo types.RemoveCarfileResult) error {
 	nodeID := handler.GetNodeID(ctx)
 
-	// if !s.nodeExists(nodeID, 0) {
-	// 	return xerrors.Errorf("node not Exist: %s", nodeID)
-	// }
-
 	// update node info
 	node := s.NodeManager.GetNode(nodeID)
 	if node != nil {
@@ -54,13 +50,13 @@ func (s *Scheduler) CarfileRecord(ctx context.Context, cid string) (*types.Carfi
 
 // CarfileRecords List carfiles
 func (s *Scheduler) CarfileRecords(ctx context.Context, page int, states []string) (*types.ListCarfileRecordRsp, error) {
-	info, err := s.NodeManager.CarfileDB.CarfileRecordInfos(page, states)
+	info, err := s.NodeManager.NodeMgrDB.CarfileRecordInfos(page, states)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, c := range info.CarfileRecords {
-		rs, err := s.NodeManager.CarfileDB.ReplicaInfosByCarfile(c.CarfileHash, false)
+		rs, err := s.NodeManager.NodeMgrDB.ReplicaInfosByCarfile(c.CarfileHash, false)
 		if err != nil {
 			continue
 		}

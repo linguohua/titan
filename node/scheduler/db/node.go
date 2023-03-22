@@ -1,4 +1,4 @@
-package persistent
+package db
 
 import (
 	"fmt"
@@ -11,16 +11,8 @@ import (
 	"golang.org/x/xerrors"
 )
 
-type NodeMgrDB struct {
-	db *sqlx.DB
-}
-
-func NewNodeMgrDB(db *sqlx.DB) *NodeMgrDB {
-	return &NodeMgrDB{db}
-}
-
 // LongTimeOfflineNodes get nodes that are offline for a long time
-func (n *NodeMgrDB) LongTimeOfflineNodes(hour int) ([]*types.NodeInfo, error) {
+func (n *SqlDB) LongTimeOfflineNodes(hour int) ([]*types.NodeInfo, error) {
 	list := make([]*types.NodeInfo, 0)
 
 	time := time.Now().Add(-time.Duration(hour) * time.Hour)
@@ -34,7 +26,7 @@ func (n *NodeMgrDB) LongTimeOfflineNodes(hour int) ([]*types.NodeInfo, error) {
 }
 
 // SetNodesQuit Node quit the titan
-func (n *NodeMgrDB) SetNodesQuit(nodeIDs []string) error {
+func (n *SqlDB) SetNodesQuit(nodeIDs []string) error {
 	updateCachesCmd := fmt.Sprintf(`UPDATE %s SET quitted=? WHERE node_id in (?)`, nodeInfoTable)
 	query, args, err := sqlx.In(updateCachesCmd, true, nodeIDs)
 	if err != nil {
@@ -49,7 +41,7 @@ func (n *NodeMgrDB) SetNodesQuit(nodeIDs []string) error {
 }
 
 // NodePortMapping load node mapping port
-func (n *NodeMgrDB) NodePortMapping(nodeID string) (string, error) {
+func (n *SqlDB) NodePortMapping(nodeID string) (string, error) {
 	var port string
 	query := fmt.Sprintf("SELECT port_mapping FROM %s WHERE node_id=?", nodeInfoTable)
 	if err := n.db.Get(&port, query, nodeID); err != nil {
@@ -60,7 +52,7 @@ func (n *NodeMgrDB) NodePortMapping(nodeID string) (string, error) {
 }
 
 // SetNodePortMapping Set node mapping port
-func (n *NodeMgrDB) SetNodePortMapping(nodeID, port string) error {
+func (n *SqlDB) SetNodePortMapping(nodeID, port string) error {
 	info := types.NodeInfo{
 		NodeID:      nodeID,
 		PortMapping: port,
@@ -72,7 +64,7 @@ func (n *NodeMgrDB) SetNodePortMapping(nodeID, port string) error {
 }
 
 // InitValidatedResultInfos init validator result infos
-func (n *NodeMgrDB) InitValidatedResultInfos(infos []*types.ValidatedResultInfo) error {
+func (n *SqlDB) InitValidatedResultInfos(infos []*types.ValidatedResultInfo) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -91,7 +83,7 @@ func (n *NodeMgrDB) InitValidatedResultInfos(infos []*types.ValidatedResultInfo)
 }
 
 // UpdateValidatedResultInfo Update validator info
-func (n *NodeMgrDB) UpdateValidatedResultInfo(info *types.ValidatedResultInfo) error {
+func (n *SqlDB) UpdateValidatedResultInfo(info *types.ValidatedResultInfo) error {
 	if info.Status == types.ValidateStatusSuccess {
 		query := fmt.Sprintf(`UPDATE %s SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW() WHERE round_id=:round_id AND node_id=:node_id`, validateResultTable)
 		_, err := n.db.NamedExec(query, info)
@@ -104,20 +96,20 @@ func (n *NodeMgrDB) UpdateValidatedResultInfo(info *types.ValidatedResultInfo) e
 }
 
 // ValidatedTimeout set timeout status to validate result
-func (n *NodeMgrDB) ValidatedTimeout(roundID string) error {
+func (n *SqlDB) ValidatedTimeout(roundID string) error {
 	query := fmt.Sprintf(`UPDATE %s SET status=?, end_time=NOW() WHERE round_id=? AND status=?`, validateResultTable)
 	_, err := n.db.Exec(query, types.ValidateStatusTimeOut, roundID, types.ValidateStatusCreate)
 	return err
 }
 
 // ValidatedResultInfos Get validator result infos
-func (n *NodeMgrDB) ValidatedResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidatedResultRsp, error) {
+func (n *SqlDB) ValidatedResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidatedResultRsp, error) {
 	res := new(types.ListValidatedResultRsp)
 	var infos []types.ValidatedResultInfo
 	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM %s WHERE start_time between ? and ? order by id asc  LIMIT ?,? ", validateResultTable)
 
-	if pageSize > loadValidateInfoMaxCount {
-		pageSize = loadValidateInfoMaxCount
+	if pageSize > loadValidateInfosLimit {
+		pageSize = loadValidateInfosLimit
 	}
 
 	err := n.db.Select(&infos, query, startTime, endTime, (pageNumber-1)*pageSize, pageSize)
@@ -139,14 +131,14 @@ func (n *NodeMgrDB) ValidatedResultInfos(startTime, endTime time.Time, pageNumbe
 	return res, nil
 }
 
-func (n *NodeMgrDB) SetEdgeUpdateInfo(info *api.EdgeUpdateInfo) error {
-	sqlString := fmt.Sprintf(`INSERT INTO %s (node_type, app_name, version, hash, download_url) VALUES (:node_type, :app_name, :version, :hash, :download_url) ON DUPLICATE KEY UPDATE app_name=:app_name, version=:version, hash=:hash, download_url=:download_url`, edgeUpdateInfo)
+func (n *SqlDB) SetEdgeUpdateInfo(info *api.EdgeUpdateInfo) error {
+	sqlString := fmt.Sprintf(`INSERT INTO %s (node_type, app_name, version, hash, download_url) VALUES (:node_type, :app_name, :version, :hash, :download_url) ON DUPLICATE KEY UPDATE app_name=:app_name, version=:version, hash=:hash, download_url=:download_url`, edgeUpdateTable)
 	_, err := n.db.NamedExec(sqlString, info)
 	return err
 }
 
-func (n *NodeMgrDB) EdgeUpdateInfos() (map[int]*api.EdgeUpdateInfo, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s`, edgeUpdateInfo)
+func (n *SqlDB) EdgeUpdateInfos() (map[int]*api.EdgeUpdateInfo, error) {
+	query := fmt.Sprintf(`SELECT * FROM %s`, edgeUpdateTable)
 
 	var out []*api.EdgeUpdateInfo
 	if err := n.db.Select(&out, query); err != nil {
@@ -160,13 +152,13 @@ func (n *NodeMgrDB) EdgeUpdateInfos() (map[int]*api.EdgeUpdateInfo, error) {
 	return ret, nil
 }
 
-func (n *NodeMgrDB) DeleteEdgeUpdateInfo(nodeType int) error {
-	deleteString := fmt.Sprintf(`DELETE FROM %s WHERE node_type=?`, edgeUpdateInfo)
+func (n *SqlDB) DeleteEdgeUpdateInfo(nodeType int) error {
+	deleteString := fmt.Sprintf(`DELETE FROM %s WHERE node_type=?`, edgeUpdateTable)
 	_, err := n.db.Exec(deleteString, nodeType)
 	return err
 }
 
-func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*types.NodeInfo, int64, error) {
+func (n *SqlDB) GetNodes(cursor int, count int) ([]*types.NodeInfo, int64, error) {
 	var total int64
 	countSQL := fmt.Sprintf("SELECT count(*) FROM %s", nodeInfoTable)
 	err := n.db.Get(&total, countSQL)
@@ -176,8 +168,8 @@ func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*types.NodeInfo, int64, e
 
 	queryString := fmt.Sprintf(`SELECT node_id FROM %s order by node_id asc limit ?,?`, nodeInfoTable)
 
-	if count > loadNodeInfoMaxCount {
-		count = loadNodeInfoMaxCount
+	if count > loadNodeInfosLimit {
+		count = loadNodeInfosLimit
 	}
 
 	var out []*types.NodeInfo
@@ -190,7 +182,7 @@ func (n *NodeMgrDB) GetNodes(cursor int, count int) ([]*types.NodeInfo, int64, e
 }
 
 // ResetValidators validator list
-func (n *NodeMgrDB) ResetValidators(nodeIDs []string, serverID dtypes.ServerID) error {
+func (n *SqlDB) ResetValidators(nodeIDs []string, serverID dtypes.ServerID) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -216,7 +208,7 @@ func (n *NodeMgrDB) ResetValidators(nodeIDs []string, serverID dtypes.ServerID) 
 }
 
 // GetValidatorsWithList load validators
-func (n *NodeMgrDB) GetValidatorsWithList(serverID dtypes.ServerID) ([]string, error) {
+func (n *SqlDB) GetValidatorsWithList(serverID dtypes.ServerID) ([]string, error) {
 	sQuery := fmt.Sprintf(`SELECT node_id FROM %s WHERE server_id=?`, validatorsTable)
 
 	var out []string
@@ -229,7 +221,7 @@ func (n *NodeMgrDB) GetValidatorsWithList(serverID dtypes.ServerID) ([]string, e
 }
 
 // ResetOwnerForValidator reset scheduler server id for validator
-func (n *NodeMgrDB) ResetOwnerForValidator(serverID dtypes.ServerID, nodeID string) error {
+func (n *SqlDB) ResetOwnerForValidator(serverID dtypes.ServerID, nodeID string) error {
 	var count int64
 	sQuery := fmt.Sprintf("SELECT count(node_id) FROM %s WHERE node_id=?", validatorsTable)
 	err := n.db.Get(&count, sQuery, nodeID)
@@ -248,7 +240,7 @@ func (n *NodeMgrDB) ResetOwnerForValidator(serverID dtypes.ServerID, nodeID stri
 }
 
 // UpdateNodeOnlineInfo update node info
-func (n *NodeMgrDB) UpdateNodeOnlineInfo(info *types.NodeInfo) error {
+func (n *SqlDB) UpdateNodeOnlineInfo(info *types.NodeInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (node_id, mac_location, product_type, cpu_cores, memory, node_name, latitude, disk_usage,
 			    longitude, disk_type, io_system, system_version, nat_type, disk_space, bandwidth_up, bandwidth_down, blocks) 
@@ -261,7 +253,7 @@ func (n *NodeMgrDB) UpdateNodeOnlineInfo(info *types.NodeInfo) error {
 }
 
 // UpdateNodeOnlineTime update node online time and last time
-func (n *NodeMgrDB) UpdateNodeOnlineTime(nodeID string, onlineTime int) error {
+func (n *SqlDB) UpdateNodeOnlineTime(nodeID string, onlineTime int) error {
 	info := &types.NodeInfo{
 		NodeID:     nodeID,
 		OnlineTime: onlineTime,
@@ -274,7 +266,7 @@ func (n *NodeMgrDB) UpdateNodeOnlineTime(nodeID string, onlineTime int) error {
 }
 
 // InsertNode Insert Node
-func (n *NodeMgrDB) InsertNode(pKey, nodeID string, nodeType types.NodeType) error {
+func (n *SqlDB) InsertNode(pKey, nodeID string, nodeType types.NodeType) error {
 	info := types.NodeAllocateInfo{
 		PublicKey:  pKey,
 		NodeID:     nodeID,
@@ -291,7 +283,7 @@ func (n *NodeMgrDB) InsertNode(pKey, nodeID string, nodeType types.NodeType) err
 }
 
 // NodePublicKey load node public key
-func (n *NodeMgrDB) NodePublicKey(nodeID string) (string, error) {
+func (n *SqlDB) NodePublicKey(nodeID string) (string, error) {
 	var pKey string
 
 	query := fmt.Sprintf(`SELECT public_key FROM %s WHERE node_id=?`, nodeAllocateTable)
@@ -303,7 +295,7 @@ func (n *NodeMgrDB) NodePublicKey(nodeID string) (string, error) {
 }
 
 // NodeExists is node exists
-func (n *NodeMgrDB) NodeExists(nodeID string, nodeType types.NodeType) error {
+func (n *SqlDB) NodeExists(nodeID string, nodeType types.NodeType) error {
 	var count int
 	cQuery := fmt.Sprintf(`SELECT count(*) FROM %s WHERE node_id=? AND node_type=?`, nodeAllocateTable)
 	err := n.db.Get(&count, cQuery, count, nodeType)
@@ -319,7 +311,7 @@ func (n *NodeMgrDB) NodeExists(nodeID string, nodeType types.NodeType) error {
 }
 
 // ListNodeIDs list nodes
-func (n *NodeMgrDB) ListNodeIDs(cursor int, count int) ([]string, int64, error) {
+func (n *SqlDB) ListNodeIDs(cursor int, count int) ([]string, int64, error) {
 	var total int64
 
 	cQuery := fmt.Sprintf(`SELECT count(*) FROM %s`, nodeInfoTable)
@@ -330,8 +322,8 @@ func (n *NodeMgrDB) ListNodeIDs(cursor int, count int) ([]string, int64, error) 
 
 	sQuery := fmt.Sprintf(`SELECT node_id FROM %s order by node_id asc limit ?,?`, nodeInfoTable)
 
-	if count > loadNodeInfoMaxCount {
-		count = loadNodeInfoMaxCount
+	if count > loadNodeInfosLimit {
+		count = loadNodeInfosLimit
 	}
 
 	var out []string
@@ -344,7 +336,7 @@ func (n *NodeMgrDB) ListNodeIDs(cursor int, count int) ([]string, int64, error) 
 }
 
 // NodeInfo load node info
-func (n *NodeMgrDB) NodeInfo(nodeID string) (*types.NodeInfo, error) {
+func (n *SqlDB) NodeInfo(nodeID string) (*types.NodeInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id=?`, nodeInfoTable)
 
 	var out types.NodeInfo

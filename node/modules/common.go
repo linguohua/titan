@@ -3,13 +3,14 @@ package modules
 import (
 	"context"
 	"errors"
+
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/lib/ulimit"
 
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/linguohua/titan/node/scheduler/storage"
 	"github.com/linguohua/titan/node/types"
 	"go.uber.org/fx"
@@ -66,7 +67,7 @@ func NewServerID(lr repo.LockedRepo) (dtypes.ServerID, error) {
 	return dtypes.ServerID(key.PrivateKey), nil
 }
 
-func Datastore(db *persistent.CarfileDB, serverID dtypes.ServerID) (dtypes.MetadataDS, error) {
+func Datastore(db *db.SqlDB, serverID dtypes.ServerID) (dtypes.MetadataDS, error) {
 	return storage.NewDatastore(db, serverID), nil
 }
 
