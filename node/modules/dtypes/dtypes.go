@@ -32,9 +32,6 @@ type NodeID string
 // InternalIP local network address
 type InternalIP string
 
-// ScheduleSecretKey used for connecting to the scheduler
-type ScheduleSecretKey string
-
 type CarfileStorePath string
 
 // ServerID server id

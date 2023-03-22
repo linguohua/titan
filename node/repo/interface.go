@@ -45,6 +45,9 @@ type Repo interface {
 	// ServerID returns server id
 	ServerID() ([]byte, error)
 
+	// PrivateKey returns private key
+	PrivateKey() ([]byte, error)
+
 	// Lock locks the repo for exclusive use.
 	Lock(RepoType) (LockedRepo, error)
 }
@@ -83,6 +86,9 @@ type LockedRepo interface {
 
 	// SetServerID sets server id for CLI
 	SetServerID([]byte) error
+
+	// set node private key
+	SetPrivateKey([]byte) error
 
 	// KeyStore returns store of private keys for Filecoin transactions
 	KeyStore() (types.KeyStore, error)

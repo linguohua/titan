@@ -1,6 +1,8 @@
 package node
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"errors"
 
 	"github.com/jmoiron/sqlx"
@@ -68,5 +70,8 @@ func ConfigScheduler(c interface{}) Option {
 		}),
 		Override(new(dtypes.SetSchedulerConfigFunc), modules.NewSetSchedulerConfigFunc),
 		Override(new(dtypes.GetSchedulerConfigFunc), modules.NewGetSchedulerConfigFunc),
+		Override(new(*rsa.PrivateKey), func() (*rsa.PrivateKey, error) {
+			return rsa.GenerateKey(rand.Reader, 1024)
+		}),
 	)
 }

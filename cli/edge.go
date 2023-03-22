@@ -1,9 +1,15 @@
 package cli
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"os"
 
+	"github.com/filecoin-project/go-jsonrpc"
+	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/client"
+	"github.com/linguohua/titan/node/repo"
+	titanrsa "github.com/linguohua/titan/node/rsa"
 	"github.com/urfave/cli/v2"
 )
 
@@ -12,20 +18,20 @@ var EdgeCmds = []*cli.Command{
 	cacheStatCmd,
 	logFileCmd,
 	progressCmd,
+	keyCmds,
 }
 
 var nodeInfoCmd = &cli.Command{
 	Name:  "info",
 	Usage: "Print node info",
 	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetEdgeAPI(cctx)
+		api, closer, err := getEdgeAPI(cctx)
 		if err != nil {
 			return err
 		}
 		defer closer()
 
 		ctx := ReqContext(cctx)
-		// TODO: print more useful things
 
 		v, err := api.NodeInfo(ctx)
 		if err != nil {
@@ -53,7 +59,7 @@ var cacheStatCmd = &cli.Command{
 	Usage: "cache stat",
 	Flags: []cli.Flag{},
 	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetEdgeAPI(cctx)
+		api, closer, err := getEdgeAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -84,7 +90,7 @@ var listLogFileCmd = &cli.Command{
 	Name:  "ls",
 	Usage: "list log file",
 	Action: func(cctx *cli.Context) error {
-		edgeAPI, closer, err := GetEdgeAPI(cctx)
+		edgeAPI, closer, err := getEdgeAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -110,7 +116,7 @@ var getLogFileCmd = &cli.Command{
 	Name:  "get",
 	Usage: "get log file",
 	Action: func(cctx *cli.Context) error {
-		edgeAPI, closer, err := GetEdgeAPI(cctx)
+		edgeAPI, closer, err := getEdgeAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -148,7 +154,7 @@ var progressCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		edgeAPI, closer, err := GetEdgeAPI(cctx)
+		edgeAPI, closer, err := getEdgeAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -169,4 +175,232 @@ var progressCmd = &cli.Command{
 		}
 		return nil
 	},
+}
+
+var keyCmds = &cli.Command{
+	Name:  "key",
+	Usage: "generate key, show key, import key, export key",
+	Subcommands: []*cli.Command{
+		generateRsaKey,
+		showKey,
+		importKey,
+		exportKey,
+	},
+}
+var generateRsaKey = &cli.Command{
+	Name:  "generate",
+	Usage: "generate rsa key",
+	Flags: []cli.Flag{
+		&cli.IntFlag{
+			Name:  "bits",
+			Usage: "rsa bit: 512,1024,2048",
+			Value: 1024,
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		bits := cctx.Int("bits")
+
+		lr, err := openRepo(cctx)
+		if err != nil {
+			return err
+		}
+		defer lr.Close()
+
+		privateKey, err := titanrsa.GeneratePrivateKey(bits)
+		if err != nil {
+			return err
+		}
+
+		privatePem := titanrsa.PrivateKey2Pem(privateKey)
+		lr.SetPrivateKey(privatePem)
+
+		publicKey := privateKey.PublicKey
+		publicPem := titanrsa.PublicKey2Pem(&publicKey)
+
+		fmt.Println(string(publicPem))
+		return nil
+	},
+}
+
+var showKey = &cli.Command{
+	Name:  "show",
+	Usage: "show key",
+	Action: func(cctx *cli.Context) error {
+		repoPath := getRepoPath(cctx)
+		r, err := repo.NewFS(repoPath)
+		if err != nil {
+			return err
+		}
+
+		pem, err := r.PrivateKey()
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(string(pem))
+		return nil
+	},
+}
+
+var importKey = &cli.Command{
+	Name:  "import",
+	Usage: "import key",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Required: true,
+			Name:     "path",
+			Usage:    "example: --path=./private.key",
+			Value:    "",
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		lr, err := openRepo(cctx)
+		if err != nil {
+			return err
+		}
+		defer lr.Close()
+
+		path := cctx.String("path")
+
+		privateKey, err := readPrivateKey(path)
+		if err != nil {
+			return err
+		}
+
+		privatePem := titanrsa.PrivateKey2Pem(privateKey)
+		lr.SetPrivateKey(privatePem)
+
+		publicKey := privateKey.PublicKey
+		publicPem := titanrsa.PublicKey2Pem(&publicKey)
+
+		fmt.Println(string(publicPem))
+		return nil
+	},
+}
+
+var exportKey = &cli.Command{
+	Name:  "export",
+	Usage: "export key",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "pk-path",
+			Usage: "public key path, example: --pk-path=./public.pem",
+			Value: "",
+		},
+		&cli.StringFlag{
+			Name:  "sk-path",
+			Usage: "private key path, example: --sk-path=./private.key",
+			Value: "",
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		pkPath := cctx.String("pk-path")
+		skPath := cctx.String("sk-path")
+		if len(pkPath) == 0 && len(skPath) == 0 {
+			return fmt.Errorf("pk-path or sk-path can not empty")
+		}
+
+		repoPath := getRepoPath(cctx)
+		r, err := repo.NewFS(repoPath)
+		if err != nil {
+			return err
+		}
+
+		privatePem, err := r.PrivateKey()
+		if err != nil {
+			return err
+		}
+
+		if len(skPath) > 0 {
+			err := os.WriteFile(skPath, privatePem, 0o600)
+			if err != nil {
+				return err
+			}
+		}
+
+		if len(pkPath) == 0 {
+			return nil
+		}
+
+		privateKey, err := titanrsa.Pem2PrivateKey(privatePem)
+		if err != nil {
+			return err
+		}
+
+		publicPem := titanrsa.PublicKey2Pem(&privateKey.PublicKey)
+
+		return os.WriteFile(pkPath, publicPem, 0o600)
+	},
+}
+
+func openRepo(cctx *cli.Context) (repo.LockedRepo, error) {
+	repoPath := getRepoPath(cctx)
+	r, err := repo.NewFS(repoPath)
+	if err != nil {
+		return nil, err
+	}
+
+	ok, err := r.Exists()
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		if err := r.Init(repo.Edge); err != nil {
+			return nil, err
+		}
+	}
+
+	lr, err := r.Lock(repo.Edge)
+	if err != nil {
+		return nil, err
+	}
+
+	return lr, nil
+}
+
+func getRepoPath(cctx *cli.Context) string {
+	ti, ok := cctx.App.Metadata["repoType"]
+	if !ok {
+		return ""
+	}
+
+	t, ok := ti.(repo.RepoType)
+	if !ok {
+		log.Errorf("repoType type does not match the type of repo.RepoType")
+	}
+
+	repoFlags := t.RepoFlags()
+	if len(repoFlags) == 0 {
+		return ""
+	}
+
+	return cctx.String(repoFlags[0])
+}
+
+func readPrivateKey(path string) (*rsa.PrivateKey, error) {
+	pem, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return titanrsa.Pem2PrivateKey(pem)
+}
+
+func getEdgeAPI(ctx *cli.Context) (api.Edge, jsonrpc.ClientCloser, error) {
+	ti, ok := ctx.App.Metadata["repoType"]
+	if !ok {
+		log.Errorf("unknown repo type, are you sure you want to use GetCommonAPI?")
+		ti = repo.Scheduler
+	}
+	t, ok := ti.(repo.RepoType)
+	if !ok {
+		log.Errorf("repoType type does not match the type of repo.RepoType")
+	}
+
+	addr, headers, err := GetRawAPI(ctx, t, "v0")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return client.NewEdge(ctx.Context, addr, headers)
 }

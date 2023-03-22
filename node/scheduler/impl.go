@@ -2,8 +2,10 @@ package scheduler
 
 import (
 	"context"
+	"crypto"
 	"crypto/rsa"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"net/http"
@@ -63,50 +65,55 @@ type Scheduler struct {
 var _ api.Scheduler = &Scheduler{}
 
 type jwtPayload struct {
-	Allow []auth.Permission
+	Allow  []auth.Permission
+	NodeID string
 }
 
 // NodeAuthVerify Verify Node Auth
 func (s *Scheduler) NodeAuthVerify(ctx context.Context, token string) ([]auth.Permission, error) {
-	var payload jwtPayload
-
 	nodeID := handler.GetNodeID(ctx)
-	if nodeID == "" {
-		if _, err := jwt.Verify([]byte(token), s.APISecret, &payload); err != nil {
-			return nil, xerrors.Errorf("JWT Verification failed: %w", err)
-		}
 
-		return payload.Allow, nil
-	}
-
-	secret, err := s.NodeManager.NodeMgrDB.NodePublicKey(nodeID)
-	if err != nil {
-		return nil, xerrors.Errorf("%s load node secret failed: %w", nodeID, err)
-	}
-
-	if _, err := jwt.Verify([]byte(token), jwt.NewHS256([]byte(secret)), &payload); err != nil {
+	var payload jwtPayload
+	if _, err := jwt.Verify([]byte(token), s.APISecret, &payload); err != nil {
 		return nil, xerrors.Errorf("node:%s JWT Verify failed: %w", nodeID, err)
+	}
+
+	if payload.NodeID != nodeID {
+		return nil, xerrors.Errorf("node id %s not match", nodeID)
 	}
 
 	return payload.Allow, nil
 }
 
 // NodeAuthNew  Get Node Auth
-func (s *Scheduler) NodeAuthNew(ctx context.Context, perms []auth.Permission, nodeID, nodeSecret string) (string, error) {
+func (s *Scheduler) NodeAuthNew(ctx context.Context, nodeID, sign string) (string, error) {
 	p := jwtPayload{
-		Allow: api.ReadWritePerms,
+		Allow:  api.ReadWritePerms,
+		NodeID: nodeID,
 	}
 
-	secret, err := s.NodeManager.NodeMgrDB.NodePublicKey(nodeID)
+	pem, err := s.NodeManager.NodeMgrDB.NodePublicKey(nodeID)
 	if err != nil {
-		return "", xerrors.Errorf("%s load node secret failed: %w", nodeID, err)
+		return "", xerrors.Errorf("%s load node public key failed: %w", nodeID, err)
 	}
 
-	if secret != nodeSecret {
-		return "", xerrors.Errorf("node %s secret not match", nodeID)
+	publicKey, err := titanrsa.Pem2PublicKey([]byte(pem))
+	if err != nil {
+		return "", err
 	}
 
-	tk, err := jwt.Sign(&p, jwt.NewHS256([]byte(nodeSecret)))
+	signBuf, err := hex.DecodeString(sign)
+	if err != nil {
+		return "", err
+	}
+
+	rsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
+	err = rsa.VerifySign(publicKey, signBuf, []byte(nodeID))
+	if err != nil {
+		return "", err
+	}
+
+	tk, err := jwt.Sign(&p, s.APISecret)
 	if err != nil {
 		return "", xerrors.Errorf("node %s sign err:%s", nodeID, err.Error())
 	}

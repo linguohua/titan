@@ -221,7 +221,7 @@ type SchedulerStruct struct {
 
 		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
-		NodeAuthNew func(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) (string, error) `perm:"read"`
+		NodeAuthNew func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
 		NodeAuthVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
 
@@ -902,14 +902,14 @@ func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 string, p2 string)
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) NodeAuthNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) (string, error) {
+func (s *SchedulerStruct) NodeAuthNew(p0 context.Context, p1 string, p2 string) (string, error) {
 	if s.Internal.NodeAuthNew == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.NodeAuthNew(p0, p1, p2, p3)
+	return s.Internal.NodeAuthNew(p0, p1, p2)
 }
 
-func (s *SchedulerStub) NodeAuthNew(p0 context.Context, p1 []auth.Permission, p2 string, p3 string) (string, error) {
+func (s *SchedulerStub) NodeAuthNew(p0 context.Context, p1 string, p2 string) (string, error) {
 	return "", ErrNotSupported
 }
 
