@@ -18,7 +18,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/node/common"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/linguohua/titan/node/scheduler/node"
 )
 
@@ -26,7 +26,7 @@ var log = logging.Logger("modules")
 
 // NewDB returns an *sqlx.DB instance
 func NewDB(dbPath dtypes.DatabaseAddress) (*sqlx.DB, error) {
-	return persistent.NewDB(string(dbPath))
+	return db.NewDB(string(dbPath))
 }
 
 // GenerateTokenWithWritePermission create a new token based on the given permissions

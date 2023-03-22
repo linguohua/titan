@@ -11,17 +11,17 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/modules/dtypes"
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/linguohua/titan/node/scheduler/db"
 )
 
 type Datastore struct {
 	sync.RWMutex
-	db    *persistent.CarfileDB
+	db    *db.SqlDB
 	local *datastore.MapDatastore
 	dtypes.ServerID
 }
 
-func NewDatastore(db *persistent.CarfileDB, serverID dtypes.ServerID) *Datastore {
+func NewDatastore(db *db.SqlDB, serverID dtypes.ServerID) *Datastore {
 	return &Datastore{
 		db:       db,
 		local:    datastore.NewMapDatastore(),
@@ -128,7 +128,7 @@ func (d *Datastore) Put(ctx context.Context, key datastore.Key, value []byte) er
 	info := carfile.ToCarfileRecordInfo()
 	info.ServerID = d.ServerID
 
-	return d.db.UpdateOrCreateCarfileRecord(info)
+	return d.db.UpsertCarfileRecord(info)
 }
 
 func (d *Datastore) Delete(ctx context.Context, key datastore.Key) error {

@@ -3,12 +3,12 @@ package locator
 import (
 	"testing"
 
-	"github.com/linguohua/titan/node/scheduler/db/persistent"
+	"github.com/linguohua/titan/node/scheduler/db"
 )
 
 func TestDB(t *testing.T) {
 	t.Logf("TestDB")
-	db, err := persistent.NewDB("user01:sql001@tcp(127.0.0.1:3306)/locator")
+	db, err := db.NewDB("user01:sql001@tcp(127.0.0.1:3306)/locator")
 	if err != nil {
 		t.Errorf("new db error:%s", err.Error())
 		return
