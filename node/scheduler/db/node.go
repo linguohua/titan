@@ -12,8 +12,8 @@ import (
 )
 
 // LoadTimeoutNodes load nodes that are offline for a long time
-func (n *SQLDB) LoadTimeoutNodes(timeoutHour int) ([]*types.NodeInfo, error) {
-	list := make([]*types.NodeInfo, 0)
+func (n *SQLDB) LoadTimeoutNodes(timeoutHour int) ([]string, error) {
+	list := make([]string, 0)
 
 	time := time.Now().Add(-time.Duration(timeoutHour) * time.Hour)
 

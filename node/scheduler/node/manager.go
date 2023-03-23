@@ -21,7 +21,7 @@ import (
 var log = logging.Logger("node")
 
 const (
-	nodeOfflineTime = 24 // If it is not online after this time, it is determined that the node has quit the system (unit: hour)
+	offlineTimeMax = 24 // If it is not online after this time, it is determined that the node has quit the titan (unit: hour)
 
 	keepaliveTime    = 30 // keepalive time interval (unit: second)
 	saveInfoInterval = 10 // keepalive saves information every 10 times
@@ -59,20 +59,17 @@ func (m *Manager) run() {
 	for {
 		<-ticker.C
 		count++
-		isSave := count%saveInfoInterval == 0
-
-		m.checkNodesKeepalive(isSave)
-
-		// check node offline how time
-		m.checkWhetherNodeQuits()
+		saveInfo := count%saveInfoInterval == 0
+		m.nodesKeepalive(saveInfo)
+		// Check how long a node has been offline
+		m.checkNodesTTL()
 	}
 }
 
-func (m *Manager) edgeKeepalive(node *Edge, nowTime time.Time, isSave bool) {
+func (m *Manager) edgeKeepalive(node *Edge, t time.Time, isSave bool) {
 	lastTime := node.LastRequestTime()
 
-	if !lastTime.After(nowTime) {
-		// offline
+	if !lastTime.After(t) {
 		m.edgeOffline(node)
 		node = nil
 		return
@@ -86,11 +83,10 @@ func (m *Manager) edgeKeepalive(node *Edge, nowTime time.Time, isSave bool) {
 	}
 }
 
-func (m *Manager) candidateKeepalive(node *Candidate, nowTime time.Time, isSave bool) {
+func (m *Manager) candidateKeepalive(node *Candidate, t time.Time, isSave bool) {
 	lastTime := node.LastRequestTime()
 
-	if !lastTime.After(nowTime) {
-		// offline
+	if !lastTime.After(t) {
 		m.candidateOffline(node)
 		node = nil
 		return
@@ -104,31 +100,27 @@ func (m *Manager) candidateKeepalive(node *Candidate, nowTime time.Time, isSave 
 	}
 }
 
-func (m *Manager) checkNodesKeepalive(isSave bool) {
-	nowTime := time.Now().Add(-time.Duration(keepaliveTime) * time.Second)
+func (m *Manager) nodesKeepalive(isSave bool) {
+	t := time.Now().Add(-time.Duration(keepaliveTime) * time.Second)
 
 	m.EdgeNodes.Range(func(key, value interface{}) bool {
-		// nodeID := key.(string)
 		node := value.(*Edge)
-
 		if node == nil {
 			return true
 		}
 
-		go m.edgeKeepalive(node, nowTime, isSave)
+		go m.edgeKeepalive(node, t, isSave)
 
 		return true
 	})
 
 	m.CandidateNodes.Range(func(key, value interface{}) bool {
-		// nodeID := key.(string)
 		node := value.(*Candidate)
-
 		if node == nil {
 			return true
 		}
 
-		go m.candidateKeepalive(node, nowTime, isSave)
+		go m.candidateKeepalive(node, t, isSave)
 
 		return true
 	})
@@ -194,14 +186,11 @@ func (m *Manager) GetEdgeNode(nodeID string) *Edge {
 
 func (m *Manager) edgeOffline(node *Edge) {
 	nodeID := node.NodeID
-	// close old node
-	node.ClientCloser()
-
 	log.Infof("Edge Offline :%s", nodeID)
 
+	node.ClientCloser()
 	m.EdgeNodes.Delete(nodeID)
-
-	// notify locator
+	// notify to locator
 	locator.ChangeNodeOnlineStatus(nodeID, false)
 }
 
@@ -241,14 +230,11 @@ func (m *Manager) GetCandidateNode(nodeID string) *Candidate {
 
 func (m *Manager) candidateOffline(node *Candidate) {
 	nodeID := node.NodeID
-	// close old node
-	node.ClientCloser()
-
 	log.Infof("Candidate Offline :%s", nodeID)
 
+	node.ClientCloser()
 	m.CandidateNodes.Delete(nodeID)
-
-	// notify locator
+	// notify to locator
 	locator.ChangeNodeOnlineStatus(nodeID, false)
 }
 
@@ -419,28 +405,15 @@ func (m *Manager) GetCandidatesWithBlockHash(hash, filterNode string) ([]*Candid
 	return nodes, nil
 }
 
-func (m *Manager) checkWhetherNodeQuits() {
-	nodes, err := m.LoadTimeoutNodes(nodeOfflineTime)
+func (m *Manager) checkNodesTTL() {
+	nodes, err := m.LoadTimeoutNodes(offlineTimeMax)
 	if err != nil {
-		log.Errorf("checkWhetherNodeQuits GetOfflineNodes err:%s", err.Error())
+		log.Errorf("checkWhetherNodeQuits LoadTimeoutNodes err:%s", err.Error())
 		return
 	}
 
-	t := time.Now().Add(-time.Duration(nodeOfflineTime) * time.Hour)
-
-	quits := make([]string, 0)
-
-	for _, node := range nodes {
-		if node.LastTime.After(t) {
-			continue
-		}
-
-		// node quitted
-		quits = append(quits, node.NodeID)
-	}
-
-	if len(quits) > 0 {
-		m.NodesQuit(quits)
+	if len(nodes) > 0 {
+		m.NodesQuit(nodes)
 	}
 }
 
@@ -467,7 +440,7 @@ func (m *Manager) NodesQuit(nodeIDs []string) {
 	}
 
 	for _, hash := range hashes {
-		log.Infof("need restore storage :%s", hash)
+		log.Infof("need to add replica :%s", hash)
 	}
 }
 
