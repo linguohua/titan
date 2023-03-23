@@ -147,7 +147,7 @@ require (
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
 	golang.org/x/crypto v0.5.0 // indirect
 	golang.org/x/exp v0.0.0-20230129154200-a960b3787bd2 // indirect
-	golang.org/x/mod v0.8.0 // indirect
+	golang.org/x/mod v0.9.0 // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/text v0.8.0 // indirect
 	google.golang.org/genproto v0.0.0-20210917145530-b395a37504d4 // indirect
@@ -169,6 +169,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.16 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
+	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
@@ -179,7 +180,7 @@ require (
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/multiformats/go-multibase v0.1.1 // indirect
 	go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738
-	golang.org/x/tools v0.6.0 // indirect
+	golang.org/x/tools v0.7.0 // indirect
 )
 
 replace github.com/filecoin-project/go-jsonrpc v0.2.1 => github.com/zscboy/go-jsonrpc v0.2.3

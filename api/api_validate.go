@@ -6,10 +6,12 @@ type Validate interface {
 	BeValidate(ctx context.Context, reqValidate ReqValidate, candidateTcpSrvAddr string) error //perm:read
 }
 
-type ValidateTcpMsgType int
+// TODO: new tcp package, add thoes to tcp package
+// candidate use tcp server to validate edge
+type TCPMsgType int
 
 const (
-	ValidateTcpMsgTypeNodeID ValidateTcpMsgType = iota + 1
-	ValidateTcpMsgTypeBlockContent
-	ValidateTcpMsgTypeCancelValidate
+	TCPMsgTypeNodeID TCPMsgType = iota + 1
+	TCPMsgTypeBlock
+	TCPMsgTypeCancel
 )

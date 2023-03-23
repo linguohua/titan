@@ -101,7 +101,7 @@ func (cs *CarfileStore) HasCarfile(root cid.Cid) bool {
 	return false
 }
 
-// must close reader
+// CarReader must close reader
 func (cs *CarfileStore) CarReader(root cid.Cid) (io.ReadSeekCloser, error) {
 	name := newCarfileName(root)
 	path := filepath.Join(cs.carsDir(), name)

@@ -26,12 +26,12 @@ func NewBlockFetcherFromIPFS(cfg *config.CandidateCfg) fetcher.BlockFetcher {
 	return fetcher.NewIPFS(cfg.IpfsApiURL, cfg.FetchBlockTimeout, cfg.FetchBlockRetry)
 }
 
-func NewTcpServer(lc fx.Lifecycle, cfg *config.CandidateCfg, blockWait *candidate.BlockWaiter) *candidate.TCPServer {
+func NewTCPServer(lc fx.Lifecycle, cfg *config.CandidateCfg, blockWait *candidate.BlockWaiter) *candidate.TCPServer {
 	srv := candidate.NewTCPServer(cfg, blockWait)
 
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
-			go srv.StartTcpServer()
+			go srv.StartTCPServer()
 			return nil
 		},
 		OnStop: srv.Stop,

@@ -12,7 +12,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
-func newTcpClient(addr string) (*net.TCPConn, error) {
+func newTCPClient(addr string) (*net.TCPConn, error) {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -21,7 +21,7 @@ func newTcpClient(addr string) (*net.TCPConn, error) {
 	return net.DialTCP("tcp", nil, tcpAddr)
 }
 
-func packData(data []byte, msgType api.ValidateTcpMsgType) ([]byte, error) {
+func packData(data []byte, msgType api.TCPMsgType) ([]byte, error) {
 	// msg type is uint8
 	msgTypeLen := 1
 	contentLen := int32(msgTypeLen + len(data))
@@ -49,7 +49,7 @@ func packData(data []byte, msgType api.ValidateTcpMsgType) ([]byte, error) {
 	return buf, nil
 }
 
-func sendData(conn *net.TCPConn, data []byte, msgType api.ValidateTcpMsgType, rateLimiter *rate.Limiter) error {
+func sendData(conn *net.TCPConn, data []byte, msgType api.TCPMsgType, rateLimiter *rate.Limiter) error {
 	buf, err := packData(data, msgType)
 	if err != nil {
 		return err
@@ -73,5 +73,5 @@ func sendNodeID(conn *net.TCPConn, nodeID string, limiter *rate.Limiter) error {
 		return fmt.Errorf("nodeID can not empty")
 	}
 
-	return sendData(conn, []byte(nodeID), api.ValidateTcpMsgTypeNodeID, limiter)
+	return sendData(conn, []byte(nodeID), api.TCPMsgTypeNodeID, limiter)
 }
