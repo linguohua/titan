@@ -2,12 +2,14 @@ package db
 
 import "github.com/jmoiron/sqlx"
 
-type SqlDB struct {
+// SQLDB scheduler sql db
+type SQLDB struct {
 	db *sqlx.DB
 }
 
-func NewSqlDB(db *sqlx.DB) *SqlDB {
-	return &SqlDB{db}
+// NewSQLDB new scheduler sql db
+func NewSQLDB(db *sqlx.DB) *SQLDB {
+	return &SQLDB{db}
 }
 
 const (

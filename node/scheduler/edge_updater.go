@@ -9,11 +9,11 @@ import (
 )
 
 type EdgeUpdater struct {
-	db          *db.SqlDB
+	db          *db.SQLDB
 	updateInfos map[int]*api.EdgeUpdateInfo
 }
 
-func NewEdgeUpdater(db *db.SqlDB) (*EdgeUpdater, error) {
+func NewEdgeUpdater(db *db.SQLDB) (*EdgeUpdater, error) {
 	updater := &EdgeUpdater{
 		db:          db,
 		updateInfos: make(map[int]*api.EdgeUpdateInfo),

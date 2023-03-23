@@ -23,16 +23,16 @@ import (
 
 // Edge Edge node
 type Edge struct {
-	nodeAPI    api.Edge
-	closer     jsonrpc.ClientCloser
-	adminToken string
+	nodeAPI api.Edge
+	closer  jsonrpc.ClientCloser
+	token   string
 	*BaseInfo
 }
 
 // NewEdge new edge
-func NewEdge(adminToken string) *Edge {
+func NewEdge(token string) *Edge {
 	edgeNode := &Edge{
-		adminToken: adminToken,
+		token: token,
 	}
 
 	return edgeNode
@@ -55,7 +55,7 @@ func (e *Edge) ConnectRPC(addr string, isNodeConnect bool) (api.Edge, error) {
 	rpcURL := fmt.Sprintf("https://%s/rpc/v0", addr)
 
 	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+e.adminToken)
+	headers.Add("Authorization", "Bearer "+e.token)
 
 	// Connect to node
 	edgeAPI, closer, err := client.NewEdge(context.Background(), rpcURL, headers)
@@ -81,16 +81,16 @@ func (e *Edge) ClientCloser() {
 
 // Candidate Candidate node
 type Candidate struct {
-	nodeAPI    api.Candidate
-	closer     jsonrpc.ClientCloser
-	adminToken string
+	nodeAPI api.Candidate
+	closer  jsonrpc.ClientCloser
+	token   string
 	*BaseInfo
 }
 
 // NewCandidate new candidate
-func NewCandidate(adminToken string) *Candidate {
+func NewCandidate(token string) *Candidate {
 	candidateNode := &Candidate{
-		adminToken: adminToken,
+		token: token,
 	}
 
 	return candidateNode
@@ -114,7 +114,7 @@ func (c *Candidate) ConnectRPC(addr string, isNodeConnect bool) (api.Candidate, 
 	rpcURL := fmt.Sprintf("https://%s/rpc/v0", addr)
 
 	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+c.adminToken)
+	headers.Add("Authorization", "Bearer "+c.token)
 
 	// Connect to node
 	candidateAPI, closer, err := client.NewCandidate(context.Background(), rpcURL, headers)

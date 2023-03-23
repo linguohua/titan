@@ -193,7 +193,7 @@ type SchedulerStruct struct {
 	Internal struct {
 		CacheCarfiles func(p0 context.Context, p1 *types.CacheCarfileInfo) error `perm:"admin"`
 
-		CandidateNodeConnect func(p0 context.Context) error `perm:"write"`
+		CandidateNodeConnect func(p0 context.Context, p1 string) error `perm:"write"`
 
 		CarfileRecord func(p0 context.Context, p1 string) (*types.CarfileRecordInfo, error) `perm:"read"`
 
@@ -211,7 +211,7 @@ type SchedulerStruct struct {
 
 		EdgeExternalServiceAddress func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
 
-		EdgeNodeConnect func(p0 context.Context) error `perm:"write"`
+		EdgeNodeConnect func(p0 context.Context, p1 string) error `perm:"write"`
 
 		EdgeUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
@@ -746,14 +746,14 @@ func (s *SchedulerStub) CacheCarfiles(p0 context.Context, p1 *types.CacheCarfile
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context) error {
+func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context, p1 string) error {
 	if s.Internal.CandidateNodeConnect == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.CandidateNodeConnect(p0)
+	return s.Internal.CandidateNodeConnect(p0, p1)
 }
 
-func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context) error {
+func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
@@ -845,14 +845,14 @@ func (s *SchedulerStub) EdgeExternalServiceAddress(p0 context.Context, p1 string
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context) error {
+func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context, p1 string) error {
 	if s.Internal.EdgeNodeConnect == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.EdgeNodeConnect(p0)
+	return s.Internal.EdgeNodeConnect(p0, p1)
 }
 
-func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context) error {
+func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 

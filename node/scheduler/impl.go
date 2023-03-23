@@ -21,8 +21,6 @@ import (
 	"github.com/linguohua/titan/node/scheduler/locator"
 	"github.com/linguohua/titan/node/scheduler/validation"
 
-	// "github.com/linguohua/titan/node/device"
-
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
@@ -48,13 +46,11 @@ type Scheduler struct {
 	*EdgeUpdater
 	dtypes.ServerID
 
-	NodeManager *node.Manager
-	Election    *election.Election
-	Validation  *validation.Validation
-	DataManager *storage.Manager
-	DataSync    *sync.DataSync
-	// WriteToken             dtypes.PermissionWriteToken
-	AdminToken             dtypes.PermissionAdminToken
+	NodeManager            *node.Manager
+	Election               *election.Election
+	Validation             *validation.Validation
+	DataManager            *storage.Manager
+	DataSync               *sync.DataSync
 	SchedulerCfg           *config.SchedulerCfg
 	SetSchedulerConfigFunc dtypes.SetSchedulerConfigFunc
 	GetSchedulerConfigFunc dtypes.GetSchedulerConfigFunc
@@ -122,7 +118,7 @@ func (s *Scheduler) NodeAuthNew(ctx context.Context, nodeID, sign string) (strin
 }
 
 // CandidateNodeConnect Candidate connect
-func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
+func (s *Scheduler) CandidateNodeConnect(ctx context.Context, token string) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
@@ -139,7 +135,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 	}
 
 	log.Infof("candidate connected %s, address:%s", nodeID, remoteAddr)
-	candidateNode := node.NewCandidate(string(s.AdminToken))
+	candidateNode := node.NewCandidate(token)
 	candidateAPI, err := candidateNode.ConnectRPC(remoteAddr, true)
 	if err != nil {
 		return xerrors.Errorf("CandidateNodeConnect ConnectRPC err:%s", err.Error())
@@ -178,7 +174,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context) error {
 }
 
 // EdgeNodeConnect edge connect
-func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
+func (s *Scheduler) EdgeNodeConnect(ctx context.Context, token string) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
@@ -195,7 +191,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context) error {
 	}
 
 	log.Infof("edge connected %s; remoteAddr:%s", nodeID, remoteAddr)
-	edgeNode := node.NewEdge(string(s.AdminToken))
+	edgeNode := node.NewEdge(token)
 	edgeAPI, err := edgeNode.ConnectRPC(remoteAddr, true)
 	if err != nil {
 		return xerrors.Errorf("EdgeNodeConnect ConnectRPC err:%s", err.Error())
@@ -273,9 +269,6 @@ func (s *Scheduler) NodeExternalServiceAddress(ctx context.Context) (string, err
 func (s *Scheduler) NodeValidatedResult(ctx context.Context, result api.ValidatedResult) error {
 	validator := handler.GetNodeID(ctx)
 	log.Debug("call back Validator block result, Validator is ", validator)
-	// if !s.nodeExists(validator, 0) {
-	// 	return xerrors.Errorf("node not Exist: %s", validator)
-	// }
 
 	vs := &result
 	vs.Validator = validator
@@ -289,25 +282,6 @@ func (s *Scheduler) NodeValidatedResult(ctx context.Context, result api.Validate
 func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, pKey string, nodeType types.NodeType) error {
 	return s.NodeManager.InsertNode(pKey, nodeID, nodeType)
 }
-
-// func (s *Scheduler) AllocateNodes(ctx context.Context, nodeType types.NodeType, count int) ([]*types.NodeAllocateInfo, error) {
-// 	list := make([]*types.NodeAllocateInfo, 0)
-// 	if count <= 0 || count > 10 {
-// 		return list, nil
-// 	}
-
-// 	for i := 0; i < count; i++ {
-// 		info, err := s.NodeManager.Allocate(nodeType)
-// 		if err != nil {
-// 			log.Errorf("RegisterNode err:%s", err.Error())
-// 			continue
-// 		}
-
-// 		list = append(list, info)
-// 	}
-
-// 	return list, nil
-// }
 
 // OnlineNodeList Get all online node id
 func (s *Scheduler) OnlineNodeList(ctx context.Context, nodeType types.NodeType) ([]string, error) {
@@ -428,26 +402,6 @@ func (s *Scheduler) SetNodePort(ctx context.Context, nodeID, port string) error 
 	}
 
 	return s.NodeManager.SetPortMappingOfNode(nodeID, port)
-}
-
-func (s *Scheduler) authNew() error {
-	// wtk, err := s.AuthNew(context.Background(), []auth.Permission{api.PermRead, api.PermWrite})
-	// if err != nil {
-	// 	log.Errorf("AuthNew err:%s", err.Error())
-	// 	return err
-	// }
-
-	// s.WriteToken = dtypes.PermissionWriteToken(wtk)
-
-	atk, err := s.AuthNew(context.Background(), api.AllPermissions)
-	if err != nil {
-		log.Errorf("AuthNew err:%s", err.Error())
-		return err
-	}
-
-	s.AdminToken = dtypes.PermissionAdminToken(atk)
-
-	return nil
 }
 
 // NodeLogFileInfo show node log file
