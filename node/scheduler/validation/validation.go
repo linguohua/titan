@@ -210,14 +210,31 @@ func (v *Validation) getNodeReqValidate(validated *validateNodeInfo) (api.ReqVal
 		NodeType:   int(validated.nodeType),
 	}
 
-	hash, err := v.nodeManager.LoadRandomCarfileForNode(validated.nodeID)
+	count, err := v.nodeManager.LoadReplicaCountOfNode(validated.nodeID)
 	if err != nil {
 		return req, err
 	}
 
-	cid, err := cidutil.HashString2CIDString(hash)
+	if count < 1 {
+		return req, xerrors.New("Node has no replica")
+	}
+
+	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	// rand count
+	offset := rand.Intn(count)
+
+	hashes, err := v.nodeManager.LoadCarfileHashesOfNode(validated.nodeID, 1, offset)
 	if err != nil {
-		log.Warnf("HashString2CidString %s err: %s ", hash, err.Error())
+		return req, err
+	}
+
+	if hashes == nil || len(hashes) < 1 {
+		return req, xerrors.New("Node has no replica")
+	}
+
+	cid, err := cidutil.HashString2CIDString(hashes[0])
+	if err != nil {
+		log.Warnf("HashString2CidString %s err: %s ", hashes[0], err.Error())
 		return req, err
 	}
 	req.CarfileCID = cid
@@ -379,17 +396,3 @@ func (v *Validation) compareCid(cidStr1, cidStr2 string) bool {
 
 	return hash1 == hash2
 }
-
-// // StartValidateOnceTask start validator task
-// func (v *Validation) StartValidateOnceTask() error {
-// 	count, err := v.nodeManager.NodeMgrDB.CountVerifyingNode(v.nodeManager.ServerID)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	if count > 0 {
-// 		return fmt.Errorf("validation in progress, cannot start again")
-// 	}
-
-// 	return v.start()
-// }

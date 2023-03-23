@@ -10,7 +10,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/fatih/color"
 	"github.com/linguohua/titan/lib/tablewriter"
-	"github.com/linguohua/titan/node/scheduler/storage"
+	"github.com/linguohua/titan/node/scheduler/caching"
 
 	"github.com/linguohua/titan/api/types"
 	"github.com/urfave/cli/v2"
@@ -37,7 +37,7 @@ var carfileCmd = &cli.Command{
 
 var resetExpirationCmd = &cli.Command{
 	Name:  "reset-expiration",
-	Usage: "Reset the storage expiration",
+	Usage: "Reset the carfile record expiration",
 	Flags: []cli.Flag{
 		cidFlag,
 		dateFlag,
@@ -70,7 +70,7 @@ var resetExpirationCmd = &cli.Command{
 
 var removeCarfileCmd = &cli.Command{
 	Name:  "remove",
-	Usage: "Remove the storage record",
+	Usage: "Remove the carfile record",
 	Flags: []cli.Flag{
 		cidFlag,
 	},
@@ -91,7 +91,7 @@ var removeCarfileCmd = &cli.Command{
 
 var showCarfileInfoCmd = &cli.Command{
 	Name:  "info",
-	Usage: "Show the storage info",
+	Usage: "Show the carfile record info",
 	Flags: []cli.Flag{
 		cidFlag,
 	},
@@ -214,28 +214,13 @@ var listCarfilesCmd = &cli.Command{
 			return xerrors.New("the page must greater than 1")
 		}
 
-		failedStates := []string{
-			storage.CacheSeedFailed.String(),
-			storage.CacheCandidatesFailed.String(),
-			storage.CacheEdgesFailed.String(),
-		}
-
-		cachingStates := []string{
-			storage.CacheCarfileSeed.String(),
-			storage.CarfileSeedCaching.String(),
-			storage.CacheToCandidates.String(),
-			storage.CandidatesCaching.String(),
-			storage.CacheToEdges.String(),
-			storage.EdgesCaching.String(),
-		}
-
-		states := append([]string{storage.Finished.String()}, append(failedStates, cachingStates...)...)
+		states := append([]string{caching.Finished.String()}, append(caching.FailedStates, caching.CachingStates...)...)
 
 		if cctx.Bool("caching") {
-			states = cachingStates
+			states = caching.CachingStates
 		}
 		if cctx.Bool("failed") {
-			states = failedStates
+			states = caching.FailedStates
 		}
 
 		restart := cctx.Bool("restart")

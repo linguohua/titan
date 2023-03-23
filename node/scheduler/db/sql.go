@@ -20,7 +20,7 @@ const (
 	edgeUpdateTable     = "edge_update_info"
 	nodeInfoTable       = "node_info"
 	validatorsTable     = "validators"
-	nodeAllocateTable   = "node_allocate_info"
+	nodeRegisterTable   = "node_register_info"
 	validateResultTable = "validate_result"
 
 	loadNodeInfosLimit      = 100

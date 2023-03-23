@@ -61,8 +61,6 @@ type Scheduler interface {
 
 	// user send result when user download block complete or failed
 	UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error //perm:read
-	// NodeList cursor: start index, count: load number of node
-	DownloadRecordList(ctx context.Context, req types.ListBlockDownloadInfoReq) (*types.ListDownloadRecordRsp, error) //perm:read
 	// ListCaches cache manager
 	CarfileReplicaList(ctx context.Context, req types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error)                              //perm:read
 	ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidatedResultRsp, error) //perm:read

@@ -1,4 +1,4 @@
-package storage
+package caching
 
 import (
 	"bytes"
@@ -14,22 +14,25 @@ import (
 	"github.com/linguohua/titan/node/scheduler/db"
 )
 
-type Datastore struct {
+// CarfileRecordStore carfile record datastore
+type CarfileRecordStore struct {
 	sync.RWMutex
-	db    *db.SQLDB
+	sqlDB *db.SQLDB
 	local *datastore.MapDatastore
 	dtypes.ServerID
 }
 
-func NewDatastore(db *db.SQLDB, serverID dtypes.ServerID) *Datastore {
-	return &Datastore{
-		db:       db,
+// NewDatastore new
+func NewDatastore(db *db.SQLDB, serverID dtypes.ServerID) *CarfileRecordStore {
+	return &CarfileRecordStore{
+		sqlDB:    db,
 		local:    datastore.NewMapDatastore(),
 		ServerID: serverID,
 	}
 }
 
-func (d *Datastore) Close() error {
+// Close close
+func (d *CarfileRecordStore) Close() error {
 	return d.local.Close()
 }
 
@@ -37,29 +40,33 @@ func trimPrefix(key datastore.Key) string {
 	return strings.Trim(key.String(), "/")
 }
 
-func (d *Datastore) Get(ctx context.Context, key datastore.Key) (value []byte, err error) {
+// Get get data
+func (d *CarfileRecordStore) Get(ctx context.Context, key datastore.Key) (value []byte, err error) {
 	d.RLock()
 	defer d.RUnlock()
 	return d.local.Get(ctx, key)
 }
 
-func (d *Datastore) Has(ctx context.Context, key datastore.Key) (exists bool, err error) {
+// Has has key
+func (d *CarfileRecordStore) Has(ctx context.Context, key datastore.Key) (exists bool, err error) {
 	d.RLock()
 	defer d.RUnlock()
 	return d.local.Has(ctx, key)
 }
 
-func (d *Datastore) GetSize(ctx context.Context, key datastore.Key) (size int, err error) {
+// GetSize get data size
+func (d *CarfileRecordStore) GetSize(ctx context.Context, key datastore.Key) (size int, err error) {
 	d.RLock()
 	defer d.RUnlock()
 	return d.local.GetSize(ctx, key)
 }
 
-func (d *Datastore) Query(ctx context.Context, q query.Query) (query.Results, error) {
+// Query load carfile record infos
+func (d *CarfileRecordStore) Query(ctx context.Context, q query.Query) (query.Results, error) {
 	var rows *sqlx.Rows
 	var err error
 
-	rows, err = d.db.LoadUnfinishedCarfiles(ctx, q.Limit, q.Offset, d.ServerID)
+	rows, err = d.sqlDB.LoadUnfinishedCarfileRecords(ctx, q.Limit, q.Offset, d.ServerID)
 	if err != nil {
 		return nil, err
 	}
@@ -73,18 +80,20 @@ func (d *Datastore) Query(ctx context.Context, q query.Query) (query.Results, er
 		in := &types.CarfileRecordInfo{}
 		err = rows.StructScan(in)
 		if err != nil {
+			log.Errorf("carfile StructScan err: %s", err.Error())
 			continue
 		}
 
-		in.ReplicaInfos, err = d.db.LoadReplicaInfos(in.CarfileHash, true)
+		in.ReplicaInfos, err = d.sqlDB.LoadReplicaInfosOfCarfile(in.CarfileHash, true)
 		if err != nil {
+			log.Errorf("carfile %s load replicas err: %s", in.CarfileCID, err.Error())
 			continue
 		}
 
-		carfile := carfileInfoFrom(in)
+		carfile := carfileCacheInfoFrom(in)
 		valueBuf := new(bytes.Buffer)
 		if err = carfile.MarshalCBOR(valueBuf); err != nil {
-			log.Errorf("carfile marshal cbor: %v", err)
+			log.Errorf("carfile marshal cbor: %s", err.Error())
 			continue
 		}
 
@@ -110,14 +119,15 @@ func (d *Datastore) Query(ctx context.Context, q query.Query) (query.Results, er
 	return r, nil
 }
 
-func (d *Datastore) Put(ctx context.Context, key datastore.Key, value []byte) error {
+// Put update carfile record info
+func (d *CarfileRecordStore) Put(ctx context.Context, key datastore.Key, value []byte) error {
 	d.Lock()
 	defer d.Unlock()
 
 	if err := d.local.Put(ctx, key, value); err != nil {
 		log.Errorf("datastore local put: %v", err)
 	}
-	carfile := &CarfileInfo{}
+	carfile := &CarfileCacheInfo{}
 	if err := carfile.UnmarshalCBOR(bytes.NewReader(value)); err != nil {
 		return err
 	}
@@ -128,28 +138,28 @@ func (d *Datastore) Put(ctx context.Context, key datastore.Key, value []byte) er
 	info := carfile.ToCarfileRecordInfo()
 	info.ServerID = d.ServerID
 
-	return d.db.UpsertCarfileRecord(info)
+	return d.sqlDB.UpsertCarfileRecord(info)
 }
 
-func (d *Datastore) Delete(ctx context.Context, key datastore.Key) error {
+// Delete delete carfile record info
+func (d *CarfileRecordStore) Delete(ctx context.Context, key datastore.Key) error {
 	d.Lock()
 	defer d.Unlock()
 
 	if err := d.local.Delete(ctx, key); err != nil {
 		log.Errorf("datastore local delete: %v", err)
 	}
-	return d.db.RemoveCarfileRecord(trimPrefix(key))
+	return d.sqlDB.RemoveCarfileRecord(trimPrefix(key))
 }
 
-func (d *Datastore) Sync(ctx context.Context, prefix datastore.Key) error {
+// Sync sync
+func (d *CarfileRecordStore) Sync(ctx context.Context, prefix datastore.Key) error {
 	return nil
 }
 
-func (d *Datastore) Batch(ctx context.Context) (datastore.Batch, error) {
-	return &batch{
-		ds:  d,
-		ops: make(map[datastore.Key]op),
-	}, nil
+// Batch batch
+func (d *CarfileRecordStore) Batch(ctx context.Context) (datastore.Batch, error) {
+	return d.local.Batch(ctx)
 }
 
-var _ datastore.Batching = (*Datastore)(nil)
+var _ datastore.Batching = (*CarfileRecordStore)(nil)

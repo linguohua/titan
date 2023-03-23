@@ -1,4 +1,4 @@
-package storage
+package caching
 
 import (
 	"time"
@@ -13,7 +13,8 @@ func (c CarfileHash) String() string {
 	return string(c)
 }
 
-type CacheResultInfo struct {
+// NodeCacheResultInfo node cache carfile result
+type NodeCacheResultInfo struct {
 	Status             int64
 	CarfileBlocksCount int64
 	CarfileSize        int64
@@ -21,9 +22,8 @@ type CacheResultInfo struct {
 	IsCandidate        bool
 }
 
-type CompletedValue struct{}
-
-type CarfileInfo struct {
+// CarfileCacheInfo carfile cache info
+type CarfileCacheInfo struct {
 	ID                string
 	State             CarfileState
 	CarfileHash       CarfileHash
@@ -45,7 +45,7 @@ type CarfileInfo struct {
 }
 
 // ToCarfileRecordInfo types.CarfileRecordInfo
-func (state *CarfileInfo) ToCarfileRecordInfo() *types.CarfileRecordInfo {
+func (state *CarfileCacheInfo) ToCarfileRecordInfo() *types.CarfileRecordInfo {
 	return &types.CarfileRecordInfo{
 		CarfileCID:            state.CarfileCID,
 		CarfileHash:           state.CarfileHash.String(),
@@ -58,8 +58,8 @@ func (state *CarfileInfo) ToCarfileRecordInfo() *types.CarfileRecordInfo {
 	}
 }
 
-func carfileInfoFrom(info *types.CarfileRecordInfo) *CarfileInfo {
-	cInfo := &CarfileInfo{
+func carfileCacheInfoFrom(info *types.CarfileRecordInfo) *CarfileCacheInfo {
+	cInfo := &CarfileCacheInfo{
 		CarfileCID:        info.CarfileCID,
 		State:             CarfileState(info.State),
 		CarfileHash:       CarfileHash(info.CarfileHash),

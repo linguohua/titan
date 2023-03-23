@@ -58,13 +58,13 @@ CREATE TABLE `block_download_info` (
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB COMMENT='block download information';
 
-CREATE TABLE `node_allocate_info` (
+CREATE TABLE `node_register_info` (
 	`node_id` varchar(128) NOT NULL UNIQUE,
 	`public_key` varchar(1024) DEFAULT '' ,
     `create_time` varchar(64) DEFAULT '' ,
 	`node_type` varchar(64) DEFAULT '' ,
 	PRIMARY KEY (`node_id`)
-) ENGINE=InnoDB COMMENT='node allocate info';
+) ENGINE=InnoDB COMMENT='node register info';
 
 CREATE TABLE `replicas` (
     `id` varchar(128) NOT NULL UNIQUE,

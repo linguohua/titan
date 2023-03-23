@@ -11,7 +11,7 @@ import (
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/modules/helpers"
 	"github.com/linguohua/titan/node/repo"
-	"github.com/linguohua/titan/node/scheduler/storage"
+	"github.com/linguohua/titan/node/scheduler/caching"
 	"github.com/linguohua/titan/node/scheduler/validation"
 	"github.com/linguohua/titan/node/sqldb"
 	"go.uber.org/fx"
@@ -67,7 +67,7 @@ type StorageManagerParams struct {
 	dtypes.GetSchedulerConfigFunc
 }
 
-func NewStorageManager(params StorageManagerParams) *storage.Manager {
+func NewStorageManager(params StorageManagerParams) *caching.Manager {
 	var (
 		mctx    = params.MetricsCtx
 		lc      = params.Lifecycle
@@ -77,7 +77,7 @@ func NewStorageManager(params StorageManagerParams) *storage.Manager {
 	)
 
 	ctx := helpers.LifecycleCtx(mctx, lc)
-	m := storage.NewManager(nodeMgr, ds, cfgFunc)
+	m := caching.NewManager(nodeMgr, ds, cfgFunc)
 
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {

@@ -427,7 +427,7 @@ func (m *Manager) NodesQuit(nodeIDs []string) {
 
 	log.Infof("node event , nodes quit:%v", nodeIDs)
 
-	hashes, err := m.LoadCarfileRecordsOfNodes(nodeIDs)
+	hashes, err := m.LoadCarfileHashesOfNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
 		return

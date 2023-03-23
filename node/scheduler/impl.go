@@ -31,7 +31,7 @@ import (
 	"github.com/linguohua/titan/node/scheduler/node"
 
 	titanrsa "github.com/linguohua/titan/node/rsa"
-	"github.com/linguohua/titan/node/scheduler/storage"
+	"github.com/linguohua/titan/node/scheduler/caching"
 	"github.com/linguohua/titan/node/scheduler/sync"
 	"golang.org/x/xerrors"
 )
@@ -49,7 +49,7 @@ type Scheduler struct {
 	NodeManager            *node.Manager
 	Election               *election.Election
 	Validation             *validation.Validation
-	DataManager            *storage.Manager
+	DataManager            *caching.Manager
 	DataSync               *sync.DataSync
 	SchedulerCfg           *config.SchedulerCfg
 	SetSchedulerConfigFunc dtypes.SetSchedulerConfigFunc
@@ -377,7 +377,7 @@ func (s *Scheduler) nodeExitedCallback(nodeIDs []string) {
 	// clean node cache
 	log.Infof("node event , nodes quit:%v", nodeIDs)
 
-	hashes, err := s.NodeManager.LoadCarfileRecordsOfNodes(nodeIDs)
+	hashes, err := s.NodeManager.LoadCarfileHashesOfNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
 		return
@@ -390,7 +390,7 @@ func (s *Scheduler) nodeExitedCallback(nodeIDs []string) {
 	}
 
 	for _, hash := range hashes {
-		log.Infof("need restore storage :%s", hash)
+		log.Infof("need restore carfile record :%s", hash)
 	}
 }
 
@@ -500,27 +500,12 @@ func (s *Scheduler) NodeList(ctx context.Context, cursor int, count int) (*types
 	return rsp, nil
 }
 
-// DownloadRecordList lost download record
-func (s *Scheduler) DownloadRecordList(ctx context.Context, req types.ListBlockDownloadInfoReq) (*types.ListDownloadRecordRsp, error) {
-	startTime := time.Unix(req.StartTime, 0)
-	endTime := time.Unix(req.EndTime, 0)
-
-	downloadInfos, total, err := s.NodeManager.LoadBlockDownloadInfos(req.NodeID, startTime, endTime, req.Cursor, req.Count)
-	if err != nil {
-		return nil, err
-	}
-	return &types.ListDownloadRecordRsp{
-		Data:  downloadInfos,
-		Total: total,
-	}, nil
-}
-
 // CarfileReplicaList list carfile replicas
 func (s *Scheduler) CarfileReplicaList(ctx context.Context, req types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error) {
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
-	info, err := s.NodeManager.LoadCarfileReplicas(startTime, endTime, req.Cursor, req.Count)
+	info, err := s.NodeManager.LoadReplicaInfos(startTime, endTime, req.Cursor, req.Count)
 	if err != nil {
 		return nil, err
 	}
