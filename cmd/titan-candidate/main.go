@@ -266,7 +266,7 @@ var runCmd = &cli.Command{
 			return xerrors.Errorf("creating node: %w", err)
 		}
 
-		handler := CandidateHandler(schedulerAPI.AuthVerify, candidateAPI, true)
+		handler := CandidateHandler(candidateAPI.AuthVerify, candidateAPI, true)
 		handler = gw.NewHandler(handler)
 
 		srv := &http.Server{
@@ -323,6 +323,12 @@ var runCmd = &cli.Command{
 					readyCh = waitQuietCh()
 				}
 
+				token, err := candidateAPI.AuthNew(cctx.Context, api.AllPermissions)
+				if err != nil {
+					log.Errorf("auth new error %s", err.Error())
+					return
+				}
+
 				errCount := 0
 				for {
 					curSession, err := getSchedulerSession(schedulerAPI, connectTimeout)
@@ -342,7 +348,7 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						err := connectToScheduler(schedulerAPI, connectTimeout)
+						err := schedulerAPI.CandidateNodeConnect(ctx, token)
 						if err != nil {
 							log.Errorf("Registering candidate failed: %+v", err)
 							cancel()
@@ -364,12 +370,6 @@ var runCmd = &cli.Command{
 
 		return srv.Serve(nl)
 	},
-}
-
-func connectToScheduler(api api.Scheduler, timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	return api.CandidateNodeConnect(ctx)
 }
 
 func getSchedulerSession(api api.Scheduler, timeout time.Duration) (uuid.UUID, error) {
