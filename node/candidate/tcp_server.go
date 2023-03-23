@@ -9,13 +9,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/linguohua/titan/node/config"
-
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/config"
 )
 
 type tcpMsg struct {
-	msgType api.ValidateTcpMsgType
+	msgType api.TCPMsgType
 	msg     []byte
 	length  int
 }
@@ -32,7 +31,7 @@ func NewTCPServer(cfg *config.CandidateCfg, blockWaiterMap *BlockWaiter) *TCPSer
 	}
 }
 
-func (t *TCPServer) StartTcpServer() {
+func (t *TCPServer) StartTCPServer() {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", t.Config.TcpSrvAddr)
 	if err != nil {
 		log.Fatal(err)
@@ -87,8 +86,8 @@ func (t *TCPServer) handleMessage(conn *net.TCPConn) {
 		return
 	}
 
-	if tcpMsg.msgType != api.ValidateTcpMsgTypeNodeID {
-		log.Errorf("read tcp msg error, msg type not ValidateTcpMsgTypeNodeID")
+	if tcpMsg.msgType != api.TCPMsgTypeNodeID {
+		log.Errorf("read tcp msg error, msg type not ValidateTCPMsgTypeNodeID")
 		return
 	}
 	nodeID = string(tcpMsg.msg)
@@ -168,14 +167,14 @@ func readTcpMsg(conn net.Conn) (*tcpMsg, error) {
 	return msg, nil
 }
 
-func readMsgType(buf []byte) (api.ValidateTcpMsgType, error) {
+func readMsgType(buf []byte) (api.TCPMsgType, error) {
 	var msgType uint8
 	err := binary.Read(bytes.NewReader(buf), binary.LittleEndian, &msgType)
 	if err != nil {
 		return 0, err
 	}
 
-	return api.ValidateTcpMsgType(msgType), nil
+	return api.TCPMsgType(msgType), nil
 }
 
 func readContentLen(conn net.Conn) (int, error) {

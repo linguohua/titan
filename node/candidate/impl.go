@@ -155,14 +155,14 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 				break
 			}
 
-			if tcpMsg.msgType == api.ValidateTcpMsgTypeCancelValidate {
+			if tcpMsg.msgType == api.TCPMsgTypeCancel {
 				result.IsCancel = true
 				sendValidateResult(candidate, result)
 				log.Infof("node %s cancel validator", result.NodeID)
 				return
 			}
 
-			if tcpMsg.msgType == api.ValidateTcpMsgTypeBlockContent && len(tcpMsg.msg) > 0 {
+			if tcpMsg.msgType == api.TCPMsgTypeBlock && len(tcpMsg.msg) > 0 {
 				cid, err := cidFromData(tcpMsg.msg)
 				if err != nil {
 					log.Errorf("waitBlock, cidFromData error:%v", err)
@@ -239,8 +239,8 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	defer cancel()
 
 	addrSplit := strings.Split(candidate.Config.TcpSrvAddr, ":")
-	candidateTcpSrvAddr := fmt.Sprintf("%s:%s", candidate.GetExternaIP(), addrSplit[1])
-	err = api.BeValidate(wctx, *req, candidateTcpSrvAddr)
+	candidateTCPSrvAddr := fmt.Sprintf("%s:%s", candidate.GetExternaIP(), addrSplit[1])
+	err = api.BeValidate(wctx, *req, candidateTCPSrvAddr)
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(candidate, result)
@@ -251,7 +251,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 
 type nodeAPI interface {
 	NodeID(ctx context.Context) (string, error)
-	BeValidate(ctx context.Context, reqValidate api.ReqValidate, candidateTcpSrvAddr string) error
+	BeValidate(ctx context.Context, reqValidate api.ReqValidate, candidateTCPSrvAddr string) error
 }
 
 func getNodeApi(nodeType int, nodeURL string) (nodeAPI, jsonrpc.ClientCloser, error) {

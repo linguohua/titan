@@ -59,6 +59,6 @@ func ConfigCandidate(c interface{}) Option {
 		Override(new(datasync.Cacher), modules.NewCacherForDataSync),
 		Override(new(*datasync.DataSync), datasync.NewDataSync),
 		Override(new(*candidate.BlockWaiter), candidate.NewBlockWaiter),
-		Override(new(*candidate.TCPServer), modules.NewTcpServer),
+		Override(new(*candidate.TCPServer), modules.NewTCPServer),
 	)
 }

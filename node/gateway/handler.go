@@ -21,7 +21,7 @@ const (
 )
 
 var (
-	onlyAscii = regexp.MustCompile("[[:^ascii:]]")
+	onlyASCII = regexp.MustCompile("[[:^ascii:]]")
 )
 
 type Handler struct {
@@ -74,7 +74,7 @@ func getEtag(r *http.Request, cid cid.Cid) string {
 // Set Content-Disposition to arbitrary filename and disposition
 func setContentDispositionHeader(w http.ResponseWriter, filename string, disposition string) {
 	utf8Name := url.PathEscape(filename)
-	asciiName := url.PathEscape(onlyAscii.ReplaceAllLiteralString(filename, "_"))
+	asciiName := url.PathEscape(onlyASCII.ReplaceAllLiteralString(filename, "_"))
 	w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=\"%s\"; filename*=UTF-8''%s", disposition, asciiName, utf8Name))
 }
 

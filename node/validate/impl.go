@@ -27,10 +27,10 @@ func NewValidate(carfileStore *store.CarfileStore, device *device.Device) *Valid
 	return &Validate{carfileStore: carfileStore, device: device}
 }
 
-func (validate *Validate) BeValidate(ctx context.Context, reqValidate api.ReqValidate, candidateTcpSrvAddr string) error {
+func (validate *Validate) BeValidate(ctx context.Context, reqValidate api.ReqValidate, candidateTCPSrvAddr string) error {
 	log.Debug("BeValidate")
 
-	conn, err := newTcpClient(candidateTcpSrvAddr)
+	conn, err := newTCPClient(candidateTCPSrvAddr)
 	if err != nil {
 		log.Errorf("BeValidate, NewCandicate err:%v", err)
 		return err
@@ -89,7 +89,7 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 		case <-t.C:
 			return
 		case <-validate.cancelValidateChannel:
-			err := sendData(conn, nil, api.ValidateTcpMsgTypeCancelValidate, limiter)
+			err := sendData(conn, nil, api.TCPMsgTypeCancel, limiter)
 			if err != nil {
 				log.Errorf("sendBlocks, send cancel validate error:%v", err)
 			}
@@ -109,7 +109,7 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 			block = blk.RawData()
 		}
 
-		err = sendData(conn, block, api.ValidateTcpMsgTypeBlockContent, limiter)
+		err = sendData(conn, block, api.TCPMsgTypeBlock, limiter)
 		if err != nil {
 			log.Errorf("sendBlocks, send data error:%v", err)
 			return
