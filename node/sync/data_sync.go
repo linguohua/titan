@@ -49,7 +49,10 @@ func (ds *DataSync) CompareChecksums(ctx context.Context, bucketCount uint32, ch
 
 	// Remove the redundant carfile
 	for _, v := range multihashes {
-		ds.removeCarfiles(v)
+		err := ds.removeCarfiles(v)
+		if err != nil {
+			log.Errorf("remove carfiles error %s", err.Error())
+		}
 	}
 
 	return mismatchKey, nil

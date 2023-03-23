@@ -187,10 +187,21 @@ func (m *Manager) saveIncompleteCarfileCache(cf *carfileCache) error {
 func (m *Manager) onDownloadCarFinish(cf *carfileCache) {
 	log.Debugf("onDownloadCarFinish, carfile %s", cf.root.Hash().String())
 	if cf.isDownloadComplete() {
-		m.carfileStore.RegisterShared(cf.root)
-		m.carfileStore.DeleteIncompleteCarfileCache(cf.root)
+		err := m.carfileStore.RegisterShared(cf.root)
+		if err != nil {
+			log.Errorf("RegisterShared error:%s", err.Error())
+		}
+
+		err = m.carfileStore.DeleteIncompleteCarfileCache(cf.root)
+		if err != nil {
+			log.Errorf("DeleteIncompleteCarfileCache error:%s", err.Error())
+		}
+
 	} else {
-		m.saveIncompleteCarfileCache(cf)
+		err := m.saveIncompleteCarfileCache(cf)
+		if err != nil {
+			log.Errorf("saveIncompleteCarfileCache error:%s", err.Error())
+		}
 	}
 }
 

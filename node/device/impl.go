@@ -20,8 +20,6 @@ import (
 
 var log = logging.Logger("device")
 
-const schedulerAPITimeout = 3
-
 type Device struct {
 	nodeID        string
 	publicIP      string

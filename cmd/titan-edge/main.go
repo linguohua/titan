@@ -301,7 +301,10 @@ var runCmd = &cli.Command{
 			out := make(chan struct{})
 			go func() {
 				ctx2 := context.Background()
-				edgeAPI.WaitQuiet(ctx2)
+				err = edgeAPI.WaitQuiet(ctx2)
+				if err != nil {
+					log.Errorf("wait quiet error %s", err.Error())
+				}
 				close(out)
 			}()
 			return out
