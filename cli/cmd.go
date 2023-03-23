@@ -26,8 +26,8 @@ func NewCliError(s string) error {
 	return &ErrCmdFailed{s}
 }
 
-// ApiConnector returns API instance
-type ApiConnector func() api.Scheduler
+// APIConnector returns API instance
+type APIConnector func() api.Scheduler
 
 var (
 	GetAPIInfo = cliutil.GetAPIInfo

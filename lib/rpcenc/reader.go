@@ -57,8 +57,8 @@ var client = func() *http.Client {
 	   be serialized as JSON, and sent as jsonrpc request parameter
 		3.1. If the reader is of type `*sealing.NullReader`, the resulting object
 		     is `ReaderStream{ Type: "null", Info: "[base 10 number of bytes]" }`
-		3.2. If the reader is of type `*RpcReader`, and it wasn't read from, we
-		     notify that RpcReader to go a different push endpoint, and return
+		3.2. If the reader is of type `*RPCReader`, and it wasn't read from, we
+		     notify that RPCReader to go a different push endpoint, and return
              a `ReaderStream` object like in 3.4.
 		3.3. In remaining cases we start a goroutine which:
 			3.3.1. Makes a HEAD request to the server push endpoint
@@ -70,13 +70,13 @@ var client = func() *http.Client {
 		     `ReaderStream{ Type: "push", Info: "[UUID string]" }`
 	4. If the reader wasn't a NullReader, the server will receive a HEAD (or
 	   POST in case of older clients) request to the push endpoint.
-		4.1. The server gets or registers an `*RpcReader` in the `readers` map.
+		4.1. The server gets or registers an `*RPCReader` in the `readers` map.
 		4.2. It waits for a request to a matching push endpoint to be opened
-		4.3. After the request is opened, it returns the `*RpcReader` to
+		4.3. After the request is opened, it returns the `*RPCReader` to
 		     go-jsonrpc, which will pass it as the io.Reader parameter to the
 		     rpc method implementation
 		4.4. If the first request made to the push endpoint was a POST, the
-		     returned `*RpcReader` acts as a simple reader reading the POST
+		     returned `*RPCReader` acts as a simple reader reading the POST
 		     request body
 		4.5. If the first request made to the push endpoint was a HEAD
 		4.5.1. On the first call to Read or Close the server responds with
@@ -104,7 +104,7 @@ func ReaderParamEncoder(addr string) jsonrpc.Option {
 		}
 		u.Path = path.Join(u.Path, reqID.String())
 
-		rpcReader, redir := r.(*RpcReader)
+		rpcReader, redir := r.(*RPCReader)
 		if redir {
 			// if we have an rpc stream, redirect instead of proxying all the data
 			redir = rpcReader.redirect(u.String())
@@ -193,15 +193,15 @@ type readRes struct {
 	meta string
 }
 
-// RpcReader watches the ReadCloser and closes the res channel when
+// RPCReader watches the ReadCloser and closes the res channel when
 // either: (1) the ReaderCloser fails on Read (including with a benign error
 // like EOF), or (2) when Close is called.
 //
 // Use it be notified of terminal states, in situations where a Read failure (or
 // EOF) is considered a terminal state too (besides Close).
-type RpcReader struct {
+type RPCReader struct {
 	postBody     io.ReadCloser   // nil on initial head request
-	next         chan *RpcReader // on head will get us the postBody after sending resStart
+	next         chan *RPCReader // on head will get us the postBody after sending resStart
 	mustRedirect bool
 	eof          bool
 
@@ -216,7 +216,7 @@ var ErrMustRedirect = errors.New("reader can't be read directly; marked as MustR
 // MustRedirect marks the reader as required to be redirected. Will make local
 // calls Read fail. MUST be called before this reader is used in any goroutine.
 // If the reader can't be redirected will return ErrHasBody
-func (w *RpcReader) MustRedirect() error {
+func (w *RPCReader) MustRedirect() error {
 	if w.postBody != nil {
 		w.closeOnce.Do(func() {
 			w.res <- readRes{
@@ -232,7 +232,7 @@ func (w *RpcReader) MustRedirect() error {
 	return nil
 }
 
-func (w *RpcReader) beginPost() {
+func (w *RPCReader) beginPost() {
 	if w.mustRedirect {
 		w.res <- readRes{
 			rt: resError,
@@ -254,7 +254,7 @@ func (w *RpcReader) beginPost() {
 	}
 }
 
-func (w *RpcReader) Read(p []byte) (int, error) {
+func (w *RPCReader) Read(p []byte) (int, error) {
 	w.beginOnce.Do(func() {
 		w.beginPost()
 	})
@@ -283,7 +283,7 @@ func (w *RpcReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func (w *RpcReader) Close() error {
+func (w *RPCReader) Close() error {
 	w.beginOnce.Do(func() {})
 	w.closeOnce.Do(func() {
 		close(w.res)
@@ -294,7 +294,7 @@ func (w *RpcReader) Close() error {
 	return w.postBody.Close()
 }
 
-func (w *RpcReader) redirect(to string) bool {
+func (w *RPCReader) redirect(to string) bool {
 	if w.postBody != nil {
 		return false
 	}
@@ -318,12 +318,12 @@ func (w *RpcReader) redirect(to string) bool {
 
 func ReaderParamDecoder() (http.HandlerFunc, jsonrpc.ServerOption) {
 	var readersLk sync.Mutex
-	readers := map[uuid.UUID]chan *RpcReader{}
+	readers := map[uuid.UUID]chan *RPCReader{}
 
 	// runs on the rpc server side, called by the client before making the jsonrpc request
 	hnd := func(resp http.ResponseWriter, req *http.Request) {
-		strId := path.Base(req.URL.Path)
-		u, err := uuid.Parse(strId)
+		strID := path.Base(req.URL.Path)
+		u, err := uuid.Parse(strID)
 		if err != nil {
 			http.Error(resp, fmt.Sprintf("parsing reader uuid: %s", err), 400)
 			return
@@ -332,12 +332,12 @@ func ReaderParamDecoder() (http.HandlerFunc, jsonrpc.ServerOption) {
 		readersLk.Lock()
 		ch, found := readers[u]
 		if !found {
-			ch = make(chan *RpcReader)
+			ch = make(chan *RPCReader)
 			readers[u] = ch
 		}
 		readersLk.Unlock()
 
-		wr := &RpcReader{
+		wr := &RPCReader{
 			res:       make(chan readRes),
 			next:      ch,
 			beginOnce: &sync.Once{},
@@ -412,7 +412,7 @@ func ReaderParamDecoder() (http.HandlerFunc, jsonrpc.ServerOption) {
 		readersLk.Lock()
 		ch, found := readers[u]
 		if !found {
-			ch = make(chan *RpcReader)
+			ch = make(chan *RPCReader)
 			readers[u] = ch
 		}
 		readersLk.Unlock()

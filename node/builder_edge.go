@@ -33,7 +33,7 @@ func Edge(out *api.Edge) Option {
 
 		func(s *Settings) error {
 			resAPI := &edge.Edge{}
-			s.invokes[ExtractApiKey] = fx.Populate(resAPI)
+			s.invokes[ExtractAPIKey] = fx.Populate(resAPI)
 			*out = resAPI
 			return nil
 		},

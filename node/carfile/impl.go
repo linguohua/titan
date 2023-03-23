@@ -24,7 +24,7 @@ var log = logging.Logger("carfile")
 
 const (
 	batch               = 5
-	schedulerApiTimeout = 3
+	schedulerAPITimeout = 3
 )
 
 type cacheResult types.CacheResult

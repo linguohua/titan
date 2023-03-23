@@ -3,7 +3,7 @@ package api
 import "context"
 
 type Validate interface {
-	BeValidate(ctx context.Context, reqValidate ReqValidate, candidateTcpSrvAddr string) error //perm:read
+	BeValidate(ctx context.Context, reqValidate ReqValidate, candidateTCPSrvAddr string) error //perm:read
 }
 
 // TODO: new tcp package, add thoes to tcp package

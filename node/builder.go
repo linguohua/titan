@@ -36,7 +36,7 @@ const (
 	// the system starts, so that it's available for all other components.
 	InitJournalKey = invoke(iota)
 
-	ExtractApiKey
+	ExtractAPIKey
 
 	CheckFDLimit
 	RegisterEtcd

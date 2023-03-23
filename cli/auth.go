@@ -17,7 +17,7 @@ var AuthCmd = &cli.Command{
 	Usage: "Manage RPC permissions",
 	Subcommands: []*cli.Command{
 		AuthCreateAdminToken,
-		AuthApiInfoToken,
+		AuthAPIInfoToken,
 	},
 }
 
@@ -69,7 +69,7 @@ var AuthCreateAdminToken = &cli.Command{
 	},
 }
 
-var AuthApiInfoToken = &cli.Command{
+var AuthAPIInfoToken = &cli.Command{
 	Name:  "api-info",
 	Usage: "Get token with API info required to connect to this node",
 	Flags: []cli.Flag{

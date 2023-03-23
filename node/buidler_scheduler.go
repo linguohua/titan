@@ -36,7 +36,7 @@ func Scheduler(out *api.Scheduler) Option {
 
 		func(s *Settings) error {
 			resAPI := &scheduler.Scheduler{}
-			s.invokes[ExtractApiKey] = fx.Populate(resAPI)
+			s.invokes[ExtractAPIKey] = fx.Populate(resAPI)
 			*out = resAPI
 			return nil
 		},

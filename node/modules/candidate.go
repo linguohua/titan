@@ -22,8 +22,8 @@ type NodeParams struct {
 }
 
 func NewBlockFetcherFromIPFS(cfg *config.CandidateCfg) fetcher.BlockFetcher {
-	log.Info("ipfs-api " + cfg.IpfsApiURL)
-	return fetcher.NewIPFS(cfg.IpfsApiURL, cfg.FetchBlockTimeout, cfg.FetchBlockRetry)
+	log.Info("ipfs-api " + cfg.IpfsAPIURL)
+	return fetcher.NewIPFS(cfg.IpfsAPIURL, cfg.FetchBlockTimeout, cfg.FetchBlockRetry)
 }
 
 func NewTCPServer(lc fx.Lifecycle, cfg *config.CandidateCfg, blockWait *candidate.BlockWaiter) *candidate.TCPServer {

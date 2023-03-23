@@ -33,7 +33,7 @@ func Candidate(out *api.Candidate) Option {
 
 		func(s *Settings) error {
 			resAPI := &candidate.Candidate{}
-			s.invokes[ExtractApiKey] = fx.Populate(resAPI)
+			s.invokes[ExtractAPIKey] = fx.Populate(resAPI)
 			*out = resAPI
 			return nil
 		},

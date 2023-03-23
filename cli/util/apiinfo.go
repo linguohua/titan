@@ -22,7 +22,7 @@ type APIInfo struct {
 	Token []byte
 }
 
-func ParseApiInfo(s string) APIInfo {
+func ParseAPIInfo(s string) APIInfo {
 	var tok []byte
 	if infoWithToken.Match([]byte(s)) {
 		sp := strings.SplitN(s, ":", 2)

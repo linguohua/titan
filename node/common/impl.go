@@ -45,12 +45,12 @@ type SessionCallbackFunc func(string, string)
 
 // NewCommonAPI New CommonAPI
 func NewCommonAPI(lr repo.LockedRepo, secret *jwt.HMACSHA, callback dtypes.SessionCallbackFunc) (CommonAPI, error) {
-	commApi := CommonAPI{
+	commAPI := CommonAPI{
 		APISecret:       secret,
 		SessionCallBack: callback,
 	}
 
-	return commApi, nil
+	return commAPI, nil
 }
 
 func (a *CommonAPI) AuthVerify(ctx context.Context, token string) ([]auth.Permission, error) {

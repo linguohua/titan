@@ -25,7 +25,7 @@ func addRootCA(certPool *x509.CertPool, caCertPath string) error {
 	return nil
 }
 
-func NewHttp3Client(pconn net.PacketConn, insecureSkipVerify bool, caCertPath string) *http.Client {
+func NewHTTP3Client(pconn net.PacketConn, insecureSkipVerify bool, caCertPath string) *http.Client {
 	pool, err := x509.SystemCertPool()
 	if err != nil {
 		log.Fatal(err)

@@ -28,7 +28,7 @@ func Locator(out *api.Locator) Option {
 
 		func(s *Settings) error {
 			resAPI := &locator.Locator{}
-			s.invokes[ExtractApiKey] = fx.Populate(resAPI)
+			s.invokes[ExtractAPIKey] = fx.Populate(resAPI)
 			*out = resAPI
 			return nil
 		},
