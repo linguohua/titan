@@ -67,7 +67,7 @@ func NewServerID(lr repo.LockedRepo) (dtypes.ServerID, error) {
 	return dtypes.ServerID(key.PrivateKey), nil
 }
 
-func Datastore(db *db.SqlDB, serverID dtypes.ServerID) (dtypes.MetadataDS, error) {
+func Datastore(db *db.SQLDB, serverID dtypes.ServerID) (dtypes.MetadataDS, error) {
 	return storage.NewDatastore(db, serverID), nil
 }
 

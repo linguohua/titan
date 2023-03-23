@@ -31,16 +31,16 @@ const (
 type Manager struct {
 	EdgeNodes      sync.Map
 	CandidateNodes sync.Map
-	*db.SqlDB
+	*db.SQLDB
 
 	*rsa.PrivateKey
 	dtypes.ServerID
 }
 
 // NewManager return new node manager instance
-func NewManager(ndb *db.SqlDB, serverID dtypes.ServerID, k *rsa.PrivateKey) *Manager {
+func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, k *rsa.PrivateKey) *Manager {
 	nodeManager := &Manager{
-		SqlDB:      ndb,
+		SQLDB:      sdb,
 		ServerID:   serverID,
 		PrivateKey: k,
 	}

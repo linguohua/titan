@@ -16,12 +16,12 @@ import (
 
 type Datastore struct {
 	sync.RWMutex
-	db    *db.SqlDB
+	db    *db.SQLDB
 	local *datastore.MapDatastore
 	dtypes.ServerID
 }
 
-func NewDatastore(db *db.SqlDB, serverID dtypes.ServerID) *Datastore {
+func NewDatastore(db *db.SQLDB, serverID dtypes.ServerID) *Datastore {
 	return &Datastore{
 		db:       db,
 		local:    datastore.NewMapDatastore(),

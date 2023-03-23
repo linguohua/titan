@@ -43,7 +43,6 @@ const (
 type Manager struct {
 	nodeManager      *node.Manager
 	latestExpiration time.Time
-	writeToken       string
 
 	startupWait sync.WaitGroup
 	carfiles    *statemachine.StateGroup
@@ -76,11 +75,10 @@ func (t *carfileTicker) run(job func() error) {
 }
 
 // NewManager return new storage manager instance
-func NewManager(nodeManager *node.Manager, writeToken dtypes.PermissionWriteToken, ds datastore.Batching, configFunc dtypes.GetSchedulerConfigFunc) *Manager {
+func NewManager(nodeManager *node.Manager, ds datastore.Batching, configFunc dtypes.GetSchedulerConfigFunc) *Manager {
 	m := &Manager{
 		nodeManager:            nodeManager,
 		latestExpiration:       time.Now(),
-		writeToken:             string(writeToken),
 		carfileTickers:         make(map[string]*carfileTicker),
 		getSchedulerConfigFunc: configFunc,
 	}

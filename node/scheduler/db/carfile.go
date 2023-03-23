@@ -14,7 +14,7 @@ import (
 )
 
 // UpdateReplicaInfo update replica info
-func (n *SqlDB) UpdateReplicaInfo(cInfo *types.ReplicaInfo) error {
+func (n *SQLDB) UpdateReplicaInfo(cInfo *types.ReplicaInfo) error {
 	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=?, done_size=? WHERE id=? AND (status=? or status=?)`, replicaInfoTable)
 	result, err := n.db.Exec(query, cInfo.Status, cInfo.DoneSize, cInfo.ID, types.CacheStatusCaching, types.CacheStatusWaiting)
 	if err != nil {
@@ -34,7 +34,7 @@ func (n *SqlDB) UpdateReplicaInfo(cInfo *types.ReplicaInfo) error {
 }
 
 // UpdateTimeoutOfCarfileReplicas set timeout status of carfile replicas
-func (n *SqlDB) UpdateTimeoutOfCarfileReplicas(hash string) error {
+func (n *SQLDB) UpdateTimeoutOfCarfileReplicas(hash string) error {
 	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=? WHERE carfile_hash=? AND (status=? or status=?)`, replicaInfoTable)
 	_, err := n.db.Exec(query, types.CacheStatusFailed, hash, types.CacheStatusCaching, types.CacheStatusWaiting)
 
@@ -42,7 +42,7 @@ func (n *SqlDB) UpdateTimeoutOfCarfileReplicas(hash string) error {
 }
 
 // UpsertReplicasInfo Insert or update replicas info
-func (n *SqlDB) UpsertReplicasInfo(infos []*types.ReplicaInfo) error {
+func (n *SQLDB) UpsertReplicasInfo(infos []*types.ReplicaInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (id, carfile_hash, node_id, status, is_candidate) 
 				VALUES (:id, :carfile_hash, :node_id, :status, :is_candidate) 
@@ -54,7 +54,7 @@ func (n *SqlDB) UpsertReplicasInfo(infos []*types.ReplicaInfo) error {
 }
 
 // UpsertCarfileRecord update carfile record info
-func (n *SqlDB) UpsertCarfileRecord(info *types.CarfileRecordInfo) error {
+func (n *SQLDB) UpsertCarfileRecord(info *types.CarfileRecordInfo) error {
 	cmd := fmt.Sprintf(
 		`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replicas, candidate_replicas, expiration, total_size, total_blocks, server_id, end_time) 
 				VALUES (:carfile_hash, :carfile_cid, :state, :edge_replicas, :candidate_replicas, :expiration, :total_size, :total_blocks, :server_id, NOW()) 
@@ -65,7 +65,7 @@ func (n *SqlDB) UpsertCarfileRecord(info *types.CarfileRecordInfo) error {
 }
 
 // LoadCarfileRecordInfo get carfile record of carfile
-func (n *SqlDB) LoadCarfileRecordInfo(hash string) (*types.CarfileRecordInfo, error) {
+func (n *SQLDB) LoadCarfileRecordInfo(hash string) (*types.CarfileRecordInfo, error) {
 	var info types.CarfileRecordInfo
 	cmd := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=?", carfileRecordTable)
 	err := n.db.Get(&info, cmd, hash)
@@ -77,7 +77,7 @@ func (n *SqlDB) LoadCarfileRecordInfo(hash string) (*types.CarfileRecordInfo, er
 }
 
 // LoadUnfinishedCarfiles list Unfinished carfile record
-func (n *SqlDB) LoadUnfinishedCarfiles(ctx context.Context, limit, offset int, serverID dtypes.ServerID) (rows *sqlx.Rows, err error) {
+func (n *SQLDB) LoadUnfinishedCarfiles(ctx context.Context, limit, offset int, serverID dtypes.ServerID) (rows *sqlx.Rows, err error) {
 	if limit == 0 {
 		limit = loadCarfileRecordsLimit
 	}
@@ -90,7 +90,7 @@ func (n *SqlDB) LoadUnfinishedCarfiles(ctx context.Context, limit, offset int, s
 }
 
 // LoadCarfileRecords get carfile record infos
-func (n *SqlDB) LoadCarfileRecords(page int, statuses []string) (info *types.ListCarfileRecordRsp, err error) {
+func (n *SQLDB) LoadCarfileRecords(page int, statuses []string) (info *types.ListCarfileRecordRsp, err error) {
 	num := loadCarfileRecordsLimit
 	info = &types.ListCarfileRecordRsp{}
 
@@ -136,7 +136,7 @@ func (n *SqlDB) LoadCarfileRecords(page int, statuses []string) (info *types.Lis
 }
 
 // LoadSucceededReplicas load succeed replica nodeID by hash
-func (n *SqlDB) LoadSucceededReplicas(hash string, nType types.NodeType) ([]string, error) {
+func (n *SQLDB) LoadSucceededReplicas(hash string, nType types.NodeType) ([]string, error) {
 	isC := false
 
 	switch nType {
@@ -159,7 +159,7 @@ func (n *SqlDB) LoadSucceededReplicas(hash string, nType types.NodeType) ([]stri
 }
 
 // LoadReplicaInfos load carfile replica infos by hash
-func (n *SqlDB) LoadReplicaInfos(hash string, needSucceed bool) ([]*types.ReplicaInfo, error) {
+func (n *SQLDB) LoadReplicaInfos(hash string, needSucceed bool) ([]*types.ReplicaInfo, error) {
 	var out []*types.ReplicaInfo
 	if needSucceed {
 		query := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash=? AND status=?`, replicaInfoTable)
@@ -179,7 +179,7 @@ func (n *SqlDB) LoadReplicaInfos(hash string, needSucceed bool) ([]*types.Replic
 }
 
 // LoadRandomCarfileForNode Get a random carfile for the node
-func (n *SqlDB) LoadRandomCarfileForNode(nodeID string) (string, error) {
+func (n *SQLDB) LoadRandomCarfileForNode(nodeID string) (string, error) {
 	query := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE node_id=? AND status=?`, replicaInfoTable)
 
 	var count int
@@ -209,7 +209,7 @@ func (n *SqlDB) LoadRandomCarfileForNode(nodeID string) (string, error) {
 }
 
 // UpdateCarfileRecordExpiration reset carfile record expiration time
-func (n *SqlDB) UpdateCarfileRecordExpiration(carfileHash string, eTime time.Time) error {
+func (n *SQLDB) UpdateCarfileRecordExpiration(carfileHash string, eTime time.Time) error {
 	cmd := fmt.Sprintf(`UPDATE %s SET expiration=? WHERE carfile_hash=?`, carfileRecordTable)
 	_, err := n.db.Exec(cmd, eTime, carfileHash)
 
@@ -217,7 +217,7 @@ func (n *SqlDB) UpdateCarfileRecordExpiration(carfileHash string, eTime time.Tim
 }
 
 // GetMinExpirationOfCarfiles Get the minimum expiration time of carfile records
-func (n *SqlDB) GetMinExpirationOfCarfiles() (time.Time, error) {
+func (n *SQLDB) GetMinExpirationOfCarfiles() (time.Time, error) {
 	query := fmt.Sprintf(`SELECT MIN(expiration) FROM %s`, carfileRecordTable)
 
 	var out time.Time
@@ -229,7 +229,7 @@ func (n *SqlDB) GetMinExpirationOfCarfiles() (time.Time, error) {
 }
 
 // LoadExpiredCarfileCarfiles load all expired carfiles
-func (n *SqlDB) LoadExpiredCarfileCarfiles() ([]*types.CarfileRecordInfo, error) {
+func (n *SQLDB) LoadExpiredCarfileCarfiles() ([]*types.CarfileRecordInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE expiration <= NOW()`, carfileRecordTable)
 
 	var out []*types.CarfileRecordInfo
@@ -241,7 +241,7 @@ func (n *SqlDB) LoadExpiredCarfileCarfiles() ([]*types.CarfileRecordInfo, error)
 }
 
 // LoadCachingNodes load unfinished nodes for carfile
-func (n *SqlDB) LoadCachingNodes(hash string) ([]string, error) {
+func (n *SQLDB) LoadCachingNodes(hash string) ([]string, error) {
 	var nodes []string
 	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE carfile_hash=? AND (status=? or status=?)`, replicaInfoTable)
 	err := n.db.Select(&nodes, query, hash, types.CacheStatusCaching, types.CacheStatusWaiting)
@@ -249,7 +249,7 @@ func (n *SqlDB) LoadCachingNodes(hash string) ([]string, error) {
 }
 
 // RemoveCarfileRecord remove carfile record
-func (n *SqlDB) RemoveCarfileRecord(carfileHash string) error {
+func (n *SQLDB) RemoveCarfileRecord(carfileHash string) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -273,7 +273,7 @@ func (n *SqlDB) RemoveCarfileRecord(carfileHash string) error {
 }
 
 // LoadCarfileRecordsOfNodes load carfile record hashes of nodes
-func (n *SqlDB) LoadCarfileRecordsOfNodes(nodeIDs []string) (hashes []string, err error) {
+func (n *SQLDB) LoadCarfileRecordsOfNodes(nodeIDs []string) (hashes []string, err error) {
 	// get carfiles
 	getCarfilesCmd := fmt.Sprintf(`select carfile_hash from %s WHERE node_id in (?) GROUP BY carfile_hash`, replicaInfoTable)
 	carfilesQuery, args, err := sqlx.In(getCarfilesCmd, nodeIDs)
@@ -288,7 +288,7 @@ func (n *SqlDB) LoadCarfileRecordsOfNodes(nodeIDs []string) (hashes []string, er
 }
 
 // RemoveReplicaInfoOfNodes remove replica info of nodes
-func (n *SqlDB) RemoveReplicaInfoOfNodes(nodeIDs []string) error {
+func (n *SQLDB) RemoveReplicaInfoOfNodes(nodeIDs []string) error {
 	// remove cache
 	cmd := fmt.Sprintf(`DELETE FROM %s WHERE node_id in (?)`, replicaInfoTable)
 	query, args, err := sqlx.In(cmd, nodeIDs)
@@ -303,7 +303,7 @@ func (n *SqlDB) RemoveReplicaInfoOfNodes(nodeIDs []string) error {
 }
 
 // LoadReplicaInfosOfNode load node replica infos
-func (n *SqlDB) LoadReplicaInfosOfNode(nodeID string, index, count int) (info *types.NodeReplicaRsp, err error) {
+func (n *SQLDB) LoadReplicaInfosOfNode(nodeID string, index, count int) (info *types.NodeReplicaRsp, err error) {
 	info = &types.NodeReplicaRsp{}
 
 	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE node_id=?", replicaInfoTable)
@@ -320,7 +320,7 @@ func (n *SqlDB) LoadReplicaInfosOfNode(nodeID string, index, count int) (info *t
 	return
 }
 
-func (n *SqlDB) LoadBlockDownloadInfos(nodeID string, startTime time.Time, endTime time.Time, cursor, count int) ([]types.DownloadRecordInfo, int64, error) {
+func (n *SQLDB) LoadBlockDownloadInfos(nodeID string, startTime time.Time, endTime time.Time, cursor, count int) ([]types.DownloadRecordInfo, int64, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id = ? and created_time between ? and ? limit ?,?`, blockDownloadTable)
 
 	var total int64
@@ -341,7 +341,7 @@ func (n *SqlDB) LoadBlockDownloadInfos(nodeID string, startTime time.Time, endTi
 	return out, total, nil
 }
 
-func (n *SqlDB) LoadCarfileReplicas(startTime time.Time, endTime time.Time, cursor, count int) (*types.ListCarfileReplicaRsp, error) {
+func (n *SQLDB) LoadCarfileReplicas(startTime time.Time, endTime time.Time, cursor, count int) (*types.ListCarfileReplicaRsp, error) {
 	var total int64
 	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE end_time between ? and ?`, replicaInfoTable)
 	if err := n.db.Get(&total, countSQL, startTime, endTime); err != nil {

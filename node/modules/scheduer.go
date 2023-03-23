@@ -62,8 +62,6 @@ type StorageManagerParams struct {
 
 	Lifecycle  fx.Lifecycle
 	MetricsCtx helpers.MetricsCtx
-	// API        v1api.FullNode
-	Token      dtypes.PermissionWriteToken
 	MetadataDS dtypes.MetadataDS
 	NodeManger *node.Manager
 	dtypes.GetSchedulerConfigFunc
@@ -74,13 +72,12 @@ func NewStorageManager(params StorageManagerParams) *storage.Manager {
 		mctx    = params.MetricsCtx
 		lc      = params.Lifecycle
 		nodeMgr = params.NodeManger
-		token   = params.Token
 		ds      = params.MetadataDS
 		cfgFunc = params.GetSchedulerConfigFunc
 	)
 
 	ctx := helpers.LifecycleCtx(mctx, lc)
-	m := storage.NewManager(nodeMgr, token, ds, cfgFunc)
+	m := storage.NewManager(nodeMgr, ds, cfgFunc)
 
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
