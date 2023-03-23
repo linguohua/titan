@@ -19,13 +19,13 @@ func addRootCA(certPool *x509.CertPool, caCertPath string) error {
 		return err
 	}
 	if ok := certPool.AppendCertsFromPEM(caCertRaw); !ok {
-		return fmt.Errorf("could not add root ceritificate to pool, path %s", caCertPath)
+		return fmt.Errorf("could not add root certificates to pool, path %s", caCertPath)
 	}
 
 	return nil
 }
 
-func NewHTTP3Client(pconn net.PacketConn, insecureSkipVerify bool, caCertPath string) *http.Client {
+func NewHTTP3Client(pConn net.PacketConn, insecureSkipVerify bool, caCertPath string) *http.Client {
 	pool, err := x509.SystemCertPool()
 	if err != nil {
 		log.Fatal(err)
@@ -35,12 +35,12 @@ func NewHTTP3Client(pconn net.PacketConn, insecureSkipVerify bool, caCertPath st
 		addRootCA(pool, caCertPath)
 	}
 
-	dail := func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
+	dial := func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
 		remoteAddr, err := net.ResolveUDPAddr("udp", addr)
 		if err != nil {
 			return nil, err
 		}
-		return quic.DialEarlyContext(ctx, pconn, remoteAddr, "localhost", tlsCfg, cfg)
+		return quic.DialEarlyContext(ctx, pConn, remoteAddr, "localhost", tlsCfg, cfg)
 	}
 
 	roundTripper := &http3.RoundTripper{
@@ -49,7 +49,7 @@ func NewHTTP3Client(pconn net.PacketConn, insecureSkipVerify bool, caCertPath st
 			InsecureSkipVerify: insecureSkipVerify,
 		},
 		QuicConfig: &quic.Config{},
-		Dial:       dail,
+		Dial:       dial,
 	}
 
 	return &http.Client{

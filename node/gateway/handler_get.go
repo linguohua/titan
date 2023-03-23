@@ -28,7 +28,7 @@ const (
 func (gw *Gateway) getHandler(w http.ResponseWriter, r *http.Request) {
 	ticket, err := gw.verifyCredentials(w, r)
 	if err != nil {
-		log.Warnf("verfiy credential error:%s", err.Error())
+		log.Warnf("verify credential error:%s", err.Error())
 		http.Error(w, fmt.Sprintf("verify ticket error : %s", err.Error()), http.StatusUnauthorized)
 		return
 	}
@@ -87,7 +87,7 @@ func (gw *Gateway) verifyCredentials(w http.ResponseWriter, r *http.Request) (*t
 		return nil, err
 	}
 
-	mgs, err := rsa.Decrypt([]byte(gwCredentials.Ciphertext), gw.privateKey)
+	mgs, err := rsa.Decrypt(ciphertext, gw.privateKey)
 	if err != nil {
 		return nil, err
 	}

@@ -46,8 +46,6 @@ func (candidate *candidate) getBlock(ds *types.DownloadSource, cidStr string) (b
 	}
 	url := fmt.Sprintf("%s/ipfs/%s?format=raw", ds.CandidateURL, cidStr)
 	url = strings.Replace(url, "https", "http", 1)
-	log.Debugf("url:%s", url)
-	log.Debugf("Credentials:%#v", ds.Credentials)
 
 	req, err := http.NewRequest(http.MethodGet, url, buf)
 	if err != nil {
