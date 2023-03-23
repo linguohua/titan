@@ -480,6 +480,7 @@ func (s *Scheduler) NodeLogFile(ctx context.Context, nodeID string) ([]byte, err
 	return nil, xerrors.Errorf("node %s not found", nodeID)
 }
 
+// DeleteNodeLogFile delete node file
 func (s *Scheduler) DeleteNodeLogFile(ctx context.Context, nodeID string) error {
 	cNode := s.NodeManager.GetCandidateNode(nodeID)
 	if cNode != nil {
@@ -573,12 +574,7 @@ func (s *Scheduler) CarfileReplicaList(ctx context.Context, req types.ListCacheI
 	return info, nil
 }
 
-func (s *Scheduler) SystemInfo(ctx context.Context) (types.SystemBaseInfo, error) {
-	// TODO get info from db
-
-	return types.SystemBaseInfo{}, nil
-}
-
+// ValidatedResultList get validated result infos
 func (s *Scheduler) ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidatedResultRsp, error) {
 	svm, err := s.NodeManager.LoadValidatedResultInfos(startTime, endTime, pageNumber, pageSize)
 	if err != nil {
@@ -588,6 +584,7 @@ func (s *Scheduler) ValidatedResultList(ctx context.Context, startTime, endTime 
 	return svm, nil
 }
 
+// PublicKey get server publicKey
 func (s *Scheduler) PublicKey(ctx context.Context) (string, error) {
 	if s.PrivateKey == nil {
 		return "", fmt.Errorf("scheduler private key not exist")

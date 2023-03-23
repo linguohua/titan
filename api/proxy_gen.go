@@ -263,8 +263,6 @@ type SchedulerStruct struct {
 
 		StartOnceElection func(p0 context.Context) error `perm:"admin"`
 
-		SystemInfo func(p0 context.Context) (types.SystemBaseInfo, error) `perm:"read"`
-
 		UserDownloadBlockResults func(p0 context.Context, p1 []types.UserBlockDownloadResult) error `perm:"read"`
 
 		UserDownloadResult func(p0 context.Context, p1 types.UserDownloadResult) error `perm:"write"`
@@ -1131,17 +1129,6 @@ func (s *SchedulerStruct) StartOnceElection(p0 context.Context) error {
 
 func (s *SchedulerStub) StartOnceElection(p0 context.Context) error {
 	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) SystemInfo(p0 context.Context) (types.SystemBaseInfo, error) {
-	if s.Internal.SystemInfo == nil {
-		return *new(types.SystemBaseInfo), ErrNotSupported
-	}
-	return s.Internal.SystemInfo(p0)
-}
-
-func (s *SchedulerStub) SystemInfo(p0 context.Context) (types.SystemBaseInfo, error) {
-	return *new(types.SystemBaseInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) UserDownloadBlockResults(p0 context.Context, p1 []types.UserBlockDownloadResult) error {
