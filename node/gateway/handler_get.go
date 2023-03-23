@@ -19,9 +19,9 @@ const (
 	formatRaw     = "application/vnd.ipld.raw"
 	formatCar     = "application/vnd.ipld.car"
 	formatTar     = "application/x-tar"
-	formatDagJson = "application/vnd.ipld.dag-json"
+	formatDagJSON = "application/vnd.ipld.dag-json"
 	formatDagCbor = "application/vnd.ipld.dag-cbor"
-	formatJson    = "application/json"
+	formatJSON    = "application/json"
 	formatCbor    = "application/cbor"
 )
 
@@ -40,7 +40,7 @@ func (gw *Gateway) getHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch respFormat {
-	case "", formatJson, formatCbor: // The implicit response format is UnixFS
+	case "", formatJSON, formatCbor: // The implicit response format is UnixFS
 		gw.serveUnixFS(w, r, ticket)
 	case formatRaw:
 		gw.serveRawBlock(w, r, ticket)
@@ -48,7 +48,7 @@ func (gw *Gateway) getHandler(w http.ResponseWriter, r *http.Request) {
 		gw.serveCar(w, r, ticket, formatParams["version"])
 	case formatTar:
 		gw.serveTAR(w, r, ticket)
-	case formatDagJson, formatDagCbor:
+	case formatDagJSON, formatDagCbor:
 		gw.serveCodec(w, r, ticket)
 	default: // catch-all for unsuported application/vnd.*
 		http.Error(w, fmt.Sprintf("unsupported format %s", respFormat), http.StatusBadRequest)
@@ -114,11 +114,11 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 		case "tar":
 			return formatTar, nil, nil
 		case "json":
-			return formatJson, nil, nil
+			return formatJSON, nil, nil
 		case "cbor":
 			return formatCbor, nil, nil
 		case "dag-json":
-			return formatDagJson, nil, nil
+			return formatDagJSON, nil, nil
 		case "dag-cbor":
 			return formatDagCbor, nil, nil
 		}

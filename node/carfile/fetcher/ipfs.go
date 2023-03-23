@@ -24,10 +24,10 @@ type ipfs struct {
 	// carfileStore *carfilestore.CarfileStore
 }
 
-func NewIPFS(ipfsApiURL string, timeout, retryCount int) *ipfs {
-	httpAPI, err := httpapi.NewURLApiWithClient(ipfsApiURL, &http.Client{})
+func NewIPFS(ipfsAPIURL string, timeout, retryCount int) *ipfs {
+	httpAPI, err := httpapi.NewURLApiWithClient(ipfsAPIURL, &http.Client{})
 	if err != nil {
-		log.Panicf("NewBlock,NewURLApiWithClient error:%s, url:%s", err.Error(), ipfsApiURL)
+		log.Panicf("NewBlock,NewURLApiWithClient error:%s, url:%s", err.Error(), ipfsAPIURL)
 	}
 
 	return &ipfs{httpAPI: httpAPI, timeout: timeout, retryCount: retryCount}

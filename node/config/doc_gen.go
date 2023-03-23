@@ -11,13 +11,13 @@ type DocField struct {
 var Doc = map[string][]DocField{
 	"CandidateCfg": []DocField{
 		{
-			Name: "TcpSrvAddr",
+			Name: "TCPSrvAddr",
 			Type: "string",
 
 			Comment: ``,
 		},
 		{
-			Name: "IpfsApiURL",
+			Name: "IpfsAPIURL",
 			Type: "string",
 
 			Comment: ``,

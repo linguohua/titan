@@ -24,26 +24,26 @@ func NewScheduler(ctx context.Context, addr string, requestHeader http.Header) (
 	return &res, closer, err
 }
 
-func getPushUrl(addr string) (string, error) {
-	pushUrl, err := url.Parse(addr)
+func getPushURL(addr string) (string, error) {
+	pushURL, err := url.Parse(addr)
 	if err != nil {
 		return "", err
 	}
-	switch pushUrl.Scheme {
+	switch pushURL.Scheme {
 	case "ws":
-		pushUrl.Scheme = "http"
+		pushURL.Scheme = "http"
 	case "wss":
-		pushUrl.Scheme = "https"
+		pushURL.Scheme = "https"
 	}
 	///rpc/v0 -> /rpc/streams/v0/push
 
-	pushUrl.Path = path.Join(pushUrl.Path, "../streams/v0/push")
-	return pushUrl.String(), nil
+	pushURL.Path = path.Join(pushURL.Path, "../streams/v0/push")
+	return pushURL.String(), nil
 }
 
 // NewCandidate creates a new http jsonrpc client for candidate
 func NewCandidate(ctx context.Context, addr string, requestHeader http.Header, opts ...jsonrpc.Option) (api.Candidate, jsonrpc.ClientCloser, error) {
-	pushUrl, err := getPushUrl(addr)
+	pushURL, err := getPushURL(addr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -52,14 +52,14 @@ func NewCandidate(ctx context.Context, addr string, requestHeader http.Header, o
 	closer, err := jsonrpc.NewMergeClient(ctx, addr, "titan",
 		api.GetInternalStructs(&res), requestHeader,
 		append([]jsonrpc.Option{
-			rpcenc.ReaderParamEncoder(pushUrl),
+			rpcenc.ReaderParamEncoder(pushURL),
 		}, opts...)...)
 
 	return &res, closer, err
 }
 
 func NewEdge(ctx context.Context, addr string, requestHeader http.Header) (api.Edge, jsonrpc.ClientCloser, error) {
-	pushUrl, err := getPushUrl(addr)
+	pushURL, err := getPushURL(addr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -68,7 +68,7 @@ func NewEdge(ctx context.Context, addr string, requestHeader http.Header) (api.E
 	closer, err := jsonrpc.NewMergeClient(ctx, addr, "titan",
 		api.GetInternalStructs(&res),
 		requestHeader,
-		rpcenc.ReaderParamEncoder(pushUrl),
+		rpcenc.ReaderParamEncoder(pushURL),
 		jsonrpc.WithNoReconnect(),
 		jsonrpc.WithTimeout(30*time.Second),
 	)
@@ -77,8 +77,8 @@ func NewEdge(ctx context.Context, addr string, requestHeader http.Header) (api.E
 }
 
 // custom http client for edge client
-func NewEdgeWithHttpClient(ctx context.Context, addr string, requestHeader http.Header, httpClient *http.Client) (api.Edge, jsonrpc.ClientCloser, error) {
-	pushUrl, err := getPushUrl(addr)
+func NewEdgeWithHTTPClient(ctx context.Context, addr string, requestHeader http.Header, httpClient *http.Client) (api.Edge, jsonrpc.ClientCloser, error) {
+	pushURL, err := getPushURL(addr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -87,7 +87,7 @@ func NewEdgeWithHttpClient(ctx context.Context, addr string, requestHeader http.
 	closer, err := jsonrpc.NewMergeClient(ctx, addr, "titan",
 		api.GetInternalStructs(&res),
 		requestHeader,
-		rpcenc.ReaderParamEncoder(pushUrl),
+		rpcenc.ReaderParamEncoder(pushURL),
 		jsonrpc.WithNoReconnect(),
 		jsonrpc.WithTimeout(30*time.Second),
 		jsonrpc.WithHTTPClient(httpClient),
@@ -106,7 +106,7 @@ func NewCommonRPCV0(ctx context.Context, addr string, requestHeader http.Header)
 }
 
 func NewLocator(ctx context.Context, addr string, requestHeader http.Header) (api.Locator, jsonrpc.ClientCloser, error) {
-	pushUrl, err := getPushUrl(addr)
+	pushURL, err := getPushURL(addr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -115,7 +115,7 @@ func NewLocator(ctx context.Context, addr string, requestHeader http.Header) (ap
 	closer, err := jsonrpc.NewMergeClient(ctx, addr, "titan",
 		api.GetInternalStructs(&res),
 		requestHeader,
-		rpcenc.ReaderParamEncoder(pushUrl),
+		rpcenc.ReaderParamEncoder(pushURL),
 		jsonrpc.WithNoReconnect(),
 		jsonrpc.WithTimeout(30*time.Second),
 	)

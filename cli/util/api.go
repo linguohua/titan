@@ -53,14 +53,14 @@ func GetAPIInfo(ctx *cli.Context, t repo.RepoType) (APIInfo, error) {
 	primaryEnv, fallbacksEnvs, deprecatedEnvs := t.APIInfoEnvVars()
 	env, ok := os.LookupEnv(primaryEnv)
 	if ok {
-		return ParseApiInfo(env), nil
+		return ParseAPIInfo(env), nil
 	}
 
 	for _, env := range deprecatedEnvs {
 		env, ok := os.LookupEnv(env)
 		if ok {
 			log.Warnf("Using deprecated env(%s) value, please use env(%s) instead.", env, primaryEnv)
-			return ParseApiInfo(env), nil
+			return ParseAPIInfo(env), nil
 		}
 	}
 
@@ -109,7 +109,7 @@ func GetAPIInfo(ctx *cli.Context, t repo.RepoType) (APIInfo, error) {
 	for _, env := range fallbacksEnvs {
 		env, ok := os.LookupEnv(env)
 		if ok {
-			return ParseApiInfo(env), nil
+			return ParseAPIInfo(env), nil
 		}
 	}
 

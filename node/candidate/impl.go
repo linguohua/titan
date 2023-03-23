@@ -30,7 +30,7 @@ import (
 var log = logging.Logger("candidate")
 
 const (
-	schedulerApiTimeout = 3
+	schedulerAPITimeout = 3
 	validateTimeout     = 5
 	tcpPackMaxLength    = 52428800
 	fetchTimeout        = 15
@@ -130,7 +130,7 @@ func (candidate *Candidate) loadBlockWaiterFromMap(key string) (*blockWaiter, bo
 }
 
 func sendValidateResult(candidate *Candidate, result *api.ValidatedResult) error {
-	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), schedulerAPITimeout*time.Second)
 	defer cancel()
 
 	return candidate.Scheduler.NodeValidatedResult(ctx, *result)
@@ -202,7 +202,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 func validate(req *api.ReqValidate, candidate *Candidate) {
 	result := &api.ValidatedResult{CarfileCID: req.CarfileCID, RoundID: req.RoundID, RandomCount: 0, Cids: make([]string, 0)}
 
-	api, closer, err := getNodeApi(req.NodeType, req.NodeURL)
+	api, closer, err := getNodeAPI(req.NodeType, req.NodeURL)
 	if err != nil {
 		result.IsTimeout = true
 		sendValidateResult(candidate, result)
@@ -211,7 +211,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	}
 	defer closer()
 
-	ctx, cancel := context.WithTimeout(context.Background(), schedulerApiTimeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), schedulerAPITimeout*time.Second)
 	defer cancel()
 
 	nodeID, err := api.NodeID(ctx)
@@ -238,7 +238,7 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	wctx, cancel := context.WithTimeout(context.Background(), (time.Duration(req.Duration))*time.Second)
 	defer cancel()
 
-	addrSplit := strings.Split(candidate.Config.TcpSrvAddr, ":")
+	addrSplit := strings.Split(candidate.Config.TCPSrvAddr, ":")
 	candidateTCPSrvAddr := fmt.Sprintf("%s:%s", candidate.GetExternaIP(), addrSplit[1])
 	err = api.BeValidate(wctx, *req, candidateTCPSrvAddr)
 	if err != nil {
@@ -254,7 +254,7 @@ type nodeAPI interface {
 	BeValidate(ctx context.Context, reqValidate api.ReqValidate, candidateTCPSrvAddr string) error
 }
 
-func getNodeApi(nodeType int, nodeURL string) (nodeAPI, jsonrpc.ClientCloser, error) {
+func getNodeAPI(nodeType int, nodeURL string) (nodeAPI, jsonrpc.ClientCloser, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

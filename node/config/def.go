@@ -67,8 +67,8 @@ func DefaultCandidateCfg() *CandidateCfg {
 	}
 	return &CandidateCfg{
 		EdgeCfg:    edgeCfg,
-		TcpSrvAddr: "0.0.0.0:9000",
-		IpfsApiURL: "http://127.0.0.1:5001",
+		TCPSrvAddr: "0.0.0.0:9000",
+		IpfsAPIURL: "http://127.0.0.1:5001",
 	}
 }
 

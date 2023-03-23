@@ -32,7 +32,7 @@ func NewTCPServer(cfg *config.CandidateCfg, blockWaiterMap *BlockWaiter) *TCPSer
 }
 
 func (t *TCPServer) StartTCPServer() {
-	tcpAddr, err := net.ResolveTCPAddr("tcp", t.Config.TcpSrvAddr)
+	tcpAddr, err := net.ResolveTCPAddr("tcp", t.Config.TCPSrvAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func (t *TCPServer) StartTCPServer() {
 	// close listener
 	defer listen.Close()
 
-	log.Infof("tcp_server listen on %s", t.Config.TcpSrvAddr)
+	log.Infof("tcp_server listen on %s", t.Config.TCPSrvAddr)
 
 	for {
 		conn, err := listen.AcceptTCP()
@@ -80,7 +80,7 @@ func (t *TCPServer) handleMessage(conn *net.TCPConn) {
 	}()
 
 	// first item is device id
-	tcpMsg, err := readTcpMsg(conn)
+	tcpMsg, err := readTCPMsg(conn)
 	if err != nil {
 		log.Errorf("read nodeID error:%v", err)
 		return
@@ -112,7 +112,7 @@ func (t *TCPServer) handleMessage(conn *net.TCPConn) {
 
 	for {
 		// next item is file content
-		tcpMsg, err = readTcpMsg(conn)
+		tcpMsg, err = readTCPMsg(conn)
 		if err != nil {
 			log.Infof("read item error:%v, nodeID:%s", err, nodeID)
 			close(bw.ch)
@@ -134,7 +134,7 @@ func (t *TCPServer) loadBlockWaiterFromMap(key string) (*blockWaiter, bool) {
 	return nil, exist
 }
 
-func readTcpMsg(conn net.Conn) (*tcpMsg, error) {
+func readTCPMsg(conn net.Conn) (*tcpMsg, error) {
 	contentLen, err := readContentLen(conn)
 	if err != nil {
 		return nil, fmt.Errorf("read tcp msgg error %v", err)

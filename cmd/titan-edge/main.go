@@ -188,7 +188,7 @@ var runCmd = &cli.Command{
 		defer udpPacketConn.Close()
 
 		// all jsonrpc client use udp
-		httpClient := cliutil.NewHttp3Client(udpPacketConn, edgeCfg.InsecureSkipVerify, edgeCfg.CaCertificatePath)
+		httpClient := cliutil.NewHTTP3Client(udpPacketConn, edgeCfg.InsecureSkipVerify, edgeCfg.CaCertificatePath)
 		jsonrpc.SetHttp3Client(httpClient)
 
 		url, err := schedulerURL(cctx, nodeID, edgeCfg.Locator)

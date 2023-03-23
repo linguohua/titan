@@ -29,8 +29,8 @@ func (s *Scheduler) IsBehindFullConeNAT(ctx context.Context, edgeURL string) (bo
 	}
 	defer udpPacketConn.Close()
 
-	httpClient := cliutil.NewHttp3Client(udpPacketConn, true, "")
-	edgeAPI, close, err := client.NewEdgeWithHttpClient(context.Background(), edgeURL, nil, httpClient)
+	httpClient := cliutil.NewHTTP3Client(udpPacketConn, true, "")
+	edgeAPI, close, err := client.NewEdgeWithHTTPClient(context.Background(), edgeURL, nil, httpClient)
 	if err != nil {
 		return false, err
 	}
@@ -47,7 +47,7 @@ func (s *Scheduler) checkEdgeIfBehindNAT(ctx context.Context, edgeAddr string) (
 	edgeURL := fmt.Sprintf("http://%s/rpc/v0", edgeAddr)
 
 	httpClient := &http.Client{}
-	edgeAPI, close, err := client.NewEdgeWithHttpClient(context.Background(), edgeURL, nil, httpClient)
+	edgeAPI, close, err := client.NewEdgeWithHTTPClient(context.Background(), edgeURL, nil, httpClient)
 	if err != nil {
 		return false, err
 	}
@@ -87,7 +87,7 @@ func (s *Scheduler) checkEdgeIfBehindRestrictedNAT(ctx context.Context, edgeURL 
 	defer udpPacketConn.Close()
 
 	httpClient := &http.Client{}
-	edgeAPI, close, err := client.NewEdgeWithHttpClient(context.Background(), edgeURL, nil, httpClient)
+	edgeAPI, close, err := client.NewEdgeWithHTTPClient(context.Background(), edgeURL, nil, httpClient)
 	if err != nil {
 		return false, err
 	}

@@ -60,7 +60,7 @@ func ServeRPC(h http.Handler, id string, addr string) (StopFunc, error) {
 func SchedulerHandler(a api.Scheduler, permission bool, opts ...jsonrpc.ServerOption) (http.Handler, error) {
 	m := mux.NewRouter()
 
-	serveRpc := func(path string, hnd interface{}) {
+	serveRPC := func(path string, hnd interface{}) {
 		rpcServer := jsonrpc.NewServer(append(opts, jsonrpc.WithServerErrors(api.RPCErrors))...)
 		rpcServer.Register("titan", hnd)
 
@@ -77,7 +77,7 @@ func SchedulerHandler(a api.Scheduler, permission bool, opts ...jsonrpc.ServerOp
 		fnapi = api.PermissionedSchedulerAPI(fnapi)
 	}
 
-	serveRpc("/rpc/v0", fnapi)
+	serveRPC("/rpc/v0", fnapi)
 
 	// debugging
 	m.Handle("/debug/metrics", metrics.Exporter())
