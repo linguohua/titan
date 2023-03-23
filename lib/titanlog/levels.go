@@ -17,8 +17,6 @@ func SetupLogLevels() {
 		_ = logging.SetLogLevel("advmgr", "DEBUG")
 		_ = logging.SetLogLevel("stores", "DEBUG")
 		_ = logging.SetLogLevel("nat", "INFO")
-		_ = logging.SetLogLevel("net/identify", "WARN")
-		_ = logging.SetLogLevel("bitswap_network", "WARN")
 	}
 	// Always mute RtRefreshManager because it breaks terminals
 	_ = logging.SetLogLevel("dht/RtRefreshManager", "FATAL")

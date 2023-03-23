@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
@@ -97,7 +96,7 @@ func (candidate *Candidate) GetBlocksOfCarfile(ctx context.Context, carfileCID s
 		return nil, err
 	}
 
-	indexs := make([]int, 0)
+	indices := make([]int, 0)
 	indexMap := make(map[int]struct{})
 	r := rand.New(rand.NewSource(randomSeed))
 
@@ -105,12 +104,12 @@ func (candidate *Candidate) GetBlocksOfCarfile(ctx context.Context, carfileCID s
 		index := r.Intn(blockCount)
 
 		if _, ok := indexMap[index]; !ok {
-			indexs = append(indexs, index)
+			indices = append(indices, index)
 			indexMap[index] = struct{}{}
 		}
 	}
 
-	return candidate.CarfileImpl.GetBlocksOfCarfile(carfileCID, indexs)
+	return candidate.CarfileImpl.GetBlocksOfCarfile(carfileCID, indices)
 }
 
 func (candidate *Candidate) ValidateNodes(ctx context.Context, req []api.ReqValidate) error {
@@ -185,7 +184,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 
 	}
 
-	duration := time.Now().Sub(now)
+	duration := time.Since(now)
 	result.CostTime = int64(duration / time.Millisecond)
 
 	if duration < time.Duration(req.Duration)*time.Second {
@@ -221,25 +220,40 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 		log.Errorf("validator get node info err: %v", err)
 		return
 	}
-
 	result.NodeID = nodeID
 
-	bw, exist := candidate.loadBlockWaiterFromMap(nodeID)
-	if exist {
-		log.Errorf("Aready doing validator node, nodeID:%s, not need to repeat to do", nodeID)
+	if _, exist := candidate.loadBlockWaiterFromMap(nodeID); exist {
+		log.Errorf("already doing validator node, nodeID:%s, not need to repeat to do", nodeID)
 		return
 	}
 
-	bw = &blockWaiter{conn: nil, ch: make(chan tcpMsg, 1)}
+	bw := &blockWaiter{conn: nil, ch: make(chan tcpMsg, 1)}
 	candidate.BlockWaiterMap.Store(nodeID, bw)
 
 	go waitBlock(bw, req, candidate, result)
 
+	address, err := candidate.Scheduler.NodeExternalServiceAddress(context.Background())
+	if err != nil {
+		log.Errorf("can not get external service address: %s", err.Error())
+		return
+	}
+
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		log.Errorf("can not get external service address: %s", err.Error())
+		return
+	}
+
+	_, port, err := net.SplitHostPort(candidate.Config.TCPSrvAddr)
+	if err != nil {
+		log.Errorf("can not get external service address: %s", err.Error())
+		return
+	}
+
 	wctx, cancel := context.WithTimeout(context.Background(), (time.Duration(req.Duration))*time.Second)
 	defer cancel()
 
-	addrSplit := strings.Split(candidate.Config.TCPSrvAddr, ":")
-	candidateTCPSrvAddr := fmt.Sprintf("%s:%s", candidate.GetExternaIP(), addrSplit[1])
+	candidateTCPSrvAddr := fmt.Sprintf("%s:%s", host, port)
 	err = api.BeValidate(wctx, *req, candidateTCPSrvAddr)
 	if err != nil {
 		result.IsTimeout = true

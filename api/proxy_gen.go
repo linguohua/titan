@@ -161,8 +161,6 @@ type LocatorStruct struct {
 	Internal struct {
 		AddAccessPoint func(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error `perm:"admin"`
 
-		AllocateNodes func(p0 context.Context, p1 string, p2 types.NodeType, p3 int) ([]*types.NodeAllocateInfo, error) `perm:"admin"`
-
 		EdgeDownloadInfos func(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) `perm:"read"`
 
 		GetAccessPoints func(p0 context.Context, p1 string) ([]string, error) `perm:"read"`
@@ -172,6 +170,8 @@ type LocatorStruct struct {
 		LoadAccessPointsForWeb func(p0 context.Context) ([]AccessPoint, error) `perm:"admin"`
 
 		LoadUserAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
+
+		RegisterNode func(p0 context.Context, p1 string, p2 string, p3 string, p4 types.NodeType) error `perm:"admin"`
 
 		RemoveAccessPoints func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -623,17 +623,6 @@ func (s *LocatorStub) AddAccessPoint(p0 context.Context, p1 string, p2 string, p
 	return ErrNotSupported
 }
 
-func (s *LocatorStruct) AllocateNodes(p0 context.Context, p1 string, p2 types.NodeType, p3 int) ([]*types.NodeAllocateInfo, error) {
-	if s.Internal.AllocateNodes == nil {
-		return *new([]*types.NodeAllocateInfo), ErrNotSupported
-	}
-	return s.Internal.AllocateNodes(p0, p1, p2, p3)
-}
-
-func (s *LocatorStub) AllocateNodes(p0 context.Context, p1 string, p2 types.NodeType, p3 int) ([]*types.NodeAllocateInfo, error) {
-	return *new([]*types.NodeAllocateInfo), ErrNotSupported
-}
-
 func (s *LocatorStruct) EdgeDownloadInfos(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) {
 	if s.Internal.EdgeDownloadInfos == nil {
 		return *new([]*types.DownloadInfo), ErrNotSupported
@@ -687,6 +676,17 @@ func (s *LocatorStruct) LoadUserAccessPoint(p0 context.Context, p1 string) (Acce
 
 func (s *LocatorStub) LoadUserAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
 	return *new(AccessPoint), ErrNotSupported
+}
+
+func (s *LocatorStruct) RegisterNode(p0 context.Context, p1 string, p2 string, p3 string, p4 types.NodeType) error {
+	if s.Internal.RegisterNode == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.RegisterNode(p0, p1, p2, p3, p4)
+}
+
+func (s *LocatorStub) RegisterNode(p0 context.Context, p1 string, p2 string, p3 string, p4 types.NodeType) error {
+	return ErrNotSupported
 }
 
 func (s *LocatorStruct) RemoveAccessPoints(p0 context.Context, p1 string) error {

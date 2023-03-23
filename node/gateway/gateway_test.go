@@ -20,6 +20,7 @@ func TestResolvePath(t *testing.T) {
 
 	storePath := "C:/Users/aaa/.titanedge-1/carfilestore"
 	p := "/ipfs/QmNXoAB3ZNoFQQZMGk4utybuvABdLTz6hcVmtHnV4FUp3S/log"
+
 	cs, err := store.NewCarfileStore(storePath)
 	if err != nil {
 		t.Errorf("TestResolvePath error:%s", err.Error())

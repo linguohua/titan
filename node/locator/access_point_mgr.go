@@ -63,7 +63,7 @@ func (mgr *AccessPointMgr) newSchedulerAPI(url string, areaID string, schedulerA
 
 	for _, api := range ap.apis {
 		if api.url == url {
-			return nil, fmt.Errorf("newSchedulerAPI error, scheduler %s aready exist", url)
+			return nil, fmt.Errorf("newSchedulerAPI error, scheduler %s already exist", url)
 		}
 	}
 
@@ -149,7 +149,7 @@ func (mgr *AccessPointMgr) getSchedulerAPI(url, areaID, accessToken string) (*sc
 				// check scheduler if online
 				uuid, err := api.Session(ctx)
 				if err != nil {
-					log.Warnf("scheduler aready %s offline", url)
+					log.Warnf("scheduler already %s offline", url)
 					mgr.removeSchedulerAPI(url, areaID)
 					return nil, err
 				}

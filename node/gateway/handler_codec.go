@@ -6,6 +6,6 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-func (gw *Gateway) serveCodec(w http.ResponseWriter, r *http.Request, ticket *types.Credentials) {
+func (gw *Gateway) serveCodec(w http.ResponseWriter, r *http.Request, credentials *types.Credentials) {
 	http.Error(w, "not implement", http.StatusBadRequest)
 }

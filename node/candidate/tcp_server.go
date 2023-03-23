@@ -74,7 +74,7 @@ func (t *TCPServer) handleMessage(conn *net.TCPConn) {
 		}
 
 		conn.Close()
-		duration := time.Now().Sub(now)
+		duration := time.Since(now)
 		bandwidth := float64(size) / float64(duration) * float64(time.Second)
 		log.Infof("size:%d, duration:%d, bandwidth:%f, nodeID:%s", size, duration, bandwidth, nodeID)
 	}()
@@ -103,7 +103,7 @@ func (t *TCPServer) handleMessage(conn *net.TCPConn) {
 	}
 
 	if bw.conn != nil {
-		log.Errorf("device %s aready connect", nodeID)
+		log.Errorf("device %s already connect", nodeID)
 		return
 	}
 	bw.conn = conn
@@ -137,7 +137,7 @@ func (t *TCPServer) loadBlockWaiterFromMap(key string) (*blockWaiter, bool) {
 func readTCPMsg(conn net.Conn) (*tcpMsg, error) {
 	contentLen, err := readContentLen(conn)
 	if err != nil {
-		return nil, fmt.Errorf("read tcp msgg error %v", err)
+		return nil, fmt.Errorf("read tcp msg error %v", err)
 	}
 
 	if contentLen <= 0 {
@@ -154,7 +154,7 @@ func readTCPMsg(conn net.Conn) (*tcpMsg, error) {
 	}
 
 	if len(buf) <= 0 {
-		return nil, fmt.Errorf("Invalid tcp msg, content len == 0")
+		return nil, fmt.Errorf("invalid tcp msg, content len == 0")
 	}
 
 	msgType, err := readMsgType(buf[0:1])

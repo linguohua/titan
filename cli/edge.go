@@ -44,7 +44,7 @@ var nodeInfoCmd = &cli.Command{
 		fmt.Printf("node systemVersion: %s \n", v.SystemVersion)
 		fmt.Printf("node DiskUsage: %f \n", v.DiskUsage)
 		fmt.Printf("node disk space: %f \n", v.DiskSpace)
-		fmt.Printf("node fstype: %s \n", v.IoSystem)
+		fmt.Printf("node fsType: %s \n", v.IoSystem)
 		fmt.Printf("node mac: %v \n", v.MacLocation)
 		fmt.Printf("node download bandwidth: %v \n", v.BandwidthDown)
 		fmt.Printf("node upload bandwidth: %v \n", v.BandwidthUp)
@@ -72,7 +72,7 @@ var cacheStatCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("nodeMgrCache storage count %d, block count %d, wati cache storage count %d", stat.TotalCarfileCount, stat.TotalBlockCount, stat.WaitCacheCarfileCount)
+		fmt.Printf("Total carfile count %d, block count %d, wait cache carfile count %d", stat.TotalCarfileCount, stat.TotalBlockCount, stat.WaitCacheCarfileCount)
 		return nil
 	},
 }

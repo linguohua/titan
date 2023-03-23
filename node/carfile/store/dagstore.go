@@ -23,7 +23,7 @@ type dagstoreOpts struct {
 // dagstore can not delete data from FullIndexRepo,topLevelIndex
 // so export FullIndexRepo, topLevelIndex that can delete data from it
 type dagstoreWrapper struct {
-	dagst     *dagstore.DAGStore
+	dagstore  *dagstore.DAGStore
 	indexRepo index.FullIndexRepo
 	topIndex  index.Inverted
 }
@@ -68,7 +68,7 @@ func newDagstore(opts *dagstoreOpts) (*dagstoreWrapper, error) {
 
 	topIndex := index.NewInverted(ds)
 
-	dagst, err := dagstore.NewDAGStore(dagstore.Config{
+	dagstore, err := dagstore.NewDAGStore(dagstore.Config{
 		MountRegistry: reg,
 		TransientsDir: opts.transientsDir,
 		Datastore:     ds,
@@ -80,5 +80,5 @@ func newDagstore(opts *dagstoreOpts) (*dagstoreWrapper, error) {
 		return nil, err
 	}
 
-	return &dagstoreWrapper{dagst: dagst, indexRepo: irepo, topIndex: topIndex}, nil
+	return &dagstoreWrapper{dagstore: dagstore, indexRepo: irepo, topIndex: topIndex}, nil
 }

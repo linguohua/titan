@@ -143,10 +143,6 @@ func (device *Device) GetBandwidthDown() int64 {
 	return device.bandwidthDown
 }
 
-func (device *Device) GetExternaIP() string {
-	return device.publicIP
-}
-
 func (device *Device) GetInternalIP() string {
 	return device.internalIP
 }

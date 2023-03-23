@@ -3,7 +3,7 @@ package fetcher
 import (
 	"context"
 
-	blocks "github.com/ipfs/go-block-format"
+	"github.com/ipfs/go-libipfs/blocks"
 	"github.com/linguohua/titan/api/types"
 )
 

@@ -55,17 +55,8 @@ var CommonCommands = []*cli.Command{
 }
 
 var Commands = []*cli.Command{
-	// WithCategory("basic", sendCmd),
-	// WithCategory("basic", walletCmd),
-	// WithCategory("basic", clientCmd),
-	// WithCategory("basic", multisigCmd),
-	// WithCategory("basic", filplusCmd),
-	// WithCategory("basic", paychCmd),
 	WithCategory("developer", AuthCmd),
 	WithCategory("developer", LogCmd),
-	// WithCategory("network", NetCmd),
-	// WithCategory("network", SyncCmd),
-	// WithCategory("status", StatusCmd),
 	PprofCmd,
 	VersionCmd,
 }

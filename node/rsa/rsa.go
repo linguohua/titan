@@ -122,6 +122,7 @@ func PublicKey2Pem(publicKey *rsa.PublicKey) []byte {
 }
 
 // Encrypt encrypts data with public key
+// public key bits Must be 1024 or above
 func (r *Rsa) Encrypt(msg []byte, pub *rsa.PublicKey) ([]byte, error) {
 	msgLen := len(msg)
 	step := pub.Size() - 2*r.hash.Size() - 2

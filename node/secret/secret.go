@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	JWTSecretName   = "auth-jwt-private" //nolint:gosec
-	KTJwtHmacSecret = "jwt-hmac-secret"  //nolint:gosec
+	JWTSecretName   = "auth-jwt-private"
+	KTJwtHmacSecret = "jwt-hmac-secret"
 )
 
 type JwtPayload struct {

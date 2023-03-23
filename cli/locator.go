@@ -2,17 +2,18 @@ package cli
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	"github.com/linguohua/titan/api/types"
 	"github.com/urfave/cli/v2"
 )
 
 var LocationCmds = []*cli.Command{
-	accesspointCmd,
+	accessPointCmd,
 }
 
-var accesspointCmd = &cli.Command{
-	Name:  "accesspoint",
+var accessPointCmd = &cli.Command{
+	Name:  "access-point",
 	Usage: "access point",
 	Subcommands: []*cli.Command{
 		addCmd,
@@ -154,13 +155,13 @@ var infoCmd = &cli.Command{
 		areaID := cctx.String("area-id")
 		ctx := ReqContext(cctx)
 
-		accesspoint, err := api.ShowAccessPoint(ctx, areaID)
+		accessPoint, err := api.ShowAccessPoint(ctx, areaID)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("AreaID:%s\n", accesspoint.AreaID)
-		for _, info := range accesspoint.SchedulerInfos {
+		fmt.Printf("AreaID:%s\n", accessPoint.AreaID)
+		for _, info := range accessPoint.SchedulerInfos {
 			fmt.Printf("URL:%s   Weight:%d\n", info.URL, info.Weight)
 		}
 
@@ -208,27 +209,28 @@ var registerCmd = &cli.Command{
 	Usage: "allocate node",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "area-id",
-			Usage: "area id",
-			Value: "CN-GD-Shenzhen",
+			Required: true,
+			Name:     "scheduler-url",
+			Usage:    "scheduler url",
+			Value:    "",
 		},
-
 		&cli.StringFlag{
-			Name:  "scheduler-url",
-			Usage: "scheduler url",
-			Value: "",
+			Required: true,
+			Name:     "node-id",
+			Usage:    "node id",
+			Value:    "",
 		},
-
-		&cli.IntFlag{
-			Name:  "node-type",
-			Usage: "edge or candidate",
-			Value: 1,
+		&cli.StringFlag{
+			Required: true,
+			Name:     "public-key-path",
+			Usage:    "public key path",
+			Value:    "",
 		},
-
 		&cli.IntFlag{
-			Name:  "count",
-			Usage: "count of node",
-			Value: 1,
+			Required: true,
+			Name:     "node-type",
+			Usage:    "edge or candidate",
+			Value:    1,
 		},
 	},
 
@@ -240,21 +242,19 @@ var registerCmd = &cli.Command{
 		defer closer()
 
 		schedulerURL := cctx.String("scheduler-url")
-		nodeType := cctx.Int("node-type")
-		count := cctx.Int("count")
+		nodeID := cctx.String("node-id")
+		publicKeyPath := cctx.String("public-key-path")
 
-		ctx := ReqContext(cctx)
-
-		registerInfos, err := locatorAPI.AllocateNodes(ctx, schedulerURL, types.NodeType(nodeType), count)
+		pem, err := ioutil.ReadFile(publicKeyPath)
 		if err != nil {
 			return err
 		}
 
-		for _, info := range registerInfos {
-			fmt.Printf("register infos:%v", info)
-		}
+		nodeType := cctx.Int("node-type")
 
-		return nil
+		ctx := ReqContext(cctx)
+
+		return locatorAPI.RegisterNode(ctx, schedulerURL, nodeID, string(pem), types.NodeType(nodeType))
 	},
 }
 
@@ -278,7 +278,7 @@ var loadAccessPointList = &cli.Command{
 		}
 
 		for _, ap := range aps {
-			fmt.Printf("accesspoint:%v", ap)
+			fmt.Printf("AccessPoint:%v", ap)
 		}
 
 		return nil
@@ -304,7 +304,7 @@ var loadUserAccessPoint = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("accesspoint:%v", ap)
+		fmt.Printf("AccessPoint:%v", ap)
 		return nil
 	},
 }

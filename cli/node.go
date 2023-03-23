@@ -131,7 +131,7 @@ var showNodeInfoCmd = &cli.Command{
 		fmt.Printf("node system version: %s \n", info.SystemVersion)
 		fmt.Printf("node disk usage: %.2f %s\n", info.DiskUsage, "%")
 		fmt.Printf("node disk space: %.2f GB \n", info.DiskSpace/1024/1024/1024)
-		fmt.Printf("node fstype: %s \n", info.IoSystem)
+		fmt.Printf("node fsType: %s \n", info.IoSystem)
 		fmt.Printf("node mac: %s \n", info.MacLocation)
 		fmt.Printf("node download bandwidth: %.2f GB \n", info.BandwidthDown/1024/1024/1024)
 		fmt.Printf("node upload bandwidth: %.2f GB \n", info.BandwidthUp/1024/1024/1024)
