@@ -12,10 +12,10 @@ import (
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler"
+	"github.com/linguohua/titan/node/scheduler/caching"
 	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/linguohua/titan/node/scheduler/election"
 	"github.com/linguohua/titan/node/scheduler/node"
-	"github.com/linguohua/titan/node/scheduler/storage"
 	"github.com/linguohua/titan/node/scheduler/sync"
 	"github.com/linguohua/titan/node/scheduler/validation"
 
@@ -59,7 +59,7 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(*node.Manager), node.NewManager),
 		Override(new(dtypes.SessionCallbackFunc), modules.NewSessionCallbackFunc),
 		Override(new(dtypes.MetadataDS), modules.Datastore),
-		Override(new(*storage.Manager), modules.NewStorageManager),
+		Override(new(*caching.Manager), modules.NewStorageManager),
 		Override(new(*sync.DataSync), sync.NewDataSync),
 		Override(new(*validation.Validation), modules.NewValidation),
 		Override(new(*election.Election), election.NewElection),

@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
+	"github.com/linguohua/titan/node/scheduler/caching"
 	"github.com/linguohua/titan/node/scheduler/db"
-	"github.com/linguohua/titan/node/scheduler/storage"
 	"github.com/linguohua/titan/node/types"
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
@@ -68,7 +68,7 @@ func NewServerID(lr repo.LockedRepo) (dtypes.ServerID, error) {
 }
 
 func Datastore(db *db.SQLDB, serverID dtypes.ServerID) (dtypes.MetadataDS, error) {
-	return storage.NewDatastore(db, serverID), nil
+	return caching.NewDatastore(db, serverID), nil
 }
 
 func CheckFdLimit() error {

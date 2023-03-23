@@ -205,8 +205,6 @@ type SchedulerStruct struct {
 
 		DeleteNodeLogFile func(p0 context.Context, p1 string) error `perm:"admin"`
 
-		DownloadRecordList func(p0 context.Context, p1 types.ListBlockDownloadInfoReq) (*types.ListDownloadRecordRsp, error) `perm:"read"`
-
 		EdgeDownloadInfos func(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) `perm:"read"`
 
 		EdgeExternalServiceAddress func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
@@ -810,17 +808,6 @@ func (s *SchedulerStruct) DeleteNodeLogFile(p0 context.Context, p1 string) error
 
 func (s *SchedulerStub) DeleteNodeLogFile(p0 context.Context, p1 string) error {
 	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) DownloadRecordList(p0 context.Context, p1 types.ListBlockDownloadInfoReq) (*types.ListDownloadRecordRsp, error) {
-	if s.Internal.DownloadRecordList == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.DownloadRecordList(p0, p1)
-}
-
-func (s *SchedulerStub) DownloadRecordList(p0 context.Context, p1 types.ListBlockDownloadInfoReq) (*types.ListDownloadRecordRsp, error) {
-	return nil, ErrNotSupported
 }
 
 func (s *SchedulerStruct) EdgeDownloadInfos(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) {

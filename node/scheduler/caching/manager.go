@@ -1,13 +1,10 @@
-package storage
+package caching
 
 import (
-	"bytes"
 	"context"
 	"crypto"
-	"crypto/rsa"
 	"crypto/sha1"
 	"database/sql"
-	"encoding/gob"
 	"encoding/hex"
 	"fmt"
 	"sort"
@@ -27,22 +24,21 @@ import (
 	"golang.org/x/xerrors"
 )
 
-var log = logging.Logger("storage")
+var log = logging.Logger("cache")
 
 const (
-	cachingTimeout               = 30 * time.Second // node caching keepalive (Unit:Second)
-	checkExpirationTimerInterval = 60 * 30          // time interval (Unit:Second)
-	cachingCarfileMaxCount       = 10               // It needs to be changed to the number of caches
-	maxDiskUsage                 = 90.0             // If the node disk size is greater than this value, caching will not continue
+	cacheTimeout                 = 30 * time.Second // Carfile cache timeout (Unit:Second)
+	checkExpirationTimerInterval = 60 * 30          // Check for expired carfile record interval (Unit:Second)
+	maxCachingCarfileCount       = 10               // Maximum number of carfile caches
+	maxNodeDiskUsage             = 90.0             // If the node disk size is greater than this value, caching will not continue
 	seedCacheCount               = 1                // The number of caches in the first stage
-
-	cachedProgressTimerInterval = 10 * time.Second // time interval (Unit:Second)
+	getProgressInterval          = 10 * time.Second // Get cache progress interval from node (Unit:Second)
 )
 
-// Manager storage
+// Manager cache manager
 type Manager struct {
-	nodeManager      *node.Manager
-	latestExpiration time.Time
+	nodeManager          *node.Manager
+	carfileMinExpiration time.Time
 
 	startupWait sync.WaitGroup
 	carfiles    *statemachine.StateGroup
@@ -74,21 +70,22 @@ func (t *carfileTicker) run(job func() error) {
 	}
 }
 
-// NewManager return new storage manager instance
+// NewManager return new cache manager instance
 func NewManager(nodeManager *node.Manager, ds datastore.Batching, configFunc dtypes.GetSchedulerConfigFunc) *Manager {
 	m := &Manager{
 		nodeManager:            nodeManager,
-		latestExpiration:       time.Now(),
+		carfileMinExpiration:   time.Now(),
 		carfileTickers:         make(map[string]*carfileTicker),
 		getSchedulerConfigFunc: configFunc,
 	}
 
 	m.startupWait.Add(1)
-	m.carfiles = statemachine.New(ds, m, CarfileInfo{})
+	m.carfiles = statemachine.New(ds, m, CarfileCacheInfo{})
 
 	return m
 }
 
+// Run start carfile statemachine and start ticker
 func (m *Manager) Run(ctx context.Context) {
 	if err := m.restartCarfiles(ctx); err != nil {
 		log.Errorf("failed load sector states: %+v", err)
@@ -97,6 +94,7 @@ func (m *Manager) Run(ctx context.Context) {
 	go m.cachedProgressTicker(ctx)
 }
 
+// Stop stop statemachine
 func (m *Manager) Stop(ctx context.Context) error {
 	if err := m.carfiles.Stop(ctx); err != nil {
 		return err
@@ -119,7 +117,7 @@ func (m *Manager) checkExpirationTicker(ctx context.Context) {
 }
 
 func (m *Manager) cachedProgressTicker(ctx context.Context) {
-	ticker := time.NewTicker(cachedProgressTimerInterval)
+	ticker := time.NewTicker(getProgressInterval)
 	defer ticker.Stop()
 
 	for {
@@ -198,10 +196,12 @@ func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) (res
 	return
 }
 
-// CacheCarfile create a new carfile storing task
+// CacheCarfile create a new cache carfile task
 func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
-	if len(m.carfileTickers) >= cachingCarfileMaxCount {
-		return xerrors.Errorf("The carfile in the cache exceeds the limit %d, please wait", cachingCarfileMaxCount)
+	m.startupWait.Wait()
+
+	if len(m.carfileTickers) >= maxCachingCarfileCount {
+		return xerrors.Errorf("The carfile in the cache exceeds the limit %d, please wait", maxCachingCarfileCount)
 	}
 
 	log.Debugf("carfile event: %s, add carfile replica: %d,expiration: %s", info.CarfileCid, info.Replicas, info.Expiration.String())
@@ -236,9 +236,9 @@ func (m *Manager) FailedCarfilesRestart(hashes []types.CarfileHash) error {
 	return nil
 }
 
-// RemoveCarfileRecord remove a storage
+// RemoveCarfileRecord remove a carfile record
 func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
-	cInfos, err := m.nodeManager.LoadReplicaInfos(hash, false)
+	cInfos, err := m.nodeManager.LoadReplicaInfosOfCarfile(hash, false)
 	if err != nil {
 		return xerrors.Errorf("GetCarfileReplicaInfosByHash: %s,err:%s", carfileCid, err.Error())
 	}
@@ -256,7 +256,7 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 		return xerrors.Errorf("RemoveCarfileRecord send to state machine err: %s ", err.Error())
 	}
 
-	log.Infof("storage event %s , remove storage record", carfileCid)
+	log.Infof("carfile event %s , remove carfile record", carfileCid)
 
 	for _, cInfo := range cInfos {
 		go m.sendCacheRequest(cInfo.NodeID, carfileCid)
@@ -291,7 +291,7 @@ func (m *Manager) cacheCarfileResult(nodeID string, result *types.CacheResult) {
 			m.lock.Lock()
 			tickerC, ok := m.carfileTickers[hash]
 			if ok {
-				tickerC.ticker.Reset(cachingTimeout)
+				tickerC.ticker.Reset(cacheTimeout)
 			}
 			m.lock.Unlock()
 		}
@@ -318,7 +318,7 @@ func (m *Manager) cacheCarfileResult(nodeID string, result *types.CacheResult) {
 			cacheCount++
 
 			err = m.carfiles.Send(CarfileHash(hash), CarfileInfoUpdate{
-				ResultInfo: &CacheResultInfo{
+				ResultInfo: &NodeCacheResultInfo{
 					CarfileBlocksCount: int64(progress.CarfileBlocksCount),
 					CarfileSize:        progress.CarfileSize,
 				},
@@ -331,7 +331,7 @@ func (m *Manager) cacheCarfileResult(nodeID string, result *types.CacheResult) {
 		}
 
 		err = m.carfiles.Send(CarfileHash(hash), CacheResult{
-			ResultInfo: &CacheResultInfo{
+			ResultInfo: &NodeCacheResultInfo{
 				NodeID:             nodeID,
 				Status:             int64(progress.Status),
 				CarfileBlocksCount: int64(progress.CarfileBlocksCount),
@@ -352,7 +352,7 @@ func (m *Manager) addOrResetCarfileTicker(hash string) {
 
 	fn := func() error {
 		// update replicas status
-		err := m.nodeManager.UpdateTimeoutOfCarfileReplicas(hash)
+		err := m.nodeManager.UpdateStatusOfReplicas(hash, types.CacheStatusFailed)
 		if err != nil {
 			return xerrors.Errorf("carfileHash %s SetCarfileReplicasTimeout err:%s", hash, err.Error())
 		}
@@ -367,12 +367,12 @@ func (m *Manager) addOrResetCarfileTicker(hash string) {
 
 	t, ok := m.carfileTickers[hash]
 	if ok {
-		t.ticker.Reset(cachingTimeout)
+		t.ticker.Reset(cacheTimeout)
 		return
 	}
 
 	m.carfileTickers[hash] = &carfileTicker{
-		ticker: time.NewTicker(cachingTimeout),
+		ticker: time.NewTicker(cacheTimeout),
 		close:  make(chan struct{}),
 	}
 
@@ -400,7 +400,7 @@ func (m *Manager) ResetCarfileExpiration(cid string, t time.Time) error {
 		return err
 	}
 
-	log.Infof("storage event %s, reset storage expiration:%s", cid, t.String())
+	log.Infof("carfile event %s, reset carfile expiration:%s", cid, t.String())
 
 	err = m.nodeManager.UpdateCarfileRecordExpiration(hash, t)
 	if err != nil {
@@ -414,11 +414,11 @@ func (m *Manager) ResetCarfileExpiration(cid string, t time.Time) error {
 
 // check caches expiration
 func (m *Manager) checkCachesExpiration() {
-	if m.latestExpiration.After(time.Now()) {
+	if m.carfileMinExpiration.After(time.Now()) {
 		return
 	}
 
-	carfileRecords, err := m.nodeManager.LoadExpiredCarfileCarfiles()
+	carfileRecords, err := m.nodeManager.LoadExpiredCarfileRecords()
 	if err != nil {
 		log.Errorf("ExpiredCarfiles err:%s", err.Error())
 		return
@@ -431,7 +431,7 @@ func (m *Manager) checkCachesExpiration() {
 	}
 
 	// reset expiration
-	latestExpiration, err := m.nodeManager.GetMinExpirationOfCarfiles()
+	latestExpiration, err := m.nodeManager.LoadMinExpirationOfCarfileRecords()
 	if err != nil {
 		return
 	}
@@ -440,8 +440,8 @@ func (m *Manager) checkCachesExpiration() {
 }
 
 func (m *Manager) resetLatestExpiration(t time.Time) {
-	if m.latestExpiration.After(t) {
-		m.latestExpiration = t
+	if m.carfileMinExpiration.After(t) {
+		m.carfileMinExpiration = t
 	}
 }
 
@@ -495,7 +495,7 @@ func replicaID(hash, nodeID string) string {
 	return hex.EncodeToString(bytes)
 }
 
-// GetCarfileRecordInfo get storage record info of cid
+// GetCarfileRecordInfo get carfile record info of cid
 func (m *Manager) GetCarfileRecordInfo(cid string) (*types.CarfileRecordInfo, error) {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
@@ -507,7 +507,7 @@ func (m *Manager) GetCarfileRecordInfo(cid string) (*types.CarfileRecordInfo, er
 		return nil, err
 	}
 
-	dInfo.ReplicaInfos, err = m.nodeManager.LoadReplicaInfos(hash, false)
+	dInfo.ReplicaInfos, err = m.nodeManager.LoadReplicaInfosOfCarfile(hash, false)
 	if err != nil {
 		log.Errorf("loadData hash:%s, GetCarfileReplicaInfosByHash err:%s", hash, err.Error())
 	}
@@ -534,7 +534,7 @@ func (m *Manager) findEdges(count int, filterNodes []string) []*node.Edge {
 			}
 		}
 
-		if edgeNode.DiskUsage > maxDiskUsage {
+		if edgeNode.DiskUsage > maxNodeDiskUsage {
 			return true
 		}
 
@@ -572,7 +572,7 @@ func (m *Manager) findCandidates(count int, filterNodes []string) []*node.Candid
 			}
 		}
 
-		if candidateNode.DiskUsage > maxDiskUsage {
+		if candidateNode.DiskUsage > maxNodeDiskUsage {
 			return true
 		}
 
@@ -649,15 +649,4 @@ func (m *Manager) Sources(cid string, nodes []string) []*types.DownloadSource {
 	}
 
 	return sources
-}
-
-func (m *Manager) EncryptCredentials(at *types.Credentials, publicKey *rsa.PublicKey, rsa *titanrsa.Rsa) ([]byte, error) {
-	var buffer bytes.Buffer
-	enc := gob.NewEncoder(&buffer)
-	err := enc.Encode(at)
-	if err != nil {
-		return nil, err
-	}
-
-	return rsa.Encrypt(buffer.Bytes(), publicKey)
 }

@@ -10,7 +10,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// RemoveCarfileResult remove storage result
+// RemoveCarfileResult remove carfile result
 func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo types.RemoveCarfileResult) error {
 	nodeID := handler.GetNodeID(ctx)
 
@@ -56,7 +56,7 @@ func (s *Scheduler) CarfileRecords(ctx context.Context, page int, states []strin
 	}
 
 	for _, c := range info.CarfileRecords {
-		rs, err := s.NodeManager.LoadReplicaInfos(c.CarfileHash, false)
+		rs, err := s.NodeManager.LoadReplicaInfosOfCarfile(c.CarfileHash, false)
 		if err != nil {
 			continue
 		}
@@ -67,7 +67,7 @@ func (s *Scheduler) CarfileRecords(ctx context.Context, page int, states []strin
 	return info, nil
 }
 
-// RemoveCarfile remove all caches with storage
+// RemoveCarfile remove all caches with carfile cid
 func (s *Scheduler) RemoveCarfile(ctx context.Context, carfileCid string) error {
 	if carfileCid == "" {
 		return xerrors.Errorf("Cid Is Nil")

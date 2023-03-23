@@ -275,7 +275,7 @@ func (n *SQLDB) InsertNode(pKey, nodeID string, nodeType types.NodeType) error {
 	}
 
 	query := fmt.Sprintf(`INSERT INTO %s (node_id, public_key, create_time, node_type)
-	VALUES (:node_id, :public_key, :create_time, :node_type)`, nodeAllocateTable)
+	VALUES (:node_id, :public_key, :create_time, :node_type)`, nodeRegisterTable)
 
 	_, err := n.db.NamedExec(query, info)
 
@@ -286,7 +286,7 @@ func (n *SQLDB) InsertNode(pKey, nodeID string, nodeType types.NodeType) error {
 func (n *SQLDB) LoadNodePublicKey(nodeID string) (string, error) {
 	var pKey string
 
-	query := fmt.Sprintf(`SELECT public_key FROM %s WHERE node_id=?`, nodeAllocateTable)
+	query := fmt.Sprintf(`SELECT public_key FROM %s WHERE node_id=?`, nodeRegisterTable)
 	if err := n.db.Get(&pKey, query, nodeID); err != nil {
 		return pKey, err
 	}
@@ -297,7 +297,7 @@ func (n *SQLDB) LoadNodePublicKey(nodeID string) (string, error) {
 // NodeExists is node exists
 func (n *SQLDB) NodeExists(nodeID string, nodeType types.NodeType) error {
 	var count int
-	cQuery := fmt.Sprintf(`SELECT count(*) FROM %s WHERE node_id=? AND node_type=?`, nodeAllocateTable)
+	cQuery := fmt.Sprintf(`SELECT count(*) FROM %s WHERE node_id=? AND node_type=?`, nodeRegisterTable)
 	err := n.db.Get(&count, cQuery, count, nodeType)
 	if err != nil {
 		return err
