@@ -19,18 +19,18 @@ func newIncompleteCarfileCache(path string) *incompleteCarfileCache {
 	return &incompleteCarfileCache{path: path}
 }
 
-func (incompCarfileCache *incompleteCarfileCache) save(carfileHash string, carfileData []byte) error {
-	filePath := filepath.Join(incompCarfileCache.path, carfileHash)
+func (icc *incompleteCarfileCache) save(carfileHash string, carfileData []byte) error {
+	filePath := filepath.Join(icc.path, carfileHash)
 	return os.WriteFile(filePath, carfileData, 0644)
 }
 
-func (incompCarfileCache *incompleteCarfileCache) data(carfileHash string) ([]byte, error) {
-	filePath := filepath.Join(incompCarfileCache.path, carfileHash)
+func (icc *incompleteCarfileCache) data(carfileHash string) ([]byte, error) {
+	filePath := filepath.Join(icc.path, carfileHash)
 	return os.ReadFile(filePath)
 }
 
-func (incompCarfileCache *incompleteCarfileCache) has(carfileHash string) (bool, error) {
-	filePath := filepath.Join(incompCarfileCache.path, carfileHash)
+func (icc *incompleteCarfileCache) has(carfileHash string) (bool, error) {
+	filePath := filepath.Join(icc.path, carfileHash)
 	_, err := os.Stat(filePath)
 	if err == nil {
 		return true, nil
@@ -43,17 +43,7 @@ func (incompCarfileCache *incompleteCarfileCache) has(carfileHash string) (bool,
 	return false, err
 }
 
-func (incompCarfileCache *incompleteCarfileCache) carfileHashList() ([]string, error) {
-	dir, err := os.Open(incompCarfileCache.path)
-	if err != nil {
-		return nil, err
-	}
-	defer dir.Close() //nolint:errcheck
-
-	return dir.Readdirnames(-1)
-}
-
-func (incompCarfileCache *incompleteCarfileCache) delete(carfileHash string) error {
-	filePath := filepath.Join(incompCarfileCache.path, carfileHash)
+func (icc *incompleteCarfileCache) delete(carfileHash string) error {
+	filePath := filepath.Join(icc.path, carfileHash)
 	return os.Remove(filePath)
 }

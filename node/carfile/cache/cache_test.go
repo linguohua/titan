@@ -13,8 +13,8 @@ func TestCache(t *testing.T) {
 	t.Log("TestCache")
 
 	logging.SetLogLevel("/carfile/cache", "DEBUG")
-	logging.SetLogLevel("datstore", "DEBUG")
-	logging.SetLogLevel("dagstore/upgrader", "DEBUG")
+	logging.SetLogLevel("datastore", "DEBUG")
+	logging.SetLogLevel("dagstore/upgrade", "DEBUG")
 
 	cidStr := "QmTcAg1KeDYJFpTJh3rkZGLhnnVKeXWNtjwPufjVvwPTpG"
 	c, err := cid.Decode(cidStr)

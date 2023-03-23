@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-libipfs/blocks"
@@ -13,8 +14,7 @@ type readOnlyBlockStore struct {
 }
 
 func (robs *readOnlyBlockStore) DeleteBlock(context.Context, cid.Cid) error {
-	log.Errorf("read only block store, can not delete block")
-	return nil
+	return fmt.Errorf("read only block store, can not delete block")
 }
 
 func (robs *readOnlyBlockStore) Has(ctx context.Context, c cid.Cid) (bool, error) {
@@ -33,18 +33,15 @@ func (robs *readOnlyBlockStore) GetSize(ctx context.Context, c cid.Cid) (int, er
 
 // Put puts a given block to the underlying datastore
 func (robs *readOnlyBlockStore) Put(context.Context, blocks.Block) error {
-	log.Errorf("read only block store, can not put")
-	return nil
+	return fmt.Errorf("read only block store, can not put")
 }
 
 func (robs *readOnlyBlockStore) PutMany(context.Context, []blocks.Block) error {
-	log.Errorf("read only block store, can not put many")
-	return nil
+	return fmt.Errorf("read only block store, can not put many")
 }
 
 func (robs *readOnlyBlockStore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
-	log.Errorf("read only block store, not support allkeys ")
-	return nil, nil
+	return nil, fmt.Errorf("read only block store, not support all keys")
 }
 
 func (robs *readOnlyBlockStore) HashOnRead(enabled bool) {

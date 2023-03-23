@@ -170,7 +170,7 @@ func isNeedToUpdateEdge(cctx *cli.Context, updateInfo *api.EdgeUpdateInfo) bool 
 }
 
 func updateApp(cctx *cli.Context, updateInfo *api.EdgeUpdateInfo) {
-	log.Infof("updateApp, AppName:%s, Hash:%s, newVersion:%s, downloadURL:%s", updateInfo.AppName, updateInfo.Hash, updateInfo.Version.String(), updateInfo.DownloadURL)
+	log.Debugf("updateApp, AppName:%s, Hash:%s, newVersion:%s, downloadURL:%s", updateInfo.AppName, updateInfo.Hash, updateInfo.Version.String(), updateInfo.DownloadURL)
 	installPath := cctx.String("install-path")
 	data, err := downloadApp(updateInfo.DownloadURL)
 	if err != nil {
@@ -184,7 +184,7 @@ func updateApp(cctx *cli.Context, updateInfo *api.EdgeUpdateInfo) {
 	hash := hex.EncodeToString(h.Sum(nil))
 
 	if updateInfo.Hash != hash {
-		log.Errorf("download file imcomplete, file hash %s != %s", hash, updateInfo.Hash)
+		log.Errorf("download file incomplete, file hash %s != %s", hash, updateInfo.Hash)
 		return
 	}
 

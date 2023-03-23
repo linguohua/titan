@@ -7,7 +7,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// locaton config
+// locator config
 type schedulerCfg struct {
 	SchedulerURL string `db:"scheduler_url"`
 	AreaID       string `db:"area_id"`
@@ -17,12 +17,6 @@ type schedulerCfg struct {
 
 type nodeInfo struct {
 	NodeID       string `db:"node_id"`
-	SchedulerURL string `db:"scheduler_url"`
-	AreaID       string `db:"area_id"`
-	Online       bool   `db:"online"`
-}
-
-type scheduler struct {
 	SchedulerURL string `db:"scheduler_url"`
 	AreaID       string `db:"area_id"`
 	Online       bool   `db:"online"`
@@ -40,20 +34,16 @@ func NewSQLDB(db *sqlx.DB) *SqlDB {
 
 const nodeInfoTable = "node_info"
 
-func (db *SqlDB) close() error {
-	return db.cli.Close()
-}
-
 func (db *SqlDB) addAccessPoint(areaID string, schedulerURL string, weight int, accessToken string) error {
 	return db.addSchedulerCfg(areaID, schedulerURL, weight, accessToken)
 }
 
 func (db *SqlDB) removeAccessPoints(areaID string) error {
-	return db.deleteSchedulerCfgs(areaID)
+	return db.deleteSchedulerConfigs(areaID)
 }
 
-func (db *SqlDB) getAccessPointCfgs(areaID string) ([]*schedulerCfg, error) {
-	return db.getCfgs(areaID)
+func (db *SqlDB) getAccessPointConfigs(areaID string) ([]*schedulerCfg, error) {
+	return db.getConfigs(areaID)
 }
 
 func (db *SqlDB) isAccessPointExist(schedulerURL string) (bool, error) {
@@ -87,7 +77,7 @@ func (db *SqlDB) getAllCfg() ([]*schedulerCfg, error) {
 	return cfgs, nil
 }
 
-func (db *SqlDB) getCfgs(areaID string) ([]*schedulerCfg, error) {
+func (db *SqlDB) getConfigs(areaID string) ([]*schedulerCfg, error) {
 	var cfgs []*schedulerCfg
 	err := db.cli.Select(&cfgs, `SELECT * FROM scheduler_config WHERE area_id=?`, areaID)
 	if err != nil {
@@ -112,15 +102,9 @@ func (db *SqlDB) addSchedulerCfg(areaID string, schedulerURL string, weight int,
 	return err
 }
 
-func (db *SqlDB) deleteSchedulerCfgs(areaID string) error {
+func (db *SqlDB) deleteSchedulerConfigs(areaID string) error {
 	cfg := &schedulerCfg{AreaID: areaID}
 	_, err := db.cli.NamedExec(`DELETE FROM scheduler_config WHERE area_id=:area_id`, cfg)
-	return err
-}
-
-func (db *SqlDB) deleteSchedulerCfg(schedulerURL string) error {
-	cfg := &schedulerCfg{SchedulerURL: schedulerURL}
-	_, err := db.cli.NamedExec(`DELETE FROM scheduler_config WHERE scheduler_url=:scheduler_url`, cfg)
 	return err
 }
 

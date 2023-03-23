@@ -39,7 +39,7 @@ func newCarfileName(root cid.Cid) string {
 type CarfileStore struct {
 	incompleteCarfileCache *incompleteCarfileCache
 	baseDir                string
-	dagst                  *dagstore.DAGStore
+	dagstore               *dagstore.DAGStore
 	// manager full index
 	indexRepo index.FullIndexRepo
 }
@@ -61,17 +61,23 @@ func NewCarfileStore(path string) (*CarfileStore, error) {
 		transientsDir: filepath.Join(path, transientsDir),
 	}
 
-	dagstWrapper, err := newDagstore(opts)
+	dagstoreWrapper, err := newDagstore(opts)
 	if err != nil {
 		return nil, err
 	}
 
-	dagstWrapper.dagst.Start(context.Background())
+	dagstoreWrapper.dagstore.Start(context.Background())
 
-	cs := &CarfileStore{incompleteCarfileCache: incompleteCarfileCache, baseDir: path, dagst: dagstWrapper.dagst, indexRepo: dagstWrapper.indexRepo}
-	err = cs.recory()
+	cs := &CarfileStore{
+		incompleteCarfileCache: incompleteCarfileCache,
+		baseDir:                path,
+		dagstore:               dagstoreWrapper.dagstore,
+		indexRepo:              dagstoreWrapper.indexRepo,
+	}
+
+	err = cs.recovery()
 	if err != nil {
-		log.Panicf("recory error:%s", err.Error())
+		log.Panicf("recovery error:%s", err.Error())
 	}
 
 	return cs, nil
@@ -92,7 +98,7 @@ func (cs *CarfileStore) PutBlocks(ctx context.Context, root cid.Cid, blks []bloc
 }
 
 func (cs *CarfileStore) HasCarfile(root cid.Cid) bool {
-	infos := cs.dagst.AllShardsInfo()
+	infos := cs.dagstore.AllShardsInfo()
 	for k := range infos {
 		if k.String() == root.Hash().String() {
 			return true
@@ -118,7 +124,7 @@ func (cs *CarfileStore) RegisterShared(root cid.Cid) error {
 		ExistingTransient: filepath.Join(cs.carsDir(), name),
 	}
 
-	err := cs.dagst.RegisterShard(context.Background(), k, &mount.FSMount{FS: os.DirFS(cs.carsDir()), Path: name}, ch, opts)
+	err := cs.dagstore.RegisterShard(context.Background(), k, &mount.FSMount{FS: os.DirFS(cs.carsDir()), Path: name}, ch, opts)
 	if err != nil {
 		return err
 	}
@@ -156,7 +162,7 @@ func (cs *CarfileStore) destroyShared(root cid.Cid) error {
 	ch := make(chan dagstore.ShardResult, 0)
 	k := shard.KeyFromString(root.Hash().String())
 
-	err := cs.dagst.DestroyShard(context.Background(), k, ch, dagstore.DestroyOpts{})
+	err := cs.dagstore.DestroyShard(context.Background(), k, ch, dagstore.DestroyOpts{})
 	if err != nil {
 		return err
 	}
@@ -185,7 +191,7 @@ func (cs *CarfileStore) carsDir() string {
 
 func (cs *CarfileStore) HasBlock(c cid.Cid) (bool, error) {
 	// shard in TopLevelIndex may be invalid, need to check it on dagstore
-	ks, err := cs.dagst.TopLevelIndex.GetShardsForMultihash(context.Background(), c.Hash())
+	ks, err := cs.dagstore.TopLevelIndex.GetShardsForMultihash(context.Background(), c.Hash())
 	if err != nil {
 		return false, err
 	}
@@ -197,7 +203,7 @@ func (cs *CarfileStore) HasBlock(c cid.Cid) (bool, error) {
 	var key shard.Key
 	// find first valid shard
 	for _, k := range ks {
-		_, err := cs.dagst.GetShardInfo(k)
+		_, err := cs.dagstore.GetShardInfo(k)
 		if err == nil {
 			key = k
 			break
@@ -211,7 +217,7 @@ func (cs *CarfileStore) HasBlock(c cid.Cid) (bool, error) {
 	}
 
 	ch := make(chan dagstore.ShardResult)
-	err = cs.dagst.AcquireShard(context.Background(), key, ch, dagstore.AcquireOpts{})
+	err = cs.dagstore.AcquireShard(context.Background(), key, ch, dagstore.AcquireOpts{})
 	if err != nil {
 		return false, err
 	}
@@ -236,7 +242,7 @@ func (cs *CarfileStore) HasBlock(c cid.Cid) (bool, error) {
 
 func (cs *CarfileStore) Block(c cid.Cid) (blocks.Block, error) {
 	// shard in TopLevelIndex may be invalid, need to check it on dagstore
-	ks, err := cs.dagst.TopLevelIndex.GetShardsForMultihash(context.Background(), c.Hash())
+	ks, err := cs.dagstore.TopLevelIndex.GetShardsForMultihash(context.Background(), c.Hash())
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +254,7 @@ func (cs *CarfileStore) Block(c cid.Cid) (blocks.Block, error) {
 	var key shard.Key
 	// find first valid shard
 	for _, k := range ks {
-		_, err := cs.dagst.GetShardInfo(k)
+		_, err := cs.dagstore.GetShardInfo(k)
 		if err == nil {
 			key = k
 			break
@@ -262,7 +268,7 @@ func (cs *CarfileStore) Block(c cid.Cid) (blocks.Block, error) {
 	}
 
 	ch := make(chan dagstore.ShardResult)
-	err = cs.dagst.AcquireShard(context.Background(), key, ch, dagstore.AcquireOpts{})
+	err = cs.dagstore.AcquireShard(context.Background(), key, ch, dagstore.AcquireOpts{})
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +293,7 @@ func (cs *CarfileStore) Block(c cid.Cid) (blocks.Block, error) {
 
 func (cs *CarfileStore) BlocksOfCarfile(root cid.Cid) ([]cid.Cid, error) {
 	k := shard.KeyFromString(root.Hash().String())
-	ii, err := cs.dagst.GetIterableIndex(k)
+	ii, err := cs.dagstore.GetIterableIndex(k)
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +318,7 @@ func (cs *CarfileStore) BlockReader(c cid.Cid) (io.ReadCloser, error) {
 }
 
 func (cs *CarfileStore) indexCount(k shard.Key) (int, error) {
-	ii, err := cs.dagst.GetIterableIndex(k)
+	ii, err := cs.dagstore.GetIterableIndex(k)
 	if err != nil {
 		return 0, err
 	}
@@ -330,10 +336,10 @@ func (cs *CarfileStore) indexCount(k shard.Key) (int, error) {
 	return count, nil
 }
 
-func (cs *CarfileStore) recory() error {
-	infos := cs.dagst.AllShardsInfo()
+func (cs *CarfileStore) recovery() error {
+	infos := cs.dagstore.AllShardsInfo()
 	for k := range infos {
-		_, err := cs.dagst.GetIterableIndex(k)
+		_, err := cs.dagstore.GetIterableIndex(k)
 		if err != nil {
 			mh, err := multihash.FromHexString(k.String())
 			if err != nil {
@@ -360,7 +366,7 @@ func (cs *CarfileStore) recory() error {
 // count all block is cost much performance
 func (cs *CarfileStore) BlockCount() (int, error) {
 	count := 0
-	infos := cs.dagst.AllShardsInfo()
+	infos := cs.dagstore.AllShardsInfo()
 	for k := range infos {
 		c, err := cs.indexCount(k)
 		if err != nil {
@@ -378,7 +384,7 @@ func (cs *CarfileStore) BlockCountOfCarfile(root cid.Cid) (int, error) {
 }
 
 func (cs *CarfileStore) CarfileCount() (int, error) {
-	infos := cs.dagst.AllShardsInfo()
+	infos := cs.dagstore.AllShardsInfo()
 	return len(infos), nil
 }
 
@@ -388,7 +394,7 @@ func (cs *CarfileStore) BaseDir() string {
 
 // return all carfiles multihashes
 func (cs *CarfileStore) CarfileHashes() ([]string, error) {
-	infos := cs.dagst.AllShardsInfo()
+	infos := cs.dagstore.AllShardsInfo()
 	multihashes := make([]string, 0, len(infos))
 
 	for k := range infos {

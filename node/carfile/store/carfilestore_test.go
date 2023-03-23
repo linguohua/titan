@@ -101,7 +101,7 @@ func TestShardIndices(t *testing.T) {
 	}
 
 	bk := newBlock()
-	ii, err := cs.dagst.GetIterableIndex(shard.KeyFromString(bk.Cid().Hash().String()))
+	ii, err := cs.dagstore.GetIterableIndex(shard.KeyFromString(bk.Cid().Hash().String()))
 	if err != nil {
 		t.Errorf("GetIterableIndexerror:%s", err.Error())
 		return
@@ -160,7 +160,7 @@ func TestGetShards(t *testing.T) {
 		return
 	}
 
-	infos := cs.dagst.AllShardsInfo()
+	infos := cs.dagstore.AllShardsInfo()
 	for k := range infos {
 		t.Logf("shard:%s", k.String())
 	}
@@ -176,7 +176,7 @@ func TestGetShard(t *testing.T) {
 	}
 
 	bk := newBlock()
-	ks, err := cs.dagst.TopLevelIndex.GetShardsForMultihash(context.Background(), bk.Cid().Hash())
+	ks, err := cs.dagstore.TopLevelIndex.GetShardsForMultihash(context.Background(), bk.Cid().Hash())
 	if err != nil {
 		t.Errorf("GetShardsForMultihash error:%s", err.Error())
 		return

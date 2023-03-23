@@ -11,12 +11,12 @@ import (
 	"github.com/linguohua/titan/node/carfile/store"
 )
 
-type TestCachedResulterImpl struct {
+type TestCachedResultImpl struct {
 	t        *testing.T
 	carStore *store.CarfileStore
 }
 
-func (t *TestCachedResulterImpl) CacheResult(result *types.CacheResult) error {
+func (t *TestCachedResultImpl) CacheResult(result *types.CacheResult) error {
 	t.t.Logf("result:%#v", *result)
 
 	count, err := t.carStore.BlockCount()

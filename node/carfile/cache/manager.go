@@ -28,7 +28,6 @@ type Manager struct {
 	downloadCh    chan bool
 	carfileStore  *carfilestore.CarfileStore
 	bFetcher      fetcher.BlockFetcher
-	cResulter     CachedResulter
 	downloadBatch int
 }
 
@@ -80,7 +79,7 @@ func (m *Manager) triggerDownload() {
 
 func (m *Manager) start() {
 	if m.bFetcher == nil {
-		log.Panic("m.dBlockser == nil")
+		log.Panic("m.bFetcher == nil")
 	}
 
 	go m.startTick()
@@ -254,15 +253,6 @@ func (m *Manager) restoreCarfileCacheOrNew(opts *options) (*carfileCache, error)
 		}
 	}
 	return cc, nil
-}
-
-func (m *Manager) CachedResult() error {
-	if m.cResulter == nil {
-		log.Panicf("cResulter == nil")
-	}
-
-	ret := &types.CacheResult{Progresses: m.Progresses()}
-	return m.cResulter.CacheResult(ret)
 }
 
 // return true if exist in waitList

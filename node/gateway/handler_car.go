@@ -9,7 +9,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-func (gw *Gateway) serveCar(w http.ResponseWriter, r *http.Request, ticket *types.Credentials, carVersion string) {
+func (gw *Gateway) serveCar(w http.ResponseWriter, r *http.Request, credentials *types.Credentials, carVersion string) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 

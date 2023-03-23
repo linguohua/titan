@@ -81,7 +81,7 @@ func (cfImpl *CarfileImpl) CacheCarfile(ctx context.Context, rootCID string, dss
 	}
 
 	if has := cfImpl.carfileStore.HasCarfile(root); has {
-		log.Debugf("CacheCarfile %s aready exist", root.String())
+		log.Debugf("CacheCarfile %s already exist", root.String())
 		return nil
 	}
 
@@ -136,7 +136,7 @@ func (cfImpl *CarfileImpl) DeleteCarfile(ctx context.Context, carfileCID string)
 }
 
 func (cfImpl *CarfileImpl) DeleteAllCarfiles(ctx context.Context) error {
-	return fmt.Errorf("unimplement")
+	return fmt.Errorf("not implement")
 }
 
 func (cfImpl *CarfileImpl) GetBlock(ctx context.Context, cidStr string) ([]byte, error) {
@@ -188,7 +188,7 @@ func (cfImpl *CarfileImpl) QueryCachingCarfile(ctx context.Context) (*types.Cach
 	return ret, nil
 }
 
-func (cfImpl *CarfileImpl) GetBlocksOfCarfile(carfileCID string, indexs []int) (map[int]string, error) {
+func (cfImpl *CarfileImpl) GetBlocksOfCarfile(carfileCID string, indices []int) (map[int]string, error) {
 	c, err := cid.Decode(carfileCID)
 	if err != nil {
 		return nil, err
@@ -199,8 +199,8 @@ func (cfImpl *CarfileImpl) GetBlocksOfCarfile(carfileCID string, indexs []int) (
 		return nil, err
 	}
 
-	ret := make(map[int]string, len(indexs))
-	for _, index := range indexs {
+	ret := make(map[int]string, len(indices))
+	for _, index := range indices {
 		if index >= len(cids) {
 			return nil, fmt.Errorf("index is out of blocks count")
 		}
@@ -233,7 +233,7 @@ func (cfImpl *CarfileImpl) CacheCarForSyncData(carfiles []string) error {
 			cfImpl.CacheCarfile(context.Background(), cid.String(), nil)
 		}
 	case types.NodeEdge:
-		return fmt.Errorf("unimplement")
+		return fmt.Errorf("not implement")
 	default:
 		return fmt.Errorf("unsupport node type:%s", types.RunningNodeType)
 	}
@@ -242,7 +242,7 @@ func (cfImpl *CarfileImpl) CacheCarForSyncData(carfiles []string) error {
 }
 
 func (cfImpl *CarfileImpl) CachedProgresses(ctx context.Context, carfileCIDs []string) (*types.CacheResult, error) {
-	pregresses := make([]*types.CarfileProgress, 0, len(carfileCIDs))
+	progresses := make([]*types.CarfileProgress, 0, len(carfileCIDs))
 	for _, carfileCID := range carfileCIDs {
 		root, err := cid.Decode(carfileCID)
 		if err != nil {
@@ -254,11 +254,11 @@ func (cfImpl *CarfileImpl) CachedProgresses(ctx context.Context, carfileCIDs []s
 			return nil, err
 		}
 
-		pregresses = append(pregresses, progress)
+		progresses = append(progresses, progress)
 	}
 
 	result := &types.CacheResult{
-		Progresses:       pregresses,
+		Progresses:       progresses,
 		TotalBlocksCount: cfImpl.TotalBlockCount,
 	}
 
