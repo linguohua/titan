@@ -35,7 +35,7 @@ func (edge *Edge) WaitQuiet(ctx context.Context) error {
 	return nil
 }
 
-func (edge *Edge) ExternalServiceAddrss(ctx context.Context, schedulerURL string) (string, error) {
+func (edge *Edge) ExternalServiceAddress(ctx context.Context, schedulerURL string) (string, error) {
 	schedulerAPI, closer, err := client.NewScheduler(ctx, schedulerURL, nil)
 	if err != nil {
 		return "", err

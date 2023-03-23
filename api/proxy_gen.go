@@ -135,7 +135,7 @@ type EdgeStruct struct {
 	CarfileOperationStruct
 
 	Internal struct {
-		ExternalServiceAddrss func(p0 context.Context, p1 string) (string, error) `perm:"write"`
+		ExternalServiceAddress func(p0 context.Context, p1 string) (string, error) `perm:"write"`
 
 		UserNATTravel func(p0 context.Context, p1 string) error `perm:"write"`
 
@@ -581,14 +581,14 @@ func (s *DeviceStub) NodeInfo(p0 context.Context) (types.NodeInfo, error) {
 	return *new(types.NodeInfo), ErrNotSupported
 }
 
-func (s *EdgeStruct) ExternalServiceAddrss(p0 context.Context, p1 string) (string, error) {
-	if s.Internal.ExternalServiceAddrss == nil {
+func (s *EdgeStruct) ExternalServiceAddress(p0 context.Context, p1 string) (string, error) {
+	if s.Internal.ExternalServiceAddress == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.ExternalServiceAddrss(p0, p1)
+	return s.Internal.ExternalServiceAddress(p0, p1)
 }
 
-func (s *EdgeStub) ExternalServiceAddrss(p0 context.Context, p1 string) (string, error) {
+func (s *EdgeStub) ExternalServiceAddress(p0 context.Context, p1 string) (string, error) {
 	return "", ErrNotSupported
 }
 
