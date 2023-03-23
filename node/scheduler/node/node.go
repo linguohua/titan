@@ -183,7 +183,7 @@ func (n *BaseInfo) DownloadURL() string {
 		addr = ip + n.PortMapping
 	}
 
-	return fmt.Sprintf("https://%s", addr)
+	return addr
 }
 
 // LastRequestTime get node last request time

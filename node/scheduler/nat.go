@@ -142,6 +142,10 @@ func (s *Scheduler) checkEdgeNatType(ctx context.Context, edgeAPI api.Edge, edge
 	}
 
 	isBehindRestrictedNAT, err := s.checkEdgeIfBehindRestrictedNAT(ctx, edgeURL)
+	if err != nil {
+		return types.NatTypeUnknow, err
+	}
+
 	if isBehindRestrictedNAT {
 		return types.NatTypeRestricted, nil
 	}

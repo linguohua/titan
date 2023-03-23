@@ -223,6 +223,10 @@ func TestBlocksOfCarfile(t *testing.T) {
 	t.Logf("block count of %s:%v", bk.Cid().String(), count)
 
 	count, err = cs.CarfileCount()
+	if err != nil {
+		t.Errorf("CarfileCount err:%s", err.Error())
+		return
+	}
 
 	t.Logf("car count :%v", count)
 }

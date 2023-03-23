@@ -66,7 +66,10 @@ func NewCarfileStore(path string) (*CarfileStore, error) {
 		return nil, err
 	}
 
-	dagstoreWrapper.dagstore.Start(context.Background())
+	err = dagstoreWrapper.dagstore.Start(context.Background())
+	if err != nil {
+		return nil, err
+	}
 
 	cs := &CarfileStore{
 		incompleteCarfileCache: incompleteCarfileCache,
@@ -92,9 +95,12 @@ func (cs *CarfileStore) PutBlocks(ctx context.Context, root cid.Cid, blks []bloc
 		return err
 	}
 
-	defer rw.Finalize()
+	err = rw.PutMany(ctx, blks)
+	if err != nil {
+		return err
+	}
 
-	return rw.PutMany(ctx, blks)
+	return rw.Finalize()
 }
 
 func (cs *CarfileStore) HasCarfile(root cid.Cid) bool {
@@ -159,7 +165,7 @@ func (cs *CarfileStore) removeCar(root cid.Cid) error {
 }
 
 func (cs *CarfileStore) destroyShared(root cid.Cid) error {
-	ch := make(chan dagstore.ShardResult, 0)
+	ch := make(chan dagstore.ShardResult)
 	k := shard.KeyFromString(root.Hash().String())
 
 	err := cs.dagstore.DestroyShard(context.Background(), k, ch, dagstore.DestroyOpts{})
