@@ -13,12 +13,12 @@ import (
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler/storage"
 	"github.com/linguohua/titan/node/scheduler/validation"
+	"github.com/linguohua/titan/node/sqldb"
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/node/common"
-	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/linguohua/titan/node/scheduler/node"
 )
 
@@ -26,7 +26,7 @@ var log = logging.Logger("modules")
 
 // NewDB returns an *sqlx.DB instance
 func NewDB(dbPath dtypes.DatabaseAddress) (*sqlx.DB, error) {
-	return db.NewDB(string(dbPath))
+	return sqldb.NewDB(string(dbPath))
 }
 
 // GenerateTokenWithWritePermission create a new token based on the given permissions

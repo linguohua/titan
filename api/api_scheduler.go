@@ -65,6 +65,5 @@ type Scheduler interface {
 	DownloadRecordList(ctx context.Context, req types.ListBlockDownloadInfoReq) (*types.ListDownloadRecordRsp, error) //perm:read
 	// ListCaches cache manager
 	CarfileReplicaList(ctx context.Context, req types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error)                              //perm:read
-	SystemInfo(ctx context.Context) (types.SystemBaseInfo, error)                                                                           //perm:read
 	ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidatedResultRsp, error) //perm:read
 }
