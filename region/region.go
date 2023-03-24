@@ -1,8 +1,11 @@
 package region
 
 import (
+	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
 )
+
+var log = logging.Logger("region")
 
 const (
 	unknown  = "unknown"

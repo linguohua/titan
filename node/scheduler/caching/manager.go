@@ -3,9 +3,7 @@ package caching
 import (
 	"context"
 	"crypto"
-	"crypto/sha1"
 	"database/sql"
-	"encoding/hex"
 	"fmt"
 	"sort"
 	"sync"
@@ -480,12 +478,7 @@ func (m *Manager) GetCandidateReplicaCount() int {
 }
 
 func replicaID(hash, nodeID string) string {
-	input := fmt.Sprintf("%s%s", hash, nodeID)
-
-	c := sha1.New()
-	c.Write([]byte(input))
-	bytes := c.Sum(nil)
-	return hex.EncodeToString(bytes)
+	return fmt.Sprintf("%s_%s", hash, nodeID)
 }
 
 // GetCarfileRecordInfo get carfile record info of cid

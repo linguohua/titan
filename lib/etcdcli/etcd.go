@@ -64,7 +64,7 @@ func (c *Client) ServerRegister(t context.Context, serverID dtypes.ServerID, val
 
 	// If the revision of key is equal to 0
 	txn.If(clientv3.Compare(clientv3.CreateRevision(serverKey), "=", 0)).
-		Then(clientv3.OpPut(serverKey, string(value), clientv3.WithLease(leaseID))).
+		Then(clientv3.OpPut(serverKey, value, clientv3.WithLease(leaseID))).
 		Else(clientv3.OpGet(serverKey))
 
 	// Commit transaction
