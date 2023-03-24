@@ -197,7 +197,7 @@ type SchedulerStruct struct {
 
 		CarfileRecord func(p0 context.Context, p1 string) (*types.CarfileRecordInfo, error) `perm:"read"`
 
-		CarfileRecords func(p0 context.Context, p1 int, p2 []string) (*types.ListCarfileRecordRsp, error) `perm:"read"`
+		CarfileRecords func(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.CarfileRecordInfo, error) `perm:"read"`
 
 		CarfileReplicaList func(p0 context.Context, p1 types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error) `perm:"read"`
 
@@ -766,15 +766,15 @@ func (s *SchedulerStub) CarfileRecord(p0 context.Context, p1 string) (*types.Car
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) CarfileRecords(p0 context.Context, p1 int, p2 []string) (*types.ListCarfileRecordRsp, error) {
+func (s *SchedulerStruct) CarfileRecords(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.CarfileRecordInfo, error) {
 	if s.Internal.CarfileRecords == nil {
-		return nil, ErrNotSupported
+		return *new([]*types.CarfileRecordInfo), ErrNotSupported
 	}
-	return s.Internal.CarfileRecords(p0, p1, p2)
+	return s.Internal.CarfileRecords(p0, p1, p2, p3)
 }
 
-func (s *SchedulerStub) CarfileRecords(p0 context.Context, p1 int, p2 []string) (*types.ListCarfileRecordRsp, error) {
-	return nil, ErrNotSupported
+func (s *SchedulerStub) CarfileRecords(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.CarfileRecordInfo, error) {
+	return *new([]*types.CarfileRecordInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) CarfileReplicaList(p0 context.Context, p1 types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error) {

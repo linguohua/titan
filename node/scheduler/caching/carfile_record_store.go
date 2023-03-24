@@ -80,20 +80,20 @@ func (d *CarfileRecordStore) Query(ctx context.Context, q query.Query) (query.Re
 	re := make([]query.Entry, 0)
 	// loading carfiles to local
 	for rows.Next() {
-		in := &types.CarfileRecordInfo{}
-		err = rows.StructScan(in)
+		cInfo := &types.CarfileRecordInfo{}
+		err = rows.StructScan(cInfo)
 		if err != nil {
 			log.Errorf("carfile StructScan err: %s", err.Error())
 			continue
 		}
 
-		in.ReplicaInfos, err = d.sqlDB.LoadReplicaInfosOfCarfile(in.CarfileHash, true)
+		cInfo.ReplicaInfos, err = d.sqlDB.LoadReplicaInfosOfCarfile(cInfo.CarfileHash, true)
 		if err != nil {
-			log.Errorf("carfile %s load replicas err: %s", in.CarfileCID, err.Error())
+			log.Errorf("carfile %s load replicas err: %s", cInfo.CarfileCID, err.Error())
 			continue
 		}
 
-		carfile := carfileCacheInfoFrom(in)
+		carfile := carfileCacheInfoFrom(cInfo)
 		valueBuf := new(bytes.Buffer)
 		if err = carfile.MarshalCBOR(valueBuf); err != nil {
 			log.Errorf("carfile marshal cbor: %s", err.Error())

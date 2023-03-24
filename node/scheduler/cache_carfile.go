@@ -49,33 +49,33 @@ func (s *Scheduler) CarfileRecord(ctx context.Context, cid string) (*types.Carfi
 }
 
 // CarfileRecords List carfiles
-func (s *Scheduler) CarfileRecords(ctx context.Context, page int, states []string) (*types.ListCarfileRecordRsp, error) {
-	rows, err := s.NodeManager.LoadCarfileRecords(states, 10, 0, s.ServerID)
+func (s *Scheduler) CarfileRecords(ctx context.Context, limit, offset int, states []string) ([]*types.CarfileRecordInfo, error) {
+	rows, err := s.NodeManager.LoadCarfileRecords(states, limit, offset, s.ServerID)
 	if err != nil {
 		return nil, err
 	}
 
-	rsp := &types.ListCarfileRecordRsp{}
+	list := make([]*types.CarfileRecordInfo, 0)
 
 	// loading carfiles to local
 	for rows.Next() {
-		in := &types.CarfileRecordInfo{}
-		err = rows.StructScan(in)
+		cInfo := &types.CarfileRecordInfo{}
+		err = rows.StructScan(cInfo)
 		if err != nil {
 			log.Errorf("carfile StructScan err: %s", err.Error())
 			continue
 		}
 
-		in.ReplicaInfos, err = s.NodeManager.LoadReplicaInfosOfCarfile(in.CarfileHash, false)
+		cInfo.ReplicaInfos, err = s.NodeManager.LoadReplicaInfosOfCarfile(cInfo.CarfileHash, false)
 		if err != nil {
-			log.Errorf("carfile %s load replicas err: %s", in.CarfileCID, err.Error())
+			log.Errorf("carfile %s load replicas err: %s", cInfo.CarfileCID, err.Error())
 			continue
 		}
 
-		rsp.CarfileRecords = append(rsp.CarfileRecords, in)
+		list = append(list, cInfo)
 	}
 
-	return rsp, nil
+	return list, nil
 }
 
 // RemoveCarfile remove all caches with carfile cid

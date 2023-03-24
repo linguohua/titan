@@ -55,20 +55,20 @@ func (n *SQLDB) BatchUpsertReplicas(infos []*types.ReplicaInfo) error {
 
 // UpsertCarfileRecord Insert or update carfile record info
 func (n *SQLDB) UpsertCarfileRecord(info *types.CarfileRecordInfo) error {
-	cmd := fmt.Sprintf(
+	query := fmt.Sprintf(
 		`INSERT INTO %s (carfile_hash, carfile_cid, state, edge_replicas, candidate_replicas, expiration, total_size, total_blocks, server_id, end_time) 
 				VALUES (:carfile_hash, :carfile_cid, :state, :edge_replicas, :candidate_replicas, :expiration, :total_size, :total_blocks, :server_id, NOW()) 
 				ON DUPLICATE KEY UPDATE total_size=VALUES(total_size), total_blocks=VALUES(total_blocks), state=VALUES(state), end_time=NOW()`, carfileRecordTable)
 
-	_, err := n.db.NamedExec(cmd, info)
+	_, err := n.db.NamedExec(query, info)
 	return err
 }
 
 // LoadCarfileRecordInfo load carfile record of carfile
 func (n *SQLDB) LoadCarfileRecordInfo(hash string) (*types.CarfileRecordInfo, error) {
 	var info types.CarfileRecordInfo
-	cmd := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=?", carfileRecordTable)
-	err := n.db.Get(&info, cmd, hash)
+	query := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=?", carfileRecordTable)
+	err := n.db.Get(&info, query, hash)
 
 	return &info, err
 }
@@ -79,43 +79,26 @@ func (n *SQLDB) LoadCarfileRecords(statuses []string, limit, offset int, serverI
 		limit = loadCarfileRecordsLimit
 	}
 
-	selectCmd := fmt.Sprintf(`SELECT * FROM %s WHERE state in (?) AND server_id=? order by carfile_hash asc LIMIT ? OFFSET ?`, carfileRecordTable)
-	selectQuery, args, err := sqlx.In(selectCmd, statuses, serverID, limit, offset)
+	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE state in (?) AND server_id=? order by carfile_hash asc LIMIT ? OFFSET ?`, carfileRecordTable)
+	query, args, err := sqlx.In(sQuery, statuses, serverID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 
-	selectQuery = n.db.Rebind(selectQuery)
-	return n.db.QueryxContext(context.Background(), selectQuery, args...)
+	query = n.db.Rebind(query)
+	return n.db.QueryxContext(context.Background(), query, args...)
 }
 
-// LoadSucceededReplicas load succeed replica nodeID by hash
-func (n *SQLDB) LoadSucceededReplicas(hash string, nType types.NodeType) ([]string, error) {
-	isC := false
-
-	switch nType {
-	case types.NodeCandidate:
-		isC = true
-	case types.NodeEdge:
-	default:
-		return nil, xerrors.Errorf("node type is err:%d", nType)
-	}
-
-	var out []string
-	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE carfile_hash=? AND status=? AND is_candidate=?`,
-		replicaInfoTable)
-
-	if err := n.db.Select(&out, query, hash, types.CacheStatusSucceeded, isC); err != nil {
-		return nil, err
-	}
-
-	return out, nil
+// LoadReplicasOfHash load replicas of carfile hash
+func (n *SQLDB) LoadReplicasOfHash(hash string) (*sqlx.Rows, error) {
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash=? `, replicaInfoTable)
+	return n.db.QueryxContext(context.Background(), query, hash)
 }
 
 // LoadReplicaInfosOfCarfile load carfile replica infos of hash
-func (n *SQLDB) LoadReplicaInfosOfCarfile(hash string, needSucceeded bool) ([]*types.ReplicaInfo, error) {
+func (n *SQLDB) LoadReplicaInfosOfCarfile(hash string, succeeded bool) ([]*types.ReplicaInfo, error) {
 	var out []*types.ReplicaInfo
-	if needSucceeded {
+	if succeeded {
 		query := fmt.Sprintf(`SELECT * FROM %s WHERE carfile_hash=? AND status=?`, replicaInfoTable)
 
 		if err := n.db.Select(&out, query, hash, types.CacheStatusSucceeded); err != nil {
@@ -145,8 +128,8 @@ func (n *SQLDB) LoadReplicaCountOfNode(nodeID string) (int, error) {
 // LoadCarfileHashesOfNode load a carfile of the node
 func (n *SQLDB) LoadCarfileHashesOfNode(nodeID string, limit, offset int) ([]string, error) {
 	var hashes []string
-	cmd := fmt.Sprintf("SELECT carfile_hash FROM %s WHERE node_id=? AND status=? LIMIT %d OFFSET %d", replicaInfoTable, limit, offset)
-	if err := n.db.Select(&hashes, cmd, nodeID, types.CacheStatusSucceeded); err != nil {
+	query := fmt.Sprintf("SELECT carfile_hash FROM %s WHERE node_id=? AND status=? LIMIT %d OFFSET %d", replicaInfoTable, limit, offset)
+	if err := n.db.Select(&hashes, query, nodeID, types.CacheStatusSucceeded); err != nil {
 		return nil, err
 	}
 
@@ -155,8 +138,8 @@ func (n *SQLDB) LoadCarfileHashesOfNode(nodeID string, limit, offset int) ([]str
 
 // UpdateCarfileRecordExpiration reset carfile record expiration time
 func (n *SQLDB) UpdateCarfileRecordExpiration(carfileHash string, eTime time.Time) error {
-	cmd := fmt.Sprintf(`UPDATE %s SET expiration=? WHERE carfile_hash=?`, carfileRecordTable)
-	_, err := n.db.Exec(cmd, eTime, carfileHash)
+	query := fmt.Sprintf(`UPDATE %s SET expiration=? WHERE carfile_hash=?`, carfileRecordTable)
+	_, err := n.db.Exec(query, eTime, carfileHash)
 
 	return err
 }
@@ -208,15 +191,15 @@ func (n *SQLDB) RemoveCarfileRecord(carfileHash string) error {
 	}()
 
 	// cache info
-	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=? `, replicaInfoTable)
-	_, err = tx.Exec(cCmd, carfileHash)
+	cQuery := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=? `, replicaInfoTable)
+	_, err = tx.Exec(cQuery, carfileHash)
 	if err != nil {
 		return err
 	}
 
 	// data info
-	dCmd := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=?`, carfileRecordTable)
-	_, err = tx.Exec(dCmd, carfileHash)
+	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=?`, carfileRecordTable)
+	_, err = tx.Exec(dQuery, carfileHash)
 	if err != nil {
 		return err
 	}
@@ -227,14 +210,14 @@ func (n *SQLDB) RemoveCarfileRecord(carfileHash string) error {
 // LoadCarfileHashesOfNodes load carfile hashes of nodes
 func (n *SQLDB) LoadCarfileHashesOfNodes(nodeIDs []string) (hashes []string, err error) {
 	// get carfiles
-	getCarfilesCmd := fmt.Sprintf(`select carfile_hash from %s WHERE node_id in (?) GROUP BY carfile_hash`, replicaInfoTable)
-	carfilesQuery, args, err := sqlx.In(getCarfilesCmd, nodeIDs)
+	sQuery := fmt.Sprintf(`select carfile_hash from %s WHERE node_id in (?) GROUP BY carfile_hash`, replicaInfoTable)
+	query, args, err := sqlx.In(sQuery, nodeIDs)
 	if err != nil {
 		return
 	}
 
-	carfilesQuery = n.db.Rebind(carfilesQuery)
-	err = n.db.Select(&hashes, carfilesQuery, args...)
+	query = n.db.Rebind(query)
+	err = n.db.Select(&hashes, query, args...)
 
 	return
 }
@@ -242,15 +225,14 @@ func (n *SQLDB) LoadCarfileHashesOfNodes(nodeIDs []string) (hashes []string, err
 // RemoveReplicaInfoOfNodes remove replica info of nodes
 func (n *SQLDB) RemoveReplicaInfoOfNodes(nodeIDs []string) error {
 	// remove cache
-	cmd := fmt.Sprintf(`DELETE FROM %s WHERE node_id in (?)`, replicaInfoTable)
-	query, args, err := sqlx.In(cmd, nodeIDs)
+	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE node_id in (?)`, replicaInfoTable)
+	query, args, err := sqlx.In(dQuery, nodeIDs)
 	if err != nil {
 		return err
 	}
 
 	query = n.db.Rebind(query)
 	_, err = n.db.Exec(query, args...)
-
 	return err
 }
 
@@ -258,14 +240,14 @@ func (n *SQLDB) RemoveReplicaInfoOfNodes(nodeIDs []string) error {
 func (n *SQLDB) LoadReplicaInfosOfNode(nodeID string, index, count int) (info *types.NodeReplicaRsp, err error) {
 	info = &types.NodeReplicaRsp{}
 
-	cmd := fmt.Sprintf("SELECT count(id) FROM %s WHERE node_id=?", replicaInfoTable)
-	err = n.db.Get(&info.TotalCount, cmd, nodeID)
+	query := fmt.Sprintf("SELECT count(id) FROM %s WHERE node_id=?", replicaInfoTable)
+	err = n.db.Get(&info.TotalCount, query, nodeID)
 	if err != nil {
 		return
 	}
 
-	cmd = fmt.Sprintf("SELECT carfile_hash,status FROM %s WHERE node_id=? order by id asc LIMIT %d,%d", replicaInfoTable, index, count)
-	if err = n.db.Select(&info.Replica, cmd, nodeID); err != nil {
+	query = fmt.Sprintf("SELECT carfile_hash,status FROM %s WHERE node_id=? order by id asc LIMIT %d,%d", replicaInfoTable, index, count)
+	if err = n.db.Select(&info.Replica, query, nodeID); err != nil {
 		return
 	}
 

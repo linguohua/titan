@@ -179,7 +179,8 @@ var listCarfilesCmd = &cli.Command{
 	Name:  "list",
 	Usage: "List carfiles",
 	Flags: []cli.Flag{
-		pageFlag,
+		limitFlag,
+		offsetFlag,
 		&cli.BoolFlag{
 			Name:  "caching",
 			Usage: "only show the caching carfiles",
@@ -209,10 +210,8 @@ var listCarfilesCmd = &cli.Command{
 		}
 		defer closer()
 
-		page := cctx.Int("page")
-		if page < 1 {
-			return xerrors.New("the page must greater than 1")
-		}
+		limit := cctx.Int("limit")
+		offset := cctx.Int("offset")
 
 		states := append([]string{caching.Finished.String()}, append(caching.FailedStates, caching.CachingStates...)...)
 
@@ -239,13 +238,13 @@ var listCarfilesCmd = &cli.Command{
 			tablewriter.NewLineCol("Processes"),
 		)
 
-		info, err := schedulerAPI.CarfileRecords(ctx, page, states)
+		list, err := schedulerAPI.CarfileRecords(ctx, limit, offset, states)
 		if err != nil {
 			return err
 		}
 
-		for w := 0; w < len(info.CarfileRecords); w++ {
-			carfile := info.CarfileRecords[w]
+		for w := 0; w < len(list); w++ {
+			carfile := list[w]
 			m := map[string]interface{}{
 				"CID":        carfile.CarfileCID,
 				"State":      colorState(carfile.State),
@@ -274,12 +273,11 @@ var listCarfilesCmd = &cli.Command{
 
 		if !restart {
 			tw.Flush(os.Stdout)
-			fmt.Printf("\nTotal:%d\t\t%d/%d \n", info.Cids, info.Page, info.TotalPage)
 			return nil
 		}
 
 		var hashes []types.CarfileHash
-		for _, carfile := range info.CarfileRecords {
+		for _, carfile := range list {
 			if strings.Contains(carfile.State, "Failed") {
 				hashes = append(hashes, types.CarfileHash(carfile.CarfileHash))
 			}
