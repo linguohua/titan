@@ -209,7 +209,7 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 		return err
 	}
 
-	if cInfo.CarfileHash == "" {
+	if cInfo == nil {
 		// create carfile task
 		return m.carfiles.Send(CarfileHash(info.CarfileHash), CarfileStartCaches{
 			ID:                          info.CarfileCid,
