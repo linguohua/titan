@@ -185,7 +185,7 @@ var runCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		defer udpPacketConn.Close() // nolint:errcheck  // ignore error
+		defer udpPacketConn.Close() //nolint:errcheck  // ignore error
 
 		// all jsonrpc client use udp
 		httpClient, err := cliutil.NewHTTP3Client(udpPacketConn, edgeCfg.InsecureSkipVerify, edgeCfg.CaCertificatePath)
@@ -444,12 +444,10 @@ func schedulerURL(cctx *cli.Context, nodeID string, isPassLocator bool) (string,
 }
 
 func newSchedulerAPI(cctx *cli.Context, schedulerURL, nodeID string, privateKey *rsa.PrivateKey) (api.Scheduler, jsonrpc.ClientCloser, error) {
-	tokenBuf, err := newAuthTokenFromScheduler(schedulerURL, nodeID, privateKey)
+	token, err := newAuthTokenFromScheduler(schedulerURL, nodeID, privateKey)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	token := string(tokenBuf)
 
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+token)

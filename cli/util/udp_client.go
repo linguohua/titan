@@ -25,6 +25,8 @@ func addRootCA(certPool *x509.CertPool, caCertPath string) error {
 	return nil
 }
 
+// NewHTTP3Client new http3 client with udp PacketConn
+// insecureSkipVerify default is true
 func NewHTTP3Client(pConn net.PacketConn, insecureSkipVerify bool, caCertPath string) (*http.Client, error) {
 	pool, err := x509.SystemCertPool()
 	if err != nil {
@@ -47,6 +49,7 @@ func NewHTTP3Client(pConn net.PacketConn, insecureSkipVerify bool, caCertPath st
 
 	roundTripper := &http3.RoundTripper{
 		TLSClientConfig: &tls.Config{
+			MinVersion:         tls.VersionTLS12,
 			RootCAs:            pool,
 			InsecureSkipVerify: insecureSkipVerify,
 		},

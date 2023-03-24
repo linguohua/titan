@@ -172,9 +172,9 @@ var runCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		defer udpPacketConn.Close() // nolint:errcheck  // ignore error
+		defer udpPacketConn.Close() //nolint:errcheck  // ignore error
 
-		go startUDPServer(udpPacketConn, handler, locatorCfg) // nolint:errcheck
+		go startUDPServer(udpPacketConn, handler, locatorCfg) //nolint:errcheck
 
 		httpClient, err := cliutil.NewHTTP3Client(udpPacketConn, locatorCfg.InsecureSkipVerify, locatorCfg.CaCertificatePath)
 		if err != nil {
