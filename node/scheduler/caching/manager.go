@@ -313,7 +313,7 @@ func (m *Manager) cacheCarfileResult(nodeID string, result *types.CacheResult) {
 		cInfo := &types.ReplicaInfo{
 			ID:       replicaID(hash, nodeID),
 			Status:   progress.Status,
-			DoneSize: int64(progress.DoneSize),
+			DoneSize: progress.DoneSize,
 		}
 
 		err = m.nodeManager.UpdateUnfinishedReplicaInfo(cInfo)

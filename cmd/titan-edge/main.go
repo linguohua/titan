@@ -460,6 +460,7 @@ func newSchedulerAPI(cctx *cli.Context, schedulerURL, nodeID string, privateKey 
 	}
 	log.Infof("scheduler url:%s, token:%s", schedulerURL, token)
 	os.Setenv("SCHEDULER_API_INFO", token+":"+schedulerURL)
+
 	return schedulerAPI, closer, nil
 }
 

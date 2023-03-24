@@ -23,8 +23,7 @@ import (
 var log = logging.Logger("carfile")
 
 const (
-	batch               = 5
-	schedulerAPITimeout = 3
+	batch = 5
 )
 
 type CarfileImpl struct {

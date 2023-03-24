@@ -316,7 +316,6 @@ func (cs *CarfileStore) BlocksOfCarfile(root cid.Cid) ([]cid.Cid, error) {
 	}
 
 	return cids, nil
-
 }
 
 func (cs *CarfileStore) BlockReader(c cid.Cid) (io.ReadCloser, error) {
@@ -362,7 +361,6 @@ func (cs *CarfileStore) recovery() error {
 			}
 
 			log.Debugf("register shard %s success", k.String())
-
 		}
 	}
 

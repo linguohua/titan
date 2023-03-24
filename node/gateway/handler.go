@@ -36,7 +36,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		h.handler.ServeHTTP(w, r)
 	}
-
 }
 
 func (gw *Gateway) NewHandler(handler http.Handler) http.Handler {
@@ -84,18 +83,14 @@ func addCacheControlHeaders(w http.ResponseWriter, r *http.Request, contentPath 
 
 	// Set Cache-Control and Last-Modified based on contentPath properties
 	if contentPath.Mutable() {
-
 		modtime = time.Now()
-
 	} else {
 		// immutable! CACHE ALL THE THINGS, FOREVER! wolololol
 		w.Header().Set("Cache-Control", immutableCacheControl)
 
 		// Set modtime to 'zero time' to disable Last-Modified header (superseded by Cache-Control)
 		modtime = time.Unix(0, 0)
-
 	}
-
 	return modtime
 }
 

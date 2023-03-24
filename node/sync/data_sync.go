@@ -73,7 +73,6 @@ func (ds *DataSync) multihashSort(hashes []string, bucketCount uint32) map[uint3
 		k := h.Sum32() % bucketCount
 
 		multihashes[k] = append(multihashes[k], hash)
-
 	}
 
 	return multihashes
