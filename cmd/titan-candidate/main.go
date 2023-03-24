@@ -191,7 +191,7 @@ var runCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		defer udpPacketConn.Close() // nolint:errcheck // ignore error
+		defer udpPacketConn.Close() //nolint:errcheck // ignore error
 
 		// all jsonrpc client use udp
 		httpClient, err := cliutil.NewHTTP3Client(udpPacketConn, candidateCfg.InsecureSkipVerify, candidateCfg.CaCertificatePath)

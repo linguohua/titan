@@ -145,7 +145,7 @@ var getAPIKeyCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		defer lr.Close() // nolint
+		defer lr.Close() //nolint
 
 		perm := cctx.String("perm")
 
@@ -169,7 +169,7 @@ var getAPIKeyCmd = &cli.Command{
 			return xerrors.Errorf("setting up api secret: %w", err)
 		}
 
-		k, err := jwt.Sign(&p, (*jwt.HMACSHA)(authKey))
+		k, err := jwt.Sign(&p, authKey)
 		if err != nil {
 			return xerrors.Errorf("jwt sign: %w", err)
 		}
