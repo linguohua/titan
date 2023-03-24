@@ -9,7 +9,7 @@ type DocField struct {
 }
 
 var Doc = map[string][]DocField{
-	"CandidateCfg": []DocField{
+	"CandidateCfg": {
 		{
 			Name: "TCPSrvAddr",
 			Type: "string",
@@ -23,7 +23,7 @@ var Doc = map[string][]DocField{
 			Comment: ``,
 		},
 	},
-	"EdgeCfg": []DocField{
+	"EdgeCfg": {
 		{
 			Name: "ListenAddress",
 			Type: "string",
@@ -111,7 +111,7 @@ be used if InsecureSkipVerify is true`,
 			Comment: `FetchBlockFailedRetry retry when get block failed`,
 		},
 	},
-	"LocatorCfg": []DocField{
+	"LocatorCfg": {
 		{
 			Name: "ListenAddress",
 			Type: "string",
@@ -169,7 +169,7 @@ be used if InsecureSkipVerify is true`,
 			Comment: `self sign certificate, use for client`,
 		},
 	},
-	"SchedulerCfg": []DocField{
+	"SchedulerCfg": {
 		{
 			Name: "ExternalAddress",
 			Type: "string",

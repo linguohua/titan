@@ -22,7 +22,12 @@ func NewGeoLiteRegion(dbPath string) (Region, error) {
 	if err != nil {
 		return gl, err
 	}
-	defer db.Close()
+	defer func() {
+		err = db.Close()
+		if err != nil {
+			log.Errorf("geo close db err:%s", err.Error())
+		}
+	}()
 	// reader = db
 
 	return gl, nil
@@ -36,7 +41,12 @@ func InitGeoLite(dbPath string) (Region, error) {
 	if err != nil {
 		return gl, err
 	}
-	defer db.Close()
+	defer func() {
+		err = db.Close()
+		if err != nil {
+			log.Errorf("geo close db err:%s", err.Error())
+		}
+	}()
 	// reader = db
 
 	return gl, nil
@@ -56,7 +66,13 @@ func (g geoLite) GetGeoInfo(ip string) (*GeoInfo, error) {
 	if err != nil {
 		return geoInfo, err
 	}
-	defer db.Close()
+	defer func() {
+		err = db.Close()
+		if err != nil {
+			log.Errorf("geo close db err:%s", err.Error())
+		}
+	}()
+
 	// If you are using strings that may be invalid, check that ip is not nil
 	ipA := net.ParseIP(ip)
 	record, err := db.City(ipA)

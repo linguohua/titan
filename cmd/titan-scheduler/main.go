@@ -251,7 +251,12 @@ var runCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		defer udpPacketConn.Close()
+		defer func() {
+			err = udpPacketConn.Close()
+			if err != nil {
+				log.Errorf("udpPacketConn Close err:%s", err.Error())
+			}
+		}()
 
 		httpClient, err := cliutil.NewHTTP3Client(udpPacketConn, schedulerCfg.InsecureSkipVerify, schedulerCfg.CaCertificatePath)
 		if err != nil {

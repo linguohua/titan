@@ -39,7 +39,7 @@ func (eu *EdgeUpdater) SetEdgeUpdateInfo(ctx context.Context, info *api.EdgeUpda
 	if eu.updateInfos == nil {
 		eu.updateInfos = make(map[int]*api.EdgeUpdateInfo)
 	}
-	eu.updateInfos[int(info.NodeType)] = info
+	eu.updateInfos[info.NodeType] = info
 	return eu.db.SetEdgeUpdateInfo(info)
 }
 

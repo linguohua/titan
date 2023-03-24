@@ -351,7 +351,7 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, id string, token string)
 	log.Infof("LocatorConnect locatorID:%s, addr:%s", id, remoteAddr)
 
 	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+string(token))
+	headers.Add("Authorization", "Bearer "+token)
 	// Connect to scheduler
 	// log.Infof("EdgeNodeConnect edge url:%v", url)
 	locatorAPI, closer, err := client.NewLocator(ctx, url, headers)
