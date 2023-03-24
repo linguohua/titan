@@ -39,6 +39,9 @@ func (c *Candidate) Fetch(ctx context.Context, cids []string, dss []*types.Downl
 }
 
 func (c *Candidate) getBlock(ds *types.DownloadSource, cidStr string) (blocks.Block, error) {
+	if len(ds.CandidateAddr) == 0 {
+		return nil, fmt.Errorf("candidate address can not empty")
+	}
 	buf, err := encode(ds.Credentials)
 	if err != nil {
 		return nil, err

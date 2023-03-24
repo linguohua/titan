@@ -197,14 +197,12 @@ func (m *Manager) onDownloadCarFinish(cf *carfileCache) {
 			log.Errorf("RegisterShared error:%s", err.Error())
 		}
 
-		err = m.carfileStore.DeleteIncompleteCarfileCache(cf.root)
-		if err != nil {
+		if err = m.carfileStore.DeleteIncompleteCarfileCache(cf.root); err != nil && os.IsNotExist(err) {
 			log.Errorf("DeleteIncompleteCarfileCache error:%s", err.Error())
 		}
 
 	} else {
-		err := m.saveIncompleteCarfileCache(cf)
-		if err != nil {
+		if err := m.saveIncompleteCarfileCache(cf); err != nil {
 			log.Errorf("saveIncompleteCarfileCache error:%s", err.Error())
 		}
 	}
