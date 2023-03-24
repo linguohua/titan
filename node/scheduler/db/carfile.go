@@ -69,6 +69,9 @@ func (n *SQLDB) LoadCarfileRecordInfo(hash string) (*types.CarfileRecordInfo, er
 	var info types.CarfileRecordInfo
 	query := fmt.Sprintf("SELECT * FROM %s WHERE carfile_hash=?", carfileRecordTable)
 	err := n.db.Get(&info, query, hash)
+	if err != nil {
+		return nil, err
+	}
 
 	return &info, err
 }
