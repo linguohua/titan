@@ -244,7 +244,7 @@ var runCmd = &cli.Command{
 		// Instantiate the scheduler handler.
 		h, err := node.SchedulerHandler(schedulerAPI, true, serverOptions...)
 		if err != nil {
-			return fmt.Errorf("failed to instantiate rpc handler: %s", err)
+			return fmt.Errorf("failed to instantiate rpc handler: %s", err.Error())
 		}
 
 		udpPacketConn, err := net.ListenPacket("udp", schedulerCfg.ListenAddress)
@@ -269,7 +269,7 @@ var runCmd = &cli.Command{
 		// Serve the RPC.
 		rpcStopper, err := node.ServeRPC(h, "scheduler", schedulerCfg.ListenAddress)
 		if err != nil {
-			return fmt.Errorf("failed to start json-rpc endpoint: %s", err)
+			return fmt.Errorf("failed to start json-rpc endpoint: %s", err.Error())
 		}
 
 		log.Info("titan scheduler listen with:", schedulerCfg.ListenAddress)

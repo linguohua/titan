@@ -262,6 +262,5 @@ func (v *Election) ReelectTicker() {
 			continue
 		}
 		v.updateCh <- struct{}{}
-
 	}
 }

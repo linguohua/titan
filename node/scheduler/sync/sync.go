@@ -150,7 +150,6 @@ func (ds *DataSync) multihashSort(statuses []*types.NodeReplicaStatus) map[uint3
 		k := h.Sum32() % bucketCount
 
 		multihashes[k] = append(multihashes[k], status.CarfileHash)
-
 	}
 
 	return multihashes

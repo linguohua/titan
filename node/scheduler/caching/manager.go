@@ -209,7 +209,7 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 		return err
 	}
 
-	if cInfo == nil {
+	if cInfo.CarfileHash == "" {
 		// create carfile task
 		return m.carfiles.Send(CarfileHash(info.CarfileHash), CarfileStartCaches{
 			ID:                          info.CarfileCid,
@@ -627,7 +627,6 @@ func (m *Manager) Sources(cid string, nodes []string) []*types.DownloadSource {
 		}
 
 		sources = append(sources, source)
-
 	}
 
 	return sources
