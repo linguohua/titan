@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -12,8 +13,8 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// UpdateReplicaInfo update replica info
-func (n *SQLDB) UpdateReplicaInfo(cInfo *types.ReplicaInfo) error {
+// UpdateUnfinishedReplicaInfo update unfinished replica info , return an error if the replica is finished
+func (n *SQLDB) UpdateUnfinishedReplicaInfo(cInfo *types.ReplicaInfo) error {
 	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=?, done_size=? WHERE id=? AND (status=? or status=?)`, replicaInfoTable)
 	result, err := n.db.Exec(query, cInfo.Status, cInfo.DoneSize, cInfo.ID, types.CacheStatusCaching, types.CacheStatusWaiting)
 	if err != nil {
@@ -32,16 +33,16 @@ func (n *SQLDB) UpdateReplicaInfo(cInfo *types.ReplicaInfo) error {
 	return nil
 }
 
-// UpdateStatusOfReplicas update status of carfile replicas
-func (n *SQLDB) UpdateStatusOfReplicas(hash string, status types.CacheStatus) error {
+// UpdateStatusOfUnfinishedReplicas update status of unfinished carfile replicas
+func (n *SQLDB) UpdateStatusOfUnfinishedReplicas(hash string, status types.CacheStatus) error {
 	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=? WHERE carfile_hash=? AND (status=? or status=?)`, replicaInfoTable)
 	_, err := n.db.Exec(query, status, hash, types.CacheStatusCaching, types.CacheStatusWaiting)
 
 	return err
 }
 
-// UpsertReplicasInfo Insert or update replicas info
-func (n *SQLDB) UpsertReplicasInfo(infos []*types.ReplicaInfo) error {
+// BatchUpsertReplicas Insert or update replicas info
+func (n *SQLDB) BatchUpsertReplicas(infos []*types.ReplicaInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (id, carfile_hash, node_id, status, is_candidate) 
 				VALUES (:id, :carfile_hash, :node_id, :status, :is_candidate) 
@@ -83,49 +84,19 @@ func (n *SQLDB) LoadUnfinishedCarfileRecords(ctx context.Context, limit, offset 
 }
 
 // LoadCarfileRecords load carfile record infos
-func (n *SQLDB) LoadCarfileRecords(page int, statuses []string) (rsp *types.ListCarfileRecordRsp, err error) {
-	count := loadCarfileRecordsLimit
-	rsp = &types.ListCarfileRecordRsp{}
+func (n *SQLDB) LoadCarfileRecords(statuses []string, limit, offset int, serverID dtypes.ServerID) (*sqlx.Rows, error) {
+	if limit > loadCarfileRecordsLimit || limit == 0 {
+		limit = loadCarfileRecordsLimit
+	}
 
-	countCmd := fmt.Sprintf(`SELECT count(carfile_hash) FROM %s WHERE state in (?) `, carfileRecordTable)
-	countQuery, args, err := sqlx.In(countCmd, statuses)
+	selectCmd := fmt.Sprintf(`SELECT * FROM %s WHERE state in (?) AND server_id=? order by carfile_hash asc LIMIT ? OFFSET ?`, carfileRecordTable)
+	selectQuery, args, err := sqlx.In(selectCmd, statuses, serverID, limit, offset)
 	if err != nil {
-		return
-	}
-
-	countQuery = n.db.Rebind(countQuery)
-	err = n.db.Get(&rsp.Cids, countQuery, args...)
-	if err != nil {
-		return
-	}
-
-	rsp.TotalPage = rsp.Cids / count
-	if rsp.Cids%count > 0 {
-		rsp.TotalPage++
-	}
-
-	if rsp.TotalPage == 0 {
-		return
-	}
-
-	if page > rsp.TotalPage {
-		page = rsp.TotalPage
-	}
-	rsp.Page = page
-
-	selectCmd := fmt.Sprintf(`SELECT * FROM %s WHERE state in (?) order by carfile_hash asc LIMIT ?,?`, carfileRecordTable)
-	selectQuery, args, err := sqlx.In(selectCmd, statuses, count*(page-1), count)
-	if err != nil {
-		return
+		return nil, err
 	}
 
 	selectQuery = n.db.Rebind(selectQuery)
-	err = n.db.Select(&rsp.CarfileRecords, selectQuery, args...)
-	if err != nil {
-		return
-	}
-
-	return
+	return n.db.QueryxContext(context.Background(), selectQuery, args...)
 }
 
 // LoadSucceededReplicas load succeed replica nodeID by hash
@@ -241,7 +212,7 @@ func (n *SQLDB) RemoveCarfileRecord(carfileHash string) error {
 
 	defer func() {
 		err = tx.Rollback()
-		if err != nil {
+		if err != nil && err != sql.ErrTxDone {
 			log.Errorf("RemoveCarfileRecord Rollback err:%s", err.Error())
 		}
 	}()

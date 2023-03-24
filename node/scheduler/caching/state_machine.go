@@ -24,7 +24,7 @@ func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface
 		}
 
 		return nil
-	}, processed, nil // TODO: This processed event count is not very correct
+	}, processed, nil
 }
 
 var planners = map[CarfileState]func(events []statemachine.Event, state *CarfileCacheInfo) (uint64, error){

@@ -50,21 +50,32 @@ func (s *Scheduler) CarfileRecord(ctx context.Context, cid string) (*types.Carfi
 
 // CarfileRecords List carfiles
 func (s *Scheduler) CarfileRecords(ctx context.Context, page int, states []string) (*types.ListCarfileRecordRsp, error) {
-	info, err := s.NodeManager.LoadCarfileRecords(page, states)
+	rows, err := s.NodeManager.LoadCarfileRecords(states, 10, 0, s.ServerID)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, c := range info.CarfileRecords {
-		rs, err := s.NodeManager.LoadReplicaInfosOfCarfile(c.CarfileHash, false)
+	rsp := &types.ListCarfileRecordRsp{}
+
+	// loading carfiles to local
+	for rows.Next() {
+		in := &types.CarfileRecordInfo{}
+		err = rows.StructScan(in)
 		if err != nil {
+			log.Errorf("carfile StructScan err: %s", err.Error())
 			continue
 		}
 
-		c.ReplicaInfos = rs
+		in.ReplicaInfos, err = s.NodeManager.LoadReplicaInfosOfCarfile(in.CarfileHash, false)
+		if err != nil {
+			log.Errorf("carfile %s load replicas err: %s", in.CarfileCID, err.Error())
+			continue
+		}
+
+		rsp.CarfileRecords = append(rsp.CarfileRecords, in)
 	}
 
-	return info, nil
+	return rsp, nil
 }
 
 // RemoveCarfile remove all caches with carfile cid

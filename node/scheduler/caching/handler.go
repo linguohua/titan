@@ -16,8 +16,6 @@ var (
 )
 
 func failedCoolDown(ctx statemachine.Context, info CarfileCacheInfo) error {
-	// TODO: Exponential back off when we see consecutive failures
-
 	retryStart := time.Now().Add(MinRetryTime)
 	if time.Now().Before(retryStart) {
 		log.Debugf("%s(%s), waiting %s before retrying", info.State, info.CarfileHash, time.Until(retryStart))
