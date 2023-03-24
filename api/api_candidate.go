@@ -25,8 +25,8 @@ type ReqValidate struct {
 	NodeType int
 }
 
-// ValidatedResult node Validate result
-type ValidatedResult struct {
+// ValidateResult node Validate result
+type ValidateResult struct {
 	Validator  string
 	CarfileCID string
 	// verification canceled due to download

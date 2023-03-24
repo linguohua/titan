@@ -380,7 +380,7 @@ func (m *Manager) FindEdgeDownloadInfos(cid, userURL string) ([]*types.DownloadI
 }
 
 func (m *Manager) checkNodesTTL() {
-	nodes, err := m.LoadTimeoutNodes(offlineTimeMax)
+	nodes, err := m.LoadTimeoutNodes(offlineTimeMax, m.ServerID)
 	if err != nil {
 		log.Errorf("checkWhetherNodeQuits LoadTimeoutNodes err:%s", err.Error())
 		return
@@ -393,7 +393,7 @@ func (m *Manager) checkNodesTTL() {
 
 // NodesQuit Nodes quit
 func (m *Manager) NodesQuit(nodeIDs []string) {
-	err := m.SetNodesQuit(nodeIDs)
+	err := m.SetNodesQuitted(nodeIDs)
 	if err != nil {
 		log.Errorf("NodeExited SetNodesQuit err:%s", err.Error())
 		return
@@ -438,7 +438,7 @@ func (m *Manager) saveInfo(n *BaseInfo) error {
 	n.Quitted = false
 	n.LastTime = time.Now()
 
-	err := m.UpdateNodeInfo(n.NodeInfo)
+	err := m.UpsertNodeInfo(n.NodeInfo)
 	if err != nil {
 		return err
 	}

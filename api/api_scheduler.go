@@ -24,7 +24,7 @@ type Scheduler interface {
 	// node send result when user download block complete
 	UserDownloadResult(ctx context.Context, result types.UserDownloadResult) error       //perm:write
 	EdgeNodeConnect(ctx context.Context, token string) error                             //perm:write
-	NodeValidatedResult(ctx context.Context, validateResult ValidatedResult) error       //perm:write
+	NodeValidatedResult(ctx context.Context, validateResult ValidateResult) error        //perm:write
 	CandidateNodeConnect(ctx context.Context, token string) error                        //perm:write
 	RemoveCarfileResult(ctx context.Context, resultInfo types.RemoveCarfileResult) error //perm:write
 	NodeExternalServiceAddress(ctx context.Context) (string, error)                      //perm:read
@@ -62,6 +62,6 @@ type Scheduler interface {
 	// user send result when user download block complete or failed
 	UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error //perm:read
 	// ListCaches cache manager
-	CarfileReplicaList(ctx context.Context, req types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error)                              //perm:read
-	ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidatedResultRsp, error) //perm:read
+	CarfileReplicaList(ctx context.Context, req types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error)                             //perm:read
+	ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) //perm:read
 }

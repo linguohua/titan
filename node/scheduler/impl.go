@@ -149,6 +149,7 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, token string) erro
 	}
 
 	nodeInfo.NodeType = types.NodeCandidate
+	nodeInfo.ServerID = s.ServerID
 
 	if baseInfo == nil {
 		baseInfo, err = s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
@@ -205,6 +206,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, token string) error {
 	}
 
 	nodeInfo.NodeType = types.NodeEdge
+	nodeInfo.ServerID = s.ServerID
 
 	if baseInfo == nil {
 		baseInfo, err = s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
@@ -234,7 +236,7 @@ func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.N
 		return nil, xerrors.Errorf("nodeID mismatch %s, %s", nodeID, nodeInfo.NodeID)
 	}
 
-	port, err := s.NodeManager.LoadPortMappingOfNode(nodeID)
+	port, err := s.NodeManager.LoadPortMapping(nodeID)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 	}
@@ -266,7 +268,7 @@ func (s *Scheduler) NodeExternalServiceAddress(ctx context.Context) (string, err
 }
 
 // NodeValidatedResult Validator Block Result
-func (s *Scheduler) NodeValidatedResult(ctx context.Context, result api.ValidatedResult) error {
+func (s *Scheduler) NodeValidatedResult(ctx context.Context, result api.ValidateResult) error {
 	validator := handler.GetNodeID(ctx)
 	log.Debug("call back Validator block result, Validator is ", validator)
 
@@ -279,7 +281,7 @@ func (s *Scheduler) NodeValidatedResult(ctx context.Context, result api.Validate
 
 // RegisterNode Register Node , Returns an error if the node is already registered
 func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, pKey string, nodeType types.NodeType) error {
-	return s.NodeManager.InsertNode(pKey, nodeID, nodeType)
+	return s.NodeManager.InsertNodeRegisterInfo(pKey, nodeID, nodeType)
 }
 
 // OnlineNodeList Get all online node id
@@ -379,7 +381,7 @@ func (s *Scheduler) SetNodePort(ctx context.Context, nodeID, port string) error 
 		baseInfo.SetNodePort(port)
 	}
 
-	return s.NodeManager.SetPortMappingOfNode(nodeID, port)
+	return s.NodeManager.SetPortMapping(nodeID, port)
 }
 
 // NodeLogFileInfo show node log file
@@ -439,10 +441,10 @@ func (s *Scheduler) nodeExists(nodeID string, nodeType types.NodeType) bool {
 }
 
 // NodeList list nodes
-func (s *Scheduler) NodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error) {
+func (s *Scheduler) NodeList(ctx context.Context, offset int, limit int) (*types.ListNodesRsp, error) {
 	rsp := &types.ListNodesRsp{Data: make([]types.NodeInfo, 0)}
 
-	nodes, total, err := s.NodeManager.LoadNodeIDs(cursor, count)
+	rows, total, err := s.NodeManager.LoadNodeInfos(limit, offset)
 	if err != nil {
 		return rsp, err
 	}
@@ -457,19 +459,20 @@ func (s *Scheduler) NodeList(ctx context.Context, cursor int, count int) (*types
 	}
 
 	nodeInfos := make([]types.NodeInfo, 0)
-	for _, nodeID := range nodes {
-		nodeInfo, err := s.NodeInfo(ctx, nodeID)
+	for rows.Next() {
+		nodeInfo := &types.NodeInfo{}
+		err = rows.StructScan(nodeInfo)
 		if err != nil {
-			log.Errorf("NodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
+			log.Errorf("NodeInfo StructScan err: %s", err.Error())
 			continue
 		}
 
-		_, exist := validator[nodeID]
+		_, exist := validator[nodeInfo.NodeID]
 		if exist {
 			nodeInfo.NodeType = types.NodeValidator
 		}
 
-		nodeInfos = append(nodeInfos, nodeInfo)
+		nodeInfos = append(nodeInfos, *nodeInfo)
 	}
 
 	rsp.Data = nodeInfos
@@ -492,8 +495,8 @@ func (s *Scheduler) CarfileReplicaList(ctx context.Context, req types.ListCacheI
 }
 
 // ValidatedResultList get validated result infos
-func (s *Scheduler) ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidatedResultRsp, error) {
-	svm, err := s.NodeManager.LoadValidatedResultInfos(startTime, endTime, pageNumber, pageSize)
+func (s *Scheduler) ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) {
+	svm, err := s.NodeManager.LoadValidateResultInfos(startTime, endTime, pageNumber, pageSize)
 	if err != nil {
 		return nil, err
 	}

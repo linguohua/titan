@@ -24,6 +24,7 @@ CREATE TABLE `node_info` (
     `bandwidth_down` float DEFAULT '0',
     `blocks` bigint DEFAULT '0' ,
     `disk_usage` float DEFAULT '0', 
+    `server_id` varchar(128) NOT NULL,
 	PRIMARY KEY (`node_id`)
 ) ENGINE=InnoDB COMMENT='node info';
 
