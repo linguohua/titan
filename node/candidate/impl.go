@@ -173,7 +173,9 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 			result.RandomCount++
 		case <-t.C:
 			if vb.conn != nil {
-				vb.conn.Close()
+				if err := vb.conn.Close(); err != nil {
+					log.Errorf("close tcp error: %s", err.Error())
+				}
 			}
 			isBreak = true
 			log.Errorf("wait node %s timeout %ds, exit wait block", result.NodeID, req.Duration+validateTimeout)

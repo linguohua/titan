@@ -17,12 +17,12 @@ import (
 	"github.com/ipfs/go-libipfs/blocks"
 )
 
-type candidate struct {
+type Candidate struct {
 	retryCount int
 	httpClient *http.Client
 }
 
-func NewCandidate(timeout, retryCount int) *candidate {
+func NewCandidate(timeout, retryCount int) *Candidate {
 	t := http.DefaultTransport.(*http.Transport).Clone()
 	t.MaxIdleConns = 10
 	t.IdleConnTimeout = 120 * time.Second
@@ -32,14 +32,14 @@ func NewCandidate(timeout, retryCount int) *candidate {
 		Transport: t,
 	}
 
-	return &candidate{retryCount: retryCount, httpClient: httpClient}
+	return &Candidate{retryCount: retryCount, httpClient: httpClient}
 }
 
-func (candidate *candidate) Fetch(ctx context.Context, cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
-	return candidate.getBlocks(cids, dss)
+func (c *Candidate) Fetch(ctx context.Context, cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
+	return c.getBlocks(cids, dss)
 }
 
-func (candidate *candidate) getBlock(ds *types.DownloadSource, cidStr string) (blocks.Block, error) {
+func (c *Candidate) getBlock(ds *types.DownloadSource, cidStr string) (blocks.Block, error) {
 	buf, err := encode(ds.Credentials)
 	if err != nil {
 		return nil, err
@@ -52,11 +52,11 @@ func (candidate *candidate) getBlock(ds *types.DownloadSource, cidStr string) (b
 		return nil, err
 	}
 
-	resp, err := candidate.httpClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // nolint:errcheck // ignore error
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("status code %d", resp.StatusCode)
@@ -67,12 +67,12 @@ func (candidate *candidate) getBlock(ds *types.DownloadSource, cidStr string) (b
 		return nil, err
 	}
 
-	c, err := cid.Decode(cidStr)
+	cid, err := cid.Decode(cidStr)
 	if err != nil {
 		return nil, err
 	}
 
-	basicBlock, err := blocks.NewBlockWithCid(data, c)
+	basicBlock, err := blocks.NewBlockWithCid(data, cid)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (candidate *candidate) getBlock(ds *types.DownloadSource, cidStr string) (b
 	return basicBlock, nil
 }
 
-func (candidate *candidate) getBlocks(cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
+func (c *Candidate) getBlocks(cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
 	if len(dss) == 0 {
 		return nil, fmt.Errorf("download srouce can not empty")
 	}
@@ -101,8 +101,8 @@ func (candidate *candidate) getBlocks(cids []string, dss []*types.DownloadSource
 		go func() {
 			defer wg.Done()
 
-			for i := 0; i < candidate.retryCount; i++ {
-				b, err := candidate.getBlock(ds, cidStr)
+			for i := 0; i < c.retryCount; i++ {
+				b, err := c.getBlock(ds, cidStr)
 				if err != nil {
 					log.Errorf("getBlock error:%s, cid:%s", err.Error(), cidStr)
 					continue

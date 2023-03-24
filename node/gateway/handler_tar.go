@@ -30,7 +30,7 @@ func (gw *Gateway) serveTAR(w http.ResponseWriter, r *http.Request, credentials 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer file.Close()
+	defer file.Close() // nolint:errcheck // ignore error
 
 	rootCID := resolvedPath.Cid()
 
@@ -66,7 +66,7 @@ func (gw *Gateway) serveTAR(w http.ResponseWriter, r *http.Request, credentials 
 		http.Error(w, fmt.Sprintf("could not build tar writer: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
-	defer tarw.Close()
+	defer tarw.Close() // nolint:errcheck // ignore error
 
 	// Sets correct Last-Modified header. This code is borrowed from the standard
 	// library (net/http/server.go) as we cannot use serveFile without throwing the entire

@@ -50,7 +50,9 @@ func (validate *Validate) CancelValidate() {
 func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqValidate, speedRate int64) {
 	defer func() {
 		validate.cancelValidateChannel = nil
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			log.Errorf("close tcp error: %s", err.Error())
+		}
 	}()
 
 	validate.cancelValidateChannel = make(chan bool)

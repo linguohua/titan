@@ -172,7 +172,7 @@ var runCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		defer udpPacketConn.Close()
+		defer udpPacketConn.Close() // nolint:errcheck  // ignore error
 
 		go startUDPServer(udpPacketConn, handler, locatorCfg) // nolint:errcheck
 
@@ -204,9 +204,9 @@ var runCmd = &cli.Command{
 func startUDPServer(conn net.PacketConn, handler http.Handler, locatorCfg *config.LocatorCfg) error {
 	var tlsConfig *tls.Config
 	if locatorCfg.InsecureSkipVerify {
-		config, err := generateTLSConfig()
+		config, err := defaultTLSConfig()
 		if err != nil {
-			log.Errorf("startUDPServer, generateTLSConfig error:%s", err.Error())
+			log.Errorf("startUDPServer, defaultTLSConfig error:%s", err.Error())
 			return err
 		}
 		tlsConfig = config
@@ -218,6 +218,7 @@ func startUDPServer(conn net.PacketConn, handler http.Handler, locatorCfg *confi
 		}
 
 		tlsConfig = &tls.Config{
+			MinVersion:         tls.VersionTLS12,
 			Certificates:       []tls.Certificate{cert},
 			InsecureSkipVerify: false,
 		}
@@ -231,8 +232,8 @@ func startUDPServer(conn net.PacketConn, handler http.Handler, locatorCfg *confi
 	return srv.Serve(conn)
 }
 
-func generateTLSConfig() (*tls.Config, error) {
-	key, err := rsa.GenerateKey(rand.Reader, 1024)
+func defaultTLSConfig() (*tls.Config, error) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +250,8 @@ func generateTLSConfig() (*tls.Config, error) {
 		return nil, err
 	}
 	return &tls.Config{
+		MinVersion:         tls.VersionTLS12,
 		Certificates:       []tls.Certificate{tlsCert},
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: true, //nolint:gosec // skip verify in default config
 	}, nil
 }

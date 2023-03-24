@@ -245,7 +245,7 @@ func downloadApp(downloadURL string) ([]byte, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // ignore error
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
