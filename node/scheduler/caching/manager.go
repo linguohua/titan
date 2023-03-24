@@ -230,7 +230,10 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 // FailedCarfilesRestart restart failed carfiles
 func (m *Manager) FailedCarfilesRestart(hashes []types.CarfileHash) error {
 	for _, hash := range hashes {
-		m.carfiles.Send(hash, CarfileRestart{})
+		err := m.carfiles.Send(hash, CarfileRestart{})
+		if err != nil {
+			log.Errorf("FailedCarfilesRestart send err:%s", err.Error())
+		}
 	}
 
 	return nil
@@ -258,9 +261,14 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 
 	log.Infof("carfile event %s , remove carfile record", carfileCid)
 
-	for _, cInfo := range cInfos {
-		go m.sendCacheRequest(cInfo.NodeID, carfileCid)
-	}
+	go func() {
+		for _, cInfo := range cInfos {
+			err = m.sendCacheRequest(cInfo.NodeID, carfileCid)
+			if err != nil {
+				log.Errorf("sendCacheRequest err: %s ", err.Error())
+			}
+		}
+	}()
 
 	return nil
 }
@@ -445,21 +453,6 @@ func (m *Manager) resetLatestExpiration(t time.Time) {
 	}
 }
 
-// Notify node to delete all carfiles
-func (m *Manager) sendRemoveRequest(nodeID string) error {
-	edge := m.nodeManager.GetEdgeNode(nodeID)
-	if edge != nil {
-		return edge.API().DeleteAllCarfiles(context.Background())
-	}
-
-	candidate := m.nodeManager.GetCandidateNode(nodeID)
-	if candidate != nil {
-		return candidate.API().DeleteAllCarfiles(context.Background())
-	}
-
-	return nil
-}
-
 // Notify node to delete carfile
 func (m *Manager) sendCacheRequest(nodeID, cid string) error {
 	edge := m.nodeManager.GetEdgeNode(nodeID)
@@ -526,11 +519,9 @@ func (m *Manager) findEdges(count int, filterNodes []string) []*node.Edge {
 	m.nodeManager.EdgeNodes.Range(func(key, value interface{}) bool {
 		edgeNode := value.(*node.Edge)
 
-		if filterNodes != nil {
-			for _, nodeID := range filterNodes {
-				if nodeID == edgeNode.NodeID {
-					return true
-				}
+		for _, nodeID := range filterNodes {
+			if nodeID == edgeNode.NodeID {
+				return true
 			}
 		}
 
@@ -564,11 +555,9 @@ func (m *Manager) findCandidates(count int, filterNodes []string) []*node.Candid
 	m.nodeManager.CandidateNodes.Range(func(key, value interface{}) bool {
 		candidateNode := value.(*node.Candidate)
 
-		if filterNodes != nil {
-			for _, nodeID := range filterNodes {
-				if nodeID == candidateNode.NodeID {
-					return true
-				}
+		for _, nodeID := range filterNodes {
+			if nodeID == candidateNode.NodeID {
+				return true
 			}
 		}
 
@@ -640,7 +629,7 @@ func (m *Manager) Sources(cid string, nodes []string) []*types.DownloadSource {
 			continue
 		}
 		source := &types.DownloadSource{
-			CandidateURL: cNode.DownloadURL(),
+			CandidateURL: cNode.DownloadAddr(),
 			Credentials:  credentials,
 		}
 

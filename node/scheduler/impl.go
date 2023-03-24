@@ -274,8 +274,7 @@ func (s *Scheduler) NodeValidatedResult(ctx context.Context, result api.Validate
 	vs.Validator = validator
 
 	// s.Validator.PushResultToQueue(vs)
-	s.Validation.Result(vs)
-	return nil
+	return s.Validation.Result(vs)
 }
 
 // RegisterNode Register Node , Returns an error if the node is already registered
@@ -371,27 +370,6 @@ func (s *Scheduler) NodeQuit(ctx context.Context, nodeID string) error {
 	s.NodeManager.NodesQuit([]string{nodeID})
 
 	return nil
-}
-
-func (s *Scheduler) nodeExitedCallback(nodeIDs []string) {
-	// clean node cache
-	log.Infof("node event , nodes quit:%v", nodeIDs)
-
-	hashes, err := s.NodeManager.LoadCarfileHashesOfNodes(nodeIDs)
-	if err != nil {
-		log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
-		return
-	}
-
-	err = s.NodeManager.RemoveReplicaInfoOfNodes(nodeIDs)
-	if err != nil {
-		log.Errorf("RemoveReplicaInfoWithNodes err:%s", err.Error())
-		return
-	}
-
-	for _, hash := range hashes {
-		log.Infof("need restore carfile record :%s", hash)
-	}
 }
 
 // SetNodePort set node port

@@ -52,11 +52,6 @@ func DefaultSessionCallback() dtypes.SessionCallbackFunc {
 	return func(s string, s2 string) {}
 }
 
-// NewSessionCallbackFunc callback function when the node sends a heartbeat
-func NewSessionCallbackFunc(nodeMgr *node.Manager) (dtypes.SessionCallbackFunc, error) {
-	return node.NewSessionCallBackFunc(nodeMgr)
-}
-
 type StorageManagerParams struct {
 	fx.In
 

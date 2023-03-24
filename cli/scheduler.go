@@ -26,27 +26,9 @@ var (
 		Value: "",
 	}
 
-	cidsPathFlag = &cli.StringFlag{
-		Name:  "cids-file-path",
-		Usage: "blocks cid file path",
-		Value: "",
-	}
-
-	cidsFlag = &cli.StringFlag{
-		Name:  "cids",
-		Usage: "blocks cid",
-		Value: "",
-	}
-
 	cidFlag = &cli.StringFlag{
 		Name:  "cid",
 		Usage: "specify the cid of a carfile",
-		Value: "",
-	}
-
-	ipFlag = &cli.StringFlag{
-		Name:  "ip",
-		Usage: "ip",
 		Value: "",
 	}
 
@@ -60,12 +42,6 @@ var (
 	nodeTypeFlag = &cli.IntFlag{
 		Name:  "node-type",
 		Usage: "node type 0:ALL 1:Edge 2:Candidate 3:Scheduler 4:Scheduler",
-		Value: 0,
-	}
-
-	countFlag = &cli.IntFlag{
-		Name:  "count",
-		Usage: "count",
 		Value: 0,
 	}
 

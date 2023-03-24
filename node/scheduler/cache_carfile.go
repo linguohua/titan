@@ -95,7 +95,7 @@ func (s *Scheduler) CacheCarfiles(ctx context.Context, info *types.CacheCarfileI
 	info.CarfileHash = hash
 
 	if info.Replicas < 1 {
-		return xerrors.Errorf("replicas must greater than 1", info.Replicas)
+		return xerrors.Errorf("replicas %d must greater than 1", info.Replicas)
 	}
 
 	if time.Now().After(info.Expiration) {

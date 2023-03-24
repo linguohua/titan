@@ -42,7 +42,7 @@ func NewEdge(token string) *Edge {
 func (e *Edge) ConnectRPC(addr string, isNodeConnect bool) (api.Edge, error) {
 	if !isNodeConnect {
 		if addr == e.remoteAddr {
-			return nil, xerrors.New("the address has not changed")
+			return e.nodeAPI, nil
 		}
 
 		e.remoteAddr = addr
@@ -100,7 +100,7 @@ func NewCandidate(token string) *Candidate {
 func (c *Candidate) ConnectRPC(addr string, isNodeConnect bool) (api.Candidate, error) {
 	if !isNodeConnect {
 		if addr == c.remoteAddr {
-			return nil, xerrors.New("the address has not changed")
+			return c.nodeAPI, nil
 		}
 
 		c.remoteAddr = addr
@@ -174,8 +174,8 @@ func (n *BaseInfo) RPCURL() string {
 	return fmt.Sprintf("https://%s/rpc/v0", n.remoteAddr)
 }
 
-// DownloadURL download url
-func (n *BaseInfo) DownloadURL() string {
+// DownloadAddr download address
+func (n *BaseInfo) DownloadAddr() string {
 	addr := n.remoteAddr
 	if n.PortMapping != "" {
 		index := strings.Index(n.remoteAddr, ":")

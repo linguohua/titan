@@ -1,6 +1,12 @@
 package db
 
-import "github.com/jmoiron/sqlx"
+import (
+	"github.com/jmoiron/sqlx"
+
+	logging "github.com/ipfs/go-log/v2"
+)
+
+var log = logging.Logger("election")
 
 // SQLDB scheduler sql db
 type SQLDB struct {

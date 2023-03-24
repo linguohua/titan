@@ -37,7 +37,10 @@ func (s *Scheduler) handleUserDownloadBlockResult(ctx context.Context, result ty
 // UserDownloadBlockResults node result for user download block
 func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error {
 	for _, result := range results {
-		s.handleUserDownloadBlockResult(ctx, result)
+		err := s.handleUserDownloadBlockResult(ctx, result)
+		if err != nil {
+			log.Errorf("handleUserDownloadBlockResult err:%s", err.Error())
+		}
 	}
 	return nil
 }

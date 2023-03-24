@@ -238,7 +238,14 @@ func (n *SQLDB) RemoveCarfileRecord(carfileHash string) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+
+	defer func() {
+		err = tx.Rollback()
+		if err != nil {
+			log.Errorf("RemoveCarfileRecord Rollback err:%s", err.Error())
+		}
+	}()
+
 	// cache info
 	cCmd := fmt.Sprintf(`DELETE FROM %s WHERE carfile_hash=? `, replicaInfoTable)
 	_, err = tx.Exec(cCmd, carfileHash)
