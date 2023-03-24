@@ -236,7 +236,7 @@ func (cs *CarfileStore) HasBlock(c cid.Cid) (bool, error) {
 	if res.Accessor == nil {
 		return false, fmt.Errorf("can not get shard %s accessor", ks[0].String())
 	}
-	defer res.Accessor.Close()
+	defer res.Accessor.Close() // nolint:errcheck  // ignore error
 
 	bs, err := res.Accessor.Blockstore()
 	if err != nil {
@@ -287,7 +287,7 @@ func (cs *CarfileStore) Block(c cid.Cid) (blocks.Block, error) {
 	if res.Accessor == nil {
 		return nil, fmt.Errorf("can not get shard %s accessor", ks[0].String())
 	}
-	defer res.Accessor.Close()
+	defer res.Accessor.Close() // nolint:errcheck  // ignore error
 
 	bs, err := res.Accessor.Blockstore()
 	if err != nil {

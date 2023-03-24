@@ -312,9 +312,9 @@ func openRepo(cctx *cli.Context) (repo.LockedRepo, error) {
 func startUDPServer(conn net.PacketConn, handler http.Handler, schedulerCfg *config.SchedulerCfg) error {
 	var tlsConfig *tls.Config
 	if schedulerCfg.InsecureSkipVerify {
-		config, err := generateTLSConfig()
+		config, err := defaultTLSConfig()
 		if err != nil {
-			log.Errorf("startUDPServer, generateTLSConfig error:%s", err.Error())
+			log.Errorf("startUDPServer, defaultTLSConfig error:%s", err.Error())
 			return err
 		}
 		tlsConfig = config
@@ -326,6 +326,7 @@ func startUDPServer(conn net.PacketConn, handler http.Handler, schedulerCfg *con
 		}
 
 		tlsConfig = &tls.Config{
+			MinVersion:         tls.VersionTLS12,
 			Certificates:       []tls.Certificate{cert},
 			InsecureSkipVerify: false,
 		}
@@ -339,8 +340,8 @@ func startUDPServer(conn net.PacketConn, handler http.Handler, schedulerCfg *con
 	return srv.Serve(conn)
 }
 
-func generateTLSConfig() (*tls.Config, error) {
-	key, err := rsa.GenerateKey(rand.Reader, 1024)
+func defaultTLSConfig() (*tls.Config, error) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, err
 	}
@@ -357,7 +358,8 @@ func generateTLSConfig() (*tls.Config, error) {
 		return nil, err
 	}
 	return &tls.Config{
+		MinVersion:         tls.VersionTLS12,
 		Certificates:       []tls.Certificate{tlsCert},
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: true, //nolint:gosec // skip verify in default config
 	}, nil
 }

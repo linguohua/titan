@@ -93,12 +93,16 @@ func (s *Scheduler) checkEdgeIfBehindRestrictedNAT(ctx context.Context, edgeURL 
 	if err != nil {
 		return false, err
 	}
+<<<<<<< HEAD
 	defer func() {
 		err = udpPacketConn.Close()
 		if err != nil {
 			log.Errorf("udpPacketConn Close err:%s", err.Error())
 		}
 	}()
+=======
+	defer udpPacketConn.Close() // nolint:errcheck  // ignore error
+>>>>>>> 3062216e (fix lint tip)
 
 	httpClient := &http.Client{}
 	edgeAPI, close, err := client.NewEdgeWithHTTPClient(context.Background(), edgeURL, nil, httpClient)

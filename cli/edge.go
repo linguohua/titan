@@ -208,7 +208,7 @@ var generateRsaKey = &cli.Command{
 		if err != nil {
 			return err
 		}
-		defer lr.Close()
+		defer lr.Close() // nolint:errcheck  // ignore error
 
 		privateKey, err := titanrsa.GeneratePrivateKey(bits)
 		if err != nil {
@@ -264,7 +264,7 @@ var importKey = &cli.Command{
 		if err != nil {
 			return err
 		}
-		defer lr.Close()
+		defer lr.Close() // nolint:errcheck  // ignore error
 
 		path := cctx.String("path")
 

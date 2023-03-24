@@ -55,7 +55,7 @@ func NewCommonAPI(lr repo.LockedRepo, secret *jwt.HMACSHA, callback dtypes.Sessi
 
 func (a *CommonAPI) AuthVerify(ctx context.Context, token string) ([]auth.Permission, error) {
 	var payload jwtPayload
-	if _, err := jwt.Verify([]byte(token), (*jwt.HMACSHA)(a.APISecret), &payload); err != nil {
+	if _, err := jwt.Verify([]byte(token), a.APISecret, &payload); err != nil {
 		return nil, xerrors.Errorf("JWT Verification failed: %w", err)
 	}
 

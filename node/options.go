@@ -54,10 +54,6 @@ func Override(typ, constructor interface{}) Option {
 			return nil
 		}
 
-		if c, ok := typ.(special); ok {
-			s.modules[c] = fx.Provide(constructor)
-			return nil
-		}
 		ctor := as(constructor, typ)
 		rt := reflect.TypeOf(typ).Elem()
 
@@ -73,10 +69,6 @@ func Unset(typ interface{}) Option {
 			return nil
 		}
 
-		if c, ok := typ.(special); ok {
-			delete(s.modules, c)
-			return nil
-		}
 		rt := reflect.TypeOf(typ).Elem()
 
 		delete(s.modules, rt)

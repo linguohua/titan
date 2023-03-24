@@ -17,27 +17,26 @@ import (
 
 var log = logging.Logger("carfile/fetcher")
 
-type ipfs struct {
+type IPFS struct {
 	httpAPI    *httpapi.HttpApi
 	timeout    int
 	retryCount int
-	// carfileStore *carfilestore.CarfileStore
 }
 
-func NewIPFS(ipfsAPIURL string, timeout, retryCount int) *ipfs {
+func NewIPFS(ipfsAPIURL string, timeout, retryCount int) *IPFS {
 	httpAPI, err := httpapi.NewURLApiWithClient(ipfsAPIURL, &http.Client{})
 	if err != nil {
 		log.Panicf("NewBlock,NewURLApiWithClient error:%s, url:%s", err.Error(), ipfsAPIURL)
 	}
 
-	return &ipfs{httpAPI: httpAPI, timeout: timeout, retryCount: retryCount}
+	return &IPFS{httpAPI: httpAPI, timeout: timeout, retryCount: retryCount}
 }
 
-func (ipfs *ipfs) Fetch(ctx context.Context, cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
+func (ipfs *IPFS) Fetch(ctx context.Context, cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
 	return ipfs.getBlocks(ctx, cids)
 }
 
-func (ipfs *ipfs) getBlock(cidStr string) (blocks.Block, error) {
+func (ipfs *IPFS) getBlock(cidStr string) (blocks.Block, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ipfs.timeout)*time.Second)
 	defer cancel()
 
@@ -54,7 +53,7 @@ func (ipfs *ipfs) getBlock(cidStr string) (blocks.Block, error) {
 	return newBlock(cidStr, data)
 }
 
-func (ipfs *ipfs) getBlocks(ctx context.Context, cids []string) ([]blocks.Block, error) {
+func (ipfs *IPFS) getBlocks(ctx context.Context, cids []string) ([]blocks.Block, error) {
 	blks := make([]blocks.Block, 0, len(cids))
 	blksLock := &sync.Mutex{}
 

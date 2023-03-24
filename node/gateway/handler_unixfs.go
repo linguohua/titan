@@ -26,7 +26,7 @@ func (gw *Gateway) serveUnixFS(w http.ResponseWriter, r *http.Request, credentia
 		http.Error(w, fmt.Sprintf("error while getting UnixFS node: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
-	defer dr.Close()
+	defer dr.Close() // nolint:errcheck // ignore error
 
 	// Handling Unixfs file
 	if f, ok := dr.(files.File); ok {

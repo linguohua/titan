@@ -70,7 +70,7 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(dtypes.SetSchedulerConfigFunc), modules.NewSetSchedulerConfigFunc),
 		Override(new(dtypes.GetSchedulerConfigFunc), modules.NewGetSchedulerConfigFunc),
 		Override(new(*rsa.PrivateKey), func() (*rsa.PrivateKey, error) {
-			return rsa.GenerateKey(rand.Reader, 1024)
+			return rsa.GenerateKey(rand.Reader, 1024) // nolint:gosec   // need smaller key
 		}),
 	)
 }

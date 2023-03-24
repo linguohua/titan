@@ -42,7 +42,7 @@ func (t *TCPServer) StartTCPServer() {
 		log.Fatal(err)
 	}
 	// close listener
-	defer listen.Close()
+	defer listen.Close() //nolint:errcheck // ignore error
 
 	log.Infof("tcp_server listen on %s", t.Config.TCPSrvAddr)
 
@@ -73,7 +73,10 @@ func (t *TCPServer) handleMessage(conn *net.TCPConn) {
 			return
 		}
 
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			log.Errorf("close tcp error: %s", err.Error())
+		}
+
 		duration := time.Since(now)
 		bandwidth := float64(size) / float64(duration) * float64(time.Second)
 		log.Infof("size:%d, duration:%d, bandwidth:%f, nodeID:%s", size, duration, bandwidth, nodeID)

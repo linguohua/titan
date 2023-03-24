@@ -185,7 +185,7 @@ var runCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		defer udpPacketConn.Close()
+		defer udpPacketConn.Close() // nolint:errcheck  // ignore error
 
 		// all jsonrpc client use udp
 		httpClient, err := cliutil.NewHTTP3Client(udpPacketConn, edgeCfg.InsecureSkipVerify, edgeCfg.CaCertificatePath)
@@ -269,7 +269,8 @@ var runCmd = &cli.Command{
 		handler = gw.NewHandler(handler)
 
 		srv := &http.Server{
-			Handler: handler,
+			ReadHeaderTimeout: 30 * time.Second,
+			Handler:           handler,
 			BaseContext: func(listener net.Listener) context.Context {
 				ctx, _ := tag.New(context.Background(), tag.Upsert(metrics.APIInterface, "titan-edge"))
 				return ctx
@@ -459,7 +460,10 @@ func newSchedulerAPI(cctx *cli.Context, schedulerURL, nodeID string, privateKey 
 		return nil, nil, err
 	}
 	log.Infof("scheduler url:%s, token:%s", schedulerURL, token)
-	os.Setenv("SCHEDULER_API_INFO", token+":"+schedulerURL)
+
+	if err := os.Setenv("SCHEDULER_API_INFO", token+":"+schedulerURL); err != nil {
+		log.Errorf("set env error: %s", err.Error())
+	}
 
 	return schedulerAPI, closer, nil
 }
@@ -467,9 +471,9 @@ func newSchedulerAPI(cctx *cli.Context, schedulerURL, nodeID string, privateKey 
 func startUDPServer(conn net.PacketConn, handler http.Handler, edgeCfg *config.EdgeCfg) error {
 	var tlsConfig *tls.Config
 	if edgeCfg.InsecureSkipVerify {
-		config, err := generateTLSConfig()
+		config, err := defaultTLSConfig()
 		if err != nil {
-			log.Errorf("startUDPServer, generateTLSConfig error:%s", err.Error())
+			log.Errorf("startUDPServer, defaultTLSConfig error:%s", err.Error())
 			return err
 		}
 		tlsConfig = config
@@ -481,6 +485,7 @@ func startUDPServer(conn net.PacketConn, handler http.Handler, edgeCfg *config.E
 		}
 
 		tlsConfig = &tls.Config{
+			MinVersion:         tls.VersionTLS12,
 			Certificates:       []tls.Certificate{cert},
 			InsecureSkipVerify: false,
 		}
@@ -494,8 +499,8 @@ func startUDPServer(conn net.PacketConn, handler http.Handler, edgeCfg *config.E
 	return srv.Serve(conn)
 }
 
-func generateTLSConfig() (*tls.Config, error) {
-	key, err := rsa.GenerateKey(rand.Reader, 1024)
+func defaultTLSConfig() (*tls.Config, error) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, err
 	}
@@ -512,8 +517,9 @@ func generateTLSConfig() (*tls.Config, error) {
 		return nil, err
 	}
 	return &tls.Config{
+		MinVersion:         tls.VersionTLS12,
 		Certificates:       []tls.Certificate{tlsCert},
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: true, //nolint:gosec // skip verify in default config
 	}, nil
 }
 

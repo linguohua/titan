@@ -71,7 +71,7 @@ func (gw *Gateway) serveCar(w http.ResponseWriter, r *http.Request, credentials 
 		http.Error(w, fmt.Sprintf("not support car version %s", carVersion), http.StatusInternalServerError)
 		return
 	}
-	defer reader.Close()
+	defer reader.Close() // nolint:errcheck  // ignore error
 
 	// If-None-Match+Etag, Content-Length and range requests
 	http.ServeContent(w, r, name, modtime, reader)
