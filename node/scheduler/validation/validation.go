@@ -86,7 +86,7 @@ func (v *Validation) enable() (bool, error) {
 func (v *Validation) start() error {
 	if v.curRoundID != "" {
 		// Set the timeout status of the previous verification
-		err := v.nodeManager.SetValidatedResultTimeout(v.curRoundID)
+		err := v.nodeManager.SetValidateResultsTimeout(v.curRoundID)
 		if err != nil {
 			log.Errorf("round:%s ValidatedTimeout err:%s", v.curRoundID, err.Error())
 		}
@@ -162,7 +162,7 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Re
 		return nil
 	}
 
-	infos := make([]*types.ValidatedResultInfo, 0)
+	infos := make([]*types.ValidateResultInfo, 0)
 
 	for i, vInfo := range validateList {
 		reqValidate, err := v.getNodeReqValidate(vInfo)
@@ -180,7 +180,7 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Re
 
 		validateReqs[validatorID] = list
 
-		info := &types.ValidatedResultInfo{
+		info := &types.ValidateResultInfo{
 			RoundID:     v.curRoundID,
 			NodeID:      vInfo.nodeID,
 			ValidatorID: validatorID,
@@ -190,7 +190,7 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Re
 		infos = append(infos, info)
 	}
 
-	err := v.nodeManager.InsertValidatedResultInfos(infos)
+	err := v.nodeManager.SetValidateResultInfos(infos)
 	if err != nil {
 		log.Errorf("AddValidateResultInfos err:%s", err.Error())
 		return nil
@@ -257,13 +257,13 @@ func (v *Validation) getRandNum(max int, r *rand.Rand) int {
 
 // updateFailValidatedResult update validator result info
 func (v *Validation) updateFailValidatedResult(nodeID string, status types.ValidateStatus) error {
-	resultInfo := &types.ValidatedResultInfo{RoundID: v.curRoundID, NodeID: nodeID, Status: status}
-	return v.nodeManager.UpdateValidatedResultInfo(resultInfo)
+	resultInfo := &types.ValidateResultInfo{RoundID: v.curRoundID, NodeID: nodeID, Status: status}
+	return v.nodeManager.UpdateValidateResultInfo(resultInfo)
 }
 
 // updateSuccessValidatedResult update validator result info
-func (v *Validation) updateSuccessValidatedResult(validateResult *api.ValidatedResult) error {
-	resultInfo := &types.ValidatedResultInfo{
+func (v *Validation) updateSuccessValidatedResult(validateResult *api.ValidateResult) error {
+	resultInfo := &types.ValidateResultInfo{
 		RoundID:     validateResult.RoundID,
 		NodeID:      validateResult.NodeID,
 		BlockNumber: int64(len(validateResult.Cids)),
@@ -272,11 +272,11 @@ func (v *Validation) updateSuccessValidatedResult(validateResult *api.ValidatedR
 		Duration:    validateResult.CostTime,
 	}
 
-	return v.nodeManager.UpdateValidatedResultInfo(resultInfo)
+	return v.nodeManager.UpdateValidateResultInfo(resultInfo)
 }
 
 // Result node validator result
-func (v *Validation) Result(validatedResult *api.ValidatedResult) error {
+func (v *Validation) Result(validatedResult *api.ValidateResult) error {
 	if validatedResult.RoundID != v.curRoundID {
 		return xerrors.Errorf("round id does not match")
 	}

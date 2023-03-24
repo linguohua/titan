@@ -18,15 +18,6 @@ type DownloadRecordInfo struct {
 	CompleteTime time.Time `json:"complete_time" db:"complete_time"`
 }
 
-// NodeAllocateInfo Node Allocate Info
-type NodeAllocateInfo struct {
-	ID         int
-	NodeID     string `db:"node_id"`
-	PublicKey  string `db:"public_key"`
-	CreateTime string `db:"create_time"`
-	NodeType   int    `db:"node_type"`
-}
-
 // UserDownloadResult user download carfile result
 type UserDownloadResult struct {
 	// serial number
@@ -117,14 +108,14 @@ type ListDownloadRecordRsp struct {
 	Total int64                `json:"total"`
 }
 
-// ListValidatedResultRsp list validated result
-type ListValidatedResultRsp struct {
-	Total                int                   `json:"total"`
-	ValidatedResultInfos []ValidatedResultInfo `json:"validate_result_infos"`
+// ListValidateResultRsp list validated result
+type ListValidateResultRsp struct {
+	Total                int                  `json:"total"`
+	ValidatedResultInfos []ValidateResultInfo `json:"validate_result_infos"`
 }
 
-// ValidatedResultInfo validator result
-type ValidatedResultInfo struct {
+// ValidateResultInfo validator result
+type ValidateResultInfo struct {
 	ID          int
 	RoundID     string         `db:"round_id"`
 	NodeID      string         `db:"node_id"`

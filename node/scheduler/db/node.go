@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -13,22 +14,22 @@ import (
 )
 
 // LoadTimeoutNodes load nodes that are offline for a long time
-func (n *SQLDB) LoadTimeoutNodes(timeoutHour int) ([]string, error) {
+func (n *SQLDB) LoadTimeoutNodes(timeoutHour int, serverID dtypes.ServerID) ([]string, error) {
 	list := make([]string, 0)
 
 	time := time.Now().Add(-time.Duration(timeoutHour) * time.Hour)
 
-	query := fmt.Sprintf("SELECT node_id FROM %s WHERE quitted=? AND last_time <= ?", nodeInfoTable)
-	if err := n.db.Select(&list, query, false, time); err != nil {
+	query := fmt.Sprintf("SELECT node_id FROM %s WHERE server_id=? AND quitted=? AND last_time <= ?", nodeInfoTable)
+	if err := n.db.Select(&list, query, serverID, false, time); err != nil {
 		return nil, err
 	}
 
 	return list, nil
 }
 
-// SetNodesQuit Node quit the titan
-func (n *SQLDB) SetNodesQuit(nodeIDs []string) error {
-	uQuery := fmt.Sprintf(`UPDATE %s SET quitted=? WHERE node_id in (?)`, nodeInfoTable)
+// SetNodesQuitted Node quit the titan
+func (n *SQLDB) SetNodesQuitted(nodeIDs []string) error {
+	uQuery := fmt.Sprintf(`UPDATE %s SET quitted=? WHERE node_id in (?) `, nodeInfoTable)
 	query, args, err := sqlx.In(uQuery, true, nodeIDs)
 	if err != nil {
 		return err
@@ -41,8 +42,8 @@ func (n *SQLDB) SetNodesQuit(nodeIDs []string) error {
 	return err
 }
 
-// LoadPortMappingOfNode load mapping port of node
-func (n *SQLDB) LoadPortMappingOfNode(nodeID string) (string, error) {
+// LoadPortMapping load mapping port of node
+func (n *SQLDB) LoadPortMapping(nodeID string) (string, error) {
 	var port string
 	query := fmt.Sprintf("SELECT port_mapping FROM %s WHERE node_id=?", nodeInfoTable)
 	if err := n.db.Get(&port, query, nodeID); err != nil {
@@ -52,8 +53,8 @@ func (n *SQLDB) LoadPortMappingOfNode(nodeID string) (string, error) {
 	return port, nil
 }
 
-// SetPortMappingOfNode Set node mapping port
-func (n *SQLDB) SetPortMappingOfNode(nodeID, port string) error {
+// SetPortMapping Set node mapping port
+func (n *SQLDB) SetPortMapping(nodeID, port string) error {
 	info := types.NodeInfo{
 		NodeID:      nodeID,
 		PortMapping: port,
@@ -64,8 +65,8 @@ func (n *SQLDB) SetPortMappingOfNode(nodeID, port string) error {
 	return err
 }
 
-// InsertValidatedResultInfos Insert validator result infos
-func (n *SQLDB) InsertValidatedResultInfos(infos []*types.ValidatedResultInfo) error {
+// SetValidateResultInfos Insert validate result infos
+func (n *SQLDB) SetValidateResultInfos(infos []*types.ValidateResultInfo) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -74,7 +75,7 @@ func (n *SQLDB) InsertValidatedResultInfos(infos []*types.ValidatedResultInfo) e
 	defer func() {
 		err = tx.Rollback()
 		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("InsertValidatedResultInfos Rollback err:%s", err.Error())
+			log.Errorf("SetValidateResultInfos Rollback err:%s", err.Error())
 		}
 	}()
 
@@ -89,8 +90,8 @@ func (n *SQLDB) InsertValidatedResultInfos(infos []*types.ValidatedResultInfo) e
 	return tx.Commit()
 }
 
-// UpdateValidatedResultInfo Update validator info
-func (n *SQLDB) UpdateValidatedResultInfo(info *types.ValidatedResultInfo) error {
+// UpdateValidateResultInfo Update validate result info
+func (n *SQLDB) UpdateValidateResultInfo(info *types.ValidateResultInfo) error {
 	if info.Status == types.ValidateStatusSuccess {
 		query := fmt.Sprintf(`UPDATE %s SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW() WHERE round_id=:round_id AND node_id=:node_id`, validateResultTable)
 		_, err := n.db.NamedExec(query, info)
@@ -102,17 +103,17 @@ func (n *SQLDB) UpdateValidatedResultInfo(info *types.ValidatedResultInfo) error
 	return err
 }
 
-// SetValidatedResultTimeout set timeout status to validated result
-func (n *SQLDB) SetValidatedResultTimeout(roundID string) error {
+// SetValidateResultsTimeout set timeout status to validate results
+func (n *SQLDB) SetValidateResultsTimeout(roundID string) error {
 	query := fmt.Sprintf(`UPDATE %s SET status=?, end_time=NOW() WHERE round_id=? AND status=?`, validateResultTable)
 	_, err := n.db.Exec(query, types.ValidateStatusTimeOut, roundID, types.ValidateStatusCreate)
 	return err
 }
 
-// LoadValidatedResultInfos load validator result infos
-func (n *SQLDB) LoadValidatedResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidatedResultRsp, error) {
-	res := new(types.ListValidatedResultRsp)
-	var infos []types.ValidatedResultInfo
+// LoadValidateResultInfos load validator result infos
+func (n *SQLDB) LoadValidateResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) {
+	res := new(types.ListValidateResultRsp)
+	var infos []types.ValidateResultInfo
 	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM %s WHERE start_time between ? and ? order by id asc  LIMIT ?,? ", validateResultTable)
 
 	if pageSize > loadValidateInfosLimit {
@@ -138,13 +139,15 @@ func (n *SQLDB) LoadValidatedResultInfos(startTime, endTime time.Time, pageNumbe
 	return res, nil
 }
 
+// SetEdgeUpdateInfo set edge update info
 func (n *SQLDB) SetEdgeUpdateInfo(info *api.EdgeUpdateInfo) error {
 	sqlString := fmt.Sprintf(`INSERT INTO %s (node_type, app_name, version, hash, download_url) VALUES (:node_type, :app_name, :version, :hash, :download_url) ON DUPLICATE KEY UPDATE app_name=:app_name, version=:version, hash=:hash, download_url=:download_url`, edgeUpdateTable)
 	_, err := n.db.NamedExec(sqlString, info)
 	return err
 }
 
-func (n *SQLDB) GetEdgeUpdateInfos() (map[int]*api.EdgeUpdateInfo, error) {
+// LoadEdgeUpdateInfos get edge update info
+func (n *SQLDB) LoadEdgeUpdateInfos() (map[int]*api.EdgeUpdateInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s`, edgeUpdateTable)
 
 	var out []*api.EdgeUpdateInfo
@@ -159,33 +162,11 @@ func (n *SQLDB) GetEdgeUpdateInfos() (map[int]*api.EdgeUpdateInfo, error) {
 	return ret, nil
 }
 
+// DeleteEdgeUpdateInfo delete edge update info
 func (n *SQLDB) DeleteEdgeUpdateInfo(nodeType int) error {
 	deleteString := fmt.Sprintf(`DELETE FROM %s WHERE node_type=?`, edgeUpdateTable)
 	_, err := n.db.Exec(deleteString, nodeType)
 	return err
-}
-
-func (n *SQLDB) LoadNodes(cursor int, count int) ([]*types.NodeInfo, int64, error) {
-	var total int64
-	countSQL := fmt.Sprintf("SELECT count(*) FROM %s", nodeInfoTable)
-	err := n.db.Get(&total, countSQL)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	queryString := fmt.Sprintf(`SELECT node_id FROM %s order by node_id asc limit ?,?`, nodeInfoTable)
-
-	if count > loadNodeInfosLimit {
-		count = loadNodeInfosLimit
-	}
-
-	var out []*types.NodeInfo
-	err = n.db.Select(&out, queryString, cursor, count)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return out, total, nil
 }
 
 // UpdateValidators validator list
@@ -252,14 +233,14 @@ func (n *SQLDB) UpdateValidatorInfo(serverID dtypes.ServerID, nodeID string) err
 	return err
 }
 
-// UpdateNodeInfo update node info
-func (n *SQLDB) UpdateNodeInfo(info *types.NodeInfo) error {
+// UpsertNodeInfo Insert or update node info
+func (n *SQLDB) UpsertNodeInfo(info *types.NodeInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (node_id, mac_location, product_type, cpu_cores, memory, node_name, latitude, disk_usage,
-			    longitude, disk_type, io_system, system_version, nat_type, disk_space, bandwidth_up, bandwidth_down, blocks) 
+			    longitude, disk_type, io_system, system_version, nat_type, disk_space, bandwidth_up, bandwidth_down, blocks, server_id) 
 				VALUES (:node_id, :mac_location, :product_type, :cpu_cores, :memory, :node_name, :latitude, :disk_usage,
-				:longitude, :disk_type, :io_system, :system_version, :nat_type, :disk_space, :bandwidth_up, :bandwidth_down, :blocks) 
-				ON DUPLICATE KEY UPDATE node_id=:node_id, last_time=:last_time, quitted=:quitted, disk_usage=:disk_usage, blocks=:blocks`, nodeInfoTable)
+				:longitude, :disk_type, :io_system, :system_version, :nat_type, :disk_space, :bandwidth_up, :bandwidth_down, :blocks, :server_id) 
+				ON DUPLICATE KEY UPDATE node_id=:node_id, last_time=:last_time, quitted=:quitted, disk_usage=:disk_usage, blocks=:blocks, server_id=:server_id`, nodeInfoTable)
 
 	_, err := n.db.NamedExec(query, info)
 	return err
@@ -278,19 +259,12 @@ func (n *SQLDB) UpdateNodeOnlineTime(nodeID string, onlineTime int) error {
 	return err
 }
 
-// InsertNode Insert Node
-func (n *SQLDB) InsertNode(pKey, nodeID string, nodeType types.NodeType) error {
-	info := types.NodeAllocateInfo{
-		PublicKey:  pKey,
-		NodeID:     nodeID,
-		NodeType:   int(nodeType),
-		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
-	}
-
+// InsertNodeRegisterInfo Insert Node register info
+func (n *SQLDB) InsertNodeRegisterInfo(pKey, nodeID string, nodeType types.NodeType) error {
 	query := fmt.Sprintf(`INSERT INTO %s (node_id, public_key, create_time, node_type)
-	VALUES (:node_id, :public_key, :create_time, :node_type)`, nodeRegisterTable)
+	VALUES (?, ?, NOW(), ?)`, nodeRegisterTable)
 
-	_, err := n.db.NamedExec(query, info)
+	_, err := n.db.Exec(query, nodeID, pKey, nodeType)
 
 	return err
 }
@@ -323,29 +297,22 @@ func (n *SQLDB) NodeExists(nodeID string, nodeType types.NodeType) error {
 	return nil
 }
 
-// LoadNodeIDs list nodes
-func (n *SQLDB) LoadNodeIDs(cursor int, count int) ([]string, int64, error) {
+// LoadNodeInfos load node infos
+func (n *SQLDB) LoadNodeInfos(limit, offset int) (*sqlx.Rows, int64, error) {
 	var total int64
-
-	cQuery := fmt.Sprintf(`SELECT count(*) FROM %s`, nodeInfoTable)
+	cQuery := fmt.Sprintf(`SELECT count(node_id) FROM %s`, nodeInfoTable)
 	err := n.db.Get(&total, cQuery)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	sQuery := fmt.Sprintf(`SELECT node_id FROM %s order by node_id asc limit ?,?`, nodeInfoTable)
-
-	if count > loadNodeInfosLimit {
-		count = loadNodeInfosLimit
+	if limit > loadNodeInfosLimit || limit == 0 {
+		limit = loadNodeInfosLimit
 	}
 
-	var out []string
-	err = n.db.Select(&out, sQuery, cursor, count)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return out, total, nil
+	sQuery := fmt.Sprintf(`SELECT * FROM %s order by node_id asc LIMIT ? OFFSET ?`, nodeInfoTable)
+	rows, err := n.db.QueryxContext(context.Background(), sQuery, limit, offset)
+	return rows, total, err
 }
 
 // LoadNodeInfo load node info

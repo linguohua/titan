@@ -237,7 +237,7 @@ type SchedulerStruct struct {
 
 		NodeQuit func(p0 context.Context, p1 string) error `perm:"admin"`
 
-		NodeValidatedResult func(p0 context.Context, p1 ValidatedResult) error `perm:"write"`
+		NodeValidatedResult func(p0 context.Context, p1 ValidateResult) error `perm:"write"`
 
 		OnlineNodeList func(p0 context.Context, p1 types.NodeType) ([]string, error) `perm:"read"`
 
@@ -265,7 +265,7 @@ type SchedulerStruct struct {
 
 		UserDownloadResult func(p0 context.Context, p1 types.UserDownloadResult) error `perm:"write"`
 
-		ValidatedResultList func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidatedResultRsp, error) `perm:"read"`
+		ValidatedResultList func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) `perm:"read"`
 	}
 }
 
@@ -986,14 +986,14 @@ func (s *SchedulerStub) NodeQuit(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) NodeValidatedResult(p0 context.Context, p1 ValidatedResult) error {
+func (s *SchedulerStruct) NodeValidatedResult(p0 context.Context, p1 ValidateResult) error {
 	if s.Internal.NodeValidatedResult == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.NodeValidatedResult(p0, p1)
 }
 
-func (s *SchedulerStub) NodeValidatedResult(p0 context.Context, p1 ValidatedResult) error {
+func (s *SchedulerStub) NodeValidatedResult(p0 context.Context, p1 ValidateResult) error {
 	return ErrNotSupported
 }
 
@@ -1140,14 +1140,14 @@ func (s *SchedulerStub) UserDownloadResult(p0 context.Context, p1 types.UserDown
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ValidatedResultList(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidatedResultRsp, error) {
+func (s *SchedulerStruct) ValidatedResultList(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) {
 	if s.Internal.ValidatedResultList == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.ValidatedResultList(p0, p1, p2, p3, p4)
 }
 
-func (s *SchedulerStub) ValidatedResultList(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidatedResultRsp, error) {
+func (s *SchedulerStub) ValidatedResultList(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) {
 	return nil, ErrNotSupported
 }
 
