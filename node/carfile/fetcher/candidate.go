@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -44,8 +43,7 @@ func (c *Candidate) getBlock(ds *types.DownloadSource, cidStr string) (blocks.Bl
 	if err != nil {
 		return nil, err
 	}
-	url := fmt.Sprintf("%s/ipfs/%s?format=raw", ds.CandidateURL, cidStr)
-	url = strings.Replace(url, "https", "http", 1)
+	url := fmt.Sprintf("http://%s/ipfs/%s?format=raw", ds.CandidateURL, cidStr)
 
 	req, err := http.NewRequest(http.MethodGet, url, buf)
 	if err != nil {
