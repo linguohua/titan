@@ -73,16 +73,6 @@ func (n *SQLDB) LoadCarfileRecordInfo(hash string) (*types.CarfileRecordInfo, er
 	return &info, err
 }
 
-// LoadUnfinishedCarfileRecords load Unfinished carfile records
-func (n *SQLDB) LoadUnfinishedCarfileRecords(ctx context.Context, limit, offset int, serverID dtypes.ServerID) (rows *sqlx.Rows, err error) {
-	if limit > loadCarfileRecordsLimit || limit == 0 {
-		limit = loadCarfileRecordsLimit
-	}
-
-	cmd := fmt.Sprintf("SELECT * FROM %s WHERE state<>'Finished' AND server_id=? order by carfile_hash asc LIMIT ? OFFSET ? ", carfileRecordTable)
-	return n.db.QueryxContext(ctx, cmd, serverID, limit, offset)
-}
-
 // LoadCarfileRecords load carfile record infos
 func (n *SQLDB) LoadCarfileRecords(statuses []string, limit, offset int, serverID dtypes.ServerID) (*sqlx.Rows, error) {
 	if limit > loadCarfileRecordsLimit || limit == 0 {
