@@ -25,14 +25,16 @@ func addRootCA(certPool *x509.CertPool, caCertPath string) error {
 	return nil
 }
 
-func NewHTTP3Client(pConn net.PacketConn, insecureSkipVerify bool, caCertPath string) *http.Client {
+func NewHTTP3Client(pConn net.PacketConn, insecureSkipVerify bool, caCertPath string) (*http.Client, error) {
 	pool, err := x509.SystemCertPool()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	if caCertPath != "" {
-		addRootCA(pool, caCertPath)
+		if err := addRootCA(pool, caCertPath); err != nil {
+			return nil, err
+		}
 	}
 
 	dial := func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
@@ -52,7 +54,5 @@ func NewHTTP3Client(pConn net.PacketConn, insecureSkipVerify bool, caCertPath st
 		Dial:       dial,
 	}
 
-	return &http.Client{
-		Transport: roundTripper,
-	}
+	return &http.Client{Transport: roundTripper}, nil
 }

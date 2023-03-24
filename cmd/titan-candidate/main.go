@@ -194,7 +194,10 @@ var runCmd = &cli.Command{
 		defer udpPacketConn.Close()
 
 		// all jsonrpc client use udp
-		httpClient := cliutil.NewHTTP3Client(udpPacketConn, candidateCfg.InsecureSkipVerify, candidateCfg.CaCertificatePath)
+		httpClient, err := cliutil.NewHTTP3Client(udpPacketConn, candidateCfg.InsecureSkipVerify, candidateCfg.CaCertificatePath)
+		if err != nil {
+			return xerrors.Errorf("new http3 client error %w", err)
+		}
 		jsonrpc.SetHttp3Client(httpClient)
 
 		url, err := schedulerURL(cctx, nodeID, candidateCfg.Locator)
@@ -305,7 +308,10 @@ var runCmd = &cli.Command{
 			out := make(chan struct{})
 			go func() {
 				ctx2 := context.Background()
-				candidateAPI.WaitQuiet(ctx2)
+				err = candidateAPI.WaitQuiet(ctx2)
+				if err != nil {
+					log.Errorf("wait quiet error: %s", err.Error())
+				}
 				close(out)
 			}()
 			return out

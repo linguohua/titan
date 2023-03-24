@@ -156,7 +156,10 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 
 			if tcpMsg.msgType == api.TCPMsgTypeCancel {
 				result.IsCancel = true
-				sendValidateResult(candidate, result)
+				if err := sendValidateResult(candidate, result); err != nil {
+					log.Errorf("node %s cancel validator, send validate result error: %s", result.NodeID, err.Error())
+				}
+
 				log.Infof("node %s cancel validator", result.NodeID)
 				return
 			}
@@ -203,9 +206,12 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 
 	api, closer, err := getNodeAPI(req.NodeType, req.NodeURL)
 	if err != nil {
+		log.Errorf("get node api error: %s", err.Error())
+
 		result.IsTimeout = true
-		sendValidateResult(candidate, result)
-		log.Errorf("validator get node api err: %v", err)
+		if err := sendValidateResult(candidate, result); err != nil {
+			log.Errorf("send validate result error: %s", err.Error())
+		}
 		return
 	}
 	defer closer()
@@ -215,9 +221,12 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 
 	nodeID, err := api.NodeID(ctx)
 	if err != nil {
+		log.Errorf("node id error: %v", err)
+
 		result.IsTimeout = true
-		sendValidateResult(candidate, result)
-		log.Errorf("validator get node info err: %v", err)
+		if err := sendValidateResult(candidate, result); err != nil {
+			log.Errorf("send validate result error: %s", err.Error())
+		}
 		return
 	}
 	result.NodeID = nodeID

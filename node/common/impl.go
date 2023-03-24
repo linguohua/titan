@@ -155,6 +155,5 @@ func (a *CommonAPI) DeleteLogFile(ctx context.Context) error {
 		return nil
 	}
 
-	os.WriteFile(logFilePath, []byte(""), 0o755)
-	return nil
+	return os.WriteFile(logFilePath, []byte(""), 0o755)
 }

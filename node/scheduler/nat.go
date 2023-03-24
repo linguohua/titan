@@ -29,7 +29,11 @@ func (s *Scheduler) IsBehindFullConeNAT(ctx context.Context, edgeURL string) (bo
 	}
 	defer udpPacketConn.Close()
 
-	httpClient := cliutil.NewHTTP3Client(udpPacketConn, true, "")
+	httpClient, err := cliutil.NewHTTP3Client(udpPacketConn, true, "")
+	if err != nil {
+		return false, err
+	}
+
 	edgeAPI, close, err := client.NewEdgeWithHTTPClient(context.Background(), edgeURL, nil, httpClient)
 	if err != nil {
 		return false, err

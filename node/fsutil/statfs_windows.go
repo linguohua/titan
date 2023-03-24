@@ -15,11 +15,15 @@ func Statfs(volumePath string) (FsStat, error) {
 	var totalBytes int64
 	var availBytes int64
 
-	c.Call(
+	_, _, err := c.Call(
 		uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(volumePath))),
 		uintptr(unsafe.Pointer(&freeBytes)),
 		uintptr(unsafe.Pointer(&totalBytes)),
 		uintptr(unsafe.Pointer(&availBytes)))
+
+	if err != nil {
+		return FsStat{}, err
+	}
 
 	return FsStat{
 		Capacity:    totalBytes,

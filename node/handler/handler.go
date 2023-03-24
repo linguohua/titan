@@ -5,10 +5,7 @@ import (
 	"net/http"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
-	logging "github.com/ipfs/go-log/v2"
 )
-
-var log = logging.Logger("handler")
 
 type (
 	RemoteAddr struct{}

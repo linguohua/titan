@@ -176,7 +176,10 @@ var runCmd = &cli.Command{
 
 		go startUDPServer(udpPacketConn, handler, locatorCfg)
 
-		httpClient := cliutil.NewHTTP3Client(udpPacketConn, locatorCfg.InsecureSkipVerify, locatorCfg.CaCertificatePath)
+		httpClient, err := cliutil.NewHTTP3Client(udpPacketConn, locatorCfg.InsecureSkipVerify, locatorCfg.CaCertificatePath)
+		if err != nil {
+			return xerrors.Errorf("new http3 client error %w", err)
+		}
 		jsonrpc.SetHttp3Client(httpClient)
 
 		// Serve the RPC.
