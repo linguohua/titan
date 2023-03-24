@@ -43,7 +43,7 @@ func (c *Candidate) getBlock(ds *types.DownloadSource, cidStr string) (blocks.Bl
 	if err != nil {
 		return nil, err
 	}
-	url := fmt.Sprintf("http://%s/ipfs/%s?format=raw", ds.CandidateURL, cidStr)
+	url := fmt.Sprintf("http://%s/ipfs/%s?format=raw", ds.CandidateAddr, cidStr)
 
 	req, err := http.NewRequest(http.MethodGet, url, buf)
 	if err != nil {

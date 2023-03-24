@@ -622,8 +622,8 @@ func (m *Manager) Sources(cid string, nodes []string) []*types.DownloadSource {
 			continue
 		}
 		source := &types.DownloadSource{
-			CandidateURL: cNode.DownloadAddr(),
-			Credentials:  credentials,
+			CandidateAddr: cNode.DownloadAddr(),
+			Credentials:   credentials,
 		}
 
 		sources = append(sources, source)
