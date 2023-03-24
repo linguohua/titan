@@ -325,26 +325,39 @@ func KeepaliveCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error)
 	}, nil
 }
 
-// FindNodeDownloadInfos  find edges with block cid
-func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadInfo, error) {
+// FindEdgeDownloadInfos  find edges with block cid
+func (m *Manager) FindEdgeDownloadInfos(cid, userURL string) ([]*types.DownloadInfo, error) {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}
 
-	replicas, err := m.LoadSucceededReplicas(hash, types.NodeEdge)
+	rows, err := m.LoadReplicasOfHash(hash)
 	if err != nil {
 		return nil, err
-	}
-
-	if len(replicas) <= 0 {
-		return nil, xerrors.Errorf("not found node , with :%s", cid)
 	}
 
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	infos := make([]*types.DownloadInfo, 0)
 
-	for _, nodeID := range replicas {
+	for rows.Next() {
+		rInfo := &types.ReplicaInfo{}
+		err = rows.StructScan(rInfo)
+		if err != nil {
+			log.Errorf("replica StructScan err: %s", err.Error())
+			continue
+		}
+
+		if rInfo.IsCandidate {
+			continue
+		}
+
+		if rInfo.Status != types.CacheStatusSucceeded {
+			continue
+		}
+
+		nodeID := rInfo.NodeID
+
 		eNode := m.GetEdgeNode(nodeID)
 		if eNode == nil {
 			continue
@@ -364,33 +377,6 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadI
 	}
 
 	return infos, nil
-}
-
-// GetCandidatesWithBlockHash find candidates with block hash
-func (m *Manager) GetCandidatesWithBlockHash(hash, filterNode string) ([]*Candidate, error) {
-	replicas, err := m.LoadSucceededReplicas(hash, types.NodeCandidate)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(replicas) <= 0 {
-		return nil, xerrors.Errorf("not found node, with hash:%s", hash)
-	}
-
-	nodes := make([]*Candidate, 0)
-
-	for _, dID := range replicas {
-		if dID == filterNode {
-			continue
-		}
-
-		node := m.GetCandidateNode(dID)
-		if node != nil {
-			nodes = append(nodes, node)
-		}
-	}
-
-	return nodes, nil
 }
 
 func (m *Manager) checkNodesTTL() {

@@ -45,11 +45,18 @@ var (
 		Value: 0,
 	}
 
-	pageFlag = &cli.IntFlag{
-		Name:        "page",
-		Usage:       "the numbering of pages",
-		Value:       1,
-		DefaultText: "1",
+	limitFlag = &cli.IntFlag{
+		Name:        "limit",
+		Usage:       "the numbering of limit",
+		Value:       100,
+		DefaultText: "100",
+	}
+
+	offsetFlag = &cli.IntFlag{
+		Name:        "offset",
+		Usage:       "the numbering of offset",
+		Value:       0,
+		DefaultText: "0",
 	}
 
 	expirationDateFlag = &cli.StringFlag{
@@ -126,11 +133,11 @@ var edgeUpdaterCmd = &cli.Command{
 	Subcommands: []*cli.Command{
 		edgeUpdateInfoCmd,
 		setEdgeUpdateInfoCmd,
-		DeleteEdgeUpdateInfoCmd,
+		deleteEdgeUpdateInfoCmd,
 	},
 }
 
-var DeleteEdgeUpdateInfoCmd = &cli.Command{
+var deleteEdgeUpdateInfoCmd = &cli.Command{
 	Name:  "delete",
 	Usage: "delete edge update info",
 	Flags: []cli.Flag{

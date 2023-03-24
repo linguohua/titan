@@ -314,7 +314,7 @@ func (v *Validation) Result(validatedResult *api.ValidatedResult) error {
 		return nil
 	}
 
-	candidates, err := v.nodeManager.LoadSucceededReplicas(hash, types.NodeCandidate)
+	rows, err := v.nodeManager.LoadReplicasOfHash(hash)
 	if err != nil {
 		status = types.ValidateStatusOther
 		log.Errorf("Get candidates %s , err:%s", validatedResult.CarfileCID, err.Error())
@@ -323,7 +323,24 @@ func (v *Validation) Result(validatedResult *api.ValidatedResult) error {
 
 	max := len(validatedResult.Cids)
 	var cCidMap map[int]string
-	for _, nodeID := range candidates {
+
+	for rows.Next() {
+		rInfo := &types.ReplicaInfo{}
+		err = rows.StructScan(rInfo)
+		if err != nil {
+			log.Errorf("replica StructScan err: %s", err.Error())
+			continue
+		}
+
+		if !rInfo.IsCandidate {
+			continue
+		}
+
+		if rInfo.Status != types.CacheStatusSucceeded {
+			continue
+		}
+
+		nodeID := rInfo.NodeID
 		node := v.nodeManager.GetCandidateNode(nodeID)
 		if node == nil {
 			continue

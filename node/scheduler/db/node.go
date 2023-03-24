@@ -18,8 +18,8 @@ func (n *SQLDB) LoadTimeoutNodes(timeoutHour int) ([]string, error) {
 
 	time := time.Now().Add(-time.Duration(timeoutHour) * time.Hour)
 
-	cmd := fmt.Sprintf("SELECT node_id FROM %s WHERE quitted=? AND last_time <= ?", nodeInfoTable)
-	if err := n.db.Select(&list, cmd, false, time); err != nil {
+	query := fmt.Sprintf("SELECT node_id FROM %s WHERE quitted=? AND last_time <= ?", nodeInfoTable)
+	if err := n.db.Select(&list, query, false, time); err != nil {
 		return nil, err
 	}
 
@@ -28,8 +28,8 @@ func (n *SQLDB) LoadTimeoutNodes(timeoutHour int) ([]string, error) {
 
 // SetNodesQuit Node quit the titan
 func (n *SQLDB) SetNodesQuit(nodeIDs []string) error {
-	updateCachesCmd := fmt.Sprintf(`UPDATE %s SET quitted=? WHERE node_id in (?)`, nodeInfoTable)
-	query, args, err := sqlx.In(updateCachesCmd, true, nodeIDs)
+	uQuery := fmt.Sprintf(`UPDATE %s SET quitted=? WHERE node_id in (?)`, nodeInfoTable)
+	query, args, err := sqlx.In(uQuery, true, nodeIDs)
 	if err != nil {
 		return err
 	}
@@ -59,8 +59,8 @@ func (n *SQLDB) SetPortMappingOfNode(nodeID, port string) error {
 		PortMapping: port,
 	}
 	// update
-	dCmd := fmt.Sprintf(`UPDATE %s SET port_mapping=:port_mapping WHERE node_id=:node_id`, nodeInfoTable)
-	_, err := n.db.NamedExec(dCmd, info)
+	query := fmt.Sprintf(`UPDATE %s SET port_mapping=:port_mapping WHERE node_id=:node_id`, nodeInfoTable)
+	_, err := n.db.NamedExec(query, info)
 	return err
 }
 

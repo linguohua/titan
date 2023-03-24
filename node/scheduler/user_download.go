@@ -54,7 +54,7 @@ func (s *Scheduler) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types
 
 	log.Infof("EdgeDownloadInfos url:%s", userURL)
 
-	infos, err := s.NodeManager.FindNodeDownloadInfos(cid, userURL)
+	infos, err := s.NodeManager.FindEdgeDownloadInfos(cid, userURL)
 	if err != nil {
 		return nil, err
 	}
