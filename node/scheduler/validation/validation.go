@@ -3,7 +3,6 @@ package validation
 import (
 	"context"
 	"math/rand"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,7 +30,6 @@ const (
 type Validation struct {
 	nodeManager            *node.Manager
 	ctx                    context.Context
-	lock                   sync.Mutex
 	seed                   int64
 	curRoundID             string
 	close                  chan struct{}
@@ -104,7 +102,7 @@ func (v *Validation) start() error {
 	}
 
 	// no successful election
-	if validatorList == nil || len(validatorList) == 0 {
+	if len(validatorList) == 0 {
 		return xerrors.New("validator list is null")
 	}
 
@@ -247,16 +245,6 @@ type validateNodeInfo struct {
 	nodeType  types.NodeType
 	addr      string
 	bandwidth float64
-}
-
-func (v *Validation) generatorForRandomNumber(start, end int) int {
-	max := end - start
-	if max <= 0 {
-		return start
-	}
-	rand.Seed(time.Now().UnixNano())
-	y := rand.Intn(max)
-	return start + y
 }
 
 func (v *Validation) getRandNum(max int, r *rand.Rand) int {

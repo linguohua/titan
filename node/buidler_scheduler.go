@@ -57,7 +57,7 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(*sqlx.DB), modules.NewDB),
 		Override(new(*db.SQLDB), db.NewSQLDB),
 		Override(new(*node.Manager), node.NewManager),
-		Override(new(dtypes.SessionCallbackFunc), modules.NewSessionCallbackFunc),
+		Override(new(dtypes.SessionCallbackFunc), node.KeepaliveCallBackFunc),
 		Override(new(dtypes.MetadataDS), modules.Datastore),
 		Override(new(*caching.Manager), modules.NewStorageManager),
 		Override(new(*sync.DataSync), sync.NewDataSync),

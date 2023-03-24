@@ -69,7 +69,13 @@ func (n *SQLDB) InsertValidatedResultInfos(infos []*types.ValidatedResultInfo) e
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+
+	defer func() {
+		err = tx.Rollback()
+		if err != nil {
+			log.Errorf("InsertValidatedResultInfos Rollback err:%s", err.Error())
+		}
+	}()
 
 	for _, info := range infos {
 		query := fmt.Sprintf(`INSERT INTO %s (round_id, node_id, validator_id, status, start_time) VALUES (?, ?, ?, ?, ?)`, validateResultTable)
@@ -187,7 +193,13 @@ func (n *SQLDB) UpdateValidators(nodeIDs []string, serverID dtypes.ServerID) err
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+
+	defer func() {
+		err = tx.Rollback()
+		if err != nil {
+			log.Errorf("UpdateValidators Rollback err:%s", err.Error())
+		}
+	}()
 
 	// clean old validators
 	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE server_id=? `, validatorsTable)

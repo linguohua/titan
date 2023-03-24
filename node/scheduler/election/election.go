@@ -246,23 +246,22 @@ func (v *Election) ReelectTicker() {
 	defer ticker.Stop()
 
 	for {
-		select {
-		case <-ticker.C:
-			v.lock.Lock()
-			var validatorOffline bool
-			for nodeID := range v.validators {
-				node := v.manager.GetCandidateNode(nodeID)
-				if node != nil {
-					v.validators[nodeID] = time.Now()
-					continue
-				}
-				validatorOffline = true
-			}
-			v.lock.Unlock()
-			if !validatorOffline && !v.reelectEnable {
+		<-ticker.C
+		v.lock.Lock()
+		var validatorOffline bool
+		for nodeID := range v.validators {
+			node := v.manager.GetCandidateNode(nodeID)
+			if node != nil {
+				v.validators[nodeID] = time.Now()
 				continue
 			}
-			v.updateCh <- struct{}{}
+			validatorOffline = true
 		}
+		v.lock.Unlock()
+		if !validatorOffline && !v.reelectEnable {
+			continue
+		}
+		v.updateCh <- struct{}{}
+
 	}
 }

@@ -298,40 +298,28 @@ func (m *Manager) FindCandidatesByList(list []string, filterMap map[string]strin
 	return nil
 }
 
-// NodeSessionCallBack node ping pong
-func (m *Manager) NodeSessionCallBack(nodeID, remoteAddr string) {
-	lastTime := time.Now()
-
-	edge := m.GetEdgeNode(nodeID)
-	if edge != nil {
-		edge.SetLastRequestTime(lastTime)
-		edge.ConnectRPC(remoteAddr, false)
-		return
-	}
-
-	candidate := m.GetCandidateNode(nodeID)
-	if candidate != nil {
-		candidate.SetLastRequestTime(lastTime)
-		candidate.ConnectRPC(remoteAddr, false)
-		return
-	}
-}
-
-func NewSessionCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error) {
+// KeepaliveCallBackFunc node keepalive call back
+func KeepaliveCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error) {
 	return func(nodeID, remoteAddr string) {
 		lastTime := time.Now()
 
 		edge := nodeMgr.GetEdgeNode(nodeID)
 		if edge != nil {
 			edge.SetLastRequestTime(lastTime)
-			edge.ConnectRPC(remoteAddr, false)
+			_, err := edge.ConnectRPC(remoteAddr, false)
+			if err != nil {
+				log.Errorf("%s ConnectRPC err:%s", nodeID, err.Error())
+			}
 			return
 		}
 
 		candidate := nodeMgr.GetCandidateNode(nodeID)
 		if candidate != nil {
 			candidate.SetLastRequestTime(lastTime)
-			candidate.ConnectRPC(remoteAddr, false)
+			_, err := candidate.ConnectRPC(remoteAddr, false)
+			if err != nil {
+				log.Errorf("%s ConnectRPC err:%s", nodeID, err.Error())
+			}
 			return
 		}
 	}, nil
@@ -372,7 +360,7 @@ func (m *Manager) FindNodeDownloadInfos(cid, userURL string) ([]*types.DownloadI
 			continue
 		}
 
-		infos = append(infos, &types.DownloadInfo{URL: eNode.DownloadURL(), NodeID: nodeID, Credentials: credentials})
+		infos = append(infos, &types.DownloadInfo{URL: eNode.DownloadAddr(), NodeID: nodeID, Credentials: credentials})
 	}
 
 	return infos, nil

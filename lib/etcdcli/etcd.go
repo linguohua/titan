@@ -9,12 +9,9 @@ import (
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/modules/dtypes"
 
-	logging "github.com/ipfs/go-log/v2"
 	"go.etcd.io/etcd/clientv3"
 	"golang.org/x/xerrors"
 )
-
-var log = logging.Logger("etcd")
 
 const (
 	connectServerTimeoutTime = 5  // Second
@@ -89,7 +86,7 @@ func (c *Client) ServerRegister(t context.Context, serverID dtypes.ServerID, val
 	// lease keepalive response queue capacity only 16 , so need to read it
 	go func() {
 		for {
-			_ = <-keepRespChan
+			<-keepRespChan
 		}
 	}()
 
