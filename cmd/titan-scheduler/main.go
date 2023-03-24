@@ -259,7 +259,7 @@ var runCmd = &cli.Command{
 		}
 		jsonrpc.SetHttp3Client(httpClient)
 
-		go startUDPServer(udpPacketConn, h, schedulerCfg)
+		go startUDPServer(udpPacketConn, h, schedulerCfg) //nolint:errcheck
 
 		// Serve the RPC.
 		rpcStopper, err := node.ServeRPC(h, "scheduler", schedulerCfg.ListenAddress)

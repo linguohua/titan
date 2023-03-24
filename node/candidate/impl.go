@@ -195,10 +195,12 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 	}
 	result.Bandwidth = float64(size) / float64(duration) * float64(time.Second)
 
+	if err := sendValidateResult(candidate, result); err != nil {
+		log.Errorf("send validate result error: %s", err.Error())
+	}
+
 	log.Infof("validator %s %d block, bandwidth:%f, cost time:%d, IsTimeout:%v, duration:%d, size:%d, randCount:%d",
 		result.NodeID, len(result.Cids), result.Bandwidth, result.CostTime, result.IsTimeout, req.Duration, size, result.RandomCount)
-
-	sendValidateResult(candidate, result)
 }
 
 func validate(req *api.ReqValidate, candidate *Candidate) {
@@ -263,12 +265,15 @@ func validate(req *api.ReqValidate, candidate *Candidate) {
 	defer cancel()
 
 	candidateTCPSrvAddr := fmt.Sprintf("%s:%s", host, port)
-	err = api.BeValidate(wctx, *req, candidateTCPSrvAddr)
-	if err != nil {
+
+	if err := api.BeValidate(wctx, *req, candidateTCPSrvAddr); err != nil {
+		log.Errorf("validate edge error: %s", err.Error())
+
 		result.IsTimeout = true
-		sendValidateResult(candidate, result)
-		log.Errorf("validator, edge DoValidate err: %v", err)
-		return
+
+		if err := sendValidateResult(candidate, result); err != nil {
+			log.Errorf("send validate result error: %s", err.Error())
+		}
 	}
 }
 

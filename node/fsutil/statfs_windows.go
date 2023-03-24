@@ -16,7 +16,7 @@ func Statfs(volumePath string) (FsStat, error) {
 	var availBytes int64
 
 	_, _, err := c.Call(
-		uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(volumePath))),
+		uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(volumePath))), //nolint:staticcheck
 		uintptr(unsafe.Pointer(&freeBytes)),
 		uintptr(unsafe.Pointer(&totalBytes)),
 		uintptr(unsafe.Pointer(&availBytes)))

@@ -280,7 +280,7 @@ var runCmd = &cli.Command{
 			},
 		}
 
-		go startUDPServer(udpPacketConn, handler, candidateCfg)
+		go startUDPServer(udpPacketConn, handler, candidateCfg) //nolint:errcheck
 
 		go func() {
 			<-ctx.Done()
@@ -288,7 +288,7 @@ var runCmd = &cli.Command{
 			if err := srv.Shutdown(context.TODO()); err != nil {
 				log.Errorf("shutting down RPC server failed: %s", err)
 			}
-			stop(ctx)
+			stop(ctx) //nolint:errcheck
 			log.Warn("Graceful shutdown successful")
 		}()
 
