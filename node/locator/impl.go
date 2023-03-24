@@ -116,8 +116,7 @@ func (locator *Locator) SetNodeOnlineStatus(ctx context.Context, nodeID string, 
 		return err
 	}
 
-	locator.DB.setNodeInfo(nodeID, info.SchedulerURL, info.AreaID, isOnline)
-	return nil
+	return locator.DB.setNodeInfo(nodeID, info.SchedulerURL, info.AreaID, isOnline)
 }
 
 func (locator *Locator) getAccessPointsWithWeightCount(areaID string) ([]string, error) {
@@ -328,9 +327,7 @@ func (locator *Locator) RegisterNode(ctx context.Context, schedulerURL, nodeID, 
 		return err
 	}
 
-	locator.DB.setNodeInfo(nodeID, schedulerURL, cfg.AreaID, false)
-
-	return nil
+	return locator.DB.setNodeInfo(nodeID, schedulerURL, cfg.AreaID, false)
 }
 
 func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) ([]api.AccessPoint, error) {

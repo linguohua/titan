@@ -22,36 +22,6 @@ func init() {
 	_ = logging.SetLogLevel("dagstore/upgrader", "DEBUG")
 }
 
-func TestCarfilestore(t *testing.T) {
-	t.Logf("TestCarfilestore")
-
-}
-
-func TestWriteBlock(t *testing.T) {
-	t.Logf("TestWriteBlock")
-	carsDirPath := filepath.Join(tmpDir, carsDir)
-	err := os.MkdirAll(carsDirPath, 0o755)
-	if err != nil {
-		t.Errorf("new tmp dir error:%s", err.Error())
-		return
-	}
-
-	cs, err := NewCarfileStore(tmpDir)
-	if err != nil {
-		t.Errorf("rew carfile store error:%s", err.Error())
-		return
-	}
-
-	blk := newBlock()
-	for i := 0; i < 100; i++ {
-		cs.PutBlocks(context.Background(), blk.Cid(), []blocks.Block{blk})
-	}
-
-	exist := cs.HasCarfile(blk.Cid())
-
-	t.Logf("exist:%v", exist)
-}
-
 func newBlock() blocks.Block {
 	return merkledag.NewRawNode([]byte("1234567890")).Block
 }
@@ -73,12 +43,7 @@ func TestRegisterShard(t *testing.T) {
 
 	bk := newBlock()
 
-	for i := 0; i < 100; i++ {
-		cs.PutBlocks(context.Background(), bk.Cid(), []blocks.Block{bk})
-	}
-
-	cs.RegisterShared(bk.Cid())
-	if err != nil {
+	if err := cs.RegisterShared(bk.Cid()); err != nil {
 		t.Errorf("register shared error:%s", err.Error())
 		return
 	}
@@ -107,10 +72,14 @@ func TestShardIndices(t *testing.T) {
 		return
 	}
 
-	ii.ForEach(func(m multihash.Multihash, u uint64) error {
+	err = ii.ForEach(func(m multihash.Multihash, u uint64) error {
 		t.Logf("block :%s", m.String())
 		return nil
 	})
+	if err != nil {
+		t.Errorf("ForEach error:%s", err.Error())
+		return
+	}
 }
 
 func TestGetBlock(t *testing.T) {

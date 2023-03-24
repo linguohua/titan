@@ -38,7 +38,9 @@ func NewDevice(nodeID, internalIP string, bandwidthUp, bandwidthDown int64, carf
 		carfileStore:  carfileStore,
 	}
 
-	cpu.Percent(0, false)
+	if _, err := cpu.Percent(0, false); err != nil {
+		log.Errorf("stat cpu percent error: %s", err.Error())
+	}
 
 	return device
 }

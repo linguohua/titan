@@ -216,7 +216,9 @@ var generateRsaKey = &cli.Command{
 		}
 
 		privatePem := titanrsa.PrivateKey2Pem(privateKey)
-		lr.SetPrivateKey(privatePem)
+		if err := lr.SetPrivateKey(privatePem); err != nil {
+			return err
+		}
 
 		publicKey := privateKey.PublicKey
 		publicPem := titanrsa.PublicKey2Pem(&publicKey)
@@ -272,7 +274,9 @@ var importKey = &cli.Command{
 		}
 
 		privatePem := titanrsa.PrivateKey2Pem(privateKey)
-		lr.SetPrivateKey(privatePem)
+		if err := lr.SetPrivateKey(privatePem); err != nil {
+			return err
+		}
 
 		publicKey := privateKey.PublicKey
 		publicPem := titanrsa.PublicKey2Pem(&publicKey)

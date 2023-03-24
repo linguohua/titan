@@ -61,10 +61,10 @@ func (m *Manager) startTick() {
 		if len(m.waitList) > 0 {
 			cache := m.CachingCar()
 			if cache != nil {
-				m.saveIncompleteCarfileCache(cache)
+				if err := m.saveIncompleteCarfileCache(cache); err != nil {
+					log.Error("saveIncompleteCarfileCache error:%s", err.Error())
+				}
 			}
-
-			m.saveWaitList()
 		}
 
 	}
@@ -147,7 +147,9 @@ func (m *Manager) removeCarFromWaitList(root cid.Cid) *carWaiter {
 				m.waitList = append(m.waitList[:i], m.waitList[i+1:]...)
 			}
 
-			m.saveWaitList()
+			if err := m.saveWaitList(); err != nil {
+				log.Errorf("save wait list error: %s", err.Error())
+			}
 			return cw
 		}
 	}
@@ -168,7 +170,10 @@ func (m *Manager) AddToWaitList(root cid.Cid, dss []*types.DownloadSource) {
 	cw := &carWaiter{Root: root, Dss: dss}
 	m.waitList = append(m.waitList, cw)
 
-	m.saveWaitList()
+	if err := m.saveWaitList(); err != nil {
+		log.Errorf("save wait list error: %s", err.Error())
+	}
+
 	m.triggerDownload()
 }
 

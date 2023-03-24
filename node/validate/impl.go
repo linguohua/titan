@@ -83,7 +83,11 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 		return
 	}
 
-	sendNodeID(conn, nodeID, limiter)
+	if err := sendNodeID(conn, nodeID, limiter); err != nil {
+		log.Errorf("send node id error:%s", err.Error())
+		return
+	}
+
 	for {
 		select {
 		case <-t.C:

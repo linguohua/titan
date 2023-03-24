@@ -32,7 +32,7 @@ func (t *TestCachedResultImpl) CacheResult(result *types.CacheResult) error {
 
 func TestManager(t *testing.T) {
 	t.Log("TestManager")
-	logging.SetLogLevel("/carfile/cache", "DEBUG")
+	_ = logging.SetLogLevel("/carfile/cache", "DEBUG")
 
 	cidStr := "QmTcAg1KeDYJFpTJh3rkZGLhnnVKeXWNtjwPufjVvwPTpG"
 	c, err := cid.Decode(cidStr)

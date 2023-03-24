@@ -345,8 +345,7 @@ func (cs *CarfileStore) indexCount(k shard.Key) (int, error) {
 func (cs *CarfileStore) recovery() error {
 	infos := cs.dagstore.AllShardsInfo()
 	for k := range infos {
-		_, err := cs.dagstore.GetIterableIndex(k)
-		if err != nil {
+		if _, err := cs.dagstore.GetIterableIndex(k); err != nil {
 			mh, err := multihash.FromHexString(k.String())
 			if err != nil {
 				return err
@@ -354,10 +353,11 @@ func (cs *CarfileStore) recovery() error {
 
 			c := cid.NewCidV1(cid.Raw, mh)
 
-			cs.destroyShared(c)
+			if err := cs.destroyShared(c); err != nil {
+				return err
+			}
 
-			err = cs.RegisterShared(c)
-			if err != nil {
+			if err := cs.RegisterShared(c); err != nil {
 				return err
 			}
 

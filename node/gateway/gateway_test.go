@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/linguohua/titan/node/carfile/store"
 )
@@ -15,8 +14,6 @@ func TestGateway(t *testing.T) {
 
 func TestResolvePath(t *testing.T) {
 	t.Log("TestResolvePath")
-
-	logging.SetLogLevel("pathresolv", "debug")
 
 	storePath := "C:/Users/aaa/.titanedge-1/carfilestore"
 	p := "/ipfs/QmNXoAB3ZNoFQQZMGk4utybuvABdLTz6hcVmtHnV4FUp3S/log"

@@ -253,7 +253,10 @@ var runCmd = &cli.Command{
 		}
 		defer udpPacketConn.Close()
 
-		httpClient := cliutil.NewHTTP3Client(udpPacketConn, schedulerCfg.InsecureSkipVerify, schedulerCfg.CaCertificatePath)
+		httpClient, err := cliutil.NewHTTP3Client(udpPacketConn, schedulerCfg.InsecureSkipVerify, schedulerCfg.CaCertificatePath)
+		if err != nil {
+			return xerrors.Errorf("new http3 client error %w", err)
+		}
 		jsonrpc.SetHttp3Client(httpClient)
 
 		go startUDPServer(udpPacketConn, h, schedulerCfg)

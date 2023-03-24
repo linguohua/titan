@@ -148,7 +148,9 @@ func (ds *DataSync) CompareCarfiles(ctx context.Context, bucketCount uint32, mul
 		}
 	}
 
-	go ds.cacher.CacheCarForSyncData(needToDownloadCarfiles)
+	if err := ds.cacher.CacheCarForSyncData(needToDownloadCarfiles); err != nil {
+		log.Errorf("CacheCarForSyncData error: %s", err.Error())
+	}
 
 	return ds.removeCarfiles(needToDeleteCarfiles)
 }

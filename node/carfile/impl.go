@@ -78,36 +78,35 @@ func (cfImpl *CarfileImpl) CacheCarfile(ctx context.Context, rootCID string, dss
 	return nil
 }
 
+func (cfImpl *CarfileImpl) removeResult() error {
+	if count, err := cfImpl.carfileStore.BlockCount(); err == nil {
+		cfImpl.TotalBlockCount = count
+	}
+
+	_, diskUsage := cfImpl.device.GetDiskUsageStat()
+	ret := types.RemoveCarfileResult{BlocksCount: cfImpl.TotalBlockCount, DiskUsage: diskUsage}
+
+	return cfImpl.scheduler.RemoveCarfileResult(context.Background(), ret)
+}
+
 func (cfImpl *CarfileImpl) deleteCarfile(ctx context.Context, c cid.Cid) error {
-	defer func() {
-		if count, err := cfImpl.carfileStore.BlockCount(); err == nil {
-			cfImpl.TotalBlockCount = count
-		}
-
-		_, diskUsage := cfImpl.device.GetDiskUsageStat()
-		ret := types.RemoveCarfileResult{BlocksCount: cfImpl.TotalBlockCount, DiskUsage: diskUsage}
-
-		cfImpl.scheduler.RemoveCarfileResult(context.Background(), ret)
-	}()
-
 	ok, err := cfImpl.cacheMgr.DeleteCarFromWaitList(c)
 	if err != nil {
-		log.Errorf("DeleteCarfile, delete car %s from wait list error:%s", c.String(), err.Error())
+		log.Errorf("delete car %s from wait list error:%s", c.String(), err.Error())
 		return err
 	}
 
 	if ok {
 		log.Debugf("delete carfile %s from wait list", c.String())
-		return nil
+		return cfImpl.removeResult()
 	}
 
 	log.Debugf("delete carfile %s", c.String())
 
-	err = cfImpl.carfileStore.DeleteCarfile(c)
-	if err != nil {
-		log.Errorf("delete carfile error: %s", err.Error())
+	if err := cfImpl.carfileStore.DeleteCarfile(c); err != nil {
+		return err
 	}
-	return err
+	return cfImpl.removeResult()
 }
 
 func (cfImpl *CarfileImpl) DeleteCarfile(ctx context.Context, carfileCID string) error {
@@ -117,7 +116,7 @@ func (cfImpl *CarfileImpl) DeleteCarfile(ctx context.Context, carfileCID string)
 		return err
 	}
 
-	go cfImpl.deleteCarfile(ctx, c)
+	go cfImpl.deleteCarfile(ctx, c) //nolint:errcheck
 
 	return nil
 }
@@ -217,7 +216,9 @@ func (cfImpl *CarfileImpl) CacheCarForSyncData(carfiles []string) error {
 			}
 
 			cid := cid.NewCidV1(cid.Raw, multihash)
-			cfImpl.CacheCarfile(context.Background(), cid.String(), nil)
+			if err := cfImpl.CacheCarfile(context.Background(), cid.String(), nil); err != nil {
+				return err
+			}
 		}
 	case types.NodeEdge:
 		return fmt.Errorf("not implement")

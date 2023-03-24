@@ -127,28 +127,11 @@ func (db *SqlDB) setNodeInfo(nodeID string, schedulerURL string, areaID string, 
 	return err
 }
 
-func (db *SqlDB) deleteNodeInfo(nodeID string) error {
-	devInfo := &nodeInfo{NodeID: nodeID}
-	cmd := fmt.Sprintf(`DELETE FROM %s WHERE node_id=:node_id`, nodeInfoTable)
-	_, err := db.cli.NamedExec(cmd, devInfo)
-	return err
-}
-
 func (db *SqlDB) countNodeOnScheduler(schedulerURL string) (int, error) {
 	var count int
 
 	cmd := fmt.Sprintf(`select count(*) from %s WHERE scheduler_url=?`, nodeInfoTable)
 	err := db.cli.Get(&count, cmd, schedulerURL)
-	if err != nil {
-		return 0, err
-	}
-	return count, err
-}
-
-func (db *SqlDB) countNodeWithID(nodeID string) (int, error) {
-	var count int
-	cmd := fmt.Sprintf(`select count(*) from %s WHERE node_id=?`, nodeInfoTable)
-	err := db.cli.Get(&count, cmd, nodeID)
 	if err != nil {
 		return 0, err
 	}

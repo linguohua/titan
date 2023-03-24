@@ -21,7 +21,6 @@ import (
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/build"
 	"github.com/linguohua/titan/lib/titanlog"
-	"github.com/shirou/gopsutil/v3/cpu"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
@@ -30,8 +29,7 @@ import (
 var log = logging.Logger("main")
 
 func main() {
-	types.RunningNodeType = types.NodeUpdate
-	cpu.Percent(0, false)
+	types.RunningNodeType = types.NodeUpdater
 	titanlog.SetupLogLevels()
 
 	app := &cli.App{
@@ -102,7 +100,7 @@ func checkUpdate(cctx *cli.Context, schedulerAPI api.Scheduler) {
 	}
 
 	// log.Infof("checkUpdate, updateInfos:%v", updateInfos)
-	mySelfUpdateInfo, ok := updateInfos[int(types.NodeUpdate)]
+	mySelfUpdateInfo, ok := updateInfos[int(types.NodeUpdater)]
 	if ok && isNeedToUpdateMySelf(cctx, mySelfUpdateInfo) {
 		updateApp(cctx, mySelfUpdateInfo)
 	}
