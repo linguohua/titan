@@ -197,7 +197,7 @@ func (m *Manager) onDownloadCarFinish(cf *carfileCache) {
 			log.Errorf("RegisterShared error:%s", err.Error())
 		}
 
-		if err = m.carfileStore.DeleteIncompleteCarfileCache(cf.root); err != nil && os.IsNotExist(err) {
+		if err = m.carfileStore.DeleteIncompleteCarfileCache(cf.root); err != nil && !os.IsNotExist(err) {
 			log.Errorf("DeleteIncompleteCarfileCache error:%s", err.Error())
 		}
 
@@ -264,6 +264,11 @@ func (m *Manager) restoreCarfileCacheOrNew(opts *options) (*carfileCache, error)
 		err = cc.decode(data)
 		if err != nil {
 			return nil, err
+		}
+
+		// cover new download sources
+		if len(opts.dss) > 0 {
+			cc.downloadSources = opts.dss
 		}
 	}
 	return cc, nil
