@@ -32,8 +32,6 @@ const (
 	schedulerAPITimeout = 3
 	validateTimeout     = 5
 	tcpPackMaxLength    = 52428800
-	fetchTimeout        = 15
-	fetchRetry          = 1
 )
 
 func cidFromData(data []byte) (string, error) {

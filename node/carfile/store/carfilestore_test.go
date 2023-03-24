@@ -157,7 +157,6 @@ func TestGetShard(t *testing.T) {
 	}
 
 	t.Errorf("len(ks) == 0 ")
-
 }
 
 func TestBlocksOfCarfile(t *testing.T) {

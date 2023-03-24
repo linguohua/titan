@@ -56,6 +56,7 @@ func (candidate *candidate) getBlock(ds *types.DownloadSource, cidStr string) (b
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("status code %d", resp.StatusCode)

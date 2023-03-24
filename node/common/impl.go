@@ -67,7 +67,7 @@ func (a *CommonAPI) AuthNew(ctx context.Context, perms []auth.Permission) (strin
 		Allow: perms, // TODO: consider checking validity
 	}
 
-	tk, err := jwt.Sign(&p, (*jwt.HMACSHA)(a.APISecret))
+	tk, err := jwt.Sign(&p, a.APISecret)
 	if err != nil {
 		return "", err
 	}

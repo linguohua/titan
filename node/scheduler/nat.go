@@ -42,7 +42,7 @@ func (s *Scheduler) IsBehindFullConeNAT(ctx context.Context, edgeURL string) (bo
 
 	if _, err := edgeAPI.Version(context.Background()); err != nil {
 		log.Warnf("IsBehindFullConeNAT,edge %s may be RestrictedNAT or PortRestrictedNAT", edgeURL)
-		return false, nil
+		return false, nil //nolint:nilerr
 	}
 	return true, nil
 }
@@ -62,7 +62,7 @@ func (s *Scheduler) checkEdgeIfBehindNAT(ctx context.Context, edgeAddr string) (
 
 	if _, err := edgeAPI.Version(ctx); err != nil {
 		log.Warnf("checkEdgeIfBehindNAT,edge %s is behind nat", edgeAddr)
-		return true, nil
+		return true, nil //nolint:nilerr
 	}
 
 	return false, nil
@@ -102,7 +102,7 @@ func (s *Scheduler) checkEdgeIfBehindRestrictedNAT(ctx context.Context, edgeURL 
 
 	if _, err := edgeAPI.Version(ctx); err != nil {
 		log.Warnf("checkEdgeIfBehindRestrictedNAT,edge %s PortRestrictedNAT", edgeURL)
-		return false, nil
+		return false, nil //nolint:nilerr
 	}
 
 	return true, nil

@@ -72,7 +72,7 @@ func (mgr *AccessPointMgr) newSchedulerAPI(url string, areaID string, schedulerA
 
 	log.Infof("newSchedulerAPI, url:%s, areaID:%s, accessToken:%s", url, areaID, schedulerAccessToken)
 	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+string(schedulerAccessToken))
+	headers.Add("Authorization", "Bearer "+schedulerAccessToken)
 	api, close, err := client.NewScheduler(ctx, url, headers)
 	if err != nil {
 		log.Errorf("newSchedulerAPI err:%s,url:%s", err.Error(), url)
