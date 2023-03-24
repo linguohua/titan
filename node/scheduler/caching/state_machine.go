@@ -170,19 +170,6 @@ func planOne(ts ...func() (mut mutator, next func(info *CarfileCacheInfo) (more 
 	}
 }
 
-// planOne but ignores unhandled states without error, this prevents the need to handle all possible events creating
-// error during forced override
-func planOneOrIgnore(ts ...func() (mut mutator, next func(info *CarfileCacheInfo) (more bool, err error))) func(events []statemachine.Event, state *CarfileCacheInfo) (uint64, error) {
-	f := planOne(ts...)
-	return func(events []statemachine.Event, state *CarfileCacheInfo) (uint64, error) {
-		cnt, err := f(events, state)
-		if err != nil {
-			log.Warnf("planOneOrIgnore: ignoring error from planOne: %s", err)
-		}
-		return cnt, nil
-	}
-}
-
 func on(mut mutator, next CarfileState) func() (mutator, func(*CarfileCacheInfo) (bool, error)) {
 	return func() (mutator, func(*CarfileCacheInfo) (bool, error)) {
 		return mut, func(state *CarfileCacheInfo) (bool, error) {
