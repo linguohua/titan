@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -72,7 +73,7 @@ func (n *SQLDB) InsertValidatedResultInfos(infos []*types.ValidatedResultInfo) e
 
 	defer func() {
 		err = tx.Rollback()
-		if err != nil {
+		if err != nil && err != sql.ErrTxDone {
 			log.Errorf("InsertValidatedResultInfos Rollback err:%s", err.Error())
 		}
 	}()
@@ -196,7 +197,7 @@ func (n *SQLDB) UpdateValidators(nodeIDs []string, serverID dtypes.ServerID) err
 
 	defer func() {
 		err = tx.Rollback()
-		if err != nil {
+		if err != nil && err != sql.ErrTxDone {
 			log.Errorf("UpdateValidators Rollback err:%s", err.Error())
 		}
 	}()

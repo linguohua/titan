@@ -316,7 +316,7 @@ func (m *Manager) cacheCarfileResult(nodeID string, result *types.CacheResult) {
 			DoneSize: int64(progress.DoneSize),
 		}
 
-		err = m.nodeManager.UpdateReplicaInfo(cInfo)
+		err = m.nodeManager.UpdateUnfinishedReplicaInfo(cInfo)
 		if err != nil {
 			log.Errorf("CacheCarfileResult %s UpdateReplicaInfo err:%s", nodeID, err.Error())
 			continue
@@ -360,7 +360,7 @@ func (m *Manager) addOrResetCarfileTicker(hash string) {
 
 	fn := func() error {
 		// update replicas status
-		err := m.nodeManager.UpdateStatusOfReplicas(hash, types.CacheStatusFailed)
+		err := m.nodeManager.UpdateStatusOfUnfinishedReplicas(hash, types.CacheStatusFailed)
 		if err != nil {
 			return xerrors.Errorf("carfileHash %s SetCarfileReplicasTimeout err:%s", hash, err.Error())
 		}
@@ -594,7 +594,7 @@ func (m *Manager) saveCandidateReplicaInfos(nodes []*node.Candidate, hash string
 		})
 	}
 
-	return m.nodeManager.UpsertReplicasInfo(replicaInfos)
+	return m.nodeManager.BatchUpsertReplicas(replicaInfos)
 }
 
 func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
@@ -611,7 +611,7 @@ func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
 		})
 	}
 
-	return m.nodeManager.UpsertReplicasInfo(replicaInfos)
+	return m.nodeManager.BatchUpsertReplicas(replicaInfos)
 }
 
 // Sources get download sources

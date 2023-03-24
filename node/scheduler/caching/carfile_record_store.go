@@ -66,8 +66,11 @@ func (d *CarfileRecordStore) Query(ctx context.Context, q query.Query) (query.Re
 	var rows *sqlx.Rows
 	var err error
 
-	rows, err = d.sqlDB.LoadUnfinishedCarfileRecords(ctx, q.Limit, q.Offset, d.ServerID)
+	state := append(FailedStates, CachingStates...)
+
+	rows, err = d.sqlDB.LoadCarfileRecords(state, q.Limit, q.Offset, d.ServerID)
 	if err != nil {
+		log.Errorf("LoadCarfileRecords :%s", err.Error())
 		return nil, err
 	}
 
