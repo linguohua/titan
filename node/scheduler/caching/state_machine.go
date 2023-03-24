@@ -3,7 +3,6 @@ package caching
 import (
 	"context"
 	"reflect"
-	"time"
 
 	"github.com/filecoin-project/go-statemachine"
 	"golang.org/x/xerrors"
@@ -196,9 +195,6 @@ func (m *Manager) restartCarfiles(ctx context.Context) error {
 		log.Errorf("loading carfiles list: %+v", err)
 		return err
 	}
-
-	// wait nodes connect
-	time.Sleep(10 * time.Second)
 
 	for _, carfile := range trackedCarfiles {
 		if err := m.carfiles.Send(carfile.CarfileHash, CarfileRestart{}); err != nil {
