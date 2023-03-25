@@ -64,4 +64,5 @@ type Scheduler interface {
 	// ListCaches cache manager
 	CarfileReplicaList(ctx context.Context, req types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error)                             //perm:read
 	ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) //perm:read
+	SubmitProofOfWork(ctx context.Context, proofs []*types.NodeWorkloadProof) error
 }

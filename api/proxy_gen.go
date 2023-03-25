@@ -261,6 +261,8 @@ type SchedulerStruct struct {
 
 		StartOnceElection func(p0 context.Context) error `perm:"admin"`
 
+		SubmitProofOfWork func(p0 context.Context, p1 []*types.NodeWorkloadProof) error ``
+
 		UserDownloadBlockResults func(p0 context.Context, p1 []types.UserBlockDownloadResult) error `perm:"read"`
 
 		UserDownloadResult func(p0 context.Context, p1 types.UserDownloadResult) error `perm:"write"`
@@ -1115,6 +1117,17 @@ func (s *SchedulerStruct) StartOnceElection(p0 context.Context) error {
 }
 
 func (s *SchedulerStub) StartOnceElection(p0 context.Context) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) SubmitProofOfWork(p0 context.Context, p1 []*types.NodeWorkloadProof) error {
+	if s.Internal.SubmitProofOfWork == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.SubmitProofOfWork(p0, p1)
+}
+
+func (s *SchedulerStub) SubmitProofOfWork(p0 context.Context, p1 []*types.NodeWorkloadProof) error {
 	return ErrNotSupported
 }
 
