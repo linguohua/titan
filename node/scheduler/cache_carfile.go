@@ -25,8 +25,8 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo types.Re
 }
 
 // RestartFailedCarfiles restart failed carfiles
-func (s *Scheduler) RestartFailedCarfiles(ctx context.Context, hashes []types.CarfileHash) error {
-	return s.DataManager.FailedCarfilesRestart(hashes)
+func (s *Scheduler) RestartFailedCarfiles(ctx context.Context, hashes []types.AssetHash) error {
+	return s.DataManager.RestartCacheAssets(hashes)
 }
 
 // ResetCarfileExpiration reset expiration time with data cache
@@ -35,12 +35,12 @@ func (s *Scheduler) ResetCarfileExpiration(ctx context.Context, carfileCid strin
 		return xerrors.Errorf("expiration:%s has passed", t.String())
 	}
 
-	return s.DataManager.ResetCarfileExpiration(carfileCid, t)
+	return s.DataManager.ResetAssetRecordExpiration(carfileCid, t)
 }
 
 // CarfileRecord Show Data Task
-func (s *Scheduler) CarfileRecord(ctx context.Context, cid string) (*types.CarfileRecordInfo, error) {
-	info, err := s.DataManager.GetCarfileRecordInfo(cid)
+func (s *Scheduler) CarfileRecord(ctx context.Context, cid string) (*types.AssetRecord, error) {
+	info, err := s.DataManager.GetAssetRecordInfo(cid)
 	if err != nil {
 		return nil, err
 	}
@@ -49,26 +49,26 @@ func (s *Scheduler) CarfileRecord(ctx context.Context, cid string) (*types.Carfi
 }
 
 // CarfileRecords List carfiles
-func (s *Scheduler) CarfileRecords(ctx context.Context, limit, offset int, states []string) ([]*types.CarfileRecordInfo, error) {
-	rows, err := s.NodeManager.LoadCarfileRecords(states, limit, offset, s.ServerID)
+func (s *Scheduler) CarfileRecords(ctx context.Context, limit, offset int, states []string) ([]*types.AssetRecord, error) {
+	rows, err := s.NodeManager.LoadAssetRecords(states, limit, offset, s.ServerID)
 	if err != nil {
 		return nil, err
 	}
 
-	list := make([]*types.CarfileRecordInfo, 0)
+	list := make([]*types.AssetRecord, 0)
 
 	// loading carfiles to local
 	for rows.Next() {
-		cInfo := &types.CarfileRecordInfo{}
+		cInfo := &types.AssetRecord{}
 		err = rows.StructScan(cInfo)
 		if err != nil {
 			log.Errorf("carfile StructScan err: %s", err.Error())
 			continue
 		}
 
-		cInfo.ReplicaInfos, err = s.NodeManager.LoadReplicaInfosOfCarfile(cInfo.CarfileHash, false)
+		cInfo.ReplicaInfos, err = s.NodeManager.LoadAssetReplicaInfos(cInfo.Hash)
 		if err != nil {
-			log.Errorf("carfile %s load replicas err: %s", cInfo.CarfileCID, err.Error())
+			log.Errorf("carfile %s load replicas err: %s", cInfo.CID, err.Error())
 			continue
 		}
 
@@ -79,31 +79,31 @@ func (s *Scheduler) CarfileRecords(ctx context.Context, limit, offset int, state
 }
 
 // RemoveCarfile remove all caches with carfile cid
-func (s *Scheduler) RemoveCarfile(ctx context.Context, carfileCid string) error {
-	if carfileCid == "" {
+func (s *Scheduler) RemoveCarfile(ctx context.Context, cid string) error {
+	if cid == "" {
 		return xerrors.Errorf("Cid Is Nil")
 	}
 
-	hash, err := cidutil.CIDString2HashString(carfileCid)
+	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return err
 	}
 
-	return s.DataManager.RemoveCarfileRecord(carfileCid, hash)
+	return s.DataManager.RemoveAsset(cid, hash)
 }
 
 // CacheCarfiles nodeMgrCache Carfile
-func (s *Scheduler) CacheCarfiles(ctx context.Context, info *types.CacheCarfileInfo) error {
-	if info.CarfileCid == "" {
+func (s *Scheduler) CacheCarfiles(ctx context.Context, info *types.CacheAssetReq) error {
+	if info.CID == "" {
 		return xerrors.New("Cid is Nil")
 	}
 
-	hash, err := cidutil.CIDString2HashString(info.CarfileCid)
+	hash, err := cidutil.CIDString2HashString(info.CID)
 	if err != nil {
-		return xerrors.Errorf("%s cid to hash err:%s", info.CarfileCid, err.Error())
+		return xerrors.Errorf("%s cid to hash err:%s", info.CID, err.Error())
 	}
 
-	info.CarfileHash = hash
+	info.Hash = hash
 
 	if info.Replicas < 1 {
 		return xerrors.Errorf("replicas %d must greater than 1", info.Replicas)
@@ -113,5 +113,5 @@ func (s *Scheduler) CacheCarfiles(ctx context.Context, info *types.CacheCarfileI
 		return xerrors.Errorf("expiration %s less than now(%v)", info.Expiration.String(), time.Now())
 	}
 
-	return s.DataManager.CacheCarfile(info)
+	return s.DataManager.CacheAsset(info)
 }

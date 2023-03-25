@@ -1,4 +1,4 @@
-package caching
+package assets
 
 import (
 	"time"
@@ -6,28 +6,27 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-// CarfileHash is an identifier for a carfile.
-type CarfileHash string
+// AssetHash is an identifier for a asset.
+type AssetHash string
 
-func (c CarfileHash) String() string {
+func (c AssetHash) String() string {
 	return string(c)
 }
 
-// NodeCacheResultInfo node cache carfile result
+// NodeCacheResultInfo node cache asset result
 type NodeCacheResultInfo struct {
-	Status             int64
-	CarfileBlocksCount int64
-	CarfileSize        int64
-	NodeID             string
-	IsCandidate        bool
+	Status      int64
+	BlocksCount int64
+	Size        int64
+	NodeID      string
+	IsCandidate bool
 }
 
-// CarfileCacheInfo carfile cache info
-type CarfileCacheInfo struct {
-	ID                string
-	State             CarfileState
-	CarfileHash       CarfileHash
-	CarfileCID        string
+// AssetCachingInfo asset cache info
+type AssetCachingInfo struct {
+	State             AssetState
+	Hash              AssetHash
+	CID               string
 	ServerID          string
 	Size              int64
 	Blocks            int64
@@ -44,11 +43,11 @@ type CarfileCacheInfo struct {
 	RetryCount int64
 }
 
-// ToCarfileRecordInfo types.CarfileRecordInfo
-func (state *CarfileCacheInfo) ToCarfileRecordInfo() *types.CarfileRecordInfo {
-	return &types.CarfileRecordInfo{
-		CarfileCID:            state.CarfileCID,
-		CarfileHash:           state.CarfileHash.String(),
+// ToAssetRecord types.AssetInfo
+func (state *AssetCachingInfo) ToAssetRecord() *types.AssetRecord {
+	return &types.AssetRecord{
+		CID:                   state.CID,
+		Hash:                  state.Hash.String(),
 		NeedEdgeReplica:       state.EdgeReplicas,
 		TotalSize:             state.Size,
 		TotalBlocks:           state.Blocks,
@@ -58,11 +57,11 @@ func (state *CarfileCacheInfo) ToCarfileRecordInfo() *types.CarfileRecordInfo {
 	}
 }
 
-func carfileCacheInfoFrom(info *types.CarfileRecordInfo) *CarfileCacheInfo {
-	cInfo := &CarfileCacheInfo{
-		CarfileCID:        info.CarfileCID,
-		State:             CarfileState(info.State),
-		CarfileHash:       CarfileHash(info.CarfileHash),
+func assetCachingInfoFrom(info *types.AssetRecord) *AssetCachingInfo {
+	cInfo := &AssetCachingInfo{
+		CID:               info.CID,
+		State:             AssetState(info.State),
+		Hash:              AssetHash(info.Hash),
 		EdgeReplicas:      info.NeedEdgeReplica,
 		Size:              info.TotalSize,
 		Blocks:            info.TotalBlocks,
@@ -71,6 +70,10 @@ func carfileCacheInfoFrom(info *types.CarfileRecordInfo) *CarfileCacheInfo {
 	}
 
 	for _, r := range info.ReplicaInfos {
+		if r.Status != types.CacheStatusSucceeded {
+			continue
+		}
+
 		if r.IsCandidate {
 			cInfo.CandidateReplicaSucceeds = append(cInfo.CandidateReplicaSucceeds, r.NodeID)
 		} else {

@@ -10,7 +10,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/fatih/color"
 	"github.com/linguohua/titan/lib/tablewriter"
-	"github.com/linguohua/titan/node/scheduler/caching"
+	"github.com/linguohua/titan/node/scheduler/assets"
 
 	"github.com/linguohua/titan/api/types"
 	"github.com/urfave/cli/v2"
@@ -110,8 +110,8 @@ var showCarfileInfoCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("CID:\t%s\n", info.CarfileCID)
-		fmt.Printf("Hash:\t%s\n", info.CarfileHash)
+		fmt.Printf("CID:\t%s\n", info.CID)
+		fmt.Printf("Hash:\t%s\n", info.Hash)
 		fmt.Printf("State:\t%s\n", colorState(info.State))
 		fmt.Printf("Blocks:\t%d\n", info.TotalBlocks)
 		fmt.Printf("Size:\t%s\n", units.BytesSize(float64(info.TotalSize)))
@@ -152,7 +152,7 @@ var cacheCarfileCmd = &cli.Command{
 			return xerrors.New("cid is nil")
 		}
 
-		info := &types.CacheCarfileInfo{CarfileCid: cid}
+		info := &types.CacheAssetReq{CID: cid}
 
 		if date == "" {
 			date = time.Now().Add(defaultExpiration).Format(defaultDateTimeLayout)
@@ -213,13 +213,13 @@ var listCarfilesCmd = &cli.Command{
 		limit := cctx.Int("limit")
 		offset := cctx.Int("offset")
 
-		states := append([]string{caching.Finished.String()}, append(caching.FailedStates, caching.CachingStates...)...)
+		states := append([]string{assets.Finished.String()}, append(assets.FailedStates, assets.CachingStates...)...)
 
 		if cctx.Bool("caching") {
-			states = caching.CachingStates
+			states = assets.CachingStates
 		}
 		if cctx.Bool("failed") {
-			states = caching.FailedStates
+			states = assets.FailedStates
 		}
 
 		restart := cctx.Bool("restart")
@@ -246,7 +246,7 @@ var listCarfilesCmd = &cli.Command{
 		for w := 0; w < len(list); w++ {
 			carfile := list[w]
 			m := map[string]interface{}{
-				"CID":        carfile.CarfileCID,
+				"CID":        carfile.CID,
 				"State":      colorState(carfile.State),
 				"Blocks":     carfile.TotalBlocks,
 				"Size":       units.BytesSize(float64(carfile.TotalSize)),
@@ -276,10 +276,10 @@ var listCarfilesCmd = &cli.Command{
 			return nil
 		}
 
-		var hashes []types.CarfileHash
+		var hashes []types.AssetHash
 		for _, carfile := range list {
 			if strings.Contains(carfile.State, "Failed") {
-				hashes = append(hashes, types.CarfileHash(carfile.CarfileHash))
+				hashes = append(hashes, types.AssetHash(carfile.Hash))
 			}
 		}
 		return schedulerAPI.RestartFailedCarfiles(ctx, hashes)

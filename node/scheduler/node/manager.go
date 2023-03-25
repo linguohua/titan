@@ -268,36 +268,6 @@ func (m *Manager) FindCandidates(filterMap map[string]string) []*Candidate {
 	return nil
 }
 
-// FindCandidatesByList Find CandidateNodes by list and filter filterMap
-func (m *Manager) FindCandidatesByList(list []string, filterMap map[string]string) []*Candidate {
-	if list == nil {
-		return nil
-	}
-
-	if filterMap == nil {
-		filterMap = make(map[string]string)
-	}
-
-	nodes := make([]*Candidate, 0)
-
-	for _, dID := range list {
-		if _, exist := filterMap[dID]; exist {
-			continue
-		}
-
-		node := m.GetCandidateNode(dID)
-		if node != nil {
-			nodes = append(nodes, node)
-		}
-	}
-
-	if len(nodes) > 0 {
-		return nodes
-	}
-
-	return nil
-}
-
 // KeepaliveCallBackFunc node keepalive call back
 func KeepaliveCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error) {
 	return func(nodeID, remoteAddr string) {
@@ -332,7 +302,7 @@ func (m *Manager) FindEdgeDownloadInfos(cid, userURL string) ([]*types.DownloadI
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}
 
-	rows, err := m.LoadReplicasOfHash(hash)
+	rows, err := m.LoadReplicasOfHash(hash, []string{types.CacheStatusSucceeded.String()})
 	if err != nil {
 		return nil, err
 	}
@@ -349,10 +319,6 @@ func (m *Manager) FindEdgeDownloadInfos(cid, userURL string) ([]*types.DownloadI
 		}
 
 		if rInfo.IsCandidate {
-			continue
-		}
-
-		if rInfo.Status != types.CacheStatusSucceeded {
 			continue
 		}
 
@@ -401,7 +367,7 @@ func (m *Manager) NodesQuit(nodeIDs []string) {
 
 	log.Infof("node event , nodes quit:%v", nodeIDs)
 
-	hashes, err := m.LoadCarfileHashesOfNodes(nodeIDs)
+	hashes, err := m.LoadAssetHashesOfNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
 		return

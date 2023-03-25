@@ -11,7 +11,7 @@ type ListCarfileRecordRsp struct {
 	Page           int
 	TotalPage      int
 	Cids           int
-	CarfileRecords []*CarfileRecordInfo
+	CarfileRecords []*AssetRecord
 }
 
 type CarfileProgress struct {
@@ -38,10 +38,10 @@ type RemoveCarfileResult struct {
 	DiskUsage   float64
 }
 
-// CarfileRecordInfo Data info
-type CarfileRecordInfo struct {
-	CarfileCID            string          `db:"carfile_cid"`
-	CarfileHash           string          `db:"carfile_hash"`
+// AssetRecord Asset record info
+type AssetRecord struct {
+	CID                   string          `db:"cid"`
+	Hash                  string          `db:"hash"`
 	NeedEdgeReplica       int64           `db:"edge_replicas"`
 	TotalSize             int64           `db:"total_size"`
 	TotalBlocks           int64           `db:"total_blocks"`
@@ -59,7 +59,7 @@ type CarfileRecordInfo struct {
 // ReplicaInfo Carfile Replica Info
 type ReplicaInfo struct {
 	ID          string
-	CarfileHash string      `db:"carfile_hash"`
+	Hash        string      `db:"hash"`
 	NodeID      string      `db:"node_id"`
 	Status      CacheStatus `db:"status"`
 	IsCandidate bool        `db:"is_candidate"`
@@ -67,14 +67,14 @@ type ReplicaInfo struct {
 	DoneSize    int64       `db:"done_size"`
 }
 
-// CacheCarfileInfo Data info
-type CacheCarfileInfo struct {
-	ID          string
-	CarfileCid  string    `db:"carfile_cid"`
-	CarfileHash string    `db:"carfile_hash"`
-	Replicas    int64     `db:"replicas"`
-	ServerID    string    `db:"server_id"`
-	Expiration  time.Time `db:"expiration"`
+// CacheAssetReq cache asset req
+type CacheAssetReq struct {
+	ID         string
+	CID        string
+	Hash       string
+	Replicas   int64
+	ServerID   string
+	Expiration time.Time
 }
 
 // CacheStatus nodeMgrCache Status
@@ -107,22 +107,12 @@ func (c CacheStatus) String() string {
 	}
 }
 
-// CacheError cache error
-type CacheError struct {
-	CID       string
-	Nodes     int
-	SkipCount int
-	DiskCount int
-	Msg       string
-	Time      time.Time
-	NodeID    string
-}
-
-// CarfileRecordCacheResult cache result
-type CarfileRecordCacheResult struct {
-	NodeErrs             map[string]string
-	ErrMsg               string
-	EdgeNodeCacheSummary string
+// CacheStatusAll all cache status
+var CacheStatusAll = []string{
+	CacheStatusWaiting.String(),
+	CacheStatusCaching.String(),
+	CacheStatusFailed.String(),
+	CacheStatusSucceeded.String(),
 }
 
 type ListCacheInfosReq struct {
@@ -134,8 +124,8 @@ type ListCacheInfosReq struct {
 	Count   int   `json:"count"`
 }
 
-// ListCarfileReplicaRsp list carfile replica
-type ListCarfileReplicaRsp struct {
+// ListAssetReplicaRsp list carfile replica
+type ListAssetReplicaRsp struct {
 	Datas []*ReplicaInfo `json:"data"`
 	Total int64          `json:"total"`
 }
@@ -166,9 +156,9 @@ type CachingCarfile struct {
 	DoneSize   int64
 }
 
-// CarfileHash is an identifier for a carfile.
-type CarfileHash string
+// AssetHash is an identifier for a carfile.
+type AssetHash string
 
-func (c CarfileHash) String() string {
+func (c AssetHash) String() string {
 	return string(c)
 }

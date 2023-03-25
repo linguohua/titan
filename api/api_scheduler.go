@@ -43,12 +43,12 @@ type Scheduler interface {
 	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error) //perm:read
 
 	// carfile
-	CacheCarfiles(ctx context.Context, info *types.CacheCarfileInfo) error                                      //perm:admin
-	RemoveCarfile(ctx context.Context, carfileID string) error                                                  //perm:admin
-	CarfileRecord(ctx context.Context, cid string) (*types.CarfileRecordInfo, error)                            //perm:read
-	CarfileRecords(ctx context.Context, limit, offset int, states []string) ([]*types.CarfileRecordInfo, error) //perm:read
-	RestartFailedCarfiles(ctx context.Context, hashes []types.CarfileHash) error                                //perm:admin
-	ResetCarfileExpiration(ctx context.Context, carfileCid string, time time.Time) error                        //perm:admin
+	CacheCarfiles(ctx context.Context, info *types.CacheAssetReq) error                                   //perm:admin
+	RemoveCarfile(ctx context.Context, carfileID string) error                                            //perm:admin
+	CarfileRecord(ctx context.Context, cid string) (*types.AssetRecord, error)                            //perm:read
+	CarfileRecords(ctx context.Context, limit, offset int, states []string) ([]*types.AssetRecord, error) //perm:read
+	RestartFailedCarfiles(ctx context.Context, hashes []types.AssetHash) error                            //perm:admin
+	ResetCarfileExpiration(ctx context.Context, carfileCid string, time time.Time) error                  //perm:admin
 
 	// server
 	StartOnceElection(ctx context.Context) error                //perm:admin
@@ -62,7 +62,7 @@ type Scheduler interface {
 	// user send result when user download block complete or failed
 	UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error //perm:read
 	// ListCaches cache manager
-	CarfileReplicaList(ctx context.Context, req types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error)                             //perm:read
+	CarfileReplicaList(ctx context.Context, req types.ListCacheInfosReq) (*types.ListAssetReplicaRsp, error)                               //perm:read
 	ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) //perm:read
 	SubmitProofOfWork(ctx context.Context, proofs []*types.NodeWorkloadProof) error
 }

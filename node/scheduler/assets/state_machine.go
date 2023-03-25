@@ -1,4 +1,4 @@
-package caching
+package assets
 
 import (
 	"context"
@@ -10,15 +10,15 @@ import (
 
 // Plan Plan
 func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface{}, uint64, error) {
-	next, processed, err := m.plan(events, user.(*CarfileCacheInfo))
+	next, processed, err := m.plan(events, user.(*AssetCachingInfo))
 	if err != nil || next == nil {
 		return nil, processed, nil
 	}
 
-	return func(ctx statemachine.Context, si CarfileCacheInfo) error {
+	return func(ctx statemachine.Context, si AssetCachingInfo) error {
 		err := next(ctx, si)
 		if err != nil {
-			log.Errorf("unhandled carfile error (%s): %+v", si.CarfileCID, err)
+			log.Errorf("unhandled error (%s): %+v", si.CID, err)
 			return nil
 		}
 
@@ -26,16 +26,16 @@ func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface
 	}, processed, nil
 }
 
-var planners = map[CarfileState]func(events []statemachine.Event, state *CarfileCacheInfo) (uint64, error){
+var planners = map[AssetState]func(events []statemachine.Event, state *AssetCachingInfo) (uint64, error){
 	// external import
 	UndefinedState: planOne(
-		on(CarfileStartCaches{}, CacheCarfileSeed),
+		on(AssetStartCaches{}, CacheAssetSeed),
 	),
-	CacheCarfileSeed: planOne(
-		on(CacheRequestSent{}, CarfileSeedCaching),
+	CacheAssetSeed: planOne(
+		on(CacheRequestSent{}, AssetSeedCaching),
 		on(CacheFailed{}, SeedCacheFailed),
 	),
-	CarfileSeedCaching: planOne(
+	AssetSeedCaching: planOne(
 		on(CacheSucceed{}, FindCandidatesToCache),
 		on(CacheFailed{}, SeedCacheFailed),
 		apply(CacheResult{}),
@@ -61,23 +61,23 @@ var planners = map[CarfileState]func(events []statemachine.Event, state *Carfile
 		apply(CacheResult{}),
 	),
 	SeedCacheFailed: planOne(
-		on(CarfileReCache{}, CacheCarfileSeed),
+		on(AssetReCache{}, CacheAssetSeed),
 	),
 	CandidatesCacheFailed: planOne(
-		on(CarfileReCache{}, FindCandidatesToCache),
+		on(AssetReCache{}, FindCandidatesToCache),
 	),
 	EdgesCacheFailed: planOne(
-		on(CarfileReCache{}, FindEdgesToCache),
+		on(AssetReCache{}, FindEdgesToCache),
 	),
 	Finished: planOne(
-		on(CarfileReCache{}, FindCandidatesToCache),
+		on(AssetReCache{}, FindCandidatesToCache),
 	),
-	Removing: planOne(
-		on(CarfileStartCaches{}, CacheCarfileSeed),
+	Remove: planOne(
+		on(AssetStartCaches{}, CacheAssetSeed),
 	),
 }
 
-func (m *Manager) plan(events []statemachine.Event, state *CarfileCacheInfo) (func(statemachine.Context, CarfileCacheInfo) error, uint64, error) {
+func (m *Manager) plan(events []statemachine.Event, state *AssetCachingInfo) (func(statemachine.Context, AssetCachingInfo) error, uint64, error) {
 	p := planners[state.State]
 	if p == nil {
 		if len(events) == 1 {
@@ -96,14 +96,14 @@ func (m *Manager) plan(events []statemachine.Event, state *CarfileCacheInfo) (fu
 		return nil, processed, xerrors.Errorf("running planner for state %s failed: %w", state.State, err)
 	}
 
-	log.Debugf("%s: %s", state.CarfileHash, state.State)
+	log.Debugf("%s: %s", state.Hash, state.State)
 
 	switch state.State {
 	// Happy path
-	case CacheCarfileSeed:
-		return m.handleCacheCarfileSeed, processed, nil
-	case CarfileSeedCaching:
-		return m.handleCarfileSeedCaching, processed, nil
+	case CacheAssetSeed:
+		return m.handleCacheAssetSeed, processed, nil
+	case AssetSeedCaching:
+		return m.handleAssetSeedCaching, processed, nil
 	case FindCandidatesToCache:
 		return m.handleFindCandidatesToCache, processed, nil
 	case FindEdgesToCache:
@@ -116,20 +116,20 @@ func (m *Manager) plan(events []statemachine.Event, state *CarfileCacheInfo) (fu
 		return m.handleFinished, processed, nil
 	case SeedCacheFailed, CandidatesCacheFailed, EdgesCacheFailed:
 		return m.handleCachesFailed, processed, nil
-	case Removing:
+	case Remove:
 		return nil, processed, nil
 	// Fatal errors
 	case UndefinedState:
-		log.Error("carfile update with undefined state!")
+		log.Error("asset update with undefined state!")
 	default:
-		log.Errorf("unexpected carfile update state: %s", state.State)
+		log.Errorf("unexpected asset update state: %s", state.State)
 	}
 
 	return nil, processed, nil
 }
 
-func planOne(ts ...func() (mut mutator, next func(info *CarfileCacheInfo) (more bool, err error))) func(events []statemachine.Event, state *CarfileCacheInfo) (uint64, error) {
-	return func(events []statemachine.Event, state *CarfileCacheInfo) (uint64, error) {
+func planOne(ts ...func() (mut mutator, next func(info *AssetCachingInfo) (more bool, err error))) func(events []statemachine.Event, state *AssetCachingInfo) (uint64, error) {
+	return func(events []statemachine.Event, state *AssetCachingInfo) (uint64, error) {
 	eloop:
 		for i, event := range events {
 			if gm, ok := event.User.(globalMutator); ok {
@@ -145,7 +145,7 @@ func planOne(ts ...func() (mut mutator, next func(info *CarfileCacheInfo) (more 
 				}
 
 				if err, isErr := event.User.(error); isErr {
-					log.Warnf("carfile %s got error event %T: %+v", state.CarfileCID, event.User, err)
+					log.Warnf("asset %s got error event %T: %+v", state.CID, event.User, err)
 				}
 
 				event.User.(mutator).apply(state)
@@ -169,9 +169,9 @@ func planOne(ts ...func() (mut mutator, next func(info *CarfileCacheInfo) (more 
 	}
 }
 
-func on(mut mutator, next CarfileState) func() (mutator, func(*CarfileCacheInfo) (bool, error)) {
-	return func() (mutator, func(*CarfileCacheInfo) (bool, error)) {
-		return mut, func(state *CarfileCacheInfo) (bool, error) {
+func on(mut mutator, next AssetState) func() (mutator, func(*AssetCachingInfo) (bool, error)) {
+	return func() (mutator, func(*AssetCachingInfo) (bool, error)) {
+		return mut, func(state *AssetCachingInfo) (bool, error) {
 			state.State = next
 			return false, nil
 		}
@@ -179,40 +179,40 @@ func on(mut mutator, next CarfileState) func() (mutator, func(*CarfileCacheInfo)
 }
 
 // like `on`, but doesn't change state
-func apply(mut mutator) func() (mutator, func(*CarfileCacheInfo) (bool, error)) {
-	return func() (mutator, func(*CarfileCacheInfo) (bool, error)) {
-		return mut, func(state *CarfileCacheInfo) (bool, error) {
+func apply(mut mutator) func() (mutator, func(*AssetCachingInfo) (bool, error)) {
+	return func() (mutator, func(*AssetCachingInfo) (bool, error)) {
+		return mut, func(state *AssetCachingInfo) (bool, error) {
 			return true, nil
 		}
 	}
 }
 
-func (m *Manager) restartCarfiles(ctx context.Context) error {
+func (m *Manager) restartStateMachines(ctx context.Context) error {
 	defer m.startupWait.Done()
 
-	trackedCarfiles, err := m.ListCarfiles()
+	list, err := m.ListAssets()
 	if err != nil {
-		log.Errorf("loading carfiles list: %+v", err)
+		log.Errorf("loading assets: %+v", err)
 		return err
 	}
 
-	for _, carfile := range trackedCarfiles {
-		if err := m.carfiles.Send(carfile.CarfileHash, CarfileRestart{}); err != nil {
-			log.Errorf("restarting carfile %s: %+v", carfile.CarfileCID, err)
+	for _, asset := range list {
+		if err := m.assetStateMachines.Send(asset.Hash, CacheAssetRestart{}); err != nil {
+			log.Errorf("restarting asset %s: %+v", asset.CID, err)
 			continue
 		}
 
-		m.addOrResetCarfileTicker(carfile.CarfileHash.String())
+		m.addOrResetAssetTicker(asset.Hash.String())
 	}
 
 	return nil
 }
 
-// ListCarfiles load carfile cache infos from statemachine
-func (m *Manager) ListCarfiles() ([]CarfileCacheInfo, error) {
-	var carfiles []CarfileCacheInfo
-	if err := m.carfiles.List(&carfiles); err != nil {
+// ListAssets load asset cache infos from statemachine
+func (m *Manager) ListAssets() ([]AssetCachingInfo, error) {
+	var list []AssetCachingInfo
+	if err := m.assetStateMachines.List(&list); err != nil {
 		return nil, err
 	}
-	return carfiles, nil
+	return list, nil
 }

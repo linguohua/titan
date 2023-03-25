@@ -221,12 +221,12 @@ func (v *Validation) getNodeReqValidate(validated *validateNodeInfo) (api.ReqVal
 	// rand count
 	offset := rand.Intn(count)
 
-	hashes, err := v.nodeManager.LoadCarfileHashesOfNode(validated.nodeID, 1, offset)
+	hashes, err := v.nodeManager.LoadAssetHashesOfNode(validated.nodeID, 1, offset)
 	if err != nil {
 		return req, err
 	}
 
-	if hashes == nil || len(hashes) < 1 {
+	if len(hashes) < 1 {
 		return req, xerrors.New("Node has no replica")
 	}
 
@@ -314,7 +314,7 @@ func (v *Validation) Result(validatedResult *api.ValidateResult) error {
 		return nil
 	}
 
-	rows, err := v.nodeManager.LoadReplicasOfHash(hash)
+	rows, err := v.nodeManager.LoadReplicasOfHash(hash, []string{types.CacheStatusSucceeded.String()})
 	if err != nil {
 		status = types.ValidateStatusOther
 		log.Errorf("Get candidates %s , err:%s", validatedResult.CarfileCID, err.Error())
@@ -361,7 +361,7 @@ func (v *Validation) Result(validatedResult *api.ValidateResult) error {
 		return nil
 	}
 
-	carfileRecord, err := v.nodeManager.LoadCarfileRecordInfo(hash)
+	carfileRecord, err := v.nodeManager.LoadAssetRecord(hash)
 	if err != nil {
 		status = types.ValidateStatusOther
 		log.Errorf("handleValidateResult GetCarfileInfo %s , err:%s", validatedResult.CarfileCID, err.Error())

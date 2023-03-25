@@ -20,7 +20,7 @@ func NewSQLDB(db *sqlx.DB) *SQLDB {
 
 const (
 	// tables
-	carfileRecordTable  = "carfiles"
+	assetRecordsTable   = "asset_records"
 	replicaInfoTable    = "replicas"
 	edgeUpdateTable     = "edge_update_info"
 	nodeInfoTable       = "node_info"
@@ -28,8 +28,8 @@ const (
 	nodeRegisterTable   = "node_register_info"
 	validateResultTable = "validate_result"
 
-	loadNodeInfosLimit      = 100
-	loadReplicaInfosLimit   = 100
-	loadValidateInfosLimit  = 100
-	loadCarfileRecordsLimit = 100
+	loadNodeInfosLimit     = 100
+	loadReplicaInfosLimit  = 100
+	loadValidateInfosLimit = 100
+	loadAssetRecordsLimit  = 100
 )
