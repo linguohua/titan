@@ -27,8 +27,6 @@ type CandidateStruct struct {
 	CarfileOperationStruct
 
 	Internal struct {
-		GetBlock func(p0 context.Context, p1 string) ([]byte, error) `perm:"read"`
-
 		GetBlocksOfCarfile func(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) `perm:"read"`
 
 		ValidateNodes func(p0 context.Context, p1 []ReqValidate) error `perm:"read"`
@@ -55,8 +53,6 @@ type CarfileOperationStruct struct {
 
 		CachedProgresses func(p0 context.Context, p1 []string) (*types.CacheResult, error) `perm:"write"`
 
-		DeleteAllCarfiles func(p0 context.Context) error `perm:"admin"`
-
 		DeleteCarfile func(p0 context.Context, p1 string) error `perm:"write"`
 
 		QueryCacheStat func(p0 context.Context) (*types.CacheStat, error) `perm:"write"`
@@ -76,11 +72,7 @@ type CommonStruct struct {
 
 		Closing func(p0 context.Context) (<-chan struct{}, error) `perm:"read"`
 
-		DeleteLogFile func(p0 context.Context) error `perm:"write"`
-
 		Discover func(p0 context.Context) (types.OpenRPCDocument, error) `perm:"read"`
-
-		DownloadLogFile func(p0 context.Context) ([]byte, error) `perm:"write"`
 
 		LogAlerts func(p0 context.Context) ([]alerting.Alert, error) `perm:"admin"`
 
@@ -89,8 +81,6 @@ type CommonStruct struct {
 		LogSetLevel func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
 		Session func(p0 context.Context) (uuid.UUID, error) `perm:"read"`
-
-		ShowLogFile func(p0 context.Context) (*LogFile, error) `perm:"write"`
 
 		Shutdown func(p0 context.Context) error `perm:"admin"`
 
@@ -201,9 +191,9 @@ type SchedulerStruct struct {
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) error `perm:"write"`
 
-		DeleteEdgeUpdateInfo func(p0 context.Context, p1 int) error `perm:"admin"`
+		CheckEdgeConnectivityWithRandomPort func(p0 context.Context, p1 string) (bool, error) `perm:"read"`
 
-		DeleteNodeLogFile func(p0 context.Context, p1 string) error `perm:"admin"`
+		DeleteEdgeUpdateInfo func(p0 context.Context, p1 int) error `perm:"admin"`
 
 		EdgeDownloadInfos func(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) `perm:"read"`
 
@@ -214,8 +204,6 @@ type SchedulerStruct struct {
 		EdgeUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
 		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
-
-		IsBehindFullConeNAT func(p0 context.Context, p1 string) (bool, error) `perm:"read"`
 
 		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
@@ -228,8 +216,6 @@ type SchedulerStruct struct {
 		NodeInfo func(p0 context.Context, p1 string) (types.NodeInfo, error) `perm:"read"`
 
 		NodeList func(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) `perm:"read"`
-
-		NodeLogFile func(p0 context.Context, p1 string) ([]byte, error) `perm:"admin"`
 
 		NodeLogFileInfo func(p0 context.Context, p1 string) (*LogFile, error) `perm:"admin"`
 
@@ -282,17 +268,6 @@ type ValidateStruct struct {
 }
 
 type ValidateStub struct {
-}
-
-func (s *CandidateStruct) GetBlock(p0 context.Context, p1 string) ([]byte, error) {
-	if s.Internal.GetBlock == nil {
-		return *new([]byte), ErrNotSupported
-	}
-	return s.Internal.GetBlock(p0, p1)
-}
-
-func (s *CandidateStub) GetBlock(p0 context.Context, p1 string) ([]byte, error) {
-	return *new([]byte), ErrNotSupported
 }
 
 func (s *CandidateStruct) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
@@ -348,17 +323,6 @@ func (s *CarfileOperationStruct) CachedProgresses(p0 context.Context, p1 []strin
 
 func (s *CarfileOperationStub) CachedProgresses(p0 context.Context, p1 []string) (*types.CacheResult, error) {
 	return nil, ErrNotSupported
-}
-
-func (s *CarfileOperationStruct) DeleteAllCarfiles(p0 context.Context) error {
-	if s.Internal.DeleteAllCarfiles == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.DeleteAllCarfiles(p0)
-}
-
-func (s *CarfileOperationStub) DeleteAllCarfiles(p0 context.Context) error {
-	return ErrNotSupported
 }
 
 func (s *CarfileOperationStruct) DeleteCarfile(p0 context.Context, p1 string) error {
@@ -427,17 +391,6 @@ func (s *CommonStub) Closing(p0 context.Context) (<-chan struct{}, error) {
 	return nil, ErrNotSupported
 }
 
-func (s *CommonStruct) DeleteLogFile(p0 context.Context) error {
-	if s.Internal.DeleteLogFile == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.DeleteLogFile(p0)
-}
-
-func (s *CommonStub) DeleteLogFile(p0 context.Context) error {
-	return ErrNotSupported
-}
-
 func (s *CommonStruct) Discover(p0 context.Context) (types.OpenRPCDocument, error) {
 	if s.Internal.Discover == nil {
 		return *new(types.OpenRPCDocument), ErrNotSupported
@@ -447,17 +400,6 @@ func (s *CommonStruct) Discover(p0 context.Context) (types.OpenRPCDocument, erro
 
 func (s *CommonStub) Discover(p0 context.Context) (types.OpenRPCDocument, error) {
 	return *new(types.OpenRPCDocument), ErrNotSupported
-}
-
-func (s *CommonStruct) DownloadLogFile(p0 context.Context) ([]byte, error) {
-	if s.Internal.DownloadLogFile == nil {
-		return *new([]byte), ErrNotSupported
-	}
-	return s.Internal.DownloadLogFile(p0)
-}
-
-func (s *CommonStub) DownloadLogFile(p0 context.Context) ([]byte, error) {
-	return *new([]byte), ErrNotSupported
 }
 
 func (s *CommonStruct) LogAlerts(p0 context.Context) ([]alerting.Alert, error) {
@@ -502,17 +444,6 @@ func (s *CommonStruct) Session(p0 context.Context) (uuid.UUID, error) {
 
 func (s *CommonStub) Session(p0 context.Context) (uuid.UUID, error) {
 	return *new(uuid.UUID), ErrNotSupported
-}
-
-func (s *CommonStruct) ShowLogFile(p0 context.Context) (*LogFile, error) {
-	if s.Internal.ShowLogFile == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.ShowLogFile(p0)
-}
-
-func (s *CommonStub) ShowLogFile(p0 context.Context) (*LogFile, error) {
-	return nil, ErrNotSupported
 }
 
 func (s *CommonStruct) Shutdown(p0 context.Context) error {
@@ -790,6 +721,17 @@ func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 string) erro
 	return ErrNotSupported
 }
 
+func (s *SchedulerStruct) CheckEdgeConnectivityWithRandomPort(p0 context.Context, p1 string) (bool, error) {
+	if s.Internal.CheckEdgeConnectivityWithRandomPort == nil {
+		return false, ErrNotSupported
+	}
+	return s.Internal.CheckEdgeConnectivityWithRandomPort(p0, p1)
+}
+
+func (s *SchedulerStub) CheckEdgeConnectivityWithRandomPort(p0 context.Context, p1 string) (bool, error) {
+	return false, ErrNotSupported
+}
+
 func (s *SchedulerStruct) DeleteEdgeUpdateInfo(p0 context.Context, p1 int) error {
 	if s.Internal.DeleteEdgeUpdateInfo == nil {
 		return ErrNotSupported
@@ -798,17 +740,6 @@ func (s *SchedulerStruct) DeleteEdgeUpdateInfo(p0 context.Context, p1 int) error
 }
 
 func (s *SchedulerStub) DeleteEdgeUpdateInfo(p0 context.Context, p1 int) error {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) DeleteNodeLogFile(p0 context.Context, p1 string) error {
-	if s.Internal.DeleteNodeLogFile == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.DeleteNodeLogFile(p0, p1)
-}
-
-func (s *SchedulerStub) DeleteNodeLogFile(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
@@ -865,17 +796,6 @@ func (s *SchedulerStruct) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*Ed
 
 func (s *SchedulerStub) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
 	return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
-}
-
-func (s *SchedulerStruct) IsBehindFullConeNAT(p0 context.Context, p1 string) (bool, error) {
-	if s.Internal.IsBehindFullConeNAT == nil {
-		return false, ErrNotSupported
-	}
-	return s.Internal.IsBehindFullConeNAT(p0, p1)
-}
-
-func (s *SchedulerStub) IsBehindFullConeNAT(p0 context.Context, p1 string) (bool, error) {
-	return false, ErrNotSupported
 }
 
 func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 string, p2 string) error {
@@ -942,17 +862,6 @@ func (s *SchedulerStruct) NodeList(p0 context.Context, p1 int, p2 int) (*types.L
 
 func (s *SchedulerStub) NodeList(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) {
 	return nil, ErrNotSupported
-}
-
-func (s *SchedulerStruct) NodeLogFile(p0 context.Context, p1 string) ([]byte, error) {
-	if s.Internal.NodeLogFile == nil {
-		return *new([]byte), ErrNotSupported
-	}
-	return s.Internal.NodeLogFile(p0, p1)
-}
-
-func (s *SchedulerStub) NodeLogFile(p0 context.Context, p1 string) ([]byte, error) {
-	return *new([]byte), ErrNotSupported
 }
 
 func (s *SchedulerStruct) NodeLogFileInfo(p0 context.Context, p1 string) (*LogFile, error) {

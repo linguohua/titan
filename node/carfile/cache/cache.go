@@ -114,6 +114,12 @@ func (cfCache *carfileCache) downloadBlocksWithBreadthFirst(layerCids []string) 
 		cfCache.blocksDownloadSuccessList = append(cfCache.blocksDownloadSuccessList, blocks...)
 		cfCache.nextLayerCIDs = append(cfCache.nextLayerCIDs, ret.netLayerCids...)
 		cfCache.removeBlocksFromWaitList(doLen)
+
+		log.Debugf("total block %, done block %d, total size %d, done size %d",
+			len(cfCache.blocksDownloadSuccessList)+len(cfCache.blocksWaitList),
+			len(cfCache.blocksDownloadSuccessList),
+			cfCache.totalSize,
+			cfCache.totalSize)
 	}
 	cfCache.nextLayerCIDs = make([]string, 0)
 

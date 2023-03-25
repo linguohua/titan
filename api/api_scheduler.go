@@ -17,8 +17,6 @@ type Scheduler interface {
 	RegisterNode(ctx context.Context, nodeID, publicKey string, nodeType types.NodeType) error //perm:admin
 	NodeQuit(ctx context.Context, nodeID string) error                                         //perm:admin
 	NodeLogFileInfo(ctx context.Context, nodeID string) (*LogFile, error)                      //perm:admin
-	NodeLogFile(ctx context.Context, nodeID string) ([]byte, error)                            //perm:admin
-	DeleteNodeLogFile(ctx context.Context, nodeID string) error                                //perm:admin
 	SetNodePort(ctx context.Context, nodeID, port string) error                                //perm:admin
 	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error                  //perm:write
 	// node send result when user download block complete
@@ -37,8 +35,8 @@ type Scheduler interface {
 	// nat travel, can get edge external addr with different scheduler
 	EdgeExternalServiceAddress(ctx context.Context, nodeID, schedulerURL string) (string, error) //perm:write
 	// nat travel
-	IsBehindFullConeNAT(ctx context.Context, edgeURL string) (bool, error) //perm:read
-	NodeNatType(ctx context.Context, nodeID string) (types.NatType, error) //perm:write
+	CheckEdgeConnectivityWithRandomPort(ctx context.Context, edgeURL string) (bool, error) //perm:read
+	NodeNatType(ctx context.Context, nodeID string) (types.NatType, error)                 //perm:write
 	// user
 	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error) //perm:read
 
