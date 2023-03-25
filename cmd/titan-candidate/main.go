@@ -362,6 +362,15 @@ var runCmd = &cli.Command{
 							return
 						}
 
+						pk, err := getSchedulerPublicKey(schedulerAPI)
+						if err != nil {
+							log.Errorf("get scheduler public key failed: %s", err.Error())
+							cancel()
+							return
+						}
+
+						gw.SetSchedulerPublicKey(pk)
+
 						log.Info("Candidate registered successfully, waiting for tasks")
 						errCount = 0
 						readyCh = nil
@@ -540,4 +549,13 @@ func loadPrivateKey(path string, r *repo.FsRepo) (*rsa.PrivateKey, error) {
 	}
 	return titanrsa.Pem2PrivateKey(pem)
 
+}
+
+func getSchedulerPublicKey(schedulerAPI api.Scheduler) (*rsa.PublicKey, error) {
+	pem, err := schedulerAPI.PublicKey(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	return titanrsa.Pem2PublicKey([]byte(pem))
 }

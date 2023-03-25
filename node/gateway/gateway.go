@@ -24,7 +24,6 @@ import (
 	"github.com/ipld/go-ipld-prime/schema"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/carfile/store"
-	titanrsa "github.com/linguohua/titan/node/rsa"
 )
 
 type Gateway struct {
@@ -35,19 +34,13 @@ type Gateway struct {
 }
 
 func NewGateway(cs *store.CarfileStore, scheduler api.Scheduler, privateKey *rsa.PrivateKey) *Gateway {
-	pem, err := scheduler.PublicKey(context.Background())
-	if err != nil {
-		log.Panicf("get public key from scheduler error %s", err.Error())
-	}
-
-	schedulerPublicKey, err := titanrsa.Pem2PublicKey([]byte(pem))
-	if err != nil {
-		log.Panicf("can not convert pem to public key %s", err.Error())
-	}
-
-	gw := &Gateway{carStore: cs, scheduler: scheduler, privateKey: privateKey, schedulerPublicKey: schedulerPublicKey}
+	gw := &Gateway{carStore: cs, scheduler: scheduler, privateKey: privateKey}
 
 	return gw
+}
+
+func (gw *Gateway) SetSchedulerPublicKey(publicKey *rsa.PublicKey) {
+	gw.schedulerPublicKey = publicKey
 }
 
 func (gw *Gateway) resolvePath(ctx context.Context, p path.Path) (path.Resolved, error) {

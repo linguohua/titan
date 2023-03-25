@@ -190,7 +190,7 @@ func (m *Manager) saveIncompleteCarfileCache(cf *carfileCache) error {
 }
 
 func (m *Manager) onDownloadCarFinish(cf *carfileCache) {
-	log.Debugf("onDownloadCarFinish, carfile %s", cf.root.Hash().String())
+	log.Debugf("onDownloadCarFinish, carfile %s", cf.root.String())
 	if cf.isDownloadComplete() {
 		err := m.carfileStore.RegisterShared(cf.root)
 		if err != nil {
