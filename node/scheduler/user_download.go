@@ -2,10 +2,12 @@ package scheduler
 
 import (
 	"context"
+	"crypto"
 
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/handler"
+	titanrsa "github.com/linguohua/titan/node/rsa"
 	"golang.org/x/xerrors"
 )
 
@@ -50,13 +52,49 @@ func (s *Scheduler) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types
 		return nil, xerrors.New("cids is nil")
 	}
 
+	hash, err := cidutil.CIDString2HashString(cid)
+	if err != nil {
+		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
+	}
 	userURL := handler.GetRemoteAddr(ctx)
 
-	log.Infof("EdgeDownloadInfos url:%s", userURL)
-
-	infos, err := s.NodeManager.FindEdgeDownloadInfos(cid, userURL)
+	rows, err := s.NodeManager.LoadReplicasOfHash(hash, []string{types.CacheStatusSucceeded.String()})
 	if err != nil {
 		return nil, err
+	}
+
+	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
+	infos := make([]*types.DownloadInfo, 0)
+
+	for rows.Next() {
+		rInfo := &types.ReplicaInfo{}
+		err = rows.StructScan(rInfo)
+		if err != nil {
+			log.Errorf("replica StructScan err: %s", err.Error())
+			continue
+		}
+
+		if rInfo.IsCandidate {
+			continue
+		}
+
+		nodeID := rInfo.NodeID
+		eNode := s.NodeManager.GetEdgeNode(nodeID)
+		if eNode == nil {
+			continue
+		}
+
+		err := eNode.API().UserNATTravel(context.Background(), userURL)
+		if err != nil {
+			continue
+		}
+
+		credentials, err := eNode.Credentials(cid, titanRsa, s.NodeManager.PrivateKey)
+		if err != nil {
+			continue
+		}
+
+		infos = append(infos, &types.DownloadInfo{URL: eNode.DownloadAddr(), NodeID: nodeID, Credentials: credentials})
 	}
 
 	return infos, nil

@@ -108,7 +108,6 @@ func (n *SQLDB) LoadReplicasOfHash(hash string, statuses []string) (*sqlx.Rows, 
 func (n *SQLDB) LoadAssetReplicaInfos(hash string) ([]*types.ReplicaInfo, error) {
 	var out []*types.ReplicaInfo
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE hash=? `, replicaInfoTable)
-
 	if err := n.db.Select(&out, query, hash); err != nil {
 		return nil, err
 	}
