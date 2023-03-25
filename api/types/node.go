@@ -40,9 +40,12 @@ type UserBlockDownloadResult struct {
 
 // DownloadInfo download info of edge
 type DownloadInfo struct {
-	URL         string
-	Credentials *GatewayCredentials
-	NodeID      string `json:"-"`
+	URL          string
+	Credentials  *GatewayCredentials
+	NodeID       string `json:"-"`
+	NatType      NatType
+	SchedulerURL string
+	SchedulerKey string
 }
 
 // NodeReplicaStatus node cache status
