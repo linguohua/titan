@@ -384,51 +384,6 @@ func (s *Scheduler) SetNodePort(ctx context.Context, nodeID, port string) error 
 	return s.NodeManager.SetPortMapping(nodeID, port)
 }
 
-// NodeLogFileInfo show node log file
-func (s *Scheduler) NodeLogFileInfo(ctx context.Context, nodeID string) (*api.LogFile, error) {
-	cNode := s.NodeManager.GetCandidateNode(nodeID)
-	if cNode != nil {
-		return cNode.API().ShowLogFile(ctx)
-	}
-
-	eNode := s.NodeManager.GetEdgeNode(nodeID)
-	if eNode != nil {
-		return eNode.API().ShowLogFile(ctx)
-	}
-
-	return nil, xerrors.Errorf("node %s not found", nodeID)
-}
-
-// NodeLogFile Download Node Log File
-func (s *Scheduler) NodeLogFile(ctx context.Context, nodeID string) ([]byte, error) {
-	cNode := s.NodeManager.GetCandidateNode(nodeID)
-	if cNode != nil {
-		return cNode.API().DownloadLogFile(ctx)
-	}
-
-	eNode := s.NodeManager.GetEdgeNode(nodeID)
-	if eNode != nil {
-		return eNode.API().DownloadLogFile(ctx)
-	}
-
-	return nil, xerrors.Errorf("node %s not found", nodeID)
-}
-
-// DeleteNodeLogFile delete node file
-func (s *Scheduler) DeleteNodeLogFile(ctx context.Context, nodeID string) error {
-	cNode := s.NodeManager.GetCandidateNode(nodeID)
-	if cNode != nil {
-		return cNode.API().DeleteLogFile(ctx)
-	}
-
-	eNode := s.NodeManager.GetEdgeNode(nodeID)
-	if eNode != nil {
-		return eNode.API().DeleteLogFile(ctx)
-	}
-
-	return xerrors.Errorf("node %s not found", nodeID)
-}
-
 // nodeExists Check if the id exists
 func (s *Scheduler) nodeExists(nodeID string, nodeType types.NodeType) bool {
 	err := s.NodeManager.NodeExists(nodeID, nodeType)
