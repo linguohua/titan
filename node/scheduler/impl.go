@@ -17,6 +17,7 @@ import (
 
 	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/linguohua/titan/node/config"
+	"github.com/linguohua/titan/node/scheduler/assets"
 	"github.com/linguohua/titan/node/scheduler/election"
 	"github.com/linguohua/titan/node/scheduler/locator"
 	"github.com/linguohua/titan/node/scheduler/validation"
@@ -31,7 +32,6 @@ import (
 	"github.com/linguohua/titan/node/scheduler/node"
 
 	titanrsa "github.com/linguohua/titan/node/rsa"
-	"github.com/linguohua/titan/node/scheduler/caching"
 	"github.com/linguohua/titan/node/scheduler/sync"
 	"golang.org/x/xerrors"
 )
@@ -49,7 +49,7 @@ type Scheduler struct {
 	NodeManager            *node.Manager
 	Election               *election.Election
 	Validation             *validation.Validation
-	DataManager            *caching.Manager
+	DataManager            *assets.Manager
 	DataSync               *sync.DataSync
 	SchedulerCfg           *config.SchedulerCfg
 	SetSchedulerConfigFunc dtypes.SetSchedulerConfigFunc
@@ -482,7 +482,7 @@ func (s *Scheduler) NodeList(ctx context.Context, offset int, limit int) (*types
 }
 
 // CarfileReplicaList list carfile replicas
-func (s *Scheduler) CarfileReplicaList(ctx context.Context, req types.ListCacheInfosReq) (*types.ListCarfileReplicaRsp, error) {
+func (s *Scheduler) CarfileReplicaList(ctx context.Context, req types.ListCacheInfosReq) (*types.ListAssetReplicaRsp, error) {
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 

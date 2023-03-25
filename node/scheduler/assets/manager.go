@@ -1,4 +1,4 @@
-package caching
+package assets
 
 import (
 	"context"
@@ -22,37 +22,37 @@ import (
 	"golang.org/x/xerrors"
 )
 
-var log = logging.Logger("cache")
+var log = logging.Logger("asset")
 
 const (
-	cacheTimeout                 = 60 * time.Second // Carfile cache timeout (Unit:Second)
-	checkExpirationTimerInterval = 60 * 30          // Check for expired carfile record interval (Unit:Second)
-	maxCachingCarfileCount       = 10               // Maximum number of carfile caches
-	maxNodeDiskUsage             = 90.0             // If the node disk size is greater than this value, caching will not continue
+	cacheTimeout                 = 60 * time.Second // asset cache timeout (Unit:Second)
+	checkExpirationTimerInterval = 60 * 30          // Check for expired asset interval (Unit:Second)
+	maxCachingAssets             = 10               // Maximum number of asset caches
+	maxNodeDiskUsage             = 95.0             // If the node disk size is greater than this value, caching will not continue
 	seedCacheCount               = 1                // The number of caches in the first stage
 	getProgressInterval          = 20 * time.Second // Get cache progress interval from node (Unit:Second)
 )
 
 // Manager cache manager
 type Manager struct {
-	nodeManager          *node.Manager
-	carfileMinExpiration time.Time
+	nodeMgr       *node.Manager
+	minExpiration time.Time // Minimum expiration time for asset
 
-	startupWait sync.WaitGroup
-	carfiles    *statemachine.StateGroup
+	startupWait        sync.WaitGroup
+	assetStateMachines *statemachine.StateGroup
 
-	lock           sync.Mutex
-	carfileTickers map[string]*carfileTicker
+	lock    sync.Mutex
+	tickers map[string]*assetTicker // timeout tickers for asset caching
 
-	getSchedulerConfigFunc dtypes.GetSchedulerConfigFunc
+	schedulerConfig dtypes.GetSchedulerConfigFunc
 }
 
-type carfileTicker struct {
+type assetTicker struct {
 	ticker *time.Ticker
 	close  chan struct{}
 }
 
-func (t *carfileTicker) run(job func() error) {
+func (t *assetTicker) run(job func() error) {
 	for {
 		select {
 		case <-t.ticker.C:
@@ -71,35 +71,36 @@ func (t *carfileTicker) run(job func() error) {
 // NewManager return new cache manager instance
 func NewManager(nodeManager *node.Manager, ds datastore.Batching, configFunc dtypes.GetSchedulerConfigFunc) *Manager {
 	m := &Manager{
-		nodeManager:            nodeManager,
-		carfileMinExpiration:   time.Now(),
-		carfileTickers:         make(map[string]*carfileTicker),
-		getSchedulerConfigFunc: configFunc,
+		nodeMgr:         nodeManager,
+		minExpiration:   time.Now(),
+		tickers:         make(map[string]*assetTicker),
+		schedulerConfig: configFunc,
 	}
 
 	m.startupWait.Add(1)
-	m.carfiles = statemachine.New(ds, m, CarfileCacheInfo{})
+	m.assetStateMachines = statemachine.New(ds, m, AssetCachingInfo{})
 
 	return m
 }
 
-// Run start carfile statemachine and start ticker
+// Run start asset statemachine and start ticker
 func (m *Manager) Run(ctx context.Context) {
-	if err := m.restartCarfiles(ctx); err != nil {
+	if err := m.restartStateMachines(ctx); err != nil {
 		log.Errorf("failed load sector states: %+v", err)
 	}
 	go m.checkExpirationTicker(ctx)
-	go m.cachedProgressTicker(ctx)
+	go m.cacheProgressTicker(ctx)
 }
 
 // Stop stop statemachine
 func (m *Manager) Stop(ctx context.Context) error {
-	if err := m.carfiles.Stop(ctx); err != nil {
+	if err := m.assetStateMachines.Stop(ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
+// check asset expiration
 func (m *Manager) checkExpirationTicker(ctx context.Context) {
 	ticker := time.NewTicker(time.Duration(checkExpirationTimerInterval) * time.Second)
 	defer ticker.Stop()
@@ -114,7 +115,8 @@ func (m *Manager) checkExpirationTicker(ctx context.Context) {
 	}
 }
 
-func (m *Manager) cachedProgressTicker(ctx context.Context) {
+// get asset cache progress timer
+func (m *Manager) cacheProgressTicker(ctx context.Context) {
 	ticker := time.NewTicker(getProgressInterval)
 	defer ticker.Stop()
 
@@ -131,15 +133,15 @@ func (m *Manager) cachedProgressTicker(ctx context.Context) {
 func (m *Manager) nodesCacheProgresses() {
 	nodeCaches := make(map[string][]string)
 
-	// caching carfiles
-	for hash := range m.carfileTickers {
+	// caching assets
+	for hash := range m.tickers {
 		cid, err := cidutil.HashString2CIDString(hash)
 		if err != nil {
 			log.Errorf("%s HashString2CIDString err:%s", hash, err.Error())
 			continue
 		}
 
-		nodes, err := m.nodeManager.LoadCachingNodes(hash)
+		nodes, err := m.nodeMgr.LoadCachingNodes(hash)
 		if err != nil {
 			log.Errorf("%s UnDoneNodes err:%s", hash, err.Error())
 			continue
@@ -147,15 +149,11 @@ func (m *Manager) nodesCacheProgresses() {
 
 		for _, nodeID := range nodes {
 			list := nodeCaches[nodeID]
-			if list == nil {
-				list = make([]string, 0)
-			}
-
 			nodeCaches[nodeID] = append(list, cid)
 		}
 	}
 
-	f := func(nodeID string, cids []string) {
+	getCP := func(nodeID string, cids []string) {
 		// request node
 		result, err := m.nodeCachedProgresses(nodeID, cids)
 		if err != nil {
@@ -163,25 +161,25 @@ func (m *Manager) nodesCacheProgresses() {
 			return
 		}
 
-		// update carfile info
-		m.cacheCarfileResult(nodeID, result)
+		// update asset info
+		m.cacheAssetsResult(nodeID, result)
 	}
 
 	for nodeID, cids := range nodeCaches {
-		go f(nodeID, cids)
+		go getCP(nodeID, cids)
 	}
 }
 
-func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) (result *types.CacheResult, err error) {
-	log.Debugf("nodeID:%s, %v", nodeID, carfileCIDs)
+func (m *Manager) nodeCachedProgresses(nodeID string, cids []string) (result *types.CacheResult, err error) {
+	log.Debugf("nodeID:%s, %v", nodeID, cids)
 
-	cNode := m.nodeManager.GetCandidateNode(nodeID)
+	cNode := m.nodeMgr.GetCandidateNode(nodeID)
 	if cNode != nil {
-		result, err = cNode.API().CachedProgresses(context.Background(), carfileCIDs)
+		result, err = cNode.API().CachedProgresses(context.Background(), cids)
 	} else {
-		eNode := m.nodeManager.GetEdgeNode(nodeID)
+		eNode := m.nodeMgr.GetEdgeNode(nodeID)
 		if eNode != nil {
-			result, err = eNode.API().CachedProgresses(context.Background(), carfileCIDs)
+			result, err = eNode.API().CachedProgresses(context.Background(), cids)
 		} else {
 			err = xerrors.Errorf("node %s offline", nodeID)
 		}
@@ -194,26 +192,26 @@ func (m *Manager) nodeCachedProgresses(nodeID string, carfileCIDs []string) (res
 	return
 }
 
-// CacheCarfile create a new cache carfile task
-func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
+// CacheAsset create a new cache asset task
+func (m *Manager) CacheAsset(info *types.CacheAssetReq) error {
 	m.startupWait.Wait()
 
-	if len(m.carfileTickers) >= maxCachingCarfileCount {
-		return xerrors.Errorf("The carfile in the cache exceeds the limit %d, please wait", maxCachingCarfileCount)
+	if len(m.tickers) >= maxCachingAssets {
+		return xerrors.Errorf("The asset in the cache exceeds the limit %d, please wait", maxCachingAssets)
 	}
 
-	log.Debugf("carfile event: %s, add carfile replica: %d,expiration: %s", info.CarfileCid, info.Replicas, info.Expiration.String())
+	log.Debugf("asset event: %s, add asset replica: %d,expiration: %s", info.CID, info.Replicas, info.Expiration.String())
 
-	cInfo, err := m.nodeManager.LoadCarfileRecordInfo(info.CarfileHash)
+	cInfo, err := m.nodeMgr.LoadAssetRecord(info.Hash)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
 
 	if cInfo == nil {
-		// create carfile task
-		return m.carfiles.Send(CarfileHash(info.CarfileHash), CarfileStartCaches{
-			ID:                          info.CarfileCid,
-			CarfileHash:                 CarfileHash(info.CarfileHash),
+		// create asset task
+		return m.assetStateMachines.Send(AssetHash(info.Hash), AssetStartCaches{
+			ID:                          info.CID,
+			Hash:                        AssetHash(info.Hash),
 			Replicas:                    info.Replicas,
 			ServerID:                    info.ServerID,
 			CreatedAt:                   time.Now().Unix(),
@@ -222,48 +220,48 @@ func (m *Manager) CacheCarfile(info *types.CacheCarfileInfo) error {
 		})
 	}
 
-	return xerrors.New("carfile exists")
+	return xerrors.New("asset exists")
 }
 
-// FailedCarfilesRestart restart failed carfiles
-func (m *Manager) FailedCarfilesRestart(hashes []types.CarfileHash) error {
+// RestartCacheAssets restart cache carfiles
+func (m *Manager) RestartCacheAssets(hashes []types.AssetHash) error {
 	for _, hash := range hashes {
-		err := m.carfiles.Send(hash, CarfileRestart{})
+		err := m.assetStateMachines.Send(hash, CacheAssetRestart{})
 		if err != nil {
-			log.Errorf("FailedCarfilesRestart send err:%s", err.Error())
+			log.Errorf("RestartCacheAssets send err:%s", err.Error())
 		}
 	}
 
 	return nil
 }
 
-// RemoveCarfileRecord remove a carfile record
-func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
-	cInfos, err := m.nodeManager.LoadReplicaInfosOfCarfile(hash, false)
+// RemoveAsset remove a asset
+func (m *Manager) RemoveAsset(cid, hash string) error {
+	cInfos, err := m.nodeMgr.LoadAssetReplicaInfos(hash)
 	if err != nil {
-		return xerrors.Errorf("GetCarfileReplicaInfosByHash: %s,err:%s", carfileCid, err.Error())
+		return xerrors.Errorf("LoadAssetReplicaInfos: %s,err:%s", cid, err.Error())
 	}
 
 	defer func() {
-		err = m.nodeManager.RemoveCarfileRecord(hash)
+		err = m.nodeMgr.RemoveAssetRecord(hash)
 		if err != nil {
-			log.Errorf("%s RemoveCarfileRecord db err: %s", hash, err.Error())
+			log.Errorf("%s RemoveAssetRecord db err: %s", hash, err.Error())
 		}
 	}()
 
-	// remove carfile
-	err = m.carfiles.Send(CarfileHash(hash), CarfileRemove{})
+	// remove asset
+	err = m.assetStateMachines.Send(AssetHash(hash), AssetRemove{})
 	if err != nil {
-		return xerrors.Errorf("RemoveCarfileRecord send to state machine err: %s ", err.Error())
+		return xerrors.Errorf("send to state machine err: %s ", err.Error())
 	}
 
-	log.Infof("carfile event %s , remove carfile record", carfileCid)
+	log.Infof("asset event %s , remove asset", cid)
 
 	go func() {
 		for _, cInfo := range cInfos {
-			err = m.sendCacheRequest(cInfo.NodeID, carfileCid)
+			err = m.deleteAssetRequest(cInfo.NodeID, cid)
 			if err != nil {
-				log.Errorf("sendCacheRequest err: %s ", err.Error())
+				log.Errorf("deleteAssetRequest err: %s ", err.Error())
 			}
 		}
 	}()
@@ -271,12 +269,12 @@ func (m *Manager) RemoveCarfileRecord(carfileCid, hash string) error {
 	return nil
 }
 
-// cacheCarfileResult block cache result
-func (m *Manager) cacheCarfileResult(nodeID string, result *types.CacheResult) {
+// cacheAssetsResult cache result
+func (m *Manager) cacheAssetsResult(nodeID string, result *types.CacheResult) {
 	isCandidate := false
 	cacheCount := 0
 
-	nodeInfo := m.nodeManager.GetNode(nodeID)
+	nodeInfo := m.nodeMgr.GetNode(nodeID)
 	if nodeInfo != nil {
 		isCandidate = nodeInfo.NodeType == types.NodeCandidate
 		// update node info
@@ -285,7 +283,7 @@ func (m *Manager) cacheCarfileResult(nodeID string, result *types.CacheResult) {
 	}
 
 	for _, progress := range result.Progresses {
-		log.Debugf("CacheCarfileResult node_id: %s, status: %d, size: %d/%d, cid: %s ", nodeID, progress.Status, progress.DoneSize, progress.CarfileSize, progress.CarfileCid)
+		log.Debugf("cacheAssetsResult node_id: %s, status: %d, size: %d/%d, cid: %s ", nodeID, progress.Status, progress.DoneSize, progress.CarfileSize, progress.CarfileCid)
 
 		hash, err := cidutil.CIDString2HashString(progress.CarfileCid)
 		if err != nil {
@@ -295,7 +293,7 @@ func (m *Manager) cacheCarfileResult(nodeID string, result *types.CacheResult) {
 
 		{
 			m.lock.Lock()
-			tickerC, ok := m.carfileTickers[hash]
+			tickerC, ok := m.tickers[hash]
 			if ok {
 				tickerC.ticker.Reset(cacheTimeout)
 			}
@@ -314,101 +312,101 @@ func (m *Manager) cacheCarfileResult(nodeID string, result *types.CacheResult) {
 			DoneSize: progress.DoneSize,
 		}
 
-		err = m.nodeManager.UpdateUnfinishedReplicaInfo(cInfo)
+		err = m.nodeMgr.UpdateUnfinishedReplicaInfo(cInfo)
 		if err != nil {
-			log.Errorf("CacheCarfileResult %s UpdateReplicaInfo err:%s", nodeID, err.Error())
+			log.Errorf("cacheAssetsResult %s UpdateReplicaInfo err:%s", nodeID, err.Error())
 			continue
 		}
 
 		if progress.Status == types.CacheStatusCaching {
 			cacheCount++
 
-			err = m.carfiles.Send(CarfileHash(hash), CarfileInfoUpdate{
+			err = m.assetStateMachines.Send(AssetHash(hash), InfoUpdate{
 				ResultInfo: &NodeCacheResultInfo{
-					CarfileBlocksCount: int64(progress.CarfileBlocksCount),
-					CarfileSize:        progress.CarfileSize,
+					BlocksCount: int64(progress.CarfileBlocksCount),
+					Size:        progress.CarfileSize,
 				},
 			})
 			if err != nil {
-				log.Errorf("CacheCarfileResult %s statemachine send err:%s", nodeID, err.Error())
+				log.Errorf("cacheAssetsResult %s statemachine send err:%s", nodeID, err.Error())
 			}
 
 			continue
 		}
 
-		err = m.carfiles.Send(CarfileHash(hash), CacheResult{
+		err = m.assetStateMachines.Send(AssetHash(hash), CacheResult{
 			ResultInfo: &NodeCacheResultInfo{
-				NodeID:             nodeID,
-				Status:             int64(progress.Status),
-				CarfileBlocksCount: int64(progress.CarfileBlocksCount),
-				CarfileSize:        progress.CarfileSize,
-				IsCandidate:        isCandidate,
+				NodeID:      nodeID,
+				Status:      int64(progress.Status),
+				BlocksCount: int64(progress.CarfileBlocksCount),
+				Size:        progress.CarfileSize,
+				IsCandidate: isCandidate,
 			},
 		})
 		if err != nil {
-			log.Errorf("CacheCarfileResult %s statemachine send err:%s", nodeID, err.Error())
+			log.Errorf("cacheAssetsResult %s statemachine send err:%s", nodeID, err.Error())
 			continue
 		}
 	}
 }
 
-func (m *Manager) addOrResetCarfileTicker(hash string) {
+func (m *Manager) addOrResetAssetTicker(hash string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
 	fn := func() error {
 		// update replicas status
-		err := m.nodeManager.UpdateStatusOfUnfinishedReplicas(hash, types.CacheStatusFailed)
+		err := m.nodeMgr.UpdateStatusOfUnfinishedReplicas(hash, types.CacheStatusFailed)
 		if err != nil {
-			return xerrors.Errorf("carfileHash %s SetCarfileReplicasTimeout err:%s", hash, err.Error())
+			return xerrors.Errorf("addOrResetAssetTicker %s UpdateStatusOfUnfinishedReplicas err:%s", hash, err.Error())
 		}
 
-		err = m.carfiles.Send(CarfileHash(hash), CacheFailed{error: xerrors.New("waiting cache response timeout")})
+		err = m.assetStateMachines.Send(AssetHash(hash), CacheFailed{error: xerrors.New("waiting cache response timeout")})
 		if err != nil {
-			return xerrors.Errorf("carfileHash %s send time out err:%s", hash, err.Error())
+			return xerrors.Errorf("addOrResetAssetTicker %s send time out err:%s", hash, err.Error())
 		}
 
 		return nil
 	}
 
-	t, ok := m.carfileTickers[hash]
+	t, ok := m.tickers[hash]
 	if ok {
 		t.ticker.Reset(cacheTimeout)
 		return
 	}
 
-	m.carfileTickers[hash] = &carfileTicker{
+	m.tickers[hash] = &assetTicker{
 		ticker: time.NewTicker(cacheTimeout),
 		close:  make(chan struct{}),
 	}
 
-	go m.carfileTickers[hash].run(fn)
+	go m.tickers[hash].run(fn)
 }
 
-func (m *Manager) removeCarfileTicker(key string) {
+func (m *Manager) removeAssetTicker(key string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	t, ok := m.carfileTickers[key]
+	t, ok := m.tickers[key]
 	if !ok {
 		return
 	}
 
 	t.ticker.Stop()
 	close(t.close)
-	delete(m.carfileTickers, key)
+	delete(m.tickers, key)
 }
 
-// ResetCarfileExpiration reset the carfile expiration
-func (m *Manager) ResetCarfileExpiration(cid string, t time.Time) error {
+// ResetAssetRecordExpiration reset the asset expiration
+func (m *Manager) ResetAssetRecordExpiration(cid string, t time.Time) error {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return err
 	}
 
-	log.Infof("carfile event %s, reset carfile expiration:%s", cid, t.String())
+	log.Infof("asset event %s, reset asset expiration:%s", cid, t.String())
 
-	err = m.nodeManager.UpdateCarfileRecordExpiration(hash, t)
+	err = m.nodeMgr.UpdateAssetRecordExpiration(hash, t)
 	if err != nil {
 		return err
 	}
@@ -420,45 +418,45 @@ func (m *Manager) ResetCarfileExpiration(cid string, t time.Time) error {
 
 // check caches expiration
 func (m *Manager) checkCachesExpiration() {
-	if m.carfileMinExpiration.After(time.Now()) {
+	if m.minExpiration.After(time.Now()) {
 		return
 	}
 
-	carfileRecords, err := m.nodeManager.LoadExpiredCarfileRecords()
+	records, err := m.nodeMgr.LoadExpiredAssetRecords()
 	if err != nil {
-		log.Errorf("ExpiredCarfiles err:%s", err.Error())
+		log.Errorf("LoadExpiredAssetRecords err:%s", err.Error())
 		return
 	}
 
-	for _, carfileRecord := range carfileRecords {
+	for _, record := range records {
 		// do remove
-		err = m.RemoveCarfileRecord(carfileRecord.CarfileCID, carfileRecord.CarfileHash)
-		log.Infof("the carfile cid(%s) has expired, being removed, err: %v", carfileRecord.CarfileCID, err)
+		err = m.RemoveAsset(record.CID, record.Hash)
+		log.Infof("the asset cid(%s) has expired, being removed, err: %v", record.CID, err)
 	}
 
 	// reset expiration
-	latestExpiration, err := m.nodeManager.LoadMinExpirationOfCarfileRecords()
+	expiration, err := m.nodeMgr.LoadMinExpirationOfAssetRecords()
 	if err != nil {
 		return
 	}
 
-	m.resetLatestExpiration(latestExpiration)
+	m.resetLatestExpiration(expiration)
 }
 
 func (m *Manager) resetLatestExpiration(t time.Time) {
-	if m.carfileMinExpiration.After(t) {
-		m.carfileMinExpiration = t
+	if m.minExpiration.After(t) {
+		m.minExpiration = t
 	}
 }
 
-// Notify node to delete carfile
-func (m *Manager) sendCacheRequest(nodeID, cid string) error {
-	edge := m.nodeManager.GetEdgeNode(nodeID)
+// Notify node to delete asset
+func (m *Manager) deleteAssetRequest(nodeID, cid string) error {
+	edge := m.nodeMgr.GetEdgeNode(nodeID)
 	if edge != nil {
 		return edge.API().DeleteCarfile(context.Background(), cid)
 	}
 
-	candidate := m.nodeManager.GetCandidateNode(nodeID)
+	candidate := m.nodeMgr.GetCandidateNode(nodeID)
 	if candidate != nil {
 		return candidate.API().DeleteCarfile(context.Background(), cid)
 	}
@@ -468,7 +466,7 @@ func (m *Manager) sendCacheRequest(nodeID, cid string) error {
 
 // GetCandidateReplicaCount get candidate replica count
 func (m *Manager) GetCandidateReplicaCount() int {
-	cfg, err := m.getSchedulerConfigFunc()
+	cfg, err := m.schedulerConfig()
 	if err != nil {
 		log.Errorf("getSchedulerConfigFunc err:%s", err.Error())
 		return 0
@@ -481,21 +479,21 @@ func replicaID(hash, nodeID string) string {
 	return fmt.Sprintf("%s_%s", hash, nodeID)
 }
 
-// GetCarfileRecordInfo get carfile record info of cid
-func (m *Manager) GetCarfileRecordInfo(cid string) (*types.CarfileRecordInfo, error) {
+// GetAssetRecordInfo get asset record info of cid
+func (m *Manager) GetAssetRecordInfo(cid string) (*types.AssetRecord, error) {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return nil, err
 	}
 
-	dInfo, err := m.nodeManager.LoadCarfileRecordInfo(hash)
+	dInfo, err := m.nodeMgr.LoadAssetRecord(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	dInfo.ReplicaInfos, err = m.nodeManager.LoadReplicaInfosOfCarfile(hash, false)
+	dInfo.ReplicaInfos, err = m.nodeMgr.LoadAssetReplicaInfos(hash)
 	if err != nil {
-		log.Errorf("loadData hash:%s, GetCarfileReplicaInfosByHash err:%s", hash, err.Error())
+		log.Errorf("loadData hash:%s, LoadAssetReplicaInfos err:%s", hash, err.Error())
 	}
 
 	return dInfo, err
@@ -509,7 +507,7 @@ func (m *Manager) findEdges(count int, filterNodes []string) []*node.Edge {
 		return list
 	}
 
-	m.nodeManager.EdgeNodes.Range(func(key, value interface{}) bool {
+	m.nodeMgr.EdgeNodes.Range(func(key, value interface{}) bool {
 		edgeNode := value.(*node.Edge)
 
 		for _, nodeID := range filterNodes {
@@ -545,7 +543,7 @@ func (m *Manager) findCandidates(count int, filterNodes []string) []*node.Candid
 		return list
 	}
 
-	m.nodeManager.CandidateNodes.Range(func(key, value interface{}) bool {
+	m.nodeMgr.CandidateNodes.Range(func(key, value interface{}) bool {
 		candidateNode := value.(*node.Candidate)
 
 		for _, nodeID := range filterNodes {
@@ -582,12 +580,12 @@ func (m *Manager) saveCandidateReplicaInfos(nodes []*node.Candidate, hash string
 			ID:          replicaID(hash, node.NodeID),
 			NodeID:      node.NodeID,
 			Status:      types.CacheStatusWaiting,
-			CarfileHash: hash,
+			Hash:        hash,
 			IsCandidate: true,
 		})
 	}
 
-	return m.nodeManager.BatchUpsertReplicas(replicaInfos)
+	return m.nodeMgr.BatchUpsertReplicas(replicaInfos)
 }
 
 func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
@@ -599,12 +597,12 @@ func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
 			ID:          replicaID(hash, node.NodeID),
 			NodeID:      node.NodeID,
 			Status:      types.CacheStatusWaiting,
-			CarfileHash: hash,
+			Hash:        hash,
 			IsCandidate: false,
 		})
 	}
 
-	return m.nodeManager.BatchUpsertReplicas(replicaInfos)
+	return m.nodeMgr.BatchUpsertReplicas(replicaInfos)
 }
 
 // Sources get download sources
@@ -612,12 +610,12 @@ func (m *Manager) Sources(cid string, nodes []string) []*types.DownloadSource {
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	sources := make([]*types.DownloadSource, 0)
 	for _, nodeID := range nodes {
-		cNode := m.nodeManager.GetCandidateNode(nodeID)
+		cNode := m.nodeMgr.GetCandidateNode(nodeID)
 		if cNode == nil {
 			continue
 		}
 
-		credentials, err := cNode.Credentials(cid, titanRsa, m.nodeManager.PrivateKey)
+		credentials, err := cNode.Credentials(cid, titanRsa, m.nodeMgr.PrivateKey)
 		if err != nil {
 			continue
 		}

@@ -1,4 +1,4 @@
-package caching
+package assets
 
 import (
 	"time"
@@ -15,10 +15,10 @@ var (
 	MaxRetryCount = 3
 )
 
-func failedCoolDown(ctx statemachine.Context, info CarfileCacheInfo) error {
+func failedCoolDown(ctx statemachine.Context, info AssetCachingInfo) error {
 	retryStart := time.Now().Add(MinRetryTime)
 	if time.Now().Before(retryStart) {
-		log.Debugf("%s(%s), waiting %s before retrying", info.State, info.CarfileHash, time.Until(retryStart))
+		log.Debugf("%s(%s), waiting %s before retrying", info.State, info.Hash, time.Until(retryStart))
 		select {
 		case <-time.After(time.Until(retryStart)):
 		case <-ctx.Context().Done():
@@ -29,8 +29,8 @@ func failedCoolDown(ctx statemachine.Context, info CarfileCacheInfo) error {
 	return nil
 }
 
-func (m *Manager) handleCacheCarfileSeed(ctx statemachine.Context, info CarfileCacheInfo) error {
-	log.Debugf("handle cache seed: %s", info.CarfileCID)
+func (m *Manager) handleCacheAssetSeed(ctx statemachine.Context, info AssetCachingInfo) error {
+	log.Debugf("handle cache seed: %s", info.CID)
 
 	// find nodes
 	nodes := m.findCandidates(seedCacheCount, info.CandidateReplicaSucceeds)
@@ -39,19 +39,19 @@ func (m *Manager) handleCacheCarfileSeed(ctx statemachine.Context, info CarfileC
 	}
 
 	// save to db
-	err := m.saveCandidateReplicaInfos(nodes, info.CarfileHash.String())
+	err := m.saveCandidateReplicaInfos(nodes, info.Hash.String())
 	if err != nil {
 		return ctx.Send(CacheFailed{error: err})
 	}
 
-	m.addOrResetCarfileTicker(info.CarfileHash.String())
+	m.addOrResetAssetTicker(info.Hash.String())
 
 	// send a cache request to the node
 	go func() {
 		for _, node := range nodes {
-			err := node.API().CacheCarfile(ctx.Context(), info.CarfileCID, nil)
+			err := node.API().CacheCarfile(ctx.Context(), info.CID, nil)
 			if err != nil {
-				log.Errorf("%s CacheCarfile err:%s", node.NodeID, err.Error())
+				log.Errorf("%s Cache asset err:%s", node.NodeID, err.Error())
 				continue
 			}
 
@@ -62,8 +62,8 @@ func (m *Manager) handleCacheCarfileSeed(ctx statemachine.Context, info CarfileC
 	return ctx.Send(CacheRequestSent{})
 }
 
-func (m *Manager) handleCarfileSeedCaching(ctx statemachine.Context, info CarfileCacheInfo) error {
-	log.Debugf("handle seed caching, %s", info.CarfileCID)
+func (m *Manager) handleAssetSeedCaching(ctx statemachine.Context, info AssetCachingInfo) error {
+	log.Debugf("handle seed caching, %s", info.CID)
 
 	if len(info.CandidateReplicaSucceeds) >= seedCacheCount {
 		return ctx.Send(CacheSucceed{})
@@ -76,8 +76,8 @@ func (m *Manager) handleCarfileSeedCaching(ctx statemachine.Context, info Carfil
 	return nil
 }
 
-func (m *Manager) handleFindCandidatesToCache(ctx statemachine.Context, info CarfileCacheInfo) error {
-	log.Debugf("handle cache to candidates, %s", info.CarfileCID)
+func (m *Manager) handleFindCandidatesToCache(ctx statemachine.Context, info AssetCachingInfo) error {
+	log.Debugf("handle cache to candidates, %s", info.CID)
 
 	needCount := info.CandidateReplicas - int64(len(info.CandidateReplicaSucceeds))
 	if needCount < 1 {
@@ -92,21 +92,21 @@ func (m *Manager) handleFindCandidatesToCache(ctx statemachine.Context, info Car
 	}
 
 	// save to db
-	err := m.saveCandidateReplicaInfos(nodes, info.CarfileHash.String())
+	err := m.saveCandidateReplicaInfos(nodes, info.Hash.String())
 	if err != nil {
 		return ctx.Send(CacheFailed{error: err})
 	}
 
-	sources := m.Sources(info.CarfileHash.String(), info.CandidateReplicaSucceeds)
+	sources := m.Sources(info.Hash.String(), info.CandidateReplicaSucceeds)
 
-	m.addOrResetCarfileTicker(info.CarfileHash.String())
+	m.addOrResetAssetTicker(info.Hash.String())
 
 	// send a cache request to the node
 	go func() {
 		for _, node := range nodes {
-			err := node.API().CacheCarfile(ctx.Context(), info.CarfileCID, sources)
+			err := node.API().CacheCarfile(ctx.Context(), info.CID, sources)
 			if err != nil {
-				log.Errorf("%s CacheCarfile err:%s", node.NodeID, err.Error())
+				log.Errorf("%s Cache asset err:%s", node.NodeID, err.Error())
 				continue
 			}
 
@@ -117,8 +117,8 @@ func (m *Manager) handleFindCandidatesToCache(ctx statemachine.Context, info Car
 	return ctx.Send(CacheRequestSent{})
 }
 
-func (m *Manager) handleCandidatesCaching(ctx statemachine.Context, info CarfileCacheInfo) error {
-	log.Debugf("handle candidates caching, %s", info.CarfileCID)
+func (m *Manager) handleCandidatesCaching(ctx statemachine.Context, info AssetCachingInfo) error {
+	log.Debugf("handle candidates caching, %s", info.CID)
 
 	if int64(len(info.CandidateReplicaSucceeds)) >= info.CandidateReplicas {
 		return ctx.Send(CacheSucceed{})
@@ -131,15 +131,15 @@ func (m *Manager) handleCandidatesCaching(ctx statemachine.Context, info Carfile
 	return nil
 }
 
-func (m *Manager) handleFindEdgesToCache(ctx statemachine.Context, info CarfileCacheInfo) error {
-	log.Debugf("handle cache to edges , %s", info.CarfileCID)
+func (m *Manager) handleFindEdgesToCache(ctx statemachine.Context, info AssetCachingInfo) error {
+	log.Debugf("handle cache to edges , %s", info.CID)
 
 	needCount := info.EdgeReplicas - int64(len(info.EdgeReplicaSucceeds))
 	if needCount < 1 {
 		return ctx.Send(CacheSucceed{})
 	}
 
-	sources := m.Sources(info.CarfileHash.String(), info.CandidateReplicaSucceeds)
+	sources := m.Sources(info.Hash.String(), info.CandidateReplicaSucceeds)
 	if len(sources) < 1 {
 		return ctx.Send(CacheFailed{error: xerrors.New("source node not found")})
 	}
@@ -151,19 +151,19 @@ func (m *Manager) handleFindEdgesToCache(ctx statemachine.Context, info CarfileC
 	}
 
 	// save to db
-	err := m.saveEdgeReplicaInfos(nodes, info.CarfileHash.String())
+	err := m.saveEdgeReplicaInfos(nodes, info.Hash.String())
 	if err != nil {
 		return ctx.Send(CacheFailed{error: err})
 	}
 
-	m.addOrResetCarfileTicker(info.CarfileHash.String())
+	m.addOrResetAssetTicker(info.Hash.String())
 
 	// send a cache request to the node
 	go func() {
 		for _, node := range nodes {
-			err := node.API().CacheCarfile(ctx.Context(), info.CarfileCID, sources)
+			err := node.API().CacheCarfile(ctx.Context(), info.CID, sources)
 			if err != nil {
-				log.Errorf("%s CacheCarfile err:%s", node.NodeID, err.Error())
+				log.Errorf("%s Cache asset err:%s", node.NodeID, err.Error())
 				continue
 			}
 
@@ -174,8 +174,8 @@ func (m *Manager) handleFindEdgesToCache(ctx statemachine.Context, info CarfileC
 	return ctx.Send(CacheRequestSent{})
 }
 
-func (m *Manager) handleEdgesCaching(ctx statemachine.Context, info CarfileCacheInfo) error {
-	log.Debugf("handle edge caching, %s", info.CarfileCID)
+func (m *Manager) handleEdgesCaching(ctx statemachine.Context, info AssetCachingInfo) error {
+	log.Debugf("handle edge caching, %s", info.CID)
 	if int64(len(info.EdgeReplicaSucceeds)) >= info.EdgeReplicas {
 		return ctx.Send(CacheSucceed{})
 	}
@@ -187,26 +187,26 @@ func (m *Manager) handleEdgesCaching(ctx statemachine.Context, info CarfileCache
 	return nil
 }
 
-func (m *Manager) handleFinished(ctx statemachine.Context, info CarfileCacheInfo) error {
-	log.Debugf("handle carfile finalize: %s", info.CarfileCID)
-	m.removeCarfileTicker(info.CarfileHash.String())
+func (m *Manager) handleFinished(ctx statemachine.Context, info AssetCachingInfo) error {
+	log.Debugf("handle asset finalize: %s", info.CID)
+	m.removeAssetTicker(info.Hash.String())
 
 	return nil
 }
 
-func (m *Manager) handleCachesFailed(ctx statemachine.Context, info CarfileCacheInfo) error {
-	m.removeCarfileTicker(info.CarfileHash.String())
+func (m *Manager) handleCachesFailed(ctx statemachine.Context, info AssetCachingInfo) error {
+	m.removeAssetTicker(info.Hash.String())
 
 	if info.RetryCount >= int64(MaxRetryCount) {
-		log.Debugf("handle caches failed: %s reached the max retry count(%d), stop retrying", info.CarfileHash, info.RetryCount)
+		log.Debugf("handle caches failed: %s reached the max retry count(%d), stop retrying", info.Hash, info.RetryCount)
 		return nil
 	}
 
-	log.Debugf("handle caches failed: %s, retries: %d", info.CarfileHash, info.RetryCount+1)
+	log.Debugf("handle caches failed: %s, retries: %d", info.Hash, info.RetryCount+1)
 
 	if err := failedCoolDown(ctx, info); err != nil {
 		return err
 	}
 
-	return ctx.Send(CarfileReCache{})
+	return ctx.Send(AssetReCache{})
 }

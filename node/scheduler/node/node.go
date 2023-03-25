@@ -24,8 +24,9 @@ import (
 // Edge Edge node
 type Edge struct {
 	nodeAPI api.Edge
-	closer  jsonrpc.ClientCloser
-	token   string
+	api.CarfileOperation
+	closer jsonrpc.ClientCloser
+	token  string
 	*BaseInfo
 }
 
@@ -196,17 +197,17 @@ func (n *BaseInfo) SetLastRequestTime(t time.Time) {
 	n.lastRequestTime = t
 }
 
-// SetCurCacheCount set NodeMgrCache count
+// SetCurCacheCount set node caching count
 func (n *BaseInfo) SetCurCacheCount(t int) {
 	n.cacheCount = t
 }
 
-// IncrCurCacheCount Incr NodeMgrCache count
+// IncrCurCacheCount Incr caching count
 func (n *BaseInfo) IncrCurCacheCount(v int) {
 	n.cacheCount += v
 }
 
-// CurCacheCount NodeMgrCache count
+// CurCacheCount caching count
 func (n *BaseInfo) CurCacheCount() int {
 	return n.cacheCount
 }

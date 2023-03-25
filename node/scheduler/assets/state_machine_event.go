@@ -1,4 +1,4 @@
-package caching
+package assets
 
 import (
 	"github.com/linguohua/titan/api/types"
@@ -6,14 +6,14 @@ import (
 )
 
 type mutator interface {
-	apply(state *CarfileCacheInfo)
+	apply(state *AssetCachingInfo)
 }
 
 // globalMutator is an event which can apply in every state
 type globalMutator interface {
 	// applyGlobal applies the event to the state. If if returns true,
 	//  event processing should be interrupted
-	applyGlobal(state *CarfileCacheInfo) bool
+	applyGlobal(state *AssetCachingInfo) bool
 }
 
 // Ignorable Ignorable
@@ -23,57 +23,57 @@ type Ignorable interface {
 
 // Global events
 
-// CarfileRestart restart
-type CarfileRestart struct{}
+// CacheAssetRestart restart
+type CacheAssetRestart struct{}
 
-func (evt CarfileRestart) applyGlobal(state *CarfileCacheInfo) bool {
+func (evt CacheAssetRestart) applyGlobal(state *AssetCachingInfo) bool {
 	state.RetryCount = 0
 	return false
 }
 
-// CarfileFatalError Carfile fatal error
-type CarfileFatalError struct{ error }
+// CacheAssetFatalError cache asset fatal error
+type CacheAssetFatalError struct{ error }
 
 // FormatError Format error
-func (evt CarfileFatalError) FormatError(xerrors.Printer) (next error) { return evt.error }
+func (evt CacheAssetFatalError) FormatError(xerrors.Printer) (next error) { return evt.error }
 
-func (evt CarfileFatalError) applyGlobal(state *CarfileCacheInfo) bool {
-	log.Errorf("Fatal error on carfile %s: %+v", state.CarfileCID, evt.error)
+func (evt CacheAssetFatalError) applyGlobal(state *AssetCachingInfo) bool {
+	log.Errorf("Fatal error on asset %s: %+v", state.CID, evt.error)
 	return true
 }
 
-// CarfileForceState carfile force
-type CarfileForceState struct {
-	State CarfileState
+// AssetForceState asset force
+type AssetForceState struct {
+	State AssetState
 }
 
-func (evt CarfileForceState) applyGlobal(state *CarfileCacheInfo) bool {
+func (evt AssetForceState) applyGlobal(state *AssetCachingInfo) bool {
 	state.State = evt.State
 	return true
 }
 
-// CarfileRemove remove
-type CarfileRemove struct{}
+// AssetRemove remove
+type AssetRemove struct{}
 
-func (evt CarfileRemove) applyGlobal(state *CarfileCacheInfo) bool {
-	*state = CarfileCacheInfo{State: Removing}
+func (evt AssetRemove) applyGlobal(state *AssetCachingInfo) bool {
+	*state = AssetCachingInfo{State: Remove}
 	return true
 }
 
-// CarfileInfoUpdate update carfile info
-type CarfileInfoUpdate struct {
+// InfoUpdate update asset info
+type InfoUpdate struct {
 	ResultInfo *NodeCacheResultInfo
 }
 
-func (evt CarfileInfoUpdate) applyGlobal(state *CarfileCacheInfo) bool {
+func (evt InfoUpdate) applyGlobal(state *AssetCachingInfo) bool {
 	rInfo := evt.ResultInfo
 	if rInfo == nil {
 		return true
 	}
 
-	if state.State == CarfileSeedCaching {
-		state.Size = rInfo.CarfileSize
-		state.Blocks = rInfo.CarfileBlocksCount
+	if state.State == AssetSeedCaching {
+		state.Size = rInfo.Size
+		state.Blocks = rInfo.BlocksCount
 	}
 
 	return true
@@ -84,15 +84,15 @@ type CacheResult struct {
 	ResultInfo *NodeCacheResultInfo
 }
 
-func (evt CacheResult) apply(state *CarfileCacheInfo) {
+func (evt CacheResult) apply(state *AssetCachingInfo) {
 	rInfo := evt.ResultInfo
 	if rInfo == nil {
 		return
 	}
 
-	if state.State == CarfileSeedCaching {
-		state.Size = rInfo.CarfileSize
-		state.Blocks = rInfo.CarfileBlocksCount
+	if state.State == AssetSeedCaching {
+		state.Size = rInfo.Size
+		state.Blocks = rInfo.BlocksCount
 	}
 
 	nodeID := rInfo.NodeID
@@ -129,20 +129,20 @@ func exist(list []string, c string) bool {
 	return false
 }
 
-// CacheRequestSent request nodes cache carfile
+// CacheRequestSent request nodes cache asset
 type CacheRequestSent struct{}
 
-func (evt CacheRequestSent) apply(state *CarfileCacheInfo) {
+func (evt CacheRequestSent) apply(state *AssetCachingInfo) {
 	state.CandidateReplicaFailures = make([]string, 0)
 	state.EdgeReplicaFailures = make([]string, 0)
 }
 
 // Normal path
 
-// CarfileStartCaches start caches
-type CarfileStartCaches struct {
+// AssetStartCaches start caches
+type AssetStartCaches struct {
 	ID                          string
-	CarfileHash                 CarfileHash
+	Hash                        AssetHash
 	Replicas                    int64
 	ServerID                    string
 	CreatedAt                   int64
@@ -150,9 +150,9 @@ type CarfileStartCaches struct {
 	CandidateReplicaCachesCount int
 }
 
-func (evt CarfileStartCaches) apply(state *CarfileCacheInfo) {
-	state.CarfileCID = evt.ID
-	state.CarfileHash = evt.CarfileHash
+func (evt AssetStartCaches) apply(state *AssetCachingInfo) {
+	state.CID = evt.ID
+	state.Hash = evt.Hash
 	state.EdgeReplicas = evt.Replicas
 	state.ServerID = evt.ServerID
 	state.CreatedAt = evt.CreatedAt
@@ -160,24 +160,24 @@ func (evt CarfileStartCaches) apply(state *CarfileCacheInfo) {
 	state.CandidateReplicas = int64(seedCacheCount + evt.CandidateReplicaCachesCount)
 }
 
-// CarfileReCache get first carfile to candidate
-type CarfileReCache struct{}
+// AssetReCache get first asset to candidate
+type AssetReCache struct{}
 
-func (evt CarfileReCache) apply(state *CarfileCacheInfo) {}
+func (evt AssetReCache) apply(state *AssetCachingInfo) {}
 
-// CacheSucceed nodes cache carfile completed
+// CacheSucceed nodes cache asset completed
 type CacheSucceed struct{}
 
-func (evt CacheSucceed) apply(state *CarfileCacheInfo) {
+func (evt CacheSucceed) apply(state *AssetCachingInfo) {
 	state.RetryCount = 0
 }
 
-// CacheFailed nodes cache carfile failed
+// CacheFailed nodes cache asset failed
 type CacheFailed struct{ error }
 
 // FormatError Format error
 func (evt CacheFailed) FormatError(xerrors.Printer) (next error) { return evt.error }
 
-func (evt CacheFailed) apply(state *CarfileCacheInfo) {
+func (evt CacheFailed) apply(state *AssetCachingInfo) {
 	state.RetryCount++
 }

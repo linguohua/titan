@@ -69,7 +69,7 @@ CREATE TABLE `node_register_info` (
 
 CREATE TABLE `replicas` (
     `id` varchar(128) NOT NULL UNIQUE,
-	`carfile_hash` varchar(128) NOT NULL,
+	`hash` varchar(128) NOT NULL,
     `status` TINYINT  DEFAULT '0' ,
     `node_id` varchar(128) NOT NULL ,
     `done_size` BIGINT DEFAULT '0' ,
@@ -78,9 +78,9 @@ CREATE TABLE `replicas` (
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB COMMENT='replicas info';
 
-CREATE TABLE `carfiles` (
-	`carfile_hash` varchar(128) NOT NULL UNIQUE,
-	`carfile_cid` varchar(128) NOT NULL UNIQUE,
+CREATE TABLE `asset_records` (
+	`hash` varchar(128) NOT NULL UNIQUE,
+	`cid` varchar(128) NOT NULL UNIQUE,
     `total_size` BIGINT  DEFAULT '0' ,
     `total_blocks` int  DEFAULT '0' ,
 	`edge_replicas` TINYINT DEFAULT '0' ,
@@ -90,8 +90,8 @@ CREATE TABLE `carfiles` (
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
     `server_id` varchar(128) NOT NULL,
-	PRIMARY KEY (`carfile_hash`)
-) ENGINE=InnoDB COMMENT='carfile infos';
+	PRIMARY KEY (`hash`)
+) ENGINE=InnoDB COMMENT='asset records';
 
 CREATE TABLE `edge_update_info` (
 	`node_type` int NOT NULL UNIQUE,
