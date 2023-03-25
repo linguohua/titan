@@ -369,7 +369,7 @@ func (m *Manager) NodesQuit(nodeIDs []string) {
 
 	hashes, err := m.LoadAssetHashesOfNodes(nodeIDs)
 	if err != nil {
-		log.Errorf("LoadCarfileRecordsWithNodes err:%s", err.Error())
+		log.Errorf("LoadAssetHashesOfNodes err:%s", err.Error())
 		return
 	}
 

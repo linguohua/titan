@@ -59,7 +59,7 @@ var resetExpirationCmd = &cli.Command{
 			return xerrors.Errorf("date time err:%s", err.Error())
 		}
 
-		err = schedulerAPI.ResetCarfileExpiration(ctx, carfileCid, time)
+		err = schedulerAPI.ResetAssetExpiration(ctx, carfileCid, time)
 		if err != nil {
 			return err
 		}
@@ -85,7 +85,7 @@ var removeCarfileCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.RemoveCarfile(ctx, cid)
+		return schedulerAPI.RemoveAsset(ctx, cid)
 	},
 }
 
@@ -105,7 +105,7 @@ var showCarfileInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		info, err := schedulerAPI.CarfileRecord(ctx, cid)
+		info, err := schedulerAPI.AssetRecord(ctx, cid)
 		if err != nil {
 			return err
 		}
@@ -166,7 +166,7 @@ var cacheCarfileCmd = &cli.Command{
 		info.Expiration = eTime
 		info.Replicas = replicaCount
 
-		err = schedulerAPI.CacheCarfiles(ctx, info)
+		err = schedulerAPI.CacheAsset(ctx, info)
 		if err != nil {
 			return err
 		}
@@ -238,7 +238,7 @@ var listCarfilesCmd = &cli.Command{
 			tablewriter.NewLineCol("Processes"),
 		)
 
-		list, err := schedulerAPI.CarfileRecords(ctx, limit, offset, states)
+		list, err := schedulerAPI.AssetRecords(ctx, limit, offset, states)
 		if err != nil {
 			return err
 		}
@@ -282,7 +282,7 @@ var listCarfilesCmd = &cli.Command{
 				hashes = append(hashes, types.AssetHash(carfile.Hash))
 			}
 		}
-		return schedulerAPI.RestartFailedCarfiles(ctx, hashes)
+		return schedulerAPI.RestartFailedAssets(ctx, hashes)
 	},
 }
 

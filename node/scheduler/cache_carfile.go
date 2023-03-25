@@ -10,8 +10,8 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// RemoveCarfileResult remove carfile result
-func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo types.RemoveCarfileResult) error {
+// RemoveAssetResult remove asset result
+func (s *Scheduler) RemoveAssetResult(ctx context.Context, resultInfo types.RemoveAssetResult) error {
 	nodeID := handler.GetNodeID(ctx)
 
 	// update node info
@@ -24,22 +24,22 @@ func (s *Scheduler) RemoveCarfileResult(ctx context.Context, resultInfo types.Re
 	return nil
 }
 
-// RestartFailedCarfiles restart failed carfiles
-func (s *Scheduler) RestartFailedCarfiles(ctx context.Context, hashes []types.AssetHash) error {
+// RestartFailedAssets restart failed assets
+func (s *Scheduler) RestartFailedAssets(ctx context.Context, hashes []types.AssetHash) error {
 	return s.DataManager.RestartCacheAssets(hashes)
 }
 
-// ResetCarfileExpiration reset expiration time with data cache
-func (s *Scheduler) ResetCarfileExpiration(ctx context.Context, carfileCid string, t time.Time) error {
+// ResetAssetExpiration reset expiration time with data cache
+func (s *Scheduler) ResetAssetExpiration(ctx context.Context, cid string, t time.Time) error {
 	if time.Now().After(t) {
 		return xerrors.Errorf("expiration:%s has passed", t.String())
 	}
 
-	return s.DataManager.ResetAssetRecordExpiration(carfileCid, t)
+	return s.DataManager.ResetAssetRecordExpiration(cid, t)
 }
 
-// CarfileRecord Show Data Task
-func (s *Scheduler) CarfileRecord(ctx context.Context, cid string) (*types.AssetRecord, error) {
+// AssetRecord Show Data Task
+func (s *Scheduler) AssetRecord(ctx context.Context, cid string) (*types.AssetRecord, error) {
 	info, err := s.DataManager.GetAssetRecordInfo(cid)
 	if err != nil {
 		return nil, err
@@ -48,8 +48,8 @@ func (s *Scheduler) CarfileRecord(ctx context.Context, cid string) (*types.Asset
 	return info, nil
 }
 
-// CarfileRecords List carfiles
-func (s *Scheduler) CarfileRecords(ctx context.Context, limit, offset int, states []string) ([]*types.AssetRecord, error) {
+// AssetRecords List assets
+func (s *Scheduler) AssetRecords(ctx context.Context, limit, offset int, states []string) ([]*types.AssetRecord, error) {
 	rows, err := s.NodeManager.LoadAssetRecords(states, limit, offset, s.ServerID)
 	if err != nil {
 		return nil, err
@@ -57,18 +57,18 @@ func (s *Scheduler) CarfileRecords(ctx context.Context, limit, offset int, state
 
 	list := make([]*types.AssetRecord, 0)
 
-	// loading carfiles to local
+	// loading assets to local
 	for rows.Next() {
 		cInfo := &types.AssetRecord{}
 		err = rows.StructScan(cInfo)
 		if err != nil {
-			log.Errorf("carfile StructScan err: %s", err.Error())
+			log.Errorf("asset StructScan err: %s", err.Error())
 			continue
 		}
 
 		cInfo.ReplicaInfos, err = s.NodeManager.LoadAssetReplicaInfos(cInfo.Hash)
 		if err != nil {
-			log.Errorf("carfile %s load replicas err: %s", cInfo.CID, err.Error())
+			log.Errorf("asset %s load replicas err: %s", cInfo.CID, err.Error())
 			continue
 		}
 
@@ -78,8 +78,8 @@ func (s *Scheduler) CarfileRecords(ctx context.Context, limit, offset int, state
 	return list, nil
 }
 
-// RemoveCarfile remove all caches with carfile cid
-func (s *Scheduler) RemoveCarfile(ctx context.Context, cid string) error {
+// RemoveAsset remove all caches with asset cid
+func (s *Scheduler) RemoveAsset(ctx context.Context, cid string) error {
 	if cid == "" {
 		return xerrors.Errorf("Cid Is Nil")
 	}
@@ -92,8 +92,8 @@ func (s *Scheduler) RemoveCarfile(ctx context.Context, cid string) error {
 	return s.DataManager.RemoveAsset(cid, hash)
 }
 
-// CacheCarfiles nodeMgrCache Carfile
-func (s *Scheduler) CacheCarfiles(ctx context.Context, info *types.CacheAssetReq) error {
+// CacheAsset cache asset
+func (s *Scheduler) CacheAsset(ctx context.Context, info *types.CacheAssetReq) error {
 	if info.CID == "" {
 		return xerrors.New("Cid is Nil")
 	}

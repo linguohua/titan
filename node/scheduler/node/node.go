@@ -24,9 +24,8 @@ import (
 // Edge Edge node
 type Edge struct {
 	nodeAPI api.Edge
-	api.CarfileOperation
-	closer jsonrpc.ClientCloser
-	token  string
+	closer  jsonrpc.ClientCloser
+	token   string
 	*BaseInfo
 }
 

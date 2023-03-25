@@ -6,34 +6,35 @@ import (
 	"github.com/linguohua/titan/node/modules/dtypes"
 )
 
-// ListCarfileRecordRsp Data List Info
-type ListCarfileRecordRsp struct {
-	Page           int
-	TotalPage      int
-	Cids           int
-	CarfileRecords []*AssetRecord
+// ListAssetRecordRsp Data List Info
+type ListAssetRecordRsp struct {
+	Page      int
+	TotalPage int
+	Cids      int
+	records   []*AssetRecord
 }
 
-type CarfileProgress struct {
-	CarfileCid         string
-	Status             CacheStatus
-	Msg                string
-	CarfileBlocksCount int
-	DoneBlocksCount    int
-	CarfileSize        int64
-	DoneSize           int64
+// AssetCacheProgress cache asset progress
+type AssetCacheProgress struct {
+	CID             string
+	Status          CacheStatus
+	Msg             string
+	BlocksCount     int
+	DoneBlocksCount int
+	Size            int64
+	DoneSize        int64
 }
 
 // CacheResult cache data result info
 type CacheResult struct {
-	Progresses       []*CarfileProgress
+	Progresses       []*AssetCacheProgress
 	DiskUsage        float64
 	TotalBlocksCount int
-	CarfileCount     int
+	AssetCount       int
 }
 
-// RemoveCarfileResult remove carfile result
-type RemoveCarfileResult struct {
+// RemoveAssetResult remove asset result
+type RemoveAssetResult struct {
 	BlocksCount int
 	DiskUsage   float64
 }
@@ -56,7 +57,7 @@ type AssetRecord struct {
 	EdgeReplica  int64
 }
 
-// ReplicaInfo Carfile Replica Info
+// ReplicaInfo asset Replica Info
 type ReplicaInfo struct {
 	ID          string
 	Hash        string      `db:"hash"`
@@ -115,7 +116,8 @@ var CacheStatusAll = []string{
 	CacheStatusSucceeded.String(),
 }
 
-type ListCacheInfosReq struct {
+// ListReplicaInfosReq list asset replicas
+type ListReplicaInfosReq struct {
 	// Unix timestamp
 	StartTime int64 `json:"start_time"`
 	// Unix timestamp
@@ -124,17 +126,10 @@ type ListCacheInfosReq struct {
 	Count   int   `json:"count"`
 }
 
-// ListAssetReplicaRsp list carfile replica
-type ListAssetReplicaRsp struct {
-	Datas []*ReplicaInfo `json:"data"`
-	Total int64          `json:"total"`
-}
-
-// SystemBaseInfo  system base info for titan
-type SystemBaseInfo struct {
-	CarFileCount     int   `json:"car_file_count" redis:"CarfileCount"`
-	DownloadCount    int   `json:"download_blocks" redis:"DownloadCount"`
-	NextElectionTime int64 `json:"next_election_time" redis:"NextElectionTime"`
+// ListReplicaInfosRsp list asset replica
+type ListReplicaInfosRsp struct {
+	Replicas []*ReplicaInfo `json:"data"`
+	Total    int64          `json:"total"`
 }
 
 type DownloadSource struct {
@@ -143,20 +138,20 @@ type DownloadSource struct {
 }
 
 type CacheStat struct {
-	TotalCarfileCount     int
-	TotalBlockCount       int
-	WaitCacheCarfileCount int
-	CachingCarfileCID     string
-	DiskUsage             float64
+	TotalAssetCount     int
+	TotalBlockCount     int
+	WaitCacheAssetCount int
+	CachingAssetCID     string
+	DiskUsage           float64
 }
 
-type CachingCarfile struct {
-	CarfileCID string
-	TotalSize  int64
-	DoneSize   int64
+type CachingAsset struct {
+	CID       string
+	TotalSize int64
+	DoneSize  int64
 }
 
-// AssetHash is an identifier for a carfile.
+// AssetHash is an identifier for a asset.
 type AssetHash string
 
 func (c AssetHash) String() string {

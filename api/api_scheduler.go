@@ -22,16 +22,16 @@ type Scheduler interface {
 	SetNodePort(ctx context.Context, nodeID, port string) error                                //perm:admin
 	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error                  //perm:write
 	// node send result when user download block complete
-	UserDownloadResult(ctx context.Context, result types.UserDownloadResult) error       //perm:write
-	EdgeNodeConnect(ctx context.Context, token string) error                             //perm:write
-	NodeValidatedResult(ctx context.Context, validateResult ValidateResult) error        //perm:write
-	CandidateNodeConnect(ctx context.Context, token string) error                        //perm:write
-	RemoveCarfileResult(ctx context.Context, resultInfo types.RemoveCarfileResult) error //perm:write
-	NodeExternalServiceAddress(ctx context.Context) (string, error)                      //perm:read
-	NodeAuthVerify(ctx context.Context, token string) ([]auth.Permission, error)         //perm:read
-	NodeAuthNew(ctx context.Context, nodeID, sign string) (string, error)                //perm:read
-	NodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error)                 //perm:read
-	NodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error)    //perm:read
+	UserDownloadResult(ctx context.Context, result types.UserDownloadResult) error    //perm:write
+	EdgeNodeConnect(ctx context.Context, token string) error                          //perm:write
+	NodeValidatedResult(ctx context.Context, validateResult ValidateResult) error     //perm:write
+	CandidateNodeConnect(ctx context.Context, token string) error                     //perm:write
+	RemoveAssetResult(ctx context.Context, resultInfo types.RemoveAssetResult) error  //perm:write
+	NodeExternalServiceAddress(ctx context.Context) (string, error)                   //perm:read
+	NodeAuthVerify(ctx context.Context, token string) ([]auth.Permission, error)      //perm:read
+	NodeAuthNew(ctx context.Context, nodeID, sign string) (string, error)             //perm:read
+	NodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error)              //perm:read
+	NodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error) //perm:read
 	// get scheduler public key, format is pem
 	PublicKey(ctx context.Context) (string, error) //perm:write
 	// nat travel, can get edge external addr with different scheduler
@@ -42,13 +42,13 @@ type Scheduler interface {
 	// user
 	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error) //perm:read
 
-	// carfile
-	CacheCarfiles(ctx context.Context, info *types.CacheAssetReq) error                                   //perm:admin
-	RemoveCarfile(ctx context.Context, carfileID string) error                                            //perm:admin
-	CarfileRecord(ctx context.Context, cid string) (*types.AssetRecord, error)                            //perm:read
-	CarfileRecords(ctx context.Context, limit, offset int, states []string) ([]*types.AssetRecord, error) //perm:read
-	RestartFailedCarfiles(ctx context.Context, hashes []types.AssetHash) error                            //perm:admin
-	ResetCarfileExpiration(ctx context.Context, carfileCid string, time time.Time) error                  //perm:admin
+	// Asset
+	CacheAsset(ctx context.Context, info *types.CacheAssetReq) error                                    //perm:admin
+	RemoveAsset(ctx context.Context, cid string) error                                                  //perm:admin
+	AssetRecord(ctx context.Context, cid string) (*types.AssetRecord, error)                            //perm:read
+	AssetRecords(ctx context.Context, limit, offset int, states []string) ([]*types.AssetRecord, error) //perm:read
+	RestartFailedAssets(ctx context.Context, hashes []types.AssetHash) error                            //perm:admin
+	ResetAssetExpiration(ctx context.Context, cid string, time time.Time) error                         //perm:admin
 
 	// server
 	StartOnceElection(ctx context.Context) error                //perm:admin
@@ -62,7 +62,7 @@ type Scheduler interface {
 	// user send result when user download block complete or failed
 	UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error //perm:read
 	// ListCaches cache manager
-	CarfileReplicaList(ctx context.Context, req types.ListCacheInfosReq) (*types.ListAssetReplicaRsp, error)                               //perm:read
+	AssetReplicaList(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error)                               //perm:read
 	ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) //perm:read
-	SubmitProofOfWork(ctx context.Context, proofs []*types.NodeWorkloadProof) error
+	SubmitProofOfWork(ctx context.Context, proofs []*types.NodeWorkloadProof) error                                                        //perm:read
 }

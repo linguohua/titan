@@ -72,7 +72,7 @@ var cacheStatCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("Total carfile count %d, block count %d, wait cache carfile count %d", stat.TotalCarfileCount, stat.TotalBlockCount, stat.WaitCacheCarfileCount)
+		fmt.Printf("Total carfile count %d, block count %d, wait cache carfile count %d", stat.TotalAssetCount, stat.TotalBlockCount, stat.WaitCacheAssetCount)
 		return nil
 	},
 }
@@ -168,9 +168,9 @@ var progressCmd = &cli.Command{
 		}
 
 		for _, progress := range ret.Progresses {
-			fmt.Printf("Cache carfile %s %v\n", progress.CarfileCid, progress.Status)
-			fmt.Printf("Total block count %d, done block count %d  \n", progress.CarfileBlocksCount, progress.DoneBlocksCount)
-			fmt.Printf("Total block size %d, done block siez %d  \n", progress.CarfileSize, progress.DoneSize)
+			fmt.Printf("Cache carfile %s %v\n", progress.CID, progress.Status)
+			fmt.Printf("Total block count %d, done block count %d  \n", progress.BlocksCount, progress.DoneBlocksCount)
+			fmt.Printf("Total block size %d, done block siez %d  \n", progress.Size, progress.DoneSize)
 			fmt.Println()
 		}
 		return nil
@@ -187,6 +187,7 @@ var keyCmds = &cli.Command{
 		exportKey,
 	},
 }
+
 var generateRsaKey = &cli.Command{
 	Name:  "generate",
 	Usage: "generate rsa key",

@@ -289,11 +289,11 @@ func (m *Manager) DeleteCarFromWaitList(root cid.Cid) (bool, error) {
 	return false, nil
 }
 
-func (m *Manager) Progresses() []*types.CarfileProgress {
-	progresses := make([]*types.CarfileProgress, 0, len(m.waitList))
+func (m *Manager) Progresses() []*types.AssetCacheProgress {
+	progresses := make([]*types.AssetCacheProgress, 0, len(m.waitList))
 
 	for _, cw := range m.waitList {
-		progress := &types.CarfileProgress{CarfileCid: cw.Root.String(), Status: types.CacheStatusWaiting}
+		progress := &types.AssetCacheProgress{CID: cw.Root.String(), Status: types.CacheStatusWaiting}
 		if cw.cache != nil {
 			progress = cw.cache.Progress()
 		}
@@ -321,10 +321,10 @@ func (m *Manager) CachedStatus(root cid.Cid) (types.CacheStatus, error) {
 	return types.CacheStatusFailed, nil
 }
 
-func (m *Manager) ProgressForFailedCar(root cid.Cid) (*types.CarfileProgress, error) {
-	progress := &types.CarfileProgress{
-		CarfileCid: root.String(),
-		Status:     types.CacheStatusFailed,
+func (m *Manager) ProgressForFailedCar(root cid.Cid) (*types.AssetCacheProgress, error) {
+	progress := &types.AssetCacheProgress{
+		CID:    root.String(),
+		Status: types.CacheStatusFailed,
 	}
 
 	data, err := m.carfileStore.IncompleteCarfileCacheData(root)
@@ -342,9 +342,9 @@ func (m *Manager) ProgressForFailedCar(root cid.Cid) (*types.CarfileProgress, er
 		return nil, err
 	}
 
-	progress.CarfileBlocksCount = len(cc.blocksDownloadSuccessList) + len(cc.blocksWaitList)
+	progress.BlocksCount = len(cc.blocksDownloadSuccessList) + len(cc.blocksWaitList)
 	progress.DoneBlocksCount = len(cc.blocksDownloadSuccessList)
-	progress.CarfileSize = cc.TotalSize()
+	progress.Size = cc.TotalSize()
 	progress.DoneSize = cc.DoneSize()
 
 	return progress, nil

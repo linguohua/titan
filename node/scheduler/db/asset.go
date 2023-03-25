@@ -255,7 +255,7 @@ func (n *SQLDB) LoadReplicaInfosOfNode(nodeID string, index, count int) (info *t
 }
 
 // LoadReplicaInfos load replicas info
-func (n *SQLDB) LoadReplicaInfos(startTime time.Time, endTime time.Time, cursor, count int) (*types.ListAssetReplicaRsp, error) {
+func (n *SQLDB) LoadReplicaInfos(startTime time.Time, endTime time.Time, cursor, count int) (*types.ListReplicaInfosRsp, error) {
 	var total int64
 	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE end_time between ? and ?`, replicaInfoTable)
 	if err := n.db.Get(&total, countSQL, startTime, endTime); err != nil {
@@ -273,5 +273,5 @@ func (n *SQLDB) LoadReplicaInfos(startTime time.Time, endTime time.Time, cursor,
 		return nil, err
 	}
 
-	return &types.ListAssetReplicaRsp{Datas: out, Total: total}, nil
+	return &types.ListReplicaInfosRsp{Replicas: out, Total: total}, nil
 }
