@@ -106,9 +106,9 @@ func (ds *DataSync) doDataSync(nodeID string) {
 		return
 	}
 
-	nodeCacheStatusList, err := ds.loadCarfileInfosBy(nodeID)
+	nodeCacheStatusList, err := ds.loadReplicaInfosBy(nodeID)
 	if err != nil {
-		log.Errorf("load carfile infos error:%s", err.Error())
+		log.Errorf("load replica infos error:%s", err.Error())
 		return
 	}
 
@@ -137,7 +137,7 @@ func (ds *DataSync) doDataSync(nodeID string) {
 
 func (ds *DataSync) multihashSort(statuses []*types.NodeReplicaStatus) map[uint32][]string {
 	multihashes := make(map[uint32][]string)
-	// append carfile hash by hash code
+	// append asset hash by hash code
 	for _, status := range statuses {
 		multihash, err := mh.FromHexString(status.Hash)
 		if err != nil {
@@ -168,10 +168,10 @@ func (ds *DataSync) calculateChecksums(multihashes map[uint32][]string) (map[uin
 	return checksums, nil
 }
 
-func (ds *DataSync) calculateChecksum(carfileHashes []string) (string, error) {
+func (ds *DataSync) calculateChecksum(hashes []string) (string, error) {
 	hash := sha256.New()
 
-	for _, h := range carfileHashes {
+	for _, h := range hashes {
 		data := []byte(h)
 		_, err := hash.Write(data)
 		if err != nil {
@@ -181,7 +181,7 @@ func (ds *DataSync) calculateChecksum(carfileHashes []string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func (ds *DataSync) loadCarfileInfosBy(nodeID string) ([]*types.NodeReplicaStatus, error) {
+func (ds *DataSync) loadReplicaInfosBy(nodeID string) ([]*types.NodeReplicaStatus, error) {
 	index := 0
 	cacheStates := make([]*types.NodeReplicaStatus, 0)
 	for {

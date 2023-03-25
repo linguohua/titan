@@ -235,7 +235,7 @@ func (v *Validation) getNodeReqValidate(validated *validateNodeInfo) (api.ReqVal
 		log.Warnf("HashString2CidString %s err: %s ", hashes[0], err.Error())
 		return req, err
 	}
-	req.CarfileCID = cid
+	req.CID = cid
 
 	return req, nil
 }
@@ -307,17 +307,17 @@ func (v *Validation) Result(validatedResult *api.ValidateResult) error {
 		return nil
 	}
 
-	hash, err := cidutil.CIDString2HashString(validatedResult.CarfileCID)
+	hash, err := cidutil.CIDString2HashString(validatedResult.CID)
 	if err != nil {
 		status = types.ValidateStatusOther
-		log.Errorf("CIDString2HashString %s, err:%s", validatedResult.CarfileCID, err.Error())
+		log.Errorf("CIDString2HashString %s, err:%s", validatedResult.CID, err.Error())
 		return nil
 	}
 
 	rows, err := v.nodeManager.LoadReplicasOfHash(hash, []string{types.CacheStatusSucceeded.String()})
 	if err != nil {
 		status = types.ValidateStatusOther
-		log.Errorf("Get candidates %s , err:%s", validatedResult.CarfileCID, err.Error())
+		log.Errorf("Get candidates %s , err:%s", validatedResult.CID, err.Error())
 		return nil
 	}
 
@@ -346,7 +346,7 @@ func (v *Validation) Result(validatedResult *api.ValidateResult) error {
 			continue
 		}
 
-		cCidMap, err = node.API().GetBlocksOfCarfile(context.Background(), validatedResult.CarfileCID, v.seed, max)
+		cCidMap, err = node.API().GetBlocksOfCarfile(context.Background(), validatedResult.CID, v.seed, max)
 		if err != nil {
 			log.Errorf("candidate %s GetBlocksOfCarfile err:%s", nodeID, err.Error())
 			continue
@@ -357,14 +357,14 @@ func (v *Validation) Result(validatedResult *api.ValidateResult) error {
 
 	if len(cCidMap) <= 0 {
 		status = types.ValidateStatusOther
-		log.Errorf("handleValidateResult candidate map is nil , %s", validatedResult.CarfileCID)
+		log.Errorf("handleValidateResult candidate map is nil , %s", validatedResult.CID)
 		return nil
 	}
 
-	carfileRecord, err := v.nodeManager.LoadAssetRecord(hash)
+	record, err := v.nodeManager.LoadAssetRecord(hash)
 	if err != nil {
 		status = types.ValidateStatusOther
-		log.Errorf("handleValidateResult GetCarfileInfo %s , err:%s", validatedResult.CarfileCID, err.Error())
+		log.Errorf("handleValidateResult asset record %s , err:%s", validatedResult.CID, err.Error())
 		return nil
 	}
 
@@ -372,7 +372,7 @@ func (v *Validation) Result(validatedResult *api.ValidateResult) error {
 	// do validator
 	for i := 0; i < max; i++ {
 		resultCid := validatedResult.Cids[i]
-		randNum := v.getRandNum(int(carfileRecord.TotalBlocks), r)
+		randNum := v.getRandNum(int(record.TotalBlocks), r)
 		vCid := cCidMap[randNum]
 
 		// TODO Penalize the candidate if vCid error

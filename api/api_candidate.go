@@ -16,7 +16,7 @@ type Candidate interface {
 
 type ReqValidate struct {
 	NodeURL    string
-	CarfileCID string
+	CID        string
 	RandomSeed int64
 	// seconds
 	Duration int
@@ -27,8 +27,8 @@ type ReqValidate struct {
 
 // ValidateResult node Validate result
 type ValidateResult struct {
-	Validator  string
-	CarfileCID string
+	Validator string
+	CID       string
 	// verification canceled due to download
 	IsCancel  bool
 	NodeID    string
