@@ -204,7 +204,7 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 }
 
 func validate(req *api.ReqValidate, candidate *Candidate) {
-	result := &api.ValidateResult{CarfileCID: req.CarfileCID, RoundID: req.RoundID, RandomCount: 0, Cids: make([]string, 0)}
+	result := &api.ValidateResult{CID: req.CID, RoundID: req.RoundID, RandomCount: 0, Cids: make([]string, 0)}
 
 	api, closer, err := getNodeAPI(req.NodeType, req.NodeURL)
 	if err != nil {

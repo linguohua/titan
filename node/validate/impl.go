@@ -62,20 +62,20 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 
 	limiter := rate.NewLimiter(rate.Limit(speedRate), int(speedRate))
 
-	c, err := cid.Decode(reqValidate.CarfileCID)
+	c, err := cid.Decode(reqValidate.CID)
 	if err != nil {
-		log.Errorf("sendBlocks, decode cid %s error %s", reqValidate.CarfileCID, err.Error())
+		log.Errorf("sendBlocks, decode cid %s error %s", reqValidate.CID, err.Error())
 		return
 	}
 
 	cids, err := validate.carfileStore.BlocksOfCarfile(c)
 	if err != nil {
-		log.Errorf("sendBlocks, BlocksCountOfCarfile error:%s, carfileCID:%s", err.Error(), reqValidate.CarfileCID)
+		log.Errorf("sendBlocks, BlocksCountOfCarfile error:%s, carfileCID:%s", err.Error(), reqValidate.CID)
 		return
 	}
 
 	if len(cids) == 0 {
-		log.Errorf("sendBlocks, carfile %s no block exist", reqValidate.CarfileCID)
+		log.Errorf("sendBlocks, carfile %s no block exist", reqValidate.CID)
 		return
 	}
 

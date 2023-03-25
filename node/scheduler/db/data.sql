@@ -67,7 +67,7 @@ CREATE TABLE `node_register_info` (
 	PRIMARY KEY (`node_id`)
 ) ENGINE=InnoDB COMMENT='node register info';
 
-CREATE TABLE `replicas` (
+CREATE TABLE `replica_info` (
     `id` varchar(128) NOT NULL UNIQUE,
 	`hash` varchar(128) NOT NULL,
     `status` TINYINT  DEFAULT '0' ,
@@ -78,7 +78,7 @@ CREATE TABLE `replicas` (
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB COMMENT='replicas info';
 
-CREATE TABLE `asset_records` (
+CREATE TABLE `asset_record` (
 	`hash` varchar(128) NOT NULL UNIQUE,
 	`cid` varchar(128) NOT NULL UNIQUE,
     `total_size` BIGINT  DEFAULT '0' ,
