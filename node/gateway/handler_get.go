@@ -57,6 +57,10 @@ func (gw *Gateway) getHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (gw *Gateway) verifyCredentials(w http.ResponseWriter, r *http.Request) (*types.Credentials, error) {
+	if gw.schedulerPublicKey == nil {
+		return nil, fmt.Errorf("scheduler public key not exist, can not verify sign")
+	}
+
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return nil, err
