@@ -16,9 +16,6 @@ var nodeCmd = &cli.Command{
 		showOnlineNodeCmd,
 		registerNodeCmd,
 		showNodeInfoCmd,
-		downloadNodeLogFileCmd,
-		showNodeLogInfoCmd,
-		deleteNodeLogFileCmd,
 		nodeQuitCmd,
 		setNodePortCmd,
 		edgeExternalAddrCmd,
@@ -141,93 +138,6 @@ var showNodeInfoCmd = &cli.Command{
 		fmt.Printf("node NatType: %s \n", natType.String())
 
 		return nil
-	},
-}
-
-var downloadNodeLogFileCmd = &cli.Command{
-	Name:  "download-log",
-	Usage: "Download node log file",
-	Flags: []cli.Flag{
-		nodeIDFlag,
-	},
-	Action: func(cctx *cli.Context) error {
-		nodeID := cctx.String("node-id")
-
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		info, err := schedulerAPI.NodeLogFileInfo(ctx, nodeID)
-		if err != nil {
-			return err
-		}
-
-		if info == nil {
-			fmt.Printf("Log file not exist")
-			return nil
-		}
-
-		data, err := schedulerAPI.NodeLogFile(ctx, nodeID)
-		if err != nil {
-			return err
-		}
-
-		filePath := "./" + info.Name
-		return os.WriteFile(filePath, data, 0o644)
-	},
-}
-
-var showNodeLogInfoCmd = &cli.Command{
-	Name:  "log-info",
-	Usage: "Show node log info",
-	Flags: []cli.Flag{
-		nodeIDFlag,
-	},
-	Action: func(cctx *cli.Context) error {
-		nodeID := cctx.String("node-id")
-
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		file, err := schedulerAPI.NodeLogFileInfo(ctx, nodeID)
-		if err != nil {
-			return err
-		}
-
-		if file == nil {
-			fmt.Printf("Log file not exist")
-			return nil
-		}
-
-		fmt.Printf("%s %dB", file.Name, file.Size)
-		return nil
-	},
-}
-
-var deleteNodeLogFileCmd = &cli.Command{
-	Name:  "delete-log",
-	Usage: "Delete log file with node",
-	Flags: []cli.Flag{
-		nodeIDFlag,
-	},
-	Action: func(cctx *cli.Context) error {
-		nodeID := cctx.String("node-id")
-
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		return schedulerAPI.DeleteNodeLogFile(ctx, nodeID)
 	},
 }
 

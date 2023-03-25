@@ -16,7 +16,6 @@ import (
 var EdgeCmds = []*cli.Command{
 	nodeInfoCmd,
 	cacheStatCmd,
-	logFileCmd,
 	progressCmd,
 	keyCmds,
 }
@@ -74,72 +73,6 @@ var cacheStatCmd = &cli.Command{
 
 		fmt.Printf("Total carfile count %d, block count %d, wait cache carfile count %d", stat.TotalAssetCount, stat.TotalBlockCount, stat.WaitCacheAssetCount)
 		return nil
-	},
-}
-
-var logFileCmd = &cli.Command{
-	Name:  "log-file",
-	Usage: "ls log file or get log file",
-	Subcommands: []*cli.Command{
-		listLogFileCmd,
-		getLogFileCmd,
-	},
-}
-
-var listLogFileCmd = &cli.Command{
-	Name:  "ls",
-	Usage: "list log file",
-	Action: func(cctx *cli.Context) error {
-		edgeAPI, closer, err := getEdgeAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		ctx := ReqContext(cctx)
-		info, err := edgeAPI.ShowLogFile(ctx)
-		if err != nil {
-			return err
-		}
-
-		if info == nil {
-			fmt.Printf("Log file not exist")
-			return nil
-		}
-
-		fmt.Printf("%s %dB", info.Name, info.Size)
-		return nil
-	},
-}
-
-var getLogFileCmd = &cli.Command{
-	Name:  "get",
-	Usage: "get log file",
-	Action: func(cctx *cli.Context) error {
-		edgeAPI, closer, err := getEdgeAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		ctx := ReqContext(cctx)
-		info, err := edgeAPI.ShowLogFile(ctx)
-		if err != nil {
-			return err
-		}
-
-		if info == nil {
-			fmt.Printf("Log file not exist")
-			return nil
-		}
-
-		data, err := edgeAPI.DownloadLogFile(ctx)
-		if err != nil {
-			return err
-		}
-
-		filePath := "./" + info.Name
-		return os.WriteFile(filePath, data, 0o644)
 	},
 }
 
