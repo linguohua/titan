@@ -120,10 +120,6 @@ func (cfImpl *CarfileImpl) DeleteCarfile(ctx context.Context, carfileCID string)
 	return nil
 }
 
-func (cfImpl *CarfileImpl) DeleteAllCarfiles(ctx context.Context) error {
-	return fmt.Errorf("not implement")
-}
-
 func (cfImpl *CarfileImpl) GetBlock(ctx context.Context, cidStr string) ([]byte, error) {
 	c, err := cid.Decode(cidStr)
 	if err != nil {

@@ -22,7 +22,7 @@ func (s *Scheduler) EdgeExternalServiceAddress(ctx context.Context, nodeID, sche
 	return "", fmt.Errorf("Node %s offline or not exist", nodeID)
 }
 
-func (s *Scheduler) IsBehindFullConeNAT(ctx context.Context, edgeURL string) (bool, error) {
+func (s *Scheduler) CheckEdgeConnectivityWithRandomPort(ctx context.Context, edgeURL string) (bool, error) {
 	udpPacketConn, err := net.ListenPacket("udp", ":0")
 	if err != nil {
 		return false, err
@@ -80,7 +80,7 @@ func (s *Scheduler) checkEdgeIfBehindFullConeNAT(ctx context.Context, schedulerU
 	}
 	defer close()
 
-	isBehindFullConeNAT, err := schedulerAPI.IsBehindFullConeNAT(context.Background(), edgeURL)
+	isBehindFullConeNAT, err := schedulerAPI.CheckEdgeConnectivityWithRandomPort(context.Background(), edgeURL)
 	if err != nil {
 		return false, err
 	}

@@ -11,8 +11,6 @@ type CarfileOperation interface {
 	CacheCarfile(ctx context.Context, carfileCID string, sources []*types.DownloadSource) error //perm:write
 	// delete storage
 	DeleteCarfile(ctx context.Context, carfileCID string) error //perm:write
-	// delete all carfiles
-	DeleteAllCarfiles(ctx context.Context) error //perm:admin
 	// query block cache stat
 	QueryCacheStat(ctx context.Context) (*types.CacheStat, error) //perm:write
 	// query block caching stat

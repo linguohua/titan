@@ -8,8 +8,7 @@ type Candidate interface {
 	Validate
 	DataSync
 	CarfileOperation
-	WaitQuiet(ctx context.Context) error                                                                                  //perm:read
-	GetBlock(ctx context.Context, cid string) ([]byte, error)                                                             //perm:read
+	WaitQuiet(ctx context.Context) error                                                                                  //perm:read                                                        //perm:read
 	GetBlocksOfCarfile(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error) //perm:read
 	ValidateNodes(ctx context.Context, req []ReqValidate) error                                                           //perm:read
 }
