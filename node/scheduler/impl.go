@@ -514,3 +514,7 @@ func (s *Scheduler) PublicKey(ctx context.Context) (string, error) {
 	pem := titanrsa.PublicKey2Pem(&publicKey)
 	return string(pem), nil
 }
+
+func (s *Scheduler) SubmitProofOfWork(ctx context.Context, proofs []*types.NodeWorkloadProof) error {
+	return nil
+}
