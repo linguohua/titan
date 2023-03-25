@@ -13,15 +13,18 @@ import (
 
 var log = logging.Logger("election")
 
-var reelectInterval = 30 * time.Minute // Check if the validator needs to be supplemented
+var (
+	reelectInterval = 30 * time.Minute   // Re-elect interval
+	electInterval   = 2 * 24 * time.Hour // Elect cycle
+)
 
 // Election election
 type Election struct {
 	opts       EleOption
 	updateCh   chan struct{}
-	manager    *node.Manager
+	nodeMgr    *node.Manager
 	lock       sync.RWMutex
-	validators map[string]time.Time
+	validators map[string]struct{}
 
 	validatorRatio float64 // Ratio of validators elected 0~1
 	reelectEnable  bool
@@ -30,14 +33,11 @@ type Election struct {
 // EleOption election option
 type EleOption struct {
 	ctx context.Context
-	// electInterval is the time electInterval for re-election
-	electInterval time.Duration
 }
 
 func newEleOption(opts ...Option) EleOption {
 	opt := EleOption{
-		ctx:           context.Background(),
-		electInterval: 2 * 24 * time.Hour,
+		ctx: context.Background(),
 	}
 	for _, o := range opts {
 		o(&opt)
@@ -51,28 +51,27 @@ type Option func(opt *EleOption)
 // NewElection return new election instance
 func NewElection(manager *node.Manager) *Election {
 	ele := &Election{
-		manager:        manager,
+		nodeMgr:        manager,
 		opts:           newEleOption(),
-		validators:     make(map[string]time.Time),
+		validators:     make(map[string]struct{}),
 		updateCh:       make(chan struct{}, 1),
 		validatorRatio: 1,
 	}
 
-	// open election
-	go ele.ElectTicker()
-	go ele.ReelectTicker()
+	go ele.electTicker()
+	go ele.reelectTicker()
 
 	return ele
 }
 
-func (v *Election) ElectTicker() {
+func (v *Election) electTicker() {
 	err := v.fetchCurrentValidators()
 	if err != nil {
 		log.Errorf("fetch current validators: %v", err)
 		return
 	}
 
-	expiration := v.opts.electInterval
+	expiration := electInterval
 	if len(v.validators) <= 0 {
 		expiration = 10 * time.Minute
 	}
@@ -83,13 +82,13 @@ func (v *Election) ElectTicker() {
 	for {
 		select {
 		case <-electTicker.C:
-			electTicker.Reset(v.opts.electInterval)
+			electTicker.Reset(electInterval)
 			err := v.elect()
 			if err != nil {
 				log.Errorf("elect err:%s", err.Error())
 			}
 		case <-v.updateCh:
-			electTicker.Reset(v.opts.electInterval)
+			electTicker.Reset(electInterval)
 			err := v.replenishElect()
 			if err != nil {
 				log.Errorf("replenishValidators err:%s", err.Error())
@@ -101,8 +100,7 @@ func (v *Election) ElectTicker() {
 }
 
 func (v *Election) elect() error {
-	log.Info("election starting")
-
+	log.Debugln("start elect ")
 	validators := v.electValidators(false)
 	return v.saveValidators(validators)
 }
@@ -188,13 +186,13 @@ func (v *Election) electValidators(isAppend bool) (out []string) {
 }
 
 func (v *Election) saveValidators(validators []string) error {
-	err := v.manager.UpdateValidators(validators, v.manager.ServerID)
+	err := v.nodeMgr.UpdateValidators(validators, v.nodeMgr.ServerID)
 	if err != nil {
 		return err
 	}
 
 	v.lock.Lock()
-	v.validators = make(map[string]time.Time)
+	v.validators = make(map[string]struct{})
 	for _, validator := range validators {
 		v.validators[validator] = time.Now()
 	}
@@ -204,7 +202,7 @@ func (v *Election) saveValidators(validators []string) error {
 }
 
 func (v *Election) fetchCurrentValidators() error {
-	list, err := v.manager.LoadValidators(v.manager.ServerID)
+	list, err := v.nodeMgr.LoadValidators(v.nodeMgr.ServerID)
 	if err != nil {
 		return err
 	}
@@ -229,7 +227,7 @@ func (v *Election) replenishElect() error {
 func (v *Election) getAllCandidates() []*node.Candidate {
 	candidates := make([]*node.Candidate, 0)
 
-	v.manager.CandidateNodes.Range(func(key, value interface{}) bool {
+	v.nodeMgr.CandidateNodes.Range(func(key, value interface{}) bool {
 		node := value.(*node.Candidate)
 		candidates = append(candidates, node)
 
@@ -241,7 +239,7 @@ func (v *Election) getAllCandidates() []*node.Candidate {
 
 // if the validator node goes offline (for a long time), it is necessary to re-elect a new validator.
 // if the number of validators required changes,it is necessary to re-elect a new validator.
-func (v *Election) ReelectTicker() {
+func (v *Election) reelectTicker() {
 	ticker := time.NewTicker(reelectInterval)
 	defer ticker.Stop()
 
@@ -250,7 +248,7 @@ func (v *Election) ReelectTicker() {
 		v.lock.Lock()
 		var validatorOffline bool
 		for nodeID := range v.validators {
-			node := v.manager.GetCandidateNode(nodeID)
+			node := v.nodeMgr.GetCandidateNode(nodeID)
 			if node != nil {
 				v.validators[nodeID] = time.Now()
 				continue

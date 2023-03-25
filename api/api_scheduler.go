@@ -37,7 +37,8 @@ type Scheduler interface {
 	CheckEdgeConnectivityWithRandomPort(ctx context.Context, edgeURL string) (bool, error) //perm:read
 	NodeNatType(ctx context.Context, nodeID string) (types.NatType, error)                 //perm:write
 	// user
-	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error) //perm:read
+	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error)              //perm:read
+	FindCandidateDownloadSources(ctx context.Context, cid string) ([]*types.DownloadSource, error) //perm:read
 
 	// Asset
 	CacheAsset(ctx context.Context, info *types.CacheAssetReq) error                                    //perm:admin

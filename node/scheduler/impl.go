@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/modules/dtypes"
 
 	"go.uber.org/fx"
@@ -447,4 +448,52 @@ func (s *Scheduler) PublicKey(ctx context.Context) (string, error) {
 
 func (s *Scheduler) SubmitProofOfWork(ctx context.Context, proofs []*types.NodeWorkloadProof) error {
 	return nil
+}
+
+// FindCandidateDownloadSources find candidate sources
+func (s *Scheduler) FindCandidateDownloadSources(ctx context.Context, cid string) ([]*types.DownloadSource, error) {
+	hash, err := cidutil.CIDString2HashString(cid)
+	if err != nil {
+		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
+	}
+
+	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
+	sources := make([]*types.DownloadSource, 0)
+
+	rows, err := s.NodeManager.LoadReplicasOfHash(hash, []string{types.CacheStatusSucceeded.String()})
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		rInfo := &types.ReplicaInfo{}
+		err = rows.StructScan(rInfo)
+		if err != nil {
+			log.Errorf("replica StructScan err: %s", err.Error())
+			continue
+		}
+
+		if !rInfo.IsCandidate {
+			continue
+		}
+
+		nodeID := rInfo.NodeID
+		cNode := s.NodeManager.GetCandidateNode(nodeID)
+		if cNode == nil {
+			continue
+		}
+
+		credentials, err := cNode.Credentials(cid, titanRsa, s.NodeManager.PrivateKey)
+		if err != nil {
+			continue
+		}
+		source := &types.DownloadSource{
+			CandidateAddr: cNode.DownloadAddr(),
+			Credentials:   credentials,
+		}
+
+		sources = append(sources, source)
+	}
+
+	return sources, nil
 }

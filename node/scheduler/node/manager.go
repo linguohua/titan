@@ -1,8 +1,6 @@
 package node
 
 import (
-	"context"
-	"crypto"
 	"crypto/rsa"
 	"sync"
 	"time"
@@ -11,11 +9,8 @@ import (
 	"github.com/linguohua/titan/node/modules/dtypes"
 
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/linguohua/titan/node/cidutil"
-	titanrsa "github.com/linguohua/titan/node/rsa"
 	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/linguohua/titan/node/scheduler/locator"
-	"golang.org/x/xerrors"
 )
 
 var log = logging.Logger("node")
@@ -295,55 +290,6 @@ func KeepaliveCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error)
 	}, nil
 }
 
-// FindEdgeDownloadInfos  find edges with block cid
-func (m *Manager) FindEdgeDownloadInfos(cid, userURL string) ([]*types.DownloadInfo, error) {
-	hash, err := cidutil.CIDString2HashString(cid)
-	if err != nil {
-		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
-	}
-
-	rows, err := m.LoadReplicasOfHash(hash, []string{types.CacheStatusSucceeded.String()})
-	if err != nil {
-		return nil, err
-	}
-
-	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	infos := make([]*types.DownloadInfo, 0)
-
-	for rows.Next() {
-		rInfo := &types.ReplicaInfo{}
-		err = rows.StructScan(rInfo)
-		if err != nil {
-			log.Errorf("replica StructScan err: %s", err.Error())
-			continue
-		}
-
-		if rInfo.IsCandidate {
-			continue
-		}
-
-		nodeID := rInfo.NodeID
-
-		eNode := m.GetEdgeNode(nodeID)
-		if eNode == nil {
-			continue
-		}
-
-		err := eNode.nodeAPI.UserNATTravel(context.Background(), userURL)
-		if err != nil {
-			continue
-		}
-
-		credentials, err := eNode.Credentials(cid, titanRsa, m.PrivateKey)
-		if err != nil {
-			continue
-		}
-
-		infos = append(infos, &types.DownloadInfo{URL: eNode.DownloadAddr(), NodeID: nodeID, Credentials: credentials})
-	}
-
-	return infos, nil
-}
 
 func (m *Manager) checkNodesTTL() {
 	nodes, err := m.LoadTimeoutNodes(offlineTimeMax, m.ServerID)

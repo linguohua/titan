@@ -203,6 +203,8 @@ type SchedulerStruct struct {
 
 		EdgeUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
+		FindCandidateDownloadSources func(p0 context.Context, p1 string) ([]*types.DownloadSource, error) `perm:"read"`
+
 		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
 		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
@@ -783,6 +785,17 @@ func (s *SchedulerStruct) EdgeUpdateInfos(p0 context.Context) (map[int]*EdgeUpda
 
 func (s *SchedulerStub) EdgeUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
 	return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
+}
+
+func (s *SchedulerStruct) FindCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.DownloadSource, error) {
+	if s.Internal.FindCandidateDownloadSources == nil {
+		return *new([]*types.DownloadSource), ErrNotSupported
+	}
+	return s.Internal.FindCandidateDownloadSources(p0, p1)
+}
+
+func (s *SchedulerStub) FindCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.DownloadSource, error) {
+	return *new([]*types.DownloadSource), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
