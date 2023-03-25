@@ -241,8 +241,6 @@ type SchedulerStruct struct {
 
 		SetEdgeUpdateInfo func(p0 context.Context, p1 *EdgeUpdateInfo) error `perm:"admin"`
 
-		SetEnableValidation func(p0 context.Context, p1 bool) error `perm:"admin"`
-
 		SetNodePort func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
 		StartOnceElection func(p0 context.Context) error `perm:"admin"`
@@ -993,17 +991,6 @@ func (s *SchedulerStruct) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateIn
 }
 
 func (s *SchedulerStub) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateInfo) error {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) SetEnableValidation(p0 context.Context, p1 bool) error {
-	if s.Internal.SetEnableValidation == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.SetEnableValidation(p0, p1)
-}
-
-func (s *SchedulerStub) SetEnableValidation(p0 context.Context, p1 bool) error {
 	return ErrNotSupported
 }
 

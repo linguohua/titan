@@ -48,8 +48,7 @@ type Scheduler interface {
 	ResetAssetExpiration(ctx context.Context, cid string, time time.Time) error                         //perm:admin
 
 	// server
-	StartOnceElection(ctx context.Context) error                //perm:admin
-	SetEnableValidation(ctx context.Context, enable bool) error //perm:admin
+	StartOnceElection(ctx context.Context) error //perm:admin
 	// same as EdgeUpdateInfos, support to update old version edge
 	GetNodeAppUpdateInfos(ctx context.Context) (map[int]*EdgeUpdateInfo, error) //perm:read
 	EdgeUpdateInfos(ctx context.Context) (map[int]*EdgeUpdateInfo, error)       //perm:read
