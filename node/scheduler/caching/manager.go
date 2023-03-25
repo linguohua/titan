@@ -25,12 +25,12 @@ import (
 var log = logging.Logger("cache")
 
 const (
-	cacheTimeout                 = 30 * time.Second // Carfile cache timeout (Unit:Second)
+	cacheTimeout                 = 60 * time.Second // Carfile cache timeout (Unit:Second)
 	checkExpirationTimerInterval = 60 * 30          // Check for expired carfile record interval (Unit:Second)
 	maxCachingCarfileCount       = 10               // Maximum number of carfile caches
 	maxNodeDiskUsage             = 90.0             // If the node disk size is greater than this value, caching will not continue
 	seedCacheCount               = 1                // The number of caches in the first stage
-	getProgressInterval          = 10 * time.Second // Get cache progress interval from node (Unit:Second)
+	getProgressInterval          = 20 * time.Second // Get cache progress interval from node (Unit:Second)
 )
 
 // Manager cache manager
