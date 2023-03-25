@@ -50,8 +50,8 @@ type DownloadInfo struct {
 
 // NodeReplicaStatus node cache status
 type NodeReplicaStatus struct {
-	CarfileHash string      `db:"carfile_hash"`
-	Status      CacheStatus `db:"status"`
+	Hash   string      `db:"hash"`
+	Status CacheStatus `db:"status"`
 }
 
 // NodeReplicaRsp node caches
