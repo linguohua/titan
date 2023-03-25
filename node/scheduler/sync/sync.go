@@ -139,7 +139,7 @@ func (ds *DataSync) multihashSort(statuses []*types.NodeReplicaStatus) map[uint3
 	multihashes := make(map[uint32][]string)
 	// append carfile hash by hash code
 	for _, status := range statuses {
-		multihash, err := mh.FromHexString(status.CarfileHash)
+		multihash, err := mh.FromHexString(status.Hash)
 		if err != nil {
 			log.Errorf("decode multihash error:%s", err.Error())
 			continue
@@ -149,7 +149,7 @@ func (ds *DataSync) multihashSort(statuses []*types.NodeReplicaStatus) map[uint3
 		h.Write(multihash)
 		k := h.Sum32() % bucketCount
 
-		multihashes[k] = append(multihashes[k], status.CarfileHash)
+		multihashes[k] = append(multihashes[k], status.Hash)
 	}
 
 	return multihashes
