@@ -115,3 +115,16 @@ func (s *Scheduler) CacheAsset(ctx context.Context, info *types.CacheAssetReq) e
 
 	return s.DataManager.CacheAsset(info)
 }
+
+// AssetReplicaList list replicas
+func (s *Scheduler) AssetReplicaList(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
+	startTime := time.Unix(req.StartTime, 0)
+	endTime := time.Unix(req.EndTime, 0)
+
+	info, err := s.NodeManager.LoadReplicaInfos(startTime, endTime, req.Cursor, req.Count)
+	if err != nil {
+		return nil, err
+	}
+
+	return info, nil
+}

@@ -333,18 +333,6 @@ func (s *Scheduler) NodeInfo(ctx context.Context, nodeID string) (types.NodeInfo
 	return nodeInfo, nil
 }
 
-// SetEnableValidation set validation state
-func (s *Scheduler) SetEnableValidation(ctx context.Context, enable bool) error {
-	// the framework requires that the method must return error
-	cfg, err := s.GetSchedulerConfigFunc()
-	if err != nil {
-		return err
-	}
-	cfg.EnableValidate = enable
-
-	return s.SetSchedulerConfigFunc(cfg)
-}
-
 // LocatorConnect Locator Connect
 func (s *Scheduler) LocatorConnect(ctx context.Context, id string, token string) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
@@ -434,19 +422,6 @@ func (s *Scheduler) NodeList(ctx context.Context, offset int, limit int) (*types
 	rsp.Total = total
 
 	return rsp, nil
-}
-
-// AssetReplicaList list replicas
-func (s *Scheduler) AssetReplicaList(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
-	startTime := time.Unix(req.StartTime, 0)
-	endTime := time.Unix(req.EndTime, 0)
-
-	info, err := s.NodeManager.LoadReplicaInfos(startTime, endTime, req.Cursor, req.Count)
-	if err != nil {
-		return nil, err
-	}
-
-	return info, nil
 }
 
 // ValidatedResultList get validated result infos
