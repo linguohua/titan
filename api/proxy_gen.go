@@ -61,7 +61,7 @@ type CarfileOperationStruct struct {
 
 		QueryCacheStat func(p0 context.Context) (*types.CacheStat, error) `perm:"write"`
 
-		QueryCachingCarfile func(p0 context.Context) (*types.CachingCarfile, error) `perm:"write"`
+		QueryCachingCarfile func(p0 context.Context) (*types.CachingAsset, error) `perm:"write"`
 	}
 }
 
@@ -191,15 +191,15 @@ type SchedulerStruct struct {
 	CommonStruct
 
 	Internal struct {
-		CacheCarfiles func(p0 context.Context, p1 *types.CacheAssetReq) error `perm:"admin"`
+		AssetRecord func(p0 context.Context, p1 string) (*types.AssetRecord, error) `perm:"read"`
+
+		AssetRecords func(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.AssetRecord, error) `perm:"read"`
+
+		AssetReplicaList func(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) `perm:"read"`
+
+		CacheAsset func(p0 context.Context, p1 *types.CacheAssetReq) error `perm:"admin"`
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) error `perm:"write"`
-
-		CarfileRecord func(p0 context.Context, p1 string) (*types.AssetRecord, error) `perm:"read"`
-
-		CarfileRecords func(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.AssetRecord, error) `perm:"read"`
-
-		CarfileReplicaList func(p0 context.Context, p1 types.ListCacheInfosReq) (*types.ListAssetReplicaRsp, error) `perm:"read"`
 
 		DeleteEdgeUpdateInfo func(p0 context.Context, p1 int) error `perm:"admin"`
 
@@ -245,13 +245,13 @@ type SchedulerStruct struct {
 
 		RegisterNode func(p0 context.Context, p1 string, p2 string, p3 types.NodeType) error `perm:"admin"`
 
-		RemoveCarfile func(p0 context.Context, p1 string) error `perm:"admin"`
+		RemoveAsset func(p0 context.Context, p1 string) error `perm:"admin"`
 
-		RemoveCarfileResult func(p0 context.Context, p1 types.RemoveCarfileResult) error `perm:"write"`
+		RemoveAssetResult func(p0 context.Context, p1 types.RemoveAssetResult) error `perm:"write"`
 
-		ResetCarfileExpiration func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
+		ResetAssetExpiration func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
 
-		RestartFailedCarfiles func(p0 context.Context, p1 []types.AssetHash) error `perm:"admin"`
+		RestartFailedAssets func(p0 context.Context, p1 []types.AssetHash) error `perm:"admin"`
 
 		SetEdgeUpdateInfo func(p0 context.Context, p1 *EdgeUpdateInfo) error `perm:"admin"`
 
@@ -261,7 +261,7 @@ type SchedulerStruct struct {
 
 		StartOnceElection func(p0 context.Context) error `perm:"admin"`
 
-		SubmitProofOfWork func(p0 context.Context, p1 []*types.NodeWorkloadProof) error ``
+		SubmitProofOfWork func(p0 context.Context, p1 []*types.NodeWorkloadProof) error `perm:"read"`
 
 		UserDownloadBlockResults func(p0 context.Context, p1 []types.UserBlockDownloadResult) error `perm:"read"`
 
@@ -383,14 +383,14 @@ func (s *CarfileOperationStub) QueryCacheStat(p0 context.Context) (*types.CacheS
 	return nil, ErrNotSupported
 }
 
-func (s *CarfileOperationStruct) QueryCachingCarfile(p0 context.Context) (*types.CachingCarfile, error) {
+func (s *CarfileOperationStruct) QueryCachingCarfile(p0 context.Context) (*types.CachingAsset, error) {
 	if s.Internal.QueryCachingCarfile == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.QueryCachingCarfile(p0)
 }
 
-func (s *CarfileOperationStub) QueryCachingCarfile(p0 context.Context) (*types.CachingCarfile, error) {
+func (s *CarfileOperationStub) QueryCachingCarfile(p0 context.Context) (*types.CachingAsset, error) {
 	return nil, ErrNotSupported
 }
 
@@ -735,14 +735,47 @@ func (s *LocatorStub) UserDownloadBlockResults(p0 context.Context, p1 []types.Us
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) CacheCarfiles(p0 context.Context, p1 *types.CacheAssetReq) error {
-	if s.Internal.CacheCarfiles == nil {
-		return ErrNotSupported
+func (s *SchedulerStruct) AssetRecord(p0 context.Context, p1 string) (*types.AssetRecord, error) {
+	if s.Internal.AssetRecord == nil {
+		return nil, ErrNotSupported
 	}
-	return s.Internal.CacheCarfiles(p0, p1)
+	return s.Internal.AssetRecord(p0, p1)
 }
 
-func (s *SchedulerStub) CacheCarfiles(p0 context.Context, p1 *types.CacheAssetReq) error {
+func (s *SchedulerStub) AssetRecord(p0 context.Context, p1 string) (*types.AssetRecord, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) AssetRecords(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.AssetRecord, error) {
+	if s.Internal.AssetRecords == nil {
+		return *new([]*types.AssetRecord), ErrNotSupported
+	}
+	return s.Internal.AssetRecords(p0, p1, p2, p3)
+}
+
+func (s *SchedulerStub) AssetRecords(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.AssetRecord, error) {
+	return *new([]*types.AssetRecord), ErrNotSupported
+}
+
+func (s *SchedulerStruct) AssetReplicaList(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
+	if s.Internal.AssetReplicaList == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.AssetReplicaList(p0, p1)
+}
+
+func (s *SchedulerStub) AssetReplicaList(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) CacheAsset(p0 context.Context, p1 *types.CacheAssetReq) error {
+	if s.Internal.CacheAsset == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.CacheAsset(p0, p1)
+}
+
+func (s *SchedulerStub) CacheAsset(p0 context.Context, p1 *types.CacheAssetReq) error {
 	return ErrNotSupported
 }
 
@@ -755,39 +788,6 @@ func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context, p1 string) er
 
 func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 string) error {
 	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) CarfileRecord(p0 context.Context, p1 string) (*types.AssetRecord, error) {
-	if s.Internal.CarfileRecord == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.CarfileRecord(p0, p1)
-}
-
-func (s *SchedulerStub) CarfileRecord(p0 context.Context, p1 string) (*types.AssetRecord, error) {
-	return nil, ErrNotSupported
-}
-
-func (s *SchedulerStruct) CarfileRecords(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.AssetRecord, error) {
-	if s.Internal.CarfileRecords == nil {
-		return *new([]*types.AssetRecord), ErrNotSupported
-	}
-	return s.Internal.CarfileRecords(p0, p1, p2, p3)
-}
-
-func (s *SchedulerStub) CarfileRecords(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.AssetRecord, error) {
-	return *new([]*types.AssetRecord), ErrNotSupported
-}
-
-func (s *SchedulerStruct) CarfileReplicaList(p0 context.Context, p1 types.ListCacheInfosReq) (*types.ListAssetReplicaRsp, error) {
-	if s.Internal.CarfileReplicaList == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.CarfileReplicaList(p0, p1)
-}
-
-func (s *SchedulerStub) CarfileReplicaList(p0 context.Context, p1 types.ListCacheInfosReq) (*types.ListAssetReplicaRsp, error) {
-	return nil, ErrNotSupported
 }
 
 func (s *SchedulerStruct) DeleteEdgeUpdateInfo(p0 context.Context, p1 int) error {
@@ -1032,47 +1032,47 @@ func (s *SchedulerStub) RegisterNode(p0 context.Context, p1 string, p2 string, p
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) RemoveCarfile(p0 context.Context, p1 string) error {
-	if s.Internal.RemoveCarfile == nil {
+func (s *SchedulerStruct) RemoveAsset(p0 context.Context, p1 string) error {
+	if s.Internal.RemoveAsset == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.RemoveCarfile(p0, p1)
+	return s.Internal.RemoveAsset(p0, p1)
 }
 
-func (s *SchedulerStub) RemoveCarfile(p0 context.Context, p1 string) error {
+func (s *SchedulerStub) RemoveAsset(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) RemoveCarfileResult(p0 context.Context, p1 types.RemoveCarfileResult) error {
-	if s.Internal.RemoveCarfileResult == nil {
+func (s *SchedulerStruct) RemoveAssetResult(p0 context.Context, p1 types.RemoveAssetResult) error {
+	if s.Internal.RemoveAssetResult == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.RemoveCarfileResult(p0, p1)
+	return s.Internal.RemoveAssetResult(p0, p1)
 }
 
-func (s *SchedulerStub) RemoveCarfileResult(p0 context.Context, p1 types.RemoveCarfileResult) error {
+func (s *SchedulerStub) RemoveAssetResult(p0 context.Context, p1 types.RemoveAssetResult) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ResetCarfileExpiration(p0 context.Context, p1 string, p2 time.Time) error {
-	if s.Internal.ResetCarfileExpiration == nil {
+func (s *SchedulerStruct) ResetAssetExpiration(p0 context.Context, p1 string, p2 time.Time) error {
+	if s.Internal.ResetAssetExpiration == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.ResetCarfileExpiration(p0, p1, p2)
+	return s.Internal.ResetAssetExpiration(p0, p1, p2)
 }
 
-func (s *SchedulerStub) ResetCarfileExpiration(p0 context.Context, p1 string, p2 time.Time) error {
+func (s *SchedulerStub) ResetAssetExpiration(p0 context.Context, p1 string, p2 time.Time) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) RestartFailedCarfiles(p0 context.Context, p1 []types.AssetHash) error {
-	if s.Internal.RestartFailedCarfiles == nil {
+func (s *SchedulerStruct) RestartFailedAssets(p0 context.Context, p1 []types.AssetHash) error {
+	if s.Internal.RestartFailedAssets == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.RestartFailedCarfiles(p0, p1)
+	return s.Internal.RestartFailedAssets(p0, p1)
 }
 
-func (s *SchedulerStub) RestartFailedCarfiles(p0 context.Context, p1 []types.AssetHash) error {
+func (s *SchedulerStub) RestartFailedAssets(p0 context.Context, p1 []types.AssetHash) error {
 	return ErrNotSupported
 }
 

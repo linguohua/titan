@@ -223,7 +223,7 @@ func (m *Manager) CacheAsset(info *types.CacheAssetReq) error {
 	return xerrors.New("asset exists")
 }
 
-// RestartCacheAssets restart cache carfiles
+// RestartCacheAssets restart cache assets
 func (m *Manager) RestartCacheAssets(hashes []types.AssetHash) error {
 	for _, hash := range hashes {
 		err := m.assetStateMachines.Send(hash, CacheAssetRestart{})
@@ -283,11 +283,11 @@ func (m *Manager) cacheAssetsResult(nodeID string, result *types.CacheResult) {
 	}
 
 	for _, progress := range result.Progresses {
-		log.Debugf("cacheAssetsResult node_id: %s, status: %d, size: %d/%d, cid: %s ", nodeID, progress.Status, progress.DoneSize, progress.CarfileSize, progress.CarfileCid)
+		log.Debugf("cacheAssetsResult node_id: %s, status: %d, size: %d/%d, cid: %s ", nodeID, progress.Status, progress.DoneSize, progress.Size, progress.CID)
 
-		hash, err := cidutil.CIDString2HashString(progress.CarfileCid)
+		hash, err := cidutil.CIDString2HashString(progress.CID)
 		if err != nil {
-			log.Errorf("%s cid to hash err:%s", progress.CarfileCid, err.Error())
+			log.Errorf("%s cid to hash err:%s", progress.CID, err.Error())
 			continue
 		}
 
@@ -323,8 +323,8 @@ func (m *Manager) cacheAssetsResult(nodeID string, result *types.CacheResult) {
 
 			err = m.assetStateMachines.Send(AssetHash(hash), InfoUpdate{
 				ResultInfo: &NodeCacheResultInfo{
-					BlocksCount: int64(progress.CarfileBlocksCount),
-					Size:        progress.CarfileSize,
+					BlocksCount: int64(progress.BlocksCount),
+					Size:        progress.Size,
 				},
 			})
 			if err != nil {
@@ -338,8 +338,8 @@ func (m *Manager) cacheAssetsResult(nodeID string, result *types.CacheResult) {
 			ResultInfo: &NodeCacheResultInfo{
 				NodeID:      nodeID,
 				Status:      int64(progress.Status),
-				BlocksCount: int64(progress.CarfileBlocksCount),
-				Size:        progress.CarfileSize,
+				BlocksCount: int64(progress.BlocksCount),
+				Size:        progress.Size,
 				IsCandidate: isCandidate,
 			},
 		})

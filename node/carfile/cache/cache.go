@@ -246,13 +246,13 @@ func (cfCache *carfileCache) cacheStatus() types.CacheStatus {
 	return types.CacheStatusCaching
 }
 
-func (cfCache *carfileCache) Progress() *types.CarfileProgress {
-	return &types.CarfileProgress{
-		CarfileCid:         cfCache.root.String(),
-		Status:             cfCache.cacheStatus(),
-		CarfileBlocksCount: len(cfCache.blocksDownloadSuccessList) + len(cfCache.blocksWaitList),
-		DoneBlocksCount:    len(cfCache.blocksDownloadSuccessList),
-		CarfileSize:        cfCache.TotalSize(),
-		DoneSize:           cfCache.DoneSize(),
+func (cfCache *carfileCache) Progress() *types.AssetCacheProgress {
+	return &types.AssetCacheProgress{
+		CID:             cfCache.root.String(),
+		Status:          cfCache.cacheStatus(),
+		BlocksCount:     len(cfCache.blocksDownloadSuccessList) + len(cfCache.blocksWaitList),
+		DoneBlocksCount: len(cfCache.blocksDownloadSuccessList),
+		Size:            cfCache.TotalSize(),
+		DoneSize:        cfCache.DoneSize(),
 	}
 }

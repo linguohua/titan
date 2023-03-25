@@ -481,8 +481,8 @@ func (s *Scheduler) NodeList(ctx context.Context, offset int, limit int) (*types
 	return rsp, nil
 }
 
-// CarfileReplicaList list carfile replicas
-func (s *Scheduler) CarfileReplicaList(ctx context.Context, req types.ListCacheInfosReq) (*types.ListAssetReplicaRsp, error) {
+// AssetReplicaList list replicas
+func (s *Scheduler) AssetReplicaList(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
