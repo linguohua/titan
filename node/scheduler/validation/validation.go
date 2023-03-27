@@ -21,28 +21,25 @@ import (
 var log = logging.Logger("scheduler/validation")
 
 const (
-	duration         = 10 // Verification time (Unit:Second)
-	validateInterval = 5  // validator start-up time interval (Unit:minute)
-	validateDuration = time.Duration(validateInterval) * time.Minute
+	duration         = 10              // Validation duration per node (Unit:Second)
+	validateInterval = 5 * time.Minute // validate start-up time interval (Unit:minute)
 )
 
 // Validation Validation
 type Validation struct {
-	nodeManager            *node.Manager
-	ctx                    context.Context
-	seed                   int64
-	curRoundID             string
-	close                  chan struct{}
-	getSchedulerConfigFunc dtypes.GetSchedulerConfigFunc
+	nodeMgr    *node.Manager
+	seed       int64
+	curRoundID string
+	close      chan struct{}
+	config     dtypes.GetSchedulerConfigFunc
 }
 
 // New return new validator instance
 func New(manager *node.Manager, configFunc dtypes.GetSchedulerConfigFunc) *Validation {
 	e := &Validation{
-		ctx:                    context.Background(),
-		nodeManager:            manager,
-		getSchedulerConfigFunc: configFunc,
-		close:                  make(chan struct{}),
+		nodeMgr: manager,
+		config:  configFunc,
+		close:   make(chan struct{}),
 	}
 
 	return e
@@ -50,7 +47,7 @@ func New(manager *node.Manager, configFunc dtypes.GetSchedulerConfigFunc) *Valid
 
 // Start start validation task scheduled
 func (v *Validation) Start(ctx context.Context) {
-	ticker := time.NewTicker(validateDuration)
+	ticker := time.NewTicker(validateInterval)
 	defer ticker.Stop()
 
 	for {
@@ -75,7 +72,7 @@ func (v *Validation) Stop(ctx context.Context) error {
 }
 
 func (v *Validation) enable() (bool, error) {
-	cfg, err := v.getSchedulerConfigFunc()
+	cfg, err := v.config()
 	if err != nil {
 		return false, err
 	}
@@ -86,7 +83,7 @@ func (v *Validation) enable() (bool, error) {
 func (v *Validation) start() error {
 	if v.curRoundID != "" {
 		// Set the timeout status of the previous verification
-		err := v.nodeManager.SetValidateResultsTimeout(v.curRoundID)
+		err := v.nodeMgr.SetValidateResultsTimeout(v.curRoundID)
 		if err != nil {
 			log.Errorf("round:%s ValidatedTimeout err:%s", v.curRoundID, err.Error())
 		}
@@ -96,7 +93,7 @@ func (v *Validation) start() error {
 	v.curRoundID = roundID
 	v.seed = time.Now().UnixNano()
 
-	validatorList, err := v.nodeManager.LoadValidators(v.nodeManager.ServerID)
+	validatorList, err := v.nodeMgr.LoadValidators(v.nodeMgr.ServerID)
 	if err != nil {
 		return err
 	}
@@ -124,7 +121,7 @@ func (v *Validation) sendValidateInfoToValidator(validatorID string, reqList []a
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	validator := v.nodeManager.GetCandidateNode(validatorID)
+	validator := v.nodeMgr.GetCandidateNode(validatorID)
 	if validator == nil {
 		log.Errorf("validator [%s] is null", validatorID)
 		return
@@ -139,7 +136,7 @@ func (v *Validation) sendValidateInfoToValidator(validatorID string, reqList []a
 
 func (v *Validation) getValidateList() []*validateNodeInfo {
 	validateList := make([]*validateNodeInfo, 0)
-	v.nodeManager.EdgeNodes.Range(func(key, value interface{}) bool {
+	v.nodeMgr.EdgeNodes.Range(func(key, value interface{}) bool {
 		edgeNode := value.(*node.Edge)
 		info := &validateNodeInfo{}
 		info.nodeType = types.NodeEdge
@@ -190,7 +187,7 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Re
 		infos = append(infos, info)
 	}
 
-	err := v.nodeManager.SetValidateResultInfos(infos)
+	err := v.nodeMgr.SetValidateResultInfos(infos)
 	if err != nil {
 		log.Errorf("AddValidateResultInfos err:%s", err.Error())
 		return nil
@@ -208,7 +205,7 @@ func (v *Validation) getNodeReqValidate(validated *validateNodeInfo) (api.ReqVal
 		NodeType:   int(validated.nodeType),
 	}
 
-	count, err := v.nodeManager.LoadReplicaCountOfNode(validated.nodeID)
+	count, err := v.nodeMgr.LoadReplicaCountOfNode(validated.nodeID)
 	if err != nil {
 		return req, err
 	}
@@ -221,7 +218,7 @@ func (v *Validation) getNodeReqValidate(validated *validateNodeInfo) (api.ReqVal
 	// rand count
 	offset := rand.Intn(count)
 
-	hashes, err := v.nodeManager.LoadAssetHashesOfNode(validated.nodeID, 1, offset)
+	hashes, err := v.nodeMgr.LoadAssetHashesOfNode(validated.nodeID, 1, offset)
 	if err != nil {
 		return req, err
 	}
@@ -258,7 +255,7 @@ func (v *Validation) getRandNum(max int, r *rand.Rand) int {
 // updateFailValidatedResult update validator result info
 func (v *Validation) updateFailValidatedResult(nodeID string, status types.ValidateStatus) error {
 	resultInfo := &types.ValidateResultInfo{RoundID: v.curRoundID, NodeID: nodeID, Status: status}
-	return v.nodeManager.UpdateValidateResultInfo(resultInfo)
+	return v.nodeMgr.UpdateValidateResultInfo(resultInfo)
 }
 
 // updateSuccessValidatedResult update validator result info
@@ -272,7 +269,7 @@ func (v *Validation) updateSuccessValidatedResult(validateResult *api.ValidateRe
 		Duration:    validateResult.CostTime,
 	}
 
-	return v.nodeManager.UpdateValidateResultInfo(resultInfo)
+	return v.nodeMgr.UpdateValidateResultInfo(resultInfo)
 }
 
 // Result node validator result
@@ -314,7 +311,7 @@ func (v *Validation) Result(validatedResult *api.ValidateResult) error {
 		return nil
 	}
 
-	rows, err := v.nodeManager.LoadReplicasOfHash(hash, []string{types.ReplicaStatusSucceeded.String()})
+	rows, err := v.nodeMgr.LoadReplicasOfHash(hash, []string{types.ReplicaStatusSucceeded.String()})
 	if err != nil {
 		status = types.ValidateStatusOther
 		log.Errorf("Get candidates %s , err:%s", validatedResult.CID, err.Error())
@@ -341,7 +338,7 @@ func (v *Validation) Result(validatedResult *api.ValidateResult) error {
 		}
 
 		nodeID := rInfo.NodeID
-		node := v.nodeManager.GetCandidateNode(nodeID)
+		node := v.nodeMgr.GetCandidateNode(nodeID)
 		if node == nil {
 			continue
 		}
@@ -361,7 +358,7 @@ func (v *Validation) Result(validatedResult *api.ValidateResult) error {
 		return nil
 	}
 
-	record, err := v.nodeManager.LoadAssetRecord(hash)
+	record, err := v.nodeMgr.LoadAssetRecord(hash)
 	if err != nil {
 		status = types.ValidateStatusOther
 		log.Errorf("handleValidateResult asset record %s , err:%s", validatedResult.CID, err.Error())

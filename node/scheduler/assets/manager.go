@@ -43,7 +43,7 @@ type Manager struct {
 	lock      sync.Mutex
 	apTickers map[string]*assetTicker // timeout timer for asset pulling
 
-	schedulerConfig dtypes.GetSchedulerConfigFunc
+	config dtypes.GetSchedulerConfigFunc
 }
 
 type assetTicker struct {
@@ -70,10 +70,10 @@ func (t *assetTicker) run(job func() error) {
 // NewManager return new manager instance
 func NewManager(nodeManager *node.Manager, ds datastore.Batching, configFunc dtypes.GetSchedulerConfigFunc) *Manager {
 	m := &Manager{
-		nodeMgr:         nodeManager,
-		minExpiration:   time.Now(),
-		apTickers:       make(map[string]*assetTicker),
-		schedulerConfig: configFunc,
+		nodeMgr:       nodeManager,
+		minExpiration: time.Now(),
+		apTickers:     make(map[string]*assetTicker),
+		config:        configFunc,
 	}
 
 	m.statemachineWait.Add(1)
@@ -466,7 +466,7 @@ func (m *Manager) deleteAssetRequest(nodeID, cid string) error {
 
 // GetCandidateReplicaCount get candidate replica count
 func (m *Manager) GetCandidateReplicaCount() int {
-	cfg, err := m.schedulerConfig()
+	cfg, err := m.config()
 	if err != nil {
 		log.Errorf("schedulerConfig err:%s", err.Error())
 		return 0

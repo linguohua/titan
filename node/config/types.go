@@ -95,4 +95,6 @@ type SchedulerCfg struct {
 	EtcdAddresses []string
 	// Number of candidate node replicas (does not contain 'seed')
 	CandidateReplicas int
+	// Proportion of validator in candidate nodes (0 ~ 1)
+	ValidatorRatio float64
 }
