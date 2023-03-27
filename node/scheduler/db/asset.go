@@ -58,7 +58,7 @@ func (n *SQLDB) UpsertAssetRecord(info *types.AssetRecord) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (hash, cid, state, edge_replicas, candidate_replicas, expiration, total_size, total_blocks, scheduler_sid, end_time) 
 				VALUES (:hash, :cid, :state, :edge_replicas, :candidate_replicas, :expiration, :total_size, :total_blocks, :scheduler_sid, NOW()) 
-				ON DUPLICATE KEY UPDATE total_size=VALUES(total_size), total_blocks=VALUES(total_blocks), state=VALUES(state), end_time=NOW()`, assetRecordsTable)
+				ON DUPLICATE KEY UPDATE total_size=VALUES(total_size), total_blocks=VALUES(total_blocks), state=VALUES(state), end_time=NOW()`, assetRecordTable)
 
 	_, err := n.db.NamedExec(query, info)
 	return err
@@ -67,7 +67,7 @@ func (n *SQLDB) UpsertAssetRecord(info *types.AssetRecord) error {
 // LoadAssetRecord load asset record of hash
 func (n *SQLDB) LoadAssetRecord(hash string) (*types.AssetRecord, error) {
 	var info types.AssetRecord
-	query := fmt.Sprintf("SELECT * FROM %s WHERE hash=?", assetRecordsTable)
+	query := fmt.Sprintf("SELECT * FROM %s WHERE hash=?", assetRecordTable)
 	err := n.db.Get(&info, query, hash)
 	if err != nil {
 		return nil, err
@@ -82,7 +82,7 @@ func (n *SQLDB) LoadAssetRecords(statuses []string, limit, offset int, serverID 
 		limit = loadAssetRecordsLimit
 	}
 
-	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE state in (?) AND scheduler_sid=? order by hash asc LIMIT ? OFFSET ?`, assetRecordsTable)
+	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE state in (?) AND scheduler_sid=? order by hash asc LIMIT ? OFFSET ?`, assetRecordTable)
 	query, args, err := sqlx.In(sQuery, statuses, serverID, limit, offset)
 	if err != nil {
 		return nil, err
@@ -138,7 +138,7 @@ func (n *SQLDB) LoadAssetHashesOfNode(nodeID string, limit, offset int) ([]strin
 
 // UpdateAssetRecordExpiration reset asset record expiration time
 func (n *SQLDB) UpdateAssetRecordExpiration(hash string, eTime time.Time) error {
-	query := fmt.Sprintf(`UPDATE %s SET expiration=? WHERE hash=?`, assetRecordsTable)
+	query := fmt.Sprintf(`UPDATE %s SET expiration=? WHERE hash=?`, assetRecordTable)
 	_, err := n.db.Exec(query, eTime, hash)
 
 	return err
@@ -146,7 +146,7 @@ func (n *SQLDB) UpdateAssetRecordExpiration(hash string, eTime time.Time) error 
 
 // LoadMinExpirationOfAssetRecords Get the minimum expiration time of asset records
 func (n *SQLDB) LoadMinExpirationOfAssetRecords() (time.Time, error) {
-	query := fmt.Sprintf(`SELECT MIN(expiration) FROM %s`, assetRecordsTable)
+	query := fmt.Sprintf(`SELECT MIN(expiration) FROM %s`, assetRecordTable)
 
 	var out time.Time
 	if err := n.db.Get(&out, query); err != nil {
@@ -158,7 +158,7 @@ func (n *SQLDB) LoadMinExpirationOfAssetRecords() (time.Time, error) {
 
 // LoadExpiredAssetRecords load all expired asset records
 func (n *SQLDB) LoadExpiredAssetRecords() ([]*types.AssetRecord, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE expiration <= NOW()`, assetRecordsTable)
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE expiration <= NOW()`, assetRecordTable)
 
 	var out []*types.AssetRecord
 	if err := n.db.Select(&out, query); err != nil {
@@ -198,7 +198,7 @@ func (n *SQLDB) RemoveAssetRecord(hash string) error {
 	}
 
 	// asset info
-	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE hash=?`, assetRecordsTable)
+	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE hash=?`, assetRecordTable)
 	_, err = tx.Exec(dQuery, hash)
 	if err != nil {
 		return err

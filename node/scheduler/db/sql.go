@@ -20,7 +20,7 @@ func NewSQLDB(db *sqlx.DB) *SQLDB {
 
 const (
 	// tables
-	assetRecordsTable   = "asset_record"
+	assetRecordTable    = "asset_record"
 	replicaInfoTable    = "replica_info"
 	edgeUpdateTable     = "edge_update_info"
 	nodeInfoTable       = "node_info"
