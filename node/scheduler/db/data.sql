@@ -75,7 +75,7 @@ CREATE TABLE `replica_info` (
     `is_candidate` BOOLEAN,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY (`hash`,`node_id`)
-) ENGINE=InnoDB COMMENT='replicas info';
+) ENGINE=InnoDB COMMENT='replica info';
 
 CREATE TABLE `asset_record` (
 	`hash` varchar(128) NOT NULL UNIQUE,
@@ -90,7 +90,7 @@ CREATE TABLE `asset_record` (
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
     `scheduler_sid` varchar(128) NOT NULL,
 	PRIMARY KEY (`hash`)
-) ENGINE=InnoDB COMMENT='asset records';
+) ENGINE=InnoDB COMMENT='asset record';
 
 CREATE TABLE `edge_update_info` (
 	`node_type` int NOT NULL UNIQUE,
@@ -106,4 +106,4 @@ CREATE TABLE `validators` (
     `node_id` varchar(128) NOT NULL,
     `scheduler_sid` varchar(128) NOT NULL,
     PRIMARY KEY (`node_id`)
-) ENGINE=InnoDB COMMENT='validators table';
+) ENGINE=InnoDB COMMENT='validators';
