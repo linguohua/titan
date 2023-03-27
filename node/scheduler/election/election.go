@@ -194,7 +194,7 @@ func (v *Election) saveValidators(validators []string) error {
 	v.lock.Lock()
 	v.validators = make(map[string]struct{})
 	for _, validator := range validators {
-		v.validators[validator] = time.Now()
+		v.validators[validator] = struct{}{}
 	}
 	v.lock.Unlock()
 
@@ -211,7 +211,7 @@ func (v *Election) fetchCurrentValidators() error {
 	defer v.lock.Unlock()
 
 	for _, item := range list {
-		v.validators[item] = time.Now()
+		v.validators[item] = struct{}{}
 	}
 
 	return nil
@@ -250,7 +250,7 @@ func (v *Election) reelectTicker() {
 		for nodeID := range v.validators {
 			node := v.nodeMgr.GetCandidateNode(nodeID)
 			if node != nil {
-				v.validators[nodeID] = time.Now()
+				v.validators[nodeID] = struct{}{}
 				continue
 			}
 			validatorOffline = true

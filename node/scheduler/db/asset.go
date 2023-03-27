@@ -15,8 +15,8 @@ import (
 
 // UpdateUnfinishedReplicaInfo update unfinished replica info , return an error if the replica is finished
 func (n *SQLDB) UpdateUnfinishedReplicaInfo(cInfo *types.ReplicaInfo) error {
-	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=?, done_size=? WHERE id=? AND (status=? or status=?)`, replicaInfoTable)
-	result, err := n.db.Exec(query, cInfo.Status, cInfo.DoneSize, cInfo.ID, types.CacheStatusCaching, types.CacheStatusWaiting)
+	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=?, done_size=? WHERE hash=? AND node_id=? AND (status=? or status=?)`, replicaInfoTable)
+	result, err := n.db.Exec(query, cInfo.Status, cInfo.DoneSize, cInfo.Hash, cInfo.NodeID, types.CacheStatusCaching, types.CacheStatusWaiting)
 	if err != nil {
 		return err
 	}
@@ -44,8 +44,8 @@ func (n *SQLDB) UpdateStatusOfUnfinishedReplicas(hash string, status types.Cache
 // BatchUpsertReplicas Insert or update replicas info
 func (n *SQLDB) BatchUpsertReplicas(infos []*types.ReplicaInfo) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (id, hash, node_id, status, is_candidate) 
-				VALUES (:id, :hash, :node_id, :status, :is_candidate) 
+		`INSERT INTO %s (hash, node_id, status, is_candidate) 
+				VALUES (:hash, :node_id, :status, :is_candidate) 
 				ON DUPLICATE KEY UPDATE status=VALUES(status)`, replicaInfoTable)
 
 	_, err := n.db.NamedExec(query, infos)
@@ -239,13 +239,13 @@ func (n *SQLDB) RemoveReplicaInfoOfNodes(nodeIDs []string) error {
 func (n *SQLDB) LoadReplicaInfosOfNode(nodeID string, index, count int) (info *types.NodeReplicaRsp, err error) {
 	info = &types.NodeReplicaRsp{}
 
-	query := fmt.Sprintf("SELECT count(id) FROM %s WHERE node_id=?", replicaInfoTable)
+	query := fmt.Sprintf("SELECT count(hash) FROM %s WHERE node_id=?", replicaInfoTable)
 	err = n.db.Get(&info.TotalCount, query, nodeID)
 	if err != nil {
 		return
 	}
 
-	query = fmt.Sprintf("SELECT hash,status FROM %s WHERE node_id=? order by id asc LIMIT %d,%d", replicaInfoTable, index, count)
+	query = fmt.Sprintf("SELECT hash,status FROM %s WHERE node_id=? order by hash asc LIMIT %d,%d", replicaInfoTable, index, count)
 	if err = n.db.Select(&info.Replica, query, nodeID); err != nil {
 		return
 	}
@@ -256,7 +256,7 @@ func (n *SQLDB) LoadReplicaInfosOfNode(nodeID string, index, count int) (info *t
 // LoadReplicaInfos load replicas info
 func (n *SQLDB) LoadReplicaInfos(startTime time.Time, endTime time.Time, cursor, count int) (*types.ListReplicaInfosRsp, error) {
 	var total int64
-	countSQL := fmt.Sprintf(`SELECT count(*) FROM %s WHERE end_time between ? and ?`, replicaInfoTable)
+	countSQL := fmt.Sprintf(`SELECT count(hash) FROM %s WHERE end_time between ? and ?`, replicaInfoTable)
 	if err := n.db.Get(&total, countSQL, startTime, endTime); err != nil {
 		return nil, err
 	}

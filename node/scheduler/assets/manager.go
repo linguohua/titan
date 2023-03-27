@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto"
 	"database/sql"
-	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -307,9 +306,10 @@ func (m *Manager) cacheAssetsResult(nodeID string, result *types.CacheResult) {
 
 		// save to db
 		cInfo := &types.ReplicaInfo{
-			ID:       replicaID(hash, nodeID),
 			Status:   progress.Status,
 			DoneSize: progress.DoneSize,
+			Hash:     hash,
+			NodeID:   nodeID,
 		}
 
 		err = m.nodeMgr.UpdateUnfinishedReplicaInfo(cInfo)
@@ -475,10 +475,6 @@ func (m *Manager) GetCandidateReplicaCount() int {
 	return cfg.CandidateReplicaCachesCount
 }
 
-func replicaID(hash, nodeID string) string {
-	return fmt.Sprintf("%s_%s", hash, nodeID)
-}
-
 // GetAssetRecordInfo get asset record info of cid
 func (m *Manager) GetAssetRecordInfo(cid string) (*types.AssetRecord, error) {
 	hash, err := cidutil.CIDString2HashString(cid)
@@ -577,7 +573,6 @@ func (m *Manager) saveCandidateReplicaInfos(nodes []*node.Candidate, hash string
 
 	for _, node := range nodes {
 		replicaInfos = append(replicaInfos, &types.ReplicaInfo{
-			ID:          replicaID(hash, node.NodeID),
 			NodeID:      node.NodeID,
 			Status:      types.CacheStatusWaiting,
 			Hash:        hash,
@@ -594,7 +589,6 @@ func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
 
 	for _, node := range nodes {
 		replicaInfos = append(replicaInfos, &types.ReplicaInfo{
-			ID:          replicaID(hash, node.NodeID),
 			NodeID:      node.NodeID,
 			Status:      types.CacheStatusWaiting,
 			Hash:        hash,
