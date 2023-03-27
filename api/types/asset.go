@@ -59,7 +59,6 @@ type AssetRecord struct {
 
 // ReplicaInfo asset Replica Info
 type ReplicaInfo struct {
-	ID          string
 	Hash        string      `db:"hash"`
 	NodeID      string      `db:"node_id"`
 	Status      CacheStatus `db:"status"`

@@ -68,14 +68,13 @@ CREATE TABLE `node_register_info` (
 ) ENGINE=InnoDB COMMENT='node register info';
 
 CREATE TABLE `replica_info` (
-    `id` varchar(128) NOT NULL UNIQUE,
 	`hash` varchar(128) NOT NULL,
     `status` TINYINT  DEFAULT '0' ,
     `node_id` varchar(128) NOT NULL ,
     `done_size` BIGINT DEFAULT '0' ,
     `is_candidate` BOOLEAN,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
+    UNIQUE KEY (`hash`,`node_id`)
 ) ENGINE=InnoDB COMMENT='replicas info';
 
 CREATE TABLE `asset_record` (
