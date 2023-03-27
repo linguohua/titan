@@ -10,11 +10,13 @@ type Candidate interface {
 	CarfileOperation
 	WaitQuiet(ctx context.Context) error                                                                                  //perm:read                                                        //perm:read
 	GetBlocksOfCarfile(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error) //perm:read
-	ValidateNodes(ctx context.Context, req []ReqValidate) error                                                           //perm:read
+	// ValidateNodes return tcp server address
+	// candidate use tcp server to check edge block
+	ValidateNodes(ctx context.Context, req []ReqValidate) (string, error) //perm:read
 }
 
 type ReqValidate struct {
-	NodeURL    string
+	NodeID     string
 	CID        string
 	RandomSeed int64
 	// seconds

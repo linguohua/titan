@@ -29,7 +29,7 @@ type CandidateStruct struct {
 	Internal struct {
 		GetBlocksOfCarfile func(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) `perm:"read"`
 
-		ValidateNodes func(p0 context.Context, p1 []ReqValidate) error `perm:"read"`
+		ValidateNodes func(p0 context.Context, p1 []ReqValidate) (string, error) `perm:"read"`
 
 		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
@@ -219,8 +219,6 @@ type SchedulerStruct struct {
 
 		NodeList func(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) `perm:"read"`
 
-		NodeLogFileInfo func(p0 context.Context, p1 string) (*LogFile, error) `perm:"admin"`
-
 		NodeNatType func(p0 context.Context, p1 string) (types.NatType, error) `perm:"write"`
 
 		NodeQuit func(p0 context.Context, p1 string) error `perm:"admin"`
@@ -281,15 +279,15 @@ func (s *CandidateStub) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 int
 	return *new(map[int]string), ErrNotSupported
 }
 
-func (s *CandidateStruct) ValidateNodes(p0 context.Context, p1 []ReqValidate) error {
+func (s *CandidateStruct) ValidateNodes(p0 context.Context, p1 []ReqValidate) (string, error) {
 	if s.Internal.ValidateNodes == nil {
-		return ErrNotSupported
+		return "", ErrNotSupported
 	}
 	return s.Internal.ValidateNodes(p0, p1)
 }
 
-func (s *CandidateStub) ValidateNodes(p0 context.Context, p1 []ReqValidate) error {
-	return ErrNotSupported
+func (s *CandidateStub) ValidateNodes(p0 context.Context, p1 []ReqValidate) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *CandidateStruct) WaitQuiet(p0 context.Context) error {
@@ -872,17 +870,6 @@ func (s *SchedulerStruct) NodeList(p0 context.Context, p1 int, p2 int) (*types.L
 }
 
 func (s *SchedulerStub) NodeList(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) {
-	return nil, ErrNotSupported
-}
-
-func (s *SchedulerStruct) NodeLogFileInfo(p0 context.Context, p1 string) (*LogFile, error) {
-	if s.Internal.NodeLogFileInfo == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.NodeLogFileInfo(p0, p1)
-}
-
-func (s *SchedulerStub) NodeLogFileInfo(p0 context.Context, p1 string) (*LogFile, error) {
 	return nil, ErrNotSupported
 }
 
