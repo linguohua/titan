@@ -17,6 +17,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/cidutil"
 	titanrsa "github.com/linguohua/titan/node/rsa"
+	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
@@ -24,26 +25,24 @@ import (
 var log = logging.Logger("asset")
 
 const (
-	nodePullAssetTimeout         = 60 * time.Second // Pull asset timeout (Unit:Second)
-	checkExpirationTimerInterval = 60 * 30          // Check for expired asset interval (Unit:Second)
-	maxPullingAssets             = 10               // Maximum number of asset pull
-	maxNodeDiskUsage             = 95.0             // If the node disk size is greater than this value, pulling will not continue
-	seedReplicaCount             = 1                // The number of pull replica in the first stage
-	getProgressInterval          = 20 * time.Second // Get asset pull progress interval from node (Unit:Second)
+	nodePullAssetTimeout         = 60 * time.Second      // Pull asset timeout (Unit:Second)
+	checkExpirationTimerInterval = 60 * 30 * time.Second // Check for expired asset interval (Unit:Second)
+	maxPullingAssets             = 10                    // Maximum number of asset pull
+	maxNodeDiskUsage             = 95.0                  // If the node disk size is greater than this value, pulling will not continue
+	seedReplicaCount             = 1                     // The number of pull replica in the first stage
+	getProgressInterval          = 20 * time.Second      // Get asset pull progress interval from node (Unit:Second)
 )
 
 // Manager asset replica manager
 type Manager struct {
-	nodeMgr       *node.Manager
-	minExpiration time.Time // Minimum expiration time for asset
-
+	nodeMgr            *node.Manager
+	nearestExpiration  time.Time // nearest expiry date for asset
 	statemachineWait   sync.WaitGroup
 	assetStateMachines *statemachine.StateGroup
-
-	lock      sync.Mutex
-	apTickers map[string]*assetTicker // timeout timer for asset pulling
-
-	config dtypes.GetSchedulerConfigFunc
+	lock               sync.Mutex
+	apTickers          map[string]*assetTicker // timeout timer for asset pulling
+	config             dtypes.GetSchedulerConfigFunc
+	*db.SQLDB
 }
 
 type assetTicker struct {
@@ -68,12 +67,13 @@ func (t *assetTicker) run(job func() error) {
 }
 
 // NewManager return new manager instance
-func NewManager(nodeManager *node.Manager, ds datastore.Batching, configFunc dtypes.GetSchedulerConfigFunc) *Manager {
+func NewManager(nodeManager *node.Manager, ds datastore.Batching, configFunc dtypes.GetSchedulerConfigFunc, sdb *db.SQLDB) *Manager {
 	m := &Manager{
-		nodeMgr:       nodeManager,
-		minExpiration: time.Now(),
-		apTickers:     make(map[string]*assetTicker),
-		config:        configFunc,
+		nodeMgr:           nodeManager,
+		nearestExpiration: time.Now(),
+		apTickers:         make(map[string]*assetTicker),
+		config:            configFunc,
+		SQLDB:             sdb,
 	}
 
 	m.statemachineWait.Add(1)
@@ -93,15 +93,12 @@ func (m *Manager) Run(ctx context.Context) {
 
 // Stop stop statemachine
 func (m *Manager) Stop(ctx context.Context) error {
-	if err := m.assetStateMachines.Stop(ctx); err != nil {
-		return err
-	}
-	return nil
+	return m.assetStateMachines.Stop(ctx)
 }
 
 // check asset expiration
 func (m *Manager) checkExpirationTicker(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(checkExpirationTimerInterval) * time.Second)
+	ticker := time.NewTicker(checkExpirationTimerInterval)
 	defer ticker.Stop()
 
 	for {
@@ -140,7 +137,7 @@ func (m *Manager) nodesPullProgresses() {
 			continue
 		}
 
-		nodes, err := m.nodeMgr.LoadPullingNodes(hash)
+		nodes, err := m.LoadPullingNodes(hash)
 		if err != nil {
 			log.Errorf("%s UnDoneNodes err:%s", hash, err.Error())
 			continue
@@ -201,7 +198,7 @@ func (m *Manager) PullAssets(info *types.PullAssetReq) error {
 
 	log.Debugf("asset event: %s, add asset replica: %d,expiration: %s", info.CID, info.Replicas, info.Expiration.String())
 
-	cInfo, err := m.nodeMgr.LoadAssetRecord(info.Hash)
+	cInfo, err := m.LoadAssetRecord(info.Hash)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
@@ -236,13 +233,13 @@ func (m *Manager) RestartPullAssets(hashes []types.AssetHash) error {
 
 // RemoveAsset remove a asset
 func (m *Manager) RemoveAsset(cid, hash string) error {
-	cInfos, err := m.nodeMgr.LoadAssetReplicas(hash)
+	cInfos, err := m.LoadAssetReplicas(hash)
 	if err != nil {
 		return xerrors.Errorf("LoadAssetReplicaInfos: %s,err:%s", cid, err.Error())
 	}
 
 	defer func() {
-		err = m.nodeMgr.RemoveAssetRecord(hash)
+		err = m.RemoveAssetRecord(hash)
 		if err != nil {
 			log.Errorf("%s RemoveAssetRecord db err: %s", hash, err.Error())
 		}
@@ -312,7 +309,7 @@ func (m *Manager) pullAssetsResult(nodeID string, result *types.CacheResult) {
 			NodeID:   nodeID,
 		}
 
-		err = m.nodeMgr.UpdateUnfinishedReplica(cInfo)
+		err = m.UpdateUnfinishedReplica(cInfo)
 		if err != nil {
 			log.Errorf("pullAssetsResult %s UpdateReplicaInfo err:%s", nodeID, err.Error())
 			continue
@@ -356,7 +353,7 @@ func (m *Manager) addOrResetAssetTicker(hash string) {
 
 	fn := func() error {
 		// update replicas status
-		err := m.nodeMgr.UpdateStatusOfUnfinishedReplicas(hash, types.ReplicaStatusFailed)
+		err := m.UpdateStatusOfUnfinishedReplicas(hash, types.ReplicaStatusFailed)
 		if err != nil {
 			return xerrors.Errorf("addOrResetAssetTicker %s UpdateStatusOfUnfinishedReplicas err:%s", hash, err.Error())
 		}
@@ -406,23 +403,23 @@ func (m *Manager) ResetAssetRecordExpiration(cid string, t time.Time) error {
 
 	log.Infof("asset event %s, reset asset expiration:%s", cid, t.String())
 
-	err = m.nodeMgr.UpdateAssetRecordExpiration(hash, t)
+	err = m.UpdateAssetRecordExpiration(hash, t)
 	if err != nil {
 		return err
 	}
 
-	m.resetLatestExpiration(t)
+	m.resetNearestExpiration(t)
 
 	return nil
 }
 
 // check assets expiration
 func (m *Manager) checkAssetsExpiration() {
-	if m.minExpiration.After(time.Now()) {
+	if m.nearestExpiration.After(time.Now()) {
 		return
 	}
 
-	records, err := m.nodeMgr.LoadExpiredAssetRecords()
+	records, err := m.LoadExpiredAssetRecords()
 	if err != nil {
 		log.Errorf("LoadExpiredAssetRecords err:%s", err.Error())
 		return
@@ -435,17 +432,17 @@ func (m *Manager) checkAssetsExpiration() {
 	}
 
 	// reset expiration
-	expiration, err := m.nodeMgr.LoadMinExpirationOfAssetRecords()
+	expiration, err := m.LoadMinExpirationOfAssetRecords()
 	if err != nil {
 		return
 	}
 
-	m.resetLatestExpiration(expiration)
+	m.resetNearestExpiration(expiration)
 }
 
-func (m *Manager) resetLatestExpiration(t time.Time) {
-	if m.minExpiration.After(t) {
-		m.minExpiration = t
+func (m *Manager) resetNearestExpiration(t time.Time) {
+	if m.nearestExpiration.After(t) {
+		m.nearestExpiration = t
 	}
 }
 
@@ -482,12 +479,12 @@ func (m *Manager) GetAssetRecordInfo(cid string) (*types.AssetRecord, error) {
 		return nil, err
 	}
 
-	dInfo, err := m.nodeMgr.LoadAssetRecord(hash)
+	dInfo, err := m.LoadAssetRecord(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	dInfo.ReplicaInfos, err = m.nodeMgr.LoadAssetReplicas(hash)
+	dInfo.ReplicaInfos, err = m.LoadAssetReplicas(hash)
 	if err != nil {
 		log.Errorf("loadData hash:%s, LoadAssetReplicaInfos err:%s", hash, err.Error())
 	}
@@ -580,7 +577,7 @@ func (m *Manager) saveCandidateReplicaInfos(nodes []*node.Candidate, hash string
 		})
 	}
 
-	return m.nodeMgr.BatchUpsertReplicas(replicaInfos)
+	return m.BatchUpsertReplicas(replicaInfos)
 }
 
 func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
@@ -596,7 +593,7 @@ func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
 		})
 	}
 
-	return m.nodeMgr.BatchUpsertReplicas(replicaInfos)
+	return m.BatchUpsertReplicas(replicaInfos)
 }
 
 // Sources get download sources

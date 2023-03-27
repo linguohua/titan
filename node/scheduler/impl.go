@@ -460,7 +460,7 @@ func (s *Scheduler) FindCandidateDownloadSources(ctx context.Context, cid string
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	sources := make([]*types.DownloadSource, 0)
 
-	rows, err := s.NodeManager.LoadReplicasOfHash(hash, []string{types.ReplicaStatusSucceeded.String()})
+	rows, err := s.NodeManager.LoadReplicasOfHash(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
 	if err != nil {
 		return nil, err
 	}

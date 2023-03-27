@@ -12,6 +12,7 @@ import (
 	"github.com/linguohua/titan/node/modules/helpers"
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler/assets"
+	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/linguohua/titan/node/scheduler/validation"
 	"github.com/linguohua/titan/node/sqldb"
 	"go.uber.org/fx"
@@ -60,6 +61,7 @@ type StorageManagerParams struct {
 	MetadataDS dtypes.MetadataDS
 	NodeManger *node.Manager
 	dtypes.GetSchedulerConfigFunc
+	*db.SQLDB
 }
 
 func NewStorageManager(params StorageManagerParams) *assets.Manager {
@@ -69,10 +71,11 @@ func NewStorageManager(params StorageManagerParams) *assets.Manager {
 		nodeMgr = params.NodeManger
 		ds      = params.MetadataDS
 		cfgFunc = params.GetSchedulerConfigFunc
+		sdb     = params.SQLDB
 	)
 
 	ctx := helpers.LifecycleCtx(mctx, lc)
-	m := assets.NewManager(nodeMgr, ds, cfgFunc)
+	m := assets.NewManager(nodeMgr, ds, cfgFunc, sdb)
 
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {

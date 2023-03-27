@@ -91,7 +91,7 @@ func (v *Validation) start() error {
 
 	roundID := uuid.NewString()
 	v.curRoundID = roundID
-	v.seed = time.Now().UnixNano()
+	v.seed = time.Now().UnixNano() // TODO from filecoin
 
 	validatorList, err := v.nodeMgr.LoadValidators(v.nodeMgr.ServerID)
 	if err != nil {
@@ -311,7 +311,7 @@ func (v *Validation) Result(validatedResult *api.ValidateResult) error {
 		return nil
 	}
 
-	rows, err := v.nodeMgr.LoadReplicasOfHash(hash, []string{types.ReplicaStatusSucceeded.String()})
+	rows, err := v.nodeMgr.LoadReplicasOfHash(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
 	if err != nil {
 		status = types.ValidateStatusOther
 		log.Errorf("Get candidates %s , err:%s", validatedResult.CID, err.Error())
