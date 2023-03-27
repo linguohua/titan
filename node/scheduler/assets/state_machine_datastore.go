@@ -87,7 +87,7 @@ func (d *DataStore) Query(ctx context.Context, q query.Query) (query.Results, er
 			continue
 		}
 
-		cInfo.ReplicaInfos, err = d.assetDB.LoadAssetReplicaInfos(cInfo.Hash)
+		cInfo.ReplicaInfos, err = d.assetDB.LoadAssetReplicas(cInfo.Hash)
 		if err != nil {
 			log.Errorf("asset %s load replicas err: %s", cInfo.CID, err.Error())
 			continue

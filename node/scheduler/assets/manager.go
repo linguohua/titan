@@ -37,11 +37,11 @@ type Manager struct {
 	nodeMgr       *node.Manager
 	minExpiration time.Time // Minimum expiration time for asset
 
-	startupWait        sync.WaitGroup
+	statemachineWait   sync.WaitGroup
 	assetStateMachines *statemachine.StateGroup
 
-	lock    sync.Mutex
-	tickers map[string]*assetTicker // timeout tickers for asset pulling
+	lock      sync.Mutex
+	apTickers map[string]*assetTicker // timeout timer for asset pulling
 
 	schedulerConfig dtypes.GetSchedulerConfigFunc
 }
@@ -72,11 +72,11 @@ func NewManager(nodeManager *node.Manager, ds datastore.Batching, configFunc dty
 	m := &Manager{
 		nodeMgr:         nodeManager,
 		minExpiration:   time.Now(),
-		tickers:         make(map[string]*assetTicker),
+		apTickers:       make(map[string]*assetTicker),
 		schedulerConfig: configFunc,
 	}
 
-	m.startupWait.Add(1)
+	m.statemachineWait.Add(1)
 	m.assetStateMachines = statemachine.New(ds, m, AssetPullingInfo{})
 
 	return m
@@ -133,7 +133,7 @@ func (m *Manager) nodesPullProgresses() {
 	nodePulls := make(map[string][]string)
 
 	// pulling assets
-	for hash := range m.tickers {
+	for hash := range m.apTickers {
 		cid, err := cidutil.HashString2CIDString(hash)
 		if err != nil {
 			log.Errorf("%s HashString2CIDString err:%s", hash, err.Error())
@@ -193,9 +193,9 @@ func (m *Manager) nodePullProgresses(nodeID string, cids []string) (result *type
 
 // PullAssets create a new pull asset task
 func (m *Manager) PullAssets(info *types.PullAssetReq) error {
-	m.startupWait.Wait()
+	m.statemachineWait.Wait()
 
-	if len(m.tickers) >= maxPullingAssets {
+	if len(m.apTickers) >= maxPullingAssets {
 		return xerrors.Errorf("The asset in the pulling exceeds the limit %d, please wait", maxPullingAssets)
 	}
 
@@ -236,7 +236,7 @@ func (m *Manager) RestartPullAssets(hashes []types.AssetHash) error {
 
 // RemoveAsset remove a asset
 func (m *Manager) RemoveAsset(cid, hash string) error {
-	cInfos, err := m.nodeMgr.LoadAssetReplicaInfos(hash)
+	cInfos, err := m.nodeMgr.LoadAssetReplicas(hash)
 	if err != nil {
 		return xerrors.Errorf("LoadAssetReplicaInfos: %s,err:%s", cid, err.Error())
 	}
@@ -292,7 +292,7 @@ func (m *Manager) pullAssetsResult(nodeID string, result *types.CacheResult) {
 
 		{
 			m.lock.Lock()
-			tickerC, ok := m.tickers[hash]
+			tickerC, ok := m.apTickers[hash]
 			if ok {
 				tickerC.ticker.Reset(nodePullAssetTimeout)
 			}
@@ -304,7 +304,7 @@ func (m *Manager) pullAssetsResult(nodeID string, result *types.CacheResult) {
 			continue
 		}
 
-		// save to db
+		// save replica info to db
 		cInfo := &types.ReplicaInfo{
 			Status:   progress.Status,
 			DoneSize: progress.DoneSize,
@@ -312,7 +312,7 @@ func (m *Manager) pullAssetsResult(nodeID string, result *types.CacheResult) {
 			NodeID:   nodeID,
 		}
 
-		err = m.nodeMgr.UpdateUnfinishedReplicaInfo(cInfo)
+		err = m.nodeMgr.UpdateUnfinishedReplica(cInfo)
 		if err != nil {
 			log.Errorf("pullAssetsResult %s UpdateReplicaInfo err:%s", nodeID, err.Error())
 			continue
@@ -369,32 +369,32 @@ func (m *Manager) addOrResetAssetTicker(hash string) {
 		return nil
 	}
 
-	t, ok := m.tickers[hash]
+	t, ok := m.apTickers[hash]
 	if ok {
 		t.ticker.Reset(nodePullAssetTimeout)
 		return
 	}
 
-	m.tickers[hash] = &assetTicker{
+	m.apTickers[hash] = &assetTicker{
 		ticker: time.NewTicker(nodePullAssetTimeout),
 		close:  make(chan struct{}),
 	}
 
-	go m.tickers[hash].run(fn)
+	go m.apTickers[hash].run(fn)
 }
 
 func (m *Manager) removeAssetTicker(key string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	t, ok := m.tickers[key]
+	t, ok := m.apTickers[key]
 	if !ok {
 		return
 	}
 
 	t.ticker.Stop()
 	close(t.close)
-	delete(m.tickers, key)
+	delete(m.apTickers, key)
 }
 
 // ResetAssetRecordExpiration reset the asset expiration
@@ -487,7 +487,7 @@ func (m *Manager) GetAssetRecordInfo(cid string) (*types.AssetRecord, error) {
 		return nil, err
 	}
 
-	dInfo.ReplicaInfos, err = m.nodeMgr.LoadAssetReplicaInfos(hash)
+	dInfo.ReplicaInfos, err = m.nodeMgr.LoadAssetReplicas(hash)
 	if err != nil {
 		log.Errorf("loadData hash:%s, LoadAssetReplicaInfos err:%s", hash, err.Error())
 	}

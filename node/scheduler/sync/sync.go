@@ -185,7 +185,7 @@ func (ds *DataSync) loadReplicaInfosBy(nodeID string) ([]*types.NodeReplicaStatu
 	index := 0
 	pullStatus := make([]*types.NodeReplicaStatus, 0)
 	for {
-		nodePullRsp, err := ds.nodeManager.LoadReplicaInfosOfNode(nodeID, index, dbLoadCount)
+		nodePullRsp, err := ds.nodeManager.LoadReplicasOfNode(nodeID, index, dbLoadCount)
 		if err != nil {
 			log.Errorf("LoadReplicaInfosOfNode %s, index:%d, count:%d, error:%s", nodeID, index, dbLoadCount)
 			return nil, err

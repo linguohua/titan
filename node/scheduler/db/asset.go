@@ -13,8 +13,8 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// UpdateUnfinishedReplicaInfo update unfinished replica info , return an error if the replica is finished
-func (n *SQLDB) UpdateUnfinishedReplicaInfo(cInfo *types.ReplicaInfo) error {
+// UpdateUnfinishedReplica update unfinished replica info , return an error if the replica is finished
+func (n *SQLDB) UpdateUnfinishedReplica(cInfo *types.ReplicaInfo) error {
 	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=?, done_size=? WHERE hash=? AND node_id=? AND (status=? or status=?)`, replicaInfoTable)
 	result, err := n.db.Exec(query, cInfo.Status, cInfo.DoneSize, cInfo.Hash, cInfo.NodeID, types.ReplicaStatusPulling, types.ReplicaStatusWaiting)
 	if err != nil {
@@ -104,8 +104,8 @@ func (n *SQLDB) LoadReplicasOfHash(hash string, statuses []string) (*sqlx.Rows, 
 	return n.db.QueryxContext(context.Background(), query, args...)
 }
 
-// LoadAssetReplicaInfos load all replicas of the asset
-func (n *SQLDB) LoadAssetReplicaInfos(hash string) ([]*types.ReplicaInfo, error) {
+// LoadAssetReplicas load all replicas of the asset
+func (n *SQLDB) LoadAssetReplicas(hash string) ([]*types.ReplicaInfo, error) {
 	var out []*types.ReplicaInfo
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE hash=? `, replicaInfoTable)
 	if err := n.db.Select(&out, query, hash); err != nil {
@@ -221,8 +221,8 @@ func (n *SQLDB) LoadAssetHashesOfNodes(nodeIDs []string) (hashes []string, err e
 	return
 }
 
-// RemoveReplicaInfoOfNodes remove replica info of nodes
-func (n *SQLDB) RemoveReplicaInfoOfNodes(nodeIDs []string) error {
+// RemoveReplicasOfNodes remove replica info of nodes
+func (n *SQLDB) RemoveReplicasOfNodes(nodeIDs []string) error {
 	// remove replica
 	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE node_id in (?)`, replicaInfoTable)
 	query, args, err := sqlx.In(dQuery, nodeIDs)
@@ -235,8 +235,8 @@ func (n *SQLDB) RemoveReplicaInfoOfNodes(nodeIDs []string) error {
 	return err
 }
 
-// LoadReplicaInfosOfNode load node replica infos
-func (n *SQLDB) LoadReplicaInfosOfNode(nodeID string, index, count int) (info *types.NodeReplicaRsp, err error) {
+// LoadReplicasOfNode load node replica infos
+func (n *SQLDB) LoadReplicasOfNode(nodeID string, index, count int) (info *types.NodeReplicaRsp, err error) {
 	info = &types.NodeReplicaRsp{}
 
 	query := fmt.Sprintf("SELECT count(hash) FROM %s WHERE node_id=?", replicaInfoTable)
@@ -253,8 +253,8 @@ func (n *SQLDB) LoadReplicaInfosOfNode(nodeID string, index, count int) (info *t
 	return
 }
 
-// LoadReplicaInfos load replicas info
-func (n *SQLDB) LoadReplicaInfos(startTime time.Time, endTime time.Time, cursor, count int) (*types.ListReplicaInfosRsp, error) {
+// LoadReplicas load replica infos
+func (n *SQLDB) LoadReplicas(startTime time.Time, endTime time.Time, cursor, count int) (*types.ListReplicaInfosRsp, error) {
 	var total int64
 	countSQL := fmt.Sprintf(`SELECT count(hash) FROM %s WHERE end_time between ? and ?`, replicaInfoTable)
 	if err := n.db.Get(&total, countSQL, startTime, endTime); err != nil {

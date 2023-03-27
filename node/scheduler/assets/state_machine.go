@@ -188,7 +188,7 @@ func apply(mut mutator) func() (mutator, func(*AssetPullingInfo) (bool, error)) 
 }
 
 func (m *Manager) restartStateMachines(ctx context.Context) error {
-	defer m.startupWait.Done()
+	defer m.statemachineWait.Done()
 
 	list, err := m.ListAssets()
 	if err != nil {

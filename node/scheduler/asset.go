@@ -66,7 +66,7 @@ func (s *Scheduler) AssetRecords(ctx context.Context, limit, offset int, states 
 			continue
 		}
 
-		cInfo.ReplicaInfos, err = s.NodeManager.LoadAssetReplicaInfos(cInfo.Hash)
+		cInfo.ReplicaInfos, err = s.NodeManager.LoadAssetReplicas(cInfo.Hash)
 		if err != nil {
 			log.Errorf("asset %s load replicas err: %s", cInfo.CID, err.Error())
 			continue
@@ -121,7 +121,7 @@ func (s *Scheduler) AssetReplicaList(ctx context.Context, req types.ListReplicaI
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
-	info, err := s.NodeManager.LoadReplicaInfos(startTime, endTime, req.Cursor, req.Count)
+	info, err := s.NodeManager.LoadReplicas(startTime, endTime, req.Cursor, req.Count)
 	if err != nil {
 		return nil, err
 	}
