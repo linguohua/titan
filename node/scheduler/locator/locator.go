@@ -10,6 +10,8 @@ import (
 	"github.com/linguohua/titan/api"
 )
 
+// TODO node status can be recorded to the etcd, so there is no need for a locator here
+
 var (
 	log      = logging.Logger("locator")
 	locators sync.Map

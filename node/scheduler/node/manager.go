@@ -290,7 +290,6 @@ func KeepaliveCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error)
 	}, nil
 }
 
-
 func (m *Manager) checkNodesTTL() {
 	nodes, err := m.LoadTimeoutNodes(offlineTimeMax, m.ServerID)
 	if err != nil {
@@ -319,7 +318,7 @@ func (m *Manager) NodesQuit(nodeIDs []string) {
 		return
 	}
 
-	err = m.RemoveReplicaInfoOfNodes(nodeIDs)
+	err = m.RemoveReplicasOfNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("RemoveReplicaInfoWithNodes err:%s", err.Error())
 		return
