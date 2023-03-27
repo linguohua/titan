@@ -93,7 +93,7 @@ func (n *SQLDB) LoadAssetRecords(statuses []string, limit, offset int, serverID 
 }
 
 // LoadReplicasOfHash load replicas of asset hash
-func (n *SQLDB) LoadReplicasOfHash(hash string, statuses []string) (*sqlx.Rows, error) {
+func (n *SQLDB) LoadReplicasOfHash(hash string, statuses []types.ReplicaStatus) (*sqlx.Rows, error) {
 	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE hash=? AND status in (?)`, replicaInfoTable)
 	query, args, err := sqlx.In(sQuery, hash, statuses)
 	if err != nil {
