@@ -19,7 +19,7 @@ func (n *SQLDB) LoadTimeoutNodes(timeoutHour int, serverID dtypes.ServerID) ([]s
 
 	time := time.Now().Add(-time.Duration(timeoutHour) * time.Hour)
 
-	query := fmt.Sprintf("SELECT node_id FROM %s WHERE server_id=? AND quitted=? AND last_time <= ?", nodeInfoTable)
+	query := fmt.Sprintf("SELECT node_id FROM %s WHERE scheduler_sid=? AND quitted=? AND last_time <= ?", nodeInfoTable)
 	if err := n.db.Select(&list, query, serverID, false, time); err != nil {
 		return nil, err
 	}
@@ -35,7 +35,6 @@ func (n *SQLDB) SetNodesQuitted(nodeIDs []string) error {
 		return err
 	}
 
-	// cache info
 	query = n.db.Rebind(query)
 	_, err = n.db.Exec(query, args...)
 
@@ -184,14 +183,14 @@ func (n *SQLDB) UpdateValidators(nodeIDs []string, serverID dtypes.ServerID) err
 	}()
 
 	// clean old validators
-	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE server_id=? `, validatorsTable)
+	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE scheduler_sid=? `, validatorsTable)
 	_, err = tx.Exec(dQuery, serverID)
 	if err != nil {
 		return err
 	}
 
 	for _, nodeID := range nodeIDs {
-		iQuery := fmt.Sprintf(`INSERT INTO %s (node_id, server_id) VALUES (?, ?)`, validatorsTable)
+		iQuery := fmt.Sprintf(`INSERT INTO %s (node_id, scheduler_sid) VALUES (?, ?)`, validatorsTable)
 		_, err = tx.Exec(iQuery, nodeID, serverID)
 		if err != nil {
 			return err
@@ -203,7 +202,7 @@ func (n *SQLDB) UpdateValidators(nodeIDs []string, serverID dtypes.ServerID) err
 
 // LoadValidators load validators
 func (n *SQLDB) LoadValidators(serverID dtypes.ServerID) ([]string, error) {
-	sQuery := fmt.Sprintf(`SELECT node_id FROM %s WHERE server_id=?`, validatorsTable)
+	sQuery := fmt.Sprintf(`SELECT node_id FROM %s WHERE scheduler_sid=?`, validatorsTable)
 
 	var out []string
 	err := n.db.Select(&out, sQuery, serverID)
@@ -227,7 +226,7 @@ func (n *SQLDB) UpdateValidatorInfo(serverID dtypes.ServerID, nodeID string) err
 		return nil
 	}
 
-	uQuery := fmt.Sprintf(`UPDATE %s SET server_id=? WHERE node_id=?`, validatorsTable)
+	uQuery := fmt.Sprintf(`UPDATE %s SET scheduler_sid=? WHERE node_id=?`, validatorsTable)
 	_, err = n.db.Exec(uQuery, serverID, nodeID)
 
 	return err
@@ -237,10 +236,10 @@ func (n *SQLDB) UpdateValidatorInfo(serverID dtypes.ServerID, nodeID string) err
 func (n *SQLDB) UpsertNodeInfo(info *types.NodeInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (node_id, mac_location, product_type, cpu_cores, memory, node_name, latitude, disk_usage,
-			    longitude, disk_type, io_system, system_version, nat_type, disk_space, bandwidth_up, bandwidth_down, blocks, server_id) 
+			    longitude, disk_type, io_system, system_version, nat_type, disk_space, bandwidth_up, bandwidth_down, blocks, scheduler_sid) 
 				VALUES (:node_id, :mac_location, :product_type, :cpu_cores, :memory, :node_name, :latitude, :disk_usage,
-				:longitude, :disk_type, :io_system, :system_version, :nat_type, :disk_space, :bandwidth_up, :bandwidth_down, :blocks, :server_id) 
-				ON DUPLICATE KEY UPDATE node_id=:node_id, last_time=:last_time, quitted=:quitted, disk_usage=:disk_usage, blocks=:blocks, server_id=:server_id`, nodeInfoTable)
+				:longitude, :disk_type, :io_system, :system_version, :nat_type, :disk_space, :bandwidth_up, :bandwidth_down, :blocks, :scheduler_sid) 
+				ON DUPLICATE KEY UPDATE node_id=:node_id, last_time=:last_time, quitted=:quitted, disk_usage=:disk_usage, blocks=:blocks, scheduler_sid=:scheduler_sid`, nodeInfoTable)
 
 	_, err := n.db.NamedExec(query, info)
 	return err

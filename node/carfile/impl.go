@@ -256,7 +256,7 @@ func (cfImpl *CarfileImpl) CachedProgresses(ctx context.Context, carfileCIDs []s
 func (cfImpl *CarfileImpl) progressForSucceededCar(root cid.Cid) (*types.AssetCacheProgress, error) {
 	progress := &types.AssetCacheProgress{
 		CID:    root.String(),
-		Status: types.CacheStatusSucceeded,
+		Status: types.ReplicaStatusSucceeded,
 	}
 
 	if count, err := cfImpl.carfileStore.BlockCountOfCarfile(root); err == nil {
@@ -293,13 +293,13 @@ func (cfImpl *CarfileImpl) carProgress(root cid.Cid) (*types.AssetCacheProgress,
 	}
 
 	switch status {
-	case types.CacheStatusWaiting:
-		return &types.AssetCacheProgress{CID: root.String(), Status: types.CacheStatusWaiting}, nil
-	case types.CacheStatusCaching:
+	case types.ReplicaStatusWaiting:
+		return &types.AssetCacheProgress{CID: root.String(), Status: types.ReplicaStatusWaiting}, nil
+	case types.ReplicaStatusPulling:
 		return cfImpl.cacheMgr.CachingCar().Progress(), nil
-	case types.CacheStatusFailed:
+	case types.ReplicaStatusFailed:
 		return cfImpl.cacheMgr.ProgressForFailedCar(root)
-	case types.CacheStatusSucceeded:
+	case types.ReplicaStatusSucceeded:
 		return cfImpl.progressForSucceededCar(root)
 	}
 	return nil, nil

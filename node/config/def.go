@@ -89,17 +89,17 @@ func DefaultLocatorCfg() *LocatorCfg {
 
 func DefaultSchedulerCfg() *SchedulerCfg {
 	return &SchedulerCfg{
-		ExternalAddress:             "localhost:3456",
-		ListenAddress:               "0.0.0.0:3456",
-		InsecureSkipVerify:          true,
-		CertificatePath:             "",
-		PrivateKeyPath:              "",
-		CaCertificatePath:           "",
-		AreaID:                      "CN-GD-Shenzhen",
-		DatabaseAddress:             "user01:sql001@tcp(127.0.0.1:3306)/titan",
-		EnableValidate:              true,
-		EtcdAddresses:               []string{"192.168.0.160:2379"},
-		CandidateReplicaCachesCount: 0,
+		ExternalAddress:    "localhost:3456",
+		ListenAddress:      "0.0.0.0:3456",
+		InsecureSkipVerify: true,
+		CertificatePath:    "",
+		PrivateKeyPath:     "",
+		CaCertificatePath:  "",
+		AreaID:             "CN-GD-Shenzhen",
+		DatabaseAddress:    "user01:sql001@tcp(127.0.0.1:3306)/titan",
+		EnableValidate:     true,
+		EtcdAddresses:      []string{"192.168.0.160:2379"},
+		CandidateReplicas:  0,
 	}
 }
 

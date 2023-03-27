@@ -13,8 +13,8 @@ func (c AssetHash) String() string {
 	return string(c)
 }
 
-// NodeCacheResultInfo node cache asset result
-type NodeCacheResultInfo struct {
+// NodePulledResult node pulled asset result
+type NodePulledResult struct {
 	Status      int64
 	BlocksCount int64
 	Size        int64
@@ -22,8 +22,8 @@ type NodeCacheResultInfo struct {
 	IsCandidate bool
 }
 
-// AssetCachingInfo asset cache info
-type AssetCachingInfo struct {
+// AssetPullingInfo asset pull info
+type AssetPullingInfo struct {
 	State             AssetState
 	Hash              AssetHash
 	CID               string
@@ -44,7 +44,7 @@ type AssetCachingInfo struct {
 }
 
 // ToAssetRecord types.AssetInfo
-func (state *AssetCachingInfo) ToAssetRecord() *types.AssetRecord {
+func (state *AssetPullingInfo) ToAssetRecord() *types.AssetRecord {
 	return &types.AssetRecord{
 		CID:                   state.CID,
 		Hash:                  state.Hash.String(),
@@ -57,8 +57,8 @@ func (state *AssetCachingInfo) ToAssetRecord() *types.AssetRecord {
 	}
 }
 
-func assetCachingInfoFrom(info *types.AssetRecord) *AssetCachingInfo {
-	cInfo := &AssetCachingInfo{
+func assetPullingInfoFrom(info *types.AssetRecord) *AssetPullingInfo {
+	cInfo := &AssetPullingInfo{
 		CID:               info.CID,
 		State:             AssetState(info.State),
 		Hash:              AssetHash(info.Hash),
@@ -70,7 +70,7 @@ func assetCachingInfoFrom(info *types.AssetRecord) *AssetCachingInfo {
 	}
 
 	for _, r := range info.ReplicaInfos {
-		if r.Status != types.CacheStatusSucceeded {
+		if r.Status != types.ReplicaStatusSucceeded {
 			continue
 		}
 

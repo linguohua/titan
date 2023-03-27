@@ -10,8 +10,8 @@ import (
 
 func main() {
 	err := gen.WriteMapEncodersToFile("../cbor_gen.go", "assets",
-		assets.AssetCachingInfo{},
-		assets.NodeCacheResultInfo{},
+		assets.AssetPullingInfo{},
+		assets.NodePulledResult{},
 	)
 	if err != nil {
 		fmt.Println(err)

@@ -58,7 +58,7 @@ func (s *Scheduler) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types
 	}
 	userURL := handler.GetRemoteAddr(ctx)
 
-	rows, err := s.NodeManager.LoadReplicasOfHash(hash, []string{types.CacheStatusSucceeded.String()})
+	rows, err := s.NodeManager.LoadReplicasOfHash(hash, []string{types.ReplicaStatusSucceeded.String()})
 	if err != nil {
 		return nil, err
 	}

@@ -152,7 +152,7 @@ var cacheCarfileCmd = &cli.Command{
 			return xerrors.New("cid is nil")
 		}
 
-		info := &types.CacheAssetReq{CID: cid}
+		info := &types.PullAssetReq{CID: cid}
 
 		if date == "" {
 			date = time.Now().Add(defaultExpiration).Format(defaultDateTimeLayout)
@@ -213,10 +213,10 @@ var listCarfilesCmd = &cli.Command{
 		limit := cctx.Int("limit")
 		offset := cctx.Int("offset")
 
-		states := append([]string{assets.Finished.String()}, append(assets.FailedStates, assets.CachingStates...)...)
+		states := append([]string{assets.Finished.String()}, append(assets.FailedStates, assets.PullingStates...)...)
 
 		if cctx.Bool("caching") {
-			states = assets.CachingStates
+			states = assets.PullingStates
 		}
 		if cctx.Bool("failed") {
 			states = assets.FailedStates

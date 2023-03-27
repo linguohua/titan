@@ -241,15 +241,15 @@ func (cfCache *carfileCache) decode(data []byte) error {
 	return nil
 }
 
-func (cfCache *carfileCache) cacheStatus() types.CacheStatus {
+func (cfCache *carfileCache) cacheStatus() types.ReplicaStatus {
 	if cfCache.isDownloadComplete() {
-		return types.CacheStatusSucceeded
+		return types.ReplicaStatusSucceeded
 	}
 
 	if cfCache.isFinish {
-		return types.CacheStatusFailed
+		return types.ReplicaStatusFailed
 	}
-	return types.CacheStatusCaching
+	return types.ReplicaStatusPulling
 }
 
 func (cfCache *carfileCache) Progress() *types.AssetCacheProgress {

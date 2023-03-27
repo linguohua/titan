@@ -41,7 +41,7 @@ type Scheduler interface {
 	FindCandidateDownloadSources(ctx context.Context, cid string) ([]*types.DownloadSource, error) //perm:read
 
 	// Asset
-	CacheAsset(ctx context.Context, info *types.CacheAssetReq) error                                    //perm:admin
+	CacheAsset(ctx context.Context, info *types.PullAssetReq) error                                     //perm:admin
 	RemoveAsset(ctx context.Context, cid string) error                                                  //perm:admin
 	AssetRecord(ctx context.Context, cid string) (*types.AssetRecord, error)                            //perm:read
 	AssetRecords(ctx context.Context, limit, offset int, states []string) ([]*types.AssetRecord, error) //perm:read

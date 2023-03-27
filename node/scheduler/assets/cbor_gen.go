@@ -18,7 +18,7 @@ var _ = cid.Undef
 var _ = math.E
 var _ = sort.Sort
 
-func (t *AssetCachingInfo) MarshalCBOR(w io.Writer) error {
+func (t *AssetPullingInfo) MarshalCBOR(w io.Writer) error {
 	if t == nil {
 		_, err := w.Write(cbg.CborNull)
 		return err
@@ -406,8 +406,8 @@ func (t *AssetCachingInfo) MarshalCBOR(w io.Writer) error {
 	return nil
 }
 
-func (t *AssetCachingInfo) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = AssetCachingInfo{}
+func (t *AssetPullingInfo) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = AssetPullingInfo{}
 
 	cr := cbg.NewCborReader(r)
 
@@ -426,7 +426,7 @@ func (t *AssetCachingInfo) UnmarshalCBOR(r io.Reader) (err error) {
 	}
 
 	if extra > cbg.MaxLength {
-		return fmt.Errorf("AssetCachingInfo: map struct too large (%d)", extra)
+		return fmt.Errorf("AssetPullingInfo: map struct too large (%d)", extra)
 	}
 
 	var name string
@@ -806,7 +806,7 @@ func (t *AssetCachingInfo) UnmarshalCBOR(r io.Reader) (err error) {
 
 	return nil
 }
-func (t *NodeCacheResultInfo) MarshalCBOR(w io.Writer) error {
+func (t *NodePulledResult) MarshalCBOR(w io.Writer) error {
 	if t == nil {
 		_, err := w.Write(cbg.CborNull)
 		return err
@@ -925,8 +925,8 @@ func (t *NodeCacheResultInfo) MarshalCBOR(w io.Writer) error {
 	return nil
 }
 
-func (t *NodeCacheResultInfo) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = NodeCacheResultInfo{}
+func (t *NodePulledResult) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = NodePulledResult{}
 
 	cr := cbg.NewCborReader(r)
 
@@ -945,7 +945,7 @@ func (t *NodeCacheResultInfo) UnmarshalCBOR(r io.Reader) (err error) {
 	}
 
 	if extra > cbg.MaxLength {
-		return fmt.Errorf("NodeCacheResultInfo: map struct too large (%d)", extra)
+		return fmt.Errorf("NodePulledResult: map struct too large (%d)", extra)
 	}
 
 	var name string
