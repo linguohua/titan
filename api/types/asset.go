@@ -17,7 +17,7 @@ type ListAssetRecordRsp struct {
 // AssetCacheProgress cache asset progress
 type AssetCacheProgress struct {
 	CID             string
-	Status          CacheStatus
+	Status          ReplicaStatus
 	Msg             string
 	BlocksCount     int
 	DoneBlocksCount int
@@ -51,7 +51,7 @@ type AssetRecord struct {
 	EndTime               time.Time       `db:"end_time"`
 	State                 string          `db:"state"`
 	NeedCandidateReplicas int64           `db:"candidate_replicas"`
-	ServerID              dtypes.ServerID `db:"server_id"`
+	ServerID              dtypes.ServerID `db:"scheduler_sid"`
 
 	ReplicaInfos []*ReplicaInfo
 	EdgeReplica  int64
@@ -59,16 +59,16 @@ type AssetRecord struct {
 
 // ReplicaInfo asset Replica Info
 type ReplicaInfo struct {
-	Hash        string      `db:"hash"`
-	NodeID      string      `db:"node_id"`
-	Status      CacheStatus `db:"status"`
-	IsCandidate bool        `db:"is_candidate"`
-	EndTime     time.Time   `db:"end_time"`
-	DoneSize    int64       `db:"done_size"`
+	Hash        string        `db:"hash"`
+	NodeID      string        `db:"node_id"`
+	Status      ReplicaStatus `db:"status"`
+	IsCandidate bool          `db:"is_candidate"`
+	EndTime     time.Time     `db:"end_time"`
+	DoneSize    int64         `db:"done_size"`
 }
 
-// CacheAssetReq cache asset req
-type CacheAssetReq struct {
+// PullAssetReq pull asset to titan req
+type PullAssetReq struct {
 	ID         string
 	CID        string
 	Hash       string
@@ -77,30 +77,30 @@ type CacheAssetReq struct {
 	Expiration time.Time
 }
 
-// CacheStatus nodeMgrCache Status
-type CacheStatus int
+// ReplicaStatus replica pull Status
+type ReplicaStatus int
 
 const (
-	// CacheStatusWaiting status
-	CacheStatusWaiting CacheStatus = iota
-	// CacheStatusCaching status
-	CacheStatusCaching
-	// CacheStatusFailed status
-	CacheStatusFailed
-	// CacheStatusSucceeded status
-	CacheStatusSucceeded
+	// ReplicaStatusWaiting status
+	ReplicaStatusWaiting ReplicaStatus = iota
+	// ReplicaStatusPulling status
+	ReplicaStatusPulling
+	// ReplicaStatusFailed status
+	ReplicaStatusFailed
+	// ReplicaStatusSucceeded status
+	ReplicaStatusSucceeded
 )
 
 // String status to string
-func (c CacheStatus) String() string {
+func (c ReplicaStatus) String() string {
 	switch c {
-	case CacheStatusWaiting:
+	case ReplicaStatusWaiting:
 		return "Waiting"
-	case CacheStatusFailed:
+	case ReplicaStatusFailed:
 		return "Failed"
-	case CacheStatusCaching:
+	case ReplicaStatusPulling:
 		return "Caching"
-	case CacheStatusSucceeded:
+	case ReplicaStatusSucceeded:
 		return "Succeeded"
 	default:
 		return "Unknown"
@@ -109,10 +109,10 @@ func (c CacheStatus) String() string {
 
 // CacheStatusAll all cache status
 var CacheStatusAll = []string{
-	CacheStatusWaiting.String(),
-	CacheStatusCaching.String(),
-	CacheStatusFailed.String(),
-	CacheStatusSucceeded.String(),
+	ReplicaStatusWaiting.String(),
+	ReplicaStatusPulling.String(),
+	ReplicaStatusFailed.String(),
+	ReplicaStatusSucceeded.String(),
 }
 
 // ListReplicaInfosReq list asset replicas

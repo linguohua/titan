@@ -293,7 +293,7 @@ func (m *Manager) Progresses() []*types.AssetCacheProgress {
 	progresses := make([]*types.AssetCacheProgress, 0, len(m.waitList))
 
 	for _, cw := range m.waitList {
-		progress := &types.AssetCacheProgress{CID: cw.Root.String(), Status: types.CacheStatusWaiting}
+		progress := &types.AssetCacheProgress{CID: cw.Root.String(), Status: types.ReplicaStatusWaiting}
 		if cw.cache != nil {
 			progress = cw.cache.Progress()
 		}
@@ -304,27 +304,27 @@ func (m *Manager) Progresses() []*types.AssetCacheProgress {
 	return progresses
 }
 
-func (m *Manager) CachedStatus(root cid.Cid) (types.CacheStatus, error) {
+func (m *Manager) CachedStatus(root cid.Cid) (types.ReplicaStatus, error) {
 	if m.carfileStore.HasCarfile(root) {
-		return types.CacheStatusSucceeded, nil
+		return types.ReplicaStatusSucceeded, nil
 	}
 
 	for _, cw := range m.waitList {
 		if cw.Root.Hash().String() == root.Hash().String() {
 			if cw.cache != nil {
-				return types.CacheStatusCaching, nil
+				return types.ReplicaStatusPulling, nil
 			}
-			return types.CacheStatusWaiting, nil
+			return types.ReplicaStatusWaiting, nil
 		}
 	}
 
-	return types.CacheStatusFailed, nil
+	return types.ReplicaStatusFailed, nil
 }
 
 func (m *Manager) ProgressForFailedCar(root cid.Cid) (*types.AssetCacheProgress, error) {
 	progress := &types.AssetCacheProgress{
 		CID:    root.String(),
-		Status: types.CacheStatusFailed,
+		Status: types.ReplicaStatusFailed,
 	}
 
 	data, err := m.carfileStore.IncompleteCarfileCacheData(root)

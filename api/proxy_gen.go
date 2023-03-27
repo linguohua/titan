@@ -187,7 +187,7 @@ type SchedulerStruct struct {
 
 		AssetReplicaList func(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) `perm:"read"`
 
-		CacheAsset func(p0 context.Context, p1 *types.CacheAssetReq) error `perm:"admin"`
+		CacheAsset func(p0 context.Context, p1 *types.PullAssetReq) error `perm:"admin"`
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) error `perm:"write"`
 
@@ -699,14 +699,14 @@ func (s *SchedulerStub) AssetReplicaList(p0 context.Context, p1 types.ListReplic
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) CacheAsset(p0 context.Context, p1 *types.CacheAssetReq) error {
+func (s *SchedulerStruct) CacheAsset(p0 context.Context, p1 *types.PullAssetReq) error {
 	if s.Internal.CacheAsset == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheAsset(p0, p1)
 }
 
-func (s *SchedulerStub) CacheAsset(p0 context.Context, p1 *types.CacheAssetReq) error {
+func (s *SchedulerStub) CacheAsset(p0 context.Context, p1 *types.PullAssetReq) error {
 	return ErrNotSupported
 }
 

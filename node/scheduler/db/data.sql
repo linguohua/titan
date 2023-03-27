@@ -24,7 +24,7 @@ CREATE TABLE `node_info` (
     `bandwidth_down` float DEFAULT '0',
     `blocks` bigint DEFAULT '0' ,
     `disk_usage` float DEFAULT '0', 
-    `server_id` varchar(128) NOT NULL,
+    `scheduler_sid` varchar(128) NOT NULL,
 	PRIMARY KEY (`node_id`)
 ) ENGINE=InnoDB COMMENT='node info';
 
@@ -88,7 +88,7 @@ CREATE TABLE `asset_record` (
     `expiration` datetime NOT NULL,
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
-    `server_id` varchar(128) NOT NULL,
+    `scheduler_sid` varchar(128) NOT NULL,
 	PRIMARY KEY (`hash`)
 ) ENGINE=InnoDB COMMENT='asset records';
 
@@ -104,6 +104,6 @@ CREATE TABLE `edge_update_info` (
 
 CREATE TABLE `validators` (
     `node_id` varchar(128) NOT NULL,
-    `server_id` varchar(128) NOT NULL,
+    `scheduler_sid` varchar(128) NOT NULL,
     PRIMARY KEY (`node_id`)
 ) ENGINE=InnoDB COMMENT='validators table';

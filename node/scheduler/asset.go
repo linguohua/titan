@@ -26,21 +26,21 @@ func (s *Scheduler) RemoveAssetResult(ctx context.Context, resultInfo types.Remo
 
 // RestartFailedAssets restart failed assets
 func (s *Scheduler) RestartFailedAssets(ctx context.Context, hashes []types.AssetHash) error {
-	return s.DataManager.RestartCacheAssets(hashes)
+	return s.AssetManager.RestartPullAssets(hashes)
 }
 
-// ResetAssetExpiration reset expiration time with data cache
+// ResetAssetExpiration reset expiration time with asset record
 func (s *Scheduler) ResetAssetExpiration(ctx context.Context, cid string, t time.Time) error {
 	if time.Now().After(t) {
 		return xerrors.Errorf("expiration:%s has passed", t.String())
 	}
 
-	return s.DataManager.ResetAssetRecordExpiration(cid, t)
+	return s.AssetManager.ResetAssetRecordExpiration(cid, t)
 }
 
 // AssetRecord Show Data Task
 func (s *Scheduler) AssetRecord(ctx context.Context, cid string) (*types.AssetRecord, error) {
-	info, err := s.DataManager.GetAssetRecordInfo(cid)
+	info, err := s.AssetManager.GetAssetRecordInfo(cid)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (s *Scheduler) AssetRecords(ctx context.Context, limit, offset int, states 
 	return list, nil
 }
 
-// RemoveAsset remove all caches with asset cid
+// RemoveAsset remove all record with asset cid
 func (s *Scheduler) RemoveAsset(ctx context.Context, cid string) error {
 	if cid == "" {
 		return xerrors.Errorf("Cid Is Nil")
@@ -89,11 +89,11 @@ func (s *Scheduler) RemoveAsset(ctx context.Context, cid string) error {
 		return err
 	}
 
-	return s.DataManager.RemoveAsset(cid, hash)
+	return s.AssetManager.RemoveAsset(cid, hash)
 }
 
 // CacheAsset cache asset
-func (s *Scheduler) CacheAsset(ctx context.Context, info *types.CacheAssetReq) error {
+func (s *Scheduler) CacheAsset(ctx context.Context, info *types.PullAssetReq) error {
 	if info.CID == "" {
 		return xerrors.New("Cid is Nil")
 	}
@@ -113,7 +113,7 @@ func (s *Scheduler) CacheAsset(ctx context.Context, info *types.CacheAssetReq) e
 		return xerrors.Errorf("expiration %s less than now(%v)", info.Expiration.String(), time.Now())
 	}
 
-	return s.DataManager.CacheAsset(info)
+	return s.AssetManager.PullAssets(info)
 }
 
 // AssetReplicaList list replicas

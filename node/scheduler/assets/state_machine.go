@@ -10,12 +10,12 @@ import (
 
 // Plan Plan
 func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface{}, uint64, error) {
-	next, processed, err := m.plan(events, user.(*AssetCachingInfo))
+	next, processed, err := m.plan(events, user.(*AssetPullingInfo))
 	if err != nil || next == nil {
 		return nil, processed, nil
 	}
 
-	return func(ctx statemachine.Context, si AssetCachingInfo) error {
+	return func(ctx statemachine.Context, si AssetPullingInfo) error {
 		err := next(ctx, si)
 		if err != nil {
 			log.Errorf("unhandled error (%s): %+v", si.CID, err)
@@ -26,58 +26,58 @@ func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface
 	}, processed, nil
 }
 
-var planners = map[AssetState]func(events []statemachine.Event, state *AssetCachingInfo) (uint64, error){
+var planners = map[AssetState]func(events []statemachine.Event, state *AssetPullingInfo) (uint64, error){
 	// external import
 	UndefinedState: planOne(
-		on(AssetStartCaches{}, CacheAssetSeed),
+		on(AssetStartPulls{}, FindFirstCandidate),
 	),
-	CacheAssetSeed: planOne(
-		on(CacheRequestSent{}, AssetSeedCaching),
-		on(CacheFailed{}, SeedCacheFailed),
+	FindFirstCandidate: planOne(
+		on(PullRequestSent{}, AssetSeedPulling),
+		on(PullFailed{}, SeedPullFailed),
 	),
-	AssetSeedCaching: planOne(
-		on(CacheSucceed{}, FindCandidatesToCache),
-		on(CacheFailed{}, SeedCacheFailed),
-		apply(CacheResult{}),
+	AssetSeedPulling: planOne(
+		on(PullSucceed{}, FindCandidatesToPull),
+		on(PullFailed{}, SeedPullFailed),
+		apply(PulledResult{}),
 	),
-	FindCandidatesToCache: planOne(
-		on(CacheRequestSent{}, CandidatesCaching),
-		on(CacheSucceed{}, FindEdgesToCache),
-		on(CacheFailed{}, CandidatesCacheFailed),
+	FindCandidatesToPull: planOne(
+		on(PullRequestSent{}, CandidatesPulling),
+		on(PullSucceed{}, FindEdgesToPull),
+		on(PullFailed{}, CandidatesPullFailed),
 	),
-	CandidatesCaching: planOne(
-		on(CacheFailed{}, CandidatesCacheFailed),
-		on(CacheSucceed{}, FindEdgesToCache),
-		apply(CacheResult{}),
+	CandidatesPulling: planOne(
+		on(PullFailed{}, CandidatesPullFailed),
+		on(PullSucceed{}, FindEdgesToPull),
+		apply(PulledResult{}),
 	),
-	FindEdgesToCache: planOne(
-		on(CacheRequestSent{}, EdgesCaching),
-		on(CacheFailed{}, EdgesCacheFailed),
-		on(CacheSucceed{}, Finished),
+	FindEdgesToPull: planOne(
+		on(PullRequestSent{}, EdgesPulling),
+		on(PullFailed{}, EdgesPullFailed),
+		on(PullSucceed{}, Finished),
 	),
-	EdgesCaching: planOne(
-		on(CacheFailed{}, EdgesCacheFailed),
-		on(CacheSucceed{}, Finished),
-		apply(CacheResult{}),
+	EdgesPulling: planOne(
+		on(PullFailed{}, EdgesPullFailed),
+		on(PullSucceed{}, Finished),
+		apply(PulledResult{}),
 	),
-	SeedCacheFailed: planOne(
-		on(AssetReCache{}, CacheAssetSeed),
+	SeedPullFailed: planOne(
+		on(AssetRePull{}, FindFirstCandidate),
 	),
-	CandidatesCacheFailed: planOne(
-		on(AssetReCache{}, FindCandidatesToCache),
+	CandidatesPullFailed: planOne(
+		on(AssetRePull{}, FindCandidatesToPull),
 	),
-	EdgesCacheFailed: planOne(
-		on(AssetReCache{}, FindEdgesToCache),
+	EdgesPullFailed: planOne(
+		on(AssetRePull{}, FindEdgesToPull),
 	),
 	Finished: planOne(
-		on(AssetReCache{}, FindCandidatesToCache),
+		on(AssetRePull{}, FindCandidatesToPull),
 	),
 	Remove: planOne(
-		on(AssetStartCaches{}, CacheAssetSeed),
+		on(AssetStartPulls{}, FindFirstCandidate),
 	),
 }
 
-func (m *Manager) plan(events []statemachine.Event, state *AssetCachingInfo) (func(statemachine.Context, AssetCachingInfo) error, uint64, error) {
+func (m *Manager) plan(events []statemachine.Event, state *AssetPullingInfo) (func(statemachine.Context, AssetPullingInfo) error, uint64, error) {
 	p := planners[state.State]
 	if p == nil {
 		if len(events) == 1 {
@@ -100,22 +100,22 @@ func (m *Manager) plan(events []statemachine.Event, state *AssetCachingInfo) (fu
 
 	switch state.State {
 	// Happy path
-	case CacheAssetSeed:
-		return m.handleCacheAssetSeed, processed, nil
-	case AssetSeedCaching:
-		return m.handleAssetSeedCaching, processed, nil
-	case FindCandidatesToCache:
-		return m.handleFindCandidatesToCache, processed, nil
-	case FindEdgesToCache:
-		return m.handleFindEdgesToCache, processed, nil
-	case CandidatesCaching:
-		return m.handleCandidatesCaching, processed, nil
-	case EdgesCaching:
-		return m.handleEdgesCaching, processed, nil
+	case FindFirstCandidate:
+		return m.handleFindFirstCandidate, processed, nil
+	case AssetSeedPulling:
+		return m.handleAssetSeedPulling, processed, nil
+	case FindCandidatesToPull:
+		return m.handleFindCandidates, processed, nil
+	case FindEdgesToPull:
+		return m.handleFindEdges, processed, nil
+	case CandidatesPulling:
+		return m.handleCandidatesPulling, processed, nil
+	case EdgesPulling:
+		return m.handleEdgesPulling, processed, nil
 	case Finished:
 		return m.handleFinished, processed, nil
-	case SeedCacheFailed, CandidatesCacheFailed, EdgesCacheFailed:
-		return m.handleCachesFailed, processed, nil
+	case SeedPullFailed, CandidatesPullFailed, EdgesPullFailed:
+		return m.handlePullsFailed, processed, nil
 	case Remove:
 		return nil, processed, nil
 	// Fatal errors
@@ -128,8 +128,8 @@ func (m *Manager) plan(events []statemachine.Event, state *AssetCachingInfo) (fu
 	return nil, processed, nil
 }
 
-func planOne(ts ...func() (mut mutator, next func(info *AssetCachingInfo) (more bool, err error))) func(events []statemachine.Event, state *AssetCachingInfo) (uint64, error) {
-	return func(events []statemachine.Event, state *AssetCachingInfo) (uint64, error) {
+func planOne(ts ...func() (mut mutator, next func(info *AssetPullingInfo) (more bool, err error))) func(events []statemachine.Event, state *AssetPullingInfo) (uint64, error) {
+	return func(events []statemachine.Event, state *AssetPullingInfo) (uint64, error) {
 	eloop:
 		for i, event := range events {
 			if gm, ok := event.User.(globalMutator); ok {
@@ -169,9 +169,9 @@ func planOne(ts ...func() (mut mutator, next func(info *AssetCachingInfo) (more 
 	}
 }
 
-func on(mut mutator, next AssetState) func() (mutator, func(*AssetCachingInfo) (bool, error)) {
-	return func() (mutator, func(*AssetCachingInfo) (bool, error)) {
-		return mut, func(state *AssetCachingInfo) (bool, error) {
+func on(mut mutator, next AssetState) func() (mutator, func(*AssetPullingInfo) (bool, error)) {
+	return func() (mutator, func(*AssetPullingInfo) (bool, error)) {
+		return mut, func(state *AssetPullingInfo) (bool, error) {
 			state.State = next
 			return false, nil
 		}
@@ -179,9 +179,9 @@ func on(mut mutator, next AssetState) func() (mutator, func(*AssetCachingInfo) (
 }
 
 // like `on`, but doesn't change state
-func apply(mut mutator) func() (mutator, func(*AssetCachingInfo) (bool, error)) {
-	return func() (mutator, func(*AssetCachingInfo) (bool, error)) {
-		return mut, func(state *AssetCachingInfo) (bool, error) {
+func apply(mut mutator) func() (mutator, func(*AssetPullingInfo) (bool, error)) {
+	return func() (mutator, func(*AssetPullingInfo) (bool, error)) {
+		return mut, func(state *AssetPullingInfo) (bool, error) {
 			return true, nil
 		}
 	}
@@ -197,7 +197,7 @@ func (m *Manager) restartStateMachines(ctx context.Context) error {
 	}
 
 	for _, asset := range list {
-		if err := m.assetStateMachines.Send(asset.Hash, CacheAssetRestart{}); err != nil {
+		if err := m.assetStateMachines.Send(asset.Hash, PullAssetRestart{}); err != nil {
 			log.Errorf("restarting asset %s: %+v", asset.CID, err)
 			continue
 		}
@@ -208,9 +208,9 @@ func (m *Manager) restartStateMachines(ctx context.Context) error {
 	return nil
 }
 
-// ListAssets load asset cache infos from statemachine
-func (m *Manager) ListAssets() ([]AssetCachingInfo, error) {
-	var list []AssetCachingInfo
+// ListAssets load asset pull infos from statemachine
+func (m *Manager) ListAssets() ([]AssetPullingInfo, error) {
+	var list []AssetPullingInfo
 	if err := m.assetStateMachines.List(&list); err != nil {
 		return nil, err
 	}

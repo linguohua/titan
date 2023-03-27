@@ -145,7 +145,7 @@ type BaseInfo struct {
 	remoteAddr string
 
 	lastRequestTime time.Time
-	cacheCount      int // The number of caches waiting and in progress
+	pullingCount    int // The number of asset waiting and pulling in progress
 }
 
 // NewBaseInfo new
@@ -196,19 +196,19 @@ func (n *BaseInfo) SetLastRequestTime(t time.Time) {
 	n.lastRequestTime = t
 }
 
-// SetCurCacheCount set node caching count
-func (n *BaseInfo) SetCurCacheCount(t int) {
-	n.cacheCount = t
+// SetCurPullingCount set node pulling count
+func (n *BaseInfo) SetCurPullingCount(t int) {
+	n.pullingCount = t
 }
 
-// IncrCurCacheCount Incr caching count
-func (n *BaseInfo) IncrCurCacheCount(v int) {
-	n.cacheCount += v
+// IncrCurPullingCount Incr pulling count
+func (n *BaseInfo) IncrCurPullingCount(v int) {
+	n.pullingCount += v
 }
 
-// CurCacheCount caching count
-func (n *BaseInfo) CurCacheCount() int {
-	return n.cacheCount
+// CurPullingCount pulling count
+func (n *BaseInfo) CurPullingCount() int {
+	return n.pullingCount
 }
 
 // SetNodePort reset node port

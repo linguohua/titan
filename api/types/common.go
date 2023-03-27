@@ -55,7 +55,7 @@ type NodeInfo struct {
 	PortMapping     string          `db:"port_mapping"`
 	LastTime        time.Time       `db:"last_time"`
 	Quitted         bool            `db:"quitted"`
-	ServerID        dtypes.ServerID `db:"server_id"`
+	ServerID        dtypes.ServerID `db:"scheduler_sid"`
 }
 
 // NodeType node type

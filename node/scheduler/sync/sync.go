@@ -106,13 +106,13 @@ func (ds *DataSync) doDataSync(nodeID string) {
 		return
 	}
 
-	nodeCacheStatusList, err := ds.loadReplicaInfosBy(nodeID)
+	list, err := ds.loadReplicaInfosBy(nodeID)
 	if err != nil {
 		log.Errorf("load replica infos error:%s", err.Error())
 		return
 	}
 
-	multihashes := ds.multihashSort(nodeCacheStatusList)
+	multihashes := ds.multihashSort(list)
 
 	checksums, err := ds.calculateChecksums(multihashes)
 	if err != nil {
@@ -183,19 +183,19 @@ func (ds *DataSync) calculateChecksum(hashes []string) (string, error) {
 
 func (ds *DataSync) loadReplicaInfosBy(nodeID string) ([]*types.NodeReplicaStatus, error) {
 	index := 0
-	cacheStates := make([]*types.NodeReplicaStatus, 0)
+	pullStatus := make([]*types.NodeReplicaStatus, 0)
 	for {
-		nodeCacheRsp, err := ds.nodeManager.LoadReplicaInfosOfNode(nodeID, index, dbLoadCount)
+		nodePullRsp, err := ds.nodeManager.LoadReplicaInfosOfNode(nodeID, index, dbLoadCount)
 		if err != nil {
-			log.Errorf("GetCacheInfosWithNode %s, index:%d, count:%d, error:%s", nodeID, index, dbLoadCount)
+			log.Errorf("LoadReplicaInfosOfNode %s, index:%d, count:%d, error:%s", nodeID, index, dbLoadCount)
 			return nil, err
 		}
 
-		cacheStates = append(cacheStates, nodeCacheRsp.Replica...)
-		if len(cacheStates) == nodeCacheRsp.TotalCount {
-			return cacheStates, nil
+		pullStatus = append(pullStatus, nodePullRsp.Replica...)
+		if len(pullStatus) == nodePullRsp.TotalCount {
+			return pullStatus, nil
 		}
 
-		index = len(cacheStates)
+		index = len(pullStatus)
 	}
 }

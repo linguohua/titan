@@ -16,7 +16,7 @@ import (
 // UpdateUnfinishedReplicaInfo update unfinished replica info , return an error if the replica is finished
 func (n *SQLDB) UpdateUnfinishedReplicaInfo(cInfo *types.ReplicaInfo) error {
 	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=?, done_size=? WHERE hash=? AND node_id=? AND (status=? or status=?)`, replicaInfoTable)
-	result, err := n.db.Exec(query, cInfo.Status, cInfo.DoneSize, cInfo.Hash, cInfo.NodeID, types.CacheStatusCaching, types.CacheStatusWaiting)
+	result, err := n.db.Exec(query, cInfo.Status, cInfo.DoneSize, cInfo.Hash, cInfo.NodeID, types.ReplicaStatusPulling, types.ReplicaStatusWaiting)
 	if err != nil {
 		return err
 	}
@@ -34,9 +34,9 @@ func (n *SQLDB) UpdateUnfinishedReplicaInfo(cInfo *types.ReplicaInfo) error {
 }
 
 // UpdateStatusOfUnfinishedReplicas update status of unfinished asset replicas
-func (n *SQLDB) UpdateStatusOfUnfinishedReplicas(hash string, status types.CacheStatus) error {
+func (n *SQLDB) UpdateStatusOfUnfinishedReplicas(hash string, status types.ReplicaStatus) error {
 	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=? WHERE hash=? AND (status=? or status=?)`, replicaInfoTable)
-	_, err := n.db.Exec(query, status, hash, types.CacheStatusCaching, types.CacheStatusWaiting)
+	_, err := n.db.Exec(query, status, hash, types.ReplicaStatusPulling, types.ReplicaStatusWaiting)
 
 	return err
 }
@@ -56,8 +56,8 @@ func (n *SQLDB) BatchUpsertReplicas(infos []*types.ReplicaInfo) error {
 // UpsertAssetRecord Insert or update asset record info
 func (n *SQLDB) UpsertAssetRecord(info *types.AssetRecord) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (hash, cid, state, edge_replicas, candidate_replicas, expiration, total_size, total_blocks, server_id, end_time) 
-				VALUES (:hash, :cid, :state, :edge_replicas, :candidate_replicas, :expiration, :total_size, :total_blocks, :server_id, NOW()) 
+		`INSERT INTO %s (hash, cid, state, edge_replicas, candidate_replicas, expiration, total_size, total_blocks, scheduler_sid, end_time) 
+				VALUES (:hash, :cid, :state, :edge_replicas, :candidate_replicas, :expiration, :total_size, :total_blocks, :scheduler_sid, NOW()) 
 				ON DUPLICATE KEY UPDATE total_size=VALUES(total_size), total_blocks=VALUES(total_blocks), state=VALUES(state), end_time=NOW()`, assetRecordsTable)
 
 	_, err := n.db.NamedExec(query, info)
@@ -82,7 +82,7 @@ func (n *SQLDB) LoadAssetRecords(statuses []string, limit, offset int, serverID 
 		limit = loadAssetRecordsLimit
 	}
 
-	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE state in (?) AND server_id=? order by hash asc LIMIT ? OFFSET ?`, assetRecordsTable)
+	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE state in (?) AND scheduler_sid=? order by hash asc LIMIT ? OFFSET ?`, assetRecordsTable)
 	query, args, err := sqlx.In(sQuery, statuses, serverID, limit, offset)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func (n *SQLDB) LoadReplicaCountOfNode(nodeID string) (int, error) {
 	query := fmt.Sprintf(`SELECT count(hash) FROM %s WHERE node_id=? AND status=?`, replicaInfoTable)
 
 	var count int
-	err := n.db.Get(&count, query, nodeID, types.CacheStatusSucceeded)
+	err := n.db.Get(&count, query, nodeID, types.ReplicaStatusSucceeded)
 
 	return count, err
 }
@@ -129,7 +129,7 @@ func (n *SQLDB) LoadReplicaCountOfNode(nodeID string) (int, error) {
 func (n *SQLDB) LoadAssetHashesOfNode(nodeID string, limit, offset int) ([]string, error) {
 	var hashes []string
 	query := fmt.Sprintf("SELECT hash FROM %s WHERE node_id=? AND status=? LIMIT %d OFFSET %d", replicaInfoTable, limit, offset)
-	if err := n.db.Select(&hashes, query, nodeID, types.CacheStatusSucceeded); err != nil {
+	if err := n.db.Select(&hashes, query, nodeID, types.ReplicaStatusSucceeded); err != nil {
 		return nil, err
 	}
 
@@ -168,11 +168,11 @@ func (n *SQLDB) LoadExpiredAssetRecords() ([]*types.AssetRecord, error) {
 	return out, nil
 }
 
-// LoadCachingNodes load unfinished nodes for asset hash
-func (n *SQLDB) LoadCachingNodes(hash string) ([]string, error) {
+// LoadPullingNodes load unfinished nodes for asset hash
+func (n *SQLDB) LoadPullingNodes(hash string) ([]string, error) {
 	var nodes []string
 	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE hash=? AND (status=? or status=?)`, replicaInfoTable)
-	err := n.db.Select(&nodes, query, hash, types.CacheStatusCaching, types.CacheStatusWaiting)
+	err := n.db.Select(&nodes, query, hash, types.ReplicaStatusPulling, types.ReplicaStatusWaiting)
 	return nodes, err
 }
 
@@ -190,14 +190,14 @@ func (n *SQLDB) RemoveAssetRecord(hash string) error {
 		}
 	}()
 
-	// cache info
+	// replica info
 	cQuery := fmt.Sprintf(`DELETE FROM %s WHERE hash=? `, replicaInfoTable)
 	_, err = tx.Exec(cQuery, hash)
 	if err != nil {
 		return err
 	}
 
-	// data info
+	// asset info
 	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE hash=?`, assetRecordsTable)
 	_, err = tx.Exec(dQuery, hash)
 	if err != nil {
@@ -223,7 +223,7 @@ func (n *SQLDB) LoadAssetHashesOfNodes(nodeIDs []string) (hashes []string, err e
 
 // RemoveReplicaInfoOfNodes remove replica info of nodes
 func (n *SQLDB) RemoveReplicaInfoOfNodes(nodeIDs []string) error {
-	// remove cache
+	// remove replica
 	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE node_id in (?)`, replicaInfoTable)
 	query, args, err := sqlx.In(dQuery, nodeIDs)
 	if err != nil {

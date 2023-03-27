@@ -314,7 +314,7 @@ func (v *Validation) Result(validatedResult *api.ValidateResult) error {
 		return nil
 	}
 
-	rows, err := v.nodeManager.LoadReplicasOfHash(hash, []string{types.CacheStatusSucceeded.String()})
+	rows, err := v.nodeManager.LoadReplicasOfHash(hash, []string{types.ReplicaStatusSucceeded.String()})
 	if err != nil {
 		status = types.ValidateStatusOther
 		log.Errorf("Get candidates %s , err:%s", validatedResult.CID, err.Error())
@@ -336,7 +336,7 @@ func (v *Validation) Result(validatedResult *api.ValidateResult) error {
 			continue
 		}
 
-		if rInfo.Status != types.CacheStatusSucceeded {
+		if rInfo.Status != types.ReplicaStatusSucceeded {
 			continue
 		}
 

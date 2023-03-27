@@ -50,7 +50,7 @@ type Scheduler struct {
 	NodeManager            *node.Manager
 	Election               *election.Election
 	Validation             *validation.Validation
-	DataManager            *assets.Manager
+	AssetManager           *assets.Manager
 	DataSync               *sync.DataSync
 	SchedulerCfg           *config.SchedulerCfg
 	SetSchedulerConfigFunc dtypes.SetSchedulerConfigFunc
@@ -460,7 +460,7 @@ func (s *Scheduler) FindCandidateDownloadSources(ctx context.Context, cid string
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	sources := make([]*types.DownloadSource, 0)
 
-	rows, err := s.NodeManager.LoadReplicasOfHash(hash, []string{types.CacheStatusSucceeded.String()})
+	rows, err := s.NodeManager.LoadReplicasOfHash(hash, []string{types.ReplicaStatusSucceeded.String()})
 	if err != nil {
 		return nil, err
 	}

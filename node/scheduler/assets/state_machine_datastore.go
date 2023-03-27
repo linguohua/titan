@@ -66,7 +66,7 @@ func (d *DataStore) Query(ctx context.Context, q query.Query) (query.Results, er
 	var rows *sqlx.Rows
 	var err error
 
-	state := append(FailedStates, CachingStates...)
+	state := append(FailedStates, PullingStates...)
 
 	rows, err = d.assetDB.LoadAssetRecords(state, q.Limit, q.Offset, d.ServerID)
 	if err != nil {
@@ -93,7 +93,7 @@ func (d *DataStore) Query(ctx context.Context, q query.Query) (query.Results, er
 			continue
 		}
 
-		asset := assetCachingInfoFrom(cInfo)
+		asset := assetPullingInfoFrom(cInfo)
 		valueBuf := new(bytes.Buffer)
 		if err = asset.MarshalCBOR(valueBuf); err != nil {
 			log.Errorf("asset marshal cbor: %s", err.Error())
@@ -130,7 +130,7 @@ func (d *DataStore) Put(ctx context.Context, key datastore.Key, value []byte) er
 	if err := d.assetDS.Put(ctx, key, value); err != nil {
 		log.Errorf("datastore local put: %v", err)
 	}
-	aInfo := &AssetCachingInfo{}
+	aInfo := &AssetPullingInfo{}
 	if err := aInfo.UnmarshalCBOR(bytes.NewReader(value)); err != nil {
 		return err
 	}
