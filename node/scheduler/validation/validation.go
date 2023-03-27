@@ -130,7 +130,7 @@ func (v *Validation) sendValidateInfoToValidator(validatorID string, reqList []a
 		return
 	}
 
-	err := validator.API().ValidateNodes(ctx, reqList)
+	_, err := validator.API().ValidateNodes(ctx, reqList)
 	if err != nil {
 		log.Errorf("ValidateNodes [%s] err:%s", validatorID, err.Error())
 		return
@@ -202,7 +202,7 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Re
 func (v *Validation) getNodeReqValidate(validated *validateNodeInfo) (api.ReqValidate, error) {
 	req := api.ReqValidate{
 		RandomSeed: v.seed,
-		NodeURL:    validated.addr,
+		NodeID:     validated.nodeID,
 		Duration:   duration,
 		RoundID:    v.curRoundID,
 		NodeType:   int(validated.nodeType),

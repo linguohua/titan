@@ -64,6 +64,12 @@ func (m *Manager) startTick() {
 				if err := m.saveIncompleteCarfileCache(cache); err != nil {
 					log.Error("saveIncompleteCarfileCache error:%s", err.Error())
 				}
+
+				log.Debugf("total block %d, done block %d, total size %d, done size %d",
+					len(cache.blocksDownloadSuccessList)+len(cache.blocksWaitList),
+					len(cache.blocksDownloadSuccessList),
+					cache.totalSize,
+					cache.totalSize)
 			}
 		}
 

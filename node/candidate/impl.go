@@ -110,12 +110,31 @@ func (candidate *Candidate) GetBlocksOfCarfile(ctx context.Context, carfileCID s
 	return candidate.CarfileImpl.GetBlocksOfCarfile(carfileCID, indices)
 }
 
-func (candidate *Candidate) ValidateNodes(ctx context.Context, req []api.ReqValidate) error {
+func (candidate *Candidate) ValidateNodes(ctx context.Context, req []api.ReqValidate) (string, error) {
 	for _, reqValidate := range req {
-		param := reqValidate
-		go validate(&param, candidate)
+		prepareValidate(&reqValidate, candidate)
 	}
-	return nil
+
+	address, err := candidate.Scheduler.NodeExternalServiceAddress(context.Background())
+	if err != nil {
+		log.Errorf("can not get external service address: %s", err.Error())
+		return "", err
+	}
+
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		log.Errorf("can not get external service address: %s", err.Error())
+		return "", err
+	}
+
+	_, port, err := net.SplitHostPort(candidate.Config.TCPSrvAddr)
+	if err != nil {
+		log.Errorf("can not get external service address: %s", err.Error())
+		return "", err
+	}
+
+	candidateTCPSrvAddr := fmt.Sprintf("%s:%s", host, port)
+	return candidateTCPSrvAddr, nil
 }
 
 func (candidate *Candidate) loadBlockWaiterFromMap(key string) (*blockWaiter, bool) {
@@ -203,78 +222,20 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 		result.NodeID, len(result.Cids), result.Bandwidth, result.CostTime, result.IsTimeout, req.Duration, size, result.RandomCount)
 }
 
-func validate(req *api.ReqValidate, candidate *Candidate) {
-	result := &api.ValidateResult{CID: req.CID, RoundID: req.RoundID, RandomCount: 0, Cids: make([]string, 0)}
+func prepareValidate(req *api.ReqValidate, candidate *Candidate) {
+	result := &api.ValidateResult{NodeID: req.NodeID, CID: req.CID, RoundID: req.RoundID, RandomCount: 0, Cids: make([]string, 0)}
 
-	api, closer, err := getNodeAPI(req.NodeType, req.NodeURL)
-	if err != nil {
-		log.Errorf("get node api error: %s", err.Error())
-
-		result.IsTimeout = true
-		if err := sendValidateResult(candidate, result); err != nil {
-			log.Errorf("send validate result error: %s", err.Error())
-		}
-		return
-	}
-	defer closer()
-
-	ctx, cancel := context.WithTimeout(context.Background(), schedulerAPITimeout*time.Second)
-	defer cancel()
-
-	nodeID, err := api.NodeID(ctx)
-	if err != nil {
-		log.Errorf("node id error: %v", err)
-
-		result.IsTimeout = true
-		if err := sendValidateResult(candidate, result); err != nil {
-			log.Errorf("send validate result error: %s", err.Error())
-		}
-		return
-	}
-	result.NodeID = nodeID
-
-	if _, exist := candidate.loadBlockWaiterFromMap(nodeID); exist {
-		log.Errorf("already doing validator node, nodeID:%s, not need to repeat to do", nodeID)
+	if _, exist := candidate.loadBlockWaiterFromMap(req.NodeID); exist {
+		log.Warnf("Already validating nodeID %s, not need to repeat do", req.NodeID)
 		return
 	}
 
 	bw := &blockWaiter{conn: nil, ch: make(chan tcpMsg, 1)}
-	candidate.BlockWaiterMap.Store(nodeID, bw)
+	candidate.BlockWaiterMap.Store(req.NodeID, bw)
 
 	go waitBlock(bw, req, candidate, result)
 
-	address, err := candidate.Scheduler.NodeExternalServiceAddress(context.Background())
-	if err != nil {
-		log.Errorf("can not get external service address: %s", err.Error())
-		return
-	}
-
-	host, _, err := net.SplitHostPort(address)
-	if err != nil {
-		log.Errorf("can not get external service address: %s", err.Error())
-		return
-	}
-
-	_, port, err := net.SplitHostPort(candidate.Config.TCPSrvAddr)
-	if err != nil {
-		log.Errorf("can not get external service address: %s", err.Error())
-		return
-	}
-
-	wctx, cancel := context.WithTimeout(context.Background(), (time.Duration(req.Duration))*time.Second)
-	defer cancel()
-
-	candidateTCPSrvAddr := fmt.Sprintf("%s:%s", host, port)
-
-	if err := api.BeValidate(wctx, *req, candidateTCPSrvAddr); err != nil {
-		log.Errorf("validate edge error: %s", err.Error())
-
-		result.IsTimeout = true
-
-		if err := sendValidateResult(candidate, result); err != nil {
-			log.Errorf("send validate result error: %s", err.Error())
-		}
-	}
+	return
 }
 
 type nodeAPI interface {
