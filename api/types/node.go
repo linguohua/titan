@@ -153,7 +153,7 @@ const (
 	ValidateStatusOther
 )
 
-// AccessToken gateway access token
+// Credentials gateway access credentials
 type Credentials struct {
 	ID        string
 	NodeID    string
@@ -163,11 +163,12 @@ type Credentials struct {
 	ValidTime int64
 }
 
-// GatewayAccessToken be use for access gateway
+// GatewayCredentials be use for access gateway
 type GatewayCredentials struct {
 	// encrypted AccessToken
 	Ciphertext string
-	Sign       string
+	// sign by scheduler private key
+	Sign string
 }
 
 type NodeWorkloadProof struct {
