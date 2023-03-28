@@ -288,19 +288,7 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, pKey string, nodeT
 // OnlineNodeList Get all online node id
 func (s *Scheduler) OnlineNodeList(ctx context.Context, nodeType types.NodeType) ([]string, error) {
 	if nodeType == types.NodeValidator {
-		list, err := s.NodeManager.LoadValidators(s.ServerID)
-		if err != nil {
-			return nil, err
-		}
-
-		out := make([]string, 0)
-		for _, nodeID := range list {
-			node := s.NodeManager.GetCandidateNode(nodeID)
-			if node != nil {
-				out = append(out, nodeID)
-			}
-		}
-		return out, nil
+		return s.NodeManager.LoadValidators(s.ServerID)
 	}
 
 	return s.NodeManager.OnlineNodeList(nodeType)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto"
 	"database/sql"
-	"sort"
 	"sync"
 	"time"
 
@@ -221,6 +220,7 @@ func (m *Manager) PullAssets(info *types.PullAssetReq) error {
 
 // RestartPullAssets restart pull assets
 func (m *Manager) RestartPullAssets(hashes []types.AssetHash) error {
+	// TODO hashes len
 	for _, hash := range hashes {
 		err := m.assetStateMachines.Send(hash, PullAssetRestart{})
 		if err != nil {
@@ -500,7 +500,6 @@ func (m *Manager) findEdges(count int, filterNodes []string) []*node.Edge {
 		return list
 	}
 
-	foundCount := count * 2
 	filterMap := make(map[string]struct{})
 	for _, nodeID := range filterNodes {
 		filterMap[nodeID] = struct{}{}
@@ -518,22 +517,14 @@ func (m *Manager) findEdges(count int, filterNodes []string) []*node.Edge {
 		}
 
 		list = append(list, edgeNode)
-		if len(list) >= foundCount {
+		if len(list) >= count {
 			return false
 		}
 
 		return true
 	})
 
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].CurPullingCount() < list[j].CurPullingCount()
-	})
-
-	if count > len(list) {
-		count = len(list)
-	}
-
-	return list[:count]
+	return list
 }
 
 // Find candidates that meet the pull criteria
@@ -544,7 +535,6 @@ func (m *Manager) findCandidates(count int, filterNodes []string) []*node.Candid
 		return list
 	}
 
-	foundCount := count * 2
 	filterMap := make(map[string]struct{})
 	for _, nodeID := range filterNodes {
 		filterMap[nodeID] = struct{}{}
@@ -562,22 +552,14 @@ func (m *Manager) findCandidates(count int, filterNodes []string) []*node.Candid
 		}
 
 		list = append(list, candidateNode)
-		if len(list) >= foundCount {
+		if len(list) >= count {
 			return false
 		}
 
 		return true
 	})
 
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].CurPullingCount() < list[j].CurPullingCount()
-	})
-
-	if count > len(list) {
-		count = len(list)
-	}
-
-	return list[:count]
+	return list
 }
 
 func (m *Manager) saveCandidateReplicaInfos(nodes []*node.Candidate, hash string) error {
