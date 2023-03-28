@@ -27,16 +27,16 @@ func NewValidate(carfileStore *store.CarfileStore, device *device.Device) *Valid
 	return &Validate{carfileStore: carfileStore, device: device}
 }
 
-func (validate *Validate) BeValidate(ctx context.Context, reqValidate api.ReqValidate, candidateTCPSrvAddr string) error {
+func (validate *Validate) BeValidate(ctx context.Context, req *api.BeValidateReq) error {
 	log.Debug("BeValidate")
 
-	conn, err := newTCPClient(candidateTCPSrvAddr)
+	conn, err := newTCPClient(req.TCPSrvAddr)
 	if err != nil {
 		log.Errorf("BeValidate, NewCandicate err:%v", err)
 		return err
 	}
 
-	go validate.sendBlocks(conn, &reqValidate, validate.device.GetBandwidthUp())
+	go validate.sendBlocks(conn, req, validate.device.GetBandwidthUp())
 
 	return nil
 }
@@ -47,7 +47,7 @@ func (validate *Validate) CancelValidate() {
 	}
 }
 
-func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqValidate, speedRate int64) {
+func (validate *Validate) sendBlocks(conn *net.TCPConn, req *api.BeValidateReq, speedRate int64) {
 	defer func() {
 		validate.cancelValidateChannel = nil
 		if err := conn.Close(); err != nil {
@@ -57,25 +57,25 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, reqValidate *api.ReqVali
 
 	validate.cancelValidateChannel = make(chan bool)
 
-	r := rand.New(rand.NewSource(reqValidate.RandomSeed))
-	t := time.NewTimer(time.Duration(reqValidate.Duration) * time.Second)
+	r := rand.New(rand.NewSource(req.RandomSeed))
+	t := time.NewTimer(time.Duration(req.Duration) * time.Second)
 
 	limiter := rate.NewLimiter(rate.Limit(speedRate), int(speedRate))
 
-	c, err := cid.Decode(reqValidate.CID)
+	c, err := cid.Decode(req.CID)
 	if err != nil {
-		log.Errorf("sendBlocks, decode cid %s error %s", reqValidate.CID, err.Error())
+		log.Errorf("sendBlocks, decode cid %s error %s", req.CID, err.Error())
 		return
 	}
 
 	cids, err := validate.carfileStore.BlocksOfCarfile(c)
 	if err != nil {
-		log.Errorf("sendBlocks, BlocksCountOfCarfile error:%s, carfileCID:%s", err.Error(), reqValidate.CID)
+		log.Errorf("sendBlocks, BlocksCountOfCarfile error:%s, carfileCID:%s", err.Error(), req.CID)
 		return
 	}
 
 	if len(cids) == 0 {
-		log.Errorf("sendBlocks, carfile %s no block exist", reqValidate.CID)
+		log.Errorf("sendBlocks, carfile %s no block exist", req.CID)
 		return
 	}
 
