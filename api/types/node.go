@@ -119,9 +119,9 @@ type ListValidateResultRsp struct {
 
 // ValidateResultInfo validator result
 type ValidateResultInfo struct {
-	ID          int
 	RoundID     string         `db:"round_id"`
 	NodeID      string         `db:"node_id"`
+	Cid         string         `db:"cid"`
 	ValidatorID string         `db:"validator_id"`
 	BlockNumber int64          `db:"block_number"` // number of blocks verified
 	Status      ValidateStatus `db:"status"`

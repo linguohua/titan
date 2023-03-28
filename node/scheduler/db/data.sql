@@ -29,7 +29,6 @@ CREATE TABLE `node_info` (
 ) ENGINE=InnoDB COMMENT='node info';
 
 CREATE TABLE `validate_result` (
-    `id` int unsigned NOT NULL AUTO_INCREMENT,
     `round_id` varchar(128) NOT NULL,
     `node_id` varchar(128) NOT NULL,
     `validator_id` varchar(128) NOT NULL,
@@ -37,10 +36,10 @@ CREATE TABLE `validate_result` (
     `status` tinyint DEFAULT '0',
     `duration` bigint DEFAULT '0' ,
     `bandwidth` float DEFAULT '0',
-    `start_time` datetime DEFAULT NULL,
+	`cid` varchar(128) DEFAULT '',
+    `start_time` datetime DEFAULT CURRENT_TIMESTAMP,
     `end_time` datetime DEFAULT NULL,
-    PRIMARY KEY (`id`),
-    KEY `round_node` (`round_id`,`node_id`)
+    UNIQUE KEY (`round_id`,`node_id`)
 ) ENGINE=InnoDB COMMENT='validate result info';
 
 CREATE TABLE `block_download_info` (
