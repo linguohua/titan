@@ -23,6 +23,9 @@ var log = logging.Logger("scheduler/validation")
 const (
 	duration         = 10              // Validation duration per node (Unit:Second)
 	validateInterval = 5 * time.Minute // validate start-up time interval (Unit:minute)
+
+	bandwidthRatio = 0.7 // The ratio of the total upstream bandwidth on edge nodes to the downstream bandwidth on validation nodes.
+	validatorNum   = 0   // Percentage of nodes participating in validation (0 means that all validators participate)
 )
 
 // Validation Validation
@@ -93,19 +96,16 @@ func (v *Validation) start() error {
 	v.curRoundID = roundID
 	v.seed = time.Now().UnixNano() // TODO from filecoin
 
-	validatorList, err := v.nodeMgr.LoadValidators(v.nodeMgr.ServerID)
+	validators, err := v.getEffectiveValidators()
 	if err != nil {
 		return err
 	}
 
-	// no successful election
-	if len(validatorList) == 0 {
-		return xerrors.New("validator list is null")
-	}
+	log.Debug("validator list: ", validators)
 
-	log.Debug("validator list: ", validatorList)
+	beValidateNodes := v.getBeValidateNodes()
 
-	validatorMap := v.assignValidator(validatorList)
+	validatorMap := v.assignValidator(validators, beValidateNodes)
 	if validatorMap == nil {
 		return xerrors.New("assignValidator map is null")
 	}
@@ -115,6 +115,64 @@ func (v *Validation) start() error {
 	}
 
 	return nil
+}
+
+func (v *Validation) getBeValidateNodes() []*api.ValidateReq {
+	var out []*api.ValidateReq
+	// edge nodes
+	v.nodeMgr.EdgeNodes.Range(func(key, value interface{}) bool {
+		node := value.(*node.Edge)
+		info := &validateNodeInfo{}
+		info.nodeType = types.NodeEdge
+		info.nodeID = node.NodeID
+		info.addr = node.BaseInfo.RPCURL()
+		info.bandwidth = node.BandwidthUp
+
+		out = append(out, &api.ValidateReq{})
+		return true
+	})
+
+	// candidate nodes
+	v.nodeMgr.CandidateNodes.Range(func(key, value interface{}) bool {
+		node := value.(*node.Candidate)
+		info := &validateNodeInfo{}
+		info.nodeType = types.NodeEdge
+		info.nodeID = node.NodeID
+		info.addr = node.BaseInfo.RPCURL()
+		info.bandwidth = node.BandwidthUp
+
+		out = append(out, &api.ValidateReq{})
+		return true
+	})
+
+	return out
+}
+
+func (v *Validation) getEffectiveValidators() (map[string]*node.Candidate, error) {
+	validatorList, err := v.nodeMgr.LoadValidators(v.nodeMgr.ServerID)
+	if err != nil {
+		return nil, err
+	}
+
+	effectiveValidators := make(map[string]*node.Candidate, 0)
+
+	for _, nodeID := range validatorList {
+		c := v.nodeMgr.GetCandidateNode(nodeID)
+		if c == nil {
+			continue
+		}
+		effectiveValidators[c.NodeID] = c
+
+		if validatorNum > 0 && len(effectiveValidators) >= validatorNum {
+			break
+		}
+	}
+
+	if len(effectiveValidators) == 0 {
+		return nil, xerrors.New("not found validator")
+	}
+
+	return effectiveValidators, nil
 }
 
 func (v *Validation) sendValidateInfoToValidator(validatorID string, reqList []api.ValidateReq) {
@@ -134,58 +192,36 @@ func (v *Validation) sendValidateInfoToValidator(validatorID string, reqList []a
 	}
 }
 
-func (v *Validation) getValidateList() []*validateNodeInfo {
-	validateList := make([]*validateNodeInfo, 0)
-	v.nodeMgr.EdgeNodes.Range(func(key, value interface{}) bool {
-		edgeNode := value.(*node.Edge)
-		info := &validateNodeInfo{}
-		info.nodeType = types.NodeEdge
-		info.nodeID = edgeNode.NodeID
-		info.addr = edgeNode.BaseInfo.RPCURL()
-		info.bandwidth = edgeNode.BandwidthUp
-		validateList = append(validateList, info)
-		return true
-	})
-
-	return validateList
-}
-
-func (v *Validation) assignValidator(validatorList []string) map[string][]api.ValidateReq {
+func (v *Validation) assignValidator(validators map[string]*node.Candidate, beValidateNodes []*api.ValidateReq) map[string][]api.ValidateReq {
 	validateReqs := make(map[string][]api.ValidateReq)
-
-	// load all validate (all edges)
-	validateList := v.getValidateList()
-	if len(validateList) <= 0 {
-		return nil
-	}
 
 	infos := make([]*types.ValidateResultInfo, 0)
 
-	for i, vInfo := range validateList {
-		req := api.ValidateReq{
-			NodeID:   vInfo.nodeID,
-			Duration: duration,
-			RoundID:  v.curRoundID,
-		}
+	// for i, vInfo := range edges {
+	// 	reqValidate, err := v.getNodeReqValidate(vInfo)
+	// 	if err != nil {
+	// 		// log.Errorf("node:%s , getNodeReqValidate err:%s", validated.nodeID, err.Error())
+	// 		continue
+	// 	}
 
-		validatorID := validatorList[i%len(validatorList)]
-		list, exist := validateReqs[validatorID]
-		if !exist {
-			list = make([]api.ValidateReq, 0)
-		}
-		list = append(list, req)
+	// 	validatorID := validators[i%len(validators)]
+	// 	list, exist := validateReqs[validatorID]
+	// 	if !exist {
+	// 		list = make([]api.ReqValidate, 0)
+	// 	}
+	// 	list = append(list, reqValidate)
 
-		validateReqs[validatorID] = list
+	// 	validateReqs[validatorID] = list
 
-		info := &types.ValidateResultInfo{
-			RoundID:     v.curRoundID,
-			NodeID:      vInfo.nodeID,
-			ValidatorID: validatorID,
-			StartTime:   time.Now(),
-			Status:      types.ValidateStatusCreate,
-		}
-		infos = append(infos, info)
-	}
+	// 	info := &types.ValidateResultInfo{
+	// 		RoundID:     v.curRoundID,
+	// 		NodeID:      vInfo.nodeID,
+	// 		ValidatorID: validatorID,
+	// 		StartTime:   time.Now(),
+	// 		Status:      types.ValidateStatusCreate,
+	// 	}
+	// 	infos = append(infos, info)
+	// }
 
 	err := v.nodeMgr.SetValidateResultInfos(infos)
 	if err != nil {
@@ -194,6 +230,40 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Va
 	}
 
 	return validateReqs
+}
+
+func (v *Validation) nodeReqValidate(nodeID string) (api.ValidateReq, error) {
+	req := api.ValidateReq{
+		NodeID:   nodeID,
+		Duration: duration,
+		RoundID:  v.curRoundID,
+	}
+
+	count, err := v.nodeMgr.LoadReplicaCountOfNode(nodeID)
+	if err != nil {
+		return req, err
+	}
+
+	if count < 1 {
+		return req, xerrors.New("Node has no replica")
+	}
+
+	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	// rand count
+	offset := rand.Intn(count)
+
+	cids, err := v.nodeMgr.LoadAssetCidsOfNode(nodeID, 1, offset)
+	if err != nil {
+		return req, err
+	}
+
+	if len(cids) < 1 {
+		return req, xerrors.New("Node has no replica")
+	}
+
+	// req.CID = cids[0]
+
+	return req, nil
 }
 
 type validateNodeInfo struct {

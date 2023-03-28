@@ -125,10 +125,10 @@ func (n *SQLDB) LoadReplicaCountOfNode(nodeID string) (int, error) {
 	return count, err
 }
 
-// LoadAssetHashesOfNode load a asset of the node
-func (n *SQLDB) LoadAssetHashesOfNode(nodeID string, limit, offset int) ([]string, error) {
+// LoadAssetCidsOfNode load asset cids of the node
+func (n *SQLDB) LoadAssetCidsOfNode(nodeID string, limit, offset int) ([]string, error) {
 	var hashes []string
-	query := fmt.Sprintf("SELECT hash FROM %s WHERE node_id=? AND status=? LIMIT %d OFFSET %d", replicaInfoTable, limit, offset)
+	query := fmt.Sprintf("select cid from (select hash from %s WHERE node_id=? AND status=? LIMIT %d OFFSET %d) as a left join %s as b on a.hash = b.hash", replicaInfoTable, limit, offset, assetRecordTable)
 	if err := n.db.Select(&hashes, query, nodeID, types.ReplicaStatusSucceeded); err != nil {
 		return nil, err
 	}
