@@ -2,20 +2,14 @@ package store
 
 import (
 	"context"
-	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/filecoin-project/dagstore"
 	"github.com/filecoin-project/dagstore/index"
-	"github.com/filecoin-project/dagstore/mount"
 	"github.com/filecoin-project/dagstore/shard"
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-libipfs/blocks"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/ipld/go-car/v2/blockstore"
 	"github.com/multiformats/go-multihash"
 )
 
@@ -29,12 +23,12 @@ const (
 	indexRepo                  = "full-index"
 	topIndexDir                = "top-index"
 	transientsDir              = "tmp"
-	carSuffix                  = ".car"
+	// carSuffix                  = ".car"
 )
 
-func newCarfileName(root cid.Cid) string {
-	return root.Hash().String() + carSuffix
-}
+// func newCarfileName(root cid.Cid) string {
+// 	return root.Hash().String() + carSuffix
+// }
 
 type CarfileStore struct {
 	incompleteCarfileCache *incompleteCarfileCache
@@ -86,216 +80,216 @@ func NewCarfileStore(path string) (*CarfileStore, error) {
 	return cs, nil
 }
 
-func (cs *CarfileStore) PutBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) error {
-	name := newCarfileName(root)
-	path := filepath.Join(cs.carsDir(), name)
+// func (cs *CarfileStore) PutBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) error {
+// 	name := newCarfileName(root)
+// 	path := filepath.Join(cs.carsDir(), name)
 
-	rw, err := blockstore.OpenReadWrite(path, []cid.Cid{root})
-	if err != nil {
-		return err
-	}
+// 	rw, err := blockstore.OpenReadWrite(path, []cid.Cid{root})
+// 	if err != nil {
+// 		return err
+// 	}
 
-	err = rw.PutMany(ctx, blks)
-	if err != nil {
-		return err
-	}
+// 	err = rw.PutMany(ctx, blks)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return rw.Finalize()
-}
+// 	return rw.Finalize()
+// }
 
-func (cs *CarfileStore) HasCarfile(root cid.Cid) bool {
-	infos := cs.dagstore.AllShardsInfo()
-	for k := range infos {
-		if k.String() == root.Hash().String() {
-			return true
-		}
-	}
-	return false
-}
+// func (cs *CarfileStore) HasCarfile(root cid.Cid) bool {
+// 	infos := cs.dagstore.AllShardsInfo()
+// 	for k := range infos {
+// 		if k.String() == root.Hash().String() {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
 
-// CarReader must close reader
-func (cs *CarfileStore) CarReader(root cid.Cid) (io.ReadSeekCloser, error) {
-	name := newCarfileName(root)
-	path := filepath.Join(cs.carsDir(), name)
+// // CarReader must close reader
+// func (cs *CarfileStore) CarReader(root cid.Cid) (io.ReadSeekCloser, error) {
+// 	name := newCarfileName(root)
+// 	path := filepath.Join(cs.carsDir(), name)
 
-	return os.Open(path)
-}
+// 	return os.Open(path)
+// }
 
-func (cs *CarfileStore) RegisterShared(root cid.Cid) error {
-	name := newCarfileName(root)
-	ch := make(chan dagstore.ShardResult)
-	k := shard.KeyFromString(root.Hash().String())
+// func (cs *CarfileStore) RegisterShared(root cid.Cid) error {
+// 	name := newCarfileName(root)
+// 	ch := make(chan dagstore.ShardResult)
+// 	k := shard.KeyFromString(root.Hash().String())
 
-	opts := dagstore.RegisterOpts{
-		ExistingTransient: filepath.Join(cs.carsDir(), name),
-	}
+// 	opts := dagstore.RegisterOpts{
+// 		ExistingTransient: filepath.Join(cs.carsDir(), name),
+// 	}
 
-	err := cs.dagstore.RegisterShard(context.Background(), k, &mount.FSMount{FS: os.DirFS(cs.carsDir()), Path: name}, ch, opts)
-	if err != nil {
-		return err
-	}
+// 	err := cs.dagstore.RegisterShard(context.Background(), k, &mount.FSMount{FS: os.DirFS(cs.carsDir()), Path: name}, ch, opts)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	res := <-ch
-	return res.Error
-}
+// 	res := <-ch
+// 	return res.Error
+// }
 
-func (cs *CarfileStore) DeleteCarfile(root cid.Cid) error {
-	err := cs.DeleteIncompleteCarfileCache(root)
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
+// func (cs *CarfileStore) DeleteCarfile(root cid.Cid) error {
+// 	err := cs.DeleteIncompleteCarfileCache(root)
+// 	if err != nil && !os.IsNotExist(err) {
+// 		return err
+// 	}
 
-	err = cs.removeCar(root)
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
+// 	err = cs.removeCar(root)
+// 	if err != nil && !os.IsNotExist(err) {
+// 		return err
+// 	}
 
-	if err == nil {
-		return cs.destroyShared(root)
-	}
+// 	if err == nil {
+// 		return cs.destroyShared(root)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (cs *CarfileStore) removeCar(root cid.Cid) error {
-	name := newCarfileName(root)
-	path := filepath.Join(cs.carsDir(), name)
+// func (cs *CarfileStore) removeCar(root cid.Cid) error {
+// 	name := newCarfileName(root)
+// 	path := filepath.Join(cs.carsDir(), name)
 
-	return os.Remove(path)
-}
+// 	return os.Remove(path)
+// }
 
-func (cs *CarfileStore) destroyShared(root cid.Cid) error {
-	ch := make(chan dagstore.ShardResult)
-	k := shard.KeyFromString(root.Hash().String())
+// func (cs *CarfileStore) destroyShared(root cid.Cid) error {
+// 	ch := make(chan dagstore.ShardResult)
+// 	k := shard.KeyFromString(root.Hash().String())
 
-	err := cs.dagstore.DestroyShard(context.Background(), k, ch, dagstore.DestroyOpts{})
-	if err != nil {
-		return err
-	}
+// 	err := cs.dagstore.DestroyShard(context.Background(), k, ch, dagstore.DestroyOpts{})
+// 	if err != nil {
+// 		return err
+// 	}
 
-	res := <-ch
-	if res.Error != nil {
-		return res.Error
-	}
+// 	res := <-ch
+// 	if res.Error != nil {
+// 		return res.Error
+// 	}
 
-	ok, err := cs.indexRepo.DropFullIndex(k)
-	if err != nil {
-		return err
-	}
+// 	ok, err := cs.indexRepo.DropFullIndex(k)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if !ok {
-		return fmt.Errorf("drop shard %s full index failed", k.String())
-	}
+// 	if !ok {
+// 		return fmt.Errorf("drop shard %s full index failed", k.String())
+// 	}
 
-	// TODO: continue drop topIndex
-	return nil
-}
+// 	// TODO: continue drop topIndex
+// 	return nil
+// }
 
-func (cs *CarfileStore) carsDir() string {
-	return filepath.Join(cs.baseDir, carsDir)
-}
+// func (cs *CarfileStore) carsDir() string {
+// 	return filepath.Join(cs.baseDir, carsDir)
+// }
 
-func (cs *CarfileStore) HasBlock(c cid.Cid) (bool, error) {
-	// shard in TopLevelIndex may be invalid, need to check it on dagstore
-	ks, err := cs.dagstore.TopLevelIndex.GetShardsForMultihash(context.Background(), c.Hash())
-	if err != nil {
-		return false, err
-	}
+// func (cs *CarfileStore) HasBlock(c cid.Cid) (bool, error) {
+// 	// shard in TopLevelIndex may be invalid, need to check it on dagstore
+// 	ks, err := cs.dagstore.TopLevelIndex.GetShardsForMultihash(context.Background(), c.Hash())
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	if len(ks) == 0 {
-		return false, nil
-	}
+// 	if len(ks) == 0 {
+// 		return false, nil
+// 	}
 
-	var key shard.Key
-	// find first valid shard
-	for _, k := range ks {
-		_, err := cs.dagstore.GetShardInfo(k)
-		if err == nil {
-			key = k
-			break
-		}
+// 	var key shard.Key
+// 	// find first valid shard
+// 	for _, k := range ks {
+// 		_, err := cs.dagstore.GetShardInfo(k)
+// 		if err == nil {
+// 			key = k
+// 			break
+// 		}
 
-		// ignore err
-	}
+// 		// ignore err
+// 	}
 
-	if len(key.String()) == 0 {
-		return false, nil
-	}
+// 	if len(key.String()) == 0 {
+// 		return false, nil
+// 	}
 
-	ch := make(chan dagstore.ShardResult)
-	err = cs.dagstore.AcquireShard(context.Background(), key, ch, dagstore.AcquireOpts{})
-	if err != nil {
-		return false, err
-	}
+// 	ch := make(chan dagstore.ShardResult)
+// 	err = cs.dagstore.AcquireShard(context.Background(), key, ch, dagstore.AcquireOpts{})
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	res := <-ch
-	if res.Error != nil {
-		return false, res.Error
-	}
+// 	res := <-ch
+// 	if res.Error != nil {
+// 		return false, res.Error
+// 	}
 
-	if res.Accessor == nil {
-		return false, fmt.Errorf("can not get shard %s accessor", ks[0].String())
-	}
-	defer res.Accessor.Close() //nolint:errcheck  // ignore error
+// 	if res.Accessor == nil {
+// 		return false, fmt.Errorf("can not get shard %s accessor", ks[0].String())
+// 	}
+// 	defer res.Accessor.Close() //nolint:errcheck  // ignore error
 
-	bs, err := res.Accessor.Blockstore()
-	if err != nil {
-		return false, err
-	}
+// 	bs, err := res.Accessor.Blockstore()
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	return bs.Has(context.Background(), c)
-}
+// 	return bs.Has(context.Background(), c)
+// }
 
-func (cs *CarfileStore) Block(c cid.Cid) (blocks.Block, error) {
-	// shard in TopLevelIndex may be invalid, need to check it on dagstore
-	ks, err := cs.dagstore.TopLevelIndex.GetShardsForMultihash(context.Background(), c.Hash())
-	if err != nil {
-		return nil, err
-	}
+// func (cs *CarfileStore) Block(c cid.Cid) (blocks.Block, error) {
+// 	// shard in TopLevelIndex may be invalid, need to check it on dagstore
+// 	ks, err := cs.dagstore.TopLevelIndex.GetShardsForMultihash(context.Background(), c.Hash())
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	if len(ks) == 0 {
-		return nil, datastore.ErrNotFound
-	}
+// 	if len(ks) == 0 {
+// 		return nil, datastore.ErrNotFound
+// 	}
 
-	var key shard.Key
-	// find first valid shard
-	for _, k := range ks {
-		_, err := cs.dagstore.GetShardInfo(k)
-		if err == nil {
-			key = k
-			break
-		}
+// 	var key shard.Key
+// 	// find first valid shard
+// 	for _, k := range ks {
+// 		_, err := cs.dagstore.GetShardInfo(k)
+// 		if err == nil {
+// 			key = k
+// 			break
+// 		}
 
-		// ignore err
-	}
+// 		// ignore err
+// 	}
 
-	if len(key.String()) == 0 {
-		return nil, fmt.Errorf("could not find a valid shard for block %s", c.String())
-	}
+// 	if len(key.String()) == 0 {
+// 		return nil, fmt.Errorf("could not find a valid shard for block %s", c.String())
+// 	}
 
-	ch := make(chan dagstore.ShardResult)
-	err = cs.dagstore.AcquireShard(context.Background(), key, ch, dagstore.AcquireOpts{})
-	if err != nil {
-		return nil, err
-	}
+// 	ch := make(chan dagstore.ShardResult)
+// 	err = cs.dagstore.AcquireShard(context.Background(), key, ch, dagstore.AcquireOpts{})
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	res := <-ch
-	if res.Error != nil {
-		return nil, res.Error
-	}
+// 	res := <-ch
+// 	if res.Error != nil {
+// 		return nil, res.Error
+// 	}
 
-	if res.Accessor == nil {
-		return nil, fmt.Errorf("can not get shard %s accessor", ks[0].String())
-	}
-	defer res.Accessor.Close() //nolint:errcheck  // ignore error
+// 	if res.Accessor == nil {
+// 		return nil, fmt.Errorf("can not get shard %s accessor", ks[0].String())
+// 	}
+// 	defer res.Accessor.Close() //nolint:errcheck  // ignore error
 
-	bs, err := res.Accessor.Blockstore()
-	if err != nil {
-		return nil, err
-	}
+// 	bs, err := res.Accessor.Blockstore()
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return bs.Get(context.Background(), c)
-}
+// 	return bs.Get(context.Background(), c)
+// }
 
 func (cs *CarfileStore) BlocksOfCarfile(root cid.Cid) ([]cid.Cid, error) {
 	k := shard.KeyFromString(root.Hash().String())
@@ -318,9 +312,9 @@ func (cs *CarfileStore) BlocksOfCarfile(root cid.Cid) ([]cid.Cid, error) {
 	return cids, nil
 }
 
-func (cs *CarfileStore) BlockReader(c cid.Cid) (io.ReadCloser, error) {
-	return nil, fmt.Errorf("not implement")
-}
+// func (cs *CarfileStore) BlockReader(c cid.Cid) (io.ReadCloser, error) {
+// 	return nil, fmt.Errorf("not implement")
+// }
 
 func (cs *CarfileStore) indexCount(k shard.Key) (int, error) {
 	ii, err := cs.dagstore.GetIterableIndex(k)
@@ -341,31 +335,31 @@ func (cs *CarfileStore) indexCount(k shard.Key) (int, error) {
 	return count, nil
 }
 
-func (cs *CarfileStore) recovery() error {
-	infos := cs.dagstore.AllShardsInfo()
-	for k := range infos {
-		if _, err := cs.dagstore.GetIterableIndex(k); err != nil {
-			mh, err := multihash.FromHexString(k.String())
-			if err != nil {
-				return err
-			}
+// func (cs *CarfileStore) recovery() error {
+// 	infos := cs.dagstore.AllShardsInfo()
+// 	for k := range infos {
+// 		if _, err := cs.dagstore.GetIterableIndex(k); err != nil {
+// 			mh, err := multihash.FromHexString(k.String())
+// 			if err != nil {
+// 				return err
+// 			}
 
-			c := cid.NewCidV1(cid.Raw, mh)
+// 			c := cid.NewCidV1(cid.Raw, mh)
 
-			if err := cs.destroyShared(c); err != nil {
-				return err
-			}
+// 			if err := cs.destroyShared(c); err != nil {
+// 				return err
+// 			}
 
-			if err := cs.RegisterShared(c); err != nil {
-				return err
-			}
+// 			if err := cs.RegisterShared(c); err != nil {
+// 				return err
+// 			}
 
-			log.Debugf("register shard %s success", k.String())
-		}
-	}
+// 			log.Debugf("register shard %s success", k.String())
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // count all block is cost much performance
 func (cs *CarfileStore) BlockCount() (int, error) {
@@ -387,10 +381,10 @@ func (cs *CarfileStore) BlockCountOfCarfile(root cid.Cid) (int, error) {
 	return cs.indexCount(k)
 }
 
-func (cs *CarfileStore) CarfileCount() (int, error) {
-	infos := cs.dagstore.AllShardsInfo()
-	return len(infos), nil
-}
+// func (cs *CarfileStore) CarfileCount() (int, error) {
+// 	infos := cs.dagstore.AllShardsInfo()
+// 	return len(infos), nil
+// }
 
 func (cs *CarfileStore) BaseDir() string {
 	return cs.baseDir
@@ -405,45 +399,4 @@ func (cs *CarfileStore) CarfileHashes() ([]string, error) {
 		multihashes = append(multihashes, k.String())
 	}
 	return multihashes, nil
-}
-
-// incomplete carfileCache
-func (cs *CarfileStore) SaveIncompleteCarfileCache(c cid.Cid, carfileCacheData []byte) error {
-	return cs.incompleteCarfileCache.save(c.Hash().String(), carfileCacheData)
-}
-
-func (cs *CarfileStore) DeleteIncompleteCarfileCache(c cid.Cid) error {
-	return cs.incompleteCarfileCache.delete(c.Hash().String())
-}
-
-// return datastore.ErrNotFound if car not exist
-func (cs *CarfileStore) IncompleteCarfileCacheData(c cid.Cid) ([]byte, error) {
-	return cs.incompleteCarfileCache.data(c.Hash().String())
-}
-
-// incomplete carfileCache
-func (cs *CarfileStore) HasIncompleteCarfile(c cid.Cid) (bool, error) {
-	return cs.incompleteCarfileCache.has(c.Hash().String())
-}
-
-// wait list file
-func (cs *CarfileStore) SaveWaitList(data []byte) error {
-	return saveWaitListToFile(data, filepath.Join(cs.baseDir, waitCacheListFile))
-}
-
-func (cs *CarfileStore) WaitList() ([]byte, error) {
-	return getWaitListFromFile(filepath.Join(cs.baseDir, waitCacheListFile))
-}
-
-func saveWaitListToFile(data []byte, path string) error {
-	return os.WriteFile(path, data, 0644)
-}
-
-func getWaitListFromFile(path string) ([]byte, error) {
-	data, err := os.ReadFile(path)
-	if err != nil && os.IsNotExist(err) {
-		return nil, datastore.ErrNotFound
-	}
-
-	return data, err
 }
