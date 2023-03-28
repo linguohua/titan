@@ -500,13 +500,17 @@ func (m *Manager) findEdges(count int, filterNodes []string) []*node.Edge {
 		return list
 	}
 
+	foundCount := count * 2
+	filterMap := make(map[string]struct{})
+	for _, nodeID := range filterNodes {
+		filterMap[nodeID] = struct{}{}
+	}
+
 	m.nodeMgr.EdgeNodes.Range(func(key, value interface{}) bool {
 		edgeNode := value.(*node.Edge)
 
-		for _, nodeID := range filterNodes {
-			if nodeID == edgeNode.NodeID {
-				return true
-			}
+		if _, exist := filterMap[edgeNode.NodeID]; exist {
+			return true
 		}
 
 		if edgeNode.DiskUsage > maxNodeDiskUsage {
@@ -514,6 +518,10 @@ func (m *Manager) findEdges(count int, filterNodes []string) []*node.Edge {
 		}
 
 		list = append(list, edgeNode)
+		if len(list) >= foundCount {
+			return false
+		}
+
 		return true
 	})
 
@@ -536,13 +544,17 @@ func (m *Manager) findCandidates(count int, filterNodes []string) []*node.Candid
 		return list
 	}
 
+	foundCount := count * 2
+	filterMap := make(map[string]struct{})
+	for _, nodeID := range filterNodes {
+		filterMap[nodeID] = struct{}{}
+	}
+
 	m.nodeMgr.CandidateNodes.Range(func(key, value interface{}) bool {
 		candidateNode := value.(*node.Candidate)
 
-		for _, nodeID := range filterNodes {
-			if nodeID == candidateNode.NodeID {
-				return true
-			}
+		if _, exist := filterMap[candidateNode.NodeID]; exist {
+			return true
 		}
 
 		if candidateNode.DiskUsage > maxNodeDiskUsage {
@@ -550,6 +562,10 @@ func (m *Manager) findCandidates(count int, filterNodes []string) []*node.Candid
 		}
 
 		list = append(list, candidateNode)
+		if len(list) >= foundCount {
+			return false
+		}
+
 		return true
 	})
 
