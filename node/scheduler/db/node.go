@@ -66,27 +66,18 @@ func (n *SQLDB) SetPortMapping(nodeID, port string) error {
 
 // SetValidateResultInfos Insert validate result infos
 func (n *SQLDB) SetValidateResultInfos(infos []*types.ValidateResultInfo) error {
-	tx, err := n.db.Beginx()
-	if err != nil {
-		return err
-	}
+	query := fmt.Sprintf(`INSERT INTO %s (round_id, node_id, validator_id, status, cid) VALUES (:round_id, :node_id, :validator_id, :status, :cid)`, validateResultTable)
+	_, err := n.db.NamedExec(query, infos)
 
-	defer func() {
-		err = tx.Rollback()
-		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("SetValidateResultInfos Rollback err:%s", err.Error())
-		}
-	}()
+	return err
+}
 
-	for _, info := range infos {
-		query := fmt.Sprintf(`INSERT INTO %s (round_id, node_id, validator_id, status, start_time) VALUES (?, ?, ?, ?, ?)`, validateResultTable)
-		_, err = tx.Exec(query, info.RoundID, info.NodeID, info.ValidatorID, info.Status, info.StartTime)
-		if err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit()
+// LoadNodeValidateCID Get the asset cid for node verification
+func (n *SQLDB) LoadNodeValidateCID(roundID, nodeID string) (string, error) {
+	query := fmt.Sprintf("SELECT cid FROM %s WHERE round_id=? AND node_id=?", validateResultTable)
+	var cid string
+	err := n.db.Get(&cid, query, roundID, nodeID)
+	return cid, err
 }
 
 // UpdateValidateResultInfo Update validate result info
