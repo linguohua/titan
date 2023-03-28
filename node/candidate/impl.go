@@ -11,10 +11,7 @@ import (
 	"github.com/linguohua/titan/node/config"
 	"go.uber.org/fx"
 
-	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/api/client"
-	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/carfile"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/device"
@@ -110,7 +107,7 @@ func (candidate *Candidate) GetBlocksOfCarfile(ctx context.Context, carfileCID s
 	return candidate.CarfileImpl.GetBlocksOfCarfile(carfileCID, indices)
 }
 
-func (candidate *Candidate) ValidateNodes(ctx context.Context, req []api.ReqValidate) (string, error) {
+func (candidate *Candidate) ValidateNodes(ctx context.Context, req []api.ValidateReq) (string, error) {
 	for _, reqValidate := range req {
 		prepareValidate(&reqValidate, candidate)
 	}
@@ -152,7 +149,7 @@ func sendValidateResult(candidate *Candidate, result *api.ValidateResult) error 
 	return candidate.Scheduler.NodeValidatedResult(ctx, *result)
 }
 
-func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, result *api.ValidateResult) {
+func waitBlock(vb *blockWaiter, req *api.ValidateReq, candidate *Candidate, result *api.ValidateResult) {
 	defer func() {
 		candidate.BlockWaiterMap.Delete(result.NodeID)
 	}()
@@ -222,8 +219,8 @@ func waitBlock(vb *blockWaiter, req *api.ReqValidate, candidate *Candidate, resu
 		result.NodeID, len(result.Cids), result.Bandwidth, result.CostTime, result.IsTimeout, req.Duration, size, result.RandomCount)
 }
 
-func prepareValidate(req *api.ReqValidate, candidate *Candidate) {
-	result := &api.ValidateResult{NodeID: req.NodeID, CID: req.CID, RoundID: req.RoundID, RandomCount: 0, Cids: make([]string, 0)}
+func prepareValidate(req *api.ValidateReq, candidate *Candidate) {
+	result := &api.ValidateResult{NodeID: req.NodeID, RoundID: req.RoundID, Cids: make([]string, 0)}
 
 	if _, exist := candidate.loadBlockWaiterFromMap(req.NodeID); exist {
 		log.Warnf("Already validating nodeID %s, not need to repeat do", req.NodeID)
@@ -236,22 +233,4 @@ func prepareValidate(req *api.ReqValidate, candidate *Candidate) {
 	go waitBlock(bw, req, candidate, result)
 
 	return
-}
-
-type nodeAPI interface {
-	NodeID(ctx context.Context) (string, error)
-	BeValidate(ctx context.Context, reqValidate api.ReqValidate, candidateTCPSrvAddr string) error
-}
-
-func getNodeAPI(nodeType int, nodeURL string) (nodeAPI, jsonrpc.ClientCloser, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	if nodeType == int(types.NodeEdge) {
-		return client.NewEdge(ctx, nodeURL, nil)
-	} else if nodeType == int(types.NodeCandidate) {
-		return client.NewCandidate(ctx, nodeURL, nil)
-	}
-
-	return nil, nil, fmt.Errorf("NodeType %d not NodeEdge or NodeCandidate", nodeType)
 }

@@ -117,7 +117,7 @@ func (v *Validation) start() error {
 	return nil
 }
 
-func (v *Validation) sendValidateInfoToValidator(validatorID string, reqList []api.ReqValidate) {
+func (v *Validation) sendValidateInfoToValidator(validatorID string, reqList []api.ValidateReq) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -150,8 +150,8 @@ func (v *Validation) getValidateList() []*validateNodeInfo {
 	return validateList
 }
 
-func (v *Validation) assignValidator(validatorList []string) map[string][]api.ReqValidate {
-	validateReqs := make(map[string][]api.ReqValidate)
+func (v *Validation) assignValidator(validatorList []string) map[string][]api.ValidateReq {
+	validateReqs := make(map[string][]api.ValidateReq)
 
 	// load all validate (all edges)
 	validateList := v.getValidateList()
@@ -162,18 +162,18 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Re
 	infos := make([]*types.ValidateResultInfo, 0)
 
 	for i, vInfo := range validateList {
-		reqValidate, err := v.getNodeReqValidate(vInfo)
-		if err != nil {
-			// log.Errorf("node:%s , getNodeReqValidate err:%s", validated.nodeID, err.Error())
-			continue
+		req := api.ValidateReq{
+			NodeID:   vInfo.nodeID,
+			Duration: duration,
+			RoundID:  v.curRoundID,
 		}
 
 		validatorID := validatorList[i%len(validatorList)]
 		list, exist := validateReqs[validatorID]
 		if !exist {
-			list = make([]api.ReqValidate, 0)
+			list = make([]api.ValidateReq, 0)
 		}
-		list = append(list, reqValidate)
+		list = append(list, req)
 
 		validateReqs[validatorID] = list
 
@@ -194,47 +194,6 @@ func (v *Validation) assignValidator(validatorList []string) map[string][]api.Re
 	}
 
 	return validateReqs
-}
-
-func (v *Validation) getNodeReqValidate(validated *validateNodeInfo) (api.ReqValidate, error) {
-	req := api.ReqValidate{
-		RandomSeed: v.seed,
-		NodeID:     validated.nodeID,
-		Duration:   duration,
-		RoundID:    v.curRoundID,
-		NodeType:   int(validated.nodeType),
-	}
-
-	count, err := v.nodeMgr.LoadReplicaCountOfNode(validated.nodeID)
-	if err != nil {
-		return req, err
-	}
-
-	if count < 1 {
-		return req, xerrors.New("Node has no replica")
-	}
-
-	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
-	// rand count
-	offset := rand.Intn(count)
-
-	hashes, err := v.nodeMgr.LoadAssetHashesOfNode(validated.nodeID, 1, offset)
-	if err != nil {
-		return req, err
-	}
-
-	if len(hashes) < 1 {
-		return req, xerrors.New("Node has no replica")
-	}
-
-	cid, err := cidutil.HashString2CIDString(hashes[0])
-	if err != nil {
-		log.Warnf("HashString2CidString %s err: %s ", hashes[0], err.Error())
-		return req, err
-	}
-	req.CID = cid
-
-	return req, nil
 }
 
 type validateNodeInfo struct {

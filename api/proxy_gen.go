@@ -29,7 +29,7 @@ type CandidateStruct struct {
 	Internal struct {
 		GetBlocksOfCarfile func(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) `perm:"read"`
 
-		ValidateNodes func(p0 context.Context, p1 []ReqValidate) (string, error) `perm:"read"`
+		ValidateNodes func(p0 context.Context, p1 []ValidateReq) (string, error) `perm:"read"`
 
 		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
@@ -261,7 +261,7 @@ type SchedulerStub struct {
 
 type ValidateStruct struct {
 	Internal struct {
-		BeValidate func(p0 context.Context, p1 ReqValidate, p2 string) error `perm:"read"`
+		BeValidate func(p0 context.Context, p1 *BeValidateReq) error `perm:"read"`
 	}
 }
 
@@ -279,14 +279,14 @@ func (s *CandidateStub) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 int
 	return *new(map[int]string), ErrNotSupported
 }
 
-func (s *CandidateStruct) ValidateNodes(p0 context.Context, p1 []ReqValidate) (string, error) {
+func (s *CandidateStruct) ValidateNodes(p0 context.Context, p1 []ValidateReq) (string, error) {
 	if s.Internal.ValidateNodes == nil {
 		return "", ErrNotSupported
 	}
 	return s.Internal.ValidateNodes(p0, p1)
 }
 
-func (s *CandidateStub) ValidateNodes(p0 context.Context, p1 []ReqValidate) (string, error) {
+func (s *CandidateStub) ValidateNodes(p0 context.Context, p1 []ValidateReq) (string, error) {
 	return "", ErrNotSupported
 }
 
@@ -1060,14 +1060,14 @@ func (s *SchedulerStub) ValidatedResultList(p0 context.Context, p1 time.Time, p2
 	return nil, ErrNotSupported
 }
 
-func (s *ValidateStruct) BeValidate(p0 context.Context, p1 ReqValidate, p2 string) error {
+func (s *ValidateStruct) BeValidate(p0 context.Context, p1 *BeValidateReq) error {
 	if s.Internal.BeValidate == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.BeValidate(p0, p1, p2)
+	return s.Internal.BeValidate(p0, p1)
 }
 
-func (s *ValidateStub) BeValidate(p0 context.Context, p1 ReqValidate, p2 string) error {
+func (s *ValidateStub) BeValidate(p0 context.Context, p1 *BeValidateReq) error {
 	return ErrNotSupported
 }
 

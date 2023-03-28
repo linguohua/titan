@@ -12,18 +12,14 @@ type Candidate interface {
 	GetBlocksOfCarfile(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error) //perm:read
 	// ValidateNodes return tcp server address
 	// candidate use tcp server to check edge block
-	ValidateNodes(ctx context.Context, req []ReqValidate) (string, error) //perm:read
+	ValidateNodes(ctx context.Context, reqs []ValidateReq) (string, error) //perm:read
 }
 
-type ReqValidate struct {
-	NodeID     string
-	CID        string
-	RandomSeed int64
-	// seconds
+type ValidateReq struct {
+	NodeID string
+	// unit seconds
 	Duration int
 	RoundID  string
-	// node type, for example, edge or candidate
-	NodeType int
 }
 
 // ValidateResult node Validate result
