@@ -33,9 +33,12 @@ type Scheduler interface {
 	PublicKey(ctx context.Context) (string, error) //perm:write
 	// nat travel, can get edge external addr with different scheduler
 	EdgeExternalServiceAddress(ctx context.Context, nodeID, schedulerURL string) (string, error) //perm:write
-	// nat travel
-	CheckEdgeConnectivityWithRandomPort(ctx context.Context, edgeURL string) (bool, error) //perm:read
-	NodeNatType(ctx context.Context, nodeID string) (types.NatType, error)                 //perm:write
+	// CheckNetworkConnectivity check tcp or udp network connectivity
+	// network is "tcp" or "udp"
+	CheckNetworkConnectivity(ctx context.Context, network, targetAddr string) error
+	// CheckEdgeConnectivity will replace by CheckNetworkConnectivity
+	CheckEdgeConnectivity(ctx context.Context, edgeURL string) error
+	NodeNatType(ctx context.Context, nodeID string) (types.NatType, error) //perm:write
 	// user
 	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error)              //perm:read
 	FindCandidateDownloadSources(ctx context.Context, cid string) ([]*types.DownloadSource, error) //perm:read
