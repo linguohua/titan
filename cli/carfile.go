@@ -23,27 +23,27 @@ var (
 	defaultDateTimeLayout = "2006-01-02 15:04:05"
 )
 
-var carfileCmd = &cli.Command{
-	Name:  "carfile",
-	Usage: "Manage carfile",
+var assetCmd = &cli.Command{
+	Name:  "asset",
+	Usage: "Manage asset record",
 	Subcommands: []*cli.Command{
-		listCarfilesCmd,
-		cacheCarfileCmd,
-		showCarfileInfoCmd,
-		removeCarfileCmd,
+		listAssetRecordCmd,
+		pullAssetCmd,
+		showAssetInfoCmd,
+		removeAssetCmd,
 		resetExpirationCmd,
 	},
 }
 
 var resetExpirationCmd = &cli.Command{
 	Name:  "reset-expiration",
-	Usage: "Reset the carfile record expiration",
+	Usage: "Reset the asset record expiration",
 	Flags: []cli.Flag{
 		cidFlag,
 		dateFlag,
 	},
 	Action: func(cctx *cli.Context) error {
-		carfileCid := cctx.String("cid")
+		cid := cctx.String("cid")
 		dateTime := cctx.String("date-time")
 
 		ctx := ReqContext(cctx)
@@ -59,7 +59,7 @@ var resetExpirationCmd = &cli.Command{
 			return xerrors.Errorf("date time err:%s", err.Error())
 		}
 
-		err = schedulerAPI.ResetAssetExpiration(ctx, carfileCid, time)
+		err = schedulerAPI.ResetAssetExpiration(ctx, cid, time)
 		if err != nil {
 			return err
 		}
@@ -68,9 +68,9 @@ var resetExpirationCmd = &cli.Command{
 	},
 }
 
-var removeCarfileCmd = &cli.Command{
+var removeAssetCmd = &cli.Command{
 	Name:  "remove",
-	Usage: "Remove the carfile record",
+	Usage: "Remove the asset record",
 	Flags: []cli.Flag{
 		cidFlag,
 	},
@@ -89,9 +89,9 @@ var removeCarfileCmd = &cli.Command{
 	},
 }
 
-var showCarfileInfoCmd = &cli.Command{
+var showAssetInfoCmd = &cli.Command{
 	Name:  "info",
-	Usage: "Show the carfile record info",
+	Usage: "Show the asset record info",
 	Flags: []cli.Flag{
 		cidFlag,
 	},
@@ -128,7 +128,7 @@ var showCarfileInfoCmd = &cli.Command{
 	},
 }
 
-var cacheCarfileCmd = &cli.Command{
+var pullAssetCmd = &cli.Command{
 	Name:  "cache",
 	Usage: "publish cache tasks to nodes",
 	Flags: []cli.Flag{
@@ -175,30 +175,30 @@ var cacheCarfileCmd = &cli.Command{
 	},
 }
 
-var listCarfilesCmd = &cli.Command{
+var listAssetRecordCmd = &cli.Command{
 	Name:  "list",
-	Usage: "List carfiles",
+	Usage: "List asset record",
 	Flags: []cli.Flag{
 		limitFlag,
 		offsetFlag,
 		&cli.BoolFlag{
-			Name:  "caching",
-			Usage: "only show the caching carfiles",
+			Name:  "pulling",
+			Usage: "only show the pulling assets",
 			Value: false,
 		},
 		&cli.BoolFlag{
 			Name:  "processes",
-			Usage: "show the carfiles processes",
+			Usage: "show the assets processes",
 			Value: false,
 		},
 		&cli.BoolFlag{
 			Name:  "failed",
-			Usage: "only show the failed state carfiles",
+			Usage: "only show the failed state assets",
 			Value: false,
 		},
 		&cli.BoolFlag{
 			Name:  "restart",
-			Usage: "restart the failed carfiles, only apply for failed carfile state",
+			Usage: "restart the failed assets, only apply for failed asset state",
 			Value: false,
 		},
 	},
@@ -215,7 +215,7 @@ var listCarfilesCmd = &cli.Command{
 
 		states := append([]string{assets.Servicing.String()}, append(assets.FailedStates, assets.PullingStates...)...)
 
-		if cctx.Bool("caching") {
+		if cctx.Bool("pulling") {
 			states = assets.PullingStates
 		}
 		if cctx.Bool("failed") {
@@ -244,26 +244,26 @@ var listCarfilesCmd = &cli.Command{
 		}
 
 		for w := 0; w < len(list); w++ {
-			carfile := list[w]
+			info := list[w]
 			m := map[string]interface{}{
-				"CID":        carfile.CID,
-				"State":      colorState(carfile.State),
-				"Blocks":     carfile.TotalBlocks,
-				"Size":       units.BytesSize(float64(carfile.TotalSize)),
-				"CreateTime": carfile.CreateTime.Format(defaultDateTimeLayout),
-				"Expiration": carfile.Expiration.Format(defaultDateTimeLayout),
+				"CID":        info.CID,
+				"State":      colorState(info.State),
+				"Blocks":     info.TotalBlocks,
+				"Size":       units.BytesSize(float64(info.TotalSize)),
+				"CreateTime": info.CreateTime.Format(defaultDateTimeLayout),
+				"Expiration": info.Expiration.Format(defaultDateTimeLayout),
 			}
 
-			sort.Slice(carfile.ReplicaInfos, func(i, j int) bool {
-				return carfile.ReplicaInfos[i].NodeID < carfile.ReplicaInfos[j].NodeID
+			sort.Slice(info.ReplicaInfos, func(i, j int) bool {
+				return info.ReplicaInfos[i].NodeID < info.ReplicaInfos[j].NodeID
 			})
 
 			if cctx.Bool("processes") {
 				processes := "\n"
-				for j := 0; j < len(carfile.ReplicaInfos); j++ {
-					cache := carfile.ReplicaInfos[j]
+				for j := 0; j < len(info.ReplicaInfos); j++ {
+					cache := info.ReplicaInfos[j]
 					status := colorState(cache.Status.String())
-					processes += fmt.Sprintf("\t%s(%s): %s\t%s/%s\n", cache.NodeID, edgeOrCandidate(cache.IsCandidate), status, units.BytesSize(float64(cache.DoneSize)), units.BytesSize(float64(carfile.TotalSize)))
+					processes += fmt.Sprintf("\t%s(%s): %s\t%s/%s\n", cache.NodeID, edgeOrCandidate(cache.IsCandidate), status, units.BytesSize(float64(cache.DoneSize)), units.BytesSize(float64(info.TotalSize)))
 				}
 				m["Processes"] = processes
 			}
@@ -277,9 +277,9 @@ var listCarfilesCmd = &cli.Command{
 		}
 
 		var hashes []types.AssetHash
-		for _, carfile := range list {
-			if strings.Contains(carfile.State, "Failed") {
-				hashes = append(hashes, types.AssetHash(carfile.Hash))
+		for _, info := range list {
+			if strings.Contains(info.State, "Failed") {
+				hashes = append(hashes, types.AssetHash(info.Hash))
 			}
 		}
 		return schedulerAPI.RestartFailedAssets(ctx, hashes)

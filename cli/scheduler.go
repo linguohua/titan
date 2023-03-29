@@ -12,7 +12,7 @@ import (
 // SchedulerCmds Scheduler Cmds
 var SchedulerCmds = []*cli.Command{
 	WithCategory("node", nodeCmd),
-	WithCategory("carfile", carfileCmd),
+	WithCategory("asset", assetCmd),
 	// validator
 	startElectionCmd,
 	// other
@@ -28,13 +28,13 @@ var (
 
 	cidFlag = &cli.StringFlag{
 		Name:  "cid",
-		Usage: "specify the cid of a carfile",
+		Usage: "specify the cid of a asset",
 		Value: "",
 	}
 
 	replicaCountFlag = &cli.IntFlag{
 		Name:        "replica-count",
-		Usage:       "Number of replica cached to nodes",
+		Usage:       "Number of replica pull to nodes",
 		Value:       2,
 		DefaultText: "2",
 	}
@@ -48,8 +48,8 @@ var (
 	limitFlag = &cli.IntFlag{
 		Name:        "limit",
 		Usage:       "the numbering of limit",
-		Value:       100,
-		DefaultText: "100",
+		Value:       50,
+		DefaultText: "50",
 	}
 
 	offsetFlag = &cli.IntFlag{
@@ -61,7 +61,7 @@ var (
 
 	expirationDateFlag = &cli.StringFlag{
 		Name:        "expiration-date",
-		Usage:       "Set the carfile expiration, format with '2006-1-2 15:04:05' layout.",
+		Usage:       "Set the asset expiration, format with '2006-1-2 15:04:05' layout.",
 		Value:       "",
 		DefaultText: "now + 7 days",
 	}

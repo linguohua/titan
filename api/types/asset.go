@@ -14,8 +14,8 @@ type ListAssetRecordRsp struct {
 	records   []*AssetRecord
 }
 
-// AssetCacheProgress cache asset progress
-type AssetCacheProgress struct {
+// AssetPullProgress pull asset progress
+type AssetPullProgress struct {
 	CID             string
 	Status          ReplicaStatus
 	Msg             string
@@ -25,9 +25,9 @@ type AssetCacheProgress struct {
 	DoneSize        int64
 }
 
-// CacheResult cache data result info
-type CacheResult struct {
-	Progresses       []*AssetCacheProgress
+// PullResult pull data result info
+type PullResult struct {
+	Progresses       []*AssetPullProgress
 	DiskUsage        float64
 	TotalBlocksCount int
 	AssetCount       int
@@ -99,7 +99,7 @@ func (c ReplicaStatus) String() string {
 	case ReplicaStatusFailed:
 		return "Failed"
 	case ReplicaStatusPulling:
-		return "Caching"
+		return "Pulling"
 	case ReplicaStatusSucceeded:
 		return "Succeeded"
 	default:
@@ -107,8 +107,8 @@ func (c ReplicaStatus) String() string {
 	}
 }
 
-// CacheStatusAll all cache status
-var CacheStatusAll = []string{
+// ReplicaStatusAll all cache status
+var ReplicaStatusAll = []string{
 	ReplicaStatusWaiting.String(),
 	ReplicaStatusPulling.String(),
 	ReplicaStatusFailed.String(),

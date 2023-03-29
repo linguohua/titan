@@ -33,7 +33,8 @@ var planners = map[AssetState]func(events []statemachine.Event, state *AssetPull
 	),
 	SeedSelect: planOne(
 		on(PullRequestSent{}, SeedPulling),
-		on(PullFailed{}, SeedFailed),
+		on(SelectFailed{}, SeedFailed),
+		on(Skip{}, CandidatesSelect),
 	),
 	SeedPulling: planOne(
 		on(PullSucceed{}, CandidatesSelect),
@@ -42,8 +43,8 @@ var planners = map[AssetState]func(events []statemachine.Event, state *AssetPull
 	),
 	CandidatesSelect: planOne(
 		on(PullRequestSent{}, CandidatesPulling),
-		on(PullSucceed{}, EdgesSelect),
-		on(PullFailed{}, CandidatesFailed),
+		on(Skip{}, EdgesSelect),
+		on(SelectFailed{}, CandidatesFailed),
 	),
 	CandidatesPulling: planOne(
 		on(PullFailed{}, CandidatesFailed),
@@ -52,8 +53,8 @@ var planners = map[AssetState]func(events []statemachine.Event, state *AssetPull
 	),
 	EdgesSelect: planOne(
 		on(PullRequestSent{}, EdgesPulling),
-		on(PullFailed{}, EdgesFailed),
-		on(PullSucceed{}, Servicing),
+		on(SelectFailed{}, EdgesFailed),
+		on(Skip{}, Servicing),
 	),
 	EdgesPulling: planOne(
 		on(PullFailed{}, EdgesFailed),

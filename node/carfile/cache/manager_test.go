@@ -16,7 +16,7 @@ type TestCachedResultImpl struct {
 	carStore *store.CarfileStore
 }
 
-func (t *TestCachedResultImpl) CacheResult(result *types.CacheResult) error {
+func (t *TestCachedResultImpl) CacheResult(result *types.PullResult) error {
 	t.t.Logf("result:%#v", *result)
 
 	count, err := t.carStore.BlockCount()
@@ -54,5 +54,4 @@ func TestManager(t *testing.T) {
 	mgr.AddToWaitList(c, nil)
 
 	time.Sleep(1 * time.Minute)
-
 }
