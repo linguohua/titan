@@ -205,8 +205,14 @@ func (s *Scheduler) checkUdpConnectivity(targetAddr string) error {
 	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 
 	go func() {
-		conn.Write([]byte("ping"))
-		time.Sleep(1 * time.Second)
+		for {
+			_, err = conn.Write([]byte("ping"))
+			if err != nil {
+				return
+			}
+
+			time.Sleep(1 * time.Second)
+		}
 	}()
 
 	received := make([]byte, 64)
