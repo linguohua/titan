@@ -32,16 +32,21 @@ func failedCoolDown(ctx statemachine.Context, info AssetPullingInfo) error {
 func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingInfo) error {
 	log.Debugf("handle select seed: %s", info.CID)
 
+	if len(info.CandidateReplicaSucceeds) >= seedReplicaCount {
+		// The number of candidate node replicas has reached the requirement
+		return ctx.Send(Skip{})
+	}
+
 	// find nodes
 	nodes := m.selectCandidates(seedReplicaCount, info.CandidateReplicaSucceeds)
 	if len(nodes) < 1 {
-		return ctx.Send(PullFailed{error: xerrors.New("node not found")})
+		return ctx.Send(SelectFailed{error: xerrors.New("node not found")})
 	}
 
 	// save to db
 	err := m.saveCandidateReplicaInfos(nodes, info.Hash.String())
 	if err != nil {
-		return ctx.Send(PullFailed{error: err})
+		return ctx.Send(SelectFailed{error: err})
 	}
 
 	m.addOrResetAssetTicker(info.Hash.String())
@@ -82,19 +87,19 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 	needCount := info.CandidateReplicas - int64(len(info.CandidateReplicaSucceeds))
 	if needCount < 1 {
 		// The number of candidate node replicas has reached the requirement
-		return ctx.Send(PullSucceed{})
+		return ctx.Send(Skip{})
 	}
 
 	// find nodes
 	nodes := m.selectCandidates(int(needCount), info.CandidateReplicaSucceeds)
 	if len(nodes) < 1 {
-		return ctx.Send(PullFailed{error: xerrors.New("node not found")})
+		return ctx.Send(SelectFailed{error: xerrors.New("node not found")})
 	}
 
 	// save to db
 	err := m.saveCandidateReplicaInfos(nodes, info.Hash.String())
 	if err != nil {
-		return ctx.Send(PullFailed{error: err})
+		return ctx.Send(SelectFailed{error: err})
 	}
 
 	sources := m.Sources(info.Hash.String(), info.CandidateReplicaSucceeds)
@@ -137,24 +142,24 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 	needCount := info.EdgeReplicas - int64(len(info.EdgeReplicaSucceeds))
 	if needCount < 1 {
 		// The number of edge node replicas has reached the requirement
-		return ctx.Send(PullSucceed{})
+		return ctx.Send(Skip{})
 	}
 
 	sources := m.Sources(info.Hash.String(), info.CandidateReplicaSucceeds)
 	if len(sources) < 1 {
-		return ctx.Send(PullFailed{error: xerrors.New("source node not found")})
+		return ctx.Send(SelectFailed{error: xerrors.New("source node not found")})
 	}
 
 	// find nodes
 	nodes := m.selectEdges(int(needCount), info.EdgeReplicaSucceeds)
 	if len(nodes) < 1 {
-		return ctx.Send(PullFailed{error: xerrors.New("node not found")})
+		return ctx.Send(SelectFailed{error: xerrors.New("node not found")})
 	}
 
 	// save to db
 	err := m.saveEdgeReplicaInfos(nodes, info.Hash.String())
 	if err != nil {
-		return ctx.Send(PullFailed{error: err})
+		return ctx.Send(SelectFailed{error: err})
 	}
 
 	m.addOrResetAssetTicker(info.Hash.String())

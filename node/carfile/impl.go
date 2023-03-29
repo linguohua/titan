@@ -224,8 +224,8 @@ func (cfImpl *CarfileImpl) CacheCarForSyncData(carfiles []string) error {
 	return nil
 }
 
-func (cfImpl *CarfileImpl) CachedProgresses(ctx context.Context, carfileCIDs []string) (*types.CacheResult, error) {
-	progresses := make([]*types.AssetCacheProgress, 0, len(carfileCIDs))
+func (cfImpl *CarfileImpl) CachedProgresses(ctx context.Context, carfileCIDs []string) (*types.PullResult, error) {
+	progresses := make([]*types.AssetPullProgress, 0, len(carfileCIDs))
 	for _, carfileCID := range carfileCIDs {
 		root, err := cid.Decode(carfileCID)
 		if err != nil {
@@ -240,7 +240,7 @@ func (cfImpl *CarfileImpl) CachedProgresses(ctx context.Context, carfileCIDs []s
 		progresses = append(progresses, progress)
 	}
 
-	result := &types.CacheResult{
+	result := &types.PullResult{
 		Progresses:       progresses,
 		TotalBlocksCount: cfImpl.TotalBlockCount,
 	}
@@ -253,8 +253,8 @@ func (cfImpl *CarfileImpl) CachedProgresses(ctx context.Context, carfileCIDs []s
 	return result, nil
 }
 
-func (cfImpl *CarfileImpl) progressForSucceededCar(root cid.Cid) (*types.AssetCacheProgress, error) {
-	progress := &types.AssetCacheProgress{
+func (cfImpl *CarfileImpl) progressForSucceededCar(root cid.Cid) (*types.AssetPullProgress, error) {
+	progress := &types.AssetPullProgress{
 		CID:    root.String(),
 		Status: types.ReplicaStatusSucceeded,
 	}
@@ -286,7 +286,7 @@ func (cfImpl *CarfileImpl) progressForSucceededCar(root cid.Cid) (*types.AssetCa
 	return progress, nil
 }
 
-func (cfImpl *CarfileImpl) carProgress(root cid.Cid) (*types.AssetCacheProgress, error) {
+func (cfImpl *CarfileImpl) carProgress(root cid.Cid) (*types.AssetPullProgress, error) {
 	status, err := cfImpl.cacheMgr.CachedStatus(root)
 	if err != nil {
 		return nil, err
@@ -294,7 +294,7 @@ func (cfImpl *CarfileImpl) carProgress(root cid.Cid) (*types.AssetCacheProgress,
 
 	switch status {
 	case types.ReplicaStatusWaiting:
-		return &types.AssetCacheProgress{CID: root.String(), Status: types.ReplicaStatusWaiting}, nil
+		return &types.AssetPullProgress{CID: root.String(), Status: types.ReplicaStatusWaiting}, nil
 	case types.ReplicaStatusPulling:
 		return cfImpl.cacheMgr.CachingCar().Progress(), nil
 	case types.ReplicaStatusFailed:

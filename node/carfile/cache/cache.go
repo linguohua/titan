@@ -247,8 +247,8 @@ func (cfCache *carfileCache) cacheStatus() types.ReplicaStatus {
 	return types.ReplicaStatusPulling
 }
 
-func (cfCache *carfileCache) Progress() *types.AssetCacheProgress {
-	return &types.AssetCacheProgress{
+func (cfCache *carfileCache) Progress() *types.AssetPullProgress {
+	return &types.AssetPullProgress{
 		CID:             cfCache.root.String(),
 		Status:          cfCache.cacheStatus(),
 		BlocksCount:     len(cfCache.blocksDownloadSuccessList) + len(cfCache.blocksWaitList),

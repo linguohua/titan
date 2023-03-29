@@ -167,7 +167,7 @@ func (m *Manager) nodesPullProgresses() {
 	}
 }
 
-func (m *Manager) nodePullProgresses(nodeID string, cids []string) (result *types.CacheResult, err error) {
+func (m *Manager) nodePullProgresses(nodeID string, cids []string) (result *types.PullResult, err error) {
 	log.Debugf("nodeID:%s, %v", nodeID, cids)
 
 	cNode := m.nodeMgr.GetCandidateNode(nodeID)
@@ -273,7 +273,7 @@ func (m *Manager) RemoveAsset(cid, hash string) error {
 }
 
 // pullAssetsResult pull result
-func (m *Manager) pullAssetsResult(nodeID string, result *types.CacheResult) {
+func (m *Manager) pullAssetsResult(nodeID string, result *types.PullResult) {
 	isCandidate := false
 	pullingCount := 0
 

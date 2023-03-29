@@ -35,9 +35,9 @@ type Scheduler interface {
 	EdgeExternalServiceAddress(ctx context.Context, nodeID, schedulerURL string) (string, error) //perm:write
 	// CheckNetworkConnectivity check tcp or udp network connectivity
 	// network is "tcp" or "udp"
-	CheckNetworkConnectivity(ctx context.Context, network, targetAddr string) error
+	CheckNetworkConnectivity(ctx context.Context, network, targetAddr string) error //perm:read
 	// CheckEdgeConnectivity will replace by CheckNetworkConnectivity
-	CheckEdgeConnectivity(ctx context.Context, edgeURL string) error
+	CheckEdgeConnectivity(ctx context.Context, edgeURL string) error       //perm:read
 	NodeNatType(ctx context.Context, nodeID string) (types.NatType, error) //perm:write
 	// user
 	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error)              //perm:read

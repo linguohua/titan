@@ -184,6 +184,11 @@ func (evt PullSucceed) apply(state *AssetPullingInfo) {
 	state.RetryCount = 0
 }
 
+// Skip Skip this step
+type Skip struct{}
+
+func (evt Skip) apply(state *AssetPullingInfo) {}
+
 // PullFailed nodes pull asset failed
 type PullFailed struct{ error }
 
@@ -191,5 +196,15 @@ type PullFailed struct{ error }
 func (evt PullFailed) FormatError(xerrors.Printer) (next error) { return evt.error }
 
 func (evt PullFailed) apply(state *AssetPullingInfo) {
+	state.RetryCount++
+}
+
+// SelectFailed select nodes failed
+type SelectFailed struct{ error }
+
+// FormatError Format error
+func (evt SelectFailed) FormatError(xerrors.Printer) (next error) { return evt.error }
+
+func (evt SelectFailed) apply(state *AssetPullingInfo) {
 	state.RetryCount++
 }

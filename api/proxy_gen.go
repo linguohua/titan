@@ -51,7 +51,7 @@ type CarfileOperationStruct struct {
 	Internal struct {
 		CacheCarfile func(p0 context.Context, p1 string, p2 []*types.DownloadSource) error `perm:"write"`
 
-		CachedProgresses func(p0 context.Context, p1 []string) (*types.CacheResult, error) `perm:"write"`
+		CachedProgresses func(p0 context.Context, p1 []string) (*types.PullResult, error) `perm:"write"`
 
 		DeleteCarfile func(p0 context.Context, p1 string) error `perm:"write"`
 
@@ -191,9 +191,9 @@ type SchedulerStruct struct {
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) error `perm:"write"`
 
-		CheckEdgeConnectivity func(p0 context.Context, p1 string) error ``
+		CheckEdgeConnectivity func(p0 context.Context, p1 string) error `perm:"read"`
 
-		CheckNetworkConnectivity func(p0 context.Context, p1 string, p2 string) error ``
+		CheckNetworkConnectivity func(p0 context.Context, p1 string, p2 string) error `perm:"read"`
 
 		DeleteEdgeUpdateInfo func(p0 context.Context, p1 int) error `perm:"admin"`
 
@@ -314,14 +314,14 @@ func (s *CarfileOperationStub) CacheCarfile(p0 context.Context, p1 string, p2 []
 	return ErrNotSupported
 }
 
-func (s *CarfileOperationStruct) CachedProgresses(p0 context.Context, p1 []string) (*types.CacheResult, error) {
+func (s *CarfileOperationStruct) CachedProgresses(p0 context.Context, p1 []string) (*types.PullResult, error) {
 	if s.Internal.CachedProgresses == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.CachedProgresses(p0, p1)
 }
 
-func (s *CarfileOperationStub) CachedProgresses(p0 context.Context, p1 []string) (*types.CacheResult, error) {
+func (s *CarfileOperationStub) CachedProgresses(p0 context.Context, p1 []string) (*types.PullResult, error) {
 	return nil, ErrNotSupported
 }
 

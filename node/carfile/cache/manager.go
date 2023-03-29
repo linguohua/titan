@@ -13,7 +13,7 @@ import (
 )
 
 type CachedResulter interface {
-	CacheResult(result *types.CacheResult) error
+	CacheResult(result *types.PullResult) error
 }
 
 type carWaiter struct {
@@ -295,11 +295,11 @@ func (m *Manager) DeleteCarFromWaitList(root cid.Cid) (bool, error) {
 	return false, nil
 }
 
-func (m *Manager) Progresses() []*types.AssetCacheProgress {
-	progresses := make([]*types.AssetCacheProgress, 0, len(m.waitList))
+func (m *Manager) Progresses() []*types.AssetPullProgress {
+	progresses := make([]*types.AssetPullProgress, 0, len(m.waitList))
 
 	for _, cw := range m.waitList {
-		progress := &types.AssetCacheProgress{CID: cw.Root.String(), Status: types.ReplicaStatusWaiting}
+		progress := &types.AssetPullProgress{CID: cw.Root.String(), Status: types.ReplicaStatusWaiting}
 		if cw.cache != nil {
 			progress = cw.cache.Progress()
 		}
@@ -327,8 +327,8 @@ func (m *Manager) CachedStatus(root cid.Cid) (types.ReplicaStatus, error) {
 	return types.ReplicaStatusFailed, nil
 }
 
-func (m *Manager) ProgressForFailedCar(root cid.Cid) (*types.AssetCacheProgress, error) {
-	progress := &types.AssetCacheProgress{
+func (m *Manager) ProgressForFailedCar(root cid.Cid) (*types.AssetPullProgress, error) {
+	progress := &types.AssetPullProgress{
 		CID:    root.String(),
 		Status: types.ReplicaStatusFailed,
 	}
