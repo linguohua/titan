@@ -192,7 +192,6 @@ func (s *Scheduler) checkTcpConnectivity(targetAddr string) error {
 
 func (s *Scheduler) checkUdpConnectivity(targetAddr string) error {
 	udpServer, err := net.ResolveUDPAddr("udp", targetAddr)
-
 	if err != nil {
 		return err
 	}
@@ -205,7 +204,10 @@ func (s *Scheduler) checkUdpConnectivity(targetAddr string) error {
 
 	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 
-	conn.Write([]byte("ping"))
+	go func() {
+		conn.Write([]byte("ping"))
+		time.Sleep(1 * time.Second)
+	}()
 
 	received := make([]byte, 64)
 	_, err = conn.Read(received)
