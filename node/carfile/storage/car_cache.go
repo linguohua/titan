@@ -1,4 +1,4 @@
-package store
+package storage
 
 import (
 	"os"
@@ -12,13 +12,13 @@ type CarCache struct {
 	baseDir string
 }
 
-func NewCarCache(baseDir string) *CarCache {
+func NewCarCache(baseDir string) (*CarCache, error) {
 	err := os.MkdirAll(baseDir, 0o755)
 	if err != nil {
-		log.Panicf("New car cache dir:%s, err:%s", baseDir, err.Error())
+		return nil, err
 	}
 
-	return &CarCache{baseDir: baseDir}
+	return &CarCache{baseDir: baseDir}, nil
 }
 
 func (cc *CarCache) Put(c cid.Cid, data []byte) error {
