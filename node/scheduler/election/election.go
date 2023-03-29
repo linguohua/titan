@@ -125,6 +125,7 @@ func (v *Election) getValidatorRatio() float64 {
 func (v *Election) electValidators() (out []string) {
 	out = make([]string, 0)
 
+	// TODO problematic
 	candidates := v.getAllCandidates()
 	candidateCount := len(candidates)
 

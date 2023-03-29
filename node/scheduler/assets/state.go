@@ -6,26 +6,26 @@ type AssetState string
 const (
 	// UndefinedState Undefined
 	UndefinedState AssetState = ""
-	// FindFirstCandidate find first candidate to pull seed
-	FindFirstCandidate AssetState = "FindFirstCandidate"
-	// AssetSeedPulling asset seed pulling
-	AssetSeedPulling AssetState = "AssetSeedPulling "
-	// FindCandidatesToPull find candidates to pull asset
-	FindCandidatesToPull AssetState = "FindCandidatesToPull"
-	// CandidatesPulling candidates pulling
+	// SeedSelect select first candidate to pull seed asset
+	SeedSelect AssetState = "SeedSelect"
+	// SeedPulling Waiting for candidate nodes to pull seed asset
+	SeedPulling AssetState = "SeedPulling "
+	// CandidatesSelect select candidates to pull asset
+	CandidatesSelect AssetState = "CandidatesSelect"
+	// CandidatesPulling candidate nodes pulling asset
 	CandidatesPulling AssetState = "CandidatesPulling"
-	// FindEdgesToPull find edges to pull asset
-	FindEdgesToPull AssetState = "FindEdgesToPull"
-	// EdgesPulling edges pulling
+	// EdgesSelect select edges to pull asset
+	EdgesSelect AssetState = "EdgesSelect"
+	// EdgesPulling edge nodes pulling asset
 	EdgesPulling AssetState = "EdgesPulling"
-	// Finished finished
-	Finished AssetState = "Finished"
-	// SeedPullFailed asset seed pull failed
-	SeedPullFailed AssetState = "SeedPullFailed"
-	// CandidatesPullFailed candidates pull asset failed
-	CandidatesPullFailed AssetState = "CandidatesPullFailed"
-	// EdgesPullFailed  edge pull asset failed
-	EdgesPullFailed AssetState = "EdgesPullFailed"
+	// Servicing Asset cache completed and in service
+	Servicing AssetState = "Servicing"
+	// SeedFailed Unable to select candidate nodes or failed to pull seed asset
+	SeedFailed AssetState = "SeedFailed"
+	// CandidatesFailed Unable to select candidate nodes or failed to pull asset
+	CandidatesFailed AssetState = "CandidatesFailed"
+	// EdgesFailed  Unable to select edge nodes or failed to pull asset
+	EdgesFailed AssetState = "EdgesFailed"
 	// Remove remove
 	Remove AssetState = "Remove"
 )
@@ -37,18 +37,18 @@ func (s AssetState) String() string {
 var (
 	// FailedStates asset pull failed states
 	FailedStates = []string{
-		SeedPullFailed.String(),
-		CandidatesPullFailed.String(),
-		EdgesPullFailed.String(),
+		SeedFailed.String(),
+		CandidatesFailed.String(),
+		EdgesFailed.String(),
 	}
 
 	// PullingStates asset pulling states
 	PullingStates = []string{
-		FindFirstCandidate.String(),
-		AssetSeedPulling.String(),
-		FindCandidatesToPull.String(),
+		SeedSelect.String(),
+		SeedPulling.String(),
+		CandidatesSelect.String(),
 		CandidatesPulling.String(),
-		FindEdgesToPull.String(),
+		EdgesSelect.String(),
 		EdgesPulling.String(),
 	}
 )

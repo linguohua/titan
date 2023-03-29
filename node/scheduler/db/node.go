@@ -18,7 +18,6 @@ func (n *SQLDB) LoadTimeoutNodes(timeoutHour int, serverID dtypes.ServerID) ([]s
 	list := make([]string, 0)
 
 	time := time.Now().Add(-time.Duration(timeoutHour) * time.Hour)
-
 	query := fmt.Sprintf("SELECT node_id FROM %s WHERE scheduler_sid=? AND quitted=? AND last_time <= ?", nodeInfoTable)
 	if err := n.db.Select(&list, query, serverID, false, time); err != nil {
 		return nil, err
@@ -102,6 +101,7 @@ func (n *SQLDB) SetValidateResultsTimeout(roundID string) error {
 
 // LoadValidateResultInfos load validator result infos
 func (n *SQLDB) LoadValidateResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) {
+	// TODO problematic
 	res := new(types.ListValidateResultRsp)
 	var infos []types.ValidateResultInfo
 	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM %s WHERE start_time between ? and ? order by id asc  LIMIT ?,? ", validateResultTable)
@@ -238,14 +238,9 @@ func (n *SQLDB) UpsertNodeInfo(info *types.NodeInfo) error {
 
 // UpdateNodeOnlineTime update node online time and last time
 func (n *SQLDB) UpdateNodeOnlineTime(nodeID string, onlineTime int) error {
-	info := &types.NodeInfo{
-		NodeID:     nodeID,
-		OnlineTime: onlineTime,
-	}
-
-	query := fmt.Sprintf(`UPDATE %s SET last_time=NOW(),online_time=:online_time WHERE node_id=:node_id`, nodeInfoTable)
+	query := fmt.Sprintf(`UPDATE %s SET last_time=NOW(),online_time=? WHERE node_id=?`, nodeInfoTable)
 	// update
-	_, err := n.db.NamedExec(query, info)
+	_, err := n.db.Exec(query, onlineTime, nodeID)
 	return err
 }
 

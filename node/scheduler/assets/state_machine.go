@@ -29,51 +29,51 @@ func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface
 var planners = map[AssetState]func(events []statemachine.Event, state *AssetPullingInfo) (uint64, error){
 	// external import
 	UndefinedState: planOne(
-		on(AssetStartPulls{}, FindFirstCandidate),
+		on(AssetStartPulls{}, SeedSelect),
 	),
-	FindFirstCandidate: planOne(
-		on(PullRequestSent{}, AssetSeedPulling),
-		on(PullFailed{}, SeedPullFailed),
+	SeedSelect: planOne(
+		on(PullRequestSent{}, SeedPulling),
+		on(PullFailed{}, SeedFailed),
 	),
-	AssetSeedPulling: planOne(
-		on(PullSucceed{}, FindCandidatesToPull),
-		on(PullFailed{}, SeedPullFailed),
+	SeedPulling: planOne(
+		on(PullSucceed{}, CandidatesSelect),
+		on(PullFailed{}, SeedFailed),
 		apply(PulledResult{}),
 	),
-	FindCandidatesToPull: planOne(
+	CandidatesSelect: planOne(
 		on(PullRequestSent{}, CandidatesPulling),
-		on(PullSucceed{}, FindEdgesToPull),
-		on(PullFailed{}, CandidatesPullFailed),
+		on(PullSucceed{}, EdgesSelect),
+		on(PullFailed{}, CandidatesFailed),
 	),
 	CandidatesPulling: planOne(
-		on(PullFailed{}, CandidatesPullFailed),
-		on(PullSucceed{}, FindEdgesToPull),
+		on(PullFailed{}, CandidatesFailed),
+		on(PullSucceed{}, EdgesSelect),
 		apply(PulledResult{}),
 	),
-	FindEdgesToPull: planOne(
+	EdgesSelect: planOne(
 		on(PullRequestSent{}, EdgesPulling),
-		on(PullFailed{}, EdgesPullFailed),
-		on(PullSucceed{}, Finished),
+		on(PullFailed{}, EdgesFailed),
+		on(PullSucceed{}, Servicing),
 	),
 	EdgesPulling: planOne(
-		on(PullFailed{}, EdgesPullFailed),
-		on(PullSucceed{}, Finished),
+		on(PullFailed{}, EdgesFailed),
+		on(PullSucceed{}, Servicing),
 		apply(PulledResult{}),
 	),
-	SeedPullFailed: planOne(
-		on(AssetRePull{}, FindFirstCandidate),
+	SeedFailed: planOne(
+		on(AssetRePull{}, SeedSelect),
 	),
-	CandidatesPullFailed: planOne(
-		on(AssetRePull{}, FindCandidatesToPull),
+	CandidatesFailed: planOne(
+		on(AssetRePull{}, CandidatesSelect),
 	),
-	EdgesPullFailed: planOne(
-		on(AssetRePull{}, FindEdgesToPull),
+	EdgesFailed: planOne(
+		on(AssetRePull{}, EdgesSelect),
 	),
-	Finished: planOne(
-		on(AssetRePull{}, FindCandidatesToPull),
+	Servicing: planOne(
+		on(ReplenishReplicas{}, SeedSelect),
 	),
 	Remove: planOne(
-		on(AssetStartPulls{}, FindFirstCandidate),
+		on(AssetStartPulls{}, SeedSelect),
 	),
 }
 
@@ -100,21 +100,21 @@ func (m *Manager) plan(events []statemachine.Event, state *AssetPullingInfo) (fu
 
 	switch state.State {
 	// Happy path
-	case FindFirstCandidate:
-		return m.handleFindFirstCandidate, processed, nil
-	case AssetSeedPulling:
-		return m.handleAssetSeedPulling, processed, nil
-	case FindCandidatesToPull:
-		return m.handleFindCandidates, processed, nil
-	case FindEdgesToPull:
-		return m.handleFindEdges, processed, nil
+	case SeedSelect:
+		return m.handleSeedSelect, processed, nil
+	case SeedPulling:
+		return m.handleSeedPulling, processed, nil
+	case CandidatesSelect:
+		return m.handleCandidatesSelect, processed, nil
+	case EdgesSelect:
+		return m.handleEdgesSelect, processed, nil
 	case CandidatesPulling:
 		return m.handleCandidatesPulling, processed, nil
 	case EdgesPulling:
 		return m.handleEdgesPulling, processed, nil
-	case Finished:
-		return m.handleFinished, processed, nil
-	case SeedPullFailed, CandidatesPullFailed, EdgesPullFailed:
+	case Servicing:
+		return m.handleServicing, processed, nil
+	case SeedFailed, CandidatesFailed, EdgesFailed:
 		return m.handlePullsFailed, processed, nil
 	case Remove:
 		return nil, processed, nil

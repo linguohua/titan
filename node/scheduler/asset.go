@@ -54,6 +54,7 @@ func (s *Scheduler) AssetRecords(ctx context.Context, limit, offset int, states 
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	list := make([]*types.AssetRecord, 0)
 

@@ -29,11 +29,11 @@ func failedCoolDown(ctx statemachine.Context, info AssetPullingInfo) error {
 	return nil
 }
 
-func (m *Manager) handleFindFirstCandidate(ctx statemachine.Context, info AssetPullingInfo) error {
-	log.Debugf("handle find first candidate: %s", info.CID)
+func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingInfo) error {
+	log.Debugf("handle select seed: %s", info.CID)
 
 	// find nodes
-	nodes := m.findCandidates(seedReplicaCount, info.CandidateReplicaSucceeds)
+	nodes := m.selectCandidates(seedReplicaCount, info.CandidateReplicaSucceeds)
 	if len(nodes) < 1 {
 		return ctx.Send(PullFailed{error: xerrors.New("node not found")})
 	}
@@ -62,7 +62,7 @@ func (m *Manager) handleFindFirstCandidate(ctx statemachine.Context, info AssetP
 	return ctx.Send(PullRequestSent{})
 }
 
-func (m *Manager) handleAssetSeedPulling(ctx statemachine.Context, info AssetPullingInfo) error {
+func (m *Manager) handleSeedPulling(ctx statemachine.Context, info AssetPullingInfo) error {
 	log.Debugf("handle seed pulling, %s", info.CID)
 
 	if len(info.CandidateReplicaSucceeds) >= seedReplicaCount {
@@ -76,8 +76,8 @@ func (m *Manager) handleAssetSeedPulling(ctx statemachine.Context, info AssetPul
 	return nil
 }
 
-func (m *Manager) handleFindCandidates(ctx statemachine.Context, info AssetPullingInfo) error {
-	log.Debugf("handle find candidates, %s", info.CID)
+func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPullingInfo) error {
+	log.Debugf("handle select candidates, %s", info.CID)
 
 	needCount := info.CandidateReplicas - int64(len(info.CandidateReplicaSucceeds))
 	if needCount < 1 {
@@ -86,7 +86,7 @@ func (m *Manager) handleFindCandidates(ctx statemachine.Context, info AssetPulli
 	}
 
 	// find nodes
-	nodes := m.findCandidates(int(needCount), info.CandidateReplicaSucceeds)
+	nodes := m.selectCandidates(int(needCount), info.CandidateReplicaSucceeds)
 	if len(nodes) < 1 {
 		return ctx.Send(PullFailed{error: xerrors.New("node not found")})
 	}
@@ -131,8 +131,8 @@ func (m *Manager) handleCandidatesPulling(ctx statemachine.Context, info AssetPu
 	return nil
 }
 
-func (m *Manager) handleFindEdges(ctx statemachine.Context, info AssetPullingInfo) error {
-	log.Debugf("handle find edges , %s", info.CID)
+func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingInfo) error {
+	log.Debugf("handle select edges , %s", info.CID)
 
 	needCount := info.EdgeReplicas - int64(len(info.EdgeReplicaSucceeds))
 	if needCount < 1 {
@@ -146,7 +146,7 @@ func (m *Manager) handleFindEdges(ctx statemachine.Context, info AssetPullingInf
 	}
 
 	// find nodes
-	nodes := m.findEdges(int(needCount), info.EdgeReplicaSucceeds)
+	nodes := m.selectEdges(int(needCount), info.EdgeReplicaSucceeds)
 	if len(nodes) < 1 {
 		return ctx.Send(PullFailed{error: xerrors.New("node not found")})
 	}
@@ -188,8 +188,8 @@ func (m *Manager) handleEdgesPulling(ctx statemachine.Context, info AssetPulling
 	return nil
 }
 
-func (m *Manager) handleFinished(ctx statemachine.Context, info AssetPullingInfo) error {
-	log.Debugf("handle asset finalize: %s", info.CID)
+func (m *Manager) handleServicing(ctx statemachine.Context, info AssetPullingInfo) error {
+	log.Debugf("handle asset servicing: %s", info.CID)
 	m.removeAssetTicker(info.Hash.String())
 
 	return nil
