@@ -62,18 +62,19 @@ func (evt AssetRemove) applyGlobal(state *AssetPullingInfo) bool {
 
 // InfoUpdate update asset info
 type InfoUpdate struct {
-	ResultInfo *NodePulledResult
+	Size   int64
+	Blocks int64
 }
 
 func (evt InfoUpdate) applyGlobal(state *AssetPullingInfo) bool {
-	rInfo := evt.ResultInfo
-	if rInfo == nil {
-		return true
-	}
+	// rInfo := evt.ResultInfo
+	// if rInfo == nil {
+	// 	return true
+	// }
 
-	if state.State == AssetSeedPulling {
-		state.Size = rInfo.Size
-		state.Blocks = rInfo.BlocksCount
+	if state.State == SeedPulling {
+		state.Size = evt.Size
+		state.Blocks = evt.Blocks
 	}
 
 	return true
@@ -90,7 +91,7 @@ func (evt PulledResult) apply(state *AssetPullingInfo) {
 		return
 	}
 
-	if state.State == AssetSeedPulling {
+	if state.State == SeedPulling {
 		state.Size = rInfo.Size
 		state.Blocks = rInfo.BlocksCount
 	}
@@ -98,35 +99,17 @@ func (evt PulledResult) apply(state *AssetPullingInfo) {
 	nodeID := rInfo.NodeID
 	if rInfo.Status == int64(types.ReplicaStatusSucceeded) {
 		if rInfo.IsCandidate {
-			if !exist(state.CandidateReplicaSucceeds, nodeID) {
-				state.CandidateReplicaSucceeds = append(state.CandidateReplicaSucceeds, nodeID)
-			}
+			state.CandidateReplicaSucceeds = append(state.CandidateReplicaSucceeds, nodeID)
 		} else {
-			if !exist(state.EdgeReplicaSucceeds, nodeID) {
-				state.EdgeReplicaSucceeds = append(state.EdgeReplicaSucceeds, nodeID)
-			}
+			state.EdgeReplicaSucceeds = append(state.EdgeReplicaSucceeds, nodeID)
 		}
 	} else if rInfo.Status == int64(types.ReplicaStatusFailed) {
 		if rInfo.IsCandidate {
-			if !exist(state.CandidateReplicaFailures, nodeID) {
-				state.CandidateReplicaFailures = append(state.CandidateReplicaFailures, nodeID)
-			}
+			state.CandidateReplicaFailures = append(state.CandidateReplicaFailures, nodeID)
 		} else {
-			if !exist(state.EdgeReplicaFailures, nodeID) {
-				state.EdgeReplicaFailures = append(state.EdgeReplicaFailures, nodeID)
-			}
+			state.EdgeReplicaFailures = append(state.EdgeReplicaFailures, nodeID)
 		}
 	}
-}
-
-func exist(list []string, c string) bool {
-	for _, str := range list {
-		if str == c {
-			return true
-		}
-	}
-
-	return false
 }
 
 // PullRequestSent request nodes pull asset
@@ -158,6 +141,35 @@ func (evt AssetStartPulls) apply(state *AssetPullingInfo) {
 	state.CreatedAt = evt.CreatedAt
 	state.Expiration = evt.Expiration
 	state.CandidateReplicas = int64(seedReplicaCount + evt.CandidateReplicas)
+}
+
+// ReplenishReplicas Replenish Replicas
+type ReplenishReplicas struct {
+	ID                       string
+	Hash                     AssetHash
+	Replicas                 int64
+	ServerID                 string
+	CreatedAt                int64
+	Expiration               int64
+	CandidateReplicas        int // Number of candidate node replicas
+	Size                     int64
+	Blocks                   int64
+	EdgeReplicaSucceeds      []string
+	CandidateReplicaSucceeds []string
+}
+
+func (evt ReplenishReplicas) apply(state *AssetPullingInfo) {
+	state.CID = evt.ID
+	state.Hash = evt.Hash
+	state.EdgeReplicas = evt.Replicas
+	state.ServerID = evt.ServerID
+	state.CreatedAt = evt.CreatedAt
+	state.Expiration = evt.Expiration
+	state.CandidateReplicas = int64(seedReplicaCount + evt.CandidateReplicas)
+	state.Size = evt.Size
+	state.Blocks = evt.Blocks
+	state.EdgeReplicaSucceeds = evt.EdgeReplicaSucceeds
+	state.CandidateReplicaSucceeds = evt.CandidateReplicaSucceeds
 }
 
 // AssetRePull get first asset to candidate

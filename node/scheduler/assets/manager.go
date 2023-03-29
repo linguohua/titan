@@ -26,10 +26,12 @@ var log = logging.Logger("asset")
 const (
 	nodePullAssetTimeout         = 60 * time.Second      // Pull asset timeout (Unit:Second)
 	checkExpirationTimerInterval = 60 * 30 * time.Second // Check for expired asset interval (Unit:Second)
-	maxPullingAssets             = 10                    // Maximum number of asset pull
 	maxNodeDiskUsage             = 95.0                  // If the node disk size is greater than this value, pulling will not continue
 	seedReplicaCount             = 1                     // The number of pull replica in the first stage
 	getProgressInterval          = 20 * time.Second      // Get asset pull progress interval from node (Unit:Second)
+
+	maxPullingAssets = 10  // Maximum number of asset pull
+	maxReplicas      = 100 // Maximum number of replicas per asset
 )
 
 // Manager asset replica manager
@@ -195,6 +197,10 @@ func (m *Manager) PullAssets(info *types.PullAssetReq) error {
 		return xerrors.Errorf("The asset in the pulling exceeds the limit %d, please wait", maxPullingAssets)
 	}
 
+	if info.Replicas > maxReplicas {
+		return xerrors.Errorf("The number of replicas %d exceeds the limit %d", info.Replicas, maxReplicas)
+	}
+
 	log.Debugf("asset event: %s, add asset replica: %d,expiration: %s", info.CID, info.Replicas, info.Expiration.String())
 
 	cInfo, err := m.LoadAssetRecord(info.Hash)
@@ -215,12 +221,13 @@ func (m *Manager) PullAssets(info *types.PullAssetReq) error {
 		})
 	}
 
+	// TODO init asset record
+
 	return xerrors.New("asset exists")
 }
 
 // RestartPullAssets restart pull assets
 func (m *Manager) RestartPullAssets(hashes []types.AssetHash) error {
-	// TODO hashes len
 	for _, hash := range hashes {
 		err := m.assetStateMachines.Send(hash, PullAssetRestart{})
 		if err != nil {
@@ -319,10 +326,8 @@ func (m *Manager) pullAssetsResult(nodeID string, result *types.CacheResult) {
 			pullingCount++
 
 			err = m.assetStateMachines.Send(AssetHash(hash), InfoUpdate{
-				ResultInfo: &NodePulledResult{
-					BlocksCount: int64(progress.BlocksCount),
-					Size:        progress.Size,
-				},
+				Blocks: int64(progress.BlocksCount),
+				Size:   progress.Size,
 			})
 			if err != nil {
 				log.Errorf("pullAssetsResult %s statemachine send err:%s", nodeID, err.Error())
@@ -419,7 +424,7 @@ func (m *Manager) checkAssetsExpiration() {
 		return
 	}
 
-	records, err := m.LoadExpiredAssetRecords()
+	records, err := m.LoadExpiredAssetRecords(m.nodeMgr.ServerID)
 	if err != nil {
 		log.Errorf("LoadExpiredAssetRecords err:%s", err.Error())
 		return
@@ -432,7 +437,7 @@ func (m *Manager) checkAssetsExpiration() {
 	}
 
 	// reset expiration
-	expiration, err := m.LoadMinExpirationOfAssetRecords()
+	expiration, err := m.LoadMinExpirationOfAssetRecords(m.nodeMgr.ServerID)
 	if err != nil {
 		return
 	}
@@ -492,8 +497,8 @@ func (m *Manager) GetAssetRecordInfo(cid string) (*types.AssetRecord, error) {
 	return dInfo, err
 }
 
-// Find edges that meet the full criteria
-func (m *Manager) findEdges(count int, filterNodes []string) []*node.Edge {
+// select edges that meet the full criteria
+func (m *Manager) selectEdges(count int, filterNodes []string) []*node.Edge {
 	list := make([]*node.Edge, 0)
 
 	if count <= 0 {
@@ -527,8 +532,8 @@ func (m *Manager) findEdges(count int, filterNodes []string) []*node.Edge {
 	return list
 }
 
-// Find candidates that meet the pull criteria
-func (m *Manager) findCandidates(count int, filterNodes []string) []*node.Candidate {
+// select candidates that meet the pull criteria
+func (m *Manager) selectCandidates(count int, filterNodes []string) []*node.Candidate {
 	list := make([]*node.Candidate, 0)
 
 	if count <= 0 {

@@ -73,6 +73,7 @@ func (d *DataStore) Query(ctx context.Context, q query.Query) (query.Results, er
 		log.Errorf("LoadAssets :%s", err.Error())
 		return nil, err
 	}
+	defer rows.Close()
 
 	d.Lock()
 	defer d.Unlock()

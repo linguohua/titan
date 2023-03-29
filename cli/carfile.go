@@ -213,7 +213,7 @@ var listCarfilesCmd = &cli.Command{
 		limit := cctx.Int("limit")
 		offset := cctx.Int("offset")
 
-		states := append([]string{assets.Finished.String()}, append(assets.FailedStates, assets.PullingStates...)...)
+		states := append([]string{assets.Servicing.String()}, append(assets.FailedStates, assets.PullingStates...)...)
 
 		if cctx.Bool("caching") {
 			states = assets.PullingStates

@@ -25,7 +25,8 @@ CREATE TABLE `node_info` (
     `blocks` bigint DEFAULT '0' ,
     `disk_usage` float DEFAULT '0', 
     `scheduler_sid` varchar(128) NOT NULL,
-	PRIMARY KEY (`node_id`)
+	PRIMARY KEY (`node_id`),
+    KEY `idx_sid` (`scheduler_sid`)
 ) ENGINE=InnoDB COMMENT='node info';
 
 CREATE TABLE `validate_result` (
@@ -73,7 +74,8 @@ CREATE TABLE `replica_info` (
     `done_size` BIGINT DEFAULT '0' ,
     `is_candidate` BOOLEAN,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY (`hash`,`node_id`)
+    UNIQUE KEY (`hash`,`node_id`),
+    KEY `idx_node_id` (`node_id`)
 ) ENGINE=InnoDB COMMENT='replica info';
 
 CREATE TABLE `asset_record` (
@@ -88,7 +90,8 @@ CREATE TABLE `asset_record` (
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
 	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
     `scheduler_sid` varchar(128) NOT NULL,
-	PRIMARY KEY (`hash`)
+	PRIMARY KEY (`hash`),
+    KEY `idx_sid` (`scheduler_sid`)
 ) ENGINE=InnoDB COMMENT='asset record';
 
 CREATE TABLE `edge_update_info` (

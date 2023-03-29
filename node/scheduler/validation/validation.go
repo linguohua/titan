@@ -149,6 +149,7 @@ func (v *Validation) resetEffectiveValidators() error {
 
 	es := make([]*validatorInfo, 0)
 
+	vNum := v.validatorNum()
 	for _, nodeID := range validatorList {
 		c := v.nodeMgr.GetCandidateNode(nodeID)
 		if c == nil {
@@ -158,7 +159,6 @@ func (v *Validation) resetEffectiveValidators() error {
 		b := c.BandwidthDown * bandwidthRatio
 		es = append(es, &validatorInfo{nodeID: nodeID, bandwidthDown: b})
 
-		vNum := v.validatorNum()
 		if vNum > 0 && len(es) >= vNum {
 			break
 		}
@@ -216,7 +216,7 @@ func (v *Validation) sendValidateReqToNodes(validatorID string, reqs *validateRe
 
 func (v *Validation) selectValidator(offset int, bandwidthUp float64) string {
 	vLen := len(v.effectiveValidators)
-
+	// TODO problematic
 	for i := offset; i < offset+vLen; i++ {
 		index := offset % vLen
 		ev := v.effectiveValidators[index]
@@ -246,6 +246,8 @@ func (v *Validation) assignValidator() (map[string]*validateReqs, []*types.Valid
 			return xerrors.New("not found validator")
 		}
 
+		offset++
+
 		vReq := api.ValidateReq{
 			Duration: duration,
 			RoundID:  v.curRoundID,
@@ -267,8 +269,6 @@ func (v *Validation) assignValidator() (map[string]*validateReqs, []*types.Valid
 		reqs[vID].bReqs[nodeID] = bReq
 		reqs[vID].vReqs = append(reqs[vID].vReqs, vReq)
 
-		offset++
-
 		dbInfo := &types.ValidateResultInfo{
 			RoundID:     v.curRoundID,
 			NodeID:      nodeID,
@@ -277,7 +277,6 @@ func (v *Validation) assignValidator() (map[string]*validateReqs, []*types.Valid
 			Cid:         cid,
 		}
 		vrInfos = append(vrInfos, dbInfo)
-
 		return nil
 	}
 
@@ -292,15 +291,18 @@ func (v *Validation) assignValidator() (map[string]*validateReqs, []*types.Valid
 		return true
 	})
 
+	// filter validators
+	vMap := make(map[string]struct{})
+	for _, v := range v.effectiveValidators {
+		vMap[v.nodeID] = struct{}{}
+	}
+
 	// candidate nodes
 	v.nodeMgr.CandidateNodes.Range(func(key, value interface{}) bool {
 		node := value.(*node.Candidate)
 
-		// filter validators
-		for _, v := range v.effectiveValidators {
-			if v.nodeID == node.NodeID {
-				return true
-			}
+		if _, exist := vMap[node.NodeID]; exist {
+			return true
 		}
 
 		err := assign(node.NodeID, node.BandwidthUp)
@@ -406,6 +408,7 @@ func (v *Validation) Result(validatedResult *api.ValidateResult) error {
 		log.Errorf("Get candidates %s , err:%s", hash, err.Error())
 		return nil
 	}
+	defer rows.Close()
 
 	max := len(validatedResult.Cids)
 	var cCidMap map[int]string

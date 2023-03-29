@@ -81,7 +81,6 @@ func (n *SQLDB) LoadAssetRecords(statuses []string, limit, offset int, serverID 
 	if limit > loadAssetRecordsLimit || limit == 0 {
 		limit = loadAssetRecordsLimit
 	}
-
 	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE state in (?) AND scheduler_sid=? order by hash asc LIMIT ? OFFSET ?`, assetRecordTable)
 	query, args, err := sqlx.In(sQuery, statuses, serverID, limit, offset)
 	if err != nil {
@@ -145,11 +144,11 @@ func (n *SQLDB) UpdateAssetRecordExpiration(hash string, eTime time.Time) error 
 }
 
 // LoadMinExpirationOfAssetRecords Get the minimum expiration time of asset records
-func (n *SQLDB) LoadMinExpirationOfAssetRecords() (time.Time, error) {
-	query := fmt.Sprintf(`SELECT MIN(expiration) FROM %s`, assetRecordTable)
+func (n *SQLDB) LoadMinExpirationOfAssetRecords(serverID dtypes.ServerID) (time.Time, error) {
+	query := fmt.Sprintf(`SELECT MIN(expiration) FROM %s WHERE scheduler_sid=?`, assetRecordTable)
 
 	var out time.Time
-	if err := n.db.Get(&out, query); err != nil {
+	if err := n.db.Get(&out, query, serverID); err != nil {
 		return out, err
 	}
 
@@ -157,11 +156,11 @@ func (n *SQLDB) LoadMinExpirationOfAssetRecords() (time.Time, error) {
 }
 
 // LoadExpiredAssetRecords load all expired asset records
-func (n *SQLDB) LoadExpiredAssetRecords() ([]*types.AssetRecord, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE expiration <= NOW()`, assetRecordTable)
+func (n *SQLDB) LoadExpiredAssetRecords(serverID dtypes.ServerID) ([]*types.AssetRecord, error) {
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE scheduler_sid=? AND expiration <= NOW() LIMIT ?`, assetRecordTable)
 
 	var out []*types.AssetRecord
-	if err := n.db.Select(&out, query); err != nil {
+	if err := n.db.Select(&out, query, serverID, loadExpiredAssetRecordsLimit); err != nil {
 		return nil, err
 	}
 
@@ -264,7 +263,7 @@ func (n *SQLDB) LoadReplicas(startTime time.Time, endTime time.Time, cursor, cou
 	if count > loadReplicaInfosLimit {
 		count = loadReplicaInfosLimit
 	}
-
+	// TODO problematic
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE end_time between ? and ? limit ?,?`, replicaInfoTable)
 
 	var out []*types.ReplicaInfo

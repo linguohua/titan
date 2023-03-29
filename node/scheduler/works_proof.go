@@ -62,6 +62,7 @@ func (s *Scheduler) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	infos := make([]*types.DownloadInfo, 0)

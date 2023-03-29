@@ -380,6 +380,7 @@ func (s *Scheduler) NodeList(ctx context.Context, offset int, limit int) (*types
 	if err != nil {
 		return rsp, err
 	}
+	defer rows.Close()
 
 	validator := make(map[string]struct{})
 	validatorList, err := s.NodeManager.LoadValidators(s.NodeManager.ServerID)
@@ -452,6 +453,7 @@ func (s *Scheduler) FindCandidateDownloadSources(ctx context.Context, cid string
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		rInfo := &types.ReplicaInfo{}

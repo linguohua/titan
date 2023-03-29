@@ -28,8 +28,9 @@ const (
 	nodeRegisterTable   = "node_register_info"
 	validateResultTable = "validate_result"
 
-	loadNodeInfosLimit     = 100
-	loadReplicaInfosLimit  = 100
-	loadValidateInfosLimit = 100
-	loadAssetRecordsLimit  = 100
+	loadNodeInfosLimit           = 100
+	loadReplicaInfosLimit        = 100
+	loadValidateInfosLimit       = 100
+	loadAssetRecordsLimit        = 100
+	loadExpiredAssetRecordsLimit = 100
 )
