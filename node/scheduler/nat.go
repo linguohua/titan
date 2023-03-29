@@ -22,10 +22,10 @@ func (s *Scheduler) EdgeExternalServiceAddress(ctx context.Context, nodeID, sche
 	return "", fmt.Errorf("Node %s offline or not exist", nodeID)
 }
 
-func (s *Scheduler) CheckEdgeConnectivityWithRandomPort(ctx context.Context, edgeURL string) (bool, error) {
+func (s *Scheduler) CheckEdgeConnectivity(ctx context.Context, url string) error {
 	udpPacketConn, err := net.ListenPacket("udp", ":0")
 	if err != nil {
-		return false, err
+		return err
 	}
 	defer func() {
 		err = udpPacketConn.Close()
@@ -36,41 +36,32 @@ func (s *Scheduler) CheckEdgeConnectivityWithRandomPort(ctx context.Context, edg
 
 	httpClient, err := cliutil.NewHTTP3Client(udpPacketConn, true, "")
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	edgeAPI, close, err := client.NewEdgeWithHTTPClient(context.Background(), edgeURL, nil, httpClient)
+	edgeAPI, close, err := client.NewEdgeWithHTTPClient(context.Background(), url, nil, httpClient)
 	if err != nil {
-		return false, err
+		return err
 	}
 	defer close()
 
 	if _, err := edgeAPI.Version(context.Background()); err != nil {
-		log.Warnf("IsBehindFullConeNAT,edge %s may be RestrictedNAT or PortRestrictedNAT", edgeURL)
-		return false, nil //nolint:nilerr
+		return err
 	}
-	return true, nil
+	return nil
 }
 
-func (s *Scheduler) checkEdgeIfBehindNAT(ctx context.Context, edgeAddr string) (bool, error) {
-	edgeURL := fmt.Sprintf("http://%s/rpc/v0", edgeAddr)
-
-	httpClient := &http.Client{}
-	edgeAPI, close, err := client.NewEdgeWithHTTPClient(context.Background(), edgeURL, nil, httpClient)
-	if err != nil {
-		return false, err
-	}
-	defer close()
-
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	if _, err := edgeAPI.Version(ctx); err != nil {
-		log.Warnf("checkEdgeIfBehindNAT,edge %s is behind nat", edgeAddr)
-		return true, nil //nolint:nilerr
+// CheckNetworkConnectivity check tcp or udp network connectivity
+// network is "tcp" or "udp"
+func (s *Scheduler) CheckNetworkConnectivity(ctx context.Context, network, targetAddr string) error {
+	switch network {
+	case "tcp":
+		return s.checkTcpConnectivity(targetAddr)
+	case "udp":
+		return s.checkUdpConnectivity(targetAddr)
 	}
 
-	return false, nil
+	return fmt.Errorf("unknow network %s type", network)
 }
 
 func (s *Scheduler) checkEdgeIfBehindFullConeNAT(ctx context.Context, schedulerURL, edgeURL string) (bool, error) {
@@ -80,12 +71,13 @@ func (s *Scheduler) checkEdgeIfBehindFullConeNAT(ctx context.Context, schedulerU
 	}
 	defer close()
 
-	isBehindFullConeNAT, err := schedulerAPI.CheckEdgeConnectivityWithRandomPort(context.Background(), edgeURL)
-	if err != nil {
-		return false, err
+	if err = schedulerAPI.CheckEdgeConnectivity(context.Background(), edgeURL); err == nil {
+		return true, nil
 	}
 
-	return isBehindFullConeNAT, nil
+	log.Debugf("check udp connectivity failed: %s", err.Error())
+
+	return false, nil
 }
 
 func (s *Scheduler) checkEdgeIfBehindRestrictedNAT(ctx context.Context, edgeURL string) (bool, error) {
@@ -132,14 +124,11 @@ func (s *Scheduler) checkEdgeNatType(ctx context.Context, edgeAPI api.Edge, edge
 		return types.NatTypeSymmetric, nil
 	}
 
-	isBindNAT, err := s.checkEdgeIfBehindNAT(ctx, edgeAddr)
-	if err != nil {
-		return types.NatTypeUnknow, err
-	}
-
-	if !isBindNAT {
+	if err = s.CheckNetworkConnectivity(ctx, "tcp", edgeAddr); err == nil {
 		return types.NatTypeNo, nil
 	}
+
+	log.Debugf("CheckTcpConnectivity error: %s", err.Error())
 
 	if len(s.SchedulerCfg.SchedulerServer2) == 0 {
 		return types.NatTypeUnknow, nil
@@ -180,8 +169,49 @@ func (s *Scheduler) getNatType(ctx context.Context, edgeAPI api.Edge, edgeAddr s
 func (s *Scheduler) NodeNatType(ctx context.Context, nodeID string) (types.NatType, error) {
 	eNode := s.NodeManager.GetEdgeNode(nodeID)
 	if eNode == nil {
-		return types.NatTypeUnknow, fmt.Errorf("Node %s offline or not exist", nodeID)
+		return types.NatTypeUnknow, fmt.Errorf("node %s offline or not exist", nodeID)
 	}
 
 	return s.getNatType(ctx, eNode.API(), eNode.Addr()), nil
+}
+
+func (s *Scheduler) checkTcpConnectivity(targetAddr string) error {
+	tcpAddr, err := net.ResolveTCPAddr("tcp", targetAddr)
+	if err != nil {
+		return err
+	}
+
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	return nil
+}
+
+func (s *Scheduler) checkUdpConnectivity(targetAddr string) error {
+	udpServer, err := net.ResolveUDPAddr("udp", targetAddr)
+
+	if err != nil {
+		return err
+	}
+
+	conn, err := net.DialUDP("udp", nil, udpServer)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+
+	conn.Write([]byte("ping"))
+
+	received := make([]byte, 64)
+	_, err = conn.Read(received)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

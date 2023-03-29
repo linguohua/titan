@@ -191,7 +191,9 @@ type SchedulerStruct struct {
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) error `perm:"write"`
 
-		CheckEdgeConnectivityWithRandomPort func(p0 context.Context, p1 string) (bool, error) `perm:"read"`
+		CheckEdgeConnectivity func(p0 context.Context, p1 string) error ``
+
+		CheckNetworkConnectivity func(p0 context.Context, p1 string, p2 string) error ``
 
 		DeleteEdgeUpdateInfo func(p0 context.Context, p1 int) error `perm:"admin"`
 
@@ -719,15 +721,26 @@ func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 string) erro
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) CheckEdgeConnectivityWithRandomPort(p0 context.Context, p1 string) (bool, error) {
-	if s.Internal.CheckEdgeConnectivityWithRandomPort == nil {
-		return false, ErrNotSupported
+func (s *SchedulerStruct) CheckEdgeConnectivity(p0 context.Context, p1 string) error {
+	if s.Internal.CheckEdgeConnectivity == nil {
+		return ErrNotSupported
 	}
-	return s.Internal.CheckEdgeConnectivityWithRandomPort(p0, p1)
+	return s.Internal.CheckEdgeConnectivity(p0, p1)
 }
 
-func (s *SchedulerStub) CheckEdgeConnectivityWithRandomPort(p0 context.Context, p1 string) (bool, error) {
-	return false, ErrNotSupported
+func (s *SchedulerStub) CheckEdgeConnectivity(p0 context.Context, p1 string) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) CheckNetworkConnectivity(p0 context.Context, p1 string, p2 string) error {
+	if s.Internal.CheckNetworkConnectivity == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.CheckNetworkConnectivity(p0, p1, p2)
+}
+
+func (s *SchedulerStub) CheckNetworkConnectivity(p0 context.Context, p1 string, p2 string) error {
+	return ErrNotSupported
 }
 
 func (s *SchedulerStruct) DeleteEdgeUpdateInfo(p0 context.Context, p1 int) error {
