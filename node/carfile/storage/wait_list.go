@@ -1,4 +1,4 @@
-package store
+package storage
 
 import (
 	"os"
@@ -10,11 +10,14 @@ type WaitList struct {
 	path string
 }
 
-func (wl *WaitList) SaveWaitList(data []byte) error {
+func NewWaitList(path string) *WaitList {
+	return &WaitList{path: path}
+}
+func (wl *WaitList) Put(data []byte) error {
 	return os.WriteFile(wl.path, data, 0644)
 }
 
-func (wl *WaitList) WaitList() ([]byte, error) {
+func (wl *WaitList) Get() ([]byte, error) {
 	data, err := os.ReadFile(wl.path)
 	if err != nil && os.IsNotExist(err) {
 		return nil, datastore.ErrNotFound

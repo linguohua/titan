@@ -22,7 +22,7 @@ type downloadResult struct {
 
 type carfileCache struct {
 	root            cid.Cid
-	cs              *store.CarfileStore
+	cs              carfile.storage
 	bFetcher        fetcher.BlockFetcher
 	downloadSources []*types.DownloadSource
 

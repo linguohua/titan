@@ -1,4 +1,4 @@
-package store
+package storage
 
 import (
 	"context"
@@ -11,18 +11,17 @@ import (
 	"github.com/ipld/go-car/v2/blockstore"
 )
 
-const (
-	carSuffix = ".car"
-)
-
-type Key string
-
 type Car struct {
 	baseDir string
+	lru     *LRUCache
 }
 
-func NewCar(baseDir string) *Car {
-	return &Car{baseDir: baseDir}
+func NewCar(baseDir, carSuffix string, maxSizeOfCache int) (*Car, error) {
+	cache, err := NewLRUCache(baseDir, maxSizeOfCache)
+	if err != nil {
+		return nil, err
+	}
+	return &Car{baseDir: baseDir, lru: cache}, nil
 }
 
 func newCarName(root cid.Cid) string {
@@ -44,6 +43,14 @@ func (c *Car) PutBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) 
 	}
 
 	return rw.Finalize()
+}
+
+func (c *Car) GetBlock(ctx context.Context, root, block cid.Cid) (blocks.Block, error) {
+	return c.lru.GetBlock(ctx, root, block)
+}
+
+func (c *Car) HasBlock(ctx context.Context, root, block cid.Cid) (bool, error) {
+	return c.lru.HasBlock(ctx, root, block)
 }
 
 // CarReader must close reader
