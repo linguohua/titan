@@ -209,19 +209,12 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, token string) error {
 		if err != nil {
 			return err
 		}
+		natType := s.getNatType(context.Background(), edgeAPI, remoteAddr)
+		baseInfo.NatType = natType.String()
 		edgeNode.BaseInfo = baseInfo
 	}
 
-<<<<<<< HEAD
-	natType := s.getNatType(context.Background(), edgeAPI, remoteAddr)
-	baseInfo.NatType = natType.String()
-
-	edgeNode.BaseInfo = baseInfo
-
-	err = s.NodeManager.EdgeOnline(edgeNode)
-=======
 	err = s.NodeManager.NodeOnline(edgeNode)
->>>>>>> 5bd5bc50 (node api)
 	if err != nil {
 		log.Errorf("EdgeNodeConnect EdgeOnline err:%s,nodeID:%s", err.Error(), nodeID)
 		return err
