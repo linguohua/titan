@@ -43,7 +43,7 @@ type DownloadInfo struct {
 	URL          string
 	Credentials  *GatewayCredentials
 	NodeID       string `json:"-"`
-	NatType      NatType
+	NatType      string
 	SchedulerURL string
 	SchedulerKey string
 }
@@ -87,6 +87,22 @@ func (n NatType) String() string {
 	}
 
 	return "UnknowNAT"
+}
+
+func (n NatType) FromString(natType string) NatType {
+	switch natType {
+	case "NoNat":
+		return NatTypeNo
+	case "SymmetricNAT":
+		return NatTypeSymmetric
+	case "FullConeNAT":
+		return NatTypeFullCone
+	case "RestrictedNAT":
+		return NatTypeRestricted
+	case "PortRestrictedNAT":
+		return NatTypePortRestricted
+	}
+	return NatTypeUnknow
 }
 
 // ListNodesRsp list node
