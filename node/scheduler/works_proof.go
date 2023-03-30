@@ -85,7 +85,7 @@ func (s *Scheduler) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types
 			continue
 		}
 
-		err := eNode.API().UserNATTravel(context.Background(), userURL)
+		err := eNode.UserNATTravel(context.Background(), userURL)
 		if err != nil {
 			continue
 		}

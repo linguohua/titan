@@ -38,7 +38,7 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 	}
 
 	// find nodes
-	nodes := m.selectCandidates(seedReplicaCount, info.CandidateReplicaSucceeds)
+	nodes := m.nodeMgr.SelectCandidateToPullAsset(seedReplicaCount, info.CandidateReplicaSucceeds)
 	if len(nodes) < 1 {
 		return ctx.Send(SelectFailed{error: xerrors.New("node not found")})
 	}
@@ -54,9 +54,9 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 	// send a cache request to the node
 	go func() {
 		for _, node := range nodes {
-			err := node.API().CacheCarfile(ctx.Context(), info.CID, nil)
+			err := node.CacheCarfile(ctx.Context(), info.CID, nil)
 			if err != nil {
-				log.Errorf("%s pull asset err:%s", node.NodeID, err.Error())
+				log.Errorf("%s pull asset err:%s", node.NodeInfo.NodeID, err.Error())
 				continue
 			}
 
@@ -91,7 +91,7 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 	}
 
 	// find nodes
-	nodes := m.selectCandidates(int(needCount), info.CandidateReplicaSucceeds)
+	nodes := m.nodeMgr.SelectCandidateToPullAsset(int(needCount), info.CandidateReplicaSucceeds)
 	if len(nodes) < 1 {
 		return ctx.Send(SelectFailed{error: xerrors.New("node not found")})
 	}
@@ -109,9 +109,9 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 	// send a pull request to the node
 	go func() {
 		for _, node := range nodes {
-			err := node.API().CacheCarfile(ctx.Context(), info.CID, sources)
+			err := node.CacheCarfile(ctx.Context(), info.CID, sources)
 			if err != nil {
-				log.Errorf("%s pull asset err:%s", node.NodeID, err.Error())
+				log.Errorf("%s pull asset err:%s", node.NodeInfo.NodeID, err.Error())
 				continue
 			}
 
@@ -151,7 +151,7 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 	}
 
 	// find nodes
-	nodes := m.selectEdges(int(needCount), info.EdgeReplicaSucceeds)
+	nodes := m.nodeMgr.SelectEdgeToPullAsset(int(needCount), info.EdgeReplicaSucceeds)
 	if len(nodes) < 1 {
 		return ctx.Send(SelectFailed{error: xerrors.New("node not found")})
 	}
@@ -167,9 +167,9 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 	// send a pull request to the node
 	go func() {
 		for _, node := range nodes {
-			err := node.API().CacheCarfile(ctx.Context(), info.CID, sources)
+			err := node.CacheCarfile(ctx.Context(), info.CID, sources)
 			if err != nil {
-				log.Errorf("%s pull asset err:%s", node.NodeID, err.Error())
+				log.Errorf("%s pull asset err:%s", node.NodeInfo.NodeID, err.Error())
 				continue
 			}
 

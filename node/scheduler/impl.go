@@ -20,7 +20,6 @@ import (
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/scheduler/assets"
 	"github.com/linguohua/titan/node/scheduler/election"
-	"github.com/linguohua/titan/node/scheduler/locator"
 	"github.com/linguohua/titan/node/scheduler/validation"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
@@ -123,9 +122,9 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, token string) erro
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
-	baseInfo := s.NodeManager.GetNode(nodeID)
-	if baseInfo != nil {
-		oAddr := baseInfo.Addr()
+	cNode := s.NodeManager.GetCandidateNode(nodeID)
+	if cNode != nil {
+		oAddr := cNode.Addr()
 		if oAddr != remoteAddr {
 			return xerrors.Errorf("node already login, addr : %s", oAddr)
 		}
@@ -137,38 +136,34 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, token string) erro
 
 	log.Infof("candidate connected %s, address:%s", nodeID, remoteAddr)
 	candidateNode := node.NewCandidate(token)
-	candidateAPI, err := candidateNode.ConnectRPC(remoteAddr, true)
+	candidateAPI, err := candidateNode.ConnectRPC(remoteAddr, true, types.NodeCandidate)
 	if err != nil {
 		return xerrors.Errorf("CandidateNodeConnect ConnectRPC err:%s", err.Error())
 	}
 
-	// load node info
-	nodeInfo, err := candidateAPI.NodeInfo(ctx)
-	if err != nil {
-		log.Errorf("CandidateNodeConnect NodeInfo err:%s", err.Error())
-		return err
-	}
+	if cNode == nil {
+		// load node info
+		nodeInfo, err := candidateAPI.NodeInfo(ctx)
+		if err != nil {
+			log.Errorf("CandidateNodeConnect NodeInfo err:%s", err.Error())
+			return err
+		}
 
-	nodeInfo.NodeType = types.NodeCandidate
-	nodeInfo.ServerID = s.ServerID
+		nodeInfo.NodeType = types.NodeCandidate
+		nodeInfo.ServerID = s.ServerID
 
-	if baseInfo == nil {
-		baseInfo, err = s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
+		baseInfo, err := s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
 		if err != nil {
 			return err
 		}
+		candidateNode.BaseInfo = baseInfo
 	}
 
-	candidateNode.BaseInfo = baseInfo
-
-	err = s.NodeManager.CandidateOnline(candidateNode)
+	err = s.NodeManager.NodeOnline(candidateNode)
 	if err != nil {
 		log.Errorf("CandidateNodeConnect CandidateOnline err:%s,nodeID:%s", err.Error(), nodeID)
 		return err
 	}
-
-	// notify locator
-	locator.ChangeNodeOnlineStatus(nodeID, true)
 
 	s.DataSync.Add2List(nodeID)
 
@@ -180,9 +175,9 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, token string) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
-	baseInfo := s.NodeManager.GetNode(nodeID)
-	if baseInfo != nil {
-		oAddr := baseInfo.Addr()
+	eNode := s.NodeManager.GetEdgeNode(nodeID)
+	if eNode != nil {
+		oAddr := eNode.Addr()
 		if oAddr != remoteAddr {
 			return xerrors.Errorf("node already login, addr : %s", oAddr)
 		}
@@ -194,41 +189,43 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, token string) error {
 
 	log.Infof("edge connected %s; remoteAddr:%s", nodeID, remoteAddr)
 	edgeNode := node.NewEdge(token)
-	edgeAPI, err := edgeNode.ConnectRPC(remoteAddr, true)
+	edgeAPI, err := edgeNode.ConnectRPC(remoteAddr, true, types.NodeEdge)
 	if err != nil {
 		return xerrors.Errorf("EdgeNodeConnect ConnectRPC err:%s", err.Error())
 	}
 
-	// load node info
-	nodeInfo, err := edgeAPI.NodeInfo(ctx)
-	if err != nil {
-		log.Errorf("EdgeNodeConnect NodeInfo err:%s", err.Error())
-		return err
-	}
+	if eNode == nil {
+		// load node info
+		nodeInfo, err := edgeAPI.NodeInfo(ctx)
+		if err != nil {
+			log.Errorf("EdgeNodeConnect NodeInfo err:%s", err.Error())
+			return err
+		}
 
-	nodeInfo.NodeType = types.NodeEdge
-	nodeInfo.ServerID = s.ServerID
+		nodeInfo.NodeType = types.NodeEdge
+		nodeInfo.ServerID = s.ServerID
 
-	if baseInfo == nil {
-		baseInfo, err = s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
+		baseInfo, err := s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
 		if err != nil {
 			return err
 		}
+		edgeNode.BaseInfo = baseInfo
 	}
 
+<<<<<<< HEAD
 	natType := s.getNatType(context.Background(), edgeAPI, remoteAddr)
 	baseInfo.NatType = natType.String()
 
 	edgeNode.BaseInfo = baseInfo
 
 	err = s.NodeManager.EdgeOnline(edgeNode)
+=======
+	err = s.NodeManager.NodeOnline(edgeNode)
+>>>>>>> 5bd5bc50 (node api)
 	if err != nil {
-		log.Errorf("EdgeNodeConnect EdgeOnline err:%s,nodeID:%s", err.Error(), nodeInfo.NodeID)
+		log.Errorf("EdgeNodeConnect EdgeOnline err:%s,nodeID:%s", err.Error(), nodeID)
 		return err
 	}
-
-	// notify locator
-	locator.ChangeNodeOnlineStatus(nodeID, true)
 
 	s.DataSync.Add2List(nodeID)
 
@@ -336,13 +333,11 @@ func (s *Scheduler) LocatorConnect(ctx context.Context, id string, token string)
 	headers.Add("Authorization", "Bearer "+token)
 	// Connect to scheduler
 	// log.Infof("EdgeNodeConnect edge url:%v", url)
-	locatorAPI, closer, err := client.NewLocator(ctx, url, headers)
+	_, _, err := client.NewLocator(ctx, url, headers)
 	if err != nil {
 		log.Errorf("LocatorConnect err:%s,url:%s", err.Error(), url)
 		return err
 	}
-
-	locator.StoreLocator(locator.New(locatorAPI, closer, id))
 
 	return nil
 }

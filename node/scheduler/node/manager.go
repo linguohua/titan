@@ -2,6 +2,8 @@ package node
 
 import (
 	"crypto/rsa"
+	"math"
+	"sort"
 	"sync"
 	"time"
 
@@ -10,7 +12,6 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/scheduler/db"
-	"github.com/linguohua/titan/node/scheduler/locator"
 )
 
 var log = logging.Logger("node")
@@ -20,12 +21,14 @@ const (
 
 	keepaliveTime    = 30 // keepalive time interval (unit: second)
 	saveInfoInterval = 10 // keepalive saves information every 10 times
+
+	maxNodeDiskUsage = 95.0 // If the node disk size is greater than this value, pulling will not continue
 )
 
 // Manager Node Manager
 type Manager struct {
-	EdgeNodes      sync.Map
-	CandidateNodes sync.Map
+	edgeNodes      sync.Map
+	candidateNodes sync.Map
 	*db.SQLDB
 
 	*rsa.PrivateKey
@@ -61,36 +64,26 @@ func (m *Manager) run() {
 	}
 }
 
-func (m *Manager) edgeKeepalive(node *Edge, t time.Time, isSave bool) {
+func (m *Manager) nodeKeepalive(node *Node, t time.Time, isSave bool) {
 	lastTime := node.LastRequestTime()
 
-	if !lastTime.After(t) {
-		m.edgeOffline(node)
-		node = nil
-		return
-	}
+	nodeID := node.NodeInfo.NodeID
 
-	if isSave {
-		err := m.UpdateNodeOnlineTime(node.NodeID, saveInfoInterval*keepaliveTime)
-		if err != nil {
-			log.Errorf("UpdateNodeOnlineTime err:%s,nodeID:%s", err.Error(), node.NodeID)
+	if !lastTime.After(t) {
+		node.closer()
+		if node.NodeType == types.NodeCandidate {
+			m.deleteCandidate(nodeID)
+		} else if node.NodeType == types.NodeEdge {
+			m.deleteEdge(nodeID)
 		}
-	}
-}
-
-func (m *Manager) candidateKeepalive(node *Candidate, t time.Time, isSave bool) {
-	lastTime := node.LastRequestTime()
-
-	if !lastTime.After(t) {
-		m.candidateOffline(node)
 		node = nil
 		return
 	}
 
 	if isSave {
-		err := m.UpdateNodeOnlineTime(node.NodeID, saveInfoInterval*keepaliveTime)
+		err := m.UpdateNodeOnlineTime(nodeID, saveInfoInterval*keepaliveTime)
 		if err != nil {
-			log.Errorf("UpdateNodeOnlineTime err:%s,nodeID:%s", err.Error(), node.NodeID)
+			log.Errorf("UpdateNodeOnlineTime err:%s,nodeID:%s", err.Error(), nodeID)
 		}
 	}
 }
@@ -98,24 +91,24 @@ func (m *Manager) candidateKeepalive(node *Candidate, t time.Time, isSave bool) 
 func (m *Manager) nodesKeepalive(isSave bool) {
 	t := time.Now().Add(-time.Duration(keepaliveTime) * time.Second)
 
-	m.EdgeNodes.Range(func(key, value interface{}) bool {
-		node := value.(*Edge)
+	m.edgeNodes.Range(func(key, value interface{}) bool {
+		node := value.(*Node)
 		if node == nil {
 			return true
 		}
 
-		go m.edgeKeepalive(node, t, isSave)
+		go m.nodeKeepalive(node, t, isSave)
 
 		return true
 	})
 
-	m.CandidateNodes.Range(func(key, value interface{}) bool {
-		node := value.(*Candidate)
+	m.candidateNodes.Range(func(key, value interface{}) bool {
+		node := value.(*Node)
 		if node == nil {
 			return true
 		}
 
-		go m.candidateKeepalive(node, t, isSave)
+		go m.nodeKeepalive(node, t, isSave)
 
 		return true
 	})
@@ -125,8 +118,9 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 func (m *Manager) OnlineNodeList(nodeType types.NodeType) ([]string, error) {
 	list := make([]string, 0)
 
+	// TODO problematic
 	if nodeType == types.NodeUnknown || nodeType == types.NodeCandidate {
-		m.CandidateNodes.Range(func(key, value interface{}) bool {
+		m.candidateNodes.Range(func(key, value interface{}) bool {
 			nodeID := key.(string)
 			list = append(list, nodeID)
 
@@ -135,7 +129,7 @@ func (m *Manager) OnlineNodeList(nodeType types.NodeType) ([]string, error) {
 	}
 
 	if nodeType == types.NodeUnknown || nodeType == types.NodeEdge {
-		m.EdgeNodes.Range(func(key, value interface{}) bool {
+		m.edgeNodes.Range(func(key, value interface{}) bool {
 			nodeID := key.(string)
 			list = append(list, nodeID)
 
@@ -146,13 +140,13 @@ func (m *Manager) OnlineNodeList(nodeType types.NodeType) ([]string, error) {
 	return list, nil
 }
 
-// EdgeOnline Edge Online
-func (m *Manager) EdgeOnline(node *Edge) error {
-	nodeID := node.NodeID
+// NodeOnline node online
+func (m *Manager) NodeOnline(node *Node) error {
+	nodeID := node.NodeInfo.NodeID
 
-	nodeOld := m.GetEdgeNode(nodeID)
+	nodeOld := m.GetNode(nodeID)
 	if nodeOld != nil {
-		nodeOld.ClientCloser()
+		nodeOld.closer()
 
 		nodeOld = nil
 	}
@@ -162,102 +156,61 @@ func (m *Manager) EdgeOnline(node *Edge) error {
 		return err
 	}
 
-	m.EdgeNodes.Store(nodeID, node)
+	if node.NodeType == types.NodeEdge {
+		m.storeEdge(node)
+		return nil
+	}
+
+	if node.NodeType == types.NodeCandidate {
+		m.storeCandidate(node)
+		// update validator owner
+		return m.UpdateValidatorInfo(m.ServerID, nodeID)
+	}
 
 	return nil
+}
+
+func (m *Manager) storeEdge(node *Node) {
+	if node == nil {
+		return
+	}
+	m.edgeNodes.Store(node.NodeInfo.NodeID, node)
+}
+
+func (m *Manager) storeCandidate(node *Node) {
+	if node == nil {
+		return
+	}
+	m.candidateNodes.Store(node.NodeInfo.NodeID, node)
+}
+
+func (m *Manager) deleteEdge(nodeID string) {
+	m.edgeNodes.Delete(nodeID)
+}
+
+func (m *Manager) deleteCandidate(nodeID string) {
+	m.candidateNodes.Delete(nodeID)
 }
 
 // GetEdgeNode Get EdgeNode
-func (m *Manager) GetEdgeNode(nodeID string) *Edge {
-	nodeI, exist := m.EdgeNodes.Load(nodeID)
+func (m *Manager) GetEdgeNode(nodeID string) *Node {
+	nodeI, exist := m.edgeNodes.Load(nodeID)
 	if exist && nodeI != nil {
-		node := nodeI.(*Edge)
+		node := nodeI.(*Node)
 
 		return node
 	}
 
 	return nil
-}
-
-func (m *Manager) edgeOffline(node *Edge) {
-	nodeID := node.NodeID
-	log.Infof("Edge Offline :%s", nodeID)
-
-	node.ClientCloser()
-	m.EdgeNodes.Delete(nodeID)
-	// notify to locator
-	locator.ChangeNodeOnlineStatus(nodeID, false)
-}
-
-// CandidateOnline Candidate Online
-func (m *Manager) CandidateOnline(node *Candidate) error {
-	nodeID := node.NodeID
-
-	nodeOld := m.GetCandidateNode(nodeID)
-	if nodeOld != nil {
-		nodeOld.ClientCloser()
-
-		nodeOld = nil
-	}
-
-	err := m.saveInfo(node.BaseInfo)
-	if err != nil {
-		return err
-	}
-
-	m.CandidateNodes.Store(nodeID, node)
-
-	// update validator owner
-	return m.UpdateValidatorInfo(m.ServerID, nodeID)
 }
 
 // GetCandidateNode Get Candidate Node
-func (m *Manager) GetCandidateNode(nodeID string) *Candidate {
-	nodeI, exist := m.CandidateNodes.Load(nodeID)
+func (m *Manager) GetCandidateNode(nodeID string) *Node {
+	nodeI, exist := m.candidateNodes.Load(nodeID)
 	if exist && nodeI != nil {
-		node := nodeI.(*Candidate)
+		node := nodeI.(*Node)
 
 		return node
-	}
-
-	return nil
-}
-
-func (m *Manager) candidateOffline(node *Candidate) {
-	nodeID := node.NodeID
-	log.Infof("Candidate Offline :%s", nodeID)
-
-	node.ClientCloser()
-	m.CandidateNodes.Delete(nodeID)
-	// notify to locator
-	locator.ChangeNodeOnlineStatus(nodeID, false)
-}
-
-// FindCandidates Find CandidateNodes from all Candidate and filter filterMap
-func (m *Manager) FindCandidates(filterMap map[string]string) []*Candidate {
-	if filterMap == nil {
-		filterMap = make(map[string]string)
-	}
-
-	nodes := make([]*Candidate, 0)
-
-	m.CandidateNodes.Range(func(key, value interface{}) bool {
-		nodeID := key.(string)
-		node := value.(*Candidate)
-
-		if _, exist := filterMap[nodeID]; exist {
-			return true
-		}
-
-		if node != nil {
-			nodes = append(nodes, node)
-		}
-
-		return true
-	})
-
-	if len(nodes) > 0 {
-		return nodes
 	}
 
 	return nil
@@ -268,20 +221,10 @@ func KeepaliveCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error)
 	return func(nodeID, remoteAddr string) {
 		lastTime := time.Now()
 
-		edge := nodeMgr.GetEdgeNode(nodeID)
-		if edge != nil {
-			edge.SetLastRequestTime(lastTime)
-			_, err := edge.ConnectRPC(remoteAddr, false)
-			if err != nil {
-				log.Errorf("%s ConnectRPC err:%s", nodeID, err.Error())
-			}
-			return
-		}
-
-		candidate := nodeMgr.GetCandidateNode(nodeID)
-		if candidate != nil {
-			candidate.SetLastRequestTime(lastTime)
-			_, err := candidate.ConnectRPC(remoteAddr, false)
+		node := nodeMgr.GetNode(nodeID)
+		if node != nil {
+			node.SetLastRequestTime(lastTime)
+			_, err := node.ConnectRPC(remoteAddr, false, node.NodeType)
 			if err != nil {
 				log.Errorf("%s ConnectRPC err:%s", nodeID, err.Error())
 			}
@@ -330,15 +273,15 @@ func (m *Manager) NodesQuit(nodeIDs []string) {
 }
 
 // GetNode get node
-func (m *Manager) GetNode(nodeID string) *BaseInfo {
+func (m *Manager) GetNode(nodeID string) *Node {
 	edge := m.GetEdgeNode(nodeID)
 	if edge != nil {
-		return edge.BaseInfo
+		return edge
 	}
 
 	candidate := m.GetCandidateNode(nodeID)
 	if candidate != nil {
-		return candidate.BaseInfo
+		return candidate
 	}
 
 	return nil
@@ -355,4 +298,131 @@ func (m *Manager) saveInfo(n *BaseInfo) error {
 	}
 
 	return nil
+}
+
+// SelectCandidateToPullAsset select candidate node to pull asset replica
+func (m *Manager) SelectCandidateToPullAsset(count int, filterNodes []string) []*Node {
+	list := make([]*Node, 0)
+
+	if count <= 0 {
+		return list
+	}
+
+	filterMap := make(map[string]struct{})
+	for _, nodeID := range filterNodes {
+		filterMap[nodeID] = struct{}{}
+	}
+
+	// TODO problematic  need tactics
+	m.candidateNodes.Range(func(key, value interface{}) bool {
+		candidateNode := value.(*Node)
+
+		if _, exist := filterMap[candidateNode.NodeInfo.NodeID]; exist {
+			return true
+		}
+
+		if candidateNode.DiskUsage > maxNodeDiskUsage {
+			return true
+		}
+
+		list = append(list, candidateNode)
+		if len(list) >= count {
+			return false
+		}
+
+		return true
+	})
+
+	return list
+}
+
+// SelectEdgeToPullAsset select edge node to pull asset replica
+func (m *Manager) SelectEdgeToPullAsset(count int, filterNodes []string) []*Node {
+	list := make([]*Node, 0)
+
+	if count <= 0 {
+		return list
+	}
+
+	filterMap := make(map[string]struct{})
+	for _, nodeID := range filterNodes {
+		filterMap[nodeID] = struct{}{}
+	}
+
+	// TODO problematic  need tactics
+	m.edgeNodes.Range(func(key, value interface{}) bool {
+		edgeNode := value.(*Node)
+
+		if _, exist := filterMap[edgeNode.NodeInfo.NodeID]; exist {
+			return true
+		}
+
+		if edgeNode.DiskUsage > maxNodeDiskUsage {
+			return true
+		}
+
+		list = append(list, edgeNode)
+		if len(list) >= count {
+			return false
+		}
+
+		return true
+	})
+
+	return list
+}
+
+// RangeEdges range edges
+func (m *Manager) RangeEdges(back func(key, value interface{}) bool) {
+	// TODO problematic
+	m.edgeNodes.Range(func(key, value interface{}) bool {
+		return back(key, value)
+	})
+}
+
+// RangeCandidates range candidate
+func (m *Manager) RangeCandidates(back func(key, value interface{}) bool) {
+	// TODO problematic
+	m.candidateNodes.Range(func(key, value interface{}) bool {
+		return back(key, value)
+	})
+}
+
+// ElectValidators elect
+func (m *Manager) ElectValidators(ratio float64) (out []string) {
+	out = make([]string, 0)
+
+	// TODO problematic
+	candidates := make([]*Node, 0)
+	m.candidateNodes.Range(func(key, value interface{}) bool {
+		n := value.(*Node)
+		candidates = append(candidates, n)
+		return true
+	})
+
+	candidateCount := len(candidates)
+
+	needValidatorCount := int(math.Ceil(float64(candidateCount) * ratio))
+	if needValidatorCount <= 0 {
+		return
+	}
+
+	if needValidatorCount >= candidateCount {
+		for _, candidate := range candidates {
+			out = append(out, candidate.NodeInfo.NodeID)
+		}
+		return
+	}
+
+	sort.Slice(candidates, func(i, j int) bool {
+		// TODO Consider node reliability
+		return candidates[i].BandwidthDown > candidates[j].BandwidthDown
+	})
+
+	for i := 0; i < needValidatorCount; i++ {
+		candidate := candidates[i]
+		out = append(out, candidate.NodeInfo.NodeID)
+	}
+
+	return out
 }

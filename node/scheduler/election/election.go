@@ -2,8 +2,6 @@ package election
 
 import (
 	"context"
-	"math"
-	"sort"
 	"sync"
 	"time"
 
@@ -102,7 +100,7 @@ func (v *Election) electTicker() {
 
 func (v *Election) elect() error {
 	log.Debugln("start elect ")
-	validators := v.electValidators()
+	validators := v.nodeMgr.ElectValidators(v.getValidatorRatio())
 
 	return v.UpdateValidators(validators, v.ServerID)
 }
@@ -120,49 +118,4 @@ func (v *Election) getValidatorRatio() float64 {
 	}
 
 	return cfg.ValidatorRatio
-}
-
-func (v *Election) electValidators() (out []string) {
-	out = make([]string, 0)
-
-	// TODO problematic
-	candidates := v.getAllCandidates()
-	candidateCount := len(candidates)
-
-	needValidatorCount := int(math.Ceil(float64(candidateCount) * v.getValidatorRatio()))
-	if needValidatorCount <= 0 {
-		return
-	}
-
-	if needValidatorCount >= candidateCount {
-		for _, candidate := range candidates {
-			out = append(out, candidate.NodeID)
-		}
-		return
-	}
-
-	sort.Slice(candidates, func(i, j int) bool {
-		// TODO Consider node reliability
-		return candidates[i].BandwidthDown > candidates[j].BandwidthDown
-	})
-
-	for i := 0; i < needValidatorCount; i++ {
-		candidate := candidates[i]
-		out = append(out, candidate.NodeID)
-	}
-
-	return out
-}
-
-func (v *Election) getAllCandidates() []*node.Candidate {
-	candidates := make([]*node.Candidate, 0)
-
-	v.nodeMgr.CandidateNodes.Range(func(key, value interface{}) bool {
-		node := value.(*node.Candidate)
-		candidates = append(candidates, node)
-
-		return true
-	})
-
-	return candidates
 }

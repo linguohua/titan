@@ -184,7 +184,7 @@ func (v *Validation) sendValidateReqToNodes(validatorID string, reqs *validateRe
 	}
 
 	// send to validator
-	addr, err := validator.API().ValidateNodes(ctx, reqs.vReqs)
+	addr, err := validator.ValidateNodes(ctx, reqs.vReqs)
 	if err != nil {
 		log.Errorf("ValidateNodes [%s] err:%s", validatorID, err.Error())
 		return
@@ -199,13 +199,13 @@ func (v *Validation) sendValidateReqToNodes(validatorID string, reqs *validateRe
 		go func() {
 			cNode := v.nodeMgr.GetCandidateNode(nID)
 			if cNode != nil {
-				cNode.API().BeValidate(context.Background(), bReq)
+				cNode.BeValidate(context.Background(), bReq)
 				return
 			}
 
 			eNode := v.nodeMgr.GetEdgeNode(nID)
 			if eNode != nil {
-				eNode.API().BeValidate(context.Background(), bReq)
+				eNode.BeValidate(context.Background(), bReq)
 				return
 			}
 
@@ -281,10 +281,10 @@ func (v *Validation) assignValidator() (map[string]*validateReqs, []*types.Valid
 	}
 
 	// edge nodes
-	v.nodeMgr.EdgeNodes.Range(func(key, value interface{}) bool {
-		node := value.(*node.Edge)
+	v.nodeMgr.RangeEdges(func(key, value interface{}) bool {
+		node := value.(*node.Node)
 
-		err := assign(node.NodeID, node.BandwidthUp)
+		err := assign(node.NodeInfo.NodeID, node.BandwidthUp)
 		if err != nil {
 			log.Errorf("%s get validate req info err:%s", err.Error())
 		}
@@ -297,17 +297,19 @@ func (v *Validation) assignValidator() (map[string]*validateReqs, []*types.Valid
 		vMap[v.nodeID] = struct{}{}
 	}
 
-	// candidate nodes
-	v.nodeMgr.CandidateNodes.Range(func(key, value interface{}) bool {
-		node := value.(*node.Candidate)
+	// candidate node
+	v.nodeMgr.RangeCandidates(func(key, value interface{}) bool {
+		node := value.(*node.Node)
 
-		if _, exist := vMap[node.NodeID]; exist {
+		nodeID := node.NodeInfo.NodeID
+
+		if _, exist := vMap[nodeID]; exist {
 			return true
 		}
 
-		err := assign(node.NodeID, node.BandwidthUp)
+		err := assign(nodeID, node.BandwidthUp)
 		if err != nil {
-			log.Errorf("%s get validate req info err:%s", node.NodeID, err.Error())
+			log.Errorf("%s get validate req info err:%s", nodeID, err.Error())
 		}
 		return true
 	})
@@ -431,7 +433,7 @@ func (v *Validation) Result(validatedResult *api.ValidateResult) error {
 			continue
 		}
 
-		cCidMap, err = node.API().GetBlocksOfCarfile(context.Background(), cid, v.seed, max)
+		cCidMap, err = node.GetBlocksOfCarfile(context.Background(), cid, v.seed, max)
 		if err != nil {
 			log.Errorf("candidate %s GetBlocksOfCarfile err:%s", cNodeID, err.Error())
 			continue
