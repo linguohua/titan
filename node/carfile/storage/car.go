@@ -11,24 +11,25 @@ import (
 	"github.com/ipld/go-car/v2/blockstore"
 )
 
-type Car struct {
+// Car save car file
+type car struct {
 	baseDir string
-	lru     *LRUCache
+	lru     *lruCache
 }
 
-func NewCar(baseDir, carSuffix string, maxSizeOfCache int) (*Car, error) {
-	cache, err := NewLRUCache(baseDir, maxSizeOfCache)
+func newCar(baseDir, carSuffix string, maxSizeOfCache int) (*car, error) {
+	cache, err := newLRUCache(baseDir, maxSizeOfCache)
 	if err != nil {
 		return nil, err
 	}
-	return &Car{baseDir: baseDir, lru: cache}, nil
+	return &car{baseDir: baseDir, lru: cache}, nil
 }
 
 func newCarName(root cid.Cid) string {
 	return root.Hash().String() + carSuffix
 }
 
-func (c *Car) PutBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) error {
+func (c *car) putBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) error {
 	name := newCarName(root)
 	path := filepath.Join(c.baseDir, name)
 
@@ -45,23 +46,23 @@ func (c *Car) PutBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) 
 	return rw.Finalize()
 }
 
-func (c *Car) GetBlock(ctx context.Context, root, block cid.Cid) (blocks.Block, error) {
-	return c.lru.GetBlock(ctx, root, block)
+func (c *car) getBlock(ctx context.Context, root, block cid.Cid) (blocks.Block, error) {
+	return c.lru.getBlock(ctx, root, block)
 }
 
-func (c *Car) HasBlock(ctx context.Context, root, block cid.Cid) (bool, error) {
-	return c.lru.HasBlock(ctx, root, block)
+func (c *car) hasBlock(ctx context.Context, root, block cid.Cid) (bool, error) {
+	return c.lru.hasBlock(ctx, root, block)
 }
 
 // CarReader must close reader
-func (c *Car) Get(root cid.Cid) (io.ReadSeekCloser, error) {
+func (c *car) get(root cid.Cid) (io.ReadSeekCloser, error) {
 	name := newCarName(root)
 	filePath := filepath.Join(c.baseDir, name)
 
 	return os.Open(filePath)
 }
 
-func (c *Car) Has(root cid.Cid) (bool, error) {
+func (c *car) has(root cid.Cid) (bool, error) {
 	name := newCarName(root)
 	filePath := filepath.Join(c.baseDir, name)
 
@@ -77,14 +78,18 @@ func (c *Car) Has(root cid.Cid) (bool, error) {
 	return true, nil
 }
 
-func (c *Car) Delete(root cid.Cid) error {
+func (c *car) remove(root cid.Cid) error {
+	// remove cache
+	c.lru.remove(root)
+
 	name := newCarName(root)
 	path := filepath.Join(c.baseDir, name)
 
+	// remove file
 	return os.Remove(path)
 }
 
-func (c *Car) Count() (int, error) {
+func (c *car) count() (int, error) {
 	entries, err := os.ReadDir(c.baseDir)
 	if err != nil {
 		return 0, err

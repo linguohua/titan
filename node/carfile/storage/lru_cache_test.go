@@ -11,9 +11,9 @@ import (
 func init() {
 	_ = logging.SetLogLevel("carfile/store", "DEBUG")
 }
-func TestBlock(t *testing.T) {
+func TestLRUCache(t *testing.T) {
 	t.Logf("TestRegisterShard")
-	block, err := NewLRUCache("C:/Users/aaa/.titanedge-1/carfilestore/cars", 1)
+	cache, err := newLRUCache("C:/Users/aaa/.titanedge-1/carfilestore/cars", 1)
 	if err != nil {
 		t.Errorf("new block error:%s", err.Error())
 		return
@@ -26,7 +26,7 @@ func TestBlock(t *testing.T) {
 		return
 	}
 
-	blk, err := block.GetBlock(context.Background(), root, root)
+	blk, err := cache.getBlock(context.Background(), root, root)
 	if err != nil {
 		t.Errorf("decode error:%s", err.Error())
 		return
@@ -40,7 +40,7 @@ func TestBlock(t *testing.T) {
 	}
 
 	t.Logf("block size:%d", len(blk.RawData()))
-	blk, err = block.GetBlock(context.Background(), root, root)
+	blk, err = cache.getBlock(context.Background(), root, root)
 	if err != nil {
 		t.Errorf("decode error:%s", err.Error())
 		return
