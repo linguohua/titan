@@ -191,8 +191,6 @@ type SchedulerStruct struct {
 
 		CandidateNodeConnect func(p0 context.Context, p1 string) error `perm:"write"`
 
-		CheckEdgeConnectivity func(p0 context.Context, p1 string) error `perm:"read"`
-
 		CheckNetworkConnectivity func(p0 context.Context, p1 string, p2 string) error `perm:"read"`
 
 		DeleteEdgeUpdateInfo func(p0 context.Context, p1 int) error `perm:"admin"`
@@ -718,17 +716,6 @@ func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context, p1 string) er
 }
 
 func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 string) error {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) CheckEdgeConnectivity(p0 context.Context, p1 string) error {
-	if s.Internal.CheckEdgeConnectivity == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.CheckEdgeConnectivity(p0, p1)
-}
-
-func (s *SchedulerStub) CheckEdgeConnectivity(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
