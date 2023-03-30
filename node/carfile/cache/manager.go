@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"context"
 	"os"
 	"sync"
 	"time"
@@ -9,7 +10,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/carfile/fetcher"
-	carfilestore "github.com/linguohua/titan/node/carfile/store"
+	"github.com/linguohua/titan/node/carfile/storage"
 )
 
 type CachedResulter interface {
@@ -26,13 +27,13 @@ type Manager struct {
 	waitList      []*carWaiter
 	waitListLock  *sync.Mutex
 	downloadCh    chan bool
-	carfileStore  *carfilestore.CarfileStore
+	storage       storage.Storage
 	bFetcher      fetcher.BlockFetcher
 	downloadBatch int
 }
 
 type ManagerOptions struct {
-	CarfileStore  *carfilestore.CarfileStore
+	Storage       storage.Storage
 	BFetcher      fetcher.BlockFetcher
 	DownloadBatch int
 }
@@ -42,7 +43,7 @@ func NewManager(opts *ManagerOptions) *Manager {
 		waitList:      make([]*carWaiter, 0),
 		waitListLock:  &sync.Mutex{},
 		downloadCh:    make(chan bool),
-		carfileStore:  opts.CarfileStore,
+		storage:       opts.Storage,
 		bFetcher:      opts.BFetcher,
 		downloadBatch: opts.DownloadBatch,
 	}
@@ -61,7 +62,7 @@ func (m *Manager) startTick() {
 		if len(m.waitList) > 0 {
 			cache := m.CachingCar()
 			if cache != nil {
-				if err := m.saveIncompleteCarfileCache(cache); err != nil {
+				if err := m.saveCarfileCache(cache); err != nil {
 					log.Error("saveIncompleteCarfileCache error:%s", err.Error())
 				}
 
@@ -112,7 +113,7 @@ func (m *Manager) doDownloadCar() {
 	}
 	defer m.removeCarFromWaitList(cw.Root)
 
-	carfileCache, err := m.restoreCarfileCacheOrNew(&options{cw.Root, cw.Dss, m.carfileStore, m.bFetcher, m.downloadBatch})
+	carfileCache, err := m.restoreCarfileCacheOrNew(&options{cw.Root, cw.Dss, m.storage, m.bFetcher, m.downloadBatch})
 	if err != nil {
 		log.Errorf("restore carfile cache error:%s", err)
 		return
@@ -183,7 +184,7 @@ func (m *Manager) AddToWaitList(root cid.Cid, dss []*types.DownloadSource) {
 	m.triggerDownload()
 }
 
-func (m *Manager) saveIncompleteCarfileCache(cf *carfileCache) error {
+func (m *Manager) saveCarfileCache(cf *carfileCache) error {
 	if cf == nil || cf.isDownloadComplete() {
 		return nil
 	}
@@ -192,23 +193,27 @@ func (m *Manager) saveIncompleteCarfileCache(cf *carfileCache) error {
 	if err != nil {
 		return err
 	}
-	return m.carfileStore.SaveIncompleteCarfileCache(cf.Root(), buf)
+	return m.storage.PutCarCache(cf.Root(), buf)
 }
 
 func (m *Manager) onDownloadCarFinish(cf *carfileCache) {
 	log.Debugf("onDownloadCarFinish, carfile %s", cf.root.String())
 	if cf.isDownloadComplete() {
-		err := m.carfileStore.RegisterShared(cf.root)
-		if err != nil {
-			log.Errorf("RegisterShared error:%s", err.Error())
+		if err := m.storage.RemoveCarCache(cf.root); err != nil && !os.IsNotExist(err) {
+			log.Errorf("remove car cache error:%s", err.Error())
 		}
 
-		if err = m.carfileStore.DeleteIncompleteCarfileCache(cf.root); err != nil && !os.IsNotExist(err) {
-			log.Errorf("DeleteIncompleteCarfileCache error:%s", err.Error())
+		if err := m.storage.AddTopIndex(context.Background(), cf.root); err != nil {
+			log.Errorf("add index error:%s", err.Error())
+		}
+
+		blockCountOfCar := uint32(len(cf.blocksDownloadSuccessList))
+		if err := m.storage.SetBlockCountOfCar(context.Background(), cf.root, blockCountOfCar); err != nil {
+			log.Errorf("set block count error:%s", err.Error())
 		}
 
 	} else {
-		if err := m.saveIncompleteCarfileCache(cf); err != nil {
+		if err := m.saveCarfileCache(cf); err != nil {
 			log.Errorf("saveIncompleteCarfileCache error:%s", err.Error())
 		}
 	}
@@ -220,11 +225,11 @@ func (m *Manager) saveWaitList() error {
 		return err
 	}
 
-	return m.carfileStore.SaveWaitList(data)
+	return m.storage.PutWaitList(data)
 }
 
 func (m *Manager) restoreWaitListFromStore() {
-	data, err := m.carfileStore.WaitList()
+	data, err := m.storage.GetWaitList()
 	if err != nil {
 		if err != datastore.ErrNotFound {
 			log.Errorf("restoreWaitListFromStore error:%s", err)
@@ -259,7 +264,7 @@ func (m *Manager) CachingCar() *carfileCache {
 }
 
 func (m *Manager) restoreCarfileCacheOrNew(opts *options) (*carfileCache, error) {
-	data, err := m.carfileStore.IncompleteCarfileCacheData(opts.root)
+	data, err := m.storage.GetCarCache(opts.root)
 	if err != nil && !os.IsNotExist(err) {
 		log.Errorf("CacheCarfile load incomplete carfile error %s", err.Error())
 		return nil, err
@@ -311,7 +316,7 @@ func (m *Manager) Progresses() []*types.AssetPullProgress {
 }
 
 func (m *Manager) CachedStatus(root cid.Cid) (types.ReplicaStatus, error) {
-	if m.carfileStore.HasCarfile(root) {
+	if ok, err := m.storage.HasCar(root); err == nil && ok {
 		return types.ReplicaStatusSucceeded, nil
 	}
 
@@ -333,7 +338,7 @@ func (m *Manager) ProgressForFailedCar(root cid.Cid) (*types.AssetPullProgress, 
 		Status: types.ReplicaStatusFailed,
 	}
 
-	data, err := m.carfileStore.IncompleteCarfileCacheData(root)
+	data, err := m.storage.GetCarCache(root)
 	if os.IsNotExist(err) {
 		return progress, nil
 	}

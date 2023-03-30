@@ -10,13 +10,14 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-libipfs/blocks"
-	"github.com/ipld/go-car/v2"
+	carv2 "github.com/ipld/go-car/v2"
 	"github.com/ipld/go-car/v2/blockstore"
 )
 
 type Key string
 
-type LRUCache struct {
+// LRUCache lru cache
+type lruCache struct {
 	carsDir string
 	cache   *lru.Cache
 }
@@ -26,8 +27,8 @@ type cacheValue struct {
 	reader io.ReaderAt
 }
 
-func NewLRUCache(carsDir string, maxSize int) (*LRUCache, error) {
-	b := &LRUCache{carsDir: carsDir}
+func newLRUCache(carsDir string, maxSize int) (*lruCache, error) {
+	b := &lruCache{carsDir: carsDir}
 	cache, err := lru.NewWithEvict(maxSize, b.onEvict)
 	if err != nil {
 		return nil, err
@@ -37,7 +38,7 @@ func NewLRUCache(carsDir string, maxSize int) (*LRUCache, error) {
 	return b, nil
 }
 
-func (lc *LRUCache) GetBlock(ctx context.Context, root, block cid.Cid) (blocks.Block, error) {
+func (lc *lruCache) getBlock(ctx context.Context, root, block cid.Cid) (blocks.Block, error) {
 	key := Key(root.Hash().String())
 	if v, ok := lc.cache.Get(key); ok {
 		if c, ok := v.(*cacheValue); ok {
@@ -56,7 +57,7 @@ func (lc *LRUCache) GetBlock(ctx context.Context, root, block cid.Cid) (blocks.B
 		return nil, err
 	}
 
-	bs, err := blockstore.NewReadOnly(file, nil, car.ZeroLengthSectionAsEOF(true))
+	bs, err := blockstore.NewReadOnly(file, nil, carv2.ZeroLengthSectionAsEOF(true))
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +68,7 @@ func (lc *LRUCache) GetBlock(ctx context.Context, root, block cid.Cid) (blocks.B
 	return bs.Get(ctx, block)
 }
 
-func (lc *LRUCache) HasBlock(ctx context.Context, root, block cid.Cid) (bool, error) {
+func (lc *lruCache) hasBlock(ctx context.Context, root, block cid.Cid) (bool, error) {
 	key := Key(root.Hash().String())
 	if v, ok := lc.cache.Get(key); ok {
 		if c, ok := v.(*cacheValue); ok {
@@ -84,7 +85,7 @@ func (lc *LRUCache) HasBlock(ctx context.Context, root, block cid.Cid) (bool, er
 		return false, err
 	}
 
-	bs, err := blockstore.NewReadOnly(file, nil, car.ZeroLengthSectionAsEOF(true))
+	bs, err := blockstore.NewReadOnly(file, nil, carv2.ZeroLengthSectionAsEOF(true))
 	if err != nil {
 		return false, err
 	}
@@ -94,7 +95,11 @@ func (lc *LRUCache) HasBlock(ctx context.Context, root, block cid.Cid) (bool, er
 	return bs.Has(ctx, block)
 }
 
-func (lc *LRUCache) onEvict(key interface{}, value interface{}) {
+func (lc *lruCache) remove(root cid.Cid) {
+	lc.cache.Remove(Key(root.Hash().String()))
+}
+
+func (lc *lruCache) onEvict(key interface{}, value interface{}) {
 	if c, ok := value.(*cacheValue); ok {
 		c.bs.Close()
 		if f, ok := c.reader.(*os.File); ok {

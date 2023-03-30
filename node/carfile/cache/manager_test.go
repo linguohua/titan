@@ -8,25 +8,16 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/carfile/fetcher"
-	"github.com/linguohua/titan/node/carfile/store"
+	"github.com/linguohua/titan/node/carfile/storage"
 )
 
 type TestCachedResultImpl struct {
-	t        *testing.T
-	carStore *store.CarfileStore
+	t       *testing.T
+	storage storage.Storage
 }
 
 func (t *TestCachedResultImpl) CacheResult(result *types.PullResult) error {
 	t.t.Logf("result:%#v", *result)
-
-	count, err := t.carStore.BlockCount()
-	if err != nil {
-		t.t.Errorf("get block count error:%s", err.Error())
-		return err
-	}
-
-	t.t.Logf("total block %d in store", count)
-
 	return nil
 }
 
@@ -41,14 +32,14 @@ func TestManager(t *testing.T) {
 		return
 	}
 
-	carfileStore, err := store.NewCarfileStore("./test")
+	accessor, err := storage.NewAccessor("./test")
 	if err != nil {
 		t.Errorf("NewCarfileStore err:%s", err)
 		return
 	}
 
 	bFetcher := fetcher.NewIPFS("http://192.168.0.132:5001", 15, 1)
-	opts := &ManagerOptions{CarfileStore: carfileStore, BFetcher: bFetcher, DownloadBatch: 5}
+	opts := &ManagerOptions{Storage: accessor, BFetcher: bFetcher, DownloadBatch: 5}
 
 	mgr := NewManager(opts)
 	mgr.AddToWaitList(c, nil)

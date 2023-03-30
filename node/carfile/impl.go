@@ -15,7 +15,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/carfile/cache"
 	"github.com/linguohua/titan/node/carfile/fetcher"
-	"github.com/linguohua/titan/node/carfile/store"
+	"github.com/linguohua/titan/node/carfile/storage"
 	"github.com/linguohua/titan/node/device"
 	mh "github.com/multiformats/go-multihash"
 )
@@ -30,25 +30,19 @@ type CarfileImpl struct {
 	scheduler       api.Scheduler
 	device          *device.Device
 	cacheMgr        *cache.Manager
-	carfileStore    *store.CarfileStore
+	storage         storage.Storage
 	TotalBlockCount int
 }
 
-func NewCarfileImpl(carfileStore *store.CarfileStore, scheduler api.Scheduler, bFetcher fetcher.BlockFetcher, device *device.Device) *CarfileImpl {
+func NewCarfileImpl(storage storage.Storage, scheduler api.Scheduler, bFetcher fetcher.BlockFetcher, device *device.Device) *CarfileImpl {
 	cfImpl := &CarfileImpl{
-		scheduler:    scheduler,
-		device:       device,
-		carfileStore: carfileStore,
+		scheduler: scheduler,
+		device:    device,
+		storage:   storage,
 	}
 
-	opts := &cache.ManagerOptions{CarfileStore: carfileStore, BFetcher: bFetcher, DownloadBatch: batch}
+	opts := &cache.ManagerOptions{Storage: storage, BFetcher: bFetcher, DownloadBatch: batch}
 	cfImpl.cacheMgr = cache.NewManager(opts)
-
-	totalBlockCount, err := carfileStore.BlockCount()
-	if err != nil {
-		log.Panicf("NewCarfileImpl block count error:%s", err.Error())
-	}
-	cfImpl.TotalBlockCount = totalBlockCount
 
 	legacy.RegisterCodec(cid.DagProtobuf, dagpb.Type.PBNode, merkledag.ProtoNodeConverter)
 	legacy.RegisterCodec(cid.Raw, basicnode.Prototype.Bytes, merkledag.RawNodeConverter)
@@ -66,7 +60,12 @@ func (cfImpl *CarfileImpl) CacheCarfile(ctx context.Context, rootCID string, dss
 		return err
 	}
 
-	if has := cfImpl.carfileStore.HasCarfile(root); has {
+	has, err := cfImpl.storage.HasCar(root)
+	if err != nil {
+		return err
+	}
+
+	if has {
 		log.Debugf("CacheCarfile %s already exist", root.String())
 		return nil
 	}
@@ -78,10 +77,6 @@ func (cfImpl *CarfileImpl) CacheCarfile(ctx context.Context, rootCID string, dss
 }
 
 func (cfImpl *CarfileImpl) removeResult() error {
-	if count, err := cfImpl.carfileStore.BlockCount(); err == nil {
-		cfImpl.TotalBlockCount = count
-	}
-
 	_, diskUsage := cfImpl.device.GetDiskUsageStat()
 	ret := types.RemoveAssetResult{BlocksCount: cfImpl.TotalBlockCount, DiskUsage: diskUsage}
 
@@ -102,7 +97,7 @@ func (cfImpl *CarfileImpl) deleteCarfile(ctx context.Context, c cid.Cid) error {
 
 	log.Debugf("delete carfile %s", c.String())
 
-	if err := cfImpl.carfileStore.DeleteCarfile(c); err != nil {
+	if err := cfImpl.storage.RemoveCar(c); err != nil {
 		return err
 	}
 	return cfImpl.removeResult()
@@ -126,7 +121,7 @@ func (cfImpl *CarfileImpl) GetBlock(ctx context.Context, cidStr string) ([]byte,
 		return nil, err
 	}
 
-	blk, err := cfImpl.carfileStore.Block(c)
+	blk, err := cfImpl.storage.GetBlock(ctx, c)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +129,7 @@ func (cfImpl *CarfileImpl) GetBlock(ctx context.Context, cidStr string) ([]byte,
 }
 
 func (cfImpl *CarfileImpl) QueryCacheStat(ctx context.Context) (*types.CacheStat, error) {
-	carfileCount, err := cfImpl.carfileStore.CarfileCount()
+	carfileCount, err := cfImpl.storage.CountCar()
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +193,12 @@ func (cfImpl *CarfileImpl) BlockCountOfCarfile(carfileCID string) (int, error) {
 		return 0, err
 	}
 
-	return cfImpl.carfileStore.BlockCountOfCarfile(c)
+	count, err := cfImpl.storage.BlockCountOfCar(context.Background(), c)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(count), nil
 }
 
 func (cfImpl *CarfileImpl) CacheCarForSyncData(carfiles []string) error {
@@ -245,7 +245,7 @@ func (cfImpl *CarfileImpl) CachedProgresses(ctx context.Context, carfileCIDs []s
 		TotalBlocksCount: cfImpl.TotalBlockCount,
 	}
 
-	if count, err := cfImpl.carfileStore.CarfileCount(); err == nil {
+	if count, err := cfImpl.storage.CountCar(); err == nil {
 		result.AssetCount = count
 	}
 	_, result.DiskUsage = cfImpl.device.GetDiskUsageStat()
@@ -259,12 +259,12 @@ func (cfImpl *CarfileImpl) progressForSucceededCar(root cid.Cid) (*types.AssetPu
 		Status: types.ReplicaStatusSucceeded,
 	}
 
-	if count, err := cfImpl.carfileStore.BlockCountOfCarfile(root); err == nil {
-		progress.BlocksCount = count
-		progress.DoneBlocksCount = count
+	if count, err := cfImpl.storage.BlockCountOfCar(context.Background(), root); err == nil {
+		progress.BlocksCount = int(count)
+		progress.DoneBlocksCount = int(count)
 	}
 
-	blk, err := cfImpl.carfileStore.Block(root)
+	blk, err := cfImpl.storage.GetBlock(context.Background(), root)
 	if err != nil {
 		return nil, err
 	}

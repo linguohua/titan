@@ -6,18 +6,18 @@ import (
 	"github.com/ipfs/go-datastore"
 )
 
-type WaitList struct {
+type waitList struct {
 	path string
 }
 
-func NewWaitList(path string) *WaitList {
-	return &WaitList{path: path}
+func newWaitList(path string) *waitList {
+	return &waitList{path: path}
 }
-func (wl *WaitList) Put(data []byte) error {
+func (wl *waitList) put(data []byte) error {
 	return os.WriteFile(wl.path, data, 0644)
 }
 
-func (wl *WaitList) Get() ([]byte, error) {
+func (wl *waitList) get() ([]byte, error) {
 	data, err := os.ReadFile(wl.path)
 	if err != nil && os.IsNotExist(err) {
 		return nil, datastore.ErrNotFound

@@ -69,7 +69,6 @@ func (device *Device) NodeInfo(ctx context.Context) (types.NodeInfo, error) {
 	info.InternalIP = device.internalIP
 	info.BandwidthDown = float64(device.bandwidthDown)
 	info.BandwidthUp = float64(device.bandwidthUp)
-	info.Blocks, _ = device.carfileStore.BlockCount()
 
 	mac, err := getMacAddr(info.InternalIP)
 	if err != nil {

@@ -4,47 +4,29 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
-	levelds "github.com/ipfs/go-ds-leveldb"
 	"github.com/ipld/go-car/v2/index"
 	"github.com/multiformats/go-multihash"
-	ldbopts "github.com/syndtr/goleveldb/leveldb/opt"
 	"golang.org/x/xerrors"
 )
 
-type TopIndex struct {
+type topIndex struct {
 	ds ds.Batching
 }
 
-func NewTopIndex(baseDir string) (*TopIndex, error) {
-	ds, err := newDatastore(baseDir)
+func newTopIndex(baseDir string) (*topIndex, error) {
+	ds, err := newKVstore(baseDir)
 	if err != nil {
 		return nil, err
 	}
 
-	return &TopIndex{ds: ds}, nil
+	return &topIndex{ds: ds}, nil
 }
 
-func newDatastore(baseDir string) (ds.Batching, error) {
-	// Create the datastore directory if it doesn't exist yet.
-	if err := os.MkdirAll(baseDir, 0755); err != nil {
-		return nil, xerrors.Errorf("failed to create directory %s for DAG store datastore: %w", baseDir, err)
-	}
-
-	// Create a new LevelDB datastore
-	return levelds.NewDatastore(baseDir, &levelds.Options{
-		Compression: ldbopts.NoCompression,
-		NoSync:      false,
-		Strict:      ldbopts.StrictAll,
-		ReadOnly:    false,
-	})
-}
-
-// Add index
-func (tIdx *TopIndex) Add(ctx context.Context, root cid.Cid, idx index.Index) error {
+// Add index, the algorithm is o(n)
+func (tIdx *topIndex) add(ctx context.Context, root cid.Cid, idx index.Index) error {
 	iterableIdx, ok := idx.(index.IterableIndex)
 	if !ok {
 		return xerrors.Errorf("idx is not IterableIndex")
@@ -56,7 +38,7 @@ func (tIdx *TopIndex) Add(ctx context.Context, root cid.Cid, idx index.Index) er
 	}
 
 	if err = iterableIdx.ForEach(func(mh multihash.Multihash, u uint64) error {
-		key := ds.NewKey(string(mh))
+		key := ds.NewKey(string(mh.String()))
 		// do we already have an entry for this multihash ?
 		val, err := tIdx.ds.Get(ctx, key)
 		if err != nil && err != ds.ErrNotFound {
@@ -105,13 +87,14 @@ func (tIdx *TopIndex) Add(ctx context.Context, root cid.Cid, idx index.Index) er
 	return batch.Commit(ctx)
 }
 
-// Remove index
-func (tIdx *TopIndex) Remove(idx index.Index) error {
+// Remove index, the algorithm is o(n)
+func (tIdx *topIndex) remove(idx index.Index) error {
+	// TODO remove idx
 	return nil
 }
 
 // find first car cid base on block cid
-func (tIdx *TopIndex) FindCar(ctx context.Context, block cid.Cid) (*cid.Cid, error) {
+func (tIdx *topIndex) findCar(ctx context.Context, block cid.Cid) (*cid.Cid, error) {
 	key := ds.NewKey(block.Hash().String())
 	v, err := tIdx.ds.Get(ctx, key)
 	if err != nil {

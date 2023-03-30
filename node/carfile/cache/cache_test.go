@@ -6,7 +6,7 @@ import (
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/carfile/fetcher"
-	"github.com/linguohua/titan/node/carfile/store"
+	"github.com/linguohua/titan/node/carfile/storage"
 )
 
 func TestCache(t *testing.T) {
@@ -23,13 +23,13 @@ func TestCache(t *testing.T) {
 		return
 	}
 
-	carfileStore, err := store.NewCarfileStore("./test")
+	accessor, err := storage.NewAccessor("./test")
 	if err != nil {
 		t.Errorf("NewCarfileStore err:%s", err)
 		return
 	}
 
-	carCache := newCarfileCache(&options{root: c, dss: nil, cs: carfileStore, bFetcher: fetcher.NewIPFS("http://192.168.0.132:5001", 15, 1), batch: 5})
+	carCache := newCarfileCache(&options{root: c, dss: nil, storage: accessor, bFetcher: fetcher.NewIPFS("http://192.168.0.132:5001", 15, 1), batch: 5})
 
 	err = carCache.downloadCar()
 	if err != nil {
