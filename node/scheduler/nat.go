@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -53,12 +54,12 @@ func (s *Scheduler) CheckEdgeConnectivity(ctx context.Context, url string) error
 
 // CheckNetworkConnectivity check tcp or udp network connectivity
 // network is "tcp" or "udp"
-func (s *Scheduler) CheckNetworkConnectivity(ctx context.Context, network, targetAddr string) error {
+func (s *Scheduler) CheckNetworkConnectivity(ctx context.Context, network, targetURL string) error {
 	switch network {
 	case "tcp":
-		return s.checkTcpConnectivity(targetAddr)
+		return s.checkTcpConnectivity(targetURL)
 	case "udp":
-		return s.checkUdpConnectivity(targetAddr)
+		return s.checkUdpConnectivity(targetURL)
 	}
 
 	return fmt.Errorf("unknow network %s type", network)
@@ -71,7 +72,7 @@ func (s *Scheduler) checkEdgeIfBehindFullConeNAT(ctx context.Context, schedulerU
 	}
 	defer close()
 
-	if err = schedulerAPI.CheckEdgeConnectivity(context.Background(), edgeURL); err == nil {
+	if err = schedulerAPI.CheckNetworkConnectivity(context.Background(), "udp", edgeURL); err == nil {
 		return true, nil
 	}
 
@@ -175,8 +176,13 @@ func (s *Scheduler) NodeNatType(ctx context.Context, nodeID string) (types.NatTy
 	return s.getNatType(ctx, eNode.API(), eNode.Addr()), nil
 }
 
-func (s *Scheduler) checkTcpConnectivity(targetAddr string) error {
-	tcpAddr, err := net.ResolveTCPAddr("tcp", targetAddr)
+func (s *Scheduler) checkTcpConnectivity(targetURL string) error {
+	url, err := url.ParseRequestURI(targetURL)
+	if err != nil {
+		return err
+	}
+
+	tcpAddr, err := net.ResolveTCPAddr("tcp", url.Host)
 	if err != nil {
 		return err
 	}
@@ -190,36 +196,29 @@ func (s *Scheduler) checkTcpConnectivity(targetAddr string) error {
 	return nil
 }
 
-func (s *Scheduler) checkUdpConnectivity(targetAddr string) error {
-	udpServer, err := net.ResolveUDPAddr("udp", targetAddr)
+func (s *Scheduler) checkUdpConnectivity(targetURL string) error {
+	udpPacketConn, err := net.ListenPacket("udp", ":0")
 	if err != nil {
 		return err
 	}
-
-	conn, err := net.DialUDP("udp", nil, udpServer)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-
-	go func() {
-		for {
-			_, err = conn.Write([]byte("ping"))
-			if err != nil {
-				return
-			}
-
-			time.Sleep(1 * time.Second)
+	defer func() {
+		err = udpPacketConn.Close()
+		if err != nil {
+			log.Errorf("udpPacketConn Close err:%s", err.Error())
 		}
 	}()
 
-	received := make([]byte, 64)
-	_, err = conn.Read(received)
+	httpClient, err := cliutil.NewHTTP3Client(udpPacketConn, true, "")
 	if err != nil {
 		return err
 	}
+	httpClient.Timeout = 5 * time.Second
+
+	resp, err := httpClient.Get(targetURL)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 
 	return nil
 }
