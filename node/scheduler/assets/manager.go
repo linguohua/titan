@@ -26,7 +26,6 @@ var log = logging.Logger("asset")
 const (
 	nodePullAssetTimeout         = 60 * time.Second      // Pull asset timeout (Unit:Second)
 	checkExpirationTimerInterval = 60 * 30 * time.Second // Check for expired asset interval (Unit:Second)
-	maxNodeDiskUsage             = 95.0                  // If the node disk size is greater than this value, pulling will not continue
 	seedReplicaCount             = 1                     // The number of pull replica in the first stage
 	getProgressInterval          = 20 * time.Second      // Get asset pull progress interval from node (Unit:Second)
 
@@ -172,11 +171,11 @@ func (m *Manager) nodePullProgresses(nodeID string, cids []string) (result *type
 
 	cNode := m.nodeMgr.GetCandidateNode(nodeID)
 	if cNode != nil {
-		result, err = cNode.API().CachedProgresses(context.Background(), cids)
+		result, err = cNode.CachedProgresses(context.Background(), cids)
 	} else {
 		eNode := m.nodeMgr.GetEdgeNode(nodeID)
 		if eNode != nil {
-			result, err = eNode.API().CachedProgresses(context.Background(), cids)
+			result, err = eNode.CachedProgresses(context.Background(), cids)
 		} else {
 			err = xerrors.Errorf("node %s offline", nodeID)
 		}
@@ -455,12 +454,12 @@ func (m *Manager) resetNearestExpiration(t time.Time) {
 func (m *Manager) deleteAssetRequest(nodeID, cid string) error {
 	edge := m.nodeMgr.GetEdgeNode(nodeID)
 	if edge != nil {
-		return edge.API().DeleteCarfile(context.Background(), cid)
+		return edge.DeleteCarfile(context.Background(), cid)
 	}
 
 	candidate := m.nodeMgr.GetCandidateNode(nodeID)
 	if candidate != nil {
-		return candidate.API().DeleteCarfile(context.Background(), cid)
+		return candidate.DeleteCarfile(context.Background(), cid)
 	}
 
 	return nil
@@ -497,83 +496,13 @@ func (m *Manager) GetAssetRecordInfo(cid string) (*types.AssetRecord, error) {
 	return dInfo, err
 }
 
-// select edges that meet the full criteria
-func (m *Manager) selectEdges(count int, filterNodes []string) []*node.Edge {
-	list := make([]*node.Edge, 0)
-
-	if count <= 0 {
-		return list
-	}
-
-	filterMap := make(map[string]struct{})
-	for _, nodeID := range filterNodes {
-		filterMap[nodeID] = struct{}{}
-	}
-
-	m.nodeMgr.EdgeNodes.Range(func(key, value interface{}) bool {
-		edgeNode := value.(*node.Edge)
-
-		if _, exist := filterMap[edgeNode.NodeID]; exist {
-			return true
-		}
-
-		if edgeNode.DiskUsage > maxNodeDiskUsage {
-			return true
-		}
-
-		list = append(list, edgeNode)
-		if len(list) >= count {
-			return false
-		}
-
-		return true
-	})
-
-	return list
-}
-
-// select candidates that meet the pull criteria
-func (m *Manager) selectCandidates(count int, filterNodes []string) []*node.Candidate {
-	list := make([]*node.Candidate, 0)
-
-	if count <= 0 {
-		return list
-	}
-
-	filterMap := make(map[string]struct{})
-	for _, nodeID := range filterNodes {
-		filterMap[nodeID] = struct{}{}
-	}
-
-	m.nodeMgr.CandidateNodes.Range(func(key, value interface{}) bool {
-		candidateNode := value.(*node.Candidate)
-
-		if _, exist := filterMap[candidateNode.NodeID]; exist {
-			return true
-		}
-
-		if candidateNode.DiskUsage > maxNodeDiskUsage {
-			return true
-		}
-
-		list = append(list, candidateNode)
-		if len(list) >= count {
-			return false
-		}
-
-		return true
-	})
-
-	return list
-}
-
-func (m *Manager) saveCandidateReplicaInfos(nodes []*node.Candidate, hash string) error {
+func (m *Manager) saveCandidateReplicaInfos(nodes []*node.Node, hash string) error {
 	// save replica info
 	replicaInfos := make([]*types.ReplicaInfo, 0)
 
 	for _, node := range nodes {
 		replicaInfos = append(replicaInfos, &types.ReplicaInfo{
-			NodeID:      node.NodeID,
+			NodeID:      node.NodeInfo.NodeID,
 			Status:      types.ReplicaStatusWaiting,
 			Hash:        hash,
 			IsCandidate: true,
@@ -583,13 +512,13 @@ func (m *Manager) saveCandidateReplicaInfos(nodes []*node.Candidate, hash string
 	return m.BatchUpsertReplicas(replicaInfos)
 }
 
-func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Edge, hash string) error {
+func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Node, hash string) error {
 	// save replica info
 	replicaInfos := make([]*types.ReplicaInfo, 0)
 
 	for _, node := range nodes {
 		replicaInfos = append(replicaInfos, &types.ReplicaInfo{
-			NodeID:      node.NodeID,
+			NodeID:      node.NodeInfo.NodeID,
 			Status:      types.ReplicaStatusWaiting,
 			Hash:        hash,
 			IsCandidate: false,

@@ -21,121 +21,123 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 )
 
-// Edge Edge node
-type Edge struct {
-	nodeAPI api.Edge
-	closer  jsonrpc.ClientCloser
-	token   string
+// Node edge and candidate node
+type Node struct {
+	*API
+	closer jsonrpc.ClientCloser
+
+	token string
 	*BaseInfo
 }
 
+// API node api
+type API struct {
+	api.Common
+	api.Device
+	api.Validate
+	api.DataSync
+	api.CarfileOperation
+	WaitQuiet func(ctx context.Context) error
+	// edge
+	ExternalServiceAddress func(ctx context.Context, schedulerURL string) (string, error)
+	UserNATTravel          func(ctx context.Context, userServiceAddress string) error
+	// candidate
+	GetBlocksOfCarfile func(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error)
+	ValidateNodes      func(ctx context.Context, reqs []api.ValidateReq) (string, error)
+}
+
 // NewEdge new edge
-func NewEdge(token string) *Edge {
-	edgeNode := &Edge{
+func NewEdge(token string) *Node {
+	edgeNode := &Node{
 		token: token,
 	}
 
 	return edgeNode
 }
 
-// ConnectRPC connect node rpc
-func (e *Edge) ConnectRPC(addr string, isNodeConnect bool) (api.Edge, error) {
-	if !isNodeConnect {
-		if addr == e.remoteAddr {
-			return e.nodeAPI, nil
-		}
-
-		e.remoteAddr = addr
-
-		// close old
-		if e.closer != nil {
-			e.closer()
-		}
-	}
-	rpcURL := fmt.Sprintf("https://%s/rpc/v0", addr)
-
-	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+e.token)
-
-	// Connect to node
-	edgeAPI, closer, err := client.NewEdge(context.Background(), rpcURL, headers)
-	if err != nil {
-		return nil, xerrors.Errorf("NewEdge err:%s,url:%s", err.Error(), rpcURL)
-	}
-
-	e.nodeAPI = edgeAPI
-	e.closer = closer
-
-	return edgeAPI, nil
-}
-
-// API get node api
-func (e *Edge) API() api.Edge {
-	return e.nodeAPI
-}
-
-// ClientCloser get node client closer
-func (e *Edge) ClientCloser() {
-	e.closer()
-}
-
-// Candidate Candidate node
-type Candidate struct {
-	nodeAPI api.Candidate
-	closer  jsonrpc.ClientCloser
-	token   string
-	*BaseInfo
-}
-
 // NewCandidate new candidate
-func NewCandidate(token string) *Candidate {
-	candidateNode := &Candidate{
+func NewCandidate(token string) *Node {
+	candidateNode := &Node{
 		token: token,
 	}
 
 	return candidateNode
 }
 
+// APIFromEdge node api from edge api
+func APIFromEdge(api api.Edge) *API {
+	a := &API{
+		Common:                 api,
+		Device:                 api,
+		Validate:               api,
+		DataSync:               api,
+		CarfileOperation:       api,
+		WaitQuiet:              api.WaitQuiet,
+		ExternalServiceAddress: api.ExternalServiceAddress,
+		UserNATTravel:          api.UserNATTravel,
+	}
+	return a
+}
+
+// APIFromCandidate node api from candidate api
+func APIFromCandidate(api api.Candidate) *API {
+	a := &API{
+		Common:             api,
+		Device:             api,
+		Validate:           api,
+		DataSync:           api,
+		CarfileOperation:   api,
+		WaitQuiet:          api.WaitQuiet,
+		GetBlocksOfCarfile: api.GetBlocksOfCarfile,
+		ValidateNodes:      api.ValidateNodes,
+	}
+	return a
+}
+
 // ConnectRPC connect node rpc
-func (c *Candidate) ConnectRPC(addr string, isNodeConnect bool) (api.Candidate, error) {
+func (n *Node) ConnectRPC(addr string, isNodeConnect bool, nodeType types.NodeType) (*API, error) {
 	if !isNodeConnect {
-		if addr == c.remoteAddr {
-			return c.nodeAPI, nil
+		if addr == n.remoteAddr {
+			return n.API, nil
 		}
 
-		c.remoteAddr = addr
+		n.remoteAddr = addr
 
 		// close old
-		if c.closer != nil {
-			c.closer()
+		if n.closer != nil {
+			n.closer()
 		}
 	}
-
 	rpcURL := fmt.Sprintf("https://%s/rpc/v0", addr)
 
 	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+c.token)
+	headers.Add("Authorization", "Bearer "+n.token)
 
-	// Connect to node
-	candidateAPI, closer, err := client.NewCandidate(context.Background(), rpcURL, headers)
-	if err != nil {
-		return nil, xerrors.Errorf("NewCandidate err:%s,url:%s", err.Error(), rpcURL)
+	if nodeType == types.NodeEdge {
+		// Connect to node
+		edgeAPI, closer, err := client.NewEdge(context.Background(), rpcURL, headers)
+		if err != nil {
+			return nil, xerrors.Errorf("NewEdge err:%s,url:%s", err.Error(), rpcURL)
+		}
+		api := APIFromEdge(edgeAPI)
+		n.API = api
+		n.closer = closer
+		return api, nil
 	}
 
-	c.nodeAPI = candidateAPI
-	c.closer = closer
+	if nodeType == types.NodeCandidate {
+		// Connect to node
+		candidateAPI, closer, err := client.NewCandidate(context.Background(), rpcURL, headers)
+		if err != nil {
+			return nil, xerrors.Errorf("NewCandidate err:%s,url:%s", err.Error(), rpcURL)
+		}
+		api := APIFromCandidate(candidateAPI)
+		n.API = api
+		n.closer = closer
+		return api, nil
+	}
 
-	return candidateAPI, nil
-}
-
-// API get node api
-func (c *Candidate) API() api.Candidate {
-	return c.nodeAPI
-}
-
-// ClientCloser get node client closer
-func (c *Candidate) ClientCloser() {
-	c.closer()
+	return nil, xerrors.Errorf("node %s type %d not wrongful", n.NodeInfo.NodeID, n.NodeType)
 }
 
 // BaseInfo Common

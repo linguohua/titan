@@ -92,10 +92,10 @@ func (ds *DataSync) removeFirstNode() string {
 
 func (ds *DataSync) getNodeDataSyncAPI(nodeID string) api.DataSync {
 	if edgeNode := ds.nodeManager.GetEdgeNode(nodeID); edgeNode != nil {
-		return edgeNode.API()
+		return edgeNode.API
 	}
 	if candidateNode := ds.nodeManager.GetCandidateNode(nodeID); candidateNode != nil {
-		return candidateNode.API()
+		return candidateNode.API
 	}
 	return nil
 }

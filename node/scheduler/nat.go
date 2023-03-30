@@ -8,16 +8,16 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/api/types"
 	cliutil "github.com/linguohua/titan/cli/util"
+	"github.com/linguohua/titan/node/scheduler/node"
 )
 
 func (s *Scheduler) EdgeExternalServiceAddress(ctx context.Context, nodeID, schedulerURL string) (string, error) {
 	eNode := s.NodeManager.GetEdgeNode(nodeID)
 	if eNode != nil {
-		return eNode.API().ExternalServiceAddress(ctx, schedulerURL)
+		return eNode.ExternalServiceAddress(ctx, schedulerURL)
 	}
 
 	return "", fmt.Errorf("Node %s offline or not exist", nodeID)
@@ -111,7 +111,7 @@ func (s *Scheduler) checkEdgeIfBehindRestrictedNAT(ctx context.Context, edgeURL 
 	return true, nil
 }
 
-func (s *Scheduler) checkEdgeNatType(ctx context.Context, edgeAPI api.Edge, edgeAddr string) (types.NatType, error) {
+func (s *Scheduler) checkEdgeNatType(ctx context.Context, edgeAPI *node.API, edgeAddr string) (types.NatType, error) {
 	if len(s.SchedulerCfg.SchedulerServer1) == 0 {
 		return types.NatTypeUnknow, nil
 	}
@@ -157,7 +157,7 @@ func (s *Scheduler) checkEdgeNatType(ctx context.Context, edgeAPI api.Edge, edge
 	return types.NatTypePortRestricted, nil
 }
 
-func (s *Scheduler) getNatType(ctx context.Context, edgeAPI api.Edge, edgeAddr string) types.NatType {
+func (s *Scheduler) getNatType(ctx context.Context, edgeAPI *node.API, edgeAddr string) types.NatType {
 	natType, err := s.checkEdgeNatType(context.Background(), edgeAPI, edgeAddr)
 	if err != nil {
 		log.Errorf("getNatType, error:%s", err.Error())
@@ -173,7 +173,7 @@ func (s *Scheduler) NodeNatType(ctx context.Context, nodeID string) (types.NatTy
 		return types.NatTypeUnknow, fmt.Errorf("node %s offline or not exist", nodeID)
 	}
 
-	return s.getNatType(ctx, eNode.API(), eNode.Addr()), nil
+	return s.getNatType(ctx, eNode.API, eNode.Addr()), nil
 }
 
 func (s *Scheduler) checkTcpConnectivity(targetURL string) error {
