@@ -100,7 +100,7 @@ func (s *Scheduler) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types
 			NodeID:       nodeID,
 			Credentials:  credentials,
 			NatType:      eNode.NatType,
-			SchedulerURL: s.SchedulerCfg.ExternalAddress,
+			SchedulerURL: s.SchedulerCfg.RPCURL,
 		}
 		infos = append(infos, info)
 	}
