@@ -11,6 +11,7 @@ import (
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/api/types"
 	cliutil "github.com/linguohua/titan/cli/util"
+	"github.com/linguohua/titan/node/handler"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
@@ -220,6 +221,25 @@ func (s *Scheduler) checkUdpConnectivity(targetURL string) error {
 		return xerrors.Errorf("http3 client get error: %w, url: %s", err, targetURL)
 	}
 	defer resp.Body.Close()
+
+	return nil
+}
+
+// UserNatTravel nat travel
+func (s *Scheduler) UserNatTravel(ctx context.Context, nodeIDs []string) error {
+	remoteAddr := handler.GetRemoteAddr(ctx)
+
+	for _, nodeID := range nodeIDs {
+		eNode := s.NodeManager.GetEdgeNode(nodeID)
+		if eNode == nil {
+			continue
+		}
+
+		err := eNode.UserNATTravel(context.Background(), remoteAddr)
+		if err != nil {
+			continue
+		}
+	}
 
 	return nil
 }

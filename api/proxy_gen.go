@@ -251,6 +251,8 @@ type SchedulerStruct struct {
 
 		UserDownloadResult func(p0 context.Context, p1 types.UserDownloadResult) error `perm:"write"`
 
+		UserNatTravel func(p0 context.Context, p1 []string) error `perm:"read"`
+
 		ValidatedResultList func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) `perm:"read"`
 	}
 }
@@ -1046,6 +1048,17 @@ func (s *SchedulerStruct) UserDownloadResult(p0 context.Context, p1 types.UserDo
 }
 
 func (s *SchedulerStub) UserDownloadResult(p0 context.Context, p1 types.UserDownloadResult) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) UserNatTravel(p0 context.Context, p1 []string) error {
+	if s.Internal.UserNatTravel == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.UserNatTravel(p0, p1)
+}
+
+func (s *SchedulerStub) UserNatTravel(p0 context.Context, p1 []string) error {
 	return ErrNotSupported
 }
 
