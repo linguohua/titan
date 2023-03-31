@@ -95,7 +95,14 @@ func (s *Scheduler) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types
 			continue
 		}
 
-		infos = append(infos, &types.DownloadInfo{URL: eNode.DownloadAddr(), NodeID: nodeID, Credentials: credentials, NatType: eNode.NatType})
+		info := &types.DownloadInfo{
+			URL:          eNode.DownloadAddr(),
+			NodeID:       nodeID,
+			Credentials:  credentials,
+			NatType:      eNode.NatType,
+			SchedulerURL: s.SchedulerCfg.ExternalAddress,
+		}
+		infos = append(infos, info)
 	}
 
 	return infos, nil
