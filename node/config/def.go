@@ -44,6 +44,7 @@ func DefaultEdgeCfg() *EdgeCfg {
 
 		FetchBlockTimeout: 15,
 		FetchBlockRetry:   1,
+		FetchBatch:        5,
 	}
 }
 
@@ -64,6 +65,7 @@ func DefaultCandidateCfg() *CandidateCfg {
 
 		FetchBlockTimeout: 15,
 		FetchBlockRetry:   1,
+		FetchBatch:        5,
 	}
 	return &CandidateCfg{
 		EdgeCfg:    edgeCfg,

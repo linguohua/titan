@@ -6,6 +6,7 @@ import (
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-libipfs/blocks"
+	"github.com/ipld/go-car/v2/index"
 )
 
 type Storage interface {
@@ -15,20 +16,23 @@ type Storage interface {
 	RemoveCarCache(c cid.Cid) error
 
 	PutBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) error
-	GetBlock(ctx context.Context, c cid.Cid) (blocks.Block, error)
-	HasBlock(ctx context.Context, c cid.Cid) (bool, error)
 
 	GetCar(root cid.Cid) (io.ReadSeekCloser, error)
 	HasCar(root cid.Cid) (bool, error)
+	FindCars(ctx context.Context, block cid.Cid) ([]cid.Cid, error)
 	RemoveCar(root cid.Cid) error
 	CountCar() (int, error)
 	BlockCountOfCar(ctx context.Context, root cid.Cid) (uint32, error)
 	SetBlockCountOfCar(ctx context.Context, root cid.Cid, count uint32) error
 
-	// AddTopIndex car must exist
-	// top index is map block cid to car cid
-	AddTopIndex(ctx context.Context, root cid.Cid) error
+	// AddTopIndex mapped block cid to car cid
+	// car must exist in local
+	AddTopIndex(ctx context.Context, root cid.Cid, idx index.Index) error
+	RemoveTopIndex(ctx context.Context, root cid.Cid, idx index.Index) error
 
 	PutWaitList(data []byte) error
 	GetWaitList() ([]byte, error)
+
+	GetDiskUsageStat() (totalSpace, usage float64)
+	GetFilesystemType() string
 }

@@ -3,18 +3,14 @@ package device
 import (
 	"context"
 	"net"
-	"path/filepath"
 	"strings"
 
 	"github.com/shirou/gopsutil/v3/cpu"
-	"github.com/shirou/gopsutil/v3/disk"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/build"
-	"github.com/linguohua/titan/node/carfile/store"
-	"github.com/linguohua/titan/node/fsutil"
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
@@ -26,16 +22,21 @@ type Device struct {
 	internalIP    string
 	bandwidthUp   int64
 	bandwidthDown int64
-	carfileStore  *store.CarfileStore
+	storage       Storage
 }
 
-func NewDevice(nodeID, internalIP string, bandwidthUp, bandwidthDown int64, carfileStore *store.CarfileStore) *Device {
+type Storage interface {
+	GetDiskUsageStat() (totalSpace, usage float64)
+	GetFilesystemType() string
+}
+
+func NewDevice(nodeID, internalIP string, bandwidthUp, bandwidthDown int64, storage Storage) *Device {
 	device := &Device{
 		nodeID:        nodeID,
 		internalIP:    internalIP,
 		bandwidthUp:   bandwidthUp,
 		bandwidthDown: bandwidthDown,
-		carfileStore:  carfileStore,
+		storage:       storage,
 	}
 
 	if _, err := cpu.Percent(0, false); err != nil {
@@ -95,14 +96,8 @@ func (device *Device) NodeInfo(ctx context.Context) (types.NodeInfo, error) {
 
 	info.CPUUsage = cpuPercent[0]
 	info.CPUCores, _ = cpu.Counts(false)
-	info.DiskSpace, info.DiskUsage = device.GetDiskUsageStat()
-
-	absPath, err := filepath.Abs(device.carfileStore.BaseDir())
-	if err != nil {
-		return types.NodeInfo{}, err
-	}
-
-	info.IoSystem = fsutil.GetFilesystemType(absPath)
+	info.DiskSpace, info.DiskUsage = device.storage.GetDiskUsageStat()
+	info.IoSystem = device.storage.GetFilesystemType()
 	return info, nil
 }
 
@@ -148,14 +143,4 @@ func (device *Device) GetInternalIP() string {
 
 func (device *Device) NodeID(ctx context.Context) (string, error) {
 	return device.nodeID, nil
-}
-
-func (device *Device) GetDiskUsageStat() (totalSpace, usage float64) {
-	carfileStorePath := device.carfileStore.BaseDir()
-	usageStat, err := disk.Usage(carfileStorePath)
-	if err != nil {
-		log.Errorf("get disk usage stat error: %s", err)
-		return 0, 0
-	}
-	return float64(usageStat.Total), usageStat.UsedPercent
 }

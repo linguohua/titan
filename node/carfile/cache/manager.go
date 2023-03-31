@@ -8,10 +8,16 @@ import (
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-libipfs/blocks"
+	"github.com/ipld/go-car/v2/index"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/carfile/fetcher"
 	"github.com/linguohua/titan/node/carfile/storage"
+	"github.com/multiformats/go-multihash"
+	"golang.org/x/xerrors"
 )
+
+const maxSizeOfCache = 1024
 
 type CachedResulter interface {
 	CacheResult(result *types.PullResult) error
@@ -27,9 +33,10 @@ type Manager struct {
 	waitList      []*carWaiter
 	waitListLock  *sync.Mutex
 	downloadCh    chan bool
-	storage       storage.Storage
-	bFetcher      fetcher.BlockFetcher
 	downloadBatch int
+	bFetcher      fetcher.BlockFetcher
+	lru           *lruCache
+	storage.Storage
 }
 
 type ManagerOptions struct {
@@ -38,13 +45,19 @@ type ManagerOptions struct {
 	DownloadBatch int
 }
 
-func NewManager(opts *ManagerOptions) *Manager {
+func NewManager(opts *ManagerOptions) (*Manager, error) {
+	lru, err := newLRUCache(opts.Storage, maxSizeOfCache)
+	if err != nil {
+		return nil, err
+	}
+
 	m := &Manager{
 		waitList:      make([]*carWaiter, 0),
 		waitListLock:  &sync.Mutex{},
 		downloadCh:    make(chan bool),
-		storage:       opts.Storage,
+		Storage:       opts.Storage,
 		bFetcher:      opts.BFetcher,
+		lru:           lru,
 		downloadBatch: opts.DownloadBatch,
 	}
 
@@ -52,7 +65,7 @@ func NewManager(opts *ManagerOptions) *Manager {
 
 	go m.start()
 
-	return m
+	return m, nil
 }
 
 func (m *Manager) startTick() {
@@ -113,7 +126,7 @@ func (m *Manager) doDownloadCar() {
 	}
 	defer m.removeCarFromWaitList(cw.Root)
 
-	carfileCache, err := m.restoreCarfileCacheOrNew(&options{cw.Root, cw.Dss, m.storage, m.bFetcher, m.downloadBatch})
+	carfileCache, err := m.restoreCarfileCacheOrNew(&options{cw.Root, cw.Dss, m, m.bFetcher, m.downloadBatch})
 	if err != nil {
 		log.Errorf("restore carfile cache error:%s", err)
 		return
@@ -193,22 +206,24 @@ func (m *Manager) saveCarfileCache(cf *carfileCache) error {
 	if err != nil {
 		return err
 	}
-	return m.storage.PutCarCache(cf.Root(), buf)
+	return m.PutCarCache(cf.Root(), buf)
 }
 
 func (m *Manager) onDownloadCarFinish(cf *carfileCache) {
 	log.Debugf("onDownloadCarFinish, carfile %s", cf.root.String())
 	if cf.isDownloadComplete() {
-		if err := m.storage.RemoveCarCache(cf.root); err != nil && !os.IsNotExist(err) {
+		if err := m.RemoveCarCache(cf.root); err != nil && !os.IsNotExist(err) {
 			log.Errorf("remove car cache error:%s", err.Error())
 		}
 
-		if err := m.storage.AddTopIndex(context.Background(), cf.root); err != nil {
-			log.Errorf("add index error:%s", err.Error())
+		if idx, err := m.lru.carIndex(cf.root); err == nil {
+			if err := m.AddTopIndex(context.Background(), cf.root, idx); err != nil {
+				log.Errorf("add index error:%s", err.Error())
+			}
 		}
 
 		blockCountOfCar := uint32(len(cf.blocksDownloadSuccessList))
-		if err := m.storage.SetBlockCountOfCar(context.Background(), cf.root, blockCountOfCar); err != nil {
+		if err := m.SetBlockCountOfCar(context.Background(), cf.root, blockCountOfCar); err != nil {
 			log.Errorf("set block count error:%s", err.Error())
 		}
 
@@ -225,11 +240,11 @@ func (m *Manager) saveWaitList() error {
 		return err
 	}
 
-	return m.storage.PutWaitList(data)
+	return m.PutWaitList(data)
 }
 
 func (m *Manager) restoreWaitListFromStore() {
-	data, err := m.storage.GetWaitList()
+	data, err := m.GetWaitList()
 	if err != nil {
 		if err != datastore.ErrNotFound {
 			log.Errorf("restoreWaitListFromStore error:%s", err)
@@ -263,8 +278,35 @@ func (m *Manager) CachingCar() *carfileCache {
 	return nil
 }
 
+func (m *Manager) DeleteCar(root cid.Cid) error {
+	idx, err := m.lru.carIndex(root)
+	if err != nil {
+		return err
+	}
+	// remove top index
+	m.RemoveTopIndex(context.Background(), root, idx)
+
+	// remove lru cache
+	m.lru.remove(root)
+
+	ok, err := m.deleteCarFromWaitList(root)
+	if err != nil {
+		return err
+	}
+
+	if ok {
+		return nil
+	}
+
+	if err := m.RemoveCar(root); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *Manager) restoreCarfileCacheOrNew(opts *options) (*carfileCache, error) {
-	data, err := m.storage.GetCarCache(opts.root)
+	data, err := m.GetCarCache(opts.root)
 	if err != nil && !os.IsNotExist(err) {
 		log.Errorf("CacheCarfile load incomplete carfile error %s", err.Error())
 		return nil, err
@@ -286,7 +328,7 @@ func (m *Manager) restoreCarfileCacheOrNew(opts *options) (*carfileCache, error)
 }
 
 // return true if exist in waitList
-func (m *Manager) DeleteCarFromWaitList(root cid.Cid) (bool, error) {
+func (m *Manager) deleteCarFromWaitList(root cid.Cid) (bool, error) {
 	if c := m.removeCarFromWaitList(root); c != nil {
 		if c.cache != nil {
 			err := c.cache.CancelDownload()
@@ -316,7 +358,7 @@ func (m *Manager) Progresses() []*types.AssetPullProgress {
 }
 
 func (m *Manager) CachedStatus(root cid.Cid) (types.ReplicaStatus, error) {
-	if ok, err := m.storage.HasCar(root); err == nil && ok {
+	if ok, err := m.HasCar(root); err == nil && ok {
 		return types.ReplicaStatusSucceeded, nil
 	}
 
@@ -338,7 +380,7 @@ func (m *Manager) ProgressForFailedCar(root cid.Cid) (*types.AssetPullProgress, 
 		Status: types.ReplicaStatusFailed,
 	}
 
-	data, err := m.storage.GetCarCache(root)
+	data, err := m.GetCarCache(root)
 	if os.IsNotExist(err) {
 		return progress, nil
 	}
@@ -359,4 +401,89 @@ func (m *Manager) ProgressForFailedCar(root cid.Cid) (*types.AssetPullProgress, 
 	progress.DoneSize = cc.DoneSize()
 
 	return progress, nil
+}
+
+func (m *Manager) GetBlock(ctx context.Context, c cid.Cid) (blocks.Block, error) {
+	roots, err := m.FindCars(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(roots) == 0 {
+		return nil, xerrors.Errorf("can not find car for block %s", c.String())
+	}
+
+	for _, root := range roots {
+		blk, err := m.lru.getBlock(ctx, root, c)
+		if err != nil {
+			continue
+		}
+
+		return blk, nil
+	}
+
+	return nil, xerrors.Errorf("find car %d, but can't get block", len(roots))
+}
+
+func (m *Manager) HasBlock(ctx context.Context, c cid.Cid) (bool, error) {
+	roots, err := m.FindCars(ctx, c)
+	if err != nil {
+		return false, err
+	}
+
+	if len(roots) == 0 {
+		return false, nil
+	}
+
+	for _, root := range roots {
+		exist, err := m.lru.hasBlock(ctx, root, c)
+		if err != nil {
+			return false, err
+		}
+
+		if !exist {
+			continue
+		}
+
+		return true, nil
+	}
+	return false, nil
+}
+
+func (m *Manager) iterableIndex(ctx context.Context, root cid.Cid) (index.IterableIndex, error) {
+	idx, err := m.lru.carIndex(root)
+	if err != nil {
+		return nil, err
+	}
+
+	iterableIdx, ok := idx.(index.IterableIndex)
+	if !ok {
+		return nil, xerrors.Errorf("idx is not IterableIndex")
+	}
+
+	return iterableIdx, nil
+
+}
+
+func (m *Manager) GetBlocksOfCarfile(root cid.Cid, indices []int) (map[int]string, error) {
+	indicesMap := make(map[int]string)
+	for _, index := range indices {
+		indicesMap[index] = ""
+	}
+
+	idx, err := m.iterableIndex(context.Background(), root)
+	if err != nil {
+		return nil, err
+	}
+
+	key := 0
+	idx.ForEach(func(mh multihash.Multihash, u uint64) error {
+		if _, ok := indicesMap[key]; ok {
+			indicesMap[key] = mh.String()
+		}
+		key++
+		return nil
+	})
+
+	return indicesMap, nil
 }

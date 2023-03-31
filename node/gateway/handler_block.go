@@ -22,7 +22,7 @@ func (gw *Gateway) serveRawBlock(w http.ResponseWriter, r *http.Request, credent
 	}
 
 	c := resolvedPath.Cid()
-	block, err := gw.block(ctx, c)
+	block, err := gw.storage.GetBlock(ctx, c)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("can not get block %s, %s", c.String(), err.Error()), http.StatusInternalServerError)
 		return

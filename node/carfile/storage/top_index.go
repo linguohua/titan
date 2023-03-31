@@ -88,17 +88,21 @@ func (tIdx *topIndex) add(ctx context.Context, root cid.Cid, idx index.Index) er
 }
 
 // Remove index, the algorithm is o(n)
-func (tIdx *topIndex) remove(idx index.Index) error {
+func (tIdx *topIndex) remove(ctx context.Context, root cid.Cid, idx index.Index) error {
 	// TODO remove idx
 	return nil
 }
 
 // find first car cid base on block cid
-func (tIdx *topIndex) findCar(ctx context.Context, block cid.Cid) (*cid.Cid, error) {
+func (tIdx *topIndex) findCars(ctx context.Context, block cid.Cid) ([]cid.Cid, error) {
 	key := ds.NewKey(block.Hash().String())
 	v, err := tIdx.ds.Get(ctx, key)
-	if err != nil {
+	if err != nil && err != ds.ErrNotFound {
 		return nil, err
+	}
+
+	if err == ds.ErrNotFound {
+		return nil, nil
 	}
 
 	var cids []string
@@ -107,15 +111,17 @@ func (tIdx *topIndex) findCar(ctx context.Context, block cid.Cid) (*cid.Cid, err
 		return nil, err
 	}
 
-	if len(cids) == 0 {
-		return nil, xerrors.Errorf("not exist car for block %s", block.String())
+	roots := make([]cid.Cid, 0, len(cids))
+	for _, c := range cids {
+		root, err := cid.Decode(c)
+		if err != nil {
+			return nil, err
+		}
+
+		roots = append(roots, root)
 	}
 
-	c, err := cid.Decode(cids[0])
-	if err != nil {
-		return nil, err
-	}
-	return &c, nil
+	return roots, nil
 }
 
 func has(mhs []string, mh string) bool {

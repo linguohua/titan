@@ -18,7 +18,7 @@ type nodeGetter struct {
 // implementation, this may involve fetching the Node from a remote
 // machine; consider setting a deadline in the context.
 func (ng *nodeGetter) Get(ctx context.Context, c cid.Cid) (ipldformat.Node, error) {
-	blk, err := ng.gw.block(ctx, c)
+	blk, err := ng.gw.storage.GetBlock(ctx, c)
 	if err != nil {
 		return nil, err
 	}

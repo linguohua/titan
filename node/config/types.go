@@ -35,6 +35,8 @@ type EdgeCfg struct {
 	FetchBlockTimeout int
 	// FetchBlockFailedRetry retry when get block failed
 	FetchBlockRetry int
+	// FetchBatch the number of goroutine to fetch block
+	FetchBatch int
 }
 
 type CandidateCfg struct {

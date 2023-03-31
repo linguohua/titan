@@ -4,13 +4,11 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
-	"io"
 	gopath "path"
 
 	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
 	bsfetcher "github.com/ipfs/go-fetcher/impl/blockservice"
-	"github.com/ipfs/go-libipfs/blocks"
 	"github.com/ipfs/go-libipfs/files"
 	dag "github.com/ipfs/go-merkledag"
 	ipfspath "github.com/ipfs/go-path"
@@ -23,18 +21,17 @@ import (
 	"github.com/ipld/go-ipld-prime/node/basicnode"
 	"github.com/ipld/go-ipld-prime/schema"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/carfile/store"
 )
 
 type Gateway struct {
-	carStore           *store.CarfileStore
+	storage            Storage
 	scheduler          api.Scheduler
 	privateKey         *rsa.PrivateKey
 	schedulerPublicKey *rsa.PublicKey
 }
 
-func NewGateway(cs *store.CarfileStore, scheduler api.Scheduler, privateKey *rsa.PrivateKey) *Gateway {
-	gw := &Gateway{carStore: cs, scheduler: scheduler, privateKey: privateKey}
+func NewGateway(storage Storage, scheduler api.Scheduler, privateKey *rsa.PrivateKey) *Gateway {
+	gw := &Gateway{storage: storage, scheduler: scheduler, privateKey: privateKey}
 
 	return gw
 }
@@ -91,10 +88,10 @@ func (gw *Gateway) getUnixFsNode(ctx context.Context, p path.Resolved) (files.No
 	return unixfile.NewUnixfsFile(ctx, dagService, node)
 }
 
-func (gw *Gateway) block(ctx context.Context, c cid.Cid) (blocks.Block, error) {
-	return gw.carStore.Block(c)
-}
+// func (gw *Gateway) block(ctx context.Context, c cid.Cid) (blocks.Block, error) {
+// 	return gw.carStore.Block(c)
+// }
 
-func (gw *Gateway) carReader(ctx context.Context, c cid.Cid) (io.ReadSeekCloser, error) {
-	return gw.carStore.CarReader(c)
-}
+// func (gw *Gateway) carReader(ctx context.Context, c cid.Cid) (io.ReadSeekCloser, error) {
+// 	return gw.carStore.CarReader(c)
+// }

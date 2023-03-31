@@ -23,13 +23,13 @@ func TestCache(t *testing.T) {
 		return
 	}
 
-	accessor, err := storage.NewAccessor("./test")
+	manger, err := storage.NewManager("./test", nil)
 	if err != nil {
 		t.Errorf("NewCarfileStore err:%s", err)
 		return
 	}
 
-	carCache := newCarfileCache(&options{root: c, dss: nil, storage: accessor, bFetcher: fetcher.NewIPFS("http://192.168.0.132:5001", 15, 1), batch: 5})
+	carCache := newCarfileCache(&options{root: c, dss: nil, storage: manger, bFetcher: fetcher.NewIPFS("http://192.168.0.132:5001", 15, 1), batch: 5})
 
 	err = carCache.downloadCar()
 	if err != nil {

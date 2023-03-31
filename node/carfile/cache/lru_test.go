@@ -1,4 +1,4 @@
-package storage
+package cache
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/linguohua/titan/node/carfile/storage"
 )
 
 func init() {
@@ -13,7 +14,12 @@ func init() {
 }
 func TestLRUCache(t *testing.T) {
 	t.Logf("TestRegisterShard")
-	cache, err := newLRUCache("C:/Users/aaa/.titanedge-1/carfilestore/cars", 1)
+	storageMgr, err := storage.NewManager("C:/Users/aaa/.titanedge-1/carfilestore/cars", nil)
+	if err != nil {
+		t.Errorf("new manager err:%s", err.Error())
+		return
+	}
+	cache, err := newLRUCache(storageMgr, 1)
 	if err != nil {
 		t.Errorf("new block error:%s", err.Error())
 		return
