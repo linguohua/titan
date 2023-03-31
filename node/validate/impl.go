@@ -13,6 +13,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/device"
 	"golang.org/x/time/rate"
+	"golang.org/x/xerrors"
 )
 
 var log = logging.Logger("validate")
@@ -24,8 +25,15 @@ type Validate struct {
 }
 
 type Storage interface {
-	GetDiskUsageStat() (totalSpace, usage float64)
+	// GetCar get car root cid with randomSeed
+	// randomSeed for random bucket
+	GetCar(ctx context.Context, randomSeed int64) (cid.Cid, error)
+	// GetCID get block cid of car with index
+	GetCID(ctx context.Context, root cid.Cid, index int) (cid.Cid, error)
+	// GetBlock get block content of car
 	GetBlock(ctx context.Context, c cid.Cid) (blocks.Block, error)
+	// get block count of car
+	BlockCountOfCar(ctx context.Context, root cid.Cid) (uint32, error)
 }
 
 func NewValidate(storage Storage, device *device.Device) *Validate {
@@ -52,7 +60,7 @@ func (validate *Validate) CancelValidate() {
 	}
 }
 
-func (validate *Validate) sendBlocks(conn *net.TCPConn, req *api.BeValidateReq, speedRate int64) {
+func (validate *Validate) sendBlocks(conn *net.TCPConn, req *api.BeValidateReq, speedRate int64) error {
 	defer func() {
 		validate.cancelValidateChannel = nil
 		if err := conn.Close(); err != nil {
@@ -64,66 +72,61 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, req *api.BeValidateReq, 
 
 	r := rand.New(rand.NewSource(req.RandomSeed))
 	t := time.NewTimer(time.Duration(req.Duration) * time.Second)
-
 	limiter := rate.NewLimiter(rate.Limit(speedRate), int(speedRate))
 
-	c, err := cid.Decode(req.CID)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	root, err := validate.storage.GetCar(ctx, req.RandomSeed)
 	if err != nil {
-		log.Errorf("sendBlocks, decode cid %s error %s", req.CID, err.Error())
-		return
+		return xerrors.Errorf("get car error %w", err)
+	}
+	count, err := validate.storage.BlockCountOfCar(ctx, root)
+	if err != nil {
+		return err
 	}
 
-	cids, err := validate.carfileStore.BlocksOfCarfile(c)
+	nodeID, err := validate.device.NodeID(ctx)
 	if err != nil {
-		log.Errorf("sendBlocks, BlocksCountOfCarfile error:%s, carfileCID:%s", err.Error(), req.CID)
-		return
-	}
-
-	if len(cids) == 0 {
-		log.Errorf("sendBlocks, carfile %s no block exist", req.CID)
-		return
-	}
-
-	nodeID, err := validate.device.NodeID(context.Background())
-	if err != nil {
-		log.Errorf("sendBlocks, get nodeID error:%s", err.Error())
-		return
+		return err
 	}
 
 	if err := sendNodeID(conn, nodeID, limiter); err != nil {
-		log.Errorf("send node id error:%s", err.Error())
-		return
+		return err
 	}
 
 	for {
 		select {
 		case <-t.C:
-			return
+			return nil
 		case <-validate.cancelValidateChannel:
 			err := sendData(conn, nil, api.TCPMsgTypeCancel, limiter)
 			if err != nil {
-				log.Errorf("sendBlocks, send cancel validate error:%v", err)
+				log.Errorf("send data error:%v", err)
 			}
-			return
+			return xerrors.Errorf("cancle validate")
 		default:
 		}
 
-		var block []byte
-		index := r.Intn(len(cids))
-		blk, err := validate.storage.GetBlock(cids[index])
-		if err != nil && err != datastore.ErrNotFound {
-			log.Errorf("sendBlocks, get block error:%v", err)
-			return
+		index := r.Intn(int(count))
+		cid, err := validate.storage.GetCID(ctx, root, index)
+		if err != nil {
+			return err
 		}
 
+		blk, err := validate.storage.GetBlock(ctx, cid)
+		if err != nil && err != datastore.ErrNotFound {
+			return err
+		}
+
+		var block []byte
 		if blk != nil {
 			block = blk.RawData()
 		}
 
 		err = sendData(conn, block, api.TCPMsgTypeBlock, limiter)
 		if err != nil {
-			log.Errorf("sendBlocks, send data error:%v", err)
-			return
+			return err
 		}
 	}
 }
