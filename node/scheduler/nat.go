@@ -180,17 +180,17 @@ func (s *Scheduler) NodeNatType(ctx context.Context, nodeID string) (types.NatTy
 func (s *Scheduler) checkTcpConnectivity(targetURL string) error {
 	url, err := url.ParseRequestURI(targetURL)
 	if err != nil {
-		return xerrors.Errorf("parse uri %w", err)
+		return xerrors.Errorf("parse uri error: %w, url: %s", err, targetURL)
 	}
 
 	tcpAddr, err := net.ResolveTCPAddr("tcp", url.Host)
 	if err != nil {
-		return xerrors.Errorf("resolve tcp addr %w", err)
+		return xerrors.Errorf("resolve tcp addr %w, host %s", err, url.Host)
 	}
 
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
-		return xerrors.Errorf("dial tcp %w", err)
+		return xerrors.Errorf("dial tcp %w, addr %s", err, tcpAddr)
 	}
 	defer conn.Close()
 
@@ -200,7 +200,7 @@ func (s *Scheduler) checkTcpConnectivity(targetURL string) error {
 func (s *Scheduler) checkUdpConnectivity(targetURL string) error {
 	udpPacketConn, err := net.ListenPacket("udp", ":0")
 	if err != nil {
-		return xerrors.Errorf("list udp %w", err)
+		return xerrors.Errorf("list udp %w, url %s", err, targetURL)
 	}
 	defer func() {
 		err = udpPacketConn.Close()
@@ -217,7 +217,7 @@ func (s *Scheduler) checkUdpConnectivity(targetURL string) error {
 
 	resp, err := httpClient.Get(targetURL)
 	if err != nil {
-		return xerrors.Errorf("http3 client get %w", err)
+		return xerrors.Errorf("http3 client get error: %w, url: %s", err, targetURL)
 	}
 	defer resp.Body.Close()
 
