@@ -8,9 +8,9 @@ import (
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-libipfs/blocks"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/carfile/store"
 	"github.com/linguohua/titan/node/device"
 	"golang.org/x/time/rate"
 )
@@ -18,13 +18,18 @@ import (
 var log = logging.Logger("validate")
 
 type Validate struct {
-	carfileStore          *store.CarfileStore
+	storage               Storage
 	device                *device.Device
 	cancelValidateChannel chan bool
 }
 
-func NewValidate(carfileStore *store.CarfileStore, device *device.Device) *Validate {
-	return &Validate{carfileStore: carfileStore, device: device}
+type Storage interface {
+	GetDiskUsageStat() (totalSpace, usage float64)
+	GetBlock(ctx context.Context, c cid.Cid) (blocks.Block, error)
+}
+
+func NewValidate(storage Storage, device *device.Device) *Validate {
+	return &Validate{storage: storage, device: device}
 }
 
 func (validate *Validate) BeValidate(ctx context.Context, req *api.BeValidateReq) error {
@@ -105,7 +110,7 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, req *api.BeValidateReq, 
 
 		var block []byte
 		index := r.Intn(len(cids))
-		blk, err := validate.carfileStore.Block(cids[index])
+		blk, err := validate.storage.GetBlock(cids[index])
 		if err != nil && err != datastore.ErrNotFound {
 			log.Errorf("sendBlocks, get block error:%v", err)
 			return

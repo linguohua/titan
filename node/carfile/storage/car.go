@@ -14,15 +14,11 @@ import (
 // Car save car file
 type car struct {
 	baseDir string
-	lru     *lruCache
+	suffix  string
 }
 
-func newCar(baseDir, carSuffix string, maxSizeOfCache int) (*car, error) {
-	cache, err := newLRUCache(baseDir, maxSizeOfCache)
-	if err != nil {
-		return nil, err
-	}
-	return &car{baseDir: baseDir, lru: cache}, nil
+func newCar(baseDir, suffix string) (*car, error) {
+	return &car{baseDir: baseDir, suffix: suffix}, nil
 }
 
 func newCarName(root cid.Cid) string {
@@ -44,14 +40,6 @@ func (c *car) putBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) 
 	}
 
 	return rw.Finalize()
-}
-
-func (c *car) getBlock(ctx context.Context, root, block cid.Cid) (blocks.Block, error) {
-	return c.lru.getBlock(ctx, root, block)
-}
-
-func (c *car) hasBlock(ctx context.Context, root, block cid.Cid) (bool, error) {
-	return c.lru.hasBlock(ctx, root, block)
 }
 
 // CarReader must close reader
@@ -79,9 +67,6 @@ func (c *car) has(root cid.Cid) (bool, error) {
 }
 
 func (c *car) remove(root cid.Cid) error {
-	// remove cache
-	c.lru.remove(root)
-
 	name := newCarName(root)
 	path := filepath.Join(c.baseDir, name)
 

@@ -32,16 +32,21 @@ func TestManager(t *testing.T) {
 		return
 	}
 
-	accessor, err := storage.NewAccessor("./test")
+	storageMgr, err := storage.NewManager("./test", nil)
 	if err != nil {
 		t.Errorf("NewCarfileStore err:%s", err)
 		return
 	}
 
 	bFetcher := fetcher.NewIPFS("http://192.168.0.132:5001", 15, 1)
-	opts := &ManagerOptions{Storage: accessor, BFetcher: bFetcher, DownloadBatch: 5}
+	opts := &ManagerOptions{Storage: storageMgr, BFetcher: bFetcher, DownloadBatch: 5}
 
-	mgr := NewManager(opts)
+	mgr, err := NewManager(opts)
+	if err != nil {
+		t.Errorf("new manager err:%s", err)
+		return
+	}
+
 	mgr.AddToWaitList(c, nil)
 
 	time.Sleep(1 * time.Minute)

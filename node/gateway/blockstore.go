@@ -18,11 +18,11 @@ func (robs *readOnlyBlockStore) DeleteBlock(context.Context, cid.Cid) error {
 }
 
 func (robs *readOnlyBlockStore) Has(ctx context.Context, c cid.Cid) (bool, error) {
-	return robs.gw.carStore.HasBlock(c)
+	return robs.gw.storage.HasBlock(ctx, c)
 }
 
 func (robs *readOnlyBlockStore) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
-	return robs.gw.block(ctx, c)
+	return robs.gw.storage.GetBlock(ctx, c)
 }
 
 // GetSize returns the CIDs mapped BlockSize

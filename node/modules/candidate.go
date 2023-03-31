@@ -5,7 +5,7 @@ import (
 
 	"github.com/linguohua/titan/node/candidate"
 	"github.com/linguohua/titan/node/carfile/fetcher"
-	"github.com/linguohua/titan/node/carfile/store"
+	"github.com/linguohua/titan/node/carfile/storage"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"go.uber.org/fx"
@@ -16,7 +16,7 @@ type NodeParams struct {
 
 	NodeID        dtypes.NodeID
 	InternalIP    dtypes.InternalIP
-	CarfileStore  *store.CarfileStore
+	storageMgr    *storage.Manager
 	BandwidthUP   int64
 	BandwidthDown int64
 }

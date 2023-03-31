@@ -30,7 +30,13 @@ func (gw *Gateway) serveCar(w http.ResponseWriter, r *http.Request, credentials 
 	}
 	rootCID := resolvedPath.Cid()
 
-	if !gw.carStore.HasCarfile(rootCID) {
+	has, err := gw.storage.HasCar(rootCID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if !has {
 		http.Error(w, fmt.Sprintf("can not found car %s", contentPath.String()), http.StatusNotFound)
 		return
 	}
@@ -66,7 +72,7 @@ func (gw *Gateway) serveCar(w http.ResponseWriter, r *http.Request, credentials 
 
 	modtime := addCacheControlHeaders(w, r, contentPath, rootCID)
 
-	reader, err := gw.carReader(ctx, rootCID)
+	reader, err := gw.storage.GetCar(rootCID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("not support car version %s", carVersion), http.StatusInternalServerError)
 		return
