@@ -12,6 +12,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 	cliutil "github.com/linguohua/titan/cli/util"
 	"github.com/linguohua/titan/node/scheduler/node"
+	"golang.org/x/xerrors"
 )
 
 func (s *Scheduler) EdgeExternalServiceAddress(ctx context.Context, nodeID, schedulerURL string) (string, error) {
@@ -179,17 +180,17 @@ func (s *Scheduler) NodeNatType(ctx context.Context, nodeID string) (types.NatTy
 func (s *Scheduler) checkTcpConnectivity(targetURL string) error {
 	url, err := url.ParseRequestURI(targetURL)
 	if err != nil {
-		return err
+		return xerrors.Errorf("parse uri %w", err)
 	}
 
 	tcpAddr, err := net.ResolveTCPAddr("tcp", url.Host)
 	if err != nil {
-		return err
+		return xerrors.Errorf("resolve tcp addr %w", err)
 	}
 
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
-		return err
+		return xerrors.Errorf("dial tcp %w", err)
 	}
 	defer conn.Close()
 
@@ -199,7 +200,7 @@ func (s *Scheduler) checkTcpConnectivity(targetURL string) error {
 func (s *Scheduler) checkUdpConnectivity(targetURL string) error {
 	udpPacketConn, err := net.ListenPacket("udp", ":0")
 	if err != nil {
-		return err
+		return xerrors.Errorf("list udp %w", err)
 	}
 	defer func() {
 		err = udpPacketConn.Close()
@@ -210,13 +211,13 @@ func (s *Scheduler) checkUdpConnectivity(targetURL string) error {
 
 	httpClient, err := cliutil.NewHTTP3Client(udpPacketConn, true, "")
 	if err != nil {
-		return err
+		return xerrors.Errorf("new http3 client %w", err)
 	}
 	httpClient.Timeout = 5 * time.Second
 
 	resp, err := httpClient.Get(targetURL)
 	if err != nil {
-		return err
+		return xerrors.Errorf("http3 client get %w", err)
 	}
 	defer resp.Body.Close()
 
