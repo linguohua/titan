@@ -1,7 +1,6 @@
 package types
 
 import (
-	"encoding/json"
 	"time"
 )
 
@@ -185,9 +184,9 @@ type Credentials struct {
 // GatewayCredentials be use for access gateway
 type GatewayCredentials struct {
 	// encrypted Credentials
-	Ciphertext json.RawMessage
+	Ciphertext string
 	// sign by scheduler private key
-	Sign json.RawMessage
+	Sign string
 }
 
 type NodeWorkloadProof struct {
@@ -202,4 +201,5 @@ type NodeWorkloadProof struct {
 type NatTravelReq struct {
 	Credentials *GatewayCredentials
 	NodeID      string
+	UserRPCURL  string
 }
