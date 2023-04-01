@@ -201,5 +201,4 @@ type NodeWorkloadProof struct {
 type NatTravelReq struct {
 	Credentials *GatewayCredentials
 	NodeID      string
-	UserRPCURL  string
 }
