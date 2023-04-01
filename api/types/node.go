@@ -1,6 +1,9 @@
 package types
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // DownloadRecordInfo node download record
 type DownloadRecordInfo struct {
@@ -42,7 +45,7 @@ type UserBlockDownloadResult struct {
 type DownloadInfo struct {
 	URL          string
 	Credentials  *GatewayCredentials
-	NodeID       string `json:"-"`
+	NodeID       string
 	NatType      string
 	SchedulerURL string
 	SchedulerKey string
@@ -181,10 +184,10 @@ type Credentials struct {
 
 // GatewayCredentials be use for access gateway
 type GatewayCredentials struct {
-	// encrypted AccessToken
-	Ciphertext string
+	// encrypted Credentials
+	Ciphertext json.RawMessage
 	// sign by scheduler private key
-	Sign string
+	Sign json.RawMessage
 }
 
 type NodeWorkloadProof struct {
@@ -194,4 +197,9 @@ type NodeWorkloadProof struct {
 	DownloadSize  int64
 	StartTime     int64
 	EndTime       int64
+}
+
+type NatTravelReq struct {
+	Credentials *GatewayCredentials
+	NodeID      string
 }

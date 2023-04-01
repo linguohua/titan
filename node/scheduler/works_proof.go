@@ -56,7 +56,6 @@ func (s *Scheduler) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types
 	if err != nil {
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}
-	userURL := handler.GetRemoteAddr(ctx)
 
 	rows, err := s.NodeManager.LoadReplicasOfHash(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
 	if err != nil {
@@ -82,11 +81,6 @@ func (s *Scheduler) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types
 		nodeID := rInfo.NodeID
 		eNode := s.NodeManager.GetEdgeNode(nodeID)
 		if eNode == nil {
-			continue
-		}
-
-		err := eNode.UserNATTravel(context.Background(), userURL)
-		if err != nil {
 			continue
 		}
 

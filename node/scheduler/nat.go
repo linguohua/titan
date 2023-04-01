@@ -226,16 +226,16 @@ func (s *Scheduler) checkUdpConnectivity(targetURL string) error {
 }
 
 // UserNatTravel nat travel
-func (s *Scheduler) UserNatTravel(ctx context.Context, nodeIDs []string) error {
+func (s *Scheduler) NatTravel(ctx context.Context, targets []*types.NatTravelReq) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 
-	for _, nodeID := range nodeIDs {
-		eNode := s.NodeManager.GetEdgeNode(nodeID)
+	for _, target := range targets {
+		eNode := s.NodeManager.GetEdgeNode(target.NodeID)
 		if eNode == nil {
 			continue
 		}
 
-		err := eNode.UserNATTravel(context.Background(), remoteAddr)
+		err := eNode.UserNATTravel(context.Background(), remoteAddr, target)
 		if err != nil {
 			continue
 		}

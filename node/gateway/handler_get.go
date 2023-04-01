@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto"
 	"encoding/gob"
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"mime"
@@ -75,23 +74,13 @@ func (gw *Gateway) verifyCredentials(w http.ResponseWriter, r *http.Request) (*t
 		return nil, err
 	}
 
-	sign, err := hex.DecodeString(gwCredentials.Sign)
-	if err != nil {
-		return nil, err
-	}
-
-	ciphertext, err := hex.DecodeString(gwCredentials.Ciphertext)
-	if err != nil {
-		return nil, err
-	}
-
 	rsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	err = rsa.VerifySign(gw.schedulerPublicKey, sign, ciphertext)
+	err = rsa.VerifySign(gw.schedulerPublicKey, gwCredentials.Sign, gwCredentials.Ciphertext)
 	if err != nil {
 		return nil, err
 	}
 
-	mgs, err := rsa.Decrypt(ciphertext, gw.privateKey)
+	mgs, err := rsa.Decrypt(gwCredentials.Ciphertext, gw.privateKey)
 	if err != nil {
 		return nil, err
 	}

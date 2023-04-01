@@ -37,8 +37,9 @@ type Scheduler interface {
 	// network is "tcp" or "udp"
 	CheckNetworkConnectivity(ctx context.Context, network, targetURL string) error //perm:read
 	NodeNatType(ctx context.Context, nodeID string) (types.NatType, error)         //perm:write
-	// UserNatTravel node connect back to user
-	UserNatTravel(ctx context.Context, nodeIDs []string) error //perm:read
+	// UserNatTravel request node connect back to user
+	// targets is edge node list
+	NatTravel(ctx context.Context, targets []*types.NatTravelReq) error //perm:read
 	// user
 	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error)              //perm:read
 	FindCandidateDownloadSources(ctx context.Context, cid string) ([]*types.DownloadSource, error) //perm:read

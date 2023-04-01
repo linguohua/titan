@@ -127,7 +127,7 @@ type EdgeStruct struct {
 	Internal struct {
 		ExternalServiceAddress func(p0 context.Context, p1 string) (string, error) `perm:"write"`
 
-		UserNATTravel func(p0 context.Context, p1 string) error `perm:"write"`
+		UserNATTravel func(p0 context.Context, p1 string, p2 *types.NatTravelReq) error `perm:"write"`
 
 		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
@@ -209,6 +209,8 @@ type SchedulerStruct struct {
 
 		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
+		NatTravel func(p0 context.Context, p1 []*types.NatTravelReq) error `perm:"read"`
+
 		NodeAuthNew func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
 		NodeAuthVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
@@ -250,8 +252,6 @@ type SchedulerStruct struct {
 		UserDownloadBlockResults func(p0 context.Context, p1 []types.UserBlockDownloadResult) error `perm:"read"`
 
 		UserDownloadResult func(p0 context.Context, p1 types.UserDownloadResult) error `perm:"write"`
-
-		UserNatTravel func(p0 context.Context, p1 []string) error `perm:"read"`
 
 		ValidatedResultList func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) `perm:"read"`
 	}
@@ -523,14 +523,14 @@ func (s *EdgeStub) ExternalServiceAddress(p0 context.Context, p1 string) (string
 	return "", ErrNotSupported
 }
 
-func (s *EdgeStruct) UserNATTravel(p0 context.Context, p1 string) error {
+func (s *EdgeStruct) UserNATTravel(p0 context.Context, p1 string, p2 *types.NatTravelReq) error {
 	if s.Internal.UserNATTravel == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.UserNATTravel(p0, p1)
+	return s.Internal.UserNATTravel(p0, p1, p2)
 }
 
-func (s *EdgeStub) UserNATTravel(p0 context.Context, p1 string) error {
+func (s *EdgeStub) UserNATTravel(p0 context.Context, p1 string, p2 *types.NatTravelReq) error {
 	return ErrNotSupported
 }
 
@@ -820,6 +820,17 @@ func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 string, p2 string)
 	return ErrNotSupported
 }
 
+func (s *SchedulerStruct) NatTravel(p0 context.Context, p1 []*types.NatTravelReq) error {
+	if s.Internal.NatTravel == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.NatTravel(p0, p1)
+}
+
+func (s *SchedulerStub) NatTravel(p0 context.Context, p1 []*types.NatTravelReq) error {
+	return ErrNotSupported
+}
+
 func (s *SchedulerStruct) NodeAuthNew(p0 context.Context, p1 string, p2 string) (string, error) {
 	if s.Internal.NodeAuthNew == nil {
 		return "", ErrNotSupported
@@ -1048,17 +1059,6 @@ func (s *SchedulerStruct) UserDownloadResult(p0 context.Context, p1 types.UserDo
 }
 
 func (s *SchedulerStub) UserDownloadResult(p0 context.Context, p1 types.UserDownloadResult) error {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) UserNatTravel(p0 context.Context, p1 []string) error {
-	if s.Internal.UserNatTravel == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.UserNatTravel(p0, p1)
-}
-
-func (s *SchedulerStub) UserNatTravel(p0 context.Context, p1 []string) error {
 	return ErrNotSupported
 }
 
