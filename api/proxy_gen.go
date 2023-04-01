@@ -209,7 +209,7 @@ type SchedulerStruct struct {
 
 		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
-		NatTravel func(p0 context.Context, p1 string, p2 []*types.NatTravelReq) error `perm:"read"`
+		NatTravel func(p0 context.Context, p1 []*types.NatTravelReq) error `perm:"read"`
 
 		NodeAuthNew func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
@@ -820,14 +820,14 @@ func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 string, p2 string)
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) NatTravel(p0 context.Context, p1 string, p2 []*types.NatTravelReq) error {
+func (s *SchedulerStruct) NatTravel(p0 context.Context, p1 []*types.NatTravelReq) error {
 	if s.Internal.NatTravel == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.NatTravel(p0, p1, p2)
+	return s.Internal.NatTravel(p0, p1)
 }
 
-func (s *SchedulerStub) NatTravel(p0 context.Context, p1 string, p2 []*types.NatTravelReq) error {
+func (s *SchedulerStub) NatTravel(p0 context.Context, p1 []*types.NatTravelReq) error {
 	return ErrNotSupported
 }
 

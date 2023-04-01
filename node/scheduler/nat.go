@@ -226,11 +226,9 @@ func (s *Scheduler) checkUdpConnectivity(targetURL string) error {
 }
 
 // UserNatTravel nat travel
-func (s *Scheduler) NatTravel(ctx context.Context, sourceURL string, targets []*types.NatTravelReq) error {
+func (s *Scheduler) NatTravel(ctx context.Context, targets []*types.NatTravelReq) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
-	if len(sourceURL) == 0 {
-		sourceURL = fmt.Sprintf("https://%s/ping", remoteAddr)
-	}
+	sourceURL := fmt.Sprintf("https://%s/ping", remoteAddr)
 
 	for _, target := range targets {
 		eNode := s.NodeManager.GetEdgeNode(target.NodeID)
