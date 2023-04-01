@@ -9,6 +9,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
+	"github.com/linguohua/titan/api/types"
 	cliutil "github.com/linguohua/titan/cli/util"
 	"github.com/linguohua/titan/node/carfile"
 	"github.com/linguohua/titan/node/common"
@@ -49,7 +50,9 @@ func (edge *Edge) ExternalServiceAddress(ctx context.Context, schedulerURL strin
 	return schedulerAPI.NodeExternalServiceAddress(ctx)
 }
 
-func (edge *Edge) UserNATTravel(ctx context.Context, userServiceAddress string) error {
+func (edge *Edge) UserNATTravel(ctx context.Context, userServiceAddress string, req *types.NatTravelReq) error {
+	// TODO check req
+
 	url := fmt.Sprintf("https://%s/ping", userServiceAddress)
 	go func() {
 		timeout := time.After(15 * time.Second)
