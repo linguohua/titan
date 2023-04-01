@@ -13,6 +13,7 @@ import (
 
 	"github.com/linguohua/titan/api/types"
 	titanrsa "github.com/linguohua/titan/node/rsa"
+	"golang.org/x/xerrors"
 )
 
 const (
@@ -72,7 +73,7 @@ func (gw *Gateway) verifyCredentials(w http.ResponseWriter, r *http.Request) (*t
 	gwCredentials := &types.GatewayCredentials{}
 	err = dec.Decode(gwCredentials)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("decode GatewayCredentials error %w", err)
 	}
 
 	sign, err := hex.DecodeString(gwCredentials.Sign)

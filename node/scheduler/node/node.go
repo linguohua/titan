@@ -40,7 +40,7 @@ type API struct {
 	WaitQuiet func(ctx context.Context) error
 	// edge
 	ExternalServiceAddress func(ctx context.Context, schedulerURL string) (string, error)
-	UserNATTravel          func(ctx context.Context, userServiceAddress string, req *types.NatTravelReq) error
+	UserNATTravel          func(ctx context.Context, sourceURL string, req *types.NatTravelReq) error
 	// candidate
 	GetBlocksOfCarfile func(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error)
 	ValidateNodes      func(ctx context.Context, reqs []api.ValidateReq) (string, error)

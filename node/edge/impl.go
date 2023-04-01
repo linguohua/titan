@@ -2,7 +2,6 @@ package edge
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"time"
 
@@ -50,25 +49,24 @@ func (edge *Edge) ExternalServiceAddress(ctx context.Context, schedulerURL strin
 	return schedulerAPI.NodeExternalServiceAddress(ctx)
 }
 
-func (edge *Edge) UserNATTravel(ctx context.Context, userServiceAddress string, req *types.NatTravelReq) error {
+func (edge *Edge) UserNATTravel(ctx context.Context, sourceURL string, req *types.NatTravelReq) error {
 	// TODO check req
 
-	url := fmt.Sprintf("https://%s/ping", userServiceAddress)
 	go func() {
 		timeout := time.After(15 * time.Second)
 
 		for {
-			err := edge.checkNetworkConnectivity(url)
+			err := edge.checkNetworkConnectivity(sourceURL)
 			if err == nil {
-				log.Debugf("nat traver, success connect to %s", url)
+				log.Debugf("nat traver, success connect to %s", sourceURL)
 				return
 			}
 
-			log.Debugf("connect failed %s, url %s", err.Error(), url)
+			log.Debugf("connect failed %s, url %s", err.Error(), sourceURL)
 
 			select {
 			case <-timeout:
-				log.Errorf("timeout, can not connect to %s", url)
+				log.Errorf("timeout, can not connect to %s", sourceURL)
 				return
 			default:
 
