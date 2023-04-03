@@ -156,6 +156,12 @@ func (s *Scheduler) nodeConnect(ctx context.Context, token string, nodeType type
 		if err != nil {
 			return err
 		}
+
+		if nodeType == types.NodeEdge {
+			natType := s.getNatType(context.Background(), cNode.API, remoteAddr)
+			baseInfo.NatType = natType.String()
+		}
+
 		cNode.BaseInfo = baseInfo
 
 		err = s.NodeManager.NodeOnline(cNode)
