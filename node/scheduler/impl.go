@@ -117,7 +117,7 @@ func (s *Scheduler) NodeAuthNew(ctx context.Context, nodeID, sign string) (strin
 	return string(tk), nil
 }
 
-func (s *Scheduler) nodeConnect(ctx context.Context, token string, nodeType types.NodeType) error {
+func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions, nodeType types.NodeType) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
@@ -132,7 +132,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, token string, nodeType type
 			return xerrors.Errorf("node not exists: %s , type: %d", nodeID, nodeType)
 		}
 	}
-	cNode := node.New(token)
+	cNode := node.New(opts.Token)
 
 	log.Infof("node connected %s, address:%s", nodeID, remoteAddr)
 
@@ -177,27 +177,13 @@ func (s *Scheduler) nodeConnect(ctx context.Context, token string, nodeType type
 }
 
 // CandidateNodeConnect Candidate connect
-func (s *Scheduler) CandidateNodeConnect(ctx context.Context, token string) error {
-	return s.nodeConnect(ctx, token, types.NodeCandidate)
+func (s *Scheduler) CandidateNodeConnect(ctx context.Context, opts *types.ConnectOptions) error {
+	return s.nodeConnect(ctx, opts, types.NodeCandidate)
 }
 
 // EdgeNodeConnect edge connect
-func (s *Scheduler) EdgeNodeConnect(ctx context.Context, token string) error {
-	return s.nodeConnect(ctx, token, types.NodeEdge)
-}
-
-// SetNodeTCPAddr set node tcp server address
-func (s *Scheduler) SetNodeTCPAddr(ctx context.Context, addr string) error {
-	nodeID := handler.GetNodeID(ctx)
-
-	node := s.NodeManager.GetNode(nodeID)
-	if node == nil {
-		return xerrors.Errorf("%s node not found", nodeID)
-	}
-
-	node.TCPAddr = addr
-
-	return nil
+func (s *Scheduler) EdgeNodeConnect(ctx context.Context, opts *types.ConnectOptions) error {
+	return s.nodeConnect(ctx, opts, types.NodeEdge)
 }
 
 func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.NodeInfo) (*node.BaseInfo, error) {

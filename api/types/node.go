@@ -202,3 +202,8 @@ type NatTravelReq struct {
 	Credentials *GatewayCredentials
 	NodeID      string
 }
+
+type ConnectOptions struct {
+	Token         string
+	TcpServerPort int
+}
