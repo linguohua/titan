@@ -58,8 +58,7 @@ func ConfigCandidate(c interface{}) Option {
 		Override(new(*rate.Limiter), modules.NewRateLimiter),
 		Override(new(*carfile.CarfileImpl), carfile.NewCarfileImpl),
 		Override(new(fetcher.BlockFetcher), modules.NewBlockFetcherFromIPFS),
-		Override(new(datasync.Cacher), modules.NewCacherForDataSync),
-		Override(new(*datasync.DataSync), datasync.NewDataSync),
+		Override(new(*datasync.DataSync), modules.NewDataSync),
 		Override(new(*candidate.BlockWaiter), candidate.NewBlockWaiter),
 		Override(new(*candidate.TCPServer), modules.NewTCPServer),
 	)

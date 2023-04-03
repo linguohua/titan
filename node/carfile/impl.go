@@ -15,7 +15,6 @@ import (
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/carfile/cache"
 	"github.com/linguohua/titan/node/carfile/storage"
-	mh "github.com/multiformats/go-multihash"
 )
 
 var log = logging.Logger("carfile")
@@ -145,29 +144,6 @@ func (cfImpl *CarfileImpl) BlockCountOfCarfile(carfileCID string) (int, error) {
 	return int(count), nil
 }
 
-func (cfImpl *CarfileImpl) CacheCarForSyncData(carfiles []string) error {
-	switch types.RunningNodeType {
-	case types.NodeCandidate:
-		for _, hash := range carfiles {
-			multihash, err := mh.FromHexString(hash)
-			if err != nil {
-				return err
-			}
-
-			cid := cid.NewCidV1(cid.Raw, multihash)
-			if err := cfImpl.CacheCarfile(context.Background(), cid.String(), nil); err != nil {
-				return err
-			}
-		}
-	case types.NodeEdge:
-		return fmt.Errorf("not implement")
-	default:
-		return fmt.Errorf("unsupport node type:%s", types.RunningNodeType)
-	}
-
-	return nil
-}
-
 func (cfImpl *CarfileImpl) CachedProgresses(ctx context.Context, carfileCIDs []string) (*types.PullResult, error) {
 	progresses := make([]*types.AssetPullProgress, 0, len(carfileCIDs))
 	for _, carfileCID := range carfileCIDs {
@@ -208,7 +184,7 @@ func (cfImpl *CarfileImpl) progressForSucceededCar(root cid.Cid) (*types.AssetPu
 		progress.DoneBlocksCount = int(count)
 	}
 
-	blk, err := cfImpl.cacheMgr.GetBlock(context.Background(), root)
+	blk, err := cfImpl.cacheMgr.GetBlock(context.Background(), root, root)
 	if err != nil {
 		return nil, err
 	}

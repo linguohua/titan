@@ -2,24 +2,15 @@ package sync
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"hash/fnv"
+	"fmt"
 	"sync"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/scheduler/node"
-	mh "github.com/multiformats/go-multihash"
 )
 
 var log = logging.Logger("data-sync")
-
-const (
-	bucketCount = 100
-	dbLoadCount = 500
-)
 
 type DataSync struct {
 	nodeList    []string
@@ -66,7 +57,10 @@ func (ds *DataSync) run() {
 func (ds *DataSync) syncData() {
 	for len(ds.nodeList) > 0 {
 		nodeID := ds.removeFirstNode()
-		ds.doDataSync(nodeID)
+		err := ds.doDataSync(nodeID)
+		if err != nil {
+			log.Errorf("do data sync error:%s", err.Error())
+		}
 	}
 }
 
@@ -100,102 +94,45 @@ func (ds *DataSync) getNodeDataSyncAPI(nodeID string) api.DataSync {
 	return nil
 }
 
-func (ds *DataSync) doDataSync(nodeID string) {
+func (ds *DataSync) doDataSync(nodeID string) error {
 	dataSyncAPI := ds.getNodeDataSyncAPI(nodeID)
 	if dataSyncAPI == nil {
-		return
+		return fmt.Errorf("can not get node %s data sync api", nodeID)
 	}
-
-	list, err := ds.loadReplicaInfosBy(nodeID)
+	topChecksum, err := ds.getTopChecksum(nodeID)
 	if err != nil {
-		log.Errorf("load replica infos error:%s", err.Error())
-		return
+		return err
 	}
 
-	multihashes := ds.multihashSort(list)
+	ctx, cancle := context.WithCancel(context.Background())
+	defer cancle()
 
-	checksums, err := ds.calculateChecksums(multihashes)
+	if ok, err := dataSyncAPI.CompareTopChecksum(ctx, topChecksum); err != nil {
+		return err
+	} else if ok {
+		return nil
+	}
+
+	checksums, err := ds.getChecksumsOfBuckets(nodeID)
 	if err != nil {
-		log.Errorf("calculate checksums error:%s", err.Error())
-		return
+		return err
 	}
 
-	keys, err := dataSyncAPI.CompareChecksums(context.Background(), bucketCount, checksums)
+	mismatchBuckets, err := dataSyncAPI.CompareBucketsChecksums(ctx, checksums)
 	if err != nil {
-		log.Errorf("compare checksums error:%s", err.Error())
-		return
+		return err
 	}
 
-	// TODO: merge multi key to compare together
-	for _, key := range keys {
-		err := dataSyncAPI.CompareCarfiles(context.Background(), bucketCount, map[uint32][]string{key: multihashes[key]})
-		if err != nil {
-			log.Errorf("compare carfiles error:%s", err.Error())
-		}
-	}
+	log.Warnf("mismatch buckets len:%d", len(mismatchBuckets))
+	return nil
 }
 
-func (ds *DataSync) multihashSort(statuses []*types.NodeReplicaStatus) map[uint32][]string {
-	multihashes := make(map[uint32][]string)
-	// append asset hash by hash code
-	for _, status := range statuses {
-		multihash, err := mh.FromHexString(status.Hash)
-		if err != nil {
-			log.Errorf("decode multihash error:%s", err.Error())
-			continue
-		}
-
-		h := fnv.New32a()
-		h.Write(multihash)
-		k := h.Sum32() % bucketCount
-
-		multihashes[k] = append(multihashes[k], status.Hash)
-	}
-
-	return multihashes
+func (ds *DataSync) getTopChecksum(nodeID string) (string, error) {
+	// TODO　implement database
+	return "", nil
 }
 
-func (ds *DataSync) calculateChecksums(multihashes map[uint32][]string) (map[uint32]string, error) {
-	checksums := make(map[uint32]string)
-	for k, v := range multihashes {
-		checksum, err := ds.calculateChecksum(v)
-		if err != nil {
-			return nil, err
-		}
-
-		checksums[k] = checksum
-	}
-	return checksums, nil
-}
-
-func (ds *DataSync) calculateChecksum(hashes []string) (string, error) {
-	hash := sha256.New()
-
-	for _, h := range hashes {
-		data := []byte(h)
-		_, err := hash.Write(data)
-		if err != nil {
-			return "", err
-		}
-	}
-	return hex.EncodeToString(hash.Sum(nil)), nil
-}
-
-func (ds *DataSync) loadReplicaInfosBy(nodeID string) ([]*types.NodeReplicaStatus, error) {
-	index := 0
-	pullStatus := make([]*types.NodeReplicaStatus, 0)
-	for {
-		nodePullRsp, err := ds.nodeManager.LoadReplicasOfNode(nodeID, index, dbLoadCount)
-		if err != nil {
-			log.Errorf("LoadReplicaInfosOfNode %s, index:%d, count:%d, error:%s", nodeID, index, dbLoadCount)
-			return nil, err
-		}
-
-		pullStatus = append(pullStatus, nodePullRsp.Replica...)
-		if len(pullStatus) == nodePullRsp.TotalCount {
-			return pullStatus, nil
-		}
-
-		index = len(pullStatus)
-	}
+func (ds *DataSync) getChecksumsOfBuckets(nodeID string) (map[uint32]string, error) {
+	// TODO　implement database
+	return nil, nil
 }

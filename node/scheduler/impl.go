@@ -437,3 +437,7 @@ func (s *Scheduler) FindCandidateDownloadSources(ctx context.Context, cid string
 
 	return sources, nil
 }
+
+func (s *Scheduler) AssetListOfBucket(ctx context.Context, nodeID string) ([]string, error) {
+	return nil, nil
+}

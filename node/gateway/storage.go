@@ -12,6 +12,6 @@ type Storage interface {
 	GetCar(root cid.Cid) (io.ReadSeekCloser, error)
 	HasCar(root cid.Cid) (bool, error)
 
-	HasBlock(ctx context.Context, c cid.Cid) (bool, error)
-	GetBlock(ctx context.Context, c cid.Cid) (blocks.Block, error)
+	HasBlock(ctx context.Context, root, block cid.Cid) (bool, error)
+	GetBlock(ctx context.Context, root, block cid.Cid) (blocks.Block, error)
 }

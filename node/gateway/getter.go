@@ -11,14 +11,15 @@ import (
 
 // format.NodeGetter interface implement
 type nodeGetter struct {
-	gw *Gateway
+	gw   *Gateway
+	root cid.Cid
 }
 
 // Get retrieves nodes by CID. Depending on the NodeGetter
 // implementation, this may involve fetching the Node from a remote
 // machine; consider setting a deadline in the context.
-func (ng *nodeGetter) Get(ctx context.Context, c cid.Cid) (ipldformat.Node, error) {
-	blk, err := ng.gw.storage.GetBlock(ctx, c)
+func (ng *nodeGetter) Get(ctx context.Context, block cid.Cid) (ipldformat.Node, error) {
+	blk, err := ng.gw.storage.GetBlock(ctx, ng.root, block)
 	if err != nil {
 		return nil, err
 	}

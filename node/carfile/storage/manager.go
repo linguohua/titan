@@ -8,7 +8,6 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-libipfs/blocks"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/ipld/go-car/v2/index"
 	"github.com/shirou/gopsutil/v3/disk"
 )
 
@@ -19,21 +18,22 @@ const (
 	carCacheDir    = "car-cache"
 	waitListFile   = "wait-list"
 	carsDir        = "cars"
-	topIndexDir    = "top-index"
 	transientsDir  = "tmp"
 	countDir       = "count"
 	carSuffix      = ".car"
+	dataViewDir    = "data-view"
 	maxSizeOfCache = 1024
+	sizeOfBucket   = 128
 )
 
 // Manager access operation of storage
 type Manager struct {
 	baseDir  string
 	car      *car
-	topIndex *topIndex
 	wl       *waitList
 	carCache *carCache
 	count    *count
+	dataView *dataView
 }
 
 type ManagerOptions struct {
@@ -41,10 +41,10 @@ type ManagerOptions struct {
 	waitListFilePath string
 	CarsDir          string
 	CarSuffix        string
-	TopIndexDir      string
 	CountDir         string
-	// cache for car index
-	MaxSizeOfCache int
+	DataViewDir      string
+	// data view size of buckets
+	BucketSize uint32
 }
 
 func NewManager(baseDir string, opts *ManagerOptions) (*Manager, error) {
@@ -53,11 +53,6 @@ func NewManager(baseDir string, opts *ManagerOptions) (*Manager, error) {
 	}
 
 	car, err := newCar(opts.CarsDir, opts.CarSuffix)
-	if err != nil {
-		return nil, err
-	}
-
-	topIndex, err := newTopIndex(opts.TopIndexDir)
 	if err != nil {
 		return nil, err
 	}
@@ -72,11 +67,13 @@ func NewManager(baseDir string, opts *ManagerOptions) (*Manager, error) {
 		return nil, err
 	}
 
+	dataView, err := newDataView(opts.DataViewDir, opts.BucketSize)
+
 	waitList := newWaitList(opts.waitListFilePath)
 	return &Manager{
 		baseDir:  baseDir,
 		car:      car,
-		topIndex: topIndex,
+		dataView: dataView,
 		wl:       waitList,
 		carCache: carCache,
 		count:    count,
@@ -89,10 +86,10 @@ func defaultOptions(baseDir string) *ManagerOptions {
 		waitListFilePath: filepath.Join(baseDir, waitListFile),
 		CarsDir:          filepath.Join(baseDir, carsDir),
 		CarSuffix:        filepath.Join(baseDir, carSuffix),
-		TopIndexDir:      filepath.Join(baseDir, topIndexDir),
 		CountDir:         filepath.Join(baseDir, countDir),
+		DataViewDir:      filepath.Join(baseDir, dataViewDir),
 		// cache for car index
-		MaxSizeOfCache: maxSizeOfCache,
+		BucketSize: sizeOfBucket,
 	}
 	return opts
 }
@@ -126,10 +123,6 @@ func (m *Manager) HasCar(root cid.Cid) (bool, error) {
 	return m.car.has(root)
 }
 
-func (m *Manager) FindCars(ctx context.Context, block cid.Cid) ([]cid.Cid, error) {
-	return m.topIndex.findCars(ctx, block)
-}
-
 func (m *Manager) RemoveCar(root cid.Cid) error {
 	return m.car.remove(root)
 }
@@ -146,21 +139,32 @@ func (m *Manager) SetBlockCountOfCar(ctx context.Context, root cid.Cid, count ui
 	return m.count.put(ctx, root, count)
 }
 
-func (m *Manager) AddTopIndex(ctx context.Context, root cid.Cid, idx index.Index) error {
-	return m.topIndex.add(ctx, root, idx)
+// data view api
+func (m *Manager) SetTopChecksum(ctx context.Context, checksum string) error {
+	return m.dataView.setTopChecksum(ctx, checksum)
 }
-func (m *Manager) RemoveTopIndex(ctx context.Context, root cid.Cid, idx index.Index) error {
-	return m.topIndex.remove(ctx, root, idx)
+func (m *Manager) SetBucketsChecksums(ctx context.Context, checksums map[uint32]string) error {
+	return m.dataView.setBucketsChecksums(ctx, checksums)
+}
+func (m *Manager) GetTopChecksum(ctx context.Context) (string, error) {
+	return m.dataView.getTopChecksum(ctx)
+}
+func (m *Manager) GetBucketsChecksums(ctx context.Context) (map[uint32]string, error) {
+	return m.dataView.getBucketsChecksums(ctx)
+}
+func (m *Manager) GetCarsOfBucket(ctx context.Context, bucketID uint32) ([]cid.Cid, error) {
+	return m.dataView.getCars(ctx, bucketID)
 }
 
+// wait list
 func (m *Manager) PutWaitList(data []byte) error {
 	return m.wl.put(data)
 }
-
 func (m *Manager) GetWaitList() ([]byte, error) {
 	return m.wl.get()
 }
 
+// disk stat
 func (m *Manager) GetDiskUsageStat() (totalSpace, usage float64) {
 	usageStat, err := disk.Usage(m.baseDir)
 	if err != nil {
@@ -169,7 +173,6 @@ func (m *Manager) GetDiskUsageStat() (totalSpace, usage float64) {
 	}
 	return float64(usageStat.Total), usageStat.UsedPercent
 }
-
 func (m *Manager) GetFilesystemType() string {
 	return "not implement"
 }

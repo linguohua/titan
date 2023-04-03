@@ -15,8 +15,8 @@ func (gw *Gateway) headHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusPreconditionFailed)
 		return
 	}
-
-	if ok, err := gw.storage.HasBlock(context.Background(), c); err != nil || !ok {
+	// TODO get root from c
+	if ok, err := gw.storage.HasBlock(context.Background(), c, c); err != nil || !ok {
 		w.WriteHeader(http.StatusPreconditionFailed)
 		return
 	}
