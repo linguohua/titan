@@ -27,11 +27,6 @@ const (
 	bandwidthRatio = 0.7 // The ratio of the total upstream bandwidth on edge nodes to the downstream bandwidth on validation nodes.
 )
 
-type validateReqs struct {
-	vReqs []api.ValidateReq
-	bReqs map[string]*api.BeValidateReq
-}
-
 type validatorInfo struct {
 	nodeID        string
 	bandwidthDown float64 // Unallocated downstream bandwidth
@@ -44,8 +39,6 @@ type Validation struct {
 	curRoundID string
 	close      chan struct{}
 	config     dtypes.GetSchedulerConfigFunc
-
-	effectiveValidators []*validatorInfo
 }
 
 // New return new validator instance
@@ -118,203 +111,82 @@ func (v *Validation) start() error {
 	v.curRoundID = roundID
 	v.seed = time.Now().UnixNano() // TODO from filecoin
 
-	err := v.resetEffectiveValidators()
-	if err != nil {
-		return err
-	}
+	vrs := v.nodeMgr.CollocateValidators()
 
-	validateReqs, dbInfos := v.assignValidator()
+	validateReqs, dbInfos := v.getValidateDetails(vrs)
 	if validateReqs == nil {
 		return xerrors.New("assignValidator map is null")
 	}
 
-	err = v.nodeMgr.SetValidateResultInfos(dbInfos)
+	err := v.nodeMgr.SetValidateResultInfos(dbInfos)
 	if err != nil {
 		log.Errorf("SetValidateResultInfos err:%s", err.Error())
 		return nil
 	}
 
-	for validatorID, reqs := range validateReqs {
-		go v.sendValidateReqToNodes(validatorID, reqs)
+	for nodeID, reqs := range validateReqs {
+		go v.sendValidateReqToNodes(nodeID, reqs)
 	}
 
 	return nil
 }
 
-func (v *Validation) resetEffectiveValidators() error {
-	validatorList, err := v.nodeMgr.LoadValidators(v.nodeMgr.ServerID)
-	if err != nil {
-		return err
+func (v *Validation) sendValidateReqToNodes(nID string, req *api.BeValidateReq) {
+	cNode := v.nodeMgr.GetCandidateNode(nID)
+	if cNode != nil {
+		cNode.BeValidate(context.Background(), req)
+		return
 	}
 
-	es := make([]*validatorInfo, 0)
+	eNode := v.nodeMgr.GetEdgeNode(nID)
+	if eNode != nil {
+		eNode.BeValidate(context.Background(), req)
+		return
+	}
 
-	vNum := v.validatorNum()
-	for _, nodeID := range validatorList {
-		c := v.nodeMgr.GetCandidateNode(nodeID)
-		if c == nil {
+	log.Errorf("%s BeValidate Node not found", nID)
+}
+
+func (v *Validation) getValidateDetails(vrs []*node.ValidatorReplica) (map[string]*api.BeValidateReq, []*types.ValidateResultInfo) {
+	bReqs := make(map[string]*api.BeValidateReq)
+	vrInfos := make([]*types.ValidateResultInfo, 0)
+
+	for _, vr := range vrs {
+		vID := vr.NodeID
+		vNode := v.nodeMgr.GetCandidateNode(vID)
+		if vNode == nil {
+			log.Errorf("%s validator not exist", vNode)
 			continue
 		}
 
-		b := c.BandwidthDown * bandwidthRatio
-		es = append(es, &validatorInfo{nodeID: nodeID, bandwidthDown: b})
-
-		if vNum > 0 && len(es) >= vNum {
-			break
-		}
-	}
-
-	if len(es) == 0 {
-		return xerrors.New("not found validator")
-	}
-
-	v.effectiveValidators = es
-
-	return nil
-}
-
-func (v *Validation) sendValidateReqToNodes(validatorID string, reqs *validateReqs) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	validator := v.nodeMgr.GetCandidateNode(validatorID)
-	if validator == nil {
-		log.Errorf("validator [%s] is null", validatorID)
-		return
-	}
-
-	// send to validator
-	addr, err := validator.ValidateNodes(ctx, reqs.vReqs)
-	if err != nil {
-		log.Errorf("ValidateNodes [%s] err:%s", validatorID, err.Error())
-		return
-	}
-
-	// send to beValidateNode
-	for nodeID, req := range reqs.bReqs {
-		nID := nodeID
-		bReq := req
-		bReq.TCPSrvAddr = addr
-
-		go func() {
-			cNode := v.nodeMgr.GetCandidateNode(nID)
-			if cNode != nil {
-				cNode.BeValidate(context.Background(), bReq)
-				return
+		for nodeID := range vr.BeValidates {
+			cid, err := v.getNodeValidateCID(nodeID)
+			if err != nil {
+				log.Errorf("%s getNodeValidateCID err:%s", nodeID, err.Error())
+				continue
 			}
 
-			eNode := v.nodeMgr.GetEdgeNode(nID)
-			if eNode != nil {
-				eNode.BeValidate(context.Background(), bReq)
-				return
+			dbInfo := &types.ValidateResultInfo{
+				RoundID:     v.curRoundID,
+				NodeID:      nodeID,
+				ValidatorID: vID,
+				Status:      types.ValidateStatusCreate,
+				Cid:         cid,
+			}
+			vrInfos = append(vrInfos, dbInfo)
+
+			req := &api.BeValidateReq{
+				CID:        cid,
+				RandomSeed: v.seed,
+				Duration:   duration,
+				TCPSrvAddr: vNode.TCPAddr,
 			}
 
-			log.Errorf("%s BeValidate Node not found", nID)
-		}()
-	}
-}
-
-func (v *Validation) selectValidator(offset int, bandwidthUp float64) string {
-	vLen := len(v.effectiveValidators)
-	// TODO problematic
-	for i := offset; i < offset+vLen; i++ {
-		index := offset % vLen
-		ev := v.effectiveValidators[index]
-
-		if ev.bandwidthDown >= bandwidthUp {
-			ev.bandwidthDown -= bandwidthUp
-			return ev.nodeID
+			bReqs[nodeID] = req
 		}
 	}
 
-	return ""
-}
-
-func (v *Validation) assignValidator() (map[string]*validateReqs, []*types.ValidateResultInfo) {
-	reqs := make(map[string]*validateReqs)
-	vrInfos := make([]*types.ValidateResultInfo, 0)
-
-	offset := 0
-	assign := func(nodeID string, bandwidthUp float64) error {
-		cid, err := v.getNodeValidateCID(nodeID)
-		if err != nil {
-			return err
-		}
-
-		vID := v.selectValidator(offset, bandwidthUp)
-		if vID == "" {
-			return xerrors.New("not found validator")
-		}
-
-		offset++
-
-		vReq := api.ValidateReq{
-			Duration: duration,
-			RoundID:  v.curRoundID,
-			NodeID:   nodeID,
-		}
-
-		bReq := &api.BeValidateReq{
-			Duration:   duration,
-			RandomSeed: v.seed,
-			CID:        cid,
-		}
-
-		if _, exist := reqs[vID]; !exist {
-			reqs[vID] = &validateReqs{
-				bReqs: make(map[string]*api.BeValidateReq),
-			}
-		}
-
-		reqs[vID].bReqs[nodeID] = bReq
-		reqs[vID].vReqs = append(reqs[vID].vReqs, vReq)
-
-		dbInfo := &types.ValidateResultInfo{
-			RoundID:     v.curRoundID,
-			NodeID:      nodeID,
-			ValidatorID: vID,
-			Status:      types.ValidateStatusCreate,
-			Cid:         cid,
-		}
-		vrInfos = append(vrInfos, dbInfo)
-		return nil
-	}
-
-	// edge nodes
-	v.nodeMgr.RangeEdges(func(key, value interface{}) bool {
-		node := value.(*node.Node)
-
-		err := assign(node.NodeInfo.NodeID, node.BandwidthUp)
-		if err != nil {
-			log.Errorf("%s get validate req info err:%s", err.Error())
-		}
-		return true
-	})
-
-	// filter validators
-	vMap := make(map[string]struct{})
-	for _, v := range v.effectiveValidators {
-		vMap[v.nodeID] = struct{}{}
-	}
-
-	// candidate node
-	v.nodeMgr.RangeCandidates(func(key, value interface{}) bool {
-		node := value.(*node.Node)
-
-		nodeID := node.NodeInfo.NodeID
-
-		if _, exist := vMap[nodeID]; exist {
-			return true
-		}
-
-		err := assign(nodeID, node.BandwidthUp)
-		if err != nil {
-			log.Errorf("%s get validate req info err:%s", nodeID, err.Error())
-		}
-		return true
-	})
-
-	return reqs, vrInfos
+	return bReqs, vrInfos
 }
 
 func (v *Validation) getNodeValidateCID(nodeID string) (string, error) {

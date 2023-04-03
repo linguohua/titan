@@ -496,7 +496,7 @@ func (m *Manager) GetAssetRecordInfo(cid string) (*types.AssetRecord, error) {
 	return dInfo, err
 }
 
-func (m *Manager) saveCandidateReplicaInfos(nodes []*node.Node, hash string) error {
+func (m *Manager) saveReplicaInfos(nodes map[string]*node.Node, hash string, isCandidate bool) error {
 	// save replica info
 	replicaInfos := make([]*types.ReplicaInfo, 0)
 
@@ -505,23 +505,7 @@ func (m *Manager) saveCandidateReplicaInfos(nodes []*node.Node, hash string) err
 			NodeID:      node.NodeInfo.NodeID,
 			Status:      types.ReplicaStatusWaiting,
 			Hash:        hash,
-			IsCandidate: true,
-		})
-	}
-
-	return m.BatchUpsertReplicas(replicaInfos)
-}
-
-func (m *Manager) saveEdgeReplicaInfos(nodes []*node.Node, hash string) error {
-	// save replica info
-	replicaInfos := make([]*types.ReplicaInfo, 0)
-
-	for _, node := range nodes {
-		replicaInfos = append(replicaInfos, &types.ReplicaInfo{
-			NodeID:      node.NodeInfo.NodeID,
-			Status:      types.ReplicaStatusWaiting,
-			Hash:        hash,
-			IsCandidate: false,
+			IsCandidate: isCandidate,
 		})
 	}
 

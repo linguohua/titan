@@ -175,7 +175,7 @@ func (s *Scheduler) NodeNatType(ctx context.Context, nodeID string) (types.NatTy
 		return types.NatTypeUnknow, fmt.Errorf("node %s offline or not exist", nodeID)
 	}
 
-	return s.getNatType(ctx, eNode.API, eNode.Addr()), nil
+	return s.getNatType(ctx, eNode.API, eNode.RemoteAddr()), nil
 }
 
 func (s *Scheduler) checkTcpConnectivity(targetURL string) error {

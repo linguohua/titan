@@ -117,52 +117,52 @@ func (s *Scheduler) NodeAuthNew(ctx context.Context, nodeID, sign string) (strin
 	return string(tk), nil
 }
 
-// CandidateNodeConnect Candidate connect
-func (s *Scheduler) CandidateNodeConnect(ctx context.Context, token string) error {
+func (s *Scheduler) nodeConnect(ctx context.Context, token string, nodeType types.NodeType) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
-	cNode := s.NodeManager.GetCandidateNode(nodeID)
-	if cNode != nil {
-		oAddr := cNode.Addr()
+	oldNode := s.NodeManager.GetNode(nodeID)
+	if oldNode != nil {
+		oAddr := oldNode.RemoteAddr()
 		if oAddr != remoteAddr {
 			return xerrors.Errorf("node already login, addr : %s", oAddr)
 		}
 	} else {
-		if !s.nodeExists(nodeID, types.NodeCandidate) {
-			return xerrors.Errorf("candidate node not exists: %s", nodeID)
+		if !s.nodeExists(nodeID, nodeType) {
+			return xerrors.Errorf("node not exists: %s , type: %d", nodeID, nodeType)
 		}
 	}
+	cNode := node.New(token)
 
-	log.Infof("candidate connected %s, address:%s", nodeID, remoteAddr)
-	candidateNode := node.NewCandidate(token)
-	candidateAPI, err := candidateNode.ConnectRPC(remoteAddr, true, types.NodeCandidate)
+	log.Infof("node connected %s, address:%s", nodeID, remoteAddr)
+
+	err := cNode.ConnectRPC(remoteAddr, true, nodeType)
 	if err != nil {
-		return xerrors.Errorf("CandidateNodeConnect ConnectRPC err:%s", err.Error())
+		return xerrors.Errorf("nodeConnect ConnectRPC err:%s", err.Error())
 	}
 
-	if cNode == nil {
+	if oldNode == nil {
 		// load node info
-		nodeInfo, err := candidateAPI.NodeInfo(ctx)
+		nodeInfo, err := cNode.API.NodeInfo(ctx)
 		if err != nil {
-			log.Errorf("CandidateNodeConnect NodeInfo err:%s", err.Error())
+			log.Errorf("nodeConnect NodeInfo err:%s", err.Error())
 			return err
 		}
 
-		nodeInfo.NodeType = types.NodeCandidate
+		nodeInfo.NodeType = nodeType
 		nodeInfo.ServerID = s.ServerID
 
 		baseInfo, err := s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
 		if err != nil {
 			return err
 		}
-		candidateNode.BaseInfo = baseInfo
-	}
+		cNode.BaseInfo = baseInfo
 
-	err = s.NodeManager.NodeOnline(candidateNode)
-	if err != nil {
-		log.Errorf("CandidateNodeConnect CandidateOnline err:%s,nodeID:%s", err.Error(), nodeID)
-		return err
+		err = s.NodeManager.NodeOnline(cNode)
+		if err != nil {
+			log.Errorf("nodeConnect err:%s,nodeID:%s", err.Error(), nodeID)
+			return err
+		}
 	}
 
 	s.DataSync.Add2List(nodeID)
@@ -170,57 +170,26 @@ func (s *Scheduler) CandidateNodeConnect(ctx context.Context, token string) erro
 	return nil
 }
 
+// CandidateNodeConnect Candidate connect
+func (s *Scheduler) CandidateNodeConnect(ctx context.Context, token string) error {
+	return s.nodeConnect(ctx, token, types.NodeCandidate)
+}
+
 // EdgeNodeConnect edge connect
 func (s *Scheduler) EdgeNodeConnect(ctx context.Context, token string) error {
-	remoteAddr := handler.GetRemoteAddr(ctx)
+	return s.nodeConnect(ctx, token, types.NodeEdge)
+}
+
+// SetNodeTCPAddr set node tcp server address
+func (s *Scheduler) SetNodeTCPAddr(ctx context.Context, addr string) error {
 	nodeID := handler.GetNodeID(ctx)
 
-	eNode := s.NodeManager.GetEdgeNode(nodeID)
-	if eNode != nil {
-		oAddr := eNode.Addr()
-		if oAddr != remoteAddr {
-			return xerrors.Errorf("node already login, addr : %s", oAddr)
-		}
-	} else {
-		if !s.nodeExists(nodeID, types.NodeEdge) {
-			return xerrors.Errorf("edge node not exists: %s", nodeID)
-		}
+	node := s.NodeManager.GetNode(nodeID)
+	if node == nil {
+		return xerrors.Errorf("%s node not found", nodeID)
 	}
 
-	log.Infof("edge connected %s; remoteAddr:%s", nodeID, remoteAddr)
-	edgeNode := node.NewEdge(token)
-	edgeAPI, err := edgeNode.ConnectRPC(remoteAddr, true, types.NodeEdge)
-	if err != nil {
-		return xerrors.Errorf("EdgeNodeConnect ConnectRPC err:%s", err.Error())
-	}
-
-	if eNode == nil {
-		// load node info
-		nodeInfo, err := edgeAPI.NodeInfo(ctx)
-		if err != nil {
-			log.Errorf("EdgeNodeConnect NodeInfo err:%s", err.Error())
-			return err
-		}
-
-		nodeInfo.NodeType = types.NodeEdge
-		nodeInfo.ServerID = s.ServerID
-
-		baseInfo, err := s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
-		if err != nil {
-			return err
-		}
-		natType := s.getNatType(context.Background(), edgeAPI, remoteAddr)
-		baseInfo.NatType = natType.String()
-		edgeNode.BaseInfo = baseInfo
-	}
-
-	err = s.NodeManager.NodeOnline(edgeNode)
-	if err != nil {
-		log.Errorf("EdgeNodeConnect EdgeOnline err:%s,nodeID:%s", err.Error(), nodeID)
-		return err
-	}
-
-	s.DataSync.Add2List(nodeID)
+	node.TCPAddr = addr
 
 	return nil
 }

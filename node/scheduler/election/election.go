@@ -102,6 +102,8 @@ func (v *Election) elect() error {
 	log.Debugln("start elect ")
 	validators := v.nodeMgr.ElectValidators(v.getValidatorRatio())
 
+	v.nodeMgr.ResetValidatorGroup(validators)
+
 	return v.UpdateValidators(validators, v.ServerID)
 }
 

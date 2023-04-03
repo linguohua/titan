@@ -24,7 +24,7 @@ import (
 // Node edge and candidate node
 type Node struct {
 	*API
-	closer jsonrpc.ClientCloser
+	jsonrpc.ClientCloser
 
 	token string
 	*BaseInfo
@@ -46,22 +46,13 @@ type API struct {
 	ValidateNodes      func(ctx context.Context, reqs []api.ValidateReq) (string, error)
 }
 
-// NewEdge new edge
-func NewEdge(token string) *Node {
-	edgeNode := &Node{
+// New new node
+func New(token string) *Node {
+	node := &Node{
 		token: token,
 	}
 
-	return edgeNode
-}
-
-// NewCandidate new candidate
-func NewCandidate(token string) *Node {
-	candidateNode := &Node{
-		token: token,
-	}
-
-	return candidateNode
+	return node
 }
 
 // APIFromEdge node api from edge api
@@ -95,17 +86,17 @@ func APIFromCandidate(api api.Candidate) *API {
 }
 
 // ConnectRPC connect node rpc
-func (n *Node) ConnectRPC(addr string, isNodeConnect bool, nodeType types.NodeType) (*API, error) {
+func (n *Node) ConnectRPC(addr string, isNodeConnect bool, nodeType types.NodeType) error {
 	if !isNodeConnect {
 		if addr == n.remoteAddr {
-			return n.API, nil
+			return nil
 		}
 
 		n.remoteAddr = addr
 
 		// close old
-		if n.closer != nil {
-			n.closer()
+		if n.ClientCloser != nil {
+			n.ClientCloser()
 		}
 	}
 	rpcURL := fmt.Sprintf("https://%s/rpc/v0", addr)
@@ -117,27 +108,27 @@ func (n *Node) ConnectRPC(addr string, isNodeConnect bool, nodeType types.NodeTy
 		// Connect to node
 		edgeAPI, closer, err := client.NewEdge(context.Background(), rpcURL, headers)
 		if err != nil {
-			return nil, xerrors.Errorf("NewEdge err:%s,url:%s", err.Error(), rpcURL)
+			return xerrors.Errorf("NewEdge err:%s,url:%s", err.Error(), rpcURL)
 		}
-		api := APIFromEdge(edgeAPI)
-		n.API = api
-		n.closer = closer
-		return api, nil
+
+		n.API = APIFromEdge(edgeAPI)
+		n.ClientCloser = closer
+		return nil
 	}
 
 	if nodeType == types.NodeCandidate {
 		// Connect to node
 		candidateAPI, closer, err := client.NewCandidate(context.Background(), rpcURL, headers)
 		if err != nil {
-			return nil, xerrors.Errorf("NewCandidate err:%s,url:%s", err.Error(), rpcURL)
+			return xerrors.Errorf("NewCandidate err:%s,url:%s", err.Error(), rpcURL)
 		}
-		api := APIFromCandidate(candidateAPI)
-		n.API = api
-		n.closer = closer
-		return api, nil
+
+		n.API = APIFromCandidate(candidateAPI)
+		n.ClientCloser = closer
+		return nil
 	}
 
-	return nil, xerrors.Errorf("node %s type %d not wrongful", n.NodeInfo.NodeID, n.NodeType)
+	return xerrors.Errorf("node %s type %d not wrongful", n.NodeInfo.NodeID, n.NodeType)
 }
 
 // BaseInfo Common
@@ -145,9 +136,12 @@ type BaseInfo struct {
 	*types.NodeInfo
 	publicKey  *rsa.PublicKey
 	remoteAddr string
+	TCPAddr    string
 
 	lastRequestTime time.Time
 	pullingCount    int // The number of asset waiting and pulling in progress
+
+	selectCode int
 }
 
 // NewBaseInfo new
@@ -166,8 +160,8 @@ func (n *BaseInfo) PublicKey() *rsa.PublicKey {
 	return n.publicKey
 }
 
-// Addr rpc url
-func (n *BaseInfo) Addr() string {
+// RemoteAddr rpc addr
+func (n *BaseInfo) RemoteAddr() string {
 	return n.remoteAddr
 }
 
