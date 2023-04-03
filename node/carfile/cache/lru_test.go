@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipld/go-car/v2/index"
+	titanindex "github.com/linguohua/titan/node/carfile/index"
 	"github.com/linguohua/titan/node/carfile/storage"
 	"github.com/multiformats/go-multihash"
 )
@@ -112,8 +114,40 @@ func TestIndex(t *testing.T) {
 		return nil
 	})
 
-	index := index.NewMultihashSorted()
-	index.Load(records)
-	t.Logf("len:%d", len(records))
+	t.Logf("record count:%d", len(records))
+
+	multiIndexSorted := titanindex.NewMultiIndexSorted(128)
+	err = multiIndexSorted.Load(records)
+	if err != nil {
+		t.Errorf("multiIndexSorted load error:%s", err.Error())
+		return
+	}
+
+	var buffer bytes.Buffer
+	n, err := multiIndexSorted.Marshal(&buffer)
+	if err != nil {
+		t.Errorf("marsahl error:%s, n:%d", err.Error(), n)
+		return
+	}
+
+	newIndex := titanindex.NewMultiIndexSorted(0)
+	err = newIndex.Unmarshal(&buffer)
+	if err != nil {
+		t.Errorf("Unmarshal error:%s, n:%d", err.Error(), n)
+		return
+	}
+
+	t.Logf("bucket size:%d, record count:%d", newIndex.BucketSize(), newIndex.RecordCount())
+
+	size := newIndex.BucketSize()
+	rcs, err := newIndex.GetBucket(12345 % size)
+	if err != nil {
+		t.Errorf("GetBucket error:%s", err.Error())
+		return
+	}
+
+	for _, record := range rcs {
+		t.Logf("record: %s", record.String())
+	}
 
 }

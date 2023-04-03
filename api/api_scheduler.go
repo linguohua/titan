@@ -29,6 +29,7 @@ type Scheduler interface {
 	NodeAuthNew(ctx context.Context, nodeID, sign string) (string, error)             //perm:read
 	NodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error)              //perm:read
 	NodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error) //perm:read
+	AssetListOfBucket(ctx context.Context, nodeID string) ([]string, error)           //perm:write
 	// get scheduler public key, format is pem
 	PublicKey(ctx context.Context) (string, error) //perm:write
 	// nat travel, can get edge external addr with different scheduler

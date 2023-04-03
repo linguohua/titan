@@ -21,7 +21,7 @@ import (
 
 	cliutil "github.com/linguohua/titan/cli/util"
 	"github.com/linguohua/titan/node"
-	"github.com/linguohua/titan/node/carfile/store"
+	"github.com/linguohua/titan/node/carfile/cache"
 	"github.com/linguohua/titan/node/gateway"
 	"github.com/linguohua/titan/node/modules/dtypes"
 
@@ -260,8 +260,8 @@ var runCmd = &cli.Command{
 
 				return dtypes.InternalIP(strings.Split(localAddr.IP.String(), ":")[0]), nil
 			}),
-			node.Override(node.RunGateway, func(cs *store.CarfileStore) error {
-				gw = gateway.NewGateway(cs, schedulerAPI, privateKey)
+			node.Override(node.RunGateway, func(cacheMgr *cache.Manager) error {
+				gw = gateway.NewGateway(cacheMgr, schedulerAPI, privateKey)
 
 				return nil
 			}),
