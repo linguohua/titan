@@ -93,9 +93,9 @@ type CommonStub struct {
 
 type DataSyncStruct struct {
 	Internal struct {
-		CompareCarfiles func(p0 context.Context, p1 uint32, p2 map[uint32][]string) error `perm:"write"`
+		CompareBucketChecksums func(p0 context.Context, p1 map[uint32]string) ([]uint32, error) `perm:"write"`
 
-		CompareChecksums func(p0 context.Context, p1 uint32, p2 map[uint32]string) ([]uint32, error) `perm:"write"`
+		CompareTopChecksum func(p0 context.Context, p1 string) (bool, error) `perm:"write"`
 	}
 }
 
@@ -181,6 +181,8 @@ type SchedulerStruct struct {
 	CommonStruct
 
 	Internal struct {
+		AssetListOfBucket func(p0 context.Context, p1 string) ([]string, error) `perm:"write"`
+
 		AssetRecord func(p0 context.Context, p1 string) (*types.AssetRecord, error) `perm:"read"`
 
 		AssetRecords func(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.AssetRecord, error) `perm:"read"`
@@ -470,26 +472,26 @@ func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 	return *new(APIVersion), ErrNotSupported
 }
 
-func (s *DataSyncStruct) CompareCarfiles(p0 context.Context, p1 uint32, p2 map[uint32][]string) error {
-	if s.Internal.CompareCarfiles == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.CompareCarfiles(p0, p1, p2)
-}
-
-func (s *DataSyncStub) CompareCarfiles(p0 context.Context, p1 uint32, p2 map[uint32][]string) error {
-	return ErrNotSupported
-}
-
-func (s *DataSyncStruct) CompareChecksums(p0 context.Context, p1 uint32, p2 map[uint32]string) ([]uint32, error) {
-	if s.Internal.CompareChecksums == nil {
+func (s *DataSyncStruct) CompareBucketChecksums(p0 context.Context, p1 map[uint32]string) ([]uint32, error) {
+	if s.Internal.CompareBucketChecksums == nil {
 		return *new([]uint32), ErrNotSupported
 	}
-	return s.Internal.CompareChecksums(p0, p1, p2)
+	return s.Internal.CompareBucketChecksums(p0, p1)
 }
 
-func (s *DataSyncStub) CompareChecksums(p0 context.Context, p1 uint32, p2 map[uint32]string) ([]uint32, error) {
+func (s *DataSyncStub) CompareBucketChecksums(p0 context.Context, p1 map[uint32]string) ([]uint32, error) {
 	return *new([]uint32), ErrNotSupported
+}
+
+func (s *DataSyncStruct) CompareTopChecksum(p0 context.Context, p1 string) (bool, error) {
+	if s.Internal.CompareTopChecksum == nil {
+		return false, ErrNotSupported
+	}
+	return s.Internal.CompareTopChecksum(p0, p1)
+}
+
+func (s *DataSyncStub) CompareTopChecksum(p0 context.Context, p1 string) (bool, error) {
+	return false, ErrNotSupported
 }
 
 func (s *DeviceStruct) NodeID(p0 context.Context) (string, error) {
@@ -666,6 +668,17 @@ func (s *LocatorStruct) UserDownloadBlockResults(p0 context.Context, p1 []types.
 
 func (s *LocatorStub) UserDownloadBlockResults(p0 context.Context, p1 []types.UserBlockDownloadResult) error {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) AssetListOfBucket(p0 context.Context, p1 string) ([]string, error) {
+	if s.Internal.AssetListOfBucket == nil {
+		return *new([]string), ErrNotSupported
+	}
+	return s.Internal.AssetListOfBucket(p0, p1)
+}
+
+func (s *SchedulerStub) AssetListOfBucket(p0 context.Context, p1 string) ([]string, error) {
+	return *new([]string), ErrNotSupported
 }
 
 func (s *SchedulerStruct) AssetRecord(p0 context.Context, p1 string) (*types.AssetRecord, error) {

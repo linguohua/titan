@@ -35,6 +35,6 @@ func NewBlockFetcherFromCandidate(cfg *config.EdgeCfg) fetcher.BlockFetcher {
 	return fetcher.NewCandidate(cfg.FetchBlockTimeout, cfg.FetchBlockRetry)
 }
 
-func NewCacherForDataSync(carfileImpl *carfile.CarfileImpl) datasync.Cacher {
-	return carfileImpl
+func NewSync(carfileImpl *carfile.CarfileImpl) datasync.Sync {
+	return nil
 }

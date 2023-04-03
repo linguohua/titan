@@ -2,177 +2,181 @@ package sync
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"hash/fnv"
 
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/linguohua/titan/node/carfile/store"
-	mh "github.com/multiformats/go-multihash"
 )
 
 var log = logging.Logger("datasync")
 
 type DataSync struct {
-	carfileStore *store.CarfileStore
-	cacher       Cacher
+	Sync
 }
 
-type Cacher interface {
-	CacheCarForSyncData(carfileHash []string) error
+type Sync interface {
+	GetTopChecksum(ctx context.Context) (string, error)
+	GetBucketChecksums(ctx context.Context) (map[uint32]string, error)
+	GetCarsOfBucketLocal(ctx context.Context, bucketID uint32) ([]cid.Cid, error)
+	GetCarsOfBucketRemote(ctx context.Context, bucketID uint32) ([]cid.Cid, error)
+	DeleteCar(root cid.Cid) error
+	AddLostCar(root cid.Cid) error
 }
 
-func NewDataSync(carfileStore *store.CarfileStore, cacher Cacher) *DataSync {
-	return &DataSync{carfileStore: carfileStore, cacher: cacher}
+func NewDataSync(sync Sync) *DataSync {
+	return &DataSync{sync}
 }
 
-func (ds *DataSync) CompareChecksums(ctx context.Context, bucketCount uint32, checksums map[uint32]string) (mismatchKey []uint32, err error) {
-	hashes, err := ds.carfileStore.CarfileHashes()
+// CompareTopChecksums can check asset if same as scheduler
+// topChecksum is checksum of all buckets
+func (ds *DataSync) CompareTopChecksum(ctx context.Context, topChecksum string) (bool, error) {
+	checksum, err := ds.GetTopChecksum(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return checksum == topChecksum, nil
+}
+
+// CompareBucketChecksums group asset in bucket, and compare single bucket checksum
+//  checksums are list of bucket checksum
+func (ds *DataSync) CompareBucketChecksums(ctx context.Context, checksums map[uint32]string) ([]uint32, error) {
+	localChecksums, err := ds.GetBucketChecksums(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	multihashes := ds.multihashSort(hashes, bucketCount)
-	css, err := ds.caculateChecksums(multihashes)
-	if err != nil {
-		return nil, err
-	}
+	mismatchBuckets := make([]uint32, 0)
+	lostBuckets := make([]uint32, 0)
 
-	for k, v := range checksums {
-		cs := css[k]
-		if cs != v {
-			mismatchKey = append(mismatchKey, k)
-		}
-		delete(multihashes, k)
-	}
-
-	// Remove the redundant carfile
-	for _, v := range multihashes {
-		err := ds.removeCarfiles(v)
-		if err != nil {
-			log.Errorf("remove carfiles error %s", err.Error())
+	for k, checksum := range checksums {
+		if cs, ok := localChecksums[k]; ok {
+			if cs != checksum {
+				mismatchBuckets = append(mismatchBuckets, k)
+			}
+			delete(localChecksums, k)
+		} else {
+			lostBuckets = append(lostBuckets, k)
 		}
 	}
 
-	return mismatchKey, nil
+	extraBuckets := make([]uint32, 0)
+	for k := range localChecksums {
+		extraBuckets = append(extraBuckets, k)
+	}
+
+	go ds.doSync(ctx, extraBuckets, lostBuckets, mismatchBuckets)
+
+	return append(mismatchBuckets, lostBuckets...), nil
 }
 
-func (ds *DataSync) multihashSort(hashes []string, bucketCount uint32) map[uint32][]string {
-	multihashes := make(map[uint32][]string)
-	// appen carfilehash by hash code
-	for _, hash := range hashes {
-		multihash, err := mh.FromHexString(hash)
-		if err != nil {
-			log.Errorf("decode multihash error:%s", err.Error())
-			continue
-		}
-
-		h := fnv.New32a()
-		h.Write(multihash)
-		k := h.Sum32() % bucketCount
-
-		multihashes[k] = append(multihashes[k], hash)
+func (ds *DataSync) doSync(ctx context.Context, extraBuckets, lostBuckets, mismatchBuckets []uint32) {
+	if len(extraBuckets) > 0 {
+		ds.removeExtraAsset(ctx, extraBuckets)
 	}
 
-	return multihashes
-}
-
-func (ds *DataSync) caculateChecksums(multihashes map[uint32][]string) (map[uint32]string, error) {
-	checksums := make(map[uint32]string)
-	for k, v := range multihashes {
-		checksum, err := ds.caculateChecksum(v)
-		if err != nil {
-			return nil, err
-		}
-
-		checksums[k] = checksum
+	if len(lostBuckets) > 0 {
+		ds.addLostAsset(ctx, lostBuckets)
 	}
-	return checksums, nil
-}
 
-func (ds *DataSync) caculateChecksum(carfileHashes []string) (string, error) {
-	hash := sha256.New()
-
-	for _, h := range carfileHashes {
-		data := []byte(h)
-		_, err := hash.Write(data)
-		if err != nil {
-			return "", err
-		}
+	if len(mismatchBuckets) > 0 {
+		ds.repairMismatchAsset(ctx, mismatchBuckets)
 	}
-	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func (ds *DataSync) removeCarfiles(carfiles []string) error {
-	for _, hash := range carfiles {
-		multihash, err := mh.FromHexString(hash)
+func (ds *DataSync) removeExtraAsset(ctx context.Context, buckets []uint32) error {
+	cars := make([]cid.Cid, 0)
+	for _, bucketID := range buckets {
+		cs, err := ds.GetCarsOfBucketLocal(ctx, bucketID)
 		if err != nil {
 			return err
 		}
-
-		cid := cid.NewCidV1(cid.Raw, multihash)
-		err = ds.carfileStore.DeleteCarfile(cid)
-		if err != nil {
-			return err
-		}
+		cars = append(cars, cs...)
 	}
 
+	for _, car := range cars {
+		ds.DeleteCar(car)
+	}
 	return nil
 }
 
-func (ds *DataSync) CompareCarfiles(ctx context.Context, bucketCount uint32, multiHashes map[uint32][]string) error {
-	hashes, err := ds.carfileStore.CarfileHashes()
-	if err != nil {
-		return err
+func (ds *DataSync) addLostAsset(ctx context.Context, buckets []uint32) error {
+	cars := make([]cid.Cid, 0)
+	for _, bucketID := range buckets {
+		cs, err := ds.GetCarsOfBucketLocal(ctx, bucketID)
+		if err != nil {
+			return err
+		}
+		cars = append(cars, cs...)
 	}
 
-	needToDownloadCarfiles := make([]string, 0)
-	needToDeleteCarfiles := make([]string, 0)
-	mhs := ds.multihashSort(hashes, bucketCount)
-
-	for k, v := range multiHashes {
-		mh, ok := mhs[k]
-		if !ok {
-			needToDownloadCarfiles = append(needToDownloadCarfiles, v...)
-			continue
-		}
-
-		r, l := ds.compareCarfiles(v, mh)
-		if len(r) > 0 {
-			needToDeleteCarfiles = append(needToDeleteCarfiles, r...)
-		}
-		if len(l) > 0 {
-			needToDownloadCarfiles = append(needToDownloadCarfiles, l...)
-		}
+	for _, car := range cars {
+		ds.AddLostCar(car)
 	}
-
-	if err := ds.cacher.CacheCarForSyncData(needToDownloadCarfiles); err != nil {
-		log.Errorf("CacheCarForSyncData error: %s", err.Error())
-	}
-
-	return ds.removeCarfiles(needToDeleteCarfiles)
+	return nil
 }
 
-func (ds *DataSync) compareCarfiles(dest []string, src []string) (redundant, lack []string) {
-	destMap := make(map[string]struct{})
-
-	for _, v := range dest {
-		destMap[v] = struct{}{}
-	}
-
-	for _, v := range src {
-		if _, ok := destMap[v]; !ok {
-			redundant = append(redundant, v)
-			continue
+func (ds *DataSync) repairMismatchAsset(ctx context.Context, buckets []uint32) error {
+	extraCars := make([]cid.Cid, 0)
+	lostCars := make([]cid.Cid, 0)
+	for _, bucketID := range buckets {
+		extras, lost, err := ds.compareBuckets(ctx, bucketID)
+		if err != nil {
+			return err
 		}
 
-		delete(destMap, v)
+		if len(extras) > 0 {
+			extraCars = append(extraCars, extras...)
+		}
+
+		if len(lost) > 0 {
+			lostCars = append(lostCars, lost...)
+		}
+
 	}
 
-	for k := range destMap {
-		lack = append(lack, k)
+	for _, car := range extraCars {
+		ds.DeleteCar(car)
 	}
 
-	return
+	for _, car := range lostCars {
+		ds.AddLostCar(car)
+	}
+	return nil
+}
+
+// return extra cars and lost cars
+func (ds *DataSync) compareBuckets(ctx context.Context, bucketID uint32) ([]cid.Cid, []cid.Cid, error) {
+	localCars, err := ds.GetCarsOfBucketLocal(ctx, bucketID)
+	if err != nil {
+		return nil, nil, err
+	}
+	remoteCars, err := ds.GetCarsOfBucketRemote(ctx, bucketID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return ds.compareCars(ctx, localCars, remoteCars)
+}
+
+// return extra cars and lost cars
+func (ds *DataSync) compareCars(ctx context.Context, localCars []cid.Cid, remoteCars []cid.Cid) ([]cid.Cid, []cid.Cid, error) {
+	localCarMap := make(map[string]cid.Cid, 0)
+	for _, car := range localCars {
+		localCarMap[car.Hash().String()] = car
+	}
+
+	lostCars := make([]cid.Cid, 0)
+	for _, car := range remoteCars {
+		if _, ok := localCarMap[car.Hash().String()]; ok {
+			delete(localCarMap, car.Hash().String())
+		} else {
+			lostCars = append(lostCars, car)
+		}
+	}
+
+	extraCars := make([]cid.Cid, 0)
+	for _, car := range localCarMap {
+		extraCars = append(extraCars, car)
+	}
+	return extraCars, lostCars, nil
 }

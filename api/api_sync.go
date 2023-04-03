@@ -4,12 +4,13 @@ import (
 	"context"
 )
 
+// DataSync sync scheduler asset to node
 type DataSync interface {
-	// sort multiHashes by bucketCount
-	// checksums's key is hash code, within 0 ~ bucketCount
-	// return key of mismatch checksum
-	CompareChecksums(ctx context.Context, bucketCount uint32, checksums map[uint32]string) (mismatchKeys []uint32, err error) //perm:write
-	// compare carfile one by one
-	// multiHashes's key is hash code, within 0 ~ bucketCount
-	CompareCarfiles(ctx context.Context, bucketCount uint32, multiHashes map[uint32][]string) error //perm:write
+	// CompareTopChecksums can check asset is same as scheduler
+	// topChecksum is checksum of all buckets
+	CompareTopChecksum(ctx context.Context, topChecksum string) (bool, error) //perm:write
+	// CompareBucketChecksums group asset in bucket, and compare single bucket checksum
+	// checksums are map of bucket, key is bucket index, value is checksum
+	// return mismatch bucket index
+	CompareBucketChecksums(ctx context.Context, checksums map[uint32]string) ([]uint32, error) //perm:write
 }
