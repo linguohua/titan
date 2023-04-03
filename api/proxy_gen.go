@@ -245,6 +245,8 @@ type SchedulerStruct struct {
 
 		SetNodePort func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
+		SetNodeTCPAddr func(p0 context.Context, p1 string) error `perm:"write"`
+
 		StartOnceElection func(p0 context.Context) error `perm:"admin"`
 
 		SubmitProofOfWork func(p0 context.Context, p1 []*types.NodeWorkloadProof) error `perm:"read"`
@@ -1015,6 +1017,17 @@ func (s *SchedulerStruct) SetNodePort(p0 context.Context, p1 string, p2 string) 
 }
 
 func (s *SchedulerStub) SetNodePort(p0 context.Context, p1 string, p2 string) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) SetNodeTCPAddr(p0 context.Context, p1 string) error {
+	if s.Internal.SetNodeTCPAddr == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.SetNodeTCPAddr(p0, p1)
+}
+
+func (s *SchedulerStub) SetNodeTCPAddr(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 

@@ -44,7 +44,7 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 	}
 
 	// save to db
-	err := m.saveCandidateReplicaInfos(nodes, info.Hash.String())
+	err := m.saveReplicaInfos(nodes, info.Hash.String(), true)
 	if err != nil {
 		return ctx.Send(SelectFailed{error: err})
 	}
@@ -97,7 +97,7 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 	}
 
 	// save to db
-	err := m.saveCandidateReplicaInfos(nodes, info.Hash.String())
+	err := m.saveReplicaInfos(nodes, info.Hash.String(), true)
 	if err != nil {
 		return ctx.Send(SelectFailed{error: err})
 	}
@@ -157,7 +157,7 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 	}
 
 	// save to db
-	err := m.saveEdgeReplicaInfos(nodes, info.Hash.String())
+	err := m.saveReplicaInfos(nodes, info.Hash.String(), false)
 	if err != nil {
 		return ctx.Send(SelectFailed{error: err})
 	}

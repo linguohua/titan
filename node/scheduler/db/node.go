@@ -101,7 +101,7 @@ func (n *SQLDB) SetValidateResultsTimeout(roundID string) error {
 
 // LoadValidateResultInfos load validator result infos
 func (n *SQLDB) LoadValidateResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) {
-	// TODO problematic
+	// TODO problematic from web
 	res := new(types.ListValidateResultRsp)
 	var infos []types.ValidateResultInfo
 	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM %s WHERE start_time between ? and ? order by id asc  LIMIT ?,? ", validateResultTable)
@@ -202,6 +202,18 @@ func (n *SQLDB) LoadValidators(serverID dtypes.ServerID) ([]string, error) {
 	}
 
 	return out, nil
+}
+
+// IsValidator Determine whether the node is a validator
+func (n *SQLDB) IsValidator(nodeID string) (bool, error) {
+	var count int64
+	sQuery := fmt.Sprintf("SELECT count(node_id) FROM %s WHERE node_id=?", validatorsTable)
+	err := n.db.Get(&count, sQuery, nodeID)
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }
 
 // UpdateValidatorInfo reset scheduler server id for validator
