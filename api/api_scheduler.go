@@ -20,11 +20,10 @@ type Scheduler interface {
 	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error                  //perm:write
 	// node send result when user download block complete
 	UserDownloadResult(ctx context.Context, result types.UserDownloadResult) error    //perm:write
-	EdgeNodeConnect(ctx context.Context, token string) error                          //perm:write
+	EdgeNodeConnect(ctx context.Context, opts *types.ConnectOptions) error            //perm:write
 	NodeValidatedResult(ctx context.Context, validateResult ValidateResult) error     //perm:write
-	CandidateNodeConnect(ctx context.Context, token string) error                     //perm:write
+	CandidateNodeConnect(ctx context.Context, opts *types.ConnectOptions) error       //perm:write
 	RemoveAssetResult(ctx context.Context, resultInfo types.RemoveAssetResult) error  //perm:write
-	SetNodeTCPAddr(ctx context.Context, addr string) error                            //perm:write
 	NodeExternalServiceAddress(ctx context.Context) (string, error)                   //perm:read
 	NodeAuthVerify(ctx context.Context, token string) ([]auth.Permission, error)      //perm:read
 	NodeAuthNew(ctx context.Context, nodeID, sign string) (string, error)             //perm:read

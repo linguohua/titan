@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -305,6 +306,16 @@ var runCmd = &cli.Command{
 			return xerrors.Errorf("getting scheduler session: %w", err)
 		}
 
+		_, port, err := net.SplitHostPort(candidateCfg.TCPSrvAddr)
+		if err != nil {
+			return xerrors.Errorf("split tcp server addr: %w", err)
+		}
+
+		tcpServerPort, err := strconv.Atoi(port)
+		if err != nil {
+			return xerrors.Errorf("convert tcp server port from string: %w", err)
+		}
+
 		waitQuietCh := func() chan struct{} {
 			out := make(chan struct{})
 			go func() {
@@ -355,7 +366,8 @@ var runCmd = &cli.Command{
 
 					select {
 					case <-readyCh:
-						err := schedulerAPI.CandidateNodeConnect(ctx, token)
+						opts := &types.ConnectOptions{Token: token, TcpServerPort: tcpServerPort}
+						err := schedulerAPI.CandidateNodeConnect(ctx, opts)
 						if err != nil {
 							log.Errorf("Registering candidate failed: %+v", err)
 							cancel()
