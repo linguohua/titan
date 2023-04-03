@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -126,7 +127,7 @@ func (m *Manager) doDownloadCar() {
 	}
 	defer m.removeCarFromWaitList(cw.Root)
 
-	carfileCache, err := m.restoreCarfileCacheOrNew(&options{cw.Root, cw.Dss, m, m.bFetcher, m.downloadBatch})
+	carfileCache, err := m.restoreCarfileCacheOrNew(&options{cw.Root, cw.Dss, m.Storage, m.bFetcher, m.downloadBatch})
 	if err != nil {
 		log.Errorf("restore carfile cache error:%s", err)
 		return
@@ -216,12 +217,6 @@ func (m *Manager) onDownloadCarFinish(cf *carfileCache) {
 			log.Errorf("remove car cache error:%s", err.Error())
 		}
 
-		if idx, err := m.lru.carIndex(cf.root); err == nil {
-			if err := m.AddTopIndex(context.Background(), cf.root, idx); err != nil {
-				log.Errorf("add index error:%s", err.Error())
-			}
-		}
-
 		blockCountOfCar := uint32(len(cf.blocksDownloadSuccessList))
 		if err := m.SetBlockCountOfCar(context.Background(), cf.root, blockCountOfCar); err != nil {
 			log.Errorf("set block count error:%s", err.Error())
@@ -279,13 +274,6 @@ func (m *Manager) CachingCar() *carfileCache {
 }
 
 func (m *Manager) DeleteCar(root cid.Cid) error {
-	idx, err := m.lru.carIndex(root)
-	if err != nil {
-		return err
-	}
-	// remove top index
-	m.RemoveTopIndex(context.Background(), root, idx)
-
 	// remove lru cache
 	m.lru.remove(root)
 
@@ -403,51 +391,12 @@ func (m *Manager) ProgressForFailedCar(root cid.Cid) (*types.AssetPullProgress, 
 	return progress, nil
 }
 
-func (m *Manager) GetBlock(ctx context.Context, c cid.Cid) (blocks.Block, error) {
-	roots, err := m.FindCars(ctx, c)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(roots) == 0 {
-		return nil, xerrors.Errorf("can not find car for block %s", c.String())
-	}
-
-	for _, root := range roots {
-		blk, err := m.lru.getBlock(ctx, root, c)
-		if err != nil {
-			continue
-		}
-
-		return blk, nil
-	}
-
-	return nil, xerrors.Errorf("find car %d, but can't get block", len(roots))
+func (m *Manager) GetBlock(ctx context.Context, root, block cid.Cid) (blocks.Block, error) {
+	return m.lru.getBlock(ctx, root, block)
 }
 
-func (m *Manager) HasBlock(ctx context.Context, c cid.Cid) (bool, error) {
-	roots, err := m.FindCars(ctx, c)
-	if err != nil {
-		return false, err
-	}
-
-	if len(roots) == 0 {
-		return false, nil
-	}
-
-	for _, root := range roots {
-		exist, err := m.lru.hasBlock(ctx, root, c)
-		if err != nil {
-			return false, err
-		}
-
-		if !exist {
-			continue
-		}
-
-		return true, nil
-	}
-	return false, nil
+func (m *Manager) HasBlock(ctx context.Context, root, block cid.Cid) (bool, error) {
+	return m.lru.hasBlock(ctx, root, block)
 }
 
 func (m *Manager) iterableIndex(ctx context.Context, root cid.Cid) (index.IterableIndex, error) {
@@ -486,4 +435,32 @@ func (m *Manager) GetBlocksOfCarfile(root cid.Cid, indices []int) (map[int]strin
 	})
 
 	return indicesMap, nil
+}
+
+// AddLostCar implement data sync interface
+func (m *Manager) AddLostCar(root cid.Cid) error {
+	if has, err := m.HasCar(root); err != nil {
+		return err
+	} else if has {
+		return nil
+	}
+
+	switch types.RunningNodeType {
+	case types.NodeCandidate:
+		m.AddToWaitList(root, nil)
+	case types.NodeEdge:
+		return fmt.Errorf("not implement")
+	default:
+		return fmt.Errorf("not support node type:%s", types.RunningNodeType)
+	}
+
+	return nil
+}
+
+// GetCarsOfBucket data sync interface
+func (m *Manager) GetCarsOfBucket(ctx context.Context, bucketID uint32, isRemote bool) ([]cid.Cid, error) {
+	if !isRemote {
+		return m.Storage.GetCarsOfBucket(ctx, bucketID)
+	}
+	return nil, nil
 }

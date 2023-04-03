@@ -12,11 +12,13 @@ func init() {
 	_ = logging.SetLogLevel("carfile/store", "DEBUG")
 }
 func TestBucket(t *testing.T) {
-	bucket, err := newBucket("./test", 100)
+	ds, err := newKVstore("./test")
 	if err != nil {
-		t.Errorf("new bucket error:%s", err.Error())
+		t.Errorf("new kv store error:%s", err.Error())
 		return
 	}
+
+	bucket := &bucket{ds: ds, size: 100}
 
 	cidStr := "QmTcAg1KeDYJFpTJh3rkZGLhnnVKeXWNtjwPufjVvwPTpG"
 	c1, err := cid.Decode(cidStr)
@@ -25,7 +27,7 @@ func TestBucket(t *testing.T) {
 		return
 	}
 
-	bucket.put(context.Background(), c1)
+	bucket.addCar(context.Background(), c1)
 
 	cidStr = "QmUuNfFwuRrxbRFt5ze3EhuQgkGnutwZtsYMbAcYbtb6j3"
 	c2, err := cid.Decode(cidStr)
@@ -34,27 +36,14 @@ func TestBucket(t *testing.T) {
 		return
 	}
 
-	err = bucket.put(context.Background(), c2)
+	err = bucket.addCar(context.Background(), c2)
 	if err != nil {
 		t.Errorf("put error:%s", err.Error())
 		return
 	}
 
-	index := bucket.index(c1.Hash())
-	mhs, err := bucket.get(context.Background(), index)
-	if err != nil {
-		t.Errorf("put error:%s", err.Error())
-		return
-	}
-
-	t.Logf("index:%d", index)
-
-	for _, mh := range mhs {
-		t.Logf("mh:%s", mh.String())
-	}
-
-	index = bucket.index(c2.Hash())
-	mhs, err = bucket.get(context.Background(), index)
+	index := bucket.bucketID(c1)
+	cars, err := bucket.getCars(context.Background(), uint32(index))
 	if err != nil {
 		t.Errorf("put error:%s", err.Error())
 		return
@@ -62,7 +51,20 @@ func TestBucket(t *testing.T) {
 
 	t.Logf("index:%d", index)
 
-	for _, mh := range mhs {
-		t.Logf("mh:%s", mh.String())
+	for _, car := range cars {
+		t.Logf("mh:%s", car.String())
+	}
+
+	index = bucket.bucketID(c2)
+	cars, err = bucket.getCars(context.Background(), uint32(index))
+	if err != nil {
+		t.Errorf("put error:%s", err.Error())
+		return
+	}
+
+	t.Logf("index:%d", index)
+
+	for _, car := range cars {
+		t.Logf("mh:%s", car.String())
 	}
 }

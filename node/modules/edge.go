@@ -1,7 +1,6 @@
 package modules
 
 import (
-	"github.com/linguohua/titan/node/carfile"
 	"github.com/linguohua/titan/node/carfile/cache"
 	"github.com/linguohua/titan/node/carfile/fetcher"
 	"github.com/linguohua/titan/node/carfile/storage"
@@ -35,6 +34,6 @@ func NewBlockFetcherFromCandidate(cfg *config.EdgeCfg) fetcher.BlockFetcher {
 	return fetcher.NewCandidate(cfg.FetchBlockTimeout, cfg.FetchBlockRetry)
 }
 
-func NewSync(carfileImpl *carfile.CarfileImpl) datasync.Sync {
-	return nil
+func NewDataSync(cacheMgr *cache.Manager) *datasync.DataSync {
+	return datasync.NewDataSync(cacheMgr)
 }

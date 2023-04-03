@@ -93,7 +93,7 @@ type CommonStub struct {
 
 type DataSyncStruct struct {
 	Internal struct {
-		CompareBucketChecksums func(p0 context.Context, p1 map[uint32]string) ([]uint32, error) `perm:"write"`
+		CompareBucketsChecksums func(p0 context.Context, p1 map[uint32]string) ([]uint32, error) `perm:"write"`
 
 		CompareTopChecksum func(p0 context.Context, p1 string) (bool, error) `perm:"write"`
 	}
@@ -472,14 +472,14 @@ func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 	return *new(APIVersion), ErrNotSupported
 }
 
-func (s *DataSyncStruct) CompareBucketChecksums(p0 context.Context, p1 map[uint32]string) ([]uint32, error) {
-	if s.Internal.CompareBucketChecksums == nil {
+func (s *DataSyncStruct) CompareBucketsChecksums(p0 context.Context, p1 map[uint32]string) ([]uint32, error) {
+	if s.Internal.CompareBucketsChecksums == nil {
 		return *new([]uint32), ErrNotSupported
 	}
-	return s.Internal.CompareBucketChecksums(p0, p1)
+	return s.Internal.CompareBucketsChecksums(p0, p1)
 }
 
-func (s *DataSyncStub) CompareBucketChecksums(p0 context.Context, p1 map[uint32]string) ([]uint32, error) {
+func (s *DataSyncStub) CompareBucketsChecksums(p0 context.Context, p1 map[uint32]string) ([]uint32, error) {
 	return *new([]uint32), ErrNotSupported
 }
 
