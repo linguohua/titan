@@ -27,6 +27,8 @@ const (
 	validatorsTable     = "validators"
 	nodeRegisterTable   = "node_register_info"
 	validateResultTable = "validate_result"
+	AssetsView          = "assets_view"
+	bucket              = "bucket"
 
 	loadNodeInfosLimit           = 100
 	loadReplicaInfosLimit        = 100

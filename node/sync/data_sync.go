@@ -15,9 +15,9 @@ type DataSync struct {
 
 type Sync interface {
 	// GetTopChecksum local top checksum
-	GetTopChecksum(ctx context.Context) (string, error)
-	// GetBucketsChecksums local checksums of all buckets
-	GetBucketsChecksums(ctx context.Context) (map[uint32]string, error)
+	GetTopHash(ctx context.Context) (string, error)
+	// GetBucketChecksums local checksums of all buckets
+	GetBucketHashes(ctx context.Context) (map[uint32]string, error)
 	// GetCarsOfBucket isLocalOrRemote default false is local, true is remote
 	GetCarsOfBucket(ctx context.Context, bucketID uint32, isRemote bool) ([]cid.Cid, error)
 	DeleteCar(root cid.Cid) error
@@ -30,19 +30,19 @@ func NewDataSync(sync Sync) *DataSync {
 
 // CompareTopChecksums can check asset if same as scheduler
 // topChecksum is checksum of all buckets
-func (ds *DataSync) CompareTopChecksum(ctx context.Context, topChecksum string) (bool, error) {
-	checksum, err := ds.GetTopChecksum(ctx)
+func (ds *DataSync) CompareTopHash(ctx context.Context, topHash string) (bool, error) {
+	hash, err := ds.GetTopHash(ctx)
 	if err != nil {
 		return false, err
 	}
 
-	return checksum == topChecksum, nil
+	return hash == topHash, nil
 }
 
 // CompareBucketChecksums group asset in bucket, and compare single bucket checksum
 //  checksums are list of bucket checksum
-func (ds *DataSync) CompareBucketsChecksums(ctx context.Context, checksums map[uint32]string) ([]uint32, error) {
-	localChecksums, err := ds.GetBucketsChecksums(ctx)
+func (ds *DataSync) CompareBucketHashes(ctx context.Context, hashes map[uint32]string) ([]uint32, error) {
+	localHashes, err := ds.GetBucketHashes(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -50,19 +50,19 @@ func (ds *DataSync) CompareBucketsChecksums(ctx context.Context, checksums map[u
 	mismatchBuckets := make([]uint32, 0)
 	lostBuckets := make([]uint32, 0)
 
-	for k, checksum := range checksums {
-		if cs, ok := localChecksums[k]; ok {
-			if cs != checksum {
+	for k, hash := range hashes {
+		if h, ok := localHashes[k]; ok {
+			if h != hash {
 				mismatchBuckets = append(mismatchBuckets, k)
 			}
-			delete(localChecksums, k)
+			delete(localHashes, k)
 		} else {
 			lostBuckets = append(lostBuckets, k)
 		}
 	}
 
 	extraBuckets := make([]uint32, 0)
-	for k := range localChecksums {
+	for k := range localHashes {
 		extraBuckets = append(extraBuckets, k)
 	}
 

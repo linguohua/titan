@@ -23,12 +23,12 @@ type Storage interface {
 	BlockCountOfCar(ctx context.Context, root cid.Cid) (uint32, error)
 	SetBlockCountOfCar(ctx context.Context, root cid.Cid, count uint32) error
 
-	// data view
-	SetTopChecksum(ctx context.Context, checksum string) error
-	SetBucketsChecksums(ctx context.Context, checksums map[uint32]string) error
-	GetTopChecksum(ctx context.Context) (string, error)
-	GetBucketsChecksums(ctx context.Context) (map[uint32]string, error)
+	// assets view
+	GetTopHash(ctx context.Context) (string, error)
+	GetBucketHashes(ctx context.Context) (map[uint32]string, error)
 	GetCarsOfBucket(ctx context.Context, bucketID uint32) ([]cid.Cid, error)
+	addCar(ctx context.Context, root cid.Cid) error
+	removeCar(ctx context.Context, root cid.Cid) error
 
 	PutWaitList(data []byte) error
 	GetWaitList() ([]byte, error)

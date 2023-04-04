@@ -1,8 +1,10 @@
 package db
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/gob"
 	"fmt"
 	"time"
 
@@ -323,4 +325,74 @@ func (n *SQLDB) LoadNodeInfo(nodeID string) (*types.NodeInfo, error) {
 	}
 
 	return &out, nil
+}
+
+func (n *SQLDB) LoadTopHash(nodeID string) (string, error) {
+	query := fmt.Sprintf(`SELECT top_hash FROM %s WHERE node_id=?`, AssetsView)
+
+	var out string
+	err := n.db.Select(&out, query, nodeID)
+	if err != nil {
+		return "", err
+	}
+
+	return out, nil
+}
+
+func (n *SQLDB) LoadBucketHashes(nodeID string) (map[uint32]string, error) {
+	query := fmt.Sprintf(`SELECT bucket_hashes FROM %s WHERE node_id=?`, AssetsView)
+
+	var data []byte
+	err := n.db.Select(&data, query, nodeID)
+	if err != nil {
+		return nil, err
+	}
+
+	buffer := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(buffer)
+
+	out := make(map[uint32]string)
+	err = dec.Decode(&out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (n *SQLDB) UpsertAssetsView(nodeID string, topHash string, bucketHashes []byte) error {
+	query := fmt.Sprintf(
+		`INSERT INTO %s (node_id, top_hash, bucket_hashes) VALUES (:node_id, :top_hash, :bucket_hashes) 
+				ON DUPLICATE KEY UPDATE top_hash=:top_hash, bucket_hashes=:bucket_hashes`, AssetsView)
+
+	_, err := n.db.Exec(query, nodeID, topHash, bucketHashes)
+	return err
+}
+
+func (n *SQLDB) LoadBucket(bucketID string) ([]string, error) {
+	query := fmt.Sprintf(`SELECT assets_ids FROM %s WHERE bucket_id=?`, bucket)
+
+	var data []byte
+	err := n.db.Select(&data, query, bucketID)
+	if err != nil {
+		return nil, err
+	}
+
+	buffer := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(buffer)
+
+	out := make([]string, 0)
+	err = dec.Decode(&out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (n *SQLDB) UpsertBucket(bucketID string, assetsIDs []byte) error {
+	query := fmt.Sprintf(
+		`INSERT INTO %s (bucket_id, assets_ids) VALUES (:bucket_id, :assets_ids) 
+				ON DUPLICATE KEY UPDATE assetsIDs=:assets_ids`, bucket)
+
+	_, err := n.db.Exec(query, bucketID, assetsIDs)
+	return err
 }
