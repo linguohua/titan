@@ -136,7 +136,7 @@ type BaseInfo struct {
 	*types.NodeInfo
 	publicKey  *rsa.PublicKey
 	remoteAddr string
-	TCPAddr    string
+	tcpPort    int
 
 	lastRequestTime time.Time
 	pullingCount    int // The number of asset waiting and pulling in progress
@@ -145,11 +145,12 @@ type BaseInfo struct {
 }
 
 // NewBaseInfo new
-func NewBaseInfo(nodeInfo *types.NodeInfo, pKey *rsa.PublicKey, addr string) *BaseInfo {
+func NewBaseInfo(nodeInfo *types.NodeInfo, pKey *rsa.PublicKey, addr string, tcpPort int) *BaseInfo {
 	bi := &BaseInfo{
 		NodeInfo:   nodeInfo,
 		publicKey:  pKey,
 		remoteAddr: addr,
+		tcpPort:    tcpPort,
 	}
 
 	return bi
@@ -163,6 +164,11 @@ func (n *BaseInfo) PublicKey() *rsa.PublicKey {
 // RemoteAddr rpc addr
 func (n *BaseInfo) RemoteAddr() string {
 	return n.remoteAddr
+}
+
+// TCPAddr tcp addr
+func (n *BaseInfo) TCPAddr() string {
+	return fmt.Sprintf("%s:%d", n.remoteAddr, n.pullingCount)
 }
 
 // RPCURL rpc url

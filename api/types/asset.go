@@ -6,14 +6,6 @@ import (
 	"github.com/linguohua/titan/node/modules/dtypes"
 )
 
-// ListAssetRecordRsp Data List Info
-type ListAssetRecordRsp struct {
-	Page      int
-	TotalPage int
-	Cids      int
-	records   []*AssetRecord
-}
-
 // AssetPullProgress pull asset progress
 type AssetPullProgress struct {
 	CID             string

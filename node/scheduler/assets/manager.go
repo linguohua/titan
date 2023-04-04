@@ -200,7 +200,7 @@ func (m *Manager) PullAssets(info *types.PullAssetReq) error {
 		return xerrors.Errorf("The number of replicas %d exceeds the limit %d", info.Replicas, maxReplicas)
 	}
 
-	log.Debugf("asset event: %s, add asset replica: %d,expiration: %s", info.CID, info.Replicas, info.Expiration.String())
+	log.Infof("asset event: %s, add asset replica: %d,expiration: %s", info.CID, info.Replicas, info.Expiration.String())
 
 	cInfo, err := m.LoadAssetRecord(info.Hash)
 	if err != nil && err != sql.ErrNoRows {
@@ -219,8 +219,6 @@ func (m *Manager) PullAssets(info *types.PullAssetReq) error {
 			CandidateReplicas: m.GetCandidateReplicaCount(),
 		})
 	}
-
-	// TODO init asset record
 
 	return xerrors.New("asset exists")
 }

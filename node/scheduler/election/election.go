@@ -2,7 +2,6 @@ package election
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -23,7 +22,6 @@ type Election struct {
 	opts     EleOption
 	updateCh chan struct{}
 	nodeMgr  *node.Manager
-	lock     sync.RWMutex
 	config   dtypes.GetSchedulerConfigFunc
 	*db.SQLDB
 	dtypes.ServerID

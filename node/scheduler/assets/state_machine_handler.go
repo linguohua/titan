@@ -194,7 +194,7 @@ func (m *Manager) handleEdgesPulling(ctx statemachine.Context, info AssetPulling
 }
 
 func (m *Manager) handleServicing(ctx statemachine.Context, info AssetPullingInfo) error {
-	log.Debugf("handle asset servicing: %s", info.CID)
+	log.Infof("handle asset servicing: %s", info.CID)
 	m.removeAssetTicker(info.Hash.String())
 
 	return nil
@@ -204,10 +204,11 @@ func (m *Manager) handlePullsFailed(ctx statemachine.Context, info AssetPullingI
 	m.removeAssetTicker(info.Hash.String())
 
 	if info.RetryCount >= int64(MaxRetryCount) {
+		log.Infof("handle pulls failed: %s, retry count: %d", info.CID, info.RetryCount)
 		return nil
 	}
 
-	log.Debugf("handle pulls failed: %s, retries: %d", info.Hash, info.RetryCount+1)
+	log.Debugf("handle pulls failed: %s, retries: %d", info.CID, info.RetryCount+1)
 
 	if err := failedCoolDown(ctx, info); err != nil {
 		return err

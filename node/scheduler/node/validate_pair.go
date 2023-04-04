@@ -11,18 +11,19 @@ import (
 )
 
 const (
-	unitBwDn      = float64(100 * units.MiB) // 100M Validator unit bandwidth down
-	toleranceBwUp = float64(5 * units.MiB)   // 5M Tolerance uplink bandwidth deviation per group
+	bandwidthRatio = 0.7                      // The ratio of the total upstream bandwidth on edge nodes to the downstream bandwidth on validation nodes.
+	unitBwDn       = float64(100 * units.MiB) // 100M Validator unit bandwidth down
+	toleranceBwUp  = float64(5 * units.MiB)   // 5M Tolerance uplink bandwidth deviation per group
 )
 
-// ValidatorReplica Replica of each bandwidth unit of the validator
-type ValidatorReplica struct {
+// ValidatorBwDnUnit bandwidth down unit of the validator
+type ValidatorBwDnUnit struct {
 	NodeID      string
 	BeValidates map[string]float64
 }
 
-func newValidatorReplica(nID string) *ValidatorReplica {
-	return &ValidatorReplica{
+func newValidatorDwDnUnit(nID string) *ValidatorBwDnUnit {
+	return &ValidatorBwDnUnit{
 		NodeID:      nID,
 		BeValidates: make(map[string]float64),
 	}
@@ -131,69 +132,69 @@ func (b *BeValidateGroup) removeBeValidate(nodeID string) {
 
 // ResetValidatorGroup reset
 func (m *Manager) ResetValidatorGroup(nodeIDs []string) {
-	m.validateCollocateLock.Lock()
-	defer m.validateCollocateLock.Unlock()
+	m.validatePairLock.Lock()
+	defer m.validatePairLock.Unlock()
 
 	// remove old
 	for _, group := range m.beValidateGroups {
-		m.waitCollocateGroup.addBeValidates(group.beValidates)
+		m.unpairedGroup.addBeValidates(group.beValidates)
 	}
 
 	// init
 	m.beValidateGroups = make([]*BeValidateGroup, 0)
-	m.validatorReplicas = make([]*ValidatorReplica, 0)
+	m.validatorUnits = make([]*ValidatorBwDnUnit, 0)
 
 	for _, nodeID := range nodeIDs {
 		node := m.GetCandidateNode(nodeID)
 		bwDn := node.BandwidthDown
-		count := int(math.Floor(bwDn / float64(unitBwDn)))
+		count := int(math.Floor((bwDn * bandwidthRatio) / unitBwDn))
 		log.Debugf("addValidator %s ,bandwidthDown:%.2f, count:%d", nodeID, bwDn, count)
 		if count < 1 {
 			continue
 		}
 
 		for i := 0; i < count; i++ {
-			vr := newValidatorReplica(nodeID)
-			bg := newBeValidateGroup()
+			vr := newValidatorDwDnUnit(nodeID)
+			m.validatorUnits = append(m.validatorUnits, vr)
 
-			m.validatorReplicas = append(m.validatorReplicas, vr)
+			bg := newBeValidateGroup()
 			m.beValidateGroups = append(m.beValidateGroups, bg)
 		}
 	}
 }
 
 func (m *Manager) addValidator(nodeID string, bwDn float64) {
-	m.validateCollocateLock.Lock()
-	defer m.validateCollocateLock.Unlock()
+	m.validatePairLock.Lock()
+	defer m.validatePairLock.Unlock()
 
-	count := int(math.Floor(bwDn / float64(unitBwDn)))
+	count := int(math.Floor((bwDn * bandwidthRatio) / unitBwDn))
 	log.Debugf("addValidator %s ,bandwidthDown:%.2f, count:%d", nodeID, bwDn, count)
 	if count < 1 {
 		return
 	}
 
 	// Do not process if node present
-	for _, v := range m.validatorReplicas {
+	for _, v := range m.validatorUnits {
 		if v.NodeID == nodeID {
 			return
 		}
 	}
 
 	for i := 0; i < count; i++ {
-		vr := newValidatorReplica(nodeID)
-		bg := newBeValidateGroup()
+		vr := newValidatorDwDnUnit(nodeID)
+		m.validatorUnits = append(m.validatorUnits, vr)
 
-		m.validatorReplicas = append(m.validatorReplicas, vr)
+		bg := newBeValidateGroup()
 		m.beValidateGroups = append(m.beValidateGroups, bg)
 	}
 }
 
 func (m *Manager) removeValidator(nodeID string) {
-	m.validateCollocateLock.Lock()
-	defer m.validateCollocateLock.Unlock()
+	m.validatePairLock.Lock()
+	defer m.validatePairLock.Unlock()
 
 	var indexes []int
-	for i, v := range m.validatorReplicas {
+	for i, v := range m.validatorUnits {
 		if v.NodeID == nodeID {
 			indexes = append(indexes, i)
 		}
@@ -207,10 +208,10 @@ func (m *Manager) removeValidator(nodeID string) {
 	start := indexes[0]
 	end := indexes[len(indexes)-1] + 1 // does not contain end , need to ++
 
-	s1 := m.validatorReplicas[:start]
-	s2 := m.validatorReplicas[end:]
+	s1 := m.validatorUnits[:start]
+	s2 := m.validatorUnits[end:]
 
-	m.validatorReplicas = append(s1, s2...)
+	m.validatorUnits = append(s1, s2...)
 
 	// update beValidateGroups
 	rIndex := len(m.beValidateGroups) - len(indexes)
@@ -218,19 +219,23 @@ func (m *Manager) removeValidator(nodeID string) {
 
 	m.beValidateGroups = m.beValidateGroups[:rIndex]
 
-	// add be validate node to waitCollocateGroup
+	// add be validate node to waitPairGroup
 	for _, group := range removeGroups {
-		m.waitCollocateGroup.addBeValidates(group.beValidates)
+		m.unpairedGroup.addBeValidates(group.beValidates)
 	}
 }
 
 func (m *Manager) addBeValidate(nodeID string, bandwidthUp float64) {
-	m.waitCollocateGroup.addBeValidate(nodeID, bandwidthUp)
+	m.unpairedGroup.addBeValidate(nodeID, bandwidthUp)
 }
 
 func (m *Manager) removeBeValidate(nodeID string) {
-	m.validateCollocateLock.Lock()
-	defer m.validateCollocateLock.Unlock()
+	m.validatePairLock.Lock()
+	defer m.validatePairLock.Unlock()
+
+	if _, exist := m.unpairedGroup.beValidates[nodeID]; exist {
+		m.unpairedGroup.removeBeValidate(nodeID)
+	}
 
 	for _, bg := range m.beValidateGroups {
 		bwUp, exist := bg.beValidates[nodeID]
@@ -242,13 +247,12 @@ func (m *Manager) removeBeValidate(nodeID string) {
 	}
 }
 
-func (m *Manager) reAssignBeValidateGroups() {
-	m.validateCollocateLock.Lock()
-	defer m.validateCollocateLock.Unlock()
+func (m *Manager) divideIntoGroups() {
+	m.validatePairLock.Lock()
+	defer m.validatePairLock.Unlock()
 
-	sumBwUp := m.waitCollocateGroup.sumBwUp
+	sumBwUp := m.unpairedGroup.sumBwUp
 	groupCount := len(m.beValidateGroups)
-
 	for _, group := range m.beValidateGroups {
 		sumBwUp += group.sumBwUp
 	}
@@ -261,21 +265,21 @@ func (m *Manager) reAssignBeValidateGroups() {
 	for _, group := range m.beValidateGroups {
 		rm := group.reduceBeValidateToAverage(maxAverage, minAverage)
 		if len(rm) > 0 {
-			m.waitCollocateGroup.addBeValidates(rm)
+			m.unpairedGroup.addBeValidates(rm)
 		}
 	}
 
-	log.Debugf("reAssignGroups size:%d , start %s \n", len(m.waitCollocateGroup.beValidates), time.Now().String())
+	log.Debugf("reAssignGroups size:%d , start %s \n", len(m.unpairedGroup.beValidates), time.Now().String())
 	// O n+m (n is the group count, m is the beValidate node count)
 	for _, groups := range m.beValidateGroups {
 		if groups.sumBwUp >= maxAverage {
 			continue
 		}
 
-		for nodeID, bwUp := range m.waitCollocateGroup.beValidates {
+		for nodeID, bwUp := range m.unpairedGroup.beValidates {
 			if bwUp > maxAverage || groups.sumBwUp+bwUp <= maxAverage {
 				groups.addBeValidate(nodeID, bwUp)
-				m.waitCollocateGroup.removeBeValidate(nodeID)
+				m.unpairedGroup.removeBeValidate(nodeID)
 			}
 
 			if groups.sumBwUp >= maxAverage {
@@ -283,21 +287,21 @@ func (m *Manager) reAssignBeValidateGroups() {
 			}
 		}
 
-		if len(m.waitCollocateGroup.beValidates) == 0 {
+		if len(m.unpairedGroup.beValidates) == 0 {
 			break
 		}
 
 	}
-	fmt.Printf("reAssignGroups size:%d , end %s \n", len(m.waitCollocateGroup.beValidates), time.Now().String())
+	fmt.Printf("reAssignGroups size:%d , end %s \n", len(m.unpairedGroup.beValidates), time.Now().String())
 }
 
-// CollocateValidators Randomly collocate validators and beValidates
-func (m *Manager) CollocateValidators() []*ValidatorReplica {
+// Pairing Randomly pair validators and beValidates
+func (m *Manager) Pairing() []*ValidatorBwDnUnit {
 	log.Debugf("reAssign Groups start %s \n", time.Now().String())
-	m.reAssignBeValidateGroups()
+	m.divideIntoGroups()
 	log.Debugf("reAssign Groups end %s \n", time.Now().String())
 
-	vs := len(m.validatorReplicas)
+	vs := len(m.validatorUnits)
 	bs := len(m.beValidateGroups)
 	if vs != bs {
 		log.Errorf("group len are not the same vs:%d,bs:%d", vs, bs)
@@ -309,10 +313,11 @@ func (m *Manager) CollocateValidators() []*ValidatorReplica {
 		m.beValidateGroups[i], m.beValidateGroups[j] = m.beValidateGroups[j], m.beValidateGroups[i]
 	})
 
-	for i, v := range m.validatorReplicas {
+	for i, v := range m.validatorUnits {
 		groups := m.beValidateGroups[i]
+
 		v.BeValidates = groups.beValidates
 	}
 
-	return m.validatorReplicas
+	return m.validatorUnits
 }

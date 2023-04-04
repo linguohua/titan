@@ -24,13 +24,7 @@ const (
 	duration         = 10              // Validation duration per node (Unit:Second)
 	validateInterval = 5 * time.Minute // validate start-up time interval (Unit:minute)
 
-	bandwidthRatio = 0.7 // The ratio of the total upstream bandwidth on edge nodes to the downstream bandwidth on validation nodes.
 )
-
-type validatorInfo struct {
-	nodeID        string
-	bandwidthDown float64 // Unallocated downstream bandwidth
-}
 
 // Validation Validation
 type Validation struct {
@@ -88,16 +82,6 @@ func (v *Validation) enable() bool {
 	return cfg.EnableValidate
 }
 
-func (v *Validation) validatorNum() int {
-	cfg, err := v.config()
-	if err != nil {
-		log.Errorf("validatorNum err:%s", err.Error())
-		return 0
-	}
-
-	return cfg.ValidatorNum
-}
-
 func (v *Validation) start() error {
 	if v.curRoundID != "" {
 		// Set the timeout status of the previous verification
@@ -111,7 +95,7 @@ func (v *Validation) start() error {
 	v.curRoundID = roundID
 	v.seed = time.Now().UnixNano() // TODO from filecoin
 
-	vrs := v.nodeMgr.CollocateValidators()
+	vrs := v.nodeMgr.Pairing()
 
 	validateReqs, dbInfos := v.getValidateDetails(vrs)
 	if validateReqs == nil {
@@ -132,22 +116,19 @@ func (v *Validation) start() error {
 }
 
 func (v *Validation) sendValidateReqToNodes(nID string, req *api.BeValidateReq) {
-	cNode := v.nodeMgr.GetCandidateNode(nID)
+	cNode := v.nodeMgr.GetNode(nID)
 	if cNode != nil {
-		cNode.BeValidate(context.Background(), req)
-		return
-	}
-
-	eNode := v.nodeMgr.GetEdgeNode(nID)
-	if eNode != nil {
-		eNode.BeValidate(context.Background(), req)
+		err := cNode.BeValidate(context.Background(), req)
+		if err != nil {
+			log.Errorf("%s BeValidate err:%s", nID, err.Error())
+		}
 		return
 	}
 
 	log.Errorf("%s BeValidate Node not found", nID)
 }
 
-func (v *Validation) getValidateDetails(vrs []*node.ValidatorReplica) (map[string]*api.BeValidateReq, []*types.ValidateResultInfo) {
+func (v *Validation) getValidateDetails(vrs []*node.ValidatorBwDnUnit) (map[string]*api.BeValidateReq, []*types.ValidateResultInfo) {
 	bReqs := make(map[string]*api.BeValidateReq)
 	vrInfos := make([]*types.ValidateResultInfo, 0)
 
@@ -179,7 +160,7 @@ func (v *Validation) getValidateDetails(vrs []*node.ValidatorReplica) (map[strin
 				CID:        cid,
 				RandomSeed: v.seed,
 				Duration:   duration,
-				TCPSrvAddr: vNode.TCPAddr,
+				TCPSrvAddr: vNode.TCPAddr(),
 			}
 
 			bReqs[nodeID] = req
