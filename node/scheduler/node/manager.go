@@ -21,17 +21,14 @@ const (
 
 	keepaliveTime    = 30 // keepalive time interval (unit: second)
 	saveInfoInterval = 10 // keepalive saves information every 10 times
-
-	maxNodeDiskUsage = 95.0 // If the node disk size is greater than this value, pulling will not continue
-
 )
 
 // Manager Node Manager
 type Manager struct {
 	edgeNodes      sync.Map
 	candidateNodes sync.Map
-	edges          int
-	candidates     int
+	Edges          int // online edge node count
+	Candidates     int // online candidate node count
 
 	notify *pubsub.PubSub
 	*db.SQLDB
@@ -98,12 +95,12 @@ func (m *Manager) storeEdge(node *Node) {
 	if loaded {
 		return
 	}
-	m.edges++
+	m.Edges++
 
 	code := m.distributeEdgeSelectCode(nodeID)
 	node.selectCode = code
 
-	m.notify.Pub(node, "node_online")
+	m.notify.Pub(node, types.TopicsNodeOnline.String())
 }
 
 func (m *Manager) storeCandidate(node *Node) {
@@ -116,36 +113,36 @@ func (m *Manager) storeCandidate(node *Node) {
 	if loaded {
 		return
 	}
-	m.candidates++
+	m.Candidates++
 
 	code := m.distributeCandidateSelectCode(nodeID)
 	node.selectCode = code
 
-	m.notify.Pub(node, "node_online")
+	m.notify.Pub(node, types.TopicsNodeOnline.String())
 }
 
 func (m *Manager) deleteEdge(node *Node) {
 	m.repayEdgeSelectCode(node.selectCode)
-	m.notify.Pub(node, "node_offline")
+	m.notify.Pub(node, types.TopicsNodeOffline.String())
 
 	nodeID := node.NodeInfo.NodeID
 	_, loaded := m.edgeNodes.LoadAndDelete(nodeID)
 	if !loaded {
 		return
 	}
-	m.edges--
+	m.Edges--
 }
 
 func (m *Manager) deleteCandidate(node *Node) {
 	m.repayCandidateSelectCode(node.selectCode)
-	m.notify.Pub(node, "node_offline")
+	m.notify.Pub(node, types.TopicsNodeOffline.String())
 
 	nodeID := node.NodeInfo.NodeID
 	_, loaded := m.candidateNodes.LoadAndDelete(nodeID)
 	if !loaded {
 		return
 	}
-	m.candidates--
+	m.Candidates--
 }
 
 func (m *Manager) nodeKeepalive(node *Node, t time.Time, isSave bool) {

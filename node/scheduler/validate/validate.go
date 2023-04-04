@@ -15,7 +15,6 @@ import (
 const (
 	duration         = 10              // Validation duration per node (Unit:Second)
 	validateInterval = 5 * time.Minute // validate start-up time interval (Unit:minute)
-
 )
 
 func (m *Manager) startValidate(ctx context.Context) {
@@ -210,7 +209,7 @@ func (m *Manager) Result(validatedResult *api.ValidateResult) error {
 	}
 
 	if validatedResult.IsTimeout {
-		status = types.ValidateStatusTimeOut
+		status = types.ValidateStatusNodeTimeOut
 		return nil
 	}
 

@@ -72,3 +72,25 @@ func (m *Manager) getSelectCodeRandom(max int, r *rand.Rand) int {
 	max = max + 1
 	return r.Intn(max)
 }
+
+// GetRandomCandidate Get a random candidate node
+func (m *Manager) GetRandomCandidate() *Node {
+	selectCode := m.getSelectCodeRandom(m.cPullSelectCode, m.cPullSelectRand)
+	nodeID, exist := m.cDistributedSelectCode[selectCode]
+	if !exist {
+		return nil
+	}
+
+	return m.GetCandidateNode(nodeID)
+}
+
+// GetRandomEdge Get a random edge node
+func (m *Manager) GetRandomEdge() *Node {
+	selectCode := m.getSelectCodeRandom(m.ePullSelectCode, m.ePullSelectRand)
+	nodeID, exist := m.eDistributedSelectCode[selectCode]
+	if !exist {
+		return nil
+	}
+
+	return m.GetEdgeNode(nodeID)
+}
