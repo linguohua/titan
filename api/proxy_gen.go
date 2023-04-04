@@ -93,9 +93,9 @@ type CommonStub struct {
 
 type DataSyncStruct struct {
 	Internal struct {
-		CompareBucketsChecksums func(p0 context.Context, p1 map[uint32]string) ([]uint32, error) `perm:"write"`
+		CompareBucketHashes func(p0 context.Context, p1 map[uint32]string) ([]uint32, error) `perm:"write"`
 
-		CompareTopChecksum func(p0 context.Context, p1 string) (bool, error) `perm:"write"`
+		CompareTopHash func(p0 context.Context, p1 string) (bool, error) `perm:"write"`
 	}
 }
 
@@ -472,25 +472,25 @@ func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 	return *new(APIVersion), ErrNotSupported
 }
 
-func (s *DataSyncStruct) CompareBucketsChecksums(p0 context.Context, p1 map[uint32]string) ([]uint32, error) {
-	if s.Internal.CompareBucketsChecksums == nil {
+func (s *DataSyncStruct) CompareBucketHashes(p0 context.Context, p1 map[uint32]string) ([]uint32, error) {
+	if s.Internal.CompareBucketHashes == nil {
 		return *new([]uint32), ErrNotSupported
 	}
-	return s.Internal.CompareBucketsChecksums(p0, p1)
+	return s.Internal.CompareBucketHashes(p0, p1)
 }
 
-func (s *DataSyncStub) CompareBucketsChecksums(p0 context.Context, p1 map[uint32]string) ([]uint32, error) {
+func (s *DataSyncStub) CompareBucketHashes(p0 context.Context, p1 map[uint32]string) ([]uint32, error) {
 	return *new([]uint32), ErrNotSupported
 }
 
-func (s *DataSyncStruct) CompareTopChecksum(p0 context.Context, p1 string) (bool, error) {
-	if s.Internal.CompareTopChecksum == nil {
+func (s *DataSyncStruct) CompareTopHash(p0 context.Context, p1 string) (bool, error) {
+	if s.Internal.CompareTopHash == nil {
 		return false, ErrNotSupported
 	}
-	return s.Internal.CompareTopChecksum(p0, p1)
+	return s.Internal.CompareTopHash(p0, p1)
 }
 
-func (s *DataSyncStub) CompareTopChecksum(p0 context.Context, p1 string) (bool, error) {
+func (s *DataSyncStub) CompareTopHash(p0 context.Context, p1 string) (bool, error) {
 	return false, ErrNotSupported
 }
 

@@ -115,3 +115,16 @@ CREATE TABLE `validators` (
     `scheduler_sid` VARCHAR(128) NOT NULL,
     PRIMARY KEY (`node_id`)
 ) ENGINE=InnoDB COMMENT='validators';
+
+CREATE TABLE `assets_view` (
+     `node_id` varchar(128) NOT NULL UNIQUE,
+     `top_hash` varchar(128) NOT NULL,
+     `bucket_hashes` BLOB NOT NULL,
+     PRIMARY KEY (`node_id`)
+) ENGINE=InnoDB COMMENT='assets view';
+
+CREATE TABLE `bucket` (
+     `bucket_id` varchar(128) NOT NULL UNIQUE,
+     `asset_ids` BLOB NOT NULL,
+     PRIMARY KEY (`bucket_id`)
+) ENGINE=InnoDB COMMENT='bucket';

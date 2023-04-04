@@ -21,19 +21,19 @@ const (
 	transientsDir  = "tmp"
 	countDir       = "count"
 	carSuffix      = ".car"
-	dataViewDir    = "data-view"
+	assetsViewDir  = "assets-view"
 	maxSizeOfCache = 1024
 	sizeOfBucket   = 128
 )
 
 // Manager access operation of storage
 type Manager struct {
-	baseDir  string
-	car      *car
-	wl       *waitList
-	carCache *carCache
-	count    *count
-	dataView *dataView
+	baseDir    string
+	car        *car
+	wl         *waitList
+	carCache   *carCache
+	count      *count
+	assetsView *AssetsView
 }
 
 type ManagerOptions struct {
@@ -42,7 +42,7 @@ type ManagerOptions struct {
 	CarsDir          string
 	CarSuffix        string
 	CountDir         string
-	DataViewDir      string
+	AssetsViewDir    string
 	// data view size of buckets
 	BucketSize uint32
 }
@@ -67,16 +67,16 @@ func NewManager(baseDir string, opts *ManagerOptions) (*Manager, error) {
 		return nil, err
 	}
 
-	dataView, err := newDataView(opts.DataViewDir, opts.BucketSize)
+	assetsView, err := newAssetsView(opts.AssetsViewDir, opts.BucketSize)
 
 	waitList := newWaitList(opts.waitListFilePath)
 	return &Manager{
-		baseDir:  baseDir,
-		car:      car,
-		dataView: dataView,
-		wl:       waitList,
-		carCache: carCache,
-		count:    count,
+		baseDir:    baseDir,
+		car:        car,
+		assetsView: assetsView,
+		wl:         waitList,
+		carCache:   carCache,
+		count:      count,
 	}, nil
 }
 
@@ -87,7 +87,7 @@ func defaultOptions(baseDir string) *ManagerOptions {
 		CarsDir:          filepath.Join(baseDir, carsDir),
 		CarSuffix:        filepath.Join(baseDir, carSuffix),
 		CountDir:         filepath.Join(baseDir, countDir),
-		DataViewDir:      filepath.Join(baseDir, dataViewDir),
+		AssetsViewDir:    filepath.Join(baseDir, assetsViewDir),
 		// cache for car index
 		BucketSize: sizeOfBucket,
 	}
@@ -140,20 +140,20 @@ func (m *Manager) SetBlockCountOfCar(ctx context.Context, root cid.Cid, count ui
 }
 
 // data view api
-func (m *Manager) SetTopChecksum(ctx context.Context, checksum string) error {
-	return m.dataView.setTopChecksum(ctx, checksum)
+func (m *Manager) GetTopHash(ctx context.Context) (string, error) {
+	return m.assetsView.getTopHash(ctx)
 }
-func (m *Manager) SetBucketsChecksums(ctx context.Context, checksums map[uint32]string) error {
-	return m.dataView.setBucketsChecksums(ctx, checksums)
-}
-func (m *Manager) GetTopChecksum(ctx context.Context) (string, error) {
-	return m.dataView.getTopChecksum(ctx)
-}
-func (m *Manager) GetBucketsChecksums(ctx context.Context) (map[uint32]string, error) {
-	return m.dataView.getBucketsChecksums(ctx)
+func (m *Manager) GetBucketHashes(ctx context.Context) (map[uint32]string, error) {
+	return m.assetsView.getBucketHashes(ctx)
 }
 func (m *Manager) GetCarsOfBucket(ctx context.Context, bucketID uint32) ([]cid.Cid, error) {
-	return m.dataView.getCars(ctx, bucketID)
+	return m.assetsView.getCars(ctx, bucketID)
+}
+func (m *Manager) addCar(ctx context.Context, root cid.Cid) error {
+	return m.assetsView.addCar(ctx, root)
+}
+func (m *Manager) removeCar(ctx context.Context, root cid.Cid) error {
+	return m.assetsView.removeCar(ctx, root)
 }
 
 // wait list

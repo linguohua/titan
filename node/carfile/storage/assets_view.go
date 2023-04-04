@@ -3,11 +3,14 @@ package storage
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/binary"
 	"encoding/gob"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"sync"
 
 	"github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
@@ -16,30 +19,32 @@ import (
 )
 
 const (
-	keyOfTopChecksum      = "top"
-	keyOfBucketsChecksums = "checksums"
+	keyOfTopHash      = "top"
+	keyOfBucketHashes = "checksums"
 )
 
-type dataView struct {
+type AssetsView struct {
 	*bucket
+
+	lock *sync.Mutex
 }
 
-func newDataView(baseDir string, bucketSize uint32) (*dataView, error) {
+func newAssetsView(baseDir string, bucketSize uint32) (*AssetsView, error) {
 	ds, err := newKVstore(baseDir)
 	if err != nil {
 		return nil, err
 	}
 
-	return &dataView{bucket: &bucket{ds: ds, size: bucketSize}}, nil
+	return &AssetsView{bucket: &bucket{ds: ds, size: bucketSize}, lock: &sync.Mutex{}}, nil
 }
 
-func (dv *dataView) setTopChecksum(ctx context.Context, checksum string) error {
-	key := ds.NewKey(keyOfTopChecksum)
+func (dv *AssetsView) setTopHash(ctx context.Context, checksum string) error {
+	key := ds.NewKey(keyOfTopHash)
 	return dv.ds.Put(ctx, key, []byte(checksum))
 }
 
-func (dv *dataView) getTopChecksum(ctx context.Context) (string, error) {
-	key := ds.NewKey(keyOfTopChecksum)
+func (dv *AssetsView) getTopHash(ctx context.Context) (string, error) {
+	key := ds.NewKey(keyOfTopHash)
 	val, err := dv.ds.Get(ctx, key)
 	if err != nil {
 		return "", err
@@ -48,7 +53,7 @@ func (dv *dataView) getTopChecksum(ctx context.Context) (string, error) {
 	return string(val), nil
 }
 
-func (dv *dataView) setBucketsChecksums(ctx context.Context, checksums map[uint32]string) error {
+func (dv *AssetsView) setBucketHashes(ctx context.Context, checksums map[uint32]string) error {
 	var buffer bytes.Buffer
 	enc := gob.NewEncoder(&buffer)
 	err := enc.Encode(checksums)
@@ -56,12 +61,12 @@ func (dv *dataView) setBucketsChecksums(ctx context.Context, checksums map[uint3
 		return err
 	}
 
-	key := ds.NewKey(keyOfBucketsChecksums)
+	key := ds.NewKey(keyOfBucketHashes)
 	return dv.ds.Put(ctx, key, buffer.Bytes())
 }
 
-func (dv *dataView) getBucketsChecksums(ctx context.Context) (map[uint32]string, error) {
-	key := ds.NewKey(keyOfTopChecksum)
+func (dv *AssetsView) getBucketHashes(ctx context.Context) (map[uint32]string, error) {
+	key := ds.NewKey(keyOfBucketHashes)
 	val, err := dv.ds.Get(ctx, key)
 	if err != nil {
 		return nil, err
@@ -76,6 +81,93 @@ func (dv *dataView) getBucketsChecksums(ctx context.Context) (map[uint32]string,
 		return nil, err
 	}
 	return out, nil
+}
+
+func (dv *AssetsView) addCar(ctx context.Context, root cid.Cid) error {
+	dv.lock.Lock()
+	defer dv.lock.Unlock()
+
+	if err := dv.bucket.addCar(ctx, root); err != nil {
+		return err
+	}
+
+	bucketID := dv.bucketID(root)
+	if err := dv.updateHashes(ctx, bucketID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (dv *AssetsView) removeCar(ctx context.Context, root cid.Cid) error {
+	dv.lock.Lock()
+	defer dv.lock.Unlock()
+
+	if err := dv.bucket.removeCar(ctx, root); err != nil {
+		return err
+	}
+
+	bucketID := dv.bucketID(root)
+	if err := dv.updateHashes(ctx, bucketID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (dv *AssetsView) updateHashes(ctx context.Context, bucketID uint32) error {
+	cids, err := dv.getCars(ctx, bucketID)
+	if err != nil {
+		return err
+	}
+
+	hash, err := dv.calculateBucketHash(cids)
+	if err != nil {
+		return err
+	}
+
+	hashes, err := dv.getBucketHashes(ctx)
+	if err != nil {
+		return err
+	}
+	hashes[bucketID] = hash
+
+	topHash, err := dv.calculateTopHash(hashes)
+	if err != nil {
+		return err
+	}
+
+	if err := dv.setBucketHashes(ctx, hashes); err != nil {
+		return err
+	}
+
+	if err := dv.setTopHash(ctx, topHash); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (dv *AssetsView) calculateBucketHash(cids []cid.Cid) (string, error) {
+	hash := sha256.New()
+	for _, c := range cids {
+		if _, err := hash.Write(c.Hash()); err != nil {
+			return "", err
+		}
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func (dv *AssetsView) calculateTopHash(checksums map[uint32]string) (string, error) {
+	hash := sha256.New()
+	for _, checksum := range checksums {
+		if cs, err := hex.DecodeString(checksum); err != nil {
+			return "", err
+		} else if _, err := hash.Write(cs); err != nil {
+			return "", err
+		}
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 // bucket sort multi hash by hash code

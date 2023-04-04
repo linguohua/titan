@@ -99,7 +99,7 @@ func (ds *DataSync) doDataSync(nodeID string) error {
 	if dataSyncAPI == nil {
 		return fmt.Errorf("can not get node %s data sync api", nodeID)
 	}
-	topChecksum, err := ds.getTopChecksum(nodeID)
+	topChecksum, err := ds.getTopHash(nodeID)
 	if err != nil {
 		return err
 	}
@@ -107,18 +107,18 @@ func (ds *DataSync) doDataSync(nodeID string) error {
 	ctx, cancle := context.WithCancel(context.Background())
 	defer cancle()
 
-	if ok, err := dataSyncAPI.CompareTopChecksum(ctx, topChecksum); err != nil {
+	if ok, err := dataSyncAPI.CompareTopHash(ctx, topChecksum); err != nil {
 		return err
 	} else if ok {
 		return nil
 	}
 
-	checksums, err := ds.getChecksumsOfBuckets(nodeID)
+	checksums, err := ds.getHashesOfBuckets(nodeID)
 	if err != nil {
 		return err
 	}
 
-	mismatchBuckets, err := dataSyncAPI.CompareBucketsChecksums(ctx, checksums)
+	mismatchBuckets, err := dataSyncAPI.CompareBucketHashes(ctx, checksums)
 	if err != nil {
 		return err
 	}
@@ -127,12 +127,10 @@ func (ds *DataSync) doDataSync(nodeID string) error {
 	return nil
 }
 
-func (ds *DataSync) getTopChecksum(nodeID string) (string, error) {
-	// TODO　implement database
-	return "", nil
+func (ds *DataSync) getTopHash(nodeID string) (string, error) {
+	return ds.nodeManager.LoadTopHash(nodeID)
 }
 
-func (ds *DataSync) getChecksumsOfBuckets(nodeID string) (map[uint32]string, error) {
-	// TODO　implement database
-	return nil, nil
+func (ds *DataSync) getHashesOfBuckets(nodeID string) (map[uint32]string, error) {
+	return ds.nodeManager.LoadBucketHashes(nodeID)
 }
