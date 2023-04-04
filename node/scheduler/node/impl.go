@@ -102,22 +102,6 @@ func (m *Manager) SelectEdgeToPullAsset(count int, filterNodes []string) map[str
 	return selectMap
 }
 
-// RangeEdges range edges
-func (m *Manager) RangeEdges(back func(key, value interface{}) bool) {
-	// TODO problematic
-	m.edgeNodes.Range(func(key, value interface{}) bool {
-		return back(key, value)
-	})
-}
-
-// RangeCandidates range candidate
-func (m *Manager) RangeCandidates(back func(key, value interface{}) bool) {
-	// TODO problematic
-	m.candidateNodes.Range(func(key, value interface{}) bool {
-		return back(key, value)
-	})
-}
-
 // ElectValidators elect
 func (m *Manager) ElectValidators(ratio float64) (out []string) {
 	out = make([]string, 0)

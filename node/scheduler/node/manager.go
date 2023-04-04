@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/filecoin-project/pubsub"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/modules/dtypes"
 
@@ -32,6 +33,7 @@ type Manager struct {
 	edges          int
 	candidates     int
 
+	notify *pubsub.PubSub
 	*db.SQLDB
 	*rsa.PrivateKey
 	dtypes.ServerID
@@ -46,24 +48,17 @@ type Manager struct {
 	cUndistributedSelectCode map[int]string // Undistributed candidate node select codes
 	eDistributedSelectCode   map[int]string // Distributed edge node select codes
 	eUndistributedSelectCode map[int]string // Undistributed edge node select codes
-
-	// Each validator provides n units(ValidatorBwDnUnit) for titan according to the bandwidth down, and each unit corresponds to a group(BeValidateGroup).
-	// All nodes will randomly fall into a group(BeValidateGroup).
-	// When the validate starts, the unit is paired with the group.
-	validatePairLock sync.RWMutex
-	validatorUnits   []*ValidatorBwDnUnit // The validator allocates n units according to the size of the bandwidth down
-	beValidateGroups []*BeValidateGroup   // Each ValidatorBwDnUnit has a BeValidateGroup
-	unpairedGroup    *BeValidateGroup     // Save unpaired BeValidates
 }
 
 // NewManager return new node manager instance
-func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, k *rsa.PrivateKey) *Manager {
+func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, k *rsa.PrivateKey, p *pubsub.PubSub) *Manager {
 	pullSelectSeed := time.Now().UnixNano()
 
 	nodeManager := &Manager{
 		SQLDB:      sdb,
 		ServerID:   serverID,
 		PrivateKey: k,
+		notify:     p,
 
 		cPullSelectRand:          rand.New(rand.NewSource(pullSelectSeed)),
 		ePullSelectRand:          rand.New(rand.NewSource(pullSelectSeed)),
@@ -71,8 +66,6 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, k *rsa.PrivateKey) *Man
 		cUndistributedSelectCode: make(map[int]string),
 		eDistributedSelectCode:   make(map[int]string),
 		eUndistributedSelectCode: make(map[int]string),
-
-		unpairedGroup: newBeValidateGroup(),
 	}
 
 	go nodeManager.run()
@@ -110,7 +103,7 @@ func (m *Manager) storeEdge(node *Node) {
 	code := m.distributeEdgeSelectCode(nodeID)
 	node.selectCode = code
 
-	m.addBeValidate(nodeID, node.BandwidthUp)
+	m.notify.Pub(node, "node_online")
 }
 
 func (m *Manager) storeCandidate(node *Node) {
@@ -128,51 +121,31 @@ func (m *Manager) storeCandidate(node *Node) {
 	code := m.distributeCandidateSelectCode(nodeID)
 	node.selectCode = code
 
-	isV, err := m.IsValidator(nodeID)
-	if err != nil {
-		log.Errorf("IsValidator err:%s", err.Error())
-		return
-	}
-
-	if isV {
-		m.addValidator(nodeID, node.BandwidthDown)
-	} else {
-		m.addBeValidate(nodeID, node.BandwidthDown)
-	}
+	m.notify.Pub(node, "node_online")
 }
 
 func (m *Manager) deleteEdge(node *Node) {
+	m.repayEdgeSelectCode(node.selectCode)
+	m.notify.Pub(node, "node_offline")
+
 	nodeID := node.NodeInfo.NodeID
 	_, loaded := m.edgeNodes.LoadAndDelete(nodeID)
 	if !loaded {
 		return
 	}
 	m.edges--
-
-	m.repayEdgeSelectCode(node.selectCode)
-	m.removeBeValidate(nodeID)
 }
 
 func (m *Manager) deleteCandidate(node *Node) {
+	m.repayCandidateSelectCode(node.selectCode)
+	m.notify.Pub(node, "node_offline")
+
 	nodeID := node.NodeInfo.NodeID
 	_, loaded := m.candidateNodes.LoadAndDelete(nodeID)
 	if !loaded {
 		return
 	}
 	m.candidates--
-
-	m.repayCandidateSelectCode(node.selectCode)
-	isV, err := m.IsValidator(nodeID)
-	if err != nil {
-		log.Errorf("IsValidator err:%s", err.Error())
-		return
-	}
-
-	if isV {
-		m.removeValidator(nodeID)
-	} else {
-		m.removeBeValidate(nodeID)
-	}
 }
 
 func (m *Manager) nodeKeepalive(node *Node, t time.Time, isSave bool) {

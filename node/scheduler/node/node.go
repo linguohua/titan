@@ -168,7 +168,9 @@ func (n *BaseInfo) RemoteAddr() string {
 
 // TCPAddr tcp addr
 func (n *BaseInfo) TCPAddr() string {
-	return fmt.Sprintf("%s:%d", n.remoteAddr, n.pullingCount)
+	index := strings.Index(n.remoteAddr, ":")
+	ip := n.remoteAddr[:index+1]
+	return fmt.Sprintf("%s%d", ip, n.tcpPort)
 }
 
 // RPCURL rpc url
