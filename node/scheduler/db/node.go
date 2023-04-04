@@ -13,7 +13,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// LoadTimeoutNodes load nodes that are offline for a long time
+// LoadTimeoutNodes retrieves nodes that are offline for a long time.
 func (n *SQLDB) LoadTimeoutNodes(timeoutHour int, serverID dtypes.ServerID) ([]string, error) {
 	list := make([]string, 0)
 
@@ -26,7 +26,7 @@ func (n *SQLDB) LoadTimeoutNodes(timeoutHour int, serverID dtypes.ServerID) ([]s
 	return list, nil
 }
 
-// SetNodesQuitted Node quit the titan
+// SetNodesQuitted sets the nodes' status as quitted.
 func (n *SQLDB) SetNodesQuitted(nodeIDs []string) error {
 	uQuery := fmt.Sprintf(`UPDATE %s SET quitted=? WHERE node_id in (?) `, nodeInfoTable)
 	query, args, err := sqlx.In(uQuery, true, nodeIDs)
@@ -40,7 +40,7 @@ func (n *SQLDB) SetNodesQuitted(nodeIDs []string) error {
 	return err
 }
 
-// LoadPortMapping load mapping port of node
+// LoadPortMapping load the mapping port of node
 func (n *SQLDB) LoadPortMapping(nodeID string) (string, error) {
 	var port string
 	query := fmt.Sprintf("SELECT port_mapping FROM %s WHERE node_id=?", nodeInfoTable)
@@ -51,7 +51,7 @@ func (n *SQLDB) LoadPortMapping(nodeID string) (string, error) {
 	return port, nil
 }
 
-// SetPortMapping Set node mapping port
+// SetPortMapping sets the node's mapping port.
 func (n *SQLDB) SetPortMapping(nodeID, port string) error {
 	info := types.NodeInfo{
 		NodeID:      nodeID,
@@ -63,7 +63,7 @@ func (n *SQLDB) SetPortMapping(nodeID, port string) error {
 	return err
 }
 
-// SetValidateResultInfos Insert validate result infos
+// SetValidateResultInfos inserts validate result information.
 func (n *SQLDB) SetValidateResultInfos(infos []*types.ValidateResultInfo) error {
 	query := fmt.Sprintf(`INSERT INTO %s (round_id, node_id, validator_id, status, cid) VALUES (:round_id, :node_id, :validator_id, :status, :cid)`, validateResultTable)
 	_, err := n.db.NamedExec(query, infos)
@@ -79,7 +79,7 @@ func (n *SQLDB) LoadNodeValidateCID(roundID, nodeID string) (string, error) {
 	return cid, err
 }
 
-// UpdateValidateResultInfo Update validate result info
+// UpdateValidateResultInfo updates the validate result information.
 func (n *SQLDB) UpdateValidateResultInfo(info *types.ValidateResultInfo) error {
 	if info.Status == types.ValidateStatusSuccess {
 		query := fmt.Sprintf(`UPDATE %s SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW() WHERE round_id=:round_id AND node_id=:node_id`, validateResultTable)

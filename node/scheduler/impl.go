@@ -152,7 +152,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		nodeInfo.NodeType = nodeType
 		nodeInfo.ServerID = s.ServerID
 
-		baseInfo, err := s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo)
+		baseInfo, err := s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo, opts.TcpServerPort)
 		if err != nil {
 			return err
 		}
@@ -186,7 +186,7 @@ func (s *Scheduler) EdgeNodeConnect(ctx context.Context, opts *types.ConnectOpti
 	return s.nodeConnect(ctx, opts, types.NodeEdge)
 }
 
-func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.NodeInfo) (*node.BaseInfo, error) {
+func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.NodeInfo, tcpPort int) (*node.BaseInfo, error) {
 	if nodeID != nodeInfo.NodeID {
 		return nil, xerrors.Errorf("nodeID mismatch %s, %s", nodeID, nodeInfo.NodeID)
 	}
@@ -213,7 +213,7 @@ func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.N
 		return nil, xerrors.Errorf("SplitHostPort err:%s", err.Error())
 	}
 
-	return node.NewBaseInfo(nodeInfo, publicKey, remoteAddr), nil
+	return node.NewBaseInfo(nodeInfo, publicKey, remoteAddr, tcpPort), nil
 }
 
 // NodeExternalServiceAddress get node External address

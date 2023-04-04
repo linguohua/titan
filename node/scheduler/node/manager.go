@@ -36,20 +36,24 @@ type Manager struct {
 	*rsa.PrivateKey
 	dtypes.ServerID
 
+	// Each node can be assigned a select code, when pulling resources, randomly select n select codes, and select the node holding these select code.
 	selectCodeLock           sync.RWMutex
 	cPullSelectRand          *rand.Rand     // The rand of select candidate nodes to pull asset
 	ePullSelectRand          *rand.Rand     // The rand of select edge nodes to pull asset
-	cPullSelectCode          int            // Distribute from 1
-	ePullSelectCode          int            // Distribute from 1
+	cPullSelectCode          int            // Candidate node select code , Distribute from 1
+	ePullSelectCode          int            // Edge node select code , Distribute from 1
 	cDistributedSelectCode   map[int]string // Distributed candidate node select codes
 	cUndistributedSelectCode map[int]string // Undistributed candidate node select codes
 	eDistributedSelectCode   map[int]string // Distributed edge node select codes
 	eUndistributedSelectCode map[int]string // Undistributed edge node select codes
 
-	validateCollocateLock sync.RWMutex
-	validatorReplicas     []*ValidatorReplica
-	beValidateGroups      []*BeValidateGroup
-	waitCollocateGroup    *BeValidateGroup
+	// Each validator provides n units(ValidatorBwDnUnit) for titan according to the bandwidth down, and each unit corresponds to a group(BeValidateGroup).
+	// All nodes will randomly fall into a group(BeValidateGroup).
+	// When the validate starts, the unit is paired with the group.
+	validatePairLock sync.RWMutex
+	validatorUnits   []*ValidatorBwDnUnit // The validator allocates n units according to the size of the bandwidth down
+	beValidateGroups []*BeValidateGroup   // Each ValidatorBwDnUnit has a BeValidateGroup
+	unpairedGroup    *BeValidateGroup     // Save unpaired BeValidates
 }
 
 // NewManager return new node manager instance
@@ -68,7 +72,7 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, k *rsa.PrivateKey) *Man
 		eDistributedSelectCode:   make(map[int]string),
 		eUndistributedSelectCode: make(map[int]string),
 
-		waitCollocateGroup: newBeValidateGroup(),
+		unpairedGroup: newBeValidateGroup(),
 	}
 
 	go nodeManager.run()
@@ -132,6 +136,8 @@ func (m *Manager) storeCandidate(node *Node) {
 
 	if isV {
 		m.addValidator(nodeID, node.BandwidthDown)
+	} else {
+		m.addBeValidate(nodeID, node.BandwidthDown)
 	}
 }
 
@@ -143,7 +149,7 @@ func (m *Manager) deleteEdge(node *Node) {
 	}
 	m.edges--
 
-	m.returnEdgeSelectCode(node.selectCode)
+	m.repayEdgeSelectCode(node.selectCode)
 	m.removeBeValidate(nodeID)
 }
 
@@ -155,7 +161,7 @@ func (m *Manager) deleteCandidate(node *Node) {
 	}
 	m.candidates--
 
-	m.returnCandidateSelectCode(node.selectCode)
+	m.repayCandidateSelectCode(node.selectCode)
 	isV, err := m.IsValidator(nodeID)
 	if err != nil {
 		log.Errorf("IsValidator err:%s", err.Error())
@@ -164,6 +170,8 @@ func (m *Manager) deleteCandidate(node *Node) {
 
 	if isV {
 		m.removeValidator(nodeID)
+	} else {
+		m.removeBeValidate(nodeID)
 	}
 }
 

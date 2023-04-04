@@ -52,7 +52,7 @@ func (m *Manager) distributeEdgeSelectCode(nodeID string) int {
 	return code
 }
 
-func (m *Manager) returnCandidateSelectCode(code int) {
+func (m *Manager) repayCandidateSelectCode(code int) {
 	m.selectCodeLock.Lock()
 	defer m.selectCodeLock.Unlock()
 
@@ -60,7 +60,7 @@ func (m *Manager) returnCandidateSelectCode(code int) {
 	m.cUndistributedSelectCode[code] = ""
 }
 
-func (m *Manager) returnEdgeSelectCode(code int) {
+func (m *Manager) repayEdgeSelectCode(code int) {
 	m.selectCodeLock.Lock()
 	defer m.selectCodeLock.Unlock()
 
