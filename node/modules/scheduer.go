@@ -3,6 +3,7 @@ package modules
 import (
 	"context"
 
+	"github.com/filecoin-project/pubsub"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/types"
@@ -13,7 +14,7 @@ import (
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler/assets"
 	"github.com/linguohua/titan/node/scheduler/db"
-	"github.com/linguohua/titan/node/scheduler/validation"
+	"github.com/linguohua/titan/node/scheduler/validate"
 	"github.com/linguohua/titan/node/sqldb"
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
@@ -88,8 +89,8 @@ func NewStorageManager(params StorageManagerParams) *assets.Manager {
 	return m
 }
 
-func NewValidation(mctx helpers.MetricsCtx, lc fx.Lifecycle, m *node.Manager, cfg *config.SchedulerCfg, configFunc dtypes.GetSchedulerConfigFunc) *validation.Validation {
-	v := validation.New(m, configFunc)
+func NewValidate(mctx helpers.MetricsCtx, lc fx.Lifecycle, m *node.Manager, configFunc dtypes.GetSchedulerConfigFunc, p *pubsub.PubSub) *validate.Manager {
+	v := validate.NewManager(m, configFunc, p)
 
 	ctx := helpers.LifecycleCtx(mctx, lc)
 	lc.Append(fx.Hook{
@@ -132,6 +133,10 @@ func NewGetSchedulerConfigFunc(r repo.LockedRepo) func() (config.SchedulerCfg, e
 		out = *scfg
 		return
 	}
+}
+
+func NewPubSub() *pubsub.PubSub {
+	return pubsub.New(50)
 }
 
 // RegisterToEtcd Register server to etcd

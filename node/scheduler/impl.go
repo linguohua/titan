@@ -13,14 +13,13 @@ import (
 
 	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/modules/dtypes"
+	"github.com/linguohua/titan/node/scheduler/validate"
 
 	"go.uber.org/fx"
 
 	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/scheduler/assets"
-	"github.com/linguohua/titan/node/scheduler/election"
-	"github.com/linguohua/titan/node/scheduler/validation"
 
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	logging "github.com/ipfs/go-log/v2"
@@ -47,8 +46,7 @@ type Scheduler struct {
 	dtypes.ServerID
 
 	NodeManager            *node.Manager
-	Election               *election.Election
-	Validation             *validation.Validation
+	ValidateMgr            *validate.Manager
 	AssetManager           *assets.Manager
 	DataSync               *sync.DataSync
 	SchedulerCfg           *config.SchedulerCfg
@@ -231,7 +229,7 @@ func (s *Scheduler) NodeValidatedResult(ctx context.Context, result api.Validate
 	vs.Validator = validator
 
 	// s.Validator.PushResultToQueue(vs)
-	return s.Validation.Result(vs)
+	return s.ValidateMgr.Result(vs)
 }
 
 // RegisterNode Register Node , Returns an error if the node is already registered
@@ -250,7 +248,7 @@ func (s *Scheduler) OnlineNodeList(ctx context.Context, nodeType types.NodeType)
 
 // StartOnceElection Validators
 func (s *Scheduler) StartOnceElection(ctx context.Context) error {
-	s.Election.StartElect()
+	s.ValidateMgr.StartElect()
 	return nil
 }
 

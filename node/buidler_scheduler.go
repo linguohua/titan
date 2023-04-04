@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/docker/go-units"
+	"github.com/filecoin-project/pubsub"
 	"github.com/jmoiron/sqlx"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/config"
@@ -15,10 +16,9 @@ import (
 	"github.com/linguohua/titan/node/scheduler"
 	"github.com/linguohua/titan/node/scheduler/assets"
 	"github.com/linguohua/titan/node/scheduler/db"
-	"github.com/linguohua/titan/node/scheduler/election"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"github.com/linguohua/titan/node/scheduler/sync"
-	"github.com/linguohua/titan/node/scheduler/validation"
+	"github.com/linguohua/titan/node/scheduler/validate"
 
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
@@ -55,6 +55,7 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(dtypes.ServerID), modules.NewServerID),
 		Override(new(*config.SchedulerCfg), cfg),
 		Override(RegisterEtcd, modules.RegisterToEtcd),
+		Override(new(*pubsub.PubSub), modules.NewPubSub),
 		Override(new(*sqlx.DB), modules.NewDB),
 		Override(new(*db.SQLDB), db.NewSQLDB),
 		Override(new(*node.Manager), node.NewManager),
@@ -62,8 +63,7 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(dtypes.MetadataDS), modules.Datastore),
 		Override(new(*assets.Manager), modules.NewStorageManager),
 		Override(new(*sync.DataSync), sync.NewDataSync),
-		Override(new(*validation.Validation), modules.NewValidation),
-		Override(new(*election.Election), election.NewElection),
+		Override(new(*validate.Manager), modules.NewValidate),
 		Override(new(*scheduler.EdgeUpdater), scheduler.NewEdgeUpdater),
 		Override(new(dtypes.DatabaseAddress), func() dtypes.DatabaseAddress {
 			return dtypes.DatabaseAddress(cfg.DatabaseAddress)

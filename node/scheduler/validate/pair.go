@@ -1,46 +1,10 @@
-package node
+package validate
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
-	"sync"
 	"time"
-
-	"github.com/alecthomas/units"
 )
-
-const (
-	bandwidthRatio = 0.7                      // The ratio of the total upstream bandwidth on edge nodes to the downstream bandwidth on validation nodes.
-	unitBwDn       = float64(100 * units.MiB) // 100M Validator unit bandwidth down
-	toleranceBwUp  = float64(5 * units.MiB)   // 5M Tolerance uplink bandwidth deviation per group
-)
-
-// ValidatorBwDnUnit bandwidth down unit of the validator
-type ValidatorBwDnUnit struct {
-	NodeID      string
-	BeValidates map[string]float64
-}
-
-func newValidatorDwDnUnit(nID string) *ValidatorBwDnUnit {
-	return &ValidatorBwDnUnit{
-		NodeID:      nID,
-		BeValidates: make(map[string]float64),
-	}
-}
-
-// BeValidateGroup BeValidate Group
-type BeValidateGroup struct {
-	sumBwUp     float64
-	beValidates map[string]float64
-	lock        sync.RWMutex
-}
-
-func newBeValidateGroup() *BeValidateGroup {
-	return &BeValidateGroup{
-		beValidates: make(map[string]float64),
-	}
-}
 
 func (b *BeValidateGroup) reduceBeValidateToAverage(maxAverage, minAverage float64) (out map[string]float64) {
 	out = make(map[string]float64)
@@ -145,7 +109,7 @@ func (m *Manager) ResetValidatorGroup(nodeIDs []string) {
 	m.validatorUnits = make([]*ValidatorBwDnUnit, 0)
 
 	for _, nodeID := range nodeIDs {
-		node := m.GetCandidateNode(nodeID)
+		node := m.nodeMgr.GetCandidateNode(nodeID)
 		bwDn := node.BandwidthDown
 		count := int(math.Floor((bwDn * bandwidthRatio) / unitBwDn))
 		log.Debugf("addValidator %s ,bandwidthDown:%.2f, count:%d", nodeID, bwDn, count)
@@ -292,7 +256,7 @@ func (m *Manager) divideIntoGroups() {
 		}
 
 	}
-	fmt.Printf("reAssignGroups size:%d , end %s \n", len(m.unpairedGroup.beValidates), time.Now().String())
+	log.Debugf("reAssignGroups size:%d , end %s \n", len(m.unpairedGroup.beValidates), time.Now().String())
 }
 
 // Pairing Randomly pair validators and beValidates
