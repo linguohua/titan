@@ -1,111 +1,117 @@
+-- Node information table
 CREATE TABLE `node_info` (
-	`node_id` varchar(128) NOT NULL UNIQUE ,
-    `online_time` int DEFAULT '0',
-    `profit` float DEFAULT '0',
-    `download_traffic` float DEFAULT '0',
-    `upload_traffic` float DEFAULT '0',
-    `download_blocks` bigint DEFAULT '0' ,
-    `last_time` datetime DEFAULT CURRENT_TIMESTAMP ,
-    `quitted` BOOLEAN DEFAULT '0' ,
-	`port_mapping` varchar(8) DEFAULT '' ,
-    `mac_location` varchar(32) DEFAULT '',
-    `product_type` varchar(32) DEFAULT '',
-    `cpu_cores` int DEFAULT '0',
-    `memory` float DEFAULT '0',
-    `node_name` varchar(64) DEFAULT '' ,
-    `latitude` float DEFAULT '0',
-    `longitude` float DEFAULT '0',
-    `disk_type` varchar(64) DEFAULT '',
-    `io_system` varchar(64) DEFAULT '',
-    `system_version` varchar(32) DEFAULT '',
-    `nat_type` varchar(32) DEFAULT '',  
-    `disk_space` float DEFAULT '0',
-    `bandwidth_up` float DEFAULT '0',
-    `bandwidth_down` float DEFAULT '0',
-    `blocks` bigint DEFAULT '0' ,
-    `disk_usage` float DEFAULT '0', 
-    `scheduler_sid` varchar(128) NOT NULL,
-	PRIMARY KEY (`node_id`),
-    KEY `idx_sid` (`scheduler_sid`)
-) ENGINE=InnoDB COMMENT='node info';
+    `node_id`            VARCHAR(128) NOT NULL UNIQUE,
+    `online_time`        INT          DEFAULT 0,
+    `profit`             FLOAT        DEFAULT 0,
+    `download_traffic`   FLOAT        DEFAULT 0,
+    `upload_traffic`     FLOAT        DEFAULT 0,
+    `download_blocks`    BIGINT       DEFAULT 0,
+    `last_time`          DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    `quitted`            BOOLEAN      DEFAULT 0,
+    `port_mapping`       VARCHAR(8)   DEFAULT '',
+    `mac_location`       VARCHAR(32)  DEFAULT '',
+    `product_type`       VARCHAR(32)  DEFAULT '',
+    `cpu_cores`          INT          DEFAULT 0,
+    `memory`             FLOAT        DEFAULT 0,
+    `node_name`          VARCHAR(64)  DEFAULT '',
+    `latitude`           FLOAT        DEFAULT 0,
+    `longitude`          FLOAT        DEFAULT 0,
+    `disk_type`          VARCHAR(64)  DEFAULT '',
+    `io_system`          VARCHAR(64)  DEFAULT '',
+    `system_version`     VARCHAR(32)  DEFAULT '',
+    `nat_type`           VARCHAR(32)  DEFAULT '',
+    `disk_space`         FLOAT        DEFAULT 0,
+    `bandwidth_up`       FLOAT        DEFAULT 0,
+    `bandwidth_down`     FLOAT        DEFAULT 0,
+    `blocks`             BIGINT       DEFAULT 0,
+    `disk_usage`         FLOAT        DEFAULT 0,
+    `scheduler_sid`      VARCHAR(128) NOT NULL,
+    PRIMARY KEY (`node_id`)
+) ENGINE=InnoDB COMMENT='Node information';
 
+-- Validation results table
 CREATE TABLE `validate_result` (
-    `round_id` varchar(128) NOT NULL,
-    `node_id` varchar(128) NOT NULL,
-    `validator_id` varchar(128) NOT NULL,
-    `block_number` bigint DEFAULT '0' ,
-    `status` tinyint DEFAULT '0',
-    `duration` bigint DEFAULT '0' ,
-    `bandwidth` float DEFAULT '0',
-	`cid` varchar(128) DEFAULT '',
-    `start_time` datetime DEFAULT CURRENT_TIMESTAMP,
-    `end_time` datetime DEFAULT NULL,
-    UNIQUE KEY (`round_id`,`node_id`)
-) ENGINE=InnoDB COMMENT='validate result info';
+    `round_id`      VARCHAR(128) NOT NULL,
+    `node_id`       VARCHAR(128) NOT NULL,
+    `validator_id`  VARCHAR(128) NOT NULL,
+    `block_number`  BIGINT       DEFAULT 0,
+    `status`        TINYINT      DEFAULT 0,
+    `duration`      BIGINT       DEFAULT 0,
+    `bandwidth`     FLOAT        DEFAULT 0,
+    `start_time`    DATETIME     DEFAULT NULL,
+    `end_time`      DATETIME     DEFAULT NULL,
+    KEY `round_node` (`round_id`, `node_id`)
+) ENGINE=InnoDB COMMENT='Validation results';
 
+-- Block download information table
 CREATE TABLE `block_download_info` (
-    `id` varchar(64) NOT NULL UNIQUE,
-    `block_cid` varchar(128) NOT NULL,
-    `node_id` varchar(128) NOT NULL,
-    `carfile_cid` varchar(128) NOT NULL,
-    `block_size` int(20) DEFAULT '0',
-    `speed` int(20)  DEFAULT '0' ,
-    `reward` int(20) DEFAULT '0',
-    `status` TINYINT  DEFAULT '0' ,
-    `failed_reason` varchar(128) DEFAULT '' ,
-    `client_ip` varchar(18) NOT NULL,
-    `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
-    `complete_time` datetime,
+    `id`             VARCHAR(64)  NOT NULL UNIQUE,
+    `block_cid`      VARCHAR(128) NOT NULL,
+    `node_id`        VARCHAR(128) NOT NULL,
+    `carfile_cid`    VARCHAR(128) NOT NULL,
+    `block_size`     INT(20)      DEFAULT 0,
+    `speed`          INT(20)      DEFAULT 0,
+    `reward`         INT(20)      DEFAULT 0,
+    `status`         TINYINT      DEFAULT 0,
+    `failed_reason`  VARCHAR(128) DEFAULT '',
+    `client_ip`      VARCHAR(18)  NOT NULL,
+    `created_time`   DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    `complete_time`  DATETIME,
     PRIMARY KEY (`id`)
-) ENGINE=InnoDB COMMENT='block download information';
+) ENGINE=InnoDB COMMENT='Block download information';
 
+-- Node register information table
 CREATE TABLE `node_register_info` (
-	`node_id` varchar(128) NOT NULL UNIQUE,
-	`public_key` varchar(1024) DEFAULT '' ,
-    `create_time` varchar(64) DEFAULT '' ,
-	`node_type` varchar(64) DEFAULT '' ,
+	`node_id`     VARCHAR(128)  NOT NULL UNIQUE,
+	`public_key`  VARCHAR(1024) DEFAULT '' ,
+    `create_time` VARCHAR(64)   DEFAULT '' ,
+	`node_type`   VARCHAR(64)   DEFAULT '' ,
 	PRIMARY KEY (`node_id`)
 ) ENGINE=InnoDB COMMENT='node register info';
 
+-- Asset replica information table
 CREATE TABLE `replica_info` (
-	`hash` varchar(128) NOT NULL,
-    `status` TINYINT  DEFAULT '0' ,
-    `node_id` varchar(128) NOT NULL ,
-    `done_size` BIGINT DEFAULT '0' ,
+	`hash`         VARCHAR(128) NOT NULL,
+    `status`       TINYINT      DEFAULT 0 ,
+    `node_id`      VARCHAR(128) NOT NULL ,
+    `done_size`    BIGINT       DEFAULT 0 ,
     `is_candidate` BOOLEAN,
-	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
+	`end_time`     DATETIME     DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY (`hash`,`node_id`),
     KEY `idx_node_id` (`node_id`)
 ) ENGINE=InnoDB COMMENT='replica info';
 
+-- Asset record information table
 CREATE TABLE `asset_record` (
-	`hash` varchar(128) NOT NULL UNIQUE,
-	`cid` varchar(128) NOT NULL UNIQUE,
-    `total_size` BIGINT  DEFAULT '0' ,
-    `total_blocks` int  DEFAULT '0' ,
-	`edge_replicas` TINYINT DEFAULT '0' ,
-	`candidate_replicas` TINYINT DEFAULT '0' ,
-	`state` varchar(128) NOT NULL DEFAULT '',
-    `expiration` datetime NOT NULL,
-    `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
-	`end_time` datetime DEFAULT CURRENT_TIMESTAMP,
-    `scheduler_sid` varchar(128) NOT NULL,
+	`hash`               VARCHAR(128) NOT NULL UNIQUE,
+	`cid`                VARCHAR(128) NOT NULL UNIQUE,
+    `total_size`         BIGINT       DEFAULT 0 ,
+    `total_blocks`       INT          DEFAULT 0 ,
+	`edge_replicas`      TINYINT      DEFAULT 0 ,
+	`candidate_replicas` TINYINT      DEFAULT 0 ,
+	`state`              VARCHAR(128) NOT NULL DEFAULT '',
+    `expiration`         DATETIME     NOT NULL,
+    `created_time`       DATETIME     DEFAULT CURRENT_TIMESTAMP,
+	`end_time`           DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    `scheduler_sid`      VARCHAR(128) NOT NULL,
 	PRIMARY KEY (`hash`),
     KEY `idx_sid` (`scheduler_sid`)
 ) ENGINE=InnoDB COMMENT='asset record';
 
+-- Edge update information table
 CREATE TABLE `edge_update_info` (
-	`node_type` int NOT NULL UNIQUE,
-	`app_name` varchar(64) NOT NULL,
-    `version`  varchar(32) NOT NULL,
-    `hash` varchar(128) NOT NULL,
-	`download_url` varchar(128) NOT NULL,
-    `update_time` datetime DEFAULT CURRENT_TIMESTAMP,
+	`node_type`    INT          NOT NULL UNIQUE,
+	`app_name`     VARCHAR(64)  NOT NULL,
+    `version`      VARCHAR(32)  NOT NULL,
+    `hash`         VARCHAR(128) NOT NULL,
+	`download_url` VARCHAR(128) NOT NULL,
+    `update_time`  DATETIME     DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (`node_type`)
 ) ENGINE=InnoDB COMMENT='edge update info';
 
+-- Validators information table
 CREATE TABLE `validators` (
-    `node_id` varchar(128) NOT NULL,
-    `scheduler_sid` varchar(128) NOT NULL,
+    `node_id`       VARCHAR(128) NOT NULL,
+    `scheduler_sid` VARCHAR(128) NOT NULL,
     PRIMARY KEY (`node_id`)
 ) ENGINE=InnoDB COMMENT='validators';

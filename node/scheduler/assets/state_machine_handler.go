@@ -38,7 +38,7 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 	}
 
 	// find nodes
-	nodes := m.nodeMgr.SelectCandidateToPullAsset(seedReplicaCount, info.CandidateReplicaSucceeds)
+	nodes := m.selectCandidateToPullAsset(seedReplicaCount, info.CandidateReplicaSucceeds)
 	if len(nodes) < 1 {
 		return ctx.Send(SelectFailed{error: xerrors.New("node not found")})
 	}
@@ -91,7 +91,7 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 	}
 
 	// find nodes
-	nodes := m.nodeMgr.SelectCandidateToPullAsset(int(needCount), info.CandidateReplicaSucceeds)
+	nodes := m.selectCandidateToPullAsset(int(needCount), info.CandidateReplicaSucceeds)
 	if len(nodes) < 1 {
 		return ctx.Send(SelectFailed{error: xerrors.New("node not found")})
 	}
@@ -151,7 +151,7 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 	}
 
 	// find nodes
-	nodes := m.nodeMgr.SelectEdgeToPullAsset(int(needCount), info.EdgeReplicaSucceeds)
+	nodes := m.selectEdgeToPullAsset(int(needCount), info.EdgeReplicaSucceeds)
 	if len(nodes) < 1 {
 		return ctx.Send(SelectFailed{error: xerrors.New("node not found")})
 	}

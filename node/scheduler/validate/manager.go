@@ -7,6 +7,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/filecoin-project/pubsub"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/scheduler/node"
 )
@@ -79,7 +80,7 @@ func NewManager(nodeMgr *node.Manager, configFunc dtypes.GetSchedulerConfigFunc,
 	return nodeManager
 }
 
-// Start start validation task scheduled
+// Start start validate and elect task
 func (m *Manager) Start(ctx context.Context) {
 	go m.startValidate(ctx)
 	go m.electTicker()
@@ -87,15 +88,14 @@ func (m *Manager) Start(ctx context.Context) {
 	m.sub()
 }
 
-// Stop stop server
+// Stop stop
 func (m *Manager) Stop(ctx context.Context) error {
-	m.stopValidate(ctx)
-	return nil
+	return m.stopValidate(ctx)
 }
 
 func (m *Manager) sub() {
-	subOnline := m.notify.Sub("node_online")
-	subOffline := m.notify.Sub("node_offline")
+	subOnline := m.notify.Sub(types.TopicsNodeOnline.String())
+	subOffline := m.notify.Sub(types.TopicsNodeOffline.String())
 
 	go func() {
 		defer m.notify.Unsub(subOnline)

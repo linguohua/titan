@@ -31,6 +31,9 @@ const (
 
 	maxPullingAssets = 10  // Maximum number of asset pull
 	maxReplicas      = 100 // Maximum number of replicas per asset
+
+	maxRetryCount    = 3
+	maxNodeDiskUsage = 95.0 // If the node disk size is greater than this value, pulling will not continue
 )
 
 // Manager asset replica manager
@@ -533,4 +536,86 @@ func (m *Manager) Sources(cid string, nodes []string) []*types.DownloadSource {
 	}
 
 	return sources
+}
+
+// selectCandidateToPullAsset select candidate node to pull asset replica
+func (m *Manager) selectCandidateToPullAsset(count int, filterNodes []string) map[string]*node.Node {
+	selectMap := make(map[string]*node.Node)
+	if count <= 0 {
+		return selectMap
+	}
+
+	if len(filterNodes) >= m.nodeMgr.Candidates {
+		return selectMap
+	}
+
+	filterMap := make(map[string]struct{})
+	for _, nodeID := range filterNodes {
+		filterMap[nodeID] = struct{}{}
+	}
+
+	num := count * maxRetryCount
+
+	for i := 0; i < num; i++ {
+		node := m.nodeMgr.GetRandomCandidate()
+		if node == nil {
+			continue
+		}
+		nodeID := node.NodeInfo.NodeID
+
+		if _, exist := filterMap[nodeID]; exist {
+			continue
+		}
+
+		if node.DiskUsage > maxNodeDiskUsage {
+			continue
+		}
+
+		selectMap[nodeID] = node
+		if len(selectMap) >= count {
+			break
+		}
+	}
+
+	return selectMap
+}
+
+// selectEdgeToPullAsset select edge node to pull asset replica
+func (m *Manager) selectEdgeToPullAsset(count int, filterNodes []string) map[string]*node.Node {
+	selectMap := make(map[string]*node.Node)
+	if count <= 0 {
+		return selectMap
+	}
+
+	if len(filterNodes) >= m.nodeMgr.Edges {
+		return selectMap
+	}
+
+	filterMap := make(map[string]struct{})
+	for _, nodeID := range filterNodes {
+		filterMap[nodeID] = struct{}{}
+	}
+
+	for i := 0; i < count*maxRetryCount; i++ {
+		node := m.nodeMgr.GetRandomEdge()
+		if node == nil {
+			continue
+		}
+		nodeID := node.NodeInfo.NodeID
+
+		if _, exist := filterMap[nodeID]; exist {
+			continue
+		}
+
+		if node.DiskUsage > maxNodeDiskUsage {
+			continue
+		}
+
+		selectMap[nodeID] = node
+		if len(selectMap) >= count {
+			break
+		}
+	}
+
+	return selectMap
 }

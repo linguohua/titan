@@ -94,3 +94,15 @@ func (n NodeType) MarshalBinary() ([]byte, error) {
 }
 
 var RunningNodeType NodeType
+
+// Topics pub sub topics
+type Topics string
+
+const (
+	TopicsNodeOnline  Topics = "node_online"
+	TopicsNodeOffline Topics = "node_offline"
+)
+
+func (t Topics) String() string {
+	return string(t)
+}

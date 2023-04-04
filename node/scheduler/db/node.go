@@ -95,7 +95,7 @@ func (n *SQLDB) UpdateValidateResultInfo(info *types.ValidateResultInfo) error {
 // SetValidateResultsTimeout set timeout status to validate results
 func (n *SQLDB) SetValidateResultsTimeout(roundID string) error {
 	query := fmt.Sprintf(`UPDATE %s SET status=?, end_time=NOW() WHERE round_id=? AND status=?`, validateResultTable)
-	_, err := n.db.Exec(query, types.ValidateStatusTimeOut, roundID, types.ValidateStatusCreate)
+	_, err := n.db.Exec(query, types.ValidateStatusValidatorTimeOut, roundID, types.ValidateStatusCreate)
 	return err
 }
 

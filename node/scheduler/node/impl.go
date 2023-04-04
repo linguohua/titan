@@ -1,135 +1,8 @@
 package node
 
 import (
-	"math"
-	"math/rand"
-	"time"
-
 	"github.com/linguohua/titan/api/types"
 )
-
-const maxRetryCount = 3
-
-// SelectCandidateToPullAsset select candidate node to pull asset replica
-func (m *Manager) SelectCandidateToPullAsset(count int, filterNodes []string) map[string]*Node {
-	selectMap := make(map[string]*Node)
-	if count <= 0 {
-		return selectMap
-	}
-
-	if len(filterNodes) >= len(m.cDistributedSelectCode) {
-		return selectMap
-	}
-
-	filterMap := make(map[string]struct{})
-	for _, nodeID := range filterNodes {
-		filterMap[nodeID] = struct{}{}
-	}
-
-	num := count * maxRetryCount
-
-	for i := 0; i < num; i++ {
-		selectCode := m.getSelectCodeRandom(m.cPullSelectCode, m.cPullSelectRand)
-		nodeID, exist := m.cDistributedSelectCode[selectCode]
-		if !exist {
-			continue
-		}
-
-		node := m.GetCandidateNode(nodeID)
-		if node == nil {
-			continue
-		}
-
-		if _, exist := filterMap[nodeID]; exist {
-			continue
-		}
-
-		if node.DiskUsage > maxNodeDiskUsage {
-			continue
-		}
-
-		selectMap[nodeID] = node
-		if len(selectMap) >= count {
-			break
-		}
-	}
-
-	return selectMap
-}
-
-// SelectEdgeToPullAsset select edge node to pull asset replica
-func (m *Manager) SelectEdgeToPullAsset(count int, filterNodes []string) map[string]*Node {
-	selectMap := make(map[string]*Node)
-	if count <= 0 {
-		return selectMap
-	}
-
-	if len(filterNodes) >= len(m.eDistributedSelectCode) {
-		return selectMap
-	}
-
-	filterMap := make(map[string]struct{})
-	for _, nodeID := range filterNodes {
-		filterMap[nodeID] = struct{}{}
-	}
-
-	for i := 0; i < count*maxRetryCount; i++ {
-		selectCode := m.getSelectCodeRandom(m.ePullSelectCode, m.ePullSelectRand)
-		nodeID, exist := m.eDistributedSelectCode[selectCode]
-		if !exist {
-			continue
-		}
-
-		node := m.GetEdgeNode(nodeID)
-		if node == nil {
-			continue
-		}
-
-		if _, exist := filterMap[nodeID]; exist {
-			continue
-		}
-
-		if node.DiskUsage > maxNodeDiskUsage {
-			continue
-		}
-
-		selectMap[nodeID] = node
-		if len(selectMap) >= count {
-			break
-		}
-	}
-
-	return selectMap
-}
-
-// ElectValidators elect
-func (m *Manager) ElectValidators(ratio float64) (out []string) {
-	out = make([]string, 0)
-
-	needValidatorCount := int(math.Ceil(float64(m.candidates) * ratio))
-	if needValidatorCount <= 0 {
-		return
-	}
-
-	m.candidateNodes.Range(func(key, value interface{}) bool {
-		nodeID := key.(string)
-		out = append(out, nodeID)
-		return true
-	})
-
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(out), func(i, j int) {
-		out[i], out[j] = out[j], out[i]
-	})
-
-	if needValidatorCount > len(out) {
-		needValidatorCount = len(out)
-	}
-
-	out = out[:needValidatorCount]
-
-	return
-}
 
 // NodesQuit Nodes quit
 func (m *Manager) NodesQuit(nodeIDs []string) {
@@ -156,6 +29,18 @@ func (m *Manager) NodesQuit(nodeIDs []string) {
 	for _, hash := range hashes {
 		log.Infof("need to add replica :%s", hash)
 	}
+}
+
+// GetAllCandidates get all candidates
+func (m *Manager) GetAllCandidates() []string {
+	var out []string
+	m.candidateNodes.Range(func(key, value interface{}) bool {
+		nodeID := key.(string)
+		out = append(out, nodeID)
+		return true
+	})
+
+	return out
 }
 
 // GetNode get node

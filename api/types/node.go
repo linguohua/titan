@@ -161,8 +161,10 @@ const (
 	ValidateStatusCreate
 	// ValidateStatusSuccess status
 	ValidateStatusSuccess
-	// ValidateStatusTimeOut status
-	ValidateStatusTimeOut
+	// ValidateStatusNodeTimeOut status
+	ValidateStatusNodeTimeOut
+	// ValidateStatusValidatorTimeOut status
+	ValidateStatusValidatorTimeOut
 	// ValidateStatusCancel status
 	ValidateStatusCancel
 	// ValidateStatusBlockFail status

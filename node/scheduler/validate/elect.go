@@ -1,6 +1,10 @@
 package validate
 
-import "time"
+import (
+	"math"
+	"math/rand"
+	"time"
+)
 
 var (
 	firstElectInterval = 5 * time.Minute    // Time of the first election
@@ -42,7 +46,7 @@ func (m *Manager) electTicker() {
 
 func (m *Manager) elect() error {
 	log.Debugln("start elect ")
-	validators := m.nodeMgr.ElectValidators(m.getValidatorRatio())
+	validators := m.electValidators()
 
 	m.ResetValidatorGroup(validators)
 
@@ -62,4 +66,29 @@ func (m *Manager) getValidatorRatio() float64 {
 	}
 
 	return cfg.ValidatorRatio
+}
+
+// electValidators elect
+func (m *Manager) electValidators() (out []string) {
+	ratio := m.getValidatorRatio()
+
+	out = m.nodeMgr.GetAllCandidates()
+
+	needValidatorCount := int(math.Ceil(float64(len(out)) * ratio))
+	if needValidatorCount <= 0 {
+		return
+	}
+
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(out), func(i, j int) {
+		out[i], out[j] = out[j], out[i]
+	})
+
+	if needValidatorCount > len(out) {
+		needValidatorCount = len(out)
+	}
+
+	out = out[:needValidatorCount]
+
+	return
 }
