@@ -125,6 +125,6 @@ CREATE TABLE `assets_view` (
 
 CREATE TABLE `bucket` (
      `bucket_id` varchar(128) NOT NULL UNIQUE,
-     `asset_ids` BLOB NOT NULL,
+     `asset_hashes` BLOB NOT NULL,
      PRIMARY KEY (`bucket_id`)
 ) ENGINE=InnoDB COMMENT='bucket';

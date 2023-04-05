@@ -110,19 +110,19 @@ func (mgr *AccessPointMgr) removeSchedulerAPI(url, areaID string) {
 		return
 	}
 
-	index := 0
+	var removeAPI *schedulerAPI
 	for i, api := range ap.apis {
 		if api.url == url {
-			index = i
+			removeAPI = api
+			ap.apis = append(ap.apis[:i], ap.apis[i+1:]...)
 			break
 		}
 	}
 
-	api := ap.apis[index]
-	ap.apis = append(ap.apis[0:index], ap.apis[index+1:]...)
-	api.close()
-
-	mgr.addAccessPointToMap(areaID, ap)
+	if removeAPI != nil {
+		removeAPI.close()
+		mgr.addAccessPointToMap(areaID, ap)
+	}
 }
 
 func (mgr *AccessPointMgr) removeAccessPoint(areaID string) {

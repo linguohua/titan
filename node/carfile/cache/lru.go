@@ -11,9 +11,13 @@ import (
 	carv2 "github.com/ipld/go-car/v2"
 	"github.com/ipld/go-car/v2/blockstore"
 	"github.com/ipld/go-car/v2/index"
+	titanindex "github.com/linguohua/titan/node/carfile/index"
 	"github.com/linguohua/titan/node/carfile/storage"
+	"github.com/multiformats/go-multihash"
 	"golang.org/x/xerrors"
 )
+
+const sizeOfBuckets = 128
 
 type Key string
 
@@ -159,5 +163,23 @@ func (lru *lruCache) getCarIndex(r io.ReaderAt) (index.Index, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	iterableIdx, ok := idx.(index.IterableIndex)
+	if !ok {
+		return nil, xerrors.Errorf("idx is not IterableIndex")
+	}
+
+	records := make([]index.Record, 0)
+	iterableIdx.ForEach(func(m multihash.Multihash, u uint64) error {
+		record := index.Record{Cid: cid.NewCidV0(m), Offset: u}
+		records = append(records, record)
+		return nil
+	})
+
+	idx = titanindex.NewMultiIndexSorted(sizeOfBuckets)
+	if err := idx.Load(records); err != nil {
+		return nil, err
+	}
+	// convert to titan index
 	return idx, nil
 }

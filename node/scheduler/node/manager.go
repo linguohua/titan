@@ -10,6 +10,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/modules/dtypes"
 
+	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/scheduler/db"
 )
@@ -19,8 +20,9 @@ var log = logging.Logger("node")
 const (
 	offlineTimeMax = 24 // If it is not online after this time, it is determined that the node has quit the titan (unit: hour)
 
-	keepaliveTime    = 30 // keepalive time interval (unit: second)
-	saveInfoInterval = 10 // keepalive saves information every 10 times
+	keepaliveTime    = 30  // keepalive time interval (unit: second)
+	saveInfoInterval = 10  // keepalive saves information every 10 times
+	sizeOfBuckets    = 128 // The number of buckets in assets view
 )
 
 // Manager Node Manager
@@ -235,4 +237,14 @@ func (m *Manager) saveInfo(n *BaseInfo) error {
 	}
 
 	return nil
+}
+
+func (m *Manager) AddAsset(nodeID string, c cid.Cid) error {
+	av := &AssetsView{}
+	return av.addAsset(m, nodeID, c)
+}
+
+func (m *Manager) RemoveAsset(nodeID string, c cid.Cid) error {
+	av := &AssetsView{}
+	return av.removeAsset(m, nodeID, c)
 }

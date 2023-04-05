@@ -14,6 +14,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/carfile/fetcher"
 	"github.com/linguohua/titan/node/carfile/storage"
+	"github.com/linguohua/titan/node/validate"
 	"github.com/multiformats/go-multihash"
 	"golang.org/x/xerrors"
 )
@@ -162,11 +163,7 @@ func (m *Manager) removeCarFromWaitList(root cid.Cid) *carWaiter {
 
 	for i, cw := range m.waitList {
 		if cw.Root.Hash().String() == root.Hash().String() {
-			if i == 0 {
-				m.waitList = m.waitList[1:]
-			} else {
-				m.waitList = append(m.waitList[:i], m.waitList[i+1:]...)
-			}
+			m.waitList = append(m.waitList[:i], m.waitList[i+1:]...)
 
 			if err := m.saveWaitList(); err != nil {
 				log.Errorf("save wait list error: %s", err.Error())
@@ -463,4 +460,9 @@ func (m *Manager) GetCarsOfBucket(ctx context.Context, bucketID uint32, isRemote
 		return m.Storage.GetCarsOfBucket(ctx, bucketID)
 	}
 	return nil, nil
+}
+
+// validate car by random seed
+func (m *Manager) GetChecker(ctx context.Context, randomSeed int64) (validate.RandomChecker, error) {
+	return NewRandomCheck(randomSeed, m.Storage, nil), nil
 }
