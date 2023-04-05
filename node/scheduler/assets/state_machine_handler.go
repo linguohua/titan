@@ -102,7 +102,7 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 		return ctx.Send(SelectFailed{error: err})
 	}
 
-	sources := m.Sources(info.Hash.String(), info.CandidateReplicaSucceeds)
+	sources := m.Sources(info.CID, info.CandidateReplicaSucceeds)
 
 	m.addOrResetAssetTicker(info.Hash.String())
 
@@ -145,7 +145,7 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 		return ctx.Send(Skip{})
 	}
 
-	sources := m.Sources(info.Hash.String(), info.CandidateReplicaSucceeds)
+	sources := m.Sources(info.CID, info.CandidateReplicaSucceeds)
 	if len(sources) < 1 {
 		return ctx.Send(SelectFailed{error: xerrors.New("source node not found")})
 	}

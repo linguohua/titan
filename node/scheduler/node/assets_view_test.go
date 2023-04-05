@@ -17,7 +17,7 @@ func TestAssetsView(t *testing.T) {
 	}
 
 	db := db.NewSQLDB(sqldb)
-	mgr := NewManager(db, "1", nil)
+	mgr := NewManager(db, "1", nil, nil)
 
 	c, err := cid.Decode("QmTcAg1KeDYJFpTJh3rkZGLhnnVKeXWNtjwPufjVvwPTpG")
 	if err != nil {

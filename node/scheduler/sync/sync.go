@@ -2,12 +2,12 @@ package sync
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/node"
+	"golang.org/x/xerrors"
 )
 
 var log = logging.Logger("data-sync")
@@ -97,11 +97,16 @@ func (ds *DataSync) getNodeDataSyncAPI(nodeID string) api.DataSync {
 func (ds *DataSync) doDataSync(nodeID string) error {
 	dataSyncAPI := ds.getNodeDataSyncAPI(nodeID)
 	if dataSyncAPI == nil {
-		return fmt.Errorf("can not get node %s data sync api", nodeID)
+		return xerrors.Errorf("could not get node %s data sync api", nodeID)
 	}
 	topChecksum, err := ds.getTopHash(nodeID)
 	if err != nil {
-		return err
+		return xerrors.Errorf("get top hash %w", err)
+	}
+
+	if len(topChecksum) == 0 {
+		log.Warnf("node %s no assets exist", nodeID)
+		return nil
 	}
 
 	ctx, cancle := context.WithCancel(context.Background())
@@ -110,17 +115,17 @@ func (ds *DataSync) doDataSync(nodeID string) error {
 	if ok, err := dataSyncAPI.CompareTopHash(ctx, topChecksum); err != nil {
 		return err
 	} else if ok {
-		return nil
+		return xerrors.Errorf("compare top hash %w", err)
 	}
 
 	checksums, err := ds.getHashesOfBuckets(nodeID)
 	if err != nil {
-		return err
+		return xerrors.Errorf("get hashes of buckets %w", err)
 	}
 
 	mismatchBuckets, err := dataSyncAPI.CompareBucketHashes(ctx, checksums)
 	if err != nil {
-		return err
+		return xerrors.Errorf("compare bucket hashes %w", err)
 	}
 
 	log.Warnf("mismatch buckets len:%d", len(mismatchBuckets))

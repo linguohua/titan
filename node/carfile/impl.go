@@ -15,6 +15,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/carfile/cache"
 	"github.com/linguohua/titan/node/carfile/storage"
+	"golang.org/x/xerrors"
 )
 
 var log = logging.Logger("carfile")
@@ -55,7 +56,7 @@ func (cfImpl *CarfileImpl) CacheCarfile(ctx context.Context, rootCID string, dss
 		return nil
 	}
 
-	log.Debugf("CacheCarfile cid:%s", rootCID)
+	log.Debugf("Cache carfile cid:%s", rootCID)
 
 	cfImpl.cacheMgr.AddToWaitList(root, dss)
 	return nil
@@ -67,6 +68,8 @@ func (cfImpl *CarfileImpl) DeleteCarfile(ctx context.Context, carfileCID string)
 		log.Errorf("DeleteCarfile, decode carfile cid %s error :%s", carfileCID, err.Error())
 		return err
 	}
+
+	log.Debugf("DeleteCarfile %s", carfileCID)
 
 	go func() {
 		if err := cfImpl.cacheMgr.DeleteCar(c); err != nil {
@@ -149,14 +152,15 @@ func (cfImpl *CarfileImpl) CachedProgresses(ctx context.Context, carfileCIDs []s
 	for _, carfileCID := range carfileCIDs {
 		root, err := cid.Decode(carfileCID)
 		if err != nil {
+			log.Errorf("decode cid %s", err.Error())
 			return nil, err
 		}
 
 		progress, err := cfImpl.carProgress(root)
 		if err != nil {
+			log.Errorf("carProgress %s", err.Error())
 			return nil, err
 		}
-
 		progresses = append(progresses, progress)
 	}
 
@@ -186,13 +190,13 @@ func (cfImpl *CarfileImpl) progressForSucceededCar(root cid.Cid) (*types.AssetPu
 
 	blk, err := cfImpl.cacheMgr.GetBlock(context.Background(), root, root)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("get block %w", err)
 	}
 
 	blk = blocks.NewBlock(blk.RawData())
 	node, err := legacy.DecodeNode(context.Background(), blk)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("decode node %w", err)
 	}
 
 	linksSize := uint64(len(blk.RawData()))
@@ -209,7 +213,7 @@ func (cfImpl *CarfileImpl) progressForSucceededCar(root cid.Cid) (*types.AssetPu
 func (cfImpl *CarfileImpl) carProgress(root cid.Cid) (*types.AssetPullProgress, error) {
 	status, err := cfImpl.cacheMgr.CachedStatus(root)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("car %s cache status %w", root.Hash(), err)
 	}
 
 	switch status {
@@ -222,5 +226,5 @@ func (cfImpl *CarfileImpl) carProgress(root cid.Cid) (*types.AssetPullProgress, 
 	case types.ReplicaStatusSucceeded:
 		return cfImpl.progressForSucceededCar(root)
 	}
-	return nil, nil
+	return nil, xerrors.Errorf("unknown car %s status %d", root.String(), status)
 }

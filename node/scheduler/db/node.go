@@ -334,6 +334,9 @@ func (n *SQLDB) LoadTopHash(nodeID string) (string, error) {
 	var out string
 	err := n.db.Get(&out, query, nodeID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", nil
+		}
 		return "", err
 	}
 

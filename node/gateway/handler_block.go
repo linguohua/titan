@@ -17,7 +17,7 @@ func (gw *Gateway) serveRawBlock(w http.ResponseWriter, r *http.Request, credent
 
 	car, err := cid.Decode(credentials.CarCID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("decode car cid error: %s", err.Error()), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("decode car cid %s error: %s", credentials.CarCID, err.Error()), http.StatusBadRequest)
 		return
 	}
 

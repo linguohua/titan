@@ -41,6 +41,6 @@ func NewDataSync(cacheMgr *cache.Manager) *datasync.DataSync {
 	return datasync.NewDataSync(cacheMgr)
 }
 
-func NewValidate(cacheMgr *cache.Manager, device *device.Device) *validate.Validate {
+func NewNodeValidate(cacheMgr *cache.Manager, device *device.Device) *validate.Validate {
 	return validate.NewValidate(cacheMgr, device)
 }

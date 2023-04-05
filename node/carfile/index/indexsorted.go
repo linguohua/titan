@@ -109,7 +109,7 @@ func (b *bucket) getAll(c cid.Cid, fn func(uint64) bool) error {
 	for _, record := range b.records {
 		if bytes.Equal(c.Hash(), record.Hash()) {
 			if !fn(record.Offset) {
-				break
+				return nil
 			}
 		}
 	}

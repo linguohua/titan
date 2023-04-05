@@ -116,12 +116,12 @@ CREATE TABLE `validators` (
     PRIMARY KEY (`node_id`)
 ) ENGINE=InnoDB COMMENT='validators';
 
-CREATE TABLE `assets_view` (
+CREATE TABLE `asset_view` (
      `node_id` varchar(128) NOT NULL UNIQUE,
      `top_hash` varchar(128) NOT NULL,
      `bucket_hashes` BLOB NOT NULL,
      PRIMARY KEY (`node_id`)
-) ENGINE=InnoDB COMMENT='assets view';
+) ENGINE=InnoDB COMMENT='asset view';
 
 CREATE TABLE `bucket` (
      `bucket_id` varchar(128) NOT NULL UNIQUE,

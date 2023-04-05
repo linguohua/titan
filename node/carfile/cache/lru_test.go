@@ -20,7 +20,7 @@ func init() {
 }
 func TestLRUCache(t *testing.T) {
 	t.Logf("TestLRUCache")
-	storageMgr, err := storage.NewManager("C:/Users/aaa/.titanedge-1/carfilestore/cars", nil)
+	storageMgr, err := storage.NewManager("C:/Users/aaa/.titancandidate-1/storage/", nil)
 	if err != nil {
 		t.Errorf("new manager err:%s", err.Error())
 		return
@@ -31,16 +31,17 @@ func TestLRUCache(t *testing.T) {
 		return
 	}
 
-	cidStr := "QmUuNfFwuRrxbRFt5ze3EhuQgkGnutwZtsYMbAcYbtb6j3"
+	cidStr := "bafkreib5rfwmim6vvuf76fi3uiqbenadoexqvq5vf64a776tybqcpkes4q"
 	root, err := cid.Decode(cidStr)
 	if err != nil {
 		t.Errorf("decode error:%s", err.Error())
 		return
 	}
 
+	t.Logf("hash %s", root.Hash().String())
 	blk, err := cache.getBlock(context.Background(), root, root)
 	if err != nil {
-		t.Errorf("decode error:%s", err.Error())
+		t.Errorf("get block error:%s", err.Error())
 		return
 	}
 

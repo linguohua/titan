@@ -68,6 +68,9 @@ func NewManager(baseDir string, opts *ManagerOptions) (*Manager, error) {
 	}
 
 	assetsView, err := newAssetsView(opts.AssetsViewDir, opts.BucketSize)
+	if err != nil {
+		return nil, err
+	}
 
 	waitList := newWaitList(opts.waitListFilePath)
 	return &Manager{
@@ -94,6 +97,7 @@ func defaultOptions(baseDir string) *ManagerOptions {
 	return opts
 }
 
+// carCache api
 func (m *Manager) PutCarCache(c cid.Cid, data []byte) error {
 	return m.carCache.put(c, data)
 }
@@ -110,8 +114,13 @@ func (m *Manager) RemoveCarCache(c cid.Cid) error {
 	return m.carCache.delete(c)
 }
 
+// car api
 func (m *Manager) PutBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) error {
 	return m.car.putBlocks(ctx, root, blks)
+}
+
+func (m *Manager) PutCar(ctx context.Context, root cid.Cid) error {
+	return m.car.putCar(ctx, root)
 }
 
 func (m *Manager) GetCar(root cid.Cid) (io.ReadSeekCloser, error) {
