@@ -54,7 +54,7 @@ func ConfigCandidate(c interface{}) Option {
 		Override(new(dtypes.CarfileStorePath), dtypes.CarfileStorePath(cfg.CarfileStorePath)),
 		Override(new(*storage.Manager), modules.NewNodeStorageManager),
 		Override(new(*cache.Manager), modules.NewCacheManager(cfg.FetchBatch)),
-		Override(new(*validate.Validate), modules.NewValidate),
+		Override(new(*validate.Validate), modules.NewNodeValidate),
 		Override(new(*rate.Limiter), modules.NewRateLimiter),
 		Override(new(*carfile.CarfileImpl), carfile.NewCarfileImpl),
 		Override(new(fetcher.BlockFetcher), modules.NewBlockFetcherFromIPFS),

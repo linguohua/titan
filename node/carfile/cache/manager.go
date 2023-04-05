@@ -219,6 +219,10 @@ func (m *Manager) onDownloadCarFinish(cf *carfileCache) {
 			log.Errorf("set block count error:%s", err.Error())
 		}
 
+		if err := m.PutCar(context.Background(), cf.root); err != nil {
+			log.Errorf("put car error: %s", err.Error())
+		}
+
 	} else {
 		if err := m.saveCarfileCache(cf); err != nil {
 			log.Errorf("saveIncompleteCarfileCache error:%s", err.Error())

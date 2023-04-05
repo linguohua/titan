@@ -60,7 +60,11 @@ func (c *Candidate) getBlock(ds *types.DownloadSource, cidStr string) (blocks.Bl
 	defer resp.Body.Close() //nolint:errcheck // ignore error
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("status code %d", resp.StatusCode)
+		data, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("status code: %d, error msg: %s", resp.StatusCode, string(data))
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)

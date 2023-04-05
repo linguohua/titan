@@ -13,7 +13,7 @@ type carCache struct {
 }
 
 func newCarCache(baseDir string) (*carCache, error) {
-	err := os.MkdirAll(baseDir, 0o755)
+	err := os.MkdirAll(baseDir, 0755)
 	if err != nil {
 		return nil, err
 	}

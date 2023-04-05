@@ -16,6 +16,7 @@ type Storage interface {
 
 	PutBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) error
 
+	PutCar(ctx context.Context, root cid.Cid) error
 	GetCar(root cid.Cid) (io.ReadSeekCloser, error)
 	HasCar(root cid.Cid) (bool, error)
 	RemoveCar(root cid.Cid) error

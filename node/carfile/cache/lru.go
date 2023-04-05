@@ -49,10 +49,10 @@ func (lru *lruCache) getBlock(ctx context.Context, root, block cid.Cid) (blocks.
 	v, ok := lru.cache.Get(key)
 	if !ok {
 		if err := lru.add(root); err != nil {
-			return nil, err
+			return nil, xerrors.Errorf("add cache %s %w", root.String(), err)
 		}
 
-		log.Debugf("get block %s from cache", block.String())
+		log.Debugf("add car %s to cache", block.String())
 
 		if v, ok = lru.cache.Get(key); !ok {
 			return nil, xerrors.Errorf("car %s not exist", root.String())
