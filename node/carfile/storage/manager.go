@@ -147,12 +147,21 @@ func (m *Manager) GetBucketHashes(ctx context.Context) (map[uint32]string, error
 	return m.assetsView.getBucketHashes(ctx)
 }
 func (m *Manager) GetCarsOfBucket(ctx context.Context, bucketID uint32) ([]cid.Cid, error) {
-	return m.assetsView.getCars(ctx, bucketID)
+	hashes, err := m.assetsView.getAssetHashes(ctx, bucketID)
+	if err != nil {
+		return nil, err
+	}
+
+	cids := make([]cid.Cid, 0, len(hashes))
+	for _, h := range hashes {
+		cids = append(cids, cid.NewCidV0(h))
+	}
+	return cids, nil
 }
-func (m *Manager) addCar(ctx context.Context, root cid.Cid) error {
+func (m *Manager) AddCarToAssetsView(ctx context.Context, root cid.Cid) error {
 	return m.assetsView.addCar(ctx, root)
 }
-func (m *Manager) removeCar(ctx context.Context, root cid.Cid) error {
+func (m *Manager) RemoveCarFromAssetsView(ctx context.Context, root cid.Cid) error {
 	return m.assetsView.removeCar(ctx, root)
 }
 

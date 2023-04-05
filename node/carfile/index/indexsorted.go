@@ -125,6 +125,10 @@ func (b *bucket) forEach(f func(mh multihash.Multihash, offset uint64) error) er
 	return nil
 }
 
+func (m *MultiIndexSorted) Codec() multicodec.Code {
+	return multiIndexCodec
+}
+
 func (m *MultiIndexSorted) hashCode(mh multihash.Multihash) uint32 {
 	hash := fnv.New32a()
 	hash.Write(mh)

@@ -52,7 +52,7 @@ var log = logging.Logger("main")
 const (
 	FlagEdgeRepo            = "edge-repo"
 	FlagEdgeRepoDeprecation = "edgerepo"
-	DefaultCarfileStoreDir  = "carfilestore"
+	DefaultStorageDir       = "storage"
 )
 
 func main() {
@@ -231,7 +231,7 @@ var runCmd = &cli.Command{
 			node.Override(new(dtypes.CarfileStorePath), func() dtypes.CarfileStorePath {
 				carfileStorePath := edgeCfg.CarfileStorePath
 				if len(carfileStorePath) == 0 {
-					carfileStorePath = path.Join(lr.Path(), DefaultCarfileStoreDir)
+					carfileStorePath = path.Join(lr.Path(), DefaultStorageDir)
 				}
 
 				log.Infof("carfilestorePath:%s", carfileStorePath)

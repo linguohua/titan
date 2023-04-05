@@ -8,6 +8,7 @@ import (
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	datasync "github.com/linguohua/titan/node/sync"
+	"github.com/linguohua/titan/node/validate"
 	"golang.org/x/time/rate"
 )
 
@@ -25,9 +26,11 @@ func NewNodeStorageManager(path dtypes.CarfileStorePath) (*storage.Manager, erro
 	return storage.NewManager(string(path), nil)
 }
 
-func NewCacheManager(storageMgr *storage.Manager, bFetcher fetcher.BlockFetcher, cfg *config.EdgeCfg) (*cache.Manager, error) {
-	opts := &cache.ManagerOptions{Storage: storageMgr, BFetcher: bFetcher, DownloadBatch: cfg.FetchBatch}
-	return cache.NewManager(opts)
+func NewCacheManager(fetchBatch int) func(storageMgr *storage.Manager, bFetcher fetcher.BlockFetcher) (*cache.Manager, error) {
+	return func(storageMgr *storage.Manager, bFetcher fetcher.BlockFetcher) (*cache.Manager, error) {
+		opts := &cache.ManagerOptions{Storage: storageMgr, BFetcher: bFetcher, DownloadBatch: fetchBatch}
+		return cache.NewManager(opts)
+	}
 }
 
 func NewBlockFetcherFromCandidate(cfg *config.EdgeCfg) fetcher.BlockFetcher {
@@ -36,4 +39,8 @@ func NewBlockFetcherFromCandidate(cfg *config.EdgeCfg) fetcher.BlockFetcher {
 
 func NewDataSync(cacheMgr *cache.Manager) *datasync.DataSync {
 	return datasync.NewDataSync(cacheMgr)
+}
+
+func NewValidate(cacheMgr *cache.Manager, device *device.Device) *validate.Validate {
+	return validate.NewValidate(cacheMgr, device)
 }

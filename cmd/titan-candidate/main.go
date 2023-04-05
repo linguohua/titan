@@ -55,7 +55,7 @@ const (
 
 	// TODO remove after deprecation period
 	FlagCandidateRepoDeprecation = "candidaterepo"
-	DefaultCarfileStoreDir       = "carfilestore"
+	DefaultStorageDir            = "storage"
 )
 
 func main() {
@@ -237,7 +237,7 @@ var runCmd = &cli.Command{
 			node.Override(new(dtypes.CarfileStorePath), func() dtypes.CarfileStorePath {
 				carfileStorePath := candidateCfg.CarfileStorePath
 				if len(carfileStorePath) == 0 {
-					carfileStorePath = path.Join(lr.Path(), DefaultCarfileStoreDir)
+					carfileStorePath = path.Join(lr.Path(), DefaultStorageDir)
 				}
 
 				log.Infof("carfilestorePath:%s", carfileStorePath)

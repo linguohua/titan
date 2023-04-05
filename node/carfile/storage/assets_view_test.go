@@ -6,6 +6,7 @@ import (
 
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/multiformats/go-multihash"
 )
 
 func init() {
@@ -27,7 +28,8 @@ func TestBucket(t *testing.T) {
 		return
 	}
 
-	bucket.addCar(context.Background(), c1)
+	bucketID := bucket.bucketID(c1)
+	bucket.setAssetHashes(context.Background(), bucketID, []multihash.Multihash{c1.Hash()})
 
 	cidStr = "QmUuNfFwuRrxbRFt5ze3EhuQgkGnutwZtsYMbAcYbtb6j3"
 	c2, err := cid.Decode(cidStr)
@@ -36,33 +38,34 @@ func TestBucket(t *testing.T) {
 		return
 	}
 
-	err = bucket.addCar(context.Background(), c2)
+	bucketID = bucket.bucketID(c2)
+	err = bucket.setAssetHashes(context.Background(), bucketID, []multihash.Multihash{c2.Hash()})
 	if err != nil {
 		t.Errorf("put error:%s", err.Error())
 		return
 	}
 
-	index := bucket.bucketID(c1)
-	cars, err := bucket.getCars(context.Background(), uint32(index))
+	bucketID = bucket.bucketID(c1)
+	cars, err := bucket.getAssetHashes(context.Background(), bucketID)
 	if err != nil {
 		t.Errorf("put error:%s", err.Error())
 		return
 	}
 
-	t.Logf("index:%d", index)
+	t.Logf("bucketID:%d", bucketID)
 
 	for _, car := range cars {
 		t.Logf("mh:%s", car.String())
 	}
 
-	index = bucket.bucketID(c2)
-	cars, err = bucket.getCars(context.Background(), uint32(index))
+	bucketID = bucket.bucketID(c2)
+	cars, err = bucket.getAssetHashes(context.Background(), bucketID)
 	if err != nil {
 		t.Errorf("put error:%s", err.Error())
 		return
 	}
 
-	t.Logf("index:%d", index)
+	t.Logf("index:%d", bucketID)
 
 	for _, car := range cars {
 		t.Logf("mh:%s", car.String())

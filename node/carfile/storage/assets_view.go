@@ -38,9 +38,9 @@ func newAssetsView(baseDir string, bucketSize uint32) (*AssetsView, error) {
 	return &AssetsView{bucket: &bucket{ds: ds, size: bucketSize}, lock: &sync.Mutex{}}, nil
 }
 
-func (dv *AssetsView) setTopHash(ctx context.Context, checksum string) error {
+func (dv *AssetsView) setTopHash(ctx context.Context, topHash string) error {
 	key := ds.NewKey(keyOfTopHash)
-	return dv.ds.Put(ctx, key, []byte(checksum))
+	return dv.ds.Put(ctx, key, []byte(topHash))
 }
 
 func (dv *AssetsView) getTopHash(ctx context.Context) (string, error) {
@@ -51,6 +51,11 @@ func (dv *AssetsView) getTopHash(ctx context.Context) (string, error) {
 	}
 
 	return string(val), nil
+}
+
+func (dv *AssetsView) removeTopHash(ctx context.Context) error {
+	key := ds.NewKey(keyOfTopHash)
+	return dv.ds.Delete(ctx, key)
 }
 
 func (dv *AssetsView) setBucketHashes(ctx context.Context, checksums map[uint32]string) error {
@@ -83,18 +88,27 @@ func (dv *AssetsView) getBucketHashes(ctx context.Context) (map[uint32]string, e
 	return out, nil
 }
 
+func (dv *AssetsView) removeBucketHashes(ctx context.Context) error {
+	key := ds.NewKey(keyOfBucketHashes)
+	return dv.ds.Delete(ctx, key)
+}
+
 func (dv *AssetsView) addCar(ctx context.Context, root cid.Cid) error {
 	dv.lock.Lock()
 	defer dv.lock.Unlock()
 
-	if err := dv.bucket.addCar(ctx, root); err != nil {
+	bucketID := dv.bucketID(root)
+	assetHashes, err := dv.bucket.getAssetHashes(ctx, bucketID)
+	if err != nil {
 		return err
 	}
 
-	bucketID := dv.bucketID(root)
-	if err := dv.updateHashes(ctx, bucketID); err != nil {
-		return err
+	if has(assetHashes, root.Hash()) {
+		return nil
 	}
+
+	assetHashes = append(assetHashes, root.Hash())
+	dv.update(ctx, bucketID, assetHashes)
 
 	return nil
 }
@@ -103,41 +117,59 @@ func (dv *AssetsView) removeCar(ctx context.Context, root cid.Cid) error {
 	dv.lock.Lock()
 	defer dv.lock.Unlock()
 
-	if err := dv.bucket.removeCar(ctx, root); err != nil {
+	bucketID := dv.bucketID(root)
+	assetHashes, err := dv.bucket.getAssetHashes(ctx, bucketID)
+	if err != nil {
 		return err
 	}
 
-	bucketID := dv.bucketID(root)
-	if err := dv.updateHashes(ctx, bucketID); err != nil {
-		return err
+	if !has(assetHashes, root.Hash()) {
+		return nil
 	}
+
+	assetHashes = removeHash(assetHashes, root.Hash())
+	dv.update(ctx, bucketID, assetHashes)
 
 	return nil
 }
 
-func (dv *AssetsView) updateHashes(ctx context.Context, bucketID uint32) error {
-	cids, err := dv.getCars(ctx, bucketID)
+func (dv *AssetsView) update(ctx context.Context, bucketID uint32, assetHashes []multihash.Multihash) error {
+	bucketHashes, err := dv.getBucketHashes(ctx)
 	if err != nil {
 		return err
 	}
 
-	hash, err := dv.calculateBucketHash(cids)
+	if len(assetHashes) == 0 {
+		if err := dv.remove(ctx, bucketID); err != nil {
+			return err
+		}
+		delete(bucketHashes, bucketID)
+	} else {
+		if err := dv.setAssetHashes(ctx, bucketID, assetHashes); err != nil {
+			return err
+		}
+
+		bucketHash, err := dv.calculateBucketHash(assetHashes)
+		if err != nil {
+			return err
+		}
+
+		bucketHashes[bucketID] = bucketHash
+	}
+
+	if len(bucketHashes) == 0 {
+		if err := dv.removeTopHash(ctx); err != nil {
+			return err
+		}
+		return dv.removeBucketHashes(ctx)
+	}
+
+	topHash, err := dv.calculateTopHash(bucketHashes)
 	if err != nil {
 		return err
 	}
 
-	hashes, err := dv.getBucketHashes(ctx)
-	if err != nil {
-		return err
-	}
-	hashes[bucketID] = hash
-
-	topHash, err := dv.calculateTopHash(hashes)
-	if err != nil {
-		return err
-	}
-
-	if err := dv.setBucketHashes(ctx, hashes); err != nil {
+	if err := dv.setBucketHashes(ctx, bucketHashes); err != nil {
 		return err
 	}
 
@@ -148,10 +180,10 @@ func (dv *AssetsView) updateHashes(ctx context.Context, bucketID uint32) error {
 	return nil
 }
 
-func (dv *AssetsView) calculateBucketHash(cids []cid.Cid) (string, error) {
+func (dv *AssetsView) calculateBucketHash(hashes []multihash.Multihash) (string, error) {
 	hash := sha256.New()
-	for _, c := range cids {
-		if _, err := hash.Write(c.Hash()); err != nil {
+	for _, h := range hashes {
+		if _, err := hash.Write(h); err != nil {
 			return "", err
 		}
 	}
@@ -176,7 +208,7 @@ type bucket struct {
 	size uint32
 }
 
-func (b *bucket) getCars(ctx context.Context, bucketID uint32) ([]cid.Cid, error) {
+func (b *bucket) getAssetHashes(ctx context.Context, bucketID uint32) ([]multihash.Multihash, error) {
 	if int(bucketID) > int(b.size) {
 		return nil, fmt.Errorf("bucket index %d is out of %d", bucketID, b.size)
 	}
@@ -191,89 +223,26 @@ func (b *bucket) getCars(ctx context.Context, bucketID uint32) ([]cid.Cid, error
 		return nil, nil
 	}
 
-	mhs, err := b.decode(val)
+	hashes, err := b.decode(val)
 	if err != nil {
 		return nil, err
 	}
 
-	cids := make([]cid.Cid, 0, len(mhs))
-	for _, mh := range mhs {
-		cids = append(cids, cid.NewCidV0(mh))
-	}
-	return cids, nil
+	return hashes, nil
 }
 
-func (b *bucket) addCar(ctx context.Context, root cid.Cid) error {
-	bucketID := b.bucketID(root)
+func (b *bucket) setAssetHashes(ctx context.Context, bucketID uint32, hashes []multihash.Multihash) error {
 	key := ds.NewKey(fmt.Sprintf("%d", bucketID))
 
-	val, err := b.ds.Get(ctx, key)
-	if err != nil && err != ds.ErrNotFound {
-		return xerrors.Errorf("failed to get value for bucket %d, err: %w", bucketID, err)
-	}
-
-	if errors.Is(err, ds.ErrNotFound) {
-		mhs := []multihash.Multihash{root.Hash()}
-		bs, err := b.encode(mhs)
-		if err != nil {
-			return xerrors.Errorf("encode bucket data: %w", err)
-		}
-
-		return b.ds.Put(ctx, key, bs)
-	}
-
-	mhs, err := b.decode(val)
+	buf, err := b.encode(hashes)
 	if err != nil {
 		return xerrors.Errorf("decode bucket data: %w", err)
 	}
 
-	if b.has(mhs, root.Hash()) {
-		return nil
-	}
-
-	mhs = append(mhs, root.Hash())
-	bs, err := b.encode(mhs)
-	if err != nil {
-		return xerrors.Errorf("marshal bucket data: %w", err)
-	}
-
-	return b.ds.Put(ctx, key, bs)
+	return b.ds.Put(ctx, key, buf)
 }
 
-func (b *bucket) removeCar(ctx context.Context, root cid.Cid) error {
-	bucketID := b.bucketID(root)
-	key := ds.NewKey(fmt.Sprintf("%d", bucketID))
-
-	val, err := b.ds.Get(ctx, key)
-	if err != nil && err != ds.ErrNotFound {
-		return xerrors.Errorf("failed to get value for bucket %d, err: %w", bucketID, err)
-	}
-
-	if errors.Is(err, ds.ErrNotFound) {
-		return nil
-	}
-
-	mhs, err := b.decode(val)
-	if err != nil {
-		return xerrors.Errorf("decode bucket data: %w", err)
-	}
-
-	// remove mhs
-	b.remove(mhs, root.Hash())
-
-	if len(mhs) == 0 {
-		return b.removeBucket(ctx, bucketID)
-	}
-
-	bs, err := b.encode(mhs)
-	if err != nil {
-		return xerrors.Errorf("marshal bucket data: %w", err)
-	}
-
-	return b.ds.Put(ctx, key, bs)
-}
-
-func (b *bucket) removeBucket(ctx context.Context, bucketID uint32) error {
+func (b *bucket) remove(ctx context.Context, bucketID uint32) error {
 	key := ds.NewKey(fmt.Sprintf("%d", bucketID))
 	return b.ds.Delete(ctx, key)
 }
@@ -284,7 +253,17 @@ func (b *bucket) bucketID(c cid.Cid) uint32 {
 	return h.Sum32() % b.size
 }
 
-func (b *bucket) has(mhs []multihash.Multihash, mh multihash.Multihash) bool {
+func removeHash(sources []multihash.Multihash, target multihash.Multihash) []multihash.Multihash {
+	// remove mhs
+	for i, mh := range sources {
+		if bytes.Equal(mh, target) {
+			return append(sources[:i], sources[i+1:]...)
+		}
+	}
+	return sources
+}
+
+func has(mhs []multihash.Multihash, mh multihash.Multihash) bool {
 	for _, v := range mhs {
 		if bytes.Equal(v, mh) {
 			return true
@@ -292,21 +271,6 @@ func (b *bucket) has(mhs []multihash.Multihash, mh multihash.Multihash) bool {
 	}
 
 	return false
-}
-
-func (b *bucket) remove(sources []multihash.Multihash, target multihash.Multihash) []multihash.Multihash {
-	// remove mhs
-	for i, mh := range sources {
-		if bytes.Equal(mh, target) {
-			if i == 0 {
-				sources = sources[1:]
-			} else {
-				sources = append(sources[:i], sources[i+1:]...)
-			}
-			return sources
-		}
-	}
-	return sources
 }
 
 func (b *bucket) encode(mhs []multihash.Multihash) ([]byte, error) {
