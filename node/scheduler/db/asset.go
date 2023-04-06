@@ -64,7 +64,7 @@ func (n *SQLDB) UpsertAssetRecord(info *types.AssetRecord) error {
 	return err
 }
 
-// LoadAssetRecord load asset record of hash
+// LoadAssetRecord retrieves asset record information.
 func (n *SQLDB) LoadAssetRecord(hash string) (*types.AssetRecord, error) {
 	var info types.AssetRecord
 	query := fmt.Sprintf("SELECT * FROM %s WHERE hash=?", assetRecordTable)
@@ -76,7 +76,7 @@ func (n *SQLDB) LoadAssetRecord(hash string) (*types.AssetRecord, error) {
 	return &info, err
 }
 
-// LoadAssetRecords load asset record infos
+// LoadAssetRecords retrieves assets record information.
 func (n *SQLDB) LoadAssetRecords(statuses []string, limit, offset int, serverID dtypes.ServerID) (*sqlx.Rows, error) {
 	if limit > loadAssetRecordsLimit || limit == 0 {
 		limit = loadAssetRecordsLimit
@@ -91,7 +91,7 @@ func (n *SQLDB) LoadAssetRecords(statuses []string, limit, offset int, serverID 
 	return n.db.QueryxContext(context.Background(), query, args...)
 }
 
-// LoadReplicasOfHash load replicas of asset hash
+// LoadReplicasOfHash retrieves asset replica information.
 func (n *SQLDB) LoadReplicasOfHash(hash string, statuses []types.ReplicaStatus) (*sqlx.Rows, error) {
 	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE hash=? AND status in (?)`, replicaInfoTable)
 	query, args, err := sqlx.In(sQuery, hash, statuses)
@@ -103,7 +103,7 @@ func (n *SQLDB) LoadReplicasOfHash(hash string, statuses []types.ReplicaStatus) 
 	return n.db.QueryxContext(context.Background(), query, args...)
 }
 
-// LoadAssetReplicas load all replicas of the asset
+// LoadAssetReplicas retrieves asset replicas information.
 func (n *SQLDB) LoadAssetReplicas(hash string) ([]*types.ReplicaInfo, error) {
 	var out []*types.ReplicaInfo
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE hash=? `, replicaInfoTable)

@@ -42,7 +42,7 @@ func (n *SQLDB) SetNodesQuitted(nodeIDs []string) error {
 	return err
 }
 
-// LoadPortMapping load the mapping port of node
+// LoadPortMapping retrieves the mapping port of a node.
 func (n *SQLDB) LoadPortMapping(nodeID string) (string, error) {
 	var port string
 	query := fmt.Sprintf("SELECT port_mapping FROM %s WHERE node_id=?", nodeInfoTable)
@@ -73,7 +73,7 @@ func (n *SQLDB) SetValidateResultInfos(infos []*types.ValidateResultInfo) error 
 	return err
 }
 
-// LoadNodeValidateCID Get the asset cid for node verification
+// LoadNodeValidateCID retrieves the cid of a validate result.
 func (n *SQLDB) LoadNodeValidateCID(roundID, nodeID string) (string, error) {
 	query := fmt.Sprintf("SELECT cid FROM %s WHERE round_id=? AND node_id=?", validateResultTable)
 	var cid string
@@ -94,14 +94,14 @@ func (n *SQLDB) UpdateValidateResultInfo(info *types.ValidateResultInfo) error {
 	return err
 }
 
-// SetValidateResultsTimeout set timeout status to validate results
+// SetValidateResultsTimeout sets the validate results' status as timeout.
 func (n *SQLDB) SetValidateResultsTimeout(roundID string) error {
 	query := fmt.Sprintf(`UPDATE %s SET status=?, end_time=NOW() WHERE round_id=? AND status=?`, validateResultTable)
 	_, err := n.db.Exec(query, types.ValidateStatusValidatorTimeOut, roundID, types.ValidateStatusCreate)
 	return err
 }
 
-// LoadValidateResultInfos load validator result infos
+// LoadValidateResultInfos retrieves validate results.
 func (n *SQLDB) LoadValidateResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) {
 	// TODO problematic from web
 	res := new(types.ListValidateResultRsp)
@@ -131,14 +131,14 @@ func (n *SQLDB) LoadValidateResultInfos(startTime, endTime time.Time, pageNumber
 	return res, nil
 }
 
-// SetEdgeUpdateInfo set edge update info
+// SetEdgeUpdateInfo inserts edge update information.
 func (n *SQLDB) SetEdgeUpdateInfo(info *api.EdgeUpdateInfo) error {
 	sqlString := fmt.Sprintf(`INSERT INTO %s (node_type, app_name, version, hash, download_url) VALUES (:node_type, :app_name, :version, :hash, :download_url) ON DUPLICATE KEY UPDATE app_name=:app_name, version=:version, hash=:hash, download_url=:download_url`, edgeUpdateTable)
 	_, err := n.db.NamedExec(sqlString, info)
 	return err
 }
 
-// LoadEdgeUpdateInfos get edge update info
+// LoadEdgeUpdateInfos retrieves edge update information.
 func (n *SQLDB) LoadEdgeUpdateInfos() (map[int]*api.EdgeUpdateInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s`, edgeUpdateTable)
 
@@ -161,7 +161,7 @@ func (n *SQLDB) DeleteEdgeUpdateInfo(nodeType int) error {
 	return err
 }
 
-// UpdateValidators validator list
+// UpdateValidators update validators
 func (n *SQLDB) UpdateValidators(nodeIDs []string, serverID dtypes.ServerID) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
@@ -193,7 +193,7 @@ func (n *SQLDB) UpdateValidators(nodeIDs []string, serverID dtypes.ServerID) err
 	return tx.Commit()
 }
 
-// LoadValidators load validators
+// LoadValidators retrieves validators information.
 func (n *SQLDB) LoadValidators(serverID dtypes.ServerID) ([]string, error) {
 	sQuery := fmt.Sprintf(`SELECT node_id FROM %s WHERE scheduler_sid=?`, validatorsTable)
 
@@ -268,7 +268,7 @@ func (n *SQLDB) InsertNodeRegisterInfo(pKey, nodeID string, nodeType types.NodeT
 	return err
 }
 
-// LoadNodePublicKey get node public key
+// LoadNodePublicKey retrieves public key of node.
 func (n *SQLDB) LoadNodePublicKey(nodeID string) (string, error) {
 	var pKey string
 
@@ -296,7 +296,7 @@ func (n *SQLDB) NodeExists(nodeID string, nodeType types.NodeType) error {
 	return nil
 }
 
-// LoadNodeInfos load node infos
+// LoadNodeInfos retrieves nodes information.
 func (n *SQLDB) LoadNodeInfos(limit, offset int) (*sqlx.Rows, int64, error) {
 	var total int64
 	cQuery := fmt.Sprintf(`SELECT count(node_id) FROM %s`, nodeInfoTable)
@@ -314,7 +314,7 @@ func (n *SQLDB) LoadNodeInfos(limit, offset int) (*sqlx.Rows, int64, error) {
 	return rows, total, err
 }
 
-// LoadNodeInfo load node info
+// LoadNodeInfo retrieves node information.
 func (n *SQLDB) LoadNodeInfo(nodeID string) (*types.NodeInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id=?`, nodeInfoTable)
 
