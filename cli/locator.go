@@ -254,7 +254,7 @@ var registerCmd = &cli.Command{
 
 		ctx := ReqContext(cctx)
 
-		return locatorAPI.RegisterNode(ctx, schedulerURL, nodeID, string(pem), types.NodeType(nodeType))
+		return locatorAPI.RegisterNewNode(ctx, schedulerURL, nodeID, string(pem), types.NodeType(nodeType))
 	},
 }
 

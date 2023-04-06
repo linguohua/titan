@@ -79,7 +79,7 @@ func (mgr *AccessPointMgr) newSchedulerAPI(url string, areaID string, schedulerA
 		return nil, err
 	}
 
-	err = api.LocatorConnect(ctx, mgr.uuid, mgr.locatorToken)
+	err = api.ConnectLocator(ctx, mgr.uuid, mgr.locatorToken)
 	if err != nil {
 		log.Errorf("newSchedulerAPI connect to scheduler err:%s", err.Error())
 		return nil, err

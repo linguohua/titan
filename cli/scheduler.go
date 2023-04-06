@@ -102,7 +102,7 @@ var setNodePortCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.SetNodePort(ctx, nodeID, port)
+		return schedulerAPI.UpdateNodePort(ctx, nodeID, port)
 	},
 }
 
@@ -123,7 +123,7 @@ var startElectionCmd = &cli.Command{
 
 		defer closer()
 
-		return schedulerAPI.StartOnceElection(ctx)
+		return schedulerAPI.TriggerElection(ctx)
 	},
 }
 

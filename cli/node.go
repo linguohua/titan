@@ -39,7 +39,7 @@ var showOnlineNodeCmd = &cli.Command{
 		}
 		defer closer()
 
-		nodes, err := schedulerAPI.OnlineNodeList(ctx, types.NodeType(t))
+		nodes, err := schedulerAPI.GetOnlineNodeList(ctx, types.NodeType(t))
 
 		fmt.Println("Online nodes count:", len(nodes))
 		for _, node := range nodes {
@@ -91,7 +91,7 @@ var registerNodeCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.RegisterNode(ctx, nID, string(pem), types.NodeType(t))
+		return schedulerAPI.RegisterNewNode(ctx, nID, string(pem), types.NodeType(t))
 	},
 }
 
@@ -115,7 +115,7 @@ var showNodeInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		info, err := schedulerAPI.NodeInfo(ctx, nodeID)
+		info, err := schedulerAPI.RetrieveNodeInfo(ctx, nodeID)
 		if err != nil {
 			return err
 		}

@@ -18,7 +18,7 @@ type blockWaiter struct {
 }
 
 type NodeValidatedResulter interface {
-	NodeValidatedResult(ctx context.Context, vr api.ValidateResult) error
+	ProcessNodeValidationResult(ctx context.Context, vr api.ValidateResult) error
 }
 
 func newBlockWaiter(nodeID string, ch chan tcpMsg, duration int, resulter NodeValidatedResulter) *blockWaiter {
@@ -58,7 +58,6 @@ func (bw *blockWaiter) wait() {
 				} else {
 					log.Errorf("waitBlock, cidFromData error:%v", err)
 				}
-
 			}
 			size += int64(tcpMsg.length)
 			bw.result.RandomCount++
@@ -68,7 +67,7 @@ func (bw *blockWaiter) wait() {
 }
 
 func (bw *blockWaiter) sendValidateResult() error {
-	return bw.NodeValidatedResult(context.Background(), *bw.result)
+	return bw.ProcessNodeValidationResult(context.Background(), *bw.result)
 }
 
 func (bw *blockWaiter) calculateBandwidth(costTime int64, size int64) {

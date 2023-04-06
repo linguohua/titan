@@ -22,9 +22,9 @@ type Locator interface {
 	UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error //perm:read
 
 	// api for web
-	RegisterNode(ctx context.Context, schedulerURL, nodeID, publicKey string, nt types.NodeType) error // perm:admin
-	LoadAccessPointsForWeb(ctx context.Context) ([]AccessPoint, error)                                 // perm:admin
-	LoadUserAccessPoint(ctx context.Context, userIP string) (AccessPoint, error)                       // perm:admin
+	RegisterNewNode(ctx context.Context, schedulerURL, nodeID, publicKey string, nt types.NodeType) error // perm:admin
+	LoadAccessPointsForWeb(ctx context.Context) ([]AccessPoint, error)                                    // perm:admin
+	LoadUserAccessPoint(ctx context.Context, userIP string) (AccessPoint, error)                          // perm:admin
 }
 
 type SchedulerInfo struct {
