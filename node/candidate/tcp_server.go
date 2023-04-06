@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/linguohua/titan/api"
@@ -20,19 +21,21 @@ type tcpMsg struct {
 }
 
 type TCPServer struct {
-	Config         *config.CandidateCfg
-	BlockWaiterMap *BlockWaiter
+	schedulerAPI   api.Scheduler
+	config         *config.CandidateCfg
+	blockWaiterMap *sync.Map
 }
 
-func NewTCPServer(cfg *config.CandidateCfg, blockWaiterMap *BlockWaiter) *TCPServer {
+func NewTCPServer(cfg *config.CandidateCfg, schedulerAPI api.Scheduler) *TCPServer {
 	return &TCPServer{
-		Config:         cfg,
-		BlockWaiterMap: blockWaiterMap,
+		config:         cfg,
+		blockWaiterMap: &sync.Map{},
+		schedulerAPI:   schedulerAPI,
 	}
 }
 
 func (t *TCPServer) StartTCPServer() {
-	tcpAddr, err := net.ResolveTCPAddr("tcp", t.Config.TCPSrvAddr)
+	tcpAddr, err := net.ResolveTCPAddr("tcp", t.config.TCPSrvAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,7 +47,7 @@ func (t *TCPServer) StartTCPServer() {
 	// close listener
 	defer listen.Close() //nolint:errcheck // ignore error
 
-	log.Infof("tcp_server listen on %s", t.Config.TCPSrvAddr)
+	log.Infof("tcp_server listen on %s", t.config.TCPSrvAddr)
 
 	for {
 		conn, err := listen.AcceptTCP()
@@ -53,7 +56,6 @@ func (t *TCPServer) StartTCPServer() {
 			os.Exit(1)
 		}
 
-		// conn.SetReadBuffer(104857600)
 		go t.handleMessage(conn)
 	}
 }
@@ -63,78 +65,65 @@ func (t *TCPServer) Stop(ctx context.Context) error {
 }
 
 func (t *TCPServer) handleMessage(conn *net.TCPConn) {
-	now := time.Now()
-	size := int64(0)
-	nodeID := ""
-
 	defer func() {
 		if r := recover(); r != nil {
 			log.Infof("handleMessage recovered. Error:\n", r)
 			return
 		}
-
-		if err := conn.Close(); err != nil {
-			log.Errorf("close tcp error: %s", err.Error())
-		}
-
-		duration := time.Since(now)
-		bandwidth := float64(size) / float64(duration) * float64(time.Second)
-		log.Infof("size:%d, duration:%d, bandwidth:%f, nodeID:%s", size, duration, bandwidth, nodeID)
 	}()
 
 	// first item is device id
-	tcpMsg, err := readTCPMsg(conn)
+	msg, err := readTCPMsg(conn)
 	if err != nil {
 		log.Errorf("read nodeID error:%v", err)
 		return
 	}
 
-	if tcpMsg.msgType != api.TCPMsgTypeNodeID {
+	if msg.msgType != api.TCPMsgTypeNodeID {
 		log.Errorf("read tcp msg error, msg type not ValidateTCPMsgTypeNodeID")
 		return
 	}
-	nodeID = string(tcpMsg.msg)
+	nodeID := string(msg.msg)
 	if len(nodeID) == 0 {
 		log.Errorf("nodeID is empty")
 		return
 	}
 
-	bw, exist := t.loadBlockWaiterFromMap(nodeID)
-	if !exist {
-		log.Errorf("Candidate no wait for device %s", nodeID)
+	_, ok := t.blockWaiterMap.Load(nodeID)
+	if ok {
+		log.Errorf("Validator already wait for device %s", nodeID)
 		return
 	}
 
-	if bw.conn != nil {
-		log.Errorf("device %s already connect", nodeID)
-		return
-	}
-	bw.conn = conn
+	ch := make(chan tcpMsg, 1)
+	defer close(ch)
 
-	log.Infof("edge node %s connect to candidate, testing bandwidth", nodeID)
+	bw := newBlockWaiter(nodeID, ch, t.config.ValidateDuration, t.schedulerAPI)
+	t.blockWaiterMap.Store(nodeID, bw)
 
+	log.Debugf("edge node %s connect to Validator", nodeID)
+
+	timer := time.NewTimer(time.Duration(t.config.ValidateDuration) * time.Second)
 	for {
+		select {
+		case <-timer.C:
+			conn.Close()
+			return
+		default:
+		}
 		// next item is file content
-		tcpMsg, err = readTCPMsg(conn)
+		msg, err = readTCPMsg(conn)
 		if err != nil {
 			log.Infof("read item error:%v, nodeID:%s", err, nodeID)
-			close(bw.ch)
-			bw.conn = nil
 			return
 		}
+		bw.ch <- *msg
 
-		size += int64(tcpMsg.length)
-
-		bw.ch <- *tcpMsg
+		if msg.msgType == api.TCPMsgTypeCancel {
+			conn.Close()
+			return
+		}
 	}
-}
-
-func (t *TCPServer) loadBlockWaiterFromMap(key string) (*blockWaiter, bool) {
-	vb, exist := t.BlockWaiterMap.Load(key)
-	if exist {
-		return vb.(*blockWaiter), exist
-	}
-	return nil, exist
 }
 
 func readTCPMsg(conn net.Conn) (*tcpMsg, error) {

@@ -124,13 +124,13 @@ func (cfImpl *CarfileImpl) QueryCachingCarfile(ctx context.Context) (*types.Cach
 	return ret, nil
 }
 
-func (cfImpl *CarfileImpl) GetBlocksOfCarfile(carfileCID string, indices []int) (map[int]string, error) {
+func (cfImpl *CarfileImpl) GetBlocksOfCar(carfileCID string, randomSeed int64, randomCount int) (map[int]string, error) {
 	root, err := cid.Decode(carfileCID)
 	if err != nil {
 		return nil, err
 	}
 
-	return cfImpl.cacheMgr.GetBlocksOfCarfile(root, indices)
+	return cfImpl.cacheMgr.GetBlocksOfCarfile(root, randomSeed, randomCount)
 }
 
 func (cfImpl *CarfileImpl) BlockCountOfCarfile(carfileCID string) (int, error) {

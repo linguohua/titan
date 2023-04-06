@@ -46,7 +46,7 @@ func (rc *randomCheck) GetBlock(ctx context.Context) (blocks.Block, error) {
 		}
 
 		if multiIndex, ok := idx.(*index.MultiIndexSorted); !ok {
-			return nil, xerrors.Errorf("car index %w", err)
+			return nil, xerrors.Errorf("idx is not MultiIndexSorted")
 		} else {
 			rc.idx = multiIndex
 		}

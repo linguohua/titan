@@ -29,8 +29,6 @@ type CandidateStruct struct {
 	Internal struct {
 		GetBlocksOfCarfile func(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) `perm:"read"`
 
-		ValidateNodes func(p0 context.Context, p1 []ValidateReq) (string, error) `perm:"read"`
-
 		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
 }
@@ -247,8 +245,6 @@ type SchedulerStruct struct {
 
 		SetNodePort func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
-		SetNodeTCPAddr func(p0 context.Context, p1 string) error `perm:"write"`
-
 		StartOnceElection func(p0 context.Context) error `perm:"admin"`
 
 		SubmitProofOfWork func(p0 context.Context, p1 []*types.NodeWorkloadProof) error `perm:"read"`
@@ -283,17 +279,6 @@ func (s *CandidateStruct) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 i
 
 func (s *CandidateStub) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
 	return *new(map[int]string), ErrNotSupported
-}
-
-func (s *CandidateStruct) ValidateNodes(p0 context.Context, p1 []ValidateReq) (string, error) {
-	if s.Internal.ValidateNodes == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.ValidateNodes(p0, p1)
-}
-
-func (s *CandidateStub) ValidateNodes(p0 context.Context, p1 []ValidateReq) (string, error) {
-	return "", ErrNotSupported
 }
 
 func (s *CandidateStruct) WaitQuiet(p0 context.Context) error {
@@ -1030,17 +1015,6 @@ func (s *SchedulerStruct) SetNodePort(p0 context.Context, p1 string, p2 string) 
 }
 
 func (s *SchedulerStub) SetNodePort(p0 context.Context, p1 string, p2 string) error {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) SetNodeTCPAddr(p0 context.Context, p1 string) error {
-	if s.Internal.SetNodeTCPAddr == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.SetNodeTCPAddr(p0, p1)
-}
-
-func (s *SchedulerStub) SetNodeTCPAddr(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
