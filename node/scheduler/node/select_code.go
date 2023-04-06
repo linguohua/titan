@@ -2,6 +2,7 @@ package node
 
 import "math/rand"
 
+// assigns an undistributed candidate select code to a node ID and returns the assigned code
 func (m *Manager) distributeCandidateSelectCode(nodeID string) int {
 	m.selectCodeLock.Lock()
 	defer m.selectCodeLock.Unlock()
@@ -27,6 +28,7 @@ func (m *Manager) distributeCandidateSelectCode(nodeID string) int {
 	return code
 }
 
+// assigns an undistributed edge select code to a node ID and returns the assigned code
 func (m *Manager) distributeEdgeSelectCode(nodeID string) int {
 	m.selectCodeLock.Lock()
 	defer m.selectCodeLock.Unlock()
@@ -52,6 +54,7 @@ func (m *Manager) distributeEdgeSelectCode(nodeID string) int {
 	return code
 }
 
+// returns an undistributed candidate select code to the pool
 func (m *Manager) repayCandidateSelectCode(code int) {
 	m.selectCodeLock.Lock()
 	defer m.selectCodeLock.Unlock()
@@ -60,6 +63,7 @@ func (m *Manager) repayCandidateSelectCode(code int) {
 	m.cUndistributedSelectCode[code] = ""
 }
 
+// returns an undistributed edge select code to the pool
 func (m *Manager) repayEdgeSelectCode(code int) {
 	m.selectCodeLock.Lock()
 	defer m.selectCodeLock.Unlock()
@@ -68,12 +72,13 @@ func (m *Manager) repayEdgeSelectCode(code int) {
 	m.eUndistributedSelectCode[code] = ""
 }
 
+// returns a random integer up to max (inclusive) using the provided Rand generator
 func (m *Manager) getSelectCodeRandom(max int, r *rand.Rand) int {
 	max = max + 1
 	return r.Intn(max)
 }
 
-// GetRandomCandidate Get a random candidate node
+// GetRandomCandidate returns a random candidate node
 func (m *Manager) GetRandomCandidate() *Node {
 	selectCode := m.getSelectCodeRandom(m.cPullSelectCode, m.cPullSelectRand)
 	nodeID, exist := m.cDistributedSelectCode[selectCode]
@@ -84,7 +89,7 @@ func (m *Manager) GetRandomCandidate() *Node {
 	return m.GetCandidateNode(nodeID)
 }
 
-// GetRandomEdge Get a random edge node
+// GetRandomEdge returns a random edge node
 func (m *Manager) GetRandomEdge() *Node {
 	selectCode := m.getSelectCodeRandom(m.ePullSelectCode, m.ePullSelectRand)
 	nodeID, exist := m.eDistributedSelectCode[selectCode]

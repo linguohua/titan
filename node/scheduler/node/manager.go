@@ -17,13 +17,17 @@ import (
 var log = logging.Logger("node")
 
 const (
-	offlineTimeMax = 24 // If it is not online after this time, it is determined that the node has quit the titan (unit: hour)
+	// offlineTimeMax is the maximum amount of time a node can be offline before being considered as quit
+	offlineTimeMax = 24 // hours
 
-	keepaliveTime    = 30 // keepalive time interval (unit: second)
+	//  keepaliveTime is the interval between keepalive requests
+	keepaliveTime = 30 // seconds
+
+	// saveInfoInterval is the interval at which node information is saved during keepalive requests
 	saveInfoInterval = 10 // keepalive saves information every 10 times
 )
 
-// Manager Node Manager
+// Manager is the node manager responsible for managing the online nodes
 type Manager struct {
 	edgeNodes      sync.Map
 	candidateNodes sync.Map
@@ -47,7 +51,7 @@ type Manager struct {
 	eUndistributedSelectCode map[int]string // Undistributed edge node select codes
 }
 
-// NewManager return new node manager instance
+// NewManager creates a new instance of the node manager
 func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, k *rsa.PrivateKey, p *pubsub.PubSub) *Manager {
 	pullSelectSeed := time.Now().UnixNano()
 
@@ -70,6 +74,7 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, k *rsa.PrivateKey, p *p
 	return nodeManager
 }
 
+// periodically sends keepalive requests to all nodes and checks if any nodes have been offline for too long
 func (m *Manager) run() {
 	ticker := time.NewTicker(time.Duration(keepaliveTime) * time.Second)
 	defer ticker.Stop()
@@ -86,7 +91,8 @@ func (m *Manager) run() {
 	}
 }
 
-func (m *Manager) storeEdge(node *Node) {
+// adds an edge node to the manager's list of edge nodes
+func (m *Manager) storeEdgeNode(node *Node) {
 	if node == nil {
 		return
 	}
@@ -103,7 +109,8 @@ func (m *Manager) storeEdge(node *Node) {
 	m.notify.Pub(node, types.TopicsNodeOnline.String())
 }
 
-func (m *Manager) storeCandidate(node *Node) {
+// adds a candidate node to the manager's list of candidate nodes
+func (m *Manager) storeCandidateNode(node *Node) {
 	if node == nil {
 		return
 	}
@@ -121,7 +128,8 @@ func (m *Manager) storeCandidate(node *Node) {
 	m.notify.Pub(node, types.TopicsNodeOnline.String())
 }
 
-func (m *Manager) deleteEdge(node *Node) {
+// removes an edge node from the manager's list of edge nodes
+func (m *Manager) deleteEdgeNode(node *Node) {
 	m.repayEdgeSelectCode(node.selectCode)
 	m.notify.Pub(node, types.TopicsNodeOffline.String())
 
@@ -133,7 +141,8 @@ func (m *Manager) deleteEdge(node *Node) {
 	m.Edges--
 }
 
-func (m *Manager) deleteCandidate(node *Node) {
+// removes a candidate node from the manager's list of candidate nodes
+func (m *Manager) deleteCandidateNode(node *Node) {
 	m.repayCandidateSelectCode(node.selectCode)
 	m.notify.Pub(node, types.TopicsNodeOffline.String())
 
@@ -145,6 +154,7 @@ func (m *Manager) deleteCandidate(node *Node) {
 	m.Candidates--
 }
 
+// checks if a node has sent a keepalive recently and updates node status accordingly
 func (m *Manager) nodeKeepalive(node *Node, t time.Time, isSave bool) {
 	lastTime := node.LastRequestTime()
 
@@ -153,9 +163,9 @@ func (m *Manager) nodeKeepalive(node *Node, t time.Time, isSave bool) {
 	if !lastTime.After(t) {
 		node.ClientCloser()
 		if node.NodeType == types.NodeCandidate {
-			m.deleteCandidate(node)
+			m.deleteCandidateNode(node)
 		} else if node.NodeType == types.NodeEdge {
-			m.deleteEdge(node)
+			m.deleteEdgeNode(node)
 		}
 		node = nil
 		return
@@ -169,6 +179,7 @@ func (m *Manager) nodeKeepalive(node *Node, t time.Time, isSave bool) {
 	}
 }
 
+// checks all nodes in the manager's lists for keepalive
 func (m *Manager) nodesKeepalive(isSave bool) {
 	t := time.Now().Add(-time.Duration(keepaliveTime) * time.Second)
 
@@ -195,7 +206,7 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 	})
 }
 
-// KeepaliveCallBackFunc node keepalive call back
+// KeepaliveCallBackFunc Callback function to handle node keepalive
 func KeepaliveCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error) {
 	return func(nodeID, remoteAddr string) {
 		lastTime := time.Now()
@@ -212,6 +223,7 @@ func KeepaliveCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error)
 	}, nil
 }
 
+// Check for nodes that have timed out and quit them
 func (m *Manager) checkNodesTTL() {
 	nodes, err := m.LoadTimeoutNodes(offlineTimeMax, m.ServerID)
 	if err != nil {
@@ -224,7 +236,7 @@ func (m *Manager) checkNodesTTL() {
 	}
 }
 
-// node online
+// Save node information when it comes online
 func (m *Manager) saveInfo(n *BaseInfo) error {
 	n.Quitted = false
 	n.LastTime = time.Now()

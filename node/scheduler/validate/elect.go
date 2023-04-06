@@ -75,7 +75,7 @@ func (m *Manager) getValidatorRatio() float64 {
 func (m *Manager) electValidators() []string {
 	ratio := m.getValidatorRatio()
 
-	list := m.nodeMgr.GetAllCandidates()
+	list := m.nodeMgr.GetAllCandidateNodes()
 
 	needValidatorCount := int(math.Ceil(float64(len(list)) * ratio))
 	if needValidatorCount <= 0 {

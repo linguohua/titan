@@ -21,7 +21,7 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 )
 
-// Node edge and candidate node
+// Node represents an Edge or Candidate node
 type Node struct {
 	*API
 	jsonrpc.ClientCloser
@@ -30,7 +30,7 @@ type Node struct {
 	*BaseInfo
 }
 
-// API node api
+// API represents the node API
 type API struct {
 	api.Common
 	api.Device
@@ -45,7 +45,7 @@ type API struct {
 	GetBlocksOfCarfile func(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error)
 }
 
-// New new node
+// New creates a new node
 func New(token string) *Node {
 	node := &Node{
 		token: token,
@@ -54,7 +54,7 @@ func New(token string) *Node {
 	return node
 }
 
-// APIFromEdge node api from edge api
+// APIFromEdge creates a new API from an Edge API
 func APIFromEdge(api api.Edge) *API {
 	a := &API{
 		Common:                 api,
@@ -69,7 +69,7 @@ func APIFromEdge(api api.Edge) *API {
 	return a
 }
 
-// APIFromCandidate node api from candidate api
+// APIFromCandidate creates a new API from a Candidate API
 func APIFromCandidate(api api.Candidate) *API {
 	a := &API{
 		Common:             api,
@@ -83,7 +83,7 @@ func APIFromCandidate(api api.Candidate) *API {
 	return a
 }
 
-// ConnectRPC connect node rpc
+// ConnectRPC connects to the node RPC
 func (n *Node) ConnectRPC(addr string, isNodeConnect bool, nodeType types.NodeType) error {
 	if !isNodeConnect {
 		if addr == n.remoteAddr {
@@ -129,7 +129,7 @@ func (n *Node) ConnectRPC(addr string, isNodeConnect bool, nodeType types.NodeTy
 	return xerrors.Errorf("node %s type %d not wrongful", n.NodeInfo.NodeID, n.NodeType)
 }
 
-// BaseInfo Common
+// BaseInfo represents the common information for a node
 type BaseInfo struct {
 	*types.NodeInfo
 	publicKey  *rsa.PublicKey
@@ -142,7 +142,7 @@ type BaseInfo struct {
 	selectCode int
 }
 
-// NewBaseInfo new
+// NewBaseInfo creates a new BaseInfo struct
 func NewBaseInfo(nodeInfo *types.NodeInfo, pKey *rsa.PublicKey, addr string, tcpPort int) *BaseInfo {
 	bi := &BaseInfo{
 		NodeInfo:   nodeInfo,
@@ -154,29 +154,29 @@ func NewBaseInfo(nodeInfo *types.NodeInfo, pKey *rsa.PublicKey, addr string, tcp
 	return bi
 }
 
-// PublicKey get publicKey key
+// PublicKey  returns the publicKey of the node
 func (n *BaseInfo) PublicKey() *rsa.PublicKey {
 	return n.publicKey
 }
 
-// RemoteAddr rpc addr
+// RemoteAddr returns the rpc address of the node
 func (n *BaseInfo) RemoteAddr() string {
 	return n.remoteAddr
 }
 
-// TCPAddr tcp addr
+// TCPAddr returns the tcp address of the node
 func (n *BaseInfo) TCPAddr() string {
 	index := strings.Index(n.remoteAddr, ":")
 	ip := n.remoteAddr[:index+1]
 	return fmt.Sprintf("%s%d", ip, n.tcpPort)
 }
 
-// RPCURL rpc url
+// RPCURL returns the rpc url of the node
 func (n *BaseInfo) RPCURL() string {
 	return fmt.Sprintf("https://%s/rpc/v0", n.remoteAddr)
 }
 
-// DownloadAddr download address
+// DownloadAddr returns the download address of the node
 func (n *BaseInfo) DownloadAddr() string {
 	addr := n.remoteAddr
 	if n.PortMapping != "" {
@@ -188,37 +188,37 @@ func (n *BaseInfo) DownloadAddr() string {
 	return addr
 }
 
-// LastRequestTime get node last request time
+// LastRequestTime returns the last request time of the node
 func (n *BaseInfo) LastRequestTime() time.Time {
 	return n.lastRequestTime
 }
 
-// SetLastRequestTime set node last request time
+// SetLastRequestTime sets the last request time of the node
 func (n *BaseInfo) SetLastRequestTime(t time.Time) {
 	n.lastRequestTime = t
 }
 
-// SetCurPullingCount set node pulling count
+// SetCurPullingCount sets the number of assets being pulled by the node
 func (n *BaseInfo) SetCurPullingCount(t int) {
 	n.pullingCount = t
 }
 
-// IncrCurPullingCount Incr pulling count
+// IncrCurPullingCount  increments the number of assets being pulled by the node
 func (n *BaseInfo) IncrCurPullingCount(v int) {
 	n.pullingCount += v
 }
 
-// CurPullingCount pulling count
+// CurPullingCount returns the number of assets being pulled by the node
 func (n *BaseInfo) CurPullingCount() int {
 	return n.pullingCount
 }
 
-// UpdateNodePort reset node port
+// UpdateNodePort updates the node port
 func (n *BaseInfo) UpdateNodePort(port string) {
 	n.PortMapping = port
 }
 
-// Credentials get Credentials
+// Credentials returns the credentials of the node
 func (n *BaseInfo) Credentials(cid string, titanRsa *titanrsa.Rsa, privateKey *rsa.PrivateKey) (*types.GatewayCredentials, error) {
 	svc := &types.Credentials{
 		ID:        uuid.NewString(),
@@ -240,6 +240,7 @@ func (n *BaseInfo) Credentials(cid string, titanRsa *titanrsa.Rsa, privateKey *r
 	return &types.GatewayCredentials{Ciphertext: hex.EncodeToString(b), Sign: hex.EncodeToString(sign)}, nil
 }
 
+// encrypts a Credentials object using the given public key and RSA instance.
 func (n *BaseInfo) encryptCredentials(at *types.Credentials, publicKey *rsa.PublicKey, rsa *titanrsa.Rsa) ([]byte, error) {
 	var buffer bytes.Buffer
 	enc := gob.NewEncoder(&buffer)
