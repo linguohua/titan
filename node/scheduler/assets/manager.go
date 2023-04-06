@@ -34,6 +34,8 @@ const (
 
 	maxRetryCount    = 3
 	maxNodeDiskUsage = 95.0 // If the node disk size is greater than this value, pulling will not continue
+
+	sizeOfBuckets = 128 // The number of buckets in assets view
 )
 
 // Manager asset replica manager
