@@ -111,7 +111,7 @@ func (m *Manager) ResetValidatorGroup(nodeIDs []string) {
 	for _, nodeID := range nodeIDs {
 		node := m.nodeMgr.GetCandidateNode(nodeID)
 		bwDn := node.BandwidthDown
-		count := int(math.Floor((bwDn * bandwidthRatio) / unitBwDn))
+		count := int(math.Floor((bwDn * bandwidthRatio) / baseBandwidthDown))
 		log.Debugf("addValidator %s ,bandwidthDown:%.2f, count:%d", nodeID, bwDn, count)
 		if count < 1 {
 			continue
@@ -131,7 +131,7 @@ func (m *Manager) addValidator(nodeID string, bwDn float64) {
 	m.validatePairLock.Lock()
 	defer m.validatePairLock.Unlock()
 
-	count := int(math.Floor((bwDn * bandwidthRatio) / unitBwDn))
+	count := int(math.Floor((bwDn * bandwidthRatio) / baseBandwidthDown))
 	log.Debugf("addValidator %s ,bandwidthDown:%.2f, count:%d", nodeID, bwDn, count)
 	if count < 1 {
 		return

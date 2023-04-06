@@ -142,7 +142,7 @@ func (m *Manager) nodesPullProgresses() {
 			continue
 		}
 
-		nodes, err := m.LoadPullingNodes(hash)
+		nodes, err := m.GetUnfinishedPullAssetNodes(hash)
 		if err != nil {
 			log.Errorf("%s UnDoneNodes err:%s", hash, err.Error())
 			continue
@@ -207,7 +207,7 @@ func (m *Manager) PullAssets(info *types.PullAssetReq) error {
 
 	log.Infof("asset event: %s, add asset replica: %d,expiration: %s", info.CID, info.Replicas, info.Expiration.String())
 
-	cInfo, err := m.LoadAssetRecord(info.Hash)
+	cInfo, err := m.FetchAssetRecord(info.Hash)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
@@ -242,13 +242,13 @@ func (m *Manager) RestartPullAssets(hashes []types.AssetHash) error {
 
 // RemoveAsset remove a asset
 func (m *Manager) RemoveAsset(cid, hash string) error {
-	cInfos, err := m.LoadAssetReplicas(hash)
+	cInfos, err := m.FetchAssetReplicas(hash)
 	if err != nil {
 		return xerrors.Errorf("LoadAssetReplicaInfos: %s,err:%s", cid, err.Error())
 	}
 
 	defer func() {
-		err = m.RemoveAssetRecord(hash)
+		err = m.DeleteAssetRecord(hash)
 		if err != nil {
 			log.Errorf("%s RemoveAssetRecord db err: %s", hash, err.Error())
 		}
@@ -360,7 +360,7 @@ func (m *Manager) addOrResetAssetTicker(hash string) {
 
 	fn := func() error {
 		// update replicas status
-		err := m.UpdateStatusOfUnfinishedReplicas(hash, types.ReplicaStatusFailed)
+		err := m.UpdateUnfinishedReplicasStatus(hash, types.ReplicaStatusFailed)
 		if err != nil {
 			return xerrors.Errorf("addOrResetAssetTicker %s UpdateStatusOfUnfinishedReplicas err:%s", hash, err.Error())
 		}
@@ -410,7 +410,7 @@ func (m *Manager) ResetAssetRecordExpiration(cid string, t time.Time) error {
 
 	log.Infof("asset event %s, reset asset expiration:%s", cid, t.String())
 
-	err = m.UpdateAssetRecordExpiration(hash, t)
+	err = m.UpdateAssetRecordExpiry(hash, t)
 	if err != nil {
 		return err
 	}
@@ -426,7 +426,7 @@ func (m *Manager) checkAssetsExpiration() {
 		return
 	}
 
-	records, err := m.LoadExpiredAssetRecords(m.nodeMgr.ServerID)
+	records, err := m.FetchExpiredAssetRecords(m.nodeMgr.ServerID)
 	if err != nil {
 		log.Errorf("LoadExpiredAssetRecords err:%s", err.Error())
 		return
@@ -439,7 +439,7 @@ func (m *Manager) checkAssetsExpiration() {
 	}
 
 	// reset expiration
-	expiration, err := m.LoadMinExpirationOfAssetRecords(m.nodeMgr.ServerID)
+	expiration, err := m.FetchMinExpiryOfAssetRecords(m.nodeMgr.ServerID)
 	if err != nil {
 		return
 	}
@@ -486,12 +486,12 @@ func (m *Manager) GetAssetRecordInfo(cid string) (*types.AssetRecord, error) {
 		return nil, err
 	}
 
-	dInfo, err := m.LoadAssetRecord(hash)
+	dInfo, err := m.FetchAssetRecord(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	dInfo.ReplicaInfos, err = m.LoadAssetReplicas(hash)
+	dInfo.ReplicaInfos, err = m.FetchAssetReplicas(hash)
 	if err != nil {
 		log.Errorf("loadData hash:%s, LoadAssetReplicaInfos err:%s", hash, err.Error())
 	}
@@ -512,7 +512,7 @@ func (m *Manager) saveReplicaInfos(nodes map[string]*node.Node, hash string, isC
 		})
 	}
 
-	return m.BatchUpsertReplicas(replicaInfos)
+	return m.BulkInsertOrUpdateReplicas(replicaInfos)
 }
 
 // Sources get download sources

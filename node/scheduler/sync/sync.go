@@ -133,9 +133,9 @@ func (ds *DataSync) doDataSync(nodeID string) error {
 }
 
 func (ds *DataSync) getTopHash(nodeID string) (string, error) {
-	return ds.nodeManager.LoadTopHash(nodeID)
+	return ds.nodeManager.FetchTopHash(nodeID)
 }
 
 func (ds *DataSync) getHashesOfBuckets(nodeID string) (map[uint32]string, error) {
-	return ds.nodeManager.LoadBucketHashes(nodeID)
+	return ds.nodeManager.FetchBucketHashes(nodeID)
 }

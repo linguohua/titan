@@ -8,11 +8,12 @@ import (
 
 var (
 	firstElectInterval = 5 * time.Minute    // Time of the first election
-	electionCycle      = 5 * 24 * time.Hour // election cycle
+	electionCycle      = 5 * 24 * time.Hour // Length of the election cycle
 )
 
+// triggers the election process at a regular interval.
 func (m *Manager) electTicker() {
-	validators, err := m.nodeMgr.LoadValidators(m.nodeMgr.ServerID)
+	validators, err := m.nodeMgr.FetchValidators(m.nodeMgr.ServerID)
 	if err != nil {
 		log.Errorf("fetch current validators: %v", err)
 		return
@@ -44,6 +45,7 @@ func (m *Manager) electTicker() {
 	}
 }
 
+// elect triggers an election and updates the list of validators.
 func (m *Manager) elect() error {
 	log.Debugln("start elect ")
 	validators := m.electValidators()
@@ -53,11 +55,12 @@ func (m *Manager) elect() error {
 	return m.nodeMgr.UpdateValidators(validators, m.nodeMgr.ServerID)
 }
 
-// StartElect elect
-func (m *Manager) StartElect() {
+// StartElection triggers an election manually.
+func (m *Manager) StartElection() {
 	m.updateCh <- struct{}{}
 }
 
+// returns the ratio of validators that should be elected, based on the scheduler configuration.
 func (m *Manager) getValidatorRatio() float64 {
 	cfg, err := m.config()
 	if err != nil {
@@ -68,27 +71,27 @@ func (m *Manager) getValidatorRatio() float64 {
 	return cfg.ValidatorRatio
 }
 
-// electValidators elect
-func (m *Manager) electValidators() (out []string) {
+// performs the election process and returns the list of elected validators.
+func (m *Manager) electValidators() []string {
 	ratio := m.getValidatorRatio()
 
-	out = m.nodeMgr.GetAllCandidates()
+	list := m.nodeMgr.GetAllCandidates()
 
-	needValidatorCount := int(math.Ceil(float64(len(out)) * ratio))
+	needValidatorCount := int(math.Ceil(float64(len(list)) * ratio))
 	if needValidatorCount <= 0 {
-		return
+		return nil
 	}
 
 	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(out), func(i, j int) {
-		out[i], out[j] = out[j], out[i]
+	rand.Shuffle(len(list), func(i, j int) {
+		list[i], list[j] = list[j], list[i]
 	})
 
-	if needValidatorCount > len(out) {
-		needValidatorCount = len(out)
+	if needValidatorCount > len(list) {
+		needValidatorCount = len(list)
 	}
 
-	out = out[:needValidatorCount]
+	list = list[:needValidatorCount]
 
-	return
+	return list
 }

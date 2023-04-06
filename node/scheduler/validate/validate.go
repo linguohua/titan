@@ -141,7 +141,7 @@ func (m *Manager) getValidateDetails(vrs []*ValidatorBwDnUnit) (map[string]*api.
 }
 
 func (m *Manager) getNodeValidateCID(nodeID string) (string, error) {
-	count, err := m.nodeMgr.LoadReplicaCountOfNode(nodeID)
+	count, err := m.nodeMgr.GetNodeReplicaCount(nodeID)
 	if err != nil {
 		return "", err
 	}
@@ -154,7 +154,7 @@ func (m *Manager) getNodeValidateCID(nodeID string) (string, error) {
 	// rand count
 	offset := rand.Intn(count)
 
-	cids, err := m.nodeMgr.LoadAssetCidsOfNode(nodeID, 1, offset)
+	cids, err := m.nodeMgr.FetchAssetCIDsByNodeID(nodeID, 1, offset)
 	if err != nil {
 		return "", err
 	}
@@ -213,7 +213,7 @@ func (m *Manager) Result(validatedResult *api.ValidateResult) error {
 		return nil
 	}
 
-	cid, err := m.nodeMgr.LoadNodeValidateCID(validatedResult.RoundID, nodeID)
+	cid, err := m.nodeMgr.FetchNodeValidateCID(validatedResult.RoundID, nodeID)
 	if err != nil {
 		status = types.ValidateStatusOther
 		log.Errorf("LoadNodeValidateCID %s , %s, err:%s", validatedResult.RoundID, nodeID, err.Error())
@@ -227,7 +227,7 @@ func (m *Manager) Result(validatedResult *api.ValidateResult) error {
 		return nil
 	}
 
-	rows, err := m.nodeMgr.LoadReplicasOfHash(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
+	rows, err := m.nodeMgr.FetchReplicasByHash(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
 	if err != nil {
 		status = types.ValidateStatusOther
 		log.Errorf("Get candidates %s , err:%s", hash, err.Error())
@@ -271,7 +271,7 @@ func (m *Manager) Result(validatedResult *api.ValidateResult) error {
 		return nil
 	}
 
-	record, err := m.nodeMgr.LoadAssetRecord(hash)
+	record, err := m.nodeMgr.FetchAssetRecord(hash)
 	if err != nil {
 		status = types.ValidateStatusOther
 		log.Errorf("handleValidateResult asset record %s , err:%s", validatedResult.CID, err.Error())

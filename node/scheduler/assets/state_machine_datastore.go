@@ -68,7 +68,7 @@ func (d *DataStore) Query(ctx context.Context, q query.Query) (query.Results, er
 
 	state := append(FailedStates, PullingStates...)
 
-	rows, err = d.assetDB.LoadAssetRecords(state, q.Limit, q.Offset, d.ServerID)
+	rows, err = d.assetDB.FetchAssetRecords(state, q.Limit, q.Offset, d.ServerID)
 	if err != nil {
 		log.Errorf("LoadAssets :%s", err.Error())
 		return nil, err
@@ -88,7 +88,7 @@ func (d *DataStore) Query(ctx context.Context, q query.Query) (query.Results, er
 			continue
 		}
 
-		cInfo.ReplicaInfos, err = d.assetDB.LoadAssetReplicas(cInfo.Hash)
+		cInfo.ReplicaInfos, err = d.assetDB.FetchAssetReplicas(cInfo.Hash)
 		if err != nil {
 			log.Errorf("asset %s load replicas err: %s", cInfo.CID, err.Error())
 			continue
@@ -142,7 +142,7 @@ func (d *DataStore) Put(ctx context.Context, key datastore.Key, value []byte) er
 	info := aInfo.ToAssetRecord()
 	info.ServerID = d.ServerID
 
-	return d.assetDB.UpsertAssetRecord(info)
+	return d.assetDB.InsertOrUpdateAssetRecord(info)
 }
 
 // Delete delete asset record info
@@ -153,7 +153,7 @@ func (d *DataStore) Delete(ctx context.Context, key datastore.Key) error {
 	if err := d.assetDS.Delete(ctx, key); err != nil {
 		log.Errorf("datastore local delete: %v", err)
 	}
-	return d.assetDB.RemoveAssetRecord(trimPrefix(key))
+	return d.assetDB.DeleteAssetRecord(trimPrefix(key))
 }
 
 // Sync sync

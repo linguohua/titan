@@ -86,7 +86,7 @@ func (s *Scheduler) CreateNodeAuthToken(ctx context.Context, nodeID, sign string
 		NodeID: nodeID,
 	}
 
-	pem, err := s.NodeManager.LoadNodePublicKey(nodeID)
+	pem, err := s.NodeManager.FetchNodePublicKey(nodeID)
 	if err != nil {
 		return "", xerrors.Errorf("%s load node public key failed: %w", nodeID, err)
 	}
@@ -190,12 +190,12 @@ func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.N
 		return nil, xerrors.Errorf("nodeID mismatch %s, %s", nodeID, nodeInfo.NodeID)
 	}
 
-	port, err := s.NodeManager.LoadPortMapping(nodeID)
+	port, err := s.NodeManager.FetchPortMapping(nodeID)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 	}
 
-	pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
+	pStr, err := s.NodeManager.FetchNodePublicKey(nodeID)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 	}
@@ -241,7 +241,7 @@ func (s *Scheduler) RegisterNewNode(ctx context.Context, nodeID, pKey string, no
 // GetOnlineNodeList retrieves a list of online node IDs.
 func (s *Scheduler) GetOnlineNodeList(ctx context.Context, nodeType types.NodeType) ([]string, error) {
 	if nodeType == types.NodeValidator {
-		return s.NodeManager.LoadValidators(s.ServerID)
+		return s.NodeManager.FetchValidators(s.ServerID)
 	}
 
 	return s.NodeManager.GetOnlineNodeList(nodeType)
@@ -249,7 +249,7 @@ func (s *Scheduler) GetOnlineNodeList(ctx context.Context, nodeType types.NodeTy
 
 // TriggerElection triggers a single election for validators.
 func (s *Scheduler) TriggerElection(ctx context.Context) error {
-	s.ValidateMgr.StartElect()
+	s.ValidateMgr.StartElection()
 	return nil
 }
 
@@ -263,7 +263,7 @@ func (s *Scheduler) RetrieveNodeInfo(ctx context.Context, nodeID string) (types.
 		nodeInfo = *info.NodeInfo
 		nodeInfo.Online = true
 	} else {
-		dbInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
+		dbInfo, err := s.NodeManager.FetchNodeInfo(nodeID)
 		if err != nil {
 			log.Errorf("getNodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
 			return types.NodeInfo{}, err
@@ -327,14 +327,14 @@ func (s *Scheduler) nodeExists(nodeID string, nodeType types.NodeType) bool {
 func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*types.ListNodesRsp, error) {
 	rsp := &types.ListNodesRsp{Data: make([]types.NodeInfo, 0)}
 
-	rows, total, err := s.NodeManager.LoadNodeInfos(limit, offset)
+	rows, total, err := s.NodeManager.FetchNodeInfos(limit, offset)
 	if err != nil {
 		return rsp, err
 	}
 	defer rows.Close()
 
 	validator := make(map[string]struct{})
-	validatorList, err := s.NodeManager.LoadValidators(s.NodeManager.ServerID)
+	validatorList, err := s.NodeManager.FetchValidators(s.NodeManager.ServerID)
 	if err != nil {
 		log.Errorf("get validator list: %v", err)
 	}
@@ -367,7 +367,7 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 
 // GetValidationResultList retrieves a list of validation results.
 func (s *Scheduler) GetValidationResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) {
-	svm, err := s.NodeManager.LoadValidateResultInfos(startTime, endTime, pageNumber, pageSize)
+	svm, err := s.NodeManager.FetchValidateResultInfos(startTime, endTime, pageNumber, pageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -401,7 +401,7 @@ func (s *Scheduler) RetrieveCandidateDownloadSources(ctx context.Context, cid st
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	sources := make([]*types.DownloadSource, 0)
 
-	rows, err := s.NodeManager.LoadReplicasOfHash(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
+	rows, err := s.NodeManager.FetchReplicasByHash(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
 	if err != nil {
 		return nil, err
 	}
