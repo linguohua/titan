@@ -17,18 +17,19 @@ const (
 	validateInterval = 5 * time.Minute // validate start-up time interval (Unit:minute)
 )
 
-func (m *Manager) startValidate(ctx context.Context) {
+// starts the validation process.
+func (m *Manager) startValidation(ctx context.Context) {
 	ticker := time.NewTicker(validateInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			if enable := m.enable(); !enable {
+			if enable := m.isEnabled(); !enable {
 				continue
 			}
 
-			if err := m.start(); err != nil {
+			if err := m.startNewRound(); err != nil {
 				log.Errorf("start new round: %v", err)
 			}
 		case <-m.close:
@@ -42,7 +43,8 @@ func (m *Manager) stopValidate(ctx context.Context) error {
 	return nil
 }
 
-func (m *Manager) enable() bool {
+// returns whether or not validation is currently enabled.
+func (m *Manager) isEnabled() bool {
 	cfg, err := m.config()
 	if err != nil {
 		log.Errorf("enable err:%s", err.Error())
@@ -52,7 +54,8 @@ func (m *Manager) enable() bool {
 	return cfg.EnableValidate
 }
 
-func (m *Manager) start() error {
+// startNewRound is a method of the Manager that starts a new validation round.
+func (m *Manager) startNewRound() error {
 	if m.curRoundID != "" {
 		// Set the timeout status of the previous verification
 		err := m.nodeMgr.SetValidateResultsTimeout(m.curRoundID)
@@ -65,7 +68,7 @@ func (m *Manager) start() error {
 	m.curRoundID = roundID
 	m.seed = time.Now().UnixNano() // TODO from filecoin
 
-	vrs := m.Pairing()
+	vrs := m.PairValidatorsAndBeValidates()
 
 	validateReqs, dbInfos := m.getValidateDetails(vrs)
 	if validateReqs == nil {
@@ -85,6 +88,7 @@ func (m *Manager) start() error {
 	return nil
 }
 
+// sends a validation request to a node.
 func (m *Manager) sendValidateReqToNodes(nID string, req *api.BeValidateReq) {
 	cNode := m.nodeMgr.GetNode(nID)
 	if cNode != nil {
@@ -98,6 +102,7 @@ func (m *Manager) sendValidateReqToNodes(nID string, req *api.BeValidateReq) {
 	log.Errorf("%s BeValidate Node not found", nID)
 }
 
+// fetches validation details.
 func (m *Manager) getValidateDetails(vrs []*ValidatorBwDnUnit) (map[string]*api.BeValidateReq, []*types.ValidateResultInfo) {
 	bReqs := make(map[string]*api.BeValidateReq)
 	vrInfos := make([]*types.ValidateResultInfo, 0)
@@ -111,7 +116,7 @@ func (m *Manager) getValidateDetails(vrs []*ValidatorBwDnUnit) (map[string]*api.
 		}
 
 		for nodeID := range vr.BeValidates {
-			cid, err := m.getNodeValidateCID(nodeID)
+			cid, err := m.getNodeValidationCID(nodeID)
 			if err != nil {
 				log.Errorf("%s getNodeValidateCID err:%s", nodeID, err.Error())
 				continue
@@ -140,7 +145,8 @@ func (m *Manager) getValidateDetails(vrs []*ValidatorBwDnUnit) (map[string]*api.
 	return bReqs, vrInfos
 }
 
-func (m *Manager) getNodeValidateCID(nodeID string) (string, error) {
+// retrieves a random validation CID from the node with the given ID.
+func (m *Manager) getNodeValidationCID(nodeID string) (string, error) {
 	count, err := m.nodeMgr.GetNodeReplicaCount(nodeID)
 	if err != nil {
 		return "", err
@@ -166,6 +172,7 @@ func (m *Manager) getNodeValidateCID(nodeID string) (string, error) {
 	return cids[0], nil
 }
 
+// generates a random number up to a given maximum value.
 func (m *Manager) getRandNum(max int, r *rand.Rand) int {
 	if max > 0 {
 		return r.Intn(max)
@@ -174,6 +181,7 @@ func (m *Manager) getRandNum(max int, r *rand.Rand) int {
 	return max
 }
 
+// updates the validation result information for a given node.
 func (m *Manager) updateResultInfo(status types.ValidateStatus, validateResult *api.ValidateResult) error {
 	resultInfo := &types.ValidateResultInfo{
 		RoundID:     validateResult.RoundID,
@@ -187,7 +195,7 @@ func (m *Manager) updateResultInfo(status types.ValidateStatus, validateResult *
 	return m.nodeMgr.UpdateValidateResultInfo(resultInfo)
 }
 
-// Result node validator result
+// Result handles the validation result for a given node.
 func (m *Manager) Result(validatedResult *api.ValidateResult) error {
 	if validatedResult.RoundID != m.curRoundID {
 		return xerrors.Errorf("round id does not match")
@@ -298,6 +306,7 @@ func (m *Manager) Result(validatedResult *api.ValidateResult) error {
 	return nil
 }
 
+// compares two CID strings and returns true if they are equal, false otherwise
 func (m *Manager) compareCid(cidStr1, cidStr2 string) bool {
 	hash1, err := cidutil.CIDString2HashString(cidStr1)
 	if err != nil {
