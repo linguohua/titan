@@ -50,34 +50,10 @@ func (edge *Edge) ExternalServiceAddress(ctx context.Context, schedulerURL strin
 }
 
 func (edge *Edge) UserNATTravel(ctx context.Context, sourceURL string, req *types.NatTravelReq) error {
-	// TODO check req
-
-	go func() {
-		timeout := time.After(15 * time.Second)
-
-		for {
-			err := edge.checkNetworkConnectivity(sourceURL)
-			if err == nil {
-				log.Debugf("nat traver, success connect to %s", sourceURL)
-				return
-			}
-
-			log.Debugf("connect failed %s, url %s", err.Error(), sourceURL)
-
-			select {
-			case <-timeout:
-				log.Errorf("timeout, can not connect to %s", sourceURL)
-				return
-			default:
-
-			}
-		}
-	}()
-
-	return nil
+	return edge.checkNetworkConnectivity(sourceURL, req.Timeout)
 }
 
-func (edge *Edge) checkNetworkConnectivity(targetURL string) error {
+func (edge *Edge) checkNetworkConnectivity(targetURL string, timeout int) error {
 	udpPacketConn, err := net.ListenPacket("udp", ":0")
 	if err != nil {
 		return xerrors.Errorf("list udp %w", err)
@@ -94,7 +70,7 @@ func (edge *Edge) checkNetworkConnectivity(targetURL string) error {
 	if err != nil {
 		return xerrors.Errorf("new http3 client %w", err)
 	}
-	httpClient.Timeout = 3 * time.Second
+	httpClient.Timeout = time.Duration(timeout) * time.Second
 
 	resp, err := httpClient.Get(targetURL)
 	if err != nil {

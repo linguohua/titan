@@ -226,21 +226,14 @@ func (s *Scheduler) checkUdpConnectivity(targetURL string) error {
 }
 
 // UserNatTravel nat travel
-func (s *Scheduler) NatTravel(ctx context.Context, targets []*types.NatTravelReq) error {
+func (s *Scheduler) NatTravel(ctx context.Context, target *types.NatTravelReq) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	sourceURL := fmt.Sprintf("https://%s/ping", remoteAddr)
 
-	for _, target := range targets {
-		eNode := s.NodeManager.GetEdgeNode(target.NodeID)
-		if eNode == nil {
-			continue
-		}
-
-		err := eNode.UserNATTravel(context.Background(), sourceURL, target)
-		if err != nil {
-			continue
-		}
+	eNode := s.NodeManager.GetEdgeNode(target.NodeID)
+	if eNode == nil {
+		return xerrors.Errorf("edge %s not exist", target.NodeID)
 	}
 
-	return nil
+	return eNode.UserNATTravel(context.Background(), sourceURL, target)
 }
