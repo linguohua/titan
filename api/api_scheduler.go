@@ -40,7 +40,7 @@ type Scheduler interface {
 	NodeNatType(ctx context.Context, nodeID string) (types.NatType, error)         //perm:write
 	// UserNatTravel request node connect back to user
 	// targets is edge node list
-	NatTravel(ctx context.Context, targets []*types.NatTravelReq) error //perm:read
+	NatTravel(ctx context.Context, target *types.NatTravelReq) error //perm:read
 	// user
 	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error)                  //perm:read
 	RetrieveCandidateDownloadSources(ctx context.Context, cid string) ([]*types.DownloadSource, error) //perm:read

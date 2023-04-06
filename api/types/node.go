@@ -203,6 +203,8 @@ type NodeWorkloadProof struct {
 type NatTravelReq struct {
 	Credentials *GatewayCredentials
 	NodeID      string
+	//seconds
+	Timeout int
 }
 
 type ConnectOptions struct {

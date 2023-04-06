@@ -221,7 +221,7 @@ type SchedulerStruct struct {
 
 		GetValidationResultList func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) `perm:"read"`
 
-		NatTravel func(p0 context.Context, p1 []*types.NatTravelReq) error `perm:"read"`
+		NatTravel func(p0 context.Context, p1 *types.NatTravelReq) error `perm:"read"`
 
 		NodeNatType func(p0 context.Context, p1 string) (types.NatType, error) `perm:"write"`
 
@@ -886,14 +886,14 @@ func (s *SchedulerStub) GetValidationResultList(p0 context.Context, p1 time.Time
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) NatTravel(p0 context.Context, p1 []*types.NatTravelReq) error {
+func (s *SchedulerStruct) NatTravel(p0 context.Context, p1 *types.NatTravelReq) error {
 	if s.Internal.NatTravel == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.NatTravel(p0, p1)
 }
 
-func (s *SchedulerStub) NatTravel(p0 context.Context, p1 []*types.NatTravelReq) error {
+func (s *SchedulerStub) NatTravel(p0 context.Context, p1 *types.NatTravelReq) error {
 	return ErrNotSupported
 }
 
