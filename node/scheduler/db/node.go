@@ -15,7 +15,10 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// LoadTimeoutNodes retrieves nodes that are offline for a long time.
+// LoadTimeoutNodes retrieves a list of nodes that have been offline for a specified time.
+// It takes a timeoutHour parameter to specify the duration for considering a node as offline.
+// It also takes a serverID parameter to filter the nodes by a specific server.
+// Returns a list of node IDs that match the filter, or an error if the database operation fails.
 func (n *SQLDB) LoadTimeoutNodes(timeoutHour int, serverID dtypes.ServerID) ([]string, error) {
 	list := make([]string, 0)
 
@@ -28,7 +31,7 @@ func (n *SQLDB) LoadTimeoutNodes(timeoutHour int, serverID dtypes.ServerID) ([]s
 	return list, nil
 }
 
-// SetNodesQuitted sets the nodes' status as quitted.
+// SetNodesQuitted updates the status of a list of nodes as quitted.
 func (n *SQLDB) SetNodesQuitted(nodeIDs []string) error {
 	uQuery := fmt.Sprintf(`UPDATE %s SET quitted=? WHERE node_id in (?) `, nodeInfoTable)
 	query, args, err := sqlx.In(uQuery, true, nodeIDs)
@@ -42,8 +45,8 @@ func (n *SQLDB) SetNodesQuitted(nodeIDs []string) error {
 	return err
 }
 
-// LoadPortMapping retrieves the mapping port of a node.
-func (n *SQLDB) LoadPortMapping(nodeID string) (string, error) {
+// FetchPortMapping fetches the mapping port of a node.
+func (n *SQLDB) FetchPortMapping(nodeID string) (string, error) {
 	var port string
 	query := fmt.Sprintf("SELECT port_mapping FROM %s WHERE node_id=?", nodeInfoTable)
 	if err := n.db.Get(&port, query, nodeID); err != nil {
@@ -73,8 +76,8 @@ func (n *SQLDB) SetValidateResultInfos(infos []*types.ValidateResultInfo) error 
 	return err
 }
 
-// LoadNodeValidateCID retrieves the cid of a validate result.
-func (n *SQLDB) LoadNodeValidateCID(roundID, nodeID string) (string, error) {
+// FetchNodeValidateCID fetches the cid of a validate result.
+func (n *SQLDB) FetchNodeValidateCID(roundID, nodeID string) (string, error) {
 	query := fmt.Sprintf("SELECT cid FROM %s WHERE round_id=? AND node_id=?", validateResultTable)
 	var cid string
 	err := n.db.Get(&cid, query, roundID, nodeID)
@@ -101,8 +104,8 @@ func (n *SQLDB) SetValidateResultsTimeout(roundID string) error {
 	return err
 }
 
-// LoadValidateResultInfos retrieves validate results.
-func (n *SQLDB) LoadValidateResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) {
+// FetchValidateResultInfos fetches validate results.
+func (n *SQLDB) FetchValidateResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) {
 	// TODO problematic from web
 	res := new(types.ListValidateResultRsp)
 	var infos []types.ValidateResultInfo
@@ -138,8 +141,8 @@ func (n *SQLDB) SetEdgeUpdateInfo(info *api.EdgeUpdateInfo) error {
 	return err
 }
 
-// LoadEdgeUpdateInfos retrieves edge update information.
-func (n *SQLDB) LoadEdgeUpdateInfos() (map[int]*api.EdgeUpdateInfo, error) {
+// FetchEdgeUpdateInfos fetches edge update information.
+func (n *SQLDB) FetchEdgeUpdateInfos() (map[int]*api.EdgeUpdateInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s`, edgeUpdateTable)
 
 	var out []*api.EdgeUpdateInfo
@@ -193,8 +196,8 @@ func (n *SQLDB) UpdateValidators(nodeIDs []string, serverID dtypes.ServerID) err
 	return tx.Commit()
 }
 
-// LoadValidators retrieves validators information.
-func (n *SQLDB) LoadValidators(serverID dtypes.ServerID) ([]string, error) {
+// FetchValidators fetches validators information.
+func (n *SQLDB) FetchValidators(serverID dtypes.ServerID) ([]string, error) {
 	sQuery := fmt.Sprintf(`SELECT node_id FROM %s WHERE scheduler_sid=?`, validatorsTable)
 
 	var out []string
@@ -268,8 +271,8 @@ func (n *SQLDB) InsertNodeRegisterInfo(pKey, nodeID string, nodeType types.NodeT
 	return err
 }
 
-// LoadNodePublicKey retrieves public key of node.
-func (n *SQLDB) LoadNodePublicKey(nodeID string) (string, error) {
+// FetchNodePublicKey fetches public key of node.
+func (n *SQLDB) FetchNodePublicKey(nodeID string) (string, error) {
 	var pKey string
 
 	query := fmt.Sprintf(`SELECT public_key FROM %s WHERE node_id=?`, nodeRegisterTable)
@@ -296,8 +299,8 @@ func (n *SQLDB) NodeExists(nodeID string, nodeType types.NodeType) error {
 	return nil
 }
 
-// LoadNodeInfos retrieves nodes information.
-func (n *SQLDB) LoadNodeInfos(limit, offset int) (*sqlx.Rows, int64, error) {
+// FetchNodeInfos fetches nodes information.
+func (n *SQLDB) FetchNodeInfos(limit, offset int) (*sqlx.Rows, int64, error) {
 	var total int64
 	cQuery := fmt.Sprintf(`SELECT count(node_id) FROM %s`, nodeInfoTable)
 	err := n.db.Get(&total, cQuery)
@@ -314,8 +317,8 @@ func (n *SQLDB) LoadNodeInfos(limit, offset int) (*sqlx.Rows, int64, error) {
 	return rows, total, err
 }
 
-// LoadNodeInfo retrieves node information.
-func (n *SQLDB) LoadNodeInfo(nodeID string) (*types.NodeInfo, error) {
+// FetchNodeInfo fetches node information.
+func (n *SQLDB) FetchNodeInfo(nodeID string) (*types.NodeInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id=?`, nodeInfoTable)
 
 	var out types.NodeInfo
@@ -327,8 +330,8 @@ func (n *SQLDB) LoadNodeInfo(nodeID string) (*types.NodeInfo, error) {
 	return &out, nil
 }
 
-// LoadTopHash load assets view top hash
-func (n *SQLDB) LoadTopHash(nodeID string) (string, error) {
+// FetchTopHash fetches assets view top hash
+func (n *SQLDB) FetchTopHash(nodeID string) (string, error) {
 	query := fmt.Sprintf(`SELECT top_hash FROM %s WHERE node_id=?`, assetsViewTable)
 
 	var out string
@@ -343,8 +346,8 @@ func (n *SQLDB) LoadTopHash(nodeID string) (string, error) {
 	return out, nil
 }
 
-// LoadBucketHashes load assets view buckets hashes
-func (n *SQLDB) LoadBucketHashes(nodeID string) (map[uint32]string, error) {
+// FetchBucketHashes fetches assets view buckets hashes
+func (n *SQLDB) FetchBucketHashes(nodeID string) (map[uint32]string, error) {
 	query := fmt.Sprintf(`SELECT bucket_hashes FROM %s WHERE node_id=?`, assetsViewTable)
 
 	var data []byte
@@ -392,9 +395,9 @@ func (n *SQLDB) DeleteAssetsView(nodeID string) error {
 	return err
 }
 
-// LoadBucket load assets ids from bucket
+// FetchBucket fetches assets ids from bucket
 // return hashes of asset
-func (n *SQLDB) LoadBucket(bucketID string) ([]string, error) {
+func (n *SQLDB) FetchBucket(bucketID string) ([]string, error) {
 	query := fmt.Sprintf(`SELECT asset_hashes FROM %s WHERE bucket_id=?`, bucketTable)
 
 	var data []byte

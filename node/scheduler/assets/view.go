@@ -19,13 +19,13 @@ func (m *Manager) RemoveAssetFromView(nodeID string, assetCID string) error {
 
 	bucketNumber := bucketNumber(c)
 	bucketID := fmt.Sprintf("%s:%d", nodeID, bucketNumber)
-	assetHashes, err := m.LoadBucket(bucketID)
+	assetHashes, err := m.FetchBucket(bucketID)
 	if err != nil {
 		return xerrors.Errorf("load bucket error %w", err)
 	}
 	assetHashes = removeAssetHash(assetHashes, c.Hash().String())
 
-	bucketHashes, err := m.LoadBucketHashes(nodeID)
+	bucketHashes, err := m.FetchBucketHashes(nodeID)
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func (m *Manager) AddAssetToView(nodeID string, assetCID string) error {
 	}
 	bucketNumber := bucketNumber(c)
 	bucketID := fmt.Sprintf("%s:%d", nodeID, bucketNumber)
-	assetHashes, err := m.LoadBucket(bucketID)
+	assetHashes, err := m.FetchBucket(bucketID)
 	if err != nil {
 		return xerrors.Errorf("load bucket error %w", err)
 	}
@@ -80,7 +80,7 @@ func (m *Manager) AddAssetToView(nodeID string, assetCID string) error {
 		return err
 	}
 
-	bucketHashes, err := m.LoadBucketHashes(nodeID)
+	bucketHashes, err := m.FetchBucketHashes(nodeID)
 	if err != nil {
 		return err
 	}

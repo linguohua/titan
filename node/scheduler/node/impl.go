@@ -14,13 +14,13 @@ func (m *Manager) NodesQuit(nodeIDs []string) {
 
 	log.Infof("node event , nodes quit:%v", nodeIDs)
 
-	hashes, err := m.LoadAssetHashesOfNodes(nodeIDs)
+	hashes, err := m.FetchAssetHashesOfNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("LoadAssetHashesOfNodes err:%s", err.Error())
 		return
 	}
 
-	err = m.RemoveReplicasOfNodes(nodeIDs)
+	err = m.DeleteReplicasForNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("RemoveReplicaInfoWithNodes err:%s", err.Error())
 		return

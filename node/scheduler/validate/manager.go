@@ -15,12 +15,12 @@ import (
 var log = logging.Logger("node")
 
 const (
-	bandwidthRatio = 0.7                      // The ratio of the total upstream bandwidth on edge nodes to the downstream bandwidth on validation nodes.
-	unitBwDn       = float64(100 * units.MiB) // 100M Validator unit bandwidth down TODO save to config
-	toleranceBwUp  = float64(5 * units.MiB)   // 5M Tolerance uplink bandwidth deviation per group
+	bandwidthRatio    = 0.7                      // The ratio of the total upstream bandwidth on edge nodes to the downstream bandwidth on validation nodes.
+	baseBandwidthDown = float64(100 * units.MiB) // 100M Validator unit bandwidth down TODO save to config
+	toleranceBwUp     = float64(5 * units.MiB)   // 5M Tolerance uplink bandwidth deviation per group
 )
 
-// ValidatorBwDnUnit bandwidth down unit of the validator
+// ValidatorBwDnUnit represents the bandwidth down unit of the validator
 type ValidatorBwDnUnit struct {
 	NodeID      string
 	BeValidates map[string]float64
@@ -85,7 +85,7 @@ func (m *Manager) Start(ctx context.Context) {
 	go m.startValidate(ctx)
 	go m.electTicker()
 
-	m.sub()
+	m.subscribe()
 }
 
 // Stop stop
@@ -93,7 +93,7 @@ func (m *Manager) Stop(ctx context.Context) error {
 	return m.stopValidate(ctx)
 }
 
-func (m *Manager) sub() {
+func (m *Manager) subscribe() {
 	subOnline := m.notify.Sub(types.TopicsNodeOnline.String())
 	subOffline := m.notify.Sub(types.TopicsNodeOffline.String())
 

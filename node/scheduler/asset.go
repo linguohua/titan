@@ -50,7 +50,7 @@ func (s *Scheduler) AssetRecord(ctx context.Context, cid string) (*types.AssetRe
 
 // AssetRecords lists asset records with optional filtering by status, limit, and offset.
 func (s *Scheduler) AssetRecords(ctx context.Context, limit, offset int, statuses []string) ([]*types.AssetRecord, error) {
-	rows, err := s.NodeManager.LoadAssetRecords(statuses, limit, offset, s.ServerID)
+	rows, err := s.NodeManager.FetchAssetRecords(statuses, limit, offset, s.ServerID)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (s *Scheduler) AssetRecords(ctx context.Context, limit, offset int, statuse
 			continue
 		}
 
-		cInfo.ReplicaInfos, err = s.NodeManager.LoadAssetReplicas(cInfo.Hash)
+		cInfo.ReplicaInfos, err = s.NodeManager.FetchAssetReplicas(cInfo.Hash)
 		if err != nil {
 			log.Errorf("asset %s load replicas err: %s", cInfo.CID, err.Error())
 			continue
@@ -122,7 +122,7 @@ func (s *Scheduler) AssetReplicaList(ctx context.Context, req types.ListReplicaI
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
-	info, err := s.NodeManager.LoadReplicas(startTime, endTime, req.Cursor, req.Count)
+	info, err := s.NodeManager.FetchReplicas(startTime, endTime, req.Cursor, req.Count)
 	if err != nil {
 		return nil, err
 	}
