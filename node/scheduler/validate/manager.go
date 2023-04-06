@@ -82,7 +82,7 @@ func NewManager(nodeMgr *node.Manager, configFunc dtypes.GetSchedulerConfigFunc,
 
 // Start start validate and elect task
 func (m *Manager) Start(ctx context.Context) {
-	go m.startValidate(ctx)
+	go m.startValidation(ctx)
 	go m.electTicker()
 
 	m.subscribe()
@@ -114,7 +114,7 @@ func (m *Manager) subscribe() {
 	}()
 }
 
-// nodeStateChange node state change
+// nodeStateChange  changes in the state of a node (i.e. whether it comes online or goes offline)
 func (m *Manager) nodeStateChange(node *node.Node, isOnline bool) {
 	if node == nil {
 		return

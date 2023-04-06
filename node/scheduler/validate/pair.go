@@ -6,7 +6,8 @@ import (
 	"time"
 )
 
-func (b *BeValidateGroup) reduceBeValidateToAverage(maxAverage, minAverage float64) (out map[string]float64) {
+// reduces the beValidateGroup's bandwidth to an value between the min and max averages
+func (b *BeValidateGroup) divideBeValidateToAverage(maxAverage, minAverage float64) (out map[string]float64) {
 	out = make(map[string]float64)
 
 	b.lock.Lock()
@@ -53,6 +54,7 @@ func (b *BeValidateGroup) reduceBeValidateToAverage(maxAverage, minAverage float
 	return
 }
 
+// adds a beValidate node to the beValidateGroup
 func (b *BeValidateGroup) addBeValidate(nodeID string, bwUp float64) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
@@ -66,6 +68,7 @@ func (b *BeValidateGroup) addBeValidate(nodeID string, bwUp float64) {
 	b.sumBwUp += bwUp
 }
 
+// adds multiple beValidate nodes to the beValidateGroup
 func (b *BeValidateGroup) addBeValidates(groups map[string]float64) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
@@ -81,6 +84,7 @@ func (b *BeValidateGroup) addBeValidates(groups map[string]float64) {
 	}
 }
 
+// removes a beValidate node from the beValidateGroup
 func (b *BeValidateGroup) removeBeValidate(nodeID string) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
@@ -94,7 +98,7 @@ func (b *BeValidateGroup) removeBeValidate(nodeID string) {
 	b.sumBwUp -= bwUp
 }
 
-// ResetValidatorGroup reset
+// ResetValidatorGroup clears and initializes the validator and BeValidate groups
 func (m *Manager) ResetValidatorGroup(nodeIDs []string) {
 	m.validatePairLock.Lock()
 	defer m.validatePairLock.Unlock()
@@ -127,6 +131,7 @@ func (m *Manager) ResetValidatorGroup(nodeIDs []string) {
 	}
 }
 
+// adds a validator unit to the manager with the specified node ID and bandwidth down
 func (m *Manager) addValidator(nodeID string, bwDn float64) {
 	m.validatePairLock.Lock()
 	defer m.validatePairLock.Unlock()
@@ -153,6 +158,7 @@ func (m *Manager) addValidator(nodeID string, bwDn float64) {
 	}
 }
 
+// removes the validator unit with the specified node ID from the manager
 func (m *Manager) removeValidator(nodeID string) {
 	m.validatePairLock.Lock()
 	defer m.validatePairLock.Unlock()
@@ -183,16 +189,18 @@ func (m *Manager) removeValidator(nodeID string) {
 
 	m.beValidateGroups = m.beValidateGroups[:rIndex]
 
-	// add be validate node to waitPairGroup
+	// add be validate node to unpairedGroup
 	for _, group := range removeGroups {
 		m.unpairedGroup.addBeValidates(group.beValidates)
 	}
 }
 
+// adds a be-validate node to unpairedGroup with the specified node ID and bandwidth up
 func (m *Manager) addBeValidate(nodeID string, bandwidthUp float64) {
 	m.unpairedGroup.addBeValidate(nodeID, bandwidthUp)
 }
 
+// removes the be-validate node with the specified node ID from the manager
 func (m *Manager) removeBeValidate(nodeID string) {
 	m.validatePairLock.Lock()
 	defer m.validatePairLock.Unlock()
@@ -211,6 +219,7 @@ func (m *Manager) removeBeValidate(nodeID string) {
 	}
 }
 
+// divides the be-validate nodes in the manager into groups with similar average bandwidth
 func (m *Manager) divideIntoGroups() {
 	m.validatePairLock.Lock()
 	defer m.validatePairLock.Unlock()
@@ -227,13 +236,13 @@ func (m *Manager) divideIntoGroups() {
 
 	log.Debugf("sumUp:%.2f groupCount:%d averageUp:%.2f  %.2f ~ %.2f \n", sumBwUp, groupCount, averageUp, minAverage, maxAverage)
 	for _, group := range m.beValidateGroups {
-		rm := group.reduceBeValidateToAverage(maxAverage, minAverage)
+		rm := group.divideBeValidateToAverage(maxAverage, minAverage)
 		if len(rm) > 0 {
 			m.unpairedGroup.addBeValidates(rm)
 		}
 	}
 
-	log.Debugf("reAssignGroups size:%d , start %s \n", len(m.unpairedGroup.beValidates), time.Now().String())
+	log.Debugf("divideIntoGroups size:%d , start %s \n", len(m.unpairedGroup.beValidates), time.Now().String())
 	// O n+m (n is the group count, m is the beValidate node count)
 	for _, groups := range m.beValidateGroups {
 		if groups.sumBwUp >= maxAverage {
@@ -256,14 +265,14 @@ func (m *Manager) divideIntoGroups() {
 		}
 
 	}
-	log.Debugf("reAssignGroups size:%d , end %s \n", len(m.unpairedGroup.beValidates), time.Now().String())
+	log.Debugf("divideIntoGroups size:%d , end %s \n", len(m.unpairedGroup.beValidates), time.Now().String())
 }
 
-// Pairing Randomly pair validators and beValidates
-func (m *Manager) Pairing() []*ValidatorBwDnUnit {
-	log.Debugf("reAssign Groups start %s \n", time.Now().String())
+// PairValidatorsAndBeValidates randomly pair validators and beValidates based on their bandwidth capabilities.
+func (m *Manager) PairValidatorsAndBeValidates() []*ValidatorBwDnUnit {
+	log.Debugf("PairValidatorsAndBeValidates start %s \n", time.Now().String())
 	m.divideIntoGroups()
-	log.Debugf("reAssign Groups end %s \n", time.Now().String())
+	log.Debugf("PairValidatorsAndBeValidates end %s \n", time.Now().String())
 
 	vs := len(m.validatorUnits)
 	bs := len(m.beValidateGroups)
