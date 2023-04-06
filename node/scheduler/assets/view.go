@@ -1,4 +1,4 @@
-package node
+package assets
 
 import (
 	"crypto/sha256"
@@ -11,32 +11,34 @@ import (
 	"golang.org/x/xerrors"
 )
 
-type AssetsView struct {
-}
+func (m *Manager) RemoveAssetFromView(nodeID string, assetCID string) error {
+	c, err := cid.Decode(assetCID)
+	if err != nil {
+		return err
+	}
 
-func (av *AssetsView) removeAsset(nodeMgr *Manager, nodeID string, c cid.Cid) error {
 	bucketNumber := bucketNumber(c)
 	bucketID := fmt.Sprintf("%s:%d", nodeID, bucketNumber)
-	assetHashes, err := nodeMgr.LoadBucket(bucketID)
+	assetHashes, err := m.LoadBucket(bucketID)
 	if err != nil {
 		return xerrors.Errorf("load bucket error %w", err)
 	}
 	assetHashes = removeAssetHash(assetHashes, c.Hash().String())
 
-	bucketHashes, err := nodeMgr.LoadBucketHashes(nodeID)
+	bucketHashes, err := m.LoadBucketHashes(nodeID)
 	if err != nil {
 		return err
 	}
 
 	if len(assetHashes) == 0 {
-		if err := nodeMgr.DeleteBucket(bucketID); err != nil {
+		if err := m.DeleteBucket(bucketID); err != nil {
 			return err
 		}
 		delete(bucketHashes, bucketNumber)
 	}
 
 	if len(bucketHashes) == 0 {
-		return nodeMgr.DeleteAssetsView(nodeID)
+		return m.DeleteAssetsView(nodeID)
 	}
 
 	topHash, err := calculateTopHash(bucketHashes)
@@ -44,20 +46,24 @@ func (av *AssetsView) removeAsset(nodeMgr *Manager, nodeID string, c cid.Cid) er
 		return err
 	}
 
-	if err := nodeMgr.UpsertAssetsView(nodeID, topHash, bucketHashes); err != nil {
+	if err := m.UpsertAssetsView(nodeID, topHash, bucketHashes); err != nil {
 		return err
 	}
 
 	if len(assetHashes) > 0 {
-		return nodeMgr.UpsertBucket(bucketID, assetHashes)
+		return m.UpsertBucket(bucketID, assetHashes)
 	}
 	return nil
 }
 
-func (av *AssetsView) addAsset(nodeMgr *Manager, nodeID string, c cid.Cid) error {
+func (m *Manager) AddAssetToView(nodeID string, assetCID string) error {
+	c, err := cid.Decode(assetCID)
+	if err != nil {
+		return err
+	}
 	bucketNumber := bucketNumber(c)
 	bucketID := fmt.Sprintf("%s:%d", nodeID, bucketNumber)
-	assetHashes, err := nodeMgr.LoadBucket(bucketID)
+	assetHashes, err := m.LoadBucket(bucketID)
 	if err != nil {
 		return xerrors.Errorf("load bucket error %w", err)
 	}
@@ -74,7 +80,7 @@ func (av *AssetsView) addAsset(nodeMgr *Manager, nodeID string, c cid.Cid) error
 		return err
 	}
 
-	bucketHashes, err := nodeMgr.LoadBucketHashes(nodeID)
+	bucketHashes, err := m.LoadBucketHashes(nodeID)
 	if err != nil {
 		return err
 	}
@@ -85,11 +91,11 @@ func (av *AssetsView) addAsset(nodeMgr *Manager, nodeID string, c cid.Cid) error
 		return err
 	}
 
-	if err := nodeMgr.UpsertAssetsView(nodeID, topHash, bucketHashes); err != nil {
+	if err := m.UpsertAssetsView(nodeID, topHash, bucketHashes); err != nil {
 		return err
 	}
 
-	return nodeMgr.UpsertBucket(bucketID, assetHashes)
+	return m.UpsertBucket(bucketID, assetHashes)
 }
 
 func bucketNumber(c cid.Cid) uint32 {

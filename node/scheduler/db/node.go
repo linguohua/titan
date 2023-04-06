@@ -329,7 +329,7 @@ func (n *SQLDB) LoadNodeInfo(nodeID string) (*types.NodeInfo, error) {
 
 // LoadTopHash load assets view top hash
 func (n *SQLDB) LoadTopHash(nodeID string) (string, error) {
-	query := fmt.Sprintf(`SELECT top_hash FROM %s WHERE node_id=?`, AssetsView)
+	query := fmt.Sprintf(`SELECT top_hash FROM %s WHERE node_id=?`, assetsViewTable)
 
 	var out string
 	err := n.db.Get(&out, query, nodeID)
@@ -345,7 +345,7 @@ func (n *SQLDB) LoadTopHash(nodeID string) (string, error) {
 
 // LoadBucketHashes load assets view buckets hashes
 func (n *SQLDB) LoadBucketHashes(nodeID string) (map[uint32]string, error) {
-	query := fmt.Sprintf(`SELECT bucket_hashes FROM %s WHERE node_id=?`, AssetsView)
+	query := fmt.Sprintf(`SELECT bucket_hashes FROM %s WHERE node_id=?`, assetsViewTable)
 
 	var data []byte
 	err := n.db.Get(&data, query, nodeID)
@@ -372,7 +372,7 @@ func (n *SQLDB) LoadBucketHashes(nodeID string) (map[uint32]string, error) {
 func (n *SQLDB) UpsertAssetsView(nodeID string, topHash string, bucketHashes map[uint32]string) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (node_id, top_hash, bucket_hashes) VALUES (?, ?, ?) 
-				ON DUPLICATE KEY UPDATE top_hash=?, bucket_hashes=?`, AssetsView)
+				ON DUPLICATE KEY UPDATE top_hash=?, bucket_hashes=?`, assetsViewTable)
 
 	var buffer bytes.Buffer
 	enc := gob.NewEncoder(&buffer)
@@ -387,7 +387,7 @@ func (n *SQLDB) UpsertAssetsView(nodeID string, topHash string, bucketHashes map
 }
 
 func (n *SQLDB) DeleteAssetsView(nodeID string) error {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE node_id=?`, AssetsView)
+	query := fmt.Sprintf(`DELETE FROM %s WHERE node_id=?`, assetsViewTable)
 	_, err := n.db.Exec(query, nodeID)
 	return err
 }
@@ -395,7 +395,7 @@ func (n *SQLDB) DeleteAssetsView(nodeID string) error {
 // LoadBucket load assets ids from bucket
 // return hashes of asset
 func (n *SQLDB) LoadBucket(bucketID string) ([]string, error) {
-	query := fmt.Sprintf(`SELECT asset_hashes FROM %s WHERE bucket_id=?`, bucket)
+	query := fmt.Sprintf(`SELECT asset_hashes FROM %s WHERE bucket_id=?`, bucketTable)
 
 	var data []byte
 	err := n.db.Get(&data, query, bucketID)
@@ -421,7 +421,7 @@ func (n *SQLDB) LoadBucket(bucketID string) ([]string, error) {
 func (n *SQLDB) UpsertBucket(bucketID string, assetHashes []string) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (bucket_id, asset_hashes) VALUES (?, ?) 
-				ON DUPLICATE KEY UPDATE asset_hashes=?`, bucket)
+				ON DUPLICATE KEY UPDATE asset_hashes=?`, bucketTable)
 
 	var buffer bytes.Buffer
 	enc := gob.NewEncoder(&buffer)
@@ -436,7 +436,7 @@ func (n *SQLDB) UpsertBucket(bucketID string, assetHashes []string) error {
 }
 
 func (n *SQLDB) DeleteBucket(bucketID string) error {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE bucket_id=?`, bucket)
+	query := fmt.Sprintf(`DELETE FROM %s WHERE bucket_id=?`, bucketTable)
 	_, err := n.db.Exec(query, bucketID)
 	return err
 }
