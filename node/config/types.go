@@ -41,8 +41,9 @@ type EdgeCfg struct {
 
 type CandidateCfg struct {
 	EdgeCfg
-	TCPSrvAddr string
-	IpfsAPIURL string
+	TCPSrvAddr       string
+	IpfsAPIURL       string
+	ValidateDuration int
 }
 
 type LocatorCfg struct {

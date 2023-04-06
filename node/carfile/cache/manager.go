@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"sync"
 	"time"
@@ -13,9 +14,9 @@ import (
 	"github.com/ipld/go-car/v2/index"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/carfile/fetcher"
+	titanindex "github.com/linguohua/titan/node/carfile/index"
 	"github.com/linguohua/titan/node/carfile/storage"
 	"github.com/linguohua/titan/node/validate"
-	"github.com/multiformats/go-multihash"
 	"golang.org/x/xerrors"
 )
 
@@ -415,27 +416,39 @@ func (m *Manager) iterableIndex(ctx context.Context, root cid.Cid) (index.Iterab
 
 }
 
-func (m *Manager) GetBlocksOfCarfile(root cid.Cid, indices []int) (map[int]string, error) {
-	indicesMap := make(map[int]string)
-	for _, index := range indices {
-		indicesMap[index] = ""
-	}
+func (m *Manager) GetBlocksOfCarfile(root cid.Cid, randomSeed int64, randomCount int) (map[int]string, error) {
+	rand := rand.New(rand.NewSource(randomSeed))
 
-	idx, err := m.iterableIndex(context.Background(), root)
+	idx, err := m.lru.carIndex(root)
 	if err != nil {
 		return nil, err
 	}
 
-	key := 0
-	idx.ForEach(func(mh multihash.Multihash, u uint64) error {
-		if _, ok := indicesMap[key]; ok {
-			indicesMap[key] = mh.String()
-		}
-		key++
-		return nil
-	})
+	multiIndex, ok := idx.(*titanindex.MultiIndexSorted)
+	if !ok {
+		return nil, xerrors.Errorf("idx is not MultiIndexSorted")
+	}
 
-	return indicesMap, nil
+	sizeOfBuckets := multiIndex.BucketSize()
+	ret := make(map[int]string, 0)
+
+	for i := 0; i < randomCount; i++ {
+		index := rand.Intn(int(sizeOfBuckets))
+		records, err := multiIndex.GetBucket(uint32(index))
+		if err != nil {
+			return nil, err
+		}
+
+		if len(records) == 0 {
+			return nil, xerrors.Errorf("record is empty")
+		}
+
+		index = rand.Intn(len(records))
+		record := records[index]
+		ret[i] = record.Cid.String()
+	}
+
+	return ret, nil
 }
 
 // AddLostCar implement data sync interface

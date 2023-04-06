@@ -43,7 +43,6 @@ type API struct {
 	UserNATTravel          func(ctx context.Context, sourceURL string, req *types.NatTravelReq) error
 	// candidate
 	GetBlocksOfCarfile func(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error)
-	ValidateNodes      func(ctx context.Context, reqs []api.ValidateReq) (string, error)
 }
 
 // New new node
@@ -80,7 +79,6 @@ func APIFromCandidate(api api.Candidate) *API {
 		CarfileOperation:   api,
 		WaitQuiet:          api.WaitQuiet,
 		GetBlocksOfCarfile: api.GetBlocksOfCarfile,
-		ValidateNodes:      api.ValidateNodes,
 	}
 	return a
 }

@@ -3,6 +3,7 @@ package modules
 import (
 	"context"
 
+	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/candidate"
 	"github.com/linguohua/titan/node/carfile/fetcher"
 	"github.com/linguohua/titan/node/carfile/storage"
@@ -26,8 +27,8 @@ func NewBlockFetcherFromIPFS(cfg *config.CandidateCfg) fetcher.BlockFetcher {
 	return fetcher.NewIPFS(cfg.IpfsAPIURL, cfg.FetchBlockTimeout, cfg.FetchBlockRetry)
 }
 
-func NewTCPServer(lc fx.Lifecycle, cfg *config.CandidateCfg, blockWait *candidate.BlockWaiter) *candidate.TCPServer {
-	srv := candidate.NewTCPServer(cfg, blockWait)
+func NewTCPServer(lc fx.Lifecycle, cfg *config.CandidateCfg, schedulerAPI api.Scheduler) *candidate.TCPServer {
+	srv := candidate.NewTCPServer(cfg, schedulerAPI)
 
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {

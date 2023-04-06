@@ -59,7 +59,6 @@ func ConfigCandidate(c interface{}) Option {
 		Override(new(*carfile.CarfileImpl), carfile.NewCarfileImpl),
 		Override(new(fetcher.BlockFetcher), modules.NewBlockFetcherFromIPFS),
 		Override(new(*datasync.DataSync), modules.NewDataSync),
-		Override(new(*candidate.BlockWaiter), candidate.NewBlockWaiter),
 		Override(new(*candidate.TCPServer), modules.NewTCPServer),
 	)
 }
