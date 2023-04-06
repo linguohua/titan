@@ -352,7 +352,7 @@ var runCmd = &cli.Command{
 					select {
 					case <-readyCh:
 						opts := &types.ConnectOptions{Token: token}
-						if err := schedulerAPI.EdgeNodeConnect(ctx, opts); err != nil {
+						if err := schedulerAPI.ConnectEdgeNode(ctx, opts); err != nil {
 							log.Errorf("Registering edge failed: %s", err.Error())
 							cancel()
 							return
@@ -411,7 +411,7 @@ func newAuthTokenFromScheduler(schedulerURL, nodeID string, privateKey *rsa.Priv
 		return "", err
 	}
 
-	return schedulerAPI.NodeAuthNew(context.Background(), nodeID, hex.EncodeToString(sign))
+	return schedulerAPI.CreateNodeAuthToken(context.Background(), nodeID, hex.EncodeToString(sign))
 }
 
 func getAccessPoint(cctx *cli.Context, nodeID string) (string, error) {
@@ -543,11 +543,10 @@ func loadPrivateKey(path string, r *repo.FsRepo) (*rsa.PrivateKey, error) {
 		return nil, err
 	}
 	return titanrsa.Pem2PrivateKey(pem)
-
 }
 
 func getSchedulerPublicKey(schedulerAPI api.Scheduler) (*rsa.PublicKey, error) {
-	pem, err := schedulerAPI.PublicKey(context.Background())
+	pem, err := schedulerAPI.GetServerPublicKey(context.Background())
 	if err != nil {
 		return nil, err
 	}

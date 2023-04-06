@@ -82,8 +82,8 @@ func (m *Manager) GetCandidateNode(nodeID string) *Node {
 	return nil
 }
 
-// OnlineNodeList get nodes with type
-func (m *Manager) OnlineNodeList(nodeType types.NodeType) ([]string, error) {
+// GetOnlineNodeList get nodes with type
+func (m *Manager) GetOnlineNodeList(nodeType types.NodeType) ([]string, error) {
 	list := make([]string, 0)
 	limit := 100
 

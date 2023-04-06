@@ -10,7 +10,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// RemoveAssetResult remove asset result
+// RemoveAssetResult updates a node's disk usage and block count based on the resultInfo.
 func (s *Scheduler) RemoveAssetResult(ctx context.Context, resultInfo types.RemoveAssetResult) error {
 	nodeID := handler.GetNodeID(ctx)
 
@@ -24,12 +24,12 @@ func (s *Scheduler) RemoveAssetResult(ctx context.Context, resultInfo types.Remo
 	return nil
 }
 
-// RestartFailedAssets restart failed assets
+// RestartFailedAssets restarts of pulling assets for a given list of  asset hashes.
 func (s *Scheduler) RestartFailedAssets(ctx context.Context, hashes []types.AssetHash) error {
 	return s.AssetManager.RestartPullAssets(hashes)
 }
 
-// ResetAssetExpiration reset expiration time with asset record
+// ResetAssetExpiration resets the expiration time of an asset record based on the provided CID and new expiration time.
 func (s *Scheduler) ResetAssetExpiration(ctx context.Context, cid string, t time.Time) error {
 	if time.Now().After(t) {
 		return xerrors.Errorf("expiration:%s has passed", t.String())
@@ -38,7 +38,7 @@ func (s *Scheduler) ResetAssetExpiration(ctx context.Context, cid string, t time
 	return s.AssetManager.ResetAssetRecordExpiration(cid, t)
 }
 
-// AssetRecord Show Data Task
+// AssetRecord retrieves an asset record by its CID.
 func (s *Scheduler) AssetRecord(ctx context.Context, cid string) (*types.AssetRecord, error) {
 	info, err := s.AssetManager.GetAssetRecordInfo(cid)
 	if err != nil {
@@ -48,9 +48,9 @@ func (s *Scheduler) AssetRecord(ctx context.Context, cid string) (*types.AssetRe
 	return info, nil
 }
 
-// AssetRecords List assets
-func (s *Scheduler) AssetRecords(ctx context.Context, limit, offset int, states []string) ([]*types.AssetRecord, error) {
-	rows, err := s.NodeManager.LoadAssetRecords(states, limit, offset, s.ServerID)
+// AssetRecords lists asset records with optional filtering by status, limit, and offset.
+func (s *Scheduler) AssetRecords(ctx context.Context, limit, offset int, statuses []string) ([]*types.AssetRecord, error) {
+	rows, err := s.NodeManager.LoadAssetRecords(statuses, limit, offset, s.ServerID)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (s *Scheduler) AssetRecords(ctx context.Context, limit, offset int, states 
 	return list, nil
 }
 
-// RemoveAsset remove all record with asset cid
+// RemoveAsset removes an asset record from the system by its CID.
 func (s *Scheduler) RemoveAsset(ctx context.Context, cid string) error {
 	if cid == "" {
 		return xerrors.Errorf("Cid Is Nil")
@@ -93,7 +93,7 @@ func (s *Scheduler) RemoveAsset(ctx context.Context, cid string) error {
 	return s.AssetManager.RemoveAsset(cid, hash)
 }
 
-// CacheAsset cache asset
+// CacheAsset caches an asset based on the provided PullAssetReq structure.
 func (s *Scheduler) CacheAsset(ctx context.Context, info *types.PullAssetReq) error {
 	if info.CID == "" {
 		return xerrors.New("Cid is Nil")
@@ -117,7 +117,7 @@ func (s *Scheduler) CacheAsset(ctx context.Context, info *types.PullAssetReq) er
 	return s.AssetManager.PullAssets(info)
 }
 
-// AssetReplicaList list replicas
+// AssetReplicaList lists asset replicas based on a given request with startTime, endTime, cursor, and count parameters.
 func (s *Scheduler) AssetReplicaList(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)

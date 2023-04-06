@@ -13,25 +13,25 @@ type Scheduler interface {
 	Common
 
 	// node
-	OnlineNodeList(ctx context.Context, nodeType types.NodeType) ([]string, error)             //perm:read
-	RegisterNode(ctx context.Context, nodeID, publicKey string, nodeType types.NodeType) error //perm:admin
-	NodeQuit(ctx context.Context, nodeID string) error                                         //perm:admin
-	SetNodePort(ctx context.Context, nodeID, port string) error                                //perm:admin
-	LocatorConnect(ctx context.Context, locatorID, locatorToken string) error                  //perm:write
+	GetOnlineNodeList(ctx context.Context, nodeType types.NodeType) ([]string, error)             //perm:read
+	RegisterNewNode(ctx context.Context, nodeID, publicKey string, nodeType types.NodeType) error //perm:admin
+	NodeQuit(ctx context.Context, nodeID string) error                                            //perm:admin
+	UpdateNodePort(ctx context.Context, nodeID, port string) error                                //perm:admin
+	ConnectLocator(ctx context.Context, locatorID, locatorToken string) error                     //perm:write
 	// node send result when user download block complete
-	UserDownloadResult(ctx context.Context, result types.UserDownloadResult) error    //perm:write
-	EdgeNodeConnect(ctx context.Context, opts *types.ConnectOptions) error            //perm:write
-	NodeValidatedResult(ctx context.Context, validateResult ValidateResult) error     //perm:write
-	CandidateNodeConnect(ctx context.Context, opts *types.ConnectOptions) error       //perm:write
-	RemoveAssetResult(ctx context.Context, resultInfo types.RemoveAssetResult) error  //perm:write
-	NodeExternalServiceAddress(ctx context.Context) (string, error)                   //perm:read
-	NodeAuthVerify(ctx context.Context, token string) ([]auth.Permission, error)      //perm:read
-	NodeAuthNew(ctx context.Context, nodeID, sign string) (string, error)             //perm:read
-	NodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error)              //perm:read
-	NodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error) //perm:read
-	AssetListOfBucket(ctx context.Context, nodeID string) ([]string, error)           //perm:write
+	UserDownloadResult(ctx context.Context, result types.UserDownloadResult) error        //perm:write
+	ConnectEdgeNode(ctx context.Context, opts *types.ConnectOptions) error                //perm:write
+	ProcessNodeValidationResult(ctx context.Context, validateResult ValidateResult) error //perm:write
+	ConnectCandidateNode(ctx context.Context, opts *types.ConnectOptions) error           //perm:write
+	RemoveAssetResult(ctx context.Context, resultInfo types.RemoveAssetResult) error      //perm:write
+	GetNodeExternalAddress(ctx context.Context) (string, error)                           //perm:read
+	VerifyNodeAuthToken(ctx context.Context, token string) ([]auth.Permission, error)     //perm:read
+	CreateNodeAuthToken(ctx context.Context, nodeID, sign string) (string, error)         //perm:read
+	RetrieveNodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error)          //perm:read
+	GetNodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error)  //perm:read
+	GetAssetListForBucket(ctx context.Context, nodeID string) ([]string, error)           //perm:write
 	// get scheduler public key, format is pem
-	PublicKey(ctx context.Context) (string, error) //perm:write
+	GetServerPublicKey(ctx context.Context) (string, error) //perm:write
 	// nat travel, can get edge external addr with different scheduler
 	EdgeExternalServiceAddress(ctx context.Context, nodeID, schedulerURL string) (string, error) //perm:write
 	// CheckNetworkConnectivity check tcp or udp network connectivity
@@ -42,8 +42,8 @@ type Scheduler interface {
 	// targets is edge node list
 	NatTravel(ctx context.Context, targets []*types.NatTravelReq) error //perm:read
 	// user
-	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error)              //perm:read
-	FindCandidateDownloadSources(ctx context.Context, cid string) ([]*types.DownloadSource, error) //perm:read
+	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error)                  //perm:read
+	RetrieveCandidateDownloadSources(ctx context.Context, cid string) ([]*types.DownloadSource, error) //perm:read
 
 	// Asset
 	CacheAsset(ctx context.Context, info *types.PullAssetReq) error                                     //perm:admin
@@ -54,7 +54,7 @@ type Scheduler interface {
 	ResetAssetExpiration(ctx context.Context, cid string, time time.Time) error                         //perm:admin
 
 	// server
-	StartOnceElection(ctx context.Context) error //perm:admin
+	TriggerElection(ctx context.Context) error //perm:admin
 	// same as EdgeUpdateInfos, support to update old version edge
 	GetNodeAppUpdateInfos(ctx context.Context) (map[int]*EdgeUpdateInfo, error) //perm:read
 	EdgeUpdateInfos(ctx context.Context) (map[int]*EdgeUpdateInfo, error)       //perm:read
@@ -64,7 +64,7 @@ type Scheduler interface {
 	// user send result when user download block complete or failed
 	UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error //perm:read
 	// ListCaches cache manager
-	AssetReplicaList(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error)                               //perm:read
-	ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) //perm:read
-	SubmitProofOfWork(ctx context.Context, proofs []*types.NodeWorkloadProof) error                                                        //perm:read
+	AssetReplicaList(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error)                                   //perm:read
+	GetValidationResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) //perm:read
+	IgnoreProofOfWork(ctx context.Context, proofs []*types.NodeWorkloadProof) error                                                            //perm:read
 }

@@ -37,7 +37,7 @@ import (
 
 var log = logging.Logger("scheduler")
 
-// Scheduler node
+// Scheduler represents a scheduler node in a distributed system.
 type Scheduler struct {
 	fx.In
 
@@ -63,8 +63,8 @@ type jwtPayload struct {
 	NodeID string
 }
 
-// NodeAuthVerify Verify Node Auth
-func (s *Scheduler) NodeAuthVerify(ctx context.Context, token string) ([]auth.Permission, error) {
+// VerifyNodeAuthToken verifies the JWT token for a node.
+func (s *Scheduler) VerifyNodeAuthToken(ctx context.Context, token string) ([]auth.Permission, error) {
 	nodeID := handler.GetNodeID(ctx)
 
 	var payload jwtPayload
@@ -79,8 +79,8 @@ func (s *Scheduler) NodeAuthVerify(ctx context.Context, token string) ([]auth.Pe
 	return payload.Allow, nil
 }
 
-// NodeAuthNew  Get Node Auth
-func (s *Scheduler) NodeAuthNew(ctx context.Context, nodeID, sign string) (string, error) {
+// CreateNodeAuthToken creates a new JWT token for a node.
+func (s *Scheduler) CreateNodeAuthToken(ctx context.Context, nodeID, sign string) (string, error) {
 	p := jwtPayload{
 		Allow:  api.ReadWritePerms,
 		NodeID: nodeID,
@@ -115,6 +115,7 @@ func (s *Scheduler) NodeAuthNew(ctx context.Context, nodeID, sign string) (strin
 	return string(tk), nil
 }
 
+// processes a node connection request with the given options and node type.
 func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions, nodeType types.NodeType) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
@@ -174,13 +175,13 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	return nil
 }
 
-// CandidateNodeConnect Candidate connect
-func (s *Scheduler) CandidateNodeConnect(ctx context.Context, opts *types.ConnectOptions) error {
+// ConnectCandidateNode processes a candidate node connection request.
+func (s *Scheduler) ConnectCandidateNode(ctx context.Context, opts *types.ConnectOptions) error {
 	return s.nodeConnect(ctx, opts, types.NodeCandidate)
 }
 
-// EdgeNodeConnect edge connect
-func (s *Scheduler) EdgeNodeConnect(ctx context.Context, opts *types.ConnectOptions) error {
+// ConnectEdgeNode  processes a edge node connection request.
+func (s *Scheduler) ConnectEdgeNode(ctx context.Context, opts *types.ConnectOptions) error {
 	return s.nodeConnect(ctx, opts, types.NodeEdge)
 }
 
@@ -214,14 +215,14 @@ func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.N
 	return node.NewBaseInfo(nodeInfo, publicKey, remoteAddr, tcpPort), nil
 }
 
-// NodeExternalServiceAddress get node External address
-func (s *Scheduler) NodeExternalServiceAddress(ctx context.Context) (string, error) {
+// GetNodeExternalAddress retrieves the external address of the node.
+func (s *Scheduler) GetNodeExternalAddress(ctx context.Context) (string, error) {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	return remoteAddr, nil
 }
 
-// NodeValidatedResult Validator Block Result
-func (s *Scheduler) NodeValidatedResult(ctx context.Context, result api.ValidateResult) error {
+// ProcessNodeValidationResult  processes the validation result from the node.
+func (s *Scheduler) ProcessNodeValidationResult(ctx context.Context, result api.ValidateResult) error {
 	validator := handler.GetNodeID(ctx)
 	log.Debug("call back Validator block result, Validator is ", validator)
 
@@ -232,28 +233,28 @@ func (s *Scheduler) NodeValidatedResult(ctx context.Context, result api.Validate
 	return s.ValidateMgr.Result(vs)
 }
 
-// RegisterNode Register Node , Returns an error if the node is already registered
-func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, pKey string, nodeType types.NodeType) error {
+// RegisterNewNode registers a new node, returning an error if the node is already registered.
+func (s *Scheduler) RegisterNewNode(ctx context.Context, nodeID, pKey string, nodeType types.NodeType) error {
 	return s.NodeManager.InsertNodeRegisterInfo(pKey, nodeID, nodeType)
 }
 
-// OnlineNodeList Get all online node id
-func (s *Scheduler) OnlineNodeList(ctx context.Context, nodeType types.NodeType) ([]string, error) {
+// GetOnlineNodeList retrieves a list of online node IDs.
+func (s *Scheduler) GetOnlineNodeList(ctx context.Context, nodeType types.NodeType) ([]string, error) {
 	if nodeType == types.NodeValidator {
 		return s.NodeManager.LoadValidators(s.ServerID)
 	}
 
-	return s.NodeManager.OnlineNodeList(nodeType)
+	return s.NodeManager.GetOnlineNodeList(nodeType)
 }
 
-// StartOnceElection Validators
-func (s *Scheduler) StartOnceElection(ctx context.Context) error {
+// TriggerElection triggers a single election for validators.
+func (s *Scheduler) TriggerElection(ctx context.Context) error {
 	s.ValidateMgr.StartElect()
 	return nil
 }
 
-// NodeInfo return the node information
-func (s *Scheduler) NodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error) {
+// RetrieveNodeInfo returns information about the specified node.
+func (s *Scheduler) RetrieveNodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error) {
 	nodeInfo := types.NodeInfo{}
 	nodeInfo.Online = false
 
@@ -274,20 +275,20 @@ func (s *Scheduler) NodeInfo(ctx context.Context, nodeID string) (types.NodeInfo
 	return nodeInfo, nil
 }
 
-// LocatorConnect Locator Connect
-func (s *Scheduler) LocatorConnect(ctx context.Context, id string, token string) error {
+// ConnectLocator processes a locator connection request.
+func (s *Scheduler) ConnectLocator(ctx context.Context, id string, token string) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	url := fmt.Sprintf("https://%s/rpc/v0", remoteAddr)
 
-	log.Infof("LocatorConnect locatorID:%s, addr:%s", id, remoteAddr)
+	log.Infof("ConnectLocator locatorID:%s, addr:%s", id, remoteAddr)
 
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+token)
 	// Connect to scheduler
-	// log.Infof("EdgeNodeConnect edge url:%v", url)
+	// log.Infof("ConnectEdgeNode edge url:%v", url)
 	_, _, err := client.NewLocator(ctx, url, headers)
 	if err != nil {
-		log.Errorf("LocatorConnect err:%s,url:%s", err.Error(), url)
+		log.Errorf("ConnectLocator err:%s,url:%s", err.Error(), url)
 		return err
 	}
 
@@ -301,17 +302,17 @@ func (s *Scheduler) NodeQuit(ctx context.Context, nodeID string) error {
 	return nil
 }
 
-// SetNodePort set node port
-func (s *Scheduler) SetNodePort(ctx context.Context, nodeID, port string) error {
+// UpdateNodePort sets the port for the specified node.
+func (s *Scheduler) UpdateNodePort(ctx context.Context, nodeID, port string) error {
 	baseInfo := s.NodeManager.GetNode(nodeID)
 	if baseInfo != nil {
-		baseInfo.SetNodePort(port)
+		baseInfo.UpdateNodePort(port)
 	}
 
 	return s.NodeManager.SetPortMapping(nodeID, port)
 }
 
-// nodeExists Check if the id exists
+// nodeExists checks if the node with the specified ID exists.
 func (s *Scheduler) nodeExists(nodeID string, nodeType types.NodeType) bool {
 	err := s.NodeManager.NodeExists(nodeID, nodeType)
 	if err != nil {
@@ -322,8 +323,8 @@ func (s *Scheduler) nodeExists(nodeID string, nodeType types.NodeType) bool {
 	return true
 }
 
-// NodeList list nodes
-func (s *Scheduler) NodeList(ctx context.Context, offset int, limit int) (*types.ListNodesRsp, error) {
+// GetNodeList retrieves a list of nodes with pagination.
+func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*types.ListNodesRsp, error) {
 	rsp := &types.ListNodesRsp{Data: make([]types.NodeInfo, 0)}
 
 	rows, total, err := s.NodeManager.LoadNodeInfos(limit, offset)
@@ -364,8 +365,8 @@ func (s *Scheduler) NodeList(ctx context.Context, offset int, limit int) (*types
 	return rsp, nil
 }
 
-// ValidatedResultList get validated result infos
-func (s *Scheduler) ValidatedResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) {
+// GetValidationResultList retrieves a list of validation results.
+func (s *Scheduler) GetValidationResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) {
 	svm, err := s.NodeManager.LoadValidateResultInfos(startTime, endTime, pageNumber, pageSize)
 	if err != nil {
 		return nil, err
@@ -374,8 +375,8 @@ func (s *Scheduler) ValidatedResultList(ctx context.Context, startTime, endTime 
 	return svm, nil
 }
 
-// PublicKey get server publicKey
-func (s *Scheduler) PublicKey(ctx context.Context) (string, error) {
+// GetServerPublicKey get server publicKey
+func (s *Scheduler) GetServerPublicKey(ctx context.Context) (string, error) {
 	if s.PrivateKey == nil {
 		return "", fmt.Errorf("scheduler private key not exist")
 	}
@@ -385,12 +386,13 @@ func (s *Scheduler) PublicKey(ctx context.Context) (string, error) {
 	return string(pem), nil
 }
 
-func (s *Scheduler) SubmitProofOfWork(ctx context.Context, proofs []*types.NodeWorkloadProof) error {
+// IgnoreProofOfWork does nothing and is a placeholder for future implementation.
+func (s *Scheduler) IgnoreProofOfWork(ctx context.Context, proofs []*types.NodeWorkloadProof) error {
 	return nil
 }
 
-// FindCandidateDownloadSources find candidate sources
-func (s *Scheduler) FindCandidateDownloadSources(ctx context.Context, cid string) ([]*types.DownloadSource, error) {
+// RetrieveCandidateDownloadSources finds candidate download sources for the given CID.
+func (s *Scheduler) RetrieveCandidateDownloadSources(ctx context.Context, cid string) ([]*types.DownloadSource, error) {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
@@ -438,6 +440,7 @@ func (s *Scheduler) FindCandidateDownloadSources(ctx context.Context, cid string
 	return sources, nil
 }
 
-func (s *Scheduler) AssetListOfBucket(ctx context.Context, nodeID string) ([]string, error) {
+// GetAssetListForBucket retrieves a list of assets for the specified node's bucket.
+func (s *Scheduler) GetAssetListForBucket(ctx context.Context, nodeID string) ([]string, error) {
 	return nil, nil
 }

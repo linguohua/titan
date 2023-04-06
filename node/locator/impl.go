@@ -308,7 +308,7 @@ func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerA
 }
 
 // AllocateNodes allocate nodes
-func (locator *Locator) RegisterNode(ctx context.Context, schedulerURL, nodeID, publicKey string, nodeType types.NodeType) error {
+func (locator *Locator) RegisterNewNode(ctx context.Context, schedulerURL, nodeID, publicKey string, nodeType types.NodeType) error {
 	cfg, err := locator.DB.getSchedulerCfg(schedulerURL)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -322,7 +322,7 @@ func (locator *Locator) RegisterNode(ctx context.Context, schedulerURL, nodeID, 
 		return err
 	}
 
-	err = schedulerAPI.RegisterNode(ctx, nodeID, publicKey, nodeType)
+	err = schedulerAPI.RegisterNewNode(ctx, nodeID, publicKey, nodeType)
 	if err != nil {
 		return err
 	}

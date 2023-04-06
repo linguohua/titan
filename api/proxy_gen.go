@@ -159,7 +159,7 @@ type LocatorStruct struct {
 
 		LoadUserAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
 
-		RegisterNode func(p0 context.Context, p1 string, p2 string, p3 string, p4 types.NodeType) error `perm:"admin"`
+		RegisterNewNode func(p0 context.Context, p1 string, p2 string, p3 string, p4 types.NodeType) error `perm:"admin"`
 
 		RemoveAccessPoints func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -179,7 +179,7 @@ type SchedulerStruct struct {
 	CommonStruct
 
 	Internal struct {
-		AssetListOfBucket func(p0 context.Context, p1 string) ([]string, error) `perm:"write"`
+		GetAssetListForBucket func(p0 context.Context, p1 string) ([]string, error) `perm:"write"`
 
 		AssetRecord func(p0 context.Context, p1 string) (*types.AssetRecord, error) `perm:"read"`
 
@@ -189,9 +189,15 @@ type SchedulerStruct struct {
 
 		CacheAsset func(p0 context.Context, p1 *types.PullAssetReq) error `perm:"admin"`
 
-		CandidateNodeConnect func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"write"`
-
 		CheckNetworkConnectivity func(p0 context.Context, p1 string, p2 string) error `perm:"read"`
+
+		ConnectCandidateNode func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"write"`
+
+		ConnectEdgeNode func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"write"`
+
+		ConnectLocator func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
+
+		CreateNodeAuthToken func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
 		DeleteEdgeUpdateInfo func(p0 context.Context, p1 int) error `perm:"admin"`
 
@@ -199,39 +205,31 @@ type SchedulerStruct struct {
 
 		EdgeExternalServiceAddress func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
 
-		EdgeNodeConnect func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"write"`
-
 		EdgeUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
-		FindCandidateDownloadSources func(p0 context.Context, p1 string) ([]*types.DownloadSource, error) `perm:"read"`
+		RetrieveCandidateDownloadSources func(p0 context.Context, p1 string) ([]*types.DownloadSource, error) `perm:"read"`
 
 		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
-		LocatorConnect func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
+		GetNodeExternalAddress func(p0 context.Context) (string, error) `perm:"read"`
+
+		GetNodeList func(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) `perm:"read"`
+
+		GetOnlineNodeList func(p0 context.Context, p1 types.NodeType) ([]string, error) `perm:"read"`
+
+		GetServerPublicKey func(p0 context.Context) (string, error) `perm:"write"`
+
+		GetValidationResultList func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) `perm:"read"`
 
 		NatTravel func(p0 context.Context, p1 []*types.NatTravelReq) error `perm:"read"`
-
-		NodeAuthNew func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
-
-		NodeAuthVerify func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
-
-		NodeExternalServiceAddress func(p0 context.Context) (string, error) `perm:"read"`
-
-		NodeInfo func(p0 context.Context, p1 string) (types.NodeInfo, error) `perm:"read"`
-
-		NodeList func(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) `perm:"read"`
 
 		NodeNatType func(p0 context.Context, p1 string) (types.NatType, error) `perm:"write"`
 
 		NodeQuit func(p0 context.Context, p1 string) error `perm:"admin"`
 
-		NodeValidatedResult func(p0 context.Context, p1 ValidateResult) error `perm:"write"`
+		ProcessNodeValidationResult func(p0 context.Context, p1 ValidateResult) error `perm:"write"`
 
-		OnlineNodeList func(p0 context.Context, p1 types.NodeType) ([]string, error) `perm:"read"`
-
-		PublicKey func(p0 context.Context) (string, error) `perm:"write"`
-
-		RegisterNode func(p0 context.Context, p1 string, p2 string, p3 types.NodeType) error `perm:"admin"`
+		RegisterNewNode func(p0 context.Context, p1 string, p2 string, p3 types.NodeType) error `perm:"admin"`
 
 		RemoveAsset func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -241,19 +239,21 @@ type SchedulerStruct struct {
 
 		RestartFailedAssets func(p0 context.Context, p1 []types.AssetHash) error `perm:"admin"`
 
+		RetrieveNodeInfo func(p0 context.Context, p1 string) (types.NodeInfo, error) `perm:"read"`
+
 		SetEdgeUpdateInfo func(p0 context.Context, p1 *EdgeUpdateInfo) error `perm:"admin"`
 
-		SetNodePort func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
+		IgnoreProofOfWork func(p0 context.Context, p1 []*types.NodeWorkloadProof) error `perm:"read"`
 
-		StartOnceElection func(p0 context.Context) error `perm:"admin"`
+		TriggerElection func(p0 context.Context) error `perm:"admin"`
 
-		SubmitProofOfWork func(p0 context.Context, p1 []*types.NodeWorkloadProof) error `perm:"read"`
+		UpdateNodePort func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
 		UserDownloadBlockResults func(p0 context.Context, p1 []types.UserBlockDownloadResult) error `perm:"read"`
 
 		UserDownloadResult func(p0 context.Context, p1 types.UserDownloadResult) error `perm:"write"`
 
-		ValidatedResultList func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) `perm:"read"`
+		VerifyNodeAuthToken func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
 	}
 }
 
@@ -600,14 +600,14 @@ func (s *LocatorStub) LoadUserAccessPoint(p0 context.Context, p1 string) (Access
 	return *new(AccessPoint), ErrNotSupported
 }
 
-func (s *LocatorStruct) RegisterNode(p0 context.Context, p1 string, p2 string, p3 string, p4 types.NodeType) error {
-	if s.Internal.RegisterNode == nil {
+func (s *LocatorStruct) RegisterNewNode(p0 context.Context, p1 string, p2 string, p3 string, p4 types.NodeType) error {
+	if s.Internal.RegisterNewNode == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.RegisterNode(p0, p1, p2, p3, p4)
+	return s.Internal.RegisterNewNode(p0, p1, p2, p3, p4)
 }
 
-func (s *LocatorStub) RegisterNode(p0 context.Context, p1 string, p2 string, p3 string, p4 types.NodeType) error {
+func (s *LocatorStub) RegisterNewNode(p0 context.Context, p1 string, p2 string, p3 string, p4 types.NodeType) error {
 	return ErrNotSupported
 }
 
@@ -655,14 +655,14 @@ func (s *LocatorStub) UserDownloadBlockResults(p0 context.Context, p1 []types.Us
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) AssetListOfBucket(p0 context.Context, p1 string) ([]string, error) {
-	if s.Internal.AssetListOfBucket == nil {
+func (s *SchedulerStruct) GetAssetListForBucket(p0 context.Context, p1 string) ([]string, error) {
+	if s.Internal.GetAssetListForBucket == nil {
 		return *new([]string), ErrNotSupported
 	}
-	return s.Internal.AssetListOfBucket(p0, p1)
+	return s.Internal.GetAssetListForBucket(p0, p1)
 }
 
-func (s *SchedulerStub) AssetListOfBucket(p0 context.Context, p1 string) ([]string, error) {
+func (s *SchedulerStub) GetAssetListForBucket(p0 context.Context, p1 string) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 
@@ -710,17 +710,6 @@ func (s *SchedulerStub) CacheAsset(p0 context.Context, p1 *types.PullAssetReq) e
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) CandidateNodeConnect(p0 context.Context, p1 *types.ConnectOptions) error {
-	if s.Internal.CandidateNodeConnect == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.CandidateNodeConnect(p0, p1)
-}
-
-func (s *SchedulerStub) CandidateNodeConnect(p0 context.Context, p1 *types.ConnectOptions) error {
-	return ErrNotSupported
-}
-
 func (s *SchedulerStruct) CheckNetworkConnectivity(p0 context.Context, p1 string, p2 string) error {
 	if s.Internal.CheckNetworkConnectivity == nil {
 		return ErrNotSupported
@@ -730,6 +719,50 @@ func (s *SchedulerStruct) CheckNetworkConnectivity(p0 context.Context, p1 string
 
 func (s *SchedulerStub) CheckNetworkConnectivity(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) ConnectCandidateNode(p0 context.Context, p1 *types.ConnectOptions) error {
+	if s.Internal.ConnectCandidateNode == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ConnectCandidateNode(p0, p1)
+}
+
+func (s *SchedulerStub) ConnectCandidateNode(p0 context.Context, p1 *types.ConnectOptions) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) ConnectEdgeNode(p0 context.Context, p1 *types.ConnectOptions) error {
+	if s.Internal.ConnectEdgeNode == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ConnectEdgeNode(p0, p1)
+}
+
+func (s *SchedulerStub) ConnectEdgeNode(p0 context.Context, p1 *types.ConnectOptions) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) ConnectLocator(p0 context.Context, p1 string, p2 string) error {
+	if s.Internal.ConnectLocator == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ConnectLocator(p0, p1, p2)
+}
+
+func (s *SchedulerStub) ConnectLocator(p0 context.Context, p1 string, p2 string) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) CreateNodeAuthToken(p0 context.Context, p1 string, p2 string) (string, error) {
+	if s.Internal.CreateNodeAuthToken == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.CreateNodeAuthToken(p0, p1, p2)
+}
+
+func (s *SchedulerStub) CreateNodeAuthToken(p0 context.Context, p1 string, p2 string) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) DeleteEdgeUpdateInfo(p0 context.Context, p1 int) error {
@@ -765,17 +798,6 @@ func (s *SchedulerStub) EdgeExternalServiceAddress(p0 context.Context, p1 string
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) EdgeNodeConnect(p0 context.Context, p1 *types.ConnectOptions) error {
-	if s.Internal.EdgeNodeConnect == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.EdgeNodeConnect(p0, p1)
-}
-
-func (s *SchedulerStub) EdgeNodeConnect(p0 context.Context, p1 *types.ConnectOptions) error {
-	return ErrNotSupported
-}
-
 func (s *SchedulerStruct) EdgeUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
 	if s.Internal.EdgeUpdateInfos == nil {
 		return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
@@ -787,14 +809,14 @@ func (s *SchedulerStub) EdgeUpdateInfos(p0 context.Context) (map[int]*EdgeUpdate
 	return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) FindCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.DownloadSource, error) {
-	if s.Internal.FindCandidateDownloadSources == nil {
+func (s *SchedulerStruct) RetrieveCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.DownloadSource, error) {
+	if s.Internal.RetrieveCandidateDownloadSources == nil {
 		return *new([]*types.DownloadSource), ErrNotSupported
 	}
-	return s.Internal.FindCandidateDownloadSources(p0, p1)
+	return s.Internal.RetrieveCandidateDownloadSources(p0, p1)
 }
 
-func (s *SchedulerStub) FindCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.DownloadSource, error) {
+func (s *SchedulerStub) RetrieveCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.DownloadSource, error) {
 	return *new([]*types.DownloadSource), ErrNotSupported
 }
 
@@ -809,15 +831,59 @@ func (s *SchedulerStub) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*Edge
 	return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) LocatorConnect(p0 context.Context, p1 string, p2 string) error {
-	if s.Internal.LocatorConnect == nil {
-		return ErrNotSupported
+func (s *SchedulerStruct) GetNodeExternalAddress(p0 context.Context) (string, error) {
+	if s.Internal.GetNodeExternalAddress == nil {
+		return "", ErrNotSupported
 	}
-	return s.Internal.LocatorConnect(p0, p1, p2)
+	return s.Internal.GetNodeExternalAddress(p0)
 }
 
-func (s *SchedulerStub) LocatorConnect(p0 context.Context, p1 string, p2 string) error {
-	return ErrNotSupported
+func (s *SchedulerStub) GetNodeExternalAddress(p0 context.Context) (string, error) {
+	return "", ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetNodeList(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) {
+	if s.Internal.GetNodeList == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetNodeList(p0, p1, p2)
+}
+
+func (s *SchedulerStub) GetNodeList(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetOnlineNodeList(p0 context.Context, p1 types.NodeType) ([]string, error) {
+	if s.Internal.GetOnlineNodeList == nil {
+		return *new([]string), ErrNotSupported
+	}
+	return s.Internal.GetOnlineNodeList(p0, p1)
+}
+
+func (s *SchedulerStub) GetOnlineNodeList(p0 context.Context, p1 types.NodeType) ([]string, error) {
+	return *new([]string), ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetServerPublicKey(p0 context.Context) (string, error) {
+	if s.Internal.GetServerPublicKey == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.GetServerPublicKey(p0)
+}
+
+func (s *SchedulerStub) GetServerPublicKey(p0 context.Context) (string, error) {
+	return "", ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetValidationResultList(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) {
+	if s.Internal.GetValidationResultList == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetValidationResultList(p0, p1, p2, p3, p4)
+}
+
+func (s *SchedulerStub) GetValidationResultList(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *SchedulerStruct) NatTravel(p0 context.Context, p1 []*types.NatTravelReq) error {
@@ -829,61 +895,6 @@ func (s *SchedulerStruct) NatTravel(p0 context.Context, p1 []*types.NatTravelReq
 
 func (s *SchedulerStub) NatTravel(p0 context.Context, p1 []*types.NatTravelReq) error {
 	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) NodeAuthNew(p0 context.Context, p1 string, p2 string) (string, error) {
-	if s.Internal.NodeAuthNew == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.NodeAuthNew(p0, p1, p2)
-}
-
-func (s *SchedulerStub) NodeAuthNew(p0 context.Context, p1 string, p2 string) (string, error) {
-	return "", ErrNotSupported
-}
-
-func (s *SchedulerStruct) NodeAuthVerify(p0 context.Context, p1 string) ([]auth.Permission, error) {
-	if s.Internal.NodeAuthVerify == nil {
-		return *new([]auth.Permission), ErrNotSupported
-	}
-	return s.Internal.NodeAuthVerify(p0, p1)
-}
-
-func (s *SchedulerStub) NodeAuthVerify(p0 context.Context, p1 string) ([]auth.Permission, error) {
-	return *new([]auth.Permission), ErrNotSupported
-}
-
-func (s *SchedulerStruct) NodeExternalServiceAddress(p0 context.Context) (string, error) {
-	if s.Internal.NodeExternalServiceAddress == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.NodeExternalServiceAddress(p0)
-}
-
-func (s *SchedulerStub) NodeExternalServiceAddress(p0 context.Context) (string, error) {
-	return "", ErrNotSupported
-}
-
-func (s *SchedulerStruct) NodeInfo(p0 context.Context, p1 string) (types.NodeInfo, error) {
-	if s.Internal.NodeInfo == nil {
-		return *new(types.NodeInfo), ErrNotSupported
-	}
-	return s.Internal.NodeInfo(p0, p1)
-}
-
-func (s *SchedulerStub) NodeInfo(p0 context.Context, p1 string) (types.NodeInfo, error) {
-	return *new(types.NodeInfo), ErrNotSupported
-}
-
-func (s *SchedulerStruct) NodeList(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) {
-	if s.Internal.NodeList == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.NodeList(p0, p1, p2)
-}
-
-func (s *SchedulerStub) NodeList(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) {
-	return nil, ErrNotSupported
 }
 
 func (s *SchedulerStruct) NodeNatType(p0 context.Context, p1 string) (types.NatType, error) {
@@ -908,47 +919,25 @@ func (s *SchedulerStub) NodeQuit(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) NodeValidatedResult(p0 context.Context, p1 ValidateResult) error {
-	if s.Internal.NodeValidatedResult == nil {
+func (s *SchedulerStruct) ProcessNodeValidationResult(p0 context.Context, p1 ValidateResult) error {
+	if s.Internal.ProcessNodeValidationResult == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.NodeValidatedResult(p0, p1)
+	return s.Internal.ProcessNodeValidationResult(p0, p1)
 }
 
-func (s *SchedulerStub) NodeValidatedResult(p0 context.Context, p1 ValidateResult) error {
+func (s *SchedulerStub) ProcessNodeValidationResult(p0 context.Context, p1 ValidateResult) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) OnlineNodeList(p0 context.Context, p1 types.NodeType) ([]string, error) {
-	if s.Internal.OnlineNodeList == nil {
-		return *new([]string), ErrNotSupported
-	}
-	return s.Internal.OnlineNodeList(p0, p1)
-}
-
-func (s *SchedulerStub) OnlineNodeList(p0 context.Context, p1 types.NodeType) ([]string, error) {
-	return *new([]string), ErrNotSupported
-}
-
-func (s *SchedulerStruct) PublicKey(p0 context.Context) (string, error) {
-	if s.Internal.PublicKey == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.PublicKey(p0)
-}
-
-func (s *SchedulerStub) PublicKey(p0 context.Context) (string, error) {
-	return "", ErrNotSupported
-}
-
-func (s *SchedulerStruct) RegisterNode(p0 context.Context, p1 string, p2 string, p3 types.NodeType) error {
-	if s.Internal.RegisterNode == nil {
+func (s *SchedulerStruct) RegisterNewNode(p0 context.Context, p1 string, p2 string, p3 types.NodeType) error {
+	if s.Internal.RegisterNewNode == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.RegisterNode(p0, p1, p2, p3)
+	return s.Internal.RegisterNewNode(p0, p1, p2, p3)
 }
 
-func (s *SchedulerStub) RegisterNode(p0 context.Context, p1 string, p2 string, p3 types.NodeType) error {
+func (s *SchedulerStub) RegisterNewNode(p0 context.Context, p1 string, p2 string, p3 types.NodeType) error {
 	return ErrNotSupported
 }
 
@@ -996,6 +985,17 @@ func (s *SchedulerStub) RestartFailedAssets(p0 context.Context, p1 []types.Asset
 	return ErrNotSupported
 }
 
+func (s *SchedulerStruct) RetrieveNodeInfo(p0 context.Context, p1 string) (types.NodeInfo, error) {
+	if s.Internal.RetrieveNodeInfo == nil {
+		return *new(types.NodeInfo), ErrNotSupported
+	}
+	return s.Internal.RetrieveNodeInfo(p0, p1)
+}
+
+func (s *SchedulerStub) RetrieveNodeInfo(p0 context.Context, p1 string) (types.NodeInfo, error) {
+	return *new(types.NodeInfo), ErrNotSupported
+}
+
 func (s *SchedulerStruct) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateInfo) error {
 	if s.Internal.SetEdgeUpdateInfo == nil {
 		return ErrNotSupported
@@ -1007,36 +1007,36 @@ func (s *SchedulerStub) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateInfo
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) SetNodePort(p0 context.Context, p1 string, p2 string) error {
-	if s.Internal.SetNodePort == nil {
+func (s *SchedulerStruct) IgnoreProofOfWork(p0 context.Context, p1 []*types.NodeWorkloadProof) error {
+	if s.Internal.IgnoreProofOfWork == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.SetNodePort(p0, p1, p2)
+	return s.Internal.IgnoreProofOfWork(p0, p1)
 }
 
-func (s *SchedulerStub) SetNodePort(p0 context.Context, p1 string, p2 string) error {
+func (s *SchedulerStub) IgnoreProofOfWork(p0 context.Context, p1 []*types.NodeWorkloadProof) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) StartOnceElection(p0 context.Context) error {
-	if s.Internal.StartOnceElection == nil {
+func (s *SchedulerStruct) TriggerElection(p0 context.Context) error {
+	if s.Internal.TriggerElection == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.StartOnceElection(p0)
+	return s.Internal.TriggerElection(p0)
 }
 
-func (s *SchedulerStub) StartOnceElection(p0 context.Context) error {
+func (s *SchedulerStub) TriggerElection(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) SubmitProofOfWork(p0 context.Context, p1 []*types.NodeWorkloadProof) error {
-	if s.Internal.SubmitProofOfWork == nil {
+func (s *SchedulerStruct) UpdateNodePort(p0 context.Context, p1 string, p2 string) error {
+	if s.Internal.UpdateNodePort == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.SubmitProofOfWork(p0, p1)
+	return s.Internal.UpdateNodePort(p0, p1, p2)
 }
 
-func (s *SchedulerStub) SubmitProofOfWork(p0 context.Context, p1 []*types.NodeWorkloadProof) error {
+func (s *SchedulerStub) UpdateNodePort(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
 }
 
@@ -1062,15 +1062,15 @@ func (s *SchedulerStub) UserDownloadResult(p0 context.Context, p1 types.UserDown
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ValidatedResultList(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) {
-	if s.Internal.ValidatedResultList == nil {
-		return nil, ErrNotSupported
+func (s *SchedulerStruct) VerifyNodeAuthToken(p0 context.Context, p1 string) ([]auth.Permission, error) {
+	if s.Internal.VerifyNodeAuthToken == nil {
+		return *new([]auth.Permission), ErrNotSupported
 	}
-	return s.Internal.ValidatedResultList(p0, p1, p2, p3, p4)
+	return s.Internal.VerifyNodeAuthToken(p0, p1)
 }
 
-func (s *SchedulerStub) ValidatedResultList(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) {
-	return nil, ErrNotSupported
+func (s *SchedulerStub) VerifyNodeAuthToken(p0 context.Context, p1 string) ([]auth.Permission, error) {
+	return *new([]auth.Permission), ErrNotSupported
 }
 
 func (s *ValidateStruct) BeValidate(p0 context.Context, p1 *BeValidateReq) error {

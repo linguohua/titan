@@ -66,7 +66,7 @@ func SchedulerHandler(a api.Scheduler, permission bool, opts ...jsonrpc.ServerOp
 
 		var handler http.Handler = rpcServer
 		if permission {
-			handler = mhandler.New(&auth.Handler{Verify: a.NodeAuthVerify, Next: rpcServer.ServeHTTP})
+			handler = mhandler.New(&auth.Handler{Verify: a.VerifyNodeAuthToken, Next: rpcServer.ServeHTTP})
 		}
 
 		m.Handle(path, handler)

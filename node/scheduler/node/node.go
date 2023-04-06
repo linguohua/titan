@@ -213,8 +213,8 @@ func (n *BaseInfo) CurPullingCount() int {
 	return n.pullingCount
 }
 
-// SetNodePort reset node port
-func (n *BaseInfo) SetNodePort(port string) {
+// UpdateNodePort reset node port
+func (n *BaseInfo) UpdateNodePort(port string) {
 	n.PortMapping = port
 }
 
