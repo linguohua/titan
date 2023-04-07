@@ -11,6 +11,7 @@ import (
 
 var log = logging.Logger("data-sync")
 
+// DataSync asset synchronization manager
 type DataSync struct {
 	nodeList    []string
 	lock        *sync.Mutex
@@ -18,6 +19,7 @@ type DataSync struct {
 	nodeManager *node.Manager
 }
 
+// NewDataSync creates a new NewDataSync instance and starts the synchronization process.
 func NewDataSync(nodeManager *node.Manager) *DataSync {
 	dataSync := &DataSync{
 		nodeList:    make([]string, 0),
@@ -26,12 +28,13 @@ func NewDataSync(nodeManager *node.Manager) *DataSync {
 		nodeManager: nodeManager,
 	}
 
-	go dataSync.run()
+	go dataSync.startSyncLoop()
 
 	return dataSync
 }
 
-func (ds *DataSync) Add2List(nodeID string) {
+// AddNodeToList adds a nodeID to the nodeList.
+func (ds *DataSync) AddNodeToList(nodeID string) {
 	ds.lock.Lock()
 	defer ds.lock.Unlock()
 
@@ -43,33 +46,37 @@ func (ds *DataSync) Add2List(nodeID string) {
 
 	ds.nodeList = append(ds.nodeList, nodeID)
 
-	ds.notifyRunner()
+	ds.notifySyncLoop()
 }
 
-func (ds *DataSync) run() {
+// runs the syncData function continuously when notified.
+func (ds *DataSync) startSyncLoop() {
 	for {
 		<-ds.waitChannel
 		ds.syncData()
 	}
 }
 
+// syncData processes the nodeList to perform data synchronization.
 func (ds *DataSync) syncData() {
 	for len(ds.nodeList) > 0 {
 		nodeID := ds.removeFirstNode()
-		err := ds.doDataSync(nodeID)
+		err := ds.performDataSync(nodeID)
 		if err != nil {
 			log.Errorf("do data sync error:%s", err.Error())
 		}
 	}
 }
 
-func (ds *DataSync) notifyRunner() {
+// notifies the startSyncLoop to process nodeList.
+func (ds *DataSync) notifySyncLoop() {
 	select {
 	case ds.waitChannel <- true:
 	default:
 	}
 }
 
+// removes the first node from nodeList.
 func (ds *DataSync) removeFirstNode() string {
 	ds.lock.Lock()
 	defer ds.lock.Unlock()
@@ -83,12 +90,13 @@ func (ds *DataSync) removeFirstNode() string {
 	return nodeID
 }
 
-func (ds *DataSync) doDataSync(nodeID string) error {
+// synchronizes data for the given nodeID.
+func (ds *DataSync) performDataSync(nodeID string) error {
 	node := ds.nodeManager.GetNode(nodeID)
 	if node == nil {
 		return xerrors.Errorf("could not get node %s data sync api", nodeID)
 	}
-	topChecksum, err := ds.getTopHash(nodeID)
+	topChecksum, err := ds.fetchTopHash(nodeID)
 	if err != nil {
 		return xerrors.Errorf("get top hash %w", err)
 	}
@@ -107,7 +115,7 @@ func (ds *DataSync) doDataSync(nodeID string) error {
 		return xerrors.Errorf("compare top hash %w", err)
 	}
 
-	checksums, err := ds.getHashesOfBuckets(nodeID)
+	checksums, err := ds.fetchBucketHashes(nodeID)
 	if err != nil {
 		return xerrors.Errorf("get hashes of buckets %w", err)
 	}
@@ -121,10 +129,12 @@ func (ds *DataSync) doDataSync(nodeID string) error {
 	return nil
 }
 
-func (ds *DataSync) getTopHash(nodeID string) (string, error) {
+// retrieves the top hash for a nodeID.
+func (ds *DataSync) fetchTopHash(nodeID string) (string, error) {
 	return ds.nodeManager.FetchTopHash(nodeID)
 }
 
-func (ds *DataSync) getHashesOfBuckets(nodeID string) (map[uint32]string, error) {
+// retrieves the hashes of buckets for a nodeID.
+func (ds *DataSync) fetchBucketHashes(nodeID string) (map[uint32]string, error) {
 	return ds.nodeManager.FetchBucketHashes(nodeID)
 }

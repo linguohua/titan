@@ -42,7 +42,7 @@ type Scheduler struct {
 	fx.In
 
 	*common.CommonAPI
-	*EdgeUpdater
+	*EdgeUpdateManager
 	dtypes.ServerID
 
 	NodeManager            *node.Manager
@@ -157,7 +157,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		}
 
 		if nodeType == types.NodeEdge {
-			natType := s.getNatType(context.Background(), cNode.API, remoteAddr)
+			natType := s.determineNATType(context.Background(), cNode.API, remoteAddr)
 			baseInfo.NatType = natType.String()
 		}
 
@@ -170,7 +170,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		}
 	}
 
-	s.DataSync.Add2List(nodeID)
+	s.DataSync.AddNodeToList(nodeID)
 
 	return nil
 }

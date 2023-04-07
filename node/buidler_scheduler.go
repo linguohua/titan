@@ -64,7 +64,7 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(*assets.Manager), modules.NewStorageManager),
 		Override(new(*sync.DataSync), sync.NewDataSync),
 		Override(new(*validate.Manager), modules.NewValidate),
-		Override(new(*scheduler.EdgeUpdater), scheduler.NewEdgeUpdater),
+		Override(new(*scheduler.EdgeUpdateManager), scheduler.NewEdgeUpdateManager),
 		Override(new(dtypes.DatabaseAddress), func() dtypes.DatabaseAddress {
 			return dtypes.DatabaseAddress(cfg.DatabaseAddress)
 		}),

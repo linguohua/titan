@@ -8,15 +8,15 @@ import (
 	"github.com/linguohua/titan/api"
 )
 
-// EdgeUpdater edge updater
-type EdgeUpdater struct {
+// EdgeUpdateManager manages information about edge node updates.
+type EdgeUpdateManager struct {
 	db          *db.SQLDB
 	updateInfos map[int]*api.EdgeUpdateInfo
 }
 
-// NewEdgeUpdater update infos
-func NewEdgeUpdater(db *db.SQLDB) (*EdgeUpdater, error) {
-	updater := &EdgeUpdater{
+// NewEdgeUpdateManager creates a new EdgeUpdateManager with the given SQL database connection.
+func NewEdgeUpdateManager(db *db.SQLDB) (*EdgeUpdateManager, error) {
+	updater := &EdgeUpdateManager{
 		db:          db,
 		updateInfos: make(map[int]*api.EdgeUpdateInfo),
 	}
@@ -29,13 +29,13 @@ func NewEdgeUpdater(db *db.SQLDB) (*EdgeUpdater, error) {
 	return updater, nil
 }
 
-// EdgeUpdateInfos edge update infos
-func (eu *EdgeUpdater) EdgeUpdateInfos(ctx context.Context) (map[int]*api.EdgeUpdateInfo, error) {
+// EdgeUpdateInfos  returns the map of edge node update information.
+func (eu *EdgeUpdateManager) EdgeUpdateInfos(ctx context.Context) (map[int]*api.EdgeUpdateInfo, error) {
 	return eu.updateInfos, nil
 }
 
-// SetEdgeUpdateInfo set edge update info
-func (eu *EdgeUpdater) SetEdgeUpdateInfo(ctx context.Context, info *api.EdgeUpdateInfo) error {
+// SetEdgeUpdateInfo sets the EdgeUpdateInfo for the given node type.
+func (eu *EdgeUpdateManager) SetEdgeUpdateInfo(ctx context.Context, info *api.EdgeUpdateInfo) error {
 	if eu.updateInfos == nil {
 		eu.updateInfos = make(map[int]*api.EdgeUpdateInfo)
 	}
@@ -43,13 +43,13 @@ func (eu *EdgeUpdater) SetEdgeUpdateInfo(ctx context.Context, info *api.EdgeUpda
 	return eu.db.SetEdgeUpdateInfo(info)
 }
 
-// DeleteEdgeUpdateInfo delete edge update info
-func (eu *EdgeUpdater) DeleteEdgeUpdateInfo(ctx context.Context, nodeType int) error {
+// DeleteEdgeUpdateInfo deletes the EdgeUpdateInfo for the given node type.
+func (eu *EdgeUpdateManager) DeleteEdgeUpdateInfo(ctx context.Context, nodeType int) error {
 	delete(eu.updateInfos, nodeType)
 	return eu.db.DeleteEdgeUpdateInfo(nodeType)
 }
 
-// GetNodeAppUpdateInfos get node app update info
-func (eu *EdgeUpdater) GetNodeAppUpdateInfos(ctx context.Context) (map[int]*api.EdgeUpdateInfo, error) {
+// GetNodeAppUpdateInfos returns the map of node app update information.
+func (eu *EdgeUpdateManager) GetNodeAppUpdateInfos(ctx context.Context) (map[int]*api.EdgeUpdateInfo, error) {
 	return eu.updateInfos, nil
 }

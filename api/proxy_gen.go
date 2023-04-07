@@ -201,7 +201,7 @@ type SchedulerStruct struct {
 
 		EdgeDownloadInfos func(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) `perm:"read"`
 
-		EdgeExternalServiceAddress func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
+		GetEdgeExternalServiceAddress func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
 
 		EdgeUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
@@ -223,7 +223,7 @@ type SchedulerStruct struct {
 
 		NatTravel func(p0 context.Context, p1 *types.NatTravelReq) error `perm:"read"`
 
-		NodeNatType func(p0 context.Context, p1 string) (types.NatType, error) `perm:"write"`
+		GetNodeNATType func(p0 context.Context, p1 string) (types.NatType, error) `perm:"write"`
 
 		NodeQuit func(p0 context.Context, p1 string) error `perm:"admin"`
 
@@ -778,14 +778,14 @@ func (s *SchedulerStub) EdgeDownloadInfos(p0 context.Context, p1 string) ([]*typ
 	return *new([]*types.DownloadInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) EdgeExternalServiceAddress(p0 context.Context, p1 string, p2 string) (string, error) {
-	if s.Internal.EdgeExternalServiceAddress == nil {
+func (s *SchedulerStruct) GetEdgeExternalServiceAddress(p0 context.Context, p1 string, p2 string) (string, error) {
+	if s.Internal.GetEdgeExternalServiceAddress == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.EdgeExternalServiceAddress(p0, p1, p2)
+	return s.Internal.GetEdgeExternalServiceAddress(p0, p1, p2)
 }
 
-func (s *SchedulerStub) EdgeExternalServiceAddress(p0 context.Context, p1 string, p2 string) (string, error) {
+func (s *SchedulerStub) GetEdgeExternalServiceAddress(p0 context.Context, p1 string, p2 string) (string, error) {
 	return "", ErrNotSupported
 }
 
@@ -899,14 +899,14 @@ func (s *SchedulerStub) NatTravel(p0 context.Context, p1 *types.NatTravelReq) er
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) NodeNatType(p0 context.Context, p1 string) (types.NatType, error) {
-	if s.Internal.NodeNatType == nil {
+func (s *SchedulerStruct) GetNodeNATType(p0 context.Context, p1 string) (types.NatType, error) {
+	if s.Internal.GetNodeNATType == nil {
 		return *new(types.NatType), ErrNotSupported
 	}
-	return s.Internal.NodeNatType(p0, p1)
+	return s.Internal.GetNodeNATType(p0, p1)
 }
 
-func (s *SchedulerStub) NodeNatType(p0 context.Context, p1 string) (types.NatType, error) {
+func (s *SchedulerStub) GetNodeNATType(p0 context.Context, p1 string) (types.NatType, error) {
 	return *new(types.NatType), ErrNotSupported
 }
 
