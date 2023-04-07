@@ -147,7 +147,7 @@ func (m *Manager) getValidateDetails(vrs []*ValidatorBwDnUnit) (map[string]*api.
 
 // retrieves a random validation CID from the node with the given ID.
 func (m *Manager) getNodeValidationCID(nodeID string) (string, error) {
-	count, err := m.nodeMgr.GetNodeReplicaCount(nodeID)
+	count, err := m.nodeMgr.FetchNodeReplicaCount(nodeID)
 	if err != nil {
 		return "", err
 	}

@@ -117,14 +117,14 @@ CREATE TABLE `validators` (
 ) ENGINE=InnoDB COMMENT='validators';
 
 CREATE TABLE `asset_view` (
-     `node_id` varchar(128) NOT NULL UNIQUE,
-     `top_hash` varchar(128) NOT NULL,
-     `bucket_hashes` BLOB NOT NULL,
-     PRIMARY KEY (`node_id`)
+    `node_id`       VARCHAR(128) NOT NULL UNIQUE,
+    `top_hash`      VARCHAR(128) NOT NULL,
+    `bucket_hashes` BLOB         NOT NULL,
+    PRIMARY KEY (`node_id`)
 ) ENGINE=InnoDB COMMENT='asset view';
 
 CREATE TABLE `bucket` (
-     `bucket_id` varchar(128) NOT NULL UNIQUE,
-     `asset_hashes` BLOB NOT NULL,
-     PRIMARY KEY (`bucket_id`)
+    `bucket_id`    VARCHAR(128) NOT NULL UNIQUE,
+    `asset_hashes` BLOB         NOT NULL,
+    PRIMARY KEY (`bucket_id`)
 ) ENGINE=InnoDB COMMENT='bucket';

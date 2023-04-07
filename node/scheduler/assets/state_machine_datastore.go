@@ -142,7 +142,7 @@ func (d *Datastore) Put(ctx context.Context, key datastore.Key, value []byte) er
 	info := aInfo.ToAssetRecord()
 	info.ServerID = d.ServerID
 
-	return d.assetDB.InsertOrUpdateAssetRecord(info)
+	return d.assetDB.UpsertAssetRecord(info)
 }
 
 // Delete delete asset record info

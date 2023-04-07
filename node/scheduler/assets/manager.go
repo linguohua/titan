@@ -142,7 +142,7 @@ func (m *Manager) retrieveNodePullProgresses() {
 			continue
 		}
 
-		nodes, err := m.GetUnfinishedPullAssetNodes(hash)
+		nodes, err := m.FetchUnfinishedPullAssetNodes(hash)
 		if err != nil {
 			log.Errorf("%s UnDoneNodes err:%s", hash, err.Error())
 			continue
@@ -225,7 +225,42 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq) error {
 		})
 	}
 
-	return xerrors.New("asset exists")
+	replicaInfos, err := m.FetchAssetReplicas(cInfo.Hash)
+	if err != nil {
+		return xerrors.Errorf("asset %s load replicas err: %s", cInfo.CID, err.Error())
+	}
+
+	refillReplicas := RefillReplicas{
+		ID:                info.CID,
+		Hash:              AssetHash(info.Hash),
+		Replicas:          info.Replicas,
+		ServerID:          info.ServerID,
+		CreatedAt:         cInfo.CreateTime.Unix(),
+		Expiration:        info.Expiration.Unix(),
+		CandidateReplicas: m.FetchCandidateReplicaCount(),
+		Size:              cInfo.TotalSize,
+		Blocks:            cInfo.TotalBlocks,
+	}
+
+	for _, r := range replicaInfos {
+		if r.Status != types.ReplicaStatusSucceeded {
+			continue
+		}
+
+		if r.IsCandidate {
+			refillReplicas.CandidateReplicaSucceeds = append(refillReplicas.CandidateReplicaSucceeds, r.NodeID)
+		} else {
+			refillReplicas.EdgeReplicaSucceeds = append(refillReplicas.EdgeReplicaSucceeds, r.NodeID)
+		}
+	}
+
+	if len(refillReplicas.EdgeReplicaSucceeds) < int(info.Replicas) || len(refillReplicas.CandidateReplicaSucceeds) < m.FetchCandidateReplicaCount()+seedReplicaCount {
+		return m.assetStateMachines.Send(AssetHash(info.Hash), refillReplicas)
+	}
+
+	log.Debugf("edge replica:%d/%d, candidate replica:%d/%d", len(refillReplicas.EdgeReplicaSucceeds), info.Replicas, len(refillReplicas.CandidateReplicaSucceeds), m.FetchCandidateReplicaCount()+seedReplicaCount)
+
+	return xerrors.New("Assets do not need to be pulled")
 }
 
 // RestartPullAssets restarts asset pulls
@@ -240,6 +275,10 @@ func (m *Manager) RestartPullAssets(hashes []types.AssetHash) error {
 	return nil
 }
 
+// TODO
+func (m *Manager) RemoveReplica(cid, nodeID string) {
+}
+
 // RemoveAsset removes an asset
 func (m *Manager) RemoveAsset(cid, hash string) error {
 	cInfos, err := m.FetchAssetReplicas(hash)
@@ -247,29 +286,30 @@ func (m *Manager) RemoveAsset(cid, hash string) error {
 		return xerrors.Errorf("LoadAssetReplicaInfos: %s,err:%s", cid, err.Error())
 	}
 
-	defer func() {
-		err = m.DeleteAssetRecord(hash)
-		if err != nil {
-			log.Errorf("%s RemoveAssetRecord db err: %s", hash, err.Error())
-		}
-	}()
-
-	// remove asset
-	err = m.assetStateMachines.Send(AssetHash(hash), AssetRemove{})
+	err = m.DeleteAssetRecord(hash)
 	if err != nil {
-		return xerrors.Errorf("send to state machine err: %s ", err.Error())
+		return xerrors.Errorf("%s RemoveAssetRecord db err: %s", hash, err.Error())
+	}
+
+	if exist, _ := m.assetStateMachines.Has(AssetHash(hash)); exist {
+		// remove asset
+		err = m.assetStateMachines.Send(AssetHash(hash), AssetRemove{})
+		if err != nil {
+			return xerrors.Errorf("send to state machine err: %s ", err.Error())
+		}
 	}
 
 	log.Infof("asset event %s , remove asset", cid)
 
-	go func() {
-		for _, cInfo := range cInfos {
-			err = m.requestAssetDeletion(cInfo.NodeID, cid)
-			if err != nil {
-				log.Errorf("deleteAssetRequest err: %s ", err.Error())
-			}
+	for _, cInfo := range cInfos {
+		// asset view
+		err = m.removeAssetFromView(cInfo.NodeID, cid)
+		if err != nil {
+			log.Errorf("deleteAssetRequest %s removeAssetFromView err:%s", cInfo.NodeID, err.Error())
 		}
-	}()
+
+		go m.requestAssetDeletion(cInfo.NodeID, cid)
+	}
 
 	return nil
 }
@@ -336,6 +376,12 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 			}
 
 			continue
+		}
+
+		// asset view
+		err = m.addAssetToView(nodeID, progress.CID)
+		if err != nil {
+			log.Errorf("pullAssetsResult %s addAssetToView err:%s", nodeID, err.Error())
 		}
 
 		err = m.assetStateMachines.Send(AssetHash(hash), PulledResult{
@@ -457,18 +503,16 @@ func (m *Manager) updateEarliestExpiration(t time.Time) {
 }
 
 // notifies a node to delete an asset by its CID
-func (m *Manager) requestAssetDeletion(nodeID, cid string) error {
-	edge := m.nodeMgr.GetEdgeNode(nodeID)
-	if edge != nil {
-		return edge.DeleteCarfile(context.Background(), cid)
+func (m *Manager) requestAssetDeletion(nodeID, cid string) {
+	node := m.nodeMgr.GetNode(nodeID)
+	if node == nil {
+		return
 	}
 
-	candidate := m.nodeMgr.GetCandidateNode(nodeID)
-	if candidate != nil {
-		return candidate.DeleteCarfile(context.Background(), cid)
+	err := node.DeleteCarfile(context.Background(), cid)
+	if err != nil {
+		log.Errorf("DeleteCarfile err: %s ", err.Error())
 	}
-
-	return nil
 }
 
 // FetchCandidateReplicaCount fetches the candidate replica count from the configuration
@@ -516,7 +560,7 @@ func (m *Manager) saveReplicaInformation(nodes map[string]*node.Node, hash strin
 		})
 	}
 
-	return m.BulkInsertOrUpdateReplicas(replicaInfos)
+	return m.BulkUpsertReplicas(replicaInfos)
 }
 
 // getDownloadSources gets download sources for a given CID
