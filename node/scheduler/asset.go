@@ -35,12 +35,12 @@ func (s *Scheduler) ResetAssetExpiration(ctx context.Context, cid string, t time
 		return xerrors.Errorf("expiration:%s has passed", t.String())
 	}
 
-	return s.AssetManager.ResetAssetRecordExpiration(cid, t)
+	return s.AssetManager.UpdateAssetExpiration(cid, t)
 }
 
 // AssetRecord retrieves an asset record by its CID.
 func (s *Scheduler) AssetRecord(ctx context.Context, cid string) (*types.AssetRecord, error) {
-	info, err := s.AssetManager.GetAssetRecordInfo(cid)
+	info, err := s.AssetManager.FetchAssetRecordInfo(cid)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func (s *Scheduler) CacheAsset(ctx context.Context, info *types.PullAssetReq) er
 		return xerrors.Errorf("expiration %s less than now(%v)", info.Expiration.String(), time.Now())
 	}
 
-	return s.AssetManager.PullAssets(info)
+	return s.AssetManager.CreateAssetPullTask(info)
 }
 
 // AssetReplicaList lists asset replicas based on a given request with startTime, endTime, cursor, and count parameters.

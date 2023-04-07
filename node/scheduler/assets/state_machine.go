@@ -34,7 +34,7 @@ var planners = map[AssetState]func(events []statemachine.Event, state *AssetPull
 	SeedSelect: planOne(
 		on(PullRequestSent{}, SeedPulling),
 		on(SelectFailed{}, SeedFailed),
-		on(Skip{}, CandidatesSelect),
+		on(SkipStep{}, CandidatesSelect),
 	),
 	SeedPulling: planOne(
 		on(PullSucceed{}, CandidatesSelect),
@@ -43,7 +43,7 @@ var planners = map[AssetState]func(events []statemachine.Event, state *AssetPull
 	),
 	CandidatesSelect: planOne(
 		on(PullRequestSent{}, CandidatesPulling),
-		on(Skip{}, EdgesSelect),
+		on(SkipStep{}, EdgesSelect),
 		on(SelectFailed{}, CandidatesFailed),
 	),
 	CandidatesPulling: planOne(
@@ -54,7 +54,7 @@ var planners = map[AssetState]func(events []statemachine.Event, state *AssetPull
 	EdgesSelect: planOne(
 		on(PullRequestSent{}, EdgesPulling),
 		on(SelectFailed{}, EdgesFailed),
-		on(Skip{}, Servicing),
+		on(SkipStep{}, Servicing),
 	),
 	EdgesPulling: planOne(
 		on(PullFailed{}, EdgesFailed),
@@ -71,7 +71,7 @@ var planners = map[AssetState]func(events []statemachine.Event, state *AssetPull
 		on(AssetRePull{}, EdgesSelect),
 	),
 	Servicing: planOne(
-		on(ReplenishReplicas{}, SeedSelect),
+		on(RefillReplicas{}, SeedSelect),
 	),
 	Remove: planOne(
 		on(AssetStartPulls{}, SeedSelect),
@@ -189,7 +189,7 @@ func apply(mut mutator) func() (mutator, func(*AssetPullingInfo) (bool, error)) 
 }
 
 func (m *Manager) restartStateMachines(ctx context.Context) error {
-	defer m.statemachineWait.Done()
+	defer m.stateMachineWait.Done()
 
 	list, err := m.ListAssets()
 	if err != nil {

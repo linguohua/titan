@@ -23,7 +23,7 @@ type Ignorable interface {
 
 // Global events
 
-// PullAssetRestart restart
+// PullAssetRestart restarts asset pulling
 type PullAssetRestart struct{}
 
 func (evt PullAssetRestart) applyGlobal(state *AssetPullingInfo) bool {
@@ -31,7 +31,7 @@ func (evt PullAssetRestart) applyGlobal(state *AssetPullingInfo) bool {
 	return false
 }
 
-// PullAssetFatalError pull asset fatal error
+// PullAssetFatalError represents a fatal error in asset pulling
 type PullAssetFatalError struct{ error }
 
 // FormatError Format error
@@ -42,7 +42,7 @@ func (evt PullAssetFatalError) applyGlobal(state *AssetPullingInfo) bool {
 	return true
 }
 
-// AssetForceState asset force
+// AssetForceState forces an asset state
 type AssetForceState struct {
 	State AssetState
 }
@@ -52,7 +52,7 @@ func (evt AssetForceState) applyGlobal(state *AssetPullingInfo) bool {
 	return true
 }
 
-// AssetRemove remove
+// AssetRemove removes an asset record
 type AssetRemove struct{}
 
 func (evt AssetRemove) applyGlobal(state *AssetPullingInfo) bool {
@@ -67,11 +67,6 @@ type InfoUpdate struct {
 }
 
 func (evt InfoUpdate) applyGlobal(state *AssetPullingInfo) bool {
-	// rInfo := evt.ResultInfo
-	// if rInfo == nil {
-	// 	return true
-	// }
-
 	if state.State == SeedPulling {
 		state.Size = evt.Size
 		state.Blocks = evt.Blocks
@@ -80,7 +75,7 @@ func (evt InfoUpdate) applyGlobal(state *AssetPullingInfo) bool {
 	return true
 }
 
-// PulledResult nodes pull result
+// PulledResult represents the result of node pulling
 type PulledResult struct {
 	ResultInfo *NodePulledResult
 }
@@ -112,7 +107,7 @@ func (evt PulledResult) apply(state *AssetPullingInfo) {
 	}
 }
 
-// PullRequestSent request nodes pull asset
+// PullRequestSent indicates that a pull request has been sent
 type PullRequestSent struct{}
 
 func (evt PullRequestSent) apply(state *AssetPullingInfo) {
@@ -122,7 +117,7 @@ func (evt PullRequestSent) apply(state *AssetPullingInfo) {
 
 // Normal path
 
-// AssetStartPulls start pulls
+// AssetStartPulls start asset pulls
 type AssetStartPulls struct {
 	ID                string
 	Hash              AssetHash
@@ -143,8 +138,8 @@ func (evt AssetStartPulls) apply(state *AssetPullingInfo) {
 	state.CandidateReplicas = int64(seedReplicaCount + evt.CandidateReplicas)
 }
 
-// ReplenishReplicas Replenish Replicas
-type ReplenishReplicas struct {
+// RefillReplicas refills asset replicas
+type RefillReplicas struct {
 	ID                       string
 	Hash                     AssetHash
 	Replicas                 int64
@@ -158,7 +153,7 @@ type ReplenishReplicas struct {
 	CandidateReplicaSucceeds []string
 }
 
-func (evt ReplenishReplicas) apply(state *AssetPullingInfo) {
+func (evt RefillReplicas) apply(state *AssetPullingInfo) {
 	state.CID = evt.ID
 	state.Hash = evt.Hash
 	state.EdgeReplicas = evt.Replicas
@@ -172,24 +167,24 @@ func (evt ReplenishReplicas) apply(state *AssetPullingInfo) {
 	state.CandidateReplicaSucceeds = evt.CandidateReplicaSucceeds
 }
 
-// AssetRePull get first asset to candidate
+// AssetRePull re-pull the asset
 type AssetRePull struct{}
 
 func (evt AssetRePull) apply(state *AssetPullingInfo) {}
 
-// PullSucceed nodes pull asset completed
+// PullSucceed indicates that a node has successfully pulled an asset
 type PullSucceed struct{}
 
 func (evt PullSucceed) apply(state *AssetPullingInfo) {
 	state.RetryCount = 0
 }
 
-// Skip Skip this step
-type Skip struct{}
+// SkipStep skips the current step
+type SkipStep struct{}
 
-func (evt Skip) apply(state *AssetPullingInfo) {}
+func (evt SkipStep) apply(state *AssetPullingInfo) {}
 
-// PullFailed nodes pull asset failed
+// PullFailed indicates that a node has failed to pull an asset
 type PullFailed struct{ error }
 
 // FormatError Format error
@@ -199,7 +194,7 @@ func (evt PullFailed) apply(state *AssetPullingInfo) {
 	state.RetryCount++
 }
 
-// SelectFailed select nodes failed
+// SelectFailed  indicates that node selection has failed
 type SelectFailed struct{ error }
 
 // FormatError Format error

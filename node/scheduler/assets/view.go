@@ -11,7 +11,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-func (m *Manager) RemoveAssetFromView(nodeID string, assetCID string) error {
+func (m *Manager) removeAssetFromView(nodeID string, assetCID string) error {
 	c, err := cid.Decode(assetCID)
 	if err != nil {
 		return err
@@ -56,7 +56,7 @@ func (m *Manager) RemoveAssetFromView(nodeID string, assetCID string) error {
 	return nil
 }
 
-func (m *Manager) AddAssetToView(nodeID string, assetCID string) error {
+func (m *Manager) addAssetToView(nodeID string, assetCID string) error {
 	c, err := cid.Decode(assetCID)
 	if err != nil {
 		return err
@@ -103,7 +103,7 @@ func bucketNumber(c cid.Cid) uint32 {
 	if _, err := h.Write(c.Hash()); err != nil {
 		log.Panicf("hash write buffer error %s", err.Error())
 	}
-	return h.Sum32() % sizeOfBuckets
+	return h.Sum32() % numAssetBuckets
 }
 
 func removeAssetHash(hashes []string, target string) []string {
