@@ -47,7 +47,8 @@ type Scheduler interface {
 
 	// Asset
 	CacheAsset(ctx context.Context, info *types.PullAssetReq) error                                     //perm:admin
-	RemoveAsset(ctx context.Context, cid string) error                                                  //perm:admin
+	RemoveAssetRecord(ctx context.Context, cid string) error                                            //perm:admin
+	RemoveAssetReplica(ctx context.Context, cid, nodeID string) error                                   //perm:admin
 	AssetRecord(ctx context.Context, cid string) (*types.AssetRecord, error)                            //perm:read
 	AssetRecords(ctx context.Context, limit, offset int, states []string) ([]*types.AssetRecord, error) //perm:read
 	RestartFailedAssets(ctx context.Context, hashes []types.AssetHash) error                            //perm:admin

@@ -271,8 +271,6 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, info *t
 		return m.assetStateMachines.Send(AssetHash(info.Hash), refillReplicas)
 	}
 
-	log.Debugf("edge replica:%d/%d, candidate replica:%d/%d", len(refillReplicas.EdgeReplicaSucceeds), info.Replicas, len(refillReplicas.CandidateReplicaSucceeds), m.FetchCandidateReplicaCount()+seedReplicaCount)
-
 	return xerrors.New("Assets do not need to be pulled")
 }
 

@@ -79,8 +79,8 @@ func (s *Scheduler) AssetRecords(ctx context.Context, limit, offset int, statuse
 	return list, nil
 }
 
-// RemoveAsset removes an asset record from the system by its CID.
-func (s *Scheduler) RemoveAsset(ctx context.Context, cid string) error {
+// RemoveAssetRecord removes an asset record from the system by its CID.
+func (s *Scheduler) RemoveAssetRecord(ctx context.Context, cid string) error {
 	if cid == "" {
 		return xerrors.Errorf("Cid Is Nil")
 	}
@@ -91,6 +91,20 @@ func (s *Scheduler) RemoveAsset(ctx context.Context, cid string) error {
 	}
 
 	return s.AssetManager.RemoveAsset(cid, hash)
+}
+
+// RemoveAssetReplica removes an asset replica from the system by its CID and nodeID.
+func (s *Scheduler) RemoveAssetReplica(ctx context.Context, cid, nodeID string) error {
+	if cid == "" {
+		return xerrors.Errorf("Cid Is Nil")
+	}
+
+	hash, err := cidutil.CIDString2HashString(cid)
+	if err != nil {
+		return err
+	}
+
+	return s.AssetManager.RemoveReplica(cid, hash, nodeID)
 }
 
 // CacheAsset caches an asset based on the provided PullAssetReq structure.
