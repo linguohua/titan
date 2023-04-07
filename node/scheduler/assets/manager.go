@@ -176,11 +176,11 @@ func (m *Manager) requestNodePullProgresses(nodeID string, cids []string) (resul
 
 	cNode := m.nodeMgr.GetCandidateNode(nodeID)
 	if cNode != nil {
-		result, err = cNode.CachedProgresses(context.Background(), cids)
+		result, err = cNode.AssetProgresses(context.Background(), cids)
 	} else {
 		eNode := m.nodeMgr.GetEdgeNode(nodeID)
 		if eNode != nil {
-			result, err = eNode.CachedProgresses(context.Background(), cids)
+			result, err = eNode.AssetProgresses(context.Background(), cids)
 		} else {
 			err = xerrors.Errorf("node %s offline", nodeID)
 		}
@@ -503,15 +503,15 @@ func (m *Manager) updateEarliestExpiration(t time.Time) {
 }
 
 // notifies a node to delete an asset by its CID
-func (m *Manager) requestAssetDeletion(nodeID, cid string) {
-	node := m.nodeMgr.GetNode(nodeID)
-	if node == nil {
-		return
+func (m *Manager) requestAssetDeletion(nodeID, cid string) error {
+	edge := m.nodeMgr.GetEdgeNode(nodeID)
+	if edge != nil {
+		return edge.DeleteAsset(context.Background(), cid)
 	}
 
-	err := node.DeleteCarfile(context.Background(), cid)
-	if err != nil {
-		log.Errorf("DeleteCarfile err: %s ", err.Error())
+	candidate := m.nodeMgr.GetCandidateNode(nodeID)
+	if candidate != nil {
+		return candidate.DeleteAsset(context.Background(), cid)
 	}
 }
 

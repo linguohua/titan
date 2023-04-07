@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/asset/fetcher"
+	"github.com/linguohua/titan/node/asset/storage"
 	"github.com/linguohua/titan/node/candidate"
-	"github.com/linguohua/titan/node/carfile/fetcher"
-	"github.com/linguohua/titan/node/carfile/storage"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"go.uber.org/fx"

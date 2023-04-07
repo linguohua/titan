@@ -15,6 +15,23 @@ import (
 
 var ErrNotSupported = xerrors.New("method not supported")
 
+type AssetStruct struct {
+	Internal struct {
+		AssetProgresses func(p0 context.Context, p1 []string) (*types.PullResult, error) `perm:"write"`
+
+		CacheAsset func(p0 context.Context, p1 string, p2 []*types.DownloadSource) error `perm:"write"`
+
+		DeleteAsset func(p0 context.Context, p1 string) error `perm:"write"`
+
+		QueryAssetStats func(p0 context.Context) (*types.AssetStats, error) `perm:"write"`
+
+		QueryCachingAsset func(p0 context.Context) (*types.CachingAsset, error) `perm:"write"`
+	}
+}
+
+type AssetStub struct {
+}
+
 type CandidateStruct struct {
 	CommonStruct
 
@@ -24,7 +41,7 @@ type CandidateStruct struct {
 
 	DataSyncStruct
 
-	CarfileOperationStruct
+	AssetStruct
 
 	Internal struct {
 		GetBlocksOfCarfile func(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) `perm:"read"`
@@ -42,24 +59,7 @@ type CandidateStub struct {
 
 	DataSyncStub
 
-	CarfileOperationStub
-}
-
-type CarfileOperationStruct struct {
-	Internal struct {
-		CacheCarfile func(p0 context.Context, p1 string, p2 []*types.DownloadSource) error `perm:"write"`
-
-		CachedProgresses func(p0 context.Context, p1 []string) (*types.PullResult, error) `perm:"write"`
-
-		DeleteCarfile func(p0 context.Context, p1 string) error `perm:"write"`
-
-		QueryCacheStat func(p0 context.Context) (*types.CacheStat, error) `perm:"write"`
-
-		QueryCachingCarfile func(p0 context.Context) (*types.CachingAsset, error) `perm:"write"`
-	}
-}
-
-type CarfileOperationStub struct {
+	AssetStub
 }
 
 type CommonStruct struct {
@@ -120,7 +120,7 @@ type EdgeStruct struct {
 
 	DataSyncStruct
 
-	CarfileOperationStruct
+	AssetStruct
 
 	Internal struct {
 		ExternalServiceAddress func(p0 context.Context, p1 string) (string, error) `perm:"write"`
@@ -140,7 +140,7 @@ type EdgeStub struct {
 
 	DataSyncStub
 
-	CarfileOperationStub
+	AssetStub
 }
 
 type LocatorStruct struct {
@@ -270,6 +270,61 @@ type ValidateStruct struct {
 type ValidateStub struct {
 }
 
+func (s *AssetStruct) AssetProgresses(p0 context.Context, p1 []string) (*types.PullResult, error) {
+	if s.Internal.AssetProgresses == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.AssetProgresses(p0, p1)
+}
+
+func (s *AssetStub) AssetProgresses(p0 context.Context, p1 []string) (*types.PullResult, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *AssetStruct) CacheAsset(p0 context.Context, p1 string, p2 []*types.DownloadSource) error {
+	if s.Internal.CacheAsset == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.CacheAsset(p0, p1, p2)
+}
+
+func (s *AssetStub) CacheAsset(p0 context.Context, p1 string, p2 []*types.DownloadSource) error {
+	return ErrNotSupported
+}
+
+func (s *AssetStruct) DeleteAsset(p0 context.Context, p1 string) error {
+	if s.Internal.DeleteAsset == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.DeleteAsset(p0, p1)
+}
+
+func (s *AssetStub) DeleteAsset(p0 context.Context, p1 string) error {
+	return ErrNotSupported
+}
+
+func (s *AssetStruct) QueryAssetStats(p0 context.Context) (*types.AssetStats, error) {
+	if s.Internal.QueryAssetStats == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.QueryAssetStats(p0)
+}
+
+func (s *AssetStub) QueryAssetStats(p0 context.Context) (*types.AssetStats, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *AssetStruct) QueryCachingAsset(p0 context.Context) (*types.CachingAsset, error) {
+	if s.Internal.QueryCachingAsset == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.QueryCachingAsset(p0)
+}
+
+func (s *AssetStub) QueryCachingAsset(p0 context.Context) (*types.CachingAsset, error) {
+	return nil, ErrNotSupported
+}
+
 func (s *CandidateStruct) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
 	if s.Internal.GetBlocksOfCarfile == nil {
 		return *new(map[int]string), ErrNotSupported
@@ -290,61 +345,6 @@ func (s *CandidateStruct) WaitQuiet(p0 context.Context) error {
 
 func (s *CandidateStub) WaitQuiet(p0 context.Context) error {
 	return ErrNotSupported
-}
-
-func (s *CarfileOperationStruct) CacheCarfile(p0 context.Context, p1 string, p2 []*types.DownloadSource) error {
-	if s.Internal.CacheCarfile == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.CacheCarfile(p0, p1, p2)
-}
-
-func (s *CarfileOperationStub) CacheCarfile(p0 context.Context, p1 string, p2 []*types.DownloadSource) error {
-	return ErrNotSupported
-}
-
-func (s *CarfileOperationStruct) CachedProgresses(p0 context.Context, p1 []string) (*types.PullResult, error) {
-	if s.Internal.CachedProgresses == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.CachedProgresses(p0, p1)
-}
-
-func (s *CarfileOperationStub) CachedProgresses(p0 context.Context, p1 []string) (*types.PullResult, error) {
-	return nil, ErrNotSupported
-}
-
-func (s *CarfileOperationStruct) DeleteCarfile(p0 context.Context, p1 string) error {
-	if s.Internal.DeleteCarfile == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.DeleteCarfile(p0, p1)
-}
-
-func (s *CarfileOperationStub) DeleteCarfile(p0 context.Context, p1 string) error {
-	return ErrNotSupported
-}
-
-func (s *CarfileOperationStruct) QueryCacheStat(p0 context.Context) (*types.CacheStat, error) {
-	if s.Internal.QueryCacheStat == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.QueryCacheStat(p0)
-}
-
-func (s *CarfileOperationStub) QueryCacheStat(p0 context.Context) (*types.CacheStat, error) {
-	return nil, ErrNotSupported
-}
-
-func (s *CarfileOperationStruct) QueryCachingCarfile(p0 context.Context) (*types.CachingAsset, error) {
-	if s.Internal.QueryCachingCarfile == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.QueryCachingCarfile(p0)
-}
-
-func (s *CarfileOperationStub) QueryCachingCarfile(p0 context.Context) (*types.CachingAsset, error) {
-	return nil, ErrNotSupported
 }
 
 func (s *CommonStruct) AuthNew(p0 context.Context, p1 []auth.Permission) (string, error) {
@@ -1084,8 +1084,8 @@ func (s *ValidateStub) BeValidate(p0 context.Context, p1 *BeValidateReq) error {
 	return ErrNotSupported
 }
 
+var _ Asset = new(AssetStruct)
 var _ Candidate = new(CandidateStruct)
-var _ CarfileOperation = new(CarfileOperationStruct)
 var _ Common = new(CommonStruct)
 var _ DataSync = new(DataSyncStruct)
 var _ Device = new(DeviceStruct)

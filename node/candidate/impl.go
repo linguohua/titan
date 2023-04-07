@@ -3,11 +3,11 @@ package candidate
 import (
 	"context"
 
+	"github.com/linguohua/titan/node/asset"
 	"github.com/linguohua/titan/node/config"
 	"go.uber.org/fx"
 
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/node/carfile"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/device"
 	datasync "github.com/linguohua/titan/node/sync"
@@ -28,7 +28,7 @@ type Candidate struct {
 	fx.In
 
 	*common.CommonAPI
-	*carfile.CarfileImpl
+	*asset.Asset
 	*device.Device
 	*vd.Validate
 	*datasync.DataSync
@@ -44,5 +44,5 @@ func (candidate *Candidate) WaitQuiet(ctx context.Context) error {
 }
 
 func (candidate *Candidate) GetBlocksOfCarfile(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error) {
-	return candidate.CarfileImpl.GetBlocksOfCar(carfileCID, randomSeed, randomCount)
+	return candidate.Asset.GetBlocksOfCar(carfileCID, randomSeed, randomCount)
 }

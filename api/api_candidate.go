@@ -7,7 +7,7 @@ type Candidate interface {
 	Device
 	Validate
 	DataSync
-	CarfileOperation
+	Asset
 	WaitQuiet(ctx context.Context) error                                                                                  //perm:read                                                        //perm:read
 	GetBlocksOfCarfile(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error) //perm:read
 }

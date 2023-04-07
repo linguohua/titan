@@ -7,8 +7,8 @@ import (
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-libipfs/blocks"
-	"github.com/linguohua/titan/node/carfile/index"
-	"github.com/linguohua/titan/node/carfile/storage"
+	"github.com/linguohua/titan/node/asset/index"
+	"github.com/linguohua/titan/node/asset/storage"
 	"golang.org/x/xerrors"
 )
 

@@ -128,7 +128,7 @@ type DownloadSource struct {
 	Credentials   *GatewayCredentials
 }
 
-type CacheStat struct {
+type AssetStats struct {
 	TotalAssetCount     int
 	TotalBlockCount     int
 	WaitCacheAssetCount int

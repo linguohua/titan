@@ -21,7 +21,7 @@ import (
 
 	cliutil "github.com/linguohua/titan/cli/util"
 	"github.com/linguohua/titan/node"
-	"github.com/linguohua/titan/node/carfile/cache"
+	"github.com/linguohua/titan/node/asset/cache"
 	"github.com/linguohua/titan/node/gateway"
 	"github.com/linguohua/titan/node/modules/dtypes"
 
