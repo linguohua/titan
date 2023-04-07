@@ -15,25 +15,24 @@ import (
 var log = logging.Logger("node")
 
 const (
-	bandwidthRatio    = 0.7                      // The ratio of the total upstream bandwidth on edge nodes to the downstream bandwidth on validation nodes.
-	baseBandwidthDown = float64(100 * units.MiB) // 100M Validator unit bandwidth down TODO save to config
-	toleranceBwUp     = float64(5 * units.MiB)   // 5M Tolerance uplink bandwidth deviation per group
+	bandwidthRatio = 0.7                    // The ratio of the total upstream bandwidth on edge nodes to the downstream bandwidth on validation nodes.
+	toleranceBwUp  = float64(5 * units.MiB) // The tolerance for uplink bandwidth deviation per group, set to 5M.
 )
 
-// ValidatorBwDnUnit represents the bandwidth down unit of the validator
-type ValidatorBwDnUnit struct {
-	NodeID      string
+// VWindow represents a validation window that contains a validator id and BeValidates list.
+type VWindow struct {
+	NodeID      string // Node ID of the validation window.
 	BeValidates map[string]float64
 }
 
-func newValidatorDwDnUnit(nID string) *ValidatorBwDnUnit {
-	return &ValidatorBwDnUnit{
+func newVWindow(nID string) *VWindow {
+	return &VWindow{
 		NodeID:      nID,
 		BeValidates: make(map[string]float64),
 	}
 }
 
-// BeValidateGroup BeValidate Group
+// BeValidateGroup Each BeValidateGroup will be paired with a VWindow
 type BeValidateGroup struct {
 	sumBwUp     float64
 	beValidates map[string]float64
@@ -50,13 +49,14 @@ func newBeValidateGroup() *BeValidateGroup {
 type Manager struct {
 	nodeMgr *node.Manager
 	notify  *pubsub.PubSub
-	// Each validator provides n units(ValidatorBwDnUnit) for titan according to the bandwidth down, and each unit corresponds to a group(BeValidateGroup).
+
+	// Each validator provides n window(VWindow) for titan according to the bandwidth down, and each window corresponds to a group(BeValidateGroup).
 	// All nodes will randomly fall into a group(BeValidateGroup).
-	// When the validate starts, the unit is paired with the group.
+	// When the validate starts, the window is paired with the group.
 	validatePairLock sync.RWMutex
-	validatorUnits   []*ValidatorBwDnUnit // The validator allocates n units according to the size of the bandwidth down
-	beValidateGroups []*BeValidateGroup   // Each ValidatorBwDnUnit has a BeValidateGroup
-	unpairedGroup    *BeValidateGroup     // Save unpaired BeValidates
+	vWindows         []*VWindow         // The validator allocates n window according to the size of the bandwidth down
+	beValidateGroups []*BeValidateGroup // Each VWindow has a BeValidateGroup
+	unpairedGroup    *BeValidateGroup   // Save unpaired BeValidates
 
 	seed       int64
 	curRoundID string

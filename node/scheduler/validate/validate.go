@@ -103,7 +103,7 @@ func (m *Manager) sendValidateReqToNodes(nID string, req *api.BeValidateReq) {
 }
 
 // fetches validation details.
-func (m *Manager) getValidateDetails(vrs []*ValidatorBwDnUnit) (map[string]*api.BeValidateReq, []*types.ValidateResultInfo) {
+func (m *Manager) getValidateDetails(vrs []*VWindow) (map[string]*api.BeValidateReq, []*types.ValidateResultInfo) {
 	bReqs := make(map[string]*api.BeValidateReq)
 	vrInfos := make([]*types.ValidateResultInfo, 0)
 
@@ -198,7 +198,7 @@ func (m *Manager) updateResultInfo(status types.ValidateStatus, validateResult *
 // Result handles the validation result for a given node.
 func (m *Manager) Result(validatedResult *api.ValidateResult) error {
 	if validatedResult.RoundID != m.curRoundID {
-		return xerrors.Errorf("round id does not match")
+		return xerrors.Errorf("round id does not match %s:%s", m.curRoundID, validatedResult.RoundID)
 	}
 
 	var status types.ValidateStatus

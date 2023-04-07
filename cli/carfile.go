@@ -296,7 +296,7 @@ func edgeOrCandidate(isCandidate bool) string {
 func colorState(state string) string {
 	if strings.Contains(state, "Failed") {
 		return color.RedString(state)
-	} else if strings.Contains(state, "Finished") || strings.Contains(state, "Succeeded") {
+	} else if strings.Contains(state, "Servicing") || strings.Contains(state, "Succeeded") {
 		return color.GreenString(state)
 	} else {
 		return color.YellowString(state)

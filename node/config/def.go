@@ -103,6 +103,7 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		EtcdAddresses:      []string{"192.168.0.160:2379"},
 		CandidateReplicas:  0,
 		ValidatorRatio:     1,
+		ValidatorBaseBwDn:  100,
 	}
 }
 

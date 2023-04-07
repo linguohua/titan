@@ -70,9 +70,6 @@ var planners = map[AssetState]func(events []statemachine.Event, state *AssetPull
 	EdgesFailed: planOne(
 		on(AssetRePull{}, EdgesSelect),
 	),
-	Servicing: planOne(
-		on(RefillReplicas{}, SeedSelect),
-	),
 	Remove: planOne(
 		on(AssetStartPulls{}, SeedSelect),
 	),

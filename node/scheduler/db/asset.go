@@ -58,7 +58,7 @@ func (n *SQLDB) UpsertAssetRecord(info *types.AssetRecord) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (hash, cid, state, edge_replicas, candidate_replicas, expiration, total_size, total_blocks, scheduler_sid, end_time) 
 				VALUES (:hash, :cid, :state, :edge_replicas, :candidate_replicas, :expiration, :total_size, :total_blocks, :scheduler_sid, NOW()) 
-				ON DUPLICATE KEY UPDATE total_size=VALUES(total_size), total_blocks=VALUES(total_blocks), state=VALUES(state), end_time=NOW()`, assetRecordTable)
+				ON DUPLICATE KEY UPDATE total_size=VALUES(total_size), total_blocks=VALUES(total_blocks), state=VALUES(state), edge_replicas=VALUES(edge_replicas), candidate_replicas=VALUES(candidate_replicas), end_time=NOW()`, assetRecordTable)
 
 	_, err := n.db.NamedExec(query, info)
 	return err
@@ -204,6 +204,20 @@ func (n *SQLDB) DeleteAssetRecord(hash string) error {
 	}
 
 	return tx.Commit()
+}
+
+// DeleteAssetReplica remove a replica associated with a given asset hash from the database.
+func (n *SQLDB) DeleteAssetReplica(hash, nodeID string) error {
+	query := fmt.Sprintf(`DELETE FROM %s WHERE hash=? AND node_id=?`, replicaInfoTable)
+	_, err := n.db.Exec(query, hash, nodeID)
+	return err
+}
+
+// DeleteUnfinishedReplicas deletes the incomplete replicas with the given hash from the database.
+func (n *SQLDB) DeleteUnfinishedReplicas(hash string) error {
+	query := fmt.Sprintf(`DELETE FROM %s WHERE hash=? AND status!=?`, replicaInfoTable)
+	_, err := n.db.Exec(query, hash, types.ReplicaStatusSucceeded)
+	return err
 }
 
 // FetchAssetHashesOfNodes fetches the asset hashes associated with a set of node IDs.
