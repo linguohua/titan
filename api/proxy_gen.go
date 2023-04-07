@@ -179,8 +179,6 @@ type SchedulerStruct struct {
 	CommonStruct
 
 	Internal struct {
-		GetAssetListForBucket func(p0 context.Context, p1 string) ([]string, error) `perm:"write"`
-
 		AssetRecord func(p0 context.Context, p1 string) (*types.AssetRecord, error) `perm:"read"`
 
 		AssetRecords func(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.AssetRecord, error) `perm:"read"`
@@ -207,7 +205,7 @@ type SchedulerStruct struct {
 
 		EdgeUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
-		RetrieveCandidateDownloadSources func(p0 context.Context, p1 string) ([]*types.DownloadSource, error) `perm:"read"`
+		GetAssetListForBucket func(p0 context.Context, p1 string) ([]string, error) `perm:"write"`
 
 		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
@@ -215,11 +213,13 @@ type SchedulerStruct struct {
 
 		GetNodeList func(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) `perm:"read"`
 
-		GetOnlineNodeList func(p0 context.Context, p1 types.NodeType) ([]string, error) `perm:"read"`
+		GetOnlineNodeCount func(p0 context.Context, p1 types.NodeType) (int, error) `perm:"read"`
 
 		GetServerPublicKey func(p0 context.Context) (string, error) `perm:"write"`
 
 		GetValidationResultList func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) `perm:"read"`
+
+		IgnoreProofOfWork func(p0 context.Context, p1 []*types.NodeWorkloadProof) error `perm:"read"`
 
 		NatTravel func(p0 context.Context, p1 *types.NatTravelReq) error `perm:"read"`
 
@@ -239,11 +239,11 @@ type SchedulerStruct struct {
 
 		RestartFailedAssets func(p0 context.Context, p1 []types.AssetHash) error `perm:"admin"`
 
+		RetrieveCandidateDownloadSources func(p0 context.Context, p1 string) ([]*types.DownloadSource, error) `perm:"read"`
+
 		RetrieveNodeInfo func(p0 context.Context, p1 string) (types.NodeInfo, error) `perm:"read"`
 
 		SetEdgeUpdateInfo func(p0 context.Context, p1 *EdgeUpdateInfo) error `perm:"admin"`
-
-		IgnoreProofOfWork func(p0 context.Context, p1 []*types.NodeWorkloadProof) error `perm:"read"`
 
 		TriggerElection func(p0 context.Context) error `perm:"admin"`
 
@@ -655,17 +655,6 @@ func (s *LocatorStub) UserDownloadBlockResults(p0 context.Context, p1 []types.Us
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetAssetListForBucket(p0 context.Context, p1 string) ([]string, error) {
-	if s.Internal.GetAssetListForBucket == nil {
-		return *new([]string), ErrNotSupported
-	}
-	return s.Internal.GetAssetListForBucket(p0, p1)
-}
-
-func (s *SchedulerStub) GetAssetListForBucket(p0 context.Context, p1 string) ([]string, error) {
-	return *new([]string), ErrNotSupported
-}
-
 func (s *SchedulerStruct) AssetRecord(p0 context.Context, p1 string) (*types.AssetRecord, error) {
 	if s.Internal.AssetRecord == nil {
 		return nil, ErrNotSupported
@@ -809,15 +798,15 @@ func (s *SchedulerStub) EdgeUpdateInfos(p0 context.Context) (map[int]*EdgeUpdate
 	return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) RetrieveCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.DownloadSource, error) {
-	if s.Internal.RetrieveCandidateDownloadSources == nil {
-		return *new([]*types.DownloadSource), ErrNotSupported
+func (s *SchedulerStruct) GetAssetListForBucket(p0 context.Context, p1 string) ([]string, error) {
+	if s.Internal.GetAssetListForBucket == nil {
+		return *new([]string), ErrNotSupported
 	}
-	return s.Internal.RetrieveCandidateDownloadSources(p0, p1)
+	return s.Internal.GetAssetListForBucket(p0, p1)
 }
 
-func (s *SchedulerStub) RetrieveCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.DownloadSource, error) {
-	return *new([]*types.DownloadSource), ErrNotSupported
+func (s *SchedulerStub) GetAssetListForBucket(p0 context.Context, p1 string) ([]string, error) {
+	return *new([]string), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
@@ -853,15 +842,15 @@ func (s *SchedulerStub) GetNodeList(p0 context.Context, p1 int, p2 int) (*types.
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetOnlineNodeList(p0 context.Context, p1 types.NodeType) ([]string, error) {
-	if s.Internal.GetOnlineNodeList == nil {
-		return *new([]string), ErrNotSupported
+func (s *SchedulerStruct) GetOnlineNodeCount(p0 context.Context, p1 types.NodeType) (int, error) {
+	if s.Internal.GetOnlineNodeCount == nil {
+		return 0, ErrNotSupported
 	}
-	return s.Internal.GetOnlineNodeList(p0, p1)
+	return s.Internal.GetOnlineNodeCount(p0, p1)
 }
 
-func (s *SchedulerStub) GetOnlineNodeList(p0 context.Context, p1 types.NodeType) ([]string, error) {
-	return *new([]string), ErrNotSupported
+func (s *SchedulerStub) GetOnlineNodeCount(p0 context.Context, p1 types.NodeType) (int, error) {
+	return 0, ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetServerPublicKey(p0 context.Context) (string, error) {
@@ -884,6 +873,17 @@ func (s *SchedulerStruct) GetValidationResultList(p0 context.Context, p1 time.Ti
 
 func (s *SchedulerStub) GetValidationResultList(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) {
 	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) IgnoreProofOfWork(p0 context.Context, p1 []*types.NodeWorkloadProof) error {
+	if s.Internal.IgnoreProofOfWork == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.IgnoreProofOfWork(p0, p1)
+}
+
+func (s *SchedulerStub) IgnoreProofOfWork(p0 context.Context, p1 []*types.NodeWorkloadProof) error {
+	return ErrNotSupported
 }
 
 func (s *SchedulerStruct) NatTravel(p0 context.Context, p1 *types.NatTravelReq) error {
@@ -985,6 +985,17 @@ func (s *SchedulerStub) RestartFailedAssets(p0 context.Context, p1 []types.Asset
 	return ErrNotSupported
 }
 
+func (s *SchedulerStruct) RetrieveCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.DownloadSource, error) {
+	if s.Internal.RetrieveCandidateDownloadSources == nil {
+		return *new([]*types.DownloadSource), ErrNotSupported
+	}
+	return s.Internal.RetrieveCandidateDownloadSources(p0, p1)
+}
+
+func (s *SchedulerStub) RetrieveCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.DownloadSource, error) {
+	return *new([]*types.DownloadSource), ErrNotSupported
+}
+
 func (s *SchedulerStruct) RetrieveNodeInfo(p0 context.Context, p1 string) (types.NodeInfo, error) {
 	if s.Internal.RetrieveNodeInfo == nil {
 		return *new(types.NodeInfo), ErrNotSupported
@@ -1004,17 +1015,6 @@ func (s *SchedulerStruct) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateIn
 }
 
 func (s *SchedulerStub) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateInfo) error {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) IgnoreProofOfWork(p0 context.Context, p1 []*types.NodeWorkloadProof) error {
-	if s.Internal.IgnoreProofOfWork == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.IgnoreProofOfWork(p0, p1)
-}
-
-func (s *SchedulerStub) IgnoreProofOfWork(p0 context.Context, p1 []*types.NodeWorkloadProof) error {
 	return ErrNotSupported
 }
 

@@ -322,7 +322,7 @@ func (n *SQLDB) FetchNodeInfo(nodeID string) (*types.NodeInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id=?`, nodeInfoTable)
 
 	var out types.NodeInfo
-	err := n.db.Select(&out, query, nodeID)
+	err := n.db.Get(&out, query, nodeID)
 	if err != nil {
 		return nil, err
 	}
