@@ -82,41 +82,18 @@ func (m *Manager) GetCandidateNode(nodeID string) *Node {
 	return nil
 }
 
-// GetOnlineNodeList returns a list of online nodes of the given type
-func (m *Manager) GetOnlineNodeList(nodeType types.NodeType) ([]string, error) {
-	list := make([]string, 0)
-	limit := 100
-
+// GetOnlineNodeCount returns online node count of the given type
+func (m *Manager) GetOnlineNodeCount(nodeType types.NodeType) int {
 	i := 0
 	if nodeType == types.NodeUnknown || nodeType == types.NodeCandidate {
-		m.candidateNodes.Range(func(key, value interface{}) bool {
-			nodeID := key.(string)
-			list = append(list, nodeID)
-
-			if i >= limit {
-				return false
-			}
-			i++
-
-			return true
-		})
+		i += m.Candidates
 	}
 
 	if nodeType == types.NodeUnknown || nodeType == types.NodeEdge {
-		m.edgeNodes.Range(func(key, value interface{}) bool {
-			nodeID := key.(string)
-			list = append(list, nodeID)
-
-			if i >= limit {
-				return false
-			}
-			i++
-
-			return true
-		})
+		i += m.Edges
 	}
 
-	return list, nil
+	return i
 }
 
 // NodeOnline registers a node as online

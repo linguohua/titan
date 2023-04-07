@@ -41,7 +41,7 @@ var (
 
 	nodeTypeFlag = &cli.IntFlag{
 		Name:  "node-type",
-		Usage: "node type 0:ALL 1:Edge 2:Candidate 3:Scheduler 4:Scheduler",
+		Usage: "node type 0:ALL 1:Edge 2:Candidate 3:Validator 4:Scheduler",
 		Value: 0,
 	}
 

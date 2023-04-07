@@ -14,7 +14,7 @@ var nodeCmd = &cli.Command{
 	Name:  "node",
 	Usage: "Manage node",
 	Subcommands: []*cli.Command{
-		showOnlineNodeCmd,
+		onlineNodeCountCmd,
 		registerNodeCmd,
 		showNodeInfoCmd,
 		nodeQuitCmd,
@@ -23,9 +23,9 @@ var nodeCmd = &cli.Command{
 	},
 }
 
-var showOnlineNodeCmd = &cli.Command{
-	Name:  "list-online",
-	Usage: "List online nodes",
+var onlineNodeCountCmd = &cli.Command{
+	Name:  "online-count",
+	Usage: "online node count",
 	Flags: []cli.Flag{
 		nodeTypeFlag,
 	},
@@ -39,13 +39,9 @@ var showOnlineNodeCmd = &cli.Command{
 		}
 		defer closer()
 
-		nodes, err := schedulerAPI.GetOnlineNodeList(ctx, types.NodeType(t))
+		nodes, err := schedulerAPI.GetOnlineNodeCount(ctx, types.NodeType(t))
 
-		fmt.Println("Online nodes count:", len(nodes))
-		for _, node := range nodes {
-			fmt.Println(node)
-		}
-
+		fmt.Println("Online nodes count:", nodes)
 		return err
 	},
 }
@@ -123,20 +119,21 @@ var showNodeInfoCmd = &cli.Command{
 		natType, _ := schedulerAPI.NodeNatType(ctx, nodeID)
 
 		fmt.Printf("node id: %s \n", info.NodeID)
-		fmt.Printf("node name: %s \n", info.NodeName)
-		fmt.Printf("node external_ip: %s \n", info.ExternalIP)
-		fmt.Printf("node internal_ip: %s \n", info.InternalIP)
-		fmt.Printf("node system version: %s \n", info.SystemVersion)
-		fmt.Printf("node disk usage: %.2f %s\n", info.DiskUsage, "%")
-		fmt.Printf("node disk space: %s \n", units.BytesSize(info.DiskSpace))
-		fmt.Printf("node fsType: %s \n", info.IoSystem)
-		fmt.Printf("node mac: %s \n", info.MacLocation)
-		fmt.Printf("node download bandwidth: %s \n", units.BytesSize(info.BandwidthDown))
-		fmt.Printf("node upload bandwidth: %s \n", units.BytesSize(info.BandwidthUp))
-		fmt.Printf("node cpu percent: %.2f %s \n", info.CPUUsage, "%")
+		fmt.Printf("online: %v \n", info.Online)
+		fmt.Printf("name: %s \n", info.NodeName)
+		fmt.Printf("external_ip: %s \n", info.ExternalIP)
+		fmt.Printf("internal_ip: %s \n", info.InternalIP)
+		fmt.Printf("system version: %s \n", info.SystemVersion)
+		fmt.Printf("disk usage: %.2f %s\n", info.DiskUsage, "%")
+		fmt.Printf("disk space: %s \n", units.BytesSize(info.DiskSpace))
+		fmt.Printf("fsType: %s \n", info.IoSystem)
+		fmt.Printf("mac: %s \n", info.MacLocation)
+		fmt.Printf("download bandwidth: %s \n", units.BytesSize(info.BandwidthDown))
+		fmt.Printf("upload bandwidth: %s \n", units.BytesSize(info.BandwidthUp))
+		fmt.Printf("cpu percent: %.2f %s \n", info.CPUUsage, "%")
 		//
-		fmt.Printf("node DownloadCount: %d \n", info.DownloadBlocks)
-		fmt.Printf("node NatType: %s \n", natType.String())
+		fmt.Printf("DownloadCount: %d \n", info.DownloadBlocks)
+		fmt.Printf("NatType: %s \n", natType.String())
 
 		return nil
 	},

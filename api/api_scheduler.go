@@ -13,7 +13,7 @@ type Scheduler interface {
 	Common
 
 	// node
-	GetOnlineNodeList(ctx context.Context, nodeType types.NodeType) ([]string, error)             //perm:read
+	GetOnlineNodeCount(ctx context.Context, nodeType types.NodeType) (int, error)                 //perm:read
 	RegisterNewNode(ctx context.Context, nodeID, publicKey string, nodeType types.NodeType) error //perm:admin
 	NodeQuit(ctx context.Context, nodeID string) error                                            //perm:admin
 	UpdateNodePort(ctx context.Context, nodeID, port string) error                                //perm:admin

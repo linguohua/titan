@@ -238,13 +238,26 @@ func (s *Scheduler) RegisterNewNode(ctx context.Context, nodeID, pKey string, no
 	return s.NodeManager.InsertNodeRegisterInfo(pKey, nodeID, nodeType)
 }
 
-// GetOnlineNodeList retrieves a list of online node IDs.
-func (s *Scheduler) GetOnlineNodeList(ctx context.Context, nodeType types.NodeType) ([]string, error) {
+// GetOnlineNodeCount retrieves online node count.
+func (s *Scheduler) GetOnlineNodeCount(ctx context.Context, nodeType types.NodeType) (int, error) {
 	if nodeType == types.NodeValidator {
-		return s.NodeManager.FetchValidators(s.ServerID)
+		list, err := s.NodeManager.FetchValidators(s.ServerID)
+		if err != nil {
+			return 0, err
+		}
+
+		i := 0
+		for _, nodeID := range list {
+			node := s.NodeManager.GetCandidateNode(nodeID)
+			if node != nil {
+				i++
+			}
+		}
+
+		return i, nil
 	}
 
-	return s.NodeManager.GetOnlineNodeList(nodeType)
+	return s.NodeManager.GetOnlineNodeCount(nodeType), nil
 }
 
 // TriggerElection triggers a single election for validators.
