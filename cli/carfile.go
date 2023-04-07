@@ -85,7 +85,7 @@ var removeAssetCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.RemoveAsset(ctx, cid)
+		return schedulerAPI.RemoveAssetRecord(ctx, cid)
 	},
 }
 

@@ -231,7 +231,9 @@ type SchedulerStruct struct {
 
 		RegisterNewNode func(p0 context.Context, p1 string, p2 string, p3 types.NodeType) error `perm:"admin"`
 
-		RemoveAsset func(p0 context.Context, p1 string) error `perm:"admin"`
+		RemoveAssetRecord func(p0 context.Context, p1 string) error `perm:"admin"`
+
+		RemoveAssetReplica func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
 		RemoveAssetResult func(p0 context.Context, p1 types.RemoveAssetResult) error `perm:"write"`
 
@@ -941,14 +943,25 @@ func (s *SchedulerStub) RegisterNewNode(p0 context.Context, p1 string, p2 string
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) RemoveAsset(p0 context.Context, p1 string) error {
-	if s.Internal.RemoveAsset == nil {
+func (s *SchedulerStruct) RemoveAssetRecord(p0 context.Context, p1 string) error {
+	if s.Internal.RemoveAssetRecord == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.RemoveAsset(p0, p1)
+	return s.Internal.RemoveAssetRecord(p0, p1)
 }
 
-func (s *SchedulerStub) RemoveAsset(p0 context.Context, p1 string) error {
+func (s *SchedulerStub) RemoveAssetRecord(p0 context.Context, p1 string) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) RemoveAssetReplica(p0 context.Context, p1 string, p2 string) error {
+	if s.Internal.RemoveAssetReplica == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.RemoveAssetReplica(p0, p1, p2)
+}
+
+func (s *SchedulerStub) RemoveAssetReplica(p0 context.Context, p1 string, p2 string) error {
 	return ErrNotSupported
 }
 
