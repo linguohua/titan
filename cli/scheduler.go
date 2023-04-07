@@ -9,8 +9,8 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// SchedulerCmds Scheduler Cmds
-var SchedulerCmds = []*cli.Command{
+// SchedulerCMDs Scheduler cmd
+var SchedulerCMDs = []*cli.Command{
 	WithCategory("node", nodeCmd),
 	WithCategory("asset", assetCmd),
 	// validator
