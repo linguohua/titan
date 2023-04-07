@@ -24,25 +24,25 @@ import (
 var log = logging.Logger("asset")
 
 const (
-	nodePullAssetTimeout         = 60 * time.Second      // Pull asset timeout (Unit:Second)
-	checkExpirationTimerInterval = 60 * 30 * time.Second // Check for expired asset interval (Unit:Second)
+	nodePullAssetTimeout         = 60 * time.Second      // Timeout for pulling assets (Unit:Second)
+	assetExpirationCheckInterval = 60 * 30 * time.Second // Interval for checking expired assets (Unit:Second)
 	seedReplicaCount             = 1                     // The number of pull replica in the first stage
-	getProgressInterval          = 20 * time.Second      // Get asset pull progress interval from node (Unit:Second)
+	pullProgressInterval         = 20 * time.Second      // Interval to get asset pull progress from node (Unit:Second)
 
-	maxPullingAssets = 10  // Maximum number of asset pull
-	maxReplicas      = 100 // Maximum number of replicas per asset
+	maxConcurrentPulls = 10  // Maximum number of concurrent asset pulls
+	maxAssetReplicas   = 100 // Maximum number of replicas per asset
 
-	maxRetryCount    = 3
+	maxRetryCount    = 3    // TODO Select
 	maxNodeDiskUsage = 95.0 // If the node disk size is greater than this value, pulling will not continue
 
-	sizeOfBuckets = 128 // The number of buckets in assets view
+	numAssetBuckets = 128 // Number of asset buckets in assets view
 )
 
-// Manager asset replica manager
+// Manager manages asset replicas
 type Manager struct {
 	nodeMgr            *node.Manager
-	nearestExpiration  time.Time // nearest expiry date for asset
-	statemachineWait   sync.WaitGroup
+	earliestExpiration time.Time //  Earliest expiration date for an asset
+	stateMachineWait   sync.WaitGroup
 	assetStateMachines *statemachine.StateGroup
 	lock               sync.Mutex
 	apTickers          map[string]*assetTicker // timeout timer for asset pulling
@@ -71,70 +71,70 @@ func (t *assetTicker) run(job func() error) {
 	}
 }
 
-// NewManager return new manager instance
+// NewManager  returns a new AssetManager instance
 func NewManager(nodeManager *node.Manager, ds datastore.Batching, configFunc dtypes.GetSchedulerConfigFunc, sdb *db.SQLDB) *Manager {
 	m := &Manager{
-		nodeMgr:           nodeManager,
-		nearestExpiration: time.Now(),
-		apTickers:         make(map[string]*assetTicker),
-		config:            configFunc,
-		SQLDB:             sdb,
+		nodeMgr:            nodeManager,
+		earliestExpiration: time.Now(),
+		apTickers:          make(map[string]*assetTicker),
+		config:             configFunc,
+		SQLDB:              sdb,
 	}
 
-	m.statemachineWait.Add(1)
+	m.stateMachineWait.Add(1)
 	m.assetStateMachines = statemachine.New(ds, m, AssetPullingInfo{})
 
 	return m
 }
 
-// Run start asset statemachine and start ticker
-func (m *Manager) Run(ctx context.Context) {
+// Start initializes and starts the asset state machine and associated tickers
+func (m *Manager) Start(ctx context.Context) {
 	if err := m.restartStateMachines(ctx); err != nil {
 		log.Errorf("failed load sector states: %+v", err)
 	}
-	go m.checkExpirationTicker(ctx)
-	go m.pullProgressTicker(ctx)
+	go m.assetExpirationCheck(ctx)
+	go m.assetPullProgressCheck(ctx)
 }
 
-// Stop stop statemachine
-func (m *Manager) Stop(ctx context.Context) error {
+// Terminate stops the asset state machine
+func (m *Manager) Terminate(ctx context.Context) error {
 	return m.assetStateMachines.Stop(ctx)
 }
 
-// check asset expiration
-func (m *Manager) checkExpirationTicker(ctx context.Context) {
-	ticker := time.NewTicker(checkExpirationTimerInterval)
+// Periodically checks asset expiration
+func (m *Manager) assetExpirationCheck(ctx context.Context) {
+	ticker := time.NewTicker(assetExpirationCheckInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			m.checkAssetsExpiration()
+			m.processExpiredAssets()
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-// get asset pull progress timer
-func (m *Manager) pullProgressTicker(ctx context.Context) {
-	ticker := time.NewTicker(getProgressInterval)
+// Periodically gets asset pull progress
+func (m *Manager) assetPullProgressCheck(ctx context.Context) {
+	ticker := time.NewTicker(pullProgressInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			m.nodesPullProgresses()
+			m.retrieveNodePullProgresses()
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (m *Manager) nodesPullProgresses() {
+func (m *Manager) retrieveNodePullProgresses() {
 	nodePulls := make(map[string][]string)
 
-	// pulling assets
+	// Process pulling assets
 	for hash := range m.apTickers {
 		cid, err := cidutil.HashString2CIDString(hash)
 		if err != nil {
@@ -156,14 +156,14 @@ func (m *Manager) nodesPullProgresses() {
 
 	getCP := func(nodeID string, cids []string) {
 		// request node
-		result, err := m.nodePullProgresses(nodeID, cids)
+		result, err := m.requestNodePullProgresses(nodeID, cids)
 		if err != nil {
 			log.Errorf("%s nodePullProgresses err:%s", nodeID, err.Error())
 			return
 		}
 
 		// update asset info
-		m.pullAssetsResult(nodeID, result)
+		m.updateAssetPullResults(nodeID, result)
 	}
 
 	for nodeID, cids := range nodePulls {
@@ -171,7 +171,7 @@ func (m *Manager) nodesPullProgresses() {
 	}
 }
 
-func (m *Manager) nodePullProgresses(nodeID string, cids []string) (result *types.PullResult, err error) {
+func (m *Manager) requestNodePullProgresses(nodeID string, cids []string) (result *types.PullResult, err error) {
 	log.Debugf("nodeID:%s, %v", nodeID, cids)
 
 	cNode := m.nodeMgr.GetCandidateNode(nodeID)
@@ -193,16 +193,16 @@ func (m *Manager) nodePullProgresses(nodeID string, cids []string) (result *type
 	return
 }
 
-// PullAssets create a new pull asset task
-func (m *Manager) PullAssets(info *types.PullAssetReq) error {
-	m.statemachineWait.Wait()
+// CreateAssetPullTask creates a new asset pull task
+func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq) error {
+	m.stateMachineWait.Wait()
 
-	if len(m.apTickers) >= maxPullingAssets {
-		return xerrors.Errorf("The asset in the pulling exceeds the limit %d, please wait", maxPullingAssets)
+	if len(m.apTickers) >= maxConcurrentPulls {
+		return xerrors.Errorf("The asset in the pulling exceeds the limit %d, please wait", maxConcurrentPulls)
 	}
 
-	if info.Replicas > maxReplicas {
-		return xerrors.Errorf("The number of replicas %d exceeds the limit %d", info.Replicas, maxReplicas)
+	if info.Replicas > maxAssetReplicas {
+		return xerrors.Errorf("The number of replicas %d exceeds the limit %d", info.Replicas, maxAssetReplicas)
 	}
 
 	log.Infof("asset event: %s, add asset replica: %d,expiration: %s", info.CID, info.Replicas, info.Expiration.String())
@@ -221,14 +221,14 @@ func (m *Manager) PullAssets(info *types.PullAssetReq) error {
 			ServerID:          info.ServerID,
 			CreatedAt:         time.Now().Unix(),
 			Expiration:        info.Expiration.Unix(),
-			CandidateReplicas: m.GetCandidateReplicaCount(),
+			CandidateReplicas: m.FetchCandidateReplicaCount(),
 		})
 	}
 
 	return xerrors.New("asset exists")
 }
 
-// RestartPullAssets restart pull assets
+// RestartPullAssets restarts asset pulls
 func (m *Manager) RestartPullAssets(hashes []types.AssetHash) error {
 	for _, hash := range hashes {
 		err := m.assetStateMachines.Send(hash, PullAssetRestart{})
@@ -240,7 +240,7 @@ func (m *Manager) RestartPullAssets(hashes []types.AssetHash) error {
 	return nil
 }
 
-// RemoveAsset remove a asset
+// RemoveAsset removes an asset
 func (m *Manager) RemoveAsset(cid, hash string) error {
 	cInfos, err := m.FetchAssetReplicas(hash)
 	if err != nil {
@@ -264,7 +264,7 @@ func (m *Manager) RemoveAsset(cid, hash string) error {
 
 	go func() {
 		for _, cInfo := range cInfos {
-			err = m.deleteAssetRequest(cInfo.NodeID, cid)
+			err = m.requestAssetDeletion(cInfo.NodeID, cid)
 			if err != nil {
 				log.Errorf("deleteAssetRequest err: %s ", err.Error())
 			}
@@ -274,8 +274,8 @@ func (m *Manager) RemoveAsset(cid, hash string) error {
 	return nil
 }
 
-// pullAssetsResult pull result
-func (m *Manager) pullAssetsResult(nodeID string, result *types.PullResult) {
+// updateAssetPullResults updates asset pull results
+func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult) {
 	isCandidate := false
 	pullingCount := 0
 
@@ -354,6 +354,7 @@ func (m *Manager) pullAssetsResult(nodeID string, result *types.PullResult) {
 	}
 }
 
+// adds or resets the asset ticker with a given hash
 func (m *Manager) addOrResetAssetTicker(hash string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -387,7 +388,8 @@ func (m *Manager) addOrResetAssetTicker(hash string) {
 	go m.apTickers[hash].run(fn)
 }
 
-func (m *Manager) removeAssetTicker(key string) {
+// removes the asset ticker for a given key
+func (m *Manager) removeTickerForAsset(key string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -401,8 +403,8 @@ func (m *Manager) removeAssetTicker(key string) {
 	delete(m.apTickers, key)
 }
 
-// ResetAssetRecordExpiration reset the asset expiration
-func (m *Manager) ResetAssetRecordExpiration(cid string, t time.Time) error {
+// UpdateAssetExpiration updates the asset expiration for a given CID
+func (m *Manager) UpdateAssetExpiration(cid string, t time.Time) error {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return err
@@ -415,14 +417,14 @@ func (m *Manager) ResetAssetRecordExpiration(cid string, t time.Time) error {
 		return err
 	}
 
-	m.resetNearestExpiration(t)
+	m.updateEarliestExpiration(t)
 
 	return nil
 }
 
-// check assets expiration
-func (m *Manager) checkAssetsExpiration() {
-	if m.nearestExpiration.After(time.Now()) {
+// checks for expired assets and removes them
+func (m *Manager) processExpiredAssets() {
+	if m.earliestExpiration.After(time.Now()) {
 		return
 	}
 
@@ -444,17 +446,18 @@ func (m *Manager) checkAssetsExpiration() {
 		return
 	}
 
-	m.resetNearestExpiration(expiration)
+	m.updateEarliestExpiration(expiration)
 }
 
-func (m *Manager) resetNearestExpiration(t time.Time) {
-	if m.nearestExpiration.After(t) {
-		m.nearestExpiration = t
+// updates the earliest expiration time
+func (m *Manager) updateEarliestExpiration(t time.Time) {
+	if m.earliestExpiration.After(t) {
+		m.earliestExpiration = t
 	}
 }
 
-// Notify node to delete asset
-func (m *Manager) deleteAssetRequest(nodeID, cid string) error {
+// notifies a node to delete an asset by its CID
+func (m *Manager) requestAssetDeletion(nodeID, cid string) error {
 	edge := m.nodeMgr.GetEdgeNode(nodeID)
 	if edge != nil {
 		return edge.DeleteCarfile(context.Background(), cid)
@@ -468,8 +471,8 @@ func (m *Manager) deleteAssetRequest(nodeID, cid string) error {
 	return nil
 }
 
-// GetCandidateReplicaCount get candidate replica count
-func (m *Manager) GetCandidateReplicaCount() int {
+// FetchCandidateReplicaCount fetches the candidate replica count from the configuration
+func (m *Manager) FetchCandidateReplicaCount() int {
 	cfg, err := m.config()
 	if err != nil {
 		log.Errorf("schedulerConfig err:%s", err.Error())
@@ -479,8 +482,8 @@ func (m *Manager) GetCandidateReplicaCount() int {
 	return cfg.CandidateReplicas
 }
 
-// GetAssetRecordInfo get asset record info of cid
-func (m *Manager) GetAssetRecordInfo(cid string) (*types.AssetRecord, error) {
+// FetchAssetRecordInfo fetches the asset record info for cid
+func (m *Manager) FetchAssetRecordInfo(cid string) (*types.AssetRecord, error) {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return nil, err
@@ -499,7 +502,8 @@ func (m *Manager) GetAssetRecordInfo(cid string) (*types.AssetRecord, error) {
 	return dInfo, err
 }
 
-func (m *Manager) saveReplicaInfos(nodes map[string]*node.Node, hash string, isCandidate bool) error {
+// stores replica information for nodes
+func (m *Manager) saveReplicaInformation(nodes map[string]*node.Node, hash string, isCandidate bool) error {
 	// save replica info
 	replicaInfos := make([]*types.ReplicaInfo, 0)
 
@@ -515,8 +519,8 @@ func (m *Manager) saveReplicaInfos(nodes map[string]*node.Node, hash string, isC
 	return m.BulkInsertOrUpdateReplicas(replicaInfos)
 }
 
-// Sources get download sources
-func (m *Manager) Sources(cid string, nodes []string) []*types.DownloadSource {
+// getDownloadSources gets download sources for a given CID
+func (m *Manager) getDownloadSources(cid string, nodes []string) []*types.DownloadSource {
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	sources := make([]*types.DownloadSource, 0)
 	for _, nodeID := range nodes {
@@ -540,8 +544,8 @@ func (m *Manager) Sources(cid string, nodes []string) []*types.DownloadSource {
 	return sources
 }
 
-// selectCandidateToPullAsset select candidate node to pull asset replica
-func (m *Manager) selectCandidateToPullAsset(count int, filterNodes []string) map[string]*node.Node {
+// chooseCandidateNodesForAssetReplica selects candidate nodes to pull asset replicas
+func (m *Manager) chooseCandidateNodesForAssetReplica(count int, filterNodes []string) map[string]*node.Node {
 	selectMap := make(map[string]*node.Node)
 	if count <= 0 {
 		return selectMap
@@ -582,8 +586,8 @@ func (m *Manager) selectCandidateToPullAsset(count int, filterNodes []string) ma
 	return selectMap
 }
 
-// selectEdgeToPullAsset select edge node to pull asset replica
-func (m *Manager) selectEdgeToPullAsset(count int, filterNodes []string) map[string]*node.Node {
+// chooseEdgeNodesForAssetReplica selects edge nodes to pull asset replicas
+func (m *Manager) chooseEdgeNodesForAssetReplica(count int, filterNodes []string) map[string]*node.Node {
 	selectMap := make(map[string]*node.Node)
 	if count <= 0 {
 		return selectMap

@@ -80,10 +80,10 @@ func NewStorageManager(params StorageManagerParams) *assets.Manager {
 
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
-			go m.Run(ctx)
+			go m.Start(ctx)
 			return nil
 		},
-		OnStop: m.Stop,
+		OnStop: m.Terminate,
 	})
 
 	return m

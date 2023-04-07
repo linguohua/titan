@@ -13,7 +13,7 @@ func (c AssetHash) String() string {
 	return string(c)
 }
 
-// NodePulledResult node pulled asset result
+// NodePulledResult represents a result of a node pulling assets
 type NodePulledResult struct {
 	Status      int64
 	BlocksCount int64
@@ -22,7 +22,7 @@ type NodePulledResult struct {
 	IsCandidate bool
 }
 
-// AssetPullingInfo asset pull info
+// AssetPullingInfo represents asset pull information
 type AssetPullingInfo struct {
 	State             AssetState
 	Hash              AssetHash
@@ -43,7 +43,7 @@ type AssetPullingInfo struct {
 	RetryCount int64
 }
 
-// ToAssetRecord types.AssetInfo
+// ToAssetRecord converts AssetPullingInfo to types.AssetRecord
 func (state *AssetPullingInfo) ToAssetRecord() *types.AssetRecord {
 	return &types.AssetRecord{
 		CID:                   state.CID,
@@ -57,6 +57,7 @@ func (state *AssetPullingInfo) ToAssetRecord() *types.AssetRecord {
 	}
 }
 
+// assetPullingInfoFrom converts types.AssetRecord to AssetPullingInfo
 func assetPullingInfoFrom(info *types.AssetRecord) *AssetPullingInfo {
 	cInfo := &AssetPullingInfo{
 		CID:               info.CID,

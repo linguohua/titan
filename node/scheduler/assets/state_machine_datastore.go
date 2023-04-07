@@ -14,25 +14,25 @@ import (
 	"github.com/linguohua/titan/node/scheduler/db"
 )
 
-// DataStore  asset datastore
-type DataStore struct {
+// Datastore represents the asset datastore
+type Datastore struct {
 	sync.RWMutex
 	assetDB *db.SQLDB
 	assetDS *datastore.MapDatastore
 	dtypes.ServerID
 }
 
-// NewDatastore new
-func NewDatastore(db *db.SQLDB, serverID dtypes.ServerID) *DataStore {
-	return &DataStore{
+// NewDatastore creates a new AssetDatastore
+func NewDatastore(db *db.SQLDB, serverID dtypes.ServerID) *Datastore {
+	return &Datastore{
 		assetDB:  db,
 		assetDS:  datastore.NewMapDatastore(),
 		ServerID: serverID,
 	}
 }
 
-// Close close
-func (d *DataStore) Close() error {
+// Close closes the asset datastore
+func (d *Datastore) Close() error {
 	return d.assetDS.Close()
 }
 
@@ -40,29 +40,29 @@ func trimPrefix(key datastore.Key) string {
 	return strings.Trim(key.String(), "/")
 }
 
-// Get get data
-func (d *DataStore) Get(ctx context.Context, key datastore.Key) (value []byte, err error) {
+// Get retrieves data from the datastore
+func (d *Datastore) Get(ctx context.Context, key datastore.Key) (value []byte, err error) {
 	d.RLock()
 	defer d.RUnlock()
 	return d.assetDS.Get(ctx, key)
 }
 
-// Has has key
-func (d *DataStore) Has(ctx context.Context, key datastore.Key) (exists bool, err error) {
+// Has  checks if the key exists in the datastore
+func (d *Datastore) Has(ctx context.Context, key datastore.Key) (exists bool, err error) {
 	d.RLock()
 	defer d.RUnlock()
 	return d.assetDS.Has(ctx, key)
 }
 
-// GetSize get data size
-func (d *DataStore) GetSize(ctx context.Context, key datastore.Key) (size int, err error) {
+// GetSize gets the data size from the datastore
+func (d *Datastore) GetSize(ctx context.Context, key datastore.Key) (size int, err error) {
 	d.RLock()
 	defer d.RUnlock()
 	return d.assetDS.GetSize(ctx, key)
 }
 
-// Query load asset infos
-func (d *DataStore) Query(ctx context.Context, q query.Query) (query.Results, error) {
+// Query queries asset records from the datastore
+func (d *Datastore) Query(ctx context.Context, q query.Query) (query.Results, error) {
 	var rows *sqlx.Rows
 	var err error
 
@@ -124,7 +124,7 @@ func (d *DataStore) Query(ctx context.Context, q query.Query) (query.Results, er
 }
 
 // Put update asset record info
-func (d *DataStore) Put(ctx context.Context, key datastore.Key, value []byte) error {
+func (d *Datastore) Put(ctx context.Context, key datastore.Key, value []byte) error {
 	d.Lock()
 	defer d.Unlock()
 
@@ -146,7 +146,7 @@ func (d *DataStore) Put(ctx context.Context, key datastore.Key, value []byte) er
 }
 
 // Delete delete asset record info
-func (d *DataStore) Delete(ctx context.Context, key datastore.Key) error {
+func (d *Datastore) Delete(ctx context.Context, key datastore.Key) error {
 	d.Lock()
 	defer d.Unlock()
 
@@ -157,13 +157,13 @@ func (d *DataStore) Delete(ctx context.Context, key datastore.Key) error {
 }
 
 // Sync sync
-func (d *DataStore) Sync(ctx context.Context, prefix datastore.Key) error {
+func (d *Datastore) Sync(ctx context.Context, prefix datastore.Key) error {
 	return nil
 }
 
 // Batch batch
-func (d *DataStore) Batch(ctx context.Context) (datastore.Batch, error) {
+func (d *Datastore) Batch(ctx context.Context) (datastore.Batch, error) {
 	return d.assetDS.Batch(ctx)
 }
 
-var _ datastore.Batching = (*DataStore)(nil)
+var _ datastore.Batching = (*Datastore)(nil)
