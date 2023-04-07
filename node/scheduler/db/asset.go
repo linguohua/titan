@@ -41,8 +41,8 @@ func (n *SQLDB) UpdateUnfinishedReplicasStatus(hash string, status types.Replica
 	return err
 }
 
-// BulkInsertOrUpdateReplicas inserts or updates replica information in bulk
-func (n *SQLDB) BulkInsertOrUpdateReplicas(infos []*types.ReplicaInfo) error {
+// BulkUpsertReplicas inserts or updates replica information in bulk
+func (n *SQLDB) BulkUpsertReplicas(infos []*types.ReplicaInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (hash, node_id, status, is_candidate) 
 				VALUES (:hash, :node_id, :status, :is_candidate) 
@@ -53,8 +53,8 @@ func (n *SQLDB) BulkInsertOrUpdateReplicas(infos []*types.ReplicaInfo) error {
 	return err
 }
 
-// InsertOrUpdateAssetRecord  inserts or updates asset record information
-func (n *SQLDB) InsertOrUpdateAssetRecord(info *types.AssetRecord) error {
+// UpsertAssetRecord inserts or updates asset record information
+func (n *SQLDB) UpsertAssetRecord(info *types.AssetRecord) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (hash, cid, state, edge_replicas, candidate_replicas, expiration, total_size, total_blocks, scheduler_sid, end_time) 
 				VALUES (:hash, :cid, :state, :edge_replicas, :candidate_replicas, :expiration, :total_size, :total_blocks, :scheduler_sid, NOW()) 
@@ -114,8 +114,8 @@ func (n *SQLDB) FetchAssetReplicas(hash string) ([]*types.ReplicaInfo, error) {
 	return out, nil
 }
 
-// GetNodeReplicaCount retrieves the succeeded replica count of a node based on nodeID.
-func (n *SQLDB) GetNodeReplicaCount(nodeID string) (int, error) {
+// FetchNodeReplicaCount retrieves the succeeded replica count of a node based on nodeID.
+func (n *SQLDB) FetchNodeReplicaCount(nodeID string) (int, error) {
 	query := fmt.Sprintf(`SELECT count(hash) FROM %s WHERE node_id=? AND status=?`, replicaInfoTable)
 
 	var count int
@@ -167,8 +167,8 @@ func (n *SQLDB) FetchExpiredAssetRecords(serverID dtypes.ServerID) ([]*types.Ass
 	return out, nil
 }
 
-// GetUnfinishedPullAssetNodes retrieves the node IDs for all nodes that have not yet finished pulling an asset for a given asset hash.
-func (n *SQLDB) GetUnfinishedPullAssetNodes(hash string) ([]string, error) {
+// FetchUnfinishedPullAssetNodes retrieves the node IDs for all nodes that have not yet finished pulling an asset for a given asset hash.
+func (n *SQLDB) FetchUnfinishedPullAssetNodes(hash string) ([]string, error) {
 	var nodes []string
 	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE hash=? AND (status=? or status=?)`, replicaInfoTable)
 	err := n.db.Select(&nodes, query, hash, types.ReplicaStatusPulling, types.ReplicaStatusWaiting)

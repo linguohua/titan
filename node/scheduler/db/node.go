@@ -389,6 +389,7 @@ func (n *SQLDB) UpsertAssetsView(nodeID string, topHash string, bucketHashes map
 	return err
 }
 
+// DeleteAssetsView delete the asset view for node
 func (n *SQLDB) DeleteAssetsView(nodeID string) error {
 	query := fmt.Sprintf(`DELETE FROM %s WHERE node_id=?`, assetsViewTable)
 	_, err := n.db.Exec(query, nodeID)
@@ -438,6 +439,7 @@ func (n *SQLDB) UpsertBucket(bucketID string, assetHashes []string) error {
 	return err
 }
 
+// DeleteBucket delete the bucket
 func (n *SQLDB) DeleteBucket(bucketID string) error {
 	query := fmt.Sprintf(`DELETE FROM %s WHERE bucket_id=?`, bucketTable)
 	_, err := n.db.Exec(query, bucketID)
