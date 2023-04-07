@@ -5,8 +5,8 @@ import (
 
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/linguohua/titan/node/carfile/fetcher"
-	"github.com/linguohua/titan/node/carfile/storage"
+	"github.com/linguohua/titan/node/asset/fetcher"
+	"github.com/linguohua/titan/node/asset/storage"
 )
 
 func TestCache(t *testing.T) {

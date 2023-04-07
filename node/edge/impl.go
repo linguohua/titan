@@ -10,7 +10,7 @@ import (
 	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/api/types"
 	cliutil "github.com/linguohua/titan/cli/util"
-	"github.com/linguohua/titan/node/carfile"
+	"github.com/linguohua/titan/node/asset"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/device"
 	datasync "github.com/linguohua/titan/node/sync"
@@ -26,7 +26,7 @@ type Edge struct {
 
 	*common.CommonAPI
 	*device.Device
-	*carfile.CarfileImpl
+	*asset.Asset
 	*validate.Validate
 	*datasync.DataSync
 

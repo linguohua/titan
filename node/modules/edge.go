@@ -1,9 +1,9 @@
 package modules
 
 import (
-	"github.com/linguohua/titan/node/carfile/cache"
-	"github.com/linguohua/titan/node/carfile/fetcher"
-	"github.com/linguohua/titan/node/carfile/storage"
+	"github.com/linguohua/titan/node/asset/cache"
+	"github.com/linguohua/titan/node/asset/fetcher"
+	"github.com/linguohua/titan/node/asset/storage"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/modules/dtypes"

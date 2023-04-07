@@ -65,7 +65,7 @@ var cacheStatCmd = &cli.Command{
 		defer closer()
 
 		ctx := ReqContext(cctx)
-		stat, err := api.QueryCacheStat(ctx)
+		stat, err := api.QueryAssetStats(ctx)
 		if err != nil {
 			fmt.Printf("Unlimit speed failed:%v", err)
 			return err
@@ -95,7 +95,7 @@ var progressCmd = &cli.Command{
 
 		cid := cctx.String("cid")
 		ctx := ReqContext(cctx)
-		ret, err := edgeAPI.CachedProgresses(ctx, []string{cid})
+		ret, err := edgeAPI.AssetProgresses(ctx, []string{cid})
 		if err != nil {
 			return err
 		}

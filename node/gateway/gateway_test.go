@@ -6,9 +6,9 @@ import (
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/linguohua/titan/node/carfile/cache"
-	"github.com/linguohua/titan/node/carfile/fetcher"
-	"github.com/linguohua/titan/node/carfile/storage"
+	"github.com/linguohua/titan/node/asset/cache"
+	"github.com/linguohua/titan/node/asset/fetcher"
+	"github.com/linguohua/titan/node/asset/storage"
 )
 
 func TestGateway(t *testing.T) {

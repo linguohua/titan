@@ -13,9 +13,9 @@ import (
 	"github.com/ipfs/go-libipfs/blocks"
 	"github.com/ipld/go-car/v2/index"
 	"github.com/linguohua/titan/api/types"
-	"github.com/linguohua/titan/node/carfile/fetcher"
-	titanindex "github.com/linguohua/titan/node/carfile/index"
-	"github.com/linguohua/titan/node/carfile/storage"
+	"github.com/linguohua/titan/node/asset/fetcher"
+	titanindex "github.com/linguohua/titan/node/asset/index"
+	"github.com/linguohua/titan/node/asset/storage"
 	"github.com/linguohua/titan/node/validate"
 	"golang.org/x/xerrors"
 )

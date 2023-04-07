@@ -36,7 +36,7 @@ type API struct {
 	api.Device
 	api.Validate
 	api.DataSync
-	api.CarfileOperation
+	api.Asset
 	WaitQuiet func(ctx context.Context) error
 	// edge
 	ExternalServiceAddress func(ctx context.Context, schedulerURL string) (string, error)
@@ -61,7 +61,7 @@ func APIFromEdge(api api.Edge) *API {
 		Device:                 api,
 		Validate:               api,
 		DataSync:               api,
-		CarfileOperation:       api,
+		Asset:                  api,
 		WaitQuiet:              api.WaitQuiet,
 		ExternalServiceAddress: api.ExternalServiceAddress,
 		UserNATTravel:          api.UserNATTravel,
@@ -76,7 +76,7 @@ func APIFromCandidate(api api.Candidate) *API {
 		Device:             api,
 		Validate:           api,
 		DataSync:           api,
-		CarfileOperation:   api,
+		Asset:              api,
 		WaitQuiet:          api.WaitQuiet,
 		GetBlocksOfCarfile: api.GetBlocksOfCarfile,
 	}

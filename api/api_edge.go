@@ -11,7 +11,7 @@ type Edge interface {
 	Device
 	Validate
 	DataSync
-	CarfileOperation
+	Asset
 	WaitQuiet(ctx context.Context) error //perm:read
 	// ExternalServiceAddress check service address with different scheduler server
 	// if behind nat, service address maybe different

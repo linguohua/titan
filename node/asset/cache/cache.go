@@ -8,8 +8,8 @@ import (
 	legacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api/types"
-	"github.com/linguohua/titan/node/carfile/fetcher"
-	"github.com/linguohua/titan/node/carfile/storage"
+	"github.com/linguohua/titan/node/asset/fetcher"
+	"github.com/linguohua/titan/node/asset/storage"
 )
 
 var log = logging.Logger("carfile/cache")

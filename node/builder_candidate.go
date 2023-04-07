@@ -4,11 +4,11 @@ import (
 	"errors"
 
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/node/asset"
+	"github.com/linguohua/titan/node/asset/cache"
+	"github.com/linguohua/titan/node/asset/fetcher"
+	"github.com/linguohua/titan/node/asset/storage"
 	"github.com/linguohua/titan/node/candidate"
-	"github.com/linguohua/titan/node/carfile"
-	"github.com/linguohua/titan/node/carfile/cache"
-	"github.com/linguohua/titan/node/carfile/fetcher"
-	"github.com/linguohua/titan/node/carfile/storage"
 	"github.com/linguohua/titan/node/config"
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/modules"
@@ -56,7 +56,7 @@ func ConfigCandidate(c interface{}) Option {
 		Override(new(*cache.Manager), modules.NewCacheManager(cfg.FetchBatch)),
 		Override(new(*validate.Validate), modules.NewNodeValidate),
 		Override(new(*rate.Limiter), modules.NewRateLimiter),
-		Override(new(*carfile.CarfileImpl), carfile.NewCarfileImpl),
+		Override(new(*asset.Asset), asset.NewAsset),
 		Override(new(fetcher.BlockFetcher), modules.NewBlockFetcherFromIPFS),
 		Override(new(*datasync.DataSync), modules.NewDataSync),
 		Override(new(*candidate.TCPServer), modules.NewTCPServer),

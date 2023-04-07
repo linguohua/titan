@@ -1,4 +1,4 @@
-package carfile
+package asset
 
 import (
 	"testing"
