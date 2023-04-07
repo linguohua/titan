@@ -288,7 +288,6 @@ func (m *Manager) RestartPullAssets(hashes []types.AssetHash) error {
 
 // RemoveReplica remove a replica for node
 func (m *Manager) RemoveReplica(cid, hash, nodeID string) error {
-	// TODO
 	err := m.DeleteAssetReplica(hash, nodeID)
 	if err != nil {
 		return err

@@ -287,7 +287,7 @@ func (m *Manager) Result(validatedResult *api.ValidateResult) error {
 	}
 
 	r := rand.New(rand.NewSource(m.seed))
-	// do validator
+	// do validate
 	for i := 0; i < max; i++ {
 		resultCid := validatedResult.Cids[i]
 		randNum := m.getRandNum(int(record.TotalBlocks), r)

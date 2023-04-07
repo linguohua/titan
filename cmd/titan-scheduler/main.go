@@ -54,7 +54,7 @@ func main() {
 		getAPIKeyCmd,
 	}
 
-	local = append(local, lcli.SchedulerCmds...)
+	local = append(local, lcli.SchedulerCMDs...)
 	local = append(local, lcli.CommonCommands...)
 
 	app := &cli.App{
