@@ -207,12 +207,12 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq) error {
 
 	log.Infof("asset event: %s, add asset replica: %d,expiration: %s", info.CID, info.Replicas, info.Expiration.String())
 
-	cInfo, err := m.FetchAssetRecord(info.Hash)
+	assetRecord, err := m.FetchAssetRecord(info.Hash)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
 
-	if cInfo == nil {
+	if assetRecord == nil {
 		// create asset task
 		return m.assetStateMachines.Send(AssetHash(info.Hash), AssetStartPulls{
 			ID:                info.CID,
@@ -225,9 +225,20 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq) error {
 		})
 	}
 
-	replicaInfos, err := m.FetchAssetReplicas(cInfo.Hash)
+	return m.replenishAssetReplicas(assetRecord, info)
+}
+
+// updates the existing asset replicas if needed
+func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, info *types.PullAssetReq) error {
+	// Check if the asset is in servicing state
+	if assetRecord.State != string(Servicing) {
+		return xerrors.Errorf("asset state is %s", assetRecord.State)
+	}
+
+	// Fetch the existing asset replicas
+	replicaInfos, err := m.FetchAssetReplicas(assetRecord.Hash)
 	if err != nil {
-		return xerrors.Errorf("asset %s load replicas err: %s", cInfo.CID, err.Error())
+		return xerrors.Errorf("asset %s load replicas err: %s", assetRecord.CID, err.Error())
 	}
 
 	refillReplicas := RefillReplicas{
@@ -235,11 +246,12 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq) error {
 		Hash:              AssetHash(info.Hash),
 		Replicas:          info.Replicas,
 		ServerID:          info.ServerID,
-		CreatedAt:         cInfo.CreateTime.Unix(),
+		CreatedAt:         assetRecord.CreateTime.Unix(),
 		Expiration:        info.Expiration.Unix(),
 		CandidateReplicas: m.FetchCandidateReplicaCount(),
-		Size:              cInfo.TotalSize,
-		Blocks:            cInfo.TotalBlocks,
+		Size:              assetRecord.TotalSize,
+		Blocks:            assetRecord.TotalBlocks,
+		State:             SeedSelect,
 	}
 
 	for _, r := range replicaInfos {
@@ -254,6 +266,7 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq) error {
 		}
 	}
 
+	// Check if there is a need to update replicas and send the update request if needed
 	if len(refillReplicas.EdgeReplicaSucceeds) < int(info.Replicas) || len(refillReplicas.CandidateReplicaSucceeds) < m.FetchCandidateReplicaCount()+seedReplicaCount {
 		return m.assetStateMachines.Send(AssetHash(info.Hash), refillReplicas)
 	}
@@ -275,8 +288,17 @@ func (m *Manager) RestartPullAssets(hashes []types.AssetHash) error {
 	return nil
 }
 
-// TODO
-func (m *Manager) RemoveReplica(cid, nodeID string) {
+// RemoveReplica remove a replica for node
+func (m *Manager) RemoveReplica(cid, hash, nodeID string) error {
+	// TODO
+	err := m.DeleteAssetReplica(hash, nodeID)
+	if err != nil {
+		return err
+	}
+
+	go m.requestAssetDeletion(nodeID, cid)
+
+	return nil
 }
 
 // RemoveAsset removes an asset
@@ -504,15 +526,12 @@ func (m *Manager) updateEarliestExpiration(t time.Time) {
 
 // notifies a node to delete an asset by its CID
 func (m *Manager) requestAssetDeletion(nodeID, cid string) error {
-	edge := m.nodeMgr.GetEdgeNode(nodeID)
-	if edge != nil {
-		return edge.DeleteAsset(context.Background(), cid)
+	node := m.nodeMgr.GetNode(nodeID)
+	if node != nil {
+		return node.DeleteAsset(context.Background(), cid)
 	}
 
-	candidate := m.nodeMgr.GetCandidateNode(nodeID)
-	if candidate != nil {
-		return candidate.DeleteAsset(context.Background(), cid)
-	}
+	return xerrors.Errorf("node %s not found", nodeID)
 }
 
 // FetchCandidateReplicaCount fetches the candidate replica count from the configuration

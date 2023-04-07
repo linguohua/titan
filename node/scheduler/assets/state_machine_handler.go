@@ -205,7 +205,8 @@ func (m *Manager) handleServicing(ctx statemachine.Context, info AssetPullingInf
 	log.Infof("handle asset servicing: %s", info.CID)
 	m.removeTickerForAsset(info.Hash.String())
 
-	return nil
+	// remove fail replicas
+	return m.DeleteUnfinishedReplicas(info.Hash.String())
 }
 
 // handles the failed state of asset pulling and retries if necessary

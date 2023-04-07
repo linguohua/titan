@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
@@ -84,19 +83,9 @@ func (ds *DataSync) removeFirstNode() string {
 	return nodeID
 }
 
-func (ds *DataSync) getNodeDataSyncAPI(nodeID string) api.DataSync {
-	if edgeNode := ds.nodeManager.GetEdgeNode(nodeID); edgeNode != nil {
-		return edgeNode.API
-	}
-	if candidateNode := ds.nodeManager.GetCandidateNode(nodeID); candidateNode != nil {
-		return candidateNode.API
-	}
-	return nil
-}
-
 func (ds *DataSync) doDataSync(nodeID string) error {
-	dataSyncAPI := ds.getNodeDataSyncAPI(nodeID)
-	if dataSyncAPI == nil {
+	node := ds.nodeManager.GetNode(nodeID)
+	if node == nil {
 		return xerrors.Errorf("could not get node %s data sync api", nodeID)
 	}
 	topChecksum, err := ds.getTopHash(nodeID)
@@ -112,7 +101,7 @@ func (ds *DataSync) doDataSync(nodeID string) error {
 	ctx, cancle := context.WithCancel(context.Background())
 	defer cancle()
 
-	if ok, err := dataSyncAPI.CompareTopHash(ctx, topChecksum); err != nil {
+	if ok, err := node.CompareTopHash(ctx, topChecksum); err != nil {
 		return err
 	} else if ok {
 		return xerrors.Errorf("compare top hash %w", err)
@@ -123,7 +112,7 @@ func (ds *DataSync) doDataSync(nodeID string) error {
 		return xerrors.Errorf("get hashes of buckets %w", err)
 	}
 
-	mismatchBuckets, err := dataSyncAPI.CompareBucketHashes(ctx, checksums)
+	mismatchBuckets, err := node.CompareBucketHashes(ctx, checksums)
 	if err != nil {
 		return xerrors.Errorf("compare bucket hashes %w", err)
 	}

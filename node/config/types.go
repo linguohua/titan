@@ -100,4 +100,6 @@ type SchedulerCfg struct {
 	CandidateReplicas int
 	// Proportion of validator in candidate nodes (0 ~ 1)
 	ValidatorRatio float64
+	// The base downstream bandwidth per validator window (unit : MiB)
+	ValidatorBaseBwDn int
 }

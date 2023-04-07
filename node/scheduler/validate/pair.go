@@ -4,6 +4,8 @@ import (
 	"math"
 	"math/rand"
 	"time"
+
+	"github.com/docker/go-units"
 )
 
 // reduces the beValidateGroup's bandwidth to an value between the min and max averages
@@ -110,20 +112,20 @@ func (m *Manager) ResetValidatorGroup(nodeIDs []string) {
 
 	// init
 	m.beValidateGroups = make([]*BeValidateGroup, 0)
-	m.validatorUnits = make([]*ValidatorBwDnUnit, 0)
+	m.vWindows = make([]*VWindow, 0)
 
 	for _, nodeID := range nodeIDs {
 		node := m.nodeMgr.GetCandidateNode(nodeID)
 		bwDn := node.BandwidthDown
-		count := int(math.Floor((bwDn * bandwidthRatio) / baseBandwidthDown))
+		count := int(math.Floor((bwDn * bandwidthRatio) / m.getValidatorBaseBwDn()))
 		log.Debugf("addValidator %s ,bandwidthDown:%.2f, count:%d", nodeID, bwDn, count)
 		if count < 1 {
 			continue
 		}
 
 		for i := 0; i < count; i++ {
-			vr := newValidatorDwDnUnit(nodeID)
-			m.validatorUnits = append(m.validatorUnits, vr)
+			vr := newVWindow(nodeID)
+			m.vWindows = append(m.vWindows, vr)
 
 			bg := newBeValidateGroup()
 			m.beValidateGroups = append(m.beValidateGroups, bg)
@@ -131,40 +133,40 @@ func (m *Manager) ResetValidatorGroup(nodeIDs []string) {
 	}
 }
 
-// adds a validator unit to the manager with the specified node ID and bandwidth down
+// adds a validator window to the manager with the specified node ID and bandwidth down
 func (m *Manager) addValidator(nodeID string, bwDn float64) {
 	m.validatePairLock.Lock()
 	defer m.validatePairLock.Unlock()
 
-	count := int(math.Floor((bwDn * bandwidthRatio) / baseBandwidthDown))
+	count := int(math.Floor((bwDn * bandwidthRatio) / m.getValidatorBaseBwDn()))
 	log.Debugf("addValidator %s ,bandwidthDown:%.2f, count:%d", nodeID, bwDn, count)
 	if count < 1 {
 		return
 	}
 
 	// Do not process if node present
-	for _, v := range m.validatorUnits {
+	for _, v := range m.vWindows {
 		if v.NodeID == nodeID {
 			return
 		}
 	}
 
 	for i := 0; i < count; i++ {
-		vr := newValidatorDwDnUnit(nodeID)
-		m.validatorUnits = append(m.validatorUnits, vr)
+		vr := newVWindow(nodeID)
+		m.vWindows = append(m.vWindows, vr)
 
 		bg := newBeValidateGroup()
 		m.beValidateGroups = append(m.beValidateGroups, bg)
 	}
 }
 
-// removes the validator unit with the specified node ID from the manager
+// removes the validator window with the specified node ID from the manager
 func (m *Manager) removeValidator(nodeID string) {
 	m.validatePairLock.Lock()
 	defer m.validatePairLock.Unlock()
 
 	var indexes []int
-	for i, v := range m.validatorUnits {
+	for i, v := range m.vWindows {
 		if v.NodeID == nodeID {
 			indexes = append(indexes, i)
 		}
@@ -174,14 +176,14 @@ func (m *Manager) removeValidator(nodeID string) {
 		return
 	}
 
-	// update validatorUnits
+	// update validator windows
 	start := indexes[0]
 	end := indexes[len(indexes)-1] + 1 // does not contain end , need to ++
 
-	s1 := m.validatorUnits[:start]
-	s2 := m.validatorUnits[end:]
+	s1 := m.vWindows[:start]
+	s2 := m.vWindows[end:]
 
-	m.validatorUnits = append(s1, s2...)
+	m.vWindows = append(s1, s2...)
 
 	// update beValidateGroups
 	rIndex := len(m.beValidateGroups) - len(indexes)
@@ -269,12 +271,12 @@ func (m *Manager) divideIntoGroups() {
 }
 
 // PairValidatorsAndBeValidates randomly pair validators and beValidates based on their bandwidth capabilities.
-func (m *Manager) PairValidatorsAndBeValidates() []*ValidatorBwDnUnit {
+func (m *Manager) PairValidatorsAndBeValidates() []*VWindow {
 	log.Debugf("PairValidatorsAndBeValidates start %s \n", time.Now().String())
 	m.divideIntoGroups()
 	log.Debugf("PairValidatorsAndBeValidates end %s \n", time.Now().String())
 
-	vs := len(m.validatorUnits)
+	vs := len(m.vWindows)
 	bs := len(m.beValidateGroups)
 	if vs != bs {
 		log.Errorf("group len are not the same vs:%d,bs:%d", vs, bs)
@@ -286,11 +288,21 @@ func (m *Manager) PairValidatorsAndBeValidates() []*ValidatorBwDnUnit {
 		m.beValidateGroups[i], m.beValidateGroups[j] = m.beValidateGroups[j], m.beValidateGroups[i]
 	})
 
-	for i, v := range m.validatorUnits {
+	for i, v := range m.vWindows {
 		groups := m.beValidateGroups[i]
 
 		v.BeValidates = groups.beValidates
 	}
 
-	return m.validatorUnits
+	return m.vWindows
+}
+
+func (m *Manager) getValidatorBaseBwDn() float64 {
+	cfg, err := m.config()
+	if err != nil {
+		log.Errorf("schedulerConfig err:%s", err.Error())
+		return 0
+	}
+
+	return float64(cfg.ValidatorBaseBwDn * units.MiB)
 }

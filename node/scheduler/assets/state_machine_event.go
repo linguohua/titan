@@ -141,6 +141,7 @@ func (evt AssetStartPulls) apply(state *AssetPullingInfo) {
 // RefillReplicas refills asset replicas
 type RefillReplicas struct {
 	ID                       string
+	State                    AssetState
 	Hash                     AssetHash
 	Replicas                 int64
 	ServerID                 string
@@ -153,7 +154,8 @@ type RefillReplicas struct {
 	CandidateReplicaSucceeds []string
 }
 
-func (evt RefillReplicas) apply(state *AssetPullingInfo) {
+func (evt RefillReplicas) applyGlobal(state *AssetPullingInfo) bool {
+	state.State = evt.State
 	state.CID = evt.ID
 	state.Hash = evt.Hash
 	state.EdgeReplicas = evt.Replicas
@@ -165,6 +167,7 @@ func (evt RefillReplicas) apply(state *AssetPullingInfo) {
 	state.Blocks = evt.Blocks
 	state.EdgeReplicaSucceeds = evt.EdgeReplicaSucceeds
 	state.CandidateReplicaSucceeds = evt.CandidateReplicaSucceeds
+	return true
 }
 
 // AssetRePull re-pull the asset
