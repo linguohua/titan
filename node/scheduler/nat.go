@@ -16,7 +16,8 @@ import (
 	"golang.org/x/xerrors"
 )
 
-func (s *Scheduler) EdgeExternalServiceAddress(ctx context.Context, nodeID, schedulerURL string) (string, error) {
+// GetEdgeExternalServiceAddress returns the external service address of an edge node
+func (s *Scheduler) GetEdgeExternalServiceAddress(ctx context.Context, nodeID, schedulerURL string) (string, error) {
 	eNode := s.NodeManager.GetEdgeNode(nodeID)
 	if eNode != nil {
 		return eNode.ExternalServiceAddress(ctx, schedulerURL)
@@ -25,6 +26,7 @@ func (s *Scheduler) EdgeExternalServiceAddress(ctx context.Context, nodeID, sche
 	return "", fmt.Errorf("Node %s offline or not exist", nodeID)
 }
 
+// CheckEdgeConnectivity checks if the edge node is reachable
 func (s *Scheduler) CheckEdgeConnectivity(ctx context.Context, url string) error {
 	udpPacketConn, err := net.ListenPacket("udp", ":0")
 	if err != nil {
@@ -59,15 +61,16 @@ func (s *Scheduler) CheckEdgeConnectivity(ctx context.Context, url string) error
 func (s *Scheduler) CheckNetworkConnectivity(ctx context.Context, network, targetURL string) error {
 	switch network {
 	case "tcp":
-		return s.checkTcpConnectivity(targetURL)
+		return s.verifyTCPConnectivity(targetURL)
 	case "udp":
-		return s.checkUdpConnectivity(targetURL)
+		return s.verifyUDPConnectivity(targetURL)
 	}
 
 	return fmt.Errorf("unknow network %s type", network)
 }
 
-func (s *Scheduler) checkEdgeIfBehindFullConeNAT(ctx context.Context, schedulerURL, edgeURL string) (bool, error) {
+// checks if an edge node is behind a Full Cone NAT
+func (s *Scheduler) detectFullConeNAT(ctx context.Context, schedulerURL, edgeURL string) (bool, error) {
 	schedulerAPI, close, err := client.NewScheduler(context.Background(), schedulerURL, nil)
 	if err != nil {
 		return false, err
@@ -83,7 +86,8 @@ func (s *Scheduler) checkEdgeIfBehindFullConeNAT(ctx context.Context, schedulerU
 	return false, nil
 }
 
-func (s *Scheduler) checkEdgeIfBehindRestrictedNAT(ctx context.Context, edgeURL string) (bool, error) {
+// checks if an edge node is behind a Restricted NAT
+func (s *Scheduler) detectRestrictedNAT(ctx context.Context, edgeURL string) (bool, error) {
 	udpPacketConn, err := net.ListenPacket("udp", ":0")
 	if err != nil {
 		return false, err
@@ -106,14 +110,15 @@ func (s *Scheduler) checkEdgeIfBehindRestrictedNAT(ctx context.Context, edgeURL 
 	defer cancel()
 
 	if _, err := edgeAPI.Version(ctx); err != nil {
-		log.Warnf("checkEdgeIfBehindRestrictedNAT,edge %s PortRestrictedNAT", edgeURL)
+		log.Warnf("detectRestrictedNAT,edge %s PortRestrictedNAT", edgeURL)
 		return false, nil //nolint:nilerr
 	}
 
 	return true, nil
 }
 
-func (s *Scheduler) checkEdgeNatType(ctx context.Context, edgeAPI *node.API, edgeAddr string) (types.NatType, error) {
+// determines the NAT type of an edge node
+func (s *Scheduler) analyzeEdgeNodeNATType(ctx context.Context, edgeAPI *node.API, edgeAddr string) (types.NatType, error) {
 	if len(s.SchedulerCfg.SchedulerServer1) == 0 {
 		return types.NatTypeUnknow, nil
 	}
@@ -131,14 +136,14 @@ func (s *Scheduler) checkEdgeNatType(ctx context.Context, edgeAPI *node.API, edg
 		return types.NatTypeNo, nil
 	}
 
-	log.Debugf("CheckTcpConnectivity error: %s", err.Error())
+	log.Debugf("analyzeEdgeNodeNATType error: %s", err.Error())
 
 	if len(s.SchedulerCfg.SchedulerServer2) == 0 {
 		return types.NatTypeUnknow, nil
 	}
 
 	edgeURL := fmt.Sprintf("https://%s/rpc/v0", edgeAddr)
-	isBehindFullConeNAT, err := s.checkEdgeIfBehindFullConeNAT(ctx, s.SchedulerCfg.SchedulerServer2, edgeURL)
+	isBehindFullConeNAT, err := s.detectFullConeNAT(ctx, s.SchedulerCfg.SchedulerServer2, edgeURL)
 	if err != nil {
 		return types.NatTypeUnknow, err
 	}
@@ -147,7 +152,7 @@ func (s *Scheduler) checkEdgeNatType(ctx context.Context, edgeAPI *node.API, edg
 		return types.NatTypeFullCone, nil
 	}
 
-	isBehindRestrictedNAT, err := s.checkEdgeIfBehindRestrictedNAT(ctx, edgeURL)
+	isBehindRestrictedNAT, err := s.detectRestrictedNAT(ctx, edgeURL)
 	if err != nil {
 		return types.NatTypeUnknow, err
 	}
@@ -159,26 +164,27 @@ func (s *Scheduler) checkEdgeNatType(ctx context.Context, edgeAPI *node.API, edg
 	return types.NatTypePortRestricted, nil
 }
 
-func (s *Scheduler) getNatType(ctx context.Context, edgeAPI *node.API, edgeAddr string) types.NatType {
-	natType, err := s.checkEdgeNatType(context.Background(), edgeAPI, edgeAddr)
+// identifies the NAT type of a node
+func (s *Scheduler) determineNATType(ctx context.Context, edgeAPI *node.API, edgeAddr string) types.NatType {
+	natType, err := s.analyzeEdgeNodeNATType(context.Background(), edgeAPI, edgeAddr)
 	if err != nil {
-		log.Errorf("getNatType, error:%s", err.Error())
+		log.Errorf("determineNATType, error:%s", err.Error())
 		natType = types.NatTypeUnknow
 	}
 	return natType
 }
 
-// NodeNatType get node nat type
-func (s *Scheduler) NodeNatType(ctx context.Context, nodeID string) (types.NatType, error) {
+// GetNodeNATType gets the node's NAT type
+func (s *Scheduler) GetNodeNATType(ctx context.Context, nodeID string) (types.NatType, error) {
 	eNode := s.NodeManager.GetEdgeNode(nodeID)
 	if eNode == nil {
 		return types.NatTypeUnknow, fmt.Errorf("node %s offline or not exist", nodeID)
 	}
 
-	return s.getNatType(ctx, eNode.API, eNode.RemoteAddr()), nil
+	return s.determineNATType(ctx, eNode.API, eNode.RemoteAddr()), nil
 }
 
-func (s *Scheduler) checkTcpConnectivity(targetURL string) error {
+func (s *Scheduler) verifyTCPConnectivity(targetURL string) error {
 	url, err := url.ParseRequestURI(targetURL)
 	if err != nil {
 		return xerrors.Errorf("parse uri error: %w, url: %s", err, targetURL)
@@ -198,7 +204,7 @@ func (s *Scheduler) checkTcpConnectivity(targetURL string) error {
 	return nil
 }
 
-func (s *Scheduler) checkUdpConnectivity(targetURL string) error {
+func (s *Scheduler) verifyUDPConnectivity(targetURL string) error {
 	udpPacketConn, err := net.ListenPacket("udp", ":0")
 	if err != nil {
 		return xerrors.Errorf("list udp %w, url %s", err, targetURL)
@@ -225,7 +231,7 @@ func (s *Scheduler) checkUdpConnectivity(targetURL string) error {
 	return nil
 }
 
-// UserNatTravel nat travel
+// NatTravel performs NAT traversal
 func (s *Scheduler) NatTravel(ctx context.Context, target *types.NatTravelReq) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	sourceURL := fmt.Sprintf("https://%s/ping", remoteAddr)

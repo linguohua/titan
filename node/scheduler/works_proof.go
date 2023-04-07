@@ -11,7 +11,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// UserDownloadResult result for user download
+// UserDownloadResult handles the result of a user download
 func (s *Scheduler) UserDownloadResult(ctx context.Context, result types.UserDownloadResult) error {
 	nodeID := handler.GetNodeID(ctx)
 	if result.Succeed {
@@ -46,7 +46,7 @@ func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []type
 	return nil
 }
 
-// EdgeDownloadInfos find node
+// EdgeDownloadInfos  finds edge download information for a given CID
 func (s *Scheduler) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error) {
 	if cid == "" {
 		return nil, xerrors.New("cids is nil")

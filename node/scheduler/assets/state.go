@@ -1,10 +1,11 @@
 package assets
 
-// AssetState asset pull state
+// AssetState represents the state of an asset in the process of being pulled.
 type AssetState string
 
+// Constants defining various states of the asset pulling process.
 const (
-	// UndefinedState Undefined
+	// UndefinedState represents an undefined state.
 	UndefinedState AssetState = ""
 	// SeedSelect select first candidate to pull seed asset
 	SeedSelect AssetState = "SeedSelect"
@@ -30,19 +31,20 @@ const (
 	Remove AssetState = "Remove"
 )
 
+// String returns the string representation of the AssetState.
 func (s AssetState) String() string {
 	return string(s)
 }
 
 var (
-	// FailedStates asset pull failed states
+	// FailedStates contains a list of asset pull states that represent failures.
 	FailedStates = []string{
 		SeedFailed.String(),
 		CandidatesFailed.String(),
 		EdgesFailed.String(),
 	}
 
-	// PullingStates asset pulling states
+	// PullingStates contains a list of asset pull states that represent pulling.
 	PullingStates = []string{
 		SeedSelect.String(),
 		SeedPulling.String(),

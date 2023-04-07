@@ -116,7 +116,7 @@ var showNodeInfoCmd = &cli.Command{
 			return err
 		}
 
-		natType, _ := schedulerAPI.NodeNatType(ctx, nodeID)
+		natType, _ := schedulerAPI.GetNodeNATType(ctx, nodeID)
 
 		fmt.Printf("node id: %s \n", info.NodeID)
 		fmt.Printf("online: %v \n", info.Online)
@@ -194,7 +194,7 @@ var edgeExternalAddrCmd = &cli.Command{
 		}
 		defer closer()
 
-		addr, err := schedulerAPI.EdgeExternalServiceAddress(ctx, nodeID, schedulerURL)
+		addr, err := schedulerAPI.GetEdgeExternalServiceAddress(ctx, nodeID, schedulerURL)
 		if err != nil {
 			return err
 		}

@@ -8,7 +8,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// Plan Plan
+// Plan prepares a plan for asset pulling
 func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface{}, uint64, error) {
 	next, processed, err := m.plan(events, user.(*AssetPullingInfo))
 	if err != nil || next == nil {
@@ -26,6 +26,7 @@ func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface
 	}, processed, nil
 }
 
+// maps asset states to their corresponding planner functions
 var planners = map[AssetState]func(events []statemachine.Event, state *AssetPullingInfo) (uint64, error){
 	// external import
 	UndefinedState: planOne(
@@ -75,6 +76,7 @@ var planners = map[AssetState]func(events []statemachine.Event, state *AssetPull
 	),
 }
 
+// creates a plan for the next asset pulling action based on the given events and asset state
 func (m *Manager) plan(events []statemachine.Event, state *AssetPullingInfo) (func(statemachine.Context, AssetPullingInfo) error, uint64, error) {
 	p := planners[state.State]
 	if p == nil {
@@ -126,6 +128,7 @@ func (m *Manager) plan(events []statemachine.Event, state *AssetPullingInfo) (fu
 	return nil, processed, nil
 }
 
+// prepares a single plan for a given asset state, allowing for one event at a time
 func planOne(ts ...func() (mut mutator, next func(info *AssetPullingInfo) (more bool, err error))) func(events []statemachine.Event, state *AssetPullingInfo) (uint64, error) {
 	return func(events []statemachine.Event, state *AssetPullingInfo) (uint64, error) {
 	eloop:
@@ -167,6 +170,7 @@ func planOne(ts ...func() (mut mutator, next func(info *AssetPullingInfo) (more 
 	}
 }
 
+// on is a utility function to handle state transitions
 func on(mut mutator, next AssetState) func() (mutator, func(*AssetPullingInfo) (bool, error)) {
 	return func() (mutator, func(*AssetPullingInfo) (bool, error)) {
 		return mut, func(state *AssetPullingInfo) (bool, error) {
@@ -185,6 +189,7 @@ func apply(mut mutator) func() (mutator, func(*AssetPullingInfo) (bool, error)) 
 	}
 }
 
+// restarts all state machines for the assets
 func (m *Manager) restartStateMachines(ctx context.Context) error {
 	defer m.stateMachineWait.Done()
 
@@ -206,7 +211,7 @@ func (m *Manager) restartStateMachines(ctx context.Context) error {
 	return nil
 }
 
-// ListAssets load asset pull infos from statemachine
+// ListAssets load asset pull infos from state machine
 func (m *Manager) ListAssets() ([]AssetPullingInfo, error) {
 	var list []AssetPullingInfo
 	if err := m.assetStateMachines.List(&list); err != nil {

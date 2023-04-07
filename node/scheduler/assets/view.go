@@ -11,19 +11,20 @@ import (
 	"golang.org/x/xerrors"
 )
 
+// removes an asset from the node's asset view
 func (m *Manager) removeAssetFromView(nodeID string, assetCID string) error {
 	c, err := cid.Decode(assetCID)
 	if err != nil {
 		return err
 	}
 
-	bucketNumber := bucketNumber(c)
+	bucketNumber := determineBucketNumber(c)
 	bucketID := fmt.Sprintf("%s:%d", nodeID, bucketNumber)
 	assetHashes, err := m.FetchBucket(bucketID)
 	if err != nil {
 		return xerrors.Errorf("load bucket error %w", err)
 	}
-	assetHashes = removeAssetHash(assetHashes, c.Hash().String())
+	assetHashes = removeTargetHash(assetHashes, c.Hash().String())
 
 	bucketHashes, err := m.FetchBucketHashes(nodeID)
 	if err != nil {
@@ -41,7 +42,7 @@ func (m *Manager) removeAssetFromView(nodeID string, assetCID string) error {
 		return m.DeleteAssetsView(nodeID)
 	}
 
-	topHash, err := calculateTopHash(bucketHashes)
+	topHash, err := calculateOverallHash(bucketHashes)
 	if err != nil {
 		return err
 	}
@@ -56,26 +57,27 @@ func (m *Manager) removeAssetFromView(nodeID string, assetCID string) error {
 	return nil
 }
 
+// adds an asset to the node's asset view
 func (m *Manager) addAssetToView(nodeID string, assetCID string) error {
 	c, err := cid.Decode(assetCID)
 	if err != nil {
 		return err
 	}
-	bucketNumber := bucketNumber(c)
+	bucketNumber := determineBucketNumber(c)
 	bucketID := fmt.Sprintf("%s:%d", nodeID, bucketNumber)
 	assetHashes, err := m.FetchBucket(bucketID)
 	if err != nil {
 		return xerrors.Errorf("load bucket error %w", err)
 	}
 
-	if has(assetHashes, c.Hash().String()) {
+	if contains(assetHashes, c.Hash().String()) {
 		return nil
 	}
 
 	assetHashes = append(assetHashes, c.Hash().String())
 	sort.Strings(assetHashes)
 
-	hash, err := calculateBucketHash(assetHashes)
+	hash, err := computeBucketHash(assetHashes)
 	if err != nil {
 		return err
 	}
@@ -86,7 +88,7 @@ func (m *Manager) addAssetToView(nodeID string, assetCID string) error {
 	}
 	bucketHashes[bucketNumber] = hash
 
-	topHash, err := calculateTopHash(bucketHashes)
+	topHash, err := calculateOverallHash(bucketHashes)
 	if err != nil {
 		return err
 	}
@@ -98,7 +100,8 @@ func (m *Manager) addAssetToView(nodeID string, assetCID string) error {
 	return m.UpsertBucket(bucketID, assetHashes)
 }
 
-func bucketNumber(c cid.Cid) uint32 {
+// calculates the bucket number for a given CID
+func determineBucketNumber(c cid.Cid) uint32 {
 	h := fnv.New32a()
 	if _, err := h.Write(c.Hash()); err != nil {
 		log.Panicf("hash write buffer error %s", err.Error())
@@ -106,7 +109,8 @@ func bucketNumber(c cid.Cid) uint32 {
 	return h.Sum32() % numAssetBuckets
 }
 
-func removeAssetHash(hashes []string, target string) []string {
+// removes a target hash from a list of hashes
+func removeTargetHash(hashes []string, target string) []string {
 	for i, hash := range hashes {
 		if hash == target {
 			return append(hashes[:i], hashes[i+1:]...)
@@ -116,7 +120,8 @@ func removeAssetHash(hashes []string, target string) []string {
 	return hashes
 }
 
-func calculateBucketHash(hashes []string) (string, error) {
+// calculates the hash for a given list of asset hashes
+func computeBucketHash(hashes []string) (string, error) {
 	hash := sha256.New()
 	for _, h := range hashes {
 		if cs, err := hex.DecodeString(h); err != nil {
@@ -128,7 +133,8 @@ func calculateBucketHash(hashes []string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func calculateTopHash(hashes map[uint32]string) (string, error) {
+// computes the top hash for a given map of bucket hashes
+func calculateOverallHash(hashes map[uint32]string) (string, error) {
 	hash := sha256.New()
 	for _, h := range hashes {
 		if cs, err := hex.DecodeString(h); err != nil {
@@ -140,7 +146,8 @@ func calculateTopHash(hashes map[uint32]string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func has(hashes []string, target string) bool {
+// checks if a target hash exists in a list of hashes
+func contains(hashes []string, target string) bool {
 	for _, hash := range hashes {
 		if hash == target {
 			return true
