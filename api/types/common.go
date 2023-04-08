@@ -1,7 +1,6 @@
 package types
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/linguohua/titan/node/modules/dtypes"
@@ -15,13 +14,12 @@ type Base struct {
 	UpdatedAt time.Time `json:"updated_at" gorm:"comment:'更新时间';type:timestamp;"`
 }
 
-// NodeInfo Info
+// NodeInfo contains information about a node.
 type NodeInfo struct {
 	Base
 	NodeID       string   `json:"node_id" form:"nodeId" gorm:"column:node_id;comment:;" db:"node_id"`
-	UserID       string   `json:"user_id" form:"userId" gorm:"column:user_id;comment:;"`
-	SnCode       string   `json:"sn_code" form:"snCode" gorm:"column:sn_code;comment:;"`
-	NodeType     NodeType `json:"node_type"`
+	SerialNumber string   `json:"serial_number" form:"serialNumber" gorm:"column:serial_number;comment:;"`
+	Type         NodeType `json:"type"`
 	ExternalIP   string   `json:"external_ip" form:"externalIp" gorm:"column:external_ip;comment:;"`
 	InternalIP   string   `json:"internal_ip" form:"internalIp" gorm:"column:internal_ip;comment:;"`
 	IPLocation   string   `json:"ip_location" form:"ipLocation" gorm:"column:ip_location;comment:;"`
@@ -29,13 +27,13 @@ type NodeInfo struct {
 	Latency      float64  `json:"latency" form:"latency" gorm:"column:latency;comment:;"`
 	CPUUsage     float64  `json:"cpu_usage" form:"cpuUsage" gorm:"column:cpu_usage;comment:;"`
 	MemoryUsage  float64  `json:"memory_usage" form:"memoryUsage" gorm:"column:memory_usage;comment:;"`
-	Online       bool     `json:"online" form:"online" gorm:"column:online;comment:;"`
+	IsOnline     bool     `json:"is_online" form:"isOnline" gorm:"column:is_online;comment:;"`
 
 	DiskUsage       float64         `json:"disk_usage" form:"diskUsage" gorm:"column:disk_usage;comment:;" db:"disk_usage"`
 	Blocks          int             `json:"blocks" form:"blockCount" gorm:"column:blocks;comment:;" db:"blocks"`
-	BandwidthUp     float64         `json:"bandwidth_up" db:"bandwidth_up"`
-	BandwidthDown   float64         `json:"bandwidth_down" db:"bandwidth_down"`
-	NatType         string          `json:"nat_type" form:"natType" gorm:"column:nat_type;comment:;" db:"nat_type"`
+	UploadSpeed     float64         `json:"upload_speed" db:"upload_speed"`
+	DownloadSpeed   float64         `json:"download_speed" db:"download_speed"`
+	NATType         string          `json:"nat_type" form:"natType" gorm:"column:nat_type;comment:;" db:"nat_type"`
 	DiskSpace       float64         `json:"disk_space" form:"diskSpace" gorm:"column:disk_space;comment:;" db:"disk_space"`
 	SystemVersion   string          `json:"system_version" form:"systemVersion" gorm:"column:system_version;comment:;" db:"system_version"`
 	DiskType        string          `json:"disk_type" form:"diskType" gorm:"column:disk_type;comment:;" db:"disk_type"`
@@ -47,15 +45,15 @@ type NodeInfo struct {
 	CPUCores        int             `json:"cpu_cores" form:"cpuCores" gorm:"column:cpu_cores;comment:;" db:"cpu_cores"`
 	ProductType     string          `json:"product_type" form:"productType" gorm:"column:product_type;comment:;" db:"product_type"`
 	MacLocation     string          `json:"mac_location" form:"macLocation" gorm:"column:mac_location;comment:;" db:"mac_location"`
-	OnlineTime      int             `json:"online_time" form:"OnlineTime" db:"online_time"`
+	OnlineDuration  int             `json:"online_duration" form:"onlineDuration" db:"online_duration"`
 	Profit          float64         `json:"profit" db:"profit"`
 	DownloadTraffic float64         `json:"download_traffic" db:"download_traffic"`
 	UploadTraffic   float64         `json:"upload_traffic" db:"upload_traffic"`
 	DownloadBlocks  int             `json:"download_blocks" form:"downloadCount" gorm:"column:download_blocks;comment:;" db:"download_blocks"`
 	PortMapping     string          `db:"port_mapping"`
-	LastTime        time.Time       `db:"last_time"`
-	Quitted         bool            `db:"quitted"`
-	ServerID        dtypes.ServerID `db:"scheduler_sid"`
+	LastSeen        time.Time       `db:"last_seen"`
+	IsQuitted       bool            `db:"quitted"`
+	SchedulerID     dtypes.ServerID `db:"scheduler_sid"`
 }
 
 // NodeType node type
@@ -89,20 +87,19 @@ func (n NodeType) String() string {
 	return ""
 }
 
-func (n NodeType) MarshalBinary() ([]byte, error) {
-	return json.Marshal(n)
-}
-
+// RunningNodeType represents the type of the running node.
 var RunningNodeType NodeType
 
-// Topics pub sub topics
-type Topics string
+// EventTopics represents topics for pub/sub events
+type EventTopics string
 
 const (
-	TopicsNodeOnline  Topics = "node_online"
-	TopicsNodeOffline Topics = "node_offline"
+	// EventNodeOnline node online event
+	EventNodeOnline EventTopics = "node_online"
+	// EventNodeOffline node offline event
+	EventNodeOffline EventTopics = "node_offline"
 )
 
-func (t Topics) String() string {
+func (t EventTopics) String() string {
 	return string(t)
 }

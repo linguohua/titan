@@ -119,7 +119,7 @@ var showNodeInfoCmd = &cli.Command{
 		natType, _ := schedulerAPI.GetNodeNATType(ctx, nodeID)
 
 		fmt.Printf("node id: %s \n", info.NodeID)
-		fmt.Printf("online: %v \n", info.Online)
+		fmt.Printf("online: %v \n", info.IsOnline)
 		fmt.Printf("name: %s \n", info.NodeName)
 		fmt.Printf("external_ip: %s \n", info.ExternalIP)
 		fmt.Printf("internal_ip: %s \n", info.InternalIP)
@@ -128,8 +128,8 @@ var showNodeInfoCmd = &cli.Command{
 		fmt.Printf("disk space: %s \n", units.BytesSize(info.DiskSpace))
 		fmt.Printf("fsType: %s \n", info.IoSystem)
 		fmt.Printf("mac: %s \n", info.MacLocation)
-		fmt.Printf("download bandwidth: %s \n", units.BytesSize(info.BandwidthDown))
-		fmt.Printf("upload bandwidth: %s \n", units.BytesSize(info.BandwidthUp))
+		fmt.Printf("download bandwidth: %s \n", units.BytesSize(info.DownloadSpeed))
+		fmt.Printf("upload bandwidth: %s \n", units.BytesSize(info.UploadSpeed))
 		fmt.Printf("cpu percent: %.2f %s \n", info.CPUUsage, "%")
 		//
 		fmt.Printf("DownloadCount: %d \n", info.DownloadBlocks)

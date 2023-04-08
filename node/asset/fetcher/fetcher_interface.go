@@ -9,5 +9,5 @@ import (
 
 type BlockFetcher interface {
 	// get block from remote
-	Fetch(ctx context.Context, cids []string, dss []*types.DownloadSource) ([]blocks.Block, error)
+	Fetch(ctx context.Context, cids []string, dss []*types.AssetDownloadSource) ([]blocks.Block, error)
 }

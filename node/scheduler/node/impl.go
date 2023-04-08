@@ -105,12 +105,12 @@ func (m *Manager) NodeOnline(node *Node) error {
 		return err
 	}
 
-	if node.NodeType == types.NodeEdge {
+	if node.Type == types.NodeEdge {
 		m.storeEdgeNode(node)
 		return nil
 	}
 
-	if node.NodeType == types.NodeCandidate {
+	if node.Type == types.NodeCandidate {
 		m.storeCandidateNode(node)
 		// update validator owner
 		return m.UpdateValidatorInfo(m.ServerID, nodeID)

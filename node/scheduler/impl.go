@@ -148,8 +148,8 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 			return err
 		}
 
-		nodeInfo.NodeType = nodeType
-		nodeInfo.ServerID = s.ServerID
+		nodeInfo.Type = nodeType
+		nodeInfo.SchedulerID = s.ServerID
 
 		baseInfo, err := s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo, opts.TcpServerPort)
 		if err != nil {
@@ -158,7 +158,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 		if nodeType == types.NodeEdge {
 			natType := s.determineNATType(context.Background(), cNode.API, remoteAddr)
-			baseInfo.NatType = natType.String()
+			baseInfo.NATType = natType.String()
 		}
 
 		cNode.BaseInfo = baseInfo
@@ -269,12 +269,12 @@ func (s *Scheduler) TriggerElection(ctx context.Context) error {
 // RetrieveNodeInfo returns information about the specified node.
 func (s *Scheduler) RetrieveNodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error) {
 	nodeInfo := types.NodeInfo{}
-	nodeInfo.Online = false
+	nodeInfo.IsOnline = false
 
 	info := s.NodeManager.GetNode(nodeID)
 	if info != nil {
 		nodeInfo = *info.NodeInfo
-		nodeInfo.Online = true
+		nodeInfo.IsOnline = true
 	} else {
 		dbInfo, err := s.NodeManager.FetchNodeInfo(nodeID)
 		if err != nil {
@@ -366,7 +366,7 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 
 		_, exist := validator[nodeInfo.NodeID]
 		if exist {
-			nodeInfo.NodeType = types.NodeValidator
+			nodeInfo.Type = types.NodeValidator
 		}
 
 		nodeInfos = append(nodeInfos, *nodeInfo)
@@ -405,14 +405,14 @@ func (s *Scheduler) IgnoreProofOfWork(ctx context.Context, proofs []*types.NodeW
 }
 
 // RetrieveCandidateDownloadSources finds candidate download sources for the given CID.
-func (s *Scheduler) RetrieveCandidateDownloadSources(ctx context.Context, cid string) ([]*types.DownloadSource, error) {
+func (s *Scheduler) RetrieveCandidateDownloadSources(ctx context.Context, cid string) ([]*types.AssetDownloadSource, error) {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}
 
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	sources := make([]*types.DownloadSource, 0)
+	sources := make([]*types.AssetDownloadSource, 0)
 
 	rows, err := s.NodeManager.FetchReplicasByHash(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
 	if err != nil {
@@ -442,7 +442,7 @@ func (s *Scheduler) RetrieveCandidateDownloadSources(ctx context.Context, cid st
 		if err != nil {
 			continue
 		}
-		source := &types.DownloadSource{
+		source := &types.AssetDownloadSource{
 			CandidateAddr: cNode.DownloadAddr(),
 			Credentials:   credentials,
 		}

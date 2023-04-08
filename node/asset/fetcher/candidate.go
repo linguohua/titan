@@ -34,11 +34,11 @@ func NewCandidate(timeout, retryCount int) *Candidate {
 	return &Candidate{retryCount: retryCount, httpClient: httpClient}
 }
 
-func (c *Candidate) Fetch(ctx context.Context, cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
+func (c *Candidate) Fetch(ctx context.Context, cids []string, dss []*types.AssetDownloadSource) ([]blocks.Block, error) {
 	return c.getBlocks(cids, dss)
 }
 
-func (c *Candidate) getBlock(ds *types.DownloadSource, cidStr string) (blocks.Block, error) {
+func (c *Candidate) getBlock(ds *types.AssetDownloadSource, cidStr string) (blocks.Block, error) {
 	if len(ds.CandidateAddr) == 0 {
 		return nil, fmt.Errorf("candidate address can not empty")
 	}
@@ -85,7 +85,7 @@ func (c *Candidate) getBlock(ds *types.DownloadSource, cidStr string) (blocks.Bl
 	return basicBlock, nil
 }
 
-func (c *Candidate) getBlocks(cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
+func (c *Candidate) getBlocks(cids []string, dss []*types.AssetDownloadSource) ([]blocks.Block, error) {
 	if len(dss) == 0 {
 		return nil, fmt.Errorf("download srouce can not empty")
 	}

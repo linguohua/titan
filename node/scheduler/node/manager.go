@@ -106,7 +106,7 @@ func (m *Manager) storeEdgeNode(node *Node) {
 	code := m.distributeEdgeSelectCode(nodeID)
 	node.selectCode = code
 
-	m.notify.Pub(node, types.TopicsNodeOnline.String())
+	m.notify.Pub(node, types.EventNodeOnline.String())
 }
 
 // adds a candidate node to the manager's list of candidate nodes
@@ -125,13 +125,13 @@ func (m *Manager) storeCandidateNode(node *Node) {
 	code := m.distributeCandidateSelectCode(nodeID)
 	node.selectCode = code
 
-	m.notify.Pub(node, types.TopicsNodeOnline.String())
+	m.notify.Pub(node, types.EventNodeOnline.String())
 }
 
 // removes an edge node from the manager's list of edge nodes
 func (m *Manager) deleteEdgeNode(node *Node) {
 	m.repayEdgeSelectCode(node.selectCode)
-	m.notify.Pub(node, types.TopicsNodeOffline.String())
+	m.notify.Pub(node, types.EventNodeOffline.String())
 
 	nodeID := node.NodeInfo.NodeID
 	_, loaded := m.edgeNodes.LoadAndDelete(nodeID)
@@ -144,7 +144,7 @@ func (m *Manager) deleteEdgeNode(node *Node) {
 // removes a candidate node from the manager's list of candidate nodes
 func (m *Manager) deleteCandidateNode(node *Node) {
 	m.repayCandidateSelectCode(node.selectCode)
-	m.notify.Pub(node, types.TopicsNodeOffline.String())
+	m.notify.Pub(node, types.EventNodeOffline.String())
 
 	nodeID := node.NodeInfo.NodeID
 	_, loaded := m.candidateNodes.LoadAndDelete(nodeID)
@@ -162,9 +162,9 @@ func (m *Manager) nodeKeepalive(node *Node, t time.Time, isSave bool) {
 
 	if !lastTime.After(t) {
 		node.ClientCloser()
-		if node.NodeType == types.NodeCandidate {
+		if node.Type == types.NodeCandidate {
 			m.deleteCandidateNode(node)
-		} else if node.NodeType == types.NodeEdge {
+		} else if node.Type == types.NodeEdge {
 			m.deleteEdgeNode(node)
 		}
 		node = nil
@@ -214,7 +214,7 @@ func KeepaliveCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error)
 		node := nodeMgr.GetNode(nodeID)
 		if node != nil {
 			node.SetLastRequestTime(lastTime)
-			err := node.ConnectRPC(remoteAddr, false, node.NodeType)
+			err := node.ConnectRPC(remoteAddr, false, node.Type)
 			if err != nil {
 				log.Errorf("%s ConnectRPC err:%s", nodeID, err.Error())
 			}
@@ -238,8 +238,8 @@ func (m *Manager) checkNodesTTL() {
 
 // Save node information when it comes online
 func (m *Manager) saveInfo(n *BaseInfo) error {
-	n.Quitted = false
-	n.LastTime = time.Now()
+	n.IsQuitted = false
+	n.LastSeen = time.Now()
 
 	err := m.UpsertNodeInfo(n.NodeInfo)
 	if err != nil {

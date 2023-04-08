@@ -24,7 +24,7 @@ type carfileCache struct {
 	root            cid.Cid
 	storage         storage.Storage
 	bFetcher        fetcher.BlockFetcher
-	downloadSources []*types.DownloadSource
+	downloadSources []*types.AssetDownloadSource
 
 	blocksWaitList            []string
 	blocksDownloadSuccessList []string
@@ -39,7 +39,7 @@ type carfileCache struct {
 
 type options struct {
 	root     cid.Cid
-	dss      []*types.DownloadSource
+	dss      []*types.AssetDownloadSource
 	storage  storage.Storage
 	bFetcher fetcher.BlockFetcher
 	batch    int
