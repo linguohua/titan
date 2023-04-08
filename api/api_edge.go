@@ -6,6 +6,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
+// Edge is an interface for edge node
 type Edge interface {
 	Common
 	Device

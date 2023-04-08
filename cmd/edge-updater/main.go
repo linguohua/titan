@@ -115,7 +115,7 @@ func edgeUpdateInfos(schedulerAPI api.Scheduler) (map[int]*api.EdgeUpdateInfo, e
 	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Second)
 	defer cancel()
 
-	return schedulerAPI.EdgeUpdateInfos(ctx)
+	return schedulerAPI.GetEdgeUpdateInfos(ctx)
 }
 
 func getLocalEdgeVersion(appPath string) (api.Version, error) {

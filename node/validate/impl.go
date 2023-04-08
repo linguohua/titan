@@ -73,7 +73,7 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, req *api.BeValidateReq, 
 		return xerrors.Errorf("get car error %w", err)
 	}
 
-	nodeID, err := validate.device.NodeID(ctx)
+	nodeID, err := validate.device.GetNodeID(ctx)
 	if err != nil {
 		return err
 	}

@@ -46,8 +46,8 @@ func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []type
 	return nil
 }
 
-// EdgeDownloadInfos  finds edge download information for a given CID
-func (s *Scheduler) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error) {
+// GetEdgeDownloadInfos finds edge download information for a given CID
+func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error) {
 	if cid == "" {
 		return nil, xerrors.New("cids is nil")
 	}

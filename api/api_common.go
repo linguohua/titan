@@ -23,6 +23,7 @@ import (
 //  * Generate markdown docs
 //  * Generate openrpc blobs
 
+// Common is an interface for titan network
 type Common interface {
 	// MethodGroup: Auth
 

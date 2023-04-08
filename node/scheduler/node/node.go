@@ -78,7 +78,7 @@ func APIFromCandidate(api api.Candidate) *API {
 		DataSync:           api,
 		Asset:              api,
 		WaitQuiet:          api.WaitQuiet,
-		GetBlocksOfCarfile: api.GetBlocksOfCarfile,
+		GetBlocksOfCarfile: api.GetBlocksWithCarfileCID,
 	}
 	return a
 }

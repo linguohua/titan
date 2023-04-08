@@ -92,7 +92,7 @@ func (locator *Locator) ListAreaIDs(ctx context.Context) (areaIDs []string, err 
 	return locator.DB.listAreaIDs()
 }
 
-func (locator *Locator) ShowAccessPoint(ctx context.Context, areaID string) (api.AccessPoint, error) {
+func (locator *Locator) GetAccessPoint(ctx context.Context, areaID string) (api.AccessPoint, error) {
 	schedulerConfigs, err := locator.DB.getAccessPointConfigs(areaID)
 	if err != nil {
 		return api.AccessPoint{}, err
@@ -107,12 +107,12 @@ func (locator *Locator) ShowAccessPoint(ctx context.Context, areaID string) (api
 	return accessPoint, nil
 }
 
-func (locator *Locator) SetNodeOnlineStatus(ctx context.Context, nodeID string, isOnline bool) error {
-	log.Debugf("SetNodeOnlineStatus node %s online status %t", nodeID, isOnline)
+func (locator *Locator) UpdateNodeOnlineStatus(ctx context.Context, nodeID string, isOnline bool) error {
+	log.Debugf("UpdateNodeOnlineStatus node %s online status %t", nodeID, isOnline)
 
 	info, err := locator.DB.getNodeInfo(nodeID)
 	if err != nil {
-		log.Errorf("SetNodeOnlineStatus, get node %s error:%s", nodeID, err.Error())
+		log.Errorf("UpdateNodeOnlineStatus, get node %s error:%s", nodeID, err.Error())
 		return err
 	}
 
@@ -240,7 +240,7 @@ func (locator *Locator) EdgeDownloadInfos(ctx context.Context, cid string) ([]*t
 	}
 
 	if schedulerAPI != nil {
-		return schedulerAPI.EdgeDownloadInfos(ctx, cid)
+		return schedulerAPI.GetEdgeDownloadInfos(ctx, cid)
 	}
 
 	return make([]*types.DownloadInfo, 0), nil
@@ -330,7 +330,7 @@ func (locator *Locator) RegisterNewNode(ctx context.Context, schedulerURL, nodeI
 	return locator.DB.setNodeInfo(nodeID, schedulerURL, cfg.AreaID, false)
 }
 
-func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) ([]api.AccessPoint, error) {
+func (locator *Locator) GetWebAccessPoints(ctx context.Context) ([]api.AccessPoint, error) {
 	allCfg, err := locator.DB.getAllCfg()
 	if err != nil {
 		return make([]api.AccessPoint, 0), err
@@ -358,7 +358,7 @@ func (locator *Locator) LoadAccessPointsForWeb(ctx context.Context) ([]api.Acces
 }
 
 // load user access point for special user ip
-func (locator *Locator) LoadUserAccessPoint(ctx context.Context, userIP string) (api.AccessPoint, error) {
+func (locator *Locator) GetUserAccessPoint(ctx context.Context, userIP string) (api.AccessPoint, error) {
 	areaID := defaultAreaID
 	geoInfo, err := locator.GetGeoInfo(userIP)
 	if err != nil {

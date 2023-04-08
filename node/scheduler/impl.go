@@ -142,7 +142,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 	if oldNode == nil {
 		// load node info
-		nodeInfo, err := cNode.API.NodeInfo(ctx)
+		nodeInfo, err := cNode.API.GetNodeInfo(ctx)
 		if err != nil {
 			log.Errorf("nodeConnect NodeInfo err:%s", err.Error())
 			return err
@@ -266,8 +266,8 @@ func (s *Scheduler) TriggerElection(ctx context.Context) error {
 	return nil
 }
 
-// RetrieveNodeInfo returns information about the specified node.
-func (s *Scheduler) RetrieveNodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error) {
+// GetNodeInfo returns information about the specified node.
+func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error) {
 	nodeInfo := types.NodeInfo{}
 	nodeInfo.IsOnline = false
 
@@ -308,8 +308,9 @@ func (s *Scheduler) ConnectLocator(ctx context.Context, id string, token string)
 	return nil
 }
 
-// NodeQuit node want to quit titan
-func (s *Scheduler) NodeQuit(ctx context.Context, nodeID string) error {
+// UnregisterNode node want to quit titan
+func (s *Scheduler) UnregisterNode(ctx context.Context, nodeID string) error {
+	// TODO db
 	s.NodeManager.NodesQuit([]string{nodeID})
 
 	return nil
@@ -404,8 +405,8 @@ func (s *Scheduler) IgnoreProofOfWork(ctx context.Context, proofs []*types.NodeW
 	return nil
 }
 
-// RetrieveCandidateDownloadSources finds candidate download sources for the given CID.
-func (s *Scheduler) RetrieveCandidateDownloadSources(ctx context.Context, cid string) ([]*types.AssetDownloadSource, error) {
+// GetCandidateDownloadSources finds candidate download sources for the given CID.
+func (s *Scheduler) GetCandidateDownloadSources(ctx context.Context, cid string) ([]*types.AssetDownloadSource, error) {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())

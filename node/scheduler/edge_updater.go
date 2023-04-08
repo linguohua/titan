@@ -29,8 +29,8 @@ func NewEdgeUpdateManager(db *db.SQLDB) (*EdgeUpdateManager, error) {
 	return updater, nil
 }
 
-// EdgeUpdateInfos  returns the map of edge node update information.
-func (eu *EdgeUpdateManager) EdgeUpdateInfos(ctx context.Context) (map[int]*api.EdgeUpdateInfo, error) {
+// GetEdgeUpdateInfos  returns the map of edge node update information.
+func (eu *EdgeUpdateManager) GetEdgeUpdateInfos(ctx context.Context) (map[int]*api.EdgeUpdateInfo, error) {
 	return eu.updateInfos, nil
 }
 

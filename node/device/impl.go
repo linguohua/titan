@@ -46,7 +46,7 @@ func NewDevice(nodeID, internalIP string, bandwidthUp, bandwidthDown int64, stor
 	return device
 }
 
-func (device *Device) NodeInfo(ctx context.Context) (types.NodeInfo, error) {
+func (device *Device) GetNodeInfo(ctx context.Context) (types.NodeInfo, error) {
 	info := types.NodeInfo{}
 
 	v, err := api.VersionForType(types.RunningNodeType)
@@ -141,6 +141,6 @@ func (device *Device) GetInternalIP() string {
 	return device.internalIP
 }
 
-func (device *Device) NodeID(ctx context.Context) (string, error) {
+func (device *Device) GetNodeID(ctx context.Context) (string, error) {
 	return device.nodeID, nil
 }
