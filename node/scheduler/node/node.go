@@ -126,7 +126,7 @@ func (n *Node) ConnectRPC(addr string, isNodeConnect bool, nodeType types.NodeTy
 		return nil
 	}
 
-	return xerrors.Errorf("node %s type %d not wrongful", n.NodeInfo.NodeID, n.NodeType)
+	return xerrors.Errorf("node %s type %d not wrongful", n.NodeInfo.NodeID, n.Type)
 }
 
 // BaseInfo represents the common information for a node

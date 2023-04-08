@@ -94,8 +94,8 @@ func (m *Manager) Stop(ctx context.Context) error {
 }
 
 func (m *Manager) subscribe() {
-	subOnline := m.notify.Sub(types.TopicsNodeOnline.String())
-	subOffline := m.notify.Sub(types.TopicsNodeOffline.String())
+	subOnline := m.notify.Sub(types.EventNodeOnline.String())
+	subOffline := m.notify.Sub(types.EventNodeOffline.String())
 
 	go func() {
 		defer m.notify.Unsub(subOnline)
@@ -130,9 +130,9 @@ func (m *Manager) nodeStateChange(node *node.Node, isOnline bool) {
 
 	if isOnline {
 		if isV {
-			m.addValidator(nodeID, node.BandwidthDown)
+			m.addValidator(nodeID, node.DownloadSpeed)
 		} else {
-			m.addBeValidate(nodeID, node.BandwidthDown)
+			m.addBeValidate(nodeID, node.DownloadSpeed)
 		}
 
 		return

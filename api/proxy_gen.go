@@ -19,13 +19,13 @@ type AssetStruct struct {
 	Internal struct {
 		AssetProgresses func(p0 context.Context, p1 []string) (*types.PullResult, error) `perm:"write"`
 
-		CacheAsset func(p0 context.Context, p1 string, p2 []*types.DownloadSource) error `perm:"write"`
+		CacheAsset func(p0 context.Context, p1 string, p2 []*types.AssetDownloadSource) error `perm:"write"`
 
 		DeleteAsset func(p0 context.Context, p1 string) error `perm:"write"`
 
 		QueryAssetStats func(p0 context.Context) (*types.AssetStats, error) `perm:"write"`
 
-		QueryCachingAsset func(p0 context.Context) (*types.CachingAsset, error) `perm:"write"`
+		QueryCachingAsset func(p0 context.Context) (*types.InProgressAsset, error) `perm:"write"`
 	}
 }
 
@@ -241,7 +241,7 @@ type SchedulerStruct struct {
 
 		RestartFailedAssets func(p0 context.Context, p1 []types.AssetHash) error `perm:"admin"`
 
-		RetrieveCandidateDownloadSources func(p0 context.Context, p1 string) ([]*types.DownloadSource, error) `perm:"read"`
+		RetrieveCandidateDownloadSources func(p0 context.Context, p1 string) ([]*types.AssetDownloadSource, error) `perm:"read"`
 
 		RetrieveNodeInfo func(p0 context.Context, p1 string) (types.NodeInfo, error) `perm:"read"`
 
@@ -283,14 +283,14 @@ func (s *AssetStub) AssetProgresses(p0 context.Context, p1 []string) (*types.Pul
 	return nil, ErrNotSupported
 }
 
-func (s *AssetStruct) CacheAsset(p0 context.Context, p1 string, p2 []*types.DownloadSource) error {
+func (s *AssetStruct) CacheAsset(p0 context.Context, p1 string, p2 []*types.AssetDownloadSource) error {
 	if s.Internal.CacheAsset == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.CacheAsset(p0, p1, p2)
 }
 
-func (s *AssetStub) CacheAsset(p0 context.Context, p1 string, p2 []*types.DownloadSource) error {
+func (s *AssetStub) CacheAsset(p0 context.Context, p1 string, p2 []*types.AssetDownloadSource) error {
 	return ErrNotSupported
 }
 
@@ -316,14 +316,14 @@ func (s *AssetStub) QueryAssetStats(p0 context.Context) (*types.AssetStats, erro
 	return nil, ErrNotSupported
 }
 
-func (s *AssetStruct) QueryCachingAsset(p0 context.Context) (*types.CachingAsset, error) {
+func (s *AssetStruct) QueryCachingAsset(p0 context.Context) (*types.InProgressAsset, error) {
 	if s.Internal.QueryCachingAsset == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.QueryCachingAsset(p0)
 }
 
-func (s *AssetStub) QueryCachingAsset(p0 context.Context) (*types.CachingAsset, error) {
+func (s *AssetStub) QueryCachingAsset(p0 context.Context) (*types.InProgressAsset, error) {
 	return nil, ErrNotSupported
 }
 
@@ -998,15 +998,15 @@ func (s *SchedulerStub) RestartFailedAssets(p0 context.Context, p1 []types.Asset
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) RetrieveCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.DownloadSource, error) {
+func (s *SchedulerStruct) RetrieveCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.AssetDownloadSource, error) {
 	if s.Internal.RetrieveCandidateDownloadSources == nil {
-		return *new([]*types.DownloadSource), ErrNotSupported
+		return *new([]*types.AssetDownloadSource), ErrNotSupported
 	}
 	return s.Internal.RetrieveCandidateDownloadSources(p0, p1)
 }
 
-func (s *SchedulerStub) RetrieveCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.DownloadSource, error) {
-	return *new([]*types.DownloadSource), ErrNotSupported
+func (s *SchedulerStub) RetrieveCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.AssetDownloadSource, error) {
+	return *new([]*types.AssetDownloadSource), ErrNotSupported
 }
 
 func (s *SchedulerStruct) RetrieveNodeInfo(p0 context.Context, p1 string) (types.NodeInfo, error) {

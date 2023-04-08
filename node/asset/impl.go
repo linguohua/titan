@@ -36,7 +36,7 @@ func NewAsset(storageMgr *storage.Manager, scheduler api.Scheduler, cacheMgr *ca
 	}
 }
 
-func (a *Asset) CacheAsset(ctx context.Context, rootCID string, dss []*types.DownloadSource) error {
+func (a *Asset) CacheAsset(ctx context.Context, rootCID string, dss []*types.AssetDownloadSource) error {
 	if types.RunningNodeType == types.NodeEdge && len(dss) == 0 {
 		return fmt.Errorf("download source can not empty")
 	}
@@ -102,7 +102,7 @@ func (a *Asset) QueryAssetStats(ctx context.Context) (*types.AssetStats, error) 
 
 	carfileCache := a.cacheMgr.CachingCar()
 	if carfileCache != nil {
-		assetStats.CachingAssetCID = carfileCache.Root().String()
+		assetStats.InProgressAssetCID = carfileCache.Root().String()
 	}
 
 	log.Debugf("cacheStat:%#v", *assetStats)
@@ -110,13 +110,13 @@ func (a *Asset) QueryAssetStats(ctx context.Context) (*types.AssetStats, error) 
 	return assetStats, nil
 }
 
-func (a *Asset) QueryCachingAsset(ctx context.Context) (*types.CachingAsset, error) {
+func (a *Asset) QueryCachingAsset(ctx context.Context) (*types.InProgressAsset, error) {
 	carfileCache := a.cacheMgr.CachingCar()
 	if carfileCache == nil {
 		return nil, fmt.Errorf("caching carfile not exist")
 	}
 
-	ret := &types.CachingAsset{}
+	ret := &types.InProgressAsset{}
 	ret.CID = carfileCache.Root().Hash().String()
 	ret.TotalSize = carfileCache.TotalSize()
 	ret.DoneSize = carfileCache.DoneSize()

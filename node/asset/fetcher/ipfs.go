@@ -32,7 +32,7 @@ func NewIPFS(ipfsAPIURL string, timeout, retryCount int) *IPFS {
 	return &IPFS{httpAPI: httpAPI, timeout: timeout, retryCount: retryCount}
 }
 
-func (ipfs *IPFS) Fetch(ctx context.Context, cids []string, dss []*types.DownloadSource) ([]blocks.Block, error) {
+func (ipfs *IPFS) Fetch(ctx context.Context, cids []string, dss []*types.AssetDownloadSource) ([]blocks.Block, error) {
 	return ipfs.getBlocks(ctx, cids)
 }
 

@@ -6,7 +6,7 @@ import (
 	"github.com/linguohua/titan/node/modules/dtypes"
 )
 
-// AssetPullProgress pull asset progress
+// AssetPullProgress represents the progress of pulling an asset
 type AssetPullProgress struct {
 	CID             string
 	Status          ReplicaStatus
@@ -17,7 +17,7 @@ type AssetPullProgress struct {
 	DoneSize        int64
 }
 
-// PullResult pull data result info
+// PullResult contains information about the result of a data pull
 type PullResult struct {
 	Progresses       []*AssetPullProgress
 	DiskUsage        float64
@@ -25,13 +25,13 @@ type PullResult struct {
 	AssetCount       int
 }
 
-// RemoveAssetResult remove asset result
+// RemoveAssetResult contains information about the result of removing an asset
 type RemoveAssetResult struct {
 	BlocksCount int
 	DiskUsage   float64
 }
 
-// AssetRecord Asset record info
+// AssetRecord represents information about an asset record
 type AssetRecord struct {
 	CID                   string          `db:"cid"`
 	Hash                  string          `db:"hash"`
@@ -49,7 +49,7 @@ type AssetRecord struct {
 	EdgeReplica  int64
 }
 
-// ReplicaInfo asset Replica Info
+// ReplicaInfo represents information about an asset replica
 type ReplicaInfo struct {
 	Hash        string        `db:"hash"`
 	NodeID      string        `db:"node_id"`
@@ -59,7 +59,7 @@ type ReplicaInfo struct {
 	DoneSize    int64         `db:"done_size"`
 }
 
-// PullAssetReq pull asset to titan req
+// PullAssetReq represents a request to pull an asset to Titan
 type PullAssetReq struct {
 	ID         string
 	CID        string
@@ -69,7 +69,7 @@ type PullAssetReq struct {
 	Expiration time.Time
 }
 
-// ReplicaStatus replica pull Status
+// ReplicaStatus represents the status of a replica pull
 type ReplicaStatus int
 
 const (
@@ -99,7 +99,7 @@ func (c ReplicaStatus) String() string {
 	}
 }
 
-// ReplicaStatusAll all cache status
+// ReplicaStatusAll contains all possible replica statuses as strings
 var ReplicaStatusAll = []string{
 	ReplicaStatusWaiting.String(),
 	ReplicaStatusPulling.String(),
@@ -107,7 +107,7 @@ var ReplicaStatusAll = []string{
 	ReplicaStatusSucceeded.String(),
 }
 
-// ListReplicaInfosReq list asset replicas
+// ListReplicaInfosReq represents a request to list asset replicas
 type ListReplicaInfosReq struct {
 	// Unix timestamp
 	StartTime int64 `json:"start_time"`
@@ -117,26 +117,29 @@ type ListReplicaInfosReq struct {
 	Count   int   `json:"count"`
 }
 
-// ListReplicaInfosRsp list asset replica
+// ListReplicaInfosRsp represents a response containing a list of asset replicas
 type ListReplicaInfosRsp struct {
 	Replicas []*ReplicaInfo `json:"data"`
 	Total    int64          `json:"total"`
 }
 
-type DownloadSource struct {
+// AssetDownloadSource holds the resource download address and corresponding credentials.
+type AssetDownloadSource struct {
 	CandidateAddr string
 	Credentials   *GatewayCredentials
 }
 
+// AssetStats contains statistics about assets
 type AssetStats struct {
 	TotalAssetCount     int
 	TotalBlockCount     int
 	WaitCacheAssetCount int
-	CachingAssetCID     string
+	InProgressAssetCID  string
 	DiskUsage           float64
 }
 
-type CachingAsset struct {
+// InProgressAsset represents an asset that is currently being fetched, including its progress details.
+type InProgressAsset struct {
 	CID       string
 	TotalSize int64
 	DoneSize  int64

@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-// DownloadRecordInfo node download record
-type DownloadRecordInfo struct {
+// DownloadHistory represents the record of a node download
+type DownloadHistory struct {
 	ID           string    `json:"-"`
 	NodeID       string    `json:"node_id" db:"node_id"`
 	BlockCID     string    `json:"block_cid" db:"block_cid"`
@@ -32,6 +32,7 @@ type UserDownloadResult struct {
 	BlockCID      string
 }
 
+// UserBlockDownloadResult user download block result
 type UserBlockDownloadResult struct {
 	// serial number
 	SN int64
@@ -125,8 +126,8 @@ type ListBlockDownloadInfoReq struct {
 
 // ListDownloadRecordRsp download record rsp
 type ListDownloadRecordRsp struct {
-	Data  []DownloadRecordInfo `json:"data"`
-	Total int64                `json:"total"`
+	Data  []DownloadHistory `json:"data"`
+	Total int64             `json:"total"`
 }
 
 // ListValidateResultRsp list validated result
@@ -203,7 +204,7 @@ type NodeWorkloadProof struct {
 type NatTravelReq struct {
 	Credentials *GatewayCredentials
 	NodeID      string
-	//seconds
+	// seconds
 	Timeout int
 }
 

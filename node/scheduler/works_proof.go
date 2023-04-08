@@ -20,7 +20,7 @@ func (s *Scheduler) UserDownloadResult(ctx context.Context, result types.UserDow
 			return err
 		}
 
-		blockDownloadInfo := &types.DownloadRecordInfo{NodeID: nodeID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
+		blockDownloadInfo := &types.DownloadHistory{NodeID: nodeID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
 
 		record, _ := s.NodeManager.FetchAssetRecord(blockHash)
 		if record != nil && record.CID != "" {
@@ -93,7 +93,7 @@ func (s *Scheduler) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types
 			URL:          eNode.DownloadAddr(),
 			NodeID:       nodeID,
 			Credentials:  credentials,
-			NatType:      eNode.NatType,
+			NatType:      eNode.NATType,
 			SchedulerURL: s.SchedulerCfg.RPCURL,
 		}
 		infos = append(infos, info)

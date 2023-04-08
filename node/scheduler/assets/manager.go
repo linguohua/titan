@@ -340,7 +340,7 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 
 	nodeInfo := m.nodeMgr.GetNode(nodeID)
 	if nodeInfo != nil {
-		isCandidate = nodeInfo.NodeType == types.NodeCandidate
+		isCandidate = nodeInfo.Type == types.NodeCandidate
 		// update node info
 		nodeInfo.DiskUsage = result.DiskUsage
 		defer nodeInfo.SetCurPullingCount(pullingCount)
@@ -580,9 +580,9 @@ func (m *Manager) saveReplicaInformation(nodes map[string]*node.Node, hash strin
 }
 
 // getDownloadSources gets download sources for a given CID
-func (m *Manager) getDownloadSources(cid string, nodes []string) []*types.DownloadSource {
+func (m *Manager) getDownloadSources(cid string, nodes []string) []*types.AssetDownloadSource {
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	sources := make([]*types.DownloadSource, 0)
+	sources := make([]*types.AssetDownloadSource, 0)
 	for _, nodeID := range nodes {
 		cNode := m.nodeMgr.GetCandidateNode(nodeID)
 		if cNode == nil {
@@ -593,7 +593,7 @@ func (m *Manager) getDownloadSources(cid string, nodes []string) []*types.Downlo
 		if err != nil {
 			continue
 		}
-		source := &types.DownloadSource{
+		source := &types.AssetDownloadSource{
 			CandidateAddr: cNode.DownloadAddr(),
 			Credentials:   credentials,
 		}

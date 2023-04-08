@@ -42,8 +42,8 @@ type Scheduler interface {
 	// targets is edge node list
 	NatTravel(ctx context.Context, target *types.NatTravelReq) error //perm:read
 	// user
-	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error)                  //perm:read
-	RetrieveCandidateDownloadSources(ctx context.Context, cid string) ([]*types.DownloadSource, error) //perm:read
+	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error)                       //perm:read
+	RetrieveCandidateDownloadSources(ctx context.Context, cid string) ([]*types.AssetDownloadSource, error) //perm:read
 
 	// Asset
 	CacheAsset(ctx context.Context, info *types.PullAssetReq) error                                     //perm:admin

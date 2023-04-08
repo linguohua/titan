@@ -28,7 +28,7 @@ type CachedResulter interface {
 
 type carWaiter struct {
 	Root  cid.Cid
-	Dss   []*types.DownloadSource
+	Dss   []*types.AssetDownloadSource
 	cache *carfileCache
 }
 type Manager struct {
@@ -176,7 +176,7 @@ func (m *Manager) removeCarFromWaitList(root cid.Cid) *carWaiter {
 	return nil
 }
 
-func (m *Manager) AddToWaitList(root cid.Cid, dss []*types.DownloadSource) {
+func (m *Manager) AddToWaitList(root cid.Cid, dss []*types.AssetDownloadSource) {
 	m.waitListLock.Lock()
 	defer m.waitListLock.Unlock()
 
@@ -413,7 +413,6 @@ func (m *Manager) iterableIndex(ctx context.Context, root cid.Cid) (index.Iterab
 	}
 
 	return iterableIdx, nil
-
 }
 
 func (m *Manager) GetBlocksOfCarfile(root cid.Cid, randomSeed int64, randomCount int) (map[int]string, error) {

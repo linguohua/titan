@@ -23,7 +23,7 @@ func (n *SQLDB) LoadTimeoutNodes(timeoutHour int, serverID dtypes.ServerID) ([]s
 	list := make([]string, 0)
 
 	time := time.Now().Add(-time.Duration(timeoutHour) * time.Hour)
-	query := fmt.Sprintf("SELECT node_id FROM %s WHERE scheduler_sid=? AND quitted=? AND last_time <= ?", nodeInfoTable)
+	query := fmt.Sprintf("SELECT node_id FROM %s WHERE scheduler_sid=? AND quitted=? AND last_seen <= ?", nodeInfoTable)
 	if err := n.db.Select(&list, query, serverID, false, time); err != nil {
 		return nil, err
 	}
@@ -244,10 +244,10 @@ func (n *SQLDB) UpdateValidatorInfo(serverID dtypes.ServerID, nodeID string) err
 func (n *SQLDB) UpsertNodeInfo(info *types.NodeInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (node_id, mac_location, product_type, cpu_cores, memory, node_name, latitude, disk_usage,
-			    longitude, disk_type, io_system, system_version, nat_type, disk_space, bandwidth_up, bandwidth_down, blocks, scheduler_sid) 
+			    longitude, disk_type, io_system, system_version, nat_type, disk_space, upload_speed, download_speed, blocks, scheduler_sid) 
 				VALUES (:node_id, :mac_location, :product_type, :cpu_cores, :memory, :node_name, :latitude, :disk_usage,
-				:longitude, :disk_type, :io_system, :system_version, :nat_type, :disk_space, :bandwidth_up, :bandwidth_down, :blocks, :scheduler_sid) 
-				ON DUPLICATE KEY UPDATE node_id=:node_id, last_time=:last_time, quitted=:quitted, disk_usage=:disk_usage, blocks=:blocks, scheduler_sid=:scheduler_sid`, nodeInfoTable)
+				:longitude, :disk_type, :io_system, :system_version, :nat_type, :disk_space, :upload_speed, :download_speed, :blocks, :scheduler_sid) 
+				ON DUPLICATE KEY UPDATE node_id=:node_id, last_seen=:last_seen, quitted=:quitted, disk_usage=:disk_usage, blocks=:blocks, scheduler_sid=:scheduler_sid`, nodeInfoTable)
 
 	_, err := n.db.NamedExec(query, info)
 	return err
@@ -255,7 +255,7 @@ func (n *SQLDB) UpsertNodeInfo(info *types.NodeInfo) error {
 
 // UpdateNodeOnlineTime update node online time and last time
 func (n *SQLDB) UpdateNodeOnlineTime(nodeID string, onlineTime int) error {
-	query := fmt.Sprintf(`UPDATE %s SET last_time=NOW(),online_time=? WHERE node_id=?`, nodeInfoTable)
+	query := fmt.Sprintf(`UPDATE %s SET last_seen=NOW(),online_duration=? WHERE node_id=?`, nodeInfoTable)
 	// update
 	_, err := n.db.Exec(query, onlineTime, nodeID)
 	return err

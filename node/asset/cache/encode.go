@@ -12,7 +12,7 @@ type EncodeCarfileCache struct {
 	BlocksWaitList            []string
 	BlocksDownloadSuccessList []string
 	NextLayerCIDs             []string
-	DownloadSources           []*types.DownloadSource
+	DownloadSources           []*types.AssetDownloadSource
 	TotalSize                 uint64
 	DoneSize                  uint64
 }
