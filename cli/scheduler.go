@@ -13,7 +13,6 @@ import (
 var SchedulerCMDs = []*cli.Command{
 	WithCategory("node", nodeCmd),
 	WithCategory("asset", assetCmd),
-	// validator
 	startElectionCmd,
 	// other
 	edgeUpdaterCmd,
