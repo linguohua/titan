@@ -30,7 +30,8 @@ var assetCmd = &cli.Command{
 		listAssetRecordCmd,
 		pullAssetCmd,
 		showAssetInfoCmd,
-		removeAssetCmd,
+		removeAssetRecordCmd,
+		removeAssetReplicaCmd,
 		resetExpirationCmd,
 	},
 }
@@ -68,7 +69,7 @@ var resetExpirationCmd = &cli.Command{
 	},
 }
 
-var removeAssetCmd = &cli.Command{
+var removeAssetRecordCmd = &cli.Command{
 	Name:  "remove",
 	Usage: "Remove the asset record",
 	Flags: []cli.Flag{
@@ -86,6 +87,29 @@ var removeAssetCmd = &cli.Command{
 		defer closer()
 
 		return schedulerAPI.RemoveAssetRecord(ctx, cid)
+	},
+}
+
+var removeAssetReplicaCmd = &cli.Command{
+	Name:  "remove-replica",
+	Usage: "Remove a asset replica",
+	Flags: []cli.Flag{
+		cidFlag,
+		nodeIDFlag,
+	},
+	Action: func(cctx *cli.Context) error {
+		cid := cctx.String("cid")
+		nodeID := cctx.String("node-id")
+
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		return schedulerAPI.RemoveAssetReplica(ctx, cid, nodeID)
 	},
 }
 
