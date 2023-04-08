@@ -17,15 +17,15 @@ var ErrNotSupported = xerrors.New("method not supported")
 
 type AssetStruct struct {
 	Internal struct {
-		AssetProgresses func(p0 context.Context, p1 []string) (*types.PullResult, error) `perm:"write"`
-
 		CacheAsset func(p0 context.Context, p1 string, p2 []*types.AssetDownloadSource) error `perm:"write"`
 
 		DeleteAsset func(p0 context.Context, p1 string) error `perm:"write"`
 
-		QueryAssetStats func(p0 context.Context) (*types.AssetStats, error) `perm:"write"`
+		GetAssetProgresses func(p0 context.Context, p1 []string) (*types.PullResult, error) `perm:"write"`
 
-		QueryCachingAsset func(p0 context.Context) (*types.InProgressAsset, error) `perm:"write"`
+		GetAssetStats func(p0 context.Context) (*types.AssetStats, error) `perm:"write"`
+
+		GetCachingAssetInfo func(p0 context.Context) (*types.InProgressAsset, error) `perm:"write"`
 	}
 }
 
@@ -44,7 +44,7 @@ type CandidateStruct struct {
 	AssetStruct
 
 	Internal struct {
-		GetBlocksOfCarfile func(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) `perm:"read"`
+		GetBlocksWithCarfileCID func(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) `perm:"read"`
 
 		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
@@ -102,9 +102,9 @@ type DataSyncStub struct {
 
 type DeviceStruct struct {
 	Internal struct {
-		NodeID func(p0 context.Context) (string, error) `perm:"read"`
+		GetNodeID func(p0 context.Context) (string, error) `perm:"read"`
 
-		NodeInfo func(p0 context.Context) (types.NodeInfo, error) `perm:"read"`
+		GetNodeInfo func(p0 context.Context) (types.NodeInfo, error) `perm:"read"`
 	}
 }
 
@@ -151,21 +151,21 @@ type LocatorStruct struct {
 
 		EdgeDownloadInfos func(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) `perm:"read"`
 
+		GetAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
+
 		GetAccessPoints func(p0 context.Context, p1 string) ([]string, error) `perm:"read"`
 
+		GetUserAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
+
+		GetWebAccessPoints func(p0 context.Context) ([]AccessPoint, error) `perm:"admin"`
+
 		ListAreaIDs func(p0 context.Context) ([]string, error) `perm:"admin"`
-
-		LoadAccessPointsForWeb func(p0 context.Context) ([]AccessPoint, error) `perm:"admin"`
-
-		LoadUserAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
 
 		RegisterNewNode func(p0 context.Context, p1 string, p2 string, p3 string, p4 types.NodeType) error `perm:"admin"`
 
 		RemoveAccessPoints func(p0 context.Context, p1 string) error `perm:"admin"`
 
-		SetNodeOnlineStatus func(p0 context.Context, p1 string, p2 bool) error `perm:"write"`
-
-		ShowAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
+		UpdateNodeOnlineStatus func(p0 context.Context, p1 string, p2 bool) error `perm:"write"`
 
 		UserDownloadBlockResults func(p0 context.Context, p1 []types.UserBlockDownloadResult) error `perm:"read"`
 	}
@@ -179,12 +179,6 @@ type SchedulerStruct struct {
 	CommonStruct
 
 	Internal struct {
-		AssetRecord func(p0 context.Context, p1 string) (*types.AssetRecord, error) `perm:"read"`
-
-		AssetRecords func(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.AssetRecord, error) `perm:"read"`
-
-		AssetReplicaList func(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) `perm:"read"`
-
 		CacheAsset func(p0 context.Context, p1 *types.PullAssetReq) error `perm:"admin"`
 
 		CheckNetworkConnectivity func(p0 context.Context, p1 string, p2 string) error `perm:"read"`
@@ -199,19 +193,29 @@ type SchedulerStruct struct {
 
 		DeleteEdgeUpdateInfo func(p0 context.Context, p1 int) error `perm:"admin"`
 
-		EdgeDownloadInfos func(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) `perm:"read"`
+		GetAssetListForBucket func(p0 context.Context, p1 string) ([]string, error) `perm:"write"`
+
+		GetAssetRecord func(p0 context.Context, p1 string) (*types.AssetRecord, error) `perm:"read"`
+
+		GetAssetRecords func(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.AssetRecord, error) `perm:"read"`
+
+		GetAssetReplicaList func(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) `perm:"read"`
+
+		GetEdgeDownloadInfos func(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) `perm:"read"`
 
 		GetEdgeExternalServiceAddress func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
 
-		EdgeUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
-
-		GetAssetListForBucket func(p0 context.Context, p1 string) ([]string, error) `perm:"write"`
+		GetEdgeUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
 		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
 		GetNodeExternalAddress func(p0 context.Context) (string, error) `perm:"read"`
 
+		GetNodeInfo func(p0 context.Context, p1 string) (types.NodeInfo, error) `perm:"read"`
+
 		GetNodeList func(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) `perm:"read"`
+
+		GetNodeNATType func(p0 context.Context, p1 string) (types.NatType, error) `perm:"write"`
 
 		GetOnlineNodeCount func(p0 context.Context, p1 types.NodeType) (int, error) `perm:"read"`
 
@@ -222,10 +226,6 @@ type SchedulerStruct struct {
 		IgnoreProofOfWork func(p0 context.Context, p1 []*types.NodeWorkloadProof) error `perm:"read"`
 
 		NatTravel func(p0 context.Context, p1 *types.NatTravelReq) error `perm:"read"`
-
-		GetNodeNATType func(p0 context.Context, p1 string) (types.NatType, error) `perm:"write"`
-
-		NodeQuit func(p0 context.Context, p1 string) error `perm:"admin"`
 
 		ProcessNodeValidationResult func(p0 context.Context, p1 ValidateResult) error `perm:"write"`
 
@@ -241,13 +241,13 @@ type SchedulerStruct struct {
 
 		RestartFailedAssets func(p0 context.Context, p1 []types.AssetHash) error `perm:"admin"`
 
-		RetrieveCandidateDownloadSources func(p0 context.Context, p1 string) ([]*types.AssetDownloadSource, error) `perm:"read"`
-
-		RetrieveNodeInfo func(p0 context.Context, p1 string) (types.NodeInfo, error) `perm:"read"`
+		GetCandidateDownloadSources func(p0 context.Context, p1 string) ([]*types.AssetDownloadSource, error) `perm:"read"`
 
 		SetEdgeUpdateInfo func(p0 context.Context, p1 *EdgeUpdateInfo) error `perm:"admin"`
 
 		TriggerElection func(p0 context.Context) error `perm:"admin"`
+
+		UnregisterNode func(p0 context.Context, p1 string) error `perm:"admin"`
 
 		UpdateNodePort func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
@@ -272,17 +272,6 @@ type ValidateStruct struct {
 type ValidateStub struct {
 }
 
-func (s *AssetStruct) AssetProgresses(p0 context.Context, p1 []string) (*types.PullResult, error) {
-	if s.Internal.AssetProgresses == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.AssetProgresses(p0, p1)
-}
-
-func (s *AssetStub) AssetProgresses(p0 context.Context, p1 []string) (*types.PullResult, error) {
-	return nil, ErrNotSupported
-}
-
 func (s *AssetStruct) CacheAsset(p0 context.Context, p1 string, p2 []*types.AssetDownloadSource) error {
 	if s.Internal.CacheAsset == nil {
 		return ErrNotSupported
@@ -305,36 +294,47 @@ func (s *AssetStub) DeleteAsset(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
-func (s *AssetStruct) QueryAssetStats(p0 context.Context) (*types.AssetStats, error) {
-	if s.Internal.QueryAssetStats == nil {
+func (s *AssetStruct) GetAssetProgresses(p0 context.Context, p1 []string) (*types.PullResult, error) {
+	if s.Internal.GetAssetProgresses == nil {
 		return nil, ErrNotSupported
 	}
-	return s.Internal.QueryAssetStats(p0)
+	return s.Internal.GetAssetProgresses(p0, p1)
 }
 
-func (s *AssetStub) QueryAssetStats(p0 context.Context) (*types.AssetStats, error) {
+func (s *AssetStub) GetAssetProgresses(p0 context.Context, p1 []string) (*types.PullResult, error) {
 	return nil, ErrNotSupported
 }
 
-func (s *AssetStruct) QueryCachingAsset(p0 context.Context) (*types.InProgressAsset, error) {
-	if s.Internal.QueryCachingAsset == nil {
+func (s *AssetStruct) GetAssetStats(p0 context.Context) (*types.AssetStats, error) {
+	if s.Internal.GetAssetStats == nil {
 		return nil, ErrNotSupported
 	}
-	return s.Internal.QueryCachingAsset(p0)
+	return s.Internal.GetAssetStats(p0)
 }
 
-func (s *AssetStub) QueryCachingAsset(p0 context.Context) (*types.InProgressAsset, error) {
+func (s *AssetStub) GetAssetStats(p0 context.Context) (*types.AssetStats, error) {
 	return nil, ErrNotSupported
 }
 
-func (s *CandidateStruct) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
-	if s.Internal.GetBlocksOfCarfile == nil {
+func (s *AssetStruct) GetCachingAssetInfo(p0 context.Context) (*types.InProgressAsset, error) {
+	if s.Internal.GetCachingAssetInfo == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetCachingAssetInfo(p0)
+}
+
+func (s *AssetStub) GetCachingAssetInfo(p0 context.Context) (*types.InProgressAsset, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *CandidateStruct) GetBlocksWithCarfileCID(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
+	if s.Internal.GetBlocksWithCarfileCID == nil {
 		return *new(map[int]string), ErrNotSupported
 	}
-	return s.Internal.GetBlocksOfCarfile(p0, p1, p2, p3)
+	return s.Internal.GetBlocksWithCarfileCID(p0, p1, p2, p3)
 }
 
-func (s *CandidateStub) GetBlocksOfCarfile(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
+func (s *CandidateStub) GetBlocksWithCarfileCID(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
 	return *new(map[int]string), ErrNotSupported
 }
 
@@ -481,25 +481,25 @@ func (s *DataSyncStub) CompareTopHash(p0 context.Context, p1 string) (bool, erro
 	return false, ErrNotSupported
 }
 
-func (s *DeviceStruct) NodeID(p0 context.Context) (string, error) {
-	if s.Internal.NodeID == nil {
+func (s *DeviceStruct) GetNodeID(p0 context.Context) (string, error) {
+	if s.Internal.GetNodeID == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.NodeID(p0)
+	return s.Internal.GetNodeID(p0)
 }
 
-func (s *DeviceStub) NodeID(p0 context.Context) (string, error) {
+func (s *DeviceStub) GetNodeID(p0 context.Context) (string, error) {
 	return "", ErrNotSupported
 }
 
-func (s *DeviceStruct) NodeInfo(p0 context.Context) (types.NodeInfo, error) {
-	if s.Internal.NodeInfo == nil {
+func (s *DeviceStruct) GetNodeInfo(p0 context.Context) (types.NodeInfo, error) {
+	if s.Internal.GetNodeInfo == nil {
 		return *new(types.NodeInfo), ErrNotSupported
 	}
-	return s.Internal.NodeInfo(p0)
+	return s.Internal.GetNodeInfo(p0)
 }
 
-func (s *DeviceStub) NodeInfo(p0 context.Context) (types.NodeInfo, error) {
+func (s *DeviceStub) GetNodeInfo(p0 context.Context) (types.NodeInfo, error) {
 	return *new(types.NodeInfo), ErrNotSupported
 }
 
@@ -558,6 +558,17 @@ func (s *LocatorStub) EdgeDownloadInfos(p0 context.Context, p1 string) ([]*types
 	return *new([]*types.DownloadInfo), ErrNotSupported
 }
 
+func (s *LocatorStruct) GetAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
+	if s.Internal.GetAccessPoint == nil {
+		return *new(AccessPoint), ErrNotSupported
+	}
+	return s.Internal.GetAccessPoint(p0, p1)
+}
+
+func (s *LocatorStub) GetAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
+	return *new(AccessPoint), ErrNotSupported
+}
+
 func (s *LocatorStruct) GetAccessPoints(p0 context.Context, p1 string) ([]string, error) {
 	if s.Internal.GetAccessPoints == nil {
 		return *new([]string), ErrNotSupported
@@ -569,6 +580,28 @@ func (s *LocatorStub) GetAccessPoints(p0 context.Context, p1 string) ([]string, 
 	return *new([]string), ErrNotSupported
 }
 
+func (s *LocatorStruct) GetUserAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
+	if s.Internal.GetUserAccessPoint == nil {
+		return *new(AccessPoint), ErrNotSupported
+	}
+	return s.Internal.GetUserAccessPoint(p0, p1)
+}
+
+func (s *LocatorStub) GetUserAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
+	return *new(AccessPoint), ErrNotSupported
+}
+
+func (s *LocatorStruct) GetWebAccessPoints(p0 context.Context) ([]AccessPoint, error) {
+	if s.Internal.GetWebAccessPoints == nil {
+		return *new([]AccessPoint), ErrNotSupported
+	}
+	return s.Internal.GetWebAccessPoints(p0)
+}
+
+func (s *LocatorStub) GetWebAccessPoints(p0 context.Context) ([]AccessPoint, error) {
+	return *new([]AccessPoint), ErrNotSupported
+}
+
 func (s *LocatorStruct) ListAreaIDs(p0 context.Context) ([]string, error) {
 	if s.Internal.ListAreaIDs == nil {
 		return *new([]string), ErrNotSupported
@@ -578,28 +611,6 @@ func (s *LocatorStruct) ListAreaIDs(p0 context.Context) ([]string, error) {
 
 func (s *LocatorStub) ListAreaIDs(p0 context.Context) ([]string, error) {
 	return *new([]string), ErrNotSupported
-}
-
-func (s *LocatorStruct) LoadAccessPointsForWeb(p0 context.Context) ([]AccessPoint, error) {
-	if s.Internal.LoadAccessPointsForWeb == nil {
-		return *new([]AccessPoint), ErrNotSupported
-	}
-	return s.Internal.LoadAccessPointsForWeb(p0)
-}
-
-func (s *LocatorStub) LoadAccessPointsForWeb(p0 context.Context) ([]AccessPoint, error) {
-	return *new([]AccessPoint), ErrNotSupported
-}
-
-func (s *LocatorStruct) LoadUserAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
-	if s.Internal.LoadUserAccessPoint == nil {
-		return *new(AccessPoint), ErrNotSupported
-	}
-	return s.Internal.LoadUserAccessPoint(p0, p1)
-}
-
-func (s *LocatorStub) LoadUserAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
-	return *new(AccessPoint), ErrNotSupported
 }
 
 func (s *LocatorStruct) RegisterNewNode(p0 context.Context, p1 string, p2 string, p3 string, p4 types.NodeType) error {
@@ -624,26 +635,15 @@ func (s *LocatorStub) RemoveAccessPoints(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
-func (s *LocatorStruct) SetNodeOnlineStatus(p0 context.Context, p1 string, p2 bool) error {
-	if s.Internal.SetNodeOnlineStatus == nil {
+func (s *LocatorStruct) UpdateNodeOnlineStatus(p0 context.Context, p1 string, p2 bool) error {
+	if s.Internal.UpdateNodeOnlineStatus == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.SetNodeOnlineStatus(p0, p1, p2)
+	return s.Internal.UpdateNodeOnlineStatus(p0, p1, p2)
 }
 
-func (s *LocatorStub) SetNodeOnlineStatus(p0 context.Context, p1 string, p2 bool) error {
+func (s *LocatorStub) UpdateNodeOnlineStatus(p0 context.Context, p1 string, p2 bool) error {
 	return ErrNotSupported
-}
-
-func (s *LocatorStruct) ShowAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
-	if s.Internal.ShowAccessPoint == nil {
-		return *new(AccessPoint), ErrNotSupported
-	}
-	return s.Internal.ShowAccessPoint(p0, p1)
-}
-
-func (s *LocatorStub) ShowAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
-	return *new(AccessPoint), ErrNotSupported
 }
 
 func (s *LocatorStruct) UserDownloadBlockResults(p0 context.Context, p1 []types.UserBlockDownloadResult) error {
@@ -655,39 +655,6 @@ func (s *LocatorStruct) UserDownloadBlockResults(p0 context.Context, p1 []types.
 
 func (s *LocatorStub) UserDownloadBlockResults(p0 context.Context, p1 []types.UserBlockDownloadResult) error {
 	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) AssetRecord(p0 context.Context, p1 string) (*types.AssetRecord, error) {
-	if s.Internal.AssetRecord == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.AssetRecord(p0, p1)
-}
-
-func (s *SchedulerStub) AssetRecord(p0 context.Context, p1 string) (*types.AssetRecord, error) {
-	return nil, ErrNotSupported
-}
-
-func (s *SchedulerStruct) AssetRecords(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.AssetRecord, error) {
-	if s.Internal.AssetRecords == nil {
-		return *new([]*types.AssetRecord), ErrNotSupported
-	}
-	return s.Internal.AssetRecords(p0, p1, p2, p3)
-}
-
-func (s *SchedulerStub) AssetRecords(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.AssetRecord, error) {
-	return *new([]*types.AssetRecord), ErrNotSupported
-}
-
-func (s *SchedulerStruct) AssetReplicaList(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
-	if s.Internal.AssetReplicaList == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.AssetReplicaList(p0, p1)
-}
-
-func (s *SchedulerStub) AssetReplicaList(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
-	return nil, ErrNotSupported
 }
 
 func (s *SchedulerStruct) CacheAsset(p0 context.Context, p1 *types.PullAssetReq) error {
@@ -767,14 +734,58 @@ func (s *SchedulerStub) DeleteEdgeUpdateInfo(p0 context.Context, p1 int) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) EdgeDownloadInfos(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) {
-	if s.Internal.EdgeDownloadInfos == nil {
-		return *new([]*types.DownloadInfo), ErrNotSupported
+func (s *SchedulerStruct) GetAssetListForBucket(p0 context.Context, p1 string) ([]string, error) {
+	if s.Internal.GetAssetListForBucket == nil {
+		return *new([]string), ErrNotSupported
 	}
-	return s.Internal.EdgeDownloadInfos(p0, p1)
+	return s.Internal.GetAssetListForBucket(p0, p1)
 }
 
-func (s *SchedulerStub) EdgeDownloadInfos(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) {
+func (s *SchedulerStub) GetAssetListForBucket(p0 context.Context, p1 string) ([]string, error) {
+	return *new([]string), ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetAssetRecord(p0 context.Context, p1 string) (*types.AssetRecord, error) {
+	if s.Internal.GetAssetRecord == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetAssetRecord(p0, p1)
+}
+
+func (s *SchedulerStub) GetAssetRecord(p0 context.Context, p1 string) (*types.AssetRecord, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetAssetRecords(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.AssetRecord, error) {
+	if s.Internal.GetAssetRecords == nil {
+		return *new([]*types.AssetRecord), ErrNotSupported
+	}
+	return s.Internal.GetAssetRecords(p0, p1, p2, p3)
+}
+
+func (s *SchedulerStub) GetAssetRecords(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.AssetRecord, error) {
+	return *new([]*types.AssetRecord), ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetAssetReplicaList(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
+	if s.Internal.GetAssetReplicaList == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetAssetReplicaList(p0, p1)
+}
+
+func (s *SchedulerStub) GetAssetReplicaList(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetEdgeDownloadInfos(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) {
+	if s.Internal.GetEdgeDownloadInfos == nil {
+		return *new([]*types.DownloadInfo), ErrNotSupported
+	}
+	return s.Internal.GetEdgeDownloadInfos(p0, p1)
+}
+
+func (s *SchedulerStub) GetEdgeDownloadInfos(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) {
 	return *new([]*types.DownloadInfo), ErrNotSupported
 }
 
@@ -789,26 +800,15 @@ func (s *SchedulerStub) GetEdgeExternalServiceAddress(p0 context.Context, p1 str
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) EdgeUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
-	if s.Internal.EdgeUpdateInfos == nil {
+func (s *SchedulerStruct) GetEdgeUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
+	if s.Internal.GetEdgeUpdateInfos == nil {
 		return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
 	}
-	return s.Internal.EdgeUpdateInfos(p0)
+	return s.Internal.GetEdgeUpdateInfos(p0)
 }
 
-func (s *SchedulerStub) EdgeUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
+func (s *SchedulerStub) GetEdgeUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
 	return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetAssetListForBucket(p0 context.Context, p1 string) ([]string, error) {
-	if s.Internal.GetAssetListForBucket == nil {
-		return *new([]string), ErrNotSupported
-	}
-	return s.Internal.GetAssetListForBucket(p0, p1)
-}
-
-func (s *SchedulerStub) GetAssetListForBucket(p0 context.Context, p1 string) ([]string, error) {
-	return *new([]string), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
@@ -833,6 +833,17 @@ func (s *SchedulerStub) GetNodeExternalAddress(p0 context.Context) (string, erro
 	return "", ErrNotSupported
 }
 
+func (s *SchedulerStruct) GetNodeInfo(p0 context.Context, p1 string) (types.NodeInfo, error) {
+	if s.Internal.GetNodeInfo == nil {
+		return *new(types.NodeInfo), ErrNotSupported
+	}
+	return s.Internal.GetNodeInfo(p0, p1)
+}
+
+func (s *SchedulerStub) GetNodeInfo(p0 context.Context, p1 string) (types.NodeInfo, error) {
+	return *new(types.NodeInfo), ErrNotSupported
+}
+
 func (s *SchedulerStruct) GetNodeList(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) {
 	if s.Internal.GetNodeList == nil {
 		return nil, ErrNotSupported
@@ -842,6 +853,17 @@ func (s *SchedulerStruct) GetNodeList(p0 context.Context, p1 int, p2 int) (*type
 
 func (s *SchedulerStub) GetNodeList(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) {
 	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetNodeNATType(p0 context.Context, p1 string) (types.NatType, error) {
+	if s.Internal.GetNodeNATType == nil {
+		return *new(types.NatType), ErrNotSupported
+	}
+	return s.Internal.GetNodeNATType(p0, p1)
+}
+
+func (s *SchedulerStub) GetNodeNATType(p0 context.Context, p1 string) (types.NatType, error) {
+	return *new(types.NatType), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetOnlineNodeCount(p0 context.Context, p1 types.NodeType) (int, error) {
@@ -896,28 +918,6 @@ func (s *SchedulerStruct) NatTravel(p0 context.Context, p1 *types.NatTravelReq) 
 }
 
 func (s *SchedulerStub) NatTravel(p0 context.Context, p1 *types.NatTravelReq) error {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetNodeNATType(p0 context.Context, p1 string) (types.NatType, error) {
-	if s.Internal.GetNodeNATType == nil {
-		return *new(types.NatType), ErrNotSupported
-	}
-	return s.Internal.GetNodeNATType(p0, p1)
-}
-
-func (s *SchedulerStub) GetNodeNATType(p0 context.Context, p1 string) (types.NatType, error) {
-	return *new(types.NatType), ErrNotSupported
-}
-
-func (s *SchedulerStruct) NodeQuit(p0 context.Context, p1 string) error {
-	if s.Internal.NodeQuit == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.NodeQuit(p0, p1)
-}
-
-func (s *SchedulerStub) NodeQuit(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
@@ -998,26 +998,15 @@ func (s *SchedulerStub) RestartFailedAssets(p0 context.Context, p1 []types.Asset
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) RetrieveCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.AssetDownloadSource, error) {
-	if s.Internal.RetrieveCandidateDownloadSources == nil {
+func (s *SchedulerStruct) GetCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.AssetDownloadSource, error) {
+	if s.Internal.GetCandidateDownloadSources == nil {
 		return *new([]*types.AssetDownloadSource), ErrNotSupported
 	}
-	return s.Internal.RetrieveCandidateDownloadSources(p0, p1)
+	return s.Internal.GetCandidateDownloadSources(p0, p1)
 }
 
-func (s *SchedulerStub) RetrieveCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.AssetDownloadSource, error) {
+func (s *SchedulerStub) GetCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.AssetDownloadSource, error) {
 	return *new([]*types.AssetDownloadSource), ErrNotSupported
-}
-
-func (s *SchedulerStruct) RetrieveNodeInfo(p0 context.Context, p1 string) (types.NodeInfo, error) {
-	if s.Internal.RetrieveNodeInfo == nil {
-		return *new(types.NodeInfo), ErrNotSupported
-	}
-	return s.Internal.RetrieveNodeInfo(p0, p1)
-}
-
-func (s *SchedulerStub) RetrieveNodeInfo(p0 context.Context, p1 string) (types.NodeInfo, error) {
-	return *new(types.NodeInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateInfo) error {
@@ -1039,6 +1028,17 @@ func (s *SchedulerStruct) TriggerElection(p0 context.Context) error {
 }
 
 func (s *SchedulerStub) TriggerElection(p0 context.Context) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) UnregisterNode(p0 context.Context, p1 string) error {
+	if s.Internal.UnregisterNode == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.UnregisterNode(p0, p1)
+}
+
+func (s *SchedulerStub) UnregisterNode(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 

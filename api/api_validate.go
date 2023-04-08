@@ -2,10 +2,13 @@ package api
 
 import "context"
 
+// Validate is an interface for validate-related operations
 type Validate interface {
+	// BeValidate initiates a validation request to be-validate
 	BeValidate(ctx context.Context, req *BeValidateReq) error //perm:read
 }
 
+// BeValidateReq represents the request parameters for validation
 type BeValidateReq struct {
 	// Candidate tcp server address
 	TCPSrvAddr string

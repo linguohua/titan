@@ -88,7 +88,7 @@ func (a *Asset) DeleteAsset(ctx context.Context, carfileCID string) error {
 	return nil
 }
 
-func (a *Asset) QueryAssetStats(ctx context.Context) (*types.AssetStats, error) {
+func (a *Asset) GetAssetStats(ctx context.Context) (*types.AssetStats, error) {
 	carfileCount, err := a.cacheMgr.CountCar()
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func (a *Asset) QueryAssetStats(ctx context.Context) (*types.AssetStats, error) 
 	return assetStats, nil
 }
 
-func (a *Asset) QueryCachingAsset(ctx context.Context) (*types.InProgressAsset, error) {
+func (a *Asset) GetCachingAssetInfo(ctx context.Context) (*types.InProgressAsset, error) {
 	carfileCache := a.cacheMgr.CachingCar()
 	if carfileCache == nil {
 		return nil, fmt.Errorf("caching carfile not exist")
@@ -147,7 +147,7 @@ func (a *Asset) BlockCountOfCarfile(carfileCID string) (int, error) {
 	return int(count), nil
 }
 
-func (a *Asset) AssetProgresses(ctx context.Context, carfileCIDs []string) (*types.PullResult, error) {
+func (a *Asset) GetAssetProgresses(ctx context.Context, carfileCIDs []string) (*types.PullResult, error) {
 	progresses := make([]*types.AssetPullProgress, 0, len(carfileCIDs))
 	for _, carfileCID := range carfileCIDs {
 		root, err := cid.Decode(carfileCID)

@@ -111,7 +111,7 @@ var showNodeInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		info, err := schedulerAPI.RetrieveNodeInfo(ctx, nodeID)
+		info, err := schedulerAPI.GetNodeInfo(ctx, nodeID)
 		if err != nil {
 			return err
 		}
@@ -163,7 +163,7 @@ var nodeQuitCmd = &cli.Command{
 		}
 		defer closer()
 
-		err = schedulerAPI.NodeQuit(ctx, nodeID)
+		err = schedulerAPI.UnregisterNode(ctx, nodeID)
 		if err != nil {
 			return err
 		}

@@ -38,8 +38,8 @@ func (s *Scheduler) ResetAssetExpiration(ctx context.Context, cid string, t time
 	return s.AssetManager.UpdateAssetExpiration(cid, t)
 }
 
-// AssetRecord retrieves an asset record by its CID.
-func (s *Scheduler) AssetRecord(ctx context.Context, cid string) (*types.AssetRecord, error) {
+// GetAssetRecord retrieves an asset record by its CID.
+func (s *Scheduler) GetAssetRecord(ctx context.Context, cid string) (*types.AssetRecord, error) {
 	info, err := s.AssetManager.FetchAssetRecordInfo(cid)
 	if err != nil {
 		return nil, err
@@ -48,8 +48,8 @@ func (s *Scheduler) AssetRecord(ctx context.Context, cid string) (*types.AssetRe
 	return info, nil
 }
 
-// AssetRecords lists asset records with optional filtering by status, limit, and offset.
-func (s *Scheduler) AssetRecords(ctx context.Context, limit, offset int, statuses []string) ([]*types.AssetRecord, error) {
+// GetAssetRecords lists asset records with optional filtering by status, limit, and offset.
+func (s *Scheduler) GetAssetRecords(ctx context.Context, limit, offset int, statuses []string) ([]*types.AssetRecord, error) {
 	rows, err := s.NodeManager.FetchAssetRecords(statuses, limit, offset, s.ServerID)
 	if err != nil {
 		return nil, err
@@ -131,8 +131,8 @@ func (s *Scheduler) CacheAsset(ctx context.Context, info *types.PullAssetReq) er
 	return s.AssetManager.CreateAssetPullTask(info)
 }
 
-// AssetReplicaList lists asset replicas based on a given request with startTime, endTime, cursor, and count parameters.
-func (s *Scheduler) AssetReplicaList(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
+// GetAssetReplicaList lists asset replicas based on a given request with startTime, endTime, cursor, and count parameters.
+func (s *Scheduler) GetAssetReplicaList(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 

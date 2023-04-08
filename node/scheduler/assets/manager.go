@@ -176,11 +176,11 @@ func (m *Manager) requestNodePullProgresses(nodeID string, cids []string) (resul
 
 	cNode := m.nodeMgr.GetCandidateNode(nodeID)
 	if cNode != nil {
-		result, err = cNode.AssetProgresses(context.Background(), cids)
+		result, err = cNode.GetAssetProgresses(context.Background(), cids)
 	} else {
 		eNode := m.nodeMgr.GetEdgeNode(nodeID)
 		if eNode != nil {
-			result, err = eNode.AssetProgresses(context.Background(), cids)
+			result, err = eNode.GetAssetProgresses(context.Background(), cids)
 		} else {
 			err = xerrors.Errorf("node %s offline", nodeID)
 		}

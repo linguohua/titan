@@ -175,7 +175,7 @@ var edgeUpdateInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		updateInfos, err := schedulerAPI.EdgeUpdateInfos(ctx)
+		updateInfos, err := schedulerAPI.GetEdgeUpdateInfos(ctx)
 		if err != nil {
 			return err
 		}

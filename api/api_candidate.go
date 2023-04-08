@@ -2,14 +2,15 @@ package api
 
 import "context"
 
+// Candidate is an interface for candidate node
 type Candidate interface {
 	Common
 	Device
 	Validate
 	DataSync
 	Asset
-	WaitQuiet(ctx context.Context) error                                                                                  //perm:read                                                        //perm:read
-	GetBlocksOfCarfile(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error) //perm:read
+	WaitQuiet(ctx context.Context) error                                                                                       //perm:read                                                        //perm:read
+	GetBlocksWithCarfileCID(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error) //perm:read
 }
 
 // ValidateResult node Validate result

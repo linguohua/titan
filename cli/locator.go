@@ -155,7 +155,7 @@ var infoCmd = &cli.Command{
 		areaID := cctx.String("area-id")
 		ctx := ReqContext(cctx)
 
-		accessPoint, err := api.ShowAccessPoint(ctx, areaID)
+		accessPoint, err := api.GetAccessPoint(ctx, areaID)
 		if err != nil {
 			return err
 		}
@@ -272,7 +272,7 @@ var loadAccessPointList = &cli.Command{
 
 		ctx := ReqContext(cctx)
 
-		aps, err := locatorAPI.LoadAccessPointsForWeb(ctx)
+		aps, err := locatorAPI.GetWebAccessPoints(ctx)
 		if err != nil {
 			return err
 		}
@@ -299,7 +299,7 @@ var loadUserAccessPoint = &cli.Command{
 
 		ctx := ReqContext(cctx)
 
-		ap, err := locatorAPI.LoadUserAccessPoint(ctx, "119.28.56.169")
+		ap, err := locatorAPI.GetUserAccessPoint(ctx, "119.28.56.169")
 		if err != nil {
 			return err
 		}

@@ -105,7 +105,7 @@ var showAssetInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		info, err := schedulerAPI.AssetRecord(ctx, cid)
+		info, err := schedulerAPI.GetAssetRecord(ctx, cid)
 		if err != nil {
 			return err
 		}
@@ -238,7 +238,7 @@ var listAssetRecordCmd = &cli.Command{
 			tablewriter.NewLineCol("Processes"),
 		)
 
-		list, err := schedulerAPI.AssetRecords(ctx, limit, offset, states)
+		list, err := schedulerAPI.GetAssetRecords(ctx, limit, offset, states)
 		if err != nil {
 			return err
 		}
