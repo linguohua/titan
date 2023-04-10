@@ -224,7 +224,7 @@ func (locator *Locator) getSchedulerAPIWith(nodeID string) (*schedulerAPI, error
 	return locator.ApMgr.getSchedulerAPI(node.SchedulerURL, node.AreaID, cfg.AccessToken)
 }
 
-func (locator *Locator) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.EdgeDownloadInfo, error) {
+func (locator *Locator) EdgeDownloadInfos(ctx context.Context, cid string) (*types.EdgeDownloadInfoList, error) {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	areaID, err := locator.getAreaIDWith(remoteAddr)
 	if err != nil {
@@ -243,7 +243,7 @@ func (locator *Locator) EdgeDownloadInfos(ctx context.Context, cid string) ([]*t
 		return schedulerAPI.GetEdgeDownloadInfos(ctx, cid)
 	}
 
-	return make([]*types.EdgeDownloadInfo, 0), nil
+	return nil, nil
 }
 
 // return defaultAreaID if can not get areaID

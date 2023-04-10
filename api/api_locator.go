@@ -25,7 +25,7 @@ type Locator interface {
 
 	// user api
 	// EdgeDownloadInfos retrieves download information for a content identifier (CID).
-	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.EdgeDownloadInfo, error) //perm:read
+	EdgeDownloadInfos(ctx context.Context, cid string) (*types.EdgeDownloadInfoList, error) //perm:read
 
 	// api for web
 	// RegisterNode  registers a new node with the specified scheduler URL, node ID, public key, and node type.
