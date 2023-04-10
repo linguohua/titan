@@ -13,7 +13,6 @@ import (
 	"github.com/ipld/go-ipld-prime/node/basicnode"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/types"
-	"github.com/linguohua/titan/node/asset/cache"
 	"github.com/linguohua/titan/node/asset/storage"
 	"golang.org/x/xerrors"
 )
@@ -22,23 +21,23 @@ var log = logging.Logger("asset")
 
 type Asset struct {
 	scheduler       api.Scheduler
-	cacheMgr        *cache.Manager
+	mgr             *Manager
 	TotalBlockCount int
 }
 
-func NewAsset(storageMgr *storage.Manager, scheduler api.Scheduler, cacheMgr *cache.Manager) *Asset {
+func NewAsset(storageMgr *storage.Manager, scheduler api.Scheduler, assetMgr *Manager) *Asset {
 	legacy.RegisterCodec(cid.DagProtobuf, dagpb.Type.PBNode, merkledag.ProtoNodeConverter)
 	legacy.RegisterCodec(cid.Raw, basicnode.Prototype.Bytes, merkledag.RawNodeConverter)
 
 	return &Asset{
 		scheduler: scheduler,
-		cacheMgr:  cacheMgr,
+		mgr:       assetMgr,
 	}
 }
 
-func (a *Asset) CacheAsset(ctx context.Context, rootCID string, dss []*types.CandidateDownloadInfo) error {
-	if types.RunningNodeType == types.NodeEdge && len(dss) == 0 {
-		return fmt.Errorf("download source can not empty")
+func (a *Asset) CacheAsset(ctx context.Context, rootCID string, infos []*types.CandidateDownloadInfo) error {
+	if types.RunningNodeType == types.NodeEdge && len(infos) == 0 {
+		return fmt.Errorf("candidate download infos can not empty")
 	}
 
 	root, err := cid.Decode(rootCID)
@@ -46,38 +45,38 @@ func (a *Asset) CacheAsset(ctx context.Context, rootCID string, dss []*types.Can
 		return err
 	}
 
-	has, err := a.cacheMgr.HasAsset(root)
+	has, err := a.mgr.HasAsset(root)
 	if err != nil {
 		return err
 	}
 
 	if has {
-		log.Debugf("CacheAsset %s already exist", root.String())
+		log.Debugf("Asset %s already exist", root.String())
 		return nil
 	}
 
-	log.Debugf("Cache asset cid:%s", rootCID)
+	log.Debugf("Cache asset %s", rootCID)
 
-	a.cacheMgr.AddToWaitList(root, dss)
+	a.mgr.AddToWaitList(root, infos)
 	return nil
 }
 
 func (a *Asset) DeleteAsset(ctx context.Context, assetCID string) error {
 	c, err := cid.Decode(assetCID)
 	if err != nil {
-		log.Errorf("DeleteAsset, decode asset cid %s error :%s", assetCID, err.Error())
+		log.Errorf("Decode asset cid %s error: %s", assetCID, err.Error())
 		return err
 	}
 
 	log.Debugf("DeleteAsset %s", assetCID)
 
 	go func() {
-		if err := a.cacheMgr.DeleteAsset(c); err != nil {
+		if err := a.mgr.DeleteAsset(c); err != nil {
 			log.Errorf("delete asset failed %s", err.Error())
 			return
 		}
 
-		_, diskUsage := a.cacheMgr.GetDiskUsageStat()
+		_, diskUsage := a.mgr.GetDiskUsageStat()
 		ret := types.RemoveAssetResult{BlocksCount: a.TotalBlockCount, DiskUsage: diskUsage}
 
 		if err := a.scheduler.NodeRemoveAssetResult(context.Background(), ret); err != nil {
@@ -89,7 +88,7 @@ func (a *Asset) DeleteAsset(ctx context.Context, assetCID string) error {
 }
 
 func (a *Asset) GetAssetStats(ctx context.Context) (*types.AssetStats, error) {
-	assetCount, err := a.cacheMgr.CountAsset()
+	assetCount, err := a.mgr.CountAsset()
 	if err != nil {
 		return nil, err
 	}
@@ -97,29 +96,29 @@ func (a *Asset) GetAssetStats(ctx context.Context) (*types.AssetStats, error) {
 	assetStats := &types.AssetStats{}
 	assetStats.TotalBlockCount = a.TotalBlockCount
 	assetStats.TotalAssetCount = assetCount
-	assetStats.WaitCacheAssetCount = a.cacheMgr.WaitListLen()
-	_, assetStats.DiskUsage = a.cacheMgr.GetDiskUsageStat()
+	assetStats.WaitCacheAssetCount = a.mgr.waitListLen()
+	_, assetStats.DiskUsage = a.mgr.GetDiskUsageStat()
 
-	assetCache := a.cacheMgr.CachingAsset()
-	if assetCache != nil {
-		assetStats.InProgressAssetCID = assetCache.Root().String()
+	puller := a.mgr.puller()
+	if puller != nil {
+		assetStats.InProgressAssetCID = puller.root.String()
 	}
 
-	log.Debugf("cacheStat:%#v", *assetStats)
+	log.Debugf("asset stats: %#v", *assetStats)
 
 	return assetStats, nil
 }
 
 func (a *Asset) GetCachingAssetInfo(ctx context.Context) (*types.InProgressAsset, error) {
-	assetCache := a.cacheMgr.CachingAsset()
-	if assetCache == nil {
+	puller := a.mgr.puller()
+	if puller == nil {
 		return nil, fmt.Errorf("no asset caching")
 	}
 
 	ret := &types.InProgressAsset{}
-	ret.CID = assetCache.Root().Hash().String()
-	ret.TotalSize = assetCache.TotalSize()
-	ret.DoneSize = assetCache.DoneSize()
+	ret.CID = puller.root.Hash().String()
+	ret.TotalSize = int64(puller.totalSize)
+	ret.DoneSize = int64(puller.doneSize)
 
 	return ret, nil
 }
@@ -130,7 +129,7 @@ func (a *Asset) GetBlocksOfAsset(assetCID string, randomSeed int64, randomCount 
 		return nil, err
 	}
 
-	return a.cacheMgr.GetBlocksOfAsset(root, randomSeed, randomCount)
+	return a.mgr.GetBlocksOfAsset(root, randomSeed, randomCount)
 }
 
 func (a *Asset) BlockCountOfAsset(assetCID string) (int, error) {
@@ -139,7 +138,7 @@ func (a *Asset) BlockCountOfAsset(assetCID string) (int, error) {
 		return 0, err
 	}
 
-	count, err := a.cacheMgr.BlockCountOfAsset(context.Background(), c)
+	count, err := a.mgr.BlockCountOfAsset(context.Background(), c)
 	if err != nil {
 		return 0, err
 	}
@@ -156,9 +155,9 @@ func (a *Asset) GetAssetProgresses(ctx context.Context, assetCIDs []string) (*ty
 			return nil, err
 		}
 
-		progress, err := a.assetProgress(root)
+		progress, err := a.progress(root)
 		if err != nil {
-			log.Errorf("assetProgress %s", err.Error())
+			log.Errorf("get asset progress %s", err.Error())
 			return nil, err
 		}
 		progresses = append(progresses, progress)
@@ -169,10 +168,10 @@ func (a *Asset) GetAssetProgresses(ctx context.Context, assetCIDs []string) (*ty
 		TotalBlocksCount: a.TotalBlockCount,
 	}
 
-	if count, err := a.cacheMgr.CountAsset(); err == nil {
+	if count, err := a.mgr.CountAsset(); err == nil {
 		result.AssetCount = count
 	}
-	_, result.DiskUsage = a.cacheMgr.GetDiskUsageStat()
+	_, result.DiskUsage = a.mgr.GetDiskUsageStat()
 
 	return result, nil
 }
@@ -183,12 +182,12 @@ func (a *Asset) progressForSucceededAsset(root cid.Cid) (*types.AssetPullProgres
 		Status: types.ReplicaStatusSucceeded,
 	}
 
-	if count, err := a.cacheMgr.BlockCountOfAsset(context.Background(), root); err == nil {
+	if count, err := a.mgr.BlockCountOfAsset(context.Background(), root); err == nil {
 		progress.BlocksCount = int(count)
 		progress.DoneBlocksCount = int(count)
 	}
 
-	blk, err := a.cacheMgr.GetBlock(context.Background(), root, root)
+	blk, err := a.mgr.GetBlock(context.Background(), root, root)
 	if err != nil {
 		return nil, xerrors.Errorf("get block %w", err)
 	}
@@ -210,8 +209,8 @@ func (a *Asset) progressForSucceededAsset(root cid.Cid) (*types.AssetPullProgres
 	return progress, nil
 }
 
-func (a *Asset) assetProgress(root cid.Cid) (*types.AssetPullProgress, error) {
-	status, err := a.cacheMgr.CachedStatus(root)
+func (a *Asset) progress(root cid.Cid) (*types.AssetPullProgress, error) {
+	status, err := a.mgr.cachedStatus(root)
 	if err != nil {
 		return nil, xerrors.Errorf("asset %s cache status %w", root.Hash(), err)
 	}
@@ -220,9 +219,9 @@ func (a *Asset) assetProgress(root cid.Cid) (*types.AssetPullProgress, error) {
 	case types.ReplicaStatusWaiting:
 		return &types.AssetPullProgress{CID: root.String(), Status: types.ReplicaStatusWaiting}, nil
 	case types.ReplicaStatusPulling:
-		return a.cacheMgr.CachingAsset().Progress(), nil
+		return a.mgr.puller().progress(), nil
 	case types.ReplicaStatusFailed:
-		return a.cacheMgr.ProgressForFailedAsset(root)
+		return a.mgr.ProgressForFailedAsset(root)
 	case types.ReplicaStatusSucceeded:
 		return a.progressForSucceededAsset(root)
 	}

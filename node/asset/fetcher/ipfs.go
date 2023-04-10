@@ -26,7 +26,7 @@ type IPFS struct {
 func NewIPFS(ipfsAPIURL string, timeout, retryCount int) *IPFS {
 	httpAPI, err := httpapi.NewURLApiWithClient(ipfsAPIURL, &http.Client{})
 	if err != nil {
-		log.Panicf("NewBlock,NewURLApiWithClient error:%s, url:%s", err.Error(), ipfsAPIURL)
+		log.Panicf("new ipfs error:%s, url:%s", err.Error(), ipfsAPIURL)
 	}
 
 	return &IPFS{httpAPI: httpAPI, timeout: timeout, retryCount: retryCount}

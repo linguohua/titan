@@ -6,7 +6,7 @@ import (
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/linguohua/titan/node/asset/cache"
+	"github.com/linguohua/titan/node/asset"
 	"github.com/linguohua/titan/node/asset/fetcher"
 	"github.com/linguohua/titan/node/asset/storage"
 )
@@ -33,9 +33,9 @@ func TestResolvePath(t *testing.T) {
 	}
 
 	bFetcher := fetcher.NewIPFS("http://192.168.0.132:5001", 15, 1)
-	opts := &cache.ManagerOptions{Storage: storageMgr, BFetcher: bFetcher, DownloadBatch: 5}
+	opts := &asset.ManagerOptions{Storage: storageMgr, BFetcher: bFetcher, PullParallel: 5}
 
-	mgr, err := cache.NewManager(opts)
+	mgr, err := asset.NewManager(opts)
 	if err != nil {
 		t.Errorf("TestResolvePath error:%s", err.Error())
 		return

@@ -33,11 +33,9 @@ func NewValidation(c Checker, device *device.Device) *Validation {
 }
 
 func (v *Validation) Validatable(ctx context.Context, req *api.ValidationReq) error {
-	log.Debug("BeValidate")
-
 	conn, err := newTCPClient(req.TCPSrvAddr)
 	if err != nil {
-		log.Errorf("BeValidate, NewCandicate err:%v", err)
+		log.Errorf("new tcp client err:%v", err)
 		return err
 	}
 
@@ -70,7 +68,7 @@ func (v *Validation) sendBlocks(conn *net.TCPConn, req *api.ValidationReq, speed
 
 	checker, err := v.checker.GetChecker(ctx, req.RandomSeed)
 	if err != nil {
-		return xerrors.Errorf("get car error %w", err)
+		return xerrors.Errorf("get checker error %w", err)
 	}
 
 	nodeID, err := v.device.GetNodeID(ctx)
@@ -87,11 +85,7 @@ func (v *Validation) sendBlocks(conn *net.TCPConn, req *api.ValidationReq, speed
 		case <-t.C:
 			return nil
 		case <-v.cancelChannel:
-			err := sendData(conn, nil, api.TCPMsgTypeCancel, limiter)
-			if err != nil {
-				log.Errorf("send data error:%v", err)
-			}
-			return xerrors.Errorf("cancle validate")
+			return sendData(conn, nil, api.TCPMsgTypeCancel, limiter)
 		default:
 		}
 

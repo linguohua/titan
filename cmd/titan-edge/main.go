@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/linguohua/titan/node"
-	"github.com/linguohua/titan/node/asset/cache"
+	"github.com/linguohua/titan/node/asset"
 	"github.com/linguohua/titan/node/httpserver"
 	"github.com/linguohua/titan/node/modules/dtypes"
 
@@ -254,8 +254,8 @@ var runCmd = &cli.Command{
 				return dtypes.InternalIP(strings.Split(localAddr.IP.String(), ":")[0]), nil
 			}),
 
-			node.Override(node.RunGateway, func(cacheMgr *cache.Manager) error {
-				httpServer = httpserver.NewHttpServer(cacheMgr, schedulerAPI, privateKey)
+			node.Override(node.RunGateway, func(assetMgr *asset.Manager) error {
+				httpServer = httpserver.NewHttpServer(assetMgr, schedulerAPI, privateKey)
 
 				return err
 			}),

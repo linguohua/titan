@@ -5,7 +5,6 @@ import (
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/node/asset"
-	"github.com/linguohua/titan/node/asset/cache"
 	"github.com/linguohua/titan/node/asset/fetcher"
 	"github.com/linguohua/titan/node/asset/storage"
 	"github.com/linguohua/titan/node/config"
@@ -53,7 +52,7 @@ func ConfigEdge(c interface{}) Option {
 		Override(new(*device.Device), modules.NewDevice(cfg.BandwidthUp, cfg.BandwidthDown)),
 		Override(new(dtypes.CarfileStorePath), dtypes.CarfileStorePath(cfg.CarfileStorePath)),
 		Override(new(*storage.Manager), modules.NewNodeStorageManager),
-		Override(new(*cache.Manager), modules.NewCacheManager(cfg.FetchBatch)),
+		Override(new(*asset.Manager), modules.NewAssetsManager(cfg.FetchBatch)),
 		Override(new(*validation.Validation), modules.NewNodeValidation),
 		Override(new(*rate.Limiter), modules.NewRateLimiter),
 		Override(new(*asset.Asset), asset.NewAsset),

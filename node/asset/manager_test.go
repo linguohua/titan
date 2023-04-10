@@ -1,4 +1,4 @@
-package cache
+package asset
 
 import (
 	"testing"
@@ -12,8 +12,7 @@ import (
 )
 
 type TestCachedResultImpl struct {
-	t       *testing.T
-	storage storage.Storage
+	t *testing.T
 }
 
 func (t *TestCachedResultImpl) CacheResult(result *types.PullResult) error {
@@ -39,7 +38,7 @@ func TestManager(t *testing.T) {
 	}
 
 	bFetcher := fetcher.NewIPFS("http://192.168.0.132:5001", 15, 1)
-	opts := &ManagerOptions{Storage: storageMgr, BFetcher: bFetcher, DownloadBatch: 5}
+	opts := &ManagerOptions{Storage: storageMgr, BFetcher: bFetcher, PullParallel: 5}
 
 	mgr, err := NewManager(opts)
 	if err != nil {

@@ -9,10 +9,10 @@ import (
 )
 
 type Storage interface {
-	PutAssetCache(c cid.Cid, data []byte) error
-	GetAssetCache(c cid.Cid) ([]byte, error)
-	HasAssetCache(c cid.Cid) (bool, error)
-	RemoveAssetCache(c cid.Cid) error
+	PutAssetPuller(c cid.Cid, data []byte) error
+	GetAssetPuller(c cid.Cid) ([]byte, error)
+	HasAssetPuller(c cid.Cid) (bool, error)
+	RemoveAssetPuller(c cid.Cid) error
 
 	PutBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) error
 

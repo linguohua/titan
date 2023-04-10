@@ -1,4 +1,4 @@
-package cache
+package asset
 
 import (
 	"bytes"
@@ -7,14 +7,14 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-type EncodeAssetCache struct {
-	Root                      string
-	BlocksWaitList            []string
-	BlocksDownloadSuccessList []string
-	NextLayerCIDs             []string
-	DownloadSources           []*types.CandidateDownloadInfo
-	TotalSize                 uint64
-	DoneSize                  uint64
+type EncodeAssetPuller struct {
+	Root                    string
+	BlocksWaitList          []string
+	BlocksPulledSuccessList []string
+	NextLayerCIDs           []string
+	DownloadSources         []*types.CandidateDownloadInfo
+	TotalSize               uint64
+	DoneSize                uint64
 }
 
 func encode(input interface{}) ([]byte, error) {
