@@ -155,7 +155,7 @@ var deleteEdgeUpdateInfoCmd = &cli.Command{
 		defer closer()
 
 		nodeType := cctx.Int("node-type")
-		err = schedulerAPI.DeleteEdgeUpdateInfo(ctx, nodeType)
+		err = schedulerAPI.DeleteEdgeUpdateConfig(ctx, nodeType)
 		if err != nil {
 			return err
 		}
@@ -174,7 +174,7 @@ var edgeUpdateInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		updateInfos, err := schedulerAPI.GetEdgeUpdateInfos(ctx)
+		updateInfos, err := schedulerAPI.GetEdgeUpdateConfigs(ctx)
 		if err != nil {
 			return err
 		}
@@ -247,8 +247,8 @@ var setEdgeUpdateInfoCmd = &cli.Command{
 			return err
 		}
 
-		updateInfo := &api.EdgeUpdateInfo{AppName: appName, NodeType: nodeType, Version: version, Hash: hash, DownloadURL: downloadURL}
-		err = schedulerAPI.SetEdgeUpdateInfo(ctx, updateInfo)
+		updateInfo := &api.EdgeUpdateConfig{AppName: appName, NodeType: nodeType, Version: version, Hash: hash, DownloadURL: downloadURL}
+		err = schedulerAPI.SetEdgeUpdateConfig(ctx, updateInfo)
 		if err != nil {
 			return err
 		}

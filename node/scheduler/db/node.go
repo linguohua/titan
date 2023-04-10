@@ -135,22 +135,22 @@ func (n *SQLDB) LoadValidationResultInfos(startTime, endTime time.Time, pageNumb
 }
 
 // SetEdgeUpdateInfo inserts edge update information.
-func (n *SQLDB) SetEdgeUpdateInfo(info *api.EdgeUpdateInfo) error {
+func (n *SQLDB) SetEdgeUpdateInfo(info *api.EdgeUpdateConfig) error {
 	sqlString := fmt.Sprintf(`INSERT INTO %s (node_type, app_name, version, hash, download_url) VALUES (:node_type, :app_name, :version, :hash, :download_url) ON DUPLICATE KEY UPDATE app_name=:app_name, version=:version, hash=:hash, download_url=:download_url`, edgeUpdateTable)
 	_, err := n.db.NamedExec(sqlString, info)
 	return err
 }
 
 // LoadEdgeUpdateInfos load edge update information.
-func (n *SQLDB) LoadEdgeUpdateInfos() (map[int]*api.EdgeUpdateInfo, error) {
+func (n *SQLDB) LoadEdgeUpdateInfos() (map[int]*api.EdgeUpdateConfig, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s`, edgeUpdateTable)
 
-	var out []*api.EdgeUpdateInfo
+	var out []*api.EdgeUpdateConfig
 	if err := n.db.Select(&out, query); err != nil {
 		return nil, err
 	}
 
-	ret := make(map[int]*api.EdgeUpdateInfo)
+	ret := make(map[int]*api.EdgeUpdateConfig)
 	for _, info := range out {
 		ret[info.NodeType] = info
 	}

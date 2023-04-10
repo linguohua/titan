@@ -10,8 +10,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-
-func (s *Scheduler) UserProofsOfWork(ctx context.Context, proofs []*types.UserProofOfWork) error {
+func (s *Scheduler) SubmitUserProofsOfWork(ctx context.Context, proofs []*types.UserProofOfWork) error {
 	return nil
 }
 

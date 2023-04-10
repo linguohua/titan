@@ -11,14 +11,14 @@ import (
 // EdgeUpdateManager manages information about edge node updates.
 type EdgeUpdateManager struct {
 	db          *db.SQLDB
-	updateInfos map[int]*api.EdgeUpdateInfo
+	updateInfos map[int]*api.EdgeUpdateConfig
 }
 
 // NewEdgeUpdateManager creates a new EdgeUpdateManager with the given SQL database connection.
 func NewEdgeUpdateManager(db *db.SQLDB) (*EdgeUpdateManager, error) {
 	updater := &EdgeUpdateManager{
 		db:          db,
-		updateInfos: make(map[int]*api.EdgeUpdateInfo),
+		updateInfos: make(map[int]*api.EdgeUpdateConfig),
 	}
 	appUpdateInfo, err := db.LoadEdgeUpdateInfos()
 	if err != nil {
@@ -29,27 +29,22 @@ func NewEdgeUpdateManager(db *db.SQLDB) (*EdgeUpdateManager, error) {
 	return updater, nil
 }
 
-// GetEdgeUpdateInfos  returns the map of edge node update information.
-func (eu *EdgeUpdateManager) GetEdgeUpdateInfos(ctx context.Context) (map[int]*api.EdgeUpdateInfo, error) {
+// GetEdgeUpdateConfigs  returns the map of edge node update information.
+func (eu *EdgeUpdateManager) GetEdgeUpdateConfigs(ctx context.Context) (map[int]*api.EdgeUpdateConfig, error) {
 	return eu.updateInfos, nil
 }
 
-// SetEdgeUpdateInfo sets the EdgeUpdateInfo for the given node type.
-func (eu *EdgeUpdateManager) SetEdgeUpdateInfo(ctx context.Context, info *api.EdgeUpdateInfo) error {
+// SetEdgeUpdateConfig sets the EdgeUpdateInfo for the given node type.
+func (eu *EdgeUpdateManager) SetEdgeUpdateConfig(ctx context.Context, info *api.EdgeUpdateConfig) error {
 	if eu.updateInfos == nil {
-		eu.updateInfos = make(map[int]*api.EdgeUpdateInfo)
+		eu.updateInfos = make(map[int]*api.EdgeUpdateConfig)
 	}
 	eu.updateInfos[info.NodeType] = info
 	return eu.db.SetEdgeUpdateInfo(info)
 }
 
-// DeleteEdgeUpdateInfo deletes the EdgeUpdateInfo for the given node type.
-func (eu *EdgeUpdateManager) DeleteEdgeUpdateInfo(ctx context.Context, nodeType int) error {
+// DeleteEdgeUpdateConfig deletes the EdgeUpdateInfo for the given node type.
+func (eu *EdgeUpdateManager) DeleteEdgeUpdateConfig(ctx context.Context, nodeType int) error {
 	delete(eu.updateInfos, nodeType)
 	return eu.db.DeleteEdgeUpdateInfo(nodeType)
-}
-
-// GetNodeAppUpdateInfos returns the map of node app update information.
-func (eu *EdgeUpdateManager) GetNodeAppUpdateInfos(ctx context.Context) (map[int]*api.EdgeUpdateInfo, error) {
-	return eu.updateInfos, nil
 }
