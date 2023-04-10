@@ -22,10 +22,14 @@ type DownloadHistory struct {
 
 // EdgeDownloadInfo download info of edge
 type EdgeDownloadInfo struct {
-	URL          string
-	Credentials  *GatewayCredentials
-	NodeID       string
-	NatType      string
+	URL         string
+	Credentials *GatewayCredentials
+	NodeID      string
+	NatType     string
+}
+
+type EdgeDownloadInfoList struct {
+	Infos        []*EdgeDownloadInfo
 	SchedulerURL string
 	SchedulerKey string
 }

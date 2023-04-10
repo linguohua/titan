@@ -50,7 +50,7 @@ type Scheduler interface {
 	// CheckNetworkConnectivity check tcp or udp network connectivity , network is "tcp" or "udp"
 	CheckNetworkConnectivity(ctx context.Context, network, targetURL string) error //perm:read
 	// GetEdgeDownloadInfos retrieves download information for the edge with the asset with the specified CID.
-	GetEdgeDownloadInfos(ctx context.Context, cid string) ([]*types.EdgeDownloadInfo, error) //perm:read
+	GetEdgeDownloadInfos(ctx context.Context, cid string) (*types.EdgeDownloadInfoList, error) //perm:read
 	// GetCandidateDownloadInfos retrieves download information for the candidate with the asset with the specified CID.
 	GetCandidateDownloadInfos(ctx context.Context, cid string) ([]*types.CandidateDownloadInfo, error) //perm:read
 
