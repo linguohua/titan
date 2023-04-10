@@ -24,13 +24,13 @@ func (s *Scheduler) NodeRemoveAssetResult(ctx context.Context, resultInfo types.
 	return nil
 }
 
-// RestartFailedAssets restarts of pulling assets for a given list of  asset hashes.
-func (s *Scheduler) RestartFailedAssets(ctx context.Context, hashes []types.AssetHash) error {
+// RePullFailedAssets retries the pull process for a list of failed assets
+func (s *Scheduler) RePullFailedAssets(ctx context.Context, hashes []types.AssetHash) error {
 	return s.AssetManager.RestartPullAssets(hashes)
 }
 
-// ResetAssetExpiration resets the expiration time of an asset record based on the provided CID and new expiration time.
-func (s *Scheduler) ResetAssetExpiration(ctx context.Context, cid string, t time.Time) error {
+// UpdateAssetExpiration resets the expiration time of an asset record based on the provided CID and new expiration time.
+func (s *Scheduler) UpdateAssetExpiration(ctx context.Context, cid string, t time.Time) error {
 	if time.Now().After(t) {
 		return xerrors.Errorf("expiration:%s has passed", t.String())
 	}
@@ -107,8 +107,8 @@ func (s *Scheduler) RemoveAssetReplica(ctx context.Context, cid, nodeID string) 
 	return s.AssetManager.RemoveReplica(cid, hash, nodeID)
 }
 
-// CacheAsset caches an asset based on the provided PullAssetReq structure.
-func (s *Scheduler) CacheAsset(ctx context.Context, info *types.PullAssetReq) error {
+// PullAsset pull an asset based on the provided PullAssetReq structure.
+func (s *Scheduler) PullAsset(ctx context.Context, info *types.PullAssetReq) error {
 	if info.CID == "" {
 		return xerrors.New("Cid is Nil")
 	}
@@ -131,8 +131,8 @@ func (s *Scheduler) CacheAsset(ctx context.Context, info *types.PullAssetReq) er
 	return s.AssetManager.CreateAssetPullTask(info)
 }
 
-// GetAssetReplicaList lists asset replicas based on a given request with startTime, endTime, cursor, and count parameters.
-func (s *Scheduler) GetAssetReplicaList(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
+// GetAssetReplicas lists asset replicas based on a given request with startTime, endTime, cursor, and count parameters.
+func (s *Scheduler) GetAssetReplicas(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 

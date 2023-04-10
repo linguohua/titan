@@ -25,13 +25,13 @@ type Locator interface {
 
 	// user api
 	// EdgeDownloadInfos retrieves download information for a content identifier (CID).
-	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error) //perm:read
+	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.EdgeDownloadInfo, error) //perm:read
 	// UserDownloadBlockResults  accepts a user's download block results.
 	UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error //perm:read
 
 	// api for web
-	// RegisterNewNode  registers a new node with the specified scheduler URL, node ID, public key, and node type.
-	RegisterNewNode(ctx context.Context, schedulerURL, nodeID, publicKey string, nt types.NodeType) error // perm:admin
+	// RegisterNode  registers a new node with the specified scheduler URL, node ID, public key, and node type.
+	RegisterNode(ctx context.Context, schedulerURL, nodeID, publicKey string, nt types.NodeType) error // perm:admin
 	// GetWebAccessPoints retrieves all access points for web usage.
 	GetWebAccessPoints(ctx context.Context) ([]AccessPoint, error) // perm:admin
 	// GetUserAccessPoint retrieves an access point for a user with a specified IP address.

@@ -36,7 +36,7 @@ func NewAsset(storageMgr *storage.Manager, scheduler api.Scheduler, cacheMgr *ca
 	}
 }
 
-func (a *Asset) CacheAsset(ctx context.Context, rootCID string, dss []*types.AssetDownloadSource) error {
+func (a *Asset) CacheAsset(ctx context.Context, rootCID string, dss []*types.CandidateDownloadInfo) error {
 	if types.RunningNodeType == types.NodeEdge && len(dss) == 0 {
 		return fmt.Errorf("download source can not empty")
 	}

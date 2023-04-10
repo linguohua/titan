@@ -123,10 +123,10 @@ type ListReplicaInfosRsp struct {
 	Total    int64          `json:"total"`
 }
 
-// AssetDownloadSource holds the resource download address and corresponding credentials.
-type AssetDownloadSource struct {
-	CandidateAddr string
-	Credentials   *GatewayCredentials
+// CandidateDownloadInfo download info of candidate
+type CandidateDownloadInfo struct {
+	NodeAddr    string
+	Credentials *GatewayCredentials
 }
 
 // AssetStats contains statistics about assets

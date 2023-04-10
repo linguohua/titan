@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net"
-	"net/http"
 	"time"
 
 	"github.com/linguohua/titan/node/cidutil"
@@ -24,7 +23,6 @@ import (
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/handler"
@@ -237,8 +235,8 @@ func (s *Scheduler) NodeValidationResult(ctx context.Context, result api.Validat
 	return s.ValidationMgr.Result(vs)
 }
 
-// RegisterNewNode registers a new node, returning an error if the node is already registered.
-func (s *Scheduler) RegisterNewNode(ctx context.Context, nodeID, pKey string, nodeType types.NodeType) error {
+// RegisterNode registers a new node, returning an error if the node is already registered.
+func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, pKey string, nodeType types.NodeType) error {
 	return s.NodeManager.InsertNodeRegisterInfo(pKey, nodeID, nodeType)
 }
 
@@ -290,26 +288,6 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (types.NodeI
 	}
 
 	return nodeInfo, nil
-}
-
-// ConnectLocator processes a locator connection request.
-func (s *Scheduler) ConnectLocator(ctx context.Context, id string, token string) error {
-	remoteAddr := handler.GetRemoteAddr(ctx)
-	url := fmt.Sprintf("https://%s/rpc/v0", remoteAddr)
-
-	log.Infof("ConnectLocator locatorID:%s, addr:%s", id, remoteAddr)
-
-	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+token)
-	// Connect to scheduler
-	// log.Infof("EdgeLogin edge url:%v", url)
-	_, _, err := client.NewLocator(ctx, url, headers)
-	if err != nil {
-		log.Errorf("ConnectLocator err:%s,url:%s", err.Error(), url)
-		return err
-	}
-
-	return nil
 }
 
 // UnregisterNode node want to quit titan
@@ -384,8 +362,8 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 	return rsp, nil
 }
 
-// GetValidationResultList retrieves a list of validation results.
-func (s *Scheduler) GetValidationResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidationResultRsp, error) {
+// GetValidationResults retrieves a list of validation results.
+func (s *Scheduler) GetValidationResults(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidationResultRsp, error) {
 	svm, err := s.NodeManager.LoadValidationResultInfos(startTime, endTime, pageNumber, pageSize)
 	if err != nil {
 		return nil, err
@@ -394,8 +372,8 @@ func (s *Scheduler) GetValidationResultList(ctx context.Context, startTime, endT
 	return svm, nil
 }
 
-// GetServerPublicKey get server publicKey
-func (s *Scheduler) GetServerPublicKey(ctx context.Context) (string, error) {
+// GetSchedulerPublicKey get server publicKey
+func (s *Scheduler) GetSchedulerPublicKey(ctx context.Context) (string, error) {
 	if s.PrivateKey == nil {
 		return "", fmt.Errorf("scheduler private key not exist")
 	}
@@ -410,15 +388,15 @@ func (s *Scheduler) IgnoreProofOfWork(ctx context.Context, proofs []*types.NodeW
 	return nil
 }
 
-// GetCandidateDownloadSources finds candidate download sources for the given CID.
-func (s *Scheduler) GetCandidateDownloadSources(ctx context.Context, cid string) ([]*types.AssetDownloadSource, error) {
+// GetCandidateDownloadInfos finds candidate download info for the given CID.
+func (s *Scheduler) GetCandidateDownloadInfos(ctx context.Context, cid string) ([]*types.CandidateDownloadInfo, error) {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}
 
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	sources := make([]*types.AssetDownloadSource, 0)
+	sources := make([]*types.CandidateDownloadInfo, 0)
 
 	rows, err := s.NodeManager.LoadReplicasByHash(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
 	if err != nil {
@@ -448,9 +426,9 @@ func (s *Scheduler) GetCandidateDownloadSources(ctx context.Context, cid string)
 		if err != nil {
 			continue
 		}
-		source := &types.AssetDownloadSource{
-			CandidateAddr: cNode.DownloadAddr(),
-			Credentials:   credentials,
+		source := &types.CandidateDownloadInfo{
+			NodeAddr:    cNode.DownloadAddr(),
+			Credentials: credentials,
 		}
 
 		sources = append(sources, source)

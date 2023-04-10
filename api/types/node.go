@@ -41,8 +41,8 @@ type UserBlockDownloadResult struct {
 	Succeed bool
 }
 
-// DownloadInfo download info of edge
-type DownloadInfo struct {
+// EdgeDownloadInfo download info of edge
+type EdgeDownloadInfo struct {
 	URL          string
 	Credentials  *GatewayCredentials
 	NodeID       string

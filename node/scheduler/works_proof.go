@@ -47,7 +47,7 @@ func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []type
 }
 
 // GetEdgeDownloadInfos finds edge download information for a given CID
-func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error) {
+func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) ([]*types.EdgeDownloadInfo, error) {
 	if cid == "" {
 		return nil, xerrors.New("cids is nil")
 	}
@@ -64,7 +64,7 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) ([]*ty
 	defer rows.Close()
 
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	infos := make([]*types.DownloadInfo, 0)
+	infos := make([]*types.EdgeDownloadInfo, 0)
 
 	for rows.Next() {
 		rInfo := &types.ReplicaInfo{}
@@ -89,7 +89,7 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) ([]*ty
 			continue
 		}
 
-		info := &types.DownloadInfo{
+		info := &types.EdgeDownloadInfo{
 			URL:          eNode.DownloadAddr(),
 			NodeID:       nodeID,
 			Credentials:  credentials,

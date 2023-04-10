@@ -87,7 +87,7 @@ var registerNodeCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.RegisterNewNode(ctx, nID, string(pem), types.NodeType(t))
+		return schedulerAPI.RegisterNode(ctx, nID, string(pem), types.NodeType(t))
 	},
 }
 

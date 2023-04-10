@@ -28,7 +28,7 @@ type CachedResulter interface {
 
 type carWaiter struct {
 	Root  cid.Cid
-	Dss   []*types.AssetDownloadSource
+	Dss   []*types.CandidateDownloadInfo
 	cache *carfileCache
 }
 type Manager struct {
@@ -176,7 +176,7 @@ func (m *Manager) removeCarFromWaitList(root cid.Cid) *carWaiter {
 	return nil
 }
 
-func (m *Manager) AddToWaitList(root cid.Cid, dss []*types.AssetDownloadSource) {
+func (m *Manager) AddToWaitList(root cid.Cid, dss []*types.CandidateDownloadInfo) {
 	m.waitListLock.Lock()
 	defer m.waitListLock.Unlock()
 
