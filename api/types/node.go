@@ -145,10 +145,8 @@ type ValidationResultInfo struct {
 type ValidationStatus int
 
 const (
-	// ValidationStatusUnknown status
-	ValidationStatusUnknown ValidationStatus = iota
 	// ValidationStatusCreate status
-	ValidationStatusCreate
+	ValidationStatusCreate ValidationStatus = iota
 	// ValidationStatusSuccess status
 	ValidationStatusSuccess
 	// ValidationStatusNodeTimeOut status
@@ -157,10 +155,14 @@ const (
 	ValidationStatusValidatorTimeOut
 	// ValidationStatusCancel status
 	ValidationStatusCancel
-	// ValidationStatusBlockFail status
-	ValidationStatusBlockFail
-	// ValidationStatusOther status
-	ValidationStatusOther
+	// ValidationStatusValidateFail status
+	ValidationStatusValidateFail
+	// ValidationStatusLoadDBErr status
+	ValidationStatusLoadDBErr
+	// ValidationStatusCIDToHashErr status
+	ValidationStatusCIDToHashErr
+	// ValidationStatusGetValidatorBlockErr status
+	ValidationStatusGetValidatorBlockErr
 )
 
 // Credentials gateway access credentials
