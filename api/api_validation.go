@@ -4,11 +4,11 @@ import "context"
 
 // Validation is an interface for validate-related operations
 type Validation interface {
-	// Validatable initiates a validation request to be-validate
+	// Validate check node asset and bandwidth
 	Validate(ctx context.Context, req *ValidateReq) error //perm:read
 }
 
-// ValidationReq represents the request parameters for validation
+// ValidateReq represents the request parameters for validation
 type ValidateReq struct {
 	// TCPSrvAddr Candidate tcp server address
 	TCPSrvAddr string
