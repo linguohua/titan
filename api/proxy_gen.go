@@ -195,8 +195,6 @@ type SchedulerStruct struct {
 
 		GetAssetReplicaInfos func(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) `perm:"read"`
 
-		GetCallerExternalAddress func(p0 context.Context) (string, error) `perm:"read"`
-
 		GetCandidateDownloadInfos func(p0 context.Context, p1 string) ([]*types.CandidateDownloadInfo, error) `perm:"read"`
 
 		GetEdgeDownloadInfos func(p0 context.Context, p1 string) ([]*types.EdgeDownloadInfo, error) `perm:"read"`
@@ -204,6 +202,8 @@ type SchedulerStruct struct {
 		GetEdgeExternalServiceAddress func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
 
 		GetEdgeUpdateConfigs func(p0 context.Context) (map[int]*EdgeUpdateConfig, error) `perm:"read"`
+
+		GetExternalAddress func(p0 context.Context) (string, error) `perm:"read"`
 
 		GetNodeInfo func(p0 context.Context, p1 string) (types.NodeInfo, error) `perm:"read"`
 
@@ -735,17 +735,6 @@ func (s *SchedulerStub) GetAssetReplicaInfos(p0 context.Context, p1 types.ListRe
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetCallerExternalAddress(p0 context.Context) (string, error) {
-	if s.Internal.GetCallerExternalAddress == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.GetCallerExternalAddress(p0)
-}
-
-func (s *SchedulerStub) GetCallerExternalAddress(p0 context.Context) (string, error) {
-	return "", ErrNotSupported
-}
-
 func (s *SchedulerStruct) GetCandidateDownloadInfos(p0 context.Context, p1 string) ([]*types.CandidateDownloadInfo, error) {
 	if s.Internal.GetCandidateDownloadInfos == nil {
 		return *new([]*types.CandidateDownloadInfo), ErrNotSupported
@@ -788,6 +777,17 @@ func (s *SchedulerStruct) GetEdgeUpdateConfigs(p0 context.Context) (map[int]*Edg
 
 func (s *SchedulerStub) GetEdgeUpdateConfigs(p0 context.Context) (map[int]*EdgeUpdateConfig, error) {
 	return *new(map[int]*EdgeUpdateConfig), ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetExternalAddress(p0 context.Context) (string, error) {
+	if s.Internal.GetExternalAddress == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.GetExternalAddress(p0)
+}
+
+func (s *SchedulerStub) GetExternalAddress(p0 context.Context) (string, error) {
+	return "", ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetNodeInfo(p0 context.Context, p1 string) (types.NodeInfo, error) {
