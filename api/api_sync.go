@@ -6,7 +6,7 @@ import (
 
 // DataSync sync scheduler asset to node
 type DataSync interface {
-	// CompareTopHash can check asset if same as scheduler.
+	// CompareTopHash check asset if same as scheduler.
 	// topHash is hash of all buckets
 	CompareTopHash(ctx context.Context, topHash string) (bool, error) //perm:write
 	// CompareBucketHashes group asset in bucket, and compare single bucket hash

@@ -21,18 +21,18 @@ type Validation struct {
 	cancelChannel chan bool
 }
 
-type RandomChecker interface {
+type Asset interface {
 	GetBlock(ctx context.Context) (blocks.Block, error)
 }
 type Checker interface {
-	GetChecker(ctx context.Context, randomSeed int64) (RandomChecker, error)
+	GetChecker(ctx context.Context, randomSeed int64) (Asset, error)
 }
 
 func NewValidation(c Checker, device *device.Device) *Validation {
 	return &Validation{checker: c, device: device}
 }
 
-func (v *Validation) Validatable(ctx context.Context, req *api.ValidationReq) error {
+func (v *Validation) Validate(ctx context.Context, req *api.ValidateReq) error {
 	conn, err := newTCPClient(req.TCPSrvAddr)
 	if err != nil {
 		log.Errorf("new tcp client err:%v", err)
@@ -50,7 +50,7 @@ func (v *Validation) CancelValidate() {
 	}
 }
 
-func (v *Validation) sendBlocks(conn *net.TCPConn, req *api.ValidationReq, speedRate int64) error {
+func (v *Validation) sendBlocks(conn *net.TCPConn, req *api.ValidateReq, speedRate int64) error {
 	defer func() {
 		v.cancelChannel = nil
 		if err := conn.Close(); err != nil {
@@ -66,7 +66,7 @@ func (v *Validation) sendBlocks(conn *net.TCPConn, req *api.ValidationReq, speed
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	checker, err := v.checker.GetChecker(ctx, req.RandomSeed)
+	asset, err := v.checker.GetChecker(ctx, req.RandomSeed)
 	if err != nil {
 		return xerrors.Errorf("get checker error %w", err)
 	}
@@ -89,7 +89,7 @@ func (v *Validation) sendBlocks(conn *net.TCPConn, req *api.ValidationReq, speed
 		default:
 		}
 
-		blk, err := checker.GetBlock(ctx)
+		blk, err := asset.GetBlock(ctx)
 		if err != nil {
 			return err
 		}

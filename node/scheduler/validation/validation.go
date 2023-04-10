@@ -88,11 +88,11 @@ func (m *Manager) startNewRound() error {
 	return nil
 }
 
-// sendValidationReqToNodes sends a validation request to a node.
-func (m *Manager) sendValidationReqToNodes(nID string, req *api.ValidationReq) {
+// sends a validation request to a node.
+func (m *Manager) sendValidationReqToNodes(nID string, req *api.ValidateReq) {
 	cNode := m.nodeMgr.GetNode(nID)
 	if cNode != nil {
-		err := cNode.Validatable(context.Background(), req)
+		err := cNode.Validate(context.Background(), req)
 		if err != nil {
 			log.Errorf("%s Validate err:%s", nID, err.Error())
 		}
@@ -102,9 +102,9 @@ func (m *Manager) sendValidationReqToNodes(nID string, req *api.ValidationReq) {
 	log.Errorf("%s validatable Node not found", nID)
 }
 
-// getValidationDetails get validation details.
-func (m *Manager) getValidationDetails(vrs []*VWindow) (map[string]*api.ValidationReq, []*types.ValidationResultInfo) {
-	bReqs := make(map[string]*api.ValidationReq)
+// get validation details.
+func (m *Manager) getValidationDetails(vrs []*VWindow) (map[string]*api.ValidateReq, []*types.ValidationResultInfo) {
+	bReqs := make(map[string]*api.ValidateReq)
 	vrInfos := make([]*types.ValidationResultInfo, 0)
 
 	for _, vr := range vrs {
@@ -131,7 +131,7 @@ func (m *Manager) getValidationDetails(vrs []*VWindow) (map[string]*api.Validati
 			}
 			vrInfos = append(vrInfos, dbInfo)
 
-			req := &api.ValidationReq{
+			req := &api.ValidateReq{
 				RandomSeed: m.seed,
 				Duration:   duration,
 				TCPSrvAddr: vNode.TCPAddr(),

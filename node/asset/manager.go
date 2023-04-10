@@ -446,6 +446,6 @@ func (m *Manager) GetAssetsOfBucket(ctx context.Context, bucketID uint32, isRemo
 }
 
 // GetChecker validate asset by random seed
-func (m *Manager) GetChecker(ctx context.Context, randomSeed int64) (validate.RandomChecker, error) {
+func (m *Manager) GetChecker(ctx context.Context, randomSeed int64) (validate.Asset, error) {
 	return NewRandomCheck(randomSeed, m.Storage, nil), nil
 }

@@ -255,7 +255,7 @@ type SchedulerStub struct {
 
 type ValidationStruct struct {
 	Internal struct {
-		Validatable func(p0 context.Context, p1 *ValidationReq) error `perm:"read"`
+		Validate func(p0 context.Context, p1 *ValidateReq) error `perm:"read"`
 	}
 }
 
@@ -1021,14 +1021,14 @@ func (s *SchedulerStub) VerifyNodeAuthToken(p0 context.Context, p1 string) ([]au
 	return *new([]auth.Permission), ErrNotSupported
 }
 
-func (s *ValidationStruct) Validatable(p0 context.Context, p1 *ValidationReq) error {
-	if s.Internal.Validatable == nil {
+func (s *ValidationStruct) Validate(p0 context.Context, p1 *ValidateReq) error {
+	if s.Internal.Validate == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.Validatable(p0, p1)
+	return s.Internal.Validate(p0, p1)
 }
 
-func (s *ValidationStub) Validatable(p0 context.Context, p1 *ValidationReq) error {
+func (s *ValidationStub) Validate(p0 context.Context, p1 *ValidateReq) error {
 	return ErrNotSupported
 }
 
