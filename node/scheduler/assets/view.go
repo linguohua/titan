@@ -11,7 +11,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// removes an asset from the node's asset view
+// removeAssetFromView removes an asset from the node's asset view
 func (m *Manager) removeAssetFromView(nodeID string, assetCID string) error {
 	c, err := cid.Decode(assetCID)
 	if err != nil {
@@ -47,17 +47,17 @@ func (m *Manager) removeAssetFromView(nodeID string, assetCID string) error {
 		return err
 	}
 
-	if err := m.UpsertAssetsView(nodeID, topHash, bucketHashes); err != nil {
+	if err := m.SaveAssetsView(nodeID, topHash, bucketHashes); err != nil {
 		return err
 	}
 
 	if len(assetHashes) > 0 {
-		return m.UpsertBucket(bucketID, assetHashes)
+		return m.SaveBucket(bucketID, assetHashes)
 	}
 	return nil
 }
 
-// adds an asset to the node's asset view
+// addAssetToView adds an asset to the node's asset view
 func (m *Manager) addAssetToView(nodeID string, assetCID string) error {
 	c, err := cid.Decode(assetCID)
 	if err != nil {
@@ -93,14 +93,14 @@ func (m *Manager) addAssetToView(nodeID string, assetCID string) error {
 		return err
 	}
 
-	if err := m.UpsertAssetsView(nodeID, topHash, bucketHashes); err != nil {
+	if err := m.SaveAssetsView(nodeID, topHash, bucketHashes); err != nil {
 		return err
 	}
 
-	return m.UpsertBucket(bucketID, assetHashes)
+	return m.SaveBucket(bucketID, assetHashes)
 }
 
-// calculates the bucket number for a given CID
+// determineBucketNumber calculates the bucket number for a given CID
 func determineBucketNumber(c cid.Cid) uint32 {
 	h := fnv.New32a()
 	if _, err := h.Write(c.Hash()); err != nil {
@@ -109,7 +109,7 @@ func determineBucketNumber(c cid.Cid) uint32 {
 	return h.Sum32() % numAssetBuckets
 }
 
-// removes a target hash from a list of hashes
+// removeTargetHash removes a target hash from a list of hashes
 func removeTargetHash(hashes []string, target string) []string {
 	for i, hash := range hashes {
 		if hash == target {
@@ -120,7 +120,7 @@ func removeTargetHash(hashes []string, target string) []string {
 	return hashes
 }
 
-// calculates the hash for a given list of asset hashes
+// computeBucketHash calculates the hash for a given list of asset hashes
 func computeBucketHash(hashes []string) (string, error) {
 	hash := sha256.New()
 	for _, h := range hashes {
@@ -133,7 +133,7 @@ func computeBucketHash(hashes []string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-// computes the top hash for a given map of bucket hashes
+// calculateOverallHash computes the top hash for a given map of bucket hashes
 func calculateOverallHash(hashes map[uint32]string) (string, error) {
 	hash := sha256.New()
 	for _, h := range hashes {
@@ -146,7 +146,7 @@ func calculateOverallHash(hashes map[uint32]string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-// checks if a target hash exists in a list of hashes
+// contains checks if a target hash exists in a list of hashes
 func contains(hashes []string, target string) bool {
 	for _, hash := range hashes {
 		if hash == target {

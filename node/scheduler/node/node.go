@@ -84,8 +84,8 @@ func APIFromCandidate(api api.Candidate) *API {
 }
 
 // ConnectRPC connects to the node RPC
-func (n *Node) ConnectRPC(addr string, isNodeConnect bool, nodeType types.NodeType) error {
-	if !isNodeConnect {
+func (n *Node) ConnectRPC(addr string, isNodeLogin bool, nodeType types.NodeType) error {
+	if !isNodeLogin {
 		if addr == n.remoteAddr {
 			return nil
 		}
@@ -240,7 +240,7 @@ func (n *BaseInfo) Credentials(cid string, titanRsa *titanrsa.Rsa, privateKey *r
 	return &types.GatewayCredentials{Ciphertext: hex.EncodeToString(b), Sign: hex.EncodeToString(sign)}, nil
 }
 
-// encrypts a Credentials object using the given public key and RSA instance.
+// encryptCredentials encrypts a Credentials object using the given public key and RSA instance.
 func (n *BaseInfo) encryptCredentials(at *types.Credentials, publicKey *rsa.PublicKey, rsa *titanrsa.Rsa) ([]byte, error) {
 	var buffer bytes.Buffer
 	enc := gob.NewEncoder(&buffer)

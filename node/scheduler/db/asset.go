@@ -41,8 +41,8 @@ func (n *SQLDB) UpdateUnfinishedReplicasStatus(hash string, status types.Replica
 	return err
 }
 
-// BulkUpsertReplicas inserts or updates replica information in bulk
-func (n *SQLDB) BulkUpsertReplicas(infos []*types.ReplicaInfo) error {
+// BatchSaveReplicas inserts or updates replica information in batch
+func (n *SQLDB) BatchSaveReplicas(infos []*types.ReplicaInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (hash, node_id, status, is_candidate) 
 				VALUES (:hash, :node_id, :status, :is_candidate) 
@@ -53,8 +53,8 @@ func (n *SQLDB) BulkUpsertReplicas(infos []*types.ReplicaInfo) error {
 	return err
 }
 
-// UpsertAssetRecord inserts or updates asset record information
-func (n *SQLDB) UpsertAssetRecord(info *types.AssetRecord) error {
+// SaveAssetRecord inserts or updates asset record information
+func (n *SQLDB) SaveAssetRecord(info *types.AssetRecord) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (hash, cid, state, edge_replicas, candidate_replicas, expiration, total_size, total_blocks, scheduler_sid, end_time) 
 				VALUES (:hash, :cid, :state, :edge_replicas, :candidate_replicas, :expiration, :total_size, :total_blocks, :scheduler_sid, NOW()) 

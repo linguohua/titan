@@ -76,7 +76,7 @@ var planners = map[AssetState]func(events []statemachine.Event, state *AssetPull
 	),
 }
 
-// creates a plan for the next asset pulling action based on the given events and asset state
+// plan creates a plan for the next asset pulling action based on the given events and asset state
 func (m *Manager) plan(events []statemachine.Event, state *AssetPullingInfo) (func(statemachine.Context, AssetPullingInfo) error, uint64, error) {
 	p := planners[state.State]
 	if p == nil {
@@ -180,7 +180,7 @@ func on(mut mutator, next AssetState) func() (mutator, func(*AssetPullingInfo) (
 	}
 }
 
-// like `on`, but doesn't change state
+// apply like `on`, but doesn't change state
 func apply(mut mutator) func() (mutator, func(*AssetPullingInfo) (bool, error)) {
 	return func() (mutator, func(*AssetPullingInfo) (bool, error)) {
 		return mut, func(state *AssetPullingInfo) (bool, error) {
@@ -189,19 +189,18 @@ func apply(mut mutator) func() (mutator, func(*AssetPullingInfo) (bool, error)) 
 	}
 }
 
-// restarts all state machines for the assets
+// restartStateMachines restarts all state machines for the assets
 func (m *Manager) restartStateMachines(ctx context.Context) error {
 	defer m.stateMachineWait.Done()
 
 	list, err := m.ListAssets()
 	if err != nil {
-		log.Errorf("loading assets: %+v", err)
 		return err
 	}
 
 	for _, asset := range list {
 		if err := m.assetStateMachines.Send(asset.Hash, PullAssetRestart{}); err != nil {
-			log.Errorf("restarting asset %s: %+v", asset.CID, err)
+			log.Errorf("restartStateMachines asset send %s , err %s", asset.CID, err.Error())
 			continue
 		}
 

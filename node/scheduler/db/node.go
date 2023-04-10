@@ -31,8 +31,8 @@ func (n *SQLDB) LoadTimeoutNodes(timeoutHour int, serverID dtypes.ServerID) ([]s
 	return list, nil
 }
 
-// SetNodesQuitted updates the status of a list of nodes as quitted.
-func (n *SQLDB) SetNodesQuitted(nodeIDs []string) error {
+// UpdateNodesQuitted updates the status of a list of nodes as quitted.
+func (n *SQLDB) UpdateNodesQuitted(nodeIDs []string) error {
 	uQuery := fmt.Sprintf(`UPDATE %s SET quitted=? WHERE node_id in (?) `, nodeInfoTable)
 	query, args, err := sqlx.In(uQuery, true, nodeIDs)
 	if err != nil {
@@ -56,8 +56,8 @@ func (n *SQLDB) LoadPortMapping(nodeID string) (string, error) {
 	return port, nil
 }
 
-// SetPortMapping sets the node's mapping port.
-func (n *SQLDB) SetPortMapping(nodeID, port string) error {
+// UpdatePortMapping sets the node's mapping port.
+func (n *SQLDB) UpdatePortMapping(nodeID, port string) error {
 	info := types.NodeInfo{
 		NodeID:      nodeID,
 		PortMapping: port,
@@ -68,8 +68,8 @@ func (n *SQLDB) SetPortMapping(nodeID, port string) error {
 	return err
 }
 
-// SetValidationResultInfos inserts validation result information.
-func (n *SQLDB) SetValidationResultInfos(infos []*types.ValidationResultInfo) error {
+// SaveValidationResultInfos inserts validation result information.
+func (n *SQLDB) SaveValidationResultInfos(infos []*types.ValidationResultInfo) error {
 	query := fmt.Sprintf(`INSERT INTO %s (round_id, node_id, validator_id, status, cid) VALUES (:round_id, :node_id, :validator_id, :status, :cid)`, validationResultTable)
 	_, err := n.db.NamedExec(query, infos)
 
@@ -97,8 +97,8 @@ func (n *SQLDB) UpdateValidationResultInfo(info *types.ValidationResultInfo) err
 	return err
 }
 
-// SetValidationResultsTimeout sets the validation results' status as timeout.
-func (n *SQLDB) SetValidationResultsTimeout(roundID string) error {
+// UpdateValidationResultsTimeout sets the validation results' status as timeout.
+func (n *SQLDB) UpdateValidationResultsTimeout(roundID string) error {
 	query := fmt.Sprintf(`UPDATE %s SET status=?, end_time=NOW() WHERE round_id=? AND status=?`, validationResultTable)
 	_, err := n.db.Exec(query, types.ValidationStatusValidatorTimeOut, roundID, types.ValidationStatusCreate)
 	return err
@@ -134,14 +134,14 @@ func (n *SQLDB) LoadValidationResultInfos(startTime, endTime time.Time, pageNumb
 	return res, nil
 }
 
-// SetEdgeUpdateInfo inserts edge update information.
-func (n *SQLDB) SetEdgeUpdateConfig(info *api.EdgeUpdateConfig) error {
+// SaveEdgeUpdateConfig inserts edge update information.
+func (n *SQLDB) SaveEdgeUpdateConfig(info *api.EdgeUpdateConfig) error {
 	sqlString := fmt.Sprintf(`INSERT INTO %s (node_type, app_name, version, hash, download_url) VALUES (:node_type, :app_name, :version, :hash, :download_url) ON DUPLICATE KEY UPDATE app_name=:app_name, version=:version, hash=:hash, download_url=:download_url`, edgeUpdateTable)
 	_, err := n.db.NamedExec(sqlString, info)
 	return err
 }
 
-// LoadEdgeUpdateInfos load edge update information.
+// LoadEdgeUpdateConfigs load edge update information.
 func (n *SQLDB) LoadEdgeUpdateConfigs() (map[int]*api.EdgeUpdateConfig, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s`, edgeUpdateTable)
 
@@ -157,7 +157,7 @@ func (n *SQLDB) LoadEdgeUpdateConfigs() (map[int]*api.EdgeUpdateConfig, error) {
 	return ret, nil
 }
 
-// DeleteEdgeUpdateInfo delete edge update info
+// DeleteEdgeUpdateConfig delete edge update info
 func (n *SQLDB) DeleteEdgeUpdateConfig(nodeType int) error {
 	deleteString := fmt.Sprintf(`DELETE FROM %s WHERE node_type=?`, edgeUpdateTable)
 	_, err := n.db.Exec(deleteString, nodeType)
@@ -240,8 +240,8 @@ func (n *SQLDB) UpdateValidatorInfo(serverID dtypes.ServerID, nodeID string) err
 	return err
 }
 
-// UpsertNodeInfo Insert or update node info
-func (n *SQLDB) UpsertNodeInfo(info *types.NodeInfo) error {
+// SaveNodeInfo Insert or update node info
+func (n *SQLDB) SaveNodeInfo(info *types.NodeInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (node_id, mac_location, product_type, cpu_cores, memory, node_name, latitude, disk_usage,
 			    longitude, disk_type, io_system, system_version, nat_type, disk_space, upload_speed, download_speed, blocks, scheduler_sid) 
@@ -261,8 +261,8 @@ func (n *SQLDB) UpdateNodeOnlineTime(nodeID string, onlineTime int) error {
 	return err
 }
 
-// InsertNodeRegisterInfo Insert Node register info
-func (n *SQLDB) InsertNodeRegisterInfo(pKey, nodeID string, nodeType types.NodeType) error {
+// SaveNodeRegisterInfo Insert Node register info
+func (n *SQLDB) SaveNodeRegisterInfo(pKey, nodeID string, nodeType types.NodeType) error {
 	query := fmt.Sprintf(`INSERT INTO %s (node_id, public_key, create_time, node_type)
 	VALUES (?, ?, NOW(), ?)`, nodeRegisterTable)
 
@@ -294,6 +294,18 @@ func (n *SQLDB) LoadNodePublicKey(nodeID string) (string, error) {
 	}
 
 	return pKey, nil
+}
+
+// LoadNodeOnlineDuration load online duration of node.
+func (n *SQLDB) LoadNodeOnlineDuration(nodeID string) (int, error) {
+	var t int
+
+	query := fmt.Sprintf(`SELECT online_duration FROM %s WHERE node_id=?`, nodeInfoTable)
+	if err := n.db.Get(&t, query, nodeID); err != nil {
+		return t, err
+	}
+
+	return t, nil
 }
 
 // NodeExists is node exists
@@ -383,9 +395,9 @@ func (n *SQLDB) LoadBucketHashes(nodeID string) (map[uint32]string, error) {
 	return out, nil
 }
 
-// UpsertAssetsView update or insert top hash and buckets hashes to assets view
+// SaveAssetsView update or insert top hash and buckets hashes to assets view
 // bucketHashes key is number of bucket, value is bucket hash
-func (n *SQLDB) UpsertAssetsView(nodeID string, topHash string, bucketHashes map[uint32]string) error {
+func (n *SQLDB) SaveAssetsView(nodeID string, topHash string, bucketHashes map[uint32]string) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (node_id, top_hash, bucket_hashes) VALUES (?, ?, ?) 
 				ON DUPLICATE KEY UPDATE top_hash=?, bucket_hashes=?`, assetsViewTable)
@@ -434,8 +446,8 @@ func (n *SQLDB) LoadBucket(bucketID string) ([]string, error) {
 	return out, nil
 }
 
-// UpsertBucket update or insert assets ids to bucket
-func (n *SQLDB) UpsertBucket(bucketID string, assetHashes []string) error {
+// SaveBucket update or insert assets ids to bucket
+func (n *SQLDB) SaveBucket(bucketID string, assetHashes []string) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (bucket_id, asset_hashes) VALUES (?, ?) 
 				ON DUPLICATE KEY UPDATE asset_hashes=?`, bucketTable)

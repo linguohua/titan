@@ -6,9 +6,9 @@ import (
 
 // NodesQuit nodes quit and removes their replicas
 func (m *Manager) NodesQuit(nodeIDs []string) {
-	err := m.SetNodesQuitted(nodeIDs)
+	err := m.UpdateNodesQuitted(nodeIDs)
 	if err != nil {
-		log.Errorf("QuitNodes: SetNodesQuitted err:%s", err.Error())
+		log.Errorf("NodesQuit: UpdateNodesQuitted err:%s", err.Error())
 		return
 	}
 
@@ -16,18 +16,19 @@ func (m *Manager) NodesQuit(nodeIDs []string) {
 
 	hashes, err := m.LoadAssetHashesOfNodes(nodeIDs)
 	if err != nil {
-		log.Errorf("QuitNodes: FetchAssetHashesOfNodes err:%s", err.Error())
+		log.Errorf("NodesQuit: LoadAssetHashesOfNodes err:%s", err.Error())
 		return
 	}
 
 	err = m.DeleteReplicasForNodes(nodeIDs)
 	if err != nil {
-		log.Errorf("QuitNodes: DeleteReplicasForNodes err:%s", err.Error())
+		log.Errorf("NodesQuit: DeleteReplicasForNodes err:%s", err.Error())
 		return
 	}
 
 	for _, hash := range hashes {
-		log.Infof("QuitNodes: Need to add replica for asset:%s", hash)
+		// TODO change asset state
+		log.Infof("NodesQuit: Need to add replica for asset:%s", hash)
 	}
 }
 

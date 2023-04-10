@@ -15,7 +15,7 @@ var (
 	MaxRetryCount = 3
 )
 
-// is called when a retry needs to be attempted and waits for the specified time duration
+// failedCoolDown is called when a retry needs to be attempted and waits for the specified time duration
 func failedCoolDown(ctx statemachine.Context, info AssetPullingInfo) error {
 	retryStart := time.Now().Add(MinRetryTime)
 	if time.Now().Before(retryStart) {
@@ -30,7 +30,7 @@ func failedCoolDown(ctx statemachine.Context, info AssetPullingInfo) error {
 	return nil
 }
 
-// handles the selection of seed nodes for asset pull
+// handleSeedSelect handles the selection of seed nodes for asset pull
 func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingInfo) error {
 	log.Debugf("handle select seed: %s", info.CID)
 
@@ -69,7 +69,7 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 	return ctx.Send(PullRequestSent{})
 }
 
-// handles the asset pulling process of seed nodes
+// handleSeedPulling handles the asset pulling process of seed nodes
 func (m *Manager) handleSeedPulling(ctx statemachine.Context, info AssetPullingInfo) error {
 	log.Debugf("handle seed pulling, %s", info.CID)
 
@@ -84,9 +84,9 @@ func (m *Manager) handleSeedPulling(ctx statemachine.Context, info AssetPullingI
 	return nil
 }
 
-// handles the selection of candidate nodes for asset pull
+// handleCandidatesSelect handles the selection of candidate nodes for asset pull
 func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPullingInfo) error {
-	log.Debugf("handle select candidates, %s", info.CID)
+	log.Debugf("handle candidates select, %s", info.CID)
 
 	needCount := info.CandidateReplicas - int64(len(info.CandidateReplicaSucceeds))
 	if needCount < 1 {
@@ -126,7 +126,7 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 	return ctx.Send(PullRequestSent{})
 }
 
-// handles the asset pulling process of candidate nodes
+// handleCandidatesPulling handles the asset pulling process of candidate nodes
 func (m *Manager) handleCandidatesPulling(ctx statemachine.Context, info AssetPullingInfo) error {
 	log.Debugf("handle candidates pulling, %s", info.CID)
 
@@ -141,9 +141,9 @@ func (m *Manager) handleCandidatesPulling(ctx statemachine.Context, info AssetPu
 	return nil
 }
 
-// handles the selection of edge nodes for asset pull
+// handleEdgesSelect handles the selection of edge nodes for asset pull
 func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingInfo) error {
-	log.Debugf("handle select edges , %s", info.CID)
+	log.Debugf("handle edges select , %s", info.CID)
 
 	needCount := info.EdgeReplicas - int64(len(info.EdgeReplicaSucceeds))
 	if needCount < 1 {
@@ -186,9 +186,9 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 	return ctx.Send(PullRequestSent{})
 }
 
-// handles the asset pulling process of edge nodes
+// handleEdgesPulling handles the asset pulling process of edge nodes
 func (m *Manager) handleEdgesPulling(ctx statemachine.Context, info AssetPullingInfo) error {
-	log.Debugf("handle edge pulling, %s", info.CID)
+	log.Debugf("handle edges pulling, %s", info.CID)
 	if int64(len(info.EdgeReplicaSucceeds)) >= info.EdgeReplicas {
 		return ctx.Send(PullSucceed{})
 	}
@@ -200,16 +200,16 @@ func (m *Manager) handleEdgesPulling(ctx statemachine.Context, info AssetPulling
 	return nil
 }
 
-// asset pull completed and in service status
+// handleServicing asset pull completed and in service status
 func (m *Manager) handleServicing(ctx statemachine.Context, info AssetPullingInfo) error {
-	log.Infof("handle asset servicing: %s", info.CID)
+	log.Infof("handle servicing: %s", info.CID)
 	m.removeTickerForAsset(info.Hash.String())
 
 	// remove fail replicas
 	return m.DeleteUnfinishedReplicas(info.Hash.String())
 }
 
-// handles the failed state of asset pulling and retries if necessary
+// handlePullsFailed handles the failed state of asset pulling and retries if necessary
 func (m *Manager) handlePullsFailed(ctx statemachine.Context, info AssetPullingInfo) error {
 	m.removeTickerForAsset(info.Hash.String())
 

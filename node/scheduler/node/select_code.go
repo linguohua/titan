@@ -2,7 +2,7 @@ package node
 
 import "math/rand"
 
-// assigns an undistributed candidate select code to a node ID and returns the assigned code
+// distributeCandidateSelectCode assigns an undistributed candidate select code to a node ID and returns the assigned code
 func (m *Manager) distributeCandidateSelectCode(nodeID string) int {
 	m.selectCodeLock.Lock()
 	defer m.selectCodeLock.Unlock()
@@ -28,7 +28,7 @@ func (m *Manager) distributeCandidateSelectCode(nodeID string) int {
 	return code
 }
 
-// assigns an undistributed edge select code to a node ID and returns the assigned code
+// distributeEdgeSelectCode assigns an undistributed edge select code to a node ID and returns the assigned code
 func (m *Manager) distributeEdgeSelectCode(nodeID string) int {
 	m.selectCodeLock.Lock()
 	defer m.selectCodeLock.Unlock()
@@ -54,7 +54,7 @@ func (m *Manager) distributeEdgeSelectCode(nodeID string) int {
 	return code
 }
 
-// returns an undistributed candidate select code to the pool
+// repayCandidateSelectCode returns an undistributed candidate select code to the pool
 func (m *Manager) repayCandidateSelectCode(code int) {
 	m.selectCodeLock.Lock()
 	defer m.selectCodeLock.Unlock()
@@ -63,7 +63,7 @@ func (m *Manager) repayCandidateSelectCode(code int) {
 	m.cUndistributedSelectCode[code] = ""
 }
 
-// returns an undistributed edge select code to the pool
+// repayEdgeSelectCode returns an undistributed edge select code to the pool
 func (m *Manager) repayEdgeSelectCode(code int) {
 	m.selectCodeLock.Lock()
 	defer m.selectCodeLock.Unlock()
@@ -72,7 +72,7 @@ func (m *Manager) repayEdgeSelectCode(code int) {
 	m.eUndistributedSelectCode[code] = ""
 }
 
-// returns a random integer up to max (inclusive) using the provided Rand generator
+// getSelectCodeRandom returns a random integer up to max (inclusive) using the provided Rand generator
 func (m *Manager) getSelectCodeRandom(max int, r *rand.Rand) int {
 	max = max + 1
 	return r.Intn(max)

@@ -71,7 +71,7 @@ func (t *assetTicker) run(job func() error) {
 	}
 }
 
-// NewManager  returns a new AssetManager instance
+// NewManager returns a new AssetManager instance
 func NewManager(nodeManager *node.Manager, ds datastore.Batching, configFunc dtypes.GetSchedulerConfigFunc, sdb *db.SQLDB) *Manager {
 	m := &Manager{
 		nodeMgr:            nodeManager,
@@ -90,7 +90,7 @@ func NewManager(nodeManager *node.Manager, ds datastore.Batching, configFunc dty
 // Start initializes and starts the asset state machine and associated tickers
 func (m *Manager) Start(ctx context.Context) {
 	if err := m.restartStateMachines(ctx); err != nil {
-		log.Errorf("failed load sector states: %+v", err)
+		log.Errorf("restartStateMachines err: %s", err.Error())
 	}
 	go m.assetExpirationCheck(ctx)
 	go m.assetPullProgressCheck(ctx)
@@ -101,7 +101,7 @@ func (m *Manager) Terminate(ctx context.Context) error {
 	return m.assetStateMachines.Stop(ctx)
 }
 
-// Periodically checks asset expiration
+// assetExpirationCheck Periodically checks asset expiration
 func (m *Manager) assetExpirationCheck(ctx context.Context) {
 	ticker := time.NewTicker(assetExpirationCheckInterval)
 	defer ticker.Stop()
@@ -116,7 +116,7 @@ func (m *Manager) assetExpirationCheck(ctx context.Context) {
 	}
 }
 
-// Periodically gets asset pull progress
+// assetPullProgressCheck Periodically gets asset pull progress
 func (m *Manager) assetPullProgressCheck(ctx context.Context) {
 	ticker := time.NewTicker(pullProgressInterval)
 	defer ticker.Stop()
@@ -138,13 +138,13 @@ func (m *Manager) retrieveNodePullProgresses() {
 	for hash := range m.apTickers {
 		cid, err := cidutil.HashString2CIDString(hash)
 		if err != nil {
-			log.Errorf("%s HashString2CIDString err:%s", hash, err.Error())
+			log.Errorf("retrieveNodePullProgresses %s HashString2CIDString err:%s", hash, err.Error())
 			continue
 		}
 
 		nodes, err := m.LoadUnfinishedPullAssetNodes(hash)
 		if err != nil {
-			log.Errorf("%s UnDoneNodes err:%s", hash, err.Error())
+			log.Errorf("retrieveNodePullProgresses %s LoadUnfinishedPullAssetNodes err:%s", hash, err.Error())
 			continue
 		}
 
@@ -158,7 +158,7 @@ func (m *Manager) retrieveNodePullProgresses() {
 		// request node
 		result, err := m.requestNodePullProgresses(nodeID, cids)
 		if err != nil {
-			log.Errorf("%s nodePullProgresses err:%s", nodeID, err.Error())
+			log.Errorf("retrieveNodePullProgresses %s requestNodePullProgresses err:%s", nodeID, err.Error())
 			return
 		}
 
@@ -172,22 +172,11 @@ func (m *Manager) retrieveNodePullProgresses() {
 }
 
 func (m *Manager) requestNodePullProgresses(nodeID string, cids []string) (result *types.PullResult, err error) {
-	log.Debugf("nodeID:%s, %v", nodeID, cids)
-
-	cNode := m.nodeMgr.GetCandidateNode(nodeID)
-	if cNode != nil {
-		result, err = cNode.GetAssetProgresses(context.Background(), cids)
+	node := m.nodeMgr.GetNode(nodeID)
+	if node != nil {
+		result, err = node.GetAssetProgresses(context.Background(), cids)
 	} else {
-		eNode := m.nodeMgr.GetEdgeNode(nodeID)
-		if eNode != nil {
-			result, err = eNode.GetAssetProgresses(context.Background(), cids)
-		} else {
-			err = xerrors.Errorf("node %s offline", nodeID)
-		}
-	}
-
-	if err != nil {
-		return
+		err = xerrors.Errorf("node %s not found", nodeID)
 	}
 
 	return
@@ -228,7 +217,7 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq) error {
 	return m.replenishAssetReplicas(assetRecord, info)
 }
 
-// updates the existing asset replicas if needed
+// replenishAssetReplicas updates the existing asset replicas if needed
 func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, info *types.PullAssetReq) error {
 	// Check if the asset is in servicing state
 	if assetRecord.State != string(Servicing) {
@@ -241,7 +230,7 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, info *t
 		return xerrors.Errorf("asset %s load replicas err: %s", assetRecord.CID, err.Error())
 	}
 
-	refillReplicas := RefillReplicas{
+	rInfo := ReplenishReplicas{
 		ID:                info.CID,
 		Hash:              AssetHash(info.Hash),
 		Replicas:          info.Replicas,
@@ -260,18 +249,18 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, info *t
 		}
 
 		if r.IsCandidate {
-			refillReplicas.CandidateReplicaSucceeds = append(refillReplicas.CandidateReplicaSucceeds, r.NodeID)
+			rInfo.CandidateReplicaSucceeds = append(rInfo.CandidateReplicaSucceeds, r.NodeID)
 		} else {
-			refillReplicas.EdgeReplicaSucceeds = append(refillReplicas.EdgeReplicaSucceeds, r.NodeID)
+			rInfo.EdgeReplicaSucceeds = append(rInfo.EdgeReplicaSucceeds, r.NodeID)
 		}
 	}
 
 	// Check if there is a need to update replicas and send the update request if needed
-	if len(refillReplicas.EdgeReplicaSucceeds) < int(info.Replicas) || len(refillReplicas.CandidateReplicaSucceeds) < m.GetCandidateReplicaCount()+seedReplicaCount {
-		return m.assetStateMachines.Send(AssetHash(info.Hash), refillReplicas)
+	if len(rInfo.EdgeReplicaSucceeds) < int(info.Replicas) || len(rInfo.CandidateReplicaSucceeds) < m.GetCandidateReplicaCount()+seedReplicaCount {
+		return m.assetStateMachines.Send(AssetHash(info.Hash), rInfo)
 	}
 
-	return xerrors.New("Assets do not need to be pulled")
+	return xerrors.New("Asset do not need to be replenish")
 }
 
 // RestartPullAssets restarts asset pulls
@@ -302,12 +291,12 @@ func (m *Manager) RemoveReplica(cid, hash, nodeID string) error {
 func (m *Manager) RemoveAsset(cid, hash string) error {
 	cInfos, err := m.LoadAssetReplicas(hash)
 	if err != nil {
-		return xerrors.Errorf("LoadAssetReplicaInfos: %s,err:%s", cid, err.Error())
+		return xerrors.Errorf("RemoveAsset %s LoadAssetReplicas err:%s", cid, err.Error())
 	}
 
 	err = m.DeleteAssetRecord(hash)
 	if err != nil {
-		return xerrors.Errorf("%s RemoveAssetRecord db err: %s", hash, err.Error())
+		return xerrors.Errorf("RemoveAsset %s DeleteAssetRecord err: %s", hash, err.Error())
 	}
 
 	if exist, _ := m.assetStateMachines.Has(AssetHash(hash)); exist {
@@ -324,7 +313,7 @@ func (m *Manager) RemoveAsset(cid, hash string) error {
 		// asset view
 		err = m.removeAssetFromView(cInfo.NodeID, cid)
 		if err != nil {
-			log.Errorf("deleteAssetRequest %s removeAssetFromView err:%s", cInfo.NodeID, err.Error())
+			log.Errorf("RemoveAsset %s removeAssetFromView err:%s", cInfo.NodeID, err.Error())
 		}
 
 		go m.requestAssetDeletion(cInfo.NodeID, cid)
@@ -347,11 +336,16 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 	}
 
 	for _, progress := range result.Progresses {
-		log.Debugf("pullAssetsResult node_id: %s, status: %d, size: %d/%d, cid: %s ", nodeID, progress.Status, progress.DoneSize, progress.Size, progress.CID)
+		log.Debugf("updateAssetPullResults node_id: %s, status: %d, size: %d/%d, cid: %s ", nodeID, progress.Status, progress.DoneSize, progress.Size, progress.CID)
 
 		hash, err := cidutil.CIDString2HashString(progress.CID)
 		if err != nil {
 			log.Errorf("%s cid to hash err:%s", progress.CID, err.Error())
+			continue
+		}
+
+		exist, _ := m.assetStateMachines.Has(AssetHash(hash))
+		if !exist {
 			continue
 		}
 
@@ -379,7 +373,7 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 
 		err = m.UpdateUnfinishedReplica(cInfo)
 		if err != nil {
-			log.Errorf("pullAssetsResult %s UpdateReplicaInfo err:%s", nodeID, err.Error())
+			log.Errorf("updateAssetPullResults %s UpdateUnfinishedReplica err:%s", nodeID, err.Error())
 			continue
 		}
 
@@ -391,7 +385,7 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 				Size:   progress.Size,
 			})
 			if err != nil {
-				log.Errorf("pullAssetsResult %s statemachine send err:%s", nodeID, err.Error())
+				log.Errorf("updateAssetPullResults %s statemachine send err:%s", nodeID, err.Error())
 			}
 
 			continue
@@ -400,7 +394,8 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 		// asset view
 		err = m.addAssetToView(nodeID, progress.CID)
 		if err != nil {
-			log.Errorf("pullAssetsResult %s addAssetToView err:%s", nodeID, err.Error())
+			log.Errorf("updateAssetPullResults %s addAssetToView err:%s", nodeID, err.Error())
+			continue
 		}
 
 		err = m.assetStateMachines.Send(AssetHash(hash), PulledResult{
@@ -413,13 +408,13 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 			},
 		})
 		if err != nil {
-			log.Errorf("pullAssetsResult %s statemachine send err:%s", nodeID, err.Error())
+			log.Errorf("updateAssetPullResults %s statemachine send err:%s", nodeID, err.Error())
 			continue
 		}
 	}
 }
 
-// adds or resets the asset ticker with a given hash
+// addOrResetAssetTicker adds or resets the asset ticker with a given hash
 func (m *Manager) addOrResetAssetTicker(hash string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -453,7 +448,7 @@ func (m *Manager) addOrResetAssetTicker(hash string) {
 	go m.apTickers[hash].run(fn)
 }
 
-// removes the asset ticker for a given key
+// removeTickerForAsset removes the asset ticker for a given key
 func (m *Manager) removeTickerForAsset(key string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -487,7 +482,7 @@ func (m *Manager) UpdateAssetExpiration(cid string, t time.Time) error {
 	return nil
 }
 
-// checks for expired assets and removes them
+// processExpiredAssets checks for expired assets and removes them
 func (m *Manager) processExpiredAssets() {
 	if m.earliestExpiration.After(time.Now()) {
 		return
@@ -514,14 +509,14 @@ func (m *Manager) processExpiredAssets() {
 	m.updateEarliestExpiration(expiration)
 }
 
-// updates the earliest expiration time
+// updateEarliestExpiration updates the earliest expiration time
 func (m *Manager) updateEarliestExpiration(t time.Time) {
 	if m.earliestExpiration.After(t) {
 		m.earliestExpiration = t
 	}
 }
 
-// notifies a node to delete an asset by its CID
+// requestAssetDeletion notifies a node to delete an asset by its CID
 func (m *Manager) requestAssetDeletion(nodeID, cid string) error {
 	node := m.nodeMgr.GetNode(nodeID)
 	if node != nil {
@@ -535,7 +530,7 @@ func (m *Manager) requestAssetDeletion(nodeID, cid string) error {
 func (m *Manager) GetCandidateReplicaCount() int {
 	cfg, err := m.config()
 	if err != nil {
-		log.Errorf("schedulerConfig err:%s", err.Error())
+		log.Errorf("get schedulerConfig err:%s", err.Error())
 		return 0
 	}
 
@@ -556,13 +551,13 @@ func (m *Manager) GetAssetRecordInfo(cid string) (*types.AssetRecord, error) {
 
 	dInfo.ReplicaInfos, err = m.LoadAssetReplicas(hash)
 	if err != nil {
-		log.Errorf("loadData hash:%s, LoadAssetReplicaInfos err:%s", hash, err.Error())
+		log.Errorf("GetAssetRecordInfo hash:%s, LoadAssetReplicas err:%s", hash, err.Error())
 	}
 
 	return dInfo, err
 }
 
-// stores replica information for nodes
+// saveReplicaInformation stores replica information for nodes
 func (m *Manager) saveReplicaInformation(nodes map[string]*node.Node, hash string, isCandidate bool) error {
 	// save replica info
 	replicaInfos := make([]*types.ReplicaInfo, 0)
@@ -576,7 +571,7 @@ func (m *Manager) saveReplicaInformation(nodes map[string]*node.Node, hash strin
 		})
 	}
 
-	return m.BulkUpsertReplicas(replicaInfos)
+	return m.BatchSaveReplicas(replicaInfos)
 }
 
 // getDownloadSources gets download sources for a given CID

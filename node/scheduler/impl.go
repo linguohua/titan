@@ -202,13 +202,19 @@ func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.N
 		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 	}
 
+	onlineDuration, err := s.NodeManager.LoadNodeOnlineDuration(nodeID)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, xerrors.Errorf("load node online duration %s err : %s", nodeID, err.Error())
+	}
+
 	publicKey, err := titanrsa.Pem2PublicKey([]byte(pStr))
 	if err != nil {
 		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 	}
 
+	// init node info
+	nodeInfo.OnlineDuration = onlineDuration
 	nodeInfo.PortMapping = port
-
 	nodeInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
 	if err != nil {
 		return nil, xerrors.Errorf("SplitHostPort err:%s", err.Error())
@@ -232,12 +238,12 @@ func (s *Scheduler) NodeValidationResult(ctx context.Context, result api.Validat
 	vs.Validator = validator
 
 	// s.Validator.PushResultToQueue(vs)
-	return s.ValidationMgr.Result(vs)
+	return s.ValidationMgr.HandleResult(vs)
 }
 
 // RegisterNode adds a new node to the scheduler with the specified node ID, public key, and node type
 func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, pKey string, nodeType types.NodeType) error {
-	return s.NodeManager.InsertNodeRegisterInfo(pKey, nodeID, nodeType)
+	return s.NodeManager.SaveNodeRegisterInfo(pKey, nodeID, nodeType)
 }
 
 // UnregisterNode removes a node from the scheduler with the specified node ID
@@ -304,7 +310,7 @@ func (s *Scheduler) UpdateNodePort(ctx context.Context, nodeID, port string) err
 		baseInfo.UpdateNodePort(port)
 	}
 
-	return s.NodeManager.SetPortMapping(nodeID, port)
+	return s.NodeManager.UpdatePortMapping(nodeID, port)
 }
 
 // nodeExists checks if the node with the specified ID exists.

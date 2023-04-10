@@ -21,7 +21,7 @@ const (
 	offlineTimeMax = 24 // hours
 
 	//  keepaliveTime is the interval between keepalive requests
-	keepaliveTime = 30 // seconds
+	keepaliveTime = 30 * time.Second // seconds
 
 	// saveInfoInterval is the interval at which node information is saved during keepalive requests
 	saveInfoInterval = 10 // keepalive saves information every 10 times
@@ -74,9 +74,9 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, k *rsa.PrivateKey, p *p
 	return nodeManager
 }
 
-// periodically sends keepalive requests to all nodes and checks if any nodes have been offline for too long
+// run periodically sends keepalive requests to all nodes and checks if any nodes have been offline for too long
 func (m *Manager) run() {
-	ticker := time.NewTicker(time.Duration(keepaliveTime) * time.Second)
+	ticker := time.NewTicker(keepaliveTime)
 	defer ticker.Stop()
 
 	count := 0
@@ -91,7 +91,7 @@ func (m *Manager) run() {
 	}
 }
 
-// adds an edge node to the manager's list of edge nodes
+// storeEdgeNode adds an edge node to the manager's list of edge nodes
 func (m *Manager) storeEdgeNode(node *Node) {
 	if node == nil {
 		return
@@ -128,7 +128,7 @@ func (m *Manager) storeCandidateNode(node *Node) {
 	m.notify.Pub(node, types.EventNodeOnline.String())
 }
 
-// removes an edge node from the manager's list of edge nodes
+// deleteEdgeNode removes an edge node from the manager's list of edge nodes
 func (m *Manager) deleteEdgeNode(node *Node) {
 	m.repayEdgeSelectCode(node.selectCode)
 	m.notify.Pub(node, types.EventNodeOffline.String())
@@ -141,7 +141,7 @@ func (m *Manager) deleteEdgeNode(node *Node) {
 	m.Edges--
 }
 
-// removes a candidate node from the manager's list of candidate nodes
+// deleteCandidateNode removes a candidate node from the manager's list of candidate nodes
 func (m *Manager) deleteCandidateNode(node *Node) {
 	m.repayCandidateSelectCode(node.selectCode)
 	m.notify.Pub(node, types.EventNodeOffline.String())
@@ -154,7 +154,7 @@ func (m *Manager) deleteCandidateNode(node *Node) {
 	m.Candidates--
 }
 
-// checks if a node has sent a keepalive recently and updates node status accordingly
+// nodeKeepalive checks if a node has sent a keepalive recently and updates node status accordingly
 func (m *Manager) nodeKeepalive(node *Node, t time.Time, isSave bool) {
 	lastTime := node.LastRequestTime()
 
@@ -172,16 +172,18 @@ func (m *Manager) nodeKeepalive(node *Node, t time.Time, isSave bool) {
 	}
 
 	if isSave {
-		err := m.UpdateNodeOnlineTime(nodeID, saveInfoInterval*keepaliveTime)
+		node.OnlineDuration += int((saveInfoInterval * keepaliveTime) / time.Minute)
+
+		err := m.UpdateNodeOnlineTime(nodeID, node.OnlineDuration)
 		if err != nil {
 			log.Errorf("UpdateNodeOnlineTime err:%s,nodeID:%s", err.Error(), nodeID)
 		}
 	}
 }
 
-// checks all nodes in the manager's lists for keepalive
+// nodesKeepalive checks all nodes in the manager's lists for keepalive
 func (m *Manager) nodesKeepalive(isSave bool) {
-	t := time.Now().Add(-time.Duration(keepaliveTime) * time.Second)
+	t := time.Now().Add(-keepaliveTime)
 
 	m.edgeNodes.Range(func(key, value interface{}) bool {
 		node := value.(*Node)
@@ -223,7 +225,7 @@ func KeepaliveCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error)
 	}, nil
 }
 
-// Check for nodes that have timed out and quit them
+// checkNodesTTL Check for nodes that have timed out and quit them
 func (m *Manager) checkNodesTTL() {
 	nodes, err := m.LoadTimeoutNodes(offlineTimeMax, m.ServerID)
 	if err != nil {
@@ -236,12 +238,12 @@ func (m *Manager) checkNodesTTL() {
 	}
 }
 
-// Save node information when it comes online
+// saveInfo Save node information when it comes online
 func (m *Manager) saveInfo(n *BaseInfo) error {
 	n.IsQuitted = false
 	n.LastSeen = time.Now()
 
-	err := m.UpsertNodeInfo(n.NodeInfo)
+	err := m.SaveNodeInfo(n.NodeInfo)
 	if err != nil {
 		return err
 	}
