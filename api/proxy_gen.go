@@ -195,7 +195,7 @@ type SchedulerStruct struct {
 
 		GetAssetRecords func(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.AssetRecord, error) `perm:"read"`
 
-		GetAssetReplicas func(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) `perm:"read"`
+		GetAssetReplicaInfos func(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) `perm:"read"`
 
 		GetCandidateDownloadInfos func(p0 context.Context, p1 string) ([]*types.CandidateDownloadInfo, error) `perm:"read"`
 
@@ -743,14 +743,14 @@ func (s *SchedulerStub) GetAssetRecords(p0 context.Context, p1 int, p2 int, p3 [
 	return *new([]*types.AssetRecord), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetAssetReplicas(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
-	if s.Internal.GetAssetReplicas == nil {
+func (s *SchedulerStruct) GetAssetReplicaInfos(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
+	if s.Internal.GetAssetReplicaInfos == nil {
 		return nil, ErrNotSupported
 	}
-	return s.Internal.GetAssetReplicas(p0, p1)
+	return s.Internal.GetAssetReplicaInfos(p0, p1)
 }
 
-func (s *SchedulerStub) GetAssetReplicas(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
+func (s *SchedulerStub) GetAssetReplicaInfos(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
 	return nil, ErrNotSupported
 }
 

@@ -71,8 +71,8 @@ type Scheduler interface {
 	RePullFailedAssets(ctx context.Context, hashes []types.AssetHash) error //perm:admin
 	// UpdateAssetExpiration updates the expiration time for an asset with the specified CID
 	UpdateAssetExpiration(ctx context.Context, cid string, time time.Time) error //perm:admin
-	// GetAssetReplicas retrieves a list of asset replica information using the specified request parameters
-	GetAssetReplicas(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) //perm:read
+	// GetAssetReplicaInfos retrieves a list of asset replica information using the specified request parameters
+	GetAssetReplicaInfos(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) //perm:read
 	// GetValidationResults retrieves a list of validation results with pagination using the specified time range, page number, and page size
 	GetValidationResults(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidationResultRsp, error) //perm:read
 	// TODO UserDownloadBlockResults user send result when user download block complete or failed
