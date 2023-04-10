@@ -20,9 +20,9 @@ func NewEdgeUpdateManager(db *db.SQLDB) (*EdgeUpdateManager, error) {
 		db:          db,
 		updateInfos: make(map[int]*api.EdgeUpdateConfig),
 	}
-	appUpdateInfo, err := db.LoadEdgeUpdateInfos()
+	appUpdateInfo, err := db.LoadEdgeUpdateConfigs()
 	if err != nil {
-		log.Errorf("GetEdgeUpdateInfos error:%s", err)
+		log.Errorf("GetEdgeUpdateConfigs error:%s", err)
 		return nil, err
 	}
 	updater.updateInfos = appUpdateInfo
@@ -34,17 +34,17 @@ func (eu *EdgeUpdateManager) GetEdgeUpdateConfigs(ctx context.Context) (map[int]
 	return eu.updateInfos, nil
 }
 
-// SetEdgeUpdateConfig sets the EdgeUpdateInfo for the given node type.
+// SetEdgeUpdateConfig sets the EdgeUpdateConfig for the given node type.
 func (eu *EdgeUpdateManager) SetEdgeUpdateConfig(ctx context.Context, info *api.EdgeUpdateConfig) error {
 	if eu.updateInfos == nil {
 		eu.updateInfos = make(map[int]*api.EdgeUpdateConfig)
 	}
 	eu.updateInfos[info.NodeType] = info
-	return eu.db.SetEdgeUpdateInfo(info)
+	return eu.db.SetEdgeUpdateConfig(info)
 }
 
-// DeleteEdgeUpdateConfig deletes the EdgeUpdateInfo for the given node type.
+// DeleteEdgeUpdateConfig deletes the EdgeUpdateConfig for the given node type.
 func (eu *EdgeUpdateManager) DeleteEdgeUpdateConfig(ctx context.Context, nodeType int) error {
 	delete(eu.updateInfos, nodeType)
-	return eu.db.DeleteEdgeUpdateInfo(nodeType)
+	return eu.db.DeleteEdgeUpdateConfig(nodeType)
 }

@@ -149,7 +149,7 @@ type LocatorStruct struct {
 	Internal struct {
 		AddAccessPoint func(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error `perm:"admin"`
 
-		EdgeDownloadInfos func(p0 context.Context, p1 string) ([]*types.EdgeDownloadInfo, error) `perm:"read"`
+		EdgeDownloadInfos func(p0 context.Context, p1 string) (*types.EdgeDownloadInfoList, error) `perm:"read"`
 
 		GetAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
 
@@ -537,15 +537,15 @@ func (s *LocatorStub) AddAccessPoint(p0 context.Context, p1 string, p2 string, p
 	return ErrNotSupported
 }
 
-func (s *LocatorStruct) EdgeDownloadInfos(p0 context.Context, p1 string) ([]*types.EdgeDownloadInfo, error) {
+func (s *LocatorStruct) EdgeDownloadInfos(p0 context.Context, p1 string) (*types.EdgeDownloadInfoList, error) {
 	if s.Internal.EdgeDownloadInfos == nil {
-		return *new([]*types.EdgeDownloadInfo), ErrNotSupported
+		return nil, ErrNotSupported
 	}
 	return s.Internal.EdgeDownloadInfos(p0, p1)
 }
 
-func (s *LocatorStub) EdgeDownloadInfos(p0 context.Context, p1 string) ([]*types.EdgeDownloadInfo, error) {
-	return *new([]*types.EdgeDownloadInfo), ErrNotSupported
+func (s *LocatorStub) EdgeDownloadInfos(p0 context.Context, p1 string) (*types.EdgeDownloadInfoList, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *LocatorStruct) GetAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {

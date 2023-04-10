@@ -15,7 +15,7 @@ func (s *Scheduler) SubmitUserProofsOfWork(ctx context.Context, proofs []*types.
 }
 
 // GetEdgeDownloadInfos finds edge download information for a given CID
-func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) ([]*types.EdgeDownloadInfo, error) {
+func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) (*types.EdgeDownloadInfoList, error) {
 	if cid == "" {
 		return nil, xerrors.New("cids is nil")
 	}
@@ -58,14 +58,18 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) ([]*ty
 		}
 
 		info := &types.EdgeDownloadInfo{
-			URL:          eNode.DownloadAddr(),
-			NodeID:       nodeID,
-			Credentials:  credentials,
-			NatType:      eNode.NATType,
-			SchedulerURL: s.SchedulerCfg.RPCURL,
+			URL:         eNode.DownloadAddr(),
+			NodeID:      nodeID,
+			Credentials: credentials,
+			NatType:     eNode.NATType,
 		}
 		infos = append(infos, info)
 	}
 
-	return infos, nil
+	ret := &types.EdgeDownloadInfoList{
+		Infos:        infos,
+		SchedulerURL: s.SchedulerCfg.RPCURL,
+	}
+
+	return ret, nil
 }

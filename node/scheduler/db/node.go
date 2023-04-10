@@ -135,14 +135,14 @@ func (n *SQLDB) LoadValidationResultInfos(startTime, endTime time.Time, pageNumb
 }
 
 // SetEdgeUpdateInfo inserts edge update information.
-func (n *SQLDB) SetEdgeUpdateInfo(info *api.EdgeUpdateConfig) error {
+func (n *SQLDB) SetEdgeUpdateConfig(info *api.EdgeUpdateConfig) error {
 	sqlString := fmt.Sprintf(`INSERT INTO %s (node_type, app_name, version, hash, download_url) VALUES (:node_type, :app_name, :version, :hash, :download_url) ON DUPLICATE KEY UPDATE app_name=:app_name, version=:version, hash=:hash, download_url=:download_url`, edgeUpdateTable)
 	_, err := n.db.NamedExec(sqlString, info)
 	return err
 }
 
 // LoadEdgeUpdateInfos load edge update information.
-func (n *SQLDB) LoadEdgeUpdateInfos() (map[int]*api.EdgeUpdateConfig, error) {
+func (n *SQLDB) LoadEdgeUpdateConfigs() (map[int]*api.EdgeUpdateConfig, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s`, edgeUpdateTable)
 
 	var out []*api.EdgeUpdateConfig
@@ -158,7 +158,7 @@ func (n *SQLDB) LoadEdgeUpdateInfos() (map[int]*api.EdgeUpdateConfig, error) {
 }
 
 // DeleteEdgeUpdateInfo delete edge update info
-func (n *SQLDB) DeleteEdgeUpdateInfo(nodeType int) error {
+func (n *SQLDB) DeleteEdgeUpdateConfig(nodeType int) error {
 	deleteString := fmt.Sprintf(`DELETE FROM %s WHERE node_type=?`, edgeUpdateTable)
 	_, err := n.db.Exec(deleteString, nodeType)
 	return err
