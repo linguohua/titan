@@ -67,7 +67,7 @@ func VersionForType(nodeType types.NodeType) (Version, error) {
 
 // EdgeUpdateInfo just update edge node
 // NodeType include edge-updater and titan-edge
-type EdgeUpdateInfo struct {
+type EdgeUpdateConfig struct {
 	NodeType    int       `db:"node_type"`
 	AppName     string    `db:"app_name"`
 	Version     Version   `db:"version"`

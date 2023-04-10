@@ -73,20 +73,18 @@ type Scheduler interface {
 	GetAssetReplicaInfos(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) //perm:read
 	// GetValidationResults retrieves a list of validation results with pagination using the specified time range, page number, and page size
 	GetValidationResults(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidationResultRsp, error) //perm:read
-	// UserProofsOfWork Proof of Work for User Asset Download
-	UserProofsOfWork(ctx context.Context, proofs []*types.UserProofOfWork) error //perm:read
+	// SubmitUserProofsOfWork submits Proof of Work for User Asset Download
+	SubmitUserProofsOfWork(ctx context.Context, proofs []*types.UserProofOfWork) error //perm:read
 
 	// Server-related methods
 	// GetSchedulerPublicKey retrieves the scheduler's public key in PEM format
 	GetSchedulerPublicKey(ctx context.Context) (string, error) //perm:write
 	// TriggerElection starts a new election process
 	TriggerElection(ctx context.Context) error //perm:admin
-	// TODO GetNodeAppUpdateInfos same as EdgeUpdateInfos, support to update old version edge
-	GetNodeAppUpdateInfos(ctx context.Context) (map[int]*EdgeUpdateInfo, error) //perm:read
-	// TODO
-	GetEdgeUpdateInfos(ctx context.Context) (map[int]*EdgeUpdateInfo, error) //perm:read
-	// TODO
-	SetEdgeUpdateInfo(ctx context.Context, info *EdgeUpdateInfo) error //perm:admin
-	// TODO
-	DeleteEdgeUpdateInfo(ctx context.Context, nodeType int) error //perm:admin
+	// GetEdgeUpdateConfigs retrieves edge update configurations for different node types
+	GetEdgeUpdateConfigs(ctx context.Context) (map[int]*EdgeUpdateConfig, error) //perm:read
+	// SetEdgeUpdateConfig updates the edge update configuration for a specific node type with the provided information
+	SetEdgeUpdateConfig(ctx context.Context, info *EdgeUpdateConfig) error //perm:admin
+	// DeleteEdgeUpdateConfig deletes the edge update configuration for the specified node type
+	DeleteEdgeUpdateConfig(ctx context.Context, nodeType int) error //perm:admin
 }

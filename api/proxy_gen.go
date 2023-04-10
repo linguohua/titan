@@ -183,7 +183,7 @@ type SchedulerStruct struct {
 
 		CreateNodeAuthToken func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
-		DeleteEdgeUpdateInfo func(p0 context.Context, p1 int) error `perm:"admin"`
+		DeleteEdgeUpdateConfig func(p0 context.Context, p1 int) error `perm:"admin"`
 
 		EdgeLogin func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"write"`
 
@@ -195,17 +195,15 @@ type SchedulerStruct struct {
 
 		GetAssetReplicaInfos func(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) `perm:"read"`
 
+		GetCallerExternalAddress func(p0 context.Context) (string, error) `perm:"read"`
+
 		GetCandidateDownloadInfos func(p0 context.Context, p1 string) ([]*types.CandidateDownloadInfo, error) `perm:"read"`
 
 		GetEdgeDownloadInfos func(p0 context.Context, p1 string) ([]*types.EdgeDownloadInfo, error) `perm:"read"`
 
 		GetEdgeExternalServiceAddress func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
 
-		GetEdgeUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
-
-		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
-
-		GetCallerExternalAddress func(p0 context.Context) (string, error) `perm:"read"`
+		GetEdgeUpdateConfigs func(p0 context.Context) (map[int]*EdgeUpdateConfig, error) `perm:"read"`
 
 		GetNodeInfo func(p0 context.Context, p1 string) (types.NodeInfo, error) `perm:"read"`
 
@@ -235,7 +233,9 @@ type SchedulerStruct struct {
 
 		RemoveAssetReplica func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
-		SetEdgeUpdateInfo func(p0 context.Context, p1 *EdgeUpdateInfo) error `perm:"admin"`
+		SetEdgeUpdateConfig func(p0 context.Context, p1 *EdgeUpdateConfig) error `perm:"admin"`
+
+		SubmitUserProofsOfWork func(p0 context.Context, p1 []*types.UserProofOfWork) error `perm:"read"`
 
 		TriggerElection func(p0 context.Context) error `perm:"admin"`
 
@@ -244,8 +244,6 @@ type SchedulerStruct struct {
 		UpdateAssetExpiration func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
 
 		UpdateNodePort func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
-
-		UserProofsOfWork func(p0 context.Context, p1 []*types.UserProofOfWork) error `perm:"read"`
 
 		VerifyNodeAuthToken func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
 	}
@@ -671,14 +669,14 @@ func (s *SchedulerStub) CreateNodeAuthToken(p0 context.Context, p1 string, p2 st
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) DeleteEdgeUpdateInfo(p0 context.Context, p1 int) error {
-	if s.Internal.DeleteEdgeUpdateInfo == nil {
+func (s *SchedulerStruct) DeleteEdgeUpdateConfig(p0 context.Context, p1 int) error {
+	if s.Internal.DeleteEdgeUpdateConfig == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.DeleteEdgeUpdateInfo(p0, p1)
+	return s.Internal.DeleteEdgeUpdateConfig(p0, p1)
 }
 
-func (s *SchedulerStub) DeleteEdgeUpdateInfo(p0 context.Context, p1 int) error {
+func (s *SchedulerStub) DeleteEdgeUpdateConfig(p0 context.Context, p1 int) error {
 	return ErrNotSupported
 }
 
@@ -737,6 +735,17 @@ func (s *SchedulerStub) GetAssetReplicaInfos(p0 context.Context, p1 types.ListRe
 	return nil, ErrNotSupported
 }
 
+func (s *SchedulerStruct) GetCallerExternalAddress(p0 context.Context) (string, error) {
+	if s.Internal.GetCallerExternalAddress == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.GetCallerExternalAddress(p0)
+}
+
+func (s *SchedulerStub) GetCallerExternalAddress(p0 context.Context) (string, error) {
+	return "", ErrNotSupported
+}
+
 func (s *SchedulerStruct) GetCandidateDownloadInfos(p0 context.Context, p1 string) ([]*types.CandidateDownloadInfo, error) {
 	if s.Internal.GetCandidateDownloadInfos == nil {
 		return *new([]*types.CandidateDownloadInfo), ErrNotSupported
@@ -770,37 +779,15 @@ func (s *SchedulerStub) GetEdgeExternalServiceAddress(p0 context.Context, p1 str
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetEdgeUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
-	if s.Internal.GetEdgeUpdateInfos == nil {
-		return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
+func (s *SchedulerStruct) GetEdgeUpdateConfigs(p0 context.Context) (map[int]*EdgeUpdateConfig, error) {
+	if s.Internal.GetEdgeUpdateConfigs == nil {
+		return *new(map[int]*EdgeUpdateConfig), ErrNotSupported
 	}
-	return s.Internal.GetEdgeUpdateInfos(p0)
+	return s.Internal.GetEdgeUpdateConfigs(p0)
 }
 
-func (s *SchedulerStub) GetEdgeUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
-	return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
-	if s.Internal.GetNodeAppUpdateInfos == nil {
-		return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
-	}
-	return s.Internal.GetNodeAppUpdateInfos(p0)
-}
-
-func (s *SchedulerStub) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*EdgeUpdateInfo, error) {
-	return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetCallerExternalAddress(p0 context.Context) (string, error) {
-	if s.Internal.GetCallerExternalAddress == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.GetCallerExternalAddress(p0)
-}
-
-func (s *SchedulerStub) GetCallerExternalAddress(p0 context.Context) (string, error) {
-	return "", ErrNotSupported
+func (s *SchedulerStub) GetEdgeUpdateConfigs(p0 context.Context) (map[int]*EdgeUpdateConfig, error) {
+	return *new(map[int]*EdgeUpdateConfig), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetNodeInfo(p0 context.Context, p1 string) (types.NodeInfo, error) {
@@ -957,14 +944,25 @@ func (s *SchedulerStub) RemoveAssetReplica(p0 context.Context, p1 string, p2 str
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateInfo) error {
-	if s.Internal.SetEdgeUpdateInfo == nil {
+func (s *SchedulerStruct) SetEdgeUpdateConfig(p0 context.Context, p1 *EdgeUpdateConfig) error {
+	if s.Internal.SetEdgeUpdateConfig == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.SetEdgeUpdateInfo(p0, p1)
+	return s.Internal.SetEdgeUpdateConfig(p0, p1)
 }
 
-func (s *SchedulerStub) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateInfo) error {
+func (s *SchedulerStub) SetEdgeUpdateConfig(p0 context.Context, p1 *EdgeUpdateConfig) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) SubmitUserProofsOfWork(p0 context.Context, p1 []*types.UserProofOfWork) error {
+	if s.Internal.SubmitUserProofsOfWork == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.SubmitUserProofsOfWork(p0, p1)
+}
+
+func (s *SchedulerStub) SubmitUserProofsOfWork(p0 context.Context, p1 []*types.UserProofOfWork) error {
 	return ErrNotSupported
 }
 
@@ -1009,17 +1007,6 @@ func (s *SchedulerStruct) UpdateNodePort(p0 context.Context, p1 string, p2 strin
 }
 
 func (s *SchedulerStub) UpdateNodePort(p0 context.Context, p1 string, p2 string) error {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) UserProofsOfWork(p0 context.Context, p1 []*types.UserProofOfWork) error {
-	if s.Internal.UserProofsOfWork == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.UserProofsOfWork(p0, p1)
-}
-
-func (s *SchedulerStub) UserProofsOfWork(p0 context.Context, p1 []*types.UserProofOfWork) error {
 	return ErrNotSupported
 }
 

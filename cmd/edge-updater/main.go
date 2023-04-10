@@ -111,11 +111,11 @@ func checkUpdate(cctx *cli.Context, schedulerAPI api.Scheduler) {
 	}
 }
 
-func edgeUpdateInfos(schedulerAPI api.Scheduler) (map[int]*api.EdgeUpdateInfo, error) {
+func edgeUpdateInfos(schedulerAPI api.Scheduler) (map[int]*api.EdgeUpdateConfig, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Second)
 	defer cancel()
 
-	return schedulerAPI.GetEdgeUpdateInfos(ctx)
+	return schedulerAPI.GetEdgeUpdateConfigs(ctx)
 }
 
 func getLocalEdgeVersion(appPath string) (api.Version, error) {
@@ -138,7 +138,7 @@ func getLocalEdgeVersion(appPath string) (api.Version, error) {
 	return newVersion(stringSplit[0])
 }
 
-func isNeedToUpdateMySelf(cctx *cli.Context, updateInfo *api.EdgeUpdateInfo) bool {
+func isNeedToUpdateMySelf(cctx *cli.Context, updateInfo *api.EdgeUpdateConfig) bool {
 	version, err := newVersion(cctx.App.Version)
 	if err != nil {
 		log.Errorf("newVersion error:%s", err.Error())
@@ -151,7 +151,7 @@ func isNeedToUpdateMySelf(cctx *cli.Context, updateInfo *api.EdgeUpdateInfo) boo
 	return false
 }
 
-func isNeedToUpdateEdge(cctx *cli.Context, updateInfo *api.EdgeUpdateInfo) bool {
+func isNeedToUpdateEdge(cctx *cli.Context, updateInfo *api.EdgeUpdateConfig) bool {
 	installPath := cctx.String("install-path")
 	appPath := path.Join(installPath, updateInfo.AppName)
 
@@ -167,7 +167,7 @@ func isNeedToUpdateEdge(cctx *cli.Context, updateInfo *api.EdgeUpdateInfo) bool 
 	return false
 }
 
-func updateApp(cctx *cli.Context, updateInfo *api.EdgeUpdateInfo) {
+func updateApp(cctx *cli.Context, updateInfo *api.EdgeUpdateConfig) {
 	log.Debugf("updateApp, AppName:%s, Hash:%s, newVersion:%s, downloadURL:%s", updateInfo.AppName, updateInfo.Hash, updateInfo.Version.String(), updateInfo.DownloadURL)
 	installPath := cctx.String("install-path")
 	data, err := downloadApp(updateInfo.DownloadURL)
