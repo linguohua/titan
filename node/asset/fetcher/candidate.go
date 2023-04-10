@@ -34,19 +34,19 @@ func NewCandidate(timeout, retryCount int) *Candidate {
 	return &Candidate{retryCount: retryCount, httpClient: httpClient}
 }
 
-func (c *Candidate) Fetch(ctx context.Context, cids []string, dss []*types.AssetDownloadSource) ([]blocks.Block, error) {
+func (c *Candidate) Fetch(ctx context.Context, cids []string, dss []*types.CandidateDownloadInfo) ([]blocks.Block, error) {
 	return c.getBlocks(cids, dss)
 }
 
-func (c *Candidate) getBlock(ds *types.AssetDownloadSource, cidStr string) (blocks.Block, error) {
-	if len(ds.CandidateAddr) == 0 {
+func (c *Candidate) getBlock(ds *types.CandidateDownloadInfo, cidStr string) (blocks.Block, error) {
+	if len(ds.NodeAddr) == 0 {
 		return nil, fmt.Errorf("candidate address can not empty")
 	}
 	buf, err := encode(ds.Credentials)
 	if err != nil {
 		return nil, err
 	}
-	url := fmt.Sprintf("http://%s/ipfs/%s?format=raw", ds.CandidateAddr, cidStr)
+	url := fmt.Sprintf("http://%s/ipfs/%s?format=raw", ds.NodeAddr, cidStr)
 
 	req, err := http.NewRequest(http.MethodGet, url, buf)
 	if err != nil {
@@ -85,7 +85,7 @@ func (c *Candidate) getBlock(ds *types.AssetDownloadSource, cidStr string) (bloc
 	return basicBlock, nil
 }
 
-func (c *Candidate) getBlocks(cids []string, dss []*types.AssetDownloadSource) ([]blocks.Block, error) {
+func (c *Candidate) getBlocks(cids []string, dss []*types.CandidateDownloadInfo) ([]blocks.Block, error) {
 	if len(dss) == 0 {
 		return nil, fmt.Errorf("download srouce can not empty")
 	}

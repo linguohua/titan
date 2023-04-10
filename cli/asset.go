@@ -60,7 +60,7 @@ var resetExpirationCmd = &cli.Command{
 			return xerrors.Errorf("date time err:%s", err.Error())
 		}
 
-		err = schedulerAPI.ResetAssetExpiration(ctx, cid, time)
+		err = schedulerAPI.UpdateAssetExpiration(ctx, cid, time)
 		if err != nil {
 			return err
 		}
@@ -190,7 +190,7 @@ var pullAssetCmd = &cli.Command{
 		info.Expiration = eTime
 		info.Replicas = replicaCount
 
-		err = schedulerAPI.CacheAsset(ctx, info)
+		err = schedulerAPI.PullAsset(ctx, info)
 		if err != nil {
 			return err
 		}
@@ -306,7 +306,7 @@ var listAssetRecordCmd = &cli.Command{
 				hashes = append(hashes, types.AssetHash(info.Hash))
 			}
 		}
-		return schedulerAPI.RestartFailedAssets(ctx, hashes)
+		return schedulerAPI.RePullFailedAssets(ctx, hashes)
 	},
 }
 

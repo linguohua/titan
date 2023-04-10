@@ -580,9 +580,9 @@ func (m *Manager) saveReplicaInformation(nodes map[string]*node.Node, hash strin
 }
 
 // getDownloadSources gets download sources for a given CID
-func (m *Manager) getDownloadSources(cid string, nodes []string) []*types.AssetDownloadSource {
+func (m *Manager) getDownloadSources(cid string, nodes []string) []*types.CandidateDownloadInfo {
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	sources := make([]*types.AssetDownloadSource, 0)
+	sources := make([]*types.CandidateDownloadInfo, 0)
 	for _, nodeID := range nodes {
 		cNode := m.nodeMgr.GetCandidateNode(nodeID)
 		if cNode == nil {
@@ -593,9 +593,9 @@ func (m *Manager) getDownloadSources(cid string, nodes []string) []*types.AssetD
 		if err != nil {
 			continue
 		}
-		source := &types.AssetDownloadSource{
-			CandidateAddr: cNode.DownloadAddr(),
-			Credentials:   credentials,
+		source := &types.CandidateDownloadInfo{
+			NodeAddr:    cNode.DownloadAddr(),
+			Credentials: credentials,
 		}
 
 		sources = append(sources, source)

@@ -224,7 +224,7 @@ func (locator *Locator) getSchedulerAPIWith(nodeID string) (*schedulerAPI, error
 	return locator.ApMgr.getSchedulerAPI(node.SchedulerURL, node.AreaID, cfg.AccessToken)
 }
 
-func (locator *Locator) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.DownloadInfo, error) {
+func (locator *Locator) EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.EdgeDownloadInfo, error) {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	areaID, err := locator.getAreaIDWith(remoteAddr)
 	if err != nil {
@@ -243,7 +243,7 @@ func (locator *Locator) EdgeDownloadInfos(ctx context.Context, cid string) ([]*t
 		return schedulerAPI.GetEdgeDownloadInfos(ctx, cid)
 	}
 
-	return make([]*types.DownloadInfo, 0), nil
+	return make([]*types.EdgeDownloadInfo, 0), nil
 }
 
 func (locator *Locator) UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error {
@@ -308,7 +308,7 @@ func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerA
 }
 
 // AllocateNodes allocate nodes
-func (locator *Locator) RegisterNewNode(ctx context.Context, schedulerURL, nodeID, publicKey string, nodeType types.NodeType) error {
+func (locator *Locator) RegisterNode(ctx context.Context, schedulerURL, nodeID, publicKey string, nodeType types.NodeType) error {
 	cfg, err := locator.DB.getSchedulerCfg(schedulerURL)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -322,7 +322,7 @@ func (locator *Locator) RegisterNewNode(ctx context.Context, schedulerURL, nodeI
 		return err
 	}
 
-	err = schedulerAPI.RegisterNewNode(ctx, nodeID, publicKey, nodeType)
+	err = schedulerAPI.RegisterNode(ctx, nodeID, publicKey, nodeType)
 	if err != nil {
 		return err
 	}
