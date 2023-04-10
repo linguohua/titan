@@ -352,7 +352,7 @@ var runCmd = &cli.Command{
 					select {
 					case <-readyCh:
 						opts := &types.ConnectOptions{Token: token}
-						if err := schedulerAPI.ConnectEdgeNode(ctx, opts); err != nil {
+						if err := schedulerAPI.EdgeLogin(ctx, opts); err != nil {
 							log.Errorf("Registering edge failed: %s", err.Error())
 							cancel()
 							return

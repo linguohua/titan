@@ -13,7 +13,7 @@ import (
 
 	"github.com/linguohua/titan/node/cidutil"
 	"github.com/linguohua/titan/node/modules/dtypes"
-	"github.com/linguohua/titan/node/scheduler/validate"
+	"github.com/linguohua/titan/node/scheduler/validation"
 
 	"go.uber.org/fx"
 
@@ -46,7 +46,7 @@ type Scheduler struct {
 	dtypes.ServerID
 
 	NodeManager            *node.Manager
-	ValidateMgr            *validate.Manager
+	ValidationMgr          *validation.Manager
 	AssetManager           *assets.Manager
 	DataSync               *sync.DataSync
 	SchedulerCfg           *config.SchedulerCfg
@@ -86,7 +86,16 @@ func (s *Scheduler) CreateNodeAuthToken(ctx context.Context, nodeID, sign string
 		NodeID: nodeID,
 	}
 
-	pem, err := s.NodeManager.FetchNodePublicKey(nodeID)
+	remoteAddr := handler.GetRemoteAddr(ctx)
+	oldNode := s.NodeManager.GetNode(nodeID)
+	if oldNode != nil {
+		oAddr := oldNode.RemoteAddr()
+		if oAddr != remoteAddr {
+			return "", xerrors.Errorf("node already login, addr : %s", oAddr)
+		}
+	}
+
+	pem, err := s.NodeManager.LoadNodePublicKey(nodeID)
 	if err != nil {
 		return "", xerrors.Errorf("%s load node public key failed: %w", nodeID, err)
 	}
@@ -121,12 +130,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	nodeID := handler.GetNodeID(ctx)
 
 	oldNode := s.NodeManager.GetNode(nodeID)
-	if oldNode != nil {
-		oAddr := oldNode.RemoteAddr()
-		if oAddr != remoteAddr {
-			return xerrors.Errorf("node already login, addr : %s", oAddr)
-		}
-	} else {
+	if oldNode == nil {
 		if !s.nodeExists(nodeID, nodeType) {
 			return xerrors.Errorf("node not exists: %s , type: %d", nodeID, nodeType)
 		}
@@ -175,13 +179,13 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	return nil
 }
 
-// ConnectCandidateNode processes a candidate node connection request.
-func (s *Scheduler) ConnectCandidateNode(ctx context.Context, opts *types.ConnectOptions) error {
+// CandidateLogin processes a candidate node connection request.
+func (s *Scheduler) CandidateLogin(ctx context.Context, opts *types.ConnectOptions) error {
 	return s.nodeConnect(ctx, opts, types.NodeCandidate)
 }
 
-// ConnectEdgeNode  processes a edge node connection request.
-func (s *Scheduler) ConnectEdgeNode(ctx context.Context, opts *types.ConnectOptions) error {
+// EdgeLogin  processes a edge node connection request.
+func (s *Scheduler) EdgeLogin(ctx context.Context, opts *types.ConnectOptions) error {
 	return s.nodeConnect(ctx, opts, types.NodeEdge)
 }
 
@@ -190,12 +194,12 @@ func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.N
 		return nil, xerrors.Errorf("nodeID mismatch %s, %s", nodeID, nodeInfo.NodeID)
 	}
 
-	port, err := s.NodeManager.FetchPortMapping(nodeID)
+	port, err := s.NodeManager.LoadPortMapping(nodeID)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 	}
 
-	pStr, err := s.NodeManager.FetchNodePublicKey(nodeID)
+	pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 	}
@@ -221,8 +225,8 @@ func (s *Scheduler) GetNodeExternalAddress(ctx context.Context) (string, error) 
 	return remoteAddr, nil
 }
 
-// ProcessNodeValidationResult  processes the validation result from the node.
-func (s *Scheduler) ProcessNodeValidationResult(ctx context.Context, result api.ValidateResult) error {
+// NodeValidationResult  processes the validation result from the node.
+func (s *Scheduler) NodeValidationResult(ctx context.Context, result api.ValidationResult) error {
 	validator := handler.GetNodeID(ctx)
 	log.Debug("call back Validator block result, Validator is ", validator)
 
@@ -230,7 +234,7 @@ func (s *Scheduler) ProcessNodeValidationResult(ctx context.Context, result api.
 	vs.Validator = validator
 
 	// s.Validator.PushResultToQueue(vs)
-	return s.ValidateMgr.Result(vs)
+	return s.ValidationMgr.Result(vs)
 }
 
 // RegisterNewNode registers a new node, returning an error if the node is already registered.
@@ -241,7 +245,7 @@ func (s *Scheduler) RegisterNewNode(ctx context.Context, nodeID, pKey string, no
 // GetOnlineNodeCount retrieves online node count.
 func (s *Scheduler) GetOnlineNodeCount(ctx context.Context, nodeType types.NodeType) (int, error) {
 	if nodeType == types.NodeValidator {
-		list, err := s.NodeManager.FetchValidators(s.ServerID)
+		list, err := s.NodeManager.LoadValidators(s.ServerID)
 		if err != nil {
 			return 0, err
 		}
@@ -262,7 +266,7 @@ func (s *Scheduler) GetOnlineNodeCount(ctx context.Context, nodeType types.NodeT
 
 // TriggerElection triggers a single election for validators.
 func (s *Scheduler) TriggerElection(ctx context.Context) error {
-	s.ValidateMgr.StartElection()
+	s.ValidationMgr.StartElection()
 	return nil
 }
 
@@ -276,7 +280,7 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (types.NodeI
 		nodeInfo = *info.NodeInfo
 		nodeInfo.IsOnline = true
 	} else {
-		dbInfo, err := s.NodeManager.FetchNodeInfo(nodeID)
+		dbInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
 		if err != nil {
 			log.Errorf("getNodeInfo: %s ,nodeID : %s", err.Error(), nodeID)
 			return types.NodeInfo{}, err
@@ -298,7 +302,7 @@ func (s *Scheduler) ConnectLocator(ctx context.Context, id string, token string)
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+token)
 	// Connect to scheduler
-	// log.Infof("ConnectEdgeNode edge url:%v", url)
+	// log.Infof("EdgeLogin edge url:%v", url)
 	_, _, err := client.NewLocator(ctx, url, headers)
 	if err != nil {
 		log.Errorf("ConnectLocator err:%s,url:%s", err.Error(), url)
@@ -311,6 +315,7 @@ func (s *Scheduler) ConnectLocator(ctx context.Context, id string, token string)
 // UnregisterNode node want to quit titan
 func (s *Scheduler) UnregisterNode(ctx context.Context, nodeID string) error {
 	// TODO db
+
 	s.NodeManager.NodesQuit([]string{nodeID})
 
 	return nil
@@ -341,14 +346,14 @@ func (s *Scheduler) nodeExists(nodeID string, nodeType types.NodeType) bool {
 func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*types.ListNodesRsp, error) {
 	rsp := &types.ListNodesRsp{Data: make([]types.NodeInfo, 0)}
 
-	rows, total, err := s.NodeManager.FetchNodeInfos(limit, offset)
+	rows, total, err := s.NodeManager.LoadNodeInfos(limit, offset)
 	if err != nil {
 		return rsp, err
 	}
 	defer rows.Close()
 
 	validator := make(map[string]struct{})
-	validatorList, err := s.NodeManager.FetchValidators(s.NodeManager.ServerID)
+	validatorList, err := s.NodeManager.LoadValidators(s.NodeManager.ServerID)
 	if err != nil {
 		log.Errorf("get validator list: %v", err)
 	}
@@ -380,8 +385,8 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 }
 
 // GetValidationResultList retrieves a list of validation results.
-func (s *Scheduler) GetValidationResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidateResultRsp, error) {
-	svm, err := s.NodeManager.FetchValidateResultInfos(startTime, endTime, pageNumber, pageSize)
+func (s *Scheduler) GetValidationResultList(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidationResultRsp, error) {
+	svm, err := s.NodeManager.LoadValidationResultInfos(startTime, endTime, pageNumber, pageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +420,7 @@ func (s *Scheduler) GetCandidateDownloadSources(ctx context.Context, cid string)
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	sources := make([]*types.AssetDownloadSource, 0)
 
-	rows, err := s.NodeManager.FetchReplicasByHash(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
+	rows, err := s.NodeManager.LoadReplicasByHash(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
 	if err != nil {
 		return nil, err
 	}

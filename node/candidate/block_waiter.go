@@ -12,17 +12,17 @@ import (
 
 type blockWaiter struct {
 	ch       chan tcpMsg
-	result   *api.ValidateResult
+	result   *api.ValidationResult
 	duration int
 	NodeValidatedResulter
 }
 
 type NodeValidatedResulter interface {
-	ProcessNodeValidationResult(ctx context.Context, vr api.ValidateResult) error
+	NodeValidationResult(ctx context.Context, vr api.ValidationResult) error
 }
 
 func newBlockWaiter(nodeID string, ch chan tcpMsg, duration int, resulter NodeValidatedResulter) *blockWaiter {
-	bw := &blockWaiter{ch: ch, duration: duration, result: &api.ValidateResult{NodeID: nodeID}, NodeValidatedResulter: resulter}
+	bw := &blockWaiter{ch: ch, duration: duration, result: &api.ValidationResult{NodeID: nodeID}, NodeValidatedResulter: resulter}
 	go bw.wait()
 
 	return bw
@@ -67,7 +67,7 @@ func (bw *blockWaiter) wait() {
 }
 
 func (bw *blockWaiter) sendValidateResult() error {
-	return bw.ProcessNodeValidationResult(context.Background(), *bw.result)
+	return bw.NodeValidationResult(context.Background(), *bw.result)
 }
 
 func (bw *blockWaiter) calculateBandwidth(costTime int64, size int64) {

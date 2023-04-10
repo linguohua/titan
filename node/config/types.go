@@ -93,7 +93,7 @@ type SchedulerCfg struct {
 	// test nat type
 	SchedulerServer2 string
 	// config to enabled node validation, default: true
-	EnableValidate bool
+	EnableValidation bool
 	// etcd server addresses
 	EtcdAddresses []string
 	// Number of candidate node replicas (does not contain 'seed')

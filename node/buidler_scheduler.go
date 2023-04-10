@@ -18,7 +18,7 @@ import (
 	"github.com/linguohua/titan/node/scheduler/db"
 	"github.com/linguohua/titan/node/scheduler/node"
 	"github.com/linguohua/titan/node/scheduler/sync"
-	"github.com/linguohua/titan/node/scheduler/validate"
+	"github.com/linguohua/titan/node/scheduler/validation"
 
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
@@ -63,7 +63,7 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(dtypes.MetadataDS), modules.Datastore),
 		Override(new(*assets.Manager), modules.NewStorageManager),
 		Override(new(*sync.DataSync), sync.NewDataSync),
-		Override(new(*validate.Manager), modules.NewValidate),
+		Override(new(*validation.Manager), modules.NewValidation),
 		Override(new(*scheduler.EdgeUpdateManager), scheduler.NewEdgeUpdateManager),
 		Override(new(dtypes.DatabaseAddress), func() dtypes.DatabaseAddress {
 			return dtypes.DatabaseAddress(cfg.DatabaseAddress)

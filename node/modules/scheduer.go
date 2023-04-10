@@ -14,7 +14,7 @@ import (
 	"github.com/linguohua/titan/node/repo"
 	"github.com/linguohua/titan/node/scheduler/assets"
 	"github.com/linguohua/titan/node/scheduler/db"
-	"github.com/linguohua/titan/node/scheduler/validate"
+	"github.com/linguohua/titan/node/scheduler/validation"
 	"github.com/linguohua/titan/node/sqldb"
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
@@ -89,8 +89,8 @@ func NewStorageManager(params StorageManagerParams) *assets.Manager {
 	return m
 }
 
-func NewValidate(mctx helpers.MetricsCtx, lc fx.Lifecycle, m *node.Manager, configFunc dtypes.GetSchedulerConfigFunc, p *pubsub.PubSub) *validate.Manager {
-	v := validate.NewManager(m, configFunc, p)
+func NewValidation(mctx helpers.MetricsCtx, lc fx.Lifecycle, m *node.Manager, configFunc dtypes.GetSchedulerConfigFunc, p *pubsub.PubSub) *validation.Manager {
+	v := validation.NewManager(m, configFunc, p)
 
 	ctx := helpers.LifecycleCtx(mctx, lc)
 	lc.Append(fx.Hook{
@@ -113,7 +113,7 @@ func NewSetSchedulerConfigFunc(r repo.LockedRepo) func(config.SchedulerCfg) erro
 			}
 			scfg.SchedulerServer1 = cfg.SchedulerServer1
 			scfg.SchedulerServer2 = cfg.SchedulerServer2
-			scfg.EnableValidate = cfg.EnableValidate
+			scfg.EnableValidation = cfg.EnableValidation
 		})
 	}
 }

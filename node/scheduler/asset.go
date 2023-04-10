@@ -10,8 +10,8 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// RemoveAssetResult updates a node's disk usage and block count based on the resultInfo.
-func (s *Scheduler) RemoveAssetResult(ctx context.Context, resultInfo types.RemoveAssetResult) error {
+// NodeRemoveAssetResult updates a node's disk usage and block count based on the resultInfo.
+func (s *Scheduler) NodeRemoveAssetResult(ctx context.Context, resultInfo types.RemoveAssetResult) error {
 	nodeID := handler.GetNodeID(ctx)
 
 	// update node info
@@ -40,7 +40,7 @@ func (s *Scheduler) ResetAssetExpiration(ctx context.Context, cid string, t time
 
 // GetAssetRecord retrieves an asset record by its CID.
 func (s *Scheduler) GetAssetRecord(ctx context.Context, cid string) (*types.AssetRecord, error) {
-	info, err := s.AssetManager.FetchAssetRecordInfo(cid)
+	info, err := s.AssetManager.GetAssetRecordInfo(cid)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (s *Scheduler) GetAssetRecord(ctx context.Context, cid string) (*types.Asse
 
 // GetAssetRecords lists asset records with optional filtering by status, limit, and offset.
 func (s *Scheduler) GetAssetRecords(ctx context.Context, limit, offset int, statuses []string) ([]*types.AssetRecord, error) {
-	rows, err := s.NodeManager.FetchAssetRecords(statuses, limit, offset, s.ServerID)
+	rows, err := s.NodeManager.LoadAssetRecords(statuses, limit, offset, s.ServerID)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (s *Scheduler) GetAssetRecords(ctx context.Context, limit, offset int, stat
 			continue
 		}
 
-		cInfo.ReplicaInfos, err = s.NodeManager.FetchAssetReplicas(cInfo.Hash)
+		cInfo.ReplicaInfos, err = s.NodeManager.LoadAssetReplicas(cInfo.Hash)
 		if err != nil {
 			log.Errorf("asset %s load replicas err: %s", cInfo.CID, err.Error())
 			continue
@@ -136,7 +136,7 @@ func (s *Scheduler) GetAssetReplicaList(ctx context.Context, req types.ListRepli
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
-	info, err := s.NodeManager.FetchReplicas(startTime, endTime, req.Cursor, req.Count)
+	info, err := s.NodeManager.LoadReplicas(startTime, endTime, req.Cursor, req.Count)
 	if err != nil {
 		return nil, err
 	}

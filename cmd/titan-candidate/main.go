@@ -367,7 +367,7 @@ var runCmd = &cli.Command{
 					select {
 					case <-readyCh:
 						opts := &types.ConnectOptions{Token: token, TcpServerPort: tcpServerPort}
-						err := schedulerAPI.ConnectCandidateNode(ctx, opts)
+						err := schedulerAPI.CandidateLogin(ctx, opts)
 						if err != nil {
 							log.Errorf("Registering candidate failed: %+v", err)
 							cancel()

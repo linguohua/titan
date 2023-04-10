@@ -14,7 +14,7 @@ func (m *Manager) NodesQuit(nodeIDs []string) {
 
 	log.Infof("node event , nodes quit:%v", nodeIDs)
 
-	hashes, err := m.FetchAssetHashesOfNodes(nodeIDs)
+	hashes, err := m.LoadAssetHashesOfNodes(nodeIDs)
 	if err != nil {
 		log.Errorf("QuitNodes: FetchAssetHashesOfNodes err:%s", err.Error())
 		return

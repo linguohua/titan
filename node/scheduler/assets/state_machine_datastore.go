@@ -68,7 +68,7 @@ func (d *Datastore) Query(ctx context.Context, q query.Query) (query.Results, er
 
 	state := append(FailedStates, PullingStates...)
 
-	rows, err = d.assetDB.FetchAssetRecords(state, q.Limit, q.Offset, d.ServerID)
+	rows, err = d.assetDB.LoadAssetRecords(state, q.Limit, q.Offset, d.ServerID)
 	if err != nil {
 		log.Errorf("LoadAssets :%s", err.Error())
 		return nil, err
@@ -88,7 +88,7 @@ func (d *Datastore) Query(ctx context.Context, q query.Query) (query.Results, er
 			continue
 		}
 
-		cInfo.ReplicaInfos, err = d.assetDB.FetchAssetReplicas(cInfo.Hash)
+		cInfo.ReplicaInfos, err = d.assetDB.LoadAssetReplicas(cInfo.Hash)
 		if err != nil {
 			log.Errorf("asset %s load replicas err: %s", cInfo.CID, err.Error())
 			continue

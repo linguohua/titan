@@ -64,8 +64,8 @@ func (n *SQLDB) UpsertAssetRecord(info *types.AssetRecord) error {
 	return err
 }
 
-// FetchAssetRecord fetches asset record information
-func (n *SQLDB) FetchAssetRecord(hash string) (*types.AssetRecord, error) {
+// LoadAssetRecord load asset record information
+func (n *SQLDB) LoadAssetRecord(hash string) (*types.AssetRecord, error) {
 	var info types.AssetRecord
 	query := fmt.Sprintf("SELECT * FROM %s WHERE hash=?", assetRecordTable)
 	err := n.db.Get(&info, query, hash)
@@ -76,8 +76,8 @@ func (n *SQLDB) FetchAssetRecord(hash string) (*types.AssetRecord, error) {
 	return &info, err
 }
 
-// FetchAssetRecords fetches asset records information
-func (n *SQLDB) FetchAssetRecords(statuses []string, limit, offset int, serverID dtypes.ServerID) (*sqlx.Rows, error) {
+// LoadAssetRecords load asset records information
+func (n *SQLDB) LoadAssetRecords(statuses []string, limit, offset int, serverID dtypes.ServerID) (*sqlx.Rows, error) {
 	if limit > loadAssetRecordsLimit || limit == 0 {
 		limit = loadAssetRecordsLimit
 	}
@@ -91,8 +91,8 @@ func (n *SQLDB) FetchAssetRecords(statuses []string, limit, offset int, serverID
 	return n.db.QueryxContext(context.Background(), query, args...)
 }
 
-// FetchReplicasByHash fetches asset replica information based on hash and statuses.
-func (n *SQLDB) FetchReplicasByHash(hash string, statuses []types.ReplicaStatus) (*sqlx.Rows, error) {
+// LoadReplicasByHash load asset replica information based on hash and statuses.
+func (n *SQLDB) LoadReplicasByHash(hash string, statuses []types.ReplicaStatus) (*sqlx.Rows, error) {
 	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE hash=? AND status in (?)`, replicaInfoTable)
 	query, args, err := sqlx.In(sQuery, hash, statuses)
 	if err != nil {
@@ -103,8 +103,8 @@ func (n *SQLDB) FetchReplicasByHash(hash string, statuses []types.ReplicaStatus)
 	return n.db.QueryxContext(context.Background(), query, args...)
 }
 
-// FetchAssetReplicas fetches asset replica information based on hash.
-func (n *SQLDB) FetchAssetReplicas(hash string) ([]*types.ReplicaInfo, error) {
+// LoadAssetReplicas load asset replica information based on hash.
+func (n *SQLDB) LoadAssetReplicas(hash string) ([]*types.ReplicaInfo, error) {
 	var out []*types.ReplicaInfo
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE hash=? `, replicaInfoTable)
 	if err := n.db.Select(&out, query, hash); err != nil {
@@ -114,8 +114,8 @@ func (n *SQLDB) FetchAssetReplicas(hash string) ([]*types.ReplicaInfo, error) {
 	return out, nil
 }
 
-// FetchNodeReplicaCount retrieves the succeeded replica count of a node based on nodeID.
-func (n *SQLDB) FetchNodeReplicaCount(nodeID string) (int, error) {
+// LoadNodeReplicaCount retrieves the succeeded replica count of a node based on nodeID.
+func (n *SQLDB) LoadNodeReplicaCount(nodeID string) (int, error) {
 	query := fmt.Sprintf(`SELECT count(hash) FROM %s WHERE node_id=? AND status=?`, replicaInfoTable)
 
 	var count int
@@ -124,8 +124,8 @@ func (n *SQLDB) FetchNodeReplicaCount(nodeID string) (int, error) {
 	return count, err
 }
 
-// FetchAssetCIDsByNodeID retrieves asset CIDs of a node based on nodeID.
-func (n *SQLDB) FetchAssetCIDsByNodeID(nodeID string, limit, offset int) ([]string, error) {
+// LoadAssetCIDsByNodeID retrieves asset CIDs of a node based on nodeID.
+func (n *SQLDB) LoadAssetCIDsByNodeID(nodeID string, limit, offset int) ([]string, error) {
 	var hashes []string
 	query := fmt.Sprintf("select cid from (select hash from %s WHERE node_id=? AND status=? LIMIT %d OFFSET %d) as a left join %s as b on a.hash = b.hash", replicaInfoTable, limit, offset, assetRecordTable)
 	if err := n.db.Select(&hashes, query, nodeID, types.ReplicaStatusSucceeded); err != nil {
@@ -143,8 +143,8 @@ func (n *SQLDB) UpdateAssetRecordExpiry(hash string, eTime time.Time) error {
 	return err
 }
 
-// FetchMinExpiryOfAssetRecords  fetches the minimum expiration time of asset records based on serverID.
-func (n *SQLDB) FetchMinExpiryOfAssetRecords(serverID dtypes.ServerID) (time.Time, error) {
+// LoadMinExpiryOfAssetRecords  load the minimum expiration time of asset records based on serverID.
+func (n *SQLDB) LoadMinExpiryOfAssetRecords(serverID dtypes.ServerID) (time.Time, error) {
 	query := fmt.Sprintf(`SELECT MIN(expiration) FROM %s WHERE scheduler_sid=?`, assetRecordTable)
 
 	var out time.Time
@@ -155,8 +155,8 @@ func (n *SQLDB) FetchMinExpiryOfAssetRecords(serverID dtypes.ServerID) (time.Tim
 	return out, nil
 }
 
-// FetchExpiredAssetRecords fetches all expired asset records based on serverID.
-func (n *SQLDB) FetchExpiredAssetRecords(serverID dtypes.ServerID) ([]*types.AssetRecord, error) {
+// LoadExpiredAssetRecords load all expired asset records based on serverID.
+func (n *SQLDB) LoadExpiredAssetRecords(serverID dtypes.ServerID) ([]*types.AssetRecord, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE scheduler_sid=? AND expiration <= NOW() LIMIT ?`, assetRecordTable)
 
 	var out []*types.AssetRecord
@@ -167,8 +167,8 @@ func (n *SQLDB) FetchExpiredAssetRecords(serverID dtypes.ServerID) ([]*types.Ass
 	return out, nil
 }
 
-// FetchUnfinishedPullAssetNodes retrieves the node IDs for all nodes that have not yet finished pulling an asset for a given asset hash.
-func (n *SQLDB) FetchUnfinishedPullAssetNodes(hash string) ([]string, error) {
+// LoadUnfinishedPullAssetNodes retrieves the node IDs for all nodes that have not yet finished pulling an asset for a given asset hash.
+func (n *SQLDB) LoadUnfinishedPullAssetNodes(hash string) ([]string, error) {
 	var nodes []string
 	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE hash=? AND (status=? or status=?)`, replicaInfoTable)
 	err := n.db.Select(&nodes, query, hash, types.ReplicaStatusPulling, types.ReplicaStatusWaiting)
@@ -220,8 +220,8 @@ func (n *SQLDB) DeleteUnfinishedReplicas(hash string) error {
 	return err
 }
 
-// FetchAssetHashesOfNodes fetches the asset hashes associated with a set of node IDs.
-func (n *SQLDB) FetchAssetHashesOfNodes(nodeIDs []string) (hashes []string, err error) {
+// LoadAssetHashesOfNodes load the asset hashes associated with a set of node IDs.
+func (n *SQLDB) LoadAssetHashesOfNodes(nodeIDs []string) (hashes []string, err error) {
 	sQuery := fmt.Sprintf(`select hash from %s WHERE node_id in (?) GROUP BY hash`, replicaInfoTable)
 	query, args, err := sqlx.In(sQuery, nodeIDs)
 	if err != nil {
@@ -248,8 +248,8 @@ func (n *SQLDB) DeleteReplicasForNodes(nodeIDs []string) error {
 	return err
 }
 
-// FetchReplicasForNode fetches information about all replicas associated with a given node ID.
-func (n *SQLDB) FetchReplicasForNode(nodeID string, index, count int) (info *types.NodeReplicaRsp, err error) {
+// LoadReplicasForNode load information about all replicas associated with a given node ID.
+func (n *SQLDB) LoadReplicasForNode(nodeID string, index, count int) (info *types.NodeReplicaRsp, err error) {
 	info = &types.NodeReplicaRsp{}
 
 	query := fmt.Sprintf("SELECT count(hash) FROM %s WHERE node_id=?", replicaInfoTable)
@@ -266,8 +266,8 @@ func (n *SQLDB) FetchReplicasForNode(nodeID string, index, count int) (info *typ
 	return
 }
 
-// FetchReplicas fetches information about all replicas whose end_time is between startTime and endTime, limited to "count" results and starting from "cursor".
-func (n *SQLDB) FetchReplicas(startTime time.Time, endTime time.Time, cursor, count int) (*types.ListReplicaInfosRsp, error) {
+// LoadReplicas load information about all replicas whose end_time is between startTime and endTime, limited to "count" results and starting from "cursor".
+func (n *SQLDB) LoadReplicas(startTime time.Time, endTime time.Time, cursor, count int) (*types.ListReplicaInfosRsp, error) {
 	var total int64
 	countSQL := fmt.Sprintf(`SELECT count(hash) FROM %s WHERE end_time between ? and ?`, replicaInfoTable)
 	if err := n.db.Get(&total, countSQL, startTime, endTime); err != nil {
