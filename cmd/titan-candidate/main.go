@@ -44,8 +44,6 @@ import (
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
-
-	"github.com/linguohua/titan/stores"
 )
 
 var log = logging.Logger("main")
@@ -56,6 +54,7 @@ const (
 	// TODO remove after deprecation period
 	FlagCandidateRepoDeprecation = "candidaterepo"
 	DefaultStorageDir            = "storage"
+	HeartbeatInterval            = 10 * time.Second
 )
 
 func main() {
@@ -330,7 +329,7 @@ var runCmd = &cli.Command{
 		}
 
 		go func() {
-			heartbeats := time.NewTicker(stores.HeartbeatInterval)
+			heartbeats := time.NewTicker(HeartbeatInterval)
 			defer heartbeats.Stop()
 
 			var readyCh chan struct{}

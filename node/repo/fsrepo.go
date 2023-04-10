@@ -22,7 +22,6 @@ import (
 	"golang.org/x/xerrors"
 
 	"github.com/linguohua/titan/node/config"
-	"github.com/linguohua/titan/stores"
 
 	"github.com/linguohua/titan/node/fsutil"
 	"github.com/linguohua/titan/node/types"
@@ -531,35 +530,6 @@ func (fsr *fsLockedRepo) SetConfig(c func(interface{})) error {
 	}
 
 	return nil
-}
-
-func (fsr *fsLockedRepo) GetStorage() (stores.StorageConfig, error) {
-	fsr.storageLk.Lock()
-	defer fsr.storageLk.Unlock()
-
-	return fsr.getStorage(nil)
-}
-
-func (fsr *fsLockedRepo) getStorage(def *stores.StorageConfig) (stores.StorageConfig, error) {
-	c, err := config.StorageFromFile(fsr.join(fsStorageConfig), def)
-	if err != nil {
-		return stores.StorageConfig{}, err
-	}
-	return *c, nil
-}
-
-func (fsr *fsLockedRepo) SetStorage(c func(*stores.StorageConfig)) error {
-	fsr.storageLk.Lock()
-	defer fsr.storageLk.Unlock()
-
-	sc, err := fsr.getStorage(&stores.StorageConfig{})
-	if err != nil {
-		return xerrors.Errorf("get storage: %w", err)
-	}
-
-	c(&sc)
-
-	return config.WriteStorageFile(fsr.join(fsStorageConfig), sc)
 }
 
 func (fsr *fsLockedRepo) Stat(path string) (fsutil.FsStat, error) {
