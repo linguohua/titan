@@ -20,7 +20,7 @@ import (
 
 	"github.com/linguohua/titan/node"
 	"github.com/linguohua/titan/node/asset/cache"
-	"github.com/linguohua/titan/node/gateway"
+	"github.com/linguohua/titan/node/httpserver"
 	"github.com/linguohua/titan/node/modules/dtypes"
 
 	"github.com/filecoin-project/go-jsonrpc"
@@ -219,7 +219,7 @@ var runCmd = &cli.Command{
 		}
 		log.Infof("Remote version %s", v)
 
-		var gw *gateway.Gateway
+		var httpServer *httpserver.HttpServer
 		var edgeAPI api.Edge
 		stop, err := node.New(cctx.Context,
 			node.Edge(&edgeAPI),
@@ -256,7 +256,7 @@ var runCmd = &cli.Command{
 			}),
 
 			node.Override(node.RunGateway, func(cacheMgr *cache.Manager) error {
-				gw = gateway.NewGateway(cacheMgr, schedulerAPI, privateKey)
+				httpServer = httpserver.NewHttpServer(cacheMgr, schedulerAPI, privateKey)
 
 				return err
 			}),
@@ -266,7 +266,7 @@ var runCmd = &cli.Command{
 		}
 
 		handler := EdgeHandler(edgeAPI.AuthVerify, edgeAPI, true)
-		handler = gw.NewHandler(handler)
+		handler = httpServer.NewHandler(handler)
 
 		srv := &http.Server{
 			ReadHeaderTimeout: 30 * time.Second,
@@ -365,7 +365,7 @@ var runCmd = &cli.Command{
 							return
 						}
 
-						gw.SetSchedulerPublicKey(pk)
+						httpServer.SetSchedulerPublicKey(pk)
 						log.Info("Edge registered successfully, waiting for tasks")
 						errCount = 0
 						readyCh = nil

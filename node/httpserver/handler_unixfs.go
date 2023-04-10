@@ -1,4 +1,4 @@
-package gateway
+package httpserver
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-func (gw *Gateway) serveUnixFS(w http.ResponseWriter, r *http.Request, credentials *types.Credentials) {
+func (hs *HttpServer) serveUnixFS(w http.ResponseWriter, r *http.Request, credentials *types.Credentials) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 
@@ -22,13 +22,13 @@ func (gw *Gateway) serveUnixFS(w http.ResponseWriter, r *http.Request, credentia
 	}
 
 	contentPath := path.New(r.URL.Path)
-	resolvedPath, err := gw.resolvePath(ctx, contentPath, root)
+	resolvedPath, err := hs.resolvePath(ctx, contentPath, root)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("can not resolved path: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 
-	dr, err := gw.getUnixFsNode(ctx, resolvedPath, root)
+	dr, err := hs.getUnixFsNode(ctx, resolvedPath, root)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("error while getting UnixFS node: %s", err.Error()), http.StatusInternalServerError)
 		return
@@ -38,7 +38,7 @@ func (gw *Gateway) serveUnixFS(w http.ResponseWriter, r *http.Request, credentia
 	// Handling Unixfs file
 	if f, ok := dr.(files.File); ok {
 		log.Debugw("serving unixfs file", "path", contentPath)
-		gw.serveFile(w, r, credentials, f)
+		hs.serveFile(w, r, credentials, f)
 		return
 	}
 
@@ -50,9 +50,9 @@ func (gw *Gateway) serveUnixFS(w http.ResponseWriter, r *http.Request, credentia
 	}
 
 	log.Debugw("serving unixfs directory", "path", contentPath)
-	gw.serveDirectory(w, r, credentials, dir)
+	hs.serveDirectory(w, r, credentials, dir)
 }
 
-func (gw *Gateway) serveDirectory(w http.ResponseWriter, r *http.Request, ticket *types.Credentials, dir files.Directory) {
+func (hs *HttpServer) serveDirectory(w http.ResponseWriter, r *http.Request, ticket *types.Credentials, dir files.Directory) {
 	http.Error(w, "dir list not support now", http.StatusBadRequest)
 }

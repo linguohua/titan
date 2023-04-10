@@ -1,4 +1,4 @@
-package gateway
+package httpserver
 
 import (
 	"context"
@@ -9,14 +9,14 @@ import (
 	"github.com/ipfs/go-cid"
 )
 
-func (gw *Gateway) headHandler(w http.ResponseWriter, r *http.Request) {
+func (hs *HttpServer) headHandler(w http.ResponseWriter, r *http.Request) {
 	c, err := getCID(r.URL.Path)
 	if err != nil {
 		w.WriteHeader(http.StatusPreconditionFailed)
 		return
 	}
 	// TODO get root from c
-	if ok, err := gw.storage.HasBlock(context.Background(), c, c); err != nil || !ok {
+	if ok, err := hs.asset.HasBlock(context.Background(), c, c); err != nil || !ok {
 		w.WriteHeader(http.StatusPreconditionFailed)
 		return
 	}

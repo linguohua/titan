@@ -1,4 +1,4 @@
-package gateway
+package httpserver
 
 import (
 	"bytes"
@@ -26,8 +26,8 @@ const (
 	formatCbor    = "application/cbor"
 )
 
-func (gw *Gateway) getHandler(w http.ResponseWriter, r *http.Request) {
-	ticket, err := gw.verifyCredentials(w, r)
+func (hs *HttpServer) getHandler(w http.ResponseWriter, r *http.Request) {
+	ticket, err := hs.verifyCredentials(w, r)
 	if err != nil {
 		log.Warnf("verify credential error:%s", err.Error())
 		http.Error(w, fmt.Sprintf("verify ticket error : %s", err.Error()), http.StatusUnauthorized)
@@ -42,23 +42,23 @@ func (gw *Gateway) getHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch respFormat {
 	case "", formatJSON, formatCbor: // The implicit response format is UnixFS
-		gw.serveUnixFS(w, r, ticket)
+		hs.serveUnixFS(w, r, ticket)
 	case formatRaw:
-		gw.serveRawBlock(w, r, ticket)
+		hs.serveRawBlock(w, r, ticket)
 	case formatCar:
-		gw.serveCar(w, r, ticket, formatParams["version"])
+		hs.serveCar(w, r, ticket, formatParams["version"])
 	case formatTar:
-		gw.serveTAR(w, r, ticket)
+		hs.serveTAR(w, r, ticket)
 	case formatDagJSON, formatDagCbor:
-		gw.serveCodec(w, r, ticket)
+		hs.serveCodec(w, r, ticket)
 	default: // catch-all for unsuported application/vnd.*
 		http.Error(w, fmt.Sprintf("unsupported format %s", respFormat), http.StatusBadRequest)
 		return
 	}
 }
 
-func (gw *Gateway) verifyCredentials(w http.ResponseWriter, r *http.Request) (*types.Credentials, error) {
-	if gw.schedulerPublicKey == nil {
+func (hs *HttpServer) verifyCredentials(w http.ResponseWriter, r *http.Request) (*types.Credentials, error) {
+	if hs.schedulerPublicKey == nil {
 		return nil, fmt.Errorf("scheduler public key not exist, can not verify sign")
 	}
 
@@ -87,12 +87,12 @@ func (gw *Gateway) verifyCredentials(w http.ResponseWriter, r *http.Request) (*t
 	}
 
 	rsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	err = rsa.VerifySign(gw.schedulerPublicKey, sign, ciphertext)
+	err = rsa.VerifySign(hs.schedulerPublicKey, sign, ciphertext)
 	if err != nil {
 		return nil, err
 	}
 
-	mgs, err := rsa.Decrypt(ciphertext, gw.privateKey)
+	mgs, err := rsa.Decrypt(ciphertext, hs.privateKey)
 	if err != nil {
 		return nil, err
 	}

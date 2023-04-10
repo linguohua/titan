@@ -1,4 +1,4 @@
-package gateway
+package httpserver
 
 import (
 	"context"
@@ -23,24 +23,24 @@ import (
 	"github.com/linguohua/titan/api"
 )
 
-type Gateway struct {
-	storage            Storage
+type HttpServer struct {
+	asset              Asset
 	scheduler          api.Scheduler
 	privateKey         *rsa.PrivateKey
 	schedulerPublicKey *rsa.PublicKey
 }
 
-func NewGateway(storage Storage, scheduler api.Scheduler, privateKey *rsa.PrivateKey) *Gateway {
-	gw := &Gateway{storage: storage, scheduler: scheduler, privateKey: privateKey}
+func NewHttpServer(asset Asset, scheduler api.Scheduler, privateKey *rsa.PrivateKey) *HttpServer {
+	hs := &HttpServer{asset: asset, scheduler: scheduler, privateKey: privateKey}
 
-	return gw
+	return hs
 }
 
-func (gw *Gateway) SetSchedulerPublicKey(publicKey *rsa.PublicKey) {
-	gw.schedulerPublicKey = publicKey
+func (hs *HttpServer) SetSchedulerPublicKey(publicKey *rsa.PublicKey) {
+	hs.schedulerPublicKey = publicKey
 }
 
-func (gw *Gateway) resolvePath(ctx context.Context, p path.Path, asset cid.Cid) (path.Resolved, error) {
+func (hs *HttpServer) resolvePath(ctx context.Context, p path.Path, asset cid.Cid) (path.Resolved, error) {
 	if _, ok := p.(path.Resolved); ok {
 		return p.(path.Resolved), nil
 	}
@@ -53,7 +53,7 @@ func (gw *Gateway) resolvePath(ctx context.Context, p path.Path, asset cid.Cid) 
 		return nil, fmt.Errorf("unsupported path namespace: %s", p.Namespace())
 	}
 
-	fetcherFactory := bsfetcher.NewFetcherConfig(blockservice.New(&readOnlyBlockStore{gw, asset}, nil))
+	fetcherFactory := bsfetcher.NewFetcherConfig(blockservice.New(&readOnlyBlockStore{hs, asset}, nil))
 	fetcherFactory.PrototypeChooser = dagpb.AddSupportToChooser(func(lnk ipldprime.Link, lnkCtx ipldprime.LinkContext) (ipldprime.NodePrototype, error) {
 		if tlnkNd, ok := lnkCtx.LinkNode.(schema.TypedLinkNode); ok {
 			return tlnkNd.LinkTargetNodePrototype(), nil
@@ -77,13 +77,13 @@ func (gw *Gateway) resolvePath(ctx context.Context, p path.Path, asset cid.Cid) 
 }
 
 // GetUnixFsNode returns a read-only handle to a file tree referenced by a path.
-func (gw *Gateway) getUnixFsNode(ctx context.Context, p path.Resolved, root cid.Cid) (files.Node, error) {
-	ng := &nodeGetter{gw, root}
+func (hs *HttpServer) getUnixFsNode(ctx context.Context, p path.Resolved, root cid.Cid) (files.Node, error) {
+	ng := &nodeGetter{hs, root}
 	node, err := ng.Get(ctx, p.Cid())
 	if err != nil {
 		return nil, err
 	}
 
-	dagService := dag.NewReadOnlyDagService(&nodeGetter{gw, root})
+	dagService := dag.NewReadOnlyDagService(&nodeGetter{hs, root})
 	return unixfile.NewUnixfsFile(ctx, dagService, node)
 }

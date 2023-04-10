@@ -1,4 +1,4 @@
-package gateway
+package httpserver
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
-var log = logging.Logger("gateway")
+var log = logging.Logger("httpserver")
 
 const (
 	ipfsPathPrefix        = "/ipfs"
@@ -26,30 +26,30 @@ var (
 
 type Handler struct {
 	handler http.Handler
-	gw      *Gateway
+	hs      *HttpServer
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case strings.HasPrefix(r.URL.Path, ipfsPathPrefix):
-		h.gw.handler(w, r)
+		h.hs.handler(w, r)
 	default:
 		h.handler.ServeHTTP(w, r)
 	}
 }
 
-func (gw *Gateway) NewHandler(handler http.Handler) http.Handler {
-	return &Handler{handler, gw}
+func (hs *HttpServer) NewHandler(handler http.Handler) http.Handler {
+	return &Handler{handler, hs}
 }
 
-func (gw *Gateway) handler(w http.ResponseWriter, r *http.Request) {
+func (hs *HttpServer) handler(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("handler path: %s", r.URL.Path)
 
 	switch r.Method {
 	case http.MethodHead:
-		gw.headHandler(w, r)
+		hs.headHandler(w, r)
 	case http.MethodGet:
-		gw.getHandler(w, r)
+		hs.getHandler(w, r)
 	default:
 		http.Error(w, fmt.Sprintf("method %s not allowed", r.Method), http.StatusBadRequest)
 	}

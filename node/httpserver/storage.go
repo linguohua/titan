@@ -1,4 +1,4 @@
-package gateway
+package httpserver
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/ipfs/go-libipfs/blocks"
 )
 
-type Storage interface {
+type Asset interface {
 	GetAsset(root cid.Cid) (io.ReadSeekCloser, error)
 	HasAsset(root cid.Cid) (bool, error)
 
