@@ -1,4 +1,4 @@
-package gateway
+package httpserver
 
 import (
 	"context"
@@ -18,7 +18,7 @@ func TestGateway(t *testing.T) {
 func TestResolvePath(t *testing.T) {
 	t.Log("TestResolvePath")
 
-	storePath := "C:/Users/aaa/.titanedge-1/storage"
+	storePath := "C:/Users/aaa/.titanedge-1/asset"
 	p := "/ipfs/QmNXoAB3ZNoFQQZMGk4utybuvABdLTz6hcVmtHnV4FUp3S/log"
 	storageMgr, err := storage.NewManager(storePath, nil)
 	if err != nil {
@@ -41,9 +41,9 @@ func TestResolvePath(t *testing.T) {
 		return
 	}
 
-	gw := &Gateway{storage: mgr}
+	hs := &HttpServer{asset: mgr}
 
-	resolvePath, err := gw.resolvePath(context.Background(), path.New(p), assetCID)
+	resolvePath, err := hs.resolvePath(context.Background(), path.New(p), assetCID)
 	if err != nil {
 		t.Errorf("TestResolvePath error:%s", err.Error())
 		return

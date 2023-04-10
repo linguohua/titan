@@ -1,0 +1,11 @@
+package httpserver
+
+import (
+	"net/http"
+
+	"github.com/linguohua/titan/api/types"
+)
+
+func (hs *HttpServer) serveCodec(w http.ResponseWriter, r *http.Request, credentials *types.Credentials) {
+	http.Error(w, "not implement", http.StatusBadRequest)
+}

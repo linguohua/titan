@@ -1,4 +1,4 @@
-package gateway
+package httpserver
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-func (gw *Gateway) serveTAR(w http.ResponseWriter, r *http.Request, credentials *types.Credentials) {
+func (hs *HttpServer) serveTAR(w http.ResponseWriter, r *http.Request, credentials *types.Credentials) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 
@@ -24,14 +24,14 @@ func (gw *Gateway) serveTAR(w http.ResponseWriter, r *http.Request, credentials 
 	}
 
 	contentPath := path.New(r.URL.Path)
-	resolvedPath, err := gw.resolvePath(ctx, contentPath, assetCID)
+	resolvedPath, err := hs.resolvePath(ctx, contentPath, assetCID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("can not resolved path: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	// Get Unixfs file
-	file, err := gw.getUnixFsNode(ctx, resolvedPath, assetCID)
+	file, err := hs.getUnixFsNode(ctx, resolvedPath, assetCID)
 	if err != nil {
 		err = fmt.Errorf("error getting UnixFS node for %s: %w", html.EscapeString(contentPath.String()), err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

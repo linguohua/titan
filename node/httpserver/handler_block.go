@@ -1,4 +1,4 @@
-package gateway
+package httpserver
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-func (gw *Gateway) serveRawBlock(w http.ResponseWriter, r *http.Request, credentials *types.Credentials) {
+func (hs *HttpServer) serveRawBlock(w http.ResponseWriter, r *http.Request, credentials *types.Credentials) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 
@@ -22,14 +22,14 @@ func (gw *Gateway) serveRawBlock(w http.ResponseWriter, r *http.Request, credent
 	}
 
 	contentPath := path.New(r.URL.Path)
-	resolvedPath, err := gw.resolvePath(ctx, contentPath, root)
+	resolvedPath, err := hs.resolvePath(ctx, contentPath, root)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("can not resolved path: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	c := resolvedPath.Cid()
-	block, err := gw.storage.GetBlock(ctx, root, c)
+	block, err := hs.asset.GetBlock(ctx, root, c)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("can not get block %s, %s", c.String(), err.Error()), http.StatusInternalServerError)
 		return

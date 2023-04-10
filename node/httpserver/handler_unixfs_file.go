@@ -1,4 +1,4 @@
-package gateway
+package httpserver
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-func (gw *Gateway) serveFile(w http.ResponseWriter, r *http.Request, credentials *types.Credentials, file files.File) {
+func (hs *HttpServer) serveFile(w http.ResponseWriter, r *http.Request, credentials *types.Credentials, file files.File) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 
@@ -27,7 +27,7 @@ func (gw *Gateway) serveFile(w http.ResponseWriter, r *http.Request, credentials
 	}
 
 	contentPath := path.New(r.URL.Path)
-	resolvedPath, err := gw.resolvePath(ctx, contentPath, root)
+	resolvedPath, err := hs.resolvePath(ctx, contentPath, root)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("can not resolved path: %s", err.Error()), http.StatusBadRequest)
 		return

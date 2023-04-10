@@ -1,4 +1,4 @@
-package gateway
+package httpserver
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 
 // BlockService interface implement
 type readOnlyBlockStore struct {
-	gw   *Gateway
+	hs   *HttpServer
 	root cid.Cid
 }
 
@@ -19,11 +19,11 @@ func (robs *readOnlyBlockStore) DeleteBlock(context.Context, cid.Cid) error {
 }
 
 func (robs *readOnlyBlockStore) Has(ctx context.Context, c cid.Cid) (bool, error) {
-	return robs.gw.storage.HasBlock(ctx, robs.root, c)
+	return robs.hs.asset.HasBlock(ctx, robs.root, c)
 }
 
 func (robs *readOnlyBlockStore) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
-	return robs.gw.storage.GetBlock(ctx, robs.root, c)
+	return robs.hs.asset.GetBlock(ctx, robs.root, c)
 }
 
 // GetSize returns the CIDs mapped BlockSize

@@ -1,4 +1,4 @@
-package gateway
+package httpserver
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 
 // format.NodeGetter interface implement
 type nodeGetter struct {
-	gw   *Gateway
+	hs   *HttpServer
 	root cid.Cid
 }
 
@@ -19,7 +19,7 @@ type nodeGetter struct {
 // implementation, this may involve fetching the Node from a remote
 // machine; consider setting a deadline in the context.
 func (ng *nodeGetter) Get(ctx context.Context, block cid.Cid) (ipldformat.Node, error) {
-	blk, err := ng.gw.storage.GetBlock(ctx, ng.root, block)
+	blk, err := ng.hs.asset.GetBlock(ctx, ng.root, block)
 	if err != nil {
 		return nil, err
 	}
