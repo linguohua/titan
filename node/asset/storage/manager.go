@@ -20,7 +20,7 @@ const (
 	assetsDir      = "assets"
 	transientsDir  = "tmp"
 	countDir       = "count"
-	assetSuffix    = ".asset"
+	assetSuffix    = ".car"
 	assetsViewDir  = "assets-view"
 	maxSizeOfCache = 1024
 	sizeOfBucket   = 128
@@ -88,7 +88,7 @@ func defaultOptions(baseDir string) *ManagerOptions {
 		AssetCacheDir:    filepath.Join(baseDir, assetCacheDir),
 		waitListFilePath: filepath.Join(baseDir, waitListFile),
 		AssetsDir:        filepath.Join(baseDir, assetsDir),
-		AssetSuffix:      filepath.Join(baseDir, assetSuffix),
+		AssetSuffix:      assetSuffix,
 		CountDir:         filepath.Join(baseDir, countDir),
 		AssetsViewDir:    filepath.Join(baseDir, assetsViewDir),
 		// cache for asset index
