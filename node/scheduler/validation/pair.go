@@ -117,8 +117,8 @@ func (m *Manager) ResetValidatorGroup(nodeIDs []string) {
 	for _, nodeID := range nodeIDs {
 		node := m.nodeMgr.GetCandidateNode(nodeID)
 		bwDn := node.DownloadSpeed
+
 		count := int(math.Floor((bwDn * bandwidthRatio) / m.getValidatorBaseBwDn()))
-		log.Debugf("addValidator %s ,bandwidthDown:%.2f, count:%d", nodeID, bwDn, count)
 		if count < 1 {
 			continue
 		}
@@ -139,7 +139,6 @@ func (m *Manager) addValidator(nodeID string, bwDn float64) {
 	defer m.validationPairLock.Unlock()
 
 	count := int(math.Floor((bwDn * bandwidthRatio) / m.getValidatorBaseBwDn()))
-	log.Debugf("addValidator %s ,bandwidthDown:%.2f, count:%d", nodeID, bwDn, count)
 	if count < 1 {
 		return
 	}
@@ -236,7 +235,6 @@ func (m *Manager) divideIntoGroups() {
 	maxAverage := averageUp + toleranceBwUp
 	minAverage := averageUp - toleranceBwUp
 
-	log.Debugf("sumUp:%.2f groupCount:%d averageUp:%.2f  %.2f ~ %.2f \n", sumBwUp, groupCount, averageUp, minAverage, maxAverage)
 	for _, group := range m.validatableGroups {
 		rm := group.divideNodesToAverage(maxAverage, minAverage)
 		if len(rm) > 0 {
@@ -244,7 +242,6 @@ func (m *Manager) divideIntoGroups() {
 		}
 	}
 
-	log.Debugf("divideIntoGroups size:%d , start %s \n", len(m.unpairedGroup.nodes), time.Now().String())
 	// O n+m (n is the group count, m is the validatable node count)
 	for _, groups := range m.validatableGroups {
 		if groups.sumBwUp >= maxAverage {
@@ -267,14 +264,11 @@ func (m *Manager) divideIntoGroups() {
 		}
 
 	}
-	log.Debugf("divideIntoGroups size:%d , end %s \n", len(m.unpairedGroup.nodes), time.Now().String())
 }
 
 // PairValidatorsAndValidatableNodes randomly pair validators and validatable nodes based on their bandwidth capabilities.
 func (m *Manager) PairValidatorsAndValidatableNodes() []*VWindow {
-	log.Debugf("PairValidatorsAndValidatableNodes start %s \n", time.Now().String())
 	m.divideIntoGroups()
-	log.Debugf("PairValidatorsAndValidatableNodes end %s \n", time.Now().String())
 
 	vs := len(m.vWindows)
 	bs := len(m.validatableGroups)
@@ -300,7 +294,7 @@ func (m *Manager) PairValidatorsAndValidatableNodes() []*VWindow {
 func (m *Manager) getValidatorBaseBwDn() float64 {
 	cfg, err := m.config()
 	if err != nil {
-		log.Errorf("schedulerConfig err:%s", err.Error())
+		log.Errorf("get schedulerConfig err:%s", err.Error())
 		return 0
 	}
 

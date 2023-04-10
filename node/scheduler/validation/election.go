@@ -15,7 +15,7 @@ var (
 func (m *Manager) electionTicker() {
 	validators, err := m.nodeMgr.LoadValidators(m.nodeMgr.ServerID)
 	if err != nil {
-		log.Errorf("fetch current validators: %v", err)
+		log.Errorf("electionTicker LoadValidators err: %v", err)
 		return
 	}
 
@@ -57,6 +57,7 @@ func (m *Manager) elect() error {
 
 // StartElection triggers an election manually.
 func (m *Manager) StartElection() {
+	// TODO need to add restrictions to disallow frequent calls?
 	m.updateCh <- struct{}{}
 }
 
@@ -64,7 +65,7 @@ func (m *Manager) StartElection() {
 func (m *Manager) getValidatorRatio() float64 {
 	cfg, err := m.config()
 	if err != nil {
-		log.Errorf("schedulerConfig err:%s", err.Error())
+		log.Errorf("get schedulerConfig err:%s", err.Error())
 		return 0
 	}
 

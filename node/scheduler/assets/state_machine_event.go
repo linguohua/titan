@@ -138,8 +138,8 @@ func (evt AssetStartPulls) apply(state *AssetPullingInfo) {
 	state.CandidateReplicas = int64(seedReplicaCount + evt.CandidateReplicas)
 }
 
-// RefillReplicas refills asset replicas
-type RefillReplicas struct {
+// ReplenishReplicas replenish asset replicas
+type ReplenishReplicas struct {
 	ID                       string
 	State                    AssetState
 	Hash                     AssetHash
@@ -154,7 +154,7 @@ type RefillReplicas struct {
 	CandidateReplicaSucceeds []string
 }
 
-func (evt RefillReplicas) applyGlobal(state *AssetPullingInfo) bool {
+func (evt ReplenishReplicas) applyGlobal(state *AssetPullingInfo) bool {
 	state.State = evt.State
 	state.CID = evt.ID
 	state.Hash = evt.Hash

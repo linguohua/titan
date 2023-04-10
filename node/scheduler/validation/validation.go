@@ -47,7 +47,7 @@ func (m *Manager) stopValidation(ctx context.Context) error {
 func (m *Manager) isEnabled() bool {
 	cfg, err := m.config()
 	if err != nil {
-		log.Errorf("enable err:%s", err.Error())
+		log.Errorf("get config err:%s", err.Error())
 		return false
 	}
 
@@ -58,9 +58,9 @@ func (m *Manager) isEnabled() bool {
 func (m *Manager) startNewRound() error {
 	if m.curRoundID != "" {
 		// Set the timeout status of the previous verification
-		err := m.nodeMgr.SetValidationResultsTimeout(m.curRoundID)
+		err := m.nodeMgr.UpdateValidationResultsTimeout(m.curRoundID)
 		if err != nil {
-			log.Errorf("round:%s SetValidationResultsTimeout err:%s", m.curRoundID, err.Error())
+			log.Errorf("startNewRound:%s UpdateValidationResultsTimeout err:%s", m.curRoundID, err.Error())
 		}
 	}
 
@@ -72,12 +72,12 @@ func (m *Manager) startNewRound() error {
 
 	vReqs, dbInfos := m.getValidationDetails(vrs)
 	if vReqs == nil {
-		return xerrors.New("assignValidator map is null")
+		return xerrors.New("getValidationDetails map is null")
 	}
 
-	err := m.nodeMgr.SetValidationResultInfos(dbInfos)
+	err := m.nodeMgr.SaveValidationResultInfos(dbInfos)
 	if err != nil {
-		log.Errorf("SetValidationResultInfos err:%s", err.Error())
+		log.Errorf("SaveValidationResultInfos err:%s", err.Error())
 		return nil
 	}
 
@@ -195,8 +195,8 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 	return m.nodeMgr.UpdateValidationResultInfo(resultInfo)
 }
 
-// Result handles the validation result for a given node.
-func (m *Manager) Result(vr *api.ValidationResult) error {
+// HandleResult handles the validation result for a given node.
+func (m *Manager) HandleResult(vr *api.ValidationResult) error {
 	if vr.RoundID != m.curRoundID {
 		return xerrors.Errorf("round id does not match %s:%s", m.curRoundID, vr.RoundID)
 	}

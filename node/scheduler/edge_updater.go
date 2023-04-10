@@ -40,7 +40,7 @@ func (eu *EdgeUpdateManager) SetEdgeUpdateConfig(ctx context.Context, info *api.
 		eu.updateInfos = make(map[int]*api.EdgeUpdateConfig)
 	}
 	eu.updateInfos[info.NodeType] = info
-	return eu.db.SetEdgeUpdateConfig(info)
+	return eu.db.SaveEdgeUpdateConfig(info)
 }
 
 // DeleteEdgeUpdateConfig deletes the EdgeUpdateConfig for the given node type.
