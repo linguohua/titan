@@ -20,27 +20,6 @@ type DownloadHistory struct {
 	CompleteTime time.Time `json:"complete_time" db:"complete_time"`
 }
 
-// UserDownloadResult user download asset result
-type UserDownloadResult struct {
-	// serial number
-	SN            int64
-	Sign          []byte
-	DownloadSpeed int64
-	BlockSize     int
-	Succeed       bool
-	FailedReason  string
-	BlockCID      string
-}
-
-// UserBlockDownloadResult user download block result
-type UserBlockDownloadResult struct {
-	// serial number
-	SN int64
-	// user signature
-	Sign    []byte
-	Succeed bool
-}
-
 // EdgeDownloadInfo download info of edge
 type EdgeDownloadInfo struct {
 	URL          string

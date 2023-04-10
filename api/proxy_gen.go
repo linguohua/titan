@@ -205,7 +205,7 @@ type SchedulerStruct struct {
 
 		GetNodeAppUpdateInfos func(p0 context.Context) (map[int]*EdgeUpdateInfo, error) `perm:"read"`
 
-		GetNodeExternalAddress func(p0 context.Context) (string, error) `perm:"read"`
+		GetCallerExternalAddress func(p0 context.Context) (string, error) `perm:"read"`
 
 		GetNodeInfo func(p0 context.Context, p1 string) (types.NodeInfo, error) `perm:"read"`
 
@@ -244,8 +244,6 @@ type SchedulerStruct struct {
 		UpdateAssetExpiration func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
 
 		UpdateNodePort func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
-
-		UserDownloadResult func(p0 context.Context, p1 types.UserDownloadResult) error `perm:"write"`
 
 		UserProofsOfWork func(p0 context.Context, p1 []*types.UserProofOfWork) error `perm:"read"`
 
@@ -794,14 +792,14 @@ func (s *SchedulerStub) GetNodeAppUpdateInfos(p0 context.Context) (map[int]*Edge
 	return *new(map[int]*EdgeUpdateInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetNodeExternalAddress(p0 context.Context) (string, error) {
-	if s.Internal.GetNodeExternalAddress == nil {
+func (s *SchedulerStruct) GetCallerExternalAddress(p0 context.Context) (string, error) {
+	if s.Internal.GetCallerExternalAddress == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.GetNodeExternalAddress(p0)
+	return s.Internal.GetCallerExternalAddress(p0)
 }
 
-func (s *SchedulerStub) GetNodeExternalAddress(p0 context.Context) (string, error) {
+func (s *SchedulerStub) GetCallerExternalAddress(p0 context.Context) (string, error) {
 	return "", ErrNotSupported
 }
 
@@ -1011,17 +1009,6 @@ func (s *SchedulerStruct) UpdateNodePort(p0 context.Context, p1 string, p2 strin
 }
 
 func (s *SchedulerStub) UpdateNodePort(p0 context.Context, p1 string, p2 string) error {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) UserDownloadResult(p0 context.Context, p1 types.UserDownloadResult) error {
-	if s.Internal.UserDownloadResult == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.UserDownloadResult(p0, p1)
-}
-
-func (s *SchedulerStub) UserDownloadResult(p0 context.Context, p1 types.UserDownloadResult) error {
 	return ErrNotSupported
 }
 

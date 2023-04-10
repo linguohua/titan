@@ -21,8 +21,6 @@ type Scheduler interface {
 	UnregisterNode(ctx context.Context, nodeID string) error //perm:admin
 	// UpdateNodePort updates the port for the node with the specified node
 	UpdateNodePort(ctx context.Context, nodeID, port string) error //perm:admin
-	// UserDownloadResult user download result for a asset
-	UserDownloadResult(ctx context.Context, result types.UserDownloadResult) error //perm:write
 	// EdgeLogin edge node login to the scheduler
 	EdgeLogin(ctx context.Context, opts *types.ConnectOptions) error //perm:write
 	// NodeValidationResult processes the validation result for a node
@@ -31,8 +29,8 @@ type Scheduler interface {
 	CandidateLogin(ctx context.Context, opts *types.ConnectOptions) error //perm:write
 	// NodeRemoveAssetResult the result of an asset removal operation
 	NodeRemoveAssetResult(ctx context.Context, resultInfo types.RemoveAssetResult) error //perm:write
-	// GetNodeExternalAddress returns the external IP address of a node
-	GetNodeExternalAddress(ctx context.Context) (string, error) //perm:read
+	// GetCallerExternalAddress retrieves the external address of the caller.
+	GetCallerExternalAddress(ctx context.Context) (string, error) //perm:read
 	// VerifyNodeAuthToken checks the authenticity of a node's authentication token and returns the associated permissions
 	VerifyNodeAuthToken(ctx context.Context, token string) ([]auth.Permission, error) //perm:read
 	// CreateNodeAuthToken generates an authentication token for a node with the specified node ID and signature
@@ -41,14 +39,13 @@ type Scheduler interface {
 	GetNodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error) //perm:read
 	// GetNodeList retrieves a list of nodes with pagination using the specified cursor and count
 	GetNodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error) //perm:read
-	// GetAssetListForBucket retrieves a list of asset CIDs for a bucket associated with the specified bucket ID
-	// bucketID = nodeID + bucketNumber
+	// GetAssetListForBucket retrieves a list of asset CIDs for a bucket associated with the specified bucket ID (bucketID is 'nodeID + bucketNumber')
 	GetAssetListForBucket(ctx context.Context, bucketID string) ([]string, error) //perm:write
-	// TODO GetEdgeExternalServiceAddress nat travel, get edge external addr with different scheduler
+	// GetEdgeExternalServiceAddress nat travel, get edge external addr with different scheduler
 	GetEdgeExternalServiceAddress(ctx context.Context, nodeID, schedulerURL string) (string, error) //perm:write
 	// GetNodeNATType returns the NAT type for a node with the specified node
 	GetNodeNATType(ctx context.Context, nodeID string) (types.NatType, error) //perm:write
-	// TODO NatTravel
+	// NatPunch between user and node
 	NatPunch(ctx context.Context, target *types.NatPunchReq) error //perm:read
 	// CheckNetworkConnectivity check tcp or udp network connectivity , network is "tcp" or "udp"
 	CheckNetworkConnectivity(ctx context.Context, network, targetURL string) error //perm:read
@@ -76,7 +73,7 @@ type Scheduler interface {
 	GetAssetReplicaInfos(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) //perm:read
 	// GetValidationResults retrieves a list of validation results with pagination using the specified time range, page number, and page size
 	GetValidationResults(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidationResultRsp, error) //perm:read
-	// TODO UserProofsOfWork
+	// UserProofsOfWork Proof of Work for User Asset Download
 	UserProofsOfWork(ctx context.Context, proofs []*types.UserProofOfWork) error //perm:read
 
 	// Server-related methods

@@ -231,7 +231,7 @@ func (s *Scheduler) verifyUDPConnectivity(targetURL string) error {
 	return nil
 }
 
-// NatTravel performs NAT traversal
+// NatPunch performs NAT traversal
 func (s *Scheduler) NatPunch(ctx context.Context, target *types.NatPunchReq) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	sourceURL := fmt.Sprintf("https://%s/ping", remoteAddr)

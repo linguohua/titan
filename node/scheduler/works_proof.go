@@ -6,30 +6,10 @@ import (
 
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/cidutil"
-	"github.com/linguohua/titan/node/handler"
 	titanrsa "github.com/linguohua/titan/node/rsa"
 	"golang.org/x/xerrors"
 )
 
-// UserDownloadResult handles the result of a user download
-func (s *Scheduler) UserDownloadResult(ctx context.Context, result types.UserDownloadResult) error {
-	nodeID := handler.GetNodeID(ctx)
-	if result.Succeed {
-		blockHash, err := cidutil.CIDString2HashString(result.BlockCID)
-		if err != nil {
-			return err
-		}
-
-		blockDownloadInfo := &types.DownloadHistory{NodeID: nodeID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
-
-		record, _ := s.NodeManager.LoadAssetRecord(blockHash)
-		if record != nil && record.CID != "" {
-			blockDownloadInfo.AssetCID = result.BlockCID
-		}
-	}
-
-	return nil
-}
 
 func (s *Scheduler) UserProofsOfWork(ctx context.Context, proofs []*types.UserProofOfWork) error {
 	return nil
