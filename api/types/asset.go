@@ -123,12 +123,6 @@ type ListReplicaInfosRsp struct {
 	Total    int64          `json:"total"`
 }
 
-// CandidateDownloadInfo download info of candidate
-type CandidateDownloadInfo struct {
-	NodeAddr    string
-	Credentials *GatewayCredentials
-}
-
 // AssetStats contains statistics about assets
 type AssetStats struct {
 	TotalAssetCount     int

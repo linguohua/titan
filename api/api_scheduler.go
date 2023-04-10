@@ -29,8 +29,8 @@ type Scheduler interface {
 	CandidateLogin(ctx context.Context, opts *types.ConnectOptions) error //perm:write
 	// NodeRemoveAssetResult the result of an asset removal operation
 	NodeRemoveAssetResult(ctx context.Context, resultInfo types.RemoveAssetResult) error //perm:write
-	// GetCallerExternalAddress retrieves the external address of the caller.
-	GetCallerExternalAddress(ctx context.Context) (string, error) //perm:read
+	// GetExternalAddress retrieves the external address of the caller.
+	GetExternalAddress(ctx context.Context) (string, error) //perm:read
 	// VerifyNodeAuthToken checks the authenticity of a node's authentication token and returns the associated permissions
 	VerifyNodeAuthToken(ctx context.Context, token string) ([]auth.Permission, error) //perm:read
 	// CreateNodeAuthToken generates an authentication token for a node with the specified node ID and signature
