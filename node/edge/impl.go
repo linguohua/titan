@@ -46,7 +46,7 @@ func (edge *Edge) ExternalServiceAddress(ctx context.Context, schedulerURL strin
 	}
 	defer closer()
 
-	return schedulerAPI.GetNodeExternalAddress(ctx)
+	return schedulerAPI.GetCallerExternalAddress(ctx)
 }
 
 func (edge *Edge) UserNATPunch(ctx context.Context, sourceURL string, req *types.NatPunchReq) error {

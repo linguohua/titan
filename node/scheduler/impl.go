@@ -177,12 +177,12 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	return nil
 }
 
-// CandidateLogin processes a candidate node connection request.
+// CandidateLogin candidate node login to the scheduler
 func (s *Scheduler) CandidateLogin(ctx context.Context, opts *types.ConnectOptions) error {
 	return s.nodeConnect(ctx, opts, types.NodeCandidate)
 }
 
-// EdgeLogin  processes a edge node connection request.
+// EdgeLogin edge node login to the scheduler
 func (s *Scheduler) EdgeLogin(ctx context.Context, opts *types.ConnectOptions) error {
 	return s.nodeConnect(ctx, opts, types.NodeEdge)
 }
@@ -217,13 +217,13 @@ func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.N
 	return node.NewBaseInfo(nodeInfo, publicKey, remoteAddr, tcpPort), nil
 }
 
-// GetNodeExternalAddress retrieves the external address of the node.
-func (s *Scheduler) GetNodeExternalAddress(ctx context.Context) (string, error) {
+// GetCallerExternalAddress retrieves the external address of the caller.
+func (s *Scheduler) GetCallerExternalAddress(ctx context.Context) (string, error) {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	return remoteAddr, nil
 }
 
-// NodeValidationResult  processes the validation result from the node.
+// NodeValidationResult processes the validation result for a node
 func (s *Scheduler) NodeValidationResult(ctx context.Context, result api.ValidationResult) error {
 	validator := handler.GetNodeID(ctx)
 	log.Debug("call back Validator block result, Validator is ", validator)
@@ -235,19 +235,19 @@ func (s *Scheduler) NodeValidationResult(ctx context.Context, result api.Validat
 	return s.ValidationMgr.Result(vs)
 }
 
-// RegisterNode registers a new node, returning an error if the node is already registered.
+// RegisterNode adds a new node to the scheduler with the specified node ID, public key, and node type
 func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, pKey string, nodeType types.NodeType) error {
 	return s.NodeManager.InsertNodeRegisterInfo(pKey, nodeID, nodeType)
 }
 
-// UnregisterNode node want to quit titan
+// UnregisterNode removes a node from the scheduler with the specified node ID
 func (s *Scheduler) UnregisterNode(ctx context.Context, nodeID string) error {
 	s.NodeManager.NodesQuit([]string{nodeID})
 
 	return s.db.DeleteNodeInfo(nodeID)
 }
 
-// GetOnlineNodeCount retrieves online node count.
+// GetOnlineNodeCount returns the count of online nodes for a given node type
 func (s *Scheduler) GetOnlineNodeCount(ctx context.Context, nodeType types.NodeType) (int, error) {
 	if nodeType == types.NodeValidator {
 		list, err := s.NodeManager.LoadValidators(s.ServerID)
