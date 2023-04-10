@@ -9,7 +9,7 @@ type DownloadHistory struct {
 	ID           string    `json:"-"`
 	NodeID       string    `json:"node_id" db:"node_id"`
 	BlockCID     string    `json:"block_cid" db:"block_cid"`
-	CarfileCID   string    `json:"carfile_cid" db:"carfile_cid"`
+	AssetCID     string    `json:"asset_cid" db:"asset_cid"`
 	BlockSize    int       `json:"block_size" db:"block_size"`
 	Speed        int64     `json:"speed" db:"speed"`
 	Reward       int64     `json:"reward" db:"reward"`
@@ -20,7 +20,7 @@ type DownloadHistory struct {
 	CompleteTime time.Time `json:"complete_time" db:"complete_time"`
 }
 
-// UserDownloadResult user download carfile result
+// UserDownloadResult user download asset result
 type UserDownloadResult struct {
 	// serial number
 	SN            int64
@@ -178,7 +178,7 @@ const (
 type Credentials struct {
 	ID        string
 	NodeID    string
-	CarCID    string
+	AssetCID  string
 	ClientID  string
 	LimitRate int64
 	ValidTime int64
@@ -192,7 +192,7 @@ type GatewayCredentials struct {
 	Sign string
 }
 
-type NodeWorkloadProof struct {
+type UserProofOfWork struct {
 	TicketID      string
 	ClientID      string
 	DownloadSpeed int64
@@ -201,7 +201,7 @@ type NodeWorkloadProof struct {
 	EndTime       int64
 }
 
-type NatTravelReq struct {
+type NatPunchReq struct {
 	Credentials *GatewayCredentials
 	NodeID      string
 	// seconds

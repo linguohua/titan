@@ -12,7 +12,7 @@ import (
 	"github.com/linguohua/titan/node/asset/storage"
 )
 
-var log = logging.Logger("carfile/cache")
+var log = logging.Logger("asset/cache")
 
 type downloadResult struct {
 	netLayerCids []string
@@ -20,7 +20,7 @@ type downloadResult struct {
 	downloadSize uint64
 }
 
-type carfileCache struct {
+type assetCache struct {
 	root            cid.Cid
 	storage         storage.Storage
 	bFetcher        fetcher.BlockFetcher
@@ -45,45 +45,45 @@ type options struct {
 	batch    int
 }
 
-func newCarfileCache(opts *options) *carfileCache {
-	return &carfileCache{root: opts.root, storage: opts.storage, downloadSources: opts.dss, bFetcher: opts.bFetcher, batch: opts.batch}
+func newAssetCache(opts *options) *assetCache {
+	return &assetCache{root: opts.root, storage: opts.storage, downloadSources: opts.dss, bFetcher: opts.bFetcher, batch: opts.batch}
 }
 
 // get n block from front of wait list
-func (cfCache *carfileCache) getBlocksFromWaitListFront(n int) []string {
-	if len(cfCache.blocksWaitList) < n {
-		n = len(cfCache.blocksWaitList)
+func (ac *assetCache) getBlocksFromWaitListFront(n int) []string {
+	if len(ac.blocksWaitList) < n {
+		n = len(ac.blocksWaitList)
 	}
 
-	return cfCache.blocksWaitList[:n]
+	return ac.blocksWaitList[:n]
 }
 
 // remove n block from front of wait list
-func (cfCache *carfileCache) removeBlocksFromWaitList(n int) {
-	if len(cfCache.blocksWaitList) < n {
-		n = len(cfCache.blocksWaitList)
+func (ac *assetCache) removeBlocksFromWaitList(n int) {
+	if len(ac.blocksWaitList) < n {
+		n = len(ac.blocksWaitList)
 	}
-	cfCache.blocksWaitList = cfCache.blocksWaitList[n:]
+	ac.blocksWaitList = ac.blocksWaitList[n:]
 }
 
-func (cfCache *carfileCache) downloadCar() error {
+func (ac *assetCache) downloadAsset() error {
 	defer func() {
-		cfCache.isFinish = true
+		ac.isFinish = true
 	}()
 
-	netLayerCIDs := cfCache.blocksWaitList
+	netLayerCIDs := ac.blocksWaitList
 	if len(netLayerCIDs) == 0 {
-		netLayerCIDs = append(netLayerCIDs, cfCache.root.String())
+		netLayerCIDs = append(netLayerCIDs, ac.root.String())
 	}
 
 	for len(netLayerCIDs) > 0 {
-		ret, err := cfCache.downloadBlocksWithBreadthFirst(netLayerCIDs)
+		ret, err := ac.downloadBlocksWithBreadthFirst(netLayerCIDs)
 		if err != nil {
 			return err
 		}
 
-		if cfCache.totalSize == 0 {
-			cfCache.totalSize = ret.linksSize + ret.downloadSize
+		if ac.totalSize == 0 {
+			ac.totalSize = ret.linksSize + ret.downloadSize
 		}
 
 		netLayerCIDs = ret.netLayerCids
@@ -91,17 +91,17 @@ func (cfCache *carfileCache) downloadCar() error {
 	return nil
 }
 
-func (cfCache *carfileCache) downloadBlocksWithBreadthFirst(layerCids []string) (result *downloadResult, err error) {
-	cfCache.blocksWaitList = layerCids
-	result = &downloadResult{netLayerCids: cfCache.nextLayerCIDs}
-	for len(cfCache.blocksWaitList) > 0 {
-		doLen := len(cfCache.blocksWaitList)
-		if doLen > cfCache.batch {
-			doLen = cfCache.batch
+func (ac *assetCache) downloadBlocksWithBreadthFirst(layerCids []string) (result *downloadResult, err error) {
+	ac.blocksWaitList = layerCids
+	result = &downloadResult{netLayerCids: ac.nextLayerCIDs}
+	for len(ac.blocksWaitList) > 0 {
+		doLen := len(ac.blocksWaitList)
+		if doLen > ac.batch {
+			doLen = ac.batch
 		}
 
-		blocks := cfCache.getBlocksFromWaitListFront(doLen)
-		ret, err := cfCache.downloadBlocks(blocks)
+		blocks := ac.getBlocksFromWaitListFront(doLen)
+		ret, err := ac.downloadBlocks(blocks)
 		if err != nil {
 			return nil, err
 		}
@@ -110,19 +110,19 @@ func (cfCache *carfileCache) downloadBlocksWithBreadthFirst(layerCids []string) 
 		result.downloadSize += ret.downloadSize
 		result.netLayerCids = append(result.netLayerCids, ret.netLayerCids...)
 
-		cfCache.doneSize += ret.downloadSize
-		cfCache.blocksDownloadSuccessList = append(cfCache.blocksDownloadSuccessList, blocks...)
-		cfCache.nextLayerCIDs = append(cfCache.nextLayerCIDs, ret.netLayerCids...)
-		cfCache.removeBlocksFromWaitList(doLen)
+		ac.doneSize += ret.downloadSize
+		ac.blocksDownloadSuccessList = append(ac.blocksDownloadSuccessList, blocks...)
+		ac.nextLayerCIDs = append(ac.nextLayerCIDs, ret.netLayerCids...)
+		ac.removeBlocksFromWaitList(doLen)
 
 	}
-	cfCache.nextLayerCIDs = make([]string, 0)
+	ac.nextLayerCIDs = make([]string, 0)
 
 	return result, nil
 }
 
-func (cfCache *carfileCache) downloadBlocks(cids []string) (*downloadResult, error) {
-	blks, err := cfCache.bFetcher.Fetch(context.Background(), cids, cfCache.downloadSources)
+func (ac *assetCache) downloadBlocks(cids []string) (*downloadResult, error) {
+	blks, err := ac.bFetcher.Fetch(context.Background(), cids, ac.downloadSources)
 	if err != nil {
 		log.Errorf("loadBlocksAsync loadBlocks err %s", err.Error())
 		return nil, err
@@ -160,7 +160,7 @@ func (cfCache *carfileCache) downloadBlocks(cids []string) (*downloadResult, err
 		nexLayerCids = append(nexLayerCids, links...)
 	}
 
-	err = cfCache.storage.PutBlocks(context.Background(), cfCache.root, blks)
+	err = ac.storage.PutBlocks(context.Background(), ac.root, blks)
 	if err != nil {
 		return nil, err
 	}
@@ -170,90 +170,90 @@ func (cfCache *carfileCache) downloadBlocks(cids []string) (*downloadResult, err
 	return ret, nil
 }
 
-func (cfCache *carfileCache) isDownloadComplete() bool {
-	if cfCache.totalSize == 0 {
+func (ac *assetCache) isDownloadComplete() bool {
+	if ac.totalSize == 0 {
 		return false
 	}
 
-	if cfCache.doneSize != cfCache.totalSize {
+	if ac.doneSize != ac.totalSize {
 		return false
 	}
 
 	return true
 }
 
-func (cfCache *carfileCache) Root() cid.Cid {
-	return cfCache.root
+func (ac *assetCache) Root() cid.Cid {
+	return ac.root
 }
 
-func (cfCache *carfileCache) DoneSize() int64 {
-	return int64(cfCache.doneSize)
+func (ac *assetCache) DoneSize() int64 {
+	return int64(ac.doneSize)
 }
 
-func (cfCache *carfileCache) TotalSize() int64 {
-	return int64(cfCache.totalSize)
+func (ac *assetCache) TotalSize() int64 {
+	return int64(ac.totalSize)
 }
 
-func (cfCache *carfileCache) CancelDownload() error {
+func (ac *assetCache) CancelDownload() error {
 	// TODO: implement cancel
 	return fmt.Errorf("")
 }
 
-func (cfCache *carfileCache) encode() ([]byte, error) {
-	encodeCarfile := &EncodeCarfileCache{
-		Root:                      cfCache.root.String(),
-		BlocksWaitList:            cfCache.blocksWaitList,
-		BlocksDownloadSuccessList: cfCache.blocksDownloadSuccessList,
-		NextLayerCIDs:             cfCache.nextLayerCIDs,
-		DownloadSources:           cfCache.downloadSources,
-		TotalSize:                 cfCache.totalSize,
-		DoneSize:                  cfCache.doneSize,
+func (ac *assetCache) encode() ([]byte, error) {
+	eac := &EncodeAssetCache{
+		Root:                      ac.root.String(),
+		BlocksWaitList:            ac.blocksWaitList,
+		BlocksDownloadSuccessList: ac.blocksDownloadSuccessList,
+		NextLayerCIDs:             ac.nextLayerCIDs,
+		DownloadSources:           ac.downloadSources,
+		TotalSize:                 ac.totalSize,
+		DoneSize:                  ac.doneSize,
 	}
 
-	return encode(encodeCarfile)
+	return encode(eac)
 }
 
-func (cfCache *carfileCache) decode(data []byte) error {
-	encodeCarfile := &EncodeCarfileCache{}
-	err := decode(data, encodeCarfile)
+func (ac *assetCache) decode(data []byte) error {
+	eac := &EncodeAssetCache{}
+	err := decode(data, eac)
 	if err != nil {
 		return err
 	}
 
-	c, err := cid.Decode(encodeCarfile.Root)
+	c, err := cid.Decode(eac.Root)
 	if err != nil {
 		return err
 	}
 
-	cfCache.root = c
-	cfCache.blocksWaitList = encodeCarfile.BlocksWaitList
-	cfCache.blocksDownloadSuccessList = encodeCarfile.BlocksDownloadSuccessList
-	cfCache.nextLayerCIDs = encodeCarfile.NextLayerCIDs
-	cfCache.downloadSources = encodeCarfile.DownloadSources
-	cfCache.totalSize = encodeCarfile.TotalSize
-	cfCache.doneSize = encodeCarfile.DoneSize
+	ac.root = c
+	ac.blocksWaitList = eac.BlocksWaitList
+	ac.blocksDownloadSuccessList = eac.BlocksDownloadSuccessList
+	ac.nextLayerCIDs = eac.NextLayerCIDs
+	ac.downloadSources = eac.DownloadSources
+	ac.totalSize = eac.TotalSize
+	ac.doneSize = eac.DoneSize
 
 	return nil
 }
 
-func (cfCache *carfileCache) cacheStatus() types.ReplicaStatus {
-	if cfCache.isDownloadComplete() {
+func (ac *assetCache) cacheStatus() types.ReplicaStatus {
+	if ac.isDownloadComplete() {
 		return types.ReplicaStatusSucceeded
 	}
 
-	if cfCache.isFinish {
+	if ac.isFinish {
 		return types.ReplicaStatusFailed
 	}
 	return types.ReplicaStatusPulling
 }
 
-func (cfCache *carfileCache) Progress() *types.AssetPullProgress {
+func (ac *assetCache) Progress() *types.AssetPullProgress {
 	return &types.AssetPullProgress{
-		CID:             cfCache.root.String(),
-		Status:          cfCache.cacheStatus(),
-		BlocksCount:     len(cfCache.blocksDownloadSuccessList) + len(cfCache.blocksWaitList),
-		DoneBlocksCount: len(cfCache.blocksDownloadSuccessList),
-		Size:            cfCache.TotalSize(),
-		DoneSize:        cfCache.DoneSize(),
+		CID:             ac.root.String(),
+		Status:          ac.cacheStatus(),
+		BlocksCount:     len(ac.blocksDownloadSuccessList) + len(ac.blocksWaitList),
+		DoneBlocksCount: len(ac.blocksDownloadSuccessList),
+		Size:            ac.TotalSize(),
+		DoneSize:        ac.DoneSize(),
 	}
 }

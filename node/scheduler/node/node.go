@@ -40,9 +40,9 @@ type API struct {
 	WaitQuiet func(ctx context.Context) error
 	// edge
 	ExternalServiceAddress func(ctx context.Context, schedulerURL string) (string, error)
-	UserNATTravel          func(ctx context.Context, sourceURL string, req *types.NatTravelReq) error
+	UserNATPunch           func(ctx context.Context, sourceURL string, req *types.NatPunchReq) error
 	// candidate
-	GetBlocksOfCarfile func(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error)
+	GetBlocksOfAsset func(ctx context.Context, assetCID string, randomSeed int64, randomCount int) (map[int]string, error)
 }
 
 // New creates a new node
@@ -64,7 +64,7 @@ func APIFromEdge(api api.Edge) *API {
 		Asset:                  api,
 		WaitQuiet:              api.WaitQuiet,
 		ExternalServiceAddress: api.ExternalServiceAddress,
-		UserNATTravel:          api.UserNATTravel,
+		UserNATPunch:           api.UserNATPunch,
 	}
 	return a
 }
@@ -72,13 +72,13 @@ func APIFromEdge(api api.Edge) *API {
 // APIFromCandidate creates a new API from a Candidate API
 func APIFromCandidate(api api.Candidate) *API {
 	a := &API{
-		Common:             api,
-		Device:             api,
-		Validate:           api,
-		DataSync:           api,
-		Asset:              api,
-		WaitQuiet:          api.WaitQuiet,
-		GetBlocksOfCarfile: api.GetBlocksWithCarfileCID,
+		Common:           api,
+		Device:           api,
+		Validate:         api,
+		DataSync:         api,
+		Asset:            api,
+		WaitQuiet:        api.WaitQuiet,
+		GetBlocksOfAsset: api.GetBlocksWithAssetCID,
 	}
 	return a
 }
@@ -223,7 +223,7 @@ func (n *BaseInfo) Credentials(cid string, titanRsa *titanrsa.Rsa, privateKey *r
 	svc := &types.Credentials{
 		ID:        uuid.NewString(),
 		NodeID:    n.NodeID,
-		CarCID:    cid,
+		AssetCID:  cid,
 		ValidTime: time.Now().Add(10 * time.Hour).Unix(),
 	}
 

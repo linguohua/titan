@@ -8,10 +8,10 @@ import (
 )
 
 func init() {
-	_ = logging.SetLogLevel("carfile/store", "DEBUG")
+	_ = logging.SetLogLevel("asset/store", "DEBUG")
 }
 func TestManager(t *testing.T) {
-	baseDir := "C:/Users/aaa/.titanedge-1/carfilestore"
+	baseDir := "C:/Users/aaa/.titanedge-1/storage"
 	Manager, err := NewManager(baseDir, nil)
 	if err != nil {
 		t.Errorf("new Manager error:%s", err.Error())
@@ -25,9 +25,9 @@ func TestManager(t *testing.T) {
 		return
 	}
 
-	_, err = Manager.GetCar(c)
+	_, err = Manager.GetAsset(c)
 	if err != nil {
-		t.Errorf("get car error:%s", err.Error())
+		t.Errorf("get asset error:%s", err.Error())
 		return
 	}
 

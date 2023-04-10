@@ -40,7 +40,7 @@ func (gw *Gateway) SetSchedulerPublicKey(publicKey *rsa.PublicKey) {
 	gw.schedulerPublicKey = publicKey
 }
 
-func (gw *Gateway) resolvePath(ctx context.Context, p path.Path, car cid.Cid) (path.Resolved, error) {
+func (gw *Gateway) resolvePath(ctx context.Context, p path.Path, asset cid.Cid) (path.Resolved, error) {
 	if _, ok := p.(path.Resolved); ok {
 		return p.(path.Resolved), nil
 	}
@@ -53,7 +53,7 @@ func (gw *Gateway) resolvePath(ctx context.Context, p path.Path, car cid.Cid) (p
 		return nil, fmt.Errorf("unsupported path namespace: %s", p.Namespace())
 	}
 
-	fetcherFactory := bsfetcher.NewFetcherConfig(blockservice.New(&readOnlyBlockStore{gw, car}, nil))
+	fetcherFactory := bsfetcher.NewFetcherConfig(blockservice.New(&readOnlyBlockStore{gw, asset}, nil))
 	fetcherFactory.PrototypeChooser = dagpb.AddSupportToChooser(func(lnk ipldprime.Link, lnkCtx ipldprime.LinkContext) (ipldprime.NodePrototype, error) {
 		if tlnkNd, ok := lnkCtx.LinkNode.(schema.TypedLinkNode); ok {
 			return tlnkNd.LinkTargetNodePrototype(), nil
@@ -77,13 +77,13 @@ func (gw *Gateway) resolvePath(ctx context.Context, p path.Path, car cid.Cid) (p
 }
 
 // GetUnixFsNode returns a read-only handle to a file tree referenced by a path.
-func (gw *Gateway) getUnixFsNode(ctx context.Context, p path.Resolved, car cid.Cid) (files.Node, error) {
-	ng := &nodeGetter{gw, car}
+func (gw *Gateway) getUnixFsNode(ctx context.Context, p path.Resolved, root cid.Cid) (files.Node, error) {
+	ng := &nodeGetter{gw, root}
 	node, err := ng.Get(ctx, p.Cid())
 	if err != nil {
 		return nil, err
 	}
 
-	dagService := dag.NewReadOnlyDagService(&nodeGetter{gw, car})
+	dagService := dag.NewReadOnlyDagService(&nodeGetter{gw, root})
 	return unixfile.NewUnixfsFile(ctx, dagService, node)
 }

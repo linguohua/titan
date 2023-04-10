@@ -26,8 +26,6 @@ type Locator interface {
 	// user api
 	// EdgeDownloadInfos retrieves download information for a content identifier (CID).
 	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.EdgeDownloadInfo, error) //perm:read
-	// UserDownloadBlockResults  accepts a user's download block results.
-	UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error //perm:read
 
 	// api for web
 	// RegisterNode  registers a new node with the specified scheduler URL, node ID, public key, and node type.
@@ -42,8 +40,6 @@ type Locator interface {
 type SchedulerInfo struct {
 	URL    string
 	Weight int
-	// Online      bool
-	// AccessToken string
 }
 
 // AccessPoint represents an access point within an area, containing scheduler information.

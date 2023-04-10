@@ -18,10 +18,10 @@ type Sync interface {
 	GetTopHash(ctx context.Context) (string, error)
 	// GetBucketChecksums local checksums of all buckets
 	GetBucketHashes(ctx context.Context) (map[uint32]string, error)
-	// GetCarsOfBucket isLocalOrRemote default false is local, true is remote
-	GetCarsOfBucket(ctx context.Context, bucketID uint32, isRemote bool) ([]cid.Cid, error)
-	DeleteCar(root cid.Cid) error
-	AddLostCar(root cid.Cid) error
+	// GetAssetsOfBucket isLocalOrRemote default false is local, true is remote
+	GetAssetsOfBucket(ctx context.Context, bucketNumber uint32, isRemote bool) ([]cid.Cid, error)
+	DeleteAsset(root cid.Cid) error
+	AddLostAsset(root cid.Cid) error
 }
 
 func NewDataSync(sync Sync) *DataSync {
@@ -94,7 +94,7 @@ func (ds *DataSync) doSync(ctx context.Context, extraBuckets, lostBuckets, misma
 func (ds *DataSync) removeExtraAsset(ctx context.Context, buckets []uint32) error {
 	cars := make([]cid.Cid, 0)
 	for _, bucketID := range buckets {
-		cs, err := ds.GetCarsOfBucket(ctx, bucketID, false)
+		cs, err := ds.GetAssetsOfBucket(ctx, bucketID, false)
 		if err != nil {
 			return err
 		}
@@ -102,7 +102,7 @@ func (ds *DataSync) removeExtraAsset(ctx context.Context, buckets []uint32) erro
 	}
 
 	for _, car := range cars {
-		ds.DeleteCar(car)
+		ds.DeleteAsset(car)
 	}
 	return nil
 }
@@ -110,7 +110,7 @@ func (ds *DataSync) removeExtraAsset(ctx context.Context, buckets []uint32) erro
 func (ds *DataSync) addLostAsset(ctx context.Context, buckets []uint32) error {
 	cars := make([]cid.Cid, 0)
 	for _, bucketID := range buckets {
-		cs, err := ds.GetCarsOfBucket(ctx, bucketID, false)
+		cs, err := ds.GetAssetsOfBucket(ctx, bucketID, false)
 		if err != nil {
 			return err
 		}
@@ -118,7 +118,7 @@ func (ds *DataSync) addLostAsset(ctx context.Context, buckets []uint32) error {
 	}
 
 	for _, car := range cars {
-		ds.AddLostCar(car)
+		ds.AddLostAsset(car)
 	}
 	return nil
 }
@@ -143,22 +143,22 @@ func (ds *DataSync) repairMismatchAsset(ctx context.Context, buckets []uint32) e
 	}
 
 	for _, car := range extraCars {
-		ds.DeleteCar(car)
+		ds.DeleteAsset(car)
 	}
 
 	for _, car := range lostCars {
-		ds.AddLostCar(car)
+		ds.AddLostAsset(car)
 	}
 	return nil
 }
 
 // return extra cars and lost cars
 func (ds *DataSync) compareBuckets(ctx context.Context, bucketID uint32) ([]cid.Cid, []cid.Cid, error) {
-	localCars, err := ds.GetCarsOfBucket(ctx, bucketID, false)
+	localCars, err := ds.GetAssetsOfBucket(ctx, bucketID, false)
 	if err != nil {
 		return nil, nil, err
 	}
-	remoteCars, err := ds.GetCarsOfBucket(ctx, bucketID, true)
+	remoteCars, err := ds.GetAssetsOfBucket(ctx, bucketID, true)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -15,21 +15,21 @@ func (gw *Gateway) serveRawBlock(w http.ResponseWriter, r *http.Request, credent
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 
-	car, err := cid.Decode(credentials.CarCID)
+	root, err := cid.Decode(credentials.AssetCID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("decode car cid %s error: %s", credentials.CarCID, err.Error()), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("decode root cid %s error: %s", credentials.AssetCID, err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	contentPath := path.New(r.URL.Path)
-	resolvedPath, err := gw.resolvePath(ctx, contentPath, car)
+	resolvedPath, err := gw.resolvePath(ctx, contentPath, root)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("can not resolved path: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	c := resolvedPath.Cid()
-	block, err := gw.storage.GetBlock(ctx, car, c)
+	block, err := gw.storage.GetBlock(ctx, root, c)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("can not get block %s, %s", c.String(), err.Error()), http.StatusInternalServerError)
 		return

@@ -264,9 +264,9 @@ func (m *Manager) Result(vr *api.ValidationResult) error {
 			continue
 		}
 
-		cCidMap, err = node.GetBlocksOfCarfile(context.Background(), cid, m.seed, max)
+		cCidMap, err = node.GetBlocksOfAsset(context.Background(), cid, m.seed, max)
 		if err != nil {
-			log.Errorf("candidate %s GetBlocksOfCarfile err:%s", cNodeID, err.Error())
+			log.Errorf("candidate %s GetBlocksOfAsset err:%s", cNodeID, err.Error())
 			continue
 		}
 

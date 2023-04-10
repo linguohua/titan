@@ -93,7 +93,7 @@ func (dv *AssetsView) removeBucketHashes(ctx context.Context) error {
 	return dv.ds.Delete(ctx, key)
 }
 
-func (dv *AssetsView) addCar(ctx context.Context, root cid.Cid) error {
+func (dv *AssetsView) addAsset(ctx context.Context, root cid.Cid) error {
 	dv.lock.Lock()
 	defer dv.lock.Unlock()
 
@@ -113,7 +113,7 @@ func (dv *AssetsView) addCar(ctx context.Context, root cid.Cid) error {
 	return nil
 }
 
-func (dv *AssetsView) removeCar(ctx context.Context, root cid.Cid) error {
+func (dv *AssetsView) removeAsset(ctx context.Context, root cid.Cid) error {
 	dv.lock.Lock()
 	defer dv.lock.Unlock()
 

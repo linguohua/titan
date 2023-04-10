@@ -18,15 +18,15 @@ func TestGateway(t *testing.T) {
 func TestResolvePath(t *testing.T) {
 	t.Log("TestResolvePath")
 
-	storePath := "C:/Users/aaa/.titanedge-1/carfilestore"
+	storePath := "C:/Users/aaa/.titanedge-1/storage"
 	p := "/ipfs/QmNXoAB3ZNoFQQZMGk4utybuvABdLTz6hcVmtHnV4FUp3S/log"
 	storageMgr, err := storage.NewManager(storePath, nil)
 	if err != nil {
-		t.Errorf("NewCarfileStore err:%s", err)
+		t.Errorf("NewManager err:%s", err)
 		return
 	}
 
-	car, err := cid.Decode(p)
+	assetCID, err := cid.Decode(p)
 	if err != nil {
 		t.Errorf("Decode err:%s", err)
 		return
@@ -43,7 +43,7 @@ func TestResolvePath(t *testing.T) {
 
 	gw := &Gateway{storage: mgr}
 
-	resolvePath, err := gw.resolvePath(context.Background(), path.New(p), car)
+	resolvePath, err := gw.resolvePath(context.Background(), path.New(p), assetCID)
 	if err != nil {
 		t.Errorf("TestResolvePath error:%s", err.Error())
 		return

@@ -9,27 +9,27 @@ import (
 )
 
 type Storage interface {
-	PutCarCache(c cid.Cid, data []byte) error
-	GetCarCache(c cid.Cid) ([]byte, error)
-	HasCarCache(c cid.Cid) (bool, error)
-	RemoveCarCache(c cid.Cid) error
+	PutAssetCache(c cid.Cid, data []byte) error
+	GetAssetCache(c cid.Cid) ([]byte, error)
+	HasAssetCache(c cid.Cid) (bool, error)
+	RemoveAssetCache(c cid.Cid) error
 
 	PutBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) error
 
-	PutCar(ctx context.Context, root cid.Cid) error
-	GetCar(root cid.Cid) (io.ReadSeekCloser, error)
-	HasCar(root cid.Cid) (bool, error)
-	RemoveCar(root cid.Cid) error
-	CountCar() (int, error)
-	BlockCountOfCar(ctx context.Context, root cid.Cid) (uint32, error)
-	SetBlockCountOfCar(ctx context.Context, root cid.Cid, count uint32) error
+	PutAsset(ctx context.Context, root cid.Cid) error
+	GetAsset(root cid.Cid) (io.ReadSeekCloser, error)
+	HasAsset(root cid.Cid) (bool, error)
+	RemoveAsset(root cid.Cid) error
+	CountAsset() (int, error)
+	BlockCountOfAsset(ctx context.Context, root cid.Cid) (uint32, error)
+	SetBlockCountOfAsset(ctx context.Context, root cid.Cid, count uint32) error
 
 	// assets view
 	GetTopHash(ctx context.Context) (string, error)
 	GetBucketHashes(ctx context.Context) (map[uint32]string, error)
-	GetCarsOfBucket(ctx context.Context, bucketID uint32) ([]cid.Cid, error)
-	AddCarToAssetsView(ctx context.Context, root cid.Cid) error
-	RemoveCarFromAssetsView(ctx context.Context, root cid.Cid) error
+	GetAssetsOfBucket(ctx context.Context, bucketID uint32) ([]cid.Cid, error)
+	AddAssetToAssetsView(ctx context.Context, root cid.Cid) error
+	RemoveAssetFromAssetsView(ctx context.Context, root cid.Cid) error
 
 	PutWaitList(data []byte) error
 	GetWaitList() ([]byte, error)

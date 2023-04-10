@@ -9,8 +9,8 @@ type Candidate interface {
 	Validate
 	DataSync
 	Asset
-	WaitQuiet(ctx context.Context) error                                                                                       //perm:read                                                        //perm:read
-	GetBlocksWithCarfileCID(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error) //perm:read
+	WaitQuiet(ctx context.Context) error                                                                                   //perm:read                                                        //perm:read
+	GetBlocksWithAssetCID(ctx context.Context, assetCID string, randomSeed int64, randomCount int) (map[int]string, error) //perm:read
 }
 
 // ValidationResult node Validation result

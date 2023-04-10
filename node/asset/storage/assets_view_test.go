@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	_ = logging.SetLogLevel("carfile/store", "DEBUG")
+	_ = logging.SetLogLevel("asset/store", "DEBUG")
 }
 func TestBucket(t *testing.T) {
 	ds, err := newKVstore("./test")
@@ -46,7 +46,7 @@ func TestBucket(t *testing.T) {
 	}
 
 	bucketID = bucket.bucketID(c1)
-	cars, err := bucket.getAssetHashes(context.Background(), bucketID)
+	assets, err := bucket.getAssetHashes(context.Background(), bucketID)
 	if err != nil {
 		t.Errorf("put error:%s", err.Error())
 		return
@@ -54,12 +54,12 @@ func TestBucket(t *testing.T) {
 
 	t.Logf("bucketID:%d", bucketID)
 
-	for _, car := range cars {
-		t.Logf("mh:%s", car.String())
+	for _, asset := range assets {
+		t.Logf("mh:%s", asset.String())
 	}
 
 	bucketID = bucket.bucketID(c2)
-	cars, err = bucket.getAssetHashes(context.Background(), bucketID)
+	assets, err = bucket.getAssetHashes(context.Background(), bucketID)
 	if err != nil {
 		t.Errorf("put error:%s", err.Error())
 		return
@@ -67,7 +67,7 @@ func TestBucket(t *testing.T) {
 
 	t.Logf("index:%d", bucketID)
 
-	for _, car := range cars {
-		t.Logf("mh:%s", car.String())
+	for _, asset := range assets {
+		t.Logf("mh:%s", asset.String())
 	}
 }

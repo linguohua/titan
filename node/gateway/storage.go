@@ -9,8 +9,8 @@ import (
 )
 
 type Storage interface {
-	GetCar(root cid.Cid) (io.ReadSeekCloser, error)
-	HasCar(root cid.Cid) (bool, error)
+	GetAsset(root cid.Cid) (io.ReadSeekCloser, error)
+	HasAsset(root cid.Cid) (bool, error)
 
 	HasBlock(ctx context.Context, root, block cid.Cid) (bool, error)
 	GetBlock(ctx context.Context, root, block cid.Cid) (blocks.Block, error)

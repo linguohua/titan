@@ -18,5 +18,5 @@ type Edge interface {
 	// if behind nat, service address maybe different
 	ExternalServiceAddress(ctx context.Context, schedulerURL string) (string, error) //perm:write
 	// UserNATTravel build connection for user
-	UserNATTravel(ctx context.Context, userServiceAddress string, req *types.NatTravelReq) error //perm:write
+	UserNATPunch(ctx context.Context, userServiceAddress string, req *types.NatPunchReq) error //perm:write
 }

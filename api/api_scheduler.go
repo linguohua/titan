@@ -41,14 +41,15 @@ type Scheduler interface {
 	GetNodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error) //perm:read
 	// GetNodeList retrieves a list of nodes with pagination using the specified cursor and count
 	GetNodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error) //perm:read
-	// TODO GetAssetListForBucket retrieves a list of asset CIDs for a bucket associated with the specified node ID
-	GetAssetListForBucket(ctx context.Context, nodeID string) ([]string, error) //perm:write
-	// TODO GetEdgeExternalServiceAddress nat travel, can get edge external addr with different scheduler
+	// GetAssetListForBucket retrieves a list of asset CIDs for a bucket associated with the specified bucket ID
+	// bucketID = nodeID + bucketNumber
+	GetAssetListForBucket(ctx context.Context, bucketID string) ([]string, error) //perm:write
+	// TODO GetEdgeExternalServiceAddress nat travel, get edge external addr with different scheduler
 	GetEdgeExternalServiceAddress(ctx context.Context, nodeID, schedulerURL string) (string, error) //perm:write
 	// GetNodeNATType returns the NAT type for a node with the specified node ID
 	GetNodeNATType(ctx context.Context, nodeID string) (types.NatType, error) //perm:write
 	// TODO NatTravel
-	NatTravel(ctx context.Context, target *types.NatTravelReq) error //perm:read
+	NatPunch(ctx context.Context, target *types.NatPunchReq) error //perm:read
 	// CheckNetworkConnectivity check tcp or udp network connectivity , network is "tcp" or "udp"
 	CheckNetworkConnectivity(ctx context.Context, network, targetURL string) error //perm:read
 	// GetEdgeDownloadInfos retrieves download information for the edge with the asset with the specified CID.
@@ -75,10 +76,8 @@ type Scheduler interface {
 	GetAssetReplicaInfos(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) //perm:read
 	// GetValidationResults retrieves a list of validation results with pagination using the specified time range, page number, and page size
 	GetValidationResults(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidationResultRsp, error) //perm:read
-	// TODO UserDownloadBlockResults user send result when user download block complete or failed
-	UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error //perm:read
-	// TODO IgnoreProofOfWork
-	IgnoreProofOfWork(ctx context.Context, proofs []*types.NodeWorkloadProof) error //perm:read
+	// TODO UserProofsOfWork
+	UserProofsOfWork(ctx context.Context, proofs []*types.UserProofOfWork) error //perm:read
 
 	// Server-related methods
 	// GetSchedulerPublicKey retrieves the scheduler's public key in PEM format

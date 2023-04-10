@@ -23,7 +23,7 @@ func (t *TestCachedResultImpl) CacheResult(result *types.PullResult) error {
 
 func TestManager(t *testing.T) {
 	t.Log("TestManager")
-	_ = logging.SetLogLevel("/carfile/cache", "DEBUG")
+	_ = logging.SetLogLevel("/asset/cache", "DEBUG")
 
 	cidStr := "QmTcAg1KeDYJFpTJh3rkZGLhnnVKeXWNtjwPufjVvwPTpG"
 	c, err := cid.Decode(cidStr)
@@ -34,7 +34,7 @@ func TestManager(t *testing.T) {
 
 	storageMgr, err := storage.NewManager("./test", nil)
 	if err != nil {
-		t.Errorf("NewCarfileStore err:%s", err)
+		t.Errorf("NewManager err:%s", err)
 		return
 	}
 

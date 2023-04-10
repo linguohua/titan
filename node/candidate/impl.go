@@ -43,6 +43,6 @@ func (candidate *Candidate) WaitQuiet(ctx context.Context) error {
 	return nil
 }
 
-func (candidate *Candidate) GetBlocksWithCarfileCID(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error) {
-	return candidate.Asset.GetBlocksOfCar(carfileCID, randomSeed, randomCount)
+func (candidate *Candidate) GetBlocksWithAssetCID(ctx context.Context, assetCID string, randomSeed int64, randomCount int) (map[int]string, error) {
+	return candidate.Asset.GetBlocksOfAsset(assetCID, randomSeed, randomCount)
 }
