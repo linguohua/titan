@@ -1,4 +1,4 @@
-package validate
+package validation
 
 import (
 	"context"
@@ -15,10 +15,10 @@ import (
 
 var log = logging.Logger("validate")
 
-type Validate struct {
-	checker               Checker
-	device                *device.Device
-	cancelValidateChannel chan bool
+type Validation struct {
+	checker       Checker
+	device        *device.Device
+	cancelChannel chan bool
 }
 
 type RandomChecker interface {
@@ -28,11 +28,11 @@ type Checker interface {
 	GetChecker(ctx context.Context, randomSeed int64) (RandomChecker, error)
 }
 
-func NewValidate(c Checker, device *device.Device) *Validate {
-	return &Validate{checker: c, device: device}
+func NewValidation(c Checker, device *device.Device) *Validation {
+	return &Validation{checker: c, device: device}
 }
 
-func (validate *Validate) BeValidate(ctx context.Context, req *api.BeValidateReq) error {
+func (v *Validation) Validatable(ctx context.Context, req *api.ValidationReq) error {
 	log.Debug("BeValidate")
 
 	conn, err := newTCPClient(req.TCPSrvAddr)
@@ -41,26 +41,26 @@ func (validate *Validate) BeValidate(ctx context.Context, req *api.BeValidateReq
 		return err
 	}
 
-	go validate.sendBlocks(conn, req, validate.device.GetBandwidthUp())
+	go v.sendBlocks(conn, req, v.device.GetBandwidthUp())
 
 	return nil
 }
 
-func (validate *Validate) CancelValidate() {
-	if validate.cancelValidateChannel != nil {
-		validate.cancelValidateChannel <- true
+func (v *Validation) CancelValidate() {
+	if v.cancelChannel != nil {
+		v.cancelChannel <- true
 	}
 }
 
-func (validate *Validate) sendBlocks(conn *net.TCPConn, req *api.BeValidateReq, speedRate int64) error {
+func (v *Validation) sendBlocks(conn *net.TCPConn, req *api.ValidationReq, speedRate int64) error {
 	defer func() {
-		validate.cancelValidateChannel = nil
+		v.cancelChannel = nil
 		if err := conn.Close(); err != nil {
 			log.Errorf("close tcp error: %s", err.Error())
 		}
 	}()
 
-	validate.cancelValidateChannel = make(chan bool)
+	v.cancelChannel = make(chan bool)
 
 	t := time.NewTimer(time.Duration(req.Duration) * time.Second)
 	limiter := rate.NewLimiter(rate.Limit(speedRate), int(speedRate))
@@ -68,12 +68,12 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, req *api.BeValidateReq, 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	checker, err := validate.checker.GetChecker(ctx, req.RandomSeed)
+	checker, err := v.checker.GetChecker(ctx, req.RandomSeed)
 	if err != nil {
 		return xerrors.Errorf("get car error %w", err)
 	}
 
-	nodeID, err := validate.device.GetNodeID(ctx)
+	nodeID, err := v.device.GetNodeID(ctx)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func (validate *Validate) sendBlocks(conn *net.TCPConn, req *api.BeValidateReq, 
 		select {
 		case <-t.C:
 			return nil
-		case <-validate.cancelValidateChannel:
+		case <-v.cancelChannel:
 			err := sendData(conn, nil, api.TCPMsgTypeCancel, limiter)
 			if err != nil {
 				log.Errorf("send data error:%v", err)

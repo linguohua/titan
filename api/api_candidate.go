@@ -6,7 +6,7 @@ import "context"
 type Candidate interface {
 	Common
 	Device
-	Validate
+	Validation
 	DataSync
 	Asset
 	WaitQuiet(ctx context.Context) error                                                                                   //perm:read                                                        //perm:read

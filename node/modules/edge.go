@@ -8,7 +8,7 @@ import (
 	"github.com/linguohua/titan/node/device"
 	"github.com/linguohua/titan/node/modules/dtypes"
 	datasync "github.com/linguohua/titan/node/sync"
-	"github.com/linguohua/titan/node/validate"
+	"github.com/linguohua/titan/node/validation"
 	"golang.org/x/time/rate"
 )
 
@@ -41,6 +41,6 @@ func NewDataSync(cacheMgr *cache.Manager) *datasync.DataSync {
 	return datasync.NewDataSync(cacheMgr)
 }
 
-func NewNodeValidate(cacheMgr *cache.Manager, device *device.Device) *validate.Validate {
-	return validate.NewValidate(cacheMgr, device)
+func NewNodeValidation(cacheMgr *cache.Manager, device *device.Device) *validation.Validation {
+	return validation.NewValidation(cacheMgr, device)
 }

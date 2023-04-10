@@ -14,7 +14,7 @@ import (
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/node/device"
 	datasync "github.com/linguohua/titan/node/sync"
-	"github.com/linguohua/titan/node/validate"
+	validate "github.com/linguohua/titan/node/validation"
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
 )
@@ -27,7 +27,7 @@ type Edge struct {
 	*common.CommonAPI
 	*device.Device
 	*asset.Asset
-	*validate.Validate
+	*validate.Validation
 	*datasync.DataSync
 
 	PConn        net.PacketConn

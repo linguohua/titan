@@ -34,7 +34,7 @@ type Node struct {
 type API struct {
 	api.Common
 	api.Device
-	api.Validate
+	api.Validation
 	api.DataSync
 	api.Asset
 	WaitQuiet func(ctx context.Context) error
@@ -59,7 +59,7 @@ func APIFromEdge(api api.Edge) *API {
 	a := &API{
 		Common:                 api,
 		Device:                 api,
-		Validate:               api,
+		Validation:             api,
 		DataSync:               api,
 		Asset:                  api,
 		WaitQuiet:              api.WaitQuiet,
@@ -74,7 +74,7 @@ func APIFromCandidate(api api.Candidate) *API {
 	a := &API{
 		Common:           api,
 		Device:           api,
-		Validate:         api,
+		Validation:       api,
 		DataSync:         api,
 		Asset:            api,
 		WaitQuiet:        api.WaitQuiet,
