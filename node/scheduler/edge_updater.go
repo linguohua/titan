@@ -20,7 +20,7 @@ func NewEdgeUpdateManager(db *db.SQLDB) (*EdgeUpdateManager, error) {
 		db:          db,
 		updateInfos: make(map[int]*api.EdgeUpdateInfo),
 	}
-	appUpdateInfo, err := db.FetchEdgeUpdateInfos()
+	appUpdateInfo, err := db.LoadEdgeUpdateInfos()
 	if err != nil {
 		log.Errorf("GetEdgeUpdateInfos error:%s", err)
 		return nil, err

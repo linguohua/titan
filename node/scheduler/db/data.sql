@@ -30,7 +30,7 @@ CREATE TABLE `node_info` (
 ) ENGINE=InnoDB COMMENT='Node information';
 
 -- Validation results table
-CREATE TABLE `validate_result` (
+CREATE TABLE `validation_result` (
     `round_id`      VARCHAR(128) NOT NULL,
     `node_id`       VARCHAR(128) NOT NULL,
     `validator_id`  VARCHAR(128) NOT NULL,

@@ -80,7 +80,7 @@ func (a *Asset) DeleteAsset(ctx context.Context, carfileCID string) error {
 		_, diskUsage := a.cacheMgr.GetDiskUsageStat()
 		ret := types.RemoveAssetResult{BlocksCount: a.TotalBlockCount, DiskUsage: diskUsage}
 
-		if err := a.scheduler.RemoveAssetResult(context.Background(), ret); err != nil {
+		if err := a.scheduler.NodeRemoveAssetResult(context.Background(), ret); err != nil {
 			log.Errorf("remove asset result failed %s", err.Error())
 		}
 	}()

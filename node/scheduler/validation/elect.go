@@ -1,4 +1,4 @@
-package validate
+package validation
 
 import (
 	"math"
@@ -7,13 +7,13 @@ import (
 )
 
 var (
-	firstElectInterval = 5 * time.Minute    // Time of the first election
-	electionCycle      = 5 * 24 * time.Hour // Length of the election cycle
+	firstElectionInterval = 5 * time.Minute    // Time of the first election
+	electionCycle         = 5 * 24 * time.Hour // Length of the election cycle
 )
 
 // triggers the election process at a regular interval.
-func (m *Manager) electTicker() {
-	validators, err := m.nodeMgr.FetchValidators(m.nodeMgr.ServerID)
+func (m *Manager) electionTicker() {
+	validators, err := m.nodeMgr.LoadValidators(m.nodeMgr.ServerID)
 	if err != nil {
 		log.Errorf("fetch current validators: %v", err)
 		return
@@ -21,14 +21,14 @@ func (m *Manager) electTicker() {
 
 	expiration := electionCycle
 	if len(validators) <= 0 {
-		expiration = firstElectInterval
+		expiration = firstElectionInterval
 	}
 
-	electTicker := time.NewTicker(expiration)
-	defer electTicker.Stop()
+	ticker := time.NewTicker(expiration)
+	defer ticker.Stop()
 
 	doElect := func() {
-		electTicker.Reset(electionCycle)
+		ticker.Reset(electionCycle)
 		err := m.elect()
 		if err != nil {
 			log.Errorf("elect err:%s", err.Error())
@@ -37,7 +37,7 @@ func (m *Manager) electTicker() {
 
 	for {
 		select {
-		case <-electTicker.C:
+		case <-ticker.C:
 			doElect()
 		case <-m.updateCh:
 			doElect()

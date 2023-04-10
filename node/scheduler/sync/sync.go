@@ -131,10 +131,10 @@ func (ds *DataSync) performDataSync(nodeID string) error {
 
 // retrieves the top hash for a nodeID.
 func (ds *DataSync) fetchTopHash(nodeID string) (string, error) {
-	return ds.nodeManager.FetchTopHash(nodeID)
+	return ds.nodeManager.LoadTopHash(nodeID)
 }
 
 // retrieves the hashes of buckets for a nodeID.
 func (ds *DataSync) fetchBucketHashes(nodeID string) (map[uint32]string, error) {
-	return ds.nodeManager.FetchBucketHashes(nodeID)
+	return ds.nodeManager.LoadBucketHashes(nodeID)
 }

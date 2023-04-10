@@ -22,7 +22,7 @@ func (s *Scheduler) UserDownloadResult(ctx context.Context, result types.UserDow
 
 		blockDownloadInfo := &types.DownloadHistory{NodeID: nodeID, BlockCID: result.BlockCID, BlockSize: result.BlockSize}
 
-		record, _ := s.NodeManager.FetchAssetRecord(blockHash)
+		record, _ := s.NodeManager.LoadAssetRecord(blockHash)
 		if record != nil && record.CID != "" {
 			blockDownloadInfo.CarfileCID = result.BlockCID
 		}
@@ -57,7 +57,7 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) ([]*ty
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}
 
-	rows, err := s.NodeManager.FetchReplicasByHash(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
+	rows, err := s.NodeManager.LoadReplicasByHash(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
 	if err != nil {
 		return nil, err
 	}

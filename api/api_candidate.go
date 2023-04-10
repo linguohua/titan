@@ -13,8 +13,8 @@ type Candidate interface {
 	GetBlocksWithCarfileCID(ctx context.Context, carfileCID string, randomSeed int64, randomCount int) (map[int]string, error) //perm:read
 }
 
-// ValidateResult node Validate result
-type ValidateResult struct {
+// ValidationResult node Validation result
+type ValidationResult struct {
 	Validator string
 	CID       string
 	// verification canceled due to download

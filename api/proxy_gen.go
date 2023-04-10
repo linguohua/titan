@@ -183,9 +183,9 @@ type SchedulerStruct struct {
 
 		CheckNetworkConnectivity func(p0 context.Context, p1 string, p2 string) error `perm:"read"`
 
-		ConnectCandidateNode func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"write"`
+		CandidateLogin func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"write"`
 
-		ConnectEdgeNode func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"write"`
+		EdgeLogin func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"write"`
 
 		ConnectLocator func(p0 context.Context, p1 string, p2 string) error `perm:"write"`
 
@@ -200,6 +200,8 @@ type SchedulerStruct struct {
 		GetAssetRecords func(p0 context.Context, p1 int, p2 int, p3 []string) ([]*types.AssetRecord, error) `perm:"read"`
 
 		GetAssetReplicaList func(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) `perm:"read"`
+
+		GetCandidateDownloadSources func(p0 context.Context, p1 string) ([]*types.AssetDownloadSource, error) `perm:"read"`
 
 		GetEdgeDownloadInfos func(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) `perm:"read"`
 
@@ -221,13 +223,15 @@ type SchedulerStruct struct {
 
 		GetServerPublicKey func(p0 context.Context) (string, error) `perm:"write"`
 
-		GetValidationResultList func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) `perm:"read"`
+		GetValidationResultList func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidationResultRsp, error) `perm:"read"`
 
 		IgnoreProofOfWork func(p0 context.Context, p1 []*types.NodeWorkloadProof) error `perm:"read"`
 
 		NatTravel func(p0 context.Context, p1 *types.NatTravelReq) error `perm:"read"`
 
-		ProcessNodeValidationResult func(p0 context.Context, p1 ValidateResult) error `perm:"write"`
+		NodeRemoveAssetResult func(p0 context.Context, p1 types.RemoveAssetResult) error `perm:"write"`
+
+		NodeValidationResult func(p0 context.Context, p1 ValidationResult) error `perm:"write"`
 
 		RegisterNewNode func(p0 context.Context, p1 string, p2 string, p3 types.NodeType) error `perm:"admin"`
 
@@ -235,13 +239,9 @@ type SchedulerStruct struct {
 
 		RemoveAssetReplica func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
-		RemoveAssetResult func(p0 context.Context, p1 types.RemoveAssetResult) error `perm:"write"`
-
 		ResetAssetExpiration func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
 
 		RestartFailedAssets func(p0 context.Context, p1 []types.AssetHash) error `perm:"admin"`
-
-		GetCandidateDownloadSources func(p0 context.Context, p1 string) ([]*types.AssetDownloadSource, error) `perm:"read"`
 
 		SetEdgeUpdateInfo func(p0 context.Context, p1 *EdgeUpdateInfo) error `perm:"admin"`
 
@@ -679,25 +679,25 @@ func (s *SchedulerStub) CheckNetworkConnectivity(p0 context.Context, p1 string, 
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ConnectCandidateNode(p0 context.Context, p1 *types.ConnectOptions) error {
-	if s.Internal.ConnectCandidateNode == nil {
+func (s *SchedulerStruct) CandidateLogin(p0 context.Context, p1 *types.ConnectOptions) error {
+	if s.Internal.CandidateLogin == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.ConnectCandidateNode(p0, p1)
+	return s.Internal.CandidateLogin(p0, p1)
 }
 
-func (s *SchedulerStub) ConnectCandidateNode(p0 context.Context, p1 *types.ConnectOptions) error {
+func (s *SchedulerStub) CandidateLogin(p0 context.Context, p1 *types.ConnectOptions) error {
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ConnectEdgeNode(p0 context.Context, p1 *types.ConnectOptions) error {
-	if s.Internal.ConnectEdgeNode == nil {
+func (s *SchedulerStruct) EdgeLogin(p0 context.Context, p1 *types.ConnectOptions) error {
+	if s.Internal.EdgeLogin == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.ConnectEdgeNode(p0, p1)
+	return s.Internal.EdgeLogin(p0, p1)
 }
 
-func (s *SchedulerStub) ConnectEdgeNode(p0 context.Context, p1 *types.ConnectOptions) error {
+func (s *SchedulerStub) EdgeLogin(p0 context.Context, p1 *types.ConnectOptions) error {
 	return ErrNotSupported
 }
 
@@ -776,6 +776,17 @@ func (s *SchedulerStruct) GetAssetReplicaList(p0 context.Context, p1 types.ListR
 
 func (s *SchedulerStub) GetAssetReplicaList(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
 	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.AssetDownloadSource, error) {
+	if s.Internal.GetCandidateDownloadSources == nil {
+		return *new([]*types.AssetDownloadSource), ErrNotSupported
+	}
+	return s.Internal.GetCandidateDownloadSources(p0, p1)
+}
+
+func (s *SchedulerStub) GetCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.AssetDownloadSource, error) {
+	return *new([]*types.AssetDownloadSource), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetEdgeDownloadInfos(p0 context.Context, p1 string) ([]*types.DownloadInfo, error) {
@@ -888,14 +899,14 @@ func (s *SchedulerStub) GetServerPublicKey(p0 context.Context) (string, error) {
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetValidationResultList(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) {
+func (s *SchedulerStruct) GetValidationResultList(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidationResultRsp, error) {
 	if s.Internal.GetValidationResultList == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.GetValidationResultList(p0, p1, p2, p3, p4)
 }
 
-func (s *SchedulerStub) GetValidationResultList(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidateResultRsp, error) {
+func (s *SchedulerStub) GetValidationResultList(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidationResultRsp, error) {
 	return nil, ErrNotSupported
 }
 
@@ -921,14 +932,25 @@ func (s *SchedulerStub) NatTravel(p0 context.Context, p1 *types.NatTravelReq) er
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ProcessNodeValidationResult(p0 context.Context, p1 ValidateResult) error {
-	if s.Internal.ProcessNodeValidationResult == nil {
+func (s *SchedulerStruct) NodeRemoveAssetResult(p0 context.Context, p1 types.RemoveAssetResult) error {
+	if s.Internal.NodeRemoveAssetResult == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.ProcessNodeValidationResult(p0, p1)
+	return s.Internal.NodeRemoveAssetResult(p0, p1)
 }
 
-func (s *SchedulerStub) ProcessNodeValidationResult(p0 context.Context, p1 ValidateResult) error {
+func (s *SchedulerStub) NodeRemoveAssetResult(p0 context.Context, p1 types.RemoveAssetResult) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) NodeValidationResult(p0 context.Context, p1 ValidationResult) error {
+	if s.Internal.NodeValidationResult == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.NodeValidationResult(p0, p1)
+}
+
+func (s *SchedulerStub) NodeValidationResult(p0 context.Context, p1 ValidationResult) error {
 	return ErrNotSupported
 }
 
@@ -965,17 +987,6 @@ func (s *SchedulerStub) RemoveAssetReplica(p0 context.Context, p1 string, p2 str
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) RemoveAssetResult(p0 context.Context, p1 types.RemoveAssetResult) error {
-	if s.Internal.RemoveAssetResult == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.RemoveAssetResult(p0, p1)
-}
-
-func (s *SchedulerStub) RemoveAssetResult(p0 context.Context, p1 types.RemoveAssetResult) error {
-	return ErrNotSupported
-}
-
 func (s *SchedulerStruct) ResetAssetExpiration(p0 context.Context, p1 string, p2 time.Time) error {
 	if s.Internal.ResetAssetExpiration == nil {
 		return ErrNotSupported
@@ -996,17 +1007,6 @@ func (s *SchedulerStruct) RestartFailedAssets(p0 context.Context, p1 []types.Ass
 
 func (s *SchedulerStub) RestartFailedAssets(p0 context.Context, p1 []types.AssetHash) error {
 	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.AssetDownloadSource, error) {
-	if s.Internal.GetCandidateDownloadSources == nil {
-		return *new([]*types.AssetDownloadSource), ErrNotSupported
-	}
-	return s.Internal.GetCandidateDownloadSources(p0, p1)
-}
-
-func (s *SchedulerStub) GetCandidateDownloadSources(p0 context.Context, p1 string) ([]*types.AssetDownloadSource, error) {
-	return *new([]*types.AssetDownloadSource), ErrNotSupported
 }
 
 func (s *SchedulerStruct) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateInfo) error {

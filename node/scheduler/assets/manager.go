@@ -142,7 +142,7 @@ func (m *Manager) retrieveNodePullProgresses() {
 			continue
 		}
 
-		nodes, err := m.FetchUnfinishedPullAssetNodes(hash)
+		nodes, err := m.LoadUnfinishedPullAssetNodes(hash)
 		if err != nil {
 			log.Errorf("%s UnDoneNodes err:%s", hash, err.Error())
 			continue
@@ -207,7 +207,7 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq) error {
 
 	log.Infof("asset event: %s, add asset replica: %d,expiration: %s", info.CID, info.Replicas, info.Expiration.String())
 
-	assetRecord, err := m.FetchAssetRecord(info.Hash)
+	assetRecord, err := m.LoadAssetRecord(info.Hash)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
@@ -221,7 +221,7 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq) error {
 			ServerID:          info.ServerID,
 			CreatedAt:         time.Now().Unix(),
 			Expiration:        info.Expiration.Unix(),
-			CandidateReplicas: m.FetchCandidateReplicaCount(),
+			CandidateReplicas: m.GetCandidateReplicaCount(),
 		})
 	}
 
@@ -236,7 +236,7 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, info *t
 	}
 
 	// Fetch the existing asset replicas
-	replicaInfos, err := m.FetchAssetReplicas(assetRecord.Hash)
+	replicaInfos, err := m.LoadAssetReplicas(assetRecord.Hash)
 	if err != nil {
 		return xerrors.Errorf("asset %s load replicas err: %s", assetRecord.CID, err.Error())
 	}
@@ -248,7 +248,7 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, info *t
 		ServerID:          info.ServerID,
 		CreatedAt:         assetRecord.CreateTime.Unix(),
 		Expiration:        info.Expiration.Unix(),
-		CandidateReplicas: m.FetchCandidateReplicaCount(),
+		CandidateReplicas: m.GetCandidateReplicaCount(),
 		Size:              assetRecord.TotalSize,
 		Blocks:            assetRecord.TotalBlocks,
 		State:             SeedSelect,
@@ -267,7 +267,7 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, info *t
 	}
 
 	// Check if there is a need to update replicas and send the update request if needed
-	if len(refillReplicas.EdgeReplicaSucceeds) < int(info.Replicas) || len(refillReplicas.CandidateReplicaSucceeds) < m.FetchCandidateReplicaCount()+seedReplicaCount {
+	if len(refillReplicas.EdgeReplicaSucceeds) < int(info.Replicas) || len(refillReplicas.CandidateReplicaSucceeds) < m.GetCandidateReplicaCount()+seedReplicaCount {
 		return m.assetStateMachines.Send(AssetHash(info.Hash), refillReplicas)
 	}
 
@@ -300,7 +300,7 @@ func (m *Manager) RemoveReplica(cid, hash, nodeID string) error {
 
 // RemoveAsset removes an asset
 func (m *Manager) RemoveAsset(cid, hash string) error {
-	cInfos, err := m.FetchAssetReplicas(hash)
+	cInfos, err := m.LoadAssetReplicas(hash)
 	if err != nil {
 		return xerrors.Errorf("LoadAssetReplicaInfos: %s,err:%s", cid, err.Error())
 	}
@@ -493,7 +493,7 @@ func (m *Manager) processExpiredAssets() {
 		return
 	}
 
-	records, err := m.FetchExpiredAssetRecords(m.nodeMgr.ServerID)
+	records, err := m.LoadExpiredAssetRecords(m.nodeMgr.ServerID)
 	if err != nil {
 		log.Errorf("LoadExpiredAssetRecords err:%s", err.Error())
 		return
@@ -506,7 +506,7 @@ func (m *Manager) processExpiredAssets() {
 	}
 
 	// reset expiration
-	expiration, err := m.FetchMinExpiryOfAssetRecords(m.nodeMgr.ServerID)
+	expiration, err := m.LoadMinExpiryOfAssetRecords(m.nodeMgr.ServerID)
 	if err != nil {
 		return
 	}
@@ -531,8 +531,8 @@ func (m *Manager) requestAssetDeletion(nodeID, cid string) error {
 	return xerrors.Errorf("node %s not found", nodeID)
 }
 
-// FetchCandidateReplicaCount fetches the candidate replica count from the configuration
-func (m *Manager) FetchCandidateReplicaCount() int {
+// GetCandidateReplicaCount get the candidate replica count from the configuration
+func (m *Manager) GetCandidateReplicaCount() int {
 	cfg, err := m.config()
 	if err != nil {
 		log.Errorf("schedulerConfig err:%s", err.Error())
@@ -542,19 +542,19 @@ func (m *Manager) FetchCandidateReplicaCount() int {
 	return cfg.CandidateReplicas
 }
 
-// FetchAssetRecordInfo fetches the asset record info for cid
-func (m *Manager) FetchAssetRecordInfo(cid string) (*types.AssetRecord, error) {
+// GetAssetRecordInfo get the asset record info for cid
+func (m *Manager) GetAssetRecordInfo(cid string) (*types.AssetRecord, error) {
 	hash, err := cidutil.CIDString2HashString(cid)
 	if err != nil {
 		return nil, err
 	}
 
-	dInfo, err := m.FetchAssetRecord(hash)
+	dInfo, err := m.LoadAssetRecord(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	dInfo.ReplicaInfos, err = m.FetchAssetReplicas(hash)
+	dInfo.ReplicaInfos, err = m.LoadAssetReplicas(hash)
 	if err != nil {
 		log.Errorf("loadData hash:%s, LoadAssetReplicaInfos err:%s", hash, err.Error())
 	}

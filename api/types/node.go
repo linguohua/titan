@@ -130,48 +130,48 @@ type ListDownloadRecordRsp struct {
 	Total int64             `json:"total"`
 }
 
-// ListValidateResultRsp list validated result
-type ListValidateResultRsp struct {
-	Total                int                  `json:"total"`
-	ValidatedResultInfos []ValidateResultInfo `json:"validate_result_infos"`
+// ListValidationResultRsp list validated result
+type ListValidationResultRsp struct {
+	Total                 int                    `json:"total"`
+	ValidationResultInfos []ValidationResultInfo `json:"validation_result_infos"`
 }
 
-// ValidateResultInfo validator result
-type ValidateResultInfo struct {
-	RoundID     string         `db:"round_id"`
-	NodeID      string         `db:"node_id"`
-	Cid         string         `db:"cid"`
-	ValidatorID string         `db:"validator_id"`
-	BlockNumber int64          `db:"block_number"` // number of blocks verified
-	Status      ValidateStatus `db:"status"`
-	Duration    int64          `db:"duration"` // validator duration, microsecond
-	Bandwidth   float64        `db:"bandwidth"`
-	StartTime   time.Time      `db:"start_time"`
-	EndTime     time.Time      `db:"end_time"`
+// ValidationResultInfo validator result
+type ValidationResultInfo struct {
+	RoundID     string           `db:"round_id"`
+	NodeID      string           `db:"node_id"`
+	Cid         string           `db:"cid"`
+	ValidatorID string           `db:"validator_id"`
+	BlockNumber int64            `db:"block_number"` // number of blocks verified
+	Status      ValidationStatus `db:"status"`
+	Duration    int64            `db:"duration"` // validator duration, microsecond
+	Bandwidth   float64          `db:"bandwidth"`
+	StartTime   time.Time        `db:"start_time"`
+	EndTime     time.Time        `db:"end_time"`
 
 	UploadTraffic float64 `db:"upload_traffic"`
 }
 
-// ValidateStatus Validate Status
-type ValidateStatus int
+// ValidationStatus Validation Status
+type ValidationStatus int
 
 const (
-	// ValidateStatusUnknown status
-	ValidateStatusUnknown ValidateStatus = iota
-	// ValidateStatusCreate status
-	ValidateStatusCreate
-	// ValidateStatusSuccess status
-	ValidateStatusSuccess
-	// ValidateStatusNodeTimeOut status
-	ValidateStatusNodeTimeOut
-	// ValidateStatusValidatorTimeOut status
-	ValidateStatusValidatorTimeOut
-	// ValidateStatusCancel status
-	ValidateStatusCancel
-	// ValidateStatusBlockFail status
-	ValidateStatusBlockFail
-	// ValidateStatusOther status
-	ValidateStatusOther
+	// ValidationStatusUnknown status
+	ValidationStatusUnknown ValidationStatus = iota
+	// ValidationStatusCreate status
+	ValidationStatusCreate
+	// ValidationStatusSuccess status
+	ValidationStatusSuccess
+	// ValidationStatusNodeTimeOut status
+	ValidationStatusNodeTimeOut
+	// ValidationStatusValidatorTimeOut status
+	ValidationStatusValidatorTimeOut
+	// ValidationStatusCancel status
+	ValidationStatusCancel
+	// ValidationStatusBlockFail status
+	ValidationStatusBlockFail
+	// ValidationStatusOther status
+	ValidationStatusOther
 )
 
 // Credentials gateway access credentials

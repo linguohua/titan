@@ -99,7 +99,7 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		CaCertificatePath:  "",
 		AreaID:             "CN-GD-Shenzhen",
 		DatabaseAddress:    "user01:sql001@tcp(127.0.0.1:3306)/titan",
-		EnableValidate:     true,
+		EnableValidation:   true,
 		EtcdAddresses:      []string{"192.168.0.160:2379"},
 		CandidateReplicas:  0,
 		ValidatorRatio:     1,
