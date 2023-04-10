@@ -271,6 +271,19 @@ func (n *SQLDB) InsertNodeRegisterInfo(pKey, nodeID string, nodeType types.NodeT
 	return err
 }
 
+// DeleteNodeInfo delete Node info
+func (n *SQLDB) DeleteNodeInfo(nodeID string) error {
+	query := fmt.Sprintf(`DELETE FROM %s WHERE node_id=?`, nodeInfoTable)
+	_, err := n.db.Exec(query, nodeID)
+	if err != nil {
+		return err
+	}
+
+	query = fmt.Sprintf(`DELETE FROM %s WHERE node_id=?`, nodeRegisterTable)
+	_, err = n.db.Exec(query, nodeID)
+	return err
+}
+
 // LoadNodePublicKey load public key of node.
 func (n *SQLDB) LoadNodePublicKey(nodeID string) (string, error) {
 	var pKey string

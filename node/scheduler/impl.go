@@ -240,6 +240,13 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, pKey string, nodeT
 	return s.NodeManager.InsertNodeRegisterInfo(pKey, nodeID, nodeType)
 }
 
+// UnregisterNode node want to quit titan
+func (s *Scheduler) UnregisterNode(ctx context.Context, nodeID string) error {
+	s.NodeManager.NodesQuit([]string{nodeID})
+
+	return s.db.DeleteNodeInfo(nodeID)
+}
+
 // GetOnlineNodeCount retrieves online node count.
 func (s *Scheduler) GetOnlineNodeCount(ctx context.Context, nodeType types.NodeType) (int, error) {
 	if nodeType == types.NodeValidator {
@@ -288,15 +295,6 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (types.NodeI
 	}
 
 	return nodeInfo, nil
-}
-
-// UnregisterNode node want to quit titan
-func (s *Scheduler) UnregisterNode(ctx context.Context, nodeID string) error {
-	// TODO db
-
-	s.NodeManager.NodesQuit([]string{nodeID})
-
-	return nil
 }
 
 // UpdateNodePort sets the port for the specified node.

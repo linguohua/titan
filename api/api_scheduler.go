@@ -19,7 +19,7 @@ type Scheduler interface {
 	RegisterNode(ctx context.Context, nodeID, publicKey string, nodeType types.NodeType) error //perm:admin
 	// UnregisterNode removes a node from the scheduler with the specified node ID
 	UnregisterNode(ctx context.Context, nodeID string) error //perm:admin
-	// UpdateNodePort updates the port for the node with the specified node ID
+	// UpdateNodePort updates the port for the node with the specified node
 	UpdateNodePort(ctx context.Context, nodeID, port string) error //perm:admin
 	// UserDownloadResult user download result for a asset
 	UserDownloadResult(ctx context.Context, result types.UserDownloadResult) error //perm:write
@@ -46,7 +46,7 @@ type Scheduler interface {
 	GetAssetListForBucket(ctx context.Context, bucketID string) ([]string, error) //perm:write
 	// TODO GetEdgeExternalServiceAddress nat travel, get edge external addr with different scheduler
 	GetEdgeExternalServiceAddress(ctx context.Context, nodeID, schedulerURL string) (string, error) //perm:write
-	// GetNodeNATType returns the NAT type for a node with the specified node ID
+	// GetNodeNATType returns the NAT type for a node with the specified node
 	GetNodeNATType(ctx context.Context, nodeID string) (types.NatType, error) //perm:write
 	// TODO NatTravel
 	NatPunch(ctx context.Context, target *types.NatPunchReq) error //perm:read
@@ -62,7 +62,7 @@ type Scheduler interface {
 	PullAsset(ctx context.Context, info *types.PullAssetReq) error //perm:admin
 	// RemoveAssetRecord removes the asset record with the specified CID from the scheduler
 	RemoveAssetRecord(ctx context.Context, cid string) error //perm:admin
-	// RemoveAssetReplica deletes an asset replica with the specified CID and node ID from the scheduler
+	// RemoveAssetReplica deletes an asset replica with the specified CID and node from the scheduler
 	RemoveAssetReplica(ctx context.Context, cid, nodeID string) error //perm:admin
 	// GetAssetRecord retrieves the asset record with the specified CID
 	GetAssetRecord(ctx context.Context, cid string) (*types.AssetRecord, error) //perm:read
