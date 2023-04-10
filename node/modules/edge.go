@@ -41,6 +41,6 @@ func NewDataSync(assetMgr *asset.Manager) *datasync.DataSync {
 	return datasync.NewDataSync(assetMgr)
 }
 
-func NewNodeValidation(cacheMgr *asset.Manager, device *device.Device) *validation.Validation {
-	return validation.NewValidation(cacheMgr, device)
+func NewNodeValidation(assetMgr *asset.Manager, device *device.Device) *validation.Validation {
+	return validation.NewValidation(assetMgr, device)
 }
