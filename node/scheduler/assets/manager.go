@@ -594,7 +594,7 @@ func (m *Manager) getDownloadSources(cid string, nodes []string) []*types.Candid
 			continue
 		}
 		source := &types.CandidateDownloadInfo{
-			NodeAddr:    cNode.DownloadAddr(),
+			URL:         cNode.DownloadAddr(),
 			Credentials: credentials,
 		}
 

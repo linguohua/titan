@@ -30,6 +30,12 @@ type EdgeDownloadInfo struct {
 	SchedulerKey string
 }
 
+// CandidateDownloadInfo download info of candidate
+type CandidateDownloadInfo struct {
+	URL         string
+	Credentials *GatewayCredentials
+}
+
 // NodeReplicaStatus node cache status
 type NodeReplicaStatus struct {
 	Hash   string        `db:"hash"`

@@ -217,8 +217,8 @@ func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.N
 	return node.NewBaseInfo(nodeInfo, publicKey, remoteAddr, tcpPort), nil
 }
 
-// GetCallerExternalAddress retrieves the external address of the caller.
-func (s *Scheduler) GetCallerExternalAddress(ctx context.Context) (string, error) {
+// GetExternalAddress retrieves the external address of the caller.
+func (s *Scheduler) GetExternalAddress(ctx context.Context) (string, error) {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	return remoteAddr, nil
 }
@@ -420,7 +420,7 @@ func (s *Scheduler) GetCandidateDownloadInfos(ctx context.Context, cid string) (
 			continue
 		}
 		source := &types.CandidateDownloadInfo{
-			NodeAddr:    cNode.DownloadAddr(),
+			URL:         cNode.DownloadAddr(),
 			Credentials: credentials,
 		}
 

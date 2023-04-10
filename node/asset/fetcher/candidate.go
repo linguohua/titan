@@ -39,14 +39,14 @@ func (c *Candidate) Fetch(ctx context.Context, cids []string, dss []*types.Candi
 }
 
 func (c *Candidate) getBlock(ds *types.CandidateDownloadInfo, cidStr string) (blocks.Block, error) {
-	if len(ds.NodeAddr) == 0 {
+	if len(ds.URL) == 0 {
 		return nil, fmt.Errorf("candidate address can not empty")
 	}
 	buf, err := encode(ds.Credentials)
 	if err != nil {
 		return nil, err
 	}
-	url := fmt.Sprintf("http://%s/ipfs/%s?format=raw", ds.NodeAddr, cidStr)
+	url := fmt.Sprintf("http://%s/ipfs/%s?format=raw", ds.URL, cidStr)
 
 	req, err := http.NewRequest(http.MethodGet, url, buf)
 	if err != nil {
