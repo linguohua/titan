@@ -210,7 +210,7 @@ type bucket struct {
 
 func (b *bucket) getAssetHashes(ctx context.Context, bucketID uint32) ([]multihash.Multihash, error) {
 	if int(bucketID) > int(b.size) {
-		return nil, fmt.Errorf("bucket index %d is out of %d", bucketID, b.size)
+		return nil, fmt.Errorf("bucket id %d is out of %d", bucketID, b.size)
 	}
 
 	key := ds.NewKey(fmt.Sprintf("%d", bucketID))

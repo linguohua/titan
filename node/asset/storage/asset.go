@@ -86,6 +86,7 @@ func (a *asset) putAsset(ctx context.Context, root cid.Cid) error {
 
 // get must close reader
 func (a *asset) get(root cid.Cid) (io.ReadSeekCloser, error) {
+	// check if put asset complete
 	assetDir := filepath.Join(a.baseDir, root.Hash().String())
 	if _, err := os.Stat(assetDir); err != nil {
 		if !os.IsNotExist(err) {

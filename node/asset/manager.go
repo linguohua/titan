@@ -1,4 +1,4 @@
-package cache
+package asset
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-libipfs/blocks"
-	"github.com/ipld/go-car/v2/index"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/asset/fetcher"
 	titanindex "github.com/linguohua/titan/node/asset/index"
@@ -20,32 +19,28 @@ import (
 	"golang.org/x/xerrors"
 )
 
-const maxSizeOfCache = 1024
-
-type CachedResulter interface {
-	CacheResult(result *types.PullResult) error
-}
+const maxSizeOfCache = 128
 
 type assetWaiter struct {
-	Root  cid.Cid
-	Dss   []*types.CandidateDownloadInfo
-	cache *assetCache
+	Root   cid.Cid
+	Dss    []*types.CandidateDownloadInfo
+	puller *assetPuller
 }
 type Manager struct {
 	// root cid of asset
-	waitList      []*assetWaiter
-	waitListLock  *sync.Mutex
-	downloadCh    chan bool
-	downloadBatch int
-	bFetcher      fetcher.BlockFetcher
-	lru           *lruCache
+	waitList     []*assetWaiter
+	waitListLock *sync.Mutex
+	pullCh       chan bool
+	pullParallel int
+	bFetcher     fetcher.BlockFetcher
+	lru          *lruCache
 	storage.Storage
 }
 
 type ManagerOptions struct {
-	Storage       storage.Storage
-	BFetcher      fetcher.BlockFetcher
-	DownloadBatch int
+	Storage      storage.Storage
+	BFetcher     fetcher.BlockFetcher
+	PullParallel int
 }
 
 func NewManager(opts *ManagerOptions) (*Manager, error) {
@@ -55,13 +50,13 @@ func NewManager(opts *ManagerOptions) (*Manager, error) {
 	}
 
 	m := &Manager{
-		waitList:      make([]*assetWaiter, 0),
-		waitListLock:  &sync.Mutex{},
-		downloadCh:    make(chan bool),
-		Storage:       opts.Storage,
-		bFetcher:      opts.BFetcher,
-		lru:           lru,
-		downloadBatch: opts.DownloadBatch,
+		waitList:     make([]*assetWaiter, 0),
+		waitListLock: &sync.Mutex{},
+		pullCh:       make(chan bool),
+		Storage:      opts.Storage,
+		bFetcher:     opts.BFetcher,
+		lru:          lru,
+		pullParallel: opts.PullParallel,
 	}
 
 	m.restoreWaitListFromStore()
@@ -76,26 +71,26 @@ func (m *Manager) startTick() {
 		time.Sleep(10 * time.Second)
 
 		if len(m.waitList) > 0 {
-			cache := m.CachingAsset()
-			if cache != nil {
-				if err := m.saveAssetCache(cache); err != nil {
-					log.Error("saveAssetCache error:%s", err.Error())
+			puller := m.puller()
+			if puller != nil {
+				if err := m.savePuller(puller); err != nil {
+					log.Error("save puller error:%s", err.Error())
 				}
 
 				log.Debugf("total block %d, done block %d, total size %d, done size %d",
-					len(cache.blocksDownloadSuccessList)+len(cache.blocksWaitList),
-					len(cache.blocksDownloadSuccessList),
-					cache.totalSize,
-					cache.totalSize)
+					len(puller.blocksPulledSuccessList)+len(puller.blocksWaitList),
+					len(puller.blocksPulledSuccessList),
+					puller.totalSize,
+					puller.totalSize)
 			}
 		}
 
 	}
 }
 
-func (m *Manager) triggerDownload() {
+func (m *Manager) triggerPuller() {
 	select {
-	case m.downloadCh <- true:
+	case m.pullCh <- true:
 	default:
 	}
 }
@@ -107,41 +102,41 @@ func (m *Manager) start() {
 
 	go m.startTick()
 
-	// delay 15 second to do download asset if exist waitList
-	time.AfterFunc(15*time.Second, m.triggerDownload)
+	// delay 15 second to pull asset if exist waitList
+	time.AfterFunc(15*time.Second, m.triggerPuller)
 
 	for {
-		<-m.downloadCh
-		m.doDownloadAssets()
+		<-m.pullCh
+		m.pullAssets()
 	}
 }
 
-func (m *Manager) doDownloadAssets() {
+func (m *Manager) pullAssets() {
 	for len(m.waitList) > 0 {
-		m.doDownloadAsset()
+		m.doPullAsset()
 	}
 }
 
-func (m *Manager) doDownloadAsset() {
+func (m *Manager) doPullAsset() {
 	cw := m.headFromWaitList()
 	if cw == nil {
 		return
 	}
 	defer m.removeAssetFromWaitList(cw.Root)
 
-	assetCache, err := m.restoreAssetCacheOrNew(&options{cw.Root, cw.Dss, m.Storage, m.bFetcher, m.downloadBatch})
+	assetPuller, err := m.restoreAssetPullerOrNew(&pullerOptions{cw.Root, cw.Dss, m.Storage, m.bFetcher, m.pullParallel})
 	if err != nil {
-		log.Errorf("restore asset cache error:%s", err)
+		log.Errorf("restore asset puller error:%s", err)
 		return
 	}
 
-	cw.cache = assetCache
-	err = assetCache.downloadAsset()
+	cw.puller = assetPuller
+	err = assetPuller.pullAsset()
 	if err != nil {
-		log.Errorf("doDownloadAsset, download asset error:%s", err)
+		log.Errorf("pull asset error:%s", err)
 	}
 
-	m.ondownloadAssetFinish(assetCache)
+	m.onPullAssetFinish(assetPuller)
 }
 
 func (m *Manager) headFromWaitList() *assetWaiter {
@@ -193,40 +188,41 @@ func (m *Manager) AddToWaitList(root cid.Cid, dss []*types.CandidateDownloadInfo
 		log.Errorf("save wait list error: %s", err.Error())
 	}
 
-	m.triggerDownload()
+	m.triggerPuller()
 }
 
-func (m *Manager) saveAssetCache(cf *assetCache) error {
-	if cf == nil || cf.isDownloadComplete() {
+func (m *Manager) savePuller(puller *assetPuller) error {
+	if puller == nil || puller.isPulledComplete() {
 		return nil
 	}
 
-	buf, err := cf.encode()
+	buf, err := puller.encode()
 	if err != nil {
 		return err
 	}
-	return m.PutAssetCache(cf.Root(), buf)
+	return m.PutAssetPuller(puller.root, buf)
 }
 
-func (m *Manager) ondownloadAssetFinish(cf *assetCache) {
-	log.Debugf("ondownloadAssetFinish, asset %s", cf.root.String())
-	if cf.isDownloadComplete() {
-		if err := m.RemoveAssetCache(cf.root); err != nil && !os.IsNotExist(err) {
-			log.Errorf("remove asset cache error:%s", err.Error())
+func (m *Manager) onPullAssetFinish(puller *assetPuller) {
+	log.Debugf("onPullAssetFinish, asset %s", puller.root.String())
+
+	if puller.isPulledComplete() {
+		if err := m.RemoveAssetPuller(puller.root); err != nil && !os.IsNotExist(err) {
+			log.Errorf("remove asset puller error:%s", err.Error())
 		}
 
-		blockCountOfAsset := uint32(len(cf.blocksDownloadSuccessList))
-		if err := m.SetBlockCountOfAsset(context.Background(), cf.root, blockCountOfAsset); err != nil {
+		blockCountOfAsset := uint32(len(puller.blocksPulledSuccessList))
+		if err := m.SetBlockCountOfAsset(context.Background(), puller.root, blockCountOfAsset); err != nil {
 			log.Errorf("set block count error:%s", err.Error())
 		}
 
-		if err := m.PutAsset(context.Background(), cf.root); err != nil {
+		if err := m.PutAsset(context.Background(), puller.root); err != nil {
 			log.Errorf("put asset error: %s", err.Error())
 		}
 
 	} else {
-		if err := m.saveAssetCache(cf); err != nil {
-			log.Errorf("saveAssetCache error:%s", err.Error())
+		if err := m.savePuller(puller); err != nil {
+			log.Errorf("save puller error:%s", err.Error())
 		}
 	}
 }
@@ -262,21 +258,21 @@ func (m *Manager) restoreWaitListFromStore() {
 	log.Debugf("restoreWaitListFromStore:%#v", m.waitList)
 }
 
-func (m *Manager) WaitListLen() int {
+func (m *Manager) waitListLen() int {
 	return len(m.waitList)
 }
 
-func (m *Manager) CachingAsset() *assetCache {
+func (m *Manager) puller() *assetPuller {
 	for _, cw := range m.waitList {
-		if cw.cache != nil {
-			return cw.cache
+		if cw.puller != nil {
+			return cw.puller
 		}
 	}
 	return nil
 }
 
 func (m *Manager) DeleteAsset(root cid.Cid) error {
-	// remove lru cache
+	// remove lru puller
 	m.lru.remove(root)
 
 	ok, err := m.deleteAssetFromWaitList(root)
@@ -295,14 +291,14 @@ func (m *Manager) DeleteAsset(root cid.Cid) error {
 	return nil
 }
 
-func (m *Manager) restoreAssetCacheOrNew(opts *options) (*assetCache, error) {
-	data, err := m.GetAssetCache(opts.root)
+func (m *Manager) restoreAssetPullerOrNew(opts *pullerOptions) (*assetPuller, error) {
+	data, err := m.GetAssetPuller(opts.root)
 	if err != nil && !os.IsNotExist(err) {
-		log.Errorf("load asset cache error %s", err.Error())
+		log.Errorf("get asset puller error %s", err.Error())
 		return nil, err
 	}
 
-	cc := newAssetCache(opts)
+	cc := newAssetPuller(opts)
 	if len(data) > 0 {
 		err = cc.decode(data)
 		if err != nil {
@@ -320,8 +316,8 @@ func (m *Manager) restoreAssetCacheOrNew(opts *options) (*assetCache, error) {
 // return true if exist in waitList
 func (m *Manager) deleteAssetFromWaitList(root cid.Cid) (bool, error) {
 	if c := m.removeAssetFromWaitList(root); c != nil {
-		if c.cache != nil {
-			err := c.cache.CancelDownload()
+		if c.puller != nil {
+			err := c.puller.cancelPulling()
 			if err != nil {
 				return false, err
 			}
@@ -332,29 +328,14 @@ func (m *Manager) deleteAssetFromWaitList(root cid.Cid) (bool, error) {
 	return false, nil
 }
 
-func (m *Manager) Progresses() []*types.AssetPullProgress {
-	progresses := make([]*types.AssetPullProgress, 0, len(m.waitList))
-
-	for _, cw := range m.waitList {
-		progress := &types.AssetPullProgress{CID: cw.Root.String(), Status: types.ReplicaStatusWaiting}
-		if cw.cache != nil {
-			progress = cw.cache.Progress()
-		}
-
-		progresses = append(progresses, progress)
-	}
-
-	return progresses
-}
-
-func (m *Manager) CachedStatus(root cid.Cid) (types.ReplicaStatus, error) {
+func (m *Manager) cachedStatus(root cid.Cid) (types.ReplicaStatus, error) {
 	if ok, err := m.HasAsset(root); err == nil && ok {
 		return types.ReplicaStatusSucceeded, nil
 	}
 
 	for _, cw := range m.waitList {
 		if cw.Root.Hash().String() == root.Hash().String() {
-			if cw.cache != nil {
+			if cw.puller != nil {
 				return types.ReplicaStatusPulling, nil
 			}
 			return types.ReplicaStatusWaiting, nil
@@ -370,7 +351,7 @@ func (m *Manager) ProgressForFailedAsset(root cid.Cid) (*types.AssetPullProgress
 		Status: types.ReplicaStatusFailed,
 	}
 
-	data, err := m.GetAssetCache(root)
+	data, err := m.GetAssetPuller(root)
 	if os.IsNotExist(err) {
 		return progress, nil
 	}
@@ -379,16 +360,16 @@ func (m *Manager) ProgressForFailedAsset(root cid.Cid) (*types.AssetPullProgress
 		return nil, err
 	}
 
-	cc := &assetCache{}
+	cc := &assetPuller{}
 	err = cc.decode(data)
 	if err != nil {
 		return nil, err
 	}
 
-	progress.BlocksCount = len(cc.blocksDownloadSuccessList) + len(cc.blocksWaitList)
-	progress.DoneBlocksCount = len(cc.blocksDownloadSuccessList)
-	progress.Size = cc.TotalSize()
-	progress.DoneSize = cc.DoneSize()
+	progress.BlocksCount = len(cc.blocksPulledSuccessList) + len(cc.blocksWaitList)
+	progress.DoneBlocksCount = len(cc.blocksPulledSuccessList)
+	progress.Size = int64(cc.totalSize)
+	progress.DoneSize = int64(cc.doneSize)
 
 	return progress, nil
 }
@@ -399,20 +380,6 @@ func (m *Manager) GetBlock(ctx context.Context, root, block cid.Cid) (blocks.Blo
 
 func (m *Manager) HasBlock(ctx context.Context, root, block cid.Cid) (bool, error) {
 	return m.lru.hasBlock(ctx, root, block)
-}
-
-func (m *Manager) iterableIndex(ctx context.Context, root cid.Cid) (index.IterableIndex, error) {
-	idx, err := m.lru.assetIndex(root)
-	if err != nil {
-		return nil, err
-	}
-
-	iterableIdx, ok := idx.(index.IterableIndex)
-	if !ok {
-		return nil, xerrors.Errorf("idx is not IterableIndex")
-	}
-
-	return iterableIdx, nil
 }
 
 func (m *Manager) GetBlocksOfAsset(root cid.Cid, randomSeed int64, randomCount int) (map[int]string, error) {

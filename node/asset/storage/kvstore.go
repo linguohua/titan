@@ -12,7 +12,7 @@ import (
 func newKVstore(baseDir string) (ds.Batching, error) {
 	// Create the datastore directory if it doesn't exist yet.
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
-		return nil, xerrors.Errorf("failed to create directory %s for DAG store datastore: %w", baseDir, err)
+		return nil, xerrors.Errorf("failed to create directory %s for kv store: %w", baseDir, err)
 	}
 
 	// Create a new LevelDB datastore

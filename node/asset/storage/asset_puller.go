@@ -7,31 +7,31 @@ import (
 	"github.com/ipfs/go-cid"
 )
 
-// assetCache save assetCache
-type assetCache struct {
+// assetPuller save assetPuller
+type assetPuller struct {
 	baseDir string
 }
 
-func newAssetCache(baseDir string) (*assetCache, error) {
+func newAssetPuller(baseDir string) (*assetPuller, error) {
 	err := os.MkdirAll(baseDir, 0755)
 	if err != nil {
 		return nil, err
 	}
 
-	return &assetCache{baseDir: baseDir}, nil
+	return &assetPuller{baseDir: baseDir}, nil
 }
 
-func (cc *assetCache) put(c cid.Cid, data []byte) error {
+func (cc *assetPuller) put(c cid.Cid, data []byte) error {
 	filePath := filepath.Join(cc.baseDir, c.Hash().String())
 	return os.WriteFile(filePath, data, 0644)
 }
 
-func (cc *assetCache) get(c cid.Cid) ([]byte, error) {
+func (cc *assetPuller) get(c cid.Cid) ([]byte, error) {
 	filePath := filepath.Join(cc.baseDir, c.Hash().String())
 	return os.ReadFile(filePath)
 }
 
-func (cc *assetCache) has(c cid.Cid) (bool, error) {
+func (cc *assetPuller) has(c cid.Cid) (bool, error) {
 	filePath := filepath.Join(cc.baseDir, c.Hash().String())
 	_, err := os.Stat(filePath)
 	if err != nil {
@@ -45,7 +45,7 @@ func (cc *assetCache) has(c cid.Cid) (bool, error) {
 	return true, nil
 }
 
-func (cc *assetCache) delete(c cid.Cid) error {
+func (cc *assetPuller) delete(c cid.Cid) error {
 	filePath := filepath.Join(cc.baseDir, c.Hash().String())
 	return os.Remove(filePath)
 }

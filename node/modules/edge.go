@@ -1,7 +1,7 @@
 package modules
 
 import (
-	"github.com/linguohua/titan/node/asset/cache"
+	"github.com/linguohua/titan/node/asset"
 	"github.com/linguohua/titan/node/asset/fetcher"
 	"github.com/linguohua/titan/node/asset/storage"
 	"github.com/linguohua/titan/node/config"
@@ -26,10 +26,10 @@ func NewNodeStorageManager(path dtypes.CarfileStorePath) (*storage.Manager, erro
 	return storage.NewManager(string(path), nil)
 }
 
-func NewCacheManager(fetchBatch int) func(storageMgr *storage.Manager, bFetcher fetcher.BlockFetcher) (*cache.Manager, error) {
-	return func(storageMgr *storage.Manager, bFetcher fetcher.BlockFetcher) (*cache.Manager, error) {
-		opts := &cache.ManagerOptions{Storage: storageMgr, BFetcher: bFetcher, DownloadBatch: fetchBatch}
-		return cache.NewManager(opts)
+func NewAssetsManager(fetchBatch int) func(storageMgr *storage.Manager, bFetcher fetcher.BlockFetcher) (*asset.Manager, error) {
+	return func(storageMgr *storage.Manager, bFetcher fetcher.BlockFetcher) (*asset.Manager, error) {
+		opts := &asset.ManagerOptions{Storage: storageMgr, BFetcher: bFetcher, PullParallel: fetchBatch}
+		return asset.NewManager(opts)
 	}
 }
 
@@ -37,10 +37,10 @@ func NewBlockFetcherFromCandidate(cfg *config.EdgeCfg) fetcher.BlockFetcher {
 	return fetcher.NewCandidate(cfg.FetchBlockTimeout, cfg.FetchBlockRetry)
 }
 
-func NewDataSync(cacheMgr *cache.Manager) *datasync.DataSync {
-	return datasync.NewDataSync(cacheMgr)
+func NewDataSync(assetMgr *asset.Manager) *datasync.DataSync {
+	return datasync.NewDataSync(assetMgr)
 }
 
-func NewNodeValidation(cacheMgr *cache.Manager, device *device.Device) *validation.Validation {
+func NewNodeValidation(cacheMgr *asset.Manager, device *device.Device) *validation.Validation {
 	return validation.NewValidation(cacheMgr, device)
 }

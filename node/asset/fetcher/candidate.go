@@ -64,7 +64,7 @@ func (c *Candidate) getBlock(ds *types.CandidateDownloadInfo, cidStr string) (bl
 		if err != nil {
 			return nil, err
 		}
-		return nil, fmt.Errorf("status code: %d, error msg: %s", resp.StatusCode, string(data))
+		return nil, fmt.Errorf("http status code: %d, error msg: %s", resp.StatusCode, string(data))
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
@@ -87,7 +87,7 @@ func (c *Candidate) getBlock(ds *types.CandidateDownloadInfo, cidStr string) (bl
 
 func (c *Candidate) getBlocks(cids []string, dss []*types.CandidateDownloadInfo) ([]blocks.Block, error) {
 	if len(dss) == 0 {
-		return nil, fmt.Errorf("download srouce can not empty")
+		return nil, fmt.Errorf("download infos can not empty")
 	}
 
 	blks := make([]blocks.Block, 0, len(cids))

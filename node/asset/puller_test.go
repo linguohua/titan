@@ -1,4 +1,4 @@
-package cache
+package asset
 
 import (
 	"testing"
@@ -28,11 +28,10 @@ func TestCache(t *testing.T) {
 		return
 	}
 
-	assetCache := newAssetCache(&options{root: c, dss: nil, storage: manger, bFetcher: fetcher.NewIPFS("http://192.168.0.132:5001", 15, 1), batch: 5})
-
-	err = assetCache.downloadAsset()
+	assetPuller := newAssetPuller(&pullerOptions{root: c, dss: nil, storage: manger, bFetcher: fetcher.NewIPFS("http://192.168.0.132:5001", 15, 1), parallel: 5})
+	err = assetPuller.pullAsset()
 	if err != nil {
-		t.Errorf("downloadAsset, error:%s", err)
+		t.Errorf("pull asset error:%s", err)
 		return
 	}
 }

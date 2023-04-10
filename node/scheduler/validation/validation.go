@@ -132,7 +132,6 @@ func (m *Manager) getValidationDetails(vrs []*VWindow) (map[string]*api.Validati
 			vrInfos = append(vrInfos, dbInfo)
 
 			req := &api.ValidationReq{
-				CID:        cid,
 				RandomSeed: m.seed,
 				Duration:   duration,
 				TCPSrvAddr: vNode.TCPAddr(),

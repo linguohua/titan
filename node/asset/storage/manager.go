@@ -15,7 +15,7 @@ var log = logging.Logger("asset/store")
 
 const (
 	// dir of file name
-	assetCacheDir  = "asset-cache"
+	assetPullerDir = "asset-puller"
 	waitListFile   = "wait-list"
 	assetsDir      = "assets"
 	transientsDir  = "tmp"
@@ -28,16 +28,16 @@ const (
 
 // Manager access operation of storage
 type Manager struct {
-	baseDir    string
-	asset      *asset
-	wl         *waitList
-	assetCache *assetCache
-	count      *count
-	assetsView *AssetsView
+	baseDir     string
+	asset       *asset
+	wl          *waitList
+	assetPuller *assetPuller
+	count       *count
+	assetsView  *AssetsView
 }
 
 type ManagerOptions struct {
-	AssetCacheDir    string
+	AssetPullerDir   string
 	waitListFilePath string
 	AssetsDir        string
 	AssetSuffix      string
@@ -57,7 +57,7 @@ func NewManager(baseDir string, opts *ManagerOptions) (*Manager, error) {
 		return nil, err
 	}
 
-	assetCache, err := newAssetCache(opts.AssetCacheDir)
+	assetPuller, err := newAssetPuller(opts.AssetPullerDir)
 	if err != nil {
 		return nil, err
 	}
@@ -74,18 +74,18 @@ func NewManager(baseDir string, opts *ManagerOptions) (*Manager, error) {
 
 	waitList := newWaitList(opts.waitListFilePath)
 	return &Manager{
-		baseDir:    baseDir,
-		asset:      asset,
-		assetsView: assetsView,
-		wl:         waitList,
-		assetCache: assetCache,
-		count:      count,
+		baseDir:     baseDir,
+		asset:       asset,
+		assetsView:  assetsView,
+		wl:          waitList,
+		assetPuller: assetPuller,
+		count:       count,
 	}, nil
 }
 
 func defaultOptions(baseDir string) *ManagerOptions {
 	opts := &ManagerOptions{
-		AssetCacheDir:    filepath.Join(baseDir, assetCacheDir),
+		AssetPullerDir:   filepath.Join(baseDir, assetPullerDir),
 		waitListFilePath: filepath.Join(baseDir, waitListFile),
 		AssetsDir:        filepath.Join(baseDir, assetsDir),
 		AssetSuffix:      assetSuffix,
@@ -97,21 +97,21 @@ func defaultOptions(baseDir string) *ManagerOptions {
 	return opts
 }
 
-// assetCache api
-func (m *Manager) PutAssetCache(c cid.Cid, data []byte) error {
-	return m.assetCache.put(c, data)
+// assetPuller api
+func (m *Manager) PutAssetPuller(c cid.Cid, data []byte) error {
+	return m.assetPuller.put(c, data)
 }
 
-func (m *Manager) GetAssetCache(c cid.Cid) ([]byte, error) {
-	return m.assetCache.get(c)
+func (m *Manager) GetAssetPuller(c cid.Cid) ([]byte, error) {
+	return m.assetPuller.get(c)
 }
 
-func (m *Manager) HasAssetCache(c cid.Cid) (bool, error) {
-	return m.assetCache.has(c)
+func (m *Manager) HasAssetPuller(c cid.Cid) (bool, error) {
+	return m.assetPuller.has(c)
 }
 
-func (m *Manager) RemoveAssetCache(c cid.Cid) error {
-	return m.assetCache.delete(c)
+func (m *Manager) RemoveAssetPuller(c cid.Cid) error {
+	return m.assetPuller.delete(c)
 }
 
 // asset api
