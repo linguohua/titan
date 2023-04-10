@@ -197,7 +197,7 @@ type SchedulerStruct struct {
 
 		GetCandidateDownloadInfos func(p0 context.Context, p1 string) ([]*types.CandidateDownloadInfo, error) `perm:"read"`
 
-		GetEdgeDownloadInfos func(p0 context.Context, p1 string) ([]*types.EdgeDownloadInfo, error) `perm:"read"`
+		GetEdgeDownloadInfos func(p0 context.Context, p1 string) (*types.EdgeDownloadInfoList, error) `perm:"read"`
 
 		GetEdgeExternalServiceAddress func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"write"`
 
@@ -746,15 +746,15 @@ func (s *SchedulerStub) GetCandidateDownloadInfos(p0 context.Context, p1 string)
 	return *new([]*types.CandidateDownloadInfo), ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetEdgeDownloadInfos(p0 context.Context, p1 string) ([]*types.EdgeDownloadInfo, error) {
+func (s *SchedulerStruct) GetEdgeDownloadInfos(p0 context.Context, p1 string) (*types.EdgeDownloadInfoList, error) {
 	if s.Internal.GetEdgeDownloadInfos == nil {
-		return *new([]*types.EdgeDownloadInfo), ErrNotSupported
+		return nil, ErrNotSupported
 	}
 	return s.Internal.GetEdgeDownloadInfos(p0, p1)
 }
 
-func (s *SchedulerStub) GetEdgeDownloadInfos(p0 context.Context, p1 string) ([]*types.EdgeDownloadInfo, error) {
-	return *new([]*types.EdgeDownloadInfo), ErrNotSupported
+func (s *SchedulerStub) GetEdgeDownloadInfos(p0 context.Context, p1 string) (*types.EdgeDownloadInfoList, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetEdgeExternalServiceAddress(p0 context.Context, p1 string, p2 string) (string, error) {
