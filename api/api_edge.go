@@ -10,7 +10,7 @@ import (
 type Edge interface {
 	Common
 	Device
-	Validate
+	Validation
 	DataSync
 	Asset
 	WaitQuiet(ctx context.Context) error //perm:read

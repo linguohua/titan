@@ -13,7 +13,7 @@ import (
 	datasync "github.com/linguohua/titan/node/sync"
 
 	logging "github.com/ipfs/go-log/v2"
-	vd "github.com/linguohua/titan/node/validate"
+	vd "github.com/linguohua/titan/node/validation"
 )
 
 var log = logging.Logger("candidate")
@@ -30,7 +30,7 @@ type Candidate struct {
 	*common.CommonAPI
 	*asset.Asset
 	*device.Device
-	*vd.Validate
+	*vd.Validation
 	*datasync.DataSync
 
 	Scheduler api.Scheduler

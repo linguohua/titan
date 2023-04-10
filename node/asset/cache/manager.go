@@ -16,7 +16,7 @@ import (
 	"github.com/linguohua/titan/node/asset/fetcher"
 	titanindex "github.com/linguohua/titan/node/asset/index"
 	"github.com/linguohua/titan/node/asset/storage"
-	"github.com/linguohua/titan/node/validate"
+	validate "github.com/linguohua/titan/node/validation"
 	"golang.org/x/xerrors"
 )
 

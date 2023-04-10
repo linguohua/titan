@@ -89,10 +89,10 @@ func (m *Manager) startNewRound() error {
 }
 
 // sends a validation request to a node.
-func (m *Manager) sendValidationReqToNodes(nID string, req *api.BeValidateReq) {
+func (m *Manager) sendValidationReqToNodes(nID string, req *api.ValidationReq) {
 	cNode := m.nodeMgr.GetNode(nID)
 	if cNode != nil {
-		err := cNode.BeValidate(context.Background(), req)
+		err := cNode.Validatable(context.Background(), req)
 		if err != nil {
 			log.Errorf("%s BeValidate err:%s", nID, err.Error())
 		}
@@ -103,8 +103,8 @@ func (m *Manager) sendValidationReqToNodes(nID string, req *api.BeValidateReq) {
 }
 
 // get validation details.
-func (m *Manager) getValidationDetails(vrs []*VWindow) (map[string]*api.BeValidateReq, []*types.ValidationResultInfo) {
-	bReqs := make(map[string]*api.BeValidateReq)
+func (m *Manager) getValidationDetails(vrs []*VWindow) (map[string]*api.ValidationReq, []*types.ValidationResultInfo) {
+	bReqs := make(map[string]*api.ValidationReq)
 	vrInfos := make([]*types.ValidationResultInfo, 0)
 
 	for _, vr := range vrs {
@@ -131,7 +131,7 @@ func (m *Manager) getValidationDetails(vrs []*VWindow) (map[string]*api.BeValida
 			}
 			vrInfos = append(vrInfos, dbInfo)
 
-			req := &api.BeValidateReq{
+			req := &api.ValidationReq{
 				CID:        cid,
 				RandomSeed: m.seed,
 				Duration:   duration,

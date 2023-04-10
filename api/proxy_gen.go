@@ -37,7 +37,7 @@ type CandidateStruct struct {
 
 	DeviceStruct
 
-	ValidateStruct
+	ValidationStruct
 
 	DataSyncStruct
 
@@ -55,7 +55,7 @@ type CandidateStub struct {
 
 	DeviceStub
 
-	ValidateStub
+	ValidationStub
 
 	DataSyncStub
 
@@ -116,7 +116,7 @@ type EdgeStruct struct {
 
 	DeviceStruct
 
-	ValidateStruct
+	ValidationStruct
 
 	DataSyncStruct
 
@@ -136,7 +136,7 @@ type EdgeStub struct {
 
 	DeviceStub
 
-	ValidateStub
+	ValidationStub
 
 	DataSyncStub
 
@@ -253,13 +253,13 @@ type SchedulerStub struct {
 	CommonStub
 }
 
-type ValidateStruct struct {
+type ValidationStruct struct {
 	Internal struct {
-		BeValidate func(p0 context.Context, p1 *BeValidateReq) error `perm:"read"`
+		Validatable func(p0 context.Context, p1 *ValidationReq) error `perm:"read"`
 	}
 }
 
-type ValidateStub struct {
+type ValidationStub struct {
 }
 
 func (s *AssetStruct) CacheAsset(p0 context.Context, p1 string, p2 []*types.CandidateDownloadInfo) error {
@@ -1021,14 +1021,14 @@ func (s *SchedulerStub) VerifyNodeAuthToken(p0 context.Context, p1 string) ([]au
 	return *new([]auth.Permission), ErrNotSupported
 }
 
-func (s *ValidateStruct) BeValidate(p0 context.Context, p1 *BeValidateReq) error {
-	if s.Internal.BeValidate == nil {
+func (s *ValidationStruct) Validatable(p0 context.Context, p1 *ValidationReq) error {
+	if s.Internal.Validatable == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.BeValidate(p0, p1)
+	return s.Internal.Validatable(p0, p1)
 }
 
-func (s *ValidateStub) BeValidate(p0 context.Context, p1 *BeValidateReq) error {
+func (s *ValidationStub) Validatable(p0 context.Context, p1 *ValidationReq) error {
 	return ErrNotSupported
 }
 
@@ -1040,4 +1040,4 @@ var _ Device = new(DeviceStruct)
 var _ Edge = new(EdgeStruct)
 var _ Locator = new(LocatorStruct)
 var _ Scheduler = new(SchedulerStruct)
-var _ Validate = new(ValidateStruct)
+var _ Validation = new(ValidationStruct)

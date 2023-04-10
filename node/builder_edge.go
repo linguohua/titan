@@ -15,7 +15,7 @@ import (
 	"github.com/linguohua/titan/node/modules/dtypes"
 	"github.com/linguohua/titan/node/repo"
 	datasync "github.com/linguohua/titan/node/sync"
-	"github.com/linguohua/titan/node/validate"
+	"github.com/linguohua/titan/node/validation"
 	"go.uber.org/fx"
 	"golang.org/x/time/rate"
 	"golang.org/x/xerrors"
@@ -54,7 +54,7 @@ func ConfigEdge(c interface{}) Option {
 		Override(new(dtypes.CarfileStorePath), dtypes.CarfileStorePath(cfg.CarfileStorePath)),
 		Override(new(*storage.Manager), modules.NewNodeStorageManager),
 		Override(new(*cache.Manager), modules.NewCacheManager(cfg.FetchBatch)),
-		Override(new(*validate.Validate), modules.NewNodeValidate),
+		Override(new(*validation.Validation), modules.NewNodeValidation),
 		Override(new(*rate.Limiter), modules.NewRateLimiter),
 		Override(new(*asset.Asset), asset.NewAsset),
 		Override(new(*datasync.DataSync), modules.NewDataSync),
