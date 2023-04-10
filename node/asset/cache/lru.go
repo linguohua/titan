@@ -21,7 +21,7 @@ const sizeOfBuckets = 128
 
 type Key string
 
-// lruCache car index cache
+// lruCache asset index for cache
 type lruCache struct {
 	storage storage.Storage
 	cache   *lru.Cache
@@ -52,10 +52,10 @@ func (lru *lruCache) getBlock(ctx context.Context, root, block cid.Cid) (blocks.
 			return nil, xerrors.Errorf("add cache %s %w", root.String(), err)
 		}
 
-		log.Debugf("add car %s to cache", block.String())
+		log.Debugf("add asset %s to cache", block.String())
 
 		if v, ok = lru.cache.Get(key); !ok {
-			return nil, xerrors.Errorf("car %s not exist", root.String())
+			return nil, xerrors.Errorf("asset %s not exist", root.String())
 		}
 	}
 
@@ -74,10 +74,10 @@ func (lru *lruCache) hasBlock(ctx context.Context, root, block cid.Cid) (bool, e
 			return false, err
 		}
 
-		log.Debugf("check car %s index from cache", block.String())
+		log.Debugf("check asset %s index from cache", block.String())
 
 		if v, ok = lru.cache.Get(key); !ok {
-			return false, xerrors.Errorf("car %s not exist", root.String())
+			return false, xerrors.Errorf("asset %s not exist", root.String())
 		}
 	}
 
@@ -88,7 +88,7 @@ func (lru *lruCache) hasBlock(ctx context.Context, root, block cid.Cid) (bool, e
 	return false, xerrors.Errorf("can not convert interface to *cacheValue")
 }
 
-func (lru *lruCache) carIndex(root cid.Cid) (index.Index, error) {
+func (lru *lruCache) assetIndex(root cid.Cid) (index.Index, error) {
 	key := Key(root.Hash().String())
 	v, ok := lru.cache.Get(key)
 	if !ok {
@@ -97,7 +97,7 @@ func (lru *lruCache) carIndex(root cid.Cid) (index.Index, error) {
 		}
 
 		if v, ok = lru.cache.Get(key); !ok {
-			return nil, xerrors.Errorf("car %s not exist", root.String())
+			return nil, xerrors.Errorf("asset %s not exist", root.String())
 		}
 	}
 
@@ -109,17 +109,17 @@ func (lru *lruCache) carIndex(root cid.Cid) (index.Index, error) {
 }
 
 func (lru *lruCache) add(root cid.Cid) error {
-	reader, err := lru.storage.GetCar(root)
+	reader, err := lru.storage.GetAsset(root)
 	if err != nil {
 		return err
 	}
 
 	f, ok := reader.(*os.File)
 	if !ok {
-		return xerrors.Errorf("can not convert car %s reader to file", root.String())
+		return xerrors.Errorf("can not convert asset %s reader to file", root.String())
 	}
 
-	idx, err := lru.getCarIndex(f)
+	idx, err := lru.getAssetIndex(f)
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func (lru *lruCache) onEvict(key interface{}, value interface{}) {
 	}
 }
 
-func (lru *lruCache) getCarIndex(r io.ReaderAt) (index.Index, error) {
+func (lru *lruCache) getAssetIndex(r io.ReaderAt) (index.Index, error) {
 	// Open the CARv2 file
 	cr, err := carv2.NewReader(r)
 	if err != nil {

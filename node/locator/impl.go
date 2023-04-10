@@ -246,27 +246,6 @@ func (locator *Locator) EdgeDownloadInfos(ctx context.Context, cid string) ([]*t
 	return make([]*types.EdgeDownloadInfo, 0), nil
 }
 
-func (locator *Locator) UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error {
-	remoteAddr := handler.GetRemoteAddr(ctx)
-	areaID, err := locator.getAreaIDWith(remoteAddr)
-	if err != nil {
-		return err
-	}
-
-	schedulerAPI := locator.ApMgr.randSchedulerAPI(areaID)
-	if schedulerAPI == nil {
-		schedulerAPI, err = locator.getFirstOnlineSchedulerAPIAt(areaID)
-		if err != nil {
-			return err
-		}
-	}
-
-	if schedulerAPI != nil {
-		return schedulerAPI.UserDownloadBlockResults(ctx, results)
-	}
-	return nil
-}
-
 // return defaultAreaID if can not get areaID
 func (locator *Locator) getAreaIDWith(remoteAddr string) (string, error) {
 	ip, _, err := net.SplitHostPort(remoteAddr)

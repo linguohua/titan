@@ -17,21 +17,21 @@ func (gw *Gateway) serveTAR(w http.ResponseWriter, r *http.Request, credentials 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 
-	car, err := cid.Decode(credentials.CarCID)
+	assetCID, err := cid.Decode(credentials.AssetCID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("decode car cid error: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	contentPath := path.New(r.URL.Path)
-	resolvedPath, err := gw.resolvePath(ctx, contentPath, car)
+	resolvedPath, err := gw.resolvePath(ctx, contentPath, assetCID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("can not resolved path: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	// Get Unixfs file
-	file, err := gw.getUnixFsNode(ctx, resolvedPath, car)
+	file, err := gw.getUnixFsNode(ctx, resolvedPath, assetCID)
 	if err != nil {
 		err = fmt.Errorf("error getting UnixFS node for %s: %w", html.EscapeString(contentPath.String()), err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

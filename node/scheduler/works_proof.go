@@ -24,25 +24,14 @@ func (s *Scheduler) UserDownloadResult(ctx context.Context, result types.UserDow
 
 		record, _ := s.NodeManager.LoadAssetRecord(blockHash)
 		if record != nil && record.CID != "" {
-			blockDownloadInfo.CarfileCID = result.BlockCID
+			blockDownloadInfo.AssetCID = result.BlockCID
 		}
 	}
 
 	return nil
 }
 
-func (s *Scheduler) handleUserDownloadBlockResult(ctx context.Context, result types.UserBlockDownloadResult) error {
-	// TODO: implement user download count
-	return nil
-}
-
-// UserDownloadBlockResults node result for user download block
-func (s *Scheduler) UserDownloadBlockResults(ctx context.Context, results []types.UserBlockDownloadResult) error {
-	for _, result := range results {
-		if err := s.handleUserDownloadBlockResult(ctx, result); err != nil {
-			log.Errorf("handleUserDownloadBlockResult error: %s", err.Error())
-		}
-	}
+func (s *Scheduler) UserProofsOfWork(ctx context.Context, proofs []*types.UserProofOfWork) error {
 	return nil
 }
 

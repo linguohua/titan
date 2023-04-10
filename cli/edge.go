@@ -71,7 +71,7 @@ var cacheStatCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("Total carfile count %d, block count %d, wait cache carfile count %d", stat.TotalAssetCount, stat.TotalBlockCount, stat.WaitCacheAssetCount)
+		fmt.Printf("Total asset count %d, block count %d, wait cache asset count %d", stat.TotalAssetCount, stat.TotalBlockCount, stat.WaitCacheAssetCount)
 		return nil
 	},
 }
@@ -82,7 +82,7 @@ var progressCmd = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "cid",
-			Usage: "carfile cid",
+			Usage: "asset cid",
 			Value: "",
 		},
 	},
@@ -101,7 +101,7 @@ var progressCmd = &cli.Command{
 		}
 
 		for _, progress := range ret.Progresses {
-			fmt.Printf("Cache carfile %s %v\n", progress.CID, progress.Status)
+			fmt.Printf("Cache asset %s %v\n", progress.CID, progress.Status)
 			fmt.Printf("Total block count %d, done block count %d  \n", progress.BlocksCount, progress.DoneBlocksCount)
 			fmt.Printf("Total block size %d, done block siez %d  \n", progress.Size, progress.DoneSize)
 			fmt.Println()

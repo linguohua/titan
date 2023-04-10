@@ -49,7 +49,7 @@ func (edge *Edge) ExternalServiceAddress(ctx context.Context, schedulerURL strin
 	return schedulerAPI.GetNodeExternalAddress(ctx)
 }
 
-func (edge *Edge) UserNATTravel(ctx context.Context, sourceURL string, req *types.NatTravelReq) error {
+func (edge *Edge) UserNATPunch(ctx context.Context, sourceURL string, req *types.NatPunchReq) error {
 	return edge.checkNetworkConnectivity(sourceURL, req.Timeout)
 }
 

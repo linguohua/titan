@@ -18,7 +18,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-var log = logging.Logger("carfile")
+var log = logging.Logger("asset")
 
 type Asset struct {
 	scheduler       api.Scheduler
@@ -46,34 +46,34 @@ func (a *Asset) CacheAsset(ctx context.Context, rootCID string, dss []*types.Can
 		return err
 	}
 
-	has, err := a.cacheMgr.HasCar(root)
+	has, err := a.cacheMgr.HasAsset(root)
 	if err != nil {
 		return err
 	}
 
 	if has {
-		log.Debugf("CacheCarfile %s already exist", root.String())
+		log.Debugf("CacheAsset %s already exist", root.String())
 		return nil
 	}
 
-	log.Debugf("Cache carfile cid:%s", rootCID)
+	log.Debugf("Cache asset cid:%s", rootCID)
 
 	a.cacheMgr.AddToWaitList(root, dss)
 	return nil
 }
 
-func (a *Asset) DeleteAsset(ctx context.Context, carfileCID string) error {
-	c, err := cid.Decode(carfileCID)
+func (a *Asset) DeleteAsset(ctx context.Context, assetCID string) error {
+	c, err := cid.Decode(assetCID)
 	if err != nil {
-		log.Errorf("DeleteCarfile, decode carfile cid %s error :%s", carfileCID, err.Error())
+		log.Errorf("DeleteAsset, decode asset cid %s error :%s", assetCID, err.Error())
 		return err
 	}
 
-	log.Debugf("DeleteCarfile %s", carfileCID)
+	log.Debugf("DeleteAsset %s", assetCID)
 
 	go func() {
-		if err := a.cacheMgr.DeleteCar(c); err != nil {
-			log.Errorf("delete car failed %s", err.Error())
+		if err := a.cacheMgr.DeleteAsset(c); err != nil {
+			log.Errorf("delete asset failed %s", err.Error())
 			return
 		}
 
@@ -89,20 +89,20 @@ func (a *Asset) DeleteAsset(ctx context.Context, carfileCID string) error {
 }
 
 func (a *Asset) GetAssetStats(ctx context.Context) (*types.AssetStats, error) {
-	carfileCount, err := a.cacheMgr.CountCar()
+	assetCount, err := a.cacheMgr.CountAsset()
 	if err != nil {
 		return nil, err
 	}
 
 	assetStats := &types.AssetStats{}
 	assetStats.TotalBlockCount = a.TotalBlockCount
-	assetStats.TotalAssetCount = carfileCount
+	assetStats.TotalAssetCount = assetCount
 	assetStats.WaitCacheAssetCount = a.cacheMgr.WaitListLen()
 	_, assetStats.DiskUsage = a.cacheMgr.GetDiskUsageStat()
 
-	carfileCache := a.cacheMgr.CachingCar()
-	if carfileCache != nil {
-		assetStats.InProgressAssetCID = carfileCache.Root().String()
+	assetCache := a.cacheMgr.CachingAsset()
+	if assetCache != nil {
+		assetStats.InProgressAssetCID = assetCache.Root().String()
 	}
 
 	log.Debugf("cacheStat:%#v", *assetStats)
@@ -111,35 +111,35 @@ func (a *Asset) GetAssetStats(ctx context.Context) (*types.AssetStats, error) {
 }
 
 func (a *Asset) GetCachingAssetInfo(ctx context.Context) (*types.InProgressAsset, error) {
-	carfileCache := a.cacheMgr.CachingCar()
-	if carfileCache == nil {
-		return nil, fmt.Errorf("caching carfile not exist")
+	assetCache := a.cacheMgr.CachingAsset()
+	if assetCache == nil {
+		return nil, fmt.Errorf("no asset caching")
 	}
 
 	ret := &types.InProgressAsset{}
-	ret.CID = carfileCache.Root().Hash().String()
-	ret.TotalSize = carfileCache.TotalSize()
-	ret.DoneSize = carfileCache.DoneSize()
+	ret.CID = assetCache.Root().Hash().String()
+	ret.TotalSize = assetCache.TotalSize()
+	ret.DoneSize = assetCache.DoneSize()
 
 	return ret, nil
 }
 
-func (a *Asset) GetBlocksOfCar(carfileCID string, randomSeed int64, randomCount int) (map[int]string, error) {
-	root, err := cid.Decode(carfileCID)
+func (a *Asset) GetBlocksOfAsset(assetCID string, randomSeed int64, randomCount int) (map[int]string, error) {
+	root, err := cid.Decode(assetCID)
 	if err != nil {
 		return nil, err
 	}
 
-	return a.cacheMgr.GetBlocksOfCarfile(root, randomSeed, randomCount)
+	return a.cacheMgr.GetBlocksOfAsset(root, randomSeed, randomCount)
 }
 
-func (a *Asset) BlockCountOfCarfile(carfileCID string) (int, error) {
-	c, err := cid.Decode(carfileCID)
+func (a *Asset) BlockCountOfAsset(assetCID string) (int, error) {
+	c, err := cid.Decode(assetCID)
 	if err != nil {
 		return 0, err
 	}
 
-	count, err := a.cacheMgr.BlockCountOfCar(context.Background(), c)
+	count, err := a.cacheMgr.BlockCountOfAsset(context.Background(), c)
 	if err != nil {
 		return 0, err
 	}
@@ -147,18 +147,18 @@ func (a *Asset) BlockCountOfCarfile(carfileCID string) (int, error) {
 	return int(count), nil
 }
 
-func (a *Asset) GetAssetProgresses(ctx context.Context, carfileCIDs []string) (*types.PullResult, error) {
-	progresses := make([]*types.AssetPullProgress, 0, len(carfileCIDs))
-	for _, carfileCID := range carfileCIDs {
-		root, err := cid.Decode(carfileCID)
+func (a *Asset) GetAssetProgresses(ctx context.Context, assetCIDs []string) (*types.PullResult, error) {
+	progresses := make([]*types.AssetPullProgress, 0, len(assetCIDs))
+	for _, assetCID := range assetCIDs {
+		root, err := cid.Decode(assetCID)
 		if err != nil {
 			log.Errorf("decode cid %s", err.Error())
 			return nil, err
 		}
 
-		progress, err := a.carProgress(root)
+		progress, err := a.assetProgress(root)
 		if err != nil {
-			log.Errorf("carProgress %s", err.Error())
+			log.Errorf("assetProgress %s", err.Error())
 			return nil, err
 		}
 		progresses = append(progresses, progress)
@@ -169,7 +169,7 @@ func (a *Asset) GetAssetProgresses(ctx context.Context, carfileCIDs []string) (*
 		TotalBlocksCount: a.TotalBlockCount,
 	}
 
-	if count, err := a.cacheMgr.CountCar(); err == nil {
+	if count, err := a.cacheMgr.CountAsset(); err == nil {
 		result.AssetCount = count
 	}
 	_, result.DiskUsage = a.cacheMgr.GetDiskUsageStat()
@@ -177,13 +177,13 @@ func (a *Asset) GetAssetProgresses(ctx context.Context, carfileCIDs []string) (*
 	return result, nil
 }
 
-func (a *Asset) progressForSucceededCar(root cid.Cid) (*types.AssetPullProgress, error) {
+func (a *Asset) progressForSucceededAsset(root cid.Cid) (*types.AssetPullProgress, error) {
 	progress := &types.AssetPullProgress{
 		CID:    root.String(),
 		Status: types.ReplicaStatusSucceeded,
 	}
 
-	if count, err := a.cacheMgr.BlockCountOfCar(context.Background(), root); err == nil {
+	if count, err := a.cacheMgr.BlockCountOfAsset(context.Background(), root); err == nil {
 		progress.BlocksCount = int(count)
 		progress.DoneBlocksCount = int(count)
 	}
@@ -210,21 +210,21 @@ func (a *Asset) progressForSucceededCar(root cid.Cid) (*types.AssetPullProgress,
 	return progress, nil
 }
 
-func (a *Asset) carProgress(root cid.Cid) (*types.AssetPullProgress, error) {
+func (a *Asset) assetProgress(root cid.Cid) (*types.AssetPullProgress, error) {
 	status, err := a.cacheMgr.CachedStatus(root)
 	if err != nil {
-		return nil, xerrors.Errorf("car %s cache status %w", root.Hash(), err)
+		return nil, xerrors.Errorf("asset %s cache status %w", root.Hash(), err)
 	}
 
 	switch status {
 	case types.ReplicaStatusWaiting:
 		return &types.AssetPullProgress{CID: root.String(), Status: types.ReplicaStatusWaiting}, nil
 	case types.ReplicaStatusPulling:
-		return a.cacheMgr.CachingCar().Progress(), nil
+		return a.cacheMgr.CachingAsset().Progress(), nil
 	case types.ReplicaStatusFailed:
-		return a.cacheMgr.ProgressForFailedCar(root)
+		return a.cacheMgr.ProgressForFailedAsset(root)
 	case types.ReplicaStatusSucceeded:
-		return a.progressForSucceededCar(root)
+		return a.progressForSucceededAsset(root)
 	}
-	return nil, xerrors.Errorf("unknown car %s status %d", root.String(), status)
+	return nil, xerrors.Errorf("unknown asset %s status %d", root.String(), status)
 }

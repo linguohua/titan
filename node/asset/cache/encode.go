@@ -7,7 +7,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-type EncodeCarfileCache struct {
+type EncodeAssetCache struct {
 	Root                      string
 	BlocksWaitList            []string
 	BlocksDownloadSuccessList []string

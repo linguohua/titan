@@ -11,16 +11,16 @@ import (
 	"github.com/shirou/gopsutil/v3/disk"
 )
 
-var log = logging.Logger("carfile/store")
+var log = logging.Logger("asset/store")
 
 const (
 	// dir of file name
-	carCacheDir    = "car-cache"
+	assetCacheDir  = "asset-cache"
 	waitListFile   = "wait-list"
-	carsDir        = "cars"
+	assetsDir      = "assets"
 	transientsDir  = "tmp"
 	countDir       = "count"
-	carSuffix      = ".car"
+	assetSuffix    = ".asset"
 	assetsViewDir  = "assets-view"
 	maxSizeOfCache = 1024
 	sizeOfBucket   = 128
@@ -29,18 +29,18 @@ const (
 // Manager access operation of storage
 type Manager struct {
 	baseDir    string
-	car        *car
+	asset      *asset
 	wl         *waitList
-	carCache   *carCache
+	assetCache *assetCache
 	count      *count
 	assetsView *AssetsView
 }
 
 type ManagerOptions struct {
-	CarCacheDir      string
+	AssetCacheDir    string
 	waitListFilePath string
-	CarsDir          string
-	CarSuffix        string
+	AssetsDir        string
+	AssetSuffix      string
 	CountDir         string
 	AssetsViewDir    string
 	// data view size of buckets
@@ -52,12 +52,12 @@ func NewManager(baseDir string, opts *ManagerOptions) (*Manager, error) {
 		opts = defaultOptions(baseDir)
 	}
 
-	car, err := newCar(opts.CarsDir, opts.CarSuffix)
+	asset, err := newAsset(opts.AssetsDir, opts.AssetSuffix)
 	if err != nil {
 		return nil, err
 	}
 
-	carCache, err := newCarCache(opts.CarCacheDir)
+	assetCache, err := newAssetCache(opts.AssetCacheDir)
 	if err != nil {
 		return nil, err
 	}
@@ -75,76 +75,76 @@ func NewManager(baseDir string, opts *ManagerOptions) (*Manager, error) {
 	waitList := newWaitList(opts.waitListFilePath)
 	return &Manager{
 		baseDir:    baseDir,
-		car:        car,
+		asset:      asset,
 		assetsView: assetsView,
 		wl:         waitList,
-		carCache:   carCache,
+		assetCache: assetCache,
 		count:      count,
 	}, nil
 }
 
 func defaultOptions(baseDir string) *ManagerOptions {
 	opts := &ManagerOptions{
-		CarCacheDir:      filepath.Join(baseDir, carCacheDir),
+		AssetCacheDir:    filepath.Join(baseDir, assetCacheDir),
 		waitListFilePath: filepath.Join(baseDir, waitListFile),
-		CarsDir:          filepath.Join(baseDir, carsDir),
-		CarSuffix:        filepath.Join(baseDir, carSuffix),
+		AssetsDir:        filepath.Join(baseDir, assetsDir),
+		AssetSuffix:      filepath.Join(baseDir, assetSuffix),
 		CountDir:         filepath.Join(baseDir, countDir),
 		AssetsViewDir:    filepath.Join(baseDir, assetsViewDir),
-		// cache for car index
+		// cache for asset index
 		BucketSize: sizeOfBucket,
 	}
 	return opts
 }
 
-// carCache api
-func (m *Manager) PutCarCache(c cid.Cid, data []byte) error {
-	return m.carCache.put(c, data)
+// assetCache api
+func (m *Manager) PutAssetCache(c cid.Cid, data []byte) error {
+	return m.assetCache.put(c, data)
 }
 
-func (m *Manager) GetCarCache(c cid.Cid) ([]byte, error) {
-	return m.carCache.get(c)
+func (m *Manager) GetAssetCache(c cid.Cid) ([]byte, error) {
+	return m.assetCache.get(c)
 }
 
-func (m *Manager) HasCarCache(c cid.Cid) (bool, error) {
-	return m.carCache.has(c)
+func (m *Manager) HasAssetCache(c cid.Cid) (bool, error) {
+	return m.assetCache.has(c)
 }
 
-func (m *Manager) RemoveCarCache(c cid.Cid) error {
-	return m.carCache.delete(c)
+func (m *Manager) RemoveAssetCache(c cid.Cid) error {
+	return m.assetCache.delete(c)
 }
 
-// car api
+// asset api
 func (m *Manager) PutBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) error {
-	return m.car.putBlocks(ctx, root, blks)
+	return m.asset.putBlocks(ctx, root, blks)
 }
 
-func (m *Manager) PutCar(ctx context.Context, root cid.Cid) error {
-	return m.car.putCar(ctx, root)
+func (m *Manager) PutAsset(ctx context.Context, root cid.Cid) error {
+	return m.asset.putAsset(ctx, root)
 }
 
-func (m *Manager) GetCar(root cid.Cid) (io.ReadSeekCloser, error) {
-	return m.car.get(root)
+func (m *Manager) GetAsset(root cid.Cid) (io.ReadSeekCloser, error) {
+	return m.asset.get(root)
 
 }
 
-func (m *Manager) HasCar(root cid.Cid) (bool, error) {
-	return m.car.has(root)
+func (m *Manager) HasAsset(root cid.Cid) (bool, error) {
+	return m.asset.has(root)
 }
 
-func (m *Manager) RemoveCar(root cid.Cid) error {
-	return m.car.remove(root)
+func (m *Manager) RemoveAsset(root cid.Cid) error {
+	return m.asset.remove(root)
 }
 
-func (m *Manager) CountCar() (int, error) {
-	return m.car.count()
+func (m *Manager) CountAsset() (int, error) {
+	return m.asset.count()
 }
 
-func (m *Manager) BlockCountOfCar(ctx context.Context, root cid.Cid) (uint32, error) {
+func (m *Manager) BlockCountOfAsset(ctx context.Context, root cid.Cid) (uint32, error) {
 	return m.count.get(ctx, root)
 }
 
-func (m *Manager) SetBlockCountOfCar(ctx context.Context, root cid.Cid, count uint32) error {
+func (m *Manager) SetBlockCountOfAsset(ctx context.Context, root cid.Cid, count uint32) error {
 	return m.count.put(ctx, root, count)
 }
 
@@ -155,7 +155,7 @@ func (m *Manager) GetTopHash(ctx context.Context) (string, error) {
 func (m *Manager) GetBucketHashes(ctx context.Context) (map[uint32]string, error) {
 	return m.assetsView.getBucketHashes(ctx)
 }
-func (m *Manager) GetCarsOfBucket(ctx context.Context, bucketID uint32) ([]cid.Cid, error) {
+func (m *Manager) GetAssetsOfBucket(ctx context.Context, bucketID uint32) ([]cid.Cid, error) {
 	hashes, err := m.assetsView.getAssetHashes(ctx, bucketID)
 	if err != nil {
 		return nil, err
@@ -167,11 +167,11 @@ func (m *Manager) GetCarsOfBucket(ctx context.Context, bucketID uint32) ([]cid.C
 	}
 	return cids, nil
 }
-func (m *Manager) AddCarToAssetsView(ctx context.Context, root cid.Cid) error {
-	return m.assetsView.addCar(ctx, root)
+func (m *Manager) AddAssetToAssetsView(ctx context.Context, root cid.Cid) error {
+	return m.assetsView.addAsset(ctx, root)
 }
-func (m *Manager) RemoveCarFromAssetsView(ctx context.Context, root cid.Cid) error {
-	return m.assetsView.removeCar(ctx, root)
+func (m *Manager) RemoveAssetFromAssetsView(ctx context.Context, root cid.Cid) error {
+	return m.assetsView.removeAsset(ctx, root)
 }
 
 // wait list

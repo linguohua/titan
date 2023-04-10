@@ -383,11 +383,6 @@ func (s *Scheduler) GetSchedulerPublicKey(ctx context.Context) (string, error) {
 	return string(pem), nil
 }
 
-// IgnoreProofOfWork does nothing and is a placeholder for future implementation.
-func (s *Scheduler) IgnoreProofOfWork(ctx context.Context, proofs []*types.NodeWorkloadProof) error {
-	return nil
-}
-
 // GetCandidateDownloadInfos finds candidate download info for the given CID.
 func (s *Scheduler) GetCandidateDownloadInfos(ctx context.Context, cid string) ([]*types.CandidateDownloadInfo, error) {
 	hash, err := cidutil.CIDString2HashString(cid)

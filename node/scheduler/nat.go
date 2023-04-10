@@ -232,7 +232,7 @@ func (s *Scheduler) verifyUDPConnectivity(targetURL string) error {
 }
 
 // NatTravel performs NAT traversal
-func (s *Scheduler) NatTravel(ctx context.Context, target *types.NatTravelReq) error {
+func (s *Scheduler) NatPunch(ctx context.Context, target *types.NatPunchReq) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	sourceURL := fmt.Sprintf("https://%s/ping", remoteAddr)
 
@@ -241,5 +241,5 @@ func (s *Scheduler) NatTravel(ctx context.Context, target *types.NatTravelReq) e
 		return xerrors.Errorf("edge %s not exist", target.NodeID)
 	}
 
-	return eNode.UserNATTravel(context.Background(), sourceURL, target)
+	return eNode.UserNATPunch(context.Background(), sourceURL, target)
 }

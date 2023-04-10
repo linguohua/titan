@@ -23,21 +23,21 @@ func (gw *Gateway) serveCar(w http.ResponseWriter, r *http.Request, credentials 
 		return
 	}
 
-	car, err := cid.Decode(credentials.CarCID)
+	root, err := cid.Decode(credentials.AssetCID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("decode car cid error: %s", err.Error()), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("decode root cid error: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	contentPath := path.New(r.URL.Path)
-	resolvedPath, err := gw.resolvePath(ctx, contentPath, car)
+	resolvedPath, err := gw.resolvePath(ctx, contentPath, root)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("can not resolved path: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 	rootCID := resolvedPath.Cid()
 
-	has, err := gw.storage.HasCar(rootCID)
+	has, err := gw.storage.HasAsset(rootCID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -79,7 +79,7 @@ func (gw *Gateway) serveCar(w http.ResponseWriter, r *http.Request, credentials 
 
 	modtime := addCacheControlHeaders(w, r, contentPath, rootCID)
 
-	reader, err := gw.storage.GetCar(rootCID)
+	reader, err := gw.storage.GetAsset(rootCID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("not support car version %s", carVersion), http.StatusInternalServerError)
 		return

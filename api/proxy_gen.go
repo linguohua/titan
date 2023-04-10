@@ -44,7 +44,7 @@ type CandidateStruct struct {
 	AssetStruct
 
 	Internal struct {
-		GetBlocksWithCarfileCID func(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) `perm:"read"`
+		GetBlocksWithAssetCID func(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) `perm:"read"`
 
 		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
@@ -125,7 +125,7 @@ type EdgeStruct struct {
 	Internal struct {
 		ExternalServiceAddress func(p0 context.Context, p1 string) (string, error) `perm:"write"`
 
-		UserNATTravel func(p0 context.Context, p1 string, p2 *types.NatTravelReq) error `perm:"write"`
+		UserNATPunch func(p0 context.Context, p1 string, p2 *types.NatPunchReq) error `perm:"write"`
 
 		WaitQuiet func(p0 context.Context) error `perm:"read"`
 	}
@@ -166,8 +166,6 @@ type LocatorStruct struct {
 		RemoveAccessPoints func(p0 context.Context, p1 string) error `perm:"admin"`
 
 		UpdateNodeOnlineStatus func(p0 context.Context, p1 string, p2 bool) error `perm:"write"`
-
-		UserDownloadBlockResults func(p0 context.Context, p1 []types.UserBlockDownloadResult) error `perm:"read"`
 	}
 }
 
@@ -221,9 +219,7 @@ type SchedulerStruct struct {
 
 		GetValidationResults func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidationResultRsp, error) `perm:"read"`
 
-		IgnoreProofOfWork func(p0 context.Context, p1 []*types.NodeWorkloadProof) error `perm:"read"`
-
-		NatTravel func(p0 context.Context, p1 *types.NatTravelReq) error `perm:"read"`
+		NatPunch func(p0 context.Context, p1 *types.NatPunchReq) error `perm:"read"`
 
 		NodeRemoveAssetResult func(p0 context.Context, p1 types.RemoveAssetResult) error `perm:"write"`
 
@@ -239,19 +235,19 @@ type SchedulerStruct struct {
 
 		RemoveAssetReplica func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
-		UpdateAssetExpiration func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
-
 		SetEdgeUpdateInfo func(p0 context.Context, p1 *EdgeUpdateInfo) error `perm:"admin"`
 
 		TriggerElection func(p0 context.Context) error `perm:"admin"`
 
 		UnregisterNode func(p0 context.Context, p1 string) error `perm:"admin"`
 
+		UpdateAssetExpiration func(p0 context.Context, p1 string, p2 time.Time) error `perm:"admin"`
+
 		UpdateNodePort func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
-		UserDownloadBlockResults func(p0 context.Context, p1 []types.UserBlockDownloadResult) error `perm:"read"`
-
 		UserDownloadResult func(p0 context.Context, p1 types.UserDownloadResult) error `perm:"write"`
+
+		UserProofsOfWork func(p0 context.Context, p1 []*types.UserProofOfWork) error `perm:"read"`
 
 		VerifyNodeAuthToken func(p0 context.Context, p1 string) ([]auth.Permission, error) `perm:"read"`
 	}
@@ -325,14 +321,14 @@ func (s *AssetStub) GetCachingAssetInfo(p0 context.Context) (*types.InProgressAs
 	return nil, ErrNotSupported
 }
 
-func (s *CandidateStruct) GetBlocksWithCarfileCID(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
-	if s.Internal.GetBlocksWithCarfileCID == nil {
+func (s *CandidateStruct) GetBlocksWithAssetCID(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
+	if s.Internal.GetBlocksWithAssetCID == nil {
 		return *new(map[int]string), ErrNotSupported
 	}
-	return s.Internal.GetBlocksWithCarfileCID(p0, p1, p2, p3)
+	return s.Internal.GetBlocksWithAssetCID(p0, p1, p2, p3)
 }
 
-func (s *CandidateStub) GetBlocksWithCarfileCID(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
+func (s *CandidateStub) GetBlocksWithAssetCID(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {
 	return *new(map[int]string), ErrNotSupported
 }
 
@@ -512,14 +508,14 @@ func (s *EdgeStub) ExternalServiceAddress(p0 context.Context, p1 string) (string
 	return "", ErrNotSupported
 }
 
-func (s *EdgeStruct) UserNATTravel(p0 context.Context, p1 string, p2 *types.NatTravelReq) error {
-	if s.Internal.UserNATTravel == nil {
+func (s *EdgeStruct) UserNATPunch(p0 context.Context, p1 string, p2 *types.NatPunchReq) error {
+	if s.Internal.UserNATPunch == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.UserNATTravel(p0, p1, p2)
+	return s.Internal.UserNATPunch(p0, p1, p2)
 }
 
-func (s *EdgeStub) UserNATTravel(p0 context.Context, p1 string, p2 *types.NatTravelReq) error {
+func (s *EdgeStub) UserNATPunch(p0 context.Context, p1 string, p2 *types.NatPunchReq) error {
 	return ErrNotSupported
 }
 
@@ -641,17 +637,6 @@ func (s *LocatorStruct) UpdateNodeOnlineStatus(p0 context.Context, p1 string, p2
 }
 
 func (s *LocatorStub) UpdateNodeOnlineStatus(p0 context.Context, p1 string, p2 bool) error {
-	return ErrNotSupported
-}
-
-func (s *LocatorStruct) UserDownloadBlockResults(p0 context.Context, p1 []types.UserBlockDownloadResult) error {
-	if s.Internal.UserDownloadBlockResults == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.UserDownloadBlockResults(p0, p1)
-}
-
-func (s *LocatorStub) UserDownloadBlockResults(p0 context.Context, p1 []types.UserBlockDownloadResult) error {
 	return ErrNotSupported
 }
 
@@ -886,25 +871,14 @@ func (s *SchedulerStub) GetValidationResults(p0 context.Context, p1 time.Time, p
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) IgnoreProofOfWork(p0 context.Context, p1 []*types.NodeWorkloadProof) error {
-	if s.Internal.IgnoreProofOfWork == nil {
+func (s *SchedulerStruct) NatPunch(p0 context.Context, p1 *types.NatPunchReq) error {
+	if s.Internal.NatPunch == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.IgnoreProofOfWork(p0, p1)
+	return s.Internal.NatPunch(p0, p1)
 }
 
-func (s *SchedulerStub) IgnoreProofOfWork(p0 context.Context, p1 []*types.NodeWorkloadProof) error {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) NatTravel(p0 context.Context, p1 *types.NatTravelReq) error {
-	if s.Internal.NatTravel == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.NatTravel(p0, p1)
-}
-
-func (s *SchedulerStub) NatTravel(p0 context.Context, p1 *types.NatTravelReq) error {
+func (s *SchedulerStub) NatPunch(p0 context.Context, p1 *types.NatPunchReq) error {
 	return ErrNotSupported
 }
 
@@ -985,17 +959,6 @@ func (s *SchedulerStub) RemoveAssetReplica(p0 context.Context, p1 string, p2 str
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) UpdateAssetExpiration(p0 context.Context, p1 string, p2 time.Time) error {
-	if s.Internal.UpdateAssetExpiration == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.UpdateAssetExpiration(p0, p1, p2)
-}
-
-func (s *SchedulerStub) UpdateAssetExpiration(p0 context.Context, p1 string, p2 time.Time) error {
-	return ErrNotSupported
-}
-
 func (s *SchedulerStruct) SetEdgeUpdateInfo(p0 context.Context, p1 *EdgeUpdateInfo) error {
 	if s.Internal.SetEdgeUpdateInfo == nil {
 		return ErrNotSupported
@@ -1029,6 +992,17 @@ func (s *SchedulerStub) UnregisterNode(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
+func (s *SchedulerStruct) UpdateAssetExpiration(p0 context.Context, p1 string, p2 time.Time) error {
+	if s.Internal.UpdateAssetExpiration == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.UpdateAssetExpiration(p0, p1, p2)
+}
+
+func (s *SchedulerStub) UpdateAssetExpiration(p0 context.Context, p1 string, p2 time.Time) error {
+	return ErrNotSupported
+}
+
 func (s *SchedulerStruct) UpdateNodePort(p0 context.Context, p1 string, p2 string) error {
 	if s.Internal.UpdateNodePort == nil {
 		return ErrNotSupported
@@ -1040,17 +1014,6 @@ func (s *SchedulerStub) UpdateNodePort(p0 context.Context, p1 string, p2 string)
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) UserDownloadBlockResults(p0 context.Context, p1 []types.UserBlockDownloadResult) error {
-	if s.Internal.UserDownloadBlockResults == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.UserDownloadBlockResults(p0, p1)
-}
-
-func (s *SchedulerStub) UserDownloadBlockResults(p0 context.Context, p1 []types.UserBlockDownloadResult) error {
-	return ErrNotSupported
-}
-
 func (s *SchedulerStruct) UserDownloadResult(p0 context.Context, p1 types.UserDownloadResult) error {
 	if s.Internal.UserDownloadResult == nil {
 		return ErrNotSupported
@@ -1059,6 +1022,17 @@ func (s *SchedulerStruct) UserDownloadResult(p0 context.Context, p1 types.UserDo
 }
 
 func (s *SchedulerStub) UserDownloadResult(p0 context.Context, p1 types.UserDownloadResult) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) UserProofsOfWork(p0 context.Context, p1 []*types.UserProofOfWork) error {
+	if s.Internal.UserProofsOfWork == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.UserProofsOfWork(p0, p1)
+}
+
+func (s *SchedulerStub) UserProofsOfWork(p0 context.Context, p1 []*types.UserProofOfWork) error {
 	return ErrNotSupported
 }
 

@@ -26,14 +26,14 @@ type CachedResulter interface {
 	CacheResult(result *types.PullResult) error
 }
 
-type carWaiter struct {
+type assetWaiter struct {
 	Root  cid.Cid
 	Dss   []*types.CandidateDownloadInfo
-	cache *carfileCache
+	cache *assetCache
 }
 type Manager struct {
-	// root cid of car
-	waitList      []*carWaiter
+	// root cid of asset
+	waitList      []*assetWaiter
 	waitListLock  *sync.Mutex
 	downloadCh    chan bool
 	downloadBatch int
@@ -55,7 +55,7 @@ func NewManager(opts *ManagerOptions) (*Manager, error) {
 	}
 
 	m := &Manager{
-		waitList:      make([]*carWaiter, 0),
+		waitList:      make([]*assetWaiter, 0),
 		waitListLock:  &sync.Mutex{},
 		downloadCh:    make(chan bool),
 		Storage:       opts.Storage,
@@ -76,10 +76,10 @@ func (m *Manager) startTick() {
 		time.Sleep(10 * time.Second)
 
 		if len(m.waitList) > 0 {
-			cache := m.CachingCar()
+			cache := m.CachingAsset()
 			if cache != nil {
-				if err := m.saveCarfileCache(cache); err != nil {
-					log.Error("saveIncompleteCarfileCache error:%s", err.Error())
+				if err := m.saveAssetCache(cache); err != nil {
+					log.Error("saveAssetCache error:%s", err.Error())
 				}
 
 				log.Debugf("total block %d, done block %d, total size %d, done size %d",
@@ -107,44 +107,44 @@ func (m *Manager) start() {
 
 	go m.startTick()
 
-	// delay 15 second to do download cars if exist waitList
+	// delay 15 second to do download asset if exist waitList
 	time.AfterFunc(15*time.Second, m.triggerDownload)
 
 	for {
 		<-m.downloadCh
-		m.doDownloadCars()
+		m.doDownloadAssets()
 	}
 }
 
-func (m *Manager) doDownloadCars() {
+func (m *Manager) doDownloadAssets() {
 	for len(m.waitList) > 0 {
-		m.doDownloadCar()
+		m.doDownloadAsset()
 	}
 }
 
-func (m *Manager) doDownloadCar() {
+func (m *Manager) doDownloadAsset() {
 	cw := m.headFromWaitList()
 	if cw == nil {
 		return
 	}
-	defer m.removeCarFromWaitList(cw.Root)
+	defer m.removeAssetFromWaitList(cw.Root)
 
-	carfileCache, err := m.restoreCarfileCacheOrNew(&options{cw.Root, cw.Dss, m.Storage, m.bFetcher, m.downloadBatch})
+	assetCache, err := m.restoreAssetCacheOrNew(&options{cw.Root, cw.Dss, m.Storage, m.bFetcher, m.downloadBatch})
 	if err != nil {
-		log.Errorf("restore carfile cache error:%s", err)
+		log.Errorf("restore asset cache error:%s", err)
 		return
 	}
 
-	cw.cache = carfileCache
-	err = carfileCache.downloadCar()
+	cw.cache = assetCache
+	err = assetCache.downloadAsset()
 	if err != nil {
-		log.Errorf("doDownloadCar, download car error:%s", err)
+		log.Errorf("doDownloadAsset, download asset error:%s", err)
 	}
 
-	m.onDownloadCarFinish(carfileCache)
+	m.ondownloadAssetFinish(assetCache)
 }
 
-func (m *Manager) headFromWaitList() *carWaiter {
+func (m *Manager) headFromWaitList() *assetWaiter {
 	m.waitListLock.Lock()
 	defer m.waitListLock.Unlock()
 
@@ -154,7 +154,7 @@ func (m *Manager) headFromWaitList() *carWaiter {
 	return m.waitList[0]
 }
 
-func (m *Manager) removeCarFromWaitList(root cid.Cid) *carWaiter {
+func (m *Manager) removeAssetFromWaitList(root cid.Cid) *assetWaiter {
 	m.waitListLock.Lock()
 	defer m.waitListLock.Unlock()
 
@@ -186,7 +186,7 @@ func (m *Manager) AddToWaitList(root cid.Cid, dss []*types.CandidateDownloadInfo
 		}
 	}
 
-	cw := &carWaiter{Root: root, Dss: dss}
+	cw := &assetWaiter{Root: root, Dss: dss}
 	m.waitList = append(m.waitList, cw)
 
 	if err := m.saveWaitList(); err != nil {
@@ -196,7 +196,7 @@ func (m *Manager) AddToWaitList(root cid.Cid, dss []*types.CandidateDownloadInfo
 	m.triggerDownload()
 }
 
-func (m *Manager) saveCarfileCache(cf *carfileCache) error {
+func (m *Manager) saveAssetCache(cf *assetCache) error {
 	if cf == nil || cf.isDownloadComplete() {
 		return nil
 	}
@@ -205,28 +205,28 @@ func (m *Manager) saveCarfileCache(cf *carfileCache) error {
 	if err != nil {
 		return err
 	}
-	return m.PutCarCache(cf.Root(), buf)
+	return m.PutAssetCache(cf.Root(), buf)
 }
 
-func (m *Manager) onDownloadCarFinish(cf *carfileCache) {
-	log.Debugf("onDownloadCarFinish, carfile %s", cf.root.String())
+func (m *Manager) ondownloadAssetFinish(cf *assetCache) {
+	log.Debugf("ondownloadAssetFinish, asset %s", cf.root.String())
 	if cf.isDownloadComplete() {
-		if err := m.RemoveCarCache(cf.root); err != nil && !os.IsNotExist(err) {
-			log.Errorf("remove car cache error:%s", err.Error())
+		if err := m.RemoveAssetCache(cf.root); err != nil && !os.IsNotExist(err) {
+			log.Errorf("remove asset cache error:%s", err.Error())
 		}
 
-		blockCountOfCar := uint32(len(cf.blocksDownloadSuccessList))
-		if err := m.SetBlockCountOfCar(context.Background(), cf.root, blockCountOfCar); err != nil {
+		blockCountOfAsset := uint32(len(cf.blocksDownloadSuccessList))
+		if err := m.SetBlockCountOfAsset(context.Background(), cf.root, blockCountOfAsset); err != nil {
 			log.Errorf("set block count error:%s", err.Error())
 		}
 
-		if err := m.PutCar(context.Background(), cf.root); err != nil {
-			log.Errorf("put car error: %s", err.Error())
+		if err := m.PutAsset(context.Background(), cf.root); err != nil {
+			log.Errorf("put asset error: %s", err.Error())
 		}
 
 	} else {
-		if err := m.saveCarfileCache(cf); err != nil {
-			log.Errorf("saveIncompleteCarfileCache error:%s", err.Error())
+		if err := m.saveAssetCache(cf); err != nil {
+			log.Errorf("saveAssetCache error:%s", err.Error())
 		}
 	}
 }
@@ -266,7 +266,7 @@ func (m *Manager) WaitListLen() int {
 	return len(m.waitList)
 }
 
-func (m *Manager) CachingCar() *carfileCache {
+func (m *Manager) CachingAsset() *assetCache {
 	for _, cw := range m.waitList {
 		if cw.cache != nil {
 			return cw.cache
@@ -275,11 +275,11 @@ func (m *Manager) CachingCar() *carfileCache {
 	return nil
 }
 
-func (m *Manager) DeleteCar(root cid.Cid) error {
+func (m *Manager) DeleteAsset(root cid.Cid) error {
 	// remove lru cache
 	m.lru.remove(root)
 
-	ok, err := m.deleteCarFromWaitList(root)
+	ok, err := m.deleteAssetFromWaitList(root)
 	if err != nil {
 		return err
 	}
@@ -288,21 +288,21 @@ func (m *Manager) DeleteCar(root cid.Cid) error {
 		return nil
 	}
 
-	if err := m.RemoveCar(root); err != nil {
+	if err := m.RemoveAsset(root); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *Manager) restoreCarfileCacheOrNew(opts *options) (*carfileCache, error) {
-	data, err := m.GetCarCache(opts.root)
+func (m *Manager) restoreAssetCacheOrNew(opts *options) (*assetCache, error) {
+	data, err := m.GetAssetCache(opts.root)
 	if err != nil && !os.IsNotExist(err) {
-		log.Errorf("CacheCarfile load incomplete carfile error %s", err.Error())
+		log.Errorf("load asset cache error %s", err.Error())
 		return nil, err
 	}
 
-	cc := newCarfileCache(opts)
+	cc := newAssetCache(opts)
 	if len(data) > 0 {
 		err = cc.decode(data)
 		if err != nil {
@@ -318,8 +318,8 @@ func (m *Manager) restoreCarfileCacheOrNew(opts *options) (*carfileCache, error)
 }
 
 // return true if exist in waitList
-func (m *Manager) deleteCarFromWaitList(root cid.Cid) (bool, error) {
-	if c := m.removeCarFromWaitList(root); c != nil {
+func (m *Manager) deleteAssetFromWaitList(root cid.Cid) (bool, error) {
+	if c := m.removeAssetFromWaitList(root); c != nil {
 		if c.cache != nil {
 			err := c.cache.CancelDownload()
 			if err != nil {
@@ -348,7 +348,7 @@ func (m *Manager) Progresses() []*types.AssetPullProgress {
 }
 
 func (m *Manager) CachedStatus(root cid.Cid) (types.ReplicaStatus, error) {
-	if ok, err := m.HasCar(root); err == nil && ok {
+	if ok, err := m.HasAsset(root); err == nil && ok {
 		return types.ReplicaStatusSucceeded, nil
 	}
 
@@ -364,13 +364,13 @@ func (m *Manager) CachedStatus(root cid.Cid) (types.ReplicaStatus, error) {
 	return types.ReplicaStatusFailed, nil
 }
 
-func (m *Manager) ProgressForFailedCar(root cid.Cid) (*types.AssetPullProgress, error) {
+func (m *Manager) ProgressForFailedAsset(root cid.Cid) (*types.AssetPullProgress, error) {
 	progress := &types.AssetPullProgress{
 		CID:    root.String(),
 		Status: types.ReplicaStatusFailed,
 	}
 
-	data, err := m.GetCarCache(root)
+	data, err := m.GetAssetCache(root)
 	if os.IsNotExist(err) {
 		return progress, nil
 	}
@@ -379,7 +379,7 @@ func (m *Manager) ProgressForFailedCar(root cid.Cid) (*types.AssetPullProgress, 
 		return nil, err
 	}
 
-	cc := &carfileCache{}
+	cc := &assetCache{}
 	err = cc.decode(data)
 	if err != nil {
 		return nil, err
@@ -402,7 +402,7 @@ func (m *Manager) HasBlock(ctx context.Context, root, block cid.Cid) (bool, erro
 }
 
 func (m *Manager) iterableIndex(ctx context.Context, root cid.Cid) (index.IterableIndex, error) {
-	idx, err := m.lru.carIndex(root)
+	idx, err := m.lru.assetIndex(root)
 	if err != nil {
 		return nil, err
 	}
@@ -415,10 +415,10 @@ func (m *Manager) iterableIndex(ctx context.Context, root cid.Cid) (index.Iterab
 	return iterableIdx, nil
 }
 
-func (m *Manager) GetBlocksOfCarfile(root cid.Cid, randomSeed int64, randomCount int) (map[int]string, error) {
+func (m *Manager) GetBlocksOfAsset(root cid.Cid, randomSeed int64, randomCount int) (map[int]string, error) {
 	rand := rand.New(rand.NewSource(randomSeed))
 
-	idx, err := m.lru.carIndex(root)
+	idx, err := m.lru.assetIndex(root)
 	if err != nil {
 		return nil, err
 	}
@@ -450,9 +450,9 @@ func (m *Manager) GetBlocksOfCarfile(root cid.Cid, randomSeed int64, randomCount
 	return ret, nil
 }
 
-// AddLostCar implement data sync interface
-func (m *Manager) AddLostCar(root cid.Cid) error {
-	if has, err := m.HasCar(root); err != nil {
+// AddLostAsset implement data sync interface
+func (m *Manager) AddLostAsset(root cid.Cid) error {
+	if has, err := m.HasAsset(root); err != nil {
 		return err
 	} else if has {
 		return nil
@@ -470,15 +470,15 @@ func (m *Manager) AddLostCar(root cid.Cid) error {
 	return nil
 }
 
-// GetCarsOfBucket data sync interface
-func (m *Manager) GetCarsOfBucket(ctx context.Context, bucketID uint32, isRemote bool) ([]cid.Cid, error) {
+// GetAssetsOfBucket data sync interface
+func (m *Manager) GetAssetsOfBucket(ctx context.Context, bucketID uint32, isRemote bool) ([]cid.Cid, error) {
 	if !isRemote {
-		return m.Storage.GetCarsOfBucket(ctx, bucketID)
+		return m.Storage.GetAssetsOfBucket(ctx, bucketID)
 	}
 	return nil, nil
 }
 
-// validate car by random seed
+// GetChecker validate asset by random seed
 func (m *Manager) GetChecker(ctx context.Context, randomSeed int64) (validate.RandomChecker, error) {
 	return NewRandomCheck(randomSeed, m.Storage, nil), nil
 }

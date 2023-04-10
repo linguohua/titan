@@ -32,17 +32,17 @@ func (rc *randomCheck) GetBlock(ctx context.Context) (blocks.Block, error) {
 	}
 
 	if rc.root == nil {
-		car, err := rc.randomCar(ctx)
+		asset, err := rc.randomAsset(ctx)
 		if err != nil {
-			return nil, xerrors.Errorf("random car %w", err)
+			return nil, xerrors.Errorf("random asset %w", err)
 		}
-		rc.root = car
+		rc.root = asset
 	}
 
 	if rc.idx == nil {
-		idx, err := rc.lru.carIndex(*rc.root)
+		idx, err := rc.lru.assetIndex(*rc.root)
 		if err != nil {
-			return nil, xerrors.Errorf("car index %w", err)
+			return nil, xerrors.Errorf("asset index %w", err)
 		}
 
 		if multiIndex, ok := idx.(*index.MultiIndexSorted); !ok {
@@ -68,7 +68,7 @@ func (rc *randomCheck) GetBlock(ctx context.Context) (blocks.Block, error) {
 	return rc.lru.getBlock(ctx, *rc.root, record.Cid)
 }
 
-func (rc *randomCheck) randomCar(ctx context.Context) (*cid.Cid, error) {
+func (rc *randomCheck) randomAsset(ctx context.Context) (*cid.Cid, error) {
 	bucketHashes, err := rc.GetBucketHashes(ctx)
 	if err != nil {
 		return nil, err
@@ -89,9 +89,9 @@ func (rc *randomCheck) randomCar(ctx context.Context) (*cid.Cid, error) {
 	index := r.Intn(len(bucketIDs))
 	bucketID := bucketIDs[index]
 
-	cids, err := rc.GetCarsOfBucket(ctx, uint32(bucketID))
+	cids, err := rc.GetAssetsOfBucket(ctx, uint32(bucketID))
 	if err != nil {
-		return nil, xerrors.Errorf("get cars of bucket %w", err)
+		return nil, xerrors.Errorf("get assets of bucket %w", err)
 	}
 
 	if len(cids) == 0 {

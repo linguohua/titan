@@ -15,7 +15,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-var log = logging.Logger("carfile/fetcher")
+var log = logging.Logger("asset/fetcher")
 
 type IPFS struct {
 	httpAPI    *httpapi.HttpApi

@@ -15,8 +15,8 @@ import (
 )
 
 func init() {
-	_ = logging.SetLogLevel("carfile/store", "DEBUG")
-	_ = logging.SetLogLevel("carfile/cache", "DEBUG")
+	_ = logging.SetLogLevel("asset/store", "DEBUG")
+	_ = logging.SetLogLevel("asset/cache", "DEBUG")
 }
 func TestLRUCache(t *testing.T) {
 	t.Logf("TestLRUCache")
@@ -65,7 +65,7 @@ func TestLRUCache(t *testing.T) {
 func TestIndex(t *testing.T) {
 	t.Logf("TestIndex")
 
-	storageMgr, err := storage.NewManager("C:/Users/aaa/.titanedge-1/carfilestore", nil)
+	storageMgr, err := storage.NewManager("C:/Users/aaa/.titanedge-1/storage", nil)
 	if err != nil {
 		t.Errorf("new manager err:%s", err.Error())
 		return
@@ -83,7 +83,7 @@ func TestIndex(t *testing.T) {
 		return
 	}
 
-	reader, err := storageMgr.GetCar(root)
+	reader, err := storageMgr.GetAsset(root)
 	if err != nil {
 		t.Errorf("decode error:%s", err.Error())
 		return
@@ -91,11 +91,11 @@ func TestIndex(t *testing.T) {
 
 	f, ok := reader.(*os.File)
 	if !ok {
-		t.Errorf("can not convert car %s reader to file", root.String())
+		t.Errorf("can not convert asset %s reader to file", root.String())
 		return
 	}
 
-	idx, err := cache.getCarIndex(f)
+	idx, err := cache.getAssetIndex(f)
 	if err != nil {
 		t.Errorf("decode error:%s", err.Error())
 		return
