@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/linguohua/titan/node/fsutil"
-	"github.com/linguohua/titan/stores"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/linguohua/titan/node/types"
@@ -72,8 +71,6 @@ type LockedRepo interface {
 	Config() (interface{}, error)
 	SetConfig(func(interface{})) error
 
-	GetStorage() (stores.StorageConfig, error)
-	SetStorage(func(*stores.StorageConfig)) error
 	Stat(path string) (fsutil.FsStat, error)
 	DiskUsage(path string) (int64, error)
 
