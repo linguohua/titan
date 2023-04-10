@@ -563,7 +563,7 @@ func loadPrivateKey(path string, r *repo.FsRepo) (*rsa.PrivateKey, error) {
 }
 
 func getSchedulerPublicKey(schedulerAPI api.Scheduler) (*rsa.PublicKey, error) {
-	pem, err := schedulerAPI.GetServerPublicKey(context.Background())
+	pem, err := schedulerAPI.GetSchedulerPublicKey(context.Background())
 	if err != nil {
 		return nil, err
 	}

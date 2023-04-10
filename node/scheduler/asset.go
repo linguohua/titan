@@ -131,8 +131,8 @@ func (s *Scheduler) PullAsset(ctx context.Context, info *types.PullAssetReq) err
 	return s.AssetManager.CreateAssetPullTask(info)
 }
 
-// GetAssetReplicas lists asset replicas based on a given request with startTime, endTime, cursor, and count parameters.
-func (s *Scheduler) GetAssetReplicas(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
+// GetAssetReplicaInfos lists asset replicas based on a given request with startTime, endTime, cursor, and count parameters.
+func (s *Scheduler) GetAssetReplicaInfos(ctx context.Context, req types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
 	startTime := time.Unix(req.StartTime, 0)
 	endTime := time.Unix(req.EndTime, 0)
 
