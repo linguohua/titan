@@ -80,7 +80,7 @@ func (bw *blockWaiter) calculateBandwidth(costTime int64, size int64) {
 
 func cidFromData(data []byte) (string, error) {
 	if len(data) == 0 {
-		return "", fmt.Errorf("len(data) == 0")
+		return "", fmt.Errorf("convert data to cid error: data len == 0")
 	}
 
 	pref := cid.Prefix{

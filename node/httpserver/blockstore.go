@@ -28,7 +28,7 @@ func (robs *readOnlyBlockStore) Get(ctx context.Context, c cid.Cid) (blocks.Bloc
 
 // GetSize returns the CIDs mapped BlockSize
 func (robs *readOnlyBlockStore) GetSize(ctx context.Context, c cid.Cid) (int, error) {
-	log.Errorf("read only block store, can not get size %s", c.String())
+	log.Errorf("read only block store, not implement GetSize %s", c.String())
 	return 0, nil
 }
 
