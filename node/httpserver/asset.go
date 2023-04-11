@@ -9,8 +9,8 @@ import (
 )
 
 type Asset interface {
-	GetAsset(root cid.Cid) (io.ReadSeekCloser, error)
-	HasAsset(root cid.Cid) (bool, error)
+	RetrieveAsset(root cid.Cid) (io.ReadSeekCloser, error)
+	AssetExists(root cid.Cid) (bool, error)
 
 	HasBlock(ctx context.Context, root, block cid.Cid) (bool, error)
 	GetBlock(ctx context.Context, root, block cid.Cid) (blocks.Block, error)

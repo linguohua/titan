@@ -36,8 +36,8 @@ func NewAsset(storageMgr *storage.Manager, scheduler api.Scheduler, assetMgr *Ma
 	}
 }
 
-// CacheAsset adds the asset to the waitlist for caching
-func (a *Asset) CacheAsset(ctx context.Context, rootCID string, infos []*types.CandidateDownloadInfo) error {
+// PullAsset adds the asset to the waitList for pulling
+func (a *Asset) PullAsset(ctx context.Context, rootCID string, infos []*types.CandidateDownloadInfo) error {
 	if types.RunningNodeType == types.NodeEdge && len(infos) == 0 {
 		return fmt.Errorf("candidate download infos can not empty")
 	}
@@ -47,7 +47,7 @@ func (a *Asset) CacheAsset(ctx context.Context, rootCID string, infos []*types.C
 		return err
 	}
 
-	has, err := a.mgr.HasAsset(root)
+	has, err := a.mgr.AssetExists(root)
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (a *Asset) CacheAsset(ctx context.Context, rootCID string, infos []*types.C
 
 	log.Debugf("Cache asset %s", rootCID)
 
-	a.mgr.AddToWaitList(root, infos)
+	a.mgr.addToWaitList(root, infos)
 	return nil
 }
 
@@ -92,7 +92,7 @@ func (a *Asset) DeleteAsset(ctx context.Context, assetCID string) error {
 
 // GetAssetStats returns statistics about the assets stored on this node
 func (a *Asset) GetAssetStats(ctx context.Context) (*types.AssetStats, error) {
-	assetCount, err := a.mgr.CountAsset()
+	assetCount, err := a.mgr.AssetCount()
 	if err != nil {
 		return nil, err
 	}
@@ -113,8 +113,8 @@ func (a *Asset) GetAssetStats(ctx context.Context) (*types.AssetStats, error) {
 	return assetStats, nil
 }
 
-// GetCachingAssetInfo returns information about the asset currently being cached
-func (a *Asset) GetCachingAssetInfo(ctx context.Context) (*types.InProgressAsset, error) {
+// GetPullingAssetInfo returns information about the asset currently being pulled
+func (a *Asset) GetPullingAssetInfo(ctx context.Context) (*types.InProgressAsset, error) {
 	puller := a.mgr.puller()
 	if puller == nil {
 		return nil, fmt.Errorf("no asset caching")
@@ -145,7 +145,7 @@ func (a *Asset) BlockCountOfAsset(assetCID string) (int, error) {
 		return 0, err
 	}
 
-	count, err := a.mgr.BlockCountOfAsset(context.Background(), c)
+	count, err := a.mgr.GetBlockCount(context.Background(), c)
 	if err != nil {
 		return 0, err
 	}
@@ -176,7 +176,7 @@ func (a *Asset) GetAssetProgresses(ctx context.Context, assetCIDs []string) (*ty
 		TotalBlocksCount: a.TotalBlockCount,
 	}
 
-	if count, err := a.mgr.CountAsset(); err == nil {
+	if count, err := a.mgr.AssetCount(); err == nil {
 		result.AssetCount = count
 	}
 	_, result.DiskUsage = a.mgr.GetDiskUsageStat()
@@ -184,14 +184,14 @@ func (a *Asset) GetAssetProgresses(ctx context.Context, assetCIDs []string) (*ty
 	return result, nil
 }
 
-// getProgressForSucceededAsset returns asset pull progress for the succeeded asset.
-func (a *Asset) progressForSucceededAsset(root cid.Cid) (*types.AssetPullProgress, error) {
+// progressForAssetPulledSucceeded returns asset pull progress for the succeeded asset.
+func (a *Asset) progressForAssetPulledSucceeded(root cid.Cid) (*types.AssetPullProgress, error) {
 	progress := &types.AssetPullProgress{
 		CID:    root.String(),
 		Status: types.ReplicaStatusSucceeded,
 	}
 
-	if count, err := a.mgr.BlockCountOfAsset(context.Background(), root); err == nil {
+	if count, err := a.mgr.GetBlockCount(context.Background(), root); err == nil {
 		progress.BlocksCount = int(count)
 		progress.DoneBlocksCount = int(count)
 	}
@@ -219,7 +219,7 @@ func (a *Asset) progressForSucceededAsset(root cid.Cid) (*types.AssetPullProgres
 }
 
 func (a *Asset) progress(root cid.Cid) (*types.AssetPullProgress, error) {
-	status, err := a.mgr.cachedStatus(root)
+	status, err := a.mgr.assetStatus(root)
 	if err != nil {
 		return nil, xerrors.Errorf("asset %s cache status %w", root.Hash(), err)
 	}
@@ -228,11 +228,11 @@ func (a *Asset) progress(root cid.Cid) (*types.AssetPullProgress, error) {
 	case types.ReplicaStatusWaiting:
 		return &types.AssetPullProgress{CID: root.String(), Status: types.ReplicaStatusWaiting}, nil
 	case types.ReplicaStatusPulling:
-		return a.mgr.puller().progress(), nil
+		return a.mgr.puller().getAssetProgress(), nil
 	case types.ReplicaStatusFailed:
-		return a.mgr.ProgressForFailedAsset(root)
+		return a.mgr.progressForAssetPulledFailed(root)
 	case types.ReplicaStatusSucceeded:
-		return a.progressForSucceededAsset(root)
+		return a.progressForAssetPulledSucceeded(root)
 	}
 	return nil, xerrors.Errorf("unknown asset %s status %d", root.String(), status)
 }

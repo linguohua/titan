@@ -37,7 +37,7 @@ func (hs *HttpServer) serveCar(w http.ResponseWriter, r *http.Request, credentia
 	}
 	rootCID := resolvedPath.Cid()
 
-	has, err := hs.asset.HasAsset(rootCID)
+	has, err := hs.asset.AssetExists(rootCID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -79,7 +79,7 @@ func (hs *HttpServer) serveCar(w http.ResponseWriter, r *http.Request, credentia
 
 	modtime := addCacheControlHeaders(w, r, contentPath, rootCID)
 
-	reader, err := hs.asset.GetAsset(rootCID)
+	reader, err := hs.asset.RetrieveAsset(rootCID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("not support car version %s", carVersion), http.StatusInternalServerError)
 		return

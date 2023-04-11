@@ -29,7 +29,7 @@ type Device struct {
 // Storage represents a storage system and its properties.
 type Storage interface {
 	GetDiskUsageStat() (totalSpace, usage float64)
-	GetFilesystemType() string
+	GetFileSystemType() string
 }
 
 // NewDevice creates a new Device instance with the specified properties.
@@ -101,7 +101,7 @@ func (device *Device) GetNodeInfo(ctx context.Context) (types.NodeInfo, error) {
 	info.CPUUsage = cpuPercent[0]
 	info.CPUCores, _ = cpu.Counts(false)
 	info.DiskSpace, info.DiskUsage = device.storage.GetDiskUsageStat()
-	info.IoSystem = device.storage.GetFilesystemType()
+	info.IoSystem = device.storage.GetFileSystemType()
 	return info, nil
 }
 

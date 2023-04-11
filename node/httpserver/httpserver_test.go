@@ -32,7 +32,7 @@ func TestResolvePath(t *testing.T) {
 		return
 	}
 
-	bFetcher := fetcher.NewIPFS("http://192.168.0.132:5001", 15, 1)
+	bFetcher := fetcher.NewIPFSClient("http://192.168.0.132:5001", 15, 1)
 	opts := &asset.ManagerOptions{Storage: storageMgr, BFetcher: bFetcher, PullParallel: 5}
 
 	mgr, err := asset.NewManager(opts)

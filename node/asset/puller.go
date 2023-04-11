@@ -43,12 +43,12 @@ type pullerOptions struct {
 	parallel int
 }
 
-// NewAssetPuller creates a new asset puller with the given options
+// newAssetPuller creates a new asset puller with the given options
 func newAssetPuller(opts *pullerOptions) *assetPuller {
 	return &assetPuller{root: opts.root, storage: opts.storage, downloadSources: opts.dss, bFetcher: opts.bFetcher, parallel: opts.parallel}
 }
 
-// get n block from front of wait list
+// getBlocksFromWaitListFront get n block from front of wait list
 func (ap *assetPuller) getBlocksFromWaitListFront(n int) []string {
 	if len(ap.blocksWaitList) < n {
 		n = len(ap.blocksWaitList)
@@ -57,7 +57,7 @@ func (ap *assetPuller) getBlocksFromWaitListFront(n int) []string {
 	return ap.blocksWaitList[:n]
 }
 
-// remove n block from front of wait list
+// removeBlocksFromWaitList remove n block from front of wait list
 func (ap *assetPuller) removeBlocksFromWaitList(n int) {
 	if len(ap.blocksWaitList) < n {
 		n = len(ap.blocksWaitList)
@@ -65,7 +65,7 @@ func (ap *assetPuller) removeBlocksFromWaitList(n int) {
 	ap.blocksWaitList = ap.blocksWaitList[n:]
 }
 
-// pullAsset pulls the asset by downloading its blocks and its links.
+// pullAsset pulls the asset by downloading its blocks
 func (ap *assetPuller) pullAsset() error {
 	defer func() {
 		ap.isFinish = true
@@ -91,7 +91,7 @@ func (ap *assetPuller) pullAsset() error {
 	return nil
 }
 
-// pullBlocksWithBreadthFirst pulls blocks from the wait list with breadth first algorithm.
+// pullBlocksWithBreadthFirst pulls blocks with breadth first algorithm.
 func (ap *assetPuller) pullBlocksWithBreadthFirst(layerCids []string) (result *pulledResult, err error) {
 	ap.blocksWaitList = layerCids
 	result = &pulledResult{netLayerCids: ap.nextLayerCIDs}
@@ -122,9 +122,9 @@ func (ap *assetPuller) pullBlocksWithBreadthFirst(layerCids []string) (result *p
 	return result, nil
 }
 
-// pullBlocks fetches blocks for given cids, updates links information, and stores them in the storage
+// pullBlocks fetches blocks for given cids, stores them in the storage
 func (ap *assetPuller) pullBlocks(cids []string) (*pulledResult, error) {
-	blks, err := ap.bFetcher.Fetch(context.Background(), cids, ap.downloadSources)
+	blks, err := ap.bFetcher.FetchBlocks(context.Background(), cids, ap.downloadSources)
 	if err != nil {
 		log.Errorf("loadBlocksAsync loadBlocks err %s", err.Error())
 		return nil, err
@@ -162,7 +162,7 @@ func (ap *assetPuller) pullBlocks(cids []string) (*pulledResult, error) {
 		nexLayerCids = append(nexLayerCids, links...)
 	}
 
-	err = ap.storage.PutBlocks(context.Background(), ap.root, blks)
+	err = ap.storage.StoreBlocks(context.Background(), ap.root, blks)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +193,7 @@ func (ap *assetPuller) cancelPulling() error {
 
 // encode encodes the asset puller to bytes
 func (ap *assetPuller) encode() ([]byte, error) {
-	eac := &EncodeAssetPuller{
+	eac := &AssetPullerEncoder{
 		Root:                    ap.root.String(),
 		BlocksWaitList:          ap.blocksWaitList,
 		BlocksPulledSuccessList: ap.blocksPulledSuccessList,
@@ -208,7 +208,7 @@ func (ap *assetPuller) encode() ([]byte, error) {
 
 // decode decodes the bytes into an asset puller
 func (ap *assetPuller) decode(data []byte) error {
-	eac := &EncodeAssetPuller{}
+	eac := &AssetPullerEncoder{}
 	err := decode(data, eac)
 	if err != nil {
 		return err
@@ -230,8 +230,8 @@ func (ap *assetPuller) decode(data []byte) error {
 	return nil
 }
 
-// getStatus returns the current status of the asset pulling task
-func (ap *assetPuller) status() types.ReplicaStatus {
+// getAssetStatus returns the current status of the asset
+func (ap *assetPuller) getAssetStatus() types.ReplicaStatus {
 	if ap.isPulledComplete() {
 		return types.ReplicaStatusSucceeded
 	}
@@ -242,11 +242,11 @@ func (ap *assetPuller) status() types.ReplicaStatus {
 	return types.ReplicaStatusPulling
 }
 
-// getProgress returns a struct containing progress information about the asset pulling task
-func (ap *assetPuller) progress() *types.AssetPullProgress {
+// getAssetProgress returns the current progress of the asset
+func (ap *assetPuller) getAssetProgress() *types.AssetPullProgress {
 	return &types.AssetPullProgress{
 		CID:             ap.root.String(),
-		Status:          ap.status(),
+		Status:          ap.getAssetStatus(),
 		BlocksCount:     len(ap.blocksPulledSuccessList) + len(ap.blocksWaitList),
 		DoneBlocksCount: len(ap.blocksPulledSuccessList),
 		Size:            int64(ap.totalSize),

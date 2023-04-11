@@ -107,7 +107,7 @@ func (b *bucket) Unmarshal(r io.Reader) error {
 	return nil
 }
 
-// FindAll searches for all occurrences of a CID and calls the provided function for each one.
+// getAll searches for all occurrences of a CID and calls the provided function for each one.
 func (b *bucket) getAll(c cid.Cid, fn func(uint64) bool) error {
 	for _, record := range b.records {
 		if bytes.Equal(c.Hash(), record.Hash()) {
@@ -120,7 +120,7 @@ func (b *bucket) getAll(c cid.Cid, fn func(uint64) bool) error {
 	return xerrors.Errorf("not found")
 }
 
-// Iterate iterates over all records in the bucket and calls the provided function for each one.
+// forEach iterates over all records in the bucket and calls the provided function for each one.
 func (b *bucket) forEach(f func(mh multihash.Multihash, offset uint64) error) error {
 	for _, record := range b.records {
 		if err := f(record.Hash(), record.Offset); err != nil {
@@ -135,14 +135,14 @@ func (m *MultiIndexSorted) Codec() multicodec.Code {
 	return multiIndexCodec
 }
 
-// HashCode computes the hash code for a given multihash.
+// hashCode computes the hash code for a given multihash.
 func (m *MultiIndexSorted) hashCode(mh multihash.Multihash) uint32 {
 	hash := fnv.New32a()
 	hash.Write(mh)
 	return hash.Sum32() % m.size
 }
 
-// FindAll searches for all occurrences of a CID and calls the provided function for each one.
+// GetAll searches for all occurrences of a CID and calls the provided function for each one.
 func (m *MultiIndexSorted) GetAll(c cid.Cid, fn func(uint64) bool) error {
 	code := m.hashCode(c.Hash())
 	if b, ok := m.buckets[code]; ok {
@@ -217,7 +217,7 @@ func (m *MultiIndexSorted) Unmarshal(r io.Reader) error {
 	return nil
 }
 
-// LoadRecords loads a list of records into the MultiIndex.
+// Load loads a list of records into the MultiIndex.
 func (m *MultiIndexSorted) Load(records []index.Record) error {
 	// Group records by hash code
 	byCode := make(map[uint32][]*index.Record)
@@ -247,7 +247,7 @@ func (m *MultiIndexSorted) Load(records []index.Record) error {
 	return nil
 }
 
-// Iterate iterates over all records in the MultiIndex and calls the provided function for each one.
+// ForEach iterates over all records in the MultiIndex and calls the provided function for each one.
 func (m *MultiIndexSorted) ForEach(f func(mh multihash.Multihash, offset uint64) error) error {
 	codes := make([]uint32, 0, len(m.buckets))
 	for k := range m.buckets {
@@ -264,12 +264,12 @@ func (m *MultiIndexSorted) ForEach(f func(mh multihash.Multihash, offset uint64)
 }
 
 // BucketCount returns the number of buckets in the MultiIndex.
-func (m *MultiIndexSorted) BucketSize() uint32 {
+func (m *MultiIndexSorted) BucketCount() uint32 {
 	return uint32(len(m.buckets))
 }
 
 // TotalRecordCount returns the total number of records in the MultiIndex.
-func (m *MultiIndexSorted) RecordCount() uint32 {
+func (m *MultiIndexSorted) TotalRecordCount() uint32 {
 	count := 0
 	for _, b := range m.buckets {
 		count += len(b.records)
@@ -279,7 +279,7 @@ func (m *MultiIndexSorted) RecordCount() uint32 {
 }
 
 // GetBucketRecords returns the records of a specific bucket by its index.
-func (m *MultiIndexSorted) GetBucket(index uint32) ([]*index.Record, error) {
+func (m *MultiIndexSorted) GetBucketRecords(index uint32) ([]*index.Record, error) {
 	if int(index) >= len(m.buckets) {
 		return nil, xerrors.Errorf("index %d out bucket size", index)
 	}
@@ -294,7 +294,7 @@ func (m *MultiIndexSorted) GetBucket(index uint32) ([]*index.Record, error) {
 	return m.buckets[code].records, nil
 }
 
-// NewMultiIndex creates a new MultiIndex with the specified bucket size.
+// NewMultiIndexSorted creates a new MultiIndexSorted with the specified bucket size.
 func NewMultiIndexSorted(sizeOfBucket uint32) *MultiIndexSorted {
 	return &MultiIndexSorted{buckets: make(map[uint32]*bucket), size: sizeOfBucket}
 }
