@@ -105,9 +105,9 @@ func (m *Manager) StorePuller(c cid.Cid, data []byte) error {
 	return m.puller.store(c, data)
 }
 
-// RetrievePuller retrieves puller from storage
-func (m *Manager) RetrievePuller(c cid.Cid) ([]byte, error) {
-	return m.puller.retrieve(c)
+// GetPuller retrieves puller from storage
+func (m *Manager) GetPuller(c cid.Cid) ([]byte, error) {
+	return m.puller.get(c)
 }
 
 // PullerExists checks if an puller exist in storage
@@ -131,9 +131,9 @@ func (m *Manager) StoreAsset(ctx context.Context, root cid.Cid) error {
 	return m.asset.storeAsset(ctx, root)
 }
 
-// RetrieveAsset retrieves an asset
-func (m *Manager) RetrieveAsset(root cid.Cid) (io.ReadSeekCloser, error) {
-	return m.asset.retrieve(root)
+// GetAsset retrieves an asset
+func (m *Manager) GetAsset(root cid.Cid) (io.ReadSeekCloser, error) {
+	return m.asset.get(root)
 }
 
 // AssetExists checks if an asset exists
@@ -153,7 +153,7 @@ func (m *Manager) AssetCount() (int, error) {
 
 // GetBlockCount retrieves the block count of an asset
 func (m *Manager) GetBlockCount(ctx context.Context, root cid.Cid) (uint32, error) {
-	return m.blockCount.retrieveBlockCount(ctx, root)
+	return m.blockCount.getBlockCount(ctx, root)
 }
 
 // SetBlockCount sets the block count of an asset

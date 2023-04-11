@@ -25,10 +25,9 @@ func TestManager(t *testing.T) {
 		return
 	}
 
-	_, err = Manager.RetrieveAsset(c)
+	_, err = Manager.GetAsset(c)
 	if err != nil {
 		t.Errorf("get asset error:%s", err.Error())
 		return
 	}
-
 }
