@@ -68,8 +68,8 @@ func (device *Device) GetNodeInfo(ctx context.Context) (types.NodeInfo, error) {
 	info.ExternalIP = device.publicIP
 	info.SystemVersion = version.String()
 	info.InternalIP = device.internalIP
-	info.DownloadSpeed = float64(device.bandwidthDown)
-	info.UploadSpeed = float64(device.bandwidthUp)
+	info.BandwidthDown = float64(device.bandwidthDown)
+	info.BandwidthUp = float64(device.bandwidthUp)
 
 	mac, err := getMacAddr(info.InternalIP)
 	if err != nil {

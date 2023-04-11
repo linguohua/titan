@@ -49,11 +49,12 @@ func GenerateTokenWithAdminPermission(ca *common.CommonAPI) (dtypes.PermissionAd
 	return dtypes.PermissionAdminToken(token), nil
 }
 
-// DefaultSessionCallback ...
+// DefaultSessionCallback returns a default session callback function
 func DefaultSessionCallback() dtypes.SessionCallbackFunc {
 	return func(s string, s2 string) error { return nil }
 }
 
+// StorageManagerParams Manager Params
 type StorageManagerParams struct {
 	fx.In
 
@@ -65,6 +66,7 @@ type StorageManagerParams struct {
 	*db.SQLDB
 }
 
+// NewStorageManager creates a new storage manager instance
 func NewStorageManager(params StorageManagerParams) *assets.Manager {
 	var (
 		mctx    = params.MetricsCtx
@@ -89,6 +91,7 @@ func NewStorageManager(params StorageManagerParams) *assets.Manager {
 	return m
 }
 
+// NewValidation creates a new validation manager instance
 func NewValidation(mctx helpers.MetricsCtx, lc fx.Lifecycle, m *node.Manager, configFunc dtypes.GetSchedulerConfigFunc, p *pubsub.PubSub) *validation.Manager {
 	v := validation.NewManager(m, configFunc, p)
 
@@ -104,6 +107,7 @@ func NewValidation(mctx helpers.MetricsCtx, lc fx.Lifecycle, m *node.Manager, co
 	return v
 }
 
+// NewSetSchedulerConfigFunc creates a function to set the scheduler config
 func NewSetSchedulerConfigFunc(r repo.LockedRepo) func(config.SchedulerCfg) error {
 	return func(cfg config.SchedulerCfg) (err error) {
 		return r.SetConfig(func(raw interface{}) {
@@ -118,6 +122,7 @@ func NewSetSchedulerConfigFunc(r repo.LockedRepo) func(config.SchedulerCfg) erro
 	}
 }
 
+// NewGetSchedulerConfigFunc creates a function to get the scheduler config
 func NewGetSchedulerConfigFunc(r repo.LockedRepo) func() (config.SchedulerCfg, error) {
 	return func() (out config.SchedulerCfg, err error) {
 		raw, err := r.Config()
@@ -135,11 +140,12 @@ func NewGetSchedulerConfigFunc(r repo.LockedRepo) func() (config.SchedulerCfg, e
 	}
 }
 
+// NewPubSub returns a new pubsub instance with a buffer of 50
 func NewPubSub() *pubsub.PubSub {
 	return pubsub.New(50)
 }
 
-// RegisterToEtcd Register server to etcd
+// RegisterToEtcd registers the server to etcd
 func RegisterToEtcd(mctx helpers.MetricsCtx, lc fx.Lifecycle, configFunc dtypes.GetSchedulerConfigFunc, serverID dtypes.ServerID, token dtypes.PermissionAdminToken) error {
 	cfg, err := configFunc()
 	if err != nil {

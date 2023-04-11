@@ -22,11 +22,13 @@ type NodeParams struct {
 	BandwidthDown int64
 }
 
+// NewBlockFetcherFromIPFS returns a new IPFS block fetcher.
 func NewBlockFetcherFromIPFS(cfg *config.CandidateCfg) fetcher.BlockFetcher {
 	log.Info("ipfs-api " + cfg.IpfsAPIURL)
 	return fetcher.NewIPFS(cfg.IpfsAPIURL, cfg.FetchBlockTimeout, cfg.FetchBlockRetry)
 }
 
+// NewTCPServer returns a new TCP server instance.
 func NewTCPServer(lc fx.Lifecycle, cfg *config.CandidateCfg, schedulerAPI api.Scheduler) *candidate.TCPServer {
 	srv := candidate.NewTCPServer(cfg, schedulerAPI)
 

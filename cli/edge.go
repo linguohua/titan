@@ -45,8 +45,8 @@ var nodeInfoCmd = &cli.Command{
 		fmt.Printf("node disk space: %f \n", v.DiskSpace)
 		fmt.Printf("node fsType: %s \n", v.IoSystem)
 		fmt.Printf("node mac: %v \n", v.MacLocation)
-		fmt.Printf("node download bandwidth: %v \n", v.DownloadSpeed)
-		fmt.Printf("node upload bandwidth: %v \n", v.UploadSpeed)
+		fmt.Printf("node download bandwidth: %v \n", v.BandwidthDown)
+		fmt.Printf("node upload bandwidth: %v \n", v.BandwidthUp)
 		fmt.Printf("node cpu percent: %v \n", v.CPUUsage)
 
 		return nil

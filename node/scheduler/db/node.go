@@ -244,9 +244,9 @@ func (n *SQLDB) UpdateValidatorInfo(serverID dtypes.ServerID, nodeID string) err
 func (n *SQLDB) SaveNodeInfo(info *types.NodeInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (node_id, mac_location, product_type, cpu_cores, memory, node_name, latitude, disk_usage,
-			    longitude, disk_type, io_system, system_version, nat_type, disk_space, upload_speed, download_speed, blocks, scheduler_sid) 
+			    longitude, disk_type, io_system, system_version, nat_type, disk_space, bandwidth_up, bandwidth_down, blocks, scheduler_sid) 
 				VALUES (:node_id, :mac_location, :product_type, :cpu_cores, :memory, :node_name, :latitude, :disk_usage,
-				:longitude, :disk_type, :io_system, :system_version, :nat_type, :disk_space, :upload_speed, :download_speed, :blocks, :scheduler_sid) 
+				:longitude, :disk_type, :io_system, :system_version, :nat_type, :disk_space, :bandwidth_up, :bandwidth_down, :blocks, :scheduler_sid) 
 				ON DUPLICATE KEY UPDATE node_id=:node_id, last_seen=:last_seen, quitted=:quitted, disk_usage=:disk_usage, blocks=:blocks, scheduler_sid=:scheduler_sid`, nodeInfoTable)
 
 	_, err := n.db.NamedExec(query, info)

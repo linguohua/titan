@@ -130,9 +130,9 @@ func (m *Manager) nodeStateChange(node *node.Node, isOnline bool) {
 
 	if isOnline {
 		if isV {
-			m.addValidator(nodeID, node.DownloadSpeed)
+			m.addValidator(nodeID, node.BandwidthDown)
 		} else {
-			m.addValidatableNode(nodeID, node.DownloadSpeed)
+			m.addValidatableNode(nodeID, node.BandwidthDown)
 		}
 
 		return
