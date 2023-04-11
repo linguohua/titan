@@ -17,8 +17,8 @@ const (
 	validationInterval = 5 * time.Minute // validation start-up time interval (Unit:minute)
 )
 
-// startValidation starts the validation process.
-func (m *Manager) startValidation(ctx context.Context) {
+// startValidationTicker starts the validation process.
+func (m *Manager) startValidationTicker(ctx context.Context) {
 	ticker := time.NewTicker(validationInterval)
 	defer ticker.Stop()
 
