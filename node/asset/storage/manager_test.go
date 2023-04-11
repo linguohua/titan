@@ -10,6 +10,7 @@ import (
 func init() {
 	_ = logging.SetLogLevel("asset/store", "DEBUG")
 }
+
 func TestManager(t *testing.T) {
 	baseDir := "C:/Users/aaa/.titanedge-1/storage"
 	Manager, err := NewManager(baseDir, nil)
@@ -25,7 +26,7 @@ func TestManager(t *testing.T) {
 		return
 	}
 
-	_, err = Manager.RetrieveAsset(c)
+	_, err = Manager.GetAsset(c)
 	if err != nil {
 		t.Errorf("get asset error:%s", err.Error())
 		return
