@@ -2,6 +2,7 @@ package candidate
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"net"
@@ -60,6 +61,11 @@ func (t *TCPServer) StartTCPServer() {
 
 		go t.handleMessage(conn)
 	}
+}
+
+// Stop stops the TCP server.
+func (t *TCPServer) Stop(ctx context.Context) error {
+	return nil
 }
 
 // handleMessage handles incoming TCP messages from devices.
