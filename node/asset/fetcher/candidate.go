@@ -16,11 +16,14 @@ import (
 	"github.com/ipfs/go-libipfs/blocks"
 )
 
+// CandidateFetcher
 type Candidate struct {
 	retryCount int
 	httpClient *http.Client
 }
 
+// NewCandidateFetcher
+// NewCandidate creates a new CandidateFetcher with the specified timeout and retry count
 func NewCandidate(timeout, retryCount int) *Candidate {
 	t := http.DefaultTransport.(*http.Transport).Clone()
 	t.MaxIdleConns = 10
@@ -34,10 +37,14 @@ func NewCandidate(timeout, retryCount int) *Candidate {
 	return &Candidate{retryCount: retryCount, httpClient: httpClient}
 }
 
+// FetchBlocks
+// Fetch fetches blocks for the given cids and candidate download info
 func (c *Candidate) Fetch(ctx context.Context, cids []string, dss []*types.CandidateDownloadInfo) ([]blocks.Block, error) {
 	return c.getBlocks(cids, dss)
 }
 
+// fetchSingleBlock
+// getBlock fetches a single block for the given candidate download info and cid string
 func (c *Candidate) getBlock(ds *types.CandidateDownloadInfo, cidStr string) (blocks.Block, error) {
 	if len(ds.URL) == 0 {
 		return nil, fmt.Errorf("candidate address can not empty")
@@ -85,6 +92,8 @@ func (c *Candidate) getBlock(ds *types.CandidateDownloadInfo, cidStr string) (bl
 	return basicBlock, nil
 }
 
+// retrieveBlocks
+// getBlocks retrieves multiple blocks using the given cids and candidate download info
 func (c *Candidate) getBlocks(cids []string, dss []*types.CandidateDownloadInfo) ([]blocks.Block, error) {
 	if len(dss) == 0 {
 		return nil, fmt.Errorf("download infos can not empty")

@@ -33,6 +33,7 @@ type cacheValue struct {
 	idx         index.Index
 }
 
+// newLRUCache creates a new LRU cache with a given storage and maximum size.
 func newLRUCache(storage storage.Storage, maxSize int) (*lruCache, error) {
 	b := &lruCache{storage: storage}
 	cache, err := lru.NewWithEvict(maxSize, b.onEvict)
@@ -44,6 +45,7 @@ func newLRUCache(storage storage.Storage, maxSize int) (*lruCache, error) {
 	return b, nil
 }
 
+// getBlock gets the block with a given root and block ID from the cache.
 func (lru *lruCache) getBlock(ctx context.Context, root, block cid.Cid) (blocks.Block, error) {
 	key := Key(root.Hash().String())
 	v, ok := lru.cache.Get(key)
@@ -66,6 +68,7 @@ func (lru *lruCache) getBlock(ctx context.Context, root, block cid.Cid) (blocks.
 	return nil, xerrors.Errorf("can not convert interface to *cacheValue")
 }
 
+// hasBlock checks whether the block with a given root and block ID is present in the cache.
 func (lru *lruCache) hasBlock(ctx context.Context, root, block cid.Cid) (bool, error) {
 	key := Key(root.Hash().String())
 	v, ok := lru.cache.Get(key)
@@ -88,6 +91,7 @@ func (lru *lruCache) hasBlock(ctx context.Context, root, block cid.Cid) (bool, e
 	return false, xerrors.Errorf("can not convert interface to *cacheValue")
 }
 
+// assetIndex returns the index of an asset with a given root.
 func (lru *lruCache) assetIndex(root cid.Cid) (index.Index, error) {
 	key := Key(root.Hash().String())
 	v, ok := lru.cache.Get(key)
@@ -108,6 +112,7 @@ func (lru *lruCache) assetIndex(root cid.Cid) (index.Index, error) {
 	return nil, xerrors.Errorf("can not convert interface to *cacheValue")
 }
 
+// add adds an asset to the cache with a given root.
 func (lru *lruCache) add(root cid.Cid) error {
 	reader, err := lru.storage.GetAsset(root)
 	if err != nil {

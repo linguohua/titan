@@ -21,11 +21,14 @@ import (
 
 const maxSizeOfCache = 128
 
+// AssetWaiter is used by Manager to store waiting assets for pulling
 type assetWaiter struct {
 	Root   cid.Cid
 	Dss    []*types.CandidateDownloadInfo
 	puller *assetPuller
 }
+
+// Manager is the struct that manages asset downloading and caching
 type Manager struct {
 	// root cid of asset
 	waitList     []*assetWaiter
@@ -37,12 +40,14 @@ type Manager struct {
 	storage.Storage
 }
 
+// ManagerOptions is the struct that contains options for Manager
 type ManagerOptions struct {
 	Storage      storage.Storage
 	BFetcher     fetcher.BlockFetcher
 	PullParallel int
 }
 
+// NewManager creates a new instance of Manager
 func NewManager(opts *ManagerOptions) (*Manager, error) {
 	lru, err := newLRUCache(opts.Storage, maxSizeOfCache)
 	if err != nil {
@@ -66,6 +71,7 @@ func NewManager(opts *ManagerOptions) (*Manager, error) {
 	return m, nil
 }
 
+// startTick is a helper function that is used to check if there are any assets in the waitlist
 func (m *Manager) startTick() {
 	for {
 		time.Sleep(10 * time.Second)
@@ -88,6 +94,7 @@ func (m *Manager) startTick() {
 	}
 }
 
+// triggerPuller is a helper function that is used to trigger asset downloads
 func (m *Manager) triggerPuller() {
 	select {
 	case m.pullCh <- true:
@@ -95,6 +102,7 @@ func (m *Manager) triggerPuller() {
 	}
 }
 
+// start is a helper function that starts the Manager and begins downloading assets
 func (m *Manager) start() {
 	if m.bFetcher == nil {
 		log.Panic("m.bFetcher == nil")
@@ -111,12 +119,14 @@ func (m *Manager) start() {
 	}
 }
 
+// pullAssets pulls all assets that are waiting to be pulled
 func (m *Manager) pullAssets() {
 	for len(m.waitList) > 0 {
 		m.doPullAsset()
 	}
 }
 
+// doPullAsset pulls a single asset from the waitlist
 func (m *Manager) doPullAsset() {
 	cw := m.headFromWaitList()
 	if cw == nil {
@@ -139,6 +149,8 @@ func (m *Manager) doPullAsset() {
 	m.onPullAssetFinish(assetPuller)
 }
 
+// headFromWaitList returns the first assetWaiter in waitList, which is the oldest asset waiting to be downloaded
+
 func (m *Manager) headFromWaitList() *assetWaiter {
 	m.waitListLock.Lock()
 	defer m.waitListLock.Unlock()
@@ -149,6 +161,8 @@ func (m *Manager) headFromWaitList() *assetWaiter {
 	return m.waitList[0]
 }
 
+// removeAssetFromWaitList removes an assetWaiter from waitList by the root CID
+// and returns the removed assetWaiter if it exists, otherwise returns nil
 func (m *Manager) removeAssetFromWaitList(root cid.Cid) *assetWaiter {
 	m.waitListLock.Lock()
 	defer m.waitListLock.Unlock()
@@ -171,6 +185,7 @@ func (m *Manager) removeAssetFromWaitList(root cid.Cid) *assetWaiter {
 	return nil
 }
 
+// AddToWaitList adds an assetWaiter to waitList if the asset with the root CID is not already waiting to be downloaded
 func (m *Manager) AddToWaitList(root cid.Cid, dss []*types.CandidateDownloadInfo) {
 	m.waitListLock.Lock()
 	defer m.waitListLock.Unlock()
@@ -191,6 +206,7 @@ func (m *Manager) AddToWaitList(root cid.Cid, dss []*types.CandidateDownloadInfo
 	m.triggerPuller()
 }
 
+// savePuller saves the assetPuller to the data store if it exists and has not completed downloading
 func (m *Manager) savePuller(puller *assetPuller) error {
 	if puller == nil || puller.isPulledComplete() {
 		return nil
@@ -203,6 +219,7 @@ func (m *Manager) savePuller(puller *assetPuller) error {
 	return m.PutAssetPuller(puller.root, buf)
 }
 
+// onPullAssetFinish is called when an assetPuller finishes downloading an asset
 func (m *Manager) onPullAssetFinish(puller *assetPuller) {
 	log.Debugf("onPullAssetFinish, asset %s", puller.root.String())
 
@@ -227,6 +244,7 @@ func (m *Manager) onPullAssetFinish(puller *assetPuller) {
 	}
 }
 
+// SaveWaitList encodes the waitlist and stores it in the datastore.
 func (m *Manager) saveWaitList() error {
 	data, err := encode(&m.waitList)
 	if err != nil {
@@ -236,6 +254,7 @@ func (m *Manager) saveWaitList() error {
 	return m.PutWaitList(data)
 }
 
+// RestoreWaitListFromStore retrieves the waitlist from the datastore and decodes it.
 func (m *Manager) restoreWaitListFromStore() {
 	data, err := m.GetWaitList()
 	if err != nil {
@@ -258,10 +277,12 @@ func (m *Manager) restoreWaitListFromStore() {
 	log.Debugf("restoreWaitListFromStore:%#v", m.waitList)
 }
 
+// WaitListLen returns the number of items in the waitlist.
 func (m *Manager) waitListLen() int {
 	return len(m.waitList)
 }
 
+// Puller returns the asset puller associated with the first waiting item in the waitlist.
 func (m *Manager) puller() *assetPuller {
 	for _, cw := range m.waitList {
 		if cw.puller != nil {
@@ -271,6 +292,7 @@ func (m *Manager) puller() *assetPuller {
 	return nil
 }
 
+// DeleteAsset removes an asset from the datastore and the waitlist.
 func (m *Manager) DeleteAsset(root cid.Cid) error {
 	// remove lru puller
 	m.lru.remove(root)
@@ -291,6 +313,7 @@ func (m *Manager) DeleteAsset(root cid.Cid) error {
 	return nil
 }
 
+// RestoreAssetPullerOrNew retrieves the asset puller associated with the given root CID, or creates a new one.
 func (m *Manager) restoreAssetPullerOrNew(opts *pullerOptions) (*assetPuller, error) {
 	data, err := m.GetAssetPuller(opts.root)
 	if err != nil && !os.IsNotExist(err) {
@@ -314,6 +337,7 @@ func (m *Manager) restoreAssetPullerOrNew(opts *pullerOptions) (*assetPuller, er
 }
 
 // return true if exist in waitList
+// deleteAssetFromWaitList removes an asset from the waitlist.
 func (m *Manager) deleteAssetFromWaitList(root cid.Cid) (bool, error) {
 	if c := m.removeAssetFromWaitList(root); c != nil {
 		if c.puller != nil {
@@ -328,6 +352,7 @@ func (m *Manager) deleteAssetFromWaitList(root cid.Cid) (bool, error) {
 	return false, nil
 }
 
+// cachedStatus returns the cached status of a given root CID
 func (m *Manager) cachedStatus(root cid.Cid) (types.ReplicaStatus, error) {
 	if ok, err := m.HasAsset(root); err == nil && ok {
 		return types.ReplicaStatusSucceeded, nil
@@ -345,6 +370,7 @@ func (m *Manager) cachedStatus(root cid.Cid) (types.ReplicaStatus, error) {
 	return types.ReplicaStatusFailed, nil
 }
 
+// ProgressForFailedAsset returns the progress of a failed asset pull operation
 func (m *Manager) ProgressForFailedAsset(root cid.Cid) (*types.AssetPullProgress, error) {
 	progress := &types.AssetPullProgress{
 		CID:    root.String(),
@@ -374,14 +400,17 @@ func (m *Manager) ProgressForFailedAsset(root cid.Cid) (*types.AssetPullProgress
 	return progress, nil
 }
 
+// GetBlock returns the block with the given CID from the LRU cache
 func (m *Manager) GetBlock(ctx context.Context, root, block cid.Cid) (blocks.Block, error) {
 	return m.lru.getBlock(ctx, root, block)
 }
 
+// HasBlock checks if a block with the given CID exists in the LRU cache
 func (m *Manager) HasBlock(ctx context.Context, root, block cid.Cid) (bool, error) {
 	return m.lru.hasBlock(ctx, root, block)
 }
 
+// GetBlocksOfAsset returns a random selection of blocks for the given root CID
 func (m *Manager) GetBlocksOfAsset(root cid.Cid, randomSeed int64, randomCount int) (map[int]string, error) {
 	rand := rand.New(rand.NewSource(randomSeed))
 
@@ -418,6 +447,8 @@ func (m *Manager) GetBlocksOfAsset(root cid.Cid, randomSeed int64, randomCount i
 }
 
 // AddLostAsset implement data sync interface
+// AddLostAsset adds a lost asset to the Manager's waitlist if it is not already present in the storage
+// Implements the data sync interface
 func (m *Manager) AddLostAsset(root cid.Cid) error {
 	if has, err := m.HasAsset(root); err != nil {
 		return err
@@ -438,6 +469,8 @@ func (m *Manager) AddLostAsset(root cid.Cid) error {
 }
 
 // GetAssetsOfBucket data sync interface
+// GetAssetsOfBucket retrieves the list of assets in a given bucket ID from the storage
+// Implements the data sync interface
 func (m *Manager) GetAssetsOfBucket(ctx context.Context, bucketID uint32, isRemote bool) ([]cid.Cid, error) {
 	if !isRemote {
 		return m.Storage.GetAssetsOfBucket(ctx, bucketID)
@@ -446,6 +479,7 @@ func (m *Manager) GetAssetsOfBucket(ctx context.Context, bucketID uint32, isRemo
 }
 
 // GetChecker validate asset by random seed
+// GetChecker returns a new instance of a random asset validator based on a given random seed
 func (m *Manager) GetChecker(ctx context.Context, randomSeed int64) (validate.Asset, error) {
 	return NewRandomCheck(randomSeed, m.Storage, nil), nil
 }

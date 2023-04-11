@@ -17,12 +17,14 @@ import (
 
 var log = logging.Logger("asset/fetcher")
 
+// IPFSClient
 type IPFS struct {
 	httpAPI    *httpapi.HttpApi
 	timeout    int
 	retryCount int
 }
 
+// NewIPFSClient creates a new IPFS client with the given API URL, timeout, and retry count
 func NewIPFS(ipfsAPIURL string, timeout, retryCount int) *IPFS {
 	httpAPI, err := httpapi.NewURLApiWithClient(ipfsAPIURL, &http.Client{})
 	if err != nil {
@@ -32,10 +34,12 @@ func NewIPFS(ipfsAPIURL string, timeout, retryCount int) *IPFS {
 	return &IPFS{httpAPI: httpAPI, timeout: timeout, retryCount: retryCount}
 }
 
+// FetchBlocks retrieves blocks from IPFS using the provided context, CIDs, and download info
 func (ipfs *IPFS) Fetch(ctx context.Context, cids []string, dss []*types.CandidateDownloadInfo) ([]blocks.Block, error) {
 	return ipfs.getBlocks(ctx, cids)
 }
 
+// retrieveBlock gets a block from IPFS with the specified CID
 func (ipfs *IPFS) getBlock(cidStr string) (blocks.Block, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ipfs.timeout)*time.Second)
 	defer cancel()
@@ -53,6 +57,7 @@ func (ipfs *IPFS) getBlock(cidStr string) (blocks.Block, error) {
 	return newBlock(cidStr, data)
 }
 
+// retrieveBlocks gets multiple blocks from IPFS using the provided context and CIDs
 func (ipfs *IPFS) getBlocks(ctx context.Context, cids []string) ([]blocks.Block, error) {
 	blks := make([]blocks.Block, 0, len(cids))
 	blksLock := &sync.Mutex{}
@@ -85,6 +90,7 @@ func (ipfs *IPFS) getBlocks(ctx context.Context, cids []string) ([]blocks.Block,
 	return blks, nil
 }
 
+// createBlock creates a new block with the specified CID and data
 func newBlock(cidStr string, data []byte) (blocks.Block, error) {
 	cid, err := cid.Decode(cidStr)
 	if err != nil {

@@ -9,9 +9,10 @@ import (
 	"golang.org/x/xerrors"
 )
 
+// createDatastore creates a new LevelDB datastore using the specified base directory.
 func newKVstore(baseDir string) (ds.Batching, error) {
 	// Create the datastore directory if it doesn't exist yet.
-	if err := os.MkdirAll(baseDir, 0755); err != nil {
+	if err := os.MkdirAll(baseDir, 0o755); err != nil {
 		return nil, xerrors.Errorf("failed to create directory %s for kv store: %w", baseDir, err)
 	}
 

@@ -25,6 +25,7 @@ type Asset struct {
 	TotalBlockCount int
 }
 
+// NewAsset creates a new Asset instance
 func NewAsset(storageMgr *storage.Manager, scheduler api.Scheduler, assetMgr *Manager) *Asset {
 	legacy.RegisterCodec(cid.DagProtobuf, dagpb.Type.PBNode, merkledag.ProtoNodeConverter)
 	legacy.RegisterCodec(cid.Raw, basicnode.Prototype.Bytes, merkledag.RawNodeConverter)
@@ -35,6 +36,7 @@ func NewAsset(storageMgr *storage.Manager, scheduler api.Scheduler, assetMgr *Ma
 	}
 }
 
+// CacheAsset adds the asset to the waitlist for caching
 func (a *Asset) CacheAsset(ctx context.Context, rootCID string, infos []*types.CandidateDownloadInfo) error {
 	if types.RunningNodeType == types.NodeEdge && len(infos) == 0 {
 		return fmt.Errorf("candidate download infos can not empty")
@@ -61,6 +63,7 @@ func (a *Asset) CacheAsset(ctx context.Context, rootCID string, infos []*types.C
 	return nil
 }
 
+// DeleteAsset deletes the asset with the given CID
 func (a *Asset) DeleteAsset(ctx context.Context, assetCID string) error {
 	c, err := cid.Decode(assetCID)
 	if err != nil {
@@ -87,6 +90,7 @@ func (a *Asset) DeleteAsset(ctx context.Context, assetCID string) error {
 	return nil
 }
 
+// GetAssetStats returns statistics about the assets stored on this node
 func (a *Asset) GetAssetStats(ctx context.Context) (*types.AssetStats, error) {
 	assetCount, err := a.mgr.CountAsset()
 	if err != nil {
@@ -109,6 +113,7 @@ func (a *Asset) GetAssetStats(ctx context.Context) (*types.AssetStats, error) {
 	return assetStats, nil
 }
 
+// GetCachingAssetInfo returns information about the asset currently being cached
 func (a *Asset) GetCachingAssetInfo(ctx context.Context) (*types.InProgressAsset, error) {
 	puller := a.mgr.puller()
 	if puller == nil {
@@ -123,6 +128,7 @@ func (a *Asset) GetCachingAssetInfo(ctx context.Context) (*types.InProgressAsset
 	return ret, nil
 }
 
+// GetBlocksOfAsset returns a random subset of blocks for the given asset.
 func (a *Asset) GetBlocksOfAsset(assetCID string, randomSeed int64, randomCount int) (map[int]string, error) {
 	root, err := cid.Decode(assetCID)
 	if err != nil {
@@ -132,6 +138,7 @@ func (a *Asset) GetBlocksOfAsset(assetCID string, randomSeed int64, randomCount 
 	return a.mgr.GetBlocksOfAsset(root, randomSeed, randomCount)
 }
 
+// BlockCountOfAsset returns the block count for the given asset.
 func (a *Asset) BlockCountOfAsset(assetCID string) (int, error) {
 	c, err := cid.Decode(assetCID)
 	if err != nil {
@@ -146,6 +153,7 @@ func (a *Asset) BlockCountOfAsset(assetCID string) (int, error) {
 	return int(count), nil
 }
 
+// GetAssetProgresses returns the progress of the given list of assets.
 func (a *Asset) GetAssetProgresses(ctx context.Context, assetCIDs []string) (*types.PullResult, error) {
 	progresses := make([]*types.AssetPullProgress, 0, len(assetCIDs))
 	for _, assetCID := range assetCIDs {
@@ -176,6 +184,7 @@ func (a *Asset) GetAssetProgresses(ctx context.Context, assetCIDs []string) (*ty
 	return result, nil
 }
 
+// getProgressForSucceededAsset returns asset pull progress for the succeeded asset.
 func (a *Asset) progressForSucceededAsset(root cid.Cid) (*types.AssetPullProgress, error) {
 	progress := &types.AssetPullProgress{
 		CID:    root.String(),

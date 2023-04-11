@@ -29,6 +29,7 @@ type MultiIndexSorted struct {
 	size    uint32
 }
 
+// Marshal writes the Bucket struct to a writer.
 func (b *bucket) Marshal(w io.Writer) (uint64, error) {
 	l := uint64(0)
 	if err := binary.Write(w, binary.LittleEndian, b.code); err != nil {
@@ -61,6 +62,7 @@ func (b *bucket) Marshal(w io.Writer) (uint64, error) {
 	return l, nil
 }
 
+// Unmarshal reads the Bucket struct from a reader.
 func (b *bucket) Unmarshal(r io.Reader) error {
 	if err := binary.Read(r, binary.LittleEndian, &b.code); err != nil {
 		if err == io.EOF {
@@ -105,6 +107,7 @@ func (b *bucket) Unmarshal(r io.Reader) error {
 	return nil
 }
 
+// FindAll searches for all occurrences of a CID and calls the provided function for each one.
 func (b *bucket) getAll(c cid.Cid, fn func(uint64) bool) error {
 	for _, record := range b.records {
 		if bytes.Equal(c.Hash(), record.Hash()) {
@@ -116,6 +119,8 @@ func (b *bucket) getAll(c cid.Cid, fn func(uint64) bool) error {
 
 	return xerrors.Errorf("not found")
 }
+
+// Iterate iterates over all records in the bucket and calls the provided function for each one.
 func (b *bucket) forEach(f func(mh multihash.Multihash, offset uint64) error) error {
 	for _, record := range b.records {
 		if err := f(record.Hash(), record.Offset); err != nil {
@@ -125,16 +130,19 @@ func (b *bucket) forEach(f func(mh multihash.Multihash, offset uint64) error) er
 	return nil
 }
 
+// Codec returns the multicodec code for the MultiIndex.
 func (m *MultiIndexSorted) Codec() multicodec.Code {
 	return multiIndexCodec
 }
 
+// HashCode computes the hash code for a given multihash.
 func (m *MultiIndexSorted) hashCode(mh multihash.Multihash) uint32 {
 	hash := fnv.New32a()
 	hash.Write(mh)
 	return hash.Sum32() % m.size
-
 }
+
+// FindAll searches for all occurrences of a CID and calls the provided function for each one.
 func (m *MultiIndexSorted) GetAll(c cid.Cid, fn func(uint64) bool) error {
 	code := m.hashCode(c.Hash())
 	if b, ok := m.buckets[code]; ok {
@@ -143,6 +151,7 @@ func (m *MultiIndexSorted) GetAll(c cid.Cid, fn func(uint64) bool) error {
 	return xerrors.Errorf("not found")
 }
 
+// Marshal writes the MultiIndex struct to a writer.
 func (m *MultiIndexSorted) Marshal(w io.Writer) (uint64, error) {
 	l := uint64(0)
 	if err := binary.Write(w, binary.LittleEndian, m.size); err != nil {
@@ -177,6 +186,7 @@ func (m *MultiIndexSorted) Marshal(w io.Writer) (uint64, error) {
 	return l, nil
 }
 
+// Unmarshal reads the MultiIndex struct from a reader.
 func (m *MultiIndexSorted) Unmarshal(r io.Reader) error {
 	// reader := internalio.ToByteReadSeeker(r)
 	if err := binary.Read(r, binary.LittleEndian, &m.size); err != nil {
@@ -207,6 +217,7 @@ func (m *MultiIndexSorted) Unmarshal(r io.Reader) error {
 	return nil
 }
 
+// LoadRecords loads a list of records into the MultiIndex.
 func (m *MultiIndexSorted) Load(records []index.Record) error {
 	// Group records by hash code
 	byCode := make(map[uint32][]*index.Record)
@@ -236,6 +247,7 @@ func (m *MultiIndexSorted) Load(records []index.Record) error {
 	return nil
 }
 
+// Iterate iterates over all records in the MultiIndex and calls the provided function for each one.
 func (m *MultiIndexSorted) ForEach(f func(mh multihash.Multihash, offset uint64) error) error {
 	codes := make([]uint32, 0, len(m.buckets))
 	for k := range m.buckets {
@@ -251,10 +263,12 @@ func (m *MultiIndexSorted) ForEach(f func(mh multihash.Multihash, offset uint64)
 	return nil
 }
 
+// BucketCount returns the number of buckets in the MultiIndex.
 func (m *MultiIndexSorted) BucketSize() uint32 {
 	return uint32(len(m.buckets))
 }
 
+// TotalRecordCount returns the total number of records in the MultiIndex.
 func (m *MultiIndexSorted) RecordCount() uint32 {
 	count := 0
 	for _, b := range m.buckets {
@@ -264,6 +278,7 @@ func (m *MultiIndexSorted) RecordCount() uint32 {
 	return uint32(count)
 }
 
+// GetBucketRecords returns the records of a specific bucket by its index.
 func (m *MultiIndexSorted) GetBucket(index uint32) ([]*index.Record, error) {
 	if int(index) >= len(m.buckets) {
 		return nil, xerrors.Errorf("index %d out bucket size", index)
@@ -279,6 +294,7 @@ func (m *MultiIndexSorted) GetBucket(index uint32) ([]*index.Record, error) {
 	return m.buckets[code].records, nil
 }
 
+// NewMultiIndex creates a new MultiIndex with the specified bucket size.
 func NewMultiIndexSorted(sizeOfBucket uint32) *MultiIndexSorted {
 	return &MultiIndexSorted{buckets: make(map[uint32]*bucket), size: sizeOfBucket}
 }

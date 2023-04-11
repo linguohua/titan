@@ -82,14 +82,14 @@ func (m *Manager) startNewRound() error {
 	}
 
 	for nodeID, reqs := range vReqs {
-		go m.sendValidationReqToNodes(nodeID, reqs)
+		go m.sendValidateReqToNodes(nodeID, reqs)
 	}
 
 	return nil
 }
 
 // sends a validation request to a node.
-func (m *Manager) sendValidationReqToNodes(nID string, req *api.ValidateReq) {
+func (m *Manager) sendValidateReqToNodes(nID string, req *api.ValidateReq) {
 	cNode := m.nodeMgr.GetNode(nID)
 	if cNode != nil {
 		err := cNode.Validate(context.Background(), req)

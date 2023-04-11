@@ -13,6 +13,7 @@ import (
 )
 
 // implement validate.RandomChecker
+// randomCheck implements validate.RandomChecker
 type randomCheck struct {
 	randomSeed int64
 	rand       *rand.Rand
@@ -22,10 +23,12 @@ type randomCheck struct {
 	lru *lruCache
 }
 
+// NewRandomCheck creates a new instance of randomCheck
 func NewRandomCheck(randomSeed int64, storage storage.Storage, lru *lruCache) *randomCheck {
 	return &randomCheck{randomSeed: randomSeed, Storage: storage, lru: lru}
 }
 
+// GetBlock returns a random block from the storage
 func (rc *randomCheck) GetBlock(ctx context.Context) (blocks.Block, error) {
 	if rc.rand == nil {
 		rc.rand = rand.New(rand.NewSource(rc.randomSeed))
@@ -68,6 +71,7 @@ func (rc *randomCheck) GetBlock(ctx context.Context) (blocks.Block, error) {
 	return rc.lru.getBlock(ctx, *rc.root, record.Cid)
 }
 
+// randomAsset returns a random asset from the storage
 func (rc *randomCheck) randomAsset(ctx context.Context) (*cid.Cid, error) {
 	bucketHashes, err := rc.GetBucketHashes(ctx)
 	if err != nil {
