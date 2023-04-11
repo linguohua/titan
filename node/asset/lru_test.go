@@ -83,7 +83,7 @@ func TestIndex(t *testing.T) {
 		return
 	}
 
-	reader, err := storageMgr.GetAsset(root)
+	reader, err := storageMgr.RetrieveAsset(root)
 	if err != nil {
 		t.Errorf("decode error:%s", err.Error())
 		return

@@ -105,9 +105,15 @@ func (m *Manager) StorePuller(c cid.Cid, data []byte) error {
 	return m.puller.store(c, data)
 }
 
+<<<<<<< HEAD
 // GetPuller retrieves puller from storage
 func (m *Manager) GetPuller(c cid.Cid) ([]byte, error) {
 	return m.puller.get(c)
+=======
+// RetrievePuller retrieves puller from storage
+func (m *Manager) RetrievePuller(c cid.Cid) ([]byte, error) {
+	return m.puller.retrieve(c)
+>>>>>>> 728d4b3b (rename asset)
 }
 
 // PullerExists checks if an puller exist in storage
@@ -131,9 +137,15 @@ func (m *Manager) StoreAsset(ctx context.Context, root cid.Cid) error {
 	return m.asset.storeAsset(ctx, root)
 }
 
+<<<<<<< HEAD
 // GetAsset retrieves an asset
 func (m *Manager) GetAsset(root cid.Cid) (io.ReadSeekCloser, error) {
 	return m.asset.get(root)
+=======
+// RetrieveAsset retrieves an asset
+func (m *Manager) RetrieveAsset(root cid.Cid) (io.ReadSeekCloser, error) {
+	return m.asset.retrieve(root)
+>>>>>>> 728d4b3b (rename asset)
 }
 
 // AssetExists checks if an asset exists
