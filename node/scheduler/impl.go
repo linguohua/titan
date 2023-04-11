@@ -77,8 +77,8 @@ func (s *Scheduler) VerifyNodeAuthToken(ctx context.Context, token string) ([]au
 	return payload.Allow, nil
 }
 
-// CreateNodeAuthToken creates a new JWT token for a node.
-func (s *Scheduler) CreateNodeAuthToken(ctx context.Context, nodeID, sign string) (string, error) {
+// NodeLogin creates a new JWT token for a node.
+func (s *Scheduler) NodeLogin(ctx context.Context, nodeID, sign string) (string, error) {
 	p := jwtPayload{
 		Allow:  api.ReadWritePerms,
 		NodeID: nodeID,
@@ -122,12 +122,12 @@ func (s *Scheduler) CreateNodeAuthToken(ctx context.Context, nodeID, sign string
 	return string(tk), nil
 }
 
-// nodeLogin processes a node login request with the given options and node type.
-func (s *Scheduler) nodeLogin(ctx context.Context, opts *types.ConnectOptions, nodeType types.NodeType) error {
+// nodeConnect processes a node connect request with the given options and node type.
+func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions, nodeType types.NodeType) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
-	alreadyLogin := true
+	alreadyConnect := true
 
 	cNode := s.NodeManager.GetNode(nodeID)
 	if cNode == nil {
@@ -135,7 +135,7 @@ func (s *Scheduler) nodeLogin(ctx context.Context, opts *types.ConnectOptions, n
 			return xerrors.Errorf("node not exists: %s , type: %d", nodeID, nodeType)
 		}
 		cNode = node.New()
-		alreadyLogin = false
+		alreadyConnect = false
 	}
 	cNode.SetToken(opts.Token)
 
@@ -146,7 +146,7 @@ func (s *Scheduler) nodeLogin(ctx context.Context, opts *types.ConnectOptions, n
 		return xerrors.Errorf("nodeConnect ConnectRPC err:%s", err.Error())
 	}
 
-	if !alreadyLogin {
+	if !alreadyConnect {
 		// init node info
 		nodeInfo, err := cNode.API.GetNodeInfo(ctx)
 		if err != nil {
@@ -212,14 +212,14 @@ func (s *Scheduler) nodeLogin(ctx context.Context, opts *types.ConnectOptions, n
 	return nil
 }
 
-// CandidateLogin candidate node login to the scheduler
-func (s *Scheduler) CandidateLogin(ctx context.Context, opts *types.ConnectOptions) error {
-	return s.nodeLogin(ctx, opts, types.NodeCandidate)
+// CandidateConnect candidate node login to the scheduler
+func (s *Scheduler) CandidateConnect(ctx context.Context, opts *types.ConnectOptions) error {
+	return s.nodeConnect(ctx, opts, types.NodeCandidate)
 }
 
-// EdgeLogin edge node login to the scheduler
-func (s *Scheduler) EdgeLogin(ctx context.Context, opts *types.ConnectOptions) error {
-	return s.nodeLogin(ctx, opts, types.NodeEdge)
+// EdgeConnect edge node login to the scheduler
+func (s *Scheduler) EdgeConnect(ctx context.Context, opts *types.ConnectOptions) error {
+	return s.nodeConnect(ctx, opts, types.NodeEdge)
 }
 
 // GetExternalAddress retrieves the external address of the caller.

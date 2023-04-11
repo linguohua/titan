@@ -20,7 +20,7 @@ type DownloadHistory struct {
 	CompleteTime time.Time `json:"complete_time" db:"complete_time"`
 }
 
-// EdgeDownloadInfo download info of edge
+// EdgeDownloadInfo represents download information for an edge node
 type EdgeDownloadInfo struct {
 	URL         string
 	Credentials *GatewayCredentials
@@ -28,39 +28,47 @@ type EdgeDownloadInfo struct {
 	NatType     string
 }
 
+// EdgeDownloadInfoList represents a list of EdgeDownloadInfo structures along with
+// scheduler URL and key
 type EdgeDownloadInfoList struct {
 	Infos        []*EdgeDownloadInfo
 	SchedulerURL string
 	SchedulerKey string
 }
 
-// CandidateDownloadInfo download info of candidate
+// CandidateDownloadInfo represents download information for a candidate
 type CandidateDownloadInfo struct {
 	URL         string
 	Credentials *GatewayCredentials
 }
 
-// NodeReplicaStatus node cache status
+// NodeReplicaStatus represents the status of a node cache
 type NodeReplicaStatus struct {
 	Hash   string        `db:"hash"`
 	Status ReplicaStatus `db:"status"`
 }
 
-// NodeReplicaRsp node caches
+// NodeReplicaRsp represents the replicas of a node asset
 type NodeReplicaRsp struct {
 	Replica    []*NodeReplicaStatus
 	TotalCount int
 }
 
+// NatType represents the type of NAT of a node
 type NatType int
 
 const (
+	// NatTypeUnknow Unknown NAT type
 	NatTypeUnknow NatType = iota
-	// not bihind nat
+	// NatTypeNo not  nat
 	NatTypeNo
+	// NatTypeSymmetric Symmetric NAT
 	NatTypeSymmetric
+	// NatTypeFullCone Full cone NAT
 	NatTypeFullCone
+	// NatTypeRestricted Restricted NAT
 	NatTypeRestricted
+	// NatTypePortRestricted Port-restricted NAT
 	NatTypePortRestricted
 )
 
@@ -97,20 +105,10 @@ func (n NatType) FromString(natType string) NatType {
 	return NatTypeUnknow
 }
 
-// ListNodesRsp list node
+// ListNodesRsp list node rsp
 type ListNodesRsp struct {
 	Data  []NodeInfo `json:"data"`
 	Total int64      `json:"total"`
-}
-
-type ListBlockDownloadInfoReq struct {
-	NodeID string `json:"node_id"`
-	// Unix timestamp
-	StartTime int64 `json:"start_time"`
-	// Unix timestamp
-	EndTime int64 `json:"end_time"`
-	Cursor  int   `json:"cursor"`
-	Count   int   `json:"count"`
 }
 
 // ListDownloadRecordRsp download record rsp
@@ -125,7 +123,7 @@ type ListValidationResultRsp struct {
 	ValidationResultInfos []ValidationResultInfo `json:"validation_result_infos"`
 }
 
-// ValidationResultInfo validator result
+// ValidationResultInfo validator result info
 type ValidationResultInfo struct {
 	RoundID     string           `db:"round_id"`
 	NodeID      string           `db:"node_id"`
