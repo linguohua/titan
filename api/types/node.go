@@ -145,24 +145,35 @@ type ValidationResultInfo struct {
 type ValidationStatus int
 
 const (
-	// ValidationStatusCreate status
+	// ValidationStatusCreate  is the initial validation status when the validation process starts.
 	ValidationStatusCreate ValidationStatus = iota
-	// ValidationStatusSuccess status
+	// ValidationStatusSuccess is the validation status when the validation is successful.
 	ValidationStatusSuccess
-	// ValidationStatusNodeTimeOut status
-	ValidationStatusNodeTimeOut
-	// ValidationStatusValidatorTimeOut status
-	ValidationStatusValidatorTimeOut
-	// ValidationStatusCancel status
+	// ValidationStatusCancel is the validation status when the validation is canceled.
 	ValidationStatusCancel
-	// ValidationStatusValidateFail status
+
+	// Node error
+
+	// ValidationStatusNodeTimeOut is the validation status when the node times out.
+	ValidationStatusNodeTimeOut
+	// ValidationStatusValidateFail is the validation status when the validation fails.
 	ValidationStatusValidateFail
-	// ValidationStatusLoadDBErr status
-	ValidationStatusLoadDBErr
-	// ValidationStatusCIDToHashErr status
-	ValidationStatusCIDToHashErr
-	// ValidationStatusGetValidatorBlockErr status
+
+	// Validator error
+
+	// ValidationStatusValidatorTimeOut is the validation status when the validator times out.
+	ValidationStatusValidatorTimeOut
+	// ValidationStatusGetValidatorBlockErr is the validation status when there is an error getting the blocks from validator.
 	ValidationStatusGetValidatorBlockErr
+	// ValidationStatusValidatorMismatch is the validation status when the validator mismatches.
+	ValidationStatusValidatorMismatch
+
+	// Server error
+
+	// ValidationStatusLoadDBErr is the validation status when there is an error loading the database.
+	ValidationStatusLoadDBErr
+	// ValidationStatusCIDToHashErr is the validation status when there is an error converting a CID to a hash.
+	ValidationStatusCIDToHashErr
 )
 
 // Credentials gateway access credentials

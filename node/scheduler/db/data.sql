@@ -34,6 +34,7 @@ CREATE TABLE `validation_result` (
     `round_id`      VARCHAR(128) NOT NULL,
     `node_id`       VARCHAR(128) NOT NULL,
     `validator_id`  VARCHAR(128) NOT NULL,
+    `cid`           VARCHAR(128) NOT NULL,
     `block_number`  BIGINT       DEFAULT 0,
     `status`        TINYINT      DEFAULT 0,
     `duration`      BIGINT       DEFAULT 0,
