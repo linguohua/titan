@@ -26,6 +26,7 @@ const (
 	formatCbor    = "application/cbor"
 )
 
+// getHandler dispatches incoming requests to the appropriate handler based on the format requested in the Accept header or 'format' query parameter
 func (hs *HttpServer) getHandler(w http.ResponseWriter, r *http.Request) {
 	ticket, err := hs.verifyCredentials(w, r)
 	if err != nil {
@@ -57,6 +58,7 @@ func (hs *HttpServer) getHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// verifyCredentials checks the request's credentials to make sure it was authorized
 func (hs *HttpServer) verifyCredentials(w http.ResponseWriter, r *http.Request) (*types.Credentials, error) {
 	if hs.schedulerPublicKey == nil {
 		return nil, fmt.Errorf("scheduler public key not exist, can not verify sign")
@@ -108,6 +110,7 @@ func (hs *HttpServer) verifyCredentials(w http.ResponseWriter, r *http.Request) 
 	return credentials, nil
 }
 
+// customResponseFormat checks the request's Accept header and query parameters to determine the desired response format
 func customResponseFormat(r *http.Request) (mediaType string, params map[string]string, err error) {
 	if formatParam := r.URL.Query().Get("format"); formatParam != "" {
 		// translate query param to a content type

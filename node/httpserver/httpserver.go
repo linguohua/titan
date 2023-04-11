@@ -30,16 +30,19 @@ type HttpServer struct {
 	schedulerPublicKey *rsa.PublicKey
 }
 
+// NewHttpServer creates a new HttpServer with the given Asset, Scheduler, and RSA private key.
 func NewHttpServer(asset Asset, scheduler api.Scheduler, privateKey *rsa.PrivateKey) *HttpServer {
 	hs := &HttpServer{asset: asset, scheduler: scheduler, privateKey: privateKey}
 
 	return hs
 }
 
+// SetSchedulerPublicKey sets the public key of the scheduler.
 func (hs *HttpServer) SetSchedulerPublicKey(publicKey *rsa.PublicKey) {
 	hs.schedulerPublicKey = publicKey
 }
 
+// resolvePath resolves an IPFS path to a ResolvedPath, given the asset CID.
 func (hs *HttpServer) resolvePath(ctx context.Context, p path.Path, asset cid.Cid) (path.Resolved, error) {
 	if _, ok := p.(path.Resolved); ok {
 		return p.(path.Resolved), nil
@@ -77,6 +80,7 @@ func (hs *HttpServer) resolvePath(ctx context.Context, p path.Path, asset cid.Ci
 }
 
 // GetUnixFsNode returns a read-only handle to a file tree referenced by a path.
+// getUnixFsNode returns a read-only handle to a UnixFS node referenced by a ResolvedPath and root CID.
 func (hs *HttpServer) getUnixFsNode(ctx context.Context, p path.Resolved, root cid.Cid) (files.Node, error) {
 	ng := &nodeGetter{hs, root}
 	node, err := ng.Get(ctx, p.Cid())

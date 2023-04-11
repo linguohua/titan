@@ -16,6 +16,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
+// serveFile serves a single file to the client.
 func (hs *HttpServer) serveFile(w http.ResponseWriter, r *http.Request, credentials *types.Credentials, file files.File) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()

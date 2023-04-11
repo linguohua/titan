@@ -224,7 +224,7 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, info *t
 		return xerrors.Errorf("asset state is %s", assetRecord.State)
 	}
 
-	// Fetch the existing asset replicas
+	// get the existing asset replicas
 	replicaInfos, err := m.LoadAssetReplicas(assetRecord.Hash)
 	if err != nil {
 		return xerrors.Errorf("asset %s load replicas err: %s", assetRecord.CID, err.Error())
