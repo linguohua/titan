@@ -29,7 +29,7 @@ func (m *Manager) startValidationTicker(ctx context.Context) {
 				continue
 			}
 
-			if err := m.startNewRound(); err != nil {
+			if err := m.startValidate(); err != nil {
 				log.Errorf("start new round: %v", err)
 			}
 		case <-m.close:
@@ -54,8 +54,8 @@ func (m *Manager) isEnabled() bool {
 	return cfg.EnableValidation
 }
 
-// startNewRound is a method of the Manager that starts a new validation round.
-func (m *Manager) startNewRound() error {
+// startValidate is a method of the Manager that starts a new validation round.
+func (m *Manager) startValidate() error {
 	if m.curRoundID != "" {
 		// Set the timeout status of the previous verification
 		err := m.nodeMgr.UpdateValidationResultsTimeout(m.curRoundID)
