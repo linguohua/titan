@@ -12,6 +12,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
+// establishTCPClient creates a new TCP client with a given address
 func newTCPClient(addr string) (*net.TCPConn, error) {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
@@ -21,6 +22,7 @@ func newTCPClient(addr string) (*net.TCPConn, error) {
 	return net.DialTCP("tcp", nil, tcpAddr)
 }
 
+// prepareDataPacket packs data along with its message type into a byte slice
 func packData(data []byte, msgType api.TCPMsgType) ([]byte, error) {
 	// msg type is uint8
 	msgTypeLen := 1
@@ -49,6 +51,7 @@ func packData(data []byte, msgType api.TCPMsgType) ([]byte, error) {
 	return buf, nil
 }
 
+// transmitData sends data along with its message type over a TCP connection with rate limiting
 func sendData(conn *net.TCPConn, data []byte, msgType api.TCPMsgType, rateLimiter *rate.Limiter) error {
 	buf, err := packData(data, msgType)
 	if err != nil {
@@ -68,6 +71,7 @@ func sendData(conn *net.TCPConn, data []byte, msgType api.TCPMsgType, rateLimite
 	return nil
 }
 
+// transmitNodeID sends the node ID over a TCP connection with rate limiting
 func sendNodeID(conn *net.TCPConn, nodeID string, limiter *rate.Limiter) error {
 	if len(nodeID) == 0 {
 		return fmt.Errorf("nodeID can not empty")

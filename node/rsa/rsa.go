@@ -10,16 +10,18 @@ import (
 	"hash"
 )
 
+// RsaEncryption represents an RSA encryption scheme.
 type Rsa struct {
 	code crypto.Hash
 	hash hash.Hash
 }
 
+// NewRsaEncryption creates a new RsaEncryption instance.
 func New(code crypto.Hash, hash hash.Hash) *Rsa {
 	return &Rsa{code, hash}
 }
 
-// GeneratePrivateKey Generate PrivateKey
+// GeneratePrivateKey generates an RSA private key.
 func GeneratePrivateKey(bits int) (*rsa.PrivateKey, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, bits)
 	if err != nil {
@@ -29,7 +31,7 @@ func GeneratePrivateKey(bits int) (*rsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
-// VerifyRsaSign Verify Rsa Sign
+// VerifySignature verifies an RSA signature.
 func (r *Rsa) VerifySign(publicKey *rsa.PublicKey, sign []byte, content []byte) error {
 	r.hash.Write(content)
 	hashSum := r.hash.Sum(nil)
@@ -42,7 +44,7 @@ func (r *Rsa) VerifySign(publicKey *rsa.PublicKey, sign []byte, content []byte) 
 	return nil
 }
 
-// RsaSign Rsa Sign
+// Sign signs a message using an RSA private key.
 func (r *Rsa) Sign(privateKey *rsa.PrivateKey, content []byte) ([]byte, error) {
 	r.hash.Write(content)
 	sum := r.hash.Sum(nil)
@@ -55,7 +57,7 @@ func (r *Rsa) Sign(privateKey *rsa.PrivateKey, content []byte) ([]byte, error) {
 	return signature, nil
 }
 
-// Pem2PublicKey  Pem to PublicKey
+// PemToPublicKey converts a PEM-encoded public key to an *rsa.PublicKey.
 func Pem2PublicKey(publicPem []byte) (*rsa.PublicKey, error) {
 	block, _ := pem.Decode(publicPem)
 	if block == nil {
@@ -70,7 +72,7 @@ func Pem2PublicKey(publicPem []byte) (*rsa.PublicKey, error) {
 	return pub, nil
 }
 
-// Pem2PrivateKey Pem to PrivateKey
+// PemToPrivateKey converts a PEM-encoded private key to an *rsa.PrivateKey.
 func Pem2PrivateKey(privateKeyStr []byte) (*rsa.PrivateKey, error) {
 	block, _ := pem.Decode(privateKeyStr)
 	if block == nil {
@@ -85,7 +87,7 @@ func Pem2PrivateKey(privateKeyStr []byte) (*rsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
-// PrivateKey2Pem PrivateKey to Pem
+// PrivateKeyToPem converts an *rsa.PrivateKey to a PEM-encoded private key.
 func PrivateKey2Pem(privateKey *rsa.PrivateKey) []byte {
 	if privateKey == nil {
 		return nil
@@ -103,7 +105,7 @@ func PrivateKey2Pem(privateKey *rsa.PrivateKey) []byte {
 	return privateKeyBytes
 }
 
-// PublicKey2Pem PublicKey to Pem
+// PublicKeyToPem converts an *rsa.PublicKey to a PEM-encoded public key.
 func PublicKey2Pem(publicKey *rsa.PublicKey) []byte {
 	if publicKey == nil {
 		return nil

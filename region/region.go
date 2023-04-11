@@ -14,12 +14,12 @@ const (
 
 var defaultArea = ""
 
-// Region geo interface
+// Region represents a geo region interface
 type Region interface {
 	GetGeoInfo(ip string) (*GeoInfo, error)
 }
 
-// GeoInfo geo info
+// GeoInfo represents the geo information
 type GeoInfo struct {
 	Latitude  float64
 	Longitude float64
@@ -29,7 +29,7 @@ type GeoInfo struct {
 
 var region Region
 
-// NewRegion New Region
+// NewRegion initializes the geo region using the specified database path, geo type, and default area
 func NewRegion(dbPath, geoType, area string) error {
 	var err error
 
@@ -46,12 +46,12 @@ func NewRegion(dbPath, geoType, area string) error {
 	return err
 }
 
-// GetRegion Get Region
+// GetRegion returns the current geo region
 func GetRegion() Region {
 	return region
 }
 
-// DefaultGeoInfo get default geo info
+// DefaultGeoInfo creates a default GeoInfo object with the specified IP and default area
 func DefaultGeoInfo(ip string) *GeoInfo {
 	return &GeoInfo{
 		Latitude:  0,
