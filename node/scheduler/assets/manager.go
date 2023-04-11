@@ -40,13 +40,13 @@ const (
 
 // Manager manages asset replicas
 type Manager struct {
-	nodeMgr            *node.Manager
-	earliestExpiration time.Time //  Earliest expiration date for an asset
+	nodeMgr            *node.Manager // node manager
+	earliestExpiration time.Time     // Earliest expiration date for an asset
 	stateMachineWait   sync.WaitGroup
 	assetStateMachines *statemachine.StateGroup
 	lock               sync.Mutex
-	apTickers          map[string]*assetTicker // timeout timer for asset pulling
-	config             dtypes.GetSchedulerConfigFunc
+	apTickers          map[string]*assetTicker       // timeout timer for asset pulling
+	config             dtypes.GetSchedulerConfigFunc // scheduler config
 	*db.SQLDB
 }
 

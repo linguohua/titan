@@ -37,19 +37,19 @@ type Manager struct {
 
 	notify *pubsub.PubSub
 	*db.SQLDB
-	*rsa.PrivateKey
-	dtypes.ServerID
+	*rsa.PrivateKey // scheduler privateKey
+	dtypes.ServerID // scheduler server id
 
-	// Each node can be assigned a select code, when pulling resources, randomly select n select codes, and select the node holding these select code.
-	selectCodeLock           sync.RWMutex
-	cPullSelectRand          *rand.Rand     // The rand of select candidate nodes to pull asset
-	ePullSelectRand          *rand.Rand     // The rand of select edge nodes to pull asset
-	cPullSelectCode          int            // Candidate node select code , Distribute from 1
-	ePullSelectCode          int            // Edge node select code , Distribute from 1
-	cDistributedSelectCode   map[int]string // Distributed candidate node select codes
-	cUndistributedSelectCode map[int]string // Undistributed candidate node select codes
-	eDistributedSelectCode   map[int]string // Distributed edge node select codes
-	eUndistributedSelectCode map[int]string // Undistributed edge node select codes
+	// Each node assigned a node number, when pulling resources, randomly select n node number, and select the node holding these node number.
+	nodeNumLock           sync.RWMutex
+	cNodeNumRand          *rand.Rand
+	eNodeNumRand          *rand.Rand
+	cNodeNumMax           int            // Candidate node number , Distribute from 1
+	eNodeNumMax           int            // Edge node number , Distribute from 1
+	cDistributedNodeNum   map[int]string // Already allocated candidate node numbers
+	cUndistributedNodeNum map[int]string // Undistributed candidate node numbers
+	eDistributedNodeNum   map[int]string // Already allocated edge node numbers
+	eUndistributedNodeNum map[int]string // Undistributed edge node numbers
 }
 
 // NewManager creates a new instance of the node manager
@@ -62,12 +62,12 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, k *rsa.PrivateKey, p *p
 		PrivateKey: k,
 		notify:     p,
 
-		cPullSelectRand:          rand.New(rand.NewSource(pullSelectSeed)),
-		ePullSelectRand:          rand.New(rand.NewSource(pullSelectSeed)),
-		cDistributedSelectCode:   make(map[int]string),
-		cUndistributedSelectCode: make(map[int]string),
-		eDistributedSelectCode:   make(map[int]string),
-		eUndistributedSelectCode: make(map[int]string),
+		cNodeNumRand:          rand.New(rand.NewSource(pullSelectSeed)),
+		eNodeNumRand:          rand.New(rand.NewSource(pullSelectSeed)),
+		cDistributedNodeNum:   make(map[int]string),
+		cUndistributedNodeNum: make(map[int]string),
+		eDistributedNodeNum:   make(map[int]string),
+		eUndistributedNodeNum: make(map[int]string),
 	}
 
 	go nodeManager.run()
@@ -104,8 +104,8 @@ func (m *Manager) storeEdgeNode(node *Node) {
 	}
 	m.Edges++
 
-	code := m.distributeEdgeSelectCode(nodeID)
-	node.selectCode = code
+	num := m.distributeEdgeNodeNum(nodeID)
+	node.nodeNum = num
 
 	m.notify.Pub(node, types.EventNodeOnline.String())
 }
@@ -123,15 +123,15 @@ func (m *Manager) storeCandidateNode(node *Node) {
 	}
 	m.Candidates++
 
-	code := m.distributeCandidateSelectCode(nodeID)
-	node.selectCode = code
+	num := m.distributeCandidateNodeNum(nodeID)
+	node.nodeNum = num
 
 	m.notify.Pub(node, types.EventNodeOnline.String())
 }
 
 // deleteEdgeNode removes an edge node from the manager's list of edge nodes
 func (m *Manager) deleteEdgeNode(node *Node) {
-	m.repayEdgeSelectCode(node.selectCode)
+	m.repayEdgeNodeNum(node.nodeNum)
 	m.notify.Pub(node, types.EventNodeOffline.String())
 
 	nodeID := node.NodeID
@@ -144,7 +144,7 @@ func (m *Manager) deleteEdgeNode(node *Node) {
 
 // deleteCandidateNode removes a candidate node from the manager's list of candidate nodes
 func (m *Manager) deleteCandidateNode(node *Node) {
-	m.repayCandidateSelectCode(node.selectCode)
+	m.repayCandidateNodeNum(node.nodeNum)
 	m.notify.Pub(node, types.EventNodeOffline.String())
 
 	nodeID := node.NodeID
