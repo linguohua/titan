@@ -315,11 +315,7 @@ func (m *Manager) DeleteAsset(root cid.Cid) error {
 
 // restoreAssetPullerOrNew retrieves the asset puller associated with the given root CID, or creates a new one.
 func (m *Manager) restoreAssetPullerOrNew(opts *pullerOptions) (*assetPuller, error) {
-<<<<<<< HEAD
 	data, err := m.GetPuller(opts.root)
-=======
-	data, err := m.RetrievePuller(opts.root)
->>>>>>> 728d4b3b (rename asset)
 	if err != nil && !os.IsNotExist(err) {
 		log.Errorf("get asset puller error %s", err.Error())
 		return nil, err
@@ -381,11 +377,7 @@ func (m *Manager) progressForAssetPulledFailed(root cid.Cid) (*types.AssetPullPr
 		Status: types.ReplicaStatusFailed,
 	}
 
-<<<<<<< HEAD
 	data, err := m.GetPuller(root)
-=======
-	data, err := m.RetrievePuller(root)
->>>>>>> 728d4b3b (rename asset)
 	if os.IsNotExist(err) {
 		return progress, nil
 	}
