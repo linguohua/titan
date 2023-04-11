@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+// findDoc searches for a specific configuration field's documentation
+// in the given configuration documentation tree.
 func findDoc(root interface{}, section, name string) *DocField {
 	rt := fmt.Sprintf("%T", root)[len("*config."):]
 
@@ -16,6 +18,8 @@ func findDoc(root interface{}, section, name string) *DocField {
 	return findDocSect("Common", section, name)
 }
 
+// findDocSect searches for a specific configuration field's documentation
+// in the given section of the configuration documentation tree.
 func findDocSect(root, section, name string) *DocField {
 	path := strings.Split(section, ".")
 
@@ -30,7 +34,6 @@ func findDocSect(root, section, name string) *DocField {
 				docSection = Doc[field.Type]
 				break
 			}
-
 		}
 	}
 

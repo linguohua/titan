@@ -236,7 +236,7 @@ func (m *Manager) HandleResult(vr *api.ValidationResult) error {
 		return nil
 	}
 
-	hash, err := cidutil.CIDString2HashString(vInfo.Cid)
+	hash, err := cidutil.CIDToHash(vInfo.Cid)
 	if err != nil {
 		status = types.ValidationStatusCIDToHashErr
 		log.Errorf("CIDString2HashString %s, err:%s", vInfo.Cid, err.Error())
@@ -315,12 +315,12 @@ func (m *Manager) HandleResult(vr *api.ValidationResult) error {
 
 // compares two CID strings and returns true if they are equal, false otherwise
 func (m *Manager) compareCid(cidStr1, cidStr2 string) bool {
-	hash1, err := cidutil.CIDString2HashString(cidStr1)
+	hash1, err := cidutil.CIDToHash(cidStr1)
 	if err != nil {
 		return false
 	}
 
-	hash2, err := cidutil.CIDString2HashString(cidStr2)
+	hash2, err := cidutil.CIDToHash(cidStr2)
 	if err != nil {
 		return false
 	}

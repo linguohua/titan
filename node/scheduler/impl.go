@@ -388,7 +388,7 @@ func (s *Scheduler) GetSchedulerPublicKey(ctx context.Context) (string, error) {
 
 // GetCandidateDownloadInfos finds candidate download info for the given CID.
 func (s *Scheduler) GetCandidateDownloadInfos(ctx context.Context, cid string) ([]*types.CandidateDownloadInfo, error) {
-	hash, err := cidutil.CIDString2HashString(cid)
+	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}

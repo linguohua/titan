@@ -22,6 +22,7 @@ import (
 
 var session = uuid.New()
 
+// CommonAPI api o
 type CommonAPI struct {
 	Alerting        *alerting.Alerting
 	APISecret       *jwt.HMACSHA
@@ -34,7 +35,9 @@ type jwtPayload struct {
 }
 
 type (
+	// PermissionWriteToken A token with write permission
 	PermissionWriteToken []byte
+	// PermissionAdminToken A token admin write permission
 	PermissionAdminToken []byte
 )
 
@@ -43,7 +46,7 @@ type SessionCallbackFunc func(string, string)
 
 // MethodGroup: Auth
 
-// NewCommonAPI New CommonAPI
+// NewCommonAPI initializes a new CommonAPI
 func NewCommonAPI(lr repo.LockedRepo, secret *jwt.HMACSHA, callback dtypes.SessionCallbackFunc) (CommonAPI, error) {
 	commAPI := CommonAPI{
 		APISecret:       secret,
@@ -53,6 +56,7 @@ func NewCommonAPI(lr repo.LockedRepo, secret *jwt.HMACSHA, callback dtypes.Sessi
 	return commAPI, nil
 }
 
+// AuthVerify verifies a JWT token and returns the permissions associated with it
 func (a *CommonAPI) AuthVerify(ctx context.Context, token string) ([]auth.Permission, error) {
 	var payload jwtPayload
 	if _, err := jwt.Verify([]byte(token), a.APISecret, &payload); err != nil {
@@ -62,6 +66,7 @@ func (a *CommonAPI) AuthVerify(ctx context.Context, token string) ([]auth.Permis
 	return payload.Allow, nil
 }
 
+// AuthNew generates a new JWT token with the provided permissions
 func (a *CommonAPI) AuthNew(ctx context.Context, perms []auth.Permission) (string, error) {
 	p := jwtPayload{
 		Allow: perms, // TODO: consider checking validity
@@ -75,14 +80,17 @@ func (a *CommonAPI) AuthNew(ctx context.Context, perms []auth.Permission) (strin
 	return string(tk), nil
 }
 
+// LogList returns a list of available logging subsystems
 func (a *CommonAPI) LogList(context.Context) ([]string, error) {
 	return logging.GetSubsystems(), nil
 }
 
+// LogSetLevel sets the log level for a given subsystem
 func (a *CommonAPI) LogSetLevel(ctx context.Context, subsystem, level string) error {
 	return logging.SetLogLevel(subsystem, level)
 }
 
+// LogAlerts returns an empty list of alerts
 func (a *CommonAPI) LogAlerts(ctx context.Context) ([]alerting.Alert, error) {
 	return []alerting.Alert{}, nil
 }
@@ -111,7 +119,7 @@ func (a *CommonAPI) Shutdown(context.Context) error {
 	return nil
 }
 
-// Session returns a random UUID of api provider session
+// Session returns a UUID of api provider session
 func (a *CommonAPI) Session(ctx context.Context) (uuid.UUID, error) {
 	if a.SessionCallBack != nil {
 		remoteAddr := handler.GetRemoteAddr(ctx)
@@ -127,10 +135,12 @@ func (a *CommonAPI) Session(ctx context.Context) (uuid.UUID, error) {
 	return session, nil
 }
 
+// Closing jsonrpc closing
 func (a *CommonAPI) Closing(context.Context) (<-chan struct{}, error) {
 	return make(chan struct{}), nil // relies on jsonrpc closing
 }
 
+// ShowLogFile returns the summary information of the log file
 func (a *CommonAPI) ShowLogFile(ctx context.Context) (*api.LogFile, error) {
 	logFilePath := os.Getenv("GOLOG_FILE")
 	if logFilePath == "" {
@@ -144,6 +154,7 @@ func (a *CommonAPI) ShowLogFile(ctx context.Context) (*api.LogFile, error) {
 	return &api.LogFile{Name: info.Name(), Size: info.Size()}, nil
 }
 
+// DownloadLogFile return log file
 func (a *CommonAPI) DownloadLogFile(ctx context.Context) ([]byte, error) {
 	logFilePath := os.Getenv("GOLOG_FILE")
 	if logFilePath == "" {
@@ -152,6 +163,7 @@ func (a *CommonAPI) DownloadLogFile(ctx context.Context) ([]byte, error) {
 	return os.ReadFile(logFilePath)
 }
 
+// DeleteLogFile delete log file
 func (a *CommonAPI) DeleteLogFile(ctx context.Context) error {
 	logFilePath := os.Getenv("GOLOG_FILE")
 	if logFilePath == "" {

@@ -20,12 +20,14 @@ type tcpMsg struct {
 	length  int
 }
 
+// TCPServer handles incoming TCP connections from devices.
 type TCPServer struct {
 	schedulerAPI   api.Scheduler
 	config         *config.CandidateCfg
 	blockWaiterMap *sync.Map
 }
 
+// NewTCPServer initializes a new instance of TCPServer.
 func NewTCPServer(cfg *config.CandidateCfg, schedulerAPI api.Scheduler) *TCPServer {
 	return &TCPServer{
 		config:         cfg,
@@ -34,6 +36,7 @@ func NewTCPServer(cfg *config.CandidateCfg, schedulerAPI api.Scheduler) *TCPServ
 	}
 }
 
+// StartTCPServer starts listening for incoming TCP connections.
 func (t *TCPServer) StartTCPServer() {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", t.config.TCPSrvAddr)
 	if err != nil {
@@ -60,10 +63,12 @@ func (t *TCPServer) StartTCPServer() {
 	}
 }
 
+// Stop stops the TCP server.
 func (t *TCPServer) Stop(ctx context.Context) error {
 	return nil
 }
 
+// handleMessage handles incoming TCP messages from devices.
 func (t *TCPServer) handleMessage(conn *net.TCPConn) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -126,6 +131,7 @@ func (t *TCPServer) handleMessage(conn *net.TCPConn) {
 	}
 }
 
+// readTCPMsg reads a TCP message from a connection.
 func readTCPMsg(conn net.Conn) (*tcpMsg, error) {
 	contentLen, err := readContentLen(conn)
 	if err != nil {
@@ -159,6 +165,7 @@ func readTCPMsg(conn net.Conn) (*tcpMsg, error) {
 	return msg, nil
 }
 
+// extractMsgType extracts the TCP message type from the given byte slice
 func readMsgType(buf []byte) (api.TCPMsgType, error) {
 	var msgType uint8
 	err := binary.Read(bytes.NewReader(buf), binary.LittleEndian, &msgType)
@@ -169,6 +176,7 @@ func readMsgType(buf []byte) (api.TCPMsgType, error) {
 	return api.TCPMsgType(msgType), nil
 }
 
+// readContentLen reads the length of a TCP message from a connection
 func readContentLen(conn net.Conn) (int, error) {
 	buffer, err := readBuffer(conn, 4)
 	if err != nil {
@@ -184,6 +192,7 @@ func readContentLen(conn net.Conn) (int, error) {
 	return int(contentLen), nil
 }
 
+// readBuffer reads a byte buffer of the given length from a connection
 func readBuffer(conn net.Conn, bufferLen int) ([]byte, error) {
 	buffer := make([]byte, bufferLen)
 	readLen := 0

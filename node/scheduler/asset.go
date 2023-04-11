@@ -85,7 +85,7 @@ func (s *Scheduler) RemoveAssetRecord(ctx context.Context, cid string) error {
 		return xerrors.Errorf("Cid Is Nil")
 	}
 
-	hash, err := cidutil.CIDString2HashString(cid)
+	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func (s *Scheduler) RemoveAssetReplica(ctx context.Context, cid, nodeID string) 
 		return xerrors.Errorf("Cid Is Nil")
 	}
 
-	hash, err := cidutil.CIDString2HashString(cid)
+	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func (s *Scheduler) PullAsset(ctx context.Context, info *types.PullAssetReq) err
 		return xerrors.New("Cid is Nil")
 	}
 
-	hash, err := cidutil.CIDString2HashString(info.CID)
+	hash, err := cidutil.CIDToHash(info.CID)
 	if err != nil {
 		return xerrors.Errorf("%s cid to hash err:%s", info.CID, err.Error())
 	}

@@ -24,6 +24,7 @@ const (
 	tcpPackMaxLength    = 52428800
 )
 
+// Candidate represents the candidate node.
 type Candidate struct {
 	fx.In
 
@@ -38,11 +39,13 @@ type Candidate struct {
 	TCPSrv    *TCPServer
 }
 
+// WaitQuiet does nothing and returns nil error.
 func (candidate *Candidate) WaitQuiet(ctx context.Context) error {
 	log.Debug("WaitQuiet")
 	return nil
 }
 
+// GetBlocksWithAssetCID returns a map of blocks with given asset CID, random seed, and random count.
 func (candidate *Candidate) GetBlocksWithAssetCID(ctx context.Context, assetCID string, randomSeed int64, randomCount int) (map[int]string, error) {
 	return candidate.Asset.GetBlocksOfAsset(assetCID, randomSeed, randomCount)
 }

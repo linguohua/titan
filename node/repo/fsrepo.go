@@ -271,7 +271,7 @@ func (fsr *FsRepo) initConfig(t RepoType) error {
 		return err
 	}
 
-	comm, err := config.ConfigComment(t.Config())
+	comm, err := config.GenerateConfigComment(t.Config())
 	if err != nil {
 		return xerrors.Errorf("comment: %w", err)
 	}

@@ -44,7 +44,9 @@ func FromReader(reader io.Reader, def interface{}) (interface{}, error) {
 	return cfg, nil
 }
 
-func ConfigUpdate(cfgCur, cfgDef interface{}, comment bool) ([]byte, error) {
+// GenerateConfigUpdate generates an updated configuration based on the current configuration and the specified defaults.
+// If 'comment' is true, the updated configuration will contain comments describing each configuration field.
+func GenerateConfigUpdate(cfgCur, cfgDef interface{}, comment bool) ([]byte, error) {
 	var nodeStr, defStr string
 	if cfgDef != nil {
 		buf := new(bytes.Buffer)
@@ -156,6 +158,8 @@ func ConfigUpdate(cfgCur, cfgDef interface{}, comment bool) ([]byte, error) {
 	return []byte(nodeStr), nil
 }
 
-func ConfigComment(t interface{}) ([]byte, error) {
-	return ConfigUpdate(t, nil, true)
+// GenerateConfigComment generates a commented version of the specified configuration,
+// with comments describing each configuration field.
+func GenerateConfigComment(t interface{}) ([]byte, error) {
+	return GenerateConfigUpdate(t, nil, true)
 }

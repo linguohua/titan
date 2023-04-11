@@ -20,7 +20,7 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) (*type
 		return nil, xerrors.New("cids is nil")
 	}
 
-	hash, err := cidutil.CIDString2HashString(cid)
+	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 	}

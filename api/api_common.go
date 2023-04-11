@@ -49,9 +49,10 @@ type Common interface {
 	Discover(ctx context.Context) (types.OpenRPCDocument, error) //perm:read
 	// Shutdown trigger graceful shutdown
 	Shutdown(context.Context) error //perm:admin
-	// Session returns a random UUID of api provider session
+	// Session returns a UUID of api provider session
 	Session(ctx context.Context) (uuid.UUID, error) //perm:write
 
+	// Closing jsonrpc closing
 	Closing(context.Context) (<-chan struct{}, error) //perm:read
 }
 
