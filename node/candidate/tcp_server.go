@@ -47,7 +47,7 @@ func (t *TCPServer) StartTCPServer() {
 	// close listener
 	defer listen.Close() //nolint:errcheck // ignore error
 
-	log.Infof("tcp_server listen on %s", t.config.TCPSrvAddr)
+	log.Infof("tcp server listen on %s", t.config.TCPSrvAddr)
 
 	for {
 		conn, err := listen.AcceptTCP()
@@ -80,7 +80,7 @@ func (t *TCPServer) handleMessage(conn *net.TCPConn) {
 	}
 
 	if msg.msgType != api.TCPMsgTypeNodeID {
-		log.Errorf("read tcp msg error, msg type not ValidateTCPMsgTypeNodeID")
+		log.Errorf("read tcp msg error, msg type not TCPMsgTypeNodeID")
 		return
 	}
 	nodeID := string(msg.msg)
@@ -101,7 +101,7 @@ func (t *TCPServer) handleMessage(conn *net.TCPConn) {
 	bw := newBlockWaiter(nodeID, ch, t.config.ValidateDuration, t.schedulerAPI)
 	t.blockWaiterMap.Store(nodeID, bw)
 
-	log.Debugf("edge node %s connect to Validator", nodeID)
+	log.Debugf("node %s connect to Validator", nodeID)
 
 	timer := time.NewTimer(time.Duration(t.config.ValidateDuration) * time.Second)
 	for {
@@ -114,7 +114,7 @@ func (t *TCPServer) handleMessage(conn *net.TCPConn) {
 		// next item is file content
 		msg, err = readTCPMsg(conn)
 		if err != nil {
-			log.Infof("read item error:%v, nodeID:%s", err, nodeID)
+			log.Infof("read tcp message error:%v, nodeID:%s", err, nodeID)
 			return
 		}
 		bw.ch <- *msg
