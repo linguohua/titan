@@ -107,7 +107,7 @@ func (c *Client) WatchServers(nodeType types.NodeType) clientv3.WatchChan {
 }
 
 // ListServers list server
-func (c *Client) ListServers(nodeType types.NodeType) (*clientv3.GetResponse, error) {
+func (c *Client) GetServers(nodeType types.NodeType) (*clientv3.GetResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
 	defer cancel()
 
