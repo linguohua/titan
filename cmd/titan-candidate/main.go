@@ -366,7 +366,7 @@ var runCmd = &cli.Command{
 					select {
 					case <-readyCh:
 						opts := &types.ConnectOptions{Token: token, TcpServerPort: tcpServerPort}
-						err := schedulerAPI.CandidateLogin(ctx, opts)
+						err := schedulerAPI.CandidateConnect(ctx, opts)
 						if err != nil {
 							log.Errorf("Registering candidate failed: %+v", err)
 							cancel()
@@ -427,7 +427,7 @@ func newAuthTokenFromScheduler(schedulerURL, nodeID string, privateKey *rsa.Priv
 		return "", err
 	}
 
-	return schedulerAPI.CreateNodeAuthToken(context.Background(), nodeID, hex.EncodeToString(sign))
+	return schedulerAPI.NodeLogin(context.Background(), nodeID, hex.EncodeToString(sign))
 }
 
 func getAccessPoint(cctx *cli.Context, nodeID string) (string, error) {

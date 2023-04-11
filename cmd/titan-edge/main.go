@@ -351,7 +351,7 @@ var runCmd = &cli.Command{
 					select {
 					case <-readyCh:
 						opts := &types.ConnectOptions{Token: token}
-						if err := schedulerAPI.EdgeLogin(ctx, opts); err != nil {
+						if err := schedulerAPI.EdgeConnect(ctx, opts); err != nil {
 							log.Errorf("Registering edge failed: %s", err.Error())
 							cancel()
 							return
@@ -410,7 +410,7 @@ func newAuthTokenFromScheduler(schedulerURL, nodeID string, privateKey *rsa.Priv
 		return "", err
 	}
 
-	return schedulerAPI.CreateNodeAuthToken(context.Background(), nodeID, hex.EncodeToString(sign))
+	return schedulerAPI.NodeLogin(context.Background(), nodeID, hex.EncodeToString(sign))
 }
 
 func getAccessPoint(cctx *cli.Context, nodeID string) (string, error) {

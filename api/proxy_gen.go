@@ -177,15 +177,15 @@ type SchedulerStruct struct {
 	CommonStruct
 
 	Internal struct {
-		CandidateLogin func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"write"`
+		CandidateConnect func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"write"`
 
 		CheckNetworkConnectivity func(p0 context.Context, p1 string, p2 string) error `perm:"read"`
 
-		CreateNodeAuthToken func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
+		NodeLogin func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
 		DeleteEdgeUpdateConfig func(p0 context.Context, p1 int) error `perm:"admin"`
 
-		EdgeLogin func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"write"`
+		EdgeConnect func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"write"`
 
 		GetAssetListForBucket func(p0 context.Context, p1 string) ([]string, error) `perm:"write"`
 
@@ -636,14 +636,14 @@ func (s *LocatorStub) UpdateNodeOnlineStatus(p0 context.Context, p1 string, p2 b
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) CandidateLogin(p0 context.Context, p1 *types.ConnectOptions) error {
-	if s.Internal.CandidateLogin == nil {
+func (s *SchedulerStruct) CandidateConnect(p0 context.Context, p1 *types.ConnectOptions) error {
+	if s.Internal.CandidateConnect == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.CandidateLogin(p0, p1)
+	return s.Internal.CandidateConnect(p0, p1)
 }
 
-func (s *SchedulerStub) CandidateLogin(p0 context.Context, p1 *types.ConnectOptions) error {
+func (s *SchedulerStub) CandidateConnect(p0 context.Context, p1 *types.ConnectOptions) error {
 	return ErrNotSupported
 }
 
@@ -658,14 +658,14 @@ func (s *SchedulerStub) CheckNetworkConnectivity(p0 context.Context, p1 string, 
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) CreateNodeAuthToken(p0 context.Context, p1 string, p2 string) (string, error) {
-	if s.Internal.CreateNodeAuthToken == nil {
+func (s *SchedulerStruct) NodeLogin(p0 context.Context, p1 string, p2 string) (string, error) {
+	if s.Internal.NodeLogin == nil {
 		return "", ErrNotSupported
 	}
-	return s.Internal.CreateNodeAuthToken(p0, p1, p2)
+	return s.Internal.NodeLogin(p0, p1, p2)
 }
 
-func (s *SchedulerStub) CreateNodeAuthToken(p0 context.Context, p1 string, p2 string) (string, error) {
+func (s *SchedulerStub) NodeLogin(p0 context.Context, p1 string, p2 string) (string, error) {
 	return "", ErrNotSupported
 }
 
@@ -680,14 +680,14 @@ func (s *SchedulerStub) DeleteEdgeUpdateConfig(p0 context.Context, p1 int) error
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) EdgeLogin(p0 context.Context, p1 *types.ConnectOptions) error {
-	if s.Internal.EdgeLogin == nil {
+func (s *SchedulerStruct) EdgeConnect(p0 context.Context, p1 *types.ConnectOptions) error {
+	if s.Internal.EdgeConnect == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.EdgeLogin(p0, p1)
+	return s.Internal.EdgeConnect(p0, p1)
 }
 
-func (s *SchedulerStub) EdgeLogin(p0 context.Context, p1 *types.ConnectOptions) error {
+func (s *SchedulerStub) EdgeConnect(p0 context.Context, p1 *types.ConnectOptions) error {
 	return ErrNotSupported
 }
 

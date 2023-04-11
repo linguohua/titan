@@ -21,20 +21,20 @@ type Scheduler interface {
 	UnregisterNode(ctx context.Context, nodeID string) error //perm:admin
 	// UpdateNodePort updates the port for the node with the specified node
 	UpdateNodePort(ctx context.Context, nodeID, port string) error //perm:admin
-	// EdgeLogin edge node login to the scheduler
-	EdgeLogin(ctx context.Context, opts *types.ConnectOptions) error //perm:write
+	// EdgeConnect edge node login to the scheduler
+	EdgeConnect(ctx context.Context, opts *types.ConnectOptions) error //perm:write
 	// NodeValidationResult processes the validation result for a node
 	NodeValidationResult(ctx context.Context, vr ValidationResult) error //perm:write
-	// CandidateLogin candidate node login to the scheduler
-	CandidateLogin(ctx context.Context, opts *types.ConnectOptions) error //perm:write
+	// CandidateConnect candidate node login to the scheduler
+	CandidateConnect(ctx context.Context, opts *types.ConnectOptions) error //perm:write
 	// NodeRemoveAssetResult the result of an asset removal operation
 	NodeRemoveAssetResult(ctx context.Context, resultInfo types.RemoveAssetResult) error //perm:write
 	// GetExternalAddress retrieves the external address of the caller.
 	GetExternalAddress(ctx context.Context) (string, error) //perm:read
 	// VerifyNodeAuthToken checks the authenticity of a node's authentication token and returns the associated permissions
 	VerifyNodeAuthToken(ctx context.Context, token string) ([]auth.Permission, error) //perm:read
-	// CreateNodeAuthToken generates an authentication token for a node with the specified node ID and signature
-	CreateNodeAuthToken(ctx context.Context, nodeID, sign string) (string, error) //perm:read
+	// NodeLogin generates an authentication token for a node with the specified node ID and signature
+	NodeLogin(ctx context.Context, nodeID, sign string) (string, error) //perm:read
 	// GetNodeInfo get information for node
 	GetNodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error) //perm:read
 	// GetNodeList retrieves a list of nodes with pagination using the specified cursor and count
