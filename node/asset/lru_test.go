@@ -18,6 +18,7 @@ func init() {
 	_ = logging.SetLogLevel("asset/store", "DEBUG")
 	_ = logging.SetLogLevel("asset/cache", "DEBUG")
 }
+
 func TestLRUCache(t *testing.T) {
 	t.Logf("TestLRUCache")
 	storageMgr, err := storage.NewManager("C:/Users/aaa/.titancandidate-1/storage/", nil)
@@ -83,7 +84,7 @@ func TestIndex(t *testing.T) {
 		return
 	}
 
-	reader, err := storageMgr.RetrieveAsset(root)
+	reader, err := storageMgr.GetAsset(root)
 	if err != nil {
 		t.Errorf("decode error:%s", err.Error())
 		return
@@ -150,5 +151,4 @@ func TestIndex(t *testing.T) {
 	for _, record := range rcs {
 		t.Logf("record: %s", record.String())
 	}
-
 }
