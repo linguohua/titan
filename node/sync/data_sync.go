@@ -74,7 +74,6 @@ func (ds *DataSync) CompareBucketHashes(ctx context.Context, hashes map[uint32]s
 	return append(mismatchBuckets, lostBuckets...), nil
 }
 
-// performSync
 // doSync performs synchronization for extra, lost and mismatched buckets
 func (ds *DataSync) doSync(ctx context.Context, extraBuckets, lostBuckets, mismatchBuckets []uint32) {
 	if len(extraBuckets) > 0 {

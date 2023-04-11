@@ -33,10 +33,10 @@ type Node struct {
 	remoteAddr string
 	tcpPort    int
 
-	lastRequestTime time.Time
-	pullingCount    int // The number of asset waiting and pulling in progress
+	lastRequestTime time.Time // Node last keepalive time
+	pullingCount    int       // The number of asset waiting and pulling in progress
 
-	selectCode int
+	nodeNum int // The node number assigned by the scheduler to each online node
 }
 
 // API represents the node API

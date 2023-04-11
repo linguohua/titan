@@ -196,7 +196,7 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 
 // HandleResult handles the validation result for a given node.
 func (m *Manager) HandleResult(vr *api.ValidationResult) error {
-	log.Debugf("HandleResult roundID :%s", vr.RoundID)
+	log.Debugf("HandleResult roundID :%s , vr.Cids :%v", vr.RoundID, vr.Cids)
 
 	var status types.ValidationStatus
 	nodeID := vr.NodeID
