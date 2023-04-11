@@ -2,7 +2,6 @@ package candidate
 
 import (
 	"bytes"
-	"context"
 	"encoding/binary"
 	"fmt"
 	"net"
@@ -63,11 +62,6 @@ func (t *TCPServer) StartTCPServer() {
 	}
 }
 
-// Stop stops the TCP server.
-func (t *TCPServer) Stop(ctx context.Context) error {
-	return nil
-}
-
 // handleMessage handles incoming TCP messages from devices.
 func (t *TCPServer) handleMessage(conn *net.TCPConn) {
 	defer func() {
@@ -101,10 +95,13 @@ func (t *TCPServer) handleMessage(conn *net.TCPConn) {
 	}
 
 	ch := make(chan tcpMsg, 1)
-	defer close(ch)
-
 	bw := newBlockWaiter(nodeID, ch, t.config.ValidateDuration, t.schedulerAPI)
 	t.blockWaiterMap.Store(nodeID, bw)
+
+	defer func() {
+		close(ch)
+		t.blockWaiterMap.Delete(nodeID)
+	}()
 
 	log.Debugf("node %s connect to Validator", nodeID)
 
