@@ -183,7 +183,7 @@ func (m *Manager) getRandNum(max int, r *rand.Rand) int {
 // updateResultInfo updates the validation result information for a given node.
 func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.ValidationResult) error {
 	resultInfo := &types.ValidationResultInfo{
-		RoundID:     vr.RoundID,
+		RoundID:     m.curRoundID,
 		NodeID:      vr.NodeID,
 		Status:      status,
 		BlockNumber: int64(len(vr.Cids)),
@@ -196,9 +196,7 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 
 // HandleResult handles the validation result for a given node.
 func (m *Manager) HandleResult(vr *api.ValidationResult) error {
-	if vr.RoundID != m.curRoundID {
-		return xerrors.Errorf("round id does not match %s:%s", m.curRoundID, vr.RoundID)
-	}
+	log.Debugf("HandleResult roundID :%s", vr.RoundID)
 
 	var status types.ValidationStatus
 	nodeID := vr.NodeID
@@ -226,17 +224,22 @@ func (m *Manager) HandleResult(vr *api.ValidationResult) error {
 		return nil
 	}
 
-	cid, err := m.nodeMgr.LoadNodeValidationCID(vr.RoundID, nodeID)
+	vInfo, err := m.nodeMgr.LoadNodeValidationInfo(m.curRoundID, nodeID)
 	if err != nil {
 		status = types.ValidationStatusLoadDBErr
-		log.Errorf("LoadNodeValidationCID %s , %s, err:%s", vr.RoundID, nodeID, err.Error())
+		log.Errorf("LoadNodeValidationCID %s , %s, err:%s", m.curRoundID, nodeID, err.Error())
 		return nil
 	}
 
-	hash, err := cidutil.CIDString2HashString(cid)
+	if vInfo.ValidatorID != vr.Validator {
+		status = types.ValidationStatusValidatorMismatch
+		return nil
+	}
+
+	hash, err := cidutil.CIDString2HashString(vInfo.Cid)
 	if err != nil {
 		status = types.ValidationStatusCIDToHashErr
-		log.Errorf("CIDString2HashString %s, err:%s", cid, err.Error())
+		log.Errorf("CIDString2HashString %s, err:%s", vInfo.Cid, err.Error())
 		return nil
 	}
 
@@ -268,7 +271,7 @@ func (m *Manager) HandleResult(vr *api.ValidationResult) error {
 			continue
 		}
 
-		cCidMap, err = node.GetBlocksOfAsset(context.Background(), cid, m.seed, cidCount)
+		cCidMap, err = node.GetBlocksOfAsset(context.Background(), vInfo.Cid, m.seed, cidCount)
 		if err != nil {
 			log.Errorf("candidate %s GetBlocksOfAsset err:%s", cNodeID, err.Error())
 			continue
@@ -301,7 +304,7 @@ func (m *Manager) HandleResult(vr *api.ValidationResult) error {
 
 		if !m.compareCid(resultCid, vCid) {
 			status = types.ValidationStatusValidateFail
-			log.Errorf("round [%d] and nodeID [%s], validator fail resultCid:%s, vCid:%s,randNum:%d,index:%d", vr.RoundID, nodeID, resultCid, vCid, randNum, i)
+			log.Errorf("round [%d] and nodeID [%s], validator fail resultCid:%s, vCid:%s,randNum:%d,index:%d", m.curRoundID, nodeID, resultCid, vCid, randNum, i)
 			return nil
 		}
 	}

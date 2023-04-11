@@ -76,12 +76,12 @@ func (n *SQLDB) SaveValidationResultInfos(infos []*types.ValidationResultInfo) e
 	return err
 }
 
-// LoadNodeValidationCID load the cid of a validation result.
-func (n *SQLDB) LoadNodeValidationCID(roundID, nodeID string) (string, error) {
-	query := fmt.Sprintf("SELECT cid FROM %s WHERE round_id=? AND node_id=?", validationResultTable)
-	var cid string
-	err := n.db.Get(&cid, query, roundID, nodeID)
-	return cid, err
+// LoadNodeValidationInfo load the cid of a validation result.
+func (n *SQLDB) LoadNodeValidationInfo(roundID, nodeID string) (*types.ValidationResultInfo, error) {
+	query := fmt.Sprintf("SELECT * FROM %s WHERE round_id=? AND node_id=?", validationResultTable)
+	var info types.ValidationResultInfo
+	err := n.db.Get(&info, query, roundID, nodeID)
+	return &info, err
 }
 
 // UpdateValidationResultInfo updates the validation result information.
