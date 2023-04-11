@@ -122,7 +122,7 @@ func (s *Scheduler) CreateNodeAuthToken(ctx context.Context, nodeID, sign string
 	return string(tk), nil
 }
 
-// processes a node login request with the given options and node type.
+// nodeLogin processes a node login request with the given options and node type.
 func (s *Scheduler) nodeLogin(ctx context.Context, opts *types.ConnectOptions, nodeType types.NodeType) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)

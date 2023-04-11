@@ -17,16 +17,21 @@ import (
 )
 
 const (
-	JWTSecretName   = "auth-jwt-private"
+	// JWTSecretName represents the name of the JWT private key in the keystore.
+	JWTSecretName = "auth-jwt-private"
+	// KTJwtHmacSecret represents the key type of the JWT HMAC secret.
 	KTJwtHmacSecret = "jwt-hmac-secret"
 )
 
+// JwtPayload represents the payload of a JWT token.
 type JwtPayload struct {
 	Allow []auth.Permission
 }
 
 var log = logging.Logger("jwt")
 
+// APISecret retrieves or generates a new HMACSHA JWT secret from the repository's keystore.
+// It returns the JWT HMACSHA secret and an error if any.
 func APISecret(lr repo.LockedRepo) (*jwt.HMACSHA, error) {
 	keystore, err := lr.KeyStore()
 	if err != nil {

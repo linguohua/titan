@@ -116,7 +116,7 @@ func (m *Manager) ResetValidatorGroup(nodeIDs []string) {
 
 	for _, nodeID := range nodeIDs {
 		node := m.nodeMgr.GetCandidateNode(nodeID)
-		bwDn := node.DownloadSpeed
+		bwDn := node.BandwidthDown
 
 		count := int(math.Floor((bwDn * bandwidthRatio) / m.getValidatorBaseBwDn()))
 		if count < 1 {

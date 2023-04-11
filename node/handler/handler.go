@@ -8,14 +8,18 @@ import (
 )
 
 type (
+	// RemoteAddr client address
 	RemoteAddr struct{}
-	NodeID     struct{}
+	// RemoteAddr node ID
+	NodeID struct{}
 )
 
+// Handler represents an HTTP handler that also adds remote client address and node ID to the request context
 type Handler struct {
 	handler *auth.Handler
 }
 
+// GetRemoteAddr returns the remote address of the client
 func GetRemoteAddr(ctx context.Context) string {
 	v, ok := ctx.Value(RemoteAddr{}).(string)
 	if !ok {
@@ -24,6 +28,7 @@ func GetRemoteAddr(ctx context.Context) string {
 	return v
 }
 
+// GetNodeID returns the node ID of the client
 func GetNodeID(ctx context.Context) string {
 	v, ok := ctx.Value(NodeID{}).(string)
 	if !ok {
@@ -32,10 +37,12 @@ func GetNodeID(ctx context.Context) string {
 	return v
 }
 
+// New returns a new HTTP handler with the given auth handler and additional request context fields
 func New(ah *auth.Handler) http.Handler {
 	return &Handler{ah}
 }
 
+// ServeHTTP serves an HTTP request with the added client remote address and node ID in the request context
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	remoteAddr := r.Header.Get("X-Remote-Addr")
 	if remoteAddr == "" {

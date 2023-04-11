@@ -128,8 +128,8 @@ var showNodeInfoCmd = &cli.Command{
 		fmt.Printf("disk space: %s \n", units.BytesSize(info.DiskSpace))
 		fmt.Printf("fsType: %s \n", info.IoSystem)
 		fmt.Printf("mac: %s \n", info.MacLocation)
-		fmt.Printf("download bandwidth: %s \n", units.BytesSize(info.DownloadSpeed))
-		fmt.Printf("upload bandwidth: %s \n", units.BytesSize(info.UploadSpeed))
+		fmt.Printf("download bandwidth: %s \n", units.BytesSize(info.BandwidthDown))
+		fmt.Printf("upload bandwidth: %s \n", units.BytesSize(info.BandwidthUp))
 		fmt.Printf("cpu percent: %.2f %s \n", info.CPUUsage, "%")
 		//
 		fmt.Printf("DownloadCount: %d \n", info.DownloadBlocks)
