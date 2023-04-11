@@ -79,7 +79,6 @@ func (hs *HttpServer) resolvePath(ctx context.Context, p path.Path, asset cid.Ci
 	return path.NewResolvedPath(ipath, node, root, gopath.Join(rest...)), nil
 }
 
-// GetUnixFsNode returns a read-only handle to a file tree referenced by a path.
 // getUnixFsNode returns a read-only handle to a UnixFS node referenced by a ResolvedPath and root CID.
 func (hs *HttpServer) getUnixFsNode(ctx context.Context, p path.Resolved, root cid.Cid) (files.Node, error) {
 	ng := &nodeGetter{hs, root}

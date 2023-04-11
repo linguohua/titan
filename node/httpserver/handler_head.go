@@ -9,9 +9,9 @@ import (
 	"github.com/ipfs/go-cid"
 )
 
-// headRequestHandler handles HTTP HEAD requests by checking if the given CID exists in the asset store.
+// headHandler handles HTTP HEAD requests by checking if the given CID exists in the asset store.
 func (hs *HttpServer) headHandler(w http.ResponseWriter, r *http.Request) {
-	c, err := getCID(r.URL.Path)
+	c, err := getCIDFromURLPath(r.URL.Path)
 	if err != nil {
 		w.WriteHeader(http.StatusPreconditionFailed)
 		return
@@ -25,9 +25,9 @@ func (hs *HttpServer) headHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// path=/ipfs/{cid}[/{path}]
 // getCIDFromURLPath extracts the CID from the URL path of an IPFS request.
-func getCID(path string) (cid.Cid, error) {
+// path=/ipfs/{cid}[/{path}].
+func getCIDFromURLPath(path string) (cid.Cid, error) {
 	parts := strings.Split(path, "/")
 	if len(parts) < 2 {
 		return cid.Cid{}, fmt.Errorf("path not found")

@@ -31,7 +31,7 @@ func newBlockWaiter(nodeID string, ch chan tcpMsg, duration int, resulter NodeVa
 	return bw
 }
 
-// wait waits for blocks from a node, and stores the validation result
+// wait waits for blocks from a node, and send the validation result
 func (bw *blockWaiter) wait() {
 	size := int64(0)
 	now := time.Now()

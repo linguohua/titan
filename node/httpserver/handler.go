@@ -37,12 +37,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// NewHandler creates a new IPFSHandler with the given HTTP handler
+// NewHandler creates a new Handler with the given HTTP handler
 func (hs *HttpServer) NewHandler(handler http.Handler) http.Handler {
 	return &Handler{handler, hs}
 }
 
-// handler is the main request handler for serving IPFS content
+// handler is the main request handler for serving titan content
 func (hs *HttpServer) handler(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("handler path: %s", r.URL.Path)
 
@@ -56,7 +56,6 @@ func (hs *HttpServer) handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// generate Etag value based on HTTP request and CID
 // getEtag generates an Etag value based on the HTTP request and CID
 func getEtag(r *http.Request, cid cid.Cid) string {
 	prefix := `"`
@@ -72,7 +71,6 @@ func getEtag(r *http.Request, cid cid.Cid) string {
 	return prefix + cid.String() + suffix
 }
 
-// Set Content-Disposition to arbitrary filename and disposition
 // setContentDispositionHeader sets the Content-Disposition header to an arbitrary filename and disposition
 func setContentDispositionHeader(w http.ResponseWriter, filename string, disposition string) {
 	utf8Name := url.PathEscape(filename)
@@ -108,7 +106,7 @@ func getFilename(contentPath path.Path) string {
 	return s
 }
 
-// Set Content-Disposition if filename URL query param is present, return preferred filename
+// addContentDispositionHeader set Content-Disposition if filename URL query param is present, return preferred filename
 func addContentDispositionHeader(w http.ResponseWriter, r *http.Request, contentPath path.Path) string {
 	/* This logic enables:
 	 * - creation of HTML links that trigger "Save As.." dialog instead of being rendered by the browser

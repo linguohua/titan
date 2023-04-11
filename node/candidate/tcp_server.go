@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
-	"os"
 	"sync"
 	"time"
 
@@ -25,6 +24,7 @@ type TCPServer struct {
 	schedulerAPI   api.Scheduler
 	config         *config.CandidateCfg
 	blockWaiterMap *sync.Map
+	listen         *net.TCPListener
 }
 
 // NewTCPServer initializes a new instance of TCPServer.
@@ -47,6 +47,7 @@ func (t *TCPServer) StartTCPServer() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	t.listen = listen
 	// close listener
 	defer listen.Close() //nolint:errcheck // ignore error
 
@@ -55,8 +56,8 @@ func (t *TCPServer) StartTCPServer() {
 	for {
 		conn, err := listen.AcceptTCP()
 		if err != nil {
-			log.Fatal(err)
-			os.Exit(1)
+			log.Errorf("tcp server close %s", err.Error())
+			return
 		}
 
 		go t.handleMessage(conn)
@@ -65,7 +66,7 @@ func (t *TCPServer) StartTCPServer() {
 
 // Stop stops the TCP server.
 func (t *TCPServer) Stop(ctx context.Context) error {
-	return nil
+	return t.listen.Close()
 }
 
 // handleMessage handles incoming TCP messages from devices.
@@ -158,7 +159,7 @@ func readTCPMsg(conn net.Conn) (*tcpMsg, error) {
 		return nil, fmt.Errorf("invalid tcp msg, content len == 0")
 	}
 
-	msgType, err := readMsgType(buf[0:1])
+	msgType, err := extractMsgType(buf[0:1])
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +170,7 @@ func readTCPMsg(conn net.Conn) (*tcpMsg, error) {
 }
 
 // extractMsgType extracts the TCP message type from the given byte slice
-func readMsgType(buf []byte) (api.TCPMsgType, error) {
+func extractMsgType(buf []byte) (api.TCPMsgType, error) {
 	var msgType uint8
 	err := binary.Read(bytes.NewReader(buf), binary.LittleEndian, &msgType)
 	if err != nil {
