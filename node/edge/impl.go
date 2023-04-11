@@ -21,6 +21,7 @@ import (
 
 var log = logging.Logger("edge")
 
+// Edge edge node
 type Edge struct {
 	fx.In
 
@@ -34,11 +35,13 @@ type Edge struct {
 	SchedulerAPI api.Scheduler
 }
 
+// WaitQuiet waits for the edge device to become idle.
 func (edge *Edge) WaitQuiet(ctx context.Context) error {
 	log.Debug("WaitQuiet")
 	return nil
 }
 
+// ExternalServiceAddress returns the external service address of the scheduler.
 func (edge *Edge) ExternalServiceAddress(ctx context.Context, schedulerURL string) (string, error) {
 	schedulerAPI, closer, err := client.NewScheduler(ctx, schedulerURL, nil)
 	if err != nil {
@@ -49,10 +52,12 @@ func (edge *Edge) ExternalServiceAddress(ctx context.Context, schedulerURL strin
 	return schedulerAPI.GetExternalAddress(ctx)
 }
 
+// UserNATPunch checks network connectivity from the edge device to the specified URL.
 func (edge *Edge) UserNATPunch(ctx context.Context, sourceURL string, req *types.NatPunchReq) error {
 	return edge.checkNetworkConnectivity(sourceURL, req.Timeout)
 }
 
+// checkNetworkConnectivity uses HTTP/3 to check network connectivity to a target URL.
 func (edge *Edge) checkNetworkConnectivity(targetURL string, timeout int) error {
 	udpPacketConn, err := net.ListenPacket("udp", ":0")
 	if err != nil {
