@@ -147,25 +147,11 @@ type LocatorStruct struct {
 	CommonStruct
 
 	Internal struct {
-		AddAccessPoint func(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error `perm:"admin"`
-
 		EdgeDownloadInfos func(p0 context.Context, p1 string) (*types.EdgeDownloadInfoList, error) `perm:"read"`
 
-		GetAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
-
-		GetAccessPoints func(p0 context.Context, p1 string) ([]string, error) `perm:"read"`
+		GetAccessPoints func(p0 context.Context, p1 string, p2 string) ([]string, error) `perm:"read"`
 
 		GetUserAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
-
-		GetWebAccessPoints func(p0 context.Context) ([]AccessPoint, error) `perm:"admin"`
-
-		ListAreaIDs func(p0 context.Context) ([]string, error) `perm:"admin"`
-
-		RegisterNode func(p0 context.Context, p1 string, p2 string, p3 string, p4 types.NodeType) error `perm:"admin"`
-
-		RemoveAccessPoints func(p0 context.Context, p1 string) error `perm:"admin"`
-
-		UpdateNodeOnlineStatus func(p0 context.Context, p1 string, p2 bool) error `perm:"write"`
 	}
 }
 
@@ -526,17 +512,6 @@ func (s *EdgeStub) WaitQuiet(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *LocatorStruct) AddAccessPoint(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error {
-	if s.Internal.AddAccessPoint == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.AddAccessPoint(p0, p1, p2, p3, p4)
-}
-
-func (s *LocatorStub) AddAccessPoint(p0 context.Context, p1 string, p2 string, p3 int, p4 string) error {
-	return ErrNotSupported
-}
-
 func (s *LocatorStruct) EdgeDownloadInfos(p0 context.Context, p1 string) (*types.EdgeDownloadInfoList, error) {
 	if s.Internal.EdgeDownloadInfos == nil {
 		return nil, ErrNotSupported
@@ -548,25 +523,14 @@ func (s *LocatorStub) EdgeDownloadInfos(p0 context.Context, p1 string) (*types.E
 	return nil, ErrNotSupported
 }
 
-func (s *LocatorStruct) GetAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
-	if s.Internal.GetAccessPoint == nil {
-		return *new(AccessPoint), ErrNotSupported
-	}
-	return s.Internal.GetAccessPoint(p0, p1)
-}
-
-func (s *LocatorStub) GetAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
-	return *new(AccessPoint), ErrNotSupported
-}
-
-func (s *LocatorStruct) GetAccessPoints(p0 context.Context, p1 string) ([]string, error) {
+func (s *LocatorStruct) GetAccessPoints(p0 context.Context, p1 string, p2 string) ([]string, error) {
 	if s.Internal.GetAccessPoints == nil {
 		return *new([]string), ErrNotSupported
 	}
-	return s.Internal.GetAccessPoints(p0, p1)
+	return s.Internal.GetAccessPoints(p0, p1, p2)
 }
 
-func (s *LocatorStub) GetAccessPoints(p0 context.Context, p1 string) ([]string, error) {
+func (s *LocatorStub) GetAccessPoints(p0 context.Context, p1 string, p2 string) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 
@@ -579,61 +543,6 @@ func (s *LocatorStruct) GetUserAccessPoint(p0 context.Context, p1 string) (Acces
 
 func (s *LocatorStub) GetUserAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
 	return *new(AccessPoint), ErrNotSupported
-}
-
-func (s *LocatorStruct) GetWebAccessPoints(p0 context.Context) ([]AccessPoint, error) {
-	if s.Internal.GetWebAccessPoints == nil {
-		return *new([]AccessPoint), ErrNotSupported
-	}
-	return s.Internal.GetWebAccessPoints(p0)
-}
-
-func (s *LocatorStub) GetWebAccessPoints(p0 context.Context) ([]AccessPoint, error) {
-	return *new([]AccessPoint), ErrNotSupported
-}
-
-func (s *LocatorStruct) ListAreaIDs(p0 context.Context) ([]string, error) {
-	if s.Internal.ListAreaIDs == nil {
-		return *new([]string), ErrNotSupported
-	}
-	return s.Internal.ListAreaIDs(p0)
-}
-
-func (s *LocatorStub) ListAreaIDs(p0 context.Context) ([]string, error) {
-	return *new([]string), ErrNotSupported
-}
-
-func (s *LocatorStruct) RegisterNode(p0 context.Context, p1 string, p2 string, p3 string, p4 types.NodeType) error {
-	if s.Internal.RegisterNode == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.RegisterNode(p0, p1, p2, p3, p4)
-}
-
-func (s *LocatorStub) RegisterNode(p0 context.Context, p1 string, p2 string, p3 string, p4 types.NodeType) error {
-	return ErrNotSupported
-}
-
-func (s *LocatorStruct) RemoveAccessPoints(p0 context.Context, p1 string) error {
-	if s.Internal.RemoveAccessPoints == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.RemoveAccessPoints(p0, p1)
-}
-
-func (s *LocatorStub) RemoveAccessPoints(p0 context.Context, p1 string) error {
-	return ErrNotSupported
-}
-
-func (s *LocatorStruct) UpdateNodeOnlineStatus(p0 context.Context, p1 string, p2 bool) error {
-	if s.Internal.UpdateNodeOnlineStatus == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.UpdateNodeOnlineStatus(p0, p1, p2)
-}
-
-func (s *LocatorStub) UpdateNodeOnlineStatus(p0 context.Context, p1 string, p2 bool) error {
-	return ErrNotSupported
 }
 
 func (s *SchedulerStruct) CandidateConnect(p0 context.Context, p1 *types.ConnectOptions) error {

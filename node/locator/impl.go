@@ -2,16 +2,16 @@ package locator
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net"
+	"sync"
+	"time"
 
 	"go.uber.org/fx"
 
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/common"
-	"github.com/linguohua/titan/node/handler"
 	"github.com/linguohua/titan/region"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -20,8 +20,8 @@ import (
 var log = logging.Logger("locator")
 
 const (
-	miniWeight = 0
-	maxWeight  = 1000
+	// miniWeight = 0
+	// maxWeight  = 1000
 	// 3 seconds
 	connectTimeout = 3
 	defaultAreaID  = "CN-GD-Shenzhen"
@@ -32,216 +32,101 @@ type Locator struct {
 	fx.In
 
 	*common.CommonAPI
-	ApMgr *AccessPointMgr
-	DB    *SqlDB
+	sMgr *SchedulerMgr
 	region.Region
+	storage storage
 }
 
 func isValid(geo string) bool {
 	return len(geo) > 0 && geo != unknownAreaID
 }
 
-func (locator *Locator) GetAccessPoints(ctx context.Context, nodeID string) ([]string, error) {
-	schedulerAPI, err := locator.getSchedulerAPIWith(nodeID)
-	if err == nil { // node may be not exit if err != nil
-		return []string{schedulerAPI.url}, nil
+func (l *Locator) GetAccessPoints(ctx context.Context, nodeID, areaID string) ([]string, error) {
+	if len(nodeID) == 0 || len(areaID) == 0 {
+		return nil, fmt.Errorf("params nodeID or areaID can not empty")
 	}
 
-	if err != sql.ErrNoRows {
-		return nil, err
-	}
-
-	// if node not exist, get scheduler by ip location
-	remoteAddr := handler.GetRemoteAddr(ctx)
-	areaID, err := locator.getAreaIDWith(remoteAddr)
+	schedulers := l.sMgr.getSchedulers(areaID)
+	ss, err := l.selectValidSchedulers(schedulers, nodeID)
 	if err != nil {
 		return nil, err
 	}
 
-	return locator.getAccessPointsWithWeightCount(areaID)
-}
-
-func (locator *Locator) AddAccessPoint(ctx context.Context, areaID string, schedulerURL string, weight int, schedulerAccessToken string) error {
-	if weight < miniWeight || weight > maxWeight {
-		return fmt.Errorf("weight is out of range, need to set %d ~ %d", miniWeight, maxWeight)
+	if len(ss) > 0 {
+		return ss, nil
 	}
 
-	exist, err := locator.DB.isAccessPointExist(schedulerURL)
-	if err != nil {
-		return err
-	}
-
-	if exist {
-		return fmt.Errorf("access point already exist")
-	}
-
-	_, err = locator.ApMgr.newSchedulerAPI(schedulerURL, areaID, schedulerAccessToken)
-	if err != nil {
-		return err
-	}
-
-	return locator.DB.addAccessPoint(areaID, schedulerURL, weight, schedulerAccessToken)
-}
-
-func (locator *Locator) RemoveAccessPoints(ctx context.Context, areaID string) error {
-	locator.ApMgr.removeAccessPoint(areaID)
-	return locator.DB.removeAccessPoints(areaID)
-}
-
-func (locator *Locator) ListAreaIDs(ctx context.Context) (areaIDs []string, err error) {
-	return locator.DB.listAreaIDs()
-}
-
-func (locator *Locator) GetAccessPoint(ctx context.Context, areaID string) (api.AccessPoint, error) {
-	schedulerConfigs, err := locator.DB.getAccessPointConfigs(areaID)
-	if err != nil {
-		return api.AccessPoint{}, err
-	}
-	infos := make([]api.SchedulerInfo, 0, len(schedulerConfigs))
-	for _, cfg := range schedulerConfigs {
-		schedulerInfo := api.SchedulerInfo{URL: cfg.SchedulerURL, Weight: cfg.Weight}
-		infos = append(infos, schedulerInfo)
-	}
-
-	accessPoint := api.AccessPoint{AreaID: areaID, SchedulerInfos: infos}
-	return accessPoint, nil
-}
-
-func (locator *Locator) UpdateNodeOnlineStatus(ctx context.Context, nodeID string, isOnline bool) error {
-	log.Debugf("UpdateNodeOnlineStatus node %s online status %t", nodeID, isOnline)
-
-	info, err := locator.DB.getNodeInfo(nodeID)
-	if err != nil {
-		log.Errorf("UpdateNodeOnlineStatus, get node %s error:%s", nodeID, err.Error())
-		return err
-	}
-
-	return locator.DB.setNodeInfo(nodeID, info.SchedulerURL, info.AreaID, isOnline)
-}
-
-func (locator *Locator) getAccessPointsWithWeightCount(areaID string) ([]string, error) {
-	log.Debugf("getAccessPointWithWeightCount, areaID:%s", areaID)
-
-	schedulerConfigs, err := locator.DB.getAccessPointConfigs(areaID)
+	schedulerURLs, err := l.storage.GetSchedulerURLs(areaID)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(schedulerConfigs) == 0 {
-		return make([]string, 0), nil
-	}
-
-	// filter online scheduler
-	onlineSchedulerAPIs := make(map[string]*schedulerAPI)
-	onlineSchedulerCfgs := make(map[string]*schedulerCfg)
-	for _, cfg := range schedulerConfigs {
-		api, err := locator.ApMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
-		if err != nil {
-			log.Warnf("getAccessPointsWithWeightCount, getSchedulerAPI error:%s", err.Error())
-			continue
-		}
-
-		schedulerCfg := cfg
-		onlineSchedulerCfgs[schedulerCfg.SchedulerURL] = schedulerCfg
-		onlineSchedulerAPIs[schedulerCfg.SchedulerURL] = api
-	}
-
-	cfgWeights := countSchedulerWeightWithCfgs(onlineSchedulerCfgs)
-	currentWeights := locator.countSchedulerWeightByNode(onlineSchedulerCfgs)
-
-	urls := make([]string, 0)
-	for url, weight := range cfgWeights {
-		currentWeight := currentWeights[url]
-		if currentWeight <= weight {
-			urls = append(urls, url)
-		}
-	}
-
-	schedulerURLs := make([]string, 0, len(urls))
-	for _, url := range urls {
-		_, ok := onlineSchedulerAPIs[url]
-		if ok {
-			schedulerURLs = append(schedulerURLs, url)
-		}
-	}
-
-	return schedulerURLs, nil
-}
-
-func countSchedulerWeightWithCfgs(schedulerCfgs map[string]*schedulerCfg) map[string]float32 {
-	totalWeight := 0
-	for _, cfg := range schedulerCfgs {
-		totalWeight += cfg.Weight
-	}
-
-	result := make(map[string]float32)
-	for _, cfg := range schedulerCfgs {
-		result[cfg.SchedulerURL] = float32(cfg.Weight) / float32(totalWeight)
-	}
-
-	return result
-}
-
-func (locator *Locator) countSchedulerWeightByNode(schedulerCfgs map[string]*schedulerCfg) map[string]float32 {
-	totalWeight := 0
-
-	weightMap := make(map[string]int)
-	for _, cfg := range schedulerCfgs {
-		count, err := locator.DB.countNodeOnScheduler(cfg.SchedulerURL)
-		if err != nil {
-			log.Errorf("countSchedulerWeightByNode, error:%s", err.Error())
-			continue
-		}
-
-		weightMap[cfg.SchedulerURL] = count
-		totalWeight += count
-	}
-
-	result := make(map[string]float32)
-	for url, weight := range weightMap {
-		if totalWeight == 0 {
-			result[url] = 0
-		} else {
-			result[url] = float32(weight) / float32(totalWeight)
-		}
-	}
-	return result
-}
-
-// if node not exist return sql.ErrNoRows
-func (locator *Locator) getSchedulerAPIWith(nodeID string) (*schedulerAPI, error) {
-	node, err := locator.DB.getNodeInfo(nodeID)
-	if err != nil {
-		log.Errorf("GetAccessPoints, getNodeInfo error:%s", err.Error())
-		return nil, err
-	}
-
-	cfg, err := locator.DB.getSchedulerCfg(node.SchedulerURL)
+	schedulers, err = l.newSchedulers(schedulerURLs)
 	if err != nil {
 		return nil, err
 	}
 
-	return locator.ApMgr.getSchedulerAPI(node.SchedulerURL, node.AreaID, cfg.AccessToken)
+	return l.selectValidSchedulers(schedulers, nodeID)
+}
+
+func (locator *Locator) selectValidSchedulers(ss []*scheduler, nodeID string) ([]string, error) {
+	if len(ss) == 0 {
+		return nil, nil
+	}
+
+	lock := &sync.Mutex{}
+	schedulers := make([]string, 0)
+
+	var wg sync.WaitGroup
+	for _, s := range ss {
+		wg.Add(1)
+
+		go func(s *scheduler) {
+			ctx, cancle := context.WithTimeout(context.Background(), connectTimeout*time.Second)
+			defer cancle()
+
+			if nodeInfo, err := s.GetNodeInfo(ctx, nodeID); err != nil {
+				log.Errorf("get node info error:%s, nodeID:%s", err, nodeID)
+			} else {
+				if nodeInfo.NodeID == nodeID {
+
+					lock.Lock()
+					schedulers = append(schedulers, s.url)
+					lock.Unlock()
+				}
+			}
+
+			wg.Done()
+		}(s)
+	}
+
+	wg.Wait()
+
+	return schedulers, nil
+}
+
+func (locator *Locator) newSchedulers(urls []string) ([]*scheduler, error) {
+	return nil, nil
 }
 
 func (locator *Locator) EdgeDownloadInfos(ctx context.Context, cid string) (*types.EdgeDownloadInfoList, error) {
-	remoteAddr := handler.GetRemoteAddr(ctx)
-	areaID, err := locator.getAreaIDWith(remoteAddr)
-	if err != nil {
-		return nil, err
-	}
+	// remoteAddr := handler.GetRemoteAddr(ctx)
+	// areaID, err := locator.getAreaIDWith(remoteAddr)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	schedulerAPI := locator.ApMgr.randSchedulerAPI(areaID)
-	if schedulerAPI == nil {
-		schedulerAPI, err = locator.getFirstOnlineSchedulerAPIAt(areaID)
-		if err != nil {
-			return nil, err
-		}
-	}
+	// schedulerAPI := locator.ApMgr.randSchedulerAPI(areaID)
+	// if schedulerAPI == nil {
+	// 	schedulerAPI, err = locator.getFirstOnlineSchedulerAPIAt(areaID)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 
-	if schedulerAPI != nil {
-		return schedulerAPI.GetEdgeDownloadInfos(ctx, cid)
-	}
+	// if schedulerAPI != nil {
+	// 	return schedulerAPI.GetEdgeDownloadInfos(ctx, cid)
+	// }
 
 	return nil, nil
 }
@@ -266,99 +151,30 @@ func (locator *Locator) getAreaIDWith(remoteAddr string) (string, error) {
 	return defaultAreaID, nil
 }
 
-func (locator *Locator) getFirstOnlineSchedulerAPIAt(areaID string) (*schedulerAPI, error) {
-	schedulerCfgs, err := locator.DB.getAccessPointConfigs(areaID)
-	if err != nil {
-		log.Errorf("getCfg, access point %s not exist", areaID)
-		return nil, err
-	}
-
-	for _, cfg := range schedulerCfgs {
-		api, err := locator.ApMgr.getSchedulerAPI(cfg.SchedulerURL, areaID, cfg.AccessToken)
-		if err != nil {
-			log.Warnf("getFirstOnlineSchedulerAPIAt, areaID:%s, scheduler %s offline", areaID, cfg.SchedulerURL)
-			continue
-		}
-
-		return api, nil
-	}
-
-	return nil, fmt.Errorf("area %s no online scheduler exist", areaID)
-}
-
-// AllocateNodes allocate nodes
-func (locator *Locator) RegisterNode(ctx context.Context, schedulerURL, nodeID, publicKey string, nodeType types.NodeType) error {
-	cfg, err := locator.DB.getSchedulerCfg(schedulerURL)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return fmt.Errorf("scheduler %s not exist", schedulerURL)
-		}
-		return err
-	}
-
-	schedulerAPI, err := locator.ApMgr.getSchedulerAPI(schedulerURL, cfg.AreaID, cfg.AccessToken)
-	if err != nil {
-		return err
-	}
-
-	err = schedulerAPI.RegisterNode(ctx, nodeID, publicKey, nodeType)
-	if err != nil {
-		return err
-	}
-
-	return locator.DB.setNodeInfo(nodeID, schedulerURL, cfg.AreaID, false)
-}
-
-func (locator *Locator) GetWebAccessPoints(ctx context.Context) ([]api.AccessPoint, error) {
-	allCfg, err := locator.DB.getAllCfg()
-	if err != nil {
-		return make([]api.AccessPoint, 0), err
-	}
-
-	accessPointMap := make(map[string]*api.AccessPoint, 0)
-
-	for _, cfg := range allCfg {
-		ap, ok := accessPointMap[cfg.AreaID]
-		if !ok {
-			ap = &api.AccessPoint{AreaID: cfg.AreaID, SchedulerInfos: make([]api.SchedulerInfo, 0)}
-			accessPointMap[cfg.AreaID] = ap
-		}
-
-		schedulerInfo := api.SchedulerInfo{URL: cfg.SchedulerURL, Weight: cfg.Weight}
-		ap.SchedulerInfos = append(ap.SchedulerInfos, schedulerInfo)
-	}
-
-	accessPoints := make([]api.AccessPoint, 0, len(accessPointMap))
-	for _, accessPoint := range accessPointMap {
-		accessPoints = append(accessPoints, *accessPoint)
-	}
-
-	return accessPoints, nil
-}
-
 // load user access point for special user ip
 func (locator *Locator) GetUserAccessPoint(ctx context.Context, userIP string) (api.AccessPoint, error) {
-	areaID := defaultAreaID
-	geoInfo, err := locator.GetGeoInfo(userIP)
-	if err != nil {
-		return api.AccessPoint{}, err
-	}
+	// areaID := defaultAreaID
+	// geoInfo, err := locator.GetGeoInfo(userIP)
+	// if err != nil {
+	// 	return api.AccessPoint{}, err
+	// }
 
-	if geoInfo != nil && isValid(geoInfo.Geo) {
-		areaID = geoInfo.Geo
-	}
+	// if geoInfo != nil && isValid(geoInfo.Geo) {
+	// 	areaID = geoInfo.Geo
+	// }
 
-	schedulerCfgs, err := locator.DB.getAccessPointConfigs(areaID)
-	if err != nil {
-		return api.AccessPoint{}, err
-	}
+	// schedulerCfgs, err := locator.DB.getAccessPointConfigs(areaID)
+	// if err != nil {
+	// 	return api.AccessPoint{}, err
+	// }
 
-	infos := make([]api.SchedulerInfo, 0, len(schedulerCfgs))
-	for _, cfg := range schedulerCfgs {
-		schedulerInfo := api.SchedulerInfo{URL: cfg.SchedulerURL, Weight: cfg.Weight}
-		infos = append(infos, schedulerInfo)
-	}
+	// infos := make([]api.SchedulerInfo, 0, len(schedulerCfgs))
+	// for _, cfg := range schedulerCfgs {
+	// 	schedulerInfo := api.SchedulerInfo{URL: cfg.SchedulerURL, Weight: cfg.Weight}
+	// 	infos = append(infos, schedulerInfo)
+	// }
 
-	accessPoint := api.AccessPoint{AreaID: areaID, SchedulerInfos: infos}
-	return accessPoint, nil
+	// accessPoint := api.AccessPoint{AreaID: areaID, SchedulerInfos: infos}
+	// return accessPoint, nil
+	return api.AccessPoint{}, nil
 }
