@@ -4,8 +4,8 @@ import "context"
 
 // Validation is an interface for validate-related operations
 type Validation interface {
-	// Validate check node asset and bandwidth
-	Validate(ctx context.Context, req *ValidateReq) error //perm:read
+	// ExecuteValidation check node asset and bandwidth
+	ExecuteValidation(ctx context.Context, req *ValidateReq) error //perm:read
 }
 
 // ValidateReq represents the request parameters for validation

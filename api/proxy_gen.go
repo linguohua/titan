@@ -181,8 +181,6 @@ type SchedulerStruct struct {
 
 		CheckNetworkConnectivity func(p0 context.Context, p1 string, p2 string) error `perm:"read"`
 
-		NodeLogin func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
-
 		DeleteEdgeUpdateConfig func(p0 context.Context, p1 int) error `perm:"admin"`
 
 		EdgeConnect func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"write"`
@@ -218,6 +216,8 @@ type SchedulerStruct struct {
 		GetValidationResults func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidationResultRsp, error) `perm:"read"`
 
 		NatPunch func(p0 context.Context, p1 *types.NatPunchReq) error `perm:"read"`
+
+		NodeLogin func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
 		NodeRemoveAssetResult func(p0 context.Context, p1 types.RemoveAssetResult) error `perm:"write"`
 
@@ -255,7 +255,7 @@ type SchedulerStub struct {
 
 type ValidationStruct struct {
 	Internal struct {
-		Validate func(p0 context.Context, p1 *ValidateReq) error `perm:"read"`
+		ExecuteValidation func(p0 context.Context, p1 *ValidateReq) error `perm:"read"`
 	}
 }
 
@@ -658,17 +658,6 @@ func (s *SchedulerStub) CheckNetworkConnectivity(p0 context.Context, p1 string, 
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) NodeLogin(p0 context.Context, p1 string, p2 string) (string, error) {
-	if s.Internal.NodeLogin == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.NodeLogin(p0, p1, p2)
-}
-
-func (s *SchedulerStub) NodeLogin(p0 context.Context, p1 string, p2 string) (string, error) {
-	return "", ErrNotSupported
-}
-
 func (s *SchedulerStruct) DeleteEdgeUpdateConfig(p0 context.Context, p1 int) error {
 	if s.Internal.DeleteEdgeUpdateConfig == nil {
 		return ErrNotSupported
@@ -867,6 +856,17 @@ func (s *SchedulerStub) NatPunch(p0 context.Context, p1 *types.NatPunchReq) erro
 	return ErrNotSupported
 }
 
+func (s *SchedulerStruct) NodeLogin(p0 context.Context, p1 string, p2 string) (string, error) {
+	if s.Internal.NodeLogin == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.NodeLogin(p0, p1, p2)
+}
+
+func (s *SchedulerStub) NodeLogin(p0 context.Context, p1 string, p2 string) (string, error) {
+	return "", ErrNotSupported
+}
+
 func (s *SchedulerStruct) NodeRemoveAssetResult(p0 context.Context, p1 types.RemoveAssetResult) error {
 	if s.Internal.NodeRemoveAssetResult == nil {
 		return ErrNotSupported
@@ -1021,14 +1021,14 @@ func (s *SchedulerStub) VerifyNodeAuthToken(p0 context.Context, p1 string) ([]au
 	return *new([]auth.Permission), ErrNotSupported
 }
 
-func (s *ValidationStruct) Validate(p0 context.Context, p1 *ValidateReq) error {
-	if s.Internal.Validate == nil {
+func (s *ValidationStruct) ExecuteValidation(p0 context.Context, p1 *ValidateReq) error {
+	if s.Internal.ExecuteValidation == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.Validate(p0, p1)
+	return s.Internal.ExecuteValidation(p0, p1)
 }
 
-func (s *ValidationStub) Validate(p0 context.Context, p1 *ValidateReq) error {
+func (s *ValidationStub) ExecuteValidation(p0 context.Context, p1 *ValidateReq) error {
 	return ErrNotSupported
 }
 

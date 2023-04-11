@@ -32,7 +32,6 @@ func NewDataSync(sync Sync) *DataSync {
 }
 
 // CompareTopHash compares the local top hash with the given hash
-// topHash is the checksum of all buckets
 func (ds *DataSync) CompareTopHash(ctx context.Context, topHash string) (bool, error) {
 	hash, err := ds.GetTopHash(ctx)
 	if err != nil {
@@ -43,7 +42,6 @@ func (ds *DataSync) CompareTopHash(ctx context.Context, topHash string) (bool, e
 }
 
 // CompareBucketHashes groups assets in a bucket and compares individual bucket checksums
-// hashes is a map of bucket number to bucket checksum
 func (ds *DataSync) CompareBucketHashes(ctx context.Context, hashes map[uint32]string) ([]uint32, error) {
 	localHashes, err := ds.GetBucketHashes(ctx)
 	if err != nil {
@@ -162,37 +160,37 @@ func (ds *DataSync) repairMismatchAsset(ctx context.Context, buckets []uint32) e
 
 // compareBuckets compares the assets in the specified bucket in the datastore and in the remote storage, returning the extra and lost assets.
 func (ds *DataSync) compareBuckets(ctx context.Context, bucketID uint32) ([]cid.Cid, []cid.Cid, error) {
-	localCars, err := ds.GetAssetsOfBucket(ctx, bucketID, false)
+	localAssets, err := ds.GetAssetsOfBucket(ctx, bucketID, false)
 	if err != nil {
 		return nil, nil, err
 	}
-	remoteCars, err := ds.GetAssetsOfBucket(ctx, bucketID, true)
+	remoteAssets, err := ds.GetAssetsOfBucket(ctx, bucketID, true)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return ds.compareCars(ctx, localCars, remoteCars)
+	return ds.compareAssets(ctx, localAssets, remoteAssets)
 }
 
-// compareCars compares the local and remote assets and returns the extra and lost assets.
-func (ds *DataSync) compareCars(ctx context.Context, localCars []cid.Cid, remoteCars []cid.Cid) ([]cid.Cid, []cid.Cid, error) {
-	localCarMap := make(map[string]cid.Cid, 0)
-	for _, car := range localCars {
-		localCarMap[car.Hash().String()] = car
+// compareAssets compares the local and remote assets and returns the extra and lost assets.
+func (ds *DataSync) compareAssets(ctx context.Context, localAssets []cid.Cid, remoteAssets []cid.Cid) ([]cid.Cid, []cid.Cid, error) {
+	localAssetMap := make(map[string]cid.Cid, 0)
+	for _, asset := range localAssets {
+		localAssetMap[asset.Hash().String()] = asset
 	}
 
-	lostCars := make([]cid.Cid, 0)
-	for _, car := range remoteCars {
-		if _, ok := localCarMap[car.Hash().String()]; ok {
-			delete(localCarMap, car.Hash().String())
+	lostAssets := make([]cid.Cid, 0)
+	for _, asset := range remoteAssets {
+		if _, ok := localAssetMap[asset.Hash().String()]; ok {
+			delete(localAssetMap, asset.Hash().String())
 		} else {
-			lostCars = append(lostCars, car)
+			lostAssets = append(lostAssets, asset)
 		}
 	}
 
-	extraCars := make([]cid.Cid, 0)
-	for _, car := range localCarMap {
-		extraCars = append(extraCars, car)
+	extraAssets := make([]cid.Cid, 0)
+	for _, asset := range localAssetMap {
+		extraAssets = append(extraAssets, asset)
 	}
-	return extraCars, lostCars, nil
+	return extraAssets, lostAssets, nil
 }

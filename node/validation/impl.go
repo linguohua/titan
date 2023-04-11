@@ -21,20 +21,21 @@ type Validation struct {
 	cancelChannel chan bool
 }
 
-type Asset interface {
-	GetBlock(ctx context.Context) (blocks.Block, error)
-}
 type Checker interface {
 	GetChecker(ctx context.Context, randomSeed int64) (Asset, error)
 }
 
-// NewValidationManager creates a new ValidationManager instance
+type Asset interface {
+	GetBlock(ctx context.Context) (blocks.Block, error)
+}
+
+// NewValidation creates a new Validation instance
 func NewValidation(c Checker, device *device.Device) *Validation {
 	return &Validation{checker: c, device: device}
 }
 
 // ExecuteValidation performs the validation process
-func (v *Validation) Validate(ctx context.Context, req *api.ValidateReq) error {
+func (v *Validation) ExecuteValidation(ctx context.Context, req *api.ValidateReq) error {
 	conn, err := newTCPClient(req.TCPSrvAddr)
 	if err != nil {
 		log.Errorf("new tcp client err:%v", err)
@@ -47,13 +48,13 @@ func (v *Validation) Validate(ctx context.Context, req *api.ValidateReq) error {
 }
 
 // StopValidation sends a cancellation signal to stop the validation process
-func (v *Validation) CancelValidate() {
+func (v *Validation) StopValidation() {
 	if v.cancelChannel != nil {
 		v.cancelChannel <- true
 	}
 }
 
-// transmitBlocks sends blocks over a TCP connection with rate limiting
+// sendBlocks sends blocks over a TCP connection with rate limiting
 func (v *Validation) sendBlocks(conn *net.TCPConn, req *api.ValidateReq, speedRate int64) error {
 	defer func() {
 		v.cancelChannel = nil
