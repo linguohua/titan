@@ -16,6 +16,7 @@ import (
 
 var log = logging.Logger("device")
 
+// Device represents a device and its properties
 type Device struct {
 	nodeID        string
 	publicIP      string
@@ -25,11 +26,13 @@ type Device struct {
 	storage       Storage
 }
 
+// Storage represents a storage system and its properties.
 type Storage interface {
 	GetDiskUsageStat() (totalSpace, usage float64)
 	GetFilesystemType() string
 }
 
+// NewDevice creates a new Device instance with the specified properties.
 func NewDevice(nodeID, internalIP string, bandwidthUp, bandwidthDown int64, storage Storage) *Device {
 	device := &Device{
 		nodeID:        nodeID,
@@ -46,6 +49,7 @@ func NewDevice(nodeID, internalIP string, bandwidthUp, bandwidthDown int64, stor
 	return device
 }
 
+// GetNodeInfo returns information about the device as a NodeInfo struct.
 func (device *Device) GetNodeInfo(ctx context.Context) (types.NodeInfo, error) {
 	info := types.NodeInfo{}
 
@@ -101,6 +105,7 @@ func (device *Device) GetNodeInfo(ctx context.Context) (types.NodeInfo, error) {
 	return info, nil
 }
 
+// getMacAddr returns the MAC address associated with the specified IP address.
 func getMacAddr(ip string) (string, error) {
 	ifas, err := net.Interfaces()
 	if err != nil {
@@ -125,22 +130,27 @@ func getMacAddr(ip string) (string, error) {
 	return "", nil
 }
 
+// SetBandwidthUp sets the bandwidth upload limit for the device.
 func (device *Device) SetBandwidthUp(bandwidthUp int64) {
 	device.bandwidthUp = bandwidthUp
 }
 
+// GetBandwidthUp returns the bandwidth upload limit for the device.
 func (device *Device) GetBandwidthUp() int64 {
 	return device.bandwidthUp
 }
 
+// GetBandwidthDown returns the bandwidth download limit for the device.
 func (device *Device) GetBandwidthDown() int64 {
 	return device.bandwidthDown
 }
 
+// GetInternalIP returns the internal IP address for the device.
 func (device *Device) GetInternalIP() string {
 	return device.internalIP
 }
 
+// GetNodeID returns the ID of the device.
 func (device *Device) GetNodeID(ctx context.Context) (string, error) {
 	return device.nodeID, nil
 }
