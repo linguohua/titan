@@ -10,6 +10,7 @@ import (
 	mh "github.com/multiformats/go-multihash"
 )
 
+// blockWaiter holds the information necessary to wait for blocks from a node
 type blockWaiter struct {
 	ch       chan tcpMsg
 	result   *api.ValidationResult
@@ -17,10 +18,12 @@ type blockWaiter struct {
 	NodeValidatedResulter
 }
 
+// NodeValidatedResulter is the interface to return the validation result
 type NodeValidatedResulter interface {
 	NodeValidationResult(ctx context.Context, vr api.ValidationResult) error
 }
 
+// newBlockWaiter creates a new blockWaiter instance
 func newBlockWaiter(nodeID string, ch chan tcpMsg, duration int, resulter NodeValidatedResulter) *blockWaiter {
 	bw := &blockWaiter{ch: ch, duration: duration, result: &api.ValidationResult{NodeID: nodeID}, NodeValidatedResulter: resulter}
 	go bw.wait()
@@ -28,6 +31,7 @@ func newBlockWaiter(nodeID string, ch chan tcpMsg, duration int, resulter NodeVa
 	return bw
 }
 
+// wait waits for blocks from a node, and stores the validation result
 func (bw *blockWaiter) wait() {
 	size := int64(0)
 	now := time.Now()
@@ -66,10 +70,12 @@ func (bw *blockWaiter) wait() {
 	}
 }
 
+// sendValidateResult sends the validation result
 func (bw *blockWaiter) sendValidateResult() error {
 	return bw.NodeValidationResult(context.Background(), *bw.result)
 }
 
+// calculateBandwidth calculates the bandwidth based on the block size and duration
 func (bw *blockWaiter) calculateBandwidth(costTime int64, size int64) {
 	bw.result.CostTime = costTime
 	if costTime < int64(bw.duration) {
@@ -78,6 +84,7 @@ func (bw *blockWaiter) calculateBandwidth(costTime int64, size int64) {
 	bw.result.Bandwidth = float64(size) / float64(costTime)
 }
 
+// cidFromData creates a CID from the given data
 func cidFromData(data []byte) (string, error) {
 	if len(data) == 0 {
 		return "", fmt.Errorf("convert data to cid error: data len == 0")

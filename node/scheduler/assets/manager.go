@@ -136,7 +136,7 @@ func (m *Manager) retrieveNodePullProgresses() {
 
 	// Process pulling assets
 	for hash := range m.apTickers {
-		cid, err := cidutil.HashString2CIDString(hash)
+		cid, err := cidutil.HashToCID(hash)
 		if err != nil {
 			log.Errorf("retrieveNodePullProgresses %s HashString2CIDString err:%s", hash, err.Error())
 			continue
@@ -338,7 +338,7 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 	for _, progress := range result.Progresses {
 		log.Debugf("updateAssetPullResults node_id: %s, status: %d, size: %d/%d, cid: %s ", nodeID, progress.Status, progress.DoneSize, progress.Size, progress.CID)
 
-		hash, err := cidutil.CIDString2HashString(progress.CID)
+		hash, err := cidutil.CIDToHash(progress.CID)
 		if err != nil {
 			log.Errorf("%s cid to hash err:%s", progress.CID, err.Error())
 			continue
@@ -465,7 +465,7 @@ func (m *Manager) removeTickerForAsset(key string) {
 
 // UpdateAssetExpiration updates the asset expiration for a given CID
 func (m *Manager) UpdateAssetExpiration(cid string, t time.Time) error {
-	hash, err := cidutil.CIDString2HashString(cid)
+	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
 		return err
 	}
@@ -539,7 +539,7 @@ func (m *Manager) GetCandidateReplicaCount() int {
 
 // GetAssetRecordInfo get the asset record info for cid
 func (m *Manager) GetAssetRecordInfo(cid string) (*types.AssetRecord, error) {
-	hash, err := cidutil.CIDString2HashString(cid)
+	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
 		return nil, err
 	}

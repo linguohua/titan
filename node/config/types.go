@@ -4,6 +4,7 @@ package config
 // //
 // // After making edits here, run 'make cfgdoc-gen' (or 'make gen')
 
+// EdgeCfg edge node config
 type EdgeCfg struct {
 	// host address and port the edge node api will listen on
 	ListenAddress string
@@ -39,6 +40,7 @@ type EdgeCfg struct {
 	FetchBatch int
 }
 
+// CandidateCfg candidate node config
 type CandidateCfg struct {
 	EdgeCfg
 	TCPSrvAddr       string
@@ -46,6 +48,7 @@ type CandidateCfg struct {
 	ValidateDuration int
 }
 
+// LocatorCfg locator config
 type LocatorCfg struct {
 	// host address and port the edge node api will listen on
 	ListenAddress string
@@ -69,6 +72,7 @@ type LocatorCfg struct {
 	CaCertificatePath string
 }
 
+// SchedulerCfg scheduler config
 type SchedulerCfg struct {
 	// host external address and port
 	RPCURL string

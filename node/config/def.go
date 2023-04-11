@@ -74,6 +74,7 @@ func DefaultCandidateCfg() *CandidateCfg {
 	}
 }
 
+// DefaultLocatorCfg returns the default locator config
 func DefaultLocatorCfg() *LocatorCfg {
 	return &LocatorCfg{
 		ListenAddress:   "0.0.0.0:5000",
@@ -89,6 +90,7 @@ func DefaultLocatorCfg() *LocatorCfg {
 	}
 }
 
+// DefaultSchedulerCfg returns the default scheduler config
 func DefaultSchedulerCfg() *SchedulerCfg {
 	return &SchedulerCfg{
 		RPCURL:             "https://localhost:3456/rpc/v0",
@@ -126,6 +128,7 @@ func (dur *Duration) UnmarshalText(text []byte) error {
 	return err
 }
 
+// MarshalText implements interface for TOML encoding
 func (dur Duration) MarshalText() ([]byte, error) {
 	d := time.Duration(dur)
 	return []byte(d.String()), nil
