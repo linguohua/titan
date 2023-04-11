@@ -23,12 +23,14 @@ const (
 	keyOfBucketHashes = "checksums"
 )
 
+// AssetView manages and stores the assets in a bucket-based structure.
 type AssetsView struct {
 	*bucket
 
 	lock *sync.Mutex
 }
 
+// NewAssetView creates a new AssetView instance.
 func newAssetsView(baseDir string, bucketSize uint32) (*AssetsView, error) {
 	ds, err := newKVstore(baseDir)
 	if err != nil {
@@ -38,11 +40,13 @@ func newAssetsView(baseDir string, bucketSize uint32) (*AssetsView, error) {
 	return &AssetsView{bucket: &bucket{ds: ds, size: bucketSize}, lock: &sync.Mutex{}}, nil
 }
 
+// SetTopHash sets the top hash of the bucket hierarchy.
 func (dv *AssetsView) setTopHash(ctx context.Context, topHash string) error {
 	key := ds.NewKey(keyOfTopHash)
 	return dv.ds.Put(ctx, key, []byte(topHash))
 }
 
+// GetTopHash gets the top hash of the bucket hierarchy.
 func (dv *AssetsView) getTopHash(ctx context.Context) (string, error) {
 	key := ds.NewKey(keyOfTopHash)
 	val, err := dv.ds.Get(ctx, key)
@@ -53,11 +57,13 @@ func (dv *AssetsView) getTopHash(ctx context.Context) (string, error) {
 	return string(val), nil
 }
 
+// RemoveTopHash removes the top hash of the bucket hierarchy.
 func (dv *AssetsView) removeTopHash(ctx context.Context) error {
 	key := ds.NewKey(keyOfTopHash)
 	return dv.ds.Delete(ctx, key)
 }
 
+// RemoveTopHash removes the top hash of the bucket hierarchy.
 func (dv *AssetsView) setBucketHashes(ctx context.Context, checksums map[uint32]string) error {
 	var buffer bytes.Buffer
 	enc := gob.NewEncoder(&buffer)
@@ -70,6 +76,7 @@ func (dv *AssetsView) setBucketHashes(ctx context.Context, checksums map[uint32]
 	return dv.ds.Put(ctx, key, buffer.Bytes())
 }
 
+// GetBucketHashes gets the hash values for each bucket.
 func (dv *AssetsView) getBucketHashes(ctx context.Context) (map[uint32]string, error) {
 	key := ds.NewKey(keyOfBucketHashes)
 	val, err := dv.ds.Get(ctx, key)
@@ -88,11 +95,13 @@ func (dv *AssetsView) getBucketHashes(ctx context.Context) (map[uint32]string, e
 	return out, nil
 }
 
+// RemoveBucketHashes removes the hash values for each bucket.
 func (dv *AssetsView) removeBucketHashes(ctx context.Context) error {
 	key := ds.NewKey(keyOfBucketHashes)
 	return dv.ds.Delete(ctx, key)
 }
 
+// AddAsset adds an asset to the AssetView.
 func (dv *AssetsView) addAsset(ctx context.Context, root cid.Cid) error {
 	dv.lock.Lock()
 	defer dv.lock.Unlock()
@@ -113,6 +122,7 @@ func (dv *AssetsView) addAsset(ctx context.Context, root cid.Cid) error {
 	return nil
 }
 
+// RemoveAsset removes an asset from the AssetView.
 func (dv *AssetsView) removeAsset(ctx context.Context, root cid.Cid) error {
 	dv.lock.Lock()
 	defer dv.lock.Unlock()
@@ -133,6 +143,7 @@ func (dv *AssetsView) removeAsset(ctx context.Context, root cid.Cid) error {
 	return nil
 }
 
+// Update updates the hash values in the AssetView after adding or removing an asset.
 func (dv *AssetsView) update(ctx context.Context, bucketID uint32, assetHashes []multihash.Multihash) error {
 	bucketHashes, err := dv.getBucketHashes(ctx)
 	if err != nil {
@@ -180,6 +191,7 @@ func (dv *AssetsView) update(ctx context.Context, bucketID uint32, assetHashes [
 	return nil
 }
 
+// CalculateBucketHash calculates the hash of all asset hashes within a bucket.
 func (dv *AssetsView) calculateBucketHash(hashes []multihash.Multihash) (string, error) {
 	hash := sha256.New()
 	for _, h := range hashes {
@@ -190,6 +202,7 @@ func (dv *AssetsView) calculateBucketHash(hashes []multihash.Multihash) (string,
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
+// CalculateTopHash calculates the top hash value from the bucket hash values.
 func (dv *AssetsView) calculateTopHash(checksums map[uint32]string) (string, error) {
 	hash := sha256.New()
 	for _, checksum := range checksums {
@@ -273,6 +286,7 @@ func has(mhs []multihash.Multihash, mh multihash.Multihash) bool {
 	return false
 }
 
+// Encode encodes the multihash array into a byte array.
 func (b *bucket) encode(mhs []multihash.Multihash) ([]byte, error) {
 	var buf bytes.Buffer
 	for _, mh := range mhs {
@@ -291,6 +305,7 @@ func (b *bucket) encode(mhs []multihash.Multihash) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// Decode decodes a byte array into a multihash array.
 func (b *bucket) decode(bs []byte) ([]multihash.Multihash, error) {
 	sizeOfUint32 := 4
 	mhs := make([]multihash.Multihash, 0)

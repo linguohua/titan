@@ -7,7 +7,8 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
+// BlockFetcher is an interface for fetching blocks from remote sources
 type BlockFetcher interface {
-	// get block from remote
+	// FetchBlocks retrieves blocks with the given cids from remote sources using the provided CandidateDownloadInfo
 	Fetch(ctx context.Context, cids []string, dss []*types.CandidateDownloadInfo) ([]blocks.Block, error)
 }

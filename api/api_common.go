@@ -27,29 +27,28 @@ import (
 type Common interface {
 	// MethodGroup: Auth
 
+	// AuthVerify checks whether the specified token is valid and returns the list of permissions associated with it.
 	AuthVerify(ctx context.Context, token string) ([]auth.Permission, error) //perm:read
-	AuthNew(ctx context.Context, perms []auth.Permission) (string, error)    //perm:admin
+	// AuthNew creates a new token with the specified list of permissions.
+	AuthNew(ctx context.Context, perms []auth.Permission) (string, error) //perm:admin
 
 	// MethodGroup: Log
 
-	LogList(context.Context) ([]string, error)         //perm:write
+	// LogList returns a list of all logs in the system.
+	LogList(context.Context) ([]string, error) //perm:write
+	// LogSetLevel sets the log level of the specified logger.
 	LogSetLevel(context.Context, string, string) error //perm:write
-
 	// LogAlerts returns list of all, active and inactive alerts tracked by the
-	// node
 	LogAlerts(ctx context.Context) ([]alerting.Alert, error) //perm:admin
 
 	// MethodGroup: Common
 
 	// Version provides information about API provider
 	Version(context.Context) (APIVersion, error) //perm:read
-
 	// Discover returns an OpenRPC document describing an RPC API.
 	Discover(ctx context.Context) (types.OpenRPCDocument, error) //perm:read
-
-	// trigger graceful shutdown
+	// Shutdown trigger graceful shutdown
 	Shutdown(context.Context) error //perm:admin
-
 	// Session returns a random UUID of api provider session
 	Session(ctx context.Context) (uuid.UUID, error) //perm:write
 

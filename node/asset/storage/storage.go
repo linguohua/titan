@@ -8,6 +8,7 @@ import (
 	"github.com/ipfs/go-libipfs/blocks"
 )
 
+// Storage is an interface for handling storage operations related to assets.
 type Storage interface {
 	PutAssetPuller(c cid.Cid, data []byte) error
 	GetAssetPuller(c cid.Cid) ([]byte, error)
