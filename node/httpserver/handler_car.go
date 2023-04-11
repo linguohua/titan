@@ -10,6 +10,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
+// ServeCar handles HTTP requests for serving CAR files
 func (hs *HttpServer) serveCar(w http.ResponseWriter, r *http.Request, credentials *types.Credentials, carVersion string) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()

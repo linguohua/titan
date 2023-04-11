@@ -20,15 +20,14 @@ const (
 	immutableCacheControl = "public, max-age=29030400, immutable"
 )
 
-var (
-	onlyASCII = regexp.MustCompile("[[:^ascii:]]")
-)
+var onlyASCII = regexp.MustCompile("[[:^ascii:]]")
 
 type Handler struct {
 	handler http.Handler
 	hs      *HttpServer
 }
 
+// ServeHTTP checks if the request path starts with the IPFS path prefix and delegates to the appropriate handler
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case strings.HasPrefix(r.URL.Path, ipfsPathPrefix):
@@ -38,10 +37,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// NewHandler creates a new IPFSHandler with the given HTTP handler
 func (hs *HttpServer) NewHandler(handler http.Handler) http.Handler {
 	return &Handler{handler, hs}
 }
 
+// handler is the main request handler for serving IPFS content
 func (hs *HttpServer) handler(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("handler path: %s", r.URL.Path)
 
@@ -56,6 +57,7 @@ func (hs *HttpServer) handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // generate Etag value based on HTTP request and CID
+// getEtag generates an Etag value based on the HTTP request and CID
 func getEtag(r *http.Request, cid cid.Cid) string {
 	prefix := `"`
 	suffix := `"`
@@ -71,12 +73,14 @@ func getEtag(r *http.Request, cid cid.Cid) string {
 }
 
 // Set Content-Disposition to arbitrary filename and disposition
+// setContentDispositionHeader sets the Content-Disposition header to an arbitrary filename and disposition
 func setContentDispositionHeader(w http.ResponseWriter, filename string, disposition string) {
 	utf8Name := url.PathEscape(filename)
 	asciiName := url.PathEscape(onlyASCII.ReplaceAllLiteralString(filename, "_"))
 	w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=\"%s\"; filename*=UTF-8''%s", disposition, asciiName, utf8Name))
 }
 
+// addCacheControlHeaders sets the Cache-Control and Last-Modified headers based on the contentPath properties
 func addCacheControlHeaders(w http.ResponseWriter, r *http.Request, contentPath path.Path, fileCid cid.Cid) (modtime time.Time) {
 	// Set Etag to based on CID (override whatever was set before)
 	w.Header().Set("Etag", getEtag(r, fileCid))
@@ -94,6 +98,7 @@ func addCacheControlHeaders(w http.ResponseWriter, r *http.Request, contentPath 
 	return modtime
 }
 
+// getFilename returns the filename component of a path
 func getFilename(contentPath path.Path) string {
 	s := contentPath.String()
 	if strings.HasPrefix(s, ipfsPathPrefix) {

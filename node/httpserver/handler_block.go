@@ -11,6 +11,8 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
+// serveRawBlock retrieves a raw block from the asset using the given credentials and URL path,
+// sets the appropriate headers, and serves the block to the client.
 func (hs *HttpServer) serveRawBlock(w http.ResponseWriter, r *http.Request, credentials *types.Credentials) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()

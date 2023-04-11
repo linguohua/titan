@@ -13,6 +13,7 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
+// serveTAR responds to an HTTP request with the content at the specified path in a TAR archive format.
 func (hs *HttpServer) serveTAR(w http.ResponseWriter, r *http.Request, credentials *types.Credentials) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
@@ -92,5 +93,4 @@ func (hs *HttpServer) serveTAR(w http.ResponseWriter, r *http.Request, credentia
 	}
 
 	// TODO: limit rate and report to scheduler
-
 }
