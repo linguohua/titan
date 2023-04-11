@@ -29,7 +29,7 @@ func (p *puller) store(c cid.Cid, data []byte) error {
 }
 
 // retrieve reads puller data from the filesystem.
-func (p *puller) retrieve(c cid.Cid) ([]byte, error) {
+func (p *puller) get(c cid.Cid) ([]byte, error) {
 	filePath := filepath.Join(p.baseDir, c.Hash().String())
 	return os.ReadFile(filePath)
 }

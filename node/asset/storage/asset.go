@@ -87,9 +87,9 @@ func (a *asset) storeAsset(ctx context.Context, root cid.Cid) error {
 	return os.RemoveAll(assetDir)
 }
 
-// retrieve returns a ReadSeekCloser for the given asset root.
+// get returns a ReadSeekCloser for the given asset root.
 // The caller must close the reader.
-func (a *asset) retrieve(root cid.Cid) (io.ReadSeekCloser, error) {
+func (a *asset) get(root cid.Cid) (io.ReadSeekCloser, error) {
 	// check if put asset complete
 	assetDir := filepath.Join(a.baseDir, root.Hash().String())
 	if _, err := os.Stat(assetDir); err != nil {

@@ -11,14 +11,14 @@ import (
 // Storage is an interface for handling storage operations related to assets.
 type Storage interface {
 	StorePuller(c cid.Cid, data []byte) error
-	RetrievePuller(c cid.Cid) ([]byte, error)
+	GetPuller(c cid.Cid) ([]byte, error)
 	PullerExists(c cid.Cid) (bool, error)
 	DeletePuller(c cid.Cid) error
 
 	StoreBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) error
 
 	StoreAsset(ctx context.Context, root cid.Cid) error
-	RetrieveAsset(root cid.Cid) (io.ReadSeekCloser, error)
+	GetAsset(root cid.Cid) (io.ReadSeekCloser, error)
 	AssetExists(root cid.Cid) (bool, error)
 	DeleteAsset(root cid.Cid) error
 	AssetCount() (int, error)

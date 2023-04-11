@@ -30,8 +30,8 @@ func (c *blockCount) storeBlockCount(ctx context.Context, root cid.Cid, blockCou
 	return c.ds.Put(ctx, ds.NewKey(root.Hash().String()), bs)
 }
 
-// retrieveBlockCount retrieves the blockCount of the asset with the given root CID
-func (c *blockCount) retrieveBlockCount(ctx context.Context, root cid.Cid) (uint32, error) {
+// getBlockCount retrieves the blockCount of the asset with the given root CID
+func (c *blockCount) getBlockCount(ctx context.Context, root cid.Cid) (uint32, error) {
 	val, err := c.ds.Get(ctx, ds.NewKey(root.Hash().String()))
 	if err != nil {
 		return 0, err

@@ -114,7 +114,7 @@ func (lru *lruCache) assetIndex(root cid.Cid) (index.Index, error) {
 
 // add adds an asset to the cache with a given root.
 func (lru *lruCache) add(root cid.Cid) error {
-	reader, err := lru.storage.RetrieveAsset(root)
+	reader, err := lru.storage.GetAsset(root)
 	if err != nil {
 		return err
 	}
