@@ -16,7 +16,6 @@ type lazySeeker struct {
 }
 
 // Seek implements io.Seeker interface
-// Seeks to the given offset, from whence position.
 func (s *lazySeeker) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekEnd:
@@ -35,7 +34,6 @@ func (s *lazySeeker) Seek(offset int64, whence int) (int64, error) {
 }
 
 // Read implements io.Reader interface
-// Reads the given byte slice, returning the number of bytes read and any error.
 func (s *lazySeeker) Read(b []byte) (int, error) {
 	// If we're past the end, EOF.
 	if s.offset >= s.size {
@@ -57,7 +55,6 @@ func (s *lazySeeker) Read(b []byte) (int, error) {
 }
 
 // Close implements io.Closer interface
-// Closes the reader.
 func (s *lazySeeker) Close() error {
 	if closer, ok := s.reader.(io.Closer); ok {
 		return closer.Close()

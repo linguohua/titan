@@ -92,7 +92,7 @@ func (m *Manager) startValidate() error {
 func (m *Manager) sendValidateReqToNodes(nID string, req *api.ValidateReq) {
 	cNode := m.nodeMgr.GetNode(nID)
 	if cNode != nil {
-		err := cNode.Validate(context.Background(), req)
+		err := cNode.ExecuteValidation(context.Background(), req)
 		if err != nil {
 			log.Errorf("%s Validate err:%s", nID, err.Error())
 		}
