@@ -49,7 +49,7 @@ func ConfigLocator(c interface{}) Option {
 		Override(new(region.Region), modules.NewRegion),
 		Override(new(*locator.AccessPointMgr), modules.NewAccessPointManager),
 		Override(new(dtypes.SessionCallbackFunc), func() dtypes.SessionCallbackFunc {
-			return func(s string, s2 string) {}
+			return func(s string, s2 string) error { return nil }
 		}),
 		Override(new(dtypes.DatabaseAddress), func() dtypes.DatabaseAddress {
 			return dtypes.DatabaseAddress(cfg.DatabaseAddress)

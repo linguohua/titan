@@ -9,6 +9,7 @@ import (
 	"github.com/filecoin-project/pubsub"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/modules/dtypes"
+	"golang.org/x/xerrors"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/linguohua/titan/node/scheduler/db"
@@ -96,7 +97,7 @@ func (m *Manager) storeEdgeNode(node *Node) {
 	if node == nil {
 		return
 	}
-	nodeID := node.NodeInfo.NodeID
+	nodeID := node.NodeID
 	_, loaded := m.edgeNodes.LoadOrStore(nodeID, node)
 	if loaded {
 		return
@@ -115,7 +116,7 @@ func (m *Manager) storeCandidateNode(node *Node) {
 		return
 	}
 
-	nodeID := node.NodeInfo.NodeID
+	nodeID := node.NodeID
 	_, loaded := m.candidateNodes.LoadOrStore(nodeID, node)
 	if loaded {
 		return
@@ -133,7 +134,7 @@ func (m *Manager) deleteEdgeNode(node *Node) {
 	m.repayEdgeSelectCode(node.selectCode)
 	m.notify.Pub(node, types.EventNodeOffline.String())
 
-	nodeID := node.NodeInfo.NodeID
+	nodeID := node.NodeID
 	_, loaded := m.edgeNodes.LoadAndDelete(nodeID)
 	if !loaded {
 		return
@@ -146,7 +147,7 @@ func (m *Manager) deleteCandidateNode(node *Node) {
 	m.repayCandidateSelectCode(node.selectCode)
 	m.notify.Pub(node, types.EventNodeOffline.String())
 
-	nodeID := node.NodeInfo.NodeID
+	nodeID := node.NodeID
 	_, loaded := m.candidateNodes.LoadAndDelete(nodeID)
 	if !loaded {
 		return
@@ -158,7 +159,7 @@ func (m *Manager) deleteCandidateNode(node *Node) {
 func (m *Manager) nodeKeepalive(node *Node, t time.Time, isSave bool) {
 	lastTime := node.LastRequestTime()
 
-	nodeID := node.NodeInfo.NodeID
+	nodeID := node.NodeID
 
 	if !lastTime.After(t) {
 		node.ClientCloser()
@@ -210,18 +211,19 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 
 // KeepaliveCallBackFunc Callback function to handle node keepalive
 func KeepaliveCallBackFunc(nodeMgr *Manager) (dtypes.SessionCallbackFunc, error) {
-	return func(nodeID, remoteAddr string) {
+	return func(nodeID, remoteAddr string) error {
 		lastTime := time.Now()
 
 		node := nodeMgr.GetNode(nodeID)
 		if node != nil {
 			node.SetLastRequestTime(lastTime)
-			err := node.ConnectRPC(remoteAddr, false, node.Type)
-			if err != nil {
-				log.Errorf("%s ConnectRPC err:%s", nodeID, err.Error())
+
+			if remoteAddr != node.remoteAddr {
+				return xerrors.New("remoteAddr inconsistent")
 			}
-			return
 		}
+
+		return nil
 	}, nil
 }
 
@@ -239,11 +241,11 @@ func (m *Manager) checkNodesTTL() {
 }
 
 // saveInfo Save node information when it comes online
-func (m *Manager) saveInfo(n *BaseInfo) error {
+func (m *Manager) saveInfo(n *types.NodeInfo) error {
 	n.IsQuitted = false
 	n.LastSeen = time.Now()
 
-	err := m.SaveNodeInfo(n.NodeInfo)
+	err := m.SaveNodeInfo(n)
 	if err != nil {
 		return err
 	}

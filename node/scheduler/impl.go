@@ -122,48 +122,83 @@ func (s *Scheduler) CreateNodeAuthToken(ctx context.Context, nodeID, sign string
 	return string(tk), nil
 }
 
-// processes a node connection request with the given options and node type.
-func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions, nodeType types.NodeType) error {
+// processes a node login request with the given options and node type.
+func (s *Scheduler) nodeLogin(ctx context.Context, opts *types.ConnectOptions, nodeType types.NodeType) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
-	oldNode := s.NodeManager.GetNode(nodeID)
-	if oldNode == nil {
+	alreadyLogin := true
+
+	cNode := s.NodeManager.GetNode(nodeID)
+	if cNode == nil {
 		if !s.nodeExists(nodeID, nodeType) {
 			return xerrors.Errorf("node not exists: %s , type: %d", nodeID, nodeType)
 		}
+		cNode = node.New()
+		alreadyLogin = false
 	}
-	cNode := node.New(opts.Token)
+	cNode.SetToken(opts.Token)
 
 	log.Infof("node connected %s, address:%s", nodeID, remoteAddr)
 
-	err := cNode.ConnectRPC(remoteAddr, true, nodeType)
+	err := cNode.ConnectRPC(remoteAddr, nodeType)
 	if err != nil {
 		return xerrors.Errorf("nodeConnect ConnectRPC err:%s", err.Error())
 	}
 
-	if oldNode == nil {
-		// load node info
+	if !alreadyLogin {
+		// init node info
 		nodeInfo, err := cNode.API.GetNodeInfo(ctx)
 		if err != nil {
 			log.Errorf("nodeConnect NodeInfo err:%s", err.Error())
 			return err
 		}
 
+		if nodeID != nodeInfo.NodeID {
+			return xerrors.Errorf("nodeID mismatch %s, %s", nodeID, nodeInfo.NodeID)
+		}
+
 		nodeInfo.Type = nodeType
 		nodeInfo.SchedulerID = s.ServerID
 
-		baseInfo, err := s.getNodeBaseInfo(nodeID, remoteAddr, &nodeInfo, opts.TcpServerPort)
-		if err != nil {
-			return err
+		port, err := s.NodeManager.LoadPortMapping(nodeID)
+		if err != nil && err != sql.ErrNoRows {
+			return xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 		}
+
+		pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
+		if err != nil && err != sql.ErrNoRows {
+			return xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
+		}
+
+		onlineDuration, err := s.NodeManager.LoadNodeOnlineDuration(nodeID)
+		if err != nil && err != sql.ErrNoRows {
+			return xerrors.Errorf("load node online duration %s err : %s", nodeID, err.Error())
+		}
+
+		publicKey, err := titanrsa.Pem2PublicKey([]byte(pStr))
+		if err != nil {
+			return xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
+		}
+
+		// init node info
+		nodeInfo.OnlineDuration = onlineDuration
+		nodeInfo.PortMapping = port
+		nodeInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
+		if err != nil {
+			return xerrors.Errorf("SplitHostPort err:%s", err.Error())
+		}
+
+		cNode.SetPublicKey(publicKey)
+		cNode.SetTCPPort(opts.TcpServerPort)
+		cNode.SetRemoteAddr(remoteAddr)
 
 		if nodeType == types.NodeEdge {
 			natType := s.determineNATType(context.Background(), cNode.API, remoteAddr)
-			baseInfo.NATType = natType.String()
+			nodeInfo.NATType = natType.String()
 		}
 
-		cNode.BaseInfo = baseInfo
+		cNode.NodeInfo = &nodeInfo
 
 		err = s.NodeManager.NodeOnline(cNode)
 		if err != nil {
@@ -179,48 +214,12 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 // CandidateLogin candidate node login to the scheduler
 func (s *Scheduler) CandidateLogin(ctx context.Context, opts *types.ConnectOptions) error {
-	return s.nodeConnect(ctx, opts, types.NodeCandidate)
+	return s.nodeLogin(ctx, opts, types.NodeCandidate)
 }
 
 // EdgeLogin edge node login to the scheduler
 func (s *Scheduler) EdgeLogin(ctx context.Context, opts *types.ConnectOptions) error {
-	return s.nodeConnect(ctx, opts, types.NodeEdge)
-}
-
-func (s *Scheduler) getNodeBaseInfo(nodeID, remoteAddr string, nodeInfo *types.NodeInfo, tcpPort int) (*node.BaseInfo, error) {
-	if nodeID != nodeInfo.NodeID {
-		return nil, xerrors.Errorf("nodeID mismatch %s, %s", nodeID, nodeInfo.NodeID)
-	}
-
-	port, err := s.NodeManager.LoadPortMapping(nodeID)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
-	}
-
-	pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
-	}
-
-	onlineDuration, err := s.NodeManager.LoadNodeOnlineDuration(nodeID)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, xerrors.Errorf("load node online duration %s err : %s", nodeID, err.Error())
-	}
-
-	publicKey, err := titanrsa.Pem2PublicKey([]byte(pStr))
-	if err != nil {
-		return nil, xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
-	}
-
-	// init node info
-	nodeInfo.OnlineDuration = onlineDuration
-	nodeInfo.PortMapping = port
-	nodeInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
-	if err != nil {
-		return nil, xerrors.Errorf("SplitHostPort err:%s", err.Error())
-	}
-
-	return node.NewBaseInfo(nodeInfo, publicKey, remoteAddr, tcpPort), nil
+	return s.nodeLogin(ctx, opts, types.NodeEdge)
 }
 
 // GetExternalAddress retrieves the external address of the caller.

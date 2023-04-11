@@ -117,7 +117,10 @@ func (a *CommonAPI) Session(ctx context.Context) (uuid.UUID, error) {
 		remoteAddr := handler.GetRemoteAddr(ctx)
 		nodeID := handler.GetNodeID(ctx)
 		if nodeID != "" && remoteAddr != "" {
-			a.SessionCallBack(nodeID, remoteAddr)
+			err := a.SessionCallBack(nodeID, remoteAddr)
+			if err != nil {
+				return session, err
+			}
 		}
 	}
 

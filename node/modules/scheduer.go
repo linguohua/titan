@@ -51,7 +51,7 @@ func GenerateTokenWithAdminPermission(ca *common.CommonAPI) (dtypes.PermissionAd
 
 // DefaultSessionCallback ...
 func DefaultSessionCallback() dtypes.SessionCallbackFunc {
-	return func(s string, s2 string) {}
+	return func(s string, s2 string) error { return nil }
 }
 
 type StorageManagerParams struct {

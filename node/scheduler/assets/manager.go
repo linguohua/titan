@@ -564,7 +564,7 @@ func (m *Manager) saveReplicaInformation(nodes map[string]*node.Node, hash strin
 
 	for _, node := range nodes {
 		replicaInfos = append(replicaInfos, &types.ReplicaInfo{
-			NodeID:      node.NodeInfo.NodeID,
+			NodeID:      node.NodeID,
 			Status:      types.ReplicaStatusWaiting,
 			Hash:        hash,
 			IsCandidate: isCandidate,
@@ -622,7 +622,7 @@ func (m *Manager) chooseCandidateNodesForAssetReplica(count int, filterNodes []s
 		if node == nil {
 			continue
 		}
-		nodeID := node.NodeInfo.NodeID
+		nodeID := node.NodeID
 
 		if _, exist := filterMap[nodeID]; exist {
 			continue
@@ -662,7 +662,7 @@ func (m *Manager) chooseEdgeNodesForAssetReplica(count int, filterNodes []string
 		if node == nil {
 			continue
 		}
-		nodeID := node.NodeInfo.NodeID
+		nodeID := node.NodeID
 
 		if _, exist := filterMap[nodeID]; exist {
 			continue

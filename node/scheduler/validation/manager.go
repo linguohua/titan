@@ -120,7 +120,7 @@ func (m *Manager) nodeStateChange(node *node.Node, isOnline bool) {
 		return
 	}
 
-	nodeID := node.NodeInfo.NodeID
+	nodeID := node.NodeID
 
 	isV, err := m.nodeMgr.IsValidator(nodeID)
 	if err != nil {
