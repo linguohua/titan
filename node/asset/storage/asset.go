@@ -19,7 +19,7 @@ type asset struct {
 	suffix  string
 }
 
-// NewAsset initializes a new Asset instance.
+// newAsset initializes a new asset instance.
 func newAsset(baseDir, suffix string) (*asset, error) {
 	err := os.MkdirAll(baseDir, 0o755)
 	if err != nil {
@@ -30,12 +30,12 @@ func newAsset(baseDir, suffix string) (*asset, error) {
 }
 
 // generateAssetName creates a new asset file name.
-func (a *asset) newAssetName(root cid.Cid) string {
+func (a *asset) generateAssetName(root cid.Cid) string {
 	return root.Hash().String() + a.suffix
 }
 
-// StoreBlocks stores blocks to the file system.
-func (a *asset) putBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) error {
+// storeBlocks stores blocks to the file system.
+func (a *asset) storeBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) error {
 	assetDir := filepath.Join(a.baseDir, root.Hash().String())
 	err := os.MkdirAll(assetDir, 0o755)
 	if err != nil {
@@ -52,15 +52,15 @@ func (a *asset) putBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block
 	return nil
 }
 
-// StoreAsset stores the asset to the file system.
-func (a *asset) putAsset(ctx context.Context, root cid.Cid) error {
+// storeAsset stores the asset to the file system.
+func (a *asset) storeAsset(ctx context.Context, root cid.Cid) error {
 	assetDir := filepath.Join(a.baseDir, root.Hash().String())
 	entries, err := os.ReadDir(assetDir)
 	if err != nil {
 		return err
 	}
 
-	name := a.newAssetName(root)
+	name := a.generateAssetName(root)
 	path := filepath.Join(a.baseDir, name)
 
 	rw, err := blockstore.OpenReadWrite(path, []cid.Cid{root})
@@ -87,10 +87,9 @@ func (a *asset) putAsset(ctx context.Context, root cid.Cid) error {
 	return os.RemoveAll(assetDir)
 }
 
-// get must close reader
-// Retrieve returns a ReadSeekCloser for the given asset root.
+// retrieve returns a ReadSeekCloser for the given asset root.
 // The caller must close the reader.
-func (a *asset) get(root cid.Cid) (io.ReadSeekCloser, error) {
+func (a *asset) retrieve(root cid.Cid) (io.ReadSeekCloser, error) {
 	// check if put asset complete
 	assetDir := filepath.Join(a.baseDir, root.Hash().String())
 	if _, err := os.Stat(assetDir); err != nil {
@@ -101,13 +100,13 @@ func (a *asset) get(root cid.Cid) (io.ReadSeekCloser, error) {
 		return nil, xerrors.Errorf("putting asset, not ready")
 	}
 
-	name := a.newAssetName(root)
+	name := a.generateAssetName(root)
 	filePath := filepath.Join(a.baseDir, name)
 	return os.Open(filePath)
 }
 
-// Exists checks if the asset exists in the file system.
-func (a *asset) has(root cid.Cid) (bool, error) {
+// exists checks if the asset exists in the file system.
+func (a *asset) exists(root cid.Cid) (bool, error) {
 	assetDir := filepath.Join(a.baseDir, root.Hash().String())
 	if _, err := os.Stat(assetDir); err != nil {
 		if !os.IsNotExist(err) {
@@ -117,7 +116,7 @@ func (a *asset) has(root cid.Cid) (bool, error) {
 		return false, nil
 	}
 
-	name := a.newAssetName(root)
+	name := a.generateAssetName(root)
 	filePath := filepath.Join(a.baseDir, name)
 
 	_, err := os.Stat(filePath)
@@ -132,16 +131,16 @@ func (a *asset) has(root cid.Cid) (bool, error) {
 	return true, nil
 }
 
-// Remove deletes the asset from the file system.
+// remove deletes the asset from the file system.
 func (a *asset) remove(root cid.Cid) error {
-	name := a.newAssetName(root)
+	name := a.generateAssetName(root)
 	path := filepath.Join(a.baseDir, name)
 
 	// remove file
 	return os.Remove(path)
 }
 
-// Count returns the number of assets in the file system.
+// count returns the number of assets in the file system.
 func (a *asset) count() (int, error) {
 	entries, err := os.ReadDir(a.baseDir)
 	if err != nil {

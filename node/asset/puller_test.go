@@ -28,7 +28,7 @@ func TestCache(t *testing.T) {
 		return
 	}
 
-	assetPuller := newAssetPuller(&pullerOptions{root: c, dss: nil, storage: manger, bFetcher: fetcher.NewIPFS("http://192.168.0.132:5001", 15, 1), parallel: 5})
+	assetPuller := newAssetPuller(&pullerOptions{root: c, dss: nil, storage: manger, bFetcher: fetcher.NewIPFSClient("http://192.168.0.132:5001", 15, 1), parallel: 5})
 	err = assetPuller.pullAsset()
 	if err != nil {
 		t.Errorf("pull asset error:%s", err)

@@ -12,8 +12,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// implement validate.RandomChecker
-// randomCheck implements validate.RandomChecker
+// randomCheck implements validate.Asset interface
 type randomCheck struct {
 	randomSeed int64
 	rand       *rand.Rand
@@ -55,9 +54,9 @@ func (rc *randomCheck) GetBlock(ctx context.Context) (blocks.Block, error) {
 		}
 	}
 
-	sizeOfBucket := rc.idx.BucketSize()
+	sizeOfBucket := rc.idx.BucketCount()
 	index := rc.rand.Intn(int(sizeOfBucket))
-	records, err := rc.idx.GetBucket(uint32(index))
+	records, err := rc.idx.GetBucketRecords(uint32(index))
 	if err != nil {
 		return nil, xerrors.Errorf("get bucket %w", err)
 	}
@@ -93,7 +92,7 @@ func (rc *randomCheck) randomAsset(ctx context.Context) (*cid.Cid, error) {
 	index := r.Intn(len(bucketIDs))
 	bucketID := bucketIDs[index]
 
-	cids, err := rc.GetAssetsOfBucket(ctx, uint32(bucketID))
+	cids, err := rc.GetAssetsInBucket(ctx, uint32(bucketID))
 	if err != nil {
 		return nil, xerrors.Errorf("get assets of bucket %w", err)
 	}

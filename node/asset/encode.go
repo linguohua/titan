@@ -7,8 +7,8 @@ import (
 	"github.com/linguohua/titan/api/types"
 )
 
-// AssetPullerEncoder
-type EncodeAssetPuller struct {
+// AssetPullerEncoder encodes or decodes assetPuller
+type AssetPullerEncoder struct {
 	Root                    string
 	BlocksWaitList          []string
 	BlocksPulledSuccessList []string

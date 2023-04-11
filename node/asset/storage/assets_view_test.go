@@ -13,7 +13,7 @@ func init() {
 	_ = logging.SetLogLevel("asset/store", "DEBUG")
 }
 func TestBucket(t *testing.T) {
-	ds, err := newKVstore("./test")
+	ds, err := createDatastore("./test")
 	if err != nil {
 		t.Errorf("new kv store error:%s", err.Error())
 		return

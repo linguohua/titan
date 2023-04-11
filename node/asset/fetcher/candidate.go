@@ -17,14 +17,13 @@ import (
 )
 
 // CandidateFetcher
-type Candidate struct {
+type CandidateFetcher struct {
 	retryCount int
 	httpClient *http.Client
 }
 
-// NewCandidateFetcher
-// NewCandidate creates a new CandidateFetcher with the specified timeout and retry count
-func NewCandidate(timeout, retryCount int) *Candidate {
+// NewCandidateFetcher creates a new CandidateFetcher with the specified timeout and retry count
+func NewCandidateFetcher(timeout, retryCount int) *CandidateFetcher {
 	t := http.DefaultTransport.(*http.Transport).Clone()
 	t.MaxIdleConns = 10
 	t.IdleConnTimeout = 120 * time.Second
@@ -34,18 +33,16 @@ func NewCandidate(timeout, retryCount int) *Candidate {
 		Transport: t,
 	}
 
-	return &Candidate{retryCount: retryCount, httpClient: httpClient}
+	return &CandidateFetcher{retryCount: retryCount, httpClient: httpClient}
 }
 
-// FetchBlocks
-// Fetch fetches blocks for the given cids and candidate download info
-func (c *Candidate) Fetch(ctx context.Context, cids []string, dss []*types.CandidateDownloadInfo) ([]blocks.Block, error) {
-	return c.getBlocks(cids, dss)
+// FetchBlocks fetches blocks for the given cids and candidate download info
+func (c *CandidateFetcher) FetchBlocks(ctx context.Context, cids []string, dss []*types.CandidateDownloadInfo) ([]blocks.Block, error) {
+	return c.retrieveBlocks(cids, dss)
 }
 
-// fetchSingleBlock
-// getBlock fetches a single block for the given candidate download info and cid string
-func (c *Candidate) getBlock(ds *types.CandidateDownloadInfo, cidStr string) (blocks.Block, error) {
+// fetchSingleBlock fetches a single block for the given candidate download info and cid string
+func (c *CandidateFetcher) fetchSingleBlock(ds *types.CandidateDownloadInfo, cidStr string) (blocks.Block, error) {
 	if len(ds.URL) == 0 {
 		return nil, fmt.Errorf("candidate address can not empty")
 	}
@@ -92,15 +89,14 @@ func (c *Candidate) getBlock(ds *types.CandidateDownloadInfo, cidStr string) (bl
 	return basicBlock, nil
 }
 
-// retrieveBlocks
-// getBlocks retrieves multiple blocks using the given cids and candidate download info
-func (c *Candidate) getBlocks(cids []string, dss []*types.CandidateDownloadInfo) ([]blocks.Block, error) {
+// retrieveBlocks retrieves multiple blocks using the given cids and candidate download info
+func (c *CandidateFetcher) retrieveBlocks(cids []string, dss []*types.CandidateDownloadInfo) ([]blocks.Block, error) {
 	if len(dss) == 0 {
 		return nil, fmt.Errorf("download infos can not empty")
 	}
 
 	blks := make([]blocks.Block, 0, len(cids))
-	// candidates := make(map[string]api.Candidate)
+	// candidates := make(map[string]api.CandidateFetcher)
 	blksLock := &sync.Mutex{}
 
 	var wg sync.WaitGroup
@@ -116,7 +112,7 @@ func (c *Candidate) getBlocks(cids []string, dss []*types.CandidateDownloadInfo)
 			defer wg.Done()
 
 			for i := 0; i < c.retryCount; i++ {
-				b, err := c.getBlock(ds, cidStr)
+				b, err := c.fetchSingleBlock(ds, cidStr)
 				if err != nil {
 					log.Errorf("getBlock error:%s, cid:%s", err.Error(), cidStr)
 					continue

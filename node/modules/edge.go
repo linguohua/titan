@@ -39,7 +39,7 @@ func NewAssetsManager(fetchBatch int) func(storageMgr *storage.Manager, bFetcher
 
 // NewBlockFetcherFromCandidate creates a new instance of fetcher.BlockFetcher for the candidate network.
 func NewBlockFetcherFromCandidate(cfg *config.EdgeCfg) fetcher.BlockFetcher {
-	return fetcher.NewCandidate(cfg.FetchBlockTimeout, cfg.FetchBlockRetry)
+	return fetcher.NewCandidateFetcher(cfg.FetchBlockTimeout, cfg.FetchBlockRetry)
 }
 
 // NewDataSync creates a new instance of datasync.DataSync with the given asset.Manager.

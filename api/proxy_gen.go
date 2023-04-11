@@ -17,15 +17,15 @@ var ErrNotSupported = xerrors.New("method not supported")
 
 type AssetStruct struct {
 	Internal struct {
-		CacheAsset func(p0 context.Context, p1 string, p2 []*types.CandidateDownloadInfo) error `perm:"write"`
-
 		DeleteAsset func(p0 context.Context, p1 string) error `perm:"write"`
 
 		GetAssetProgresses func(p0 context.Context, p1 []string) (*types.PullResult, error) `perm:"write"`
 
 		GetAssetStats func(p0 context.Context) (*types.AssetStats, error) `perm:"write"`
 
-		GetCachingAssetInfo func(p0 context.Context) (*types.InProgressAsset, error) `perm:"write"`
+		GetPullingAssetInfo func(p0 context.Context) (*types.InProgressAsset, error) `perm:"write"`
+
+		PullAsset func(p0 context.Context, p1 string, p2 []*types.CandidateDownloadInfo) error `perm:"write"`
 	}
 }
 
@@ -262,17 +262,6 @@ type ValidationStruct struct {
 type ValidationStub struct {
 }
 
-func (s *AssetStruct) CacheAsset(p0 context.Context, p1 string, p2 []*types.CandidateDownloadInfo) error {
-	if s.Internal.CacheAsset == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.CacheAsset(p0, p1, p2)
-}
-
-func (s *AssetStub) CacheAsset(p0 context.Context, p1 string, p2 []*types.CandidateDownloadInfo) error {
-	return ErrNotSupported
-}
-
 func (s *AssetStruct) DeleteAsset(p0 context.Context, p1 string) error {
 	if s.Internal.DeleteAsset == nil {
 		return ErrNotSupported
@@ -306,15 +295,26 @@ func (s *AssetStub) GetAssetStats(p0 context.Context) (*types.AssetStats, error)
 	return nil, ErrNotSupported
 }
 
-func (s *AssetStruct) GetCachingAssetInfo(p0 context.Context) (*types.InProgressAsset, error) {
-	if s.Internal.GetCachingAssetInfo == nil {
+func (s *AssetStruct) GetPullingAssetInfo(p0 context.Context) (*types.InProgressAsset, error) {
+	if s.Internal.GetPullingAssetInfo == nil {
 		return nil, ErrNotSupported
 	}
-	return s.Internal.GetCachingAssetInfo(p0)
+	return s.Internal.GetPullingAssetInfo(p0)
 }
 
-func (s *AssetStub) GetCachingAssetInfo(p0 context.Context) (*types.InProgressAsset, error) {
+func (s *AssetStub) GetPullingAssetInfo(p0 context.Context) (*types.InProgressAsset, error) {
 	return nil, ErrNotSupported
+}
+
+func (s *AssetStruct) PullAsset(p0 context.Context, p1 string, p2 []*types.CandidateDownloadInfo) error {
+	if s.Internal.PullAsset == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.PullAsset(p0, p1, p2)
+}
+
+func (s *AssetStub) PullAsset(p0 context.Context, p1 string, p2 []*types.CandidateDownloadInfo) error {
+	return ErrNotSupported
 }
 
 func (s *CandidateStruct) GetBlocksWithAssetCID(p0 context.Context, p1 string, p2 int64, p3 int) (map[int]string, error) {

@@ -37,7 +37,7 @@ func TestManager(t *testing.T) {
 		return
 	}
 
-	bFetcher := fetcher.NewIPFS("http://192.168.0.132:5001", 15, 1)
+	bFetcher := fetcher.NewIPFSClient("http://192.168.0.132:5001", 15, 1)
 	opts := &ManagerOptions{Storage: storageMgr, BFetcher: bFetcher, PullParallel: 5}
 
 	mgr, err := NewManager(opts)
@@ -46,7 +46,7 @@ func TestManager(t *testing.T) {
 		return
 	}
 
-	mgr.AddToWaitList(c, nil)
+	mgr.addToWaitList(c, nil)
 
 	time.Sleep(1 * time.Minute)
 }

@@ -21,14 +21,14 @@ import (
 
 const maxSizeOfCache = 128
 
-// AssetWaiter is used by Manager to store waiting assets for pulling
+// assetWaiter is used by Manager to store waiting assets for pulling
 type assetWaiter struct {
 	Root   cid.Cid
 	Dss    []*types.CandidateDownloadInfo
 	puller *assetPuller
 }
 
-// Manager is the struct that manages asset downloading and caching
+// Manager is the struct that manages asset pulling and store
 type Manager struct {
 	// root cid of asset
 	waitList     []*assetWaiter
@@ -71,7 +71,7 @@ func NewManager(opts *ManagerOptions) (*Manager, error) {
 	return m, nil
 }
 
-// startTick is a helper function that is used to check if there are any assets in the waitlist
+// startTick is a helper function that is used to check waitList and save puller
 func (m *Manager) startTick() {
 	for {
 		time.Sleep(10 * time.Second)
@@ -126,7 +126,7 @@ func (m *Manager) pullAssets() {
 	}
 }
 
-// doPullAsset pulls a single asset from the waitlist
+// doPullAsset pulls a single asset from the waitList
 func (m *Manager) doPullAsset() {
 	cw := m.headFromWaitList()
 	if cw == nil {
@@ -185,8 +185,8 @@ func (m *Manager) removeAssetFromWaitList(root cid.Cid) *assetWaiter {
 	return nil
 }
 
-// AddToWaitList adds an assetWaiter to waitList if the asset with the root CID is not already waiting to be downloaded
-func (m *Manager) AddToWaitList(root cid.Cid, dss []*types.CandidateDownloadInfo) {
+// addToWaitList adds an assetWaiter to waitList if the asset with the root CID is not already waiting to be downloaded
+func (m *Manager) addToWaitList(root cid.Cid, dss []*types.CandidateDownloadInfo) {
 	m.waitListLock.Lock()
 	defer m.waitListLock.Unlock()
 
@@ -216,7 +216,7 @@ func (m *Manager) savePuller(puller *assetPuller) error {
 	if err != nil {
 		return err
 	}
-	return m.PutAssetPuller(puller.root, buf)
+	return m.StorePuller(puller.root, buf)
 }
 
 // onPullAssetFinish is called when an assetPuller finishes downloading an asset
@@ -224,16 +224,16 @@ func (m *Manager) onPullAssetFinish(puller *assetPuller) {
 	log.Debugf("onPullAssetFinish, asset %s", puller.root.String())
 
 	if puller.isPulledComplete() {
-		if err := m.RemoveAssetPuller(puller.root); err != nil && !os.IsNotExist(err) {
+		if err := m.DeletePuller(puller.root); err != nil && !os.IsNotExist(err) {
 			log.Errorf("remove asset puller error:%s", err.Error())
 		}
 
 		blockCountOfAsset := uint32(len(puller.blocksPulledSuccessList))
-		if err := m.SetBlockCountOfAsset(context.Background(), puller.root, blockCountOfAsset); err != nil {
+		if err := m.SetBlockCount(context.Background(), puller.root, blockCountOfAsset); err != nil {
 			log.Errorf("set block count error:%s", err.Error())
 		}
 
-		if err := m.PutAsset(context.Background(), puller.root); err != nil {
+		if err := m.StoreAsset(context.Background(), puller.root); err != nil {
 			log.Errorf("put asset error: %s", err.Error())
 		}
 
@@ -244,17 +244,17 @@ func (m *Manager) onPullAssetFinish(puller *assetPuller) {
 	}
 }
 
-// SaveWaitList encodes the waitlist and stores it in the datastore.
+// saveWaitList encodes the waitList and stores it in the datastore.
 func (m *Manager) saveWaitList() error {
 	data, err := encode(&m.waitList)
 	if err != nil {
 		return err
 	}
 
-	return m.PutWaitList(data)
+	return m.StoreWaitList(data)
 }
 
-// RestoreWaitListFromStore retrieves the waitlist from the datastore and decodes it.
+// restoreWaitListFromStore retrieves the waitList from the datastore and decodes it.
 func (m *Manager) restoreWaitListFromStore() {
 	data, err := m.GetWaitList()
 	if err != nil {
@@ -277,12 +277,12 @@ func (m *Manager) restoreWaitListFromStore() {
 	log.Debugf("restoreWaitListFromStore:%#v", m.waitList)
 }
 
-// WaitListLen returns the number of items in the waitlist.
+// waitListLen returns the number of items in the waitList.
 func (m *Manager) waitListLen() int {
 	return len(m.waitList)
 }
 
-// Puller returns the asset puller associated with the first waiting item in the waitlist.
+// Puller returns the asset puller associated with the first waiting item in the waitList.
 func (m *Manager) puller() *assetPuller {
 	for _, cw := range m.waitList {
 		if cw.puller != nil {
@@ -292,7 +292,7 @@ func (m *Manager) puller() *assetPuller {
 	return nil
 }
 
-// DeleteAsset removes an asset from the datastore and the waitlist.
+// DeleteAsset removes an asset from the datastore and the waitList.
 func (m *Manager) DeleteAsset(root cid.Cid) error {
 	// remove lru puller
 	m.lru.remove(root)
@@ -306,16 +306,16 @@ func (m *Manager) DeleteAsset(root cid.Cid) error {
 		return nil
 	}
 
-	if err := m.RemoveAsset(root); err != nil {
+	if err := m.DeleteAsset(root); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// RestoreAssetPullerOrNew retrieves the asset puller associated with the given root CID, or creates a new one.
+// restoreAssetPullerOrNew retrieves the asset puller associated with the given root CID, or creates a new one.
 func (m *Manager) restoreAssetPullerOrNew(opts *pullerOptions) (*assetPuller, error) {
-	data, err := m.GetAssetPuller(opts.root)
+	data, err := m.RetrievePuller(opts.root)
 	if err != nil && !os.IsNotExist(err) {
 		log.Errorf("get asset puller error %s", err.Error())
 		return nil, err
@@ -336,8 +336,8 @@ func (m *Manager) restoreAssetPullerOrNew(opts *pullerOptions) (*assetPuller, er
 	return cc, nil
 }
 
+// deleteAssetFromWaitList removes an asset from the waitList.
 // return true if exist in waitList
-// deleteAssetFromWaitList removes an asset from the waitlist.
 func (m *Manager) deleteAssetFromWaitList(root cid.Cid) (bool, error) {
 	if c := m.removeAssetFromWaitList(root); c != nil {
 		if c.puller != nil {
@@ -352,9 +352,9 @@ func (m *Manager) deleteAssetFromWaitList(root cid.Cid) (bool, error) {
 	return false, nil
 }
 
-// cachedStatus returns the cached status of a given root CID
-func (m *Manager) cachedStatus(root cid.Cid) (types.ReplicaStatus, error) {
-	if ok, err := m.HasAsset(root); err == nil && ok {
+// cachedStatus returns the asset status of a given root CID
+func (m *Manager) assetStatus(root cid.Cid) (types.ReplicaStatus, error) {
+	if ok, err := m.AssetExists(root); err == nil && ok {
 		return types.ReplicaStatusSucceeded, nil
 	}
 
@@ -370,14 +370,14 @@ func (m *Manager) cachedStatus(root cid.Cid) (types.ReplicaStatus, error) {
 	return types.ReplicaStatusFailed, nil
 }
 
-// ProgressForFailedAsset returns the progress of a failed asset pull operation
-func (m *Manager) ProgressForFailedAsset(root cid.Cid) (*types.AssetPullProgress, error) {
+// progressForAssetPulledFailed returns the progress of a failed asset pull operation
+func (m *Manager) progressForAssetPulledFailed(root cid.Cid) (*types.AssetPullProgress, error) {
 	progress := &types.AssetPullProgress{
 		CID:    root.String(),
 		Status: types.ReplicaStatusFailed,
 	}
 
-	data, err := m.GetAssetPuller(root)
+	data, err := m.RetrievePuller(root)
 	if os.IsNotExist(err) {
 		return progress, nil
 	}
@@ -424,12 +424,12 @@ func (m *Manager) GetBlocksOfAsset(root cid.Cid, randomSeed int64, randomCount i
 		return nil, xerrors.Errorf("idx is not MultiIndexSorted")
 	}
 
-	sizeOfBuckets := multiIndex.BucketSize()
+	sizeOfBuckets := multiIndex.BucketCount()
 	ret := make(map[int]string, 0)
 
 	for i := 0; i < randomCount; i++ {
 		index := rand.Intn(int(sizeOfBuckets))
-		records, err := multiIndex.GetBucket(uint32(index))
+		records, err := multiIndex.GetBucketRecords(uint32(index))
 		if err != nil {
 			return nil, err
 		}
@@ -446,11 +446,9 @@ func (m *Manager) GetBlocksOfAsset(root cid.Cid, randomSeed int64, randomCount i
 	return ret, nil
 }
 
-// AddLostAsset implement data sync interface
-// AddLostAsset adds a lost asset to the Manager's waitlist if it is not already present in the storage
-// Implements the data sync interface
+// AddLostAsset adds a lost asset to the Manager's waitList if it is not already present in the storage
 func (m *Manager) AddLostAsset(root cid.Cid) error {
-	if has, err := m.HasAsset(root); err != nil {
+	if has, err := m.AssetExists(root); err != nil {
 		return err
 	} else if has {
 		return nil
@@ -458,7 +456,7 @@ func (m *Manager) AddLostAsset(root cid.Cid) error {
 
 	switch types.RunningNodeType {
 	case types.NodeCandidate:
-		m.AddToWaitList(root, nil)
+		m.addToWaitList(root, nil)
 	case types.NodeEdge:
 		return fmt.Errorf("not implement")
 	default:
@@ -468,17 +466,14 @@ func (m *Manager) AddLostAsset(root cid.Cid) error {
 	return nil
 }
 
-// GetAssetsOfBucket data sync interface
 // GetAssetsOfBucket retrieves the list of assets in a given bucket ID from the storage
-// Implements the data sync interface
 func (m *Manager) GetAssetsOfBucket(ctx context.Context, bucketID uint32, isRemote bool) ([]cid.Cid, error) {
 	if !isRemote {
-		return m.Storage.GetAssetsOfBucket(ctx, bucketID)
+		return m.Storage.GetAssetsInBucket(ctx, bucketID)
 	}
 	return nil, nil
 }
 
-// GetChecker validate asset by random seed
 // GetChecker returns a new instance of a random asset validator based on a given random seed
 func (m *Manager) GetChecker(ctx context.Context, randomSeed int64) (validate.Asset, error) {
 	return NewRandomCheck(randomSeed, m.Storage, nil), nil

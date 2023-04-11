@@ -83,7 +83,7 @@ func TestIndex(t *testing.T) {
 		return
 	}
 
-	reader, err := storageMgr.GetAsset(root)
+	reader, err := storageMgr.RetrieveAsset(root)
 	if err != nil {
 		t.Errorf("decode error:%s", err.Error())
 		return
@@ -138,10 +138,10 @@ func TestIndex(t *testing.T) {
 		return
 	}
 
-	t.Logf("bucket size:%d, record count:%d", newIndex.BucketSize(), newIndex.RecordCount())
+	t.Logf("bucket size:%d, record count:%d", newIndex.BucketCount(), newIndex.TotalRecordCount())
 
-	size := newIndex.BucketSize()
-	rcs, err := newIndex.GetBucket(12345 % size)
+	size := newIndex.BucketCount()
+	rcs, err := newIndex.GetBucketRecords(12345 % size)
 	if err != nil {
 		t.Errorf("GetBucket error:%s", err.Error())
 		return
