@@ -82,8 +82,8 @@ func NewManager(nodeMgr *node.Manager, configFunc dtypes.GetSchedulerConfigFunc,
 
 // Start start validate and elect task
 func (m *Manager) Start(ctx context.Context) {
-	go m.startValidation(ctx)
-	go m.electionTicker()
+	go m.startValidationTicker(ctx)
+	go m.startElectionTicker()
 
 	m.subscribe()
 }
@@ -105,17 +105,17 @@ func (m *Manager) subscribe() {
 			select {
 			case u := <-subOnline:
 				node := u.(*node.Node)
-				m.nodeStateChange(node, true)
+				m.onNodeStateChange(node, true)
 			case u := <-subOffline:
 				node := u.(*node.Node)
-				m.nodeStateChange(node, false)
+				m.onNodeStateChange(node, false)
 			}
 		}
 	}()
 }
 
-// nodeStateChange  changes in the state of a node (i.e. whether it comes online or goes offline)
-func (m *Manager) nodeStateChange(node *node.Node, isOnline bool) {
+// onNodeStateChange  changes in the state of a node (i.e. whether it comes online or goes offline)
+func (m *Manager) onNodeStateChange(node *node.Node, isOnline bool) {
 	if node == nil {
 		return
 	}
