@@ -10,11 +10,12 @@ import (
 
 // var reader *geoip2.Reader
 
-// TypeGeoLite GeoLite
+// TypeGeoLite returns the name of the GeoLite type
 func TypeGeoLite() string {
 	return "GeoLite"
 }
 
+// NewGeoLiteRegion creates a new GeoLiteRegion using the given database path
 func NewGeoLiteRegion(dbPath string) (Region, error) {
 	gl := &geoLite{dbPath}
 
@@ -33,7 +34,7 @@ func NewGeoLiteRegion(dbPath string) (Region, error) {
 	return gl, nil
 }
 
-// InitGeoLite init
+// InitGeoLite initializes a new GeoLiteRegion using the given database path
 func InitGeoLite(dbPath string) (Region, error) {
 	gl := &geoLite{dbPath}
 
@@ -56,6 +57,7 @@ type geoLite struct {
 	dbPath string
 }
 
+// GetGeoInfo retrieves the geographic information of the given IP address using the GeoLite database
 func (g geoLite) GetGeoInfo(ip string) (*GeoInfo, error) {
 	geoInfo := DefaultGeoInfo(ip)
 	if ip == "" {

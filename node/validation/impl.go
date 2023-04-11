@@ -28,10 +28,12 @@ type Checker interface {
 	GetChecker(ctx context.Context, randomSeed int64) (Asset, error)
 }
 
+// NewValidationManager creates a new ValidationManager instance
 func NewValidation(c Checker, device *device.Device) *Validation {
 	return &Validation{checker: c, device: device}
 }
 
+// ExecuteValidation performs the validation process
 func (v *Validation) Validate(ctx context.Context, req *api.ValidateReq) error {
 	conn, err := newTCPClient(req.TCPSrvAddr)
 	if err != nil {
@@ -44,12 +46,14 @@ func (v *Validation) Validate(ctx context.Context, req *api.ValidateReq) error {
 	return nil
 }
 
+// StopValidation sends a cancellation signal to stop the validation process
 func (v *Validation) CancelValidate() {
 	if v.cancelChannel != nil {
 		v.cancelChannel <- true
 	}
 }
 
+// transmitBlocks sends blocks over a TCP connection with rate limiting
 func (v *Validation) sendBlocks(conn *net.TCPConn, req *api.ValidateReq, speedRate int64) error {
 	defer func() {
 		v.cancelChannel = nil
