@@ -27,29 +27,37 @@ type Node struct {
 	jsonrpc.ClientCloser
 
 	token string
-	*BaseInfo
+
+	*types.NodeInfo
+	publicKey  *rsa.PublicKey
+	remoteAddr string
+	tcpPort    int
+
+	lastRequestTime time.Time
+	pullingCount    int // The number of asset waiting and pulling in progress
+
+	selectCode int
 }
 
 // API represents the node API
 type API struct {
+	// common api
 	api.Common
 	api.Device
 	api.Validation
 	api.DataSync
 	api.Asset
 	WaitQuiet func(ctx context.Context) error
-	// edge
+	// edge api
 	ExternalServiceAddress func(ctx context.Context, schedulerURL string) (string, error)
 	UserNATPunch           func(ctx context.Context, sourceURL string, req *types.NatPunchReq) error
-	// candidate
+	// candidate api
 	GetBlocksOfAsset func(ctx context.Context, assetCID string, randomSeed int64, randomCount int) (map[int]string, error)
 }
 
 // New creates a new node
-func New(token string) *Node {
-	node := &Node{
-		token: token,
-	}
+func New() *Node {
+	node := &Node{}
 
 	return node
 }
@@ -84,19 +92,7 @@ func APIFromCandidate(api api.Candidate) *API {
 }
 
 // ConnectRPC connects to the node RPC
-func (n *Node) ConnectRPC(addr string, isNodeLogin bool, nodeType types.NodeType) error {
-	if !isNodeLogin {
-		if addr == n.remoteAddr {
-			return nil
-		}
-
-		n.remoteAddr = addr
-
-		// close old
-		if n.ClientCloser != nil {
-			n.ClientCloser()
-		}
-	}
+func (n *Node) ConnectRPC(addr string, nodeType types.NodeType) error {
 	rpcURL := fmt.Sprintf("https://%s/rpc/v0", addr)
 
 	headers := http.Header{}
@@ -126,58 +122,53 @@ func (n *Node) ConnectRPC(addr string, isNodeLogin bool, nodeType types.NodeType
 		return nil
 	}
 
-	return xerrors.Errorf("node %s type %d not wrongful", n.NodeInfo.NodeID, n.Type)
+	return xerrors.Errorf("node %s type %d not wrongful", n.NodeID, n.Type)
 }
 
-// BaseInfo represents the common information for a node
-type BaseInfo struct {
-	*types.NodeInfo
-	publicKey  *rsa.PublicKey
-	remoteAddr string
-	tcpPort    int
-
-	lastRequestTime time.Time
-	pullingCount    int // The number of asset waiting and pulling in progress
-
-	selectCode int
-}
-
-// NewBaseInfo creates a new BaseInfo struct
-func NewBaseInfo(nodeInfo *types.NodeInfo, pKey *rsa.PublicKey, addr string, tcpPort int) *BaseInfo {
-	bi := &BaseInfo{
-		NodeInfo:   nodeInfo,
-		publicKey:  pKey,
-		remoteAddr: addr,
-		tcpPort:    tcpPort,
-	}
-
-	return bi
+// SetToken sets the token of the node
+func (n *Node) SetToken(t string) {
+	n.token = t
 }
 
 // PublicKey  returns the publicKey of the node
-func (n *BaseInfo) PublicKey() *rsa.PublicKey {
+func (n *Node) PublicKey() *rsa.PublicKey {
 	return n.publicKey
 }
 
+// SetPublicKey sets the publicKey of the node
+func (n *Node) SetPublicKey(pKey *rsa.PublicKey) {
+	n.publicKey = pKey
+}
+
 // RemoteAddr returns the rpc address of the node
-func (n *BaseInfo) RemoteAddr() string {
+func (n *Node) RemoteAddr() string {
 	return n.remoteAddr
 }
 
+// SetRemoteAddr sets the remoteAddr of the node
+func (n *Node) SetRemoteAddr(addr string) {
+	n.remoteAddr = addr
+}
+
+// SetTCPPort sets the tcpPort of the node
+func (n *Node) SetTCPPort(port int) {
+	n.tcpPort = port
+}
+
 // TCPAddr returns the tcp address of the node
-func (n *BaseInfo) TCPAddr() string {
+func (n *Node) TCPAddr() string {
 	index := strings.Index(n.remoteAddr, ":")
 	ip := n.remoteAddr[:index+1]
 	return fmt.Sprintf("%s%d", ip, n.tcpPort)
 }
 
 // RPCURL returns the rpc url of the node
-func (n *BaseInfo) RPCURL() string {
+func (n *Node) RPCURL() string {
 	return fmt.Sprintf("https://%s/rpc/v0", n.remoteAddr)
 }
 
 // DownloadAddr returns the download address of the node
-func (n *BaseInfo) DownloadAddr() string {
+func (n *Node) DownloadAddr() string {
 	addr := n.remoteAddr
 	if n.PortMapping != "" {
 		index := strings.Index(n.remoteAddr, ":")
@@ -189,37 +180,37 @@ func (n *BaseInfo) DownloadAddr() string {
 }
 
 // LastRequestTime returns the last request time of the node
-func (n *BaseInfo) LastRequestTime() time.Time {
+func (n *Node) LastRequestTime() time.Time {
 	return n.lastRequestTime
 }
 
 // SetLastRequestTime sets the last request time of the node
-func (n *BaseInfo) SetLastRequestTime(t time.Time) {
+func (n *Node) SetLastRequestTime(t time.Time) {
 	n.lastRequestTime = t
 }
 
 // SetCurPullingCount sets the number of assets being pulled by the node
-func (n *BaseInfo) SetCurPullingCount(t int) {
+func (n *Node) SetCurPullingCount(t int) {
 	n.pullingCount = t
 }
 
 // IncrCurPullingCount  increments the number of assets being pulled by the node
-func (n *BaseInfo) IncrCurPullingCount(v int) {
+func (n *Node) IncrCurPullingCount(v int) {
 	n.pullingCount += v
 }
 
 // CurPullingCount returns the number of assets being pulled by the node
-func (n *BaseInfo) CurPullingCount() int {
+func (n *Node) CurPullingCount() int {
 	return n.pullingCount
 }
 
 // UpdateNodePort updates the node port
-func (n *BaseInfo) UpdateNodePort(port string) {
+func (n *Node) UpdateNodePort(port string) {
 	n.PortMapping = port
 }
 
 // Credentials returns the credentials of the node
-func (n *BaseInfo) Credentials(cid string, titanRsa *titanrsa.Rsa, privateKey *rsa.PrivateKey) (*types.GatewayCredentials, error) {
+func (n *Node) Credentials(cid string, titanRsa *titanrsa.Rsa, privateKey *rsa.PrivateKey) (*types.GatewayCredentials, error) {
 	svc := &types.Credentials{
 		ID:        uuid.NewString(),
 		NodeID:    n.NodeID,
@@ -241,7 +232,7 @@ func (n *BaseInfo) Credentials(cid string, titanRsa *titanrsa.Rsa, privateKey *r
 }
 
 // encryptCredentials encrypts a Credentials object using the given public key and RSA instance.
-func (n *BaseInfo) encryptCredentials(at *types.Credentials, publicKey *rsa.PublicKey, rsa *titanrsa.Rsa) ([]byte, error) {
+func (n *Node) encryptCredentials(at *types.Credentials, publicKey *rsa.PublicKey, rsa *titanrsa.Rsa) ([]byte, error) {
 	var buffer bytes.Buffer
 	enc := gob.NewEncoder(&buffer)
 	err := enc.Encode(at)

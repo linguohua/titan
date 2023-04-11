@@ -21,7 +21,7 @@ type PermissionWriteToken string
 type PermissionAdminToken string
 
 // SessionCallbackFunc callback function when the node connects
-type SessionCallbackFunc func(string, string)
+type SessionCallbackFunc func(string, string) error
 
 // LocatorUUID the locator unique identifier
 type LocatorUUID string

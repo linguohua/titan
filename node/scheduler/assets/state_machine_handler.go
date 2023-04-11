@@ -58,7 +58,7 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 		for _, node := range nodes {
 			err := node.CacheAsset(ctx.Context(), info.CID, nil)
 			if err != nil {
-				log.Errorf("%s pull asset err:%s", node.NodeInfo.NodeID, err.Error())
+				log.Errorf("%s pull asset err:%s", node.NodeID, err.Error())
 				continue
 			}
 
@@ -115,7 +115,7 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 		for _, node := range nodes {
 			err := node.CacheAsset(ctx.Context(), info.CID, sources)
 			if err != nil {
-				log.Errorf("%s pull asset err:%s", node.NodeInfo.NodeID, err.Error())
+				log.Errorf("%s pull asset err:%s", node.NodeID, err.Error())
 				continue
 			}
 
@@ -175,7 +175,7 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 		for _, node := range nodes {
 			err := node.CacheAsset(ctx.Context(), info.CID, sources)
 			if err != nil {
-				log.Errorf("%s pull asset err:%s", node.NodeInfo.NodeID, err.Error())
+				log.Errorf("%s pull asset err:%s", node.NodeID, err.Error())
 				continue
 			}
 

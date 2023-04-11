@@ -99,9 +99,9 @@ func (m *Manager) GetOnlineNodeCount(nodeType types.NodeType) int {
 
 // NodeOnline registers a node as online
 func (m *Manager) NodeOnline(node *Node) error {
-	nodeID := node.NodeInfo.NodeID
+	nodeID := node.NodeID
 
-	err := m.saveInfo(node.BaseInfo)
+	err := m.saveInfo(node.NodeInfo)
 	if err != nil {
 		return err
 	}
