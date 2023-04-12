@@ -19,7 +19,7 @@ func NewEtcdClient(addresses []string) (*EtcdClient, error) {
 
 	ec := &EtcdClient{cli: etcd}
 	ec.loadSchedulerConfigs()
-	ec.watch()
+	go ec.watch()
 
 	return ec, nil
 }
@@ -48,7 +48,11 @@ func (ec *EtcdClient) loadSchedulerConfigs() error {
 	}
 
 	ec.schedulerConfigs = schedulerConfigs
-
+	for _, cfgs := range ec.schedulerConfigs {
+		for _, cfg := range cfgs {
+			log.Debugf("schedulerConfig: %#v", cfg)
+		}
+	}
 	return nil
 }
 

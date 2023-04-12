@@ -76,7 +76,7 @@ func main() {
 			}
 			return nil
 		},
-		Commands: append(local, lcli.LocationCmds...),
+		Commands: local,
 	}
 	app.Setup()
 	app.Metadata["repoType"] = repo.Locator

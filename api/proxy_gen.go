@@ -151,7 +151,7 @@ type LocatorStruct struct {
 
 		GetAccessPoints func(p0 context.Context, p1 string, p2 string) ([]string, error) `perm:"read"`
 
-		GetUserAccessPoint func(p0 context.Context, p1 string) (AccessPoint, error) `perm:"admin"`
+		GetUserAccessPoint func(p0 context.Context, p1 string) (*AccessPoint, error) `perm:"admin"`
 	}
 }
 
@@ -534,15 +534,15 @@ func (s *LocatorStub) GetAccessPoints(p0 context.Context, p1 string, p2 string) 
 	return *new([]string), ErrNotSupported
 }
 
-func (s *LocatorStruct) GetUserAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
+func (s *LocatorStruct) GetUserAccessPoint(p0 context.Context, p1 string) (*AccessPoint, error) {
 	if s.Internal.GetUserAccessPoint == nil {
-		return *new(AccessPoint), ErrNotSupported
+		return nil, ErrNotSupported
 	}
 	return s.Internal.GetUserAccessPoint(p0, p1)
 }
 
-func (s *LocatorStub) GetUserAccessPoint(p0 context.Context, p1 string) (AccessPoint, error) {
-	return *new(AccessPoint), ErrNotSupported
+func (s *LocatorStub) GetUserAccessPoint(p0 context.Context, p1 string) (*AccessPoint, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *SchedulerStruct) CandidateConnect(p0 context.Context, p1 *types.ConnectOptions) error {

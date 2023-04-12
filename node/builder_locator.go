@@ -43,18 +43,13 @@ func ConfigLocator(c interface{}) Option {
 	log.Info("start to config locator")
 
 	return Options(
+		Override(new(*config.LocatorCfg), cfg),
 		Override(new(dtypes.ServerID), modules.NewServerID),
 		Override(new(*sqlx.DB), modules.NewDB),
 		Override(new(region.Region), modules.NewRegion),
-		Override(new(*locator.SchedulerMgr), locator.NewSchedulerMgr()),
+		Override(new(locator.Storage), modules.NewLocatorStorage),
 		Override(new(dtypes.SessionCallbackFunc), func() dtypes.SessionCallbackFunc {
 			return func(s string, s2 string) error { return nil }
-		}),
-		Override(new(dtypes.DatabaseAddress), func() dtypes.DatabaseAddress {
-			return dtypes.DatabaseAddress(cfg.DatabaseAddress)
-		}),
-		Override(new(dtypes.LocatorUUID), func() dtypes.LocatorUUID {
-			return dtypes.LocatorUUID(cfg.UUID)
 		}),
 		Override(new(dtypes.GeoDBPath), func() dtypes.GeoDBPath {
 			return dtypes.GeoDBPath(cfg.GeoDBPath)

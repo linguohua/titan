@@ -15,17 +15,11 @@ type Locator interface {
 	// EdgeDownloadInfos retrieves download information for a content identifier (CID).
 	EdgeDownloadInfos(ctx context.Context, cid string) (*types.EdgeDownloadInfoList, error) //perm:read
 	// GetUserAccessPoint retrieves an access point for a user with a specified IP address.
-	GetUserAccessPoint(ctx context.Context, userIP string) (AccessPoint, error) // perm:admin
-}
-
-// SchedulerInfo contains information about a scheduler, including its URL and weight.
-type SchedulerInfo struct {
-	URL    string
-	Weight int
+	GetUserAccessPoint(ctx context.Context, userIP string) (*AccessPoint, error) // perm:admin
 }
 
 // AccessPoint represents an access point within an area, containing scheduler information.
 type AccessPoint struct {
-	AreaID         string
-	SchedulerInfos []SchedulerInfo
+	AreaID        string
+	SchedulerURLs []string
 }
