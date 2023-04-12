@@ -306,7 +306,7 @@ func (m *Manager) DeleteAsset(root cid.Cid) error {
 		return nil
 	}
 
-	if err := m.DeleteAsset(root); err != nil {
+	if err := m.Storage.DeleteAsset(root); err != nil {
 		return err
 	}
 
