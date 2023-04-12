@@ -34,7 +34,7 @@ type EdgeCfg struct {
 	CaCertificatePath string
 	// FetchTimeout get block timeout
 	FetchBlockTimeout int
-	// FetchBlockFailedRetry retry when get block failed
+	// FetchBlockRetry retry when get block failed
 	FetchBlockRetry int
 	// FetchBatch the number of goroutine to fetch block
 	FetchBatch int
@@ -56,20 +56,18 @@ type LocatorCfg struct {
 	Timeout string
 	// geodb path
 	GeoDBPath string
-	// mysql db address
-	DatabaseAddress string
-	// uuid
-	UUID string
 	// InsecureSkipVerify skip tls verify
 	InsecureSkipVerify bool
 	// used for http3 server
-	// be used if InsecureSkipVerify is true
+	// be used if InsecureSkipVerify is false
 	CertificatePath string
 	// used for http3 server
-	// be used if InsecureSkipVerify is true
+	// be used if InsecureSkipVerify is false
 	PrivateKeyPath string
 	// self sign certificate, use for client
 	CaCertificatePath string
+	// etcd server addresses
+	EtcdAddresses []string
 }
 
 // SchedulerCfg scheduler config

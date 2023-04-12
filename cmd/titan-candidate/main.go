@@ -121,6 +121,12 @@ var runCmd = &cli.Command{
 			Value:    "",
 		},
 		&cli.StringFlag{
+			Required: true,
+			Name:     "area-id",
+			Usage:    "example: --area-id=CN-GD-Shenzhen",
+			Value:    "",
+		},
+		&cli.StringFlag{
 			Name:    "key-path",
 			EnvVars: []string{"TITAN_KEY_PATH", "KEY_PATH", "PRIVATE_KEY_PATH"},
 			Usage:   "private key path, example: --key-path=/path/to/private.key",
@@ -174,8 +180,8 @@ var runCmd = &cli.Command{
 			return err
 		}
 
-		// Connect to scheduler
 		nodeID := cctx.String("device-id")
+		areaID := cctx.String("area-id")
 
 		privateKey, err := loadPrivateKey(cctx.String("key-path"), r)
 		if err != nil {
@@ -200,11 +206,12 @@ var runCmd = &cli.Command{
 		}
 		jsonrpc.SetHttp3Client(httpClient)
 
-		url, err := schedulerURL(cctx, nodeID, candidateCfg.Locator)
+		url, err := getSchedulerURL(cctx, nodeID, areaID, candidateCfg.Locator)
 		if err != nil {
 			return err
 		}
 
+		// Connect to scheduler
 		schedulerAPI, closer, err := newSchedulerAPI(cctx, url, nodeID, privateKey)
 		if err != nil {
 			return err
@@ -430,28 +437,28 @@ func newAuthTokenFromScheduler(schedulerURL, nodeID string, privateKey *rsa.Priv
 	return schedulerAPI.NodeLogin(context.Background(), nodeID, hex.EncodeToString(sign))
 }
 
-func getAccessPoint(cctx *cli.Context, nodeID string) (string, error) {
+func getAccessPoint(cctx *cli.Context, nodeID, areaID string) (string, error) {
 	locator, closer, err := lcli.GetLocatorAPI(cctx)
 	if err != nil {
 		return "", err
 	}
 	defer closer()
 
-	schedulerURLs, err := locator.GetAccessPoints(context.Background(), nodeID)
+	schedulerURLs, err := locator.GetAccessPoints(context.Background(), nodeID, areaID)
 	if err != nil {
 		return "", err
 	}
 
 	if len(schedulerURLs) <= 0 {
-		return "", fmt.Errorf("edge %s can not get access point", nodeID)
+		return "", fmt.Errorf("no access point in area %s for node %s", areaID, nodeID)
 	}
 
 	return schedulerURLs[0], nil
 }
 
-func schedulerURL(cctx *cli.Context, nodeID string, isPassLocator bool) (string, error) {
+func getSchedulerURL(cctx *cli.Context, nodeID, areaID string, isPassLocator bool) (string, error) {
 	if isPassLocator {
-		schedulerURL, err := getAccessPoint(cctx, nodeID)
+		schedulerURL, err := getAccessPoint(cctx, nodeID, areaID)
 		if err != nil {
 			return "", err
 		}

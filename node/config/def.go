@@ -5,8 +5,6 @@ import (
 	"os"
 	"strconv"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 const (
@@ -77,16 +75,14 @@ func DefaultCandidateCfg() *CandidateCfg {
 // DefaultLocatorCfg returns the default locator config
 func DefaultLocatorCfg() *LocatorCfg {
 	return &LocatorCfg{
-		ListenAddress:   "0.0.0.0:5000",
-		Timeout:         "30s",
-		GeoDBPath:       "./city.mmdb",
-		DatabaseAddress: "user01:sql001@tcp(127.0.0.1:3306)/locator",
-		UUID:            uuid.NewString(),
-
+		ListenAddress:      "0.0.0.0:5000",
+		Timeout:            "30s",
+		GeoDBPath:          "./city.mmdb",
 		InsecureSkipVerify: true,
 		CertificatePath:    "",
 		PrivateKeyPath:     "",
 		CaCertificatePath:  "",
+		EtcdAddresses:      []string{"127.0.0.1:2379"},
 	}
 }
 
