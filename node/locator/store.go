@@ -1,5 +1,7 @@
 package locator
 
+import "github.com/linguohua/titan/api/types"
+
 type storage interface {
-	GetSchedulerURLs(areaID string) ([]string, error)
+	GetSchedulerConfigs(areaID string) ([]*types.SchedulerCfg, error)
 }

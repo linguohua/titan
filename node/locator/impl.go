@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"sync"
 	"time"
 
 	"go.uber.org/fx"
 
+	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/linguohua/titan/api"
+	"github.com/linguohua/titan/api/client"
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/node/common"
 	"github.com/linguohua/titan/region"
@@ -20,8 +23,6 @@ import (
 var log = logging.Logger("locator")
 
 const (
-	// miniWeight = 0
-	// maxWeight  = 1000
 	// 3 seconds
 	connectTimeout = 3
 	defaultAreaID  = "CN-GD-Shenzhen"
@@ -37,6 +38,12 @@ type Locator struct {
 	storage storage
 }
 
+type schedulerAPI struct {
+	api.Scheduler
+	close jsonrpc.ClientCloser
+	url   string
+}
+
 func isValid(geo string) bool {
 	return len(geo) > 0 && geo != unknownAreaID
 }
@@ -46,22 +53,12 @@ func (l *Locator) GetAccessPoints(ctx context.Context, nodeID, areaID string) ([
 		return nil, fmt.Errorf("params nodeID or areaID can not empty")
 	}
 
-	schedulers := l.sMgr.getSchedulers(areaID)
-	ss, err := l.selectValidSchedulers(schedulers, nodeID)
+	configs, err := l.storage.GetSchedulerConfigs(areaID)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(ss) > 0 {
-		return ss, nil
-	}
-
-	schedulerURLs, err := l.storage.GetSchedulerURLs(areaID)
-	if err != nil {
-		return nil, err
-	}
-
-	schedulers, err = l.newSchedulers(schedulerURLs)
+	schedulers, err = l.newSchedulerAPIs(configs)
 	if err != nil {
 		return nil, err
 	}
@@ -105,8 +102,24 @@ func (locator *Locator) selectValidSchedulers(ss []*scheduler, nodeID string) ([
 	return schedulers, nil
 }
 
-func (locator *Locator) newSchedulers(urls []string) ([]*scheduler, error) {
-	return nil, nil
+func (l *Locator) newSchedulerAPIs(configs []*types.SchedulerCfg) ([]*schedulerAPI, error) {
+
+}
+
+func (l *Locator) newSchedulerAPI(config *types.SchedulerCfg) (*schedulerAPI, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout*time.Second)
+	defer cancel()
+
+	log.Debugf("newSchedulerAPI, url:%s, areaID:%s, accessToken:%s", config.SchedulerURL, config.AreaID, config.AccessToken)
+
+	headers := http.Header{}
+	headers.Add("Authorization", "Bearer "+config.AccessToken)
+	api, close, err := client.NewScheduler(ctx, config.SchedulerURL, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	return &schedulerAPI{api, close, config.SchedulerURL}, nil
 }
 
 func (locator *Locator) EdgeDownloadInfos(ctx context.Context, cid string) (*types.EdgeDownloadInfoList, error) {

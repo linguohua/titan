@@ -85,6 +85,6 @@ func (ec *EtcdClient) watch() {
 
 }
 
-func (ec *EtcdClient) GetSchedulerConfigs(areaID string) []*types.SchedulerCfg {
-	return ec.schedulerConfigs[areaID]
+func (ec *EtcdClient) GetSchedulerConfigs(areaID string) ([]*types.SchedulerCfg, error) {
+	return ec.schedulerConfigs[areaID], nil
 }
