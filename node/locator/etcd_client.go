@@ -1,14 +1,20 @@
 package locator
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/linguohua/titan/api/types"
 	"github.com/linguohua/titan/lib/etcdcli"
 	"go.etcd.io/etcd/mvcc/mvccpb"
 )
 
 type EtcdClient struct {
-	cli              *etcdcli.Client
+	cli *etcdcli.Client
+	// key is areaID, value is array of types.SchedulerCfg pointer
 	schedulerConfigs map[string][]*types.SchedulerCfg
+	// key is etcd key, value is types.SchedulerCfg pointer
+	configMap map[string]*types.SchedulerCfg
 }
 
 func NewEtcdClient(addresses []string) (*EtcdClient, error) {
@@ -17,8 +23,16 @@ func NewEtcdClient(addresses []string) (*EtcdClient, error) {
 		return nil, err
 	}
 
-	ec := &EtcdClient{cli: etcd}
-	ec.loadSchedulerConfigs()
+	ec := &EtcdClient{
+		cli:              etcd,
+		schedulerConfigs: make(map[string][]*types.SchedulerCfg),
+		configMap:        make(map[string]*types.SchedulerCfg),
+	}
+
+	if err := ec.loadSchedulerConfigs(); err != nil {
+		return nil, err
+	}
+
 	go ec.watch()
 
 	return ec, nil
@@ -45,6 +59,7 @@ func (ec *EtcdClient) loadSchedulerConfigs() error {
 		configs = append(configs, config)
 
 		schedulerConfigs[config.AreaID] = configs
+		ec.configMap[string(kv.Key)] = config
 	}
 
 	ec.schedulerConfigs = schedulerConfigs
@@ -56,32 +71,72 @@ func (ec *EtcdClient) watch() {
 		ec.schedulerConfigs = make(map[string][]*types.SchedulerCfg)
 	}
 
-	watchChan := ec.cli.WatchServers(types.NodeScheduler)
+	watchChan := ec.cli.WatchServers(context.Background(), types.NodeScheduler)
 	for {
-		resp := <-watchChan
+		resp, ok := <-watchChan
+		if !ok {
+			log.Errorf("close watch chan")
+			return
+		}
 
 		for _, event := range resp.Events {
-			log.Debugf("watch event: %s", event.Type)
-			if event.Type != mvccpb.PUT {
-				continue
-
+			switch event.Type {
+			case mvccpb.DELETE:
+				if err := ec.onDelete(event.Kv); err != nil {
+					log.Errorf("on delete error %s", err.Error())
+				}
+			case mvccpb.PUT:
+				if err := ec.onPut(event.Kv); err != nil {
+					log.Errorf("on put error %s", err.Error())
+				}
 			}
-			config, err := etcdcli.SCUnmarshal(event.Kv.Value)
-			if err != nil {
-				log.Errorf("etcd watch, unmarshal error:%s", err.Error())
-				continue
-			}
 
-			configs, ok := ec.schedulerConfigs[config.AreaID]
-			if !ok {
-				configs = make([]*types.SchedulerCfg, 0)
-			}
-			configs = append(configs, config)
-
-			ec.schedulerConfigs[config.AreaID] = configs
 		}
 	}
 
+}
+
+func (ec *EtcdClient) onPut(kv *mvccpb.KeyValue) error {
+	log.Debugf("onPut key: %s", string(kv.Key))
+	config, err := etcdcli.SCUnmarshal(kv.Value)
+	if err != nil {
+		return err
+	}
+
+	configs, ok := ec.schedulerConfigs[config.AreaID]
+	if !ok {
+		configs = make([]*types.SchedulerCfg, 0)
+	}
+	configs = append(configs, config)
+
+	ec.schedulerConfigs[config.AreaID] = configs
+	ec.configMap[string(kv.Key)] = config
+	return nil
+}
+
+func (ec *EtcdClient) onDelete(kv *mvccpb.KeyValue) error {
+	log.Debugf("onDelete key: %s", string(kv.Key))
+	config, ok := ec.configMap[string(kv.Key)]
+	if !ok {
+		return nil
+	}
+
+	configs, ok := ec.schedulerConfigs[config.AreaID]
+	if !ok {
+		return fmt.Errorf("no config in area %s", config.AreaID)
+	}
+
+	// remove config
+	for i, cfg := range configs {
+		if cfg.SchedulerURL == config.SchedulerURL {
+			configs = append(configs[:i], configs[i+1:]...)
+			break
+		}
+	}
+
+	ec.schedulerConfigs[config.AreaID] = configs
+	delete(ec.configMap, string(kv.Key))
+	return nil
 }
 
 func (ec *EtcdClient) GetSchedulerConfigs(areaID string) ([]*types.SchedulerCfg, error) {

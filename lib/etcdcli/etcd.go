@@ -94,10 +94,7 @@ func (c *Client) ServerRegister(t context.Context, serverID dtypes.ServerID, val
 }
 
 // WatchServers watch server login and logout
-func (c *Client) WatchServers(nodeType types.NodeType) clientv3.WatchChan {
-	ctx, cancel := context.WithTimeout(context.Background(), connectServerTimeoutTime*time.Second)
-	defer cancel()
-
+func (c *Client) WatchServers(ctx context.Context, nodeType types.NodeType) clientv3.WatchChan {
 	prefix := fmt.Sprintf("/%s/", nodeType.String())
 
 	watcher := clientv3.NewWatcher(c.cli)
