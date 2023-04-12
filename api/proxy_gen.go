@@ -151,7 +151,7 @@ type LocatorStruct struct {
 
 		GetAccessPoints func(p0 context.Context, p1 string, p2 string) ([]string, error) `perm:"read"`
 
-		GetUserAccessPoint func(p0 context.Context, p1 string) (*AccessPoint, error) `perm:"admin"`
+		GetUserAccessPoint func(p0 context.Context, p1 string) (*AccessPoint, error) `perm:"read"`
 	}
 }
 
