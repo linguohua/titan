@@ -21,7 +21,7 @@ const (
 	// offlineTimeMax is the maximum amount of time a node can be offline before being considered as quit
 	offlineTimeMax = 24 // hours
 
-	//  keepaliveTime is the interval between keepalive requests
+	// keepaliveTime is the interval between keepalive requests
 	keepaliveTime = 30 * time.Second // seconds
 
 	// saveInfoInterval is the interval at which node information is saved during keepalive requests
