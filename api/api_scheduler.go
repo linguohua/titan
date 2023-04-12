@@ -53,6 +53,8 @@ type Scheduler interface {
 	GetEdgeDownloadInfos(ctx context.Context, cid string) (*types.EdgeDownloadInfoList, error) //perm:read
 	// GetCandidateDownloadInfos retrieves download information for the candidate with the asset with the specified CID.
 	GetCandidateDownloadInfos(ctx context.Context, cid string) ([]*types.CandidateDownloadInfo, error) //perm:read
+	// NodeExists checks if the node with the specified ID exists.
+	NodeExists(ctx context.Context, nodeID string) error //perm:write
 
 	// Asset-related methods
 	// PullAsset Pull an asset based on the provided PullAssetReq structure.

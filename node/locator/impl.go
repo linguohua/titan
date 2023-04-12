@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"sync"
 	"time"
 
 	"go.uber.org/fx"
@@ -70,45 +69,51 @@ func (l *Locator) GetAccessPoints(ctx context.Context, nodeID, areaID string) ([
 		return nil, err
 	}
 
-	return l.selectValidSchedulers(schedulerAPIs, nodeID)
+	return l.selectBestSchedulers(schedulerAPIs, nodeID)
 }
 
-func (locator *Locator) selectValidSchedulers(apis []*schedulerAPI, nodeID string) ([]string, error) {
+func (locator *Locator) selectBestSchedulers(apis []*schedulerAPI, nodeID string) ([]string, error) {
 	if len(apis) == 0 {
 		return nil, nil
 	}
 
-	lock := &sync.Mutex{}
-	schedulers := make([]string, 0)
+	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout*time.Second)
+	defer cancel()
 
-	var wg sync.WaitGroup
+	urlCh := make(chan string)
+	errCh := make(chan error)
+
 	for _, api := range apis {
-		wg.Add(1)
-
-		go func(s *schedulerAPI) {
+		go func(ctx context.Context, s *schedulerAPI, urlCh chan string, errCh chan error) {
 			defer s.close()
 
-			ctx, cancel := context.WithTimeout(context.Background(), connectTimeout*time.Second)
-			defer cancel()
-
-			if nodeInfo, err := s.GetNodeInfo(ctx, nodeID); err != nil {
-				log.Errorf("get node info error:%s, nodeID:%s", err, nodeID)
+			if err := s.NodeExists(ctx, nodeID); err != nil {
+				errCh <- err
 			} else {
-				if nodeInfo.NodeID == nodeID {
-
-					lock.Lock()
-					schedulers = append(schedulers, s.url)
-					lock.Unlock()
-				}
+				urlCh <- s.url
 			}
 
-			wg.Done()
-		}(api)
+		}(ctx, api, urlCh, errCh)
 	}
 
-	wg.Wait()
+	schedulerURLs := make([]string, 0)
+	resultCount := 0
 
-	return schedulers, nil
+	for {
+		select {
+		case url := <-urlCh:
+			cancel()
+			resultCount++
+			schedulerURLs = append(schedulerURLs, url)
+		case err := <-errCh:
+			log.Debugf("check node exists error:%s", err.Error())
+			resultCount++
+		}
+
+		if resultCount == len(apis) {
+			return schedulerURLs, nil
+		}
+	}
 }
 
 func (l *Locator) newSchedulerAPIs(configs []*types.SchedulerCfg) ([]*schedulerAPI, error) {
@@ -184,38 +189,43 @@ func (l *Locator) getEdgeDownloadInfoFromBestScheduler(apis []*schedulerAPI, cid
 		return nil, nil
 	}
 
-	var infoListCh chan *types.EdgeDownloadInfoList
-	var errCh chan error
+	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout*time.Second)
+	defer cancel()
+
+	infoListCh := make(chan *types.EdgeDownloadInfoList)
+	errCh := make(chan error)
 
 	for _, api := range apis {
-		go func(s *schedulerAPI, ch chan *types.EdgeDownloadInfoList, errCh chan error) {
+		go func(ctx context.Context, s *schedulerAPI, ch chan *types.EdgeDownloadInfoList, errCh chan error) {
 			defer s.close()
-
-			ctx, cancel := context.WithTimeout(context.Background(), connectTimeout*time.Second)
-			defer cancel()
 
 			if infoList, err := s.GetEdgeDownloadInfos(ctx, cid); err != nil {
 				errCh <- err
 			} else {
 				infoListCh <- infoList
-				close(infoListCh)
 			}
 
-		}(api, infoListCh, errCh)
+		}(ctx, api, infoListCh, errCh)
 	}
 
-	errCount := 0
+	resultCount := 0
+	results := make([]*types.EdgeDownloadInfoList, 0)
 
 	for {
 		select {
 		case infosList := <-infoListCh:
-			return infosList, nil
+			resultCount++
+			results = append(results, infosList)
 		case err := <-errCh:
-			log.Errorf("get edge download infos error:%s", err.Error())
-			errCount++
-			if errCount == len(apis) {
-				return nil, nil
+			log.Debugf("get edge download infos error:%s", err.Error())
+			resultCount++
+		}
+
+		if resultCount == len(apis) {
+			if len(results) > 0 {
+				return results[0], nil
 			}
+			return nil, nil
 		}
 	}
 }
