@@ -12,7 +12,7 @@ var (
 )
 
 // triggers the election process at a regular interval.
-func (m *Manager) electionTicker() {
+func (m *Manager) startElectionTicker() {
 	validators, err := m.nodeMgr.LoadValidators(m.nodeMgr.ServerID)
 	if err != nil {
 		log.Errorf("electionTicker LoadValidators err: %v", err)
