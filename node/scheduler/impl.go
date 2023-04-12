@@ -323,6 +323,18 @@ func (s *Scheduler) nodeExists(nodeID string, nodeType types.NodeType) bool {
 	return true
 }
 
+// NodeExists checks if the node with the specified ID exists.
+func (s *Scheduler) NodeExists(ctx context.Context, nodeID string) error {
+	if err := s.NodeManager.NodeExists(nodeID, types.NodeEdge); err != nil {
+		if err == sql.ErrNoRows {
+			return s.NodeManager.NodeExists(nodeID, types.NodeCandidate)
+		}
+		return err
+	}
+
+	return nil
+}
+
 // GetNodeList retrieves a list of nodes with pagination.
 func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*types.ListNodesRsp, error) {
 	rsp := &types.ListNodesRsp{Data: make([]types.NodeInfo, 0)}

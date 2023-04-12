@@ -203,6 +203,8 @@ type SchedulerStruct struct {
 
 		NatPunch func(p0 context.Context, p1 *types.NatPunchReq) error `perm:"read"`
 
+		NodeExists func(p0 context.Context, p1 string) error `perm:"write"`
+
 		NodeLogin func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"read"`
 
 		NodeRemoveAssetResult func(p0 context.Context, p1 types.RemoveAssetResult) error `perm:"write"`
@@ -762,6 +764,17 @@ func (s *SchedulerStruct) NatPunch(p0 context.Context, p1 *types.NatPunchReq) er
 }
 
 func (s *SchedulerStub) NatPunch(p0 context.Context, p1 *types.NatPunchReq) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) NodeExists(p0 context.Context, p1 string) error {
+	if s.Internal.NodeExists == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.NodeExists(p0, p1)
+}
+
+func (s *SchedulerStub) NodeExists(p0 context.Context, p1 string) error {
 	return ErrNotSupported
 }
 
